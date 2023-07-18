@@ -76,7 +76,7 @@ void State::bind(const std::string& name, const Expr& e)
 {
   if (d_symTable.find(name)!=d_symTable.end())
   {
-    
+    // TODO: error
   }
   d_symTable[name] = e;
   d_decls.push_back(name);

@@ -74,12 +74,12 @@ Expr ExprParser::parseExpr()
     switch (tok)
     {
       // ------------------- open paren
-      case Token::LPAREN_TOK:
+      case Token::LPAREN:
       {
         tok = d_lex.nextToken();
         switch (tok)
         {
-          case Token::LET_TOK:
+          case Token::LET:
           {
             xstack.emplace_back(ParseCtx::LET_NEXT_BIND);
             tstack.emplace_back();
@@ -87,7 +87,7 @@ Expr ExprParser::parseExpr()
             letBinders.emplace_back();
           }
           break;
-          case Token::ATTRIBUTE_TOK:
+          case Token::ATTRIBUTE:
           {
             //TODO
           }
@@ -130,7 +130,7 @@ Expr ExprParser::parseExpr()
       }
       break;
       // ------------------- close paren
-      case Token::RPAREN_TOK:
+      case Token::RPAREN:
       {
         // should only be here if we are expecting arguments
         if (tstack.empty() || (xstack.back() != ParseCtx::NEXT_ARG
@@ -194,6 +194,11 @@ Expr ExprParser::parseExpr()
         ret = d_state.mkLiteral(Kind::STRING, s);
       }
       break;
+      case Token::TYPE:
+      {
+        ret = d_state.mkType();
+      }
+      break;
       default:
         d_lex.unexpectedTokenError(tok, "Expected SMT-LIBv2 term");
         break;
@@ -231,15 +236,15 @@ Expr ExprParser::parseExpr()
             bs.back().second = ret;
             ret = Expr();
             // close the current binding
-            d_lex.eatToken(Token::RPAREN_TOK);
+            d_lex.eatToken(Token::RPAREN);
           }
           else
           {
             // eat the opening left parenthesis of the binding list
-            d_lex.eatToken(Token::LPAREN_TOK);
+            d_lex.eatToken(Token::LPAREN);
           }
           // see if there is another binding
-          if (d_lex.eatTokenChoice(Token::LPAREN_TOK, Token::RPAREN_TOK))
+          if (d_lex.eatTokenChoice(Token::LPAREN, Token::RPAREN))
           {
             // (, another binding: setup parsing the next term
             // get the symbol and store in the ParseOp
@@ -269,7 +274,7 @@ Expr ExprParser::parseExpr()
         case ParseCtx::LET_BODY:
         {
           // the let body is the returned term
-          d_lex.eatToken(Token::RPAREN_TOK);
+          d_lex.eatToken(Token::RPAREN);
           xstack.pop_back();
           tstack.pop_back();
           // pop scope
@@ -286,10 +291,10 @@ Expr ExprParser::parseExpr()
 
 std::vector<Expr> ExprParser::parseExprList()
 {
-  d_lex.eatToken(Token::LPAREN_TOK);
+  d_lex.eatToken(Token::LPAREN);
   std::vector<Expr> terms;
   Token tok = d_lex.nextToken();
-  while (tok != Token::RPAREN_TOK)
+  while (tok != Token::RPAREN)
   {
     d_lex.reinsertToken(tok);
     Expr t = parseExpr();
@@ -302,16 +307,16 @@ std::vector<Expr> ExprParser::parseExprList()
 std::vector<std::pair<std::string, Expr>> ExprParser::parseSortedVarList()
 {
   std::vector<std::pair<std::string, Expr>> varList;
-  d_lex.eatToken(Token::LPAREN_TOK);
+  d_lex.eatToken(Token::LPAREN);
   std::string name;
   Expr t;
   // while the next token is LPAREN, exit if RPAREN
-  while (d_lex.eatTokenChoice(Token::LPAREN_TOK, Token::RPAREN_TOK))
+  while (d_lex.eatTokenChoice(Token::LPAREN, Token::RPAREN))
   {
     name = parseSymbol();
     t = parseExpr();
     varList.emplace_back(name, t);
-    d_lex.eatToken(Token::RPAREN_TOK);
+    d_lex.eatToken(Token::RPAREN);
   }
   return varList;
 }
@@ -324,10 +329,10 @@ std::string ExprParser::parseSymbol()
 
 std::vector<std::string> ExprParser::parseSymbolList()
 {
-  d_lex.eatToken(Token::LPAREN_TOK);
+  d_lex.eatToken(Token::LPAREN);
   std::vector<std::string> symbols;
   Token tok = d_lex.nextToken();
-  while (tok != Token::RPAREN_TOK)
+  while (tok != Token::RPAREN)
   {
     d_lex.reinsertToken(tok);
     std::string sym = parseSymbol();

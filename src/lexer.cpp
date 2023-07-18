@@ -128,7 +128,7 @@ void Lexer::unexpectedTokenError(Token t, const std::string& info)
   //Assert(d_peeked.empty());
   std::ostringstream o{};
   o << info << ", got `" << tokenStr() << "` (" << t << ").";
-  // Note that we treat this as an EOF exception if the token is EOF_TOK.
+  // Note that we treat this as an EOF exception if the token is EOF.
   // This is important for exception handling in interactive mode.
   parseError(o.str(), t == Token::EOF_TOK);
 }
@@ -209,9 +209,9 @@ Token Lexer::computeNextToken()
   pushToToken(ch);
   switch (ch)
   {
-    case '!': return Token::ATTRIBUTE_TOK;
-    case '(': return Token::LPAREN_TOK;
-    case ')': return Token::RPAREN_TOK;
+    case '!': return Token::ATTRIBUTE;
+    case '(': return Token::LPAREN;
+    case ')': return Token::RPAREN;
     case '|':
       do
       {
@@ -381,13 +381,19 @@ Token Lexer::tokenizeCurrentSymbol() const
     case 'p':
       if (d_token.size() == 3 && d_token[1] == 'a' && d_token[2] == 'r')
       {
-        return Token::PAR_TOK;
+        return Token::PAR;
       }
       break;
     case 'l':
       if (d_token.size() == 3 && d_token[1] == 'e' && d_token[2] == 't')
       {
-        return Token::LET_TOK;
+        return Token::LET;
+      }
+      break;
+    case 'T':
+      if (d_token.size() == 4 && d_token[1] == 'y' && d_token[2] == 'p' && d_token[3] == 'e')
+      {
+        return Token::TYPE;
       }
       break;
     default: break;

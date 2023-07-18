@@ -23,19 +23,21 @@ CmdParser::CmdParser(Lexer& lex,
     : d_lex(lex), d_state(state), d_eparser(eparser)
 {
   // initialize the command tokens
-  d_table["assume"] = Token::ASSUME_TOK;
-  d_table["declare-const"] = Token::DECLARE_CONST_TOK;
-  d_table["declare-fun"] = Token::DECLARE_FUN_TOK;
-  d_table["declare-sort"] = Token::DECLARE_SORT_TOK;
-  d_table["define-const"] = Token::DEFINE_CONST_TOK;
-  d_table["define-fun"] = Token::DEFINE_FUN_TOK;
-  d_table["define-sort"] = Token::DEFINE_SORT_TOK;
-  d_table["echo"] = Token::ECHO_TOK;
-  d_table["exit"] = Token::EXIT_TOK;
-  d_table["include"] = Token::INCLUDE_TOK;
-  d_table["reset"] = Token::RESET_TOK;
-  d_table["set-info"] = Token::SET_INFO_TOK;
-  d_table["set-option"] = Token::SET_OPTION_TOK;
+  d_table["assume"] = Token::ASSUME;
+  d_table["declare-const"] = Token::DECLARE_CONST;
+  d_table["declare-fun"] = Token::DECLARE_FUN;
+  d_table["declare-sort"] = Token::DECLARE_SORT;
+  d_table["declare-type"] = Token::DECLARE_TYPE;
+  d_table["define-const"] = Token::DEFINE_CONST;
+  d_table["define-fun"] = Token::DEFINE_FUN;
+  d_table["define-sort"] = Token::DEFINE_SORT;
+  d_table["echo"] = Token::ECHO;
+  d_table["exit"] = Token::EXIT;
+  d_table["include"] = Token::INCLUDE;
+  d_table["reset"] = Token::RESET;
+  d_table["set-info"] = Token::SET_INFO;
+  d_table["set-option"] = Token::SET_OPTION;
+  d_table["step"] = Token::STEP;
 }
 
 Token CmdParser::nextCommandToken()
@@ -57,7 +59,7 @@ Token CmdParser::nextCommandToken()
 bool CmdParser::parseNextCommand()
 {
   // if we are at the end of file, return the null command
-  if (d_lex.eatTokenChoice(Token::EOF_TOK, Token::LPAREN_TOK))
+  if (d_lex.eatTokenChoice(Token::EOF_TOK, Token::LPAREN))
   {
     return false;
   }
@@ -66,14 +68,14 @@ bool CmdParser::parseNextCommand()
   {
     // (declare-fun <symbol> (<sort>∗) <sort>)
     // (declare-const <symbol> <sort>)
-    case Token::DECLARE_CONST_TOK:
-    case Token::DECLARE_FUN_TOK:
+    case Token::DECLARE_CONST:
+    case Token::DECLARE_FUN:
     {
       //d_state.checkThatLogicIsSet();
       std::string name = d_eparser.parseSymbol();
       //d_state.checkUserSymbol(name);
       std::vector<Expr> sorts;
-      if (tok == Token::DECLARE_FUN_TOK)
+      if (tok == Token::DECLARE_FUN)
       {
         sorts = d_eparser.parseExprList();
       }
@@ -87,7 +89,7 @@ bool CmdParser::parseNextCommand()
     }
     break;
     // (declare-sort <symbol> <numeral>)
-    case Token::DECLARE_SORT_TOK:
+    case Token::DECLARE_SORT:
     {
       //d_state.checkThatLogicIsSet();
       //d_state.checkLogicAllowsFreeExprs();
@@ -113,21 +115,43 @@ bool CmdParser::parseNextCommand()
       d_state.bind(name, decType);
     }
     break;
-    // TODO (declare-type <symbol> ...)
+    // (declare-type <symbol> (<sort>*))
+    case Token::DECLARE_TYPE:
+    {
+      //d_state.checkThatLogicIsSet();
+      //d_state.checkLogicAllowsFreeExprs();
+      std::string name = d_eparser.parseSymbol();
+      //d_state.checkUserSymbol(name);
+      std::vector<Expr> args = d_eparser.parseExprList();
+      Expr type;
+      Expr ttype = d_state.mkType();
+      if (args.empty())
+      {
+        type = ttype;
+      }
+      else
+      {
+        // TODO: ensure args are types?
+        type = d_state.mkFunctionType(args, ttype);
+      }
+      Expr decType = d_state.mkVar(name, ttype);
+      d_state.bind(name, decType);
+    }
+    break;
     // (define-const <symbol> <sort> <term>)
-    case Token::DEFINE_CONST_TOK:
+    case Token::DEFINE_CONST:
     {
       //d_state.checkThatLogicIsSet();
       std::string name = d_eparser.parseSymbol();
       //d_state.checkUserSymbol(name);
       Expr t = d_eparser.parseExpr();
       Expr e = d_eparser.parseExpr();
-      // TODO: type check?
+      // TODO: ensure t has type e?
       d_state.bind(name, e);
     }
     break;
     // (define-fun <symbol> (<sorted_var>*) <sort> <term>)
-    case Token::DEFINE_FUN_TOK:
+    case Token::DEFINE_FUN:
     {
       //d_state.checkThatLogicIsSet();
       std::string name = d_eparser.parseSymbol();
@@ -151,7 +175,7 @@ bool CmdParser::parseNextCommand()
     }
     break;
     // (define-sort <symbol> (<symbol>*) <sort>)
-    case Token::DEFINE_SORT_TOK:
+    case Token::DEFINE_SORT:
     {
       //d_state.checkThatLogicIsSet();
       std::string name = d_eparser.parseSymbol();
@@ -170,7 +194,7 @@ bool CmdParser::parseNextCommand()
     }
     break;
     // (echo <string>)
-    case Token::ECHO_TOK:
+    case Token::ECHO:
     {
       // optional string literal
       tok = d_lex.peekToken();
@@ -186,13 +210,13 @@ bool CmdParser::parseNextCommand()
     }
     break;
     // (exit)
-    case Token::EXIT_TOK:
+    case Token::EXIT:
     {
       exit(0);
     }
     break;
     // (reset)
-    case Token::RESET_TOK:
+    case Token::RESET:
     {
       //cmd.reset(new ResetCommand());
       // reset the state of the parser, which is independent of the symbol
@@ -201,7 +225,7 @@ bool CmdParser::parseNextCommand()
     }
     break;
     // (set-info <attribute>)
-    case Token::SET_INFO_TOK:
+    case Token::SET_INFO:
     {
       std::string key = d_eparser.parseKeyword();
       //Expr sexpr = d_eparser.parseSymbolicExpr();
@@ -209,7 +233,7 @@ bool CmdParser::parseNextCommand()
     }
     break;
     // (set-logic <symbol>)
-    case Token::SET_LOGIC_TOK:
+    case Token::SET_LOGIC:
     {
       std::string name = d_eparser.parseSymbol();
       // replace the logic with the forced logic, if applicable.
@@ -218,7 +242,7 @@ bool CmdParser::parseNextCommand()
     }
     break;
     // (set-option <option>)
-    case Token::SET_OPTION_TOK:
+    case Token::SET_OPTION:
     {
       std::string key = d_eparser.parseKeyword();
       //Expr sexpr = d_eparser.parseSymbolicExpr();
@@ -233,7 +257,7 @@ bool CmdParser::parseNextCommand()
       d_lex.unexpectedTokenError(tok, "Expected SMT-LIBv2 command");
       break;
   }
-  d_lex.eatToken(Token::RPAREN_TOK);
+  d_lex.eatToken(Token::RPAREN);
   return true;
 }
 
