@@ -140,7 +140,12 @@ bool CmdParser::parseNextCommand()
         sorts = d_eparser.parseExprList();
       }
       Expr t = d_eparser.parseExpr();
-      //cmd.reset(new DeclareFunctionCommand(name, t));
+      if (!sorts.empty())
+      {
+        t = d_state.mkFunctionType(sorts, t);
+      }
+      Expr v = d_state.mkVar(name, t);
+      d_state.bind(name, v);
     }
     break;
     // (declare-sort <symbol> <numeral>)
@@ -167,10 +172,12 @@ bool CmdParser::parseNextCommand()
         type = d_state.mkFunctionType(args, ttype);
       }
       Expr decType = d_state.mkVar(name, ttype);
+      d_state.bind(name, decType);
     }
     break;
     // TODO (declare-type <symbol> ...)
     // (declare-var <symbol> <sort>)
+    /*
     case Token::DECLARE_VAR_TOK:
     {
       //d_state.checkThatLogicIsSet();
@@ -181,6 +188,7 @@ bool CmdParser::parseNextCommand()
       //cmd.reset(new DeclareSygusVarCommand(name, var, t));
     }
     break;
+    */
     // (define-const <symbol> <sort> <term>)
     case Token::DEFINE_CONST_TOK:
     {

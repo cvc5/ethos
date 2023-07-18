@@ -1,6 +1,7 @@
 #ifndef STATE_H
 #define STATE_H
 
+#include <map>
 #include "expr.h"
 
 namespace atc {
@@ -25,10 +26,10 @@ public:
   Expr mkExpr(Kind k, const std::vector<Expr>& children);
   
   /**
-   * Create an integer constant from a string.
-   * @param s The string representation of the constant, may represent an
+   * Create a literal from a string.
+   * @param s The string representation of the literal, may represent an
    *          integer (e.g., "123").
-   * @return A constant of sort Integer assuming 's' represents an integer)
+   * @return A constant
    */
   Expr mkLiteral(Kind k, const std::string& s) const;
   
@@ -44,9 +45,14 @@ public:
   /** is closure */
   bool isClosure(const std::string& name) const;
   /** */
-  Expr getVar(const std::string& name);
+  Expr getVar(const std::string& name) const;
 private:
-  
+  /** The symbol table */
+  std::map<std::string, Expr> d_symTable;
+  /** Context stacks */
+  std::vector<std::string> d_decls;
+  /** Context size */
+  std::vector<size_t> d_declsSizeCtx;
 };
 
 }  // namespace atc
