@@ -28,13 +28,6 @@ class ExprParser
    */
   std::vector<std::pair<std::string, Expr>> parseSortedVarList();
   /**
-   * Parses an SMT-LIB symbolic expr. A symbolic expression has the syntax:
-   * <sexpr> := (<sexpr>*) | <symbol> | <spec_constant>
-   * The returned term has AST that consists of applications of SEXPR (for the
-   * first case of the BNF) and constant strings (for the latter two cases).
-   */
-  Expr parseSymbolicExpr();
-  /**
    * Parse symbol, which returns the string of the parsed symbol if the next
    * token is a valid smt2 symbol.
    *
@@ -59,20 +52,6 @@ class ExprParser
    * Parse numeral list without parentheses
    */
   std::vector<std::string> parseNumeralList();
-  /**
-   * Parse datatype def '<datatype_dec>', not parentheses enclosed. The syntax
-   * for datatype declarations is:
-   *
-   * datatype_dec :=
-   *   (<constructor_dec>+) | (par (<symbol>+) (<constructor_dec>+))
-   * constructor_dec := (<symbol> (<symbol> <sort>)∗)
-   */
-  /*
-  std::vector<DatatypeDecl> parseDatatypesDef(
-      bool isCo,
-      const std::vector<std::string>& dnames,
-      const std::vector<size_t>& arities);
-      */
   /**
    * Matches a string, and (optionally) strips off the quotes/unescapes the
    * string when `unescape` is set to true.

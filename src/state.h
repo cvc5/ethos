@@ -16,9 +16,9 @@ public:
   void pushScope();
   void popScope();
   
-  /** */
+  /** Type */
   Expr mkType();
-  /** */
+  /** (-> <type_list> <type>) */
   Expr mkFunctionType(const std::vector<Expr>& args, const Expr& ret);
   /** */
   Expr mkVar(const std::string& name, const Expr& type);
@@ -49,6 +49,7 @@ public:
 private:
   /** The symbol table */
   std::map<std::string, Expr> d_symTable;
+  // TODO: reverse lookup for names?
   /** Context stacks */
   std::vector<std::string> d_decls;
   /** Context size */

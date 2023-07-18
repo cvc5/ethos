@@ -23,25 +23,18 @@ CmdParser::CmdParser(Lexer& lex,
     : d_lex(lex), d_state(state), d_eparser(eparser)
 {
   // initialize the command tokens
-  d_table["declare-codatatypes"] = Token::DECLARE_CODATATYPES_TOK;
-  d_table["declare-codatatype"] = Token::DECLARE_CODATATYPE_TOK;
+  d_table["assume"] = Token::ASSUME_TOK;
   d_table["declare-const"] = Token::DECLARE_CONST_TOK;
-  d_table["declare-datatypes"] = Token::DECLARE_DATATYPES_TOK;
-  d_table["declare-datatype"] = Token::DECLARE_DATATYPE_TOK;
   d_table["declare-fun"] = Token::DECLARE_FUN_TOK;
   d_table["declare-sort"] = Token::DECLARE_SORT_TOK;
   d_table["define-const"] = Token::DEFINE_CONST_TOK;
-  d_table["define-funs-rec"] = Token::DEFINE_FUNS_REC_TOK;
-  d_table["define-fun-rec"] = Token::DEFINE_FUN_REC_TOK;
   d_table["define-fun"] = Token::DEFINE_FUN_TOK;
   d_table["define-sort"] = Token::DEFINE_SORT_TOK;
   d_table["echo"] = Token::ECHO_TOK;
   d_table["exit"] = Token::EXIT_TOK;
-  d_table["pop"] = Token::POP_TOK;
-  d_table["push"] = Token::PUSH_TOK;
+  d_table["include"] = Token::INCLUDE_TOK;
   d_table["reset"] = Token::RESET_TOK;
   d_table["set-info"] = Token::SET_INFO_TOK;
-  d_table["set-logic"] = Token::SET_LOGIC_TOK;
   d_table["set-option"] = Token::SET_OPTION_TOK;
 }
 
@@ -71,61 +64,6 @@ bool CmdParser::parseNextCommand()
   Token tok = nextCommandToken();
   switch (tok)
   {
-    // single datatype
-    // (declare-datatype <symbol> <datatype_dec>)
-    // (declare-codatatype <symbol> <datatype_dec>)
-    /*
-    case Token::DECLARE_CODATATYPE_TOK:
-    case Token::DECLARE_DATATYPE_TOK:
-    {
-      d_state.checkThatLogicIsSet();
-      std::vector<std::string> dnames;
-      std::vector<size_t> arities;
-      std::string name = d_eparser.parseSymbol(CHECK_UNDECLARED, SYM_SORT);
-      dnames.push_back(name);
-      bool isCo = (tok == Token::DECLARE_CODATATYPE_TOK);
-      // parse <datatype_dec>
-      std::vector<DatatypeDecl> dts =
-          d_eparser.parseDatatypesDef(isCo, dnames, arities);
-      cmd.reset(
-          new DatatypeDeclarationCommand(d_state.mkMutualDatatypeTypes(dts)));
-    }
-    break;
-    // multiple datatype
-    // (declare-datatypes (<sort_dec>^{n+1}) (<datatype_dec>^{n+1}) )
-    // (declare-codatatypes (<sort_dec>^{n+1}) (<datatype_dec>^{n+1}) )
-    case Token::DECLARE_CODATATYPES_TOK:
-    case Token::DECLARE_DATATYPES_TOK:
-    {
-      d_state.checkThatLogicIsSet();
-      d_lex.eatToken(Token::LPAREN_TOK);
-      std::vector<std::string> dnames;
-      std::vector<size_t> arities;
-      // parse (<sort_dec>^{n+1})
-      // while the next token is LPAREN, exit if RPAREN
-      while (d_lex.eatTokenChoice(Token::LPAREN_TOK, Token::RPAREN_TOK))
-      {
-        std::string name = d_eparser.parseSymbol(CHECK_UNDECLARED, SYM_SORT);
-        size_t arity = d_eparser.parseIntegerNumeral();
-        dnames.push_back(name);
-        arities.push_back(arity);
-        d_lex.eatToken(Token::RPAREN_TOK);
-      }
-      if (dnames.empty())
-      {
-        d_lex.parseError("Empty list of datatypes");
-      }
-      bool isCo = (tok == Token::DECLARE_CODATATYPES_TOK);
-      // parse (<datatype_dec>^{n+1})
-      d_lex.eatToken(Token::LPAREN_TOK);
-      std::vector<DatatypeDecl> dts =
-          d_eparser.parseDatatypesDef(isCo, dnames, arities);
-      d_lex.eatToken(Token::RPAREN_TOK);
-      cmd.reset(
-          new DatatypeDeclarationCommand(d_state.mkMutualDatatypeTypes(dts)));
-    }
-    break;
-    */
     // (declare-fun <symbol> (<sort>∗) <sort>)
     // (declare-const <symbol> <sort>)
     case Token::DECLARE_CONST_TOK:
@@ -176,19 +114,6 @@ bool CmdParser::parseNextCommand()
     }
     break;
     // TODO (declare-type <symbol> ...)
-    // (declare-var <symbol> <sort>)
-    /*
-    case Token::DECLARE_VAR_TOK:
-    {
-      //d_state.checkThatLogicIsSet();
-      std::string name = d_eparser.parseSymbol();
-      //d_state.checkUserSymbol(name);
-      Expr t = d_eparser.parseExpr();
-      //Expr var = d_state.getSolver()->declareSygusVar(name, t);
-      //cmd.reset(new DeclareSygusVarCommand(name, var, t));
-    }
-    break;
-    */
     // (define-const <symbol> <sort> <term>)
     case Token::DEFINE_CONST_TOK:
     {
@@ -197,11 +122,8 @@ bool CmdParser::parseNextCommand()
       //d_state.checkUserSymbol(name);
       Expr t = d_eparser.parseExpr();
       Expr e = d_eparser.parseExpr();
-
-      // declare the name down here (while parsing term, signature
-      // must not be extended with the name itself; no recursion
-      // permitted)
-      //cmd.reset(new DefineFunctionCommand(name, t, e));
+      // TODO: type check?
+      d_state.bind(name, e);
     }
     break;
     // (define-fun <symbol> (<sorted_var>*) <sort> <term>)
@@ -213,97 +135,21 @@ bool CmdParser::parseNextCommand()
       std::vector<std::pair<std::string, Expr>> sortedVarNames =
           d_eparser.parseSortedVarList();
       Expr ret = d_eparser.parseExpr();
-      /* add variables to parser state before parsing term */
-      std::vector<Expr> sorts;
-      if (sortedVarNames.size() > 0)
-      {
-        sorts.reserve(sortedVarNames.size());
-        for (const std::pair<std::string, Expr>& i : sortedVarNames)
-        {
-          sorts.push_back(i.second);
-        }
-      }
       if (sortedVarNames.size() > 0)
       {
         d_state.pushScope();
       }
-      std::vector<Expr> terms = d_state.mkAndBindVars(sortedVarNames);
+      std::vector<Expr> vars = d_state.mkAndBindVars(sortedVarNames);
       Expr expr = d_eparser.parseExpr();
       if (sortedVarNames.size() > 0)
       {
         d_state.popScope();
+        Expr vl = d_state.mkExpr(Kind::VARIABLE_LIST, vars);
+        expr = d_state.mkExpr(Kind::LAMBDA, {vl, expr});
       }
-      //cmd.reset(new DefineFunctionCommand(name, terms, t, expr));
+      d_state.bind(name, expr);
     }
     break;
-    // (define-fun-rec <symbol> (<sorted_var>*) <sort> <term>)
-    case Token::DEFINE_FUN_REC_TOK:
-    {
-      //d_state.checkThatLogicIsSet();
-      std::string fname = d_eparser.parseSymbol();
-      //d_state.checkUserSymbol(fname);
-      std::vector<std::pair<std::string, Expr>> sortedVarNames =
-          d_eparser.parseSortedVarList();
-      Expr t = d_eparser.parseExpr();
-      std::vector<Expr> bvs;
-      Expr func;
-      // func =  d_state.bindDefineFunRec(fname, sortedVarNames, t);
-      //d_state.pushDefineFunRecScope(sortedVarNames, func, bvs);
-      Expr expr = d_eparser.parseExpr();
-      d_state.popScope();
-      //cmd.reset(new DefineFunctionRecCommand(func, bvs, expr));
-    }
-    break;
-    // (define-funs-rec (<function_dec>^{n+1}) (<term>^{n+1}))
-    // where
-    // <function_dec> := (<symbol> (<sorted_var>*) <sort>)
-    /*
-    case Token::DEFINE_FUNS_REC_TOK:
-    {
-      //d_state.checkThatLogicIsSet();
-      d_lex.eatToken(Token::LPAREN_TOK);
-      std::vector<Expr> funcs;
-      std::vector<std::vector<std::pair<std::string, Expr>>> sortedVarNamesList;
-      // while the next token is LPAREN, exit if RPAREN
-      // parse <function_dec>^{n+1}
-      while (d_lex.eatTokenChoice(Token::LPAREN_TOK, Token::RPAREN_TOK))
-      {
-        std::string fname = d_eparser.parseSymbol();
-        //d_state.checkUserSymbol(fname);
-        std::vector<std::pair<std::string, Expr>> sortedVarNames =
-            d_eparser.parseSortedVarList();
-        Expr t = d_eparser.parseExpr();
-        Expr func =
-            d_state.bindDefineFunRec(fname, sortedVarNames, t, flattenVars);
-        funcs.push_back(func);
-
-        // add to lists (need to remember for when parsing the bodies)
-        sortedVarNamesList.push_back(sortedVarNames);
-        //flattenVarsList.push_back(flattenVars);
-        d_lex.eatToken(Token::RPAREN_TOK);
-      }
-
-      // parse the bodies
-      d_lex.eatToken(Token::LPAREN_TOK);
-      std::vector<Expr> funcDefs;
-      std::vector<std::vector<Expr>> formals;
-      // parse <term>^{n+1}
-      for (size_t j = 0, nfuncs = funcs.size(); j < nfuncs; j++)
-      {
-        std::vector<Expr> bvs;
-        d_state.pushDefineFunRecScope(
-            sortedVarNamesList[j], funcs[j], flattenVarsList[j], bvs);
-        Expr expr = d_eparser.parseExpr();
-        d_state.popScope();
-        funcDefs.push_back(expr);
-        formals.push_back(bvs);
-      }
-      d_lex.eatToken(Token::RPAREN_TOK);
-      Assert(funcs.size() == funcDefs.size());
-      //cmd.reset(new DefineFunctionRecCommand(funcs, formals, funcDefs));
-    }
-    break;
-    */
     // (define-sort <symbol> (<symbol>*) <sort>)
     case Token::DEFINE_SORT_TOK:
     {
@@ -321,7 +167,6 @@ bool CmdParser::parseNextCommand()
       }
       Expr t = d_eparser.parseExpr();
       d_state.popScope();
-      //cmd.reset(new DefineExprCommand(name, sorts, t));
     }
     break;
     // (echo <string>)
@@ -343,40 +188,7 @@ bool CmdParser::parseNextCommand()
     // (exit)
     case Token::EXIT_TOK:
     {
-      //cmd.reset(new QuitCommand());
       exit(0);
-    }
-    break;
-    // (pop <numeral>?)
-    case Token::POP_TOK:
-    {
-      // optional integer
-      tok = d_lex.peekToken();
-      if (tok == Token::INTEGER_LITERAL)
-      {
-        size_t num = d_eparser.parseIntegerNumeral();
-        //cmd = d_state.handlePop(num);
-      }
-      else
-      {
-        //cmd = d_state.handlePop(std::nullopt);
-      }
-    }
-    break;
-    // (push <numeral>?)
-    case Token::PUSH_TOK:
-    {
-      // optional integer
-      tok = d_lex.peekToken();
-      if (tok == Token::INTEGER_LITERAL)
-      {
-        size_t num = d_eparser.parseIntegerNumeral();
-        //cmd = d_state.handlePush(num);
-      }
-      else
-      {
-        //cmd = d_state.handlePush(std::nullopt);
-      }
     }
     break;
     // (reset)
@@ -392,7 +204,7 @@ bool CmdParser::parseNextCommand()
     case Token::SET_INFO_TOK:
     {
       std::string key = d_eparser.parseKeyword();
-      Expr sexpr = d_eparser.parseSymbolicExpr();
+      //Expr sexpr = d_eparser.parseSymbolicExpr();
       //cmd.reset(new SetInfoCommand(key, sexprToString(sexpr)));
     }
     break;
@@ -409,7 +221,7 @@ bool CmdParser::parseNextCommand()
     case Token::SET_OPTION_TOK:
     {
       std::string key = d_eparser.parseKeyword();
-      Expr sexpr = d_eparser.parseSymbolicExpr();
+      //Expr sexpr = d_eparser.parseSymbolicExpr();
       //std::string ss = sexprToString(sexpr);
       //cmd.reset(new SetOptionCommand(key, ss));
     }

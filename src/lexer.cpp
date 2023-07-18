@@ -243,22 +243,6 @@ Token Lexer::computeNextToken()
             parseError("Error expected hexidecimal string");
           }
           return Token::HEX_LITERAL;
-        case 'f':
-          pushToToken(ch);
-          // parse [0-9]+m[0-9]+
-          if (!parseNonEmptyCharList(CharacterClass::DECIMAL_DIGIT))
-          {
-            parseError("Error expected decimal for finite field value");
-          }
-          if (!parseLiteralChar('m'))
-          {
-            parseError("Error bad syntax for finite field value");
-          }
-          if (!parseNonEmptyCharList(CharacterClass::DECIMAL_DIGIT))
-          {
-            parseError("Error expected decimal for finite field size");
-          }
-          return Token::FIELD_LITERAL;
         default:
           // otherwise error
           parseError("Error finding token following #");
@@ -394,12 +378,6 @@ Token Lexer::tokenizeCurrentSymbol() const
   //Assert(!d_token.empty());
   switch (d_token[0])
   {
-    case 'a':
-      if (d_token.size() == 2 && d_token[1] == 's')
-      {
-        return Token::AS_TOK;
-      }
-      break;
     case 'p':
       if (d_token.size() == 3 && d_token[1] == 'a' && d_token[2] == 'r')
       {
@@ -410,19 +388,6 @@ Token Lexer::tokenizeCurrentSymbol() const
       if (d_token.size() == 3 && d_token[1] == 'e' && d_token[2] == 't')
       {
         return Token::LET_TOK;
-      }
-      break;
-    case 'm':
-      if (d_token.size() == 5 && d_token[1] == 'a' && d_token[2] == 't'
-          && d_token[3] == 'c' && d_token[4] == 'h')
-      {
-        return Token::MATCH_TOK;
-      }
-      break;
-    case '_':
-      if (d_token.size() == 1)
-      {
-        return Token::INDEX_TOK;
       }
       break;
     default: break;

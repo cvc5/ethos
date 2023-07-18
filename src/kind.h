@@ -12,6 +12,7 @@ enum class Kind
 {
   NONE = 0,
   APPLY,
+  LAMBDA,
   VARIABLE_LIST,
   INTEGER,
   DECIMAL,
