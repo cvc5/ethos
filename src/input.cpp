@@ -31,4 +31,9 @@ Input::Input() {}
 
 bool Input::isInteractive() const { return false; }
 
+std::unique_ptr<Input> Input::mkFileInput(const std::string& filename)
+{
+  return std::unique_ptr<Input>(new FileInput(filename));
+}
+
 }  // namespace atc

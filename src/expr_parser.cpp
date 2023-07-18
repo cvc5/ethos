@@ -1,0 +1,959 @@
+#include "expr_parser.h"
+
+#include <string.h>
+
+namespace atc {
+
+/**
+ * Definition of state identifiers when parsing terms
+ *
+ * This is required for non-recursive parsing of terms. Note that in SMT-LIB,
+ * terms generally are of the form (...anything not involving terms... <term>*)
+ * However, let-terms, match-terms, and terms appearing within attributes
+ * for term annotations (e.g. quantifier patterns) are exceptions to this.
+ * Thus, in the main parsing loop in parseExpr below, we require tracking
+ * the context we are in, which dictates how to setup parsing the term after
+ * the current one.
+ *
+ * In each state, the stack contains a topmost ParseOp `op` and a list of
+ * arguments `args`, which give a recipe for the term we are parsing. The data
+ * in these depend on the context we are in, as documented below.
+ */
+enum class ParseCtx
+{
+  /**
+   * NEXT_ARG: in context (<op> <term>* <term>
+   * `op` specifies the operator we parsed.
+   * `args` contain the accumulated list of arguments.
+   */
+  NEXT_ARG,
+  /**
+   * CLOSURE_NEXT_ARG: in context (<closure> <variable_list> <term>* <term>
+   * `op` specifies the (closure) operator we parsed.
+   * `args` contain the variable list and the accumulated list of arguments.
+   */
+  CLOSURE_NEXT_ARG,
+  /**
+   * Let bindings
+   *
+   * LET_NEXT_BIND: in context (let (<binding>* (<symbol> <term>
+   * `op` contains:
+   * - d_name: the name of last bound variable.
+   *
+   * LET_BODY: in context (let (<binding>*) <term>
+   */
+  LET_NEXT_BIND,
+  LET_BODY,
+  /**
+   * Match terms
+   *
+   * MATCH_HEAD: in context (match <term>
+   *
+   * MATCH_NEXT_CASE: in context (match <term> (<case>* (<pattern> <term>
+   * `op` contains:
+   * - d_type: set to the type of the head.
+   * `args` contain the head term and the accumulated list of case terms.
+   */
+  MATCH_HEAD,
+  MATCH_NEXT_CASE,
+  /**
+   * Expr annotations
+   *
+   * TERM_ANNOTATE_BODY: in context (! <term>
+   *
+   * TERM_ANNOTATE_NEXT_ATTR: in context (! <term> <attr>* <keyword> <term_spec>
+   * where notice that <term_spec> may be a term or a list of terms.
+   * `op` contains:
+   * - d_expr: the body of the term annotation.
+   * - d_kind: the kind to apply to the current <term_spec> (if any).
+   * `args` contain the accumulated patterns or quantifier attributes.
+   */
+  TERM_ANNOTATE_BODY,
+  TERM_ANNOTATE_NEXT_ATTR
+};
+
+ExprParser::ExprParser(Lexer& lex, State& state)
+    : d_lex(lex), d_state(state)
+{
+}
+
+Expr ExprParser::parseExpr()
+{
+  // the last parsed term
+  Expr ret;
+  /*
+  // a request was made to update the current parse context
+  bool needsUpdateCtx = false;
+  // the last token we read
+  Token tok;
+  // The stack(s) containing the parse context, and the recipe for the
+  // current we are building.
+  std::vector<ParseCtx> xstack;
+  std::vector<std::pair<ParseOp, std::vector<Expr>>> tstack;
+  // Let bindings, dynamically allocated for each let in scope.
+  std::vector<std::vector<std::pair<std::string, Expr>>> letBinders;
+  do
+  {
+    Assert(tstack.size() == xstack.size());
+    // At this point, we are ready to parse the next term
+    tok = d_lex.nextToken();
+    Expr currExpr;
+    switch (tok)
+    {
+      // ------------------- open paren
+      case Token::LPAREN_TOK:
+      {
+        tok = d_lex.nextToken();
+        switch (tok)
+        {
+          case Token::LET_TOK:
+          {
+            xstack.emplace_back(ParseCtx::LET_NEXT_BIND);
+            tstack.emplace_back(ParseOp(), std::vector<Expr>());
+            needsUpdateCtx = true;
+            letBinders.emplace_back();
+          }
+          break;
+          case Token::MATCH_TOK:
+          {
+            xstack.emplace_back(ParseCtx::MATCH_HEAD);
+            tstack.emplace_back();
+          }
+          break;
+          case Token::ATTRIBUTE_TOK:
+          {
+            xstack.emplace_back(ParseCtx::TERM_ANNOTATE_BODY);
+            tstack.emplace_back();
+          }
+          break;
+          case Token::SYMBOL:
+          case Token::QUOTED_SYMBOL:
+          {
+            // function identifier
+            ParseOp op;
+            op.d_name = tokenStrToSymbol(tok);
+            std::vector<Expr> args;
+            if (d_state.isClosure(op.d_name))
+            {
+              // if it is a closure, immediately read the bound variable list
+              d_state.pushScope();
+              std::vector<std::pair<std::string, Sort>> sortedVarNames =
+                  parseSortedVarList();
+              if (sortedVarNames.empty())
+              {
+                d_lex.parseError("Expected non-empty sorted variable list");
+              }
+              std::vector<Expr> vs = d_state.bindBoundVars(sortedVarNames);
+              Expr vl = d_state.mkExpr(VARIABLE_LIST, vs);
+              args.push_back(vl);
+              xstack.emplace_back(ParseCtx::CLOSURE_NEXT_ARG);
+            }
+            else
+            {
+              xstack.emplace_back(ParseCtx::NEXT_ARG);
+            }
+            tstack.emplace_back(op, args);
+          }
+          break;
+          case Token::UNTERMINATED_QUOTED_SYMBOL:
+            d_lex.parseError("Expected SMT-LIBv2 operator", true);
+            break;
+          default:
+            d_lex.unexpectedTokenError(tok, "Expected SMT-LIBv2 operator");
+            break;
+        }
+      }
+      break;
+      // ------------------- close paren
+      case Token::RPAREN_TOK:
+      {
+        // should only be here if we are expecting arguments
+        if (tstack.empty() || (xstack.back() != ParseCtx::NEXT_ARG
+               && xstack.back() != ParseCtx::CLOSURE_NEXT_ARG))
+        {
+          d_lex.unexpectedTokenError(
+              tok, "Mismatched parentheses in SMT-LIBv2 term");
+        }
+        // Construct the application term specified by tstack.back()
+        ParseOp& op = tstack.back().first;
+        ret = d_state.applyParseOp(op, tstack.back().second);
+        // process the scope change if a closure
+        if (xstack.back() == ParseCtx::CLOSURE_NEXT_ARG)
+        {
+          // if we were a closure, pop a scope
+          d_state.popScope();
+        }
+        // pop the stack
+        tstack.pop_back();
+        xstack.pop_back();
+      }
+      break;
+      // ------------------- base cases
+      case Token::SYMBOL:
+      case Token::QUOTED_SYMBOL:
+      {
+        std::string name = tokenStrToSymbol(tok);
+        ret = d_state.getVariable(name);
+      }
+      break;
+      case Token::UNTERMINATED_QUOTED_SYMBOL:
+        d_lex.parseError("Expected SMT-LIBv2 term", true);
+        break;
+      case Token::INTEGER_LITERAL:
+      {
+        ret = d_state.mkRealOrIntFromNumeral(d_lex.tokenStr());
+      }
+      break;
+      case Token::DECIMAL_LITERAL:
+      {
+        ret = d_state.mkReal(d_lex.tokenStr());
+      }
+      break;
+      case Token::HEX_LITERAL:
+      {
+        std::string hexStr = d_lex.tokenStr();
+        hexStr = hexStr.substr(2);
+        ret = d_state.mkHexLiteral(hexStr);
+      }
+      break;
+      case Token::BINARY_LITERAL:
+      {
+        std::string binStr = d_lex.tokenStr();
+        binStr = binStr.substr(2);
+        ret = d_state.mkBinLiteral(binStr);
+      }
+      break;
+      case Token::STRING_LITERAL:
+      {
+        std::string s = d_lex.tokenStr();
+        unescapeString(s);
+        ret = d_state.mkString(s, true);
+      }
+      break;
+      default:
+        d_lex.unexpectedTokenError(tok, "Expected SMT-LIBv2 term");
+        break;
+    }
+
+    // Based on the current context, setup next parsed term.
+    // We do this only if a context is allocated (!tstack.empty()) and we
+    // either just finished parsing a term (!ret.isNull()), or otherwise have
+    // indicated that we need to update the context (needsUpdateCtx).
+    while (!tstack.empty() && (!ret.isNull() || needsUpdateCtx))
+    {
+      needsUpdateCtx = false;
+      switch (xstack.back())
+      {
+        // ------------------------- argument lists
+        case ParseCtx::NEXT_ARG:
+        case ParseCtx::CLOSURE_NEXT_ARG:
+        {
+          Assert(!ret.isNull());
+          // add it to the list of arguments and clear
+          tstack.back().second.push_back(ret);
+          ret = Expr();
+        }
+        break;
+        // ------------------------- let terms
+        case ParseCtx::LET_NEXT_BIND:
+        {
+          // if we parsed a term, process it as a binding
+          if (!ret.isNull())
+          {
+            Assert(!letBinders.empty());
+            std::vector<std::pair<std::string, Expr>>& bs = letBinders.back();
+            // add binding from the symbol to ret
+            bs.emplace_back(tstack.back().first.d_name, ret);
+            ret = Expr();
+            // close the current binding
+            d_lex.eatToken(Token::RPAREN_TOK);
+          }
+          else
+          {
+            // eat the opening left parenthesis of the binding list
+            d_lex.eatToken(Token::LPAREN_TOK);
+          }
+          // see if there is another binding
+          if (d_lex.eatTokenChoice(Token::LPAREN_TOK, Token::RPAREN_TOK))
+          {
+            // (, another binding: setup parsing the next term
+            // get the symbol and store in the ParseOp
+            tstack.back().first.d_name = parseSymbol(CHECK_NONE, SYM_VARIABLE);
+          }
+          else
+          {
+            // ), we are now looking for the body of the let
+            xstack[xstack.size() - 1] = ParseCtx::LET_BODY;
+            // push scope
+            d_state.pushScope();
+            // implement the bindings
+            Assert(!letBinders.empty());
+            const std::vector<std::pair<std::string, Expr>>& bs =
+                letBinders.back();
+            for (const std::pair<std::string, Expr>& b : bs)
+            {
+              d_state.defineVar(b.first, b.second);
+            }
+            // done with the binders
+            letBinders.pop_back();
+          }
+        }
+        break;
+        case ParseCtx::LET_BODY:
+        {
+          // the let body is the returned term
+          d_lex.eatToken(Token::RPAREN_TOK);
+          xstack.pop_back();
+          tstack.pop_back();
+          // pop scope
+          d_state.popScope();
+        }
+        break;
+        // ------------------------- match terms
+        case ParseCtx::MATCH_HEAD:
+        {
+          Assert(!ret.isNull());
+          // add the head
+          tstack.back().second.push_back(ret);
+          Sort retSort = ret.getSort();
+          // eagerly check if datatype
+          if (!retSort.isDatatype())
+          {
+            d_lex.parseError("Cannot match on non-datatype term.");
+          }
+          // we use a placeholder to store the type (retSort), which is
+          // used during MATCH_NEXT_CASE
+          tstack.back().first.d_kind = INTERNAL_KIND;
+          tstack.back().first.d_expr = slv->mkConst(retSort, "_placeholder_");
+          ret = Expr();
+          xstack[xstack.size() - 1] = ParseCtx::MATCH_NEXT_CASE;
+          needsUpdateCtx = true;
+        }
+        break;
+        case ParseCtx::MATCH_NEXT_CASE:
+        {
+          if (!ret.isNull())
+          {
+            // add it to the list of arguments and clear
+            tstack.back().second.push_back(ret);
+            ret = Expr();
+            // pop the scope
+            d_state.popScope();
+          }
+          else
+          {
+            // eat the opening left parenthesis of the case list
+            d_lex.eatToken(Token::LPAREN_TOK);
+          }
+          // see if there is another case
+          if (d_lex.eatTokenChoice(Token::LPAREN_TOK, Token::RPAREN_TOK))
+          {
+            // push the scope
+            d_state.pushScope();
+            // parse the pattern, which also does the binding
+            Assert(!tstack.back().first.d_expr.isNull());
+            std::vector<Expr> boundVars;
+            Expr pattern = parseMatchCasePattern(
+                tstack.back().first.d_expr.getSort(), boundVars);
+            // If we bound variables when parsing the pattern, we will construct
+            // a match bind case
+            ParseOp op;
+            std::vector<Expr> args;
+            if (!boundVars.empty())
+            {
+              op.d_kind = MATCH_BIND_CASE;
+              Expr vl = d_state.mkExpr(VARIABLE_LIST, boundVars);
+              args.push_back(d_state.mkExpr(VARIABLE_LIST, boundVars));
+            }
+            else
+            {
+              op.d_kind = MATCH_CASE;
+            }
+            args.push_back(pattern);
+            // we now look for the body of the case + closing right parenthesis
+            xstack.emplace_back(ParseCtx::NEXT_ARG);
+            tstack.emplace_back(op, args);
+          }
+          else
+          {
+            // Finished with match, now just wait for the closing right
+            // parenthesis. Set the kind to construct as MATCH and clear the
+            // head sort.
+            ParseOp& op = tstack.back().first;
+            op.d_kind = MATCH;
+            op.d_expr = Expr();
+            xstack[xstack.size() - 1] = ParseCtx::NEXT_ARG;
+          }
+        }
+        break;
+        // ------------------------- annotated terms
+        case ParseCtx::TERM_ANNOTATE_BODY:
+        {
+          // save ret as the expression and clear
+          tstack.back().first.d_expr = ret;
+          ret = Expr();
+          // now parse attribute list
+          xstack[xstack.size() - 1] = ParseCtx::TERM_ANNOTATE_NEXT_ATTR;
+          needsUpdateCtx = true;
+          // ensure there is at least one attribute
+          tok = d_lex.peekToken();
+          if (tok == Token::RPAREN_TOK)
+          {
+            d_lex.parseError(
+                "Expecting at least one attribute for term annotation.");
+          }
+        }
+        break;
+        case ParseCtx::TERM_ANNOTATE_NEXT_ATTR:
+        {
+          if (!ret.isNull())
+          {
+            // if we got here, we either:
+            // (1) parsed a single term (the current ParseOp::d_kind was set)
+            // (2) a list of terms in a nested context.
+            if (tstack.back().first.d_kind != NULL_TERM)
+            {
+              // if (1), apply d_kind to the argument and reset d_kind
+              ret = d_state.mkExpr(tstack.back().first.d_kind, {ret});
+              tstack.back().first.d_kind = NULL_TERM;
+            }
+            tstack.back().second.push_back(ret);
+            ret = Expr();
+          }
+          // see if there is another keyword
+          if (d_lex.eatTokenChoice(Token::KEYWORD, Token::RPAREN_TOK))
+          {
+            std::string key = d_lex.tokenStr();
+            // Based on the keyword, determine the context.
+            // Set needsUpdateCtx to true if we are finished parsing the
+            // current attribute.
+            Kind attrKind = NULL_TERM;
+            Expr attrValue;
+            if (key == ":inst-add-to-pool")
+            {
+              attrKind = INST_ADD_TO_POOL;
+            }
+            else if (key == ":quant-inst-max-level")
+            {
+              // a numeral
+              d_lex.eatToken(Token::INTEGER_LITERAL);
+              attrValue = slv->mkInteger(d_lex.tokenStr());
+            }
+            else if (key == ":named")
+            {
+              Assert(!tstack.back().first.d_expr.isNull());
+              // expression is the body of the term annotation
+              std::string sym = parseSymbol(CHECK_UNDECLARED, SYM_VARIABLE);
+              d_state.notifyNamedExpression(tstack.back().first.d_expr, sym);
+              needsUpdateCtx = true;
+            }
+            else if (key == ":no-pattern")
+            {
+              // a single term, set the current kind
+              tstack.back().first.d_kind = INST_NO_PATTERN;
+            }
+            else if (key == ":pattern")
+            {
+              attrKind = INST_PATTERN;
+            }
+            else if (key == ":pool")
+            {
+              attrKind = INST_POOL;
+            }
+            else if (key == ":qid")
+            {
+              std::string sym = parseSymbol(CHECK_UNDECLARED, SYM_VARIABLE);
+              // must create a variable whose name is the name of the quantified
+              // formula, not a string.
+              attrValue = slv->mkConst(slv->getBooleanSort(), sym);
+            }
+            else if (key == ":skolem-add-to-pool")
+            {
+              attrKind = SKOLEM_ADD_TO_POOL;
+            }
+            else
+            {
+              // warn that the attribute is not supported
+              d_state.attributeNotSupported(d_lex.tokenStr());
+              tok = d_lex.nextToken();
+              // We don't know whether to expect an attribute value. Thus,
+              // we will either see keyword (the next attribute), rparen
+              // (the term annotation is finished), or else parse as generic
+              // symbolic expression for the current attribute.
+              switch (tok)
+              {
+                case Token::KEYWORD:
+                case Token::RPAREN_TOK:
+                  // finished with this attribute, go to the next one if it
+                  // exists.
+                  d_lex.reinsertToken(tok);
+                  break;
+                default:
+                  // ignore the symbolic expression that follows
+                  d_lex.reinsertToken(tok);
+                  parseSymbolicExpr();
+                  // will parse another attribute
+                  break;
+              }
+              needsUpdateCtx = true;
+            }
+            if (attrKind != NULL_TERM)
+            {
+              // e.g. `:pattern (t1 ... tn)`, where we have parsed `:pattern (`
+              d_lex.eatToken(Token::LPAREN_TOK);
+              // Will parse list as arguments to the kind + closing parenthesis.
+              ParseOp op;
+              op.d_kind = attrKind;
+              tstack.emplace_back(op, std::vector<Expr>());
+              xstack.emplace_back(ParseCtx::NEXT_ARG);
+            }
+            else if (!attrValue.isNull())
+            {
+              // if we constructed a term as the attribute value, make into
+              // an INST_ATTRIBUTE and add it to args
+              std::string keyName = key.substr(1);
+              Expr keyword = slv->mkString(keyName);
+              Expr iattr = d_state.mkExpr(INST_ATTRIBUTE, {keyword, attrValue});
+              tstack.back().second.push_back(iattr);
+              needsUpdateCtx = true;
+            }
+          }
+          // if we instead saw a RPAREN_TOK, we are finished
+          else
+          {
+            Assert(!tstack.back().first.d_expr.isNull());
+            // finished parsing attributes, we will return the original term
+            ret = tstack.back().first.d_expr;
+            Expr ipl;
+            // if args non-empty, construct an instantiation pattern list
+            if (!tstack.back().second.empty())
+            {
+              ipl = d_state.mkExpr(INST_PATTERN_LIST, tstack.back().second);
+            }
+            xstack.pop_back();
+            tstack.pop_back();
+            // If we constructed an instantiation pattern list, it should have
+            // been a quantified formula body. Check the next scope up.
+            if (!ipl.isNull())
+            {
+              if (tstack.empty() || xstack.back() != ParseCtx::CLOSURE_NEXT_ARG
+                  || tstack.back().second.size() != 1)
+              {
+                d_lex.parseError(
+                    "Patterns and quantifier attributes should be applied to "
+                    "quantified formula bodies only.");
+              }
+              // Push ret and the instantiation pattern list and clear. We
+              // wait for the closing parenthesis, which should follow.
+              tstack.back().second.push_back(ret);
+              tstack.back().second.push_back(ipl);
+              ret = Expr();
+            }
+          }
+        }
+        break;
+        default: break;
+      }
+    }
+    // otherwise ret will be returned
+  } while (!tstack.empty());
+  */
+  return ret;
+}
+
+std::vector<Expr> ExprParser::parseExprList()
+{
+  d_lex.eatToken(Token::LPAREN_TOK);
+  std::vector<Expr> terms;
+  Token tok = d_lex.nextToken();
+  while (tok != Token::RPAREN_TOK)
+  {
+    d_lex.reinsertToken(tok);
+    Expr t = parseExpr();
+    terms.push_back(t);
+    tok = d_lex.nextToken();
+  }
+  return terms;
+}
+
+Expr ExprParser::parseSymbolicExpr()
+{
+  Expr ret;
+  /*
+  Token tok;
+  std::vector<std::vector<Expr>> sstack;
+  Sort dummyType = slv->getBooleanSort();
+  do
+  {
+    tok = d_lex.nextToken();
+    switch (tok)
+    {
+      // ------------------- open paren
+      case Token::LPAREN_TOK:
+      {
+        sstack.emplace_back(std::vector<Expr>());
+      }
+      break;
+      // ------------------- close paren
+      case Token::RPAREN_TOK:
+      {
+        if (sstack.empty())
+        {
+          d_lex.unexpectedTokenError(
+              tok, "Mismatched parentheses in SMT-LIBv2 s-expression");
+        }
+        ret = d_state.mkExpr(SEXPR, sstack.back());
+        // pop the stack
+        sstack.pop_back();
+      }
+      break;
+      // ------------------- base case
+      default:
+      {
+        // note that there are no tokens that are forbidden here
+        std::string str = d_lex.tokenStr();
+        ret = slv->mkVar(dummyType, str);
+      }
+      break;
+    }
+    if (!ret.isNull())
+    {
+      // add it to the list and reset ret
+      if (!sstack.empty())
+      {
+        sstack.back().push_back(ret);
+        ret = Expr();
+      }
+      // otherwise it will be returned
+    }
+  } while (!sstack.empty());
+  Assert(!ret.isNull());
+  */
+  return ret;
+}
+
+std::vector<std::pair<std::string, Expr>> ExprParser::parseSortedVarList()
+{
+  std::vector<std::pair<std::string, Expr>> varList;
+  d_lex.eatToken(Token::LPAREN_TOK);
+  std::string name;
+  Expr t;
+  // while the next token is LPAREN, exit if RPAREN
+  while (d_lex.eatTokenChoice(Token::LPAREN_TOK, Token::RPAREN_TOK))
+  {
+    name = parseSymbol();
+    t = parseExpr();
+    varList.emplace_back(name, t);
+    d_lex.eatToken(Token::RPAREN_TOK);
+  }
+  return varList;
+}
+
+std::string ExprParser::parseSymbol()
+{
+  Token tok = d_lex.nextToken();
+  return tokenStrToSymbol(tok);
+}
+
+std::vector<std::string> ExprParser::parseSymbolList()
+{
+  d_lex.eatToken(Token::LPAREN_TOK);
+  std::vector<std::string> symbols;
+  Token tok = d_lex.nextToken();
+  while (tok != Token::RPAREN_TOK)
+  {
+    d_lex.reinsertToken(tok);
+    std::string sym = parseSymbol();
+    symbols.push_back(sym);
+    tok = d_lex.nextToken();
+  }
+  return symbols;
+}
+
+std::string ExprParser::parseKeyword()
+{
+  d_lex.eatToken(Token::KEYWORD);
+  std::string s = d_lex.tokenStr();
+  // strip off the initial colon
+  return s.erase(0, 1);
+}
+
+uint32_t ExprParser::parseIntegerNumeral()
+{
+  d_lex.eatToken(Token::INTEGER_LITERAL);
+  return tokenStrToUnsigned();
+}
+
+uint32_t ExprParser::tokenStrToUnsigned()
+{
+  // forbid leading zeroes?
+  /*
+  std::string token = d_lex.tokenStr();
+  if (token.size() > 1 && token[0] == '0')
+  {
+    d_lex.parseError("Numeral with leading zeroes are forbidden");
+  }
+  */
+  uint32_t result;
+  std::stringstream ss;
+  ss << d_lex.tokenStr();
+  ss >> result;
+  return result;
+}
+
+std::string ExprParser::tokenStrToSymbol(Token tok)
+{
+  std::string id;
+  switch (tok)
+  {
+    case Token::SYMBOL: id = d_lex.tokenStr(); break;
+    case Token::QUOTED_SYMBOL:
+      id = d_lex.tokenStr();
+      // strip off the quotes
+      id = id.erase(0, 1);
+      id = id.erase(id.size() - 1, 1);
+      break;
+    case Token::UNTERMINATED_QUOTED_SYMBOL:
+      d_lex.parseError("Expected SMT-LIBv2 symbol", true);
+      break;
+    default:
+      d_lex.unexpectedTokenError(tok, "Expected SMT-LIBv2 symbol");
+      break;
+  }
+  return id;
+}
+
+std::vector<std::string> ExprParser::parseNumeralList()
+{
+  std::vector<std::string> numerals;
+  Token tok = d_lex.nextToken();
+  while (tok == Token::INTEGER_LITERAL)
+  {
+    numerals.emplace_back(d_lex.tokenStr());
+    tok = d_lex.nextToken();
+  }
+  d_lex.reinsertToken(tok);
+  return numerals;
+}
+
+/*
+std::vector<DatatypeDecl> ExprParser::parseDatatypesDef(
+    bool isCo,
+    const std::vector<std::string>& dnames,
+    const std::vector<size_t>& arities)
+{
+  Assert(dnames.size() == arities.size()
+         || (dnames.size() == 1 && arities.empty()));
+  std::vector<DatatypeDecl> dts;
+  d_state.pushScope();
+  // Declare the datatypes that are currently being defined as unresolved
+  // types. If we do not know the arity of the datatype yet, we wait to
+  // define it until parsing the preamble of its body, which may optionally
+  // involve `par`. This is limited to the case of single datatypes defined
+  // via declare-datatype, and hence no datatype body is parsed without
+  // having all types declared. This ensures we can parse datatypes with
+  // nested recursion, e.g. datatypes D having a subfield type
+  // (Array Int D).
+  for (unsigned i = 0, dsize = dnames.size(); i < dsize; i++)
+  {
+    if (i >= arities.size())
+    {
+      // do not know the arity yet
+      continue;
+    }
+    d_state.mkUnresolvedType(dnames[i], arities[i]);
+  }
+  // while we get another datatype declaration, or close the list
+  Token tok = d_lex.nextToken();
+  while (tok == Token::LPAREN_TOK)
+  {
+    std::vector<Sort> params;
+    size_t i = dts.size();
+    Trace("parser-dt") << "Processing datatype #" << i << std::endl;
+    if (i >= dnames.size())
+    {
+      d_lex.parseError("Too many datatypes defined in this block.");
+    }
+    tok = d_lex.nextToken();
+    bool pushedScope = false;
+    if (tok == Token::PAR_TOK)
+    {
+      pushedScope = true;
+      d_state.pushScope();
+      std::vector<std::string> symList =
+          parseSymbolList(CHECK_UNDECLARED, SYM_SORT);
+      if (symList.empty())
+      {
+        d_lex.parseError("Expected non-empty parameter list");
+      }
+      for (const std::string& sym : symList)
+      {
+        params.push_back(d_state.mkSort(sym));
+      }
+      Trace("parser-dt") << params.size() << " parameters for " << dnames[i]
+                         << std::endl;
+      dts.push_back(
+          d_state.mkDatatypeDecl(dnames[i], params, isCo));
+    }
+    else
+    {
+      d_lex.reinsertToken(tok);
+      // we will parse the parentheses-enclosed construct list below
+      d_lex.reinsertToken(Token::LPAREN_TOK);
+      dts.push_back(
+          d_state.mkDatatypeDecl(dnames[i], params, isCo));
+    }
+    if (i >= arities.size())
+    {
+      // if the arity is not yet fixed, declare it as an unresolved type
+      d_state.mkUnresolvedType(dnames[i], params.size());
+    }
+    else if (arities[i] >= 0 && params.size() != arities[i])
+    {
+      // if the arity was fixed by prelude and is not equal to the number of
+      // parameters
+      d_lex.parseError("Wrong number of parameters for datatype.");
+    }
+    // read constructor definition list, populate into the current datatype
+    parseConstructorDefinitionList(dts.back());
+    if (pushedScope)
+    {
+      d_lex.eatToken(Token::RPAREN_TOK);
+      d_state.popScope();
+    }
+    tok = d_lex.nextToken();
+  }
+  if (dts.size() != dnames.size())
+  {
+    d_lex.unexpectedTokenError(tok, "Wrong number of datatypes provided.");
+  }
+  d_lex.reinsertToken(tok);
+  d_state.popScope();
+  return dts;
+}
+
+void ExprParser::parseConstructorDefinitionList(DatatypeDecl& type)
+{
+  d_lex.eatToken(Token::LPAREN_TOK);
+  // parse another constructor or close the list
+  while (d_lex.eatTokenChoice(Token::LPAREN_TOK, Token::RPAREN_TOK))
+  {
+    std::string name = parseSymbol(CHECK_NONE, SYM_VARIABLE);
+    DatatypeConstructorDecl ctor(
+        d_state.mkDatatypeConstructorDecl(name));
+    // parse another selector or close the current constructor
+    while (d_lex.eatTokenChoice(Token::LPAREN_TOK, Token::RPAREN_TOK))
+    {
+      std::string id = parseSymbol(CHECK_NONE, SYM_SORT);
+      Sort t = parseSort();
+      ctor.addSelector(id, t);
+      Trace("parser-idt") << "selector: " << id << " of type " << t
+                          << std::endl;
+      d_lex.eatToken(Token::RPAREN_TOK);
+    }
+    // make the constructor
+    type.addConstructor(ctor);
+    Trace("parser-idt") << "constructor: " << name << std::endl;
+  }
+}
+*/
+
+std::string ExprParser::parseStr(bool unescape)
+{
+  d_lex.eatToken(Token::STRING_LITERAL);
+  std::string s = d_lex.tokenStr();
+  if (unescape)
+  {
+    unescapeString(s);
+  }
+  return s;
+}
+
+void ExprParser::unescapeString(std::string& s)
+{
+  // strip off the quotes
+  s = s.erase(0, 1);
+  s = s.erase(s.size() - 1, 1);
+  for (size_t i = 0, ssize = s.size(); i < ssize; i++)
+  {
+    if ((unsigned)s[i] > 127 && !isprint(s[i]))
+    {
+      d_lex.parseError(
+          "Extended/unprintable characters are not "
+          "part of SMT-LIB, and they must be encoded "
+          "as escape sequences");
+    }
+  }
+  size_t dst = 0;
+  for (size_t src = 0; src<s.size(); ++src, ++dst)
+  {
+    s[dst] = s[src];
+    if (s[src]=='"')
+    {
+      ++src;
+    }
+  }
+  s.erase(dst);
+}
+
+/*
+Expr ExprParser::parseMatchCasePattern(Sort headSort,
+                                           std::vector<Expr>& boundVars)
+{
+  if (d_lex.eatTokenChoice(Token::SYMBOL, Token::LPAREN_TOK))
+  {
+    // a nullary constructor or variable, depending on if the symbol is declared
+    std::string name = d_lex.tokenStr();
+    if (d_state.isDeclared(name, SYM_VARIABLE))
+    {
+      Expr pat = d_state.getVariable(name);
+      Sort type = pat.getSort();
+      if (!type.isDatatype())
+      {
+        d_lex.parseError(
+            "Must apply constructors of arity greater than 0 to arguments in "
+            "pattern.");
+      }
+      // make nullary constructor application
+      return pat;
+    }
+    // it has the type of the head expr
+    Expr pat = d_state.bindBoundVar(name, headSort);
+    boundVars.push_back(pat);
+    return pat;
+  }
+  // a non-nullary constructor
+  // We parse a constructor name
+  const Datatype& dt = headSort.getDatatype();
+  std::string cname = parseSymbol(CHECK_DECLARED, SYM_VARIABLE);
+  const DatatypeConstructor& dc = dt.getConstructor(cname);
+  // get the constructor, which could be instantiated based on the head type
+  // if we are a parametric datatype
+  Expr f = dt.isParametric() ? dc.getInstantiatedExpr(headSort) : dc.getExpr();
+  // f should be a constructor
+  Sort type = f.getSort();
+  Assert(type.isDatatypeConstructor());
+  Trace("parser-dt") << "Pattern head : " << f << " " << type << std::endl;
+  std::vector<Sort> argTypes = type.getDatatypeConstructorDomainSorts();
+  // now, parse symbols that are interpreted as bindings for the argument
+  // types
+  while (d_lex.eatTokenChoice(Token::SYMBOL, Token::RPAREN_TOK))
+  {
+    if (boundVars.size() >= argTypes.size())
+    {
+      d_state.parseError("Too many arguments for pattern.");
+    }
+    // make of proper type
+    Expr arg =
+        d_state.bindBoundVar(d_lex.tokenStr(), argTypes[boundVars.size()]);
+    boundVars.push_back(arg);
+  }
+  std::vector<Expr> cargs;
+  cargs.push_back(f);
+  cargs.insert(cargs.end(), boundVars.begin(), boundVars.end());
+  // make the pattern term
+  return d_state.mkExpr(APPLY_CONSTRUCTOR, cargs);
+}
+*/
+
+}  // namespace atc
