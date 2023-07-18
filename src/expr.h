@@ -7,17 +7,23 @@
 
 namespace atc {
 
+class State;
+
 /** 
  * Expression class
  */
 class ExprValue
 {
+  friend class State;
  public:
   ExprValue();
   ExprValue(Kind k,
        const std::vector<std::shared_ptr<ExprValue>>& children);
   ~ExprValue();
+  /** is null? */
   bool isNull() const;
+  /** is equal */
+  bool isEqual(const std::shared_ptr<ExprValue>& val) const;
   /** get the kind of this expression */
   Kind getKind() const;
   /** Get children */
@@ -39,6 +45,8 @@ class ExprValue
   /** Its type */
   std::shared_ptr<ExprValue> getType();
  private:
+  /** The current state */
+  static State* d_state;
   /** The kind */
   Kind d_kind;
   /** The children of this expression */

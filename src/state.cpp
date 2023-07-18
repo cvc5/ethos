@@ -4,7 +4,9 @@
 
 namespace atc {
 
-State::State(){}
+State::State(){
+  ExprValue::d_state = this;
+}
 State::~State(){}
 
 void State::reset()
@@ -45,6 +47,16 @@ Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret)
   atypes.push_back(ret);
   return mkExpr(Kind::FUNCTION, atypes);
 }
+
+Expr State::mkAbstractType()
+{
+  return nullptr;
+}
+
+Expr State::mkBuiltinType(Kind k)
+{
+  return nullptr;
+}
   
 Expr State::mkVar(const std::string& s, const Expr& type)
 {
@@ -65,30 +77,33 @@ Expr State::mkLiteral(Kind k, const std::string& s)
   return lit;
 }
 
-std::vector<Expr> State::mkAndBindVars(
-    const std::vector<std::pair<std::string, Expr> >& sortedVarNames)
+bool State::mkAndBindVars(
+    const std::vector<std::pair<std::string, Expr> >& sortedVarNames, std::vector<Expr>& ret)
 {
-  std::vector<Expr> ret;
   for (const std::pair<std::string, Expr>& sv : sortedVarNames)
   {
     Expr v = mkVar(sv.first, sv.second);
-    bind(sv.first, v);
+    if (!bind(sv.first, v))
+    {
+      return false;
+    }
     ret.push_back(v);
   }
-  return ret;
+  return true;
 }
 
-void State::bind(const std::string& name, const Expr& e)
+bool State::bind(const std::string& name, const Expr& e)
 {
   if (d_symTable.find(name)!=d_symTable.end())
   {
-    // TODO: error
+    return false;
   }
   d_symTable[name] = e;
   d_decls.push_back(name);
+  return true;
 }
 
-bool State::isClosure(const std::string& name) const 
+bool State::isClosure(const Expr& e) const 
 {
   return false;
 }

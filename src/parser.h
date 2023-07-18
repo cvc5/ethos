@@ -17,7 +17,7 @@ namespace atc {
 class Parser
 {
  public:
-  Parser();
+  Parser(State& s);
   virtual ~Parser() {}
   
   /** Set the input for the given file.
@@ -38,7 +38,7 @@ class Parser
   /** The lexer */
   Lexer d_lex;
   /** The state */
-  State d_state;
+  State& d_state;
   /** Expression parser */
   ExprParser d_eparser;
   /** Command parser */

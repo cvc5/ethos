@@ -23,6 +23,8 @@ public:
   /** ? */
   Expr mkAbstractType();
   /** */
+  Expr mkBuiltinType(Kind k);
+  /** */
   Expr mkVar(const std::string& name, const Expr& type);
   /** */
   Expr mkExpr(Kind k, const std::vector<Expr>& children);
@@ -40,12 +42,12 @@ public:
    * Like the method above, this binds these names to those variables in the
    * current scope.
    */
-  std::vector<Expr> mkAndBindVars(
-      const std::vector<std::pair<std::string, Expr> >& sortedVarNames);
+  bool mkAndBindVars(
+      const std::vector<std::pair<std::string, Expr> >& sortedVarNames, std::vector<Expr>& ret);
   /** */
-  void bind(const std::string& name, const Expr& e);
+  bool bind(const std::string& name, const Expr& e);
   /** is closure */
-  bool isClosure(const std::string& name) const;
+  bool isClosure(const Expr& e) const;
   /** */
   Expr getVar(const std::string& name) const;
 private:
@@ -56,6 +58,7 @@ private:
   std::vector<std::string> d_decls;
   /** Context size */
   std::vector<size_t> d_declsSizeCtx;
+  // TODO: different kinds of data
   /** literals */
   std::map<Expr, std::string> d_litData;
 };

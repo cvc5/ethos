@@ -11,7 +11,8 @@ int main( int argc, char* argv[] )
     std::cerr << "Usage" << std::endl;
     exit(1);
   }
-  Parser p;
+  State s;
+  Parser p(s);
   p.setFileInput(argv[1]);
   bool parsedCommand;
   do

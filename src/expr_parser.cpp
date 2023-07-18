@@ -98,7 +98,9 @@ Expr ExprParser::parseExpr()
             // function identifier
             std::string name = tokenStrToSymbol(tok);
             std::vector<Expr> args;
-            if (d_state.isClosure(name))
+            Expr v = getVar(name);
+            args.push_back(v);
+            if (d_state.isClosure(v))
             {
               // if it is a closure, immediately read the bound variable list
               d_state.pushScope();
@@ -108,7 +110,11 @@ Expr ExprParser::parseExpr()
               {
                 d_lex.parseError("Expected non-empty sorted variable list");
               }
-              std::vector<Expr> vs = d_state.mkAndBindVars(sortedVarNames);
+              std::vector<Expr> vs;
+              if (!d_state.mkAndBindVars(sortedVarNames, vs))
+              {
+                // TODO error
+              }
               Expr vl = d_state.mkExpr(Kind::VARIABLE_LIST, vs);
               args.push_back(vl);
               xstack.emplace_back(ParseCtx::CLOSURE_NEXT_ARG);
@@ -157,13 +163,7 @@ Expr ExprParser::parseExpr()
       case Token::QUOTED_SYMBOL:
       {
         std::string name = tokenStrToSymbol(tok);
-        ret = d_state.getVar(name);
-        if (ret==nullptr)
-        {
-          std::stringstream ss;
-          ss << "State::getVar: could not find symbol " << name;
-          d_lex.parseError(ss.str());
-        }
+        ret = getVar(name);
       }
       break;
       case Token::UNTERMINATED_QUOTED_SYMBOL:
@@ -270,7 +270,10 @@ Expr ExprParser::parseExpr()
                 letBinders.back();
             for (const std::pair<std::string, Expr>& b : bs)
             {
-              d_state.bind(b.first, b.second);
+              if (!d_state.bind(b.first, b.second))
+              {
+                // TODO: error
+              }
             }
             // done with the binders
             letBinders.pop_back();
@@ -448,6 +451,18 @@ void ExprParser::unescapeString(std::string& s)
     }
   }
   s.erase(dst);
+}
+
+Expr ExprParser::getVar(const std::string& name)
+{
+  Expr ret = d_state.getVar(name);
+  if (ret==nullptr)
+  {
+    std::stringstream ss;
+    ss << "State::getVar: could not find symbol " << name;
+    d_lex.parseError(ss.str());
+  }
+  return ret;
 }
 
 }  // namespace atc

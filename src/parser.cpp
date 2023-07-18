@@ -2,9 +2,9 @@
 
 namespace atc {
 
-Parser::Parser()
+Parser::Parser(State& s)
     : d_lex(),
-      d_state(),
+      d_state(s),
       d_eparser(d_lex, d_state),
       d_cmdParser(d_lex, d_state, d_eparser)
 {
