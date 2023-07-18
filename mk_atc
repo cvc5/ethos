@@ -1,0 +1,2 @@
+#!/bin/bash
+g++ ./src/input.cpp ./src/lexer.cpp ./src/tokens.cpp ./src/main.cpp -o atc
