@@ -4,6 +4,7 @@
 #include <iostream>
 #include <sstream>
 
+#include "error.h"
 
 namespace atc {
 
@@ -69,12 +70,11 @@ void Lexer::parseError(const std::string& msg, bool eofException)
   std::stringstream os;
   if( d_span.d_start.d_line > 0 ) {
     os <<  "Parse Error: " << d_inputName << ":" << d_span.d_start.d_line << "."
-        << d_span.d_start.d_column << ": " << msg;
+        << d_span.d_start.d_column << ": " << msg << std::endl;
   } else {
-    os << "Parse Error: " << msg;
+    os << "Parse Error: " << msg << std::endl;
   }
-  std::cerr << os.str();
-  exit(1);
+  Error::reportError(os.str());
 }
 
 void Lexer::initSpan()
@@ -127,7 +127,7 @@ void Lexer::unexpectedTokenError(Token t, const std::string& info)
 {
   //Assert(d_peeked.empty());
   std::ostringstream o{};
-  o << info << ", got `" << tokenStr() << "` (" << t << ").";
+  o << info << ", got `" << tokenStr() << "` (" << t << ")." << std::endl;
   // Note that we treat this as an EOF exception if the token is EOF.
   // This is important for exception handling in interactive mode.
   parseError(o.str(), t == Token::EOF_TOK);

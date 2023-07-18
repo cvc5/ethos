@@ -11,9 +11,20 @@ namespace atc {
 enum class Kind
 {
   NONE = 0,
+  
+  // types
+  TYPE,
+  FUNCTION,
+  PROOF,
+  ABSTRACT,
+  
+  // terms
   APPLY,
   LAMBDA,
+  VARIABLE,
   VARIABLE_LIST,
+
+  // literals
   INTEGER,
   DECIMAL,
   HEXADECIMAL,

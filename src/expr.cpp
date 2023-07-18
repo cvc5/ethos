@@ -21,6 +21,12 @@ void ExprValue::printDebug(std::ostream& os) const
 
 std::shared_ptr<ExprValue> ExprValue::getType()
 {
+  switch(d_kind)
+  {
+    case Kind::VARIABLE:
+    default:
+      break;
+  }
   return nullptr;
 }
   

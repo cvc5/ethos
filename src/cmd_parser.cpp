@@ -67,6 +67,12 @@ bool CmdParser::parseNextCommand()
   Token tok = nextCommandToken();
   switch (tok)
   {
+    // (assume <symbol> <term>)
+    case Token::ASSUME:
+    {
+      
+    }
+    break;
     // (declare-fun <symbol> (<sort>∗) <sort>)
     // (declare-const <symbol> <sort>)
     case Token::DECLARE_CONST:
@@ -232,6 +238,10 @@ bool CmdParser::parseNextCommand()
     case Token::EXIT:
     {
       exit(0);
+    }
+    break;
+    case Token::INCLUDE:
+    {
     }
     break;
     // (reset)

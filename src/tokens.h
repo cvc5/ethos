@@ -34,6 +34,7 @@ enum class Token
   LPAREN,
   NUMERAL,
   PAR,
+  PROOF,
   QUOTED_SYMBOL,
   RESET,
   RPAREN,

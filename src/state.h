@@ -20,6 +20,8 @@ public:
   Expr mkType();
   /** (-> <type_list> <type>) */
   Expr mkFunctionType(const std::vector<Expr>& args, const Expr& ret);
+  /** ? */
+  Expr mkAbstractType();
   /** */
   Expr mkVar(const std::string& name, const Expr& type);
   /** */
@@ -31,7 +33,7 @@ public:
    *          integer (e.g., "123").
    * @return A constant
    */
-  Expr mkLiteral(Kind k, const std::string& s) const;
+  Expr mkLiteral(Kind k, const std::string& s);
   
   /**
    * Create a new cvc5 bound variable expressions of the given names and types.
@@ -54,6 +56,8 @@ private:
   std::vector<std::string> d_decls;
   /** Context size */
   std::vector<size_t> d_declsSizeCtx;
+  /** literals */
+  std::map<Expr, std::string> d_litData;
 };
 
 }  // namespace atc

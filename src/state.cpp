@@ -1,5 +1,7 @@
 #include "state.h"
 
+#include "error.h"
+
 namespace atc {
 
 State::State(){}
@@ -7,7 +9,6 @@ State::~State(){}
 
 void State::reset()
 {
-  // TODO
   d_symTable.clear();
   d_decls.clear();
   d_declsSizeCtx.clear();
@@ -22,8 +23,7 @@ void State::popScope()
 {
   if (d_declsSizeCtx.empty())
   {
-    // TODO
-    exit(1);
+    Error::reportError("State::popScope: empty context");
   }
   size_t lastSize = d_declsSizeCtx.back();
   d_declsSizeCtx.pop_back();
@@ -36,27 +36,33 @@ void State::popScope()
 
 Expr State::mkType()
 {
-  return nullptr;
+  return mkExpr(Kind::TYPE, {});
 }
 
 Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret)
 {
-  return nullptr;
+  std::vector<Expr> atypes(args.begin(), args.end());
+  atypes.push_back(ret);
+  return mkExpr(Kind::FUNCTION, atypes);
 }
   
 Expr State::mkVar(const std::string& s, const Expr& type)
 {
-  return nullptr;
+  // type is stored as a child
+  return mkExpr(Kind::VARIABLE, {type});
 }
   
 Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
 {
-  return nullptr;
+  return std::make_shared<ExprValue>(k, children);
 }
 
-Expr State::mkLiteral(Kind k, const std::string& s) const
+Expr State::mkLiteral(Kind k, const std::string& s)
 {
-  return nullptr;
+  // map to data
+  Expr lit = mkExpr(k, {});
+  d_litData[lit] = s;
+  return lit;
 }
 
 std::vector<Expr> State::mkAndBindVars(
@@ -86,6 +92,7 @@ bool State::isClosure(const std::string& name) const
 {
   return false;
 }
+
 Expr State::getVar(const std::string& name) const
 {
   std::map<std::string, Expr>::const_iterator it = d_symTable.find(name);

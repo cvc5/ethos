@@ -158,6 +158,12 @@ Expr ExprParser::parseExpr()
       {
         std::string name = tokenStrToSymbol(tok);
         ret = d_state.getVar(name);
+        if (ret==nullptr)
+        {
+          std::stringstream ss;
+          ss << "State::getVar: could not find symbol " << name;
+          d_lex.parseError(ss.str());
+        }
       }
       break;
       case Token::UNTERMINATED_QUOTED_SYMBOL:
