@@ -12,7 +12,9 @@ enum class Kind
 {
   NONE = 0,
   APPLY,
-  NUMERAL,
+  VARIABLE_LIST,
+  INTEGER,
+  DECIMAL,
   HEXADECIMAL,
   BINARY,
   STRING

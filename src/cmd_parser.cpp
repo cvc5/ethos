@@ -219,7 +219,7 @@ bool CmdParser::parseNextCommand()
       {
         d_state.pushScope();
       }
-      std::vector<Expr> terms = d_state.bindBoundVars(sortedVarNames);
+      std::vector<Expr> terms = d_state.mkAndBindVars(sortedVarNames);
       Expr expr = d_eparser.parseExpr();
       if (sortedVarNames.size() > 0)
       {

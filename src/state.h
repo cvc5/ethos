@@ -20,7 +20,7 @@ public:
   /** */
   Expr mkFunctionType(const std::vector<Expr>& args, const Expr& ret);
   /** */
-  Expr mkVar(const std::string& s, const Expr& type);
+  Expr mkVar(const std::string& name, const Expr& type);
   /** */
   Expr mkExpr(Kind k, const std::vector<Expr>& children);
   
@@ -37,8 +37,14 @@ public:
    * Like the method above, this binds these names to those variables in the
    * current scope.
    */
-  std::vector<Expr> bindBoundVars(
-      std::vector<std::pair<std::string, Expr> >& sortedVarNames);
+  std::vector<Expr> mkAndBindVars(
+      const std::vector<std::pair<std::string, Expr> >& sortedVarNames);
+  /** */
+  void bind(const std::string& name, const Expr& e);
+  /** is closure */
+  bool isClosure(const std::string& name) const;
+  /** */
+  Expr getVar(const std::string& name);
 private:
   
 };

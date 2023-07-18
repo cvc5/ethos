@@ -13,9 +13,11 @@ namespace atc {
 class ExprValue
 {
  public:
+  ExprValue();
   ExprValue(Kind k,
        const std::vector<std::shared_ptr<ExprValue>>& children);
   ~ExprValue();
+  bool isNull() const;
   /** get the kind of this expression */
   Kind getKind() const;
   /** Get children */

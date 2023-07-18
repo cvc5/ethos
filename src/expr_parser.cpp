@@ -81,7 +81,6 @@ Expr ExprParser::parseExpr()
 {
   // the last parsed term
   Expr ret;
-  /*
   // a request was made to update the current parse context
   bool needsUpdateCtx = false;
   // the last token we read
@@ -89,12 +88,12 @@ Expr ExprParser::parseExpr()
   // The stack(s) containing the parse context, and the recipe for the
   // current we are building.
   std::vector<ParseCtx> xstack;
-  std::vector<std::pair<ParseOp, std::vector<Expr>>> tstack;
+  std::vector<std::vector<Expr>> tstack;
   // Let bindings, dynamically allocated for each let in scope.
   std::vector<std::vector<std::pair<std::string, Expr>>> letBinders;
   do
   {
-    Assert(tstack.size() == xstack.size());
+    //Assert(tstack.size() == xstack.size());
     // At this point, we are ready to parse the next term
     tok = d_lex.nextToken();
     Expr currExpr;
@@ -109,7 +108,7 @@ Expr ExprParser::parseExpr()
           case Token::LET_TOK:
           {
             xstack.emplace_back(ParseCtx::LET_NEXT_BIND);
-            tstack.emplace_back(ParseOp(), std::vector<Expr>());
+            tstack.emplace_back();
             needsUpdateCtx = true;
             letBinders.emplace_back();
           }
@@ -130,21 +129,20 @@ Expr ExprParser::parseExpr()
           case Token::QUOTED_SYMBOL:
           {
             // function identifier
-            ParseOp op;
-            op.d_name = tokenStrToSymbol(tok);
+            std::string name = tokenStrToSymbol(tok);
             std::vector<Expr> args;
-            if (d_state.isClosure(op.d_name))
+            if (d_state.isClosure(name))
             {
               // if it is a closure, immediately read the bound variable list
               d_state.pushScope();
-              std::vector<std::pair<std::string, Sort>> sortedVarNames =
+              std::vector<std::pair<std::string, Expr>> sortedVarNames =
                   parseSortedVarList();
               if (sortedVarNames.empty())
               {
                 d_lex.parseError("Expected non-empty sorted variable list");
               }
-              std::vector<Expr> vs = d_state.bindBoundVars(sortedVarNames);
-              Expr vl = d_state.mkExpr(VARIABLE_LIST, vs);
+              std::vector<Expr> vs = d_state.mkAndBindVars(sortedVarNames);
+              Expr vl = d_state.mkExpr(Kind::VARIABLE_LIST, vs);
               args.push_back(vl);
               xstack.emplace_back(ParseCtx::CLOSURE_NEXT_ARG);
             }
@@ -152,7 +150,7 @@ Expr ExprParser::parseExpr()
             {
               xstack.emplace_back(ParseCtx::NEXT_ARG);
             }
-            tstack.emplace_back(op, args);
+            tstack.emplace_back(args);
           }
           break;
           case Token::UNTERMINATED_QUOTED_SYMBOL:
@@ -175,8 +173,7 @@ Expr ExprParser::parseExpr()
               tok, "Mismatched parentheses in SMT-LIBv2 term");
         }
         // Construct the application term specified by tstack.back()
-        ParseOp& op = tstack.back().first;
-        ret = d_state.applyParseOp(op, tstack.back().second);
+        ret = d_state.mkExpr(Kind::APPLY, tstack.back());
         // process the scope change if a closure
         if (xstack.back() == ParseCtx::CLOSURE_NEXT_ARG)
         {
@@ -193,7 +190,7 @@ Expr ExprParser::parseExpr()
       case Token::QUOTED_SYMBOL:
       {
         std::string name = tokenStrToSymbol(tok);
-        ret = d_state.getVariable(name);
+        ret = d_state.getVar(name);
       }
       break;
       case Token::UNTERMINATED_QUOTED_SYMBOL:
@@ -201,33 +198,33 @@ Expr ExprParser::parseExpr()
         break;
       case Token::INTEGER_LITERAL:
       {
-        ret = d_state.mkRealOrIntFromNumeral(d_lex.tokenStr());
+        ret = d_state.mkLiteral(Kind::INTEGER, d_lex.tokenStr());
       }
       break;
       case Token::DECIMAL_LITERAL:
       {
-        ret = d_state.mkReal(d_lex.tokenStr());
+        ret = d_state.mkLiteral(Kind::DECIMAL, d_lex.tokenStr());
       }
       break;
       case Token::HEX_LITERAL:
       {
         std::string hexStr = d_lex.tokenStr();
         hexStr = hexStr.substr(2);
-        ret = d_state.mkHexLiteral(hexStr);
+        ret = d_state.mkLiteral(Kind::HEXADECIMAL, hexStr);
       }
       break;
       case Token::BINARY_LITERAL:
       {
         std::string binStr = d_lex.tokenStr();
         binStr = binStr.substr(2);
-        ret = d_state.mkBinLiteral(binStr);
+        ret = d_state.mkLiteral(Kind::BINARY, binStr);
       }
       break;
       case Token::STRING_LITERAL:
       {
         std::string s = d_lex.tokenStr();
         unescapeString(s);
-        ret = d_state.mkString(s, true);
+        ret = d_state.mkLiteral(Kind::STRING, s);
       }
       break;
       default:
@@ -239,7 +236,7 @@ Expr ExprParser::parseExpr()
     // We do this only if a context is allocated (!tstack.empty()) and we
     // either just finished parsing a term (!ret.isNull()), or otherwise have
     // indicated that we need to update the context (needsUpdateCtx).
-    while (!tstack.empty() && (!ret.isNull() || needsUpdateCtx))
+    while (!tstack.empty() && (!ret->isNull() || needsUpdateCtx))
     {
       needsUpdateCtx = false;
       switch (xstack.back())
@@ -248,9 +245,9 @@ Expr ExprParser::parseExpr()
         case ParseCtx::NEXT_ARG:
         case ParseCtx::CLOSURE_NEXT_ARG:
         {
-          Assert(!ret.isNull());
+          //Assert(!ret.isNull());
           // add it to the list of arguments and clear
-          tstack.back().second.push_back(ret);
+          tstack.back().push_back(ret);
           ret = Expr();
         }
         break;
@@ -258,12 +255,13 @@ Expr ExprParser::parseExpr()
         case ParseCtx::LET_NEXT_BIND:
         {
           // if we parsed a term, process it as a binding
-          if (!ret.isNull())
+          if (!ret->isNull())
           {
-            Assert(!letBinders.empty());
+            //Assert(!letBinders.empty());
             std::vector<std::pair<std::string, Expr>>& bs = letBinders.back();
             // add binding from the symbol to ret
-            bs.emplace_back(tstack.back().first.d_name, ret);
+            //Assert (!bs.empty());
+            bs.back().second = ret;
             ret = Expr();
             // close the current binding
             d_lex.eatToken(Token::RPAREN_TOK);
@@ -278,7 +276,9 @@ Expr ExprParser::parseExpr()
           {
             // (, another binding: setup parsing the next term
             // get the symbol and store in the ParseOp
-            tstack.back().first.d_name = parseSymbol(CHECK_NONE, SYM_VARIABLE);
+            std::string name = parseSymbol();
+            std::vector<std::pair<std::string, Expr>>& bs = letBinders.back();
+            bs.emplace_back(name, Expr());
           }
           else
           {
@@ -287,12 +287,12 @@ Expr ExprParser::parseExpr()
             // push scope
             d_state.pushScope();
             // implement the bindings
-            Assert(!letBinders.empty());
+            //Assert(!letBinders.empty());
             const std::vector<std::pair<std::string, Expr>>& bs =
                 letBinders.back();
             for (const std::pair<std::string, Expr>& b : bs)
             {
-              d_state.defineVar(b.first, b.second);
+              d_state.bind(b.first, b.second);
             }
             // done with the binders
             letBinders.pop_back();
@@ -310,6 +310,7 @@ Expr ExprParser::parseExpr()
         }
         break;
         // ------------------------- match terms
+        /*
         case ParseCtx::MATCH_HEAD:
         {
           Assert(!ret.isNull());
@@ -386,7 +387,9 @@ Expr ExprParser::parseExpr()
           }
         }
         break;
+        */
         // ------------------------- annotated terms
+        /*
         case ParseCtx::TERM_ANNOTATE_BODY:
         {
           // save ret as the expression and clear
@@ -552,12 +555,12 @@ Expr ExprParser::parseExpr()
           }
         }
         break;
+        */
         default: break;
       }
     }
     // otherwise ret will be returned
   } while (!tstack.empty());
-  */
   return ret;
 }
 
@@ -687,13 +690,11 @@ uint32_t ExprParser::parseIntegerNumeral()
 uint32_t ExprParser::tokenStrToUnsigned()
 {
   // forbid leading zeroes?
-  /*
   std::string token = d_lex.tokenStr();
   if (token.size() > 1 && token[0] == '0')
   {
     d_lex.parseError("Numeral with leading zeroes are forbidden");
   }
-  */
   uint32_t result;
   std::stringstream ss;
   ss << d_lex.tokenStr();

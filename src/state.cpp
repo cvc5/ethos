@@ -43,11 +43,25 @@ Expr State::mkLiteral(Kind k, const std::string& s) const
   return nullptr;
 }
 
-std::vector<Expr> State::bindBoundVars(
-    std::vector<std::pair<std::string, Expr> >& sortedVarNames)
+std::vector<Expr> State::mkAndBindVars(
+    const std::vector<std::pair<std::string, Expr> >& sortedVarNames)
 {
   std::vector<Expr> ret;
   return ret;
+}
+
+void State::bind(const std::string& name, const Expr& e)
+{
+  
+}
+
+bool State::isClosure(const std::string& name) const 
+{
+  return false;
+}
+Expr State::getVar(const std::string& name)
+{
+  return nullptr;
 }
 
 }  // namespace atc
