@@ -30,6 +30,7 @@ CmdParser::CmdParser(Lexer& lex,
   d_table["declare-type"] = Token::DECLARE_TYPE;
   d_table["define-const"] = Token::DEFINE_CONST;
   d_table["define-fun"] = Token::DEFINE_FUN;
+  d_table["define-type"] = Token::DEFINE_TYPE;
   d_table["define-sort"] = Token::DEFINE_SORT;
   d_table["echo"] = Token::ECHO;
   d_table["exit"] = Token::EXIT;
@@ -152,13 +153,22 @@ bool CmdParser::parseNextCommand()
     break;
     // (define-fun <symbol> (<sorted_var>*) <sort> <term>)
     case Token::DEFINE_FUN:
+    case Token::DEFINE_TYPE:
     {
       //d_state.checkThatLogicIsSet();
       std::string name = d_eparser.parseSymbol();
       //d_state.checkUserSymbol(name);
       std::vector<std::pair<std::string, Expr>> sortedVarNames =
           d_eparser.parseSortedVarList();
-      Expr ret = d_eparser.parseExpr();
+      Expr ret;
+      if (tok == Token::DEFINE_FUN)
+      {
+        ret = d_eparser.parseExpr();
+      }
+      else
+      {
+        ret = d_state.mkType();
+      }
       if (sortedVarNames.size() > 0)
       {
         d_state.pushScope();
@@ -171,6 +181,7 @@ bool CmdParser::parseNextCommand()
         Expr vl = d_state.mkExpr(Kind::VARIABLE_LIST, vars);
         expr = d_state.mkExpr(Kind::LAMBDA, {vl, expr});
       }
+      // TODO: ensure the return type is ret?
       d_state.bind(name, expr);
     }
     break;
@@ -182,15 +193,23 @@ bool CmdParser::parseNextCommand()
       //d_state.checkUserSymbol(name);
       std::vector<std::string> snames =
           d_eparser.parseSymbolList();
-      d_state.pushScope();
-      std::vector<Expr> sorts;
-      Expr ttype = d_state.mkType();
-      for (const std::string& sname : snames)
+      if (!snames.empty())
       {
-        sorts.push_back(d_state.mkVar(sname, ttype));
+        d_state.pushScope();
+        std::vector<Expr> sorts;
+        Expr ttype = d_state.mkType();
+        for (const std::string& sname : snames)
+        {
+          Expr v = d_state.mkVar(sname, ttype);
+          d_state.bind(sname, v);
+        }
       }
       Expr t = d_eparser.parseExpr();
-      d_state.popScope();
+      if (!snames.empty())
+      {
+        d_state.popScope();
+      }
+      d_state.bind(name, t);
     }
     break;
     // (echo <string>)

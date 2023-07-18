@@ -23,6 +23,7 @@ enum class Token
   DEFINE_CONST,
   DEFINE_FUN,
   DEFINE_SORT,
+  DEFINE_TYPE,
   ECHO,
   EXIT,
   HEX_LITERAL,
