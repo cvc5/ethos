@@ -111,7 +111,7 @@ bool CmdParser::parseNextCommand()
       d_state.pushScope();
       std::string name = d_eparser.parseSymbol();
       std::vector<Expr> vs =
-          d_eparser.parseAndBindSortedVarList();
+          d_eparser.parseAndBindSortedVarList(true);
       // parse premises
       std::string keyword = d_eparser.parseKeyword();
       if (keyword!="premises")

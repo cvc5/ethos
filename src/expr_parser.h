@@ -27,7 +27,7 @@ class ExprParser
    * Parse parentheses-enclosed sorted variable list of the form:
    * ((<symbol> <sort>)*)
    */
-  std::vector<Expr> parseAndBindSortedVarList();
+  std::vector<Expr> parseAndBindSortedVarList(bool allowList = false);
   /**
    * Parse symbol, which returns the string of the parsed symbol if the next
    * token is a valid smt2 symbol.

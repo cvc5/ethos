@@ -422,7 +422,7 @@ std::vector<Expr> ExprParser::parseExprList()
   return terms;
 }
 
-std::vector<Expr> ExprParser::parseAndBindSortedVarList()
+std::vector<Expr> ExprParser::parseAndBindSortedVarList(bool allowList)
 {
   std::vector<Expr> varList;
   d_lex.eatToken(Token::LPAREN);
@@ -439,6 +439,18 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList()
       std::stringstream ss;
       ss << "Failed to bind symbol " << name;
       d_lex.parseError(ss.str());
+    }
+    if (allowList)
+    {
+      Token tok = d_lex.peekToken();
+      if (tok == Token::KEYWORD)
+      {
+        std::string keyword = this->parseKeyword();
+        if (keyword != "list")
+        {
+          d_lex.parseError("Expected :list in sorted var.");
+        }
+      }
     }
     d_lex.eatToken(Token::RPAREN);
   }
