@@ -28,6 +28,7 @@ CmdParser::CmdParser(Lexer& lex,
   d_table["assume"] = Token::ASSUME;
   d_table["declare-const"] = Token::DECLARE_CONST;
   d_table["declare-fun"] = Token::DECLARE_FUN;
+  d_table["declare-rule"] = Token::DECLARE_RULE;
   d_table["declare-sort"] = Token::DECLARE_SORT;
   d_table["declare-type"] = Token::DECLARE_TYPE;
   d_table["define-const"] = Token::DEFINE_CONST;
@@ -76,8 +77,7 @@ bool CmdParser::parseNextCommand()
       std::string name = d_eparser.parseSymbol();
       // parse what is proven
       Expr proven = d_eparser.parseExpr();
-      // FIXME: proofs are simple for now
-      Expr pt = d_state.mkProofType();
+      Expr pt = d_state.mkProofType(proven);
       Expr v = d_state.mkConst(name, pt);
       d_state.bind(name, v);
     }
@@ -102,6 +102,55 @@ bool CmdParser::parseNextCommand()
       }
       Expr v = d_state.mkConst(name, t);
       d_state.bind(name, v);
+    }
+    break;
+    // (declare-rule ...)
+    case Token::DECLARE_RULE:
+    {
+      d_state.pushScope();
+      std::string name = d_eparser.parseSymbol();
+      std::vector<Expr> vs =
+          d_eparser.parseAndBindSortedVarList();
+      // parse premises
+      std::string keyword = d_eparser.parseKeyword();
+      if (keyword!="premises")
+      {
+        d_lex.parseError("Expected premises in declare-rule");
+      }
+      std::vector<Expr> premises = d_eparser.parseExprList();
+      // parse args
+      keyword = d_eparser.parseKeyword();
+      if (keyword!="args")
+      {
+        d_lex.parseError("Expected args in declare-rule");
+      }
+      std::vector<Expr> args = d_eparser.parseExprList();
+      // parse conclusion
+      keyword = d_eparser.parseKeyword();
+      if (keyword!="conclusion")
+      {
+        d_lex.parseError("Expected conclusion in declare-rule");
+      }
+      Expr conc = d_eparser.parseExpr();
+      std::vector<Expr> argTypes;
+      for (const Expr& e : args)
+      {
+        Expr et = d_eparser.typeCheck(e);
+        argTypes.push_back(et);
+      }
+      for (const Expr& e : premises)
+      {
+        Expr pet = d_state.mkProofType(e);
+        argTypes.push_back(pet);
+      }
+      Expr ret = d_state.mkProofType(conc);
+      if (!argTypes.empty())
+      {
+        ret = d_state.mkFunctionType(argTypes, ret);
+      }
+      d_state.popScope();
+      Expr rule = d_state.mkConst(name, ret);
+      d_state.bind(name, rule);
     }
     break;
     // (declare-sort <symbol> <numeral>)
@@ -147,7 +196,6 @@ bool CmdParser::parseNextCommand()
       }
       else
       {
-        // TODO: ensure args are types?
         type = d_state.mkFunctionType(args, ttype);
       }
       Expr decType = d_state.mkConst(name, type);
@@ -167,14 +215,16 @@ bool CmdParser::parseNextCommand()
     }
     break;
     // (define-fun <symbol> (<sorted_var>*) <sort> <term>)
+    // (define-type <symbol> (<sorted_var>*) <term>)
     case Token::DEFINE_FUN:
     case Token::DEFINE_TYPE:
     {
+      d_state.pushScope();
       //d_state.checkThatLogicIsSet();
       std::string name = d_eparser.parseSymbol();
       //d_state.checkUserSymbol(name);
-      std::vector<std::pair<std::string, Expr>> sortedVarNames =
-          d_eparser.parseSortedVarList();
+      std::vector<Expr> vars =
+          d_eparser.parseAndBindSortedVarList();
       Expr ret;
       if (tok == Token::DEFINE_FUN)
       {
@@ -184,23 +234,16 @@ bool CmdParser::parseNextCommand()
       {
         ret = d_state.mkType();
       }
-      if (sortedVarNames.size() > 0)
-      {
-        d_state.pushScope();
-      }
-      std::vector<Expr> vars;
-      if (!d_state.mkAndBindVars(sortedVarNames, vars))
-      {
-        // TODO: parse error
-      }
       Expr expr = d_eparser.parseExpr();
-      if (sortedVarNames.size() > 0)
+      // ensure we have the right type
+      d_eparser.typeCheck(expr, ret);
+      d_state.popScope();
+      // make a lambda if given arguments
+      if (vars.size() > 0)
       {
-        d_state.popScope();
         Expr vl = d_state.mkExpr(Kind::VARIABLE_LIST, vars);
         expr = d_state.mkExpr(Kind::LAMBDA, {vl, expr});
       }
-      // TODO: ensure the return type is ret?
       d_state.bind(name, expr);
     }
     break;
@@ -306,9 +349,45 @@ bool CmdParser::parseNextCommand()
       //cmd.reset(new SetOptionCommand(key, ss));
     }
     break;
-    // (step ...)
+    // (step i F :rule R :premises (p1 ... pn) :args (t1 ... tm))
+    // (define-const i (Proof F) (R t1 ... tm p1 ... pn))
     case Token::STEP:
     {
+      std::string name = d_eparser.parseSymbol();
+      Expr proven = d_eparser.parseExpr();
+      // parse rule name
+      std::string keyword = d_eparser.parseKeyword();
+      if (keyword!="rule")
+      {
+        d_lex.parseError("Expected rule in step");
+      }
+      std::string ruleName = d_eparser.parseSymbol();
+      Expr rule = d_state.getVar(ruleName);
+      // parse premises
+      keyword = d_eparser.parseKeyword();
+      if (keyword!="premises")
+      {
+        d_lex.parseError("Expected premises in step");
+      }
+      std::vector<Expr> premises = d_eparser.parseExprList();
+      // parse args
+      keyword = d_eparser.parseKeyword();
+      if (keyword!="args")
+      {
+        d_lex.parseError("Expected args in step");
+      }
+      std::vector<Expr> args = d_eparser.parseExprList();
+      std::vector<Expr> children;
+      children.push_back(rule);
+      // args before premises
+      children.insert(children.end(), args.begin(),args.end());
+      children.insert(children.end(), premises.begin(), premises.end());
+      Expr def = d_state.mkExpr(Kind::APPLY, children);
+      // ensure proof type, note this is where "proof checking" happens.
+      Expr expected = d_state.mkProofType(proven);
+      d_eparser.typeCheck(def, expected);
+      // bind
+      d_state.bind(name, def);
     }
     break;
     case Token::EOF_TOK:

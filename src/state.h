@@ -18,6 +18,9 @@ public:
   void pushScope();
   void popScope();
   
+  /** add assumption */
+  void addAssumption(const Expr& a);
+  
   /** Type */
   Expr mkType();
   /** (-> <type_list> <type>) */
@@ -26,6 +29,7 @@ public:
   Expr mkAbstractType();
   /** Proof */
   Expr mkProofType();
+  Expr mkProofType(const Expr& proven);
   /** */
   Expr mkBuiltinType(Kind k);
   /** */
@@ -67,6 +71,8 @@ private:
    * Bind builtin
    */
   void bindBuiltin(const std::string& name, Kind k, bool isClosure);
+  /** All free assumptions */
+  std::vector<Expr> d_assumptions;
   /** The symbol table */
   std::map<std::string, Expr> d_symTable;
   /** Context stacks */

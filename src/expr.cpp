@@ -18,6 +18,11 @@ ExprValue::~ExprValue() {}
 
 bool ExprValue::isNull() const { return d_kind==Kind::NONE; }
   
+bool ExprValue::isEqual(const std::shared_ptr<ExprValue>& val) const
+{
+  return this==val.get();
+}
+
 bool ExprValue::unify(std::shared_ptr<ExprValue>& val, Ctx& ctx)
 {
   std::set<std::pair<ExprValue*, ExprValue*>> visited;
@@ -185,8 +190,23 @@ std::shared_ptr<ExprValue> ExprValue::getTypeInternal(std::ostream& out)
       return d_state->mkFunctionType(args, ret);
     }
     case Kind::TYPE:
-    case Kind::FUNCTION:
     case Kind::ABSTRACT:
+      return d_state->mkType();
+    case Kind::FUNCTION:
+      // the children must be types
+      for (const Expr& c : d_children)
+      {
+        Expr ctype = c->getType(out);
+        if (ctype==nullptr)
+        {
+          return ctype;
+        }
+        if (ctype->getKind()!=Kind::TYPE)
+        {
+          out << "Non-type for function";
+          return nullptr;
+        }
+      }
       return d_state->mkType();
     case Kind::VARIABLE_LIST:
     case Kind::INTEGER:
@@ -200,6 +220,13 @@ std::shared_ptr<ExprValue> ExprValue::getTypeInternal(std::ostream& out)
   }
   out << "Unknown kind " << d_kind;
   return nullptr;
+}
+
+std::unordered_set<std::shared_ptr<ExprValue>> ExprValue::getFreeSymbols() const
+{
+  std::unordered_set<std::shared_ptr<ExprValue>> ret;
+  // TODO
+  return ret;
 }
 
 std::shared_ptr<ExprValue> ExprValue::clone(Ctx& ctx) const
@@ -246,7 +273,7 @@ std::shared_ptr<ExprValue> ExprValue::clone(Ctx& ctx) const
         */
         cchildren.push_back(it->second);
       }
-      cloned = std::make_shared<ExprValue>(cur->getKind(), cchildren);
+      cloned = d_state->mkExpr(cur->getKind(), cchildren);
       // remember its type
       cloned->d_type = cur->d_type;
       visited[cur] = cloned;

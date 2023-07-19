@@ -16,6 +16,7 @@ State::~State(){}
 
 void State::reset()
 {
+  d_assumptions.clear();
   d_symTable.clear();
   d_decls.clear();
   d_declsSizeCtx.clear();
@@ -41,6 +42,11 @@ void State::popScope()
   d_decls.resize(lastSize);
 }
 
+void State::addAssumption(const Expr& a)
+{
+  d_assumptions.push_back(a);
+}
+
 Expr State::mkType()
 {
   return mkExprInternal(Kind::TYPE, {});
@@ -60,6 +66,12 @@ Expr State::mkAbstractType()
 
 Expr State::mkProofType()
 {
+  return mkExprInternal(Kind::PROOF, {});
+}
+
+Expr State::mkProofType(const Expr& proven)
+{
+  // for now, ignore what is proven
   return mkExprInternal(Kind::PROOF, {});
 }
 

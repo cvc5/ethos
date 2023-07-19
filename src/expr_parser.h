@@ -26,7 +26,7 @@ class ExprParser
    * Parse parentheses-enclosed sorted variable list of the form:
    * ((<symbol> <sort>)*)
    */
-  std::vector<std::pair<std::string, Expr>> parseSortedVarList();
+  std::vector<Expr> parseAndBindSortedVarList();
   /**
    * Parse symbol, which returns the string of the parsed symbol if the next
    * token is a valid smt2 symbol.
@@ -58,6 +58,10 @@ class ExprParser
    */
   std::string parseStr(bool unescape);
 
+  /** type check the expression */
+  Expr typeCheck(const Expr& e);
+  /** ensure type */
+  Expr typeCheck(const Expr& e, const Expr& expected);
  protected:
   /** Return the unsigned for the current token string. */
   uint32_t tokenStrToUnsigned();
@@ -83,8 +87,6 @@ class ExprParser
   //Expr parseMatchCasePattern(Expr headExpr, std::vector<Expr>& boundVars);
   /** get variable, else error */
   Expr getVar(const std::string& name);
-  /** type check the expression */
-  void typeCheck(const Expr& e);
   /** The lexer */
   Lexer& d_lex;
   /** The state */

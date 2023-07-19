@@ -119,16 +119,10 @@ Expr ExprParser::parseExpr()
               nscopes = 1;
               // if it is a closure, immediately read the bound variable list
               d_state.pushScope();
-              std::vector<std::pair<std::string, Expr>> sortedVarNames =
-                  parseSortedVarList();
-              if (sortedVarNames.empty())
+              std::vector<Expr> vs = parseAndBindSortedVarList();
+              if (vs.empty())
               {
                 d_lex.parseError("Expected non-empty sorted variable list");
-              }
-              std::vector<Expr> vs;
-              if (!d_state.mkAndBindVars(sortedVarNames, vs))
-              {
-                d_lex.parseError("Failed to bind sorted variable list");
               }
               Expr vl = d_state.mkExpr(Kind::VARIABLE_LIST, vs);
               args.push_back(vl);
@@ -409,9 +403,9 @@ std::vector<Expr> ExprParser::parseExprList()
   return terms;
 }
 
-std::vector<std::pair<std::string, Expr>> ExprParser::parseSortedVarList()
+std::vector<Expr> ExprParser::parseAndBindSortedVarList()
 {
-  std::vector<std::pair<std::string, Expr>> varList;
+  std::vector<Expr> varList;
   d_lex.eatToken(Token::LPAREN);
   std::string name;
   Expr t;
@@ -420,7 +414,13 @@ std::vector<std::pair<std::string, Expr>> ExprParser::parseSortedVarList()
   {
     name = parseSymbol();
     t = parseExpr();
-    varList.emplace_back(name, t);
+    Expr v = d_state.mkVar(name, t);
+    if (!d_state.bind(name, v))
+    {
+      std::stringstream ss;
+      ss << "Failed to bind symbol " << name;
+      d_lex.parseError(ss.str());
+    }
     d_lex.eatToken(Token::RPAREN);
   }
   return varList;
@@ -561,16 +561,33 @@ Expr ExprParser::getVar(const std::string& name)
   return ret;
 }
 
-void ExprParser::typeCheck(const Expr& e)
+Expr ExprParser::typeCheck(const Expr& e)
 {
   // type check immediately
   std::stringstream ss;
-  if (e->getType(ss)==nullptr)
+  Expr v = e->getType(ss);
+  if (v==nullptr)
   {
     std::stringstream msg;
-    msg << "Type checking failed: " << ss.str();
+    msg << "Type checking failed:" << std::endl;
+    //msg << "Expression: " << *v.get() << std::endl;
+    msg << "Message:" << ss.str() << std::endl;
     d_lex.parseError(msg.str());
   }
+  return v;
+}
+
+Expr ExprParser::typeCheck(const Expr& e, const Expr& expected)
+{
+  Expr et = typeCheck(e);
+  if (!et->isEqual(expected))
+  {
+    std::stringstream msg;
+    msg << "Expression of unexpected type:" << std::endl;
+    // TODO
+    d_lex.parseError(msg.str());
+  }
+  return et;
 }
 
 }  // namespace atc

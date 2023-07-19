@@ -2,6 +2,7 @@
 #define EXPR_H
 
 #include <map>
+#include <unordered_set>
 #include <vector>
 #include <memory>
 #include "kind.h"
@@ -26,6 +27,7 @@ class ExprValue
   /** is null? */
   bool isNull() const;
   /** is equal */
+  bool isEqual(const std::shared_ptr<ExprValue>& val) const;
   bool unify(std::shared_ptr<ExprValue>& val, Ctx& ctx);
   /** get the kind of this expression */
   Kind getKind() const;
@@ -55,6 +57,8 @@ class ExprValue
 
   /** Return its type */
   std::shared_ptr<ExprValue> getType(std::ostream& out);
+  /** Get the free symbols */
+  std::unordered_set<std::shared_ptr<ExprValue>> getFreeSymbols() const;
  private:
   /** Return its type */
   std::shared_ptr<ExprValue> getTypeInternal(std::ostream& out);
