@@ -27,6 +27,8 @@ public:
   Expr mkFunctionType(const std::vector<Expr>& args, const Expr& ret);
   /** ? */
   Expr mkAbstractType();
+  /** Bool */
+  Expr mkBoolType();
   /** Proof */
   Expr mkProofType();
   Expr mkProofType(const Expr& proven);
@@ -63,6 +65,10 @@ private:
    * Bind builtin
    */
   void bindBuiltin(const std::string& name, Kind k, bool isClosure);
+  /** 
+   * Bind builtin
+   */
+  void bindBuiltin(const std::string& name, Kind k, bool isClosure, const Expr& t);
   /** All free assumptions */
   std::vector<Expr> d_assumptions;
   /** The symbol table */

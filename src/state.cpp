@@ -64,6 +64,11 @@ Expr State::mkAbstractType()
   return mkExprInternal(Kind::ABSTRACT, {});
 }
 
+Expr State::mkBoolType()
+{
+  return mkExprInternal(Kind::BOOL, {});
+}
+
 Expr State::mkProofType()
 {
   return mkExprInternal(Kind::PROOF, {});
@@ -83,7 +88,7 @@ Expr State::mkBuiltinType(Kind k)
   
 Expr State::mkVar(const std::string& name, const Expr& type)
 {
-  Expr v = mkExprInternal(Kind::VARIABLE, {type}, false);
+  Expr v = mkExprInternal(Kind::VARIABLE, {}, false);
   // immediately set its type
   v->d_type = type;
   // map to the data
@@ -201,7 +206,12 @@ ExprInfo* State::getOrMkInfo(const ExprValue* e)
 void State::bindBuiltin(const std::string& name, Kind k, bool isClosure)
 {
   // type is irrelevant, assign abstract
-  Expr c = mkConst(name, mkAbstractType());
+  bindBuiltin(name, k, isClosure, mkAbstractType());
+}
+
+void State::bindBuiltin(const std::string& name, Kind k, bool isClosure, const Expr& t)
+{
+  Expr c = mkConst(name, t);
   bind(name, c);
   // associate the information
   ExprInfo * ei = getOrMkInfo(c.get());

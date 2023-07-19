@@ -188,6 +188,8 @@ std::shared_ptr<ExprValue> ExprValue::getTypeInternal(std::ostream& out)
     }
     case Kind::TYPE:
     case Kind::ABSTRACT:
+    case Kind::PROOF:
+    case Kind::BOOL:
       return d_state->mkType();
     case Kind::FUNCTION:
       // the children must be types
@@ -238,6 +240,7 @@ std::shared_ptr<ExprValue> ExprValue::clone(Ctx& ctx) const
   {
     cur = visit.back();
     it = visited.find(cur);
+    // constants stay the same
     if (it == visited.end())
     {
       visited[cur] = nullptr;
@@ -259,15 +262,6 @@ std::shared_ptr<ExprValue> ExprValue::clone(Ctx& ctx) const
       {
         it = visited.find(cp.get());
         //Assert(it != visited.end());
-        // if we encounter nullptr here, then this child is currently being
-        // traversed at a higher level, hence this corresponds to a cyclic
-        // proof.
-        /*
-        if (it->second == nullptr)
-        {
-          Unreachable() << "Cyclic expression encountered when cloning";
-        }
-        */
         cchildren.push_back(it->second);
       }
       cloned = d_state->mkExpr(cur->getKind(), cchildren);
@@ -299,7 +293,7 @@ void ExprValue::printDebug(const std::shared_ptr<ExprValue>& e, std::ostream& os
         }
         else
         {
-          os << "[" << cur.first->getKind() << "]";
+          os << kindToTerm(k);
         }
         visit.pop_back();
       }
@@ -308,7 +302,7 @@ void ExprValue::printDebug(const std::shared_ptr<ExprValue>& e, std::ostream& os
         os << "(";
         if (k!=Kind::APPLY)
         {
-          os << k;
+          os << k << " ";
         }
         visit.back().second++;
         visit.emplace_back((*cur.first)[0].get(), 0);

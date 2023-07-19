@@ -208,9 +208,9 @@ bool CmdParser::parseNextCommand()
       //d_state.checkThatLogicIsSet();
       std::string name = d_eparser.parseSymbol();
       //d_state.checkUserSymbol(name);
-      Expr t = d_eparser.parseExpr();
+      Expr ret = d_eparser.parseExpr();
       Expr e = d_eparser.parseExpr();
-      // TODO: ensure t has type e?
+      d_eparser.typeCheck(e, ret);
       d_state.bind(name, e);
     }
     break;
@@ -306,12 +306,14 @@ bool CmdParser::parseNextCommand()
       
     }
     break;
-    // (proof t)
+    // (proof <term> <proof>)
     case Token::PROOF:
     {
+      Expr p = d_eparser.parseExpr();
       Expr proven = d_eparser.parseExpr();
-      // TODO: ensure a proof, ensure closed
-      
+      Expr pt = d_state.mkProofType(proven);
+      // ensure a proof of the given fact, ensure closed
+      Expr tc = d_eparser.typeCheck(p, pt);
     }
     break;
     // (reset)

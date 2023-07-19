@@ -396,6 +396,12 @@ Token Lexer::tokenizeCurrentSymbol() const
         return Token::LET;
       }
       break;
+    case 'B':
+      if (d_token.size() == 4 && d_token[1] == 'o' && d_token[2] == 'o' && d_token[3] == 'l')
+      {
+        return Token::BOOL_TYPE;
+      }
+      break;
     case 'T':
       if (d_token.size() == 4 && d_token[1] == 'y' && d_token[2] == 'p' && d_token[3] == 'e')
       {

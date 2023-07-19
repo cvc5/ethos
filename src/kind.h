@@ -17,6 +17,7 @@ enum class Kind
   FUNCTION,
   PROOF,
   ABSTRACT,
+  BOOL,
   
   // terms
   APPLY,
@@ -35,6 +36,8 @@ enum class Kind
 
 /** Print a kind to the stream, for debugging */
 std::ostream& operator<<(std::ostream& o, Kind k);
+
+std::string kindToTerm(Kind k);
 
 /** */
 bool isVariable(Kind k);

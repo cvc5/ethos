@@ -212,6 +212,9 @@ Expr ExprParser::parseExpr()
       case Token::PROOF_TYPE:
       ret = d_state.mkProofType();
       break;
+      case Token::BOOL_TYPE:
+      ret = d_state.mkBoolType();
+      break;
       case Token::UNTERMINATED_QUOTED_SYMBOL:
         d_lex.parseError("Expected SMT-LIBv2 term", true);
         break;
@@ -281,7 +284,9 @@ Expr ExprParser::parseExpr()
             {
               if (!d_state.bind(b.first, b.second))
               {
-                // TODO: error
+                std::stringstream ss;
+                ss << "Failed to bind " << b.first;
+                d_lex.parseError(ss.str());
               }
             }
             // done with the binders
@@ -333,12 +338,14 @@ Expr ExprParser::parseExpr()
               Expr v = d_state.mkVar(name, tstack.back()[0]);
               if (!d_state.bind(name, v))
               {
+                d_lex.parseError("Failed to find symbol in :var");
               }
               sstack.back() = sstack.back()+1;
             }
             else if (key == ":implicit")
             {
               needsUpdateCtx = true;
+              // TODO:
             }
             else
             {
@@ -361,8 +368,9 @@ Expr ExprParser::parseExpr()
                   needsUpdateCtx = true;
                   break;
                 default:
-                  // TODO: ignore the symbolic expression that follows
+                  // FIXME: ignore the symbolic expression that follows
                   d_lex.reinsertToken(tok);
+                  //Expr e = parseExpr();
                   // will parse another attribute
                   break;
               }
