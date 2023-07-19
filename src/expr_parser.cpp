@@ -340,7 +340,11 @@ Expr ExprParser::parseExpr()
               {
                 d_lex.parseError("Failed to find symbol in :var");
               }
-              sstack.back() = sstack.back()+1;
+              // the scope of the variable is one level up
+              if (sstack.size()>1)
+              {
+                sstack[sstack.size()-2]++;
+              }
             }
             else if (key == ":implicit")
             {
@@ -382,6 +386,11 @@ Expr ExprParser::parseExpr()
             //Assert(!tstack.back().size()==1);
             // finished parsing attributes, we will return the original term
             ret = tstack.back()[0];
+            // process the scope change
+            for (size_t i=0, nscopes = sstack.back(); i<nscopes; i++)
+            {
+              d_state.popScope();
+            }
             xstack.pop_back();
             sstack.pop_back();
             tstack.pop_back();

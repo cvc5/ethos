@@ -2,10 +2,10 @@
 (declare-const = (-> (! Type :var T) T T Bool))
 
 
-(declare-rule eq-symm ((U Type) (x U) (y U))
-  :premises ((= U x y))
+(declare-rule eq-symm ((T Type) (x T) (y T))
+  :premises ((= T x y))
   :args ()
-  :conclusion (= U y x))
+  :conclusion (= T y x))
 
   
 (declare-sort Int 0)

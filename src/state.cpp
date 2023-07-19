@@ -24,11 +24,13 @@ void State::reset()
 
 void State::pushScope()
 {
+  //std::cout << "push" << std::endl;
   d_declsSizeCtx.push_back(d_decls.size());
 }
 
 void State::popScope()
 {
+  //std::cout << "pop" << std::endl;
   if (d_declsSizeCtx.empty())
   {
     Error::reportError("State::popScope: empty context");
@@ -37,6 +39,7 @@ void State::popScope()
   d_declsSizeCtx.pop_back();
   for (size_t i=lastSize, currSize = d_decls.size(); i<currSize; i++)
   {
+    //std::cout << "erase " << d_decls[i] << std::endl;
     d_symTable.erase(d_decls[i]);
   }
   d_decls.resize(lastSize);
@@ -213,10 +216,13 @@ void State::bindBuiltin(const std::string& name, Kind k, bool isClosure, const E
 {
   Expr c = mkConst(name, t);
   bind(name, c);
-  // associate the information
-  ExprInfo * ei = getOrMkInfo(c.get());
-  ei->d_kind = k;
-  ei->d_isClosure = isClosure;
+  if (isClosure || k!=Kind::NONE)
+  {
+    // associate the information
+    ExprInfo * ei = getOrMkInfo(c.get());
+    ei->d_kind = k;
+    ei->d_isClosure = isClosure;
+  }
 }
 
 }  // namespace atc
