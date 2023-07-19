@@ -30,7 +30,6 @@ class ExprValue
   bool isNull() const;
   /** is equal */
   bool isEqual(const std::shared_ptr<ExprValue>& val) const;
-  bool match(std::shared_ptr<ExprValue>& val, Ctx& ctx);
   /** get the kind of this expression */
   Kind getKind() const;
   /** Get children */

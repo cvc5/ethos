@@ -2,6 +2,7 @@
 
 #include "state.h"
 #include <iostream>
+#include <set>
 
 namespace atc {
 
@@ -32,7 +33,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
         out << "Non-function as head of APPLY";
         return nullptr;
       }
-      const std::vector<Expr>& hdtypes = hdType->getChildren();
+      std::vector<Expr>& hdtypes = hdType->d_children;
       if (hdtypes.size()!=e->d_children.size())
       {
         // incorrect arity
@@ -49,7 +50,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
           return ctype;
         }
         // unification, update retType
-        if (!hdtypes[i-1]->match(ctype, ctx))
+        if (!match(hdtypes[i-1], ctype, ctx))
         {
           out << "Unexpected argument type " << i << std::endl;
           out << "  LHS " << hdtypes[i-1] << std::endl;
@@ -123,6 +124,79 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
   }
   out << "Unknown kind " << e->getKind();
   return nullptr;
+}
+
+
+bool TypeChecker::match(Expr& a, Expr& b, Ctx& ctx)
+{
+  std::set<std::pair<ExprValue*, ExprValue*>> visited;
+  std::set<std::pair<ExprValue*, ExprValue*>>::iterator it;
+  std::map<ExprValue*, ExprValue*>::iterator ctxIt;
+
+  std::vector<std::pair<ExprValue*, ExprValue*>> stack;
+  stack.emplace_back(a.get(), b.get());
+  std::pair<ExprValue*, ExprValue*> curr;
+
+  while (!stack.empty())
+  {
+    curr = stack.back();
+    stack.pop_back();
+    if (curr.first == curr.second)
+    {
+      // holds trivially
+      continue;
+    }
+    it = visited.find(curr);
+    if (it != visited.end())
+    {
+      // already processed
+      continue;
+    }
+    visited.insert(curr);
+    if (curr.first->getNumChildren() == 0)
+    {
+      // if the two subterms are not equal and the first one is a bound
+      // variable...
+      if (curr.first->getKind() == Kind::VARIABLE)
+      {
+        // and we have not seen this variable before...
+        ctxIt = ctx.find(curr.first);
+        if (ctxIt == ctx.cend())
+        {
+          // TODO: ensure types are the same?
+          // add the two subterms to `sub`
+          ctx.emplace(curr.first, curr.second);
+        }
+        else
+        {
+          // if we saw this variable before, make sure that (now and before) it
+          // maps to the same subterm
+          stack.emplace_back(ctxIt->second, curr.second);
+        }
+      }
+      else
+      {
+        // the two subterms are not equal
+        return false;
+      }
+    }
+    else
+    {
+      // if the two subterms are not equal, make sure that their operators are
+      // equal
+      if (curr.first->getNumChildren() != curr.second->getNumChildren()
+          || curr.first->getKind() != curr.second->getKind())
+      {
+        return false;
+      }
+      // recurse on children
+      for (size_t i = 0, n = curr.first->getNumChildren(); i < n; ++i)
+      {
+        stack.emplace_back((*curr.first)[i].get(), (*curr.second)[i].get());
+      }
+    }
+  }
+  return true;
 }
 
 

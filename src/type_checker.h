@@ -16,6 +16,7 @@ class TypeChecker
  private:
   /** Return its type */
   static Expr getTypeInternal(Expr& e, std::ostream& out);
+  static bool match(Expr& a, Expr& b, Ctx& ctx);
 };
 
 }  // namespace atc
