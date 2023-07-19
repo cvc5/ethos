@@ -133,9 +133,9 @@ bool CmdParser::parseNextCommand()
       }
       Expr conc = d_eparser.parseExpr();
       std::vector<Expr> argTypes;
-      for (const Expr& e : args)
+      for (Expr& e : args)
       {
-        Expr et = d_eparser.typeCheck(e);
+        Expr et = d_state.mkQuoteType(e);
         argTypes.push_back(et);
       }
       for (const Expr& e : premises)
@@ -150,6 +150,7 @@ bool CmdParser::parseNextCommand()
       }
       d_state.popScope();
       Expr rule = d_state.mkConst(name, ret);
+      d_eparser.typeCheck(rule);
       d_state.bind(name, rule);
     }
     break;
@@ -382,7 +383,10 @@ bool CmdParser::parseNextCommand()
       std::vector<Expr> children;
       children.push_back(rule);
       // args before premises
-      children.insert(children.end(), args.begin(),args.end());
+      for (const Expr& e : args)
+      {
+        children.push_back(d_state.mkExpr(Kind::QUOTE, {e}));
+      }
       children.insert(children.end(), premises.begin(), premises.end());
       Expr def = d_state.mkExpr(Kind::APPLY, children);
       // ensure proof type, note this is where "proof checking" happens.

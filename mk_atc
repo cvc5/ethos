@@ -1,2 +1,2 @@
 #!/bin/bash
-g++ ./src/kind.cpp ./src/expr.cpp ./src/expr_info.cpp ./src/state.cpp ./src/expr_parser.cpp ./src/cmd_parser.cpp ./src/parser.cpp ./src/input.cpp ./src/lexer.cpp ./src/tokens.cpp ./src/main.cpp -o atc
+g++ ./src/kind.cpp ./src/expr.cpp ./src/expr_info.cpp ./src/state.cpp ./src/type_checker.cpp ./src/expr_parser.cpp ./src/cmd_parser.cpp ./src/parser.cpp ./src/input.cpp ./src/lexer.cpp ./src/tokens.cpp ./src/main.cpp -o atc

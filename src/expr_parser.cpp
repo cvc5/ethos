@@ -1,6 +1,8 @@
 #include "expr_parser.h"
 
+#include <iostream>
 #include <string.h>
+#include "type_checker.h"
 
 namespace atc {
 
@@ -578,11 +580,11 @@ Expr ExprParser::getVar(const std::string& name)
   return ret;
 }
 
-Expr ExprParser::typeCheck(const Expr& e)
+Expr ExprParser::typeCheck(Expr& e)
 {
   // type check immediately
   std::stringstream ss;
-  Expr v = e->getType(ss);
+  Expr v = TypeChecker::getType(e, ss);
   if (v==nullptr)
   {
     std::stringstream msg;
@@ -591,10 +593,11 @@ Expr ExprParser::typeCheck(const Expr& e)
     msg << "Message: " << ss.str() << std::endl;
     d_lex.parseError(msg.str());
   }
+  std::cout << "TYPE " << e << " : " << v << std::endl;
   return v;
 }
 
-Expr ExprParser::typeCheck(const Expr& e, const Expr& expected)
+Expr ExprParser::typeCheck(Expr& e, const Expr& expected)
 {
   Expr et = typeCheck(e);
   if (!et->isEqual(expected))

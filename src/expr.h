@@ -11,6 +11,7 @@ namespace atc {
 
 class State;
 class ExprValue;
+class TypeChecker;
 
 using Ctx = std::map<ExprValue*, ExprValue*>;
 /** 
@@ -19,6 +20,7 @@ using Ctx = std::map<ExprValue*, ExprValue*>;
 class ExprValue
 {
   friend class State;
+  friend class TypeChecker;
  public:
   ExprValue();
   ExprValue(Kind k,

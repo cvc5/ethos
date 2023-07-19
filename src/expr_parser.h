@@ -59,9 +59,9 @@ class ExprParser
   std::string parseStr(bool unescape);
 
   /** type check the expression */
-  Expr typeCheck(const Expr& e);
+  Expr typeCheck(Expr& e);
   /** ensure type */
-  Expr typeCheck(const Expr& e, const Expr& expected);
+  Expr typeCheck(Expr& e, const Expr& expected);
  protected:
   /** Return the unsigned for the current token string. */
   uint32_t tokenStrToUnsigned();

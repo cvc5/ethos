@@ -32,6 +32,7 @@ public:
   /** Proof */
   Expr mkProofType();
   Expr mkProofType(const Expr& proven);
+  Expr mkQuoteType(const Expr& t);
   /** */
   Expr mkBuiltinType(Kind k);
   /** */

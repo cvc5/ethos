@@ -129,7 +129,7 @@ std::shared_ptr<ExprValue> ExprValue::getTypeInternal(std::ostream& out)
         return hdType;
       }
       std::vector<Expr> expectedTypes;
-      if (hdType->getKind()!=Kind::FUNCTION)
+      if (hdType->getKind()!=Kind::FUNCTION_TYPE)
       {
         // non-function at head
         out << "Non-function as head of APPLY";
@@ -186,12 +186,16 @@ std::shared_ptr<ExprValue> ExprValue::getTypeInternal(std::ostream& out)
       }
       return d_state->mkFunctionType(args, ret);
     }
+    case Kind::QUOTE:
+    {
+      //return d_state->mkQuoteType(this);
+    }
     case Kind::TYPE:
-    case Kind::ABSTRACT:
-    case Kind::PROOF:
-    case Kind::BOOL:
+    case Kind::ABSTRACT_TYPE:
+    case Kind::PROOF_TYPE:
+    case Kind::BOOL_TYPE:
       return d_state->mkType();
-    case Kind::FUNCTION:
+    case Kind::FUNCTION_TYPE:
       // the children must be types
       for (const Expr& c : d_children)
       {
@@ -206,6 +210,9 @@ std::shared_ptr<ExprValue> ExprValue::getTypeInternal(std::ostream& out)
           return nullptr;
         }
       }
+      return d_state->mkType();
+    case Kind::QUOTE_TYPE:
+      // TODO: check arg?
       return d_state->mkType();
     case Kind::VARIABLE_LIST:
     case Kind::INTEGER:
@@ -302,7 +309,7 @@ void ExprValue::printDebug(const std::shared_ptr<ExprValue>& e, std::ostream& os
         os << "(";
         if (k!=Kind::APPLY)
         {
-          os << k << " ";
+          os <<  kindToTerm(k) << " ";
         }
         visit.back().second++;
         visit.emplace_back((*cur.first)[0].get(), 0);

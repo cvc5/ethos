@@ -14,10 +14,11 @@ enum class Kind
   
   // types
   TYPE,
-  FUNCTION,
-  PROOF,
-  ABSTRACT,
-  BOOL,
+  FUNCTION_TYPE,
+  PROOF_TYPE,
+  ABSTRACT_TYPE,
+  BOOL_TYPE,
+  QUOTE_TYPE,
   
   // terms
   APPLY,
@@ -25,6 +26,7 @@ enum class Kind
   CONST,
   VARIABLE,
   VARIABLE_LIST,
+  QUOTE,
 
   // literals
   INTEGER,

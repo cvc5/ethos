@@ -9,7 +9,7 @@ State::State()
   ExprValue::d_state = this;
   
   bindBuiltin("lambda", Kind::LAMBDA, true);
-  bindBuiltin("->", Kind::FUNCTION, false);
+  bindBuiltin("->", Kind::FUNCTION_TYPE, false);
 }
 
 State::~State(){}
@@ -59,28 +59,32 @@ Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret)
 {
   std::vector<Expr> atypes(args.begin(), args.end());
   atypes.push_back(ret);
-  return mkExprInternal(Kind::FUNCTION, atypes);
+  return mkExprInternal(Kind::FUNCTION_TYPE, atypes);
 }
 
 Expr State::mkAbstractType()
 {
-  return mkExprInternal(Kind::ABSTRACT, {});
+  return mkExprInternal(Kind::ABSTRACT_TYPE, {});
 }
 
 Expr State::mkBoolType()
 {
-  return mkExprInternal(Kind::BOOL, {});
+  return mkExprInternal(Kind::BOOL_TYPE, {});
 }
 
 Expr State::mkProofType()
 {
-  return mkExprInternal(Kind::PROOF, {});
+  return mkExprInternal(Kind::PROOF_TYPE, {});
 }
 
 Expr State::mkProofType(const Expr& proven)
 {
   // for now, ignore what is proven
-  return mkExprInternal(Kind::PROOF, {});
+  return mkExprInternal(Kind::PROOF_TYPE, {});
+}
+Expr State::mkQuoteType(const Expr& t)
+{
+  return mkExprInternal(Kind::QUOTE_TYPE, {t});
 }
 
 Expr State::mkBuiltinType(Kind k)
