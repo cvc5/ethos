@@ -15,6 +15,8 @@
 
 #include "cmd_parser.h"
 
+#include <iostream>
+
 namespace atc {
 
 CmdParser::CmdParser(Lexer& lex,
@@ -91,7 +93,7 @@ bool CmdParser::parseNextCommand()
       {
         t = d_state.mkFunctionType(sorts, t);
       }
-      Expr v = d_state.mkVar(name, t);
+      Expr v = d_state.mkConst(name, t);
       d_state.bind(name, v);
     }
     break;
@@ -118,7 +120,7 @@ bool CmdParser::parseNextCommand()
         }
         type = d_state.mkFunctionType(args, ttype);
       }
-      Expr decType = d_state.mkVar(name, ttype);
+      Expr decType = d_state.mkConst(name, ttype);
       d_state.bind(name, decType);
     }
     break;
@@ -141,7 +143,7 @@ bool CmdParser::parseNextCommand()
         // TODO: ensure args are types?
         type = d_state.mkFunctionType(args, ttype);
       }
-      Expr decType = d_state.mkVar(name, ttype);
+      Expr decType = d_state.mkConst(name, ttype);
       d_state.bind(name, decType);
     }
     break;
@@ -230,11 +232,11 @@ bool CmdParser::parseNextCommand()
       if (tok == Token::STRING_LITERAL)
       {
         std::string msg = d_eparser.parseStr(true);
-        //cmd.reset(new EchoCommand(msg));
+        std::cout << msg << std::endl;
       }
       else
       {
-        //cmd.reset(new EchoCommand());
+        std::cout << std::endl;
       }
     }
     break;
@@ -246,6 +248,12 @@ bool CmdParser::parseNextCommand()
     break;
     case Token::INCLUDE:
     {
+      tok = d_lex.peekToken();
+      if (tok == Token::STRING_LITERAL)
+      {
+        d_lex.parseError("Expected string literal for include");
+      }
+      
     }
     break;
     // (reset)

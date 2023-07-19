@@ -43,14 +43,14 @@ void State::popScope()
 
 Expr State::mkType()
 {
-  return mkExpr(Kind::TYPE, {});
+  return mkExprInternal(Kind::TYPE, {});
 }
 
 Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret)
 {
   std::vector<Expr> atypes(args.begin(), args.end());
   atypes.push_back(ret);
-  return mkExpr(Kind::FUNCTION, atypes);
+  return mkExprInternal(Kind::FUNCTION, atypes);
 }
 
 Expr State::mkAbstractType()
@@ -63,30 +63,54 @@ Expr State::mkBuiltinType(Kind k)
   return nullptr;
 }
   
-Expr State::mkVar(const std::string& s, const Expr& type)
+Expr State::mkVar(const std::string& name, const Expr& type)
 {
   // type is stored as a child
-  return mkExpr(Kind::VARIABLE, {type});
+  Expr v = mkExprInternal(Kind::VARIABLE, {type});
+  // map to the data
+  ExprInfo* ei = getOrMkInfo(v);
+  ei->d_str = name;
+  return v;
 }
 
 Expr State::mkConst(const std::string& name, const Expr& type)
 {
   // type is stored as a child
-  return mkExpr(Kind::CONST, {type});
+  Expr v = mkExprInternal(Kind::CONST, {type});
+  // map to the data
+  ExprInfo* ei = getOrMkInfo(v);
+  ei->d_str = name;
+  return v;
 }
 
 Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
 {
-  return std::make_shared<ExprValue>(k, children);
+  if (k==Kind::APPLY)
+  {
+    // Assert (!children.empty());
+    // see if there is a special kind for the head
+    ExprInfo * ei = getInfo(children[0]);
+    if (ei!=nullptr && ei->d_kind!=Kind::NONE)
+    {
+      std::vector<Expr> achildren(children.begin()+1, children.end());
+      return mkExprInternal(ei->d_kind, achildren);
+    }
+  }
+  return mkExprInternal(k, children);
 }
 
 Expr State::mkLiteral(Kind k, const std::string& s)
 {
-  // map to data
-  Expr lit = mkExpr(k, {});
+  Expr lit = mkExprInternal(k, {});
+  // map to the data
   ExprInfo* ei = getOrMkInfo(lit);
   ei->d_str = s;
   return lit;
+}
+
+Expr State::mkExprInternal(Kind k, const std::vector<Expr>& children)
+{
+  return std::make_shared<ExprValue>(k, children);
 }
 
 bool State::mkAndBindVars(

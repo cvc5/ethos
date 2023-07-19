@@ -58,6 +58,8 @@ public:
   /** */
   ExprInfo* getOrMkInfo(const Expr& e);
 private:
+  /** */
+  Expr mkExprInternal(Kind k, const std::vector<Expr>& children);
   /** 
    * Bind builtin
    */
