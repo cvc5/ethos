@@ -37,6 +37,7 @@ CmdParser::CmdParser(Lexer& lex,
   d_table["echo"] = Token::ECHO;
   d_table["exit"] = Token::EXIT;
   d_table["include"] = Token::INCLUDE;
+  d_table["proof"] = Token::PROOF;
   d_table["reset"] = Token::RESET;
   d_table["set-info"] = Token::SET_INFO;
   d_table["set-option"] = Token::SET_OPTION;
@@ -72,7 +73,13 @@ bool CmdParser::parseNextCommand()
     // (assume <symbol> <term>)
     case Token::ASSUME:
     {
-      
+      std::string name = d_eparser.parseSymbol();
+      // parse what is proven
+      Expr proven = d_eparser.parseExpr();
+      // FIXME: proofs are simple for now
+      Expr pt = d_state.mkProofType();
+      Expr v = d_state.mkConst(name, pt);
+      d_state.bind(name, v);
     }
     break;
     // (declare-fun <symbol> (<sort>∗) <sort>)
@@ -143,7 +150,7 @@ bool CmdParser::parseNextCommand()
         // TODO: ensure args are types?
         type = d_state.mkFunctionType(args, ttype);
       }
-      Expr decType = d_state.mkConst(name, ttype);
+      Expr decType = d_state.mkConst(name, type);
       d_state.bind(name, decType);
     }
     break;
@@ -256,6 +263,14 @@ bool CmdParser::parseNextCommand()
       
     }
     break;
+    // (proof t)
+    case Token::PROOF:
+    {
+      Expr proven = d_eparser.parseExpr();
+      // TODO: ensure a proof, ensure closed
+      
+    }
+    break;
     // (reset)
     case Token::RESET:
     {
@@ -289,6 +304,11 @@ bool CmdParser::parseNextCommand()
       //Expr sexpr = d_eparser.parseSymbolicExpr();
       //std::string ss = sexprToString(sexpr);
       //cmd.reset(new SetOptionCommand(key, ss));
+    }
+    break;
+    // (step ...)
+    case Token::STEP:
+    {
     }
     break;
     case Token::EOF_TOK:

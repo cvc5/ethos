@@ -1,6 +1,7 @@
 #ifndef EXPR_H
 #define EXPR_H
 
+#include <map>
 #include <vector>
 #include <memory>
 #include "kind.h"
@@ -8,7 +9,9 @@
 namespace atc {
 
 class State;
+class ExprValue;
 
+using Ctx = std::map<ExprValue*, ExprValue*>;
 /** 
  * Expression class
  */
@@ -23,11 +26,19 @@ class ExprValue
   /** is null? */
   bool isNull() const;
   /** is equal */
-  bool isEqual(const std::shared_ptr<ExprValue>& val) const;
+  bool unify(std::shared_ptr<ExprValue>& val, Ctx& ctx);
   /** get the kind of this expression */
   Kind getKind() const;
   /** Get children */
   const std::vector<std::shared_ptr<ExprValue>>& getChildren() const;
+  /** Get num children */
+  size_t getNumChildren() const;  
+  /**
+   * Returns the i-th child of this node.
+   * @param i the index of the child
+   * @return the node representing the i-th child
+   */
+  std::shared_ptr<ExprValue> operator[](size_t i) const;
   /**
    * Clone this expression, which creates a deep copy of this expression and
    * returns it. The dag structure of pn is the same as that in the returned
@@ -35,22 +46,26 @@ class ExprValue
    *
    * @return the cloned expression.
    */
-  //std::shared_ptr<Expr> clone() const;
+  std::shared_ptr<ExprValue> clone(Ctx& ctx) const;
   /** Print debug on output strem os
    *
    * @param os the stream to print to
    */
-  void printDebug(std::ostream& os) const;
+  static void printDebug(const std::shared_ptr<ExprValue>& e, std::ostream& os);
 
-  /** Its type */
-  std::shared_ptr<ExprValue> getType();
+  /** Return its type */
+  std::shared_ptr<ExprValue> getType(std::ostream& out);
  private:
+  /** Return its type */
+  std::shared_ptr<ExprValue> getTypeInternal(std::ostream& out);
   /** The current state */
   static State* d_state;
   /** The kind */
   Kind d_kind;
   /** The children of this expression */
   std::vector<std::shared_ptr<ExprValue>> d_children;
+  /** Its type */
+  std::shared_ptr<ExprValue> d_type;
 };
 using Expr = std::shared_ptr<ExprValue>;
 

@@ -158,6 +158,7 @@ Expr ExprParser::parseExpr()
         }
         // Construct the application term specified by tstack.back()
         ret = d_state.mkExpr(Kind::APPLY, tstack.back());
+        typeCheck(ret);
         // process the scope change
         for (size_t i=0, nscopes = sstack.back(); i<nscopes; i++)
         {
@@ -208,10 +209,14 @@ Expr ExprParser::parseExpr()
         ret = d_state.mkLiteral(Kind::STRING, s);
       }
       break;
+      case Token::ABSTRACT_TYPE:
+      ret = d_state.mkAbstractType();
+      break;
       case Token::TYPE:
-      {
-        ret = d_state.mkType();
-      }
+      ret = d_state.mkType();
+      break;
+      case Token::PROOF_TYPE:
+      ret = d_state.mkProofType();
       break;
       case Token::UNTERMINATED_QUOTED_SYMBOL:
         d_lex.parseError("Expected SMT-LIBv2 term", true);
@@ -331,7 +336,8 @@ Expr ExprParser::parseExpr()
               needsUpdateCtx = true;
               // bind the current, add a scope
               d_state.pushScope();
-              if (!d_state.bind(name, tstack.back()[0]))
+              Expr v = d_state.mkVar(name, tstack.back()[0]);
+              if (!d_state.bind(name, v))
               {
               }
               sstack.back() = sstack.back()+1;
@@ -553,6 +559,18 @@ Expr ExprParser::getVar(const std::string& name)
     d_lex.parseError(ss.str());
   }
   return ret;
+}
+
+void ExprParser::typeCheck(const Expr& e)
+{
+  // type check immediately
+  std::stringstream ss;
+  if (e->getType(ss)==nullptr)
+  {
+    std::stringstream msg;
+    msg << "Type checking failed: " << ss.str();
+    d_lex.parseError(msg.str());
+  }
 }
 
 }  // namespace atc

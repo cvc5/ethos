@@ -83,6 +83,8 @@ class ExprParser
   //Expr parseMatchCasePattern(Expr headExpr, std::vector<Expr>& boundVars);
   /** get variable, else error */
   Expr getVar(const std::string& name);
+  /** type check the expression */
+  void typeCheck(const Expr& e);
   /** The lexer */
   Lexer& d_lex;
   /** The state */

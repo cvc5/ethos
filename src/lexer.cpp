@@ -378,6 +378,12 @@ Token Lexer::tokenizeCurrentSymbol() const
   //Assert(!d_token.empty());
   switch (d_token[0])
   {
+    case '?':
+      if (d_token.size()==1)
+      {
+        return Token::ABSTRACT_TYPE;
+      }
+      break;
     case 'p':
       if (d_token.size() == 3 && d_token[1] == 'a' && d_token[2] == 'r')
       {
@@ -394,6 +400,12 @@ Token Lexer::tokenizeCurrentSymbol() const
       if (d_token.size() == 4 && d_token[1] == 'y' && d_token[2] == 'p' && d_token[3] == 'e')
       {
         return Token::TYPE;
+      }
+      break;
+    case 'P':
+      if (d_token.size() == 5 && d_token[1] == 'r' && d_token[2] == 'o' && d_token[3] == 'o' && d_token[4] == 'f')
+      {
+        return Token::PROOF_TYPE;
       }
       break;
     default: break;

@@ -36,6 +36,11 @@ enum class Kind
 /** Print a kind to the stream, for debugging */
 std::ostream& operator<<(std::ostream& o, Kind k);
 
+/** */
+bool isVariable(Kind k);
+/** */
+bool isLiteral(Kind k);
+
 }  // namespace atc
 
 #endif /* KIND_H */

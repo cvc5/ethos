@@ -9,6 +9,7 @@ std::ostream& operator<<(std::ostream& o, Token t)
   switch (t)
   {
     case Token::EOF_TOK: o << "EOF"; break;
+    case Token::ABSTRACT_TYPE: o << "ABSTRACT_TYPE"; break;
     case Token::ATTRIBUTE: o << "ATTRIBUTE"; break;
     case Token::BINARY_LITERAL: o << "BINARY_LITERAL"; break;
     case Token::DECIMAL_LITERAL: o << "DECIMAL_LITERAL"; break;
@@ -31,6 +32,7 @@ std::ostream& operator<<(std::ostream& o, Token t)
     case Token::NUMERAL: o << "NUMERAL"; break;
     case Token::PAR: o << "PAR"; break;
     case Token::PROOF: o << "PROOF"; break;
+    case Token::PROOF_TYPE: o << "PROOF_TYPE"; break;
     case Token::QUOTED_SYMBOL: o << "QUOTED_SYMBOL"; break;
     case Token::RESET: o << "RESET"; break;
     case Token::RPAREN: o << "RPAREN"; break;

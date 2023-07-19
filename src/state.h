@@ -4,6 +4,7 @@
 #include <map>
 #include "expr.h"
 #include "expr_info.h"
+#include "expr_trie.h"
 
 namespace atc {
   
@@ -23,6 +24,8 @@ public:
   Expr mkFunctionType(const std::vector<Expr>& args, const Expr& ret);
   /** ? */
   Expr mkAbstractType();
+  /** Proof */
+  Expr mkProofType();
   /** */
   Expr mkBuiltinType(Kind k);
   /** */
@@ -59,20 +62,21 @@ public:
   ExprInfo* getOrMkInfo(const Expr& e);
 private:
   /** */
-  Expr mkExprInternal(Kind k, const std::vector<Expr>& children);
+  Expr mkExprInternal(Kind k, const std::vector<Expr>& children, bool doHash=true);
   /** 
    * Bind builtin
    */
   void bindBuiltin(const std::string& name, Kind k, bool isClosure);
   /** The symbol table */
   std::map<std::string, Expr> d_symTable;
-  // TODO: reverse lookup for names?
   /** Context stacks */
   std::vector<std::string> d_decls;
   /** Context size */
   std::vector<size_t> d_declsSizeCtx;
   /** literals */
   std::map<Expr, ExprInfo> d_exprData;
+  /** hash */
+  std::map<Kind, ExprTrie> d_trie;
 };
 
 }  // namespace atc

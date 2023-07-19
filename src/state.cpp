@@ -55,7 +55,12 @@ Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret)
 
 Expr State::mkAbstractType()
 {
-  return nullptr;
+  return mkExprInternal(Kind::ABSTRACT, {});
+}
+
+Expr State::mkProofType()
+{
+  return mkExprInternal(Kind::PROOF, {});
 }
 
 Expr State::mkBuiltinType(Kind k)
@@ -66,7 +71,7 @@ Expr State::mkBuiltinType(Kind k)
 Expr State::mkVar(const std::string& name, const Expr& type)
 {
   // type is stored as a child
-  Expr v = mkExprInternal(Kind::VARIABLE, {type});
+  Expr v = mkExprInternal(Kind::VARIABLE, {type}, false);
   // map to the data
   ExprInfo* ei = getOrMkInfo(v);
   ei->d_str = name;
@@ -76,7 +81,7 @@ Expr State::mkVar(const std::string& name, const Expr& type)
 Expr State::mkConst(const std::string& name, const Expr& type)
 {
   // type is stored as a child
-  Expr v = mkExprInternal(Kind::CONST, {type});
+  Expr v = mkExprInternal(Kind::CONST, {type}, false);
   // map to the data
   ExprInfo* ei = getOrMkInfo(v);
   ei->d_str = name;
@@ -108,9 +113,27 @@ Expr State::mkLiteral(Kind k, const std::string& s)
   return lit;
 }
 
-Expr State::mkExprInternal(Kind k, const std::vector<Expr>& children)
+Expr State::mkExprInternal(Kind k, const std::vector<Expr>& children, bool doHash)
 {
-  return std::make_shared<ExprValue>(k, children);
+  ExprTrie* et = nullptr;
+  if (doHash)
+  {
+    et = &d_trie[k];
+    for (const Expr& e : children)
+    {
+      et = &(et->d_children[e]);
+    }
+    if (et->d_data!=nullptr)
+    {
+      return et->d_data;
+    }
+  }
+  Expr ret = std::make_shared<ExprValue>(k, children);
+  if (et!=nullptr)
+  {
+    et->d_data = ret;
+  }
+  return ret;
 }
 
 bool State::mkAndBindVars(

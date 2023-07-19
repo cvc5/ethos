@@ -11,6 +11,7 @@ namespace atc {
 enum class Token
 {
   EOF_TOK = 0,
+  ABSTRACT_TYPE,
   ASSUME,
   ATTRIBUTE,
   BINARY_LITERAL,
@@ -35,6 +36,7 @@ enum class Token
   NUMERAL,
   PAR,
   PROOF,
+  PROOF_TYPE,
   QUOTED_SYMBOL,
   RESET,
   RPAREN,
