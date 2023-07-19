@@ -16,6 +16,7 @@
 #include "cmd_parser.h"
 
 #include <iostream>
+#include <vector>
 
 namespace atc {
 
@@ -112,27 +113,48 @@ bool CmdParser::parseNextCommand()
       std::string name = d_eparser.parseSymbol();
       std::vector<Expr> vs =
           d_eparser.parseAndBindSortedVarList(true);
-      // parse premises
-      std::string keyword = d_eparser.parseKeyword();
-      if (keyword!="premises")
+
+      std::vector<Expr> premises = std::vector<Expr>();
+      std::vector<Expr> args = std::vector<Expr>();
+      Expr conc = nullptr;
+
+      std::string keyword;
+      while (true)
       {
-        d_lex.parseError("Expected premises in declare-rule");
+        Token tok = d_lex.peekToken();
+        if (tok == Token::RPAREN)
+        {
+          break;
+        }
+        std::string keyword = d_eparser.parseKeyword();
+        if (keyword == "premises")
+        {
+          premises = d_eparser.parseExprList();        
+          continue;
+        }
+        if (keyword == "args")
+        {
+          args = d_eparser.parseExprList();
+          continue;
+        }
+        if (keyword == "conclusion")
+        {
+          conc = d_eparser.parseExpr();
+          continue;
+        }
+        if (keyword == "require")
+        {
+          d_eparser.eatSexpr();
+          continue;
+        }
+        d_lex.parseError("Unexpected keyword in declare-rule.");
       }
-      std::vector<Expr> premises = d_eparser.parseExprList();
-      // parse args
-      keyword = d_eparser.parseKeyword();
-      if (keyword!="args")
-      {
-        d_lex.parseError("Expected args in declare-rule");
-      }
-      std::vector<Expr> args = d_eparser.parseExprList();
-      // parse conclusion
-      keyword = d_eparser.parseKeyword();
-      if (keyword!="conclusion")
+
+      if (!conc)
       {
         d_lex.parseError("Expected conclusion in declare-rule");
       }
-      Expr conc = d_eparser.parseExpr();
+
       std::vector<Expr> argTypes;
       for (Expr& e : args)
       {

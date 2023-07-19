@@ -615,6 +615,27 @@ Expr ExprParser::getVar(const std::string& name)
   return ret;
 }
 
+void ExprParser::eatSexpr()
+{
+  d_lex.eatToken(Token::LPAREN);
+  unsigned int count = 1;
+  while (count > 0)
+  {
+    Token tok = d_lex.nextToken();
+    switch (tok)
+    {
+        case Token::LPAREN:
+          count += 1;
+          break;
+        case Token::RPAREN:
+          count -= 1;
+          break;
+        default:
+          break;
+    }
+  }
+}
+
 Expr ExprParser::typeCheck(Expr& e)
 {
   // type check immediately
