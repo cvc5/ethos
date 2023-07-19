@@ -211,9 +211,6 @@ Expr ExprParser::parseExpr()
       case Token::TYPE:
       ret = d_state.mkType();
       break;
-      case Token::PROOF_TYPE:
-      ret = d_state.mkProofType();
-      break;
       case Token::BOOL_TYPE:
       ret = d_state.mkBoolType();
       break;

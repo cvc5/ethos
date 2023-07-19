@@ -1,6 +1,7 @@
 #include "type_checker.h"
 
 #include "state.h"
+#include <iostream>
 
 namespace atc {
 
@@ -19,7 +20,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
   {
     case Kind::APPLY:
     {
-      Expr hdType = e->d_children[0]->getType(out);
+      Expr hdType = getType(e->d_children[0], out);
       if (hdType==nullptr)
       {
         return hdType;
@@ -42,7 +43,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
       Ctx ctx;
       for (size_t i=1, nchild=e->d_children.size(); i<nchild; i++)
       {
-        Expr ctype = e->d_children[i]->getType(out);
+        Expr ctype = getType(e->d_children[i], out);
         if (ctype==nullptr)
         {
           return ctype;
@@ -65,17 +66,17 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
     case Kind::LAMBDA:
     {
       std::vector<Expr> args;
-      const std::vector<Expr>& vars = e->d_children[0]->getChildren();
-      for (const Expr& c : vars)
+      std::vector<Expr>& vars = e->d_children[0]->d_children;
+      for (Expr& c : vars)
       {
-        Expr ctype = c->getType(out);
+        Expr ctype = getType(c, out);
         if (ctype==nullptr)
         {
           return ctype;
         }
         args.push_back(ctype);
       }
-      Expr ret = e->d_children[1]->getType(out);
+      Expr ret = getType(e->d_children[1], out);
       if (ret==nullptr)
       {
         return ret;
@@ -84,7 +85,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
     }
     case Kind::QUOTE:
     {
-      return ExprValue::d_state->mkQuoteType(e);
+      return ExprValue::d_state->mkQuoteType(e->d_children[0]);
     }
     case Kind::TYPE:
     case Kind::ABSTRACT_TYPE:
@@ -93,9 +94,9 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
       return ExprValue::d_state->mkType();
     case Kind::FUNCTION_TYPE:
       // the children must be types
-      for (const Expr& c : e->d_children)
+      for (Expr& c : e->d_children)
       {
-        Expr ctype = c->getType(out);
+        Expr ctype = getType(c, out);
         if (ctype==nullptr)
         {
           return ctype;

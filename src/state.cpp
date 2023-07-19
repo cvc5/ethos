@@ -71,15 +71,14 @@ Expr State::mkBoolType()
 {
   return mkExprInternal(Kind::BOOL_TYPE, {});
 }
-
+/*
 Expr State::mkProofType()
 {
   return mkExprInternal(Kind::PROOF_TYPE, {});
 }
-
+*/
 Expr State::mkProofType(const Expr& proven)
 {
-  // for now, ignore what is proven
   return mkExprInternal(Kind::PROOF_TYPE, {});
 }
 Expr State::mkQuoteType(const Expr& t)

@@ -57,13 +57,9 @@ class ExprValue
    */
   static void printDebug(const std::shared_ptr<ExprValue>& e, std::ostream& os);
 
-  /** Return its type */
-  std::shared_ptr<ExprValue> getType(std::ostream& out);
   /** Get the free symbols */
   std::unordered_set<std::shared_ptr<ExprValue>> getFreeSymbols() const;
  private:
-  /** Return its type */
-  std::shared_ptr<ExprValue> getTypeInternal(std::ostream& out);
   /** The current state */
   static State* d_state;
   /** The kind */

@@ -30,7 +30,7 @@ public:
   /** Bool */
   Expr mkBoolType();
   /** Proof */
-  Expr mkProofType();
+  //Expr mkProofType();
   Expr mkProofType(const Expr& proven);
   Expr mkQuoteType(const Expr& t);
   /** */
