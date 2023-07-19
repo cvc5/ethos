@@ -3,9 +3,10 @@
 
 #include <map>
 #include "expr.h"
+#include "expr_info.h"
 
 namespace atc {
-
+  
 class State
 {
 public:
@@ -26,6 +27,8 @@ public:
   Expr mkBuiltinType(Kind k);
   /** */
   Expr mkVar(const std::string& name, const Expr& type);
+  /** */
+  Expr mkConst(const std::string& name, const Expr& type);
   /** */
   Expr mkExpr(Kind k, const std::vector<Expr>& children);
   
@@ -50,7 +53,15 @@ public:
   bool isClosure(const Expr& e) const;
   /** */
   Expr getVar(const std::string& name) const;
+  /** */
+  ExprInfo* getInfo(const Expr& e);
+  /** */
+  ExprInfo* getOrMkInfo(const Expr& e);
 private:
+  /** 
+   * Bind builtin
+   */
+  void bindBuiltin(const std::string& name, Kind k, bool isClosure);
   /** The symbol table */
   std::map<std::string, Expr> d_symTable;
   // TODO: reverse lookup for names?
@@ -58,9 +69,8 @@ private:
   std::vector<std::string> d_decls;
   /** Context size */
   std::vector<size_t> d_declsSizeCtx;
-  // TODO: different kinds of data
   /** literals */
-  std::map<Expr, std::string> d_litData;
+  std::map<Expr, ExprInfo> d_exprData;
 };
 
 }  // namespace atc

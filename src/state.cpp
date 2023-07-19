@@ -4,9 +4,14 @@
 
 namespace atc {
 
-State::State(){
+State::State()
+{
   ExprValue::d_state = this;
+  
+  bindBuiltin("lambda", Kind::LAMBDA, true);
+  bindBuiltin("->", Kind::FUNCTION, false);
 }
+
 State::~State(){}
 
 void State::reset()
@@ -63,7 +68,13 @@ Expr State::mkVar(const std::string& s, const Expr& type)
   // type is stored as a child
   return mkExpr(Kind::VARIABLE, {type});
 }
-  
+
+Expr State::mkConst(const std::string& name, const Expr& type)
+{
+  // type is stored as a child
+  return mkExpr(Kind::CONST, {type});
+}
+
 Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
 {
   return std::make_shared<ExprValue>(k, children);
@@ -73,7 +84,8 @@ Expr State::mkLiteral(Kind k, const std::string& s)
 {
   // map to data
   Expr lit = mkExpr(k, {});
-  d_litData[lit] = s;
+  ExprInfo* ei = getOrMkInfo(lit);
+  ei->d_str = s;
   return lit;
 }
 
@@ -105,6 +117,11 @@ bool State::bind(const std::string& name, const Expr& e)
 
 bool State::isClosure(const Expr& e) const 
 {
+  std::map<Expr, ExprInfo>::const_iterator it = d_exprData.find(e);
+  if (it!=d_exprData.end())
+  {
+    return it->second.d_isClosure;
+  }
   return false;
 }
 
@@ -116,6 +133,32 @@ Expr State::getVar(const std::string& name) const
     return it->second;
   }
   return nullptr;
+}
+
+ExprInfo* State::getInfo(const Expr& e)
+{
+  std::map<Expr, ExprInfo>::iterator it = d_exprData.find(e);
+  if (it!=d_exprData.end())
+  {
+    return &it->second;
+  }
+  return nullptr;
+}
+  
+ExprInfo* State::getOrMkInfo(const Expr& e)
+{
+  return &d_exprData[e];
+}
+
+void State::bindBuiltin(const std::string& name, Kind k, bool isClosure)
+{
+  // type is irrelevant, assign abstract
+  Expr c = mkConst(name, mkAbstractType());
+  bind(name, c);
+  // associate the information
+  ExprInfo * ei = getOrMkInfo(c);
+  ei->d_kind = k;
+  ei->d_isClosure = isClosure;
 }
 
 }  // namespace atc

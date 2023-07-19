@@ -28,12 +28,6 @@ enum class ParseCtx
    */
   NEXT_ARG,
   /**
-   * CLOSURE_NEXT_ARG: in context (<closure> <variable_list> <term>* <term>
-   * `op` specifies the (closure) operator we parsed.
-   * `args` contain the variable list and the accumulated list of arguments.
-   */
-  CLOSURE_NEXT_ARG,
-  /**
    * Let bindings
    *
    * LET_NEXT_BIND: in context (let (<binding>* (<symbol> <term>
@@ -44,6 +38,20 @@ enum class ParseCtx
    */
   LET_NEXT_BIND,
   LET_BODY,
+  /**
+   * Term annotations
+   *
+   * TERM_ANNOTATE_BODY: in context (! <term>
+   *
+   * TERM_ANNOTATE_NEXT_ATTR: in context (! <term> <attr>* <keyword> <term_spec>
+   * where notice that <term_spec> may be a term or a list of terms.
+   * `op` contains:
+   * - d_expr: the body of the term annotation.
+   * - d_kind: the kind to apply to the current <term_spec> (if any).
+   * `args` contain the accumulated patterns or quantifier attributes.
+   */
+  TERM_ANNOTATE_BODY,
+  TERM_ANNOTATE_NEXT_ATTR
 };
 
 ExprParser::ExprParser(Lexer& lex, State& state)
@@ -62,6 +70,7 @@ Expr ExprParser::parseExpr()
   // The stack(s) containing the parse context, and the recipe for the
   // current we are building.
   std::vector<ParseCtx> xstack;
+  std::vector<size_t> sstack;
   std::vector<std::vector<Expr>> tstack;
   // Let bindings, dynamically allocated for each let in scope.
   std::vector<std::vector<std::pair<std::string, Expr>>> letBinders;
@@ -82,6 +91,7 @@ Expr ExprParser::parseExpr()
           case Token::LET:
           {
             xstack.emplace_back(ParseCtx::LET_NEXT_BIND);
+            sstack.emplace_back(0);
             tstack.emplace_back();
             needsUpdateCtx = true;
             letBinders.emplace_back();
@@ -89,7 +99,9 @@ Expr ExprParser::parseExpr()
           break;
           case Token::ATTRIBUTE:
           {
-            //TODO
+            xstack.emplace_back(ParseCtx::TERM_ANNOTATE_BODY);
+            sstack.emplace_back(0);
+            tstack.emplace_back();
           }
           break;
           case Token::SYMBOL:
@@ -100,8 +112,11 @@ Expr ExprParser::parseExpr()
             std::vector<Expr> args;
             Expr v = getVar(name);
             args.push_back(v);
+            size_t nscopes = 0;
+            // if a closure, read a variable list and push a scope
             if (d_state.isClosure(v))
             {
+              nscopes = 1;
               // if it is a closure, immediately read the bound variable list
               d_state.pushScope();
               std::vector<std::pair<std::string, Expr>> sortedVarNames =
@@ -113,16 +128,13 @@ Expr ExprParser::parseExpr()
               std::vector<Expr> vs;
               if (!d_state.mkAndBindVars(sortedVarNames, vs))
               {
-                // TODO error
+                d_lex.parseError("Failed to bind sorted variable list");
               }
               Expr vl = d_state.mkExpr(Kind::VARIABLE_LIST, vs);
               args.push_back(vl);
-              xstack.emplace_back(ParseCtx::CLOSURE_NEXT_ARG);
             }
-            else
-            {
-              xstack.emplace_back(ParseCtx::NEXT_ARG);
-            }
+            xstack.emplace_back(ParseCtx::NEXT_ARG);
+            sstack.emplace_back(nscopes);
             tstack.emplace_back(args);
           }
           break;
@@ -139,22 +151,21 @@ Expr ExprParser::parseExpr()
       case Token::RPAREN:
       {
         // should only be here if we are expecting arguments
-        if (tstack.empty() || (xstack.back() != ParseCtx::NEXT_ARG
-               && xstack.back() != ParseCtx::CLOSURE_NEXT_ARG))
+        if (tstack.empty() || xstack.back() != ParseCtx::NEXT_ARG)
         {
           d_lex.unexpectedTokenError(
               tok, "Mismatched parentheses in SMT-LIBv2 term");
         }
         // Construct the application term specified by tstack.back()
         ret = d_state.mkExpr(Kind::APPLY, tstack.back());
-        // process the scope change if a closure
-        if (xstack.back() == ParseCtx::CLOSURE_NEXT_ARG)
+        // process the scope change
+        for (size_t i=0, nscopes = sstack.back(); i<nscopes; i++)
         {
-          // if we were a closure, pop a scope
           d_state.popScope();
         }
         // pop the stack
         tstack.pop_back();
+        sstack.pop_back();
         xstack.pop_back();
       }
       break;
@@ -166,9 +177,6 @@ Expr ExprParser::parseExpr()
         ret = getVar(name);
       }
       break;
-      case Token::UNTERMINATED_QUOTED_SYMBOL:
-        d_lex.parseError("Expected SMT-LIBv2 term", true);
-        break;
       case Token::INTEGER_LITERAL:
       {
         ret = d_state.mkLiteral(Kind::INTEGER, d_lex.tokenStr());
@@ -205,6 +213,9 @@ Expr ExprParser::parseExpr()
         ret = d_state.mkType();
       }
       break;
+      case Token::UNTERMINATED_QUOTED_SYMBOL:
+        d_lex.parseError("Expected SMT-LIBv2 term", true);
+        break;
       default:
         d_lex.unexpectedTokenError(tok, "Expected SMT-LIBv2 term");
         break;
@@ -214,33 +225,32 @@ Expr ExprParser::parseExpr()
     // We do this only if a context is allocated (!tstack.empty()) and we
     // either just finished parsing a term (!ret.isNull()), or otherwise have
     // indicated that we need to update the context (needsUpdateCtx).
-    while (!tstack.empty() && (!ret->isNull() || needsUpdateCtx))
+    while (!tstack.empty() && (ret!=nullptr || needsUpdateCtx))
     {
       needsUpdateCtx = false;
       switch (xstack.back())
       {
         // ------------------------- argument lists
         case ParseCtx::NEXT_ARG:
-        case ParseCtx::CLOSURE_NEXT_ARG:
         {
           //Assert(!ret.isNull());
           // add it to the list of arguments and clear
           tstack.back().push_back(ret);
-          ret = Expr();
+          ret = nullptr;
         }
         break;
         // ------------------------- let terms
         case ParseCtx::LET_NEXT_BIND:
         {
           // if we parsed a term, process it as a binding
-          if (!ret->isNull())
+          if (ret!=nullptr)
           {
             //Assert(!letBinders.empty());
             std::vector<std::pair<std::string, Expr>>& bs = letBinders.back();
             // add binding from the symbol to ret
             //Assert (!bs.empty());
             bs.back().second = ret;
-            ret = Expr();
+            ret = nullptr;
             // close the current binding
             d_lex.eatToken(Token::RPAREN);
           }
@@ -288,6 +298,86 @@ Expr ExprParser::parseExpr()
           tstack.pop_back();
           // pop scope
           d_state.popScope();
+        }
+        break;
+        // ------------------------- annotated terms
+        case ParseCtx::TERM_ANNOTATE_BODY:
+        {
+          // save ret as the expression and clear
+          tstack.back().push_back(ret);
+          ret = nullptr;
+          // now parse attribute list
+          xstack[xstack.size() - 1] = ParseCtx::TERM_ANNOTATE_NEXT_ATTR;
+          needsUpdateCtx = true;
+          // ensure there is at least one attribute
+          tok = d_lex.peekToken();
+          if (tok == Token::RPAREN)
+          {
+            d_lex.parseError(
+                "Expecting at least one attribute for term annotation.");
+          }
+        }
+        break;
+        case ParseCtx::TERM_ANNOTATE_NEXT_ATTR:
+        {
+          // see if there is another keyword
+          if (d_lex.eatTokenChoice(Token::KEYWORD, Token::RPAREN))
+          {
+            std::string key = d_lex.tokenStr();
+            // Based on the keyword, determine the context.
+            if (key == ":var")
+            {
+              std::string name = parseSymbol();
+              needsUpdateCtx = true;
+              // bind the current, add a scope
+              d_state.pushScope();
+              if (!d_state.bind(name, tstack.back()[0]))
+              {
+              }
+              sstack.back() = sstack.back()+1;
+            }
+            else if (key == ":implicit")
+            {
+              needsUpdateCtx = true;
+            }
+            else
+            {
+              // warn that the attribute is not supported
+              std::stringstream ss;
+              ss << "Annotation " << d_lex.tokenStr() << " not supported.";
+              d_lex.warning(ss.str());
+              tok = d_lex.nextToken();
+              // We don't know whether to expect an attribute value. Thus,
+              // we will either see keyword (the next attribute), rparen
+              // (the term annotation is finished), or else parse as generic
+              // symbolic expression for the current attribute.
+              switch (tok)
+              {
+                case Token::KEYWORD:
+                case Token::RPAREN:
+                  // finished with this attribute, go to the next one if it
+                  // exists.
+                  d_lex.reinsertToken(tok);
+                  needsUpdateCtx = true;
+                  break;
+                default:
+                  // TODO: ignore the symbolic expression that follows
+                  d_lex.reinsertToken(tok);
+                  // will parse another attribute
+                  break;
+              }
+            }
+          }
+          // if we instead saw a RPAREN_TOK, we are finished
+          else
+          {
+            //Assert(!tstack.back().size()==1);
+            // finished parsing attributes, we will return the original term
+            ret = tstack.back()[0];
+            xstack.pop_back();
+            sstack.pop_back();
+            tstack.pop_back();
+          }
         }
         break;
         default: break;

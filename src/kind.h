@@ -21,6 +21,7 @@ enum class Kind
   // terms
   APPLY,
   LAMBDA,
+  CONST,
   VARIABLE,
   VARIABLE_LIST,
 
