@@ -77,15 +77,17 @@ Expr State::mkProofType(const Expr& proven)
 
 Expr State::mkBuiltinType(Kind k)
 {
+  // TODO: type system for literals?
   return nullptr;
 }
   
 Expr State::mkVar(const std::string& name, const Expr& type)
 {
-  // type is stored as a child
   Expr v = mkExprInternal(Kind::VARIABLE, {type}, false);
+  // immediately set its type
+  v->d_type = type;
   // map to the data
-  ExprInfo* ei = getOrMkInfo(v);
+  ExprInfo* ei = getOrMkInfo(v.get());
   ei->d_str = name;
   return v;
 }
@@ -93,9 +95,11 @@ Expr State::mkVar(const std::string& name, const Expr& type)
 Expr State::mkConst(const std::string& name, const Expr& type)
 {
   // type is stored as a child
-  Expr v = mkExprInternal(Kind::CONST, {type}, false);
+  Expr v = mkExprInternal(Kind::CONST, {}, false);
+  // immediately set its type
+  v->d_type = type;
   // map to the data
-  ExprInfo* ei = getOrMkInfo(v);
+  ExprInfo* ei = getOrMkInfo(v.get());
   ei->d_str = name;
   return v;
 }
@@ -106,7 +110,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
   {
     // Assert (!children.empty());
     // see if there is a special kind for the head
-    ExprInfo * ei = getInfo(children[0]);
+    ExprInfo * ei = getInfo(children[0].get());
     if (ei!=nullptr && ei->d_kind!=Kind::NONE)
     {
       std::vector<Expr> achildren(children.begin()+1, children.end());
@@ -120,7 +124,7 @@ Expr State::mkLiteral(Kind k, const std::string& s)
 {
   Expr lit = mkExprInternal(k, {});
   // map to the data
-  ExprInfo* ei = getOrMkInfo(lit);
+  ExprInfo* ei = getOrMkInfo(lit.get());
   ei->d_str = s;
   return lit;
 }
@@ -148,21 +152,6 @@ Expr State::mkExprInternal(Kind k, const std::vector<Expr>& children, bool doHas
   return ret;
 }
 
-bool State::mkAndBindVars(
-    const std::vector<std::pair<std::string, Expr> >& sortedVarNames, std::vector<Expr>& ret)
-{
-  for (const std::pair<std::string, Expr>& sv : sortedVarNames)
-  {
-    Expr v = mkVar(sv.first, sv.second);
-    if (!bind(sv.first, v))
-    {
-      return false;
-    }
-    ret.push_back(v);
-  }
-  return true;
-}
-
 bool State::bind(const std::string& name, const Expr& e)
 {
   if (d_symTable.find(name)!=d_symTable.end())
@@ -176,7 +165,7 @@ bool State::bind(const std::string& name, const Expr& e)
 
 bool State::isClosure(const Expr& e) const 
 {
-  std::map<Expr, ExprInfo>::const_iterator it = d_exprData.find(e);
+  std::map<const ExprValue *, ExprInfo>::const_iterator it = d_exprData.find(e.get());
   if (it!=d_exprData.end())
   {
     return it->second.d_isClosure;
@@ -194,9 +183,9 @@ Expr State::getVar(const std::string& name) const
   return nullptr;
 }
 
-ExprInfo* State::getInfo(const Expr& e)
+ExprInfo* State::getInfo(const ExprValue* e)
 {
-  std::map<Expr, ExprInfo>::iterator it = d_exprData.find(e);
+  std::map<const ExprValue *, ExprInfo>::iterator it = d_exprData.find(e);
   if (it!=d_exprData.end())
   {
     return &it->second;
@@ -204,7 +193,7 @@ ExprInfo* State::getInfo(const Expr& e)
   return nullptr;
 }
   
-ExprInfo* State::getOrMkInfo(const Expr& e)
+ExprInfo* State::getOrMkInfo(const ExprValue* e)
 {
   return &d_exprData[e];
 }
@@ -215,7 +204,7 @@ void State::bindBuiltin(const std::string& name, Kind k, bool isClosure)
   Expr c = mkConst(name, mkAbstractType());
   bind(name, c);
   // associate the information
-  ExprInfo * ei = getOrMkInfo(c);
+  ExprInfo * ei = getOrMkInfo(c.get());
   ei->d_kind = k;
   ei->d_isClosure = isClosure;
 }

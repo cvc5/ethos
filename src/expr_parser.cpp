@@ -570,8 +570,8 @@ Expr ExprParser::typeCheck(const Expr& e)
   {
     std::stringstream msg;
     msg << "Type checking failed:" << std::endl;
-    //msg << "Expression: " << *v.get() << std::endl;
-    msg << "Message:" << ss.str() << std::endl;
+    msg << "Expression: " << e << std::endl;
+    msg << "Message: " << ss.str() << std::endl;
     d_lex.parseError(msg.str());
   }
   return v;
@@ -584,7 +584,9 @@ Expr ExprParser::typeCheck(const Expr& e, const Expr& expected)
   {
     std::stringstream msg;
     msg << "Expression of unexpected type:" << std::endl;
-    // TODO
+    msg << "Expression: " << e << std::endl;
+    msg << "      Type: " << et << std::endl;
+    msg << "  Expected: " << expected << std::endl;
     d_lex.parseError(msg.str());
   }
   return et;

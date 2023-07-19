@@ -23,7 +23,7 @@ bool ExprValue::isEqual(const std::shared_ptr<ExprValue>& val) const
   return this==val.get();
 }
 
-bool ExprValue::unify(std::shared_ptr<ExprValue>& val, Ctx& ctx)
+bool ExprValue::match(std::shared_ptr<ExprValue>& val, Ctx& ctx)
 {
   std::set<std::pair<ExprValue*, ExprValue*>> visited;
   std::set<std::pair<ExprValue*, ExprValue*>>::iterator it;
@@ -121,11 +121,6 @@ std::shared_ptr<ExprValue> ExprValue::getTypeInternal(std::ostream& out)
 {
   switch(d_kind)
   {
-    case Kind::VARIABLE:
-    case Kind::CONST:
-      // type is the first child
-      //Assert (d_children.size()==1);
-      return d_children[0];
     case Kind::APPLY:
     {
       Expr hdType = d_children[0]->getType(out);
@@ -157,9 +152,11 @@ std::shared_ptr<ExprValue> ExprValue::getTypeInternal(std::ostream& out)
           return ctype;
         }
         // unification, update retType
-        if (!hdtypes[i-1]->unify(ctype, ctx))
+        if (!hdtypes[i-1]->match(ctype, ctx))
         {
-          out << "Unexpected argument type " << i;
+          out << "Unexpected argument type " << i << std::endl;
+          out << "  LHS " << hdtypes[i-1] << std::endl;
+          out << "  RHS " << ctype << std::endl;
           return nullptr;
         }
       }
@@ -292,9 +289,9 @@ void ExprValue::printDebug(const std::shared_ptr<ExprValue>& e, std::ostream& os
     cur = visit.back();
     if (cur.second==0)
     {
+      Kind k = cur.first->getKind();
       if (cur.first->getNumChildren()==0)
       {
-        /*
         ExprInfo * ei = d_state->getInfo(cur.first);
         if (ei!=nullptr)
         {
@@ -304,12 +301,11 @@ void ExprValue::printDebug(const std::shared_ptr<ExprValue>& e, std::ostream& os
         {
           os << "[" << cur.first->getKind() << "]";
         }
-        */
+        visit.pop_back();
       }
       else
       {
         os << "(";
-        Kind k = cur.first->getKind();
         if (k!=Kind::APPLY)
         {
           os << k;

@@ -46,14 +46,6 @@ public:
    * @return A constant
    */
   Expr mkLiteral(Kind k, const std::string& s);
-  
-  /**
-   * Create a new cvc5 bound variable expressions of the given names and types.
-   * Like the method above, this binds these names to those variables in the
-   * current scope.
-   */
-  bool mkAndBindVars(
-      const std::vector<std::pair<std::string, Expr> >& sortedVarNames, std::vector<Expr>& ret);
   /** */
   bool bind(const std::string& name, const Expr& e);
   /** is closure */
@@ -61,9 +53,9 @@ public:
   /** */
   Expr getVar(const std::string& name) const;
   /** */
-  ExprInfo* getInfo(const Expr& e);
+  ExprInfo* getInfo(const ExprValue* e);
   /** */
-  ExprInfo* getOrMkInfo(const Expr& e);
+  ExprInfo* getOrMkInfo(const ExprValue* e);
 private:
   /** */
   Expr mkExprInternal(Kind k, const std::vector<Expr>& children, bool doHash=true);
@@ -80,7 +72,7 @@ private:
   /** Context size */
   std::vector<size_t> d_declsSizeCtx;
   /** literals */
-  std::map<Expr, ExprInfo> d_exprData;
+  std::map<const ExprValue*, ExprInfo> d_exprData;
   /** hash */
   std::map<Kind, ExprTrie> d_trie;
 };
