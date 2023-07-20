@@ -326,77 +326,43 @@ Expr ExprParser::parseExpr()
         break;
         case ParseCtx::TERM_ANNOTATE_NEXT_ATTR:
         {
-          // see if there is another keyword
-          if (d_lex.eatTokenChoice(Token::KEYWORD, Token::RPAREN))
+          std::map<Attr, Expr> attrs;
+          Expr e = tstack.back()[0];
+          parseAttributeList(e, attrs);
+          bool wasImplicit = false;
+          for (const std::pair<const Attr, Expr>& a : attrs)
           {
-            std::string key = d_lex.tokenStr();
-            // Based on the keyword, determine the context.
-            if (key == ":var")
+            switch(a.first)
             {
-              std::string name = parseSymbol();
-              needsUpdateCtx = true;
-              // bind the current, add a scope
-              d_state.pushScope();
-              Expr v = d_state.mkVar(name, tstack.back()[0]);
-              if (!d_state.bind(name, v))
+              case Attr::VAR:
               {
-                d_lex.parseError("Failed to find symbol in :var");
+                // the scope of the variable is one level up
+                if (sstack.size()>1)
+                {
+                  d_state.pushScope();
+                  sstack[sstack.size()-2]++;
+                }
+                d_state.bind(a.second->getSymbol(), a.second);
               }
-              // the scope of the variable is one level up
-              if (sstack.size()>1)
-              {
-                sstack[sstack.size()-2]++;
-              }
-            }
-            else if (key == ":implicit")
-            {
-              needsUpdateCtx = true;
-              // TODO:
-            }
-            else
-            {
-              // warn that the attribute is not supported
-              std::stringstream ss;
-              ss << "Annotation " << d_lex.tokenStr() << " not supported.";
-              d_lex.warning(ss.str());
-              tok = d_lex.nextToken();
-              // We don't know whether to expect an attribute value. Thus,
-              // we will either see keyword (the next attribute), rparen
-              // (the term annotation is finished), or else parse as generic
-              // symbolic expression for the current attribute.
-              switch (tok)
-              {
-                case Token::KEYWORD:
-                case Token::RPAREN:
-                  // finished with this attribute, go to the next one if it
-                  // exists.
-                  d_lex.reinsertToken(tok);
-                  needsUpdateCtx = true;
-                  break;
-                default:
-                  // FIXME: ignore the symbolic expression that follows
-                  d_lex.reinsertToken(tok);
-                  //Expr e = parseExpr();
-                  // will parse another attribute
-                  break;
-              }
+                break;
+              case Attr::IMPLICIT:
+                wasImplicit = true;
+                break;
+              default:
+                break;
             }
           }
-          // if we instead saw a RPAREN_TOK, we are finished
-          else
+          d_lex.eatToken(Token::RPAREN);
+          // finished parsing attributes, we will return the original term
+          ret = wasImplicit ? nullptr : e;
+          // process the scope change
+          for (size_t i=0, nscopes = sstack.back(); i<nscopes; i++)
           {
-            //Assert(!tstack.back().size()==1);
-            // finished parsing attributes, we will return the original term
-            ret = tstack.back()[0];
-            // process the scope change
-            for (size_t i=0, nscopes = sstack.back(); i<nscopes; i++)
-            {
-              d_state.popScope();
-            }
-            xstack.pop_back();
-            sstack.pop_back();
-            tstack.pop_back();
+            d_state.popScope();
           }
+          xstack.pop_back();
+          sstack.pop_back();
+          tstack.pop_back();
         }
         break;
         default: break;
@@ -536,12 +502,15 @@ void ExprParser::parseAttributeList(const Expr& e, std::map<Attr, Expr>& attrs)
   {
     std::string key = d_lex.tokenStr();
     its = d_strToAttr.find(key);
+    Expr val;
     if (its==d_strToAttr.end())
     {
       // TODO: parse and skip value?
+      
+      // store dummy, to mark that we read an attribute
+      attrs[Attr::NONE] = val;
       continue;
     }
-    Expr val;
     switch (its->second)
     {
       case Attr::VAR:

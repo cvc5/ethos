@@ -51,6 +51,8 @@ class ExprValue
   std::unordered_set<std::shared_ptr<ExprValue>> getFreeSymbols() const;
   /** Has variable */
   bool hasVariable();
+  /** Get symbol */
+  std::string getSymbol() const;
  private:
   /** The current state */
   static State* d_state;

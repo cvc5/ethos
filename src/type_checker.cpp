@@ -1,6 +1,7 @@
 #include "type_checker.h"
 
 #include "state.h"
+#include "error.h"
 #include <iostream>
 #include <set>
 #include <unordered_map>
@@ -9,10 +10,28 @@ namespace atc {
 
 TypeChecker::TypeChecker(State& s) : d_state(s)
 {
+  d_literalKinds = { Kind::INTEGER,  Kind::DECIMAL, Kind::HEXADECIMAL, Kind::BINARY, Kind::STRING };
+  // initialize literal kinds 
+  for (Kind k : d_literalKinds)
+  {
+    d_literalTypeRules[k] = d_state.mkBuiltinType(k);
+  }
 }
 
 TypeChecker::~TypeChecker()
 {
+}
+
+void TypeChecker::setTypeRule(Kind k, const Expr& e)
+{
+  std::map<Kind, Expr>::iterator it = d_literalTypeRules.find(k);
+  if (it==d_literalTypeRules.end())
+  {
+    std::stringstream ss;
+    ss << "TypeChecker::setTypeRule: cannot set type rule for kind " << k;
+    Error::reportError(ss.str());
+  }
+  it->second = e;
 }
 
 Expr TypeChecker::getType(Expr& e, std::ostream& out)
@@ -27,6 +46,7 @@ Expr TypeChecker::getType(Expr& e, std::ostream& out)
 Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
 {
   // TODO: check arities
+  // TODO: non-recursive
   switch(e->getKind())
   {
     case Kind::APPLY:
@@ -132,12 +152,14 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
       // TODO: check arg?
       return d_state.mkType();
     case Kind::VARIABLE_LIST:
+      return d_state.mkAbstractType();
     case Kind::INTEGER:
     case Kind::DECIMAL:
     case Kind::HEXADECIMAL:
     case Kind::BINARY:
     case Kind::STRING:
-      return d_state.mkBuiltinType(e->getKind());
+      // use the literal type rule
+      return d_literalTypeRules[e->getKind()];
     default:
       break;
   }

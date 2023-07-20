@@ -2,6 +2,7 @@
 #define TYPE_CHECKER_H
 
 #include <map>
+#include <set>
 #include "expr.h"
 
 namespace atc {
@@ -19,6 +20,8 @@ class TypeChecker
   ~TypeChecker();
   /** Return its type */
   Expr getType(Expr& e, std::ostream& out);
+  /** Set type rule for literal */
+  void setTypeRule(Kind k, const Expr& e);
  private:
   /** Return its type */
   Expr getTypeInternal(Expr& e, std::ostream& out);
@@ -33,6 +36,10 @@ class TypeChecker
   Expr clone(Expr& e, Ctx& ctx);
   /** The state */
   State& d_state;
+  /** The builtin literal kinds */
+  std::set<Kind> d_literalKinds;
+  /** Mapping literal kinds to type rules */
+  std::map<Kind, Expr> d_literalTypeRules;
 };
 
 }  // namespace atc

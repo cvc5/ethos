@@ -89,6 +89,16 @@ bool ExprValue::hasVariable()
   while (!visit.empty());
   return getFlag(Flag::HAS_VARIABLE);
 }
+
+std::string ExprValue::getSymbol() const
+{
+  ExprInfo * ei = d_state->getInfo(this);
+  if (ei!=nullptr)
+  {
+    return ei->d_str;
+  }
+  return "";
+}
   
 void ExprValue::printDebug(const std::shared_ptr<ExprValue>& e, std::ostream& os)
 {

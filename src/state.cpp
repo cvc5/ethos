@@ -104,8 +104,8 @@ Expr State::mkQuoteType(const Expr& t)
 
 Expr State::mkBuiltinType(Kind k)
 {
-  // TODO: type system for literals?
-  return nullptr;
+  // for now, just use abstract type
+  return mkAbstractType();
 }
   
 Expr State::mkVar(const std::string& name, const Expr& type)

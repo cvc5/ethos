@@ -408,6 +408,7 @@ Token Lexer::tokenizeCurrentSymbol() const
         return Token::TYPE;
       }
       break;
+    // TODO: remove?
     case 'P':
       if (d_token.size() == 5 && d_token[1] == 'r' && d_token[2] == 'o' && d_token[3] == 'o' && d_token[4] == 'f')
       {
