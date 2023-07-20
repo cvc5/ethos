@@ -39,8 +39,6 @@ class CmdParser
   bool d_isStrict;
   /** is sygus */
   bool d_isSygus;
-  /** Mapping symbols to literal kinds */
-  std::map<std::string, Kind> d_symbolLitNames;
 };
 
 }  // namespace atc

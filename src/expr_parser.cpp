@@ -63,6 +63,12 @@ ExprParser::ExprParser(Lexer& lex, State& state)
   d_strToAttr[":implicit"] = Attr::IMPLICIT;
   d_strToAttr[":list"] = Attr::LIST;
   
+  d_strToLiteralKind["<numeral>"] = Kind::INTEGER;
+  d_strToLiteralKind["<decimal>"] = Kind::DECIMAL;
+  d_strToLiteralKind["<hexadecimal>"] = Kind::HEXADECIMAL;
+  d_strToLiteralKind["<binary>"] = Kind::BINARY;
+  d_strToLiteralKind["<string>"] = Kind::STRING;
+  
   d_typeType = d_state.mkType();
 }
 
@@ -332,6 +338,7 @@ Expr ExprParser::parseExpr()
           std::map<Attr, Expr> attrs;
           Expr e = tstack.back()[0];
           parseAttributeList(e, attrs);
+          // process the attributes
           bool wasImplicit = false;
           for (const std::pair<const Attr, Expr>& a : attrs)
           {
@@ -350,6 +357,9 @@ Expr ExprParser::parseExpr()
                 break;
               case Attr::IMPLICIT:
                 wasImplicit = true;
+                break;
+              case Attr::SYNTAX:
+                // TODO: implies a Kind check for the type rule?
                 break;
               default:
                 break;
@@ -557,6 +567,19 @@ void ExprParser::parseAttributeList(const Expr& e, std::map<Attr, Expr>& attrs)
     attrs[its->second] = val;
   }
   d_lex.reinsertToken(Token::RPAREN);
+}
+
+Kind ExprParser::parseLiteralKind()
+{
+  std::string name = parseSymbol();
+  std::map<std::string, Kind>::iterator it = d_strToLiteralKind.find(name);
+  if (it==d_strToLiteralKind.end())
+  {
+    std::stringstream ss;
+    ss << "Unknown literal kind " << name;
+    d_lex.parseError(ss.str());
+  }
+  return it->second;
 }
 
 void ExprParser::unescapeString(std::string& s)

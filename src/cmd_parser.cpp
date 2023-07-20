@@ -45,12 +45,6 @@ CmdParser::CmdParser(Lexer& lex,
   d_table["set-info"] = Token::SET_INFO;
   d_table["set-option"] = Token::SET_OPTION;
   d_table["step"] = Token::STEP;
-  
-  d_symbolLitNames["<numeral>"] = Kind::INTEGER;
-  d_symbolLitNames["<decimal>"] = Kind::DECIMAL;
-  d_symbolLitNames["<hexadecimal>"] = Kind::HEXADECIMAL;
-  d_symbolLitNames["<binary>"] = Kind::BINARY;
-  d_symbolLitNames["<string>"] = Kind::STRING;
 }
 
 Token CmdParser::nextCommandToken()
@@ -115,15 +109,10 @@ bool CmdParser::parseNextCommand()
     // (declare-consts <symbol> <sort>)
     case Token::DECLARE_CONSTS:
     {
-      std::string name = d_eparser.parseSymbol();
+      Kind k = d_eparser.parseLiteralKind();
       Expr t = d_eparser.parseType();
-      std::map<std::string, Kind>::iterator it = d_symbolLitNames.find(name);
-      if (it==d_symbolLitNames.end())
-      {
-        d_lex.parseError("Unknown category for declare-consts");
-      }
       // set the type rule
-      d_state.getTypeChecker().setTypeRule(it->second, t);
+      d_state.getTypeChecker().setTypeRule(k, t);
     }
     break;
     // (declare-rule ...)

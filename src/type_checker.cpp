@@ -71,6 +71,7 @@ Expr TypeChecker::getType(Expr& e, std::ostream& out)
 Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
 {
   // TODO: check arities
+  // TODO: don't need to check child nullptr?
   switch(e->getKind())
   {
     case Kind::APPLY:
@@ -136,9 +137,8 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
       return d_state.mkFunctionType(args, ret);
     }
     case Kind::QUOTE:
-    {
+      // (quote t) : (Quote t)
       return d_state.mkQuoteType(e->d_children[0]);
-    }
     case Kind::TYPE:
     case Kind::ABSTRACT_TYPE:
     case Kind::BOOL_TYPE:
@@ -184,7 +184,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
       }
       return d_state.mkType();
     case Kind::QUOTE_TYPE:
-      // TODO: check arg?
+      // anything can be quoted
       return d_state.mkType();
     case Kind::VARIABLE_LIST:
       return d_state.mkAbstractType();

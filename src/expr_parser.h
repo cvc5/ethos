@@ -66,6 +66,11 @@ class ExprParser
    * @param e The expression we are applying to
    */
   void parseAttributeList(const Expr& e, std::map<Attr, Expr>& attrs);
+  
+  /**
+   * Parse literal kind.
+   */
+  Kind parseLiteralKind();
 
   /** type check the expression */
   Expr typeCheck(Expr& e);
@@ -104,6 +109,8 @@ class ExprParser
   State& d_state;
   /** Strings to attributes */
   std::map<std::string, Attr> d_strToAttr;
+  /** Mapping symbols to literal kinds */
+  std::map<std::string, Kind> d_strToLiteralKind;
   /** Common constants */
   Expr d_typeType;
 };
