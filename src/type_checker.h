@@ -6,7 +6,7 @@
 
 namespace atc {
 
-using Ctx = std::map<ExprValue*, ExprValue*>;
+using Ctx = std::map<Expr, Expr>;
 /** 
  * Expression class
  */

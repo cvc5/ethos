@@ -126,13 +126,13 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
 
 bool TypeChecker::match(Expr& a, Expr& b, Ctx& ctx)
 {
-  std::set<std::pair<ExprValue*, ExprValue*>> visited;
-  std::set<std::pair<ExprValue*, ExprValue*>>::iterator it;
-  std::map<ExprValue*, ExprValue*>::iterator ctxIt;
+  std::set<std::pair<Expr, Expr>> visited;
+  std::set<std::pair<Expr, Expr>>::iterator it;
+  std::map<Expr, Expr>::iterator ctxIt;
 
-  std::vector<std::pair<ExprValue*, ExprValue*>> stack;
-  stack.emplace_back(a.get(), b.get());
-  std::pair<ExprValue*, ExprValue*> curr;
+  std::vector<std::pair<Expr, Expr>> stack;
+  stack.emplace_back(a, b);
+  std::pair<Expr, Expr> curr;
 
   while (!stack.empty())
   {
@@ -189,7 +189,7 @@ bool TypeChecker::match(Expr& a, Expr& b, Ctx& ctx)
       // recurse on children
       for (size_t i = 0, n = curr.first->getNumChildren(); i < n; ++i)
       {
-        stack.emplace_back((*curr.first)[i].get(), (*curr.second)[i].get());
+        stack.emplace_back((*curr.first)[i], (*curr.second)[i]);
       }
     }
   }
@@ -202,12 +202,12 @@ Expr TypeChecker::clone(Expr& e, Ctx& ctx)
   {
     return e;
   }
-  std::unordered_map<const ExprValue*, Expr> visited;
-  std::unordered_map<const ExprValue*, Expr>::iterator it;
-  std::vector<const ExprValue*> visit;
+  std::unordered_map<Expr, Expr> visited;
+  std::unordered_map<Expr, Expr>::iterator it;
+  std::vector<Expr> visit;
   Expr cloned;
-  visit.push_back(e.get());
-  const ExprValue* cur;
+  visit.push_back(e);
+  Expr cur;
   while (!visit.empty())
   {
     cur = visit.back();
@@ -216,11 +216,10 @@ Expr TypeChecker::clone(Expr& e, Ctx& ctx)
     if (it == visited.end())
     {
       visited[cur] = nullptr;
-      const std::vector<Expr>& children =
-          cur->getChildren();
-      for (const Expr& cp : children)
+      std::vector<Expr>& children = cur->d_children;
+      for (Expr& cp : children)
       {
-        visit.push_back(cp.get());
+        visit.push_back(cp);
       }
       continue;
     }
@@ -228,11 +227,10 @@ Expr TypeChecker::clone(Expr& e, Ctx& ctx)
     if (it->second.get() == nullptr)
     {
       std::vector<Expr> cchildren;
-      const std::vector<Expr>& children =
-          cur->getChildren();
-      for (const Expr& cp : children)
+      std::vector<Expr>& children = cur->d_children;
+      for (Expr& cp : children)
       {
-        it = visited.find(cp.get());
+        it = visited.find(cp);
         //Assert(it != visited.end());
         cchildren.push_back(it->second);
       }
@@ -243,7 +241,7 @@ Expr TypeChecker::clone(Expr& e, Ctx& ctx)
     }
   }
   //Assert(visited.find(this) != visited.end());
-  return visited[e.get()];
+  return visited[e];
 }
 
 }  // namespace atc
