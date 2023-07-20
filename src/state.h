@@ -72,8 +72,10 @@ public:
   
   /** Define program */
   void defineProgram(const Expr& v, const Expr& prog);
+  /** Has program? */
+  bool hasProgram(const Expr& v) const;
   /** Maybe evaluate */
-  Expr evaluate(const std::vector<Expr>& children);
+  Expr evaluate(const std::vector<Expr>& children, Ctx& newCtx);
 private:
   /** */
   Expr mkExprInternal(Kind k, const std::vector<Expr>& children, bool doHash=true);

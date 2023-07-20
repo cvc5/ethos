@@ -39,7 +39,7 @@ std::shared_ptr<ExprValue> ExprValue::operator[](size_t i) const
 std::unordered_set<std::shared_ptr<ExprValue>> ExprValue::getFreeSymbols() const
 {
   std::unordered_set<std::shared_ptr<ExprValue>> ret;
-  // TODO
+  // TODO: free symbols?
   return ret;
 }
 

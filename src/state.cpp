@@ -268,7 +268,12 @@ void State::defineProgram(const Expr& v, const Expr& prog)
   d_programs[v] = prog;
 }
 
-Expr State::evaluate(const std::vector<Expr>& children)
+bool State::hasProgram(const Expr& v) const
+{
+  return d_programs.find(v)!=d_programs.end();
+}
+
+Expr State::evaluate(const std::vector<Expr>& children, Ctx& newCtx)
 {
   Expr hd = children[0];
   std::map<Expr, Expr>::iterator it = d_programs.find(hd);
@@ -277,19 +282,18 @@ Expr State::evaluate(const std::vector<Expr>& children)
   {
     return app;
   }
-  std::cout << "Evaluate: " << app << std::endl;
+  std::cout << "Run: " << app << std::endl;
   std::cout << "Program: " << it->second << std::endl;
   // otherwise, evaluate
   std::vector<Expr>& progChildren = it->second->getChildren();
   for (Expr& c : progChildren)
   {
-    Ctx ctx;
+    newCtx.clear();
     Expr hd = c->getChildren()[0];
-    if (d_tc.match(hd, app, ctx))
+    if (d_tc.match(hd, app, newCtx))
     {
-      // FIXME: recursion
-      Expr body = c->getChildren()[1];
-      return d_tc.evaluate(body, ctx);
+      std::cout << "...matches " << hd << ", ctx size = " << newCtx.size() << std::endl;
+      return c->getChildren()[1];
     }
   }
   return app;

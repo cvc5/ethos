@@ -281,104 +281,151 @@ bool TypeChecker::match(Expr& a, Expr& b, Ctx& ctx, std::set<std::pair<Expr, Exp
 
 Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
 {
+  // NOTE: this is incorrect if we have functions to evaluate
   if (ctx.empty())
   {
     return e;
   }
-  std::unordered_map<Expr, Expr> visited;
   std::unordered_map<Expr, Expr>::iterator it;
-  std::vector<Expr> visit;
   Ctx::iterator itc;
+  
+  std::vector<std::unordered_map<Expr, Expr>> visiteds;
+  std::vector<Ctx> ctxs;
+  std::vector<std::vector<Expr>> visits;
   Expr evaluated;
-  visit.push_back(e);
   Expr cur;
-  while (!visit.empty())
+  Expr init;
+  visiteds.emplace_back();
+  ctxs.emplace_back(ctx);
+  visits.emplace_back(std::vector<Expr>{e});
+  while (!visits.empty())
   {
-    cur = visit.back();
-    // ground terms stay the same
-    if (!cur->hasVariable())
+    std::unordered_map<Expr, Expr>& visited = visiteds.back();
+    std::vector<Expr>& visit = visits.back();
+    Ctx& cctx = ctxs.back();
+    init = visit[0];
+    while (!visit.empty())
     {
-      visited[cur] = cur;
-      visit.pop_back();
-      continue;
-    }
-    if (cur->getKind()==Kind::VARIABLE)
-    {
-      // might be in context
-      itc = ctx.find(cur);
-      if (itc!=ctx.end())
+      cur = visit.back();
+      //std::cout << "Evaluate " << cur << ", depth " << ctxs.size() << std::endl;
+      // ground terms stay the same
+      // NOTE: this is incorrect if we have side conditions applied to
+      // ground terms in the input!
+      if (!cur->hasVariable())
       {
-        visited[cur] = itc->second;
+        visited[cur] = cur;
         visit.pop_back();
         continue;
       }
-      // TODO: error, variable not filled?
-    }
-    std::vector<Expr>& children = cur->d_children;
-    it = visited.find(cur);
-    if (it == visited.end())
-    {
-      visited[cur] = nullptr;
-      for (Expr& cp : children)
+      if (cur->getKind()==Kind::VARIABLE)
       {
-        visit.push_back(cp);
-      }
-      continue;
-    }
-    visit.pop_back();
-    if (it->second.get() == nullptr)
-    {
-      std::vector<Expr> cchildren;
-      for (Expr& cp : children)
-      {
-        it = visited.find(cp);
-        //Assert(it != visited.end());
-        cchildren.push_back(it->second);
-      }
-      bool evaluatedSet = false;
-      switch (cur->getKind())
-      {
-        case Kind::REQUIRES_TYPE:
+        // might be in context
+        itc = cctx.find(cur);
+        if (itc!=cctx.end())
         {
-          // see if all requirements are met
-          bool reqMet = true;
-          for (size_t i=0, nreq = cchildren.size()-1; i<nreq; i++)
+          visited[cur] = itc->second;
+          visit.pop_back();
+          continue;
+        }
+        // TODO: error, variable not filled?
+      }
+      std::vector<Expr>& children = cur->d_children;
+      it = visited.find(cur);
+      if (it == visited.end())
+      {
+        visited[cur] = nullptr;
+        visit.insert(visit.end(), children.begin(), children.end());
+        continue;
+      }
+      if (it->second.get() == nullptr)
+      {
+        std::vector<Expr> cchildren;
+        for (Expr& cp : children)
+        {
+          it = visited.find(cp);
+          //Assert(it != visited.end());
+          cchildren.push_back(it->second);
+        }
+        evaluated = nullptr;
+        bool newContext = false;
+        switch (cur->getKind())
+        {
+          case Kind::REQUIRES_TYPE:
           {
-            Expr req = cchildren[i];
-            // Assert (p->getKind()==PAIR);
-            if (!(*req.get())[0]->isEqual((*req.get())[1]))
+            // see if all requirements are met
+            bool reqMet = true;
+            for (size_t i=0, nreq = cchildren.size()-1; i<nreq; i++)
             {
-              reqMet = false;
-              break;
+              Expr req = cchildren[i];
+              // Assert (p->getKind()==PAIR);
+              if (!(*req.get())[0]->isEqual((*req.get())[1]))
+              {
+                reqMet = false;
+                break;
+              }
+            }
+            // If requirements are met, (requires ... T) evaluates to T.
+            if (reqMet)
+            {
+              evaluated = cchildren.back();
             }
           }
-          // If requirements are met, (requires ... T) evaluates to T.
-          if (reqMet)
-          {
-            evaluated = cchildren.back();
-            evaluatedSet = true;
-          }
+            break;
+          case Kind::APPLY:
+            // maybe evaluate the program?
+            if (d_state.hasProgram(cchildren[0]))
+            {
+              ctxs.emplace_back();
+              // see if we evaluate 
+              evaluated = d_state.evaluate(cchildren, ctxs.back());
+              if (ctxs.back().empty())
+              {
+                ctxs.pop_back();
+              }
+              else
+              {
+                newContext = true;
+                visits.emplace_back(std::vector<Expr>{evaluated});
+                visiteds.emplace_back();
+              }
+            }
+            break;
+          default:
+            break;
         }
+        if (newContext)
+        {
           break;
-        case Kind::APPLY:
-          // maybe evaluate the program?
-          evaluated = d_state.evaluate(cchildren);
-          evaluatedSet = true;
-          break;
-        default:
-          break;
+        }
+        if (evaluated==nullptr)
+        {
+          evaluated = d_state.mkExpr(cur->getKind(), cchildren);
+        }
+        // remember its type
+        evaluated->d_type = cur->d_type;
+        visited[cur] = evaluated;
       }
-      if (!evaluatedSet)
+      visit.pop_back();
+    }
+    if (visits.back().empty())
+    {
+      // get the result from the inner evaluation
+      cur = visiteds.back()[init];
+      // pop the evaluation context
+      visiteds.pop_back();
+      visits.pop_back();
+      ctxs.pop_back();
+      // set the result
+      if (!visits.empty())
       {
-        evaluated = d_state.mkExpr(cur->getKind(), cchildren);
+        std::cout << "EVALUATE " << visits.back().back() << " = " << cur << std::endl;
+        visiteds.back()[visits.back().back()] = cur;
+        visits.back().pop_back();
       }
-      // remember its type
-      evaluated->d_type = cur->d_type;
-      visited[cur] = evaluated;
     }
   }
   //Assert(visited.find(this) != visited.end());
-  return visited[e];
+  return cur;
 }
 
 }  // namespace atc
