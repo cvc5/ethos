@@ -10,7 +10,7 @@ namespace atc {
   
 State* ExprValue::d_state = nullptr;
 
-ExprValue::ExprValue() : d_kind(Kind::NONE){}
+ExprValue::ExprValue() : d_kind(Kind::NONE), d_flags(0) {}
 
 ExprValue::ExprValue(Kind k,
       const std::vector<std::shared_ptr<ExprValue>>& children) : d_kind(k), d_children(children){}
@@ -41,6 +41,53 @@ std::unordered_set<std::shared_ptr<ExprValue>> ExprValue::getFreeSymbols() const
   std::unordered_set<std::shared_ptr<ExprValue>> ret;
   // TODO
   return ret;
+}
+
+bool ExprValue::hasVariable()
+{
+  std::unordered_set<ExprValue*> visited;
+  std::vector<ExprValue*> visit;
+  visit.emplace_back(this);
+  ExprValue * cur;
+  do
+  {
+    cur = visit.back();
+    if (cur->getFlag(Flag::HAS_VARIABLE_COMPUTED))
+    {
+      visit.pop_back();
+      continue;
+    }
+    std::vector<Expr>& children = cur->d_children;
+    if (children.empty())
+    {
+      cur->setFlag(Flag::HAS_VARIABLE_COMPUTED, true);
+      cur->setFlag(Flag::HAS_VARIABLE, cur->getKind()==Kind::VARIABLE);
+      visit.pop_back();
+    }
+    else if (visited.find(cur)==visited.end())
+    {
+      visited.insert(cur);
+      for (Expr& c : children)
+      {
+        visit.push_back(c.get());
+      }
+    }
+    else
+    {
+      visit.pop_back();
+      cur->setFlag(Flag::HAS_VARIABLE_COMPUTED, true);
+      for (Expr& c : children)
+      {
+        if (c->getFlag(Flag::HAS_VARIABLE))
+        {
+          cur->setFlag(Flag::HAS_VARIABLE, true);
+          break;
+        }
+      }
+    }
+  }
+  while (!visit.empty());
+  return getFlag(Flag::HAS_VARIABLE);
 }
   
 void ExprValue::printDebug(const std::shared_ptr<ExprValue>& e, std::ostream& os)

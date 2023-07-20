@@ -49,6 +49,8 @@ class ExprValue
 
   /** Get the free symbols */
   std::unordered_set<std::shared_ptr<ExprValue>> getFreeSymbols() const;
+  /** Has variable */
+  bool hasVariable();
  private:
   /** The current state */
   static State* d_state;
@@ -58,6 +60,30 @@ class ExprValue
   std::vector<std::shared_ptr<ExprValue>> d_children;
   /** Its type */
   std::shared_ptr<ExprValue> d_type;
+  /** flags */
+  enum class Flag
+  {
+    HAS_VARIABLE = (1 << 0),
+    HAS_VARIABLE_COMPUTED = (1 << 1)
+  };
+  char d_flags;
+  /** Get flag */
+  bool getFlag(Flag f) const
+  {
+    return static_cast<uint8_t>(d_flags) & static_cast<uint8_t>(f);
+  }
+  /** Set flag */
+  void setFlag(Flag f, bool value)
+  {
+    if (value)
+    {
+      d_flags |= static_cast<uint8_t>(f);
+    }
+    else
+    {
+      d_flags &= static_cast<uint8_t>(f);
+    }
+  }
 };
 using Expr = std::shared_ptr<ExprValue>;
 

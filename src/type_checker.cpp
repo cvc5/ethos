@@ -205,18 +205,37 @@ Expr TypeChecker::clone(Expr& e, Ctx& ctx)
   std::unordered_map<Expr, Expr> visited;
   std::unordered_map<Expr, Expr>::iterator it;
   std::vector<Expr> visit;
+  Ctx::iterator itc;
   Expr cloned;
   visit.push_back(e);
   Expr cur;
   while (!visit.empty())
   {
     cur = visit.back();
+    // ground terms stay the same
+    if (!cur->hasVariable())
+    {
+      visited[cur] = cur;
+      visit.pop_back();
+      continue;
+    }
+    if (cur->getKind()==Kind::VARIABLE)
+    {
+      // might be in context
+      itc = ctx.find(cur);
+      if (itc!=ctx.end())
+      {
+        visited[cur] = itc->second;
+        visit.pop_back();
+        continue;
+      }
+      // TODO: error, variable not filled?
+    }
+    std::vector<Expr>& children = cur->d_children;
     it = visited.find(cur);
-    // constants stay the same
     if (it == visited.end())
     {
       visited[cur] = nullptr;
-      std::vector<Expr>& children = cur->d_children;
       for (Expr& cp : children)
       {
         visit.push_back(cp);
@@ -227,7 +246,6 @@ Expr TypeChecker::clone(Expr& e, Ctx& ctx)
     if (it->second.get() == nullptr)
     {
       std::vector<Expr> cchildren;
-      std::vector<Expr>& children = cur->d_children;
       for (Expr& cp : children)
       {
         it = visited.find(cp);
