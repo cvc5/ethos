@@ -25,7 +25,7 @@ bool ExprValue::isEqual(const std::shared_ptr<ExprValue>& val) const
   
 Kind ExprValue::getKind() const { return d_kind; }
 
-const std::vector<std::shared_ptr<ExprValue>>& ExprValue::getChildren() const { return d_children; }
+std::vector<std::shared_ptr<ExprValue>>& ExprValue::getChildren() { return d_children; }
 
 size_t ExprValue::getNumChildren() const
 {

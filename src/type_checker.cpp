@@ -72,6 +72,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
       }
       Expr retType = hdtypes.back();
       Ctx ctx;
+      std::set<std::pair<Expr, Expr>> visited;
       for (size_t i=1, nchild=e->d_children.size(); i<nchild; i++)
       {
         Expr ctype = getType(e->d_children[i], out);
@@ -80,7 +81,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
           return ctype;
         }
         // unification, update retType
-        if (!match(hdtypes[i-1], ctype, ctx))
+        if (!match(hdtypes[i-1], ctype, ctx, visited))
         {
           out << "Unexpected argument type " << i << std::endl;
           out << "  LHS " << hdtypes[i-1] << std::endl;
@@ -177,10 +178,14 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
   return nullptr;
 }
 
-
 bool TypeChecker::match(Expr& a, Expr& b, Ctx& ctx)
 {
   std::set<std::pair<Expr, Expr>> visited;
+  return match(a, b, ctx, visited);
+}
+
+bool TypeChecker::match(Expr& a, Expr& b, Ctx& ctx, std::set<std::pair<Expr, Expr>>& visited)
+{
   std::set<std::pair<Expr, Expr>>::iterator it;
   std::map<Expr, Expr>::iterator ctxIt;
 
@@ -323,6 +328,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
               break;
             }
           }
+          // If requirements are met, (requires ... T) evaluates to T.
           if (reqMet)
           {
             evaluated = cchildren.back();
@@ -332,6 +338,8 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
           break;
         case Kind::APPLY:
           // maybe evaluate the program?
+          evaluated = d_state.evaluate(cchildren);
+          evaluatedSet = true;
           break;
         default:
           break;

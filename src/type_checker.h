@@ -22,9 +22,8 @@ class TypeChecker
   Expr getType(Expr& e, std::ostream& out);
   /** Set type rule for literal */
   void setTypeRule(Kind k, const Expr& e);
- private:
-  /** Return its type */
-  Expr getTypeInternal(Expr& e, std::ostream& out);
+  /** */
+  bool match(Expr& a, Expr& b, Ctx& ctx, std::set<std::pair<Expr, Expr>>& visited);
   bool match(Expr& a, Expr& b, Ctx& ctx);
   /**
    * Clone this expression, which creates a deep copy of this expression and
@@ -34,6 +33,9 @@ class TypeChecker
    * @return the cloned expression.
    */
   Expr evaluate(Expr& e, Ctx& ctx);
+ private:
+  /** Return its type */
+  Expr getTypeInternal(Expr& e, std::ostream& out);
   /** The state */
   State& d_state;
   /** The builtin literal kinds */

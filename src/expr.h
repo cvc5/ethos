@@ -32,7 +32,7 @@ class ExprValue
   /** get the kind of this expression */
   Kind getKind() const;
   /** Get children */
-  const std::vector<std::shared_ptr<ExprValue>>& getChildren() const;
+  std::vector<std::shared_ptr<ExprValue>>& getChildren();
   /** Get num children */
   size_t getNumChildren() const;  
   /**

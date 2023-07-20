@@ -71,6 +71,8 @@ public:
   
   /** Define program */
   void defineProgram(const Expr& v, const Expr& prog);
+  /** Maybe evaluate */
+  Expr evaluate(const std::vector<Expr>& children);
 private:
   /** */
   Expr mkExprInternal(Kind k, const std::vector<Expr>& children, bool doHash=true);
@@ -96,6 +98,8 @@ private:
   std::map<Kind, ExprTrie> d_trie;
   /** files included */
   std::set<std::string> d_includes;
+  /** Programs */
+  std::map<Expr, Expr> d_programs;
   /** Type checker */
   TypeChecker d_tc;
 };

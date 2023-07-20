@@ -258,7 +258,35 @@ void State::bindBuiltin(const std::string& name, Kind k, bool isClosure, const E
 
 void State::defineProgram(const Expr& v, const Expr& prog)
 {
-  // TODO
+  d_programs[v] = prog;
+}
+
+Expr State::evaluate(const std::vector<Expr>& children)
+{
+  Expr hd = children[0];
+  std::map<Expr, Expr>::iterator it = d_programs.find(hd);
+  Expr app = mkExprInternal(Kind::APPLY, children);
+  if (it==d_programs.end())
+  {
+    std::cout << "No program for " << hd << std::endl;
+    return app;
+  }
+  std::cout << "Evaluate: " << app << std::endl;
+  std::cout << "Program: " << it->second << std::endl;
+  // otherwise, evaluate
+  std::vector<Expr>& progChildren = it->second->getChildren();
+  for (Expr& c : progChildren)
+  {
+    Ctx ctx;
+    Expr hd = c->getChildren()[0];
+    if (d_tc.match(hd, app, ctx))
+    {
+      // FIXME: recursion
+      Expr body = c->getChildren()[1];
+      return d_tc.evaluate(body, ctx);
+    }
+  }
+  return app;
 }
 
 }  // namespace atc
