@@ -268,7 +268,6 @@ Expr State::evaluate(const std::vector<Expr>& children)
   Expr app = mkExprInternal(Kind::APPLY, children);
   if (it==d_programs.end())
   {
-    std::cout << "No program for " << hd << std::endl;
     return app;
   }
   std::cout << "Evaluate: " << app << std::endl;

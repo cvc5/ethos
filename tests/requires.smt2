@@ -17,12 +17,12 @@
 (declare-rule and_elim ((f Bool) (g Bool) (i Int))
    :premises ((and f g))
    :args (i)
-   :requires ((i i0))     ; dummy, can only be used if i==i0
-   :conclusion (select i f)
+   :requires ((i i0))     ; dummy, only succeeds if i==i0
+   :conclusion (select i (and f g))
 )
 
 
 (declare-fun P () Bool)
 (declare-fun Q () Bool)
 (assume a0 (and P Q))
-(step a1 (select i0 P) :rule and_elim :premises (a0) :args (i0))
+(step a1 P :rule and_elim :premises (a0) :args (i0))
