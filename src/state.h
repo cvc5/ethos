@@ -96,6 +96,8 @@ private:
   std::map<const ExprValue*, ExprInfo> d_exprData;
   /** hash */
   std::map<Kind, ExprTrie> d_trie;
+  /** hash for literals */
+  std::map< std::pair<Kind, std::string>, Expr> d_literalTrie;
   /** files included */
   std::set<std::string> d_includes;
   /** Programs */

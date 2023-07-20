@@ -156,10 +156,17 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
 
 Expr State::mkLiteral(Kind k, const std::string& s)
 {
-  Expr lit = mkExprInternal(k, {});
+  std::pair<Kind, std::string> key(k, s);
+  std::map<std::pair<Kind, std::string>, Expr>::iterator it = d_literalTrie.find(key);
+  if (it!=d_literalTrie.end())
+  {
+    return it->second;
+  }
+  Expr lit = mkExprInternal(k, {}, false);
   // map to the data
   ExprInfo* ei = getOrMkInfo(lit.get());
   ei->d_str = s;
+  d_literalTrie[key] = lit;
   return lit;
 }
 

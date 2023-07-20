@@ -315,6 +315,7 @@ Expr ExprParser::parseExpr()
           tstack.back().push_back(ret);
           ret = nullptr;
           // now parse attribute list
+          // TODO: maybe merge with below
           xstack[xstack.size() - 1] = ParseCtx::TERM_ANNOTATE_NEXT_ATTR;
           needsUpdateCtx = true;
           // ensure there is at least one attribute
