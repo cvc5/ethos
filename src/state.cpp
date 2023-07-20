@@ -11,6 +11,7 @@ State::State()
   
   bindBuiltin("lambda", Kind::LAMBDA, true);
   bindBuiltin("->", Kind::FUNCTION_TYPE, false);
+  // note we don't allow parsing (Proof ...), (Quote ...), or (quote ...).
 }
 
 State::~State(){}

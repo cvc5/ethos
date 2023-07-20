@@ -59,6 +59,9 @@ enum class ParseCtx
 ExprParser::ExprParser(Lexer& lex, State& state)
     : d_lex(lex), d_state(state)
 {
+  d_strToAttr[":var"] = Attr::VAR;
+  d_strToAttr[":implicit"] = Attr::IMPLICIT;
+  d_strToAttr[":list"] = Attr::LIST;
 }
 
 Expr ExprParser::parseExpr()
@@ -514,19 +517,6 @@ std::string ExprParser::tokenStrToSymbol(Token tok)
   return id;
 }
 
-std::vector<std::string> ExprParser::parseNumeralList()
-{
-  std::vector<std::string> numerals;
-  Token tok = d_lex.nextToken();
-  while (tok == Token::INTEGER_LITERAL)
-  {
-    numerals.emplace_back(d_lex.tokenStr());
-    tok = d_lex.nextToken();
-  }
-  d_lex.reinsertToken(tok);
-  return numerals;
-}
-
 std::string ExprParser::parseStr(bool unescape)
 {
   d_lex.eatToken(Token::STRING_LITERAL);
@@ -536,6 +526,42 @@ std::string ExprParser::parseStr(bool unescape)
     unescapeString(s);
   }
   return s;
+}
+
+void ExprParser::parseAttributeList(const Expr& e, std::map<Attr, Expr>& attrs)
+{
+  std::map<std::string, Attr>::iterator its;
+  // while the next token is KEYWORD, exit if RPAREN
+  while (d_lex.eatTokenChoice(Token::KEYWORD, Token::RPAREN))
+  {
+    std::string key = d_lex.tokenStr();
+    its = d_strToAttr.find(key);
+    if (its==d_strToAttr.end())
+    {
+      // TODO: parse and skip value?
+      continue;
+    }
+    Expr val;
+    switch (its->second)
+    {
+      case Attr::VAR:
+      {
+        std::string name = parseSymbol();
+        // e should be a type
+        val = d_state.mkVar(name, e);
+      }
+        break;
+      case ATTR::LIST:
+      case ATTR::IMPLICIT:
+        // requires no value
+        break;
+      default:
+        d_lex.parseError("Unhandled attribute");
+        break;
+    }
+    attrs[its->second] = val;
+  }
+  d_lex.reinsertToken(tok);
 }
 
 void ExprParser::unescapeString(std::string& s)

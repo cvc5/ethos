@@ -79,7 +79,7 @@ bool CmdParser::parseNextCommand()
       Expr proven = d_eparser.parseExpr();
       Expr pt = d_state.mkProofType(proven);
       Expr v = d_state.mkConst(name, pt);
-      d_state.bind(name, v);
+      bind(name, v);
     }
     break;
     // (declare-fun <symbol> (<sort>∗) <sort>)
@@ -101,7 +101,7 @@ bool CmdParser::parseNextCommand()
         t = d_state.mkFunctionType(sorts, t);
       }
       Expr v = d_state.mkConst(name, t);
-      d_state.bind(name, v);
+      bind(name, v);
     }
     break;
     // (declare-rule ...)
@@ -151,7 +151,7 @@ bool CmdParser::parseNextCommand()
       d_state.popScope();
       Expr rule = d_state.mkConst(name, ret);
       d_eparser.typeCheck(rule);
-      d_state.bind(name, rule);
+      bind(name, rule);
     }
     break;
     // (declare-sort <symbol> <numeral>)
@@ -178,7 +178,7 @@ bool CmdParser::parseNextCommand()
         type = d_state.mkFunctionType(args, ttype);
       }
       Expr decType = d_state.mkConst(name, ttype);
-      d_state.bind(name, decType);
+      bind(name, decType);
     }
     break;
     // (declare-type <symbol> (<sort>*))
@@ -200,7 +200,7 @@ bool CmdParser::parseNextCommand()
         type = d_state.mkFunctionType(args, ttype);
       }
       Expr decType = d_state.mkConst(name, type);
-      d_state.bind(name, decType);
+      bind(name, decType);
     }
     break;
     // (define-const <symbol> <sort> <term>)
@@ -212,7 +212,7 @@ bool CmdParser::parseNextCommand()
       Expr ret = d_eparser.parseExpr();
       Expr e = d_eparser.parseExpr();
       d_eparser.typeCheck(e, ret);
-      d_state.bind(name, e);
+      bind(name, e);
     }
     break;
     // (define-fun <symbol> (<sorted_var>*) <sort> <term>)
@@ -245,7 +245,7 @@ bool CmdParser::parseNextCommand()
         Expr vl = d_state.mkExpr(Kind::VARIABLE_LIST, vars);
         expr = d_state.mkExpr(Kind::LAMBDA, {vl, expr});
       }
-      d_state.bind(name, expr);
+      bind(name, expr);
     }
     break;
     // (define-sort <symbol> (<symbol>*) <sort>)
@@ -264,7 +264,7 @@ bool CmdParser::parseNextCommand()
         for (const std::string& sname : snames)
         {
           Expr v = d_state.mkVar(sname, ttype);
-          d_state.bind(sname, v);
+          bind(sname, v);
         }
       }
       Expr t = d_eparser.parseExpr();
@@ -272,7 +272,7 @@ bool CmdParser::parseNextCommand()
       {
         d_state.popScope();
       }
-      d_state.bind(name, t);
+      bind(name, t);
     }
     break;
     // (echo <string>)
@@ -395,7 +395,7 @@ bool CmdParser::parseNextCommand()
       Expr expected = d_state.mkProofType(proven);
       d_eparser.typeCheck(def, expected);
       // bind
-      d_state.bind(name, def);
+      bind(name, def);
     }
     break;
     case Token::EOF_TOK:
@@ -407,6 +407,16 @@ bool CmdParser::parseNextCommand()
   }
   d_lex.eatToken(Token::RPAREN);
   return true;
+}
+
+void CmdParser::bind(const std::string& name, const Expr& e)
+{
+  if (!d_state.bind(name, e))
+  {
+    std::stringstream ss;
+    ss << "Failed to bind symbol " << name;
+    d_lex.parseError(ss.str());
+  }
 }
 
 }  // namespace atc

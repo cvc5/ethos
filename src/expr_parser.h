@@ -4,6 +4,7 @@
 #include "expr.h"
 #include "state.h"
 #include "lexer.h"
+#include "attr.h"
 
 namespace atc {
 
@@ -49,14 +50,18 @@ class ExprParser
   /** Parse integer numeral */
   uint32_t parseIntegerNumeral();
   /**
-   * Parse numeral list without parentheses
-   */
-  std::vector<std::string> parseNumeralList();
-  /**
    * Matches a string, and (optionally) strips off the quotes/unescapes the
    * string when `unescape` is set to true.
    */
   std::string parseStr(bool unescape);
+  
+  /**
+   * Parse attribute list
+   * <attr_1> ... <attr_n>
+   * 
+   * @param e The expression we are applying to
+   */
+  void parseAttributeList(const Expr& e, std::map<Attr, Expr>& attrs);
 
   /** type check the expression */
   Expr typeCheck(Expr& e);
@@ -91,6 +96,8 @@ class ExprParser
   Lexer& d_lex;
   /** The state */
   State& d_state;
+  /** Strings to attributes */
+  std::map<std::string, Attr> d_strToAttr;
 };
 
 }  // namespace cvc5

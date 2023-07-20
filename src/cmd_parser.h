@@ -23,6 +23,8 @@ class CmdParser
    */
   bool parseNextCommand();
  protected:
+  /** Bind, or throw error otherwise */
+  void bind(const std::string& name, const Expr& e);
   /** Next command token */
   Token nextCommandToken();
   /** The lexer */
