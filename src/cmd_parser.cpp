@@ -27,6 +27,7 @@ CmdParser::CmdParser(Lexer& lex,
   // initialize the command tokens
   d_table["assume"] = Token::ASSUME;
   d_table["declare-const"] = Token::DECLARE_CONST;
+  d_table["declare-consts"] = Token::DECLARE_CONSTS;
   d_table["declare-fun"] = Token::DECLARE_FUN;
   d_table["declare-rule"] = Token::DECLARE_RULE;
   d_table["declare-sort"] = Token::DECLARE_SORT;
@@ -44,6 +45,12 @@ CmdParser::CmdParser(Lexer& lex,
   d_table["set-info"] = Token::SET_INFO;
   d_table["set-option"] = Token::SET_OPTION;
   d_table["step"] = Token::STEP;
+  
+  d_symbolLitNames["<numeral>"] = Kind::INTEGER;
+  d_symbolLitNames["<decimal>"] = Kind::DECIMAL;
+  d_symbolLitNames["<hexadecimal>"] = Kind::HEXADECIMAL;
+  d_symbolLitNames["<binary>"] = Kind::BINARY;
+  d_symbolLitNames["<string>"] = Kind::STRING;
 }
 
 Token CmdParser::nextCommandToken()
@@ -103,6 +110,20 @@ bool CmdParser::parseNextCommand()
       }
       Expr v = d_state.mkConst(name, t);
       bind(name, v);
+    }
+    break;
+    // (declare-consts <symbol> <sort>)
+    case Token::DECLARE_CONSTS:
+    {
+      std::string name = d_eparser.parseSymbol();
+      Expr t = d_eparser.parseType();
+      std::map<std::string, Kind>::iterator it = d_symbolLitNames.find(name);
+      if (it==d_symbolLitNames.end())
+      {
+        d_lex.parseError("Unknown category for declare-consts");
+      }
+      // set the type rule
+      d_state.getTypeChecker().setTypeRule(it->second, t);
     }
     break;
     // (declare-rule ...)
@@ -222,7 +243,7 @@ bool CmdParser::parseNextCommand()
       //d_state.checkThatLogicIsSet();
       std::string name = d_eparser.parseSymbol();
       //d_state.checkUserSymbol(name);
-      Expr ret = d_eparser.parseExpr();
+      Expr ret = d_eparser.parseType();
       Expr e = d_eparser.parseExpr();
       d_eparser.typeCheck(e, ret);
       bind(name, e);
@@ -242,7 +263,7 @@ bool CmdParser::parseNextCommand()
       Expr ret;
       if (tok == Token::DEFINE_FUN)
       {
-        ret = d_eparser.parseExpr();
+        ret = d_eparser.parseType();
       }
       else
       {
@@ -280,7 +301,7 @@ bool CmdParser::parseNextCommand()
           bind(sname, v);
         }
       }
-      Expr t = d_eparser.parseExpr();
+      Expr t = d_eparser.parseType();
       if (!snames.empty())
       {
         d_state.popScope();
@@ -327,7 +348,7 @@ bool CmdParser::parseNextCommand()
     {
       std::string name = d_eparser.parseSymbol();
       std::vector<Expr> argTypes = d_eparser.parseExprList();
-      Expr retType = d_eparser.parseExpr();
+      Expr retType = d_eparser.parseType();
       if (!argTypes.empty())
       {
         retType = d_state.mkFunctionType(argTypes, retType);

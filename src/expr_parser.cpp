@@ -62,6 +62,8 @@ ExprParser::ExprParser(Lexer& lex, State& state)
   d_strToAttr[":var"] = Attr::VAR;
   d_strToAttr[":implicit"] = Attr::IMPLICIT;
   d_strToAttr[":list"] = Attr::LIST;
+  
+  d_typeType = d_state.mkType();
 }
 
 Expr ExprParser::parseExpr()
@@ -212,7 +214,7 @@ Expr ExprParser::parseExpr()
       ret = d_state.mkAbstractType();
       break;
       case Token::TYPE:
-      ret = d_state.mkType();
+      ret = d_typeType;
       break;
       case Token::BOOL_TYPE:
       ret = d_state.mkBoolType();
@@ -371,6 +373,14 @@ Expr ExprParser::parseExpr()
     // otherwise ret will be returned
   } while (!tstack.empty());
   return ret;
+}
+
+Expr ExprParser::parseType()
+{
+  Expr e = parseExpr();
+  // ensure it is a type
+  typeCheck(e, d_typeType);
+  return e;
 }
 
 std::vector<Expr> ExprParser::parseExprList()

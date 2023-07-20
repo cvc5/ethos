@@ -21,6 +21,8 @@ class ExprParser
 
   /** Parses an SMT-LIB term <term> */
   Expr parseExpr();
+  /** Parses an SMT-LIB type <type> */
+  Expr parseType();
   /** Parses parentheses-enclosed term list (<term>*) */
   std::vector<Expr> parseExprList();
   /** Parses parentheses-enclosed term list ((<term> <term>)*) */
@@ -102,6 +104,8 @@ class ExprParser
   State& d_state;
   /** Strings to attributes */
   std::map<std::string, Attr> d_strToAttr;
+  /** Common constants */
+  Expr d_typeType;
 };
 
 }  // namespace cvc5
