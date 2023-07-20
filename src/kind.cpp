@@ -28,6 +28,9 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::HEXADECIMAL: o << "HEXADECIMAL"; break;
     case Kind::BINARY: o << "BINARY"; break;
     case Kind::STRING: o << "STRING"; break;
+    // programs
+    case Kind::PROGRAM: o << "PROGRAM"; break;
+    case Kind::PROGRAM_CASE: o << "PROGRAM_CASE"; break;
     default: o << "UnknownKind(" << unsigned(k) << ")"; break;
   }
   return o;

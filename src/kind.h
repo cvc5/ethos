@@ -33,7 +33,11 @@ enum class Kind
   DECIMAL,
   HEXADECIMAL,
   BINARY,
-  STRING
+  STRING,
+  
+  // programs
+  PROGRAM,
+  PROGRAM_CASE
 };
 
 /** Print a kind to the stream, for debugging */

@@ -16,7 +16,7 @@
 (declare-fun x () Int)
 (declare-fun y () Int)
 (declare-fun c () Bool)
-(step a5 (= Int (= Int x y) (= Int y x)) :rule eq-symm-taut :premises () :args ((= Int x y)))
-;(step a6 (= Int (= Int x y) (= Int y x)) :rule eq-symm-taut :premises () :args (x))
+(step a5 (= Bool (= Int x y) (= Int y x)) :rule eq-symm-taut :premises () :args ((= Int x y)))
+;(step a6 (= Bool (= Int x y) (= Int y x)) :rule eq-symm-taut :premises () :args (x))
 
-(proof a5 (= Int (= Int x y) (= Int y x)))
+(proof (= Bool (= Int x y) (= Int y x)) a5)

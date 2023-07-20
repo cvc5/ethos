@@ -8,6 +8,7 @@
 #include "expr.h"
 #include "expr_info.h"
 #include "expr_trie.h"
+#include "type_checker.h"
 
 namespace atc {
   
@@ -63,6 +64,11 @@ public:
   ExprInfo* getInfo(const ExprValue* e);
   /** */
   ExprInfo* getOrMkInfo(const ExprValue* e);
+  /** Get the type checker */
+  TypeChecker& getTypeChecker();
+  
+  /** Define program */
+  void defineProgram(const Expr& v, const Expr& prog);
 private:
   /** */
   Expr mkExprInternal(Kind k, const std::vector<Expr>& children, bool doHash=true);
@@ -88,6 +94,8 @@ private:
   std::map<Kind, ExprTrie> d_trie;
   /** files included */
   std::set<std::string> d_includes;
+  /** Type checker */
+  TypeChecker d_tc;
 };
 
 }  // namespace atc

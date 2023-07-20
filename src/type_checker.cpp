@@ -7,6 +7,14 @@
 
 namespace atc {
 
+TypeChecker::TypeChecker(State& s) : d_state(s)
+{
+}
+
+TypeChecker::~TypeChecker()
+{
+}
+
 Expr TypeChecker::getType(Expr& e, std::ostream& out)
 {
   if (e->d_type==nullptr)
@@ -18,6 +26,7 @@ Expr TypeChecker::getType(Expr& e, std::ostream& out)
 
 Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
 {
+  // TODO: check arities
   switch(e->getKind())
   {
     case Kind::APPLY:
@@ -79,17 +88,30 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
       {
         return ret;
       }
-      return ExprValue::d_state->mkFunctionType(args, ret);
+      return d_state.mkFunctionType(args, ret);
     }
     case Kind::QUOTE:
     {
-      return ExprValue::d_state->mkQuoteType(e->d_children[0]);
+      return d_state.mkQuoteType(e->d_children[0]);
     }
     case Kind::TYPE:
     case Kind::ABSTRACT_TYPE:
-    case Kind::PROOF_TYPE:
     case Kind::BOOL_TYPE:
-      return ExprValue::d_state->mkType();
+      return d_state.mkType();
+    case Kind::PROOF_TYPE:
+    {
+      Expr ctype = getType(e->d_children[0], out);
+      if (ctype==nullptr)
+      {
+        return nullptr;
+      }
+      if (ctype->getKind()!=Kind::BOOL_TYPE)
+      {
+          out << "Non-Bool for argument of Proof";
+        return nullptr;
+      }
+    }
+      return d_state.mkType();
     case Kind::FUNCTION_TYPE:
       // the children must be types
       for (Expr& c : e->d_children)
@@ -105,17 +127,17 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
           return nullptr;
         }
       }
-      return ExprValue::d_state->mkType();
+      return d_state.mkType();
     case Kind::QUOTE_TYPE:
       // TODO: check arg?
-      return ExprValue::d_state->mkType();
+      return d_state.mkType();
     case Kind::VARIABLE_LIST:
     case Kind::INTEGER:
     case Kind::DECIMAL:
     case Kind::HEXADECIMAL:
     case Kind::BINARY:
     case Kind::STRING:
-      return ExprValue::d_state->mkBuiltinType(e->getKind());
+      return d_state.mkBuiltinType(e->getKind());
     default:
       break;
   }
@@ -252,7 +274,7 @@ Expr TypeChecker::clone(Expr& e, Ctx& ctx)
         //Assert(it != visited.end());
         cchildren.push_back(it->second);
       }
-      cloned = ExprValue::d_state->mkExpr(cur->getKind(), cchildren);
+      cloned = d_state.mkExpr(cur->getKind(), cchildren);
       // remember its type
       cloned->d_type = cur->d_type;
       visited[cur] = cloned;

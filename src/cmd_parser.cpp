@@ -38,6 +38,7 @@ CmdParser::CmdParser(Lexer& lex,
   d_table["echo"] = Token::ECHO;
   d_table["exit"] = Token::EXIT;
   d_table["include"] = Token::INCLUDE;
+  d_table["program"] = Token::PROGRAM;
   d_table["proof"] = Token::PROOF;
   d_table["reset"] = Token::RESET;
   d_table["set-info"] = Token::SET_INFO;
@@ -309,20 +310,57 @@ bool CmdParser::parseNextCommand()
       d_state.includeFile(msg);
     }
     break;
-    // (proof <term> <proof>)
+    // (program (<sort>*) <sort> (<sorted_var>*) <term_pair>+)
+    case Token::PROGRAM:
+    {
+      std::string name = d_eparser.parseSymbol();
+      std::vector<Expr> argTypes = d_eparser.parseExprList();
+      Expr retType = d_eparser.parseExpr();
+      if (!argTypes.empty())
+      {
+        retType = d_state.mkFunctionType(argTypes, retType);
+      }
+      // the type of the program variable is a function
+      Expr pvar = d_state.mkVar(name, retType);
+      // bind the program prior to pushing the scope
+      bind(name, pvar);
+      // push the scope
+      d_state.pushScope();
+      std::vector<Expr> vars =
+          d_eparser.parseAndBindSortedVarList();
+      std::vector<Expr> pchildren;
+      // parse the definition
+      while (d_lex.eatTokenChoice(Token::LPAREN, Token::RPAREN))
+      {
+        Expr hd = d_eparser.parseExpr();
+        Expr body = d_eparser.parseExpr();
+        d_lex.eatToken(Token::RPAREN);
+        Expr pc = d_state.mkExpr(Kind::PROGRAM_CASE, {hd, body});
+        pchildren.emplace_back(pc);
+      }
+      d_lex.reinsertToken(Token::RPAREN);
+      if (pchildren.empty())
+      {
+        d_lex.parseError("Expected non-empty list of cases");
+      }
+      d_state.popScope();
+      Expr program = d_state.mkExpr(Kind::PROGRAM, pchildren);
+      d_state.defineProgram(pvar, program);
+    }
+    break;
+    // (proof <formula> <term>)
     case Token::PROOF:
     {
-      Expr p = d_eparser.parseExpr();
       Expr proven = d_eparser.parseExpr();
+      Expr p = d_eparser.parseExpr();
       Expr pt = d_state.mkProofType(proven);
       // ensure a proof of the given fact, ensure closed
-      Expr tc = d_eparser.typeCheck(p, pt);
+      d_eparser.typeCheck(p, pt);
     }
     break;
     // (reset)
     case Token::RESET:
     {
-      //cmd.reset(new ResetCommand());
       // reset the state of the parser, which is independent of the symbol
       // manager
       d_state.reset();
@@ -355,6 +393,7 @@ bool CmdParser::parseNextCommand()
     }
     break;
     // (step i F :rule R :premises (p1 ... pn) :args (t1 ... tm))
+    // which is syntax sugar for
     // (define-const i (Proof F) (R t1 ... tm p1 ... pn))
     case Token::STEP:
     {

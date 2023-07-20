@@ -551,8 +551,8 @@ void ExprParser::parseAttributeList(const Expr& e, std::map<Attr, Expr>& attrs)
         val = d_state.mkVar(name, e);
       }
         break;
-      case ATTR::LIST:
-      case ATTR::IMPLICIT:
+      case Attr::LIST:
+      case Attr::IMPLICIT:
         // requires no value
         break;
       default:
@@ -561,7 +561,7 @@ void ExprParser::parseAttributeList(const Expr& e, std::map<Attr, Expr>& attrs)
     }
     attrs[its->second] = val;
   }
-  d_lex.reinsertToken(tok);
+  d_lex.reinsertToken(Token::RPAREN);
 }
 
 void ExprParser::unescapeString(std::string& s)
@@ -607,7 +607,7 @@ Expr ExprParser::typeCheck(Expr& e)
 {
   // type check immediately
   std::stringstream ss;
-  Expr v = TypeChecker::getType(e, ss);
+  Expr v = d_state.getTypeChecker().getType(e, ss);
   if (v==nullptr)
   {
     std::stringstream msg;

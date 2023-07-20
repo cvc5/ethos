@@ -36,6 +36,7 @@ enum class Token
   LPAREN,
   NUMERAL,
   PAR,
+  PROGRAM,
   PROOF,
   PROOF_TYPE,
   QUOTED_SYMBOL,

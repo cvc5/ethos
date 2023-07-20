@@ -5,7 +5,7 @@
 
 namespace atc {
 
-State::State()
+State::State() : d_tc(*this)
 {
   ExprValue::d_state = this;
   
@@ -225,6 +225,11 @@ ExprInfo* State::getOrMkInfo(const ExprValue* e)
   return &d_exprData[e];
 }
 
+TypeChecker& State::getTypeChecker()
+{
+  return d_tc;
+}
+
 void State::bindBuiltin(const std::string& name, Kind k, bool isClosure)
 {
   // type is irrelevant, assign abstract
@@ -242,6 +247,11 @@ void State::bindBuiltin(const std::string& name, Kind k, bool isClosure, const E
     ei->d_kind = k;
     ei->d_isClosure = isClosure;
   }
+}
+
+void State::defineProgram(const Expr& v, const Expr& prog)
+{
+  // TODO
 }
 
 }  // namespace atc
