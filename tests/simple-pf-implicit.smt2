@@ -13,5 +13,5 @@
 (declare-fun b () Int)
 (declare-fun c () Bool)
 (assume a1 (= a b))
-(step a2 (= b a) :rule eq-symm :premises (a1) :args ())
+(step a2 :rule eq-symm :premises (a1) :args ())
 (proof (= b a) a2)

@@ -394,13 +394,19 @@ bool CmdParser::parseNextCommand()
       //cmd.reset(new SetOptionCommand(key, ss));
     }
     break;
-    // (step i F :rule R :premises (p1 ... pn) :args (t1 ... tm))
+    // (step i F? :rule R :premises (p1 ... pn) :args (t1 ... tm))
     // which is syntax sugar for
     // (define-const i (Proof F) (R t1 ... tm p1 ... pn))
     case Token::STEP:
     {
       std::string name = d_eparser.parseSymbol();
-      Expr proven = d_eparser.parseExpr();
+      Expr proven;
+      // see if we have proven
+      tok = d_lex.peekToken();
+      if (tok != Token::KEYWORD)
+      {
+        proven = d_eparser.parseExpr();
+      }
       // parse rule name
       std::string keyword = d_eparser.parseKeyword();
       if (keyword!="rule")
@@ -433,8 +439,11 @@ bool CmdParser::parseNextCommand()
       children.insert(children.end(), premises.begin(), premises.end());
       Expr def = d_state.mkExpr(Kind::APPLY, children);
       // ensure proof type, note this is where "proof checking" happens.
-      Expr expected = d_state.mkProofType(proven);
-      d_eparser.typeCheck(def, expected);
+      if (proven!=nullptr)
+      {
+        Expr expected = d_state.mkProofType(proven);
+        d_eparser.typeCheck(def, expected);
+      }
       // bind
       bind(name, def);
     }

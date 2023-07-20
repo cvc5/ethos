@@ -26,3 +26,4 @@
 (declare-fun Q () Bool)
 (assume a0 (and P Q))
 (step a1 P :rule and_elim :premises (a0) :args (i0))
+
