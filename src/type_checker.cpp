@@ -3,6 +3,7 @@
 #include "state.h"
 #include <iostream>
 #include <set>
+#include <unordered_map>
 
 namespace atc {
 
@@ -58,11 +59,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
           return nullptr;
         }
       }
-      if (ctx.empty())
-      {
-        return retType;
-      }
-      return retType->clone(ctx);
+      return clone(retType, ctx);
     }
     case Kind::LAMBDA:
     {
@@ -199,6 +196,55 @@ bool TypeChecker::match(Expr& a, Expr& b, Ctx& ctx)
   return true;
 }
 
+Expr TypeChecker::clone(Expr& e, Ctx& ctx)
+{
+  if (ctx.empty())
+  {
+    return e;
+  }
+  std::unordered_map<const ExprValue*, Expr> visited;
+  std::unordered_map<const ExprValue*, Expr>::iterator it;
+  std::vector<const ExprValue*> visit;
+  Expr cloned;
+  visit.push_back(e.get());
+  const ExprValue* cur;
+  while (!visit.empty())
+  {
+    cur = visit.back();
+    it = visited.find(cur);
+    // constants stay the same
+    if (it == visited.end())
+    {
+      visited[cur] = nullptr;
+      const std::vector<Expr>& children =
+          cur->getChildren();
+      for (const Expr& cp : children)
+      {
+        visit.push_back(cp.get());
+      }
+      continue;
+    }
+    visit.pop_back();
+    if (it->second.get() == nullptr)
+    {
+      std::vector<Expr> cchildren;
+      const std::vector<Expr>& children =
+          cur->getChildren();
+      for (const Expr& cp : children)
+      {
+        it = visited.find(cp.get());
+        //Assert(it != visited.end());
+        cchildren.push_back(it->second);
+      }
+      cloned = ExprValue::d_state->mkExpr(cur->getKind(), cchildren);
+      // remember its type
+      cloned->d_type = cur->d_type;
+      visited[cur] = cloned;
+    }
+  }
+  //Assert(visited.find(this) != visited.end());
+  return visited[e.get()];
+}
 
 }  // namespace atc
 

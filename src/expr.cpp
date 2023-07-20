@@ -42,52 +42,6 @@ std::unordered_set<std::shared_ptr<ExprValue>> ExprValue::getFreeSymbols() const
   // TODO
   return ret;
 }
-
-std::shared_ptr<ExprValue> ExprValue::clone(Ctx& ctx) const
-{
-  std::unordered_map<const ExprValue*, std::shared_ptr<ExprValue>> visited;
-  std::unordered_map<const ExprValue*, std::shared_ptr<ExprValue>>::iterator it;
-  std::vector<const ExprValue*> visit;
-  std::shared_ptr<ExprValue> cloned;
-  visit.push_back(this);
-  const ExprValue* cur;
-  while (!visit.empty())
-  {
-    cur = visit.back();
-    it = visited.find(cur);
-    // constants stay the same
-    if (it == visited.end())
-    {
-      visited[cur] = nullptr;
-      const std::vector<std::shared_ptr<ExprValue>>& children =
-          cur->getChildren();
-      for (const std::shared_ptr<ExprValue>& cp : children)
-      {
-        visit.push_back(cp.get());
-      }
-      continue;
-    }
-    visit.pop_back();
-    if (it->second.get() == nullptr)
-    {
-      std::vector<std::shared_ptr<ExprValue>> cchildren;
-      const std::vector<std::shared_ptr<ExprValue>>& children =
-          cur->getChildren();
-      for (const std::shared_ptr<ExprValue>& cp : children)
-      {
-        it = visited.find(cp.get());
-        //Assert(it != visited.end());
-        cchildren.push_back(it->second);
-      }
-      cloned = d_state->mkExpr(cur->getKind(), cchildren);
-      // remember its type
-      cloned->d_type = cur->d_type;
-      visited[cur] = cloned;
-    }
-  }
-  //Assert(visited.find(this) != visited.end());
-  return visited[this];
-}
   
 void ExprValue::printDebug(const std::shared_ptr<ExprValue>& e, std::ostream& os)
 {

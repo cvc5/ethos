@@ -13,7 +13,6 @@ class State;
 class ExprValue;
 class TypeChecker;
 
-using Ctx = std::map<ExprValue*, ExprValue*>;
 /** 
  * Expression class
  */
@@ -42,14 +41,6 @@ class ExprValue
    * @return the node representing the i-th child
    */
   std::shared_ptr<ExprValue> operator[](size_t i) const;
-  /**
-   * Clone this expression, which creates a deep copy of this expression and
-   * returns it. The dag structure of pn is the same as that in the returned
-   * expression.
-   *
-   * @return the cloned expression.
-   */
-  std::shared_ptr<ExprValue> clone(Ctx& ctx) const;
   /** Print debug on output strem os
    *
    * @param os the stream to print to
