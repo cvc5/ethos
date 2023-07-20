@@ -2,6 +2,9 @@
 #define STATE_H
 
 #include <map>
+#include <set>
+#include <string>
+
 #include "expr.h"
 #include "expr_info.h"
 #include "expr_trie.h"
@@ -18,6 +21,7 @@ public:
   void pushScope();
   void popScope();
   
+  void includeFile(const std::string& s);
   /** add assumption */
   void addAssumption(const Expr& a);
   
@@ -82,6 +86,8 @@ private:
   std::map<const ExprValue*, ExprInfo> d_exprData;
   /** hash */
   std::map<Kind, ExprTrie> d_trie;
+  /** files included */
+  std::set<std::string> d_includes;
 };
 
 }  // namespace atc

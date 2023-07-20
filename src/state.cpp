@@ -1,6 +1,7 @@
 #include "state.h"
 
 #include "error.h"
+#include "parser.h"
 
 namespace atc {
 
@@ -43,6 +44,26 @@ void State::popScope()
     d_symTable.erase(d_decls[i]);
   }
   d_decls.resize(lastSize);
+}
+
+void State::includeFile(const std::string& s)
+{
+  std::set<std::string>::iterator it = d_includes.find(s);
+  if (it!=d_includes.end())
+  {
+    return;
+  }
+  d_includes.insert(s);
+  std::cout << "Include \"" << s << "\"" << std::endl;
+  Parser p(*this);
+  p.setFileInput(s);
+  bool parsedCommand;
+  do
+  {
+    parsedCommand = p.parseNextCommand();
+  }
+  while (parsedCommand);
+  std::cout << "...finished" << std::endl;
 }
 
 void State::addAssumption(const Expr& a)

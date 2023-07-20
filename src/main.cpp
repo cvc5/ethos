@@ -1,4 +1,4 @@
-#include "parser.h"
+#include "state.h"
 
 #include <iostream>
 
@@ -11,14 +11,9 @@ int main( int argc, char* argv[] )
     std::cerr << "Usage" << std::endl;
     exit(1);
   }
+  // include the file
   State s;
-  Parser p(s);
-  p.setFileInput(argv[1]);
-  bool parsedCommand;
-  do
-  {
-    parsedCommand = p.parseNextCommand();
-  }while (parsedCommand);
+  s.includeFile(argv[1]);
   std::cout << "success" << std::endl;
   return 0;
 }

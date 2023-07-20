@@ -300,11 +300,13 @@ bool CmdParser::parseNextCommand()
     case Token::INCLUDE:
     {
       tok = d_lex.peekToken();
-      if (tok == Token::STRING_LITERAL)
+      if (tok != Token::STRING_LITERAL)
       {
         d_lex.parseError("Expected string literal for include");
       }
-      
+      // include the file
+      std::string msg = d_eparser.parseStr(true);
+      d_state.includeFile(msg);
     }
     break;
     // (proof <term> <proof>)
