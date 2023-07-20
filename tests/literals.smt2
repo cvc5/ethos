@@ -30,7 +30,6 @@
    :conclusion (select i (and f g))
 )
 
-
 (declare-fun P () Bool)
 (declare-fun Q () Bool)
 (assume a0 (and P Q))

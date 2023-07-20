@@ -15,7 +15,8 @@ enum class Attr
   // types
   VAR,
   IMPLICIT,
-  LIST
+  LIST,
+  SYNTAX
 };
 
 /** Print a kind to the stream, for debugging */

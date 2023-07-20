@@ -21,7 +21,7 @@ class TypeChecker
   /** Return its type */
   Expr getType(Expr& e, std::ostream& out);
   /** Set type rule for literal */
-  void setTypeRule(Kind k, const Expr& e);
+  void setTypeRule(Kind k, const Expr& t);
   /** */
   bool match(Expr& a, Expr& b, Ctx& ctx, std::set<std::pair<Expr, Expr>>& visited);
   bool match(Expr& a, Expr& b, Ctx& ctx);

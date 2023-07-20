@@ -10,6 +10,7 @@ std::ostream& operator<<(std::ostream& o, Attr a)
     case Attr::VAR: o << "VAR"; break;
     case Attr::IMPLICIT: o << "IMPLICIT"; break;
     case Attr::LIST: o << "LIST"; break;
+    case Attr::SYNTAX: o << "SYNTAX"; break;
     default: o << "UnknownAttr(" << unsigned(a) << ")"; break;
   }
   return o;

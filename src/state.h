@@ -17,15 +17,16 @@ class State
 public:
   State();
   ~State();
-  
+  /** Reset */
   void reset();
+  /** Push scope */
   void pushScope();
+  /** Pop scope */
   void popScope();
-  
+  /** include file, if not already done */
   void includeFile(const std::string& s);
   /** add assumption */
   void addAssumption(const Expr& a);
-  
   /** Type */
   Expr mkType();
   /** (-> <type>+ <type>) */
@@ -36,9 +37,9 @@ public:
   Expr mkAbstractType();
   /** Bool */
   Expr mkBoolType();
-  /** Proof */
-  //Expr mkProofType();
+  /** (Proof <proven>) */
   Expr mkProofType(const Expr& proven);
+  /** (Quote <term>) */
   Expr mkQuoteType(const Expr& t);
   /** */
   Expr mkBuiltinType(Kind k);

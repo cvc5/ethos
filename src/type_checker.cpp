@@ -22,7 +22,7 @@ TypeChecker::~TypeChecker()
 {
 }
 
-void TypeChecker::setTypeRule(Kind k, const Expr& e)
+void TypeChecker::setTypeRule(Kind k, const Expr& t)
 {
   std::map<Kind, Expr>::iterator it = d_literalTypeRules.find(k);
   if (it==d_literalTypeRules.end())
@@ -31,27 +31,51 @@ void TypeChecker::setTypeRule(Kind k, const Expr& e)
     ss << "TypeChecker::setTypeRule: cannot set type rule for kind " << k;
     Error::reportError(ss.str());
   }
-  it->second = e;
+  it->second = t;
 }
 
 Expr TypeChecker::getType(Expr& e, std::ostream& out)
 {
-  if (e->d_type==nullptr)
+  std::unordered_set<Expr> visited;
+  std::vector<Expr> toVisit;
+  toVisit.push_back(e);
+  Expr cur;
+  do
   {
-    e->d_type = getTypeInternal(e, out);
-  }
+    cur = toVisit.back();
+    if (cur->d_type!=nullptr)
+    {
+      // already computed type
+      toVisit.pop_back();
+      continue;
+    }
+    if (visited.find(cur)==visited.end())
+    {
+      visited.insert(cur);
+      toVisit.insert(toVisit.end(), cur->d_children.begin(), cur->d_children.end());
+    }
+    else
+    {
+      cur->d_type = getTypeInternal(cur, out);
+      if (cur->d_type==nullptr)
+      {
+        // any subterm causes type checking to fail
+        return nullptr;
+      }
+      toVisit.pop_back();
+    }
+  }while (!toVisit.empty());
   return e->d_type;
 }
 
 Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
 {
   // TODO: check arities
-  // TODO: non-recursive
   switch(e->getKind())
   {
     case Kind::APPLY:
     {
-      Expr hdType = getType(e->d_children[0], out);
+      Expr hdType = e->d_children[0]->d_type;
       if (hdType==nullptr)
       {
         return hdType;
@@ -75,7 +99,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
       std::set<std::pair<Expr, Expr>> visited;
       for (size_t i=1, nchild=e->d_children.size(); i<nchild; i++)
       {
-        Expr ctype = getType(e->d_children[i], out);
+        Expr ctype = e->d_children[i]->d_type;
         if (ctype==nullptr)
         {
           return ctype;
@@ -97,14 +121,14 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
       std::vector<Expr>& vars = e->d_children[0]->d_children;
       for (Expr& c : vars)
       {
-        Expr ctype = getType(c, out);
+        Expr ctype = c->d_type;
         if (ctype==nullptr)
         {
           return ctype;
         }
         args.push_back(ctype);
       }
-      Expr ret = getType(e->d_children[1], out);
+      Expr ret = e->d_children[1]->d_type;
       if (ret==nullptr)
       {
         return ret;
@@ -121,7 +145,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
       return d_state.mkType();
     case Kind::PROOF_TYPE:
     {
-      Expr ctype = getType(e->d_children[0], out);
+      Expr ctype = e->d_children[0]->d_type;
       if (ctype==nullptr)
       {
         return nullptr;
@@ -137,7 +161,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
       // the children must be types
       for (Expr& c : e->d_children)
       {
-        Expr ctype = getType(c, out);
+        Expr ctype = c->d_type;
         if (ctype==nullptr)
         {
           return ctype;
