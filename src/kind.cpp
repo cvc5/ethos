@@ -48,6 +48,7 @@ std::string kindToTerm(Kind k)
     case Kind::ABSTRACT_TYPE: ss << "?"; break;
     case Kind::BOOL_TYPE: ss << "Bool"; break;
     case Kind::QUOTE_TYPE: ss << "Quote"; break;
+    case Kind::REQUIRES_TYPE: ss << "Requires"; break;
     // terms
     case Kind::APPLY: ss << "@"; break;
     case Kind::LAMBDA: ss << "lambda"; break;

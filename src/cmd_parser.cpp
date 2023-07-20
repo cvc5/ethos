@@ -333,7 +333,7 @@ bool CmdParser::parseNextCommand()
         retType = d_state.mkFunctionType(argTypes, retType);
       }
       // the type of the program variable is a function
-      Expr pvar = d_state.mkVar(name, retType);
+      Expr pvar = d_state.mkConst(name, retType);
       // bind the program prior to pushing the scope
       bind(name, pvar);
       // push the scope

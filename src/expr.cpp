@@ -126,7 +126,7 @@ void ExprValue::printDebug(const std::shared_ptr<ExprValue>& e, std::ostream& os
       else
       {
         os << "(";
-        if (k!=Kind::APPLY)
+        if (k!=Kind::APPLY && k!=Kind::PAIR)
         {
           os <<  kindToTerm(k) << " ";
         }

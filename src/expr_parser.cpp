@@ -392,15 +392,13 @@ std::vector<Expr> ExprParser::parseExprPairList()
 {
   d_lex.eatToken(Token::LPAREN);
   std::vector<Expr> terms;
-  Token tok = d_lex.nextToken();
-  while (tok != Token::RPAREN)
+  while (d_lex.eatTokenChoice(Token::LPAREN, Token::RPAREN))
   {
-    d_lex.reinsertToken(tok);
     Expr t1 = parseExpr();
     Expr t2 = parseExpr();
     Expr t = d_state.mkExpr(Kind::PAIR, {t1, t2});
     terms.push_back(t);
-    tok = d_lex.nextToken();
+    d_lex.eatToken(Token::RPAREN);
   }
   return terms;
 }
