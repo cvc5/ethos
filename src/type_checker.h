@@ -33,7 +33,7 @@ class TypeChecker
    *
    * @return the cloned expression.
    */
-  Expr clone(Expr& e, Ctx& ctx);
+  Expr evaluate(Expr& e, Ctx& ctx);
   /** The state */
   State& d_state;
   /** The builtin literal kinds */

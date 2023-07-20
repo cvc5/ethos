@@ -28,8 +28,10 @@ public:
   
   /** Type */
   Expr mkType();
-  /** (-> <type_list> <type>) */
+  /** (-> <type>+ <type>) */
   Expr mkFunctionType(const std::vector<Expr>& args, const Expr& ret);
+  /** (requires <pair>+ <type>) */
+  Expr mkRequiresType(const std::vector<Expr>& args, const Expr& ret);
   /** ? */
   Expr mkAbstractType();
   /** Bool */

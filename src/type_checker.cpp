@@ -88,7 +88,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
           return nullptr;
         }
       }
-      return clone(retType, ctx);
+      return evaluate(retType, ctx);
     }
     case Kind::LAMBDA:
     {
@@ -144,6 +144,16 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
         if (ctype->getKind()!=Kind::TYPE)
         {
           out << "Non-type for function";
+          return nullptr;
+        }
+      }
+      return d_state.mkType();
+    case Kind::REQUIRES_TYPE:
+      for (size_t i=0, nreq = e->d_children.size()-1; i<nreq; i++)
+      {
+        if (e->d_children[i]->getKind()!=Kind::PAIR)
+        {
+          out << "Non-pair for requires";
           return nullptr;
         }
       }
@@ -240,7 +250,7 @@ bool TypeChecker::match(Expr& a, Expr& b, Ctx& ctx)
   return true;
 }
 
-Expr TypeChecker::clone(Expr& e, Ctx& ctx)
+Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
 {
   if (ctx.empty())
   {
@@ -250,7 +260,7 @@ Expr TypeChecker::clone(Expr& e, Ctx& ctx)
   std::unordered_map<Expr, Expr>::iterator it;
   std::vector<Expr> visit;
   Ctx::iterator itc;
-  Expr cloned;
+  Expr evaluated;
   visit.push_back(e);
   Expr cur;
   while (!visit.empty())
@@ -296,10 +306,43 @@ Expr TypeChecker::clone(Expr& e, Ctx& ctx)
         //Assert(it != visited.end());
         cchildren.push_back(it->second);
       }
-      cloned = d_state.mkExpr(cur->getKind(), cchildren);
+      bool evaluatedSet = false;
+      switch (cur->getKind())
+      {
+        case Kind::REQUIRES_TYPE:
+        {
+          // see if all requirements are met
+          bool reqMet = true;
+          for (size_t i=0, nreq = cchildren.size()-1; i<nreq; i++)
+          {
+            Expr req = cchildren[i];
+            // Assert (p->getKind()==PAIR);
+            if (!(*req.get())[0]->isEqual((*req.get())[1]))
+            {
+              reqMet = false;
+              break;
+            }
+          }
+          if (reqMet)
+          {
+            evaluated = cchildren.back();
+            evaluatedSet = true;
+          }
+        }
+          break;
+        case Kind::APPLY:
+          // maybe evaluate the program?
+          break;
+        default:
+          break;
+      }
+      if (!evaluatedSet)
+      {
+        evaluated = d_state.mkExpr(cur->getKind(), cchildren);
+      }
       // remember its type
-      cloned->d_type = cur->d_type;
-      visited[cur] = cloned;
+      evaluated->d_type = cur->d_type;
+      visited[cur] = evaluated;
     }
   }
   //Assert(visited.find(this) != visited.end());

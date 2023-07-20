@@ -15,6 +15,7 @@ enum class Kind
   // types
   TYPE,
   FUNCTION_TYPE,
+  REQUIRES_TYPE,
   PROOF_TYPE,
   ABSTRACT_TYPE,
   BOOL_TYPE,
@@ -37,7 +38,7 @@ enum class Kind
   
   // programs
   PROGRAM,
-  PROGRAM_CASE
+  PAIR
 };
 
 /** Print a kind to the stream, for debugging */

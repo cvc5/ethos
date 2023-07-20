@@ -112,22 +112,29 @@ bool CmdParser::parseNextCommand()
       std::string name = d_eparser.parseSymbol();
       std::vector<Expr> vs =
           d_eparser.parseAndBindSortedVarList();
-      // parse premises
+      // parse premises, optionally
       std::string keyword = d_eparser.parseKeyword();
-      if (keyword!="premises")
+      std::vector<Expr> premises;
+      if (keyword=="premises")
       {
-        d_lex.parseError("Expected premises in declare-rule");
+        premises = d_eparser.parseExprList();
+        keyword = d_eparser.parseKeyword();
       }
-      std::vector<Expr> premises = d_eparser.parseExprList();
-      // parse args
-      keyword = d_eparser.parseKeyword();
-      if (keyword!="args")
+      // parse args, optionally
+      std::vector<Expr> args;
+      if (keyword=="args")
       {
-        d_lex.parseError("Expected args in declare-rule");
+        args = d_eparser.parseExprList();
+        keyword = d_eparser.parseKeyword();
       }
-      std::vector<Expr> args = d_eparser.parseExprList();
+      // parse requirements, optionally
+      std::vector<Expr> reqs;
+      if (keyword=="requires")
+      {
+        reqs = d_eparser.parseExprPairList();
+        keyword = d_eparser.parseKeyword();
+      }
       // parse conclusion
-      keyword = d_eparser.parseKeyword();
       if (keyword!="conclusion")
       {
         d_lex.parseError("Expected conclusion in declare-rule");
@@ -145,6 +152,11 @@ bool CmdParser::parseNextCommand()
         argTypes.push_back(pet);
       }
       Expr ret = d_state.mkProofType(conc);
+      // include the requirements into the return type
+      if (!reqs.empty())
+      {
+        ret = d_state.mkRequiresType(reqs, ret);
+      }
       if (!argTypes.empty())
       {
         ret = d_state.mkFunctionType(argTypes, ret);
@@ -326,19 +338,9 @@ bool CmdParser::parseNextCommand()
       bind(name, pvar);
       // push the scope
       d_state.pushScope();
-      std::vector<Expr> vars =
-          d_eparser.parseAndBindSortedVarList();
-      std::vector<Expr> pchildren;
-      // parse the definition
-      while (d_lex.eatTokenChoice(Token::LPAREN, Token::RPAREN))
-      {
-        Expr hd = d_eparser.parseExpr();
-        Expr body = d_eparser.parseExpr();
-        d_lex.eatToken(Token::RPAREN);
-        Expr pc = d_state.mkExpr(Kind::PROGRAM_CASE, {hd, body});
-        pchildren.emplace_back(pc);
-      }
-      d_lex.reinsertToken(Token::RPAREN);
+      std::vector<Expr> vars = d_eparser.parseAndBindSortedVarList();
+      // parse the body
+      std::vector<Expr> pchildren = d_eparser.parseExprPairList();
       if (pchildren.empty())
       {
         d_lex.parseError("Expected non-empty list of cases");

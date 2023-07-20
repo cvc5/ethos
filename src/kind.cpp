@@ -11,6 +11,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::NONE: o << "NONE"; break;
     case Kind::TYPE: o << "TYPE"; break;
     case Kind::FUNCTION_TYPE: o << "FUNCTION_TYPE"; break;
+    case Kind::REQUIRES_TYPE: o << "REQUIRES_TYPE"; break;
     case Kind::PROOF_TYPE: o << "PROOF_TYPE"; break;
     case Kind::ABSTRACT_TYPE: o << "ABSTRACT_TYPE"; break;
     case Kind::BOOL_TYPE: o << "BOOL_TYPE"; break;
@@ -30,7 +31,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::STRING: o << "STRING"; break;
     // programs
     case Kind::PROGRAM: o << "PROGRAM"; break;
-    case Kind::PROGRAM_CASE: o << "PROGRAM_CASE"; break;
+    case Kind::PAIR: o << "PAIR"; break;
     default: o << "UnknownKind(" << unsigned(k) << ")"; break;
   }
   return o;

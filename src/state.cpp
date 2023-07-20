@@ -84,6 +84,13 @@ Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret)
   return mkExprInternal(Kind::FUNCTION_TYPE, atypes);
 }
 
+Expr State::mkRequiresType(const std::vector<Expr>& args, const Expr& ret)
+{
+  std::vector<Expr> atypes(args.begin(), args.end());
+  atypes.push_back(ret);
+  return mkExprInternal(Kind::REQUIRES_TYPE, atypes);
+}
+
 Expr State::mkAbstractType()
 {
   return mkExprInternal(Kind::ABSTRACT_TYPE, {});
