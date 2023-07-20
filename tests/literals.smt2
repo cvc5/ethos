@@ -1,3 +1,5 @@
+(declare-const true Bool)
+(declare-const false Bool)
 
 (declare-sort Int 0)
 (declare-consts <numeral> Int)
@@ -13,10 +15,18 @@
   )
 )
 
+(program less-than (Int Int) Bool
+  ()
+  (
+  ((less-than 0 2) true)
+  ((less-than 1 2) true)
+  )
+)
+
 (declare-rule and_elim ((f Bool) (g Bool) (i Int))
    :premises ((and f g))
    :args (i)
-   :requires ((i 0))     ; dummy, only succeeds if i==0
+   :requires (((less-than i 2) true))
    :conclusion (select i (and f g))
 )
 
@@ -24,5 +34,5 @@
 (declare-fun P () Bool)
 (declare-fun Q () Bool)
 (assume a0 (and P Q))
-(step a1 P :rule and_elim :premises (a0) :args (0))
+(step a1 Q :rule and_elim :premises (a0) :args (1))
 
