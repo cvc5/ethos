@@ -407,10 +407,11 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
       }
       visit.pop_back();
     }
+    // if we are done evaluating the current context
     if (visits.back().empty())
     {
       // get the result from the inner evaluation
-      cur = visiteds.back()[init];
+      evaluated = visiteds.back()[init];
       // pop the evaluation context
       visiteds.pop_back();
       visits.pop_back();
@@ -418,14 +419,15 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
       // set the result
       if (!visits.empty())
       {
-        std::cout << "EVALUATE " << visits.back().back() << " = " << cur << std::endl;
-        visiteds.back()[visits.back().back()] = cur;
+        std::cout << "EVALUATE " << visits.back().back() << " = " << evaluated << std::endl;
+        visiteds.back()[visits.back().back()] = evaluated;
         visits.back().pop_back();
       }
     }
   }
+  std::cout << "EVALUATE " << e << " = " << evaluated << std::endl;
   //Assert(visited.find(this) != visited.end());
-  return cur;
+  return evaluated;
 }
 
 }  // namespace atc

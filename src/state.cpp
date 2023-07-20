@@ -282,8 +282,7 @@ Expr State::evaluate(const std::vector<Expr>& children, Ctx& newCtx)
   {
     return app;
   }
-  std::cout << "Run: " << app << std::endl;
-  std::cout << "Program: " << it->second << std::endl;
+  std::cout << "RUN " << app << " on " << it->second << std::endl;
   // otherwise, evaluate
   std::vector<Expr>& progChildren = it->second->getChildren();
   for (Expr& c : progChildren)
