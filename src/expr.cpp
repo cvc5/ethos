@@ -13,7 +13,7 @@ State* ExprValue::d_state = nullptr;
 ExprValue::ExprValue() : d_kind(Kind::NONE), d_flags(0) {}
 
 ExprValue::ExprValue(Kind k,
-      const std::vector<std::shared_ptr<ExprValue>>& children) : d_kind(k), d_children(children){}
+      const std::vector<std::shared_ptr<ExprValue>>& children) : d_kind(k), d_children(children), d_flags(0){}
 ExprValue::~ExprValue() {}
 
 bool ExprValue::isNull() const { return d_kind==Kind::NONE; }

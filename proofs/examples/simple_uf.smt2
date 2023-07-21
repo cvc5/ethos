@@ -1,4 +1,3 @@
-(include "./proofs/theories/Core.smt2")
 (include "./proofs/rules/Uf.smt2")
 
 (declare-type S ())

@@ -10,6 +10,7 @@ namespace atc {
 class State;
 
 using Ctx = std::map<Expr, Expr>;
+std::ostream& operator<<(std::ostream& out, const Ctx& c);
 /** 
  * Expression class
  */

@@ -7,6 +7,26 @@
 #include <unordered_map>
 
 namespace atc {
+  
+std::ostream& operator<<(std::ostream& out, const Ctx& c)
+{
+  out << "[";
+  bool firstTime = true;
+  for (const std::pair<const Expr, Expr>& cc : c)
+  {
+    if (firstTime)
+    {
+      firstTime = false;
+    }
+    else
+    {
+      out << ", ";
+    }
+    out << cc.first << " -> " << cc.second;
+  }
+  out << "]";
+  return out;
+}
 
 TypeChecker::TypeChecker(State& s) : d_state(s)
 {
@@ -328,6 +348,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
           continue;
         }
         // TODO: error, variable not filled?
+        //std::cout << "WARNING: unfilled variable " << cur << std::endl;
       }
       std::vector<Expr>& children = cur->d_children;
       it = visited.find(cur);
@@ -415,17 +436,17 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
       // pop the evaluation context
       visiteds.pop_back();
       visits.pop_back();
-      ctxs.pop_back();
       // set the result
       if (!visits.empty())
       {
-        std::cout << "EVALUATE " << visits.back().back() << " = " << evaluated << std::endl;
+        std::cout << "EVALUATE " << visits.back().back() << ", " << ctxs.back() << " = " << evaluated << std::endl;
         visiteds.back()[visits.back().back()] = evaluated;
         visits.back().pop_back();
       }
+      ctxs.pop_back();
     }
   }
-  std::cout << "EVALUATE " << e << " = " << evaluated << std::endl;
+  std::cout << "EVALUATE " << e << ", " << ctx << " = " << evaluated << std::endl;
   //Assert(visited.find(this) != visited.end());
   return evaluated;
 }
