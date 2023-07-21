@@ -34,7 +34,7 @@ TypeChecker::TypeChecker(State& s) : d_state(s)
   // initialize literal kinds 
   for (Kind k : d_literalKinds)
   {
-    d_literalTypeRules[k] = d_state.mkBuiltinType(k);
+    d_literalTypeRules[k] = nullptr;
   }
 }
 
@@ -49,6 +49,12 @@ void TypeChecker::setTypeRule(Kind k, const Expr& t)
   {
     std::stringstream ss;
     ss << "TypeChecker::setTypeRule: cannot set type rule for kind " << k;
+    Error::reportError(ss.str());
+  }
+  else if (it->second!=nullptr && it->second!=t)
+  {
+    std::stringstream ss;
+    ss << "TypeChecker::setTypeRule: cannot set type rule for kind " << k << " to " << t << ", since its type was already set to " << it->second;
     Error::reportError(ss.str());
   }
   it->second = t;
@@ -213,8 +219,18 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
     case Kind::HEXADECIMAL:
     case Kind::BINARY:
     case Kind::STRING:
+    {
+      Kind k = e->getKind();
       // use the literal type rule
-      return d_literalTypeRules[e->getKind()];
+      Expr t = d_literalTypeRules[k];
+      if (t==nullptr)
+      {
+        t = d_state.mkBuiltinType(k);
+        d_literalTypeRules[k] = t;
+      }
+      return t;
+    }
+      break;
     default:
       break;
   }
