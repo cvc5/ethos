@@ -449,13 +449,20 @@ bool CmdParser::parseNextCommand()
       children.insert(children.end(), premises.begin(), premises.end());
       Expr def = d_state.mkExpr(Kind::APPLY, children);
       // ensure proof type, note this is where "proof checking" happens.
+      Expr expected;
       if (proven!=nullptr)
       {
-        Expr expected = d_state.mkProofType(proven);
+        expected = d_state.mkProofType(proven);
         d_eparser.typeCheck(def, expected);
       }
-      // bind
-      bind(name, def);
+      else
+      {
+        expected = d_eparser.typeCheck(def);
+      }
+      // bind to variable, note that the definition term is not kept
+      Expr v = d_state.mkVar(name, expected);
+      bind(name, v);
+      // bind(name, def);
     }
     break;
     case Token::EOF_TOK:
