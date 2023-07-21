@@ -43,7 +43,7 @@ std::unordered_set<std::shared_ptr<ExprValue>> ExprValue::getFreeSymbols() const
   return ret;
 }
 
-bool ExprValue::hasVariable()
+bool ExprValue::isEvaluatable()
 {
   std::unordered_set<ExprValue*> visited;
   std::vector<ExprValue*> visit;
@@ -52,7 +52,7 @@ bool ExprValue::hasVariable()
   do
   {
     cur = visit.back();
-    if (cur->getFlag(Flag::HAS_VARIABLE_COMPUTED))
+    if (cur->getFlag(Flag::IS_EVAL_COMPUTED))
     {
       visit.pop_back();
       continue;
@@ -60,8 +60,8 @@ bool ExprValue::hasVariable()
     std::vector<Expr>& children = cur->d_children;
     if (children.empty())
     {
-      cur->setFlag(Flag::HAS_VARIABLE_COMPUTED, true);
-      cur->setFlag(Flag::HAS_VARIABLE, cur->getKind()==Kind::VARIABLE);
+      cur->setFlag(Flag::IS_EVAL_COMPUTED, true);
+      cur->setFlag(Flag::IS_EVAL, cur->getKind()==Kind::VARIABLE);
       visit.pop_back();
     }
     else if (visited.find(cur)==visited.end())
@@ -75,19 +75,27 @@ bool ExprValue::hasVariable()
     else
     {
       visit.pop_back();
-      cur->setFlag(Flag::HAS_VARIABLE_COMPUTED, true);
-      for (Expr& c : children)
+      cur->setFlag(Flag::IS_EVAL_COMPUTED, true);
+      if (cur->getKind()==Kind::APPLY && 
+          children[0]->getKind()==Kind::PROGRAM_CONST)
       {
-        if (c->getFlag(Flag::HAS_VARIABLE))
+        cur->setFlag(Flag::IS_EVAL, true);
+      }
+      else
+      {
+        for (Expr& c : children)
         {
-          cur->setFlag(Flag::HAS_VARIABLE, true);
-          break;
+          if (c->getFlag(Flag::IS_EVAL))
+          {
+            cur->setFlag(Flag::IS_EVAL, true);
+            break;
+          }
         }
       }
     }
   }
   while (!visit.empty());
-  return getFlag(Flag::HAS_VARIABLE);
+  return getFlag(Flag::IS_EVAL);
 }
 
 std::string ExprValue::getSymbol() const

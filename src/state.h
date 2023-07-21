@@ -48,6 +48,8 @@ public:
   /** */
   Expr mkConst(const std::string& name, const Expr& type);
   /** */
+  Expr mkProgramConst(const std::string& name, const Expr& type);
+  /** */
   Expr mkExpr(Kind k, const std::vector<Expr>& children);
   
   /**
@@ -78,6 +80,7 @@ public:
   Expr evaluate(const std::vector<Expr>& children, Ctx& newCtx);
 private:
   /** */
+  Expr mkSymbolInternal(Kind k, const std::string& name, const Expr& type);
   Expr mkExprInternal(Kind k, const std::vector<Expr>& children, bool doHash=true);
   /** 
    * Bind builtin

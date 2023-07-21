@@ -25,6 +25,7 @@ enum class Kind
   APPLY,
   LAMBDA,
   CONST,
+  PROGRAM_CONST,
   VARIABLE,
   VARIABLE_LIST,
   QUOTE,

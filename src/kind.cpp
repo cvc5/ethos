@@ -20,6 +20,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::APPLY: o << "APPLY"; break;
     case Kind::LAMBDA: o << "LAMBDA"; break;
     case Kind::CONST: o << "CONST"; break;
+    case Kind::PROGRAM_CONST: o << "PROGRAM_CONST"; break;
     case Kind::VARIABLE: o << "VARIABLE"; break;
     case Kind::VARIABLE_LIST: o << "VARIABLE_LIST"; break;
     case Kind::QUOTE: o << "QUOTE"; break;

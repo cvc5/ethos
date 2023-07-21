@@ -347,7 +347,7 @@ bool CmdParser::parseNextCommand()
         retType = d_state.mkFunctionType(argTypes, retType);
       }
       // the type of the program variable is a function
-      Expr pvar = d_state.mkConst(name, retType);
+      Expr pvar = d_state.mkProgramConst(name, retType);
       // bind the program
       bind(name, pvar);
       // parse the body
@@ -450,7 +450,11 @@ bool CmdParser::parseNextCommand()
         children.push_back(d_state.mkExpr(Kind::QUOTE, {e}));
       }
       children.insert(children.end(), premises.begin(), premises.end());
-      Expr def = d_state.mkExpr(Kind::APPLY, children);
+      Expr def = rule;
+      if (children.size()>1)
+      {
+        def = d_state.mkExpr(Kind::APPLY, children);
+      }
       // ensure proof type, note this is where "proof checking" happens.
       Expr expected;
       if (proven!=nullptr)
@@ -469,10 +473,10 @@ bool CmdParser::parseNextCommand()
     }
     break;
     case Token::EOF_TOK:
-      d_lex.parseError("Expected SMT-LIBv2 command", true);
+      d_lex.parseError("Expected AletheLF command", true);
       break;
     default:
-      d_lex.unexpectedTokenError(tok, "Expected SMT-LIBv2 command");
+      d_lex.unexpectedTokenError(tok, "Expected AletheLF command");
       break;
   }
   d_lex.eatToken(Token::RPAREN);

@@ -434,7 +434,7 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList()
   while (d_lex.eatTokenChoice(Token::LPAREN, Token::RPAREN))
   {
     name = parseSymbol();
-    t = parseExpr();
+    t = parseType();
     Expr v = d_state.mkVar(name, t);
     if (!d_state.bind(name, v))
     {

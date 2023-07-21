@@ -34,6 +34,7 @@ class TypeChecker
    * @return the cloned expression.
    */
   Expr evaluate(Expr& e, Ctx& ctx);
+  Expr evaluate(Expr& e);
  private:
   /** Return its type */
   Expr getTypeInternal(Expr& e, std::ostream& out);

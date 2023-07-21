@@ -315,13 +315,14 @@ bool TypeChecker::match(Expr& a, Expr& b, Ctx& ctx, std::set<std::pair<Expr, Exp
   return true;
 }
 
+Expr TypeChecker::evaluate(Expr& e)
+{
+  Ctx ctx;
+  return evaluate(e, ctx);
+}
+  
 Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
 {
-  // NOTE: this is incorrect if we have functions to evaluate
-  if (ctx.empty())
-  {
-    return e;
-  }
   std::unordered_map<Expr, Expr>::iterator it;
   Ctx::iterator itc;
   
@@ -343,11 +344,8 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
     while (!visit.empty())
     {
       cur = visit.back();
-      //std::cout << "Evaluate " << cur << ", depth " << ctxs.size() << std::endl;
-      // ground terms stay the same
-      // NOTE: this is incorrect if we have side conditions applied to
-      // ground terms in the input!
-      if (!cur->hasVariable())
+      // unevaluatable terms stay the same
+      if (!cur->isEvaluatable())
       {
         visited[cur] = cur;
         visit.pop_back();
@@ -410,17 +408,19 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
             break;
           case Kind::APPLY:
             // maybe evaluate the program?
-            if (d_state.hasProgram(cchildren[0]))
+            if (cchildren[0]->getKind()==Kind::PROGRAM_CONST)
             {
               ctxs.emplace_back();
               // see if we evaluate 
               evaluated = d_state.evaluate(cchildren, ctxs.back());
               if (ctxs.back().empty())
               {
+                // if there is no context, we don't have to push a scope
                 ctxs.pop_back();
               }
               else
               {
+                // otherwise push an evaluation scope
                 newContext = true;
                 visits.emplace_back(std::vector<Expr>{evaluated});
                 visiteds.emplace_back();

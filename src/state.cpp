@@ -117,19 +117,23 @@ Expr State::mkBuiltinType(Kind k)
   
 Expr State::mkVar(const std::string& name, const Expr& type)
 {
-  Expr v = mkExprInternal(Kind::VARIABLE, {}, false);
-  // immediately set its type
-  v->d_type = type;
-  // map to the data
-  ExprInfo* ei = getOrMkInfo(v.get());
-  ei->d_str = name;
-  return v;
+  return mkSymbolInternal(Kind::VARIABLE, name, type);
 }
 
 Expr State::mkConst(const std::string& name, const Expr& type)
 {
+  return mkSymbolInternal(Kind::CONST, name, type);
+}
+
+Expr State::mkProgramConst(const std::string& name, const Expr& type)
+{
+  return mkSymbolInternal(Kind::PROGRAM_CONST, name, type);
+}
+
+Expr State::mkSymbolInternal(Kind k, const std::string& name, const Expr& type)
+{
   // type is stored as a child
-  Expr v = mkExprInternal(Kind::CONST, {}, false);
+  Expr v = mkExprInternal(k, {}, false);
   // immediately set its type
   v->d_type = type;
   // map to the data

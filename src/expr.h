@@ -50,7 +50,7 @@ class ExprValue
   /** Get the free symbols */
   std::unordered_set<std::shared_ptr<ExprValue>> getFreeSymbols() const;
   /** Has variable */
-  bool hasVariable();
+  bool isEvaluatable();
   /** Get symbol */
   std::string getSymbol() const;
  private:
@@ -65,8 +65,8 @@ class ExprValue
   /** flags */
   enum class Flag
   {
-    HAS_VARIABLE = (1 << 0),
-    HAS_VARIABLE_COMPUTED = (1 << 1)
+    IS_EVAL = (1 << 0),
+    IS_EVAL_COMPUTED = (1 << 1)
   };
   char d_flags;
   /** Get flag */
