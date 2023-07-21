@@ -6,8 +6,8 @@
 
 (declare-const and (-> Bool Bool Bool))
 
-(program select (Int Bool) Bool
-  ((f1 Bool) (f2 Bool))
+(program select ((f1 Bool) (f2 Bool))
+  (Int Bool) Bool
   ; cases
   (
   ((select 0 (and f1 f2)) f1)
@@ -15,8 +15,8 @@
   )
 )
 
-(program less-than (Int Int) Bool
-  ()
+(program less-than ()
+  (Int Int) Bool
   (
   ((less-than 0 2) true)
   ((less-than 1 2) true)

@@ -5,8 +5,8 @@
 (declare-const i0 Int)
 (declare-const i1 Int)
 
-(program select (Int Bool) Bool
-  ((f1 Bool) (f2 Bool))
+(program select ((f1 Bool) (f2 Bool))
+  (Int Bool) Bool
   ; cases
   (
   ((select i0 (and f1 f2)) f1)

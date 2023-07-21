@@ -336,6 +336,10 @@ bool CmdParser::parseNextCommand()
     case Token::PROGRAM:
     {
       std::string name = d_eparser.parseSymbol();
+      // push the scope
+      d_state.pushScope();
+      std::vector<Expr> vars = d_eparser.parseAndBindSortedVarList();
+
       std::vector<Expr> argTypes = d_eparser.parseExprList();
       Expr retType = d_eparser.parseType();
       if (!argTypes.empty())
@@ -344,11 +348,8 @@ bool CmdParser::parseNextCommand()
       }
       // the type of the program variable is a function
       Expr pvar = d_state.mkConst(name, retType);
-      // bind the program prior to pushing the scope
+      // bind the program
       bind(name, pvar);
-      // push the scope
-      d_state.pushScope();
-      std::vector<Expr> vars = d_eparser.parseAndBindSortedVarList();
       // parse the body
       std::vector<Expr> pchildren = d_eparser.parseExprPairList();
       if (pchildren.empty())
@@ -358,6 +359,8 @@ bool CmdParser::parseNextCommand()
       d_state.popScope();
       Expr program = d_state.mkExpr(Kind::PROGRAM, pchildren);
       d_state.defineProgram(pvar, program);
+      // rebind the program
+      bind(name, pvar);
     }
     break;
     // (proof <formula> <term>)
