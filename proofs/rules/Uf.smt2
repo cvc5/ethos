@@ -9,8 +9,8 @@
 
 ; SYMM
 ; Either t1 = t2 ==> t2 = t1 or t1 != t2 ==> t2 != t1
-(program flip_eq (Bool) Bool
-    ((T Type) (t1 T) (t2 T))
+(program flip_eq ((T Type) (t1 T) (t2 T))
+    (Bool) Bool
     (
         ((flip_eq (= t1 t2)) (= t2 t1))
         ((flip_eq (not (= t1 t2))) (not (= t2 t1)))

@@ -5,7 +5,10 @@ set(alfc_test_file_list
   theories/Ints.smt2
   theories/Reals.smt2
   rules/Uf.smt2
+  rules/Booleans.smt2
   examples/simple_uf.smt2
+  examples/resolution.smt2
+  examples/programs.smt2
 )
 
 macro(alfc_test file)
