@@ -13,15 +13,14 @@
 
 (declare-const is_swap (-> (! Type :var T :implicit) (Pair T) (Pair T) Bool))
 
-(declare-rule do_swap ((T Type) (t (Pair T)) (s (Pair T)))
+(declare-rule do_swap ((T Type) (t (Pair T)))
   :premises ()
-  :args (t s)
-  :requires (((swap t) s))
-  :conclusion (is_swap t s)
+  :args (t)
+  :conclusion (is_swap t (swap t))
 )
 
 (declare-sort Int 0)
 (declare-const a Int)
 (declare-const b Int)
 
-(step a0 (is_swap (pair a b) (pair b a)) :rule do_swap :premises () :args ((pair a b) (pair b a)))
+(step a0 (is_swap (pair a b) (pair b a)) :rule do_swap :premises () :args ((pair a b)))
