@@ -1,3 +1,3 @@
-file(GLOB atc_SRC CONFIGURE_DEPENDS "*.h" "*.cpp")
+file(GLOB alfc_SRC CONFIGURE_DEPENDS "*.h" "*.cpp")
 
-add_executable(atc ${atc_SRC})
+add_executable(alfc ${alfc_SRC})

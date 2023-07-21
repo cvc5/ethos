@@ -1,4 +1,4 @@
-set(atc_test_file_list
+set(alfc_test_file_list
     Bools.smt2
     literals.smt2
     simple-pf2.smt2
@@ -13,15 +13,16 @@ set(atc_test_file_list
     simple-program.smt2
 )
 
-macro(atc_test file)
+macro(alfc_test file)
   add_test(
     NAME ${file}
-    COMMAND $<TARGET_FILE:atc> ${CMAKE_CURRENT_LIST_DIR}/${file}
+    COMMAND $<TARGET_FILE:alfc> ${CMAKE_CURRENT_LIST_DIR}/${file}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   )
   set_tests_properties(${file} PROPERTIES TIMEOUT 40)
 endmacro()
 
-foreach(file ${atc_test_file_list})
-  atc_test(${file})
+foreach(file ${alfc_test_file_list})
+  alfc_test(${file})
 endforeach()
+

@@ -17,7 +17,7 @@
 
 #include <iostream>
 
-namespace atc {
+namespace alfc {
 
 CmdParser::CmdParser(Lexer& lex,
                              State& state,
@@ -486,4 +486,4 @@ void CmdParser::bind(const std::string& name, const Expr& e)
   }
 }
 
-}  // namespace atc
+}  // namespace alfc

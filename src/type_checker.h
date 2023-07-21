@@ -5,7 +5,7 @@
 #include <set>
 #include "expr.h"
 
-namespace atc {
+namespace alfc {
 
 class State;
 
@@ -45,6 +45,6 @@ class TypeChecker
   std::map<Kind, Expr> d_literalTypeRules;
 };
 
-}  // namespace atc
+}  // namespace alfc
 
 #endif 

@@ -10,7 +10,7 @@
 #include "expr_trie.h"
 #include "type_checker.h"
 
-namespace atc {
+namespace alfc {
   
 class State
 {
@@ -109,6 +109,6 @@ private:
   TypeChecker d_tc;
 };
 
-}  // namespace atc
+}  // namespace alfc
 
 #endif /* STATE_H */

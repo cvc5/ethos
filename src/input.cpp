@@ -3,7 +3,7 @@
 #include <fstream>
 #include <iostream>
 
-namespace atc {
+namespace alfc {
 
 /** File input class */
 class FileInput : public Input
@@ -36,4 +36,4 @@ std::unique_ptr<Input> Input::mkFileInput(const std::string& filename)
   return std::unique_ptr<Input>(new FileInput(filename));
 }
 
-}  // namespace atc
+}  // namespace alfc

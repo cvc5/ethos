@@ -4,7 +4,7 @@
 #include <sstream>
 #include <string>
 
-namespace atc {
+namespace alfc {
 
 /**
  */
@@ -58,6 +58,6 @@ enum class Token
 /** Print a token to the stream, for debugging */
 std::ostream& operator<<(std::ostream& o, Token t);
 
-}  // namespace atc
+}  // namespace alfc
 
 #endif /* TOKENS_H */

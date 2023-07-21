@@ -4,7 +4,7 @@
 #include <sstream>
 #include <string>
 
-namespace atc {
+namespace alfc {
 
 /**
  */
@@ -22,6 +22,6 @@ enum class Attr
 /** Print a kind to the stream, for debugging */
 std::ostream& operator<<(std::ostream& o, Attr a);
 
-}  // namespace atc
+}  // namespace alfc
 
 #endif /* ATTR_H */

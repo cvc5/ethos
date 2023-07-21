@@ -1,6 +1,6 @@
 #include "attr.h"
 
-namespace atc {
+namespace alfc {
 
 std::ostream& operator<<(std::ostream& o, Attr a)
 {
@@ -16,4 +16,4 @@ std::ostream& operator<<(std::ostream& o, Attr a)
   return o;
 }
 
-}  // namespace atc
+}  // namespace alfc

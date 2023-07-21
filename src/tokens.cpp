@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-namespace atc {
+namespace alfc {
 
 std::ostream& operator<<(std::ostream& o, Token t)
 {
@@ -59,4 +59,4 @@ std::ostream& operator<<(std::ostream& o, Token t)
   return o;
 }
 
-}  // namespace atc
+}  // namespace alfc

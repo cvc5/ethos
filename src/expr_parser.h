@@ -6,7 +6,7 @@
 #include "lexer.h"
 #include "attr.h"
 
-namespace atc {
+namespace alfc {
 
 /**
  * The smt2 term parser, which parses terms, sorts, symbol expressions

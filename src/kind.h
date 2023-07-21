@@ -4,7 +4,7 @@
 #include <sstream>
 #include <string>
 
-namespace atc {
+namespace alfc {
 
 /**
  */
@@ -51,6 +51,6 @@ bool isVariable(Kind k);
 /** */
 bool isLiteral(Kind k);
 
-}  // namespace atc
+}  // namespace alfc
 
 #endif /* KIND_H */

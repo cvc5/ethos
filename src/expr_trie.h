@@ -4,7 +4,7 @@
 #include <string>
 #include "expr.h"
 
-namespace atc {
+namespace alfc {
 
 class ExprTrie
 {
@@ -14,6 +14,6 @@ public:
   Expr d_data;
 };
 
-}  // namespace atc
+}  // namespace alfc
 
 #endif /* STATE_H */

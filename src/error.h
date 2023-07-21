@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-namespace atc {
+namespace alfc {
 
 class ExprValue;
 
@@ -21,6 +21,6 @@ class Error
   }
 };
 
-}  // namespace atc
+}  // namespace alfc
 
 #endif 

@@ -4,7 +4,7 @@
 #include <string>
 #include "kind.h"
 
-namespace atc {
+namespace alfc {
 
 class ExprInfo
 {
@@ -22,6 +22,6 @@ public:
   bool d_isClosure;
 };
 
-}  // namespace atc
+}  // namespace alfc
 
 #endif /* STATE_H */

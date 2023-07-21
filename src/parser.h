@@ -7,7 +7,7 @@
 #include "expr_parser.h"
 #include "input.h"
 
-namespace atc {
+namespace alfc {
 
 /**
  * Flex-based smt2 parser. It maintains a lexer, a state, a term parser and a
@@ -45,6 +45,6 @@ class Parser
   CmdParser d_cmdParser;
 };
 
-}  // namespace atc
+}  // namespace alfc
 
 #endif /* PARSER_H */

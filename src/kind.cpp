@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-namespace atc {
+namespace alfc {
 
 std::ostream& operator<<(std::ostream& o, Kind k)
 {
@@ -58,4 +58,4 @@ std::string kindToTerm(Kind k)
   return ss.str();
 }
 
-}  // namespace atc
+}  // namespace alfc
