@@ -25,3 +25,4 @@ endmacro()
 foreach(file ${alfc_test_file_list})
   alfc_test(${file})
 endforeach()
+
