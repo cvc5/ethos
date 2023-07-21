@@ -200,7 +200,7 @@ bool CmdParser::parseNextCommand()
         }
         type = d_state.mkFunctionType(args, ttype);
       }
-      Expr decType = d_state.mkConst(name, ttype);
+      Expr decType = d_state.mkConst(name, type);
       bind(name, decType);
     }
     break;
