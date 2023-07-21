@@ -5,7 +5,7 @@
 #include <sstream>
 #include <string>
 
-namespace atc {
+namespace alfc {
 
 /**
  * Wrapper to setup the necessary information for constructing a flex Lexer.

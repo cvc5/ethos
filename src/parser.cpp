@@ -1,6 +1,6 @@
 #include "parser.h"
 
-namespace atc {
+namespace alfc {
 
 Parser::Parser(State& s)
     : d_lex(),
@@ -21,4 +21,4 @@ bool Parser::parseNextCommand()
   return d_cmdParser.parseNextCommand();
 }
 
-}  // namespace atc
+}  // namespace alfc

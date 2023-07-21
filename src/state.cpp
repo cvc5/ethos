@@ -3,7 +3,7 @@
 #include "error.h"
 #include "parser.h"
 
-namespace atc {
+namespace alfc {
 
 State::State() : d_tc(*this)
 {
@@ -298,4 +298,4 @@ Expr State::evaluate(const std::vector<Expr>& children, Ctx& newCtx)
   return app;
 }
 
-}  // namespace atc
+}  // namespace alfc

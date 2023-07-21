@@ -4,7 +4,7 @@
 #include <string.h>
 #include "type_checker.h"
 
-namespace atc {
+namespace alfc {
 
 /**
  * Definition of state identifiers when parsing terms
@@ -653,4 +653,4 @@ Expr ExprParser::typeCheck(Expr& e, const Expr& expected)
   return et;
 }
 
-}  // namespace atc
+}  // namespace alfc

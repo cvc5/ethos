@@ -7,7 +7,7 @@
 #include <memory>
 #include "kind.h"
 
-namespace atc {
+namespace alfc {
 
 class State;
 class ExprValue;
@@ -98,6 +98,6 @@ using Expr = std::shared_ptr<ExprValue>;
  */
 std::ostream& operator<<(std::ostream& out, const Expr& e);
 
-}  // namespace atc
+}  // namespace alfc
 
 #endif 

@@ -6,7 +6,7 @@
 #include <set>
 #include <unordered_map>
 
-namespace atc {
+namespace alfc {
   
 std::ostream& operator<<(std::ostream& out, const Ctx& c)
 {
@@ -451,5 +451,5 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
   return evaluated;
 }
 
-}  // namespace atc
+}  // namespace alfc
 

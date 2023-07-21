@@ -6,7 +6,7 @@
 
 #include "error.h"
 
-namespace atc {
+namespace alfc {
 
 std::ostream& operator<<(std::ostream& o, const Location& l)
 {
@@ -414,4 +414,4 @@ Token Lexer::tokenizeCurrentSymbol() const
   return Token::SYMBOL;
 }
 
-}  // namespace atc
+}  // namespace alfc

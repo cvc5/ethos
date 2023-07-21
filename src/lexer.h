@@ -10,7 +10,7 @@
 #include "input.h"
 #include "tokens.h"
 
-namespace atc {
+namespace alfc {
 
 /** A location for tracking parse errors */
 struct Location
@@ -237,6 +237,6 @@ class Lexer
   std::array<uint8_t, 256> d_charClass{};  // value-initialized to 0
 };
 
-}  // namespace atc
+}  // namespace alfc
 
 #endif

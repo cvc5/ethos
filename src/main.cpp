@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-using namespace atc;
+using namespace alfc;
 
 int main( int argc, char* argv[] )
 {

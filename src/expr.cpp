@@ -6,7 +6,7 @@
 #include "state.h"
 #include "error.h"
 
-namespace atc {
+namespace alfc {
   
 State* ExprValue::d_state = nullptr;
 
@@ -154,5 +154,5 @@ std::ostream& operator<<(std::ostream& out, const Expr& e)
   return out;
 }
 
-}  // namespace atc
+}  // namespace alfc
 

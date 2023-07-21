@@ -7,7 +7,7 @@
 #include "lexer.h"
 #include "expr_parser.h"
 
-namespace atc {
+namespace alfc {
 
 /**
  * The smt2 command parser, which parses commands. It reads from the given
@@ -41,6 +41,6 @@ class CmdParser
   bool d_isSygus;
 };
 
-}  // namespace atc
+}  // namespace alfc
 
 #endif /* H */
