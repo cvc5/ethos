@@ -16,15 +16,13 @@ cmake ..
 make
 ```
 
-The executable, called `afc`, will be created in the build/src folder.
+The executable, called `alfc`, will be created in the build/src folder.
 
 Alternatively you can configure a regular build with
 
 ```bash
 cmake -DCMAKE_BUILD_TYPE=Release ..
 ```
-
-
 To build a regular build and install it into /path/to/install, issue:
 
 ```bash
@@ -48,7 +46,7 @@ make
 ## Using the AletheLF checker
 
 ```
-afc [script]
+alfc [script]
 ```
 where `script` is an AletheLF script.  See `tests` and `proofs` for examples.
 
