@@ -7,9 +7,8 @@
 
 (declare-const f (-> S Bool))
 
-;(assume a1 (= c2 c1))
-(assume t1 (= c1 c2))
-;(step t1 (= c1 c2) :rule symm :premises (a1) :args ())
+(assume a1 (= c2 c1))
+(step t1 (= c1 c2) :rule symm :premises (a1) :args ())
 
 (assume a2 (= (f c2) true))
 

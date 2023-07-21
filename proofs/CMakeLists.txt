@@ -4,6 +4,8 @@ set(alfc_test_file_list
   theories/Core.smt2
   theories/Ints.smt2
   theories/Reals.smt2
+  rules/Uf.smt2
+  examples/simple_uf.smt2
 )
 
 macro(alfc_test file)
