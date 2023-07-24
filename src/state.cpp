@@ -49,15 +49,24 @@ void State::popScope()
 
 void State::includeFile(const std::string& s)
 {
-  std::set<std::string>::iterator it = d_includes.find(s);
+  std::filesystem::path inputPath;
+  try {
+    inputPath = std::filesystem::canonical(d_inputFile.parent_path() / s);
+  }
+  catch (std::filesystem::filesystem_error const&)
+  {
+    Error::reportError("State::includeFile: could not include \"" + s + "\"");
+  }
+  std::set<std::filesystem::path>::iterator it = d_includes.find(inputPath);
   if (it!=d_includes.end())
   {
     return;
   }
-  d_includes.insert(s);
-  std::cout << "Include \"" << s << "\"" << std::endl;
+  d_includes.insert(inputPath);
+  d_inputFile = inputPath;
+  std::cout << "Include " << inputPath << std::endl;
   Parser p(*this);
-  p.setFileInput(s);
+  p.setFileInput(inputPath);
   bool parsedCommand;
   do
   {

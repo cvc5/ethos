@@ -8,7 +8,7 @@ int main( int argc, char* argv[] )
 {
   if (argc!=2)
   {
-    std::cerr << "Usage" << std::endl;
+    std::cerr << "Usage: " << argv[0] << " FILE" << std::endl;
     exit(1);
   }
   // include the file

@@ -1,5 +1,5 @@
 
-(include "./tests/Bools.smt2")
+(include "./Bools.smt2")
 
 (declare-rule eq-symm ((T Type) (x T) (y T))
   :premises ((= T x y))

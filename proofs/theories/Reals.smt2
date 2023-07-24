@@ -1,5 +1,5 @@
-(include "./proofs/theories/Core.smt2")
-(include "./proofs/theories/ArithBridge.smt2")
+(include "../theories/Core.smt2")
+(include "../theories/ArithBridge.smt2")
 
 (declare-consts <decimal> Real)
 

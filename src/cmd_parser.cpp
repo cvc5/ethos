@@ -410,6 +410,7 @@ bool CmdParser::parseNextCommand()
     // (step i F? :rule R :premises (p1 ... pn) :args (t1 ... tm))
     // which is syntax sugar for
     // (define-const i (Proof F) (R t1 ... tm p1 ... pn))
+    // The parameters :premises and :args can be omitted if empty 
     case Token::STEP:
     {
       std::string name = d_eparser.parseSymbol();
@@ -428,20 +429,20 @@ bool CmdParser::parseNextCommand()
       }
       std::string ruleName = d_eparser.parseSymbol();
       Expr rule = d_state.getVar(ruleName);
-      // parse premises
+      // parse premises, optionally
       keyword = d_eparser.parseKeyword();
-      if (keyword!="premises")
+      std::vector<Expr> premises;
+      if (keyword=="premises")
       {
-        d_lex.parseError("Expected premises in step");
+        premises = d_eparser.parseExprList();
+        keyword = d_eparser.parseKeyword();
       }
-      std::vector<Expr> premises = d_eparser.parseExprList();
-      // parse args
-      keyword = d_eparser.parseKeyword();
-      if (keyword!="args")
+      // parse args, optionally
+      std::vector<Expr> args;
+      if (keyword=="args")
       {
-        d_lex.parseError("Expected args in step");
+        args = d_eparser.parseExprList();
       }
-      std::vector<Expr> args = d_eparser.parseExprList();
       std::vector<Expr> children;
       children.push_back(rule);
       // args before premises
