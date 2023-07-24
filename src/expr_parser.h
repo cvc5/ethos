@@ -71,7 +71,7 @@ class ExprParser
    * Parse literal kind.
    */
   Kind parseLiteralKind();
-
+  //-------------------------- checking
   /** type check the expression */
   Expr typeCheck(Expr& e);
   /** ensure type */
@@ -80,6 +80,7 @@ class ExprParser
   Expr getVar(const std::string& name);
   /** Bind, or throw error otherwise */
   void bind(const std::string& name, const Expr& e);
+  //-------------------------- end checking
  protected:
   /** Return the unsigned for the current token string. */
   uint32_t tokenStrToUnsigned();
@@ -94,15 +95,6 @@ class ExprParser
    * as defined in SMT2.
    */
   void unescapeString(std::string& s);
-  /**
-   * Parse constructor definition list, add to declaration type. The expected
-   * syntax is '(<constructor_dec>+)'.
-   */
-  //void parseConstructorDefinitionList(DatatypeDecl& type);
-  /**
-   * Parse match case pattern
-   */
-  //Expr parseMatchCasePattern(Expr headExpr, std::vector<Expr>& boundVars);
   /** The lexer */
   Lexer& d_lex;
   /** The state */

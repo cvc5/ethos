@@ -397,14 +397,18 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
               Expr req = cchildren[i];
               // Assert (p->getKind()==PAIR);
               Expr e1 = (*req.get())[0];
-              e1 = evaluate(e1);
               Expr e2 = (*req.get())[1];
-              e2 = evaluate(e2);
               if (!e1->isEqual(e2))
               {
-                reqMet = false;
-                std::cout << "Req not met: " << e1 << " " << e2 << std::endl;
-                break;
+                // maybe evaluate?
+                e1 = evaluate(e1);
+                e2 = evaluate(e2);
+                if (!e1->isEqual(e2))
+                {
+                  reqMet = false;
+                  std::cout << "REQUIRES: failed " << e1 << " == " << e2 << std::endl;
+                  break;
+                }
               }
             }
             // If requirements are met, (requires ... T) evaluates to T.
