@@ -621,6 +621,16 @@ Expr ExprParser::getVar(const std::string& name)
   return ret;
 }
 
+void ExprParser::bind(const std::string& name, const Expr& e)
+{
+  if (!d_state.bind(name, e))
+  {
+    std::stringstream ss;
+    ss << "Failed to bind symbol " << name;
+    d_lex.parseError(ss.str());
+  }
+}
+
 Expr ExprParser::typeCheck(Expr& e)
 {
   // type check immediately

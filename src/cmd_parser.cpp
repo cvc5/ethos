@@ -81,7 +81,7 @@ bool CmdParser::parseNextCommand()
       Expr proven = d_eparser.parseExpr();
       Expr pt = d_state.mkProofType(proven);
       Expr v = d_state.mkConst(name, pt);
-      bind(name, v);
+      d_eparser.bind(name, v);
     }
     break;
     // (declare-fun <symbol> (<sort>∗) <sort>)
@@ -103,7 +103,7 @@ bool CmdParser::parseNextCommand()
         t = d_state.mkFunctionType(sorts, t);
       }
       Expr v = d_state.mkConst(name, t);
-      bind(name, v);
+      d_eparser.bind(name, v);
     }
     break;
     // (declare-consts <symbol> <sort>)
@@ -174,7 +174,7 @@ bool CmdParser::parseNextCommand()
       d_state.popScope();
       Expr rule = d_state.mkConst(name, ret);
       d_eparser.typeCheck(rule);
-      bind(name, rule);
+      d_eparser.bind(name, rule);
     }
     break;
     // (declare-sort <symbol> <numeral>)
@@ -201,7 +201,7 @@ bool CmdParser::parseNextCommand()
         type = d_state.mkFunctionType(args, ttype);
       }
       Expr decType = d_state.mkConst(name, type);
-      bind(name, decType);
+      d_eparser.bind(name, decType);
     }
     break;
     // (declare-type <symbol> (<sort>*))
@@ -223,7 +223,7 @@ bool CmdParser::parseNextCommand()
         type = d_state.mkFunctionType(args, ttype);
       }
       Expr decType = d_state.mkConst(name, type);
-      bind(name, decType);
+      d_eparser.bind(name, decType);
     }
     break;
     // (define-const <symbol> <sort> <term>)
@@ -235,7 +235,7 @@ bool CmdParser::parseNextCommand()
       Expr ret = d_eparser.parseType();
       Expr e = d_eparser.parseExpr();
       d_eparser.typeCheck(e, ret);
-      bind(name, e);
+      d_eparser.bind(name, e);
     }
     break;
     // (define-fun <symbol> (<sorted_var>*) <sort> <term>)
@@ -268,7 +268,7 @@ bool CmdParser::parseNextCommand()
         Expr vl = d_state.mkExpr(Kind::VARIABLE_LIST, vars);
         expr = d_state.mkExpr(Kind::LAMBDA, {vl, expr});
       }
-      bind(name, expr);
+      d_eparser.bind(name, expr);
     }
     break;
     // (define-sort <symbol> (<symbol>*) <sort>)
@@ -287,7 +287,7 @@ bool CmdParser::parseNextCommand()
         for (const std::string& sname : snames)
         {
           Expr v = d_state.mkVar(sname, ttype);
-          bind(sname, v);
+          d_eparser.bind(sname, v);
         }
       }
       Expr t = d_eparser.parseType();
@@ -295,7 +295,7 @@ bool CmdParser::parseNextCommand()
       {
         d_state.popScope();
       }
-      bind(name, t);
+      d_eparser.bind(name, t);
     }
     break;
     // (echo <string>)
@@ -349,7 +349,7 @@ bool CmdParser::parseNextCommand()
       // the type of the program variable is a function
       Expr pvar = d_state.mkProgramConst(name, retType);
       // bind the program
-      bind(name, pvar);
+      d_eparser.bind(name, pvar);
       // parse the body
       std::vector<Expr> pchildren = d_eparser.parseExprPairList();
       if (pchildren.empty())
@@ -360,7 +360,7 @@ bool CmdParser::parseNextCommand()
       Expr program = d_state.mkExpr(Kind::PROGRAM, pchildren);
       d_state.defineProgram(pvar, program);
       // rebind the program
-      bind(name, pvar);
+      d_eparser.bind(name, pvar);
     }
     break;
     // (proof <formula> <term>)
@@ -428,7 +428,7 @@ bool CmdParser::parseNextCommand()
         d_lex.parseError("Expected rule in step");
       }
       std::string ruleName = d_eparser.parseSymbol();
-      Expr rule = d_state.getVar(ruleName);
+      Expr rule = d_eparser.getVar(ruleName);
       // parse premises, optionally
       keyword = d_eparser.parseKeyword();
       std::vector<Expr> premises;
@@ -473,8 +473,8 @@ bool CmdParser::parseNextCommand()
       }
       // bind to variable, note that the definition term is not kept
       Expr v = d_state.mkVar(name, expected);
-      bind(name, v);
-      // bind(name, def);
+      d_eparser.bind(name, v);
+      // d_eparser.bind(name, def);
     }
     break;
     case Token::EOF_TOK:
@@ -486,16 +486,6 @@ bool CmdParser::parseNextCommand()
   }
   d_lex.eatToken(Token::RPAREN);
   return true;
-}
-
-void CmdParser::bind(const std::string& name, const Expr& e)
-{
-  if (!d_state.bind(name, e))
-  {
-    std::stringstream ss;
-    ss << "Failed to bind symbol " << name;
-    d_lex.parseError(ss.str());
-  }
 }
 
 }  // namespace alfc

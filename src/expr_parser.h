@@ -76,6 +76,10 @@ class ExprParser
   Expr typeCheck(Expr& e);
   /** ensure type */
   Expr typeCheck(Expr& e, const Expr& expected);
+  /** get variable, else error */
+  Expr getVar(const std::string& name);
+  /** Bind, or throw error otherwise */
+  void bind(const std::string& name, const Expr& e);
  protected:
   /** Return the unsigned for the current token string. */
   uint32_t tokenStrToUnsigned();
@@ -99,10 +103,6 @@ class ExprParser
    * Parse match case pattern
    */
   //Expr parseMatchCasePattern(Expr headExpr, std::vector<Expr>& boundVars);
-  /** get variable, else error */
-  Expr getVar(const std::string& name);
-  /** Bind, or throw error otherwise */
-  void bind(const std::string& name, const Expr& e);
   /** The lexer */
   Lexer& d_lex;
   /** The state */
