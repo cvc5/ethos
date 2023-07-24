@@ -16,6 +16,7 @@
 #include "cmd_parser.h"
 
 #include <iostream>
+#include <ostream>
 
 namespace alfc {
 
@@ -468,7 +469,9 @@ bool CmdParser::parseNextCommand()
         expected = d_eparser.typeCheck(def);
         if (expected->getKind()!=Kind::PROOF_TYPE)
         {
-          d_lex.parseError("Failed to parse proof term");
+          std::stringstream buffer;
+          buffer << "Could not discharge requirements. Got " << expected;
+          d_lex.parseError(buffer.str(), true);
         }
       }
       // bind to variable, note that the definition term is not kept
