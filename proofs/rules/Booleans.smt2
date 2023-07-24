@@ -33,13 +33,28 @@
     :conclusion (resolve C1 C2 pol L)
 )
 
+; Skip, needs support for premise lists
 ; CHAIN_RESOLUTION
-; MACRO_RESOLUTION_TRUST3
+; MACRO_RESOLUTION_TRUST
 ; MACRO_RESOLUTION
+
 ; FACTORING
+(program factorLiterals ((l1 Bool) (l2 Bool) (ls Bool))
+    (Bool) Bool
+    (
+        ((factorLiterals (or l1 l1)) l1)
+        ((factorLiterals (or (or ls l1) l1)) (or (factorLiterals ls) l1))
+        ((factorLiterals (or (or ls l1) l2)) (or (factorLiterals (or ls l1)) l2))
+        ((factorLiterals ls) ls)
+    )
+)
+
+(declare-rule factoring ((C Bool))
+    :premises (C)
+    :conclusion (factorLiterals C)
+)
+
 ; REORDERING
-
-
 ; EQ_RESOLVE
 ; MODUS_PONENS
 ; NOT_NOT_ELIM

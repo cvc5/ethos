@@ -4,6 +4,7 @@
 (declare-const c2 Bool)
 (declare-const c3 Bool)
 
+; Resolution
 (assume a1 (or      c1  c2))
 (assume a2 (or (not c2) c3))
 (assume a3 (not c2))
@@ -13,3 +14,8 @@
 
 (step t3 c1 :rule resolution :premises (a1 a3) :args (true c2))
 
+; Factoring
+(assume faca1 (or (or (or (or c1 c1) c2) (not c2)) (not c2)))
+(step   fact1         (or (or c1     c2)           (not c2)) :rule factoring :premises (faca1))
+(assume faca2 (or (or (or (or (or c1 c1) c2) (not c2)) (not c2)) c1))
+(step   fact2         (or (or (or c1     c2)           (not c2)) c1) :rule factoring :premises (faca2))
