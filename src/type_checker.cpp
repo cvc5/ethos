@@ -361,6 +361,9 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
           visit.pop_back();
           continue;
         }
+        visited[cur] = cur;
+        visit.pop_back();
+        continue;
         // TODO: error, variable not filled?
         //std::cout << "WARNING: unfilled variable " << cur << std::endl;
       }
@@ -393,9 +396,14 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
             {
               Expr req = cchildren[i];
               // Assert (p->getKind()==PAIR);
-              if (!(*req.get())[0]->isEqual((*req.get())[1]))
+              Expr e1 = (*req.get())[0];
+              e1 = evaluate(e1);
+              Expr e2 = (*req.get())[1];
+              e2 = evaluate(e2);
+              if (!e1->isEqual(e2))
               {
                 reqMet = false;
+                std::cout << "Req not met: " << e1 << " " << e2 << std::endl;
                 break;
               }
             }
@@ -438,8 +446,8 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
         {
           evaluated = d_state.mkExpr(cur->getKind(), cchildren);
         }
-        // remember its type
-        evaluated->d_type = cur->d_type;
+        // remember its type?
+        //evaluated->d_type = cur->d_type;
         visited[cur] = evaluated;
       }
       visit.pop_back();

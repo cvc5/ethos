@@ -466,6 +466,10 @@ bool CmdParser::parseNextCommand()
       else
       {
         expected = d_eparser.typeCheck(def);
+        if (expected->getKind()!=Kind::PROOF_TYPE)
+        {
+          d_lex.parseError("Failed to parse proof term");
+        }
       }
       // bind to variable, note that the definition term is not kept
       Expr v = d_state.mkVar(name, expected);
