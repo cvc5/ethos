@@ -1,4 +1,4 @@
-(include "./proofs/rules/Booleans.smt2")
+(include "../rules/Booleans.smt2")
 
 (declare-const c1 Bool)
 (declare-const c2 Bool)

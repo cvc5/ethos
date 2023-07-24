@@ -1,5 +1,5 @@
 ; Since we don't have full support for scopes, we just import all of Ints for now
-(include "./proofs/theories/Ints.smt2")
+(include "../theories/Ints.smt2")
 
 (declare-type BitVec (Int)) 
 

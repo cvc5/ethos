@@ -1,6 +1,6 @@
 ; Tests for the gerneral programs.
 
-(include "./proofs/theories/Core.smt2")
+(include "../theories/Core.smt2")
 
 ; Proof rule to test if the parameter `test` evaluates to `reference`
 (declare-rule is_equals ((T Type) (test T) (reference T))
@@ -9,7 +9,7 @@
     :conclusion true
 )
 
-(include "./proofs/programs/Nary.smt2")
+(include "../programs/Nary.smt2")
 
 (declare-const c1 Bool)
 (declare-const c2 Bool)

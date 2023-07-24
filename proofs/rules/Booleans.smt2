@@ -1,5 +1,5 @@
-(include "./proofs/theories/Core.smt2")
-(include "./proofs/programs/Nary.smt2")
+(include "../theories/Core.smt2")
+(include "../programs/Nary.smt2")
 
 ; SPLIT
 (declare-rule split ((F Bool))

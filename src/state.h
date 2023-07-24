@@ -4,6 +4,7 @@
 #include <map>
 #include <set>
 #include <string>
+#include <filesystem>
 
 #include "expr.h"
 #include "expr_info.h"
@@ -104,8 +105,10 @@ private:
   std::map<Kind, ExprTrie> d_trie;
   /** hash for literals */
   std::map< std::pair<Kind, std::string>, Expr> d_literalTrie;
+  /** input file */
+  std::filesystem::path d_inputFile;
   /** files included */
-  std::set<std::string> d_includes;
+  std::set<std::filesystem::path> d_includes;
   /** Programs */
   std::map<Expr, Expr> d_programs;
   /** Type checker */
