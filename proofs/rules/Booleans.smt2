@@ -55,7 +55,30 @@
 )
 
 ; REORDERING
+; Naive O(n^2) test
+(program isPermutation ((l1 Bool) (l2 Bool) (ls Bool) (ls2 Bool))
+    (Bool Bool) Bool
+    (
+        ((isPermutation l1 l1) true)
+        ((isPermutation (or l1 l2) (or l1 l2)) true)
+        ((isPermutation (or l1 l2) (or l2 l1)) true)
+        ((isPermutation (or ls l1) (or ls2 l2)) (isPermutation ls (removeLeft l1 (or ls2 l2))))
+    )
+)
+
+(declare-rule reordering ((C1 Bool) (C2 Bool))
+    :premises (C1)
+    :args (C2)
+    :requires (((isPermutation C1 C2) true))
+    :conclusion C2
+)
+
 ; EQ_RESOLVE
+(declare-rule reordering ((F1 Bool) (F2 Bool))
+    :premises (F1 (= F1 F2))
+    :conclusion F2
+)
+
 ; MODUS_PONENS
 ; NOT_NOT_ELIM
 ; CONTRA
