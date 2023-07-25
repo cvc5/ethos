@@ -20,7 +20,10 @@ enum class Attr
   
   RIGHT_ASSOC,
   LEFT_ASSOC,
-  CHAINABLE
+  CHAINABLE,
+  
+  // internal
+  CLOSURE
 };
 
 /** Print a kind to the stream, for debugging */

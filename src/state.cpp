@@ -157,7 +157,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
   {
     // Assert (!children.empty());
     // see if there is a special kind for the head
-    AppInfo * ai = getAppInfo(children[0].get());
+    AppInfo * ai = children.empty() ? nullptr : getAppInfo(children[0].get());
     if (ai!=nullptr)
     {
       // if it corresponds to a builtin operator
@@ -170,12 +170,57 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       switch (ai->d_attrCons)
       {
         case Attr::LEFT_ASSOC:
-          break;
         case Attr::RIGHT_ASSOC:
+        {
+          size_t nchild = children.size();
+          if (nchild>3)
+          {
+            bool isLeft = (ai->d_attrCons==Attr::LEFT_ASSOC);
+            Expr hd = children[0];
+            size_t i = 1;
+            Expr curr = children[isLeft ? i : nchild-i];
+            AppInfo * ail = getAppInfo(curr.get());
+            std::vector<Expr> cc{hd, nullptr, nullptr};
+            size_t nextIndex = isLeft ? 2 : 1;
+            size_t prevIndex = isLeft ? 1 : 2;
+            if (ail!=nullptr)
+            {
+              // if the last term is not marked as a list variable and
+              // we have a null terminator, then we insert the null terminator
+              if (!ail->hasAttribute(Attr::LIST) && ai->d_attrConsTerm!=nullptr)
+              {
+                cc[nextIndex] = curr;
+                cc[prevIndex] = ai->d_attrConsTerm;
+                curr = mkExprInternal(Kind::APPLY, cc);
+              }
+            }
+            // now, add the remaining children
+            i++;
+            while (i<nchild-1)
+            {
+              cc[nextIndex] = curr;
+              cc[prevIndex] = children[isLeft ? i : nchild-i];
+              curr = mkExprInternal(Kind::APPLY, cc);
+              i++;
+            }
+            return curr;
+          }
+        }
           break;
         case Attr::CHAINABLE:
         {
-          std::vector<Expr> children;
+          std::vector<Expr> cchildren;
+          //Assert (ai->d_attrConsTerm!=nullptr)
+          cchildren.push_back(ai->d_attrConsTerm);
+          std::vector<Expr> cc{children[0], nullptr, nullptr};
+          for (size_t i=1, nchild = children.size()-1; i<nchild; i++)
+          {
+            cc[1] = children[i];
+            cc[2] = children[i+1];
+            cchildren.push_back(mkExprInternal(Kind::APPLY, cc));
+          }
+          // note this could loop
+          return mkExpr(Kind::APPLY, cchildren);
         } 
           break;
         default:
@@ -241,7 +286,7 @@ bool State::isClosure(const Expr& e) const
   std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(e.get());
   if (it!=d_appData.end())
   {
-    return it->second.d_isClosure;
+    return it->second.hasAttribute(Attr::CLOSURE);
   }
   return false;
 }
@@ -301,7 +346,10 @@ void State::bindBuiltin(const std::string& name, Kind k, bool isClosure, const E
     // associate the information
     AppInfo& ai = d_appData[c.get()];
     ai.d_kind = k;
-    ai.d_isClosure = isClosure;
+    if (isClosure)
+    {
+      ai.d_attrs.insert(Attr::CLOSURE);
+    }
   }
 }
 

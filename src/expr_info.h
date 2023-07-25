@@ -35,12 +35,10 @@ public:
   std::shared_ptr<ExprValue> d_attrConsTerm;
   /** Other marked attributes */
   std::unordered_set<Attr> d_attrs;
-  /**
-   * Associated kind
-   */
+  /** Associated kind */
   Kind d_kind;
-  /** Marked attributes */
-  bool d_isClosure;
+  /** */
+  bool hasAttribute(Attr a) const;
 };
 
 }  // namespace alfc
