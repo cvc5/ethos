@@ -7,12 +7,12 @@
 (declare-const a Bool)
 (declare-const b Bool)
 
-(declare-rule and_elim1 ((f Bool) (g Bool))
+(declare-rule and_elim1 ((f Bool) (g Bool :list))
    :premises ((and f g))
    :args ()
    :conclusion f
 )
-(declare-rule or_elim1 ((f Bool) (g Bool))
+(declare-rule or_elim1 ((f Bool :list) (g Bool))
    :premises ((or f g))
    :args ()
    :conclusion f

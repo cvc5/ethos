@@ -82,11 +82,11 @@ public:
   bool hasProgram(const Expr& v) const;
   /** Maybe evaluate */
   Expr evaluate(const std::vector<Expr>& children, Ctx& newCtx);
+  /** */
+  Expr mkExprInternal(Kind k, const std::vector<Expr>& children, bool doHash=true);
 private:
   /** */
   Expr mkSymbolInternal(Kind k, const std::string& name, const Expr& type);
-  /** */
-  Expr mkExprInternal(Kind k, const std::vector<Expr>& children, bool doHash=true);
   /** */
   AppInfo* getAppInfo(const ExprValue* e);
   /** 

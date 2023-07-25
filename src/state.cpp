@@ -144,6 +144,7 @@ Expr State::mkSymbolInternal(Kind k, const std::string& name, const Expr& type)
   // type is stored as a child
   Expr v = mkExprInternal(k, {}, false);
   // immediately set its type
+  // FIXME: evaluate?
   v->d_type = type;
   // map to the data
   ExprInfo* ei = getOrMkInfo(v.get());
@@ -173,7 +174,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         case Attr::RIGHT_ASSOC:
         {
           size_t nchild = children.size();
-          if (nchild>3)
+          if (nchild>2)
           {
             bool isLeft = (ai->d_attrCons==Attr::LEFT_ASSOC);
             Expr hd = children[0];
@@ -185,7 +186,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
             if (ai->d_attrConsTerm!=nullptr)
             {
               AppInfo * ail = getAppInfo(curr.get());
-              if (ail!=nullptr && !ail->hasAttribute(Attr::LIST))
+              if (ail==nullptr || !ail->hasAttribute(Attr::LIST))
               {
                 // if the last term is not marked as a list variable and
                 // we have a null terminator, then we insert the null terminator

@@ -437,6 +437,10 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList()
     t = parseType();
     Expr v = d_state.mkVar(name, t);
     bind(name, v);
+    // parse attribute list
+    std::map<Attr, Expr> attrs;
+    parseAttributeList(v, attrs);
+    d_state.markAttributes(v, attrs);
     d_lex.eatToken(Token::RPAREN);
   }
   return varList;
@@ -558,6 +562,7 @@ void ExprParser::parseAttributeList(const Expr& e, std::map<Attr, Expr>& attrs)
       case Attr::RIGHT_ASSOC:
       case Attr::LEFT_ASSOC:
       case Attr::CHAINABLE:
+      case Attr::PAIRWISE:
       {
         // optional value
         Token tok = d_lex.peekToken();

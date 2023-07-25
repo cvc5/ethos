@@ -469,7 +469,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
         }
         if (evaluated==nullptr)
         {
-          evaluated = d_state.mkExpr(cur->getKind(), cchildren);
+          evaluated = d_state.mkExprInternal(cur->getKind(), cchildren);
         }
         // remember its type?
         //evaluated->d_type = cur->d_type;
