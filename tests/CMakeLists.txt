@@ -14,6 +14,8 @@ set(alfc_test_file_list
     generic-swap.smt2
     or-list.smt2
     or-list-null-term.smt2
+    or-repl-all.smt2
+    or-list-all-basic.smt2
 )
 
 macro(alfc_test file)
