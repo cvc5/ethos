@@ -17,6 +17,7 @@ set(alfc_test_file_list
     or-repl-all.smt2
     or-repl-all-basic.smt2
     constant-eval.smt2
+    constant-eval-args.smt2
     chainable.smt2
 )
 

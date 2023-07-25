@@ -162,7 +162,12 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
     case Kind::QUOTE:
     {
       // (quote t) : (Quote t)
-      // TODO: evaluate t?
+      // evaluate t here if ground/evaluatable
+      if (e->d_children[0]->isGround())
+      {
+        Expr t = e->d_children[0];
+        return d_state.mkQuoteType(evaluate(t));
+      }
       return d_state.mkQuoteType(e->d_children[0]);
     }
     case Kind::TYPE:
