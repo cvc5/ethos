@@ -7,7 +7,7 @@ set(alfc_test_file_list
   rules/Uf.smt2
   rules/Booleans.smt2
   examples/simple_uf.smt2
-  examples/resolution.smt2
+  examples/booleans.smt2
   examples/programs.smt2
 )
 
