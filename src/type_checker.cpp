@@ -178,7 +178,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
       }
       if (ctype->getKind()!=Kind::BOOL_TYPE)
       {
-          out << "Non-Bool for argument of Proof";
+        out << "Non-Bool for argument of Proof";
         return nullptr;
       }
     }
@@ -320,7 +320,7 @@ Expr TypeChecker::evaluate(Expr& e)
   Ctx ctx;
   return evaluate(e, ctx);
 }
-  
+
 Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
 {
   std::unordered_map<Expr, Expr>::iterator it;
