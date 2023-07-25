@@ -296,12 +296,7 @@ Expr ExprParser::parseExpr()
                 letBinders.back();
             for (const std::pair<std::string, Expr>& b : bs)
             {
-              if (!d_state.bind(b.first, b.second))
-              {
-                std::stringstream ss;
-                ss << "Failed to bind " << b.first;
-                d_lex.parseError(ss.str());
-              }
+              bind(b.first, b.second);
             }
             // done with the binders
             letBinders.pop_back();
@@ -356,7 +351,7 @@ Expr ExprParser::parseExpr()
                   d_state.pushScope();
                   sstack[sstack.size()-2]++;
                 }
-                d_state.bind(a.second->getSymbol(), a.second);
+                bind(a.second->getSymbol(), a.second);
               }
                 break;
               case Attr::IMPLICIT:
@@ -440,12 +435,7 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList()
     name = parseSymbol();
     t = parseType();
     Expr v = d_state.mkVar(name, t);
-    if (!d_state.bind(name, v))
-    {
-      std::stringstream ss;
-      ss << "Failed to bind symbol " << name;
-      d_lex.parseError(ss.str());
-    }
+    bind(name, v);
     d_lex.eatToken(Token::RPAREN);
   }
   return varList;
