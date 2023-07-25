@@ -179,16 +179,16 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
             Expr hd = children[0];
             size_t i = 1;
             Expr curr = children[isLeft ? i : nchild-i];
-            AppInfo * ail = getAppInfo(curr.get());
             std::vector<Expr> cc{hd, nullptr, nullptr};
             size_t nextIndex = isLeft ? 2 : 1;
             size_t prevIndex = isLeft ? 1 : 2;
-            if (ail!=nullptr)
+            if (ai->d_attrConsTerm!=nullptr)
             {
-              // if the last term is not marked as a list variable and
-              // we have a null terminator, then we insert the null terminator
-              if (!ail->hasAttribute(Attr::LIST) && ai->d_attrConsTerm!=nullptr)
+              AppInfo * ail = getAppInfo(curr.get());
+              if (ail!=nullptr && !ail->hasAttribute(Attr::LIST))
               {
+                // if the last term is not marked as a list variable and
+                // we have a null terminator, then we insert the null terminator
                 cc[prevIndex] = ai->d_attrConsTerm;
                 cc[nextIndex] = curr;
                 curr = mkExprInternal(Kind::APPLY, cc);
@@ -221,7 +221,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           }
           // note this could loop
           return mkExpr(Kind::APPLY, cchildren);
-        } 
+        }
           break;
         default:
           break;
