@@ -174,10 +174,10 @@ bool CmdParser::parseNextCommand()
       }
       if (!argTypes.empty())
       {
-        ret = d_state.mkFunctionType(argTypes, ret);
+        ret = d_state.mkFunctionType(argTypes, ret, false);
       }
       d_state.popScope();
-      Expr rule = d_state.mkConst(name, ret);
+      Expr rule = d_state.mkProofRule(name, ret);
       d_eparser.typeCheck(rule);
       d_eparser.bind(name, rule);
     }
@@ -349,7 +349,7 @@ bool CmdParser::parseNextCommand()
       Expr retType = d_eparser.parseType();
       if (!argTypes.empty())
       {
-        retType = d_state.mkFunctionType(argTypes, retType);
+        retType = d_state.mkFunctionType(argTypes, retType, false);
       }
       // the type of the program variable is a function
       Expr pvar = d_state.mkProgramConst(name, retType);

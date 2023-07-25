@@ -26,6 +26,7 @@ enum class Kind
   LAMBDA,
   CONST,
   PROGRAM_CONST,
+  PROOF_RULE,
   VARIABLE,
   VARIABLE_LIST,
   QUOTE,

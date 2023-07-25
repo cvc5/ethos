@@ -121,7 +121,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
         // incorrect arity
         if (out)
         {
-          (*out) << "Incorrect arity";
+          (*out) << "Incorrect arity, #argTypes=" << hdtypes.size() << " #children=" << e->d_children.size();
         }
         return nullptr;
       }
@@ -193,22 +193,21 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
       return d_state.mkType();
     case Kind::FUNCTION_TYPE:
       // the children must be types
+      /*
       for (Expr& c : e->d_children)
       {
         Expr ctype = c->d_type;
-        if (ctype==nullptr)
-        {
-          return ctype;
-        }
+        //Assert (ctype!=nullptr);
         if (ctype->getKind()!=Kind::TYPE)
         {
           if (out)
           {
-            (*out) << "Non-type for function";
+            (*out) << "Non-type for function, got " << c << " has type " << ctype;
           }
           return nullptr;
         }
       }
+      */
       return d_state.mkType();
     case Kind::REQUIRES_TYPE:
       for (size_t i=0, nreq = e->d_children.size()-1; i<nreq; i++)

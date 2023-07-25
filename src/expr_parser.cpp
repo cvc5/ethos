@@ -519,7 +519,6 @@ void ExprParser::parseAttributeList(const Expr& e, std::map<Attr, Expr>& attrs)
     if (its==d_strToAttr.end())
     {
       // TODO: parse and skip value?
-      
       // store dummy, to mark that we read an attribute
       attrs[Attr::NONE] = val;
       continue;

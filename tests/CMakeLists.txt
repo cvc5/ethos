@@ -19,6 +19,8 @@ set(alfc_test_file_list
     constant-eval.smt2
     constant-eval-args.smt2
     chainable.smt2
+    substitution.smt2
+    substitution-binary-only.smt2
 )
 
 macro(alfc_test file)

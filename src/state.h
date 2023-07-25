@@ -16,6 +16,7 @@ namespace alfc {
   
 class State
 {
+  friend class TypeChecker;
 public:
   State();
   ~State();
@@ -32,7 +33,7 @@ public:
   /** Type */
   Expr mkType();
   /** (-> <type>+ <type>) */
-  Expr mkFunctionType(const std::vector<Expr>& args, const Expr& ret);
+  Expr mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool flatten = true);
   /** (requires <pair>+ <type>) */
   Expr mkRequiresType(const std::vector<Expr>& args, const Expr& ret);
   /** ? */
@@ -51,6 +52,8 @@ public:
   Expr mkConst(const std::string& name, const Expr& type);
   /** */
   Expr mkProgramConst(const std::string& name, const Expr& type);
+  /** */
+  Expr mkProofRule(const std::string& name, const Expr& type);
   /** */
   Expr mkExpr(Kind k, const std::vector<Expr>& children);
   
@@ -82,9 +85,10 @@ public:
   bool hasProgram(const Expr& v) const;
   /** Maybe evaluate */
   Expr evaluate(const std::vector<Expr>& children, Ctx& newCtx);
-  /** */
-  Expr mkExprInternal(Kind k, const std::vector<Expr>& children, bool doHash=true);
 private:
+  /** */
+  Expr mkApplyInternal(const std::vector<Expr>& children);
+  Expr mkExprInternal(Kind k, const std::vector<Expr>& children, bool doHash=true);
   /** */
   Expr mkSymbolInternal(Kind k, const std::string& name, const Expr& type);
   /** */
