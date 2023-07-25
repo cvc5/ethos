@@ -6,6 +6,7 @@
 #include <string>
 #include <filesystem>
 
+#include "attr.h"
 #include "expr.h"
 #include "expr_info.h"
 #include "expr_trie.h"
@@ -73,6 +74,8 @@ public:
   /** Get the type checker */
   TypeChecker& getTypeChecker();
   
+  /** Mark information */
+  bool markAttributes(const Expr& v, const std::map<Attr, Expr>& attrs);
   /** Define program */
   void defineProgram(const Expr& v, const Expr& prog);
   /** Has program? */
@@ -82,7 +85,10 @@ public:
 private:
   /** */
   Expr mkSymbolInternal(Kind k, const std::string& name, const Expr& type);
+  /** */
   Expr mkExprInternal(Kind k, const std::vector<Expr>& children, bool doHash=true);
+  /** */
+  AppInfo* getAppInfo(const ExprValue* e);
   /** 
    * Bind builtin
    */
@@ -101,10 +107,12 @@ private:
   std::vector<size_t> d_declsSizeCtx;
   /** literals */
   std::map<const ExprValue*, ExprInfo> d_exprData;
+  /** literals */
+  std::map<const ExprValue*, AppInfo> d_appData;
   /** hash */
   std::map<Kind, ExprTrie> d_trie;
   /** hash for literals */
-  std::map< std::pair<Kind, std::string>, Expr> d_literalTrie;
+  std::map<std::pair<Kind, std::string>, Expr> d_literalTrie;
   /** input file */
   std::filesystem::path d_inputFile;
   /** files included */

@@ -60,7 +60,7 @@ void TypeChecker::setTypeRule(Kind k, const Expr& t)
   it->second = t;
 }
 
-Expr TypeChecker::getType(Expr& e, std::ostream& out)
+Expr TypeChecker::getType(Expr& e, std::ostream* out)
 {
   std::unordered_set<Expr> visited;
   std::vector<Expr> toVisit;
@@ -94,7 +94,7 @@ Expr TypeChecker::getType(Expr& e, std::ostream& out)
   return e->d_type;
 }
 
-Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
+Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
 {
   // TODO: check arities
   // TODO: don't need to check child nullptr?
@@ -111,14 +111,20 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
       if (hdType->getKind()!=Kind::FUNCTION_TYPE)
       {
         // non-function at head
-        out << "Non-function as head of APPLY";
+        if (out)
+        {
+          (*out) << "Non-function as head of APPLY";
+        }
         return nullptr;
       }
       std::vector<Expr>& hdtypes = hdType->d_children;
       if (hdtypes.size()!=e->d_children.size())
       {
         // incorrect arity
-        out << "Incorrect arity";
+        if (out)
+        {
+          (*out) << "Incorrect arity";
+        }
         return nullptr;
       }
       Expr retType = hdtypes.back();
@@ -134,9 +140,12 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
         // unification, update retType
         if (!match(hdtypes[i-1], ctype, ctx, visited))
         {
-          out << "Unexpected argument type " << i << std::endl;
-          out << "  LHS " << hdtypes[i-1] << std::endl;
-          out << "  RHS " << ctype << std::endl;
+          if (out)
+          {
+            (*out) << "Unexpected argument type " << i << std::endl;
+            (*out) << "  LHS " << hdtypes[i-1] << std::endl;
+            (*out) << "  RHS " << ctype << std::endl;
+          }
           return nullptr;
         }
       }
@@ -178,7 +187,10 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
       }
       if (ctype->getKind()!=Kind::BOOL_TYPE)
       {
-        out << "Non-Bool for argument of Proof";
+        if (out)
+        {
+          (*out) << "Non-Bool for argument of Proof";
+        }
         return nullptr;
       }
     }
@@ -194,7 +206,10 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
         }
         if (ctype->getKind()!=Kind::TYPE)
         {
-          out << "Non-type for function";
+          if (out)
+          {
+            (*out) << "Non-type for function";
+          }
           return nullptr;
         }
       }
@@ -204,7 +219,10 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
       {
         if (e->d_children[i]->getKind()!=Kind::PAIR)
         {
-          out << "Non-pair for requires";
+          if (out)
+          {
+            (*out) << "Non-pair for requires";
+          }
           return nullptr;
         }
       }
@@ -234,7 +252,10 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream& out)
     default:
       break;
   }
-  out << "Unknown kind " << e->getKind();
+  if (out)
+  {
+    (*out) << "Unknown kind " << e->getKind();
+  }
   return nullptr;
 }
 

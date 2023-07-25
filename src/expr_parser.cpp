@@ -62,6 +62,10 @@ ExprParser::ExprParser(Lexer& lex, State& state)
   d_strToAttr[":var"] = Attr::VAR;
   d_strToAttr[":implicit"] = Attr::IMPLICIT;
   d_strToAttr[":list"] = Attr::LIST;
+  d_strToAttr[":syntax"] = Attr::SYNTAX;
+  d_strToAttr[":right-assoc"] = Attr::RIGHT_ASSOC;
+  d_strToAttr[":left-assoc"] = Attr::LEFT_ASSOC;
+  d_strToAttr[":chainable"] = Attr::CHAINABLE;
   
   d_strToLiteralKind["<numeral>"] = Kind::INTEGER;
   d_strToLiteralKind["<decimal>"] = Kind::DECIMAL;
@@ -560,6 +564,18 @@ void ExprParser::parseAttributeList(const Expr& e, std::map<Attr, Expr>& attrs)
       case Attr::IMPLICIT:
         // requires no value
         break;
+      case Attr::RIGHT_ASSOC:
+      case Attr::LEFT_ASSOC:
+      case Attr::CHAINABLE:
+      {
+        // optional value
+        Token tok = d_lex.peekToken();
+        if (tok!=Token::RPAREN && tok!=Token::KEYWORD)
+        {
+          val = parseExpr();
+        }
+      } 
+        break;
       default:
         d_lex.parseError("Unhandled attribute");
         break;
@@ -634,10 +650,14 @@ void ExprParser::bind(const std::string& name, const Expr& e)
 Expr ExprParser::typeCheck(Expr& e)
 {
   // type check immediately
-  std::stringstream ss;
-  Expr v = d_state.getTypeChecker().getType(e, ss);
+  Expr v = d_state.getTypeChecker().getType(e);
   if (v==nullptr)
   {
+    // we allocate stringstream for error messages only when an error occurs
+    // thus, we require recomputing the error message here.
+    std::stringstream ss;
+    v = d_state.getTypeChecker().getType(e, &ss);
+    //Assert (v==nullptr);
     std::stringstream msg;
     msg << "Type checking failed:" << std::endl;
     msg << "Expression: " << e << std::endl;

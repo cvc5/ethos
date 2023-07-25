@@ -157,11 +157,30 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
   {
     // Assert (!children.empty());
     // see if there is a special kind for the head
-    ExprInfo * ei = getInfo(children[0].get());
-    if (ei!=nullptr && ei->d_kind!=Kind::NONE)
+    AppInfo * ai = getAppInfo(children[0].get());
+    if (ai!=nullptr)
     {
-      std::vector<Expr> achildren(children.begin()+1, children.end());
-      return mkExprInternal(ei->d_kind, achildren);
+      // if it corresponds to a builtin operator
+      if (ai->d_kind!=Kind::NONE)
+      {
+        std::vector<Expr> achildren(children.begin()+1, children.end());
+        return mkExprInternal(ai->d_kind, achildren);
+      }
+      // if it has a constructor attribute
+      switch (ai->d_attrCons)
+      {
+        case Attr::LEFT_ASSOC:
+          break;
+        case Attr::RIGHT_ASSOC:
+          break;
+        case Attr::CHAINABLE:
+        {
+          std::vector<Expr> children;
+        } 
+          break;
+        default:
+          break;
+      }
     }
   }
   return mkExprInternal(k, children);
@@ -219,8 +238,8 @@ bool State::bind(const std::string& name, const Expr& e)
 
 bool State::isClosure(const Expr& e) const 
 {
-  std::map<const ExprValue *, ExprInfo>::const_iterator it = d_exprData.find(e.get());
-  if (it!=d_exprData.end())
+  std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(e.get());
+  if (it!=d_appData.end())
   {
     return it->second.d_isClosure;
   }
@@ -252,6 +271,16 @@ ExprInfo* State::getOrMkInfo(const ExprValue* e)
   return &d_exprData[e];
 }
 
+AppInfo* State::getAppInfo(const ExprValue* e)
+{
+  std::map<const ExprValue *, AppInfo>::iterator it = d_appData.find(e);
+  if (it!=d_appData.end())
+  {
+    return &it->second;
+  }
+  return nullptr;
+}
+
 TypeChecker& State::getTypeChecker()
 {
   return d_tc;
@@ -270,9 +299,9 @@ void State::bindBuiltin(const std::string& name, Kind k, bool isClosure, const E
   if (isClosure || k!=Kind::NONE)
   {
     // associate the information
-    ExprInfo * ei = getOrMkInfo(c.get());
-    ei->d_kind = k;
-    ei->d_isClosure = isClosure;
+    AppInfo& ai = d_appData[c.get()];
+    ai.d_kind = k;
+    ai.d_isClosure = isClosure;
   }
 }
 
@@ -309,6 +338,37 @@ Expr State::evaluate(const std::vector<Expr>& children, Ctx& newCtx)
     }
   }
   return app;
+}
+
+bool State::markAttributes(const Expr& v, const std::map<Attr, Expr>& attrs)
+{
+  AppInfo& ai = d_appData[v.get()];
+  for (const std::pair<const Attr, Expr>& a : attrs)
+  {
+    switch(a.first)
+    {
+      case Attr::LEFT_ASSOC:
+      case Attr::RIGHT_ASSOC:
+      case Attr::CHAINABLE:
+        // it specifies how to construct this
+        ai.d_attrCons = a.first;
+        ai.d_attrConsTerm = a.second;
+        // TODO: ensure its type has the right shape here?
+        //
+        if (a.first==Attr::CHAINABLE && a.second==nullptr)
+        {
+          return false;
+        }
+        break;
+      case Attr::LIST:
+        // remember it has been marked
+        ai.d_attrs.insert(a.first);
+        break;
+      default:
+        break;
+    }
+  }
+  return true;
 }
 
 }  // namespace alfc

@@ -11,6 +11,9 @@ std::ostream& operator<<(std::ostream& o, Attr a)
     case Attr::IMPLICIT: o << "IMPLICIT"; break;
     case Attr::LIST: o << "LIST"; break;
     case Attr::SYNTAX: o << "SYNTAX"; break;
+    case Attr::RIGHT_ASSOC: o << "RIGHT_ASSOC"; break;
+    case Attr::LEFT_ASSOC: o << "LEFT_ASSOC"; break;
+    case Attr::CHAINABLE: o << "CHAINABLE"; break;
     default: o << "UnknownAttr(" << unsigned(a) << ")"; break;
   }
   return o;

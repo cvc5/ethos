@@ -16,7 +16,11 @@ enum class Attr
   VAR,
   IMPLICIT,
   LIST,
-  SYNTAX
+  SYNTAX,
+  
+  RIGHT_ASSOC,
+  LEFT_ASSOC,
+  CHAINABLE
 };
 
 /** Print a kind to the stream, for debugging */

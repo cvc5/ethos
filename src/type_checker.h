@@ -20,7 +20,7 @@ class TypeChecker
   TypeChecker(State& s);
   ~TypeChecker();
   /** Return its type */
-  Expr getType(Expr& e, std::ostream& out);
+  Expr getType(Expr& e, std::ostream* out = nullptr);
   /** Set type rule for literal */
   void setTypeRule(Kind k, const Expr& t);
   /** */
@@ -37,7 +37,7 @@ class TypeChecker
   Expr evaluate(Expr& e);
  private:
   /** Return its type */
-  Expr getTypeInternal(Expr& e, std::ostream& out);
+  Expr getTypeInternal(Expr& e, std::ostream* out);
   /** The state */
   State& d_state;
   /** The builtin literal kinds */

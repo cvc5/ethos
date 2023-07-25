@@ -2,7 +2,9 @@
 
 namespace alfc {
 
-ExprInfo::ExprInfo() : d_kind(Kind::NONE), d_isClosure(false) {}
+ExprInfo::ExprInfo() {}
+
+AppInfo::AppInfo() : d_attrCons( ), d_kind(Kind::NONE), d_isClosure(false) {}
 
 
 }  // namespace alfc
