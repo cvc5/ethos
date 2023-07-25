@@ -166,7 +166,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
   if (k==Kind::APPLY)
   {
     // Assert (!children.empty());
-    // see if there is a special kind for the head
+    // see if there is a special way of building terms for the head
     AppInfo * ai = children.empty() ? nullptr : getAppInfo(children[0].get());
     if (ai!=nullptr)
     {
@@ -174,7 +174,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       if (ai->d_kind!=Kind::NONE)
       {
         std::vector<Expr> achildren(children.begin()+1, children.end());
-        return mkExprInternal(ai->d_kind, achildren);
+        return mkExpr(ai->d_kind, achildren);
       }
       // if it has a constructor attribute
       switch (ai->d_attrCons)
@@ -236,6 +236,11 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           }
           // note this could loop
           return mkExpr(Kind::APPLY, cchildren);
+        }
+          break;
+        case Attr::PAIRWISE:
+        {
+          // TODO
         }
           break;
         default:

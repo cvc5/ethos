@@ -44,16 +44,8 @@ enum class ParseCtx
    * Term annotations
    *
    * TERM_ANNOTATE_BODY: in context (! <term>
-   *
-   * TERM_ANNOTATE_NEXT_ATTR: in context (! <term> <attr>* <keyword> <term_spec>
-   * where notice that <term_spec> may be a term or a list of terms.
-   * `op` contains:
-   * - d_expr: the body of the term annotation.
-   * - d_kind: the kind to apply to the current <term_spec> (if any).
-   * `args` contain the accumulated patterns or quantifier attributes.
    */
-  TERM_ANNOTATE_BODY,
-  TERM_ANNOTATE_NEXT_ATTR
+  TERM_ANNOTATE_BODY
 };
 
 ExprParser::ExprParser(Lexer& lex, State& state)
@@ -85,8 +77,8 @@ Expr ExprParser::parseExpr()
   bool needsUpdateCtx = false;
   // the last token we read
   Token tok;
-  // The stack(s) containing the parse context, and the recipe for the
-  // current we are building.
+  // The stack(s) containing the parse context, the number of scopes, and the
+  // arguments for the current expression we are building.
   std::vector<ParseCtx> xstack;
   std::vector<size_t> sstack;
   std::vector<std::vector<Expr>> tstack;
@@ -321,20 +313,6 @@ Expr ExprParser::parseExpr()
           tstack.back().push_back(ret);
           ret = nullptr;
           // now parse attribute list
-          // TODO: maybe merge with below
-          xstack[xstack.size() - 1] = ParseCtx::TERM_ANNOTATE_NEXT_ATTR;
-          needsUpdateCtx = true;
-          // ensure there is at least one attribute
-          tok = d_lex.peekToken();
-          if (tok == Token::RPAREN)
-          {
-            d_lex.parseError(
-                "Expecting at least one attribute for term annotation.");
-          }
-        }
-        break;
-        case ParseCtx::TERM_ANNOTATE_NEXT_ATTR:
-        {
           std::map<Attr, Expr> attrs;
           Expr e = tstack.back()[0];
           parseAttributeList(e, attrs);
