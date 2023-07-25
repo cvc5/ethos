@@ -1,0 +1,32 @@
+(declare-const true Bool)
+(declare-const false Bool)
+
+(declare-const and (-> Bool Bool Bool) :right-assoc)
+
+(declare-const = (-> (! Type :var T :implicit) T T Bool) :chainable and)
+
+
+(declare-rule and_elim1 ((f Bool) (g Bool :list))
+   :premises ((and f g))
+   :args ()
+   :conclusion f
+)
+(declare-rule and_elim2 ((f Bool) (g Bool :list))
+   :premises ((and f g))
+   :args ()
+   :conclusion g
+)
+
+
+(declare-const a Bool)
+(declare-const b Bool)
+(declare-const c Bool)
+(declare-const d Bool)
+
+(assume a1 (= a b c d))
+
+(step a2 (= a b) :rule and_elim1 :premises (a1))
+(step a3 (= b c d) :rule and_elim2 :premises (a1))
+
+
+

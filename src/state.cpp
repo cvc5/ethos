@@ -11,6 +11,7 @@ State::State() : d_tc(*this)
   
   bindBuiltin("lambda", Kind::LAMBDA, true);
   bindBuiltin("->", Kind::FUNCTION_TYPE, false);
+  bindBuiltin("@", Kind::APPLY, false);
   // note we don't allow parsing (Proof ...), (Quote ...), or (quote ...).
 }
 
@@ -227,6 +228,11 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
             cc[1] = children[i];
             cc[2] = children[i+1];
             cchildren.push_back(mkExprInternal(Kind::APPLY, cc));
+          }
+          if (cchildren.size()==2)
+          {
+            // no need to chain
+            return cchildren[1];
           }
           // note this could loop
           return mkExpr(Kind::APPLY, cchildren);
