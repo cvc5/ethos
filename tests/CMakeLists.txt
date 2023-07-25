@@ -15,7 +15,8 @@ set(alfc_test_file_list
     or-list.smt2
     or-list-null-term.smt2
     or-repl-all.smt2
-    or-list-all-basic.smt2
+    or-repl-all-basic.smt2
+    constant-eval.smt2
 )
 
 macro(alfc_test file)

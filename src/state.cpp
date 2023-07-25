@@ -144,8 +144,16 @@ Expr State::mkSymbolInternal(Kind k, const std::string& name, const Expr& type)
   // type is stored as a child
   Expr v = mkExprInternal(k, {}, false);
   // immediately set its type
-  // FIXME: evaluate?
-  v->d_type = type;
+  if (type->isGround() && type->isEvaluatable())
+  {
+    // evaluate the type
+    Expr t = type;
+    v->d_type = d_tc.evaluate(t);
+  }
+  else
+  {
+    v->d_type = type;
+  }
   // map to the data
   ExprInfo* ei = getOrMkInfo(v.get());
   ei->d_str = name;

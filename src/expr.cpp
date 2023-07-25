@@ -45,6 +45,18 @@ std::unordered_set<std::shared_ptr<ExprValue>> ExprValue::getFreeSymbols() const
 
 bool ExprValue::isEvaluatable()
 {
+  computeFlags();
+  return getFlag(Flag::IS_EVAL);
+}
+
+bool ExprValue::isGround()
+{
+  computeFlags();
+  return !getFlag(Flag::IS_NON_GROUND);
+}
+
+void ExprValue::computeFlags()
+{
   std::unordered_set<ExprValue*> visited;
   std::vector<ExprValue*> visit;
   visit.emplace_back(this);
@@ -52,7 +64,7 @@ bool ExprValue::isEvaluatable()
   do
   {
     cur = visit.back();
-    if (cur->getFlag(Flag::IS_EVAL_COMPUTED))
+    if (cur->getFlag(Flag::IS_FLAGS_COMPUTED))
     {
       visit.pop_back();
       continue;
@@ -60,8 +72,10 @@ bool ExprValue::isEvaluatable()
     std::vector<Expr>& children = cur->d_children;
     if (children.empty())
     {
-      cur->setFlag(Flag::IS_EVAL_COMPUTED, true);
-      cur->setFlag(Flag::IS_EVAL, cur->getKind()==Kind::VARIABLE);
+      cur->setFlag(Flag::IS_FLAGS_COMPUTED, true);
+      bool isVar = (cur->getKind()==Kind::VARIABLE);
+      cur->setFlag(Flag::IS_EVAL, isVar);
+      cur->setFlag(Flag::IS_NON_GROUND, isVar);
       visit.pop_back();
     }
     else if (visited.find(cur)==visited.end())
@@ -75,27 +89,26 @@ bool ExprValue::isEvaluatable()
     else
     {
       visit.pop_back();
-      cur->setFlag(Flag::IS_EVAL_COMPUTED, true);
+      cur->setFlag(Flag::IS_FLAGS_COMPUTED, true);
       if (cur->getKind()==Kind::APPLY && 
           children[0]->getKind()==Kind::PROGRAM_CONST)
       {
         cur->setFlag(Flag::IS_EVAL, true);
       }
-      else
+      for (Expr& c : children)
       {
-        for (Expr& c : children)
+        if (c->getFlag(Flag::IS_NON_GROUND))
         {
-          if (c->getFlag(Flag::IS_EVAL))
-          {
-            cur->setFlag(Flag::IS_EVAL, true);
-            break;
-          }
+          cur->setFlag(Flag::IS_NON_GROUND, true);
+        }
+        if (c->getFlag(Flag::IS_EVAL))
+        {
+          cur->setFlag(Flag::IS_EVAL, true);
         }
       }
     }
   }
   while (!visit.empty());
-  return getFlag(Flag::IS_EVAL);
 }
 
 std::string ExprValue::getSymbol() const

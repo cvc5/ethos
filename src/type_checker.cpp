@@ -57,6 +57,7 @@ void TypeChecker::setTypeRule(Kind k, const Expr& t)
     ss << "TypeChecker::setTypeRule: cannot set type rule for kind " << k << " to " << t << ", since its type was already set to " << it->second;
     Error::reportError(ss.str());
   }
+  // Assert (t->isGround());
   it->second = t;
 }
 
@@ -103,10 +104,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
     case Kind::APPLY:
     {
       Expr hdType = e->d_children[0]->d_type;
-      if (hdType==nullptr)
-      {
-        return hdType;
-      }
+      //Assert (hdType!=nullptr)
       std::vector<Expr> expectedTypes;
       if (hdType->getKind()!=Kind::FUNCTION_TYPE)
       {
@@ -133,10 +131,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
       for (size_t i=1, nchild=e->d_children.size(); i<nchild; i++)
       {
         Expr ctype = e->d_children[i]->d_type;
-        if (ctype==nullptr)
-        {
-          return ctype;
-        }
+        // Assert (ctype!=nullptr);
         // unification, update retType
         if (!match(hdtypes[i-1], ctype, ctx, visited))
         {
@@ -157,23 +152,19 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
       std::vector<Expr>& vars = e->d_children[0]->d_children;
       for (Expr& c : vars)
       {
-        Expr ctype = c->d_type;
-        if (ctype==nullptr)
-        {
-          return ctype;
-        }
-        args.push_back(ctype);
+        // Assert (c->d_type!=nullptr);
+        args.push_back( c->d_type);
       }
       Expr ret = e->d_children[1]->d_type;
-      if (ret==nullptr)
-      {
-        return ret;
-      }
+      // Assert (ret!=nullptr);
       return d_state.mkFunctionType(args, ret);
     }
     case Kind::QUOTE:
+    {
       // (quote t) : (Quote t)
+      // TODO: evaluate t?
       return d_state.mkQuoteType(e->d_children[0]);
+    }
     case Kind::TYPE:
     case Kind::ABSTRACT_TYPE:
     case Kind::BOOL_TYPE:
