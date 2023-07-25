@@ -189,17 +189,17 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
               // we have a null terminator, then we insert the null terminator
               if (!ail->hasAttribute(Attr::LIST) && ai->d_attrConsTerm!=nullptr)
               {
-                cc[nextIndex] = curr;
                 cc[prevIndex] = ai->d_attrConsTerm;
+                cc[nextIndex] = curr;
                 curr = mkExprInternal(Kind::APPLY, cc);
               }
             }
             // now, add the remaining children
             i++;
-            while (i<nchild-1)
+            while (i<nchild)
             {
-              cc[nextIndex] = curr;
-              cc[prevIndex] = children[isLeft ? i : nchild-i];
+              cc[prevIndex] = curr;
+              cc[nextIndex] = children[isLeft ? i : nchild-i];
               curr = mkExprInternal(Kind::APPLY, cc);
               i++;
             }

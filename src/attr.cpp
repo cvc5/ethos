@@ -14,6 +14,7 @@ std::ostream& operator<<(std::ostream& o, Attr a)
     case Attr::RIGHT_ASSOC: o << "RIGHT_ASSOC"; break;
     case Attr::LEFT_ASSOC: o << "LEFT_ASSOC"; break;
     case Attr::CHAINABLE: o << "CHAINABLE"; break;
+    case Attr::PAIRWISE: o << "PAIRWISE"; break;
     default: o << "UnknownAttr(" << unsigned(a) << ")"; break;
   }
   return o;

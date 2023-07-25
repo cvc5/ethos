@@ -105,6 +105,10 @@ bool CmdParser::parseNextCommand()
       }
       Expr v = d_state.mkConst(name, t);
       d_eparser.bind(name, v);
+      // possible attribute list
+      std::map<Attr, Expr> attrs;
+      d_eparser.parseAttributeList(v, attrs);
+      d_state.markAttributes(v, attrs);
     }
     break;
     // (declare-consts <symbol> <sort>)
@@ -431,12 +435,18 @@ bool CmdParser::parseNextCommand()
       std::string ruleName = d_eparser.parseSymbol();
       Expr rule = d_eparser.getVar(ruleName);
       // parse premises, optionally
-      keyword = d_eparser.parseKeyword();
+      if (d_lex.peekToken()==Token::KEYWORD)
+      {
+        keyword = d_eparser.parseKeyword();
+      }
       std::vector<Expr> premises;
       if (keyword=="premises")
       {
         premises = d_eparser.parseExprList();
-        keyword = d_eparser.parseKeyword();
+        if (d_lex.peekToken()==Token::KEYWORD)
+        {
+          keyword = d_eparser.parseKeyword();
+        }
       }
       // parse args, optionally
       std::vector<Expr> args;

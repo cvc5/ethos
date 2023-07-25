@@ -63,9 +63,10 @@ ExprParser::ExprParser(Lexer& lex, State& state)
   d_strToAttr[":implicit"] = Attr::IMPLICIT;
   d_strToAttr[":list"] = Attr::LIST;
   d_strToAttr[":syntax"] = Attr::SYNTAX;
-  d_strToAttr[":right-assoc"] = Attr::RIGHT_ASSOC;
   d_strToAttr[":left-assoc"] = Attr::LEFT_ASSOC;
+  d_strToAttr[":right-assoc"] = Attr::RIGHT_ASSOC;
   d_strToAttr[":chainable"] = Attr::CHAINABLE;
+  d_strToAttr[":pairwise"] = Attr::PAIRWISE;
   
   d_strToLiteralKind["<numeral>"] = Kind::INTEGER;
   d_strToLiteralKind["<decimal>"] = Kind::DECIMAL;

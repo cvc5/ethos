@@ -21,6 +21,7 @@ enum class Attr
   RIGHT_ASSOC,
   LEFT_ASSOC,
   CHAINABLE,
+  PAIRWISE,
   
   // internal
   CLOSURE
