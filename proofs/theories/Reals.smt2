@@ -19,8 +19,16 @@
 (declare-const - (-> Real Real Real)
     :left-assoc
 )
-(declare-const / (-> Real Real Real))
-(declare-const < (-> Real Real Bool)) 
-(declare-const > (-> Real Real Bool))
-(declare-const >= (-> Real Real Bool))
+(declare-const / (-> Real Real Real)
+    :left-assoc
+)
+(declare-const < (-> Real Real Bool)
+    :chainable and
+)
+(declare-const > (-> Real Real Bool)
+    :chainable and
+)
+(declare-const >= (-> Real Real Bool)
+    :chainable and
+)
 (declare-const sum (-> Real Real (-> Real Real) Real))
