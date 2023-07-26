@@ -22,6 +22,7 @@ set(alfc_test_file_list
     substitution.smt2
     substitution-binary-only.smt2
     beta-reduce-define-fun.smt2
+    define-const-simple.smt2
 )
 
 macro(alfc_test file)
