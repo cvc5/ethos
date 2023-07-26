@@ -15,8 +15,9 @@ Compiler::Compiler(State& s) : d_state(s), d_nscopes(0), d_idCount(1) {
   d_initEnd << "}" << std::endl;
   d_tc << "Expr TypeChecker::run_getTypeInternal(Expr& e, std::vector<Expr>& args, std::ostream* out)" << std::endl;
   d_tc << "{" << std::endl;
-  d_tc << "  bool _matched = true;" << std::endl;
-  d_tc << "  switch(_runId[e->d_type])" << std::endl;
+  d_tc << "  std::map<Expr, size_t>::iterator itr = _runId.find(e);" << std::endl;
+  // ASSERT
+  d_tc << "  switch(itr->second)" << std::endl;
   d_tc << "  {" << std::endl;
   d_tcEnd << "  default: break;" << std::endl;
   d_tcEnd << "  }" << std::endl;
@@ -77,7 +78,7 @@ void Compiler::bind(const std::string& name, const Expr& e)
     return;
   }
   // write the code for constructing the expression
-  size_t id = writeExpr(d_init, e);
+  size_t id = writeGlobalExpr(e);
   // bind the symbol
   d_init << "  bind(\"" << name << "\", _e" << id << ");" << std::endl;
   // write its type checker (if necessary)
@@ -98,7 +99,7 @@ void Compiler::markAttributes(const Expr& v, const std::map<Attr, Expr>& attrs)
     ssa << "Attr::" << p.first;
     if (p.second!=nullptr)
     {
-      size_t id = writeExpr(d_init, p.second);
+      size_t id = writeGlobalExpr(p.second);
       d_init << "  _amap[" << ssa.str() << "] = _e" << id << ";" << std::endl;
     }
     else
@@ -137,7 +138,18 @@ size_t Compiler::writeRunId(std::ostream& os, const Expr& e)
   return it->second;
 }
 
-size_t Compiler::writeExpr(std::ostream& os, const Expr& e)
+size_t Compiler::writeGlobalExpr(const Expr& e)
+{
+  return writeExprInternal(d_init, d_decl, e, d_idCount, d_idMap, "_e", true);
+}
+
+size_t Compiler::writeExprInternal(std::ostream& os,
+                                   std::ostream& decl,
+                                   const Expr& e,
+                                   size_t& idCount,
+                                   std::map<ExprValue*, size_t>& idMap,
+                                   const std::string& prefix,
+                                   bool isGlobal)
 {
   size_t ret = 0;
   size_t tid = 0;
@@ -151,8 +163,12 @@ size_t Compiler::writeExpr(std::ostream& os, const Expr& e)
   do
   {
     cur = visit.back();
-    iti = d_idMap.find(cur);
-    if (iti!=d_idMap.end())
+    bool isg = isGlobal || cur->isGround();
+    std::map<ExprValue*, size_t>& mu = isg ? d_idMap : idMap;
+    std::string pu = isg ? "_e" : prefix;
+    std::ostream& du = isg ? d_decl : decl;
+    iti = mu.find(cur);
+    if (iti!=mu.end())
     {
       ret = iti->second;
       visit.pop_back();
@@ -172,11 +188,16 @@ size_t Compiler::writeExpr(std::ostream& os, const Expr& e)
     {
       visit.pop_back();
       // allocate an identifier
-      ret = d_idCount;
-      d_idCount++;
-      d_idMap[cur] = ret;
-      d_decl << "Expr _e" << ret << ";" << std::endl;
-      os << "  _e" << ret << " = mkExprInternal(Kind::" << cur->getKind() << ", {";
+      ret = idCount;
+      idCount++;
+      mu[cur] = ret;
+      du << "  Expr " << pu << ret << ";" << std::endl;
+      os << "  " << pu << ret << " = ";
+      if (!isg)
+      {
+        os << "d_state.";
+      }
+      os << "mkExprInternal(Kind::" << cur->getKind() << ", {";
       bool firstTime = true;
       for (Expr& c : children)
       {
@@ -188,24 +209,30 @@ size_t Compiler::writeExpr(std::ostream& os, const Expr& e)
         {
           os << ", ";
         }
-        iti = d_idMap.find(c.get());
-        // Assert (iti!=d_idMap.end());
-        os << "_e" << iti->second;
+        bool isgc = isGlobal || c->isGround();
+        std::map<ExprValue*, size_t>& muc = isgc ? d_idMap : idMap;
+        std::string puc = isgc ? "_e" : prefix;
+        iti = muc.find(c.get());
+        // Assert (iti!=mu.end());
+        os << puc << iti->second;
       }
       os << "});" << std::endl;
       // TODO: should hash?
-      // allocate information if necessary
-      curInfo = d_state.getInfo(cur);
-      if (curInfo!=nullptr)
+      if (isg)
       {
-        os << "  _einfo = &d_exprData[_e" << ret << ".get()];" << std::endl;
-        os << "  _einfo->d_str = std::string(\"" << curInfo->d_str << "\");" << std::endl;
-      }
-      // Write its type as well, separately. The recursion depth here is very limited.
-      if (cur->d_type!=nullptr)
-      {
-        tid = writeExpr(os, cur->d_type);
-        os << "  _e" << ret << "->d_type = _e" << tid << ";" << std::endl;
+        // allocate information if necessary
+        curInfo = d_state.getInfo(cur);
+        if (curInfo!=nullptr)
+        {
+          os << "  _einfo = &d_exprData[" << pu << ret << ".get()];" << std::endl;
+          os << "  _einfo->d_str = std::string(\"" << curInfo->d_str << "\");" << std::endl;
+        }
+        // Write its type as well, separately. The recursion depth here is very limited.
+        if (cur->d_type!=nullptr)
+        {
+          tid = writeGlobalExpr(cur->d_type);
+          os << "  " << pu << ret << "->d_type = " << pu << tid << ";" << std::endl;
+        }
       }
     }
   }while(!visit.empty());
@@ -217,105 +244,126 @@ size_t Compiler::writeExpr(std::ostream& os, const Expr& e)
 void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
 {
   // Assert (t!=nullptr);
-  if (t->getKind()!=Kind::FUNCTION_TYPE)
+  std::vector<Expr> toVisit;
+  toVisit.push_back(t);
+  Expr curr;
+  do
   {
-    // only function types need to be written here
-    return;
-  }
-  if (d_tcWritten.find(t.get())!=d_tcWritten.end())
-  {
-    // already written
-    return;
-  }
-  os << "  // type rule for " << t << std::endl;
-  std::cout << "writeTypeChecking " << t << std::endl;
-  d_tcWritten.insert(t.get());
-  size_t id = writeRunId(d_init, t);
-  std::stringstream osEnd;
-  os << "  case " << id << ":" << std::endl;
-  os << "  {" << std::endl;
-  osEnd << "  }" << std::endl;
-  osEnd << "  break;" << std::endl;
-
-  // if the return type is ground, we don't need to build a context
-  std::vector<Expr>& children = t->d_children;
-  Expr& retType = children.back();
-  bool isEval = retType->isEvaluatable();
-  std::cout << "isEval=" << isEval << std::endl;
-  if (isEval)
-  {
-    os << "  std::vector<Expr> evalArgs;" << std::endl;
-  }
-  std::vector<Expr> fvs;
-  if (!t->isGround())
-  {
-    fvs = d_state.getTypeChecker().getFreeSymbols(retType);
-  }
-  std::cout << "#fvs=" << fvs.size() << std::endl;
-  // write the free symbols of the return type as (local) variables
-  std::stringstream tmp;
-  for (const Expr& v : fvs)
-  {
-    size_t vid = writeExpr(tmp, v);
-    os << "  Expr _e" << vid << ";" << std::endl;
-  }
-  // write the matching
-  std::vector<std::string> reqs;
-  std::vector<std::string> varAssign;
-  std::map<ExprValue*, std::string> visited;
-  for (size_t i=0, nargs=children.size()-1; i<nargs; i++)
-  {
-    std::vector<Expr> pats{children[i]};
-    std::stringstream ss;
-    ss << "args[" << i << "]";
-    // write matching code
-    writeMatching(os, pats, ss.str(), reqs, varAssign, visited);
-  }
-  if (!reqs.empty())
-  {
-    os << "  if (!(";
-    bool firstTime = true;
-    for (const std::string& r : reqs)
+    curr = toVisit.back();
+    toVisit.pop_back();
+    if (curr->getKind()!=Kind::FUNCTION_TYPE)
     {
-      if (firstTime)
+      // only function types need to be written here
+      continue;
+    }
+    if (d_tcWritten.find(curr.get())!=d_tcWritten.end())
+    {
+      // already written
+      continue;
+    }
+    os << "  // type rule for " << curr << std::endl;
+    std::cout << "writeTypeChecking " << curr << std::endl;
+    d_tcWritten.insert(t.get());
+    size_t id = writeRunId(d_init, curr);
+    std::stringstream osEnd;
+    os << "  case " << id << ":" << std::endl;
+    os << "  {" << std::endl;
+    osEnd << "  }" << std::endl;
+    osEnd << "  break;" << std::endl;
+
+    // if the return type is ground, we don't need to build a context
+    std::vector<Expr>& children = curr->d_children;
+    Expr& retType = children.back();
+    bool isEval = retType->isEvaluatable();
+    std::cout << "isEval=" << isEval << std::endl;
+    if (isEval)
+    {
+      os << "  std::vector<Expr> evalArgs;" << std::endl;
+    }
+    // write the free symbols of the return type as (local) variables
+    std::stringstream tmp;
+    size_t idCount = 1;
+    std::map<ExprValue*, size_t> idMap;
+    // write the matching
+    std::vector<std::string> reqs;
+    std::vector<std::string> varAssign;
+    std::map<ExprValue*, std::string> visited;
+    for (size_t i=0, nargs=children.size()-1; i<nargs; i++)
+    {
+      std::vector<Expr> fvs = d_state.getTypeChecker().getFreeSymbols(children[i]);
+      for (const Expr& v : fvs)
       {
-        firstTime = false;
+        if (idMap.find(v.get())!=idMap.end())
+        {
+          continue;
+        }
+        writeExprInternal(tmp, os, v, idCount, idMap, "_p");
+      }
+      std::vector<Expr> pats{children[i]};
+      std::stringstream ss;
+      ss << "args[" << i << "]";
+      // write matching code
+      writeMatching(os, pats, ss.str(), idMap, reqs, varAssign, visited);
+    }
+    bool matchesArgs = !idMap.empty();
+    if (!reqs.empty())
+    {
+      os << "  // check requirements" << std::endl;
+      os << "  if (!(";
+      bool firstTime = true;
+      for (const std::string& r : reqs)
+      {
+        if (firstTime)
+        {
+          firstTime = false;
+        }
+        else
+        {
+          os << " && ";
+        }
+        os << r;
+      }
+      os << "))" << std::endl;
+      os << "  {" << std::endl;
+      os << "     return nullptr;" << std::endl;
+      os << "  }" << std::endl;
+    }
+    os << "  // assign variables" << std::endl;
+    for (const std::string& va : varAssign)
+    {
+      os << "  " << va << ";" << std::endl;
+    }
+    if (!isEval)
+    {
+      os << "  // construct return type" << std::endl;
+      // if ground, write the construction of the return type statically in declarations
+      // if non-ground, write the construction of the return type locally
+      if (matchesArgs && !retType->isGround())
+      {
+        size_t retId = writeExprInternal(os, os, retType, idCount, idMap, "_p");
+        // just return the id computed above
+        os << "  return _p" << retId << ";" << std::endl;
       }
       else
       {
-        os << " && ";
+        size_t retId = writeGlobalExpr(retType);
+        os << "  return _e" << retId << ";" << std::endl;
+        // currying this function will require another type
+        toVisit.push_back(retType);
       }
-      os << r;
     }
-    os << "))" << std::endl;
-    os << "  {" << std::endl;
-    os << "     return nullptr;" << std::endl;
-    os << "  }" << std::endl;
-  }
-  for (const std::string& va : varAssign)
-  {
-    os << "  " << va << ";" << std::endl;
-  }
-  if (!isEval)
-  {
-    // if ground, write the construction of the return type statically in declarations
-    // if non-ground, write the construction of the return type locally
-    std::ostream& osr = retType->isGround() ? d_decl : os;
-    std::cout << "retGround=" << retType->isGround() << std::endl;
-    size_t retId = writeExpr(osr, retType);
-    // just return the id computed above
-    os << "  return _e" << retId << ";" << std::endl;
-  }
-  else
-  {
-    os << "  return run_evaluate();" << std::endl;;
-  }
-  os << osEnd.str();
+    else
+    {
+      os << "  return run_evaluate();" << std::endl;;
+    }
+    os << osEnd.str();
+  }while (!toVisit.empty());
 }
 
 void Compiler::writeMatching(std::ostream& os,
                              std::vector<Expr>& pats,
                              const std::string& t,
+                             const std::map<ExprValue*, size_t>& idMap,
                              std::vector<std::string>& reqs,
                              std::vector<std::string>& varAssign,
                              std::map<ExprValue*, std::string>& visited)
@@ -329,7 +377,7 @@ void Compiler::writeMatching(std::ostream& os,
   std::vector<std::pair<std::vector<size_t>, Expr>> toVisit;
   toVisit.emplace_back(std::pair<std::vector<size_t>, Expr>({}, pat));
   std::pair<std::vector<size_t>, Expr> curr;
-  std::map<ExprValue*, size_t>::iterator it;
+  std::map<ExprValue*, size_t>::const_iterator it;
   std::map<ExprValue*, std::string>::iterator itv;
   do
   {
@@ -343,10 +391,10 @@ void Compiler::writeMatching(std::ostream& os,
       itv = visited.find(p.get());
       if (itv==visited.end())
       {
-        it = d_idMap.find(p.get());
-        // Assert (it !=d_idMap.end());
+        it = idMap.find(p.get());
+        // Assert (it !=idMap.end());
         std::stringstream ssv;
-        ssv << "_e" << it->second << " = " << cterm;
+        ssv << "_p" << it->second << " = " << cterm;
         varAssign.push_back(ssv.str());
         // map to the name we already bound
         visited[p.get()] = cterm;
@@ -358,10 +406,11 @@ void Compiler::writeMatching(std::ostream& os,
         sseq << cterm << "==" << itv->second;
         reqs.push_back(sseq.str());
       }
+      continue;
     }
     else if (p->isGround())
     {
-      size_t id = writeExpr(d_decl, p);
+      size_t id = writeGlobalExpr(p);
       std::stringstream ssg;
       ssg << cterm  << "==_e" << id;
       reqs.push_back(ssg.str());
@@ -391,7 +440,7 @@ size_t Compiler::writeEvaluation(std::ostream& os, const Expr& e)
   if (!e->isEvaluatable())
   {
     // unevaluated types just return themselves
-    return writeExpr(d_init, e);
+    return writeGlobalExpr(e);
   }
   //size_t id = writeRunId(d_init, e);
 
@@ -423,7 +472,7 @@ std::string Compiler::getNameForPath(const std::string& t, const std::vector<siz
   cterm << t;
   for (size_t i : path)
   {
-    cterm << "[" << i << "]";
+    cterm << "->getChildren()[" << i << "]";
   }
   return cterm.str();
 }

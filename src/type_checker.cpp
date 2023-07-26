@@ -505,6 +505,10 @@ std::vector<Expr> TypeChecker::getFreeSymbols(Expr& e) const
   {
     cur = toVisit.back();
     toVisit.pop_back();
+    if (e->isGround())
+    {
+      continue;
+    }
     if (visited.find(cur)!=visited.end())
     {
       continue;

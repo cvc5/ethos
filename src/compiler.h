@@ -85,8 +85,14 @@ private:
    *
    * Ensures that returned size_t i is such that _e`i` is in scope.
    */
-  size_t writeExpr(std::ostream& os, const Expr& e);
-  size_t writeExprInternal(std::ostream& os, const Expr& e, size_t& idCount, std::map<ExprValue*, size_t>& idMap);
+  size_t writeGlobalExpr(const Expr& e);
+  size_t writeExprInternal(std::ostream& os,
+                           std::ostream& decl,
+                          const Expr& e,
+                          size_t& idCount,
+                          std::map<ExprValue*, size_t>& idMap,
+                          const std::string& prefix,
+                          bool isGlobal = false);
   /**
    * Write type checking code for t
    */
@@ -99,6 +105,7 @@ private:
   void writeMatching(std::ostream& os,
                              std::vector<Expr>& pats,
                              const std::string& t,
+                             const std::map<ExprValue*, size_t>& idMap,
                              std::vector<std::string>& reqs,
                              std::vector<std::string>& varAssign,
                              std::map<ExprValue*, std::string>& visited);
