@@ -309,15 +309,10 @@ Expr ExprParser::parseExpr()
         // ------------------------- annotated terms
         case ParseCtx::TERM_ANNOTATE_BODY:
         {
-          // save ret as the expression and clear
-          tstack.back().push_back(ret);
-          ret = nullptr;
           // now parse attribute list
           std::map<Attr, Expr> attrs;
-          Expr e = tstack.back()[0];
-          parseAttributeList(e, attrs);
+          parseAttributeList(ret, attrs);
           // process the attributes
-          bool wasImplicit = false;
           for (const std::pair<const Attr, Expr>& a : attrs)
           {
             switch(a.first)
@@ -334,7 +329,8 @@ Expr ExprParser::parseExpr()
               }
                 break;
               case Attr::IMPLICIT:
-                wasImplicit = true;
+                // the term will not be added as an argument to the parent
+                ret = nullptr;
                 break;
               case Attr::SYNTAX:
                 // TODO: implies a Kind check for the type rule?
@@ -344,8 +340,8 @@ Expr ExprParser::parseExpr()
             }
           }
           d_lex.eatToken(Token::RPAREN);
-          // finished parsing attributes, we will return the original term
-          ret = wasImplicit ? nullptr : e;
+          // finished parsing attributes, ret is either nullptr if implicit,
+          // or the term we parsed as the body of the annotation.
           // process the scope change
           for (size_t i=0, nscopes = sstack.back(); i<nscopes; i++)
           {
