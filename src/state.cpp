@@ -360,7 +360,11 @@ bool State::bind(const std::string& name, const Expr& e)
     return false;
   }
   d_symTable[name] = e;
-  d_decls.push_back(name);
+  // only have to remember if not at global scope
+  if (!d_declsSizeCtx.empty())
+  {
+    d_decls.push_back(name);
+  }
   return true;
 }
 

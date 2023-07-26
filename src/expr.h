@@ -9,6 +9,7 @@
 
 namespace alfc {
 
+class Compiler;
 class State;
 class ExprValue;
 class TypeChecker;
@@ -18,6 +19,7 @@ class TypeChecker;
  */
 class ExprValue
 {
+  friend class Compiler;
   friend class State;
   friend class TypeChecker;
  public:

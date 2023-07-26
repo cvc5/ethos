@@ -83,6 +83,7 @@ bool CmdParser::parseNextCommand()
       Expr pt = d_state.mkProofType(proven);
       Expr v = d_state.mkConst(name, pt);
       d_eparser.bind(name, v);
+      d_state.addAssumption(v);
     }
     break;
     // (declare-fun <symbol> (<sort>∗) <sort>)
