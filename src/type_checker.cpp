@@ -102,6 +102,12 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
   {
     case Kind::APPLY:
     {
+      Expr& hd = e->d_children[0];
+      // if compiled, run the compiled version of the type checker
+      if (hd->isCompiled())
+      {
+        return run_getTypeInternal(e, out);
+      }
       Expr hdType = e->d_children[0]->d_type;
       //Assert (hdType!=nullptr)
       std::vector<Expr> expectedTypes;
@@ -143,6 +149,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
           return nullptr;
         }
       }
+      // evaluate in the matched context
       return evaluate(retType, ctx);
     }
     case Kind::LAMBDA:

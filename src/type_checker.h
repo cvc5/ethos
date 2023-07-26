@@ -36,6 +36,8 @@ class TypeChecker
   Expr evaluate(Expr& e, Ctx& ctx);
   Expr evaluate(Expr& e);
  private:
+  /** Compiled version */
+  Expr run_getTypeInternal(Expr& e, std::ostream* out);
   /** Return its type */
   Expr getTypeInternal(Expr& e, std::ostream* out);
   /** The state */

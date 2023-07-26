@@ -110,6 +110,8 @@ private:
    * Bind builtin
    */
   void bindBuiltin(const std::string& name, Kind k, bool isClosure, const Expr& t);
+  /** Compiled initialization */
+  void run_initialize();
   /** All free assumptions */
   std::vector<Expr> d_assumptions;
   /** The symbol table */

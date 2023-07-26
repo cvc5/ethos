@@ -13,6 +13,11 @@ State::State(Options& opts) : d_tc(*this), d_opts(opts)
   bindBuiltin("->", Kind::FUNCTION_TYPE, false);
   bindBuiltin("@", Kind::APPLY, false);
   // note we don't allow parsing (Proof ...), (Quote ...), or (quote ...).
+
+  if (d_opts.d_runCompile)
+  {
+    run_initialize();
+  }
 }
 
 State::~State(){}
