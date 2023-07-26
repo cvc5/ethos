@@ -55,8 +55,18 @@ bool ExprValue::isGround()
   return !getFlag(Flag::IS_NON_GROUND);
 }
 
+bool ExprValue::isCompiled()
+{
+  // this is set manually
+  return getFlag(Flag::IS_COMPILED);
+}
+
 void ExprValue::computeFlags()
 {
+  if (getFlag(Flag::IS_FLAGS_COMPUTED))
+  {
+    return;
+  }
   std::unordered_set<ExprValue*> visited;
   std::vector<ExprValue*> visit;
   visit.emplace_back(this);
@@ -64,15 +74,10 @@ void ExprValue::computeFlags()
   do
   {
     cur = visit.back();
-    if (cur->getFlag(Flag::IS_FLAGS_COMPUTED))
-    {
-      visit.pop_back();
-      continue;
-    }
+    cur->setFlag(Flag::IS_FLAGS_COMPUTED, true);
     std::vector<Expr>& children = cur->d_children;
     if (children.empty())
     {
-      cur->setFlag(Flag::IS_FLAGS_COMPUTED, true);
       bool isVar = (cur->getKind()==Kind::VARIABLE);
       cur->setFlag(Flag::IS_EVAL, isVar);
       cur->setFlag(Flag::IS_NON_GROUND, isVar);
@@ -83,13 +88,15 @@ void ExprValue::computeFlags()
       visited.insert(cur);
       for (Expr& c : children)
       {
-        visit.push_back(c.get());
+        if (!c->getFlag(Flag::IS_FLAGS_COMPUTED))
+        {
+          visit.push_back(c.get());
+        }
       }
     }
     else
     {
       visit.pop_back();
-      cur->setFlag(Flag::IS_FLAGS_COMPUTED, true);
       if (cur->getKind()==Kind::APPLY && 
           children[0]->getKind()==Kind::PROGRAM_CONST)
       {
