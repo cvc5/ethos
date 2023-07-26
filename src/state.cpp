@@ -188,7 +188,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     {
       if (ai->d_kind==Kind::FUNCTION_TYPE)
       {
-        // functions additionally are flattened
+        // functions (from parsing) are flattened here
         std::vector<Expr> achildren(children.begin()+1, children.end()-1);
         return mkFunctionType(achildren, children.back());
       }
@@ -236,6 +236,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
             }
             return curr;
           }
+          // otherwise partial??
         }
           break;
         case Attr::CHAINABLE:
@@ -268,11 +269,29 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           break;
       }
     }
-    // all functions of kind CONST or VARIABLE are unary and may require
+    Kind hk = hd->getKind();
+    if (hk==Kind::LAMBDA)
+    {
+      // beta-reduce, if the right arity
+      std::vector<Expr>& vars = (*hd.get())[0]->d_children;
+      size_t nvars = vars.size();
+      if (nvars==children.size()-1)
+      {
+        Ctx ctx;
+        for (size_t i=0; i<nvars; i++)
+        {
+          ctx[vars[i]] = children[i+1];
+        }
+        Expr body = (*hd.get())[1];
+        Expr ret = d_tc.evaluate(body, ctx);
+        //std::cout << "BETA_REDUCE " << body << " -> " << ret << std::endl;
+        return ret;
+      }
+    }
+    // all functions of kind CONST or VARIABLE are unary and require
     // currying if applied to more than one argument.
     if (children.size()>2)
     {
-      Kind hk = hd->getKind();
       if (hk==Kind::CONST || hk==Kind::VARIABLE)
       {
         // return the curried version

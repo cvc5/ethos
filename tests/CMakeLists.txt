@@ -21,6 +21,7 @@ set(alfc_test_file_list
     chainable.smt2
     substitution.smt2
     substitution-binary-only.smt2
+    beta-reduce-define-fun.smt2
 )
 
 macro(alfc_test file)

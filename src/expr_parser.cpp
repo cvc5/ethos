@@ -416,6 +416,7 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList()
     parseAttributeList(v, attrs);
     d_state.markAttributes(v, attrs);
     d_lex.eatToken(Token::RPAREN);
+    varList.push_back(v);
   }
   return varList;
 }
