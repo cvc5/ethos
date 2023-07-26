@@ -3,8 +3,6 @@
 #include "error.h"
 #include "parser.h"
 
-#define FLAT_FUNCTIONS
-
 namespace alfc {
 
 State::State() : d_tc(*this)
@@ -91,7 +89,6 @@ Expr State::mkType()
 
 Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool flatten)
 {
-#ifdef FLAT_FUNCTIONS
   if (flatten && args.size()>1)
   {
     Expr curr = ret;
@@ -102,7 +99,6 @@ Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool 
     }
     return curr;
   }
-#endif  
   std::vector<Expr> atypes(args.begin(), args.end());
   atypes.push_back(ret);
   return mkExprInternal(Kind::FUNCTION_TYPE, atypes);
@@ -294,12 +290,11 @@ Expr State::mkLiteral(Kind k, const std::string& s)
 
 Expr State::mkApplyInternal(const std::vector<Expr>& children)
 {
-#ifdef FLAT_FUNCTIONS
-  Expr curr = children[0];
-  if (curr->getKind()==Kind::CONST || curr->getKind()==Kind::VARIABLE)
+  if (children[0]->getKind()==Kind::CONST || children[0]->getKind()==Kind::VARIABLE)
   {
     if (children.size()>2)
     {
+      Expr curr = children[0];
       for (size_t i=1, nchildren = children.size(); i<nchildren; i++)
       {
         curr = mkExprInternal(Kind::APPLY, {curr, children[i]}, true);
@@ -307,7 +302,6 @@ Expr State::mkApplyInternal(const std::vector<Expr>& children)
       return curr;
     }
   }
-#endif
   return mkExprInternal(Kind::APPLY, children, true);
 }
 Expr State::mkExprInternal(Kind k, const std::vector<Expr>& children, bool doHash)

@@ -98,7 +98,6 @@ Expr TypeChecker::getType(Expr& e, std::ostream* out)
 Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
 {
   // TODO: check arities
-  // TODO: don't need to check child nullptr?
   switch(e->getKind())
   {
     case Kind::APPLY:
@@ -173,14 +172,12 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
     case Kind::TYPE:
     case Kind::ABSTRACT_TYPE:
     case Kind::BOOL_TYPE:
+    case Kind::FUNCTION_TYPE:
       return d_state.mkType();
     case Kind::PROOF_TYPE:
     {
-      Expr ctype = e->d_children[0]->d_type;
-      if (ctype==nullptr)
-      {
-        return nullptr;
-      }
+      const Expr& ctype = e->d_children[0]->d_type;
+      //Assert (ctype!=nullptr);
       if (ctype->getKind()!=Kind::BOOL_TYPE)
       {
         if (out)
@@ -190,24 +187,6 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
         return nullptr;
       }
     }
-      return d_state.mkType();
-    case Kind::FUNCTION_TYPE:
-      // the children must be types
-      /*
-      for (Expr& c : e->d_children)
-      {
-        Expr ctype = c->d_type;
-        //Assert (ctype!=nullptr);
-        if (ctype->getKind()!=Kind::TYPE)
-        {
-          if (out)
-          {
-            (*out) << "Non-type for function, got " << c << " has type " << ctype;
-          }
-          return nullptr;
-        }
-      }
-      */
       return d_state.mkType();
     case Kind::REQUIRES_TYPE:
       for (size_t i=0, nreq = e->d_children.size()-1; i<nreq; i++)
@@ -238,6 +217,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
       Expr t = d_literalTypeRules[k];
       if (t==nullptr)
       {
+        // If no type rule, assign the type rule to the builtin type
         t = d_state.mkBuiltinType(k);
         d_literalTypeRules[k] = t;
       }
