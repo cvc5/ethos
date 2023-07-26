@@ -13,12 +13,19 @@
 #include "type_checker.h"
 
 namespace alfc {
-  
+
+class Options
+{
+public:
+  bool d_compile;
+  bool d_runCompile;
+};
+
 class State
 {
   friend class TypeChecker;
 public:
-  State();
+  State(Options& opts);
   ~State();
   /** Reset */
   void reset();
@@ -76,6 +83,8 @@ public:
   ExprInfo* getOrMkInfo(const ExprValue* e);
   /** Get the type checker */
   TypeChecker& getTypeChecker();
+  /** Get options */
+  Options& getOptions();
   
   /** Mark information */
   bool markAttributes(const Expr& v, const std::map<Attr, Expr>& attrs);
@@ -125,6 +134,8 @@ private:
   std::map<Expr, Expr> d_programs;
   /** Type checker */
   TypeChecker d_tc;
+  /** Options */
+  Options& d_opts;
 };
 
 }  // namespace alfc

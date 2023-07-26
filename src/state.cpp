@@ -5,7 +5,7 @@
 
 namespace alfc {
 
-State::State() : d_tc(*this)
+State::State(Options& opts) : d_tc(*this), d_opts(opts)
 {
   ExprValue::d_state = this;
   
@@ -272,7 +272,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     Kind hk = hd->getKind();
     if (hk==Kind::LAMBDA)
     {
-      // beta-reduce, if the right arity
+      // beta-reduce eagerly, if the right arity
       std::vector<Expr>& vars = (*hd.get())[0]->d_children;
       size_t nvars = vars.size();
       if (nvars==children.size()-1)
@@ -412,6 +412,11 @@ AppInfo* State::getAppInfo(const ExprValue* e)
 TypeChecker& State::getTypeChecker()
 {
   return d_tc;
+}
+
+Options& State::getOptions()
+{
+  return d_opts;
 }
 
 void State::bindBuiltin(const std::string& name, Kind k, bool isClosure)
