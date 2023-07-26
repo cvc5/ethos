@@ -182,19 +182,21 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
   {
     // Assert (!children.empty());
     // see if there is a special way of building terms for the head
-    AppInfo * ai = children.empty() ? nullptr : getAppInfo(children[0].get());
+    const Expr& hd = children[0];
+    AppInfo * ai = children.empty() ? nullptr : getAppInfo(hd.get());
     if (ai!=nullptr)
     {
-      // if it corresponds to a builtin operator
       if (ai->d_kind==Kind::FUNCTION_TYPE)
       {
+        // functions additionally are flattened
         std::vector<Expr> achildren(children.begin()+1, children.end()-1);
         return mkFunctionType(achildren, children.back());
       }
       else if (ai->d_kind!=Kind::NONE)
       {
+        // another builtin operator, possibly APPLY
         std::vector<Expr> achildren(children.begin()+1, children.end());
-        return mkExpr(ai->d_kind, achildren);
+        return mkExprInternal(ai->d_kind, achildren);
       }
       // if it has a constructor attribute
       switch (ai->d_attrCons)
@@ -206,7 +208,6 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           if (nchild>2)
           {
             bool isLeft = (ai->d_attrCons==Attr::LEFT_ASSOC);
-            Expr hd = children[0];
             size_t i = 1;
             Expr curr = children[isLeft ? i : nchild-i];
             std::vector<Expr> cc{hd, nullptr, nullptr};
@@ -260,14 +261,24 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           break;
         case Attr::PAIRWISE:
         {
-          // TODO
+          // TODO: pairwise construction
         }
           break;
         default:
           break;
       }
     }
-    return mkApplyInternal(children);
+    // all functions of kind CONST or VARIABLE are unary and may require
+    // currying if applied to more than one argument.
+    if (children.size()>2)
+    {
+      Kind hk = hd->getKind();
+      if (hk==Kind::CONST || hk==Kind::VARIABLE)
+      {
+        // return the curried version
+        return mkApplyInternal(children);
+      }
+    }
   }
   return mkExprInternal(k, children);
 }
@@ -290,20 +301,16 @@ Expr State::mkLiteral(Kind k, const std::string& s)
 
 Expr State::mkApplyInternal(const std::vector<Expr>& children)
 {
-  if (children[0]->getKind()==Kind::CONST || children[0]->getKind()==Kind::VARIABLE)
+  // Assert(children.size()>2);
+  // requires currying
+  Expr curr = children[0];
+  for (size_t i=1, nchildren = children.size(); i<nchildren; i++)
   {
-    if (children.size()>2)
-    {
-      Expr curr = children[0];
-      for (size_t i=1, nchildren = children.size(); i<nchildren; i++)
-      {
-        curr = mkExprInternal(Kind::APPLY, {curr, children[i]}, true);
-      }
-      return curr;
-    }
+    curr = mkExprInternal(Kind::APPLY, {curr, children[i]}, true);
   }
-  return mkExprInternal(Kind::APPLY, children, true);
+  return curr;
 }
+
 Expr State::mkExprInternal(Kind k, const std::vector<Expr>& children, bool doHash)
 {
   ExprTrie* et = nullptr;
