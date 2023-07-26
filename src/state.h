@@ -11,6 +11,7 @@
 #include "expr_info.h"
 #include "expr_trie.h"
 #include "type_checker.h"
+#include "compiler.h"
 
 namespace alfc {
 
@@ -85,16 +86,18 @@ public:
   TypeChecker& getTypeChecker();
   /** Get options */
   Options& getOptions();
+  /** Get compiler */
+  Compiler* getCompiler();
   
   /** Mark information */
   bool markAttributes(const Expr& v, const std::map<Attr, Expr>& attrs);
   /** Define program */
   void defineProgram(const Expr& v, const Expr& prog);
-  /** Has program? */
-  bool hasProgram(const Expr& v) const;
   /** Maybe evaluate */
   Expr evaluate(const std::vector<Expr>& children, Ctx& newCtx);
 private:
+  /** include file, if not already done */
+  void includeFileInternal(const std::string& s, bool ignore=false);
   /** */
   Expr mkApplyInternal(const std::vector<Expr>& children);
   Expr mkExprInternal(Kind k, const std::vector<Expr>& children, bool doHash=true);
@@ -138,6 +141,8 @@ private:
   TypeChecker d_tc;
   /** Options */
   Options& d_opts;
+  /** Compiler, if compiling code */
+  std::unique_ptr<Compiler> d_compiler;
 };
 
 }  // namespace alfc

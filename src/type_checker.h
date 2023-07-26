@@ -35,11 +35,15 @@ class TypeChecker
    */
   Expr evaluate(Expr& e, Ctx& ctx);
   Expr evaluate(Expr& e);
+  /** Get the free symbols */
+  std::vector<Expr> getFreeSymbols(Expr& e) const;
  private:
   /** Compiled version */
-  Expr run_getTypeInternal(Expr& e, std::ostream* out);
+  Expr run_getTypeInternal(Expr& hd, std::vector<Expr>& args, std::ostream* out);
   /** Return its type */
   Expr getTypeInternal(Expr& e, std::ostream* out);
+  /** Compiled version */
+  Expr run_evaluate(Expr& hd, std::vector<Expr>& args);
   /** The state */
   State& d_state;
   /** The builtin literal kinds */

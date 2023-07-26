@@ -68,8 +68,42 @@ private:
   std::stringstream d_evalEnd;
   /** Maps expressions to identifiers */
   std::map<ExprValue*, size_t> d_idMap;
-  /** Write expression, return identifier */
+  /**
+   * Run identifiers, allocated for terms that we have compiled type checking or evaluation for.
+   * Uses the same identifiers as in d_idMap.
+   */
+  std::map<ExprValue*, size_t> d_runIdMap;
+  /** */
+  std::unordered_set<ExprValue*> d_tcWritten;
+  std::unordered_set<ExprValue*> d_evalWritten;
+  /** Get id */
+  size_t getId(const Expr& v);
+  /** Write run id */
+  size_t writeRunId(std::ostream& os, const Expr& e);
+  /**
+   * Write expression, return identifier.
+   *
+   * Ensures that returned size_t i is such that _e`i` is in scope.
+   */
   size_t writeExpr(std::ostream& os, const Expr& e);
+  size_t writeExprInternal(std::ostream& os, const Expr& e, size_t& idCount, std::map<ExprValue*, size_t>& idMap);
+  /**
+   * Write type checking code for t
+   */
+  void writeTypeChecking(std::ostream& os, const Expr& e);
+  /**
+   * Write evaluation
+   */
+  size_t writeEvaluation(std::ostream& os, const Expr& e);
+  /** Write matching code for */
+  void writeMatching(std::ostream& os,
+                             std::vector<Expr>& pats,
+                             const std::string& t,
+                             std::vector<std::string>& reqs,
+                             std::vector<std::string>& varAssign,
+                             std::map<ExprValue*, std::string>& visited);
+  /** Get name for path */
+  std::string getNameForPath(const std::string& t, const std::vector<size_t>& path) const;
 };
 
 }  // namespace alfc

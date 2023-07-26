@@ -48,9 +48,6 @@ class ExprValue
    * @param os the stream to print to
    */
   static void printDebug(const std::shared_ptr<ExprValue>& e, std::ostream& os);
-
-  /** Get the free symbols */
-  std::unordered_set<std::shared_ptr<ExprValue>> getFreeSymbols() const;
   /** Has variable */
   bool isEvaluatable();
   /** Has variable */

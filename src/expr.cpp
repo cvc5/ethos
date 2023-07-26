@@ -35,13 +35,6 @@ std::shared_ptr<ExprValue> ExprValue::operator[](size_t i) const
   return d_children[i];
 }
 
-std::unordered_set<std::shared_ptr<ExprValue>> ExprValue::getFreeSymbols() const
-{
-  std::unordered_set<std::shared_ptr<ExprValue>> ret;
-  // TODO: free symbols?
-  return ret;
-}
-
 bool ExprValue::isEvaluatable()
 {
   computeFlags();
@@ -78,7 +71,7 @@ void ExprValue::computeFlags()
     if (children.empty())
     {
       bool isVar = (cur->getKind()==Kind::VARIABLE);
-      cur->setFlag(Flag::IS_EVAL, isVar);
+      cur->setFlag(Flag::IS_EVAL, false);
       cur->setFlag(Flag::IS_NON_GROUND, isVar);
       visit.pop_back();
     }

@@ -102,13 +102,15 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
   {
     case Kind::APPLY:
     {
-      Expr& hd = e->d_children[0];
+      std::vector<Expr>& children = e->d_children;
+      Expr& hd = children[0];
       // if compiled, run the compiled version of the type checker
       if (hd->isCompiled())
       {
-        return run_getTypeInternal(e, out);
+        std::vector<Expr> args(children.begin()+1, children.end());
+        return run_getTypeInternal(hd, args, out);
       }
-      Expr hdType = e->d_children[0]->d_type;
+      Expr hdType = hd->d_type;
       //Assert (hdType!=nullptr)
       std::vector<Expr> expectedTypes;
       if (hdType->getKind()!=Kind::FUNCTION_TYPE)
@@ -121,21 +123,21 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
         return nullptr;
       }
       std::vector<Expr>& hdtypes = hdType->d_children;
-      if (hdtypes.size()!=e->d_children.size())
+      if (hdtypes.size()!=children.size())
       {
         // incorrect arity
         if (out)
         {
-          (*out) << "Incorrect arity, #argTypes=" << hdtypes.size() << " #children=" << e->d_children.size();
+          (*out) << "Incorrect arity, #argTypes=" << hdtypes.size() << " #children=" << children.size();
         }
         return nullptr;
       }
       Expr retType = hdtypes.back();
       Ctx ctx;
       std::set<std::pair<Expr, Expr>> visited;
-      for (size_t i=1, nchild=e->d_children.size(); i<nchild; i++)
+      for (size_t i=1, nchild=children.size(); i<nchild; i++)
       {
-        Expr ctype = e->d_children[i]->d_type;
+        Expr ctype = children[i]->d_type;
         // Assert (ctype!=nullptr);
         // unification, update retType
         if (!match(hdtypes[i-1], ctype, ctx, visited))
@@ -348,7 +350,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
     {
       cur = visit.back();
       // unevaluatable terms stay the same
-      if (!cur->isEvaluatable())
+      if (!cur->isEvaluatable() && (cur->isGround() || cctx.empty()))
       {
         visited[cur] = cur;
         visit.pop_back();
@@ -425,20 +427,28 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
             // maybe evaluate the program?
             if (cchildren[0]->getKind()==Kind::PROGRAM_CONST)
             {
-              ctxs.emplace_back();
-              // see if we evaluate 
-              evaluated = d_state.evaluate(cchildren, ctxs.back());
-              if (ctxs.back().empty())
+              if (cchildren[0]->isCompiled())
               {
-                // if there is no context, we don't have to push a scope
-                ctxs.pop_back();
+                std::vector<Expr> pargs(cchildren.begin()+1, cchildren.end());
+                evaluated = run_evaluate(cchildren[0], pargs);
               }
               else
               {
-                // otherwise push an evaluation scope
-                newContext = true;
-                visits.emplace_back(std::vector<Expr>{evaluated});
-                visiteds.emplace_back();
+                ctxs.emplace_back();
+                // see if we evaluate
+                evaluated = d_state.evaluate(cchildren, ctxs.back());
+                if (ctxs.back().empty())
+                {
+                  // if there is no context, we don't have to push a scope
+                  ctxs.pop_back();
+                }
+                else
+                {
+                  // otherwise push an evaluation scope
+                  newContext = true;
+                  visits.emplace_back(std::vector<Expr>{evaluated});
+                  visiteds.emplace_back();
+                }
               }
             }
             break;
@@ -480,6 +490,34 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
   std::cout << "EVALUATE " << e << ", " << ctx << " = " << evaluated << std::endl;
   //Assert(visited.find(this) != visited.end());
   return evaluated;
+}
+
+
+
+std::vector<Expr> TypeChecker::getFreeSymbols(Expr& e) const
+{
+  std::vector<Expr> ret;
+  std::unordered_set<Expr> visited;
+  std::vector<Expr> toVisit;
+  toVisit.push_back(e);
+  Expr cur;
+  do
+  {
+    cur = toVisit.back();
+    toVisit.pop_back();
+    if (visited.find(cur)!=visited.end())
+    {
+      continue;
+    }
+    visited.insert(cur);
+    if (cur->getKind()==Kind::VARIABLE)
+    {
+      ret.push_back(cur);
+      continue;
+    }
+    toVisit.insert(toVisit.end(), cur->d_children.begin(), cur->d_children.end());
+  }while (!toVisit.empty());
+  return ret;
 }
 
 }  // namespace alfc

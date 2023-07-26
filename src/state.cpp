@@ -16,7 +16,12 @@ State::State(Options& opts) : d_tc(*this), d_opts(opts)
 
   if (d_opts.d_runCompile)
   {
+    // Assert (!d_opts.d_compile);
     run_initialize();
+  }
+  else if (d_opts.d_compile)
+  {
+    d_compiler.reset(new Compiler(*this));
   }
 }
 
@@ -28,16 +33,28 @@ void State::reset()
   d_symTable.clear();
   d_decls.clear();
   d_declsSizeCtx.clear();
+  if (d_compiler!=nullptr)
+  {
+    d_compiler->reset();
+  }
 }
 
 void State::pushScope()
 {
   //std::cout << "push" << std::endl;
   d_declsSizeCtx.push_back(d_decls.size());
+  if (d_compiler!=nullptr)
+  {
+    d_compiler->pushScope();
+  }
 }
 
 void State::popScope()
 {
+  if (d_compiler!=nullptr)
+  {
+    d_compiler->popScope();
+  }
   //std::cout << "pop" << std::endl;
   if (d_declsSizeCtx.empty())
   {
@@ -55,6 +72,11 @@ void State::popScope()
 
 void State::includeFile(const std::string& s)
 {
+  includeFileInternal(s, false);
+}
+
+void State::includeFileInternal(const std::string& s, bool ignore)
+{
   std::filesystem::path inputPath;
   try {
     inputPath = std::filesystem::canonical(d_inputFile.parent_path() / s);
@@ -70,7 +92,15 @@ void State::includeFile(const std::string& s)
   }
   d_includes.insert(inputPath);
   d_inputFile = inputPath;
+  if (d_compiler!=nullptr)
+  {
+    d_compiler->includeFile(s);
+  }
   std::cout << "Include " << inputPath << std::endl;
+  if (ignore)
+  {
+    return;
+  }
   Parser p(*this);
   p.setFileInput(inputPath);
   bool parsedCommand;
@@ -85,6 +115,10 @@ void State::includeFile(const std::string& s)
 void State::addAssumption(const Expr& a)
 {
   d_assumptions.push_back(a);
+  if (d_compiler!=nullptr)
+  {
+    d_compiler->addAssumption(a);
+  }
 }
 
 Expr State::mkType()
@@ -364,6 +398,10 @@ bool State::bind(const std::string& name, const Expr& e)
   {
     return false;
   }
+  if (d_compiler!=nullptr)
+  {
+    d_compiler->bind(name, e);
+  }
   d_symTable[name] = e;
   // only have to remember if not at global scope
   if (!d_declsSizeCtx.empty())
@@ -428,6 +466,11 @@ Options& State::getOptions()
   return d_opts;
 }
 
+Compiler* State::getCompiler()
+{
+  return d_compiler.get();
+}
+
 void State::bindBuiltin(const std::string& name, Kind k, bool isClosure)
 {
   // type is irrelevant, assign abstract
@@ -453,11 +496,10 @@ void State::bindBuiltin(const std::string& name, Kind k, bool isClosure, const E
 void State::defineProgram(const Expr& v, const Expr& prog)
 {
   d_programs[v] = prog;
-}
-
-bool State::hasProgram(const Expr& v) const
-{
-  return d_programs.find(v)!=d_programs.end();
+  if (d_compiler!=nullptr)
+  {
+    d_compiler->defineProgram(v, prog);
+  }
 }
 
 Expr State::evaluate(const std::vector<Expr>& children, Ctx& newCtx)
@@ -499,11 +541,7 @@ bool State::markAttributes(const Expr& v, const std::map<Attr, Expr>& attrs)
         ai.d_attrCons = a.first;
         ai.d_attrConsTerm = a.second;
         // TODO: ensure its type has the right shape here?
-        //
-        if (a.first==Attr::CHAINABLE && a.second==nullptr)
-        {
-          return false;
-        }
+        // would catch errors earlier
         break;
       case Attr::LIST:
         // remember it has been marked

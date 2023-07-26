@@ -38,7 +38,13 @@ int main( int argc, char* argv[] )
   }
   // include the file
   State s(opts);
-  s.includeFile(argv[1]);
+  s.includeFile(argv[i]);
   std::cout << "success" << std::endl;
+  if (opts.d_compile)
+  {
+    Compiler * c = s.getCompiler();
+    std::cout << "/** ================ AUTO GENERATED ============ */" << std::endl;
+    std::cout << c->toString() << std::endl;
+  }
   return 0;
 }

@@ -535,8 +535,6 @@ void ExprParser::parseAttributeList(const Expr& e, std::map<Attr, Expr>& attrs)
         break;
       case Attr::RIGHT_ASSOC:
       case Attr::LEFT_ASSOC:
-      case Attr::CHAINABLE:
-      case Attr::PAIRWISE:
       {
         // optional value
         Token tok = d_lex.peekToken();
@@ -545,6 +543,13 @@ void ExprParser::parseAttributeList(const Expr& e, std::map<Attr, Expr>& attrs)
           val = parseExpr();
         }
       } 
+        break;
+      case Attr::CHAINABLE:
+      case Attr::PAIRWISE:
+      {
+        // requires an expression that follows
+        val = parseExpr();
+      }
         break;
       default:
         d_lex.parseError("Unhandled attribute");
