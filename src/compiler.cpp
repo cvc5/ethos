@@ -197,9 +197,9 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
   {
     return;
   }
+  size_t vid = writeGlobalExpr(v);
   // ensure the program is defined
   // NOTE: don't need this once programs are always evaluated below
-  size_t vid = writeGlobalExpr(v);
   size_t pid = writeGlobalExpr(prog);
   d_init << "  defineProgram(_e" << vid << ", _e" << pid << ");" << std::endl;
     
@@ -211,8 +211,18 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
   // ensure all variables in the type are declared (but not constructed)
   std::vector<Expr> fvs = getFreeSymbols(prog);
   pscope.ensureDeclared(fvs);
+
+  std::ostream& os = d_evalp;
+  size_t id = markCompiled(d_init, v);
+  std::stringstream osEnd;
+  os << "  case " << id << ":" << std::endl;
+  os << "  {" << std::endl;
+  osEnd << "  }" << std::endl;
+  osEnd << "  break;" << std::endl;
   
-  // for each case
+  
+    
+  // write evaluation for subterms of each case
   std::vector<Expr>& progChildren = prog->d_children;
   for (Expr& c : progChildren)
   {
@@ -222,6 +232,9 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
     // compile the evaluation of the body
     writeEvaluate(d_eval, body);
   }
+  os << localDecl.str();
+  os << localImpl.str();
+  os << osEnd.str();
 }
 
 size_t Compiler::markCompiled(std::ostream& os, const Expr& e)
@@ -394,7 +407,7 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
       ssa << "a" << i;
       pscope.d_decl << "  Expr& " << ssa.str() << " = args[" << i << "];" << std::endl;
       // write matching code
-      writeMatching(pats, ssa.str(), pscope, reqs, varAssign);
+      writeMatching(pats, ssa.str(), pscope, reqs, varAssign, "return nullptr");
     }
     if (!reqs.empty())
     {
@@ -527,7 +540,8 @@ void Compiler::writeMatching(std::vector<Expr>& pats,
                              const std::string& t,
                              CompilerScope& s,
                              std::vector<std::string>& reqs,
-                             std::map<Expr, std::string>& varAssign)
+                             std::map<Expr, std::string>& varAssign,
+                             const std::string& failCmd)
 {
   if (pats.size()>1)
   {
@@ -587,7 +601,7 @@ void Compiler::writeMatching(std::vector<Expr>& pats,
     // must check this eagerly to avoid OOB
     decl << "  if(" << cterm << "->getNumChildren()!=" << p->getNumChildren() << ")" << std::endl;
     decl << "  {" << std::endl;
-    decl << "    return nullptr;" << std::endl;
+    decl << "    " << failCmd << ";" << std::endl;
     decl << "  }" << std::endl;
     std::vector<size_t> newPath = curr.first;
     newPath.push_back(0);

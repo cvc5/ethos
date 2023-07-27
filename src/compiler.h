@@ -152,7 +152,8 @@ private:
                       const std::string& t,
                       CompilerScope& s,
                       std::vector<std::string>& reqs,
-                      std::map<Expr, std::string>& varAssign);
+                      std::map<Expr, std::string>& varAssign,
+                      const std::string& failCmd);
   /** Get the free symbols */
   std::vector<Expr> getFreeSymbols(const Expr& e) const;
   /** Get the free symbols */
