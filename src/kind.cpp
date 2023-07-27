@@ -60,4 +60,13 @@ std::string kindToTerm(Kind k)
   return ss.str();
 }
 
+bool isVariable(Kind k)
+{
+  return k==Kind::VARIABLE || k==Kind::CONST || k==Kind::PROGRAM_CONST || k==Kind::PROOF_RULE;
+}
+bool isLiteral(Kind k)
+{
+  return k==Kind::INTEGER || k==Kind::DECIMAL || k==Kind::HEXADECIMAL || k==Kind::BINARY || k==Kind::STRING;
+}
+
 }  // namespace alfc

@@ -232,46 +232,62 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
       // allocate an identifier
       ret = cs.ensureDeclared(cur);
       std::ostream& os = cs.d_out;
+      if (isg)
+      {
+        // If global, write its type as well, separately. The recursion depth here is very limited.
+        if (cur->d_type!=nullptr)
+        {
+          tid = writeGlobalExpr(cur->d_type);
+        }
+      }
       os << "  " << cs.d_prefix << ret << " = ";
       if (!cs.d_isGlobal)
       {
         os << "d_state.";
       }
-      os << "mkExprInternal(Kind::" << cur->getKind() << ", {";
-      bool firstTime = true;
-      for (Expr& c : children)
+      Kind ck = cur->getKind();
+      if (isLiteral(ck))
       {
-        if (firstTime)
-        {
-          firstTime = false;
-        }
-        else
-        {
-          os << ", ";
-        }
-        // get the compiler scope for the child, which may be the global one
-        bool isgc = s.isGlobal() || c->isGround();
-        CompilerScope& csc = isgc ? d_global : s;
-        iti = csc.d_idMap.find(c.get());
-        // Assert (iti!=mu.end());
-        os << csc.d_prefix << iti->second;
-      }
-      os << "});" << std::endl;
-      // TODO: should hash?
-      if (isg)
-      {
-        // allocate information if necessary
         curInfo = d_state.getInfo(cur);
-        if (curInfo!=nullptr)
+        // Assert (curInfo!=nullptr);
+        os << "mkLiteral(Kind::" << cur->getKind() << ", \"" << curInfo->d_str << "\");" << std::endl;
+      }
+      else if (isVariable(ck))
+      {
+        // Assert (isg);
+        curInfo = d_state.getInfo(cur);
+        // Assert (curInfo!=nullptr);
+        os << "mkSymbolInternal(Kind::" << cur->getKind() << ", \"" << curInfo->d_str << "\", _e" << tid << ");" << std::endl;
+      }
+      else
+      {
+        os << "mkExprInternal(Kind::" << cur->getKind() << ", {";
+        bool firstTime = true;
+        for (Expr& c : children)
         {
-          os << "  _einfo = &d_exprData[" << d_global.d_prefix << ret << ".get()];" << std::endl;
-          os << "  _einfo->d_str = std::string(\"" << curInfo->d_str << "\");" << std::endl;
+          if (firstTime)
+          {
+            firstTime = false;
+          }
+          else
+          {
+            os << ", ";
+          }
+          // get the compiler scope for the child, which may be the global one
+          bool isgc = s.isGlobal() || c->isGround();
+          CompilerScope& csc = isgc ? d_global : s;
+          iti = csc.d_idMap.find(c.get());
+          // Assert (iti!=mu.end());
+          os << csc.d_prefix << iti->second;
         }
-        // Write its type as well, separately. The recursion depth here is very limited.
-        if (cur->d_type!=nullptr)
+        os << "});" << std::endl;
+        if (isg)
         {
-          tid = writeGlobalExpr(cur->d_type);
-          os << "  " << d_global.d_prefix << ret << "->d_type = " << d_global.d_prefix << tid << ";" << std::endl;
+          // cache its type
+          if (cur->d_type!=nullptr)
+          {
+            os << "  " << d_global.d_prefix << ret << "->d_type = " << d_global.d_prefix << tid << ";" << std::endl;
+          }
         }
       }
     }
@@ -392,12 +408,13 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
         size_t retId = writeExprInternal(retType, pscope);
         // just return the id computed above
         localImpl << "  return " << pprefix << retId << ";" << std::endl;
+        // note that the returned type is specific to the type rule, thus we don't also compile the return type.
       }
       else
       {
         size_t retId = writeGlobalExpr(retType);
         localImpl << "  return _e" << retId << ";" << std::endl;
-        // currying this function will require another type
+        // we return the return type verbatim, thus it is worthwhile to compile its type checking as well
         toVisit.push_back(retType);
       }
       // now print the declarations + implementation
