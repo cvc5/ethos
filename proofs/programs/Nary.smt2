@@ -1,88 +1,136 @@
 ; Programs to work with n-ary operators
 
+(include "../theories/Core.smt2")
+
 ; ====================================
 ;  Right-associative null-terminated
 ; ====================================
 
 ; The following functions work with right-associative symbols with a defined
-; null terminator.  Those behave somewhat simmilar to functional programming
+; null terminator.  Those behave somewhat similar to functional programming
 ; lists.  Therefore, the symbol will always be called `cons` in the following
 ; and the terminator will be `nil`.
-; One derivation from lists is that the syntactic suggar cannot be used to
+; One derivation from lists is that the syntactic sugar cannot be used to
 ; write unit lists. For example, consider a right-associative `or` with
-; `false` as the terminator, then `(or a b c)` correpsonds to
+; `false` as the terminator, then `(or a b c)` corresponds to
 ; `(or a (or b (or c false)))`, but `(or a)` is illegal.
-
-; What I need here (generic)
-;   - remove
-;   - append
-;   - intoList
-;   - fromList
 
 ; append c to the head of l
 (program append
-    ((U Type) (S Type) (cons (-> U U U)) (c S) (l U :list))
-    ((-> U U U) U U) U
+    ((U Type) (S Type) (cons (-> S U U)) (c S) (l U :list))
+    ((-> S U U) S U) U
     (
         ((append cons c l) (cons c l))
     )
 )
 
-; concatinates two lists l1, l2
+; concatenate two lists l1, l2
 (program concat
-    ((U Type) (S Type) (cons (-> U U U)) (nil U) (l1 U) (l1s U :list) (l2 U))
-    ((->  U U U) U U U) U
+    ((U Type) (S Type) (cons (-> S U U)) (nil S) (l1 U) (l1s U :list) (l2 U))
+    ((-> S U U) S U U) U
     (
         ((concat cons nil nil l2) l2)
         ((concat cons nil (cons l1 l1s) l2) (append cons l1 (concat cons nil l1s l2)))
     )
 )
 
-; Old stuff
-
-; removeRight t u
-; Remove the first occurence of t from a term u = (f c1 (f c2 ..))
-(program removeRight ((T Type) (f (-> T T T)) (t T) (u T) (c T))
-    (T T) T
+; remove the first occurence of c from l
+(program remove
+    ((U Type) (S Type) (cons (-> S U U)) (nil S) (c S) (cp S) (l U :list))
+    ((-> S U U) S S U) U
     (
-        ((removeRight t (f u t)) u)
-        ((removeRight t (f t u)) u)
-        ((removeRight t (f c u)) (f c (removeRight t u)))
-        ((removeRight t c) c)
+        ((remove cons nil c nil) nil)
+        ((remove cons nil c (cons c l)) l)
+        ((remove cons nil c (cons cp l)) (append cons cp (remove cons nil c l)))
     )
 )
 
-; appendRight f t1 t2
-; Appends a term t2 to a term t1 = (f c1 (f c2 ..)) where f is a
-; right-assocative function symbol.
-(program appendRight ((T Type) (f (-> T T T)) (t1 T) (ts1 T) (t2 T) (ts2 T))
-    ((-> T T T) T T) T
+; TODO: move to other header with general helpers
+(program ifEqThenElse
+    ((U Type) (S Type) (x U) (cmp U) (t1 S) (t2 S))
+    (U U S S) S
     (
-        ((appendRight f (f t1 ts1) ts2) (f t1 (appendRight f ts1 ts2)))
-        ((appendRight f        t1  ts2) (f t1                    ts2 ))
+        ((ifEqThenElse x   x t1 t2) t1)
+        ((ifEqThenElse x cmp t1 t2) t2)
     )
 )
 
-; removeLeft t u
-; Remove the first occurence of t from a term u = f (f (f ... c1) c2 .. )
-(program removeLeft ((T Type) (f (-> T T T)) (t T) (u T) (c T))
-    (T T) T
+; returns the sole elment if l is singleton list
+(program naryElim
+    ((U Type) (S Type) (cons (-> U U U)) (nil U) (l U) (ls U :list))
+    ((-> U U U) U U) U
     (
-        ((removeLeft t (f t u)) u)
-        ((removeLeft t (f u t)) u)
-        ((removeLeft t (f u c)) (f (removeLeft t u) c))
-        ((removeLeft t c) c)
+        ((naryElim cons nil (cons l ls)) (ifEqThenElse ls nil l (cons l ls)))
+        ((naryElim cons nil l) l)
     )
 )
 
-; appendLeft t1 t2
-; Appends a term t2 = (f (f .. c1) c2 ..) to a term t1 where f is a
-; left-assocative function symbol.
-; (program appendLeft ((T Type) (f (-> T T T)) (t1 T) (ts1 T) (t2 T) (ts2 T))
-;     ((-> T T T) T T) T
-;     (
-;         ((appendLeft f t1 (f ts2 t2)) (f (appendLeft f t1 ts2) t2))
-;         ((appendLeft f t1        ts2) (f t1                   ts2))
-;     )
-; )
+; returns a singleton list if the argument is not
+(program naryIntro
+    ((U Type) (S Type) (cons (-> U U U)) (nil U) (c U) (l U :list))
+    ((-> U U U) U U) U
+    (
+        ((naryIntro cons nil (cons c l)) (cons c l))
+        ((naryIntro cons nil c) (@ (cons c) nil))
+    )
+)
 
+; ==================================================================
+;        Specializations of the functions above for `or`
+; ==================================================================
+
+(program appendOr
+    ((c Bool) (l Bool :list))
+    (Bool Bool) Bool
+    (((appendOr c l) (append or c l)))
+)
+(program concatOr
+    ((l1 Bool) (l2 Bool))
+    (Bool Bool) Bool
+    (((concatOr l1 l2) (concat or false l1 l2)))
+)
+(program removeOr
+    ((c Bool) (l Bool))
+    (Bool Bool) Bool
+    (((removeOr c l) (remove or false c l)))
+)
+(program naryElimOr
+    ((t Bool))
+    (Bool) Bool
+    (((naryElimOr t) (naryElim or false t)))
+)
+(program naryIntroOr
+    ((t Bool))
+    (Bool) Bool
+    (((naryIntroOr t) (naryIntro or false t)))
+)
+
+; ==================================================================
+;        Specializations of the functions above for `and`
+; ==================================================================
+
+(program appendAnd
+    ((c Bool) (l Bool :list))
+    (Bool Bool) Bool
+    (((appendAnd c l) (append and c l)))
+)
+(program concatAnd
+    ((l1 Bool) (l2 Bool))
+    (Bool Bool) Bool
+    (((concatAnd l1 l2) (concat and true l1 l2)))
+)
+(program removeAnd
+    ((c Bool) (l Bool))
+    (Bool Bool) Bool
+    (((removeAnd c l) (remove and true c l)))
+)
+(program naryElimAnd
+    ((t Bool))
+    (Bool) Bool
+    (((naryElimAnd t) (naryElim and true t)))
+)
+(program naryIntroAnd
+    ((t Bool))
+    (Bool) Bool
+    (((naryIntroAnd t) (naryIntro and true t)))
+)
