@@ -74,7 +74,7 @@ class Lexer
   /** Compute the next token by reading from the stream */
   Token nextTokenInternal();
   /** Get the next character */
-  char readNextChar()
+  int32_t readNextChar()
   {
     if (d_bufferPos < d_bufferEnd)
     {
@@ -103,9 +103,9 @@ class Lexer
     return d_ch;
   }
   /** Get the next character */
-  char nextChar()
+  int32_t nextChar()
   {
-    char res;
+    int32_t res;
     if (d_peekedChar)
     {
       res = d_chPeeked;
@@ -127,7 +127,7 @@ class Lexer
     return res;
   }
   /** Save character */
-  void saveChar(char ch)
+  void saveChar(int32_t ch)
   {
     //Assert(!d_peekedChar);
     d_peekedChar = true;
@@ -172,21 +172,21 @@ class Lexer
   /** The size of characters in the current buffer */
   size_t d_bufferEnd;
   /** The current character we read. */
-  char d_ch;
+  int32_t d_ch;
   /** True if we have a saved character that has not been consumed yet. */
   bool d_peekedChar;
   /** The saved character. */
-  char d_chPeeked;
+  int32_t d_chPeeked;
   /**
    * Computes the next token and adds its characters to d_token. Does not
    * null terminate.
    */
   Token computeNextToken();
   /** Push a character to the stored token */
-  void pushToToken(char ch)
+  void pushToToken(int32_t ch)
   {
     //Assert(ch != EOF);
-    d_token.push_back(ch);
+    d_token.push_back(static_cast<char>(ch));
   }
   //----------- Utilities for parsing the current character stream
   enum class CharacterClass
@@ -202,7 +202,7 @@ class Lexer
   /** The set of non-letter/non-digit characters that may occur in keywords. */
   inline static const std::string s_extraSymbolChars = "+-/*=%?!.$_~&^<>@";
   /** parse <c>, return false if <c> is not ch. */
-  bool parseLiteralChar(char ch);
+  bool parseLiteralChar(int32_t ch);
   /** parse <c>, return false if <c> is not from cc */
   bool parseChar(CharacterClass cc);
   /** parse <c>+ from cc, return false if the next char is not from cc. */
@@ -210,7 +210,7 @@ class Lexer
   /** parse <c>* from cc. */
   void parseCharList(CharacterClass cc);
   /** Return true if ch is in character class cc */
-  bool isCharacterClass(char ch, CharacterClass cc) const
+  bool isCharacterClass(int32_t ch, CharacterClass cc) const
   {
     return d_charClass[static_cast<uint8_t>(ch)] & static_cast<uint8_t>(cc);
   }

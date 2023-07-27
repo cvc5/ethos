@@ -20,25 +20,25 @@ std::ostream& operator<<(std::ostream& o, const Span& l)
 Lexer::Lexer()
     : d_bufferPos(0), d_bufferEnd(0), d_peekedChar(false), d_chPeeked(0)
 {
-  for (char ch = 'a'; ch <= 'z'; ++ch)
+  for (int32_t ch = 'a'; ch <= 'z'; ++ch)
   {
     d_charClass[ch] |= static_cast<uint32_t>(CharacterClass::SYMBOL_START);
     d_charClass[ch] |= static_cast<uint32_t>(CharacterClass::SYMBOL);
   }
-  for (char ch = 'a'; ch <= 'f'; ++ch)
+  for (int32_t ch = 'a'; ch <= 'f'; ++ch)
   {
     d_charClass[ch] |= static_cast<uint32_t>(CharacterClass::HEXADECIMAL_DIGIT);
   }
-  for (char ch = 'A'; ch <= 'Z'; ++ch)
+  for (int32_t ch = 'A'; ch <= 'Z'; ++ch)
   {
     d_charClass[ch] |= static_cast<uint32_t>(CharacterClass::SYMBOL_START);
     d_charClass[ch] |= static_cast<uint32_t>(CharacterClass::SYMBOL);
   }
-  for (char ch = 'A'; ch <= 'F'; ++ch)
+  for (int32_t ch = 'A'; ch <= 'F'; ++ch)
   {
     d_charClass[ch] |= static_cast<uint32_t>(CharacterClass::HEXADECIMAL_DIGIT);
   }
-  for (char ch = '0'; ch <= '9'; ++ch)
+  for (int32_t ch = '0'; ch <= '9'; ++ch)
   {
     d_charClass[ch] |= static_cast<uint32_t>(CharacterClass::HEXADECIMAL_DIGIT);
     d_charClass[ch] |= static_cast<uint32_t>(CharacterClass::DECIMAL_DIGIT);
@@ -47,7 +47,7 @@ Lexer::Lexer()
   d_charClass['0'] |= static_cast<uint32_t>(CharacterClass::BIT);
   d_charClass['1'] |= static_cast<uint32_t>(CharacterClass::BIT);
   // ~!@$%^&*_-+|=<>.?/
-  for (char ch : s_extraSymbolChars)
+  for (int32_t ch : s_extraSymbolChars)
   {
     d_charClass[ch] |= static_cast<uint32_t>(CharacterClass::SYMBOL_START);
     d_charClass[ch] |= static_cast<uint32_t>(CharacterClass::SYMBOL);
@@ -181,7 +181,7 @@ Token Lexer::nextTokenInternal()
 Token Lexer::computeNextToken()
 {
   bumpSpan();
-  char ch;
+  int32_t ch;
   // skip whitespace and comments
   for (;;)
   {
@@ -319,9 +319,9 @@ Token Lexer::computeNextToken()
   return Token::NONE;
 }
 
-bool Lexer::parseLiteralChar(char chc)
+bool Lexer::parseLiteralChar(int32_t chc)
 {
-  char ch = nextChar();
+  int32_t ch = nextChar();
   if (ch != chc)
   {
     // will be an error
@@ -333,7 +333,7 @@ bool Lexer::parseLiteralChar(char chc)
 
 bool Lexer::parseChar(CharacterClass cc)
 {
-  char ch = nextChar();
+  int32_t ch = nextChar();
   if (!isCharacterClass(ch, cc))
   {
     // will be an error
@@ -346,7 +346,7 @@ bool Lexer::parseChar(CharacterClass cc)
 bool Lexer::parseNonEmptyCharList(CharacterClass cc)
 {
   // must contain at least one character
-  char ch = nextChar();
+  int32_t ch = nextChar();
   if (!isCharacterClass(ch, cc))
   {
     // will be an error
@@ -359,7 +359,7 @@ bool Lexer::parseNonEmptyCharList(CharacterClass cc)
 
 void Lexer::parseCharList(CharacterClass cc)
 {
-  char ch;
+  int32_t ch;
   for (;;)
   {
     ch = nextChar();
