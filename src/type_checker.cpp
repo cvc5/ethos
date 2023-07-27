@@ -105,14 +105,12 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
       std::vector<Expr>& children = e->d_children;
       Expr& hd = children[0];
       Expr hdType = hd->d_type;
-      // if compiled, run the compiled version of the type checker
-      if (hdType->isCompiled())
+      std::vector<Expr> ctypes;
+      for (size_t i=1, nchild=children.size(); i<nchild; i++)
       {
-        std::vector<Expr> args(children.begin()+1, children.end());
-        return run_getTypeInternal(hd, args, out);
+        ctypes.push_back(children[i]->d_type);
       }
       //Assert (hdType!=nullptr)
-      std::vector<Expr> expectedTypes;
       if (hdType->getKind()!=Kind::FUNCTION_TYPE)
       {
         // non-function at head
@@ -132,27 +130,30 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
         }
         return nullptr;
       }
-      Expr retType = hdtypes.back();
+      // if compiled, run the compiled version of the type checker
+      if (hdType->isCompiled())
+      {
+        return run_getTypeInternal(hdType, ctypes, out);
+      }
       Ctx ctx;
       std::set<std::pair<Expr, Expr>> visited;
-      for (size_t i=1, nchild=children.size(); i<nchild; i++)
+      for (size_t i=0, nchild=ctypes.size(); i<nchild; i++)
       {
-        Expr ctype = children[i]->d_type;
         // Assert (ctype!=nullptr);
         // unification, update retType
-        if (!match(hdtypes[i-1], ctype, ctx, visited))
+        if (!match(hdtypes[i], ctypes[i], ctx, visited))
         {
           if (out)
           {
             (*out) << "Unexpected argument type " << i << std::endl;
             (*out) << "  LHS " << hdtypes[i-1] << std::endl;
-            (*out) << "  RHS " << ctype << std::endl;
+            (*out) << "  RHS " << ctypes[i] << std::endl;
           }
           return nullptr;
         }
       }
       // evaluate in the matched context
-      return evaluate(retType, ctx);
+      return evaluate(hdtypes.back(), ctx);
     }
     case Kind::LAMBDA:
     {

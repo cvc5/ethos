@@ -1,6 +1,7 @@
 #include "state.h"
 
 #include <iostream>
+#include <fstream>
 
 using namespace alfc;
 
@@ -18,7 +19,7 @@ int main( int argc, char* argv[] )
     if (i<nargs)
     {
       std::string arg(argv[i]);
-      if (arg=="--compile")
+      if (arg=="--gen-compile")
       {
         opts.d_compile = true;
         readOpt = true;
@@ -43,7 +44,11 @@ int main( int argc, char* argv[] )
   if (opts.d_compile)
   {
     Compiler * c = s.getCompiler();
-    std::cout << "/** ================ AUTO GENERATED ============ */" << std::endl;
+    std::fstream fs("compiled.out.cpp", std::ios::out);
+    fs << "/** ================ AUTO GENERATED ============ */" << std::endl;
+    fs << c->toString() << std::endl;
+    fs.close();
+    std::cout << "GEN-COMPILE" << std::endl;
     std::cout << c->toString() << std::endl;
   }
   return 0;
