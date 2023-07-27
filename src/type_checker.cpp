@@ -357,6 +357,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
       // is ground, or the context is empty.
       if (!cur->isEvaluatable() && (cur->isGround() || cctx.empty()))
       {
+        //std::cout << "...shortcut " << cur << std::endl;
         visited[cur] = cur;
         visit.pop_back();
         continue;
@@ -382,6 +383,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
       {
         std::cout << "RUN evaluate " << cur << std::endl;
         visited[cur] = run_evaluate(cur, cctx);
+        visit.pop_back();
         continue;
       }
       
@@ -445,6 +447,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
               {
                 // see if we evaluate
                 evaluated = d_state.evaluateProgram(cchildren, ctxs.back());
+                //std::cout << "Evaluate prog returned " << evaluated << std::endl;
               }
               if (ctxs.back().empty())
               {

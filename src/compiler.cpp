@@ -199,6 +199,9 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
     // compile the evaluation of the body
     writeEvaluate(d_eval, body);
   }
+  size_t vid = writeGlobalExpr(v);
+  size_t pid = writeGlobalExpr(prog);
+  d_init << "  defineProgram(_e" << vid << ", _e" << pid << ");" << std::endl;
 }
 
 size_t Compiler::markCompiled(std::ostream& os, const Expr& e)
