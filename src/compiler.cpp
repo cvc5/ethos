@@ -360,18 +360,18 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
     std::stringstream localDecl;
     std::stringstream localImpl;
     std::string pprefix("_p");
-    CompilerScope pscope(localDecl, localImpl, pprefix, &d_global);
+    CompilerScope pscope(localDecl, localImpl, pprefix, &d_global);     
+    // ensure all variables in the type are declared (but not constructed)
+    std::vector<Expr> fvs = getFreeSymbols(curr);
+    for (const Expr& v : fvs)
+    {
+      pscope.ensureDeclared(v.get());
+    }
     // write the matching
     std::vector<std::string> reqs;
     std::map<Expr, std::string> varAssign;
     for (size_t i=0, nargs=children.size()-1; i<nargs; i++)
     {
-      // ensure all variables are declared (but not constructed)
-      std::vector<Expr> fvs = getFreeSymbols(children[i]);
-      for (const Expr& v : fvs)
-      {
-        pscope.ensureDeclared(v.get());
-      }
       std::vector<Expr> pats{children[i]};
       std::stringstream ssa;
       ssa << "a" << i;
@@ -591,7 +591,7 @@ void Compiler::writeEvaluate(std::ostream& os, const Expr& e)
   {
     curr = toVisit.back();
     toVisit.pop_back();
-    if (curr->isGround())
+    if (curr->isGround() || curr->getKind()==Kind::VARIABLE)
     {
       // ground terms are constructed statically
       writeGlobalExpr(curr);
