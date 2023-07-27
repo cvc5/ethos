@@ -18,6 +18,7 @@ namespace alfc {
 class Options
 {
 public:
+  Options() : d_compile(false), d_runCompile(false){}
   bool d_compile;
   bool d_runCompile;
 };
