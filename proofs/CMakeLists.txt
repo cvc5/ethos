@@ -8,7 +8,7 @@ set(alfc_test_file_list
   rules/Booleans.smt2
   examples/simple_uf.smt2
   examples/booleans.smt2
-  examples/programs.smt2
+  examples/nary.smt2
 )
 
 macro(alfc_test file)

@@ -1,0 +1,207 @@
+; This example contains various rules and programs that work with the direct
+; encoding of n-ary functions as terms.   E.g. `(or a b c)` encoded as
+; `(or (or a b) c)`.  This was written before we move the production signatures
+; to an encoding using null termination.
+
+(declare-const true Bool)
+(declare-const false Bool)
+
+(declare-const or (-> Bool Bool Bool))
+(declare-const and (-> Bool Bool Bool))
+(declare-const not (-> Bool Bool))
+
+(declare-const c1 Bool)
+(declare-const c2 Bool)
+(declare-const c3 Bool)
+
+; ==========================================
+;          Programs
+; ==========================================
+
+; removeRight t u
+; Remove the first occurence of t from a term u = (f c1 (f c2 ..))
+(program removeRight ((T Type) (f (-> T T T)) (t T) (u T) (c T))
+    (T T) T
+    (
+        ((removeRight t (f u t)) u)
+        ((removeRight t (f t u)) u)
+        ((removeRight t (f c u)) (f c (removeRight t u)))
+        ((removeRight t c) c)
+    )
+)
+
+; appendRight f t1 t2
+; Appends a term t2 to a term t1 = (f c1 (f c2 ..)) where f is a
+; right-assocative function symbol.
+(program appendRight ((T Type) (f (-> T T T)) (t1 T) (ts1 T) (t2 T) (ts2 T))
+    ((-> T T T) T T) T
+    (
+        ((appendRight f (f t1 ts1) ts2) (f t1 (appendRight f ts1 ts2)))
+        ((appendRight f        t1  ts2) (f t1                    ts2 ))
+    )
+)
+
+; removeLeft t u
+; Remove the first occurence of t from a term u = f (f (f ... c1) c2 .. )
+(program removeLeft ((T Type) (f (-> T T T)) (t T) (u T) (c T))
+    (T T) T
+    (
+        ((removeLeft t (f t u)) u)
+        ((removeLeft t (f u t)) u)
+        ((removeLeft t (f u c)) (f (removeLeft t u) c))
+        ((removeLeft t c) c)
+    )
+)
+
+; appendLeft t1 t2
+; Appends a term t2 = (f (f .. c1) c2 ..) to a term t1 where f is a
+; left-assocative function symbol.
+(program appendLeft ((T Type) (f (-> T T T)) (t1 T) (ts1 T) (t2 T) (ts2 T))
+    ((-> T T T) T T) T
+    (
+        ((appendLeft f t1 (f ts2 t2)) (f (appendLeft f t1 ts2) t2))
+        ((appendLeft f t1        ts2) (f t1                   ts2))
+    )
+)
+
+; Test removeRight
+(declare-rule check_removeRight((x Bool) (in Bool) (out Bool))
+    :args (x in out)
+    :requires (((removeRight x in) out))
+    :conclusion true
+)
+(step rr1 :rule check_removeRight :args (c1 (or c2 c1)         c2))
+(step rr2 :rule check_removeRight :args (c1 (or c1 c2)         c2))
+(step rr3 :rule check_removeRight :args (c1 (or c1 (or c2 c3)) (or c2 c3)))
+(step rr4 :rule check_removeRight :args (c1 (or c2 (or c1 c3)) (or c2 c3)))
+(step rr5 :rule check_removeRight :args (c1 (or c2 (or c3 c2)) (or c2 (or c3 c2))))
+
+; Test appendRight
+(declare-rule check_appendRight((t1 Bool) (t2 Bool) (out Bool))
+    :args (t1 t2 out)
+    :requires (((appendRight or t1 t2) out))
+    :conclusion true
+)
+(step ar1 :rule check_appendRight :args (c1 c2                 (or c1 c2)))
+(step ar2 :rule check_appendRight :args (c3 (or c1 c2)         (or c3 (or c1 c2))))
+(step ar3 :rule check_appendRight :args (c3 (or (or c1 c1) c2) (or c3 (or (or c1 c1) c2))))
+(step ar4 :rule check_appendRight :args (c3 (or c1 (or c1 c2)) (or c3 (or c1 (or c1 c2)))))
+(step ar5 :rule check_appendRight :args ((or c1 c2)         c3 (or c1 (or c2 c3))))
+(step ar6 :rule check_appendRight :args ((or (or c1 c1) c2) c3 (or (or c1 c1) (or c2 c3))))
+(step ar7 :rule check_appendRight :args ((or c1 (or c1 c2)) c3 (or c1 (or c1 (or c2 c3)))))
+
+; Test removeLeft
+(declare-rule check_removeLeft((x Bool) (in Bool) (out Bool))
+    :args (x in out)
+    :requires (((removeLeft x in) out))
+    :conclusion true
+)
+(step rl1 :rule check_removeLeft :args (c1 (or c2 c1)         c2))
+(step rl2 :rule check_removeLeft :args (c1 (or c1 c2)         c2))
+(step rl3 :rule check_removeLeft :args (c1 (or (or c1 c2) c3) (or c2 c3)))
+(step rl4 :rule check_removeLeft :args (c1 (or (or c2 c1) c3) (or c2 c3)))
+(step rl5 :rule check_removeLeft :args (c1 (or (or c2 c3) c2) (or (or c2 c3) c2)))
+
+; Test appendLeft
+(declare-rule check_appendLeft((t1 Bool) (t2 Bool) (out Bool))
+    :args (t1 t2 out)
+    :requires (((appendLeft or t1 t2) out))
+    :conclusion true
+)
+(step al1 :rule check_appendLeft :args (c1 c2                 (or c1 c2)))
+(step al2 :rule check_appendLeft :args (c3 (or c1 c2)         (or (or c3 c1) c2)))
+(step al3 :rule check_appendLeft :args (c3 (or (or c1 c1) c2) (or (or (or c3 c1) c1) c2)))
+(step al4 :rule check_appendLeft :args (c3 (or c1 (or c1 c2)) (or (or c3 c1) (or c1 c2))))
+(step al5 :rule check_appendLeft :args ((or c1 c2)         c3 (or (or c1 c2) c3)))
+(step al6 :rule check_appendLeft :args ((or (or c1 c1) c2) c3 (or (or (or c1 c1) c2) c3)))
+(step al7 :rule check_appendLeft :args ((or c1 (or c1 c2)) c3 (or (or c1 (or c1 c2)) c3)))
+
+; ==========================================
+;          Resolution
+; ==========================================
+
+; Resolution
+(assume a1 (or      c1  c2))
+(assume a2 (or (not c2) c3))
+(assume a3 (not c2))
+
+(program resolve ((C1 Bool) (C2 Bool) (pol Bool) (L Bool))
+    (Bool Bool Bool Bool) Bool
+    (
+        ; Both "clauses" are just the literal
+        ((resolve C1 (not C1) true  C1) false)
+        ((resolve (not C1) C1 false C1) false)
+        ; The first "clause" is the literal
+        ((resolve C1       C2 true  C1) (removeLeft (not C1) C2))
+        ((resolve (not C1) C2 false C1) (removeLeft      C1  C2))
+        ; The second "clause" is the literal
+        ((resolve C1 (not C2) true  C2) (removeLeft      C2  C1))
+        ((resolve C1      C2  false C2) (removeLeft (not C2) C1))
+        ; Neither clause is just the literal
+        ((resolve C1 C2 true  L) (appendLeft or (removeLeft      L  C1) (removeLeft (not L) C2)))
+        ((resolve C1 C2 false L) (appendLeft or (removeLeft (not L) C1) (removeLeft      L  C2)))
+    )
+)
+
+(declare-rule resolution ((C1 Bool) (C2 Bool) (pol Bool) (L Bool))
+    :premises (C1 C2)
+    :args (pol L)
+    :conclusion (resolve C1 C2 pol L)
+)
+
+(step t1 (or c1 c3) :rule resolution :premises (a1 a2) :args (true c2))
+(step t2 (or c3 c1) :rule resolution :premises (a2 a1) :args (false c2))
+
+(step t3 c1 :rule resolution :premises (a1 a3) :args (true c2))
+
+; Factoring
+(program factorLiterals ((l1 Bool) (l2 Bool) (ls Bool))
+    (Bool) Bool
+    (
+        ((factorLiterals (or l1 l1)) l1)
+        ((factorLiterals (or (or ls l1) l1)) (or (factorLiterals ls) l1))
+        ((factorLiterals (or (or ls l1) l2)) (or (factorLiterals (or ls l1)) l2))
+        ((factorLiterals ls) ls)
+    )
+)
+
+(declare-rule factoring ((C Bool))
+    :premises (C)
+    :conclusion (factorLiterals C)
+)
+
+(assume faca1 (or (or (or (or c1 c1) c2) (not c2)) (not c2)))
+(step   fact1         (or (or c1     c2)           (not c2))                 :rule factoring :premises (faca1))
+(assume faca2 (or (or (or (or (or c1 c1) (or c1 c2)) (not c2)) (not c2)) c1))
+(step   fact2         (or (or (or c1     (or c1 c2))           (not c2)) c1) :rule factoring :premises (faca2))
+
+; Reordering
+; Naive O(n^2) test
+(program isPermutation ((l1 Bool) (l2 Bool) (ls Bool) (ls2 Bool))
+    (Bool Bool) Bool
+    (
+        ((isPermutation l1 l1) true)
+        ((isPermutation (or l1 l2) (or l1 l2)) true)
+        ((isPermutation (or l1 l2) (or l2 l1)) true)
+        ((isPermutation (or ls l1) (or ls2 l2)) (isPermutation ls (removeLeft l1 (or ls2 l2))))
+    )
+)
+
+(declare-rule reordering ((C1 Bool) (C2 Bool))
+    :premises (C1)
+    :args (C2)
+    :requires (((isPermutation C1 C2) true))
+    :conclusion C2
+)
+
+(assume reord1 (and c1 c2))
+(step  reordt1 :rule reordering :premises (reord1) :args ((and c1 c2)))
+
+(assume reord2 (or c1 c2))
+(step  reordt2 :rule reordering :premises (reord2) :args ((or c2 c1)))
+
+; Reorder c1, c1, (or c1 c2), (not c2), (not c2), c1
+;      to (or c1 c2), c1, (not c2), c1, (not c2), c1
+(assume reord3 (or (or (or (or (or c1 c1) (or c1 c2)) (not c2)) (not c2)) c1))
+(step  reordt3 :rule reordering :premises (reord3) :args ((or (or (or (or (or (or c1 c2) c1) (not c2)) c1) (not c2)) c1)))
+

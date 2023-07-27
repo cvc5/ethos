@@ -1,16 +1,30 @@
 ; Bool is builtin
 ;(declare-type Bool ())
 
-(declare-const = (-> (! Type :var A :implicit) A A Bool))
 (declare-const true Bool)
 (declare-const false Bool)
 (declare-const ite (-> (! Type :var A :implicit) Bool A A A))
 (declare-const not (-> Bool Bool))
-(declare-const distinct (-> (! Type :var A :implicit) A A Bool))
-(declare-const or (-> Bool Bool Bool))
-(declare-const and (-> Bool Bool Bool))
-(declare-const => (-> Bool Bool Bool))
-(declare-const xor (-> Bool Bool Bool))
+(declare-const distinct (-> (! Type :var A :implicit) A A Bool)
+   ;:pairwise
+)
+(declare-const or (-> Bool Bool Bool)
+   :right-assoc false
+)
+(declare-const and (-> Bool Bool Bool)
+   :right-assoc true
+)
+(declare-const => (-> Bool Bool Bool)
+   :right-assoc
+)
+(declare-const xor (-> Bool Bool Bool)
+   :left-assoc
+)
+
+(declare-const = (-> (! Type :var A :implicit) A A Bool)
+   :chainable and
+)
+
 (declare-const forall (-> (! Type :var A :implicit) (-> A Bool) Bool))
 (declare-const exists (-> (! Type :var A :implicit) (-> A Bool) Bool))
 ; Hilbert's choice (ε)
@@ -28,4 +42,6 @@
 (declare-const apply
 (-> (! Type :var A :implicit)
     (! Type :var B :implicit)
-    (-> A B) A B))
+    (-> A B) A B)
+    :left-assoc iden
+)
