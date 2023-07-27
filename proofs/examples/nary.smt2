@@ -22,7 +22,7 @@
 
 (step ap1 :rule check_append :args (c3 (cons c1 c2) (cons c3 c1 c2)))
 (step ap2 :rule check_append :args (nil (cons c1 c2) (cons nil c1 c2)))
-
+(step ap3 :rule check_append :args (c1 nil (remove cons nil c2 (cons c1 c2))))
 
 ; Concat
 

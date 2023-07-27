@@ -71,7 +71,7 @@
     ((-> U U U) U U) U
     (
         ((naryIntro cons nil (cons c l)) (cons c l))
-        ((naryIntro cons nil c) (@ (cons c) nil))
+        ((naryIntro cons nil c) (append cons c nil))
     )
 )
 
