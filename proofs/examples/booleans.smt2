@@ -41,3 +41,7 @@
 (assume reord3 (or c1 c1 (or c1 c2) (not c2) (not c2) c1))
 (step  reordt3 :rule reordering :premises (reord3) :args 
        ((or (or c1 c2) c1 (not c2) c1 (not c2) c1)))
+
+; not_and
+(assume notanda1 (not (and c1 c2 (not c2))))
+(step   notandt1 (or (not c1) (not c2) (not (not c2))) :rule not_and :premises (notanda1))

@@ -1,4 +1,5 @@
 (include "../theories/Core.smt2")
+(include "../theories/Ints.smt2")
 (include "../programs/Nary.smt2")
 
 ; SPLIT
@@ -58,6 +59,7 @@
 ;      multiple `and_intro` steps.
 ; `args` is a conjunction where the alternating conjuncts are polarity and
 ;        pivot literal.
+; TODO: use generic lists for `args` instead of a conjunction.
 (declare-rule chain_resolution ((Cs Bool) (args Bool))
     :premises (Cs)
     :args (args)
@@ -66,6 +68,18 @@
 
 ; MACRO_RESOLUTION_TRUST
 ; MACRO_RESOLUTION
+; These rules do not perform any checks.
+; TODO: implement some checking for MACRO_RESOLUTION
+(declare-rule macro_resolution_trust((C Bool) (Cs Bool) (args Bool))
+    :premises (Cs)
+    :args (C args)
+    :conclusion C
+)
+(declare-rule macro_resolution((C Bool) (Cs Bool) (args Bool))
+    :premises (Cs)
+    :args (C args)
+    :conclusion C
+)
 
 ; FACTORING
 (program factorLiterals ((l Bool) (ls Bool :list))
@@ -126,14 +140,42 @@
     :conclusion false
 )
 
-; TODO: needs integer evaluation
 ; AND_ELIM
+; TODO: F should not be explicit, but the ith conjunct from Fs.  Since we do
+; not yet have integer arithmetic, we cannot implment this yet.
+(declare-rule and_elim ((Fs Bool) (F Bool) (i Int))
+    :premises (Fs)
+    :args (F i)
+    :requires (((inListAnd F Fs) true))
+    :conclusion F
+)
 
-; TODO: needs support for premise lists
 ; AND_INTRO
+; Since we don't have premise lists, we implement different variants of and_intro
 
-; TODO: needs integer evaluation
+; Appends F to the head of Fs where Fs is a null-terminated list.
+; I.e. `F`, `(and F1 (and F2 .. (and Fn true)..)` ==>
+;    `(and F ( and F1 (and F2 .. (and Fn true)..)`
+(declare-rule and_intro_nary ((F Bool) (Fs Bool))
+    :premises (F Fs)
+    :conclusion (appendAnd F Fs)
+)
+
+; binary and introduction
+(declare-rule and_intro ((F1 Bool) (F2 Bool))
+    :premises (F1 F2)
+    :conclusion (and F1 F2) ; Note: this creates `(and F1 (and F2 true))`.
+)
+
 ; NOT_OR_ELIM
+; TODO: F should not be explicit, but the ith conjunct from Fs.  Since we do
+; not yet have integer arithmetic, we cannot implment this yet.
+(declare-rule not_or_elim ((Fs Bool) (F Bool) (i Int))
+    :premises ((not Fs))
+    :args (F i)
+    :requires (((inListOr F Fs) true))
+    :conclusion (not F)
+)
 
 ; IMPLIES_ELIM
 (declare-rule implies_elim ((F1 Bool) (F2 Bool))
@@ -226,6 +268,19 @@
 )
 
 ; NOT_AND
+(program lowerNot ((l Bool) (ls Bool :list))
+    (Bool) Bool
+    (
+        ((lowerNot true) false) ; Terminator changes
+        ((lowerNot (and l ls)) (appendOr (not l) (lowerNot ls)))
+    )
+)
+
+(declare-rule not_and ((F Bool))
+    :premises ((not F))
+    :conclusion (lowerNot F)
+)
+
 ; CNF_AND_POS
 ; CNF_AND_NEG
 ; CNF_OR_POS

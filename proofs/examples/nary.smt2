@@ -11,9 +11,21 @@
 (declare-const c1 S)
 (declare-const c2 S)
 (declare-const c3 S)
+(declare-const c4 S)
+
+; inList
+(declare-rule check_inList((c S) (l S) (out S))
+    :args (c l out)
+    :requires (((inList cons nil c l) out))
+    :conclusion true
+)
+
+(step in1 :rule check_inList :args (c3 (cons c3 c1 c2) true))
+(step in2 :rule check_inList :args (c3 (cons c1 c3 c2) true))
+(step in3 :rule check_inList :args (c3 (cons c1 c2 c3) true))
+(step in4 :rule check_inList :args (c4 (cons c1 c2 c3) false))
 
 ; Append
-
 (declare-rule check_append((c S) (l S) (out S))
     :args (c l out)
     :requires (((append cons c l) out))

@@ -2,9 +2,21 @@
 
 (include "../theories/Core.smt2")
 
-; ====================================
-;  Right-associative null-terminated
-; ====================================
+; =============================================
+;  Right-associative null-terminated operators
+; =============================================
+
+; =====================
+;   Generic List Type
+; =====================
+
+; Nary tests on a custom type
+;(declare-type List (Type))
+;(declare-const nil (-> (! Type :var E) (List E)))
+;(declare-const cons (-> (! Type :var E :implicit) E (List E) (List E))
+;    :right-assoc nil
+;)
+
 
 ; The following functions work with right-associative symbols with a defined
 ; null terminator.  Those behave somewhat similar to functional programming
@@ -15,7 +27,20 @@
 ; `false` as the terminator, then `(or a b c)` corresponds to
 ; `(or a (or b (or c false)))`, but `(or a)` is illegal.
 
-; append c to the head of l
+; inList cons nil c l
+; Retuns `true` if l inList c.
+(program inList
+    ((U Type) (S Type) (cons (-> S U U)) (nil S) (c S) (x S) (l U :list))
+    ((-> S U U) S U S) Bool
+    (
+        ((inList cons nil c nil)        false)
+        ((inList cons nil c (cons c l)) true)
+        ((inList cons nil c (cons x l)) (inList cons nil c l))
+    )
+)
+
+; append cons nil c l
+; Apppends c to the head of l.
 (program append
     ((U Type) (S Type) (cons (-> S U U)) (c S) (l U :list))
     ((-> S U U) S U) U
@@ -24,7 +49,8 @@
     )
 )
 
-; concatenate two lists l1, l2
+; concat cons nil l1 l2
+; Concatenates two lists l1 and l2.
 (program concat
     ((U Type) (S Type) (cons (-> S U U)) (nil S) (l1 U) (l1s U :list) (l2 U))
     ((-> S U U) S U U) U
@@ -34,7 +60,8 @@
     )
 )
 
-; remove the first occurence of c from l
+; remove cons nil c l
+; Removes the first occurence of c from l.
 (program remove
     ((U Type) (S Type) (cons (-> S U U)) (nil S) (c S) (cp S) (l U :list))
     ((-> S U U) S S U) U
@@ -55,7 +82,8 @@
     )
 )
 
-; returns the sole elment if l is singleton list
+; naryElim cons nil l
+; Returns the sole elment if l is a singleton list.
 (program naryElim
     ((U Type) (S Type) (cons (-> U U U)) (nil U) (l U) (ls U :list))
     ((-> U U U) U U) U
@@ -65,7 +93,8 @@
     )
 )
 
-; returns a singleton list if the argument is not
+; naryIntro cons nil l
+; Returns a singleton list if c is not a list.
 (program naryIntro
     ((U Type) (S Type) (cons (-> U U U)) (nil U) (c U) (l U :list))
     ((-> U U U) U U) U
@@ -79,6 +108,11 @@
 ;        Specializations of the functions above for `or`
 ; ==================================================================
 
+(program inListOr
+    ((c Bool) (l Bool :list))
+    (Bool Bool) Bool
+    (((inListOr c l) (inList or false c l)))
+)
 (program appendOr
     ((c Bool) (l Bool :list))
     (Bool Bool) Bool
@@ -109,6 +143,11 @@
 ;        Specializations of the functions above for `and`
 ; ==================================================================
 
+(program inListAnd
+    ((c Bool) (l Bool :list))
+    (Bool Bool) Bool
+    (((inListAnd c l) (inList and true c l)))
+)
 (program appendAnd
     ((c Bool) (l Bool :list))
     (Bool Bool) Bool
