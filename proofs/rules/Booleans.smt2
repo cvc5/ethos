@@ -8,22 +8,25 @@
     :conclusion (or F (not F))
 )
 
+; Extension of `removeOr l C`, that returns `false` if `C` is `l`
+(program removeSelf ((l Bool) (C Bool))
+    (Bool Bool) Bool
+    (
+        ((removeSelf l l) false)
+        ((removeSelf l C) (removeOr l C))
+    )
+)
+
 ; RESOLUTION
 (program resolve ((C1 Bool) (C2 Bool) (pol Bool) (L Bool))
     (Bool Bool Bool Bool) Bool
     (
-        ; Both "clauses" are just the literal
-        ((resolve C1 (not C1) true  C1) false)
-        ((resolve (not C1) C1 false C1) false)
-        ; The first "clause" is the literal
-        ((resolve C1       C2 true  C1) (removeLeft (not C1) C2))
-        ((resolve (not C1) C2 false C1) (removeLeft      C1  C2))
-        ; The second "clause" is the literal
-        ((resolve C1 (not C2) true  C2) (removeLeft      C2  C1))
-        ((resolve C1      C2  false C2) (removeLeft (not C2) C1))
-        ; Neither clause is just the literal
-        ((resolve C1 C2 true  L) (appendLeft or (removeLeft      L  C1) (removeLeft (not L) C2)))
-        ((resolve C1 C2 false L) (appendLeft or (removeLeft (not L) C1) (removeLeft      L  C2)))
+        ((resolve C1 C2 true  L)
+          (naryElimOr (concatOr
+            (removeSelf      L  (naryIntroOr C1)) (removeSelf (not L) (naryIntroOr C2)))))
+        ((resolve C1 C2 false L)
+          (naryElimOr (concatOr
+            (removeSelf (not L) (naryIntroOr C1)) (removeSelf      L  (naryIntroOr C2)))))
     )
 )
 
@@ -39,12 +42,12 @@
 ; MACRO_RESOLUTION
 
 ; FACTORING
-(program factorLiterals ((l1 Bool) (l2 Bool) (ls Bool))
+(program factorLiterals ((l Bool) (l1 Bool) (ls Bool :list))
     (Bool) Bool
     (
-        ((factorLiterals (or l1 l1)) l1)
-        ((factorLiterals (or (or ls l1) l1)) (or (factorLiterals ls) l1))
-        ((factorLiterals (or (or ls l1) l2)) (or (factorLiterals (or ls l1)) l2))
+        ((factorLiterals false) false)
+        ((factorLiterals (or l l ls)) (appendOr l (factorLiterals ls)))
+        ((factorLiterals (or l ls))   (appendOr l (factorLiterals ls)))
         ((factorLiterals ls) ls)
     )
 )
@@ -56,13 +59,13 @@
 
 ; REORDERING
 ; Naive O(n^2) test
-(program isPermutation ((l1 Bool) (l2 Bool) (ls Bool) (ls2 Bool))
+(program isPermutation ((l1 Bool) (l2 Bool) (l1s Bool :list) (l2s Bool :list))
     (Bool Bool) Bool
     (
         ((isPermutation l1 l1) true)
-        ((isPermutation (or l1 l2) (or l1 l2)) true)
-        ((isPermutation (or l1 l2) (or l2 l1)) true)
-        ((isPermutation (or ls l1) (or ls2 l2)) (isPermutation ls (removeLeft l1 (or ls2 l2))))
+        ((isPermutation false l1) false)
+        ((isPermutation (or l1 l1s) (or l2 l2s))
+          (isPermutation l1s (removeOr l1 (or l2 l2s))))
     )
 )
 
