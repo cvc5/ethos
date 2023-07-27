@@ -155,7 +155,7 @@ private:
   /** Get the free symbols */
   std::vector<Expr> getFreeSymbols(Expr& e) const;
   /** Get the free symbols */
-  bool hasVariable(Expr& e, std::unordered_set<Expr>& terms) const;
+  bool hasVariable(Expr& e, const std::unordered_set<Expr>& terms) const;
 };
 
 }  // namespace alfc

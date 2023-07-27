@@ -401,29 +401,32 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
       localImpl << "     return nullptr;" << std::endl;
       localImpl << "  }" << std::endl;
     }
-    localImpl << "  // assign variables" << std::endl;
-    Expr& retType = children.back();
-    std::vector<Expr> fvsRet = getFreeSymbols(retType);
-    std::map<ExprValue*, size_t>::iterator iti;
     bool usedMatch = false;
+    Expr& retType = children.back();
     std::unordered_set<Expr> varsAssigned;
-    for (std::pair<const Expr, std::string>& va : varAssign)
+    if (!varAssign.empty())
     {
-      // only matters if it occurs in return type
-      if (std::find(fvsRet.begin(), fvsRet.end(), va.first)==fvsRet.end())
+      localImpl << "  // assign variables" << std::endl;
+      std::vector<Expr> fvsRet = getFreeSymbols(retType);
+      std::map<ExprValue*, size_t>::iterator iti;
+      for (std::pair<const Expr, std::string>& va : varAssign)
       {
-        continue;
+        // only matters if it occurs in return type
+        if (std::find(fvsRet.begin(), fvsRet.end(), va.first)==fvsRet.end())
+        {
+          continue;
+        }
+        usedMatch = true;
+        iti = pscope.d_idMap.find(va.first.get());
+        // Assert (iti!=pscope.d_idMap.end());
+        localImpl << "  " << pprefix << iti->second << " = " << va.second << ";" << std::endl;
+        varsAssigned.insert(va.first);
       }
-      usedMatch = true;
-      iti = pscope.d_idMap.find(va.first.get());
-      // Assert (iti!=pscope.d_idMap.end());
-      localImpl << "  " << pprefix << iti->second << " = " << va.second << ";" << std::endl;
-      varsAssigned.insert(va.first);
     }
-    // requires
+    // handle requires return type inlined
     if (retType->getKind()==Kind::REQUIRES_TYPE)
     {
-      while (retType->getKind()==Kind::REQUIRES_TYPE)
+      do
       {
         // construct each pair
         std::vector<Expr>& rchildren = retType->d_children;
@@ -461,7 +464,7 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
         }
         // write the requires here
         retType = rchildren[rchildren.size()-1];
-      }
+      } while (retType->getKind()==Kind::REQUIRES_TYPE);
       // recompute whether the return type has free variables, since they
       // may have only occurred in requirements
       usedMatch = hasVariable(retType, varsAssigned);
@@ -700,8 +703,12 @@ std::vector<Expr> Compiler::getFreeSymbols(Expr& e) const
   return ret;
 }
 
-bool Compiler::hasVariable(Expr& e, std::unordered_set<Expr>& vars) const
+bool Compiler::hasVariable(Expr& e, const std::unordered_set<Expr>& vars) const
 {
+  if (vars.empty())
+  {
+    return false;
+  }
   std::unordered_set<Expr> visited;
   std::vector<Expr> toVisit;
   toVisit.push_back(e);
