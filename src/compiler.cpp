@@ -405,6 +405,21 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
       // Assert (iti!=pscope.d_idMap.end());
       localImpl << "  " << pprefix << iti->second << " = " << va.second << ";" << std::endl;
     }
+    // requires
+    while (retType->getKind()==Kind::REQUIRES_TYPE)
+    {
+      // construct each pair
+      std::vector<Expr>& rchildren = retType->d_children;
+      for (size_t i = 0, nreqs = rchildren.size()-1; i<nreqs; i++)
+      {
+        Expr& req = rchildren[i];
+        Expr e1 = (*req.get())[0];
+        Expr e2 = (*req.get())[1];
+        localImpl << "  // handle requirement " << e1 << " == " << e2 << std::endl;
+      }
+      // write the requires here
+      retType = rchildren[rchildren.size()-1];
+    }
     std::stringstream ssret;
     localImpl << "  // construct return type" << std::endl;
     // if ground, write the construction of the return type statically in declarations
@@ -423,12 +438,6 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
       // we return the return type verbatim, thus it is worthwhile to compile
       // its type checking as well
       toVisit.push_back(retType);
-    }
-    // requires
-    while (retType->getKind()==Kind::REQUIRES_TYPE)
-    {
-      // write the requires here
-      retType = retType->getChildren()[retType->getNumChildren()-1];
     }
     if (!retType->isEvaluatable())
     {
