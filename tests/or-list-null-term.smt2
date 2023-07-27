@@ -24,5 +24,3 @@
 (step a3 (or a b b) :rule or_elim1 :premises (a1))
 (step a4 a :rule and_elim1 :premises (a2))
 
-
-

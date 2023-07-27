@@ -50,11 +50,13 @@
 (declare-const bvand
     (-> (! Int :var m :implicit) 
         (BitVec m) (BitVec m) (BitVec m))
+    :left-assoc
 )
 
 (declare-const bvor
     (-> (! Int :var m :implicit) 
         (BitVec m) (BitVec m) (BitVec m))
+    :left-assoc
 )
 
 (declare-const bvnand
@@ -70,6 +72,7 @@
 (declare-const bvxor
     (-> (! Int :var m :implicit) 
         (BitVec m) (BitVec m) (BitVec m)) 
+    :left-assoc
 )
 
 (declare-const bvxnor
@@ -90,11 +93,13 @@
 (declare-const bvadd
     (-> (! Int :var m :implicit) 
         (BitVec m) (BitVec m) (BitVec m)) 
+    :left-assoc
 )
 
 (declare-const bvmul
     (-> (! Int :var m :implicit) 
         (BitVec m) (BitVec m) (BitVec m))
+    :left-assoc
 )
 
 (declare-const bvudiv
@@ -130,6 +135,7 @@
 (declare-const bvult
     (-> (! Int :var m :implicit) 
         (BitVec m) (BitVec m) Bool) 
+    :chainable and
 )
 
 (declare-const bvule
