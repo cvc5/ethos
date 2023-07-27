@@ -131,8 +131,7 @@ private:
                       const std::string& t,
                       CompilerScope& s,
                       std::vector<std::string>& reqs,
-                      std::vector<std::string>& varAssign,
-                      std::map<ExprValue*, std::string>& visited);
+                      std::map<Expr, std::string>& varAssign);
 };
 
 }  // namespace alfc

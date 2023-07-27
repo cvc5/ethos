@@ -80,8 +80,6 @@ public:
   Expr getVar(const std::string& name) const;
   /** */
   ExprInfo* getInfo(const ExprValue* e);
-  /** */
-  ExprInfo* getOrMkInfo(const ExprValue* e);
   /** Get the type checker */
   TypeChecker& getTypeChecker();
   /** Get options */
@@ -96,6 +94,8 @@ public:
   /** Maybe evaluate */
   Expr evaluate(const std::vector<Expr>& children, Ctx& newCtx);
 private:
+  /** */
+  ExprInfo* getOrMkInfo(const ExprValue* e);
   /** include file, if not already done */
   void includeFileInternal(const std::string& s, bool ignore=false);
   /** */

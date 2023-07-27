@@ -2,6 +2,7 @@
 
 #include "state.h"
 #include <iostream>
+#include <algorithm>
 
 namespace alfc {
 
@@ -322,15 +323,16 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
     // write the free symbols of the return type as (local) variables
     std::stringstream localDecl;
     std::stringstream localImpl;
-    CompilerScope pscope(localDecl, localImpl, "_p");
+    std::string pprefix("_p");
+    CompilerScope pscope(localDecl, localImpl, pprefix);
     // write the matching
     std::vector<std::string> reqs;
-    std::vector<std::string> varAssign;
-    std::map<ExprValue*, std::string> visited;
+    std::map<Expr, std::string> varAssign;
+    TypeChecker& tc = d_state.getTypeChecker();
     for (size_t i=0, nargs=children.size()-1; i<nargs; i++)
     {
       // ensure all variables are declared (but not constructed)
-      std::vector<Expr> fvs = d_state.getTypeChecker().getFreeSymbols(children[i]);
+      std::vector<Expr> fvs = tc.getFreeSymbols(children[i]);
       for (const Expr& v : fvs)
       {
         pscope.ensureDeclared(v.get());
@@ -340,9 +342,8 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
       ssa << "a" << i;
       pscope.d_decl << "  Expr& " << ssa.str() << " = args[" << i << "];" << std::endl;
       // write matching code
-      writeMatching(pats, ssa.str(), pscope, reqs, varAssign, visited);
+      writeMatching(pats, ssa.str(), pscope, reqs, varAssign);
     }
-    bool matchesArgs = !pscope.d_idMap.empty();
     if (!reqs.empty())
     {
       localImpl << "  // check requirements" << std::endl;
@@ -366,20 +367,31 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
       localImpl << "  }" << std::endl;
     }
     localImpl << "  // assign variables" << std::endl;
-    for (const std::string& va : varAssign)
+    std::vector<Expr> fvsRet = tc.getFreeSymbols(retType);
+    std::map<ExprValue*, size_t>::iterator iti;
+    bool usedMatch = false;
+    for (std::pair<const Expr, std::string>& va : varAssign)
     {
-      localImpl << "  " << va << ";" << std::endl;
+      // only matters if it occurs in return type
+      if (std::find(fvsRet.begin(), fvsRet.end(), va.first)==fvsRet.end())
+      {
+        continue;
+      }
+      usedMatch = true;
+      iti = pscope.d_idMap.find(va.first.get());
+      // Assert (iti!=pscope.d_idMap.end());
+      localImpl << "  " << pprefix << iti->second << " = " << va.second << ";" << std::endl;
     }
     if (!isEval)
     {
       localImpl << "  // construct return type" << std::endl;
       // if ground, write the construction of the return type statically in declarations
       // if non-ground, write the construction of the return type locally
-      if (matchesArgs && !retType->isGround())
+      if (usedMatch)
       {
         size_t retId = writeExprInternal(retType, pscope);
         // just return the id computed above
-        localImpl << "  return " << pscope.d_prefix << retId << ";" << std::endl;
+        localImpl << "  return " << pprefix << retId << ";" << std::endl;
       }
       else
       {
@@ -404,8 +416,7 @@ void Compiler::writeMatching(std::vector<Expr>& pats,
                              const std::string& t,
                              CompilerScope& s,
                              std::vector<std::string>& reqs,
-                             std::vector<std::string>& varAssign,
-                             std::map<ExprValue*, std::string>& visited)
+                             std::map<Expr, std::string>& varAssign)
 {
   if (pats.size()>1)
   {
@@ -417,7 +428,7 @@ void Compiler::writeMatching(std::vector<Expr>& pats,
   toVisit.emplace_back(std::pair<std::vector<size_t>, Expr>({}, pat));
   std::pair<std::vector<size_t>, Expr> curr;
   std::map<ExprValue*, size_t>::const_iterator it;
-  std::map<ExprValue*, std::string>::iterator itv;
+  std::map<Expr, std::string>::iterator itv;
   do
   {
     curr = toVisit.back();
@@ -427,16 +438,11 @@ void Compiler::writeMatching(std::vector<Expr>& pats,
     if (p->getKind()==Kind::VARIABLE)
     {
       // if we haven't visited yet
-      itv = visited.find(p.get());
-      if (itv==visited.end())
+      itv = varAssign.find(p);
+      if (itv==varAssign.end())
       {
-        it = s.d_idMap.find(p.get());
-        // Assert (it !=s.d_idMap.end());
-        std::stringstream ssv;
-        ssv << "_p" << it->second << " = " << cterm;
-        varAssign.push_back(ssv.str());
         // map to the name we already bound
-        visited[p.get()] = cterm;
+        varAssign[p] = cterm;
       }
       else
       {
@@ -449,6 +455,7 @@ void Compiler::writeMatching(std::vector<Expr>& pats,
     }
     else if (p->isGround())
     {
+      // just check equality
       size_t id = writeGlobalExpr(p);
       std::stringstream ssg;
       ssg << cterm  << "==_e" << id;
