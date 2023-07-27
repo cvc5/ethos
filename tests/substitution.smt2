@@ -12,11 +12,13 @@
   (S S U) U
   (
   ((substitute x y x)     y)
-  ((substitute x y (@ f a)) (@ (substitute x y f) (substitute x y a)))
+  ((substitute x y (@ f a)) (@ (substitute x y f) (substitute x y a))) ; if we switch f and a, when error?
   ((substitute x y z)     z)
   )
 )
 
+; T is existential
+; Typed template Haskell
 
 (declare-rule eq-subs
    ((f Bool) (a Bool) (b Bool))

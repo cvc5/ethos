@@ -9,16 +9,16 @@
    :pairwise
 )
 (declare-const or (-> Bool Bool Bool)
-   :left-assoc false
+   :right-assoc false
 )
 (declare-const and (-> Bool Bool Bool)
-   :left-assoc true
-)
-(declare-const => (-> Bool Bool Bool)
    :right-assoc true
 )
+(declare-const => (-> Bool Bool Bool)
+   :right-assoc
+)
 (declare-const xor (-> Bool Bool Bool)
-   :right-assoc false
+   :left-assoc
 )
 
 (declare-const = (-> (! Type :var A :implicit) A A Bool)

@@ -1,36 +1,44 @@
 ; Programs to work with n-ary operators
 
+; ====================================
+;  Right-associative null-terminated
+; ====================================
+
+; The following functions work with right-associative symbols with a defined
+; null terminator.  Those behave somewhat simmilar to functional programming
+; lists.  Therefore, the symbol will always be called `cons` in the following
+; and the terminator will be `nil`.
+; One derivation from lists is that the syntactic suggar cannot be used to
+; write unit lists. For example, consider a right-associative `or` with
+; `false` as the terminator, then `(or a b c)` correpsonds to
+; `(or a (or b (or c false)))`, but `(or a)` is illegal.
+
 ; What I need here (generic)
 ;   - remove
 ;   - append
 ;   - intoList
 ;   - fromList
 
-
-; append t1 to t2 if t1 and t2 are null-terminated lists
+; append c to the head of l
 (program append
-    ((U Type) (f (-> U U U)) (t1 U) (t2 U :list))
+    ((U Type) (S Type) (cons (-> U U U)) (c S) (l U :list))
     ((-> U U U) U U) U
     (
-        ((append f t1 t2) (f t1 t2))
+        ((append cons c l) (cons c l))
     )
 )
 
-(program appendLeft
-    ((U Type) (f (-> U U U)) (t1 U :list) (t2 U))
-    ((-> U U U) U U) U
+; concatinates two lists l1, l2
+(program concat
+    ((U Type) (S Type) (cons (-> U U U)) (nil U) (l1 U) (l1s U :list) (l2 U))
+    ((->  U U U) U U U) U
     (
-        ((appendLeft f t1 t2) (f t1 t2))
+        ((concat cons nil nil l2) l2)
+        ((concat cons nil (cons l1 l1s) l2) (append cons l1 (concat cons nil l1s l2)))
     )
 )
 
-(program appendOr
-    ((t1 Bool) (t2 Bool :list))
-    (Bool Bool) Bool
-    (
-        ((appendOr t1 t2) (or t1 t2))
-    )
-)
+; Old stuff
 
 ; removeRight t u
 ; Remove the first occurence of t from a term u = (f c1 (f c2 ..))
