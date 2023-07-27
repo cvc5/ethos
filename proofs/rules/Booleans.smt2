@@ -36,8 +36,34 @@
     :conclusion (resolve C1 C2 pol L)
 )
 
-; TODO: needs support for premise lists
 ; CHAIN_RESOLUTION
+(program chainResolveRec((C1 Bool) (C2 Bool) (Cs Bool :list) (pol Bool) (L Bool) (args Bool :list))
+    (Bool Bool Bool) Bool
+    (
+        ((chainResolveRec C1 true true) C1)
+        ((chainResolveRec C1 (and C2 Cs) (and pol L args)) (chainResolveRec (resolve C1 C2 pol L) Cs args))
+    )
+)
+
+(program chainResolve((C1 Bool) (Cs Bool :list) (args Bool))
+    (Bool Bool) Bool
+    (
+        ((chainResolve (and C1 Cs) args) (chainResolveRec C1 Cs args))
+    )
+)
+
+; This is a chain or resolution steps as described in the cvc5 proof rule
+; documentation.
+; `Cs` is a conjunction or the premise clauses.  This can be built by using
+;      multiple `and_intro` steps.
+; `args` is a conjunction where the alternating conjuncts are polarity and
+;        pivot literal.
+(declare-rule chain_resolution ((Cs Bool) (args Bool))
+    :premises (Cs)
+    :args (args)
+    :conclusion (chainResolve Cs args)
+)
+
 ; MACRO_RESOLUTION_TRUST
 ; MACRO_RESOLUTION
 
