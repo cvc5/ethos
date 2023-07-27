@@ -17,10 +17,10 @@
 
 ; Factoring
 (assume faca1 (or c1 c1 c2 (not c2) (not c2)))
-;(step   fact1 (or c1    c2 (not c2)          ) :rule factoring :premises (faca1))
+(step   fact1 (or c1    c2 (not c2)          ) :rule factoring :premises (faca1))
 (assume faca2 (or c1 (or c1 c1) c2 (not c2) (not c2) c1))
-;(step   fact2 (or c1 (or c1 c1) c2 (not c2)          c1) :rule factoring :premises (faca2))
-;
+(step   fact2 (or c1 (or c1 c1) c2 (not c2)          c1) :rule factoring :premises (faca2))
+
 ; Reordering
 (assume reord1 (and c1 c2))
 (step  reordt1 :rule reordering :premises (reord1) :args ((and c1 c2)))

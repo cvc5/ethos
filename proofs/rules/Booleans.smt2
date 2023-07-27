@@ -42,11 +42,11 @@
 ; MACRO_RESOLUTION
 
 ; FACTORING
-(program factorLiterals ((l Bool) (l1 Bool) (ls Bool :list))
+(program factorLiterals ((l Bool) (ls Bool :list))
     (Bool) Bool
     (
         ((factorLiterals false) false)
-        ((factorLiterals (or l l ls)) (appendOr l (factorLiterals ls)))
+        ((factorLiterals (or l l ls)) (factorLiterals (appendOr l ls)))
         ((factorLiterals (or l ls))   (appendOr l (factorLiterals ls)))
         ((factorLiterals ls) ls)
     )
