@@ -1,0 +1,25 @@
+#!/bin/bash
+
+## expects [alfc executable] [*.smt2 to compile]
+
+SRCDIR=../src/
+
+ALFC=$1
+shift
+
+FILE=$1
+shift
+
+echo "Generate compiled code via $ALFC --gen-compile $FILE"
+$ALFC --gen-compile $FILE
+
+echo "Copy compiled code via cp compiled.out.cpp $SRCDIR/compiled.cpp"
+cp $SRCDIR/compiled.cpp compiled.orig.cpp
+cp compiled.out.cpp $SRCDIR/compiled.cpp
+
+
+echo "Recompile via make"
+make
+
+echo "Undo via mv compiled.orig.cpp $SRCDIR/compiled.cpp"
+mv compiled.orig.cpp $SRCDIR/compiled.cpp

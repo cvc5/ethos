@@ -142,8 +142,8 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
       std::set<std::pair<Expr, Expr>> visited;
       for (size_t i=0, nchild=ctypes.size(); i<nchild; i++)
       {
-        // Assert (ctype!=nullptr);
-        // unification, update retType
+        // Assert (ctypes[i]!=nullptr);
+        // matching, update context
         if (!match(hdtypes[i], ctypes[i], ctx, visited))
         {
           if (out)

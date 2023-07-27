@@ -25,6 +25,14 @@ size_t CompilerScope::ensureDeclared(ExprValue* ev)
   return ret;
 }
 
+void CompilerScope::ensureDeclared(std::vector<Expr>& ev)
+{
+  for (Expr& e : ev)
+  {
+    ensureDeclared(e.get());
+  }
+}
+
 bool CompilerScope::isGlobal() const
 {
   return d_global==nullptr;
@@ -189,6 +197,21 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
   {
     return;
   }
+  // ensure the program is defined
+  // NOTE: don't need this once programs are always evaluated below
+  size_t vid = writeGlobalExpr(v);
+  size_t pid = writeGlobalExpr(prog);
+  d_init << "  defineProgram(_e" << vid << ", _e" << pid << ");" << std::endl;
+    
+  std::stringstream localDecl;
+  std::stringstream localImpl;
+  std::string pprefix("_p");
+  CompilerScope pscope(localDecl, localImpl, pprefix, &d_global);  
+  
+  // ensure all variables in the type are declared (but not constructed)
+  std::vector<Expr> fvs = getFreeSymbols(prog);
+  pscope.ensureDeclared(fvs);
+  
   // for each case
   std::vector<Expr>& progChildren = prog->d_children;
   for (Expr& c : progChildren)
@@ -199,9 +222,6 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
     // compile the evaluation of the body
     writeEvaluate(d_eval, body);
   }
-  size_t vid = writeGlobalExpr(v);
-  size_t pid = writeGlobalExpr(prog);
-  d_init << "  defineProgram(_e" << vid << ", _e" << pid << ");" << std::endl;
 }
 
 size_t Compiler::markCompiled(std::ostream& os, const Expr& e)
@@ -363,10 +383,7 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
     CompilerScope pscope(localDecl, localImpl, pprefix, &d_global);     
     // ensure all variables in the type are declared (but not constructed)
     std::vector<Expr> fvs = getFreeSymbols(curr);
-    for (const Expr& v : fvs)
-    {
-      pscope.ensureDeclared(v.get());
-    }
+    pscope.ensureDeclared(fvs);
     // write the matching
     std::vector<std::string> reqs;
     std::map<Expr, std::string> varAssign;
@@ -673,7 +690,7 @@ std::string Compiler::toString()
 }
 
 
-std::vector<Expr> Compiler::getFreeSymbols(Expr& e) const
+std::vector<Expr> Compiler::getFreeSymbols(const Expr& e) const
 {
   std::vector<Expr> ret;
   std::unordered_set<Expr> visited;
@@ -703,7 +720,7 @@ std::vector<Expr> Compiler::getFreeSymbols(Expr& e) const
   return ret;
 }
 
-bool Compiler::hasVariable(Expr& e, const std::unordered_set<Expr>& vars) const
+bool Compiler::hasVariable(const Expr& e, const std::unordered_set<Expr>& vars) const
 {
   if (vars.empty())
   {

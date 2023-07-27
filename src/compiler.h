@@ -25,6 +25,7 @@ public:
   ~CompilerScope();
   /** allocate id */
   size_t ensureDeclared(ExprValue* ev);
+  void ensureDeclared(std::vector<Expr>& ev);
   /** is global */
   bool isGlobal() const;
   /** get name for */
@@ -153,9 +154,9 @@ private:
                       std::vector<std::string>& reqs,
                       std::map<Expr, std::string>& varAssign);
   /** Get the free symbols */
-  std::vector<Expr> getFreeSymbols(Expr& e) const;
+  std::vector<Expr> getFreeSymbols(const Expr& e) const;
   /** Get the free symbols */
-  bool hasVariable(Expr& e, const std::unordered_set<Expr>& terms) const;
+  bool hasVariable(const Expr& e, const std::unordered_set<Expr>& terms) const;
 };
 
 }  // namespace alfc
