@@ -43,6 +43,7 @@ enum class Token
   QUOTED_SYMBOL,
   RESET,
   RPAREN,
+  SCOPE,
   SET_INFO,
   SET_LOGIC,
   SET_OPTION,

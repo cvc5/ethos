@@ -23,7 +23,7 @@ namespace alfc {
 CmdParser::CmdParser(Lexer& lex,
                              State& state,
                              ExprParser& eparser)
-    : d_lex(lex), d_state(state), d_eparser(eparser)
+    : d_lex(lex), d_state(state), d_eparser(eparser), d_isFinished(false)
 {
   // initialize the command tokens
   d_table["assume"] = Token::ASSUME;
@@ -43,6 +43,7 @@ CmdParser::CmdParser(Lexer& lex,
   d_table["program"] = Token::PROGRAM;
   d_table["proof"] = Token::PROOF;
   d_table["reset"] = Token::RESET;
+  d_table["scope"] = Token::SCOPE;  // TODO: name?
   d_table["set-info"] = Token::SET_INFO;
   d_table["set-option"] = Token::SET_OPTION;
   d_table["step"] = Token::STEP;
@@ -67,7 +68,7 @@ Token CmdParser::nextCommandToken()
 bool CmdParser::parseNextCommand()
 {
   // if we are at the end of file, return the null command
-  if (d_lex.eatTokenChoice(Token::EOF_TOK, Token::LPAREN))
+  if (d_isFinished || d_lex.eatTokenChoice(Token::EOF_TOK, Token::LPAREN))
   {
     return false;
   }
@@ -323,7 +324,7 @@ bool CmdParser::parseNextCommand()
     // (exit)
     case Token::EXIT:
     {
-      exit(0);
+      d_isFinished = true;
     }
     break;
     case Token::INCLUDE:
@@ -370,12 +371,13 @@ bool CmdParser::parseNextCommand()
     }
     break;
     // (proof <formula> <term>)
+    // NOTE: doesn't allow optional
     case Token::PROOF:
     {
       Expr proven = d_eparser.parseExpr();
       Expr p = d_eparser.parseExpr();
       Expr pt = d_state.mkProofType(proven);
-      // ensure a proof of the given fact, ensure closed
+      // ensure a proof of the given fact
       d_eparser.typeCheck(p, pt);
     }
     break;
@@ -385,6 +387,12 @@ bool CmdParser::parseNextCommand()
       // reset the state of the parser, which is independent of the symbol
       // manager
       d_state.reset();
+    }
+    break;
+    // (scope)
+    case Token::SCOPE:
+    {
+      d_state.pushAssumptionScope();
     }
     break;
     // (set-info <attribute>)

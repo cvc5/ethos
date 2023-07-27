@@ -29,8 +29,9 @@ State::~State(){}
 
 void State::reset()
 {
-  d_assumptions.clear();
   d_symTable.clear();
+  d_assumptions.clear();
+  d_assumptionsSizeCtx.clear();
   d_decls.clear();
   d_declsSizeCtx.clear();
   if (d_compiler!=nullptr)
@@ -68,6 +69,27 @@ void State::popScope()
     d_symTable.erase(d_decls[i]);
   }
   d_decls.resize(lastSize);
+}
+
+void State::pushAssumptionScope()
+{
+  if (d_compiler!=nullptr)
+  {
+    d_compiler->popScope();
+  }
+  d_assumptionsSizeCtx.push_back(d_assumptions.size());
+}
+
+void State::popAssumptionScope()
+{
+  if (d_compiler!=nullptr)
+  {
+    d_compiler->popScope();
+  }
+  // process assumptions
+  size_t lastSize = d_assumptionsSizeCtx.back();
+  d_assumptionsSizeCtx.pop_back();
+  d_assumptions.resize(lastSize);
 }
 
 void State::includeFile(const std::string& s)
@@ -444,6 +466,18 @@ ExprInfo* State::getInfo(const ExprValue* e)
 ExprInfo* State::getOrMkInfo(const ExprValue* e)
 {
   return &d_exprData[e];
+}
+
+size_t State::getAssumptionLevel() const
+{
+  return d_assumptionsSizeCtx.size();
+}
+
+std::vector<Expr> State::getCurrentAssumptions() const
+{
+  size_t start = d_assumptionsSizeCtx.empty() ? 0 : d_assumptionsSizeCtx.back();
+  std::vector<Expr> as(d_assumptions.begin()+start, d_assumptions.end());
+  return as;
 }
 
 AppInfo* State::getAppInfo(const ExprValue* e)

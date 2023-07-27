@@ -34,6 +34,10 @@ public:
   void pushScope();
   /** Pop scope */
   void popScope();
+  /** Push assumption scope */
+  void pushAssumptionScope();
+  /** Pop assumption scope */
+  void popAssumptionScope();
   /** include file, if not already done */
   void includeFile(const std::string& s);
   /** add assumption */
@@ -76,6 +80,7 @@ public:
   bool bind(const std::string& name, const Expr& e);
   /** is closure */
   bool isClosure(const Expr& e) const;
+  
   /** */
   Expr getVar(const std::string& name) const;
   /** */
@@ -86,6 +91,10 @@ public:
   Options& getOptions();
   /** Get compiler */
   Compiler* getCompiler();
+  /** */
+  size_t getAssumptionLevel() const;
+  /** */
+  std::vector<Expr> getCurrentAssumptions() const;
   
   /** Mark information */
   bool markAttributes(const Expr& v, const std::map<Attr, Expr>& attrs);
@@ -115,14 +124,16 @@ private:
   void bindBuiltin(const std::string& name, Kind k, bool isClosure, const Expr& t);
   /** Compiled initialization */
   void run_initialize();
-  /** All free assumptions */
-  std::vector<Expr> d_assumptions;
   /** The symbol table */
   std::map<std::string, Expr> d_symTable;
   /** Context stacks */
   std::vector<std::string> d_decls;
   /** Context size */
   std::vector<size_t> d_declsSizeCtx;
+  /** All free assumptions */
+  std::vector<Expr> d_assumptions;
+  /** Context size */
+  std::vector<size_t> d_assumptionsSizeCtx;
   /** literals */
   std::map<const ExprValue*, ExprInfo> d_exprData;
   /** literals */

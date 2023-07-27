@@ -40,6 +40,7 @@ std::ostream& operator<<(std::ostream& o, Token t)
     case Token::QUOTED_SYMBOL: o << "QUOTED_SYMBOL"; break;
     case Token::RESET: o << "RESET"; break;
     case Token::RPAREN: o << "RPAREN"; break;
+    case Token::SCOPE: o << "SCOPE"; break;
     case Token::SET_INFO: o << "SET_INFO"; break;
     case Token::SET_LOGIC: o << "SET_LOGIC"; break;
     case Token::SET_OPTION: o << "SET_OPTION"; break;

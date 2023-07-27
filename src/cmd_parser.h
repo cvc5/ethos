@@ -33,10 +33,8 @@ class CmdParser
   ExprParser& d_eparser;
   /** Map strings to tokens */
   std::map<std::string, Token> d_table;
-  /** is strict */
-  bool d_isStrict;
-  /** is sygus */
-  bool d_isSygus;
+  /** Is finished */
+  bool d_isFinished;
 };
 
 }  // namespace alfc
