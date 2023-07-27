@@ -363,6 +363,29 @@ bool CmdParser::parseNextCommand()
       {
         d_lex.parseError("Expected non-empty list of cases");
       }
+      // ensure program cases are
+      // (A) applications of the program
+      // (B) have arguments that are not evaluatable
+      for (Expr& p : pchildren)
+      {
+        Expr pc = (*p.get())[0];
+        if (pc->getKind()!=Kind::APPLY || pc->getChildren()[0]!=pvar)
+        {
+          d_lex.parseError("Expected application of program as case");
+        }
+        // TODO: allow variable or default case?
+        const std::vector<Expr>& children = pc->getChildren();
+        for (const Expr& ec : children)
+        {
+          Expr ecc = ec;
+          if (ecc->isEvaluatable())
+          {
+            std::stringstream ss;
+            ss << "Cannot match on evaluatable subterm " << ec;
+            d_lex.parseError(ss.str());
+          }
+        }
+      }
       d_state.popScope();
       Expr program = d_state.mkExpr(Kind::PROGRAM, pchildren);
       d_state.defineProgram(pvar, program);
