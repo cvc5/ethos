@@ -99,6 +99,11 @@ private:
    */
   std::stringstream d_eval;
   std::stringstream d_evalEnd;
+  /**
+   * Code to be called for evaluating programs, returns the case
+   */
+  std::stringstream d_evalp;
+  std::stringstream d_evalpEnd;
   /** Identifier counts */
   CompilerScope d_global;
   /**

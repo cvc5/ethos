@@ -89,9 +89,14 @@ void ExprValue::computeFlags()
     else
     {
       visit.pop_back();
-      if (cur->getKind()==Kind::APPLY && 
-          children[0]->getKind()==Kind::PROGRAM_CONST)
+      Kind ck = cur->getKind();
+      if (ck==Kind::APPLY && children[0]->getKind()==Kind::PROGRAM_CONST)
       {
+        cur->setFlag(Flag::IS_EVAL, true);
+      }
+      else if (ck==Kind::REQUIRES_TYPE)
+      {
+        // requires type may evaluate
         cur->setFlag(Flag::IS_EVAL, true);
       }
       for (Expr& c : children)

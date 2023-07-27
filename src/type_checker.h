@@ -43,7 +43,9 @@ class TypeChecker
   /** Return its type */
   Expr getTypeInternal(Expr& e, std::ostream* out);
   /** Compiled version */
-  Expr run_evaluate(Expr& hd, std::vector<Expr>& args);
+  Expr run_evaluate(Expr& e, Ctx& ctx);
+  /** Compiled version */
+  Expr run_evaluateProgram(Expr& hd, std::vector<Expr>& args, Ctx& ctx);
   /** The state */
   State& d_state;
   /** The builtin literal kinds */

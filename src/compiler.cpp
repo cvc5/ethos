@@ -72,19 +72,23 @@ Compiler::Compiler(State& s) : d_state(s), d_nscopes(0), d_global(d_decl, d_init
   // TODO: write error?
   d_tcEnd << "  return nullptr;" << std::endl;
   d_tcEnd << "}" << std::endl;
-  d_eval << "Expr TypeChecker::run_evaluate(Expr& e, std::vector<Expr>& args)" << std::endl;
+  d_eval << "Expr TypeChecker::run_evaluate(Expr& e, Ctx& ctx)" << std::endl;
   d_eval << "{" << std::endl;
-  d_eval << "  std::map<ExprValue*, size_t>::iterator itr = _runId.find(e.get());" << std::endl;
-  d_eval << "  switch(itr->second)" << std::endl;
-  d_eval << "  {" << std::endl;
-  d_evalEnd << "  default: break;" << std::endl;
-  d_evalEnd << "  }" << std::endl;
-  // otherwise just return itself (unevaluated)
-  d_evalEnd << "  std::vector<Expr> eargs;" << std::endl;
-  d_evalEnd << "  eargs.push_back(e);" << std::endl;
-  d_evalEnd << "  eargs.insert(eargs.end(), args.begin(), args.end());" << std::endl;
-  d_evalEnd << "  return d_state.mkExprInternal(Kind::APPLY, eargs);" << std::endl;
+  d_evalEnd << "  return nullptr;" << std::endl;
   d_evalEnd << "}" << std::endl;
+  d_evalp << "Expr TypeChecker::run_evaluateProgram(Expr& e, std::vector<Expr>& args, Ctx& ctx)" << std::endl;
+  d_evalp << "{" << std::endl;
+  d_evalp << "  std::map<ExprValue*, size_t>::iterator itr = _runId.find(e.get());" << std::endl;
+  d_evalp << "  switch(itr->second)" << std::endl;
+  d_evalp << "  {" << std::endl;
+  d_evalpEnd << "  default: break;" << std::endl;
+  d_evalpEnd << "  }" << std::endl;
+  // otherwise just return itself (unevaluated)
+  d_evalpEnd << "  std::vector<Expr> eargs;" << std::endl;
+  d_evalpEnd << "  eargs.push_back(e);" << std::endl;
+  d_evalpEnd << "  eargs.insert(eargs.end(), args.begin(), args.end());" << std::endl;
+  d_evalpEnd << "  return d_state.mkExprInternal(Kind::APPLY, eargs);" << std::endl;
+  d_evalpEnd << "}" << std::endl;
 }
 
 Compiler::~Compiler(){}
@@ -533,6 +537,8 @@ std::string Compiler::toString()
   ss << d_tcEnd.str() << std::endl;
   ss << d_eval.str();
   ss << d_evalEnd.str() << std::endl;
+  ss << d_evalp.str();
+  ss << d_evalpEnd.str() << std::endl;
   ss << "}" << std::endl;
   return ss.str();
 }

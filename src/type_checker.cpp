@@ -133,6 +133,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
       // if compiled, run the compiled version of the type checker
       if (hdType->isCompiled())
       {
+        std::cout << "RUN type check " << hdType << std::endl;
         return run_getTypeInternal(hdType, ctypes, out);
       }
       Ctx ctx;
@@ -350,7 +351,8 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
     while (!visit.empty())
     {
       cur = visit.back();
-      // unevaluatable terms stay the same
+      // the term will stay the same if it is not evaluatable and either it
+      // is ground, or the context is empty.
       if (!cur->isEvaluatable() && (cur->isGround() || cctx.empty()))
       {
         visited[cur] = cur;
@@ -373,6 +375,13 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
         // TODO: error, variable not filled?
         //std::cout << "WARNING: unfilled variable " << cur << std::endl;
       }
+      // if it is compiled, we run its evaluation here
+      if (cur->isCompiled())
+      {
+        visited[cur] = run_evaluate(cur, cctx);
+        continue;
+      }
+      
       std::vector<Expr>& children = cur->d_children;
       it = visited.find(cur);
       if (it == visited.end())
@@ -428,28 +437,28 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
             // maybe evaluate the program?
             if (cchildren[0]->getKind()==Kind::PROGRAM_CONST)
             {
+              ctxs.emplace_back();
               if (cchildren[0]->isCompiled())
               {
                 std::vector<Expr> pargs(cchildren.begin()+1, cchildren.end());
-                evaluated = run_evaluate(cchildren[0], pargs);
+                evaluated = run_evaluateProgram(cchildren[0], pargs, ctxs.back());
               }
               else
               {
-                ctxs.emplace_back();
                 // see if we evaluate
-                evaluated = d_state.evaluate(cchildren, ctxs.back());
-                if (ctxs.back().empty())
-                {
-                  // if there is no context, we don't have to push a scope
-                  ctxs.pop_back();
-                }
-                else
-                {
-                  // otherwise push an evaluation scope
-                  newContext = true;
-                  visits.emplace_back(std::vector<Expr>{evaluated});
-                  visiteds.emplace_back();
-                }
+                evaluated = d_state.evaluateProgram(cchildren, ctxs.back());
+              }
+              if (ctxs.back().empty())
+              {
+                // if there is no context, we don't have to push a scope
+                ctxs.pop_back();
+              }
+              else
+              {
+                // otherwise push an evaluation scope
+                newContext = true;
+                visits.emplace_back(std::vector<Expr>{evaluated});
+                visiteds.emplace_back();
               }
             }
             break;

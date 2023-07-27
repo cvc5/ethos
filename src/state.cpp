@@ -502,7 +502,7 @@ void State::defineProgram(const Expr& v, const Expr& prog)
   }
 }
 
-Expr State::evaluate(const std::vector<Expr>& children, Ctx& newCtx)
+Expr State::evaluateProgram(const std::vector<Expr>& children, Ctx& newCtx)
 {
   Expr hd = children[0];
   std::map<Expr, Expr>::iterator it = d_programs.find(hd);

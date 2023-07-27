@@ -92,7 +92,7 @@ public:
   /** Define program */
   void defineProgram(const Expr& v, const Expr& prog);
   /** Maybe evaluate */
-  Expr evaluate(const std::vector<Expr>& children, Ctx& newCtx);
+  Expr evaluateProgram(const std::vector<Expr>& children, Ctx& newCtx);
 private:
   /** */
   ExprInfo* getOrMkInfo(const ExprValue* e);
