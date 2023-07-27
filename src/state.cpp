@@ -585,6 +585,10 @@ bool State::markAttributes(const Expr& v, const std::map<Attr, Expr>& attrs)
         break;
     }
   }
+  if (d_compiler!=nullptr)
+  {
+    d_compiler->markAttributes(v, attrs);
+  }
   return true;
 }
 

@@ -175,6 +175,7 @@ void Compiler::markAttributes(const Expr& v, const std::map<Attr, Expr>& attrs)
   {
     return;
   }
+  size_t id = writeGlobalExpr(v);
   d_init << "  _amap.clear();" << std::endl;
   for (const std::pair<const Attr, Expr>& p : attrs)
   {
@@ -190,6 +191,7 @@ void Compiler::markAttributes(const Expr& v, const std::map<Attr, Expr>& attrs)
       d_init << "  _amap[" << ssa.str() << "] = nullptr;" << std::endl;
     }
   }
+  d_init << "  markAttributes(_e" << id << ", _amap);" << std::endl;
 }
 void Compiler::defineProgram(const Expr& v, const Expr& prog)
 {
@@ -526,6 +528,7 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
     {
       std::stringstream ssret;
       ssret << "evaluate(" << ret << ")";
+      ret = ssret.str();
     }
     // just return the type constructed above
     localImpl << "  return " << ret << ";" << std::endl;
