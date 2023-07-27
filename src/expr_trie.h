@@ -10,7 +10,7 @@ class ExprTrie
 {
 public:
   ExprTrie() {}
-  std::map<Expr, ExprTrie> d_children;
+  std::map<const ExprValue*, ExprTrie> d_children;
   Expr d_data;
 };
 

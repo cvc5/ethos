@@ -377,7 +377,7 @@ Expr State::mkExprInternal(Kind k, const std::vector<Expr>& children, bool doHas
     et = &d_trie[k];
     for (const Expr& e : children)
     {
-      et = &(et->d_children[e]);
+      et = &(et->d_children[e.get()]);
     }
     if (et->d_data!=nullptr)
     {
