@@ -491,7 +491,7 @@ bool CmdParser::parseNextCommand()
       // args before premises
       for (const Expr& e : args)
       {
-        children.push_back(d_state.mkExpr(Kind::QUOTE, {e}));
+        children.push_back(e);
       }
       children.insert(children.end(), premises.begin(), premises.end());
       Expr def = rule;

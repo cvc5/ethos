@@ -326,6 +326,8 @@ Expr ExprParser::parseExpr()
                   sstack[sstack.size()-2]++;
                 }
                 bind(a.second->getSymbol(), a.second);
+                // it is now (Quote v) for that variable
+                ret = d_state.mkQuoteType(a.second);
               }
                 break;
               case Attr::IMPLICIT:

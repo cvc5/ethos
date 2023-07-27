@@ -107,11 +107,6 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
       std::vector<Expr>& children = e->d_children;
       Expr& hd = children[0];
       Expr hdType = hd->d_type;
-      std::vector<Expr> ctypes;
-      for (size_t i=1, nchild=children.size(); i<nchild; i++)
-      {
-        ctypes.push_back(children[i]->d_type);
-      }
       //Assert (hdType!=nullptr)
       if (hdType->getKind()!=Kind::FUNCTION_TYPE)
       {
@@ -123,6 +118,18 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
         return nullptr;
       }
       std::vector<Expr>& hdtypes = hdType->d_children;
+      std::vector<Expr> ctypes;
+      for (size_t i=1, nchild=children.size(); i<nchild; i++)
+      {
+        if (hdtypes[i-1]->getKind()==Kind::QUOTE_TYPE)
+        {
+          ctypes.push_back(evaluate(children[i]));
+        }
+        else
+        {
+          ctypes.push_back(children[i]->d_type);
+        }
+      }
       if (hdtypes.size()!=children.size())
       {
         // incorrect arity
@@ -144,7 +151,9 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
       {
         // Assert (ctypes[i]!=nullptr);
         // matching, update context
-        if (!match(hdtypes[i], ctypes[i], ctx, visited))
+        Expr hdt = hdtypes[i];
+        hdt = hdt->getKind()==Kind::QUOTE_TYPE ? hdt->getChildren()[0] : hdt;
+        if (!match(hdt, ctypes[i], ctx, visited))
         {
           if (out)
           {

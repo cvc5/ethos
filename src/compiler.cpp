@@ -596,11 +596,6 @@ void Compiler::writeMatching(std::vector<Expr>& pats,
     std::stringstream ssk;
     ssk << cterm << "->getKind()==Kind::" << p->getKind();
     reqs.push_back(ssk.str());
-    /*
-    std::stringstream ssnc;
-    ssnc << cterm << "->getNumChildren()==" << p->getNumChildren();
-    reqs.push_back(ssnc.str());
-    */
     // must check this eagerly to avoid OOB
     decl << "  if(" << cterm << "->getNumChildren()!=" << p->getNumChildren() << ")" << std::endl;
     decl << "  {" << std::endl;
