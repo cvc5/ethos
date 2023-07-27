@@ -83,7 +83,9 @@ Expr TypeChecker::getType(Expr& e, std::ostream* out)
     }
     else
     {
+      //std::cout << "Type check " << cur << std::endl;
       cur->d_type = getTypeInternal(cur, out);
+      //std::cout << "...return" << std::endl;
       if (cur->d_type==nullptr)
       {
         // any subterm causes type checking to fail
@@ -147,7 +149,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
           if (out)
           {
             (*out) << "Unexpected argument type " << i << std::endl;
-            (*out) << "  LHS " << hdtypes[i-1] << std::endl;
+            (*out) << "  LHS " << hdtypes[i] << std::endl;
             (*out) << "  RHS " << ctypes[i] << std::endl;
           }
           return nullptr;

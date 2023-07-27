@@ -53,7 +53,8 @@ std::string CompilerScope::getNameForPath(const std::string& t, const std::vecto
 }
 
 
-Compiler::Compiler(State& s) : d_state(s), d_nscopes(0), d_global(d_decl, d_init, "_e", true)
+Compiler::Compiler(State& s) :
+  d_state(s), d_tchecker(s.getTypeChecker()), d_nscopes(0), d_global(d_decl, d_init, "_e", true)
 {
   d_decl << "std::map<Attr, Expr> _amap;" << std::endl;
   d_decl << "ExprInfo* _einfo;" << std::endl;
@@ -74,18 +75,25 @@ Compiler::Compiler(State& s) : d_state(s), d_nscopes(0), d_global(d_decl, d_init
   d_tcEnd << "}" << std::endl;
   d_eval << "Expr TypeChecker::run_evaluate(Expr& e, Ctx& ctx)" << std::endl;
   d_eval << "{" << std::endl;
+  d_eval << "  std::map<ExprValue*, size_t>::iterator itr = _runId.find(e.get());" << std::endl;
+  // ASSERT
+  d_eval << "  switch(itr->second)" << std::endl;
+  d_eval << "  {" << std::endl;
+  d_evalEnd << "  default: break;" << std::endl;
+  d_evalEnd << "  }" << std::endl;
   d_evalEnd << "  return nullptr;" << std::endl;
   d_evalEnd << "}" << std::endl;
-  d_evalp << "Expr TypeChecker::run_evaluateProgram(Expr& e, std::vector<Expr>& args, Ctx& ctx)" << std::endl;
+  d_evalp << "Expr TypeChecker::run_evaluateProgram(Expr& prog, std::vector<Expr>& args, Ctx& ctx)" << std::endl;
   d_evalp << "{" << std::endl;
-  d_evalp << "  std::map<ExprValue*, size_t>::iterator itr = _runId.find(e.get());" << std::endl;
+  d_evalp << "  std::map<ExprValue*, size_t>::iterator itr = _runId.find(prog.get());" << std::endl;
+  // ASSERT
   d_evalp << "  switch(itr->second)" << std::endl;
   d_evalp << "  {" << std::endl;
   d_evalpEnd << "  default: break;" << std::endl;
   d_evalpEnd << "  }" << std::endl;
   // otherwise just return itself (unevaluated)
   d_evalpEnd << "  std::vector<Expr> eargs;" << std::endl;
-  d_evalpEnd << "  eargs.push_back(e);" << std::endl;
+  d_evalpEnd << "  eargs.push_back(prog);" << std::endl;
   d_evalpEnd << "  eargs.insert(eargs.end(), args.begin(), args.end());" << std::endl;
   d_evalpEnd << "  return d_state.mkExprInternal(Kind::APPLY, eargs);" << std::endl;
   d_evalpEnd << "}" << std::endl;
@@ -168,13 +176,15 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
     return;
   }
   // for each case
-  /*
-  std::vector<Expr>& progChildren = it->second->d_children;
+  std::vector<Expr>& progChildren = prog->d_children;
   for (Expr& c : progChildren)
   {
-
+    std::cout << "writeEvaluate for " << c << std::endl;
+    Expr hd = c->getChildren()[0];
+    Expr body = c->getChildren()[1];
+    // compile the evaluation of the body
+    writeEvaluate(d_eval, body);
   }
-  */
 }
 
 size_t Compiler::markCompiled(std::ostream& os, const Expr& e)
@@ -323,7 +333,7 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
     }
     os << "  // type rule for " << curr << std::endl;
     std::cout << "writeTypeChecking " << curr << std::endl;
-    d_tcWritten.insert(t.get());
+    d_tcWritten.insert(curr.get());
     size_t id = markCompiled(d_init, curr);
     std::stringstream osEnd;
     os << "  case " << id << ":" << std::endl;
@@ -333,13 +343,6 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
 
     // if the return type is ground, we don't need to build a context
     std::vector<Expr>& children = curr->d_children;
-    Expr& retType = children.back();
-    bool isEval = retType->isEvaluatable();
-    std::cout << "isEval=" << isEval << std::endl;
-    if (isEval)
-    {
-      os << "  std::vector<Expr> evalArgs;" << std::endl;
-    }
     // write the free symbols of the return type as (local) variables
     std::stringstream localDecl;
     std::stringstream localImpl;
@@ -348,11 +351,10 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
     // write the matching
     std::vector<std::string> reqs;
     std::map<Expr, std::string> varAssign;
-    TypeChecker& tc = d_state.getTypeChecker();
     for (size_t i=0, nargs=children.size()-1; i<nargs; i++)
     {
       // ensure all variables are declared (but not constructed)
-      std::vector<Expr> fvs = tc.getFreeSymbols(children[i]);
+      std::vector<Expr> fvs = d_tchecker.getFreeSymbols(children[i]);
       for (const Expr& v : fvs)
       {
         pscope.ensureDeclared(v.get());
@@ -387,7 +389,8 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
       localImpl << "  }" << std::endl;
     }
     localImpl << "  // assign variables" << std::endl;
-    std::vector<Expr> fvsRet = tc.getFreeSymbols(retType);
+    Expr& retType = children.back();
+    std::vector<Expr> fvsRet = d_tchecker.getFreeSymbols(retType);
     std::map<ExprValue*, size_t>::iterator iti;
     bool usedMatch = false;
     for (std::pair<const Expr, std::string>& va : varAssign)
@@ -402,33 +405,47 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
       // Assert (iti!=pscope.d_idMap.end());
       localImpl << "  " << pprefix << iti->second << " = " << va.second << ";" << std::endl;
     }
-    if (!isEval)
+    std::stringstream ssret;
+    localImpl << "  // construct return type" << std::endl;
+    // if ground, write the construction of the return type statically in declarations
+    // if non-ground, write the construction of the return type locally
+    if (usedMatch)
     {
-      localImpl << "  // construct return type" << std::endl;
-      // if ground, write the construction of the return type statically in declarations
-      // if non-ground, write the construction of the return type locally
-      if (usedMatch)
-      {
-        size_t retId = writeExprInternal(retType, pscope);
-        // just return the id computed above
-        localImpl << "  return " << pprefix << retId << ";" << std::endl;
-        // note that the returned type is specific to the type rule, thus we don't also compile the return type.
-      }
-      else
-      {
-        size_t retId = writeGlobalExpr(retType);
-        localImpl << "  return _e" << retId << ";" << std::endl;
-        // we return the return type verbatim, thus it is worthwhile to compile its type checking as well
-        toVisit.push_back(retType);
-      }
-      // now print the declarations + implementation
-      os << localDecl.str();
-      os << localImpl.str();
+      size_t retId = writeExprInternal(retType, pscope);
+      ssret << pprefix << retId;
+      // note that the returned type is specific to the type rule, thus we
+      // don't also compile the return type.
     }
     else
     {
-      os << "  return run_evaluate();" << std::endl;;
+      size_t retId = writeGlobalExpr(retType);
+      ssret << "_e" << retId;
+      // we return the return type verbatim, thus it is worthwhile to compile
+      // its type checking as well
+      toVisit.push_back(retType);
     }
+    // requires
+    while (retType->getKind()==Kind::REQUIRES_TYPE)
+    {
+      // write the requires here
+      retType = retType->getChildren()[retType->getNumChildren()-1];
+    }
+    if (!retType->isEvaluatable())
+    {
+      // just return the type constructed above
+      localImpl << "  return " << ssret.str() << ";" << std::endl;
+    }
+    else
+    {
+      // otherwise, we require evaluating it, which we do via the standard
+      // call to the type checker.
+      // NOTE: if usedMatch=true, we are doing eager construction of unevaluated terms here!
+      // alternatively, we could have the above matching compute the context.
+      localImpl << "  return evaluate(" << ssret.str() << ");" << std::endl;
+    }
+    // now print the declarations + implementation
+    os << localDecl.str();
+    os << localImpl.str();
     os << osEnd.str();
   }while (!toVisit.empty());
 }
@@ -509,17 +526,73 @@ void Compiler::writeMatching(std::vector<Expr>& pats,
   }while (!toVisit.empty());
 }
 
-size_t Compiler::writeEvaluation(std::ostream& os, const Expr& e)
+void Compiler::writeEvaluate(std::ostream& os, const Expr& e)
 {
-  // Assert (e!=nullptr);
-  if (!e->isEvaluatable())
+  std::vector<Expr> toVisit;
+  toVisit.push_back(e);
+  Expr curr;
+  do
   {
-    // unevaluated types just return themselves
-    return writeGlobalExpr(e);
-  }
-  //size_t id = markCompiled(d_init, e);
-
-  return 0;
+    curr = toVisit.back();
+    toVisit.pop_back();
+    if (curr->isGround())
+    {
+      // ground terms are constructed statically
+      writeGlobalExpr(curr);
+      continue;
+    }
+    if (curr->isEvaluatable())
+    {
+      // if its evaluatable, traverse
+      std::vector<Expr>& children = curr->d_children;
+      toVisit.insert(toVisit.end(), children.begin(), children.end());
+      continue;
+    }
+    if (d_evalWritten.find(curr.get())!=d_evalWritten.end())
+    {
+      // already written
+      continue;
+    }
+    os << "  // evaluation for " << curr << std::endl;
+    std::cout << "writeEvaluate " << curr << std::endl;
+    d_evalWritten.insert(curr.get());
+    
+    size_t id = markCompiled(d_init, curr);
+    std::stringstream osEnd;
+    os << "  case " << id << ":" << std::endl;
+    os << "  {" << std::endl;
+    osEnd << "  }" << std::endl;
+    osEnd << "  break;" << std::endl;
+    
+    // write the free symbols of the return type as (local) variables
+    std::stringstream localDecl;
+    std::stringstream localImpl;
+    std::string pprefix("_p");
+    CompilerScope pscope(localDecl, localImpl, pprefix);
+    localImpl << "  Ctx::iterator itc;" << std::endl;
+    std::vector<Expr> fvs = d_tchecker.getFreeSymbols(curr);
+    std::map<ExprValue*, size_t>::iterator iti;
+    for (const Expr& v : fvs)
+    {
+      pscope.ensureDeclared(v.get());
+      // set it equal to the context
+      size_t gid = writeGlobalExpr(v);
+      std::stringstream ssv;
+      ssv << "_e" << gid;
+      iti = pscope.d_idMap.find(v.get());
+      // Assert (iti!=pscope.d_idMap.end());
+      localImpl << "  itc = ctx.find(" << ssv.str() << ");" << std::endl;
+      localImpl << "  " << pprefix << iti->second << " = " 
+                << "(itc==ctx.end() ? " << ssv.str() << " : itc->second);" << std::endl;
+    }
+    // now write the expression
+    size_t retId = writeExprInternal(curr, pscope);
+    localImpl << "  return " << pprefix << retId << ";" << std::endl;
+    // now print the declarations + implementation
+    os << localDecl.str();
+    os << localImpl.str();
+    os << osEnd.str();
+  }while (!toVisit.empty());
 }
 
 std::string Compiler::toString()

@@ -16,6 +16,7 @@
 namespace alfc {
 
 class State;
+class TypeChecker;
 
 class CompilerScope
 {
@@ -82,6 +83,7 @@ public:
   std::string toString();
 private:
   State& d_state;
+  TypeChecker& d_tchecker;
   /** Number of current scopes. Bindings at scope>0 are not remembered */
   size_t d_nscopes;
   /** Declarations? */
@@ -122,15 +124,26 @@ private:
    * Ensures that returned size_t i is such that _e`i` is in scope.
    */
   size_t writeGlobalExpr(const Expr& e);
+  /**
+   * Ensures that returned size_t i is such that `<prefix>``i` is in scope,
+   * where <prefix> is the prefix for names in cs.
+   * 
+   * It should be the case that either e is non-ground, or cs is the global
+   * scope.
+   */
   size_t writeExprInternal(const Expr& e, CompilerScope& cs);
   /**
-   * Write type checking code for t
+   * Write type checking code for t.
    */
   void writeTypeChecking(std::ostream& os, const Expr& e);
   /**
-   * Write evaluation
+   * Write evaluation code
    */
-  size_t writeEvaluation(std::ostream& os, const Expr& e);
+  void writeEvaluate(std::ostream& os, const Expr& e);
+  /**
+   * Write program evaluation
+   */
+  size_t writeProgramEvaluation(std::ostream& os, const Expr& p, std::vector<Expr>& cases);
   /** Write matching code for */
   void writeMatching(std::vector<Expr>& pats,
                       const std::string& t,
