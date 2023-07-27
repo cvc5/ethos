@@ -21,12 +21,14 @@ class TypeChecker;
 class CompilerScope
 {
 public:
-  CompilerScope(std::ostream& decl, std::ostream& out, const std::string& prefix, bool isGlobal = false);
+  CompilerScope(std::ostream& decl, std::ostream& out, const std::string& prefix, CompilerScope* global = nullptr);
   ~CompilerScope();
   /** allocate id */
   size_t ensureDeclared(ExprValue* ev);
   /** is global */
   bool isGlobal() const;
+  /** get name for */
+  std::string getNameFor(Expr& e) const;
 
   /** Reference to the declare stream */
   std::ostream& d_decl;
@@ -38,19 +40,19 @@ public:
   size_t d_idCount;
   /** Maps expressions to identifiers */
   std::map<ExprValue*, size_t> d_idMap;
-  /** Is global */
-  bool d_isGlobal;
   /** Get name for path */
   std::string getNameForPath(const std::string& t, const std::vector<size_t>& path);
  private:
-   class PathTrie
-   {
-   public:
-     PathTrie() : d_decl(false) {}
-     std::map<size_t, PathTrie> d_children;
-     bool d_decl;
-   };
-   std::map<std::string, PathTrie> d_pathMap;
+  /** Pointer to global context, null if this is the global context */
+  CompilerScope* d_global;
+  class PathTrie
+  {
+  public:
+    PathTrie() : d_decl(false) {}
+    std::map<size_t, PathTrie> d_children;
+    bool d_decl;
+  };
+  std::map<std::string, PathTrie> d_pathMap;
 };
 
 class Compiler
@@ -150,6 +152,10 @@ private:
                       CompilerScope& s,
                       std::vector<std::string>& reqs,
                       std::map<Expr, std::string>& varAssign);
+  /** Get the free symbols */
+  std::vector<Expr> getFreeSymbols(Expr& e) const;
+  /** Get the free symbols */
+  bool hasVariable(Expr& e, std::unordered_set<Expr>& terms) const;
 };
 
 }  // namespace alfc

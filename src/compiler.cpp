@@ -6,8 +6,8 @@
 
 namespace alfc {
 
-CompilerScope::CompilerScope(std::ostream& decl, std::ostream& out, const std::string& prefix, bool isGlobal) :
-  d_decl(decl), d_out(out), d_prefix(prefix), d_idCount(1), d_isGlobal(isGlobal) {}
+CompilerScope::CompilerScope(std::ostream& decl, std::ostream& out, const std::string& prefix, CompilerScope* global) :
+  d_decl(decl), d_out(out), d_prefix(prefix), d_idCount(1), d_global(global) {}
 
 CompilerScope::~CompilerScope(){}
 
@@ -27,7 +27,21 @@ size_t CompilerScope::ensureDeclared(ExprValue* ev)
 
 bool CompilerScope::isGlobal() const
 {
-  return d_isGlobal;
+  return d_global==nullptr;
+}
+
+std::string CompilerScope::getNameFor(Expr& e) const
+{
+  // the global scope handled ground terms
+  if (d_global!=nullptr && e->isGround())
+  {
+    return d_global->getNameFor(e);
+  }
+  std::map<ExprValue*, size_t>::const_iterator it = d_idMap.find(e.get());
+  // Assert(it!=d_idMap.end());
+  std::stringstream ss;
+  ss << d_prefix << it->second;
+  return ss.str();
 }
 
 std::string CompilerScope::getNameForPath(const std::string& t, const std::vector<size_t>& path)
@@ -54,7 +68,7 @@ std::string CompilerScope::getNameForPath(const std::string& t, const std::vecto
 
 
 Compiler::Compiler(State& s) :
-  d_state(s), d_tchecker(s.getTypeChecker()), d_nscopes(0), d_global(d_decl, d_init, "_e", true)
+  d_state(s), d_tchecker(s.getTypeChecker()), d_nscopes(0), d_global(d_decl, d_init, "_e", nullptr)
 {
   d_decl << "std::map<Attr, Expr> _amap;" << std::endl;
   d_decl << "ExprInfo* _einfo;" << std::endl;
@@ -194,12 +208,12 @@ size_t Compiler::markCompiled(std::ostream& os, const Expr& e)
   {
     return it->second;
   }
-  it = d_global.d_idMap.find(e.get());
+  size_t ret = writeGlobalExpr(e);
   // Assert (it!=d_global.d_idMap.end());
-  os << "  _runId[_e" << it->second << ".get()] = " << it->second << ";" << std::endl;
-  d_init << "  _e" << it->second << "->setFlag(ExprValue::Flag::IS_COMPILED, true);" << std::endl;
-  d_runIdMap[e.get()] = it->second;
-  return it->second;
+  os << "  _runId[_e" << ret << ".get()] = " << ret << ";" << std::endl;
+  d_init << "  _e" << ret << "->setFlag(ExprValue::Flag::IS_COMPILED, true);" << std::endl;
+  d_runIdMap[e.get()] = ret;
+  return ret;
 }
 
 size_t Compiler::writeGlobalExpr(const Expr& e)
@@ -255,7 +269,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         }
       }
       os << "  " << cs.d_prefix << ret << " = ";
-      if (!cs.d_isGlobal)
+      if (!cs.isGlobal())
       {
         os << "d_state.";
       }
@@ -288,11 +302,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
             os << ", ";
           }
           // get the compiler scope for the child, which may be the global one
-          bool isgc = s.isGlobal() || c->isGround();
-          CompilerScope& csc = isgc ? d_global : s;
-          iti = csc.d_idMap.find(c.get());
-          // Assert (iti!=mu.end());
-          os << csc.d_prefix << iti->second;
+          os << s.getNameFor(c);
         }
         os << "});" << std::endl;
         if (isg)
@@ -347,14 +357,14 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
     std::stringstream localDecl;
     std::stringstream localImpl;
     std::string pprefix("_p");
-    CompilerScope pscope(localDecl, localImpl, pprefix);
+    CompilerScope pscope(localDecl, localImpl, pprefix, &d_global);
     // write the matching
     std::vector<std::string> reqs;
     std::map<Expr, std::string> varAssign;
     for (size_t i=0, nargs=children.size()-1; i<nargs; i++)
     {
       // ensure all variables are declared (but not constructed)
-      std::vector<Expr> fvs = d_tchecker.getFreeSymbols(children[i]);
+      std::vector<Expr> fvs = getFreeSymbols(children[i]);
       for (const Expr& v : fvs)
       {
         pscope.ensureDeclared(v.get());
@@ -390,9 +400,10 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
     }
     localImpl << "  // assign variables" << std::endl;
     Expr& retType = children.back();
-    std::vector<Expr> fvsRet = d_tchecker.getFreeSymbols(retType);
+    std::vector<Expr> fvsRet = getFreeSymbols(retType);
     std::map<ExprValue*, size_t>::iterator iti;
     bool usedMatch = false;
+    std::unordered_set<Expr> varsAssigned;
     for (std::pair<const Expr, std::string>& va : varAssign)
     {
       // only matters if it occurs in return type
@@ -404,54 +415,84 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
       iti = pscope.d_idMap.find(va.first.get());
       // Assert (iti!=pscope.d_idMap.end());
       localImpl << "  " << pprefix << iti->second << " = " << va.second << ";" << std::endl;
+      varsAssigned.insert(va.first);
     }
     // requires
-    while (retType->getKind()==Kind::REQUIRES_TYPE)
+    if (retType->getKind()==Kind::REQUIRES_TYPE)
     {
-      // construct each pair
-      std::vector<Expr>& rchildren = retType->d_children;
-      for (size_t i = 0, nreqs = rchildren.size()-1; i<nreqs; i++)
+      while (retType->getKind()==Kind::REQUIRES_TYPE)
       {
-        Expr& req = rchildren[i];
-        Expr e1 = (*req.get())[0];
-        Expr e2 = (*req.get())[1];
-        localImpl << "  // handle requirement " << e1 << " == " << e2 << std::endl;
+        // construct each pair
+        std::vector<Expr>& rchildren = retType->d_children;
+        for (size_t i = 0, nreqs = rchildren.size()-1; i<nreqs; i++)
+        {
+          Expr& req = rchildren[i];
+          localImpl << "  // handle requirement " << req << std::endl;
+          std::vector<std::string> vals;
+          for (size_t i=0; i<2; i++)
+          {
+            Expr ei = (*req.get())[i];
+            std::string ret;
+            if (hasVariable(ei, varsAssigned))
+            {
+              writeExprInternal(ei, pscope);
+              ret = pscope.getNameFor(ei);
+            }
+            else
+            {
+              writeGlobalExpr(ei);
+              ret = d_global.getNameFor(ei);
+            }
+            // evaluate if necessary
+            if (ei->isEvaluatable())
+            {
+              localImpl << "  " << ret << " = evaluate(" << ret << ");" << std::endl;
+            }
+            vals.push_back(ret);
+          }
+          localImpl << "  if (" << vals[0] << "!=" << vals[1] << ")" << std::endl;
+          localImpl << "  {" << std::endl;
+          localImpl << "    if (out) { (*out) << \"Failed compiled requirement: \" << " << vals[0] << " << \" == \" << " << vals[1] << "; }" << std::endl;
+          localImpl << "    return nullptr;" << std::endl;
+          localImpl << "  }" << std::endl;
+        }
+        // write the requires here
+        retType = rchildren[rchildren.size()-1];
       }
-      // write the requires here
-      retType = rchildren[rchildren.size()-1];
+      // recompute whether the return type has free variables, since they
+      // may have only occurred in requirements
+      usedMatch = hasVariable(retType, varsAssigned);
     }
-    std::stringstream ssret;
+    std::string ret;
     localImpl << "  // construct return type" << std::endl;
     // if ground, write the construction of the return type statically in declarations
     // if non-ground, write the construction of the return type locally
     if (usedMatch)
     {
-      size_t retId = writeExprInternal(retType, pscope);
-      ssret << pprefix << retId;
+      writeExprInternal(retType, pscope);
+      ret = pscope.getNameFor(retType);
       // note that the returned type is specific to the type rule, thus we
       // don't also compile the return type.
     }
     else
     {
-      size_t retId = writeGlobalExpr(retType);
-      ssret << "_e" << retId;
+      writeGlobalExpr(retType);
+      ret = d_global.getNameFor(retType);
       // we return the return type verbatim, thus it is worthwhile to compile
       // its type checking as well
       toVisit.push_back(retType);
     }
-    if (!retType->isEvaluatable())
+    // otherwise, we require evaluating it, which we do via the standard
+    // call to the type checker.
+    // NOTE: if usedMatch=true, we are doing eager construction of unevaluated terms here!
+    // alternatively, we could have the above matching compute the context.
+    if (retType->isEvaluatable())
     {
-      // just return the type constructed above
-      localImpl << "  return " << ssret.str() << ";" << std::endl;
+      std::stringstream ssret;
+      ssret << "evaluate(" << ret << ")";
     }
-    else
-    {
-      // otherwise, we require evaluating it, which we do via the standard
-      // call to the type checker.
-      // NOTE: if usedMatch=true, we are doing eager construction of unevaluated terms here!
-      // alternatively, we could have the above matching compute the context.
-      localImpl << "  return evaluate(" << ssret.str() << ");" << std::endl;
-    }
+    // just return the type constructed above
+    localImpl << "  return " << ret << ";" << std::endl;
     // now print the declarations + implementation
     os << localDecl.str();
     os << localImpl.str();
@@ -577,9 +618,9 @@ void Compiler::writeEvaluate(std::ostream& os, const Expr& e)
     std::stringstream localDecl;
     std::stringstream localImpl;
     std::string pprefix("_p");
-    CompilerScope pscope(localDecl, localImpl, pprefix);
+    CompilerScope pscope(localDecl, localImpl, pprefix, &d_global);
     localImpl << "  Ctx::iterator itc;" << std::endl;
-    std::vector<Expr> fvs = d_tchecker.getFreeSymbols(curr);
+    std::vector<Expr> fvs = getFreeSymbols(curr);
     std::map<ExprValue*, size_t>::iterator iti;
     for (const Expr& v : fvs)
     {
@@ -624,5 +665,68 @@ std::string Compiler::toString()
   ss << "}" << std::endl;
   return ss.str();
 }
+
+
+std::vector<Expr> Compiler::getFreeSymbols(Expr& e) const
+{
+  std::vector<Expr> ret;
+  std::unordered_set<Expr> visited;
+  std::vector<Expr> toVisit;
+  toVisit.push_back(e);
+  Expr cur;
+  do
+  {
+    cur = toVisit.back();
+    toVisit.pop_back();
+    if (e->isGround())
+    {
+      continue;
+    }
+    if (visited.find(cur)!=visited.end())
+    {
+      continue;
+    }
+    visited.insert(cur);
+    if (cur->getKind()==Kind::VARIABLE)
+    {
+      ret.push_back(cur);
+      continue;
+    }
+    toVisit.insert(toVisit.end(), cur->d_children.begin(), cur->d_children.end());
+  }while (!toVisit.empty());
+  return ret;
+}
+
+bool Compiler::hasVariable(Expr& e, std::unordered_set<Expr>& vars) const
+{
+  std::unordered_set<Expr> visited;
+  std::vector<Expr> toVisit;
+  toVisit.push_back(e);
+  Expr cur;
+  do
+  {
+    cur = toVisit.back();
+    toVisit.pop_back();
+    if (e->isGround())
+    {
+      continue;
+    }
+    if (visited.find(cur)!=visited.end())
+    {
+      continue;
+    }
+    visited.insert(cur);
+    if (cur->getKind()==Kind::VARIABLE)
+    {
+      if (vars.find(cur)!=vars.end())
+      {
+        return true;
+      }
+    }
+    toVisit.insert(toVisit.end(), cur->d_children.begin(), cur->d_children.end());
+  }while (!toVisit.empty());
+  return false;
+}
+
 
 }  // namespace alfc

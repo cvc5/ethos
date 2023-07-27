@@ -380,6 +380,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
       // if it is compiled, we run its evaluation here
       if (cur->isCompiled())
       {
+        std::cout << "RUN evaluate " << cur << std::endl;
         visited[cur] = run_evaluate(cur, cctx);
         continue;
       }
@@ -436,6 +437,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
               ctxs.emplace_back();
               if (cchildren[0]->isCompiled())
               {
+                std::cout << "RUN program " << cchildren[0] << std::endl;
                 std::vector<Expr> pargs(cchildren.begin()+1, cchildren.end());
                 evaluated = run_evaluateProgram(cchildren[0], pargs, ctxs.back());
               }
@@ -496,38 +498,6 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
   std::cout << "EVALUATE " << e << ", " << ctx << " = " << evaluated << std::endl;
   //Assert(visited.find(this) != visited.end());
   return evaluated;
-}
-
-
-
-std::vector<Expr> TypeChecker::getFreeSymbols(Expr& e) const
-{
-  std::vector<Expr> ret;
-  std::unordered_set<Expr> visited;
-  std::vector<Expr> toVisit;
-  toVisit.push_back(e);
-  Expr cur;
-  do
-  {
-    cur = toVisit.back();
-    toVisit.pop_back();
-    if (e->isGround())
-    {
-      continue;
-    }
-    if (visited.find(cur)!=visited.end())
-    {
-      continue;
-    }
-    visited.insert(cur);
-    if (cur->getKind()==Kind::VARIABLE)
-    {
-      ret.push_back(cur);
-      continue;
-    }
-    toVisit.insert(toVisit.end(), cur->d_children.begin(), cur->d_children.end());
-  }while (!toVisit.empty());
-  return ret;
 }
 
 }  // namespace alfc
