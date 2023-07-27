@@ -6,7 +6,7 @@
 (declare-const ite (-> (! Type :var A :implicit) Bool A A A))
 (declare-const not (-> Bool Bool))
 (declare-const distinct (-> (! Type :var A :implicit) A A Bool)
-   :pairwise
+   ;:pairwise
 )
 (declare-const or (-> Bool Bool Bool)
    :right-assoc false
