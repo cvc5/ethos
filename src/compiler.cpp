@@ -446,6 +446,7 @@ void Compiler::writeMatching(std::vector<Expr>& pats,
   std::pair<std::vector<size_t>, Expr> curr;
   std::map<ExprValue*, size_t>::const_iterator it;
   std::map<Expr, std::string>::iterator itv;
+  std::ostream& decl = s.d_decl;
   do
   {
     curr = toVisit.back();
@@ -484,9 +485,16 @@ void Compiler::writeMatching(std::vector<Expr>& pats,
     std::stringstream ssk;
     ssk << cterm << "->getKind()==Kind::" << p->getKind();
     reqs.push_back(ssk.str());
+    /*
     std::stringstream ssnc;
     ssnc << cterm << "->getNumChildren()==" << p->getNumChildren();
     reqs.push_back(ssnc.str());
+    */
+    // must check this eagerly to avoid OOB
+    decl << "  if(" << cterm << "->getNumChildren()!=" << p->getNumChildren() << ")" << std::endl;
+    decl << "  {" << std::endl;
+    decl << "    return nullptr;" << std::endl;
+    decl << "  }" << std::endl;
     std::vector<size_t> newPath = curr.first;
     newPath.push_back(0);
     for (size_t i=0, nchild = p->getNumChildren(); i<nchild; i++)
