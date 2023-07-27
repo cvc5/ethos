@@ -29,17 +29,40 @@ bool CompilerScope::isGlobal() const
   return d_isGlobal;
 }
 
+std::string CompilerScope::getNameForPath(const std::string& t, const std::vector<size_t>& path)
+{
+  PathTrie* pt = &d_pathMap[t];
+  size_t i = 0;
+  std::string curr = t;
+  while (i<path.size())
+  {
+    pt = &pt->d_children[path[i]];
+    std::stringstream cname;
+    cname << curr << path[i];
+    if (!pt->d_decl)
+    {
+      pt->d_decl = true;
+      d_decl << "  Expr& " << cname.str() << " = " << curr << "->getChildren()[" << path[i] << "];" << std::endl;
+    }
+    curr = cname.str();
+    i++;
+  }
+  while (i<path.size());
+  return curr;
+}
+
+
 Compiler::Compiler(State& s) : d_state(s), d_nscopes(0), d_global(d_decl, d_init, "_e", true)
 {
   d_decl << "std::map<Attr, Expr> _amap;" << std::endl;
   d_decl << "ExprInfo* _einfo;" << std::endl;
-  d_decl << "std::map<Expr, size_t> _runId;" << std::endl;
+  d_decl << "std::map<ExprValue*, size_t> _runId;" << std::endl;
   d_init << "void State::run_initialize()" << std::endl;
   d_init << "{" << std::endl;
   d_initEnd << "}" << std::endl;
-  d_tc << "Expr TypeChecker::run_getTypeInternal(Expr& e, std::vector<Expr>& args, std::ostream* out)" << std::endl;
+  d_tc << "Expr TypeChecker::run_getTypeInternal(Expr& hdType, std::vector<Expr>& args, std::ostream* out)" << std::endl;
   d_tc << "{" << std::endl;
-  d_tc << "  std::map<Expr, size_t>::iterator itr = _runId.find(e);" << std::endl;
+  d_tc << "  std::map<ExprValue*, size_t>::iterator itr = _runId.find(hdType.get());" << std::endl;
   // ASSERT
   d_tc << "  switch(itr->second)" << std::endl;
   d_tc << "  {" << std::endl;
@@ -50,7 +73,8 @@ Compiler::Compiler(State& s) : d_state(s), d_nscopes(0), d_global(d_decl, d_init
   d_tcEnd << "}" << std::endl;
   d_eval << "Expr TypeChecker::run_evaluate(Expr& e, std::vector<Expr>& args)" << std::endl;
   d_eval << "{" << std::endl;
-  d_eval << "  switch(_runId[e])" << std::endl;
+  d_eval << "  std::map<ExprValue*, size_t>::iterator itr = _runId.find(e.get());" << std::endl;
+  d_eval << "  switch(itr->second)" << std::endl;
   d_eval << "  {" << std::endl;
   d_evalEnd << "  default: break;" << std::endl;
   d_evalEnd << "  }" << std::endl;
@@ -157,8 +181,8 @@ size_t Compiler::markCompiled(std::ostream& os, const Expr& e)
   }
   it = d_global.d_idMap.find(e.get());
   // Assert (it!=d_global.d_idMap.end());
-  os << "  _runId[_e" << it->second << "] = " << it->second << ";" << std::endl;
-  d_init << "  _e" << it->second << "->setFlag(ExprValue::Flag::IS_COMPILED);" << std::endl;
+  os << "  _runId[_e" << it->second << ".get()] = " << it->second << ";" << std::endl;
+  d_init << "  _e" << it->second << "->setFlag(ExprValue::Flag::IS_COMPILED, true);" << std::endl;
   d_runIdMap[e.get()] = it->second;
   return it->second;
 }
@@ -312,10 +336,11 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
         pscope.ensureDeclared(v.get());
       }
       std::vector<Expr> pats{children[i]};
-      std::stringstream ss;
-      ss << "args[" << i << "]";
+      std::stringstream ssa;
+      ssa << "a" << i;
+      pscope.d_decl << "  Expr& " << ssa.str() << " = args[" << i << "];" << std::endl;
       // write matching code
-      writeMatching(localImpl, pats, ss.str(), pscope, reqs, varAssign, visited);
+      writeMatching(pats, ssa.str(), pscope, reqs, varAssign, visited);
     }
     bool matchesArgs = !pscope.d_idMap.empty();
     if (!reqs.empty())
@@ -375,10 +400,9 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
   }while (!toVisit.empty());
 }
 
-void Compiler::writeMatching(std::ostream& os,
-                             std::vector<Expr>& pats,
+void Compiler::writeMatching(std::vector<Expr>& pats,
                              const std::string& t,
-                             const CompilerScope& s,
+                             CompilerScope& s,
                              std::vector<std::string>& reqs,
                              std::vector<std::string>& varAssign,
                              std::map<ExprValue*, std::string>& visited)
@@ -398,7 +422,7 @@ void Compiler::writeMatching(std::ostream& os,
   {
     curr = toVisit.back();
     toVisit.pop_back();
-    std::string cterm = getNameForPath(t, curr.first);
+    std::string cterm = s.getNameForPath(t, curr.first);
     const Expr& p = curr.second;
     if (p->getKind()==Kind::VARIABLE)
     {
@@ -479,17 +503,6 @@ std::string Compiler::toString()
   ss << d_evalEnd.str() << std::endl;
   ss << "}" << std::endl;
   return ss.str();
-}
-
-std::string Compiler::getNameForPath(const std::string& t, const std::vector<size_t>& path) const
-{
-  std::stringstream cterm;
-  cterm << t;
-  for (size_t i : path)
-  {
-    cterm << "->getChildren()[" << i << "]";
-  }
-  return cterm.str();
 }
 
 }  // namespace alfc

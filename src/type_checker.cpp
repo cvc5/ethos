@@ -104,13 +104,13 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
     {
       std::vector<Expr>& children = e->d_children;
       Expr& hd = children[0];
+      Expr hdType = hd->d_type;
       // if compiled, run the compiled version of the type checker
-      if (hd->isCompiled())
+      if (hdType->isCompiled())
       {
         std::vector<Expr> args(children.begin()+1, children.end());
         return run_getTypeInternal(hd, args, out);
       }
-      Expr hdType = hd->d_type;
       //Assert (hdType!=nullptr)
       std::vector<Expr> expectedTypes;
       if (hdType->getKind()!=Kind::FUNCTION_TYPE)

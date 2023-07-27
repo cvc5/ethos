@@ -39,6 +39,17 @@ public:
   std::map<ExprValue*, size_t> d_idMap;
   /** Is global */
   bool d_isGlobal;
+  /** Get name for path */
+  std::string getNameForPath(const std::string& t, const std::vector<size_t>& path);
+ private:
+   class PathTrie
+   {
+   public:
+     PathTrie() : d_decl(false) {}
+     std::map<size_t, PathTrie> d_children;
+     bool d_decl;
+   };
+   std::map<std::string, PathTrie> d_pathMap;
 };
 
 class Compiler
@@ -116,15 +127,12 @@ private:
    */
   size_t writeEvaluation(std::ostream& os, const Expr& e);
   /** Write matching code for */
-  void writeMatching(std::ostream& os,
-                      std::vector<Expr>& pats,
+  void writeMatching(std::vector<Expr>& pats,
                       const std::string& t,
-                      const CompilerScope& s,
+                      CompilerScope& s,
                       std::vector<std::string>& reqs,
                       std::vector<std::string>& varAssign,
                       std::map<ExprValue*, std::string>& visited);
-  /** Get name for path */
-  std::string getNameForPath(const std::string& t, const std::vector<size_t>& path) const;
 };
 
 }  // namespace alfc
