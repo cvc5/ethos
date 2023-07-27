@@ -17,6 +17,30 @@ namespace alfc {
 
 class State;
 
+class CompilerScope
+{
+public:
+  CompilerScope(std::ostream& decl, std::ostream& out, const std::string& prefix, bool isGlobal = false);
+  ~CompilerScope();
+  /** allocate id */
+  size_t ensureDeclared(ExprValue* ev);
+  /** is global */
+  bool isGlobal() const;
+
+  /** Reference to the declare stream */
+  std::ostream& d_decl;
+  /** Reference to the declare stream */
+  std::ostream& d_out;
+  /** Prefix */
+  std::string d_prefix;
+  /** Identifier counts */
+  size_t d_idCount;
+  /** Maps expressions to identifiers */
+  std::map<ExprValue*, size_t> d_idMap;
+  /** Is global */
+  bool d_isGlobal;
+};
+
 class Compiler
 {
   friend class TypeChecker;
@@ -49,8 +73,6 @@ private:
   State& d_state;
   /** Number of current scopes. Bindings at scope>0 are not remembered */
   size_t d_nscopes;
-  /** Identifier counts */
-  size_t d_idCount;
   /** Declarations? */
   std::stringstream d_decl;
   /** code to be performed on initialization */
@@ -66,8 +88,8 @@ private:
    */
   std::stringstream d_eval;
   std::stringstream d_evalEnd;
-  /** Maps expressions to identifiers */
-  std::map<ExprValue*, size_t> d_idMap;
+  /** Identifier counts */
+  CompilerScope d_global;
   /**
    * Run identifiers, allocated for terms that we have compiled type checking or evaluation for.
    * Uses the same identifiers as in d_idMap.
@@ -76,23 +98,15 @@ private:
   /** */
   std::unordered_set<ExprValue*> d_tcWritten;
   std::unordered_set<ExprValue*> d_evalWritten;
-  /** Get id */
-  size_t getId(const Expr& v);
   /** Write run id */
-  size_t writeRunId(std::ostream& os, const Expr& e);
+  size_t markCompiled(std::ostream& os, const Expr& e);
   /**
    * Write expression, return identifier.
    *
    * Ensures that returned size_t i is such that _e`i` is in scope.
    */
   size_t writeGlobalExpr(const Expr& e);
-  size_t writeExprInternal(std::ostream& os,
-                           std::ostream& decl,
-                          const Expr& e,
-                          size_t& idCount,
-                          std::map<ExprValue*, size_t>& idMap,
-                          const std::string& prefix,
-                          bool isGlobal = false);
+  size_t writeExprInternal(const Expr& e, CompilerScope& cs);
   /**
    * Write type checking code for t
    */
@@ -103,12 +117,12 @@ private:
   size_t writeEvaluation(std::ostream& os, const Expr& e);
   /** Write matching code for */
   void writeMatching(std::ostream& os,
-                             std::vector<Expr>& pats,
-                             const std::string& t,
-                             const std::map<ExprValue*, size_t>& idMap,
-                             std::vector<std::string>& reqs,
-                             std::vector<std::string>& varAssign,
-                             std::map<ExprValue*, std::string>& visited);
+                      std::vector<Expr>& pats,
+                      const std::string& t,
+                      const CompilerScope& s,
+                      std::vector<std::string>& reqs,
+                      std::vector<std::string>& varAssign,
+                      std::map<ExprValue*, std::string>& visited);
   /** Get name for path */
   std::string getNameForPath(const std::string& t, const std::vector<size_t>& path) const;
 };

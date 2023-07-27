@@ -5,8 +5,32 @@
 
 namespace alfc {
 
-Compiler::Compiler(State& s) : d_state(s), d_nscopes(0), d_idCount(1) {
+CompilerScope::CompilerScope(std::ostream& decl, std::ostream& out, const std::string& prefix, bool isGlobal) :
+  d_decl(decl), d_out(out), d_prefix(prefix), d_idCount(1), d_isGlobal(isGlobal) {}
 
+CompilerScope::~CompilerScope(){}
+
+size_t CompilerScope::ensureDeclared(ExprValue* ev)
+{
+  std::map<ExprValue*, size_t>::iterator it = d_idMap.find(ev);
+  if (it!=d_idMap.end())
+  {
+    return it->second;
+  }
+  size_t ret = d_idCount;
+  d_idCount++;
+  d_idMap[ev] = ret;
+  d_decl << "  Expr " << d_prefix << ret << ";" << std::endl;
+  return ret;
+}
+
+bool CompilerScope::isGlobal() const
+{
+  return d_isGlobal;
+}
+
+Compiler::Compiler(State& s) : d_state(s), d_nscopes(0), d_global(d_decl, d_init, "_e", true)
+{
   d_decl << "std::map<Attr, Expr> _amap;" << std::endl;
   d_decl << "ExprInfo* _einfo;" << std::endl;
   d_decl << "std::map<Expr, size_t> _runId;" << std::endl;
@@ -124,32 +148,27 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
   */
 }
 
-size_t Compiler::writeRunId(std::ostream& os, const Expr& e)
+size_t Compiler::markCompiled(std::ostream& os, const Expr& e)
 {
   std::map<ExprValue*, size_t>::iterator it = d_runIdMap.find(e.get());
   if (it!=d_runIdMap.end())
   {
     return it->second;
   }
-  it = d_idMap.find(e.get());
-  // Assert (it!=d_idMap.end());
+  it = d_global.d_idMap.find(e.get());
+  // Assert (it!=d_global.d_idMap.end());
   os << "  _runId[_e" << it->second << "] = " << it->second << ";" << std::endl;
+  d_init << "  _e" << it->second << "->setFlag(ExprValue::Flag::IS_COMPILED);" << std::endl;
   d_runIdMap[e.get()] = it->second;
   return it->second;
 }
 
 size_t Compiler::writeGlobalExpr(const Expr& e)
 {
-  return writeExprInternal(d_init, d_decl, e, d_idCount, d_idMap, "_e", true);
+  return writeExprInternal(e, d_global);
 }
 
-size_t Compiler::writeExprInternal(std::ostream& os,
-                                   std::ostream& decl,
-                                   const Expr& e,
-                                   size_t& idCount,
-                                   std::map<ExprValue*, size_t>& idMap,
-                                   const std::string& prefix,
-                                   bool isGlobal)
+size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
 {
   size_t ret = 0;
   size_t tid = 0;
@@ -163,12 +182,10 @@ size_t Compiler::writeExprInternal(std::ostream& os,
   do
   {
     cur = visit.back();
-    bool isg = isGlobal || cur->isGround();
-    std::map<ExprValue*, size_t>& mu = isg ? d_idMap : idMap;
-    std::string pu = isg ? "_e" : prefix;
-    std::ostream& du = isg ? d_decl : decl;
-    iti = mu.find(cur);
-    if (iti!=mu.end())
+    bool isg = s.isGlobal() || cur->isGround();
+    CompilerScope& cs = isg ? d_global : s;
+    iti = cs.d_idMap.find(cur);
+    if (iti!=cs.d_idMap.end())
     {
       ret = iti->second;
       visit.pop_back();
@@ -188,12 +205,10 @@ size_t Compiler::writeExprInternal(std::ostream& os,
     {
       visit.pop_back();
       // allocate an identifier
-      ret = idCount;
-      idCount++;
-      mu[cur] = ret;
-      du << "  Expr " << pu << ret << ";" << std::endl;
-      os << "  " << pu << ret << " = ";
-      if (!isg)
+      ret = cs.ensureDeclared(cur);
+      std::ostream& os = cs.d_out;
+      os << "  " << cs.d_prefix << ret << " = ";
+      if (!cs.d_isGlobal)
       {
         os << "d_state.";
       }
@@ -209,12 +224,12 @@ size_t Compiler::writeExprInternal(std::ostream& os,
         {
           os << ", ";
         }
-        bool isgc = isGlobal || c->isGround();
-        std::map<ExprValue*, size_t>& muc = isgc ? d_idMap : idMap;
-        std::string puc = isgc ? "_e" : prefix;
-        iti = muc.find(c.get());
+        // get the compiler scope for the child, which may be the global one
+        bool isgc = s.isGlobal() || c->isGround();
+        CompilerScope& csc = isgc ? d_global : s;
+        iti = csc.d_idMap.find(c.get());
         // Assert (iti!=mu.end());
-        os << puc << iti->second;
+        os << csc.d_prefix << iti->second;
       }
       os << "});" << std::endl;
       // TODO: should hash?
@@ -224,14 +239,14 @@ size_t Compiler::writeExprInternal(std::ostream& os,
         curInfo = d_state.getInfo(cur);
         if (curInfo!=nullptr)
         {
-          os << "  _einfo = &d_exprData[" << pu << ret << ".get()];" << std::endl;
+          os << "  _einfo = &d_exprData[" << d_global.d_prefix << ret << ".get()];" << std::endl;
           os << "  _einfo->d_str = std::string(\"" << curInfo->d_str << "\");" << std::endl;
         }
         // Write its type as well, separately. The recursion depth here is very limited.
         if (cur->d_type!=nullptr)
         {
           tid = writeGlobalExpr(cur->d_type);
-          os << "  " << pu << ret << "->d_type = " << pu << tid << ";" << std::endl;
+          os << "  " << d_global.d_prefix << ret << "->d_type = " << d_global.d_prefix << tid << ";" << std::endl;
         }
       }
     }
@@ -264,7 +279,7 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
     os << "  // type rule for " << curr << std::endl;
     std::cout << "writeTypeChecking " << curr << std::endl;
     d_tcWritten.insert(t.get());
-    size_t id = writeRunId(d_init, curr);
+    size_t id = markCompiled(d_init, curr);
     std::stringstream osEnd;
     os << "  case " << id << ":" << std::endl;
     os << "  {" << std::endl;
@@ -281,35 +296,32 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
       os << "  std::vector<Expr> evalArgs;" << std::endl;
     }
     // write the free symbols of the return type as (local) variables
-    std::stringstream tmp;
-    size_t idCount = 1;
-    std::map<ExprValue*, size_t> idMap;
+    std::stringstream localDecl;
+    std::stringstream localImpl;
+    CompilerScope pscope(localDecl, localImpl, "_p");
     // write the matching
     std::vector<std::string> reqs;
     std::vector<std::string> varAssign;
     std::map<ExprValue*, std::string> visited;
     for (size_t i=0, nargs=children.size()-1; i<nargs; i++)
     {
+      // ensure all variables are declared (but not constructed)
       std::vector<Expr> fvs = d_state.getTypeChecker().getFreeSymbols(children[i]);
       for (const Expr& v : fvs)
       {
-        if (idMap.find(v.get())!=idMap.end())
-        {
-          continue;
-        }
-        writeExprInternal(tmp, os, v, idCount, idMap, "_p");
+        pscope.ensureDeclared(v.get());
       }
       std::vector<Expr> pats{children[i]};
       std::stringstream ss;
       ss << "args[" << i << "]";
       // write matching code
-      writeMatching(os, pats, ss.str(), idMap, reqs, varAssign, visited);
+      writeMatching(localImpl, pats, ss.str(), pscope, reqs, varAssign, visited);
     }
-    bool matchesArgs = !idMap.empty();
+    bool matchesArgs = !pscope.d_idMap.empty();
     if (!reqs.empty())
     {
-      os << "  // check requirements" << std::endl;
-      os << "  if (!(";
+      localImpl << "  // check requirements" << std::endl;
+      localImpl << "  if (!(";
       bool firstTime = true;
       for (const std::string& r : reqs)
       {
@@ -319,38 +331,41 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
         }
         else
         {
-          os << " && ";
+          localImpl << " && ";
         }
-        os << r;
+        localImpl << r;
       }
-      os << "))" << std::endl;
-      os << "  {" << std::endl;
-      os << "     return nullptr;" << std::endl;
-      os << "  }" << std::endl;
+      localImpl << "))" << std::endl;
+      localImpl << "  {" << std::endl;
+      localImpl << "     return nullptr;" << std::endl;
+      localImpl << "  }" << std::endl;
     }
-    os << "  // assign variables" << std::endl;
+    localImpl << "  // assign variables" << std::endl;
     for (const std::string& va : varAssign)
     {
-      os << "  " << va << ";" << std::endl;
+      localImpl << "  " << va << ";" << std::endl;
     }
     if (!isEval)
     {
-      os << "  // construct return type" << std::endl;
+      localImpl << "  // construct return type" << std::endl;
       // if ground, write the construction of the return type statically in declarations
       // if non-ground, write the construction of the return type locally
       if (matchesArgs && !retType->isGround())
       {
-        size_t retId = writeExprInternal(os, os, retType, idCount, idMap, "_p");
+        size_t retId = writeExprInternal(retType, pscope);
         // just return the id computed above
-        os << "  return _p" << retId << ";" << std::endl;
+        localImpl << "  return " << pscope.d_prefix << retId << ";" << std::endl;
       }
       else
       {
         size_t retId = writeGlobalExpr(retType);
-        os << "  return _e" << retId << ";" << std::endl;
+        localImpl << "  return _e" << retId << ";" << std::endl;
         // currying this function will require another type
         toVisit.push_back(retType);
       }
+      // now print the declarations + implementation
+      os << localDecl.str();
+      os << localImpl.str();
     }
     else
     {
@@ -363,7 +378,7 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
 void Compiler::writeMatching(std::ostream& os,
                              std::vector<Expr>& pats,
                              const std::string& t,
-                             const std::map<ExprValue*, size_t>& idMap,
+                             const CompilerScope& s,
                              std::vector<std::string>& reqs,
                              std::vector<std::string>& varAssign,
                              std::map<ExprValue*, std::string>& visited)
@@ -391,8 +406,8 @@ void Compiler::writeMatching(std::ostream& os,
       itv = visited.find(p.get());
       if (itv==visited.end())
       {
-        it = idMap.find(p.get());
-        // Assert (it !=idMap.end());
+        it = s.d_idMap.find(p.get());
+        // Assert (it !=s.d_idMap.end());
         std::stringstream ssv;
         ssv << "_p" << it->second << " = " << cterm;
         varAssign.push_back(ssv.str());
@@ -442,7 +457,7 @@ size_t Compiler::writeEvaluation(std::ostream& os, const Expr& e)
     // unevaluated types just return themselves
     return writeGlobalExpr(e);
   }
-  //size_t id = writeRunId(d_init, e);
+  //size_t id = markCompiled(d_init, e);
 
   return 0;
 }
