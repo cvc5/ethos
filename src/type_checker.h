@@ -25,6 +25,10 @@ class TypeChecker
   void setTypeRule(Kind k, const Expr& t);
   /** Define program */
   void defineProgram(const Expr& v, const Expr& prog);
+  /** Has program */
+  bool hasProgram(const Expr& v) const;
+  /** Maybe evaluate */
+  Expr evaluateProgram(const std::vector<Expr>& args, Ctx& newCtx);
   /** */
   bool match(Expr& a, Expr& b, Ctx& ctx, std::set<std::pair<Expr, Expr>>& visited);
   bool match(Expr& a, Expr& b, Ctx& ctx);
@@ -38,8 +42,6 @@ class TypeChecker
   Expr evaluate(Expr& e, Ctx& ctx);
   Expr evaluate(Expr& e);
  private:
-  /** Maybe evaluate */
-  Expr evaluateProgram(const std::vector<Expr>& args, Ctx& newCtx);
   /** Compiled version */
   Expr run_getTypeInternal(Expr& hdType, std::vector<Expr>& args, std::ostream* out);
   /** Return its type */

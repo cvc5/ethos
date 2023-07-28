@@ -507,6 +507,7 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
               ret = d_global.getNameFor(ei);
             }
             // evaluate if necessary
+            // TODO: remove this
             if (ei->isEvaluatable())
             {
               localImpl << "  " << ret << " = evaluate(" << ret << ");" << std::endl;
@@ -550,6 +551,7 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
     // NOTE: if usedMatch=true, we are doing eager construction of unevaluated terms here!
     // alternatively, we could have the above matching compute the context.
     // TODO: The solution is to have writeExprInternal handle evaluation
+    // TODO: remove this
     if (retType->isEvaluatable())
     {
       std::stringstream ssret;

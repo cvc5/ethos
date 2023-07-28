@@ -66,6 +66,11 @@ void TypeChecker::defineProgram(const Expr& v, const Expr& prog)
   d_programs[v] = prog;
 }
 
+bool TypeChecker::hasProgram(const Expr& v) const
+{
+  return d_programs.find(v)!=d_programs.end();
+}
+
 Expr TypeChecker::getType(Expr& e, std::ostream* out)
 {
   std::unordered_set<Expr> visited;
@@ -510,7 +515,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
 
 Expr TypeChecker::evaluateProgram(const std::vector<Expr>& children, Ctx& newCtx)
 {
-  Expr hd = children[0];
+  const Expr& hd = children[0];
   if (hd->isCompiled())
   {
     std::cout << "RUN program " << hd << std::endl;

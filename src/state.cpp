@@ -349,6 +349,27 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         return ret;
       }
     }
+    else if (hk==Kind::PROGRAM_CONST)
+    {
+      // if all arguments are ground, just evaluate immediately
+      bool allGround = true;
+      for (size_t i=1, nchild = children.size(); i<nchild; i++)
+      {
+        if (!children[i]->isGround())
+        {
+          allGround = false;
+          break;
+        }
+      }
+      // have to check whether we have the program, i.e. if we are constructing
+      // applications corresponding to the cases in the program definition itself.
+      if (allGround && d_tc.hasProgram(hd))
+      {
+        Ctx ctx;
+        Expr e = d_tc.evaluateProgram(children, ctx);
+        return d_tc.evaluate(e, ctx);
+      }
+    }
     // all functions of kind CONST or VARIABLE are unary and require
     // currying if applied to more than one argument.
     if (children.size()>2)
