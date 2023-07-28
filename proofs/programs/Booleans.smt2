@@ -3,12 +3,12 @@
 ; inList cons nil c l
 ; Retuns `true` if l inList c.
 (program inList
-    ((U Type) (S Type) (cons (-> S U U)) (nil S) (c S) (x S) (l U :list))
+    ((U Type) (S Type) (cons (-> S U U)) (nil S) (c S) (x S) (xs U :list))
     ((-> S U U) S U S) Bool
     (
-        ((inList cons nil c nil)        false)
-        ((inList cons nil c (cons c l)) true)
-        ((inList cons nil c (cons x l)) (inList cons nil c l))
+        ((inList cons nil c nil)         false)
+        ((inList cons nil c (cons c xs)) true)
+        ((inList cons nil c (cons x xs)) (inList cons nil c xs))
     )
 )
 

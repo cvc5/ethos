@@ -45,3 +45,6 @@
 ; not_and
 (assume notanda1 (not (and c1 c2 (not c2))))
 (step   notandt1 (or (not c1) (not c2) (not (not c2))) :rule not_and :premises (notanda1))
+
+; cnf_and_pos
+(step cnfandpost1 (or (not (and c1 c2 (not c2))) (not c2)) :rule cnf_and_pos :args ((and c1 c2 (not c2)) (not c2) 3))

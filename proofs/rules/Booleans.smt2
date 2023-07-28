@@ -188,8 +188,7 @@
 
 ; NOT_IMPLIES_ELIM1
 (declare-rule not_implies_elim1 ((F1 Bool) (F2 Bool))
-    :premises ((not (=> F1 F2)))
-    :conclusion F1
+    :premises ((not (=> F1 F2)))    :conclusion F1
 )
 
 ; NOT_IMPLIES_ELIM2
@@ -285,6 +284,14 @@
 )
 
 ; CNF_AND_POS
+; TODO: Fi should not be explicit, but the ith conjunct from Fs.  Since we do
+; not yet have integer arithmetic, we cannot implment this yet.
+(declare-rule cnf_and_pos ((Fs Bool) (Fi Bool) (i Int))
+    :args (Fs Fi i)
+    :requires (((inListAnd Fi Fs) true))
+    :conclusion (or (not Fs) Fi)
+)
+
 ; CNF_AND_NEG
 ; CNF_OR_POS
 ; CNF_OR_NEG
