@@ -18,16 +18,26 @@ namespace alfc {
 class Options
 {
 public:
-  Options() : d_compile(false), d_runCompile(false){}
+  Options();
   bool d_compile;
   bool d_runCompile;
+};
+
+class Stats
+{
+public:
+  Stats();
+  size_t d_exprCount;
+  size_t d_symCount;
+  size_t d_litCount;
+  std::string toString();
 };
 
 class State
 {
   friend class TypeChecker;
 public:
-  State(Options& opts);
+  State(Options& opts, Stats& stats);
   ~State();
   /** Reset */
   void reset();
@@ -149,6 +159,8 @@ private:
   TypeChecker d_tc;
   /** Options */
   Options& d_opts;
+  /** Stats */
+  Stats& d_stats;
   /** Compiler, if compiling code */
   std::unique_ptr<Compiler> d_compiler;
 };

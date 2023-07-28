@@ -8,6 +8,7 @@ using namespace alfc;
 int main( int argc, char* argv[] )
 {
   Options opts;
+  Stats stats;
   // read the options
   bool readOpt = false;
   size_t i = 0;
@@ -37,8 +38,8 @@ int main( int argc, char* argv[] )
     std::cerr << "Usage: " << argv[0] << " <options>* <file>" << std::endl;
     exit(1);
   }
+  State s(opts, stats);
   // include the file
-  State s(opts);
   s.includeFile(argv[i]);
   std::cout << "success" << std::endl;
   if (opts.d_compile)
@@ -51,5 +52,8 @@ int main( int argc, char* argv[] )
     std::cout << "GEN-COMPILE" << std::endl;
     std::cout << c->toString() << std::endl;
   }
+  std::cout << "----" << std::endl;
+  std::cout << stats.toString();
+  std::cout << "----" << std::endl;
   return 0;
 }

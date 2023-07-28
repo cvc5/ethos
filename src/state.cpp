@@ -5,7 +5,20 @@
 
 namespace alfc {
 
-State::State(Options& opts) : d_tc(*this), d_opts(opts)
+Options::Options() : d_compile(false), d_runCompile(false){}
+  
+Stats::Stats() : d_exprCount(0), d_symCount(0), d_litCount(0){}
+ 
+std::string Stats::toString()
+{
+  std::stringstream ss;
+  ss << "exprCount = " << d_exprCount << std::endl;
+  ss << "symCount = " << d_symCount << std::endl;
+  ss << "litCount = " << d_litCount << std::endl;
+  return ss.str();
+}
+
+State::State(Options& opts, Stats& stats) : d_tc(*this), d_opts(opts), d_stats(stats)
 {
   ExprValue::d_state = this;
   
@@ -218,6 +231,7 @@ Expr State::mkProofRule(const std::string& name, const Expr& type)
 
 Expr State::mkSymbolInternal(Kind k, const std::string& name, const Expr& type)
 {
+  d_stats.d_symCount++;
   std::vector<Expr> emptyVec;
   Expr v = std::make_shared<ExprValue>(k, emptyVec);
   // immediately set its type
@@ -387,6 +401,7 @@ Expr State::mkLiteral(Kind k, const std::string& s)
   {
     return it->second;
   }
+  d_stats.d_litCount++;
   std::vector<Expr> emptyVec;
   Expr lit = std::make_shared<ExprValue>(k, emptyVec);
   // map to the data
@@ -419,6 +434,7 @@ Expr State::mkExprInternal(Kind k, const std::vector<Expr>& children)
   {
     return et->d_data;
   }
+  d_stats.d_exprCount++;
   Expr ret = std::make_shared<ExprValue>(k, children);
   et->d_data = ret;
   return ret;
