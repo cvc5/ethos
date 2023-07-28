@@ -1,4 +1,5 @@
 (include "../programs/Nary.smt2")
+(include "../programs/Booleans.smt2")
 
 ; Nary tests on a custom type
 (declare-type S ())

@@ -1,6 +1,9 @@
 (include "../theories/Core.smt2")
 (include "../theories/Ints.smt2")
+
 (include "../programs/Nary.smt2")
+(include "../programs/Booleans.smt2")
+
 
 ; SPLIT
 (declare-rule split ((F Bool))
