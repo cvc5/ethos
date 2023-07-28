@@ -7,11 +7,12 @@ namespace alfc {
 
 Options::Options() : d_compile(false), d_runCompile(false){}
   
-Stats::Stats() : d_exprCount(0), d_symCount(0), d_litCount(0){}
+Stats::Stats() : d_mkExprCount(0), d_exprCount(0), d_symCount(0), d_litCount(0){}
  
 std::string Stats::toString()
 {
   std::stringstream ss;
+  ss << "mkExprCount = " << d_mkExprCount << std::endl;
   ss << "exprCount = " << d_exprCount << std::endl;
   ss << "symCount = " << d_symCount << std::endl;
   ss << "litCount = " << d_litCount << std::endl;
@@ -27,6 +28,9 @@ State::State(Options& opts, Stats& stats) : d_tc(*this), d_opts(opts), d_stats(s
   bindBuiltin("@", Kind::APPLY, false);
   // note we don't allow parsing (Proof ...), (Quote ...), or (quote ...).
 
+  // common constants
+  d_type = mkExprInternal(Kind::TYPE, {});
+  d_boolType = mkExprInternal(Kind::BOOL_TYPE, {});
   if (d_opts.d_runCompile)
   {
     // Assert (!d_opts.d_compile);
@@ -158,7 +162,7 @@ void State::addAssumption(const Expr& a)
 
 Expr State::mkType()
 {
-  return mkExprInternal(Kind::TYPE, {});
+  return d_type;
 }
 
 Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool flatten)
@@ -192,7 +196,7 @@ Expr State::mkAbstractType()
 
 Expr State::mkBoolType()
 {
-  return mkExprInternal(Kind::BOOL_TYPE, {});
+  return d_boolType;
 }
 Expr State::mkProofType(const Expr& proven)
 {
@@ -425,6 +429,7 @@ Expr State::mkApplyInternal(const std::vector<Expr>& children)
 
 Expr State::mkExprInternal(Kind k, const std::vector<Expr>& children)
 {
+  d_stats.d_mkExprCount++;
   ExprTrie* et = &d_trie[k];
   for (const Expr& e : children)
   {

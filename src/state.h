@@ -27,6 +27,7 @@ class Stats
 {
 public:
   Stats();
+  size_t d_mkExprCount;
   size_t d_exprCount;
   size_t d_symCount;
   size_t d_litCount;
@@ -112,6 +113,9 @@ public:
   /** Define program */
   void defineProgram(const Expr& v, const Expr& prog);
 private:
+  /** Common constants */
+  Expr d_type;
+  Expr d_boolType;
   /** */
   ExprInfo* getOrMkInfo(const ExprValue* e);
   /** include file, if not already done */

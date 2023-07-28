@@ -388,6 +388,14 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         os << "  " << cs.d_prefix << ret << " = ";
         os << "mkSymbolInternal(Kind::" << cur->getKind() << ", \"" << curInfo->d_str << "\", _e" << tid << ");" << std::endl;
       }
+      else if (ck==Kind::TYPE)
+      {
+        os << "  " << cs.d_prefix << ret << " = d_type;" << std::endl;
+      }
+      else if (ck==Kind::BOOL_TYPE)
+      {
+        os << "  " << cs.d_prefix << ret << " = d_boolType;" << std::endl;
+      }
       else
       {
         std::stringstream argList;
