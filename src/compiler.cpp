@@ -86,6 +86,8 @@ Compiler::Compiler(State& s) :
   d_decl << "std::map<Attr, Expr> _amap;" << std::endl;
   d_decl << "ExprInfo* _einfo;" << std::endl;
   d_decl << "std::map<ExprValue*, size_t> _runId;" << std::endl;
+  d_decl << "Ctx _ctx;" << std::endl;
+  d_decl << "Expr _etmp;" << std::endl;
   d_init << "void State::run_initialize()" << std::endl;
   d_init << "{" << std::endl;
   d_initEnd << "}" << std::endl;
@@ -110,19 +112,16 @@ Compiler::Compiler(State& s) :
   d_evalEnd << "  }" << std::endl;
   d_evalEnd << "  return nullptr;" << std::endl;
   d_evalEnd << "}" << std::endl;
-  d_evalp << "Expr TypeChecker::run_evaluateProgram(Expr& prog, std::vector<Expr>& args, Ctx& ctx)" << std::endl;
+  d_evalp << "Expr TypeChecker::run_evaluateProgram(const std::vector<Expr>& args, Ctx& ctx)" << std::endl;
   d_evalp << "{" << std::endl;
-  d_evalp << "  std::map<ExprValue*, size_t>::iterator itr = _runId.find(prog.get());" << std::endl;
+  d_evalp << "  std::map<ExprValue*, size_t>::iterator itr = _runId.find(args[0].get());" << std::endl;
   // ASSERT
   d_evalp << "  switch(itr->second)" << std::endl;
   d_evalp << "  {" << std::endl;
   d_evalpEnd << "  default: break;" << std::endl;
   d_evalpEnd << "  }" << std::endl;
   // otherwise just return itself (unevaluated)
-  d_evalpEnd << "  std::vector<Expr> eargs;" << std::endl;
-  d_evalpEnd << "  eargs.push_back(prog);" << std::endl;
-  d_evalpEnd << "  eargs.insert(eargs.end(), args.begin(), args.end());" << std::endl;
-  d_evalpEnd << "  return d_state.mkExprInternal(Kind::APPLY, eargs);" << std::endl;
+  d_evalpEnd << "  return d_state.mkExprInternal(Kind::APPLY, args);" << std::endl;
   d_evalpEnd << "}" << std::endl;
 }
 
@@ -311,16 +310,12 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
           tid = writeGlobalExpr(cur->d_type);
         }
       }
-      os << "  " << cs.d_prefix << ret << " = ";
-      if (!cs.isGlobal())
-      {
-        os << "d_state.";
-      }
       Kind ck = cur->getKind();
       if (isLiteral(ck))
       {
         curInfo = d_state.getInfo(cur);
         // Assert (curInfo!=nullptr);
+        os << "  " << cs.d_prefix << ret << " = ";
         os << "mkLiteral(Kind::" << cur->getKind() << ", \"" << curInfo->d_str << "\");" << std::endl;
       }
       else if (isVariable(ck))
@@ -328,6 +323,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         // Assert (isg);
         curInfo = d_state.getInfo(cur);
         // Assert (curInfo!=nullptr);
+        os << "  " << cs.d_prefix << ret << " = ";
         os << "mkSymbolInternal(Kind::" << cur->getKind() << ", \"" << curInfo->d_str << "\", _e" << tid << ");" << std::endl;
       }
       else
@@ -349,12 +345,21 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
           argList << s.getNameFor(c);
         }
         argList << "}";
-        if (s.d_progEval && ck==Kind::APPLY && children[0]->getKind()==Kind::PROGRAM_CONST)
+        if (false && cs.d_progEval && ck==Kind::APPLY && children[0]->getKind()==Kind::PROGRAM_CONST)
         {
           // we should just evaluate it if the scope allows it
+          //os <<
+          os << "  _ctx.clear();" << std::endl;
+          os << "  _etmp = evaluateProgram(" << argList.str() << ", _ctx);" << std::endl;
+          os << "  " << cs.d_prefix << ret << " = evaluate(_etmp, _ctx);" << std::endl;
         }
         else
         {
+          os << "  " << cs.d_prefix << ret << " = ";
+          if (!cs.isGlobal())
+          {
+            os << "d_state.";
+          }
           os << "mkExprInternal(Kind::" << cur->getKind() << ", " << argList.str() << ");" << std::endl;
           if (isg)
           {
@@ -425,12 +430,11 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
       {
         pat = pat->getChildren()[0];
       }
-      std::vector<Expr> pats{pat};
       std::stringstream ssa;
       ssa << "a" << i;
       pscope.d_decl << "  Expr& " << ssa.str() << " = args[" << i << "];" << std::endl;
       // write matching code
-      writeMatching(pats, ssa.str(), pscope, reqs, varAssign, "return nullptr");
+      writeMatching(pat, ssa.str(), pscope, reqs, varAssign, "return nullptr");
     }
     if (!reqs.empty())
     {
@@ -561,19 +565,13 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
   }while (!toVisit.empty());
 }
 
-void Compiler::writeMatching(std::vector<Expr>& pats,
+void Compiler::writeMatching(Expr& pat,
                              const std::string& t,
                              CompilerScope& s,
                              std::vector<std::string>& reqs,
                              std::map<Expr, std::string>& varAssign,
                              const std::string& failCmd)
 {
-  if (pats.size()>1)
-  {
-    // TODO: parallel matching?
-    return;
-  }
-  Expr pat = pats[0];
   std::vector<std::pair<std::vector<size_t>, Expr>> toVisit;
   toVisit.emplace_back(std::pair<std::vector<size_t>, Expr>({}, pat));
   std::pair<std::vector<size_t>, Expr> curr;

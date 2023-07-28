@@ -23,6 +23,8 @@ class TypeChecker
   Expr getType(Expr& e, std::ostream* out = nullptr);
   /** Set type rule for literal */
   void setTypeRule(Kind k, const Expr& t);
+  /** Define program */
+  void defineProgram(const Expr& v, const Expr& prog);
   /** */
   bool match(Expr& a, Expr& b, Ctx& ctx, std::set<std::pair<Expr, Expr>>& visited);
   bool match(Expr& a, Expr& b, Ctx& ctx);
@@ -36,6 +38,8 @@ class TypeChecker
   Expr evaluate(Expr& e, Ctx& ctx);
   Expr evaluate(Expr& e);
  private:
+  /** Maybe evaluate */
+  Expr evaluateProgram(const std::vector<Expr>& args, Ctx& newCtx);
   /** Compiled version */
   Expr run_getTypeInternal(Expr& hdType, std::vector<Expr>& args, std::ostream* out);
   /** Return its type */
@@ -43,13 +47,15 @@ class TypeChecker
   /** Compiled version */
   Expr run_evaluate(Expr& e, Ctx& ctx);
   /** Compiled version */
-  Expr run_evaluateProgram(Expr& hd, std::vector<Expr>& args, Ctx& ctx);
+  Expr run_evaluateProgram(const std::vector<Expr>& args, Ctx& ctx);
   /** The state */
   State& d_state;
   /** The builtin literal kinds */
   std::set<Kind> d_literalKinds;
   /** Mapping literal kinds to type rules */
   std::map<Kind, Expr> d_literalTypeRules;
+  /** Programs */
+  std::map<Expr, Expr> d_programs;
 };
 
 }  // namespace alfc

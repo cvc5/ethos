@@ -154,7 +154,7 @@ private:
    */
   size_t writeProgramEvaluation(std::ostream& os, const Expr& p, std::vector<Expr>& cases);
   /** Write matching code for */
-  void writeMatching(std::vector<Expr>& pats,
+  void writeMatching(Expr& pat,
                       const std::string& t,
                       CompilerScope& s,
                       std::vector<std::string>& reqs,

@@ -101,8 +101,6 @@ public:
   bool markAttributes(const Expr& v, const std::map<Attr, Expr>& attrs);
   /** Define program */
   void defineProgram(const Expr& v, const Expr& prog);
-  /** Maybe evaluate */
-  Expr evaluateProgram(const std::vector<Expr>& children, Ctx& newCtx);
 private:
   /** */
   ExprInfo* getOrMkInfo(const ExprValue* e);
@@ -147,8 +145,6 @@ private:
   std::filesystem::path d_inputFile;
   /** files included */
   std::set<std::filesystem::path> d_includes;
-  /** Programs */
-  std::map<Expr, Expr> d_programs;
   /** Type checker */
   TypeChecker d_tc;
   /** Options */

@@ -529,37 +529,13 @@ void State::bindBuiltin(const std::string& name, Kind k, bool isClosure, const E
 
 void State::defineProgram(const Expr& v, const Expr& prog)
 {
-  d_programs[v] = prog;
+  d_tc.defineProgram(v, prog);
   if (d_compiler!=nullptr)
   {
     d_compiler->defineProgram(v, prog);
   }
 }
 
-Expr State::evaluateProgram(const std::vector<Expr>& children, Ctx& newCtx)
-{
-  Expr hd = children[0];
-  std::map<Expr, Expr>::iterator it = d_programs.find(hd);
-  Expr app = mkExprInternal(Kind::APPLY, children);
-  if (it==d_programs.end())
-  {
-    return app;
-  }
-  std::cout << "INTERPRET " << app << " on " << it->second << std::endl;
-  // otherwise, evaluate
-  std::vector<Expr>& progChildren = it->second->getChildren();
-  for (Expr& c : progChildren)
-  {
-    newCtx.clear();
-    Expr hd = c->getChildren()[0];
-    if (d_tc.match(hd, app, newCtx))
-    {
-      std::cout << "...matches " << hd << ", ctx size = " << newCtx.size() << std::endl;
-      return c->getChildren()[1];
-    }
-  }
-  return app;
-}
 
 bool State::markAttributes(const Expr& v, const std::map<Attr, Expr>& attrs)
 {

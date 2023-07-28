@@ -61,6 +61,11 @@ void TypeChecker::setTypeRule(Kind k, const Expr& t)
   it->second = t;
 }
 
+void TypeChecker::defineProgram(const Expr& v, const Expr& prog)
+{
+  d_programs[v] = prog;
+}
+
 Expr TypeChecker::getType(Expr& e, std::ostream* out)
 {
   std::unordered_set<Expr> visited;
@@ -446,18 +451,9 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
             if (cchildren[0]->getKind()==Kind::PROGRAM_CONST)
             {
               ctxs.emplace_back();
-              if (cchildren[0]->isCompiled())
-              {
-                std::cout << "RUN program " << cchildren[0] << std::endl;
-                std::vector<Expr> pargs(cchildren.begin()+1, cchildren.end());
-                evaluated = run_evaluateProgram(cchildren[0], pargs, ctxs.back());
-              }
-              else
-              {
-                // see if we evaluate
-                evaluated = d_state.evaluateProgram(cchildren, ctxs.back());
-                //std::cout << "Evaluate prog returned " << evaluated << std::endl;
-              }
+              // see if we evaluate
+              evaluated = evaluateProgram(cchildren, ctxs.back());
+              //std::cout << "Evaluate prog returned " << evaluated << std::endl;
               if (ctxs.back().empty())
               {
                 // if there is no context, we don't have to push a scope
@@ -510,6 +506,36 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
   std::cout << "EVALUATE " << e << ", " << ctx << " = " << evaluated << std::endl;
   //Assert(visited.find(this) != visited.end());
   return evaluated;
+}
+
+Expr TypeChecker::evaluateProgram(const std::vector<Expr>& children, Ctx& newCtx)
+{
+  Expr hd = children[0];
+  if (hd->isCompiled())
+  {
+    std::cout << "RUN program " << hd << std::endl;
+    return run_evaluateProgram(children, newCtx);
+  }
+  std::map<Expr, Expr>::iterator it = d_programs.find(hd);
+  Expr app = d_state.mkExprInternal(Kind::APPLY, children);
+  if (it==d_programs.end())
+  {
+    return app;
+  }
+  std::cout << "INTERPRET " << app << " on " << it->second << std::endl;
+  // otherwise, evaluate
+  std::vector<Expr>& progChildren = it->second->getChildren();
+  for (Expr& c : progChildren)
+  {
+    newCtx.clear();
+    Expr hd = c->getChildren()[0];
+    if (match(hd, app, newCtx))
+    {
+      std::cout << "...matches " << hd << ", ctx size = " << newCtx.size() << std::endl;
+      return c->getChildren()[1];
+    }
+  }
+  return app;
 }
 
 }  // namespace alfc
