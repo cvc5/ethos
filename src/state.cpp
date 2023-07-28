@@ -376,8 +376,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       if (allGround && d_tc.hasProgram(hd))
       {
         Ctx ctx;
-        std::vector<Expr> echildren(children.begin(), children.end());
-        Expr e = d_tc.evaluateProgram(echildren, ctx);
+        Expr e = d_tc.evaluateProgram(children, ctx);
         Expr ret = d_tc.evaluate(e, ctx);
         std::cout << "EAGER_EVALUATE " << ret << std::endl;
         return ret;

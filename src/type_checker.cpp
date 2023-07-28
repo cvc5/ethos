@@ -520,9 +520,9 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
   return evaluated;
 }
 
-Expr TypeChecker::evaluateProgram(std::vector<Expr>& children, Ctx& newCtx)
+Expr TypeChecker::evaluateProgram(const std::vector<Expr>& children, Ctx& newCtx)
 {
-  Expr& hd = children[0];
+  const Expr& hd = children[0];
   if (hd->isCompiled())
   {
     std::cout << "RUN program " << hd << std::endl;

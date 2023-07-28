@@ -65,8 +65,6 @@ ExprParser::ExprParser(Lexer& lex, State& state)
   d_strToLiteralKind["<hexadecimal>"] = Kind::HEXADECIMAL;
   d_strToLiteralKind["<binary>"] = Kind::BINARY;
   d_strToLiteralKind["<string>"] = Kind::STRING;
-  
-  d_typeType = d_state.mkType();
 }
 
 Expr ExprParser::parseExpr()
@@ -217,7 +215,7 @@ Expr ExprParser::parseExpr()
       ret = d_state.mkAbstractType();
       break;
       case Token::TYPE:
-      ret = d_typeType;
+      ret = d_state.mkType();
       break;
       case Token::BOOL_TYPE:
       ret = d_state.mkBoolType();
@@ -366,7 +364,7 @@ Expr ExprParser::parseType()
 {
   Expr e = parseExpr();
   // ensure it is a type
-  typeCheck(e, d_typeType);
+  typeCheck(e, d_state.mkType());
   return e;
 }
 

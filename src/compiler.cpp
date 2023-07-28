@@ -106,12 +106,11 @@ Compiler::Compiler(State& s) :
   d_decl << "ExprInfo* _einfo;" << std::endl;
   d_decl << "std::map<ExprValue*, size_t> _runId;" << std::endl;
   d_decl << "Ctx _ctxTmp;" << std::endl;
-  d_decl << "std::vector<Expr> _eargsTmp;" << std::endl;
   d_decl << "Expr _etmp;" << std::endl;
   d_init << "void State::run_initialize()" << std::endl;
   d_init << "{" << std::endl;
   d_initEnd << "}" << std::endl;
-  d_tc << "Expr TypeChecker::run_getTypeInternal(Expr& hdType, std::vector<Expr>& args, std::ostream* out)" << std::endl;
+  d_tc << "Expr TypeChecker::run_getTypeInternal(Expr& hdType, const std::vector<Expr>& args, std::ostream* out)" << std::endl;
   d_tc << "{" << std::endl;
   d_tc << "  std::map<ExprValue*, size_t>::iterator itr = _runId.find(hdType.get());" << std::endl;
   // ASSERT
@@ -133,7 +132,7 @@ Compiler::Compiler(State& s) :
   d_evalEnd << "  }" << std::endl;
   d_evalEnd << "  return nullptr;" << std::endl;
   d_evalEnd << "}" << std::endl;
-  d_evalp << "Expr TypeChecker::run_evaluateProgram(std::vector<Expr>& args, Ctx& ctx)" << std::endl;
+  d_evalp << "Expr TypeChecker::run_evaluateProgram(const std::vector<Expr>& args, Ctx& ctx)" << std::endl;
   d_evalp << "{" << std::endl;
   d_evalp << "  std::map<ExprValue*, size_t>::iterator itr = _runId.find(args[0].get());" << std::endl;
   // ASSERT
@@ -269,7 +268,7 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
     {
       std::vector<size_t> initPath{j};
       std::stringstream ssa;
-      decl << "  Expr& a" << j << " = args[" << j << "];" << std::endl;
+      decl << "  const Expr& a" << j << " = args[" << j << "];" << std::endl;
       pt.markDeclared(initPath);
       // write matching code
       writeMatching(children[j], initPath, pt, reqs, varAssign, "break");
@@ -420,8 +419,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         {
           // we should just evaluate it if the scope specifies it should be evaluated
           os << "  _ctxTmp.clear();" << std::endl;
-          os << "  _eargsTmp = std::vector<Expr>" << argList.str() << ";" << std::endl;
-          os << "  _etmp = evaluateProgram(_eargsTmp, _ctxTmp);" << std::endl;
+          os << "  _etmp = evaluateProgram(" << argList.str() << ", _ctxTmp);" << std::endl;
           os << "  " << cs.d_prefix << ret << " = evaluate(_etmp, _ctxTmp);" << std::endl;
         }
         else
@@ -502,7 +500,7 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
       {
         pat = pat->getChildren()[0];
       }
-      pscope.d_decl << "  Expr& a" << i << " = args[" << i << "];" << std::endl;
+      pscope.d_decl << "  const Expr& a" << i << " = args[" << i << "];" << std::endl;
       // write matching code for args[i] against the type argument pat
       std::vector<size_t> initPath{i};
       pt.markDeclared(initPath);

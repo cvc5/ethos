@@ -103,8 +103,6 @@ class ExprParser
   std::map<std::string, Attr> d_strToAttr;
   /** Mapping symbols to literal kinds */
   std::map<std::string, Kind> d_strToLiteralKind;
-  /** Common constants */
-  Expr d_typeType;
 };
 
 }  // namespace cvc5
