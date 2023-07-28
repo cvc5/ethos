@@ -404,7 +404,13 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
     std::map<Expr, std::string> varAssign;
     for (size_t i=0, nargs=children.size()-1; i<nargs; i++)
     {
-      std::vector<Expr> pats{children[i]};
+      Expr pat = children[i];
+      // quote types match their arguments
+      if (pat->getKind()==Kind::QUOTE_TYPE)
+      {
+        pat = pat->getChildren()[0];
+      }
+      std::vector<Expr> pats{pat};
       std::stringstream ssa;
       ssa << "a" << i;
       pscope.d_decl << "  Expr& " << ssa.str() << " = args[" << i << "];" << std::endl;
