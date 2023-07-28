@@ -47,19 +47,29 @@ public:
   bool d_progEval;
   /** Maps expressions to identifiers */
   std::map<ExprValue*, size_t> d_idMap;
-  /** Get name for path */
-  std::string getNameForPath(const std::string& t, const std::vector<size_t>& path);
  private:
   /** Pointer to global context, null if this is the global context */
   CompilerScope* d_global;
-  class PathTrie
+};
+
+class PathTrie
+{
+public:
+  PathTrie(std::ostream& decl, const std::string& prefix);
+  std::string getNameForPath(const std::vector<size_t>& path);
+private:
+  std::ostream& d_decl;
+  std::string d_prefix;
+  class PathTrieNode
   {
   public:
-    PathTrie() : d_decl(false) {}
-    std::map<size_t, PathTrie> d_children;
+    PathTrieNode() : d_decl(false) {}
+    std::map<size_t, PathTrieNode> d_children;
     bool d_decl;
+    /** Get name for path */
+    std::string getNameForPath(std::ostream& osdecl, const std::string& prefix, const std::vector<size_t>& path);
   };
-  std::map<std::string, PathTrie> d_pathMap;
+  PathTrieNode d_trie;
 };
 
 class Compiler
@@ -155,7 +165,7 @@ private:
   size_t writeProgramEvaluation(std::ostream& os, const Expr& p, std::vector<Expr>& cases);
   /** Write matching code for */
   void writeMatching(Expr& pat,
-                      const std::string& t,
+                     PathTrie& pt,
                       CompilerScope& s,
                       std::vector<std::string>& reqs,
                       std::map<Expr, std::string>& varAssign,

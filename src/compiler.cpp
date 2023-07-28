@@ -57,11 +57,18 @@ std::string CompilerScope::getNameFor(Expr& e) const
   return ss.str();
 }
 
-std::string CompilerScope::getNameForPath(const std::string& t, const std::vector<size_t>& path)
+PathTrie::PathTrie(std::ostream& decl, const std::string& prefix) : d_decl(decl), d_prefix(prefix){}
+
+std::string PathTrie::getNameForPath(const std::vector<size_t>& path)
 {
-  PathTrie* pt = &d_pathMap[t];
+  return d_trie.getNameForPath(d_decl, d_prefix, path);
+}
+
+std::string PathTrie::PathTrieNode::getNameForPath(std::ostream& osdecl, const std::string& prefix, const std::vector<size_t>& path)
+{
+  PathTrieNode* pt = this;
   size_t i = 0;
-  std::string curr = t;
+  std::string curr = prefix;
   while (i<path.size())
   {
     pt = &pt->d_children[path[i]];
@@ -70,7 +77,7 @@ std::string CompilerScope::getNameForPath(const std::string& t, const std::vecto
     if (!pt->d_decl)
     {
       pt->d_decl = true;
-      d_decl << "  Expr& " << cname.str() << " = " << curr << "->getChildren()[" << path[i] << "];" << std::endl;
+      osdecl << "  Expr& " << cname.str() << " = " << curr << "->getChildren()[" << path[i] << "];" << std::endl;
     }
     curr = cname.str();
     i++;
@@ -225,18 +232,24 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
   os << "  {" << std::endl;
   osEnd << "  }" << std::endl;
   osEnd << "  break;" << std::endl;
-  
-  
     
   // write evaluation for subterms of each case
   std::vector<Expr>& progChildren = prog->d_children;
-  for (Expr& c : progChildren)
+  for (size_t i=0, ncases = progChildren.size(); i<ncases; i++)
   {
+    Expr& c = progChildren[i];
     std::cout << "writeEvaluate for " << c << std::endl;
     Expr hd = c->getChildren()[0];
     Expr body = c->getChildren()[1];
     // compile the evaluation of the body
     writeEvaluate(d_eval, body);
+    // write the matching code for the pattern
+    std::vector<Expr>& children = hd->getChildren();
+    for (size_t j=1, nchild=children.size(); j<nchild; j++)
+    {
+      // write matching code
+      //writeMatching(pat, ssa.str(), pscope, reqs, varAssign, "break");
+    }
   }
   os << localDecl.str();
   os << localImpl.str();
@@ -425,7 +438,7 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
     for (size_t i=0, nargs=children.size()-1; i<nargs; i++)
     {
       Expr pat = children[i];
-      // quote types match their arguments
+      // quote types match the argument of the type
       if (pat->getKind()==Kind::QUOTE_TYPE)
       {
         pat = pat->getChildren()[0];
@@ -433,8 +446,9 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
       std::stringstream ssa;
       ssa << "a" << i;
       pscope.d_decl << "  Expr& " << ssa.str() << " = args[" << i << "];" << std::endl;
-      // write matching code
-      writeMatching(pat, ssa.str(), pscope, reqs, varAssign, "return nullptr");
+      PathTrie pt(pscope.d_decl, ssa.str());
+      // write matching code for args[i] against the type argument pat
+      writeMatching(pat, pt, pscope, reqs, varAssign, "return nullptr");
     }
     if (!reqs.empty())
     {
@@ -568,7 +582,7 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
 }
 
 void Compiler::writeMatching(Expr& pat,
-                             const std::string& t,
+                             PathTrie& pt,
                              CompilerScope& s,
                              std::vector<std::string>& reqs,
                              std::map<Expr, std::string>& varAssign,
@@ -584,7 +598,7 @@ void Compiler::writeMatching(Expr& pat,
   {
     curr = toVisit.back();
     toVisit.pop_back();
-    std::string cterm = s.getNameForPath(t, curr.first);
+    std::string cterm = pt.getNameForPath(curr.first);
     const Expr& p = curr.second;
     if (p->getKind()==Kind::VARIABLE)
     {

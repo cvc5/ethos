@@ -131,6 +131,10 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
       std::vector<Expr> ctypes;
       for (size_t i=1, nchild=children.size(); i<nchild; i++)
       {
+        // if the argument type is (Quote t), then we implicitly upcast
+        // the argument c to (quote c). This is equivalent to matching
+        // c to t directly, hence we take the child itself and not its
+        // type.
         if (hdtypes[i-1]->getKind()==Kind::QUOTE_TYPE)
         {
           ctypes.push_back(evaluate(children[i]));
@@ -162,6 +166,9 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
         // Assert (ctypes[i]!=nullptr);
         // matching, update context
         Expr hdt = hdtypes[i];
+        // if the argument is (Quote t), we match on its argument,
+        // which along with how ctypes[i] is the argument itself, has the effect
+        // of an implicit upcast.
         hdt = hdt->getKind()==Kind::QUOTE_TYPE ? hdt->getChildren()[0] : hdt;
         if (!match(hdt, ctypes[i], ctx, visited))
         {

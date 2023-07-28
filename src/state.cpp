@@ -333,7 +333,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     Kind hk = hd->getKind();
     if (hk==Kind::LAMBDA)
     {
-      // beta-reduce eagerly, if the right arity
+      // beta-reduce eagerly, if the correct arity
       std::vector<Expr>& vars = (*hd.get())[0]->d_children;
       size_t nvars = vars.size();
       if (nvars==children.size()-1)
@@ -345,7 +345,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         }
         Expr body = (*hd.get())[1];
         Expr ret = d_tc.evaluate(body, ctx);
-        //std::cout << "BETA_REDUCE " << body << " -> " << ret << std::endl;
+        std::cout << "BETA_REDUCE " << body << " = " << ret << std::endl;
         return ret;
       }
     }
@@ -361,13 +361,16 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           break;
         }
       }
+      // TODO: only do this if the correct arity
       // have to check whether we have the program, i.e. if we are constructing
       // applications corresponding to the cases in the program definition itself.
       if (allGround && d_tc.hasProgram(hd))
       {
         Ctx ctx;
         Expr e = d_tc.evaluateProgram(children, ctx);
-        return d_tc.evaluate(e, ctx);
+        Expr ret = d_tc.evaluate(e, ctx);
+        std::cout << "EAGER_EVALUATE " << ret << std::endl;
+        return ret;
       }
     }
     // all functions of kind CONST or VARIABLE are unary and require
