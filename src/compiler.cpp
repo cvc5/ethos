@@ -105,6 +105,9 @@ Compiler::Compiler(State& s) :
   d_decl << "std::map<Attr, Expr> _amap;" << std::endl;
   d_decl << "ExprInfo* _einfo;" << std::endl;
   d_decl << "std::map<ExprValue*, size_t> _runId;" << std::endl;
+  d_decl << "Ctx _ctxTmp;" << std::endl;
+  d_decl << "std::vector<Expr> _eargsTmp;" << std::endl;
+  d_decl << "Expr _etmp;" << std::endl;
   d_init << "void State::run_initialize()" << std::endl;
   d_init << "{" << std::endl;
   d_initEnd << "}" << std::endl;
@@ -404,13 +407,13 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
           argList << s.getNameFor(c);
         }
         argList << "}";
-        if (false && cs.d_progEval && ck==Kind::APPLY && children[0]->getKind()==Kind::PROGRAM_CONST)
+        if (cs.d_progEval && ck==Kind::APPLY && children[0]->getKind()==Kind::PROGRAM_CONST)
         {
-          // we should just evaluate it if the scope allows it
-          //os <<
-          os << "  Ctx _ctx;" << std::endl;
-          os << "  Expr _etmp = evaluateProgram(" << argList.str() << ", _ctx);" << std::endl;
-          os << "  " << cs.d_prefix << ret << " = evaluate(_etmp, _ctx);" << std::endl;
+          // we should just evaluate it if the scope specifies it should be evaluated
+          os << "  _ctxTmp.clear();" << std::endl;
+          os << "  _eargsTmp = std::vector<Expr>" << argList.str() << ";" << std::endl;
+          os << "  _etmp = evaluateProgram(_eargsTmp, _ctxTmp);" << std::endl;
+          os << "  " << cs.d_prefix << ret << " = evaluate(_etmp, _ctxTmp);" << std::endl;
         }
         else
         {
@@ -541,6 +544,7 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
             std::string ret;
             if (hasVariable(ei, varsAssigned))
             {
+              // note this will ensure that the returned term is evaluated
               writeExprInternal(ei, pscope);
               ret = pscope.getNameFor(ei);
             }
@@ -548,12 +552,6 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
             {
               writeGlobalExpr(ei);
               ret = d_global.getNameFor(ei);
-            }
-            // evaluate if necessary
-            // TODO: remove this
-            if (ei->isEvaluatable())
-            {
-              localImpl << "  " << ret << " = evaluate(" << ret << ");" << std::endl;
             }
             vals.push_back(ret);
           }
@@ -578,6 +576,7 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
     {
       writeExprInternal(retType, pscope);
       ret = pscope.getNameFor(retType);
+      // note this will ensure that the returned term is evaluated
       // note that the returned type is specific to the type rule, thus we
       // don't also compile the return type.
     }
@@ -589,19 +588,6 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
       // its type checking as well
       toVisit.push_back(retType);
     }
-    // otherwise, we require evaluating it, which we do via the standard
-    // call to the type checker.
-    // NOTE: if usedMatch=true, we are doing eager construction of unevaluated terms here!
-    // alternatively, we could have the above matching compute the context.
-    // TODO: The solution is to have writeExprInternal handle evaluation
-    // TODO: remove this
-    if (retType->isEvaluatable())
-    {
-      std::stringstream ssret;
-      ssret << "evaluate(" << ret << ")";
-      ret = ssret.str();
-    }
-    // just return the type constructed above
     localImpl << "  return " << ret << ";" << std::endl;
     // now print the declarations + implementation
     os << localDecl.str();
