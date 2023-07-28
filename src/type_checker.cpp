@@ -273,13 +273,13 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
   return nullptr;
 }
 
-bool TypeChecker::match(Expr& a, Expr& b, Ctx& ctx)
+bool TypeChecker::match(const Expr& a, const Expr& b, Ctx& ctx)
 {
   std::set<std::pair<Expr, Expr>> visited;
   return match(a, b, ctx, visited);
 }
 
-bool TypeChecker::match(Expr& a, Expr& b, Ctx& ctx, std::set<std::pair<Expr, Expr>>& visited)
+bool TypeChecker::match(const Expr& a, const Expr& b, Ctx& ctx, std::set<std::pair<Expr, Expr>>& visited)
 {
   std::set<std::pair<Expr, Expr>>::iterator it;
   std::map<Expr, Expr>::iterator ctxIt;
@@ -508,7 +508,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
       // set the result
       if (!visits.empty())
       {
-        std::cout << "EVALUATE " << visits.back().back() << ", " << ctxs.back() << " = " << evaluated << std::endl;
+        std::cout << "EVALUATE " << init << ", " << ctxs.back() << " = " << evaluated << std::endl;
         visiteds.back()[visits.back().back()] = evaluated;
         visits.back().pop_back();
       }
@@ -529,26 +529,36 @@ Expr TypeChecker::evaluateProgram(const std::vector<Expr>& children, Ctx& newCtx
     return run_evaluateProgram(children, newCtx);
   }
   std::map<Expr, Expr>::iterator it = d_programs.find(hd);
-  // NOTE: could avoid this construction by matching on children directly
-  Expr app = d_state.mkExprInternal(Kind::APPLY, children);
-  if (it==d_programs.end())
+  if (it!=d_programs.end())
   {
-    return app;
-  }
-  std::cout << "INTERPRET " << app << " on " << it->second << std::endl;
-  // otherwise, evaluate
-  std::vector<Expr>& progChildren = it->second->getChildren();
-  for (Expr& c : progChildren)
-  {
-    newCtx.clear();
-    Expr hd = c->getChildren()[0];
-    if (match(hd, app, newCtx))
+    std::cout << "INTERPRET " << hd << std::endl;
+    // otherwise, evaluate
+    std::vector<Expr>& progChildren = it->second->getChildren();
+    size_t nargs = children.size();
+    for (Expr& c : progChildren)
     {
-      std::cout << "...matches " << hd << ", ctx size = " << newCtx.size() << std::endl;
-      return c->getChildren()[1];
+      newCtx.clear();
+      Expr hd = c->getChildren()[0];
+      std::vector<Expr>& hchildren = hd->d_children;
+      // Assert (nargs==hchildren.size());
+      bool matchSuccess = true;
+      for (size_t i=1; i<nargs; i++)
+      {
+        if (!match(hchildren[i], children[i], newCtx))
+        {
+          matchSuccess = false;
+          break;
+        }
+      }
+      if (matchSuccess)
+      {
+        std::cout << "...matches " << hd << ", ctx size = " << newCtx.size() << std::endl;
+        return c->getChildren()[1];
+      }
     }
   }
-  return app;
+  // just construct the application, which should be interpreted as a failed evaluation
+  return d_state.mkExprInternal(Kind::APPLY, children);
 }
 
 }  // namespace alfc

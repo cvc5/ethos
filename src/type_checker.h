@@ -30,8 +30,8 @@ class TypeChecker
   /** Maybe evaluate */
   Expr evaluateProgram(const std::vector<Expr>& args, Ctx& newCtx);
   /** */
-  bool match(Expr& a, Expr& b, Ctx& ctx, std::set<std::pair<Expr, Expr>>& visited);
-  bool match(Expr& a, Expr& b, Ctx& ctx);
+  bool match(const Expr& a, const Expr& b, Ctx& ctx, std::set<std::pair<Expr, Expr>>& visited);
+  bool match(const Expr& a, const Expr& b, Ctx& ctx);
   /**
    * Clone this expression, which creates a deep copy of this expression and
    * returns it. The dag structure of pn is the same as that in the returned
