@@ -20,12 +20,17 @@ set(alfc_test_file_list
     constant-eval-args.smt2
     chainable.smt2
     substitution.smt2
+    pf-substitution.smt2
     substitution-binary-only.smt2
     beta-reduce-define-fun.smt2
     define-const-simple.smt2
     naive-nary.smt2
     sig-replAll.smt2
     pf-sig-replAll.smt2
+    simple-sig.smt2
+    pf-simple-sig.smt2
+    simple-sig-2.smt2
+    pf-simple-sig-2.smt2
 )
 
 macro(alfc_test file)

@@ -124,6 +124,7 @@ Compiler::Compiler(State& s) :
   d_tcEnd << "}" << std::endl;
   d_eval << "Expr TypeChecker::run_evaluate(Expr& e, Ctx& ctx)" << std::endl;
   d_eval << "{" << std::endl;
+  d_eval << "  Ctx::iterator itc;" << std::endl;
   d_eval << "  std::map<ExprValue*, size_t>::iterator itr = _runId.find(e.get());" << std::endl;
   // ASSERT
   d_eval << "  switch(itr->second)" << std::endl;
@@ -718,7 +719,6 @@ void Compiler::writeEvaluate(std::ostream& os, const Expr& e)
     std::stringstream localImpl;
     std::string pprefix("_p");
     CompilerScope pscope(localDecl, localImpl, pprefix, &d_global);
-    localImpl << "  Ctx::iterator itc;" << std::endl;
     std::vector<Expr> fvs = getFreeSymbols(curr);
     std::map<ExprValue*, size_t>::iterator iti;
     for (const Expr& v : fvs)

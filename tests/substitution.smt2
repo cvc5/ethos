@@ -24,9 +24,3 @@
    :args ()
    :conclusion (substitute a b f)
 )
-
-(declare-const a Bool)
-(declare-const b Bool)
-(assume a1 (or a b b (and (not a) a) b))
-(assume a2 (= a b))
-(step a3 (or b b b (and (not b) b) b) :rule eq-subs :premises (a1 a2))
