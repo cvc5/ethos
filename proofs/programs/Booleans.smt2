@@ -1,5 +1,16 @@
 (include "../theories/Core.smt2")
 
+; ifThenElse b t1 t2
+; Returns `t1` if `b` is `true`. If it is `false` it returns `t2`.
+(program ifThenElse
+    ((S Type) (b Bool) (t1 S) (t2 S))
+    (Bool S S) S
+    (
+        ((ifThenElse true  t1 t2) t1)
+        ((ifThenElse false t1 t2) t2)
+    )
+)
+
 ; inList cons nil c l
 ; Retuns `true` if l inList c.
 (program inList
@@ -36,6 +47,13 @@
     (Bool Bool) Bool
     (((removeOr c l) (remove or false c l)))
 )
+(program reverseOr
+    ((xs Bool :list))
+    (Bool) Bool
+    (
+        ((reverseOr xs) (reverse or false xs))
+    )
+)
 (program naryElimOr
     ((t Bool))
     (Bool) Bool
@@ -70,6 +88,13 @@
     ((c Bool) (l Bool))
     (Bool Bool) Bool
     (((removeAnd c l) (remove and true c l)))
+)
+(program reverseAnd
+    ((xs Bool :list))
+    (Bool) Bool
+    (
+        ((reverseAnd xs) (reverse and true xs))
+    )
 )
 (program naryElimAnd
     ((t Bool))

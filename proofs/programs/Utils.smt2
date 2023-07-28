@@ -1,4 +1,3 @@
-
 ; ifEqThenElse x y t1 t2
 ; Returns `t1` if `x` and `y` are the same term.  Otherwise, returns `t2`.
 (program ifEqThenElse

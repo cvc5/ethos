@@ -57,6 +57,27 @@
     )
 )
 
+; Helper for reverse
+(program reverseRec
+    ((U Type) (S Type) (cons (-> S U U)) (nil U) (x U) (xs U :list) (l U :list))
+    ((-> S U U) U U U) U
+    (
+        ((reverseRec cons nil nil l)         l)
+        ((reverseRec cons nil (cons x xs) l) (reverseRec cons nil xs (append cons x l)))
+    )
+)
+
+; reverse cons nil l
+; Reverses the list `l`.
+(program reverse
+    ((U Type) (S Type) (cons (-> S U U)) (nil U) (xs U :list))
+    ((-> S U U) U U) U
+    (
+        ((reverse cons nil xs) (reverseRec cons nil xs nil))
+    )
+)
+
+
 ; naryElim cons nil l
 ; Returns the sole element if l is a singleton list.
 (program naryElim

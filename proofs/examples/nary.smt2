@@ -38,7 +38,6 @@
 (step ap3 :rule check_append :args (c1 nil (remove cons nil c2 (cons c1 c2))))
 
 ; Concat
-
 (declare-rule check_concat((t1 S) (t2 S) (out S))
     :args (t1 t2 out)
     :requires (((concat cons nil t1 t2) out))
@@ -50,7 +49,6 @@
 (step co3 :rule check_concat :args ((cons c1 c2) (cons c1 c3) (cons c1 c2 c1 c3)))
 
 ; Remove
-
 (declare-rule check_remove((c S) (l S) (out S))
     :args (c l out)
     :requires (((remove cons nil c l) out))

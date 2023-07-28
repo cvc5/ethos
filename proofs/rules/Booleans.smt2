@@ -85,19 +85,18 @@
 )
 
 ; FACTORING
-(program factorLiterals ((l Bool) (ls Bool :list))
-    (Bool) Bool
+(program factorLiterals ((xs Bool :list) (l Bool) (ls Bool :list))
+    (Bool Bool) Bool
     (
-        ((factorLiterals false) false)
-        ((factorLiterals (or l l ls)) (factorLiterals (appendOr l ls)))
-        ((factorLiterals (or l ls))   (appendOr l (factorLiterals ls)))
-        ((factorLiterals ls) ls)
+        ((factorLiterals xs false) xs)
+        ((factorLiterals xs (or l ls)) (ifThenElse (inListOr l xs) (factorLiterals xs              ls)
+                                                                   (factorLiterals (appendOr l xs) ls)))
     )
 )
 
 (declare-rule factoring ((C Bool))
     :premises (C)
-    :conclusion (factorLiterals C)
+    :conclusion (reverseOr (factorLiterals false C))
 )
 
 ; REORDERING
