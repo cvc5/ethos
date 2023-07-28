@@ -270,17 +270,21 @@
 )
 
 ; NOT_AND
-(program lowerNot ((l Bool) (ls Bool :list))
+
+; lowerNotAnd c
+; Moves a negation into a disjunction.
+; `lowerNotAnd (and l1 .. ln) = (or (not l1) ... (not ln))`
+(program lowerNotAnd ((l Bool) (ls Bool :list))
     (Bool) Bool
     (
-        ((lowerNot true) false) ; Terminator changes
-        ((lowerNot (and l ls)) (appendOr (not l) (lowerNot ls)))
+        ((lowerNotAnd true) false) ; Terminator changes
+        ((lowerNotAnd (and l ls)) (appendOr (not l) (lowerNotAnd ls)))
     )
 )
 
 (declare-rule not_and ((F Bool))
     :premises ((not F))
-    :conclusion (lowerNot F)
+    :conclusion (lowerNotAnd F)
 )
 
 ; CNF_AND_POS
@@ -293,23 +297,131 @@
 )
 
 ; CNF_AND_NEG
+(declare-rule cnf_and_neg ((Fs Bool))
+    :args (Fs)
+    :conclusion (appendOr Fs (lowerNotAnd Fs))
+)
+
 ; CNF_OR_POS
+(declare-rule cnf_or_pos ((Fs Bool))
+    :args (Fs)
+    :conclusion (appendOr (not Fs) Fs)
+)
+
 ; CNF_OR_NEG
+; TODO: Fi should not be explicit, but the ith conjunct from Fs.  Since we do
+; not yet have integer arithmetic, we cannot implment this yet.
+(declare-rule cnf_or_neg ((Fs Bool) (Fi Bool) (i Int))
+    :args (Fs Fi i)
+    :requires (((inListOr Fi Fs) true))
+    :conclusion (concatOr Fs (appendOr (not Fi) false))
+)
+
 ; CNF_IMPLIES_POS
+(declare-rule cnf_implies_pos ((F1 Bool) (F2 Bool))
+    :args ((=> F1 F2))
+    :conclusion (or (not (=> F1 F2)) (not F1) F2)
+)
+
 ; CNF_IMPLIES_NEG1
+(declare-rule cnf_implies_neg1 ((F1 Bool) (F2 Bool))
+    :args ((=> F1 F2))
+    :conclusion (or (=> F1 F2) F1)
+)
+
 ; CNF_IMPLIES_NEG2
+(declare-rule cnf_implies_neg2 ((F1 Bool) (F2 Bool))
+    :args ((=> F1 F2))
+    :conclusion (or (=> F1 F2) (not F2))
+)
+
 ; CNF_EQUIV_POS1
+(declare-rule cnf_equiv_pos1 ((F1 Bool) (F2 Bool))
+    :args ((= F1 F2))
+    :conclusion (or (not (= F1 F2)) (not F1) F2)
+)
+
 ; CNF_EQUIV_POS2
+(declare-rule cnf_equiv_pos2 ((F1 Bool) (F2 Bool))
+    :args ((= F1 F2))
+    :conclusion (or (not (= F1 F2)) F1 (not F2))
+)
+
 ; CNF_EQUIV_NEG1
+(declare-rule cnf_equiv_neg1 ((F1 Bool) (F2 Bool))
+    :args ((= F1 F2))
+    :conclusion (or (= F1 F2) F1 F2)
+)
+
 ; CNF_EQUIV_NEG2
+(declare-rule cnf_equiv_neg2 ((F1 Bool) (F2 Bool))
+    :args ((= F1 F2))
+    :conclusion (or (= F1 F2) (not F1) (not F2))
+)
+
 ; CNF_XOR_POS1
+(declare-rule cnf_xor_pos1 ((F1 Bool) (F2 Bool))
+    :args ((xor F1 F2))
+    :conclusion (or (not (xor F1 F2)) F1 F2)
+)
+
 ; CNF_XOR_POS2
+(declare-rule cnf_xor_pos2 ((F1 Bool) (F2 Bool))
+    :args ((xor F1 F2))
+    :conclusion (or (not (xor F1 F2)) (not F1) (not F2))
+)
+
 ; CNF_XOR_NEG1
+(declare-rule cnf_xor_neg1 ((F1 Bool) (F2 Bool))
+    :args ((xor F1 F2))
+    :conclusion (or (xor F1 F2) (not F1) F2)
+)
+
 ; CNF_XOR_NEG2
+(declare-rule cnf_xor_neg2 ((F1 Bool) (F2 Bool))
+    :args ((xor F1 F2))
+    :conclusion (or (xor F1 F2) F1 (not F2))
+)
+
 ; CNF_ITE_POS1
+(declare-rule cnf_ite_pos1 ((C Bool) (F1 Bool) (F2 Bool))
+    :args ((ite C F1 F2))
+    :conclusion (or (not (ite C F1 F2)) (not C) F1)
+)
+
 ; CNF_ITE_POS2
+(declare-rule cnf_ite_pos2 ((C Bool) (F1 Bool) (F2 Bool))
+    :args ((ite C F1 F2))
+    :conclusion (or (not (ite C F1 F2)) C F2)
+)
+
 ; CNF_ITE_POS3
+(declare-rule cnf_ite_pos3 ((C Bool) (F1 Bool) (F2 Bool))
+    :args ((ite C F1 F2))
+    :conclusion (or (not (ite C F1 F2)) F1 F2)
+)
+
 ; CNF_ITE_NEG1
+(declare-rule cnf_ite_neg1 ((C Bool) (F1 Bool) (F2 Bool))
+    :args ((ite C F1 F2))
+    :conclusion (or (ite C F1 F2) (not C) (not F1))
+)
+
 ; CNF_ITE_NEG2
+(declare-rule cnf_ite_neg2 ((C Bool) (F1 Bool) (F2 Bool))
+    :args ((ite C F1 F2))
+    :conclusion (or (ite C F1 F2) C (not F2))
+)
+
 ; CNF_ITE_NEG3
+(declare-rule cnf_ite_neg3 ((C Bool) (F1 Bool) (F2 Bool))
+    :args ((ite C F1 F2))
+    :conclusion (or (ite C F1 F2) (not F1) (not F2))
+)
+
 ; SAT_REFUTATION
+; trust rule
+(declare-rule sat_refutation ((Fs Bool))
+    :premises (Fs)
+    :conclusion false
+)

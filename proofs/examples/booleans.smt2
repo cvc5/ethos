@@ -48,3 +48,9 @@
 
 ; cnf_and_pos
 (step cnfandpost1 (or (not (and c1 c2 (not c2))) (not c2)) :rule cnf_and_pos :args ((and c1 c2 (not c2)) (not c2) 3))
+
+; cnf_and_neg
+(step cnfandnegt1 (or (and c1 c2 (not c2)) (not c1) (not c2) (not (not c2))) :rule cnf_and_neg :args ((and c1 c2 (not c2))))
+
+; cnf_or_neg
+(step cnfornegt1 (or c1 c2 (not c2) (not (not c2))) :rule cnf_or_neg :args ((or c1 c2 (not c2)) (not c2) 3))
