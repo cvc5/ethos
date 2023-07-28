@@ -28,6 +28,26 @@ std::ostream& operator<<(std::ostream& out, const Ctx& c)
   return out;
 }
 
+std::ostream& operator<<(std::ostream& out, const std::vector<Expr>& children)
+{
+  out << "[";
+  bool firstTime = true;
+  for (const Expr& e : children)
+  {
+    if (firstTime)
+    {
+      firstTime = false;
+    }
+    else
+    {
+      out << ", ";
+    }
+    out << e;
+  }
+  out << "]";
+  return out;
+}
+
 TypeChecker::TypeChecker(State& s) : d_state(s)
 {
   d_literalKinds = { Kind::INTEGER,  Kind::DECIMAL, Kind::HEXADECIMAL, Kind::BINARY, Kind::STRING };
@@ -380,6 +400,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
     while (!visit.empty())
     {
       cur = visit.back();
+      //std::cout << "visit " << cur << " " << cctx << std::endl;
       // the term will stay the same if it is not evaluatable and either it
       // is ground, or the context is empty.
       if (!cur->isEvaluatable() && (cur->isGround() || cctx.empty()))
@@ -405,19 +426,19 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
         // TODO: error, variable not filled?
         //std::cout << "WARNING: unfilled variable " << cur << std::endl;
       }
-      // if it is compiled, we run its evaluation here
-      if (cur->isCompiled())
-      {
-        std::cout << "RUN evaluate " << cur << std::endl;
-        visited[cur] = run_evaluate(cur, cctx);
-        visit.pop_back();
-        continue;
-      }
-      
       std::vector<Expr>& children = cur->d_children;
       it = visited.find(cur);
       if (it == visited.end())
       {
+        // if it is compiled, we run its evaluation here
+        if (cur->isCompiled())
+        {
+          std::cout << "RUN evaluate " << cur << std::endl;
+          visited[cur] = run_evaluate(cur, cctx);
+          visit.pop_back();
+          continue;
+        }
+        // otherwise, visit children
         visited[cur] = nullptr;
         visit.insert(visit.end(), children.begin(), children.end());
         continue;
@@ -469,8 +490,10 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
               //std::cout << "Evaluate prog returned " << evaluated << std::endl;
               if (ctxs.back().empty())
               {
-                // if there is no context, we don't have to push a scope
+                // if there is no context and evaluated is ground, we don't
+                // have to push a scope
                 ctxs.pop_back();
+                cctx = ctxs.back();
               }
               else
               {
@@ -526,13 +549,13 @@ Expr TypeChecker::evaluateProgram(const std::vector<Expr>& children, Ctx& newCtx
   const Expr& hd = children[0];
   if (hd->isCompiled())
   {
-    std::cout << "RUN program " << hd << std::endl;
+    std::cout << "RUN program " << children << std::endl;
     return run_evaluateProgram(children, newCtx);
   }
   std::map<Expr, Expr>::iterator it = d_programs.find(hd);
   if (it!=d_programs.end())
   {
-    std::cout << "INTERPRET " << hd << std::endl;
+    std::cout << "INTERPRET " << children << std::endl;
     // otherwise, evaluate
     std::vector<Expr>& progChildren = it->second->getChildren();
     size_t nargs = children.size();
@@ -553,7 +576,7 @@ Expr TypeChecker::evaluateProgram(const std::vector<Expr>& children, Ctx& newCtx
       }
       if (matchSuccess)
       {
-        std::cout << "...matches " << hd << ", ctx size = " << newCtx.size() << std::endl;
+        std::cout << "...matches " << hd << ", ctx = " << newCtx << std::endl;
         return c->getChildren()[1];
       }
     }
