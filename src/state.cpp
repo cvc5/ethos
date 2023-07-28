@@ -218,19 +218,10 @@ Expr State::mkProofRule(const std::string& name, const Expr& type)
 
 Expr State::mkSymbolInternal(Kind k, const std::string& name, const Expr& type)
 {
-  // type is stored as a child
-  Expr v = mkExprInternal(k, {}, false);
+  std::vector<Expr> emptyVec;
+  Expr v = std::make_shared<ExprValue>(k, emptyVec);
   // immediately set its type
-  if (type->isGround() && type->isEvaluatable())
-  {
-    // evaluate the type
-    Expr t = type;
-    v->d_type = d_tc.evaluate(t);
-  }
-  else
-  {
-    v->d_type = type;
-  }
+  v->d_type = type;
   // map to the data
   ExprInfo* ei = getOrMkInfo(v.get());
   ei->d_str = name;
@@ -396,7 +387,8 @@ Expr State::mkLiteral(Kind k, const std::string& s)
   {
     return it->second;
   }
-  Expr lit = mkExprInternal(k, {}, false);
+  std::vector<Expr> emptyVec;
+  Expr lit = std::make_shared<ExprValue>(k, emptyVec);
   // map to the data
   ExprInfo* ei = getOrMkInfo(lit.get());
   ei->d_str = s;
@@ -411,31 +403,24 @@ Expr State::mkApplyInternal(const std::vector<Expr>& children)
   Expr curr = children[0];
   for (size_t i=1, nchildren = children.size(); i<nchildren; i++)
   {
-    curr = mkExprInternal(Kind::APPLY, {curr, children[i]}, true);
+    curr = mkExprInternal(Kind::APPLY, {curr, children[i]});
   }
   return curr;
 }
 
-Expr State::mkExprInternal(Kind k, const std::vector<Expr>& children, bool doHash)
+Expr State::mkExprInternal(Kind k, const std::vector<Expr>& children)
 {
-  ExprTrie* et = nullptr;
-  if (doHash)
+  ExprTrie* et = &d_trie[k];
+  for (const Expr& e : children)
   {
-    et = &d_trie[k];
-    for (const Expr& e : children)
-    {
-      et = &(et->d_children[e.get()]);
-    }
-    if (et->d_data!=nullptr)
-    {
-      return et->d_data;
-    }
+    et = &(et->d_children[e.get()]);
+  }
+  if (et->d_data!=nullptr)
+  {
+    return et->d_data;
   }
   Expr ret = std::make_shared<ExprValue>(k, children);
-  if (et!=nullptr)
-  {
-    et->d_data = ret;
-  }
+  et->d_data = ret;
   return ret;
 }
 

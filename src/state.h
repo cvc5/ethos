@@ -108,7 +108,7 @@ private:
   void includeFileInternal(const std::string& s, bool ignore=false);
   /** */
   Expr mkApplyInternal(const std::vector<Expr>& children);
-  Expr mkExprInternal(Kind k, const std::vector<Expr>& children, bool doHash=true);
+  Expr mkExprInternal(Kind k, const std::vector<Expr>& children);
   /** */
   Expr mkSymbolInternal(Kind k, const std::string& name, const Expr& type);
   /** */
