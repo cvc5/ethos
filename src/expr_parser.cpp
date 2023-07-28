@@ -625,13 +625,13 @@ void ExprParser::bind(const std::string& name, const Expr& e)
 Expr ExprParser::typeCheck(Expr& e)
 {
   // type check immediately
-  Expr v = d_state.getTypeChecker().getType(e);
+  const Expr& v = d_state.getTypeChecker().getType(e);
   if (v==nullptr)
   {
     // we allocate stringstream for error messages only when an error occurs
     // thus, we require recomputing the error message here.
     std::stringstream ss;
-    v = d_state.getTypeChecker().getType(e, &ss);
+    d_state.getTypeChecker().getType(e, &ss);
     //Assert (v==nullptr);
     std::stringstream msg;
     msg << "Type checking failed:" << std::endl;

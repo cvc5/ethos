@@ -71,7 +71,7 @@ bool TypeChecker::hasProgram(const Expr& v) const
   return d_programs.find(v)!=d_programs.end();
 }
 
-Expr TypeChecker::getType(Expr& e, std::ostream* out)
+const Expr& TypeChecker::getType(Expr& e, std::ostream* out)
 {
   std::unordered_set<Expr> visited;
   std::vector<Expr> toVisit;
@@ -99,7 +99,8 @@ Expr TypeChecker::getType(Expr& e, std::ostream* out)
       if (cur->d_type==nullptr)
       {
         // any subterm causes type checking to fail
-        return nullptr;
+        // Assert (e->d_type==nullptr);
+        return e->d_type;
       }
       toVisit.pop_back();
     }

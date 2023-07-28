@@ -20,7 +20,7 @@ class TypeChecker
   TypeChecker(State& s);
   ~TypeChecker();
   /** Return its type */
-  Expr getType(Expr& e, std::ostream* out = nullptr);
+  const Expr& getType(Expr& e, std::ostream* out = nullptr);
   /** Set type rule for literal */
   void setTypeRule(Kind k, const Expr& t);
   /** Define program */

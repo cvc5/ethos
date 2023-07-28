@@ -375,11 +375,16 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       // applications corresponding to the cases in the program definition itself.
       if (allGround && d_tc.hasProgram(hd))
       {
-        Ctx ctx;
-        Expr e = d_tc.evaluateProgram(children, ctx);
-        Expr ret = d_tc.evaluate(e, ctx);
-        std::cout << "EAGER_EVALUATE " << ret << std::endl;
-        return ret;
+        Expr hdt = hd;
+        const Expr& t = d_tc.getType(hdt);
+        if (t->getNumChildren()==children.size())
+        {
+          Ctx ctx;
+          Expr e = d_tc.evaluateProgram(children, ctx);
+          Expr ret = d_tc.evaluate(e, ctx);
+          std::cout << "EAGER_EVALUATE " << ret << std::endl;
+          return ret;
+        }
       }
     }
     // all functions of kind CONST or VARIABLE are unary and require
