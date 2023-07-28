@@ -24,6 +24,8 @@ set(alfc_test_file_list
     beta-reduce-define-fun.smt2
     define-const-simple.smt2
     naive-nary.smt2
+    sig-replAll.smt2
+    pf-sig-replAll.smt2
 )
 
 macro(alfc_test file)
