@@ -21,7 +21,11 @@ class TypeChecker;
 class CompilerScope
 {
 public:
-  CompilerScope(std::ostream& decl, std::ostream& out, const std::string& prefix, CompilerScope* global = nullptr);
+  CompilerScope(std::ostream& decl,
+                std::ostream& out,
+                const std::string& prefix,
+                CompilerScope* global = nullptr,
+                bool progEval = false);
   ~CompilerScope();
   /** allocate id */
   size_t ensureDeclared(ExprValue* ev);
@@ -39,6 +43,8 @@ public:
   std::string d_prefix;
   /** Identifier counts */
   size_t d_idCount;
+  /** Whether program applications constructed in this scope are evaluated */
+  bool d_progEval;
   /** Maps expressions to identifiers */
   std::map<ExprValue*, size_t> d_idMap;
   /** Get name for path */

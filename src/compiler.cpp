@@ -6,8 +6,13 @@
 
 namespace alfc {
 
-CompilerScope::CompilerScope(std::ostream& decl, std::ostream& out, const std::string& prefix, CompilerScope* global) :
-  d_decl(decl), d_out(out), d_prefix(prefix), d_idCount(1), d_global(global) {}
+CompilerScope::CompilerScope(std::ostream& decl,
+                             std::ostream& out,
+                             const std::string& prefix,
+                             CompilerScope* global,
+                             bool progEval) :
+d_decl(decl), d_out(out), d_prefix(prefix), d_idCount(1), d_progEval(progEval), d_global(global)
+{}
 
 CompilerScope::~CompilerScope(){}
 
@@ -327,7 +332,8 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
       }
       else
       {
-        os << "mkExprInternal(Kind::" << cur->getKind() << ", {";
+        std::stringstream argList;
+        argList << "{";
         bool firstTime = true;
         for (Expr& c : children)
         {
@@ -337,18 +343,26 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
           }
           else
           {
-            os << ", ";
+            argList << ", ";
           }
           // get the compiler scope for the child, which may be the global one
-          os << s.getNameFor(c);
+          argList << s.getNameFor(c);
         }
-        os << "});" << std::endl;
-        if (isg)
+        argList << "}";
+        if (s.d_progEval && ck==Kind::APPLY && children[0]->getKind()==Kind::PROGRAM_CONST)
         {
-          // cache its type
-          if (cur->d_type!=nullptr)
+          // we should just evaluate it if the scope allows it
+        }
+        else
+        {
+          os << "mkExprInternal(Kind::" << cur->getKind() << ", " << argList.str() << ");" << std::endl;
+          if (isg)
           {
-            os << "  " << d_global.d_prefix << ret << "->d_type = " << d_global.d_prefix << tid << ";" << std::endl;
+            // cache its type
+            if (cur->d_type!=nullptr)
+            {
+              os << "  " << d_global.d_prefix << ret << "->d_type = " << d_global.d_prefix << tid << ";" << std::endl;
+            }
           }
         }
       }
@@ -395,7 +409,8 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
     std::stringstream localDecl;
     std::stringstream localImpl;
     std::string pprefix("_p");
-    CompilerScope pscope(localDecl, localImpl, pprefix, &d_global);     
+    // mark that we want to evaluate
+    CompilerScope pscope(localDecl, localImpl, pprefix, &d_global, true);
     // ensure all variables in the type are declared (but not constructed)
     std::vector<Expr> fvs = getFreeSymbols(curr);
     pscope.ensureDeclared(fvs);
@@ -530,6 +545,7 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
     // call to the type checker.
     // NOTE: if usedMatch=true, we are doing eager construction of unevaluated terms here!
     // alternatively, we could have the above matching compute the context.
+    // TODO: The solution is to have writeExprInternal handle evaluation
     if (retType->isEvaluatable())
     {
       std::stringstream ssret;
@@ -626,10 +642,15 @@ void Compiler::writeEvaluate(std::ostream& os, const Expr& e)
   {
     curr = toVisit.back();
     toVisit.pop_back();
-    if (curr->isGround() || curr->getKind()==Kind::VARIABLE)
+    if (curr->isGround())
     {
       // ground terms are constructed statically
       writeGlobalExpr(curr);
+      continue;
+    }
+    if (curr->getKind()==Kind::VARIABLE)
+    {
+      // don't bother writing evaluation for variables
       continue;
     }
     if (curr->isEvaluatable())

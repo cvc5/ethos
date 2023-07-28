@@ -55,6 +55,7 @@ std::string kindToTerm(Kind k)
     case Kind::APPLY: ss << "@"; break;
     case Kind::LAMBDA: ss << "lambda"; break;
     case Kind::QUOTE: ss << "quote"; break;
+    case Kind::PROGRAM: ss << "program"; break;
     default: ss << "[" << k << "]"; break;
   }
   return ss.str();
