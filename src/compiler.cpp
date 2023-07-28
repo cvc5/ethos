@@ -64,6 +64,18 @@ std::string PathTrie::getNameForPath(const std::vector<size_t>& path)
   return d_trie.getNameForPath(d_decl, d_prefix, path);
 }
 
+void PathTrie::markDeclared(const std::vector<size_t>& path)
+{
+  PathTrieNode* pt = &d_trie;
+  size_t i = 0;
+  while (i<path.size())
+  {
+    pt = &pt->d_children[path[i]];
+    i++;
+  }
+  pt->d_decl = true;
+}
+
 std::string PathTrie::PathTrieNode::getNameForPath(std::ostream& osdecl, const std::string& prefix, const std::vector<size_t>& path)
 {
   PathTrieNode* pt = this;
@@ -93,8 +105,6 @@ Compiler::Compiler(State& s) :
   d_decl << "std::map<Attr, Expr> _amap;" << std::endl;
   d_decl << "ExprInfo* _einfo;" << std::endl;
   d_decl << "std::map<ExprValue*, size_t> _runId;" << std::endl;
-  d_decl << "Ctx _ctx;" << std::endl;
-  d_decl << "Expr _etmp;" << std::endl;
   d_init << "void State::run_initialize()" << std::endl;
   d_init << "{" << std::endl;
   d_initEnd << "}" << std::endl;
@@ -119,7 +129,7 @@ Compiler::Compiler(State& s) :
   d_evalEnd << "  }" << std::endl;
   d_evalEnd << "  return nullptr;" << std::endl;
   d_evalEnd << "}" << std::endl;
-  d_evalp << "Expr TypeChecker::run_evaluateProgram(const std::vector<Expr>& args, Ctx& ctx)" << std::endl;
+  d_evalp << "Expr TypeChecker::run_evaluateProgram(std::vector<Expr>& args, Ctx& ctx)" << std::endl;
   d_evalp << "{" << std::endl;
   d_evalp << "  std::map<ExprValue*, size_t>::iterator itr = _runId.find(args[0].get());" << std::endl;
   // ASSERT
@@ -215,15 +225,6 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
   // NOTE: don't need this once programs are always evaluated below
   size_t pid = writeGlobalExpr(prog);
   d_init << "  defineProgram(_e" << vid << ", _e" << pid << ");" << std::endl;
-    
-  std::stringstream localDecl;
-  std::stringstream localImpl;
-  std::string pprefix("_p");
-  CompilerScope pscope(localDecl, localImpl, pprefix, &d_global);  
-  
-  // ensure all variables in the type are declared (but not constructed)
-  std::vector<Expr> fvs = getFreeSymbols(prog);
-  pscope.ensureDeclared(fvs);
 
   std::ostream& os = d_evalp;
   size_t id = markCompiled(d_init, v);
@@ -235,24 +236,69 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
     
   // write evaluation for subterms of each case
   std::vector<Expr>& progChildren = prog->d_children;
-  for (size_t i=0, ncases = progChildren.size(); i<ncases; i++)
+  size_t ncases = progChildren.size();
+  os << "     size_t _i=0;" << std::endl;
+  os << "     while (_i<" << ncases << ")" << std::endl;
+  os << "     {" << std::endl;
+  os << "       _i++;" << std::endl;
+  os << "       switch(_i)" << std::endl;
+  os << "       {" << std::endl;
+  for (size_t i=0; i<ncases; i++)
   {
     Expr& c = progChildren[i];
     std::cout << "writeEvaluate for " << c << std::endl;
     Expr hd = c->getChildren()[0];
     Expr body = c->getChildren()[1];
+    os << "       // matching for arguments of " << hd << std::endl;
+    os << "       case " << (i+1) << ":" << std::endl;
+    os << "       {" << std::endl;
+
     // compile the evaluation of the body
     writeEvaluate(d_eval, body);
     // write the matching code for the pattern
     std::vector<Expr>& children = hd->getChildren();
+    std::stringstream decl;
+    std::vector<std::string> reqs;
+    std::map<Expr, std::string> varAssign;
+    PathTrie pt(decl, "a");
     for (size_t j=1, nchild=children.size(); j<nchild; j++)
     {
+      std::vector<size_t> initPath{j};
+      std::stringstream ssa;
+      decl << "  Expr& a" << j << " = args[" << j << "];" << std::endl;
+      pt.markDeclared(initPath);
       // write matching code
-      //writeMatching(pat, ssa.str(), pscope, reqs, varAssign, "break");
+      writeMatching(children[j], initPath, pt, reqs, varAssign, "break");
     }
+    os << decl.str();
+    os << "  // check requirements" << std::endl;
+    writeRequirements(os, reqs, "break");
+    size_t id = writeGlobalExpr(body);
+    if (body->isGround())
+    {
+      os << "  // return " << body << std::endl;
+      os << "  return _e" << id << ";" << std::endl;
+    }
+    os << "  // construct the context" << std::endl;
+    std::vector<Expr> fvs = getFreeSymbols(body);
+    for (std::pair<const Expr, std::string>& va : varAssign)
+    {
+      // don't bother assigning variables that don't occur in the body
+      if (std::find(fvs.begin(), fvs.end(), va.first)==fvs.end())
+      {
+        continue;
+      }
+      size_t id = writeGlobalExpr(va.first);
+      os << "  ctx[_e" << id << "] = " << va.second << ";" << std::endl;
+    }
+    os << "  // return " << body << std::endl;
+    os << "  return _e" << id << ";" << std::endl;
+    os << "       }" << std::endl;
+    os << "       break;" << std::endl;
   }
-  os << localDecl.str();
-  os << localImpl.str();
+  os << "       default: break;" << std::endl;
+  os << "       }" << std::endl;
+  os << "     }" << std::endl;
   os << osEnd.str();
 }
 
@@ -362,8 +408,8 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         {
           // we should just evaluate it if the scope allows it
           //os <<
-          os << "  _ctx.clear();" << std::endl;
-          os << "  _etmp = evaluateProgram(" << argList.str() << ", _ctx);" << std::endl;
+          os << "  Ctx _ctx;" << std::endl;
+          os << "  Expr _etmp = evaluateProgram(" << argList.str() << ", _ctx);" << std::endl;
           os << "  " << cs.d_prefix << ret << " = evaluate(_etmp, _ctx);" << std::endl;
         }
         else
@@ -435,6 +481,7 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
     // write the matching
     std::vector<std::string> reqs;
     std::map<Expr, std::string> varAssign;
+    PathTrie pt(pscope.d_decl, "a");
     for (size_t i=0, nargs=children.size()-1; i<nargs; i++)
     {
       Expr pat = children[i];
@@ -443,34 +490,16 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
       {
         pat = pat->getChildren()[0];
       }
-      std::stringstream ssa;
-      ssa << "a" << i;
-      pscope.d_decl << "  Expr& " << ssa.str() << " = args[" << i << "];" << std::endl;
-      PathTrie pt(pscope.d_decl, ssa.str());
+      pscope.d_decl << "  Expr& a" << i << " = args[" << i << "];" << std::endl;
       // write matching code for args[i] against the type argument pat
-      writeMatching(pat, pt, pscope, reqs, varAssign, "return nullptr");
+      std::vector<size_t> initPath{i};
+      pt.markDeclared(initPath);
+      writeMatching(pat, initPath, pt, reqs, varAssign, "return nullptr");
     }
     if (!reqs.empty())
     {
       localImpl << "  // check requirements" << std::endl;
-      localImpl << "  if (!(";
-      bool firstTime = true;
-      for (const std::string& r : reqs)
-      {
-        if (firstTime)
-        {
-          firstTime = false;
-        }
-        else
-        {
-          localImpl << " && ";
-        }
-        localImpl << r;
-      }
-      localImpl << "))" << std::endl;
-      localImpl << "  {" << std::endl;
-      localImpl << "     return nullptr;" << std::endl;
-      localImpl << "  }" << std::endl;
+      writeRequirements(localImpl, reqs, "return nullptr");
     }
     bool usedMatch = false;
     Expr& retType = children.back();
@@ -506,9 +535,9 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
           Expr& req = rchildren[i];
           localImpl << "  // handle requirement " << req << std::endl;
           std::vector<std::string> vals;
-          for (size_t i=0; i<2; i++)
+          for (size_t j=0; j<2; j++)
           {
-            Expr ei = (*req.get())[i];
+            Expr ei = (*req.get())[j];
             std::string ret;
             if (hasVariable(ei, varsAssigned))
             {
@@ -582,18 +611,18 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
 }
 
 void Compiler::writeMatching(Expr& pat,
+                            std::vector<size_t>& initPath,
                              PathTrie& pt,
-                             CompilerScope& s,
                              std::vector<std::string>& reqs,
                              std::map<Expr, std::string>& varAssign,
                              const std::string& failCmd)
 {
   std::vector<std::pair<std::vector<size_t>, Expr>> toVisit;
-  toVisit.emplace_back(std::pair<std::vector<size_t>, Expr>({}, pat));
+  toVisit.emplace_back(std::pair<std::vector<size_t>, Expr>(initPath, pat));
   std::pair<std::vector<size_t>, Expr> curr;
   std::map<ExprValue*, size_t>::const_iterator it;
   std::map<Expr, std::string>::iterator itv;
-  std::ostream& decl = s.d_decl;
+  std::ostream& decl = pt.d_decl;
   do
   {
     curr = toVisit.back();
@@ -806,6 +835,32 @@ bool Compiler::hasVariable(const Expr& e, const std::unordered_set<Expr>& vars) 
     toVisit.insert(toVisit.end(), cur->d_children.begin(), cur->d_children.end());
   }while (!toVisit.empty());
   return false;
+}
+
+void Compiler::writeRequirements(std::ostream& os, const std::vector<std::string>& reqs, const std::string& failCmd)
+{
+  if (reqs.empty())
+  {
+    return;
+  }
+  os << "  if (!(";
+  bool firstTime = true;
+  for (const std::string& r : reqs)
+  {
+    if (firstTime)
+    {
+      firstTime = false;
+    }
+    else
+    {
+      os << " && ";
+    }
+    os << r;
+  }
+  os << "))" << std::endl;
+  os << "  {" << std::endl;
+  os << "     " << failCmd << ";" << std::endl;
+  os << "  }" << std::endl;
 }
 
 

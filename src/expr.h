@@ -68,10 +68,11 @@ class ExprValue
   /** flags */
   enum class Flag
   {
+    NONE = 0,
     IS_FLAGS_COMPUTED = (1 << 0),
     IS_EVAL = (1 << 1),
     IS_NON_GROUND = (1 << 2),
-    IS_COMPILED = (1 << 4)
+    IS_COMPILED = (1 << 3)
   };
   char d_flags;
   /** Compute flags */
@@ -90,7 +91,7 @@ class ExprValue
     }
     else
     {
-      d_flags &= static_cast<uint8_t>(f);
+      d_flags &= ~static_cast<uint8_t>(f);
     }
   }
 };

@@ -520,15 +520,16 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
   return evaluated;
 }
 
-Expr TypeChecker::evaluateProgram(const std::vector<Expr>& children, Ctx& newCtx)
+Expr TypeChecker::evaluateProgram(std::vector<Expr>& children, Ctx& newCtx)
 {
-  const Expr& hd = children[0];
+  Expr& hd = children[0];
   if (hd->isCompiled())
   {
     std::cout << "RUN program " << hd << std::endl;
     return run_evaluateProgram(children, newCtx);
   }
   std::map<Expr, Expr>::iterator it = d_programs.find(hd);
+  // NOTE: could avoid this construction by matching on children directly
   Expr app = d_state.mkExprInternal(Kind::APPLY, children);
   if (it==d_programs.end())
   {

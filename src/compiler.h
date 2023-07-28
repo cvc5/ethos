@@ -57,8 +57,11 @@ class PathTrie
 public:
   PathTrie(std::ostream& decl, const std::string& prefix);
   std::string getNameForPath(const std::vector<size_t>& path);
-private:
+  /** The stream for declarations */
   std::ostream& d_decl;
+  /** mark declared */
+  void markDeclared(const std::vector<size_t>& path);
+private:
   std::string d_prefix;
   class PathTrieNode
   {
@@ -165,8 +168,8 @@ private:
   size_t writeProgramEvaluation(std::ostream& os, const Expr& p, std::vector<Expr>& cases);
   /** Write matching code for */
   void writeMatching(Expr& pat,
+                     std::vector<size_t>& initPath,
                      PathTrie& pt,
-                      CompilerScope& s,
                       std::vector<std::string>& reqs,
                       std::map<Expr, std::string>& varAssign,
                       const std::string& failCmd);
@@ -174,6 +177,8 @@ private:
   std::vector<Expr> getFreeSymbols(const Expr& e) const;
   /** Get the free symbols */
   bool hasVariable(const Expr& e, const std::unordered_set<Expr>& terms) const;
+  /** Write requirements */
+  void writeRequirements(std::ostream& os, const std::vector<std::string>& reqs, const std::string& failCmd);
 };
 
 }  // namespace alfc

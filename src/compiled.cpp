@@ -17,7 +17,7 @@ Expr TypeChecker::run_evaluate(Expr& e, Ctx& ctx)
   return nullptr;
 }
 
-Expr TypeChecker::run_evaluateProgram(const std::vector<Expr>& args, Ctx& ctx)
+Expr TypeChecker::run_evaluateProgram(std::vector<Expr>& args, Ctx& ctx)
 {
   return nullptr;
 }

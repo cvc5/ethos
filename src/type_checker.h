@@ -28,7 +28,7 @@ class TypeChecker
   /** Has program */
   bool hasProgram(const Expr& v) const;
   /** Maybe evaluate */
-  Expr evaluateProgram(const std::vector<Expr>& args, Ctx& newCtx);
+  Expr evaluateProgram(std::vector<Expr>& args, Ctx& newCtx);
   /** */
   bool match(Expr& a, Expr& b, Ctx& ctx, std::set<std::pair<Expr, Expr>>& visited);
   bool match(Expr& a, Expr& b, Ctx& ctx);
@@ -49,7 +49,7 @@ class TypeChecker
   /** Compiled version */
   Expr run_evaluate(Expr& e, Ctx& ctx);
   /** Compiled version */
-  Expr run_evaluateProgram(const std::vector<Expr>& args, Ctx& ctx);
+  Expr run_evaluateProgram(std::vector<Expr>& args, Ctx& ctx);
   /** The state */
   State& d_state;
   /** The builtin literal kinds */
