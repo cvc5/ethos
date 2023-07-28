@@ -71,7 +71,7 @@
 )
 
 (step elim1 :rule check_naryElim :args ((cons c1 c2) (cons c1 c2)))
-(step elim2 :rule check_naryElim :args ((remove cons nil c2 (cons c1 c2)) c1))
+(step elim2 :rule check_naryElim :args ((remove cons nil c2 (cons c1 c2))  c1))
 (step elim3 :rule check_naryElim :args ((remove cons nil c2 (cons nil c2)) nil))
 (step elim4 :rule check_naryElim :args ((remove cons nil c2 (cons c2 nil)) nil))
 (step elim5 :rule check_naryElim :args ((remove cons nil c2 (cons (cons c1 c3) c2)) (cons c1 c3)))
@@ -85,3 +85,4 @@
 
 (step intro1 :rule check_naryIntro :args ((cons c1 c2) (cons c1 c2)))
 (step intro3 :rule check_naryIntro :args (c1 (remove cons nil c2 (cons c2 c1))))
+(step intro4 :rule check_naryIntro :args ((cons c1 c2 c3) (cons c1 c2 c3)))
