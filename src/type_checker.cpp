@@ -488,11 +488,14 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
               // see if we evaluate
               evaluated = evaluateProgram(cchildren, ctxs.back());
               //std::cout << "Evaluate prog returned " << evaluated << std::endl;
-              if (ctxs.back().empty())
+              if (!evaluated->isEvaluatable() &&
+                  (evaluated->isGround() || ctxs.back().empty()))
               {
-                // if there is no context and evaluated is ground, we don't
-                // have to push a scope
+                // if the evaluation can be shortcircuited, don't need to
+                // push a context
                 ctxs.pop_back();
+                // get the reference to the back of the vector again, which
+                // may have changed.
                 cctx = ctxs.back();
               }
               else
