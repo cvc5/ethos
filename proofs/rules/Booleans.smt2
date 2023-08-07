@@ -1,5 +1,9 @@
 (include "../theories/Core.smt2")
+(include "../theories/Ints.smt2")
+
 (include "../programs/Nary.smt2")
+(include "../programs/Booleans.smt2")
+
 
 ; SPLIT
 (declare-rule split ((F Bool))
@@ -36,25 +40,63 @@
     :conclusion (resolve C1 C2 pol L)
 )
 
-; TODO: needs support for premise lists
 ; CHAIN_RESOLUTION
+(program chainResolveRec((C1 Bool) (C2 Bool) (Cs Bool :list) (pol Bool) (L Bool) (args Bool :list))
+    (Bool Bool Bool) Bool
+    (
+        ((chainResolveRec C1 true true) C1)
+        ((chainResolveRec C1 (and C2 Cs) (and pol L args)) (chainResolveRec (resolve C1 C2 pol L) Cs args))
+    )
+)
+
+(program chainResolve((C1 Bool) (Cs Bool :list) (args Bool))
+    (Bool Bool) Bool
+    (
+        ((chainResolve (and C1 Cs) args) (chainResolveRec C1 Cs args))
+    )
+)
+
+; This is a chain or resolution steps as described in the cvc5 proof rule
+; documentation.
+; `Cs` is a conjunction or the premise clauses.  This can be built by using
+;      multiple `and_intro` steps.
+; `args` is a conjunction where the alternating conjuncts are polarity and
+;        pivot literal.
+; TODO: use generic lists for `args` instead of a conjunction.
+(declare-rule chain_resolution ((Cs Bool) (args Bool))
+    :premises (Cs)
+    :args (args)
+    :conclusion (chainResolve Cs args)
+)
+
 ; MACRO_RESOLUTION_TRUST
 ; MACRO_RESOLUTION
+; These rules do not perform any checks.
+; TODO: implement some checking for MACRO_RESOLUTION
+(declare-rule macro_resolution_trust((C Bool) (Cs Bool) (args Bool))
+    :premises (Cs)
+    :args (C args)
+    :conclusion C
+)
+(declare-rule macro_resolution((C Bool) (Cs Bool) (args Bool))
+    :premises (Cs)
+    :args (C args)
+    :conclusion C
+)
 
 ; FACTORING
-(program factorLiterals ((l Bool) (ls Bool :list))
-    (Bool) Bool
+(program factorLiterals ((xs Bool :list) (l Bool) (ls Bool :list))
+    (Bool Bool) Bool
     (
-        ((factorLiterals false) false)
-        ((factorLiterals (or l l ls)) (factorLiterals (appendOr l ls)))
-        ((factorLiterals (or l ls))   (appendOr l (factorLiterals ls)))
-        ((factorLiterals ls) ls)
+        ((factorLiterals xs false) xs)
+        ((factorLiterals xs (or l ls)) (ifThenElse (inListOr l xs) (factorLiterals xs              ls)
+                                                                   (factorLiterals (appendOr l xs) ls)))
     )
 )
 
 (declare-rule factoring ((C Bool))
     :premises (C)
-    :conclusion (factorLiterals C)
+    :conclusion (reverseOr (factorLiterals false C))
 )
 
 ; REORDERING
@@ -100,14 +142,42 @@
     :conclusion false
 )
 
-; TODO: needs integer evaluation
 ; AND_ELIM
+; TODO: F should not be explicit, but the ith conjunct from Fs.  Since we do
+; not yet have integer arithmetic, we cannot implment this yet.
+(declare-rule and_elim ((Fs Bool) (F Bool) (i Int))
+    :premises (Fs)
+    :args (F i)
+    :requires (((inListAnd F Fs) true))
+    :conclusion F
+)
 
-; TODO: needs support for premise lists
 ; AND_INTRO
+; Since we don't have premise lists, we implement different variants of and_intro
 
-; TODO: needs integer evaluation
+; Appends F to the head of Fs where Fs is a null-terminated list.
+; I.e. `F`, `(and F1 (and F2 .. (and Fn true)..)` ==>
+;    `(and F ( and F1 (and F2 .. (and Fn true)..)`
+(declare-rule and_intro_nary ((F Bool) (Fs Bool))
+    :premises (F Fs)
+    :conclusion (appendAnd F Fs)
+)
+
+; binary and introduction
+(declare-rule and_intro ((F1 Bool) (F2 Bool))
+    :premises (F1 F2)
+    :conclusion (and F1 F2) ; Note: this creates `(and F1 (and F2 true))`.
+)
+
 ; NOT_OR_ELIM
+; TODO: F should not be explicit, but the ith conjunct from Fs.  Since we do
+; not yet have integer arithmetic, we cannot implment this yet.
+(declare-rule not_or_elim ((Fs Bool) (F Bool) (i Int))
+    :premises ((not Fs))
+    :args (F i)
+    :requires (((inListOr F Fs) true))
+    :conclusion (not F)
+)
 
 ; IMPLIES_ELIM
 (declare-rule implies_elim ((F1 Bool) (F2 Bool))
@@ -117,8 +187,7 @@
 
 ; NOT_IMPLIES_ELIM1
 (declare-rule not_implies_elim1 ((F1 Bool) (F2 Bool))
-    :premises ((not (=> F1 F2)))
-    :conclusion F1
+    :premises ((not (=> F1 F2)))    :conclusion F1
 )
 
 ; NOT_IMPLIES_ELIM2
@@ -200,25 +269,158 @@
 )
 
 ; NOT_AND
+
+; lowerNotAnd c
+; Moves a negation into a disjunction.
+; `lowerNotAnd (and l1 .. ln) = (or (not l1) ... (not ln))`
+(program lowerNotAnd ((l Bool) (ls Bool :list))
+    (Bool) Bool
+    (
+        ((lowerNotAnd true) false) ; Terminator changes
+        ((lowerNotAnd (and l ls)) (appendOr (not l) (lowerNotAnd ls)))
+    )
+)
+
+(declare-rule not_and ((F Bool))
+    :premises ((not F))
+    :conclusion (lowerNotAnd F)
+)
+
 ; CNF_AND_POS
+; TODO: Fi should not be explicit, but the ith conjunct from Fs.  Since we do
+; not yet have integer arithmetic, we cannot implment this yet.
+(declare-rule cnf_and_pos ((Fs Bool) (Fi Bool) (i Int))
+    :args (Fs Fi i)
+    :requires (((inListAnd Fi Fs) true))
+    :conclusion (or (not Fs) Fi)
+)
+
 ; CNF_AND_NEG
+(declare-rule cnf_and_neg ((Fs Bool))
+    :args (Fs)
+    :conclusion (appendOr Fs (lowerNotAnd Fs))
+)
+
 ; CNF_OR_POS
+(declare-rule cnf_or_pos ((Fs Bool))
+    :args (Fs)
+    :conclusion (appendOr (not Fs) Fs)
+)
+
 ; CNF_OR_NEG
+; TODO: Fi should not be explicit, but the ith conjunct from Fs.  Since we do
+; not yet have integer arithmetic, we cannot implment this yet.
+(declare-rule cnf_or_neg ((Fs Bool) (Fi Bool) (i Int))
+    :args (Fs Fi i)
+    :requires (((inListOr Fi Fs) true))
+    :conclusion (concatOr Fs (appendOr (not Fi) false))
+)
+
 ; CNF_IMPLIES_POS
+(declare-rule cnf_implies_pos ((F1 Bool) (F2 Bool))
+    :args ((=> F1 F2))
+    :conclusion (or (not (=> F1 F2)) (not F1) F2)
+)
+
 ; CNF_IMPLIES_NEG1
+(declare-rule cnf_implies_neg1 ((F1 Bool) (F2 Bool))
+    :args ((=> F1 F2))
+    :conclusion (or (=> F1 F2) F1)
+)
+
 ; CNF_IMPLIES_NEG2
+(declare-rule cnf_implies_neg2 ((F1 Bool) (F2 Bool))
+    :args ((=> F1 F2))
+    :conclusion (or (=> F1 F2) (not F2))
+)
+
 ; CNF_EQUIV_POS1
+(declare-rule cnf_equiv_pos1 ((F1 Bool) (F2 Bool))
+    :args ((= F1 F2))
+    :conclusion (or (not (= F1 F2)) (not F1) F2)
+)
+
 ; CNF_EQUIV_POS2
+(declare-rule cnf_equiv_pos2 ((F1 Bool) (F2 Bool))
+    :args ((= F1 F2))
+    :conclusion (or (not (= F1 F2)) F1 (not F2))
+)
+
 ; CNF_EQUIV_NEG1
+(declare-rule cnf_equiv_neg1 ((F1 Bool) (F2 Bool))
+    :args ((= F1 F2))
+    :conclusion (or (= F1 F2) F1 F2)
+)
+
 ; CNF_EQUIV_NEG2
+(declare-rule cnf_equiv_neg2 ((F1 Bool) (F2 Bool))
+    :args ((= F1 F2))
+    :conclusion (or (= F1 F2) (not F1) (not F2))
+)
+
 ; CNF_XOR_POS1
+(declare-rule cnf_xor_pos1 ((F1 Bool) (F2 Bool))
+    :args ((xor F1 F2))
+    :conclusion (or (not (xor F1 F2)) F1 F2)
+)
+
 ; CNF_XOR_POS2
+(declare-rule cnf_xor_pos2 ((F1 Bool) (F2 Bool))
+    :args ((xor F1 F2))
+    :conclusion (or (not (xor F1 F2)) (not F1) (not F2))
+)
+
 ; CNF_XOR_NEG1
+(declare-rule cnf_xor_neg1 ((F1 Bool) (F2 Bool))
+    :args ((xor F1 F2))
+    :conclusion (or (xor F1 F2) (not F1) F2)
+)
+
 ; CNF_XOR_NEG2
+(declare-rule cnf_xor_neg2 ((F1 Bool) (F2 Bool))
+    :args ((xor F1 F2))
+    :conclusion (or (xor F1 F2) F1 (not F2))
+)
+
 ; CNF_ITE_POS1
+(declare-rule cnf_ite_pos1 ((C Bool) (F1 Bool) (F2 Bool))
+    :args ((ite C F1 F2))
+    :conclusion (or (not (ite C F1 F2)) (not C) F1)
+)
+
 ; CNF_ITE_POS2
+(declare-rule cnf_ite_pos2 ((C Bool) (F1 Bool) (F2 Bool))
+    :args ((ite C F1 F2))
+    :conclusion (or (not (ite C F1 F2)) C F2)
+)
+
 ; CNF_ITE_POS3
+(declare-rule cnf_ite_pos3 ((C Bool) (F1 Bool) (F2 Bool))
+    :args ((ite C F1 F2))
+    :conclusion (or (not (ite C F1 F2)) F1 F2)
+)
+
 ; CNF_ITE_NEG1
+(declare-rule cnf_ite_neg1 ((C Bool) (F1 Bool) (F2 Bool))
+    :args ((ite C F1 F2))
+    :conclusion (or (ite C F1 F2) (not C) (not F1))
+)
+
 ; CNF_ITE_NEG2
+(declare-rule cnf_ite_neg2 ((C Bool) (F1 Bool) (F2 Bool))
+    :args ((ite C F1 F2))
+    :conclusion (or (ite C F1 F2) C (not F2))
+)
+
 ; CNF_ITE_NEG3
+(declare-rule cnf_ite_neg3 ((C Bool) (F1 Bool) (F2 Bool))
+    :args ((ite C F1 F2))
+    :conclusion (or (ite C F1 F2) (not F1) (not F2))
+)
+
 ; SAT_REFUTATION
+; trust rule
+(declare-rule sat_refutation ((Fs Bool))
+    :premises (Fs)
+    :conclusion false
+)

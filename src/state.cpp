@@ -130,6 +130,7 @@ void State::includeFileInternal(const std::string& s, bool ignore)
     return;
   }
   d_includes.insert(inputPath);
+  std::filesystem::path currentPath = d_inputFile;
   d_inputFile = inputPath;
   if (d_compiler!=nullptr)
   {
@@ -148,6 +149,7 @@ void State::includeFileInternal(const std::string& s, bool ignore)
     parsedCommand = p.parseNextCommand();
   }
   while (parsedCommand);
+  d_inputFile = currentPath;
   std::cout << "...finished" << std::endl;
 }
 

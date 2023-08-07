@@ -9,22 +9,22 @@
 
 ; SYMM
 ; Either t1 = t2 ==> t2 = t1 or t1 != t2 ==> t2 != t1
-(program flip_eq ((T Type) (t1 T) (t2 T))
+(program flipEq ((T Type) (t1 T) (t2 T))
     (Bool) Bool
     (
-        ((flip_eq (= t1 t2)) (= t2 t1))
-        ((flip_eq (not (= t1 t2))) (not (= t2 t1)))
+        ((flipEq (= t1 t2)) (= t2 t1))
+        ((flipEq (not (= t1 t2))) (not (= t2 t1)))
     )
 )
 
 (declare-rule symm ((F Bool))
     :premises (F)
     :args ()
-    :conclusion (flip_eq F)
+    :conclusion (flipEq F)
 )
 
 ; TRANS
-; Only binary for now, because we don't have lists
+; Only binary trans supported
 (declare-rule trans ((T Type) (t1 T) (t2 T) (t3 T))
     :premises ((= t1 t2) (= t2 t3))
     :args ()
@@ -32,8 +32,7 @@
 )
 
 ; CONG
-; Only unary for now, because we don't have lists
-; and no support for different kinds.
+; Only binary cong supported
 (declare-rule cong ((T Type) (U Type) (f (-> T U)) (t1 T) (t2 T))
     :premises ((= t1 t2))
     :args (f)
@@ -69,7 +68,7 @@
 )
 
 ; HO_CONG
-; Only unary for now, because we don't have lists
+; Only binary ho_cong supported
 (declare-rule ho_cong ((T Type) (U Type) (f (-> T U)) (g (-> T U)) (t1 T) (t2 T))
     :premises ((= f g) (= t1 t2))
     :args ()

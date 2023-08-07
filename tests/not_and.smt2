@@ -1,4 +1,6 @@
+(include "../proofs/theories/Core.smt2")
 (include "../proofs/programs/Nary.smt2")
+(include "../proofs/programs/Booleans.smt2")
 
 ; NOT_AND
 (program lowerNot ((l Bool) (ls Bool :list))
