@@ -396,6 +396,18 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
       {
         os << "  " << cs.d_prefix << ret << " = d_boolType;" << std::endl;
       }
+      else if (ck==Kind::NIL)
+      {
+        os << "  " << cs.d_prefix << ret << " = ";
+        if (!cs.isGlobal())
+        {
+          os << "d_state.";
+        }
+        os << "mkNil(";
+        Expr c1 = children[0];
+        os << s.getNameFor(children[0]);
+        os << ");" << std::endl;
+      }
       else
       {
         std::stringstream argList;
