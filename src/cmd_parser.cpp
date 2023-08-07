@@ -40,10 +40,11 @@ CmdParser::CmdParser(Lexer& lex,
   d_table["echo"] = Token::ECHO;
   d_table["exit"] = Token::EXIT;
   d_table["include"] = Token::INCLUDE;
+  d_table["pop"] = Token::POP;
   d_table["program"] = Token::PROGRAM;
   d_table["proof"] = Token::PROOF;
+  d_table["push"] = Token::PUSH;
   d_table["reset"] = Token::RESET;
-  d_table["scope"] = Token::SCOPE;  // TODO: name?
   d_table["set-info"] = Token::SET_INFO;
   d_table["set-option"] = Token::SET_OPTION;
   d_table["step"] = Token::STEP;
@@ -412,10 +413,34 @@ bool CmdParser::parseNextCommand()
       d_state.reset();
     }
     break;
-    // (scope)
-    case Token::SCOPE:
+    // (push)
+    case Token::PUSH:
     {
       d_state.pushAssumptionScope();
+    }
+    break;
+    // (pop <symbol> <formula> <term>)
+    case Token::POP:
+    {
+      std::vector<Expr> as = d_state.getCurrentAssumptions();
+      std::string name = d_eparser.parseSymbol();
+      Expr proven = d_eparser.parseExpr();
+      Expr p = d_eparser.parseExpr();
+      Expr pt = d_state.mkProofType(proven);
+      // ensure a proof of the given fact
+      d_eparser.typeCheck(p, pt);
+      d_state.popAssumptionScope();
+      // the symbol is bound to a function type over proofs
+      std::vector<Expr> atypes;
+      for (Expr& a : as)
+      {
+        const Expr& ta = d_eparser.typeCheck(a);
+        atypes.push_back(ta);
+      }
+      // bind the name
+      Expr ft = d_state.mkFunctionType(atypes, pt);
+      Expr v = d_state.mkVar(name, ft);
+      d_eparser.bind(name, v);
     }
     break;
     // (set-info <attribute>)

@@ -34,13 +34,14 @@ std::ostream& operator<<(std::ostream& o, Token t)
     case Token::LPAREN: o << "LPAREN"; break;
     case Token::NUMERAL: o << "NUMERAL"; break;
     case Token::PAR: o << "PAR"; break;
+    case Token::POP: o << "POP"; break;
     case Token::PROGRAM: o << "PROGRAM"; break;
     case Token::PROOF: o << "PROOF"; break;
     case Token::PROOF_TYPE: o << "PROOF_TYPE"; break;
+    case Token::PUSH: o << "PUSH"; break;
     case Token::QUOTED_SYMBOL: o << "QUOTED_SYMBOL"; break;
     case Token::RESET: o << "RESET"; break;
     case Token::RPAREN: o << "RPAREN"; break;
-    case Token::SCOPE: o << "SCOPE"; break;
     case Token::SET_INFO: o << "SET_INFO"; break;
     case Token::SET_LOGIC: o << "SET_LOGIC"; break;
     case Token::SET_OPTION: o << "SET_OPTION"; break;
