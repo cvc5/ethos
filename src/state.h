@@ -78,6 +78,8 @@ public:
   Expr mkProgramConst(const std::string& name, const Expr& type);
   /** */
   Expr mkProofRule(const std::string& name, const Expr& type);
+  /** (nil <type>) */
+  Expr mkNil(const Expr& t);
   /** */
   Expr mkExpr(Kind k, const std::vector<Expr>& children);
   

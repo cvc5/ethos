@@ -25,6 +25,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::VARIABLE: o << "VARIABLE"; break;
     case Kind::VARIABLE_LIST: o << "VARIABLE_LIST"; break;
     case Kind::QUOTE: o << "QUOTE"; break;
+    case Kind::NIL: o << "NIL"; break;
     // literals
     case Kind::INTEGER: o << "INTEGER"; break;
     case Kind::DECIMAL: o << "DECIMAL"; break;

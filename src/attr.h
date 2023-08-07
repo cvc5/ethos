@@ -12,14 +12,16 @@ enum class Attr
 {
   NONE = 0,
   
-  // types
   VAR,
   IMPLICIT,
   LIST,
   SYNTAX,
+  NIL,
   
   RIGHT_ASSOC,
   LEFT_ASSOC,
+  RIGHT_ASSOC_NIL,
+  LEFT_ASSOC_NIL,
   CHAINABLE,
   PAIRWISE,
   

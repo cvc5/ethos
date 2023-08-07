@@ -55,8 +55,11 @@ ExprParser::ExprParser(Lexer& lex, State& state)
   d_strToAttr[":implicit"] = Attr::IMPLICIT;
   d_strToAttr[":list"] = Attr::LIST;
   d_strToAttr[":syntax"] = Attr::SYNTAX;
+  d_strToAttr[":nil"] = Attr::NIL;
   d_strToAttr[":left-assoc"] = Attr::LEFT_ASSOC;
   d_strToAttr[":right-assoc"] = Attr::RIGHT_ASSOC;
+  d_strToAttr[":left-assoc-nil"] = Attr::LEFT_ASSOC_NIL;
+  d_strToAttr[":right-assoc-nil"] = Attr::RIGHT_ASSOC_NIL;
   d_strToAttr[":chainable"] = Attr::CHAINABLE;
   d_strToAttr[":pairwise"] = Attr::PAIRWISE;
   
@@ -531,6 +534,8 @@ void ExprParser::parseAttributeList(const Expr& e, std::map<Attr, Expr>& attrs)
         break;
       case Attr::LIST:
       case Attr::IMPLICIT:
+      case Attr::RIGHT_ASSOC_NIL:
+      case Attr::LEFT_ASSOC_NIL:
         // requires no value
         break;
       case Attr::RIGHT_ASSOC:

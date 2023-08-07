@@ -30,6 +30,7 @@ enum class Kind
   VARIABLE,
   VARIABLE_LIST,
   QUOTE,
+  NIL,
 
   // literals
   INTEGER,

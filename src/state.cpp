@@ -235,6 +235,11 @@ Expr State::mkProofRule(const std::string& name, const Expr& type)
   return mkSymbolInternal(Kind::PROOF_RULE, name, type);
 }
 
+Expr State::mkNil(const Expr& t)
+{
+  return mkExprInternal(Kind::NIL, {t});
+}
+
 Expr State::mkSymbolInternal(Kind k, const std::string& name, const Expr& type)
 {
   d_stats.d_symCount++;
@@ -275,24 +280,38 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       {
         case Attr::LEFT_ASSOC:
         case Attr::RIGHT_ASSOC:
+        case Attr::LEFT_ASSOC_NIL:
+        case Attr::RIGHT_ASSOC_NIL:
         {
           size_t nchild = children.size();
           if (nchild>2)
           {
-            bool isLeft = (ai->d_attrCons==Attr::LEFT_ASSOC);
+            bool isLeft = (ai->d_attrCons==Attr::LEFT_ASSOC ||
+                           ai->d_attrCons==Attr::LEFT_ASSOC_NIL);
+            bool isNil = (ai->d_attrCons==Attr::RIGHT_ASSOC_NIL ||
+                          ai->d_attrCons==Attr::LEFT_ASSOC_NIL);
             size_t i = 1;
             Expr curr = children[isLeft ? i : nchild-i];
             std::vector<Expr> cc{hd, nullptr, nullptr};
             size_t nextIndex = isLeft ? 2 : 1;
             size_t prevIndex = isLeft ? 1 : 2;
-            if (ai->d_attrConsTerm!=nullptr)
+            if (isNil || ai->d_attrConsTerm!=nullptr)
             {
               AppInfo * ail = getAppInfo(curr.get());
               if (ail==nullptr || !ail->hasAttribute(Attr::LIST))
               {
                 // if the last term is not marked as a list variable and
                 // we have a null terminator, then we insert the null terminator
-                cc[prevIndex] = ai->d_attrConsTerm;
+                if (isNil)
+                {
+                  Expr c1 = children[1];
+                  const Expr& t = d_tc.getType(c1);
+                  cc[prevIndex] = mkNil(t);
+                }
+                else
+                {
+                  cc[prevIndex] = ai->d_attrConsTerm;
+                }
                 cc[nextIndex] = curr;
                 curr = mkApplyInternal(cc);
               }
@@ -583,7 +602,10 @@ bool State::markAttributes(const Expr& v, const std::map<Attr, Expr>& attrs)
     {
       case Attr::LEFT_ASSOC:
       case Attr::RIGHT_ASSOC:
+      case Attr::LEFT_ASSOC_NIL:
+      case Attr::RIGHT_ASSOC_NIL:
       case Attr::CHAINABLE:
+      case Attr::PAIRWISE:
         // it specifies how to construct this
         ai.d_attrCons = a.first;
         ai.d_attrConsTerm = a.second;
