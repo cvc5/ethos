@@ -94,6 +94,13 @@ class ExprValue
       d_flags &= ~static_cast<uint8_t>(f);
     }
   }
+  /** */
+  static std::map<const ExprValue*, size_t> computeLetBinding(
+                                const std::shared_ptr<ExprValue>& e,
+                                std::vector<const ExprValue*>& ll);
+  static void printDebugInternal(const ExprValue* e, 
+                                 std::ostream& os, 
+                                 std::map<const ExprValue*, size_t>& lbind);
 };
 using Expr = std::shared_ptr<ExprValue>;
 

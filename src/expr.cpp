@@ -124,16 +124,72 @@ std::string ExprValue::getSymbol() const
   }
   return "";
 }
-  
-void ExprValue::printDebug(const std::shared_ptr<ExprValue>& e, std::ostream& os)
+
+std::map<const ExprValue*, size_t> ExprValue::computeLetBinding(const std::shared_ptr<ExprValue>& e, 
+                                                                std::vector<const ExprValue*>& ll)
 {
+  size_t idc = 0;
+  std::map<const ExprValue*, size_t> lbind;
+  std::unordered_set<const ExprValue*> visited;
+  std::vector<const ExprValue*> visit;
+  std::vector<const ExprValue*> llv;
+  const ExprValue* cur;
+  visit.push_back(e.get());
+  do
+  {
+    cur = visit.back();
+    visit.pop_back();
+    const std::vector<Expr>& children = cur->d_children;
+    if (children.empty())
+    {
+      continue;
+    }
+    if (visited.find(cur)==visited.end())
+    {
+      llv.push_back(cur);
+      visited.insert(cur);
+      for (const Expr& c : children)
+      {
+        visit.push_back(c.get());
+      }
+      continue;
+    }
+    if (lbind.find(cur)==lbind.end())
+    {
+      lbind[cur] = idc;
+      idc++;
+    }
+  }while(!visit.empty());
+  for (size_t i=0, lsize = llv.size(); i<lsize; i++)
+  {
+    const ExprValue* l = llv[lsize-1-i];
+    if (lbind.find(l)!=lbind.end())
+    {
+      ll.push_back(l);
+    }
+  }
+  return lbind;
+}
+
+void ExprValue::printDebugInternal(const ExprValue* e, 
+                                   std::ostream& os,
+                                   std::map<const ExprValue*, size_t>& lbind)
+{
+  std::map<const ExprValue*, size_t>::iterator itl;
   std::vector<std::pair<const ExprValue*, size_t>> visit;
   std::pair<const ExprValue*, size_t> cur;
-  visit.emplace_back(e.get(), 0);
+  visit.emplace_back(e, 0);
   do {
     cur = visit.back();
     if (cur.second==0)
     {
+      itl = lbind.find(cur.first);
+      if (itl!=lbind.end())
+      {
+        os << "_v" << itl->second;
+        visit.pop_back();
+        continue;
+      }
       Kind k = cur.first->getKind();
       if (cur.first->getNumChildren()==0)
       {
@@ -172,6 +228,26 @@ void ExprValue::printDebug(const std::shared_ptr<ExprValue>& e, std::ostream& os
     }
   } while (!visit.empty());
 }
+
+void ExprValue::printDebug(const std::shared_ptr<ExprValue>& e, std::ostream& os)
+{
+  std::vector<const ExprValue*> ll;
+  std::map<const ExprValue*, size_t> lbind = computeLetBinding(e, ll);
+  std::stringstream osc;
+  for (const ExprValue* l : ll)
+  {
+    size_t id = lbind[l];
+    os << "(let ((_v" << id << " ";
+    lbind.erase(l);
+    printDebugInternal(l, os, lbind);
+    lbind[l] = id;
+    os << ")) ";
+    osc << ")";
+  }
+  printDebugInternal(e.get(), os, lbind);
+  os << osc.str();
+}
+
 
 std::ostream& operator<<(std::ostream& out, const Expr& e)
 {

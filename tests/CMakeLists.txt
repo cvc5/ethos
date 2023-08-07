@@ -35,6 +35,7 @@ set(alfc_test_file_list
     scopes.smt2
     substitution-over-or.smt2
     pf-substitution-over-or.smt2
+    pf-substitution-large.smt2
 )
 
 macro(alfc_test file)
