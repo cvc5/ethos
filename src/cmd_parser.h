@@ -33,8 +33,6 @@ class CmdParser
   ExprParser& d_eparser;
   /** Map strings to tokens */
   std::map<std::string, Token> d_table;
-  /** Is finished */
-  bool d_isFinished;
 };
 
 }  // namespace alfc

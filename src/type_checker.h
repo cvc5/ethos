@@ -4,6 +4,7 @@
 #include <map>
 #include <set>
 #include "expr.h"
+#include "expr_trie.h"
 
 namespace alfc {
 
