@@ -516,6 +516,8 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
                   // get the reference to the back of the vector again, which
                   // may have changed.
                   cctx = ctxs.back();
+                  // store the base evaluation (if applicable)
+                  et->d_data = evaluated;
                 }
                 else
                 {
