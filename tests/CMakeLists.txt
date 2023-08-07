@@ -33,6 +33,8 @@ set(alfc_test_file_list
     pf-simple-sig-2.smt2
     not_and.smt2
     scopes.smt2
+    substitution-over-or.smt2
+    pf-substitution-over-or.smt2
 )
 
 macro(alfc_test file)

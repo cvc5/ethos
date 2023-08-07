@@ -539,6 +539,7 @@ void ExprParser::parseAttributeList(const Expr& e, std::map<Attr, Expr>& attrs)
       }
         break;
       case Attr::LIST:
+      case Attr::NIL:
       case Attr::IMPLICIT:
       case Attr::RIGHT_ASSOC_NIL:
       case Attr::LEFT_ASSOC_NIL:
