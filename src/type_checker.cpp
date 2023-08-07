@@ -583,7 +583,7 @@ Expr TypeChecker::evaluateProgram(const std::vector<Expr>& children, Ctx& newCtx
   std::map<Expr, Expr>::iterator it = d_programs.find(hd);
   if (it!=d_programs.end())
   {
-    std::cout << "INTERPRET " << children << std::endl;
+    std::cout << "INTERPRET program " << children << std::endl;
     // otherwise, evaluate
     std::vector<Expr>& progChildren = it->second->getChildren();
     size_t nargs = children.size();
