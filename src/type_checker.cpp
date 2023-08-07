@@ -495,8 +495,8 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
               // see if we evaluate
               evaluated = evaluateProgram(cchildren, ctxs.back());
               //std::cout << "Evaluate prog returned " << evaluated << std::endl;
-              if (!evaluated->isEvaluatable() &&
-                  (evaluated->isGround() || ctxs.back().empty()))
+              if (evaluated==nullptr || (!evaluated->isEvaluatable() &&
+                  (evaluated->isGround() || ctxs.back().empty())))
               {
                 // if the evaluation can be shortcircuited, don't need to
                 // push a context
@@ -591,8 +591,8 @@ Expr TypeChecker::evaluateProgram(const std::vector<Expr>& children, Ctx& newCtx
       }
     }
   }
-  // just construct the application, which should be interpreted as a failed evaluation
-  return d_state.mkExprInternal(Kind::APPLY, children);
+  // just return nullptr, which should be interpreted as a failed evaluation
+  return nullptr;
 }
 
 }  // namespace alfc
