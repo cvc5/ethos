@@ -16,4 +16,4 @@ public:
 
 }  // namespace alfc
 
-#endif /* STATE_H */
+#endif /* EXPR_TRIE_H */

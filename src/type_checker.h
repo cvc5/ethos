@@ -58,6 +58,8 @@ class TypeChecker
   std::map<Kind, Expr> d_literalTypeRules;
   /** Programs */
   std::map<Expr, Expr> d_programs;
+  /** Evaluation trie */
+  ExprTrie d_evalTrie;
 };
 
 }  // namespace alfc

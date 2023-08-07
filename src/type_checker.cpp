@@ -495,8 +495,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
               // see if we evaluate
               evaluated = evaluateProgram(cchildren, ctxs.back());
               //std::cout << "Evaluate prog returned " << evaluated << std::endl;
-              if (evaluated==nullptr || (!evaluated->isEvaluatable() &&
-                  (evaluated->isGround() || ctxs.back().empty())))
+              if (evaluated==nullptr || ctxs.back().empty())
               {
                 // if the evaluation can be shortcircuited, don't need to
                 // push a context
@@ -525,8 +524,6 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
         {
           evaluated = d_state.mkExprInternal(ck, cchildren);
         }
-        // remember its type?
-        //evaluated->d_type = cur->d_type;
         visited[cur] = evaluated;
       }
       visit.pop_back();
