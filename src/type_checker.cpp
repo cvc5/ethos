@@ -229,6 +229,11 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
       }
       return d_state.mkQuoteType(e->d_children[0]);
     }
+    case Kind::NIL:
+    {
+      // type stored as the child
+      return e->d_children[0];
+    }
     case Kind::TYPE:
     case Kind::ABSTRACT_TYPE:
     case Kind::BOOL_TYPE:
@@ -391,6 +396,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
   visiteds.emplace_back();
   ctxs.emplace_back(ctx);
   visits.emplace_back(std::vector<Expr>{e});
+  Kind ck;
   while (!visits.empty())
   {
     std::unordered_map<Expr, Expr>& visited = visiteds.back();
@@ -454,7 +460,8 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
         }
         evaluated = nullptr;
         bool newContext = false;
-        switch (cur->getKind())
+        ck = cur->getKind();
+        switch (ck)
         {
           case Kind::REQUIRES_TYPE:
           {
@@ -516,7 +523,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
         }
         if (evaluated==nullptr)
         {
-          evaluated = d_state.mkExprInternal(cur->getKind(), cchildren);
+          evaluated = d_state.mkExprInternal(ck, cchildren);
         }
         // remember its type?
         //evaluated->d_type = cur->d_type;

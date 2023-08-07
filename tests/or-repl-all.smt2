@@ -2,7 +2,7 @@
 (declare-const false Bool)
 (declare-const = (-> (! Type :var T :implicit) T T Bool))
 
-(declare-const or (-> Bool Bool Bool) :right-assoc false)
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil)
 
 (program append 
   ((h Bool) (t Bool :list))

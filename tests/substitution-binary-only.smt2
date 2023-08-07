@@ -1,8 +1,8 @@
 (declare-const true Bool)
 (declare-const false Bool)
 
-(declare-const or (-> Bool Bool Bool) :left-assoc false)
-(declare-const and (-> Bool Bool Bool) :right-assoc true)
+(declare-const or (-> Bool Bool Bool) :left-assoc-nil)
+(declare-const and (-> Bool Bool Bool) :right-assoc-nil)
 (declare-const = (-> (! Type :var T :implicit) T T Bool))
 
 

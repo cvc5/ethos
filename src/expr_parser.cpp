@@ -338,6 +338,12 @@ Expr ExprParser::parseExpr()
               case Attr::SYNTAX:
                 // TODO: implies a Kind check for the type rule?
                 break;
+              case Attr::NIL:
+                // should be annotating a type
+                typeCheck(ret, d_state.mkType());
+                // it is the nil of that type
+                ret = d_state.mkNil(ret);
+                break;
               default:
                 break;
             }
