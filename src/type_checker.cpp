@@ -390,6 +390,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
   std::vector<std::unordered_map<Expr, Expr>> visiteds;
   std::vector<Ctx> ctxs;
   std::vector<std::vector<Expr>> visits;
+  std::vector<ExprTrie*> ets;
   Expr evaluated;
   Expr cur;
   Expr init;
@@ -429,7 +430,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
         visited[cur] = cur;
         visit.pop_back();
         continue;
-        // TODO: error, variable not filled?
+        // NOTE: this could be an error or warning, variable not filled?
         //std::cout << "WARNING: unfilled variable " << cur << std::endl;
       }
       std::vector<Expr>& children = cur->d_children;
@@ -491,25 +492,39 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
             // maybe evaluate the program?
             if (cchildren[0]->getKind()==Kind::PROGRAM_CONST)
             {
-              ctxs.emplace_back();
-              // see if we evaluate
-              evaluated = evaluateProgram(cchildren, ctxs.back());
-              //std::cout << "Evaluate prog returned " << evaluated << std::endl;
-              if (evaluated==nullptr || ctxs.back().empty())
+              // maybe already cached
+              ExprTrie* et = &d_evalTrie;
+              for (const Expr& e : cchildren)
               {
-                // if the evaluation can be shortcircuited, don't need to
-                // push a context
-                ctxs.pop_back();
-                // get the reference to the back of the vector again, which
-                // may have changed.
-                cctx = ctxs.back();
+                et = &(et->d_children[e.get()]);
+              }
+              if (et->d_data!=nullptr)
+              {
+                evaluated = et->d_data;
               }
               else
               {
-                // otherwise push an evaluation scope
-                newContext = true;
-                visits.emplace_back(std::vector<Expr>{evaluated});
-                visiteds.emplace_back();
+                ctxs.emplace_back();
+                // see if we evaluate
+                evaluated = evaluateProgram(cchildren, ctxs.back());
+                //std::cout << "Evaluate prog returned " << evaluated << std::endl;
+                if (evaluated==nullptr || ctxs.back().empty())
+                {
+                  // if the evaluation can be shortcircuited, don't need to
+                  // push a context
+                  ctxs.pop_back();
+                  // get the reference to the back of the vector again, which
+                  // may have changed.
+                  cctx = ctxs.back();
+                }
+                else
+                {
+                  // otherwise push an evaluation scope
+                  newContext = true;
+                  visits.emplace_back(std::vector<Expr>{evaluated});
+                  visiteds.emplace_back();
+                  ets.push_back(et);
+                }
               }
             }
             break;
@@ -542,6 +557,10 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
         std::cout << "EVALUATE " << init << ", " << ctxs.back() << " = " << evaluated << std::endl;
         visiteds.back()[visits.back().back()] = evaluated;
         visits.back().pop_back();
+        // store the evaluation
+        // Assert(!ets.empty());
+        ets.back()->d_data = evaluated;
+        ets.pop_back();
       }
       ctxs.pop_back();
     }

@@ -223,11 +223,6 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
   {
     return;
   }
-  size_t vid = writeGlobalExpr(v);
-  // ensure the program is defined
-  // NOTE: don't need this once programs are always evaluated below
-  size_t pid = writeGlobalExpr(prog);
-  d_init << "  defineProgram(_e" << vid << ", _e" << pid << ");" << std::endl;
 
   std::ostream& os = d_evalp;
   size_t id = markCompiled(d_init, v);
