@@ -11,7 +11,7 @@ CompilerScope::CompilerScope(std::ostream& decl,
                              const std::string& prefix,
                              CompilerScope* global,
                              bool progEval) :
-d_decl(decl), d_out(out), d_prefix(prefix), d_idCount(1), d_progEval(progEval), d_global(global)
+d_decl(decl), d_out(out), d_prefix(prefix), d_progEval(progEval), d_idCount(1), d_global(global)
 {}
 
 CompilerScope::~CompilerScope(){}
@@ -611,7 +611,7 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
 }
 
 void Compiler::writeMatching(Expr& pat,
-                            std::vector<size_t>& initPath,
+                             std::vector<size_t>& initPath,
                              PathTrie& pt,
                              std::vector<std::string>& reqs,
                              std::map<Expr, std::string>& varAssign,
@@ -861,6 +861,5 @@ void Compiler::writeRequirements(std::ostream& os, const std::vector<std::string
   os << "     " << failCmd << ";" << std::endl;
   os << "  }" << std::endl;
 }
-
 
 }  // namespace alfc

@@ -18,17 +18,35 @@ namespace alfc {
 class State;
 class TypeChecker;
 
+/**
+ * A scope of declared variables.
+ * 
+ * This class maintains two streams, a declaration stream where the expressions
+ * are declared, and an output stream where they are constructed.
+ */
 class CompilerScope
 {
 public:
+  /**
+   * @param decl The declaration stream
+   * @param out The output stream
+   * @param prefix The prefix for naming variables
+   * @param global The global scope. If this is non-null, then ground terms
+   * are instead declared/constructed on the given global scope. If this is
+   * null, then this is the global scope.
+   * @param progEval Whether programs should be evaluated. If true, then
+   * the output stream will call evaluation, if false then it will construct
+   * applications of programs.
+   */
   CompilerScope(std::ostream& decl,
                 std::ostream& out,
                 const std::string& prefix,
                 CompilerScope* global = nullptr,
                 bool progEval = false);
   ~CompilerScope();
-  /** allocate id */
+  /** Ensure that ev has been declared, return its identifier */
   size_t ensureDeclared(ExprValue* ev);
+  /** Ensure that each expression in ev is declared */
   void ensureDeclared(std::vector<Expr>& ev);
   /** is global */
   bool isGlobal() const;
@@ -37,44 +55,73 @@ public:
 
   /** Reference to the declare stream */
   std::ostream& d_decl;
-  /** Reference to the declare stream */
+  /** Reference to the output stream */
   std::ostream& d_out;
   /** Prefix */
   std::string d_prefix;
-  /** Identifier counts */
-  size_t d_idCount;
   /** Whether program applications constructed in this scope are evaluated */
   bool d_progEval;
   /** Maps expressions to identifiers */
   std::map<ExprValue*, size_t> d_idMap;
  private:
+  /** Identifier counts */
+  size_t d_idCount;
   /** Pointer to global context, null if this is the global context */
   CompilerScope* d_global;
 };
 
+/**
+ * Maintains path accesses to an expression given by name prefix.
+ * In particular, this will write accesses e.g. for prefix "a":
+ *   Expr& a2 = a->getChildren()[2];
+ *   Expr& a3 = a->getChildren()[3];
+ *   Expr& a31 = a3->getChildren()[1];
+ *   Expr& a30 = a3->getChildren()[0];
+ *   Expr& a301 = a30->getChildren()[1];
+ *   Expr& a300 = a30->getChildren()[0];
+ * to the given declaration stream.
+ */
 class PathTrie
 {
 public:
+  /**
+   * @param decl The declaration stream
+   * @param prefix The prefix for naming variables
+   */
   PathTrie(std::ostream& decl, const std::string& prefix);
   std::string getNameForPath(const std::vector<size_t>& path);
   /** The stream for declarations */
   std::ostream& d_decl;
-  /** mark declared */
+  /** mark that the given path should be declared */
   void markDeclared(const std::vector<size_t>& path);
 private:
+  /** The prefix */
   std::string d_prefix;
   class PathTrieNode
   {
   public:
     PathTrieNode() : d_decl(false) {}
+    /** Children */
     std::map<size_t, PathTrieNode> d_children;
+    /** Whether the reference for this path has been declared yet */
     bool d_decl;
-    /** Get name for path */
-    std::string getNameForPath(std::ostream& osdecl, const std::string& prefix, const std::vector<size_t>& path);
+    /**
+     * Get name for path, returns the name on the path, e.g. a301 where
+     * prefix="a", path={3,0,1}.
+     */
+    std::string getNameForPath(std::ostream& osdecl,
+                               const std::string& prefix,
+                               const std::vector<size_t>& path);
   };
+  /** Trie for managing declarations */
   PathTrieNode d_trie;
 };
 
+/**
+ * The compiler class, which listens to the calls to State and generates
+ * C++ code for replaying those calls during initialization and for
+ * compiled type checking, term substitution, and side condition matching.
+ */
 class Compiler
 {
   friend class TypeChecker;
@@ -93,15 +140,11 @@ public:
   void addAssumption(const Expr& a);
   /** */
   void bind(const std::string& name, const Expr& e);
-  /**
-   * Mark attributes
-   *
-   * Assumes that v is already allocated
-   */
+  /** Mark attributes */
   void markAttributes(const Expr& v, const std::map<Attr, Expr>& attrs);
   /** Define program */
   void defineProgram(const Expr& v, const Expr& prog);
-  /** Write */
+  /** To string, which returns the compiled C++ code for the given run */
   std::string toString();
 private:
   State& d_state;
@@ -119,12 +162,12 @@ private:
   std::stringstream d_tc;
   std::stringstream d_tcEnd;
   /**
-   * Code to be called for evaluating terms
+   * Code to be called for evaluating terms (substitutions)
    */
   std::stringstream d_eval;
   std::stringstream d_evalEnd;
   /**
-   * Code to be called for evaluating programs, returns the case
+   * Code to be called for evaluating programs (matching), returns the case
    */
   std::stringstream d_evalp;
   std::stringstream d_evalpEnd;
@@ -155,30 +198,39 @@ private:
    */
   size_t writeExprInternal(const Expr& e, CompilerScope& cs);
   /**
-   * Write type checking code for t.
+   * Write type checking code for e.
    */
   void writeTypeChecking(std::ostream& os, const Expr& e);
   /**
-   * Write evaluation code
+   * Write evaluation code for e.
    */
   void writeEvaluate(std::ostream& os, const Expr& e);
   /**
-   * Write program evaluation
+   * Write matching code for matching an expression to pat.
+   * 
+   * @param pat The pattern to match
+   * @param initPath The initial path of the variable we are matching.
+   * @param pt The datastructure that maintains accesses to the expression
+   * we are matching to pat
+   * 
    */
-  size_t writeProgramEvaluation(std::ostream& os, const Expr& p, std::vector<Expr>& cases);
-  /** Write matching code for */
   void writeMatching(Expr& pat,
                      std::vector<size_t>& initPath,
                      PathTrie& pt,
-                      std::vector<std::string>& reqs,
-                      std::map<Expr, std::string>& varAssign,
-                      const std::string& failCmd);
+                     std::vector<std::string>& reqs,
+                     std::map<Expr, std::string>& varAssign,
+                     const std::string& failCmd);
   /** Get the free symbols */
   std::vector<Expr> getFreeSymbols(const Expr& e) const;
   /** Get the free symbols */
   bool hasVariable(const Expr& e, const std::unordered_set<Expr>& terms) const;
-  /** Write requirements */
-  void writeRequirements(std::ostream& os, const std::vector<std::string>& reqs, const std::string& failCmd);
+  /** 
+   * Write requirements, which writes an if statement whose conditions are
+   * reqs, and whose body is failCmd.
+   */
+  void writeRequirements(std::ostream& os, 
+                         const std::vector<std::string>& reqs, 
+                         const std::string& failCmd);
 };
 
 }  // namespace alfc

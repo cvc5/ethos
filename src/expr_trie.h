@@ -10,7 +10,9 @@ class ExprTrie
 {
 public:
   ExprTrie() {}
+  /** The children */
   std::map<const ExprValue*, ExprTrie> d_children;
+  /** The data at this node */
   Expr d_data;
 };
 

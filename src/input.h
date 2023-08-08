@@ -8,7 +8,7 @@
 namespace alfc {
 
 /**
- * Wrapper to setup the necessary information for constructing a flex Lexer.
+ * Wrapper to setup the necessary information for constructing a Lexer.
  *
  * Currently this is std::istream& obtainable via getStream.
  */
@@ -22,7 +22,7 @@ class Input
    * @param filename the input filename
    */
   static std::unique_ptr<Input> mkFileInput(const std::string& filename);
-  /** Get the stream to pass to the flex lexer. */
+  /** Get the stream to pass to the lexer. */
   virtual std::istream* getStream() = 0;
   /**
    * Is the stream of this input an interactive input? If so, we will read
