@@ -1,7 +1,8 @@
-#include "state.h"
-
-#include <iostream>
 #include <fstream>
+#include <iostream>
+
+#include "base/output.h"
+#include "state.h"
 
 using namespace alfc;
 
@@ -9,6 +10,13 @@ int main( int argc, char* argv[] )
 {
   Options opts;
   Stats stats;
+// For now, tracing is all or nothing.
+#ifdef ALFC_TRACING
+  TraceChannel.on("compiler");
+  TraceChannel.on("expr_parser");
+  TraceChannel.on("state");
+  TraceChannel.on("type_checker");
+#endif
   // read the options
   bool readOpt = false;
   size_t i = 0;
