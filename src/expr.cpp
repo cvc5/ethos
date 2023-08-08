@@ -231,21 +231,27 @@ void ExprValue::printDebugInternal(const ExprValue* e,
 
 void ExprValue::printDebug(const std::shared_ptr<ExprValue>& e, std::ostream& os)
 {
-  std::vector<const ExprValue*> ll;
-  std::map<const ExprValue*, size_t> lbind = computeLetBinding(e, ll);
-  std::stringstream osc;
-  for (const ExprValue* l : ll)
+  std::map<const ExprValue*, size_t> lbind;
+  std::string cparen;
+  if (d_state->getOptions().d_printLet)
   {
-    size_t id = lbind[l];
-    os << "(let ((_v" << id << " ";
-    lbind.erase(l);
-    printDebugInternal(l, os, lbind);
-    lbind[l] = id;
-    os << ")) ";
-    osc << ")";
+    std::vector<const ExprValue*> ll;
+    lbind = computeLetBinding(e, ll);
+    std::stringstream osc;
+    for (const ExprValue* l : ll)
+    {
+      size_t id = lbind[l];
+      os << "(let ((_v" << id << " ";
+      lbind.erase(l);
+      printDebugInternal(l, os, lbind);
+      lbind[l] = id;
+      os << ")) ";
+      osc << ")";
+    }
+    cparen = osc.str();
   }
   printDebugInternal(e.get(), os, lbind);
-  os << osc.str();
+  os << cparen;
 }
 
 

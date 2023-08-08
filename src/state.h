@@ -21,6 +21,7 @@ public:
   Options();
   bool d_compile;
   bool d_runCompile;
+  bool d_printLet;
 };
 
 class Stats

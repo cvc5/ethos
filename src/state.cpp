@@ -5,7 +5,7 @@
 
 namespace alfc {
 
-Options::Options() : d_compile(false), d_runCompile(false){}
+Options::Options() : d_compile(false), d_runCompile(false), d_printLet(true){}
   
 Stats::Stats() : d_mkExprCount(0), d_exprCount(0), d_symCount(0), d_litCount(0){}
  

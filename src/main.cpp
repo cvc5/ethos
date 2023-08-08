@@ -30,6 +30,11 @@ int main( int argc, char* argv[] )
         opts.d_runCompile = true;
         readOpt = true;
       }
+      else if (arg=="--no-print-let")
+      {
+        opts.d_printLet = false;
+        readOpt = true;
+      }
     }
   }while(readOpt);
 
