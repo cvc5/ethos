@@ -335,7 +335,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           std::vector<Expr> cchildren;
           //Assert (ai->d_attrConsTerm!=nullptr)
           cchildren.push_back(ai->d_attrConsTerm);
-          std::vector<Expr> cc{children[0], nullptr, nullptr};
+          std::vector<Expr> cc{hd, nullptr, nullptr};
           for (size_t i=1, nchild = children.size()-1; i<nchild; i++)
           {
             cc[1] = children[i];
@@ -353,7 +353,26 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           break;
         case Attr::PAIRWISE:
         {
-          // TODO: pairwise construction
+          std::vector<Expr> cchildren;
+          //Assert (ai->d_attrConsTerm!=nullptr)
+          cchildren.push_back(ai->d_attrConsTerm);
+          std::vector<Expr> cc{hd, nullptr, nullptr};
+          for (size_t i=1, nchild = children.size(); i<nchild-1; i++)
+          {
+            for (size_t j=i+1; j<nchild; j++)
+            {
+              cc[1] = children[i];
+              cc[2] = children[j];
+              cchildren.push_back(mkApplyInternal(cc));
+            }
+          }
+          if (cchildren.size()==2)
+          {
+            // no need to chain
+            return cchildren[1];
+          }
+          // note this could loop
+          return mkExpr(Kind::APPLY, cchildren);
         }
           break;
         default:
