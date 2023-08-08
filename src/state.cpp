@@ -1,5 +1,6 @@
 #include "state.h"
 
+#include "base/check.h"
 #include "error.h"
 #include "parser.h"
 
@@ -33,7 +34,7 @@ State::State(Options& opts, Stats& stats) : d_tc(*this), d_opts(opts), d_stats(s
   d_boolType = mkExprInternal(Kind::BOOL_TYPE, {});
   if (d_opts.d_runCompile)
   {
-    // Assert (!d_opts.d_compile);
+    Assert(!d_opts.d_compile);
     run_initialize();
   }
   else if (d_opts.d_compile)
@@ -258,7 +259,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
 {
   if (k==Kind::APPLY)
   {
-    // Assert (!children.empty());
+    Assert(!children.empty());
     // see if there is a special way of building terms for the head
     const Expr& hd = children[0];
     AppInfo * ai = children.empty() ? nullptr : getAppInfo(hd.get());
@@ -334,7 +335,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         case Attr::CHAINABLE:
         {
           std::vector<Expr> cchildren;
-          //Assert (ai->d_attrConsTerm!=nullptr)
+          Assert(ai->d_attrConsTerm != nullptr);
           cchildren.push_back(ai->d_attrConsTerm);
           std::vector<Expr> cc{hd, nullptr, nullptr};
           for (size_t i=1, nchild = children.size()-1; i<nchild; i++)
@@ -355,7 +356,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         case Attr::PAIRWISE:
         {
           std::vector<Expr> cchildren;
-          //Assert (ai->d_attrConsTerm!=nullptr)
+          Assert(ai->d_attrConsTerm != nullptr);
           cchildren.push_back(ai->d_attrConsTerm);
           std::vector<Expr> cc{hd, nullptr, nullptr};
           for (size_t i=1, nchild = children.size(); i<nchild-1; i++)
@@ -462,7 +463,7 @@ Expr State::mkLiteral(Kind k, const std::string& s)
 
 Expr State::mkApplyInternal(const std::vector<Expr>& children)
 {
-  // Assert(children.size()>2);
+  Assert(children.size() > 2);
   // requires currying
   Expr curr = children[0];
   for (size_t i=1, nchildren = children.size(); i<nchildren; i++)

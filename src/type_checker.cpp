@@ -1,10 +1,12 @@
 #include "type_checker.h"
 
-#include "state.h"
-#include "error.h"
 #include <iostream>
 #include <set>
 #include <unordered_map>
+
+#include "base/check.h"
+#include "error.h"
+#include "state.h"
 
 namespace alfc {
   
@@ -77,7 +79,7 @@ void TypeChecker::setTypeRule(Kind k, const Expr& t)
     ss << "TypeChecker::setTypeRule: cannot set type rule for kind " << k << " to " << t << ", since its type was already set to " << it->second;
     Error::reportError(ss.str());
   }
-  // Assert (t->isGround());
+  Assert(t->isGround());
   it->second = t;
 }
 
@@ -119,7 +121,7 @@ const Expr& TypeChecker::getType(Expr& e, std::ostream* out)
       if (cur->d_type==nullptr)
       {
         // any subterm causes type checking to fail
-        // Assert (e->d_type==nullptr);
+        Assert(e->d_type == nullptr);
         return e->d_type;
       }
       toVisit.pop_back();
@@ -138,7 +140,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
       std::vector<Expr>& children = e->d_children;
       Expr& hd = children[0];
       Expr hdType = hd->d_type;
-      //Assert (hdType!=nullptr)
+      Assert(hdType != nullptr);
       if (hdType->getKind()!=Kind::FUNCTION_TYPE)
       {
         // non-function at head
@@ -184,7 +186,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
       std::set<std::pair<Expr, Expr>> visited;
       for (size_t i=0, nchild=ctypes.size(); i<nchild; i++)
       {
-        // Assert (ctypes[i]!=nullptr);
+        Assert(ctypes[i] != nullptr);
         // matching, update context
         Expr hdt = hdtypes[i];
         // if the argument is (Quote t), we match on its argument,
@@ -211,11 +213,11 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
       std::vector<Expr>& vars = e->d_children[0]->d_children;
       for (Expr& c : vars)
       {
-        // Assert (c->d_type!=nullptr);
+        Assert(c->d_type != nullptr);
         args.push_back( c->d_type);
       }
       Expr ret = e->d_children[1]->d_type;
-      // Assert (ret!=nullptr);
+      Assert(ret != nullptr);
       return d_state.mkFunctionType(args, ret);
     }
     case Kind::QUOTE:
@@ -242,7 +244,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
     case Kind::PROOF_TYPE:
     {
       const Expr& ctype = e->d_children[0]->d_type;
-      //Assert (ctype!=nullptr);
+      Assert(ctype != nullptr);
       if (ctype->getKind()!=Kind::BOOL_TYPE)
       {
         if (out)
@@ -456,7 +458,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
         for (Expr& cp : children)
         {
           it = visited.find(cp);
-          //Assert(it != visited.end());
+          Assert(it != visited.end());
           cchildren.push_back(it->second);
         }
         evaluated = nullptr;
@@ -471,7 +473,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
             for (size_t i=0, nreq = cchildren.size()-1; i<nreq; i++)
             {
               Expr& req = cchildren[i];
-              // Assert (p->getKind()==PAIR);
+              Assert(req->getKind() == Kind::PAIR);
               Expr e1 = (*req.get())[0];
               Expr e2 = (*req.get())[1];
               if (!e1->isEqual(e2))
@@ -560,7 +562,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
         visiteds.back()[visits.back().back()] = evaluated;
         visits.back().pop_back();
         // store the evaluation
-        // Assert(!ets.empty());
+        Assert(!ets.empty());
         ets.back()->d_data = evaluated;
         ets.pop_back();
       }
@@ -568,7 +570,6 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
     }
   }
   std::cout << "EVALUATE " << e << ", " << ctx << " = " << evaluated << std::endl;
-  //Assert(visited.find(this) != visited.end());
   return evaluated;
 }
 
@@ -592,7 +593,7 @@ Expr TypeChecker::evaluateProgram(const std::vector<Expr>& children, Ctx& newCtx
       newCtx.clear();
       Expr hd = c->getChildren()[0];
       std::vector<Expr>& hchildren = hd->d_children;
-      // Assert (nargs==hchildren.size());
+      Assert(nargs == hchildren.size());
       bool matchSuccess = true;
       for (size_t i=1; i<nargs; i++)
       {
