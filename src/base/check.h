@@ -87,7 +87,7 @@ class OstreamVoider
 //     }
 //   }
 #define ALFC_FATAL() \
-  internal::FatalStream(__PRETTY_FUNCTION__, __FILE__, __LINE__).stream()
+  FatalStream(__PRETTY_FUNCTION__, __FILE__, __LINE__).stream()
 
 /* GCC <= 9.2 ignores ALFC_NO_RETURN of ~FatalStream() if
  * used in template classes (e.g., CDHashMap::save()).  As a workaround we

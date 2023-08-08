@@ -6,7 +6,6 @@
 
 #include "base/check.h"
 #include "type_checker.h"
-#include "error.h"
 
 namespace alfc {
 
@@ -530,9 +529,7 @@ void ExprParser::parseAttributeList(const Expr& e, std::map<Attr, Expr>& attrs)
     {
       // TODO: parse and skip value?
       // store dummy, to mark that we read an attribute
-      std::stringstream ss;
-      ss << "Unsupported attribute " << key;
-      Error::reportWarning(ss.str());
+      Warning() << "Unsupported attribute " << key;
       attrs[Attr::NONE] = val;
       continue;
     }

@@ -1,7 +1,9 @@
 #include "state.h"
 
+#include <iostream>
+
 #include "base/check.h"
-#include "error.h"
+#include "base/output.h"
 #include "parser.h"
 
 namespace alfc {
@@ -77,7 +79,7 @@ void State::popScope()
   //std::cout << "pop" << std::endl;
   if (d_declsSizeCtx.empty())
   {
-    Error::reportError("State::popScope: empty context");
+    ALFC_FATAL() << "State::popScope: empty context";
   }
   size_t lastSize = d_declsSizeCtx.back();
   d_declsSizeCtx.pop_back();
@@ -123,7 +125,7 @@ void State::includeFileInternal(const std::string& s, bool ignore)
   }
   catch (std::filesystem::filesystem_error const&)
   {
-    Error::reportError("State::includeFile: could not include \"" + s + "\"");
+    ALFC_FATAL() << "State::includeFile: could not include \"" + s + "\"";
   }
   std::set<std::filesystem::path>::iterator it = d_includes.find(inputPath);
   if (it!=d_includes.end())

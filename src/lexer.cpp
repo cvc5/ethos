@@ -5,7 +5,6 @@
 #include <sstream>
 
 #include "base/check.h"
-#include "error.h"
 
 namespace alfc {
 
@@ -70,12 +69,12 @@ void Lexer::parseError(const std::string& msg, bool eofException)
 {
   std::stringstream os;
   if( d_span.d_start.d_line > 0 ) {
-    os <<  "Parse Error: " << d_inputName << ":" << d_span.d_start.d_line << "."
-        << d_span.d_start.d_column << ": " << msg << std::endl;
+    ALFC_FATAL() << "Parse Error: " << d_inputName << ":"
+                 << d_span.d_start.d_line << "." << d_span.d_start.d_column
+                 << ": " << msg << std::endl;
   } else {
-    os << "Parse Error: " << msg << std::endl;
+    ALFC_FATAL() << "Parse Error: " << msg << std::endl;
   }
-  Error::reportError(os.str());
 }
 
 void Lexer::initSpan()

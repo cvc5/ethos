@@ -5,7 +5,7 @@
 #include <unordered_map>
 
 #include "base/check.h"
-#include "error.h"
+#include "base/output.h"
 #include "state.h"
 
 namespace alfc {
@@ -70,14 +70,15 @@ void TypeChecker::setTypeRule(Kind k, const Expr& t)
   if (it==d_literalTypeRules.end())
   {
     std::stringstream ss;
-    ss << "TypeChecker::setTypeRule: cannot set type rule for kind " << k;
-    Error::reportError(ss.str());
+    ALFC_FATAL() << "TypeChecker::setTypeRule: cannot set type rule for kind "
+                 << k;
   }
   else if (it->second!=nullptr && it->second!=t)
   {
     std::stringstream ss;
-    ss << "TypeChecker::setTypeRule: cannot set type rule for kind " << k << " to " << t << ", since its type was already set to " << it->second;
-    Error::reportError(ss.str());
+    ALFC_FATAL() << "TypeChecker::setTypeRule: cannot set type rule for kind "
+                 << k << " to " << t << ", since its type was already set to "
+                 << it->second;
   }
   Assert(t->isGround());
   it->second = t;
