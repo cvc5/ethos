@@ -37,6 +37,7 @@ set(alfc_test_file_list
     pf-substitution-over-or.smt2
     pf-substitution-large.smt2
     pairwise.smt2
+    overloading.smt2
 )
 
 macro(alfc_test file)
