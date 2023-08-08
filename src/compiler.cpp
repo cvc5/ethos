@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include "base/check.h"
+#include "base/output.h"
 #include "state.h"
 
 namespace alfc {
@@ -246,7 +247,7 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
   for (size_t i=0; i<ncases; i++)
   {
     Expr& c = progChildren[i];
-    std::cout << "writeEvaluate for " << c << std::endl;
+    Trace("compiler") << "writeEvaluate for " << c << std::endl;
     Expr hd = c->getChildren()[0];
     Expr body = c->getChildren()[1];
     os << "       // matching for arguments of " << hd << std::endl;
@@ -477,7 +478,7 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
       continue;
     }
     os << "  // type rule for " << curr << std::endl;
-    std::cout << "writeTypeChecking " << curr << std::endl;
+    Trace("compiler") << "writeTypeChecking " << curr << std::endl;
     d_tcWritten.insert(curr.get());
     size_t id = markCompiled(d_init, curr);
     std::stringstream osEnd;
@@ -711,7 +712,7 @@ void Compiler::writeEvaluate(std::ostream& os, const Expr& e)
       continue;
     }
     os << "  // evaluation for " << curr << std::endl;
-    std::cout << "writeEvaluate " << curr << std::endl;
+    Trace("compiler") << "writeEvaluate " << curr << std::endl;
     d_evalWritten.insert(curr.get());
     
     size_t id = markCompiled(d_init, curr);

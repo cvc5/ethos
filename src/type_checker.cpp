@@ -180,7 +180,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
       // if compiled, run the compiled version of the type checker
       if (hdType->isCompiled())
       {
-        std::cout << "RUN type check " << hdType << std::endl;
+        Trace("type_checker") << "RUN type check " << hdType << std::endl;
         return run_getTypeInternal(hdType, ctypes, out);
       }
       Ctx ctx;
@@ -443,7 +443,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
         // if it is compiled, we run its evaluation here
         if (cur->isCompiled())
         {
-          std::cout << "RUN evaluate " << cur << std::endl;
+          Trace("type_checker") << "RUN evaluate " << cur << std::endl;
           visited[cur] = run_evaluate(cur, cctx);
           visit.pop_back();
           continue;
@@ -480,7 +480,8 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
               if (!e1->isEqual(e2))
               {
                 reqMet = false;
-                std::cout << "REQUIRES: failed " << e1 << " == " << e2 << std::endl;
+                Trace("type_checker")
+                    << "REQUIRES: failed " << e1 << " == " << e2 << std::endl;
                 break;
               }
             }
@@ -559,7 +560,8 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
       // set the result
       if (!visits.empty())
       {
-        std::cout << "EVALUATE " << init << ", " << ctxs.back() << " = " << evaluated << std::endl;
+        Trace("type_checker") << "EVALUATE " << init << ", " << ctxs.back()
+                              << " = " << evaluated << std::endl;
         visiteds.back()[visits.back().back()] = evaluated;
         visits.back().pop_back();
         // store the evaluation
@@ -570,7 +572,8 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
       ctxs.pop_back();
     }
   }
-  std::cout << "EVALUATE " << e << ", " << ctx << " = " << evaluated << std::endl;
+  Trace("type_checker") << "EVALUATE " << e << ", " << ctx << " = " << evaluated
+                        << std::endl;
   return evaluated;
 }
 
@@ -579,13 +582,13 @@ Expr TypeChecker::evaluateProgram(const std::vector<Expr>& children, Ctx& newCtx
   const Expr& hd = children[0];
   if (hd->isCompiled())
   {
-    std::cout << "RUN program " << children << std::endl;
+    Trace("type_checker") << "RUN program " << children << std::endl;
     return run_evaluateProgram(children, newCtx);
   }
   std::map<Expr, Expr>::iterator it = d_programs.find(hd);
   if (it!=d_programs.end())
   {
-    std::cout << "INTERPRET program " << children << std::endl;
+    Trace("type_checker") << "INTERPRET program " << children << std::endl;
     // otherwise, evaluate
     std::vector<Expr>& progChildren = it->second->getChildren();
     size_t nargs = children.size();
@@ -606,7 +609,8 @@ Expr TypeChecker::evaluateProgram(const std::vector<Expr>& children, Ctx& newCtx
       }
       if (matchSuccess)
       {
-        std::cout << "...matches " << hd << ", ctx = " << newCtx << std::endl;
+        Trace("type_checker")
+            << "...matches " << hd << ", ctx = " << newCtx << std::endl;
         return c->getChildren()[1];
       }
     }

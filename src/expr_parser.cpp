@@ -5,6 +5,7 @@
 #include <iostream>
 
 #include "base/check.h"
+#include "base/output.h"
 #include "type_checker.h"
 
 namespace alfc {
@@ -655,7 +656,7 @@ Expr ExprParser::typeCheck(Expr& e)
     msg << "Message: " << ss.str() << std::endl;
     d_lex.parseError(msg.str());
   }
-  std::cout << "TYPE " << e << " : " << v << std::endl;
+  Trace("expr_parser") << "TYPE " << e << " : " << v << std::endl;
   return v;
 }
 

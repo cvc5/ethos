@@ -139,7 +139,7 @@ void State::includeFileInternal(const std::string& s, bool ignore)
   {
     d_compiler->includeFile(s);
   }
-  std::cout << "Include " << inputPath << std::endl;
+  Trace("state") << "Include " << inputPath << std::endl;
   if (ignore)
   {
     return;
@@ -153,7 +153,7 @@ void State::includeFileInternal(const std::string& s, bool ignore)
   }
   while (parsedCommand);
   d_inputFile = currentPath;
-  std::cout << "...finished" << std::endl;
+  Trace("state") << "...finished" << std::endl;
 }
 
 void State::addAssumption(const Expr& a)
@@ -253,7 +253,7 @@ Expr State::mkSymbolInternal(Kind k, const std::string& name, const Expr& type)
   // map to the data
   ExprInfo* ei = getOrMkInfo(v.get());
   ei->d_str = name;
-  std::cout << "TYPE " << name << " : " << type << std::endl;
+  Trace("state") << "TYPE " << name << " : " << type << std::endl;
   return v;
 }
 
@@ -398,7 +398,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         }
         Expr body = (*hd.get())[1];
         Expr ret = d_tc.evaluate(body, ctx);
-        std::cout << "BETA_REDUCE " << body << " = " << ret << std::endl;
+        Trace("state") << "BETA_REDUCE " << body << " = " << ret << std::endl;
         return ret;
       }
     }
@@ -426,7 +426,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           Ctx ctx;
           Expr e = d_tc.evaluateProgram(children, ctx);
           Expr ret = d_tc.evaluate(e, ctx);
-          std::cout << "EAGER_EVALUATE " << ret << std::endl;
+          Trace("state") << "EAGER_EVALUATE " << ret << std::endl;
           return ret;
         }
       }

@@ -3,6 +3,8 @@
 #include <fstream>
 #include <iostream>
 
+#include "base/check.h"
+
 namespace alfc {
 
 /** File input class */
@@ -14,10 +16,7 @@ class FileInput : public Input
     d_fs.open(filename, std::fstream::in);
     if (!d_fs.is_open())
     {
-      std::stringstream ss;
-      ss << "Couldn't open file: " << filename;
-      std::cerr << ss.str();
-      exit(1);
+      ALFC_FATAL() << "Couldn't open file: " << filename;
     }
   }
   std::istream* getStream() override { return &d_fs; }
