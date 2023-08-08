@@ -79,7 +79,7 @@ class ExprParser
   /** get variable, else error */
   Expr getVar(const std::string& name);
   /** Bind, or throw error otherwise */
-  void bind(const std::string& name, const Expr& e);
+  void bind(const std::string& name, Expr& e);
   //-------------------------- end checking
  protected:
   /** Return the unsigned for the current token string. */

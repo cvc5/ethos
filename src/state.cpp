@@ -250,6 +250,7 @@ Expr State::mkSymbolInternal(Kind k, const std::string& name, const Expr& type)
   // map to the data
   ExprInfo* ei = getOrMkInfo(v.get());
   ei->d_str = name;
+  std::cout << "TYPE " << name << " : " << type << std::endl;
   return v;
 }
 

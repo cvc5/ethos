@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string.h>
 #include "type_checker.h"
+#include "error.h"
 
 namespace alfc {
 
@@ -286,9 +287,9 @@ Expr ExprParser::parseExpr()
             d_state.pushScope();
             // implement the bindings
             //Assert(!letBinders.empty());
-            const std::vector<std::pair<std::string, Expr>>& bs =
+            std::vector<std::pair<std::string, Expr>>& bs =
                 letBinders.back();
-            for (const std::pair<std::string, Expr>& b : bs)
+            for (std::pair<std::string, Expr>& b : bs)
             {
               bind(b.first, b.second);
             }
@@ -314,7 +315,7 @@ Expr ExprParser::parseExpr()
           std::map<Attr, Expr> attrs;
           parseAttributeList(ret, attrs);
           // process the attributes
-          for (const std::pair<const Attr, Expr>& a : attrs)
+          for (std::pair<const Attr, Expr>& a : attrs)
           {
             switch(a.first)
             {
@@ -526,6 +527,9 @@ void ExprParser::parseAttributeList(const Expr& e, std::map<Attr, Expr>& attrs)
     {
       // TODO: parse and skip value?
       // store dummy, to mark that we read an attribute
+      std::stringstream ss;
+      ss << "Unsupported attribute " << key;
+      Error::reportWarning(ss.str());
       attrs[Attr::NONE] = val;
       continue;
     }
@@ -624,7 +628,7 @@ Expr ExprParser::getVar(const std::string& name)
   return ret;
 }
 
-void ExprParser::bind(const std::string& name, const Expr& e)
+void ExprParser::bind(const std::string& name, Expr& e)
 {
   if (!d_state.bind(name, e))
   {
