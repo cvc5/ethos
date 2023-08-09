@@ -34,8 +34,6 @@
 #include <cstdarg>
 #include <ostream>
 
-#include "base/exception.h"
-
 namespace alfc {
 
 // Implementation notes:
@@ -138,42 +136,6 @@ class OstreamVoider
   ALFC_FATAL_IF(false, __PRETTY_FUNCTION__, __FILE__, __LINE__)
 #endif
 
-class AssertArgumentException : public Exception
-{
- protected:
-  AssertArgumentException() : Exception() {}
-
-  void construct(const char* header,
-                 const char* extra,
-                 const char* function,
-                 const char* file,
-                 unsigned line,
-                 const char* fmt,
-                 va_list args);
-
-  void construct(const char* header,
-                 const char* extra,
-                 const char* function,
-                 const char* file,
-                 unsigned line);
-
- public:
-  AssertArgumentException(const char* condStr,
-                          const char* argDesc,
-                          const char* function,
-                          const char* file,
-                          unsigned line,
-                          const char* fmt,
-                          ...);
-
-  AssertArgumentException(const char* condStr,
-                          const char* argDesc,
-                          const char* function,
-                          const char* file,
-                          unsigned line);
-
-}; /* class AssertArgumentException */
-
 #define Unreachable() ALFC_FATAL() << "Unreachable code reached "
 
 #define Unhandled() ALFC_FATAL() << "Unhandled case encountered "
@@ -181,46 +143,6 @@ class AssertArgumentException : public Exception
 #define Unimplemented() ALFC_FATAL() << "Unimplemented code encountered "
 
 #define InternalError() ALFC_FATAL() << "Internal error detected "
-
-#define IllegalArgument(arg, msg...)    \
-  throw alfc::IllegalArgumentException( \
-      "",                               \
-      #arg,                             \
-      __PRETTY_FUNCTION__,              \
-      alfc::IllegalArgumentException::formatVariadic(msg).c_str());
-// This cannot use check argument directly as this forces
-// CheckArgument to use a va_list. This is unsupported in Swig.
-#define PrettyCheckArgument(cond, arg, msg...)                          \
-  do                                                                    \
-  {                                                                     \
-    if (__builtin_expect((!(cond)), false))                             \
-    {                                                                   \
-      throw alfc::IllegalArgumentException(                             \
-          #cond,                                                        \
-          #arg,                                                         \
-          __PRETTY_FUNCTION__,                                          \
-          alfc::IllegalArgumentException::formatVariadic(msg).c_str()); \
-    }                                                                   \
-  } while (0)
-#define AlwaysAssertArgument(cond, arg, msg...)                         \
-  do                                                                    \
-  {                                                                     \
-    if (__builtin_expect((!(cond)), false))                             \
-    {                                                                   \
-      throw alfc::AssertArgumentException(                              \
-          #cond, #arg, __PRETTY_FUNCTION__, __FILE__, __LINE__, ##msg); \
-    }                                                                   \
-  } while (0)
-
-#ifdef ALFC_ASSERTIONS
-#define AssertArgument(cond, arg, msg...) AlwaysAssertArgument(cond, arg, ##msg)
-#define DebugCheckArgument(cond, arg, msg...) CheckArgument(cond, arg, ##msg)
-#else                                     /* ! ALFC_ASSERTIONS */
-#define AssertArgument(cond, arg, msg...) /*__builtin_expect( ( cond ), true \
-                                             )*/
-#define DebugCheckArgument( \
-    cond, arg, msg...) /*__builtin_expect( ( cond ), true )*/
-#endif                 /* ALFC_ASSERTIONS */
 
 }  // namespace alfc
 

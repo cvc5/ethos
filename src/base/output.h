@@ -294,16 +294,6 @@ extern WarningC WarningChannel;
 /** The trace output singleton */
 extern TraceC TraceChannel;
 
-#ifdef ALFC_MUZZLE
-
-#define Warning alfc::__alfc_true() ? alfc::nullStream : alfc::WarningChannel
-#define WarningOnce \
-  alfc::__alfc_true() ? alfc::nullStream : alfc::WarningChannel
-#define TraceIsOn alfc::__alfc_true() ? false : alfc::TraceChannel.isOn
-#define Trace(tag) alfc::__alfc_true() ? alfc::nullStream : alfc::TraceChannel()
-
-#else /* ALFC_MUZZLE */
-
 #define Warning \
   (!alfc::WarningChannel.isOn()) ? alfc::nullStream : alfc::WarningChannel
 #define WarningOnce                                       \
@@ -319,8 +309,6 @@ extern TraceC TraceChannel;
 #define TraceIsOn alfc::__alfc_true() ? false : alfc::TraceChannel.isOn
 #define Trace(tag) alfc::__alfc_true() ? alfc::nullStream : alfc::TraceChannel()
 #endif /* ALFC_TRACING */
-
-#endif /* ALFC_MUZZLE */
 
 // Disallow e.g. !Trace("foo").isOn() forms
 // because the ! will apply before the ? .
