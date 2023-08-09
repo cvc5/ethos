@@ -1,9 +1,12 @@
 #include "expr_parser.h"
 
-#include <iostream>
 #include <string.h>
+
+#include <iostream>
+
+#include "base/check.h"
+#include "base/output.h"
 #include "type_checker.h"
-#include "error.h"
 
 namespace alfc {
 
@@ -88,7 +91,7 @@ Expr ExprParser::parseExpr()
   std::vector<std::vector<std::pair<std::string, Expr>>> letBinders;
   do
   {
-    //Assert(tstack.size() == xstack.size());
+    Assert(tstack.size() == xstack.size());
     // At this point, we are ready to parse the next term
     tok = d_lex.nextToken();
     Expr currExpr;
@@ -244,7 +247,7 @@ Expr ExprParser::parseExpr()
         // ------------------------- argument lists
         case ParseCtx::NEXT_ARG:
         {
-          //Assert(!ret.isNull());
+          Assert(ret != nullptr);
           // add it to the list of arguments and clear
           tstack.back().push_back(ret);
           ret = nullptr;
@@ -256,10 +259,10 @@ Expr ExprParser::parseExpr()
           // if we parsed a term, process it as a binding
           if (ret!=nullptr)
           {
-            //Assert(!letBinders.empty());
+            Assert(!letBinders.empty());
             std::vector<std::pair<std::string, Expr>>& bs = letBinders.back();
             // add binding from the symbol to ret
-            //Assert (!bs.empty());
+            Assert(!bs.empty());
             bs.back().second = ret;
             ret = nullptr;
             // close the current binding
@@ -286,7 +289,7 @@ Expr ExprParser::parseExpr()
             // push scope
             d_state.pushScope();
             // implement the bindings
-            //Assert(!letBinders.empty());
+            Assert(!letBinders.empty());
             std::vector<std::pair<std::string, Expr>>& bs =
                 letBinders.back();
             for (std::pair<std::string, Expr>& b : bs)
@@ -527,9 +530,7 @@ void ExprParser::parseAttributeList(const Expr& e, std::map<Attr, Expr>& attrs)
     {
       // TODO: parse and skip value?
       // store dummy, to mark that we read an attribute
-      std::stringstream ss;
-      ss << "Unsupported attribute " << key;
-      Error::reportWarning(ss.str());
+      Warning() << "Unsupported attribute " << key;
       attrs[Attr::NONE] = val;
       continue;
     }
@@ -648,14 +649,14 @@ Expr ExprParser::typeCheck(Expr& e)
     // thus, we require recomputing the error message here.
     std::stringstream ss;
     d_state.getTypeChecker().getType(e, &ss);
-    //Assert (v==nullptr);
+    Assert(v == nullptr);
     std::stringstream msg;
     msg << "Type checking failed:" << std::endl;
     msg << "Expression: " << e << std::endl;
     msg << "Message: " << ss.str() << std::endl;
     d_lex.parseError(msg.str());
   }
-  std::cout << "TYPE " << e << " : " << v << std::endl;
+  Trace("expr_parser") << "TYPE " << e << " : " << v << std::endl;
   return v;
 }
 

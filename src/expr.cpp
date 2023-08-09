@@ -3,7 +3,6 @@
 #include <set>
 #include <iostream>
 #include "state.h"
-#include "error.h"
 
 namespace alfc {
   

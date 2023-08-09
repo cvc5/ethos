@@ -1,12 +1,13 @@
 #ifndef LEXER_H
 #define LEXER_H
 
+#include <array>
 #include <fstream>
 #include <iosfwd>
 #include <string>
 #include <vector>
-#include <array>
 
+#include "base/check.h"
 #include "input.h"
 #include "tokens.h"
 
@@ -129,7 +130,7 @@ class Lexer
   /** Save character */
   void saveChar(int32_t ch)
   {
-    //Assert(!d_peekedChar);
+    Assert(!d_peekedChar);
     d_peekedChar = true;
     d_chPeeked = ch;
   }
@@ -185,7 +186,7 @@ class Lexer
   /** Push a character to the stored token */
   void pushToToken(int32_t ch)
   {
-    //Assert(ch != EOF);
+    Assert(ch != EOF);
     d_token.push_back(static_cast<char>(ch));
   }
   //----------- Utilities for parsing the current character stream

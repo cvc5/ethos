@@ -1,6 +1,9 @@
 #include "state.h"
 
-#include "error.h"
+#include <iostream>
+
+#include "base/check.h"
+#include "base/output.h"
 #include "parser.h"
 
 namespace alfc {
@@ -33,7 +36,7 @@ State::State(Options& opts, Stats& stats) : d_tc(*this), d_opts(opts), d_stats(s
   d_boolType = mkExprInternal(Kind::BOOL_TYPE, {});
   if (d_opts.d_runCompile)
   {
-    // Assert (!d_opts.d_compile);
+    Assert(!d_opts.d_compile);
     run_initialize();
   }
   else if (d_opts.d_compile)
@@ -76,7 +79,7 @@ void State::popScope()
   //std::cout << "pop" << std::endl;
   if (d_declsSizeCtx.empty())
   {
-    Error::reportError("State::popScope: empty context");
+    ALFC_FATAL() << "State::popScope: empty context";
   }
   size_t lastSize = d_declsSizeCtx.back();
   d_declsSizeCtx.pop_back();
@@ -122,7 +125,7 @@ void State::includeFileInternal(const std::string& s, bool ignore)
   }
   catch (std::filesystem::filesystem_error const&)
   {
-    Error::reportError("State::includeFile: could not include \"" + s + "\"");
+    ALFC_FATAL() << "State::includeFile: could not include \"" + s + "\"";
   }
   std::set<std::filesystem::path>::iterator it = d_includes.find(inputPath);
   if (it!=d_includes.end())
@@ -136,7 +139,7 @@ void State::includeFileInternal(const std::string& s, bool ignore)
   {
     d_compiler->includeFile(s);
   }
-  std::cout << "Include " << inputPath << std::endl;
+  Trace("state") << "Include " << inputPath << std::endl;
   if (ignore)
   {
     return;
@@ -150,7 +153,7 @@ void State::includeFileInternal(const std::string& s, bool ignore)
   }
   while (parsedCommand);
   d_inputFile = currentPath;
-  std::cout << "...finished" << std::endl;
+  Trace("state") << "...finished" << std::endl;
 }
 
 void State::addAssumption(const Expr& a)
@@ -250,7 +253,7 @@ Expr State::mkSymbolInternal(Kind k, const std::string& name, const Expr& type)
   // map to the data
   ExprInfo* ei = getOrMkInfo(v.get());
   ei->d_str = name;
-  std::cout << "TYPE " << name << " : " << type << std::endl;
+  Trace("state") << "TYPE " << name << " : " << type << std::endl;
   return v;
 }
 
@@ -258,7 +261,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
 {
   if (k==Kind::APPLY)
   {
-    // Assert (!children.empty());
+    Assert(!children.empty());
     // see if there is a special way of building terms for the head
     const Expr& hd = children[0];
     AppInfo * ai = children.empty() ? nullptr : getAppInfo(hd.get());
@@ -334,7 +337,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         case Attr::CHAINABLE:
         {
           std::vector<Expr> cchildren;
-          //Assert (ai->d_attrConsTerm!=nullptr)
+          Assert(ai->d_attrConsTerm != nullptr);
           cchildren.push_back(ai->d_attrConsTerm);
           std::vector<Expr> cc{hd, nullptr, nullptr};
           for (size_t i=1, nchild = children.size()-1; i<nchild; i++)
@@ -355,7 +358,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         case Attr::PAIRWISE:
         {
           std::vector<Expr> cchildren;
-          //Assert (ai->d_attrConsTerm!=nullptr)
+          Assert(ai->d_attrConsTerm != nullptr);
           cchildren.push_back(ai->d_attrConsTerm);
           std::vector<Expr> cc{hd, nullptr, nullptr};
           for (size_t i=1, nchild = children.size(); i<nchild-1; i++)
@@ -395,7 +398,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         }
         Expr body = (*hd.get())[1];
         Expr ret = d_tc.evaluate(body, ctx);
-        std::cout << "BETA_REDUCE " << body << " = " << ret << std::endl;
+        Trace("state") << "BETA_REDUCE " << body << " = " << ret << std::endl;
         return ret;
       }
     }
@@ -423,7 +426,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           Ctx ctx;
           Expr e = d_tc.evaluateProgram(children, ctx);
           Expr ret = d_tc.evaluate(e, ctx);
-          std::cout << "EAGER_EVALUATE " << ret << std::endl;
+          Trace("state") << "EAGER_EVALUATE " << ret << std::endl;
           return ret;
         }
       }
@@ -480,7 +483,7 @@ Expr State::mkLiteral(Kind k, const std::string& s)
 
 Expr State::mkApplyInternal(const std::vector<Expr>& children)
 {
-  // Assert(children.size()>2);
+  Assert(children.size() > 2);
   // requires currying
   Expr curr = children[0];
   for (size_t i=1, nchildren = children.size(); i<nchildren; i++)
