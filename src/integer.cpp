@@ -51,32 +51,14 @@ Integer Integer::operator+(const Integer& y) const
   return Integer(d_value + y.d_value);
 }
 
-Integer& Integer::operator+=(const Integer& y)
-{
-  d_value += y.d_value;
-  return *this;
-}
-
 Integer Integer::operator-(const Integer& y) const
 {
   return Integer(d_value - y.d_value);
 }
 
-Integer& Integer::operator-=(const Integer& y)
-{
-  d_value -= y.d_value;
-  return *this;
-}
-
 Integer Integer::operator*(const Integer& y) const
 {
   return Integer(d_value * y.d_value);
-}
-
-Integer& Integer::operator*=(const Integer& y)
-{
-  d_value *= y.d_value;
-  return *this;
 }
 
 Integer Integer::bitwiseOr(const Integer& y) const
@@ -143,11 +125,6 @@ Integer Integer::oneExtend(uint32_t size, uint32_t amount) const
   }
 
   return Integer(res);
-}
-
-uint32_t Integer::toUnsignedInt() const
-{
-  return mpz_get_ui(d_value.get_mpz_t());
 }
 
 Integer Integer::extractBitRange(uint32_t bitCount, uint32_t low) const
@@ -221,16 +198,16 @@ void Integer::euclidianQR(Integer& q,
       // y = abs(y)
       // n = y * q - y + r + y
       // n = y * (q-1) + (r+y)
-      q -= 1;
-      r += y;
+      q = q-1;
+      r = r+y;
     }
     else
     {
       // y = -abs(y)
       // n = y * q + y + r - y
       // n = y * (q+1) + (r-y)
-      q += 1;
-      r -= y;
+      q = q+1;
+      r = r-y;
     }
   }
 }
@@ -345,96 +322,6 @@ Integer Integer::abs() const { return d_value >= 0 ? *this : -*this; }
 
 std::string Integer::toString(int base) const { return d_value.get_str(base); }
 
-bool Integer::fitsSignedInt() const { return d_value.fits_sint_p(); }
-
-bool Integer::fitsUnsignedInt() const { return d_value.fits_uint_p(); }
-
-signed int Integer::getSignedInt() const
-{
-  // ensure there isn't overflow
-  //Assert(d_value <= std::numeric_limits<int>::max())
-  //    << "Overflow detected in Integer::getSignedInt().";
-  //Assert(d_value >= std::numeric_limits<int>::min())
-  //    << "Overflow detected in Integer::getSignedInt().";
-  //Assert(fitsSignedInt()) << "Overflow detected in Integer::getSignedInt().";
-  return (signed int)d_value.get_si();
-}
-
-unsigned int Integer::getUnsignedInt() const
-{
-  // ensure there isn't overflow
-  //Assert(d_value <= std::numeric_limits<unsigned int>::max())
-  //    << "Overflow detected in Integer::getUnsignedInt()";
-  //Assert(d_value >= std::numeric_limits<unsigned int>::min())
-  //    << "Overflow detected in Integer::getUnsignedInt()";
-  //Assert(fitsUnsignedInt()) << "Overflow detected in Integer::getUnsignedInt()";
-  return (unsigned int)d_value.get_ui();
-}
-
-long Integer::getLong() const
-{
-  // ensure there it fits
-  //Assert(mpz_fits_slong_p(d_value.get_mpz_t()) != 0)
-  //    << "Overflow detected in Integer::getLong().";
-  return d_value.get_si();
-}
-
-unsigned long Integer::getUnsignedLong() const
-{
-  // ensure that it fits
-  //Assert(mpz_fits_ulong_p(d_value.get_mpz_t()) != 0)
-  //    << "Overflow detected in Integer::getUnsignedLong().";
-  return d_value.get_ui();
-}
-
-int64_t Integer::getSigned64() const
-{
-  if constexpr (sizeof(int64_t) == sizeof(signed long int))
-  {
-    return getLong();
-  }
-  else
-  {
-    if (mpz_fits_slong_p(d_value.get_mpz_t()) != 0)
-    {
-      return getLong();
-    }
-    try
-    {
-      return std::stoll(toString());
-    }
-    catch (const std::exception& e)
-    {
-      //Assert(false) << "Overflow detected in Integer::getSigned64().";
-    }
-  }
-  return 0;
-}
-uint64_t Integer::getUnsigned64() const
-{
-  if constexpr (sizeof(uint64_t) == sizeof(unsigned long int))
-  {
-    return getUnsignedLong();
-  }
-  else
-  {
-    if (mpz_fits_ulong_p(d_value.get_mpz_t()) != 0)
-    {
-      return getUnsignedLong();
-    }
-    try
-    {
-      //Assert(sgn() >= 0) << "Overflow detected in Integer::getUnsigned64().";
-      return std::stoull(toString());
-    }
-    catch (const std::exception& e)
-    {
-      //Assert(false) << "Overflow detected in Integer::getUnsigned64().";
-    }
-  }
-  return 0;
-}
-
 bool Integer::testBit(unsigned n) const
 {
   return mpz_tstbit(d_value.get_mpz_t(), n);
@@ -462,11 +349,6 @@ size_t Integer::length() const
   {
     return mpz_sizeinbase(d_value.get_mpz_t(), 2);
   }
-}
-
-bool Integer::isProbablePrime() const
-{
-  return mpz_probab_prime_p(d_value.get_mpz_t(), 30) > 0;
 }
 
 void Integer::extendedGcd(

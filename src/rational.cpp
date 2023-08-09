@@ -10,7 +10,6 @@ std::ostream& operator<<(std::ostream& os, const Rational& q){
   return os << q.toString();
 }
 
-
 /* Computes a rational given a decimal string. The rational
  * version of <code>xxx.yyy</code> is <code>xxxyyy/(10^3)</code>.
  */
@@ -33,46 +32,6 @@ Rational Rational::fromDecimal(const std::string& dec) {
   }
 }
 
-
-
-/** Equivalent to calling (this->abs()).cmp(b.abs()) */
-int Rational::absCmp(const Rational& q) const{
-  const Rational& r = *this;
-  int rsgn = r.sgn();
-  int qsgn = q.sgn();
-  if(rsgn == 0){
-    return (qsgn == 0) ? 0 : -1;
-  }else if(qsgn == 0){
-    //Assert(rsgn != 0);
-    return 1;
-  }else if((rsgn > 0) && (qsgn > 0)){
-    return r.cmp(q);
-  }else if((rsgn < 0) && (qsgn < 0)){
-    // if r < q < 0, q.cmp(r) = +1, (r.abs()).cmp(q.abs()) = +1
-    // if q < r < 0, q.cmp(r) = -1, (r.abs()).cmp(q.abs()) = -1
-    // if q = r < 0, q.cmp(r) =  0, (r.abs()).cmp(q.abs()) =  0
-    return q.cmp(r);
-  }else if((rsgn < 0) && (qsgn > 0)){
-    Rational rpos = -r;
-    return rpos.cmp(q);
-  }else {
-    //Assert(rsgn > 0 && (qsgn < 0));
-    Rational qpos = -q;
-    return r.cmp(qpos);
-  }
-}
-
-
-/** Return an exact rational for a double d. */
-std::optional<Rational> Rational::fromDouble(double d)
-{
-  using namespace std;
-  if(isfinite(d)){
-    Rational q;
-    mpq_set_d(q.d_value.get_mpq_t(), d);
-    return q;
-  }
-  return std::optional<Rational>();
-}
+bool Rational::isIntegral() const { return mpz_cmp_ui(d_value.get_den_mpz_t(), 1) == 0; }
 
 }  // namespace alfc

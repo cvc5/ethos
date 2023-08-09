@@ -64,16 +64,10 @@ class Integer
   Integer operator-() const;
   /** Overload addition operator. */
   Integer operator+(const Integer& y) const;
-  /** Overload addition assignment operator. */
-  Integer& operator+=(const Integer& y);
   /** Overload subtraction operator. */
   Integer operator-(const Integer& y) const;
-  /** Overload subtraction assignment operator. */
-  Integer& operator-=(const Integer& y);
   /** Overload multiplication operator. */
   Integer operator*(const Integer& y) const;
-  /** Overload multiplication assignment operator. */
-  Integer& operator*=(const Integer& y);
 
   /** Return the bit-wise or of this and the given Integer. */
   Integer bitwiseOr(const Integer& y) const;
@@ -98,9 +92,6 @@ class Integer
    * extended with 'amount' 1's.
    */
   Integer oneExtend(uint32_t size, uint32_t amount) const;
-
-  /** Return a 32 bit unsigned integer representation of this Integer. */
-  uint32_t toUnsignedInt() const;
 
   /**
    * Extract a range of bits from index 'low' to (excluding) 'low + bitCount'.
@@ -220,30 +211,6 @@ class Integer
   /** Return a string representation of this Integer. */
   std::string toString(int base = 10) const;
 
-  /** Return true if this Integer fits into a signed int. */
-  bool fitsSignedInt() const;
-
-  /** Return true if this Integer fits into an unsigned int. */
-  bool fitsUnsignedInt() const;
-
-  /** Return the signed int representation of this Integer. */
-  signed int getSignedInt() const;
-
-  /** Return the unsigned int representation of this Integer. */
-  unsigned int getUnsignedInt() const;
-
-  /** Return the signed long representation of this Integer. */
-  long getLong() const;
-
-  /** Return the unsigned long representation of this Integer. */
-  unsigned long getUnsignedLong() const;
-
-  /** Return the int64_t representation of this Integer. */
-  int64_t getSigned64() const;
-
-  /** Return the uint64_t representation of this Integer. */
-  uint64_t getUnsigned64() const;
-
   /**
    * Returns true iff bit n is set.
    *
@@ -263,14 +230,6 @@ class Integer
    * If x == 0, returns 1.
    */
   size_t length() const;
-
-  /**
-   * Returns whether `x` is probably a prime.
-   *
-   * A false result is always accurate, but a true result may be inaccurate
-   * with small (approximately 2^{-60}) probability.
-   */
-  bool isProbablePrime() const;
 
   /**
    * Return the greatest common divisor of a and b, and in addition set s and t

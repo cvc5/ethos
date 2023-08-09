@@ -1,5 +1,5 @@
-#ifndef CVC5__RATIONAL_H
-#define CVC5__RATIONAL_H
+#ifndef RATIONAL_H
+#define RATIONAL_H
 
 #include <gmp.h>
 
@@ -18,13 +18,7 @@ namespace alfc {
  * is 1.  (This is referred to as referred to as canonical form in GMP's
  * literature.) A consequence is that that the numerator and denominator may be
  * different than the values used to construct the Rational.
- *
- * NOTE: The correct way to create a Rational from an int is to use one of the
- * int numerator/int denominator constructors with the denominator 1.  Trying
- * to construct a Rational with a single int, e.g., Rational(0), will put you
- * in danger of invoking the char* constructor, from whence you will segfault.
  */
-
 class Rational
 {
  public:
@@ -110,15 +104,6 @@ class Rational
    * Note that this makes a deep copy of the denominator.
    */
   Integer getDenominator() const { return Integer(d_value.get_den()); }
-
-  static std::optional<Rational> fromDouble(double d);
-
-  /**
-   * Get a double representation of this Rational, which is
-   * approximate: truncation may occur, overflow may result in
-   * infinity, and underflow may result in zero.
-   */
-  double getDouble() const { return d_value.get_d(); }
 
   Rational inverse() const
   {
@@ -210,30 +195,7 @@ class Rational
     return Rational(d_value / y.d_value);
   }
 
-  Rational& operator+=(const Rational& y)
-  {
-    d_value += y.d_value;
-    return (*this);
-  }
-  Rational& operator-=(const Rational& y)
-  {
-    d_value -= y.d_value;
-    return (*this);
-  }
-
-  Rational& operator*=(const Rational& y)
-  {
-    d_value *= y.d_value;
-    return (*this);
-  }
-
-  Rational& operator/=(const Rational& y)
-  {
-    d_value /= y.d_value;
-    return (*this);
-  }
-
-  bool isIntegral() const { return mpz_cmp_ui(d_value.get_den_mpz_t(), 1) == 0; }
+  bool isIntegral() const;
 
   /** Returns a string representing the rational in the given base. */
   std::string toString(int base = 10) const { return d_value.get_str(base); }
@@ -244,9 +206,6 @@ class Rational
     uint32_t denLen = getDenominator().length();
     return numLen + denLen;
   }
-
-  /** Equivalent to calling (this->abs()).cmp(b.abs()) */
-  int absCmp(const Rational& q) const;
 
  private:
   /**
