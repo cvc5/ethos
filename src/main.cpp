@@ -10,13 +10,6 @@ int main( int argc, char* argv[] )
 {
   Options opts;
   Stats stats;
-// For now, tracing is all or nothing.
-#ifdef ALFC_TRACING
-  TraceChannel.on("compiler");
-  TraceChannel.on("expr_parser");
-  TraceChannel.on("state");
-  TraceChannel.on("type_checker");
-#endif
   // read the options
   bool readOpt = false;
   size_t i = 0;
@@ -41,6 +34,26 @@ int main( int argc, char* argv[] )
       else if (arg=="--no-print-let")
       {
         opts.d_printLet = false;
+        readOpt = true;
+      }
+      else if (arg=="-t")
+      {
+        i++;
+        std::string targ(argv[i]);
+#ifdef ALFC_TRACING
+        TraceChannel.on(targ);
+#endif
+        readOpt = true;
+      }
+      else if (arg=="-v")
+      {
+// enable all traces
+#ifdef ALFC_TRACING
+  TraceChannel.on("compiler");
+  TraceChannel.on("expr_parser");
+  TraceChannel.on("state");
+  TraceChannel.on("type_checker");
+#endif
         readOpt = true;
       }
     }
