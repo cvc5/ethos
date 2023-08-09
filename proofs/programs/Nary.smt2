@@ -77,24 +77,25 @@
     )
 )
 
-; naryElim cons nil x
+; naryElim cons x
 ; Returns the sole element if `xs` is a singleton list.
 (program naryElim
-    ((L Type) (cons (-> L L L)) (nil L) (x L) (xs L :list))
-    ((-> L L L) L L) L
+    ((L Type) (cons (-> L L L)) (x L) (xs L :list))
+    ((-> L L L) L) L
     (
-        ((naryElim cons nil (cons x xs)) (ifEqThenElse xs nil x (append cons x xs)))
-        ((naryElim cons nil xs) xs)
+        ((naryElim cons (cons x (! L :nil))) x)
+        ((naryElim cons (cons x xs)) (append cons x xs))
+        ((naryElim cons xs) xs)
     )
 )
 
-; naryIntro cons nil x
+; naryIntro cons x
 ; Returns a singleton list if `x` is not a list.
 (program naryIntro
-    ((L Type) (cons (-> L L L)) (nil L) (x L) (xs L :list))
-    ((-> L L L) L L) L
+    ((L Type) (cons (-> L L L)) (x L) (xs L :list))
+    ((-> L L L) L) L
     (
-        ((naryIntro cons nil (cons x xs)) (append cons x xs))
-        ((naryIntro cons nil x)           (append cons x nil))
+        ((naryIntro cons (cons x xs)) (append cons x xs))
+        ((naryIntro cons x)           (append cons x (! L :nil)))
     )
 )

@@ -57,12 +57,12 @@
 (program naryElimOr
     ((t Bool))
     (Bool) Bool
-    (((naryElimOr t) (naryElim or false t)))
+    (((naryElimOr t) (naryElim or t)))
 )
 (program naryIntroOr
     ((t Bool))
     (Bool) Bool
-    (((naryIntroOr t) (naryIntro or false t)))
+    (((naryIntroOr t) (naryIntro or t)))
 )
 
 ; ==================================================================
@@ -99,10 +99,10 @@
 (program naryElimAnd
     ((t Bool))
     (Bool) Bool
-    (((naryElimAnd t) (naryElim and true t)))
+    (((naryElimAnd t) (naryElim and t)))
 )
 (program naryIntroAnd
     ((t Bool))
     (Bool) Bool
-    (((naryIntroAnd t) (naryIntro and true t)))
+    (((naryIntroAnd t) (naryIntro and t)))
 )
