@@ -1,5 +1,3 @@
-(declare-const true Bool)
-(declare-const false Bool)
 
 (declare-const and (-> Bool Bool Bool) :right-assoc)
 

@@ -1,5 +1,3 @@
-(declare-const true Bool)
-(declare-const false Bool)
 
 (declare-sort Int 0)
 (declare-consts <numeral> Int)

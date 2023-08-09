@@ -1,7 +1,6 @@
 
 (declare-const = (-> (! Type :var T) T T Bool))
 
-(declare-const false Bool)
 (declare-const not (-> Bool Bool))
 
 (declare-rule eq-symm ((T Type) (x T) (y T))

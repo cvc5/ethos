@@ -3,8 +3,6 @@
 ; `(or (or a b) c)`.  This was written before we move the production signatures
 ; to an encoding using null termination.
 
-(declare-const true Bool)
-(declare-const false Bool)
 
 (declare-const or (-> Bool Bool Bool))
 (declare-const and (-> Bool Bool Bool))

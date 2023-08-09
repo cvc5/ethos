@@ -1,5 +1,4 @@
-(declare-const true Bool)
-(declare-const false Bool)
+
 
 (declare-rule contra ((A Bool))
   :premises (false)

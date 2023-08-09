@@ -1,5 +1,4 @@
-(declare-const true Bool)
-(declare-const false Bool)
+
 (declare-const and (-> Bool Bool Bool) :right-assoc)
 
 (declare-const distinct (-> (! Type :var T :implicit) T T Bool) :pairwise and)

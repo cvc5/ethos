@@ -39,7 +39,9 @@ State::State(Options& opts, Stats& stats) : d_tc(*this), d_opts(opts), d_stats(s
   d_type = mkExprInternal(Kind::TYPE, {});
   d_boolType = mkExprInternal(Kind::BOOL_TYPE, {});
   d_true = mkLiteral(Kind::BOOLEAN, "true");
+  bind("true", d_true);
   d_false = mkLiteral(Kind::BOOLEAN, "false");
+  bind("false", d_false);
   if (d_opts.d_runCompile)
   {
     Assert(!d_opts.d_compile);

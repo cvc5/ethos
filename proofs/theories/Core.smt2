@@ -1,8 +1,6 @@
 ; Bool is builtin
 ;(declare-type Bool ())
 
-(declare-const true Bool)
-(declare-const false Bool)
 (declare-const ite (-> (! Type :var A :implicit) Bool A A A))
 (declare-const not (-> Bool Bool))
 (declare-const distinct (-> (! Type :var A :implicit) A A Bool)
