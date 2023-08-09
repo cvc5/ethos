@@ -27,8 +27,12 @@ State::State(Options& opts, Stats& stats) : d_tc(*this), d_opts(opts), d_stats(s
   ExprValue::d_state = this;
   
   bindBuiltin("lambda", Kind::LAMBDA, true);
-  bindBuiltin("->", Kind::FUNCTION_TYPE, false);
-  bindBuiltin("@", Kind::APPLY, false);
+  bindBuiltin("->", Kind::FUNCTION_TYPE);
+  bindBuiltin("@", Kind::APPLY);
+
+  bindBuiltin("num.add", Kind::NUMERAL_ADD);
+
+
   // note we don't allow parsing (Proof ...), (Quote ...), or (quote ...).
 
   // common constants
@@ -460,9 +464,14 @@ Expr State::mkLiteral(Kind k, const std::string& s)
   ExprInfo* ei = getOrMkInfo(lit.get());
   ei->d_str = s;
   d_literalTrie[key] = lit;
-  std::cout << "mkLiteral \"" << s << "\"" << std::endl;
+  //std::cout << "mkLiteral \"" << s << "\"" << std::endl;
+  // convert string to literal
   switch (k)
   {
+    case Kind::BOOLEAN:
+      Assert (s=="true" || s=="false");
+      d_literals[lit.get()] = Literal(s=="true");
+      break;
     case Kind::NUMERAL:
       d_literals[lit.get()] = Literal(Integer(s));
       break;

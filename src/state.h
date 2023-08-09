@@ -136,7 +136,7 @@ private:
   /** 
    * Bind builtin
    */
-  void bindBuiltin(const std::string& name, Kind k, bool isClosure);
+  void bindBuiltin(const std::string& name, Kind k, bool isClosure = false);
   /** 
    * Bind builtin
    */

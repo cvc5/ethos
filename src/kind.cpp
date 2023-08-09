@@ -92,7 +92,8 @@ bool isLiteralOp(Kind k)
 {
   switch(k)
   {
-    case Kind::NUMERAL_ADD:return true; break;
+    case Kind::NUMERAL_ADD:
+    case Kind::NUMERAL_DIV: return true; break;
     default: break;
   }
   return false;

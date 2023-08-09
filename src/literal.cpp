@@ -1,6 +1,7 @@
 #include "literal.h"
 
 #include "base/check.h"
+#include <iostream>
 
 namespace alfc {
 
@@ -60,7 +61,48 @@ Literal& Literal::operator=(const Literal& other)
   return *this;
 }
 
-// TODO: operators should be function variables or kinds???
+Kind Literal::toKind() const
+{
+  switch (d_tag)
+  {
+    case BOOL: return Kind::BOOLEAN;
+    case RATIONAL: return Kind::DECIMAL;
+    case INTEGER: return Kind::NUMERAL;
+    case BITVECTOR: return Kind::BINARY;
+    case STRING: return Kind::STRING;
+    case INVALID: break;
+    default:break;
+  }
+  ALFC_FATAL() << "Cannot convert literal to kind " << d_tag;
+  return Kind::NONE;
+}
+std::string Literal::toString() const
+{
+  switch (d_tag)
+  {
+    case BOOL: return d_bool ? "true" : "false";
+    case RATIONAL: return d_rat.toString();
+    case INTEGER: return d_int.toString();
+    case BITVECTOR:
+    case STRING:
+    case INVALID: break;
+    default:break;
+  }
+  ALFC_FATAL() << "Cannot convert literal to string " << d_tag;
+  return "?";
+}
+
+Expr Literal::getType(Kind k, std::vector<Expr>& childTypes)
+{
+  switch (k)
+  {
+    case Kind::NUMERAL_ADD:
+      return childTypes[0];
+      break;
+    default:break;
+  }
+  return nullptr;
+}
 
 Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
 {
@@ -74,6 +116,7 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
         Assert (l->d_tag==INTEGER);
         i = i + l->d_int;
       }
+      return Literal(Integer(i));
     }
       break;
     default:break;

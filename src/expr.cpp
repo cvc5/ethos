@@ -92,15 +92,14 @@ void ExprValue::computeFlags()
       if (ck==Kind::APPLY)
       {
         Kind cck = children[0]->getKind();
-        // programs and literal operators
-        if (cck==Kind::PROGRAM_CONST || isLiteralOp(cck))
+        if (cck==Kind::PROGRAM_CONST)
         {
           cur->setFlag(Flag::IS_EVAL, true);
         }
       }
-      else if (ck==Kind::REQUIRES_TYPE)
+      else if (ck==Kind::REQUIRES_TYPE || isLiteralOp(ck))
       {
-        // requires type may evaluate
+        // requires type and literal operator kinds evaluate
         cur->setFlag(Flag::IS_EVAL, true);
       }
       for (Expr& c : children)

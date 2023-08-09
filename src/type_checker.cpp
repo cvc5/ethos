@@ -135,7 +135,8 @@ const Expr& TypeChecker::getType(Expr& e, std::ostream* out)
 Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
 {
   // TODO: check arities
-  switch(e->getKind())
+  Kind k = e->getKind();
+  switch(k)
   {
     case Kind::APPLY:
     {
@@ -282,7 +283,6 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
     case Kind::BINARY:
     case Kind::STRING:
     {
-      Kind k = e->getKind();
       // use the literal type rule
       Expr t = d_literalTypeRules[k];
       if (t==nullptr)
@@ -295,11 +295,26 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
     }
       break;
     default:
+      if (isLiteralOp(k))
+      {
+        std::vector<Expr> ctypes;
+        std::vector<Expr>& children = e->d_children;
+        for (Expr& c : children)
+        {
+          ctypes.push_back(c->d_type);
+        }
+        Expr ret = Literal::getType(k, ctypes);
+        if (ret==nullptr && out)
+        {
+          (*out) << "Unknown type for literal operator " << k;
+        }
+        return ret;
+      }
       break;
   }
   if (out)
   {
-    (*out) << "Unknown kind " << e->getKind();
+    (*out) << "Unknown kind " << k;
   }
   return nullptr;
 }
@@ -627,33 +642,28 @@ Expr TypeChecker::evaluateProgram(const std::vector<Expr>& children, Ctx& newCtx
 
 Expr TypeChecker::evaluateLiteralOp(Kind k, const std::vector<Expr>& args)
 {
+  Trace("type_checker") << "EVALUATE-LIT " << k << " " << args << std::endl;
+  // convert argument expressions to literals
   std::vector<Literal*> lits;
   for (const Expr& e : args)
   {
     Literal * l = d_state.getLiteral(e.get());
     if (l==nullptr)
     {
+      // failed to convert an argument
       return nullptr;
     }
+    lits.push_back(l);
   }
+  // evaluate
   Literal eval = Literal::evaluate(k, lits);
-  // convert back to an expression
-  switch (eval.d_tag)
+  if (eval.d_tag==Literal::INVALID)
   {
-    case Literal::BOOL:
-      break;
-    case Literal::RATIONAL:
-      break;
-    case Literal::INTEGER:
-      break;
-    case Literal::BITVECTOR:
-      break;
-    case Literal::STRING:
-      break;
-    default:
-      break;
+    // failed to evaluate
+    return nullptr;
   }
-  return nullptr;
+  // convert back to an expression
+  return d_state.mkLiteral(eval.toKind(), eval.toString());
 }
 
 }  // namespace alfc
