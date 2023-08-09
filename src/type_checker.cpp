@@ -65,7 +65,7 @@ TypeChecker::~TypeChecker()
 {
 }
 
-void TypeChecker::setTypeRule(Kind k, const Expr& t)
+void TypeChecker::setLiteralTypeRule(Kind k, const Expr& t)
 {
   std::map<Kind, Expr>::iterator it = d_literalTypeRules.find(k);
   if (it==d_literalTypeRules.end())
@@ -83,6 +83,25 @@ void TypeChecker::setTypeRule(Kind k, const Expr& t)
   }
   Assert(t->isGround());
   it->second = t;
+}
+
+Expr TypeChecker::getOrSetLiteralTypeRule(Kind k)
+{
+  std::map<Kind, Expr>::iterator it = d_literalTypeRules.find(k);
+  if (it==d_literalTypeRules.end())
+  {
+    std::stringstream ss;
+    ALFC_FATAL() << "TypeChecker::getOrSetLiteralTypeRule: cannot get type rule for kind "
+                 << k;
+  }
+  if (it->second==nullptr)
+  {
+    // If no type rule, assign the type rule to the builtin type
+    Expr t = d_state.mkBuiltinType(k);
+    d_literalTypeRules[k] = t;
+    return t;
+  }
+  return it->second;
 }
 
 void TypeChecker::defineProgram(const Expr& v, const Expr& prog)
@@ -277,6 +296,8 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
     case Kind::VARIABLE_LIST:
       return d_state.mkAbstractType();
     case Kind::BOOLEAN:
+      // note that Bool is builtin
+      return d_state.mkBoolType();
     case Kind::NUMERAL:
     case Kind::DECIMAL:
     case Kind::HEXADECIMAL:
@@ -284,17 +305,11 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
     case Kind::STRING:
     {
       // use the literal type rule
-      Expr t = d_literalTypeRules[k];
-      if (t==nullptr)
-      {
-        // If no type rule, assign the type rule to the builtin type
-        t = d_state.mkBuiltinType(k);
-        d_literalTypeRules[k] = t;
-      }
-      return t;
+      return getOrSetLiteralTypeRule(k);
     }
       break;
     default:
+      // if a literal operator, consult auxiliary method
       if (isLiteralOp(k))
       {
         std::vector<Expr> ctypes;

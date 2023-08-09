@@ -38,6 +38,8 @@ State::State(Options& opts, Stats& stats) : d_tc(*this), d_opts(opts), d_stats(s
   // common constants
   d_type = mkExprInternal(Kind::TYPE, {});
   d_boolType = mkExprInternal(Kind::BOOL_TYPE, {});
+  d_true = mkLiteral(Kind::BOOLEAN, "true");
+  d_false = mkLiteral(Kind::BOOLEAN, "false");
   if (d_opts.d_runCompile)
   {
     Assert(!d_opts.d_compile);
@@ -447,6 +449,16 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     }
   }
   return mkExprInternal(k, children);
+}
+
+Expr State::mkTrue()
+{
+  return d_true;
+}
+
+Expr State::mkFalse()
+{
+  return d_false;
 }
 
 Expr State::mkLiteral(Kind k, const std::string& s)

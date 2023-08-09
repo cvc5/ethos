@@ -26,7 +26,6 @@ std::ostream& operator<<(std::ostream& o, Token t)
     case Token::DEFINE_TYPE: o << "DEFINE_TYPE"; break;
     case Token::ECHO: o << "ECHO"; break;
     case Token::EXIT: o << "EXIT"; break;
-    case Token::FALSE: o << "FALSE"; break;
     case Token::HEX_LITERAL: o << "HEX_LITERAL"; break;
     case Token::INCLUDE: o << "INCLUDE"; break;
     case Token::INTEGER_LITERAL: o << "INTEGER_LITERAL"; break;
@@ -49,7 +48,6 @@ std::ostream& operator<<(std::ostream& o, Token t)
     case Token::STEP: o << "STEP"; break;
     case Token::STRING_LITERAL: o << "STRING_LITERAL"; break;
     case Token::SYMBOL: o << "SYMBOL"; break;
-    case Token::TRUE: o << "TRUE"; break;
     case Token::TYPE: o << "TYPE"; break;
     case Token::UNTERMINATED_QUOTED_SYMBOL:
       o << "UNTERMINATED_QUOTED_SYMBOL";

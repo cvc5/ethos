@@ -22,8 +22,10 @@ class TypeChecker
   ~TypeChecker();
   /** Return its type */
   const Expr& getType(Expr& e, std::ostream* out = nullptr);
-  /** Set type rule for literal */
-  void setTypeRule(Kind k, const Expr& t);
+  /** Set type rule for literal kind k to t */
+  void setLiteralTypeRule(Kind k, const Expr& t);
+  /** Get or set type rule (to default) for literal kind k */
+  Expr getOrSetLiteralTypeRule(Kind k);
   /** Define program */
   void defineProgram(const Expr& v, const Expr& prog);
   /** Has program */

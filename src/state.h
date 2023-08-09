@@ -84,7 +84,10 @@ public:
   Expr mkNil(const Expr& t);
   /** */
   Expr mkExpr(Kind k, const std::vector<Expr>& children);
-  
+  /** make true */
+  Expr mkTrue();
+  /** make false */
+  Expr mkFalse();
   /**
    * Create a literal from a string.
    * @param s The string representation of the literal, may represent an
@@ -122,6 +125,8 @@ private:
   /** Common constants */
   Expr d_type;
   Expr d_boolType;
+  Expr d_true;
+  Expr d_false;
   /** */
   ExprInfo* getOrMkInfo(const ExprValue* e);
   /** include file, if not already done */
