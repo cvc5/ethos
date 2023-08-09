@@ -6,10 +6,10 @@
 ; TODO: needs overloading
 ;(declare-const - (-> Real Real))
 (declare-const + (-> Real Real Real)
-    :right-assoc 0
+    :right-assoc-nil
 )
 (declare-const * (-> Real Real Real)
-    :right-assoc 1
+    :right-assoc-nil
 )
 (declare-const <= (-> Real Real Bool)
     :chainable and
