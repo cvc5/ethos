@@ -33,11 +33,6 @@ class Integer
 
   Integer(const Integer& q) : d_value(q.d_value) {}
 
-  Integer(signed int z) : d_value(z) {}
-  Integer(unsigned int z) : d_value(z) {}
-  Integer(signed long int z) : d_value(z) {}
-  Integer(unsigned long int z) : d_value(z) {}
-
   /** Destructor. */
   ~Integer() {}
 
@@ -264,4 +259,4 @@ class Integer
 
 }  // namespace cvc5::internal
 
-#endif /* CVC5__INTEGER_H */
+#endif

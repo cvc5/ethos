@@ -46,4 +46,4 @@ struct Literal
 
 }  // namespace alfc
 
-#endif /* KIND_H */
+#endif

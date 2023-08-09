@@ -198,7 +198,7 @@ void Integer::euclidianQR(Integer& q,
       // y = abs(y)
       // n = y * q - y + r + y
       // n = y * (q-1) + (r+y)
-      q = q-1;
+      q = q-Integer("1");
       r = r+y;
     }
     else
@@ -206,7 +206,7 @@ void Integer::euclidianQR(Integer& q,
       // y = -abs(y)
       // n = y * q + y + r - y
       // n = y * (q+1) + (r-y)
-      q = q+1;
+      q = q+Integer("1");
       r = r-y;
     }
   }

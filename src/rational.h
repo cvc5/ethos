@@ -41,7 +41,6 @@ class Rational
   /** Constructs a rational with the value 0/1. */
   Rational() : d_value(0) { d_value.canonicalize(); }
 
-
   Rational(const std::string& s, unsigned base = 10) : d_value(s, base)
   {
     d_value.canonicalize();
@@ -51,34 +50,6 @@ class Rational
    * Creates a Rational from another Rational, q, by performing a deep copy.
    */
   Rational(const Rational& q) : d_value(q.d_value) { d_value.canonicalize(); }
-
-  /**
-   * Constructs a canonical Rational from a numerator.
-   */
-  Rational(signed int n) : d_value(n, 1) { d_value.canonicalize(); }
-  Rational(unsigned int n) : d_value(n, 1) { d_value.canonicalize(); }
-  Rational(signed long int n) : d_value(n, 1) { d_value.canonicalize(); }
-  Rational(unsigned long int n) : d_value(n, 1) { d_value.canonicalize(); }
-
-  /**
-   * Constructs a canonical Rational from a numerator and denominator.
-   */
-  Rational(signed int n, signed int d) : d_value(n, d)
-  {
-    d_value.canonicalize();
-  }
-  Rational(unsigned int n, unsigned int d) : d_value(n, d)
-  {
-    d_value.canonicalize();
-  }
-  Rational(signed long int n, signed long int d) : d_value(n, d)
-  {
-    d_value.canonicalize();
-  }
-  Rational(unsigned long int n, unsigned long int d) : d_value(n, d)
-  {
-    d_value.canonicalize();
-  }
 
   Rational(const Integer& n, const Integer& d)
       : d_value(n.get_mpz(), d.get_mpz())
