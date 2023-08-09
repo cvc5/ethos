@@ -67,7 +67,7 @@
     )
 )
 
-; reverse cons nil xs
+; reverse cons xs
 ; Reverses the list `xs`.
 (program reverse
     ((L Type) (E Type) (cons (-> E L L)) (xs L :list))
