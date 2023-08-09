@@ -43,7 +43,7 @@ set(alfc_test_file_list
 macro(alfc_test file)
   add_test(
     NAME ${file}
-    COMMAND $<TARGET_FILE:alfc> ${CMAKE_CURRENT_LIST_DIR}/${file}
+    COMMAND $<TARGET_FILE:alfc> --no-print-let ${CMAKE_CURRENT_LIST_DIR}/${file}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   )
   set_tests_properties(${file} PROPERTIES TIMEOUT 40)
