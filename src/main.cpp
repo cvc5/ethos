@@ -42,6 +42,9 @@ int main( int argc, char* argv[] )
         std::string targ(argv[i]);
 #ifdef ALFC_TRACING
         TraceChannel.on(targ);
+#else
+        std::cerr << "Tracing not enabled in this build" << std::endl;
+        exit(1);
 #endif
         readOpt = true;
       }
@@ -49,10 +52,13 @@ int main( int argc, char* argv[] )
       {
 // enable all traces
 #ifdef ALFC_TRACING
-  TraceChannel.on("compiler");
-  TraceChannel.on("expr_parser");
-  TraceChannel.on("state");
-  TraceChannel.on("type_checker");
+        TraceChannel.on("compiler");
+        TraceChannel.on("expr_parser");
+        TraceChannel.on("state");
+        TraceChannel.on("type_checker");
+#else
+        std::cerr << "Tracing not enabled in this build" << std::endl;
+        exit(1);
 #endif
         readOpt = true;
       }
