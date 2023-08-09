@@ -1,8 +1,11 @@
 #include "compiler.h"
 
-#include "state.h"
-#include <iostream>
 #include <algorithm>
+#include <iostream>
+
+#include "base/check.h"
+#include "base/output.h"
+#include "state.h"
 
 namespace alfc {
 
@@ -51,7 +54,7 @@ std::string CompilerScope::getNameFor(Expr& e) const
     return d_global->getNameFor(e);
   }
   std::map<ExprValue*, size_t>::const_iterator it = d_idMap.find(e.get());
-  // Assert(it!=d_idMap.end());
+  Assert(it != d_idMap.end());
   std::stringstream ss;
   ss << d_prefix << it->second;
   return ss.str();
@@ -158,7 +161,7 @@ void Compiler::pushScope()
 
 void Compiler::popScope()
 {
-  // Assert (d_nscopes>0);
+  Assert(d_nscopes > 0);
   d_nscopes--;
 }
 
@@ -189,7 +192,7 @@ void Compiler::bind(const std::string& name, const Expr& e)
   // bind the symbol
   d_init << "  bind(\"" << name << "\", _e" << id << ");" << std::endl;
   // write its type checker (if necessary)
-  // Assert (e->d_type!=nullptr);
+  Assert(e->d_type != nullptr);
   writeTypeChecking(d_tc, e->d_type);
 }
 
@@ -244,7 +247,7 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
   for (size_t i=0; i<ncases; i++)
   {
     Expr& c = progChildren[i];
-    std::cout << "writeEvaluate for " << c << std::endl;
+    Trace("compiler") << "writeEvaluate for " << c << std::endl;
     Expr hd = c->getChildren()[0];
     Expr body = c->getChildren()[1];
     os << "       // matching for arguments of " << hd << std::endl;
@@ -308,7 +311,7 @@ size_t Compiler::markCompiled(std::ostream& os, const Expr& e)
     return it->second;
   }
   size_t ret = writeGlobalExpr(e);
-  // Assert (it!=d_global.d_idMap.end());
+  Assert(it != d_global.d_idMap.end());
   os << "  _runId[_e" << ret << ".get()] = " << ret << ";" << std::endl;
   d_init << "  _e" << ret << "->setFlag(ExprValue::Flag::IS_COMPILED, true);" << std::endl;
   d_runIdMap[e.get()] = ret;
@@ -371,15 +374,15 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
       if (isLiteral(ck))
       {
         curInfo = d_state.getInfo(cur);
-        // Assert (curInfo!=nullptr);
+        Assert(curInfo != nullptr);
         os << "  " << cs.d_prefix << ret << " = ";
         os << "mkLiteral(Kind::" << cur->getKind() << ", \"" << curInfo->d_str << "\");" << std::endl;
       }
       else if (isVariable(ck))
       {
-        // Assert (isg);
+        Assert(isg);
         curInfo = d_state.getInfo(cur);
-        // Assert (curInfo!=nullptr);
+        Assert(curInfo != nullptr);
         os << "  " << cs.d_prefix << ret << " = ";
         os << "mkSymbolInternal(Kind::" << cur->getKind() << ", \"" << curInfo->d_str << "\", _e" << tid << ");" << std::endl;
       }
@@ -449,14 +452,14 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
       }
     }
   }while(!visit.empty());
-  // Assert (ret!=0);
+  Assert(ret != 0);
   // return the identifier for the initial term
   return ret;
 }
 
 void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
 {
-  // Assert (t!=nullptr);
+  Assert(t != nullptr);
   std::vector<Expr> toVisit;
   toVisit.push_back(t);
   Expr curr;
@@ -475,7 +478,7 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
       continue;
     }
     os << "  // type rule for " << curr << std::endl;
-    std::cout << "writeTypeChecking " << curr << std::endl;
+    Trace("compiler") << "writeTypeChecking " << curr << std::endl;
     d_tcWritten.insert(curr.get());
     size_t id = markCompiled(d_init, curr);
     std::stringstream osEnd;
@@ -535,7 +538,7 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
         }
         usedMatch = true;
         iti = pscope.d_idMap.find(va.first.get());
-        // Assert (iti!=pscope.d_idMap.end());
+        Assert(iti != pscope.d_idMap.end());
         localImpl << "  " << pprefix << iti->second << " = " << va.second << ";" << std::endl;
         varsAssigned.insert(va.first);
       }
@@ -709,7 +712,7 @@ void Compiler::writeEvaluate(std::ostream& os, const Expr& e)
       continue;
     }
     os << "  // evaluation for " << curr << std::endl;
-    std::cout << "writeEvaluate " << curr << std::endl;
+    Trace("compiler") << "writeEvaluate " << curr << std::endl;
     d_evalWritten.insert(curr.get());
     
     size_t id = markCompiled(d_init, curr);
@@ -734,7 +737,7 @@ void Compiler::writeEvaluate(std::ostream& os, const Expr& e)
       std::stringstream ssv;
       ssv << "_e" << gid;
       iti = pscope.d_idMap.find(v.get());
-      // Assert (iti!=pscope.d_idMap.end());
+      Assert(iti != pscope.d_idMap.end());
       localImpl << "  itc = ctx.find(" << ssv.str() << ");" << std::endl;
       localImpl << "  " << pprefix << iti->second << " = " 
                 << "(itc==ctx.end() ? " << ssv.str() << " : itc->second);" << std::endl;

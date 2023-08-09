@@ -1,5 +1,7 @@
 cmake_minimum_required (VERSION 3.12)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 macro(add_cxx_flag flag)
   message(STATUS "Configure with flag '${flag}'")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}")
@@ -24,6 +26,9 @@ add_cxx_flag("-std=gnu++17")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_cxx_flag("-g")
+  add_definitions(-DALFC_ASSERTIONS)
+  add_definitions(-DALFC_DEBUG)
+  add_definitions(-DALFC_TRACING)
   message(STATUS "Configured debug build.")
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
   message(STATUS "Configured release build.")

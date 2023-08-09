@@ -4,7 +4,7 @@
 #include <iostream>
 #include <sstream>
 
-#include "error.h"
+#include "base/check.h"
 
 namespace alfc {
 
@@ -69,12 +69,12 @@ void Lexer::parseError(const std::string& msg, bool eofException)
 {
   std::stringstream os;
   if( d_span.d_start.d_line > 0 ) {
-    os <<  "Parse Error: " << d_inputName << ":" << d_span.d_start.d_line << "."
-        << d_span.d_start.d_column << ": " << msg << std::endl;
+    ALFC_FATAL() << "Parse Error: " << d_inputName << ":"
+                 << d_span.d_start.d_line << "." << d_span.d_start.d_column
+                 << ": " << msg << std::endl;
   } else {
-    os << "Parse Error: " << msg << std::endl;
+    ALFC_FATAL() << "Parse Error: " << msg << std::endl;
   }
-  Error::reportError(os.str());
 }
 
 void Lexer::initSpan()
@@ -87,7 +87,7 @@ void Lexer::initSpan()
 
 void Lexer::initialize(Input* input, const std::string& inputName)
 {
-  //Assert(input != nullptr);
+  Assert(input != nullptr);
   d_istream = input->getStream();
   d_isInteractive = input->isInteractive();
   d_inputName = inputName;
@@ -125,7 +125,7 @@ void Lexer::reinsertToken(Token t) { d_peeked.push_back(t); }
 
 void Lexer::unexpectedTokenError(Token t, const std::string& info)
 {
-  //Assert(d_peeked.empty());
+  Assert(d_peeked.empty());
   std::ostringstream o{};
   o << info << ", got `" << tokenStr() << "` (" << t << ")." << std::endl;
   // Note that we treat this as an EOF exception if the token is EOF.
@@ -163,7 +163,7 @@ bool Lexer::eatTokenChoice(Token t, Token f)
 
 const char* Lexer::tokenStr() const
 {
-  //Assert(!d_token.empty() && d_token.back() == 0);
+  Assert(!d_token.empty() && d_token.back() == 0);
   return d_token.data();
 }
 
@@ -375,7 +375,7 @@ void Lexer::parseCharList(CharacterClass cc)
 
 Token Lexer::tokenizeCurrentSymbol() const
 {
-  //Assert(!d_token.empty());
+  Assert(!d_token.empty());
   switch (d_token[0])
   {
     case '?':
