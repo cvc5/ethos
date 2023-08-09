@@ -24,7 +24,7 @@
 ; A call `(append x xs)` will create the list from point 1 and `(append x nil)`
 ; will create a unit list.
 
-; append cons nil c xs
+; append cons c xs
 ; Appends `c` to the head of `xs`.
 (program append
     ((L Type) (E Type) (cons (-> E L L)) (c E) (xs L :list))
@@ -34,49 +34,48 @@
     )
 )
 
-; concat cons nil xs ys
+; concat cons xs ys
 ; Concatenates two lists `xs` and `ys`.
 (program concat
-    ((L Type) (E Type) (cons (-> E L L)) (nil L) (x L) (xs L :list) (ys L))
-    ((-> E L L) E L L) L
+    ((L Type) (E Type) (cons (-> E L L)) (x L) (xs L :list) (ys L))
+    ((-> E L L) L L) L
     (
-        ((concat cons nil nil ys) ys)
-        ((concat cons nil (cons x xs) ys) (append cons x (concat cons nil xs ys)))
+        ((concat cons (! E :nil) ys) ys)
+        ((concat cons (cons x xs) ys) (append cons x (concat cons xs ys)))
     )
 )
 
-; remove cons nil c xs
+; remove cons c xs
 ; Removes the first occurrence of `c` from `xs`.
 (program remove
-    ((L Type) (E Type) (cons (-> E L L)) (nil L) (c E) (y E) (xs L :list))
-    ((-> E L L) E E L) L
+    ((L Type) (E Type) (cons (-> E L L)) (c E) (y E) (xs L :list))
+    ((-> E L L) E L) L
     (
-        ((remove cons nil c nil) nil)
-        ((remove cons nil c (cons c xs)) xs)
-        ((remove cons nil c (cons y xs)) (append cons y (remove cons nil c xs)))
+        ((remove cons c (! E :nil)) (! E :nil))
+        ((remove cons c (cons c xs)) xs)
+        ((remove cons c (cons y xs)) (append cons y (remove cons c xs)))
     )
 )
 
 ; Helper for reverse
 (program reverseRec
-    ((L Type) (E Type) (cons (-> E L L)) (nil L) (x L) (xs L :list) (l L :list))
-    ((-> E L L) L L L) L
+    ((L Type) (E Type) (cons (-> E L L)) (x L) (xs L :list) (l L :list))
+    ((-> E L L) L L) L
     (
-        ((reverseRec cons nil nil         l)  l)
-        ((reverseRec cons nil (cons x xs) l) (reverseRec cons nil xs (append cons x l)))
+        ((reverseRec cons (! E :nil) l)  l)
+        ((reverseRec cons (cons x xs)   l) (reverseRec cons xs (append cons x l)))
     )
 )
 
 ; reverse cons nil xs
 ; Reverses the list `xs`.
 (program reverse
-    ((L Type) (E Type) (cons (-> E L L)) (nil L) (xs L :list))
-    ((-> E L L) L L) L
+    ((L Type) (E Type) (cons (-> E L L)) (xs L :list))
+    ((-> E L L) L) L
     (
-        ((reverse cons nil xs) (reverseRec cons nil xs nil))
+        ((reverse cons xs) (reverseRec cons xs (! E :nil)))
     )
 )
-
 
 ; naryElim cons nil x
 ; Returns the sole element if `xs` is a singleton list.
