@@ -12,6 +12,7 @@
 #include "expr_trie.h"
 #include "type_checker.h"
 #include "compiler.h"
+#include "literal.h"
 
 namespace alfc {
 
@@ -158,6 +159,8 @@ private:
   std::map<Kind, ExprTrie> d_trie;
   /** hash for literals */
   std::map<std::pair<Kind, std::string>, Expr> d_literalTrie;
+  /** literal data */
+  std::map<const ExprValue*, Literal> d_literals;
   /** input file */
   std::filesystem::path d_inputFile;
   /** files included */

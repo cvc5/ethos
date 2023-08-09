@@ -457,6 +457,24 @@ Expr State::mkLiteral(Kind k, const std::string& s)
   ExprInfo* ei = getOrMkInfo(lit.get());
   ei->d_str = s;
   d_literalTrie[key] = lit;
+  std::cout << "mkLiteral \"" << s << "\"" << std::endl;
+  switch (k)
+  {
+    case Kind::INTEGER:
+      d_literals[lit.get()] = Literal(Integer(s));
+      break;
+    case Kind::DECIMAL:
+      d_literals[lit.get()] = Literal(Rational::fromDecimal(s));
+      break;
+    case Kind::HEXADECIMAL:
+      break;
+    case Kind::BINARY:
+      break;
+    case Kind::STRING:
+      break;
+    default:
+      break;
+  }
   return lit;
 }
 
