@@ -378,7 +378,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         os << "  " << cs.d_prefix << ret << " = ";
         os << "mkLiteral(Kind::" << cur->getKind() << ", \"" << curInfo->d_str << "\");" << std::endl;
       }
-      else if (isVariable(ck))
+      else if (isSymbol(ck))
       {
         Assert(isg);
         curInfo = d_state.getInfo(cur);

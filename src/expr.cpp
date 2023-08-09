@@ -89,9 +89,14 @@ void ExprValue::computeFlags()
     {
       visit.pop_back();
       Kind ck = cur->getKind();
-      if (ck==Kind::APPLY && children[0]->getKind()==Kind::PROGRAM_CONST)
+      if (ck==Kind::APPLY)
       {
-        cur->setFlag(Flag::IS_EVAL, true);
+        Kind cck = children[0]->getKind();
+        // programs and literal operators
+        if (cck==Kind::PROGRAM_CONST || isLiteralOp(cck))
+        {
+          cur->setFlag(Flag::IS_EVAL, true);
+        }
       }
       else if (ck==Kind::REQUIRES_TYPE)
       {

@@ -5,6 +5,7 @@
 #include <string>
 #include "rational.h"
 #include "integer.h"
+#include "kind.h"
 
 namespace alfc {
 
@@ -42,6 +43,9 @@ struct Literal
   Literal& operator=(const Literal& other);
 
   ~Literal() {}
+
+  /** Evaluate literal op */
+  static Literal evaluate(Kind k, const std::vector<Literal*>& args);
 };
 
 }  // namespace alfc

@@ -31,17 +31,19 @@ enum class Kind
   VARIABLE_LIST,
   QUOTE,
   NIL,
+  PROGRAM,
+  PAIR,
 
   // literals
-  INTEGER,
+  BOOLEAN,
+  NUMERAL,
   DECIMAL,
   HEXADECIMAL,
   BINARY,
   STRING,
-  
-  // programs
-  PROGRAM,
-  PAIR
+
+  // operations on literals
+  NUMERAL_ADD
 };
 
 /** Print a kind to the stream, for debugging */
@@ -50,9 +52,11 @@ std::ostream& operator<<(std::ostream& o, Kind k);
 std::string kindToTerm(Kind k);
 
 /** */
-bool isVariable(Kind k);
+bool isSymbol(Kind k);
 /** */
 bool isLiteral(Kind k);
+/** */
+bool isLiteralOp(Kind k);
 
 }  // namespace alfc
 

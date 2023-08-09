@@ -1,5 +1,7 @@
 #include "literal.h"
 
+#include "base/check.h"
+
 namespace alfc {
 
 Literal::Literal(const Literal& other)
@@ -56,6 +58,27 @@ Literal& Literal::operator=(const Literal& other)
     }
   }
   return *this;
+}
+
+// TODO: operators should be function variables or kinds???
+
+Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
+{
+  switch (k)
+  {
+    case Kind::NUMERAL_ADD:
+    {
+      Integer i;
+      for (Literal* l : args)
+      {
+        Assert (l->d_tag==INTEGER);
+        i = i + l->d_int;
+      }
+    }
+      break;
+    default:break;
+  }
+  return Literal();
 }
 
 }  // namespace alfc

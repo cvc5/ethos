@@ -7,6 +7,7 @@
 #include "base/check.h"
 #include "base/output.h"
 #include "state.h"
+#include "literal.h"
 
 namespace alfc {
   
@@ -52,7 +53,7 @@ std::ostream& operator<<(std::ostream& out, const std::vector<Expr>& children)
 
 TypeChecker::TypeChecker(State& s) : d_state(s)
 {
-  d_literalKinds = { Kind::INTEGER,  Kind::DECIMAL, Kind::HEXADECIMAL, Kind::BINARY, Kind::STRING };
+  d_literalKinds = { Kind::BOOLEAN, Kind::NUMERAL,  Kind::DECIMAL, Kind::HEXADECIMAL, Kind::BINARY, Kind::STRING };
   // initialize literal kinds 
   for (Kind k : d_literalKinds)
   {
@@ -274,7 +275,8 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
       return d_state.mkType();
     case Kind::VARIABLE_LIST:
       return d_state.mkAbstractType();
-    case Kind::INTEGER:
+    case Kind::BOOLEAN:
+    case Kind::NUMERAL:
     case Kind::DECIMAL:
     case Kind::HEXADECIMAL:
     case Kind::BINARY:
@@ -535,6 +537,10 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
             }
             break;
           default:
+            if (isLiteralOp(ck))
+            {
+              evaluated = evaluateLiteralOp(ck, cchildren);
+            }
             break;
         }
         if (newContext)
@@ -616,6 +622,37 @@ Expr TypeChecker::evaluateProgram(const std::vector<Expr>& children, Ctx& newCtx
     }
   }
   // just return nullptr, which should be interpreted as a failed evaluation
+  return nullptr;
+}
+
+Expr TypeChecker::evaluateLiteralOp(Kind k, const std::vector<Expr>& args)
+{
+  std::vector<Literal*> lits;
+  for (const Expr& e : args)
+  {
+    Literal * l = d_state.getLiteral(e.get());
+    if (l==nullptr)
+    {
+      return nullptr;
+    }
+  }
+  Literal eval = Literal::evaluate(k, lits);
+  // convert back to an expression
+  switch (eval.d_tag)
+  {
+    case Literal::BOOL:
+      break;
+    case Literal::RATIONAL:
+      break;
+    case Literal::INTEGER:
+      break;
+    case Literal::BITVECTOR:
+      break;
+    case Literal::STRING:
+      break;
+    default:
+      break;
+  }
   return nullptr;
 }
 

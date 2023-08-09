@@ -101,6 +101,8 @@ public:
   Expr getVar(const std::string& name) const;
   /** */
   ExprInfo* getInfo(const ExprValue* e);
+  /** */
+  Literal* getLiteral(const ExprValue* e);
   /** Get the type checker */
   TypeChecker& getTypeChecker();
   /** Get options */

@@ -67,7 +67,8 @@ ExprParser::ExprParser(Lexer& lex, State& state)
   d_strToAttr[":chainable"] = Attr::CHAINABLE;
   d_strToAttr[":pairwise"] = Attr::PAIRWISE;
   
-  d_strToLiteralKind["<numeral>"] = Kind::INTEGER;
+  d_strToLiteralKind["<boolean>"] = Kind::BOOLEAN;
+  d_strToLiteralKind["<numeral>"] = Kind::NUMERAL;
   d_strToLiteralKind["<decimal>"] = Kind::DECIMAL;
   d_strToLiteralKind["<hexadecimal>"] = Kind::HEXADECIMAL;
   d_strToLiteralKind["<binary>"] = Kind::BINARY;
@@ -189,7 +190,7 @@ Expr ExprParser::parseExpr()
       break;
       case Token::INTEGER_LITERAL:
       {
-        ret = d_state.mkLiteral(Kind::INTEGER, d_lex.tokenStr());
+        ret = d_state.mkLiteral(Kind::NUMERAL, d_lex.tokenStr());
       }
       break;
       case Token::DECIMAL_LITERAL:

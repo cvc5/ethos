@@ -463,7 +463,7 @@ Expr State::mkLiteral(Kind k, const std::string& s)
   std::cout << "mkLiteral \"" << s << "\"" << std::endl;
   switch (k)
   {
-    case Kind::INTEGER:
+    case Kind::NUMERAL:
       d_literals[lit.get()] = Literal(Integer(s));
       break;
     case Kind::DECIMAL:
@@ -563,6 +563,16 @@ ExprInfo* State::getInfo(const ExprValue* e)
 ExprInfo* State::getOrMkInfo(const ExprValue* e)
 {
   return &d_exprData[e];
+}
+
+Literal* State::getLiteral(const ExprValue* e)
+{
+  std::map<const ExprValue *, Literal>::iterator it = d_literals.find(e);
+  if (it!=d_literals.end())
+  {
+    return &it->second;
+  }
+  return nullptr;
 }
 
 size_t State::getAssumptionLevel() const

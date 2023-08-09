@@ -30,6 +30,8 @@ class TypeChecker
   bool hasProgram(const Expr& v) const;
   /** Maybe evaluate */
   Expr evaluateProgram(const std::vector<Expr>& args, Ctx& newCtx);
+  /** Evaluate literal op */
+  Expr evaluateLiteralOp(Kind k, const std::vector<Expr>& args);
   /** */
   bool match(const Expr& a, const Expr& b, Ctx& ctx, std::set<std::pair<Expr, Expr>>& visited);
   bool match(const Expr& a, const Expr& b, Ctx& ctx);

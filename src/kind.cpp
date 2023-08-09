@@ -26,15 +26,15 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::VARIABLE_LIST: o << "VARIABLE_LIST"; break;
     case Kind::QUOTE: o << "QUOTE"; break;
     case Kind::NIL: o << "NIL"; break;
+    case Kind::PROGRAM: o << "PROGRAM"; break;
+    case Kind::PAIR: o << "PAIR"; break;
     // literals
-    case Kind::INTEGER: o << "INTEGER"; break;
+    case Kind::BOOLEAN: o << "BOOLEAN"; break;
+    case Kind::NUMERAL: o << "NUMERAL"; break;
     case Kind::DECIMAL: o << "DECIMAL"; break;
     case Kind::HEXADECIMAL: o << "HEXADECIMAL"; break;
     case Kind::BINARY: o << "BINARY"; break;
     case Kind::STRING: o << "STRING"; break;
-    // programs
-    case Kind::PROGRAM: o << "PROGRAM"; break;
-    case Kind::PAIR: o << "PAIR"; break;
     default: o << "UnknownKind(" << unsigned(k) << ")"; break;
   }
   return o;
@@ -62,13 +62,40 @@ std::string kindToTerm(Kind k)
   return ss.str();
 }
 
-bool isVariable(Kind k)
+bool isSymbol(Kind k)
 {
-  return k==Kind::VARIABLE || k==Kind::CONST || k==Kind::PROGRAM_CONST || k==Kind::PROOF_RULE;
+  switch(k)
+  {
+    case Kind::CONST:
+    case Kind::PROGRAM_CONST:
+    case Kind::PROOF_RULE:
+    case Kind::VARIABLE: return true; break;
+    default: break;
+  }
+  return false;
 }
 bool isLiteral(Kind k)
 {
-  return k==Kind::INTEGER || k==Kind::DECIMAL || k==Kind::HEXADECIMAL || k==Kind::BINARY || k==Kind::STRING;
+  switch(k)
+  {
+    case Kind::BOOLEAN:
+    case Kind::NUMERAL:
+    case Kind::DECIMAL:
+    case Kind::HEXADECIMAL:
+    case Kind::BINARY:
+    case Kind::STRING: return true; break;
+    default: break;
+  }
+  return false;
+}
+bool isLiteralOp(Kind k)
+{
+  switch(k)
+  {
+    case Kind::NUMERAL_ADD:return true; break;
+    default: break;
+  }
+  return false;
 }
 
 }  // namespace alfc
