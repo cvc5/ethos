@@ -30,7 +30,7 @@ State::State(Options& opts, Stats& stats) : d_tc(*this), d_opts(opts), d_stats(s
   bindBuiltin("->", Kind::FUNCTION_TYPE);
   bindBuiltin("@", Kind::APPLY);
 
-  bindBuiltin("num.add", Kind::NUMERAL_ADD);
+  bindBuiltin("eval.+", Kind::NUMERAL_ADD);
 
 
   // note we don't allow parsing (Proof ...), (Quote ...), or (quote ...).
