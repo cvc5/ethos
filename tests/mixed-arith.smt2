@@ -20,12 +20,15 @@
 (declare-const + (-> (! Type :var T :implicit) 
                      (! Type :var U :implicit) 
                      T U (a.typeunion T U)))
+(declare-const - (-> (! Type :var T :implicit) 
+                     (! Type :var U :implicit) 
+                     T U (a.typeunion T U)))
 
 
 (program run_evaluate ((T Type) (U Type) (S Type) (a T) (b U) (z S))
     (S) S
     (
-      ((run_evaluate (+ a b)) (eval.+ (run_evaluate a) (run_evaluate b)))
+      ((run_evaluate (+ a b)) (eval.add (run_evaluate a) (run_evaluate b)))
       ((run_evaluate z)       z)
     )
 )

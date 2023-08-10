@@ -48,8 +48,6 @@ struct Literal
   Kind toKind() const;
   std::string toString() const;
 
-  /** Type check */
-  static Expr getType(Kind k, std::vector<Expr>& childTypes);
   /** Evaluate literal op */
   static Literal evaluate(Kind k, const std::vector<Literal*>& args);
 };

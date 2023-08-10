@@ -43,8 +43,15 @@ enum class Kind
   STRING,
 
   // operations on literals
-  NUMERAL_ADD,
-  NUMERAL_DIV
+  EVAL_ADD,
+  EVAL_NEG,
+  EVAL_MUL,
+  EVAL_INT_DIV,
+  EVAL_RAT_DIV,
+  EVAL_IS_NEG,
+  EVAL_IS_ZERO,
+  EVAL_TO_INT,
+  EVAL_TO_RAT
 };
 
 /** Print a kind to the stream, for debugging */

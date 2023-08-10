@@ -92,23 +92,11 @@ std::string Literal::toString() const
   return "?";
 }
 
-Expr Literal::getType(Kind k, std::vector<Expr>& childTypes)
-{
-  switch (k)
-  {
-    case Kind::NUMERAL_ADD:
-      return childTypes[0];
-      break;
-    default:break;
-  }
-  return nullptr;
-}
-
 Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
 {
   switch (k)
   {
-    case Kind::NUMERAL_ADD:
+    case Kind::EVAL_ADD:
     {
       switch (args[0]->d_tag)
       {

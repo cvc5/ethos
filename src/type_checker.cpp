@@ -154,7 +154,22 @@ const Expr& TypeChecker::getType(Expr& e, std::ostream* out)
 
 bool TypeChecker::checkArity(Kind k, size_t nargs)
 {
-  // TODO: check arities
+  // TODO: check arities  switch (k)
+  switch(k)
+  {
+    case Kind::EVAL_ADD:
+    case Kind::EVAL_MUL:
+    case Kind::EVAL_INT_DIV:
+    case Kind::EVAL_RAT_DIV:
+      return nargs==2;
+    case Kind::EVAL_NEG:
+    case Kind::EVAL_IS_NEG:
+    case Kind::EVAL_IS_ZERO:
+    case Kind::EVAL_TO_INT:
+    case Kind::EVAL_TO_RAT:
+      return nargs==1;
+    default:break;
+  }  
   return true;
 }
 
@@ -329,12 +344,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
         {
           ctypes.push_back(c->d_type);
         }
-        Expr ret = Literal::getType(k, ctypes);
-        if (ret==nullptr && out)
-        {
-          (*out) << "Unknown type for literal operator " << k;
-        }
-        return ret;
+        return getLiteralType(k, ctypes, out);
       }
       break;
   }
@@ -690,6 +700,34 @@ Expr TypeChecker::evaluateLiteralOp(Kind k, const std::vector<Expr>& args)
   }
   // convert back to an expression
   return d_state.mkLiteral(eval.toKind(), eval.toString());
+}
+
+Expr TypeChecker::getLiteralType(Kind k,
+                                 std::vector<Expr>& childTypes, 
+                                 std::ostream* out)
+{
+  switch (k)
+  {
+    case Kind::EVAL_ADD:
+    case Kind::EVAL_MUL:
+      return childTypes[0];
+      break;
+    case Kind::EVAL_NEG:
+      return childTypes[0];
+      break;
+    case Kind::EVAL_INT_DIV:
+    case Kind::EVAL_RAT_DIV:
+    case Kind::EVAL_IS_NEG:
+    case Kind::EVAL_IS_ZERO:
+    case Kind::EVAL_TO_INT:
+    case Kind::EVAL_TO_RAT:
+    default:break;
+  }
+  if (out)
+  {
+    (*out) << "Unknown type for literal operator " << k;
+  }
+  return nullptr;
 }
 
 }  // namespace alfc

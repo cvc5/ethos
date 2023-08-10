@@ -30,8 +30,15 @@ State::State(Options& opts, Stats& stats) : d_tc(*this), d_opts(opts), d_stats(s
   bindBuiltin("->", Kind::FUNCTION_TYPE);
   bindBuiltin("@", Kind::APPLY);
 
-  bindBuiltin("eval.+", Kind::NUMERAL_ADD);
-
+  bindBuiltinEval("add", Kind::EVAL_ADD);
+  bindBuiltinEval("neg", Kind::EVAL_NEG);
+  bindBuiltinEval("mul", Kind::EVAL_MUL);
+  bindBuiltinEval("zdiv", Kind::EVAL_INT_DIV);
+  bindBuiltinEval("qdiv", Kind::EVAL_RAT_DIV);
+  bindBuiltinEval("is_neg", Kind::EVAL_IS_NEG);
+  bindBuiltinEval("is_zero", Kind::EVAL_IS_ZERO);
+  bindBuiltinEval("to_z", Kind::EVAL_TO_INT);
+  bindBuiltinEval("to_q", Kind::EVAL_TO_RAT);
 
   // note we don't allow parsing (Proof ...), (Quote ...), or (quote ...).
 
@@ -674,6 +681,11 @@ void State::bindBuiltin(const std::string& name, Kind k, bool isClosure, const E
       ai.d_attrs.insert(Attr::CLOSURE);
     }
   }
+}
+
+void State::bindBuiltinEval(const std::string& name, Kind k)
+{
+  bindBuiltin("eval."+name, k);
 }
 
 void State::defineProgram(const Expr& v, const Expr& prog)

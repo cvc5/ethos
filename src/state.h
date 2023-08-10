@@ -138,14 +138,12 @@ private:
   Expr mkSymbolInternal(Kind k, const std::string& name, const Expr& type);
   /** */
   AppInfo* getAppInfo(const ExprValue* e);
-  /** 
-   * Bind builtin
-   */
+  /** Bind builtin */
   void bindBuiltin(const std::string& name, Kind k, bool isClosure = false);
-  /** 
-   * Bind builtin
-   */
+  /** Bind builtin */
   void bindBuiltin(const std::string& name, Kind k, bool isClosure, const Expr& t);
+  /** Bind builtin eval */
+  void bindBuiltinEval(const std::string& name, Kind k);
   /** Compiled initialization */
   void run_initialize();
   /** The symbol table */
