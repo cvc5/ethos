@@ -62,40 +62,40 @@
     ((L Type) (E Type) (cons (-> E L L)) (x L) (xs L :list) (l L :list))
     ((-> E L L) L L) L
     (
-        ((reverseRec cons (! E :nil) l)  l)
-        ((reverseRec cons (cons x xs)   l) (reverseRec cons xs (append cons x l)))
+        ((reverseRec cons (! E :nil)  l)  l)
+        ((reverseRec cons (cons x xs) l) (reverseRec cons xs (append cons x l)))
     )
 )
 
-; reverse cons xs
+; reverse cons nil xs
 ; Reverses the list `xs`.
 (program reverse
-    ((L Type) (E Type) (cons (-> E L L)) (xs L :list))
-    ((-> E L L) L) L
+    ((L Type) (E Type) (cons (-> E L L)) (nil L) (xs L :list))
+    ((-> E L L) L L) L
     (
-        ((reverse cons xs) (reverseRec cons xs (! E :nil)))
+        ((reverse cons nil xs) (reverseRec cons xs nil))
     )
 )
 
 ; naryElim cons x
 ; Returns the sole element if `xs` is a singleton list.
 (program naryElim
-    ((L Type) (cons (-> L L L)) (x L) (xs L :list))
-    ((-> L L L) L) L
+    ((L Type) (cons (-> L L L)) (nil L) (x L) (xs L :list))
+    ((-> L L L) L L) L
     (
-        ((naryElim cons (cons x (! L :nil))) x)
-        ((naryElim cons (cons x xs)) (append cons x xs))
-        ((naryElim cons xs) xs)
+        ((naryElim cons nil (cons x nil)) x)
+        ((naryElim cons nil (cons x xs)) (append cons x xs))
+        ((naryElim cons nil xs) xs)
     )
 )
 
 ; naryIntro cons x
 ; Returns a singleton list if `x` is not a list.
 (program naryIntro
-    ((L Type) (cons (-> L L L)) (x L) (xs L :list))
-    ((-> L L L) L) L
+    ((L Type) (cons (-> L L L)) (nil L) (x L) (xs L :list))
+    ((-> L L L) L L) L
     (
-        ((naryIntro cons (cons x xs)) (append cons x xs))
-        ((naryIntro cons x)           (append cons x (! L :nil)))
+        ((naryIntro cons nil (cons x xs)) (append cons x xs))
+        ((naryIntro cons nil x)           (append cons x nil))
     )
 )

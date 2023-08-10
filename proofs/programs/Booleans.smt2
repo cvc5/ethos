@@ -51,18 +51,18 @@
     ((xs Bool :list))
     (Bool) Bool
     (
-        ((reverseOr xs) (reverse or xs))
+        ((reverseOr xs) (reverse or (! Bool :nil) xs))
     )
 )
 (program naryElimOr
     ((t Bool))
     (Bool) Bool
-    (((naryElimOr t) (naryElim or t)))
+    (((naryElimOr t) (naryElim or (! Bool :nil) t)))
 )
 (program naryIntroOr
     ((t Bool))
     (Bool) Bool
-    (((naryIntroOr t) (naryIntro or t)))
+    (((naryIntroOr t) (naryIntro or (! Bool :nil) t)))
 )
 
 ; ==================================================================
@@ -93,16 +93,16 @@
     ((xs Bool :list))
     (Bool) Bool
     (
-        ((reverseAnd xs) (reverse and xs))
+        ((reverseAnd xs) (reverse and (! Bool :nil) xs))
     )
 )
 (program naryElimAnd
     ((t Bool))
     (Bool) Bool
-    (((naryElimAnd t) (naryElim and t)))
+    (((naryElimAnd t) (naryElim and (! Bool :nil) t)))
 )
 (program naryIntroAnd
     ((t Bool))
     (Bool) Bool
-    (((naryIntroAnd t) (naryIntro and t)))
+    (((naryIntroAnd t) (naryIntro and (! Bool :nil) t)))
 )
