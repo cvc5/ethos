@@ -32,12 +32,13 @@
 (program run_evaluate ((T Type) (U Type) (S Type) (a T) (b U) (z S))
     (S) S
     (
-      ((run_evaluate (= a b)) (eval.is_eq (run_evaluate a) (run_evaluate b)))
-      ((run_evaluate (< a b)) (eval.is_neg (run_evaluate (- a b))))
-      ((run_evaluate (<= a b)) (let ((x (run_evaluate (- a b)))) (eval.or (eval.is_neg x) (eval.is_zero x))))
-      ((run_evaluate (+ a b)) (eval.add (run_evaluate a) (run_evaluate b)))
-      ((run_evaluate (- a b)) (eval.add (run_evaluate a) (eval.neg (run_evaluate b))))
-      ((run_evaluate z)       z)
+      ((run_evaluate (= a b))  (eval.is_eq (run_evaluate a) (run_evaluate b)))
+      ((run_evaluate (< a b))  (eval.is_neg (run_evaluate (- a b))))
+      ((run_evaluate (<= a b)) (let ((x (run_evaluate (- a b)))) 
+                                 (eval.or (eval.is_neg x) (eval.is_zero x))))
+      ((run_evaluate (+ a b))  (eval.add (run_evaluate a) (run_evaluate b)))
+      ((run_evaluate (- a b))  (eval.add (run_evaluate a) (eval.neg (run_evaluate b))))
+      ((run_evaluate z)        z)
     )
 )
 

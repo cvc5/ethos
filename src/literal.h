@@ -3,8 +3,8 @@
 
 #include <sstream>
 #include <string>
-#include "rational.h"
-#include "integer.h"
+#include "util/rational.h"
+#include "util/integer.h"
 #include "kind.h"
 #include "expr.h"
 
