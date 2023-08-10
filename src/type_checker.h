@@ -54,9 +54,9 @@ class TypeChecker
   /** Return its type */
   Expr getTypeInternal(Expr& e, std::ostream* out);
   /** Type check */
-  static Expr getLiteralType(Kind k, 
-                             std::vector<Expr>& childTypes, 
-                             std::ostream* out);
+  Expr getLiteralOpType(Kind k, 
+                        std::vector<Expr>& childTypes, 
+                        std::ostream* out);
   /** Compiled version */
   Expr run_evaluate(Expr& e, Ctx& ctx);
   /** Compiled version */

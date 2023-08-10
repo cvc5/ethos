@@ -344,7 +344,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
         {
           ctypes.push_back(c->d_type);
         }
-        return getLiteralType(k, ctypes, out);
+        return getLiteralOpType(k, ctypes, out);
       }
       break;
   }
@@ -702,10 +702,11 @@ Expr TypeChecker::evaluateLiteralOp(Kind k, const std::vector<Expr>& args)
   return d_state.mkLiteral(eval.toKind(), eval.toString());
 }
 
-Expr TypeChecker::getLiteralType(Kind k,
-                                 std::vector<Expr>& childTypes, 
-                                 std::ostream* out)
+Expr TypeChecker::getLiteralOpType(Kind k,
+                                   std::vector<Expr>& childTypes, 
+                                   std::ostream* out)
 {
+  // NOTE: if ground, check arguments?
   switch (k)
   {
     case Kind::EVAL_ADD:
@@ -715,12 +716,15 @@ Expr TypeChecker::getLiteralType(Kind k,
     case Kind::EVAL_NEG:
       return childTypes[0];
       break;
-    case Kind::EVAL_INT_DIV:
-    case Kind::EVAL_RAT_DIV:
     case Kind::EVAL_IS_NEG:
     case Kind::EVAL_IS_ZERO:
+      return getOrSetLiteralTypeRule(Kind::BOOLEAN);
+    case Kind::EVAL_INT_DIV:
     case Kind::EVAL_TO_INT:
+      return getOrSetLiteralTypeRule(Kind::NUMERAL);
+    case Kind::EVAL_RAT_DIV:
     case Kind::EVAL_TO_RAT:
+      return getOrSetLiteralTypeRule(Kind::DECIMAL);
     default:break;
   }
   if (out)
