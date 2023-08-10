@@ -195,7 +195,10 @@ Expr ExprParser::parseExpr()
       break;
       case Token::DECIMAL_LITERAL:
       {
-        ret = d_state.mkLiteral(Kind::DECIMAL, d_lex.tokenStr());
+        // must normalize from decimal, since mkLiteral requires a canonical
+        // (rational) string input.
+        Rational r = Rational::fromDecimal(d_lex.tokenStr());
+        ret = d_state.mkLiteral(Kind::DECIMAL, r.toString());
       }
       break;
       case Token::HEX_LITERAL:
@@ -657,7 +660,6 @@ Expr ExprParser::typeCheck(Expr& e)
     msg << "Message: " << ss.str() << std::endl;
     d_lex.parseError(msg.str());
   }
-  Trace("expr_parser") << "TYPE " << e << " : " << v << std::endl;
   return v;
 }
 

@@ -261,7 +261,7 @@ Expr State::mkSymbolInternal(Kind k, const std::string& name, const Expr& type)
   // map to the data
   ExprInfo* ei = getOrMkInfo(v.get());
   ei->d_str = name;
-  Trace("state") << "TYPE " << name << " : " << type << std::endl;
+  Trace("type_checker") << "TYPE " << name << " : " << type << std::endl;
   return v;
 }
 
@@ -450,6 +450,25 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       }
     }
   }
+  else if (isLiteralOp(k))
+  {
+    // if all arguments are ground, just evaluate immediately
+    bool allGround = true;
+    for (size_t i=0, nchild = children.size(); i<nchild; i++)
+    {
+      if (!children[i]->isGround())
+      {
+        allGround = false;
+        break;
+      }
+    }
+    if (allGround)
+    {
+      Expr ret = d_tc.evaluateLiteralOp(k, children);
+      Trace("state") << "EAGER_EVALUATE " << ret << std::endl;
+      return ret;
+    }
+  }
   return mkExprInternal(k, children);
 }
 
@@ -490,7 +509,7 @@ Expr State::mkLiteral(Kind k, const std::string& s)
       d_literals[lit.get()] = Literal(Integer(s));
       break;
     case Kind::DECIMAL:
-      d_literals[lit.get()] = Literal(Rational::fromDecimal(s));
+      d_literals[lit.get()] = Literal(Rational(s));
       break;
     case Kind::HEXADECIMAL:
       break;

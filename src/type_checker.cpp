@@ -138,6 +138,7 @@ const Expr& TypeChecker::getType(Expr& e, std::ostream* out)
     {
       //std::cout << "Type check " << cur << std::endl;
       cur->d_type = getTypeInternal(cur, out);
+      Trace("type_checker") << "TYPE " << cur << " : " << cur->d_type << std::endl;
       //std::cout << "...return" << std::endl;
       if (cur->d_type==nullptr)
       {
@@ -151,10 +152,20 @@ const Expr& TypeChecker::getType(Expr& e, std::ostream* out)
   return e->d_type;
 }
 
-Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
+bool TypeChecker::checkArity(Kind k, size_t nargs)
 {
   // TODO: check arities
+  return true;
+}
+
+Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
+{
   Kind k = e->getKind();
+  if (!checkArity(k, e->getNumChildren()))
+  {
+    (*out) << "Incorrect arity";
+    return nullptr;
+  }
   switch(k)
   {
     case Kind::APPLY:

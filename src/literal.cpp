@@ -110,13 +110,38 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
   {
     case Kind::NUMERAL_ADD:
     {
-      Integer i;
-      for (Literal* l : args)
+      switch (args[0]->d_tag)
       {
-        Assert (l->d_tag==INTEGER);
-        i = i + l->d_int;
+        case INTEGER:
+        {
+          Integer i;
+          for (Literal* l : args)
+          {
+            if (l->d_tag!=INTEGER)
+            {
+              return Literal();
+            }
+            i = i + l->d_int;
+          }
+          return Literal(Integer(i));
+        }
+        break;
+        case RATIONAL:
+        {
+          Rational r;
+          for (Literal* l : args)
+          {
+            if (l->d_tag!=RATIONAL)
+            {
+              return Literal();
+            }
+            r = r + l->d_rat;
+          }
+          return Literal(Rational(r));
+        }
+        break;
+        default: break;
       }
-      return Literal(Integer(i));
     }
       break;
     default:break;

@@ -22,6 +22,8 @@ class TypeChecker
   ~TypeChecker();
   /** Return its type */
   const Expr& getType(Expr& e, std::ostream* out = nullptr);
+  /** Check arity for kind */
+  static bool checkArity(Kind k, size_t nargs);
   /** Set type rule for literal kind k to t */
   void setLiteralTypeRule(Kind k, const Expr& t);
   /** Get or set type rule (to default) for literal kind k */
