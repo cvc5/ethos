@@ -129,7 +129,7 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
         case BOOL:
           if (args[1]->d_tag==BOOL)
           {
-            return Literal(Integer(args[0]->d_bool && args[1]->d_bool));
+            return Literal(args[0]->d_bool && args[1]->d_bool);
           }
           break;
         default: break;
@@ -141,7 +141,7 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
         case BOOL:
           if (args[1]->d_tag==BOOL)
           {
-            return Literal(Integer(args[0]->d_bool || args[1]->d_bool));
+            return Literal(args[0]->d_bool || args[1]->d_bool);
           }
           break;
         default: break;
