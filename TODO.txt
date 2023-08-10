@@ -1,0 +1,7 @@
+TODO:
+
+- auto-evaluate literal ops
+- literal ops to compiler
+- change syntax for nil?
+- remove custom nil construction policy
+
