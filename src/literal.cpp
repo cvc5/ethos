@@ -132,6 +132,83 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
       }
     }
       break;
+    case Kind::EVAL_NEG:
+      switch (args[0]->d_tag)
+      {
+        case INTEGER:return Literal(Integer(-args[0]->d_int));
+        case RATIONAL:return Literal(Rational(-args[0]->d_rat));
+        default: break;
+      }
+      break;
+    case Kind::EVAL_MUL:
+    {
+      switch (args[0]->d_tag)
+      {
+        case INTEGER:
+        {
+          Integer i(1);
+          for (Literal* l : args)
+          {
+            if (l->d_tag!=INTEGER)
+            {
+              return Literal();
+            }
+            i = i * l->d_int;
+          }
+          return Literal(Integer(i));
+        }
+        break;
+        case RATIONAL:
+        {
+          Rational r(1);
+          for (Literal* l : args)
+          {
+            if (l->d_tag!=RATIONAL)
+            {
+              return Literal();
+            }
+            r = r * l->d_rat;
+          }
+          return Literal(Rational(r));
+        }
+        break;
+        default: break;
+      }
+    }
+      break;
+    case Kind::EVAL_INT_DIV:
+    case Kind::EVAL_RAT_DIV:
+      break;
+    case Kind::EVAL_IS_NEG:
+      switch (args[0]->d_tag)
+      {
+        case INTEGER:return Literal(args[0]->d_int.sgn()==-1);
+        case RATIONAL:return Literal(args[0]->d_rat.sgn()==-1);
+        default: break;
+      }
+      break;
+    case Kind::EVAL_IS_ZERO:
+      switch (args[0]->d_tag)
+      {
+        case INTEGER:return Literal(args[0]->d_int.sgn()==0);
+        case RATIONAL:return Literal(args[0]->d_rat.sgn()==0);
+        default: break;
+      }
+      break;
+    case Kind::EVAL_TO_INT:
+      switch (args[0]->d_tag)
+      {
+        case RATIONAL:return Literal(args[0]->d_rat.floor());
+        default: break;
+      }
+      break;
+    case Kind::EVAL_TO_RAT:
+      switch (args[0]->d_tag)
+      {
+        case INTEGER:return Literal(Rational(args[0]->d_int));
+        default: break;
+      }
+      break;
     default:break;
   }
   return Literal();

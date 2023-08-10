@@ -29,6 +29,7 @@
     (S) S
     (
       ((run_evaluate (+ a b)) (eval.add (run_evaluate a) (run_evaluate b)))
+      ((run_evaluate (- a b)) (eval.add (run_evaluate a) (eval.neg (run_evaluate b))))
       ((run_evaluate z)       z)
     )
 )
@@ -43,3 +44,4 @@
 
 
 (step a1 (= (+ 0.5 0.25) 0.75) :rule eval :args ((+ 0.5 0.25) 0.75))
+(step a2 (= (- 0.5 0.25) 0.25) :rule eval :args ((- 0.5 0.25) 0.25))

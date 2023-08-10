@@ -429,13 +429,13 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           break;
         }
       }
-      // TODO: only do this if the correct arity
       // have to check whether we have the program, i.e. if we are constructing
       // applications corresponding to the cases in the program definition itself.
       if (allGround && d_tc.hasProgram(hd))
       {
         Expr hdt = hd;
         const Expr& t = d_tc.getType(hdt);
+        // only do this if the correct arity
         if (t->getNumChildren()==children.size())
         {
           Ctx ctx;
@@ -459,21 +459,25 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
   }
   else if (isLiteralOp(k))
   {
-    // if all arguments are ground, just evaluate immediately
-    bool allGround = true;
-    for (size_t i=0, nchild = children.size(); i<nchild; i++)
+    // only if correct arity, else we will catch the type error
+    if (TypeChecker::checkArity(k, children.size()))
     {
-      if (!children[i]->isGround())
+      // if all arguments are ground, just evaluate immediately
+      bool allGround = true;
+      for (size_t i=0, nchild = children.size(); i<nchild; i++)
       {
-        allGround = false;
-        break;
+        if (!children[i]->isGround())
+        {
+          allGround = false;
+          break;
+        }
       }
-    }
-    if (allGround)
-    {
-      Expr ret = d_tc.evaluateLiteralOp(k, children);
-      Trace("state") << "EAGER_EVALUATE " << ret << std::endl;
-      return ret;
+      if (allGround)
+      {
+        Expr ret = d_tc.evaluateLiteralOp(k, children);
+        Trace("state") << "EAGER_EVALUATE " << ret << std::endl;
+        return ret;
+      }
     }
   }
   return mkExprInternal(k, children);
