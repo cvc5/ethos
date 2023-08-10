@@ -50,4 +50,4 @@
 (step a2 (= (- 0.6 0.2) 0.4) :rule eval :args ((- 0.6 0.2) 0.4))
 (step a3 (= (< 1.25 1.5) true) :rule eval :args ((< 1.25 1.5) true))
 ; should be agnostic to spurious zeroes
-(step a4 (= (= 1.500 1.5) true) :rule eval :args ((= 1.5000 1.5) true))
+(step a4 (= (= 1.500 1.5) true) :rule eval :args ((= 1.50001 1.5) true))
