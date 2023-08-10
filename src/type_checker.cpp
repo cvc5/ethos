@@ -157,17 +157,23 @@ bool TypeChecker::checkArity(Kind k, size_t nargs)
   // TODO: check arities  switch (k)
   switch(k)
   {
+    case Kind::EVAL_IS_EQ:
+    case Kind::EVAL_AND:
+    case Kind::EVAL_OR:
     case Kind::EVAL_ADD:
     case Kind::EVAL_MUL:
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_RAT_DIV:
       return nargs==2;
+    case Kind::EVAL_NOT:
     case Kind::EVAL_NEG:
     case Kind::EVAL_IS_NEG:
     case Kind::EVAL_IS_ZERO:
     case Kind::EVAL_TO_INT:
     case Kind::EVAL_TO_RAT:
       return nargs==1;
+    case Kind::EVAL_IF_THEN_ELSE:
+      return nargs==3;
     default:break;
   }  
   return true;
@@ -563,7 +569,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
               {
                 ctxs.emplace_back();
                 // see if we evaluate
-                evaluated = evaluateProgram(cchildren, ctxs.back());
+                evaluated = evaluateProgramInternal(cchildren, ctxs.back());
                 //std::cout << "Evaluate prog returned " << evaluated << std::endl;
                 if (evaluated==nullptr || ctxs.back().empty())
                 {
@@ -636,6 +642,18 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
 
 Expr TypeChecker::evaluateProgram(const std::vector<Expr>& children, Ctx& newCtx)
 {
+  Expr ret = evaluateProgramInternal(children, newCtx);
+  if (ret!=nullptr)
+  {
+    return ret;
+  }
+  // otherwise does not evaluate, return application
+  return d_state.mkExprInternal(Kind::APPLY, children);
+}
+
+Expr TypeChecker::evaluateProgramInternal(const std::vector<Expr>& children, 
+                                          Ctx& newCtx)
+{
   const Expr& hd = children[0];
   if (hd->isCompiled())
   {
@@ -686,6 +704,7 @@ Expr TypeChecker::evaluateLiteralOp(Kind k, const std::vector<Expr>& args)
     Literal * l = d_state.getLiteral(e.get());
     if (l==nullptr)
     {
+      Trace("type_checker") << "...does not evaluate (argument)" << std::endl;
       // failed to convert an argument
       return nullptr;
     }
@@ -695,18 +714,22 @@ Expr TypeChecker::evaluateLiteralOp(Kind k, const std::vector<Expr>& args)
   Literal eval = Literal::evaluate(k, lits);
   if (eval.d_tag==Literal::INVALID)
   {
+    Trace("type_checker") << "...does not evaluate (return)" << std::endl;
     // failed to evaluate
     return nullptr;
   }
   // convert back to an expression
-  return d_state.mkLiteral(eval.toKind(), eval.toString());
+  Expr lit = d_state.mkLiteral(eval.toKind(), eval.toString());
+  Trace("type_checker") << "...evaluates to " << lit << std::endl;
+  return lit;
 }
 
 Expr TypeChecker::getLiteralOpType(Kind k,
                                    std::vector<Expr>& childTypes, 
                                    std::ostream* out)
 {
-  // NOTE: if ground, check arguments?
+  // NOTE: applications of these operators should only be in patterns,
+  // where type checking is not strict.
   switch (k)
   {
     case Kind::EVAL_ADD:
@@ -716,6 +739,13 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_NEG:
       return childTypes[0];
       break;
+    case Kind::EVAL_IF_THEN_ELSE:
+      return childTypes[1];
+      break;
+    case Kind::EVAL_IS_EQ:
+    case Kind::EVAL_NOT:
+    case Kind::EVAL_AND:
+    case Kind::EVAL_OR:
     case Kind::EVAL_IS_NEG:
     case Kind::EVAL_IS_ZERO:
       return getOrSetLiteralTypeRule(Kind::BOOLEAN);

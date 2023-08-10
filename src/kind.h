@@ -43,6 +43,14 @@ enum class Kind
   STRING,
 
   // operations on literals
+  // core
+  EVAL_IS_EQ,
+  EVAL_IF_THEN_ELSE,
+  // boolean
+  EVAL_NOT,
+  EVAL_AND,
+  EVAL_OR,
+  // arithmetic
   EVAL_ADD,
   EVAL_NEG,
   EVAL_MUL,

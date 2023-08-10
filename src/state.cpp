@@ -30,6 +30,13 @@ State::State(Options& opts, Stats& stats) : d_tc(*this), d_opts(opts), d_stats(s
   bindBuiltin("->", Kind::FUNCTION_TYPE);
   bindBuiltin("@", Kind::APPLY);
 
+  bindBuiltinEval("is_eq", Kind::EVAL_IS_EQ);
+  bindBuiltinEval("ite", Kind::EVAL_IF_THEN_ELSE);
+  // boolean
+  bindBuiltinEval("not", Kind::EVAL_NOT);
+  bindBuiltinEval("and", Kind::EVAL_AND);
+  bindBuiltinEval("or", Kind::EVAL_OR);
+  // arithmetic
   bindBuiltinEval("add", Kind::EVAL_ADD);
   bindBuiltinEval("neg", Kind::EVAL_NEG);
   bindBuiltinEval("mul", Kind::EVAL_MUL);

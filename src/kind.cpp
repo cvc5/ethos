@@ -36,6 +36,13 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::BINARY: o << "BINARY"; break;
     case Kind::STRING: o << "STRING"; break;
     // operations on literals
+    case Kind::EVAL_IS_EQ: o << "EVAL_IS_EQ"; break;
+    case Kind::EVAL_IF_THEN_ELSE: o << "EVAL_IF_THEN_ELSE"; break;
+    // boolean
+    case Kind::EVAL_NOT: o << "EVAL_NOT"; break;
+    case Kind::EVAL_AND: o << "EVAL_AND"; break;
+    case Kind::EVAL_OR: o << "EVAL_OR"; break;
+    // arithmetic
     case Kind::EVAL_ADD: o << "EVAL_ADD"; break;
     case Kind::EVAL_NEG: o << "EVAL_NEG"; break;
     case Kind::EVAL_MUL: o << "EVAL_MUL"; break;
@@ -74,6 +81,13 @@ std::string kindToTerm(Kind k)
         ss << "eval.";
         switch (k)
         {
+        case Kind::EVAL_IS_EQ: ss << "is_eq"; break;
+        case Kind::EVAL_IF_THEN_ELSE: ss << "ite"; break;
+        // boolean
+        case Kind::EVAL_NOT: ss << "not"; break;
+        case Kind::EVAL_AND: ss << "and"; break;
+        case Kind::EVAL_OR: ss << "or"; break;
+        // arithmetic
         case Kind::EVAL_ADD: ss << "add";break;
         case Kind::EVAL_NEG: ss << "neg";break;
         case Kind::EVAL_MUL: ss << "mul";break;
@@ -125,6 +139,13 @@ bool isLiteralOp(Kind k)
 {
   switch(k)
   {
+    case Kind::EVAL_IS_EQ:
+    case Kind::EVAL_IF_THEN_ELSE:
+    // boolean
+    case Kind::EVAL_NOT:
+    case Kind::EVAL_AND:
+    case Kind::EVAL_OR:
+    // arithmetic
     case Kind::EVAL_ADD:
     case Kind::EVAL_NEG:
     case Kind::EVAL_MUL:

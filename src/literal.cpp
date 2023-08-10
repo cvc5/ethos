@@ -96,8 +96,58 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
 {
   switch (k)
   {
+    case Kind::EVAL_IS_EQ:
+      // note if not properly typed, it does not evaluate
+      if (args[0]->d_tag==args[1]->d_tag)
+      {
+        switch(args[0]->d_tag)
+        {
+        case BOOL: return Literal(args[0]->d_bool==args[1]->d_bool);break;
+        case RATIONAL: return Literal(args[0]->d_rat==args[1]->d_rat);break;
+        case INTEGER: return Literal(args[0]->d_int==args[1]->d_int);break;
+        case BITVECTOR:
+        case STRING:
+        default: break;
+        }
+      }
+      break;
+    case Kind::EVAL_IF_THEN_ELSE:
+      if (args[0]->d_tag==BOOL)
+      {
+        return Literal(args[0]->d_bool ? *args[1] : *args[2]);
+      }
+      break;
+    // boolean
+    case Kind::EVAL_NOT:
+      if (args[0]->d_tag==BOOL)
+      {
+        return Literal(!args[0]->d_bool);
+      }
+    case Kind::EVAL_AND:
+      switch (args[0]->d_tag)
+      {
+        case BOOL:
+          if (args[1]->d_tag==BOOL)
+          {
+            return Literal(Integer(args[0]->d_bool && args[1]->d_bool));
+          }
+          break;
+        default: break;
+      }
+      break;
+    case Kind::EVAL_OR:
+      switch (args[0]->d_tag)
+      {
+        case BOOL:
+          if (args[1]->d_tag==BOOL)
+          {
+            return Literal(Integer(args[0]->d_bool || args[1]->d_bool));
+          }
+          break;
+        default: break;
+      }
+      break;
     case Kind::EVAL_ADD:
-    {
       switch (args[0]->d_tag)
       {
         case INTEGER:
@@ -114,7 +164,6 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
           break;
         default: break;
       }
-    }
       break;
     case Kind::EVAL_NEG:
       switch (args[0]->d_tag)

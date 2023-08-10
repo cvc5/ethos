@@ -23,11 +23,15 @@
 (declare-const - (-> (! Type :var T :implicit) 
                      (! Type :var U :implicit) 
                      T U (a.typeunion T U)))
+(declare-const < (-> (! Type :var T :implicit) 
+                      T T Bool))
 
 
 (program run_evaluate ((T Type) (U Type) (S Type) (a T) (b U) (z S))
     (S) S
     (
+      ((run_evaluate (= a b)) (eval.is_eq (run_evaluate a) (run_evaluate b)))
+      ((run_evaluate (< a b)) (eval.is_neg (run_evaluate (- a b))))
       ((run_evaluate (+ a b)) (eval.add (run_evaluate a) (run_evaluate b)))
       ((run_evaluate (- a b)) (eval.add (run_evaluate a) (eval.neg (run_evaluate b))))
       ((run_evaluate z)       z)
@@ -42,6 +46,8 @@
    :conclusion (= a b)
 )
 
-
 (step a1 (= (+ 0.5 0.25) 0.75) :rule eval :args ((+ 0.5 0.25) 0.75))
-(step a2 (= (- 0.5 0.25) 0.25) :rule eval :args ((- 0.5 0.25) 0.25))
+(step a2 (= (- 0.6 0.2) 0.4) :rule eval :args ((- 0.6 0.2) 0.4))
+(step a3 (= (< 1.25 1.5) true) :rule eval :args ((< 1.25 1.5) true))
+; should be agnostic to spurious zeroes
+(step a4 (= (= 1.500 1.5) true) :rule eval :args ((= 1.5000 1.5) true))

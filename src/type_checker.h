@@ -49,18 +49,22 @@ class TypeChecker
   Expr evaluate(Expr& e, Ctx& ctx);
   Expr evaluate(Expr& e);
  private:
-  /** Compiled version */
-  Expr run_getTypeInternal(Expr& hdType, const std::vector<Expr>& args, std::ostream* out);
+  /** Maybe evaluate */
+  Expr evaluateProgramInternal(const std::vector<Expr>& args, Ctx& newCtx);
   /** Return its type */
   Expr getTypeInternal(Expr& e, std::ostream* out);
   /** Type check */
   Expr getLiteralOpType(Kind k, 
                         std::vector<Expr>& childTypes, 
                         std::ostream* out);
+  //---------------- compiled methods
+  /** Compiled version */
+  Expr run_getTypeInternal(Expr& hdType, const std::vector<Expr>& args, std::ostream* out);
   /** Compiled version */
   Expr run_evaluate(Expr& e, Ctx& ctx);
   /** Compiled version */
   Expr run_evaluateProgram(const std::vector<Expr>& args, Ctx& ctx);
+  //---------------- end compiled methods
   /** The state */
   State& d_state;
   /** The builtin literal kinds */
