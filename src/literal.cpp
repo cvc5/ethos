@@ -101,33 +101,17 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
       switch (args[0]->d_tag)
       {
         case INTEGER:
-        {
-          Integer i;
-          for (Literal* l : args)
+          if (args[1]->d_tag==INTEGER)
           {
-            if (l->d_tag!=INTEGER)
-            {
-              return Literal();
-            }
-            i = i + l->d_int;
+            return Literal(Integer(args[0]->d_int + args[1]->d_int));
           }
-          return Literal(Integer(i));
-        }
-        break;
+          break;
         case RATIONAL:
-        {
-          Rational r;
-          for (Literal* l : args)
+          if (args[1]->d_tag==RATIONAL)
           {
-            if (l->d_tag!=RATIONAL)
-            {
-              return Literal();
-            }
-            r = r + l->d_rat;
+            return Literal(Rational(args[0]->d_rat + args[1]->d_rat));
           }
-          return Literal(Rational(r));
-        }
-        break;
+          break;
         default: break;
       }
     }
@@ -145,39 +129,56 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
       switch (args[0]->d_tag)
       {
         case INTEGER:
-        {
-          Integer i(1);
-          for (Literal* l : args)
+          if (args[1]->d_tag==INTEGER)
           {
-            if (l->d_tag!=INTEGER)
-            {
-              return Literal();
-            }
-            i = i * l->d_int;
+            return Literal(Integer(args[0]->d_int * args[1]->d_int));
           }
-          return Literal(Integer(i));
-        }
-        break;
+          break;
         case RATIONAL:
-        {
-          Rational r(1);
-          for (Literal* l : args)
+          if (args[1]->d_tag==RATIONAL)
           {
-            if (l->d_tag!=RATIONAL)
-            {
-              return Literal();
-            }
-            r = r * l->d_rat;
+            return Literal(Rational(args[0]->d_rat * args[1]->d_rat));
           }
-          return Literal(Rational(r));
-        }
-        break;
+          break;
         default: break;
       }
     }
       break;
     case Kind::EVAL_INT_DIV:
+      if (args[0]->d_tag==INTEGER && args[1]->d_tag==INTEGER)
+      {
+        Integer& d = args[1]->d_int;
+        if (d.sgn()!=0)
+        {
+          return Literal(Integer(args[0]->d_int.euclidianDivideQuotient(d)));
+        }
+      }
+      break;
     case Kind::EVAL_RAT_DIV:
+      switch (args[0]->d_tag)
+      {
+        case INTEGER:
+          if (args[1]->d_tag==INTEGER)
+          {
+            Integer& d = args[1]->d_int;
+            if (d.sgn()!=0)
+            {
+              return Literal(Rational(args[0]->d_int, d));
+            }
+          }
+          break;
+        case RATIONAL:
+          if (args[1]->d_tag==RATIONAL)
+          {
+            Rational& d = args[1]->d_rat;
+            if (d.sgn()!=0)
+            {
+              return Literal(Rational(args[0]->d_rat / d));
+            }
+          }
+          break;
+        default: break;
+      }
       break;
     case Kind::EVAL_IS_NEG:
       switch (args[0]->d_tag)
