@@ -299,7 +299,8 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       {
         // another builtin operator, possibly APPLY
         std::vector<Expr> achildren(children.begin()+1, children.end());
-        return mkExprInternal(ai->d_kind, achildren);
+        // must call mkExpr again, since we may auto-evaluate
+        return mkExpr(ai->d_kind, achildren);
       }
       // if it has a constructor attribute
       switch (ai->d_attrCons)

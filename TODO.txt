@@ -4,4 +4,4 @@ TODO:
 - literal ops to compiler
 - change syntax for nil?
 - remove custom nil construction policy
-
+- datatypes

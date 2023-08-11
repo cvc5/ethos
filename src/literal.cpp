@@ -148,6 +148,7 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
       }
       break;
     case Kind::EVAL_ADD:
+      // TODO: allow mixed??
       switch (args[0]->d_tag)
       {
         case INTEGER:
@@ -174,7 +175,7 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
       }
       break;
     case Kind::EVAL_MUL:
-    {
+      // TODO: allow mixed??
       switch (args[0]->d_tag)
       {
         case INTEGER:
@@ -191,7 +192,6 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
           break;
         default: break;
       }
-    }
       break;
     case Kind::EVAL_INT_DIV:
       if (args[0]->d_tag==INTEGER && args[1]->d_tag==INTEGER)

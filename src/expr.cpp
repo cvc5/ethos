@@ -46,6 +46,12 @@ bool ExprValue::isGround()
   return !getFlag(Flag::IS_NON_GROUND);
 }
 
+bool ExprValue::isProgEvaluatable()
+{
+  computeFlags();
+  return getFlag(Flag::IS_PROG_EVAL);
+}
+
 bool ExprValue::isCompiled()
 {
   // this is set manually
@@ -94,6 +100,7 @@ void ExprValue::computeFlags()
         Kind cck = children[0]->getKind();
         if (cck==Kind::PROGRAM_CONST)
         {
+          cur->setFlag(Flag::IS_PROG_EVAL, true);
           cur->setFlag(Flag::IS_EVAL, true);
         }
       }
@@ -111,6 +118,10 @@ void ExprValue::computeFlags()
         if (c->getFlag(Flag::IS_EVAL))
         {
           cur->setFlag(Flag::IS_EVAL, true);
+        }
+        if (c->getFlag(Flag::IS_PROG_EVAL))
+        {
+          cur->setFlag(Flag::IS_PROG_EVAL, true);
         }
       }
     }

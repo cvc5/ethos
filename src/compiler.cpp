@@ -432,6 +432,11 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
           os << "  _etmp = evaluateProgram(" << argList.str() << ", _ctxTmp);" << std::endl;
           os << "  " << cs.d_prefix << ret << " = evaluate(_etmp, _ctxTmp);" << std::endl;
         }
+        else if (cs.d_progEval && isLiteralOp(ck))
+        {
+          os << "  " << cs.d_prefix << ret << " = evaluateLiteralOp(Kind::";
+          os << cur->getKind() << ", " << argList.str() << ");" << std::endl;
+        }
         else
         {
           os << "  " << cs.d_prefix << ret << " = ";
@@ -699,7 +704,7 @@ void Compiler::writeEvaluate(std::ostream& os, const Expr& e)
       // don't bother writing evaluation for variables
       continue;
     }
-    if (curr->isEvaluatable())
+    if (curr->isProgEvaluatable())
     {
       // if its evaluatable, traverse
       std::vector<Expr>& children = curr->d_children;
@@ -726,7 +731,9 @@ void Compiler::writeEvaluate(std::ostream& os, const Expr& e)
     std::stringstream localDecl;
     std::stringstream localImpl;
     std::string pprefix("_p");
-    CompilerScope pscope(localDecl, localImpl, pprefix, &d_global);
+    // we won't print program applications due to guard above, but we will
+    // want to execute literal operations.
+    CompilerScope pscope(localDecl, localImpl, pprefix, &d_global, true);
     std::vector<Expr> fvs = getFreeSymbols(curr);
     std::map<ExprValue*, size_t>::iterator iti;
     for (const Expr& v : fvs)

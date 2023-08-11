@@ -52,6 +52,8 @@ class ExprValue
   bool isEvaluatable();
   /** Has variable */
   bool isGround();
+  /** Has program variable */
+  bool isProgEvaluatable();
   /** Is part of compiled code */
   bool isCompiled();
   /** Get symbol */
@@ -71,8 +73,9 @@ class ExprValue
     NONE = 0,
     IS_FLAGS_COMPUTED = (1 << 0),
     IS_EVAL = (1 << 1),
-    IS_NON_GROUND = (1 << 2),
-    IS_COMPILED = (1 << 3)
+    IS_PROG_EVAL = (1 << 2),
+    IS_NON_GROUND = (1 << 3),
+    IS_COMPILED = (1 << 4)
   };
   char d_flags;
   /** Compute flags */
