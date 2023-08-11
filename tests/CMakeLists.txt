@@ -41,6 +41,9 @@ set(alfc_test_file_list
     evaluation.smt2
     bv-concat.smt2
     mixed-arith.smt2
+    eval-inc.smt2
+    arith-eval.smt2
+    pf-arith-eval.smt2
 )
 
 macro(alfc_test file)
