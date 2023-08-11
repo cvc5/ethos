@@ -56,6 +56,8 @@ public:
   void includeFile(const std::string& s);
   /** add assumption */
   void addAssumption(const Expr& a);
+  /** Set type rule for literal kind k to t */
+  void setLiteralTypeRule(Kind k, const Expr& t);
   /** Type */
   Expr mkType();
   /** (-> <type>+ <type>) */

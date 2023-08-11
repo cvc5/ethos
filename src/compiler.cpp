@@ -165,6 +165,16 @@ void Compiler::popScope()
   d_nscopes--;
 }
 
+void Compiler::setLiteralTypeRule(Kind k, const Expr& t)
+{
+  if (d_nscopes>0)
+  {
+    return;
+  }
+  size_t id = writeGlobalExpr(t);
+  d_init << "  d_tc.setLiteralTypeRule(Kind::" << k << ", _e" << id << ");" << std::endl;
+}
+
 void Compiler::includeFile(const std::string& s)
 {
   if (d_nscopes>0)
@@ -529,24 +539,35 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
     bool usedMatch = false;
     Expr& retType = children.back();
     std::unordered_set<Expr> varsAssigned;
-    if (!varAssign.empty())
+    localImpl << "  // assign variables" << std::endl;
+    std::vector<Expr> fvsRet = getFreeSymbols(retType);
+    std::map<ExprValue*, size_t>::iterator iti;
+    for (std::pair<const Expr, std::string>& va : varAssign)
     {
-      localImpl << "  // assign variables" << std::endl;
-      std::vector<Expr> fvsRet = getFreeSymbols(retType);
-      std::map<ExprValue*, size_t>::iterator iti;
-      for (std::pair<const Expr, std::string>& va : varAssign)
+      // only matters if it occurs in return type
+      if (std::find(fvsRet.begin(), fvsRet.end(), va.first)==fvsRet.end())
       {
-        // only matters if it occurs in return type
-        if (std::find(fvsRet.begin(), fvsRet.end(), va.first)==fvsRet.end())
-        {
-          continue;
-        }
-        usedMatch = true;
-        iti = pscope.d_idMap.find(va.first.get());
-        Assert(iti != pscope.d_idMap.end());
-        localImpl << "  " << pprefix << iti->second << " = " << va.second << ";" << std::endl;
-        varsAssigned.insert(va.first);
+        continue;
       }
+      usedMatch = true;
+      iti = pscope.d_idMap.find(va.first.get());
+      Assert(iti != pscope.d_idMap.end());
+      localImpl << "  " << pprefix << iti->second << " = " << va.second << ";" << std::endl;
+      varsAssigned.insert(va.first);
+    }
+    // any variables in return type that were unassigned should be mapped
+    // to their original.
+    for (const Expr& v : fvsRet)
+    {
+      if (varAssign.find(v)!=varAssign.end())
+      {
+        // was assigned above
+        continue;
+      }
+      size_t id = writeGlobalExpr(v);
+      iti = pscope.d_idMap.find(v.get());
+      Assert(iti != pscope.d_idMap.end());
+      localImpl << "  " << pprefix << iti->second << " = _e" << id << ";" << std::endl;
     }
     // handle requires return type inlined
     if (retType->getKind()==Kind::REQUIRES_TYPE)

@@ -187,6 +187,15 @@ void State::addAssumption(const Expr& a)
   }
 }
 
+void State::setLiteralTypeRule(Kind k, const Expr& t)
+{
+  d_tc.setLiteralTypeRule(k, t);
+  if (d_compiler!=nullptr)
+  {
+    d_compiler->setLiteralTypeRule(k, t);
+  }
+}
+
 Expr State::mkType()
 {
   return d_type;

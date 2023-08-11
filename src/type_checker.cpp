@@ -446,6 +446,7 @@ Expr TypeChecker::evaluate(Expr& e)
 
 Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
 {
+  Assert (e!=nullptr);
   std::unordered_map<Expr, Expr>::iterator it;
   Ctx::iterator itc;
   
