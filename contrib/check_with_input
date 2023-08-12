@@ -22,4 +22,4 @@ sed -n 's/declare-sort \+\([A-Za-z]\+\) \+0/declare-type \1 ()/p;s/declare-fun \
 sed '/^unsat/d' $PROOF >> $OUTFILE
 
 cat $OUTFILE
-$ALFC --no-print-let $OUTFILE
+$ALFC -v --no-print-let $OUTFILE
