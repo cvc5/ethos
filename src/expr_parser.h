@@ -48,6 +48,19 @@ class ExprParser
    */
   std::vector<std::string> parseSymbolList();
   /**
+   * Parse datatype def '<datatype_dec>', not parentheses enclosed. The syntax
+   * for datatype declarations is:
+   *
+   * datatype_dec :=
+   *   (<constructor_dec>+) | (par (<symbol>+) (<constructor_dec>+))
+   * constructor_dec := (<symbol> (<symbol> <sort>)∗)
+   */
+  bool parseDatatypesDef(
+      const std::vector<std::string>& dnames,
+      const std::vector<size_t>& arities,
+      std::map<Expr, std::vector<Expr>>& dts,
+      std::map<Expr, std::vector<Expr>>& dtcons);
+  /**
    * Parses ':X', returns 'X'
    */
   std::string parseKeyword();
@@ -82,6 +95,13 @@ class ExprParser
   void bind(const std::string& name, Expr& e);
   //-------------------------- end checking
  protected:
+  /**
+   * Parse constructor definition list, add to declaration type. The expected
+   * syntax is '(<constructor_dec>+)'.
+   */
+  bool parseConstructorDefinitionList(Expr& dt,
+                                      std::vector<Expr>& conslist,
+                                      std::map<Expr, std::vector<Expr>>& dtcons);
   /** Return the unsigned for the current token string. */
   uint32_t tokenStrToUnsigned();
   /**

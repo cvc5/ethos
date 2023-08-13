@@ -60,6 +60,8 @@ public:
   void setLiteralTypeRule(Kind k, const Expr& t);
   /** Type */
   Expr mkType();
+  /** Make type constant (-> Type ... Type Type) */
+  Expr mkTypeConstant(const std::string& name, size_t arity);
   /** (-> <type>+ <type>) */
   Expr mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool flatten = true);
   /** (requires <pair>+ <type>) */
@@ -123,6 +125,10 @@ public:
   bool markAttributes(const Expr& v, const std::map<Attr, Expr>& attrs);
   /** Define program */
   void defineProgram(const Expr& v, const Expr& prog);
+  /** Define constructor */
+  void defineConstructor(const Expr& c, const std::vector<Expr>& sels);
+  /** Define datatype */
+  void defineDatatype(const Expr& d, const std::vector<Expr>& cons);
 private:
   /** Common constants */
   Expr d_type;
@@ -148,6 +154,7 @@ private:
   void bindBuiltinEval(const std::string& name, Kind k);
   /** Compiled initialization */
   void run_initialize();
+  //--------------------- parsing state
   /** The symbol table */
   std::map<std::string, Expr> d_symTable;
   /** Context stacks */
@@ -158,20 +165,29 @@ private:
   std::vector<Expr> d_assumptions;
   /** Context size */
   std::vector<size_t> d_assumptionsSizeCtx;
+  //--------------------- expression info
   /** literals */
   std::map<const ExprValue*, ExprInfo> d_exprData;
   /** literals */
   std::map<const ExprValue*, AppInfo> d_appData;
   /** hash */
   std::map<Kind, ExprTrie> d_trie;
+  //--------------------- literals
   /** hash for literals */
   std::map<std::pair<Kind, std::string>, Expr> d_literalTrie;
   /** literal data */
   std::map<const ExprValue*, Literal> d_literals;
+  //--------------------- datatypes
+  /** datatypes */
+  std::map<const ExprValue*, std::vector<Expr>> d_dts;
+  /** constructors */
+  std::map<const ExprValue*, std::vector<Expr>> d_dtcons;
+  //--------------------- includes
   /** input file */
   std::filesystem::path d_inputFile;
   /** files included */
   std::set<std::filesystem::path> d_includes;
+  //--------------------- utilities
   /** Type checker */
   TypeChecker d_tc;
   /** Options */

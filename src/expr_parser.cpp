@@ -459,6 +459,154 @@ std::vector<std::string> ExprParser::parseSymbolList()
   return symbols;
 }
 
+bool ExprParser::parseDatatypesDef(
+      const std::vector<std::string>& dnames,
+      const std::vector<size_t>& arities,
+      std::map<Expr, std::vector<Expr>>& dts,
+      std::map<Expr, std::vector<Expr>>& dtcons)
+{
+  Assert(dnames.size() == arities.size()
+         || (dnames.size() == 1 && arities.empty()));
+  // Declare the datatypes that are currently being defined as unresolved
+  // types. If we do not know the arity of the datatype yet, we wait to
+  // define it until parsing the preamble of its body, which may optionally
+  // involve `par`. This is limited to the case of single datatypes defined
+  // via declare-datatype, and hence no datatype body is parsed without
+  // having all types declared. This ensures we can parse datatypes with
+  // nested recursion, e.g. datatypes D having a subfield type
+  // (Array Int D).
+  std::vector<Expr> dtlist;
+  for (unsigned i = 0, dsize = dnames.size(); i < dsize; i++)
+  {
+    if (i >= arities.size())
+    {
+      // do not know the arity yet
+      continue;
+    }
+    // make the datatype, which has the given arity
+    Expr t = d_state.mkTypeConstant(dnames[i], arities[i]);
+    // bind
+    if (!d_state.bind(dnames[i], t))
+    {
+      return false;
+    }
+    dtlist.push_back(t);
+  }
+  // while we get another datatype declaration, or close the list
+  Token tok = d_lex.nextToken();
+  size_t i = 0;
+  while (tok == Token::LPAREN)
+  {
+    std::vector<Expr> params;
+    if (i >= dnames.size())
+    {
+      d_lex.parseError("Too many datatypes defined in this block.");
+    }
+    tok = d_lex.nextToken();
+    bool pushedScope = false;
+    if (tok == Token::PAR)
+    {
+      pushedScope = true;
+      d_state.pushScope();
+      std::vector<std::string> symList = parseSymbolList();
+      if (symList.empty())
+      {
+        d_lex.parseError("Expected non-empty parameter list");
+      }
+      // parameters are type variables
+      for (const std::string& sym : symList)
+      {
+        Expr t = d_state.mkVar(sym, d_state.mkType());
+        if (!d_state.bind(sym, t))
+        {
+          return false;
+        }
+        params.push_back(t);
+      }
+    }
+    else
+    {
+      d_lex.reinsertToken(tok);
+      // we will parse the parentheses-enclosed construct list below
+      d_lex.reinsertToken(Token::LPAREN);
+    }
+    if (i >= arities.size())
+    {
+      // if the arity is not yet fixed, bind it now
+      Expr t = d_state.mkTypeConstant(dnames[i], params.size());
+      // bind
+      if (!d_state.bind(dnames[i], t))
+      {
+        return false;
+      }
+      dtlist.push_back(t);
+    }
+    else if (arities[i] >= 0 && params.size() != arities[i])
+    {
+      // if the arity was fixed by prelude and is not equal to the number of
+      // parameters
+      d_lex.parseError("Wrong number of parameters for datatype.");
+    }
+    // read constructor definition list, populate into the current datatype
+    Expr& dt = dtlist[i];
+    if (!parseConstructorDefinitionList(dt, dts[dt], dtcons))
+    {
+      return false;
+    }
+    if (pushedScope)
+    {
+      d_lex.eatToken(Token::RPAREN);
+      d_state.popScope();
+    }
+    tok = d_lex.nextToken();
+    i++;
+  }
+  if (dtlist.size() != dnames.size())
+  {
+    d_lex.unexpectedTokenError(tok, "Wrong number of datatypes provided.");
+  }
+  d_lex.reinsertToken(tok);
+  return true;
+}
+
+bool ExprParser::parseConstructorDefinitionList(Expr& dt,
+                                                std::vector<Expr>& conslist,
+                                                std::map<Expr, std::vector<Expr>>& dtcons)
+{
+  d_lex.eatToken(Token::LPAREN);
+  // parse another constructor or close the list
+  while (d_lex.eatTokenChoice(Token::LPAREN, Token::RPAREN))
+  {
+    std::string name = parseSymbol();
+    std::vector<Expr> typelist;
+    std::vector<Expr> sels;
+    // parse another selector or close the current constructor
+    while (d_lex.eatTokenChoice(Token::LPAREN, Token::RPAREN))
+    {
+      std::string id = parseSymbol();
+      Expr t = parseType();
+      typelist.push_back(t);
+      Expr stype = d_state.mkFunctionType({dt}, t);
+      Expr sel = d_state.mkConst(id, stype);
+      if (!d_state.bind(id, sel))
+      {
+        return false;
+      }
+      sels.push_back(sel);
+      d_lex.eatToken(Token::RPAREN);
+    }
+    Expr ctype = d_state.mkFunctionType(typelist, dt);
+    Expr cons = d_state.mkConst(name, ctype);
+    if (!d_state.bind(name, cons))
+    {
+      return false;
+    }
+    conslist.push_back(cons);
+    dtcons[cons] = sels;
+  }
+  return true;
+}
+
 std::string ExprParser::parseKeyword()
 {
   d_lex.eatToken(Token::KEYWORD);

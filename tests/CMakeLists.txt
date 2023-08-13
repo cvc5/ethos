@@ -44,6 +44,7 @@ set(alfc_test_file_list
     eval-inc.smt2
     arith-eval.smt2
     pf-arith-eval.smt2
+    datatype-simple.smt2
 )
 
 macro(alfc_test file)

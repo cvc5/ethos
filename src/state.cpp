@@ -201,8 +201,31 @@ Expr State::mkType()
   return d_type;
 }
 
+Expr State::mkTypeConstant(const std::string& name, size_t arity)
+{
+  Expr t;
+  if (arity == 0)
+  {
+    t = d_type;
+  }
+  else
+  {
+    std::vector<Expr> args;
+    for (size_t i=0; i<arity; i++)
+    {
+      args.push_back(d_type);
+    }
+    t = mkFunctionType(args, d_type);
+  }
+  return mkConst(name, t);
+}
+
 Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool flatten)
 {
+  if (args.empty())
+  {
+    return ret;
+  }
   if (flatten && args.size()>1)
   {
     Expr curr = ret;
@@ -715,6 +738,24 @@ void State::defineProgram(const Expr& v, const Expr& prog)
   if (d_compiler!=nullptr)
   {
     d_compiler->defineProgram(v, prog);
+  }
+}
+
+void State::defineConstructor(const Expr& c, const std::vector<Expr>& sels)
+{
+  d_dtcons[c.get()] = sels;
+  if (d_compiler!=nullptr)
+  {
+    d_compiler->defineConstructor(c, sels);
+  }
+}
+
+void State::defineDatatype(const Expr& d, const std::vector<Expr>& cons)
+{
+  d_dts[d.get()] = cons;
+  if (d_compiler!=nullptr)
+  {
+    d_compiler->defineDatatype(d, cons);
   }
 }
 

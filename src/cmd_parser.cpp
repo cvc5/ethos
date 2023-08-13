@@ -27,8 +27,12 @@ CmdParser::CmdParser(Lexer& lex,
 {
   // initialize the command tokens
   d_table["assume"] = Token::ASSUME;
+  d_table["declare-codatatype"] = Token::DECLARE_CODATATYPE;
+  d_table["declare-codatatypes"] = Token::DECLARE_CODATATYPES;
   d_table["declare-const"] = Token::DECLARE_CONST;
   d_table["declare-consts"] = Token::DECLARE_CONSTS;
+  d_table["declare-datatype"] = Token::DECLARE_DATATYPE;
+  d_table["declare-datatypes"] = Token::DECLARE_DATATYPES;
   d_table["declare-fun"] = Token::DECLARE_FUN;
   d_table["declare-rule"] = Token::DECLARE_RULE;
   d_table["declare-sort"] = Token::DECLARE_SORT;
@@ -114,6 +118,57 @@ bool CmdParser::parseNextCommand()
       d_state.markAttributes(v, attrs);
     }
     break;
+    // single datatype
+    // (declare-datatype <symbol> <datatype_dec>)
+    // (declare-codatatype <symbol> <datatype_dec>)
+    case Token::DECLARE_CODATATYPE:
+    case Token::DECLARE_DATATYPE:
+    {
+      //d_state.checkThatLogicIsSet();
+      std::vector<std::string> dnames;
+      std::vector<size_t> arities;
+      std::string name = d_eparser.parseSymbol();
+      dnames.push_back(name);
+      bool isCo = (tok == Token::DECLARE_CODATATYPE);
+      std::map<Expr, std::vector<Expr>> dts;
+      std::map<Expr, std::vector<Expr>> dtcons;
+      // parse <datatype_dec>
+      d_eparser.parseDatatypesDef(dnames, arities, dts, dtcons);
+    }
+    break;
+    // multiple datatype
+    // (declare-datatypes (<sort_dec>^{n+1}) (<datatype_dec>^{n+1}) )
+    // (declare-codatatypes (<sort_dec>^{n+1}) (<datatype_dec>^{n+1}) )
+    case Token::DECLARE_CODATATYPES:
+    case Token::DECLARE_DATATYPES:
+    {
+      //d_state.checkThatLogicIsSet();
+      d_lex.eatToken(Token::LPAREN);
+      std::vector<std::string> dnames;
+      std::vector<size_t> arities;
+      // parse (<sort_dec>^{n+1})
+      // while the next token is LPAREN, exit if RPAREN
+      while (d_lex.eatTokenChoice(Token::LPAREN, Token::RPAREN))
+      {
+        std::string name = d_eparser.parseSymbol();
+        size_t arity = d_eparser.parseIntegerNumeral();
+        dnames.push_back(name);
+        arities.push_back(arity);
+        d_lex.eatToken(Token::RPAREN);
+      }
+      if (dnames.empty())
+      {
+        d_lex.parseError("Empty list of datatypes");
+      }
+      bool isCo = (tok == Token::DECLARE_CODATATYPES);
+      // parse (<datatype_dec>^{n+1})
+      d_lex.eatToken(Token::LPAREN);
+      std::map<Expr, std::vector<Expr>> dts;
+      std::map<Expr, std::vector<Expr>> dtcons;
+      d_eparser.parseDatatypesDef(dnames, arities, dts, dtcons);
+      d_lex.eatToken(Token::RPAREN);
+    }
+    break;
     // (declare-consts <symbol> <sort>)
     case Token::DECLARE_CONSTS:
     {
@@ -193,22 +248,7 @@ bool CmdParser::parseNextCommand()
       std::string name = d_eparser.parseSymbol();
       //d_state.checkUserSymbol(name);
       size_t arity = d_eparser.parseIntegerNumeral();
-      Expr type;
-      Expr ttype = d_state.mkType();
-      if (arity == 0)
-      {
-        type = ttype;
-      }
-      else
-      {
-        std::vector<Expr> args;
-        for (size_t i=0; i<arity; i++)
-        {
-          args.push_back(ttype);
-        }
-        type = d_state.mkFunctionType(args, ttype);
-      }
-      Expr decType = d_state.mkConst(name, type);
+      Expr decType = d_state.mkTypeConstant(name, arity);
       d_eparser.bind(name, decType);
     }
     break;

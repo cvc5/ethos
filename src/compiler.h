@@ -146,6 +146,10 @@ public:
   void markAttributes(const Expr& v, const std::map<Attr, Expr>& attrs);
   /** Define program */
   void defineProgram(const Expr& v, const Expr& prog);
+  /** Define constructor */
+  void defineConstructor(const Expr& c, const std::vector<Expr>& sels);
+  /** Define datatype */
+  void defineDatatype(const Expr& d, const std::vector<Expr>& cons);
   /** To string, which returns the compiled C++ code for the given run */
   std::string toString();
 private:
@@ -233,6 +237,9 @@ private:
   void writeRequirements(std::ostream& os, 
                          const std::vector<std::string>& reqs, 
                          const std::string& failCmd);
+  /** write argument list */
+  void writeArgumentList(std::ostream& os,
+                         const std::vector<Expr>& args);
 };
 
 }  // namespace alfc

@@ -313,6 +313,22 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
   os << osEnd.str();
 }
 
+void Compiler::defineConstructor(const Expr& c, const std::vector<Expr>& sels)
+{
+  size_t cid = writeGlobalExpr(c);
+  d_init << "  defineConstructor(_e" << cid << ", ";
+  writeArgumentList(d_init, sels);
+  d_init << ");" << std::endl;
+}
+
+void Compiler::defineDatatype(const Expr& d, const std::vector<Expr>& cons)
+{
+  size_t did = writeGlobalExpr(d);
+  d_init << "  defineDatatype(_e" << did << ", ";
+  writeArgumentList(d_init, cons);
+  d_init << ");" << std::endl;
+}
+
 size_t Compiler::markCompiled(std::ostream& os, const Expr& e)
 {
   std::map<ExprValue*, size_t>::iterator it = d_runIdMap.find(e.get());
@@ -891,6 +907,27 @@ void Compiler::writeRequirements(std::ostream& os, const std::vector<std::string
   os << "  {" << std::endl;
   os << "     " << failCmd << ";" << std::endl;
   os << "  }" << std::endl;
+}
+
+void Compiler::writeArgumentList(std::ostream& os,
+                                 const std::vector<Expr>& args)
+{
+  os << "{";
+  bool firstTime = true;
+  for (const Expr& e : args)
+  {
+    if (firstTime)
+    {
+      firstTime = false;
+    }
+    else
+    {
+      os << ", ";
+    }
+    size_t id = writeGlobalExpr(e);
+    os << "_e" << id;
+  }
+  os << "}";
 }
 
 }  // namespace alfc
