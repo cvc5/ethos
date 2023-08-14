@@ -26,7 +26,8 @@ State::State(Options& opts, Stats& stats) : d_tc(*this), d_opts(opts), d_stats(s
 {
   ExprValue::d_state = this;
   
-  bindBuiltin("lambda", Kind::LAMBDA, true);
+  // lambda is not builtin?
+  //bindBuiltin("lambda", Kind::LAMBDA, true);
   bindBuiltin("->", Kind::FUNCTION_TYPE);
   bindBuiltin("@", Kind::APPLY);
 

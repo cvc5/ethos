@@ -168,7 +168,7 @@ Expr ExprParser::parseExpr()
         }
         // Construct the application term specified by tstack.back()
         ret = d_state.mkExpr(Kind::APPLY, tstack.back());
-        typeCheck(ret);
+        //typeCheck(ret);
         // process the scope change
         for (size_t i=0, nscopes = sstack.back(); i<nscopes; i++)
         {

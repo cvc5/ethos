@@ -1,0 +1,43 @@
+(declare-const = (-> (! Type :var T :implicit) T T Bool))
+
+(declare-const forall (-> (! Type :var T :implicit) T Bool Bool))
+(declare-const exists (-> (! Type :var T :implicit) T Bool Bool))
+
+; (skolem U t), where U is the type of the skolem and t is the cache val
+(declare-const skolem (-> (! Type :var U) (! Type :var T :implicit) T U))
+
+(declare-const => (-> Bool Bool Bool))
+(declare-const and (-> Bool Bool Bool))
+(declare-const or (-> Bool Bool Bool))
+
+(declare-rule refl ((T Type) (x T))
+  :premises ()
+  :args (x)
+  :conclusion (= x x))
+
+
+(declare-rule forall-intro ((T Type) (x T) (F Bool))
+  :premises (F)
+  :args (x)
+  :conclusion (forall x F))
+  
+(program substitute
+  ((T Type) (U Type) (S Type) (V Type) (x S) (y S) (f (-> T U)) (a T) (z U) (w V))
+  (S S U) U
+  (
+  ((substitute x y x)             y)
+  ((substitute x y (skolem U w))  (skolem U w))   ; do not traverse
+  ((substitute x y (f a))         (@ (substitute x y f) (substitute x y a)))
+  ((substitute x y z)             z)
+  )
+)
+
+(declare-rule forall-inst ((T Type) (x T) (t T) (F Bool))
+  :premises ((forall x F))
+  :args (t)
+  :conclusion (=>(forall x F) (substitute x t F)))
+
+(declare-rule exists-skolem ((T Type) (x T) (F Bool))
+  :premises ((exists x F))
+  :args ()
+  :conclusion (=>(exists x F) (substitute x (skolem T (exists x F)) F)))

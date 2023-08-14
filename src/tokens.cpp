@@ -21,11 +21,12 @@ std::ostream& operator<<(std::ostream& o, Token t)
     case Token::DECLARE_DATATYPE: o << "DECLARE_DATATYPE"; break;
     case Token::DECLARE_DATATYPES: o << "DECLARE_DATATYPES"; break;
     case Token::DECLARE_FUN: o << "DECLARE_FUN"; break;
+    case Token::DECLARE_RULE: o << "DECLARE_RULE"; break;
     case Token::DECLARE_SORT: o << "DECLARE_SORT"; break;
     case Token::DECLARE_TYPE: o << "DECLARE_TYPE"; break;
+    case Token::DECLARE_VAR: o << "DECLARE_VAR"; break;
     case Token::DEFINE_CONST: o << "DEFINE_CONST"; break;
     case Token::DEFINE_FUN: o << "DEFINE_FUN"; break;
-    case Token::DECLARE_RULE: o << "DECLARE_RULE"; break;
     case Token::DEFINE_SORT: o << "DEFINE_SORT"; break;
     case Token::DEFINE_TYPE: o << "DEFINE_TYPE"; break;
     case Token::ECHO: o << "ECHO"; break;

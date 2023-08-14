@@ -1,7 +1,10 @@
 TODO:
 
-- auto-evaluate literal ops
-- literal ops to compiler
-- change syntax for nil?
+- change syntax for nil? for eval.?
 - remove custom nil construction policy
-- datatypes
+- :syntax
+- :restrict
+
+-- datatypes
+-- literal ops to compiler
+-- auto-evaluate literal ops

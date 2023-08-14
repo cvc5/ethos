@@ -409,11 +409,11 @@ bool TypeChecker::match(const Expr& a, const Expr& b, Ctx& ctx, std::set<std::pa
           // add the two subterms to `sub`
           ctx.emplace(curr.first, curr.second);
         }
-        else
+        else if (ctxIt->second!=curr.second)
         {
           // if we saw this variable before, make sure that (now and before) it
           // maps to the same subterm
-          stack.emplace_back(ctxIt->second, curr.second);
+          return false;
         }
       }
       else

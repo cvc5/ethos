@@ -37,6 +37,7 @@ CmdParser::CmdParser(Lexer& lex,
   d_table["declare-rule"] = Token::DECLARE_RULE;
   d_table["declare-sort"] = Token::DECLARE_SORT;
   d_table["declare-type"] = Token::DECLARE_TYPE;
+  d_table["declare-var"] = Token::DECLARE_VAR;
   d_table["define-const"] = Token::DEFINE_CONST;
   d_table["define-fun"] = Token::DEFINE_FUN;
   d_table["define-type"] = Token::DEFINE_TYPE;
@@ -94,8 +95,10 @@ bool CmdParser::parseNextCommand()
     break;
     // (declare-fun <symbol> (<sort>∗) <sort>)
     // (declare-const <symbol> <sort>)
+    // (declare-var <symbol> <sort>)
     case Token::DECLARE_CONST:
     case Token::DECLARE_FUN:
+    case Token::DECLARE_VAR:
     {
       //d_state.checkThatLogicIsSet();
       std::string name = d_eparser.parseSymbol();
@@ -110,7 +113,15 @@ bool CmdParser::parseNextCommand()
       {
         t = d_state.mkFunctionType(sorts, t);
       }
-      Expr v = d_state.mkConst(name, t);
+      Expr v;
+      if (tok == Token::DECLARE_VAR)
+      {
+        v = d_state.mkVar(name, t);
+      }
+      else
+      {
+        v = d_state.mkConst(name, t);
+      }
       d_eparser.bind(name, v);
       // possible attribute list
       std::map<Attr, Expr> attrs;
