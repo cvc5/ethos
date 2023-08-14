@@ -571,18 +571,14 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
               }
               else
               {
-                ctxs.emplace_back();
+                Ctx newCtx;
                 // see if we evaluate
-                evaluated = evaluateProgramInternal(cchildren, ctxs.back());
+                evaluated = evaluateProgramInternal(cchildren, newCtx);
                 //std::cout << "Evaluate prog returned " << evaluated << std::endl;
-                if (evaluated==nullptr || ctxs.back().empty())
+                if (evaluated==nullptr || newCtx.empty())
                 {
                   // if the evaluation can be shortcircuited, don't need to
                   // push a context
-                  ctxs.pop_back();
-                  // get the reference to the back of the vector again, which
-                  // may have changed.
-                  cctx = ctxs.back();
                   // store the base evaluation (if applicable)
                   et->d_data = evaluated;
                 }
@@ -590,6 +586,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
                 {
                   // otherwise push an evaluation scope
                   newContext = true;
+                  ctxs.push_back(newCtx);
                   visits.emplace_back(std::vector<Expr>{evaluated});
                   visiteds.emplace_back();
                   ets.push_back(et);
