@@ -227,9 +227,9 @@ private:
                      std::map<Expr, std::string>& varAssign,
                      const std::string& failCmd);
   /** Get the free symbols */
-  std::vector<Expr> getFreeSymbols(const Expr& e) const;
+  static std::vector<Expr> getFreeSymbols(const Expr& e);
   /** Get the free symbols */
-  bool hasVariable(const Expr& e, const std::unordered_set<Expr>& terms) const;
+  static bool hasVariable(const Expr& e, const std::unordered_set<Expr>& terms);
   /** 
    * Write requirements, which writes an if statement whose conditions are
    * reqs, and whose body is failCmd.

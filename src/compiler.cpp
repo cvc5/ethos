@@ -818,7 +818,7 @@ std::string Compiler::toString()
 }
 
 
-std::vector<Expr> Compiler::getFreeSymbols(const Expr& e) const
+std::vector<Expr> Compiler::getFreeSymbols(const Expr& e)
 {
   std::vector<Expr> ret;
   std::unordered_set<Expr> visited;
@@ -848,7 +848,7 @@ std::vector<Expr> Compiler::getFreeSymbols(const Expr& e) const
   return ret;
 }
 
-bool Compiler::hasVariable(const Expr& e, const std::unordered_set<Expr>& vars) const
+bool Compiler::hasVariable(const Expr& e, const std::unordered_set<Expr>& vars)
 {
   if (vars.empty())
   {
