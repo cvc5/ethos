@@ -583,6 +583,8 @@ bool CmdParser::parseNextCommand()
       Expr def = rule;
       if (children.size()>1)
       {
+        // TODO: could avoid constructing this term here and run the type
+        // check algorithm directly
         def = d_state.mkExpr(Kind::APPLY, children);
       }
       // ensure proof type, note this is where "proof checking" happens.

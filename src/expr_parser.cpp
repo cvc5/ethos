@@ -322,6 +322,7 @@ Expr ExprParser::parseExpr()
           std::map<Attr, Expr> attrs;
           parseAttributeList(ret, attrs);
           // process the attributes
+          std::vector<Attr> rmAttr;
           for (std::pair<const Attr, Expr>& a : attrs)
           {
             switch(a.first)
@@ -337,24 +338,38 @@ Expr ExprParser::parseExpr()
                 bind(a.second->getSymbol(), a.second);
                 // it is now (Quote v) for that variable
                 ret = d_state.mkQuoteType(a.second);
+                rmAttr.push_back(a.first);
               }
                 break;
               case Attr::IMPLICIT:
                 // the term will not be added as an argument to the parent
                 ret = nullptr;
-                break;
-              case Attr::SYNTAX:
-                // TODO: implies a Kind check for the type rule?
+                rmAttr.push_back(a.first);
                 break;
               case Attr::NIL:
                 // should be annotating a type
                 typeCheck(ret, d_state.mkType());
                 // it is the nil of that type
                 ret = d_state.mkNil(ret);
+                rmAttr.push_back(a.first);
                 break;
               default:
                 break;
             }
+          }
+          // remove the attributes processed above
+          for (Attr a : rmAttr)
+          {
+            attrs.erase(a);
+          }
+          // mark the remaining attributes
+          if (!attrs.empty())
+          {
+            if (ret!=nullptr)
+            {
+              d_state.markAttributes(ret, attrs);
+            }
+            // TODO: else warn about unprocessed attributes?
           }
           d_lex.eatToken(Token::RPAREN);
           // finished parsing attributes, ret is either nullptr if implicit,

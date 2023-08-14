@@ -723,7 +723,7 @@ void State::bindBuiltin(const std::string& name, Kind k, bool isClosure, const E
     ai.d_kind = k;
     if (isClosure)
     {
-      ai.d_attrs.insert(Attr::CLOSURE);
+      ai.d_attrs[Attr::CLOSURE] = nullptr;
     }
   }
 }
@@ -782,7 +782,7 @@ bool State::markAttributes(const Expr& v, const std::map<Attr, Expr>& attrs)
         break;
       case Attr::LIST:
         // remember it has been marked
-        ai.d_attrs.insert(a.first);
+        ai.d_attrs[a.first] = a.second;
         break;
       default:
         break;

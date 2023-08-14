@@ -4,6 +4,8 @@ TODO:
 - remove custom nil construction policy
 - :syntax
 - :restrict
+- arity overloading
+- remove closure parsing?
 
 -- datatypes
 -- literal ops to compiler

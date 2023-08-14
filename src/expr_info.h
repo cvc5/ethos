@@ -1,7 +1,7 @@
 #ifndef EXPR_INFO_H
 #define EXPR_INFO_H
 
-#include <unordered_set>
+#include <map>
 #include <string>
 #include <memory>
 
@@ -34,7 +34,7 @@ public:
   /** Attribute */
   std::shared_ptr<ExprValue> d_attrConsTerm;
   /** Other marked attributes */
-  std::unordered_set<Attr> d_attrs;
+  std::map<Attr, std::shared_ptr<ExprValue>> d_attrs;
   /** Associated kind */
   Kind d_kind;
   /** */
