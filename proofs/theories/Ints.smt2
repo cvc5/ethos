@@ -23,14 +23,14 @@
 ; TODO: needs overloading
 ;(declare-const - (-> Int Int))
 (declare-const + (-> Int Int Int)
-    :right-assoc 0
+    :right-assoc-nil
 )
 ; Note: we do not have a left-neutral element for -.
 (declare-const - (-> Int Int Int)
     :left-assoc
 )
 (declare-const * (-> Int Int Int)
-    :right-assoc 1
+    :right-assoc-nil
 )
 (declare-const abs (-> Int Int))
 ; Note: we do not have a left-neutral element for div.

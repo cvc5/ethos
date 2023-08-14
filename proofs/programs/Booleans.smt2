@@ -11,15 +11,15 @@
     )
 )
 
-; inList cons nil c l
+; inList cons c l
 ; Retuns `true` if l inList c.
 (program inList
-    ((U Type) (S Type) (cons (-> S U U)) (nil S) (c S) (x S) (xs U :list))
-    ((-> S U U) S U S) Bool
+    ((E Type) (L Type) (cons (-> E L L)) (c E) (x E) (xs L :list))
+    ((-> E L L) E L) Bool
     (
-        ((inList cons nil c nil)         false)
-        ((inList cons nil c (cons c xs)) true)
-        ((inList cons nil c (cons x xs)) (inList cons nil c xs))
+        ((inList cons c (! E :nil))  false)
+        ((inList cons c (cons c xs)) true)
+        ((inList cons c (cons x xs)) (inList cons c xs))
     )
 )
 
@@ -30,7 +30,7 @@
 (program inListOr
     ((c Bool) (l Bool :list))
     (Bool Bool) Bool
-    (((inListOr c l) (inList or false c l)))
+    (((inListOr c l) (inList or c l)))
 )
 (program appendOr
     ((c Bool) (l Bool :list))
@@ -40,29 +40,29 @@
 (program concatOr
     ((l1 Bool) (l2 Bool))
     (Bool Bool) Bool
-    (((concatOr l1 l2) (concat or false l1 l2)))
+    (((concatOr l1 l2) (concat or l1 l2)))
 )
 (program removeOr
     ((c Bool) (l Bool))
     (Bool Bool) Bool
-    (((removeOr c l) (remove or false c l)))
+    (((removeOr c l) (remove or c l)))
 )
 (program reverseOr
     ((xs Bool :list))
     (Bool) Bool
     (
-        ((reverseOr xs) (reverse or false xs))
+        ((reverseOr xs) (reverse or (! Bool :nil) xs))
     )
 )
 (program naryElimOr
     ((t Bool))
     (Bool) Bool
-    (((naryElimOr t) (naryElim or false t)))
+    (((naryElimOr t) (naryElim or (! Bool :nil) t)))
 )
 (program naryIntroOr
     ((t Bool))
     (Bool) Bool
-    (((naryIntroOr t) (naryIntro or false t)))
+    (((naryIntroOr t) (naryIntro or (! Bool :nil) t)))
 )
 
 ; ==================================================================
@@ -72,7 +72,7 @@
 (program inListAnd
     ((c Bool) (l Bool :list))
     (Bool Bool) Bool
-    (((inListAnd c l) (inList and true c l)))
+    (((inListAnd c l) (inList and c l)))
 )
 (program appendAnd
     ((c Bool) (l Bool :list))
@@ -82,27 +82,27 @@
 (program concatAnd
     ((l1 Bool) (l2 Bool))
     (Bool Bool) Bool
-    (((concatAnd l1 l2) (concat and true l1 l2)))
+    (((concatAnd l1 l2) (concat and l1 l2)))
 )
 (program removeAnd
     ((c Bool) (l Bool))
     (Bool Bool) Bool
-    (((removeAnd c l) (remove and true c l)))
+    (((removeAnd c l) (remove and c l)))
 )
 (program reverseAnd
     ((xs Bool :list))
     (Bool) Bool
     (
-        ((reverseAnd xs) (reverse and true xs))
+        ((reverseAnd xs) (reverse and (! Bool :nil) xs))
     )
 )
 (program naryElimAnd
     ((t Bool))
     (Bool) Bool
-    (((naryElimAnd t) (naryElim and true t)))
+    (((naryElimAnd t) (naryElim and (! Bool :nil) t)))
 )
 (program naryIntroAnd
     ((t Bool))
     (Bool) Bool
-    (((naryIntroAnd t) (naryIntro and true t)))
+    (((naryIntroAnd t) (naryIntro and (! Bool :nil) t)))
 )

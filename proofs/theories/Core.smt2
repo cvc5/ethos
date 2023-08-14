@@ -7,10 +7,10 @@
    ;:pairwise
 )
 (declare-const or (-> Bool Bool Bool)
-   :right-assoc false
+   :right-assoc-nil
 )
 (declare-const and (-> Bool Bool Bool)
-   :right-assoc true
+   :right-assoc-nil
 )
 (declare-const => (-> Bool Bool Bool)
    :right-assoc
@@ -41,5 +41,5 @@
 (-> (! Type :var A :implicit)
     (! Type :var B :implicit)
     (-> A B) A B)
-    :left-assoc iden
+    :left-assoc-nil
 )

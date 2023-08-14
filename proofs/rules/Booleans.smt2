@@ -44,7 +44,7 @@
 (program chainResolveRec((C1 Bool) (C2 Bool) (Cs Bool :list) (pol Bool) (L Bool) (args Bool :list))
     (Bool Bool Bool) Bool
     (
-        ((chainResolveRec C1 true true) C1)
+        ((chainResolveRec C1 (! Bool :nil) (! Bool :nil)) C1)
         ((chainResolveRec C1 (and C2 Cs) (and pol L args)) (chainResolveRec (resolve C1 C2 pol L) Cs args))
     )
 )
@@ -88,7 +88,7 @@
 (program factorLiterals ((xs Bool :list) (l Bool) (ls Bool :list))
     (Bool Bool) Bool
     (
-        ((factorLiterals xs false) xs)
+        ((factorLiterals xs (! Bool :nil)) xs)
         ((factorLiterals xs (or l ls)) (ifThenElse (inListOr l xs) (factorLiterals xs              ls)
                                                                    (factorLiterals (appendOr l xs) ls)))
     )
@@ -96,7 +96,7 @@
 
 (declare-rule factoring ((C Bool))
     :premises (C)
-    :conclusion (reverseOr (factorLiterals false C))
+    :conclusion (reverseOr (factorLiterals (! Bool :nil) C))
 )
 
 ; REORDERING
@@ -105,7 +105,7 @@
     (Bool Bool) Bool
     (
         ((isPermutation l1 l1) true)
-        ((isPermutation false l1) false)
+        ((isPermutation (! Bool :nil) l1) false)
         ((isPermutation (or l1 l1s) (or l2 l2s))
           (isPermutation l1s (removeOr l1 (or l2 l2s))))
     )
@@ -276,7 +276,7 @@
 (program lowerNotAnd ((l Bool) (ls Bool :list))
     (Bool) Bool
     (
-        ((lowerNotAnd true) false) ; Terminator changes
+        ((lowerNotAnd (! Bool :nil)) (! Bool :nil)) ; Terminator changes
         ((lowerNotAnd (and l ls)) (appendOr (not l) (lowerNotAnd ls)))
     )
 )
@@ -313,7 +313,7 @@
 (declare-rule cnf_or_neg ((Fs Bool) (Fi Bool) (i Int))
     :args (Fs Fi i)
     :requires (((inListOr Fi Fs) true))
-    :conclusion (concatOr Fs (appendOr (not Fi) false))
+    :conclusion (concatOr Fs (appendOr (not Fi) (! Bool :nil)))
 )
 
 ; CNF_IMPLIES_POS
