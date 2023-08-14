@@ -93,6 +93,8 @@ class ExprParser
   Expr getVar(const std::string& name);
   /** Bind, or throw error otherwise */
   void bind(const std::string& name, Expr& e);
+  /** Ensure bound */
+  void ensureBound(Expr& e, const std::vector<Expr>& bvs);
   //-------------------------- end checking
  protected:
   /**

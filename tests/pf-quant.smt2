@@ -17,4 +17,5 @@
 
 (assume ex_x F_x)
 
-(step a_skolem (=> F_x (= (skolem Int F_x) (skolem Int F_x))) :rule exists-skolem :premises (ex_x) :args (Int))
+(step a_skolem (=> F_x 
+                   (= (skolem Int F_x) (skolem Int F_x))) :rule exists-skolem :premises (ex_x) :args (Int))

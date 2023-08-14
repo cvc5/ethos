@@ -58,6 +58,12 @@ class ExprValue
   bool isCompiled();
   /** Get symbol */
   std::string getSymbol() const;
+  /** Get the free symbols */
+  static std::vector<std::shared_ptr<ExprValue>> getVariables(const std::shared_ptr<ExprValue>& e);
+  static std::vector<std::shared_ptr<ExprValue>> getVariables(const std::vector<std::shared_ptr<ExprValue>>& es);
+  /** Get the free symbols */
+  static bool hasVariable(const std::shared_ptr<ExprValue>& e, 
+                          const std::unordered_set<std::shared_ptr<ExprValue>>& terms);
  private:
   /** The current state */
   static State* d_state;

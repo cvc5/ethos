@@ -33,6 +33,27 @@ std::ostream& operator<<(std::ostream& out, const std::pair<T, U>& p)
   return out << "[" << p.first << "," << p.second << "]";
 }
 
+template <class T>
+std::ostream& operator<<(std::ostream& out, const std::vector<T>& children)
+{
+  out << "[";
+  bool firstTime = true;
+  for (const T& e : children)
+  {
+    if (firstTime)
+    {
+      firstTime = false;
+    }
+    else
+    {
+      out << ", ";
+    }
+    out << e;
+  }
+  out << "]";
+  return out;
+}
+
 /**
  * A utility class to provide (essentially) a "/dev/null" streambuf.
  * If debugging support is compiled in, but debugging for

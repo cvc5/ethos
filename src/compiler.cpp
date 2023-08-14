@@ -291,7 +291,7 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
       os << "  return _e" << id << ";" << std::endl;
     }
     os << "  // construct the context" << std::endl;
-    std::vector<Expr> fvs = getFreeSymbols(body);
+    std::vector<Expr> fvs = ExprValue::getVariables(body);
     for (std::pair<const Expr, std::string>& va : varAssign)
     {
       // don't bother assigning variables that don't occur in the body
@@ -527,7 +527,7 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
     // mark that we want to evaluate
     CompilerScope pscope(localDecl, localImpl, pprefix, &d_global, true);
     // ensure all variables in the type are declared (but not constructed)
-    std::vector<Expr> fvs = getFreeSymbols(curr);
+    std::vector<Expr> fvs = ExprValue::getVariables(curr);
     pscope.ensureDeclared(fvs);
     // write the matching
     std::vector<std::string> reqs;
@@ -556,7 +556,7 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
     Expr& retType = children.back();
     std::unordered_set<Expr> varsAssigned;
     localImpl << "  // assign variables" << std::endl;
-    std::vector<Expr> fvsRet = getFreeSymbols(retType);
+    std::vector<Expr> fvsRet = ExprValue::getVariables(retType);
     std::map<ExprValue*, size_t>::iterator iti;
     for (std::pair<const Expr, std::string>& va : varAssign)
     {
@@ -601,7 +601,7 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
           {
             Expr ei = (*req.get())[j];
             std::string ret;
-            if (hasVariable(ei, varsAssigned))
+            if (ExprValue::hasVariable(ei, varsAssigned))
             {
               // note this will ensure that the returned term is evaluated
               writeExprInternal(ei, pscope);
@@ -625,7 +625,7 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
       } while (retType->getKind()==Kind::REQUIRES_TYPE);
       // recompute whether the return type has free variables, since they
       // may have only occurred in requirements
-      usedMatch = hasVariable(retType, varsAssigned);
+      usedMatch = ExprValue::hasVariable(retType, varsAssigned);
     }
     std::string ret;
     localImpl << "  // construct return type" << std::endl;
@@ -771,7 +771,7 @@ void Compiler::writeEvaluate(std::ostream& os, const Expr& e)
     // we won't print program applications due to guard above, but we will
     // want to execute literal operations.
     CompilerScope pscope(localDecl, localImpl, pprefix, &d_global, true);
-    std::vector<Expr> fvs = getFreeSymbols(curr);
+    std::vector<Expr> fvs = ExprValue::getVariables(curr);
     std::map<ExprValue*, size_t>::iterator iti;
     for (const Expr& v : fvs)
     {
@@ -815,72 +815,6 @@ std::string Compiler::toString()
   ss << d_evalpEnd.str() << std::endl;
   ss << "}" << std::endl;
   return ss.str();
-}
-
-
-std::vector<Expr> Compiler::getFreeSymbols(const Expr& e)
-{
-  std::vector<Expr> ret;
-  std::unordered_set<Expr> visited;
-  std::vector<Expr> toVisit;
-  toVisit.push_back(e);
-  Expr cur;
-  do
-  {
-    cur = toVisit.back();
-    toVisit.pop_back();
-    if (e->isGround())
-    {
-      continue;
-    }
-    if (visited.find(cur)!=visited.end())
-    {
-      continue;
-    }
-    visited.insert(cur);
-    if (cur->getKind()==Kind::VARIABLE)
-    {
-      ret.push_back(cur);
-      continue;
-    }
-    toVisit.insert(toVisit.end(), cur->d_children.begin(), cur->d_children.end());
-  }while (!toVisit.empty());
-  return ret;
-}
-
-bool Compiler::hasVariable(const Expr& e, const std::unordered_set<Expr>& vars)
-{
-  if (vars.empty())
-  {
-    return false;
-  }
-  std::unordered_set<Expr> visited;
-  std::vector<Expr> toVisit;
-  toVisit.push_back(e);
-  Expr cur;
-  do
-  {
-    cur = toVisit.back();
-    toVisit.pop_back();
-    if (e->isGround())
-    {
-      continue;
-    }
-    if (visited.find(cur)!=visited.end())
-    {
-      continue;
-    }
-    visited.insert(cur);
-    if (cur->getKind()==Kind::VARIABLE)
-    {
-      if (vars.find(cur)!=vars.end())
-      {
-        return true;
-      }
-    }
-    toVisit.insert(toVisit.end(), cur->d_children.begin(), cur->d_children.end());
-  }while (!toVisit.empty());
-  return false;
 }
 
 void Compiler::writeRequirements(std::ostream& os, const std::vector<std::string>& reqs, const std::string& failCmd)

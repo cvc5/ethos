@@ -31,26 +31,6 @@ std::ostream& operator<<(std::ostream& out, const Ctx& c)
   return out;
 }
 
-std::ostream& operator<<(std::ostream& out, const std::vector<Expr>& children)
-{
-  out << "[";
-  bool firstTime = true;
-  for (const Expr& e : children)
-  {
-    if (firstTime)
-    {
-      firstTime = false;
-    }
-    else
-    {
-      out << ", ";
-    }
-    out << e;
-  }
-  out << "]";
-  return out;
-}
-
 TypeChecker::TypeChecker(State& s) : d_state(s)
 {
   d_literalKinds = { Kind::BOOLEAN, Kind::NUMERAL,  Kind::DECIMAL, Kind::HEXADECIMAL, Kind::BINARY, Kind::STRING };

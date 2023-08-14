@@ -140,7 +140,7 @@ bool CmdParser::parseNextCommand()
       std::vector<size_t> arities;
       std::string name = d_eparser.parseSymbol();
       dnames.push_back(name);
-      bool isCo = (tok == Token::DECLARE_CODATATYPE);
+      //bool isCo = (tok == Token::DECLARE_CODATATYPE);
       std::map<Expr, std::vector<Expr>> dts;
       std::map<Expr, std::vector<Expr>> dtcons;
       // parse <datatype_dec>
@@ -171,7 +171,7 @@ bool CmdParser::parseNextCommand()
       {
         d_lex.parseError("Empty list of datatypes");
       }
-      bool isCo = (tok == Token::DECLARE_CODATATYPES);
+      //bool isCo = (tok == Token::DECLARE_CODATATYPES);
       // parse (<datatype_dec>^{n+1})
       d_lex.eatToken(Token::LPAREN);
       std::map<Expr, std::vector<Expr>> dts;
@@ -241,6 +241,12 @@ bool CmdParser::parseNextCommand()
       {
         ret = d_state.mkRequiresType(reqs, ret);
       }
+      // Ensure all free variables in the conclusion are bound in the arguments.
+      // Otherwise, this rule will always generate a free variable, which is
+      // likely unintentional.
+      std::vector<Expr> bvs = ExprValue::getVariables(argTypes);
+      d_eparser.ensureBound(ret, bvs);
+      // make the overall type
       if (!argTypes.empty())
       {
         ret = d_state.mkFunctionType(argTypes, ret, false);
@@ -425,6 +431,10 @@ bool CmdParser::parseNextCommand()
         {
           d_lex.parseError("Expected application of program as case");
         }
+        // ensure the right hand side is bound by the left hand side
+        std::vector<Expr> bvs = ExprValue::getVariables(pc);
+        Expr rhs = (*p.get())[1];
+        d_eparser.ensureBound(rhs, bvs);
         // TODO: allow variable or default case?
         const std::vector<Expr>& children = pc->getChildren();
         for (const Expr& ec : children)

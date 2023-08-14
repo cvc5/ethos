@@ -269,6 +269,77 @@ void ExprValue::printDebug(const std::shared_ptr<ExprValue>& e, std::ostream& os
 }
 
 
+std::vector<Expr> ExprValue::getVariables(const Expr& e)
+{
+  std::vector<Expr> es{e};
+  return getVariables(es);
+}
+
+std::vector<Expr> ExprValue::getVariables(const std::vector<Expr>& es)
+{
+  std::vector<Expr> ret;
+  std::unordered_set<Expr> visited;
+  std::vector<Expr> toVisit;
+  toVisit = es;
+  Expr cur;
+  while (!toVisit.empty())
+  {
+    cur = toVisit.back();
+    toVisit.pop_back();
+    if (cur->isGround())
+    {
+      continue;
+    }
+    if (visited.find(cur)!=visited.end())
+    {
+      continue;
+    }
+    visited.insert(cur);
+    if (cur->getKind()==Kind::VARIABLE)
+    {
+      ret.push_back(cur);
+      continue;
+    }
+    toVisit.insert(toVisit.end(), cur->d_children.begin(), cur->d_children.end());
+  }
+  return ret;
+}
+
+bool ExprValue::hasVariable(const Expr& e, const std::unordered_set<Expr>& vars)
+{
+  if (vars.empty())
+  {
+    return false;
+  }
+  std::unordered_set<Expr> visited;
+  std::vector<Expr> toVisit;
+  toVisit.push_back(e);
+  Expr cur;
+  do
+  {
+    cur = toVisit.back();
+    toVisit.pop_back();
+    if (e->isGround())
+    {
+      continue;
+    }
+    if (visited.find(cur)!=visited.end())
+    {
+      continue;
+    }
+    visited.insert(cur);
+    if (cur->getKind()==Kind::VARIABLE)
+    {
+      if (vars.find(cur)!=vars.end())
+      {
+        return true;
+      }
+    }
+    toVisit.insert(toVisit.end(), cur->d_children.begin(), cur->d_children.end());
+  }while (!toVisit.empty());
+  return false;
+}
+
 std::ostream& operator<<(std::ostream& out, const Expr& e)
 {
   ExprValue::printDebug(e, out);

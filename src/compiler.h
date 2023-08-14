@@ -226,10 +226,6 @@ private:
                      std::vector<std::string>& reqs,
                      std::map<Expr, std::string>& varAssign,
                      const std::string& failCmd);
-  /** Get the free symbols */
-  static std::vector<Expr> getFreeSymbols(const Expr& e);
-  /** Get the free symbols */
-  static bool hasVariable(const Expr& e, const std::unordered_set<Expr>& terms);
   /** 
    * Write requirements, which writes an if statement whose conditions are
    * reqs, and whose body is failCmd.

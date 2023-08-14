@@ -826,4 +826,21 @@ Expr ExprParser::typeCheck(Expr& e, const Expr& expected)
   return et;
 }
 
+void ExprParser::ensureBound(Expr& e, const std::vector<Expr>& bvs)
+{
+  std::vector<Expr> efv = ExprValue::getVariables(e);
+  for (const Expr& v : efv)
+  {
+    if (std::find(bvs.begin(), bvs.end(), v)==bvs.end())
+    {
+      std::stringstream msg;
+      msg << "Unexpected free variable in expression:" << std::endl;
+      msg << "     Expression: " << e << std::endl;
+      msg << "  Free variable: " << v << std::endl;
+      msg << "Bound variables: " << bvs << std::endl;
+      d_lex.parseError(msg.str());
+    }
+  }
+}
+
 }  // namespace alfc

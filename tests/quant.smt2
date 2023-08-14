@@ -40,4 +40,4 @@
 (declare-rule exists-skolem ((T Type) (x T) (F Bool))
   :premises ((exists x F))
   :args (T)
-  :conclusion (=>(exists x F) (substitute x (skolem T (exists x F)) F)))
+  :conclusion (=> (exists x F) (substitute x (skolem T (exists x F)) F)))
