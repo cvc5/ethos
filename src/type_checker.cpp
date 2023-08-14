@@ -138,14 +138,16 @@ const Expr& TypeChecker::getType(Expr& e, std::ostream* out)
     {
       //std::cout << "Type check " << cur << std::endl;
       cur->d_type = getTypeInternal(cur, out);
-      Trace("type_checker") << "TYPE " << cur << " : " << cur->d_type << std::endl;
-      //std::cout << "...return" << std::endl;
       if (cur->d_type==nullptr)
       {
         // any subterm causes type checking to fail
+        Trace("type_checker") << "TYPE " << cur << " : [FAIL]" << std::endl;
         Assert(e->d_type == nullptr);
         return e->d_type;
       }
+      Trace("type_checker")
+          << "TYPE " << cur << " : " << cur->d_type << std::endl;
+      // std::cout << "...return" << std::endl;
       toVisit.pop_back();
     }
   }while (!toVisit.empty());
@@ -206,6 +208,16 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
       }
       std::vector<Expr>& hdtypes = hdType->d_children;
       std::vector<Expr> ctypes;
+      if (hdtypes.size() != children.size())
+      {
+        // incorrect arity
+        if (out)
+        {
+          (*out) << "Incorrect arity, #argTypes=" << hdtypes.size()
+                 << " #children=" << children.size();
+        }
+        return nullptr;
+      }
       for (size_t i=1, nchild=children.size(); i<nchild; i++)
       {
         // if the argument type is (Quote t), then we implicitly upcast
@@ -220,15 +232,6 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
         {
           ctypes.push_back(children[i]->d_type);
         }
-      }
-      if (hdtypes.size()!=children.size())
-      {
-        // incorrect arity
-        if (out)
-        {
-          (*out) << "Incorrect arity, #argTypes=" << hdtypes.size() << " #children=" << children.size();
-        }
-        return nullptr;
       }
       // if compiled, run the compiled version of the type checker
       if (hdType->isCompiled())
