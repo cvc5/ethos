@@ -1,0 +1,26 @@
+
+
+-----------
+Type : Type
+
+
+
+-----------------------------
+Quote :  (Pi T:Type (-> T Type))
+
+
+-------------------
+-> : (-> Type Type)
+
+
+
+f : (-> (Quote a) S)   b : U
+-------------------------------- a * sigma = b
+(f b) : S * sigma
+
+
+f : (-> T S)   b : U
+---------------------- T * sigma = U
+(f b) : S * sigma
+
+where T is not a quote type.
