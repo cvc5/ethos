@@ -116,7 +116,7 @@ bool CmdParser::parseNextCommand()
       Expr v;
       if (tok == Token::DECLARE_VAR)
       {
-        v = d_state.mkVar(name, t);
+        v = d_state.mkParameter(name, t);
       }
       else
       {
@@ -354,7 +354,7 @@ bool CmdParser::parseNextCommand()
         Expr ttype = d_state.mkType();
         for (const std::string& sname : snames)
         {
-          Expr v = d_state.mkVar(sname, ttype);
+          Expr v = d_state.mkParameter(sname, ttype);
           d_eparser.bind(sname, v);
         }
       }
@@ -503,7 +503,7 @@ bool CmdParser::parseNextCommand()
       }
       // bind the name
       Expr ft = d_state.mkFunctionType(atypes, pt);
-      Expr v = d_state.mkVar(name, ft);
+      Expr v = d_state.mkConst(name, ft);
       d_eparser.bind(name, v);
     }
     break;
@@ -614,7 +614,7 @@ bool CmdParser::parseNextCommand()
         }
       }
       // bind to variable, note that the definition term is not kept
-      Expr v = d_state.mkVar(name, concType);
+      Expr v = d_state.mkConst(name, concType);
       d_eparser.bind(name, v);
       // d_eparser.bind(name, def);
     }

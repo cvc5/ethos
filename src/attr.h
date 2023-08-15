@@ -16,7 +16,7 @@ enum class Attr
   IMPLICIT,
   LIST,
   SYNTAX,
-  RESTRICT,
+  REQUIRES,
   NIL,
   
   RIGHT_ASSOC,

@@ -677,7 +677,7 @@ void Compiler::writeMatching(Expr& pat,
     toVisit.pop_back();
     std::string cterm = pt.getNameForPath(curr.first);
     const Expr& p = curr.second;
-    if (p->getKind()==Kind::VARIABLE)
+    if (p->getKind()==Kind::PARAM)
     {
       // if we haven't visited yet
       itv = varAssign.find(p);
@@ -739,9 +739,9 @@ void Compiler::writeEvaluate(std::ostream& os, const Expr& e)
       writeGlobalExpr(curr);
       continue;
     }
-    if (curr->getKind()==Kind::VARIABLE)
+    if (curr->getKind()==Kind::PARAM)
     {
-      // don't bother writing evaluation for variables
+      // don't bother writing evaluation for parameters
       continue;
     }
     if (curr->isProgEvaluatable())

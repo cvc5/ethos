@@ -242,7 +242,7 @@ Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool 
       continue;
     }
     // does it have requirements?
-    AttrMap::iterator ita = ainfo->d_attrs.find(Attr::RESTRICT);
+    AttrMap::iterator ita = ainfo->d_attrs.find(Attr::REQUIRES);
     if (ita==ainfo->d_attrs.end())
     {
       continue;
@@ -302,6 +302,11 @@ Expr State::mkBuiltinType(Kind k)
 {
   // for now, just use abstract type
   return mkAbstractType();
+}
+
+Expr State::mkParameter(const std::string& name, const Expr& type)
+{
+  return mkSymbolInternal(Kind::PARAM, name, type);
 }
   
 Expr State::mkVar(const std::string& name, const Expr& type)
@@ -522,7 +527,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     // currying if applied to more than one argument.
     if (children.size()>2)
     {
-      if (hk==Kind::CONST || hk==Kind::VARIABLE)
+      if (hk==Kind::CONST || hk==Kind::VARIABLE || hk==Kind::PARAM)
       {
         // return the curried version
         return mkApplyInternal(children);

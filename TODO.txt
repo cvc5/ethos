@@ -1,12 +1,12 @@
 TODO:
 
-- change syntax for nil? for eval.?
 - remove custom nil construction policy
 - :syntax
-- :restrict
 - arity overloading
 - remove closure parsing?
 
 -- datatypes
 -- literal ops to compiler
 -- auto-evaluate literal ops
+-- change syntax for nil? for eval.?
+-- :restrict

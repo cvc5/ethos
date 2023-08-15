@@ -77,6 +77,8 @@ public:
   /** */
   Expr mkBuiltinType(Kind k);
   /** */
+  Expr mkParameter(const std::string& name, const Expr& type);
+  /** */
   Expr mkVar(const std::string& name, const Expr& type);
   /** */
   Expr mkConst(const std::string& name, const Expr& type);

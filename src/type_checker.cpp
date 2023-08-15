@@ -396,7 +396,7 @@ bool TypeChecker::match(const Expr& a, const Expr& b, Ctx& ctx, std::set<std::pa
     {
       // if the two subterms are not equal and the first one is a bound
       // variable...
-      if (curr.first->getKind() == Kind::VARIABLE)
+      if (curr.first->getKind() == Kind::PARAM)
       {
         // and we have not seen this variable before...
         ctxIt = ctx.find(curr.first);
@@ -480,7 +480,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
         visit.pop_back();
         continue;
       }
-      if (cur->getKind()==Kind::VARIABLE)
+      if (cur->getKind()==Kind::PARAM)
       {
         // might be in context
         itc = cctx.find(cur);

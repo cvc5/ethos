@@ -24,6 +24,7 @@ enum class Kind
   // terms
   APPLY,
   LAMBDA,
+  PARAM,
   CONST,
   PROGRAM_CONST,
   PROOF_RULE,

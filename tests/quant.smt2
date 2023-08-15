@@ -41,3 +41,16 @@
   :premises ((exists x F))
   :args (T)
   :conclusion (=> (exists x F) (substitute x (skolem T (exists x F)) F)))
+
+(program run_simplify
+  ((T Type) (x T))
+  (Bool) Bool
+  (
+  ((run_simplify (forall x (= x x))) true)
+  )
+)
+
+(declare-rule simplify ((F Bool))
+  :premises ()
+  :args (F)
+  :conclusion (run_simplify F))

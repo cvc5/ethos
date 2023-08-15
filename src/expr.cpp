@@ -75,9 +75,9 @@ void ExprValue::computeFlags()
     std::vector<Expr>& children = cur->d_children;
     if (children.empty())
     {
-      bool isVar = (cur->getKind()==Kind::VARIABLE);
+      bool isParam = (cur->getKind()==Kind::PARAM);
       cur->setFlag(Flag::IS_EVAL, false);
-      cur->setFlag(Flag::IS_NON_GROUND, isVar);
+      cur->setFlag(Flag::IS_NON_GROUND, isParam);
       visit.pop_back();
     }
     else if (visited.find(cur)==visited.end())
@@ -295,7 +295,7 @@ std::vector<Expr> ExprValue::getVariables(const std::vector<Expr>& es)
       continue;
     }
     visited.insert(cur);
-    if (cur->getKind()==Kind::VARIABLE)
+    if (cur->getKind()==Kind::PARAM)
     {
       ret.push_back(cur);
       continue;
@@ -328,7 +328,7 @@ bool ExprValue::hasVariable(const Expr& e, const std::unordered_set<Expr>& vars)
       continue;
     }
     visited.insert(cur);
-    if (cur->getKind()==Kind::VARIABLE)
+    if (cur->getKind()==Kind::PARAM)
     {
       if (vars.find(cur)!=vars.end())
       {

@@ -59,7 +59,7 @@ ExprParser::ExprParser(Lexer& lex, State& state)
   d_strToAttr[":implicit"] = Attr::IMPLICIT;
   d_strToAttr[":list"] = Attr::LIST;
   d_strToAttr[":syntax"] = Attr::SYNTAX;
-  d_strToAttr[":restrict"] = Attr::RESTRICT;
+  d_strToAttr[":requires"] = Attr::REQUIRES;
   d_strToAttr[":nil"] = Attr::NIL;
   d_strToAttr[":left-assoc"] = Attr::LEFT_ASSOC;
   d_strToAttr[":right-assoc"] = Attr::RIGHT_ASSOC;
@@ -444,7 +444,7 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList()
   {
     name = parseSymbol();
     t = parseType();
-    Expr v = d_state.mkVar(name, t);
+    Expr v = d_state.mkParameter(name, t);
     bind(name, v);
     // parse attribute list
     AttrMap attrs;
@@ -534,7 +534,7 @@ bool ExprParser::parseDatatypesDef(
       // parameters are type variables
       for (const std::string& sym : symList)
       {
-        Expr t = d_state.mkVar(sym, d_state.mkType());
+        Expr t = d_state.mkParameter(sym, d_state.mkType());
         if (!d_state.bind(sym, t))
         {
           return false;
@@ -714,7 +714,7 @@ void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedS
         }
         std::string name = parseSymbol();
         // e should be a type
-        val = d_state.mkVar(name, e);
+        val = d_state.mkParameter(name, e);
         // immediately bind
         if (!pushedScope)
         {
@@ -749,7 +749,7 @@ void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedS
         val = parseExpr();
       }
         break;
-      case Attr::RESTRICT:
+      case Attr::REQUIRES:
       {
         // requires a pair
         val = parseExprPair();
