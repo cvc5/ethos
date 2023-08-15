@@ -20,7 +20,7 @@ cat << EOF > $CHECKFILE
 (include "$BASEDIR/../proofs/rules/Cvc5.smt2")
 EOF
 
-sed -n 's/declare-sort \+\([A-Za-z]\+\) \+0/declare-type \1 ()/p;s/declare-fun \+\([a-zA-Z]\+\) \+(\([ a-zA-Z]\+\)) \+\([a-zA-Z]\+\)/declare-const \1 (-> \2 \3)/p;/declare-const/p' $PROBLEM >> $CHECKFILE
+sed -n 's/declare-sort \+\([A-Za-z1-9]\+\) \+0/declare-type \1 ()/p;/declare-const/p;s/declare-fun \+\([a-zA-Z1-9]\+\) \+(\([ a-zA-Z1-9]*\)) \+\([a-zA-Z1-9]\+\)/declare-const \1 (-> \2 \3)/p' $PROBLEM >> $CHECKFILE
 sed '/^unsat/d' $PROOFFILE >> $CHECKFILE
 
 $ALFC --no-print-let $CHECKFILE
