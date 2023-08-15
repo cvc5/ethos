@@ -3,7 +3,8 @@
 
 (declare-const not (-> Bool Bool))
 
-(declare-rule eq-symm ((T Type) (x T) (y T))
+(declare-rule eq-symm 
+  ((T Type) (x T) (y T))
   :premises ((= x y))
   :args ()
   :conclusion (= y x))

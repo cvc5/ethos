@@ -7,16 +7,15 @@
 (declare-const > (-> Int Int Bool))
 (declare-const >= (-> Int Int Bool))
 
-
 (program run_evaluate ((T Type) (U Type) (S Type) (a T) (b U) (z S))
     (S) S
     (
-      ((run_evaluate (= a b))  (eval.is_eq (run_evaluate a) (run_evaluate b)))
-      ((run_evaluate (> a b))  (eval.is_neg (run_evaluate (- b a))))
+      ((run_evaluate (= a b))  (alf.is_eq (run_evaluate a) (run_evaluate b)))
+      ((run_evaluate (> a b))  (alf.is_neg (run_evaluate (- b a))))
       ((run_evaluate (>= a b)) (let ((x (run_evaluate (- b a)))) 
-                                 (eval.or (eval.is_neg x) (eval.is_zero x))))
-      ((run_evaluate (+ a b))  (eval.add (run_evaluate a) (run_evaluate b)))
-      ((run_evaluate (- a b))  (eval.add (run_evaluate a) (eval.neg (run_evaluate b))))
+                                 (alf.or (alf.is_neg x) (alf.is_zero x))))
+      ((run_evaluate (+ a b))  (alf.add (run_evaluate a) (run_evaluate b)))
+      ((run_evaluate (- a b))  (alf.add (run_evaluate a) (alf.neg (run_evaluate b))))
       ((run_evaluate z)        z)
     )
 )

@@ -11,7 +11,7 @@
 (program run_evaluate ((a Int) (b Int))
     (Int) Int
     (
-      ((run_evaluate (+ a b)) (eval.add (run_evaluate a) (run_evaluate b)))
+      ((run_evaluate (+ a b)) (alf.add (run_evaluate a) (run_evaluate b)))
       ((run_evaluate a) a)
     )
 )

@@ -3,7 +3,7 @@
 (declare-const forall (-> (! Type :var T :implicit) T Bool Bool))
 (declare-const exists (-> (! Type :var T :implicit) T Bool Bool))
 
-; (skolem U t), where U is the type of the skolem and t is the cache val
+; (skolem U t), where U is the type of the skolem and t is an index
 (declare-const skolem (-> (! Type :var U) (! Type :var T :implicit) T U))
 
 (declare-const => (-> Bool Bool Bool))

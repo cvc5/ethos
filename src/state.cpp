@@ -760,7 +760,7 @@ void State::bindBuiltin(const std::string& name, Kind k, bool isClosure, const E
 
 void State::bindBuiltinEval(const std::string& name, Kind k)
 {
-  bindBuiltin("eval."+name, k);
+  bindBuiltin("alf."+name, k);
 }
 
 void State::defineProgram(const Expr& v, const Expr& prog)

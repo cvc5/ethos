@@ -15,7 +15,7 @@
   (! Int :var m :implicit)
   (BitVec n)
   (BitVec m)
-  (BitVec (eval.add n m))))
+  (BitVec (alf.add n m))))
   
 
 (declare-fun x () (BitVec 2))

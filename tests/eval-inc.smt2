@@ -9,7 +9,7 @@
 (program run_inc ((a Int))
     (Int) Int
     (
-      ((run_inc a) (eval.add 1 a))
+      ((run_inc a) (alf.add 1 a))
     )
 )
 
@@ -17,7 +17,7 @@
    ((a Int))
    :premises ()
    :args (a)
-   :conclusion (= (+ a (eval.add 0 1)) (run_inc a))
+   :conclusion (= (+ a (alf.add 0 1)) (run_inc a))
 )
 
 
