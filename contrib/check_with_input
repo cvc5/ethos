@@ -14,7 +14,7 @@ ALFC=$BASEDIR/../build/src/alfc
 PROOFFILE=/tmp/cvc5proof.smt2
 CHECKFILE=/tmp/cleanproof.smt2
 
-$CVC5 --produce-proofs --proof-format-mode=alethelf --proof-granularity=theory-rewrite $PROBLEM | tee $PROOFFILE
+$CVC5 --produce-proofs --dump-proofs --proof-format-mode=alethelf --proof-granularity=theory-rewrite $PROBLEM | tee $PROOFFILE
 
 cat << EOF > $CHECKFILE
 (include "$BASEDIR/../proofs/rules/Cvc5.smt2")
