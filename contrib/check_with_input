@@ -11,11 +11,11 @@ shift
 PROOF=$1
 shift
 
-BASEDIR=$(pwd)
+BASEDIR=$(dirname -- "$( readlink -f -- "$0"; )";)
 OUTFILE=/tmp/fullproof.smt2
 
 cat << EOF > $OUTFILE
-(include "$BASEDIR/proofs/rules/Cvc5.smt2")
+(include "$BASEDIR/../proofs/rules/Cvc5.smt2")
 EOF
 
 sed -n 's/declare-sort \+\([A-Za-z]\+\) \+0/declare-type \1 ()/p;s/declare-fun \+\([a-zA-Z]\+\) \+(\([ a-zA-Z]\+\)) \+\([a-zA-Z]\+\)/declare-const \1 (-> \2 \3)/p;/declare-const/p' $PROBLEM >> $OUTFILE
