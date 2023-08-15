@@ -174,76 +174,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
   {
     case Kind::APPLY:
     {
-      std::vector<Expr>& children = e->d_children;
-      Expr& hd = children[0];
-      Expr hdType = hd->d_type;
-      Assert(hdType != nullptr);
-      if (hdType->getKind()!=Kind::FUNCTION_TYPE)
-      {
-        // non-function at head
-        if (out)
-        {
-          (*out) << "Non-function as head of APPLY";
-        }
-        return nullptr;
-      }
-      std::vector<Expr>& hdtypes = hdType->d_children;
-      std::vector<Expr> ctypes;
-      if (hdtypes.size() != children.size())
-      {
-        // incorrect arity
-        if (out)
-        {
-          (*out) << "Incorrect arity, #argTypes=" << hdtypes.size()
-                 << " #children=" << children.size();
-        }
-        return nullptr;
-      }
-      for (size_t i=1, nchild=children.size(); i<nchild; i++)
-      {
-        // if the argument type is (Quote t), then we implicitly upcast
-        // the argument c to (quote c). This is equivalent to matching
-        // c to t directly, hence we take the child itself and not its
-        // type.
-        if (hdtypes[i-1]->getKind()==Kind::QUOTE_TYPE)
-        {
-          ctypes.push_back(evaluate(children[i]));
-        }
-        else
-        {
-          ctypes.push_back(children[i]->d_type);
-        }
-      }
-      // if compiled, run the compiled version of the type checker
-      if (hdType->isCompiled())
-      {
-        Trace("type_checker") << "RUN type check " << hdType << std::endl;
-        return run_getTypeInternal(hdType, ctypes, out);
-      }
-      Ctx ctx;
-      std::set<std::pair<Expr, Expr>> visited;
-      for (size_t i=0, nchild=ctypes.size(); i<nchild; i++)
-      {
-        Assert(ctypes[i] != nullptr);
-        // matching, update context
-        Expr hdt = hdtypes[i];
-        // if the argument is (Quote t), we match on its argument,
-        // which along with how ctypes[i] is the argument itself, has the effect
-        // of an implicit upcast.
-        hdt = hdt->getKind()==Kind::QUOTE_TYPE ? hdt->getChildren()[0] : hdt;
-        if (!match(hdt, ctypes[i], ctx, visited))
-        {
-          if (out)
-          {
-            (*out) << "Unexpected argument type " << i << std::endl;
-            (*out) << "  LHS " << hdtypes[i] << std::endl;
-            (*out) << "  RHS " << ctypes[i] << std::endl;
-          }
-          return nullptr;
-        }
-      }
-      // evaluate in the matched context
-      return evaluate(hdtypes.back(), ctx);
+      return getTypeApp(e->d_children);
     }
     case Kind::LAMBDA:
     {
@@ -354,6 +285,80 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
     (*out) << "Unknown kind " << k;
   }
   return nullptr;
+}
+
+Expr TypeChecker::getTypeApp(std::vector<Expr>& children, std::ostream* out)
+{
+  Assert (!children.empty());
+  Expr& hd = children[0];
+  Expr hdType = hd->d_type;
+  Assert(hdType != nullptr);
+  if (hdType->getKind()!=Kind::FUNCTION_TYPE)
+  {
+    // non-function at head
+    if (out)
+    {
+      (*out) << "Non-function as head of APPLY";
+    }
+    return nullptr;
+  }
+  std::vector<Expr>& hdtypes = hdType->d_children;
+  std::vector<Expr> ctypes;
+  if (hdtypes.size() != children.size())
+  {
+    // incorrect arity
+    if (out)
+    {
+      (*out) << "Incorrect arity, #argTypes=" << hdtypes.size()
+              << " #children=" << children.size();
+    }
+    return nullptr;
+  }
+  for (size_t i=1, nchild=children.size(); i<nchild; i++)
+  {
+    // if the argument type is (Quote t), then we implicitly upcast
+    // the argument c to (quote c). This is equivalent to matching
+    // c to t directly, hence we take the child itself and not its
+    // type.
+    if (hdtypes[i-1]->getKind()==Kind::QUOTE_TYPE)
+    {
+      ctypes.push_back(evaluate(children[i]));
+    }
+    else
+    {
+      ctypes.push_back(children[i]->d_type);
+    }
+  }
+  // if compiled, run the compiled version of the type checker
+  if (hdType->isCompiled())
+  {
+    Trace("type_checker") << "RUN type check " << hdType << std::endl;
+    return run_getTypeInternal(hdType, ctypes, out);
+  }
+  Ctx ctx;
+  std::set<std::pair<Expr, Expr>> visited;
+  for (size_t i=0, nchild=ctypes.size(); i<nchild; i++)
+  {
+    Assert(ctypes[i] != nullptr);
+    // matching, update context
+    Expr hdt = hdtypes[i];
+    // if the argument is (Quote t), we match on its argument,
+    // which along with how ctypes[i] is the argument itself, has the effect
+    // of an implicit upcast.
+    hdt = hdt->getKind()==Kind::QUOTE_TYPE ? hdt->getChildren()[0] : hdt;
+    if (!match(hdt, ctypes[i], ctx, visited))
+    {
+      if (out)
+      {
+        (*out) << "Unexpected argument type " << i << std::endl;
+        (*out) << "  LHS " << hdtypes[i] << std::endl;
+        (*out) << "  RHS " << ctypes[i] << std::endl;
+      }
+      return nullptr;
+    }
+  }
+  // evaluate in the matched context
+  return evaluate(hdtypes.back(), ctx);
 }
 
 bool TypeChecker::match(const Expr& a, const Expr& b, Ctx& ctx)

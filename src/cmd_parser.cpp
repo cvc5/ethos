@@ -583,32 +583,38 @@ bool CmdParser::parseNextCommand()
         children.push_back(e);
       }
       children.insert(children.end(), premises.begin(), premises.end());
-      Expr def = rule;
+      // compute the type of applying the rule
+      Expr concType;
       if (children.size()>1)
       {
-        // TODO: could avoid constructing this term here and run the type
-        // check algorithm directly
-        def = d_state.mkExpr(Kind::APPLY, children);
-      }
-      // ensure proof type, note this is where "proof checking" happens.
-      Expr expected;
-      if (proven!=nullptr)
-      {
-        expected = d_state.mkProofType(proven);
-        d_eparser.typeCheck(def, expected);
+        // check type rule for APPLY directly without constructing the app
+        concType = d_state.getTypeChecker().getTypeApp(children);
       }
       else
       {
-        expected = d_eparser.typeCheck(def);
-        if (expected->getKind()!=Kind::PROOF_TYPE)
+        concType = d_state.getTypeChecker().getType(rule);
+      }
+      // ensure proof type, note this is where "proof checking" happens.
+      if (concType->getKind()!=Kind::PROOF_TYPE)
+      {
+        std::stringstream ss;
+        ss << "Non-proof conclusion for step, got " << concType;
+        d_lex.parseError(ss.str());
+      }
+      if (proven!=nullptr)
+      {
+        Expr& actual = concType->getChildren()[0];
+        if (actual!=proven)
         {
-          std::stringstream buffer;
-          buffer << "Could not discharge requirements. Got " << expected;
-          d_lex.parseError(buffer.str(), true);
+          std::stringstream ss;
+          ss << "Unexpected conclusion for step:" << std::endl;
+          ss << "    Proves: " << actual << std::endl;
+          ss << "  Expected: " << proven;
+          d_lex.parseError(ss.str());
         }
       }
       // bind to variable, note that the definition term is not kept
-      Expr v = d_state.mkVar(name, expected);
+      Expr v = d_state.mkVar(name, concType);
       d_eparser.bind(name, v);
       // d_eparser.bind(name, def);
     }
