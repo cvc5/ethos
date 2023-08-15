@@ -235,20 +235,31 @@ Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool 
     {
       continue;
     }
-    Expr& v = a->getChildren()[0];
-    AppInfo* ainfo = getAppInfo(v.get());
+    AppInfo* ainfo = getAppInfo(a.get());
     if (ainfo==nullptr)
     {
-      
+      continue;
     }
+    // does it have requirements?
+    AttrMap::iterator ita = ainfo->d_attrs.find(Attr::RESTRICT);
+    if (ita==ainfo->d_attrs.end())
+    {
+      continue;
+    }
+    reqs.insert(reqs.end(), ita->second.begin(), ita->second.end());
   }
+  Expr range;
   if (!reqs.empty())
   {
-    
+    range = mkRequiresType(reqs, ret);
+  }
+  else
+  {
+    range = ret;
   }
   if (flatten && args.size()>1)
   {
-    Expr curr = ret;
+    Expr curr = range;
     for (size_t i=0, nargs = args.size(); i<nargs; i++)
     {
       Expr arg = args[nargs-i-1];
@@ -257,7 +268,7 @@ Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool 
     return curr;
   }
   std::vector<Expr> atypes(args.begin(), args.end());
-  atypes.push_back(ret);
+  atypes.push_back(range);
   return mkExprInternal(Kind::FUNCTION_TYPE, atypes);
 }
 

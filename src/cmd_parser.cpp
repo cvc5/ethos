@@ -123,6 +123,9 @@ bool CmdParser::parseNextCommand()
         v = d_state.mkConst(name, t);
       }
       d_eparser.bind(name, v);
+      // its type should be Type
+      Expr vt = d_eparser.typeCheck(v);
+      d_eparser.typeCheck(vt, d_state.mkType());
       // possible attribute list
       AttrMap attrs;
       d_eparser.parseAttributeList(v, attrs);

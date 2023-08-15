@@ -47,6 +47,7 @@ set(alfc_test_file_list
     datatype-simple.smt2
     quant.smt2
     pf-quant.smt2
+    bv-type-strict.smt2
 )
 
 macro(alfc_test file)

@@ -715,6 +715,10 @@ void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedS
     {
       case Attr::VAR:
       {
+        if (attrs.find(Attr::VAR)!=attrs.end())
+        {
+          d_lex.parseError("Cannot use :var on the same term more than once");
+        }
         std::string name = parseSymbol();
         // e should be a type
         val = d_state.mkVar(name, e);
