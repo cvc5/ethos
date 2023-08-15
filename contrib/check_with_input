@@ -1,25 +1,26 @@
 #!/usr/bin/env bash
 
-## expects [alfc executable] [*.smt2 problem file] [proof file]
+## expects [cvc5 executable] [*.smt2 problem file]
 
-ALFC=$1
+CVC5=$1
 shift
 
 PROBLEM=$1
 shift
 
-PROOF=$1
-shift
-
 BASEDIR=$(dirname -- "$( readlink -f -- "$0"; )";)
-OUTFILE=/tmp/fullproof.smt2
+ALFC=$BASEDIR/../build/src/alfc
 
-cat << EOF > $OUTFILE
+PROOFFILE=/tmp/cvc5proof.smt2
+CHECKFILE=/tmp/cleanproof.smt2
+
+$CVC5 --produce-proofs --proof-format-mode=alethelf --proof-granularity=theory-rewrite $PROBLEM | tee $PROOFFILE
+
+cat << EOF > $CHECKFILE
 (include "$BASEDIR/../proofs/rules/Cvc5.smt2")
 EOF
 
-sed -n 's/declare-sort \+\([A-Za-z]\+\) \+0/declare-type \1 ()/p;s/declare-fun \+\([a-zA-Z]\+\) \+(\([ a-zA-Z]\+\)) \+\([a-zA-Z]\+\)/declare-const \1 (-> \2 \3)/p;/declare-const/p' $PROBLEM >> $OUTFILE
-sed '/^unsat/d' $PROOF >> $OUTFILE
+sed -n 's/declare-sort \+\([A-Za-z]\+\) \+0/declare-type \1 ()/p;s/declare-fun \+\([a-zA-Z]\+\) \+(\([ a-zA-Z]\+\)) \+\([a-zA-Z]\+\)/declare-const \1 (-> \2 \3)/p;/declare-const/p' $PROBLEM >> $CHECKFILE
+sed '/^unsat/d' $PROOFFILE >> $CHECKFILE
 
-cat $OUTFILE
-$ALFC -v --no-print-let $OUTFILE
+$ALFC --no-print-let $CHECKFILE
