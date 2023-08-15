@@ -147,6 +147,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs)
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_RAT_DIV:
       return nargs==2;
+    case Kind::NIL:
     case Kind::EVAL_NOT:
     case Kind::EVAL_NEG:
     case Kind::EVAL_IS_NEG:
@@ -271,6 +272,16 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
     case Kind::NIL:
     {
       // type stored as the child
+      const Expr& ctype = e->d_children[0]->d_type;
+      // must be a type
+      if (ctype->getKind()!=Kind::TYPE)
+      {
+        if (out)
+        {
+          (*out) << "Non-type for argument of nil";
+        }
+        return nullptr;
+      }
       return e->d_children[0];
     }
     case Kind::TYPE:

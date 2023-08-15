@@ -17,9 +17,9 @@
   ((x Bool) (y Bool) (z Bool) (l Bool :list))
   (Bool Bool Bool) Bool
   (
-  ((substitute-over-or x y (or x l))      (append y (substitute-over-or x y l)))
-  ((substitute-over-or x y (or z l))      (append z (substitute-over-or x y l)))
-  ((substitute-over-or x y (! Bool :nil)) (! Bool :nil))
+  ((substitute-over-or x y (or x l))       (append y (substitute-over-or x y l)))
+  ((substitute-over-or x y (or z l))       (append z (substitute-over-or x y l)))
+  ((substitute-over-or x y (alf.nil Bool)) (alf.nil Bool))
   )
 )
 

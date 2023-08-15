@@ -347,13 +347,6 @@ Expr ExprParser::parseExpr()
                 ret = nullptr;
                 rmAttr.insert(a.first);
                 break;
-              case Attr::NIL:
-                // should be annotating a type
-                typeCheck(ret, d_state.mkType());
-                // it is the nil of that type
-                ret = d_state.mkNil(ret);
-                rmAttr.insert(a.first);
-                break;
               default:
                 break;
             }

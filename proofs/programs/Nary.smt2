@@ -40,7 +40,7 @@
     ((L Type) (E Type) (cons (-> E L L)) (x L) (xs L :list) (ys L))
     ((-> E L L) L L) L
     (
-        ((concat cons (! E :nil) ys) ys)
+        ((concat cons (alf.nil E) ys) ys)
         ((concat cons (cons x xs) ys) (append cons x (concat cons xs ys)))
     )
 )
@@ -51,7 +51,7 @@
     ((L Type) (E Type) (cons (-> E L L)) (c E) (y E) (xs L :list))
     ((-> E L L) E L) L
     (
-        ((remove cons c (! E :nil)) (! E :nil))
+        ((remove cons c (alf.nil E)) (alf.nil E))
         ((remove cons c (cons c xs)) xs)
         ((remove cons c (cons y xs)) (append cons y (remove cons c xs)))
     )
@@ -62,7 +62,7 @@
     ((L Type) (E Type) (cons (-> E L L)) (x L) (xs L :list) (l L :list))
     ((-> E L L) L L) L
     (
-        ((reverseRec cons (! E :nil)  l)  l)
+        ((reverseRec cons (alf.nil E)  l)  l)
         ((reverseRec cons (cons x xs) l) (reverseRec cons xs (append cons x l)))
     )
 )

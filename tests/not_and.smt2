@@ -6,7 +6,7 @@
 (program lowerNot ((l Bool) (ls Bool :list))
     (Bool) Bool
     (
-        ((lowerNot (! Bool :nil)) (! Bool :nil)) ; Terminator changes
+        ((lowerNot (alf.nil Bool)) (alf.nil Bool))
         ((lowerNot (and l ls)) (appendOr (not l) (lowerNot ls)))
     )
 )

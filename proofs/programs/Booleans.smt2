@@ -17,7 +17,7 @@
     ((E Type) (L Type) (cons (-> E L L)) (c E) (x E) (xs L :list))
     ((-> E L L) E L) Bool
     (
-        ((inList cons c (! E :nil))  false)
+        ((inList cons c (alf.nil E))  false)
         ((inList cons c (cons c xs)) true)
         ((inList cons c (cons x xs)) (inList cons c xs))
     )
@@ -51,18 +51,18 @@
     ((xs Bool :list))
     (Bool) Bool
     (
-        ((reverseOr xs) (reverse or (! Bool :nil) xs))
+        ((reverseOr xs) (reverse or (alf.nil Bool) xs))
     )
 )
 (program naryElimOr
     ((t Bool))
     (Bool) Bool
-    (((naryElimOr t) (naryElim or (! Bool :nil) t)))
+    (((naryElimOr t) (naryElim or (alf.nil Bool) t)))
 )
 (program naryIntroOr
     ((t Bool))
     (Bool) Bool
-    (((naryIntroOr t) (naryIntro or (! Bool :nil) t)))
+    (((naryIntroOr t) (naryIntro or (alf.nil Bool) t)))
 )
 
 ; ==================================================================
@@ -93,16 +93,16 @@
     ((xs Bool :list))
     (Bool) Bool
     (
-        ((reverseAnd xs) (reverse and (! Bool :nil) xs))
+        ((reverseAnd xs) (reverse and (alf.nil Bool) xs))
     )
 )
 (program naryElimAnd
     ((t Bool))
     (Bool) Bool
-    (((naryElimAnd t) (naryElim and (! Bool :nil) t)))
+    (((naryElimAnd t) (naryElim and (alf.nil Bool) t)))
 )
 (program naryIntroAnd
     ((t Bool))
     (Bool) Bool
-    (((naryIntroAnd t) (naryIntro and (! Bool :nil) t)))
+    (((naryIntroAnd t) (naryIntro and (alf.nil Bool) t)))
 )
