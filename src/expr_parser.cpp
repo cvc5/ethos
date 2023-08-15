@@ -59,6 +59,7 @@ ExprParser::ExprParser(Lexer& lex, State& state)
   d_strToAttr[":implicit"] = Attr::IMPLICIT;
   d_strToAttr[":list"] = Attr::LIST;
   d_strToAttr[":syntax"] = Attr::SYNTAX;
+  d_strToAttr[":restrict"] = Attr::RESTRICT;
   d_strToAttr[":nil"] = Attr::NIL;
   d_strToAttr[":left-assoc"] = Attr::LEFT_ASSOC;
   d_strToAttr[":right-assoc"] = Attr::RIGHT_ASSOC;
@@ -319,39 +320,39 @@ Expr ExprParser::parseExpr()
         case ParseCtx::TERM_ANNOTATE_BODY:
         {
           // now parse attribute list
-          std::map<Attr, Expr> attrs;
-          parseAttributeList(ret, attrs);
+          AttrMap attrs;
+          bool pushedScope = false;
+          parseAttributeList(ret, attrs, pushedScope);
+          // the scope of the variable is one level up
+          if (pushedScope && sstack.size()>1)
+          {
+            sstack[sstack.size()-2]++;
+          }
           // process the attributes
-          std::vector<Attr> rmAttr;
-          for (std::pair<const Attr, Expr>& a : attrs)
+          std::unordered_set<Attr> rmAttr;
+          for (std::pair<const Attr, std::vector<Expr>>& a : attrs)
           {
             switch(a.first)
             {
               case Attr::VAR:
               {
-                // the scope of the variable is one level up
-                if (sstack.size()>1)
-                {
-                  d_state.pushScope();
-                  sstack[sstack.size()-2]++;
-                }
-                bind(a.second->getSymbol(), a.second);
+                Assert (a.second.size()==1);
                 // it is now (Quote v) for that variable
-                ret = d_state.mkQuoteType(a.second);
-                rmAttr.push_back(a.first);
+                ret = d_state.mkQuoteType(a.second[0]);
+                rmAttr.insert(a.first);
               }
                 break;
               case Attr::IMPLICIT:
                 // the term will not be added as an argument to the parent
                 ret = nullptr;
-                rmAttr.push_back(a.first);
+                rmAttr.insert(a.first);
                 break;
               case Attr::NIL:
                 // should be annotating a type
                 typeCheck(ret, d_state.mkType());
                 // it is the nil of that type
                 ret = d_state.mkNil(ret);
-                rmAttr.push_back(a.first);
+                rmAttr.insert(a.first);
                 break;
               default:
                 break;
@@ -415,6 +416,15 @@ std::vector<Expr> ExprParser::parseExprList()
   return terms;
 }
 
+Expr ExprParser::parseExprPair()
+{
+  d_lex.eatToken(Token::LPAREN);
+  Expr t1 = parseExpr();
+  Expr t2 = parseExpr();
+  d_lex.eatToken(Token::RPAREN);
+  return d_state.mkExpr(Kind::PAIR, {t1, t2});
+}
+
 std::vector<Expr> ExprParser::parseExprPairList()
 {
   d_lex.eatToken(Token::LPAREN);
@@ -444,7 +454,7 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList()
     Expr v = d_state.mkVar(name, t);
     bind(name, v);
     // parse attribute list
-    std::map<Attr, Expr> attrs;
+    AttrMap attrs;
     parseAttributeList(v, attrs);
     d_state.markAttributes(v, attrs);
     d_lex.eatToken(Token::RPAREN);
@@ -684,7 +694,7 @@ std::string ExprParser::parseStr(bool unescape)
   return s;
 }
 
-void ExprParser::parseAttributeList(const Expr& e, std::map<Attr, Expr>& attrs)
+void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedScope)
 {
   std::map<std::string, Attr>::iterator its;
   // while the next token is KEYWORD, exit if RPAREN
@@ -698,7 +708,7 @@ void ExprParser::parseAttributeList(const Expr& e, std::map<Attr, Expr>& attrs)
       // TODO: parse and skip value?
       // store dummy, to mark that we read an attribute
       Warning() << "Unsupported attribute " << key;
-      attrs[Attr::NONE] = val;
+      attrs[Attr::NONE].push_back(val);
       continue;
     }
     switch (its->second)
@@ -708,6 +718,13 @@ void ExprParser::parseAttributeList(const Expr& e, std::map<Attr, Expr>& attrs)
         std::string name = parseSymbol();
         // e should be a type
         val = d_state.mkVar(name, e);
+        // immediately bind
+        if (!pushedScope)
+        {
+          pushedScope = true;
+          d_state.pushScope();
+        }
+        bind(name, val);
       }
         break;
       case Attr::LIST:
@@ -735,13 +752,30 @@ void ExprParser::parseAttributeList(const Expr& e, std::map<Attr, Expr>& attrs)
         val = parseExpr();
       }
         break;
+      case Attr::RESTRICT:
+      {
+        // requires a pair
+        val = parseExprPair();
+      }
+        break;
       default:
         d_lex.parseError("Unhandled attribute");
         break;
     }
-    attrs[its->second] = val;
+    attrs[its->second].push_back(val);
   }
   d_lex.reinsertToken(Token::RPAREN);
+}
+
+void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs)
+{
+  bool pushedScope = false;
+  parseAttributeList(e, attrs, pushedScope);
+  // pop the scope if necessary
+  if (pushedScope)
+  {
+    d_state.popScope();
+  }
 }
 
 Kind ExprParser::parseLiteralKind()

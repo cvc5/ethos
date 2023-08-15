@@ -23,6 +23,8 @@ class ExprParser
   Expr parseExpr();
   /** Parses an SMT-LIB type <type> */
   Expr parseType();
+  /** Parses an SMT-LIB term pair */
+  Expr parseExprPair();
   /** Parses parentheses-enclosed term list (<term>*) */
   std::vector<Expr> parseExprList();
   /** Parses parentheses-enclosed term list ((<term> <term>)*) */
@@ -77,8 +79,14 @@ class ExprParser
    * <attr_1> ... <attr_n>
    * 
    * @param e The expression we are applying to
+   * @param attr The attributes which are populated
+   * @param pushedScope True if we pushed a scope while reading the list. This
+   * is true when e.g. the attribute :var is read. The caller of this method
+   * is responsible for popping the scope.
    */
-  void parseAttributeList(const Expr& e, std::map<Attr, Expr>& attrs);
+  void parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedScope);
+  /** Same as above, but ensures we pop the scope */
+  void parseAttributeList(const Expr& e, AttrMap& attrs);
   
   /**
    * Parse literal kind.

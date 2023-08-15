@@ -124,7 +124,7 @@ bool CmdParser::parseNextCommand()
       }
       d_eparser.bind(name, v);
       // possible attribute list
-      std::map<Attr, Expr> attrs;
+      AttrMap attrs;
       d_eparser.parseAttributeList(v, attrs);
       d_state.markAttributes(v, attrs);
     }

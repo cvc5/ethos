@@ -7,10 +7,9 @@
 
 #include "kind.h"
 #include "attr.h"
+#include "expr.h"
 
 namespace alfc {
-
-class ExprValue;
 
 class ExprInfo
 {
@@ -22,6 +21,9 @@ public:
   std::string d_str;
 };
 
+
+using AttrMap = std::map<Attr, std::vector<Expr>>;
+
 /**
  * Information about how to construct applications of a function.
  */
@@ -32,9 +34,9 @@ public:
   /** Attribute */
   Attr d_attrCons;
   /** Attribute */
-  std::shared_ptr<ExprValue> d_attrConsTerm;
+  Expr d_attrConsTerm;
   /** Other marked attributes */
-  std::map<Attr, std::shared_ptr<ExprValue>> d_attrs;
+  AttrMap d_attrs;
   /** Associated kind */
   Kind d_kind;
   /** */

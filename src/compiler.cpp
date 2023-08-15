@@ -105,7 +105,7 @@ std::string PathTrie::PathTrieNode::getNameForPath(std::ostream& osdecl, const s
 Compiler::Compiler(State& s) :
   d_state(s), d_tchecker(s.getTypeChecker()), d_nscopes(0), d_global(d_decl, d_init, "_e", nullptr)
 {
-  d_decl << "std::map<Attr, Expr> _amap;" << std::endl;
+  d_decl << "AttrMap _amap;" << std::endl;
   d_decl << "ExprInfo* _einfo;" << std::endl;
   d_decl << "std::map<ExprValue*, size_t> _runId;" << std::endl;
   d_decl << "Ctx _ctxTmp;" << std::endl;
@@ -206,7 +206,7 @@ void Compiler::bind(const std::string& name, const Expr& e)
   writeTypeChecking(d_tc, e->d_type);
 }
 
-void Compiler::markAttributes(const Expr& v, const std::map<Attr, Expr>& attrs)
+void Compiler::markAttributes(const Expr& v, const AttrMap& attrs)
 {
   if (d_nscopes>0)
   {
@@ -214,18 +214,21 @@ void Compiler::markAttributes(const Expr& v, const std::map<Attr, Expr>& attrs)
   }
   size_t id = writeGlobalExpr(v);
   d_init << "  _amap.clear();" << std::endl;
-  for (const std::pair<const Attr, Expr>& p : attrs)
+  for (const std::pair<const Attr, std::vector<Expr>>& p : attrs)
   {
     std::stringstream ssa;
     ssa << "Attr::" << p.first;
-    if (p.second!=nullptr)
+    for (const Expr& pv : p.second)
     {
-      size_t id = writeGlobalExpr(p.second);
-      d_init << "  _amap[" << ssa.str() << "] = _e" << id << ";" << std::endl;
-    }
-    else
-    {
-      d_init << "  _amap[" << ssa.str() << "] = nullptr;" << std::endl;
+      if (pv!=nullptr)
+      {
+        size_t id = writeGlobalExpr(pv);
+        d_init << "  _amap[" << ssa.str() << "].push_back(_e" << id << ");" << std::endl;
+      }
+      else
+      {
+        d_init << "  _amap[" << ssa.str() << "].push_back(nullptr);" << std::endl;
+      }
     }
   }
   d_init << "  markAttributes(_e" << id << ", _amap);" << std::endl;

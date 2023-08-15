@@ -122,7 +122,7 @@ public:
   std::vector<Expr> getCurrentAssumptions() const;
   
   /** Mark information */
-  bool markAttributes(const Expr& v, const std::map<Attr, Expr>& attrs);
+  bool markAttributes(const Expr& v, const AttrMap& attrs);
   /** Define program */
   void defineProgram(const Expr& v, const Expr& prog);
   /** Define constructor */

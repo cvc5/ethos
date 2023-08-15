@@ -227,6 +227,25 @@ Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool 
   {
     return ret;
   }
+  // process restrictions
+  std::vector<Expr> reqs;
+  for (const Expr& a : args)
+  {
+    if (a->getKind()!=Kind::QUOTE_TYPE)
+    {
+      continue;
+    }
+    Expr& v = a->getChildren()[0];
+    AppInfo* ainfo = getAppInfo(v.get());
+    if (ainfo==nullptr)
+    {
+      
+    }
+  }
+  if (!reqs.empty())
+  {
+    
+  }
   if (flatten && args.size()>1)
   {
     Expr curr = ret;
@@ -723,7 +742,7 @@ void State::bindBuiltin(const std::string& name, Kind k, bool isClosure, const E
     ai.d_kind = k;
     if (isClosure)
     {
-      ai.d_attrs[Attr::CLOSURE] = nullptr;
+      ai.d_attrs[Attr::CLOSURE].push_back(nullptr);
     }
   }
 }
@@ -761,31 +780,32 @@ void State::defineDatatype(const Expr& d, const std::vector<Expr>& cons)
 }
 
 
-bool State::markAttributes(const Expr& v, const std::map<Attr, Expr>& attrs)
+bool State::markAttributes(const Expr& v, const AttrMap& attrs)
 {
   AppInfo& ai = d_appData[v.get()];
-  for (const std::pair<const Attr, Expr>& a : attrs)
+  for (const std::pair<const Attr, std::vector<Expr>>& a : attrs)
   {
-    switch(a.first)
+    for (const Expr& av : a.second)
     {
-      case Attr::LEFT_ASSOC:
-      case Attr::RIGHT_ASSOC:
-      case Attr::LEFT_ASSOC_NIL:
-      case Attr::RIGHT_ASSOC_NIL:
-      case Attr::CHAINABLE:
-      case Attr::PAIRWISE:
-        // it specifies how to construct this
-        ai.d_attrCons = a.first;
-        ai.d_attrConsTerm = a.second;
-        // TODO: ensure its type has the right shape here?
-        // would catch errors earlier
-        break;
-      case Attr::LIST:
-        // remember it has been marked
-        ai.d_attrs[a.first] = a.second;
-        break;
-      default:
-        break;
+      switch(a.first)
+      {
+        case Attr::LEFT_ASSOC:
+        case Attr::RIGHT_ASSOC:
+        case Attr::LEFT_ASSOC_NIL:
+        case Attr::RIGHT_ASSOC_NIL:
+        case Attr::CHAINABLE:
+        case Attr::PAIRWISE:
+          // it specifies how to construct this
+          ai.d_attrCons = a.first;
+          ai.d_attrConsTerm = av;
+          // TODO: ensure its type has the right shape here?
+          // would catch errors earlier
+          break;
+        default:
+          // remember it has been marked
+          ai.d_attrs[a.first].push_back(av);
+          break;
+      }
     }
   }
   if (d_compiler!=nullptr)

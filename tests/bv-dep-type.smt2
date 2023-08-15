@@ -14,6 +14,3 @@
 (declare-fun x () (BitVec m))
 (declare-fun y () (BitVec m))
 (define-fun z () (BitVec m) (bvadd m x y))
-
-; FIXME: note that (bvadd dummy x y) also type checks
-; Maybe automatically make :var n -> (Quote n) then type rule (-> (Quote x) T) matches on argument, not its type.

@@ -143,7 +143,7 @@ public:
   /** */
   void bind(const std::string& name, const Expr& e);
   /** Mark attributes */
-  void markAttributes(const Expr& v, const std::map<Attr, Expr>& attrs);
+  void markAttributes(const Expr& v, const AttrMap& attrs);
   /** Define program */
   void defineProgram(const Expr& v, const Expr& prog);
   /** Define constructor */
