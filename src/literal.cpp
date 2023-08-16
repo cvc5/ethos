@@ -283,6 +283,16 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
         default: break;
       }
       break;
+    case Kind::EVAL_CONCAT:
+      if (args[0]->d_tag==args[1]->d_tag)
+      {
+        switch (args[0]->d_tag)
+        {
+          case BITVECTOR:return Literal(args[0]->d_bv.concat(args[1]->d_bv));
+          default: break;
+        }
+      }
+      break;
     default:break;
   }
   return Literal();

@@ -62,7 +62,8 @@ enum class Kind
   EVAL_TO_INT,
   EVAL_TO_RAT,
   // strings
-  EVAL_LENGTH
+  EVAL_LENGTH,
+  EVAL_CONCAT
 };
 
 /** Print a kind to the stream, for debugging */

@@ -55,6 +55,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::EVAL_TO_RAT: o << "EVAL_TO_RAT"; break;
     // strings
     case Kind::EVAL_LENGTH: o << "EVAL_LENGTH"; break;
+    case Kind::EVAL_CONCAT: o << "EVAL_CONCAT"; break;
     default: o << "UnknownKind(" << unsigned(k) << ")"; break;
   }
   return o;
@@ -102,6 +103,7 @@ std::string kindToTerm(Kind k)
         case Kind::EVAL_TO_RAT: ss << "to_q";break;
         // strings
         case Kind::EVAL_LENGTH: ss << "len"; break;
+        case Kind::EVAL_CONCAT: ss << "concat"; break;
         default:ss << "[" << k << "]";break;
         }
       }
@@ -161,7 +163,8 @@ bool isLiteralOp(Kind k)
     case Kind::EVAL_IS_ZERO:
     case Kind::EVAL_TO_INT:
     case Kind::EVAL_TO_RAT:
-    case Kind::EVAL_LENGTH: return true; break;
+    case Kind::EVAL_LENGTH:
+    case Kind::EVAL_CONCAT: return true; break;
     default: break;
   }
   return false;
