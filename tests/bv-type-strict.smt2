@@ -35,4 +35,4 @@
 
 (declare-const i Int)
 (declare-const j Int)
-;(declare-const b (BitVec (+ i j)))
+(declare-const b (BitVec (+ i j)))

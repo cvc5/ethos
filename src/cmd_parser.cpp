@@ -82,15 +82,21 @@ bool CmdParser::parseNextCommand()
   switch (tok)
   {
     // (assume <symbol> <term>)
+    // (push <symbol> <term>)
     case Token::ASSUME:
+    case Token::PUSH:
     {
+      if (tok==Token::PUSH)
+      {
+        d_state.pushAssumptionScope();
+      }
       std::string name = d_eparser.parseSymbol();
       // parse what is proven
       Expr proven = d_eparser.parseExpr();
       Expr pt = d_state.mkProofType(proven);
       Expr v = d_state.mkConst(name, pt);
       d_eparser.bind(name, v);
-      d_state.addAssumption(v);
+      d_state.addAssumption(proven);
     }
     break;
     // (declare-fun <symbol> (<sort>∗) <sort>)
@@ -108,7 +114,7 @@ bool CmdParser::parseNextCommand()
       {
         sorts = d_eparser.parseExprList();
       }
-      Expr t = d_eparser.parseExpr();
+      Expr t = d_eparser.parseType();
       if (!sorts.empty())
       {
         t = d_state.mkFunctionType(sorts, t);
@@ -123,9 +129,6 @@ bool CmdParser::parseNextCommand()
         v = d_state.mkConst(name, t);
       }
       d_eparser.bind(name, v);
-      // its type should be Type
-      Expr vt = d_eparser.typeCheck(v);
-      d_eparser.typeCheck(vt, d_state.mkType());
       // possible attribute list
       AttrMap attrs;
       d_eparser.parseAttributeList(v, attrs);
@@ -201,6 +204,12 @@ bool CmdParser::parseNextCommand()
           d_eparser.parseAndBindSortedVarList();
       // parse premises, optionally
       std::string keyword = d_eparser.parseKeyword();
+      Expr assume;
+      if (keyword=="assumption")
+      {
+        assume = d_eparser.parseExpr();
+        keyword = d_eparser.parseKeyword();
+      }
       std::vector<Expr> premises;
       if (keyword=="premises")
       {
@@ -228,15 +237,20 @@ bool CmdParser::parseNextCommand()
       }
       Expr conc = d_eparser.parseExpr();
       std::vector<Expr> argTypes;
-      for (Expr& e : args)
+      if (assume!=nullptr)
       {
-        Expr et = d_state.mkQuoteType(e);
-        argTypes.push_back(et);
+        Expr ast = d_state.mkQuoteType(assume);
+        argTypes.push_back(ast);
       }
       for (const Expr& e : premises)
       {
         Expr pet = d_state.mkProofType(e);
         argTypes.push_back(pet);
+      }
+      for (Expr& e : args)
+      {
+        Expr et = d_state.mkQuoteType(e);
+        argTypes.push_back(et);
       }
       Expr ret = d_state.mkProofType(conc);
       // include the requirements into the return type
@@ -477,36 +491,6 @@ bool CmdParser::parseNextCommand()
       d_state.reset();
     }
     break;
-    // (push)
-    case Token::PUSH:
-    {
-      d_state.pushAssumptionScope();
-    }
-    break;
-    // (pop <symbol> <formula> <term>)
-    case Token::POP:
-    {
-      std::vector<Expr> as = d_state.getCurrentAssumptions();
-      std::string name = d_eparser.parseSymbol();
-      Expr proven = d_eparser.parseExpr();
-      Expr p = d_eparser.parseExpr();
-      Expr pt = d_state.mkProofType(proven);
-      // ensure a proof of the given fact
-      d_eparser.typeCheck(p, pt);
-      d_state.popAssumptionScope();
-      // the symbol is bound to a function type over proofs
-      std::vector<Expr> atypes;
-      for (Expr& a : as)
-      {
-        const Expr& ta = d_eparser.typeCheck(a);
-        atypes.push_back(ta);
-      }
-      // bind the name
-      Expr ft = d_state.mkFunctionType(atypes, pt);
-      Expr v = d_state.mkConst(name, ft);
-      d_eparser.bind(name, v);
-    }
-    break;
     // (set-info <attribute>)
     case Token::SET_INFO:
     {
@@ -538,7 +522,9 @@ bool CmdParser::parseNextCommand()
     // (define-const i (Proof F) (R t1 ... tm p1 ... pn))
     // The parameters :premises and :args can be omitted if empty 
     case Token::STEP:
+    case Token::POP:
     {
+      bool isPop = (tok==Token::POP);
       std::string name = d_eparser.parseSymbol();
       Expr proven;
       // see if we have proven
@@ -577,12 +563,24 @@ bool CmdParser::parseNextCommand()
       }
       std::vector<Expr> children;
       children.push_back(rule);
-      // args before premises
+      // the assumption, if pop
+      if (isPop)
+      {
+        if (d_state.getAssumptionLevel()==0)
+        {
+          d_lex.parseError("Cannot pop at level zero");
+        }
+        std::vector<Expr> as = d_state.getCurrentAssumptions();
+        Assert (as.size()==1);
+        // push the assumption
+        children.push_back(as[0]);
+      }
+      // premises before arguments
+      children.insert(children.end(), premises.begin(), premises.end());
       for (const Expr& e : args)
       {
         children.push_back(e);
       }
-      children.insert(children.end(), premises.begin(), premises.end());
       // compute the type of applying the rule
       Expr concType;
       if (children.size()>1)
@@ -617,6 +615,10 @@ bool CmdParser::parseNextCommand()
       Expr v = d_state.mkConst(name, concType);
       d_eparser.bind(name, v);
       // d_eparser.bind(name, def);
+      if (isPop)
+      {
+        d_state.popAssumptionScope();
+      }
     }
     break;
     case Token::EOF_TOK:
