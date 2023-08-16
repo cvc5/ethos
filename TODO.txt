@@ -4,11 +4,13 @@ TODO:
 - :syntax
 - arity overloading
 - remove closure parsing?
-- bitvectors
 - strings
+- datatype testers
+- howto: bitvector literal type rule
 
 -- datatypes
 -- literal ops to compiler
 -- auto-evaluate literal ops
 -- change syntax for nil, for eval.
 -- :restrict
+-- bitvectors

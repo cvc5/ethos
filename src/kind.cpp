@@ -51,11 +51,15 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::EVAL_RAT_DIV: o << "EVAL_RAT_DIV"; break;
     case Kind::EVAL_IS_NEG: o << "EVAL_IS_NEG"; break;
     case Kind::EVAL_IS_ZERO: o << "EVAL_IS_ZERO"; break;
-    case Kind::EVAL_TO_INT: o << "EVAL_TO_INT"; break;
-    case Kind::EVAL_TO_RAT: o << "EVAL_TO_RAT"; break;
     // strings
     case Kind::EVAL_LENGTH: o << "EVAL_LENGTH"; break;
     case Kind::EVAL_CONCAT: o << "EVAL_CONCAT"; break;
+    case Kind::EVAL_EXTRACT: o << "EVAL_EXTRACT"; break;
+    // conversions
+    case Kind::EVAL_TO_INT: o << "EVAL_TO_INT"; break;
+    case Kind::EVAL_TO_RAT: o << "EVAL_TO_RAT"; break;
+    case Kind::EVAL_TO_BV: o << "EVAL_TO_BV"; break;
+    case Kind::EVAL_TO_STRING: o << "EVAL_TO_STRING"; break;
     default: o << "UnknownKind(" << unsigned(k) << ")"; break;
   }
   return o;
@@ -99,11 +103,14 @@ std::string kindToTerm(Kind k)
         case Kind::EVAL_RAT_DIV: ss << "qdiv";break;
         case Kind::EVAL_IS_NEG: ss << "is_neg";break;
         case Kind::EVAL_IS_ZERO: ss << "is_zero";break;
-        case Kind::EVAL_TO_INT: ss << "to_z";break;
-        case Kind::EVAL_TO_RAT: ss << "to_q";break;
         // strings
         case Kind::EVAL_LENGTH: ss << "len"; break;
         case Kind::EVAL_CONCAT: ss << "concat"; break;
+        // conversions
+        case Kind::EVAL_TO_INT: ss << "to_z";break;
+        case Kind::EVAL_TO_RAT: ss << "to_q";break;
+        case Kind::EVAL_TO_BV: ss << "to_bv";break;
+        case Kind::EVAL_TO_STRING: ss << "to_str";break;
         default:ss << "[" << k << "]";break;
         }
       }
@@ -161,10 +168,13 @@ bool isLiteralOp(Kind k)
     case Kind::EVAL_RAT_DIV:
     case Kind::EVAL_IS_NEG:
     case Kind::EVAL_IS_ZERO:
+    case Kind::EVAL_LENGTH:
+    case Kind::EVAL_CONCAT:
+    case Kind::EVAL_EXTRACT:
     case Kind::EVAL_TO_INT:
     case Kind::EVAL_TO_RAT:
-    case Kind::EVAL_LENGTH:
-    case Kind::EVAL_CONCAT: return true; break;
+    case Kind::EVAL_TO_BV:
+    case Kind::EVAL_TO_STRING:return true; break;
     default: break;
   }
   return false;

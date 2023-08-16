@@ -82,6 +82,8 @@ class Integer
    */
   Integer oneExtend(uint32_t size, uint32_t amount) const;
 
+  /** Return true if this Integer fits into an unsigned int. */
+  bool fitsUnsignedInt() const;
   /** Return a 32 bit unsigned integer representation of this Integer. */
   uint32_t toUnsignedInt() const;
 

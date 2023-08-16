@@ -59,11 +59,15 @@ enum class Kind
   EVAL_RAT_DIV,
   EVAL_IS_NEG,
   EVAL_IS_ZERO,
-  EVAL_TO_INT,
-  EVAL_TO_RAT,
   // strings
   EVAL_LENGTH,
-  EVAL_CONCAT
+  EVAL_CONCAT,
+  EVAL_EXTRACT,
+  // conversions
+  EVAL_TO_INT,
+  EVAL_TO_RAT,
+  EVAL_TO_BV,
+  EVAL_TO_STRING
 };
 
 /** Print a kind to the stream, for debugging */

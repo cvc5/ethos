@@ -150,23 +150,15 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
       break;
     case Kind::EVAL_ADD:
       // TODO: allow mixed??
-      switch (args[0]->d_tag)
+      if (args[0]->d_tag==args[1]->d_tag)
       {
-        case INTEGER:
-          if (args[1]->d_tag==INTEGER)
-          {
-            return Literal(Integer(args[0]->d_int + args[1]->d_int));
-          }
-          break;
-        case RATIONAL:
-          if (args[1]->d_tag==RATIONAL)
-          {
-            return Literal(Rational(args[0]->d_rat + args[1]->d_rat));
-          }
-          break;
-        case BITVECTOR:
-          break;
-        default: break;
+        switch (args[0]->d_tag)
+        {
+          case INTEGER:return Literal(args[0]->d_int + args[1]->d_int);
+          case RATIONAL:return Literal(args[0]->d_rat + args[1]->d_rat);
+          case BITVECTOR:return Literal(args[0]->d_bv + args[1]->d_bv);
+          default: break;
+        }
       }
       break;
     case Kind::EVAL_NEG:
@@ -180,21 +172,15 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
       break;
     case Kind::EVAL_MUL:
       // TODO: allow mixed??
-      switch (args[0]->d_tag)
+      if (args[0]->d_tag==args[1]->d_tag)
       {
-        case INTEGER:
-          if (args[1]->d_tag==INTEGER)
-          {
-            return Literal(Integer(args[0]->d_int * args[1]->d_int));
-          }
-          break;
-        case RATIONAL:
-          if (args[1]->d_tag==RATIONAL)
-          {
-            return Literal(Rational(args[0]->d_rat * args[1]->d_rat));
-          }
-          break;
-        default: break;
+        switch (args[0]->d_tag)
+        {
+          case INTEGER:return Literal(args[0]->d_int * args[1]->d_int);
+          case RATIONAL:return Literal(args[0]->d_rat * args[1]->d_rat);
+          case BITVECTOR:return Literal(args[0]->d_bv * args[1]->d_bv);
+          default: break;
+        }
       }
       break;
     case Kind::EVAL_INT_DIV:
@@ -259,6 +245,39 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
         default: break;
       }
       break;
+    // strings
+    case Kind::EVAL_LENGTH:
+      switch (args[0]->d_tag)
+      {
+        case BITVECTOR:return Literal(Integer(args[0]->d_bv.getSize()));
+        default: break;
+      }
+      break;
+    case Kind::EVAL_CONCAT:
+      if (args[0]->d_tag==args[1]->d_tag)
+      {
+        switch (args[0]->d_tag)
+        {
+          case BITVECTOR:return Literal(args[0]->d_bv.concat(args[1]->d_bv));
+          default: break;
+        }
+      }
+      break;
+    case Kind::EVAL_EXTRACT:
+      if (args[1]->d_tag==INTEGER && args[1]->d_int.fitsUnsignedInt() &&
+          args[2]->d_tag==INTEGER && args[2]->d_int.fitsUnsignedInt())
+      {
+        uint32_t v1 = args[1]->d_int.toUnsignedInt();
+        uint32_t v2 = args[2]->d_int.toUnsignedInt();
+        switch (args[0]->d_tag)
+        {
+          // extract is high to low
+          case BITVECTOR:return Literal(args[0]->d_bv.extract(v2, v1));
+          default: break;
+        }
+      }
+      break;
+    // conversions
     case Kind::EVAL_TO_INT:
       switch (args[0]->d_tag)
       {
@@ -276,22 +295,19 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
         default: break;
       }
       break;
-    case Kind::EVAL_LENGTH:
-      switch (args[0]->d_tag)
+    case Kind::EVAL_TO_BV:
+      if (args[0]->d_tag==INTEGER && args[0]->d_int.fitsUnsignedInt())
       {
-        case BITVECTOR:return Literal(Integer(args[0]->d_bv.getSize()));
-        default: break;
-      }
-      break;
-    case Kind::EVAL_CONCAT:
-      if (args[0]->d_tag==args[1]->d_tag)
-      {
+        uint32_t size = args[0]->d_int.toUnsignedInt();
         switch (args[0]->d_tag)
         {
-          case BITVECTOR:return Literal(args[0]->d_bv.concat(args[1]->d_bv));
+          case INTEGER:return Literal(BitVector(size, args[0]->d_int));
+          case BITVECTOR:return Literal(BitVector(size, args[0]->d_bv.getValue()));
           default: break;
         }
       }
+      break;
+    case Kind::EVAL_TO_STRING:
       break;
     default:break;
   }

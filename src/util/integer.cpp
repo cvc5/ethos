@@ -107,6 +107,8 @@ Integer Integer::oneExtend(uint32_t size, uint32_t amount) const
   return Integer(res);
 }
 
+bool Integer::fitsUnsignedInt() const { return d_value.fits_uint_p(); }
+
 uint32_t Integer::toUnsignedInt() const
 {
   return mpz_get_ui(d_value.get_mpz_t());
