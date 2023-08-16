@@ -89,6 +89,8 @@ public:
   /** (nil <type>) */
   Expr mkNil(const Expr& t);
   /** */
+  Expr mkSelf();
+  /** */
   Expr mkExpr(Kind k, const std::vector<Expr>& children);
   /** make true */
   Expr mkTrue();
@@ -137,6 +139,7 @@ private:
   Expr d_boolType;
   Expr d_true;
   Expr d_false;
+  Expr d_self;
   /** */
   ExprInfo* getOrMkInfo(const ExprValue* e);
   /** include file, if not already done */

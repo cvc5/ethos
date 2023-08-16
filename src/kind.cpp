@@ -77,6 +77,7 @@ std::string kindToTerm(Kind k)
     case Kind::BOOL_TYPE: ss << "Bool"; break;
     case Kind::QUOTE_TYPE: ss << "Quote"; break;
     case Kind::REQUIRES_TYPE: ss << "Requires"; break;
+    case Kind::NIL: ss << "alf.nil"; break;
     // terms
     case Kind::APPLY: ss << "@"; break;
     case Kind::LAMBDA: ss << "lambda"; break;
@@ -86,7 +87,7 @@ std::string kindToTerm(Kind k)
     default:
       if (isLiteralOp(k))
       {
-        ss << "eval.";
+        ss << "alf.";
         switch (k)
         {
         case Kind::EVAL_IS_EQ: ss << "is_eq"; break;

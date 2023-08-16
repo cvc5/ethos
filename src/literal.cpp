@@ -20,8 +20,8 @@ Literal::Literal(const Literal& other)
       d_int = other.d_int;
       break;
     case BITVECTOR:
-      //new (&d_bv) BitVector;
-      //d_bv = other.d_bv;
+      new (&d_bv) BitVector;
+      d_bv = other.d_bv;
       break;
     case STRING:
       //new (&d_str) String;
@@ -48,8 +48,8 @@ Literal& Literal::operator=(const Literal& other)
         d_int = other.d_int;
         break;
       case BITVECTOR:
-        //new (&d_bv) BitVector;
-        //d_bv = other.d_bv;
+        new (&d_bv) BitVector;
+        d_bv = other.d_bv;
         break;
       case STRING:
         //new (&d_str) String;
@@ -83,7 +83,7 @@ std::string Literal::toString() const
     case BOOL: return d_bool ? "true" : "false";
     case RATIONAL: return d_rat.toString();
     case INTEGER: return d_int.toString();
-    case BITVECTOR:
+    case BITVECTOR: return d_bv.toString();
     case STRING:
     case INVALID: break;
     default:break;

@@ -72,12 +72,13 @@ void ExprValue::computeFlags()
   {
     cur = visit.back();
     cur->setFlag(Flag::IS_FLAGS_COMPUTED, true);
+    Kind ck = cur->getKind();
     std::vector<Expr>& children = cur->d_children;
     if (children.empty())
     {
-      bool isParam = (cur->getKind()==Kind::PARAM);
+      bool isNonGround = (ck==Kind::PARAM);
       cur->setFlag(Flag::IS_EVAL, false);
-      cur->setFlag(Flag::IS_NON_GROUND, isParam);
+      cur->setFlag(Flag::IS_NON_GROUND, isNonGround);
       visit.pop_back();
     }
     else if (visited.find(cur)==visited.end())
@@ -94,7 +95,6 @@ void ExprValue::computeFlags()
     else
     {
       visit.pop_back();
-      Kind ck = cur->getKind();
       if (ck==Kind::APPLY)
       {
         Kind cck = children[0]->getKind();
@@ -210,7 +210,13 @@ void ExprValue::printDebugInternal(const ExprValue* e,
         ExprInfo * ei = d_state->getInfo(cur.first);
         if (ei!=nullptr)
         {
-          os << ei->d_str;
+          switch (k)
+          {
+            case Kind::HEXADECIMAL:os << "#x" << ei->d_str;break;
+            case Kind::BINARY:os << "#b" << ei->d_str;break;
+            case Kind::STRING:os << "\"" << ei->d_str << "\"";break;
+            default:os << ei->d_str;break;
+          }
         }
         else
         {

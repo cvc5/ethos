@@ -61,7 +61,6 @@ void TypeChecker::setLiteralTypeRule(Kind k, const Expr& t)
                  << k << " to " << t << ", since its type was already set to "
                  << it->second;
   }
-  Assert(t->isGround());
   it->second = t;
 }
 
@@ -179,7 +178,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
   {
     case Kind::APPLY:
     {
-      return getTypeApp(e->d_children);
+      return getTypeApp(e->d_children, out);
     }
     case Kind::LAMBDA:
     {
@@ -268,7 +267,15 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
     case Kind::STRING:
     {
       // use the literal type rule
-      return getOrSetLiteralTypeRule(k);
+      Expr ret = getOrSetLiteralTypeRule(k);
+      // it may involve the "self" parameter
+      if (!ret->isGround())
+      {
+        Ctx ctx;
+        ctx[d_state.mkSelf()] = e;
+        return evaluate(ret, ctx);
+      }
+      return ret;
     }
       break;
     default:
@@ -737,6 +744,7 @@ Expr TypeChecker::getLiteralOpType(Kind k,
   {
     case Kind::EVAL_ADD:
     case Kind::EVAL_MUL:
+    case Kind::EVAL_CONCAT:
       return childTypes[0];
       break;
     case Kind::EVAL_NEG:
@@ -754,6 +762,7 @@ Expr TypeChecker::getLiteralOpType(Kind k,
       return getOrSetLiteralTypeRule(Kind::BOOLEAN);
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_TO_INT:
+    case Kind::EVAL_LENGTH:
       return getOrSetLiteralTypeRule(Kind::NUMERAL);
     case Kind::EVAL_RAT_DIV:
     case Kind::EVAL_TO_RAT:

@@ -92,7 +92,7 @@ bool CmdParser::parseNextCommand()
       }
       std::string name = d_eparser.parseSymbol();
       // parse what is proven
-      Expr proven = d_eparser.parseExpr();
+      Expr proven = d_eparser.parseFormula();
       Expr pt = d_state.mkProofType(proven);
       Expr v = d_state.mkConst(name, pt);
       d_eparser.bind(name, v);

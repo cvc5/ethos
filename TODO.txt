@@ -5,7 +5,6 @@ TODO:
 - arity overloading
 - remove closure parsing?
 - strings
-- datatype testers
 - howto: bitvector literal type rule
 - check type preservation for evaluation?
 
@@ -15,3 +14,4 @@ TODO:
 -- change syntax for nil, for eval.
 -- :restrict
 -- bitvectors
+-- datatype testers

@@ -54,6 +54,10 @@ State::State(Options& opts, Stats& stats) : d_tc(*this), d_opts(opts), d_stats(s
   bindBuiltinEval("len", Kind::EVAL_LENGTH);
   bindBuiltinEval("concat", Kind::EVAL_CONCAT);
   bindBuiltinEval("extract", Kind::EVAL_EXTRACT);
+  
+  // self is a distinguished parameter
+  d_self = mkSymbolInternal(Kind::PARAM, "alf.self", mkAbstractType());
+  bind("alf.self", d_self);
 
   // note we don't allow parsing (Proof ...), (Quote ...), or (quote ...).
 
@@ -333,6 +337,11 @@ Expr State::mkProgramConst(const std::string& name, const Expr& type)
 Expr State::mkProofRule(const std::string& name, const Expr& type)
 {
   return mkSymbolInternal(Kind::PROOF_RULE, name, type);
+}
+
+Expr State::mkSelf()
+{
+  return d_self;
 }
 
 Expr State::mkNil(const Expr& t)

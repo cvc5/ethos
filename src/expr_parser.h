@@ -23,6 +23,8 @@ class ExprParser
   Expr parseExpr();
   /** Parses an SMT-LIB type <type> */
   Expr parseType();
+  /** Parses an SMT-LIB formula <formula> */
+  Expr parseFormula();
   /** Parses an SMT-LIB term pair */
   Expr parseExprPair();
   /** Parses parentheses-enclosed term list (<term>*) */

@@ -394,6 +394,15 @@ Expr ExprParser::parseType()
   return e;
 }
 
+Expr ExprParser::parseFormula()
+{
+  Expr e = parseExpr();
+  // ensure it has type Bool
+  typeCheck(e, d_state.mkBoolType());
+  return e;
+  
+}
+
 std::vector<Expr> ExprParser::parseExprList()
 {
   d_lex.eatToken(Token::LPAREN);
@@ -592,6 +601,7 @@ bool ExprParser::parseConstructorDefinitionList(Expr& dt,
                                                 std::map<Expr, std::vector<Expr>>& dtcons)
 {
   d_lex.eatToken(Token::LPAREN);
+  Expr boolType = d_state.mkBoolType();
   // parse another constructor or close the list
   while (d_lex.eatTokenChoice(Token::LPAREN, Token::RPAREN))
   {
@@ -620,6 +630,15 @@ bool ExprParser::parseConstructorDefinitionList(Expr& dt,
       return false;
     }
     conslist.push_back(cons);
+    // make the discriminator
+    std::stringstream ss;
+    ss << "is-" << name;
+    Expr dtype = d_state.mkFunctionType({dt}, boolType);
+    Expr tester = d_state.mkConst(ss.str(), dtype);
+    if (!d_state.bind(ss.str(), tester))
+    {
+      return false;
+    }
     dtcons[cons] = sels;
   }
   return true;
@@ -821,7 +840,7 @@ Expr ExprParser::getVar(const std::string& name)
   if (ret==nullptr)
   {
     std::stringstream ss;
-    ss << "State::getVar: could not find symbol " << name;
+    ss << "Could not find symbol " << name;
     d_lex.parseError(ss.str());
   }
   return ret;
