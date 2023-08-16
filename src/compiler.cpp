@@ -413,7 +413,15 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         curInfo = d_state.getInfo(cur);
         Assert(curInfo != nullptr);
         os << "  " << cs.d_prefix << ret << " = ";
-        os << "mkSymbolInternal(Kind::" << cur->getKind() << ", \"" << curInfo->d_str << "\", _e" << tid << ");" << std::endl;
+        // special case: d_self
+        if (cur==d_state.mkSelf().get())
+        {
+          os << "d_self;" << std::endl;
+        }
+        else
+        {
+          os << "mkSymbolInternal(Kind::" << cur->getKind() << ", \"" << curInfo->d_str << "\", _e" << tid << ");" << std::endl;
+        }
       }
       else if (ck==Kind::TYPE)
       {
