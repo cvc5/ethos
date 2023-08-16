@@ -239,11 +239,6 @@ BitVector operator~(const BitVector& a);
 BitVector operator+(const BitVector& a, const BitVector& b);
 
 /**
- * @return A bit-vector representing the subtraction of bit-vectors `a` and `b`.
- */
-BitVector operator-(const BitVector& a, const BitVector& b);
-
-/**
  * @return A bit-vector representing the negation of bit-vector `a`.
  */
 BitVector operator-(const BitVector& a);

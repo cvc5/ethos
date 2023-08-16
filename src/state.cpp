@@ -600,8 +600,10 @@ Expr State::mkLiteral(Kind k, const std::string& s)
       d_literals[lit.get()] = Literal(Rational(s));
       break;
     case Kind::HEXADECIMAL:
+      // should normalize to binary
       break;
     case Kind::BINARY:
+      d_literals[lit.get()] = Literal(BitVector(s, 2));
       break;
     case Kind::STRING:
       break;

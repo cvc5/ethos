@@ -105,7 +105,7 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
         case BOOL: return Literal(args[0]->d_bool==args[1]->d_bool);break;
         case RATIONAL: return Literal(args[0]->d_rat==args[1]->d_rat);break;
         case INTEGER: return Literal(args[0]->d_int==args[1]->d_int);break;
-        case BITVECTOR:
+        case BITVECTOR: return Literal(args[0]->d_bv==args[1]->d_bv);break;
         case STRING:
         default: break;
         }
@@ -119,32 +119,33 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
       break;
     // boolean
     case Kind::EVAL_NOT:
-      if (args[0]->d_tag==BOOL)
-      {
-        return Literal(!args[0]->d_bool);
-      }
-    case Kind::EVAL_AND:
       switch (args[0]->d_tag)
       {
-        case BOOL:
-          if (args[1]->d_tag==BOOL)
-          {
-            return Literal(args[0]->d_bool && args[1]->d_bool);
-          }
-          break;
+        case BOOL:return Literal(!args[0]->d_bool);
+        case BITVECTOR:return Literal(~args[0]->d_bv);
         default: break;
       }
       break;
-    case Kind::EVAL_OR:
-      switch (args[0]->d_tag)
+    case Kind::EVAL_AND:
+      if (args[0]->d_tag==args[1]->d_tag)
       {
-        case BOOL:
-          if (args[1]->d_tag==BOOL)
-          {
-            return Literal(args[0]->d_bool || args[1]->d_bool);
-          }
-          break;
-        default: break;
+        switch (args[0]->d_tag)
+        {
+          case BOOL:return Literal(args[0]->d_bool && args[1]->d_bool);
+          case BITVECTOR:return Literal(args[0]->d_bv & args[1]->d_bv);
+          default: break;
+        }
+      }
+      break;
+    case Kind::EVAL_OR:
+      if (args[0]->d_tag==args[1]->d_tag)
+      {
+        switch (args[0]->d_tag)
+        {
+          case BOOL:return Literal(args[0]->d_bool || args[1]->d_bool);
+          case BITVECTOR:return Literal(args[0]->d_bv | args[1]->d_bv);
+          default: break;
+        }
       }
       break;
     case Kind::EVAL_ADD:
@@ -163,14 +164,17 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
             return Literal(Rational(args[0]->d_rat + args[1]->d_rat));
           }
           break;
+        case BITVECTOR:
+          break;
         default: break;
       }
       break;
     case Kind::EVAL_NEG:
       switch (args[0]->d_tag)
       {
-        case INTEGER:return Literal(Integer(-args[0]->d_int));
-        case RATIONAL:return Literal(Rational(-args[0]->d_rat));
+        case INTEGER:return Literal(-args[0]->d_int);
+        case RATIONAL:return Literal(-args[0]->d_rat);
+        case BITVECTOR:return Literal(-args[0]->d_bv);
         default: break;
       }
       break;
@@ -194,12 +198,22 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
       }
       break;
     case Kind::EVAL_INT_DIV:
-      if (args[0]->d_tag==INTEGER && args[1]->d_tag==INTEGER)
+      if (args[0]->d_tag==args[1]->d_tag)
       {
-        Integer& d = args[1]->d_int;
-        if (d.sgn()!=0)
+        switch (args[0]->d_tag)
         {
-          return Literal(Integer(args[0]->d_int.euclidianDivideQuotient(d)));
+          case INTEGER:
+          {
+            Integer& d = args[1]->d_int;
+            if (d.sgn()!=0)
+            {
+              return Literal(Integer(args[0]->d_int.euclidianDivideQuotient(d)));
+            }
+          }
+            break;
+          case BITVECTOR:
+            break;
+          default: break;
         }
       }
       break;
@@ -249,13 +263,23 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
       switch (args[0]->d_tag)
       {
         case RATIONAL:return Literal(args[0]->d_rat.floor());
+        case INTEGER: return *args[0];
+        case BITVECTOR:return Literal(args[0]->d_bv.getValue());
         default: break;
       }
       break;
     case Kind::EVAL_TO_RAT:
       switch (args[0]->d_tag)
       {
+        case RATIONAL: return *args[0];
         case INTEGER:return Literal(Rational(args[0]->d_int));
+        default: break;
+      }
+      break;
+    case Kind::EVAL_LENGTH:
+      switch (args[0]->d_tag)
+      {
+        case BITVECTOR:return Literal(Integer(args[0]->d_bv.getSize()));
         default: break;
       }
       break;

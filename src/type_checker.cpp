@@ -154,6 +154,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs)
     case Kind::EVAL_IS_ZERO:
     case Kind::EVAL_TO_INT:
     case Kind::EVAL_TO_RAT:
+    case Kind::EVAL_LENGTH:
       return nargs==1;
     case Kind::EVAL_IF_THEN_ELSE:
       return nargs==3;

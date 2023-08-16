@@ -3,6 +3,7 @@
 
 #include <sstream>
 #include <string>
+#include "util/bitvector.h"
 #include "util/rational.h"
 #include "util/integer.h"
 #include "kind.h"
@@ -29,7 +30,7 @@ struct Literal
     bool d_bool;
     Integer d_int;
     Rational d_rat;
-    //BitVector d_bv;
+    BitVector d_bv;
     //String d_str;
   };
 
@@ -38,7 +39,7 @@ struct Literal
   Literal(bool b) : d_tag(BOOL), d_bool(b) {}
   Literal(const Integer& i) : d_tag(INTEGER), d_int(i) {}
   Literal(const Rational& r) : d_tag(RATIONAL), d_rat(r) {}
-  //Literal(const BitVector& bv) : d_tag(BITVECTOR), d_bv(bv) {}
+  Literal(const BitVector& bv) : d_tag(BITVECTOR), d_bv(bv) {}
   //Literal(const String& str) : d_tag(STRING), d_str(str) {}
 
   Literal& operator=(const Literal& other);

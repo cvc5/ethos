@@ -60,7 +60,9 @@ enum class Kind
   EVAL_IS_NEG,
   EVAL_IS_ZERO,
   EVAL_TO_INT,
-  EVAL_TO_RAT
+  EVAL_TO_RAT,
+  // strings
+  EVAL_LENGTH
 };
 
 /** Print a kind to the stream, for debugging */
