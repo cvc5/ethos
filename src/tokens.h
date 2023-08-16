@@ -51,7 +51,6 @@ enum class Token
   RESET,
   RPAREN,
   SET_INFO,
-  SET_LOGIC,
   SET_OPTION,
   STEP,
   STRING_LITERAL,

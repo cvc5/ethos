@@ -29,6 +29,8 @@ class ExprParser
   Expr parseExprPair();
   /** Parses parentheses-enclosed term list (<term>*) */
   std::vector<Expr> parseExprList();
+  /** Parses parentheses-enclosed term list (<type>*) */
+  std::vector<Expr> parseTypeList();
   /** Parses parentheses-enclosed term list ((<term> <term>)*) */
   std::vector<Expr> parseExprPairList();
   /**

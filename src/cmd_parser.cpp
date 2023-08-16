@@ -112,7 +112,7 @@ bool CmdParser::parseNextCommand()
       std::vector<Expr> sorts;
       if (tok == Token::DECLARE_FUN)
       {
-        sorts = d_eparser.parseExprList();
+        sorts = d_eparser.parseTypeList();
       }
       Expr t = d_eparser.parseType();
       if (!sorts.empty())
@@ -122,7 +122,7 @@ bool CmdParser::parseNextCommand()
       Expr v;
       if (tok == Token::DECLARE_VAR)
       {
-        v = d_state.mkParameter(name, t);
+        v = d_state.mkVar(name, t);
       }
       else
       {
@@ -293,7 +293,7 @@ bool CmdParser::parseNextCommand()
       //d_state.checkLogicAllowsFreeExprs();
       std::string name = d_eparser.parseSymbol();
       //d_state.checkUserSymbol(name);
-      std::vector<Expr> args = d_eparser.parseExprList();
+      std::vector<Expr> args = d_eparser.parseTypeList();
       Expr type;
       Expr ttype = d_state.mkType();
       if (args.empty())
@@ -421,8 +421,7 @@ bool CmdParser::parseNextCommand()
       // push the scope
       d_state.pushScope();
       std::vector<Expr> vars = d_eparser.parseAndBindSortedVarList();
-
-      std::vector<Expr> argTypes = d_eparser.parseExprList();
+      std::vector<Expr> argTypes = d_eparser.parseTypeList();
       Expr retType = d_eparser.parseType();
       if (!argTypes.empty())
       {
@@ -476,7 +475,7 @@ bool CmdParser::parseNextCommand()
     // NOTE: doesn't allow optional
     case Token::PROOF:
     {
-      Expr proven = d_eparser.parseExpr();
+      Expr proven = d_eparser.parseFormula();
       Expr p = d_eparser.parseExpr();
       Expr pt = d_state.mkProofType(proven);
       // ensure a proof of the given fact
@@ -497,15 +496,6 @@ bool CmdParser::parseNextCommand()
       std::string key = d_eparser.parseKeyword();
       //Expr sexpr = d_eparser.parseSymbolicExpr();
       //cmd.reset(new SetInfoCommand(key, sexprToString(sexpr)));
-    }
-    break;
-    // (set-logic <symbol>)
-    case Token::SET_LOGIC:
-    {
-      std::string name = d_eparser.parseSymbol();
-      // replace the logic with the forced logic, if applicable.
-      //d_state.setLogic(lname);
-      //cmd.reset(new SetBenchmarkLogicCommand(lname));
     }
     break;
     // (set-option <option>)
@@ -531,7 +521,7 @@ bool CmdParser::parseNextCommand()
       tok = d_lex.peekToken();
       if (tok != Token::KEYWORD)
       {
-        proven = d_eparser.parseExpr();
+        proven = d_eparser.parseFormula();
       }
       // parse rule name
       std::string keyword = d_eparser.parseKeyword();

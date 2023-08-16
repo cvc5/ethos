@@ -418,6 +418,21 @@ std::vector<Expr> ExprParser::parseExprList()
   return terms;
 }
 
+std::vector<Expr> ExprParser::parseTypeList()
+{
+  d_lex.eatToken(Token::LPAREN);
+  std::vector<Expr> terms;
+  Token tok = d_lex.nextToken();
+  while (tok != Token::RPAREN)
+  {
+    d_lex.reinsertToken(tok);
+    Expr t = parseType();
+    terms.push_back(t);
+    tok = d_lex.nextToken();
+  }
+  return terms;
+}
+
 Expr ExprParser::parseExprPair()
 {
   d_lex.eatToken(Token::LPAREN);
