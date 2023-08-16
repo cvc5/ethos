@@ -45,23 +45,11 @@ class Integer
 
   /** Overload equality comparison operator. */
   bool operator==(const Integer& y) const;
-  /** Overload disequality comparison operator. */
-  bool operator!=(const Integer& y) const;
-  /** Overload less than comparison operator. */
-  bool operator<(const Integer& y) const;
-  /** Overload less than or equal comparison operator. */
-  bool operator<=(const Integer& y) const;
-  /** Overload greater than comparison operator. */
-  bool operator>(const Integer& y) const;
-  /** Overload greater than or equal comparison operator. */
-  bool operator>=(const Integer& y) const;
 
   /** Overload negation operator. */
   Integer operator-() const;
   /** Overload addition operator. */
   Integer operator+(const Integer& y) const;
-  /** Overload subtraction operator. */
-  Integer operator-(const Integer& y) const;
   /** Overload multiplication operator. */
   Integer operator*(const Integer& y) const;
 
@@ -151,29 +139,8 @@ class Integer
   /** Return 1 if this is > 0, 0 if it is 0, and -1 if it is < 0. */
   int sgn() const;
 
-  /** Return true if this is > 0. */
-  bool strictlyPositive() const;
-
-  /** Return true if this is < 0. */
-  bool strictlyNegative() const;
-
-  /** Return true if this is 0. */
-  bool isZero() const;
-
-  /** Return true if this is 1. */
-  bool isOne() const;
-
-  /** Return true if this is -1. */
-  bool isNegativeOne() const;
-
   /** Raise this Integer to the power 'exp'. */
   Integer pow(uint32_t exp) const;
-
-  /** Return the greatest common divisor of this integer with another. */
-  Integer gcd(const Integer& y) const;
-
-  /** Return the least common multiple of this integer with another. */
-  Integer lcm(const Integer& y) const;
 
   /** Compute addition of this Integer x + y modulo m. */
   Integer modAdd(const Integer& y, const Integer& m) const;
@@ -226,23 +193,6 @@ class Integer
    * If x == 0, returns 1.
    */
   size_t length() const;
-
-  /**
-   * Return the greatest common divisor of a and b, and in addition set s and t
-   * to coefficients satisfying a*s + b*t = g.
-   *
-   * Note: The returned Integer is always positive, even if one or both of a
-   *       and b are negative (or zero if both inputs are zero). For more
-   *       details, see https://gmplib.org/manual/Number-Theoretic-Functions.
-   */
-  static void extendedGcd(
-      Integer& g, Integer& s, Integer& t, const Integer& a, const Integer& b);
-
-  /** Returns a reference to the minimum of two integers. */
-  static const Integer& min(const Integer& a, const Integer& b);
-
-  /** Returns a reference to the maximum of two integers. */
-  static const Integer& max(const Integer& a, const Integer& b);
 
  private:
   /**

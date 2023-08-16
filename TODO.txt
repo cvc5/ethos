@@ -1,12 +1,14 @@
 TODO:
 
-- remove custom nil construction policy
+- remove custom nil construction policy?
 - :syntax
 - arity overloading
 - remove closure parsing?
+- bitvectors
+- strings
 
 -- datatypes
 -- literal ops to compiler
 -- auto-evaluate literal ops
--- change syntax for nil? for eval.?
+-- change syntax for nil, for eval.
 -- :restrict

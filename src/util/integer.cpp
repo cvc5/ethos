@@ -27,33 +27,9 @@ bool Integer::operator==(const Integer& y) const
 
 Integer Integer::operator-() const { return Integer(-(d_value)); }
 
-bool Integer::operator!=(const Integer& y) const
-{
-  return d_value != y.d_value;
-}
-
-bool Integer::operator<(const Integer& y) const { return d_value < y.d_value; }
-
-bool Integer::operator<=(const Integer& y) const
-{
-  return d_value <= y.d_value;
-}
-
-bool Integer::operator>(const Integer& y) const { return d_value > y.d_value; }
-
-bool Integer::operator>=(const Integer& y) const
-{
-  return d_value >= y.d_value;
-}
-
 Integer Integer::operator+(const Integer& y) const
 {
   return Integer(d_value + y.d_value);
-}
-
-Integer Integer::operator-(const Integer& y) const
-{
-  return Integer(d_value - y.d_value);
 }
 
 Integer Integer::operator*(const Integer& y) const
@@ -110,7 +86,7 @@ void Integer::setBit(uint32_t i, bool value)
 
 bool Integer::isBitSet(uint32_t i) const
 {
-  return !extractBitRange(1, i).isZero();
+  return extractBitRange(1, i).sgn()!=0;
 }
 
 Integer Integer::oneExtend(uint32_t size, uint32_t amount) const
@@ -186,7 +162,7 @@ void Integer::euclidianQR(Integer& q,
   // compute the floor and then fix the value up if needed.
   floorQR(q, r, x, y);
 
-  if (r.strictlyNegative())
+  if (r.sgn()<0)
   {
     // if r < 0
     // abs(r) < abs(y)
@@ -198,7 +174,7 @@ void Integer::euclidianQR(Integer& q,
       // y = abs(y)
       // n = y * q - y + r + y
       // n = y * (q-1) + (r+y)
-      q = q-Integer("1");
+      q = q+(-Integer("1"));
       r = r+y;
     }
     else
@@ -207,7 +183,7 @@ void Integer::euclidianQR(Integer& q,
       // n = y * q + y + r - y
       // n = y * (q+1) + (r-y)
       q = q+Integer("1");
-      r = r-y;
+      r = r+(-y);
     }
   }
 }
@@ -250,37 +226,10 @@ Integer Integer::divByPow2(uint32_t exp) const
 
 int Integer::sgn() const { return mpz_sgn(d_value.get_mpz_t()); }
 
-bool Integer::strictlyPositive() const { return sgn() > 0; }
-
-bool Integer::strictlyNegative() const { return sgn() < 0; }
-
-bool Integer::isZero() const { return sgn() == 0; }
-
-bool Integer::isOne() const { return mpz_cmp_si(d_value.get_mpz_t(), 1) == 0; }
-
-bool Integer::isNegativeOne() const
-{
-  return mpz_cmp_si(d_value.get_mpz_t(), -1) == 0;
-}
-
 Integer Integer::pow(uint32_t exp) const
 {
   mpz_class result;
   mpz_pow_ui(result.get_mpz_t(), d_value.get_mpz_t(), exp);
-  return Integer(result);
-}
-
-Integer Integer::gcd(const Integer& y) const
-{
-  mpz_class result;
-  mpz_gcd(result.get_mpz_t(), d_value.get_mpz_t(), y.d_value.get_mpz_t());
-  return Integer(result);
-}
-
-Integer Integer::lcm(const Integer& y) const
-{
-  mpz_class result;
-  mpz_lcm(result.get_mpz_t(), d_value.get_mpz_t(), y.d_value.get_mpz_t());
   return Integer(result);
 }
 
@@ -318,8 +267,6 @@ bool Integer::divides(const Integer& y) const
   return res != 0;
 }
 
-Integer Integer::abs() const { return d_value >= 0 ? *this : -*this; }
-
 std::string Integer::toString(int base) const { return d_value.get_str(base); }
 
 bool Integer::testBit(unsigned n) const
@@ -349,29 +296,6 @@ size_t Integer::length() const
   {
     return mpz_sizeinbase(d_value.get_mpz_t(), 2);
   }
-}
-
-void Integer::extendedGcd(
-    Integer& g, Integer& s, Integer& t, const Integer& a, const Integer& b)
-{
-  // see the documentation for:
-  // mpz_gcdext (mpz_t g, mpz_t s, mpz_t t, mpz_t a, mpz_t b);
-  mpz_gcdext(g.d_value.get_mpz_t(),
-             s.d_value.get_mpz_t(),
-             t.d_value.get_mpz_t(),
-             a.d_value.get_mpz_t(),
-             b.d_value.get_mpz_t());
-}
-
-const Integer& Integer::min(const Integer& a, const Integer& b)
-{
-  return (a <= b) ? a : b;
-}
-
-/** Returns a reference to the maximum of two integers. */
-const Integer& Integer::max(const Integer& a, const Integer& b)
-{
-  return (a >= b) ? a : b;
 }
 
 }  // namespace cvc5::internal

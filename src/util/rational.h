@@ -59,57 +59,7 @@ class Rational
   Rational(const Integer& n) : d_value(n.get_mpz()) { d_value.canonicalize(); }
   ~Rational() {}
 
-  /**
-   * Returns a copy of d_value to enable public access of GMP data.
-   */
-  const mpq_class& getValue() const { return d_value; }
-
-  /**
-   * Returns the value of numerator of the Rational.
-   * Note that this makes a deep copy of the numerator.
-   */
-  Integer getNumerator() const { return Integer(d_value.get_num()); }
-
-  /**
-   * Returns the value of denominator of the Rational.
-   * Note that this makes a deep copy of the denominator.
-   */
-  Integer getDenominator() const { return Integer(d_value.get_den()); }
-
-  Rational inverse() const
-  {
-    return Rational(getDenominator(), getNumerator());
-  }
-
-  int cmp(const Rational& x) const
-  {
-    // Don't use mpq_class's cmp() function.
-    // The name ends up conflicting with this function.
-    return mpq_cmp(d_value.get_mpq_t(), x.d_value.get_mpq_t());
-  }
-
   int sgn() const { return mpq_sgn(d_value.get_mpq_t()); }
-
-  bool isZero() const { return sgn() == 0; }
-
-  bool isOne() const { return mpq_cmp_si(d_value.get_mpq_t(), 1, 1) == 0; }
-
-  bool isNegativeOne() const
-  {
-    return mpq_cmp_si(d_value.get_mpq_t(), -1, 1) == 0;
-  }
-
-  Rational abs() const
-  {
-    if (sgn() < 0)
-    {
-      return -(*this);
-    }
-    else
-    {
-      return *this;
-    }
-  }
 
   Integer floor() const
   {
@@ -125,8 +75,6 @@ class Rational
     return Integer(q);
   }
 
-  Rational floor_frac() const { return (*this) - Rational(floor()); }
-
   Rational& operator=(const Rational& x)
   {
     if (this == &x) return *this;
@@ -138,23 +86,9 @@ class Rational
 
   bool operator==(const Rational& y) const { return d_value == y.d_value; }
 
-  bool operator!=(const Rational& y) const { return d_value != y.d_value; }
-
-  bool operator<(const Rational& y) const { return d_value < y.d_value; }
-
-  bool operator<=(const Rational& y) const { return d_value <= y.d_value; }
-
-  bool operator>(const Rational& y) const { return d_value > y.d_value; }
-
-  bool operator>=(const Rational& y) const { return d_value >= y.d_value; }
-
   Rational operator+(const Rational& y) const
   {
     return Rational(d_value + y.d_value);
-  }
-  Rational operator-(const Rational& y) const
-  {
-    return Rational(d_value - y.d_value);
   }
 
   Rational operator*(const Rational& y) const
@@ -170,13 +104,6 @@ class Rational
 
   /** Returns a string representing the rational in the given base. */
   std::string toString(int base = 10) const { return d_value.get_str(base); }
-
-  uint32_t complexity() const
-  {
-    uint32_t numLen = getNumerator().length();
-    uint32_t denLen = getDenominator().length();
-    return numLen + denLen;
-  }
 
  private:
   /**
