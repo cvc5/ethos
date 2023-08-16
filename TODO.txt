@@ -7,6 +7,7 @@ TODO:
 - strings
 - datatype testers
 - howto: bitvector literal type rule
+- check type preservation for evaluation?
 
 -- datatypes
 -- literal ops to compiler

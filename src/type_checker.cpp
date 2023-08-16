@@ -146,6 +146,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs)
     case Kind::EVAL_MUL:
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_RAT_DIV:
+    case Kind::EVAL_CONCAT:
     case Kind::EVAL_TO_BV:
       return nargs==2;
     case Kind::NIL:

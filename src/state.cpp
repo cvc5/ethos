@@ -48,9 +48,12 @@ State::State(Options& opts, Stats& stats) : d_tc(*this), d_opts(opts), d_stats(s
   bindBuiltinEval("is_zero", Kind::EVAL_IS_ZERO);
   bindBuiltinEval("to_z", Kind::EVAL_TO_INT);
   bindBuiltinEval("to_q", Kind::EVAL_TO_RAT);
+  bindBuiltinEval("to_bin", Kind::EVAL_TO_BV);
+  bindBuiltinEval("to_str", Kind::EVAL_TO_STRING);
   // strings
   bindBuiltinEval("len", Kind::EVAL_LENGTH);
   bindBuiltinEval("concat", Kind::EVAL_CONCAT);
+  bindBuiltinEval("extract", Kind::EVAL_EXTRACT);
 
   // note we don't allow parsing (Proof ...), (Quote ...), or (quote ...).
 
