@@ -32,6 +32,7 @@ class Integer
    */
   explicit Integer(const std::string& s, unsigned base = 10);
 
+  Integer(unsigned int z) : d_value(z) {}
   Integer(const Integer& q) : d_value(q.d_value) {}
 
   /** Destructor. */
@@ -45,6 +46,10 @@ class Integer
 
   /** Overload equality comparison operator. */
   bool operator==(const Integer& y) const;
+  /** Overload greater than comparison operator. */
+  bool operator>(const Integer& y) const;
+  /** Overload greater than or equal comparison operator. */
+  bool operator>=(const Integer& y) const;
 
   /** Overload negation operator. */
   Integer operator-() const;
@@ -76,6 +81,9 @@ class Integer
    * extended with 'amount' 1's.
    */
   Integer oneExtend(uint32_t size, uint32_t amount) const;
+
+  /** Return a 32 bit unsigned integer representation of this Integer. */
+  uint32_t toUnsignedInt() const;
 
   /**
    * Extract a range of bits from index 'low' to (excluding) 'low + bitCount'.

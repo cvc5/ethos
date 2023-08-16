@@ -25,6 +25,10 @@ bool Integer::operator==(const Integer& y) const
   return d_value == y.d_value;
 }
 
+bool Integer::operator>(const Integer& y) const { return d_value > y.d_value; }
+
+bool Integer::operator>=(const Integer& y) const { return d_value >= y.d_value; }
+
 Integer Integer::operator-() const { return Integer(-(d_value)); }
 
 Integer Integer::operator+(const Integer& y) const
@@ -103,6 +107,11 @@ Integer Integer::oneExtend(uint32_t size, uint32_t amount) const
   return Integer(res);
 }
 
+uint32_t Integer::toUnsignedInt() const
+{
+  return mpz_get_ui(d_value.get_mpz_t());
+}
+
 Integer Integer::extractBitRange(uint32_t bitCount, uint32_t low) const
 {
   // bitCount = high-low+1
@@ -174,7 +183,7 @@ void Integer::euclidianQR(Integer& q,
       // y = abs(y)
       // n = y * q - y + r + y
       // n = y * (q-1) + (r+y)
-      q = q+(-Integer("1"));
+      q = q+(-Integer(1));
       r = r+y;
     }
     else
@@ -182,7 +191,7 @@ void Integer::euclidianQR(Integer& q,
       // y = -abs(y)
       // n = y * q + y + r - y
       // n = y * (q+1) + (r-y)
-      q = q+Integer("1");
+      q = q+Integer(1);
       r = r+(-y);
     }
   }
