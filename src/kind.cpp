@@ -107,6 +107,7 @@ std::string kindToTerm(Kind k)
         // strings
         case Kind::EVAL_LENGTH: ss << "len"; break;
         case Kind::EVAL_CONCAT: ss << "concat"; break;
+        case Kind::EVAL_EXTRACT: ss << "extract"; break;
         // conversions
         case Kind::EVAL_TO_INT: ss << "to_z";break;
         case Kind::EVAL_TO_RAT: ss << "to_q";break;

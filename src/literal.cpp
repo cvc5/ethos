@@ -264,15 +264,19 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
       }
       break;
     case Kind::EVAL_EXTRACT:
-      if (args[1]->d_tag==INTEGER && args[1]->d_int.fitsUnsignedInt() &&
-          args[2]->d_tag==INTEGER && args[2]->d_int.fitsUnsignedInt())
+      if (args[0]->d_tag==INTEGER && args[0]->d_int.fitsUnsignedInt() &&
+          args[1]->d_tag==INTEGER && args[1]->d_int.fitsUnsignedInt())
       {
-        uint32_t v1 = args[1]->d_int.toUnsignedInt();
-        uint32_t v2 = args[2]->d_int.toUnsignedInt();
-        switch (args[0]->d_tag)
+        uint32_t v1 = args[0]->d_int.toUnsignedInt();
+        uint32_t v2 = args[1]->d_int.toUnsignedInt();
+        switch (args[2]->d_tag)
         {
           // extract is high to low
-          case BITVECTOR:return Literal(args[0]->d_bv.extract(v2, v1));
+          case BITVECTOR:
+            if (v1>v2)
+            {
+              return Literal(args[2]->d_bv.extract(v1, v2));
+            }
           default: break;
         }
       }
