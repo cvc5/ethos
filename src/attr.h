@@ -17,7 +17,6 @@ enum class Attr
   LIST,
   SYNTAX,
   REQUIRES,
-  NIL,
   
   RIGHT_ASSOC,
   LEFT_ASSOC,

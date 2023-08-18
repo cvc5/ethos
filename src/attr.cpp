@@ -12,7 +12,6 @@ std::ostream& operator<<(std::ostream& o, Attr a)
     case Attr::LIST: o << "LIST"; break;
     case Attr::SYNTAX: o << "SYNTAX"; break;
     case Attr::REQUIRES: o << "REQUIRES"; break;
-    case Attr::NIL: o << "NIL"; break;
     case Attr::RIGHT_ASSOC: o << "RIGHT_ASSOC"; break;
     case Attr::LEFT_ASSOC: o << "LEFT_ASSOC"; break;
     case Attr::RIGHT_ASSOC_NIL: o << "RIGHT_ASSOC_NIL"; break;

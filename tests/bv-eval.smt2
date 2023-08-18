@@ -67,3 +67,4 @@
 (declare-const x (BitVec 3))
 
 (step a2 (= #b0010 (bvextract 3 0 #b11010010)) :rule eval :premises (#b0010 (bvextract 3 0 #b11010010)))
+(step a3 (= #b000 (bvadd #b111 #b001)) :rule eval :premises (#b000 (bvadd #b111 #b001)))
