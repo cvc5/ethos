@@ -191,9 +191,6 @@ bool CmdParser::parseNextCommand()
     {
       Kind k = d_eparser.parseLiteralKind();
       Expr t = d_eparser.parseType();
-      // possible attribute list
-      AttrMap attrs;
-      d_eparser.parseAttributeList(t, attrs);
       // maybe requires?
       // set the type rule
       d_state.setLiteralTypeRule(k, t);
