@@ -712,7 +712,8 @@ Expr TypeChecker::evaluateLiteralOp(Kind k, const std::vector<Expr>& args)
   for (const Expr& e : args)
   {
     Literal * l = d_state.getLiteral(e.get());
-    if (l==nullptr)
+    // symbols are stored as literals but do not evaluate
+    if (l==nullptr || l->d_tag==Literal::SYMBOL)
     {
       Trace("type_checker") << "...does not evaluate (argument)" << std::endl;
       // failed to convert an argument

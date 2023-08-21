@@ -115,7 +115,7 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
         case RATIONAL: return Literal(args[0]->d_rat==args[1]->d_rat);break;
         case INTEGER: return Literal(args[0]->d_int==args[1]->d_int);break;
         case BITVECTOR: return Literal(args[0]->d_bv==args[1]->d_bv);break;
-        case STRING:
+        case STRING: return Literal(args[0]->d_str==args[1]->d_str);break;
         default: break;
         }
       }
@@ -207,6 +207,7 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
           }
             break;
           case BITVECTOR:
+            // TODO
             break;
           default: break;
         }
@@ -288,6 +289,7 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
             {
               return Literal(args[2]->d_bv.extract(v2, v1));
             }
+            break;
           case STRING:
           {
             size_t ssize = v2>=v1 ? (v2-v1) : 0;
