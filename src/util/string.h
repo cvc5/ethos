@@ -76,8 +76,6 @@ class String
    *    cvc5::internal::String( s ).toString() = s.
    */
   std::string toString(bool useEscSequences = false) const;
-  /** is this the empty string? */
-  bool empty() const { return d_str.empty(); }
   /** is less than or equal to string y */
   bool isLeq(const String& y) const;
   /** Return the length of the string */
@@ -101,52 +99,9 @@ class String
   String update(std::size_t i, const String& t) const;
   /** Replace the first occurrence of s in this string with t */
   String replace(const String& s, const String& t) const;
-  /** Return the substring of this string starting at index i */
-  String substr(std::size_t i) const;
   /** Return the substring of this string starting at index i with size at most
    * j */
   String substr(std::size_t i, std::size_t j) const;
-  /** Return the prefix of this string of size at most i */
-  String prefix(std::size_t i) const { return substr(0, i); }
-  /** Return the suffix of this string of size at most i */
-  String suffix(std::size_t i) const { return substr(size() - i, i); }
-
-  /**
-   * Checks if there is any overlap between this string and another string. This
-   * corresponds to checking whether one string contains the other and whether a
-   * substring of one is a prefix of the other and vice-versa.
-   *
-   * @param y The other string
-   * @return True if there is an overlap, false otherwise
-   */
-  bool noOverlapWith(const String& y) const;
-
-  /** string overlap
-  *
-  * if overlap returns m>0,
-  * then the maximal suffix of this string that is a prefix of y is of length m.
-  *
-  * For example, if x is "abcdef", then:
-  * x.overlap("defg") = 3
-  * x.overlap("ab") = 0
-  * x.overlap("d") = 0
-  * x.overlap("bcdefdef") = 5
-  */
-  std::size_t overlap(const String& y) const;
-  /** string reverse overlap
-  *
-  * if roverlap returns m>0,
-  * then the maximal prefix of this string that is a suffix of y is of length m.
-  *
-  * For example, if x is "abcdef", then:
-  * x.roverlap("aaabc") = 3
-  * x.roverlap("def") = 0
-  * x.roverlap("d") = 0
-  * x.roverlap("defabcde") = 5
-  *
-  * Notice that x.overlap(y) = y.roverlap(x)
-  */
-  std::size_t roverlap(const String& y) const;
 
   /**
    * Returns true if this string corresponds in text to a number, for example

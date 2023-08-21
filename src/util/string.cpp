@@ -185,30 +185,6 @@ std::vector<unsigned> String::toInternal(const std::string& s,
   return str;
 }
 
-std::size_t String::overlap(const String &y) const {
-  std::size_t i = size() < y.size() ? size() : y.size();
-  for (; i > 0; i--) {
-    String s = suffix(i);
-    String p = y.prefix(i);
-    if (s == p) {
-      return i;
-    }
-  }
-  return i;
-}
-
-std::size_t String::roverlap(const String &y) const {
-  std::size_t i = size() < y.size() ? size() : y.size();
-  for (; i > 0; i--) {
-    String s = prefix(i);
-    String p = y.suffix(i);
-    if (s == p) {
-      return i;
-    }
-  }
-  return i;
-}
-
 std::string String::toString(bool useEscSequences) const {
   std::stringstream str;
   for (unsigned int i = 0; i < size(); ++i) {
@@ -253,8 +229,8 @@ bool String::isLeq(const String &y) const
 
 std::size_t String::find(const String &y, const std::size_t start) const {
   if (size() < y.size() + start) return std::string::npos;
-  if (y.empty()) return start;
-  if (empty()) return std::string::npos;
+  if (y.size()==0) return start;
+  if (size()==0) return std::string::npos;
 
   std::vector<unsigned>::const_iterator itr = std::search(
       d_str.begin() + start, d_str.end(), y.d_str.begin(), y.d_str.end());
@@ -266,8 +242,8 @@ std::size_t String::find(const String &y, const std::size_t start) const {
 
 std::size_t String::rfind(const String &y, const std::size_t start) const {
   if (size() < y.size() + start) return std::string::npos;
-  if (y.empty()) return start;
-  if (empty()) return std::string::npos;
+  if (y.size()==0) return start;
+  if (size()==0) return std::string::npos;
 
   std::vector<unsigned>::const_reverse_iterator itr = std::search(
       d_str.rbegin() + start, d_str.rend(), y.d_str.rbegin(), y.d_str.rend());
@@ -348,27 +324,12 @@ String String::replace(const String &s, const String &t) const {
   }
 }
 
-String String::substr(std::size_t i) const {
-  Assert(i <= size());
-  std::vector<unsigned> ret_vec;
-  std::vector<unsigned>::const_iterator itr = d_str.begin() + i;
-  ret_vec.insert(ret_vec.end(), itr, d_str.end());
-  return String(ret_vec);
-}
-
 String String::substr(std::size_t i, std::size_t j) const {
   Assert(i + j <= size());
   std::vector<unsigned> ret_vec;
   std::vector<unsigned>::const_iterator itr = d_str.begin() + i;
   ret_vec.insert(ret_vec.end(), itr, itr + j);
   return String(ret_vec);
-}
-
-bool String::noOverlapWith(const String& y) const
-{
-  return y.find(*this) == std::string::npos
-         && this->find(y) == std::string::npos && this->overlap(y) == 0
-         && y.overlap(*this) == 0;
 }
 
 bool String::isNumber() const {

@@ -4,16 +4,11 @@
 (declare-const = (-> (! Type :var T :implicit) T T Bool))
 (declare-const + (-> Int Int Int))
 (declare-const - (-> Int Int Int))
-(declare-const < (-> Int Int Bool))
-(declare-const <= (-> Int Int Bool))
 
 (program arith.eval ((S Type) (a Int) (b Int) (z S))
     (S) S
     (
       ((arith.eval (= a b))  (alf.is_eq (arith.eval a) (arith.eval b)))
-      ((arith.eval (< a b))  (alf.is_neg (arith.eval (- a b))))
-      ((arith.eval (<= a b)) (let ((x (arith.eval (- a b)))) 
-                                 (alf.or (alf.is_neg x) (alf.is_zero x))))
       ((arith.eval (+ a b))  (alf.add (arith.eval a) (arith.eval b)))
       ((arith.eval (- a b))  (alf.add (arith.eval a) (alf.neg (arith.eval b))))
       ((arith.eval z)        z)
