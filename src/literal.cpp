@@ -24,8 +24,12 @@ Literal::Literal(const Literal& other)
       d_bv = other.d_bv;
       break;
     case STRING:
-      //new (&d_str) String;
-      //d_str = other.d_str;
+      new (&d_str) String;
+      d_str = other.d_str;
+      break;
+    case SYMBOL:
+      new (&d_sym) std::string;
+      d_sym = other.d_sym;
       break;
     case INVALID: break;
   }
@@ -52,8 +56,12 @@ Literal& Literal::operator=(const Literal& other)
         d_bv = other.d_bv;
         break;
       case STRING:
-        //new (&d_str) String;
-        //d_str = other.d_str;
+        new (&d_str) String;
+        d_str = other.d_str;
+        break;
+      case SYMBOL:
+        new (&d_sym) std::string;
+        d_sym = other.d_sym;
         break;
       case INVALID: break;
     }
@@ -84,7 +92,8 @@ std::string Literal::toString() const
     case RATIONAL: return d_rat.toString();
     case INTEGER: return d_int.toString();
     case BITVECTOR: return d_bv.toString();
-    case STRING:
+    case STRING: return d_str.toString();
+    case SYMBOL: return d_sym;
     case INVALID: break;
     default:break;
   }

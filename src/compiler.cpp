@@ -106,7 +106,6 @@ Compiler::Compiler(State& s) :
   d_state(s), d_tchecker(s.getTypeChecker()), d_nscopes(0), d_global(d_decl, d_init, "_e", nullptr)
 {
   d_decl << "AttrMap _amap;" << std::endl;
-  d_decl << "ExprInfo* _einfo;" << std::endl;
   d_decl << "std::map<ExprValue*, size_t> _runId;" << std::endl;
   d_decl << "Ctx _ctxTmp;" << std::endl;
   d_decl << "Expr _etmp;" << std::endl;
@@ -362,7 +361,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
   visit.emplace_back(e.get());
   std::map<ExprValue*, size_t>::iterator iti;
   ExprValue * cur;
-  ExprInfo* curInfo;
+  Literal* curLit;
   do
   {
     cur = visit.back();
@@ -402,16 +401,16 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
       Kind ck = cur->getKind();
       if (isLiteral(ck))
       {
-        curInfo = d_state.getInfo(cur);
-        Assert(curInfo != nullptr);
+        curLit = d_state.getLiteral(cur);
+        Assert(curLit != nullptr);
         os << "  " << cs.d_prefix << ret << " = ";
-        os << "mkLiteral(Kind::" << cur->getKind() << ", \"" << curInfo->d_str << "\");" << std::endl;
+        os << "mkLiteral(Kind::" << cur->getKind() << ", \"" << curLit->toString() << "\");" << std::endl;
       }
       else if (isSymbol(ck))
       {
         Assert(isg);
-        curInfo = d_state.getInfo(cur);
-        Assert(curInfo != nullptr);
+        curLit = d_state.getLiteral(cur);
+        Assert(curLit != nullptr);
         os << "  " << cs.d_prefix << ret << " = ";
         // special case: d_self
         if (cur==d_state.mkSelf().get())
@@ -420,7 +419,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         }
         else
         {
-          os << "mkSymbolInternal(Kind::" << cur->getKind() << ", \"" << curInfo->d_str << "\", _e" << tid << ");" << std::endl;
+          os << "mkSymbolInternal(Kind::" << cur->getKind() << ", \"" << curLit->toString() << "\", _e" << tid << ");" << std::endl;
         }
       }
       else if (ck==Kind::TYPE)

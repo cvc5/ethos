@@ -131,10 +131,10 @@ void ExprValue::computeFlags()
 
 std::string ExprValue::getSymbol() const
 {
-  ExprInfo * ei = d_state->getInfo(this);
-  if (ei!=nullptr)
+  Literal * l = d_state->getLiteral(this);
+  if (l!=nullptr)
   {
-    return ei->d_str;
+    return l->toString();
   }
   return "";
 }
@@ -207,15 +207,15 @@ void ExprValue::printDebugInternal(const ExprValue* e,
       Kind k = cur.first->getKind();
       if (cur.first->getNumChildren()==0)
       {
-        ExprInfo * ei = d_state->getInfo(cur.first);
-        if (ei!=nullptr)
+        Literal * l = d_state->getLiteral(cur.first);
+        if (l!=nullptr)
         {
           switch (k)
           {
-            case Kind::HEXADECIMAL:os << "#x" << ei->d_str;break;
-            case Kind::BINARY:os << "#b" << ei->d_str;break;
-            case Kind::STRING:os << "\"" << ei->d_str << "\"";break;
-            default:os << ei->d_str;break;
+            case Kind::HEXADECIMAL:os << "#x" << l->toString();break;
+            case Kind::BINARY:os << "#b" << l->toString();break;
+            case Kind::STRING:os << "\"" << l->toString() << "\"";break;
+            default:os << l->toString();break;
           }
         }
         else

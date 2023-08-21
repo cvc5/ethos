@@ -6,6 +6,7 @@
 #include "util/bitvector.h"
 #include "util/rational.h"
 #include "util/integer.h"
+#include "util/string.h"
 #include "kind.h"
 #include "expr.h"
 
@@ -21,6 +22,7 @@ struct Literal
     RATIONAL,
     BITVECTOR,
     STRING,
+    SYMBOL,
     INVALID
   } d_tag;
 
@@ -31,7 +33,8 @@ struct Literal
     Integer d_int;
     Rational d_rat;
     BitVector d_bv;
-    //String d_str;
+    String d_str;
+    std::string d_sym;
   };
 
   Literal(const Literal& other);
@@ -40,7 +43,8 @@ struct Literal
   Literal(const Integer& i) : d_tag(INTEGER), d_int(i) {}
   Literal(const Rational& r) : d_tag(RATIONAL), d_rat(r) {}
   Literal(const BitVector& bv) : d_tag(BITVECTOR), d_bv(bv) {}
-  //Literal(const String& str) : d_tag(STRING), d_str(str) {}
+  Literal(const String& str) : d_tag(STRING), d_str(str) {}
+  Literal(const std::string& sym) : d_tag(SYMBOL), d_sym(sym) {}
 
   Literal& operator=(const Literal& other);
 

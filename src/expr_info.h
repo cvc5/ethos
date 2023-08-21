@@ -11,17 +11,6 @@
 
 namespace alfc {
 
-class ExprInfo
-{
-public:
-  ExprInfo();
-  /**
-   * String data
-   */
-  std::string d_str;
-};
-
-
 using AttrMap = std::map<Attr, std::vector<Expr>>;
 
 /**

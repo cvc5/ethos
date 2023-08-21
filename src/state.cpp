@@ -357,8 +357,7 @@ Expr State::mkSymbolInternal(Kind k, const std::string& name, const Expr& type)
   // immediately set its type
   v->d_type = type;
   // map to the data
-  ExprInfo* ei = getOrMkInfo(v.get());
-  ei->d_str = name;
+  d_literals[v.get()] = Literal(name);
   Trace("type_checker") << "TYPE " << name << " : " << type << std::endl;
   return v;
 }
@@ -597,8 +596,6 @@ Expr State::mkLiteral(Kind k, const std::string& s)
   std::vector<Expr> emptyVec;
   Expr lit = std::make_shared<ExprValue>(k, emptyVec);
   // map to the data
-  ExprInfo* ei = getOrMkInfo(lit.get());
-  ei->d_str = s;
   d_literalTrie[key] = lit;
   //std::cout << "mkLiteral \"" << s << "\"" << std::endl;
   // convert string to literal
@@ -615,12 +612,13 @@ Expr State::mkLiteral(Kind k, const std::string& s)
       d_literals[lit.get()] = Literal(Rational(s));
       break;
     case Kind::HEXADECIMAL:
-      // should normalize to binary
+      // should normalize to binary?
       break;
     case Kind::BINARY:
       d_literals[lit.get()] = Literal(BitVector(s, 2));
       break;
     case Kind::STRING:
+      d_literals[lit.get()] = Literal(String(s, true));
       break;
     default:
       break;
@@ -695,21 +693,6 @@ Expr State::getVar(const std::string& name) const
     return it->second;
   }
   return nullptr;
-}
-
-ExprInfo* State::getInfo(const ExprValue* e)
-{
-  std::map<const ExprValue *, ExprInfo>::iterator it = d_exprData.find(e);
-  if (it!=d_exprData.end())
-  {
-    return &it->second;
-  }
-  return nullptr;
-}
-  
-ExprInfo* State::getOrMkInfo(const ExprValue* e)
-{
-  return &d_exprData[e];
 }
 
 Literal* State::getLiteral(const ExprValue* e)

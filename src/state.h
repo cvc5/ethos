@@ -111,8 +111,6 @@ public:
   /** */
   Expr getVar(const std::string& name) const;
   /** */
-  ExprInfo* getInfo(const ExprValue* e);
-  /** */
   Literal* getLiteral(const ExprValue* e);
   /** Get the type checker */
   TypeChecker& getTypeChecker();
@@ -140,8 +138,6 @@ private:
   Expr d_true;
   Expr d_false;
   Expr d_self;
-  /** */
-  ExprInfo* getOrMkInfo(const ExprValue* e);
   /** include file, if not already done */
   void includeFileInternal(const std::string& s, bool ignore=false);
   /** */
@@ -171,8 +167,6 @@ private:
   /** Context size */
   std::vector<size_t> d_assumptionsSizeCtx;
   //--------------------- expression info
-  /** literals */
-  std::map<const ExprValue*, ExprInfo> d_exprData;
   /** literals */
   std::map<const ExprValue*, AppInfo> d_appData;
   /** hash */
