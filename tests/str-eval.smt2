@@ -52,3 +52,4 @@
 (step a3 (= 1 (str.len "\u{45}")) :rule eval :premises (1 (str.len "\u{45}")))
 (step a4 (= "B" (str.substr (str.++ "A" "BC") 1 1)) :rule eval :premises ("B" (str.substr (str.++ "A" "BC") 1 1)))
 (step a5 (= 9 (str.len "\u{45}\uu{\u1A11\u0")) :rule eval :premises (9 (str.len "\u{45}\uu{\u1A11\u0")))
+(step a6 (= "E" "\u{45}") :rule eval :premises ("E" "\u{45}"))

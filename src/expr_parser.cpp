@@ -219,7 +219,10 @@ Expr ExprParser::parseExpr()
       {
         std::string s = d_lex.tokenStr();
         unescapeString(s);
-        ret = d_state.mkLiteral(Kind::STRING, s);
+        // now, must run through String utility so that its unicode
+        // handling is unique
+        String str(s, true);
+        ret = d_state.mkLiteral(Kind::STRING, str.toString());
       }
       break;
       case Token::ABSTRACT_TYPE:
