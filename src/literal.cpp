@@ -259,6 +259,7 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
       switch (args[0]->d_tag)
       {
         case BITVECTOR:return Literal(Integer(args[0]->d_bv.getSize()));
+        case STRING:return Literal(Integer(args[0]->d_str.size()));
         default: break;
       }
       break;
@@ -268,6 +269,7 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
         switch (args[0]->d_tag)
         {
           case BITVECTOR:return Literal(args[0]->d_bv.concat(args[1]->d_bv));
+          case STRING:return Literal(args[0]->d_str.concat(args[1]->d_str));
           default: break;
         }
       }
@@ -282,10 +284,16 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
         {
           // extract is high to low
           case BITVECTOR:
-            if (v1>v2)
+            if (v1<=v2)
             {
-              return Literal(args[2]->d_bv.extract(v1, v2));
+              return Literal(args[2]->d_bv.extract(v2, v1));
             }
+          case STRING:
+          {
+            size_t ssize = v2>=v1 ? (v2-v1) : 0;
+            return Literal(String(args[2]->d_str.substr(v1, ssize)));
+          }
+            break;
           default: break;
         }
       }
@@ -297,6 +305,14 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
         case RATIONAL:return Literal(args[0]->d_rat.floor());
         case INTEGER: return *args[0];
         case BITVECTOR:return Literal(args[0]->d_bv.getValue());
+        case STRING:
+        {
+          if (args[0]->d_str.isNumber())
+          {
+            return Literal(Integer(args[0]->d_str.toString()));
+          }
+        }
+          break;
         default: break;
       }
       break;
@@ -321,6 +337,14 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
       }
       break;
     case Kind::EVAL_TO_STRING:
+      switch (args[0]->d_tag)
+      {
+        case RATIONAL:
+        case INTEGER:
+        case BITVECTOR:return Literal(String(args[0]->toString()));
+        case STRING: return *args[0];break;
+        default: break;
+      }
       break;
     default:break;
   }

@@ -51,7 +51,7 @@
       ((bv.eval (= a b))           (alf.is_eq (bv.eval a) (bv.eval b)))
       ((bv.eval (bvadd a b))       (alf.add (bv.eval a) (bv.eval b)))
       ((bv.eval (bvconcat a b))    (alf.concat (bv.eval a) (bv.eval b)))
-      ((bv.eval (bvextract h l a)) (alf.extract h l (bv.eval a)))
+      ((bv.eval (bvextract h l a)) (alf.extract l h (bv.eval a))) ; note swap l/h
       ((bv.eval z)                 z)
     )
 )
