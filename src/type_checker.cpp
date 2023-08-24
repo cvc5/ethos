@@ -482,12 +482,12 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
     while (!visit.empty())
     {
       cur = visit.back();
-      //std::cout << "visit " << cur << " " << cctx << std::endl;
+      Trace("type_checker") << "visit " << cur << " " << cctx << std::endl;
       // the term will stay the same if it is not evaluatable and either it
       // is ground, or the context is empty.
       if (!cur->isEvaluatable() && (cur->isGround() || cctx.empty()))
       {
-        //std::cout << "...shortcut " << cur << std::endl;
+        Trace("type_checker") << "...shortcut " << cur << std::endl;
         visited[cur] = cur;
         visit.pop_back();
         continue;
@@ -506,7 +506,8 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
         visit.pop_back();
         continue;
         // NOTE: this could be an error or warning, variable not filled?
-        //std::cout << "WARNING: unfilled variable " << cur << std::endl;
+        Trace("type_checker")
+            << "WARNING: unfilled variable " << cur << std::endl;
       }
       std::vector<Expr>& children = cur->d_children;
       it = visited.find(cur);
@@ -583,7 +584,8 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
                 Ctx newCtx;
                 // see if we evaluate
                 evaluated = evaluateProgramInternal(cchildren, newCtx);
-                //std::cout << "Evaluate prog returned " << evaluated << std::endl;
+                Trace("type_checker")
+                    << "Evaluate prog returned " << evaluated << std::endl;
                 if (evaluated==nullptr || newCtx.empty())
                 {
                   // if the evaluation can be shortcircuited, don't need to

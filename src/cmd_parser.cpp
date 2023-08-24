@@ -573,15 +573,20 @@ bool CmdParser::parseNextCommand()
         children.push_back(e);
       }
       // compute the type of applying the rule
+      std::stringstream ss;
       Expr concType;
       if (children.size()>1)
       {
         // check type rule for APPLY directly without constructing the app
-        concType = d_state.getTypeChecker().getTypeApp(children);
+        concType = d_state.getTypeChecker().getTypeApp(children, &ss);
       }
       else
       {
-        concType = d_state.getTypeChecker().getType(rule);
+        concType = d_state.getTypeChecker().getType(rule, &ss);
+      }
+      if (concType == nullptr)
+      {
+        d_lex.parseError(ss.str());
       }
       // ensure proof type, note this is where "proof checking" happens.
       if (concType->getKind()!=Kind::PROOF_TYPE)
