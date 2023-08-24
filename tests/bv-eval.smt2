@@ -24,7 +24,7 @@
   (-> Int Type))
 
 (declare-consts <binary> (BitVec (alf.len alf.self)))
-  
+
 (declare-const bvadd (->
   (! Int :var n :implicit)
   (BitVec n)

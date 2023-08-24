@@ -882,10 +882,26 @@ Expr ExprParser::typeCheck(Expr& e)
     // thus, we require recomputing the error message here.
     std::stringstream ss;
     d_state.getTypeChecker().getType(e, &ss);
-    Assert(v == nullptr);
     std::stringstream msg;
     msg << "Type checking failed:" << std::endl;
     msg << "Expression: " << e << std::endl;
+    msg << "Message: " << ss.str() << std::endl;
+    d_lex.parseError(msg.str());
+  }
+  return v;
+}
+Expr ExprParser::typeCheckApp(std::vector<Expr>& children)
+{
+  const Expr& v = d_state.getTypeChecker().getTypeApp(children);
+  if (v==nullptr)
+  {
+    // we allocate stringstream for error messages only when an error occurs
+    // thus, we require recomputing the error message here.
+    std::stringstream ss;
+    d_state.getTypeChecker().getTypeApp(children, &ss);
+    std::stringstream msg;
+    msg << "Type checking application failed:" << std::endl;
+    msg << "Children: " << children << std::endl;
     msg << "Message: " << ss.str() << std::endl;
     d_lex.parseError(msg.str());
   }

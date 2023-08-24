@@ -577,11 +577,11 @@ bool CmdParser::parseNextCommand()
       if (children.size()>1)
       {
         // check type rule for APPLY directly without constructing the app
-        concType = d_state.getTypeChecker().getTypeApp(children);
+        concType = d_eparser.typeCheckApp(children);
       }
       else
       {
-        concType = d_state.getTypeChecker().getType(rule);
+        concType = d_eparser.typeCheck(rule);
       }
       // ensure proof type, note this is where "proof checking" happens.
       if (concType->getKind()!=Kind::PROOF_TYPE)

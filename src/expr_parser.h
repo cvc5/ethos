@@ -99,6 +99,8 @@ class ExprParser
   //-------------------------- checking
   /** type check the expression */
   Expr typeCheck(Expr& e);
+  /** type check (APPLY children), without constructing the APPLY */
+  Expr typeCheckApp(std::vector<Expr>& children);
   /** ensure type */
   Expr typeCheck(Expr& e, const Expr& expected);
   /** get variable, else error */
