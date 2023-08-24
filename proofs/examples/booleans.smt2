@@ -10,6 +10,7 @@
 (assume a2 (or (not c2) c3))
 (assume a3 (not c2))
 (assume a4 (or c1 c2 c3 c2))
+(assume a5 c2)
 
 (step t1 (or c1 c3) :rule resolution :premises (a1 a2) :args (true c2))
 (step t2 (or c3 c1) :rule resolution :premises (a2 a1) :args (false c2))
@@ -17,6 +18,7 @@
 (step t4 c1 :rule resolution :premises (a3 a1) :args (false c2))
 (step t5 (or c1 c3 c2 c3) :rule resolution :premises (a4 a2) :args (true c2))
 (step t6 (or c1 c3 c2) :rule resolution :premises (a4 a3) :args (true c2))
+(step t7 false :rule resolution :premises (a3 a5) :args (false c2))
 
 ; Chain Resolution
 (assume cra1 (and (or c1 c2 (not c3) c2)
@@ -24,6 +26,13 @@
                   (or c3 c1))
 )
 (step cr1 (or c1 c2 c1) :rule chain_resolution :premises (cra1) :args ((and true c2 false c3)))
+
+(assume cra2 (and (or c1 c2 )
+                  (not c1)
+                  (not c2))
+)
+(step cr2 false :rule chain_resolution :premises (cra2) :args ((and true c1 true c2)))
+; TODO: case where only one is left
 
 ; Factoring
 (assume faca1 (or c1 c1 c2 (not c2) (not c2)))

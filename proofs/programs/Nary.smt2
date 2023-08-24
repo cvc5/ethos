@@ -80,12 +80,13 @@
 ; naryElim cons x
 ; Returns the sole element if `xs` is a singleton list.
 (program naryElim
-    ((L Type) (cons (-> L L L)) (nil L) (x L) (xs L :list))
-    ((-> L L L) L L) L
+    ((L Type) (cons (-> L L L)) (nil L) (c L) (x L) (xs L :list))
+    ((-> L L L) L L L) L
     (
-        ((naryElim cons nil (cons x nil)) x)
-        ((naryElim cons nil (cons x xs)) (append cons x xs))
-        ((naryElim cons nil xs) xs)
+        ((naryElim cons nil c nil) c)
+        ((naryElim cons nil c (cons x nil)) x)
+        ((naryElim cons nil c (cons x xs)) (append cons x xs))
+        ((naryElim cons nil c xs) xs)
     )
 )
 

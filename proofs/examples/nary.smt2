@@ -63,16 +63,19 @@
 (step rm7 :rule check_remove :args (c2 (cons c1 c2 c2 c3) (cons c1 c2 c3)))
 
 ; naryElim
+
+; Constant to map the nil constant to in empty lists
+(declare-const elim-nil S)
 (declare-rule check_naryElim((in S) (out S))
     :args (in out)
-    :requires (((naryElim cons (alf.nil S) in) out))
+    :requires (((naryElim cons (alf.nil S) elim-nil in) out))
     :conclusion true
 )
 
 (step elim1 :rule check_naryElim :args ((cons c1 c2) (cons c1 c2)))
 (step elim2 :rule check_naryElim :args ((remove cons c2 (cons c1 c2))  c1))
 (step elim3 :rule check_naryElim :args ((remove cons c2 (cons (alf.nil S) c2)) (alf.nil S)))
-(step elim4 :rule check_naryElim :args ((remove cons c2 (cons c2 (alf.nil S))) (alf.nil S)))
+(step elim4 :rule check_naryElim :args ((remove cons c1 (remove cons c2 (cons c1 c2))) elim-nil))
 (step elim5 :rule check_naryElim :args ((remove cons c2 (cons (cons c1 c3) c2)) (cons c1 c3)))
 
 ; naryIntro
