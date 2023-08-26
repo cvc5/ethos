@@ -15,7 +15,6 @@
   :conclusion (=> F G)
 )
 
-
 (program extract_antec
    ((C Bool) (F1 Bool) (F2 Bool))
    (Bool Bool) Bool
@@ -34,6 +33,7 @@
    )
 )
 
+; this rule processes the result of n scopes into the conclusion expected by PfRule::SCOPE
 (declare-rule process_scope
   ((C Bool) (F Bool))
   :premises (F)
@@ -124,9 +124,10 @@
 (program factorLiterals ((xs Bool :list) (l Bool) (ls Bool :list))
     (Bool Bool) Bool
     (
-        ((factorLiterals xs (alf.nil Bool)) xs)
-        ((factorLiterals xs (or l ls)) (ifThenElse (inListOr l xs) (factorLiterals xs              ls)
-                                                                   (factorLiterals (appendOr l xs) ls)))
+        ((factorLiterals xs (alf.nil Bool)) (naryElimOr xs))
+        ((factorLiterals xs (or l ls)) (factorLiterals
+                                          (ifThenElse (inListOr l xs) xs (appendOr l xs))
+                                          ls))
     )
 )
 

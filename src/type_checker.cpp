@@ -482,7 +482,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
     while (!visit.empty())
     {
       cur = visit.back();
-      //std::cout << "visit " << cur << " " << cctx << std::endl;
+      Trace("type_checker_debug") << "visit " << cur << " " << cctx << ", depth=" << visits.size() << std::endl;
       // the term will stay the same if it is not evaluatable and either it
       // is ground, or the context is empty.
       if (!cur->isEvaluatable() && (cur->isGround() || cctx.empty()))

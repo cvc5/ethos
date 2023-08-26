@@ -14,10 +14,10 @@
 ; inList cons c l
 ; Retuns `true` if l inList c.
 (program inList
-    ((E Type) (L Type) (cons (-> E L L)) (c E) (x E) (xs L :list))
-    ((-> E L L) E L) Bool
+    ((L Type) (cons (-> L L L)) (c L) (x L) (xs L :list))
+    ((-> L L L) L L) Bool
     (
-        ((inList cons c (alf.nil E))  false)
+        ((inList cons c (alf.nil L)) false)
         ((inList cons c (cons c xs)) true)
         ((inList cons c (cons x xs)) (inList cons c xs))
     )

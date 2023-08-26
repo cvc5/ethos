@@ -27,8 +27,8 @@
 ; append cons c xs
 ; Appends `c` to the head of `xs`.
 (program append
-    ((L Type) (E Type) (cons (-> E L L)) (c E) (xs L :list))
-    ((-> E L L) E L) L
+    ((L Type) (cons (-> L L L)) (c L) (xs L :list))
+    ((-> L L L) L L) L
     (
         ((append cons c xs) (cons c xs))
     )
@@ -37,10 +37,10 @@
 ; concat cons xs ys
 ; Concatenates two lists `xs` and `ys`.
 (program concat
-    ((L Type) (E Type) (cons (-> E L L)) (x L) (xs L :list) (ys L))
-    ((-> E L L) L L) L
+    ((L Type) (cons (-> L L L)) (x L) (xs L :list) (ys L))
+    ((-> L L L) L L) L
     (
-        ((concat cons (alf.nil E) ys) ys)
+        ((concat cons (alf.nil L) ys) ys)
         ((concat cons (cons x xs) ys) (append cons x (concat cons xs ys)))
     )
 )
@@ -48,10 +48,10 @@
 ; remove cons c xs
 ; Removes the first occurrence of `c` from `xs`.
 (program remove
-    ((L Type) (E Type) (cons (-> E L L)) (c E) (y E) (xs L :list))
-    ((-> E L L) E L) L
+    ((L Type) (cons (-> L L L)) (c L) (y L) (xs L :list))
+    ((-> L L L) L L) L
     (
-        ((remove cons c (alf.nil E)) (alf.nil E))
+        ((remove cons c (alf.nil L)) (alf.nil L))
         ((remove cons c (cons c xs)) xs)
         ((remove cons c (cons y xs)) (append cons y (remove cons c xs)))
     )
@@ -59,10 +59,10 @@
 
 ; Helper for reverse
 (program reverseRec
-    ((L Type) (E Type) (cons (-> E L L)) (x L) (xs L :list) (l L :list))
-    ((-> E L L) L L) L
+    ((L Type) (cons (-> L L L)) (x L) (xs L :list) (l L :list))
+    ((-> L L L) L L) L
     (
-        ((reverseRec cons (alf.nil E)  l)  l)
+        ((reverseRec cons (alf.nil L)  l)  l)
         ((reverseRec cons (cons x xs) l) (reverseRec cons xs (append cons x l)))
     )
 )
@@ -70,8 +70,8 @@
 ; reverse cons nil xs
 ; Reverses the list `xs`.
 (program reverse
-    ((L Type) (E Type) (cons (-> E L L)) (nil L) (xs L :list))
-    ((-> E L L) L L) L
+    ((L Type) (cons (-> L L L)) (nil L) (xs L :list))
+    ((-> L L L) L L) L
     (
         ((reverse cons nil xs) (reverseRec cons xs nil))
     )
@@ -104,8 +104,8 @@
 
 ; I should be a numeral
 (program at
-    ((L Type) (E Type) (I Type) (cons (-> E L L)) (i I) (x E) (xs L :list))
-    ((-> E L L) I L) L
+    ((L Type) (I Type) (cons (-> L L L)) (i I) (x L) (xs L :list))
+    ((-> L L L) I L) L
     (
         ((at cons 0 (cons x xs)) x)
         ((at cons i (cons x xs)) (at cons (alf.add i (alf.neg 1)) xs))
