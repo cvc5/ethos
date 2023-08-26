@@ -57,7 +57,7 @@
 (program naryElimOr
     ((t Bool))
     (Bool) Bool
-    (((naryElimOr t) (naryElim or (alf.nil Bool) t)))
+    (((naryElimOr t) (naryElim or (alf.nil Bool) false t)))
 )
 (program naryIntroOr
     ((t Bool))
@@ -99,7 +99,7 @@
 (program naryElimAnd
     ((t Bool))
     (Bool) Bool
-    (((naryElimAnd t) (naryElim and (alf.nil Bool) t)))
+    (((naryElimAnd t) (naryElim and (alf.nil Bool) true t)))
 )
 (program naryIntroAnd
     ((t Bool))
