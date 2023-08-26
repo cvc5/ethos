@@ -21,7 +21,7 @@
    (Bool Bool) Bool
    (
    ((extract_antec C C) (alf.nil Bool))
-   ((extract_antec (=> F1 F2) C) (append and F1 (extract_antec F2 C)))
+   ((extract_antec (=> F1 F2) C) (appendAnd F1 (extract_antec F2 C)))
    )
 )
 
@@ -179,13 +179,10 @@
 )
 
 ; AND_ELIM
-; TODO: F should not be explicit, but the ith conjunct from Fs.  Since we do
-; not yet have integer arithmetic, we cannot implment this yet.
-(declare-rule and_elim ((Fs Bool) (F Bool) (i Int))
+(declare-rule and_elim ((Fs Bool) (i Int))
     :premises (Fs)
-    :args (F i)
-    :requires (((inListAnd F Fs) true))
-    :conclusion F
+    :args (i)
+    :conclusion (at and i Fs)
 )
 
 ; AND_INTRO
@@ -206,13 +203,10 @@
 )
 
 ; NOT_OR_ELIM
-; TODO: F should not be explicit, but the ith conjunct from Fs.  Since we do
-; not yet have integer arithmetic, we cannot implment this yet.
-(declare-rule not_or_elim ((Fs Bool) (F Bool) (i Int))
+(declare-rule not_or_elim ((Fs Bool) (i Int))
     :premises ((not Fs))
-    :args (F i)
-    :requires (((inListOr F Fs) true))
-    :conclusion (not F)
+    :args (i)
+    :conclusion (not (at or i Fs))
 )
 
 ; IMPLIES_ELIM
@@ -323,12 +317,9 @@
 )
 
 ; CNF_AND_POS
-; TODO: Fi should not be explicit, but the ith conjunct from Fs.  Since we do
-; not yet have integer arithmetic, we cannot implment this yet.
-(declare-rule cnf_and_pos ((Fs Bool) (Fi Bool) (i Int))
-    :args (Fs Fi i)
-    :requires (((inListAnd Fi Fs) true))
-    :conclusion (or (not Fs) Fi)
+(declare-rule cnf_and_pos ((Fs Bool) (i Int))
+    :args (Fs i)
+    :conclusion (or (not Fs) (at and i Fs))
 )
 
 ; CNF_AND_NEG
@@ -344,12 +335,9 @@
 )
 
 ; CNF_OR_NEG
-; TODO: Fi should not be explicit, but the ith conjunct from Fs.  Since we do
-; not yet have integer arithmetic, we cannot implment this yet.
-(declare-rule cnf_or_neg ((Fs Bool) (Fi Bool) (i Int))
-    :args (Fs Fi i)
-    :requires (((inListOr Fi Fs) true))
-    :conclusion (concatOr Fs (appendOr (not Fi) (alf.nil Bool)))
+(declare-rule cnf_or_neg ((Fs Bool) (i Int))
+    :args (Fs i)
+    :conclusion (concatOr Fs (appendOr (not (at or i Fs)) (alf.nil Bool)))
 )
 
 ; CNF_IMPLIES_POS

@@ -100,3 +100,14 @@
         ((naryIntro cons nil x)           (append cons x nil))
     )
 )
+
+
+; I should be a numeral
+(program at
+    ((L Type) (E Type) (I Type) (cons (-> E L L)) (i I) (x E) (xs L :list))
+    ((-> E L L) I L) L
+    (
+        ((at cons 0 (cons x xs)) x)
+        ((at cons i (cons x xs)) (at cons (alf.add i (alf.neg 1)) xs))
+    )
+)

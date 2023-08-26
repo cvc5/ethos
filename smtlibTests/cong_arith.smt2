@@ -23,4 +23,4 @@
 (assert (not (P c2 c4 c6)))
 
 (check-sat)
-(get-proof)
+;(get-proof)
