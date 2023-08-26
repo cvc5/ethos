@@ -32,6 +32,7 @@
 )
 
 ; CONG
+; AJR: should just eliminate this and rename ho_cong to cong.
 ; Only binary cong supported
 (declare-rule cong ((T Type) (U Type) (f (-> T U)) (t1 T) (t2 T))
     :premises ((= t1 t2))

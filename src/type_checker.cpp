@@ -363,7 +363,7 @@ Expr TypeChecker::getTypeApp(std::vector<Expr>& children, std::ostream* out)
       if (out)
       {
         (*out) << "Unexpected argument type " << i << std::endl;
-        (*out) << "  LHS " << hdtypes[i] << std::endl;
+        (*out) << "  LHS " << evaluate(hdtypes[i], ctx) << ", from " << hdtypes[i] << std::endl;
         (*out) << "  RHS " << ctypes[i] << std::endl;
       }
       return nullptr;
