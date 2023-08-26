@@ -1,6 +1,6 @@
 (set-option :produce-proofs true)
 ;(set-option :proof-format-mode alethe)
-(set-option :proof-format-mode alethelf)
+(set-option :proof-format-mode alf)
 (set-option :dag-thresh 0)
 
 (set-option :proof-granularity theory-rewrite)

@@ -50,6 +50,7 @@ set(alfc_test_file_list
     bv-type-strict.smt2
     bv-literals.smt2
     bv-eval.smt2
+    pf-haniel.smt2
 )
 
 macro(alfc_test file)

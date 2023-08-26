@@ -5,6 +5,42 @@
 (include "../programs/Booleans.smt2")
 
 
+; SCOPE
+
+(declare-rule scope
+  ((F Bool) (G Bool))
+  :assumption F
+  :premises (G)
+  :args ()
+  :conclusion (=> F G)
+)
+
+
+(program extract_antec
+   ((C Bool) (F1 Bool) (F2 Bool))
+   (Bool Bool) Bool
+   (
+   ((extract_antec C C) (alf.nil Bool))
+   ((extract_antec (=> F1 F2) C) (append and F1 (extract_antec F2 C)))
+   )
+)
+
+(program run_process_scope
+   ((C Bool) (F Bool))
+   (Bool Bool) Bool
+   (
+   ((run_process_scope F false) (not (naryElimAnd (extract_antec F false))))
+   ((run_process_scope F C) (=> (naryElimAnd (extract_antec F C)) C))
+   )
+)
+
+(declare-rule process_scope
+  ((C Bool) (F Bool))
+  :premises (F)
+  :args (C)
+  :conclusion (run_process_scope F C)
+)
+
 ; SPLIT
 (declare-rule split ((F Bool))
     :premises ()
