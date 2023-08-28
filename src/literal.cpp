@@ -120,12 +120,6 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
         }
       }
       break;
-    case Kind::EVAL_IF_THEN_ELSE:
-      if (args[0]->d_tag==BOOL)
-      {
-        return Literal(args[0]->d_bool ? *args[1] : *args[2]);
-      }
-      break;
     // boolean
     case Kind::EVAL_NOT:
       switch (args[0]->d_tag)

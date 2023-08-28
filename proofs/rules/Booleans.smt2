@@ -126,7 +126,7 @@
     (
         ((factorLiterals xs (alf.nil Bool)) (naryElimOr xs))
         ((factorLiterals xs (or l ls)) (factorLiterals
-                                          (ifThenElse (inListOr l xs) xs (appendOr l xs))
+                                          (alf.ite (inListOr l xs) xs (appendOr l xs))
                                           ls))
     )
 )

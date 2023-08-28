@@ -508,6 +508,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
         // NOTE: this could be an error or warning, variable not filled?
         //std::cout << "WARNING: unfilled variable " << cur << std::endl;
       }
+      ck = cur->getKind();
       std::vector<Expr>& children = cur->d_children;
       it = visited.find(cur);
       if (it == visited.end())
@@ -522,7 +523,15 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
         }
         // otherwise, visit children
         visited[cur] = nullptr;
-        visit.insert(visit.end(), children.begin(), children.end());
+        if (ck==Kind::EVAL_IF_THEN_ELSE)
+        {
+          // special case: visit only the children
+          visit.push_back(children[0]);
+        }
+        else
+        {
+          visit.insert(visit.end(), children.begin(), children.end());
+        }
         continue;
       }
       if (it->second.get() == nullptr)
@@ -531,12 +540,18 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
         for (Expr& cp : children)
         {
           it = visited.find(cp);
-          Assert(it != visited.end());
-          cchildren.push_back(it->second);
+          if (it != visited.end())
+          {
+            cchildren.push_back(it->second);
+          }
+          else
+          {
+            cchildren.push_back(nullptr);
+          }
         }
         evaluated = nullptr;
         bool newContext = false;
-        ck = cur->getKind();
+        bool canEvaluate = true;
         switch (ck)
         {
           case Kind::REQUIRES_TYPE:
@@ -603,6 +618,30 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
               }
             }
             break;
+          case Kind::EVAL_IF_THEN_ELSE:
+          {
+            Assert (cchildren[0]!=nullptr);
+            // get the evaluation of the condition
+            Literal * l = d_state.getLiteral(cchildren[0].get());
+            if (l!=nullptr && l->d_tag==Literal::BOOL)
+            {
+              size_t index = l->d_bool ? 1 : 2;
+              evaluated = cchildren[index];
+              if (evaluated==nullptr)
+              {
+                canEvaluate = false;
+                // must evaluate the child
+                visit.push_back(children[index]);
+              }
+            }
+            else
+            {
+              // condition did not evaluate, just return unevaluated
+              cchildren[1] = children[1];
+              cchildren[2] = children[2];
+            }
+          }
+            break;
           default:
             if (isLiteralOp(ck))
             {
@@ -614,13 +653,20 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
         {
           break;
         }
-        if (evaluated==nullptr)
+        if (canEvaluate)
         {
-          evaluated = d_state.mkExprInternal(ck, cchildren);
+          if (evaluated==nullptr)
+          {
+            evaluated = d_state.mkExprInternal(ck, cchildren);
+          }
+          visited[cur] = evaluated;
+          visit.pop_back();
         }
-        visited[cur] = evaluated;
       }
-      visit.pop_back();
+      else
+      {
+        visit.pop_back();
+      }
     }
     // if we are done evaluating the current context
     if (visits.back().empty())

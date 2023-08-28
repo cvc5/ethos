@@ -1,16 +1,5 @@
 (include "../theories/Core.smt2")
 
-; ifThenElse b t1 t2
-; Returns `t1` if `b` is `true`. If it is `false` it returns `t2`.
-(program ifThenElse
-    ((S Type) (b Bool) (t1 S) (t2 S))
-    (Bool S S) S
-    (
-        ((ifThenElse true  t1 t2) t1)
-        ((ifThenElse false t1 t2) t2)
-    )
-)
-
 ; inList cons c l
 ; Retuns `true` if l inList c.
 (program inList
