@@ -2,8 +2,6 @@
 (include "../theories/Ints.smt2")
 
 (include "../programs/Nary.smt2")
-(include "../programs/Booleans.smt2")
-
 
 ; SCOPE
 
@@ -20,7 +18,7 @@
    (Bool Bool) Bool
    (
    ((extract_antec C C) (alf.nil Bool))
-   ((extract_antec (=> F1 F2) C) (appendAnd F1 (extract_antec F2 C)))
+   ((extract_antec (=> F1 F2) C) (nary.append and F1 (extract_antec F2 C)))
    )
 )
 
@@ -28,8 +26,8 @@
    ((C Bool) (F Bool))
    (Bool Bool) Bool
    (
-   ((run_process_scope F false) (not (naryElimAnd (extract_antec F false))))
-   ((run_process_scope F C) (=> (naryElimAnd (extract_antec F C)) C))
+   ((run_process_scope F false) (not (nary.elim and (extract_antec F false))))
+   ((run_process_scope F C) (=> (nary.elim and (extract_antec F C)) C))
    )
 )
 
@@ -48,12 +46,12 @@
     :conclusion (or F (not F))
 )
 
-; Extension of `removeOr l C`, that returns `false` if `C` is `l`
+; Extension of `nary.remove or l C`, that returns `false` if `C` is `l`
 (program removeSelf ((l Bool) (C Bool))
     (Bool Bool) Bool
     (
         ((removeSelf l l) false)
-        ((removeSelf l C) (removeOr l C))
+        ((removeSelf l C) (nary.remove or l C))
     )
 )
 
@@ -62,11 +60,11 @@
     (Bool Bool Bool Bool) Bool
     (
         ((resolve C1 C2 true  L)
-          (naryElimOr (concatOr
-            (removeSelf      L  (naryIntroOr C1)) (removeSelf (not L) (naryIntroOr C2)))))
+          (nary.elim or (alf.nil Bool) false (nary.concat or
+            (removeSelf      L  (nary.intro or (alf.nil Bool) C1)) (removeSelf (not L) (nary.intro or (alf.nil Bool) C2)))))
         ((resolve C1 C2 false L)
-          (naryElimOr (concatOr
-            (removeSelf (not L) (naryIntroOr C1)) (removeSelf      L  (naryIntroOr C2)))))
+          (nary.elim or (alf.nil Bool) false (nary.concat or
+            (removeSelf (not L) (nary.intro or (alf.nil Bool) C1)) (removeSelf      L  (nary.intro or (alf.nil Bool) C2)))))
     )
 )
 
@@ -127,17 +125,17 @@
     (Bool Bool) Bool
     (
         ((factorLiterals xs (alf.nil Bool)) (alf.nil Bool))
-        ((factorLiterals xs (or l ls)) (let ((cond (inListOr l xs)))
+        ((factorLiterals xs (or l ls)) (let ((cond (nary.ctn or l xs)))
                                        (let ((ret (factorLiterals
-                                                    (alf.ite cond xs (appendOr l xs))
+                                                    (alf.ite cond xs (nary.append or l xs))
                                                     ls)))
-                                            (alf.ite cond ret (appendOr l ret)))))
+                                            (alf.ite cond ret (nary.append or l ret)))))
     )
 )
 
 (declare-rule factoring ((C Bool))
     :premises (C)
-    :conclusion (naryElimOr (factorLiterals (alf.nil Bool) C))
+    :conclusion (nary.elim or (alf.nil Bool) false (factorLiterals (alf.nil Bool) C))
 )
 
 (declare-rule reordering ((C1 Bool) (C2 Bool))
@@ -186,7 +184,7 @@
 ;    `(and F ( and F1 (and F2 .. (and Fn nil)..)`
 (declare-rule and_intro_nary ((F Bool) (Fs Bool))
     :premises (F Fs)
-    :conclusion (appendAnd F Fs)
+    :conclusion (nary.append and F Fs)
 )
 
 ; binary and introduction
@@ -210,7 +208,8 @@
 
 ; NOT_IMPLIES_ELIM1
 (declare-rule not_implies_elim1 ((F1 Bool) (F2 Bool))
-    :premises ((not (=> F1 F2)))    :conclusion F1
+    :premises ((not (=> F1 F2)))
+    :conclusion F1
 )
 
 ; NOT_IMPLIES_ELIM2
@@ -300,7 +299,7 @@
     (Bool) Bool
     (
         ((lowerNotAnd (alf.nil Bool)) (alf.nil Bool)) ; Terminator changes
-        ((lowerNotAnd (and l ls)) (appendOr (not l) (lowerNotAnd ls)))
+        ((lowerNotAnd (and l ls)) (nary.append or (not l) (lowerNotAnd ls)))
     )
 )
 
@@ -318,19 +317,19 @@
 ; CNF_AND_NEG
 (declare-rule cnf_and_neg ((Fs Bool))
     :args (Fs)
-    :conclusion (appendOr Fs (lowerNotAnd Fs))
+    :conclusion (nary.append or Fs (lowerNotAnd Fs))
 )
 
 ; CNF_OR_POS
 (declare-rule cnf_or_pos ((Fs Bool))
     :args (Fs)
-    :conclusion (appendOr (not Fs) Fs)
+    :conclusion (nary.append or (not Fs) Fs)
 )
 
 ; CNF_OR_NEG
 (declare-rule cnf_or_neg ((Fs Bool) (i Int))
     :args (Fs i)
-    :conclusion (concatOr Fs (appendOr (not (nary.at or i Fs)) (alf.nil Bool)))
+    :conclusion (nary.concat or Fs (nary.append or (not (nary.at or i Fs)) (alf.nil Bool)))
 )
 
 ; CNF_IMPLIES_POS

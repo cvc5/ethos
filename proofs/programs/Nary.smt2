@@ -125,6 +125,7 @@
 )
 
 
+; nary.intro cons i xs
 ; I should be a numeral
 (program nary.at
     ((L Type) (I Type) (cons (-> L L L)) (i I) (x L) (xs L :list))
