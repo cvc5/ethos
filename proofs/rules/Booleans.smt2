@@ -26,8 +26,8 @@
    ((C Bool) (F Bool))
    (Bool Bool) Bool
    (
-   ((run_process_scope F false) (not (nary.elim and (extract_antec F false))))
-   ((run_process_scope F C) (=> (nary.elim and (extract_antec F C)) C))
+   ((run_process_scope F false) (not (nary.elim and (alf.nil Bool) true (extract_antec F false))))
+   ((run_process_scope F C) (=> (nary.elim and (alf.nil Bool) true (extract_antec F C)) C))
    )
 )
 
