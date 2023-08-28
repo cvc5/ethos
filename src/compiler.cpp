@@ -145,7 +145,6 @@ Compiler::Compiler(State& s) :
   // otherwise just return itself (unevaluated)
   d_evalpEnd << "  return d_state.mkExprInternal(Kind::APPLY, args);" << std::endl;
   d_evalpEnd << "}" << std::endl;
-  d_includedFile = false;
 }
 
 Compiler::~Compiler(){}
@@ -181,12 +180,7 @@ void Compiler::includeFile(const std::string& s)
   {
     return;
   }
-  if (d_includedFile)
-  {
-    return;
-  }
-  d_includedFile = true;
-  d_init << "  includeFileInternal(\"" << s << "\", true);" << std::endl;
+  d_init << "  markIncluded(\"" << s << "\");" << std::endl;
 }
 
 void Compiler::addAssumption(const Expr& a)

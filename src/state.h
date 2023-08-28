@@ -140,6 +140,8 @@ private:
   Expr d_self;
   /** include file, if not already done */
   void includeFileInternal(const std::string& s, bool ignore=false);
+  /** mark included */
+  bool markIncluded(const std::string& s);
   /** */
   Expr mkApplyInternal(const std::vector<Expr>& children);
   Expr mkExprInternal(Kind k, const std::vector<Expr>& children);

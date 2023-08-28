@@ -161,17 +161,15 @@ void State::includeFileInternal(const std::string& s, bool ignore)
   {
     ALFC_FATAL() << "State::includeFile: could not include \"" + s + "\"";
   }
-  std::set<std::filesystem::path>::iterator it = d_includes.find(inputPath);
-  if (it!=d_includes.end())
+  if (!markIncluded(inputPath))
   {
     return;
   }
-  d_includes.insert(inputPath);
   std::filesystem::path currentPath = d_inputFile;
   d_inputFile = inputPath;
   if (d_compiler!=nullptr)
   {
-    d_compiler->includeFile(s);
+    d_compiler->includeFile(inputPath);
   }
   Trace("state") << "Include " << inputPath << std::endl;
   if (ignore)
@@ -188,6 +186,17 @@ void State::includeFileInternal(const std::string& s, bool ignore)
   while (parsedCommand);
   d_inputFile = currentPath;
   Trace("state") << "...finished" << std::endl;
+}
+
+bool State::markIncluded(const std::string& s)
+{
+  std::set<std::filesystem::path>::iterator it = d_includes.find(s);
+  if (it!=d_includes.end())
+  {
+    return false;
+  }
+  d_includes.insert(s);
+  return true;
 }
 
 void State::addAssumption(const Expr& a)
