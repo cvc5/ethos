@@ -136,22 +136,10 @@
     :conclusion (reverseOr (factorLiterals (alf.nil Bool) C))
 )
 
-; REORDERING
-; Naive O(n^2) test
-(program isPermutation ((l1 Bool) (l2 Bool) (l1s Bool :list) (l2s Bool :list))
-    (Bool Bool) Bool
-    (
-        ((isPermutation l1 l1) true)
-        ((isPermutation (alf.nil Bool) l1) false)
-        ((isPermutation (or l1 l1s) (or l2 l2s))
-          (isPermutation l1s (removeOr l1 (or l2 l2s))))
-    )
-)
-
 (declare-rule reordering ((C1 Bool) (C2 Bool))
     :premises (C1)
     :args (C2)
-    :requires (((isPermutation C1 C2) true))
+    :requires (((nary.is_subset or C1 C2) true))
     :conclusion C2
 )
 
@@ -183,7 +171,7 @@
 (declare-rule and_elim ((Fs Bool) (i Int))
     :premises (Fs)
     :args (i)
-    :conclusion (at and i Fs)
+    :conclusion (nary.at and i Fs)
 )
 
 ; AND_INTRO
@@ -207,7 +195,7 @@
 (declare-rule not_or_elim ((Fs Bool) (i Int))
     :premises ((not Fs))
     :args (i)
-    :conclusion (not (at or i Fs))
+    :conclusion (not (nary.at or i Fs))
 )
 
 ; IMPLIES_ELIM
@@ -320,7 +308,7 @@
 ; CNF_AND_POS
 (declare-rule cnf_and_pos ((Fs Bool) (i Int))
     :args (Fs i)
-    :conclusion (or (not Fs) (at and i Fs))
+    :conclusion (or (not Fs) (nary.at and i Fs))
 )
 
 ; CNF_AND_NEG
@@ -338,7 +326,7 @@
 ; CNF_OR_NEG
 (declare-rule cnf_or_neg ((Fs Bool) (i Int))
     :args (Fs i)
-    :conclusion (concatOr Fs (appendOr (not (at or i Fs)) (alf.nil Bool)))
+    :conclusion (concatOr Fs (appendOr (not (nary.at or i Fs)) (alf.nil Bool)))
 )
 
 ; CNF_IMPLIES_POS

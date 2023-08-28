@@ -642,6 +642,13 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
             }
           }
             break;
+          case Kind::EVAL_IS_EQ:
+          {
+            // evaluation is indepdent of whether it is a literal
+            bool ret = cchildren[0]==cchildren[1];
+            evaluated = ret ? d_state.mkTrue() : d_state.mkFalse();
+          }
+            break;
           default:
             if (isLiteralOp(ck))
             {

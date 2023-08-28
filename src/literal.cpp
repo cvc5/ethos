@@ -105,6 +105,7 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
 {
   switch (k)
   {
+    /*
     case Kind::EVAL_IS_EQ:
       // note if not properly typed, it does not evaluate
       if (args[0]->d_tag==args[1]->d_tag)
@@ -120,6 +121,7 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
         }
       }
       break;
+      */
     // boolean
     case Kind::EVAL_NOT:
       switch (args[0]->d_tag)
