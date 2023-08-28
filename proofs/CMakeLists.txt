@@ -1,5 +1,5 @@
 set(alfc_test_file_list
-  theories/ArithBridge.smt2
+  theories/Arith.smt2
   theories/BitVectors.smt2
   theories/Core.smt2
   theories/Ints.smt2

@@ -1,34 +1,13 @@
-(include "../theories/Core.smt2")
-(include "../theories/ArithBridge.smt2")
+(include "../theories/Arith.smt2")
+
+; real-specific operators
 
 (declare-consts <decimal> Real)
 
-; TODO: needs overloading
-;(declare-const - (-> Real Real))
-(declare-const + (-> Real Real Real)
-    :right-assoc-nil
-)
-(declare-const * (-> Real Real Real)
-    :right-assoc-nil
-)
-(declare-const <= (-> Real Real Bool)
-    :chainable and
-)
-(declare-const is_int (-> Real Bool))
+(declare-const / (-> (! Type :var T :requires ((is_arith_type T) true))
+                     (! Type :var U :requires ((is_arith_type U) true))
+                     Real) :left-assoc)
 
-(declare-const - (-> Real Real Real)
-    :left-assoc
-)
-(declare-const / (-> Real Real Real)
-    :left-assoc
-)
-(declare-const < (-> Real Real Bool)
-    :chainable and
-)
-(declare-const > (-> Real Real Bool)
-    :chainable and
-)
-(declare-const >= (-> Real Real Bool)
-    :chainable and
-)
-(declare-const sum (-> Real Real (-> Real Real) Real))
+(declare-const /_total (-> (! Type :var T :requires ((is_arith_type T) true))
+                           (! Type :var U :requires ((is_arith_type U) true))
+                           Real) :left-assoc)
