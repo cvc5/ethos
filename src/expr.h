@@ -29,8 +29,6 @@ class ExprValue
   ~ExprValue();
   /** is null? */
   bool isNull() const;
-  /** is equal */
-  bool isEqual(const std::shared_ptr<ExprValue>& val) const;
   /** get the kind of this expression */
   Kind getKind() const;
   /** Get children */

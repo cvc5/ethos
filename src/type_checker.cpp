@@ -564,11 +564,11 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
               Assert(req->getKind() == Kind::PAIR);
               Expr e1 = (*req.get())[0];
               Expr e2 = (*req.get())[1];
-              if (!e1->isEqual(e2))
+              if (e1!=e2)
               {
                 reqMet = false;
-                Trace("type_checker")
-                    << "REQUIRES: failed " << e1 << " == " << e2 << std::endl;
+                std::cout
+                    << "REQUIRES: failed " << (*children[i].get())[0] << " == " << (*children[i].get())[0] << " in " << cctx << std::endl;
                 break;
               }
             }

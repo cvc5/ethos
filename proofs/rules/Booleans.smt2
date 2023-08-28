@@ -133,7 +133,7 @@
 
 (declare-rule factoring ((C Bool))
     :premises (C)
-    :conclusion (reverseOr (factorLiterals (alf.nil Bool) C))
+    :conclusion (factorLiterals (alf.nil Bool) C)
 )
 
 (declare-rule reordering ((C1 Bool) (C2 Bool))

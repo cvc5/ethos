@@ -16,11 +16,6 @@ ExprValue::~ExprValue() {}
 
 bool ExprValue::isNull() const { return d_kind==Kind::NONE; }
   
-bool ExprValue::isEqual(const std::shared_ptr<ExprValue>& val) const
-{
-  return this==val.get();
-}
-  
 Kind ExprValue::getKind() const { return d_kind; }
 
 std::vector<std::shared_ptr<ExprValue>>& ExprValue::getChildren() { return d_children; }
