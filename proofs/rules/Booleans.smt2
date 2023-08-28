@@ -121,19 +121,23 @@
 )
 
 ; FACTORING
+; factorLiterals xs x returns x with duplicates removed, xs is a list of
+; literals we have seen before.
 (program factorLiterals ((xs Bool :list) (l Bool) (ls Bool :list))
     (Bool Bool) Bool
     (
-        ((factorLiterals xs (alf.nil Bool)) (naryElimOr xs))
-        ((factorLiterals xs (or l ls)) (factorLiterals
-                                          (alf.ite (inListOr l xs) xs (appendOr l xs))
-                                          ls))
+        ((factorLiterals xs (alf.nil Bool)) (alf.nil Bool))
+        ((factorLiterals xs (or l ls)) (let ((cond (inListOr l xs)))
+                                       (let ((ret (factorLiterals
+                                                    (alf.ite cond xs (appendOr l xs))
+                                                    ls)))
+                                            (alf.ite cond ret (appendOr l ret)))))
     )
 )
 
 (declare-rule factoring ((C Bool))
     :premises (C)
-    :conclusion (factorLiterals (alf.nil Bool) C)
+    :conclusion (naryElimOr (factorLiterals (alf.nil Bool) C))
 )
 
 (declare-rule reordering ((C1 Bool) (C2 Bool))
