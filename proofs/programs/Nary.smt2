@@ -24,7 +24,7 @@
 ; A call `(append x xs)` will create the list from point 1 and `(append x nil)`
 ; will create a unit list.
 
-; append cons c xs
+; nary.append cons c xs
 ; Appends `c` to the head of `xs`.
 (program nary.append
     ((L Type) (cons (-> L L L)) (c L) (xs L :list))
@@ -34,7 +34,7 @@
     )
 )
 
-; inList cons c l
+; nary.ctn cons c l
 ; Retuns `true` if l inList c.
 (program nary.ctn
     ((L Type) (cons (-> L L L)) (c L) (x L) (xs L :list))
@@ -46,8 +46,8 @@
     )
 )
 
-; inList cons c l
-; Retuns `true` if l inList c.
+; nary.is_subset cons c l
+; Retuns `true` if l nary.ctn c.
 (program nary.is_subset
     ((L Type) (cons (-> L L L)) (c L) (t L) (xs L :list))
     ((-> L L L) L L) Bool
@@ -125,7 +125,7 @@
 )
 
 
-; nary.intro cons i xs
+; nary.at cons i xs
 ; I should be a numeral
 (program nary.at
     ((L Type) (I Type) (cons (-> L L L)) (i I) (x L) (xs L :list))
