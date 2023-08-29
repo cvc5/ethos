@@ -18,6 +18,10 @@ enum class Attr
   SYNTAX,
   REQUIRES,
   
+  // indicate how to construct proof rule steps
+  PREMISE_LIST,
+
+  // indicate how to construct apps of function symbols
   RIGHT_ASSOC,
   LEFT_ASSOC,
   RIGHT_ASSOC_NIL,

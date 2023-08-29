@@ -51,6 +51,7 @@ set(alfc_test_file_list
     bv-literals.smt2
     bv-eval.smt2
     pf-haniel.smt2
+    premise-list-cong.smt2
 )
 
 macro(alfc_test file)

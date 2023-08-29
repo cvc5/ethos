@@ -37,3 +37,8 @@
     :args (F)
     :conclusion F
 )
+
+(declare-rule identity ((F Bool))
+    :premises (F)
+    :conclusion F
+)

@@ -714,6 +714,38 @@ Literal* State::getLiteral(const ExprValue* e)
   return nullptr;
 }
 
+bool State::getActualPremises(const Expr& rule, std::vector<Expr>& given, std::vector<Expr>& actual)
+{
+  AppInfo* ainfo = getAppInfo(rule.get());
+  if (ainfo!=nullptr)
+  {
+    Expr plCons = ainfo->d_attrConsTerm;
+    if (plCons!=nullptr)
+    {
+      std::vector<Expr> achildren;
+      achildren.push_back(plCons);
+      for (Expr& e : given)
+      {
+        // should be proof types
+        Expr eproven = d_tc.getType(e);
+        if (eproven==nullptr || eproven->getKind()!=Kind::PROOF_TYPE)
+        {
+          return false;
+        }
+        achildren.push_back((*eproven.get())[0]);
+      }
+      Expr ap = mkExpr(Kind::APPLY, achildren);
+      Expr pfap = mkProofType(ap);
+      // dummy, nil term of the given proof type
+      Expr n = mkNil(pfap);
+      actual.push_back(n);
+      return true;
+    }
+  }
+  actual = given;
+  return true;
+}
+
 size_t State::getAssumptionLevel() const
 {
   return d_assumptionsSizeCtx.size();
@@ -815,6 +847,7 @@ bool State::markAttributes(const Expr& v, const AttrMap& attrs)
     {
       switch(a.first)
       {
+        case Attr::PREMISE_LIST:
         case Attr::LEFT_ASSOC:
         case Attr::RIGHT_ASSOC:
         case Attr::LEFT_ASSOC_NIL:
