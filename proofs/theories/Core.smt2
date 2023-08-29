@@ -21,8 +21,8 @@
    :chainable and
 )
 
-(declare-const forall (-> (! Type :var A :implicit) (-> A Bool) Bool))
-(declare-const exists (-> (! Type :var A :implicit) (-> A Bool) Bool))
+(declare-const forall (-> (! Type :var A :implicit) A Bool))
+(declare-const exists (-> (! Type :var A :implicit) A Bool))
 
 (declare-const distinct (-> (! Type :var A :implicit) A A Bool)
    :pairwise and

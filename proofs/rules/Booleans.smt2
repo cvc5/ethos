@@ -109,12 +109,12 @@
 ; MACRO_RESOLUTION
 ; These rules do not perform any checks.
 ; TODO: implement some checking for MACRO_RESOLUTION
-(declare-rule macro_resolution_trust((C Bool) (Cs Bool) (args Bool))
+(declare-rule macro_resolution_trust ((C Bool) (Cs Bool) (args Bool))
     :premises (Cs)
     :args (C args)
     :conclusion C
 )
-(declare-rule macro_resolution((C Bool) (Cs Bool) (args Bool))
+(declare-rule macro_resolution ((C Bool) (Cs Bool) (args Bool))
     :premises (Cs)
     :args (C args)
     :conclusion C
