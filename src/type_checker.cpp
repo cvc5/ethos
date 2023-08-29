@@ -567,7 +567,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
               if (e1!=e2)
               {
                 reqMet = false;
-                std::cout
+                Trace("type_checker")
                     << "REQUIRES: failed " << (*children[i].get())[0] << " == " << (*children[i].get())[0] << " in " << cctx << std::endl;
                 break;
               }

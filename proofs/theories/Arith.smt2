@@ -21,15 +21,16 @@
     )
 )
 
+; Must use integer nil terminators to avoid confusion with subtyping
 (declare-const + (-> (! Type :var T :implicit)
                      (! Type :var U :implicit)
-                     T U (arith_typeunion T U)) :right-assoc-nil)
+                     T U (arith_typeunion T U)) :right-assoc 0)
 (declare-const - (-> (! Type :var T :implicit)
                      (! Type :var U :implicit)
-                     T U (arith_typeunion T U)) :right-assoc-nil)
+                     T U (arith_typeunion T U)) :right-assoc 0)
 (declare-const * (-> (! Type :var T :implicit)
                      (! Type :var U :implicit)
-                     T U (arith_typeunion T U)) :right-assoc-nil)
+                     T U (arith_typeunion T U)) :right-assoc 1)
 
 (declare-const < (-> (! Type :var T :requires ((is_arith_type T) true))
                      (! Type :var U :requires ((is_arith_type U) true))
