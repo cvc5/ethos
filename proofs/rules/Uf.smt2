@@ -32,12 +32,42 @@
 )
 
 ; CONG
-; AJR: should just eliminate this and rename ho_cong to cong.
-; Only binary cong supported
-(declare-rule cong ((T Type) (U Type) (f (-> T U)) (t1 T) (t2 T))
-    :premises ((= t1 t2))
+(program mk_cong_eq ((T Type) (U Type) (f1 (-> T U)) (f2 (-> T U)) (t1 U) (t2 U) (tail Bool :list))
+    (Bool Bool) Bool
+    (
+        ((mk_cong_eq (= f1 f2) (alf.nil Bool)) (= f1 f2))
+        ((mk_cong_eq (= f1 f2) (= t1 t2)) (= (f1 t1) (f2 t2)))
+        ((mk_cong_eq (= f1 f2) (and (= t1 t2) tail)) (mk_cong_eq (= (f1 t1) (f2 t2)) tail))
+    )
+)
+
+(declare-rule cong ((T Type) (U Type) (E Bool) (f (-> T U)))
+    :premise-list E and
     :args (f)
-    :conclusion (= (f t1) (f t2))
+    :conclusion (mk_cong_eq (= f f) E)
+)
+
+; N-ary congruence
+(program add_nary_arg ((U Type) (f (-> U U)) (s1 U) (s2 U) (t1 U) (t2 U) (nil U :list))
+    ((-> U U) U U Bool) Bool
+    (
+      ((add_nary_arg f s1 s2 (= t1 t2)) (= (f s1 t1) (f s2 t2)))
+    )
+)
+
+(program mk_nary_cong_eq ((U Type) (f (-> U U)) (t1 U :list) (t2 U :list) (s1 U) (s2 U) (nil U) (tail Bool :list))
+    ((-> U U) U Bool) Bool
+    (
+        ((mk_nary_cong_eq f nil (alf.nil Bool))       (= nil nil))
+        ((mk_nary_cong_eq f nil (= s1 s2))            (= s1 s2))
+        ((mk_nary_cong_eq f nil (and (= s1 s2) tail)) (add_nary_arg f s1 s2 (mk_nary_cong_eq f nil tail)))
+    )
+)
+
+(declare-rule nary_cong ((U Type) (E Bool) (f (-> U U)))
+    :premise-list E and
+    :args (U f)
+    :conclusion (mk_nary_cong_eq f (alf.nil U) E)
 )
 
 ; TRUE_INTRO

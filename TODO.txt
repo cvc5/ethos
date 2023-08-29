@@ -12,6 +12,7 @@ TODO:
 - Temporary memory allocation of Expr within calls to evaluation?
 - show compiled files
 - generalize CLI
+- proper compilation of alf.ite / alf.is_eq
 
 COMPLETED:
 

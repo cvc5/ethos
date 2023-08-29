@@ -21,17 +21,15 @@
 (step t7 false :rule resolution :premises (a3 a5) :args (false c2))
 
 ; Chain Resolution
-(assume cra1 (and (or c1 c2 (not c3) c2)
-                  (not c2)
-                  (or c3 c1))
-)
-(step cr1 (or c1 c2 c1) :rule chain_resolution :premises (cra1) :args ((and true c2 false c3)))
+(assume cra11 (or c1 c2 (not c3) c2))
+(assume cra12 (not c2))
+(assume cra13 (or c3 c1))
+(step cr1 (or c1 c2 c1) :rule chain_resolution :premises (cra11 cra12 cra13) :args ((and true c2 false c3)))
 
-(assume cra2 (and (or c1 c2 )
-                  (not c1)
-                  (not c2))
-)
-(step cr2 false :rule chain_resolution :premises (cra2) :args ((and true c1 true c2)))
+(assume cra21 (or c1 c2))
+(assume cra22 (not c1))
+(assume cra23 (not c2))
+(step cr2 false :rule chain_resolution :premises (cra21 cra22 cra23) :args ((and true c1 true c2)))
 ; TODO: case where only one is left
 
 ; Factoring

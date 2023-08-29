@@ -734,7 +734,15 @@ bool State::getActualPremises(const Expr& rule, std::vector<Expr>& given, std::v
         }
         achildren.push_back((*eproven.get())[0]);
       }
-      Expr ap = mkExpr(Kind::APPLY, achildren);
+      Expr ap;
+      if (achildren.size()==2)
+      {
+        ap = achildren[1];
+      }
+      else
+      {
+        ap = mkExpr(Kind::APPLY, achildren);
+      }
       Expr pfap = mkProofType(ap);
       // dummy, nil term of the given proof type
       Expr n = mkNil(pfap);

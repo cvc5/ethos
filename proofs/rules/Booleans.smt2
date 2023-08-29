@@ -98,7 +98,7 @@
 ;        pivot literal.
 ; TODO: use generic lists for `args` instead of a conjunction.
 (declare-rule chain_resolution ((Cs Bool) (args Bool))
-    :premises (Cs)
+    :premise-list Cs and
     :args (args)
     :conclusion (chainResolve Cs args)
 )

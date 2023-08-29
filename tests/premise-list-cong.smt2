@@ -27,3 +27,4 @@
 (assume @p1 (= c d))
 
 (step @p2 (= (f a c) (f b d)) :rule cong :premises (@p0 @p1) :args (f))
+
