@@ -212,10 +212,20 @@ bool CmdParser::parseNextCommand()
         assume = d_eparser.parseExpr();
         keyword = d_eparser.parseKeyword();
       }
+      Expr plCons;
       std::vector<Expr> premises;
       if (keyword=="premises")
       {
         premises = d_eparser.parseExprList();
+        keyword = d_eparser.parseKeyword();
+      }
+      else if (keyword=="premise-list")
+      {
+        // :premise-list <pattern> <cons>
+        Expr pat = d_eparser.parseExpr();
+        plCons = d_eparser.parseExpr();
+        // pattern is the single premise
+        premises.push_back(pat);
         keyword = d_eparser.parseKeyword();
       }
       // parse args, optionally
@@ -274,6 +284,12 @@ bool CmdParser::parseNextCommand()
       Expr rule = d_state.mkProofRule(name, ret);
       d_eparser.typeCheck(rule);
       d_eparser.bind(name, rule);
+      if (plCons!=nullptr)
+      {
+        AttrMap amap;
+        amap[Attr::PREMISE_LIST].push_back(plCons);
+        d_state.markAttributes(rule, amap);
+      }
     }
     break;
     // (declare-sort <symbol> <numeral>)
@@ -425,12 +441,13 @@ bool CmdParser::parseNextCommand()
       std::vector<Expr> vars = d_eparser.parseAndBindSortedVarList();
       std::vector<Expr> argTypes = d_eparser.parseTypeList();
       Expr retType = d_eparser.parseType();
+      Expr progType = retType;
       if (!argTypes.empty())
       {
-        retType = d_state.mkFunctionType(argTypes, retType, false);
+        progType = d_state.mkFunctionType(argTypes, retType, false);
       }
       // the type of the program variable is a function
-      Expr pvar = d_state.mkProgramConst(name, retType);
+      Expr pvar = d_state.mkProgramConst(name, progType);
       // bind the program
       d_eparser.bind(name, pvar);
       // parse the body
@@ -449,6 +466,8 @@ bool CmdParser::parseNextCommand()
         {
           d_lex.parseError("Expected application of program as case");
         }
+        // ensure some type checking??
+        //d_eparser.typeCheck(pc);
         // ensure the right hand side is bound by the left hand side
         std::vector<Expr> bvs = ExprValue::getVariables(pc);
         Expr rhs = (*p.get())[1];
@@ -542,12 +561,17 @@ bool CmdParser::parseNextCommand()
       std::vector<Expr> premises;
       if (keyword=="premises")
       {
-        premises = d_eparser.parseExprList();
+        std::vector<Expr> given = d_eparser.parseExprList();
+        if (!d_state.getActualPremises(rule, given, premises))
+        {
+          d_lex.parseError("Failed to get premises");
+        }
         if (d_lex.peekToken()==Token::KEYWORD)
         {
           keyword = d_eparser.parseKeyword();
         }
       }
+      // TODO: maybe combine premises here
       // parse args, optionally
       std::vector<Expr> args;
       if (keyword=="args")

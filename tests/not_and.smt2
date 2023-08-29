@@ -1,13 +1,12 @@
 (include "../proofs/theories/Core.smt2")
 (include "../proofs/programs/Nary.smt2")
-(include "../proofs/programs/Booleans.smt2")
 
 ; NOT_AND
 (program lowerNot ((l Bool) (ls Bool :list))
     (Bool) Bool
     (
         ((lowerNot (alf.nil Bool)) (alf.nil Bool))
-        ((lowerNot (and l ls)) (appendOr (not l) (lowerNot ls)))
+        ((lowerNot (and l ls)) (nary.append or (not l) (lowerNot ls)))
     )
 )
 

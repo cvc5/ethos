@@ -892,6 +892,11 @@ Expr ExprParser::typeCheck(Expr& e)
 }
 Expr ExprParser::typeCheckApp(std::vector<Expr>& children)
 {
+  // ensure all children are type checked
+  for (Expr& c : children)
+  {
+    typeCheck(c);
+  }
   const Expr& v = d_state.getTypeChecker().getTypeApp(children);
   if (v==nullptr)
   {

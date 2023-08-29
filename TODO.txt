@@ -9,6 +9,7 @@ TODO:
 - ensure assumption scope level is preserved per include file
 - alf.ite smart evaluation, not just literals
 - alf.is_eq not just literals
+- Temporary memory allocation of Expr within calls to evaluation?
 - show compiled files
 - generalize CLI
 

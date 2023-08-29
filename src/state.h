@@ -112,6 +112,8 @@ public:
   Expr getVar(const std::string& name) const;
   /** */
   Literal* getLiteral(const ExprValue* e);
+  /** Get actual premises */
+  bool getActualPremises(const Expr& rule, std::vector<Expr>& given, std::vector<Expr>& actual);
   /** Get the type checker */
   TypeChecker& getTypeChecker();
   /** Get options */
