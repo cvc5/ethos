@@ -911,7 +911,7 @@ Expr ExprParser::typeCheckApp(std::vector<Expr>& children)
 Expr ExprParser::typeCheck(Expr& e, const Expr& expected)
 {
   Expr et = typeCheck(e);
-  if (!et->isEqual(expected))
+  if (et!=expected)
   {
     std::stringstream msg;
     msg << "Expression of unexpected type:" << std::endl;

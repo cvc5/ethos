@@ -17,6 +17,7 @@
 
 #include <iostream>
 #include <ostream>
+#include "base/output.h"
 
 namespace alfc {
 
@@ -517,6 +518,7 @@ bool CmdParser::parseNextCommand()
     {
       bool isPop = (tok==Token::POP);
       std::string name = d_eparser.parseSymbol();
+      Trace("step") << "Check step " << name << std::endl;
       Expr proven;
       // see if we have proven
       tok = d_lex.peekToken();

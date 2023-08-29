@@ -187,8 +187,6 @@ private:
   /** */
   std::unordered_set<ExprValue*> d_tcWritten;
   std::unordered_set<ExprValue*> d_evalWritten;
-  /** Included file */
-  bool d_includedFile;
   /** Write run id */
   size_t markCompiled(std::ostream& os, const Expr& e);
   /**

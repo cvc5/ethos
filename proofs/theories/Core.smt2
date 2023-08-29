@@ -3,9 +3,7 @@
 
 (declare-const ite (-> (! Type :var A :implicit) Bool A A A))
 (declare-const not (-> Bool Bool))
-(declare-const distinct (-> (! Type :var A :implicit) A A Bool)
-   ;:pairwise
-)
+
 (declare-const or (-> Bool Bool Bool)
    :right-assoc-nil
 )
@@ -25,6 +23,13 @@
 
 (declare-const forall (-> (! Type :var A :implicit) (-> A Bool) Bool))
 (declare-const exists (-> (! Type :var A :implicit) (-> A Bool) Bool))
+
+(declare-const distinct (-> (! Type :var A :implicit) A A Bool)
+   :pairwise and
+)
+
+; below here necessary?
+
 ; Hilbert's choice (ε)
 (declare-const choose (-> (! Type :var A :implicit) (-> A Bool) A))
 (declare-const compose

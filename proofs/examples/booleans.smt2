@@ -41,8 +41,9 @@
 (step   fact2 (or c1 (or c1 c1) c2 (not c2)            ) :rule factoring :premises (faca2))
 
 ; Reordering
-(assume reord1 (and c1 c2))
-(step  reordt1 :rule reordering :premises (reord1) :args ((and c1 c2)))
+; AJR: note this doesn't work since we don't check for the singleton case
+;(assume reord1 (and c1 c2))
+;(step  reordt1 :rule reordering :premises (reord1) :args ((and c1 c2)))
 
 (assume reord2 (or c1 c2))
 (step  reordt2 :rule reordering :premises (reord2) :args ((or c2 c1)))
