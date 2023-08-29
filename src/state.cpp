@@ -29,7 +29,7 @@ State::State(Options& opts, Stats& stats) : d_tc(*this), d_opts(opts), d_stats(s
   // lambda is not builtin?
   //bindBuiltin("lambda", Kind::LAMBDA, true);
   bindBuiltin("->", Kind::FUNCTION_TYPE);
-  bindBuiltin("@", Kind::APPLY);
+  bindBuiltin("_", Kind::APPLY);
   bindBuiltin("alf.nil", Kind::NIL);
 
   bindBuiltinEval("is_eq", Kind::EVAL_IS_EQ);

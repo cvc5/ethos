@@ -7,8 +7,6 @@ TODO:
 - check type preservation for evaluation?
 - separate symbol table for proof rules?
 - ensure assumption scope level is preserved per include file
-- alf.ite smart evaluation, not just literals
-- alf.is_eq not just literals
 - Temporary memory allocation of Expr within calls to evaluation?
 - show compiled files
 - generalize CLI
@@ -16,12 +14,15 @@ TODO:
 
 COMPLETED:
 
--- datatypes
--- literal ops to compiler
--- auto-evaluate literal ops
--- change syntax for nil, for eval.
--- :restrict
--- bitvectors
--- datatype testers
--- howto: bitvector literal type rule
--- strings
+- datatypes
+- literal ops to compiler
+- auto-evaluate literal ops
+- change syntax for nil, for eval.
+- :restrict
+- bitvectors
+- datatype testers
+- howto: bitvector literal type rule
+- strings
+- alf.ite smart evaluation, not just literals
+- alf.is_eq not just literals
+- change @ to _

@@ -27,7 +27,7 @@
   (
   ((substitute x y x)             y)
   ((substitute x y (skolem U w))  (skolem U w))   ; do not traverse
-  ((substitute x y (f a))         (@ (substitute x y f) (substitute x y a)))
+  ((substitute x y (f a))         (_ (substitute x y f) (substitute x y a)))
   ((substitute x y z)             z)
   )
 )

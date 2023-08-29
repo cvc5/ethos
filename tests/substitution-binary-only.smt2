@@ -10,7 +10,7 @@
   (S S U) U
   (
   ((substitute x y x)       y)
-  ((substitute x y (f a b)) (@ (@ (substitute x y f) (substitute x y a)) (substitute x y b)))
+  ((substitute x y (f a b)) (_ (_ (substitute x y f) (substitute x y a)) (substitute x y b)))
   ((substitute x y z)       z)
   )
 )
