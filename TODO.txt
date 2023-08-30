@@ -11,6 +11,7 @@ TODO:
 - show compiled files
 - generalize CLI
 - proper compilation of alf.ite / alf.is_eq
+- minimize compiled code by recognizing alpha-equivalent patterns
 
 COMPLETED:
 

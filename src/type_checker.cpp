@@ -324,6 +324,12 @@ Expr TypeChecker::getTypeApp(std::vector<Expr>& children, std::ostream* out)
     {
       ctypes.push_back(evaluate(children[i]));
     }
+    else if (children[i]->getKind()==Kind::NIL)
+    {
+      // If nil, we ignore the type constraint imposed. We replace its
+      // type with the type we are matching here.
+      ctypes.push_back(hdtypes[i-1]);
+    }
     else
     {
       ctypes.push_back(children[i]->d_type);
@@ -340,10 +346,6 @@ Expr TypeChecker::getTypeApp(std::vector<Expr>& children, std::ostream* out)
   for (size_t i=0, nchild=ctypes.size(); i<nchild; i++)
   {
     Assert(ctypes[i] != nullptr);
-    if (ctypes[i]->getKind()==Kind::ABSTRACT_TYPE)
-    {
-      continue;
-    }
     // matching, update context
     Expr hdt = hdtypes[i];
     // if the argument is (Quote t), we match on its argument,
