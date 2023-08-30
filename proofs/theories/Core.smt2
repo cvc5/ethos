@@ -26,8 +26,3 @@
 (declare-const exists (-> (! Type :var A :implicit) A Bool))
 
 (declare-const distinct (-> (! Type :var A :implicit) A A Bool) :pairwise and)
-
-
-; cvc5-specific
-
-(declare-const @k.PURIFY (-> (! Type :var A :implicit) A A))

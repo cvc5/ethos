@@ -1,3 +1,6 @@
+(include "../theories/Core.smt2")
+(include "../theories/Builtin.smt2")
+
 (declare-type Theory ())
 (declare-const THEORY_BUILTIN Theory)
 (declare-const THEORY_BOOL Theory)
@@ -31,6 +34,11 @@
 (declare-rule theory_rewrite ((T Type) (F T) (theory Theory) (method Method))
     :args (F theory method)
     :conclusion F
+)
+
+(declare-rule skolem_intro ((T Type) (t T))
+  :args ((skolem t))
+  :conclusion (= (skolem t) t)
 )
 
 (declare-rule trust ((F Bool))
