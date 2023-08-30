@@ -32,10 +32,10 @@
   (T) S
   (
     ((arith_rel_inv =) =)
-    ((arith_rel_inv <) <)
-    ((arith_rel_inv <=) <=)
-    ((arith_rel_inv >) >)
-    ((arith_rel_inv >=) >=)
+    ((arith_rel_inv <) >)
+    ((arith_rel_inv <=) >=)
+    ((arith_rel_inv >) <)
+    ((arith_rel_inv >=) <=)
   )
 )
 
