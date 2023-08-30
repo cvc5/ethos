@@ -22,29 +22,12 @@
 )
 
 (declare-const forall (-> (! Type :var A :implicit) A Bool))
+
 (declare-const exists (-> (! Type :var A :implicit) A Bool))
 
-(declare-const distinct (-> (! Type :var A :implicit) A A Bool)
-   :pairwise and
-)
+(declare-const distinct (-> (! Type :var A :implicit) A A Bool) :pairwise and)
 
-; below here necessary?
 
-; Hilbert's choice (ε)
-(declare-const choose (-> (! Type :var A :implicit) (-> A Bool) A))
-(declare-const compose
-   (-> (! Type :var A :implicit)
-    (! Type :var B :implicit)
-    (! Type :var C :implicit)
-    (-> B C)
-    (-> A B)
-    (-> A C)
-   )
-)
-(declare-const iden (-> (! Type :var A :implicit) A A))
-(declare-const apply
-(-> (! Type :var A :implicit)
-    (! Type :var B :implicit)
-    (-> A B) A B)
-    :left-assoc-nil
-)
+; cvc5-specific
+
+(declare-const @k.PURIFY (-> (! Type :var A :implicit) A A))

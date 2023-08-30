@@ -48,11 +48,15 @@
                       (! Type :var U :implicit :requires ((is_arith_type U) true))
                       T U Bool) :chainable and)
 
-(declare-const to_real (-> (! Type :var T :requires ((is_arith_type T) true))
-                           Real))
-(declare-const to_int (-> (! Type :var T :requires ((is_arith_type T) true))
-                          Int))
-(declare-const is_int (-> (! Type :var T :requires ((is_arith_type T) true))
-                          Bool))
-(declare-const abs (-> (! Type :var T :requires ((is_arith_type T) true))
-                       T))
+(declare-const to_real (-> (! Type :var T :implicit :requires ((is_arith_type T) true))
+                           T Real))
+(declare-const to_int (-> (! Type :var T :implicit :requires ((is_arith_type T) true))
+                          T Int))
+(declare-const is_int (-> (! Type :var T :implicit :requires ((is_arith_type T) true))
+                          T Bool))
+(declare-const abs (-> (! Type :var T :implicit :requires ((is_arith_type T) true))
+                       T T))
+
+; currently unary negation cannot use overload
+(declare-const u- (-> (! Type :var T :implicit :requires ((is_arith_type T) true))
+                       T T))

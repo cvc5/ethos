@@ -575,8 +575,12 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       if (allGround)
       {
         Expr ret = d_tc.evaluateLiteralOp(k, children);
-        Trace("state") << "EAGER_EVALUATE " << ret << std::endl;
-        return ret;
+        // return if successfully evaluated
+        if (ret!=nullptr)
+        {
+          Trace("state") << "EAGER_EVALUATE " << ret << std::endl;
+          return ret;
+        }
       }
     }
   }

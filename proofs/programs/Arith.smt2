@@ -1,18 +1,5 @@
 (include "../theories/Arith.smt2")
 
-(program arith.eval ((T Type) (U Type) (S Type) (a T) (b U) (z S))
-    (S) S
-    (
-      ((arith.eval (= a b))  (alf.is_eq (arith.eval a) (arith.eval b)))
-      ((arith.eval (< a b))  (alf.is_neg (arith.eval (- a b))))
-      ((arith.eval (<= a b)) (let ((x (arith.eval (- a b))))
-                                 (alf.or (alf.is_neg x) (alf.is_zero x))))
-      ((arith.eval (+ a b))  (alf.add (arith.eval a) (arith.eval b)))
-      ((arith.eval (- a b))  (alf.add (arith.eval a) (alf.neg (arith.eval b))))
-      ((arith.eval z)        z)
-    )
-)
-
 (program arith_rel_sum ((T Type) (U Type) (S Type) (r1 T) (r2 U))
   (T U) S
   (

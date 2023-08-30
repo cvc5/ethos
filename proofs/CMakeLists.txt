@@ -4,9 +4,11 @@ set(alfc_test_file_list
   theories/Core.smt2
   theories/Ints.smt2
   theories/Reals.smt2
+  theories/Strings.smt2
   rules/Arith.smt2
   rules/Uf.smt2
   rules/Booleans.smt2
+  rules/Strings.smt2
   examples/simple_uf.smt2
   examples/booleans.smt2
   examples/nary.smt2
