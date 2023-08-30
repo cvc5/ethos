@@ -35,8 +35,8 @@
 (program mk_cong_eq ((T Type) (U Type) (f1 (-> T U)) (f2 (-> T U)) (t1 U) (t2 U) (tail Bool :list))
     (Bool Bool) Bool
     (
-        ((mk_cong_eq (= f1 f2) (alf.nil Bool)) (= f1 f2))
-        ((mk_cong_eq (= f1 f2) (= t1 t2)) (= (f1 t1) (f2 t2)))
+        ((mk_cong_eq (= f1 f2) alf.nil)              (= f1 f2))
+        ((mk_cong_eq (= f1 f2) (= t1 t2))            (= (f1 t1) (f2 t2)))
         ((mk_cong_eq (= f1 f2) (and (= t1 t2) tail)) (mk_cong_eq (= (f1 t1) (f2 t2)) tail))
     )
 )
@@ -55,19 +55,19 @@
     )
 )
 
-(program mk_nary_cong_eq ((U Type) (f (-> U U)) (t1 U :list) (t2 U :list) (s1 U) (s2 U) (nil U) (tail Bool :list))
-    ((-> U U) U Bool) Bool
+(program mk_nary_cong_eq ((U Type) (f (-> U U)) (t1 U :list) (t2 U :list) (s1 U) (s2 U) (tail Bool :list))
+    ((-> U U) Bool) Bool
     (
-        ((mk_nary_cong_eq f nil (alf.nil Bool))       (= nil nil))
-        ((mk_nary_cong_eq f nil (= s1 s2))            (= s1 s2))
-        ((mk_nary_cong_eq f nil (and (= s1 s2) tail)) (add_nary_arg f s1 s2 (mk_nary_cong_eq f nil tail)))
+        ((mk_nary_cong_eq f alf.nil)              (= alf.nil alf.nil))
+        ((mk_nary_cong_eq f (= s1 s2))            (= s1 s2))
+        ((mk_nary_cong_eq f (and (= s1 s2) tail)) (add_nary_arg f s1 s2 (mk_nary_cong_eq f tail)))
     )
 )
 
 (declare-rule nary_cong ((U Type) (E Bool) (f (-> U U)))
     :premise-list E and
     :args (U f)
-    :conclusion (mk_nary_cong_eq f (alf.nil U) E)
+    :conclusion (mk_nary_cong_eq f E)
 )
 
 ; TRUE_INTRO

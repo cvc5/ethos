@@ -135,9 +135,11 @@ const Expr& TypeChecker::getType(Expr& e, std::ostream* out)
 
 bool TypeChecker::checkArity(Kind k, size_t nargs)
 {
-  // TODO: check arities  switch (k)
+  // check arities
   switch(k)
   {
+    case Kind::NIL:
+      return nargs==0;
     case Kind::EVAL_IS_EQ:
     case Kind::EVAL_AND:
     case Kind::EVAL_OR:
@@ -148,7 +150,6 @@ bool TypeChecker::checkArity(Kind k, size_t nargs)
     case Kind::EVAL_CONCAT:
     case Kind::EVAL_TO_BV:
       return nargs==2;
-    case Kind::NIL:
     case Kind::EVAL_NOT:
     case Kind::EVAL_NEG:
     case Kind::EVAL_IS_NEG:
@@ -205,20 +206,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
       return d_state.mkQuoteType(e->d_children[0]);
     }
     case Kind::NIL:
-    {
-      // type stored as the child
-      const Expr& ctype = e->d_children[0]->d_type;
-      // must be a type
-      if (ctype->getKind()!=Kind::TYPE)
-      {
-        if (out)
-        {
-          (*out) << "Non-type for argument of nil";
-        }
-        return nullptr;
-      }
-      return e->d_children[0];
-    }
+      return d_state.mkAbstractType();
     case Kind::TYPE:
     case Kind::ABSTRACT_TYPE:
     case Kind::BOOL_TYPE:
@@ -352,6 +340,10 @@ Expr TypeChecker::getTypeApp(std::vector<Expr>& children, std::ostream* out)
   for (size_t i=0, nchild=ctypes.size(); i<nchild; i++)
   {
     Assert(ctypes[i] != nullptr);
+    if (ctypes[i]->getKind()==Kind::ABSTRACT_TYPE)
+    {
+      continue;
+    }
     // matching, update context
     Expr hdt = hdtypes[i];
     // if the argument is (Quote t), we match on its argument,

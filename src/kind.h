@@ -34,6 +34,7 @@ enum class Kind
   NIL,
   PROGRAM,
   PAIR,
+  COLLECT,
 
   // literals
   BOOLEAN,

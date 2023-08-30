@@ -32,8 +32,8 @@
 )
 
 (step ap1 :rule check_append :args (c3 (cons c1 c2) (cons c3 c1 c2)))
-(step ap2 :rule check_append :args ((alf.nil S) (cons c1 c2) (cons (alf.nil S) c1 c2)))
-(step ap3 :rule check_append :args (c1 (alf.nil S) (nary.remove cons c2 (cons c1 c2))))
+(step ap2 :rule check_append :args (alf.nil (cons c1 c2) (cons alf.nil c1 c2)))
+(step ap3 :rule check_append :args (c1 alf.nil (nary.remove cons c2 (cons c1 c2))))
 
 ; Concat
 (declare-rule check_concat((t1 S) (t2 S) (out S))
@@ -42,8 +42,8 @@
     :conclusion true
 )
 
-(step co1 :rule check_concat :args ((alf.nil S) (cons c1 c3) (cons c1 c3)))
-(step co2 :rule check_concat :args ((cons c1 c3) (alf.nil S) (cons c1 c3)))
+(step co1 :rule check_concat :args (alf.nil (cons c1 c3) (cons c1 c3)))
+(step co2 :rule check_concat :args ((cons c1 c3) alf.nil (cons c1 c3)))
 (step co3 :rule check_concat :args ((cons c1 c2) (cons c1 c3) (cons c1 c2 c1 c3)))
 
 ; Remove
@@ -56,8 +56,8 @@
 (step rm1 :rule check_remove :args (c1 (cons c1 c2 c3) (cons c2 c3)))
 (step rm2 :rule check_remove :args (c2 (cons c1 c2 c3) (cons c1 c3)))
 (step rm3 :rule check_remove :args (c3 (cons c1 c2 c3) (cons c1 c2)))
-(step rm4 :rule check_remove :args ((alf.nil S) (cons c1 c2 c3) (cons c1 c2 c3)))
-(step rm5 :rule check_remove :args (c1 (alf.nil S) (alf.nil S)))
+(step rm4 :rule check_remove :args (alf.nil (cons c1 c2 c3) (cons c1 c2 c3)))
+(step rm5 :rule check_remove :args (c1 alf.nil alf.nil))
 (step rm6 :rule check_remove :args (c1 (cons c1 c1 c2 c3) (cons c1 c2 c3)))
 (step rm7 :rule check_remove :args (c2 (cons c1 c2 c2 c3) (cons c1 c2 c3)))
 
@@ -67,20 +67,20 @@
 (declare-const elim-nil S)
 (declare-rule check_nary.elim((in S) (out S))
     :args (in out)
-    :requires (((nary.elim cons (alf.nil S) elim-nil in) out))
+    :requires (((nary.elim cons alf.nil elim-nil in) out))
     :conclusion true
 )
 
 (step elim1 :rule check_nary.elim :args ((cons c1 c2) (cons c1 c2)))
 (step elim2 :rule check_nary.elim :args ((nary.remove cons c2 (cons c1 c2))  c1))
-(step elim3 :rule check_nary.elim :args ((nary.remove cons c2 (cons (alf.nil S) c2)) (alf.nil S)))
+(step elim3 :rule check_nary.elim :args ((nary.remove cons c2 (cons alf.nil c2)) alf.nil))
 (step elim4 :rule check_nary.elim :args ((nary.remove cons c1 (nary.remove cons c2 (cons c1 c2))) elim-nil))
 (step elim5 :rule check_nary.elim :args ((nary.remove cons c2 (cons (cons c1 c3) c2)) (cons c1 c3)))
 
 ; nary.intro
 (declare-rule check_nary.intro((in S) (out S))
     :args (in out)
-    :requires (((nary.intro cons (alf.nil S) in) out))
+    :requires (((nary.intro cons alf.nil in) out))
     :conclusion true
 )
 

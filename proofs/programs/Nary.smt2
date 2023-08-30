@@ -40,7 +40,7 @@
     ((L Type) (cons (-> L L L)) (c L) (x L) (xs L :list))
     ((-> L L L) L L) Bool
     (
-        ((nary.ctn cons c (alf.nil L)) false)
+        ((nary.ctn cons c alf.nil) false)
         ((nary.ctn cons c (cons c xs)) true)
         ((nary.ctn cons c (cons x xs)) (nary.ctn cons c xs))
     )
@@ -52,7 +52,7 @@
     ((L Type) (cons (-> L L L)) (c L) (t L) (xs L :list))
     ((-> L L L) L L) Bool
     (
-        ((nary.is_subset cons (alf.nil L) t) true)
+        ((nary.is_subset cons alf.nil t) true)
         ((nary.is_subset cons (cons c xs) t) (alf.ite (nary.ctn cons c t) (nary.is_subset cons xs t) false))
     )
 )
@@ -63,7 +63,7 @@
     ((L Type) (cons (-> L L L)) (x L) (xs L :list) (ys L))
     ((-> L L L) L L) L
     (
-        ((nary.concat cons (alf.nil L) ys) ys)
+        ((nary.concat cons alf.nil ys) ys)
         ((nary.concat cons (cons x xs) ys) (nary.append cons x (nary.concat cons xs ys)))
     )
 )
@@ -74,7 +74,7 @@
     ((L Type) (cons (-> L L L)) (c L) (y L) (xs L :list))
     ((-> L L L) L L) L
     (
-        ((nary.remove cons c (alf.nil L)) (alf.nil L))
+        ((nary.remove cons c alf.nil)     alf.nil)
         ((nary.remove cons c (cons c xs)) xs)
         ((nary.remove cons c (cons y xs)) (nary.append cons y (nary.remove cons c xs)))
     )
@@ -85,7 +85,7 @@
     ((L Type) (cons (-> L L L)) (x L) (xs L :list) (l L :list))
     ((-> L L L) L L) L
     (
-        ((nary.reverseRec cons (alf.nil L)  l)  l)
+        ((nary.reverseRec cons alf.nil  l)  l)
         ((nary.reverseRec cons (cons x xs) l) (nary.reverseRec cons xs (nary.append cons x l)))
     )
 )
@@ -143,7 +143,7 @@
     ((L Type) (cons (-> L L L)) (t L) (c1 L) (c2 L) (xs1 L :list) (xs2 L :list))
     ((-> L L L) L L) Bool
     (
-        ((nary.is_prefix cons (alf.nil L) t)               true)
+        ((nary.is_prefix cons alf.nil t)                   true)
         ((nary.is_prefix cons (cons c1 xs1) (cons c2 xs2)) (alf.ite (alf.is_eq c1 c2) (nary.is_prefix cons xs1 xs2) false))
     )
 )

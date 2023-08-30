@@ -17,7 +17,7 @@
 (program mk_arith_sum_ub ((T Type) (U Type) (r (-> T U Bool)) (a T) (b U) (tail Bool :list))
     (Bool) Bool
     (
-        ((mk_arith_sum_ub (alf.nil Bool)) (= 0 0))
+        ((mk_arith_sum_ub alf.nil)            (= 0 0))
         ((mk_arith_sum_ub (and (r a b) tail)) (mk_arith_sum_ub_step (r a b) (mk_arith_sum_ub tail)))
     )
 )

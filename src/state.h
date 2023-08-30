@@ -86,8 +86,8 @@ public:
   Expr mkProgramConst(const std::string& name, const Expr& type);
   /** */
   Expr mkProofRule(const std::string& name, const Expr& type);
-  /** (nil <type>) */
-  Expr mkNil(const Expr& t);
+  /** alf.nil */
+  Expr mkNil();
   /** */
   Expr mkSelf();
   /** */
@@ -140,6 +140,7 @@ private:
   Expr d_true;
   Expr d_false;
   Expr d_self;
+  Expr d_nil;
   /** include file, if not already done */
   void includeFileInternal(const std::string& s, bool ignore=false);
   /** mark included */

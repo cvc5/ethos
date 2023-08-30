@@ -17,7 +17,7 @@
    ((C Bool) (F1 Bool) (F2 Bool))
    (Bool Bool) Bool
    (
-   ((extract_antec C C) (alf.nil Bool))
+   ((extract_antec C C) alf.nil)
    ((extract_antec (=> F1 F2) C) (nary.append and F1 (extract_antec F2 C)))
    )
 )
@@ -26,8 +26,8 @@
    ((C Bool) (F Bool))
    (Bool Bool) Bool
    (
-   ((run_process_scope F false) (not (nary.elim and (alf.nil Bool) true (extract_antec F false))))
-   ((run_process_scope F C) (=> (nary.elim and (alf.nil Bool) true (extract_antec F C)) C))
+   ((run_process_scope F false) (not (nary.elim and alf.nil true (extract_antec F false))))
+   ((run_process_scope F C) (=> (nary.elim and alf.nil true (extract_antec F C)) C))
    )
 )
 
@@ -60,11 +60,11 @@
     (Bool Bool Bool Bool) Bool
     (
         ((resolve C1 C2 true  L)
-          (nary.elim or (alf.nil Bool) false (nary.concat or
-            (removeSelf      L  (nary.intro or (alf.nil Bool) C1)) (removeSelf (not L) (nary.intro or (alf.nil Bool) C2)))))
+          (nary.elim or alf.nil false (nary.concat or
+            (removeSelf      L  (nary.intro or alf.nil C1)) (removeSelf (not L) (nary.intro or alf.nil C2)))))
         ((resolve C1 C2 false L)
-          (nary.elim or (alf.nil Bool) false (nary.concat or
-            (removeSelf (not L) (nary.intro or (alf.nil Bool) C1)) (removeSelf      L  (nary.intro or (alf.nil Bool) C2)))))
+          (nary.elim or alf.nil false (nary.concat or
+            (removeSelf (not L) (nary.intro or alf.nil C1)) (removeSelf      L  (nary.intro or alf.nil C2)))))
     )
 )
 
@@ -78,7 +78,7 @@
 (program chainResolveRec((C1 Bool) (C2 Bool) (Cs Bool :list) (pol Bool) (L Bool) (args Bool :list))
     (Bool Bool Bool) Bool
     (
-        ((chainResolveRec C1 (alf.nil Bool) (alf.nil Bool)) C1)
+        ((chainResolveRec C1 alf.nil alf.nil) C1)
         ((chainResolveRec C1 (and C2 Cs) (and pol L args)) (chainResolveRec (resolve C1 C2 pol L) Cs args))
     )
 )
@@ -124,7 +124,7 @@
 (program factorLiterals ((xs Bool :list) (l Bool) (ls Bool :list))
     (Bool Bool) Bool
     (
-        ((factorLiterals xs (alf.nil Bool)) (alf.nil Bool))
+        ((factorLiterals xs alf.nil)   alf.nil)
         ((factorLiterals xs (or l ls)) (let ((cond (nary.ctn or l xs)))
                                        (let ((ret (factorLiterals
                                                     (alf.ite cond xs (nary.append or l xs))
@@ -135,7 +135,7 @@
 
 (declare-rule factoring ((C Bool))
     :premises (C)
-    :conclusion (nary.elim or (alf.nil Bool) false (factorLiterals (alf.nil Bool) C))
+    :conclusion (nary.elim or alf.nil false (factorLiterals alf.nil C))
 )
 
 (declare-rule reordering ((C1 Bool) (C2 Bool))
@@ -298,7 +298,7 @@
 (program lowerNotAnd ((l Bool) (ls Bool :list))
     (Bool) Bool
     (
-        ((lowerNotAnd (alf.nil Bool)) (alf.nil Bool)) ; Terminator changes
+        ((lowerNotAnd alf.nil) alf.nil) ; Terminator changes
         ((lowerNotAnd (and l ls)) (nary.append or (not l) (lowerNotAnd ls)))
     )
 )
@@ -329,7 +329,7 @@
 ; CNF_OR_NEG
 (declare-rule cnf_or_neg ((Fs Bool) (i Int))
     :args (Fs i)
-    :conclusion (nary.concat or Fs (nary.append or (not (nary.at or i Fs)) (alf.nil Bool)))
+    :conclusion (nary.concat or Fs (nary.append or (not (nary.at or i Fs)) alf.nil))
 )
 
 ; CNF_IMPLIES_POS

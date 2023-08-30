@@ -29,6 +29,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::NIL: o << "NIL"; break;
     case Kind::PROGRAM: o << "PROGRAM"; break;
     case Kind::PAIR: o << "PAIR"; break;
+    case Kind::COLLECT: o << "COLLECT"; break;
     // literals
     case Kind::BOOLEAN: o << "BOOLEAN"; break;
     case Kind::NUMERAL: o << "NUMERAL"; break;

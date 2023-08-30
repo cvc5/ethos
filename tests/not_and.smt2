@@ -5,7 +5,7 @@
 (program lowerNot ((l Bool) (ls Bool :list))
     (Bool) Bool
     (
-        ((lowerNot (alf.nil Bool)) (alf.nil Bool))
+        ((lowerNot alf.nil)    alf.nil)
         ((lowerNot (and l ls)) (nary.append or (not l) (lowerNot ls)))
     )
 )

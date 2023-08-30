@@ -30,7 +30,6 @@ State::State(Options& opts, Stats& stats) : d_tc(*this), d_opts(opts), d_stats(s
   //bindBuiltin("lambda", Kind::LAMBDA, true);
   bindBuiltin("->", Kind::FUNCTION_TYPE);
   bindBuiltin("_", Kind::APPLY);
-  bindBuiltin("alf.nil", Kind::NIL);
 
   bindBuiltinEval("is_eq", Kind::EVAL_IS_EQ);
   bindBuiltinEval("ite", Kind::EVAL_IF_THEN_ELSE);
@@ -55,6 +54,8 @@ State::State(Options& opts, Stats& stats) : d_tc(*this), d_opts(opts), d_stats(s
   bindBuiltinEval("concat", Kind::EVAL_CONCAT);
   bindBuiltinEval("extract", Kind::EVAL_EXTRACT);
   
+  d_nil = mkExprInternal(Kind::NIL, {});
+  bind("alf.nil", d_nil);
   // self is a distinguished parameter
   d_self = mkSymbolInternal(Kind::PARAM, "alf.self", mkAbstractType());
   bind("alf.self", d_self);
@@ -353,9 +354,9 @@ Expr State::mkSelf()
   return d_self;
 }
 
-Expr State::mkNil(const Expr& t)
+Expr State::mkNil()
 {
-  return mkExprInternal(Kind::NIL, {t});
+  return d_nil;
 }
 
 Expr State::mkSymbolInternal(Kind k, const std::string& name, const Expr& type)
@@ -423,9 +424,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
                 // we have a null terminator, then we insert the null terminator
                 if (isNil)
                 {
-                  Expr c1 = children[1];
-                  const Expr& t = d_tc.getType(c1);
-                  cc[prevIndex] = mkNil(t);
+                  cc[prevIndex] = d_nil;
                 }
                 else
                 {
@@ -748,8 +747,9 @@ bool State::getActualPremises(const Expr& rule, std::vector<Expr>& given, std::v
         ap = mkExpr(Kind::APPLY, achildren);
       }
       Expr pfap = mkProofType(ap);
-      // dummy, nil term of the given proof type
-      Expr n = mkNil(pfap);
+      // TODO: collect operator???
+      // dummy, const term of the given proof type
+      Expr n = mkConst("tmp", pfap);
       actual.push_back(n);
       return true;
     }
