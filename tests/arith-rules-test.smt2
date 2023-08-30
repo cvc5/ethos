@@ -11,5 +11,5 @@
 
 
 (step @p3 :rule arith_sum_ub :premises (@p0 @p1 @p2))
-(step @p4 :rule arith_mult_pos :args ((> y z) 4))
-(step @p5 :rule arith_mult_neg :args ((> y z) (alf.neg 4)))
+(step @p4 (=> (and (> 4 0) (> y z)) (> (* 4 y) (* 4 z))) :rule arith_mult_pos :args (4 (> y z)))
+(step @p5 :rule arith_mult_neg :args ((alf.neg 4) (> y z)))

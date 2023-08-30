@@ -66,7 +66,7 @@
 
 (declare-rule nary_cong ((U Type) (E Bool) (f (-> U U)))
     :premise-list E and
-    :args (U f)
+    :args (f)
     :conclusion (mk_nary_cong_eq f E)
 )
 

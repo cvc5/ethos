@@ -196,6 +196,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
     }
     case Kind::QUOTE:
     {
+      // TODO: this is likely unecessary
       // (quote t) : (Quote t)
       // evaluate t here if ground/evaluatable
       if (e->d_children[0]->isGround())
@@ -206,7 +207,8 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
       return d_state.mkQuoteType(e->d_children[0]);
     }
     case Kind::NIL:
-      return d_state.mkAbstractType();
+      // nil is its own type
+      return e;
     case Kind::TYPE:
     case Kind::ABSTRACT_TYPE:
     case Kind::BOOL_TYPE:

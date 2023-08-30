@@ -20,7 +20,7 @@
 
 (declare-rule nary_cong ((U Type) (E Bool) (f (-> U U)))
     :premise-list E and
-    :args (U f)
+    :args (f)
     :conclusion (mk_nary_cong_eq f E)
 )
 
@@ -35,5 +35,5 @@
 (assume @p1 (= c d))
 (assume @p2 (= e f))
 
-(step @p3 (= (and a c e) (and b d f)) :rule nary_cong :premises (@p0 @p1 @p2) :args (Bool and))
+(step @p3 (= (and a c e) (and b d f)) :rule nary_cong :premises (@p0 @p1 @p2) :args (and))
 

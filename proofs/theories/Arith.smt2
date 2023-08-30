@@ -6,13 +6,12 @@
 (declare-consts <numeral> Int)
 (declare-consts <decimal> Real)
 
-(program arith_typeunion ()
+(program arith_typeunion ((x Type) (y Type))
     (Type Type) Type
     (
-      ((arith_typeunion Int Int) Int)
-      ((arith_typeunion Int Real) Real)
-      ((arith_typeunion Real Int) Real)
-      ((arith_typeunion Real Real) Real)
+      ((arith_typeunion Real x) Real)
+      ((arith_typeunion x Real) Real)
+      ((arith_typeunion x y) Int)
     )
 )
 
@@ -30,7 +29,7 @@
                      T U (arith_typeunion T U)) :right-assoc-nil)
 (declare-const - (-> (! Type :var T :implicit)
                      (! Type :var U :implicit)
-                     T U (arith_typeunion T U)) :right-assoc-nil)
+                     T U (arith_typeunion T U)) :left-assoc)
 (declare-const * (-> (! Type :var T :implicit)
                      (! Type :var U :implicit)
                      T U (arith_typeunion T U)) :right-assoc-nil)

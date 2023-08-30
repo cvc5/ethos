@@ -17,7 +17,7 @@
 (program mk_arith_sum_ub ((T Type) (U Type) (r (-> T U Bool)) (a T) (b U) (tail Bool :list))
     (Bool) Bool
     (
-        ((mk_arith_sum_ub alf.nil)            (= 0 0))
+        ((mk_arith_sum_ub alf.nil)            (= alf.nil alf.nil))
         ((mk_arith_sum_ub (and (r a b) tail)) (mk_arith_sum_ub_step (r a b) (mk_arith_sum_ub tail)))
     )
 )
@@ -29,28 +29,28 @@
 
 ; Computes the conclusion of the PfRule::ARITH_MULT_POS rule.
 (program mk_arith_mult_pos ((T Type) (U Type) (S Type) (r (-> T U Bool)) (a T) (b U) (m S))
-  (Bool S) Bool
+  (S Bool) Bool
   (
-    ((mk_arith_mult_pos (r a b) m) (r (* m a) (* m b)))
+    ((mk_arith_mult_pos m (r a b)) (r (* m a) (* m b)))
   )
 )
 
 (declare-rule arith_mult_pos ((T Type) (m T) (F Bool))
-  :args (F m)
-  :conclusion (=> (and (> m 0) F) (mk_arith_mult_pos F m))
+  :args (m F)
+  :conclusion (=> (and (> m 0) F) (mk_arith_mult_pos m F))
 )
 
 ; Computes the conclusion of the PfRule::ARITH_MULT_NEG rule.
 (program mk_arith_mult_neg ((T Type) (U Type) (S Type) (r (-> T U Bool)) (a T) (b U) (m S))
-  (Bool S) Bool
+  (S Bool) Bool
   (
-    ((mk_arith_mult_neg (r a b) m) (_ (arith_rel_inv r) (* m a) (* m b)))
+    ((mk_arith_mult_neg m (r a b)) (_ (arith_rel_inv r) (* m a) (* m b)))
   )
 )
 
 (declare-rule arith_mult_neg ((T Type) (m T) (F Bool))
-  :args (F m)
-  :conclusion (=> (and (< m 0) F) (mk_arith_mult_neg F m))
+  :args (m F)
+  :conclusion (=> (and (< m 0) F) (mk_arith_mult_neg m F))
 )
 
 

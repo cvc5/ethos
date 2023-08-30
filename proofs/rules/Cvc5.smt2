@@ -3,6 +3,7 @@
 (include "./Builtin.smt2")
 (include "./Booleans.smt2")
 (include "./Uf.smt2")
+(include "./Arith.smt2")
 (include "./Strings.smt2")
 
 
