@@ -437,10 +437,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         {
           os << "d_state.";
         }
-        os << "mkNil(";
-        Expr c1 = children[0];
-        os << s.getNameFor(children[0]);
-        os << ");" << std::endl;
+        os << "mkNil();" << std::endl;
       }
       else
       {
