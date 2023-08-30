@@ -3,6 +3,7 @@
 (include "../theories/Core.smt2")
 (include "../theories/Arith.smt2")
 (include "../programs/Arith.smt2")
+(include "../programs/Utils.smt2")
 
 
 (program mk_arith_sum_ub_step
@@ -14,7 +15,7 @@
 )
 
 (program mk_arith_sum_ub ((T Type) (U Type) (r (-> T U Bool)) (a T) (b U) (tail Bool :list))
-    (Bool Bool) Bool
+    (Bool) Bool
     (
         ((mk_arith_sum_ub (alf.nil Bool)) (= 0 0))
         ((mk_arith_sum_ub (and (r a b) tail)) (mk_arith_sum_ub_step (r a b) (mk_arith_sum_ub tail)))
@@ -35,7 +36,7 @@
 )
 
 (declare-rule arith_mult_pos ((T Type) (m T) (F Bool))
-  :args (m F)
+  :args (F m)
   :conclusion (=> (and (> m 0) F) (mk_arith_mult_pos F m))
 )
 
@@ -48,7 +49,7 @@
 )
 
 (declare-rule arith_mult_neg ((T Type) (m T) (F Bool))
-  :args (m F)
+  :args (F m)
   :conclusion (=> (and (< m 0) F) (mk_arith_mult_neg F m))
 )
 
@@ -68,32 +69,18 @@
 
 ; Returns true if c is the greatest integer less than (integer or real) constant
 ; t. We compute this via conditions 0 <= c-t ^ (c-t)-1 <= 0.
-(program check_int_tight_ub ((t Int) (c Int))
-  (Int Int) Bool
-  (
-    ((check_int_tight_ub t c) true)
-  )
-)
-
 (declare-rule int_tight_ub ((s Int) (t Real) (c Int))
   :premises ((< s t))
   :args (c)
-  :requires (((check_int_tight_ub t c) true))
+  :requires (((between_zero_and_one (alf.add t (alf.neg c))) true))
   :conclusion (<= s c)
 )
 
 ; Returns true if c2 is the least integer greater than c1. We compute this
 ; via conditions 0 <= c1-c2 ^ (c1-c2)-1 <= 0.
-(program check_int_tight_lb ((t Int) (c Int))
-  (Int Int) Bool
-  (
-    ((check_int_tight_lb t c) true)
-  )
-)
-
 (declare-rule int_tight_lb ((s Int) (t Real) (c Int))
   :premises ((> s t))
   :args (c)
-  :requires (((check_int_tight_lb t c) true))
+  :requires (((between_zero_and_one (alf.add c (alf.neg t))) true))
   :conclusion (>= s c)
 )

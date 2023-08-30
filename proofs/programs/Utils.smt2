@@ -1,10 +1,8 @@
-; ifEqThenElse x y t1 t2
-; Returns `t1` if `x` and `y` are the same term.  Otherwise, returns `t2`.
-(program ifEqThenElse
-    ((U Type) (S Type) (x U) (cmp U) (t1 S) (t2 S))
-    (U U S S) S
-    (
-        ((ifEqThenElse x   x t1 t2) t1)
-        ((ifEqThenElse x cmp t1 t2) t2)
-    )
+
+; Returns true if c is a rational between zero and one
+(program between_zero_and_one ((R Type) (c R))
+  (R) Bool
+  (
+    ((between_zero_and_one c) (alf.and (alf.not (alf.is_neg c)) (alf.is_neg (alf.add c (alf.neg 1.0)))))
+  )
 )

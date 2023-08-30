@@ -3,6 +3,9 @@
 (declare-sort Int 0)
 (declare-sort Real 0)
 
+(declare-consts <numeral> Int)
+(declare-consts <decimal> Real)
+
 (program arith_typeunion ()
     (Type Type) Type
     (
@@ -32,18 +35,18 @@
                      (! Type :var U :implicit)
                      T U (arith_typeunion T U)) :right-assoc 1)
 
-(declare-const < (-> (! Type :var T :requires ((is_arith_type T) true))
-                     (! Type :var U :requires ((is_arith_type U) true))
-                     Bool) :chainable and)
-(declare-const <= (-> (! Type :var T :requires ((is_arith_type T) true))
-                      (! Type :var U :requires ((is_arith_type U) true))
-                      Bool) :chainable and)
-(declare-const > (-> (! Type :var T :requires ((is_arith_type T) true))
-                     (! Type :var U :requires ((is_arith_type U) true))
-                     Bool) :chainable and)
-(declare-const >= (-> (! Type :var T :requires ((is_arith_type T) true))
-                      (! Type :var U :requires ((is_arith_type U) true))
-                      Bool) :chainable and)
+(declare-const < (-> (! Type :var T :implicit :requires ((is_arith_type T) true))
+                     (! Type :var U :implicit :requires ((is_arith_type U) true))
+                     T U Bool) :chainable and)
+(declare-const <= (-> (! Type :var T :implicit :requires ((is_arith_type T) true))
+                      (! Type :var U :implicit :requires ((is_arith_type U) true))
+                      T U Bool) :chainable and)
+(declare-const > (-> (! Type :var T :implicit :requires ((is_arith_type T) true))
+                     (! Type :var U :implicit :requires ((is_arith_type U) true))
+                     T U Bool) :chainable and)
+(declare-const >= (-> (! Type :var T :implicit :requires ((is_arith_type T) true))
+                      (! Type :var U :implicit :requires ((is_arith_type U) true))
+                      T U Bool) :chainable and)
 
 (declare-const to_real (-> (! Type :var T :requires ((is_arith_type T) true))
                            Real))

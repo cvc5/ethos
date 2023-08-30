@@ -2,8 +2,6 @@
 
 ; real-specific operators
 
-(declare-consts <decimal> Real)
-
 (declare-const / (-> (! Type :var T :requires ((is_arith_type T) true))
                      (! Type :var U :requires ((is_arith_type U) true))
                      Real) :left-assoc)

@@ -546,11 +546,11 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         }
       }
     }
-    // all functions of kind CONST or VARIABLE are unary and require
-    // currying if applied to more than one argument.
+    // Most functions are unary and require currying if applied to more than one argument.
+    // The exceptions to this are operators whose types are not flattened (programs and proof rules).
     if (children.size()>2)
     {
-      if (hk==Kind::CONST || hk==Kind::VARIABLE || hk==Kind::PARAM)
+      if (hk!=Kind::PROGRAM_CONST && hk!=Kind::PROOF_RULE)
       {
         // return the curried version
         return mkApplyInternal(children);
