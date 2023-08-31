@@ -1,7 +1,5 @@
 (include "../theories/Strings.smt2")
 
-
-
 ; Helper method for PfRule::CONCAT_UNIFY. Returns ok if s or a prefix of its
 ; head is equal to s1, where the (suffix of the) head of the reverse of s is
 ; checked if rev is tt. Fails otherwise.
@@ -121,24 +119,6 @@
                              (! r (^ (concat_conflict_deq s t sc tc rev U) ok)
                                 (holds false)))))))))))
 
-(function string_length_pos ((t term) (u sort)) term
-  (or (and (= (str.len t) (int 0)) (and (= t (mk_emptystr U)) true)) (or (a.> (str.len t) (int 0)) false))
-)
-
-(declare string_length_pos (! t term
-                           (! U sort
-                           (! s term
-                           (! r (^ (string_length_pos t U) s)
-                              (holds s))))))
-
-(declare re_inter (! x term (! s term (! t term (! p1 (holds (str.in_re x s)) (! p2 (holds (str.in_re x t)) 
-  (holds (str.in_re x (re.inter s (re.inter t re.all))))))))))
-
-(declare string_reduction (! r term (! t term (! s sort (! U (^ (string_reduction t s) r)
-  (holds r))))))))
-
-(declare string_eager_reduction (! r term (! t term (! s sort (! U (^ (string_eager_reduction t s) r)
-  (holds r))))))
 
 ; Computes the conclusion of PfRule::RE_UNFOLD_POS
 (function re_unfold_pos ((t term) (r term)) term

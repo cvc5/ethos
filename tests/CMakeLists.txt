@@ -58,6 +58,7 @@ set(alfc_test_file_list
     nat-type.smt2
     use-match.smt2
     match-simple.smt2
+    and-intro-old.smt2
 )
 
 macro(alfc_test file)

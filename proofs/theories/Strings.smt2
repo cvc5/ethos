@@ -69,6 +69,9 @@
 (declare-const re.comp (-> RegLan RegLan))
 (declare-const re.range (-> String String RegLan))
 (declare-const re.++ (-> RegLan RegLan RegLan) :right-assoc-nil)
+(declare-const re.inter (-> (! Type :var U :implicit) RegLan U (! RegLan :requires ((maybe_nil RegLan U) RegLan))) :right-assoc-nil)
+(declare-const re.union (-> (! Type :var U :implicit) RegLan U (! RegLan :requires ((maybe_nil RegLan U) RegLan))) :right-assoc-nil)
+(declare-const re.diff (-> (! Type :var U :implicit) RegLan U (! RegLan :requires ((maybe_nil RegLan U) RegLan))) :right-assoc-nil)
 (declare-const re.loop (-> Int Int RegLan RegLan))
 (declare-const str.in_re (-> String RegLan Bool))
 
@@ -97,8 +100,7 @@
 ;(define seq.rev (# x term (apply f_seq.rev x)))
 ;(declare f_seq.update term)
 ;(define seq.update (# x term (# y term (# z term (apply (apply (apply f_seq.update x) y) z)))))
-; skolem types
-;(declare skolem_re_unfold_pos (! t term (! r term (! z mpz term))))
+
 
 
 ; skolems

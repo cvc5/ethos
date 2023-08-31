@@ -22,3 +22,26 @@
           (string_from_flat_form U ss rev)
           (string_from_flat_form U ts rev))))
 )
+
+
+
+(declare-rule string_length_pos ((U Type) (s U))
+  :args (U s)
+  :conclusion
+    (or (and (= (str.len s) 0) (= s (mk_emptystr U))) (> (str.len s) 0))
+)
+
+(declare-rule re_inter ((x String) (s RegLan) (t RegLan))
+  :premises ((str.in_re x s) (str.in_re x t))
+  :conclusion (str.in_re (re.inter s t))
+)
+
+(declare-rule string_reduction ((U Type) (s U))
+  :args (U s)
+  :conclusion (and (string_reduction_pred s U) (= s (skolem s)))
+)
+
+(declare-rule string_eager_reduction ((U Type) (s U))
+  :args (U s)
+  :conclusion (mk_string_eager_reduction s U)
+)

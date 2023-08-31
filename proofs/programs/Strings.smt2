@@ -154,15 +154,6 @@
   )
 )
 
-; Returns the reduction predicate and purification equality for term t
-; of sort s.
-(program string_reduction ((U Type) (t U))
-  (U Type) Bool
-  (
-    ((string_reduction t U) (and (string_reduction_pred t U) (= t (skolem t))))
-  )
-)
-
 ; Compute the eager reduction predicate for (str.contains t r) where s
 ; is the sort of t and r.
 ; This is the formula:
@@ -203,12 +194,12 @@
 
 ; `string_eager_reduction t U`
 ; Compute the eager reduction predicate of term t of type U.
-(program string_eager_reduction ((U Type) (x U) (y U) (n Int) (m Int))
+(program mk_string_eager_reduction ((U Type) (x U) (y U) (n Int) (m Int))
   (U Type) Bool
   (
-    ((string_eager_reduction (str.to_code x) U) (string_eager_reduction_to_code x))
-    ((string_eager_reduction (str.contains x y) U) (string_eager_reduction_contains x y U))
-    ((string_eager_reduction (str.indexof x y n) U) (string_reduction_indexof x y n))
+    ((mk_string_eager_reduction (str.to_code x) U) (string_eager_reduction_to_code x))
+    ((mk_string_eager_reduction (str.contains x y) U) (string_eager_reduction_contains x y U))
+    ((mk_string_eager_reduction (str.indexof x y n) U) (string_reduction_indexof x y n))
   )
 )
 
