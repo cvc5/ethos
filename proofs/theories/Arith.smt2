@@ -6,12 +6,22 @@
 (declare-consts <numeral> Int)
 (declare-consts <decimal> Real)
 
+; used for right-assoc-nil operators, must consider the nil terminator
+(program arith_typeunion_nary ((x Type) (y Type))
+    (Type Type) Type
+    (
+      ((arith_typeunion_nary Int Real) Real)
+      ((arith_typeunion_nary Int x) Int)
+      ((arith_typeunion_nary Real x) Real)
+    )
+)
 (program arith_typeunion ((x Type) (y Type))
     (Type Type) Type
     (
-      ((arith_typeunion Real x) Real)
-      ((arith_typeunion x Real) Real)
-      ((arith_typeunion x y) Int)
+      ((arith_typeunion Int Int) Int)
+      ((arith_typeunion Real Real) Real)
+      ((arith_typeunion Real Int) Real)
+      ((arith_typeunion Int Real) Real)
     )
 )
 
@@ -26,13 +36,13 @@
 ; Must use integer nil terminators to avoid confusion with subtyping
 (declare-const + (-> (! Type :var T :implicit)
                      (! Type :var U :implicit)
-                     T U (arith_typeunion T U)) :right-assoc-nil)
+                     T U (arith_typeunion_nary T U)) :right-assoc-nil)
 (declare-const - (-> (! Type :var T :implicit)
                      (! Type :var U :implicit)
                      T U (arith_typeunion T U)) :left-assoc)
 (declare-const * (-> (! Type :var T :implicit)
                      (! Type :var U :implicit)
-                     T U (arith_typeunion T U)) :right-assoc-nil)
+                     T U (arith_typeunion_nary T U)) :right-assoc-nil)
 
 (declare-const < (-> (! Type :var T :implicit :requires ((is_arith_type T) true))
                      (! Type :var U :implicit :requires ((is_arith_type U) true))

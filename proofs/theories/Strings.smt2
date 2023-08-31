@@ -3,18 +3,34 @@
 
 (declare-sort String 0)
 (declare-sort RegLan 0)
+(declare-type Seq (Type))
 
 (declare-consts <string> String)
 
+(program is_string_type ((U Type))
+    (Type) Bool
+    (
+      ((is_string_type String) true)
+      ((is_string_type (Seq U)) true)
+      ((is_string_type U) false)
+    )
+)
+
 ; core
-(declare-const str.len (-> String Int))
-(declare-const str.++ (-> String String String) :right-assoc-nil)
+(declare-const str.len (-> (! Type :var T :implicit :requires ((is_string_type T) true))
+                           T Int))
+(declare-const str.++ (-> (! Type :var T :implicit :requires ((is_string_type T) true))
+                          T T T) :right-assoc-nil)
 
 ; extended functions
-(declare-const str.substr (-> String Int Int String))
-(declare-const str.contains (-> String String Bool))
-(declare-const str.replace (-> String String String String))
-(declare-const str.indexof (-> String String Int Int))
+(declare-const str.substr (-> (! Type :var T :implicit :requires ((is_string_type T) true))
+                              T Int Int T))
+(declare-const str.contains (-> (! Type :var T :implicit :requires ((is_string_type T) true))
+                                T T Bool))
+(declare-const str.replace (-> (! Type :var T :implicit :requires ((is_string_type T) true))
+                               T T T T))
+(declare-const str.indexof (-> (! Type :var T :implicit :requires ((is_string_type T) true))
+                               T T Int Int))
 (declare-const str.at (-> String Int String))
 (declare-const str.prefixof (-> String String Bool))
 (declare-const str.suffixof (-> String String Bool))
@@ -51,7 +67,7 @@
 
 
 ; Sequences
-;(declare seq.empty (! s sort term))
+(declare-const seq.empty (-> (! Type :var T) T))
 ;(declare f_seq.unit term)
 ;(define seq.unit (# x term (apply f_seq.unit x)))
 ;(declare f_seq.nth term)

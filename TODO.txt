@@ -12,6 +12,7 @@ TODO:
 - generalize CLI
 - proper compilation of alf.ite / alf.is_eq
 - minimize compiled code by recognizing alpha-equivalent patterns
+- :requires for implicit is dropped, maybe simplify
 
 COMPLETED:
 
