@@ -100,3 +100,7 @@
 ;(define seq.update (# x term (# y term (# z term (apply (apply (apply f_seq.update x) y) z)))))
 ; skolem types
 ;(declare skolem_re_unfold_pos (! t term (! r term (! z mpz term))))
+
+
+; skolems
+(declare-const @k.RE_UNFOLD_POS_COMPONENT (-> String RegLan Int String))

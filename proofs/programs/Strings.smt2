@@ -38,23 +38,23 @@
 ; naively is exponential.
 
 ; Get the term corresponding to the prefix of term s of fixed length n.
-(define-fun skolem_prefix ((U Type) (s U) (n Int)) U
+(define skolem_prefix ((U Type) (s U) (n Int))
   (str.substr s 0 n)
 )
 
 ; Get the term corresponding to the suffix of term s of fixed length n.
-(define-fun skolem_suffix_rem ((U Type) (s U) (n Int)) U
+(define skolem_suffix_rem ((U Type) (s U) (n Int))
   (str.substr s n (- (str.len s) n))
 )
 
 ; Get the term corresponding to the prefix of s before the first occurrence of
 ; t in s.
-(define-fun skolem_first_ctn_pre ((U Type) (s U) (t U)) U
+(define skolem_first_ctn_pre ((U Type) (s U) (t U))
   (skolem_prefix U s (str.indexof s t 0)))
 
 ; Get the term corresponding to the suffix of s after the first occurrence of
 ; t in s.
-(define-fun skolem_first_ctn_post ((U Type) (s U) (t U)) U
+(define skolem_first_ctn_post ((U Type) (s U) (t U))
   (skolem_suffix_rem U s (+ (str.len (skolem (skolem_first_ctn_pre U s t))) (str.len t))))
 
 ;;-------------------- Utilities
@@ -225,38 +225,44 @@
 )
 
 ; A helper method for computing the conclusion of PfRule::RE_UNFOLD_POS.
-; For a regular expression (re.++ R1 ... Rn), this returns a pair of terms
+; For a regular expression (re.++ R1 ... Rn), re_unfold_pos_concat returns a pair of terms
 ; where the first term is a concatentation (str.++ t1 ... tn) and the second
 ; is a conjunction M of literals of the form (str.in_re ti Ri), such that
 ;   (str.in_re x (re.++ R1 ... Rn))
 ; is equivalent to
 ;   (and (= x (str.++ t1 ... tn)) M)
 ; We use the optimization that Rj may be (str.to_re tj); otherwise tj is an
-; application of the unfolding skolem program skolem_re_unfold_pos.
-(program re_unfold_pos_concat ((t term) (r term) (ro term) (i mpz)) termPair
-  (match r
-    ((apply r1 r2)
-      (match (re_unfold_pos_concat t r2 ro (mp_add i 1))
-        ((pair p1 p2)
-        (let r12 (getarg re.++ r1)
-        (let r122 (try_getarg str.to_re r12)
-        (ifequal r122 r12
-          (let k (skolem_re_unfold_pos t ro i)
-          (pair (str.++ k p1) (and (str.in_re k r12) p2)))
-          (pair (str.++ r122 p1) p2)))))))
-    (default (pair emptystr true))
-))
+; application of the unfolding skolem program @k.RE_UNFOLD_POS_COMPONENT.
+(program re_unfold_pos_concat_step ((t String) (s String) (c String :list) (r RegLan) (ro RegLan) (i Int) (M Bool :list))
+  (String RegLan RegLan Int (Pair String Bool)) Bool
+  (
+    ((re_unfold_pos_concat_step t (str.to_re s) ro i (pair c M))
+        (pair (str.++ s c) M))
+    ((re_unfold_pos_concat_step t r ro i (pair (= t c) M))
+        (let ((k (skolem (@k.RE_UNFOLD_POS_COMPONENT t ro i))))
+        (pair (str.++ k c) (and (str.in_re k r) M))))
+  )
+)
+(program re_unfold_pos_concat ((t String) (r1 RegLan) (r2 RegLan :list) (ro RegLan) (i Int))
+  (String RegLan RegLan Int) (Pair String Bool)
+  (
+    ((re_unfold_pos_concat t alf.nil ro i)       (pair alf.nil alf.nil))
+    ((re_unfold_pos_concat t (re.++ r1 r2) ro i) (re_unfold_pos_concat_step t r1 ro i (re_unfold_pos_concat t r2 ro (alf.add i 1))))
+  )
+)
 
 ; Returns a formula corresponding to a conjunction saying that each of the
 ; elements of str.++ application t is empty. For example for
 ;   (str.++ x (str.++ y ""))
 ; this returns:
 ;  (and (= x "") (and (= y "") true))
-(program non_empty_concats ((t term) (u sort)) term
-  (match t
-    ((apply t1 t2)
-      (and (not (= (getarg str.++ t1) (mk_emptystr u))) (non_empty_concats t2 u)))
-    (default (ifequal t (mk_emptystr u) true (fail term)))))
+(program non_empty_concats ((U Type) (t U) (s U :list))
+  (U Type) Bool
+  (
+    ((non_empty_concats alf.nil U)       alf.nil)
+    ((non_empty_concats (str.++ t s) U)  (nary.append and (= t (mk_emptystr U)) (non_empty_concats s U)))
+  )
+)
 
 ; Get first character or empty string from term t.
 ; If t is of the form (str.++ (char n) ...), return (char n).

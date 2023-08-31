@@ -54,6 +54,7 @@ set(alfc_test_file_list
     premise-list-cong.smt2
     premise-list-nary-cong.smt2
     arith-rules-test.smt2
+    define-fun-dep-type.smt2
 )
 
 macro(alfc_test file)

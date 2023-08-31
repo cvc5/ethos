@@ -39,6 +39,7 @@ CmdParser::CmdParser(Lexer& lex,
   d_table["declare-sort"] = Token::DECLARE_SORT;
   d_table["declare-type"] = Token::DECLARE_TYPE;
   d_table["declare-var"] = Token::DECLARE_VAR;
+  d_table["define"] = Token::DEFINE;
   d_table["define-const"] = Token::DEFINE_CONST;
   d_table["define-fun"] = Token::DEFINE_FUN;
   d_table["define-type"] = Token::DEFINE_TYPE;
@@ -340,8 +341,10 @@ bool CmdParser::parseNextCommand()
     break;
     // (define-fun <symbol> (<sorted_var>*) <sort> <term>)
     // (define-type <symbol> (<sorted_var>*) <term>)
+    // (define <symbol> (<sorted_var>*) <term>)
     case Token::DEFINE_FUN:
     case Token::DEFINE_TYPE:
+    case Token::DEFINE:
     {
       d_state.pushScope();
       //d_state.checkThatLogicIsSet();
@@ -354,13 +357,16 @@ bool CmdParser::parseNextCommand()
       {
         ret = d_eparser.parseType();
       }
-      else
+      else if (tok == Token::DEFINE_TYPE)
       {
         ret = d_state.mkType();
       }
       Expr expr = d_eparser.parseExpr();
       // ensure we have the right type
-      d_eparser.typeCheck(expr, ret);
+      if (ret!=nullptr)
+      {
+        d_eparser.typeCheck(expr, ret);
+      }
       d_state.popScope();
       // make a lambda if given arguments
       if (vars.size() > 0)
