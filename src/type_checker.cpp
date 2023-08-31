@@ -612,20 +612,31 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
             Literal * l = d_state.getLiteral(cchildren[0].get());
             if (l!=nullptr && l->d_tag==Literal::BOOL)
             {
+              // inspect the relevant child only
               size_t index = l->d_bool ? 1 : 2;
               evaluated = cchildren[index];
               if (evaluated==nullptr)
               {
                 canEvaluate = false;
-                // must evaluate the child
+                // evaluate the child if not yet done so
                 visit.push_back(children[index]);
               }
             }
             else
             {
-              // condition did not evaluate, just return unevaluated
-              cchildren[1] = children[1];
-              cchildren[2] = children[2];
+              // note we must evaluate the children so that e.g. beta-reduction
+              // and more generally substitution is accurate for non-ground
+              // terms.
+              for (size_t i=1; i<3; i++)
+              {
+                if (cchildren[i]==nullptr)
+                {
+                  // evaluate the child if not yet done so
+                  visit.push_back(children[i]);
+                  // can't evaluate yet if we aren't finished evaluating
+                  canEvaluate = false;
+                }
+              }
             }
           }
             break;

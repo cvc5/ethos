@@ -394,9 +394,9 @@
 ; (1) convert s to n-ary form if it is not already a str.++ application,
 ; (2) flatten so that its constant prefix,
 ; (3) (optionally) reverse.
-(define string_to_flat_form((U Type) (s U) (rev Bool))
+(define string_to_flat_form ((U Type) (s U) (rev Bool))
   ; intro, flatten, reverse
-  (string_rev (string_flatten (nary.intro str.++ s U) U) rev U))
+  (string_rev U rev (string_flatten (nary.intro str.++ s U) U)))
 
 ; Converts a term in "flat form" to a term that is in a form that corresponds
 ; to one in cvc5 rewritten form. This is the dual method to
@@ -406,4 +406,4 @@
 ; (3) eliminate n-ary form to its element if the term is a singleton list.
 (define string_from_flat_form ((U Type) (s U) (rev Bool))
   ; reverse, collect, elim
-  (nary.elim str.++ (string_collect (string_rev s rev U) U) U))
+  (nary.elim str.++ (string_collect (string_rev U rev s) U) U))

@@ -375,6 +375,7 @@ bool CmdParser::parseNextCommand()
         expr = d_state.mkExpr(Kind::LAMBDA, {vl, expr});
       }
       d_eparser.bind(name, expr);
+      Trace("define") << "Define: " << name << " -> " << expr << std::endl;
     }
     break;
     // (define-sort <symbol> (<symbol>*) <sort>)

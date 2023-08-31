@@ -506,7 +506,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         }
         Expr body = (*hd.get())[1];
         Expr ret = d_tc.evaluate(body, ctx);
-        Trace("state") << "BETA_REDUCE " << body << " = " << ret << std::endl;
+        Trace("state") << "BETA_REDUCE " << body << " " << ctx << " = " << ret << std::endl;
         return ret;
       }
     }
