@@ -30,11 +30,11 @@ enum class Kind
   PROOF_RULE,
   VARIABLE,
   VARIABLE_LIST,
-  QUOTE,
   NIL,
   PROGRAM,
   PAIR,
   COLLECT,
+  FAIL,
 
   // literals
   BOOLEAN,

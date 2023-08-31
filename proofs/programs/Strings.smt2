@@ -187,10 +187,7 @@
   )
 )
 
-; Compute the eager reduction predicate for (str.code s), which is the formula:
-;   (ite (= (str.len s) 1)
-;     (and (<= 0 (str.code s)) (< (str.code s) A))
-;     (= (str.code s) (- 1)))
+; Compute the eager reduction predicate for (str.code s)
 (define-fun string_eager_reduction_to_code ((s String)) Bool
   (let ((t (str.to_code s)))
   (ite
@@ -199,11 +196,7 @@
     (= t (alf.neg 1))))
 )
 
-; Compute the eager reduction predicate for (str.indexof x y n), which is the
-; formula:
-; (and
-;   (or (= (str.indexof x y n) (- 1)) (>= (str.indexof x y n) n))
-;   (<= (str.indexof x y n) (str.len x)))
+; Compute the eager reduction predicate for (str.indexof x y n)
 (program string_eager_reduction_indexof ((U Type) (x U) (y U) (n Int))
   (U U Int) Bool
   (
@@ -214,7 +207,8 @@
   )
 )
 
-; Compute the eager reduction predicate of term t
+; `string_eager_reduction t U`
+; Compute the eager reduction predicate of term t of type U.
 (program string_eager_reduction ((U Type) (x U) (y U) (n Int) (m Int))
   (U Type) Bool
   (
@@ -224,6 +218,7 @@
   )
 )
 
+; re_unfold_pos_concat t R
 ; A helper method for computing the conclusion of PfRule::RE_UNFOLD_POS.
 ; For a regular expression (re.++ R1 ... Rn), re_unfold_pos_concat returns a pair of terms
 ; where the first term is a concatentation (str.++ t1 ... tn) and the second
@@ -243,13 +238,15 @@
         (pair (str.++ k c) (and (str.in_re k r) M))))
   )
 )
-(program re_unfold_pos_concat ((t String) (r1 RegLan) (r2 RegLan :list) (ro RegLan) (i Int))
+(program re_unfold_pos_concat_rec ((t String) (r1 RegLan) (r2 RegLan :list) (ro RegLan) (i Int))
   (String RegLan RegLan Int) (Pair String Bool)
   (
-    ((re_unfold_pos_concat t alf.nil ro i)       (pair alf.nil alf.nil))
-    ((re_unfold_pos_concat t (re.++ r1 r2) ro i) (re_unfold_pos_concat_step t r1 ro i (re_unfold_pos_concat t r2 ro (alf.add i 1))))
+    ((re_unfold_pos_concat_rec t alf.nil ro i)       (pair alf.nil alf.nil))
+    ((re_unfold_pos_concat_rec t (re.++ r1 r2) ro i) (re_unfold_pos_concat_step t r1 ro i (re_unfold_pos_concat_rec t r2 ro (alf.add i 1))))
   )
 )
+(define-fun re_unfold_pos_concat ((t String) (r RegLan)) (Pair String Bool)
+  (re_unfold_pos_concat_rec t r r 0))
 
 ; Returns a formula corresponding to a conjunction saying that each of the
 ; elements of str.++ application t is empty. For example for
@@ -264,28 +261,34 @@
   )
 )
 
+; Returns true if the length of s evaluates to one, false otherwise.
+(define check_length_one ((s String)) (check_true (alf.is_eq (alf.len s) 1)))
+
+; Returns true if the length of s evaluates to greater than one, false otherwise.
+(define check_length_gt_one ((s String)) (check_true (alf.is_neg (alf.add 1 (alf.neg (alf.len s))))))
+
 ; Get first character or empty string from term t.
-; If t is of the form (str.++ (char n) ...), return (char n).
-; If t is of the form emptystr, return emptystr.
+; If t is of the form (str.++ "A" ...), return "A".
+; If t is of the form alf.nil, return alf.nil.
 ; Otherwise, this side condition fails
-(program string_first_char_or_empty ((t term) (u sort)) term
-  (match t
-    ((apply t1 t2)
-      (let t12 (getarg str.++ t1)
-      (match t12
-        ((char n) t12)
-        ((apply t121 t122) (ifequal t121 seq.unit t12 (fail term))))))
-    (default (ifequal t (mk_emptystr u) t (fail term)))))
+(program string_first_char_or_empty ((U Type) (T Type) (t U) (tail U :list) (s T))
+  (U) U
+  (
+    ((string_first_char_or_empty alf.nil)                    alf.nil)
+    ; Required for sequences
+    ((string_first_char_or_empty (str.++ (seq.unit s) tail)) (seq.unit s))
+    ; Check if the length of t evaluates to one.
+    ((string_first_char_or_empty (str.++ t tail))            (alf.ite (check_length_one t) t alf.fail))
+  )
+)
 
 ; Flatten constants in str.++ application s. Notice that the rewritten form
 ; of strings in cvc5 are such that constants are grouped into constants of
 ; length >=1 which we call "word" constants. For example, the cvc5 rewritten
-; form of (str.++ "A" "B" x) is (str.++ "AB" x) which in LFSC is represented as:
-;    (str.++ (str.++ (char 65) (str.++ (char 66) emptystr)) (str.++ x emptystr))
-; For convenience, in this documentation, we will write this simply as:
-;    (str.++ (str.++ "A" (str.++ "B" "")) (str.++ x ""))
-; e.g. we assume that word constants are represented using char and emptystr.
-; Many string rules rely on processing the prefix of strings, which in LFSC
+; form of (str.++ "A" "B" x) is (str.++ "AB" x). Similarly for sequences,
+; the rewriten form of (str.++ (seq.unit 0) (seq.unit 1) x) is
+; (str.++ (str.++ (seq.unit 0) (seq.unit 1)) x).
+; Many string rules rely on processing the prefix of strings, which
 ; involves reasoning about the characters one-by-one. Since the above term
 ; has a level of nesting when word constants of size > 1 are involved, this
 ; method is used to "flatten" str.++ applications so that we have a uniform
@@ -293,21 +296,39 @@
 ; str.++ application corresponding to a string term in cvc5 rewritten form.
 ; It returns the flattened form such that there are no nested applications of
 ; str.++. For example, given input:
-;    (str.++ (str.++ "A" (str.++ "B" "")) (str.++ x ""))
+;    (str.++ "AB" (str.++ x alf.nil))
 ; we return:
-;    (str.++ "A" (str.++ "B" (str.++ x "")))
+;    (str.++ "A" (str.++ "B" (str.++ x alf.nil)))
 ; Notice that this is done for all word constants in the chain recursively.
 ; It does not insist that the nested concatenations are over characters only.
 ; This rule may fail if s is not a str.++ application corresponding to a term
 ; in cvc5 rewritten form.
-(program string_flatten ((s term) (u sort)) term
-  (match s
-    ((apply s1 s2)
-      (let s12 (getarg str.++ s1)
-        ; Must handle nested concatenation for word constant. We know there is no nested concatenation within s12, so we don't need to flatten it.
-        ; Since s12 may not be a concat term, we must use n-ary intro to ensure it is in n-ary form
-        (string_concat (string_nary.intro s12 u) (string_flatten s2 u) u)))
-    (default (ifequal s (mk_emptystr u) s (fail term))))
+
+; Helper for below, assumes t is a non-empty word constant.
+; For example, given "AB", this returns (str.++ "A" (str.++ "B" alf.nil)).
+(program string_flatten_word ((t String))
+  (String) String
+  (
+    ((string_flatten_word t) 
+      (alf.ite (check_length_one t) 
+        (nary.append str.++ t alf.nil)
+        (nary.append str.++ (alf.extract 0 1 t) (string_flatten_word (alf.extract 1 (str.len t) t)))))
+  )
+)
+(program string_flatten ((U Type) (t U) (tail U :list) (tail2 U :list))
+  (U) U
+  (
+    ((string_flatten alf.nil) alf.nil)
+    ; required for sequences
+    ((string_flatten (str.++ (str.++ t tail2) tail)) 
+        (nary.concat str.++ (str.++ t tail2) (string_flatten tail)))
+    ; otherwise, check whether t is a word constant of length greater than one
+    ; if so, we flatten the word using the method above and concatenate it.
+    ((string_flatten (str.++ t tail))
+        (alf.ite (check_length_gt_one t)
+          (nary.concat str.++ (string_flatten_word t) (string_flatten tail))
+          (nary.append str.++ t (string_flatten tail))))
+  )
 )
 
 ; Helper for collecting adjacent constants. This side condition takes as input
@@ -318,6 +339,19 @@
 ;   (str.++ "A" (str.++ "B" (str.++ x "")))
 ; We return:
 ;   (pair (str.++ "A" (str.++ "B" "")) (str.++ x ""))
+(program string_flatten ((U Type) (t U) (tail U :list))
+  (U) (Pair U U)
+  (
+    ((string_flatten alf.nil)         (pairalf.nil alf.nil))
+    ; Check if t is a word constant
+    ((string_flatten (str.++ t tail))
+      (alf.ite (check_length_one t)
+        (let ((k (string_flatten t)))
+          
+        )
+        (pair alf.nil (str.++ t tail))))
+  )
+)
 (program string_collect_acc ((s term) (u sort)) termPair
   (match s
     ((apply s1 s2)

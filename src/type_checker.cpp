@@ -194,19 +194,8 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
       Assert(ret != nullptr);
       return d_state.mkFunctionType(args, ret);
     }
-    case Kind::QUOTE:
-    {
-      // TODO: this is likely unecessary
-      // (quote t) : (Quote t)
-      // evaluate t here if ground/evaluatable
-      if (e->d_children[0]->isGround())
-      {
-        Expr t = e->d_children[0];
-        return d_state.mkQuoteType(evaluate(t));
-      }
-      return d_state.mkQuoteType(e->d_children[0]);
-    }
     case Kind::NIL:
+    case Kind::FAIL:
       // nil is its own type
       return e;
     case Kind::TYPE:
@@ -550,6 +539,9 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
         bool canEvaluate = true;
         switch (ck)
         {
+          case Kind::FAIL:
+            // fail term means we immediately return
+            return cur;
           case Kind::REQUIRES_TYPE:
           {
             // see if all requirements are met

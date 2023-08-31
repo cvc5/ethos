@@ -141,6 +141,7 @@ private:
   Expr d_false;
   Expr d_self;
   Expr d_nil;
+  Expr d_fail;
   /** include file, if not already done */
   void includeFileInternal(const std::string& s, bool ignore=false);
   /** mark included */

@@ -56,6 +56,8 @@ State::State(Options& opts, Stats& stats) : d_tc(*this), d_opts(opts), d_stats(s
   
   d_nil = mkExprInternal(Kind::NIL, {});
   bind("alf.nil", d_nil);
+  d_fail = mkExprInternal(Kind::FAIL, {});
+  bind("alf.fail", d_fail);
   // self is a distinguished parameter
   d_self = mkSymbolInternal(Kind::PARAM, "alf.self", mkAbstractType());
   bind("alf.self", d_self);

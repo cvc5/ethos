@@ -74,12 +74,10 @@
 
 ; Sequences
 (declare-const seq.empty (-> (! Type :var T) T))
-;(declare f_seq.unit term)
-;(define seq.unit (# x term (apply f_seq.unit x)))
-;(declare f_seq.nth term)
-;(define seq.nth (# x term (# y term (apply (apply f_seq.nth x) y))))
-;(declare f_seq.len term)
-;(define seq.len (# x term (apply f_seq.len x)))
+(declare-const seq.unit (-> (! Type :var T :implicit) T (Seq T)))
+(declare-const seq.nth (-> (! Type :var T :implicit) (Seq T) T))
+(declare-const seq.len (-> (! Type :var T :implicit) (Seq T) Int))
+
 ;(declare f_seq.++ term)
 ;(define seq.++ (# x term (# y term (apply (apply f_seq.++ x) y))))
 ;(declare f_seq.extract term)
