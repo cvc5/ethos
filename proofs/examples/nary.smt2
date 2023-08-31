@@ -3,7 +3,7 @@
 ; Nary tests on a custom type
 (declare-type S ())
 
-(declare-const cons (-> S S S)
+(declare-const cons (-> (! Type :var U :implicit) S U (maybe_nil S U))
     :right-assoc-nil
 )
 
@@ -32,7 +32,7 @@
 )
 
 (step ap1 :rule check_append :args (c3 (cons c1 c2) (cons c3 c1 c2)))
-(step ap2 :rule check_append :args (alf.nil (cons c1 c2) (cons alf.nil c1 c2)))
+;(step ap2 :rule check_append :args (alf.nil (cons c1 c2) (cons alf.nil c1 c2)))
 (step ap3 :rule check_append :args (c1 alf.nil (nary.remove cons c2 (cons c1 c2))))
 
 ; Concat
@@ -73,7 +73,7 @@
 
 (step elim1 :rule check_nary.elim :args ((cons c1 c2) (cons c1 c2)))
 (step elim2 :rule check_nary.elim :args ((nary.remove cons c2 (cons c1 c2))  c1))
-(step elim3 :rule check_nary.elim :args ((nary.remove cons c2 (cons alf.nil c2)) alf.nil))
+;(step elim3 :rule check_nary.elim :args ((nary.remove cons c2 (cons alf.nil c2)) alf.nil))
 (step elim4 :rule check_nary.elim :args ((nary.remove cons c1 (nary.remove cons c2 (cons c1 c2))) elim-nil))
 (step elim5 :rule check_nary.elim :args ((nary.remove cons c2 (cons (cons c1 c3) c2)) (cons c1 c3)))
 

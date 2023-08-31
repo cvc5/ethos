@@ -20,3 +20,11 @@
     ((check_true b) false)
   )
 )
+
+(program maybe_nil ((T Type) (t T))
+    (T T) T
+    (
+      ((maybe_nil t t)       t)
+      ((maybe_nil t alf.nil) t)
+    )
+)

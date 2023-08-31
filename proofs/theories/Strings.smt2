@@ -20,9 +20,10 @@
 (declare-const str.len (-> (! Type :var T :implicit)
                            T
                            (! Int :requires ((is_string_type T) true))))
-(declare-const str.++ (-> (! Type :var T :implicit)
-                          T T
-                          (! T :requires ((is_string_type T) true))) :right-assoc-nil)
+(declare-const str.++ (-> (! Type :var T :implicit) (! Type :var U :implicit)
+                          T U
+                          (! T :requires ((is_string_type T) true) 
+                               :requires ((maybe_nil T U) T))) :right-assoc-nil)
 
 ; extended functions
 (declare-const str.substr (-> (! Type :var T :implicit)

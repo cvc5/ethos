@@ -1,3 +1,10 @@
+(program maybe_nil ((T Type) (t T))
+    (T T) T
+    (
+      ((maybe_nil t t)       t)
+      ((maybe_nil t alf.nil) t)
+    )
+)
 
 (declare-type Pair (Type Type))
 (declare-const pair (-> (! Type :var U :implicit) (! Type :var T :implicit) U T (Pair U T)))
@@ -26,7 +33,7 @@
 
 (declare-sort String 0)
 (declare-consts <string> String)
-(declare-const str.++ (-> String String String) :right-assoc-nil)
+(declare-const str.++ (-> (! Type :var U :implicit) String U (maybe_nil String U)) :right-assoc-nil)
 
 ; `check_true b`
 ; returns true if b is true, returns false otherwise

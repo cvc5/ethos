@@ -1,7 +1,13 @@
+(program maybe_nil ((T Type) (t T))
+    (T T) T
+    (
+      ((maybe_nil t t)       t)
+      ((maybe_nil t alf.nil) t)
+    )
+)
 
-
-(declare-const or (-> Bool Bool Bool) :left-assoc-nil)
-(declare-const and (-> Bool Bool Bool) :right-assoc-nil)
+(declare-const or (-> (! Type :var U :implicit) U Bool (maybe_nil Bool U)) :left-assoc-nil)
+(declare-const and (-> (! Type :var U :implicit) Bool U (maybe_nil Bool U)) :right-assoc-nil)
 (declare-const not (-> Bool Bool))
 (declare-const = (-> (! Type :var T :implicit) T T Bool))
 

@@ -7,12 +7,15 @@
 (declare-consts <decimal> Real)
 
 ; used for right-assoc-nil operators, must consider the nil terminator
-(program arith_typeunion_nary ((x Type) (y Type))
+(program arith_typeunion_nary ()
     (Type Type) Type
     (
       ((arith_typeunion_nary Int Real) Real)
-      ((arith_typeunion_nary Int x) Int)
-      ((arith_typeunion_nary Real x) Real)
+      ((arith_typeunion_nary Int Int) Int)
+      ((arith_typeunion_nary Int alf.nil) Int)
+      ((arith_typeunion_nary Real Real) Real)
+      ((arith_typeunion_nary Real Int) Real)
+      ((arith_typeunion_nary Real alf.nil) Real)
     )
 )
 (program arith_typeunion ((x Type) (y Type))
