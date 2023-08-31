@@ -249,35 +249,14 @@ Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool 
     return ret;
   }
   // process restrictions
-  std::vector<Expr> reqs;
   for (const Expr& a : args)
   {
-    if (a->getKind()!=Kind::QUOTE_TYPE)
+    if (a->getKind()==Kind::REQUIRES_TYPE)
     {
-      continue;
+      std::cout << "WARNING: making function over a requires type" << std::endl;
     }
-    AppInfo* ainfo = getAppInfo(a.get());
-    if (ainfo==nullptr)
-    {
-      continue;
-    }
-    // does it have requirements?
-    AttrMap::iterator ita = ainfo->d_attrs.find(Attr::REQUIRES);
-    if (ita==ainfo->d_attrs.end())
-    {
-      continue;
-    }
-    reqs.insert(reqs.end(), ita->second.begin(), ita->second.end());
   }
-  Expr range;
-  if (!reqs.empty())
-  {
-    range = mkRequiresType(reqs, ret);
-  }
-  else
-  {
-    range = ret;
-  }
+  Expr range = ret;
   if (flatten && args.size()>1)
   {
     Expr curr = range;

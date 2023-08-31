@@ -33,10 +33,17 @@
 
 (declare-const bvextract (->
   (! Int :var n :implicit)
-  (! Int :var h :requires ((arith.eval (<= 0 h)) true) :requires ((arith.eval (< h n)) true))
-  (! Int :var l :requires ((arith.eval (<= 0 l)) true) :requires ((arith.eval (< l h)) true))
+  (! Int :var h)
+  (! Int :var l)
   (BitVec n)
-  (BitVec (arith.eval (+ (- h l) 1)))))
+  (!
+    (BitVec (arith.eval (+ (- h l) 1)))
+      :requires ((arith.eval (<= 0 h)) true)
+      :requires ((arith.eval (< h n)) true)
+      :requires ((arith.eval (<= 0 l)) true)
+      :requires ((arith.eval (< l h)) true)
+  ))
+)
 
 (declare-const bvconcat (->
   (! Int :var n :implicit)

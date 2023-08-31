@@ -12,7 +12,6 @@ TODO:
 - generalize CLI
 - proper compilation of alf.ite / alf.is_eq
 - minimize compiled code by recognizing alpha-equivalent patterns
-- :requires for implicit is dropped, maybe simplify
 
 COMPLETED:
 
@@ -28,3 +27,4 @@ COMPLETED:
 - alf.ite smart evaluation, not just literals
 - alf.is_eq not just literals
 - change @ to _
+- :requires for implicit is dropped, maybe simplify

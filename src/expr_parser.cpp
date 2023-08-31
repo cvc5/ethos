@@ -349,6 +349,10 @@ Expr ExprParser::parseExpr()
                 ret = nullptr;
                 rmAttr.insert(a.first);
                 break;
+              case Attr::REQUIRES:
+                ret = d_state.mkRequiresType(a.second, ret);
+                rmAttr.insert(a.first);
+                break;
               default:
                 break;
             }

@@ -17,20 +17,26 @@
 )
 
 ; core
-(declare-const str.len (-> (! Type :var T :implicit :requires ((is_string_type T) true))
-                           T Int))
-(declare-const str.++ (-> (! Type :var T :implicit :requires ((is_string_type T) true))
-                          T T T) :right-assoc-nil)
+(declare-const str.len (-> (! Type :var T :implicit)
+                           T
+                           (! Int :requires ((is_string_type T) true))))
+(declare-const str.++ (-> (! Type :var T :implicit)
+                          T T
+                          (! T :requires ((is_string_type T) true))) :right-assoc-nil)
 
 ; extended functions
-(declare-const str.substr (-> (! Type :var T :implicit :requires ((is_string_type T) true))
-                              T Int Int T))
-(declare-const str.contains (-> (! Type :var T :implicit :requires ((is_string_type T) true))
-                                T T Bool))
-(declare-const str.replace (-> (! Type :var T :implicit :requires ((is_string_type T) true))
-                               T T T T))
-(declare-const str.indexof (-> (! Type :var T :implicit :requires ((is_string_type T) true))
-                               T T Int Int))
+(declare-const str.substr (-> (! Type :var T :implicit)
+                              T Int Int
+                              (! T :requires ((is_string_type T) true))))
+(declare-const str.contains (-> (! Type :var T :implicit)
+                                T T
+                                (! Bool :requires ((is_string_type T) true))))
+(declare-const str.replace (-> (! Type :var T :implicit)
+                               T T T
+                               (! T :requires ((is_string_type T) true))))
+(declare-const str.indexof (-> (! Type :var T :implicit)
+                               T T Int
+                               (! Int :requires ((is_string_type T) true))))
 (declare-const str.at (-> String Int String))
 (declare-const str.prefixof (-> String String Bool))
 (declare-const str.suffixof (-> String String Bool))
