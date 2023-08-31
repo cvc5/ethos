@@ -84,12 +84,16 @@ public:
   Expr mkConst(const std::string& name, const Expr& type);
   /** */
   Expr mkProgramConst(const std::string& name, const Expr& type);
+  /** No name */
+  Expr mkProgramConst(const Expr& type);
   /** */
   Expr mkProofRule(const std::string& name, const Expr& type);
   /** alf.nil */
   Expr mkNil();
   /** */
   Expr mkSelf();
+  /** Make pair */
+  Expr mkPair(const Expr& t1, const Expr& t2);
   /** */
   Expr mkExpr(Kind k, const std::vector<Expr>& children);
   /** make true */
@@ -127,7 +131,9 @@ public:
   
   /** Mark information */
   bool markAttributes(const Expr& v, const AttrMap& attrs);
-  /** Define program */
+  /** 
+   * Define program, where v is PROGRAM_CONST and prog is PROGRAM
+   */
   void defineProgram(const Expr& v, const Expr& prog);
   /** Define constructor */
   void defineConstructor(const Expr& c, const std::vector<Expr>& sels);
@@ -201,6 +207,8 @@ private:
   Stats& d_stats;
   /** Compiler, if compiling code */
   std::unique_ptr<Compiler> d_compiler;
+  /** Internal name counter */
+  size_t d_internalId;
 };
 
 }  // namespace alfc

@@ -522,12 +522,17 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
       if (it->second.get() == nullptr)
       {
         std::vector<Expr> cchildren;
+        bool allGround = true;
         for (Expr& cp : children)
         {
           it = visited.find(cp);
           if (it != visited.end())
           {
             cchildren.push_back(it->second);
+            if (allGround)
+            {
+              allGround = it->second->isGround();
+            }
           }
           else
           {
@@ -568,8 +573,8 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
           }
             break;
           case Kind::APPLY:
-            // maybe evaluate the program?
-            if (cchildren[0]->getKind()==Kind::PROGRAM_CONST)
+            // if a program and all arguments are ground, run it
+            if (allGround && cchildren[0]->getKind()==Kind::PROGRAM_CONST)
             {
               // maybe already cached
               ExprTrie* et = &d_evalTrie;
@@ -632,9 +637,13 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
             break;
           case Kind::EVAL_IS_EQ:
           {
-            // evaluation is indepdent of whether it is a literal
-            bool ret = cchildren[0]==cchildren[1];
-            evaluated = ret ? d_state.mkTrue() : d_state.mkFalse();
+            // only evaluate on ground terms
+            if (allGround)
+            {
+              // evaluation is indepdent of whether it is a literal
+              bool ret = cchildren[0]==cchildren[1];
+              evaluated = ret ? d_state.mkTrue() : d_state.mkFalse();
+            }
           }
             break;
           default:

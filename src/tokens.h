@@ -39,6 +39,7 @@ enum class Token
   INCLUDE,
   INTEGER_LITERAL,
   KEYWORD,
+  MATCH,
   LET,
   LPAREN,
   NUMERAL,

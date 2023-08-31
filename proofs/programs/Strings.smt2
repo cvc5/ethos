@@ -339,7 +339,7 @@
 ;   (str.++ "A" (str.++ "B" (str.++ x "")))
 ; We return:
 ;   (pair (str.++ "A" (str.++ "B" "")) (str.++ x ""))
-(program string_flatten ((U Type) (t U) (tail U :list))
+(program string_collect_acc ((U Type) (t U) (tail U :list))
   (U) (Pair U U)
   (
     ((string_flatten alf.nil)         (pairalf.nil alf.nil))

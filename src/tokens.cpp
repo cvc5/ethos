@@ -36,6 +36,7 @@ std::ostream& operator<<(std::ostream& o, Token t)
     case Token::INCLUDE: o << "INCLUDE"; break;
     case Token::INTEGER_LITERAL: o << "INTEGER_LITERAL"; break;
     case Token::KEYWORD: o << "KEYWORD"; break;
+    case Token::MATCH: o << "MATCH"; break;
     case Token::LET: o << "LET"; break;
     case Token::LPAREN: o << "LPAREN"; break;
     case Token::NUMERAL: o << "NUMERAL"; break;

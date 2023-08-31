@@ -45,6 +45,18 @@ enum class ParseCtx
   LET_NEXT_BIND,
   LET_BODY,
   /**
+   * Match terms
+   *
+   * MATCH_HEAD: in context (match <term>
+   *
+   * MATCH_NEXT_CASE: in context (match <term> (<case>* (<pattern> <term>
+   * `op` contains:
+   * - d_type: set to the type of the head.
+   * `args` contain the head term and the accumulated list of case terms.
+   */
+  MATCH_HEAD,
+  MATCH_NEXT_CASE,
+  /**
    * Term annotations
    *
    * TERM_ANNOTATE_BODY: in context (! <term>
@@ -111,6 +123,18 @@ Expr ExprParser::parseExpr()
             tstack.emplace_back();
             needsUpdateCtx = true;
             letBinders.emplace_back();
+          }
+          break;
+          case Token::MATCH:
+          {
+            // parse the variable list
+            d_state.pushScope();
+            std::vector<Expr> vs = parseAndBindSortedVarList();
+            std::vector<Expr> args;
+            args.emplace_back(d_state.mkExpr(Kind::VARIABLE_LIST, vs));
+            xstack.emplace_back(ParseCtx::MATCH_HEAD);
+            sstack.emplace_back(1);
+            tstack.emplace_back(args);
           }
           break;
           case Token::ATTRIBUTE:
@@ -384,6 +408,105 @@ Expr ExprParser::parseExpr()
           tstack.pop_back();
         }
         break;
+        // ------------------------- match terms
+        case ParseCtx::MATCH_HEAD:
+        {
+          Assert(ret!=nullptr);
+          // add the head
+          tstack.back().push_back(ret);
+          ret = nullptr;
+          // we now parse a pattern
+          xstack[xstack.size() - 1] = ParseCtx::MATCH_NEXT_CASE;
+          needsUpdateCtx = true;
+        }
+        break;
+        case ParseCtx::MATCH_NEXT_CASE:
+        {
+          std::vector<Expr>& args = tstack.back();
+          bool checkNextPat = true;
+          if (ret!=nullptr)
+          {
+            // if we just got done parsing a term (either a pattern or a return)
+            Expr last = args.back();
+            if (args.size()>2 && last->getKind()!=Kind::PAIR)
+            {
+              // case where we just read a return value
+              // replace the back of this with a pair
+              args.back() = d_state.mkPair(last, ret);
+              d_lex.eatToken(Token::RPAREN);
+            }
+            else
+            {
+              // case where we just read a pattern
+              args.push_back(ret);
+              checkNextPat = false;
+            }
+            ret = nullptr;
+          }
+          // if no more cases, we are done
+          if (checkNextPat)
+          {
+            if (d_lex.eatTokenChoice(Token::RPAREN, Token::LPAREN))
+            {
+              Trace("parser") << "Parsed match " << args << std::endl;
+              // make a program
+              if (args.size()<=2)
+              {
+                d_lex.parseError("Expected non-empty list of cases");
+              }
+              Expr atype = d_state.mkAbstractType();
+              // environment is the variable list
+              const std::vector<Expr>& vl = args[0]->getChildren();
+              std::vector<Expr> allVars = ExprValue::getVariables(args);
+              std::vector<Expr> env;
+              std::vector<Expr> fargTypes;
+              fargTypes.push_back(atype);
+              for (const Expr& v : allVars)
+              {
+                if (std::find(vl.begin(), vl.end(), v)==vl.end())
+                {
+                  // A variable not appearing in the local binding of the match,
+                  // add it to the environment.
+                  env.push_back(v);
+                  // It will be an argument to the internal program
+                  fargTypes.push_back(atype);
+                }
+              }
+              Trace("parser") << "Binder is " << vl << std::endl;
+              Trace("parser") << "Env is " << env << std::endl;
+              // make the program variable, whose type is abstract
+              Expr ftype = d_state.mkFunctionType(fargTypes, atype);
+              Expr pv = d_state.mkProgramConst(ftype);
+              // process the cases
+              std::vector<Expr> cases;
+              for (size_t i=2, nargs = args.size(); i<nargs; i++)
+              {
+                Expr cs = args[i];
+                Assert (cs->getKind()==Kind::PAIR);
+                Expr lhs = (*cs.get())[0];
+                // check that variables in the pattern are only from the binder
+                ensureBound(lhs, vl);
+                Expr rhs = (*cs.get())[1];
+                std::vector<Expr> appArgs{pv, lhs};
+                appArgs.insert(appArgs.end(), env.begin(), env.end());
+                Expr lhsa = d_state.mkExpr(Kind::APPLY, appArgs);
+                cases.push_back(d_state.mkPair(lhsa, rhs));
+              }
+              Expr prog = d_state.mkExpr(Kind::PROGRAM, cases);
+              d_state.defineProgram(pv, prog);
+              std::vector<Expr> appArgs{pv, args[1]};
+              appArgs.insert(appArgs.end(), env.begin(), env.end());
+              ret = d_state.mkExpr(Kind::APPLY, appArgs);
+              // HACK pop one scope
+              d_state.popScope();
+              xstack.pop_back();
+              sstack.pop_back();
+              tstack.pop_back();
+            }
+          }
+          // otherwise, ready to parse the next expression
+        }
+        break;
         default: break;
       }
     }
@@ -456,7 +579,7 @@ std::vector<Expr> ExprParser::parseExprPairList()
   {
     Expr t1 = parseExpr();
     Expr t2 = parseExpr();
-    Expr t = d_state.mkExpr(Kind::PAIR, {t1, t2});
+    Expr t = d_state.mkPair(t1, t2);
     terms.push_back(t);
     d_lex.eatToken(Token::RPAREN);
   }

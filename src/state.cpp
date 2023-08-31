@@ -22,7 +22,7 @@ std::string Stats::toString()
   return ss.str();
 }
 
-State::State(Options& opts, Stats& stats) : d_tc(*this), d_opts(opts), d_stats(stats)
+State::State(Options& opts, Stats& stats) : d_tc(*this), d_opts(opts), d_stats(stats), d_internalId(0)
 {
   ExprValue::d_state = this;
   
@@ -325,6 +325,14 @@ Expr State::mkProgramConst(const std::string& name, const Expr& type)
   return mkSymbolInternal(Kind::PROGRAM_CONST, name, type);
 }
 
+Expr State::mkProgramConst(const Expr& type)
+{
+  d_internalId++;
+  std::stringstream ss;
+  ss << "_internal_" << d_internalId;
+  return mkSymbolInternal(Kind::PROGRAM_CONST, ss.str(), type);
+}
+
 Expr State::mkProofRule(const std::string& name, const Expr& type)
 {
   return mkSymbolInternal(Kind::PROOF_RULE, name, type);
@@ -338,6 +346,11 @@ Expr State::mkSelf()
 Expr State::mkNil()
 {
   return d_nil;
+}
+
+Expr State::mkPair(const Expr& t1, const Expr& t2)
+{
+  return mkExprInternal(Kind::PAIR, {t1, t2});
 }
 
 Expr State::mkSymbolInternal(Kind k, const std::string& name, const Expr& type)
