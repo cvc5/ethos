@@ -24,27 +24,38 @@
 )
 
 ; TRANS
-; Only binary trans supported
-(declare-rule trans ((T Type) (t1 T) (t2 T) (t3 T))
-    :premises ((= t1 t2) (= t2 t3))
-    :args ()
-    :conclusion (= t1 t3)
+(program mk_trans ((U Type) (t1 U) (t2 U) (tail Bool :list))
+    (Bool) Bool
+    (
+        ((mk_trans alf.nil)               alf.nil)
+        ((mk_trans (= t1 t2))             (= t1 t2))
+        ((mk_trans (and (= t1 t2) tail))
+            (alf.match ((t3 U) (t4 U))
+              (mk_trans tail)
+              (alf.nil    (= t1 t2))
+              ((= t3 t4)  (alf.ite (alf.is_eq t2 t3) (= t1 t4) alf.fail))))
+    )
+)
+
+(declare-rule trans ((T Type) (U Type) (E Bool) (f (-> T U)))
+    :premise-list E and
+    :conclusion (mk_trans E)
 )
 
 ; CONG
-(program mk_cong_eq ((T Type) (U Type) (f1 (-> T U)) (f2 (-> T U)) (t1 U) (t2 U) (tail Bool :list))
+(program mk_cong ((T Type) (U Type) (f1 (-> T U)) (f2 (-> T U)) (t1 U) (t2 U) (tail Bool :list))
     (Bool Bool) Bool
     (
-        ((mk_cong_eq (= f1 f2) alf.nil)              (= f1 f2))
-        ((mk_cong_eq (= f1 f2) (= t1 t2))            (= (f1 t1) (f2 t2)))
-        ((mk_cong_eq (= f1 f2) (and (= t1 t2) tail)) (mk_cong_eq (= (f1 t1) (f2 t2)) tail))
+        ((mk_cong (= f1 f2) alf.nil)              (= f1 f2))
+        ((mk_cong (= f1 f2) (= t1 t2))            (= (f1 t1) (f2 t2)))
+        ((mk_cong (= f1 f2) (and (= t1 t2) tail)) (mk_cong (= (f1 t1) (f2 t2)) tail))
     )
 )
 
 (declare-rule cong ((T Type) (U Type) (E Bool) (f (-> T U)))
     :premise-list E and
     :args (f)
-    :conclusion (mk_cong_eq (= f f) E)
+    :conclusion (mk_cong (= f f) E)
 )
 
 ; N-ary congruence
@@ -99,7 +110,6 @@
 )
 
 ; HO_CONG
-; Only binary ho_cong supported
 (declare-rule ho_cong ((T Type) (U Type) (f (-> T U)) (g (-> T U)) (t1 T) (t2 T))
     :premises ((= f g) (= t1 t2))
     :args ()
