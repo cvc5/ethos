@@ -57,6 +57,7 @@ set(alfc_test_file_list
     define-fun-dep-type.smt2
     nat-type.smt2
     use-match.smt2
+    match-simple.smt2
 )
 
 macro(alfc_test file)

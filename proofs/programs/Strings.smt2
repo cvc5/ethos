@@ -80,13 +80,7 @@
 ;(program string_insert ((elem term) (t term) (u sort)) term (nary.insert str.++ elem t))
 
 ; Return reverse of t if rev = tt, return t unchanged otherwise.
-;(program string_rev ((t term) (rev flag) (u sort)) term (ifequal rev tt (nary.reverse str.++ t) t))
-
-; Convert a str.++ application t into its element, if it is a singleton, return t unchanged otherwise.
-;(program string_nary.elim ((t term) (u sort)) term (nary.elim str.++ t))
-
-; Convert t into a str.++ application, if it is not already in n-ary form.
-;(program string_nary.intro ((t term) (u sort)) term (nary.intro str.++ t))
+(define string_rev ((U Type) (rev Bool) (t U)) (alf.ite rev (nary.reverse str.++ t) t))
 
 ;;-------------------- Reductions
 
@@ -339,47 +333,45 @@
 ;   (str.++ "A" (str.++ "B" (str.++ x "")))
 ; We return:
 ;   (pair (str.++ "A" (str.++ "B" "")) (str.++ x ""))
-(program string_collect_acc ((U Type) (t U) (tail U :list))
+(program string_collect_acc ((U Type) (t U) (tail String :list))
   (U) (Pair U U)
   (
-    ((string_flatten alf.nil)         (pairalf.nil alf.nil))
+    ((string_collect_acc alf.nil)         (pair alf.nil alf.nil))
     ; Check if t is a word constant
-    ((string_flatten (str.++ t tail))
+    ((string_collect_acc (str.++ t tail))
       (alf.ite (check_length_one t)
-        (let ((k (string_flatten t)))
-          
+        (alf.match ((s1 U) (s2 U)) 
+          (string_collect_acc tail)
+          ((pair alf.nil s2) (pair t s2))
+          ((pair s1 s2) (pair (alf.concat t s1) s2))
         )
         (pair alf.nil (str.++ t tail))))
   )
 )
-(program string_collect_acc ((s term) (u sort)) termPair
-  (match s
-    ((apply s1 s2)
-      (match (getarg str.++ s1)
-        ((char n)
-          (match (string_collect_acc s2 u)
-            ((pair ssc1 ssc2) (pair (apply s1 ssc1) ssc2))))
-        (default (pair (mk_emptystr u) s))))
-    (default (ifequal s (mk_emptystr u) (pair s s) (fail termPair))))
-)
 
 ; Collect adjacent constants for the prefix of string s. For example:
-;    (str.++ "A" (str.++ "B" (str.++ x "")))
+;    (str.++ "A" (str.++ "B" (str.++ x alf.nil)))
 ; we return:
-;    (str.++ (str.++ "A" (str.++ "B" "")) (str.++ x ""))
+;    (str.++ (str.++ "A" (str.++ "B" alf.nil)) (str.++ x alf.nil))
 ; This side condition may fail if s is not a str.++ application.
 ; Notice that the collection of constants is done for all word constants in the
 ; term s recursively.
-(program string_collect ((s term) (u sort)) term
-  (match (string_collect_acc s u)
-    ((pair sc1 sc2)
-      (ifequal sc1 (mk_emptystr u)
-        ; did not strip a constant prefix
-        (match s
-          ((apply s1 s2) (apply s1 (string_collect s2 u)))
-          (default (ifequal s (mk_emptystr u) s (fail term))))
-        ; stripped a constant prefix, must eliminate singleton
-        (str.++ (string_nary.elim sc1 u) (string_collect sc2 u)))))
+(program string_collect ((U Type) (t U) (s U :list))
+  (U Type) U
+  (
+    ((string_collect alf.nil U) alf.nil)
+    ((string_collect (str.++ t s) U)
+      (alf.match ((s1 U) (s2 U))
+        (string_collect_acc t U)
+        ; did not strip a constant prefix, just append t to the result
+        ((pair alf.nil s2)
+          (nary.append str.++ t (string_collect s U)))
+        ; stripped a constant prefix, must eliminate singleton and append
+        ((pair s1 s2)
+          (nary.append str.++ (nary.elim str.++ s1) (string_collect s2 U)))
+      )
+    )
+  )
 )
 
 ; Strip equal prefix of s and t. This returns the pair corresponding to s and
@@ -389,18 +381,12 @@
 ; This method will return:
 ;   (pair (str.++ y (str.++ z "")) (str.++ w ""))
 ; This side condition may fail if s or t is not a str.++ application.
-(program strip_prefix ((s term) (t term) (u sort)) termPair
-  (match s
-    ((apply s1 s2)
-      (let s12 (getarg str.++ s1)
-        (match t
-          ((apply t1 t2)
-            (let t12 (getarg str.++ t1)
-              (ifequal s12 t12
-                (strip_prefix s2 t2 u)
-                (pair s t))))
-          (default (ifequal t (mk_emptystr u) (pair s t) (fail termPair))))))
-    (default (ifequal s (mk_emptystr u) (pair s t) (fail termPair))))
+(program strip_prefix ((U Type) (t U) (s U) (t2 U :list) (s2 U :list))
+  (U U) (Pair U U)
+  (
+    ((strip_prefix (str.++ t t2) (str.++ t s2)) (strip_prefix t2 s2))
+    ((strip_prefix t s)                         (pair t s))
+  )
 )
 
 ; Converts a str.++ application into "flat form" so that we are ready to
@@ -408,9 +394,9 @@
 ; (1) convert s to n-ary form if it is not already a str.++ application,
 ; (2) flatten so that its constant prefix,
 ; (3) (optionally) reverse.
-(program string_to_flat_form ((s term) (rev flag) (u sort)) term
+(define string_to_flat_form((U Type) (s U) (rev Bool))
   ; intro, flatten, reverse
-  (string_rev (string_flatten (string_nary.intro s u) u) rev u))
+  (string_rev (string_flatten (nary.intro str.++ s U) U) rev U))
 
 ; Converts a term in "flat form" to a term that is in a form that corresponds
 ; to one in cvc5 rewritten form. This is the dual method to
@@ -418,6 +404,6 @@
 ; (1) (optionally) reverse,
 ; (2) collect constants
 ; (3) eliminate n-ary form to its element if the term is a singleton list.
-(program string_from_flat_form ((s term) (rev flag) (u sort)) term
+(define string_from_flat_form ((U Type) (s U) (rev Bool))
   ; reverse, collect, elim
-  (string_nary.elim (string_collect (string_rev s rev u) u) u))
+  (nary.elim str.++ (string_collect (string_rev s rev U) U) U))
