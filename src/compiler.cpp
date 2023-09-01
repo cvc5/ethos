@@ -236,11 +236,7 @@ void Compiler::markAttributes(const Expr& v, const AttrMap& attrs)
 }
 void Compiler::defineProgram(const Expr& v, const Expr& prog)
 {
-  if (d_nscopes>0)
-  {
-    return;
-  }
-
+  // we define regardless of scope level
   std::ostream& os = d_evalp;
   size_t id = markCompiled(d_init, v);
   std::stringstream osEnd;

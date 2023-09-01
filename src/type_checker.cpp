@@ -307,6 +307,7 @@ Expr TypeChecker::getTypeApp(std::vector<Expr>& children, std::ostream* out)
   }
   for (size_t i=1, nchild=children.size(); i<nchild; i++)
   {
+    Assert (children[i]!=nullptr);
     // if the argument type is (Quote t), then we implicitly upcast
     // the argument c to (quote c). This is equivalent to matching
     // c to t directly, hence we take the child itself and not its
@@ -317,6 +318,7 @@ Expr TypeChecker::getTypeApp(std::vector<Expr>& children, std::ostream* out)
     }
     else
     {
+      Assert (children[i]->d_type!=nullptr);
       ctypes.push_back(children[i]->d_type);
     }
   }
@@ -496,9 +498,17 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
         if (cur->isCompiled())
         {
           Trace("type_checker") << "RUN evaluate " << cur << std::endl;
-          visited[cur] = run_evaluate(cur, cctx);
-          visit.pop_back();
-          continue;
+          Expr retev = run_evaluate(cur, cctx);
+          // TODO: this should be an assertion
+          if (retev!=nullptr)
+          {
+            Trace("type_checker") << "...returns " << retev << std::endl;
+            visited[cur] = retev;
+            visit.pop_back();
+            continue;
+          }
+          // if we failed running via compiled, revert for now
+          Trace("type_checker") << "...returns null" << std::endl;
         }
         // otherwise, visit children
         visited[cur] = nullptr;
@@ -640,19 +650,8 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
             }
           }
             break;
-          case Kind::EVAL_IS_EQ:
-          {
-            // only evaluate on ground terms
-            if (allGround)
-            {
-              // evaluation is indepdent of whether it is a literal
-              bool ret = cchildren[0]==cchildren[1];
-              evaluated = ret ? d_state.mkTrue() : d_state.mkFalse();
-            }
-          }
-            break;
           default:
-            if (isLiteralOp(ck))
+            if (allGround && isLiteralOp(ck))
             {
               evaluated = evaluateLiteralOp(ck, cchildren);
             }
@@ -725,7 +724,9 @@ Expr TypeChecker::evaluateProgramInternal(const std::vector<Expr>& children,
   if (hd->isCompiled())
   {
     Trace("type_checker") << "RUN program " << children << std::endl;
-    return run_evaluateProgram(children, newCtx);
+    Expr ret = run_evaluateProgram(children, newCtx);
+    Trace("type_checker") << "...matches " << ret << ", ctx = " << newCtx << std::endl;
+    return ret;
   }
   std::map<Expr, Expr>::iterator it = d_programs.find(hd);
   if (it!=d_programs.end())
@@ -763,6 +764,13 @@ Expr TypeChecker::evaluateProgramInternal(const std::vector<Expr>& children,
 Expr TypeChecker::evaluateLiteralOp(Kind k, const std::vector<Expr>& args)
 {
   Trace("type_checker") << "EVALUATE-LIT " << k << " " << args << std::endl;
+  if (k==Kind::EVAL_IS_EQ)
+  {
+    Assert (args.size()==2);
+    // evaluation is indepdent of whether it is a literal
+    bool ret = args[0]==args[1];
+    return ret ? d_state.mkTrue() : d_state.mkFalse();
+  }
   // convert argument expressions to literals
   std::vector<Literal*> lits;
   for (const Expr& e : args)
