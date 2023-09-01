@@ -93,10 +93,10 @@
 ; reverse cons nil xs
 ; Reverses the list `xs`.
 (program nary.reverse
-    ((L Type) (cons (-> L L L)) (nil L) (xs L :list))
-    ((-> L L L) L L) L
+    ((L Type) (cons (-> L L L)) (xs L :list))
+    ((-> L L L) L) L
     (
-        ((nary.reverse cons nil xs) (nary.reverseRec cons xs nil))
+        ((nary.reverse cons xs) (nary.reverseRec cons xs alf.nil))
     )
 )
 
@@ -104,7 +104,7 @@
 ; Returns the sole element if `xs` is a singleton list.
 (program nary.elim
     ((L Type) (cons (-> L L L)) (nil L) (c L) (x L) (xs L :list))
-    ((-> L L L) L L) L
+    ((-> L L L) L L L) L
     (
         ((nary.elim cons nil (cons x alf.nil)) x)
         ((nary.elim cons nil (cons x xs))      (cons x xs))

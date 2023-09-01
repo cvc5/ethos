@@ -297,7 +297,7 @@
     ((string_flatten_word t) 
       (alf.ite (check_length_one t) 
         (nary.append str.++ t alf.nil)
-        (nary.append str.++ (alf.extract 0 1 t) (string_flatten_word (alf.extract 1 (str.len t) t)))))
+        (nary.append str.++ (alf.extract 0 1 t) (string_flatten_word (alf.extract 1 (alf.len t) t)))))
   )
 )
 (program string_flatten ((U Type) (t U) (tail U :list) (tail2 U :list))
@@ -307,11 +307,12 @@
     ; required for sequences
     ((string_flatten (str.++ (str.++ t tail2) tail)) 
         (nary.concat str.++ (str.++ t tail2) (string_flatten tail)))
-    ; otherwise, check whether t is a word constant of length greater than one
-    ; if so, we flatten the word using the method above and concatenate it.
     ((string_flatten (str.++ t tail))
+        ; otherwise, check whether t is a word constant of length greater than one
         (alf.ite (check_length_gt_one t)
+          ; if so, we flatten the word using the method above and concatenate it.
           (nary.concat str.++ (string_flatten_word t) (string_flatten tail))
+          ; if not, we just append it to the result of the recursive call
           (nary.append str.++ t (string_flatten tail))))
   )
 )
@@ -324,19 +325,26 @@
 ;   (str.++ "A" (str.++ "B" (str.++ x "")))
 ; We return:
 ;   (pair (str.++ "A" (str.++ "B" "")) (str.++ x ""))
+(program string_collect_word ((t1 String) (t2 String :list))
+  (String) String
+  (
+    ((string_collect_word (str.++ t1 t2)) (alf.concat t1 (string_collect_word t2)))
+    ((string_collect_word alf.nil)        alf.nil)
+  )
+)
 (program string_collect_acc ((U Type) (t U) (tail String :list))
   (U) (Pair U U)
   (
-    ((string_collect_acc alf.nil)         (pair alf.nil alf.nil))
     ; Check if t is a word constant
     ((string_collect_acc (str.++ t tail))
       (alf.ite (check_length_one t)
         (alf.match ((s1 U) (s2 U)) 
           (string_collect_acc tail)
-          ((pair alf.nil s2) (pair t s2))
-          ((pair s1 s2) (pair (alf.concat t s1) s2))
+          ((pair alf.nil s2)  (pair t s2))
+          ((pair s1 s2)       (pair (alf.concat t s1) s2))    ; concatentate the constant
         )
         (pair alf.nil (str.++ t tail))))
+    ((string_collect_acc t)               (pair alf.nil t))   ; note could just return alf.nil
   )
 )
 
@@ -348,18 +356,18 @@
 ; Notice that the collection of constants is done for all word constants in the
 ; term s recursively.
 (program string_collect ((U Type) (t U) (s U :list))
-  (U Type) U
+  (U) U
   (
-    ((string_collect alf.nil U) alf.nil)
-    ((string_collect (str.++ t s) U)
+    ((string_collect alf.nil)       alf.nil)
+    ((string_collect (str.++ t s))
       (alf.match ((s1 U) (s2 U))
-        (string_collect_acc t U)
+        (string_collect_acc (str.++ t s))
         ; did not strip a constant prefix, just append t to the result
         ((pair alf.nil s2)
-          (nary.append str.++ t (string_collect s U)))
+          (nary.append str.++ t (string_collect s)))
         ; stripped a constant prefix, must eliminate singleton and append
         ((pair s1 s2)
-          (nary.append str.++ (nary.elim str.++ s1) (string_collect s2 U)))
+          (nary.append str.++ s1 (string_collect s2)))
       )
     )
   )
@@ -387,7 +395,7 @@
 ; (3) (optionally) reverse.
 (define string_to_flat_form ((U Type) (s U) (rev Bool))
   ; intro, flatten, reverse
-  (string_rev U rev (string_flatten (nary.intro str.++ s U) U)))
+  (string_rev U rev (string_flatten (nary.intro str.++ (mk_emptystr U) s))))
 
 ; Converts a term in "flat form" to a term that is in a form that corresponds
 ; to one in cvc5 rewritten form. This is the dual method to
@@ -397,4 +405,4 @@
 ; (3) eliminate n-ary form to its element if the term is a singleton list.
 (define string_from_flat_form ((U Type) (s U) (rev Bool))
   ; reverse, collect, elim
-  (nary.elim str.++ (string_collect (string_rev U rev s) U) U))
+  (nary.elim str.++ (mk_emptystr U) (string_collect (string_rev U rev s))))

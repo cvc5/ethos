@@ -718,8 +718,6 @@ Expr TypeChecker::evaluateProgram(const std::vector<Expr>& children, Ctx& newCtx
 Expr TypeChecker::evaluateProgramInternal(const std::vector<Expr>& children, 
                                           Ctx& newCtx)
 {
-  size_t nargs = children.size();
-  // TODO: check arity
   const Expr& hd = children[0];
   if (hd->isCompiled())
   {
@@ -728,6 +726,7 @@ Expr TypeChecker::evaluateProgramInternal(const std::vector<Expr>& children,
     Trace("type_checker") << "...matches " << ret << ", ctx = " << newCtx << std::endl;
     return ret;
   }
+  size_t nargs = children.size();
   std::map<Expr, Expr>::iterator it = d_programs.find(hd);
   if (it!=d_programs.end())
   {
@@ -739,7 +738,13 @@ Expr TypeChecker::evaluateProgramInternal(const std::vector<Expr>& children,
       newCtx.clear();
       Expr hd = c->getChildren()[0];
       std::vector<Expr>& hchildren = hd->d_children;
-      Assert(nargs == hchildren.size());
+      if (nargs != hchildren.size())
+      {
+        // TODO: catch this during weak type checking of program bodies
+        Warning() << "*** Bad number of arguments provided in function call to " << hd << std::endl;
+        Warning() << "  Arguments: " << children << std::endl;
+        return nullptr;
+      }
       bool matchSuccess = true;
       for (size_t i=1; i<nargs; i++)
       {

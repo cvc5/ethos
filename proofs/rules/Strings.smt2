@@ -16,7 +16,7 @@
     (alf.match ((ss U) (ts U))
       (strip_prefix
            (string_to_flat_form U s rev) 
-           (string_to_flat_form U t rev) U)
+           (string_to_flat_form U t rev))
       ((pair ss ts)
         (= 
           (string_from_flat_form U ss rev)
