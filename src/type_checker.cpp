@@ -515,7 +515,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
         visited[cur] = nullptr;
         if (ck==Kind::EVAL_IF_THEN_ELSE)
         {
-          // special case: visit only the children
+          // special case: visit only the condition
           visit.push_back(children[0]);
         }
         else

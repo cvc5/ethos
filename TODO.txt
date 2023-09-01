@@ -9,10 +9,9 @@ TODO:
 - separate symbol table for proof rules?
 - ensure assumption scope level is preserved per include file
 - Temporary memory allocation of Expr within calls to evaluation?
-- show compiled files via --show-config
-- proper compilation of alf.ite / alf.is_eq
 - minimize compiled code by recognizing alpha-equivalent patterns
     - parameters can be shared??
+- lazy construction of definitions?
 
 COMPLETED:
 
@@ -31,3 +30,5 @@ COMPLETED:
 - :requires for implicit is dropped, maybe simplify
 - failures in side conditions?
 - generalize CLI
+- show compiled files via --show-config
+- proper compilation of alf.ite / alf.is_eq

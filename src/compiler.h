@@ -52,6 +52,8 @@ public:
   bool isGlobal() const;
   /** get name for */
   std::string getNameFor(Expr& e) const;
+  /** allocate subscope */
+  size_t allocateSubscope();
 
   /** Reference to the declare stream */
   std::ostream& d_decl;
@@ -66,6 +68,8 @@ public:
  private:
   /** Identifier counts */
   size_t d_idCount;
+  /** Subscope count */
+  size_t d_subscopeCount;
   /** Pointer to global context, null if this is the global context */
   CompilerScope* d_global;
 };

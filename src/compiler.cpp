@@ -14,7 +14,7 @@ CompilerScope::CompilerScope(std::ostream& decl,
                              const std::string& prefix,
                              CompilerScope* global,
                              bool progEval) :
-d_decl(decl), d_out(out), d_prefix(prefix), d_progEval(progEval), d_idCount(1), d_global(global)
+d_decl(decl), d_out(out), d_prefix(prefix), d_progEval(progEval), d_idCount(1), d_subscopeCount(1), d_global(global)
 {}
 
 CompilerScope::~CompilerScope(){}
@@ -58,6 +58,12 @@ std::string CompilerScope::getNameFor(Expr& e) const
   std::stringstream ss;
   ss << d_prefix << it->second;
   return ss.str();
+}
+size_t CompilerScope::allocateSubscope()
+{
+  size_t ret = d_subscopeCount;
+  d_subscopeCount++;
+  return ret;
 }
 
 PathTrie::PathTrie(std::ostream& decl, const std::string& prefix) : d_decl(decl), d_prefix(prefix){}
@@ -109,6 +115,10 @@ Compiler::Compiler(State& s) :
   d_decl << "std::map<ExprValue*, size_t> _runId;" << std::endl;
   d_decl << "Ctx _ctxTmp;" << std::endl;
   d_decl << "Expr _etmp;" << std::endl;
+  d_decl << "Expr _etmp2;" << std::endl;
+  d_decl << "bool _btmp;" << std::endl;
+  d_decl << "bool _btmp2;" << std::endl;
+  d_decl << "Literal* _ltmp;" << std::endl;
   d_config << "std::string State::showCompiledFiles()" << std::endl;
   d_config << "{" << std::endl;
   d_config << "  std::stringstream ss;" << std::endl;
@@ -383,7 +393,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
     if (it==visited.end())
     {
       visited.insert(cur);
-      if (false && cur->getKind()==Kind::EVAL_IF_THEN_ELSE)
+      if (cur->getKind()==Kind::EVAL_IF_THEN_ELSE && cs.d_progEval)
       {
         // only push the condition
         visit.push_back(children[0].get());
@@ -444,12 +454,67 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
       }
       else if (ck==Kind::NIL)
       {
-        os << "  " << cs.d_prefix << ret << " = ";
+        os << "  " << cs.d_prefix << ret << " = d_nil;" << std::endl;
+      }
+      else if (ck==Kind::EVAL_IF_THEN_ELSE && cs.d_progEval)
+      {
+        // we have only written the condition
+        std::string cond = s.getNameFor(children[0]);
+        os << "  _ltmp = d_state.getLiteral(" << cond << ".get());" << std::endl;
+        os << "  _btmp = (_ltmp!=nullptr && _ltmp->d_tag==Literal::BOOL);" << std::endl;
+        os << "  _btmp2 = (_btmp && _ltmp->d_bool);" << std::endl;
+        std::stringstream osite;
+        std::vector<std::string> branches;
+        for (size_t i=0; i<2; i++)
+        {
+          Expr branch = children[i+1];
+          std::vector<Expr> fvs = ExprValue::getVariables(branch);
+          if (fvs.empty())
+          {
+            // just write the global expression
+            writeGlobalExpr(branch);
+            branches.push_back(d_global.getNameFor(branch));
+            continue;
+          }
+          
+          // determine if we should compute this branch
+          osite << "  if (!_btmp || " << (i==1 ? "!" : "") << "_btmp2)" << std::endl;
+          osite << "  {" << std::endl;
+          // write the expression in a local scope
+          std::stringstream localDecl;
+          // make a unique name for the scope
+          std::stringstream ss;
+          ss<< cs.d_prefix << "_" << cs.allocateSubscope() << "_";
+          std::string pprefix(ss.str());
+          CompilerScope pscope(localDecl, osite, pprefix, &d_global, true);
+          // don't declare the free variables
+          pscope.ensureDeclared(fvs);
+          // carry the definitions of variables from outer scope
+          for (Expr& v : fvs)
+          {
+            osite << "  " << pscope.getNameFor(v) << " = " << cs.getNameFor(v) << ";" << std::endl;
+          }
+          writeExprInternal(branch, pscope);
+          osite << "  }" << std::endl;
+          // provide the declarations
+          os << localDecl.str();
+          branches.push_back(pscope.getNameFor(branch));
+        }
+        os << osite.str();
+        // put together the result
+        os << "  if (!_btmp)" << std::endl;
+        os << "  {" << std::endl;
+        os << "    " << cs.d_prefix << ret << " = ";
         if (!cs.isGlobal())
         {
           os << "d_state.";
         }
-        os << "mkNil();" << std::endl;
+        os << "mkExprInternal(Kind::EVAL_IF_THEN_ELSE, {" << cond << ", " << branches[0] << ", " << branches[1] << "});" << std::endl;
+        os << "  }" << std::endl;
+        os << "  else" << std::endl;
+        os << "  {" << std::endl;
+        os << "    " << cs.d_prefix << ret << " = _btmp2 ? " << branches[0] << " : " << branches[1] << ";" << std::endl;
+        os << "  }" << std::endl;
       }
       else
       {

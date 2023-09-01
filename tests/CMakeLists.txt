@@ -60,6 +60,7 @@ set(alfc_test_file_list
     match-simple.smt2
     and-intro-old.smt2
     strings-rules-test.smt2
+    ite-compile-test.smt2
 )
 
 macro(alfc_test file)
