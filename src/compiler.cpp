@@ -201,8 +201,10 @@ void Compiler::bind(const std::string& name, const Expr& e)
   // bind the symbol
   d_init << "  bind(\"" << name << "\", _e" << id << ");" << std::endl;
   // write its type checker (if necessary)
-  Assert(e->d_type != nullptr);
-  writeTypeChecking(d_tc, e->d_type);
+  if (e->d_type != nullptr)
+  {
+    writeTypeChecking(d_tc, e->d_type);
+  }
 }
 
 void Compiler::markAttributes(const Expr& v, const AttrMap& attrs)

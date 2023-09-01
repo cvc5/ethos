@@ -104,12 +104,11 @@
 ; Returns the sole element if `xs` is a singleton list.
 (program nary.elim
     ((L Type) (cons (-> L L L)) (nil L) (c L) (x L) (xs L :list))
-    ((-> L L L) L L L) L
+    ((-> L L L) L L) L
     (
-        ((nary.elim cons nil c nil) c)
-        ((nary.elim cons nil c (cons x nil)) x)
-        ((nary.elim cons nil c (cons x xs)) (nary.append cons x xs))
-        ((nary.elim cons nil c xs) xs)
+        ((nary.elim cons nil (cons x alf.nil)) x)
+        ((nary.elim cons nil (cons x xs))      (cons x xs))
+        ((nary.elim cons nil alf.nil)          nil)
     )
 )
 
@@ -119,8 +118,9 @@
     ((L Type) (cons (-> L L L)) (nil L) (x L) (xs L :list))
     ((-> L L L) L L) L
     (
-        ((nary.intro cons nil (cons x xs)) (nary.append cons x xs))
-        ((nary.intro cons nil x)           (nary.append cons x nil))
+        ((nary.intro cons nil (cons x xs)) (cons x xs))
+        ((nary.intro cons nil nil)         alf.nil)
+        ((nary.intro cons nil x)           (nary.append cons x alf.nil))
     )
 )
 

@@ -11,7 +11,7 @@
 ; the PfRule::CONCAT_EQ rule
 (declare-rule concat_eq ((U Type) (s U) (t U) (rev Bool))
   :premises ((= s t))
-  :args (rev U)
+  :args (U rev)
   :conclusion
     (alf.match ((ss U) (ts U))
       (strip_prefix

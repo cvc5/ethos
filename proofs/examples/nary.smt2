@@ -65,9 +65,9 @@
 
 ; Constant to map the nil constant to in empty lists
 (declare-const elim-nil S)
-(declare-rule check_nary.elim((in S) (out S))
+(declare-rule check_nary.elim ((in S) (out S))
     :args (in out)
-    :requires (((nary.elim cons alf.nil elim-nil in) out))
+    :requires (((nary.elim cons elim-nil in) out))
     :conclusion true
 )
 

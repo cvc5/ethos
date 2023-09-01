@@ -719,6 +719,8 @@ Expr TypeChecker::evaluateProgram(const std::vector<Expr>& children, Ctx& newCtx
 Expr TypeChecker::evaluateProgramInternal(const std::vector<Expr>& children, 
                                           Ctx& newCtx)
 {
+  size_t nargs = children.size();
+  // TODO: check arity
   const Expr& hd = children[0];
   if (hd->isCompiled())
   {
@@ -731,7 +733,6 @@ Expr TypeChecker::evaluateProgramInternal(const std::vector<Expr>& children,
     Trace("type_checker") << "INTERPRET program " << children << std::endl;
     // otherwise, evaluate
     std::vector<Expr>& progChildren = it->second->getChildren();
-    size_t nargs = children.size();
     for (Expr& c : progChildren)
     {
       newCtx.clear();
