@@ -68,7 +68,7 @@
 (declare-const re.opt (-> RegLan RegLan))
 (declare-const re.comp (-> RegLan RegLan))
 (declare-const re.range (-> String String RegLan))
-(declare-const re.++ (-> RegLan RegLan RegLan) :right-assoc-nil)
+(declare-const re.++ (-> (! Type :var U :implicit) RegLan U (! RegLan :requires ((maybe_nil RegLan U) RegLan))) :right-assoc-nil)
 (declare-const re.inter (-> (! Type :var U :implicit) RegLan U (! RegLan :requires ((maybe_nil RegLan U) RegLan))) :right-assoc-nil)
 (declare-const re.union (-> (! Type :var U :implicit) RegLan U (! RegLan :requires ((maybe_nil RegLan U) RegLan))) :right-assoc-nil)
 (declare-const re.diff (-> (! Type :var U :implicit) RegLan U (! RegLan :requires ((maybe_nil RegLan U) RegLan))) :right-assoc-nil)

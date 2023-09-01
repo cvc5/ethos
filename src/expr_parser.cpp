@@ -457,6 +457,7 @@ Expr ExprParser::parseExpr()
               Expr atype = d_state.mkAbstractType();
               // environment is the variable list
               const std::vector<Expr>& vl = args[0]->getChildren();
+              Expr hd = args[1];
               std::vector<Expr> allVars = ExprValue::getVariables(args);
               std::vector<Expr> env;
               std::vector<Expr> fargTypes;
@@ -476,7 +477,9 @@ Expr ExprParser::parseExpr()
               Trace("parser") << "Env is " << env << std::endl;
               // make the program variable, whose type is abstract
               Expr ftype = d_state.mkFunctionType(fargTypes, atype);
-              Expr pv = d_state.mkProgramConst(ftype);
+              std::stringstream pvname;
+              pvname << "_match_" << hd;
+              Expr pv = d_state.mkProgramConst(pvname.str(), ftype);
               // process the cases
               std::vector<Expr> cases;
               for (size_t i=2, nargs = args.size(); i<nargs; i++)
@@ -494,7 +497,7 @@ Expr ExprParser::parseExpr()
               }
               Expr prog = d_state.mkExpr(Kind::PROGRAM, cases);
               d_state.defineProgram(pv, prog);
-              std::vector<Expr> appArgs{pv, args[1]};
+              std::vector<Expr> appArgs{pv, hd};
               appArgs.insert(appArgs.end(), env.begin(), env.end());
               ret = d_state.mkExpr(Kind::APPLY, appArgs);
               // HACK pop one scope

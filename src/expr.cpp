@@ -134,6 +134,43 @@ std::string ExprValue::getSymbol() const
   return "";
 }
 
+
+/**
+ * SMT-LIB 2 quoting for symbols
+ */
+std::string quoteSymbol(const std::string& s)
+{
+  if (s.empty())
+  {
+    return "||";
+  }
+
+  // this is the set of SMT-LIBv2 permitted characters in "simple" (non-quoted)
+  // symbols
+  if (s.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+                          "0123456789~!@$%^&*_-+=<>.?/")
+          == std::string::npos
+      && (s[0] < '0' || s[0] > '9'))
+  {
+    return s;
+  }
+  std::string tmp = s;
+  if (s.front() == '|' && s.back() == '|' && s.length() > 1)
+  {
+    // if s is already surrounded with vertical bars, we need to check the
+    // characters between them
+    tmp = s.substr(1, s.length() - 2);
+  }
+
+  // must quote the symbol, but it cannot contain | or \, we turn those into _
+  size_t p;
+  while ((p = tmp.find_first_of("\\|")) != std::string::npos)
+  {
+    tmp = tmp.replace(p, 1, "_");
+  }
+  return "|" + tmp + "|";
+}
+
 std::map<const ExprValue*, size_t> ExprValue::computeLetBinding(const std::shared_ptr<ExprValue>& e, 
                                                                 std::vector<const ExprValue*>& ll)
 {
@@ -205,11 +242,14 @@ void ExprValue::printDebugInternal(const ExprValue* e,
         Literal * l = d_state->getLiteral(cur.first);
         if (l!=nullptr)
         {
-          switch (k)
+          switch (l->d_tag)
           {
-            case Kind::HEXADECIMAL:os << "#x" << l->toString();break;
-            case Kind::BINARY:os << "#b" << l->toString();break;
-            case Kind::STRING:os << "\"" << l->toString() << "\"";break;
+            case Literal::BITVECTOR:os << "#b" << l->toString();break;
+            case Literal::STRING:os << "\"" << l->toString() << "\"";break;
+            case Literal::SYMBOL:
+              // symbols must be quoted if they have illegal characters
+              os << quoteSymbol(l->toString());
+              break;
             default:os << l->toString();break;
           }
         }

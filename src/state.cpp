@@ -16,7 +16,7 @@ Options::Options()
   d_stats = false;
 }
 
-State::State(Options& opts, Stats& stats) : d_tc(*this), d_opts(opts), d_stats(stats), d_internalId(0)
+State::State(Options& opts, Stats& stats) : d_tc(*this), d_opts(opts), d_stats(stats)
 {
   ExprValue::d_state = this;
   
@@ -317,14 +317,6 @@ Expr State::mkConst(const std::string& name, const Expr& type)
 Expr State::mkProgramConst(const std::string& name, const Expr& type)
 {
   return mkSymbolInternal(Kind::PROGRAM_CONST, name, type);
-}
-
-Expr State::mkProgramConst(const Expr& type)
-{
-  d_internalId++;
-  std::stringstream ss;
-  ss << "_internal_" << d_internalId;
-  return mkSymbolInternal(Kind::PROGRAM_CONST, ss.str(), type);
 }
 
 Expr State::mkProofRule(const std::string& name, const Expr& type)

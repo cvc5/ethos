@@ -2,6 +2,14 @@
 (include "../programs/Strings.smt2")
 
 
+;;;;;;;;;; Core
+
+(declare-rule string_length_pos ((U Type) (s U))
+  :args (U s)
+  :conclusion
+    (or (and (= (str.len s) 0) (= s (mk_emptystr U))) (> (str.len s) 0))
+)
+
 (declare-rule string_length_non_empty ((U Type) (s Type) (t Type))
   :premises ((not (= s t)))
   :requires (((string_is_empty t) true))
@@ -57,17 +65,34 @@
           alf.fail)))
 )
 
+;;;;;;;;;; Regular expressions
 
-(declare-rule string_length_pos ((U Type) (s U))
-  :args (U s)
-  :conclusion
-    (or (and (= (str.len s) 0) (= s (mk_emptystr U))) (> (str.len s) 0))
-)
 
 (declare-rule re_inter ((x String) (s RegLan) (t RegLan))
   :premises ((str.in_re x s) (str.in_re x t))
   :conclusion (str.in_re (re.inter s t))
 )
+
+(declare-rule re_unfold_pos ((t String) (r RegLan))
+  :premises ((str.in_re t r))
+  :conclusion
+    (alf.match ((r1 RegLan) (r2 RegLan :list))
+      r
+      ((re.* r1)
+        (alf.match ((tk String) (M Bool :list))
+          (re_unfold_pos_concat t (re.++ r1 r r1))
+          ((pair tk M)
+             (or 
+               (= t "") 
+               (str.in_re r1) 
+               (nary.elim and true (nary.append and (= t tk) (nary.concat and M (non_empty_concats tk String))))))))
+      ((re.++ r1 r2)
+        (alf.match ((tk String) (M Bool :list))
+          (re_unfold_pos_concat t r)
+          ((pair tk M)
+             (nary.elim and true (and (= t tk) M)))))))
+
+;;;;;;;;;; Extended functions 
 
 (declare-rule string_reduction ((U Type) (s U))
   :args (U s)

@@ -64,19 +64,38 @@
 ;SYGUS_ANY_CONSTANT
 
 ; evaluate, for all theories
-(program run_evaluate ((T Type) (U Type) (S Type) (a T) (b U) (z S))
+(program run_evaluate ((T Type) (S Type) 
+                       (x T) (y T) (z S) 
+                       (b Bool) (n Int) (m Int))
     (S) S
     (
-      ((run_evaluate (= a b))  (alf.is_eq (run_evaluate a) (run_evaluate b)))
-      ((run_evaluate (< a b))  (alf.is_neg (run_evaluate (- a b))))
-      ((run_evaluate (<= a b)) (let ((x (run_evaluate (- a b))))
-                                 (alf.or (alf.is_neg x) (alf.is_zero x))))
-      ((run_evaluate (> a b))  (alf.is_neg (run_evaluate (- b a))))
-      ((run_evaluate (>= a b)) (let ((x (run_evaluate (- b a))))
-                                 (alf.or (alf.is_neg x) (alf.is_zero x))))
-      ((run_evaluate (+ a b))  (alf.add (run_evaluate a) (run_evaluate b)))
-      ((run_evaluate (- a b))  (alf.add (run_evaluate a) (alf.neg (run_evaluate b))))
-      ((run_evaluate (* a b))  (alf.mul (run_evaluate a) (run_evaluate b)))
-      ((run_evaluate z)        z)
+      ; core
+      ((run_evaluate (= x y))      (alf.is_eq (run_evaluate x) (run_evaluate y)))
+      ((run_evaluate (ite b x y))  (alf.ite (run_evaluate b) (run_evaluate x) (run_evaluate y)))
+  
+      ; arithmetic
+      ((run_evaluate (< x z))      (alf.is_neg (run_evaluate (- x z))))
+      ((run_evaluate (<= x z))     (let ((d (run_evaluate (- x z))))
+                                    (alf.or (alf.is_neg d) (alf.is_zero d))))
+      ((run_evaluate (> x z))      (alf.is_neg (run_evaluate (- z x))))
+      ((run_evaluate (>= x z))     (let ((d (run_evaluate (- z x))))
+                                     (alf.or (alf.is_neg d) (alf.is_zero d))))
+      ((run_evaluate (+ x z))      (alf.add (run_evaluate x) (run_evaluate z)))
+      ((run_evaluate (- x z))      (alf.add (run_evaluate x) (alf.neg (run_evaluate z))))
+      ((run_evaluate (* x z))      (alf.mul (run_evaluate x) (run_evaluate z)))
+      ((run_evaluate (u- x))       (alf.neg (run_evaluate x)))
+
+      ; strings
+      ((run_evaluate (str.++ x y)) (alf.concat (run_evaluate x) (run_evaluate y)))
+      ((run_evaluate (str.len x))  (alf.len (run_evaluate x)))
+      ((run_evaluate 
+         (str.substr x n m))       (alf.extract (run_evaluate n) 
+                                      (alf.add (run_evaluate n) (run_evaluate m)) 
+                                      (run_evaluate x)))
+      ((run_evaluate z)            z)
     )
 )
+
+(declare-rule evaluate ((U Type) (t U))
+  :args (t)
+  :conclusion (= t (run_evaluate t)))

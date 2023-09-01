@@ -64,7 +64,7 @@
 
 (declare-rule arith_trichotomy ((F1 Bool) (F2 Bool))
   :premises (F1 F2)
-  :conclusion (mk_arith_trichotomy (arith_normalize_lit F1) (arith_normalize_lit F2))
+  :conclusion (mk_arith_trichotomy (arith_normalize_lit (not F1)) (arith_normalize_lit (not F2)))
 )
 
 ; Returns true if c is the greatest integer less than (integer or real) constant

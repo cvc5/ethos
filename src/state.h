@@ -75,8 +75,6 @@ public:
   Expr mkConst(const std::string& name, const Expr& type);
   /** */
   Expr mkProgramConst(const std::string& name, const Expr& type);
-  /** No name */
-  Expr mkProgramConst(const Expr& type);
   /** */
   Expr mkProofRule(const std::string& name, const Expr& type);
   /** alf.nil */
@@ -200,8 +198,6 @@ private:
   Stats& d_stats;
   /** Compiler, if compiling code */
   std::unique_ptr<Compiler> d_compiler;
-  /** Internal name counter */
-  size_t d_internalId;
 };
 
 }  // namespace alfc
