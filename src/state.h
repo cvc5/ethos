@@ -186,6 +186,8 @@ private:
   std::map<const ExprValue*, std::vector<Expr>> d_dts;
   /** constructors */
   std::map<const ExprValue*, std::vector<Expr>> d_dtcons;
+  // -------------------- symbols
+  std::map<std::tuple<Kind, std::string, Expr>, Expr> d_symcMap;
   //--------------------- includes
   /** input file */
   std::filesystem::path d_inputFile;

@@ -526,17 +526,12 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
       if (it->second.get() == nullptr)
       {
         std::vector<Expr> cchildren;
-        bool allGround = true;
         for (Expr& cp : children)
         {
           it = visited.find(cp);
           if (it != visited.end())
           {
             cchildren.push_back(it->second);
-            if (allGround)
-            {
-              allGround = it->second->isGround();
-            }
           }
           else
           {
@@ -578,7 +573,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
             break;
           case Kind::APPLY:
             // if a program and all arguments are ground, run it
-            if (allGround && cchildren[0]->getKind()==Kind::PROGRAM_CONST)
+            if (cchildren[0]->getKind()==Kind::PROGRAM_CONST)
             {
               // maybe already cached
               ExprTrie* et = &d_evalTrie;
@@ -651,9 +646,9 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
           }
             break;
           default:
-            if (allGround && isLiteralOp(ck))
+            if (isLiteralOp(ck))
             {
-              evaluated = evaluateLiteralOp(ck, cchildren);
+              evaluated = evaluateLiteralOpInternal(ck, cchildren);
             }
             break;
         }
@@ -715,9 +710,26 @@ Expr TypeChecker::evaluateProgram(const std::vector<Expr>& children, Ctx& newCtx
   return d_state.mkExprInternal(Kind::APPLY, children);
 }
 
+bool TypeChecker::isGround(const std::vector<Expr>& args)
+{
+  for (const Expr& e : args)
+  {
+    if (!e->isGround())
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
 Expr TypeChecker::evaluateProgramInternal(const std::vector<Expr>& children, 
                                           Ctx& newCtx)
 {
+  if (!isGround(children))
+  {
+    // do not evaluate on non-ground
+    return nullptr;
+  }
   const Expr& hd = children[0];
   if (hd->isCompiled())
   {
@@ -768,7 +780,23 @@ Expr TypeChecker::evaluateProgramInternal(const std::vector<Expr>& children,
 
 Expr TypeChecker::evaluateLiteralOp(Kind k, const std::vector<Expr>& args)
 {
+  Expr ret = evaluateLiteralOpInternal(k, args);
+  if (ret!=nullptr)
+  {
+    return ret;
+  }
+  // otherwise does not evaluate, return application
+  return d_state.mkExprInternal(Kind::APPLY, args);
+}
+  
+Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<Expr>& args)
+{
   Trace("type_checker") << "EVALUATE-LIT " << k << " " << args << std::endl;
+  if (!isGround(args))
+  {
+    Trace("type_checker") << "...does not evaluate (non-ground)" << std::endl;
+    return nullptr;
+  }
   if (k==Kind::EVAL_IS_EQ)
   {
     Assert (args.size()==2);

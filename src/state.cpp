@@ -341,6 +341,15 @@ Expr State::mkPair(const Expr& t1, const Expr& t2)
 
 Expr State::mkSymbolInternal(Kind k, const std::string& name, const Expr& type)
 {
+  // TODO: symbols can be shared if no attributes
+  /*
+  std::tuple<Kind, std::string, Expr> key(k, name, type);  
+  std::map<std::tuple<Kind, std::string, Expr>, Expr>::iterator it = d_symcMap.find(key);
+  if (it!=d_symcMap.end())
+  {
+    return it->second;
+  }
+  */
   d_stats.d_symCount++;
   std::vector<Expr> emptyVec;
   Expr v = std::make_shared<ExprValue>(k, emptyVec);
@@ -349,6 +358,7 @@ Expr State::mkSymbolInternal(Kind k, const std::string& name, const Expr& type)
   // map to the data
   d_literals[v.get()] = Literal(name);
   Trace("type_checker") << "TYPE " << name << " : " << type << std::endl;
+  //d_symcMap[key] = v;
   return v;
 }
 

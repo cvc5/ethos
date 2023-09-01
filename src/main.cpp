@@ -41,7 +41,7 @@ int main( int argc, char* argv[] )
       std::stringstream out;
       out << "This is alfc version 0.0." << std::endl;
       out << std::endl;
-      size_t w = 30;
+      size_t w = 15;
       out << std::setw(w) << "tracing : ";
 #ifdef ALFC_TRACING
       out << "yes";
@@ -82,6 +82,7 @@ int main( int argc, char* argv[] )
       TraceChannel.on("state");
       TraceChannel.on("type_checker");
       TraceChannel.on("compile");
+      TraceChannel.on("step");
 #else
       Unhandled() << "Tracing not enabled in this build" << std::endl;
 #endif

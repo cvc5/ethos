@@ -51,10 +51,14 @@ class TypeChecker
   Expr evaluate(Expr& e, Ctx& ctx);
   Expr evaluate(Expr& e);
  private:
+  /** Are all args ground? */
+  static bool isGround(const std::vector<Expr>& args);
   /** Maybe evaluate */
   Expr evaluateProgramInternal(const std::vector<Expr>& args, Ctx& newCtx);
   /** Return its type */
   Expr getTypeInternal(Expr& e, std::ostream* out);
+  /** Evaluate literal op */
+  Expr evaluateLiteralOpInternal(Kind k, const std::vector<Expr>& args);
   /** Type check */
   Expr getLiteralOpType(Kind k, 
                         std::vector<Expr>& childTypes, 
