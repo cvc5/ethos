@@ -500,6 +500,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
           Trace("type_checker") << "RUN evaluate " << cur << std::endl;
           Expr retev = run_evaluate(cur, cctx);
           // TODO: this should be an assertion
+          Assert (retev!=nullptr);
           if (retev!=nullptr)
           {
             Trace("type_checker") << "...returns " << retev << std::endl;
@@ -786,7 +787,7 @@ Expr TypeChecker::evaluateLiteralOp(Kind k, const std::vector<Expr>& args)
     return ret;
   }
   // otherwise does not evaluate, return application
-  return d_state.mkExprInternal(Kind::APPLY, args);
+  return d_state.mkExprInternal(k, args);
 }
   
 Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<Expr>& args)
@@ -803,6 +804,16 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<Expr>& arg
     // evaluation is indepdent of whether it is a literal
     bool ret = args[0]==args[1];
     return ret ? d_state.mkTrue() : d_state.mkFalse();
+  }
+  else if (k==Kind::EVAL_IF_THEN_ELSE)
+  {
+    // temporary
+    Literal * l = d_state.getLiteral(args[0].get());
+    if (l!=nullptr && l->d_tag==Literal::BOOL)
+    {
+      return args[l->d_bool ? 1 : 2];
+    }
+    return nullptr;
   }
   // convert argument expressions to literals
   std::vector<Literal*> lits;

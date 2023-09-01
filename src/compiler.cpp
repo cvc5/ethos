@@ -383,9 +383,17 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
     if (it==visited.end())
     {
       visited.insert(cur);
-      for (Expr& c : children)
+      if (false && cur->getKind()==Kind::EVAL_IF_THEN_ELSE)
       {
-        visit.push_back(c.get());
+        // only push the condition
+        visit.push_back(children[0].get());
+      }
+      else
+      {
+        for (Expr& c : children)
+        {
+          visit.push_back(c.get());
+        }
       }
     }
     else
