@@ -55,6 +55,8 @@ CmdParser::CmdParser(Lexer& lex,
   d_table["set-info"] = Token::SET_INFO;
   d_table["set-option"] = Token::SET_OPTION;
   d_table["step"] = Token::STEP;
+  
+  d_statsEnabled = d_state.getOptions().d_stats;
 }
 
 Token CmdParser::nextCommandToken()
@@ -559,7 +561,14 @@ bool CmdParser::parseNextCommand()
         d_lex.parseError("Expected rule in step");
       }
       std::string ruleName = d_eparser.parseSymbol();
-      Expr rule = d_eparser.getVar(ruleName);
+      Expr rule = d_eparser.getProofRule(ruleName);
+      RuleStat * rs = nullptr;
+      if (d_statsEnabled)
+      {
+        Stats& s = d_state.getStats();
+        rs = &s.d_rstats[rule.get()];
+        RuleStat::start(s);
+      }
       // parse premises, optionally
       if (d_lex.peekToken()==Token::KEYWORD)
       {
@@ -642,6 +651,13 @@ bool CmdParser::parseNextCommand()
       if (isPop)
       {
         d_state.popAssumptionScope();
+      }
+      if (d_statsEnabled)
+      {
+        Assert (rs!=nullptr);
+        Stats& s = d_state.getStats();
+        // increment the stats
+        rs->increment(s);
       }
     }
     break;

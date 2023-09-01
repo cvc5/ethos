@@ -87,8 +87,6 @@ int main( int argc, char* argv[] )
     std::cout << "GEN-COMPILE" << std::endl;
     std::cout << c->toString() << std::endl;
   }
-  std::cout << "----" << std::endl;
   std::cout << stats.toString();
-  std::cout << "----" << std::endl;
   return 0;
 }

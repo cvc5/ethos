@@ -989,6 +989,18 @@ Expr ExprParser::getVar(const std::string& name)
   return ret;
 }
 
+Expr ExprParser::getProofRule(const std::string& name)
+{
+  Expr v = getVar(name);
+  if (v->getKind()!=Kind::PROOF_RULE)
+  {
+    std::stringstream ss;
+    ss << "Expected proof rule for " << name;
+    d_lex.parseError(ss.str());
+  }
+  return v;
+}
+
 void ExprParser::bind(const std::string& name, Expr& e)
 {
   if (!d_state.bind(name, e))

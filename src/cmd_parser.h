@@ -35,6 +35,8 @@ class CmdParser
   std::map<std::string, Token> d_table;
   /** Is finished */
   bool d_isFinished;
+  /** Stats enabled? */
+  bool d_statsEnabled;
 };
 
 }  // namespace alfc

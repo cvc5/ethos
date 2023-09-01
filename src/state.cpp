@@ -778,6 +778,11 @@ Options& State::getOptions()
   return d_opts;
 }
 
+Stats& State::getStats()
+{
+  return d_stats;
+}
+
 Compiler* State::getCompiler()
 {
   return d_compiler.get();

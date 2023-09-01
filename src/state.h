@@ -113,6 +113,8 @@ public:
   TypeChecker& getTypeChecker();
   /** Get options */
   Options& getOptions();
+  /** Get stats */
+  Stats& getStats();
   /** Get compiler */
   Compiler* getCompiler();
   /** */
