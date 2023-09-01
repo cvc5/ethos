@@ -96,26 +96,10 @@
 ;      multiple `and_intro` steps.
 ; `args` is a conjunction where the alternating conjuncts are polarity and
 ;        pivot literal.
-; TODO: use generic lists for `args` instead of a conjunction.
 (declare-rule chain_resolution ((Cs Bool) (args Bool))
     :premise-list Cs and
     :args (args)
     :conclusion (chainResolve Cs args)
-)
-
-; MACRO_RESOLUTION_TRUST
-; MACRO_RESOLUTION
-; These rules do not perform any checks.
-; TODO: implement some checking for MACRO_RESOLUTION
-(declare-rule macro_resolution_trust ((C Bool) (Cs Bool) (args Bool))
-    :premises (Cs)
-    :args (C args)
-    :conclusion C
-)
-(declare-rule macro_resolution ((C Bool) (Cs Bool) (args Bool))
-    :premises (Cs)
-    :args (C args)
-    :conclusion C
 )
 
 ; FACTORING
@@ -421,11 +405,4 @@
 (declare-rule cnf_ite_neg3 ((C Bool) (F1 Bool) (F2 Bool))
     :args ((ite C F1 F2))
     :conclusion (or (ite C F1 F2) (not F1) (not F2))
-)
-
-; SAT_REFUTATION
-; trust rule
-(declare-rule sat_refutation ((Fs Bool))
-    :premises (Fs)
-    :conclusion false
 )
