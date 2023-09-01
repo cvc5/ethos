@@ -65,6 +65,28 @@
           alf.fail)))
 )
 
+; the PfRule::CONCAT_CONFLICT rule, for strings only
+(declare-rule concat_conflict ((s String) (t String) (rev Bool))
+  :premises ((= s t))
+  :args (rev)
+  :conclusion
+    ; strip the prefix of the equality
+    (alf.match ((ss String) (ts String))
+      (strip_prefix
+           (string_to_flat_form String s rev)
+           (string_to_flat_form String t rev))
+      ((pair ss ts)
+          ; ensure the LHS is char or empty
+          (let ((cs (string_first_char_or_empty ss)))
+          (alf.ite (alf.is_eq cs alf.fail) alf.fail
+            ; ensure the RHS is char or empty
+            (let ((ct (string_first_char_or_empty ts)))
+            (alf.ite (alf.is_eq ct alf.fail) alf.fail
+              ; ensure they are disequal, return false
+              (alf.ite (alf.is_eq cs ct) alf.fail false)))))
+          ))
+)
+
 ;;;;;;;;;; Regular expressions
 
 
