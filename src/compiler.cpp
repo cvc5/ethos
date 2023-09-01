@@ -476,7 +476,9 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
             branches.push_back(d_global.getNameFor(branch));
             continue;
           }
-          
+          // NOTE: this is worst-case exponential size for the C++ code
+          // generated, for branches that share subterms. We should factor
+          // out common subterms from the branches here.
           // determine if we should compute this branch
           osite << "  if (!_btmp || " << (i==1 ? "!" : "") << "_btmp2)" << std::endl;
           osite << "  {" << std::endl;

@@ -11,7 +11,8 @@ TODO:
 - Temporary memory allocation of Expr within calls to evaluation?
 - minimize compiled code by recognizing alpha-equivalent patterns
     - parameters can be shared??
-- lazy construction of definitions?
+- lazy construction of definitions when compiled?
+- non-exponential alf.ite compilation
 
 COMPLETED:
 

@@ -2,10 +2,12 @@
 
 (include "./Builtin.smt2")
 (include "./Booleans.smt2")
+(include "../theories/Arrays.smt2")
 (include "./Uf.smt2")
 (include "./Arith.smt2")
+(include "../theories/BitVectors.smt2")
 (include "./Strings.smt2")
-
+(include "../theories/Sets.smt2")
 
 
 ; skolems

@@ -1,36 +1,33 @@
 ; Since we don't have full support for scopes, we just import all of Ints for now
 (include "../theories/Ints.smt2")
 
-(declare-type BitVec (Int)) 
+;(declare-const BitVec 
+;  (-> 
+;    (! Int :var w)
+;    (! Type :requires ((alf.is_neg w) false))))
 
-;(declare-const to_int (-> (! Int :var m :implicit) (BitVec m) Int))
-(declare-const to_bv (-> (! Int :var m) Int (BitVec m)))
-;(declare-const to_bv (-> Bool (BitVec 1)))
+(declare-const BitVec (-> Int Type))
+; TODO: requires
+(declare-consts <binary> (BitVec (alf.len alf.self)))
+(declare-consts <hexadecimal> (BitVec (alf.len alf.self)))
 
-(declare-const bvempty (BitVec 0))
+(declare-const concat (->
+  (! Int :var n :implicit)
+  (! Int :var m :implicit)
+  (BitVec n)
+  (BitVec m)
+  (BitVec (alf.add n m))))
 
-(declare-const <binary>
-    (-> (! Int :var m :implicit)
-        (BitVec m)))
-
-(declare-const <hexadecimal>
-    (-> (! Int :var m :implicit) 
-        (BitVec m)))
-
-(declare-const concat 
-    (-> (! Int :var i :implicit) 
-        (! Int :var j :implicit) 
-        (! Int :var k :implicit) 
-        (BitVec i) (BitVec j)
-        (BitVec k))
-)
-
-(declare-const extract
-    (-> (! Int :var m :implicit) 
-        (! Int :var i) 
-        (! Int :var j)
-        (! Int :var k :implicit)
-        (BitVec m) (BitVec k))
+(declare-const extract (->
+  (! Int :var n :implicit)
+  (! Int :var h)
+  (! Int :var l)
+  (BitVec n)
+  (!
+    (BitVec (alf.add h (alf.add (alf.neg l) 1)))
+      :requires ((alf.is_neg l) false)
+      ; TODO: more conditions
+  ))
 )
 
 (declare-const repeat 
