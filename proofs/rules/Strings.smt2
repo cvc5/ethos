@@ -24,6 +24,39 @@
 )
 
 
+; returns true if s1 is a prefix of s, taking into account flattening
+; TODO: needs testing
+(define string_is_prefix ((U Type) (s U) (s1 U) (rev Bool))
+  (let ((sf (string_to_flat_form U s rev)))
+  (let ((sf1 (string_to_flat_form U s1 rev)))
+  (nary.is_prefix str.++ sf1 sf))))
+
+(declare-rule concat_unify ((U Type) (s U) (t U) (s1 U) (t1 U) (rev Bool))
+  :premises ((= s t) (= (str.len s1) (str.len t1)))
+  :args (U rev)
+  :requires (((string_is_prefix U s s1 rev) true) ((string_is_prefix U t t1 rev) true))
+  :conclusion (= s1 t1))
+
+(declare-rule concat_csplit ((U Type) (t U) (s U) (u U) (rev Bool))
+  :premises ((= t s) (not (= (str.len u) 0)))
+  :args (U rev)
+  :conclusion
+    (alf.match ((t1 U) (t2 U :list))
+      (string_to_flat_form U t rev)
+      ((str.++ t1 t2)
+        (alf.ite (alf.is_eq t1 u)
+          (alf.match ((s1 U) (s2 U :list))
+            (string_to_flat_form U s rev)
+            ((str.++ s1 s2)
+              (alf.ite (check_length_one s1)    ; checks if char
+                (= u
+                  (alf.ite rev
+                    (str.++ (skolem (skolem_prefix U u (- (str.len u) 1))) s1)
+                    (str.++ s1 (skolem (skolem_suffix_rem U u 1)))))
+                alf.fail)))
+          alf.fail)))
+)
+
 
 (declare-rule string_length_pos ((U Type) (s U))
   :args (U s)

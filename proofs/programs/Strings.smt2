@@ -73,9 +73,6 @@
 ; Decompose str.++ term t of sort u into a head and tail.
 ;(program string_decompose ((t term) (u sort)) termPair (nary.decompose str.++ t (mk_emptystr u)))
 
-; String is prefix, returns tt if t1 of sort u is a prefix of t2
-;(program string_is_prefix ((t1 term) (t2 term) (u sort)) flag (nary.is_prefix str.++ t1 t2))
-
 ; Insert a string into str.++ term t of sort u.
 ;(program string_insert ((elem term) (t term) (u sort)) term (nary.insert str.++ elem t))
 
