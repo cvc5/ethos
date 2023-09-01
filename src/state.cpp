@@ -8,18 +8,12 @@
 
 namespace alfc {
 
-Options::Options() : d_compile(false), d_runCompile(false), d_printLet(true){}
-  
-Stats::Stats() : d_mkExprCount(0), d_exprCount(0), d_symCount(0), d_litCount(0){}
- 
-std::string Stats::toString()
+Options::Options()
 {
-  std::stringstream ss;
-  ss << "mkExprCount = " << d_mkExprCount << std::endl;
-  ss << "exprCount = " << d_exprCount << std::endl;
-  ss << "symCount = " << d_symCount << std::endl;
-  ss << "litCount = " << d_litCount << std::endl;
-  return ss.str();
+  d_compile = false;
+  d_runCompile = false;
+  d_printLet = false;
+  d_stats = false;
 }
 
 State::State(Options& opts, Stats& stats) : d_tc(*this), d_opts(opts), d_stats(stats), d_internalId(0)

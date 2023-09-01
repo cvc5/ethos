@@ -7,6 +7,7 @@
 #include <filesystem>
 
 #include "attr.h"
+#include "stats.h"
 #include "expr.h"
 #include "expr_info.h"
 #include "expr_trie.h"
@@ -23,17 +24,7 @@ public:
   bool d_compile;
   bool d_runCompile;
   bool d_printLet;
-};
-
-class Stats
-{
-public:
-  Stats();
-  size_t d_mkExprCount;
-  size_t d_exprCount;
-  size_t d_symCount;
-  size_t d_litCount;
-  std::string toString();
+  bool d_stats;
 };
 
 class State

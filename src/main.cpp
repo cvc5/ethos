@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include "base/output.h"
+#include "base/check.h"
 #include "state.h"
 
 using namespace alfc;
@@ -11,68 +12,70 @@ int main( int argc, char* argv[] )
   Options opts;
   Stats stats;
   // read the options
-  bool readOpt = false;
-  size_t i = 0;
+  size_t i = 1;
+  std::string file;
+  bool readFile = false;
   size_t nargs = static_cast<size_t>(argc);
-  do
+  while (i<nargs)
   {
+    std::string arg(argv[i]);
     i++;
-    readOpt = false;
-    if (i<nargs)
+    if (arg=="--gen-compile")
     {
-      std::string arg(argv[i]);
-      if (arg=="--gen-compile")
-      {
-        opts.d_compile = true;
-        readOpt = true;
-      }
-      else if (arg=="--run-compile")
-      {
-        opts.d_runCompile = true;
-        readOpt = true;
-      }
-      else if (arg=="--no-print-let")
-      {
-        opts.d_printLet = false;
-        readOpt = true;
-      }
-      else if (arg=="-t")
-      {
-        i++;
-        std::string targ(argv[i]);
+      opts.d_compile = true;
+    }
+    else if (arg=="--run-compile")
+    {
+      opts.d_runCompile = true;
+    }
+    else if (arg=="--no-print-let")
+    {
+      opts.d_printLet = false;
+    }
+    else if (arg=="--stats")
+    {
+      opts.d_stats = true;
+    }
+    else if (arg=="-t")
+    {
+      std::string targ(argv[i]);
+      i++;
 #ifdef ALFC_TRACING
-        TraceChannel.on(targ);
+      TraceChannel.on(targ);
 #else
-        std::cerr << "Tracing not enabled in this build" << std::endl;
-        exit(1);
+      Unhandled() << "Tracing not enabled in this build" << std::endl;
 #endif
-        readOpt = true;
-      }
-      else if (arg=="-v")
-      {
+    }
+    else if (arg=="-v")
+    {
 // enable all traces
 #ifdef ALFC_TRACING
-        TraceChannel.on("compiler");
-        TraceChannel.on("expr_parser");
-        TraceChannel.on("state");
-        TraceChannel.on("type_checker");
+      TraceChannel.on("compiler");
+      TraceChannel.on("expr_parser");
+      TraceChannel.on("state");
+      TraceChannel.on("type_checker");
 #else
-        std::cerr << "Tracing not enabled in this build" << std::endl;
-        exit(1);
+      Unhandled() << "Tracing not enabled in this build" << std::endl;
 #endif
-        readOpt = true;
-      }
     }
-  }while(readOpt);
+    else if (!readFile)
+    {
+      file = arg;
+      readFile = true;
+    }
+    else
+    {
+      Unhandled() << "Mulitple files specified, \"" << file << "\" and \"" << arg << "\"" << std::endl;
+    }
+  }
 
-  if (nargs!=i+1)
+  if (!readFile)
   {
-    std::cerr << "Usage: " << argv[0] << " <options>* <file>" << std::endl;
-    exit(1);
+    Unhandled() << "No file specified" << std::endl;
   }
   State s(opts, stats);
   // include the file
-  s.includeFile(argv[i]);
+  s.includeFile(file);
   std::cout << "success" << std::endl;
   if (opts.d_compile)
   {
