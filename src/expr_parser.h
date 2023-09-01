@@ -105,6 +105,8 @@ class ExprParser
   Expr typeCheck(Expr& e, const Expr& expected);
   /** get variable, else error */
   Expr getVar(const std::string& name);
+  /** get variable, else error */
+  Expr getProofRule(const std::string& name);
   /** Bind, or throw error otherwise */
   void bind(const std::string& name, Expr& e);
   /** Ensure bound */

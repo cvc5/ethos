@@ -7,6 +7,7 @@
 #include <filesystem>
 
 #include "attr.h"
+#include "stats.h"
 #include "expr.h"
 #include "expr_info.h"
 #include "expr_trie.h"
@@ -23,17 +24,7 @@ public:
   bool d_compile;
   bool d_runCompile;
   bool d_printLet;
-};
-
-class Stats
-{
-public:
-  Stats();
-  size_t d_mkExprCount;
-  size_t d_exprCount;
-  size_t d_symCount;
-  size_t d_litCount;
-  std::string toString();
+  bool d_stats;
 };
 
 class State
@@ -84,8 +75,6 @@ public:
   Expr mkConst(const std::string& name, const Expr& type);
   /** */
   Expr mkProgramConst(const std::string& name, const Expr& type);
-  /** No name */
-  Expr mkProgramConst(const Expr& type);
   /** */
   Expr mkProofRule(const std::string& name, const Expr& type);
   /** alf.nil */
@@ -122,6 +111,8 @@ public:
   TypeChecker& getTypeChecker();
   /** Get options */
   Options& getOptions();
+  /** Get stats */
+  Stats& getStats();
   /** Get compiler */
   Compiler* getCompiler();
   /** */
@@ -139,6 +130,8 @@ public:
   void defineConstructor(const Expr& c, const std::vector<Expr>& sels);
   /** Define datatype */
   void defineDatatype(const Expr& d, const std::vector<Expr>& cons);
+  /** Print compiled files (for --show-config) */
+  static std::string showCompiledFiles();
 private:
   /** Common constants */
   Expr d_type;
@@ -207,8 +200,6 @@ private:
   Stats& d_stats;
   /** Compiler, if compiling code */
   std::unique_ptr<Compiler> d_compiler;
-  /** Internal name counter */
-  size_t d_internalId;
 };
 
 }  // namespace alfc

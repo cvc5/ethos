@@ -210,21 +210,24 @@
 ;   (and (= x (str.++ t1 ... tn)) M)
 ; We use the optimization that Rj may be (str.to_re tj); otherwise tj is an
 ; application of the unfolding skolem program @k.RE_UNFOLD_POS_COMPONENT.
-(program re_unfold_pos_concat_step ((t String) (s String) (c String :list) (r RegLan) (ro RegLan) (i Int) (M Bool :list))
-  (String RegLan RegLan Int (Pair String Bool)) Bool
-  (
-    ((re_unfold_pos_concat_step t (str.to_re s) ro i (pair c M))
-        (pair (str.++ s c) M))
-    ((re_unfold_pos_concat_step t r ro i (pair (= t c) M))
-        (let ((k (skolem (@k.RE_UNFOLD_POS_COMPONENT t ro i))))
-        (pair (str.++ k c) (and (str.in_re k r) M))))
-  )
-)
 (program re_unfold_pos_concat_rec ((t String) (r1 RegLan) (r2 RegLan :list) (ro RegLan) (i Int))
   (String RegLan RegLan Int) (Pair String Bool)
   (
     ((re_unfold_pos_concat_rec t alf.nil ro i)       (pair alf.nil alf.nil))
-    ((re_unfold_pos_concat_rec t (re.++ r1 r2) ro i) (re_unfold_pos_concat_step t r1 ro i (re_unfold_pos_concat_rec t r2 ro (alf.add i 1))))
+    ((re_unfold_pos_concat_rec t (re.++ r1 r2) ro i)
+      ; match recursive call
+      (alf.match ((c String :list) (M Bool :list))
+        (re_unfold_pos_concat_rec t r2 ro (alf.add i 1))
+        ((pair c M)
+          ; match on what r1 is
+          (alf.match ((s String) (r RegLan))
+            r1
+            ; a constant regular expression, append s
+            ((str.to_re s) (pair (str.++ s c) M))
+            ; otherwise, make the skolem and append with constraint
+            (r             (let ((k (skolem (@k.RE_UNFOLD_POS_COMPONENT t ro i))))
+                           (pair (str.++ k c) (and (str.in_re k r) M)))))))
+    )
   )
 )
 (define-fun re_unfold_pos_concat ((t String) (r RegLan)) (Pair String Bool)

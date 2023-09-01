@@ -5,15 +5,14 @@ TODO:
 - arity overloading?
 - remove closure parsing?
 - check type preservation for evaluation?
+  - more generally: a weaker type system for program bodies??
 - separate symbol table for proof rules?
 - ensure assumption scope level is preserved per include file
 - Temporary memory allocation of Expr within calls to evaluation?
 - show compiled files via --show-config
-- generalize CLI
 - proper compilation of alf.ite / alf.is_eq
 - minimize compiled code by recognizing alpha-equivalent patterns
     - parameters can be shared??
-- failures in side conditions?
 
 COMPLETED:
 
@@ -30,3 +29,5 @@ COMPLETED:
 - alf.is_eq not just literals
 - change @ to _
 - :requires for implicit is dropped, maybe simplify
+- failures in side conditions?
+- generalize CLI

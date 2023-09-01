@@ -109,6 +109,11 @@ Compiler::Compiler(State& s) :
   d_decl << "std::map<ExprValue*, size_t> _runId;" << std::endl;
   d_decl << "Ctx _ctxTmp;" << std::endl;
   d_decl << "Expr _etmp;" << std::endl;
+  d_config << "std::string State::showCompiledFiles()" << std::endl;
+  d_config << "{" << std::endl;
+  d_config << "  std::stringstream ss;" << std::endl;
+  d_configEnd << "  return ss.str();" << std::endl;
+  d_configEnd << "}" << std::endl;
   d_init << "void State::run_initialize()" << std::endl;
   d_init << "{" << std::endl;
   d_initEnd << "}" << std::endl;
@@ -181,6 +186,7 @@ void Compiler::includeFile(const std::string& s)
     return;
   }
   d_init << "  markIncluded(\"" << s << "\");" << std::endl;
+  d_config << "  ss << std::setw(15) << \" \" << \"" << s << "\" << std::endl;" << std::endl;
 }
 
 void Compiler::addAssumption(const Expr& a)
@@ -810,6 +816,8 @@ std::string Compiler::toString()
   ss << "namespace alfc {" << std::endl;
   ss << std::endl;
   ss << d_decl.str() << std::endl;
+  ss << d_config.str();
+  ss << d_configEnd.str() << std::endl;
   ss << d_init.str();
   ss << d_initEnd.str() << std::endl;
   ss << d_tc.str();
