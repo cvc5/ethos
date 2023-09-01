@@ -322,19 +322,13 @@
 ; whose first component corresponds to a word constant, and whose second
 ; component is a str.++ application whose first element is not a character.
 ; For example, for:
-;   (str.++ "A" (str.++ "B" (str.++ x "")))
+;   (str.++ "A" (str.++ "B" (str.++ x alf.nil)))
 ; We return:
-;   (pair (str.++ "A" (str.++ "B" "")) (str.++ x ""))
-(program string_collect_word ((t1 String) (t2 String :list))
-  (String) String
-  (
-    ((string_collect_word (str.++ t1 t2)) (alf.concat t1 (string_collect_word t2)))
-    ((string_collect_word alf.nil)        alf.nil)
-  )
-)
+;   (pair "AB" (str.++ x alf.nil))
 (program string_collect_acc ((U Type) (t U) (tail String :list))
   (U) (Pair U U)
   (
+    ; TODO: sequences
     ; Check if t is a word constant
     ((string_collect_acc (str.++ t tail))
       (alf.ite (check_length_one t)
@@ -344,7 +338,7 @@
           ((pair s1 s2)       (pair (alf.concat t s1) s2))    ; concatentate the constant
         )
         (pair alf.nil (str.++ t tail))))
-    ((string_collect_acc t)               (pair alf.nil t))   ; note could just return alf.nil
+    ((string_collect_acc alf.nil)            (pair alf.nil alf.nil))
   )
 )
 
@@ -362,10 +356,10 @@
     ((string_collect (str.++ t s))
       (alf.match ((s1 U) (s2 U))
         (string_collect_acc (str.++ t s))
-        ; did not strip a constant prefix, just append t to the result
+        ; did not strip a constant prefix, just append t to the result of processing s
         ((pair alf.nil s2)
           (nary.append str.++ t (string_collect s)))
-        ; stripped a constant prefix, must eliminate singleton and append
+        ; stripped a constant prefix, append it to second term in the pair
         ((pair s1 s2)
           (nary.append str.++ s1 (string_collect s2)))
       )
