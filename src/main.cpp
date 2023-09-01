@@ -36,6 +36,33 @@ int main( int argc, char* argv[] )
     {
       opts.d_stats = true;
     }
+    else if (arg=="--show-config")
+    {
+      std::stringstream out;
+      out << "This is alfc version 0.0." << std::endl;
+      out << std::endl;
+      size_t w = 30;
+      out << std::setw(w) << "tracing : ";
+#ifdef ALFC_TRACING
+      out << "yes";
+#else
+      out << "no";
+#endif
+      out << std::endl;
+      out << std::setw(w) << "compiled : ";
+      std::string cfiles = State::showCompiledFiles();
+      if (!cfiles.empty())
+      {
+        out << "yes" << std::endl;
+        out << cfiles;
+      }
+      else
+      {
+        out << "no" << std::endl;
+      }
+      std::cout << out.str();
+      return 0;
+    }
     else if (arg=="-t")
     {
       std::string targ(argv[i]);
@@ -54,6 +81,7 @@ int main( int argc, char* argv[] )
       TraceChannel.on("expr_parser");
       TraceChannel.on("state");
       TraceChannel.on("type_checker");
+      TraceChannel.on("compile");
 #else
       Unhandled() << "Tracing not enabled in this build" << std::endl;
 #endif
@@ -84,8 +112,8 @@ int main( int argc, char* argv[] )
     fs << "/** ================ AUTO GENERATED ============ */" << std::endl;
     fs << c->toString() << std::endl;
     fs.close();
-    std::cout << "GEN-COMPILE" << std::endl;
-    std::cout << c->toString() << std::endl;
+    Trace("compile") << "GEN-COMPILE" << std::endl;
+    Trace("compile") << c->toString() << std::endl;
   }
   std::cout << stats.toString();
   return 0;

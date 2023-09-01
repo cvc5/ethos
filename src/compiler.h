@@ -159,6 +159,9 @@ private:
   size_t d_nscopes;
   /** Declarations? */
   std::stringstream d_decl;
+  /** code to be performed on --show-config */
+  std::stringstream d_config;
+  std::stringstream d_configEnd;
   /** code to be performed on initialization */
   std::stringstream d_init;
   std::stringstream d_initEnd;

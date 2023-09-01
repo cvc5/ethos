@@ -130,6 +130,8 @@ public:
   void defineConstructor(const Expr& c, const std::vector<Expr>& sels);
   /** Define datatype */
   void defineDatatype(const Expr& d, const std::vector<Expr>& cons);
+  /** Print compiled files (for --show-config) */
+  static std::string showCompiledFiles();
 private:
   /** Common constants */
   Expr d_type;
