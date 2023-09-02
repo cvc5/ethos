@@ -18,4 +18,5 @@
 
 ; generic variables
 ; NOTE: does not check that U is a numeral
+(declare-const const (-> (! Type :var U :implicit) U (! Type :var T) T))
 (declare-const var (-> (! Type :var U :implicit) U (! Type :var T) T))

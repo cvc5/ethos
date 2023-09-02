@@ -27,4 +27,6 @@
 
 (declare-const exists (-> (! Type :var A :implicit) A Bool))
 
+(declare-const lambda (-> (! Type :var A :implicit) (! Type :var B :implicit) A B (-> A B)))
+
 (declare-const distinct (-> (! Type :var A :implicit) A A Bool) :pairwise and)

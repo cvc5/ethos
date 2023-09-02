@@ -214,14 +214,12 @@
 
 (declare-const rotate_left
     (-> (! Int :var m :implicit)
-        (! Int :var i)
-        (BitVec m) (BitVec m))
+        Int (BitVec m) (BitVec m))
 )
  
 (declare-const rotate_right
     (-> (! Int :var m :implicit)
-        (! Int :var i)
-        (BitVec m) (BitVec m))
+        Int (BitVec m) (BitVec m))
 )
  
 (declare-const reduce_and
@@ -255,6 +253,42 @@
         Int (BitVec m) Bool))
 
 
+(declare-const bvuaddo
+  (-> (! Int :var m :implicit)
+      (BitVec m) (BitVec m) (BitVec m))
+)
+
+(declare-const bvsaddo
+  (-> (! Int :var m :implicit)
+      (BitVec m) (BitVec m) (BitVec m))
+)
+
+(declare-const bvumulo
+  (-> (! Int :var m :implicit)
+      (BitVec m) (BitVec m) (BitVec m))
+)
+
+(declare-const bvsmulo
+  (-> (! Int :var m :implicit)
+      (BitVec m) (BitVec m) (BitVec m))
+)
+
+(declare-const bvusubo
+  (-> (! Int :var m :implicit)
+      (BitVec m) (BitVec m) (BitVec m))
+)
+
+(declare-const bvssubo
+  (-> (! Int :var m :implicit)
+      (BitVec m) (BitVec m) (BitVec m))
+)
+
+(declare-const bvsdivo
+  (-> (! Int :var m :implicit)
+      (BitVec m) (BitVec m) (BitVec m))
+)
+
+
 (declare-const bbT (->
   (! Type :var U :implicit)
   Bool
@@ -274,10 +308,6 @@
 
 
 ; Internal definitions for Bitblasting
-;(declare f_bbT term)
-;(define bbT (# x term (# y term (apply (apply f_bbT x) y))))
-;(declare f_bitOf (! b mpz term))
-;(define bitOf (# b mpz (# x term (apply (f_bitOf b) x))))
 ;(declare f_BITVECTOR_EAGER_ATOM term)
 ;(define BITVECTOR_EAGER_ATOM (# x term (apply f_BITVECTOR_EAGER_ATOM x)))
 ;(declare f_BITVECTOR_ITE term)

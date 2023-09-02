@@ -18,3 +18,6 @@
 (declare-const arcsec (-> Real Real))
 (declare-const arccot (-> Real Real))
 (declare-const sqrt (-> Real Real))
+
+;SQRT
+;TRANSCENDENTAL_PURIFY_ARG

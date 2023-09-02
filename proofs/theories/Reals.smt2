@@ -11,3 +11,6 @@
                            (! Type :var U :implicit)
                            T U
                            (! Real :requires ((is_arith_type T) true) :requires ((is_arith_type U) true))) :left-assoc)
+
+;DIV_BY_ZERO
+(declare-const @k.DIV_BY_ZERO (-> Real Real))
