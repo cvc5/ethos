@@ -102,11 +102,23 @@
     :conclusion (not F)
 )
 
+
 ; HO_CONG
-(declare-rule ho_cong ((T Type) (U Type) (f (-> T U)) (g (-> T U)) (t1 T) (t2 T))
-    :premises ((= f g) (= t1 t2))
+(program mk_ho_cong ((T Type) (U Type) (f1 (-> T U)) (f2 (-> T U)) (t1 U) (t2 U) (tail Bool :list))
+    (U U Bool) Bool
+    (
+        ((mk_ho_cong f1 f2 (and (= t1 t2) tail)) (mk_ho_cong (f1 t1) (f2 t2) tail))
+        ((mk_ho_cong t1 t2 alf.nil)              (= t1 t2))
+    )
+)
+
+(declare-rule ho_cong ((T Type) (U Type) (E Bool) (f (-> T U)))
+    :premise-list E and
     :args ()
-    :conclusion (= (f t1) (g t2))
+    :conclusion
+        (alf.match ((t1 U) (t2 U) (tail Bool :list))
+        E
+        ((and (= t1 t2) tail) (mk_ho_cong t1 t2 tail)))
 )
 
 ; HO_APP_ENCODE
