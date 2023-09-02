@@ -270,9 +270,24 @@ Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool 
 
 Expr State::mkRequiresType(const std::vector<Expr>& args, const Expr& ret)
 {
-  std::vector<Expr> atypes(args.begin(), args.end());
-  atypes.push_back(ret);
-  return mkExprInternal(Kind::REQUIRES_TYPE, atypes);
+  Expr curr = ret;
+  for (size_t i=0, nargs=args.size(); i<nargs; i++)
+  {
+    size_t ii = (nargs-1)-i;
+    Assert (args[ii]->getKind()==Kind::PAIR);
+    curr = mkRequiresType((*args[ii].get())[0], (*args[ii].get())[1], curr);
+  }
+  return curr;
+}
+
+Expr State::mkRequiresType(const Expr& a1, const Expr& a2, const Expr& ret)
+{
+  if (a1==a2)
+  {
+    // trivially equal to return
+    return ret;
+  }
+  return mkExprInternal(Kind::REQUIRES_TYPE, {a1, a2, ret});
 }
 
 Expr State::mkAbstractType()

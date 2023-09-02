@@ -150,6 +150,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs)
     case Kind::EVAL_CONCAT:
     case Kind::EVAL_TO_BV:
       return nargs==2;
+    case Kind::PROOF_TYPE:
     case Kind::EVAL_NOT:
     case Kind::EVAL_NEG:
     case Kind::EVAL_IS_NEG:
@@ -159,6 +160,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs)
     case Kind::EVAL_TO_RAT:
     case Kind::EVAL_TO_STRING:
       return nargs==1;
+    case Kind::REQUIRES_TYPE:
     case Kind::EVAL_IF_THEN_ELSE:
     case Kind::EVAL_EXTRACT:
       return nargs==3;
@@ -218,17 +220,6 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
     }
       return d_state.mkType();
     case Kind::REQUIRES_TYPE:
-      for (size_t i=0, nreq = e->d_children.size()-1; i<nreq; i++)
-      {
-        if (e->d_children[i]->getKind()!=Kind::PAIR)
-        {
-          if (out)
-          {
-            (*out) << "Non-pair for requires";
-          }
-          return nullptr;
-        }
-      }
       return d_state.mkType();
     case Kind::QUOTE_TYPE:
       // anything can be quoted
@@ -289,7 +280,7 @@ Expr TypeChecker::getTypeApp(std::vector<Expr>& children, std::ostream* out)
     // non-function at head
     if (out)
     {
-      (*out) << "Non-function as head of APPLY";
+      (*out) << "Non-function " << hd << " as head of APPLY";
     }
     return nullptr;
   }
@@ -549,27 +540,13 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
             return cur;
           case Kind::REQUIRES_TYPE:
           {
-            // see if all requirements are met
-            bool reqMet = true;
-            for (size_t i=0, nreq = cchildren.size()-1; i<nreq; i++)
+            // see requirement is met
+            if (cchildren[0]==cchildren[1])
             {
-              Expr& req = cchildren[i];
-              Assert(req->getKind() == Kind::PAIR);
-              Expr e1 = (*req.get())[0];
-              Expr e2 = (*req.get())[1];
-              if (e1!=e2)
-              {
-                reqMet = false;
-                Trace("type_checker")
-                    << "REQUIRES: failed " << (*children[i].get())[0] << " == " << (*children[i].get())[0] << " in " << cctx << std::endl;
-                break;
-              }
+              evaluated = cchildren[2];
             }
-            // If requirements are met, (requires ... T) evaluates to T.
-            if (reqMet)
-            {
-              evaluated = cchildren.back();
-            }
+            Trace("type_checker")
+                << "REQUIRES: failed " << children[0] << " == " << children[1] << " in " << cctx << std::endl;
           }
             break;
           case Kind::APPLY:

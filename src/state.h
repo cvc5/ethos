@@ -57,6 +57,8 @@ public:
   Expr mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool flatten = true);
   /** (requires <pair>+ <type>) */
   Expr mkRequiresType(const std::vector<Expr>& args, const Expr& ret);
+  /** (requires <arg1> <arg2> <type>) */
+  Expr mkRequiresType(const Expr& a1, const Expr& a2, const Expr& ret);
   /** ? */
   Expr mkAbstractType();
   /** Bool */

@@ -518,6 +518,19 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         os << "    " << cs.d_prefix << ret << " = _btmp2 ? " << branches[0] << " : " << branches[1] << ";" << std::endl;
         os << "  }" << std::endl;
       }
+      else if (ck==Kind::REQUIRES_TYPE && cs.d_progEval)
+      {
+        // call mkRequiresType, which simplifies
+        std::string a1 = s.getNameFor(children[0]);
+        std::string a2 = s.getNameFor(children[1]);
+        std::string a3= s.getNameFor(children[2]);
+        os << "    " << cs.d_prefix << ret << " = ";
+        if (!cs.isGlobal())
+        {
+          os << "d_state.";
+        }
+        os << "mkRequiresType(" << a1 << ", " << a2 << ", " << a3 << ");" << std::endl;
+      }
       else
       {
         std::stringstream argList;
@@ -671,48 +684,9 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
       Assert(iti != pscope.d_idMap.end());
       localImpl << "  " << pprefix << iti->second << " = _e" << id << ";" << std::endl;
     }
-    // handle requires return type inlined
-    if (retType->getKind()==Kind::REQUIRES_TYPE)
-    {
-      do
-      {
-        // construct each pair
-        std::vector<Expr>& rchildren = retType->d_children;
-        for (size_t i = 0, nreqs = rchildren.size()-1; i<nreqs; i++)
-        {
-          Expr& req = rchildren[i];
-          localImpl << "  // handle requirement " << req << std::endl;
-          std::vector<std::string> vals;
-          for (size_t j=0; j<2; j++)
-          {
-            Expr ei = (*req.get())[j];
-            std::string ret;
-            if (ExprValue::hasVariable(ei, varsAssigned))
-            {
-              // note this will ensure that the returned term is evaluated
-              writeExprInternal(ei, pscope);
-              ret = pscope.getNameFor(ei);
-            }
-            else
-            {
-              writeGlobalExpr(ei);
-              ret = d_global.getNameFor(ei);
-            }
-            vals.push_back(ret);
-          }
-          localImpl << "  if (" << vals[0] << "!=" << vals[1] << ")" << std::endl;
-          localImpl << "  {" << std::endl;
-          localImpl << "    if (out) { (*out) << \"Failed compiled requirement: \" << " << vals[0] << " << \" == \" << " << vals[1] << "; }" << std::endl;
-          localImpl << "    return nullptr;" << std::endl;
-          localImpl << "  }" << std::endl;
-        }
-        // write the requires here
-        retType = rchildren[rchildren.size()-1];
-      } while (retType->getKind()==Kind::REQUIRES_TYPE);
-      // recompute whether the return type has free variables, since they
-      // may have only occurred in requirements
-      usedMatch = ExprValue::hasVariable(retType, varsAssigned);
-    }
+    // TODO: optimization: if free variables only occur in requires conditions,
+    // we can set usedMatch to false
+
     std::string ret;
     localImpl << "  // construct return type" << std::endl;
     // if ground, write the construction of the return type statically in declarations

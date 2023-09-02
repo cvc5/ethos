@@ -5,6 +5,7 @@
 (include "../theories/Arrays.smt2")
 (include "./Uf.smt2")
 (include "./Arith.smt2")
+(include "../theories/Transcendentals.smt2")
 (include "../theories/BitVectors.smt2")
 (include "./Strings.smt2")
 (include "../theories/Sets.smt2")
