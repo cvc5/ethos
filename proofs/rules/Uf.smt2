@@ -24,38 +24,38 @@
 )
 
 ; TRANS
-(program mk_trans ((U Type) (t1 U) (t2 U) (tail Bool :list))
-    (Bool) Bool
+; note that we assume that there is never exactly one premise
+(program mk_trans ((U Type) (t1 U) (t2 U) (t3 U) (t4 U) (tail Bool :list))
+    (U U Bool) Bool
     (
-        ((mk_trans alf.nil)               alf.nil)
-        ((mk_trans (= t1 t2))             (= t1 t2))
-        ((mk_trans (and (= t1 t2) tail))
-            (alf.match ((t3 U) (t4 U))
-              (mk_trans tail)
-              (alf.nil    (= t1 t2))
-              ((= t3 t4)  (alf.ite (alf.is_eq t2 t3) (= t1 t4) alf.fail))))
+        ((mk_trans t1 t2 (and (= t3 t4) tail))
+            (alf.ite (alf.is_eq t2 t3) (mk_trans t1 t4 tail) alf.fail))
+        ((mk_trans t1 t2 alf.nil)              (= t1 t2))
     )
 )
 
 (declare-rule trans ((T Type) (U Type) (E Bool) (f (-> T U)))
     :premise-list E and
-    :conclusion (mk_trans E)
+    :conclusion
+        (alf.match ((t1 U) (t2 U) (tail Bool :list))
+        E
+        ((and (= t1 t2) tail) (mk_trans t1 t2 tail)))
 )
 
 ; CONG
 (program mk_cong ((T Type) (U Type) (f1 (-> T U)) (f2 (-> T U)) (t1 U) (t2 U) (tail Bool :list))
-    (Bool Bool) Bool
+    (U U Bool) Bool
     (
-        ((mk_cong (= f1 f2) alf.nil)              (= f1 f2))
-        ((mk_cong (= f1 f2) (= t1 t2))            (= (f1 t1) (f2 t2)))
-        ((mk_cong (= f1 f2) (and (= t1 t2) tail)) (mk_cong (= (f1 t1) (f2 t2)) tail))
+        ((mk_cong f1 f2 (and (= t1 t2) tail)) (mk_cong (f1 t1) (f2 t2) tail))
+        ((mk_cong t1 t2 alf.nil)              (= t1 t2))
+        ((mk_cong f1 f2 (= t1 t2))            (= (f1 t1) (f2 t2)))
     )
 )
 
 (declare-rule cong ((T Type) (U Type) (E Bool) (f (-> T U)))
     :premise-list E and
     :args (f)
-    :conclusion (mk_cong (= f f) E)
+    :conclusion (mk_cong f f E)
 )
 
 ; N-ary congruence
@@ -69,9 +69,8 @@
 (program mk_nary_cong_eq ((U Type) (f (-> U U)) (t1 U :list) (t2 U :list) (s1 U) (s2 U) (tail Bool :list))
     ((-> U U) Bool) Bool
     (
-        ((mk_nary_cong_eq f alf.nil)              (= alf.nil alf.nil))
-        ((mk_nary_cong_eq f (= s1 s2))            (= s1 s2))
         ((mk_nary_cong_eq f (and (= s1 s2) tail)) (add_nary_arg f s1 s2 (mk_nary_cong_eq f tail)))
+        ((mk_nary_cong_eq f alf.nil)              (= alf.nil alf.nil))
     )
 )
 
