@@ -296,15 +296,15 @@
 )
 
 ; CNF_OR_POS
-(declare-rule cnf_or_pos ((Fs Bool))
+(declare-rule cnf_or_pos ((Fs Bool :list))
     :args (Fs)
-    :conclusion (nary.append or (not Fs) Fs)
+    :conclusion (or (not Fs) Fs)
 )
 
 ; CNF_OR_NEG
 (declare-rule cnf_or_neg ((Fs Bool) (i Int))
     :args (Fs i)
-    :conclusion (nary.concat or Fs (nary.append or (not (nary.at or i Fs)) alf.nil))
+    :conclusion (or Fs (not (nary.at or i Fs)))
 )
 
 ; CNF_IMPLIES_POS

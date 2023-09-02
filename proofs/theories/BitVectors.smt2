@@ -55,15 +55,17 @@
 )
 
 (declare-const bvand
-    (-> (! Int :var m :implicit) 
-        (BitVec m) (BitVec m) (BitVec m))
-    :left-assoc
+    (-> (! Type :var U :implicit)
+        (! Int :var m :implicit)
+        (BitVec m) U (maybe_nil (BitVec m) U))
+    :right-assoc-nil
 )
 
 (declare-const bvor
-    (-> (! Int :var m :implicit) 
-        (BitVec m) (BitVec m) (BitVec m))
-    :left-assoc
+    (-> (! Type :var U :implicit)
+        (! Int :var m :implicit)
+        (BitVec m) U (maybe_nil (BitVec m) U))
+    :right-assoc-nil
 )
 
 (declare-const bvnand
@@ -77,9 +79,10 @@
 )
 
 (declare-const bvxor
-    (-> (! Int :var m :implicit) 
-        (BitVec m) (BitVec m) (BitVec m)) 
-    :left-assoc
+    (-> (! Type :var U :implicit)
+        (! Int :var m :implicit)
+        (BitVec m) U (maybe_nil (BitVec m) U))
+    :right-assoc-nil
 )
 
 (declare-const bvxnor
@@ -98,15 +101,17 @@
 )
 
 (declare-const bvadd
-    (-> (! Int :var m :implicit) 
-        (BitVec m) (BitVec m) (BitVec m)) 
-    :left-assoc
+    (-> (! Type :var U :implicit)
+        (! Int :var m :implicit)
+        (BitVec m) U (maybe_nil (BitVec m) U))
+    :right-assoc-nil
 )
 
 (declare-const bvmul
-    (-> (! Int :var m :implicit) 
-        (BitVec m) (BitVec m) (BitVec m))
-    :left-assoc
+    (-> (! Type :var U :implicit)
+        (! Int :var m :implicit)
+        (BitVec m) U (maybe_nil (BitVec m) U))
+    :right-assoc-nil
 )
 
 (declare-const bvudiv
