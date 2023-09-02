@@ -40,9 +40,9 @@
     ((L Type) (cons (-> L L L)) (c L) (x L) (xs L :list))
     ((-> L L L) L L) Bool
     (
-        ((nary.ctn cons c alf.nil) false)
         ((nary.ctn cons c (cons c xs)) true)
         ((nary.ctn cons c (cons x xs)) (nary.ctn cons c xs))
+        ((nary.ctn cons c alf.nil) false)
     )
 )
 
@@ -52,8 +52,8 @@
     ((L Type) (cons (-> L L L)) (c L) (t L) (xs L :list))
     ((-> L L L) L L) Bool
     (
-        ((nary.is_subset cons alf.nil t) true)
         ((nary.is_subset cons (cons c xs) t) (alf.ite (nary.ctn cons c t) (nary.is_subset cons xs t) false))
+        ((nary.is_subset cons alf.nil t) true)
     )
 )
 
@@ -63,8 +63,8 @@
     ((L Type) (cons (-> L L L)) (x L) (xs L :list) (ys L))
     ((-> L L L) L L) L
     (
-        ((nary.concat cons alf.nil ys) ys)
         ((nary.concat cons (cons x xs) ys) (nary.append cons x (nary.concat cons xs ys)))
+        ((nary.concat cons alf.nil ys) ys)
     )
 )
 
@@ -74,9 +74,9 @@
     ((L Type) (cons (-> L L L)) (c L) (y L) (xs L :list))
     ((-> L L L) L L) L
     (
-        ((nary.remove cons c alf.nil)     alf.nil)
         ((nary.remove cons c (cons c xs)) xs)
         ((nary.remove cons c (cons y xs)) (nary.append cons y (nary.remove cons c xs)))
+        ((nary.remove cons c alf.nil)     alf.nil)
     )
 )
 
@@ -85,8 +85,8 @@
     ((L Type) (cons (-> L L L)) (x L) (xs L :list) (l L :list))
     ((-> L L L) L L) L
     (
-        ((nary.reverseRec cons alf.nil  l)  l)
         ((nary.reverseRec cons (cons x xs) l) (nary.reverseRec cons xs (nary.append cons x l)))
+        ((nary.reverseRec cons alf.nil  l)  l)
     )
 )
 
@@ -133,6 +133,19 @@
     (
         ((nary.at cons 0 (cons x xs)) x)
         ((nary.at cons i (cons x xs)) (nary.at cons (alf.add i (alf.neg 1)) xs))
+        ((nary.at cons 0 alf.nil)     alf.fail)
+        ((nary.at cons 0 x)           x) ; if not in list form
+    )
+)
+
+; returns the number of children of the input
+(program nary.nchild
+    ((L Type) (I Type) (cons (-> L L L)) (i I) (x L) (xs L :list))
+    ((-> L L L) L) I
+    (
+        ((nary.nchild cons (cons x xs)) (alf.add 1 (nary.nchild cons xs)))
+        ((nary.nchild cons alf.nil)     0)
+        ((nary.nchild cons x)           1) ; if not in list form
     )
 )
 

@@ -405,7 +405,8 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
             std::vector<Expr> cc{hd, nullptr, nullptr};
             size_t nextIndex = isLeft ? 2 : 1;
             size_t prevIndex = isLeft ? 1 : 2;
-            if (isNil || ai->d_attrConsTerm!=nullptr)
+            // note the nil element is always treated as a list
+            if (curr->getKind()!=Kind::NIL && (isNil || ai->d_attrConsTerm!=nullptr))
             {
               AppInfo * ail = getAppInfo(curr.get());
               if (ail==nullptr || !ail->hasAttribute(Attr::LIST))

@@ -172,7 +172,7 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
   Kind k = e->getKind();
   if (!checkArity(k, e->getNumChildren()))
   {
-    (*out) << "Incorrect arity";
+    (*out) << "Incorrect arity for " << k;
     return nullptr;
   }
   switch(k)
@@ -300,7 +300,7 @@ Expr TypeChecker::getTypeApp(std::vector<Expr>& children, std::ostream* out)
     // incorrect arity
     if (out)
     {
-      (*out) << "Incorrect arity, #argTypes=" << hdtypes.size()
+      (*out) << "Incorrect arity for " << hd << ", #argTypes=" << hdtypes.size()
               << " #children=" << children.size();
     }
     return nullptr;
@@ -343,7 +343,7 @@ Expr TypeChecker::getTypeApp(std::vector<Expr>& children, std::ostream* out)
     {
       if (out)
       {
-        (*out) << "Unexpected argument type " << i << std::endl;
+        (*out) << "Unexpected argument type " << i << " of " << hd << std::endl;
         (*out) << "  LHS " << evaluate(hdtypes[i], ctx) << ", from " << hdtypes[i] << std::endl;
         (*out) << "  RHS " << ctypes[i] << std::endl;
       }

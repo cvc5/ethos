@@ -59,6 +59,7 @@
 )
 
 ; N-ary congruence
+; note that arguments are provided in reverse order to avoid intermediate node construction
 (program mk_nary_cong ((U Type) (f (-> U U)) (t1 U) (t2 U) (s1 U) (s2 U) (tail Bool :list))
     ((-> U U) U U Bool) Bool
     (

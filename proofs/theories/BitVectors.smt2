@@ -11,12 +11,23 @@
 (declare-consts <binary> (BitVec (alf.len alf.self)))
 (declare-consts <hexadecimal> (BitVec (alf.len alf.self)))
 
+(program bitwidth_maybe_nil ((n Int))
+  (Type) Int
+  (
+    ((bitwidth_maybe_nil (BitVec n)) n)
+    ((bitwidth_maybe_nil alf.nil) 0)
+  )
+)
+
 (declare-const concat (->
   (! Int :var n :implicit)
-  (! Int :var m :implicit)
+  (! Type :var U :implicit)
   (BitVec n)
-  (BitVec m)
-  (BitVec (alf.add n m))))
+  U
+  (BitVec (alf.add n (bitwidth_maybe_nil U)))) :right-assoc-nil)
+
+; does not work:
+;  (BitVec (alf.add n (alf.match ((m Int)) U (alf.nil 0) ((BitVec m) m))))) :right-assoc-nil)
 
 (declare-const extract (->
   (! Int :var n :implicit)
@@ -31,11 +42,10 @@
 )
 
 (declare-const repeat 
-    (-> Int 
-        (! Int :var m :implicit) 
-        (! Int :var n :implicit) 
-        (BitVec m)
+    (-> (! Int :var n :implicit)
+        (! Int :var i)
         (BitVec n)
+        (BitVec (alf.mul i n))
     ) 
 )
 
@@ -172,47 +182,43 @@
 
 (declare-const bvshl
     (-> (! Int :var m :implicit) 
-        (! Int :var n :implicit) 
-        (BitVec m) (BitVec n) (BitVec m))
+        (BitVec m) (BitVec m) (BitVec m))
 )
  
 (declare-const bvlshr
     (-> (! Int :var m :implicit) 
-        (! Int :var n :implicit) 
-    (BitVec m) (BitVec n) (BitVec m))
+    (BitVec m) (BitVec m) (BitVec m))
+)
+
+(declare-const bvashr
+    (-> (! Int :var m :implicit)
+    (BitVec m) (BitVec m) (BitVec m))
 )
 
 (declare-const zero_extend
-    (-> (! Int :var i) 
-        (! Int :var m :implicit) 
-        (! Int :var n :implicit) 
-        (BitVec m) (BitVec n))
+    (-> (! Int :var m :implicit)
+        (! Int :var i)
+        (BitVec m) (BitVec (alf.add m i)))
 )
 
 (declare-const sign_extend
-    (-> (! Int :var i) 
-        (! Int :var m :implicit) 
-        (! Int :var n :implicit) 
-        (BitVec m) (BitVec n))
+    (-> (! Int :var m :implicit)
+        (! Int :var i)
+        (BitVec m) (BitVec (alf.add m i)))
 )
 
 (declare-const rotate_left
-    (-> (! Int :var i) 
-        (! Int :var m :implicit) 
+    (-> (! Int :var m :implicit)
+        (! Int :var i)
         (BitVec m) (BitVec m))
 )
  
 (declare-const rotate_right
-    (-> (! Int :var i) 
-        (! Int :var m :implicit) 
+    (-> (! Int :var m :implicit)
+        (! Int :var i)
         (BitVec m) (BitVec m))
 )
  
-(declare-const pop_count
-    (-> (! Int :var m :implicit) 
-        (BitVec m) (BitVec m))
-)
-   
 (declare-const reduce_and
     (-> (! Int :var m :implicit) 
         (BitVec m) (BitVec 1))
@@ -237,3 +243,41 @@
     (-> (! Int :var m :implicit) 
         (BitVec m) (BitVec m) (BitVec 1))
 )
+
+
+(declare-const bitOf
+    (-> (! Int :var m :implicit)
+        Int (BitVec m) Bool))
+
+
+(declare-const bbT (->
+  (! Type :var U :implicit)
+  Bool
+  U
+  (BitVec (alf.add 1 (bitwidth_maybe_nil U)))) :right-assoc-nil)
+
+; if children packaged with AND
+;(program bitwidth_nchild ((P Bool))
+;  (Bool) Int
+;  (
+;    ((bitwidth_nchild P) (nary.nchild and (nary.intro and true P)))
+;  )
+;)
+;(declare-const bbT (->
+;  (! Bool :var P)
+;  (BitVec (bitwidth_nchild P))))
+
+
+; Internal definitions for Bitblasting
+;(declare f_bbT term)
+;(define bbT (# x term (# y term (apply (apply f_bbT x) y))))
+;(declare f_bitOf (! b mpz term))
+;(define bitOf (# b mpz (# x term (apply (f_bitOf b) x))))
+;(declare f_BITVECTOR_EAGER_ATOM term)
+;(define BITVECTOR_EAGER_ATOM (# x term (apply f_BITVECTOR_EAGER_ATOM x)))
+;(declare f_BITVECTOR_ITE term)
+;(define BITVECTOR_ITE (# x term (# y term (# z term (apply (apply (apply f_BITVECTOR_ITE x) y) z)))))
+;(declare f_BITVECTOR_SLTBV term)
+;(define BITVECTOR_SLTBV (# x term (# y term (apply (apply f_BITVECTOR_SLTBV x) y))))
+;(declare f_BITVECTOR_ULTBV term)
+;(define BITVECTOR_ULTBV (# x term (# y term (apply (apply f_BITVECTOR_ULTBV x) y))))
