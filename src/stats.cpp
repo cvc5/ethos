@@ -35,7 +35,7 @@ std::string RuleStat::toString(std::time_t totalTime) const
   std::stringstream st;
   double pct = static_cast<double>(100*d_time)/static_cast<double>(totalTime);
   st << d_time << " (" << std::fixed << std::setprecision(1) << pct << "%)";
-  ss << std::left << std::setw(15) << st.str();
+  ss << std::left << std::setw(17) << st.str();
   std::stringstream sc;
   sc << d_count;
   ss << std::left << std::setw(7) << sc.str();
@@ -87,7 +87,7 @@ std::string Stats::toString() const
   {
     ss << "===============================================================" << std::endl;
     ss << std::right << std::setw(26) << "Rule  ";
-    ss << std::left << std::setw(15) << "t";
+    ss << std::left << std::setw(17) << "t";
     ss << std::left << std::setw(7) << "#";
     ss << std::left << std::setw(7) << "t/#";
     ss << std::left << std::setw(7) << "#mkExpr";

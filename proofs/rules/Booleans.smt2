@@ -75,31 +75,33 @@
 )
 
 ; CHAIN_RESOLUTION
+; Applies multiple steps of resolution but leaves the first argument in n-ary form.
 (program chainResolveRec ((C1 Bool) (C2 Bool) (Cs Bool :list) (pol Bool) (L Bool) (args Bool :list))
     (Bool Bool Bool) Bool
     (
-        ((chainResolveRec C1 alf.nil alf.nil) C1)
-        ((chainResolveRec C1 (and C2 Cs) (and pol L args)) (chainResolveRec (resolve C1 C2 pol L) Cs args))
-    )
-)
-
-(program chainResolve ((C1 Bool) (Cs Bool :list) (args Bool))
-    (Bool Bool) Bool
-    (
-        ((chainResolve (and C1 Cs) args) (chainResolveRec C1 Cs args))
+        ((chainResolveRec C1 alf.nil alf.nil)              (nary.elim or false C1))
+        ((chainResolveRec C1 (and C2 Cs) (and pol L args))
+            (chainResolveRec
+                (let ((lp (alf.ite pol L (not L))))
+                (let ((ln (alf.ite pol (not L) L)))
+                    (nary.concat or
+                            (removeSelf lp C1)
+                            (removeSelf ln (nary.intro or false C2))))) Cs args))
     )
 )
 
 ; This is a chain or resolution steps as described in the cvc5 proof rule
 ; documentation.
-; `Cs` is a conjunction or the premise clauses.  This can be built by using
-;      multiple `and_intro` steps.
+; `Cs` is a conjunction or the premise clauses.
 ; `args` is a conjunction where the alternating conjuncts are polarity and
 ;        pivot literal.
 (declare-rule chain_resolution ((Cs Bool) (args Bool))
     :premise-list Cs and
     :args (args)
-    :conclusion (chainResolve Cs args)
+    :conclusion
+        (alf.match ((C1 Bool) (C2 Bool :list))
+            Cs
+            ((and C1 C2) (chainResolveRec (nary.intro or false C1) C2 args)))
 )
 
 ; FACTORING
