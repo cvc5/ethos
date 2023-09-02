@@ -13,3 +13,9 @@
 ; where we have:
 ;   (declare-const @k.ARRAY_DIFF 
 ;      (-> (! Type :var T :implicit) (! Type :var U :implicit) (Array T U) (Array T U) T))
+
+
+
+; generic variables
+; NOTE: does not check that U is a numeral
+(declare-const var (-> (! Type :var U :implicit) U (! Type :var T) T))

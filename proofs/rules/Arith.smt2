@@ -1,7 +1,8 @@
 ; depends: arith_programs.plf
 
 (include "../theories/Core.smt2")
-(include "../theories/Arith.smt2")
+(include "../theories/Reals.smt2")
+(include "../theories/Ints.smt2")
 (include "../programs/Arith.smt2")
 (include "../programs/Utils.smt2")
 

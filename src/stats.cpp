@@ -76,7 +76,7 @@ struct SortRuleTime
 std::string Stats::toString() const
 {
   std::stringstream ss;
-  ss << "===============================================================" << std::endl;
+  ss << "==================================================================" << std::endl;
   ss << "mkExprCount = " << d_mkExprCount << std::endl;
   ss << "exprCount = " << d_exprCount << std::endl;
   ss << "symCount = " << d_symCount << std::endl;
@@ -85,14 +85,14 @@ std::string Stats::toString() const
   ss << "time = " << totalTime << std::endl;
   if (!d_rstats.empty())
   {
-    ss << "===============================================================" << std::endl;
-    ss << std::right << std::setw(26) << "Rule  ";
+    ss << "==================================================================" << std::endl;
+    ss << std::right << std::setw(28) << "Rule  ";
     ss << std::left << std::setw(17) << "t";
     ss << std::left << std::setw(7) << "#";
     ss << std::left << std::setw(7) << "t/#";
     ss << std::left << std::setw(7) << "#mkExpr";
     ss << std::endl;
-    ss << "===============================================================" << std::endl;
+    ss << "==================================================================" << std::endl;
     // display stats for each rule
     std::vector<const ExprValue*> sortedStats;
     for (const std::pair<const ExprValue* const, RuleStat>& r : d_rstats)
@@ -111,7 +111,7 @@ std::string Stats::toString() const
       Assert (e->getKind()==Kind::PROOF_RULE);
       std::stringstream sss;
       sss << e->getSymbol() << ": ";
-      ss << std::right << std::setw(26) << sss.str() << rs.toString(totalTime) << std::endl;
+      ss << std::right << std::setw(28) << sss.str() << rs.toString(totalTime) << std::endl;
     }
   }
   return ss.str();

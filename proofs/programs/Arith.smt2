@@ -52,7 +52,8 @@
 (program arith_normalize_lit ((T Type) (U Type) (r (-> T U Bool)) (a T) (b U))
   (Bool) Bool
   (
-    ((arith_normalize_lit (not (r a b))) (_ (arith_rel_neg r) a b))
-    ((arith_normalize_lit (r a b)) (r a b))
+    ((arith_normalize_lit (not (not (r a b)))) (r a b))
+    ((arith_normalize_lit (not (r a b)))       (_ (arith_rel_neg r) a b))
+    ((arith_normalize_lit (r a b))             (r a b))
   )
 )

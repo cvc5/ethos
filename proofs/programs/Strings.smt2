@@ -196,7 +196,7 @@
   (
     ((mk_string_eager_reduction (str.to_code x) U) (string_eager_reduction_to_code x))
     ((mk_string_eager_reduction (str.contains x y) U) (string_eager_reduction_contains x y U))
-    ((mk_string_eager_reduction (str.indexof x y n) U) (string_reduction_indexof x y n))
+    ((mk_string_eager_reduction (str.indexof x y n) U) (string_eager_reduction_indexof x y n))
   )
 )
 
