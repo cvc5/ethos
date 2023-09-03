@@ -255,37 +255,37 @@
 
 (declare-const bvuaddo
   (-> (! Int :var m :implicit)
-      (BitVec m) (BitVec m) (BitVec m))
+      (BitVec m) (BitVec m) Bool)
 )
 
 (declare-const bvsaddo
   (-> (! Int :var m :implicit)
-      (BitVec m) (BitVec m) (BitVec m))
+      (BitVec m) (BitVec m) Bool)
 )
 
 (declare-const bvumulo
   (-> (! Int :var m :implicit)
-      (BitVec m) (BitVec m) (BitVec m))
+      (BitVec m) (BitVec m) Bool)
 )
 
 (declare-const bvsmulo
   (-> (! Int :var m :implicit)
-      (BitVec m) (BitVec m) (BitVec m))
+      (BitVec m) (BitVec m) Bool)
 )
 
 (declare-const bvusubo
   (-> (! Int :var m :implicit)
-      (BitVec m) (BitVec m) (BitVec m))
+      (BitVec m) (BitVec m) Bool)
 )
 
 (declare-const bvssubo
   (-> (! Int :var m :implicit)
-      (BitVec m) (BitVec m) (BitVec m))
+      (BitVec m) (BitVec m) Bool)
 )
 
 (declare-const bvsdivo
   (-> (! Int :var m :implicit)
-      (BitVec m) (BitVec m) (BitVec m))
+      (BitVec m) (BitVec m) Bool)
 )
 
 
@@ -294,6 +294,14 @@
   Bool
   U
   (BitVec (alf.add 1 (bitwidth_maybe_nil U)))) :right-assoc-nil)
+
+(declare-const int2bv (->
+  (! Int :var w)
+  Int (BitVec w)))
+
+(declare-const bv2nat (->
+  (! Int :var m :implicit)
+  (BitVec m) Int))
 
 ; if children packaged with AND
 ;(program bitwidth_nchild ((P Bool))

@@ -2,7 +2,7 @@
 
 (include "./Builtin.smt2")
 (include "./Booleans.smt2")
-(include "../theories/Arrays.smt2")
+(include "./Arrays.smt2")
 (include "./Uf.smt2")
 (include "./Arith.smt2")
 (include "../theories/FloatingPoints.smt2")
@@ -10,6 +10,7 @@
 (include "../theories/BitVectors.smt2")
 (include "./Strings.smt2")
 (include "../theories/Sets.smt2")
+(include "../theories/Bags.smt2")
 (include "./Quantifiers.smt2")
 
 
