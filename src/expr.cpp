@@ -99,7 +99,7 @@ void ExprValue::computeFlags()
           cur->setFlag(Flag::IS_EVAL, true);
         }
       }
-      else if (ck==Kind::REQUIRES_TYPE || isLiteralOp(ck))
+      else if (isLiteralOp(ck))
       {
         // requires type and literal operator kinds evaluate
         cur->setFlag(Flag::IS_EVAL, true);

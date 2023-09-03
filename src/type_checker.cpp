@@ -160,7 +160,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs)
     case Kind::EVAL_TO_RAT:
     case Kind::EVAL_TO_STRING:
       return nargs==1;
-    case Kind::REQUIRES_TYPE:
+    case Kind::EVAL_REQUIRES:
     case Kind::EVAL_IF_THEN_ELSE:
     case Kind::EVAL_EXTRACT:
       return nargs==3;
@@ -218,8 +218,6 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
         return nullptr;
       }
     }
-      return d_state.mkType();
-    case Kind::REQUIRES_TYPE:
       return d_state.mkType();
     case Kind::QUOTE_TYPE:
       // anything can be quoted
@@ -538,20 +536,6 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
           case Kind::FAIL:
             // fail term means we immediately return
             return cur;
-          case Kind::REQUIRES_TYPE:
-          {
-            // see requirement is met
-            if (cchildren[0]==cchildren[1])
-            {
-              evaluated = cchildren[2];
-            }
-            else
-            {
-              Trace("type_checker")
-                << "REQUIRES: failed " << children[0] << " == " << children[1] << " in " << cctx << std::endl;
-            }
-          }
-            break;
           case Kind::APPLY:
             // if a program and all arguments are ground, run it
             if (cchildren[0]->getKind()==Kind::PROGRAM_CONST)
@@ -774,26 +758,58 @@ Expr TypeChecker::evaluateLiteralOp(Kind k, const std::vector<Expr>& args)
 Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<Expr>& args)
 {
   Trace("type_checker") << "EVALUATE-LIT " << k << " " << args << std::endl;
+  switch (k)
+  {
+    case Kind::EVAL_IS_EQ:
+    {
+      Assert (args.size()==2);
+      // evaluation is indepdent of whether it is a literal
+      bool ret = args[0]==args[1];
+      if (ret)
+      {
+        return d_state.mkTrue();
+      }
+      else if (isGround(args))
+      {
+        return d_state.mkFalse();
+      }
+      return nullptr;
+    }
+    break;
+    case Kind::EVAL_IF_THEN_ELSE:
+    {
+      // temporary
+      Literal * l = d_state.getLiteral(args[0].get());
+      if (l!=nullptr && l->d_tag==Literal::BOOL)
+      {
+        return args[l->d_bool ? 1 : 2];
+      }
+      /*
+      // conditions equal
+      if (args[1]==args[2])
+      {
+        return args[1];
+      }
+      */
+      return nullptr;
+    }
+    break;
+    case Kind::EVAL_REQUIRES:
+    {
+      if (args[0]==args[1])
+      {
+        return args[2];
+      }
+      Trace("type_checker")
+        << "REQUIRES: failed " << args[0] << " == " << args[1] << std::endl;
+      return nullptr;
+    }
+    default:
+      break;
+  }
   if (!isGround(args))
   {
     Trace("type_checker") << "...does not evaluate (non-ground)" << std::endl;
-    return nullptr;
-  }
-  if (k==Kind::EVAL_IS_EQ)
-  {
-    Assert (args.size()==2);
-    // evaluation is indepdent of whether it is a literal
-    bool ret = args[0]==args[1];
-    return ret ? d_state.mkTrue() : d_state.mkFalse();
-  }
-  else if (k==Kind::EVAL_IF_THEN_ELSE)
-  {
-    // temporary
-    Literal * l = d_state.getLiteral(args[0].get());
-    if (l!=nullptr && l->d_tag==Literal::BOOL)
-    {
-      return args[l->d_bool ? 1 : 2];
-    }
     return nullptr;
   }
   // convert argument expressions to literals
@@ -835,14 +851,12 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_ADD:
     case Kind::EVAL_MUL:
     case Kind::EVAL_CONCAT:
-      return childTypes[0];
-      break;
     case Kind::EVAL_NEG:
       return childTypes[0];
-      break;
+    case Kind::EVAL_REQUIRES:
+      return childTypes[2];
     case Kind::EVAL_IF_THEN_ELSE:
       return childTypes[1];
-      break;
     case Kind::EVAL_IS_EQ:
     case Kind::EVAL_NOT:
     case Kind::EVAL_AND:

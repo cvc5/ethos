@@ -123,6 +123,7 @@ bool CmdParser::parseNextCommand()
       {
         t = d_state.mkFunctionType(sorts, t);
       }
+
       Expr v;
       if (tok == Token::DECLARE_VAR)
       {
@@ -272,7 +273,7 @@ bool CmdParser::parseNextCommand()
       // include the requirements into the return type
       if (!reqs.empty())
       {
-        ret = d_state.mkRequiresType(reqs, ret);
+        ret = d_state.mkRequires(reqs, ret);
       }
       // Ensure all free variables in the conclusion are bound in the arguments.
       // Otherwise, this rule will always generate a free variable, which is

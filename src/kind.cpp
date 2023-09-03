@@ -11,7 +11,6 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::NONE: o << "NONE"; break;
     case Kind::TYPE: o << "TYPE"; break;
     case Kind::FUNCTION_TYPE: o << "FUNCTION_TYPE"; break;
-    case Kind::REQUIRES_TYPE: o << "REQUIRES_TYPE"; break;
     case Kind::PROOF_TYPE: o << "PROOF_TYPE"; break;
     case Kind::ABSTRACT_TYPE: o << "ABSTRACT_TYPE"; break;
     case Kind::BOOL_TYPE: o << "BOOL_TYPE"; break;
@@ -40,6 +39,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     // operations on literals
     case Kind::EVAL_IS_EQ: o << "EVAL_IS_EQ"; break;
     case Kind::EVAL_IF_THEN_ELSE: o << "EVAL_IF_THEN_ELSE"; break;
+    case Kind::EVAL_REQUIRES: o << "EVAL_REQUIRES"; break;
     // boolean
     case Kind::EVAL_NOT: o << "EVAL_NOT"; break;
     case Kind::EVAL_AND: o << "EVAL_AND"; break;
@@ -77,7 +77,6 @@ std::string kindToTerm(Kind k)
     case Kind::ABSTRACT_TYPE: ss << "?"; break;
     case Kind::BOOL_TYPE: ss << "Bool"; break;
     case Kind::QUOTE_TYPE: ss << "Quote"; break;
-    case Kind::REQUIRES_TYPE: ss << "Requires"; break;
     case Kind::NIL: ss << "alf.nil"; break;
     case Kind::FAIL: ss << "alf.fail"; break;
     // terms
@@ -93,6 +92,7 @@ std::string kindToTerm(Kind k)
         {
         case Kind::EVAL_IS_EQ: ss << "is_eq"; break;
         case Kind::EVAL_IF_THEN_ELSE: ss << "ite"; break;
+        case Kind::EVAL_REQUIRES: ss << "requires"; break;
         // boolean
         case Kind::EVAL_NOT: ss << "not"; break;
         case Kind::EVAL_AND: ss << "and"; break;
@@ -159,6 +159,7 @@ bool isLiteralOp(Kind k)
   {
     case Kind::EVAL_IS_EQ:
     case Kind::EVAL_IF_THEN_ELSE:
+    case Kind::EVAL_REQUIRES:
     // boolean
     case Kind::EVAL_NOT:
     case Kind::EVAL_AND:

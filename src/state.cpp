@@ -27,6 +27,7 @@ State::State(Options& opts, Stats& stats) : d_tc(*this), d_opts(opts), d_stats(s
 
   bindBuiltinEval("is_eq", Kind::EVAL_IS_EQ);
   bindBuiltinEval("ite", Kind::EVAL_IF_THEN_ELSE);
+  bindBuiltinEval("requires", Kind::EVAL_REQUIRES);
   // boolean
   bindBuiltinEval("not", Kind::EVAL_NOT);
   bindBuiltinEval("and", Kind::EVAL_AND);
@@ -256,9 +257,9 @@ Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool 
   {
     Expr a = args[(nargs-1)-i];
     // process arguments
-    if (a->getKind()==Kind::REQUIRES_TYPE)
+    if (a->getKind()==Kind::EVAL_REQUIRES)
     {
-      curr = mkRequiresType(a->d_children[0], a->d_children[1], curr);
+      curr = mkRequires(a->d_children[0], a->d_children[1], curr);
       a = a->d_children[2];
     }
     // append the function
@@ -267,26 +268,26 @@ Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool 
   return curr;
 }
 
-Expr State::mkRequiresType(const std::vector<Expr>& args, const Expr& ret)
+Expr State::mkRequires(const std::vector<Expr>& args, const Expr& ret)
 {
   Expr curr = ret;
   for (size_t i=0, nargs=args.size(); i<nargs; i++)
   {
     size_t ii = (nargs-1)-i;
     Assert (args[ii]->getKind()==Kind::PAIR);
-    curr = mkRequiresType((*args[ii].get())[0], (*args[ii].get())[1], curr);
+    curr = mkRequires((*args[ii].get())[0], (*args[ii].get())[1], curr);
   }
   return curr;
 }
 
-Expr State::mkRequiresType(const Expr& a1, const Expr& a2, const Expr& ret)
+Expr State::mkRequires(const Expr& a1, const Expr& a2, const Expr& ret)
 {
   if (a1==a2)
   {
     // trivially equal to return
     return ret;
   }
-  return mkExprInternal(Kind::REQUIRES_TYPE, {a1, a2, ret});
+  return mkExprInternal(Kind::EVAL_REQUIRES, {a1, a2, ret});
 }
 
 Expr State::mkAbstractType()

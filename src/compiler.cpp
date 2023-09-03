@@ -518,7 +518,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         os << "    " << cs.d_prefix << ret << " = _btmp2 ? " << branches[0] << " : " << branches[1] << ";" << std::endl;
         os << "  }" << std::endl;
       }
-      else if (ck==Kind::REQUIRES_TYPE && cs.d_progEval)
+      else if (ck==Kind::EVAL_REQUIRES && cs.d_progEval)
       {
         // call mkRequiresType, which simplifies
         std::string a1 = s.getNameFor(children[0]);
@@ -529,7 +529,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         {
           os << "d_state.";
         }
-        os << "mkRequiresType(" << a1 << ", " << a2 << ", " << a3 << ");" << std::endl;
+        os << "mkRequires(" << a1 << ", " << a2 << ", " << a3 << ");" << std::endl;
       }
       else
       {

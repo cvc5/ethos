@@ -52,17 +52,15 @@
     (alf.match ((t1 U) (t2 U :list))
       (string_to_flat_form U t rev)
       ((str.++ t1 t2)
-        (alf.ite (alf.is_eq t1 u)
+        (alf.requires t1 u
           (alf.match ((s1 U) (s2 U :list))
             (string_to_flat_form U s rev)
             ((str.++ s1 s2)
-              (alf.ite (check_length_one s1)    ; checks if char
+              (alf.requires (check_length_one s1) true    ; checks if char
                 (= u
                   (alf.ite rev
                     (str.++ (skolem (skolem_prefix U u (- (str.len u) 1))) s1)
-                    (str.++ s1 (skolem (skolem_suffix_rem U u 1)))))
-                alf.fail)))
-          alf.fail)))
+                    (str.++ s1 (skolem (skolem_suffix_rem U u 1)))))))))))
 )
 
 ; the PfRule::CONCAT_CONFLICT rule, for strings only
@@ -83,7 +81,7 @@
             (let ((ct (string_first_char_or_empty ts)))
             (alf.ite (alf.is_eq ct alf.fail) alf.fail
               ; ensure they are disequal, return false
-              (alf.ite (alf.is_eq cs ct) alf.fail false)))))
+              (alf.requires (alf.is_eq cs ct) false false)))))
           ))
 )
 

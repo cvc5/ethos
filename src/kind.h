@@ -15,7 +15,6 @@ enum class Kind
   // types
   TYPE,
   FUNCTION_TYPE,
-  REQUIRES_TYPE,
   PROOF_TYPE,
   ABSTRACT_TYPE,
   BOOL_TYPE,
@@ -48,6 +47,7 @@ enum class Kind
   // core
   EVAL_IS_EQ,
   EVAL_IF_THEN_ELSE,
+  EVAL_REQUIRES,
   // boolean
   EVAL_NOT,
   EVAL_AND,

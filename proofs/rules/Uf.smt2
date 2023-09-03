@@ -29,7 +29,7 @@
     (U U Bool) Bool
     (
         ((mk_trans t1 t2 (and (= t3 t4) tail))
-            (alf.ite (alf.is_eq t2 t3) (mk_trans t1 t4 tail) alf.fail))
+            (alf.requires t2 t3 (mk_trans t1 t4 tail)))
         ((mk_trans t1 t2 alf.nil)              (= t1 t2))
     )
 )
