@@ -1,4 +1,4 @@
-(include "../theories/Core.smt2")
+(include "../theories/Builtin.smt2")
 
 ; REFL
 (declare-rule refl ((T Type) (t T))

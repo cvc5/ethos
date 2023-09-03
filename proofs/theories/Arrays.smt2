@@ -1,4 +1,4 @@
-(include "../theories/Core.smt2")
+(include "../theories/Builtin.smt2")
 
 (declare-sort Array 2)
 

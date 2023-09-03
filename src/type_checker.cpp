@@ -751,6 +751,7 @@ Expr TypeChecker::evaluateProgramInternal(const std::vector<Expr>& children,
         return c->getChildren()[1];
       }
     }
+    Trace("type_checker") << "...failed to match." << std::endl;
   }
   // just return nullptr, which should be interpreted as a failed evaluation
   return nullptr;

@@ -1,4 +1,4 @@
-(include "../theories/Core.smt2")
+(include "../theories/Builtin.smt2")
 (include "../theories/Ints.smt2")
 
 (include "../programs/Nary.smt2")

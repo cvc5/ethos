@@ -1,7 +1,6 @@
 
 (include "../theories/Builtin.smt2")
 (include "../programs/Nary.smt2")
-(include "../theories/Core.smt2")
 
 (include "../theories/Arith.smt2")
 (include "../theories/Strings.smt2")

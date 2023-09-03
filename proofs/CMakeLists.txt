@@ -1,7 +1,7 @@
 set(alfc_test_file_list
   theories/Arith.smt2
   theories/BitVectors.smt2
-  theories/Core.smt2
+  theories/Builtin.smt2
   theories/Ints.smt2
   theories/Reals.smt2
   theories/Strings.smt2

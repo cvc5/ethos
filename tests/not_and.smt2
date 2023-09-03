@@ -1,4 +1,4 @@
-(include "../proofs/theories/Core.smt2")
+(include "../proofs/theories/Builtin.smt2")
 (include "../proofs/programs/Nary.smt2")
 
 ; NOT_AND

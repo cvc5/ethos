@@ -1,105 +1,128 @@
-(include "../theories/Core.smt2")
+(include "../theories/Builtin.smt2")
 (include "../theories/Arith.smt2")
-(include "../theories/BitVec.smt2")
+(include "../theories/BitVectors.smt2")
 
-(declare-const-type FloatingPoint
-  (-> (! Int :var w)
+(declare-const FloatingPoint
+  ;(-> (! Int :var e) (! Int :var s) Type)
+  (-> Int Int Type)
+)
+(declare-sort RoundingMode 0)
 
-  
-  
-  
-  
 ; A floating point constant is a term having 3 bitvector children.
 ; Note this is used for both FLOATINGPOINT_FP and CONST_FLOATINGPOINT
-(declare-const f_fp term)
-(define fp (# x term (# y term (# z term (apply (apply (apply f_fp x) y) z)))))
-(declare-const f_fp.add term)
-(define fp.add (# x term (# y term (# z term (apply (apply (apply f_fp.add x) y) z)))))
-(declare-const f_fp.sub term)
-(define fp.sub (# x term (# y term (# z term (apply (apply (apply f_fp.sub x) y) z)))))
-(declare-const f_fp.mul term)
-(define fp.mul (# x term (# y term (# z term (apply (apply (apply f_fp.mul x) y) z)))))
-(declare-const f_fp.div term)
-(define fp.div (# x term (# y term (# z term (apply (apply (apply f_fp.div x) y) z)))))
-(declare-const f_fp.fma term)
-(define fp.fma (# x term (# y term (# z term (# w term (apply (apply  (apply (apply f_fp.fma x) y) z) w))))))
-(declare-const f_fp.sqrt term)
-(define fp.sqrt (# x term (# y term (apply (apply f_fp.sqrt x) y))))
-(declare-const f_fp.rem term)
-(define fp.rem (# x term (# y term (apply (apply f_fp.rem x) y))))
-(declare-const f_fp.roundToIntegral term)
-(define fp.roundToIntegral (# x term (# y term (apply (apply f_fp.roundToIntegral x) y))))
-(declare-const f_fp.min term)
-(define fp.min (# x term (# y term (apply (apply f_fp.min x) y))))
-(declare-const f_fp.max term)
-(define fp.max (# x term (# y term (apply (apply f_fp.max x) y))))
-(declare-const f_fp.leq term)
-(define fp.leq (# x term (# y term (apply (apply f_fp.leq x) y))))
-(declare-const f_fp.lt term)
-(define fp.lt (# x term (# y term (apply (apply f_fp.lt x) y))))
-(declare-const f_fp.geq term)
-(define fp.geq (# x term (# y term (apply (apply f_fp.geq x) y))))
-(declare-const f_fp.gt term)
-(define fp.gt (# x term (# y term (apply (apply f_fp.gt x) y))))
-(declare-const f_fp.eq term)
-(define fp.eq (# x term (# y term (apply (apply f_fp.eq x) y))))
-(declare-const f_to_fp_unsigned (! i mpz (! j mpz term)))
-(define to_fp_unsigned (# x mpz (# y mpz (# z term (# w term (apply (apply (f_to_fp_unsigned x y) z) w))))))
-(declare-const f_fp.to_ubv (! i mpz term))
-(define fp.to_ubv (# x mpz (# z term (# w term (apply (apply (f_fp.to_ubv x) z) w)))))
-(declare-const f_fp.to_sbv (! i mpz term))
-(define fp.to_sbv (# x mpz (# z term (# w term (apply (apply (f_fp.to_sbv x) z) w)))))
-(declare-const f_fp.abs term)
-(define fp.abs (# x term (apply f_fp.abs x)))
-(declare-const f_fp.neg term)
-(define fp.neg (# x term (apply f_fp.neg x)))
-(declare-const f_fp.isNormal term)
-(define fp.isNormal (# x term (apply f_fp.isNormal x)))
-(declare-const f_fp.isSubnormal term)
-(define fp.isSubnormal (# x term (apply f_fp.isSubnormal x)))
-(declare-const f_fp.isZero term)
-(define fp.isZero (# x term (apply f_fp.isZero x)))
-(declare-const f_fp.isInfinite term)
-(define fp.isInfinite (# x term (apply f_fp.isInfinite x)))
-(declare-const f_fp.isNaN term)
-(define fp.isNaN (# x term (apply f_fp.isNaN x)))
-(declare-const f_fp.isNegative term)
-(define fp.isNegative (# x term (apply f_fp.isNegative x)))
-(declare-const f_fp.isPositive term)
-(define fp.isPositive (# x term (apply f_fp.isPositive x)))
-(declare-const f_fp.to_real term)
-(define fp.to_real (# x term (apply f_fp.to_real x)))
-; to avoid overloading, must distinguish types
-(declare-const f_to_fp_fp (! i mpz (! j mpz term)))
-(define to_fp_fp (# x mpz (# y mpz (# z term (# w term (apply (apply (f_to_fp_fp x y) z) w))))))
-(declare-const f_to_fp_real (! i mpz (! j mpz term)))
-(define to_fp_real (# x mpz (# y mpz (# z term (# w term (apply (apply (f_to_fp_real x y) z) w))))))
-(declare-const f_to_fp_sbv (! i mpz (! j mpz term)))
-(define to_fp_sbv (# x mpz (# y mpz (# z term (# w term (apply (apply (f_to_fp_sbv x y) z) w))))))
-(declare-const f_to_fp_ieee_bv (! i mpz (! j mpz term)))
-(define to_fp_ieee_bv (# x mpz (# y mpz (# z term (apply (f_to_fp_ieee_bv x y) z)))))
-(declare-const f_to_fp_bv (! i mpz (! j mpz term)))
-(define to_fp_bv (# x mpz (# y mpz (# z term (apply (f_to_fp_bv x y) z)))))
-(declare-const f_fp.to_ubv_total (! i mpz term))
-(define fp.to_ubv_total (# x mpz (# z term (# w term (# u term (apply (apply (apply (f_fp.to_ubv_total x) z) w) u))))))
-(declare-const f_fp.to_sbv_total (! i mpz term))
-(define fp.to_sbv_total (# x mpz (# z term (# w term (# u term (apply (apply (apply (f_fp.to_sbv_total x) z) w) u))))))
+;(declare-const fp term)
+;(define fp (# x term (# y term (# z term (apply (apply (apply fp x) y) z)))))
+
+(declare-const fp.add
+  (-> (! Int :var e :implicit) (! Int :var s :implicit)
+      RoundingMode (FloatingPoint e s) (FloatingPoint e s) (FloatingPoint e s)))
+(declare-const fp.sub
+  (-> (! Int :var e :implicit) (! Int :var s :implicit)
+      RoundingMode (FloatingPoint e s) (FloatingPoint e s) (FloatingPoint e s)))
+(declare-const fp.mul
+  (-> (! Int :var e :implicit) (! Int :var s :implicit)
+      RoundingMode (FloatingPoint e s) (FloatingPoint e s) (FloatingPoint e s)))
+(declare-const fp.div
+  (-> (! Int :var e :implicit) (! Int :var s :implicit)
+      RoundingMode (FloatingPoint e s) (FloatingPoint e s) (FloatingPoint e s)))
+(declare-const fp.fma
+  (-> (! Int :var e :implicit) (! Int :var s :implicit)
+      RoundingMode (FloatingPoint e s) (FloatingPoint e s) (FloatingPoint e s) (FloatingPoint e s)))
+(declare-const fp.sqrt
+  (-> (! Int :var e :implicit) (! Int :var s :implicit)
+      (FloatingPoint e s) (FloatingPoint e s) (FloatingPoint e s)))
+(declare-const fp.rem
+  (-> (! Int :var e :implicit) (! Int :var s :implicit)
+      (FloatingPoint e s) (FloatingPoint e s) (FloatingPoint e s)))
+(declare-const fp.roundToIntegral
+  (-> (! Int :var e :implicit) (! Int :var s :implicit)
+      RoundingMode (FloatingPoint e s) (FloatingPoint e s)))
+(declare-const fp.min
+  (-> (! Int :var e :implicit) (! Int :var s :implicit)
+      (FloatingPoint e s) (FloatingPoint e s) (FloatingPoint e s)))
+(declare-const fp.max
+  (-> (! Int :var e :implicit) (! Int :var s :implicit)
+      (FloatingPoint e s) (FloatingPoint e s) (FloatingPoint e s)))
+(declare-const fp.abs
+  (-> (! Int :var e :implicit) (! Int :var s :implicit)
+      (FloatingPoint e s) Bool))
+(declare-const fp.neg
+  (-> (! Int :var e :implicit) (! Int :var s :implicit)
+      (FloatingPoint e s) Bool))
+
+(declare-const fp.leq
+  (-> (! Int :var e :implicit) (! Int :var s :implicit)
+      (FloatingPoint e s) (FloatingPoint e s) Bool))
+(declare-const fp.lt
+  (-> (! Int :var e :implicit) (! Int :var s :implicit)
+      (FloatingPoint e s) (FloatingPoint e s) Bool))
+(declare-const fp.geq
+  (-> (! Int :var e :implicit) (! Int :var s :implicit)
+      (FloatingPoint e s) (FloatingPoint e s) Bool))
+(declare-const fp.gt
+  (-> (! Int :var e :implicit) (! Int :var s :implicit)
+      (FloatingPoint e s) (FloatingPoint e s) Bool))
+(declare-const fp.eq
+  (-> (! Int :var e :implicit) (! Int :var s :implicit)
+      (FloatingPoint e s) (FloatingPoint e s) Bool))
+
+(declare-const fp.isNormal
+  (-> (! Int :var e :implicit) (! Int :var s :implicit)
+      (FloatingPoint e s) Bool))
+(declare-const fp.isSubnormal
+  (-> (! Int :var e :implicit) (! Int :var s :implicit)
+      (FloatingPoint e s) Bool))
+(declare-const fp.isZero
+  (-> (! Int :var e :implicit) (! Int :var s :implicit)
+      (FloatingPoint e s) Bool))
+(declare-const fp.isInfinite
+  (-> (! Int :var e :implicit) (! Int :var s :implicit)
+      (FloatingPoint e s) Bool))
+(declare-const fp.isNaN
+  (-> (! Int :var e :implicit) (! Int :var s :implicit)
+      (FloatingPoint e s) Bool))
+(declare-const fp.isPositive
+  (-> (! Int :var e :implicit) (! Int :var s :implicit)
+      (FloatingPoint e s) Bool))
+(declare-const fp.isNegative
+  (-> (! Int :var e :implicit) (! Int :var s :implicit)
+      (FloatingPoint e s) Bool))
+
 ; rounding modes
-(declare-const roundNearestTiesToEven term)
-(declare-const roundNearestTiesToAway term)
-(declare-const roundTowardPositive term)
-(declare-const roundTowardNegative term)
-(declare-const roundTowardZero term)
+(declare-const roundNearestTiesToEven RoundingMode)
+(declare-const roundNearestTiesToAway RoundingMode)
+(declare-const roundTowardPositive RoundingMode)
+(declare-const roundTowardNegative RoundingMode)
+(declare-const roundTowardZero RoundingMode)
+
+
+;(declare-const to_fp_unsigned (! i mpz (! j mpz term)))
+;(define to_fp_unsigned (# x mpz (# y mpz (# z term (# w term (apply (apply (to_fp_unsigned x y) z) w))))))
+;(declare-const fp.to_ubv (! i mpz term))
+;(define fp.to_ubv (# x mpz (# z term (# w term (apply (apply (fp.to_ubv x) z) w)))))
+;(declare-const fp.to_sbv (! i mpz term))
+;(define fp.to_sbv (# x mpz (# z term (# w term (apply (apply (fp.to_sbv x) z) w)))))
+;(declare-const fp.to_real term)
+;(define fp.to_real (# x term (apply fp.to_real x)))
+; to avoid overloading, must distinguish types
+;(declare-const to_fp_fp (! i mpz (! j mpz term)))
+;(define to_fp_fp (# x mpz (# y mpz (# z term (# w term (apply (apply (to_fp_fp x y) z) w))))))
+;(declare-const to_fp_real (! i mpz (! j mpz term)))
+;(define to_fp_real (# x mpz (# y mpz (# z term (# w term (apply (apply (to_fp_real x y) z) w))))))
+;(declare-const to_fp_sbv (! i mpz (! j mpz term)))
+;(define to_fp_sbv (# x mpz (# y mpz (# z term (# w term (apply (apply (to_fp_sbv x y) z) w))))))
+;(declare-const to_fp_ieee_bv (! i mpz (! j mpz term)))
+;(define to_fp_ieee_bv (# x mpz (# y mpz (# z term (apply (to_fp_ieee_bv x y) z)))))
+;(declare-const to_fp_bv (! i mpz (! j mpz term)))
+;(define to_fp_bv (# x mpz (# y mpz (# z term (apply (to_fp_bv x y) z)))))
+;(declare-const fp.to_ubv_total (! i mpz term))
+;(define fp.to_ubv_total (# x mpz (# z term (# w term (# u term (apply (apply (apply (fp.to_ubv_total x) z) w) u))))))
+;(declare-const fp.to_sbv_total (! i mpz term))
+;(define fp.to_sbv_total (# x mpz (# z term (# w term (# u term (apply (apply (apply (fp.to_sbv_total x) z) w) u))))))
 ; internally generated terms
-(declare-const f_EXPONENT term)
-(define EXPONENT (# x term (apply f_EXPONENT x)))
-(declare-const f_SIGN term)
-(define SIGN (# x term (apply f_SIGN x)))
-(declare-const f_SIGNIFICAND term)
-(define SIGNIFICAND (# x term (apply f_SIGNIFICAND x)))
-(declare-const f_ZERO term)
-(define ZERO (# x term (apply f_ZERO x)))
-(declare-const f_INF term)
-(define INF (# x term (apply f_INF x)))
-(declare-const f_NAN term)
-(define NAN (# x term (apply f_NAN x)))
+;(declare-const EXPONENT term)
+;(declare-const SIGN term)
+;(declare-const SIGNIFICAND term)
+;(declare-const ZERO term)
+;(declare-const INF term)
+;(declare-const NAN term)

@@ -1,4 +1,4 @@
-(include "../theories/Core.smt2")
+(include "../theories/Builtin.smt2")
 
 (declare-sort Int 0)
 (declare-sort Real 0)

@@ -1,6 +1,5 @@
-(include "../theories/Core.smt2")
+(include "../theories/Builtin.smt2")
 (include "../theories/Arith.smt2")
-(include "../theories/Core.smt2")
 
 (declare-sort Set 1)
 

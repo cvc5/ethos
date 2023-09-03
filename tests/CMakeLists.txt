@@ -61,6 +61,7 @@ set(alfc_test_file_list
     and-intro-old.smt2
     strings-rules-test.smt2
     ite-compile-test.smt2
+    theory-rewrite-native.smt2
 )
 
 macro(alfc_test file)
