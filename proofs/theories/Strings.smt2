@@ -18,26 +18,25 @@
 
 ; core
 (declare-const str.len (-> (! Type :var T :implicit)
-                           T
-                           (! Int :requires ((is_string_type T) true))))
+                           (! T :requires ((is_string_type T) true))
+                           Int))
 (declare-const str.++ (-> (! Type :var T :implicit) (! Type :var U :implicit)
-                          T U
-                          (! T :requires ((is_string_type T) true) 
-                               :requires ((maybe_nil T U) T))) :right-assoc-nil)
+                          (! T :requires ((is_string_type T) true)) U
+                          (! T :requires ((maybe_nil T U) T))) :right-assoc-nil)
 
 ; extended functions
 (declare-const str.substr (-> (! Type :var T :implicit)
-                              T Int Int
-                              (! T :requires ((is_string_type T) true))))
+                              (! T :requires ((is_string_type T) true)) Int Int
+                              T))
 (declare-const str.contains (-> (! Type :var T :implicit)
-                                T T
-                                (! Bool :requires ((is_string_type T) true))))
+                                (! T :requires ((is_string_type T) true)) T
+                                Bool))
 (declare-const str.replace (-> (! Type :var T :implicit)
-                               T T T
-                               (! T :requires ((is_string_type T) true))))
+                               (! T :requires ((is_string_type T) true)) T T
+                               T))
 (declare-const str.indexof (-> (! Type :var T :implicit)
-                               T T Int
-                               (! Int :requires ((is_string_type T) true))))
+                               (! T :requires ((is_string_type T) true)) T Int
+                               Int))
 (declare-const str.at (-> String Int String))
 (declare-const str.prefixof (-> String String Bool))
 (declare-const str.suffixof (-> String String Bool))

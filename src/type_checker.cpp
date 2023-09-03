@@ -545,8 +545,11 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
             {
               evaluated = cchildren[2];
             }
-            Trace("type_checker")
+            else
+            {
+              Trace("type_checker")
                 << "REQUIRES: failed " << children[0] << " == " << children[1] << " in " << cctx << std::endl;
+            }
           }
             break;
           case Kind::APPLY:

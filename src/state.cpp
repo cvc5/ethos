@@ -245,27 +245,26 @@ Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool 
     return ret;
   }
   // process restrictions
-  for (const Expr& a : args)
+  if (!flatten)
   {
+    std::vector<Expr> atypes(args.begin(), args.end());
+    atypes.push_back(ret);
+    return mkExprInternal(Kind::FUNCTION_TYPE, atypes);
+  }
+  Expr curr = ret;
+  for (size_t i=0, nargs = args.size(); i<nargs; i++)
+  {
+    Expr a = args[(nargs-1)-i];
+    // process arguments
     if (a->getKind()==Kind::REQUIRES_TYPE)
     {
-      std::cout << "WARNING: making function over a requires type" << std::endl;
+      curr = mkRequiresType(a->d_children[0], a->d_children[1], curr);
+      a = a->d_children[2];
     }
+    // append the function
+    curr = mkExprInternal(Kind::FUNCTION_TYPE, {a, curr});
   }
-  Expr range = ret;
-  if (flatten && args.size()>1)
-  {
-    Expr curr = range;
-    for (size_t i=0, nargs = args.size(); i<nargs; i++)
-    {
-      Expr arg = args[nargs-i-1];
-      curr = mkExprInternal(Kind::FUNCTION_TYPE, {arg, curr});
-    }
-    return curr;
-  }
-  std::vector<Expr> atypes(args.begin(), args.end());
-  atypes.push_back(range);
-  return mkExprInternal(Kind::FUNCTION_TYPE, atypes);
+  return curr;
 }
 
 Expr State::mkRequiresType(const std::vector<Expr>& args, const Expr& ret)

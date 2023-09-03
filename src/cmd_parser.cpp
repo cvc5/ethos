@@ -132,11 +132,12 @@ bool CmdParser::parseNextCommand()
       {
         v = d_state.mkConst(name, t);
       }
-      d_eparser.bind(name, v);
       // possible attribute list
       AttrMap attrs;
       d_eparser.parseAttributeList(v, attrs);
       d_state.markAttributes(v, attrs);
+      // bind
+      d_eparser.bind(name, v);
     }
     break;
     // single datatype
