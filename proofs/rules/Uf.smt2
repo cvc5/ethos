@@ -74,6 +74,23 @@
     :conclusion (mk_nary_cong f alf.nil alf.nil E)
 )
 
+
+; Closure congruence
+; note that arguments are provided in reverse order to avoid intermediate node construction
+(program mk_closure_cong ((T Type) (U Type) (t T) (s T) (v U) (vs SExpr :list) (f (-> U T T)))
+    ((-> U T T) T T SExpr) Bool
+    (
+        ((mk_closure_cong f t s (sexpr v vs)) (mk_closure_cong f (f v t) (f v s) vs))
+        ((mk_closure_cong f t s alf.nil)      (= t s))
+    )
+)
+
+(declare-rule closure_cong ((T Type) (U Type) (t T) (s T) (vs SExpr) (f (-> U T T)))
+    :premises ((= t s))
+    :args (f vs)
+    :conclusion (mk_closure_cong f t s vs)
+)
+
 ; TRUE_INTRO
 (declare-rule true_intro ((F Bool))
     :premises (F)

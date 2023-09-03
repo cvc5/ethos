@@ -81,6 +81,11 @@
                        T
                        (! T :requires ((is_arith_type T) true))))
 
+; power
+(declare-const ^ (-> (! Type :var T :implicit)
+                     (! Type :var U :implicit)
+                     T U (arith_typeunion T U)))
+
 ; currently unary negation cannot use overload
 (declare-const u- (-> (! Type :var T :implicit)
                        T

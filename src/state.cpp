@@ -314,6 +314,12 @@ Expr State::mkBuiltinType(Kind k)
   return mkAbstractType();
 }
 
+Expr State::mkAnnotatedType(const Expr& t, Attr a)
+{
+
+  return t;
+}
+
 Expr State::mkParameter(const std::string& name, const Expr& type)
 {
   return mkSymbolInternal(Kind::PARAM, name, type);

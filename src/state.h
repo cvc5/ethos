@@ -55,10 +55,6 @@ public:
   Expr mkTypeConstant(const std::string& name, size_t arity);
   /** (-> <type>+ <type>) */
   Expr mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool flatten = true);
-  /** (requires <pair>+ <type>) */
-  Expr mkRequires(const std::vector<Expr>& args, const Expr& ret);
-  /** (requires <arg1> <arg2> <type>) */
-  Expr mkRequires(const Expr& a1, const Expr& a2, const Expr& ret);
   /** ? */
   Expr mkAbstractType();
   /** Bool */
@@ -70,6 +66,8 @@ public:
   /** */
   Expr mkBuiltinType(Kind k);
   /** */
+  Expr mkAnnotatedType(const Expr& t, Attr a);
+  /** */
   Expr mkParameter(const std::string& name, const Expr& type);
   /** */
   Expr mkVar(const std::string& name, const Expr& type);
@@ -79,6 +77,10 @@ public:
   Expr mkProgramConst(const std::string& name, const Expr& type);
   /** */
   Expr mkProofRule(const std::string& name, const Expr& type);
+  /** (alf.requires <pair>+ <type>) */
+  Expr mkRequires(const std::vector<Expr>& args, const Expr& ret);
+  /** (alf.requires <arg1> <arg2> <type>) */
+  Expr mkRequires(const Expr& a1, const Expr& a2, const Expr& ret);
   /** alf.nil */
   Expr mkNil();
   /** */

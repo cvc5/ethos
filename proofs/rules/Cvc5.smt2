@@ -11,6 +11,7 @@
 (include "./Strings.smt2")
 (include "../theories/Sets.smt2")
 (include "../theories/Bags.smt2")
+(include "../theories/FiniteFields.smt2")
 (include "./Quantifiers.smt2")
 
 
