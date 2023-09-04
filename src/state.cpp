@@ -509,9 +509,8 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
               {
                 // if the last term is not marked as a list variable and
                 // we have a null terminator, then we insert the null terminator
-                cc[prevIndex] = ai->d_attrConsTerm;
-                cc[nextIndex] = curr;
-                curr = mkApplyInternal(cc);
+                curr = ai->d_attrConsTerm;
+                i--;
               }
             }
             // now, add the remaining children
@@ -520,7 +519,15 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
             {
               cc[prevIndex] = curr;
               cc[nextIndex] = children[isLeft ? i : nchild-i];
-              curr = mkApplyInternal(cc);
+              // if the "head" child is marked as list, we construct Kind::EVAL_CONS
+              if (getConstructorKind(cc[nextIndex].get())==Attr::LIST)
+              {
+                curr = mkExprInternal(Kind::EVAL_CONS, cc);
+              }
+              else
+              {
+                curr = mkApplyInternal(cc);
+              }
               i++;
             }
             return curr;

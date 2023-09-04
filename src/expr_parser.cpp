@@ -578,7 +578,7 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList()
   d_lex.eatToken(Token::LPAREN);
   std::string name;
   Expr t;
-  Attr ck;
+  Attr ck = Attr::NONE;
   Expr cons;
   // while the next token is LPAREN, exit if RPAREN
   while (d_lex.eatTokenChoice(Token::LPAREN, Token::RPAREN))
@@ -593,6 +593,8 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList()
     if (processAttributeMap(attrs, ck, cons))
     {
       d_state.markConstructorKind(v, ck, cons);
+      ck = Attr::NONE;
+      cons = nullptr;
     }
     d_lex.eatToken(Token::RPAREN);
     varList.push_back(v);
