@@ -504,8 +504,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
             // note the nil element is always treated as a list
             if (curr->getKind()!=Kind::NIL && (isNil || ai->d_attrConsTerm!=nullptr))
             {
-              AppInfo * ail = getAppInfo(curr.get());
-              if (ail==nullptr || !ail->hasAttribute(Attr::LIST))
+              if (getConstructorKind(curr.get())!=Attr::LIST)
               {
                 // if the last term is not marked as a list variable and
                 // we have a null terminator, then we insert the null terminator
@@ -784,6 +783,16 @@ bool State::isClosure(const Expr& e) const
   return false;
 }
 
+Attr State::getConstructorKind(const ExprValue* v) const
+{
+  std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(v);
+  if (it!=d_appData.end())
+  {
+    return it->second.d_attrCons;
+  }
+  return Attr::NONE;
+}
+
 Expr State::getVar(const std::string& name) const
 {
   std::map<std::string, Expr>::const_iterator it = d_symTable.find(name);
@@ -951,6 +960,8 @@ bool State::markAttributes(const Expr& v, const AttrMap& attrs)
     {
       switch(a.first)
       {
+        case Attr::LIST:
+        case Attr::SYNTAX:
         case Attr::PREMISE_LIST:
         case Attr::LEFT_ASSOC:
         case Attr::RIGHT_ASSOC:
@@ -958,11 +969,17 @@ bool State::markAttributes(const Expr& v, const AttrMap& attrs)
         case Attr::RIGHT_ASSOC_NIL:
         case Attr::CHAINABLE:
         case Attr::PAIRWISE:
+          if (ai.d_attrCons!=Attr::NONE)
+          {
+            std::stringstream ss;
+            ss << "Setting multiple constructor types for " << v;
+            ss << " (" << a.first << " and " << ai.d_attrCons << ")" << std::endl;
+            Warning() << ss.str();
+            return false;
+          }
           // it specifies how to construct this
           ai.d_attrCons = a.first;
           ai.d_attrConsTerm = av;
-          // TODO: ensure its type has the right shape here?
-          // would catch errors earlier
           break;
         default:
           // remember it has been marked

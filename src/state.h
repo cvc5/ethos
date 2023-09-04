@@ -145,6 +145,8 @@ private:
   Expr d_self;
   Expr d_nil;
   Expr d_fail;
+  /** Get the constructor kind for symbol v */
+  Attr getConstructorKind(const ExprValue* v) const;
   /** include file, if not already done */
   void includeFileInternal(const std::string& s, bool ignore=false);
   /** mark included */

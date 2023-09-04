@@ -14,9 +14,11 @@ enum class Attr
   
   VAR,
   IMPLICIT,
+  REQUIRES,
+
+  //------------------ below here is mutually exclusive?
   LIST,
   SYNTAX,
-  REQUIRES,
   
   // indicate how to construct proof rule steps
   PREMISE_LIST,
