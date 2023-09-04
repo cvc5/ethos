@@ -355,7 +355,6 @@ Expr ExprParser::parseExpr()
             sstack[sstack.size()-2]++;
           }
           // process the attributes
-          std::unordered_set<Attr> rmAttr;
           for (std::pair<const Attr, std::vector<Expr>>& a : attrs)
           {
             switch(a.first)
@@ -365,35 +364,21 @@ Expr ExprParser::parseExpr()
                 Assert (a.second.size()==1);
                 // it is now (Quote v) for that variable
                 ret = d_state.mkQuoteType(a.second[0]);
-                rmAttr.insert(a.first);
               }
                 break;
               case Attr::IMPLICIT:
                 // the term will not be added as an argument to the parent
                 ret = nullptr;
-                rmAttr.insert(a.first);
                 break;
               case Attr::REQUIRES:
                 ret = d_state.mkRequires(a.second, ret);
-                rmAttr.insert(a.first);
                 break;
               default:
+                std::stringstream ss;
+                ss << "Unprocessed attribute " << a.first << std::endl;
+                d_lex.warning(ss.str());
                 break;
             }
-          }
-          // remove the attributes processed above
-          for (Attr a : rmAttr)
-          {
-            attrs.erase(a);
-          }
-          // mark the remaining attributes
-          if (!attrs.empty())
-          {
-            if (ret!=nullptr)
-            {
-              d_state.markAttributes(ret, attrs);
-            }
-            // TODO: else warn about unprocessed attributes?
           }
           d_lex.eatToken(Token::RPAREN);
           // finished parsing attributes, ret is either nullptr if implicit,
