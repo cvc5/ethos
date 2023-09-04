@@ -11,20 +11,15 @@
 (declare-consts <binary> (BitVec (alf.len alf.self)))
 (declare-consts <hexadecimal> (BitVec (alf.len alf.self)))
 
-(program bitwidth_maybe_nil ((n Int))
-  (Type) Int
-  (
-    ((bitwidth_maybe_nil (BitVec n)) n)
-    ((bitwidth_maybe_nil alf.nil) 0)
-  )
-)
+
+(declare-const bvempty (BitVec 0))
 
 (declare-const concat (->
   (! Int :var n :implicit)
-  (! Type :var U :implicit)
+  (! Int :var m :implicit)
   (BitVec n)
-  U
-  (BitVec (alf.add n (bitwidth_maybe_nil U)))) :right-assoc-nil)
+  (BitVec m)
+  (BitVec (alf.add n m))) :right-assoc bvempty)
 
 ; does not work:
 ;  (BitVec (alf.add n (alf.match ((m Int)) U (alf.nil 0) ((BitVec m) m))))) :right-assoc-nil)
@@ -55,16 +50,14 @@
 )
 
 (declare-const bvand
-    (-> (! Type :var U :implicit)
-        (! Int :var m :implicit)
-        (BitVec m) U (maybe_nil (BitVec m) U))
+    (-> (! Int :var m :implicit)
+        (BitVec m) (BitVec m) (BitVec m))
     :right-assoc-nil
 )
 
 (declare-const bvor
-    (-> (! Type :var U :implicit)
-        (! Int :var m :implicit)
-        (BitVec m) U (maybe_nil (BitVec m) U))
+    (-> (! Int :var m :implicit)
+        (BitVec m) (BitVec m) (BitVec m))
     :right-assoc-nil
 )
 
@@ -79,9 +72,8 @@
 )
 
 (declare-const bvxor
-    (-> (! Type :var U :implicit)
-        (! Int :var m :implicit)
-        (BitVec m) U (maybe_nil (BitVec m) U))
+    (-> (! Int :var m :implicit)
+        (BitVec m) (BitVec m) (BitVec m))
     :right-assoc-nil
 )
 
@@ -101,16 +93,14 @@
 )
 
 (declare-const bvadd
-    (-> (! Type :var U :implicit)
-        (! Int :var m :implicit)
-        (BitVec m) U (maybe_nil (BitVec m) U))
+    (-> (! Int :var m :implicit)
+        (BitVec m) (BitVec m) (BitVec m))
     :right-assoc-nil
 )
 
 (declare-const bvmul
-    (-> (! Type :var U :implicit)
-        (! Int :var m :implicit)
-        (BitVec m) U (maybe_nil (BitVec m) U))
+    (-> (! Int :var m :implicit)
+        (BitVec m) (BitVec m) (BitVec m))
     :right-assoc-nil
 )
 
@@ -290,10 +280,10 @@
 
 
 (declare-const bbT (->
-  (! Type :var U :implicit)
+  (! Int :var n :implicit)
   Bool
-  U
-  (BitVec (alf.add 1 (bitwidth_maybe_nil U)))) :right-assoc-nil)
+  (BitVec n)
+  (BitVec (alf.add 1 n))))
 
 (declare-const int2bv (->
   (! Int :var w)

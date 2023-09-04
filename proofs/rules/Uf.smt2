@@ -68,10 +68,10 @@
     )
 )
 
-(declare-rule nary_cong ((U Type) (E Bool) (f (-> U U)))
+(declare-rule nary_cong ((U Type) (E Bool) (f (-> U U)) (nil U))
     :premise-list E and
-    :args (f)
-    :conclusion (mk_nary_cong f alf.nil alf.nil E)
+    :args (f nil)
+    :conclusion (mk_nary_cong f nil nil E)
 )
 
 

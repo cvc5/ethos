@@ -66,7 +66,7 @@ public:
   /** */
   Expr mkBuiltinType(Kind k);
   /** */
-  Expr mkAnnotatedType(const Expr& t, Attr a);
+  Expr mkAnnotatedType(const Expr& t, AttrMap& attrs);
   /** */
   Expr mkParameter(const std::string& name, const Expr& type);
   /** */

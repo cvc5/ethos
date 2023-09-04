@@ -1,5 +1,9 @@
-(declare sep.nil (! s sort term))
-(declare f_sep term)
+
+(declare-const sep.nil (-> (! Type :var T) T))
+(declare-const sep.emp Bool)
+
+
+
 (define sep (# x term (# y term (apply (apply f_sep x) y))))
 (declare f_sep_label term)
 (define sep_label (# x term (# y term (apply (apply f_sep_label x) y))))

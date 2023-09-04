@@ -768,6 +768,14 @@ bool ExprParser::parseConstructorDefinitionList(Expr& dt,
         return false;
       }
       sels.push_back(sel);
+      std::stringstream ss;
+      ss << "update-" << id;
+      Expr utype = d_state.mkFunctionType({dt, t}, dt);
+      Expr updater = d_state.mkConst(ss.str(), utype);
+      if (!d_state.bind(ss.str(), updater))
+      {
+        return false;
+      }
       d_lex.eatToken(Token::RPAREN);
     }
     Expr ctype = d_state.mkFunctionType(typelist, dt);

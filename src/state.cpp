@@ -314,9 +314,84 @@ Expr State::mkBuiltinType(Kind k)
   return mkAbstractType();
 }
 
-Expr State::mkAnnotatedType(const Expr& t, Attr a)
+Expr State::mkAnnotatedType(const Expr& t, AttrMap& attrs)
 {
-
+  for (const std::pair<const Attr, std::vector<Expr>>& attr : attrs)
+  {
+    Attr a = attr.first;
+    if (a!=Attr::RIGHT_ASSOC_NIL && a!=Attr::LEFT_ASSOC_NIL)
+    {
+      continue;
+    }
+    bool isRight = (a==Attr::RIGHT_ASSOC_NIL);
+    std::vector<Expr> args;
+    // decompose into (-> t1 t2 t3)
+    Expr curr = t;
+    std::vector<Expr> currReqs;
+    do
+    {
+      Expr argAdd = nullptr;
+      std::vector<Expr>& children = curr->getChildren();
+      if (curr->getKind()==Kind::FUNCTION_TYPE && children.size()==2)
+      {
+        argAdd = children[0];
+        curr = children[1];
+      }
+      else if (curr->getKind()==Kind::EVAL_REQUIRES)
+      {
+        currReqs.push_back(mkPair(children[0], children[1]));
+        curr = children[2];
+      }
+      else
+      {
+        argAdd = curr;
+        curr = nullptr;
+      }
+      if (argAdd!=nullptr)
+      {
+        if (!currReqs.empty())
+        {
+          if (args.empty())
+          {
+            return nullptr;
+          }
+          args.back() = mkRequires(currReqs, args.back());
+          currReqs.clear();
+        }
+        args.push_back(argAdd);
+      }
+    }
+    while (curr!=nullptr && args.size()<3);
+    if (args.size()<3)
+    {
+      return nullptr;
+    }
+    Expr nilArg = args[isRight ? 1 : 0];
+    std::stringstream ss;
+    ss << nilArg << "_or_nil";
+    Expr u = mkParameter(ss.str(), d_type);
+    Expr cond = mkExpr(Kind::EVAL_IS_EQ, {u, d_nil});
+    if (isRight)
+    {
+      // (-> t1 (-> t2 t3)) :right-assoc-nil
+      //   is
+      // (-> t1 (-> U (alf.ite (alf.is_eq U alf.nil) t3 (Requires U t2 t3))))
+      Expr ret = args[2];
+      ret = mkExpr(Kind::EVAL_IF_THEN_ELSE, {
+                  cond, ret, mkRequires(u, nilArg, ret)});
+      return mkFunctionType({args[0], u}, ret);
+    }
+    else
+    {
+      // (-> t1 (-> t2 t3)) :left-assoc-nil
+      //   is
+      // (-> U (alf.ite (alf.is_eq U alf.nil) (-> t2 t3) (Requires U t1 (-> t2 t3))))
+      Expr ret = mkFunctionType({args[1]}, args[2]);
+      ret = mkExpr(Kind::EVAL_IF_THEN_ELSE, {
+                    cond, ret, mkRequires(u, nilArg, ret)});
+      return mkFunctionType({u}, ret);
+    }
+  }
   return t;
 }
 

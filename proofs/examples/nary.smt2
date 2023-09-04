@@ -3,7 +3,7 @@
 ; Nary tests on a custom type
 (declare-type S ())
 
-(declare-const cons (-> (! Type :var U :implicit) S U (maybe_nil S U))
+(declare-const cons (-> S S S)
     :right-assoc-nil
 )
 

@@ -39,47 +39,51 @@
 ; Must use integer nil terminators to avoid confusion with subtyping
 (declare-const + (-> (! Type :var T :implicit)
                      (! Type :var U :implicit)
-                     T U (arith_typeunion_nary T U)) :right-assoc-nil)
+                     T U (arith_typeunion_nary T U)) :right-assoc 0)
 (declare-const - (-> (! Type :var T :implicit)
                      (! Type :var U :implicit)
                      T U (arith_typeunion T U)) :left-assoc)
 (declare-const * (-> (! Type :var T :implicit)
                      (! Type :var U :implicit)
-                     T U (arith_typeunion_nary T U)) :right-assoc-nil)
+                     T U (arith_typeunion_nary T U)) :right-assoc 1)
 
 (declare-const < (-> (! Type :var T :implicit)
                      (! Type :var U :implicit)
-                     T U
-                     (! Bool :requires ((is_arith_type T) true) :requires ((is_arith_type U) true)))
+                     (! T :requires ((is_arith_type T) true))
+                     (! U :requires ((is_arith_type U) true))
+                     Bool)
                      :chainable and)
 (declare-const <= (-> (! Type :var T :implicit)
                       (! Type :var U :implicit)
-                      T U
-                      (! Bool :requires ((is_arith_type T) true) :requires ((is_arith_type U) true)))
+                      (! T :requires ((is_arith_type T) true))
+                      (! U :requires ((is_arith_type U) true))
+                      Bool)
                       :chainable and)
 (declare-const > (-> (! Type :var T :implicit)
                      (! Type :var U :implicit)
-                     T U
-                     (! Bool :requires ((is_arith_type T) true) :requires ((is_arith_type U) true)))
+                     (! T :requires ((is_arith_type T) true))
+                     (! U :requires ((is_arith_type U) true))
+                     Bool)
                      :chainable and)
 (declare-const >= (-> (! Type :var T :implicit)
                       (! Type :var U :implicit)
-                      T U
-                      (! Bool :requires ((is_arith_type T) true) :requires ((is_arith_type U) true)))
+                      (! T :requires ((is_arith_type T) true))
+                      (! U :requires ((is_arith_type U) true))
+                      Bool)
                       :chainable and)
 
 (declare-const to_real (-> (! Type :var T :implicit)
-                           T
-                           (! Real :requires ((is_arith_type T) true))))
+                           (! T :requires ((is_arith_type T) true))
+                           Real))
 (declare-const to_int (-> (! Type :var T :implicit)
-                          T
-                          (! Int :requires ((is_arith_type T) true))))
+                          (! T :requires ((is_arith_type T) true))
+                          Int))
 (declare-const is_int (-> (! Type :var T :implicit)
-                          T
-                          (! Bool :requires ((is_arith_type T) true))))
+                          (! T :requires ((is_arith_type T) true))
+                          Bool))
 (declare-const abs (-> (! Type :var T :implicit)
-                       T
-                       (! T :requires ((is_arith_type T) true))))
+                       (! T :requires ((is_arith_type T) true))
+                       T))
 
 ; power
 (declare-const ^ (-> (! Type :var T :implicit)
@@ -88,5 +92,5 @@
 
 ; currently unary negation cannot use overload
 (declare-const u- (-> (! Type :var T :implicit)
-                       T
-                       (! T :requires ((is_arith_type T) true))))
+                      (! T :requires ((is_arith_type T) true))
+                      T))

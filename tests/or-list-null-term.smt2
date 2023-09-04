@@ -6,8 +6,8 @@
     )
 )
 
-(declare-const or (-> (! Type :var U :implicit) U Bool (maybe_nil Bool U)) :left-assoc-nil)
-(declare-const and (-> (! Type :var U :implicit) Bool U (maybe_nil Bool U)) :right-assoc-nil)
+(declare-const or (-> Bool Bool Bool) :left-assoc-nil)
+(declare-const and (-> Bool Bool Bool) :right-assoc-nil)
 
 (declare-const a Bool)
 (declare-const b Bool)

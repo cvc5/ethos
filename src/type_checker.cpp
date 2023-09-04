@@ -863,7 +863,7 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_OR:
     case Kind::EVAL_IS_NEG:
     case Kind::EVAL_IS_ZERO:
-      return getOrSetLiteralTypeRule(Kind::BOOLEAN);
+      return d_state.mkBoolType();
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_TO_INT:
     case Kind::EVAL_LENGTH:

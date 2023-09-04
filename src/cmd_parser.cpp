@@ -123,7 +123,10 @@ bool CmdParser::parseNextCommand()
       {
         t = d_state.mkFunctionType(sorts, t);
       }
-
+      // possible attribute list
+      AttrMap attrs;
+      d_eparser.parseAttributeList(t, attrs);
+      t = d_state.mkAnnotatedType(t, attrs);
       Expr v;
       if (tok == Token::DECLARE_VAR)
       {
@@ -133,9 +136,6 @@ bool CmdParser::parseNextCommand()
       {
         v = d_state.mkConst(name, t);
       }
-      // possible attribute list
-      AttrMap attrs;
-      d_eparser.parseAttributeList(v, attrs);
       d_state.markAttributes(v, attrs);
       // bind
       d_eparser.bind(name, v);

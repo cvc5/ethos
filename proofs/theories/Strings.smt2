@@ -20,9 +20,17 @@
 (declare-const str.len (-> (! Type :var T :implicit)
                            (! T :requires ((is_string_type T) true))
                            Int))
-(declare-const str.++ (-> (! Type :var T :implicit) (! Type :var U :implicit)
-                          (! T :requires ((is_string_type T) true)) U
-                          (! T :requires ((maybe_nil T U) T))) :right-assoc-nil)
+(declare-const str.++
+(->
+    (! Type :var T :implicit)
+    (! T :requires ((is_string_type T) true))
+    T
+    T
+) :right-assoc-nil)
+
+;(-> (! Type :var T :implicit) (! Type :var U :implicit)
+;                          (! T :requires ((is_string_type T) true)) U
+;                          (! T :requires ((maybe_nil T U) T))) :right-assoc-nil)
 
 ; extended functions
 (declare-const str.substr (-> (! Type :var T :implicit)
@@ -67,10 +75,10 @@
 (declare-const re.opt (-> RegLan RegLan))
 (declare-const re.comp (-> RegLan RegLan))
 (declare-const re.range (-> String String RegLan))
-(declare-const re.++ (-> (! Type :var U :implicit) RegLan U (! RegLan :requires ((maybe_nil RegLan U) RegLan))) :right-assoc-nil)
-(declare-const re.inter (-> (! Type :var U :implicit) RegLan U (! RegLan :requires ((maybe_nil RegLan U) RegLan))) :right-assoc-nil)
-(declare-const re.union (-> (! Type :var U :implicit) RegLan U (! RegLan :requires ((maybe_nil RegLan U) RegLan))) :right-assoc-nil)
-(declare-const re.diff (-> (! Type :var U :implicit) RegLan U (! RegLan :requires ((maybe_nil RegLan U) RegLan))) :right-assoc-nil)
+(declare-const re.++ (-> RegLan RegLan RegLan) :right-assoc-nil)
+(declare-const re.inter (-> RegLan RegLan RegLan) :right-assoc-nil)
+(declare-const re.union (-> RegLan RegLan RegLan) :right-assoc-nil)
+(declare-const re.diff (-> RegLan RegLan RegLan) :right-assoc-nil)
 (declare-const re.loop (-> Int Int RegLan RegLan))
 (declare-const str.in_re (-> String RegLan Bool))
 
