@@ -19,7 +19,7 @@
   (! Int :var m :implicit)
   (BitVec n)
   (BitVec m)
-  (BitVec (alf.add n m))) :right-assoc bvempty)
+  (BitVec (alf.add n m))) :right-assoc-nil bvempty)
 
 ; does not work:
 ;  (BitVec (alf.add n (alf.match ((m Int)) U (alf.nil 0) ((BitVec m) m))))) :right-assoc-nil)

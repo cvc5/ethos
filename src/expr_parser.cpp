@@ -901,18 +901,22 @@ void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedS
         break;
       case Attr::LIST:
       case Attr::IMPLICIT:
-      case Attr::RIGHT_ASSOC_NIL:
-      case Attr::LEFT_ASSOC_NIL:
-        // requires no value
-        break;
       case Attr::RIGHT_ASSOC:
       case Attr::LEFT_ASSOC:
+        // requires no value
+        break;
+      case Attr::RIGHT_ASSOC_NIL:
+      case Attr::LEFT_ASSOC_NIL:
       {
         // optional value
         Token tok = d_lex.peekToken();
         if (tok!=Token::RPAREN && tok!=Token::KEYWORD)
         {
           val = parseExpr();
+        }
+        else
+        {
+          val = d_state.mkNil();
         }
       } 
         break;

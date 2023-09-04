@@ -39,13 +39,13 @@
 ; Must use integer nil terminators to avoid confusion with subtyping
 (declare-const + (-> (! Type :var T :implicit)
                      (! Type :var U :implicit)
-                     T U (arith_typeunion_nary T U)) :right-assoc 0)
+                     T U (arith_typeunion_nary T U)) :right-assoc-nil 0)
 (declare-const - (-> (! Type :var T :implicit)
                      (! Type :var U :implicit)
                      T U (arith_typeunion T U)) :left-assoc)
 (declare-const * (-> (! Type :var T :implicit)
                      (! Type :var U :implicit)
-                     T U (arith_typeunion_nary T U)) :right-assoc 1)
+                     T U (arith_typeunion_nary T U)) :right-assoc-nil 1)
 
 (declare-const < (-> (! Type :var T :implicit)
                      (! Type :var U :implicit)

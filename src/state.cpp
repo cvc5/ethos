@@ -316,10 +316,15 @@ Expr State::mkBuiltinType(Kind k)
 
 Expr State::mkAnnotatedType(const Expr& t, AttrMap& attrs)
 {
+  // FIXME: simplify this
   for (const std::pair<const Attr, std::vector<Expr>>& attr : attrs)
   {
     Attr a = attr.first;
     if (a!=Attr::RIGHT_ASSOC_NIL && a!=Attr::LEFT_ASSOC_NIL)
+    {
+      continue;
+    }
+    if (attr.second[0]->getKind()!=Kind::NIL)
     {
       continue;
     }
@@ -502,20 +507,13 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
             size_t nextIndex = isLeft ? 2 : 1;
             size_t prevIndex = isLeft ? 1 : 2;
             // note the nil element is always treated as a list
-            if (curr->getKind()!=Kind::NIL && (isNil || ai->d_attrConsTerm!=nullptr))
+            if (curr->getKind()!=Kind::NIL && isNil)
             {
               if (getConstructorKind(curr.get())!=Attr::LIST)
               {
                 // if the last term is not marked as a list variable and
                 // we have a null terminator, then we insert the null terminator
-                if (isNil)
-                {
-                  cc[prevIndex] = d_nil;
-                }
-                else
-                {
-                  cc[prevIndex] = ai->d_attrConsTerm;
-                }
+                cc[prevIndex] = ai->d_attrConsTerm;
                 cc[nextIndex] = curr;
                 curr = mkApplyInternal(cc);
               }
