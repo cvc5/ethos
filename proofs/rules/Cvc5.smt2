@@ -13,6 +13,7 @@
 (include "../theories/Bags.smt2")
 (include "../theories/FiniteFields.smt2")
 (include "./Quantifiers.smt2")
+(include "../theories/Datatypes.smt2")
 
 
 ; skolems

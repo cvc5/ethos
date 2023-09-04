@@ -18,11 +18,11 @@
 (declare-const set.choose (-> (! Type :var T :implicit) (Set T) T))
 (declare-const set.is_singleton (-> (! Type :var T :implicit) (Set T) Bool))
 
+(declare-const set.filter (-> (! Type :var T :implicit) (-> T Bool) (Set T) (Set T)))
+(declare-const set.map (-> (! Type :var T :implicit) (! Type :var U :implicit) (-> T U) (Set T) (Set U)))
+(declare-const set.fold (-> (! Type :var T :implicit) (! Type :var U :implicit) (-> T U U) U (Set T) U))
 
 ;(define set.insert (# x term (# y term (apply (apply f_set.insert x) y))))
-;(define set.filter (# x term (# y term (apply (apply f_set.filter x) y))))
-;(define set.map (# x term (# y term (apply (apply f_set.map x) y))))
-;(define set.fold (# x term (# y term (# z term (apply (apply (apply f_set.fold x) y) z)))))
 
 
 ;(define rel.join (# x term (# y term (apply (apply f_rel.join x) y))))
@@ -32,3 +32,7 @@
 ;(define rel.iden (# x term (apply f_rel.iden x)))
 ;(define rel.join_image (# x term (# y term (apply (apply f_rel.join_image x) y))))
 
+
+; the diff skolem
+(declare-const @k.SETS_DEQ_DIFF
+   (-> (! Type :var T :implicit) (Set T) (Set T) T))

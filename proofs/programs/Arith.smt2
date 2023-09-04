@@ -10,7 +10,7 @@
     ((arith_rel_sum <= =) <=)
     ((arith_rel_sum <= <=) <=)
     ((arith_rel_sum = <) <)
-    ((arith_rel_sum = =) =)
+    ((arith_rel_sum = =) <=)  ; could be =, but internal proof checker does <=
     ((arith_rel_sum = <=) <=)
   )
 )

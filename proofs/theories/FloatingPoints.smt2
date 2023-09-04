@@ -13,6 +13,10 @@
 ;(declare-const fp term)
 ;(define fp (# x term (# y term (# z term (apply (apply (apply fp x) y) z)))))
 
+(declare-const fp
+  (-> (! Int :var e :implicit) (! Int :var s :implicit)
+      (BitVec 1) (BitVec e) (BitVec s) (FloatingPoint e (alf.add s 1))))
+
 (declare-const fp.add
   (-> (! Int :var e :implicit) (! Int :var s :implicit)
       RoundingMode (FloatingPoint e s) (FloatingPoint e s) (FloatingPoint e s)))
@@ -45,10 +49,10 @@
       (FloatingPoint e s) (FloatingPoint e s) (FloatingPoint e s)))
 (declare-const fp.abs
   (-> (! Int :var e :implicit) (! Int :var s :implicit)
-      (FloatingPoint e s) Bool))
+      (FloatingPoint e s) (FloatingPoint e s)))
 (declare-const fp.neg
   (-> (! Int :var e :implicit) (! Int :var s :implicit)
-      (FloatingPoint e s) Bool))
+      (FloatingPoint e s) (FloatingPoint e s)))
 
 (declare-const fp.leq
   (-> (! Int :var e :implicit) (! Int :var s :implicit)

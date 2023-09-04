@@ -50,7 +50,7 @@
 (declare-const str.suffixof (-> String String Bool))
 (declare-const str.rev (-> String String))
 (declare-const str.unit (-> Int String))
-(declare-const str.update (-> String String String String))
+(declare-const str.update (-> String Int String String))
 (declare-const str.to_lower (-> String String))
 (declare-const str.to_upper (-> String String))
 (declare-const str.to_code (-> String Int))
@@ -112,3 +112,4 @@
 
 ; skolems
 (declare-const @k.RE_UNFOLD_POS_COMPONENT (-> String RegLan Int String))
+(declare-const @k.STRINGS_DEQ_DIFF (-> (! Type :var T :implicit) (! T :requires ((is_string_type T) true)) T T))

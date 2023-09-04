@@ -21,9 +21,13 @@
 (declare-const bag.is_singleton (-> (! Type :var T :implicit) (Bag T) Bool))
 
 
+(declare-const bag.filter (-> (! Type :var T :implicit) (-> T Bool) (Bag T) (Bag T)))
+(declare-const bag.map (-> (! Type :var T :implicit) (! Type :var U :implicit) (-> T U) (Bag T) (Bag U)))
+(declare-const bag.fold (-> (! Type :var T :implicit) (! Type :var U :implicit) (-> T U U) U (Bag T) U))
+
 ;(declare-const bag.from_set (# x term (apply f_bag.from_set x)))
 ;(declare-const bag.to_set (# x term (apply f_bag.to_set x)))
-;(declare-const bag.map (-> (! Type :var T :implicit) (Bag T) (Bag T) (Bag T)))
-;(declare-const bag.filter (-> (! Type :var T :implicit) (Bag T) (Bag T) (Bag T)))
-;(declare-const bag.fold (# x term (# y term (# z term (apply (apply (apply f_bag.fold x) y) z)))))
 ;(declare-const table.product (-> (! Type :var T :implicit) (Bag T) (Bag T) (Bag T))) f_table.product x) y))))
+
+(declare-const @k.BAGS_DEQ_DIFF
+   (-> (! Type :var T :implicit) (Bag T) (Bag T) T))

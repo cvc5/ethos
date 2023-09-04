@@ -188,7 +188,10 @@ bool CmdParser::parseNextCommand()
       d_lex.eatToken(Token::LPAREN);
       std::map<Expr, std::vector<Expr>> dts;
       std::map<Expr, std::vector<Expr>> dtcons;
-      d_eparser.parseDatatypesDef(dnames, arities, dts, dtcons);
+      if (!d_eparser.parseDatatypesDef(dnames, arities, dts, dtcons))
+      {
+        d_lex.parseError("Failed to bind symbols for datatype definition");
+      }
       d_lex.eatToken(Token::RPAREN);
     }
     break;

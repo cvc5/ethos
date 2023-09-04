@@ -90,7 +90,7 @@
 
 (declare-rule re_inter ((x String) (s RegLan) (t RegLan))
   :premises ((str.in_re x s) (str.in_re x t))
-  :conclusion (str.in_re (re.inter s t))
+  :conclusion (str.in_re x (re.inter s t))
 )
 
 (declare-rule re_unfold_pos ((t String) (r RegLan))
