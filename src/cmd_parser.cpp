@@ -126,7 +126,14 @@ bool CmdParser::parseNextCommand()
       // possible attribute list
       AttrMap attrs;
       d_eparser.parseAttributeList(t, attrs);
-      t = d_state.mkAnnotatedType(t, attrs);
+      // determine if an attribute specified a constructor kind
+      Attr ck;
+      Expr cons;
+      if (d_eparser.processAttributeMap(attrs, ck, cons))
+      {
+        // if so, this may transform the type
+        t = d_state.mkAnnotatedType(t, ck, cons);
+      }
       Expr v;
       if (tok == Token::DECLARE_VAR)
       {
@@ -136,7 +143,11 @@ bool CmdParser::parseNextCommand()
       {
         v = d_state.mkConst(name, t);
       }
-      d_state.markAttributes(v, attrs);
+      // if the type has a property, we mark it on the variable of this type
+      if (ck!=Attr::NONE)
+      {
+        d_state.markConstructorKind(v, ck, cons);
+      }
       // bind
       d_eparser.bind(name, v);
     }
@@ -294,9 +305,7 @@ bool CmdParser::parseNextCommand()
       d_eparser.bind(name, rule);
       if (plCons!=nullptr)
       {
-        AttrMap amap;
-        amap[Attr::PREMISE_LIST].push_back(plCons);
-        d_state.markAttributes(rule, amap);
+        d_state.markConstructorKind(rule, Attr::PREMISE_LIST, plCons);
       }
     }
     break;

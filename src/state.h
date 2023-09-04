@@ -66,7 +66,7 @@ public:
   /** */
   Expr mkBuiltinType(Kind k);
   /** */
-  Expr mkAnnotatedType(const Expr& t, AttrMap& attrs);
+  Expr mkAnnotatedType(const Expr& t, Attr ck, const Expr& cons);
   /** */
   Expr mkParameter(const std::string& name, const Expr& type);
   /** */
@@ -124,8 +124,8 @@ public:
   /** */
   std::vector<Expr> getCurrentAssumptions() const;
   
-  /** Mark information */
-  bool markAttributes(const Expr& v, const AttrMap& attrs);
+  /** Mark constructor kind */
+  void markConstructorKind(const Expr& v, Attr a, const Expr& cons);
   /** 
    * Define program, where v is PROGRAM_CONST and prog is PROGRAM
    */

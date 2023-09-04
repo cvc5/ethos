@@ -360,11 +360,9 @@ Expr ExprParser::parseExpr()
             switch(a.first)
             {
               case Attr::VAR:
-              {
                 Assert (a.second.size()==1);
                 // it is now (Quote v) for that variable
                 ret = d_state.mkQuoteType(a.second[0]);
-              }
                 break;
               case Attr::IMPLICIT:
                 // the term will not be added as an argument to the parent
@@ -580,6 +578,8 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList()
   d_lex.eatToken(Token::LPAREN);
   std::string name;
   Expr t;
+  Attr ck;
+  Expr cons;
   // while the next token is LPAREN, exit if RPAREN
   while (d_lex.eatTokenChoice(Token::LPAREN, Token::RPAREN))
   {
@@ -590,7 +590,10 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList()
     // parse attribute list
     AttrMap attrs;
     parseAttributeList(v, attrs);
-    d_state.markAttributes(v, attrs);
+    if (processAttributeMap(attrs, ck, cons))
+    {
+      d_state.markConstructorKind(v, ck, cons);
+    }
     d_lex.eatToken(Token::RPAREN);
     varList.push_back(v);
   }
@@ -1083,6 +1086,47 @@ void ExprParser::ensureBound(Expr& e, const std::vector<Expr>& bvs)
       d_lex.parseError(msg.str());
     }
   }
+}
+
+bool ExprParser::processAttributeMap(const AttrMap& attrs, Attr& ck, Expr& cons)
+{
+  ck = Attr::NONE;
+  for (const std::pair<const Attr, std::vector<Expr>>& a : attrs)
+  {
+    for (const Expr& av : a.second)
+    {
+      switch(a.first)
+      {
+        case Attr::LIST:
+        case Attr::SYNTAX:
+        case Attr::PREMISE_LIST:
+        case Attr::LEFT_ASSOC:
+        case Attr::RIGHT_ASSOC:
+        case Attr::LEFT_ASSOC_NIL:
+        case Attr::RIGHT_ASSOC_NIL:
+        case Attr::CHAINABLE:
+        case Attr::PAIRWISE:
+          if (ck!=Attr::NONE)
+          {
+            std::stringstream ss;
+            ss << "Cannot set multiple constructor types ";
+            ss << "(" << ck << " and " << a.first << ")" << std::endl;
+            d_lex.warning(ss.str());
+            continue;
+          }
+          // it specifies how to construct terms involving this term
+          ck = a.first;
+          cons = av;
+          break;
+        default:
+          std::stringstream ss;
+          ss << "Unhandled attribute " << a.first << std::endl;
+          d_lex.warning(ss.str());
+          break;
+      }
+    }
+  }
+  return ck!=Attr::NONE;
 }
 
 }  // namespace alfc

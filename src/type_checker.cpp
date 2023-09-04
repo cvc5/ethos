@@ -162,6 +162,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs)
       return nargs==1;
     case Kind::EVAL_REQUIRES:
     case Kind::EVAL_IF_THEN_ELSE:
+    case Kind::EVAL_CONS:
     case Kind::EVAL_EXTRACT:
       return nargs==3;
     default:break;
@@ -804,6 +805,42 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<Expr>& arg
         << "REQUIRES: failed " << args[0] << " == " << args[1] << std::endl;
       return nullptr;
     }
+    case Kind::EVAL_CONS:
+    {
+      AppInfo* ac = d_state.getAppInfo(args[0].get());
+      Assert (ac!=nullptr);
+      Attr ck = ac->d_attrCons;
+      Assert (ck==Attr::RIGHT_ASSOC_NIL || ck==Attr::LEFT_ASSOC_NIL);
+      bool isLeft = (ck==Attr::LEFT_ASSOC_NIL);
+      std::vector<Expr> cargs;
+      cargs.push_back(args[0]);
+      for (size_t i=1; i<3; i++)
+      {
+        bool isHeadPos = i==(isLeft ? 2 : 1);
+        if (isHeadPos)
+        {
+          if (d_state.getConstructorKind(args[i].get())==Attr::LIST)
+          {
+            // not ready
+            return nullptr;
+          }
+          // get children, treated as list
+        }
+        else
+        {
+          cargs.push_back(args[i]);
+        }
+      }
+      if (cargs.size()==1)
+      {
+        return ac->d_attrConsTerm;
+      }
+      else if (cargs.size()==2)
+      {
+        return cargs[1];
+      }
+      return d_state.mkExpr(Kind::APPLY, cargs);
+    }
     default:
       break;
   }
@@ -844,8 +881,9 @@ Expr TypeChecker::getLiteralOpType(Kind k,
                                    std::vector<Expr>& childTypes, 
                                    std::ostream* out)
 {
-  // NOTE: applications of these operators should only be in patterns,
+  // NOTE: applications of most of these operators should only be in patterns,
   // where type checking is not strict.
+  // TODO: EVAL_CONS
   switch (k)
   {
     case Kind::EVAL_ADD:

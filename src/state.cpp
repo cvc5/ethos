@@ -314,89 +314,85 @@ Expr State::mkBuiltinType(Kind k)
   return mkAbstractType();
 }
 
-Expr State::mkAnnotatedType(const Expr& t, AttrMap& attrs)
+Expr State::mkAnnotatedType(const Expr& t, Attr ck, const Expr& cons)
 {
-  // FIXME: simplify this
-  for (const std::pair<const Attr, std::vector<Expr>>& attr : attrs)
+  if (ck!=Attr::RIGHT_ASSOC_NIL && ck!=Attr::LEFT_ASSOC_NIL)
   {
-    Attr a = attr.first;
-    if (a!=Attr::RIGHT_ASSOC_NIL && a!=Attr::LEFT_ASSOC_NIL)
+    return t;
+  }
+  if (cons->getKind()!=Kind::NIL)
+  {
+    return t;
+  }
+  bool isRight = (ck==Attr::RIGHT_ASSOC_NIL);
+  std::vector<Expr> args;
+  // decompose into (-> t1 t2 t3)
+  Expr curr = t;
+  std::vector<Expr> currReqs;
+  do
+  {
+    Expr argAdd = nullptr;
+    std::vector<Expr>& children = curr->getChildren();
+    if (curr->getKind()==Kind::FUNCTION_TYPE && children.size()==2)
     {
-      continue;
+      argAdd = children[0];
+      curr = children[1];
     }
-    if (attr.second[0]->getKind()!=Kind::NIL)
+    else if (curr->getKind()==Kind::EVAL_REQUIRES)
     {
-      continue;
-    }
-    bool isRight = (a==Attr::RIGHT_ASSOC_NIL);
-    std::vector<Expr> args;
-    // decompose into (-> t1 t2 t3)
-    Expr curr = t;
-    std::vector<Expr> currReqs;
-    do
-    {
-      Expr argAdd = nullptr;
-      std::vector<Expr>& children = curr->getChildren();
-      if (curr->getKind()==Kind::FUNCTION_TYPE && children.size()==2)
-      {
-        argAdd = children[0];
-        curr = children[1];
-      }
-      else if (curr->getKind()==Kind::EVAL_REQUIRES)
-      {
-        currReqs.push_back(mkPair(children[0], children[1]));
-        curr = children[2];
-      }
-      else
-      {
-        argAdd = curr;
-        curr = nullptr;
-      }
-      if (argAdd!=nullptr)
-      {
-        if (!currReqs.empty())
-        {
-          if (args.empty())
-          {
-            return nullptr;
-          }
-          args.back() = mkRequires(currReqs, args.back());
-          currReqs.clear();
-        }
-        args.push_back(argAdd);
-      }
-    }
-    while (curr!=nullptr && args.size()<3);
-    if (args.size()<3)
-    {
-      return nullptr;
-    }
-    Expr nilArg = args[isRight ? 1 : 0];
-    std::stringstream ss;
-    ss << nilArg << "_or_nil";
-    Expr u = mkParameter(ss.str(), d_type);
-    Expr cond = mkExpr(Kind::EVAL_IS_EQ, {u, d_nil});
-    if (isRight)
-    {
-      // (-> t1 (-> t2 t3)) :right-assoc-nil
-      //   is
-      // (-> t1 (-> U (alf.ite (alf.is_eq U alf.nil) t3 (Requires U t2 t3))))
-      Expr ret = args[2];
-      ret = mkExpr(Kind::EVAL_IF_THEN_ELSE, {
-                  cond, ret, mkRequires(u, nilArg, ret)});
-      return mkFunctionType({args[0], u}, ret);
+      currReqs.push_back(mkPair(children[0], children[1]));
+      curr = children[2];
     }
     else
     {
-      // (-> t1 (-> t2 t3)) :left-assoc-nil
-      //   is
-      // (-> U (alf.ite (alf.is_eq U alf.nil) (-> t2 t3) (Requires U t1 (-> t2 t3))))
-      Expr ret = mkFunctionType({args[1]}, args[2]);
-      ret = mkExpr(Kind::EVAL_IF_THEN_ELSE, {
-                    cond, ret, mkRequires(u, nilArg, ret)});
-      return mkFunctionType({u}, ret);
+      argAdd = curr;
+      curr = nullptr;
+    }
+    if (argAdd!=nullptr)
+    {
+      if (!currReqs.empty())
+      {
+        if (args.empty())
+        {
+          return nullptr;
+        }
+        args.back() = mkRequires(currReqs, args.back());
+        currReqs.clear();
+      }
+      args.push_back(argAdd);
     }
   }
+  while (curr!=nullptr && args.size()<3);
+  if (args.size()<3)
+  {
+    return nullptr;
+  }
+  Expr nilArg = args[isRight ? 1 : 0];
+  std::stringstream ss;
+  ss << nilArg << "_or_nil";
+  Expr u = mkParameter(ss.str(), d_type);
+  Expr cond = mkExpr(Kind::EVAL_IS_EQ, {u, d_nil});
+  if (isRight)
+  {
+    // (-> t1 (-> t2 t3)) :right-assoc-nil
+    //   is
+    // (-> t1 (-> U (alf.ite (alf.is_eq U alf.nil) t3 (Requires U t2 t3))))
+    Expr ret = args[2];
+    ret = mkExpr(Kind::EVAL_IF_THEN_ELSE, {
+                cond, ret, mkRequires(u, nilArg, ret)});
+    return mkFunctionType({args[0], u}, ret);
+  }
+  else
+  {
+    // (-> t1 (-> t2 t3)) :left-assoc-nil
+    //   is
+    // (-> U (alf.ite (alf.is_eq U alf.nil) (-> t2 t3) (Requires U t1 (-> t2 t3))))
+    Expr ret = mkFunctionType({args[1]}, args[2]);
+    ret = mkExpr(Kind::EVAL_IF_THEN_ELSE, {
+                  cond, ret, mkRequires(u, nilArg, ret)});
+    return mkFunctionType({u}, ret);
+  }
+
   return t;
 }
 
@@ -948,49 +944,16 @@ void State::defineDatatype(const Expr& d, const std::vector<Expr>& cons)
   }
 }
 
-
-bool State::markAttributes(const Expr& v, const AttrMap& attrs)
+void State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
 {
   AppInfo& ai = d_appData[v.get()];
-  for (const std::pair<const Attr, std::vector<Expr>>& a : attrs)
-  {
-    for (const Expr& av : a.second)
-    {
-      switch(a.first)
-      {
-        case Attr::LIST:
-        case Attr::SYNTAX:
-        case Attr::PREMISE_LIST:
-        case Attr::LEFT_ASSOC:
-        case Attr::RIGHT_ASSOC:
-        case Attr::LEFT_ASSOC_NIL:
-        case Attr::RIGHT_ASSOC_NIL:
-        case Attr::CHAINABLE:
-        case Attr::PAIRWISE:
-          if (ai.d_attrCons!=Attr::NONE)
-          {
-            std::stringstream ss;
-            ss << "Setting multiple constructor types for " << v;
-            ss << " (" << a.first << " and " << ai.d_attrCons << ")" << std::endl;
-            Warning() << ss.str();
-            return false;
-          }
-          // it specifies how to construct this
-          ai.d_attrCons = a.first;
-          ai.d_attrConsTerm = av;
-          break;
-        default:
-          // remember it has been marked
-          ai.d_attrs[a.first].push_back(av);
-          break;
-      }
-    }
-  }
+  Assert (ai.d_attrCons==Attr::NONE);
+  ai.d_attrCons = a;
+  ai.d_attrConsTerm = cons;
   if (d_compiler!=nullptr)
   {
-    d_compiler->markAttributes(v, attrs);
+    d_compiler->markConstructorKind(v, a, cons);
   }
-  return true;
 }
 
 }  // namespace alfc

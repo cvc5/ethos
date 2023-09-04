@@ -111,7 +111,6 @@ std::string PathTrie::PathTrieNode::getNameForPath(std::ostream& osdecl, const s
 Compiler::Compiler(State& s) :
   d_state(s), d_tchecker(s.getTypeChecker()), d_nscopes(0), d_global(d_decl, d_init, "_e", nullptr)
 {
-  d_decl << "AttrMap _amap;" << std::endl;
   d_decl << "std::map<ExprValue*, size_t> _runId;" << std::endl;
   d_decl << "Ctx _ctxTmp;" << std::endl;
   d_decl << "Expr _etmp;" << std::endl;
@@ -223,32 +222,28 @@ void Compiler::bind(const std::string& name, const Expr& e)
   }
 }
 
-void Compiler::markAttributes(const Expr& v, const AttrMap& attrs)
+void Compiler::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
 {
   if (d_nscopes>0)
   {
     return;
   }
   size_t id = writeGlobalExpr(v);
-  d_init << "  _amap.clear();" << std::endl;
-  for (const std::pair<const Attr, std::vector<Expr>>& p : attrs)
+  size_t idc = 0;
+  if (cons!=nullptr)
   {
-    std::stringstream ssa;
-    ssa << "Attr::" << p.first;
-    for (const Expr& pv : p.second)
-    {
-      if (pv!=nullptr)
-      {
-        size_t id = writeGlobalExpr(pv);
-        d_init << "  _amap[" << ssa.str() << "].push_back(_e" << id << ");" << std::endl;
-      }
-      else
-      {
-        d_init << "  _amap[" << ssa.str() << "].push_back(nullptr);" << std::endl;
-      }
-    }
+    idc = writeGlobalExpr(cons);
   }
-  d_init << "  markAttributes(_e" << id << ", _amap);" << std::endl;
+  d_init << "  markConstructorKind(_e" << id << ", Attr::" << a << ", ";
+  if (cons==nullptr)
+  {
+    d_init << "nullptr";
+  }
+  else
+  {
+    d_init << "_e" << idc;
+  }
+  d_init << ");" << std::endl;
 }
 void Compiler::defineProgram(const Expr& v, const Expr& prog)
 {

@@ -112,6 +112,8 @@ class ExprParser
   /** Ensure bound */
   void ensureBound(Expr& e, const std::vector<Expr>& bvs);
   //-------------------------- end checking
+  /** Get constructor kind */
+  bool processAttributeMap(const AttrMap& attrs, Attr& ck, Expr& cons);
  protected:
   /**
    * Parse constructor definition list, add to declaration type. The expected
