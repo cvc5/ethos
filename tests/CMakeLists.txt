@@ -64,6 +64,7 @@ set(alfc_test_file_list
     theory-rewrite-native.smt2
     par-dt.smt2
     right-assoc-variants.smt2
+    rare-example.smt2
 )
 
 macro(alfc_test file)
