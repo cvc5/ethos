@@ -723,14 +723,27 @@ bool ExprParser::parseDatatypesDef(
     }
     // read constructor definition list, populate into the current datatype
     Expr& dt = dtlist[i];
-    if (!parseConstructorDefinitionList(dt, dts[dt], dtcons))
+    Expr dti = dt;
+    if (!params.empty())
     {
-      return false;
+      std::vector<Expr> dapp;
+      dapp.push_back(dt);
+      dapp.insert(dapp.end(), params.begin(), params.end());
+      dti = d_state.mkExpr(Kind::APPLY, dapp);
     }
+    std::vector<std::pair<std::string, Expr>> toBind;
+    parseConstructorDefinitionList(dti, dts[dt], dtcons, toBind);
     if (pushedScope)
     {
       d_lex.eatToken(Token::RPAREN);
       d_state.popScope();
+    }
+    for (std::pair<std::string, Expr>& b : toBind)
+    {
+      if (!d_state.bind(b.first, b.second))
+      {
+        return false;
+      }
     }
     tok = d_lex.nextToken();
     i++;
@@ -743,9 +756,10 @@ bool ExprParser::parseDatatypesDef(
   return true;
 }
 
-bool ExprParser::parseConstructorDefinitionList(Expr& dt,
+void ExprParser::parseConstructorDefinitionList(Expr& dt,
                                                 std::vector<Expr>& conslist,
-                                                std::map<Expr, std::vector<Expr>>& dtcons)
+                                                std::map<Expr, std::vector<Expr>>& dtcons,
+                                                std::vector<std::pair<std::string, Expr>>& toBind)
 {
   d_lex.eatToken(Token::LPAREN);
   Expr boolType = d_state.mkBoolType();
@@ -763,40 +777,27 @@ bool ExprParser::parseConstructorDefinitionList(Expr& dt,
       typelist.push_back(t);
       Expr stype = d_state.mkFunctionType({dt}, t);
       Expr sel = d_state.mkConst(id, stype);
-      if (!d_state.bind(id, sel))
-      {
-        return false;
-      }
+      toBind.emplace_back(id,sel);
       sels.push_back(sel);
       std::stringstream ss;
       ss << "update-" << id;
       Expr utype = d_state.mkFunctionType({dt, t}, dt);
       Expr updater = d_state.mkConst(ss.str(), utype);
-      if (!d_state.bind(ss.str(), updater))
-      {
-        return false;
-      }
+      toBind.emplace_back(ss.str(), updater);
       d_lex.eatToken(Token::RPAREN);
     }
     Expr ctype = d_state.mkFunctionType(typelist, dt);
     Expr cons = d_state.mkConst(name, ctype);
-    if (!d_state.bind(name, cons))
-    {
-      return false;
-    }
+    toBind.emplace_back(name, cons);
     conslist.push_back(cons);
     // make the discriminator
     std::stringstream ss;
     ss << "is-" << name;
     Expr dtype = d_state.mkFunctionType({dt}, boolType);
     Expr tester = d_state.mkConst(ss.str(), dtype);
-    if (!d_state.bind(ss.str(), tester))
-    {
-      return false;
-    }
+    toBind.emplace_back(ss.str(), tester);
     dtcons[cons] = sels;
   }
-  return true;
 }
 
 std::string ExprParser::parseKeyword()

@@ -9,7 +9,7 @@
 
 (declare-const ff.add
     (-> (! Int :var p :implicit)
-        (FiniteField p) (FiniteField p) (FiniteField p))
+        (FiniteField p) (FiniteField p) (FiniteField p)) :right-assoc-nil
 )
 (declare-const ff.neg
     (-> (! Int :var p :implicit)
@@ -17,5 +17,5 @@
 )
 (declare-const ff.mul
     (-> (! Int :var p :implicit)
-        (FiniteField p) (FiniteField p) (FiniteField p))
+        (FiniteField p) (FiniteField p) (FiniteField p)) :right-assoc-nil
 )

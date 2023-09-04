@@ -117,9 +117,10 @@ class ExprParser
    * Parse constructor definition list, add to declaration type. The expected
    * syntax is '(<constructor_dec>+)'.
    */
-  bool parseConstructorDefinitionList(Expr& dt,
+  void parseConstructorDefinitionList(Expr& dt,
                                       std::vector<Expr>& conslist,
-                                      std::map<Expr, std::vector<Expr>>& dtcons);
+                                      std::map<Expr, std::vector<Expr>>& dtcons,
+                                      std::vector<std::pair<std::string, Expr>>& toBind);
   /** Return the unsigned for the current token string. */
   uint32_t tokenStrToUnsigned();
   /**

@@ -78,7 +78,7 @@
 (declare-const re.++ (-> RegLan RegLan RegLan) :right-assoc-nil)
 (declare-const re.inter (-> RegLan RegLan RegLan) :right-assoc-nil)
 (declare-const re.union (-> RegLan RegLan RegLan) :right-assoc-nil)
-(declare-const re.diff (-> RegLan RegLan RegLan) :right-assoc-nil)
+(declare-const re.diff (-> RegLan RegLan RegLan))
 (declare-const re.loop (-> Int Int RegLan RegLan))
 (declare-const str.in_re (-> String RegLan Bool))
 
@@ -86,7 +86,7 @@
 ; Sequences
 (declare-const seq.empty (-> (! Type :var T) T))
 (declare-const seq.unit (-> (! Type :var T :implicit) T (Seq T)))
-(declare-const seq.nth (-> (! Type :var T :implicit) (Seq T) T))
+(declare-const seq.nth (-> (! Type :var T :implicit) (Seq T) Int T))
 (declare-const seq.len (-> (! Type :var T :implicit) (Seq T) Int))
 
 ;(declare f_seq.++ term)

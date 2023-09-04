@@ -13,6 +13,7 @@ TODO:
     - parameters can be shared??
 - lazy construction of definitions when compiled?
 - non-exponential alf.ite compilation
+- alf.cons for list variables at non-tail locations
 
 COMPLETED:
 
