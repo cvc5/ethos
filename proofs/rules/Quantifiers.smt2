@@ -8,11 +8,12 @@
   :conclusion (substitute_list xs ts F))
 
 ; returns the list of skolems for F
+; TODO: this could be a fold
 (program mk_skolems ((x @List) (xs @List :list) (F Bool))
   (@List Bool) @List
   (
-  ((mk_skolems (@list x xs) F) (@list (skolem (@k.QUANTIFIERS_SKOLEMIZE F x)) (mk_skolems xs F)))
-  ((mk_skolems alf.nil F)      alf.nil)
+    ((mk_skolems (@list x xs) F) (nary.append @list (skolem (@k.QUANTIFIERS_SKOLEMIZE F x)) (mk_skolems xs F)))
+    ((mk_skolems alf.nil F)      alf.nil)
   )
 )
 

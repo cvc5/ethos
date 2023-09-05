@@ -65,6 +65,8 @@ set(alfc_test_file_list
     par-dt.smt2
     right-assoc-variants.smt2
     rare-example.smt2
+    define-fun.alfc.smt2
+    quant-sk-small.alfc.smt2
 )
 
 macro(alfc_test file)

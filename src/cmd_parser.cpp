@@ -489,6 +489,10 @@ bool CmdParser::parseNextCommand()
         {
           d_lex.parseError("Expected application of program as case");
         }
+        if (pc->getNumChildren()!=argTypes.size()+1)
+        {
+          d_lex.parseError("Wrong arity for pattern");
+        }
         // ensure some type checking??
         //d_eparser.typeCheck(pc);
         // ensure the right hand side is bound by the left hand side

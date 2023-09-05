@@ -1,0 +1,20 @@
+(include "../proofs/rules/Cvc5.smt2")
+(declare-var alf.1.x Int)
+(declare-var x Int)
+(define-fun f () (-> Int Bool) (lambda x false))
+(define-fun g () (-> Int Bool) (lambda alf.1.x true))
+(define-fun @t1 () (-> Int Bool) (lambda x false))
+(define-fun @t2 () (-> Int Bool) (lambda alf.1.x true))
+(define-fun @t3 () Bool (f 0))
+(define-fun @t4 () Bool (_ @t1 0))
+(step @p1 (= @t1 @t1) :rule refl :args (@t1))
+(step @p2 (= @t2 @t2) :rule refl :args (@t2))
+(assume @p3 @t3)
+; WARNING: add trust step for THEORY_REWRITE
+; trust THEORY_REWRITE
+(step @p4 (= @t4 false) :rule trust :args ((= @t4 false)))
+(step @p5 (= 0 0) :rule refl :args (0))
+(step @p6 (= @t3 @t4) :rule ho_cong :premises (@p1 @p5))
+(step @p7 (= @t3 false) :rule trans :premises (@p6 @p4))
+(step @p8 false :rule eq_resolve :premises (@p3 @p7))
+
