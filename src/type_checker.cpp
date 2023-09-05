@@ -756,7 +756,7 @@ Expr TypeChecker::evaluateLiteralOp(Kind k, const std::vector<Expr>& args)
   return d_state.mkExprInternal(k, args);
 }
 
-Expr getNAryChildren(Expr& e, Expr& op, std::vector<Expr>& children, bool isLeft)
+Expr getNAryChildren(Expr e, const Expr& op, std::vector<Expr>& children, bool isLeft)
 {
   while (e->getKind()==Kind::APPLY)
   {
@@ -835,29 +835,42 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<Expr>& arg
       Attr ck = ac->d_attrCons;
       Assert (ck==Attr::RIGHT_ASSOC_NIL || ck==Attr::LEFT_ASSOC_NIL);
       bool isLeft = (ck==Attr::LEFT_ASSOC_NIL);
+      Trace("type_checker_debug") << "CONS: " << isLeft << " " << args << std::endl;
       Expr op = args[0];
       size_t headIndex = (isLeft ? 2 : 1);
       const Expr& harg = args[headIndex];
       if (d_state.getConstructorKind(harg.get())==Attr::LIST)
       {
         // not ready
+        Trace("type_checker_debug") << "...head " << harg << " (" << harg.get() << ") still list" << " " << d_state.getConstructorKind(harg.get()) <<std::endl;
         return nullptr;
       }
-      std::vector<Expr> cargs;
-      cargs.push_back(op);
+      std::vector<Expr> hargs;
+      Expr a = harg;
       // Note we could just take the tail verbatim
       // Instead this decomposes and reconstructs the tail.
-      // This ensures
-      for (size_t i=1; i<3; i++)
+      a = getNAryChildren(a, op, hargs, isLeft);
+      if (a!=ac->d_attrConsTerm)
       {
-        Expr a = args[isLeft ? 3-i : i];
-        a = getNAryChildren(a, op, cargs, isLeft);
-        if (a!=ac->d_attrConsTerm)
-        {
-          Warning() << "...failed to decompose " << a << std::endl;
-          return nullptr;
-        }
+        Warning() << "...failed to decompose " << harg << std::endl;
+        return nullptr;
       }
+      size_t tailIndex = (isLeft ? 1 : 2);
+      std::vector<Expr> cc;
+      cc.push_back(op);
+      cc.push_back(nullptr);
+      cc.push_back(nullptr);
+      Expr ret = args[tailIndex];
+      for (size_t i=0, nargs=hargs.size(); i<nargs; i++)
+      {
+        cc[tailIndex] = ret;
+        cc[headIndex] = hargs[isLeft ? i : (nargs-1-i)];
+        ret = d_state.mkApplyInternal(cc);
+      }
+      Trace("type_checker_debug") << "CONS: " << isLeft << " " << args << " -> " << ret << std::endl;
+      return ret;
+      /*
+      cargs.push_back(args[isLeft ? 1 : 2]);
       Trace("type_checker_debug") << "CONS: " << isLeft << " " << args << " -> " << cargs << std::endl;
       // we eliminate the nil and singleton lists here
       if (cargs.size()==1)
@@ -873,6 +886,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<Expr>& arg
         std::reverse(cargs.begin()+1, cargs.end());
       }
       return d_state.mkExpr(Kind::APPLY, cargs);
+      */
     }
     default:
       break;
@@ -916,7 +930,6 @@ Expr TypeChecker::getLiteralOpType(Kind k,
 {
   // NOTE: applications of most of these operators should only be in patterns,
   // where type checking is not strict.
-  // TODO: EVAL_CONS
   switch (k)
   {
     case Kind::EVAL_ADD:
@@ -927,6 +940,7 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_REQUIRES:
       return childTypes[2];
     case Kind::EVAL_IF_THEN_ELSE:
+    case Kind::EVAL_CONS:
       return childTypes[1];
     case Kind::EVAL_IS_EQ:
     case Kind::EVAL_NOT:

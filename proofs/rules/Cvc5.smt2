@@ -14,7 +14,10 @@
 (include "../theories/FiniteFields.smt2")
 (include "./Quantifiers.smt2")
 (include "../theories/Datatypes.smt2")
+(include "../theories/SepLogic.smt2")
 
+; TODO: proper place for this
+(declare-const fmf.card (-> Type Int Bool))
 
 ; skolems
 ;INPUT_VARIABLE

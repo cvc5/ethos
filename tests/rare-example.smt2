@@ -9,6 +9,25 @@
 (declare-const c Bool)
 
 
+(program elim_or
+    ((x Bool))
+    (Bool) Bool
+    (
+        ((elim_or (or x alf.nil)) x)
+        ((elim_or alf.nil)        false)
+        ((elim_or x)              x)
+    )
+)
+(program elim_and
+    ((x Bool))
+    (Bool) Bool
+    (
+        ((elim_and (and alf.nil x)) x)
+        ((elim_and alf.nil)         true)
+        ((elim_and x)               x)
+    )
+)
+
 (declare-rule bool-or-true ((xs Bool :list) (ys Bool :list))
   :args (xs ys)
   :conclusion (= (or xs true ys) true)
@@ -16,7 +35,7 @@
 
 (declare-rule bool-or-false ((xs Bool :list) (ys Bool :list))
   :args (xs ys)
-  :conclusion (= (or xs false ys) (or xs ys))
+  :conclusion (= (or xs false ys) (elim_or (or xs ys)))
 )
 
 (step @p0 (= (or a b true c) true) :rule bool-or-true :args ((or a b) (or c alf.nil)))
@@ -31,7 +50,7 @@
 
 (declare-rule bool-and-true ((xs Bool :list) (ys Bool :list))
   :args (xs ys)
-  :conclusion (= (and xs true ys) (and xs ys))
+  :conclusion (= (and xs true ys) (elim_and (and xs ys)))
 )
 
 (declare-rule bool-and-false ((xs Bool :list) (ys Bool :list))

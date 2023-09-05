@@ -23,15 +23,16 @@
    :chainable and
 )
 
-(declare-const forall (-> (! Type :var A :implicit) A Bool Bool))
-
-(declare-const exists (-> (! Type :var A :implicit) A Bool Bool))
-
 (declare-const lambda (-> (! Type :var A :implicit) (! Type :var B :implicit) A B (-> A B)))
 
 (declare-const distinct (-> (! Type :var A :implicit) A A Bool) :pairwise and)
 
 ;;;;;;;;;;;;;;;;;;
+
+
+; generic variables
+; NOTE: does not check that U is a numeral
+(declare-const const (-> (! Type :var U :implicit) U (! Type :var T) T))
 
 (declare-const skolem (-> (! Type :var A :implicit) A A))
 
@@ -47,8 +48,3 @@
 ;   (declare-const @k.ARRAY_DIFF
 ;      (-> (! Type :var T :implicit) (! Type :var U :implicit) (Array T U) (Array T U) T))
 
-
-
-; generic variables
-; NOTE: does not check that U is a numeral
-(declare-const const (-> (! Type :var U :implicit) U (! Type :var T) T))

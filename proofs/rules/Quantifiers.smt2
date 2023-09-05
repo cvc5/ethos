@@ -1,4 +1,5 @@
 (include "../programs/Quantifiers.smt2")
+(include "../theories/Quantifiers.smt2")
 
 (declare-rule instantiate ((F Bool) (ts SExpr))
   :premises (F)

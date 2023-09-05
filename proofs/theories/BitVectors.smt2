@@ -293,17 +293,7 @@
   (! Int :var m :implicit)
   (BitVec m) Int))
 
-; if children packaged with AND
-;(program bitwidth_nchild ((P Bool))
-;  (Bool) Int
-;  (
-;    ((bitwidth_nchild P) (nary.nchild and (nary.intro and true P)))
-;  )
-;)
-;(declare-const bbT (->
-;  (! Bool :var P)
-;  (BitVec (bitwidth_nchild P))))
-
+(declare-const BITVECTOR_EAGER_ATOM (-> Bool Bool))
 
 ; Internal definitions for Bitblasting
 ;(declare f_BITVECTOR_EAGER_ATOM term)

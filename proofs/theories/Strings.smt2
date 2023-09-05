@@ -45,12 +45,17 @@
 (declare-const str.indexof (-> (! Type :var T :implicit)
                                (! T :requires ((is_string_type T) true)) T Int
                                Int))
-(declare-const str.at (-> String Int String))
-(declare-const str.prefixof (-> String String Bool))
-(declare-const str.suffixof (-> String String Bool))
-(declare-const str.rev (-> String String))
+(declare-const str.at (-> (! Type :var T :implicit)
+                          (! T :requires ((is_string_type T) true)) Int T))
+(declare-const str.prefixof (-> (! Type :var T :implicit)
+                                (! T :requires ((is_string_type T) true)) T Bool))
+(declare-const str.suffixof (-> (! Type :var T :implicit)
+                                (! T :requires ((is_string_type T) true)) T Bool))
+(declare-const str.rev (-> (! Type :var T :implicit)
+                           (! T :requires ((is_string_type T) true)) T))
 (declare-const str.unit (-> Int String))
-(declare-const str.update (-> String Int String String))
+(declare-const str.update (-> (! Type :var T :implicit)
+                              (! T :requires ((is_string_type T) true)) Int T T))
 (declare-const str.to_lower (-> String String))
 (declare-const str.to_upper (-> String String))
 (declare-const str.to_code (-> String Int))
@@ -60,7 +65,8 @@
 (declare-const str.from_int (-> Int String))
 (declare-const str.< (-> String String Bool))
 (declare-const str.<= (-> String String Bool))
-(declare-const str.replace_all (-> String String String String))
+(declare-const str.replace_all (-> (! Type :var T :implicit)
+                                   (! T :requires ((is_string_type T) true)) T T T))
 (declare-const str.replace_re (-> String RegLan String String))
 (declare-const str.replace_re_all (-> String RegLan String String))
 
@@ -112,4 +118,4 @@
 
 ; skolems
 (declare-const @k.RE_UNFOLD_POS_COMPONENT (-> String RegLan Int String))
-(declare-const @k.STRINGS_DEQ_DIFF (-> (! Type :var T :implicit) (! T :requires ((is_string_type T) true)) T T))
+(declare-const @k.STRINGS_DEQ_DIFF (-> (! Type :var T :implicit) (! T :requires ((is_string_type T) true)) T Int))

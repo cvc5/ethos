@@ -127,7 +127,7 @@ bool CmdParser::parseNextCommand()
       AttrMap attrs;
       d_eparser.parseAttributeList(t, attrs);
       // determine if an attribute specified a constructor kind
-      Attr ck;
+      Attr ck = Attr::NONE;
       Expr cons;
       if (d_eparser.processAttributeMap(attrs, ck, cons))
       {
