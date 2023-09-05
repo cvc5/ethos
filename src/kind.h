@@ -49,6 +49,7 @@ enum class Kind
   EVAL_IF_THEN_ELSE,
   EVAL_REQUIRES,
   EVAL_CONS,
+  EVAL_APPEND,
   // boolean
   EVAL_NOT,
   EVAL_AND,

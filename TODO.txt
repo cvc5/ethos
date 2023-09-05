@@ -13,7 +13,6 @@ TODO:
     - parameters can be shared??
 - lazy construction of definitions when compiled?
 - non-exponential alf.ite compilation
-- alf.cons for list variables at non-tail locations
 
 COMPLETED:
 
@@ -34,6 +33,7 @@ COMPLETED:
 - generalize CLI
 - show compiled files via --show-config
 - proper compilation of alf.ite / alf.is_eq
+- alf.cons for list variables at non-tail locations
 
 CVC5-TODO:
 

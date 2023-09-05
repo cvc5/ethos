@@ -6,7 +6,7 @@
     (Bool) Bool
     (
         ((lowerNot alf.nil)    alf.nil)
-        ((lowerNot (and l ls)) (nary.append or (not l) (lowerNot ls)))
+        ((lowerNot (and l ls)) (alf.cons or (not l) (lowerNot ls)))
     )
 )
 

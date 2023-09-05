@@ -163,6 +163,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs)
     case Kind::EVAL_REQUIRES:
     case Kind::EVAL_IF_THEN_ELSE:
     case Kind::EVAL_CONS:
+    case Kind::EVAL_APPEND:
     case Kind::EVAL_EXTRACT:
       return nargs==3;
     default:break;
@@ -829,6 +830,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<Expr>& arg
       return nullptr;
     }
     case Kind::EVAL_CONS:
+    case Kind::EVAL_APPEND:
     {
       AppInfo* ac = d_state.getAppInfo(args[0].get());
       Assert (ac!=nullptr);
@@ -846,13 +848,20 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<Expr>& arg
         return nullptr;
       }
       std::vector<Expr> hargs;
-      Expr a = harg;
-      // Note we take the tail verbatim
-      a = getNAryChildren(a, op, hargs, isLeft);
-      if (a!=ac->d_attrConsTerm)
+      if (k==Kind::EVAL_APPEND)
       {
-        Warning() << "...failed to decompose " << harg << std::endl;
-        return nullptr;
+        Expr a = harg;
+        // Note we take the tail verbatim
+        a = getNAryChildren(a, op, hargs, isLeft);
+        if (a!=ac->d_attrConsTerm)
+        {
+          Warning() << "...failed to decompose " << harg << std::endl;
+          return nullptr;
+        }
+      }
+      else
+      {
+        hargs.push_back(harg);
       }
       size_t tailIndex = (isLeft ? 1 : 2);
       std::vector<Expr> cc;

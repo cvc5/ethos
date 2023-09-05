@@ -24,15 +24,6 @@
 ; A call `(append x xs)` will create the list from point 1 and `(append x nil)`
 ; will create a unit list.
 
-; nary.append cons c xs
-; Appends `c` to the head of `xs`.
-(program nary.append
-    ((L Type) (cons (-> L L L)) (c L) (xs L :list))
-    ((-> L L L) L L) L
-    (
-        ((nary.append cons c xs) (cons c xs))
-    )
-)
 
 ; nary.ctn cons c l
 ; Retuns `true` if l inList c.
@@ -63,7 +54,7 @@
     ((L Type) (cons (-> L L L)) (x L) (xs L) (ys L))
     ((-> L L L) L L) L
     (
-        ((nary.concat cons xs ys) (alf.cons cons xs ys))
+        ((nary.concat cons xs ys) (alf.append cons xs ys))
     )
 )
 
@@ -74,7 +65,7 @@
     ((-> L L L) L L) L
     (
         ((nary.remove cons c (cons c xs)) xs)
-        ((nary.remove cons c (cons y xs)) (nary.append cons y (nary.remove cons c xs)))
+        ((nary.remove cons c (cons y xs)) (alf.cons cons y (nary.remove cons c xs)))
         ((nary.remove cons c alf.nil)     alf.nil)
     )
 )
@@ -84,7 +75,7 @@
     ((L Type) (cons (-> L L L)) (x L) (xs L :list) (l L :list))
     ((-> L L L) L L) L
     (
-        ((nary.reverseRec cons (cons x xs) l) (nary.reverseRec cons xs (nary.append cons x l)))
+        ((nary.reverseRec cons (cons x xs) l) (nary.reverseRec cons xs (alf.cons cons x l)))
         ((nary.reverseRec cons alf.nil  l)  l)
     )
 )
@@ -119,7 +110,7 @@
     (
         ((nary.intro cons nil (cons x xs)) (cons x xs))
         ((nary.intro cons nil nil)         alf.nil)
-        ((nary.intro cons nil x)           (nary.append cons x alf.nil))
+        ((nary.intro cons nil x)           (alf.cons cons x alf.nil))
     )
 )
 

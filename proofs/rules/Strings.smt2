@@ -105,7 +105,7 @@
              (or 
                (= t "") 
                (str.in_re r1) 
-               (nary.elim and true (nary.append and (= t tk) (nary.concat and M (non_empty_concats tk String))))))))
+               (nary.elim and true (alf.cons and (= t tk) (nary.concat and M (non_empty_concats tk String))))))))
       ((re.++ r1 r2)
         (alf.match ((tk String) (M Bool :list))
           (re_unfold_pos_concat t r)

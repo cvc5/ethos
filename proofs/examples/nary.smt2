@@ -27,7 +27,7 @@
 ; Append
 (declare-rule check_append((c S) (l S) (out S))
     :args (c l out)
-    :requires (((nary.append cons c l) out))
+    :requires (((alf.cons cons c l) out))
     :conclusion true
 )
 

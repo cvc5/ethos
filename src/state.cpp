@@ -29,6 +29,7 @@ State::State(Options& opts, Stats& stats) : d_tc(*this), d_opts(opts), d_stats(s
   bindBuiltinEval("ite", Kind::EVAL_IF_THEN_ELSE);
   bindBuiltinEval("requires", Kind::EVAL_REQUIRES);
   bindBuiltinEval("cons", Kind::EVAL_CONS);
+  bindBuiltinEval("append", Kind::EVAL_APPEND);
   // boolean
   bindBuiltinEval("not", Kind::EVAL_NOT);
   bindBuiltinEval("and", Kind::EVAL_AND);
@@ -516,10 +517,10 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
             {
               cc[prevIndex] = curr;
               cc[nextIndex] = children[isLeft ? i : nchild-i];
-              // if the "head" child is marked as list, we construct Kind::EVAL_CONS
+              // if the "head" child is marked as list, we construct Kind::EVAL_APPEND
               if (getConstructorKind(cc[nextIndex].get())==Attr::LIST)
               {
-                curr = mkExprInternal(Kind::EVAL_CONS, cc);
+                curr = mkExprInternal(Kind::EVAL_APPEND, cc);
               }
               else
               {
@@ -799,6 +800,12 @@ Expr State::getVar(const std::string& name) const
     return it->second;
   }
   return nullptr;
+}
+
+Expr State::getProofRule(const std::string& name) const
+{
+  // just get the variable
+  return getVar(name);
 }
 
 Literal* State::getLiteral(const ExprValue* e)

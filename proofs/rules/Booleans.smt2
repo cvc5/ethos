@@ -18,7 +18,7 @@
    (Bool Bool) Bool
    (
    ((extract_antec C C) alf.nil)
-   ((extract_antec (=> F1 F2) C) (nary.append and F1 (extract_antec F2 C)))
+   ((extract_antec (=> F1 F2) C) (alf.cons and F1 (extract_antec F2 C)))
    )
 )
 
@@ -112,9 +112,9 @@
     (
         ((factorLiterals xs (or l ls)) (let ((cond (nary.ctn or l xs)))
                                        (let ((ret (factorLiterals
-                                                    (alf.ite cond xs (nary.append or l xs))
+                                                    (alf.ite cond xs (alf.cons or l xs))
                                                     ls)))
-                                            (alf.ite cond ret (nary.append or l ret)))))
+                                            (alf.ite cond ret (alf.cons or l ret)))))
         ((factorLiterals xs alf.nil)   alf.nil)
     )
 )
@@ -274,7 +274,7 @@
     (Bool) Bool
     (
         ((lowerNotAnd alf.nil) alf.nil) ; Terminator changes
-        ((lowerNotAnd (and l ls)) (nary.append or (not l) (lowerNotAnd ls)))
+        ((lowerNotAnd (and l ls)) (alf.cons or (not l) (lowerNotAnd ls)))
     )
 )
 
@@ -292,7 +292,7 @@
 ; CNF_AND_NEG
 (declare-rule cnf_and_neg ((Fs Bool))
     :args (Fs)
-    :conclusion (nary.append or Fs (lowerNotAnd Fs))
+    :conclusion (alf.cons or Fs (lowerNotAnd Fs))
 )
 
 ; CNF_OR_POS

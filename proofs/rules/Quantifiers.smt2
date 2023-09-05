@@ -12,7 +12,7 @@
 (program mk_skolems ((x @List) (xs @List :list) (F Bool))
   (@List Bool) @List
   (
-    ((mk_skolems (@list x xs) F) (nary.append @list (skolem (@k.QUANTIFIERS_SKOLEMIZE F x)) (mk_skolems xs F)))
+    ((mk_skolems (@list x xs) F) (alf.cons @list (skolem (@k.QUANTIFIERS_SKOLEMIZE F x)) (mk_skolems xs F)))
     ((mk_skolems alf.nil F)      alf.nil)
   )
 )

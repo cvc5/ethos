@@ -241,7 +241,7 @@
   (U Type) Bool
   (
     ((non_empty_concats alf.nil U)       alf.nil)
-    ((non_empty_concats (str.++ t s) U)  (nary.append and (= t (mk_emptystr U)) (non_empty_concats s U)))
+    ((non_empty_concats (str.++ t s) U)  (alf.cons and (= t (mk_emptystr U)) (non_empty_concats s U)))
   )
 )
 
@@ -295,8 +295,8 @@
   (
     ((string_flatten_word t) 
       (alf.ite (check_length_one t) 
-        (nary.append str.++ t alf.nil)
-        (nary.append str.++ (alf.extract 0 1 t) (string_flatten_word (alf.extract 1 (alf.len t) t)))))
+        (alf.cons str.++ t alf.nil)
+        (alf.cons str.++ (alf.extract 0 1 t) (string_flatten_word (alf.extract 1 (alf.len t) t)))))
   )
 )
 (program string_flatten ((U Type) (t U) (tail U :list) (tail2 U :list))
@@ -312,7 +312,7 @@
           ; if so, we flatten the word using the method above and concatenate it.
           (nary.concat str.++ (string_flatten_word t) (string_flatten tail))
           ; if not, we just append it to the result of the recursive call
-          (nary.append str.++ t (string_flatten tail))))
+          (alf.cons str.++ t (string_flatten tail))))
   )
 )
 
@@ -357,10 +357,10 @@
         (string_collect_acc (str.++ t s))
         ; did not strip a constant prefix, just append t to the result of processing s
         ((@pair alf.nil s2)
-          (nary.append str.++ t (string_collect s)))
+          (alf.cons str.++ t (string_collect s)))
         ; stripped a constant prefix, append it to second term in the pair
         ((@pair s1 s2)
-          (nary.append str.++ s1 (string_collect s2)))
+          (alf.cons str.++ s1 (string_collect s2)))
       )
     )
   )

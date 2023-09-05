@@ -997,7 +997,13 @@ Expr ExprParser::getVar(const std::string& name)
 
 Expr ExprParser::getProofRule(const std::string& name)
 {
-  Expr v = getVar(name);
+  Expr v = d_state.getProofRule(name);
+  if (v==nullptr)
+  {
+    std::stringstream ss;
+    ss << "Could not find proof rule " << name;
+    d_lex.parseError(ss.str());
+  }
   if (v->getKind()!=Kind::PROOF_RULE)
   {
     std::stringstream ss;
