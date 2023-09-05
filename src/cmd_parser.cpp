@@ -219,6 +219,11 @@ bool CmdParser::parseNextCommand()
     // (declare-rule ...)
     case Token::DECLARE_RULE:
     {
+      // ensure zero scope
+      if (d_state.getAssumptionLevel()>0)
+      {
+        d_lex.parseError("Rules must be declared at assumption level zero");
+      }
       d_state.pushScope();
       std::string name = d_eparser.parseSymbol();
       std::vector<Expr> vs =
@@ -445,6 +450,10 @@ bool CmdParser::parseNextCommand()
     break;
     case Token::INCLUDE:
     {
+      if (d_state.getAssumptionLevel()>0)
+      {
+        d_lex.parseError("Includes must be done at assumption level zero");
+      }
       tok = d_lex.peekToken();
       if (tok != Token::STRING_LITERAL)
       {

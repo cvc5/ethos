@@ -200,10 +200,6 @@ bool State::markIncluded(const std::string& s)
 void State::addAssumption(const Expr& a)
 {
   d_assumptions.push_back(a);
-  if (d_compiler!=nullptr)
-  {
-    d_compiler->addAssumption(a);
-  }
 }
 
 void State::setLiteralTypeRule(Kind k, const Expr& t)

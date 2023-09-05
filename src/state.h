@@ -169,6 +169,8 @@ private:
   //--------------------- parsing state
   /** The symbol table */
   std::map<std::string, Expr> d_symTable;
+  /** Symbol table for proof rules */
+  std::map<std::string, Expr> d_ruleSymTable;
   /** Context stacks */
   std::vector<std::string> d_decls;
   /** Context size */

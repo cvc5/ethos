@@ -34,3 +34,9 @@ COMPLETED:
 - generalize CLI
 - show compiled files via --show-config
 - proper compilation of alf.ite / alf.is_eq
+
+CVC5-TODO:
+
+- sorts introduced internally to proof
+- constants overloading, give priority to consts over vars
+- fine grained inclusion of signatures to avoid overloading

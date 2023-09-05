@@ -74,14 +74,6 @@
     :conclusion (mk_nary_cong f nil nil E)
 )
 
-
-; Closure congruence
-(declare-rule closure_cong ((T Type) (U Type) (t T) (s T) (x @List) (f (-> @List T T)))
-    :premises ((= t s))
-    :args (f x)
-    :conclusion (= (f x t) (f x s))
-)
-
 ; TRUE_INTRO
 (declare-rule true_intro ((F Bool))
     :premises (F)

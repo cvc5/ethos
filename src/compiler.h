@@ -142,8 +142,6 @@ public:
   void includeFile(const std::string& s);
   /** Set type rule for literal kind k to t */
   void setLiteralTypeRule(Kind k, const Expr& t);
-  /** add assumption */
-  void addAssumption(const Expr& a);
   /** */
   void bind(const std::string& name, const Expr& e);
   /** Mark attributes */

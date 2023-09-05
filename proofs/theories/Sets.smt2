@@ -34,5 +34,4 @@
 
 
 ; the diff skolem
-(declare-const @k.SETS_DEQ_DIFF
-   (-> (! Type :var T :implicit) (Set T) (Set T) T))
+(declare-const @k.SETS_DEQ_DIFF (-> (! Type :var T :implicit) (Set T) (Set T) T))

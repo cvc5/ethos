@@ -190,21 +190,11 @@ void Compiler::setLiteralTypeRule(Kind k, const Expr& t)
 
 void Compiler::includeFile(const std::string& s)
 {
-  if (d_nscopes>0)
-  {
-    return;
-  }
+  Assert (d_nscopes==0);
   d_init << "  markIncluded(\"" << s << "\");" << std::endl;
   d_config << "  ss << std::setw(15) << \" \" << \"" << s << "\" << std::endl;" << std::endl;
 }
 
-void Compiler::addAssumption(const Expr& a)
-{
-  if (d_nscopes>0)
-  {
-    return;
-  }
-}
 void Compiler::bind(const std::string& name, const Expr& e)
 {
   if (d_nscopes>0)
