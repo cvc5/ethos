@@ -60,11 +60,10 @@
 ; concat cons xs ys
 ; Concatenates two lists `xs` and `ys`.
 (program nary.concat
-    ((L Type) (cons (-> L L L)) (x L) (xs L :list) (ys L))
+    ((L Type) (cons (-> L L L)) (x L) (xs L) (ys L))
     ((-> L L L) L L) L
     (
-        ((nary.concat cons (cons x xs) ys) (nary.append cons x (nary.concat cons xs ys)))
-        ((nary.concat cons alf.nil ys) ys)
+        ((nary.concat cons xs ys) (alf.cons cons xs ys))
     )
 )
 

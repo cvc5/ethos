@@ -839,16 +839,15 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<Expr>& arg
       Expr op = args[0];
       size_t headIndex = (isLeft ? 2 : 1);
       const Expr& harg = args[headIndex];
-      if (d_state.getConstructorKind(harg.get())==Attr::LIST)
+      if (!harg->isGround()) // or LIST?
       {
         // not ready
-        Trace("type_checker_debug") << "...head " << harg << " (" << harg.get() << ") still list" << " " << d_state.getConstructorKind(harg.get()) <<std::endl;
+        Trace("type_checker_debug") << "...head is non-ground" <<std::endl;
         return nullptr;
       }
       std::vector<Expr> hargs;
       Expr a = harg;
-      // Note we could just take the tail verbatim
-      // Instead this decomposes and reconstructs the tail.
+      // Note we take the tail verbatim
       a = getNAryChildren(a, op, hargs, isLeft);
       if (a!=ac->d_attrConsTerm)
       {
@@ -869,24 +868,6 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<Expr>& arg
       }
       Trace("type_checker_debug") << "CONS: " << isLeft << " " << args << " -> " << ret << std::endl;
       return ret;
-      /*
-      cargs.push_back(args[isLeft ? 1 : 2]);
-      Trace("type_checker_debug") << "CONS: " << isLeft << " " << args << " -> " << cargs << std::endl;
-      // we eliminate the nil and singleton lists here
-      if (cargs.size()==1)
-      {
-        return ac->d_attrConsTerm;
-      }
-      else if (cargs.size()==2)
-      {
-        return cargs[1];
-      }
-      if (isLeft)
-      {
-        std::reverse(cargs.begin()+1, cargs.end());
-      }
-      return d_state.mkExpr(Kind::APPLY, cargs);
-      */
     }
     default:
       break;
