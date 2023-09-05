@@ -7,12 +7,12 @@ TODO:
 - check type preservation for evaluation?
   - more generally: a weaker type system for program bodies??
 - separate symbol table for proof rules?
-- ensure assumption scope level is preserved per include file
 - Temporary memory allocation of Expr within calls to evaluation?
 - minimize compiled code by recognizing alpha-equivalent patterns
     - parameters can be shared??
 - lazy construction of definitions when compiled?
 - non-exponential alf.ite compilation
+- warn unused parameters
 
 COMPLETED:
 
@@ -34,6 +34,7 @@ COMPLETED:
 - show compiled files via --show-config
 - proper compilation of alf.ite / alf.is_eq
 - alf.cons for list variables at non-tail locations
+- ensure assumption scope level is preserved per include file
 
 CVC5-TODO:
 

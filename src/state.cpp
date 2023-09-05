@@ -176,6 +176,7 @@ void State::includeFileInternal(const std::string& s, bool ignore)
   {
     return;
   }
+  Assert (getAssumptionLevel()==0);
   Parser p(*this);
   p.setFileInput(inputPath);
   bool parsedCommand;
@@ -186,6 +187,10 @@ void State::includeFileInternal(const std::string& s, bool ignore)
   while (parsedCommand);
   d_inputFile = currentPath;
   Trace("state") << "...finished" << std::endl;
+  if (getAssumptionLevel()!=0)
+  {
+    ALFC_FATAL() << "Including file " << inputPath << " did not preserve assumption scope";
+  }
 }
 
 bool State::markIncluded(const std::string& s)

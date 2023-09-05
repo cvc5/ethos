@@ -4,7 +4,7 @@
 
 (declare-const exists (-> @List Bool Bool))
 
-(declare-const witness (-> (! Type :var T :implicit) @List T T))
+(declare-const witness (-> (! Type :var T :implicit) T Bool T))
 
 
 ; maybe just change to lists

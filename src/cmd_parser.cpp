@@ -460,8 +460,8 @@ bool CmdParser::parseNextCommand()
         d_lex.parseError("Expected string literal for include");
       }
       // include the file
-      std::string msg = d_eparser.parseStr(true);
-      d_state.includeFile(msg);
+      std::string file = d_eparser.parseStr(true);
+      d_state.includeFile(file);
     }
     break;
     // (program (<sort>*) <sort> (<sorted_var>*) <term_pair>+)
