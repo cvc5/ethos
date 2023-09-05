@@ -20,10 +20,10 @@
   )
 )
 
-
-(program mk_skolemize ((T Type) (x T) (F Bool) (t T) (ts SExpr :list))
-  (Bool) Bool
+(program mk_skolemize ((T Type) (q (-> T Bool Bool)) (x T) (F Bool) (G Bool) (t T) (ts SExpr :list))
+  (Bool SExpr) Bool
   (
-    ((mk_skolemize F)                 F)
+    ((mk_skolemize (q x F) (q x G) (sexpr x ts)) (mk_skolemize (substitute x (skolem (@k.QUANTIFIERS_SKOLEMIZE x G)) F) G ts))
+    ((mk_skolemize F G alf.nil)                  F)
   )
 )

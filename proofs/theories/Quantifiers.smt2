@@ -5,5 +5,6 @@
 (declare-const exists (-> (! Type :var A :implicit) A Bool Bool))
 
 
+; maybe just change to lists
 
-(declare-const @k.QUANTIFIERS_SKOLEMIZE (-> (! Type :var T) Bool T))
+(declare-const @k.QUANTIFIERS_SKOLEMIZE (-> (! Type :var T :implicit) T Bool T))
