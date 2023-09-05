@@ -25,7 +25,7 @@
       (strip_prefix
            (string_to_flat_form U s rev) 
            (string_to_flat_form U t rev))
-      ((pair ss ts)
+      ((@pair ss ts)
         (= 
           (string_from_flat_form U ss rev)
           (string_from_flat_form U ts rev))))
@@ -73,7 +73,7 @@
       (strip_prefix
            (string_to_flat_form String s rev)
            (string_to_flat_form String t rev))
-      ((pair ss ts)
+      ((@pair ss ts)
           ; ensure the LHS is char or empty
           (let ((cs (string_first_char_or_empty ss)))
           (alf.ite (alf.is_eq cs alf.fail) alf.fail
@@ -101,7 +101,7 @@
       ((re.* r1)
         (alf.match ((tk String) (M Bool :list))
           (re_unfold_pos_concat t (re.++ r1 r r1))
-          ((pair tk M)
+          ((@pair tk M)
              (or 
                (= t "") 
                (str.in_re r1) 
@@ -109,7 +109,7 @@
       ((re.++ r1 r2)
         (alf.match ((tk String) (M Bool :list))
           (re_unfold_pos_concat t r)
-          ((pair tk M)
+          ((@pair tk M)
              (nary.elim and true (and (= t tk) M)))))))
 
 ;;;;;;;;;; Extended functions 

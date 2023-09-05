@@ -210,26 +210,26 @@
 ; We use the optimization that Rj may be (str.to_re tj); otherwise tj is an
 ; application of the unfolding skolem program @k.RE_UNFOLD_POS_COMPONENT.
 (program re_unfold_pos_concat_rec ((t String) (r1 RegLan) (r2 RegLan :list) (ro RegLan) (i Int))
-  (String RegLan RegLan Int) (Pair String Bool)
+  (String RegLan RegLan Int) (@Pair String Bool)
   (
-    ((re_unfold_pos_concat_rec t alf.nil ro i)       (pair alf.nil alf.nil))
+    ((re_unfold_pos_concat_rec t alf.nil ro i)       (@pair alf.nil alf.nil))
     ((re_unfold_pos_concat_rec t (re.++ r1 r2) ro i)
       ; match recursive call
       (alf.match ((c String :list) (M Bool :list))
         (re_unfold_pos_concat_rec t r2 ro (alf.add i 1))
-        ((pair c M)
+        ((@pair c M)
           ; match on what r1 is
           (alf.match ((s String) (r RegLan))
             r1
             ; a constant regular expression, append s
-            ((str.to_re s) (pair (str.++ s c) M))
+            ((str.to_re s) (@pair (str.++ s c) M))
             ; otherwise, make the skolem and append with constraint
             (r             (let ((k (skolem (@k.RE_UNFOLD_POS_COMPONENT t ro i))))
-                           (pair (str.++ k c) (and (str.in_re k r) M)))))))
+                           (@pair (str.++ k c) (and (str.in_re k r) M)))))))
     )
   )
 )
-(define-fun re_unfold_pos_concat ((t String) (r RegLan)) (Pair String Bool)
+(define-fun re_unfold_pos_concat ((t String) (r RegLan)) (@Pair String Bool)
   (re_unfold_pos_concat_rec t r r 0))
 
 ; Returns a formula corresponding to a conjunction saying that each of the
@@ -323,9 +323,9 @@
 ; For example, for:
 ;   (str.++ "A" (str.++ "B" (str.++ x alf.nil)))
 ; We return:
-;   (pair "AB" (str.++ x alf.nil))
+;   (@pair "AB" (str.++ x alf.nil))
 (program string_collect_acc ((U Type) (t U) (tail String :list))
-  (U) (Pair U U)
+  (U) (@Pair U U)
   (
     ; TODO: sequences
     ; Check if t is a word constant
@@ -333,11 +333,11 @@
       (alf.ite (check_length_one t)
         (alf.match ((s1 U) (s2 U)) 
           (string_collect_acc tail)
-          ((pair alf.nil s2)  (pair t s2))
-          ((pair s1 s2)       (pair (alf.concat t s1) s2))    ; concatentate the constant
+          ((@pair alf.nil s2)  (@pair t s2))
+          ((@pair s1 s2)       (@pair (alf.concat t s1) s2))    ; concatentate the constant
         )
-        (pair alf.nil (str.++ t tail))))
-    ((string_collect_acc alf.nil)            (pair alf.nil alf.nil))
+        (@pair alf.nil (str.++ t tail))))
+    ((string_collect_acc alf.nil)            (@pair alf.nil alf.nil))
   )
 )
 
@@ -356,10 +356,10 @@
       (alf.match ((s1 U) (s2 U))
         (string_collect_acc (str.++ t s))
         ; did not strip a constant prefix, just append t to the result of processing s
-        ((pair alf.nil s2)
+        ((@pair alf.nil s2)
           (nary.append str.++ t (string_collect s)))
         ; stripped a constant prefix, append it to second term in the pair
-        ((pair s1 s2)
+        ((@pair s1 s2)
           (nary.append str.++ s1 (string_collect s2)))
       )
     )
@@ -374,10 +374,10 @@
 ;   (pair (str.++ y (str.++ z "")) (str.++ w ""))
 ; This side condition may fail if s or t is not a str.++ application.
 (program strip_prefix ((U Type) (t U) (s U) (t2 U :list) (s2 U :list))
-  (U U) (Pair U U)
+  (U U) (@Pair U U)
   (
     ((strip_prefix (str.++ t t2) (str.++ t s2)) (strip_prefix t2 s2))
-    ((strip_prefix t s)                         (pair t s))
+    ((strip_prefix t s)                         (@pair t s))
   )
 )
 

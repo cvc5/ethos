@@ -1,7 +1,6 @@
 
-(declare-type Pair (Type Type))
-
-(declare-const pair (-> (! Type :var U :implicit) (! Type :var T :implicit) U T (Pair U T)))
+(declare-type @Pair (Type Type))
+(declare-const @pair (-> (! Type :var U :implicit) (! Type :var T :implicit) U T (@Pair U T)))
 
 ; Returns true if c is a rational between zero and one, inclusive
 (program between_zero_and_one ((R Type) (c R))
@@ -26,11 +25,7 @@
   )
 )
 
-; Returns T if U is either equal to T or alf.nil
-;(define-fun maybe_nil ((T Type) (U Type) (t T) (u U)) Type
-;  (! t :requires ((alf.ite (alf.is_eq u t) true (alf.is_eq u alf.nil)) true)))
-
-
 ; untyped list
-(declare-sort SExpr 0)
-(declare-const sexpr (-> (! Type :var T :implicit) (! Type :var U :implicit) T U SExpr) :right-assoc-nil)
+(declare-sort @List 0)
+(declare-const @list (-> (! Type :var T :implicit) T @List @List) :right-assoc-nil)
+
