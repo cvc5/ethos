@@ -84,6 +84,22 @@
               (alf.requires (alf.is_eq cs ct) false false)))))
           ))
 )
+; the PfRule::CONCAT_CONFLICT_DEQ rule, for sequences only
+(declare-rule concat_conflict_deq ((U Type) (s (Seq U)) (t (Seq U)) (x U) (y U) (rev Bool))
+  :premises ((= s t) (not (= x y)))
+  :args (rev (Seq U))
+  :conclusion
+    ; strip the prefix of the equality
+    (alf.match ((ss (Seq U)) (ts (Seq U)))
+      (strip_prefix
+           (string_to_flat_form (Seq U) s rev)
+           (string_to_flat_form (Seq U) t rev))
+      ((@pair ss ts)
+          ; take the first character from each side, should give x and y
+          (alf.requires (string_first_char_or_empty ss) x
+          (alf.requires (string_first_char_or_empty ts) y
+              false))))
+)
 
 ;;;;;;;;;; Regular expressions
 

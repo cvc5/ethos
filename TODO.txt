@@ -1,9 +1,8 @@
 TODO:
 
-- remove custom nil construction policy?
 - :syntax
 - arity overloading?
-- remove closure parsing?
+- remove closure parsing? maybe alf.lambda is useful for a native alf.map
 - check type preservation for evaluation?
   - more generally: a weaker type system for program bodies??
 - separate symbol table for proof rules?
@@ -12,7 +11,9 @@ TODO:
     - parameters can be shared??
 - lazy construction of definitions when compiled?
 - non-exponential alf.ite compilation
-- warn unused parameters
+- warn unused parameters / memory safe
+- type field separate?
+- compiled fine grain inclusion??
 
 COMPLETED:
 
@@ -35,9 +36,10 @@ COMPLETED:
 - proper compilation of alf.ite / alf.is_eq
 - alf.cons for list variables at non-tail locations
 - ensure assumption scope level is preserved per include file
+- X remove custom nil construction policy?
 
 CVC5-TODO:
 
 - sorts introduced internally to proof
-- constants overloading, give priority to consts over vars
+- constants overloading
 - fine grained inclusion of signatures to avoid overloading

@@ -25,6 +25,7 @@ public:
   bool d_runCompile;
   bool d_printLet;
   bool d_stats;
+  bool d_ruleSymTable;
 };
 
 class State

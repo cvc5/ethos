@@ -11,10 +11,8 @@
 ; NOTE: doesn't check that T is (Array x U) for some x
 (declare-const store_all (-> (! Type :var T) (! Type :var U :implicit) U T))
 
-;(declare f_array_const (! s sort term))
-;(define array_const (# x sort (# y term (apply (f_array_const x) y))))
-;(declare f_eqrange term)
-;(define eqrange (# x term (# y term (# z term (# w term (apply (apply (apply (apply f_eqrange x) y) z) w))))))
+(declare-const eqrange (-> (! Type :var U :implicit) (! Type :var T :implicit) (! Type :var I :implicit)
+                           (Array U T) (Array U T) I I Bool))
 
 ; the diff skolem
 (declare-const @k.ARRAY_DEQ_DIFF

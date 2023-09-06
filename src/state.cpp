@@ -14,6 +14,7 @@ Options::Options()
   d_runCompile = false;
   d_printLet = false;
   d_stats = false;
+  d_ruleSymTable = false;
 }
 
 State::State(Options& opts, Stats& stats) : d_tc(*this), d_opts(opts), d_stats(stats)
@@ -760,13 +761,27 @@ Expr State::mkExprInternal(Kind k, const std::vector<Expr>& children)
 
 bool State::bind(const std::string& name, const Expr& e)
 {
-  if (d_symTable.find(name)!=d_symTable.end())
-  {
-    return false;
-  }
+  // compiler is agnostic to which symbol table, record it here
   if (d_compiler!=nullptr)
   {
     d_compiler->bind(name, e);
+  }
+  // if using a separate symbol table for rules
+  if (d_opts.d_ruleSymTable && e->getKind()==Kind::PROOF_RULE)
+  {
+    // don't bind at non-global scope
+    Assert (d_declsSizeCtx.empty());
+    if (d_ruleSymTable.find(name)!=d_ruleSymTable.end())
+    {
+      return false;
+    }
+    d_ruleSymTable[name] = e;
+    return true;
+  }
+  // otherwise use the main symbol table
+  if (d_symTable.find(name)!=d_symTable.end())
+  {
+    return false;
   }
   d_symTable[name] = e;
   // only have to remember if not at global scope
