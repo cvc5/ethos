@@ -6,4 +6,4 @@
 (declare-const unit.tuple UnitTuple)
 (declare-const tuple (-> (! Type :var T :implicit)
                          (! Type :var U :implicit)
-                         T U (Tuple T U)) :right-assoc-nil unit.tuple)
+                         T U (alf.cons Tuple T U)) :right-assoc-nil unit.tuple)

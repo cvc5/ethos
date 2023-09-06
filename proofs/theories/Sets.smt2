@@ -22,8 +22,6 @@
 (declare-const set.map (-> (! Type :var T :implicit) (! Type :var U :implicit) (-> T U) (Set T) (Set U)))
 (declare-const set.fold (-> (! Type :var T :implicit) (! Type :var U :implicit) (-> T U U) U (Set T) U))
 
-;(define set.insert (# x term (# y term (apply (apply f_set.insert x) y))))
-
 
 ;(define rel.join (# x term (# y term (apply (apply f_rel.join x) y))))
 ;(define rel.product (# x term (# y term (apply (apply f_rel.product x) y))))
