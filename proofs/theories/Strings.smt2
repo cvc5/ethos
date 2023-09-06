@@ -69,6 +69,7 @@
                                    (! T :requires ((is_string_type T) true)) T T T))
 (declare-const str.replace_re (-> String RegLan String String))
 (declare-const str.replace_re_all (-> String RegLan String String))
+(declare-const str.indexof_re (-> String RegLan Int Int))
 
 ; regular expressions
 (declare-const re.allchar RegLan)
@@ -119,3 +120,20 @@
 ; skolems
 (declare-const @k.RE_UNFOLD_POS_COMPONENT (-> String RegLan Int String))
 (declare-const @k.STRINGS_DEQ_DIFF (-> (! Type :var T :implicit) (! T :requires ((is_string_type T) true)) T Int))
+(declare-const @k.STRINGS_STOI_RESULT (-> String Int String))
+(declare-const @k.STRINGS_STOI_NON_DIGIT (-> String Int))
+
+;(declare-const @k.STRINGS_OCCUR_INDEX (-> String String Int))
+
+
+;STRINGS_NUM_OCCUR
+;STRINGS_OCCUR_INDEX
+;STRINGS_OCCUR_LEN
+;STRINGS_REPLACE_ALL_RESULT
+;STRINGS_ITOS_RESULT
+;STRINGS_STOI_RESULT
+;STRINGS_STOI_NON_DIGIT
+;SK_FIRST_MATCH_PRE
+;SK_FIRST_MATCH
+;SK_FIRST_MATCH_POST
+;SEQ_MODEL_BASE_ELEMENT

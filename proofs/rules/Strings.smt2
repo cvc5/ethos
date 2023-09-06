@@ -99,13 +99,16 @@
     (alf.match ((r1 RegLan) (r2 RegLan :list))
       r
       ((re.* r1)
-        (alf.match ((tk String) (M Bool :list))
+        (alf.match ((k1 String) (k2 String) (k3 String) (M Bool :list))
           (re_unfold_pos_concat t (re.++ r1 r r1))
-          ((@pair tk M)
+          ((@pair (str.++ k1 k2 k3) M)
              (or 
                (= t "") 
-               (str.in_re r1) 
-               (nary.elim and true (alf.cons and (= t tk) (nary.concat and M (non_empty_concats tk String))))))))
+               (str.in_re t r1)
+               (and
+                  (alf.cons and (= t (str.++ k1 k2 k3)) M)
+                  (not (= k1 ""))
+                  (not (= k3 "")))))))
       ((re.++ r1 r2)
         (alf.match ((tk String) (M Bool :list))
           (re_unfold_pos_concat t r)

@@ -19,6 +19,6 @@
 (declare-const arccot (-> (! Type :var T :implicit) T (! Real :requires ((is_arith_type T) true))))
 (declare-const sqrt (-> (! Type :var T :implicit) T (! Real :requires ((is_arith_type T) true))))
 
-;SQRT
-;TRANSCENDENTAL_PURIFY_ARG
-
+; skolems
+(declare-const @k.SQRT (-> Real Real))
+(declare-const @k.TRANSCENDENTAL_PURIFY_ARG (-> Real Real))

@@ -241,7 +241,7 @@
   (U Type) Bool
   (
     ((non_empty_concats alf.nil U)       alf.nil)
-    ((non_empty_concats (str.++ t s) U)  (alf.cons and (= t (mk_emptystr U)) (non_empty_concats s U)))
+    ((non_empty_concats (str.++ t s) U)  (alf.cons and (not (= t (mk_emptystr U))) (non_empty_concats s U)))
   )
 )
 
