@@ -1,5 +1,6 @@
 (include "../theories/Builtin.smt2")
 (include "../theories/Arith.smt2")
+(include "../theories/Datatypes.smt2")
 
 (declare-sort Set 1)
 
@@ -22,6 +23,9 @@
 (declare-const set.map (-> (! Type :var T :implicit) (! Type :var U :implicit) (-> T U) (Set T) (Set U)))
 (declare-const set.fold (-> (! Type :var T :implicit) (! Type :var U :implicit) (-> T U U) U (Set T) U))
 
+(declare-const rel.tclosure (-> (! Type :var T :implicit) (Set (Tuple T T)) (Set (Tuple T T))))
+;(declare-const rel.transpose (-> (! Type :var T :implicit) (Set T) (Set (nary.reverse Tuple T))))
+;(declare-const rel.product (-> (! Type :var T :implicit) (! Type :var U :implicit) (Set T) (Set U) (Set (nary.concat Tuple U T))))
 
 ;(define rel.join (# x term (# y term (apply (apply f_rel.join x) y))))
 ;(define rel.product (# x term (# y term (apply (apply f_rel.product x) y))))

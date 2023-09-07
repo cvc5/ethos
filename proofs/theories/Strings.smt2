@@ -96,6 +96,10 @@
 (declare-const seq.nth (-> (! Type :var T :implicit) (Seq T) Int T))
 (declare-const seq.len (-> (! Type :var T :implicit) (Seq T) Int))
 
+
+;(declare-const seq.nth (-> (! Type :var T :implicit)
+;                           T Int
+;                           (alf.match ((U Type)) T (String Int) ((Seq U) U))))
 ;(declare f_seq.++ term)
 ;(define seq.++ (# x term (# y term (apply (apply f_seq.++ x) y))))
 ;(declare f_seq.extract term)
@@ -120,15 +124,14 @@
 ; skolems
 (declare-const @k.RE_UNFOLD_POS_COMPONENT (-> String RegLan Int String))
 (declare-const @k.STRINGS_DEQ_DIFF (-> (! Type :var T :implicit) (! T :requires ((is_string_type T) true)) T Int))
-(declare-const @k.STRINGS_STOI_RESULT (-> String Int String))
+(declare-const @k.STRINGS_STOI_RESULT (-> String Int Int))
 (declare-const @k.STRINGS_STOI_NON_DIGIT (-> String Int))
 
-;(declare-const @k.STRINGS_OCCUR_INDEX (-> String String Int))
+(declare-const @k.STRINGS_OCCUR_INDEX (-> String String Int))
+(declare-const @k.STRINGS_OCCUR_LEN (-> String String Int))
 
 
 ;STRINGS_NUM_OCCUR
-;STRINGS_OCCUR_INDEX
-;STRINGS_OCCUR_LEN
 ;STRINGS_REPLACE_ALL_RESULT
 ;STRINGS_ITOS_RESULT
 ;STRINGS_STOI_RESULT

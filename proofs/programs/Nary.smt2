@@ -48,16 +48,6 @@
     )
 )
 
-; concat cons xs ys
-; Concatenates two lists `xs` and `ys`.
-(program nary.concat
-    ((L Type) (cons (-> L L L)) (x L) (xs L) (ys L))
-    ((-> L L L) L L) L
-    (
-        ((nary.concat cons xs ys) (alf.append cons xs ys))
-    )
-)
-
 ; remove cons c xs
 ; Removes the first occurrence of `c` from `xs`.
 (program nary.remove

@@ -66,7 +66,7 @@
 ; taking the sort u of t1 for constructing the empty string.
 (program string_concat ((T Type) (t1 T) (t2 T))
   (T T) T
-  (((string_concat t1 t2) (nary.concat str.++ t1 t2)))
+  (((string_concat t1 t2) (alf.append str.++ t1 t2)))
 )
 
 ; Decompose str.++ term t of sort u into a head and tail.
@@ -305,12 +305,12 @@
     ((string_flatten alf.nil) alf.nil)
     ; required for sequences
     ((string_flatten (str.++ (str.++ t tail2) tail)) 
-        (nary.concat str.++ (str.++ t tail2) (string_flatten tail)))
+        (alf.append str.++ (str.++ t tail2) (string_flatten tail)))
     ((string_flatten (str.++ t tail))
         ; otherwise, check whether t is a word constant of length greater than one
         (alf.ite (check_length_gt_one t)
           ; if so, we flatten the word using the method above and concatenate it.
-          (nary.concat str.++ (string_flatten_word t) (string_flatten tail))
+          (alf.append str.++ (string_flatten_word t) (string_flatten tail))
           ; if not, we just append it to the result of the recursive call
           (alf.cons str.++ t (string_flatten tail))))
   )
