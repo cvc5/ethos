@@ -93,7 +93,7 @@ void ExprValue::computeFlags()
       if (ck==Kind::APPLY)
       {
         Kind cck = children[0]->getKind();
-        if (cck==Kind::PROGRAM_CONST)
+        if (cck==Kind::PROGRAM_CONST || cck==Kind::ORACLE)
         {
           cur->setFlag(Flag::IS_PROG_EVAL, true);
           cur->setFlag(Flag::IS_EVAL, true);

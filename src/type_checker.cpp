@@ -7,6 +7,7 @@
 #include "base/check.h"
 #include "base/output.h"
 #include "state.h"
+#include "parser.h"
 #include "literal.h"
 
 namespace alfc {
@@ -541,8 +542,10 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
             // fail term means we immediately return
             return cur;
           case Kind::APPLY:
+          {
             // if a program and all arguments are ground, run it
-            if (cchildren[0]->getKind()==Kind::PROGRAM_CONST)
+            Kind cck = cchildren[0]->getKind();
+            if (cck==Kind::PROGRAM_CONST || cck==Kind::ORACLE)
             {
               // maybe already cached
               ExprTrie* et = &d_evalTrie;
@@ -578,6 +581,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
                 }
               }
             }
+          }
             break;
           case Kind::EVAL_IF_THEN_ELSE:
           {
@@ -691,7 +695,7 @@ bool TypeChecker::isGround(const std::vector<Expr>& args)
   return true;
 }
 
-Expr TypeChecker::evaluateProgramInternal(const std::vector<Expr>& children, 
+Expr TypeChecker::evaluateProgramInternal(const std::vector<Expr>& children,
                                           Ctx& newCtx)
 {
   if (!isGround(children))
@@ -700,49 +704,78 @@ Expr TypeChecker::evaluateProgramInternal(const std::vector<Expr>& children,
     return nullptr;
   }
   const Expr& hd = children[0];
-  if (hd->isCompiled())
+  Kind hk = hd->getKind();
+  if (hk==Kind::PROGRAM_CONST)
   {
-    Trace("type_checker") << "RUN program " << children << std::endl;
-    Expr ret = run_evaluateProgram(children, newCtx);
-    Trace("type_checker") << "...matches " << ret << ", ctx = " << newCtx << std::endl;
-    return ret;
-  }
-  size_t nargs = children.size();
-  std::map<Expr, Expr>::iterator it = d_programs.find(hd);
-  if (it!=d_programs.end())
-  {
-    Trace("type_checker") << "INTERPRET program " << children << std::endl;
-    // otherwise, evaluate
-    std::vector<Expr>& progChildren = it->second->getChildren();
-    for (Expr& c : progChildren)
+    if (hd->isCompiled())
     {
-      newCtx.clear();
-      Expr hd = c->getChildren()[0];
-      std::vector<Expr>& hchildren = hd->d_children;
-      if (nargs != hchildren.size())
+      Trace("type_checker") << "RUN program " << children << std::endl;
+      Expr ret = run_evaluateProgram(children, newCtx);
+      Trace("type_checker") << "...matches " << ret << ", ctx = " << newCtx << std::endl;
+      return ret;
+    }
+    size_t nargs = children.size();
+    std::map<Expr, Expr>::iterator it = d_programs.find(hd);
+    Assert (it!=d_programs.end());
+    if (it!=d_programs.end())
+    {
+      Trace("type_checker") << "INTERPRET program " << children << std::endl;
+      // otherwise, evaluate
+      std::vector<Expr>& progChildren = it->second->getChildren();
+      for (Expr& c : progChildren)
       {
-        // TODO: catch this during weak type checking of program bodies
-        Warning() << "*** Bad number of arguments provided in function call to " << hd << std::endl;
-        Warning() << "  Arguments: " << children << std::endl;
-        return nullptr;
-      }
-      bool matchSuccess = true;
-      for (size_t i=1; i<nargs; i++)
-      {
-        if (!match(hchildren[i], children[i], newCtx))
+        newCtx.clear();
+        Expr hd = c->getChildren()[0];
+        std::vector<Expr>& hchildren = hd->d_children;
+        if (nargs != hchildren.size())
         {
-          matchSuccess = false;
-          break;
+          // TODO: catch this during weak type checking of program bodies
+          Warning() << "*** Bad number of arguments provided in function call to " << hd << std::endl;
+          Warning() << "  Arguments: " << children << std::endl;
+          return nullptr;
+        }
+        bool matchSuccess = true;
+        for (size_t i=1; i<nargs; i++)
+        {
+          if (!match(hchildren[i], children[i], newCtx))
+          {
+            matchSuccess = false;
+            break;
+          }
+        }
+        if (matchSuccess)
+        {
+          Trace("type_checker")
+              << "...matches " << hd << ", ctx = " << newCtx << std::endl;
+          return c->getChildren()[1];
         }
       }
-      if (matchSuccess)
-      {
-        Trace("type_checker")
-            << "...matches " << hd << ", ctx = " << newCtx << std::endl;
-        return c->getChildren()[1];
-      }
+      Trace("type_checker") << "...failed to match." << std::endl;
     }
-    Trace("type_checker") << "...failed to match." << std::endl;
+  }
+  else if (hk==Kind::ORACLE)
+  {
+    // get the command
+    std::string ocmd;
+    if (!d_state.getOracleCmd(hd, ocmd))
+    {
+      return nullptr;
+    }
+    std::stringstream ss;
+    for (size_t i=1, nchildren=children.size(); i<nchildren; i++)
+    {
+      ss << children[i] << std::endl;
+    }
+    Trace("oracles") << "Call oracle " << ocmd << " with arguments:" << std::endl;
+    Trace("oracles") << "```" << std::endl;
+    Trace("oracles") << ss.str() << std::endl;
+    Trace("oracles") << "```" << std::endl;
+    std::string response("true");
+    Parser poracle(d_state);
+    poracle.setStringInput(response);
+    Expr ret = poracle.parseNextExpr();
+    Trace("oracles") << "returns " << ret << std::endl;
+    return ret;
   }
   // just return nullptr, which should be interpreted as a failed evaluation
   return nullptr;

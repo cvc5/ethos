@@ -28,6 +28,7 @@ enum class Kind
   PROGRAM_CONST,
   PROOF_RULE,
   VARIABLE,
+  ORACLE,
   VARIABLE_LIST,
   NIL,
   PROGRAM,

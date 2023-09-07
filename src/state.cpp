@@ -428,6 +428,11 @@ Expr State::mkProofRule(const std::string& name, const Expr& type)
   return mkSymbolInternal(Kind::PROOF_RULE, name, type);
 }
 
+Expr State::mkOracle(const std::string& name, const Expr& type)
+{
+  return mkSymbolInternal(Kind::ORACLE, name, type);
+}
+
 Expr State::mkSelf()
 {
   return d_self;
@@ -643,7 +648,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     // The exceptions to this are operators whose types are not flattened (programs and proof rules).
     if (children.size()>2)
     {
-      if (hk!=Kind::PROGRAM_CONST && hk!=Kind::PROOF_RULE)
+      if (hk!=Kind::PROGRAM_CONST && hk!=Kind::PROOF_RULE && hk!=Kind::ORACLE)
       {
         // return the curried version
         return mkApplyInternal(children);
@@ -844,7 +849,7 @@ Literal* State::getLiteral(const ExprValue* e)
 bool State::getActualPremises(const Expr& rule, std::vector<Expr>& given, std::vector<Expr>& actual)
 {
   AppInfo* ainfo = getAppInfo(rule.get());
-  if (ainfo!=nullptr)
+  if (ainfo!=nullptr && ainfo->d_attrCons==Attr::PREMISE_LIST)
   {
     Expr plCons = ainfo->d_attrConsTerm;
     if (plCons!=nullptr)
@@ -880,6 +885,18 @@ bool State::getActualPremises(const Expr& rule, std::vector<Expr>& given, std::v
   }
   actual = given;
   return true;
+}
+bool State::getOracleCmd(const Expr& oracle, std::string& ocmd)
+{
+  AppInfo* ainfo = getAppInfo(oracle.get());
+  if (ainfo!=nullptr && ainfo->d_attrCons==Attr::ORACLE)
+  {
+    Expr oexpr = ainfo->d_attrConsTerm;
+    Assert (oexpr!=nullptr);
+    ocmd = oexpr->getSymbol();
+    return true;
+  }
+  return false;
 }
 
 size_t State::getAssumptionLevel() const

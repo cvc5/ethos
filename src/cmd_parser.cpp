@@ -36,6 +36,7 @@ CmdParser::CmdParser(Lexer& lex,
   d_table["declare-datatype"] = Token::DECLARE_DATATYPE;
   d_table["declare-datatypes"] = Token::DECLARE_DATATYPES;
   d_table["declare-fun"] = Token::DECLARE_FUN;
+  d_table["declare-oracle-fun"] = Token::DECLARE_ORACLE_FUN;
   d_table["declare-rule"] = Token::DECLARE_RULE;
   d_table["declare-sort"] = Token::DECLARE_SORT;
   d_table["declare-type"] = Token::DECLARE_TYPE;
@@ -105,45 +106,62 @@ bool CmdParser::parseNextCommand()
     }
     break;
     // (declare-fun <symbol> (<sort>∗) <sort>)
+    // (declare-oracle-fun <symbol> (<sort>∗) <sort>)
     // (declare-const <symbol> <sort>)
     // (declare-var <symbol> <sort>)
     case Token::DECLARE_CONST:
     case Token::DECLARE_FUN:
+    case Token::DECLARE_ORACLE_FUN:
     case Token::DECLARE_VAR:
     {
       //d_state.checkThatLogicIsSet();
       std::string name = d_eparser.parseSymbol();
       //d_state.checkUserSymbol(name);
       std::vector<Expr> sorts;
-      if (tok == Token::DECLARE_FUN)
+      bool flattenFunction = (tok != Token::DECLARE_ORACLE_FUN);
+      if (tok == Token::DECLARE_FUN || tok == Token::DECLARE_ORACLE_FUN)
       {
         sorts = d_eparser.parseTypeList();
       }
       Expr t = d_eparser.parseType();
       if (!sorts.empty())
       {
-        t = d_state.mkFunctionType(sorts, t);
+        t = d_state.mkFunctionType(sorts, t, flattenFunction);
       }
-      // possible attribute list
-      AttrMap attrs;
-      d_eparser.parseAttributeList(t, attrs);
-      // determine if an attribute specified a constructor kind
       Attr ck = Attr::NONE;
       Expr cons;
-      if (d_eparser.processAttributeMap(attrs, ck, cons))
+      if (tok==Token::DECLARE_ORACLE_FUN)
       {
-        // if so, this may transform the type
-        t = d_state.mkAnnotatedType(t, ck, cons);
+        ck = Attr::ORACLE;
+        std::string oname = d_eparser.parseSymbol();
+        cons = d_state.mkLiteral(Kind::STRING, oname);
+      }
+      else
+      {
+        // possible attribute list
+        AttrMap attrs;
+        d_eparser.parseAttributeList(t, attrs);
+        // determine if an attribute specified a constructor kind
+        if (d_eparser.processAttributeMap(attrs, ck, cons))
+        {
+          // if so, this may transform the type
+          t = d_state.mkAnnotatedType(t, ck, cons);
+        }
       }
       Expr v;
       if (tok == Token::DECLARE_VAR)
       {
         v = d_state.mkVar(name, t);
       }
+      else if (tok==Token::DECLARE_ORACLE_FUN)
+      {
+        v = d_state.mkOracle(name, t);
+      }
       else
       {
         v = d_state.mkConst(name, t);
       }
+
       // if the type has a property, we mark it on the variable of this type
       if (ck!=Attr::NONE)
       {

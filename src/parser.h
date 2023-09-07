@@ -25,12 +25,21 @@ class Parser
    * @param filename the input filename
    */
   void setFileInput(const std::string& filename);
+  /** Set the string input for the given file.
+   *
+   * @param filename the input
+   */
+  void setStringInput(const std::string& input);
   /**
    * Parse and return the next command. Will initialize the logic to "ALL"
    * or the forced logic if no logic is set prior to this point and a command
    * is read that requires initializing the logic.
    */
   bool parseNextCommand();
+  /**
+   * Parse and return the next term.
+   */
+  Expr parseNextExpr();
 
  protected:
   /** The input */

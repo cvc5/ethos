@@ -72,7 +72,6 @@ ExprParser::ExprParser(Lexer& lex, State& state)
   d_strToAttr[":list"] = Attr::LIST;
   d_strToAttr[":syntax"] = Attr::SYNTAX;
   d_strToAttr[":requires"] = Attr::REQUIRES;
-  d_strToAttr[":oracle"] = Attr::ORACLE;
   d_strToAttr[":left-assoc"] = Attr::LEFT_ASSOC;
   d_strToAttr[":right-assoc"] = Attr::RIGHT_ASSOC;
   d_strToAttr[":left-assoc-nil"] = Attr::LEFT_ASSOC_NIL;
@@ -896,13 +895,6 @@ void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedS
       case Attr::LEFT_ASSOC:
         // requires no value
         break;
-      case Attr::ORACLE:
-      {
-        // parse a string
-        std::string ocmd = parseStr(true);
-        val = d_state.mkLiteral(Kind::STRING, ocmd);
-      }
-        break;
       case Attr::RIGHT_ASSOC_NIL:
       case Attr::LEFT_ASSOC_NIL:
       {
@@ -1115,7 +1107,6 @@ bool ExprParser::processAttributeMap(const AttrMap& attrs, Attr& ck, Expr& cons)
       {
         case Attr::LIST:
         case Attr::SYNTAX:
-        case Attr::ORACLE:
         case Attr::PREMISE_LIST:
         case Attr::LEFT_ASSOC:
         case Attr::RIGHT_ASSOC:

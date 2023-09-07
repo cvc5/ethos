@@ -78,6 +78,8 @@ public:
   Expr mkProgramConst(const std::string& name, const Expr& type);
   /** */
   Expr mkProofRule(const std::string& name, const Expr& type);
+  /** */
+  Expr mkOracle(const std::string& name, const Expr& type);
   /** (alf.requires <pair>+ <type>) */
   Expr mkRequires(const std::vector<Expr>& args, const Expr& ret);
   /** (alf.requires <arg1> <arg2> <type>) */
@@ -114,6 +116,8 @@ public:
   Literal* getLiteral(const ExprValue* e);
   /** Get actual premises */
   bool getActualPremises(const Expr& rule, std::vector<Expr>& given, std::vector<Expr>& actual);
+  /** Get the oracle command */
+  bool getOracleCmd(const Expr& oracle, std::string& ocmd);
   /** Get the type checker */
   TypeChecker& getTypeChecker();
   /** Get options */

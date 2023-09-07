@@ -23,6 +23,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::PROGRAM_CONST: o << "PROGRAM_CONST"; break;
     case Kind::PROOF_RULE: o << "PROOF_RULE"; break;
     case Kind::VARIABLE: o << "VARIABLE"; break;
+    case Kind::ORACLE: o << "ORACLE"; break;
     case Kind::VARIABLE_LIST: o << "VARIABLE_LIST"; break;
     case Kind::NIL: o << "NIL"; break;
     case Kind::PROGRAM: o << "PROGRAM"; break;
@@ -144,7 +145,8 @@ bool isSymbol(Kind k)
     case Kind::CONST:
     case Kind::PROGRAM_CONST:
     case Kind::PROOF_RULE:
-    case Kind::VARIABLE: return true; break;
+    case Kind::VARIABLE:
+    case Kind::ORACLE: return true; break;
     default: break;
   }
   return false;

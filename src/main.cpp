@@ -118,7 +118,11 @@ int main( int argc, char* argv[] )
     fs << c->toString() << std::endl;
     fs.close();
     Trace("compile") << "GEN-COMPILE" << std::endl;
+    Trace("compile") << "```" << std::endl;
     Trace("compile") << c->toString() << std::endl;
+    Trace("compile") << "```" << std::endl;
+
+
   }
   std::cout << stats.toString();
   return 0;

@@ -22,6 +22,11 @@ class Input
    * @param filename the input filename
    */
   static std::unique_ptr<Input> mkFileInput(const std::string& filename);
+  /** Set the input for the given string.
+   *
+   * @param filename the input
+   */
+  static std::unique_ptr<Input> mkStringInput(const std::string& input);
   /** Get the stream to pass to the lexer. */
   virtual std::istream* getStream() = 0;
   /**
