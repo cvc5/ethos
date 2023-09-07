@@ -22,38 +22,7 @@
 ; skolems
 ;INPUT_VARIABLE
 ;SHARED_SELECTOR
-;QUANTIFIERS_SKOLEMIZE
-;QUANTIFIERS_SYNTH_FUN_EMBED
-;BAGS_CARD_CARDINALITY
-;BAGS_CARD_ELEMENTS
-;BAGS_CARD_N
-;BAGS_CARD_UNION_DISJOINT
-;BAGS_CHOOSE
-;BAGS_FOLD_CARD
-;BAGS_FOLD_COMBINE
-;BAGS_FOLD_ELEMENTS
-;BAGS_FOLD_UNION_DISJOINT
-;BAGS_MAP_PREIMAGE
-;BAGS_MAP_PREIMAGE_SIZE
-;BAGS_MAP_PREIMAGE_INDEX
-;BAGS_MAP_SUM
-;BAGS_DEQ_DIFF
-;TABLES_GROUP_PART
-;TABLES_GROUP_PART_ELEMENT
-;RELATIONS_GROUP_PART
-;RELATIONS_GROUP_PART_ELEMENT
-;SETS_CHOOSE
-;SETS_DEQ_DIFF
-;SETS_FOLD_CARD
-;SETS_FOLD_COMBINE
-;SETS_FOLD_ELEMENTS
-;SETS_FOLD_UNION
-;SETS_MAP_DOWN_ELEMENT
 ;HO_TYPE_MATCH_PRED
-;IEVAL_NONE
-;IEVAL_SOME
-;ABSTRACT_VALUE
-;SYGUS_ANY_CONSTANT
 
 ; evaluate, for all theories
 (program run_evaluate ((T Type) (S Type) 
@@ -68,7 +37,7 @@
       ; arithmetic
       ((run_evaluate (< x z))      (alf.is_neg (run_evaluate (- x z))))
       ((run_evaluate (<= x z))     (let ((d (run_evaluate (- x z))))
-                                    (alf.or (alf.is_neg d) (alf.is_zero d))))
+                                     (alf.or (alf.is_neg d) (alf.is_zero d))))
       ((run_evaluate (> x z))      (alf.is_neg (run_evaluate (- z x))))
       ((run_evaluate (>= x z))     (let ((d (run_evaluate (- z x))))
                                      (alf.or (alf.is_neg d) (alf.is_zero d))))
@@ -82,8 +51,16 @@
       ((run_evaluate (str.len x))  (alf.len (run_evaluate x)))
       ((run_evaluate 
          (str.substr x n m))       (alf.extract (run_evaluate n) 
-                                      (alf.add (run_evaluate n) (run_evaluate m)) 
-                                      (run_evaluate x)))
+                                     (alf.add (run_evaluate n) (run_evaluate m)) 
+                                     (run_evaluate x)))
+      ; bitvectors
+      ((run_evaluate (bvadd x y))  (alf.add (run_evaluate x) (run_evaluate y)))
+      ((run_evaluate (bvsub x y))  (alf.add (run_evaluate x) (alf.neg (run_evaluate y))))
+      ((run_evaluate (bvmul x y))  (alf.mul (run_evaluate x) (run_evaluate y)))
+      ((run_evaluate (concat x y)) (alf.concat (run_evaluate x) (run_evaluate y)))
+      ((run_evaluate 
+         (extract m n x))          (alf.extract n m (run_evaluate x))) ; note swap n/m
+  
       ((run_evaluate z)            z)
     )
 )

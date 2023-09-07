@@ -235,6 +235,7 @@ void Compiler::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
   }
   d_init << ");" << std::endl;
 }
+
 void Compiler::defineProgram(const Expr& v, const Expr& prog)
 {
   // we define regardless of scope level

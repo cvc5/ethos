@@ -28,6 +28,7 @@ CmdParser::CmdParser(Lexer& lex,
 {
   // initialize the command tokens
   d_table["assume"] = Token::ASSUME;
+  d_table["declare-axiom"] = Token::DECLARE_AXIOM;
   d_table["declare-codatatype"] = Token::DECLARE_CODATATYPE;
   d_table["declare-codatatypes"] = Token::DECLARE_CODATATYPES;
   d_table["declare-const"] = Token::DECLARE_CONST;
@@ -218,6 +219,7 @@ bool CmdParser::parseNextCommand()
     break;
     // (declare-rule ...)
     case Token::DECLARE_RULE:
+    case Token::DECLARE_AXIOM:
     {
       // ensure zero scope
       if (d_state.getAssumptionLevel()>0)
@@ -228,50 +230,60 @@ bool CmdParser::parseNextCommand()
       std::string name = d_eparser.parseSymbol();
       std::vector<Expr> vs =
           d_eparser.parseAndBindSortedVarList();
-      // parse premises, optionally
-      std::string keyword = d_eparser.parseKeyword();
       Expr assume;
-      if (keyword=="assumption")
-      {
-        assume = d_eparser.parseExpr();
-        keyword = d_eparser.parseKeyword();
-      }
       Expr plCons;
       std::vector<Expr> premises;
-      if (keyword=="premises")
-      {
-        premises = d_eparser.parseExprList();
-        keyword = d_eparser.parseKeyword();
-      }
-      else if (keyword=="premise-list")
-      {
-        // :premise-list <pattern> <cons>
-        Expr pat = d_eparser.parseExpr();
-        plCons = d_eparser.parseExpr();
-        // pattern is the single premise
-        premises.push_back(pat);
-        keyword = d_eparser.parseKeyword();
-      }
-      // parse args, optionally
       std::vector<Expr> args;
-      if (keyword=="args")
-      {
-        args = d_eparser.parseExprList();
-        keyword = d_eparser.parseKeyword();
-      }
-      // parse requirements, optionally
       std::vector<Expr> reqs;
-      if (keyword=="requires")
+      Expr conc;
+      if (tok==Token::DECLARE_RULE)
       {
-        reqs = d_eparser.parseExprPairList();
-        keyword = d_eparser.parseKeyword();
+        // parse premises, optionally
+        std::string keyword = d_eparser.parseKeyword();
+        if (keyword=="assumption")
+        {
+          assume = d_eparser.parseExpr();
+          keyword = d_eparser.parseKeyword();
+        }
+        if (keyword=="premises")
+        {
+          premises = d_eparser.parseExprList();
+          keyword = d_eparser.parseKeyword();
+        }
+        else if (keyword=="premise-list")
+        {
+          // :premise-list <pattern> <cons>
+          Expr pat = d_eparser.parseExpr();
+          plCons = d_eparser.parseExpr();
+          // pattern is the single premise
+          premises.push_back(pat);
+          keyword = d_eparser.parseKeyword();
+        }
+        // parse args, optionally
+        if (keyword=="args")
+        {
+          args = d_eparser.parseExprList();
+          keyword = d_eparser.parseKeyword();
+        }
+        // parse requirements, optionally
+        if (keyword=="requires")
+        {
+          reqs = d_eparser.parseExprPairList();
+          keyword = d_eparser.parseKeyword();
+        }
+        // parse conclusion
+        if (keyword!="conclusion")
+        {
+          d_lex.parseError("Expected conclusion in declare-rule");
+        }
+        conc = d_eparser.parseExpr();
       }
-      // parse conclusion
-      if (keyword!="conclusion")
+      else
       {
-        d_lex.parseError("Expected conclusion in declare-rule");
+        // arguments are the parameters
+        args.insert(args.end(), vs.begin(), vs.end());
+        conc = d_eparser.parseExpr();
       }
-      Expr conc = d_eparser.parseExpr();
       std::vector<Expr> argTypes;
       if (assume!=nullptr)
       {

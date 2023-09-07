@@ -12,10 +12,8 @@
     (
       ((arith_typeunion_nary Int Real) Real)
       ((arith_typeunion_nary Int Int) Int)
-      ((arith_typeunion_nary Int alf.nil) Int)
       ((arith_typeunion_nary Real Real) Real)
       ((arith_typeunion_nary Real Int) Real)
-      ((arith_typeunion_nary Real alf.nil) Real)
     )
 )
 (program arith_typeunion ((x Type) (y Type))

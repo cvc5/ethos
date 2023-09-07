@@ -1,61 +1,41 @@
 (include "../theories/Builtin.smt2")
 (include "../theories/Arith.smt2")
 
-(declare-sort String 0)
 (declare-sort RegLan 0)
 (declare-type Seq (Type))
+(declare-sort Char 0)
+(define-fun String () Type (Seq Char))
 
 (declare-consts <string> String)
 
-(program is_string_type ((U Type))
-    (Type) Bool
-    (
-      ((is_string_type String) true)
-      ((is_string_type (Seq U)) true)
-      ((is_string_type U) false)
-    )
-)
-
 ; core
-(declare-const str.len (-> (! Type :var T :implicit)
-                           (! T :requires ((is_string_type T) true))
-                           Int))
+(declare-const str.len 
+  (-> (! Type :var T :implicit)
+      (Seq T) Int))
 (declare-const str.++
-(->
-    (! Type :var T :implicit)
-    (! T :requires ((is_string_type T) true))
-    T
-    T
-) :right-assoc-nil)
-
-;(-> (! Type :var T :implicit) (! Type :var U :implicit)
-;                          (! T :requires ((is_string_type T) true)) U
-;                          (! T :requires ((maybe_nil T U) T))) :right-assoc-nil)
+  (-> (! Type :var T :implicit)
+      (Seq T) (Seq T) (Seq T)) :right-assoc-nil)
 
 ; extended functions
 (declare-const str.substr (-> (! Type :var T :implicit)
-                              (! T :requires ((is_string_type T) true)) Int Int
-                              T))
+                              (Seq T) Int Int (Seq T)))
 (declare-const str.contains (-> (! Type :var T :implicit)
-                                (! T :requires ((is_string_type T) true)) T
-                                Bool))
+                                (Seq T) (Seq T) Bool))
 (declare-const str.replace (-> (! Type :var T :implicit)
-                               (! T :requires ((is_string_type T) true)) T T
-                               T))
+                               (Seq T) (Seq T) (Seq T) (Seq T)))
 (declare-const str.indexof (-> (! Type :var T :implicit)
-                               (! T :requires ((is_string_type T) true)) T Int
-                               Int))
+                               (Seq T) (Seq T) Int Int))
 (declare-const str.at (-> (! Type :var T :implicit)
-                          (! T :requires ((is_string_type T) true)) Int T))
+                          (Seq T) Int (Seq T)))
 (declare-const str.prefixof (-> (! Type :var T :implicit)
-                                (! T :requires ((is_string_type T) true)) T Bool))
+                                (Seq T) (Seq T) Bool))
 (declare-const str.suffixof (-> (! Type :var T :implicit)
-                                (! T :requires ((is_string_type T) true)) T Bool))
+                                (Seq T) (Seq T) Bool))
 (declare-const str.rev (-> (! Type :var T :implicit)
-                           (! T :requires ((is_string_type T) true)) T))
+                           (Seq T) (Seq T)))
 (declare-const str.unit (-> Int String))
 (declare-const str.update (-> (! Type :var T :implicit)
-                              (! T :requires ((is_string_type T) true)) Int T T))
+                              (Seq T) Int (Seq T) (Seq T)))
 (declare-const str.to_lower (-> String String))
 (declare-const str.to_upper (-> String String))
 (declare-const str.to_code (-> String Int))
@@ -66,7 +46,7 @@
 (declare-const str.< (-> String String Bool))
 (declare-const str.<= (-> String String Bool))
 (declare-const str.replace_all (-> (! Type :var T :implicit)
-                                   (! T :requires ((is_string_type T) true)) T T T))
+                                   (Seq T) (Seq T) (Seq T) (Seq T)))
 (declare-const str.replace_re (-> String RegLan String String))
 (declare-const str.replace_re_all (-> String RegLan String String))
 (declare-const str.indexof_re (-> String RegLan Int Int))
@@ -93,13 +73,10 @@
 ; Sequences
 (declare-const seq.empty (-> (! Type :var T) T))
 (declare-const seq.unit (-> (! Type :var T :implicit) T (Seq T)))
-(declare-const seq.nth (-> (! Type :var T :implicit) (Seq T) Int T))
+(declare-const seq.nth (-> (! Type :var T :implicit) (Seq T) Int (alf.ite (alf.is_eq T Char) Int T)))
 (declare-const seq.len (-> (! Type :var T :implicit) (Seq T) Int))
 
 
-;(declare-const seq.nth (-> (! Type :var T :implicit)
-;                           T Int
-;                           (alf.match ((U Type)) T (String Int) ((Seq U) U))))
 ;(declare f_seq.++ term)
 ;(define seq.++ (# x term (# y term (apply (apply f_seq.++ x) y))))
 ;(declare f_seq.extract term)
@@ -123,20 +100,18 @@
 
 ; skolems
 (declare-const @k.RE_UNFOLD_POS_COMPONENT (-> String RegLan Int String))
-(declare-const @k.STRINGS_DEQ_DIFF (-> (! Type :var T :implicit) (! T :requires ((is_string_type T) true)) T Int))
+(declare-const @k.STRINGS_DEQ_DIFF (-> (! Type :var T :implicit) (Seq T) (Seq T) Int))
 (declare-const @k.STRINGS_STOI_RESULT (-> String Int Int))
 (declare-const @k.STRINGS_STOI_NON_DIGIT (-> String Int))
 
 (declare-const @k.STRINGS_OCCUR_INDEX (-> String String Int))
 (declare-const @k.STRINGS_OCCUR_LEN (-> String String Int))
 
+(declare-const @k.RE_FIRST_MATCH_PRE (-> String RegLan String))
+(declare-const @k.RE_FIRST_MATCH (-> String RegLan String))
+(declare-const @k.RE_FIRST_MATCH_POST (-> String RegLan String))
+
 
 ;STRINGS_NUM_OCCUR
 ;STRINGS_REPLACE_ALL_RESULT
 ;STRINGS_ITOS_RESULT
-;STRINGS_STOI_RESULT
-;STRINGS_STOI_NON_DIGIT
-;SK_FIRST_MATCH_PRE
-;SK_FIRST_MATCH
-;SK_FIRST_MATCH_POST
-;SEQ_MODEL_BASE_ELEMENT

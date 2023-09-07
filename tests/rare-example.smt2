@@ -6,14 +6,12 @@
 (declare-const b Bool)
 (declare-const c Bool)
 
-(declare-rule bool-or-true ((xs Bool :list) (ys Bool :list))
-  :args (xs ys)
-  :conclusion (= (or xs true ys) true)
+(declare-axiom bool-or-true ((xs Bool :list) (ys Bool :list))
+  (= (or xs true ys) true)
 )
 
-(declare-rule bool-or-false ((xs Bool :list) (ys Bool :list))
-  :args (xs ys)
-  :conclusion (= (or xs false ys) (alf.from_list or (or xs ys)))
+(declare-axiom bool-or-false ((xs Bool :list) (ys Bool :list))
+  (= (or xs false ys) (alf.from_list or (or xs ys)))
 )
 
 (step @p0 (= (or a b true c) true) :rule bool-or-true :args ((or a b) (alf.cons or c false)))
@@ -24,14 +22,12 @@
 (step @p4 (= (or a false) a) :rule bool-or-false :args ((alf.cons or a false) false))
 (step @p5 (= (or (or a b) false) (or a b)) :rule bool-or-false :args ((alf.cons or (or a b) false) false))
 
-(declare-rule bool-and-true ((xs Bool :list) (ys Bool :list))
-  :args (xs ys)
-  :conclusion (= (and xs true ys) (alf.from_list and (and xs ys)))
+(declare-axiom bool-and-true ((xs Bool :list) (ys Bool :list))
+  (= (and xs true ys) (alf.from_list and (and xs ys)))
 )
 
-(declare-rule bool-and-false ((xs Bool :list) (ys Bool :list))
-  :args (xs ys)
-  :conclusion (= (and xs false ys) false)
+(declare-axiom bool-and-false ((xs Bool :list) (ys Bool :list))
+  (= (and xs false ys) false)
 )
 
 (step @p6 (= (and a b false c) false) :rule bool-and-false :args ((and a b) (alf.cons and true c)))

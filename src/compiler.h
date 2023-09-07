@@ -146,6 +146,8 @@ public:
   void bind(const std::string& name, const Expr& e);
   /** Mark attributes */
   void markConstructorKind(const Expr& v, Attr a, const Expr& cons);
+  /** Mark oracle command */
+  void markOracleCmd(const Expr& v, const std::string& ocmd);
   /** Define program */
   void defineProgram(const Expr& v, const Expr& prog);
   /** Define constructor */

@@ -187,6 +187,8 @@ private:
   std::map<const ExprValue*, AppInfo> d_appData;
   /** hash */
   std::map<Kind, ExprTrie> d_trie;
+  /** oracle */
+  std::map<const ExprValue*, std::string> d_oracleCmd;
   //--------------------- literals
   /** hash for literals */
   std::map<std::pair<Kind, std::string>, Expr> d_literalTrie;

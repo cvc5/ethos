@@ -14,6 +14,7 @@ std::ostream& operator<<(std::ostream& o, Token t)
     case Token::BINARY_LITERAL: o << "BINARY_LITERAL"; break;
     case Token::BOOL_TYPE: o << "BOOL_TYPE"; break;
     case Token::DECIMAL_LITERAL: o << "DECIMAL_LITERAL"; break;
+    case Token::DECLARE_AXIOM: o << "DECLARE_AXIOM"; break;
     case Token::DECLARE_CODATATYPE: o << "DECLARE_CODATATYPE"; break;
     case Token::DECLARE_CODATATYPES: o << "DECLARE_CODATATYPES"; break;
     case Token::DECLARE_CONST: o << "DECLARE_CONST"; break;

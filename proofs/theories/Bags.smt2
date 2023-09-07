@@ -29,5 +29,21 @@
 ;(declare-const bag.to_set (# x term (apply f_bag.to_set x)))
 ;(declare-const table.product (-> (! Type :var T :implicit) (Bag T) (Bag T) (Bag T))) f_table.product x) y))))
 
-(declare-const @k.BAGS_DEQ_DIFF
-   (-> (! Type :var T :implicit) (Bag T) (Bag T) T))
+(declare-const @k.BAGS_DEQ_DIFF (-> (! Type :var T :implicit) (Bag T) (Bag T) T))
+
+;BAGS_CARD_CARDINALITY
+;BAGS_CARD_ELEMENTS
+;BAGS_CARD_N
+;BAGS_CARD_UNION_DISJOINT
+;BAGS_CHOOSE
+;BAGS_FOLD_CARD
+;BAGS_FOLD_COMBINE
+;BAGS_FOLD_ELEMENTS
+;BAGS_FOLD_UNION_DISJOINT
+;BAGS_MAP_PREIMAGE
+;BAGS_MAP_PREIMAGE_SIZE
+;BAGS_MAP_PREIMAGE_INDEX
+;BAGS_MAP_SUM
+;BAGS_DEQ_DIFF
+;TABLES_GROUP_PART
+;TABLES_GROUP_PART_ELEMENT

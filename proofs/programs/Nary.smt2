@@ -103,6 +103,15 @@
         ((nary.intro cons nil intro-nil x)           (alf.cons cons x intro-nil))
     )
 )
+(program list.intro
+    ((L Type) (cons (-> L L L)) (nil L) (intro-nil L) (x L) (xs L :list))
+    ((-> L L L) L L) L
+    (
+        ((list.intro cons nil (cons x xs)) (cons x xs))
+        ((list.intro cons nil nil)         nil)
+        ((list.intro cons nil x)           (alf.cons cons x nil))
+    )
+)
 
 ; nary.at cons i xs
 ; I should be a numeral

@@ -13,8 +13,8 @@
 (program mk_emptystr ((U Type))
   (Type) U
   (
+    ((mk_emptystr String)  "")
     ((mk_emptystr (Seq U)) (seq.empty (Seq U)))
-    ((mk_emptystr String) "")
   )
 )
 
