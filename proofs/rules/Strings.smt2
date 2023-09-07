@@ -129,7 +129,7 @@
         (alf.match ((tk String) (M Bool :list))
           (re_unfold_pos_concat t r)
           ((@pair tk M)
-             (nary.elim and true true (and (= t tk) M)))))))
+             (alf.from_list and (and (= t tk) M)))))))
 
 ;;;;;;;;;; Extended functions 
 

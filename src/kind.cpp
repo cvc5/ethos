@@ -40,6 +40,9 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::EVAL_IS_EQ: o << "EVAL_IS_EQ"; break;
     case Kind::EVAL_IF_THEN_ELSE: o << "EVAL_IF_THEN_ELSE"; break;
     case Kind::EVAL_REQUIRES: o << "EVAL_REQUIRES"; break;
+    // lists
+    case Kind::EVAL_TO_LIST: o << "EVAL_TO_LIST"; break;
+    case Kind::EVAL_FROM_LIST: o << "EVAL_FROM_LIST"; break;
     case Kind::EVAL_CONS: o << "EVAL_CONS"; break;
     case Kind::EVAL_APPEND: o << "EVAL_APPEND"; break;
     // boolean
@@ -95,6 +98,9 @@ std::string kindToTerm(Kind k)
         case Kind::EVAL_IS_EQ: ss << "is_eq"; break;
         case Kind::EVAL_IF_THEN_ELSE: ss << "ite"; break;
         case Kind::EVAL_REQUIRES: ss << "requires"; break;
+        // lists
+        case Kind::EVAL_TO_LIST: ss << "to_list"; break;
+        case Kind::EVAL_FROM_LIST: ss << "from_list"; break;
         case Kind::EVAL_CONS: ss << "cons"; break;
         case Kind::EVAL_APPEND: ss << "append"; break;
         // boolean
@@ -164,6 +170,9 @@ bool isLiteralOp(Kind k)
     case Kind::EVAL_IS_EQ:
     case Kind::EVAL_IF_THEN_ELSE:
     case Kind::EVAL_REQUIRES:
+    // lists
+    case Kind::EVAL_TO_LIST:
+    case Kind::EVAL_FROM_LIST:
     case Kind::EVAL_CONS:
     case Kind::EVAL_APPEND:
     // boolean
