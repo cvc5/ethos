@@ -55,6 +55,7 @@ class FatalStream
 {
  public:
   FatalStream(const char* function, const char* file, int line);
+  FatalStream() {}
   [[noreturn]] ~FatalStream();
 
   std::ostream& stream();
@@ -85,7 +86,7 @@ class OstreamVoider
 //     }
 //   }
 #define ALFC_FATAL() \
-  FatalStream(__PRETTY_FUNCTION__, __FILE__, __LINE__).stream()
+  FatalStream().stream()
 
 /* GCC <= 9.2 ignores ALFC_NO_RETURN of ~FatalStream() if
  * used in template classes (e.g., CDHashMap::save()).  As a workaround we
