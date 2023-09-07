@@ -48,6 +48,9 @@ enum class Kind
   EVAL_IS_EQ,
   EVAL_IF_THEN_ELSE,
   EVAL_REQUIRES,
+  // lists
+  EVAL_TO_LIST,
+  EVAL_FROM_LIST,
   EVAL_CONS,
   EVAL_APPEND,
   // boolean
