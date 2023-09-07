@@ -25,107 +25,106 @@
 ; will create a unit list.
 
 
-; nary.ctn cons c l
+; nary.ctn cons nil c c
 ; Retuns `true` if l inList c.
 (program nary.ctn
-    ((L Type) (cons (-> L L L)) (c L) (x L) (xs L :list))
-    ((-> L L L) L L) Bool
+    ((L Type) (cons (-> L L L)) (nil L) (c L) (x L) (xs L :list))
+    ((-> L L L) L L L) Bool
     (
-        ((nary.ctn cons c (cons c xs)) true)
-        ((nary.ctn cons c (cons x xs)) (nary.ctn cons c xs))
-        ((nary.ctn cons c alf.nil) false)
+        ((nary.ctn cons nil c (cons c xs)) true)
+        ((nary.ctn cons nil c (cons x xs)) (nary.ctn cons nil c xs))
+        ((nary.ctn cons nil c nil)         false)
     )
 )
 
-; nary.is_subset cons c l
+; nary.is_subset cons nil c l
 ; Retuns `true` if l nary.ctn c.
 (program nary.is_subset
-    ((L Type) (cons (-> L L L)) (c L) (t L) (xs L :list))
-    ((-> L L L) L L) Bool
+    ((L Type) (cons (-> L L L)) (nil L) (c L) (t L) (xs L :list))
+    ((-> L L L) L L L) Bool
     (
-        ((nary.is_subset cons (cons c xs) t) (alf.ite (nary.ctn cons c t) (nary.is_subset cons xs t) false))
-        ((nary.is_subset cons alf.nil t) true)
+        ((nary.is_subset cons nil (cons c xs) t) (alf.ite (nary.ctn cons nil c t) (nary.is_subset cons nil xs t) false))
+        ((nary.is_subset cons nil nil t)         true)
     )
 )
 
 ; remove cons c xs
 ; Removes the first occurrence of `c` from `xs`.
 (program nary.remove
-    ((L Type) (cons (-> L L L)) (c L) (y L) (xs L :list))
-    ((-> L L L) L L) L
+    ((L Type) (cons (-> L L L)) (nil L) (c L) (y L) (xs L :list))
+    ((-> L L L) L L L) L
     (
-        ((nary.remove cons c (cons c xs)) xs)
-        ((nary.remove cons c (cons y xs)) (alf.cons cons y (nary.remove cons c xs)))
-        ((nary.remove cons c alf.nil)     alf.nil)
+        ((nary.remove cons nil c (cons c xs)) xs)
+        ((nary.remove cons nil c (cons y xs)) (alf.cons cons y (nary.remove cons nil c xs)))
+        ((nary.remove cons nil c nil)         nil)
     )
 )
 
 ; Helper for reverse
 (program nary.reverseRec
-    ((L Type) (cons (-> L L L)) (x L) (xs L :list) (l L :list))
-    ((-> L L L) L L) L
+    ((L Type) (cons (-> L L L)) (nil L) (x L) (xs L :list) (l L :list))
+    ((-> L L L) L L L) L
     (
-        ((nary.reverseRec cons (cons x xs) l) (nary.reverseRec cons xs (alf.cons cons x l)))
-        ((nary.reverseRec cons alf.nil  l)  l)
+        ((nary.reverseRec cons nil (cons x xs) l) (nary.reverseRec cons nil xs (alf.cons cons x l)))
+        ((nary.reverseRec cons nil nil l)         l)
     )
 )
 
 ; reverse cons nil xs
 ; Reverses the list `xs`.
 (program nary.reverse
-    ((L Type) (cons (-> L L L)) (xs L :list))
-    ((-> L L L) L) L
+    ((L Type) (cons (-> L L L)) (nil L) (xs L :list))
+    ((-> L L L) L L) L
     (
-        ((nary.reverse cons xs) (nary.reverseRec cons xs alf.nil))
+        ((nary.reverse cons nil xs) (nary.reverseRec cons nil xs nil))
     )
 )
 
 ; nary.elim cons x
 ; Returns the sole element if `xs` is a singleton list.
 (program nary.elim
-    ((L Type) (cons (-> L L L)) (nil L) (c L) (x L) (xs L :list))
-    ((-> L L L) L L) L
+    ((L Type) (cons (-> L L L)) (nil L) (elim-nil L) (c L) (x L) (xs L :list))
+    ((-> L L L) L L L) L
     (
-        ((nary.elim cons nil (cons x alf.nil)) x)
-        ((nary.elim cons nil (cons x xs))      (cons x xs))
-        ((nary.elim cons nil alf.nil)          nil)
+        ((nary.elim cons nil elim-nil (cons x nil)) x)
+        ((nary.elim cons nil elim-nil (cons x xs))  (cons x xs))
+        ((nary.elim cons nil elim-nil nil)          elim-nil)
     )
 )
 
 ; nary.intro cons x
 ; Returns a singleton list if `x` is not a list.
 (program nary.intro
-    ((L Type) (cons (-> L L L)) (nil L) (x L) (xs L :list))
-    ((-> L L L) L L) L
+    ((L Type) (cons (-> L L L)) (nil L) (intro-nil L) (x L) (xs L :list))
+    ((-> L L L) L L L) L
     (
-        ((nary.intro cons nil (cons x xs)) (cons x xs))
-        ((nary.intro cons nil nil)         alf.nil)
-        ((nary.intro cons nil x)           (alf.cons cons x alf.nil))
+        ((nary.intro cons nil intro-nil (cons x xs)) (cons x xs))
+        ((nary.intro cons nil intro-nil nil)         intro-nil)
+        ((nary.intro cons nil intro-nil x)           (alf.cons cons x intro-nil))
     )
 )
-
 
 ; nary.at cons i xs
 ; I should be a numeral
 (program nary.at
-    ((L Type) (I Type) (cons (-> L L L)) (i I) (x L) (xs L :list))
-    ((-> L L L) I L) L
+    ((L Type) (I Type) (cons (-> L L L)) (nil L) (i I) (x L) (xs L :list))
+    ((-> L L L) L I L) L
     (
-        ((nary.at cons 0 (cons x xs)) x)
-        ((nary.at cons i (cons x xs)) (nary.at cons (alf.add i (alf.neg 1)) xs))
-        ((nary.at cons 0 alf.nil)     alf.fail)
-        ((nary.at cons 0 x)           x) ; if not in list form
+        ((nary.at cons nil 0 (cons x xs)) x)
+        ((nary.at cons nil i (cons x xs)) (nary.at cons nil (alf.add i (alf.neg 1)) xs))
+        ((nary.at cons nil 0 nil)         alf.fail)
+        ((nary.at cons nil 0 x)           x) ; if not in list form
     )
 )
 
 ; returns the number of children of the input
 (program nary.nchild
-    ((L Type) (I Type) (cons (-> L L L)) (i I) (x L) (xs L :list))
-    ((-> L L L) L) I
+    ((L Type) (I Type) (cons (-> L L L)) (nil L) (i I) (x L) (xs L :list))
+    ((-> L L L) L L) I
     (
-        ((nary.nchild cons (cons x xs)) (alf.add 1 (nary.nchild cons xs)))
-        ((nary.nchild cons alf.nil)     0)
-        ((nary.nchild cons x)           1) ; if not in list form
+        ((nary.nchild cons nil (cons x xs)) (alf.add 1 (nary.nchild cons nil xs)))
+        ((nary.nchild cons nil nil)         0)
+        ((nary.nchild cons nil x)           1) ; if not in list form
     )
 )
 
@@ -133,10 +132,10 @@
 ; nary.is_prefix cons t s
 ; Retuns `true` if t is a prefix of s
 (program nary.is_prefix
-    ((L Type) (cons (-> L L L)) (t L) (c1 L) (c2 L) (xs1 L :list) (xs2 L :list))
-    ((-> L L L) L L) Bool
+    ((L Type) (cons (-> L L L)) (nil L) (t L) (c1 L) (c2 L) (xs1 L :list) (xs2 L :list))
+    ((-> L L L) L L L) Bool
     (
-        ((nary.is_prefix cons alf.nil t)                   true)
-        ((nary.is_prefix cons (cons c1 xs1) (cons c2 xs2)) (alf.ite (alf.is_eq c1 c2) (nary.is_prefix cons xs1 xs2) false))
+        ((nary.is_prefix cons nil nil t)                       true)
+        ((nary.is_prefix cons nil (cons c1 xs1) (cons c2 xs2)) (alf.ite (alf.is_eq c1 c2) (nary.is_prefix cons nil xs1 xs2) false))
     )
 )

@@ -137,14 +137,6 @@ class OstreamVoider
   ALFC_FATAL_IF(false, __PRETTY_FUNCTION__, __FILE__, __LINE__)
 #endif
 
-#define Unreachable() ALFC_FATAL() << "Unreachable code reached "
-
-#define Unhandled() ALFC_FATAL() << "Unhandled case encountered "
-
-#define Unimplemented() ALFC_FATAL() << "Unimplemented code encountered "
-
-#define InternalError() ALFC_FATAL() << "Internal error detected "
-
 }  // namespace alfc
 
 #endif /* ALFC__CHECK_H */

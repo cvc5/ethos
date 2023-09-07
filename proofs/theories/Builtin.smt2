@@ -7,10 +7,10 @@
 (declare-const not (-> Bool Bool))
 
 (declare-const or (-> Bool Bool Bool)
-   :right-assoc-nil
+   :right-assoc-nil false
 )
 (declare-const and (-> Bool Bool Bool)
-   :right-assoc-nil
+   :right-assoc-nil true
 )
 (declare-const => (-> Bool Bool Bool)
    :right-assoc

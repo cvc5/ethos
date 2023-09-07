@@ -58,10 +58,6 @@
 
 ;;-------------------- Utilities
 
-; Head and tail for string concatenation. Fails if not a concatentation term.
-;(program string_head ((t term)) term (nary.head str.++ t))
-;(program string_tail ((t term)) term (nary.tail str.++ t))
-
 ; Concatenation str.++ applications t1 and t2. Note this side condition requires
 ; taking the sort u of t1 for constructing the empty string.
 (program string_concat ((T Type) (t1 T) (t2 T))
@@ -69,14 +65,8 @@
   (((string_concat t1 t2) (alf.append str.++ t1 t2)))
 )
 
-; Decompose str.++ term t of sort u into a head and tail.
-;(program string_decompose ((t term) (u sort)) termPair (nary.decompose str.++ t (mk_emptystr u)))
-
-; Insert a string into str.++ term t of sort u.
-;(program string_insert ((elem term) (t term) (u sort)) term (nary.insert str.++ elem t))
-
 ; Return reverse of t if rev = tt, return t unchanged otherwise.
-(define string_rev ((U Type) (rev Bool) (t U)) (alf.ite rev (nary.reverse str.++ t) t))
+(define string_rev ((U Type) (rev Bool) (t U)) (alf.ite rev (nary.reverse str.++ alf.nil t) t))
 
 ;;-------------------- Reductions
 
@@ -212,7 +202,7 @@
 (program re_unfold_pos_concat_rec ((t String) (r1 RegLan) (r2 RegLan :list) (ro RegLan) (i Int))
   (String RegLan RegLan Int) (@Pair String Bool)
   (
-    ((re_unfold_pos_concat_rec t alf.nil ro i)       (@pair alf.nil alf.nil))
+    ((re_unfold_pos_concat_rec t alf.nil ro i)       (@pair alf.nil true))
     ((re_unfold_pos_concat_rec t (re.++ r1 r2) ro i)
       ; match recursive call
       (alf.match ((c String :list) (M Bool :list))
@@ -388,7 +378,7 @@
 ; (3) (optionally) reverse.
 (define string_to_flat_form ((U Type) (s U) (rev Bool))
   ; intro, flatten, reverse
-  (string_rev U rev (string_flatten (nary.intro str.++ (mk_emptystr U) s))))
+  (string_rev U rev (string_flatten (nary.intro str.++ (mk_emptystr U) alf.nil s))))
 
 ; Converts a term in "flat form" to a term that is in a form that corresponds
 ; to one in cvc5 rewritten form. This is the dual method to
@@ -398,4 +388,4 @@
 ; (3) eliminate n-ary form to its element if the term is a singleton list.
 (define string_from_flat_form ((U Type) (s U) (rev Bool))
   ; reverse, collect, elim
-  (nary.elim str.++ (mk_emptystr U) (string_collect (string_rev U rev s))))
+  (nary.elim str.++ alf.nil (mk_emptystr U) (string_collect (string_rev U rev s))))

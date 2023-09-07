@@ -30,7 +30,7 @@
     (
         ((mk_trans t1 t2 (and (= t3 t4) tail))
             (alf.requires t2 t3 (mk_trans t1 t4 tail)))
-        ((mk_trans t1 t2 alf.nil)              (= t1 t2))
+        ((mk_trans t1 t2 true)              (= t1 t2))
     )
 )
 
@@ -47,7 +47,7 @@
     (U U Bool) Bool
     (
         ((mk_cong f1 f2 (and (= t1 t2) tail)) (mk_cong (f1 t1) (f2 t2) tail))
-        ((mk_cong t1 t2 alf.nil)              (= t1 t2))
+        ((mk_cong t1 t2 true)              (= t1 t2))
         ((mk_cong f1 f2 (= t1 t2))            (= (f1 t1) (f2 t2)))
     )
 )
@@ -64,7 +64,7 @@
     ((-> U U) U U Bool) Bool
     (
         ((mk_nary_cong f t1 t2 (and (= s1 s2) tail)) (mk_nary_cong f (f s1 t1) (f s2 t2) tail))
-        ((mk_nary_cong f t1 t2 alf.nil)              (= t1 t2))
+        ((mk_nary_cong f t1 t2 true)                 (= t1 t2))
     )
 )
 
@@ -108,7 +108,7 @@
     (U U Bool) Bool
     (
         ((mk_ho_cong f1 f2 (and (= t1 t2) tail)) (mk_ho_cong (f1 t1) (f2 t2) tail))
-        ((mk_ho_cong t1 t2 alf.nil)              (= t1 t2))
+        ((mk_ho_cong t1 t2 true)                 (= t1 t2))
     )
 )
 

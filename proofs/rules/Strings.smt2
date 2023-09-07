@@ -37,7 +37,7 @@
 (define string_is_prefix ((U Type) (s U) (s1 U) (rev Bool))
   (let ((sf (string_to_flat_form U s rev)))
   (let ((sf1 (string_to_flat_form U s1 rev)))
-  (nary.is_prefix str.++ sf1 sf))))
+  (nary.is_prefix str.++ alf.nil sf1 sf))))
 
 (declare-rule concat_unify ((U Type) (s U) (t U) (s1 U) (t1 U) (rev Bool))
   :premises ((= s t) (= (str.len s1) (str.len t1)))
@@ -129,7 +129,7 @@
         (alf.match ((tk String) (M Bool :list))
           (re_unfold_pos_concat t r)
           ((@pair tk M)
-             (nary.elim and true (and (= t tk) M)))))))
+             (nary.elim and true true (and (= t tk) M)))))))
 
 ;;;;;;;;;; Extended functions 
 

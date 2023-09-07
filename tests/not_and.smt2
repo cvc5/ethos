@@ -5,8 +5,8 @@
 (program lowerNot ((l Bool) (ls Bool :list))
     (Bool) Bool
     (
-        ((lowerNot alf.nil)    alf.nil)
-        ((lowerNot (and l ls)) (alf.cons or (not l) (lowerNot ls)))
+        ((lowerNot true)           false)
+        ((lowerNot (and l ls))     (alf.cons or (not l) (lowerNot ls)))
     )
 )
 
