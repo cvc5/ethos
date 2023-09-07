@@ -24,15 +24,13 @@
 (declare-const set.fold (-> (! Type :var T :implicit) (! Type :var U :implicit) (-> T U U) U (Set T) U))
 
 (declare-const rel.tclosure (-> (! Type :var T :implicit) (Set (Tuple T T)) (Set (Tuple T T))))
-;(declare-const rel.transpose (-> (! Type :var T :implicit) (Set T) (Set (nary.reverse Tuple T))))
-;(declare-const rel.product (-> (! Type :var T :implicit) (! Type :var U :implicit) (Set T) (Set U) (Set (nary.concat Tuple U T))))
+(declare-const rel.transpose (-> (! Type :var T :implicit) (Set T) (Set (nary.reverse Tuple UnitTuple T))))
+(declare-const rel.product (-> (! Type :var T :implicit) (! Type :var U :implicit) (Set T) (Set U) (Set (alf.append Tuple U T))))
+(declare-const rel.join (-> (! Type :var T :implicit) (! Type :var U :implicit) (Set T) (Set U) (Set (nary.join Tuple UnitTuple U T))))
 
-;(define rel.join (# x term (# y term (apply (apply f_rel.join x) y))))
-;(define rel.product (# x term (# y term (apply (apply f_rel.product x) y))))
-;(define rel.transpose (# x term (apply f_rel.transpose x)))
-;(define rel.tclosure (# x term (apply f_rel.tclosure x)))
-;(define rel.iden (# x term (apply f_rel.iden x)))
-;(define rel.join_image (# x term (# y term (apply (apply f_rel.join_image x) y))))
+; note UnitTuple provided
+(declare-const rel.iden (-> (! Type :var T :implicit) (Set (Tuple T UnitTuple)) (Set (Tuple T T))))  
+(declare-const rel.join_image (-> (! Type :var T :implicit) (Set (Tuple T T)) Int (Set (Tuple T UnitTuple))))
 
 
 ; the diff skolem

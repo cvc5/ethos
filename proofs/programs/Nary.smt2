@@ -139,3 +139,13 @@
         ((nary.is_prefix cons nil (cons c1 xs1) (cons c2 xs2)) (alf.ite (alf.is_eq c1 c2) (nary.is_prefix cons nil xs1 xs2) false))
     )
 )
+
+; nary.join
+(program nary.join
+    ((L Type) (cons (-> L L L)) (nil L) (elim-nil L) (c L) (x L) (xs L :list) (y L) (ys L :list))
+    ((-> L L L) L L L) L
+    (
+        ((nary.join cons nil (cons x nil) (cons x ys)) ys)
+        ((nary.join cons nil (cons x xs) y)            (cons x (nary.join cons nil xs y)))
+    )
+)
