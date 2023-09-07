@@ -141,6 +141,8 @@ bool TypeChecker::checkArity(Kind k, size_t nargs)
     case Kind::NIL:
       return nargs==0;
     case Kind::EVAL_IS_EQ:
+    case Kind::EVAL_TO_LIST:
+    case Kind::EVAL_FROM_LIST:
     case Kind::EVAL_AND:
     case Kind::EVAL_OR:
     case Kind::EVAL_ADD:
@@ -757,7 +759,7 @@ Expr TypeChecker::evaluateLiteralOp(Kind k, const std::vector<Expr>& args)
   return d_state.mkExprInternal(k, args);
 }
 
-Expr getNAryChildren(Expr e, const Expr& op, std::vector<Expr>& children, bool isLeft)
+Expr getNAryChildren(Expr e, const Expr& op, std::vector<Expr>& children, bool isLeft, bool extractAll)
 {
   while (e->getKind()==Kind::APPLY)
   {
@@ -774,6 +776,10 @@ Expr getNAryChildren(Expr e, const Expr& op, std::vector<Expr>& children, bool i
     children.push_back(isLeft ? e->getChildren()[1] : cop->getChildren()[1]);
     // traverse to tail
     e = isLeft ? cop->getChildren()[1] : e->getChildren()[1];
+    if (!extractAll && children.size()==2)
+    {
+      return e;
+    }
   }
   // must be equal to the nil term
   return e;
@@ -831,6 +837,8 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<Expr>& arg
     }
     case Kind::EVAL_CONS:
     case Kind::EVAL_APPEND:
+    case Kind::EVAL_TO_LIST:
+    case Kind::EVAL_FROM_LIST:
     {
       AppInfo* ac = d_state.getAppInfo(args[0].get());
       Assert (ac!=nullptr);
@@ -839,36 +847,81 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<Expr>& arg
       bool isLeft = (ck==Attr::LEFT_ASSOC_NIL);
       Trace("type_checker_debug") << "CONS: " << isLeft << " " << args << std::endl;
       Expr op = args[0];
+      size_t tailIndex = (isLeft ? 1 : 2);
       size_t headIndex = (isLeft ? 2 : 1);
-      const Expr& harg = args[headIndex];
+      // harg is either the head (cons/append) or the argument (to_list/from_list)
+      const Expr& harg = args[args.size()==2 ? 1 : headIndex];
       if (!harg->isGround()) // or LIST?
       {
         // not ready
         Trace("type_checker_debug") << "...head is non-ground" <<std::endl;
         return nullptr;
       }
+      Expr ret;
       std::vector<Expr> hargs;
-      if (k==Kind::EVAL_APPEND)
+      switch (k)
       {
-        Expr a = harg;
-        // Note we take the tail verbatim
-        a = getNAryChildren(a, op, hargs, isLeft);
-        if (a!=ac->d_attrConsTerm)
+        case Kind::EVAL_TO_LIST:
         {
-          Warning() << "...failed to decompose " << harg << std::endl;
-          return nullptr;
+          if (harg==ac->d_attrConsTerm)
+          {
+            // already nil
+            return harg;
+          }
+          Expr a = harg;
+          a = getNAryChildren(a, op, hargs, isLeft, false);
+          if (!hargs.empty())
+          {
+            // already a list
+            return harg;
+          }
+          // otherwise, turn into singleton list
+          ret = ac->d_attrConsTerm;
+          hargs.push_back(a);
         }
+          break;
+        case Kind::EVAL_FROM_LIST:
+        {
+          Expr a = harg;
+          a = getNAryChildren(a, op, hargs, isLeft, false);
+          if (hargs.size()==1)
+          {
+            if (a!=ac->d_attrConsTerm)
+            {
+              Warning() << "...failed to decompose " << harg << " in from_list" << std::endl;
+              return nullptr;
+            }
+            // turn singleton list
+            return hargs[0];
+          }
+          // otherwise self
+          return harg;
+        }
+          break;
+        case Kind::EVAL_CONS:
+          ret = args[tailIndex];
+          hargs.push_back(harg);
+          break;
+        case Kind::EVAL_APPEND:
+        {
+          ret = args[tailIndex];
+          Expr a = harg;
+          // Note we take the tail verbatim
+          a = getNAryChildren(a, op, hargs, isLeft, true);
+          if (a!=ac->d_attrConsTerm)
+          {
+            Warning() << "...failed to decompose " << harg << " in append" << std::endl;
+            return nullptr;
+          }
+        }
+          break;
+        default:
+          break;
       }
-      else
-      {
-        hargs.push_back(harg);
-      }
-      size_t tailIndex = (isLeft ? 1 : 2);
       std::vector<Expr> cc;
       cc.push_back(op);
       cc.push_back(nullptr);
       cc.push_back(nullptr);
-      Expr ret = args[tailIndex];
       for (size_t i=0, nargs=hargs.size(); i<nargs; i++)
       {
         cc[tailIndex] = ret;
@@ -931,6 +984,9 @@ Expr TypeChecker::getLiteralOpType(Kind k,
       return childTypes[2];
     case Kind::EVAL_IF_THEN_ELSE:
     case Kind::EVAL_CONS:
+    case Kind::EVAL_APPEND:
+    case Kind::EVAL_TO_LIST:
+    case Kind::EVAL_FROM_LIST:
       return childTypes[1];
     case Kind::EVAL_IS_EQ:
     case Kind::EVAL_NOT:

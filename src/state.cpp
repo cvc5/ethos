@@ -29,6 +29,9 @@ State::State(Options& opts, Stats& stats) : d_tc(*this), d_opts(opts), d_stats(s
   bindBuiltinEval("is_eq", Kind::EVAL_IS_EQ);
   bindBuiltinEval("ite", Kind::EVAL_IF_THEN_ELSE);
   bindBuiltinEval("requires", Kind::EVAL_REQUIRES);
+  // lists
+  bindBuiltinEval("to_list", Kind::EVAL_TO_LIST);
+  bindBuiltinEval("from_list", Kind::EVAL_FROM_LIST);
   bindBuiltinEval("cons", Kind::EVAL_CONS);
   bindBuiltinEval("append", Kind::EVAL_APPEND);
   // boolean
