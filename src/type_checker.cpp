@@ -695,6 +695,22 @@ bool TypeChecker::isGround(const std::vector<Expr>& args)
   return true;
 }
 
+
+int run(const std::string& call, std::ostream& response)
+{
+  FILE* stream = popen(call.c_str(), "r");
+  if (stream != nullptr)
+  {
+    int ch;
+    while ((ch = fgetc(stream)) != EOF)
+    {
+      response << (unsigned char)ch;
+    }
+    return pclose(stream);
+  }
+  return -1;
+}
+
 Expr TypeChecker::evaluateProgramInternal(const std::vector<Expr>& children,
                                           Ctx& newCtx)
 {
@@ -770,9 +786,18 @@ Expr TypeChecker::evaluateProgramInternal(const std::vector<Expr>& children,
     Trace("oracles") << "```" << std::endl;
     Trace("oracles") << ss.str() << std::endl;
     Trace("oracles") << "```" << std::endl;
-    std::string response("true");
+    std::stringstream call;
+    call << ocmd << " input.txt";
+    std::stringstream response;
+    int retVal = run(call.str(), response);
+    if (retVal!=0)
+    {
+      Trace("oracles") << "...failed to run" << std::endl;
+      return nullptr;
+    }
+    Trace("oracles") << "...got response \"" << response.str() << "\"" << std::endl;
     Parser poracle(d_state);
-    poracle.setStringInput(response);
+    poracle.setStringInput(response.str());
     Expr ret = poracle.parseNextExpr();
     Trace("oracles") << "returns " << ret << std::endl;
     return ret;
