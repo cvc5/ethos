@@ -33,7 +33,6 @@
 
 
 ; returns true if s1 is a prefix of s, taking into account flattening
-; TODO: needs testing
 (define string_is_prefix ((U Type) (s U) (s1 U) (rev Bool))
   (let ((sf (string_to_flat_form U s rev)))
   (let ((sf1 (string_to_flat_form U s1 rev)))

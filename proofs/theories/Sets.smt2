@@ -25,13 +25,11 @@
 
 (declare-const rel.tclosure (-> (! Type :var T :implicit) (Set (Tuple T T)) (Set (Tuple T T))))
 (declare-const rel.transpose (-> (! Type :var T :implicit) (Set T) (Set (nary.reverse Tuple UnitTuple T))))
-(declare-const rel.product (-> (! Type :var T :implicit) (! Type :var U :implicit) (Set T) (Set U) (Set (alf.append Tuple U T))))
-(declare-const rel.join (-> (! Type :var T :implicit) (! Type :var U :implicit) (Set T) (Set U) (Set (nary.join Tuple UnitTuple U T))))
+(declare-const rel.product (-> (! Type :var T :implicit) (! Type :var U :implicit) (Set T) (Set U) (Set (alf.append Tuple T U))))
+(declare-const rel.join (-> (! Type :var T :implicit) (! Type :var U :implicit) (Set T) (Set U) (Set (nary.join Tuple UnitTuple T U))))
 
-; note UnitTuple provided
-(declare-const rel.iden (-> (! Type :var T :implicit) (Set (Tuple T UnitTuple)) (Set (Tuple T T))))  
-(declare-const rel.join_image (-> (! Type :var T :implicit) (Set (Tuple T T)) Int (Set (Tuple T UnitTuple))))
-
+(declare-const rel.iden (-> (! Type :var T :implicit) (Set (Tuple T)) (Set (Tuple T T))))  
+(declare-const rel.join_image (-> (! Type :var T :implicit) (Set (Tuple T T)) Int (Set (Tuple T))))
 
 ; the diff skolem
 (declare-const @k.SETS_DEQ_DIFF (-> (! Type :var T :implicit) (Set T) (Set T) T))

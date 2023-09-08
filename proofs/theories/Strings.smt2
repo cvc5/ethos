@@ -76,42 +76,32 @@
 (declare-const seq.nth (-> (! Type :var T :implicit) (Seq T) Int (alf.ite (alf.is_eq T Char) Int T)))
 (declare-const seq.len (-> (! Type :var T :implicit) (Seq T) Int))
 
-
-;(declare f_seq.++ term)
-;(define seq.++ (# x term (# y term (apply (apply f_seq.++ x) y))))
-;(declare f_seq.extract term)
-;(define seq.extract (# x term (# y term (# z term (apply (apply (apply f_seq.extract x) y) z)))))
-;(declare f_seq.contains term)
-;(define seq.contains (# x term (# y term (apply (apply f_seq.contains x) y))))
-;(declare f_seq.replace term)
-;(define seq.replace (# x term (# y term (# z term (apply (apply (apply f_seq.replace x) y) z)))))
-;(declare f_seq.indexof term)
-;(define seq.indexof (# x term (# y term (# z term (apply (apply (apply f_seq.indexof x) y) z)))))
-;(declare f_seq.prefixof term)
-;(define seq.prefixof (# x term (# y term (apply (apply f_seq.prefixof x) y))))
-;(declare f_seq.suffixof term)
-;(define seq.suffixof (# x term (# y term (apply (apply f_seq.suffixof x) y))))
-;(declare f_seq.rev term)
-;(define seq.rev (# x term (apply f_seq.rev x)))
-;(declare f_seq.update term)
-;(define seq.update (# x term (# y term (# z term (apply (apply (apply f_seq.update x) y) z)))))
-
-
+; sequence operators just convert to the string operators
+(define seq.++ () str.++)
+(define seq.extract () str.substr)
+(define seq.contains () str.contains)
+(define seq.replace () str.replace)
+(define seq.indexof () str.indexof)
+(define seq.prefixof () str.prefixof)
+(define seq.suffixof () str.suffixof)
+(define seq.rev () str.rev)
+(define seq.update () str.update)
 
 ; skolems
 (declare-const @k.RE_UNFOLD_POS_COMPONENT (-> String RegLan Int String))
 (declare-const @k.STRINGS_DEQ_DIFF (-> (! Type :var T :implicit) (Seq T) (Seq T) Int))
 (declare-const @k.STRINGS_STOI_RESULT (-> String Int Int))
 (declare-const @k.STRINGS_STOI_NON_DIGIT (-> String Int))
+(declare-const @k.STRINGS_ITOS_RESULT (-> Int Int String))
 
+(declare-const @k.STRINGS_NUM_OCCUR (-> (! Type :var T :implicit) (Seq T) (Seq T) Int))
 (declare-const @k.STRINGS_OCCUR_INDEX (-> String String Int))
 (declare-const @k.STRINGS_OCCUR_LEN (-> String String Int))
+
+(declare-const @k.STRINGS_REPLACE_ALL_RESULT (-> (! Type :var T :implicit) (Seq T) Int (Seq T)))
 
 (declare-const @k.RE_FIRST_MATCH_PRE (-> String RegLan String))
 (declare-const @k.RE_FIRST_MATCH (-> String RegLan String))
 (declare-const @k.RE_FIRST_MATCH_POST (-> String RegLan String))
 
 
-;STRINGS_NUM_OCCUR
-;STRINGS_REPLACE_ALL_RESULT
-;STRINGS_ITOS_RESULT

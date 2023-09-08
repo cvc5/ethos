@@ -24,12 +24,12 @@
 (declare-const bag.filter (-> (! Type :var T :implicit) (-> T Bool) (Bag T) (Bag T)))
 (declare-const bag.map (-> (! Type :var T :implicit) (! Type :var U :implicit) (-> T U) (Bag T) (Bag U)))
 (declare-const bag.fold (-> (! Type :var T :implicit) (! Type :var U :implicit) (-> T U U) U (Bag T) U))
+(declare-const table.product (-> (! Type :var T :implicit) (! Type :var U :implicit) (Bag T) (Bag U) (Set (alf.append Tuple U T))))
+
+(declare-const @k.BAGS_DEQ_DIFF (-> (! Type :var T :implicit) (Bag T) (Bag T) T))
 
 ;(declare-const bag.from_set (# x term (apply f_bag.from_set x)))
 ;(declare-const bag.to_set (# x term (apply f_bag.to_set x)))
-;(declare-const table.product (-> (! Type :var T :implicit) (Bag T) (Bag T) (Bag T))) f_table.product x) y))))
-
-(declare-const @k.BAGS_DEQ_DIFF (-> (! Type :var T :implicit) (Bag T) (Bag T) T))
 
 ;BAGS_CARD_CARDINALITY
 ;BAGS_CARD_ELEMENTS
