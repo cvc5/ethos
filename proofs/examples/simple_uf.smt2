@@ -15,4 +15,4 @@
 (step t2 (= (f c1) (f c2)) :rule cong :premises (t1) :args (f))
 (step t3 (= (f c1) true) :rule trans :premises (t2 a2) :args ())
 (step t4 (f c1) :rule true_elim :premises (t3) :args ())
-(proof (f c1) t4)
+

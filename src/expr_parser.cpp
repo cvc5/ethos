@@ -369,6 +369,10 @@ Expr ExprParser::parseExpr()
                 ret = nullptr;
                 break;
               case Attr::REQUIRES:
+                if (ret==nullptr)
+                {
+                  d_lex.parseError("Cannot mark requires on implicit argument");
+                }
                 ret = d_state.mkRequires(a.second, ret);
                 break;
               default:

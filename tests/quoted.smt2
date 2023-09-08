@@ -18,4 +18,3 @@
 (step a5 (= Bool (= Int x y) (= Int y x)) :rule eq-symm-taut :premises () :args ((= Int x y)))
 ;(step a6 (= Bool (= Int x y) (= Int y x)) :rule eq-symm-taut :premises () :args (x))
 
-(proof (= Bool (= Int x y) (= Int y x)) a5)

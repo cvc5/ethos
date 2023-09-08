@@ -16,9 +16,9 @@
 (step @p3 (= @t3 @t4) :rule trust :args ((= @t3 @t4)))
 (step @p4 @t4 :rule eq_resolve :premises (@p2 @p3))
 (step @p5 (not @t6) :rule skolemize :premises (@p4))
-(push @p6 @t1)
+(assume-push @p6 @t1)
 (step @p7 @t6 :rule instantiate :premises (@p1) :args ((@list @t5 5)))
-(pop @p8 (=> @t1 @t6) :rule scope :premises (@p7))
+(step-pop @p8 (=> @t1 @t6) :rule scope :premises (@p7))
 (step @p9 (or (not @t1) @t6) :rule implies_elim :premises (@p8))
 (step @p10 false :rule chain_resolution :premises (@p9 @p5 @p1) :args ((and true @t6 false @t1)))
 
