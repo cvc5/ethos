@@ -28,6 +28,9 @@ public:
   bool d_ruleSymTable;
 };
 
+/**
+ * The state class which manages both the parsing state and the expression database.
+ */
 class State
 {
   friend class TypeChecker;
@@ -118,11 +121,11 @@ public:
   //--------------------------------------
   /** is closure */
   bool isClosure(const Expr& e) const;
-  /** */
+  /** Get the variable with the given name or nullptr if it does not exist */
   Expr getVar(const std::string& name) const;
-  /** */
+  /** Get the proof rule with the given name or nullptr if it does not exist */
   Expr getProofRule(const std::string& name) const;
-  /** */
+  /** Get the literal associated with e or nullptr if it does not exist */
   Literal* getLiteral(const ExprValue* e);
   /** Get actual premises */
   bool getActualPremises(const Expr& rule, std::vector<Expr>& given, std::vector<Expr>& actual);
@@ -152,20 +155,24 @@ private:
   Expr d_self;
   Expr d_nil;
   Expr d_fail;
-  /** Have we parsed a reference file to check assumptions */
+  /** Have we parsed a reference file to check assumptions? */
   bool d_hasReference;
   /** Get the constructor kind for symbol v */
   Attr getConstructorKind(const ExprValue* v) const;
-  /** mark included */
+  /** Mark that file s was included */
   bool markIncluded(const std::string& s);
   /** mark deleted */
   void markDeleted(const ExprValue * e);
-  /** */
+  /** Make (<APPLY> children), curried. */
   Expr mkApplyInternal(const std::vector<Expr>& children);
+  /**
+   * Constructs a new expression from k and children, or returns a
+   * previous one if the same call to mkExprInternal was made previously.
+   */
   Expr mkExprInternal(Kind k, const std::vector<Expr>& children);
-  /** */
+  /** Constructs a symbol-like expression with the given kind, name and type. */
   Expr mkSymbolInternal(Kind k, const std::string& name, const Expr& type);
-  /** */
+  /** Get the internal data for expression e. */
   AppInfo* getAppInfo(const ExprValue* e);
   /** Bind builtin */
   void bindBuiltin(const std::string& name, Kind k, bool isClosure = false);
@@ -173,12 +180,12 @@ private:
   void bindBuiltin(const std::string& name, Kind k, bool isClosure, const Expr& t);
   /** Bind builtin eval */
   void bindBuiltinEval(const std::string& name, Kind k);
-  /** Compiled initialization */
+  /** Compiled initialization code. */
   void run_initialize();
   //--------------------- parsing state
   /** The symbol table */
   std::map<std::string, Expr> d_symTable;
-  /** Symbol table for proof rules */
+  /** Symbol table for proof rules, if using separate table */
   std::map<std::string, Expr> d_ruleSymTable;
   /** Context stacks */
   std::vector<std::string> d_decls;
@@ -191,23 +198,22 @@ private:
   /** Reference asserts */
   std::unordered_set<Expr> d_referenceAsserts;
   //--------------------- expression info
-  /** literals */
+  /** Map from expressions to constructor info */
   std::map<const ExprValue*, AppInfo> d_appData;
-  /** hash */
+  /** The database of created expressions */
   std::map<Kind, ExprTrie> d_trie;
-  /** oracle */
-  std::map<const ExprValue*, std::string> d_oracleCmd;
   //--------------------- literals
-  /** hash for literals */
+  /** Cache for literals */
   std::map<std::pair<Kind, std::string>, Expr> d_literalTrie;
-  /** literal data */
+  /** Map from expressions to literals */
   std::map<const ExprValue*, Literal> d_literals;
   // -------------------- symbols
+  /** Cache for symbols */
   std::map<std::tuple<Kind, std::string, Expr>, Expr> d_symcMap;
   //--------------------- includes
   /** input file */
   std::filesystem::path d_inputFile;
-  /** files included */
+  /** Cache of files included */
   std::set<std::filesystem::path> d_includes;
   //--------------------- utilities
   /** Type checker */
