@@ -119,7 +119,10 @@ bool CmdParser::parseNextCommand()
       Expr pt = d_state.mkProofType(proven);
       Expr v = d_state.mkConst(name, pt);
       d_eparser.bind(name, v);
-      d_state.addAssumption(proven);
+      if (!d_state.addAssumption(proven))
+      {
+        d_lex.parseError("A provided assumption was not part of the referenced assertions");
+      }
     }
     break;
     // (declare-fun <symbol> (<sort>∗) <sort>)
@@ -498,6 +501,7 @@ bool CmdParser::parseNextCommand()
     case Token::INCLUDE:
     case Token::REFERENCE:
     {
+      bool isReference = (tok==Token::REFERENCE);
       if (d_state.getAssumptionLevel()>0)
       {
         d_lex.parseError("Includes must be done at assumption level zero");
@@ -509,7 +513,8 @@ bool CmdParser::parseNextCommand()
       }
       // include the file
       std::string file = d_eparser.parseStr(true);
-      d_state.includeFile(file, tok==Token::REFERENCE);
+      d_state.includeFile(file, isReference);
+      d_state.markHasReference();
     }
     break;
     // (program (<sort>*) <sort> (<sorted_var>*) <term_pair>+)
@@ -724,7 +729,7 @@ bool CmdParser::parseNextCommand()
     case Token::ASSERT:
     {
       Expr a = d_eparser.parseFormula();
-      //d_state.notifyAssert(a);
+      d_state.addReferenceAssert(a);
     }
     break;
     // (check-sat)

@@ -34,6 +34,7 @@ class State
 public:
   State(Options& opts, Stats& stats);
   ~State();
+  //--------------------------------------
   /** Reset */
   void reset();
   /** Push scope */
@@ -47,9 +48,26 @@ public:
   /** include file, if not already done */
   void includeFile(const std::string& s, bool isReference = false);
   /** add assumption */
-  void addAssumption(const Expr& a);
+  bool addAssumption(const Expr& a);
+  /** add reference assert */
+  void addReferenceAssert(const Expr& a);
   /** Set type rule for literal kind k to t */
   void setLiteralTypeRule(Kind k, const Expr& t);
+  /** */
+  bool bind(const std::string& name, const Expr& e);
+  /** Mark constructor kind */
+  void markConstructorKind(const Expr& v, Attr a, const Expr& cons);
+  /**
+   * Define program, where v is PROGRAM_CONST and prog is PROGRAM
+   */
+  void defineProgram(const Expr& v, const Expr& prog);
+  /** Define constructor */
+  void defineConstructor(const Expr& c, const std::vector<Expr>& sels);
+  /** Define datatype */
+  void defineDatatype(const Expr& d, const std::vector<Expr>& cons);
+  /** Mark has reference */
+  void markHasReference();
+  //--------------------------------------
   /** Type */
   Expr mkType();
   /** Make type constant (-> Type ... Type Type) */
@@ -103,11 +121,9 @@ public:
    * @return A constant
    */
   Expr mkLiteral(Kind k, const std::string& s);
-  /** */
-  bool bind(const std::string& name, const Expr& e);
+  //--------------------------------------
   /** is closure */
   bool isClosure(const Expr& e) const;
-  
   /** */
   Expr getVar(const std::string& name) const;
   /** */
@@ -118,6 +134,13 @@ public:
   bool getActualPremises(const Expr& rule, std::vector<Expr>& given, std::vector<Expr>& actual);
   /** Get the oracle command */
   bool getOracleCmd(const Expr& oracle, std::string& ocmd);
+  /** */
+  size_t getAssumptionLevel() const;
+  /** */
+  std::vector<Expr> getCurrentAssumptions() const;
+  /** Print compiled files (for --show-config) */
+  static std::string showCompiledFiles();
+  //--------------------------------------
   /** Get the type checker */
   TypeChecker& getTypeChecker();
   /** Get options */
@@ -126,23 +149,6 @@ public:
   Stats& getStats();
   /** Get compiler */
   Compiler* getCompiler();
-  /** */
-  size_t getAssumptionLevel() const;
-  /** */
-  std::vector<Expr> getCurrentAssumptions() const;
-  
-  /** Mark constructor kind */
-  void markConstructorKind(const Expr& v, Attr a, const Expr& cons);
-  /** 
-   * Define program, where v is PROGRAM_CONST and prog is PROGRAM
-   */
-  void defineProgram(const Expr& v, const Expr& prog);
-  /** Define constructor */
-  void defineConstructor(const Expr& c, const std::vector<Expr>& sels);
-  /** Define datatype */
-  void defineDatatype(const Expr& d, const std::vector<Expr>& cons);
-  /** Print compiled files (for --show-config) */
-  static std::string showCompiledFiles();
 private:
   /** Common constants */
   Expr d_type;
@@ -152,6 +158,8 @@ private:
   Expr d_self;
   Expr d_nil;
   Expr d_fail;
+  /** Have we parsed a reference file to check assumptions */
+  bool d_hasReference;
   /** Get the constructor kind for symbol v */
   Attr getConstructorKind(const ExprValue* v) const;
   /** mark included */
@@ -184,6 +192,8 @@ private:
   std::vector<Expr> d_assumptions;
   /** Context size */
   std::vector<size_t> d_assumptionsSizeCtx;
+  /** Reference asserts */
+  std::unordered_set<Expr> d_referenceAsserts;
   //--------------------- expression info
   /** literals */
   std::map<const ExprValue*, AppInfo> d_appData;

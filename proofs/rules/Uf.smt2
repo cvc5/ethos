@@ -9,18 +9,14 @@
 
 ; SYMM
 ; Either t1 = t2 ==> t2 = t1 or t1 != t2 ==> t2 != t1
-(program flipEq ((T Type) (t1 T) (t2 T))
-    (Bool) Bool
-    (
-        ((flipEq (= t1 t2)) (= t2 t1))
-        ((flipEq (not (= t1 t2))) (not (= t2 t1)))
-    )
-)
-
 (declare-rule symm ((F Bool))
     :premises (F)
     :args ()
-    :conclusion (flipEq F)
+    :conclusion
+        (alf.match ((T Type) (t1 T) (t2 T))
+            F
+            ((= t1 t2)       (= t2 t1))
+            ((not (= t1 t2)) (not (= t2 t1))))
 )
 
 ; TRANS
@@ -122,12 +118,6 @@
 )
 
 ; HO_APP_ENCODE
-; TO TRUST: t_encoded is the result of the applicative encoding.
-(declare-rule ho_app_encode ((T Type) (t T) (t_encoded T))
-    :premises ()
-    :args (t t_encoded)
-    :conclusion (= t t_encoded)
-)
 
 ; BETA_REDUCE
 ; TODO

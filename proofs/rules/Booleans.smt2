@@ -13,6 +13,9 @@
   :conclusion (=> F G)
 )
 
+; `extract_antec F C`
+; returns the antecedant of F up to C,
+; e.g. returns (and G1 G2) when F is (=> G1 (=> G2 C)).
 (program extract_antec
    ((C Bool) (F1 Bool) (F2 Bool))
    (Bool Bool) Bool
@@ -41,7 +44,6 @@
 
 ; SPLIT
 (declare-rule split ((F Bool))
-    :premises ()
     :args (F)
     :conclusion (or F (not F))
 )

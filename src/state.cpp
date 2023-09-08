@@ -17,7 +17,7 @@ Options::Options()
   d_ruleSymTable = false;
 }
 
-State::State(Options& opts, Stats& stats) : d_tc(*this), d_opts(opts), d_stats(stats)
+State::State(Options& opts, Stats& stats) : d_hasReference(false), d_tc(*this), d_opts(opts), d_stats(stats)
 {
   ExprValue::d_state = this;
   
@@ -199,9 +199,23 @@ bool State::markIncluded(const std::string& s)
   return true;
 }
 
-void State::addAssumption(const Expr& a)
+bool State::addAssumption(const Expr& a)
 {
   d_assumptions.push_back(a);
+  if (d_hasReference)
+  {
+    // only care if at assumption level zero
+    if (d_assumptionsSizeCtx.empty())
+    {
+      return d_referenceAsserts.find(a)!=d_referenceAsserts.end();
+    }
+  }
+  return true;
+}
+
+void State::addReferenceAssert(const Expr& a)
+{
+  d_referenceAsserts.insert(a);
 }
 
 void State::setLiteralTypeRule(Kind k, const Expr& t)
@@ -996,6 +1010,10 @@ void State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
   {
     d_compiler->markConstructorKind(v, a, cons);
   }
+}
+void State::markHasReference()
+{
+  d_hasReference = true;
 }
 
 }  // namespace alfc
