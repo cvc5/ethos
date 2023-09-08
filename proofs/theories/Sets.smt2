@@ -1,3 +1,4 @@
+(include "../programs/Utils.smt2")
 (include "../theories/Builtin.smt2")
 (include "../theories/Arith.smt2")
 (include "../theories/Datatypes.smt2")
@@ -23,10 +24,13 @@
 (declare-const set.map (-> (! Type :var T :implicit) (! Type :var U :implicit) (-> T U) (Set T) (Set U)))
 (declare-const set.fold (-> (! Type :var T :implicit) (! Type :var U :implicit) (-> T U U) U (Set T) U))
 
+(declare-const set.comprehension (-> (! Type :var T :implicit) @List Bool T (Set T)))
+
 (declare-const rel.tclosure (-> (! Type :var T :implicit) (Set (Tuple T T)) (Set (Tuple T T))))
 (declare-const rel.transpose (-> (! Type :var T :implicit) (Set T) (Set (nary.reverse Tuple UnitTuple T))))
 (declare-const rel.product (-> (! Type :var T :implicit) (! Type :var U :implicit) (Set T) (Set U) (Set (alf.append Tuple T U))))
 (declare-const rel.join (-> (! Type :var T :implicit) (! Type :var U :implicit) (Set T) (Set U) (Set (nary.join Tuple UnitTuple T U))))
+(declare-const rel.group (-> (! Type :var T :implicit) (Set T) (Set (Set T))))
 
 (declare-const rel.iden (-> (! Type :var T :implicit) (Set (Tuple T)) (Set (Tuple T T))))  
 (declare-const rel.join_image (-> (! Type :var T :implicit) (Set (Tuple T T)) Int (Set (Tuple T))))

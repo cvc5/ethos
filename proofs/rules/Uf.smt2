@@ -61,6 +61,7 @@
     (
         ((mk_nary_cong f t1 t2 (and (= s1 s2) tail)) (mk_nary_cong f (f s1 t1) (f s2 t2) tail))
         ((mk_nary_cong f t1 t2 true)                 (= t1 t2))
+        ((mk_nary_cong f t1 t2 (= s1 s2))            (= (f s1 t1) (f s2 t2)))
     )
 )
 
