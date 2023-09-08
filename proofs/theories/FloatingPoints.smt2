@@ -116,6 +116,10 @@
 (declare-const to_fp
   (-> (! Type :var T :implicit)
       (! Int :var e) (! Int :var s) RoundingMode T (FloatingPoint e s)))
+      
+(declare-const to_fp_unsigned
+  (-> (! Type :var T :implicit)
+      (! Int :var e) (! Int :var s) RoundingMode T (FloatingPoint e s)))
 
 ;(declare-const to_fp_unsigned (! i mpz (! j mpz term)))
 ;(define to_fp_unsigned (# x mpz (# y mpz (# z term (# w term (apply (apply (to_fp_unsigned x y) z) w))))))

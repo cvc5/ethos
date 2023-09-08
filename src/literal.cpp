@@ -138,16 +138,32 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
       }
       break;
     case Kind::EVAL_ADD:
-      // TODO: allow mixed??
-      if (args[0]->d_tag==args[1]->d_tag)
+      // we allow mixed arithmetic here
+      switch (args[0]->d_tag)
       {
-        switch (args[0]->d_tag)
+        case INTEGER:
+        switch (args[1]->d_tag)
         {
+          case RATIONAL:return Literal(Rational(args[0]->d_int) + args[1]->d_rat);
           case INTEGER:return Literal(args[0]->d_int + args[1]->d_int);
-          case RATIONAL:return Literal(args[0]->d_rat + args[1]->d_rat);
-          case BITVECTOR:return Literal(args[0]->d_bv + args[1]->d_bv);
-          default: break;
+          default:break;
         }
+        break;
+        case RATIONAL:
+        switch (args[1]->d_tag)
+        {
+          case INTEGER:return Literal(args[0]->d_rat + Rational(args[1]->d_int));
+          case RATIONAL:return Literal(args[0]->d_rat + args[1]->d_rat);
+          default:break;
+        }
+        break;
+        case BITVECTOR:
+          if (args[1]->d_tag==BITVECTOR)
+          {
+            return Literal(args[0]->d_bv + args[1]->d_bv);
+          }
+          break;
+        default: break;
       }
       break;
     case Kind::EVAL_NEG:
@@ -160,16 +176,32 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
       }
       break;
     case Kind::EVAL_MUL:
-      // TODO: allow mixed??
-      if (args[0]->d_tag==args[1]->d_tag)
+      // we allow mixed arithmetic here
+      switch (args[0]->d_tag)
       {
-        switch (args[0]->d_tag)
+        case INTEGER:
+        switch (args[1]->d_tag)
         {
+          case RATIONAL:return Literal(Rational(args[0]->d_int) * args[1]->d_rat);
           case INTEGER:return Literal(args[0]->d_int * args[1]->d_int);
-          case RATIONAL:return Literal(args[0]->d_rat * args[1]->d_rat);
-          case BITVECTOR:return Literal(args[0]->d_bv * args[1]->d_bv);
-          default: break;
+          default:break;
         }
+        break;
+        case RATIONAL:
+        switch (args[1]->d_tag)
+        {
+          case INTEGER:return Literal(args[0]->d_rat * Rational(args[1]->d_int));
+          case RATIONAL:return Literal(args[0]->d_rat * args[1]->d_rat);
+          default:break;
+        }
+        break;
+        case BITVECTOR:
+          if (args[1]->d_tag==BITVECTOR)
+          {
+            return Literal(args[0]->d_bv * args[1]->d_bv);
+          }
+          break;
+        default: break;
       }
       break;
     case Kind::EVAL_INT_DIV:

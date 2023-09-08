@@ -95,9 +95,11 @@
 (declare-const @k.STRINGS_ITOS_RESULT (-> Int Int Int))
 
 (declare-const @k.STRINGS_NUM_OCCUR (-> (! Type :var T :implicit) (Seq T) (Seq T) Int))
-(declare-const @k.STRINGS_NUM_OCCUR_RE (-> (! Type :var T :implicit) (Seq T) RegLan Int))
-(declare-const @k.STRINGS_OCCUR_INDEX (-> String String Int))
-(declare-const @k.STRINGS_OCCUR_LEN (-> String String Int))
+(declare-const @k.STRINGS_NUM_OCCUR_RE (-> String RegLan Int))
+(declare-const @k.STRINGS_OCCUR_INDEX (-> (! Type :var T :implicit) (Seq T) (Seq T) Int Int))
+(declare-const @k.STRINGS_OCCUR_INDEX_RE (-> String RegLan Int Int))
+(declare-const @k.STRINGS_OCCUR_LEN (-> (! Type :var T :implicit) (Seq T) (Seq T) Int Int))
+(declare-const @k.STRINGS_OCCUR_LEN_RE (-> String RegLan Int Int))
 
 (declare-const @k.STRINGS_REPLACE_ALL_RESULT (-> (! Type :var T :implicit) (Seq T) Int (Seq T)))
 
