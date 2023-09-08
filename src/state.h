@@ -58,7 +58,7 @@ public:
   /** Mark constructor kind */
   void markConstructorKind(const Expr& v, Attr a, const Expr& cons);
   /**
-   * Define program, where v is PROGRAM_CONST and prog is PROGRAM
+   * Define program, where v is PROGRAM_CONST and prog is PROGRAM.
    */
   void defineProgram(const Expr& v, const Expr& prog);
   /** Define constructor */

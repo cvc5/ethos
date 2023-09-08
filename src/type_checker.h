@@ -12,44 +12,70 @@ class State;
 
 using Ctx = std::map<Expr, Expr>;
 std::ostream& operator<<(std::ostream& out, const Ctx& c);
+
 /** 
- * Expression class
+ * The type checker for AletheLF. The main algorithms it implements are
+ * getType, match, and evaluate.
  */
 class TypeChecker
 {
  public:
   TypeChecker(State& s);
   ~TypeChecker();
-  /** Return its type */
+  /**
+   * Return the type of expression e. This returns nullptr if e
+   * is not well-typed. In this case, an error message is written on
+   * out if it is provided.
+   */
   const Expr& getType(Expr& e, std::ostream* out = nullptr);
-  /** Get the type of an application */
+  /**
+   * Get the type of an application, equivalent to calling getType on
+   * (APPLY children).
+   */
   Expr getTypeApp(std::vector<Expr>& children, std::ostream* out = nullptr);
-  /** Check arity for kind */
+  /**
+   * Check arity for kind, returns false if k cannot be applied to nargs.
+   */
   static bool checkArity(Kind k, size_t nargs);
   /** Set type rule for literal kind k to t */
   void setLiteralTypeRule(Kind k, const Expr& t);
   /** Get or set type rule (to default) for literal kind k */
   Expr getOrSetLiteralTypeRule(Kind k);
+  /**
+   * Match expression a with b. If this returns true, then ctx is a substitution
+   * that when applied to b gives a. The substitution
+   */
+  bool match(const Expr& a, const Expr& b, Ctx& ctx);
+  /** Same as above, but takes a cache of pairs we have already visited */
+  bool match(const Expr& a, const Expr& b, Ctx& ctx, std::set<std::pair<Expr, Expr>>& visited);
+  /**
+   * Evaluate the expression e in the given context.
+   */
+  Expr evaluate(Expr& e, Ctx& ctx);
+  /** Evaluate the expression e in the empty context */
+  Expr evaluate(Expr& e);
   /** Define program */
   void defineProgram(const Expr& v, const Expr& prog);
   /** Has program */
   bool hasProgram(const Expr& v) const;
-  /** Maybe evaluate */
-  Expr evaluateProgram(const std::vector<Expr>& args, Ctx& newCtx);
-  /** Evaluate literal op */
-  Expr evaluateLiteralOp(Kind k, const std::vector<Expr>& args);
-  /** */
-  bool match(const Expr& a, const Expr& b, Ctx& ctx, std::set<std::pair<Expr, Expr>>& visited);
-  bool match(const Expr& a, const Expr& b, Ctx& ctx);
   /**
-   * Clone this expression, which creates a deep copy of this expression and
-   * returns it. The dag structure of pn is the same as that in the returned
-   * expression.
+   * Evaluate program, where args[0] is a term of kind PROGRAM_CONST
+   * and the remaining args are what is being applied to.
    *
-   * @return the cloned expression.
+   * If this returns (APPLY args), then the application does not
+   * evaluate. This is the case if no case of the program matched, or
+   * if an error was encountered.
+   *
+   * Otherwise, the program evaluates in one step to the returned term,
+   * and is equal to the result of evaluating that expression in the context newCtx,
+   * which is computed in this call.
    */
-  Expr evaluate(Expr& e, Ctx& ctx);
-  Expr evaluate(Expr& e);
+  Expr evaluateProgram(const std::vector<Expr>& args, Ctx& newCtx);
+  /**
+   * Evaluate literal op k applied to args. Returns (<k> args) if the
+   * operator does not evaluate.
+   */
+  Expr evaluateLiteralOp(Kind k, const std::vector<Expr>& args);
  private:
   /** Are all args ground? */
   static bool isGround(const std::vector<Expr>& args);
