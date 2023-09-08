@@ -24,10 +24,9 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::PROOF_RULE: o << "PROOF_RULE"; break;
     case Kind::VARIABLE: o << "VARIABLE"; break;
     case Kind::ORACLE: o << "ORACLE"; break;
-    case Kind::VARIABLE_LIST: o << "VARIABLE_LIST"; break;
+    case Kind::TUPLE: o << "TUPLE"; break;
     case Kind::NIL: o << "NIL"; break;
     case Kind::PROGRAM: o << "PROGRAM"; break;
-    case Kind::PAIR: o << "PAIR"; break;
     case Kind::COLLECT: o << "COLLECT"; break;
     case Kind::FAIL: o << "FAIL"; break;
     // literals

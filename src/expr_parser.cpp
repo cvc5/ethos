@@ -131,7 +131,7 @@ Expr ExprParser::parseExpr()
             d_state.pushScope();
             std::vector<Expr> vs = parseAndBindSortedVarList();
             std::vector<Expr> args;
-            args.emplace_back(d_state.mkExpr(Kind::VARIABLE_LIST, vs));
+            args.emplace_back(d_state.mkExpr(Kind::TUPLE, vs));
             xstack.emplace_back(ParseCtx::MATCH_HEAD);
             sstack.emplace_back(1);
             tstack.emplace_back(args);
@@ -164,7 +164,7 @@ Expr ExprParser::parseExpr()
               {
                 d_lex.parseError("Expected non-empty sorted variable list");
               }
-              Expr vl = d_state.mkExpr(Kind::VARIABLE_LIST, vs);
+              Expr vl = d_state.mkExpr(Kind::TUPLE, vs);
               args.push_back(vl);
             }
             xstack.emplace_back(ParseCtx::NEXT_ARG);
@@ -411,7 +411,7 @@ Expr ExprParser::parseExpr()
           {
             // if we just got done parsing a term (either a pattern or a return)
             Expr last = args.back();
-            if (args.size()>2 && last->getKind()!=Kind::PAIR)
+            if (args.size()>2 && last->getKind()!=Kind::TUPLE)
             {
               // case where we just read a return value
               // replace the back of this with a pair
@@ -468,7 +468,7 @@ Expr ExprParser::parseExpr()
               for (size_t i=2, nargs = args.size(); i<nargs; i++)
               {
                 Expr cs = args[i];
-                Assert (cs->getKind()==Kind::PAIR);
+                Assert (cs->getKind()==Kind::TUPLE);
                 Expr lhs = (*cs.get())[0];
                 // check that variables in the pattern are only from the binder
                 ensureBound(lhs, vl);
@@ -554,7 +554,7 @@ Expr ExprParser::parseExprPair()
   Expr t1 = parseExpr();
   Expr t2 = parseExpr();
   d_lex.eatToken(Token::RPAREN);
-  return d_state.mkExpr(Kind::PAIR, {t1, t2});
+  return d_state.mkPair(t1, t2);
 }
 
 std::string ExprParser::parseSymbolicExpr()

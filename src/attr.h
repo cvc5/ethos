@@ -31,6 +31,11 @@ enum class Attr
   LEFT_ASSOC_NIL,
   CHAINABLE,
   PAIRWISE,
+
+  // datatypes
+  DATATYPE,
+  DATATYPE_CONSTRUCTOR,
+  CODATATYPE,
   
   // internal
   CLOSURE

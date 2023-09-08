@@ -262,7 +262,7 @@ void ExprValue::printDebugInternal(const ExprValue* e,
       else
       {
         os << "(";
-        if (k!=Kind::APPLY && k!=Kind::PAIR)
+        if (k!=Kind::APPLY && k!=Kind::TUPLE)
         {
           os <<  kindToTerm(k) << " ";
         }

@@ -191,56 +191,63 @@ bool CmdParser::parseNextCommand()
       d_eparser.bind(name, v);
     }
     break;
-    // single datatype
+    // single or multiple datatype
     // (declare-datatype <symbol> <datatype_dec>)
     // (declare-codatatype <symbol> <datatype_dec>)
-    case Token::DECLARE_CODATATYPE:
-    case Token::DECLARE_DATATYPE:
-    {
-      //d_state.checkThatLogicIsSet();
-      std::vector<std::string> dnames;
-      std::vector<size_t> arities;
-      std::string name = d_eparser.parseSymbol();
-      dnames.push_back(name);
-      //bool isCo = (tok == Token::DECLARE_CODATATYPE);
-      std::map<Expr, std::vector<Expr>> dts;
-      std::map<Expr, std::vector<Expr>> dtcons;
-      // parse <datatype_dec>
-      d_eparser.parseDatatypesDef(dnames, arities, dts, dtcons);
-    }
-    break;
-    // multiple datatype
     // (declare-datatypes (<sort_dec>^{n+1}) (<datatype_dec>^{n+1}) )
     // (declare-codatatypes (<sort_dec>^{n+1}) (<datatype_dec>^{n+1}) )
+    case Token::DECLARE_CODATATYPE:
+    case Token::DECLARE_DATATYPE:
     case Token::DECLARE_CODATATYPES:
     case Token::DECLARE_DATATYPES:
     {
+      bool isCo = (tok==Token::DECLARE_CODATATYPES || tok==Token::DECLARE_CODATATYPE);
+      bool isMulti = (tok==Token::DECLARE_CODATATYPES || tok==Token::DECLARE_DATATYPES);
       //d_state.checkThatLogicIsSet();
       d_lex.eatToken(Token::LPAREN);
       std::vector<std::string> dnames;
       std::vector<size_t> arities;
-      // parse (<sort_dec>^{n+1})
-      // while the next token is LPAREN, exit if RPAREN
-      while (d_lex.eatTokenChoice(Token::LPAREN, Token::RPAREN))
-      {
-        std::string name = d_eparser.parseSymbol();
-        size_t arity = d_eparser.parseIntegerNumeral();
-        dnames.push_back(name);
-        arities.push_back(arity);
-        d_lex.eatToken(Token::RPAREN);
-      }
-      if (dnames.empty())
-      {
-        d_lex.parseError("Empty list of datatypes");
-      }
-      //bool isCo = (tok == Token::DECLARE_CODATATYPES);
-      // parse (<datatype_dec>^{n+1})
-      d_lex.eatToken(Token::LPAREN);
       std::map<Expr, std::vector<Expr>> dts;
       std::map<Expr, std::vector<Expr>> dtcons;
+      if (isMulti)
+      {
+        // parse (<sort_dec>^{n+1})
+        // while the next token is LPAREN, exit if RPAREN
+        while (d_lex.eatTokenChoice(Token::LPAREN, Token::RPAREN))
+        {
+          std::string name = d_eparser.parseSymbol();
+          size_t arity = d_eparser.parseIntegerNumeral();
+          dnames.push_back(name);
+          arities.push_back(arity);
+          d_lex.eatToken(Token::RPAREN);
+        }
+        if (dnames.empty())
+        {
+          d_lex.parseError("Empty list of datatypes");
+        }
+        // parse (<datatype_dec>^{n+1})
+        d_lex.eatToken(Token::LPAREN);
+      }
+      else
+      {
+        std::string name = d_eparser.parseSymbol();
+        dnames.push_back(name);
+      }
       if (!d_eparser.parseDatatypesDef(dnames, arities, dts, dtcons))
       {
         d_lex.parseError("Failed to bind symbols for datatype definition");
+      }
+      // mark the attributes
+      Attr attr = isCo ? Attr::CODATATYPE : Attr::DATATYPE;
+      for (std::pair<const Expr, std::vector<Expr>>& d : dts)
+      {
+        Expr ctuple = d_state.mkExpr(Kind::TUPLE, d.second);
+        d_state.markConstructorKind(d.first, attr, ctuple);
+      }
+      for (std::pair<const Expr, std::vector<Expr>>& c : dtcons)
+      {
+        Expr stuple = d_state.mkExpr(Kind::TUPLE, c.second);
+        d_state.markConstructorKind(c.first, Attr::DATATYPE_CONSTRUCTOR, stuple);
       }
       d_lex.eatToken(Token::RPAREN);
     }
@@ -442,7 +449,7 @@ bool CmdParser::parseNextCommand()
       // make a lambda if given arguments
       if (vars.size() > 0)
       {
-        Expr vl = d_state.mkExpr(Kind::VARIABLE_LIST, vars);
+        Expr vl = d_state.mkExpr(Kind::TUPLE, vars);
         expr = d_state.mkExpr(Kind::LAMBDA, {vl, expr});
       }
       d_eparser.bind(name, expr);

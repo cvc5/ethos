@@ -286,7 +286,7 @@ Expr State::mkRequires(const std::vector<Expr>& args, const Expr& ret)
   for (size_t i=0, nargs=args.size(); i<nargs; i++)
   {
     size_t ii = (nargs-1)-i;
-    Assert (args[ii]->getKind()==Kind::PAIR);
+    Assert (args[ii]->getKind()==Kind::TUPLE && args[ii]->getNumChildren()==2);
     curr = mkRequires((*args[ii].get())[0], (*args[ii].get())[1], curr);
   }
   return curr;
@@ -412,7 +412,7 @@ Expr State::mkParameter(const std::string& name, const Expr& type)
 {
   return mkSymbolInternal(Kind::PARAM, name, type);
 }
-  
+
 Expr State::mkVar(const std::string& name, const Expr& type)
 {
   return mkSymbolInternal(Kind::VARIABLE, name, type);
@@ -450,7 +450,7 @@ Expr State::mkNil()
 
 Expr State::mkPair(const Expr& t1, const Expr& t2)
 {
-  return mkExprInternal(Kind::PAIR, {t1, t2});
+  return mkExprInternal(Kind::TUPLE, {t1, t2});
 }
 
 Expr State::mkSymbolInternal(Kind k, const std::string& name, const Expr& type)
@@ -979,24 +979,6 @@ void State::defineProgram(const Expr& v, const Expr& prog)
   if (d_compiler!=nullptr)
   {
     d_compiler->defineProgram(v, prog);
-  }
-}
-
-void State::defineConstructor(const Expr& c, const std::vector<Expr>& sels)
-{
-  d_dtcons[c.get()] = sels;
-  if (d_compiler!=nullptr)
-  {
-    d_compiler->defineConstructor(c, sels);
-  }
-}
-
-void State::defineDatatype(const Expr& d, const std::vector<Expr>& cons)
-{
-  d_dts[d.get()] = cons;
-  if (d_compiler!=nullptr)
-  {
-    d_compiler->defineDatatype(d, cons);
   }
 }
 

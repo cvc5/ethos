@@ -227,8 +227,8 @@ Expr TypeChecker::getTypeInternal(Expr& e, std::ostream* out)
     case Kind::QUOTE_TYPE:
       // anything can be quoted
       return d_state.mkType();
-    case Kind::VARIABLE_LIST:
-    case Kind::PAIR:
+    case Kind::TUPLE:
+      // not typed
       return d_state.mkAbstractType();
     case Kind::BOOLEAN:
       // note that Bool is builtin

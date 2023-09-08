@@ -29,10 +29,9 @@ enum class Kind
   PROOF_RULE,
   VARIABLE,
   ORACLE,
-  VARIABLE_LIST,
+  TUPLE,
   NIL,
   PROGRAM,
-  PAIR,
   COLLECT,
   FAIL,
 

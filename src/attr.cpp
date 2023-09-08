@@ -20,6 +20,10 @@ std::ostream& operator<<(std::ostream& o, Attr a)
     case Attr::LEFT_ASSOC_NIL: o << "LEFT_ASSOC_NIL"; break;
     case Attr::CHAINABLE: o << "CHAINABLE"; break;
     case Attr::PAIRWISE: o << "PAIRWISE"; break;
+    case Attr::DATATYPE: o << "DATATYPE"; break;
+    case Attr::CODATATYPE: o << "CODATATYPE"; break;
+    case Attr::DATATYPE_CONSTRUCTOR: o << "DATATYPE_CONSTRUCTOR"; break;
+    case Attr::CLOSURE: o << "CLOSURE"; break;
     default: o << "UnknownAttr(" << unsigned(a) << ")"; break;
   }
   return o;

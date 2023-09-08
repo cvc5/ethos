@@ -10,10 +10,10 @@ TODO:
 - minimize compiled code by recognizing alpha-equivalent patterns
     - parameters can be shared??
 - lazy construction of definitions when compiled?
+  - compiled fine grain inclusion??
 - non-exponential alf.ite compilation
 - warn unused parameters / memory safe
 - type field separate?
-- compiled fine grain inclusion??
 
 COMPLETED:
 

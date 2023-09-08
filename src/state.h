@@ -57,14 +57,8 @@ public:
   bool bind(const std::string& name, const Expr& e);
   /** Mark constructor kind */
   void markConstructorKind(const Expr& v, Attr a, const Expr& cons);
-  /**
-   * Define program, where v is PROGRAM_CONST and prog is PROGRAM.
-   */
+  /** Define program, where v is PROGRAM_CONST and prog is PROGRAM. */
   void defineProgram(const Expr& v, const Expr& prog);
-  /** Define constructor */
-  void defineConstructor(const Expr& c, const std::vector<Expr>& sels);
-  /** Define datatype */
-  void defineDatatype(const Expr& d, const std::vector<Expr>& cons);
   /** Mark has reference */
   void markHasReference();
   //--------------------------------------
@@ -206,11 +200,6 @@ private:
   std::map<std::pair<Kind, std::string>, Expr> d_literalTrie;
   /** literal data */
   std::map<const ExprValue*, Literal> d_literals;
-  //--------------------- datatypes
-  /** datatypes */
-  std::map<const ExprValue*, std::vector<Expr>> d_dts;
-  /** constructors */
-  std::map<const ExprValue*, std::vector<Expr>> d_dtcons;
   // -------------------- symbols
   std::map<std::tuple<Kind, std::string, Expr>, Expr> d_symcMap;
   //--------------------- includes
