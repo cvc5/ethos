@@ -49,13 +49,8 @@
 )
 
 ; Extension of `nary.remove or l C`, that returns `false` if `C` is `l`
-(program removeSelf ((l Bool) (C Bool))
-    (Bool Bool) Bool
-    (
-        ((removeSelf l l) false)
-        ((removeSelf l C) (nary.remove or false l C))
-    )
-)
+(define removeSelf ((l Bool) (C Bool))
+    (alf.ite (alf.is_eq l C) false (nary.remove or false l C)))
 
 ; RESOLUTION
 (program resolve ((C1 Bool) (C2 Bool) (pol Bool) (L Bool))

@@ -306,15 +306,17 @@ Expr TypeChecker::getTypeApp(std::vector<Expr>& children, std::ostream* out)
     // the argument c to (quote c). This is equivalent to matching
     // c to t directly, hence we take the child itself and not its
     // type.
+    Expr arg;
     if (hdtypes[i-1]->getKind()==Kind::QUOTE_TYPE)
     {
-      ctypes.push_back(evaluate(children[i]));
+      arg = evaluate(children[i]);
     }
     else
     {
       Assert (children[i]->d_type!=nullptr);
-      ctypes.push_back(children[i]->d_type);
+      arg = children[i]->d_type;
     }
+    ctypes.emplace_back(arg);
   }
   // if compiled, run the compiled version of the type checker
   if (hdType->isCompiled())
