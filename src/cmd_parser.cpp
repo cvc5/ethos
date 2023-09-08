@@ -59,6 +59,7 @@ CmdParser::CmdParser(Lexer& lex,
   {
     // not defined in smt 2.6, or not supported
     d_table["assume"] = Token::ASSUME;
+    d_table["assume-push"] = Token::ASSUME_PUSH;
     d_table["declare-axiom"] = Token::DECLARE_AXIOM;
     d_table["declare-consts"] = Token::DECLARE_CONSTS;
     d_table["declare-rule"] = Token::DECLARE_RULE;
@@ -67,12 +68,10 @@ CmdParser::CmdParser(Lexer& lex,
     d_table["define"] = Token::DEFINE;
     d_table["define-type"] = Token::DEFINE_TYPE;
     d_table["include"] = Token::INCLUDE;
-    d_table["pop"] = Token::POP;
     d_table["program"] = Token::PROGRAM;
-    d_table["proof"] = Token::PROOF;  // remove?
-    d_table["push"] = Token::PUSH;
     d_table["reference"] = Token::REFERENCE;
     d_table["step"] = Token::STEP;
+    d_table["step-pop"] = Token::STEP_POP;
   }
   
   d_statsEnabled = d_state.getOptions().d_stats;
@@ -107,9 +106,9 @@ bool CmdParser::parseNextCommand()
     // (assume <symbol> <term>)
     // (push <symbol> <term>)
     case Token::ASSUME:
-    case Token::PUSH:
+    case Token::ASSUME_PUSH:
     {
-      if (tok==Token::PUSH)
+      if (tok==Token::ASSUME_PUSH)
       {
         d_state.pushAssumptionScope();
       }
@@ -591,17 +590,6 @@ bool CmdParser::parseNextCommand()
       d_eparser.bind(name, pvar);
     }
     break;
-    // (proof <formula> <term>)
-    // NOTE: doesn't allow optional
-    case Token::PROOF:
-    {
-      Expr proven = d_eparser.parseFormula();
-      Expr p = d_eparser.parseExpr();
-      Expr pt = d_state.mkProofType(proven);
-      // ensure a proof of the given fact
-      d_eparser.typeCheck(p, pt);
-    }
-    break;
     // (reset)
     case Token::RESET:
     {
@@ -615,9 +603,9 @@ bool CmdParser::parseNextCommand()
     // (define-const i (Proof F) (R t1 ... tm p1 ... pn))
     // The parameters :premises and :args can be omitted if empty 
     case Token::STEP:
-    case Token::POP:
+    case Token::STEP_POP:
     {
-      bool isPop = (tok==Token::POP);
+      bool isPop = (tok==Token::STEP_POP);
       std::string name = d_eparser.parseSymbol();
       Trace("step") << "Check step " << name << std::endl;
       Expr proven;

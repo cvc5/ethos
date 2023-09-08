@@ -5,18 +5,21 @@
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil)
 (declare-const and (-> Bool Bool Bool) :right-assoc-nil)
 (declare-const not (-> Bool Bool))
-(declare-sort @AtomMapping 0)
+(declare-const @AtomMapping Type)
 (declare-const @am.nil @AtomMapping)
 (declare-const @am.cons (-> Int Bool @AtomMapping @AtomMapping))
+(declare-const @DratInput Type)
+(declare-const @drat.input (-> @AtomMapping Bool @DratInput))
 
 ; ./dratt-verify.sh takes:
-; - An mapping (@AtomMapping) that maps atoms to unique identifiers.
-; - A conjunction of input clauses.
+; - A DRAT input specification given by:
+;   - A mapping (@AtomMapping) that maps atoms to unique identifiers.
+;   - A conjunction of input clauses.
 ; - A DRAT proof file, whose file name is given as a String.
 ; It returns "true" if the preamble of the DRAT proof file matches
 ; the input clauses, as determined by the first two arguments.
 
-(declare-oracle-fun dratt-verify (@AtomMapping Bool String) Bool ./dratt-verify.sh)
+(declare-oracle-fun dratt-verify (@DratInput String) Bool ./dratt-verify.sh)
 
 ; ./drat-check.sh
 ; - A DRAT proof file, whose file name is given as a String.
@@ -31,7 +34,7 @@
 (declare-rule drat ((F Bool) (P String) (m @AtomMapping))
   :premise-list F and
   :args (m P)
-  :requires (((dratt-verify m F P) true) ((drat-check P) true))
+  :requires (((dratt-verify (@drat.input m F) P) true) ((drat-check P) true))
   :conclusion false
 )
 

@@ -21,15 +21,15 @@ namespace alfc {
  * the context we are in, which dictates how to setup parsing the term after
  * the current one.
  *
- * In each state, the stack contains a topmost ParseOp `op` and a list of
- * arguments `args`, which give a recipe for the term we are parsing. The data
- * in these depend on the context we are in, as documented below.
+ * In each state, the stack frame contains a list of arguments `d_args`, which
+ * give a recipe for the term we are parsing. The interpretation of args depends
+ * on the context we are in, as documented below.
  */
 enum class ParseCtx
 {
+  NONE,
   /**
    * NEXT_ARG: in context (<op> <term>* <term>
-   * `op` specifies the operator we parsed.
    * `args` contain the accumulated list of arguments.
    */
   NEXT_ARG,
@@ -37,8 +37,6 @@ enum class ParseCtx
    * Let bindings
    *
    * LET_NEXT_BIND: in context (let (<binding>* (<symbol> <term>
-   * `op` contains:
-   * - d_name: the name of last bound variable.
    *
    * LET_BODY: in context (let (<binding>*) <term>
    */
@@ -50,16 +48,19 @@ enum class ParseCtx
    * MATCH_HEAD: in context (match <term>
    *
    * MATCH_NEXT_CASE: in context (match <term> (<case>* (<pattern> <term>
-   * `op` contains:
-   * - d_type: set to the type of the head.
-   * `args` contain the head term and the accumulated list of case terms.
+   *                  or in context (match <term> (<case>* (<pattern>.
+   * `args` contains the head, plus a list of arguments of the form
+   * (TUPLE t1 t2), denoting the cases we have parsed. Optionally, the
+   * last element of args is a (non-TUPLE) term denoting the pattern.
    */
   MATCH_HEAD,
   MATCH_NEXT_CASE,
   /**
    * Term annotations
    *
-   * TERM_ANNOTATE_BODY: in context (! <term>
+   * TERM_ANNOTATE_BODY: in context (! <term> <attribute>* <attribute>
+   * `args` contains the term we parsed, which is modified based on the
+   * attributes read.
    */
   TERM_ANNOTATE_BODY
 };
@@ -87,6 +88,26 @@ ExprParser::ExprParser(Lexer& lex, State& state)
   d_strToLiteralKind["<string>"] = Kind::STRING;
 }
 
+class StackFrame
+{
+public:
+  StackFrame(ParseCtx ctx, size_t nscopes = 0) : 
+    d_ctx(ctx), d_nscopes(nscopes) {}
+  StackFrame(ParseCtx ctx, size_t nscopes, const std::vector<Expr>& args) : 
+    d_ctx(ctx), d_nscopes(nscopes), d_args(args) {}
+  ParseCtx d_ctx;
+  size_t d_nscopes;
+  std::vector<Expr> d_args;
+  void pop(State& s)
+  {
+    // process the scope change
+    for (size_t i=0; i<d_nscopes; i++)
+    {
+      s.popScope();
+    }
+  }
+};
+
 Expr ExprParser::parseExpr()
 {
   // the last parsed term
@@ -97,9 +118,7 @@ Expr ExprParser::parseExpr()
   Token tok;
   // The stack(s) containing the parse context, the number of scopes, and the
   // arguments for the current expression we are building.
-  std::vector<ParseCtx> xstack;
-  std::vector<size_t> sstack;
-  std::vector<std::vector<Expr>> tstack;
+  std::vector<StackFrame> pstack;
   // Let bindings, dynamically allocated for each let in scope.
   std::vector<std::vector<std::pair<std::string, Expr>>> letBinders;
   do
@@ -118,9 +137,7 @@ Expr ExprParser::parseExpr()
         {
           case Token::LET:
           {
-            xstack.emplace_back(ParseCtx::LET_NEXT_BIND);
-            sstack.emplace_back(0);
-            tstack.emplace_back();
+            pstack.emplace_back(ParseCtx::LET_NEXT_BIND);
             needsUpdateCtx = true;
             letBinders.emplace_back();
           }
@@ -132,18 +149,12 @@ Expr ExprParser::parseExpr()
             std::vector<Expr> vs = parseAndBindSortedVarList();
             std::vector<Expr> args;
             args.emplace_back(d_state.mkExpr(Kind::TUPLE, vs));
-            xstack.emplace_back(ParseCtx::MATCH_HEAD);
-            sstack.emplace_back(1);
-            tstack.emplace_back(args);
+            pstack.emplace_back(ParseCtx::MATCH_HEAD, 1, args);
           }
           break;
           case Token::ATTRIBUTE:
-          {
-            xstack.emplace_back(ParseCtx::TERM_ANNOTATE_BODY);
-            sstack.emplace_back(0);
-            tstack.emplace_back();
-          }
-          break;
+            pstack.emplace_back(ParseCtx::TERM_ANNOTATE_BODY);
+            break;
           case Token::SYMBOL:
           case Token::QUOTED_SYMBOL:
           {
@@ -167,9 +178,7 @@ Expr ExprParser::parseExpr()
               Expr vl = d_state.mkExpr(Kind::TUPLE, vs);
               args.push_back(vl);
             }
-            xstack.emplace_back(ParseCtx::NEXT_ARG);
-            sstack.emplace_back(nscopes);
-            tstack.emplace_back(args);
+            pstack.emplace_back(ParseCtx::NEXT_ARG, nscopes, args);
           }
           break;
           case Token::UNTERMINATED_QUOTED_SYMBOL:
@@ -184,24 +193,19 @@ Expr ExprParser::parseExpr()
       // ------------------- close paren
       case Token::RPAREN:
       {
+        StackFrame& sf = pstack.back();
         // should only be here if we are expecting arguments
-        if (tstack.empty() || xstack.back() != ParseCtx::NEXT_ARG)
+        if (pstack.empty() || sf.d_ctx != ParseCtx::NEXT_ARG)
         {
           d_lex.unexpectedTokenError(
               tok, "Mismatched parentheses in SMT-LIBv2 term");
         }
         // Construct the application term specified by tstack.back()
-        ret = d_state.mkExpr(Kind::APPLY, tstack.back());
+        ret = d_state.mkExpr(Kind::APPLY, sf.d_args);
         //typeCheck(ret);
-        // process the scope change
-        for (size_t i=0, nscopes = sstack.back(); i<nscopes; i++)
-        {
-          d_state.popScope();
-        }
         // pop the stack
-        tstack.pop_back();
-        sstack.pop_back();
-        xstack.pop_back();
+        sf.pop(d_state);
+        pstack.pop_back();
       }
       break;
       // ------------------- base cases
@@ -270,17 +274,18 @@ Expr ExprParser::parseExpr()
     // We do this only if a context is allocated (!tstack.empty()) and we
     // either just finished parsing a term (!ret.isNull()), or otherwise have
     // indicated that we need to update the context (needsUpdateCtx).
-    while (!tstack.empty() && (ret!=nullptr || needsUpdateCtx))
+    while (!pstack.empty() && (ret!=nullptr || needsUpdateCtx))
     {
       needsUpdateCtx = false;
-      switch (xstack.back())
+      StackFrame& sf = pstack.back();
+      switch (sf.d_ctx)
       {
         // ------------------------- argument lists
         case ParseCtx::NEXT_ARG:
         {
           Assert(ret != nullptr);
           // add it to the list of arguments and clear
-          tstack.back().push_back(ret);
+          sf.d_args.push_back(ret);
           ret = nullptr;
         }
         break;
@@ -316,7 +321,8 @@ Expr ExprParser::parseExpr()
           else
           {
             // ), we are now looking for the body of the let
-            xstack[xstack.size() - 1] = ParseCtx::LET_BODY;
+            sf.d_ctx = ParseCtx::LET_BODY;
+            sf.d_nscopes++;
             // push scope
             d_state.pushScope();
             // implement the bindings
@@ -336,10 +342,8 @@ Expr ExprParser::parseExpr()
         {
           // the let body is the returned term
           d_lex.eatToken(Token::RPAREN);
-          xstack.pop_back();
-          tstack.pop_back();
-          // pop scope
-          d_state.popScope();
+          sf.pop(d_state);
+          pstack.pop_back();
         }
         break;
         // ------------------------- annotated terms
@@ -348,11 +352,13 @@ Expr ExprParser::parseExpr()
           // now parse attribute list
           AttrMap attrs;
           bool pushedScope = false;
+          // NOTE parsing attributes may trigger recursive calls to this
+          // method.
           parseAttributeList(ret, attrs, pushedScope);
           // the scope of the variable is one level up
-          if (pushedScope && sstack.size()>1)
+          if (pushedScope && pstack.size()>1)
           {
-            sstack[sstack.size()-2]++;
+            pstack[pstack.size()-2].d_nscopes++;
           }
           // process the attributes
           for (std::pair<const Attr, std::vector<Expr>>& a : attrs)
@@ -369,6 +375,10 @@ Expr ExprParser::parseExpr()
                 ret = nullptr;
                 break;
               case Attr::REQUIRES:
+                if (ret==nullptr)
+                {
+                  d_lex.parseError("Cannot mark requires on implicit argument");
+                }
                 ret = d_state.mkRequires(a.second, ret);
                 break;
               default:
@@ -381,14 +391,8 @@ Expr ExprParser::parseExpr()
           d_lex.eatToken(Token::RPAREN);
           // finished parsing attributes, ret is either nullptr if implicit,
           // or the term we parsed as the body of the annotation.
-          // process the scope change
-          for (size_t i=0, nscopes = sstack.back(); i<nscopes; i++)
-          {
-            d_state.popScope();
-          }
-          xstack.pop_back();
-          sstack.pop_back();
-          tstack.pop_back();
+          sf.pop(d_state);
+          pstack.pop_back();
         }
         break;
         // ------------------------- match terms
@@ -396,16 +400,16 @@ Expr ExprParser::parseExpr()
         {
           Assert(ret!=nullptr);
           // add the head
-          tstack.back().push_back(ret);
+          sf.d_args.push_back(ret);
           ret = nullptr;
           // we now parse a pattern
-          xstack[xstack.size() - 1] = ParseCtx::MATCH_NEXT_CASE;
+          sf.d_ctx = ParseCtx::MATCH_NEXT_CASE;
           needsUpdateCtx = true;
         }
         break;
         case ParseCtx::MATCH_NEXT_CASE:
         {
-          std::vector<Expr>& args = tstack.back();
+          std::vector<Expr>& args = sf.d_args;
           bool checkNextPat = true;
           if (ret!=nullptr)
           {
@@ -483,11 +487,9 @@ Expr ExprParser::parseExpr()
               std::vector<Expr> appArgs{pv, hd};
               appArgs.insert(appArgs.end(), env.begin(), env.end());
               ret = d_state.mkExpr(Kind::APPLY, appArgs);
-              // HACK pop one scope
-              d_state.popScope();
-              xstack.pop_back();
-              sstack.pop_back();
-              tstack.pop_back();
+              // pop the stack
+              sf.pop(d_state);
+              pstack.pop_back();
             }
           }
           // otherwise, ready to parse the next expression
@@ -497,7 +499,7 @@ Expr ExprParser::parseExpr()
       }
     }
     // otherwise ret will be returned
-  } while (!tstack.empty());
+  } while (!pstack.empty());
   return ret;
 }
 

@@ -10,4 +10,3 @@
 (step a3 (= b a) :rule eq-symm :premises (a1) :args ())
 (step a31 (= b a) :rule eq-symm-flip :premises (a1) :args ((= b a)))
 (step a4 false :rule contra :premises (a3 a2) :args ())
-(proof false a4)

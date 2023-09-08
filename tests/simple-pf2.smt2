@@ -22,4 +22,3 @@
 (assume a2 (not (= Int y x)))
 (step a3 (= Int y x) :rule eq-symm :premises (a1) :args ())
 (step a4 false :rule contra :premises (a3 a2) :args ())
-(proof false a4)
