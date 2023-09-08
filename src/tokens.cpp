@@ -10,9 +10,12 @@ std::ostream& operator<<(std::ostream& o, Token t)
   {
     case Token::EOF_TOK: o << "EOF"; break;
     case Token::ABSTRACT_TYPE: o << "ABSTRACT_TYPE"; break;
+    case Token::ASSERT: o << "ASSERT"; break;
     case Token::ATTRIBUTE: o << "ATTRIBUTE"; break;
     case Token::BINARY_LITERAL: o << "BINARY_LITERAL"; break;
     case Token::BOOL_TYPE: o << "BOOL_TYPE"; break;
+    case Token::CHECK_SAT: o << "CHECK_SAT"; break;
+    case Token::CHECK_SAT_ASSUMING: o << "CHECK_SAT_ASSUMING"; break;
     case Token::DECIMAL_LITERAL: o << "DECIMAL_LITERAL"; break;
     case Token::DECLARE_AXIOM: o << "DECLARE_AXIOM"; break;
     case Token::DECLARE_CODATATYPE: o << "DECLARE_CODATATYPE"; break;
@@ -49,8 +52,10 @@ std::ostream& operator<<(std::ostream& o, Token t)
     case Token::PROOF_TYPE: o << "PROOF_TYPE"; break;
     case Token::PUSH: o << "PUSH"; break;
     case Token::QUOTED_SYMBOL: o << "QUOTED_SYMBOL"; break;
+    case Token::REFERENCE: o << "REFERENCE"; break;
     case Token::RESET: o << "RESET"; break;
     case Token::RPAREN: o << "RPAREN"; break;
+    case Token::SET_LOGIC: o << "SET_LOGIC"; break;
     case Token::SET_INFO: o << "SET_INFO"; break;
     case Token::SET_OPTION: o << "SET_OPTION"; break;
     case Token::STEP: o << "STEP"; break;

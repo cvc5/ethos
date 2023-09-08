@@ -45,7 +45,7 @@ public:
   /** Pop assumption scope */
   void popAssumptionScope();
   /** include file, if not already done */
-  void includeFile(const std::string& s);
+  void includeFile(const std::string& s, bool isReference = false);
   /** add assumption */
   void addAssumption(const Expr& a);
   /** Set type rule for literal kind k to t */
@@ -154,8 +154,6 @@ private:
   Expr d_fail;
   /** Get the constructor kind for symbol v */
   Attr getConstructorKind(const ExprValue* v) const;
-  /** include file, if not already done */
-  void includeFileInternal(const std::string& s, bool ignore=false);
   /** mark included */
   bool markIncluded(const std::string& s);
   /** */

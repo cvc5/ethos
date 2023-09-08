@@ -150,12 +150,7 @@ void State::popAssumptionScope()
   d_assumptions.resize(lastSize);
 }
 
-void State::includeFile(const std::string& s)
-{
-  includeFileInternal(s, false);
-}
-
-void State::includeFileInternal(const std::string& s, bool ignore)
+void State::includeFile(const std::string& s, bool isReference)
 {
   std::filesystem::path inputPath;
   try {
@@ -176,12 +171,8 @@ void State::includeFileInternal(const std::string& s, bool ignore)
     d_compiler->includeFile(inputPath);
   }
   Trace("state") << "Include " << inputPath << std::endl;
-  if (ignore)
-  {
-    return;
-  }
   Assert (getAssumptionLevel()==0);
-  Parser p(*this);
+  Parser p(*this, isReference);
   p.setFileInput(inputPath);
   bool parsedCommand;
   do

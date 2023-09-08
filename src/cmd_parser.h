@@ -16,7 +16,10 @@ namespace alfc {
 class CmdParser
 {
  public:
-  CmdParser(Lexer& lex, State& state, ExprParser& eparser);
+  CmdParser(Lexer& lex,
+            State& state,
+            ExprParser& eparser,
+            bool isReference);
   virtual ~CmdParser() {}
   /**
    * Parse the next command, return false if we are at the end of file.
@@ -33,6 +36,8 @@ class CmdParser
   ExprParser& d_eparser;
   /** Map strings to tokens */
   std::map<std::string, Token> d_table;
+  /** */
+  bool d_isReference;
   /** Is finished */
   bool d_isFinished;
   /** Stats enabled? */

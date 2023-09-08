@@ -10,14 +10,18 @@
 namespace alfc {
 
 /**
- * Flex-based smt2 parser. It maintains a lexer, a state, a term parser and a
+ * smt2 parser. It maintains a lexer, a state, a term parser and a
  * command parser. The latter two are used for parsing terms and commands. The
  * command parser depends on the term parser.
  */
 class Parser
 {
  public:
-  Parser(State& s);
+  /**
+   * @param s The state to populate
+   * @param isReference Whether we are parsing a reference file
+   */
+  Parser(State& s, bool isReference = false);
   virtual ~Parser() {}
   
   /** Set the input for the given file.

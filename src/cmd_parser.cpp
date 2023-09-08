@@ -22,41 +22,58 @@
 namespace alfc {
 
 CmdParser::CmdParser(Lexer& lex,
-                             State& state,
-                             ExprParser& eparser)
-    : d_lex(lex), d_state(state), d_eparser(eparser), d_isFinished(false)
+                     State& state,
+                     ExprParser& eparser,
+                     bool isReference)
+    : d_lex(lex), d_state(state), d_eparser(eparser), d_isReference(isReference), d_isFinished(false)
 {
   // initialize the command tokens
-  d_table["assume"] = Token::ASSUME;
-  d_table["declare-axiom"] = Token::DECLARE_AXIOM;
+
+  // commands supported in both inputs and proofs
   d_table["declare-codatatype"] = Token::DECLARE_CODATATYPE;
   d_table["declare-codatatypes"] = Token::DECLARE_CODATATYPES;
   d_table["declare-const"] = Token::DECLARE_CONST;
-  d_table["declare-consts"] = Token::DECLARE_CONSTS;
   d_table["declare-datatype"] = Token::DECLARE_DATATYPE;
   d_table["declare-datatypes"] = Token::DECLARE_DATATYPES;
   d_table["declare-fun"] = Token::DECLARE_FUN;
   d_table["declare-oracle-fun"] = Token::DECLARE_ORACLE_FUN;
-  d_table["declare-rule"] = Token::DECLARE_RULE;
   d_table["declare-sort"] = Token::DECLARE_SORT;
-  d_table["declare-type"] = Token::DECLARE_TYPE;
-  d_table["declare-var"] = Token::DECLARE_VAR;
-  d_table["define"] = Token::DEFINE;
   d_table["define-const"] = Token::DEFINE_CONST;
   d_table["define-fun"] = Token::DEFINE_FUN;
-  d_table["define-type"] = Token::DEFINE_TYPE;
   d_table["define-sort"] = Token::DEFINE_SORT;
   d_table["echo"] = Token::ECHO;
   d_table["exit"] = Token::EXIT;
-  d_table["include"] = Token::INCLUDE;
-  d_table["pop"] = Token::POP;
-  d_table["program"] = Token::PROGRAM;
-  d_table["proof"] = Token::PROOF;
-  d_table["push"] = Token::PUSH;
   d_table["reset"] = Token::RESET;
-  d_table["set-info"] = Token::SET_INFO;
-  d_table["set-option"] = Token::SET_OPTION;
-  d_table["step"] = Token::STEP;
+
+  if (d_isReference)
+  {
+    // only used in smt2 queries
+    d_table["assert"] = Token::ASSERT;
+    d_table["check-sat"] = Token::CHECK_SAT;
+    d_table["check-sat-assuming"] = Token::CHECK_SAT_ASSUMING;
+    d_table["set-logic"] = Token::SET_LOGIC;
+    d_table["set-info"] = Token::SET_INFO;
+    d_table["set-option"] = Token::SET_OPTION;
+  }
+  else
+  {
+    // not defined in smt 2.6, or not supported
+    d_table["assume"] = Token::ASSUME;
+    d_table["declare-axiom"] = Token::DECLARE_AXIOM;
+    d_table["declare-consts"] = Token::DECLARE_CONSTS;
+    d_table["declare-rule"] = Token::DECLARE_RULE;
+    d_table["declare-type"] = Token::DECLARE_TYPE;
+    d_table["declare-var"] = Token::DECLARE_VAR;
+    d_table["define"] = Token::DEFINE;
+    d_table["define-type"] = Token::DEFINE_TYPE;
+    d_table["include"] = Token::INCLUDE;
+    d_table["pop"] = Token::POP;
+    d_table["program"] = Token::PROGRAM;
+    d_table["proof"] = Token::PROOF;  // remove?
+    d_table["push"] = Token::PUSH;
+    d_table["reference"] = Token::REFERENCE;
+    d_table["step"] = Token::STEP;
+  }
   
   d_statsEnabled = d_state.getOptions().d_stats;
 }
@@ -479,6 +496,7 @@ bool CmdParser::parseNextCommand()
     }
     break;
     case Token::INCLUDE:
+    case Token::REFERENCE:
     {
       if (d_state.getAssumptionLevel()>0)
       {
@@ -491,7 +509,7 @@ bool CmdParser::parseNextCommand()
       }
       // include the file
       std::string file = d_eparser.parseStr(true);
-      d_state.includeFile(file);
+      d_state.includeFile(file, tok==Token::REFERENCE);
     }
     break;
     // (program (<sort>*) <sort> (<sorted_var>*) <term_pair>+)
@@ -575,23 +593,6 @@ bool CmdParser::parseNextCommand()
       // reset the state of the parser, which is independent of the symbol
       // manager
       d_state.reset();
-    }
-    break;
-    // (set-info <attribute>)
-    case Token::SET_INFO:
-    {
-      std::string key = d_eparser.parseKeyword();
-      //Expr sexpr = d_eparser.parseSymbolicExpr();
-      //cmd.reset(new SetInfoCommand(key, sexprToString(sexpr)));
-    }
-    break;
-    // (set-option <option>)
-    case Token::SET_OPTION:
-    {
-      std::string key = d_eparser.parseKeyword();
-      //Expr sexpr = d_eparser.parseSymbolicExpr();
-      //std::string ss = sexprToString(sexpr);
-      //cmd.reset(new SetOptionCommand(key, ss));
     }
     break;
     // (step i F? :rule R :premises (p1 ... pn) :args (t1 ... tm))
@@ -716,6 +717,43 @@ bool CmdParser::parseNextCommand()
         // increment the stats
         rs->increment(s);
       }
+    }
+    break;
+    //-------------------------- commands to support reading ordinary smt2 inputs
+    // (assert <formula>)
+    case Token::ASSERT:
+    {
+      Expr a = d_eparser.parseFormula();
+      //d_state.notifyAssert(a);
+    }
+    break;
+    // (check-sat)
+    case Token::CHECK_SAT:
+    break;
+    // (check-sat-assuming (<formula>*))
+    case Token::CHECK_SAT_ASSUMING:
+    {
+      d_eparser.parseExprList();
+    }
+    break;
+    // (set-logic <logic>)
+    case Token::SET_LOGIC:
+    {
+      d_eparser.parseSymbol();
+    }
+    break;
+    // (set-info <attribute> <sexpr>)
+    case Token::SET_INFO:
+    {
+      std::string key = d_eparser.parseKeyword();
+      d_eparser.parseSymbolicExpr();
+    }
+    break;
+    // (set-option <option> <sexpr>)
+    case Token::SET_OPTION:
+    {
+      std::string key = d_eparser.parseKeyword();
+      d_eparser.parseSymbolicExpr();
     }
     break;
     case Token::EOF_TOK:

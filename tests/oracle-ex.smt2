@@ -9,10 +9,8 @@
 (declare-const @lm.nil @LitMapping)
 (declare-const @lm.cons (-> Int Bool @LitMapping @LitMapping))
 
-
 (declare-oracle-fun dratt-verify (@LitMapping Bool String) Bool ./dratt-verify.sh)
 (declare-oracle-fun drat-check (String) Bool ./drat-check.sh)
-
 
 (declare-rule drat ((F Bool) (P String) (m @LitMapping))
   :premise-list F and

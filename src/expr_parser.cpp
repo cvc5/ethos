@@ -16,7 +16,7 @@ namespace alfc {
  * This is required for non-recursive parsing of terms. Note that in SMT-LIB,
  * terms generally are of the form (...anything not involving terms... <term>*)
  * However, let-terms, match-terms, and terms appearing within attributes
- * for term annotations (e.g. quantifier patterns) are exceptions to this.
+ * for term annotations are exceptions to this.
  * Thus, in the main parsing loop in parseExpr below, we require tracking
  * the context we are in, which dictates how to setup parsing the term after
  * the current one.
@@ -555,6 +555,27 @@ Expr ExprParser::parseExprPair()
   Expr t2 = parseExpr();
   d_lex.eatToken(Token::RPAREN);
   return d_state.mkExpr(Kind::PAIR, {t1, t2});
+}
+
+std::string ExprParser::parseSymbolicExpr()
+{
+  std::stringstream ss;
+  size_t nparen = 0;
+  Token tok;
+  do
+  {
+    tok = d_lex.nextToken();
+    if (tok==Token::LPAREN)
+    {
+      nparen++;
+    }
+    else if (tok==Token::RPAREN)
+    {
+      nparen--;
+    }
+    ss << d_lex.tokenStr() << " ";
+  }while (nparen!=0);
+  return ss.str();
 }
 
 std::vector<Expr> ExprParser::parseExprPairList()

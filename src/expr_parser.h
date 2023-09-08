@@ -27,6 +27,8 @@ class ExprParser
   Expr parseFormula();
   /** Parses an SMT-LIB term pair */
   Expr parseExprPair();
+  /** Parses a symbolic expression */
+  std::string parseSymbolicExpr();
   /** Parses parentheses-enclosed term list (<term>*) */
   std::vector<Expr> parseExprList();
   /** Parses parentheses-enclosed term list (<type>*) */
