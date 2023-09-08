@@ -514,7 +514,10 @@ bool CmdParser::parseNextCommand()
       // include the file
       std::string file = d_eparser.parseStr(true);
       d_state.includeFile(file, isReference);
-      d_state.markHasReference();
+      if (isReference)
+      {
+        d_state.markHasReference();
+      }
     }
     break;
     // (program (<sort>*) <sort> (<sorted_var>*) <term_pair>+)
