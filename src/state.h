@@ -158,6 +158,8 @@ private:
   Attr getConstructorKind(const ExprValue* v) const;
   /** mark included */
   bool markIncluded(const std::string& s);
+  /** mark deleted */
+  void markDeleted(const ExprValue * e);
   /** */
   Expr mkApplyInternal(const std::vector<Expr>& children);
   Expr mkExprInternal(Kind k, const std::vector<Expr>& children);

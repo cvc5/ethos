@@ -199,6 +199,20 @@ bool State::markIncluded(const std::string& s)
   return true;
 }
 
+void State::markDeleted(const ExprValue * e)
+{
+  std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(e);
+  if (it!=d_appData.end())
+  {
+    d_appData.erase(it);
+  }
+  std::map<const ExprValue*, Literal>::const_iterator itl = d_literals.find(e);
+  if (itl!=d_literals.end())
+  {
+    d_literals.erase(itl);
+  }
+}
+
 bool State::addAssumption(const Expr& a)
 {
   d_assumptions.push_back(a);

@@ -123,7 +123,6 @@ Expr ExprParser::parseExpr()
   std::vector<std::vector<std::pair<std::string, Expr>>> letBinders;
   do
   {
-    Assert(tstack.size() == xstack.size());
     // At this point, we are ready to parse the next term
     tok = d_lex.nextToken();
     Expr currExpr;
