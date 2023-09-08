@@ -522,7 +522,9 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         case Attr::RIGHT_ASSOC_NIL:
         {
           size_t nchild = children.size();
-          if (nchild>2)
+          // note that nchild>=2 treats e.g. (or a) as (or a false).
+          // checking nchild>2 treats (or a) as a function Bool -> Bool.
+          if (nchild>=2)
           {
             bool isLeft = (ai->d_attrCons==Attr::LEFT_ASSOC ||
                            ai->d_attrCons==Attr::LEFT_ASSOC_NIL);
