@@ -24,3 +24,14 @@
         F
         ((exists x G)       (substitute_list x (mk_skolems x F) G))
         ((not (forall x G)) (substitute_list x (mk_skolems x (exists x (not G))) (not G)))))
+
+(declare-rule skolem_intro ((T Type) (t T))
+  :args ((skolem t))
+  :conclusion (= (skolem t) t)
+)
+
+; special case for now
+(declare-rule skolem_witness_intro ((T Type) (x T) (F Bool))
+  :args ((witness x F))
+  :conclusion (= (skolem (@k.QUANTIFIERS_SKOLEMIZE (exists (@list x) F) x)) (witness x F))
+)

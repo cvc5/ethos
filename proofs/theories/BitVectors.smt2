@@ -227,9 +227,10 @@
         (BitVec m) (BitVec 1))
 )
 
+; NOTE: does not require branches to be bitvector
 (declare-const bvite
-    (-> (! Int :var m :implicit) 
-        (BitVec 1) (BitVec m) (BitVec m) (BitVec m))
+  (-> (! Type :var T :implicit)
+      (BitVec 1) T T T)
 )
 
 (declare-const bv1ult

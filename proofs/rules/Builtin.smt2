@@ -1,10 +1,5 @@
 (include "../theories/Builtin.smt2")
 
-(declare-rule skolem_intro ((T Type) (t T))
-  :args ((skolem t))
-  :conclusion (= (skolem t) t)
-)
-
 (declare-rule remove_term_formula_axiom ((T Type) (b Bool) (t1 T) (t2 T))
   :args ((ite b t1 t2))
   :conclusion
