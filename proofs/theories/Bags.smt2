@@ -1,3 +1,4 @@
+(include "../programs/Utils.smt2")
 (include "../theories/Builtin.smt2")
 (include "../theories/Arith.smt2")
 
@@ -25,7 +26,7 @@
 (declare-const bag.map (-> (! Type :var T :implicit) (! Type :var U :implicit) (-> T U) (Bag T) (Bag U)))
 (declare-const bag.fold (-> (! Type :var T :implicit) (! Type :var U :implicit) (-> T U U) U (Bag T) U))
 (declare-const table.product (-> (! Type :var T :implicit) (! Type :var U :implicit) (Bag T) (Bag U) (Bag (alf.append Tuple U T))))
-(declare-const table.group (-> (! Type :var T :implicit) (Bag T) (Bag (Bag T))))
+(declare-const table.group (-> (! Type :var T :implicit) @List (Bag T) (Bag (Bag T))))
 
 (declare-const @k.BAGS_DEQ_DIFF (-> (! Type :var T :implicit) (Bag T) (Bag T) T))
 
