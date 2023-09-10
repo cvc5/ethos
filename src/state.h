@@ -118,6 +118,8 @@ public:
    * @return A constant
    */
   Expr mkLiteral(Kind k, const std::string& s);
+  /** */
+  Expr mkLiteralNumeral(size_t val);
   //--------------------------------------
   /** is closure */
   bool isClosure(const Expr& e) const;
@@ -135,6 +137,8 @@ public:
   size_t getAssumptionLevel() const;
   /** */
   std::vector<Expr> getCurrentAssumptions() const;
+  /** Get hash for expression */
+  size_t getHash(const ExprValue* e);
   /** Print compiled files (for --show-config) */
   static std::string showCompiledFiles();
   //--------------------------------------
@@ -155,8 +159,6 @@ private:
   Expr d_self;
   Expr d_nil;
   Expr d_fail;
-  /** Have we parsed a reference file to check assumptions? */
-  bool d_hasReference;
   /** Get the constructor kind for symbol v */
   Attr getConstructorKind(const ExprValue* v) const;
   /** Mark that file s was included */
@@ -175,11 +177,11 @@ private:
   /** Get the internal data for expression e. */
   AppInfo* getAppInfo(const ExprValue* e);
   /** Bind builtin */
-  void bindBuiltin(const std::string& name, Kind k, bool isClosure = false);
+  void bindBuiltin(const std::string& name, Kind k, Attr ac = Attr::NONE);
   /** Bind builtin */
-  void bindBuiltin(const std::string& name, Kind k, bool isClosure, const Expr& t);
+  void bindBuiltin(const std::string& name, Kind k, Attr ac, const Expr& t);
   /** Bind builtin eval */
-  void bindBuiltinEval(const std::string& name, Kind k);
+  void bindBuiltinEval(const std::string& name, Kind k, Attr ac = Attr::NONE);
   /** Compiled initialization code. */
   void run_initialize();
   //--------------------- parsing state
@@ -200,6 +202,10 @@ private:
   //--------------------- expression info
   /** Map from expressions to constructor info */
   std::map<const ExprValue*, AppInfo> d_appData;
+  /** Map from expressions to hash */
+  std::map<const ExprValue*, size_t> d_hashMap;
+  /** Hash counter */
+  size_t d_hashCounter;
   /** The database of created expressions */
   std::map<Kind, ExprTrie> d_trie;
   //--------------------- literals
@@ -215,6 +221,8 @@ private:
   std::filesystem::path d_inputFile;
   /** Cache of files included */
   std::set<std::filesystem::path> d_includes;
+  /** Have we parsed a reference file to check assumptions? */
+  bool d_hasReference;
   //--------------------- utilities
   /** Type checker */
   TypeChecker d_tc;

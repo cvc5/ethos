@@ -154,6 +154,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs)
     case Kind::EVAL_TO_BV:
       return nargs==2;
     case Kind::PROOF_TYPE:
+    case Kind::EVAL_HASH:
     case Kind::EVAL_NOT:
     case Kind::EVAL_NEG:
     case Kind::EVAL_IS_NEG:
@@ -895,6 +896,15 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<Expr>& arg
         << "REQUIRES: failed " << args[0] << " == " << args[1] << std::endl;
       return nullptr;
     }
+    case Kind::EVAL_HASH:
+    {
+      if (args[0]->isGround())
+      {
+        size_t h = d_state.getHash(args[0].get());
+        return d_state.mkLiteralNumeral(h);
+      }
+      return nullptr;
+    }
     case Kind::EVAL_CONS:
     case Kind::EVAL_APPEND:
     case Kind::EVAL_TO_LIST:
@@ -1055,6 +1065,7 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_IS_NEG:
     case Kind::EVAL_IS_ZERO:
       return d_state.mkBoolType();
+    case Kind::EVAL_HASH:
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_TO_INT:
     case Kind::EVAL_LENGTH:

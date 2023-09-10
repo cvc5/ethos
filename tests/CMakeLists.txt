@@ -68,6 +68,7 @@ set(alfc_test_file_list
     define-fun.alfc.smt2
     quant-sk-small.alfc.smt2
     oracle-ex.smt2
+    oracle-ex2.smt2
 )
 
 macro(alfc_test file)

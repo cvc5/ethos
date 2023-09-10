@@ -17,7 +17,7 @@ Options::Options()
   d_ruleSymTable = true;
 }
 
-State::State(Options& opts, Stats& stats) : d_hasReference(false), d_tc(*this), d_opts(opts), d_stats(stats)
+State::State(Options& opts, Stats& stats) : d_hashCounter(0), d_hasReference(false), d_tc(*this), d_opts(opts), d_stats(stats)
 {
   ExprValue::d_state = this;
   
@@ -29,6 +29,7 @@ State::State(Options& opts, Stats& stats) : d_hasReference(false), d_tc(*this), 
   bindBuiltinEval("is_eq", Kind::EVAL_IS_EQ);
   bindBuiltinEval("ite", Kind::EVAL_IF_THEN_ELSE);
   bindBuiltinEval("requires", Kind::EVAL_REQUIRES);
+  bindBuiltinEval("hash", Kind::EVAL_HASH);
   // lists
   bindBuiltinEval("to_list", Kind::EVAL_TO_LIST);
   bindBuiltinEval("from_list", Kind::EVAL_FROM_LIST);
@@ -210,6 +211,11 @@ void State::markDeleted(const ExprValue * e)
   if (itl!=d_literals.end())
   {
     d_literals.erase(itl);
+  }
+  std::map<const ExprValue*, size_t>::const_iterator ith = d_hashMap.find(e);
+  if (ith!=d_hashMap.end())
+  {
+    d_hashMap.erase(ith);
   }
 }
 
@@ -497,7 +503,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     Assert(!children.empty());
     // see if there is a special way of building terms for the head
     const Expr& hd = children[0];
-    AppInfo * ai = children.empty() ? nullptr : getAppInfo(hd.get());
+    AppInfo * ai = getAppInfo(hd.get());
     if (ai!=nullptr)
     {
       if (ai->d_kind==Kind::FUNCTION_TYPE)
@@ -744,7 +750,7 @@ Expr State::mkLiteral(Kind k, const std::string& s)
       d_literals[lit.get()] = Literal(Rational(s));
       break;
     case Kind::HEXADECIMAL:
-      // should normalize to binary?
+      // TODO: should normalize to binary?
       break;
     case Kind::BINARY:
       d_literals[lit.get()] = Literal(BitVector(s, 2));
@@ -756,6 +762,14 @@ Expr State::mkLiteral(Kind k, const std::string& s)
       break;
   }
   return lit;
+}
+
+Expr State::mkLiteralNumeral(size_t val)
+{
+  // TODO: optimize
+  std::stringstream ss;
+  ss << val;
+  return mkLiteral(Kind::NUMERAL, ss.str());
 }
 
 Expr State::mkApplyInternal(const std::vector<Expr>& children)
@@ -937,6 +951,19 @@ std::vector<Expr> State::getCurrentAssumptions() const
   return as;
 }
 
+size_t State::getHash(const ExprValue* e)
+{
+  std::map<const ExprValue*, size_t>::const_iterator it = d_hashMap.find(e);
+  if (it!=d_hashMap.end())
+  {
+    return it->second;
+  }
+  d_hashCounter++;
+  size_t ret = d_hashCounter;
+  d_hashMap[e] = ret;
+  return ret;
+}
+
 AppInfo* State::getAppInfo(const ExprValue* e)
 {
   std::map<const ExprValue *, AppInfo>::iterator it = d_appData.find(e);
@@ -967,31 +994,28 @@ Compiler* State::getCompiler()
   return d_compiler.get();
 }
 
-void State::bindBuiltin(const std::string& name, Kind k, bool isClosure)
+void State::bindBuiltin(const std::string& name, Kind k, Attr ac)
 {
   // type is irrelevant, assign abstract
-  bindBuiltin(name, k, isClosure, mkAbstractType());
+  bindBuiltin(name, k, ac, mkAbstractType());
 }
 
-void State::bindBuiltin(const std::string& name, Kind k, bool isClosure, const Expr& t)
+void State::bindBuiltin(const std::string& name, Kind k, Attr ac, const Expr& t)
 {
   Expr c = mkConst(name, t);
   bind(name, c);
-  if (isClosure || k!=Kind::NONE)
+  if (ac!=Attr::NONE || k!=Kind::NONE)
   {
     // associate the information
     AppInfo& ai = d_appData[c.get()];
     ai.d_kind = k;
-    if (isClosure)
-    {
-      ai.d_attrs[Attr::CLOSURE].push_back(nullptr);
-    }
+    ai.d_attrCons = ac;
   }
 }
 
-void State::bindBuiltinEval(const std::string& name, Kind k)
+void State::bindBuiltinEval(const std::string& name, Kind k, Attr ac)
 {
-  bindBuiltin("alf."+name, k);
+  bindBuiltin("alf."+name, k, ac);
 }
 
 void State::defineProgram(const Expr& v, const Expr& prog)
