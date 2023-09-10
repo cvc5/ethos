@@ -12,7 +12,8 @@ TODO:
   - compiled fine grain inclusion??
 - non-exponential alf.ite compilation
 - warn unused parameters / memory safe
-- type field separate?
+- type field separate from Expr? (to save memory)
+- n-ary literal ops
 
 COMPLETED:
 

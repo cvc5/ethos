@@ -31,7 +31,7 @@
 ; Takes arbitrary list of premises, an atom mapping, and the file name of a DRAT
 ; proof and invokes the two oracles above.
 
-(declare-rule drat1 ((F Bool) (P String) (m @AtomMapping))
+(declare-rule drat ((F Bool) (P String) (m @AtomMapping))
   :premise-list F and
   :args (m P)
   :requires (((dratt-verify (@drat.input m F) P) true) ((drat-check P) true))

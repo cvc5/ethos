@@ -31,12 +31,11 @@
 )
 
 ; ./dratt-verify.sh takes:
-; - A DRAT input specification given by:
-;   - A mapping (@AtomMapping) that maps atoms to unique identifiers.
-;   - A conjunction of input clauses.
+; - A string corresponding to a DIMACS declaration of the input with an arbitrary mapping,
+; in particular, the mapping is determined by alf.hash in the side conditions above.
 ; - A DRAT proof file, whose file name is given as a String.
-; It returns "true" if the preamble of the DRAT proof file matches
-; the input clauses, as determined by the first two arguments.
+; It returns "true" if the preamble of the DRAT proof file matches (modulo renaming
+; identifiers) the input clauses, as determined by the first arguments.
 
 (declare-oracle-fun dratt-verify (String String) Bool ./dratt-verify.sh)
 
