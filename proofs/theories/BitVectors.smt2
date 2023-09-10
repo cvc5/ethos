@@ -280,6 +280,17 @@
 )
 
 
+(declare-const bvultbv
+    (-> (! Int :var m :implicit)
+        (BitVec m) (BitVec m) (BitVec 1))
+)
+(declare-const bvsltbv
+    (-> (! Int :var m :implicit)
+        (BitVec m) (BitVec m) (BitVec 1))
+)
+
+
+
 (declare-const bbT (->
   (! Int :var n :implicit)
   Bool

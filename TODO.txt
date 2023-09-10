@@ -5,7 +5,6 @@ TODO:
 - remove closure parsing? maybe alf.lambda is useful for a native alf.map
 - check type preservation for evaluation?
   - more generally: a weaker type system for program bodies??
-- separate symbol table for proof rules?
 - Temporary memory allocation of Expr within calls to evaluation?
 - minimize compiled code by recognizing alpha-equivalent patterns
     - parameters can be shared??
@@ -37,9 +36,12 @@ COMPLETED:
 - alf.cons for list variables at non-tail locations
 - ensure assumption scope level is preserved per include file
 - X remove custom nil construction policy?
+- separate symbol table for proof rules?
 
 CVC5-TODO:
 
-- sorts introduced internally to proof
-- constants overloading
+- sorts introduced internally to proof (fmf-fun)
 - fine grained inclusion of signatures to avoid overloading
+- set.insert
+- INDEXED_ROOT_PREDICATE
+- ambiguous datatype constructors

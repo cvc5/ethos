@@ -14,7 +14,7 @@ Options::Options()
   d_runCompile = false;
   d_printLet = false;
   d_stats = false;
-  d_ruleSymTable = false;
+  d_ruleSymTable = true;
 }
 
 State::State(Options& opts, Stats& stats) : d_hasReference(false), d_tc(*this), d_opts(opts), d_stats(stats)
@@ -853,8 +853,13 @@ Expr State::getVar(const std::string& name) const
 
 Expr State::getProofRule(const std::string& name) const
 {
-  // just get the variable
-  return getVar(name);
+  const std::map<std::string, Expr>& t = d_opts.d_ruleSymTable ? d_ruleSymTable : d_symTable;
+  std::map<std::string, Expr>::const_iterator it = t.find(name);
+  if (it!=t.end())
+  {
+    return it->second;
+  }
+  return nullptr;
 }
 
 Literal* State::getLiteral(const ExprValue* e)

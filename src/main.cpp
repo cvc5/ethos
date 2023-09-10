@@ -36,9 +36,9 @@ int main( int argc, char* argv[] )
     {
       opts.d_stats = true;
     }
-    else if (arg=="--rule-sym-table")
+    else if (arg=="--no-rule-sym-table")
     {
-      opts.d_ruleSymTable = true;
+      opts.d_ruleSymTable = false;
     }
     else if (arg=="--show-config")
     {

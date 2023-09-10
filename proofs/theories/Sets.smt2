@@ -37,7 +37,8 @@
 
 ; the diff skolem
 (declare-const @k.SETS_DEQ_DIFF (-> (! Type :var T :implicit) (Set T) (Set T) T))
-
+(declare-const @k.RELATIONS_GROUP_PART (-> (! Type :var T :implicit) (Set (Set T)) T (Set T)))
+(declare-const @k.RELATIONS_GROUP_PART_ELEMENT (-> (! Type :var T :implicit) (Set (Set T)) (Set T) T))
 ;SETS_CHOOSE
 ;SETS_FOLD_CARD
 ;SETS_FOLD_COMBINE

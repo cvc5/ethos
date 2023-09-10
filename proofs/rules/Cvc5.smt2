@@ -16,8 +16,9 @@
 (include "../theories/Datatypes.smt2")
 (include "../theories/SepLogic.smt2")
 
-; TODO: proper place for this
+; TODO: proper place for these
 (declare-const fmf.card (-> Type Int Bool))
+(declare-sort ho-elim-sort 1)
 
 ; skolems
 ;INPUT_VARIABLE
@@ -26,13 +27,15 @@
 
 ; evaluate, for all theories
 (program run_evaluate ((T Type) (S Type) 
-                       (x T) (y T) (z S) 
+                       (x T) (y T) (z S) (ys S :list)
                        (b Bool) (n Int) (m Int))
     (S) S
     (
       ; core
       ((run_evaluate (= x y))      (alf.is_eq (run_evaluate x) (run_evaluate y)))
       ((run_evaluate (ite b x y))  (alf.ite (run_evaluate b) (run_evaluate x) (run_evaluate y)))
+      ((run_evaluate (or x ys))    (alf.or (run_evaluate x) (run_evaluate ys)))
+      ((run_evaluate (and x ys))   (alf.and (run_evaluate x) (run_evaluate ys)))
   
       ; arithmetic
       ((run_evaluate (< x z))      (alf.is_neg (run_evaluate (- x z))))
@@ -41,9 +44,9 @@
       ((run_evaluate (> x z))      (alf.is_neg (run_evaluate (- z x))))
       ((run_evaluate (>= x z))     (let ((d (run_evaluate (- z x))))
                                      (alf.or (alf.is_neg d) (alf.is_zero d))))
-      ((run_evaluate (+ x z))      (alf.add (run_evaluate x) (run_evaluate z)))
+      ((run_evaluate (+ x ys))     (alf.add (run_evaluate x) (run_evaluate ys)))
       ((run_evaluate (- x z))      (alf.add (run_evaluate x) (alf.neg (run_evaluate z))))
-      ((run_evaluate (* x z))      (alf.mul (run_evaluate x) (run_evaluate z)))
+      ((run_evaluate (* x ys))     (alf.mul (run_evaluate x) (run_evaluate ys)))
       ((run_evaluate (u- x))       (alf.neg (run_evaluate x)))
 
       ; strings
@@ -54,10 +57,10 @@
                                      (alf.add (run_evaluate n) (run_evaluate m)) 
                                      (run_evaluate x)))
       ; bitvectors
-      ((run_evaluate (bvadd x y))  (alf.add (run_evaluate x) (run_evaluate y)))
+      ((run_evaluate (bvadd x ys)) (alf.add (run_evaluate x) (run_evaluate ys)))
       ((run_evaluate (bvsub x y))  (alf.add (run_evaluate x) (alf.neg (run_evaluate y))))
-      ((run_evaluate (bvmul x y))  (alf.mul (run_evaluate x) (run_evaluate y)))
-      ((run_evaluate (concat x y)) (alf.concat (run_evaluate x) (run_evaluate y)))
+      ((run_evaluate (bvmul x ys)) (alf.mul (run_evaluate x) (run_evaluate ys)))
+      ((run_evaluate (concat x ys))(alf.concat (run_evaluate x) (run_evaluate ys)))
       ((run_evaluate 
          (extract m n x))          (alf.extract n m (run_evaluate x))) ; note swap n/m
   

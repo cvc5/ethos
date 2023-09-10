@@ -29,6 +29,8 @@
 (declare-const table.group (-> (! Type :var T :implicit) @List (Bag T) (Bag (Bag T))))
 
 (declare-const @k.BAGS_DEQ_DIFF (-> (! Type :var T :implicit) (Bag T) (Bag T) T))
+(declare-const @k.TABLES_GROUP_PART (-> (! Type :var T :implicit) (Bag (Bag T)) T (Bag T)))
+(declare-const @k.TABLES_GROUP_PART_ELEMENT (-> (! Type :var T :implicit) (Bag (Bag T)) (Bag T) T))
 
 ;(declare-const bag.from_set (# x term (apply f_bag.from_set x)))
 ;(declare-const bag.to_set (# x term (apply f_bag.to_set x)))

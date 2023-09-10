@@ -699,7 +699,7 @@ bool CmdParser::parseNextCommand()
         if (actual!=proven)
         {
           std::stringstream ss;
-          ss << "Unexpected conclusion for step:" << std::endl;
+          ss << "Unexpected conclusion for step " << ruleName << ":" << std::endl;
           ss << "    Proves: " << actual << std::endl;
           ss << "  Expected: " << proven;
           d_lex.parseError(ss.str());
