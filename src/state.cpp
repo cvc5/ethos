@@ -1024,13 +1024,28 @@ void State::defineProgram(const Expr& v, const Expr& prog)
 
 void State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
 {
+  Expr acons = cons;
+  if (a==Attr::ORACLE)
+  {
+    // use full path
+    std::string ocmd = cons->getSymbol();
+    std::filesystem::path inputPath;
+    try {
+      inputPath = std::filesystem::canonical(d_inputFile.parent_path() / ocmd);
+    }
+    catch (std::filesystem::filesystem_error const&)
+    {
+      ALFC_FATAL() << "State:: could not include \"" + ocmd + "\" for oracle definition";
+    }
+    acons = mkLiteral(Kind::STRING, inputPath);
+  }
   AppInfo& ai = d_appData[v.get()];
   Assert (ai.d_attrCons==Attr::NONE);
   ai.d_attrCons = a;
-  ai.d_attrConsTerm = cons;
+  ai.d_attrConsTerm = acons;
   if (d_compiler!=nullptr)
   {
-    d_compiler->markConstructorKind(v, a, cons);
+    d_compiler->markConstructorKind(v, a, acons);
   }
 }
 void State::markHasReference()

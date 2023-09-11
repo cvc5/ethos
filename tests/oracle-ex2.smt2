@@ -37,13 +37,13 @@
 ; It returns "true" if the preamble of the DRAT proof file matches (modulo renaming
 ; identifiers) the input clauses, as determined by the first arguments.
 
-(declare-oracle-fun dratt-verify (String String) Bool ./dratt-verify.sh)
+(declare-oracle-fun drat-verify (String String) Bool ./oracle_true) ; ./drat-verify.sh
 
 ; ./drat-check.sh
 ; - A DRAT proof file, whose file name is given as a String.
 ; It returns "true" if the DRAT proof file is a valid refutation proof.
 
-(declare-oracle-fun drat-check (String) Bool ./drat-check.sh)
+(declare-oracle-fun drat-check (String) Bool ./oracle_true) ; ./drat-check.sh
 
 ; The DRAT proof rule.
 ; Takes arbitrary list of premises, an atom mapping, and the file name of a DRAT
@@ -52,7 +52,7 @@
 (declare-rule drat ((F Bool) (P String))
   :premise-list F and
   :args (P)
-  :requires (((dratt-verify (to_drat_input F) P) true) ((drat-check P) true))
+  :requires (((drat-verify (to_drat_input F) P) true) ((drat-check P) true))
   :conclusion false
 )
 
