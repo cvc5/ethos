@@ -837,12 +837,7 @@ bool State::bind(const std::string& name, const Expr& e)
 
 bool State::isClosure(const Expr& e) const 
 {
-  std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(e.get());
-  if (it!=d_appData.end())
-  {
-    return it->second.hasAttribute(Attr::CLOSURE);
-  }
-  return false;
+  return getConstructorKind(e.get())==Attr::CLOSURE;
 }
 
 Attr State::getConstructorKind(const ExprValue* v) const

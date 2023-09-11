@@ -639,6 +639,7 @@ bool CmdParser::parseNextCommand()
       if (keyword=="premises")
       {
         std::vector<Expr> given = d_eparser.parseExprList();
+        // maybe combine premises
         if (!d_state.getActualPremises(rule, given, premises))
         {
           d_lex.parseError("Failed to get premises");
@@ -648,7 +649,6 @@ bool CmdParser::parseNextCommand()
           keyword = d_eparser.parseKeyword();
         }
       }
-      // TODO: maybe combine premises here
       // parse args, optionally
       std::vector<Expr> args;
       if (keyword=="args")

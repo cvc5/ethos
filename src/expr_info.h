@@ -24,12 +24,8 @@ public:
   Attr d_attrCons;
   /** Attribute */
   Expr d_attrConsTerm;
-  /** Other marked attributes */
-  AttrMap d_attrs;
   /** Associated kind */
   Kind d_kind;
-  /** */
-  bool hasAttribute(Attr a) const;
 };
 
 }  // namespace alfc

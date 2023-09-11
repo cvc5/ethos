@@ -392,7 +392,7 @@ bool TypeChecker::match(const Expr& a, const Expr& b, Ctx& ctx, std::set<std::pa
         ctxIt = ctx.find(curr.first);
         if (ctxIt == ctx.cend())
         {
-          // TODO: ensure types are the same?
+          // note that we do not ensure the types match here
           // add the two subterms to `sub`
           ctx.emplace(curr.first, curr.second);
         }
@@ -483,7 +483,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
         visited[cur] = cur;
         visit.pop_back();
         continue;
-        // NOTE: this could be an error or warning, variable not filled?
+        // NOTE: this could be an error or warning, variable not filled
         //std::cout << "WARNING: unfilled variable " << cur << std::endl;
       }
       ck = cur->getKind();
@@ -496,7 +496,6 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
         {
           Trace("type_checker") << "RUN evaluate " << cur << std::endl;
           Expr retev = run_evaluate(cur, cctx);
-          // TODO: this should be an assertion
           Assert (retev!=nullptr);
           if (retev!=nullptr)
           {

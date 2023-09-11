@@ -219,7 +219,7 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
           }
             break;
           case BITVECTOR:
-            // TODO
+            return Literal(BitVector(args[0]->d_bv.unsignedDivTotal(args[1]->d_bv)));
             break;
           default: break;
         }

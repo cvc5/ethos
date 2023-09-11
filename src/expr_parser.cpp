@@ -885,7 +885,12 @@ void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedS
     Expr val;
     if (its==d_strToAttr.end())
     {
-      // TODO: parse and skip value?
+      // parse and skip value if it exists
+      Token tok = d_lex.peekToken();
+      if (tok!=Token::KEYWORD && tok!=Token::RPAREN)
+      {
+        parseSymbolicExpr();
+      }
       // store dummy, to mark that we read an attribute
       Warning() << "Unsupported attribute " << key;
       attrs[Attr::NONE].push_back(val);
