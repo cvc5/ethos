@@ -91,10 +91,6 @@ class String
    * or std::string::npos otherwise.
    */
   std::size_t rfind(const String& y, const std::size_t start = 0) const;
-  /** Returns true if y is a prefix of this */
-  bool hasPrefix(const String& y) const;
-  /** Returns true if y is a suffix of this */
-  bool hasSuffix(const String& y) const;
   /** Replace the character at index i in this string with t */
   String update(std::size_t i, const String& t) const;
   /** Replace the first occurrence of s in this string with t */

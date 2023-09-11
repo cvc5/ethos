@@ -37,7 +37,8 @@ int String::cmp(const String &y) const {
   return 0;
 }
 
-String String::concat(const String &other) const {
+String String::concat(const String &other) const
+{
   std::vector<unsigned int> ret_vec(d_str);
   ret_vec.insert(ret_vec.end(), other.d_str.begin(), other.d_str.end());
   return String(ret_vec);
@@ -251,43 +252,6 @@ std::size_t String::rfind(const String &y, const std::size_t start) const {
     return itr - d_str.rbegin();
   }
   return std::string::npos;
-}
-
-bool String::hasPrefix(const String& y) const
-{
-  size_t s = size();
-  size_t ys = y.size();
-  if (ys > s)
-  {
-    return false;
-  }
-  for (size_t i = 0; i < ys; i++)
-  {
-    if (d_str[i] != y.d_str[i])
-    {
-      return false;
-    }
-  }
-  return true;
-}
-
-bool String::hasSuffix(const String& y) const
-{
-  size_t s = size();
-  size_t ys = y.size();
-  if (ys > s)
-  {
-    return false;
-  }
-  size_t idiff = s - ys;
-  for (size_t i = 0; i < ys; i++)
-  {
-    if (d_str[i + idiff] != y.d_str[i])
-    {
-      return false;
-    }
-  }
-  return true;
 }
 
 String String::update(std::size_t i, const String& t) const

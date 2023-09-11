@@ -114,18 +114,6 @@ class BitVector
   /* Return the bit range from index 'high' to index 'low'. */
   BitVector extract(unsigned high, unsigned low) const;
 
-  /* Unsigned Inequality --------------------------------------------------- */
-
-  /* Return true if this is unsigned less than bit-vector 'y'.
-   * This function is a synonym for operator < but performs additional
-   * argument checks.*/
-  bool unsignedLessThan(const BitVector& y) const;
-
-  /* Return true if this is unsigned less than or equal to bit-vector 'y'.
-   * This function is a synonym for operator >= but performs additional
-   * argument checks.*/
-  bool unsignedLessThanEq(const BitVector& y) const;
-
   /* Signed Inequality ----------------------------------------------------- */
 
   /* Return true if this is signed less than bit-vector 'y'. */

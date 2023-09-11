@@ -98,25 +98,6 @@ bool operator==(const BitVector& a, const BitVector& b)
   return a.getValue() == b.getValue();
 }
 
-/* Unsigned Inequality --------------------------------------------------- */
-
-
-bool BitVector::unsignedLessThan(const BitVector& y) const
-{
-  Assert(d_size == y.d_size);
-  Assert(d_value >= 0);
-  Assert(y.d_value >= 0);
-  return y.d_value > d_value;
-}
-
-bool BitVector::unsignedLessThanEq(const BitVector& y) const
-{
-  Assert(d_size == y.d_size);
-  Assert(d_value >= 0);
-  Assert(y.d_value >= 0);
-  return y.d_value >= d_value;
-}
-
 /* Signed Inequality ----------------------------------------------------- */
 
 bool BitVector::signedLessThan(const BitVector& y) const

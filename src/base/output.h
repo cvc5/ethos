@@ -99,25 +99,6 @@ class Alfcostream
   {
   }
 
-  void pushIndent()
-  {
-    if (d_os != NULL)
-    {
-      ++d_os->iword(s_indentIosIndex);
-    }
-  }
-  void popIndent()
-  {
-    if (d_os != NULL)
-    {
-      long& indent = d_os->iword(s_indentIosIndex);
-      if (indent > 0)
-      {
-        --indent;
-      }
-    }
-  }
-
   Alfcostream& flush()
   {
     if (d_os != NULL)
@@ -186,18 +167,6 @@ class Alfcostream
     return pf(*this);
   }
 }; /* class Alfcostream */
-
-inline Alfcostream& push(Alfcostream& stream)
-{
-  stream.pushIndent();
-  return stream;
-}
-
-inline Alfcostream& pop(Alfcostream& stream)
-{
-  stream.popIndent();
-  return stream;
-}
 
 /**
  * Does nothing; designed for compilation of non-debug/non-trace
@@ -345,21 +314,6 @@ class __alfc_true
  public:
   inline operator bool() { return true; }
 }; /* __alfc_true */
-
-/**
- * Pushes an indentation level on construction, pop on destruction.
- * Useful for tracing recursive functions especially, but also can be
- * used for clearly separating different phases of an algorithm,
- * or iterations of a loop, or... etc.
- */
-class IndentedScope
-{
-  Alfcostream d_out;
-
- public:
-  inline IndentedScope(Alfcostream out) : d_out(out) { d_out << push; }
-  inline ~IndentedScope() { d_out << pop; }
-}; /* class IndentedScope */
 
 }  // namespace alfc
 
