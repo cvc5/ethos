@@ -13,6 +13,7 @@ class Compiler;
 class State;
 class ExprValue;
 class TypeChecker;
+class Expr;
 
 /** 
  * Expression class
@@ -22,17 +23,18 @@ class ExprValue
   friend class Compiler;
   friend class State;
   friend class TypeChecker;
+  friend class Expr;
  public:
   ExprValue();
   ExprValue(Kind k,
-       const std::vector<std::shared_ptr<ExprValue>>& children);
+       const std::vector<ExprValue*>& children);
   ~ExprValue();
   /** is null? */
   bool isNull() const;
   /** get the kind of this expression */
   Kind getKind() const;
   /** Get children */
-  std::vector<std::shared_ptr<ExprValue>>& getChildren();
+  std::vector<ExprValue*>& getChildren();
   /** Get num children */
   size_t getNumChildren() const;  
   /**
@@ -40,37 +42,14 @@ class ExprValue
    * @param i the index of the child
    * @return the node representing the i-th child
    */
-  std::shared_ptr<ExprValue> operator[](size_t i) const;
-  /** Print debug on output strem os
-   *
-   * @param os the stream to print to
-   */
-  static void printDebug(const std::shared_ptr<ExprValue>& e, std::ostream& os);
-  /** Has variable */
-  bool isEvaluatable();
-  /** Has variable */
-  bool isGround();
-  /** Has program variable */
-  bool isProgEvaluatable();
-  /** Is part of compiled code */
-  bool isCompiled();
-  /** Get symbol */
-  std::string getSymbol() const;
-  /** Get the free symbols */
-  static std::vector<std::shared_ptr<ExprValue>> getVariables(const std::shared_ptr<ExprValue>& e);
-  static std::vector<std::shared_ptr<ExprValue>> getVariables(const std::vector<std::shared_ptr<ExprValue>>& es);
-  /** Get the free symbols */
-  static bool hasVariable(const std::shared_ptr<ExprValue>& e, 
-                          const std::unordered_set<std::shared_ptr<ExprValue>>& terms);
+  ExprValue* operator[](size_t i) const;
  private:
   /** The current state */
   static State* d_state;
   /** The kind */
   Kind d_kind;
   /** The children of this expression */
-  std::vector<std::shared_ptr<ExprValue>> d_children;
-  /** Its type */
-  std::shared_ptr<ExprValue> d_type;
+  std::vector<ExprValue*> d_children;
   /** flags */
   enum class Flag
   {
@@ -82,6 +61,8 @@ class ExprValue
     IS_COMPILED = (1 << 4)
   };
   char d_flags;
+  /** */
+  uint32_t d_rc;
   /** Compute flags */
   void computeFlags();
   /** Get flag */
@@ -101,15 +82,72 @@ class ExprValue
       d_flags &= ~static_cast<uint8_t>(f);
     }
   }
+  /** reference counting */
+  void inc();
+  void dec();
+  /** Null */
+  static ExprValue s_null;
+};
+using Expr = Expr;
+
+
+class Expr
+{
+  friend class State;
+public:
+  Expr();
+  Expr(const ExprValue* ev);
+  ~Expr();
+  /** Get the free symbols */
+  static std::vector<Expr> getVariables(const Expr& e);
+  static std::vector<Expr> getVariables(const std::vector<Expr>& es);
+  /** Get the free symbols */
+  static bool hasVariable(const Expr& e,
+                          const std::unordered_set<Expr>& terms);
+  /** Print debug on output strem os
+   *
+   * @param os the stream to print to
+   */
+  static void printDebug(const Expr& e, std::ostream& os);
+  /** Get num children */
+  size_t getNumChildren() const;
+  /**
+   * Returns the i-th child of this node.
+   * @param i the index of the child
+   * @return the node representing the i-th child
+   */
+  Expr operator[](size_t i) const;
+  /**
+   */
+  Expr operator=(const Expr& e) const;
+  bool operator==(const Expr& e) const;
+  bool operator!=(const Expr& e) const;
+  /** is null */
+  bool isNull() const;
+  /** get the kind of this expression */
+  Kind getKind() const;
+  /** Has variable */
+  bool isEvaluatable();
+  /** Has variable */
+  bool isGround();
+  /** Has program variable */
+  bool isProgEvaluatable();
+  /** Is part of compiled code */
+  bool isCompiled();
+  /** Get symbol */
+  std::string getSymbol() const;
+private:
+  ExprValue* d_value;
+  /** Its type */
+  ExprValue* d_type;
   /** */
   static std::map<const ExprValue*, size_t> computeLetBinding(
-                                const std::shared_ptr<ExprValue>& e,
+                                const Expr& e,
                                 std::vector<const ExprValue*>& ll);
-  static void printDebugInternal(const ExprValue* e, 
-                                 std::ostream& os, 
+  static void printDebugInternal(const ExprValue* e,
+                                 std::ostream& os,
                                  std::map<const ExprValue*, size_t>& lbind);
 };
-using Expr = std::shared_ptr<ExprValue>;
 
 /**
  * Serializes a given expression to the given stream.

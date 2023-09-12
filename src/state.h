@@ -128,17 +128,17 @@ public:
   /** Get the proof rule with the given name or nullptr if it does not exist */
   Expr getProofRule(const std::string& name) const;
   /** Get the literal associated with e or nullptr if it does not exist */
-  Literal* getLiteral(const ExprValue* e);
+  Literal* getLiteral(const Expr& e);
   /** Get actual premises */
-  bool getActualPremises(const ExprValue* rule, std::vector<Expr>& given, std::vector<Expr>& actual);
+  bool getActualPremises(const Expr& rule, std::vector<Expr>& given, std::vector<Expr>& actual);
   /** Get the oracle command */
-  bool getOracleCmd(const ExprValue* oracle, std::string& ocmd);
+  bool getOracleCmd(const Expr& oracle, std::string& ocmd);
   /** */
   size_t getAssumptionLevel() const;
   /** */
   std::vector<Expr> getCurrentAssumptions() const;
   /** Get hash for expression */
-  size_t getHash(const ExprValue* e);
+  size_t getHash(const Expr& e);
   /** Print compiled files (for --show-config) */
   static std::string showCompiledFiles();
   //--------------------------------------

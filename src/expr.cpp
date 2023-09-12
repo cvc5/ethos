@@ -7,50 +7,27 @@
 namespace alfc {
   
 State* ExprValue::d_state = nullptr;
+ExprValue ExprValue::s_null;
 
 ExprValue::ExprValue() : d_kind(Kind::NONE), d_flags(0) {}
 
 ExprValue::ExprValue(Kind k,
-      const std::vector<std::shared_ptr<ExprValue>>& children) : d_kind(k), d_children(children), d_flags(0){}
+      const std::vector<ExprValue*>& children) : d_kind(k), d_children(children), d_flags(0), d_rc(0){}
 ExprValue::~ExprValue() {}
 
 bool ExprValue::isNull() const { return d_kind==Kind::NONE; }
   
 Kind ExprValue::getKind() const { return d_kind; }
 
-std::vector<std::shared_ptr<ExprValue>>& ExprValue::getChildren() { return d_children; }
+std::vector<ExprValue*>& ExprValue::getChildren() { return d_children; }
 
 size_t ExprValue::getNumChildren() const
 {
   return d_children.size();
 }
-std::shared_ptr<ExprValue> ExprValue::operator[](size_t i) const
+ExprValue* ExprValue::operator[](size_t i) const
 {
   return d_children[i];
-}
-
-bool ExprValue::isEvaluatable()
-{
-  computeFlags();
-  return getFlag(Flag::IS_EVAL);
-}
-
-bool ExprValue::isGround()
-{
-  computeFlags();
-  return !getFlag(Flag::IS_NON_GROUND);
-}
-
-bool ExprValue::isProgEvaluatable()
-{
-  computeFlags();
-  return getFlag(Flag::IS_PROG_EVAL);
-}
-
-bool ExprValue::isCompiled()
-{
-  // this is set manually
-  return getFlag(Flag::IS_COMPILED);
 }
 
 void ExprValue::computeFlags()
@@ -132,6 +109,58 @@ std::string ExprValue::getSymbol() const
     return l->toString();
   }
   return "";
+}
+void ExprValue::inc()
+{
+  d_rc++;
+}
+void ExprValue::dec()
+{
+  d_rc--;
+}
+
+
+Expr::Expr()
+{
+  d_value = &ExprValue::s_null;
+}
+Expr::Expr(const ExprValue* ev) : d_value(ev)
+{
+  d_value->inc();
+}
+Expr::~Expr()
+{
+  d_value = nullptr;
+}
+
+bool Expr::isNull() const
+{
+  return d_value==&ExprValue::s_null;
+}
+
+
+bool Expr::isEvaluatable()
+{
+  d_value->computeFlags();
+  return d_value->getFlag(Flag::IS_EVAL);
+}
+
+bool Expr::isGround()
+{
+  d_value->computeFlags();
+  return !d_value->getFlag(Flag::IS_NON_GROUND);
+}
+
+bool Expr::isProgEvaluatable()
+{
+  d_value->computeFlags();
+  return d_value->getFlag(Flag::IS_PROG_EVAL);
+}
+
+bool Expr::isCompiled()
+{
+  // this is set manually
+  return d_value->getFlag(Flag::IS_COMPILED);
 }
 
 
@@ -217,7 +246,7 @@ std::map<const ExprValue*, size_t> ExprValue::computeLetBinding(const std::share
   return lbind;
 }
 
-void ExprValue::printDebugInternal(const ExprValue* e, 
+void Expr::printDebugInternal(const ExprValue* e,
                                    std::ostream& os,
                                    std::map<const ExprValue*, size_t>& lbind)
 {
@@ -284,7 +313,7 @@ void ExprValue::printDebugInternal(const ExprValue* e,
   } while (!visit.empty());
 }
 
-void ExprValue::printDebug(const std::shared_ptr<ExprValue>& e, std::ostream& os)
+void Expr::printDebug(const Expr& e, std::ostream& os)
 {
   std::map<const ExprValue*, size_t> lbind;
   std::string cparen;
@@ -310,13 +339,13 @@ void ExprValue::printDebug(const std::shared_ptr<ExprValue>& e, std::ostream& os
 }
 
 
-std::vector<Expr> ExprValue::getVariables(const Expr& e)
+std::vector<Expr> Expr::getVariables(const Expr& e)
 {
   std::vector<Expr> es{e};
   return getVariables(es);
 }
 
-std::vector<Expr> ExprValue::getVariables(const std::vector<Expr>& es)
+std::vector<Expr> Expr::getVariables(const std::vector<Expr>& es)
 {
   std::vector<Expr> ret;
   std::unordered_set<Expr> visited;
@@ -346,7 +375,38 @@ std::vector<Expr> ExprValue::getVariables(const std::vector<Expr>& es)
   return ret;
 }
 
-bool ExprValue::hasVariable(const Expr& e, const std::unordered_set<Expr>& vars)
+size_t Expr::getNumChildren() const
+{
+  return d_value->getNumChildren();
+}
+
+Expr Expr::operator[](size_t i) const
+{
+  return Expr(d_value->getChild(i));
+}
+
+Expr Expr::operator=(const Expr& e) const
+{
+  d_value->dec();
+  d_value = e.d_value;
+  d_value->inc();
+  return *this;
+}
+
+bool Expr::operator==(const Expr& e) const
+{
+  return d_value==e.d_value;
+}
+bool Expr::operator!=(const Expr& e) const
+{
+  return d_value!=e.d_value;
+}
+Kind Expr::getKind() const
+{
+  return d_value->getKind();
+}
+
+bool Expr::hasVariable(const Expr& e, const std::unordered_set<Expr>& vars)
 {
   if (vars.empty())
   {
@@ -383,7 +443,7 @@ bool ExprValue::hasVariable(const Expr& e, const std::unordered_set<Expr>& vars)
 
 std::ostream& operator<<(std::ostream& out, const Expr& e)
 {
-  ExprValue::printDebug(e, out);
+  Expr::printDebug(e, out);
   return out;
 }
 

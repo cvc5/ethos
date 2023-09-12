@@ -544,7 +544,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
             // note the nil element is always treated as a list
             if (curr->getKind()!=Kind::NIL && isNil)
             {
-              if (getConstructorKind(curr.get())!=Attr::LIST)
+              if (getConstructorKind(curr)!=Attr::LIST)
               {
                 // if the last term is not marked as a list variable and
                 // we have a null terminator, then we insert the null terminator
@@ -559,7 +559,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
               cc[prevIndex] = curr;
               cc[nextIndex] = children[isLeft ? i : nchild-i];
               // if the "head" child is marked as list, we construct Kind::EVAL_APPEND
-              if (getConstructorKind(cc[nextIndex].get())==Attr::LIST)
+              if (getConstructorKind(cc[nextIndex])==Attr::LIST)
               {
                 curr = mkExprInternal(Kind::EVAL_APPEND, cc);
               }
@@ -837,12 +837,12 @@ bool State::bind(const std::string& name, const Expr& e)
 
 bool State::isClosure(const Expr& e) const 
 {
-  return getConstructorKind(e.get())==Attr::CLOSURE;
+  return getConstructorKind(e)==Attr::CLOSURE;
 }
 
-Attr State::getConstructorKind(const ExprValue* v) const
+Attr State::getConstructorKind(const Expr& v) const
 {
-  std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(v);
+  std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(v.d_value);
   if (it!=d_appData.end())
   {
     return it->second.d_attrCons;
@@ -871,9 +871,9 @@ Expr State::getProofRule(const std::string& name) const
   return nullptr;
 }
 
-Literal* State::getLiteral(const ExprValue* e)
+Literal* State::getLiteral(const Expr& e)
 {
-  std::map<const ExprValue *, Literal>::iterator it = d_literals.find(e);
+  std::map<const ExprValue *, Literal>::iterator it = d_literals.find(e.d_value);
   if (it!=d_literals.end())
   {
     return &it->second;
@@ -881,9 +881,9 @@ Literal* State::getLiteral(const ExprValue* e)
   return nullptr;
 }
 
-bool State::getActualPremises(const ExprValue* rule, std::vector<Expr>& given, std::vector<Expr>& actual)
+bool State::getActualPremises(const Expr& rule, std::vector<Expr>& given, std::vector<Expr>& actual)
 {
-  AppInfo* ainfo = getAppInfo(rule);
+  AppInfo* ainfo = getAppInfo(rule.d_value);
   if (ainfo!=nullptr && ainfo->d_attrCons==Attr::PREMISE_LIST)
   {
     Expr plCons = ainfo->d_attrConsTerm;
@@ -921,9 +921,9 @@ bool State::getActualPremises(const ExprValue* rule, std::vector<Expr>& given, s
   actual = given;
   return true;
 }
-bool State::getOracleCmd(const ExprValue* oracle, std::string& ocmd)
+bool State::getOracleCmd(const Expr& oracle, std::string& ocmd)
 {
-  AppInfo* ainfo = getAppInfo(oracle);
+  AppInfo* ainfo = getAppInfo(oracle.d_value);
   if (ainfo!=nullptr && ainfo->d_attrCons==Attr::ORACLE)
   {
     Expr oexpr = ainfo->d_attrConsTerm;

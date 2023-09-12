@@ -329,7 +329,7 @@ bool CmdParser::parseNextCommand()
         conc = d_eparser.parseExpr();
       }
       std::vector<Expr> argTypes;
-      if (assume!=nullptr)
+      if (!assume.isNull())
       {
         Expr ast = d_state.mkQuoteType(assume);
         argTypes.push_back(ast);
@@ -353,7 +353,7 @@ bool CmdParser::parseNextCommand()
       // Ensure all free variables in the conclusion are bound in the arguments.
       // Otherwise, this rule will always generate a free variable, which is
       // likely unintentional.
-      std::vector<Expr> bvs = ExprValue::getVariables(argTypes);
+      std::vector<Expr> bvs = Expr::getVariables(argTypes);
       d_eparser.ensureBound(ret, bvs);
       // make the overall type
       if (!argTypes.empty())
@@ -555,30 +555,29 @@ bool CmdParser::parseNextCommand()
       // (B) have arguments that are not evaluatable
       for (Expr& p : pchildren)
       {
-        Expr pc = (*p.get())[0];
-        if (pc->getKind()!=Kind::APPLY || pc->getChildren()[0]!=pvar)
+        Expr pc = p[0];
+        if (pc.getKind()!=Kind::APPLY || pc[0]!=pvar)
         {
           d_lex.parseError("Expected application of program as case");
         }
-        if (pc->getNumChildren()!=argTypes.size()+1)
+        if (pc.getNumChildren()!=argTypes.size()+1)
         {
           d_lex.parseError("Wrong arity for pattern");
         }
         // ensure some type checking??
         //d_eparser.typeCheck(pc);
         // ensure the right hand side is bound by the left hand side
-        std::vector<Expr> bvs = ExprValue::getVariables(pc);
-        Expr rhs = (*p.get())[1];
+        std::vector<Expr> bvs = Expr::getVariables(pc);
+        Expr rhs = p[1];
         d_eparser.ensureBound(rhs, bvs);
         // TODO: allow variable or default case?
-        const std::vector<Expr>& children = pc->getChildren();
-        for (const Expr& ec : children)
+        for (size_t i=0, nchildren=pc.getNumChildren(); i<nchildren; i++)
         {
-          Expr ecc = ec;
-          if (ecc->isEvaluatable())
+          Expr ecc = pc[i];
+          if (ecc.isEvaluatable())
           {
             std::stringstream ss;
-            ss << "Cannot match on evaluatable subterm " << ec;
+            ss << "Cannot match on evaluatable subterm " << pc[i];
             d_lex.parseError(ss.str());
           }
         }
@@ -627,7 +626,7 @@ bool CmdParser::parseNextCommand()
       if (d_statsEnabled)
       {
         Stats& s = d_state.getStats();
-        rs = &s.d_rstats[rule.get()];
+        rs = &s.d_rstats[rule];
         RuleStat::start(s);
       }
       // parse premises, optionally
@@ -640,7 +639,7 @@ bool CmdParser::parseNextCommand()
       {
         std::vector<Expr> given = d_eparser.parseExprList();
         // maybe combine premises
-        if (!d_state.getActualPremises(rule.get(), given, premises))
+        if (!d_state.getActualPremises(rule, given, premises))
         {
           d_lex.parseError("Failed to get premises");
         }
