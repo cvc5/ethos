@@ -54,7 +54,7 @@ struct Literal
   std::string toString() const;
 
   /** Evaluate literal op */
-  static Literal evaluate(Kind k, const std::vector<Literal*>& args);
+  static Literal evaluate(Kind k, const std::vector<const Literal*>& args);
 };
 
 }  // namespace alfc

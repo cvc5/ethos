@@ -28,7 +28,7 @@ class TypeChecker
    * is not well-typed. In this case, an error message is written on
    * out if it is provided.
    */
-  const Expr& getType(Expr& e, std::ostream* out = nullptr);
+  Expr getType(Expr& e, std::ostream* out = nullptr);
   /**
    * Get the type of an application, equivalent to calling getType on
    * (APPLY children).
@@ -40,15 +40,6 @@ class TypeChecker
   static bool checkArity(Kind k, size_t nargs);
   /** Set type rule for literal kind k to t */
   void setLiteralTypeRule(Kind k, const Expr& t);
-  /** Get or set type rule (to default) for literal kind k */
-  Expr getOrSetLiteralTypeRule(Kind k);
-  /**
-   * Match expression a with b. If this returns true, then ctx is a substitution
-   * that when applied to b gives a. The substitution
-   */
-  bool match(const Expr& a, const Expr& b, Ctx& ctx);
-  /** Same as above, but takes a cache of pairs we have already visited */
-  bool match(const Expr& a, const Expr& b, Ctx& ctx, std::set<std::pair<ExprValue*, ExprValue*>>& visited);
   /**
    * Evaluate the expression e in the given context.
    */
@@ -78,18 +69,33 @@ class TypeChecker
    */
   Expr evaluateLiteralOp(Kind k, const std::vector<Expr>& args);
  private:
+  /**
+   * Match expression a with b. If this returns true, then ctx is a substitution
+   * that when applied to b gives a. The substitution
+   */
+  bool match(ExprValue* a, ExprValue* b, Ctx& ctx);
+  /** Same as above, but takes a cache of pairs we have already visited */
+  bool match(ExprValue* a, ExprValue* b, Ctx& ctx, std::set<std::pair<ExprValue*, ExprValue*>>& visited);
+  /** evaluate */
+  Expr evaluateInternal(ExprValue* e, Ctx& ctx);
+  /** */
+  Expr getTypeAppInternal(std::vector<ExprValue*>& children, std::ostream* out = nullptr);
   /** Are all args ground? */
   static bool isGround(const std::vector<ExprValue*>& args);
   /** Maybe evaluate */
-  Expr evaluateProgramInternal(const std::vector<ExprValue*>& args, Ctx& newCtx);
+  ExprValue* evaluateProgramInternal(const std::vector<ExprValue*>& args, Ctx& newCtx);
   /** Return its type */
   Expr getTypeInternal(ExprValue* e, std::ostream* out);
+  /** Get or set type rule (to default) for literal kind k */
+  ExprValue* getOrSetLiteralTypeRule(Kind k);
   /** Evaluate literal op */
   Expr evaluateLiteralOpInternal(Kind k, const std::vector<ExprValue*>& args);
   /** Type check */
-  Expr getLiteralOpType(Kind k, 
-                        std::vector<Expr>& childTypes, 
+  ExprValue* getLiteralOpType(Kind k, 
+                        std::vector<ExprValue*>& childTypes, 
                         std::ostream* out);
+  /** lookup type */
+  ExprValue * lookupType(ExprValue * e) const;
   //---------------- compiled methods
   /** Compiled version */
   Expr run_getTypeInternal(ExprValue* hdType, const std::vector<ExprValue*>& args, std::ostream* out);

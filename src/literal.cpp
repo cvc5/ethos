@@ -101,7 +101,7 @@ std::string Literal::toString() const
   return "?";
 }
 
-Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
+Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
 {
   Assert (k!=Kind::EVAL_IS_EQ && k!=Kind::EVAL_IF_THEN_ELSE && k!=Kind::EVAL_REQUIRES);
   switch (k)
@@ -211,7 +211,7 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
         {
           case INTEGER:
           {
-            Integer& d = args[1]->d_int;
+            const Integer& d = args[1]->d_int;
             if (d.sgn()!=0)
             {
               return Literal(Integer(args[0]->d_int.euclidianDivideQuotient(d)));
@@ -231,7 +231,7 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
         case INTEGER:
           if (args[1]->d_tag==INTEGER)
           {
-            Integer& d = args[1]->d_int;
+            const Integer& d = args[1]->d_int;
             if (d.sgn()!=0)
             {
               return Literal(Rational(args[0]->d_int, d));
@@ -241,7 +241,7 @@ Literal Literal::evaluate(Kind k, const std::vector<Literal*>& args)
         case RATIONAL:
           if (args[1]->d_tag==RATIONAL)
           {
-            Rational& d = args[1]->d_rat;
+            const Rational& d = args[1]->d_rat;
             if (d.sgn()!=0)
             {
               return Literal(Rational(args[0]->d_rat / d));

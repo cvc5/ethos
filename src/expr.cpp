@@ -99,6 +99,29 @@ void ExprValue::computeFlags()
   }
   while (!visit.empty());
 }
+bool ExprValue::isEvaluatable()
+{
+  computeFlags();
+  return getFlag(ExprValue::Flag::IS_EVAL);
+}
+
+bool ExprValue::isGround()
+{
+  computeFlags();
+  return !getFlag(ExprValue::Flag::IS_NON_GROUND);
+}
+
+bool ExprValue::isProgEvaluatable()
+{
+  computeFlags();
+  return getFlag(ExprValue::Flag::IS_PROG_EVAL);
+}
+
+bool ExprValue::isCompiled()
+{
+  // this is set manually
+  return getFlag(ExprValue::Flag::IS_COMPILED);
+}
 
 
 void ExprValue::inc()
@@ -137,29 +160,21 @@ bool Expr::isNull() const
 {
   return d_value==&ExprValue::s_null;
 }
-
 bool Expr::isEvaluatable() const
 {
-  d_value->computeFlags();
-  return d_value->getFlag(ExprValue::Flag::IS_EVAL);
+  return d_value->isEvaluatable();
 }
-
 bool Expr::isGround() const
 {
-  d_value->computeFlags();
-  return !d_value->getFlag(ExprValue::Flag::IS_NON_GROUND);
+  return d_value->isGround();
 }
-
 bool Expr::isProgEvaluatable() const
 {
-  d_value->computeFlags();
-  return d_value->getFlag(ExprValue::Flag::IS_PROG_EVAL);
+  return d_value->isProgEvaluatable();
 }
-
 bool Expr::isCompiled() const
 {
-  // this is set manually
-  return d_value->getFlag(ExprValue::Flag::IS_COMPILED);
+  return d_value->isCompiled();
 }
 
 std::string Expr::getSymbol() const

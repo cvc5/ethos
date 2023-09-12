@@ -310,7 +310,7 @@ Expr State::mkRequires(const std::vector<Expr>& args, const Expr& ret)
   for (size_t i=0, nargs=args.size(); i<nargs; i++)
   {
     size_t ii = (nargs-1)-i;
-    Assert (args[ii].getKind()==Kind::TUPLE && args[ii]->getNumChildren()==2);
+    Assert (args[ii].getKind()==Kind::TUPLE && args[ii].getNumChildren()==2);
     curr = mkRequires(args[ii][0], args[ii][1], curr);
   }
   return curr;

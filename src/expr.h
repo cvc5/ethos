@@ -43,6 +43,14 @@ class ExprValue
    * @return the node representing the i-th child
    */
   ExprValue* operator[](size_t i) const;
+  /** Has variable */
+  bool isEvaluatable();
+  /** Has variable */
+  bool isGround();
+  /** Has program variable */
+  bool isProgEvaluatable();
+  /** Is part of compiled code */
+  bool isCompiled();
  private:
   /** The kind */
   Kind d_kind;
