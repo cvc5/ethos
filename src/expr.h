@@ -107,12 +107,12 @@ public:
   ~Expr();
   /** Get the free symbols */
   static std::vector<Expr> getVariables(const Expr& e);
+  /** Get the free symbols in vector es */
   static std::vector<Expr> getVariables(const std::vector<Expr>& es);
   /** Get the free symbols */
   static bool hasVariable(const Expr& e,
                           const std::unordered_set<const ExprValue*>& terms);
-  /** Print debug on output strem os
-   *
+  /** 
    * @param os the stream to print to
    */
   static void printDebug(const Expr& e, std::ostream& os);
@@ -124,10 +124,11 @@ public:
    * @return the node representing the i-th child
    */
   Expr operator[](size_t i) const;
-  /**
-   */
+  /** Set this expression equal to e */
   Expr operator=(const Expr& e);
+  /** Returns true if this expression is equal to e*/
   bool operator==(const Expr& e) const;
+  /** Returns true if this expression is not equal to e*/
   bool operator!=(const Expr& e) const;
   /** is null */
   bool isNull() const;
@@ -148,11 +149,13 @@ public:
 private:
   /** The current state */
   static State* d_state;
+  /** The underlying value */
   ExprValue* d_value;
   /** */
   static std::map<const ExprValue*, size_t> computeLetBinding(
                                 const Expr& e,
                                 std::vector<Expr>& ll);
+  /** */
   static void printDebugInternal(const Expr& e,
                                  std::ostream& os,
                                  std::map<const ExprValue*, size_t>& lbind);

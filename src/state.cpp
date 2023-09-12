@@ -217,6 +217,7 @@ void State::markDeleted(const ExprValue * e)
   {
     d_hashMap.erase(ith);
   }
+  //d_tc.markDeleted(e);
 }
 
 bool State::addAssumption(const Expr& a)

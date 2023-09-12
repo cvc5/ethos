@@ -30,7 +30,7 @@ size_t CompilerScope::ensureDeclared(const Expr& ev)
   size_t ret = d_idCount;
   d_idCount++;
   d_idMap[evv] = ret;
-  d_decl << "  Expr " << d_prefix << ret << ";" << std::endl;
+  d_decl << "  ExprValue* " << d_prefix << ret << ";" << std::endl;
   return ret;
 }
 
@@ -99,7 +99,7 @@ std::string PathTrie::PathTrieNode::getNameForPath(std::ostream& osdecl, const s
     if (!pt->d_decl)
     {
       pt->d_decl = true;
-      osdecl << "  Expr& " << cname.str() << " = " << curr << "[" << path[i] << "];" << std::endl;
+      osdecl << "  ExprValue* " << cname.str() << " = (*" << curr << ")[" << path[i] << "];" << std::endl;
     }
     curr = cname.str();
     i++;
@@ -114,11 +114,11 @@ Compiler::Compiler(State& s) :
 {
   d_decl << "std::map<const ExprValue*, size_t> _runId;" << std::endl;
   d_decl << "Ctx _ctxTmp;" << std::endl;
-  d_decl << "Expr _etmp;" << std::endl;
-  d_decl << "Expr _etmp2;" << std::endl;
+  d_decl << "ExprValue* _etmp;" << std::endl;
+  d_decl << "ExprValue* _etmp2;" << std::endl;
   d_decl << "bool _btmp;" << std::endl;
   d_decl << "bool _btmp2;" << std::endl;
-  d_decl << "Literal* _ltmp;" << std::endl;
+  d_decl << "const Literal* _ltmp;" << std::endl;
   d_config << "std::string State::showCompiledFiles()" << std::endl;
   d_config << "{" << std::endl;
   d_config << "  std::stringstream ss;" << std::endl;
@@ -127,9 +127,9 @@ Compiler::Compiler(State& s) :
   d_init << "void State::run_initialize()" << std::endl;
   d_init << "{" << std::endl;
   d_initEnd << "}" << std::endl;
-  d_tc << "Expr TypeChecker::run_getTypeInternal(Expr& hdType, const std::vector<Expr>& args, std::ostream* out)" << std::endl;
+  d_tc << "Expr TypeChecker::run_getTypeInternal(ExprValue* hdType, const std::vector<ExprValue*>& args, std::ostream* out)" << std::endl;
   d_tc << "{" << std::endl;
-  d_tc << "  std::map<const ExprValue*, size_t>::iterator itr = _runId.find(hdType.getValue());" << std::endl;
+  d_tc << "  std::map<const ExprValue*, size_t>::iterator itr = _runId.find(hdType);" << std::endl;
   // ASSERT
   d_tc << "  switch(itr->second)" << std::endl;
   d_tc << "  {" << std::endl;
@@ -138,10 +138,10 @@ Compiler::Compiler(State& s) :
   // TODO: write error?
   d_tcEnd << "  return nullptr;" << std::endl;
   d_tcEnd << "}" << std::endl;
-  d_eval << "Expr TypeChecker::run_evaluate(Expr& e, Ctx& ctx)" << std::endl;
+  d_eval << "Expr TypeChecker::run_evaluate(ExprValue* e, Ctx& ctx)" << std::endl;
   d_eval << "{" << std::endl;
   d_eval << "  Ctx::iterator itc;" << std::endl;
-  d_eval << "  std::map<const ExprValue*, size_t>::iterator itr = _runId.find(e.getValue());" << std::endl;
+  d_eval << "  std::map<const ExprValue*, size_t>::iterator itr = _runId.find(e);" << std::endl;
   // ASSERT
   d_eval << "  switch(itr->second)" << std::endl;
   d_eval << "  {" << std::endl;
@@ -149,16 +149,16 @@ Compiler::Compiler(State& s) :
   d_evalEnd << "  }" << std::endl;
   d_evalEnd << "  return nullptr;" << std::endl;
   d_evalEnd << "}" << std::endl;
-  d_evalp << "Expr TypeChecker::run_evaluateProgram(const std::vector<Expr>& args, Ctx& ctx)" << std::endl;
+  d_evalp << "ExprValue* TypeChecker::run_evaluateProgram(const std::vector<ExprValue*>& args, Ctx& ctx)" << std::endl;
   d_evalp << "{" << std::endl;
-  d_evalp << "  std::map<const ExprValue*, size_t>::iterator itr = _runId.find(args[0].getValue());" << std::endl;
+  d_evalp << "  std::map<const ExprValue*, size_t>::iterator itr = _runId.find(args[0]);" << std::endl;
   // ASSERT
   d_evalp << "  switch(itr->second)" << std::endl;
   d_evalp << "  {" << std::endl;
   d_evalpEnd << "  default: break;" << std::endl;
   d_evalpEnd << "  }" << std::endl;
   // otherwise just return itself (unevaluated)
-  d_evalpEnd << "  return d_state.mkExprInternal(Kind::APPLY, args);" << std::endl;
+  d_evalpEnd << "  return nullptr;" << std::endl;
   d_evalpEnd << "}" << std::endl;
 }
 
@@ -280,7 +280,7 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
     {
       std::vector<size_t> initPath{j};
       std::stringstream ssa;
-      decl << "  const Expr& a" << j << " = args[" << j << "];" << std::endl;
+      decl << "  ExprValue* a" << j << " = args[" << j << "];" << std::endl;
       pt.markDeclared(initPath);
       // write matching code
       writeMatching(hd[j], initPath, pt, reqs, varAssign, "break");
@@ -418,7 +418,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         curLit = d_state.getLiteral(cv);
         Assert(curLit != nullptr);
         os << "  " << cs.d_prefix << ret << " = ";
-        os << "mkLiteral(Kind::" << cur.getKind() << ", \"" << curLit->toString() << "\");" << std::endl;
+        os << "mkLiteral(Kind::" << cur.getKind() << ", \"" << curLit->toString() << "\").getValue();" << std::endl;
       }
       else if (isSymbol(ck))
       {
@@ -438,15 +438,15 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
       }
       else if (ck==Kind::TYPE)
       {
-        os << "  " << cs.d_prefix << ret << " = d_type;" << std::endl;
+        os << "  " << cs.d_prefix << ret << " = d_type.getValue();" << std::endl;
       }
       else if (ck==Kind::BOOL_TYPE)
       {
-        os << "  " << cs.d_prefix << ret << " = d_boolType;" << std::endl;
+        os << "  " << cs.d_prefix << ret << " = d_boolType.getValue();" << std::endl;
       }
       else if (ck==Kind::NIL)
       {
-        os << "  " << cs.d_prefix << ret << " = d_nil;" << std::endl;
+        os << "  " << cs.d_prefix << ret << " = d_nil.getValue();" << std::endl;
       }
       else if (ck==Kind::EVAL_IF_THEN_ELSE && cs.d_progEval)
       {
@@ -548,7 +548,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         else if (cs.d_progEval && isLiteralOp(ck))
         {
           os << "  " << cs.d_prefix << ret << " = evaluateLiteralOp(Kind::";
-          os << cur.getKind() << ", " << argList.str() << ");" << std::endl;
+          os << cur.getKind() << ", " << argList.str() << ").getValue();" << std::endl;
         }
         else
         {
@@ -754,10 +754,10 @@ void Compiler::writeMatching(const Expr& pat,
     }
     // requires matching kind/number of children
     std::stringstream ssk;
-    ssk << cterm << ".getKind()==Kind::" << p.getKind();
+    ssk << cterm << "->getKind()==Kind::" << p.getKind();
     reqs.push_back(ssk.str());
     // must check this eagerly to avoid OOB
-    decl << "  if(" << cterm << ".getNumChildren()!=" << p.getNumChildren() << ")" << std::endl;
+    decl << "  if(" << cterm << "->getNumChildren()!=" << p.getNumChildren() << ")" << std::endl;
     decl << "  {" << std::endl;
     decl << "    " << failCmd << ";" << std::endl;
     decl << "  }" << std::endl;
