@@ -448,7 +448,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         // we have only written the condition
         Expr condc = cur[0];
         std::string cond = s.getNameFor(condc);
-        os << "  _ltmp = d_state.getLiteral(" << cond << ");" << std::endl;
+        os << "  _ltmp = d_state.getLiteral(" << cond << ".getValue());" << std::endl;
         os << "  _btmp = (_ltmp!=nullptr && _ltmp->d_tag==Literal::BOOL);" << std::endl;
         os << "  _btmp2 = (_btmp && _ltmp->d_bool);" << std::endl;
         std::stringstream osite;
@@ -499,7 +499,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         {
           os << "d_state.";
         }
-        os << "mkExprInternal(Kind::EVAL_IF_THEN_ELSE, {" << cond << ", " << branches[0] << ", " << branches[1] << "});" << std::endl;
+        os << "mkExprInternal(Kind::EVAL_IF_THEN_ELSE, {" << cond << ".getValue(), " << branches[0] << ".getValue(), " << branches[1] << ".getValue()});" << std::endl;
         os << "  }" << std::endl;
         os << "  else" << std::endl;
         os << "  {" << std::endl;
