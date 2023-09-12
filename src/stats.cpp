@@ -1,11 +1,13 @@
 #include "stats.h"
 
+#include <algorithm>
+#include <chrono>
 #include <iomanip>
 #include <sstream>
-#include <chrono>
-#include <algorithm>
-#include "expr.h"
+
 #include "base/check.h"
+#include "expr.h"
+#include "state.h"
 
 namespace alfc {
 
@@ -73,7 +75,7 @@ struct SortRuleTime
   }
 };
 
-std::string Stats::toString() const
+std::string Stats::toString(State& s) const
 {
   std::stringstream ss;
   ss << "==================================================================" << std::endl;
@@ -110,7 +112,7 @@ std::string Stats::toString() const
       const RuleStat& rs = itr->second;
       Assert (e->getKind()==Kind::PROOF_RULE);
       std::stringstream sss;
-      sss << e->getSymbol() << ": ";
+      sss << s.getSymbol(e) << ": ";
       ss << std::right << std::setw(28) << sss.str() << rs.toString(totalTime) << std::endl;
     }
   }

@@ -206,8 +206,8 @@ bool CmdParser::parseNextCommand()
       d_lex.eatToken(Token::LPAREN);
       std::vector<std::string> dnames;
       std::vector<size_t> arities;
-      std::map<Expr, std::vector<Expr>> dts;
-      std::map<Expr, std::vector<Expr>> dtcons;
+      std::map<const ExprValue*, std::vector<Expr>> dts;
+      std::map<const ExprValue*, std::vector<Expr>> dtcons;
       if (isMulti)
       {
         // parse (<sort_dec>^{n+1})
@@ -238,15 +238,17 @@ bool CmdParser::parseNextCommand()
       }
       // mark the attributes
       Attr attr = isCo ? Attr::CODATATYPE : Attr::DATATYPE;
-      for (std::pair<const Expr, std::vector<Expr>>& d : dts)
+      for (std::pair<const ExprValue* const, std::vector<Expr>>& d : dts)
       {
+        Expr dt = Expr(d.first);
         Expr ctuple = d_state.mkExpr(Kind::TUPLE, d.second);
-        d_state.markConstructorKind(d.first, attr, ctuple);
+        d_state.markConstructorKind(dt, attr, ctuple);
       }
-      for (std::pair<const Expr, std::vector<Expr>>& c : dtcons)
+      for (std::pair<const ExprValue* const, std::vector<Expr>>& c : dtcons)
       {
+        Expr cons = Expr(c.first);
         Expr stuple = d_state.mkExpr(Kind::TUPLE, c.second);
-        d_state.markConstructorKind(c.first, Attr::DATATYPE_CONSTRUCTOR, stuple);
+        d_state.markConstructorKind(cons, Attr::DATATYPE_CONSTRUCTOR, stuple);
       }
       d_lex.eatToken(Token::RPAREN);
     }
@@ -329,7 +331,7 @@ bool CmdParser::parseNextCommand()
         conc = d_eparser.parseExpr();
       }
       std::vector<Expr> argTypes;
-      if (assume!=nullptr)
+      if (!assume.isNull())
       {
         Expr ast = d_state.mkQuoteType(assume);
         argTypes.push_back(ast);
@@ -353,7 +355,7 @@ bool CmdParser::parseNextCommand()
       // Ensure all free variables in the conclusion are bound in the arguments.
       // Otherwise, this rule will always generate a free variable, which is
       // likely unintentional.
-      std::vector<Expr> bvs = ExprValue::getVariables(argTypes);
+      std::vector<Expr> bvs = Expr::getVariables(argTypes);
       d_eparser.ensureBound(ret, bvs);
       // make the overall type
       if (!argTypes.empty())
@@ -555,30 +557,29 @@ bool CmdParser::parseNextCommand()
       // (B) have arguments that are not evaluatable
       for (Expr& p : pchildren)
       {
-        Expr pc = (*p.get())[0];
-        if (pc->getKind()!=Kind::APPLY || pc->getChildren()[0]!=pvar)
+        Expr pc = p[0];
+        if (pc.getKind() != Kind::APPLY || pc[0] != pvar)
         {
           d_lex.parseError("Expected application of program as case");
         }
-        if (pc->getNumChildren()!=argTypes.size()+1)
+        if (pc.getNumChildren() != argTypes.size() + 1)
         {
           d_lex.parseError("Wrong arity for pattern");
         }
         // ensure some type checking??
         //d_eparser.typeCheck(pc);
         // ensure the right hand side is bound by the left hand side
-        std::vector<Expr> bvs = ExprValue::getVariables(pc);
-        Expr rhs = (*p.get())[1];
+        std::vector<Expr> bvs = Expr::getVariables(pc);
+        Expr rhs = p[1];
         d_eparser.ensureBound(rhs, bvs);
         // TODO: allow variable or default case?
-        const std::vector<Expr>& children = pc->getChildren();
-        for (const Expr& ec : children)
+        for (size_t i = 0, nchildren = pc.getNumChildren(); i < nchildren; i++)
         {
-          Expr ecc = ec;
-          if (ecc->isEvaluatable())
+          Expr ecc = pc[i];
+          if (ecc.isEvaluatable())
           {
             std::stringstream ss;
-            ss << "Cannot match on evaluatable subterm " << ec;
+            ss << "Cannot match on evaluatable subterm " << pc[i];
             d_lex.parseError(ss.str());
           }
         }
@@ -627,7 +628,7 @@ bool CmdParser::parseNextCommand()
       if (d_statsEnabled)
       {
         Stats& s = d_state.getStats();
-        rs = &s.d_rstats[rule.get()];
+        rs = &s.d_rstats[rule.getValue()];
         RuleStat::start(s);
       }
       // parse premises, optionally
@@ -640,7 +641,7 @@ bool CmdParser::parseNextCommand()
       {
         std::vector<Expr> given = d_eparser.parseExprList();
         // maybe combine premises
-        if (!d_state.getActualPremises(rule.get(), given, premises))
+        if (!d_state.getActualPremises(rule.getValue(), given, premises))
         {
           d_lex.parseError("Failed to get premises");
         }
@@ -687,7 +688,7 @@ bool CmdParser::parseNextCommand()
         concType = d_eparser.typeCheck(rule);
       }
       // ensure proof type, note this is where "proof checking" happens.
-      if (concType->getKind()!=Kind::PROOF_TYPE)
+      if (concType.getKind() != Kind::PROOF_TYPE)
       {
         std::stringstream ss;
         ss << "Non-proof conclusion for step, got " << concType;
@@ -695,7 +696,7 @@ bool CmdParser::parseNextCommand()
       }
       if (proven!=nullptr)
       {
-        Expr& actual = concType->getChildren()[0];
+        const Expr& actual = concType[0];
         if (actual!=proven)
         {
           std::stringstream ss;

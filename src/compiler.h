@@ -45,13 +45,13 @@ public:
                 bool progEval = false);
   ~CompilerScope();
   /** Ensure that ev has been declared, return its identifier */
-  size_t ensureDeclared(ExprValue* ev);
+  size_t ensureDeclared(const Expr& ev);
   /** Ensure that each expression in ev is declared */
-  void ensureDeclared(std::vector<Expr>& ev);
+  void ensureDeclared(const std::vector<Expr>& ev);
   /** is global */
   bool isGlobal() const;
   /** get name for */
-  std::string getNameFor(Expr& e) const;
+  std::string getNameFor(const Expr& e) const;
   /** allocate subscope */
   size_t allocateSubscope();
 
@@ -64,7 +64,8 @@ public:
   /** Whether program applications constructed in this scope are evaluated */
   bool d_progEval;
   /** Maps expressions to identifiers */
-  std::map<ExprValue*, size_t> d_idMap;
+  std::map<const ExprValue*, size_t> d_idMap;
+
  private:
   /** Identifier counts */
   size_t d_idCount;
@@ -190,10 +191,10 @@ private:
    * Run identifiers, allocated for terms that we have compiled type checking or evaluation for.
    * Uses the same identifiers as in d_idMap.
    */
-  std::map<ExprValue*, size_t> d_runIdMap;
+  std::map<const ExprValue*, size_t> d_runIdMap;
   /** */
-  std::unordered_set<ExprValue*> d_tcWritten;
-  std::unordered_set<ExprValue*> d_evalWritten;
+  std::unordered_set<const ExprValue*> d_tcWritten;
+  std::unordered_set<const ExprValue*> d_evalWritten;
   /** Write run id */
   size_t markCompiled(std::ostream& os, const Expr& e);
   /**
@@ -227,11 +228,11 @@ private:
    * we are matching to pat
    * 
    */
-  void writeMatching(Expr& pat,
+  void writeMatching(const Expr& pat,
                      std::vector<size_t>& initPath,
                      PathTrie& pt,
                      std::vector<std::string>& reqs,
-                     std::map<Expr, std::string>& varAssign,
+                     std::map<const ExprValue*, std::string>& varAssign,
                      const std::string& failCmd);
   /** 
    * Write requirements, which writes an if statement whose conditions are

@@ -10,7 +10,7 @@ namespace alfc {
 
 class State;
 
-using Ctx = std::map<Expr, Expr>;
+using Ctx = std::map<ExprValue*, ExprValue*>;
 std::ostream& operator<<(std::ostream& out, const Ctx& c);
 
 /** 
@@ -19,6 +19,9 @@ std::ostream& operator<<(std::ostream& out, const Ctx& c);
  */
 class TypeChecker
 {
+  friend class State;
+  friend class Compiler;
+
  public:
   TypeChecker(State& s);
   ~TypeChecker();
@@ -27,7 +30,7 @@ class TypeChecker
    * is not well-typed. In this case, an error message is written on
    * out if it is provided.
    */
-  const Expr& getType(Expr& e, std::ostream* out = nullptr);
+  Expr getType(Expr& e, std::ostream* out = nullptr);
   /**
    * Get the type of an application, equivalent to calling getType on
    * (APPLY children).
@@ -39,15 +42,6 @@ class TypeChecker
   static bool checkArity(Kind k, size_t nargs);
   /** Set type rule for literal kind k to t */
   void setLiteralTypeRule(Kind k, const Expr& t);
-  /** Get or set type rule (to default) for literal kind k */
-  Expr getOrSetLiteralTypeRule(Kind k);
-  /**
-   * Match expression a with b. If this returns true, then ctx is a substitution
-   * that when applied to b gives a. The substitution
-   */
-  bool match(const Expr& a, const Expr& b, Ctx& ctx);
-  /** Same as above, but takes a cache of pairs we have already visited */
-  bool match(const Expr& a, const Expr& b, Ctx& ctx, std::set<std::pair<Expr, Expr>>& visited);
   /**
    * Evaluate the expression e in the given context.
    */
@@ -77,25 +71,47 @@ class TypeChecker
    */
   Expr evaluateLiteralOp(Kind k, const std::vector<Expr>& args);
  private:
+  /**
+   * Match expression a with b. If this returns true, then ctx is a substitution
+   * that when applied to b gives a. The substitution
+   */
+  bool match(ExprValue* a, ExprValue* b, Ctx& ctx);
+  /** Same as above, but takes a cache of pairs we have already visited */
+  bool match(ExprValue* a,
+             ExprValue* b,
+             Ctx& ctx,
+             std::set<std::pair<ExprValue*, ExprValue*>>& visited);
+  /** evaluate */
+  Expr evaluateInternal(ExprValue* e, Ctx& ctx);
+  /** */
+  Expr getTypeAppInternal(std::vector<ExprValue*>& children,
+                          std::ostream* out = nullptr);
   /** Are all args ground? */
-  static bool isGround(const std::vector<Expr>& args);
+  static bool isGround(const std::vector<ExprValue*>& args);
   /** Maybe evaluate */
-  Expr evaluateProgramInternal(const std::vector<Expr>& args, Ctx& newCtx);
+  Expr evaluateProgramInternal(const std::vector<ExprValue*>& args,
+                               Ctx& newCtx);
   /** Return its type */
-  Expr getTypeInternal(Expr& e, std::ostream* out);
+  Expr getTypeInternal(ExprValue* e, std::ostream* out);
+  /** Get or set type rule (to default) for literal kind k */
+  ExprValue* getOrSetLiteralTypeRule(Kind k);
   /** Evaluate literal op */
-  Expr evaluateLiteralOpInternal(Kind k, const std::vector<Expr>& args);
+  Expr evaluateLiteralOpInternal(Kind k, const std::vector<ExprValue*>& args);
   /** Type check */
-  Expr getLiteralOpType(Kind k, 
-                        std::vector<Expr>& childTypes, 
-                        std::ostream* out);
+  ExprValue* getLiteralOpType(Kind k,
+                              std::vector<ExprValue*>& childTypes,
+                              std::ostream* out);
+  /** lookup type */
+  ExprValue* lookupType(ExprValue* e) const;
   //---------------- compiled methods
   /** Compiled version */
-  Expr run_getTypeInternal(Expr& hdType, const std::vector<Expr>& args, std::ostream* out);
+  Expr run_getTypeInternal(ExprValue* hdType,
+                           const std::vector<ExprValue*>& args,
+                           std::ostream* out);
   /** Compiled version */
-  Expr run_evaluate(Expr& e, Ctx& ctx);
+  Expr run_evaluate(ExprValue* e, Ctx& ctx);
   /** Compiled version */
-  Expr run_evaluateProgram(const std::vector<Expr>& args, Ctx& ctx);
+  ExprValue* run_evaluateProgram(const std::vector<ExprValue*>& args, Ctx& ctx);
   //---------------- end compiled methods
   /** The state */
   State& d_state;
@@ -104,9 +120,13 @@ class TypeChecker
   /** Mapping literal kinds to type rules */
   std::map<Kind, Expr> d_literalTypeRules;
   /** Programs */
-  std::map<Expr, Expr> d_programs;
+  std::map<ExprValue*, Expr> d_programs;
   /** Evaluation trie */
   ExprTrie d_evalTrie;
+  /** Mapping expressions to types */
+  std::map<ExprValue*, Expr> d_typeCache;
+  /** The null expression */
+  Expr d_null;
 };
 
 }  // namespace alfc

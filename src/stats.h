@@ -10,6 +10,7 @@ namespace alfc {
 
 class ExprValue;
 class Stats;
+class State;
 
 class RuleStat
 {
@@ -36,8 +37,8 @@ public:
   size_t d_litCount;
   std::time_t d_startTime;
   std::map<const ExprValue*, RuleStat> d_rstats;
-  std::string toString() const;
-  
+  std::string toString(State& s) const;
+
   static std::time_t getCurrentTime();
 };
 
