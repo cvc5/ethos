@@ -108,6 +108,7 @@ Expr TypeChecker::getType(Expr& e, std::ostream* out)
     itt =  d_typeCache.find(cur);
     if (itt!=d_typeCache.end())
     {
+      ret = itt->second;
       // already computed type
       toVisit.pop_back();
       continue;
@@ -120,21 +121,21 @@ Expr TypeChecker::getType(Expr& e, std::ostream* out)
     else
     {
       //std::cout << "Type check " << cur << std::endl;
-      ret = Expr(getTypeInternal(cur, out));
+      ret = getTypeInternal(cur, out);
       if (ret.isNull())
       {
         // any subterm causes type checking to fail
-        Trace("type_checker") << "TYPE " << cur << " : [FAIL]" << std::endl;
+        Trace("type_checker") << "TYPE " << Expr(cur) << " : [FAIL]" << std::endl;
         return ret;
       }
       d_typeCache[cur] = ret;
       Trace("type_checker")
-          << "TYPE " << cur << " : " << ret << std::endl;
+          << "TYPE " << Expr(cur) << " : " << ret << std::endl;
       // std::cout << "...return" << std::endl;
       toVisit.pop_back();
     }
   }while (!toVisit.empty());
-  return Expr(ret);
+  return ret;
 }
 
 bool TypeChecker::checkArity(Kind k, size_t nargs)
