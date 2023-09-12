@@ -626,7 +626,7 @@ bool CmdParser::parseNextCommand()
       if (d_statsEnabled)
       {
         Stats& s = d_state.getStats();
-        rs = &s.d_rstats[rule];
+        rs = &s.d_rstats[rule.getValue()];
         RuleStat::start(s);
       }
       // parse premises, optionally
@@ -686,7 +686,7 @@ bool CmdParser::parseNextCommand()
         concType = d_eparser.typeCheck(rule);
       }
       // ensure proof type, note this is where "proof checking" happens.
-      if (concType->getKind()!=Kind::PROOF_TYPE)
+      if (concType.getKind()!=Kind::PROOF_TYPE)
       {
         std::stringstream ss;
         ss << "Non-proof conclusion for step, got " << concType;
@@ -694,7 +694,7 @@ bool CmdParser::parseNextCommand()
       }
       if (proven!=nullptr)
       {
-        Expr& actual = concType->getChildren()[0];
+        const Expr& actual = concType[0];
         if (actual!=proven)
         {
           std::stringstream ss;

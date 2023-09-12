@@ -6,7 +6,6 @@
 
 namespace alfc {
   
-State* ExprValue::d_state = nullptr;
 ExprValue ExprValue::s_null;
 
 ExprValue::ExprValue() : d_kind(Kind::NONE), d_flags(0) {}
@@ -101,15 +100,7 @@ void ExprValue::computeFlags()
   while (!visit.empty());
 }
 
-std::string ExprValue::getSymbol() const
-{
-  Literal * l = d_state->getLiteral(this);
-  if (l!=nullptr)
-  {
-    return l->toString();
-  }
-  return "";
-}
+
 void ExprValue::inc()
 {
   d_rc++;
@@ -119,6 +110,7 @@ void ExprValue::dec()
   d_rc--;
 }
 
+State* Expr::d_state = nullptr;
 
 Expr::Expr()
 {
@@ -163,6 +155,20 @@ bool Expr::isCompiled()
   return d_value->getFlag(Flag::IS_COMPILED);
 }
 
+std::string Expr::getSymbol() const
+{
+  Literal * l = d_state->getLiteral(this);
+  if (l!=nullptr)
+  {
+    return l->toString();
+  }
+  return "";
+}
+
+const ExprValue * Expr::getValue() const
+{
+  return d_value;
+}
 
 /**
  * SMT-LIB 2 quoting for symbols

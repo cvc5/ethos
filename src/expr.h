@@ -44,8 +44,6 @@ class ExprValue
    */
   ExprValue* operator[](size_t i) const;
  private:
-  /** The current state */
-  static State* d_state;
   /** The kind */
   Kind d_kind;
   /** The children of this expression */
@@ -136,7 +134,11 @@ public:
   bool isCompiled();
   /** Get symbol */
   std::string getSymbol() const;
+  /** Get underlying value */
+  const ExprValue * getValue() const;
 private:
+  /** The current state */
+  static State* d_state;
   ExprValue* d_value;
   /** Its type */
   ExprValue* d_type;
