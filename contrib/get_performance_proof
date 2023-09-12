@@ -1,0 +1,23 @@
+#!/bin/bash
+
+
+function process()
+{
+  sed -i 's/\*\*\*Skipped/:Skipped:/g; s/\*\*\*Failed/:Failed:/g; s/Passed/:Passed:/g; s/ \./: /g; s/ sec//g' $1
+}
+
+echo "Base"
+make regress-base -j8 | grep "Passed\|\*Failed\|\*Skipped" > ~/alfc/results-base.txt
+process ~/alfc/results-base.txt
+
+echo "Proof"
+make regress-proof -j8 | grep "Passed\|\*Failed\|\*Skipped" > ~/alfc/results-proof.txt
+process ~/alfc/results-proof.txt
+
+echo "LFSC"
+make regress-lfsc -j8 | grep "Passed\|\*Failed\|\*Skipped" > ~/alfc/results-lfsc.txt
+process ~/alfc/results-lfsc.txt
+
+echo "ALF"
+make regress-alf -j8 | grep "Passed\|\*Failed\|\*Skipped" > ~/alfc/results-alf.txt
+process ~/alfc/results-alf.txt
