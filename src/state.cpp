@@ -20,7 +20,7 @@ Options::Options()
 State::State(Options& opts, Stats& stats) : d_hashCounter(0), d_hasReference(false), d_tc(*this), d_opts(opts), d_stats(stats)
 {
   Expr::d_state = this;
-  
+
   // lambda is not builtin?
   //bindBuiltin("lambda", Kind::LAMBDA, true);
   bindBuiltin("->", Kind::FUNCTION_TYPE);
@@ -217,7 +217,7 @@ void State::markDeleted(const ExprValue * e)
   {
     d_hashMap.erase(ith);
   }
-  //d_tc.markDeleted(e);
+  // d_tc.markDeleted(e);
 }
 
 bool State::addAssumption(const Expr& a)
@@ -228,7 +228,7 @@ bool State::addAssumption(const Expr& a)
     // only care if at assumption level zero
     if (d_assumptionsSizeCtx.empty())
     {
-      return d_referenceAsserts.find(a.getValue())!=d_referenceAsserts.end();
+      return d_referenceAsserts.find(a.getValue()) != d_referenceAsserts.end();
     }
   }
   return true;
@@ -282,7 +282,7 @@ Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool 
   if (!flatten)
   {
     std::vector<ExprValue*> atypes;
-    for (size_t i=0, nargs=args.size(); i<nargs; i++)
+    for (size_t i = 0, nargs = args.size(); i < nargs; i++)
     {
       atypes.push_back(args[i].getValue());
     }
@@ -294,13 +294,14 @@ Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool 
   {
     Expr a = args[(nargs-1)-i];
     // process arguments
-    if (a.getKind()==Kind::EVAL_REQUIRES)
+    if (a.getKind() == Kind::EVAL_REQUIRES)
     {
       curr = mkRequires(a[0], a[1], curr);
       a = a[2];
     }
     // append the function
-    curr = Expr(mkExprInternal(Kind::FUNCTION_TYPE, {a.getValue(), curr.getValue()}));
+    curr = Expr(
+        mkExprInternal(Kind::FUNCTION_TYPE, {a.getValue(), curr.getValue()}));
   }
   return curr;
 }
@@ -311,7 +312,7 @@ Expr State::mkRequires(const std::vector<Expr>& args, const Expr& ret)
   for (size_t i=0, nargs=args.size(); i<nargs; i++)
   {
     size_t ii = (nargs-1)-i;
-    Assert (args[ii].getKind()==Kind::TUPLE && args[ii].getNumChildren()==2);
+    Assert(args[ii].getKind() == Kind::TUPLE && args[ii].getNumChildren() == 2);
     curr = mkRequires(args[ii][0], args[ii][1], curr);
   }
   return curr;
@@ -324,7 +325,8 @@ Expr State::mkRequires(const Expr& a1, const Expr& a2, const Expr& ret)
     // trivially equal to return
     return ret;
   }
-  return Expr(mkExprInternal(Kind::EVAL_REQUIRES, {a1.getValue(), a2.getValue(), ret.getValue()}));
+  return Expr(mkExprInternal(Kind::EVAL_REQUIRES,
+                             {a1.getValue(), a2.getValue(), ret.getValue()}));
 }
 
 Expr State::mkAbstractType()
@@ -357,7 +359,7 @@ Expr State::mkAnnotatedType(const Expr& t, Attr ck, const Expr& cons)
   {
     return t;
   }
-  if (cons.getKind()!=Kind::NIL)
+  if (cons.getKind() != Kind::NIL)
   {
     return t;
   }
@@ -369,12 +371,12 @@ Expr State::mkAnnotatedType(const Expr& t, Attr ck, const Expr& cons)
   do
   {
     Expr argAdd;
-    if (curr.getKind()==Kind::FUNCTION_TYPE && curr.getNumChildren()==2)
+    if (curr.getKind() == Kind::FUNCTION_TYPE && curr.getNumChildren() == 2)
     {
       argAdd = curr[0];
       curr = curr[1];
     }
-    else if (curr.getKind()==Kind::EVAL_REQUIRES)
+    else if (curr.getKind() == Kind::EVAL_REQUIRES)
     {
       currReqs.push_back(mkPair(curr[0], curr[1]));
       curr = curr[2];
@@ -397,8 +399,7 @@ Expr State::mkAnnotatedType(const Expr& t, Attr ck, const Expr& cons)
       }
       args.push_back(argAdd);
     }
-  }
-  while (!curr.isNull() && args.size()<3);
+  } while (!curr.isNull() && args.size() < 3);
   if (args.size()<3)
   {
     return nullptr;
@@ -489,8 +490,8 @@ Expr State::mkSymbolInternal(Kind k, const std::string& name, const Expr& type)
   }
   */
   d_stats.d_symCount++;
-  std::vector<ExprValue *> emptyVec;
-  ExprValue * v = new ExprValue(k, emptyVec);
+  std::vector<ExprValue*> emptyVec;
+  ExprValue* v = new ExprValue(k, emptyVec);
   // immediately set its type
   d_tc.d_typeCache[v] = type;
   // map to the data
@@ -507,7 +508,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     Assert(!children.empty());
     // see if there is a special way of building terms for the head
     const Expr& hd = children[0];
-    AppInfo * ai = getAppInfo(hd.getValue());
+    AppInfo* ai = getAppInfo(hd.getValue());
     if (ai!=nullptr)
     {
       if (ai->d_kind==Kind::FUNCTION_TYPE)
@@ -541,14 +542,14 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
             bool isNil = (ai->d_attrCons==Attr::RIGHT_ASSOC_NIL ||
                           ai->d_attrCons==Attr::LEFT_ASSOC_NIL);
             size_t i = 1;
-            ExprValue * curr = children[isLeft ? i : nchild-i].getValue();
+            ExprValue* curr = children[isLeft ? i : nchild - i].getValue();
             std::vector<ExprValue*> cc{hd.getValue(), nullptr, nullptr};
             size_t nextIndex = isLeft ? 2 : 1;
             size_t prevIndex = isLeft ? 1 : 2;
             // note the nil element is always treated as a list
             if (curr->getKind()!=Kind::NIL && isNil)
             {
-              if (getConstructorKind(curr)!=Attr::LIST)
+              if (getConstructorKind(curr) != Attr::LIST)
               {
                 // if the last term is not marked as a list variable and
                 // we have a null terminator, then we insert the null terminator
@@ -561,9 +562,9 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
             while (i<nchild)
             {
               cc[prevIndex] = curr;
-              cc[nextIndex] = children[isLeft ? i : nchild-i].getValue();
+              cc[nextIndex] = children[isLeft ? i : nchild - i].getValue();
               // if the "head" child is marked as list, we construct Kind::EVAL_APPEND
-              if (getConstructorKind(cc[nextIndex])==Attr::LIST)
+              if (getConstructorKind(cc[nextIndex]) == Attr::LIST)
               {
                 curr = mkExprInternal(Kind::EVAL_APPEND, cc);
               }
@@ -587,7 +588,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           for (size_t i=1, nchild = children.size()-1; i<nchild; i++)
           {
             cc[1] = children[i].getValue();
-            cc[2] = children[i+1].getValue();
+            cc[2] = children[i + 1].getValue();
             cchildren.emplace_back(mkApplyInternal(cc));
           }
           if (cchildren.size()==2)
@@ -637,7 +638,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         Ctx ctx;
         for (size_t i=0; i<nvars; i++)
         {
-          ctx[hd[0][i].getValue()] = children[i+1].getValue();
+          ctx[hd[0][i].getValue()] = children[i + 1].getValue();
         }
         Expr body = hd[1];
         Expr ret = d_tc.evaluate(body, ctx);
@@ -664,7 +665,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         Expr hdt = hd;
         const Expr& t = d_tc.getType(hdt);
         // only do this if the correct arity
-        if (t.getNumChildren()==children.size())
+        if (t.getNumChildren() == children.size())
         {
           Ctx ctx;
           Expr e = d_tc.evaluateProgram(children, ctx);
@@ -739,8 +740,8 @@ Expr State::mkLiteral(Kind k, const std::string& s)
     return it->second;
   }
   d_stats.d_litCount++;
-  std::vector<ExprValue *> emptyVec;
-  ExprValue * lv = new ExprValue(k, emptyVec);
+  std::vector<ExprValue*> emptyVec;
+  ExprValue* lv = new ExprValue(k, emptyVec);
   Expr lit(lv);
   // map to the data
   d_literalTrie[key] = lit;
@@ -750,23 +751,15 @@ Expr State::mkLiteral(Kind k, const std::string& s)
   {
     case Kind::BOOLEAN:
       Assert (s=="true" || s=="false");
-      d_literals[lv] = Literal(s=="true");
+      d_literals[lv] = Literal(s == "true");
       break;
-    case Kind::NUMERAL:
-      d_literals[lv] = Literal(Integer(s));
-      break;
-    case Kind::DECIMAL:
-      d_literals[lv] = Literal(Rational(s));
-      break;
+    case Kind::NUMERAL: d_literals[lv] = Literal(Integer(s)); break;
+    case Kind::DECIMAL: d_literals[lv] = Literal(Rational(s)); break;
     case Kind::HEXADECIMAL:
       // TODO: should normalize to binary?
       break;
-    case Kind::BINARY:
-      d_literals[lv] = Literal(BitVector(s, 2));
-      break;
-    case Kind::STRING:
-      d_literals[lv] = Literal(String(s, true));
-      break;
+    case Kind::BINARY: d_literals[lv] = Literal(BitVector(s, 2)); break;
+    case Kind::STRING: d_literals[lv] = Literal(String(s, true)); break;
     default:
       break;
   }
@@ -785,7 +778,7 @@ ExprValue* State::mkApplyInternal(const std::vector<ExprValue*>& children)
 {
   Assert(children.size() > 2);
   // requires currying
-  ExprValue * curr = children[0];
+  ExprValue* curr = children[0];
   for (size_t i=1, nchildren = children.size(); i<nchildren; i++)
   {
     curr = mkExprInternal(Kind::APPLY, {curr, children[i]});
@@ -793,7 +786,7 @@ ExprValue* State::mkApplyInternal(const std::vector<ExprValue*>& children)
   return curr;
 }
 
-ExprValue * State::mkExprFromVector(Kind k, const std::vector<Expr>& children)
+ExprValue* State::mkExprFromVector(Kind k, const std::vector<Expr>& children)
 {
   std::vector<ExprValue*> vchildren;
   for (const Expr& c : children)
@@ -802,12 +795,13 @@ ExprValue * State::mkExprFromVector(Kind k, const std::vector<Expr>& children)
   }
   return mkExprInternal(k, vchildren);
 }
-  
-ExprValue * State::mkExprInternal(Kind k, const std::vector<ExprValue *>& children)
+
+ExprValue* State::mkExprInternal(Kind k,
+                                 const std::vector<ExprValue*>& children)
 {
   d_stats.d_mkExprCount++;
   ExprTrie* et = &d_trie[k];
-  for (const ExprValue * e : children)
+  for (const ExprValue* e : children)
   {
     et = &(et->d_children[e]);
   }
@@ -816,7 +810,7 @@ ExprValue * State::mkExprInternal(Kind k, const std::vector<ExprValue *>& childr
     return et->d_data.getValue();
   }
   d_stats.d_exprCount++;
-  ExprValue * ev = new ExprValue(k, children);
+  ExprValue* ev = new ExprValue(k, children);
   // TODO: don't ref count??
   Expr ret(ev);
   et->d_data = ret;
@@ -831,7 +825,7 @@ bool State::bind(const std::string& name, const Expr& e)
     d_compiler->bind(name, e);
   }
   // if using a separate symbol table for rules
-  if (d_opts.d_ruleSymTable && e.getKind()==Kind::PROOF_RULE)
+  if (d_opts.d_ruleSymTable && e.getKind() == Kind::PROOF_RULE)
   {
     // don't bind at non-global scope
     Assert (d_declsSizeCtx.empty());
@@ -856,9 +850,9 @@ bool State::bind(const std::string& name, const Expr& e)
   return true;
 }
 
-bool State::isClosure(const ExprValue* e) const 
+bool State::isClosure(const ExprValue* e) const
 {
-  return getConstructorKind(e)==Attr::CLOSURE;
+  return getConstructorKind(e) == Attr::CLOSURE;
 }
 
 Attr State::getConstructorKind(const ExprValue* v) const
@@ -894,7 +888,7 @@ Expr State::getProofRule(const std::string& name) const
 
 const Literal* State::getLiteral(const ExprValue* e) const
 {
-  std::map<const ExprValue *, Literal>::const_iterator it = d_literals.find(e);
+  std::map<const ExprValue*, Literal>::const_iterator it = d_literals.find(e);
   if (it!=d_literals.end())
   {
     return &it->second;
@@ -902,7 +896,9 @@ const Literal* State::getLiteral(const ExprValue* e) const
   return nullptr;
 }
 
-bool State::getActualPremises(const ExprValue * rule, std::vector<Expr>& given, std::vector<Expr>& actual)
+bool State::getActualPremises(const ExprValue* rule,
+                              std::vector<Expr>& given,
+                              std::vector<Expr>& actual)
 {
   AppInfo* ainfo = getAppInfo(rule);
   if (ainfo!=nullptr && ainfo->d_attrCons==Attr::PREMISE_LIST)
@@ -916,7 +912,7 @@ bool State::getActualPremises(const ExprValue * rule, std::vector<Expr>& given, 
       {
         // should be proof types
         Expr eproven = d_tc.getType(e);
-        if (eproven.isNull() || eproven.getKind()!=Kind::PROOF_TYPE)
+        if (eproven.isNull() || eproven.getKind() != Kind::PROOF_TYPE)
         {
           return false;
         }
@@ -955,10 +951,10 @@ bool State::getOracleCmd(const ExprValue* oracle, std::string& ocmd)
   return false;
 }
 
-std::string State::getSymbol(const ExprValue * ev) const
+std::string State::getSymbol(const ExprValue* ev) const
 {
-  const Literal * l = getLiteral(ev);
-  if (l!=nullptr)
+  const Literal* l = getLiteral(ev);
+  if (l != nullptr)
   {
     return l->toString();
   }

@@ -414,7 +414,7 @@ Expr ExprParser::parseExpr()
           {
             // if we just got done parsing a term (either a pattern or a return)
             Expr last = args.back();
-            if (args.size()>2 && last.getKind()!=Kind::TUPLE)
+            if (args.size() > 2 && last.getKind() != Kind::TUPLE)
             {
               // case where we just read a return value
               // replace the back of this with a pair
@@ -443,7 +443,9 @@ Expr ExprParser::parseExpr()
               Expr atype = d_state.mkAbstractType();
               // environment is the variable list
               std::vector<Expr> vl;
-              for (size_t i=0, nchildren = args[0].getNumChildren(); i<nchildren; i++)
+              for (size_t i = 0, nchildren = args[0].getNumChildren();
+                   i < nchildren;
+                   i++)
               {
                 vl.push_back(args[0][i]);
               }
@@ -475,7 +477,7 @@ Expr ExprParser::parseExpr()
               for (size_t i=2, nargs = args.size(); i<nargs; i++)
               {
                 Expr cs = args[i];
-                Assert (cs.getKind()==Kind::TUPLE);
+                Assert(cs.getKind() == Kind::TUPLE);
                 Expr lhs = cs[0];
                 // check that variables in the pattern are only from the binder
                 ensureBound(lhs, vl);
@@ -650,10 +652,10 @@ std::vector<std::string> ExprParser::parseSymbolList()
 }
 
 bool ExprParser::parseDatatypesDef(
-      const std::vector<std::string>& dnames,
-      const std::vector<size_t>& arities,
-      std::map<const ExprValue *, std::vector<Expr>>& dts,
-      std::map<const ExprValue *, std::vector<Expr>>& dtcons)
+    const std::vector<std::string>& dnames,
+    const std::vector<size_t>& arities,
+    std::map<const ExprValue*, std::vector<Expr>>& dts,
+    std::map<const ExprValue*, std::vector<Expr>>& dtcons)
 {
   Assert(dnames.size() == arities.size()
          || (dnames.size() == 1 && arities.empty()));
@@ -772,10 +774,11 @@ bool ExprParser::parseDatatypesDef(
   return true;
 }
 
-void ExprParser::parseConstructorDefinitionList(Expr& dt,
-                                                std::vector<Expr>& conslist,
-                                                std::map<const ExprValue *, std::vector<Expr>>& dtcons,
-                                                std::vector<std::pair<std::string, Expr>>& toBind)
+void ExprParser::parseConstructorDefinitionList(
+    Expr& dt,
+    std::vector<Expr>& conslist,
+    std::map<const ExprValue*, std::vector<Expr>>& dtcons,
+    std::vector<std::pair<std::string, Expr>>& toBind)
 {
   d_lex.eatToken(Token::LPAREN);
   Expr boolType = d_state.mkBoolType();
@@ -1035,7 +1038,7 @@ Expr ExprParser::getProofRule(const std::string& name)
     ss << "Could not find proof rule " << name;
     d_lex.parseError(ss.str());
   }
-  if (v.getKind()!=Kind::PROOF_RULE)
+  if (v.getKind() != Kind::PROOF_RULE)
   {
     std::stringstream ss;
     ss << "Expected proof rule for " << name;

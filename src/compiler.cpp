@@ -21,7 +21,7 @@ CompilerScope::~CompilerScope(){}
 
 size_t CompilerScope::ensureDeclared(const Expr& ev)
 {
-  const ExprValue * evv = ev.getValue();
+  const ExprValue* evv = ev.getValue();
   std::map<const ExprValue*, size_t>::iterator it = d_idMap.find(evv);
   if (it!=d_idMap.end())
   {
@@ -50,11 +50,12 @@ bool CompilerScope::isGlobal() const
 std::string CompilerScope::getNameFor(const Expr& e) const
 {
   // the global scope handled ground terms
-  if (d_global!=nullptr && e.isGround())
+  if (d_global != nullptr && e.isGround())
   {
     return d_global->getNameFor(e);
   }
-  std::map<const ExprValue*, size_t>::const_iterator it = d_idMap.find(e.getValue());
+  std::map<const ExprValue*, size_t>::const_iterator it =
+      d_idMap.find(e.getValue());
   Assert(it != d_idMap.end());
   std::stringstream ss;
   ss << d_prefix << it->second;
@@ -99,7 +100,8 @@ std::string PathTrie::PathTrieNode::getNameForPath(std::ostream& osdecl, const s
     if (!pt->d_decl)
     {
       pt->d_decl = true;
-      osdecl << "  ExprValue* " << cname.str() << " = (*" << curr << ")[" << path[i] << "];" << std::endl;
+      osdecl << "  ExprValue* " << cname.str() << " = (*" << curr << ")["
+             << path[i] << "];" << std::endl;
     }
     curr = cname.str();
     i++;
@@ -126,9 +128,13 @@ Compiler::Compiler(State& s) :
   d_init << "void State::run_initialize()" << std::endl;
   d_init << "{" << std::endl;
   d_initEnd << "}" << std::endl;
-  d_tc << "Expr TypeChecker::run_getTypeInternal(ExprValue* hdType, const std::vector<ExprValue*>& args, std::ostream* out)" << std::endl;
+  d_tc << "Expr TypeChecker::run_getTypeInternal(ExprValue* hdType, const "
+          "std::vector<ExprValue*>& args, std::ostream* out)"
+       << std::endl;
   d_tc << "{" << std::endl;
-  d_tc << "  std::map<const ExprValue*, size_t>::iterator itr = _runId.find(hdType);" << std::endl;
+  d_tc << "  std::map<const ExprValue*, size_t>::iterator itr = "
+          "_runId.find(hdType);"
+       << std::endl;
   // ASSERT
   d_tc << "  switch(itr->second)" << std::endl;
   d_tc << "  {" << std::endl;
@@ -137,10 +143,13 @@ Compiler::Compiler(State& s) :
   // TODO: write error?
   d_tcEnd << "  return nullptr;" << std::endl;
   d_tcEnd << "}" << std::endl;
-  d_eval << "Expr TypeChecker::run_evaluate(ExprValue* e, Ctx& ctx)" << std::endl;
+  d_eval << "Expr TypeChecker::run_evaluate(ExprValue* e, Ctx& ctx)"
+         << std::endl;
   d_eval << "{" << std::endl;
   d_eval << "  Ctx::iterator itc;" << std::endl;
-  d_eval << "  std::map<const ExprValue*, size_t>::iterator itr = _runId.find(e);" << std::endl;
+  d_eval
+      << "  std::map<const ExprValue*, size_t>::iterator itr = _runId.find(e);"
+      << std::endl;
   // ASSERT
   d_eval << "  switch(itr->second)" << std::endl;
   d_eval << "  {" << std::endl;
@@ -148,9 +157,13 @@ Compiler::Compiler(State& s) :
   d_evalEnd << "  }" << std::endl;
   d_evalEnd << "  return nullptr;" << std::endl;
   d_evalEnd << "}" << std::endl;
-  d_evalp << "ExprValue* TypeChecker::run_evaluateProgram(const std::vector<ExprValue*>& args, Ctx& ctx)" << std::endl;
+  d_evalp << "ExprValue* TypeChecker::run_evaluateProgram(const "
+             "std::vector<ExprValue*>& args, Ctx& ctx)"
+          << std::endl;
   d_evalp << "{" << std::endl;
-  d_evalp << "  std::map<const ExprValue*, size_t>::iterator itr = _runId.find(args[0]);" << std::endl;
+  d_evalp << "  std::map<const ExprValue*, size_t>::iterator itr = "
+             "_runId.find(args[0]);"
+          << std::endl;
   // ASSERT
   d_evalp << "  switch(itr->second)" << std::endl;
   d_evalp << "  {" << std::endl;
@@ -206,7 +219,7 @@ void Compiler::bind(const std::string& name, const Expr& e)
   // bind the symbol
   d_init << "  bind(\"" << name << "\", _e" << id << ");" << std::endl;
   // write its type checker (if necessary)
-  ExprValue * t = d_tchecker.lookupType(e.getValue());
+  ExprValue* t = d_tchecker.lookupType(e.getValue());
   if (t != nullptr)
   {
     writeTypeChecking(d_tc, t);
@@ -273,7 +286,7 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
     std::vector<std::string> reqs;
     std::map<const ExprValue*, std::string> varAssign;
     PathTrie pt(decl, "a");
-    for (size_t j=1, nchild=hd.getNumChildren(); j<nchild; j++)
+    for (size_t j = 1, nchild = hd.getNumChildren(); j < nchild; j++)
     {
       std::vector<size_t> initPath{j};
       std::stringstream ssa;
@@ -293,7 +306,7 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
     }
     os << "  // construct the context" << std::endl;
     std::vector<Expr> fvs = Expr::getVariables(body);
-    for (std::pair<const ExprValue * const, std::string>& va : varAssign)
+    for (std::pair<const ExprValue* const, std::string>& va : varAssign)
     {
       // don't bother assigning variables that don't occur in the body
       if (std::find(fvs.begin(), fvs.end(), va.first)==fvs.end())
@@ -301,7 +314,8 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
         continue;
       }
       size_t id = writeGlobalExpr(va.first);
-      os << "  ctx[_e" << id << ".getValue()] = " << va.second << ";" << std::endl;
+      os << "  ctx[_e" << id << ".getValue()] = " << va.second << ";"
+         << std::endl;
     }
     os << "  // return " << body << std::endl;
     os << "  return _e" << id << ".getValue();" << std::endl;
@@ -332,7 +346,7 @@ void Compiler::defineDatatype(const Expr& d, const std::vector<Expr>& cons)
 
 size_t Compiler::markCompiled(std::ostream& os, const Expr& e)
 {
-  const ExprValue * ev = e.getValue();
+  const ExprValue* ev = e.getValue();
   std::map<const ExprValue*, size_t>::iterator it = d_runIdMap.find(ev);
   if (it!=d_runIdMap.end())
   {
@@ -367,7 +381,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
     cur = visit.back();
     bool isg = s.isGlobal() || cur.isGround();
     CompilerScope& cs = isg ? d_global : s;
-    const ExprValue * cv = cur.getValue();
+    const ExprValue* cv = cur.getValue();
     iti = cs.d_idMap.find(cv);
     if (iti!=cs.d_idMap.end())
     {
@@ -379,14 +393,14 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
     if (it==visited.end())
     {
       visited.insert(cv);
-      if (cur.getKind()==Kind::EVAL_IF_THEN_ELSE && cs.d_progEval)
+      if (cur.getKind() == Kind::EVAL_IF_THEN_ELSE && cs.d_progEval)
       {
         // only push the condition
         visit.push_back(cur[0]);
       }
       else
       {
-        for (size_t i=0, nchildren=cur.getNumChildren(); i<nchildren; i++)
+        for (size_t i = 0, nchildren = cur.getNumChildren(); i < nchildren; i++)
         {
           visit.push_back(cur[i]);
         }
@@ -401,8 +415,8 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
       if (isg)
       {
         // If global, write its type as well, separately. The recursion depth here is very limited.
-        ExprValue * t = d_tchecker.lookupType(cur.getValue());
-        if (t!=nullptr)
+        ExprValue* t = d_tchecker.lookupType(cur.getValue());
+        if (t != nullptr)
         {
           tid = writeGlobalExpr(t);
         }
@@ -413,7 +427,8 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         curLit = d_state.getLiteral(cv);
         Assert(curLit != nullptr);
         os << "  " << cs.d_prefix << ret << " = ";
-        os << "mkLiteral(Kind::" << cur.getKind() << ", \"" << curLit->toString() << "\").getValue();" << std::endl;
+        os << "mkLiteral(Kind::" << cur.getKind() << ", \""
+           << curLit->toString() << "\").getValue();" << std::endl;
       }
       else if (isSymbol(ck))
       {
@@ -422,22 +437,25 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         Assert(curLit != nullptr);
         os << "  " << cs.d_prefix << ret << " = ";
         // special case: d_self
-        if (cur==d_state.mkSelf())
+        if (cur == d_state.mkSelf())
         {
           os << "d_self;" << std::endl;
         }
         else
         {
-          os << "mkSymbolInternal(Kind::" << cur.getKind() << ", \"" << curLit->toString() << "\", _e" << tid << ");" << std::endl;
+          os << "mkSymbolInternal(Kind::" << cur.getKind() << ", \""
+             << curLit->toString() << "\", _e" << tid << ");" << std::endl;
         }
       }
       else if (ck==Kind::TYPE)
       {
-        os << "  " << cs.d_prefix << ret << " = d_type.getValue();" << std::endl;
+        os << "  " << cs.d_prefix << ret << " = d_type.getValue();"
+           << std::endl;
       }
       else if (ck==Kind::BOOL_TYPE)
       {
-        os << "  " << cs.d_prefix << ret << " = d_boolType.getValue();" << std::endl;
+        os << "  " << cs.d_prefix << ret << " = d_boolType.getValue();"
+           << std::endl;
       }
       else if (ck==Kind::NIL)
       {
@@ -448,14 +466,15 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         // we have only written the condition
         Expr condc = cur[0];
         std::string cond = s.getNameFor(condc);
-        os << "  _ltmp = d_state.getLiteral(" << cond << ".getValue());" << std::endl;
+        os << "  _ltmp = d_state.getLiteral(" << cond << ".getValue());"
+           << std::endl;
         os << "  _btmp = (_ltmp!=nullptr && _ltmp->d_tag==Literal::BOOL);" << std::endl;
         os << "  _btmp2 = (_btmp && _ltmp->d_bool);" << std::endl;
         std::stringstream osite;
         std::vector<std::string> branches;
         for (size_t i=0; i<2; i++)
         {
-          Expr branch = cur[i+1];
+          Expr branch = cur[i + 1];
           std::vector<Expr> fvs = Expr::getVariables(branch);
           if (fvs.empty())
           {
@@ -499,7 +518,9 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         {
           os << "d_state.";
         }
-        os << "mkExprInternal(Kind::EVAL_IF_THEN_ELSE, {" << cond << ".getValue(), " << branches[0] << ".getValue(), " << branches[1] << ".getValue()});" << std::endl;
+        os << "mkExprInternal(Kind::EVAL_IF_THEN_ELSE, {" << cond
+           << ".getValue(), " << branches[0] << ".getValue(), " << branches[1]
+           << ".getValue()});" << std::endl;
         os << "  }" << std::endl;
         os << "  else" << std::endl;
         os << "  {" << std::endl;
@@ -511,7 +532,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         // call mkRequiresType, which simplifies
         std::string a1 = s.getNameFor(cur[0]);
         std::string a2 = s.getNameFor(cur[1]);
-        std::string a3= s.getNameFor(cur[2]);
+        std::string a3 = s.getNameFor(cur[2]);
         os << "    " << cs.d_prefix << ret << " = ";
         if (!cs.isGlobal())
         {
@@ -523,9 +544,9 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
       {
         std::stringstream argList;
         argList << "{";
-        for (size_t i=0, nchildren=cur.getNumChildren(); i<nchildren; i++)
+        for (size_t i = 0, nchildren = cur.getNumChildren(); i < nchildren; i++)
         {
-          if (i>0)
+          if (i > 0)
           {
             argList << ", ";
           }
@@ -533,17 +554,20 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
           argList << s.getNameFor(cur[i]) << ".getValue()";
         }
         argList << "}";
-        if (cs.d_progEval && ck==Kind::APPLY && cur[0].getKind()==Kind::PROGRAM_CONST)
+        if (cs.d_progEval && ck == Kind::APPLY
+            && cur[0].getKind() == Kind::PROGRAM_CONST)
         {
           // we should just evaluate it if the scope specifies it should be evaluated
           os << "  _ctxTmp.clear();" << std::endl;
           os << "  _etmp = evaluateProgram(" << argList.str() << ", _ctxTmp);" << std::endl;
-          os << "  " << cs.d_prefix << ret << " = evaluateInternal(_etmp.getValue(), _ctxTmp);" << std::endl;
+          os << "  " << cs.d_prefix << ret
+             << " = evaluateInternal(_etmp.getValue(), _ctxTmp);" << std::endl;
         }
         else if (cs.d_progEval && isLiteralOp(ck))
         {
           os << "  " << cs.d_prefix << ret << " = evaluateLiteralOp(Kind::";
-          os << cur.getKind() << ", " << argList.str() << ").getValue();" << std::endl;
+          os << cur.getKind() << ", " << argList.str() << ").getValue();"
+             << std::endl;
         }
         else
         {
@@ -552,14 +576,17 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
           {
             os << "d_state.";
           }
-          os << "mkExprInternal(Kind::" << cur.getKind() << ", " << argList.str() << ");" << std::endl;
+          os << "mkExprInternal(Kind::" << cur.getKind() << ", "
+             << argList.str() << ");" << std::endl;
           if (isg)
           {
             // cache its type
-            ExprValue * t = d_tchecker.lookupType(cur.getValue());
-            if (t!=nullptr)
+            ExprValue* t = d_tchecker.lookupType(cur.getValue());
+            if (t != nullptr)
             {
-              os << "  d_tc.d_typeCache[" << d_global.d_prefix << ret << ".getValue()] = " << d_global.d_prefix << tid << ";" << std::endl;
+              os << "  d_tc.d_typeCache[" << d_global.d_prefix << ret
+                 << ".getValue()] = " << d_global.d_prefix << tid << ";"
+                 << std::endl;
             }
           }
         }
@@ -581,13 +608,13 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
   {
     curr = toVisit.back();
     toVisit.pop_back();
-    if (curr.getKind()!=Kind::FUNCTION_TYPE)
+    if (curr.getKind() != Kind::FUNCTION_TYPE)
     {
       // only function types need to be written here
       continue;
     }
-    const ExprValue * cv = curr.getValue();
-    if (d_tcWritten.find(cv)!=d_tcWritten.end())
+    const ExprValue* cv = curr.getValue();
+    if (d_tcWritten.find(cv) != d_tcWritten.end())
     {
       // already written
       continue;
@@ -616,15 +643,16 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
     std::vector<std::string> reqs;
     std::map<const ExprValue*, std::string> varAssign;
     PathTrie pt(pscope.d_decl, "a");
-    for (size_t i=0, nargs=curr.getNumChildren()-1; i<nargs; i++)
+    for (size_t i = 0, nargs = curr.getNumChildren() - 1; i < nargs; i++)
     {
       Expr pat = curr[i];
       // quote types match the argument of the type
-      if (pat.getKind()==Kind::QUOTE_TYPE)
+      if (pat.getKind() == Kind::QUOTE_TYPE)
       {
         pat = pat[0];
       }
-      pscope.d_decl << "  ExprValue* a" << i << " = args[" << i << "];" << std::endl;
+      pscope.d_decl << "  ExprValue* a" << i << " = args[" << i << "];"
+                    << std::endl;
       // write matching code for args[i] against the type argument pat
       std::vector<size_t> initPath{i};
       pt.markDeclared(initPath);
@@ -636,7 +664,7 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
       writeRequirements(localImpl, reqs, "return nullptr");
     }
     bool usedMatch = false;
-    const Expr& retType = curr[curr.getNumChildren()-1];
+    const Expr& retType = curr[curr.getNumChildren() - 1];
     std::unordered_set<const ExprValue*> varsAssigned;
     localImpl << "  // assign variables" << std::endl;
     std::vector<Expr> fvsRet = Expr::getVariables(retType);
@@ -658,7 +686,7 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
     // to their original.
     for (const Expr& v : fvsRet)
     {
-      if (varAssign.find(v.getValue())!=varAssign.end())
+      if (varAssign.find(v.getValue()) != varAssign.end())
       {
         // was assigned above
         continue;
@@ -717,9 +745,9 @@ void Compiler::writeMatching(const Expr& pat,
     toVisit.pop_back();
     std::string cterm = pt.getNameForPath(curr.first);
     Expr p = curr.second;
-    if (p.getKind()==Kind::PARAM)
+    if (p.getKind() == Kind::PARAM)
     {
-      const ExprValue * pv = p.getValue();
+      const ExprValue* pv = p.getValue();
       // if we haven't visited yet
       itv = varAssign.find(pv);
       if (itv==varAssign.end())
@@ -741,7 +769,7 @@ void Compiler::writeMatching(const Expr& pat,
       // just check equality
       size_t id = writeGlobalExpr(p);
       std::stringstream ssg;
-      ssg << cterm  << "==_e" << id << ".getValue()";
+      ssg << cterm << "==_e" << id << ".getValue()";
       reqs.push_back(ssg.str());
       // nothing else is required
       continue;
@@ -751,13 +779,14 @@ void Compiler::writeMatching(const Expr& pat,
     ssk << cterm << "->getKind()==Kind::" << p.getKind();
     reqs.push_back(ssk.str());
     // must check this eagerly to avoid OOB
-    decl << "  if(" << cterm << "->getNumChildren()!=" << p.getNumChildren() << ")" << std::endl;
+    decl << "  if(" << cterm << "->getNumChildren()!=" << p.getNumChildren()
+         << ")" << std::endl;
     decl << "  {" << std::endl;
     decl << "    " << failCmd << ";" << std::endl;
     decl << "  }" << std::endl;
     std::vector<size_t> newPath = curr.first;
     newPath.push_back(0);
-    for (size_t i=0, nchild = p.getNumChildren(); i<nchild; i++)
+    for (size_t i = 0, nchild = p.getNumChildren(); i < nchild; i++)
     {
       newPath[newPath.size()-1] = i;
       toVisit.emplace_back(std::pair<std::vector<size_t>, Expr>(newPath, p[i]));
@@ -780,7 +809,7 @@ void Compiler::writeEvaluate(std::ostream& os, const Expr& e)
       writeGlobalExpr(curr);
       continue;
     }
-    if (curr.getKind()==Kind::PARAM)
+    if (curr.getKind() == Kind::PARAM)
     {
       // don't bother writing evaluation for parameters
       continue;
@@ -788,14 +817,14 @@ void Compiler::writeEvaluate(std::ostream& os, const Expr& e)
     if (curr.isProgEvaluatable())
     {
       // if its evaluatable, traverse
-      for (size_t i=0, nchildren=curr.getNumChildren(); i<nchildren; i++)
+      for (size_t i = 0, nchildren = curr.getNumChildren(); i < nchildren; i++)
       {
         toVisit.push_back(curr[i]);
       }
       continue;
     }
-    const ExprValue * cv = curr.getValue();
-    if (d_evalWritten.find(cv)!=d_evalWritten.end())
+    const ExprValue* cv = curr.getValue();
+    if (d_evalWritten.find(cv) != d_evalWritten.end())
     {
       // already written
       continue;
@@ -803,7 +832,7 @@ void Compiler::writeEvaluate(std::ostream& os, const Expr& e)
     os << "  // evaluation for " << curr << std::endl;
     Trace("compiler") << "writeEvaluate " << curr << std::endl;
     d_evalWritten.insert(cv);
-    
+
     size_t id = markCompiled(d_init, curr);
     std::stringstream osEnd;
     os << "  case " << id << ":" << std::endl;

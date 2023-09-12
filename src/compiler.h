@@ -65,6 +65,7 @@ public:
   bool d_progEval;
   /** Maps expressions to identifiers */
   std::map<const ExprValue*, size_t> d_idMap;
+
  private:
   /** Identifier counts */
   size_t d_idCount;

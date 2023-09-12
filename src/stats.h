@@ -38,7 +38,7 @@ public:
   std::time_t d_startTime;
   std::map<const ExprValue*, RuleStat> d_rstats;
   std::string toString(State& s) const;
-  
+
   static std::time_t getCurrentTime();
 };
 

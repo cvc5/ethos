@@ -24,10 +24,10 @@ class ExprValue
   friend class State;
   friend class TypeChecker;
   friend class Expr;
+
  public:
   ExprValue();
-  ExprValue(Kind k,
-       const std::vector<ExprValue*>& children);
+  ExprValue(Kind k, const std::vector<ExprValue*>& children);
   ~ExprValue();
   /** is null? */
   bool isNull() const;
@@ -96,12 +96,12 @@ class ExprValue
 };
 using Expr = Expr;
 
-
 class Expr
 {
   friend class Compiler;
   friend class State;
-public:
+
+ public:
   Expr();
   Expr(const ExprValue* ev);
   ~Expr();
@@ -112,7 +112,7 @@ public:
   /** Get the free symbols */
   static bool hasVariable(const Expr& e,
                           const std::unordered_set<const ExprValue*>& terms);
-  /** 
+  /**
    * @param os the stream to print to
    */
   static void printDebug(const Expr& e, std::ostream& os);
@@ -147,16 +147,16 @@ public:
   /** Get symbol */
   std::string getSymbol() const;
   /** Get underlying value */
-  ExprValue * getValue() const;
-private:
+  ExprValue* getValue() const;
+
+ private:
   /** The current state */
   static State* d_state;
   /** The underlying value */
   ExprValue* d_value;
   /** */
   static std::map<const ExprValue*, size_t> computeLetBinding(
-                                const Expr& e,
-                                std::vector<Expr>& ll);
+      const Expr& e, std::vector<Expr>& ll);
   /** */
   static void printDebugInternal(const Expr& e,
                                  std::ostream& os,

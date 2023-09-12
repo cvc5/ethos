@@ -12,17 +12,17 @@ void State::run_initialize()
 {
 }
 
-Expr TypeChecker::run_getTypeInternal(ExprValue* hdType, const std::vector<ExprValue*>& args, std::ostream* out)
+Expr TypeChecker::run_getTypeInternal(ExprValue* hdType,
+                                      const std::vector<ExprValue*>& args,
+                                      std::ostream* out)
 {
   return nullptr;
 }
 
-Expr TypeChecker::run_evaluate(ExprValue* e, Ctx& ctx)
-{
-  return nullptr;
-}
+Expr TypeChecker::run_evaluate(ExprValue* e, Ctx& ctx) { return nullptr; }
 
-ExprValue* TypeChecker::run_evaluateProgram(const std::vector<ExprValue*>& args, Ctx& ctx)
+ExprValue* TypeChecker::run_evaluateProgram(const std::vector<ExprValue*>& args,
+                                            Ctx& ctx)
 {
   return nullptr;
 }

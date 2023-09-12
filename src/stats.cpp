@@ -1,11 +1,12 @@
 #include "stats.h"
 
+#include <algorithm>
+#include <chrono>
 #include <iomanip>
 #include <sstream>
-#include <chrono>
-#include <algorithm>
-#include "expr.h"
+
 #include "base/check.h"
+#include "expr.h"
 #include "state.h"
 
 namespace alfc {

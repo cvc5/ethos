@@ -21,6 +21,7 @@ class TypeChecker
 {
   friend class State;
   friend class Compiler;
+
  public:
   TypeChecker(State& s);
   ~TypeChecker();
@@ -76,15 +77,20 @@ class TypeChecker
    */
   bool match(ExprValue* a, ExprValue* b, Ctx& ctx);
   /** Same as above, but takes a cache of pairs we have already visited */
-  bool match(ExprValue* a, ExprValue* b, Ctx& ctx, std::set<std::pair<ExprValue*, ExprValue*>>& visited);
+  bool match(ExprValue* a,
+             ExprValue* b,
+             Ctx& ctx,
+             std::set<std::pair<ExprValue*, ExprValue*>>& visited);
   /** evaluate */
   Expr evaluateInternal(ExprValue* e, Ctx& ctx);
   /** */
-  Expr getTypeAppInternal(std::vector<ExprValue*>& children, std::ostream* out = nullptr);
+  Expr getTypeAppInternal(std::vector<ExprValue*>& children,
+                          std::ostream* out = nullptr);
   /** Are all args ground? */
   static bool isGround(const std::vector<ExprValue*>& args);
   /** Maybe evaluate */
-  ExprValue* evaluateProgramInternal(const std::vector<ExprValue*>& args, Ctx& newCtx);
+  ExprValue* evaluateProgramInternal(const std::vector<ExprValue*>& args,
+                                     Ctx& newCtx);
   /** Return its type */
   Expr getTypeInternal(ExprValue* e, std::ostream* out);
   /** Get or set type rule (to default) for literal kind k */
@@ -92,14 +98,16 @@ class TypeChecker
   /** Evaluate literal op */
   Expr evaluateLiteralOpInternal(Kind k, const std::vector<ExprValue*>& args);
   /** Type check */
-  ExprValue* getLiteralOpType(Kind k, 
-                        std::vector<ExprValue*>& childTypes, 
-                        std::ostream* out);
+  ExprValue* getLiteralOpType(Kind k,
+                              std::vector<ExprValue*>& childTypes,
+                              std::ostream* out);
   /** lookup type */
-  ExprValue * lookupType(ExprValue * e) const;
+  ExprValue* lookupType(ExprValue* e) const;
   //---------------- compiled methods
   /** Compiled version */
-  Expr run_getTypeInternal(ExprValue* hdType, const std::vector<ExprValue*>& args, std::ostream* out);
+  Expr run_getTypeInternal(ExprValue* hdType,
+                           const std::vector<ExprValue*>& args,
+                           std::ostream* out);
   /** Compiled version */
   Expr run_evaluate(ExprValue* e, Ctx& ctx);
   /** Compiled version */

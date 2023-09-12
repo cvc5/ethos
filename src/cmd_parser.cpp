@@ -206,8 +206,8 @@ bool CmdParser::parseNextCommand()
       d_lex.eatToken(Token::LPAREN);
       std::vector<std::string> dnames;
       std::vector<size_t> arities;
-      std::map<const ExprValue *, std::vector<Expr>> dts;
-      std::map<const ExprValue *, std::vector<Expr>> dtcons;
+      std::map<const ExprValue*, std::vector<Expr>> dts;
+      std::map<const ExprValue*, std::vector<Expr>> dtcons;
       if (isMulti)
       {
         // parse (<sort_dec>^{n+1})
@@ -238,13 +238,13 @@ bool CmdParser::parseNextCommand()
       }
       // mark the attributes
       Attr attr = isCo ? Attr::CODATATYPE : Attr::DATATYPE;
-      for (std::pair<const ExprValue * const, std::vector<Expr>>& d : dts)
+      for (std::pair<const ExprValue* const, std::vector<Expr>>& d : dts)
       {
         Expr dt = Expr(d.first);
         Expr ctuple = d_state.mkExpr(Kind::TUPLE, d.second);
         d_state.markConstructorKind(dt, attr, ctuple);
       }
-      for (std::pair<const ExprValue * const, std::vector<Expr>>& c : dtcons)
+      for (std::pair<const ExprValue* const, std::vector<Expr>>& c : dtcons)
       {
         Expr cons = Expr(c.first);
         Expr stuple = d_state.mkExpr(Kind::TUPLE, c.second);
@@ -558,11 +558,11 @@ bool CmdParser::parseNextCommand()
       for (Expr& p : pchildren)
       {
         Expr pc = p[0];
-        if (pc.getKind()!=Kind::APPLY || pc[0]!=pvar)
+        if (pc.getKind() != Kind::APPLY || pc[0] != pvar)
         {
           d_lex.parseError("Expected application of program as case");
         }
-        if (pc.getNumChildren()!=argTypes.size()+1)
+        if (pc.getNumChildren() != argTypes.size() + 1)
         {
           d_lex.parseError("Wrong arity for pattern");
         }
@@ -573,7 +573,7 @@ bool CmdParser::parseNextCommand()
         Expr rhs = p[1];
         d_eparser.ensureBound(rhs, bvs);
         // TODO: allow variable or default case?
-        for (size_t i=0, nchildren=pc.getNumChildren(); i<nchildren; i++)
+        for (size_t i = 0, nchildren = pc.getNumChildren(); i < nchildren; i++)
         {
           Expr ecc = pc[i];
           if (ecc.isEvaluatable())
@@ -688,7 +688,7 @@ bool CmdParser::parseNextCommand()
         concType = d_eparser.typeCheck(rule);
       }
       // ensure proof type, note this is where "proof checking" happens.
-      if (concType.getKind()!=Kind::PROOF_TYPE)
+      if (concType.getKind() != Kind::PROOF_TYPE)
       {
         std::stringstream ss;
         ss << "Non-proof conclusion for step, got " << concType;

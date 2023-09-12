@@ -63,11 +63,10 @@ class ExprParser
    *   (<constructor_dec>+) | (par (<symbol>+) (<constructor_dec>+))
    * constructor_dec := (<symbol> (<symbol> <sort>)∗)
    */
-  bool parseDatatypesDef(
-      const std::vector<std::string>& dnames,
-      const std::vector<size_t>& arities,
-      std::map<const ExprValue *, std::vector<Expr>>& dts,
-      std::map<const ExprValue *, std::vector<Expr>>& dtcons);
+  bool parseDatatypesDef(const std::vector<std::string>& dnames,
+                         const std::vector<size_t>& arities,
+                         std::map<const ExprValue*, std::vector<Expr>>& dts,
+                         std::map<const ExprValue*, std::vector<Expr>>& dtcons);
   /**
    * Parses ':X', returns 'X'
    */
@@ -121,10 +120,11 @@ class ExprParser
    * Parse constructor definition list, add to declaration type. The expected
    * syntax is '(<constructor_dec>+)'.
    */
-  void parseConstructorDefinitionList(Expr& dt,
-                                      std::vector<Expr>& conslist,
-                                      std::map<const ExprValue *, std::vector<Expr>>& dtcons,
-                                      std::vector<std::pair<std::string, Expr>>& toBind);
+  void parseConstructorDefinitionList(
+      Expr& dt,
+      std::vector<Expr>& conslist,
+      std::map<const ExprValue*, std::vector<Expr>>& dtcons,
+      std::vector<std::pair<std::string, Expr>>& toBind);
   /** Return the unsigned for the current token string. */
   uint32_t tokenStrToUnsigned();
   /**
