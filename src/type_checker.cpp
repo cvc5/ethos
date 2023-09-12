@@ -200,6 +200,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       for (ExprValue* v : vars)
       {
         ExprValue* t = lookupType(v);
+        Assert (t!=nullptr);
         args.emplace_back(t);
       }
       Expr ret(lookupType(e->d_children[1]));
@@ -680,7 +681,7 @@ Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
       // set the result
       if (!visits.empty())
       {
-        Trace("type_checker") << "EVALUATE " << init << ", " << ctxs.back()
+        Trace("type_checker") << "EVALUATE " << Expr(init) << ", " << ctxs.back()
                               << " = " << evaluated << std::endl;
         visiteds.back()[visits.back().back()] = evaluated;
         visits.back().pop_back();
@@ -692,7 +693,7 @@ Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
       ctxs.pop_back();
     }
   }
-  Trace("type_checker") << "EVALUATE " << e << ", " << ctx << " = " << evaluated
+  Trace("type_checker") << "EVALUATE " << Expr(e) << ", " << ctx << " = " << evaluated
                         << std::endl;
   return evaluated;
 }
@@ -914,7 +915,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<ExprValue*
         return args[1];
       }
       */
-      return Expr();
+      return nullptr;
     }
     break;
     case Kind::EVAL_REQUIRES:
@@ -925,7 +926,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<ExprValue*
       }
       Trace("type_checker")
         << "REQUIRES: failed " << args[0] << " == " << args[1] << std::endl;
-      return Expr();
+      return nullptr;
     }
     case Kind::EVAL_HASH:
     {
@@ -934,7 +935,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<ExprValue*
         size_t h = d_state.getHash(args[0]);
         return d_state.mkLiteralNumeral(h);
       }
-      return Expr();
+      return nullptr;
     }
     case Kind::EVAL_CONS:
     case Kind::EVAL_APPEND:
@@ -956,7 +957,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<ExprValue*
       {
         // not ready
         Trace("type_checker_debug") << "...head is non-ground" <<std::endl;
-        return Expr();
+        return d_null;
       }
       ExprValue* ret;
       std::vector<ExprValue*> hargs;
@@ -990,7 +991,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<ExprValue*
             if (a!=ac->d_attrConsTerm.getValue())
             {
               Warning() << "...failed to decompose " << harg << " in from_list" << std::endl;
-              return Expr();
+              return nullptr;
             }
             // turn singleton list
             return hargs[0];
@@ -1012,7 +1013,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<ExprValue*
           if (a!=ac->d_attrConsTerm.getValue())
           {
             Warning() << "...failed to decompose " << harg << " in append" << std::endl;
-            return Expr();
+            return nullptr;
           }
         }
           break;
@@ -1030,7 +1031,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<ExprValue*
         ret = d_state.mkApplyInternal(cc);
       }
       Trace("type_checker_debug") << "CONS: " << isLeft << " " << args << " -> " << ret << std::endl;
-      return Expr(ret);
+      return ret;
     }
     default:
       break;
@@ -1038,7 +1039,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<ExprValue*
   if (!isGround(args))
   {
     Trace("type_checker") << "...does not evaluate (non-ground)" << std::endl;
-    return Expr();
+    return d_null;
   }
   // convert argument expressions to literals
   std::vector<const  Literal*> lits;
@@ -1050,7 +1051,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<ExprValue*
     {
       Trace("type_checker") << "...does not evaluate (argument)" << std::endl;
       // failed to convert an argument
-      return Expr();
+      return d_null;
     }
     lits.push_back(l);
   }
@@ -1060,7 +1061,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<ExprValue*
   {
     Trace("type_checker") << "...does not evaluate (return)" << std::endl;
     // failed to evaluate
-    return Expr();
+    return d_null;
   }
   // convert back to an expression
   Expr lit = d_state.mkLiteral(eval.toKind(), eval.toString());

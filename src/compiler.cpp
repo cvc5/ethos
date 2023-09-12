@@ -30,7 +30,7 @@ size_t CompilerScope::ensureDeclared(const Expr& ev)
   size_t ret = d_idCount;
   d_idCount++;
   d_idMap[evv] = ret;
-  d_decl << "  ExprValue* " << d_prefix << ret << ";" << std::endl;
+  d_decl << "  Expr " << d_prefix << ret << ";" << std::endl;
   return ret;
 }
 
@@ -114,8 +114,7 @@ Compiler::Compiler(State& s) :
 {
   d_decl << "std::map<const ExprValue*, size_t> _runId;" << std::endl;
   d_decl << "Ctx _ctxTmp;" << std::endl;
-  d_decl << "ExprValue* _etmp;" << std::endl;
-  d_decl << "ExprValue* _etmp2;" << std::endl;
+  d_decl << "Expr _etmp;" << std::endl;
   d_decl << "bool _btmp;" << std::endl;
   d_decl << "bool _btmp2;" << std::endl;
   d_decl << "const Literal* _ltmp;" << std::endl;
@@ -207,13 +206,11 @@ void Compiler::bind(const std::string& name, const Expr& e)
   // bind the symbol
   d_init << "  bind(\"" << name << "\", _e" << id << ");" << std::endl;
   // write its type checker (if necessary)
-  /*
-  if (e.d_type != nullptr)
+  ExprValue * t = d_tchecker.lookupType(e.getValue());
+  if (t != nullptr)
   {
-    Expr type(e.d_type);
-    writeTypeChecking(d_tc, type);
+    writeTypeChecking(d_tc, t);
   }
-  */
 }
 
 void Compiler::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
@@ -292,7 +289,7 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
     if (body.isGround())
     {
       os << "  // return " << body << std::endl;
-      os << "  return _e" << id << ";" << std::endl;
+      os << "  return _e" << id << ".getValue();" << std::endl;
     }
     os << "  // construct the context" << std::endl;
     std::vector<Expr> fvs = Expr::getVariables(body);
@@ -304,10 +301,10 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
         continue;
       }
       size_t id = writeGlobalExpr(va.first);
-      os << "  ctx[_e" << id << "] = " << va.second << ";" << std::endl;
+      os << "  ctx[_e" << id << ".getValue()] = " << va.second << ";" << std::endl;
     }
     os << "  // return " << body << std::endl;
-    os << "  return _e" << id << ";" << std::endl;
+    os << "  return _e" << id << ".getValue();" << std::endl;
     os << "       }" << std::endl;
     os << "       break;" << std::endl;
   }
@@ -343,8 +340,8 @@ size_t Compiler::markCompiled(std::ostream& os, const Expr& e)
   }
   size_t ret = writeGlobalExpr(e);
   Assert(it != d_global.d_idMap.end());
-  os << "  _runId[_e" << ret << "] = " << ret << ";" << std::endl;
-  d_init << "  _e" << ret << "->setFlag(ExprValue::Flag::IS_COMPILED, true);" << std::endl;
+  os << "  _runId[_e" << ret << ".getValue()] = " << ret << ";" << std::endl;
+  d_init << "  _e" << ret << ".setCompiled();" << std::endl;
   d_runIdMap[ev] = ret;
   return ret;
 }
@@ -404,13 +401,11 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
       if (isg)
       {
         // If global, write its type as well, separately. The recursion depth here is very limited.
-        /*
-        if (cur.d_type!=nullptr)
+        ExprValue * t = d_tchecker.lookupType(cur.getValue());
+        if (t!=nullptr)
         {
-          Expr type(cur.d_type);
-          tid = writeGlobalExpr(type);
+          tid = writeGlobalExpr(t);
         }
-        */
       }
       Kind ck = cur.getKind();
       if (isLiteral(ck))
@@ -535,7 +530,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
             argList << ", ";
           }
           // get the compiler scope for the child, which may be the global one
-          argList << s.getNameFor(cur[i]);
+          argList << s.getNameFor(cur[i]) << ".getValue()";
         }
         argList << "}";
         if (cs.d_progEval && ck==Kind::APPLY && cur[0].getKind()==Kind::PROGRAM_CONST)
@@ -543,7 +538,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
           // we should just evaluate it if the scope specifies it should be evaluated
           os << "  _ctxTmp.clear();" << std::endl;
           os << "  _etmp = evaluateProgram(" << argList.str() << ", _ctxTmp);" << std::endl;
-          os << "  " << cs.d_prefix << ret << " = evaluate(_etmp, _ctxTmp);" << std::endl;
+          os << "  " << cs.d_prefix << ret << " = evaluateInternal(_etmp.getValue(), _ctxTmp);" << std::endl;
         }
         else if (cs.d_progEval && isLiteralOp(ck))
         {
@@ -561,12 +556,11 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
           if (isg)
           {
             // cache its type
-            /*
-            if (cur.d_type!=nullptr)
+            ExprValue * t = d_tchecker.lookupType(cur.getValue());
+            if (t!=nullptr)
             {
-              os << "  " << d_global.d_prefix << ret << "->d_type = " << d_global.d_prefix << tid << ";" << std::endl;
+              os << "  d_tc.d_typeCache[" << d_global.d_prefix << ret << ".getValue()] = " << d_global.d_prefix << tid << ";" << std::endl;
             }
-            */
           }
         }
       }
@@ -630,7 +624,7 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
       {
         pat = pat[0];
       }
-      pscope.d_decl << "  const Expr& a" << i << " = args[" << i << "];" << std::endl;
+      pscope.d_decl << "  ExprValue* a" << i << " = args[" << i << "];" << std::endl;
       // write matching code for args[i] against the type argument pat
       std::vector<size_t> initPath{i};
       pt.markDeclared(initPath);
@@ -747,7 +741,7 @@ void Compiler::writeMatching(const Expr& pat,
       // just check equality
       size_t id = writeGlobalExpr(p);
       std::stringstream ssg;
-      ssg << cterm  << "==_e" << id;
+      ssg << cterm  << "==_e" << id << ".getValue()";
       reqs.push_back(ssg.str());
       // nothing else is required
       continue;
@@ -832,7 +826,7 @@ void Compiler::writeEvaluate(std::ostream& os, const Expr& e)
       // set it equal to the context
       size_t gid = writeGlobalExpr(v);
       std::stringstream ssv;
-      ssv << "_e" << gid;
+      ssv << "_e" << gid << ".getValue()";
       iti = pscope.d_idMap.find(v.getValue());
       Assert(iti != pscope.d_idMap.end());
       localImpl << "  itc = ctx.find(" << ssv.str() << ");" << std::endl;

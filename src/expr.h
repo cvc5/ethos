@@ -142,6 +142,8 @@ public:
   bool isProgEvaluatable() const;
   /** Is part of compiled code */
   bool isCompiled() const;
+  /** Set compiled */
+  void setCompiled();
   /** Get symbol */
   std::string getSymbol() const;
   /** Get underlying value */
@@ -169,6 +171,7 @@ private:
  * @return the stream
  */
 std::ostream& operator<<(std::ostream& out, const Expr& e);
+std::ostream& operator<<(std::ostream& out, const std::vector<ExprValue*>& es);
 
 }  // namespace alfc
 

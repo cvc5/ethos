@@ -20,6 +20,7 @@ std::ostream& operator<<(std::ostream& out, const Ctx& c);
 class TypeChecker
 {
   friend class State;
+  friend class Compiler;
  public:
   TypeChecker(State& s);
   ~TypeChecker();
@@ -116,6 +117,8 @@ class TypeChecker
   ExprTrie d_evalTrie;
   /** Mapping expressions to types */
   std::map<ExprValue*, Expr> d_typeCache;
+  /** The null expression */
+  Expr d_null;
 };
 
 }  // namespace alfc

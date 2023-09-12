@@ -180,7 +180,10 @@ bool Expr::isCompiled() const
 {
   return d_value->isCompiled();
 }
-
+void Expr::setCompiled()
+{
+  return d_value->setFlag(ExprValue::Flag::IS_COMPILED, true);
+}
 std::string Expr::getSymbol() const
 {
   return d_state->getSymbol(d_value);
@@ -484,6 +487,25 @@ bool Expr::hasVariable(const Expr& e, const std::unordered_set<const ExprValue*>
 std::ostream& operator<<(std::ostream& out, const Expr& e)
 {
   Expr::printDebug(e, out);
+  return out;
+}
+std::ostream& operator<<(std::ostream& out, const std::vector<ExprValue*>& es)
+{
+  out << "[";
+  bool firstTime = true;
+  for (ExprValue * e : es)
+  {
+    if (firstTime)
+    {
+      firstTime = false;
+    }
+    else
+    {
+      out << " ";
+    }
+    out << Expr(e);
+  }
+  out << "]";
   return out;
 }
 
