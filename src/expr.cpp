@@ -44,7 +44,7 @@ void ExprValue::computeFlags()
     cur = visit.back();
     cur->setFlag(Flag::IS_FLAGS_COMPUTED, true);
     Kind ck = cur->getKind();
-    std::vector<Expr>& children = cur->d_children;
+    std::vector<ExprValue *>& children = cur->d_children;
     if (children.empty())
     {
       bool isNonGround = (ck==Kind::PARAM);
@@ -55,11 +55,11 @@ void ExprValue::computeFlags()
     else if (visited.find(cur)==visited.end())
     {
       visited.insert(cur);
-      for (Expr& c : children)
+      for (ExprValue * c : children)
       {
         if (!c->getFlag(Flag::IS_FLAGS_COMPUTED))
         {
-          visit.push_back(c.get());
+          visit.push_back(c);
         }
       }
     }
@@ -80,7 +80,7 @@ void ExprValue::computeFlags()
         // requires type and literal operator kinds evaluate
         cur->setFlag(Flag::IS_EVAL, true);
       }
-      for (Expr& c : children)
+      for (ExprValue * c : children)
       {
         if (c->getFlag(Flag::IS_NON_GROUND))
         {
@@ -116,7 +116,7 @@ Expr::Expr()
 {
   d_value = &ExprValue::s_null;
 }
-Expr::Expr(const ExprValue* ev) : d_value(ev)
+Expr::Expr(const ExprValue* ev) : d_value(const_cast<ExprValue*>(ev))
 {
   d_value->inc();
 }
@@ -130,42 +130,36 @@ bool Expr::isNull() const
   return d_value==&ExprValue::s_null;
 }
 
-
-bool Expr::isEvaluatable()
+bool Expr::isEvaluatable() const
 {
   d_value->computeFlags();
-  return d_value->getFlag(Flag::IS_EVAL);
+  return d_value->getFlag(ExprValue::Flag::IS_EVAL);
 }
 
-bool Expr::isGround()
+bool Expr::isGround() const
 {
   d_value->computeFlags();
-  return !d_value->getFlag(Flag::IS_NON_GROUND);
+  return !d_value->getFlag(ExprValue::Flag::IS_NON_GROUND);
 }
 
-bool Expr::isProgEvaluatable()
+bool Expr::isProgEvaluatable() const
 {
   d_value->computeFlags();
-  return d_value->getFlag(Flag::IS_PROG_EVAL);
+  return d_value->getFlag(ExprValue::Flag::IS_PROG_EVAL);
 }
 
-bool Expr::isCompiled()
+bool Expr::isCompiled() const
 {
   // this is set manually
-  return d_value->getFlag(Flag::IS_COMPILED);
+  return d_value->getFlag(ExprValue::Flag::IS_COMPILED);
 }
 
 std::string Expr::getSymbol() const
 {
-  Literal * l = d_state->getLiteral(this);
-  if (l!=nullptr)
-  {
-    return l->toString();
-  }
-  return "";
+  return d_state->getSymbol(d_value);
 }
 
-const ExprValue * Expr::getValue() const
+ExprValue * Expr::getValue() const
 {
   return d_value;
 }
@@ -206,45 +200,46 @@ std::string quoteSymbol(const std::string& s)
   return "|" + tmp + "|";
 }
 
-std::map<const ExprValue*, size_t> ExprValue::computeLetBinding(const std::shared_ptr<ExprValue>& e, 
-                                                                std::vector<const ExprValue*>& ll)
+std::map<const ExprValue*, size_t> Expr::computeLetBinding(const Expr& e, 
+                                                                std::vector<Expr>& ll)
 {
   size_t idc = 0;
   std::map<const ExprValue*, size_t> lbind;
   std::unordered_set<const ExprValue*> visited;
-  std::vector<const ExprValue*> visit;
-  std::vector<const ExprValue*> llv;
-  const ExprValue* cur;
-  visit.push_back(e.get());
+  std::vector<Expr> visit;
+  std::vector<Expr> llv;
+  Expr cur;
+  visit.push_back(e);
   do
   {
     cur = visit.back();
     visit.pop_back();
-    const std::vector<Expr>& children = cur->d_children;
-    if (children.empty())
+    if (cur.getNumChildren()==0)
     {
       continue;
     }
-    if (visited.find(cur)==visited.end())
+    const ExprValue * cv = cur.getValue();
+    if (visited.find(cv)==visited.end())
     {
+      visited.insert(cv);
       llv.push_back(cur);
-      visited.insert(cur);
-      for (const Expr& c : children)
+      for (size_t i=0, nchildren=cur.getNumChildren(); i<nchildren; i++)
       {
-        visit.push_back(c.get());
+        visit.push_back(cur[i]);
       }
       continue;
     }
-    if (lbind.find(cur)==lbind.end())
+    if (lbind.find(cv)==lbind.end())
     {
-      lbind[cur] = idc;
+      lbind[cv] = idc;
       idc++;
     }
   }while(!visit.empty());
   for (size_t i=0, lsize = llv.size(); i<lsize; i++)
   {
-    const ExprValue* l = llv[lsize-1-i];
-    if (lbind.find(l)!=lbind.end())
+    const Expr& l = llv[lsize-1-i];
+    const ExprValue * lv = l.getValue();
+    if (lbind.find(lv)!=lbind.end())
     {
       ll.push_back(l);
     }
@@ -252,29 +247,29 @@ std::map<const ExprValue*, size_t> ExprValue::computeLetBinding(const std::share
   return lbind;
 }
 
-void Expr::printDebugInternal(const ExprValue* e,
+void Expr::printDebugInternal(const Expr& e,
                                    std::ostream& os,
                                    std::map<const ExprValue*, size_t>& lbind)
 {
   std::map<const ExprValue*, size_t>::iterator itl;
-  std::vector<std::pair<const ExprValue*, size_t>> visit;
-  std::pair<const ExprValue*, size_t> cur;
+  std::vector<std::pair<Expr, size_t>> visit;
+  std::pair<Expr, size_t> cur;
   visit.emplace_back(e, 0);
   do {
     cur = visit.back();
     if (cur.second==0)
     {
-      itl = lbind.find(cur.first);
+      itl = lbind.find(cur.first.getValue());
       if (itl!=lbind.end())
       {
         os << "_v" << itl->second;
         visit.pop_back();
         continue;
       }
-      Kind k = cur.first->getKind();
-      if (cur.first->getNumChildren()==0)
+      Kind k = cur.first.getKind();
+      if (cur.first.getNumChildren()==0)
       {
-        Literal * l = d_state->getLiteral(cur.first);
+        const Literal * l = d_state->getLiteral(cur.first.getValue());
         if (l!=nullptr)
         {
           switch (l->d_tag)
@@ -302,10 +297,10 @@ void Expr::printDebugInternal(const ExprValue* e,
           os <<  kindToTerm(k) << " ";
         }
         visit.back().second++;
-        visit.emplace_back((*cur.first)[0].get(), 0);
+        visit.emplace_back(cur.first[0], 0);
       }
     }
-    else if (cur.second==cur.first->getNumChildren())
+    else if (cur.second==cur.first.getNumChildren())
     {
       os << ")";
       visit.pop_back();
@@ -314,7 +309,7 @@ void Expr::printDebugInternal(const ExprValue* e,
     {
       os << " ";
       visit.back().second++;
-      visit.emplace_back((*cur.first)[cur.second].get(), 0);
+      visit.emplace_back(cur.first[cur.second], 0);
     }
   } while (!visit.empty());
 }
@@ -325,22 +320,23 @@ void Expr::printDebug(const Expr& e, std::ostream& os)
   std::string cparen;
   if (d_state->getOptions().d_printLet)
   {
-    std::vector<const ExprValue*> ll;
+    std::vector<Expr> ll;
     lbind = computeLetBinding(e, ll);
     std::stringstream osc;
-    for (const ExprValue* l : ll)
+    for (const Expr& l : ll)
     {
-      size_t id = lbind[l];
+      const ExprValue * lv = l.getValue();
+      size_t id = lbind[lv];
       os << "(let ((_v" << id << " ";
-      lbind.erase(l);
+      lbind.erase(lv);
       printDebugInternal(l, os, lbind);
-      lbind[l] = id;
+      lbind[lv] = id;
       os << ")) ";
       osc << ")";
     }
     cparen = osc.str();
   }
-  printDebugInternal(e.get(), os, lbind);
+  printDebugInternal(e, os, lbind);
   os << cparen;
 }
 
@@ -354,7 +350,7 @@ std::vector<Expr> Expr::getVariables(const Expr& e)
 std::vector<Expr> Expr::getVariables(const std::vector<Expr>& es)
 {
   std::vector<Expr> ret;
-  std::unordered_set<Expr> visited;
+  std::unordered_set<const ExprValue *> visited;
   std::vector<Expr> toVisit;
   toVisit = es;
   Expr cur;
@@ -362,21 +358,25 @@ std::vector<Expr> Expr::getVariables(const std::vector<Expr>& es)
   {
     cur = toVisit.back();
     toVisit.pop_back();
-    if (cur->isGround())
+    if (cur.isGround())
     {
       continue;
     }
-    if (visited.find(cur)!=visited.end())
+    const ExprValue * cv = cur.getValue();
+    if (visited.find(cv)!=visited.end())
     {
       continue;
     }
-    visited.insert(cur);
-    if (cur->getKind()==Kind::PARAM)
+    visited.insert(cv);
+    if (cur.getKind()==Kind::PARAM)
     {
       ret.push_back(cur);
       continue;
     }
-    toVisit.insert(toVisit.end(), cur->d_children.begin(), cur->d_children.end());
+    for (size_t i=0, nchildren=cur.getNumChildren(); i<nchildren; i++)
+    {
+      toVisit.push_back(cur[i]);
+    }
   }
   return ret;
 }
@@ -388,10 +388,10 @@ size_t Expr::getNumChildren() const
 
 Expr Expr::operator[](size_t i) const
 {
-  return Expr(d_value->getChild(i));
+  return Expr(d_value->d_children[i]);
 }
 
-Expr Expr::operator=(const Expr& e) const
+Expr Expr::operator=(const Expr& e)
 {
   d_value->dec();
   d_value = e.d_value;
@@ -412,13 +412,13 @@ Kind Expr::getKind() const
   return d_value->getKind();
 }
 
-bool Expr::hasVariable(const Expr& e, const std::unordered_set<Expr>& vars)
+bool Expr::hasVariable(const Expr& e, const std::unordered_set<const ExprValue*>& vars)
 {
   if (vars.empty())
   {
     return false;
   }
-  std::unordered_set<Expr> visited;
+  std::unordered_set<const ExprValue *> visited;
   std::vector<Expr> toVisit;
   toVisit.push_back(e);
   Expr cur;
@@ -426,23 +426,27 @@ bool Expr::hasVariable(const Expr& e, const std::unordered_set<Expr>& vars)
   {
     cur = toVisit.back();
     toVisit.pop_back();
-    if (e->isGround())
+    if (e.isGround())
     {
       continue;
     }
-    if (visited.find(cur)!=visited.end())
+    const ExprValue * cv = cur.getValue();
+    if (visited.find(cv)!=visited.end())
     {
       continue;
     }
-    visited.insert(cur);
-    if (cur->getKind()==Kind::PARAM)
+    visited.insert(cv);
+    if (cur.getKind()==Kind::PARAM)
     {
-      if (vars.find(cur)!=vars.end())
+      if (vars.find(cv)!=vars.end())
       {
         return true;
       }
     }
-    toVisit.insert(toVisit.end(), cur->d_children.begin(), cur->d_children.end());
+    for (size_t i=0, nchildren=cur.getNumChildren(); i<nchildren; i++)
+    {
+      toVisit.push_back(cur[i]);
+    }
   }while (!toVisit.empty());
   return false;
 }

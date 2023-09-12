@@ -122,23 +122,25 @@ public:
   Expr mkLiteralNumeral(size_t val);
   //--------------------------------------
   /** is closure */
-  bool isClosure(const Expr& e) const;
+  bool isClosure(const ExprValue * ev) const;
   /** Get the variable with the given name or nullptr if it does not exist */
   Expr getVar(const std::string& name) const;
   /** Get the proof rule with the given name or nullptr if it does not exist */
   Expr getProofRule(const std::string& name) const;
   /** Get the literal associated with e or nullptr if it does not exist */
-  Literal* getLiteral(const Expr& e);
+  const Literal* getLiteral(const ExprValue * ev) const;
   /** Get actual premises */
-  bool getActualPremises(const Expr& rule, std::vector<Expr>& given, std::vector<Expr>& actual);
+  bool getActualPremises(const ExprValue * ev, std::vector<Expr>& given, std::vector<Expr>& actual);
   /** Get the oracle command */
-  bool getOracleCmd(const Expr& oracle, std::string& ocmd);
+  bool getOracleCmd(const ExprValue * ev, std::string& ocmd);
+  /** Get symbol */
+  std::string getSymbol(const ExprValue * ev) const;
   /** */
   size_t getAssumptionLevel() const;
   /** */
   std::vector<Expr> getCurrentAssumptions() const;
   /** Get hash for expression */
-  size_t getHash(const Expr& e);
+  size_t getHash(const ExprValue * ev);
   /** Print compiled files (for --show-config) */
   static std::string showCompiledFiles();
   //--------------------------------------
@@ -166,12 +168,13 @@ private:
   /** mark deleted */
   void markDeleted(const ExprValue * e);
   /** Make (<APPLY> children), curried. */
-  Expr mkApplyInternal(const std::vector<Expr>& children);
+  ExprValue * mkApplyInternal(const std::vector<ExprValue *>& children);
   /**
    * Constructs a new expression from k and children, or returns a
    * previous one if the same call to mkExprInternal was made previously.
    */
-  Expr mkExprInternal(Kind k, const std::vector<Expr>& children);
+  ExprValue * mkExprInternal(Kind k, const std::vector<ExprValue *>& children);
+  ExprValue * mkExprFromVector(Kind k, const std::vector<Expr>& children);
   /** Constructs a symbol-like expression with the given kind, name and type. */
   Expr mkSymbolInternal(Kind k, const std::string& name, const Expr& type);
   /** Get the internal data for expression e. */
@@ -198,7 +201,7 @@ private:
   /** Context size */
   std::vector<size_t> d_assumptionsSizeCtx;
   /** Reference asserts */
-  std::unordered_set<Expr> d_referenceAsserts;
+  std::unordered_set<const ExprValue *> d_referenceAsserts;
   //--------------------- expression info
   /** Map from expressions to constructor info */
   std::map<const ExprValue*, AppInfo> d_appData;
@@ -215,7 +218,7 @@ private:
   std::map<const ExprValue*, Literal> d_literals;
   // -------------------- symbols
   /** Cache for symbols */
-  std::map<std::tuple<Kind, std::string, Expr>, Expr> d_symcMap;
+  //std::map<std::tuple<Kind, std::string, const ExprValue *>, Expr> d_symcMap;
   //--------------------- includes
   /** input file */
   std::filesystem::path d_inputFile;

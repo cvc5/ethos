@@ -19,23 +19,24 @@ d_decl(decl), d_out(out), d_prefix(prefix), d_progEval(progEval), d_idCount(1), 
 
 CompilerScope::~CompilerScope(){}
 
-size_t CompilerScope::ensureDeclared(Expr ev)
+size_t CompilerScope::ensureDeclared(const Expr& ev)
 {
-  std::map<Expr, size_t>::iterator it = d_idMap.find(ev);
+  const ExprValue * evv = ev.getValue();
+  std::map<const ExprValue*, size_t>::iterator it = d_idMap.find(evv);
   if (it!=d_idMap.end())
   {
     return it->second;
   }
   size_t ret = d_idCount;
   d_idCount++;
-  d_idMap[ev] = ret;
+  d_idMap[evv] = ret;
   d_decl << "  Expr " << d_prefix << ret << ";" << std::endl;
   return ret;
 }
 
-void CompilerScope::ensureDeclared(std::vector<Expr>& ev)
+void CompilerScope::ensureDeclared(const std::vector<Expr>& ev)
 {
-  for (Expr& e : ev)
+  for (const Expr& e : ev)
   {
     ensureDeclared(e);
   }
@@ -46,14 +47,14 @@ bool CompilerScope::isGlobal() const
   return d_global==nullptr;
 }
 
-std::string CompilerScope::getNameFor(Expr& e) const
+std::string CompilerScope::getNameFor(const Expr& e) const
 {
   // the global scope handled ground terms
-  if (d_global!=nullptr && e->isGround())
+  if (d_global!=nullptr && e.isGround())
   {
     return d_global->getNameFor(e);
   }
-  std::map<Expr, size_t>::const_iterator it = d_idMap.find(e);
+  std::map<const ExprValue*, size_t>::const_iterator it = d_idMap.find(e.getValue());
   Assert(it != d_idMap.end());
   std::stringstream ss;
   ss << d_prefix << it->second;
@@ -111,7 +112,7 @@ std::string PathTrie::PathTrieNode::getNameForPath(std::ostream& osdecl, const s
 Compiler::Compiler(State& s) :
   d_state(s), d_tchecker(s.getTypeChecker()), d_nscopes(0), d_global(d_decl, d_init, "_e", nullptr)
 {
-  d_decl << "std::map<Expr, size_t> _runId;" << std::endl;
+  d_decl << "std::map<const ExprValue*, size_t> _runId;" << std::endl;
   d_decl << "Ctx _ctxTmp;" << std::endl;
   d_decl << "Expr _etmp;" << std::endl;
   d_decl << "Expr _etmp2;" << std::endl;
@@ -128,7 +129,7 @@ Compiler::Compiler(State& s) :
   d_initEnd << "}" << std::endl;
   d_tc << "Expr TypeChecker::run_getTypeInternal(Expr& hdType, const std::vector<Expr>& args, std::ostream* out)" << std::endl;
   d_tc << "{" << std::endl;
-  d_tc << "  std::map<Expr, size_t>::iterator itr = _runId.find(hdType);" << std::endl;
+  d_tc << "  std::map<const ExprValue*, size_t>::iterator itr = _runId.find(hdType.getValue());" << std::endl;
   // ASSERT
   d_tc << "  switch(itr->second)" << std::endl;
   d_tc << "  {" << std::endl;
@@ -140,7 +141,7 @@ Compiler::Compiler(State& s) :
   d_eval << "Expr TypeChecker::run_evaluate(Expr& e, Ctx& ctx)" << std::endl;
   d_eval << "{" << std::endl;
   d_eval << "  Ctx::iterator itc;" << std::endl;
-  d_eval << "  std::map<Expr, size_t>::iterator itr = _runId.find(e);" << std::endl;
+  d_eval << "  std::map<const ExprValue*, size_t>::iterator itr = _runId.find(e.getValue());" << std::endl;
   // ASSERT
   d_eval << "  switch(itr->second)" << std::endl;
   d_eval << "  {" << std::endl;
@@ -150,7 +151,7 @@ Compiler::Compiler(State& s) :
   d_evalEnd << "}" << std::endl;
   d_evalp << "Expr TypeChecker::run_evaluateProgram(const std::vector<Expr>& args, Ctx& ctx)" << std::endl;
   d_evalp << "{" << std::endl;
-  d_evalp << "  std::map<Expr, size_t>::iterator itr = _runId.find(args[0]);" << std::endl;
+  d_evalp << "  std::map<const ExprValue*, size_t>::iterator itr = _runId.find(args[0].getValue());" << std::endl;
   // ASSERT
   d_evalp << "  switch(itr->second)" << std::endl;
   d_evalp << "  {" << std::endl;
@@ -207,9 +208,10 @@ void Compiler::bind(const std::string& name, const Expr& e)
   d_init << "  bind(\"" << name << "\", _e" << id << ");" << std::endl;
   // write its type checker (if necessary)
   /*
-  if (e->d_type != nullptr)
+  if (e.d_type != nullptr)
   {
-    writeTypeChecking(d_tc, e->d_type);
+    Expr type(e.d_type);
+    writeTypeChecking(d_tc, type);
   }
   */
 }
@@ -259,7 +261,7 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
   os << "       {" << std::endl;
   for (size_t i=0; i<ncases; i++)
   {
-    Expr& c = prog[i];
+    const Expr& c = prog[i];
     Trace("compiler") << "writeEvaluate for " << c << std::endl;
     Expr hd = c[0];
     Expr body = c[1];
@@ -272,7 +274,7 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
     // write the matching code for the pattern
     std::stringstream decl;
     std::vector<std::string> reqs;
-    std::map<Expr, std::string> varAssign;
+    std::map<const ExprValue*, std::string> varAssign;
     PathTrie pt(decl, "a");
     for (size_t j=1, nchild=hd.getNumChildren(); j<nchild; j++)
     {
@@ -294,7 +296,7 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
     }
     os << "  // construct the context" << std::endl;
     std::vector<Expr> fvs = Expr::getVariables(body);
-    for (std::pair<const Expr, std::string>& va : varAssign)
+    for (std::pair<const ExprValue * const, std::string>& va : varAssign)
     {
       // don't bother assigning variables that don't occur in the body
       if (std::find(fvs.begin(), fvs.end(), va.first)==fvs.end())
@@ -333,7 +335,8 @@ void Compiler::defineDatatype(const Expr& d, const std::vector<Expr>& cons)
 
 size_t Compiler::markCompiled(std::ostream& os, const Expr& e)
 {
-  std::map<Expr, size_t>::iterator it = d_runIdMap.find(e);
+  const ExprValue * ev = e.getValue();
+  std::map<const ExprValue*, size_t>::iterator it = d_runIdMap.find(ev);
   if (it!=d_runIdMap.end())
   {
     return it->second;
@@ -342,7 +345,7 @@ size_t Compiler::markCompiled(std::ostream& os, const Expr& e)
   Assert(it != d_global.d_idMap.end());
   os << "  _runId[_e" << ret << "] = " << ret << ";" << std::endl;
   d_init << "  _e" << ret << "->setFlag(ExprValue::Flag::IS_COMPILED, true);" << std::endl;
-  d_runIdMap[e] = ret;
+  d_runIdMap[ev] = ret;
   return ret;
 }
 
@@ -355,29 +358,30 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
 {
   size_t ret = 0;
   size_t tid = 0;
-  std::unordered_set<Expr> visited;
-  std::unordered_set<Expr>::iterator it;
+  std::unordered_set<const ExprValue*> visited;
+  std::unordered_set<const ExprValue*>::iterator it;
   std::vector<Expr> visit;
   visit.emplace_back(e);
-  std::map<Expr, size_t>::iterator iti;
+  std::map<const ExprValue*, size_t>::iterator iti;
   Expr cur;
-  Literal* curLit;
+  const Literal* curLit;
   do
   {
     cur = visit.back();
     bool isg = s.isGlobal() || cur.isGround();
     CompilerScope& cs = isg ? d_global : s;
-    iti = cs.d_idMap.find(cur);
+    const ExprValue * cv = cur.getValue();
+    iti = cs.d_idMap.find(cv);
     if (iti!=cs.d_idMap.end())
     {
       ret = iti->second;
       visit.pop_back();
       continue;
     }
-    it = visited.find(cur);
+    it = visited.find(cv);
     if (it==visited.end())
     {
-      visited.insert(cur);
+      visited.insert(cv);
       if (cur.getKind()==Kind::EVAL_IF_THEN_ELSE && cs.d_progEval)
       {
         // only push the condition
@@ -400,15 +404,18 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
       if (isg)
       {
         // If global, write its type as well, separately. The recursion depth here is very limited.
+        /*
         if (cur.d_type!=nullptr)
         {
-          tid = writeGlobalExpr(cur.d_type);
+          Expr type(cur.d_type);
+          tid = writeGlobalExpr(type);
         }
+        */
       }
       Kind ck = cur.getKind();
       if (isLiteral(ck))
       {
-        curLit = d_state.getLiteral(cur);
+        curLit = d_state.getLiteral(cv);
         Assert(curLit != nullptr);
         os << "  " << cs.d_prefix << ret << " = ";
         os << "mkLiteral(Kind::" << cur.getKind() << ", \"" << curLit->toString() << "\");" << std::endl;
@@ -416,7 +423,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
       else if (isSymbol(ck))
       {
         Assert(isg);
-        curLit = d_state.getLiteral(cur);
+        curLit = d_state.getLiteral(cv);
         Assert(curLit != nullptr);
         os << "  " << cs.d_prefix << ret << " = ";
         // special case: d_self
@@ -444,7 +451,8 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
       else if (ck==Kind::EVAL_IF_THEN_ELSE && cs.d_progEval)
       {
         // we have only written the condition
-        std::string cond = s.getNameFor(cur[0]);
+        Expr condc = cur[0];
+        std::string cond = s.getNameFor(condc);
         os << "  _ltmp = d_state.getLiteral(" << cond << ");" << std::endl;
         os << "  _btmp = (_ltmp!=nullptr && _ltmp->d_tag==Literal::BOOL);" << std::endl;
         os << "  _btmp2 = (_btmp && _ltmp->d_bool);" << std::endl;
@@ -452,7 +460,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         std::vector<std::string> branches;
         for (size_t i=0; i<2; i++)
         {
-          Expr branch = children[i+1];
+          Expr branch = cur[i+1];
           std::vector<Expr> fvs = Expr::getVariables(branch);
           if (fvs.empty())
           {
@@ -553,10 +561,12 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
           if (isg)
           {
             // cache its type
+            /*
             if (cur.d_type!=nullptr)
             {
               os << "  " << d_global.d_prefix << ret << "->d_type = " << d_global.d_prefix << tid << ";" << std::endl;
             }
+            */
           }
         }
       }
@@ -582,14 +592,15 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
       // only function types need to be written here
       continue;
     }
-    if (d_tcWritten.find(curr)!=d_tcWritten.end())
+    const ExprValue * cv = curr.getValue();
+    if (d_tcWritten.find(cv)!=d_tcWritten.end())
     {
       // already written
       continue;
     }
     os << "  // type rule for " << curr << std::endl;
     Trace("compiler") << "writeTypeChecking " << curr << std::endl;
-    d_tcWritten.insert(curr);
+    d_tcWritten.insert(cv);
     size_t id = markCompiled(d_init, curr);
     std::stringstream osEnd;
     os << "  case " << id << ":" << std::endl;
@@ -609,7 +620,7 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
     pscope.ensureDeclared(fvs);
     // write the matching
     std::vector<std::string> reqs;
-    std::map<Expr, std::string> varAssign;
+    std::map<const ExprValue*, std::string> varAssign;
     PathTrie pt(pscope.d_decl, "a");
     for (size_t i=0, nargs=curr.getNumChildren()-1; i<nargs; i++)
     {
@@ -631,12 +642,12 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
       writeRequirements(localImpl, reqs, "return nullptr");
     }
     bool usedMatch = false;
-    Expr& retType = curr[curr.getNumChildren()-1];
-    std::unordered_set<Expr> varsAssigned;
+    const Expr& retType = curr[curr.getNumChildren()-1];
+    std::unordered_set<const ExprValue*> varsAssigned;
     localImpl << "  // assign variables" << std::endl;
     std::vector<Expr> fvsRet = Expr::getVariables(retType);
-    std::map<Expr, size_t>::iterator iti;
-    for (std::pair<const Expr, std::string>& va : varAssign)
+    std::map<const ExprValue*, size_t>::iterator iti;
+    for (std::pair<const ExprValue* const, std::string>& va : varAssign)
     {
       // only matters if it occurs in return type
       if (std::find(fvsRet.begin(), fvsRet.end(), va.first)==fvsRet.end())
@@ -653,13 +664,13 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
     // to their original.
     for (const Expr& v : fvsRet)
     {
-      if (varAssign.find(v)!=varAssign.end())
+      if (varAssign.find(v.getValue())!=varAssign.end())
       {
         // was assigned above
         continue;
       }
       size_t id = writeGlobalExpr(v);
-      iti = pscope.d_idMap.find(v);
+      iti = pscope.d_idMap.find(v.getValue());
       Assert(iti != pscope.d_idMap.end());
       localImpl << "  " << pprefix << iti->second << " = _e" << id << ";" << std::endl;
     }
@@ -698,14 +709,13 @@ void Compiler::writeMatching(const Expr& pat,
                              std::vector<size_t>& initPath,
                              PathTrie& pt,
                              std::vector<std::string>& reqs,
-                             std::map<Expr, std::string>& varAssign,
+                             std::map<const ExprValue*, std::string>& varAssign,
                              const std::string& failCmd)
 {
   std::vector<std::pair<std::vector<size_t>, Expr>> toVisit;
   toVisit.emplace_back(std::pair<std::vector<size_t>, Expr>(initPath, pat));
   std::pair<std::vector<size_t>, Expr> curr;
-  std::map<Expr, size_t>::const_iterator it;
-  std::map<Expr, std::string>::iterator itv;
+  std::map<const ExprValue*, std::string>::iterator itv;
   std::ostream& decl = pt.d_decl;
   do
   {
@@ -715,12 +725,13 @@ void Compiler::writeMatching(const Expr& pat,
     Expr p = curr.second;
     if (p.getKind()==Kind::PARAM)
     {
+      const ExprValue * pv = p.getValue();
       // if we haven't visited yet
-      itv = varAssign.find(p);
+      itv = varAssign.find(pv);
       if (itv==varAssign.end())
       {
         // map to the name we already bound
-        varAssign[p] = cterm;
+        varAssign[pv] = cterm;
       }
       else
       {
@@ -789,14 +800,15 @@ void Compiler::writeEvaluate(std::ostream& os, const Expr& e)
       }
       continue;
     }
-    if (d_evalWritten.find(curr)!=d_evalWritten.end())
+    const ExprValue * cv = curr.getValue();
+    if (d_evalWritten.find(cv)!=d_evalWritten.end())
     {
       // already written
       continue;
     }
     os << "  // evaluation for " << curr << std::endl;
     Trace("compiler") << "writeEvaluate " << curr << std::endl;
-    d_evalWritten.insert(curr);
+    d_evalWritten.insert(cv);
     
     size_t id = markCompiled(d_init, curr);
     std::stringstream osEnd;
@@ -813,7 +825,7 @@ void Compiler::writeEvaluate(std::ostream& os, const Expr& e)
     // want to execute literal operations.
     CompilerScope pscope(localDecl, localImpl, pprefix, &d_global, true);
     std::vector<Expr> fvs = Expr::getVariables(curr);
-    std::map<Expr, size_t>::iterator iti;
+    std::map<const ExprValue*, size_t>::iterator iti;
     for (const Expr& v : fvs)
     {
       pscope.ensureDeclared(v);
@@ -821,7 +833,7 @@ void Compiler::writeEvaluate(std::ostream& os, const Expr& e)
       size_t gid = writeGlobalExpr(v);
       std::stringstream ssv;
       ssv << "_e" << gid;
-      iti = pscope.d_idMap.find(v);
+      iti = pscope.d_idMap.find(v.getValue());
       Assert(iti != pscope.d_idMap.end());
       localImpl << "  itc = ctx.find(" << ssv.str() << ");" << std::endl;
       localImpl << "  " << pprefix << iti->second << " = " 

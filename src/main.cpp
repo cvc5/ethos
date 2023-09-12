@@ -124,6 +124,6 @@ int main( int argc, char* argv[] )
 
 
   }
-  std::cout << stats.toString();
+  std::cout << stats.toString(s);
   return 0;
 }

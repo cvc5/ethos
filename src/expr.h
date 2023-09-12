@@ -91,6 +91,7 @@ using Expr = Expr;
 
 class Expr
 {
+  friend class Compiler;
   friend class State;
 public:
   Expr();
@@ -101,7 +102,7 @@ public:
   static std::vector<Expr> getVariables(const std::vector<Expr>& es);
   /** Get the free symbols */
   static bool hasVariable(const Expr& e,
-                          const std::unordered_set<Expr>& terms);
+                          const std::unordered_set<const ExprValue*>& terms);
   /** Print debug on output strem os
    *
    * @param os the stream to print to
@@ -117,7 +118,7 @@ public:
   Expr operator[](size_t i) const;
   /**
    */
-  Expr operator=(const Expr& e) const;
+  Expr operator=(const Expr& e);
   bool operator==(const Expr& e) const;
   bool operator!=(const Expr& e) const;
   /** is null */
@@ -125,28 +126,26 @@ public:
   /** get the kind of this expression */
   Kind getKind() const;
   /** Has variable */
-  bool isEvaluatable();
+  bool isEvaluatable() const;
   /** Has variable */
-  bool isGround();
+  bool isGround() const;
   /** Has program variable */
-  bool isProgEvaluatable();
+  bool isProgEvaluatable() const;
   /** Is part of compiled code */
-  bool isCompiled();
+  bool isCompiled() const;
   /** Get symbol */
   std::string getSymbol() const;
   /** Get underlying value */
-  const ExprValue * getValue() const;
+  ExprValue * getValue() const;
 private:
   /** The current state */
   static State* d_state;
   ExprValue* d_value;
-  /** Its type */
-  ExprValue* d_type;
   /** */
   static std::map<const ExprValue*, size_t> computeLetBinding(
                                 const Expr& e,
-                                std::vector<const ExprValue*>& ll);
-  static void printDebugInternal(const ExprValue* e,
+                                std::vector<Expr>& ll);
+  static void printDebugInternal(const Expr& e,
                                  std::ostream& os,
                                  std::map<const ExprValue*, size_t>& lbind);
 };

@@ -66,8 +66,8 @@ class ExprParser
   bool parseDatatypesDef(
       const std::vector<std::string>& dnames,
       const std::vector<size_t>& arities,
-      std::map<Expr, std::vector<Expr>>& dts,
-      std::map<Expr, std::vector<Expr>>& dtcons);
+      std::map<const ExprValue *, std::vector<Expr>>& dts,
+      std::map<const ExprValue *, std::vector<Expr>>& dtcons);
   /**
    * Parses ':X', returns 'X'
    */
@@ -123,7 +123,7 @@ class ExprParser
    */
   void parseConstructorDefinitionList(Expr& dt,
                                       std::vector<Expr>& conslist,
-                                      std::map<Expr, std::vector<Expr>>& dtcons,
+                                      std::map<const ExprValue *, std::vector<Expr>>& dtcons,
                                       std::vector<std::pair<std::string, Expr>>& toBind);
   /** Return the unsigned for the current token string. */
   uint32_t tokenStrToUnsigned();

@@ -164,7 +164,7 @@ Expr ExprParser::parseExpr()
             args.push_back(v);
             size_t nscopes = 0;
             // if a closure, read a variable list and push a scope
-            if (d_state.isClosure(v))
+            if (d_state.isClosure(v.getValue()))
             {
               nscopes = 1;
               // if it is a closure, immediately read the bound variable list
@@ -273,7 +273,7 @@ Expr ExprParser::parseExpr()
     // We do this only if a context is allocated (!tstack.empty()) and we
     // either just finished parsing a term (!ret.isNull()), or otherwise have
     // indicated that we need to update the context (needsUpdateCtx).
-    while (!pstack.empty() && (ret!=nullptr || needsUpdateCtx))
+    while (!pstack.empty() && (!ret.isNull() || needsUpdateCtx))
     {
       needsUpdateCtx = false;
       StackFrame& sf = pstack.back();
@@ -282,7 +282,7 @@ Expr ExprParser::parseExpr()
         // ------------------------- argument lists
         case ParseCtx::NEXT_ARG:
         {
-          Assert(ret != nullptr);
+          Assert(!ret.isNull());
           // add it to the list of arguments and clear
           sf.d_args.push_back(ret);
           ret = nullptr;
@@ -292,14 +292,14 @@ Expr ExprParser::parseExpr()
         case ParseCtx::LET_NEXT_BIND:
         {
           // if we parsed a term, process it as a binding
-          if (ret!=nullptr)
+          if (!ret.isNull())
           {
             Assert(!letBinders.empty());
             std::vector<std::pair<std::string, Expr>>& bs = letBinders.back();
             // add binding from the symbol to ret
             Assert(!bs.empty());
             bs.back().second = ret;
-            ret = nullptr;
+            ret = Expr();
             // close the current binding
             d_lex.eatToken(Token::RPAREN);
           }
@@ -374,7 +374,7 @@ Expr ExprParser::parseExpr()
                 ret = nullptr;
                 break;
               case Attr::REQUIRES:
-                if (ret==nullptr)
+                if (ret.isNull())
                 {
                   d_lex.parseError("Cannot mark requires on implicit argument");
                 }
@@ -397,10 +397,10 @@ Expr ExprParser::parseExpr()
         // ------------------------- match terms
         case ParseCtx::MATCH_HEAD:
         {
-          Assert(ret!=nullptr);
+          Assert(!ret.isNull());
           // add the head
           sf.d_args.push_back(ret);
-          ret = nullptr;
+          ret = Expr();
           // we now parse a pattern
           sf.d_ctx = ParseCtx::MATCH_NEXT_CASE;
           needsUpdateCtx = true;
@@ -410,11 +410,11 @@ Expr ExprParser::parseExpr()
         {
           std::vector<Expr>& args = sf.d_args;
           bool checkNextPat = true;
-          if (ret!=nullptr)
+          if (!ret.isNull())
           {
             // if we just got done parsing a term (either a pattern or a return)
             Expr last = args.back();
-            if (args.size()>2 && last->getKind()!=Kind::TUPLE)
+            if (args.size()>2 && last.getKind()!=Kind::TUPLE)
             {
               // case where we just read a return value
               // replace the back of this with a pair
@@ -442,9 +442,13 @@ Expr ExprParser::parseExpr()
               }
               Expr atype = d_state.mkAbstractType();
               // environment is the variable list
-              const std::vector<Expr>& vl = args[0]->getChildren();
+              std::vector<Expr> vl;
+              for (size_t i=0, nchildren = args[0].getNumChildren(); i<nchildren; i++)
+              {
+                vl.push_back(args[0][i]);
+              }
               Expr hd = args[1];
-              std::vector<Expr> allVars = ExprValue::getVariables(args);
+              std::vector<Expr> allVars = Expr::getVariables(args);
               std::vector<Expr> env;
               std::vector<Expr> fargTypes;
               fargTypes.push_back(atype);
@@ -471,11 +475,11 @@ Expr ExprParser::parseExpr()
               for (size_t i=2, nargs = args.size(); i<nargs; i++)
               {
                 Expr cs = args[i];
-                Assert (cs->getKind()==Kind::TUPLE);
-                Expr lhs = (*cs.get())[0];
+                Assert (cs.getKind()==Kind::TUPLE);
+                Expr lhs = cs[0];
                 // check that variables in the pattern are only from the binder
                 ensureBound(lhs, vl);
-                Expr rhs = (*cs.get())[1];
+                Expr rhs = cs[1];
                 std::vector<Expr> appArgs{pv, lhs};
                 appArgs.insert(appArgs.end(), env.begin(), env.end());
                 Expr lhsa = d_state.mkExpr(Kind::APPLY, appArgs);
@@ -648,8 +652,8 @@ std::vector<std::string> ExprParser::parseSymbolList()
 bool ExprParser::parseDatatypesDef(
       const std::vector<std::string>& dnames,
       const std::vector<size_t>& arities,
-      std::map<Expr, std::vector<Expr>>& dts,
-      std::map<Expr, std::vector<Expr>>& dtcons)
+      std::map<const ExprValue *, std::vector<Expr>>& dts,
+      std::map<const ExprValue *, std::vector<Expr>>& dtcons)
 {
   Assert(dnames.size() == arities.size()
          || (dnames.size() == 1 && arities.empty()));
@@ -744,7 +748,7 @@ bool ExprParser::parseDatatypesDef(
       dti = d_state.mkExpr(Kind::APPLY, dapp);
     }
     std::vector<std::pair<std::string, Expr>> toBind;
-    parseConstructorDefinitionList(dti, dts[dt], dtcons, toBind);
+    parseConstructorDefinitionList(dti, dts[dt.getValue()], dtcons, toBind);
     if (pushedScope)
     {
       d_lex.eatToken(Token::RPAREN);
@@ -770,7 +774,7 @@ bool ExprParser::parseDatatypesDef(
 
 void ExprParser::parseConstructorDefinitionList(Expr& dt,
                                                 std::vector<Expr>& conslist,
-                                                std::map<Expr, std::vector<Expr>>& dtcons,
+                                                std::map<const ExprValue *, std::vector<Expr>>& dtcons,
                                                 std::vector<std::pair<std::string, Expr>>& toBind)
 {
   d_lex.eatToken(Token::LPAREN);
@@ -808,7 +812,7 @@ void ExprParser::parseConstructorDefinitionList(Expr& dt,
     Expr dtype = d_state.mkFunctionType({dt}, boolType);
     Expr tester = d_state.mkConst(ss.str(), dtype);
     toBind.emplace_back(ss.str(), tester);
-    dtcons[cons] = sels;
+    dtcons[cons.getValue()] = sels;
   }
 }
 
@@ -1013,7 +1017,7 @@ void ExprParser::unescapeString(std::string& s)
 Expr ExprParser::getVar(const std::string& name)
 {
   Expr ret = d_state.getVar(name);
-  if (ret==nullptr)
+  if (ret.isNull())
   {
     std::stringstream ss;
     ss << "Could not find symbol " << name;
@@ -1025,13 +1029,13 @@ Expr ExprParser::getVar(const std::string& name)
 Expr ExprParser::getProofRule(const std::string& name)
 {
   Expr v = d_state.getProofRule(name);
-  if (v==nullptr)
+  if (v.isNull())
   {
     std::stringstream ss;
     ss << "Could not find proof rule " << name;
     d_lex.parseError(ss.str());
   }
-  if (v->getKind()!=Kind::PROOF_RULE)
+  if (v.getKind()!=Kind::PROOF_RULE)
   {
     std::stringstream ss;
     ss << "Expected proof rule for " << name;
@@ -1054,7 +1058,7 @@ Expr ExprParser::typeCheck(Expr& e)
 {
   // type check immediately
   const Expr& v = d_state.getTypeChecker().getType(e);
-  if (v==nullptr)
+  if (v.isNull())
   {
     // we allocate stringstream for error messages only when an error occurs
     // thus, we require recomputing the error message here.
@@ -1076,7 +1080,7 @@ Expr ExprParser::typeCheckApp(std::vector<Expr>& children)
     typeCheck(c);
   }
   const Expr& v = d_state.getTypeChecker().getTypeApp(children);
-  if (v==nullptr)
+  if (v.isNull())
   {
     // we allocate stringstream for error messages only when an error occurs
     // thus, we require recomputing the error message here.
@@ -1108,7 +1112,7 @@ Expr ExprParser::typeCheck(Expr& e, const Expr& expected)
 
 void ExprParser::ensureBound(Expr& e, const std::vector<Expr>& bvs)
 {
-  std::vector<Expr> efv = ExprValue::getVariables(e);
+  std::vector<Expr> efv = Expr::getVariables(e);
   for (const Expr& v : efv)
   {
     if (std::find(bvs.begin(), bvs.end(), v)==bvs.end())

@@ -206,8 +206,8 @@ bool CmdParser::parseNextCommand()
       d_lex.eatToken(Token::LPAREN);
       std::vector<std::string> dnames;
       std::vector<size_t> arities;
-      std::map<Expr, std::vector<Expr>> dts;
-      std::map<Expr, std::vector<Expr>> dtcons;
+      std::map<const ExprValue *, std::vector<Expr>> dts;
+      std::map<const ExprValue *, std::vector<Expr>> dtcons;
       if (isMulti)
       {
         // parse (<sort_dec>^{n+1})
@@ -238,15 +238,17 @@ bool CmdParser::parseNextCommand()
       }
       // mark the attributes
       Attr attr = isCo ? Attr::CODATATYPE : Attr::DATATYPE;
-      for (std::pair<const Expr, std::vector<Expr>>& d : dts)
+      for (std::pair<const ExprValue * const, std::vector<Expr>>& d : dts)
       {
+        Expr dt = Expr(d.first);
         Expr ctuple = d_state.mkExpr(Kind::TUPLE, d.second);
-        d_state.markConstructorKind(d.first, attr, ctuple);
+        d_state.markConstructorKind(dt, attr, ctuple);
       }
-      for (std::pair<const Expr, std::vector<Expr>>& c : dtcons)
+      for (std::pair<const ExprValue * const, std::vector<Expr>>& c : dtcons)
       {
+        Expr cons = Expr(c.first);
         Expr stuple = d_state.mkExpr(Kind::TUPLE, c.second);
-        d_state.markConstructorKind(c.first, Attr::DATATYPE_CONSTRUCTOR, stuple);
+        d_state.markConstructorKind(cons, Attr::DATATYPE_CONSTRUCTOR, stuple);
       }
       d_lex.eatToken(Token::RPAREN);
     }
@@ -639,7 +641,7 @@ bool CmdParser::parseNextCommand()
       {
         std::vector<Expr> given = d_eparser.parseExprList();
         // maybe combine premises
-        if (!d_state.getActualPremises(rule, given, premises))
+        if (!d_state.getActualPremises(rule.getValue(), given, premises))
         {
           d_lex.parseError("Failed to get premises");
         }

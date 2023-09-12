@@ -10,7 +10,7 @@ namespace alfc {
 
 class State;
 
-using Ctx = std::map<Expr, Expr>;
+using Ctx = std::map<ExprValue*, ExprValue*>;
 std::ostream& operator<<(std::ostream& out, const Ctx& c);
 
 /** 
@@ -19,6 +19,7 @@ std::ostream& operator<<(std::ostream& out, const Ctx& c);
  */
 class TypeChecker
 {
+  friend class State;
  public:
   TypeChecker(State& s);
   ~TypeChecker();
@@ -107,6 +108,8 @@ class TypeChecker
   std::map<Expr, Expr> d_programs;
   /** Evaluation trie */
   ExprTrie d_evalTrie;
+  /** Mapping expressions to types */
+  std::map<ExprValue*, Expr> d_typeCache;
 };
 
 }  // namespace alfc
