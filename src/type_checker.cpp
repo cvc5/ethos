@@ -622,7 +622,7 @@ Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
               }
               else
               {
-                evaluated = Expr(cchildren[index]);
+                evaluated = cchildren[index];
               }
             }
             else
@@ -768,7 +768,7 @@ ExprValue* TypeChecker::evaluateProgramInternal(const std::vector<ExprValue*>& c
       // otherwise, evaluate
       for (size_t i=0, nchildren=it->second.getNumChildren(); i<nchildren; i++)
       {
-        Expr c = it->second[i];
+        const Expr& c = it->second[i];
         newCtx.clear();
         ExprValue* hd = c[0].getValue();
         std::vector<ExprValue*>& hchildren = hd->d_children;

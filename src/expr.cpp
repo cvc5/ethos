@@ -153,7 +153,11 @@ Expr::Expr(const ExprValue* ev)
 }
 Expr::~Expr()
 {
-  d_value = nullptr;
+  if (!isNull())
+  {
+    d_value->dec();
+    d_value = nullptr;
+  }
 }
 
 bool Expr::isNull() const
@@ -416,9 +420,12 @@ Expr Expr::operator[](size_t i) const
 
 Expr Expr::operator=(const Expr& e)
 {
-  d_value->dec();
-  d_value = e.d_value;
-  d_value->inc();
+  if (d_value!=e.d_value)
+  {
+    d_value->dec();
+    d_value = e.d_value;
+    d_value->inc();
+  }
   return *this;
 }
 
