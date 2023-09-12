@@ -779,17 +779,16 @@ Expr TypeChecker::evaluateProgramInternal(const std::vector<Expr>& children,
     {
       return nullptr;
     }
-    std::stringstream ss;
+    std::stringstream call;
+    call << ocmd;
     for (size_t i=1, nchildren=children.size(); i<nchildren; i++)
     {
-      ss << children[i] << std::endl;
+      call << " " << children[i];
     }
     Trace("oracles") << "Call oracle " << ocmd << " with arguments:" << std::endl;
     Trace("oracles") << "```" << std::endl;
-    Trace("oracles") << ss.str() << std::endl;
+    Trace("oracles") << call.str() << std::endl;
     Trace("oracles") << "```" << std::endl;
-    std::stringstream call;
-    call << ocmd << " input.txt";
     std::stringstream response;
     int retVal = run(call.str(), response);
     if (retVal!=0)
