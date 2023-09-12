@@ -16,7 +16,7 @@ std::ostream& operator<<(std::ostream& out, const Ctx& c)
 {
   out << "[";
   bool firstTime = true;
-  for (const std::pair<const Expr, Expr>& cc : c)
+  for (const std::pair<const ExprValue*, ExprValue*>& cc : c)
   {
     if (firstTime)
     {
@@ -26,7 +26,7 @@ std::ostream& operator<<(std::ostream& out, const Ctx& c)
     {
       out << ", ";
     }
-    out << cc.first << " -> " << cc.second;
+    out << Expr(cc.first) << " -> " << Expr(cc.second);
   }
   out << "]";
   return out;
@@ -91,19 +91,22 @@ void TypeChecker::defineProgram(const Expr& v, const Expr& prog)
 
 bool TypeChecker::hasProgram(const Expr& v) const
 {
-  return d_programs.find(v)!=d_programs.end();
+  return d_programs.find(v.getValue())!=d_programs.end();
 }
 
 const Expr& TypeChecker::getType(Expr& e, std::ostream* out)
 {
-  std::unordered_set<Expr> visited;
-  std::vector<Expr> toVisit;
-  toVisit.push_back(e);
-  Expr cur;
+  std::map<ExprValue*, Expr>::iterator itt;
+  std::unordered_set<ExprValue*> visited;
+  std::vector<ExprValue*> toVisit;
+  toVisit.push_back(e.getValue());
+  ExprValue* cur;
+  Expr ret;
   do
   {
     cur = toVisit.back();
-    if (cur->d_type!=nullptr)
+    itt =  d_typeCache.find(cur);
+    if (itt!=d_typeCache.end())
     {
       // already computed type
       toVisit.pop_back();
@@ -117,21 +120,21 @@ const Expr& TypeChecker::getType(Expr& e, std::ostream* out)
     else
     {
       //std::cout << "Type check " << cur << std::endl;
-      cur->d_type = getTypeInternal(cur, out);
-      if (cur->d_type==nullptr)
+      ret = Expr(getTypeInternal(cur, out));
+      if (ret.isNull())
       {
         // any subterm causes type checking to fail
         Trace("type_checker") << "TYPE " << cur << " : [FAIL]" << std::endl;
-        Assert(e->d_type == nullptr);
-        return e->d_type;
+        return ret;
       }
+      d_typeCache[cur] = ret;
       Trace("type_checker")
-          << "TYPE " << cur << " : " << cur->d_type << std::endl;
+          << "TYPE " << cur << " : " << ret << std::endl;
       // std::cout << "...return" << std::endl;
       toVisit.pop_back();
     }
   }while (!toVisit.empty());
-  return e->d_type;
+  return Expr(ret);
 }
 
 bool TypeChecker::checkArity(Kind k, size_t nargs)
@@ -308,7 +311,7 @@ Expr TypeChecker::getTypeApp(std::vector<Expr>& children, std::ostream* out)
     // c to t directly, hence we take the child itself and not its
     // type.
     Expr arg;
-    if (hdtypes[i-1]->getKind()==Kind::QUOTE_TYPE)
+    if (hdtypes[i-1].getKind()==Kind::QUOTE_TYPE)
     {
       arg = evaluate(children[i]);
     }
@@ -326,7 +329,7 @@ Expr TypeChecker::getTypeApp(std::vector<Expr>& children, std::ostream* out)
     return run_getTypeInternal(hdType, ctypes, out);
   }
   Ctx ctx;
-  std::set<std::pair<Expr, Expr>> visited;
+  std::set<std::pair<ExprValue*, ExprValue*>> visited;
   for (size_t i=0, nchild=ctypes.size(); i<nchild; i++)
   {
     Assert(ctypes[i] != nullptr);
@@ -353,18 +356,18 @@ Expr TypeChecker::getTypeApp(std::vector<Expr>& children, std::ostream* out)
 
 bool TypeChecker::match(const Expr& a, const Expr& b, Ctx& ctx)
 {
-  std::set<std::pair<Expr, Expr>> visited;
+  std::set<std::pair<ExprValue*, ExprValue*>> visited;
   return match(a, b, ctx, visited);
 }
 
-bool TypeChecker::match(const Expr& a, const Expr& b, Ctx& ctx, std::set<std::pair<Expr, Expr>>& visited)
+bool TypeChecker::match(const Expr& a, const Expr& b, Ctx& ctx, std::set<std::pair<ExprValue*, ExprValue*>>& visited)
 {
-  std::set<std::pair<Expr, Expr>>::iterator it;
-  std::map<Expr, Expr>::iterator ctxIt;
+  std::set<std::pair<ExprValue*, ExprValue*>>::iterator it;
+  std::map<ExprValue*, ExprValue*>::iterator ctxIt;
 
-  std::vector<std::pair<Expr, Expr>> stack;
-  stack.emplace_back(a, b);
-  std::pair<Expr, Expr> curr;
+  std::vector<std::pair<ExprValue*, ExprValue*>> stack;
+  stack.emplace_back(a.getValue(), b.getValue());
+  std::pair<ExprValue*, ExprValue*> curr;
 
   while (!stack.empty())
   {
@@ -437,36 +440,37 @@ Expr TypeChecker::evaluate(Expr& e)
 Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
 {
   Assert (e!=nullptr);
-  std::unordered_map<Expr, Expr>::iterator it;
+  std::unordered_map<ExprValue*, ExprValue*>::iterator it;
   Ctx::iterator itc;
   
-  std::vector<std::unordered_map<Expr, Expr>> visiteds;
+  std::vector<std::unordered_map<ExprValue*, Expr>> visiteds;
   std::vector<Ctx> ctxs;
-  std::vector<std::vector<Expr>> visits;
+  std::vector<std::vector<ExprValue*>> visits;
   std::vector<ExprTrie*> ets;
-  Expr evaluated;
-  Expr cur;
-  Expr init;
+  ExprValue* evaluated;
+  ExprValue* cur;
+  ExprValue* init;
   visiteds.emplace_back();
   ctxs.emplace_back(ctx);
-  visits.emplace_back(std::vector<Expr>{e});
+  visits.emplace_back(std::vector<ExprValue*>{e.getValue()});
   Kind ck;
   while (!visits.empty())
   {
-    std::unordered_map<Expr, Expr>& visited = visiteds.back();
-    std::vector<Expr>& visit = visits.back();
+    std::unordered_map<ExprValue*, Expr>& visited = visiteds.back();
+    std::vector<ExprValue*>& visit = visits.back();
     Ctx& cctx = ctxs.back();
     init = visit[0];
     while (!visit.empty())
     {
       cur = visit.back();
+      cv = cur.getValue();
       Trace("type_checker_debug") << "visit " << cur << " " << cctx << ", depth=" << visits.size() << std::endl;
       // the term will stay the same if it is not evaluatable and either it
       // is ground, or the context is empty.
       if (!cur->isEvaluatable() && (cur->isGround() || cctx.empty()))
       {
         //std::cout << "...shortcut " << cur << std::endl;
-        visited[cur] = cur;
+        visited[cv] = cur;
         visit.pop_back();
         continue;
       }
@@ -476,23 +480,23 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
         itc = cctx.find(cur);
         if (itc!=cctx.end())
         {
-          visited[cur] = itc->second;
+          visited[cv] = itc->second;
           visit.pop_back();
           continue;
         }
-        visited[cur] = cur;
+        visited[cv] = cur;
         visit.pop_back();
         continue;
         // NOTE: this could be an error or warning, variable not filled
         //std::cout << "WARNING: unfilled variable " << cur << std::endl;
       }
-      ck = cur->getKind();
-      std::vector<Expr>& children = cur->d_children;
-      it = visited.find(cur);
+      ck = cv->getKind();
+      std::vector<ExprValue*>& children = cv->d_children;
+      it = visited.find(cv);
       if (it == visited.end())
       {
         // if it is compiled, we run its evaluation here
-        if (cur->isCompiled())
+        if (cur.isCompiled())
         {
           Trace("type_checker") << "RUN evaluate " << cur << std::endl;
           Expr retev = run_evaluate(cur, cctx);
@@ -685,9 +689,9 @@ Expr TypeChecker::evaluateProgram(const std::vector<Expr>& children, Ctx& newCtx
   return d_state.mkExprInternal(Kind::APPLY, children);
 }
 
-bool TypeChecker::isGround(const std::vector<Expr>& args)
+bool TypeChecker::isGround(const std::vector<ExprValue*>& args)
 {
-  for (const Expr& e : args)
+  for (ExprValue* e : args)
   {
     if (!e->isGround())
     {
@@ -807,7 +811,7 @@ Expr TypeChecker::evaluateProgramInternal(const std::vector<Expr>& children,
   return nullptr;
 }
 
-Expr TypeChecker::evaluateLiteralOp(Kind k, const std::vector<Expr>& args)
+Expr TypeChecker::evaluateLiteralOp(Kind k, const std::vector<ExprValue*>& args)
 {
   Expr ret = evaluateLiteralOpInternal(k, args);
   if (ret!=nullptr)
@@ -818,23 +822,23 @@ Expr TypeChecker::evaluateLiteralOp(Kind k, const std::vector<Expr>& args)
   return d_state.mkExprInternal(k, args);
 }
 
-Expr getNAryChildren(Expr e, const Expr& op, std::vector<Expr>& children, bool isLeft, bool extractAll)
+ExprValue* getNAryChildren(ExprValue* e, const Expr& op, std::vector<Expr>& children, bool isLeft, bool extractAll)
 {
   while (e->getKind()==Kind::APPLY)
   {
-    Expr cop = e->getChildren()[0];
+    ExprValue* cop = (*e)[0];
     if (cop->getKind()!=Kind::APPLY)
     {
       break;
     }
-    if (cop->getChildren()[0]!=op)
+    if ((*cop)[0]!=op)
     {
       break;
     }
     // push back the element
-    children.push_back(isLeft ? e->getChildren()[1] : cop->getChildren()[1]);
+    children.push_back(isLeft ? (*e)[1] : (*cop)[1]);
     // traverse to tail
-    e = isLeft ? cop->getChildren()[1] : e->getChildren()[1];
+    e = isLeft ? (*cop)[1] : (*e)[1];
     if (!extractAll && children.size()==2)
     {
       return e;
@@ -845,7 +849,7 @@ Expr getNAryChildren(Expr e, const Expr& op, std::vector<Expr>& children, bool i
 }
 
   
-Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<Expr>& args)
+Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<ExprValue*>& args)
 {
   Trace("type_checker") << "EVALUATE-LIT " << k << " " << args << std::endl;
   switch (k)
@@ -869,7 +873,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<Expr>& arg
     case Kind::EVAL_IF_THEN_ELSE:
     {
       // temporary
-      Literal * l = d_state.getLiteral(args[0].get());
+      Literal * l = d_state.getLiteral(args[0]);
       if (l!=nullptr && l->d_tag==Literal::BOOL)
       {
         return args[l->d_bool ? 1 : 2];
@@ -898,7 +902,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<Expr>& arg
     {
       if (args[0]->isGround())
       {
-        size_t h = d_state.getHash(args[0].get());
+        size_t h = d_state.getHash(args[0]);
         return d_state.mkLiteralNumeral(h);
       }
       return nullptr;
@@ -908,7 +912,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<Expr>& arg
     case Kind::EVAL_TO_LIST:
     case Kind::EVAL_FROM_LIST:
     {
-      AppInfo* ac = d_state.getAppInfo(args[0].get());
+      AppInfo* ac = d_state.getAppInfo(args[0]);
       Assert (ac!=nullptr);
       Attr ck = ac->d_attrCons;
       Assert (ck==Attr::RIGHT_ASSOC_NIL || ck==Attr::LEFT_ASSOC_NIL);
@@ -936,7 +940,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<Expr>& arg
             // already nil
             return harg;
           }
-          Expr a = harg;
+          ExprValue* a = harg;
           a = getNAryChildren(a, op, hargs, isLeft, false);
           if (!hargs.empty())
           {

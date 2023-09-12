@@ -48,7 +48,7 @@ class TypeChecker
    */
   bool match(const Expr& a, const Expr& b, Ctx& ctx);
   /** Same as above, but takes a cache of pairs we have already visited */
-  bool match(const Expr& a, const Expr& b, Ctx& ctx, std::set<std::pair<Expr, Expr>>& visited);
+  bool match(const Expr& a, const Expr& b, Ctx& ctx, std::set<std::pair<ExprValue*, ExprValue*>>& visited);
   /**
    * Evaluate the expression e in the given context.
    */
@@ -79,24 +79,24 @@ class TypeChecker
   Expr evaluateLiteralOp(Kind k, const std::vector<Expr>& args);
  private:
   /** Are all args ground? */
-  static bool isGround(const std::vector<Expr>& args);
+  static bool isGround(const std::vector<ExprValue*>& args);
   /** Maybe evaluate */
-  Expr evaluateProgramInternal(const std::vector<Expr>& args, Ctx& newCtx);
+  Expr evaluateProgramInternal(const std::vector<ExprValue*>& args, Ctx& newCtx);
   /** Return its type */
-  Expr getTypeInternal(Expr& e, std::ostream* out);
+  Expr getTypeInternal(ExprValue* e, std::ostream* out);
   /** Evaluate literal op */
-  Expr evaluateLiteralOpInternal(Kind k, const std::vector<Expr>& args);
+  Expr evaluateLiteralOpInternal(Kind k, const std::vector<ExprValue*>& args);
   /** Type check */
   Expr getLiteralOpType(Kind k, 
                         std::vector<Expr>& childTypes, 
                         std::ostream* out);
   //---------------- compiled methods
   /** Compiled version */
-  Expr run_getTypeInternal(Expr& hdType, const std::vector<Expr>& args, std::ostream* out);
+  Expr run_getTypeInternal(ExprValue* hdType, const std::vector<ExprValue*>& args, std::ostream* out);
   /** Compiled version */
-  Expr run_evaluate(Expr& e, Ctx& ctx);
+  Expr run_evaluate(ExprValue* e, Ctx& ctx);
   /** Compiled version */
-  Expr run_evaluateProgram(const std::vector<Expr>& args, Ctx& ctx);
+  ExprValue* run_evaluateProgram(const std::vector<ExprValue*>& args, Ctx& ctx);
   //---------------- end compiled methods
   /** The state */
   State& d_state;
@@ -105,7 +105,7 @@ class TypeChecker
   /** Mapping literal kinds to type rules */
   std::map<Kind, Expr> d_literalTypeRules;
   /** Programs */
-  std::map<Expr, Expr> d_programs;
+  std::map<ExprValue*, Expr> d_programs;
   /** Evaluation trie */
   ExprTrie d_evalTrie;
   /** Mapping expressions to types */

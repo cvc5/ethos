@@ -116,9 +116,17 @@ Expr::Expr()
 {
   d_value = &ExprValue::s_null;
 }
-Expr::Expr(const ExprValue* ev) : d_value(const_cast<ExprValue*>(ev))
+Expr::Expr(const ExprValue* ev)
 {
-  d_value->inc();
+  if (ev==nullptr)
+  {
+    d_value = &ExprValue::s_null;
+  }
+  else
+  {
+    d_value = const_cast<ExprValue*>(ev);
+    d_value->inc();
+  }
 }
 Expr::~Expr()
 {
