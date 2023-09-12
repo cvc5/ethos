@@ -591,7 +591,7 @@ Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
               {
                 Ctx newCtx;
                 // see if we evaluate
-                evaluated = Expr(evaluateProgramInternal(cchildren, newCtx));
+                evaluated = evaluateProgramInternal(cchildren, newCtx);
                 //std::cout << "Evaluate prog returned " << evaluated << std::endl;
                 if (evaluated.isNull() || newCtx.empty())
                 {
@@ -713,10 +713,10 @@ Expr TypeChecker::evaluateProgram(const std::vector<Expr>& children, Ctx& newCtx
   {
     vchildren.push_back(c.getValue());
   }
-  ExprValue* ret = evaluateProgramInternal(vchildren, newCtx);
-  if (ret!=nullptr)
+  const Expr& ret = evaluateProgramInternal(vchildren, newCtx);
+  if (!ret.isNull())
   {
-    return Expr(ret);
+    return ret;
   }
   // otherwise does not evaluate, return application
   return Expr(d_state.mkExprInternal(Kind::APPLY, vchildren));
@@ -749,7 +749,7 @@ int run(const std::string& call, std::ostream& response)
   return -1;
 }
 
-ExprValue* TypeChecker::evaluateProgramInternal(
+Expr TypeChecker::evaluateProgramInternal(
     const std::vector<ExprValue*>& children, Ctx& newCtx)
 {
   if (!isGround(children))

@@ -111,7 +111,7 @@ class ExprParser
   /** Bind, or throw error otherwise */
   void bind(const std::string& name, Expr& e);
   /** Ensure bound */
-  void ensureBound(Expr& e, const std::vector<Expr>& bvs);
+  void ensureBound(const Expr& e, const std::vector<Expr>& bvs);
   //-------------------------- end checking
   /** Get constructor kind */
   bool processAttributeMap(const AttrMap& attrs, Attr& ck, Expr& cons);

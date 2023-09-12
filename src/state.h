@@ -176,7 +176,6 @@ private:
    * previous one if the same call to mkExprInternal was made previously.
    */
   ExprValue* mkExprInternal(Kind k, const std::vector<ExprValue*>& children);
-  ExprValue* mkExprFromVector(Kind k, const std::vector<Expr>& children);
   /** Constructs a symbol-like expression with the given kind, name and type. */
   Expr mkSymbolInternal(Kind k, const std::string& name, const Expr& type);
   /** Get the internal data for expression e. */

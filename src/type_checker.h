@@ -89,8 +89,8 @@ class TypeChecker
   /** Are all args ground? */
   static bool isGround(const std::vector<ExprValue*>& args);
   /** Maybe evaluate */
-  ExprValue* evaluateProgramInternal(const std::vector<ExprValue*>& args,
-                                     Ctx& newCtx);
+  Expr evaluateProgramInternal(const std::vector<ExprValue*>& args,
+                               Ctx& newCtx);
   /** Return its type */
   Expr getTypeInternal(ExprValue* e, std::ostream* out);
   /** Get or set type rule (to default) for literal kind k */

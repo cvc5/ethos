@@ -20,8 +20,6 @@ class Expr;
  */
 class ExprValue
 {
-  friend class Compiler;
-  friend class State;
   friend class TypeChecker;
   friend class Expr;
 

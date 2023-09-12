@@ -169,7 +169,7 @@ Compiler::Compiler(State& s) :
   d_evalp << "  {" << std::endl;
   d_evalpEnd << "  default: break;" << std::endl;
   d_evalpEnd << "  }" << std::endl;
-  // otherwise just return itself (unevaluated)
+  // otherwise just return nullptr, we will return itself unevaluated in evaluateProgram
   d_evalpEnd << "  return nullptr;" << std::endl;
   d_evalpEnd << "}" << std::endl;
 }
@@ -273,8 +273,8 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
   {
     const Expr& c = prog[i];
     Trace("compiler") << "writeEvaluate for " << c << std::endl;
-    Expr hd = c[0];
-    Expr body = c[1];
+    const Expr& hd = c[0];
+    const Expr& body = c[1];
     os << "       // matching for arguments of " << hd << std::endl;
     os << "       case " << (i+1) << ":" << std::endl;
     os << "       {" << std::endl;
@@ -566,7 +566,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         else if (cs.d_progEval && isLiteralOp(ck))
         {
           os << "  " << cs.d_prefix << ret << " = evaluateLiteralOp(Kind::";
-          os << cur.getKind() << ", " << argList.str() << ").getValue();"
+          os << cur.getKind() << ", " << argList.str() << ");"
              << std::endl;
         }
         else
@@ -744,7 +744,7 @@ void Compiler::writeMatching(const Expr& pat,
     curr = toVisit.back();
     toVisit.pop_back();
     std::string cterm = pt.getNameForPath(curr.first);
-    Expr p = curr.second;
+    const Expr& p = curr.second;
     if (p.getKind() == Kind::PARAM)
     {
       const ExprValue* pv = p.getValue();

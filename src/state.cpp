@@ -718,7 +718,12 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       }
     }
   }
-  return mkExprFromVector(k, children);
+  std::vector<ExprValue*> vchildren;
+  for (const Expr& c : children)
+  {
+    vchildren.push_back(c.getValue());
+  }
+  return mkExprInternal(k, vchildren);
 }
 
 Expr State::mkTrue()
@@ -784,16 +789,6 @@ ExprValue* State::mkApplyInternal(const std::vector<ExprValue*>& children)
     curr = mkExprInternal(Kind::APPLY, {curr, children[i]});
   }
   return curr;
-}
-
-ExprValue* State::mkExprFromVector(Kind k, const std::vector<Expr>& children)
-{
-  std::vector<ExprValue*> vchildren;
-  for (const Expr& c : children)
-  {
-    vchildren.push_back(c.getValue());
-  }
-  return mkExprInternal(k, vchildren);
 }
 
 ExprValue* State::mkExprInternal(Kind k,

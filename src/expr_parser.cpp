@@ -476,12 +476,12 @@ Expr ExprParser::parseExpr()
               std::vector<Expr> cases;
               for (size_t i=2, nargs = args.size(); i<nargs; i++)
               {
-                Expr cs = args[i];
+                const Expr& cs = args[i];
                 Assert(cs.getKind() == Kind::TUPLE);
-                Expr lhs = cs[0];
+                const Expr& lhs = cs[0];
                 // check that variables in the pattern are only from the binder
                 ensureBound(lhs, vl);
-                Expr rhs = cs[1];
+                const Expr& rhs = cs[1];
                 std::vector<Expr> appArgs{pv, lhs};
                 appArgs.insert(appArgs.end(), env.begin(), env.end());
                 Expr lhsa = d_state.mkExpr(Kind::APPLY, appArgs);
@@ -1113,7 +1113,7 @@ Expr ExprParser::typeCheck(Expr& e, const Expr& expected)
   return et;
 }
 
-void ExprParser::ensureBound(Expr& e, const std::vector<Expr>& bvs)
+void ExprParser::ensureBound(const Expr& e, const std::vector<Expr>& bvs)
 {
   std::vector<Expr> efv = Expr::getVariables(e);
   for (const Expr& v : efv)
