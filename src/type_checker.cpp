@@ -775,7 +775,7 @@ Expr TypeChecker::evaluateProgramInternal(const std::vector<Expr>& children,
   {
     // get the command
     std::string ocmd;
-    if (!d_state.getOracleCmd(hd, ocmd))
+    if (!d_state.getOracleCmd(hd.get(), ocmd))
     {
       return nullptr;
     }

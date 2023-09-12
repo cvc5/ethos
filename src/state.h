@@ -130,9 +130,9 @@ public:
   /** Get the literal associated with e or nullptr if it does not exist */
   Literal* getLiteral(const ExprValue* e);
   /** Get actual premises */
-  bool getActualPremises(const Expr& rule, std::vector<Expr>& given, std::vector<Expr>& actual);
+  bool getActualPremises(const ExprValue* rule, std::vector<Expr>& given, std::vector<Expr>& actual);
   /** Get the oracle command */
-  bool getOracleCmd(const Expr& oracle, std::string& ocmd);
+  bool getOracleCmd(const ExprValue* oracle, std::string& ocmd);
   /** */
   size_t getAssumptionLevel() const;
   /** */

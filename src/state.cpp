@@ -881,9 +881,9 @@ Literal* State::getLiteral(const ExprValue* e)
   return nullptr;
 }
 
-bool State::getActualPremises(const Expr& rule, std::vector<Expr>& given, std::vector<Expr>& actual)
+bool State::getActualPremises(const ExprValue* rule, std::vector<Expr>& given, std::vector<Expr>& actual)
 {
-  AppInfo* ainfo = getAppInfo(rule.get());
+  AppInfo* ainfo = getAppInfo(rule);
   if (ainfo!=nullptr && ainfo->d_attrCons==Attr::PREMISE_LIST)
   {
     Expr plCons = ainfo->d_attrConsTerm;
@@ -921,9 +921,9 @@ bool State::getActualPremises(const Expr& rule, std::vector<Expr>& given, std::v
   actual = given;
   return true;
 }
-bool State::getOracleCmd(const Expr& oracle, std::string& ocmd)
+bool State::getOracleCmd(const ExprValue* oracle, std::string& ocmd)
 {
-  AppInfo* ainfo = getAppInfo(oracle.get());
+  AppInfo* ainfo = getAppInfo(oracle);
   if (ainfo!=nullptr && ainfo->d_attrCons==Attr::ORACLE)
   {
     Expr oexpr = ainfo->d_attrConsTerm;

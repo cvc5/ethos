@@ -640,7 +640,7 @@ bool CmdParser::parseNextCommand()
       {
         std::vector<Expr> given = d_eparser.parseExprList();
         // maybe combine premises
-        if (!d_state.getActualPremises(rule, given, premises))
+        if (!d_state.getActualPremises(rule.get(), given, premises))
         {
           d_lex.parseError("Failed to get premises");
         }
