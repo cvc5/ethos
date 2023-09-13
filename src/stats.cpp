@@ -45,10 +45,10 @@ std::string RuleStat::toString(std::time_t totalTime) const
   double timePerRule = static_cast<double>(d_time)/static_cast<double>(d_count);
   std::stringstream sp;
   sp << std::fixed << std::setprecision(0) << timePerRule;
-  ss << std::left << std::setw(7) << sp.str();
+  ss << std::left << std::setw(10) << sp.str();
   std::stringstream se;
   se << d_mkExprCount;
-  ss << std::left << std::setw(7) << se.str();
+  ss << std::left << std::setw(10) << se.str();
   return ss.str();
 }
   
@@ -78,7 +78,7 @@ struct SortRuleTime
 std::string Stats::toString(State& s) const
 {
   std::stringstream ss;
-  ss << "==================================================================" << std::endl;
+  ss << "========================================================================" << std::endl;
   ss << "mkExprCount = " << d_mkExprCount << std::endl;
   ss << "exprCount = " << d_exprCount << std::endl;
   ss << "symCount = " << d_symCount << std::endl;
@@ -87,14 +87,14 @@ std::string Stats::toString(State& s) const
   ss << "time = " << totalTime << std::endl;
   if (!d_rstats.empty())
   {
-    ss << "==================================================================" << std::endl;
+    ss << "========================================================================" << std::endl;
     ss << std::right << std::setw(28) << "Rule  ";
     ss << std::left << std::setw(17) << "t";
     ss << std::left << std::setw(7) << "#";
-    ss << std::left << std::setw(7) << "t/#";
-    ss << std::left << std::setw(7) << "#mkExpr";
+    ss << std::left << std::setw(10) << "t/#";
+    ss << std::left << std::setw(10) << "#mkExpr";
     ss << std::endl;
-    ss << "==================================================================" << std::endl;
+    ss << "========================================================================" << std::endl;
     // display stats for each rule
     std::vector<const ExprValue*> sortedStats;
     for (const std::pair<const ExprValue* const, RuleStat>& r : d_rstats)

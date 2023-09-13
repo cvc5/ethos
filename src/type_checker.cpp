@@ -821,7 +821,7 @@ Expr TypeChecker::evaluateProgramInternal(
     call << ocmd;
     for (size_t i=1, nchildren=children.size(); i<nchildren; i++)
     {
-      call << " " << children[i];
+      call << " " << Expr(children[i]);
     }
     Trace("oracles") << "Call oracle " << ocmd << " with arguments:" << std::endl;
     Trace("oracles") << "```" << std::endl;
