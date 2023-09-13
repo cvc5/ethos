@@ -86,6 +86,7 @@ set(alfc_test_file_list
     simple_uf.smt2
     Strings-theory.smt2
     Strings-programs.smt2
+    self-requires.smt2
 )
 
 macro(alfc_test file)
