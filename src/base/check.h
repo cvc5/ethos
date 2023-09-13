@@ -55,13 +55,15 @@ class FatalStream
 {
  public:
   FatalStream(const char* function, const char* file, int line);
-  FatalStream() {}
+  FatalStream() : d_abort(false) {}
   [[noreturn]] ~FatalStream();
 
   std::ostream& stream();
 
  private:
   void Flush();
+  /** Whether to abort */
+  bool d_abort;
 };
 
 // Helper class that changes the type of an std::ostream& into a void. See

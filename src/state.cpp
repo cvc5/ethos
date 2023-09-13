@@ -151,7 +151,7 @@ void State::popAssumptionScope()
   d_assumptions.resize(lastSize);
 }
 
-void State::includeFile(const std::string& s, bool isReference)
+bool State::includeFile(const std::string& s, bool isReference)
 {
   std::filesystem::path inputPath;
   try {
@@ -159,11 +159,11 @@ void State::includeFile(const std::string& s, bool isReference)
   }
   catch (std::filesystem::filesystem_error const&)
   {
-    ALFC_FATAL() << "State::includeFile: could not include \"" + s + "\"";
+    return false;
   }
   if (!markIncluded(inputPath))
   {
-    return;
+    return true;
   }
   std::filesystem::path currentPath = d_inputFile;
   d_inputFile = inputPath;
@@ -187,6 +187,7 @@ void State::includeFile(const std::string& s, bool isReference)
   {
     ALFC_FATAL() << "Including file " << inputPath << " did not preserve assumption scope";
   }
+  return true;
 }
 
 bool State::markIncluded(const std::string& s)
@@ -1058,7 +1059,7 @@ void State::defineProgram(const Expr& v, const Expr& prog)
   }
 }
 
-void State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
+bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
 {
   Expr acons = cons;
   if (a==Attr::ORACLE)
@@ -1071,7 +1072,8 @@ void State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
     }
     catch (std::filesystem::filesystem_error const&)
     {
-      ALFC_FATAL() << "State:: could not include \"" + ocmd + "\" for oracle definition";
+      Warning() << "State:: could not include \"" + ocmd + "\" for oracle definition";
+      return false;
     }
     acons = mkLiteral(Kind::STRING, inputPath);
   }
@@ -1083,6 +1085,7 @@ void State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
   {
     d_compiler->markConstructorKind(v, a, acons);
   }
+  return true;
 }
 void State::markHasReference()
 {

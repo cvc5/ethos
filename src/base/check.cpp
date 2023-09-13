@@ -20,7 +20,7 @@
 
 namespace alfc {
 
-FatalStream::FatalStream(const char* function, const char* file, int line)
+FatalStream::FatalStream(const char* function, const char* file, int line) : d_abort(true)
 {
   stream() << "Fatal failure within " << function << " at " << file << ":"
            << line << "\n";
@@ -29,7 +29,14 @@ FatalStream::FatalStream(const char* function, const char* file, int line)
 FatalStream::~FatalStream()
 {
   Flush();
-  abort();
+  if (d_abort)
+  {
+    abort();
+  }
+  else
+  {
+    exit(1);
+  }
 }
 
 std::ostream& FatalStream::stream() { return std::cerr; }

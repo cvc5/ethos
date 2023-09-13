@@ -184,7 +184,12 @@ bool CmdParser::parseNextCommand()
       // if the type has a property, we mark it on the variable of this type
       if (ck!=Attr::NONE)
       {
-        d_state.markConstructorKind(v, ck, cons);
+        if (!d_state.markConstructorKind(v, ck, cons))
+        {
+          std::stringstream ss;
+          ss << "Failed to mark " << v << " with attribute " << ck;
+          d_lex.parseError(ss.str());
+        }
       }
       // bind
       d_eparser.bind(name, v);
@@ -521,7 +526,12 @@ bool CmdParser::parseNextCommand()
       }
       // include the file
       std::string file = d_eparser.parseStr(true);
-      d_state.includeFile(file, isReference);
+      if (!d_state.includeFile(file, isReference))
+      {
+        std::stringstream ss;
+        ss << "Cannot include file " << file;
+        d_lex.parseError(ss.str());
+      }
       if (isReference)
       {
         d_state.markHasReference();

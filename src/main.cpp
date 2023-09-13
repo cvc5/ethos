@@ -88,7 +88,7 @@ int main( int argc, char* argv[] )
       TraceChannel.on("compile");
       TraceChannel.on("step");
 #else
-      ALFC_FATAL() << "Error: tracing not enabled in this build" << std::endl;
+      ALFC_FATAL() << "Error: tracing not enabled in this build";
 #endif
     }
     else if (!readFile)
@@ -98,17 +98,20 @@ int main( int argc, char* argv[] )
     }
     else
     {
-      ALFC_FATAL() << "Error: mulitple files specified, \"" << file << "\" and \"" << arg << "\"" << std::endl;
+      ALFC_FATAL() << "Error: mulitple files specified, \"" << file << "\" and \"" << arg << "\"";
     }
   }
 
   if (!readFile)
   {
-    ALFC_FATAL() << "Error: no file specified" << std::endl;
+    ALFC_FATAL() << "Error: no file specified";
   }
   State s(opts, stats);
   // include the file
-  s.includeFile(file);
+  if (!s.includeFile(file))
+  {
+    ALFC_FATAL() << "Error: cannot include file " << file;
+  }
   std::cout << "success" << std::endl;
   if (opts.d_compile)
   {

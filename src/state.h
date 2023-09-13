@@ -49,8 +49,8 @@ public:
   void pushAssumptionScope();
   /** Pop assumption scope */
   void popAssumptionScope();
-  /** include file, if not already done */
-  void includeFile(const std::string& s, bool isReference = false);
+  /** include file, if not already done, return false if error */
+  bool includeFile(const std::string& s, bool isReference = false);
   /** add assumption */
   bool addAssumption(const Expr& a);
   /** add reference assert */
@@ -60,7 +60,7 @@ public:
   /** */
   bool bind(const std::string& name, const Expr& e);
   /** Mark constructor kind */
-  void markConstructorKind(const Expr& v, Attr a, const Expr& cons);
+  bool markConstructorKind(const Expr& v, Attr a, const Expr& cons);
   /** Define program, where v is PROGRAM_CONST and prog is PROGRAM. */
   void defineProgram(const Expr& v, const Expr& prog);
   /** Mark has reference */
