@@ -69,6 +69,23 @@ set(alfc_test_file_list
     quant-sk-small.alfc.smt2
     oracle-ex.smt2
     oracle-ex2.smt2
+    Arith-rules.smt2
+    Arith-theory.smt2
+    Booleans-rules.smt2
+    Builtin-rules.smt2
+    Builtin-theory.smt2
+    Nary.smt2
+    Quantifiers-rules.smt2
+    Quantifiers-theory.smt2
+    Uf-rules.smt2
+    Utils.smt2
+    examples-booleans.smt2
+    examples-nary.smt2
+    premise-list-cong-2.smt2
+    premise-list-nary-cong-2.smt2
+    simple_uf.smt2
+    Strings-theory.smt2
+    Strings-programs.smt2
 )
 
 macro(alfc_test file)

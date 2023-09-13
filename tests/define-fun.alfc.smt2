@@ -1,4 +1,9 @@
-(include "../proofs/rules/Cvc5.smt2")
+(include "Quantifiers-rules.smt2")
+(include "Booleans-rules.smt2")
+(include "Builtin-rules.smt2")
+(include "Uf-rules.smt2")
+(include "Arith-rules.smt2")
+
 (declare-var alf.1.x Int)
 (declare-var x Int)
 (define-fun f () (-> Int Bool) (lambda x false))

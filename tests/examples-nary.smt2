@@ -1,4 +1,4 @@
-(include "../programs/Nary.smt2")
+(include "Nary.smt2")
 
 ; Nary tests on a custom type
 (declare-type S ())

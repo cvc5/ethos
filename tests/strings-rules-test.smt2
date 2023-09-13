@@ -1,4 +1,19 @@
-(include "../proofs/rules/Strings.smt2")
+(include "Strings-programs.smt2")
+
+; the PfRule::CONCAT_EQ rule
+(declare-rule concat_eq ((U Type) (s U) (t U) (rev Bool))
+  :premises ((= s t))
+  :args (U rev)
+  :conclusion
+    (alf.match ((ss U) (ts U))
+      (strip_prefix
+           (string_to_flat_form U s rev)
+           (string_to_flat_form U t rev))
+      ((@pair ss ts)
+        (=
+          (string_from_flat_form U ss rev)
+          (string_from_flat_form U ts rev))))
+)
 
 (declare-fun x () String)
 (declare-fun y () String)

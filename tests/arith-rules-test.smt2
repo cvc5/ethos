@@ -1,4 +1,4 @@
-(include "../proofs/rules/Arith.smt2")
+(include "Arith-rules.smt2")
 
 (declare-fun x () Int)
 (declare-fun y () Int)

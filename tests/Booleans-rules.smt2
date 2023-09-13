@@ -1,7 +1,7 @@
-(include "../theories/Builtin.smt2")
-(include "../theories/Ints.smt2")
+(include "Builtin-theory.smt2")
+(include "Arith-theory.smt2")
 
-(include "../programs/Nary.smt2")
+(include "Nary.smt2")
 
 ; SCOPE
 

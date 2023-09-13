@@ -1,0 +1,45 @@
+(program maybe_nil ((T Type) (t T))
+    (T T) T
+    (
+      ((maybe_nil t t)       t)
+      ((maybe_nil t alf.nil) t)
+    )
+)
+
+(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-const and (-> (! Type :var U :implicit) Bool U (maybe_nil Bool U)) :right-assoc-nil)
+
+(program mk_cong_eq ((T Type) (U Type) (f1 (-> T U)) (f2 (-> T U)) (t1 U) (t2 U) (tail Bool :list))
+    (Bool Bool) Bool
+    (
+        ((mk_cong_eq (= f1 f2) alf.nil)              (= f1 f2))
+        ((mk_cong_eq (= f1 f2) (and (= t1 t2) tail)) (mk_cong_eq (= (f1 t1) (f2 t2)) tail))
+    )
+)
+
+(declare-rule cong ((T Type) (U Type) (E Bool) (f (-> T U)))
+    :premise-list E and
+    :args (f)
+    :conclusion (mk_cong_eq (= f f) E)
+)
+
+(declare-rule cong-2 ((T Type) (U Type) (S Type) (f (-> T S U)) (t1 T) (t2 T) (t3 S) (t4 S))
+    :premises ((= t1 t2) (= t3 t4))
+    :args (f)
+    :conclusion (= (f t1 t3) (f t2 t4))
+)
+
+
+(declare-sort U 0)
+(declare-const a U)
+(declare-const b U)
+(declare-const c U)
+(declare-const d U)
+(declare-fun f (U U) U)
+
+(assume @p0 (= a b))
+(assume @p1 (= c d))
+
+(step @p2 (= (f a c) (f b d)) :rule cong :premises (@p0 @p1) :args (f))
+(step @p3 (= (f a c) (f b d)) :rule cong-2 :premises (@p0 @p1) :args (f))
+

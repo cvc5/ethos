@@ -1,4 +1,4 @@
-(include "../rules/Uf.smt2")
+(include "Uf-rules.smt2")
 
 (declare-type S ())
 (declare-const c1 S)

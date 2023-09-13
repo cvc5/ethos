@@ -1,4 +1,6 @@
-(include "../proofs/rules/Cvc5.smt2")
+(include "Uf-rules.smt2")
+(include "Builtin-rules.smt2")
+(include "Booleans-rules.smt2")
 (declare-sort U 0)
 (declare-fun f (U U) U)
 (declare-fun p2 () Bool)
