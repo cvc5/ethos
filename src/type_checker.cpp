@@ -362,8 +362,8 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
       {
         (*out) << "Unexpected argument type " << i << " of " << hd << std::endl;
         (*out) << "  LHS " << evaluateInternal(hdtypes[i], ctx) << ", from "
-               << hdtypes[i] << std::endl;
-        (*out) << "  RHS " << ctypes[i] << std::endl;
+               << Expr(hdtypes[i]) << std::endl;
+        (*out) << "  RHS " << Expr(ctypes[i]) << std::endl;
       }
       return nullptr;
     }
