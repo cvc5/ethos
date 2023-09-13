@@ -34,6 +34,7 @@ public:
 class State
 {
   friend class TypeChecker;
+  friend class Compiler;
 public:
   State(Options& opts, Stats& stats);
   ~State();
@@ -180,6 +181,8 @@ private:
   Expr mkSymbolInternal(Kind k, const std::string& name, const Expr& type);
   /** Get the internal data for expression e. */
   AppInfo* getAppInfo(const ExprValue* e);
+  /** lookup type */
+  ExprValue* lookupType(const ExprValue* e) const;
   /** Bind builtin */
   void bindBuiltin(const std::string& name, Kind k, Attr ac = Attr::NONE);
   /** Bind builtin */
@@ -208,6 +211,8 @@ private:
   std::map<const ExprValue*, AppInfo> d_appData;
   /** Map from expressions to hash */
   std::map<const ExprValue*, size_t> d_hashMap;
+  /** Mapping expressions to types */
+  std::map<const ExprValue*, Expr> d_typeCache;
   /** Hash counter */
   size_t d_hashCounter;
   /** The database of created expressions */

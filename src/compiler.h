@@ -159,7 +159,6 @@ public:
   std::string toString();
 private:
   State& d_state;
-  TypeChecker& d_tchecker;
   /** Number of current scopes. Bindings at scope>0 are not remembered */
   size_t d_nscopes;
   /** Declarations? */

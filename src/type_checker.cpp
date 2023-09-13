@@ -34,9 +34,9 @@ std::ostream& operator<<(std::ostream& out, const Ctx& c)
 
 TypeChecker::TypeChecker(State& s) : d_state(s)
 {
-  d_literalKinds = { Kind::BOOLEAN, Kind::NUMERAL,  Kind::DECIMAL, Kind::HEXADECIMAL, Kind::BINARY, Kind::STRING };
+  std::set<Kind> literalKinds = { Kind::BOOLEAN, Kind::NUMERAL,  Kind::DECIMAL, Kind::HEXADECIMAL, Kind::BINARY, Kind::STRING };
   // initialize literal kinds 
-  for (Kind k : d_literalKinds)
+  for (Kind k : literalKinds)
   {
     d_literalTypeRules[k] = nullptr;
   }
@@ -96,17 +96,18 @@ bool TypeChecker::hasProgram(const Expr& v) const
 
 Expr TypeChecker::getType(Expr& e, std::ostream* out)
 {
-  std::map<ExprValue*, Expr>::iterator itt;
+  std::map<const ExprValue*, Expr>::iterator itt;
   std::unordered_set<ExprValue*> visited;
   std::vector<ExprValue*> toVisit;
   toVisit.push_back(e.getValue());
   ExprValue* cur;
   Expr ret;
+  std::map<const ExprValue*, Expr>& tc = d_state.d_typeCache;
   do
   {
     cur = toVisit.back();
-    itt = d_typeCache.find(cur);
-    if (itt != d_typeCache.end())
+    itt = tc.find(cur);
+    if (itt != tc.end())
     {
       ret = itt->second;
       // already computed type
@@ -129,7 +130,7 @@ Expr TypeChecker::getType(Expr& e, std::ostream* out)
             << "TYPE " << Expr(cur) << " : [FAIL]" << std::endl;
         return ret;
       }
-      d_typeCache[cur] = ret;
+      tc[cur] = ret;
       Trace("type_checker")
           << "TYPE " << Expr(cur) << " : " << ret << std::endl;
       // std::cout << "...return" << std::endl;
@@ -200,11 +201,11 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       std::vector<ExprValue*>& vars = e->d_children[0]->d_children;
       for (ExprValue* v : vars)
       {
-        ExprValue* t = lookupType(v);
+        ExprValue* t = d_state.lookupType(v);
         Assert(t != nullptr);
         args.emplace_back(t);
       }
-      Expr ret(lookupType(e->d_children[1]));
+      Expr ret(d_state.lookupType(e->d_children[1]));
       Assert(!ret.isNull());
       return d_state.mkFunctionType(args, ret);
     }
@@ -219,7 +220,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       return d_state.mkType();
     case Kind::PROOF_TYPE:
     {
-      ExprValue* ctype = lookupType(e->d_children[0]);
+      ExprValue* ctype = d_state.lookupType(e->d_children[0]);
       Assert(ctype != nullptr);
       if (ctype->getKind()!=Kind::BOOL_TYPE)
       {
@@ -266,7 +267,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
         std::vector<ExprValue*>& children = e->d_children;
         for (ExprValue* c : children)
         {
-          ctypes.push_back(lookupType(c));
+          ctypes.push_back(d_state.lookupType(c));
         }
         return getLiteralOpType(k, ctypes, out);
       }
@@ -294,7 +295,7 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
 {
   Assert (!children.empty());
   ExprValue* hd = children[0];
-  ExprValue* hdType = lookupType(hd);
+  ExprValue* hdType = d_state.lookupType(hd);
   Assert(hdType != nullptr);
   if (hdType->getKind()!=Kind::FUNCTION_TYPE)
   {
@@ -333,7 +334,7 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     }
     else
     {
-      arg = lookupType(children[i]);
+      arg = d_state.lookupType(children[i]);
       Assert(arg != nullptr);
     }
     ctypes.emplace_back(arg);
@@ -837,7 +838,6 @@ Expr TypeChecker::evaluateProgramInternal(
     Parser poracle(d_state);
     poracle.setStringInput(response.str());
     Expr ret = poracle.parseNextExpr();
-    // TODO: ref count
     Trace("oracles") << "returns " << ret << std::endl;
     return ret.getValue();
   }
@@ -1122,16 +1122,6 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
   if (out)
   {
     (*out) << "Unknown type for literal operator " << k;
-  }
-  return nullptr;
-}
-
-ExprValue* TypeChecker::lookupType(ExprValue* e) const
-{
-  std::map<ExprValue*, Expr>::const_iterator itt = d_typeCache.find(e);
-  if (itt != d_typeCache.end())
-  {
-    return itt->second.getValue();
   }
   return nullptr;
 }

@@ -112,7 +112,7 @@ std::string PathTrie::PathTrieNode::getNameForPath(std::ostream& osdecl, const s
 
 
 Compiler::Compiler(State& s) :
-  d_state(s), d_tchecker(s.getTypeChecker()), d_nscopes(0), d_global(d_decl, d_init, "_e", nullptr)
+  d_state(s), d_nscopes(0), d_global(d_decl, d_init, "_e", nullptr)
 {
   d_decl << "std::map<const ExprValue*, size_t> _runId;" << std::endl;
   d_decl << "Ctx _ctxTmp;" << std::endl;
@@ -219,7 +219,7 @@ void Compiler::bind(const std::string& name, const Expr& e)
   // bind the symbol
   d_init << "  bind(\"" << name << "\", _e" << id << ");" << std::endl;
   // write its type checker (if necessary)
-  ExprValue* t = d_tchecker.lookupType(e.getValue());
+  ExprValue* t = d_state.lookupType(e.getValue());
   if (t != nullptr)
   {
     writeTypeChecking(d_tc, t);
@@ -415,7 +415,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
       if (isg)
       {
         // If global, write its type as well, separately. The recursion depth here is very limited.
-        ExprValue* t = d_tchecker.lookupType(cur.getValue());
+        ExprValue* t = d_state.lookupType(cur.getValue());
         if (t != nullptr)
         {
           tid = writeGlobalExpr(t);
@@ -581,10 +581,10 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
           if (isg)
           {
             // cache its type
-            ExprValue* t = d_tchecker.lookupType(cur.getValue());
+            ExprValue* t = d_state.lookupType(cur.getValue());
             if (t != nullptr)
             {
-              os << "  d_tc.d_typeCache[" << d_global.d_prefix << ret
+              os << "  d_typeCache[" << d_global.d_prefix << ret
                  << ".getValue()] = " << d_global.d_prefix << tid << ";"
                  << std::endl;
             }

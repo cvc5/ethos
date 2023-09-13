@@ -101,8 +101,6 @@ class TypeChecker
   ExprValue* getLiteralOpType(Kind k,
                               std::vector<ExprValue*>& childTypes,
                               std::ostream* out);
-  /** lookup type */
-  ExprValue* lookupType(ExprValue* e) const;
   //---------------- compiled methods
   /** Compiled version */
   Expr run_getTypeInternal(ExprValue* hdType,
@@ -115,16 +113,12 @@ class TypeChecker
   //---------------- end compiled methods
   /** The state */
   State& d_state;
-  /** The builtin literal kinds */
-  std::set<Kind> d_literalKinds;
   /** Mapping literal kinds to type rules */
   std::map<Kind, Expr> d_literalTypeRules;
   /** Programs */
   std::map<ExprValue*, Expr> d_programs;
   /** Evaluation trie */
   ExprTrie d_evalTrie;
-  /** Mapping expressions to types */
-  std::map<ExprValue*, Expr> d_typeCache;
   /** The null expression */
   Expr d_null;
 };

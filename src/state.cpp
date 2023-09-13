@@ -217,7 +217,11 @@ void State::markDeleted(const ExprValue * e)
   {
     d_hashMap.erase(ith);
   }
-  // d_tc.markDeleted(e);
+  std::map<const ExprValue*, Expr>::const_iterator itt = d_typeCache.find(e);
+  if (itt!=d_typeCache.end())
+  {
+    d_typeCache.erase(itt);
+  }
 }
 
 bool State::addAssumption(const Expr& a)
@@ -493,7 +497,7 @@ Expr State::mkSymbolInternal(Kind k, const std::string& name, const Expr& type)
   std::vector<ExprValue*> emptyVec;
   ExprValue* v = new ExprValue(k, emptyVec);
   // immediately set its type
-  d_tc.d_typeCache[v] = type;
+  d_typeCache[v] = type;
   // map to the data
   d_literals[v] = Literal(name);
   Trace("type_checker") << "TYPE " << name << " : " << type << std::endl;
@@ -987,6 +991,16 @@ AppInfo* State::getAppInfo(const ExprValue* e)
   if (it!=d_appData.end())
   {
     return &it->second;
+  }
+  return nullptr;
+}
+
+ExprValue* State::lookupType(const ExprValue* e) const
+{
+  std::map<const ExprValue*, Expr>::const_iterator itt = d_typeCache.find(e);
+  if (itt != d_typeCache.end())
+  {
+    return itt->second.getValue();
   }
   return nullptr;
 }
