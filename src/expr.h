@@ -92,7 +92,6 @@ class ExprValue
   /** Null */
   static ExprValue s_null;
 };
-using Expr = Expr;
 
 class Expr
 {

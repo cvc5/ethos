@@ -807,13 +807,11 @@ ExprValue* State::mkExprInternal(Kind k,
   }
   if (et->d_data!=nullptr)
   {
-    return et->d_data.getValue();
+    return et->d_data;
   }
   d_stats.d_exprCount++;
   ExprValue* ev = new ExprValue(k, children);
-  // TODO: don't ref count??
-  Expr ret(ev);
-  et->d_data = ret;
+  et->d_data = ev;
   return ev;
 }
 

@@ -9,11 +9,11 @@ namespace alfc {
 class ExprTrie
 {
 public:
-  ExprTrie() {}
+  ExprTrie() : d_data(nullptr) {}
   /** The children */
   std::map<const ExprValue*, ExprTrie> d_children;
   /** The data at this node */
-  Expr d_data;
+  ExprValue* d_data;
 };
 
 }  // namespace alfc

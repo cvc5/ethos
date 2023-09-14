@@ -13,8 +13,18 @@ ExprValue::ExprValue() : d_kind(Kind::NONE), d_flags(0) {}
 ExprValue::ExprValue(Kind k, const std::vector<ExprValue*>& children)
     : d_kind(k), d_children(children), d_flags(0), d_rc(0)
 {
+  for (ExprValue * c : children)
+  {
+    c->inc();
+  }
 }
-ExprValue::~ExprValue() {}
+ExprValue::~ExprValue() 
+{
+  for (ExprValue * c : d_children)
+  {
+    c->dec();
+  }
+}
 
 bool ExprValue::isNull() const { return d_kind==Kind::NONE; }
   

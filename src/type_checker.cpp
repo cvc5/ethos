@@ -584,7 +584,7 @@ Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
               {
                 et = &(et->d_children[e]);
               }
-              if (!et->d_data.isNull())
+              if (et->d_data!=nullptr)
               {
                 evaluated = et->d_data;
               }
@@ -599,7 +599,7 @@ Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
                   // if the evaluation can be shortcircuited, don't need to
                   // push a context
                   // store the base evaluation (if applicable)
-                  et->d_data = Expr(evaluated);
+                  et->d_data = evaluated.getValue();
                 }
                 else
                 {
@@ -696,7 +696,7 @@ Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
         visits.back().pop_back();
         // store the evaluation
         Assert(!ets.empty());
-        ets.back()->d_data = evaluated;
+        ets.back()->d_data = evaluated.getValue();
         ets.pop_back();
       }
       ctxs.pop_back();
