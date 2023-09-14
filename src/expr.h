@@ -22,6 +22,7 @@ class ExprValue
 {
   friend class TypeChecker;
   friend class Expr;
+  friend class State;
 
  public:
   ExprValue();
@@ -91,16 +92,15 @@ class ExprValue
   void dec();
   /** Null */
   static ExprValue s_null;
+  /** The current state */
+  static State* d_state;
 };
 
 class Expr
 {
-  friend class Compiler;
-  friend class State;
-
  public:
-  Expr();
-  Expr(const ExprValue* ev);
+  explicit Expr();
+  explicit Expr(const ExprValue* ev);
   ~Expr();
   /** Get the free symbols */
   static std::vector<Expr> getVariables(const Expr& e);
@@ -122,7 +122,7 @@ class Expr
    */
   Expr operator[](size_t i) const;
   /** Set this expression equal to e */
-  Expr operator=(const Expr& e);
+  Expr& operator=(const Expr& e);
   /** Returns true if this expression is equal to e*/
   bool operator==(const Expr& e) const;
   /** Returns true if this expression is not equal to e*/
@@ -147,8 +147,6 @@ class Expr
   ExprValue* getValue() const;
 
  private:
-  /** The current state */
-  static State* d_state;
   /** The underlying value */
   ExprValue* d_value;
   /** */

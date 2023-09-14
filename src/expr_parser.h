@@ -138,6 +138,8 @@ class ExprParser
    * as defined in SMT2.
    */
   void unescapeString(std::string& s);
+  /** The null expression */
+  Expr d_null;
   /** The lexer */
   Lexer& d_lex;
   /** The state */

@@ -222,7 +222,8 @@ void Compiler::bind(const std::string& name, const Expr& e)
   ExprValue* t = d_state.lookupType(e.getValue());
   if (t != nullptr)
   {
-    writeTypeChecking(d_tc, t);
+    Expr tt(t);
+    writeTypeChecking(d_tc, tt);
   }
 }
 
@@ -234,12 +235,12 @@ void Compiler::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
   }
   size_t id = writeGlobalExpr(v);
   size_t idc = 0;
-  if (cons!=nullptr)
+  if (!cons.isNull())
   {
     idc = writeGlobalExpr(cons);
   }
   d_init << "  markConstructorKind(_e" << id << ", Attr::" << a << ", ";
-  if (cons==nullptr)
+  if (cons.isNull())
   {
     d_init << "nullptr";
   }
@@ -309,11 +310,12 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
     for (std::pair<const ExprValue* const, std::string>& va : varAssign)
     {
       // don't bother assigning variables that don't occur in the body
-      if (std::find(fvs.begin(), fvs.end(), va.first)==fvs.end())
+      Expr vaf(va.first);
+      if (std::find(fvs.begin(), fvs.end(), vaf)==fvs.end())
       {
         continue;
       }
-      size_t id = writeGlobalExpr(va.first);
+      size_t id = writeGlobalExpr(vaf);
       os << "  ctx[_e" << id << ".getValue()] = " << va.second << ";"
          << std::endl;
     }
@@ -418,7 +420,8 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         ExprValue* t = d_state.lookupType(cur.getValue());
         if (t != nullptr)
         {
-          tid = writeGlobalExpr(t);
+          Expr tt(t);
+          tid = writeGlobalExpr(tt);
         }
       }
       Kind ck = cur.getKind();
@@ -600,7 +603,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
 
 void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
 {
-  Assert(t != nullptr);
+  Assert(!t.isNull());
   std::vector<Expr> toVisit;
   toVisit.push_back(t);
   Expr curr;
@@ -672,7 +675,8 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
     for (std::pair<const ExprValue* const, std::string>& va : varAssign)
     {
       // only matters if it occurs in return type
-      if (std::find(fvsRet.begin(), fvsRet.end(), va.first)==fvsRet.end())
+      Expr vaf(va.first);
+      if (std::find(fvsRet.begin(), fvsRet.end(), vaf)==fvsRet.end())
       {
         continue;
       }

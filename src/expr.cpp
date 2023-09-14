@@ -3,10 +3,12 @@
 #include <set>
 #include <iostream>
 #include "state.h"
+#include "base/output.h"
 
 namespace alfc {
 
 ExprValue ExprValue::s_null;
+State* ExprValue::d_state = nullptr;
 
 ExprValue::ExprValue() : d_kind(Kind::NONE), d_flags(0) {}
 
@@ -132,12 +134,26 @@ bool ExprValue::isCompiled()
   return getFlag(ExprValue::Flag::IS_COMPILED);
 }
 
-void ExprValue::inc() { d_rc++; }
-void ExprValue::dec() { d_rc--; }
+void ExprValue::inc() 
+{ 
+  Trace("ajr-temp") << "inc " << this << " " << d_kind << std::endl;
+  d_rc++; 
+}
+void ExprValue::dec() 
+{ 
+  Trace("ajr-temp") << "dec " << this << " " << d_kind <<std::endl;
+  d_rc--;
+  if (d_rc==0)
+  {
+    Assert (d_state!=nullptr);
+    d_state->markDeleted(this);
+  }
+}
 
-State* Expr::d_state = nullptr;
-
-Expr::Expr() { d_value = &ExprValue::s_null; }
+Expr::Expr() { 
+  Trace("ajr-temp") << "...construct null " << this << std::endl;
+  d_value = &ExprValue::s_null; 
+}
 Expr::Expr(const ExprValue* ev)
 {
   if (ev == nullptr)
@@ -146,6 +162,7 @@ Expr::Expr(const ExprValue* ev)
   }
   else
   {
+    Trace("ajr-temp") << "...inc due to expr cons " << this << std::endl;
     d_value = const_cast<ExprValue*>(ev);
     d_value->inc();
   }
@@ -154,12 +171,13 @@ Expr::~Expr()
 {
   if (!isNull())
   {
+    Trace("ajr-temp") << "...dec due to expr delete " << this << std::endl;
     d_value->dec();
     d_value = nullptr;
   }
 }
 
-bool Expr::isNull() const { return d_value == &ExprValue::s_null; }
+bool Expr::isNull() const { return d_value->isNull(); }
 bool Expr::isEvaluatable() const { return d_value->isEvaluatable(); }
 bool Expr::isGround() const { return d_value->isGround(); }
 bool Expr::isProgEvaluatable() const { return d_value->isProgEvaluatable(); }
@@ -168,7 +186,7 @@ void Expr::setCompiled()
 {
   return d_value->setFlag(ExprValue::Flag::IS_COMPILED, true);
 }
-std::string Expr::getSymbol() const { return d_state->getSymbol(d_value); }
+std::string Expr::getSymbol() const { return ExprValue::d_state->getSymbol(d_value); }
 
 ExprValue* Expr::getValue() const { return d_value; }
 
@@ -277,7 +295,7 @@ void Expr::printDebugInternal(const Expr& e,
       Kind k = cur.first.getKind();
       if (cur.first.getNumChildren() == 0)
       {
-        const Literal* l = d_state->getLiteral(cur.first.getValue());
+        const Literal* l = ExprValue::d_state->getLiteral(cur.first.getValue());
         if (l!=nullptr)
         {
           switch (l->d_tag)
@@ -326,7 +344,7 @@ void Expr::printDebug(const Expr& e, std::ostream& os)
 {
   std::map<const ExprValue*, size_t> lbind;
   std::string cparen;
-  if (d_state->getOptions().d_printLet)
+  if (ExprValue::d_state->getOptions().d_printLet)
   {
     std::vector<Expr> ll;
     lbind = computeLetBinding(e, ll);
@@ -392,13 +410,21 @@ size_t Expr::getNumChildren() const { return d_value->getNumChildren(); }
 
 Expr Expr::operator[](size_t i) const { return Expr(d_value->d_children[i]); }
 
-Expr Expr::operator=(const Expr& e)
+Expr& Expr::operator=(const Expr& e)
 {
   if (d_value != e.d_value)
   {
-    d_value->dec();
+    if (!isNull())
+    {
+      Trace("ajr-temp") << "...dec due to setting " << this << " to " << &e << std::endl;
+      d_value->dec();
+    }
     d_value = e.d_value;
-    d_value->inc();
+    if (!isNull())
+    {
+      Trace("ajr-temp") << "...inc due to setting " << this << " to " << &e << std::endl;
+      d_value->inc();
+    }
   }
   return *this;
 }
