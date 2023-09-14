@@ -30,7 +30,7 @@ bool ExprValue::isNull() const { return d_kind==Kind::NONE; }
   
 Kind ExprValue::getKind() const { return d_kind; }
 
-std::vector<ExprValue*>& ExprValue::getChildren() { return d_children; }
+const std::vector<ExprValue*>& ExprValue::getChildren() const { return d_children; }
 
 size_t ExprValue::getNumChildren() const
 {

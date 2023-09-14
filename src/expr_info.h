@@ -19,7 +19,7 @@ using AttrMap = std::map<Attr, std::vector<Expr>>;
 class AppInfo
 {
 public:
-  AppInfo();
+  AppInfo() : d_attrCons( ), d_kind(Kind::NONE) {}
   /** Attribute */
   Attr d_attrCons;
   /** Attribute */

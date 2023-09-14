@@ -203,6 +203,8 @@ bool State::markIncluded(const std::string& s)
 
 void State::markDeleted(const ExprValue * e)
 {
+  d_stats.d_deleteExprCount++;
+  return;
   std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(e);
   if (it!=d_appData.end())
   {
@@ -222,6 +224,33 @@ void State::markDeleted(const ExprValue * e)
   if (itt!=d_typeCache.end())
   {
     d_typeCache.erase(itt);
+  }
+  // remove from the expression trie
+  ExprTrie* et = &d_trie[e->getKind()];
+  ExprTrie* etd = nullptr;
+  std::map<const ExprValue*, ExprTrie>::iterator itet;
+  std::map<const ExprValue*, ExprTrie>::iterator itetd;
+  bool updateEtd = false;
+  const std::vector<ExprValue*>& children = e->getChildren();
+  for (ExprValue* e : children)
+  {
+    itet = et->d_children.find(e);
+    Assert (itet!=et->d_children.end());
+    updateEtd = (et->d_children.size()>1);
+    et = &itet->second;
+    if (updateEtd)
+    {
+      etd = et;
+      itetd = itet;
+    }
+  }
+  if (etd!=nullptr)
+  {
+    etd->d_children.erase(itetd);
+  }
+  else
+  {
+    et->d_data = nullptr;
   }
 }
 
@@ -801,10 +830,7 @@ ExprValue* State::mkExprInternal(Kind k,
 {
   d_stats.d_mkExprCount++;
   ExprTrie* et = &d_trie[k];
-  for (const ExprValue* e : children)
-  {
-    et = &(et->d_children[e]);
-  }
+  et = et->get(children);
   if (et->d_data!=nullptr)
   {
     return et->d_data;

@@ -52,7 +52,7 @@ std::string RuleStat::toString(std::time_t totalTime) const
   return ss.str();
 }
   
-Stats::Stats() : d_mkExprCount(0), d_exprCount(0), d_symCount(0), d_litCount(0)
+Stats::Stats() : d_mkExprCount(0), d_exprCount(0), d_deleteExprCount(0), d_symCount(0), d_litCount(0)
 {
   d_startTime = getCurrentTime();
 }
@@ -80,7 +80,8 @@ std::string Stats::toString(State& s) const
   std::stringstream ss;
   ss << "========================================================================" << std::endl;
   ss << "mkExprCount = " << d_mkExprCount << std::endl;
-  ss << "exprCount = " << d_exprCount << std::endl;
+  ss << "newExprCount = " << d_exprCount << std::endl;
+  ss << "deleteExprCount = " << d_deleteExprCount << std::endl;
   ss << "symCount = " << d_symCount << std::endl;
   ss << "litCount = " << d_litCount << std::endl;
   std::time_t totalTime = (getCurrentTime()-d_startTime);

@@ -33,6 +33,7 @@ public:
   Stats();
   size_t d_mkExprCount;
   size_t d_exprCount;
+  size_t d_deleteExprCount;
   size_t d_symCount;
   size_t d_litCount;
   std::time_t d_startTime;
