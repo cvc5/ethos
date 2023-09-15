@@ -318,7 +318,7 @@ Expr State::mkTypeConstant(const std::string& name, size_t arity)
     }
     t = mkFunctionType(args, d_type);
   }
-  return mkConst(name, t);
+  return mkSymbol(Kind::CONST, name, t);
 }
 
 Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool flatten)
@@ -453,7 +453,7 @@ Expr State::mkAnnotatedType(const Expr& t, Attr ck, const Expr& cons)
   Expr nilArg = args[isRight ? 1 : 0];
   std::stringstream ss;
   ss << nilArg << "_or_nil";
-  Expr u = mkParameter(ss.str(), d_type);
+  Expr u = mkSymbol(Kind::PARAM, ss.str(), d_type);
   Expr cond = mkExpr(Kind::EVAL_IS_EQ, {u, d_nil});
   if (isRight)
   {
@@ -482,36 +482,6 @@ Expr State::mkAnnotatedType(const Expr& t, Attr ck, const Expr& cons)
 Expr State::mkSymbol(Kind k, const std::string& name, const Expr& type)
 {
   return Expr(mkSymbolInternal(k, name, type));
-}
-
-Expr State::mkParameter(const std::string& name, const Expr& type)
-{
-  return Expr(mkSymbolInternal(Kind::PARAM, name, type));
-}
-
-Expr State::mkVar(const std::string& name, const Expr& type)
-{
-  return Expr(mkSymbolInternal(Kind::VARIABLE, name, type));
-}
-
-Expr State::mkConst(const std::string& name, const Expr& type)
-{
-  return Expr(mkSymbolInternal(Kind::CONST, name, type));
-}
-
-Expr State::mkProgramConst(const std::string& name, const Expr& type)
-{
-  return Expr(mkSymbolInternal(Kind::PROGRAM_CONST, name, type));
-}
-
-Expr State::mkProofRule(const std::string& name, const Expr& type)
-{
-  return Expr(mkSymbolInternal(Kind::PROOF_RULE, name, type));
-}
-
-Expr State::mkOracle(const std::string& name, const Expr& type)
-{
-  return Expr(mkSymbolInternal(Kind::ORACLE, name, type));
 }
 
 Expr State::mkSelf()
@@ -701,19 +671,9 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     }
     else if (hk==Kind::PROGRAM_CONST)
     {
-      // if all arguments are ground, just evaluate immediately
-      bool allGround = true;
-      for (size_t i=1, nchild = children.size(); i<nchild; i++)
-      {
-        if (!children[i].isGround())
-        {
-          allGround = false;
-          break;
-        }
-      }
       // have to check whether we have the program, i.e. if we are constructing
       // applications corresponding to the cases in the program definition itself.
-      if (allGround && d_tc.hasProgram(hd))
+      if (d_tc.hasProgram(hd))
       {
         Expr hdt = hd;
         const Expr& t = d_tc.getType(hdt);
@@ -749,26 +709,8 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     // only if correct arity, else we will catch the type error
     if (TypeChecker::checkArity(k, children.size()))
     {
-      // if all arguments are ground, just evaluate immediately
-      bool allGround = true;
-      for (size_t i=0, nchild = children.size(); i<nchild; i++)
-      {
-        if (!children[i].isGround())
-        {
-          allGround = false;
-          break;
-        }
-      }
-      if (allGround)
-      {
-        Expr ret = d_tc.evaluateLiteralOp(k, children);
-        // return if successfully evaluated
-        if (!ret.isNull())
-        {
-          Trace("state") << "EAGER_EVALUATE " << ret << std::endl;
-          return ret;
-        }
-      }
+      // return the evaluation
+      return d_tc.evaluateLiteralOp(k, children);
     }
   }
   std::vector<ExprValue*> vchildren;
@@ -975,7 +917,7 @@ bool State::getActualPremises(const ExprValue* rule,
       Expr pfap = mkProofType(ap);
       // TODO: collect operator???
       // dummy, const term of the given proof type
-      Expr n = mkConst("tmp", pfap);
+      Expr n = mkSymbol(Kind::CONST, "tmp", pfap);
       actual.push_back(n);
       return true;
     }
@@ -1079,7 +1021,7 @@ void State::bindBuiltin(const std::string& name, Kind k, Attr ac)
 
 void State::bindBuiltin(const std::string& name, Kind k, Attr ac, const Expr& t)
 {
-  Expr c = mkConst(name, t);
+  Expr c = mkSymbol(Kind::CONST, name, t);
   bind(name, c);
   if (ac!=Attr::NONE || k!=Kind::NONE)
   {

@@ -116,7 +116,7 @@ bool CmdParser::parseNextCommand()
       // parse what is proven
       Expr proven = d_eparser.parseFormula();
       Expr pt = d_state.mkProofType(proven);
-      Expr v = d_state.mkConst(name, pt);
+      Expr v = d_state.mkSymbol(Kind::CONST, name, pt);
       d_eparser.bind(name, v);
       if (!d_state.addAssumption(proven))
       {
@@ -149,14 +149,17 @@ bool CmdParser::parseNextCommand()
       }
       Attr ck = Attr::NONE;
       Expr cons;
+      Kind sk;
       if (tok==Token::DECLARE_ORACLE_FUN)
       {
         ck = Attr::ORACLE;
+        sk = Kind::ORACLE;
         std::string oname = d_eparser.parseSymbol();
         cons = d_state.mkLiteral(Kind::STRING, oname);
       }
-      else
+      else if (tok==Token::DECLARE_CONST)
       {
+        sk = Kind::CONST;
         // possible attribute list
         AttrMap attrs;
         d_eparser.parseAttributeList(t, attrs);
@@ -167,20 +170,12 @@ bool CmdParser::parseNextCommand()
           t = d_state.mkAnnotatedType(t, ck, cons);
         }
       }
-      Expr v;
-      if (tok == Token::DECLARE_VAR)
-      {
-        v = d_state.mkVar(name, t);
-      }
-      else if (tok==Token::DECLARE_ORACLE_FUN)
-      {
-        v = d_state.mkOracle(name, t);
-      }
       else
       {
-        v = d_state.mkConst(name, t);
+        sk = Kind::VARIABLE;
+        // don't permit attributes for variables
       }
-
+      Expr v = d_state.mkSymbol(sk, name, t);
       // if the type has a property, we mark it on the variable of this type
       if (ck!=Attr::NONE)
       {
@@ -368,7 +363,7 @@ bool CmdParser::parseNextCommand()
         ret = d_state.mkFunctionType(argTypes, ret, false);
       }
       d_state.popScope();
-      Expr rule = d_state.mkProofRule(name, ret);
+      Expr rule = d_state.mkSymbol(Kind::PROOF_RULE, name, ret);
       d_eparser.typeCheck(rule);
       d_eparser.bind(name, rule);
       if (!plCons.isNull())
@@ -407,7 +402,7 @@ bool CmdParser::parseNextCommand()
       {
         type = d_state.mkFunctionType(args, ttype);
       }
-      Expr decType = d_state.mkConst(name, type);
+      Expr decType = d_state.mkSymbol(Kind::CONST, name, type);
       d_eparser.bind(name, decType);
     }
     break;
@@ -477,7 +472,7 @@ bool CmdParser::parseNextCommand()
         Expr ttype = d_state.mkType();
         for (const std::string& sname : snames)
         {
-          Expr v = d_state.mkParameter(sname, ttype);
+          Expr v = d_state.mkSymbol(Kind::PARAM, sname, ttype);
           d_eparser.bind(sname, v);
         }
       }
@@ -553,7 +548,7 @@ bool CmdParser::parseNextCommand()
         progType = d_state.mkFunctionType(argTypes, retType, false);
       }
       // the type of the program variable is a function
-      Expr pvar = d_state.mkProgramConst(name, progType);
+      Expr pvar = d_state.mkSymbol(Kind::PROGRAM_CONST, name, progType);
       // bind the program
       d_eparser.bind(name, pvar);
       // parse the body
@@ -717,7 +712,7 @@ bool CmdParser::parseNextCommand()
         }
       }
       // bind to variable, note that the definition term is not kept
-      Expr v = d_state.mkConst(name, concType);
+      Expr v = d_state.mkSymbol(Kind::CONST, name, concType);
       d_eparser.bind(name, v);
       // d_eparser.bind(name, def);
       if (isPop)

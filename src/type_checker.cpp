@@ -1010,7 +1010,11 @@ Expr TypeChecker::evaluateLiteralOpInternal2(
     case Kind::EVAL_FROM_LIST:
     {
       AppInfo* ac = d_state.getAppInfo(args[0]);
-      Assert (ac!=nullptr);
+      if (ac==nullptr)
+      {
+        // not an associative operator
+        return d_null;
+      }
       Attr ck = ac->d_attrCons;
       Assert (ck==Attr::RIGHT_ASSOC_NIL || ck==Attr::LEFT_ASSOC_NIL);
       bool isLeft = (ck==Attr::LEFT_ASSOC_NIL);

@@ -471,7 +471,7 @@ Expr ExprParser::parseExpr()
               Expr ftype = d_state.mkFunctionType(fargTypes, atype);
               std::stringstream pvname;
               pvname << "_match_" << hd;
-              Expr pv = d_state.mkProgramConst(pvname.str(), ftype);
+              Expr pv = d_state.mkSymbol(Kind::PROGRAM_CONST, pvname.str(), ftype);
               // process the cases
               std::vector<Expr> cases;
               for (size_t i=2, nargs = args.size(); i<nargs; i++)
@@ -613,7 +613,7 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList()
   {
     name = parseSymbol();
     t = parseType();
-    Expr v = d_state.mkParameter(name, t);
+    Expr v = d_state.mkSymbol(Kind::PARAM, name, t);
     bind(name, v);
     // parse attribute list
     AttrMap attrs;
@@ -708,7 +708,7 @@ bool ExprParser::parseDatatypesDef(
       // parameters are type variables
       for (const std::string& sym : symList)
       {
-        Expr t = d_state.mkParameter(sym, d_state.mkType());
+        Expr t = d_state.mkSymbol(Kind::PARAM, sym, d_state.mkType());
         if (!d_state.bind(sym, t))
         {
           return false;
@@ -795,25 +795,25 @@ void ExprParser::parseConstructorDefinitionList(
       Expr t = parseType();
       typelist.push_back(t);
       Expr stype = d_state.mkFunctionType({dt}, t);
-      Expr sel = d_state.mkConst(id, stype);
+      Expr sel = d_state.mkSymbol(Kind::CONST, id, stype);
       toBind.emplace_back(id,sel);
       sels.push_back(sel);
       std::stringstream ss;
       ss << "update-" << id;
       Expr utype = d_state.mkFunctionType({dt, t}, dt);
-      Expr updater = d_state.mkConst(ss.str(), utype);
+      Expr updater = d_state.mkSymbol(Kind::CONST, ss.str(), utype);
       toBind.emplace_back(ss.str(), updater);
       d_lex.eatToken(Token::RPAREN);
     }
     Expr ctype = d_state.mkFunctionType(typelist, dt);
-    Expr cons = d_state.mkConst(name, ctype);
+    Expr cons = d_state.mkSymbol(Kind::CONST, name, ctype);
     toBind.emplace_back(name, cons);
     conslist.push_back(cons);
     // make the discriminator
     std::stringstream ss;
     ss << "is-" << name;
     Expr dtype = d_state.mkFunctionType({dt}, boolType);
-    Expr tester = d_state.mkConst(ss.str(), dtype);
+    Expr tester = d_state.mkSymbol(Kind::CONST, ss.str(), dtype);
     toBind.emplace_back(ss.str(), tester);
     dtcons[cons.getValue()] = sels;
   }
@@ -913,7 +913,7 @@ void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedS
         }
         std::string name = parseSymbol();
         // e should be a type
-        val = d_state.mkParameter(name, e);
+        val = d_state.mkSymbol(Kind::PARAM, name, e);
         // immediately bind
         if (!pushedScope)
         {
