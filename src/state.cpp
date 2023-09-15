@@ -29,6 +29,7 @@ State::State(Options& opts, Stats& stats)
   d_absType = Expr(mkExprInternal(Kind::ABSTRACT_TYPE, {}));
 
   // lambda is not builtin?
+  // forall, exists, choice?
   //bindBuiltin("lambda", Kind::LAMBDA, true);
   bindBuiltin("->", Kind::FUNCTION_TYPE);
   bindBuiltin("_", Kind::APPLY);
@@ -37,6 +38,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("ite", Kind::EVAL_IF_THEN_ELSE);
   bindBuiltinEval("requires", Kind::EVAL_REQUIRES);
   bindBuiltinEval("hash", Kind::EVAL_HASH);
+  // TODO: compare?
   // lists
   bindBuiltinEval("to_list", Kind::EVAL_TO_LIST);
   bindBuiltinEval("from_list", Kind::EVAL_FROM_LIST);
@@ -62,6 +64,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("len", Kind::EVAL_LENGTH);
   bindBuiltinEval("concat", Kind::EVAL_CONCAT);
   bindBuiltinEval("extract", Kind::EVAL_EXTRACT);
+  // TODO: find
 
   d_nil = Expr(mkExprInternal(Kind::NIL, {}));
   bind("alf.nil", d_nil);
