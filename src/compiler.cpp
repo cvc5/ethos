@@ -311,7 +311,7 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
     {
       // don't bother assigning variables that don't occur in the body
       Expr vaf(va.first);
-      if (std::find(fvs.begin(), fvs.end(), vaf)==fvs.end())
+      if (std::find(fvs.begin(), fvs.end(), vaf) == fvs.end())
       {
         continue;
       }
@@ -452,13 +452,11 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
       }
       else if (ck==Kind::TYPE)
       {
-        os << "  " << cs.d_prefix << ret << " = d_type;"
-           << std::endl;
+        os << "  " << cs.d_prefix << ret << " = d_type;" << std::endl;
       }
       else if (ck==Kind::BOOL_TYPE)
       {
-        os << "  " << cs.d_prefix << ret << " = d_boolType;"
-           << std::endl;
+        os << "  " << cs.d_prefix << ret << " = d_boolType;" << std::endl;
       }
       else if (ck==Kind::NIL)
       {
@@ -562,13 +560,15 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         {
           // we should just evaluate it if the scope specifies it should be evaluated
           os << "  _ctxTmp.clear();" << std::endl;
-          os << "  _etmp = evaluateProgramInternal(" << argList.str() << ", _ctxTmp);" << std::endl;
+          os << "  _etmp = evaluateProgramInternal(" << argList.str()
+             << ", _ctxTmp);" << std::endl;
           os << "  " << cs.d_prefix << ret
              << " = evaluateInternal(_etmp.getValue(), _ctxTmp);" << std::endl;
         }
         else if (cs.d_progEval && isLiteralOp(ck))
         {
-          os << "  " << cs.d_prefix << ret << " = evaluateLiteralOpInternal(Kind::";
+          os << "  " << cs.d_prefix << ret
+             << " = evaluateLiteralOpInternal(Kind::";
           os << cur.getKind() << ", " << argList.str() << ");"
              << std::endl;
         }
@@ -676,14 +676,15 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
     {
       // only matters if it occurs in return type
       Expr vaf(va.first);
-      if (std::find(fvsRet.begin(), fvsRet.end(), vaf)==fvsRet.end())
+      if (std::find(fvsRet.begin(), fvsRet.end(), vaf) == fvsRet.end())
       {
         continue;
       }
       usedMatch = true;
       iti = pscope.d_idMap.find(va.first);
       Assert(iti != pscope.d_idMap.end());
-      localImpl << "  " << pprefix << iti->second << " = Expr(" << va.second << ");" << std::endl;
+      localImpl << "  " << pprefix << iti->second << " = Expr(" << va.second
+                << ");" << std::endl;
       varsAssigned.insert(va.first);
     }
     // any variables in return type that were unassigned should be mapped
@@ -862,9 +863,11 @@ void Compiler::writeEvaluate(std::ostream& os, const Expr& e)
       ssv << "_e" << gid;
       iti = pscope.d_idMap.find(v.getValue());
       Assert(iti != pscope.d_idMap.end());
-      localImpl << "  itc = ctx.find(" << ssv.str() << ".getValue());" << std::endl;
-      localImpl << "  " << pprefix << iti->second << " = " 
-                << "(itc==ctx.end() ? " << ssv.str() << " : Expr(itc->second));" << std::endl;
+      localImpl << "  itc = ctx.find(" << ssv.str() << ".getValue());"
+                << std::endl;
+      localImpl << "  " << pprefix << iti->second << " = "
+                << "(itc==ctx.end() ? " << ssv.str() << " : Expr(itc->second));"
+                << std::endl;
     }
     // now write the expression
     size_t retId = writeExprInternal(curr, pscope);

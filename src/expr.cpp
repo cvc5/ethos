@@ -1,9 +1,10 @@
 #include "expr.h"
 
-#include <set>
 #include <iostream>
-#include "state.h"
+#include <set>
+
 #include "base/output.h"
+#include "state.h"
 
 namespace alfc {
 
@@ -134,23 +135,18 @@ bool ExprValue::isCompiled()
   return getFlag(ExprValue::Flag::IS_COMPILED);
 }
 
-void ExprValue::inc() 
-{ 
-  d_rc++; 
-}
-void ExprValue::dec() 
-{ 
+void ExprValue::inc() { d_rc++; }
+void ExprValue::dec()
+{
   d_rc--;
-  if (d_rc==0)
+  if (d_rc == 0)
   {
-    Assert (d_state!=nullptr);
+    Assert(d_state != nullptr);
     d_state->markDeleted(this);
   }
 }
 
-Expr::Expr() { 
-  d_value = &ExprValue::s_null; 
-}
+Expr::Expr() { d_value = &ExprValue::s_null; }
 Expr::Expr(const ExprValue* ev)
 {
   if (ev == nullptr)
@@ -166,7 +162,7 @@ Expr::Expr(const ExprValue* ev)
 Expr::Expr(const Expr& e)
 {
   d_value = e.d_value;
-  Assert (d_value!=nullptr);
+  Assert(d_value != nullptr);
   if (!d_value->isNull())
   {
     d_value->inc();
@@ -174,7 +170,7 @@ Expr::Expr(const Expr& e)
 }
 Expr::~Expr()
 {
-  Assert (d_value!=nullptr);
+  Assert(d_value != nullptr);
   if (!d_value->isNull())
   {
     d_value->dec();
@@ -191,7 +187,10 @@ void Expr::setCompiled()
 {
   return d_value->setFlag(ExprValue::Flag::IS_COMPILED, true);
 }
-std::string Expr::getSymbol() const { return ExprValue::d_state->getSymbol(d_value); }
+std::string Expr::getSymbol() const
+{
+  return ExprValue::d_state->getSymbol(d_value);
+}
 
 ExprValue* Expr::getValue() const { return d_value; }
 

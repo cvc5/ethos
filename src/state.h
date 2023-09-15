@@ -36,6 +36,7 @@ class State
   friend class TypeChecker;
   friend class Compiler;
   friend class ExprValue;
+
  public:
   State(Options& opts, Stats& stats);
   ~State();
@@ -158,6 +159,7 @@ class State
   Stats& getStats();
   /** Get compiler */
   Compiler* getCompiler();
+
  private:
   /** Common constants */
   Expr d_null;
@@ -174,7 +176,7 @@ class State
   /** Mark that file s was included */
   bool markIncluded(const std::string& s);
   /** mark deleted */
-  void markDeleted(ExprValue * e);
+  void markDeleted(ExprValue* e);
   /** Make (<APPLY> children), curried. */
   ExprValue* mkApplyInternal(const std::vector<ExprValue*>& children);
   /**
@@ -183,7 +185,9 @@ class State
    */
   ExprValue* mkExprInternal(Kind k, const std::vector<ExprValue*>& children);
   /** Constructs a symbol-like expression with the given kind, name and type. */
-  ExprValue* mkSymbolInternal(Kind k, const std::string& name, const Expr& type);
+  ExprValue* mkSymbolInternal(Kind k,
+                              const std::string& name,
+                              const Expr& type);
   /** Get the internal data for expression e. */
   AppInfo* getAppInfo(const ExprValue* e);
   /** lookup type */

@@ -17,11 +17,17 @@ Options::Options()
   d_ruleSymTable = true;
 }
 
-State::State(Options& opts, Stats& stats) : d_hashCounter(0), d_hasReference(false), d_inGarbageCollection(false), d_tc(*this), d_opts(opts), d_stats(stats)
+State::State(Options& opts, Stats& stats)
+    : d_hashCounter(0),
+      d_hasReference(false),
+      d_inGarbageCollection(false),
+      d_tc(*this),
+      d_opts(opts),
+      d_stats(stats)
 {
   ExprValue::d_state = this;
   d_absType = Expr(mkExprInternal(Kind::ABSTRACT_TYPE, {}));
-  
+
   // lambda is not builtin?
   //bindBuiltin("lambda", Kind::LAMBDA, true);
   bindBuiltin("->", Kind::FUNCTION_TYPE);
@@ -56,7 +62,7 @@ State::State(Options& opts, Stats& stats) : d_hashCounter(0), d_hasReference(fal
   bindBuiltinEval("len", Kind::EVAL_LENGTH);
   bindBuiltinEval("concat", Kind::EVAL_CONCAT);
   bindBuiltinEval("extract", Kind::EVAL_EXTRACT);
-  
+
   d_nil = Expr(mkExprInternal(Kind::NIL, {}));
   bind("alf.nil", d_nil);
   d_fail = Expr(mkExprInternal(Kind::FAIL, {}));
@@ -85,8 +91,7 @@ State::State(Options& opts, Stats& stats) : d_hashCounter(0), d_hasReference(fal
   }
 }
 
-State::~State(){
-}
+State::~State() {}
 
 void State::reset()
 {
@@ -200,9 +205,9 @@ bool State::markIncluded(const std::string& s)
   return true;
 }
 
-void State::markDeleted(ExprValue * e)
+void State::markDeleted(ExprValue* e)
 {
-  Assert (e!=nullptr);
+  Assert(e != nullptr);
   d_stats.d_deleteExprCount++;
   if (d_inGarbageCollection)
   {
@@ -220,29 +225,30 @@ void State::markDeleted(ExprValue * e)
 
     }
     */
-    std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(e);
-    if (it!=d_appData.end())
+    std::map<const ExprValue*, AppInfo>::const_iterator it = d_appData.find(e);
+    if (it != d_appData.end())
     {
       d_appData.erase(it);
     }
-    std::map<const ExprValue*, Literal>::const_iterator itl = d_literals.find(e);
-    if (itl!=d_literals.end())
+    std::map<const ExprValue*, Literal>::const_iterator itl =
+        d_literals.find(e);
+    if (itl != d_literals.end())
     {
       d_literals.erase(itl);
     }
     std::map<const ExprValue*, size_t>::const_iterator ith = d_hashMap.find(e);
-    if (ith!=d_hashMap.end())
+    if (ith != d_hashMap.end())
     {
       d_hashMap.erase(ith);
     }
     std::map<const ExprValue*, Expr>::const_iterator itt = d_typeCache.find(e);
-    if (itt!=d_typeCache.end())
+    if (itt != d_typeCache.end())
     {
       d_typeCache.erase(itt);
     }
     // remove from the expression trie
     ExprTrie* et = &d_trie[e->getKind()];
-    Assert (et!=nullptr);
+    Assert(et != nullptr);
     const std::vector<ExprValue*>& children = e->d_children;
     et->remove(children);
     // now, free the expression
@@ -256,7 +262,7 @@ void State::markDeleted(ExprValue * e)
     {
       e = nullptr;
     }
-  }while (e!=nullptr);
+  } while (e != nullptr);
   d_inGarbageCollection = false;
 }
 
@@ -371,10 +377,7 @@ Expr State::mkRequires(const Expr& a1, const Expr& a2, const Expr& ret)
                              {a1.getValue(), a2.getValue(), ret.getValue()}));
 }
 
-Expr State::mkAbstractType()
-{
-  return d_absType;
-}
+Expr State::mkAbstractType() { return d_absType; }
 
 Expr State::mkBoolType()
 {
@@ -525,7 +528,9 @@ Expr State::mkPair(const Expr& t1, const Expr& t2)
   return Expr(mkExprInternal(Kind::TUPLE, {t1.getValue(), t2.getValue()}));
 }
 
-ExprValue* State::mkSymbolInternal(Kind k, const std::string& name, const Expr& type)
+ExprValue* State::mkSymbolInternal(Kind k,
+                                   const std::string& name,
+                                   const Expr& type)
 {
   // TODO: symbols can be shared if no attributes
   /*
@@ -878,7 +883,7 @@ bool State::bind(const std::string& name, const Expr& e)
   {
     return false;
   }
-  //Trace("ajr-temp") << "bind " << name << " -> " << &e << std::endl;
+  // Trace("ajr-temp") << "bind " << name << " -> " << &e << std::endl;
   d_symTable[name] = e;
   // only have to remember if not at global scope
   if (!d_declsSizeCtx.empty())
@@ -982,7 +987,7 @@ bool State::getOracleCmd(const ExprValue* oracle, std::string& ocmd)
   if (ainfo!=nullptr && ainfo->d_attrCons==Attr::ORACLE)
   {
     Expr oexpr = ainfo->d_attrConsTerm;
-    Assert (!oexpr.isNull());
+    Assert(!oexpr.isNull());
     ocmd = oexpr.getSymbol();
     return true;
   }

@@ -2,9 +2,10 @@
 #define EXPR_TRIE_H
 
 #include <string>
-#include "expr.h"
+
 #include "base/check.h"
 #include "base/output.h"
+#include "expr.h"
 
 namespace alfc {
 
@@ -49,7 +50,7 @@ public:
         itetd = itet;
       }
       Assert (itet!=et->d_children.end());
-      if (et->d_children.size()>1)
+      if (et->d_children.size() > 1)
       {
         etd = nullptr;
       }
