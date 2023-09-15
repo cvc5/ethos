@@ -45,13 +45,11 @@ class TypeChecker
   /**
    * Evaluate the expression e in the given context.
    */
-  Expr evaluate(Expr& e, Ctx& ctx);
-  /** Evaluate the expression e in the empty context */
-  Expr evaluate(Expr& e);
+  Expr evaluate(ExprValue* e, Ctx& ctx);
   /** Define program */
   void defineProgram(const Expr& v, const Expr& prog);
   /** Has program */
-  bool hasProgram(const Expr& v) const;
+  bool hasProgram(const ExprValue * v) const;
   /**
    * Evaluate program, where args[0] is a term of kind PROGRAM_CONST
    * and the remaining args are what is being applied to.
@@ -64,12 +62,13 @@ class TypeChecker
    * and is equal to the result of evaluating that expression in the context newCtx,
    * which is computed in this call.
    */
-  Expr evaluateProgram(const std::vector<Expr>& args, Ctx& newCtx);
+  Expr evaluateProgram(const std::vector<ExprValue*>& args,
+                       Ctx& newCtx);
   /**
    * Evaluate literal op k applied to args. Returns (<k> args) if the
    * operator does not evaluate.
    */
-  Expr evaluateLiteralOp(Kind k, const std::vector<Expr>& args);
+  Expr evaluateLiteralOp(Kind k, const std::vector<ExprValue*>& args);
  private:
   /**
    * Match expression a with b. If this returns true, then ctx is a substitution
@@ -81,8 +80,6 @@ class TypeChecker
              ExprValue* b,
              Ctx& ctx,
              std::set<std::pair<ExprValue*, ExprValue*>>& visited);
-  /** evaluate */
-  Expr evaluateInternal(ExprValue* e, Ctx& ctx);
   /** */
   Expr getTypeAppInternal(std::vector<ExprValue*>& children,
                           std::ostream* out = nullptr);
@@ -90,16 +87,13 @@ class TypeChecker
   static bool isGround(const std::vector<ExprValue*>& args);
   /** Maybe evaluate */
   Expr evaluateProgramInternal(const std::vector<ExprValue*>& args,
-                               Ctx& newCtx);
-  Expr evaluateProgramInternal2(const std::vector<ExprValue*>& args,
-                                Ctx& newCtx);
+                              Ctx& newCtx);
   /** Return its type */
   Expr getTypeInternal(ExprValue* e, std::ostream* out);
   /** Get or set type rule (to default) for literal kind k */
   ExprValue* getOrSetLiteralTypeRule(Kind k);
   /** Evaluate literal op */
   Expr evaluateLiteralOpInternal(Kind k, const std::vector<ExprValue*>& args);
-  Expr evaluateLiteralOpInternal2(Kind k, const std::vector<ExprValue*>& args);
   /** Type check */
   ExprValue* getLiteralOpType(Kind k,
                               std::vector<ExprValue*>& childTypes,
@@ -119,7 +113,7 @@ class TypeChecker
   /** Mapping literal kinds to type rules */
   std::map<Kind, Expr> d_literalTypeRules;
   /** Programs */
-  std::map<ExprValue*, Expr> d_programs;
+  std::map<const ExprValue*, Expr> d_programs;
   /** The null expression */
   Expr d_null;
 };

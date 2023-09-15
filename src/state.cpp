@@ -396,7 +396,7 @@ Expr State::mkQuoteType(const Expr& t)
 Expr State::mkBuiltinType(Kind k)
 {
   // for now, just use abstract type
-  return mkAbstractType();
+  return d_absType;
 }
 
 Expr State::mkAnnotatedType(const Expr& t, Attr ck, const Expr& cons)
@@ -526,12 +526,17 @@ ExprValue* State::mkSymbolInternal(Kind k,
 
 Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
 {
+  std::vector<ExprValue*> vchildren;
+  for (const Expr& c : children)
+  {
+    vchildren.push_back(c.getValue());
+  }
   if (k==Kind::APPLY)
   {
     Assert(!children.empty());
     // see if there is a special way of building terms for the head
-    const Expr& hd = children[0];
-    AppInfo* ai = getAppInfo(hd.getValue());
+    ExprValue* hd = vchildren[0];
+    AppInfo* ai = getAppInfo(hd);
     if (ai!=nullptr)
     {
       if (ai->d_kind==Kind::FUNCTION_TYPE)
@@ -555,7 +560,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         case Attr::LEFT_ASSOC_NIL:
         case Attr::RIGHT_ASSOC_NIL:
         {
-          size_t nchild = children.size();
+          size_t nchild = vchildren.size();
           // note that nchild>=2 treats e.g. (or a) as (or a false).
           // checking nchild>2 treats (or a) as a function Bool -> Bool.
           if (nchild>=2)
@@ -565,8 +570,8 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
             bool isNil = (ai->d_attrCons==Attr::RIGHT_ASSOC_NIL ||
                           ai->d_attrCons==Attr::LEFT_ASSOC_NIL);
             size_t i = 1;
-            ExprValue* curr = children[isLeft ? i : nchild - i].getValue();
-            std::vector<ExprValue*> cc{hd.getValue(), nullptr, nullptr};
+            ExprValue* curr = vchildren[isLeft ? i : nchild - i];
+            std::vector<ExprValue*> cc{hd, nullptr, nullptr};
             size_t nextIndex = isLeft ? 2 : 1;
             size_t prevIndex = isLeft ? 1 : 2;
             // note the nil element is always treated as a list
@@ -585,7 +590,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
             while (i<nchild)
             {
               cc[prevIndex] = curr;
-              cc[nextIndex] = children[isLeft ? i : nchild - i].getValue();
+              cc[nextIndex] = vchildren[isLeft ? i : nchild - i];
               // if the "head" child is marked as list, we construct Kind::EVAL_APPEND
               if (getConstructorKind(cc[nextIndex]) == Attr::LIST)
               {
@@ -607,11 +612,11 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           std::vector<Expr> cchildren;
           Assert(!ai->d_attrConsTerm.isNull());
           cchildren.push_back(ai->d_attrConsTerm);
-          std::vector<ExprValue*> cc{hd.getValue(), nullptr, nullptr};
-          for (size_t i=1, nchild = children.size()-1; i<nchild; i++)
+          std::vector<ExprValue*> cc{hd, nullptr, nullptr};
+          for (size_t i=1, nchild = vchildren.size()-1; i<nchild; i++)
           {
-            cc[1] = children[i].getValue();
-            cc[2] = children[i + 1].getValue();
+            cc[1] = vchildren[i];
+            cc[2] = vchildren[i + 1];
             cchildren.emplace_back(mkApplyInternal(cc));
           }
           if (cchildren.size()==2)
@@ -628,13 +633,13 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           std::vector<Expr> cchildren;
           Assert(!ai->d_attrConsTerm.isNull());
           cchildren.push_back(ai->d_attrConsTerm);
-          std::vector<ExprValue*> cc{hd.getValue(), nullptr, nullptr};
-          for (size_t i=1, nchild = children.size(); i<nchild-1; i++)
+          std::vector<ExprValue*> cc{hd, nullptr, nullptr};
+          for (size_t i=1, nchild = vchildren.size(); i<nchild-1; i++)
           {
             for (size_t j=i+1; j<nchild; j++)
             {
-              cc[1] = children[i].getValue();
-              cc[2] = children[j].getValue();
+              cc[1] = vchildren[i];
+              cc[2] = vchildren[j];
               cchildren.emplace_back(mkApplyInternal(cc));
             }
           }
@@ -651,21 +656,21 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           break;
       }
     }
-    Kind hk = hd.getKind();
+    Kind hk = hd->getKind();
     if (hk==Kind::LAMBDA)
     {
       // beta-reduce eagerly, if the correct arity
-      size_t nvars = hd[0].getNumChildren();
+      const std::vector<ExprValue*>& vars = (*hd)[0]->getChildren();
+      size_t nvars = vars.size();
       if (nvars==children.size()-1)
       {
         Ctx ctx;
         for (size_t i=0; i<nvars; i++)
         {
-          ctx[hd[0][i].getValue()] = children[i + 1].getValue();
+          ctx[vars[i]] = vchildren[i + 1];
         }
-        Expr body = hd[1];
-        Expr ret = d_tc.evaluate(body, ctx);
-        Trace("state") << "BETA_REDUCE " << body << " " << ctx << " = " << ret << std::endl;
+        Expr ret = d_tc.evaluate((*hd)[1], ctx);
+        Trace("state") << "BETA_REDUCE " << Expr((*hd)[1]) << " " << ctx << " = " << ret << std::endl;
         return ret;
       }
     }
@@ -675,16 +680,19 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       // applications corresponding to the cases in the program definition itself.
       if (d_tc.hasProgram(hd))
       {
-        Expr hdt = hd;
+        Expr hdt = Expr(hd);
         const Expr& t = d_tc.getType(hdt);
         // only do this if the correct arity
         if (t.getNumChildren() == children.size())
         {
           Ctx ctx;
-          Expr e = d_tc.evaluateProgram(children, ctx);
-          Expr ret = d_tc.evaluate(e, ctx);
-          Trace("state") << "EAGER_EVALUATE " << ret << std::endl;
-          return ret;
+          Expr e = d_tc.evaluateProgramInternal(vchildren, ctx);
+          if (!e.isNull())
+          {
+            Expr ret = d_tc.evaluate(e.getValue(), ctx);
+            Trace("state") << "EAGER_EVALUATE " << ret << std::endl;
+            return ret;
+          }
         }
       }
     }
@@ -695,11 +703,6 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       if (hk!=Kind::PROGRAM_CONST && hk!=Kind::PROOF_RULE && hk!=Kind::ORACLE)
       {
         // return the curried version
-        std::vector<ExprValue*> vchildren;
-        for (const Expr& c : children)
-        {
-          vchildren.push_back(c.getValue());
-        }
         return Expr(mkApplyInternal(vchildren));
       }
     }
@@ -710,13 +713,8 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     if (TypeChecker::checkArity(k, children.size()))
     {
       // return the evaluation
-      return d_tc.evaluateLiteralOp(k, children);
+      return d_tc.evaluateLiteralOp(k, vchildren);
     }
-  }
-  std::vector<ExprValue*> vchildren;
-  for (const Expr& c : children)
-  {
-    vchildren.push_back(c.getValue());
   }
   return Expr(mkExprInternal(k, vchildren));
 }

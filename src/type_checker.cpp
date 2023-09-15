@@ -89,9 +89,9 @@ void TypeChecker::defineProgram(const Expr& v, const Expr& prog)
   d_programs[v.getValue()] = prog;
 }
 
-bool TypeChecker::hasProgram(const Expr& v) const
+bool TypeChecker::hasProgram(const ExprValue * v) const
 {
-  return d_programs.find(v.getValue()) != d_programs.end();
+  return d_programs.find(v) != d_programs.end();
 }
 
 Expr TypeChecker::getType(Expr& e, std::ostream* out)
@@ -254,7 +254,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       {
         Ctx ctx;
         ctx[d_state.mkSelf().getValue()] = e;
-        return evaluateInternal(ret, ctx);
+        return evaluate(ret, ctx);
       }
       return Expr(ret);
     }
@@ -362,7 +362,7 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
       {
         (*out) << "Unexpected argument type " << i << " of " << Expr(hd)
                << std::endl;
-        (*out) << "  LHS " << evaluateInternal(hdtypes[i], ctx) << ", from "
+        (*out) << "  LHS " << evaluate(hdtypes[i], ctx) << ", from "
                << Expr(hdtypes[i]) << std::endl;
         (*out) << "  RHS " << Expr(ctypes[i]) << std::endl;
       }
@@ -370,7 +370,7 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     }
   }
   // evaluate in the matched context
-  return evaluateInternal(hdtypes.back(), ctx);
+  return evaluate(hdtypes.back(), ctx);
 }
 
 bool TypeChecker::match(ExprValue* a, ExprValue* b, Ctx& ctx)
@@ -453,18 +453,13 @@ bool TypeChecker::match(ExprValue* a,
   return true;
 }
 
-Expr TypeChecker::evaluate(Expr& e)
-{
-  Ctx ctx;
-  return evaluate(e, ctx);
-}
-
+/*
 Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
 {
-  return evaluateInternal(e.getValue(), ctx);
+  return evaluate(e.getValue(), ctx);
 }
-
-Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
+*/
+Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
 {
   ExprTrie evalTrie;
   std::unordered_set<ExprValue*> keep;
@@ -604,7 +599,7 @@ Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
               {
                 Ctx newCtx;
                 // see if we evaluate
-                evaluated = evaluateProgramInternal2(cchildren, newCtx);
+                evaluated = evaluateProgramInternal(cchildren, newCtx);
                 //std::cout << "Evaluate prog returned " << evaluated << std::endl;
                 if (evaluated.isNull() || newCtx.empty())
                 {
@@ -669,7 +664,7 @@ Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
           default:
             if (isLiteralOp(ck))
             {
-              evaluated = evaluateLiteralOpInternal2(ck, cchildren);
+              evaluated = evaluateLiteralOpInternal(ck, cchildren);
               Trace("type_checker_debug")
                   << "evaluated via literal op" << std::endl;
             }
@@ -741,20 +736,10 @@ Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
   return evaluated;
 }
 
-Expr TypeChecker::evaluateProgram(const std::vector<Expr>& children, Ctx& newCtx)
-{
-  std::vector<ExprValue*> vchildren;
-  for (const Expr& c : children)
-  {
-    vchildren.push_back(c.getValue());
-  }
-  return evaluateProgramInternal(vchildren, newCtx);
-}
-
-Expr TypeChecker::evaluateProgramInternal(
+Expr TypeChecker::evaluateProgram(
     const std::vector<ExprValue*>& children, Ctx& newCtx)
 {
-  const Expr& ret = evaluateProgramInternal2(children, newCtx);
+  const Expr& ret = evaluateProgramInternal(children, newCtx);
   if (!ret.isNull())
   {
     return ret;
@@ -790,7 +775,7 @@ int run(const std::string& call, std::ostream& response)
   return -1;
 }
 
-Expr TypeChecker::evaluateProgramInternal2(
+Expr TypeChecker::evaluateProgramInternal(
     const std::vector<ExprValue*>& children, Ctx& newCtx)
 {
   if (!isGround(children))
@@ -811,7 +796,7 @@ Expr TypeChecker::evaluateProgramInternal2(
       return Expr(ret);
     }
     size_t nargs = children.size();
-    std::map<ExprValue*, Expr>::iterator it = d_programs.find(hd);
+    std::map<const ExprValue*, Expr>::iterator it = d_programs.find(hd);
     Assert (it!=d_programs.end());
     if (it!=d_programs.end())
     {
@@ -886,20 +871,10 @@ Expr TypeChecker::evaluateProgramInternal2(
   return d_null;
 }
 
-Expr TypeChecker::evaluateLiteralOp(Kind k, const std::vector<Expr>& args)
+Expr TypeChecker::evaluateLiteralOp(Kind k,
+                                    const std::vector<ExprValue*>& args)
 {
-  std::vector<ExprValue*> vargs;
-  for (const Expr& a : args)
-  {
-    vargs.push_back(a.getValue());
-  }
-  return evaluateLiteralOpInternal(k, vargs);
-}
-
-Expr TypeChecker::evaluateLiteralOpInternal(Kind k,
-                                            const std::vector<ExprValue*>& args)
-{
-  Expr ret = evaluateLiteralOpInternal2(k, args);
+  Expr ret = evaluateLiteralOpInternal(k, args);
   if (!ret.isNull())
   {
     return ret;
@@ -938,7 +913,7 @@ ExprValue* getNAryChildren(ExprValue* e,
   return e;
 }
 
-Expr TypeChecker::evaluateLiteralOpInternal2(
+Expr TypeChecker::evaluateLiteralOpInternal(
     Kind k, const std::vector<ExprValue*>& args)
 {
   Trace("type_checker") << "EVALUATE-LIT " << k << " " << args << std::endl;
