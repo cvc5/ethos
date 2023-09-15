@@ -16,12 +16,18 @@ void Parser::setFileInput(const std::string& filename)
   d_lex.initialize(d_input.get(), filename);
 }
 
+void Parser::setStreamInput(std::istream& input)
+{
+  d_input = Input::mkStreamInput(input);
+  d_lex.initialize(d_input.get(), "stream");
+}
+
 void Parser::setStringInput(const std::string& input)
 {
   d_input = Input::mkStringInput(input);
-  d_lex.initialize(d_input.get(), input);
+  d_lex.initialize(d_input.get(), "string");
 }
-  
+
 bool Parser::parseNextCommand()
 {
   return d_cmdParser.parseNextCommand();

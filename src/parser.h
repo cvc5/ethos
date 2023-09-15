@@ -29,6 +29,11 @@ class Parser
    * @param filename the input filename
    */
   void setFileInput(const std::string& filename);
+  /** Set the input for the given stream.
+   *
+   * @param input the input stream
+   */
+  void setStreamInput(std::istream& input);
   /** Set the string input for the given file.
    *
    * @param filename the input

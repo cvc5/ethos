@@ -24,6 +24,18 @@ class FileInput : public Input
   /** File stream */
   std::ifstream d_fs;
 };
+/** Stream reference input class */
+class StreamInput : public Input
+{
+ public:
+  StreamInput(std::istream& input) : Input(), d_input(input) {}
+  std::istream* getStream() override { return &d_input; }
+  bool isInteractive() const override { return true; }
+
+ private:
+  /** Reference to stream */
+  std::istream& d_input;
+};
 /** String input class */
 class StringInput : public Input
 {
@@ -45,6 +57,10 @@ bool Input::isInteractive() const { return false; }
 std::unique_ptr<Input> Input::mkFileInput(const std::string& filename)
 {
   return std::unique_ptr<Input>(new FileInput(filename));
+}
+std::unique_ptr<Input> Input::mkStreamInput(std::istream& input)
+{
+  return std::unique_ptr<Input>(new StreamInput(input));
 }
 std::unique_ptr<Input> Input::mkStringInput(const std::string& input)
 {
