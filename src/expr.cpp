@@ -135,7 +135,6 @@ bool ExprValue::isCompiled()
   return getFlag(ExprValue::Flag::IS_COMPILED);
 }
 
-void ExprValue::inc() { d_rc++; }
 void ExprValue::dec()
 {
   d_rc--;

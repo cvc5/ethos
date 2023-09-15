@@ -463,6 +463,7 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
 {
   ExprTrie evalTrie;
   std::unordered_set<ExprValue*> keep;
+  std::vector<Expr> keepList;
   Assert (e!=nullptr);
   std::unordered_map<ExprValue*, Expr>::iterator it;
   Ctx::iterator itc;
@@ -583,9 +584,9 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
               // ensure things in the evalTrie are ref counted
               for (ExprValue* e : cchildren)
               {
-                if (keep.find(e) == keep.end())
+                if (keep.insert(e).second)
                 {
-                  e->inc();
+                  keepList.emplace_back(e);
                 }
               }
               ExprTrie* et = evalTrie.get(cchildren);
@@ -716,10 +717,9 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
         // store the evaluation
         Assert(!ets.empty());
         ExprValue * ev = evaluated.getValue();
-        if (keep.find(ev)==keep.end())
+        if (keep.insert(ev).second)
         {
-          ev->inc();
-          keep.insert(ev);
+          keepList.emplace_back(ev);
         }
         ets.back()->d_data = ev;
         ets.pop_back();
@@ -729,10 +729,6 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
   }
   Trace("type_checker") << "EVALUATE " << Expr(e) << ", " << ctx << " = "
                         << evaluated << std::endl;
-  for (ExprValue* e : keep)
-  {
-    e->dec();
-  }
   return evaluated;
 }
 

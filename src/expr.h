@@ -88,7 +88,7 @@ class ExprValue
     }
   }
   /** reference counting */
-  void inc();
+  void inc(){ d_rc++; }
   void dec();
   /** Null */
   static ExprValue s_null;
