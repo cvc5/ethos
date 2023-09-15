@@ -86,6 +86,8 @@ public:
   /** */
   Expr mkAnnotatedType(const Expr& t, Attr ck, const Expr& cons);
   /** */
+  Expr mkSymbol(Kind k, const std::string& name, const Expr& type);
+  /** */
   Expr mkParameter(const std::string& name, const Expr& type);
   /** */
   Expr mkVar(const std::string& name, const Expr& type);

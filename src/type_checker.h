@@ -91,12 +91,15 @@ class TypeChecker
   /** Maybe evaluate */
   Expr evaluateProgramInternal(const std::vector<ExprValue*>& args,
                                Ctx& newCtx);
+  Expr evaluateProgramInternal2(const std::vector<ExprValue*>& args,
+                                Ctx& newCtx);
   /** Return its type */
   Expr getTypeInternal(ExprValue* e, std::ostream* out);
   /** Get or set type rule (to default) for literal kind k */
   ExprValue* getOrSetLiteralTypeRule(Kind k);
   /** Evaluate literal op */
   Expr evaluateLiteralOpInternal(Kind k, const std::vector<ExprValue*>& args);
+  Expr evaluateLiteralOpInternal2(Kind k, const std::vector<ExprValue*>& args);
   /** Type check */
   ExprValue* getLiteralOpType(Kind k,
                               std::vector<ExprValue*>& childTypes,

@@ -600,7 +600,7 @@ Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
               {
                 Ctx newCtx;
                 // see if we evaluate
-                evaluated = evaluateProgramInternal(cchildren, newCtx);
+                evaluated = evaluateProgramInternal2(cchildren, newCtx);
                 //std::cout << "Evaluate prog returned " << evaluated << std::endl;
                 if (evaluated.isNull() || newCtx.empty())
                 {
@@ -665,7 +665,7 @@ Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
           default:
             if (isLiteralOp(ck))
             {
-              evaluated = evaluateLiteralOpInternal(ck, cchildren);
+              evaluated = evaluateLiteralOpInternal2(ck, cchildren);
               Trace("type_checker_debug") << "evaluated via literal op" << std::endl;
             }
             break;
@@ -735,13 +735,18 @@ Expr TypeChecker::evaluateProgram(const std::vector<Expr>& children, Ctx& newCtx
   {
     vchildren.push_back(c.getValue());
   }
-  const Expr& ret = evaluateProgramInternal(vchildren, newCtx);
+  return evaluateProgramInternal(vchildren, newCtx);
+}
+
+Expr TypeChecker::evaluateProgramInternal(const std::vector<ExprValue*>& children, Ctx& newCtx)
+{
+  const Expr& ret = evaluateProgramInternal2(children, newCtx);
   if (!ret.isNull())
   {
     return ret;
   }
   // otherwise does not evaluate, return application
-  return Expr(d_state.mkExprInternal(Kind::APPLY, vchildren));
+  return Expr(d_state.mkExprInternal(Kind::APPLY, children));
 }
 
 bool TypeChecker::isGround(const std::vector<ExprValue*>& args)
@@ -771,7 +776,7 @@ int run(const std::string& call, std::ostream& response)
   return -1;
 }
 
-Expr TypeChecker::evaluateProgramInternal(
+Expr TypeChecker::evaluateProgramInternal2(
     const std::vector<ExprValue*>& children, Ctx& newCtx)
 {
   if (!isGround(children))
@@ -873,13 +878,18 @@ Expr TypeChecker::evaluateLiteralOp(Kind k, const std::vector<Expr>& args)
   {
     vargs.push_back(a.getValue());
   }
-  Expr ret = evaluateLiteralOpInternal(k, vargs);
+  return evaluateLiteralOpInternal(k, vargs);
+}
+
+Expr TypeChecker::evaluateLiteralOpInternal(Kind k, const std::vector<ExprValue*>& args)
+{
+  Expr ret = evaluateLiteralOpInternal2(k, args);
   if (!ret.isNull())
   {
     return ret;
   }
   // otherwise does not evaluate, return application
-  return Expr(d_state.mkExprInternal(k, vargs));
+  return Expr(d_state.mkExprInternal(k, args));
 }
 
 ExprValue* getNAryChildren(ExprValue* e,
@@ -912,7 +922,7 @@ ExprValue* getNAryChildren(ExprValue* e,
   return e;
 }
 
-Expr TypeChecker::evaluateLiteralOpInternal(Kind k,
+Expr TypeChecker::evaluateLiteralOpInternal2(Kind k,
                                             const std::vector<ExprValue*>& args)
 {
   Trace("type_checker") << "EVALUATE-LIT " << k << " " << args << std::endl;

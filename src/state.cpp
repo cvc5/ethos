@@ -475,6 +475,11 @@ Expr State::mkAnnotatedType(const Expr& t, Attr ck, const Expr& cons)
   return t;
 }
 
+Expr State::mkSymbol(Kind k, const std::string& name, const Expr& type)
+{
+  return Expr(mkSymbolInternal(k, name, type));
+}
+
 Expr State::mkParameter(const std::string& name, const Expr& type)
 {
   return Expr(mkSymbolInternal(Kind::PARAM, name, type));
