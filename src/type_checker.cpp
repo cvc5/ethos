@@ -465,6 +465,7 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
 
 Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
 {
+  d_evalTrie.clear();
   Assert (e!=nullptr);
   std::unordered_map<ExprValue*, Expr>::iterator it;
   Ctx::iterator itc;
@@ -766,7 +767,7 @@ Expr TypeChecker::evaluateProgramInternal(
     {
       Trace("type_checker") << "RUN program " << children << std::endl;
       ExprValue* ret = run_evaluateProgram(children, newCtx);
-      Trace("type_checker") << "...matches " << ret << ", ctx = " << newCtx << std::endl;
+      Trace("type_checker") << "...matches " << Expr(ret) << ", ctx = " << newCtx << std::endl;
       return Expr(ret);
     }
     size_t nargs = children.size();
@@ -802,7 +803,7 @@ Expr TypeChecker::evaluateProgramInternal(
         if (matchSuccess)
         {
           Trace("type_checker")
-              << "...matches " << hd << ", ctx = " << newCtx << std::endl;
+              << "...matches " << Expr(hd) << ", ctx = " << newCtx << std::endl;
           return c[1];
         }
       }
@@ -922,7 +923,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k,
         return Expr(args[l->d_bool ? 1 : 2]);
       }
       /*
-      // conditions equal
+      // branches equal
       if (args[1]==args[2])
       {
         return args[1];
@@ -938,7 +939,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k,
         return Expr(args[2]);
       }
       Trace("type_checker")
-        << "REQUIRES: failed " << args[0] << " == " << args[1] << std::endl;
+        << "REQUIRES: failed " << Expr(args[0]) << " == " << Expr(args[1]) << std::endl;
       return d_null;
     }
     case Kind::EVAL_HASH:
@@ -1003,7 +1004,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k,
           {
             if (a != ac->d_attrConsTerm.getValue())
             {
-              Warning() << "...failed to decompose " << harg << " in from_list" << std::endl;
+              Warning() << "...failed to decompose " << Expr(harg) << " in from_list" << std::endl;
               return d_null;
             }
             // turn singleton list
