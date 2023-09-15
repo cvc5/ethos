@@ -136,12 +136,10 @@ bool ExprValue::isCompiled()
 
 void ExprValue::inc() 
 { 
-  Trace("ajr-temp") << "inc " << this << " " << d_kind << std::endl;
   d_rc++; 
 }
 void ExprValue::dec() 
 { 
-  Trace("ajr-temp") << "dec " << this << " " << d_kind <<std::endl;
   d_rc--;
   if (d_rc==0)
   {
@@ -151,7 +149,6 @@ void ExprValue::dec()
 }
 
 Expr::Expr() { 
-  Trace("ajr-temp") << "...construct null " << this << std::endl;
   d_value = &ExprValue::s_null; 
 }
 Expr::Expr(const ExprValue* ev)
@@ -162,7 +159,6 @@ Expr::Expr(const ExprValue* ev)
   }
   else
   {
-    Trace("ajr-temp") << "...inc due to expr cons " << this << std::endl;
     d_value = const_cast<ExprValue*>(ev);
     d_value->inc();
   }
@@ -181,7 +177,6 @@ Expr::~Expr()
   Assert (d_value!=nullptr);
   if (!d_value->isNull())
   {
-    Trace("ajr-temp") << "...dec due to expr delete " << this << std::endl;
     d_value->dec();
     d_value = nullptr;
   }
@@ -426,13 +421,11 @@ Expr& Expr::operator=(const Expr& e)
   {
     if (!isNull())
     {
-      Trace("ajr-temp") << "...dec due to setting " << this << " to " << &e << std::endl;
       d_value->dec();
     }
     d_value = e.d_value;
     if (!isNull())
     {
-      Trace("ajr-temp") << "...inc due to setting " << this << " to " << &e << std::endl;
       d_value->inc();
     }
   }

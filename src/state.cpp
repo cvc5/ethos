@@ -20,14 +20,11 @@ Options::Options()
 State::State(Options& opts, Stats& stats) : d_hashCounter(0), d_hasReference(false), d_inGarbageCollection(false), d_tc(*this), d_opts(opts), d_stats(stats)
 {
   ExprValue::d_state = this;
-  Trace("ajr-temp") << "mk abs type" << std::endl;
   d_absType = Expr(mkExprInternal(Kind::ABSTRACT_TYPE, {}));
   
-  Trace("ajr-temp") << "bind func" << std::endl;
   // lambda is not builtin?
   //bindBuiltin("lambda", Kind::LAMBDA, true);
   bindBuiltin("->", Kind::FUNCTION_TYPE);
-  Trace("ajr-temp") << "bind apply" << std::endl;
   bindBuiltin("_", Kind::APPLY);
 
   bindBuiltinEval("is_eq", Kind::EVAL_IS_EQ);
@@ -60,7 +57,6 @@ State::State(Options& opts, Stats& stats) : d_hashCounter(0), d_hasReference(fal
   bindBuiltinEval("concat", Kind::EVAL_CONCAT);
   bindBuiltinEval("extract", Kind::EVAL_EXTRACT);
   
-  Trace("ajr-temp") << "mkNil" << std::endl;
   d_nil = Expr(mkExprInternal(Kind::NIL, {}));
   bind("alf.nil", d_nil);
   d_fail = Expr(mkExprInternal(Kind::FAIL, {}));
@@ -71,18 +67,12 @@ State::State(Options& opts, Stats& stats) : d_hashCounter(0), d_hasReference(fal
 
   // note we don't allow parsing (Proof ...), (Quote ...), or (quote ...).
 
-  Trace("ajr-temp") << "mkType" << std::endl;
   // common constants
   d_type = Expr(mkExprInternal(Kind::TYPE, {}));
-  Trace("ajr-temp") << "bool type" << std::endl;
   d_boolType = Expr(mkExprInternal(Kind::BOOL_TYPE, {}));
-  Trace("ajr-temp") << "true" << std::endl;
   d_true = mkLiteral(Kind::BOOLEAN, "true");
-  Trace("ajr-temp") << "bind true" << std::endl;
   bind("true", d_true);
-  Trace("ajr-temp") << "false" << std::endl;
   d_false = mkLiteral(Kind::BOOLEAN, "false");
-  Trace("ajr-temp") << "bind false" << std::endl;
   bind("false", d_false);
   if (d_opts.d_runCompile)
   {
@@ -93,31 +83,9 @@ State::State(Options& opts, Stats& stats) : d_hashCounter(0), d_hasReference(fal
   {
     d_compiler.reset(new Compiler(*this));
   }
-  Trace("ajr-temp") << "finished construct" << std::endl;
 }
 
 State::~State(){
-  d_tc.shutdown();
-  // delete meta-data first
-  d_appData.clear();
-  d_literals.clear();
-  d_hashMap.clear();
-  //
-  d_type = d_null;
-  d_boolType = d_null;
-  d_absType = d_null;
-  d_true = d_null;
-  d_false = d_null;
-  d_self = d_null;
-  d_nil = d_null;
-  d_fail = d_null;
-  d_symTable.clear();
-  d_ruleSymTable.clear();
-  d_assumptions.clear();
-  d_literalTrie.clear();
-  d_referenceAssertList.clear();
-  d_typeCache.clear();
-  d_trie.clear();
 }
 
 void State::reset()
@@ -135,7 +103,6 @@ void State::reset()
 
 void State::pushScope()
 {
-  //Trace("ajr-temp") << "push" << std::endl;
   d_declsSizeCtx.push_back(d_decls.size());
   if (d_compiler!=nullptr)
   {
@@ -149,7 +116,6 @@ void State::popScope()
   {
     d_compiler->popScope();
   }
-  //Trace("ajr-temp") << "pop" << std::endl;
   if (d_declsSizeCtx.empty())
   {
     ALFC_FATAL() << "State::popScope: empty context";
@@ -158,7 +124,6 @@ void State::popScope()
   d_declsSizeCtx.pop_back();
   for (size_t i=lastSize, currSize = d_decls.size(); i<currSize; i++)
   {
-    //Trace("ajr-temp") << "erase " << d_decls[i] << std::endl;
     d_symTable.erase(d_decls[i]);
   }
   d_decls.resize(lastSize);
@@ -827,7 +792,6 @@ Expr State::mkLiteral(Kind k, const std::string& s)
   Expr lit(lv);
   // map to the data
   d_literalTrie[key] = lit;
-  //Trace("ajr-temp") << "mkLiteral \"" << s << "\"" << std::endl;
   // convert string to literal
   switch (k)
   {
@@ -876,13 +840,11 @@ ExprValue* State::mkExprInternal(Kind k,
   et = et->get(children);
   if (et->d_data!=nullptr)
   {
-    Trace("ajr-temp") << "...existing " << k << " " << et->d_data << std::endl;
     return et->d_data;
   }
   d_stats.d_exprCount++;
   ExprValue* ev = new ExprValue(k, children);
   Trace("gc") << "New " << ev << " " << k << std::endl;
-  Trace("ajr-temp") << "New " << k << " " << ev << std::endl;
   et->d_data = ev;
   return ev;
 }
@@ -911,7 +873,7 @@ bool State::bind(const std::string& name, const Expr& e)
   {
     return false;
   }
-  Trace("ajr-temp") << "bind " << name << " -> " << &e << std::endl;
+  //Trace("ajr-temp") << "bind " << name << " -> " << &e << std::endl;
   d_symTable[name] = e;
   // only have to remember if not at global scope
   if (!d_declsSizeCtx.empty())
@@ -1105,11 +1067,8 @@ void State::bindBuiltin(const std::string& name, Kind k, Attr ac)
 
 void State::bindBuiltin(const std::string& name, Kind k, Attr ac, const Expr& t)
 {
-  Trace("ajr-temp") << "[1] make const" << std::endl;
   Expr c = mkConst(name, t);
-  Trace("ajr-temp") << "[2] bind" << std::endl;
   bind(name, c);
-  Trace("ajr-temp") << "[3] other" << std::endl;
   if (ac!=Attr::NONE || k!=Kind::NONE)
   {
     // associate the information
@@ -1117,7 +1076,6 @@ void State::bindBuiltin(const std::string& name, Kind k, Attr ac, const Expr& t)
     ai.d_kind = k;
     ai.d_attrCons = ac;
   }
-  Trace("ajr-temp") << "[4] done" << std::endl;
 }
 
 void State::bindBuiltinEval(const std::string& name, Kind k, Attr ac)

@@ -1154,11 +1154,5 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
   return nullptr;
 }
 
-void TypeChecker::shutdown()
-{
-  d_literalTypeRules.clear();
-  d_programs.clear();
-}
-
 }  // namespace alfc
 
