@@ -28,12 +28,6 @@ public:
     return et;
   }
   /** */
-  void clear()
-  {
-    d_children.clear();
-    d_data = nullptr;
-  }
-  /** */
   void remove(const std::vector<ExprValue*>& children)
   {
     ExprTrie* et = this;
@@ -56,7 +50,7 @@ public:
       }
       et = &itet->second;
     }
-    // this enables cleanup of subtrees
+    // delete the subtree for which et->d_data occurs in a single path
     if (etd!=nullptr)
     {
       etd->d_children.erase(itetd);
