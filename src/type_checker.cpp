@@ -465,7 +465,8 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
 
 Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
 {
-  d_evalTrie.clear();
+  ExprTrie evalTrie;
+  std::unordered_set<ExprValue*> keep;
   Assert (e!=nullptr);
   std::unordered_map<ExprValue*, Expr>::iterator it;
   Ctx::iterator itc;
@@ -490,7 +491,7 @@ Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
     while (!visit.empty())
     {
       cur = visit.back();
-      Trace("type_checker_debug") << "visit " << cur << " " << cctx << ", depth=" << visits.size() << std::endl;
+      Trace("type_checker_debug") << "visit " << Expr(cur) << " " << cctx << ", depth=" << visits.size() << std::endl;
       // the term will stay the same if it is not evaluatable and either it
       // is ground, or the context is empty.
       if (!cur->isEvaluatable() && (cur->isGround() || cctx.empty()))
@@ -575,19 +576,25 @@ Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
             return Expr(cur);
           case Kind::APPLY:
           {
+            Trace("type_checker_debug") << "evaluated args " << cchildren << std::endl;
             // if a program and all arguments are ground, run it
             Kind cck = cchildren[0]->getKind();
             if (cck==Kind::PROGRAM_CONST || cck==Kind::ORACLE)
             {
               // maybe already cached
-              ExprTrie* et = &d_evalTrie;
-              for (ExprValue* e : cchildren)
+              // ensure things in the evalTrie are ref counted
+              for (ExprValue * e : cchildren)
               {
-                et = &(et->d_children[e]);
+                if (keep.find(e)==keep.end())
+                {
+                  e->inc();
+                }
               }
+              ExprTrie* et = evalTrie.get(cchildren);
               if (et->d_data!=nullptr)
               {
                 evaluated = Expr(et->d_data);
+                Trace("type_checker_debug") << "evaluated via cached evaluation" << std::endl;
               }
               else
               {
@@ -634,6 +641,7 @@ Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
               else
               {
                 evaluated = Expr(cchildren[index]);
+                Trace("type_checker_debug") << "evaluated via ite" << std::endl;
               }
             }
             else
@@ -658,11 +666,13 @@ Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
             if (isLiteralOp(ck))
             {
               evaluated = evaluateLiteralOpInternal(ck, cchildren);
+              Trace("type_checker_debug") << "evaluated via literal op" << std::endl;
             }
             break;
         }
         if (newContext)
-        {
+        { 
+          Trace("type_checker_debug") << "new context" << std::endl;
           break;
         }
         if (canEvaluate)
@@ -670,9 +680,15 @@ Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
           if (evaluated.isNull())
           {
             evaluated = Expr(d_state.mkExprInternal(ck, cchildren));
+            Trace("type_checker_debug") << "evaluated via mkExprInternal" << std::endl;
           }
           visited[cur] = evaluated;
+          Trace("type_checker_debug") << "visited " << Expr(cur) << " = " << evaluated << std::endl;
           visit.pop_back();
+        }
+        else
+        {
+          Trace("type_checker_debug") << "cannot evaluate" << std::endl;
         }
       }
       else
@@ -705,6 +721,10 @@ Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
   }
   Trace("type_checker") << "EVALUATE " << Expr(e) << ", " << ctx << " = "
                         << evaluated << std::endl;
+  for (ExprValue * e : keep)
+  {
+    e->dec();
+  }
   return evaluated;
 }
 
@@ -938,8 +958,15 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k,
       {
         return Expr(args[2]);
       }
-      Trace("type_checker")
-        << "REQUIRES: failed " << Expr(args[0]) << " == " << Expr(args[1]) << std::endl;
+      if (TraceIsOn("type_checker"))
+      {
+        if (isGround(args))
+        {
+          Trace("type_checker")
+            << "REQUIRES: failed " << Expr(args[0]) << " == " << Expr(args[1]) << std::endl;
+          AlwaysAssert(false);
+        } 
+      }
       return d_null;
     }
     case Kind::EVAL_HASH:

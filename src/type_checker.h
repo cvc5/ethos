@@ -119,8 +119,6 @@ class TypeChecker
   std::map<Kind, Expr> d_literalTypeRules;
   /** Programs */
   std::map<ExprValue*, Expr> d_programs;
-  /** Evaluation trie */
-  ExprTrie d_evalTrie;
   /** The null expression */
   Expr d_null;
 };
