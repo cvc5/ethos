@@ -720,7 +720,13 @@ Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
         visits.back().pop_back();
         // store the evaluation
         Assert(!ets.empty());
-        ets.back()->d_data = evaluated.getValue();
+        ExprValue * ev = evaluated.getValue();
+        if (keep.find(ev)==keep.end())
+        {
+          ev->inc();
+          keep.insert(ev);
+        }
+        ets.back()->d_data = ev;
         ets.pop_back();
       }
       ctxs.pop_back();

@@ -11,8 +11,7 @@ namespace alfc {
 ExprValue ExprValue::s_null;
 State* ExprValue::d_state = nullptr;
 
-// initialize with ref count 1 to ensure it is never destroyed
-ExprValue::ExprValue() : d_kind(Kind::NONE), d_flags(0), d_rc(1) {}
+ExprValue::ExprValue() : d_kind(Kind::NONE), d_flags(0), d_rc(0) {}
 
 ExprValue::ExprValue(Kind k, const std::vector<ExprValue*>& children)
     : d_kind(k), d_children(children), d_flags(0), d_rc(0)
@@ -147,12 +146,7 @@ void ExprValue::dec()
   }
 }
 
-Expr::Expr()
-{
-  d_value = &ExprValue::s_null;
-  d_value->inc();
-}
-
+Expr::Expr() { d_value = &ExprValue::s_null; }
 Expr::Expr(const ExprValue* ev)
 {
   if (ev == nullptr)
@@ -162,19 +156,26 @@ Expr::Expr(const ExprValue* ev)
   else
   {
     d_value = const_cast<ExprValue*>(ev);
+    d_value->inc();
   }
-  d_value->inc();
 }
 Expr::Expr(const Expr& e)
 {
   d_value = e.d_value;
   Assert(d_value != nullptr);
-  d_value->inc();
+  if (!d_value->isNull())
+  {
+    d_value->inc();
+  }
 }
 Expr::~Expr()
 {
   Assert(d_value != nullptr);
-  d_value->dec();
+  if (!d_value->isNull())
+  {
+    d_value->dec();
+    d_value = nullptr;
+  }
 }
 
 bool Expr::isNull() const { return d_value->isNull(); }
@@ -281,24 +282,24 @@ void Expr::printDebugInternal(const Expr& e,
                               std::map<const ExprValue*, size_t>& lbind)
 {
   std::map<const ExprValue*, size_t>::iterator itl;
-  std::vector<std::pair<Expr, size_t>> visit;
-  std::pair<Expr, size_t> cur;
-  visit.emplace_back(e, 0);
+  std::vector<std::pair<ExprValue*, size_t>> visit;
+  std::pair<ExprValue*, size_t> cur;
+  visit.emplace_back(e.getValue(), 0);
   do {
     cur = visit.back();
     if (cur.second==0)
     {
-      itl = lbind.find(cur.first.getValue());
+      itl = lbind.find(cur.first);
       if (itl!=lbind.end())
       {
         os << "_v" << itl->second;
         visit.pop_back();
         continue;
       }
-      Kind k = cur.first.getKind();
-      if (cur.first.getNumChildren() == 0)
+      Kind k = cur.first->getKind();
+      if (cur.first->getNumChildren() == 0)
       {
-        const Literal* l = ExprValue::d_state->getLiteral(cur.first.getValue());
+        const Literal* l = ExprValue::d_state->getLiteral(cur.first);
         if (l!=nullptr)
         {
           switch (l->d_tag)
@@ -323,22 +324,23 @@ void Expr::printDebugInternal(const Expr& e,
         os << "(";
         if (k!=Kind::APPLY && k!=Kind::TUPLE)
         {
-          os <<  kindToTerm(k) << " ";
+          os << kindToTerm(k) << " ";
         }
         visit.back().second++;
-        visit.emplace_back(cur.first[0], 0);
+        visit.emplace_back((*cur.first)[0], 0);
       }
     }
-    else if (cur.second == cur.first.getNumChildren())
+    else if (cur.second == cur.first->getNumChildren())
     {
       os << ")";
       visit.pop_back();
     }
     else
     {
+      Assert (cur.second<cur.first->getNumChildren());
       os << " ";
       visit.back().second++;
-      visit.emplace_back(cur.first[cur.second], 0);
+      visit.emplace_back((*cur.first)[cur.second], 0);
     }
   } while (!visit.empty());
 }
@@ -417,9 +419,15 @@ Expr& Expr::operator=(const Expr& e)
 {
   if (d_value != e.d_value)
   {
-    d_value->dec();
+    if (!isNull())
+    {
+      d_value->dec();
+    }
     d_value = e.d_value;
-    d_value->inc();
+    if (!isNull())
+    {
+      d_value->inc();
+    }
   }
   return *this;
 }
