@@ -74,7 +74,7 @@ ExprValue* TypeChecker::getOrSetLiteralTypeRule(Kind k)
     ALFC_FATAL() << "TypeChecker::getOrSetLiteralTypeRule: cannot get type rule for kind "
                  << k;
   }
-  if (!it->second.isNull())
+  if (it->second.isNull())
   {
     // If no type rule, assign the type rule to the builtin type
     Expr t = d_state.mkBuiltinType(k);
@@ -360,7 +360,7 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     {
       if (out)
       {
-        (*out) << "Unexpected argument type " << i << " of " << hd << std::endl;
+        (*out) << "Unexpected argument type " << i << " of " << Expr(hd) << std::endl;
         (*out) << "  LHS " << evaluateInternal(hdtypes[i], ctx) << ", from "
                << Expr(hdtypes[i]) << std::endl;
         (*out) << "  RHS " << Expr(ctypes[i]) << std::endl;
@@ -1124,6 +1124,12 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
     (*out) << "Unknown type for literal operator " << k;
   }
   return nullptr;
+}
+
+void TypeChecker::shutdown()
+{
+  d_literalTypeRules.clear();
+  d_programs.clear();
 }
 
 }  // namespace alfc

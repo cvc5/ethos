@@ -209,6 +209,8 @@ private:
   std::vector<size_t> d_assumptionsSizeCtx;
   /** Reference asserts */
   std::unordered_set<const ExprValue*> d_referenceAsserts;
+  /** Reference assert list */
+  std::vector<Expr> d_referenceAssertList;
   //--------------------- expression info
   /** Map from expressions to constructor info */
   std::map<const ExprValue*, AppInfo> d_appData;

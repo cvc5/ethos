@@ -101,6 +101,7 @@ class Expr
  public:
   explicit Expr();
   explicit Expr(const ExprValue* ev);
+  Expr(const Expr& e);
   ~Expr();
   /** Get the free symbols */
   static std::vector<Expr> getVariables(const Expr& e);

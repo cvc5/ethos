@@ -167,9 +167,19 @@ Expr::Expr(const ExprValue* ev)
     d_value->inc();
   }
 }
+Expr::Expr(const Expr& e)
+{
+  d_value = e.d_value;
+  Assert (d_value!=nullptr);
+  if (!d_value->isNull())
+  {
+    d_value->inc();
+  }
+}
 Expr::~Expr()
 {
-  if (!isNull())
+  Assert (d_value!=nullptr);
+  if (!d_value->isNull())
   {
     Trace("ajr-temp") << "...dec due to expr delete " << this << std::endl;
     d_value->dec();

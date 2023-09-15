@@ -32,27 +32,30 @@ public:
     ExprTrie* etd = nullptr;
     std::map<const ExprValue*, ExprTrie>::iterator itet;
     std::map<const ExprValue*, ExprTrie>::iterator itetd;
-    bool updateEtd = false;
     for (ExprValue* e : children)
     {
       itet = et->d_children.find(e);
-      if (updateEtd)
+      if (etd == nullptr)
       {
+        // etd is the candidate trie to delete from
         etd = et;
         itetd = itet;
       }
       Assert (itet!=et->d_children.end());
-      updateEtd = (et->d_children.size()>1);
+      if (et->d_children.size()>1)
+      {
+        etd = nullptr;
+      }
       et = &itet->second;
     }
+    /*
     if (etd!=nullptr)
     {
       etd->d_children.erase(itetd);
     }
-    else
-    {
+    */
       et->d_data = nullptr;
-    }
+
   }
 };
 

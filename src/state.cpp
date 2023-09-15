@@ -60,6 +60,7 @@ State::State(Options& opts, Stats& stats) : d_hashCounter(0), d_hasReference(fal
   bindBuiltinEval("concat", Kind::EVAL_CONCAT);
   bindBuiltinEval("extract", Kind::EVAL_EXTRACT);
   
+  Trace("ajr-temp") << "mkNil" << std::endl;
   d_nil = Expr(mkExprInternal(Kind::NIL, {}));
   bind("alf.nil", d_nil);
   d_fail = Expr(mkExprInternal(Kind::FAIL, {}));
@@ -73,10 +74,15 @@ State::State(Options& opts, Stats& stats) : d_hashCounter(0), d_hasReference(fal
   Trace("ajr-temp") << "mkType" << std::endl;
   // common constants
   d_type = Expr(mkExprInternal(Kind::TYPE, {}));
+  Trace("ajr-temp") << "bool type" << std::endl;
   d_boolType = Expr(mkExprInternal(Kind::BOOL_TYPE, {}));
+  Trace("ajr-temp") << "true" << std::endl;
   d_true = mkLiteral(Kind::BOOLEAN, "true");
+  Trace("ajr-temp") << "bind true" << std::endl;
   bind("true", d_true);
+  Trace("ajr-temp") << "false" << std::endl;
   d_false = mkLiteral(Kind::BOOLEAN, "false");
+  Trace("ajr-temp") << "bind false" << std::endl;
   bind("false", d_false);
   if (d_opts.d_runCompile)
   {
@@ -90,7 +96,29 @@ State::State(Options& opts, Stats& stats) : d_hashCounter(0), d_hasReference(fal
   Trace("ajr-temp") << "finished construct" << std::endl;
 }
 
-State::~State(){}
+State::~State(){
+  d_tc.shutdown();
+  // delete meta-data first
+  d_appData.clear();
+  d_literals.clear();
+  d_hashMap.clear();
+  //
+  d_type = d_null;
+  d_boolType = d_null;
+  d_absType = d_null;
+  d_true = d_null;
+  d_false = d_null;
+  d_self = d_null;
+  d_nil = d_null;
+  d_fail = d_null;
+  d_symTable.clear();
+  d_ruleSymTable.clear();
+  d_assumptions.clear();
+  d_literalTrie.clear();
+  d_referenceAssertList.clear();
+  d_typeCache.clear();
+  d_trie.clear();
+}
 
 void State::reset()
 {
@@ -211,8 +239,14 @@ void State::markDeleted(ExprValue * e)
 {
   Assert (e!=nullptr);
   Trace("gc") << "Delete " << e << " " << e->getKind() << std::endl;
-  Trace("ajr-temp") << "Delete " << e << " " << e->getKind() << std::endl;
   d_stats.d_deleteExprCount++;
+  // TODO
+  /*
+  if (isLiteral(e->getKind()))
+  {
+
+  }
+  */
   std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(e);
   if (it!=d_appData.end())
   {
@@ -235,31 +269,9 @@ void State::markDeleted(ExprValue * e)
   }
   // remove from the expression trie
   ExprTrie* et = &d_trie[e->getKind()];
-  ExprTrie* etd = nullptr;
-  std::map<const ExprValue*, ExprTrie>::iterator itet;
-  std::map<const ExprValue*, ExprTrie>::iterator itetd;
-  bool updateEtd = false;
   const std::vector<ExprValue*>& children = e->getChildren();
-  for (ExprValue* e : children)
-  {
-    itet = et->d_children.find(e);
-    Assert (itet!=et->d_children.end());
-    updateEtd = (et->d_children.size()>1);
-    et = &itet->second;
-    if (updateEtd)
-    {
-      etd = et;
-      itetd = itet;
-    }
-  }
-  if (etd!=nullptr)
-  {
-    etd->d_children.erase(itetd);
-  }
-  else
-  {
-    et->d_data = nullptr;
-  }
+  et->remove(children);
+  // now, free the expression
   free(e);
 }
 
@@ -280,6 +292,8 @@ bool State::addAssumption(const Expr& a)
 void State::addReferenceAssert(const Expr& a)
 {
   d_referenceAsserts.insert(a.getValue());
+  // ensure ref count
+  d_referenceAssertList.push_back(a);
 }
 
 void State::setLiteralTypeRule(Kind k, const Expr& t)

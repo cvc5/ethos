@@ -71,6 +71,8 @@ class TypeChecker
    */
   Expr evaluateLiteralOp(Kind k, const std::vector<Expr>& args);
  private:
+  /** shutdown */
+  void shutdown();
   /**
    * Match expression a with b. If this returns true, then ctx is a substitution
    * that when applied to b gives a. The substitution

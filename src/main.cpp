@@ -128,5 +128,6 @@ int main( int argc, char* argv[] )
 
   }
   std::cout << stats.toString(s);
+  exit(0);
   return 0;
 }
