@@ -218,13 +218,14 @@ void State::markDeleted(ExprValue* e)
   do
   {
     Trace("gc") << "Delete " << e << " " << e->getKind() << std::endl;
-    // TODO
-    /*
     if (isLiteral(e->getKind()))
     {
-
+      std::map<ExprValue*, std::pair<Kind, std::string>>::iterator itk = d_literalTrieRev.find(e);
+      Assert (itk!=d_literalTrieRev.end());
+      std::map<std::pair<Kind, std::string>, ExprValue*>::iterator itl = d_literalTrie.find(itk->second);
+      Assert (itl!=d_literalTrie.end());
+      d_literalTrie.erase(itl);
     }
-    */
     std::map<const ExprValue*, AppInfo>::const_iterator it = d_appData.find(e);
     if (it != d_appData.end())
     {
@@ -791,17 +792,18 @@ Expr State::mkFalse()
 Expr State::mkLiteral(Kind k, const std::string& s)
 {
   std::pair<Kind, std::string> key(k, s);
-  std::map<std::pair<Kind, std::string>, Expr>::iterator it = d_literalTrie.find(key);
+  std::map<std::pair<Kind, std::string>, ExprValue*>::iterator it = d_literalTrie.find(key);
   if (it!=d_literalTrie.end())
   {
-    return it->second;
+    return Expr(it->second);
   }
   d_stats.d_litCount++;
   std::vector<ExprValue*> emptyVec;
   ExprValue* lv = new ExprValue(k, emptyVec);
   Expr lit(lv);
   // map to the data
-  d_literalTrie[key] = lit;
+  d_literalTrie[key] = lv;
+  d_literalTrieRev[lv] = key;
   // convert string to literal
   switch (k)
   {

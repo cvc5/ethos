@@ -226,7 +226,8 @@ class State
   std::map<Kind, ExprTrie> d_trie;
   //--------------------- literals
   /** Cache for literals */
-  std::map<std::pair<Kind, std::string>, Expr> d_literalTrie;
+  std::map<std::pair<Kind, std::string>, ExprValue*> d_literalTrie;
+  std::map<ExprValue*, std::pair<Kind, std::string>> d_literalTrieRev;
   /** Map from expressions to literals */
   std::map<const ExprValue*, Literal> d_literals;
   // -------------------- symbols

@@ -242,7 +242,7 @@ void Compiler::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
   d_init << "  markConstructorKind(_e" << id << ", Attr::" << a << ", ";
   if (cons.isNull())
   {
-    d_init << "nullptr";
+    d_init << "d_null";
   }
   else
   {
