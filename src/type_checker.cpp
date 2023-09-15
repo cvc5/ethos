@@ -584,7 +584,7 @@ Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
             Kind cck = cchildren[0]->getKind();
             if (cck==Kind::PROGRAM_CONST || cck==Kind::ORACLE)
             {
-              // maybe already cached
+              // maybe the evaluation is already cached
               // ensure things in the evalTrie are ref counted
               for (ExprValue* e : cchildren)
               {

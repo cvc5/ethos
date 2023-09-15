@@ -11,7 +11,8 @@ namespace alfc {
 ExprValue ExprValue::s_null;
 State* ExprValue::d_state = nullptr;
 
-ExprValue::ExprValue() : d_kind(Kind::NONE), d_flags(0) {}
+// initialize with ref count 1 to ensure it is never destroyed
+ExprValue::ExprValue() : d_kind(Kind::NONE), d_flags(0), d_rc(1) {}
 
 ExprValue::ExprValue(Kind k, const std::vector<ExprValue*>& children)
     : d_kind(k), d_children(children), d_flags(0), d_rc(0)
@@ -146,7 +147,12 @@ void ExprValue::dec()
   }
 }
 
-Expr::Expr() { d_value = &ExprValue::s_null; }
+Expr::Expr()
+{
+  d_value = &ExprValue::s_null;
+  d_value->inc();
+}
+
 Expr::Expr(const ExprValue* ev)
 {
   if (ev == nullptr)
@@ -156,26 +162,19 @@ Expr::Expr(const ExprValue* ev)
   else
   {
     d_value = const_cast<ExprValue*>(ev);
-    d_value->inc();
   }
+  d_value->inc();
 }
 Expr::Expr(const Expr& e)
 {
   d_value = e.d_value;
   Assert(d_value != nullptr);
-  if (!d_value->isNull())
-  {
-    d_value->inc();
-  }
+  d_value->inc();
 }
 Expr::~Expr()
 {
   Assert(d_value != nullptr);
-  if (!d_value->isNull())
-  {
-    d_value->dec();
-    d_value = nullptr;
-  }
+  d_value->dec();
 }
 
 bool Expr::isNull() const { return d_value->isNull(); }
@@ -418,15 +417,9 @@ Expr& Expr::operator=(const Expr& e)
 {
   if (d_value != e.d_value)
   {
-    if (!isNull())
-    {
-      d_value->dec();
-    }
+    d_value->dec();
     d_value = e.d_value;
-    if (!isNull())
-    {
-      d_value->inc();
-    }
+    d_value->inc();
   }
   return *this;
 }
