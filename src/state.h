@@ -207,10 +207,6 @@ private:
   std::vector<Expr> d_assumptions;
   /** Context size */
   std::vector<size_t> d_assumptionsSizeCtx;
-  /** Reference asserts */
-  std::unordered_set<const ExprValue*> d_referenceAsserts;
-  /** Reference assert list */
-  std::vector<Expr> d_referenceAssertList;
   //--------------------- expression info
   /** Map from expressions to constructor info */
   std::map<const ExprValue*, AppInfo> d_appData;
@@ -237,6 +233,15 @@ private:
   std::set<std::filesystem::path> d_includes;
   /** Have we parsed a reference file to check assumptions? */
   bool d_hasReference;
+  /** Reference asserts */
+  std::unordered_set<const ExprValue*> d_referenceAsserts;
+  /** Reference assert list */
+  std::vector<Expr> d_referenceAssertList;
+  //--------------------- garbage collection
+  /** The current set of expression values to delete */
+  std::vector<ExprValue*> d_toDelete;
+  /** Are we in garbage collection? */
+  bool d_inGarbageCollection;
   //--------------------- utilities
   /** Type checker */
   TypeChecker d_tc;

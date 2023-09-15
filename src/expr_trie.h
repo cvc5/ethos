@@ -4,6 +4,7 @@
 #include <string>
 #include "expr.h"
 #include "base/check.h"
+#include "base/output.h"
 
 namespace alfc {
 
@@ -55,12 +56,10 @@ public:
       et = &itet->second;
     }
     // this enables cleanup of subtrees
-    /*
     if (etd!=nullptr)
     {
       etd->d_children.erase(itetd);
     }
-    */
     et->d_data = nullptr;
   }
 };

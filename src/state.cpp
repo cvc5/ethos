@@ -17,7 +17,7 @@ Options::Options()
   d_ruleSymTable = true;
 }
 
-State::State(Options& opts, Stats& stats) : d_hashCounter(0), d_hasReference(false), d_tc(*this), d_opts(opts), d_stats(stats)
+State::State(Options& opts, Stats& stats) : d_hashCounter(0), d_hasReference(false), d_inGarbageCollection(false), d_tc(*this), d_opts(opts), d_stats(stats)
 {
   ExprValue::d_state = this;
   Trace("ajr-temp") << "mk abs type" << std::endl;
@@ -238,41 +238,61 @@ bool State::markIncluded(const std::string& s)
 void State::markDeleted(ExprValue * e)
 {
   Assert (e!=nullptr);
-  Trace("gc") << "Delete " << e << " " << e->getKind() << std::endl;
   d_stats.d_deleteExprCount++;
-  // TODO
-  /*
-  if (isLiteral(e->getKind()))
+  if (d_inGarbageCollection)
   {
+    d_toDelete.push_back(e);
+    return;
+  }
+  d_inGarbageCollection = true;
+  do
+  {
+    Trace("gc") << "Delete " << e << " " << e->getKind() << std::endl;
+    // TODO
+    /*
+    if (isLiteral(e->getKind()))
+    {
 
-  }
-  */
-  std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(e);
-  if (it!=d_appData.end())
-  {
-    d_appData.erase(it);
-  }
-  std::map<const ExprValue*, Literal>::const_iterator itl = d_literals.find(e);
-  if (itl!=d_literals.end())
-  {
-    d_literals.erase(itl);
-  }
-  std::map<const ExprValue*, size_t>::const_iterator ith = d_hashMap.find(e);
-  if (ith!=d_hashMap.end())
-  {
-    d_hashMap.erase(ith);
-  }
-  std::map<const ExprValue*, Expr>::const_iterator itt = d_typeCache.find(e);
-  if (itt!=d_typeCache.end())
-  {
-    d_typeCache.erase(itt);
-  }
-  // remove from the expression trie
-  ExprTrie* et = &d_trie[e->getKind()];
-  const std::vector<ExprValue*>& children = e->getChildren();
-  et->remove(children);
-  // now, free the expression
-  free(e);
+    }
+    */
+    std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(e);
+    if (it!=d_appData.end())
+    {
+      d_appData.erase(it);
+    }
+    std::map<const ExprValue*, Literal>::const_iterator itl = d_literals.find(e);
+    if (itl!=d_literals.end())
+    {
+      d_literals.erase(itl);
+    }
+    std::map<const ExprValue*, size_t>::const_iterator ith = d_hashMap.find(e);
+    if (ith!=d_hashMap.end())
+    {
+      d_hashMap.erase(ith);
+    }
+    std::map<const ExprValue*, Expr>::const_iterator itt = d_typeCache.find(e);
+    if (itt!=d_typeCache.end())
+    {
+      d_typeCache.erase(itt);
+    }
+    // remove from the expression trie
+    ExprTrie* et = &d_trie[e->getKind()];
+    Assert (et!=nullptr);
+    const std::vector<ExprValue*>& children = e->d_children;
+    et->remove(children);
+    // now, free the expression
+    free(e);
+    if (!d_toDelete.empty())
+    {
+      e = d_toDelete.back();
+      d_toDelete.pop_back();
+    }
+    else
+    {
+      e = nullptr;
+    }
+  }while (e!=nullptr);
+  d_inGarbageCollection = false;
 }
 
 bool State::addAssumption(const Expr& a)
