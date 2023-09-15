@@ -19,7 +19,7 @@ namespace alfc {
 
 class Options
 {
-public:
+ public:
   Options();
   bool d_compile;
   bool d_runCompile;
@@ -158,7 +158,7 @@ class State
   Stats& getStats();
   /** Get compiler */
   Compiler* getCompiler();
-private:
+ private:
   /** Common constants */
   Expr d_null;
   Expr d_type;
