@@ -36,7 +36,7 @@ class State
   friend class TypeChecker;
   friend class Compiler;
   friend class ExprValue;
-public:
+ public:
   State(Options& opts, Stats& stats);
   ~State();
   //--------------------------------------
