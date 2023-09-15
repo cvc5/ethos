@@ -38,7 +38,7 @@ TypeChecker::TypeChecker(State& s) : d_state(s)
   // initialize literal kinds 
   for (Kind k : literalKinds)
   {
-    d_literalTypeRules[k] = nullptr;
+    d_literalTypeRules[k] = d_null;
   }
 }
 
@@ -55,7 +55,7 @@ void TypeChecker::setLiteralTypeRule(Kind k, const Expr& t)
     ALFC_FATAL() << "TypeChecker::setTypeRule: cannot set type rule for kind "
                  << k;
   }
-  else if (it->second!=nullptr && it->second!=t)
+  else if (!it->second.isNull() && it->second != t)
   {
     std::stringstream ss;
     ALFC_FATAL() << "TypeChecker::setTypeRule: cannot set type rule for kind "
@@ -74,7 +74,7 @@ ExprValue* TypeChecker::getOrSetLiteralTypeRule(Kind k)
     ALFC_FATAL() << "TypeChecker::getOrSetLiteralTypeRule: cannot get type rule for kind "
                  << k;
   }
-  if (it->second==nullptr)
+  if (it->second.isNull())
   {
     // If no type rule, assign the type rule to the builtin type
     Expr t = d_state.mkBuiltinType(k);
@@ -187,7 +187,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
   if (!checkArity(k, e->getNumChildren()))
   {
     (*out) << "Incorrect arity for " << k;
-    return nullptr;
+    return d_null;
   }
   switch(k)
   {
@@ -212,7 +212,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
     case Kind::NIL:
     case Kind::FAIL:
       // nil is its own type
-      return e;
+      return Expr(e);
     case Kind::TYPE:
     case Kind::ABSTRACT_TYPE:
     case Kind::BOOL_TYPE:
@@ -228,7 +228,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
         {
           (*out) << "Non-Bool for argument of Proof";
         }
-        return nullptr;
+        return d_null;
       }
     }
       return d_state.mkType();
@@ -256,7 +256,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
         ctx[d_state.mkSelf().getValue()] = e;
         return evaluateInternal(ret, ctx);
       }
-      return ret;
+      return Expr(ret);
     }
       break;
     default:
@@ -269,7 +269,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
         {
           ctypes.push_back(d_state.lookupType(c));
         }
-        return getLiteralOpType(k, ctypes, out);
+        return Expr(getLiteralOpType(k, ctypes, out));
       }
       break;
   }
@@ -277,7 +277,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
   {
     (*out) << "Unknown kind " << k;
   }
-  return nullptr;
+  return d_null;
 }
 
 Expr TypeChecker::getTypeApp(std::vector<Expr>& children, std::ostream* out)
@@ -304,7 +304,7 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     {
       (*out) << "Non-function " << Expr(hd) << " as head of APPLY";
     }
-    return nullptr;
+    return d_null;
   }
   std::vector<ExprValue*> hdtypes = hdType->d_children;
   std::vector<ExprValue*> ctypes;
@@ -317,7 +317,7 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
              << ", #argTypes=" << hdtypes.size()
              << " #children=" << children.size();
     }
-    return nullptr;
+    return d_null;
   }
   for (size_t i=1, nchild=children.size(); i<nchild; i++)
   {
@@ -360,12 +360,13 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     {
       if (out)
       {
-        (*out) << "Unexpected argument type " << i << " of " << hd << std::endl;
+        (*out) << "Unexpected argument type " << i << " of " << Expr(hd)
+               << std::endl;
         (*out) << "  LHS " << evaluateInternal(hdtypes[i], ctx) << ", from "
                << Expr(hdtypes[i]) << std::endl;
         (*out) << "  RHS " << Expr(ctypes[i]) << std::endl;
       }
-      return nullptr;
+      return d_null;
     }
   }
   // evaluate in the matched context
@@ -465,6 +466,8 @@ Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
 
 Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
 {
+  ExprTrie evalTrie;
+  std::unordered_set<ExprValue*> keep;
   Assert (e!=nullptr);
   std::unordered_map<ExprValue*, Expr>::iterator it;
   Ctx::iterator itc;
@@ -489,13 +492,14 @@ Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
     while (!visit.empty())
     {
       cur = visit.back();
-      Trace("type_checker_debug") << "visit " << cur << " " << cctx << ", depth=" << visits.size() << std::endl;
+      Trace("type_checker_debug") << "visit " << Expr(cur) << " " << cctx
+                                  << ", depth=" << visits.size() << std::endl;
       // the term will stay the same if it is not evaluatable and either it
       // is ground, or the context is empty.
       if (!cur->isEvaluatable() && (cur->isGround() || cctx.empty()))
       {
         //std::cout << "...shortcut " << cur << std::endl;
-        visited[cur] = cur;
+        visited[cur] = Expr(cur);
         visit.pop_back();
         continue;
       }
@@ -505,11 +509,11 @@ Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
         itc = cctx.find(cur);
         if (itc!=cctx.end())
         {
-          visited[cur] = itc->second;
+          visited[cur] = Expr(itc->second);
           visit.pop_back();
           continue;
         }
-        visited[cur] = cur;
+        visited[cur] = Expr(cur);
         visit.pop_back();
         continue;
         // NOTE: this could be an error or warning, variable not filled
@@ -525,8 +529,8 @@ Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
         {
           Trace("type_checker") << "RUN evaluate " << cur << std::endl;
           Expr retev = run_evaluate(cur, cctx);
-          Assert (retev!=nullptr);
-          if (retev!=nullptr)
+          Assert(!retev.isNull());
+          if (!retev.isNull())
           {
             Trace("type_checker") << "...returns " << retev << std::endl;
             visited[cur] = retev;
@@ -537,7 +541,7 @@ Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
           Trace("type_checker") << "...returns null" << std::endl;
         }
         // otherwise, visit children
-        visited[cur] = Expr();
+        visited[cur] = d_null;
         if (ck==Kind::EVAL_IF_THEN_ELSE)
         {
           // special case: visit only the condition
@@ -564,35 +568,43 @@ Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
             cchildren.push_back(nullptr);
           }
         }
-        evaluated = Expr();
+        evaluated = d_null;
         bool newContext = false;
         bool canEvaluate = true;
         switch (ck)
         {
           case Kind::FAIL:
             // fail term means we immediately return
-            return cur;
+            return Expr(cur);
           case Kind::APPLY:
           {
+            Trace("type_checker_debug")
+                << "evaluated args " << cchildren << std::endl;
             // if a program and all arguments are ground, run it
             Kind cck = cchildren[0]->getKind();
             if (cck==Kind::PROGRAM_CONST || cck==Kind::ORACLE)
             {
-              // maybe already cached
-              ExprTrie* et = &d_evalTrie;
+              // maybe the evaluation is already cached
+              // ensure things in the evalTrie are ref counted
               for (ExprValue* e : cchildren)
               {
-                et = &(et->d_children[e]);
+                if (keep.find(e) == keep.end())
+                {
+                  e->inc();
+                }
               }
+              ExprTrie* et = evalTrie.get(cchildren);
               if (et->d_data!=nullptr)
               {
-                evaluated = et->d_data;
+                evaluated = Expr(et->d_data);
+                Trace("type_checker_debug")
+                    << "evaluated via cached evaluation" << std::endl;
               }
               else
               {
                 Ctx newCtx;
                 // see if we evaluate
-                evaluated = evaluateProgramInternal(cchildren, newCtx);
+                evaluated = evaluateProgramInternal2(cchildren, newCtx);
                 //std::cout << "Evaluate prog returned " << evaluated << std::endl;
                 if (evaluated.isNull() || newCtx.empty())
                 {
@@ -632,7 +644,8 @@ Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
               }
               else
               {
-                evaluated = cchildren[index];
+                evaluated = Expr(cchildren[index]);
+                Trace("type_checker_debug") << "evaluated via ite" << std::endl;
               }
             }
             else
@@ -656,22 +669,33 @@ Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
           default:
             if (isLiteralOp(ck))
             {
-              evaluated = evaluateLiteralOpInternal(ck, cchildren);
+              evaluated = evaluateLiteralOpInternal2(ck, cchildren);
+              Trace("type_checker_debug")
+                  << "evaluated via literal op" << std::endl;
             }
             break;
         }
         if (newContext)
         {
+          Trace("type_checker_debug") << "new context" << std::endl;
           break;
         }
         if (canEvaluate)
         {
           if (evaluated.isNull())
           {
-            evaluated = d_state.mkExprInternal(ck, cchildren);
+            evaluated = Expr(d_state.mkExprInternal(ck, cchildren));
+            Trace("type_checker_debug")
+                << "evaluated via mkExprInternal" << std::endl;
           }
           visited[cur] = evaluated;
+          Trace("type_checker_debug")
+              << "visited " << Expr(cur) << " = " << evaluated << std::endl;
           visit.pop_back();
+        }
+        else
+        {
+          Trace("type_checker_debug") << "cannot evaluate" << std::endl;
         }
       }
       else
@@ -696,7 +720,13 @@ Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
         visits.back().pop_back();
         // store the evaluation
         Assert(!ets.empty());
-        ets.back()->d_data = evaluated.getValue();
+        ExprValue * ev = evaluated.getValue();
+        if (keep.find(ev)==keep.end())
+        {
+          ev->inc();
+          keep.insert(ev);
+        }
+        ets.back()->d_data = ev;
         ets.pop_back();
       }
       ctxs.pop_back();
@@ -704,6 +734,10 @@ Expr TypeChecker::evaluateInternal(ExprValue* e, Ctx& ctx)
   }
   Trace("type_checker") << "EVALUATE " << Expr(e) << ", " << ctx << " = "
                         << evaluated << std::endl;
+  for (ExprValue* e : keep)
+  {
+    e->dec();
+  }
   return evaluated;
 }
 
@@ -714,13 +748,19 @@ Expr TypeChecker::evaluateProgram(const std::vector<Expr>& children, Ctx& newCtx
   {
     vchildren.push_back(c.getValue());
   }
-  const Expr& ret = evaluateProgramInternal(vchildren, newCtx);
+  return evaluateProgramInternal(vchildren, newCtx);
+}
+
+Expr TypeChecker::evaluateProgramInternal(
+    const std::vector<ExprValue*>& children, Ctx& newCtx)
+{
+  const Expr& ret = evaluateProgramInternal2(children, newCtx);
   if (!ret.isNull())
   {
     return ret;
   }
   // otherwise does not evaluate, return application
-  return Expr(d_state.mkExprInternal(Kind::APPLY, vchildren));
+  return Expr(d_state.mkExprInternal(Kind::APPLY, children));
 }
 
 bool TypeChecker::isGround(const std::vector<ExprValue*>& args)
@@ -750,13 +790,13 @@ int run(const std::string& call, std::ostream& response)
   return -1;
 }
 
-Expr TypeChecker::evaluateProgramInternal(
+Expr TypeChecker::evaluateProgramInternal2(
     const std::vector<ExprValue*>& children, Ctx& newCtx)
 {
   if (!isGround(children))
   {
     // do not evaluate on non-ground
-    return nullptr;
+    return d_null;
   }
   ExprValue* hd = children[0];
   Kind hk = hd->getKind();
@@ -766,8 +806,9 @@ Expr TypeChecker::evaluateProgramInternal(
     {
       Trace("type_checker") << "RUN program " << children << std::endl;
       ExprValue* ret = run_evaluateProgram(children, newCtx);
-      Trace("type_checker") << "...matches " << ret << ", ctx = " << newCtx << std::endl;
-      return ret;
+      Trace("type_checker")
+          << "...matches " << Expr(ret) << ", ctx = " << newCtx << std::endl;
+      return Expr(ret);
     }
     size_t nargs = children.size();
     std::map<ExprValue*, Expr>::iterator it = d_programs.find(hd);
@@ -788,7 +829,7 @@ Expr TypeChecker::evaluateProgramInternal(
           // TODO: catch this during weak type checking of program bodies
           Warning() << "*** Bad number of arguments provided in function call to " << hd << std::endl;
           Warning() << "  Arguments: " << children << std::endl;
-          return nullptr;
+          return d_null;
         }
         bool matchSuccess = true;
         for (size_t i=1; i<nargs; i++)
@@ -802,8 +843,8 @@ Expr TypeChecker::evaluateProgramInternal(
         if (matchSuccess)
         {
           Trace("type_checker")
-              << "...matches " << hd << ", ctx = " << newCtx << std::endl;
-          return c[1].getValue();
+              << "...matches " << Expr(hd) << ", ctx = " << newCtx << std::endl;
+          return c[1];
         }
       }
       Trace("type_checker") << "...failed to match." << std::endl;
@@ -815,7 +856,7 @@ Expr TypeChecker::evaluateProgramInternal(
     std::string ocmd;
     if (!d_state.getOracleCmd(hd, ocmd))
     {
-      return nullptr;
+      return d_null;
     }
     std::stringstream call;
     call << ocmd;
@@ -832,17 +873,17 @@ Expr TypeChecker::evaluateProgramInternal(
     if (retVal!=0)
     {
       Trace("oracles") << "...failed to run" << std::endl;
-      return nullptr;
+      return d_null;
     }
     Trace("oracles") << "...got response \"" << response.str() << "\"" << std::endl;
     Parser poracle(d_state);
     poracle.setStringInput(response.str());
     Expr ret = poracle.parseNextExpr();
     Trace("oracles") << "returns " << ret << std::endl;
-    return ret.getValue();
+    return ret;
   }
   // just return nullptr, which should be interpreted as a failed evaluation
-  return nullptr;
+  return d_null;
 }
 
 Expr TypeChecker::evaluateLiteralOp(Kind k, const std::vector<Expr>& args)
@@ -852,13 +893,19 @@ Expr TypeChecker::evaluateLiteralOp(Kind k, const std::vector<Expr>& args)
   {
     vargs.push_back(a.getValue());
   }
-  Expr ret = evaluateLiteralOpInternal(k, vargs);
+  return evaluateLiteralOpInternal(k, vargs);
+}
+
+Expr TypeChecker::evaluateLiteralOpInternal(Kind k,
+                                            const std::vector<ExprValue*>& args)
+{
+  Expr ret = evaluateLiteralOpInternal2(k, args);
   if (!ret.isNull())
   {
     return ret;
   }
   // otherwise does not evaluate, return application
-  return Expr(d_state.mkExprInternal(k, vargs));
+  return Expr(d_state.mkExprInternal(k, args));
 }
 
 ExprValue* getNAryChildren(ExprValue* e,
@@ -891,8 +938,8 @@ ExprValue* getNAryChildren(ExprValue* e,
   return e;
 }
 
-Expr TypeChecker::evaluateLiteralOpInternal(Kind k,
-                                            const std::vector<ExprValue*>& args)
+Expr TypeChecker::evaluateLiteralOpInternal2(
+    Kind k, const std::vector<ExprValue*>& args)
 {
   Trace("type_checker") << "EVALUATE-LIT " << k << " " << args << std::endl;
   switch (k)
@@ -910,7 +957,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k,
       {
         return d_state.mkFalse();
       }
-      return nullptr;
+      return d_null;
     }
     break;
     case Kind::EVAL_IF_THEN_ELSE:
@@ -922,13 +969,13 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k,
         return Expr(args[l->d_bool ? 1 : 2]);
       }
       /*
-      // conditions equal
+      // branches equal
       if (args[1]==args[2])
       {
         return args[1];
       }
       */
-      return nullptr;
+      return d_null;
     }
     break;
     case Kind::EVAL_REQUIRES:
@@ -937,9 +984,16 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k,
       {
         return Expr(args[2]);
       }
-      Trace("type_checker")
-        << "REQUIRES: failed " << args[0] << " == " << args[1] << std::endl;
-      return nullptr;
+      if (TraceIsOn("type_checker"))
+      {
+        if (isGround(args))
+        {
+          Trace("type_checker") << "REQUIRES: failed " << Expr(args[0])
+                                << " == " << Expr(args[1]) << std::endl;
+          AlwaysAssert(false);
+        }
+      }
+      return d_null;
     }
     case Kind::EVAL_HASH:
     {
@@ -948,7 +1002,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k,
         size_t h = d_state.getHash(args[0]);
         return d_state.mkLiteralNumeral(h);
       }
-      return nullptr;
+      return d_null;
     }
     case Kind::EVAL_CONS:
     case Kind::EVAL_APPEND:
@@ -1003,11 +1057,12 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k,
           {
             if (a != ac->d_attrConsTerm.getValue())
             {
-              Warning() << "...failed to decompose " << harg << " in from_list" << std::endl;
-              return nullptr;
+              Warning() << "...failed to decompose " << Expr(harg)
+                        << " in from_list" << std::endl;
+              return d_null;
             }
             // turn singleton list
-            return hargs[0];
+            return Expr(hargs[0]);
           }
           // otherwise self
           return Expr(harg);
@@ -1026,7 +1081,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k,
           if (a != ac->d_attrConsTerm.getValue())
           {
             Warning() << "...failed to decompose " << harg << " in append" << std::endl;
-            return nullptr;
+            return d_null;
           }
         }
           break;
@@ -1044,7 +1099,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(Kind k,
         ret = d_state.mkApplyInternal(cc);
       }
       Trace("type_checker_debug") << "CONS: " << isLeft << " " << args << " -> " << ret << std::endl;
-      return ret;
+      return Expr(ret);
     }
     default:
       break;

@@ -16,10 +16,10 @@ Expr TypeChecker::run_getTypeInternal(ExprValue* hdType,
                                       const std::vector<ExprValue*>& args,
                                       std::ostream* out)
 {
-  return nullptr;
+  return d_null;
 }
 
-Expr TypeChecker::run_evaluate(ExprValue* e, Ctx& ctx) { return nullptr; }
+Expr TypeChecker::run_evaluate(ExprValue* e, Ctx& ctx) { return d_null; }
 
 ExprValue* TypeChecker::run_evaluateProgram(const std::vector<ExprValue*>& args,
                                             Ctx& ctx)

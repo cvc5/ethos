@@ -19,7 +19,7 @@ namespace alfc {
 
 class Options
 {
-public:
+ public:
   Options();
   bool d_compile;
   bool d_runCompile;
@@ -35,7 +35,9 @@ class State
 {
   friend class TypeChecker;
   friend class Compiler;
-public:
+  friend class ExprValue;
+
+ public:
   State(Options& opts, Stats& stats);
   ~State();
   //--------------------------------------
@@ -84,6 +86,8 @@ public:
   Expr mkBuiltinType(Kind k);
   /** */
   Expr mkAnnotatedType(const Expr& t, Attr ck, const Expr& cons);
+  /** */
+  Expr mkSymbol(Kind k, const std::string& name, const Expr& type);
   /** */
   Expr mkParameter(const std::string& name, const Expr& type);
   /** */
@@ -155,10 +159,13 @@ public:
   Stats& getStats();
   /** Get compiler */
   Compiler* getCompiler();
-private:
+
+ private:
   /** Common constants */
+  Expr d_null;
   Expr d_type;
   Expr d_boolType;
+  Expr d_absType;
   Expr d_true;
   Expr d_false;
   Expr d_self;
@@ -169,7 +176,7 @@ private:
   /** Mark that file s was included */
   bool markIncluded(const std::string& s);
   /** mark deleted */
-  void markDeleted(const ExprValue * e);
+  void markDeleted(ExprValue* e);
   /** Make (<APPLY> children), curried. */
   ExprValue* mkApplyInternal(const std::vector<ExprValue*>& children);
   /**
@@ -178,7 +185,9 @@ private:
    */
   ExprValue* mkExprInternal(Kind k, const std::vector<ExprValue*>& children);
   /** Constructs a symbol-like expression with the given kind, name and type. */
-  Expr mkSymbolInternal(Kind k, const std::string& name, const Expr& type);
+  ExprValue* mkSymbolInternal(Kind k,
+                              const std::string& name,
+                              const Expr& type);
   /** Get the internal data for expression e. */
   AppInfo* getAppInfo(const ExprValue* e);
   /** lookup type */
@@ -204,8 +213,6 @@ private:
   std::vector<Expr> d_assumptions;
   /** Context size */
   std::vector<size_t> d_assumptionsSizeCtx;
-  /** Reference asserts */
-  std::unordered_set<const ExprValue*> d_referenceAsserts;
   //--------------------- expression info
   /** Map from expressions to constructor info */
   std::map<const ExprValue*, AppInfo> d_appData;
@@ -219,7 +226,8 @@ private:
   std::map<Kind, ExprTrie> d_trie;
   //--------------------- literals
   /** Cache for literals */
-  std::map<std::pair<Kind, std::string>, Expr> d_literalTrie;
+  std::map<std::pair<Kind, std::string>, ExprValue*> d_literalTrie;
+  std::map<ExprValue*, std::pair<Kind, std::string>> d_literalTrieRev;
   /** Map from expressions to literals */
   std::map<const ExprValue*, Literal> d_literals;
   // -------------------- symbols
@@ -232,6 +240,15 @@ private:
   std::set<std::filesystem::path> d_includes;
   /** Have we parsed a reference file to check assumptions? */
   bool d_hasReference;
+  /** Reference asserts */
+  std::unordered_set<const ExprValue*> d_referenceAsserts;
+  /** Reference assert list */
+  std::vector<Expr> d_referenceAssertList;
+  //--------------------- garbage collection
+  /** The current set of expression values to delete */
+  std::vector<ExprValue*> d_toDelete;
+  /** Are we in garbage collection? */
+  bool d_inGarbageCollection;
   //--------------------- utilities
   /** Type checker */
   TypeChecker d_tc;

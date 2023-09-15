@@ -371,7 +371,7 @@ bool CmdParser::parseNextCommand()
       Expr rule = d_state.mkProofRule(name, ret);
       d_eparser.typeCheck(rule);
       d_eparser.bind(name, rule);
-      if (plCons!=nullptr)
+      if (!plCons.isNull())
       {
         d_state.markConstructorKind(rule, Attr::PREMISE_LIST, plCons);
       }
@@ -447,7 +447,7 @@ bool CmdParser::parseNextCommand()
       }
       Expr expr = d_eparser.parseExpr();
       // ensure we have the right type
-      if (ret!=nullptr)
+      if (!ret.isNull())
       {
         d_eparser.typeCheck(expr, ret);
       }
@@ -704,7 +704,7 @@ bool CmdParser::parseNextCommand()
         ss << "Non-proof conclusion for step, got " << concType;
         d_lex.parseError(ss.str());
       }
-      if (proven!=nullptr)
+      if (!proven.isNull())
       {
         const Expr& actual = concType[0];
         if (actual!=proven)

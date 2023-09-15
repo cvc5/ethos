@@ -285,7 +285,7 @@ Expr ExprParser::parseExpr()
           Assert(!ret.isNull());
           // add it to the list of arguments and clear
           sf.d_args.push_back(ret);
-          ret = nullptr;
+          ret = d_null;
         }
         break;
         // ------------------------- let terms
@@ -299,7 +299,7 @@ Expr ExprParser::parseExpr()
             // add binding from the symbol to ret
             Assert(!bs.empty());
             bs.back().second = ret;
-            ret = Expr();
+            ret = d_null;
             // close the current binding
             d_lex.eatToken(Token::RPAREN);
           }
@@ -371,7 +371,7 @@ Expr ExprParser::parseExpr()
                 break;
               case Attr::IMPLICIT:
                 // the term will not be added as an argument to the parent
-                ret = nullptr;
+                ret = d_null;
                 break;
               case Attr::REQUIRES:
                 if (ret.isNull())
@@ -400,7 +400,7 @@ Expr ExprParser::parseExpr()
           Assert(!ret.isNull());
           // add the head
           sf.d_args.push_back(ret);
-          ret = Expr();
+          ret = d_null;
           // we now parse a pattern
           sf.d_ctx = ParseCtx::MATCH_NEXT_CASE;
           needsUpdateCtx = true;
@@ -427,7 +427,7 @@ Expr ExprParser::parseExpr()
               args.push_back(ret);
               checkNextPat = false;
             }
-            ret = nullptr;
+            ret = d_null;
           }
           // if no more cases, we are done
           if (checkNextPat)
@@ -622,7 +622,7 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList()
     {
       d_state.markConstructorKind(v, ck, cons);
       ck = Attr::NONE;
-      cons = nullptr;
+      cons = d_null;
     }
     d_lex.eatToken(Token::RPAREN);
     varList.push_back(v);

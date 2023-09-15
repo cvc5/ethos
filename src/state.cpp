@@ -17,9 +17,16 @@ Options::Options()
   d_ruleSymTable = true;
 }
 
-State::State(Options& opts, Stats& stats) : d_hashCounter(0), d_hasReference(false), d_tc(*this), d_opts(opts), d_stats(stats)
+State::State(Options& opts, Stats& stats)
+    : d_hashCounter(0),
+      d_hasReference(false),
+      d_inGarbageCollection(false),
+      d_tc(*this),
+      d_opts(opts),
+      d_stats(stats)
 {
-  Expr::d_state = this;
+  ExprValue::d_state = this;
+  d_absType = Expr(mkExprInternal(Kind::ABSTRACT_TYPE, {}));
 
   // lambda is not builtin?
   //bindBuiltin("lambda", Kind::LAMBDA, true);
@@ -55,13 +62,13 @@ State::State(Options& opts, Stats& stats) : d_hashCounter(0), d_hasReference(fal
   bindBuiltinEval("len", Kind::EVAL_LENGTH);
   bindBuiltinEval("concat", Kind::EVAL_CONCAT);
   bindBuiltinEval("extract", Kind::EVAL_EXTRACT);
-  
-  d_nil = mkExprInternal(Kind::NIL, {});
+
+  d_nil = Expr(mkExprInternal(Kind::NIL, {}));
   bind("alf.nil", d_nil);
-  d_fail = mkExprInternal(Kind::FAIL, {});
+  d_fail = Expr(mkExprInternal(Kind::FAIL, {}));
   bind("alf.fail", d_fail);
   // self is a distinguished parameter
-  d_self = mkSymbolInternal(Kind::PARAM, "alf.self", mkAbstractType());
+  d_self = Expr(mkSymbolInternal(Kind::PARAM, "alf.self", mkAbstractType()));
   bind("alf.self", d_self);
 
   // note we don't allow parsing (Proof ...), (Quote ...), or (quote ...).
@@ -84,7 +91,7 @@ State::State(Options& opts, Stats& stats) : d_hashCounter(0), d_hasReference(fal
   }
 }
 
-State::~State(){}
+State::~State() {}
 
 void State::reset()
 {
@@ -101,7 +108,6 @@ void State::reset()
 
 void State::pushScope()
 {
-  //std::cout << "push" << std::endl;
   d_declsSizeCtx.push_back(d_decls.size());
   if (d_compiler!=nullptr)
   {
@@ -115,7 +121,6 @@ void State::popScope()
   {
     d_compiler->popScope();
   }
-  //std::cout << "pop" << std::endl;
   if (d_declsSizeCtx.empty())
   {
     ALFC_FATAL() << "State::popScope: empty context";
@@ -124,7 +129,6 @@ void State::popScope()
   d_declsSizeCtx.pop_back();
   for (size_t i=lastSize, currSize = d_decls.size(); i<currSize; i++)
   {
-    //std::cout << "erase " << d_decls[i] << std::endl;
     d_symTable.erase(d_decls[i]);
   }
   d_decls.resize(lastSize);
@@ -201,57 +205,66 @@ bool State::markIncluded(const std::string& s)
   return true;
 }
 
-void State::markDeleted(const ExprValue * e)
+void State::markDeleted(ExprValue* e)
 {
+  Assert(e != nullptr);
   d_stats.d_deleteExprCount++;
-  return;
-  std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(e);
-  if (it!=d_appData.end())
+  if (d_inGarbageCollection)
   {
-    d_appData.erase(it);
+    d_toDelete.push_back(e);
+    return;
   }
-  std::map<const ExprValue*, Literal>::const_iterator itl = d_literals.find(e);
-  if (itl!=d_literals.end())
+  d_inGarbageCollection = true;
+  do
   {
-    d_literals.erase(itl);
-  }
-  std::map<const ExprValue*, size_t>::const_iterator ith = d_hashMap.find(e);
-  if (ith!=d_hashMap.end())
-  {
-    d_hashMap.erase(ith);
-  }
-  std::map<const ExprValue*, Expr>::const_iterator itt = d_typeCache.find(e);
-  if (itt!=d_typeCache.end())
-  {
-    d_typeCache.erase(itt);
-  }
-  // remove from the expression trie
-  ExprTrie* et = &d_trie[e->getKind()];
-  ExprTrie* etd = nullptr;
-  std::map<const ExprValue*, ExprTrie>::iterator itet;
-  std::map<const ExprValue*, ExprTrie>::iterator itetd;
-  bool updateEtd = false;
-  const std::vector<ExprValue*>& children = e->getChildren();
-  for (ExprValue* e : children)
-  {
-    itet = et->d_children.find(e);
-    Assert (itet!=et->d_children.end());
-    updateEtd = (et->d_children.size()>1);
-    et = &itet->second;
-    if (updateEtd)
+    Trace("gc") << "Delete " << e << " " << e->getKind() << std::endl;
+    if (isLiteral(e->getKind()))
     {
-      etd = et;
-      itetd = itet;
+      std::map<ExprValue*, std::pair<Kind, std::string>>::iterator itk = d_literalTrieRev.find(e);
+      Assert (itk!=d_literalTrieRev.end());
+      std::map<std::pair<Kind, std::string>, ExprValue*>::iterator itl = d_literalTrie.find(itk->second);
+      Assert (itl!=d_literalTrie.end());
+      d_literalTrie.erase(itl);
     }
-  }
-  if (etd!=nullptr)
-  {
-    etd->d_children.erase(itetd);
-  }
-  else
-  {
-    et->d_data = nullptr;
-  }
+    std::map<const ExprValue*, AppInfo>::const_iterator it = d_appData.find(e);
+    if (it != d_appData.end())
+    {
+      d_appData.erase(it);
+    }
+    std::map<const ExprValue*, Literal>::const_iterator itl =
+        d_literals.find(e);
+    if (itl != d_literals.end())
+    {
+      d_literals.erase(itl);
+    }
+    std::map<const ExprValue*, size_t>::const_iterator ith = d_hashMap.find(e);
+    if (ith != d_hashMap.end())
+    {
+      d_hashMap.erase(ith);
+    }
+    std::map<const ExprValue*, Expr>::const_iterator itt = d_typeCache.find(e);
+    if (itt != d_typeCache.end())
+    {
+      d_typeCache.erase(itt);
+    }
+    // remove from the expression trie
+    ExprTrie* et = &d_trie[e->getKind()];
+    Assert(et != nullptr);
+    const std::vector<ExprValue*>& children = e->d_children;
+    et->remove(children);
+    // now, free the expression
+    free(e);
+    if (!d_toDelete.empty())
+    {
+      e = d_toDelete.back();
+      d_toDelete.pop_back();
+    }
+    else
+    {
+      e = nullptr;
+    }
+  } while (e != nullptr);
+  d_inGarbageCollection = false;
 }
 
 bool State::addAssumption(const Expr& a)
@@ -271,6 +284,8 @@ bool State::addAssumption(const Expr& a)
 void State::addReferenceAssert(const Expr& a)
 {
   d_referenceAsserts.insert(a.getValue());
+  // ensure ref count
+  d_referenceAssertList.push_back(a);
 }
 
 void State::setLiteralTypeRule(Kind k, const Expr& t)
@@ -363,10 +378,7 @@ Expr State::mkRequires(const Expr& a1, const Expr& a2, const Expr& ret)
                              {a1.getValue(), a2.getValue(), ret.getValue()}));
 }
 
-Expr State::mkAbstractType()
-{
-  return Expr(mkExprInternal(Kind::ABSTRACT_TYPE, {}));
-}
+Expr State::mkAbstractType() { return d_absType; }
 
 Expr State::mkBoolType()
 {
@@ -426,7 +438,7 @@ Expr State::mkAnnotatedType(const Expr& t, Attr ck, const Expr& cons)
       {
         if (args.empty())
         {
-          return nullptr;
+          return d_null;
         }
         args.back() = mkRequires(currReqs, args.back());
         currReqs.clear();
@@ -436,7 +448,7 @@ Expr State::mkAnnotatedType(const Expr& t, Attr ck, const Expr& cons)
   } while (!curr.isNull() && args.size() < 3);
   if (args.size()<3)
   {
-    return nullptr;
+    return d_null;
   }
   Expr nilArg = args[isRight ? 1 : 0];
   std::stringstream ss;
@@ -467,34 +479,39 @@ Expr State::mkAnnotatedType(const Expr& t, Attr ck, const Expr& cons)
   return t;
 }
 
+Expr State::mkSymbol(Kind k, const std::string& name, const Expr& type)
+{
+  return Expr(mkSymbolInternal(k, name, type));
+}
+
 Expr State::mkParameter(const std::string& name, const Expr& type)
 {
-  return mkSymbolInternal(Kind::PARAM, name, type);
+  return Expr(mkSymbolInternal(Kind::PARAM, name, type));
 }
 
 Expr State::mkVar(const std::string& name, const Expr& type)
 {
-  return mkSymbolInternal(Kind::VARIABLE, name, type);
+  return Expr(mkSymbolInternal(Kind::VARIABLE, name, type));
 }
 
 Expr State::mkConst(const std::string& name, const Expr& type)
 {
-  return mkSymbolInternal(Kind::CONST, name, type);
+  return Expr(mkSymbolInternal(Kind::CONST, name, type));
 }
 
 Expr State::mkProgramConst(const std::string& name, const Expr& type)
 {
-  return mkSymbolInternal(Kind::PROGRAM_CONST, name, type);
+  return Expr(mkSymbolInternal(Kind::PROGRAM_CONST, name, type));
 }
 
 Expr State::mkProofRule(const std::string& name, const Expr& type)
 {
-  return mkSymbolInternal(Kind::PROOF_RULE, name, type);
+  return Expr(mkSymbolInternal(Kind::PROOF_RULE, name, type));
 }
 
 Expr State::mkOracle(const std::string& name, const Expr& type)
 {
-  return mkSymbolInternal(Kind::ORACLE, name, type);
+  return Expr(mkSymbolInternal(Kind::ORACLE, name, type));
 }
 
 Expr State::mkSelf()
@@ -512,7 +529,9 @@ Expr State::mkPair(const Expr& t1, const Expr& t2)
   return Expr(mkExprInternal(Kind::TUPLE, {t1.getValue(), t2.getValue()}));
 }
 
-Expr State::mkSymbolInternal(Kind k, const std::string& name, const Expr& type)
+ExprValue* State::mkSymbolInternal(Kind k,
+                                   const std::string& name,
+                                   const Expr& type)
 {
   // TODO: symbols can be shared if no attributes
   /*
@@ -532,7 +551,7 @@ Expr State::mkSymbolInternal(Kind k, const std::string& name, const Expr& type)
   d_literals[v] = Literal(name);
   Trace("type_checker") << "TYPE " << name << " : " << type << std::endl;
   //d_symcMap[key] = v;
-  return Expr(v);
+  return v;
 }
 
 Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
@@ -616,7 +635,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         case Attr::CHAINABLE:
         {
           std::vector<Expr> cchildren;
-          Assert(ai->d_attrConsTerm != nullptr);
+          Assert(!ai->d_attrConsTerm.isNull());
           cchildren.push_back(ai->d_attrConsTerm);
           std::vector<ExprValue*> cc{hd.getValue(), nullptr, nullptr};
           for (size_t i=1, nchild = children.size()-1; i<nchild; i++)
@@ -637,7 +656,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         case Attr::PAIRWISE:
         {
           std::vector<Expr> cchildren;
-          Assert(ai->d_attrConsTerm != nullptr);
+          Assert(!ai->d_attrConsTerm.isNull());
           cchildren.push_back(ai->d_attrConsTerm);
           std::vector<ExprValue*> cc{hd.getValue(), nullptr, nullptr};
           for (size_t i=1, nchild = children.size(); i<nchild-1; i++)
@@ -721,7 +740,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         {
           vchildren.push_back(c.getValue());
         }
-        return mkApplyInternal(vchildren);
+        return Expr(mkApplyInternal(vchildren));
       }
     }
   }
@@ -744,7 +763,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       {
         Expr ret = d_tc.evaluateLiteralOp(k, children);
         // return if successfully evaluated
-        if (ret!=nullptr)
+        if (!ret.isNull())
         {
           Trace("state") << "EAGER_EVALUATE " << ret << std::endl;
           return ret;
@@ -757,7 +776,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
   {
     vchildren.push_back(c.getValue());
   }
-  return mkExprInternal(k, vchildren);
+  return Expr(mkExprInternal(k, vchildren));
 }
 
 Expr State::mkTrue()
@@ -773,18 +792,18 @@ Expr State::mkFalse()
 Expr State::mkLiteral(Kind k, const std::string& s)
 {
   std::pair<Kind, std::string> key(k, s);
-  std::map<std::pair<Kind, std::string>, Expr>::iterator it = d_literalTrie.find(key);
+  std::map<std::pair<Kind, std::string>, ExprValue*>::iterator it = d_literalTrie.find(key);
   if (it!=d_literalTrie.end())
   {
-    return it->second;
+    return Expr(it->second);
   }
   d_stats.d_litCount++;
   std::vector<ExprValue*> emptyVec;
   ExprValue* lv = new ExprValue(k, emptyVec);
   Expr lit(lv);
   // map to the data
-  d_literalTrie[key] = lit;
-  //std::cout << "mkLiteral \"" << s << "\"" << std::endl;
+  d_literalTrie[key] = lv;
+  d_literalTrieRev[lv] = key;
   // convert string to literal
   switch (k)
   {
@@ -837,6 +856,7 @@ ExprValue* State::mkExprInternal(Kind k,
   }
   d_stats.d_exprCount++;
   ExprValue* ev = new ExprValue(k, children);
+  Trace("gc") << "New " << ev << " " << k << std::endl;
   et->d_data = ev;
   return ev;
 }
@@ -865,6 +885,7 @@ bool State::bind(const std::string& name, const Expr& e)
   {
     return false;
   }
+  // Trace("ajr-temp") << "bind " << name << " -> " << &e << std::endl;
   d_symTable[name] = e;
   // only have to remember if not at global scope
   if (!d_declsSizeCtx.empty())
@@ -896,7 +917,7 @@ Expr State::getVar(const std::string& name) const
   {
     return it->second;
   }
-  return nullptr;
+  return d_null;
 }
 
 Expr State::getProofRule(const std::string& name) const
@@ -907,7 +928,7 @@ Expr State::getProofRule(const std::string& name) const
   {
     return it->second;
   }
-  return nullptr;
+  return d_null;
 }
 
 const Literal* State::getLiteral(const ExprValue* e) const
@@ -928,7 +949,7 @@ bool State::getActualPremises(const ExprValue* rule,
   if (ainfo!=nullptr && ainfo->d_attrCons==Attr::PREMISE_LIST)
   {
     Expr plCons = ainfo->d_attrConsTerm;
-    if (plCons!=nullptr)
+    if (!plCons.isNull())
     {
       std::vector<Expr> achildren;
       achildren.push_back(plCons);
@@ -968,7 +989,7 @@ bool State::getOracleCmd(const ExprValue* oracle, std::string& ocmd)
   if (ainfo!=nullptr && ainfo->d_attrCons==Attr::ORACLE)
   {
     Expr oexpr = ainfo->d_attrConsTerm;
-    Assert (oexpr!=nullptr);
+    Assert(!oexpr.isNull());
     ocmd = oexpr.getSymbol();
     return true;
   }
@@ -1053,7 +1074,7 @@ Compiler* State::getCompiler()
 void State::bindBuiltin(const std::string& name, Kind k, Attr ac)
 {
   // type is irrelevant, assign abstract
-  bindBuiltin(name, k, ac, mkAbstractType());
+  bindBuiltin(name, k, ac, d_absType);
 }
 
 void State::bindBuiltin(const std::string& name, Kind k, Attr ac, const Expr& t)

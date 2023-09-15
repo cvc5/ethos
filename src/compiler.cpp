@@ -141,7 +141,7 @@ Compiler::Compiler(State& s) :
   d_tcEnd << "  default: break;" << std::endl;
   d_tcEnd << "  }" << std::endl;
   // TODO: write error?
-  d_tcEnd << "  return nullptr;" << std::endl;
+  d_tcEnd << "  return d_null;" << std::endl;
   d_tcEnd << "}" << std::endl;
   d_eval << "Expr TypeChecker::run_evaluate(ExprValue* e, Ctx& ctx)"
          << std::endl;
@@ -155,7 +155,7 @@ Compiler::Compiler(State& s) :
   d_eval << "  {" << std::endl;
   d_evalEnd << "  default: break;" << std::endl;
   d_evalEnd << "  }" << std::endl;
-  d_evalEnd << "  return nullptr;" << std::endl;
+  d_evalEnd << "  return d_null;" << std::endl;
   d_evalEnd << "}" << std::endl;
   d_evalp << "ExprValue* TypeChecker::run_evaluateProgram(const "
              "std::vector<ExprValue*>& args, Ctx& ctx)"
@@ -222,7 +222,8 @@ void Compiler::bind(const std::string& name, const Expr& e)
   ExprValue* t = d_state.lookupType(e.getValue());
   if (t != nullptr)
   {
-    writeTypeChecking(d_tc, t);
+    Expr tt(t);
+    writeTypeChecking(d_tc, tt);
   }
 }
 
@@ -234,14 +235,14 @@ void Compiler::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
   }
   size_t id = writeGlobalExpr(v);
   size_t idc = 0;
-  if (cons!=nullptr)
+  if (!cons.isNull())
   {
     idc = writeGlobalExpr(cons);
   }
   d_init << "  markConstructorKind(_e" << id << ", Attr::" << a << ", ";
-  if (cons==nullptr)
+  if (cons.isNull())
   {
-    d_init << "nullptr";
+    d_init << "d_null";
   }
   else
   {
@@ -309,11 +310,12 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
     for (std::pair<const ExprValue* const, std::string>& va : varAssign)
     {
       // don't bother assigning variables that don't occur in the body
-      if (std::find(fvs.begin(), fvs.end(), va.first)==fvs.end())
+      Expr vaf(va.first);
+      if (std::find(fvs.begin(), fvs.end(), vaf) == fvs.end())
       {
         continue;
       }
-      size_t id = writeGlobalExpr(va.first);
+      size_t id = writeGlobalExpr(vaf);
       os << "  ctx[_e" << id << ".getValue()] = " << va.second << ";"
          << std::endl;
     }
@@ -418,7 +420,8 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         ExprValue* t = d_state.lookupType(cur.getValue());
         if (t != nullptr)
         {
-          tid = writeGlobalExpr(t);
+          Expr tt(t);
+          tid = writeGlobalExpr(tt);
         }
       }
       Kind ck = cur.getKind();
@@ -428,7 +431,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         Assert(curLit != nullptr);
         os << "  " << cs.d_prefix << ret << " = ";
         os << "mkLiteral(Kind::" << cur.getKind() << ", \""
-           << curLit->toString() << "\").getValue();" << std::endl;
+           << curLit->toString() << "\");" << std::endl;
       }
       else if (isSymbol(ck))
       {
@@ -443,23 +446,21 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         }
         else
         {
-          os << "mkSymbolInternal(Kind::" << cur.getKind() << ", \""
+          os << "mkSymbol(Kind::" << cur.getKind() << ", \""
              << curLit->toString() << "\", _e" << tid << ");" << std::endl;
         }
       }
       else if (ck==Kind::TYPE)
       {
-        os << "  " << cs.d_prefix << ret << " = d_type.getValue();"
-           << std::endl;
+        os << "  " << cs.d_prefix << ret << " = d_type;" << std::endl;
       }
       else if (ck==Kind::BOOL_TYPE)
       {
-        os << "  " << cs.d_prefix << ret << " = d_boolType.getValue();"
-           << std::endl;
+        os << "  " << cs.d_prefix << ret << " = d_boolType;" << std::endl;
       }
       else if (ck==Kind::NIL)
       {
-        os << "  " << cs.d_prefix << ret << " = d_nil.getValue();" << std::endl;
+        os << "  " << cs.d_prefix << ret << " = d_nil;" << std::endl;
       }
       else if (ck==Kind::EVAL_IF_THEN_ELSE && cs.d_progEval)
       {
@@ -513,14 +514,14 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         // put together the result
         os << "  if (!_btmp)" << std::endl;
         os << "  {" << std::endl;
-        os << "    " << cs.d_prefix << ret << " = ";
+        os << "    " << cs.d_prefix << ret << " = Expr(";
         if (!cs.isGlobal())
         {
           os << "d_state.";
         }
         os << "mkExprInternal(Kind::EVAL_IF_THEN_ELSE, {" << cond
            << ".getValue(), " << branches[0] << ".getValue(), " << branches[1]
-           << ".getValue()});" << std::endl;
+           << ".getValue()}));" << std::endl;
         os << "  }" << std::endl;
         os << "  else" << std::endl;
         os << "  {" << std::endl;
@@ -559,25 +560,27 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         {
           // we should just evaluate it if the scope specifies it should be evaluated
           os << "  _ctxTmp.clear();" << std::endl;
-          os << "  _etmp = evaluateProgram(" << argList.str() << ", _ctxTmp);" << std::endl;
+          os << "  _etmp = evaluateProgramInternal(" << argList.str()
+             << ", _ctxTmp);" << std::endl;
           os << "  " << cs.d_prefix << ret
              << " = evaluateInternal(_etmp.getValue(), _ctxTmp);" << std::endl;
         }
         else if (cs.d_progEval && isLiteralOp(ck))
         {
-          os << "  " << cs.d_prefix << ret << " = evaluateLiteralOp(Kind::";
+          os << "  " << cs.d_prefix << ret
+             << " = evaluateLiteralOpInternal(Kind::";
           os << cur.getKind() << ", " << argList.str() << ");"
              << std::endl;
         }
         else
         {
-          os << "  " << cs.d_prefix << ret << " = ";
+          os << "  " << cs.d_prefix << ret << " = Expr(";
           if (!cs.isGlobal())
           {
             os << "d_state.";
           }
           os << "mkExprInternal(Kind::" << cur.getKind() << ", "
-             << argList.str() << ");" << std::endl;
+             << argList.str() << "));" << std::endl;
           if (isg)
           {
             // cache its type
@@ -600,7 +603,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
 
 void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
 {
-  Assert(t != nullptr);
+  Assert(!t.isNull());
   std::vector<Expr> toVisit;
   toVisit.push_back(t);
   Expr curr;
@@ -656,12 +659,12 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
       // write matching code for args[i] against the type argument pat
       std::vector<size_t> initPath{i};
       pt.markDeclared(initPath);
-      writeMatching(pat, initPath, pt, reqs, varAssign, "return nullptr");
+      writeMatching(pat, initPath, pt, reqs, varAssign, "return d_null");
     }
     if (!reqs.empty())
     {
       localImpl << "  // check requirements" << std::endl;
-      writeRequirements(localImpl, reqs, "return nullptr");
+      writeRequirements(localImpl, reqs, "return d_null");
     }
     bool usedMatch = false;
     const Expr& retType = curr[curr.getNumChildren() - 1];
@@ -672,14 +675,16 @@ void Compiler::writeTypeChecking(std::ostream& os, const Expr& t)
     for (std::pair<const ExprValue* const, std::string>& va : varAssign)
     {
       // only matters if it occurs in return type
-      if (std::find(fvsRet.begin(), fvsRet.end(), va.first)==fvsRet.end())
+      Expr vaf(va.first);
+      if (std::find(fvsRet.begin(), fvsRet.end(), vaf) == fvsRet.end())
       {
         continue;
       }
       usedMatch = true;
       iti = pscope.d_idMap.find(va.first);
       Assert(iti != pscope.d_idMap.end());
-      localImpl << "  " << pprefix << iti->second << " = " << va.second << ";" << std::endl;
+      localImpl << "  " << pprefix << iti->second << " = Expr(" << va.second
+                << ");" << std::endl;
       varsAssigned.insert(va.first);
     }
     // any variables in return type that were unassigned should be mapped
@@ -855,12 +860,14 @@ void Compiler::writeEvaluate(std::ostream& os, const Expr& e)
       // set it equal to the context
       size_t gid = writeGlobalExpr(v);
       std::stringstream ssv;
-      ssv << "_e" << gid << ".getValue()";
+      ssv << "_e" << gid;
       iti = pscope.d_idMap.find(v.getValue());
       Assert(iti != pscope.d_idMap.end());
-      localImpl << "  itc = ctx.find(" << ssv.str() << ");" << std::endl;
-      localImpl << "  " << pprefix << iti->second << " = " 
-                << "(itc==ctx.end() ? " << ssv.str() << " : itc->second);" << std::endl;
+      localImpl << "  itc = ctx.find(" << ssv.str() << ".getValue());"
+                << std::endl;
+      localImpl << "  " << pprefix << iti->second << " = "
+                << "(itc==ctx.end() ? " << ssv.str() << " : Expr(itc->second));"
+                << std::endl;
     }
     // now write the expression
     size_t retId = writeExprInternal(curr, pscope);
