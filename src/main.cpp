@@ -106,11 +106,12 @@ int main( int argc, char* argv[] )
   State s(opts, stats);
   if (!readFile)
   {
-    // no file, parse from std::cin
+    // no file, either std::in is piped, or the user forgot to provide an input
     if (isatty(fileno(stdin)))
     {
       ALFC_FATAL() << "Error: no input specified.";
     }
+    // parse from std::cin.
     Parser p(s, false);
     p.setStreamInput(std::cin);
     // parse commands until finished
