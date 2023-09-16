@@ -1,9 +1,11 @@
 #include <fstream>
 #include <iostream>
+#include <unistd.h>
 
 #include "base/output.h"
 #include "base/check.h"
 #include "state.h"
+#include "parser.h"
 
 using namespace alfc;
 
@@ -101,16 +103,28 @@ int main( int argc, char* argv[] )
       ALFC_FATAL() << "Error: mulitple files specified, \"" << file << "\" and \"" << arg << "\"";
     }
   }
-
+  State s(opts, stats);
   if (!readFile)
   {
-    ALFC_FATAL() << "Error: no file specified";
+    // no file, parse from std::cin
+    if (isatty(fileno(stdin)))
+    {
+      ALFC_FATAL() << "Error: no input specified.";
+    }
+    Parser p(s, false);
+    p.setStreamInput(std::cin);
+    // parse commands until finished
+    while (p.parseNextCommand())
+    {
+    }
   }
-  State s(opts, stats);
-  // include the file
-  if (!s.includeFile(file))
+  else
   {
-    ALFC_FATAL() << "Error: cannot include file " << file;
+    // include the file
+    if (!s.includeFile(file))
+    {
+      ALFC_FATAL() << "Error: cannot include file " << file;
+    }
   }
   std::cout << "success" << std::endl;
   if (opts.d_compile)
