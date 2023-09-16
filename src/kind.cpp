@@ -28,7 +28,6 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::NIL: o << "NIL"; break;
     case Kind::PROGRAM: o << "PROGRAM"; break;
     case Kind::COLLECT: o << "COLLECT"; break;
-    case Kind::FAIL: o << "FAIL"; break;
     // literals
     case Kind::BOOLEAN: o << "BOOLEAN"; break;
     case Kind::NUMERAL: o << "NUMERAL"; break;
@@ -84,7 +83,6 @@ std::string kindToTerm(Kind k)
     case Kind::BOOL_TYPE: ss << "Bool"; break;
     case Kind::QUOTE_TYPE: ss << "Quote"; break;
     case Kind::NIL: ss << "alf.nil"; break;
-    case Kind::FAIL: ss << "alf.fail"; break;
     // terms
     case Kind::APPLY: ss << "@"; break;
     case Kind::LAMBDA: ss << "lambda"; break;

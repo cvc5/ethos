@@ -200,7 +200,6 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       return d_state.mkFunctionType(args, ret);
     }
     case Kind::NIL:
-    case Kind::FAIL:
       // nil is its own type
       return Expr(e);
     case Kind::TYPE:
@@ -577,9 +576,6 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
         evaluated = d_null;
         switch (ck)
         {
-          case Kind::FAIL:
-            // fail term means we immediately return
-            return Expr(cur);
           case Kind::APPLY:
           {
             Trace("type_checker_debug")

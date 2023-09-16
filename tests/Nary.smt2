@@ -121,7 +121,6 @@
     (
         ((nary.at cons nil 0 (cons x xs)) x)
         ((nary.at cons nil i (cons x xs)) (nary.at cons nil (alf.add i (alf.neg 1)) xs))
-        ((nary.at cons nil 0 nil)         alf.fail)
         ((nary.at cons nil 0 x)           x) ; if not in list form
     )
 )

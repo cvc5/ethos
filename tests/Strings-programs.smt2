@@ -75,17 +75,13 @@
 (define check_length_gt_one ((s String)) (check_true (alf.is_neg (alf.add 1 (alf.neg (alf.len s))))))
 
 ; Get first character or empty string from term t.
-; If t is of the form (str.++ "A" ...), return "A".
+; If t is of the form (str.++ t ...), return t.
 ; If t is of the form alf.nil, return alf.nil.
-; Otherwise, this side condition fails
-(program string_first_char_or_empty ((U Type) (T Type) (t U) (tail U :list) (s T))
+(program string_head_or_empty ((U Type) (T Type) (t U) (tail U :list) (s T))
   (U) U
   (
-    ((string_first_char_or_empty alf.nil)                    alf.nil)
-    ; Required for sequences
-    ((string_first_char_or_empty (str.++ (seq.unit s) tail)) (seq.unit s))
-    ; Check if the length of t evaluates to one.
-    ((string_first_char_or_empty (str.++ t tail))            (alf.ite (check_length_one t) t alf.fail))
+    ((string_head_or_empty (str.++ t tail)) t)
+    ((string_head_or_empty alf.nil)         alf.nil)
   )
 )
 

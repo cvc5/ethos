@@ -5,15 +5,15 @@ TODO:
 - remove closure parsing? maybe alf.lambda is useful for a native alf.map
 - check type preservation for evaluation?
   - more generally: a weaker type system for program bodies??
-- Temporary memory allocation of Expr within calls to evaluation?
 - minimize compiled code by recognizing alpha-equivalent patterns
     - parameters can be shared??
 - lazy construction of definitions when compiled?
   - compiled fine grain inclusion??
 - non-exponential alf.ite compilation
 - warn unused parameters / memory safe
-- type field separate from Expr? (to save memory)
 - n-ary literal ops
+- don't always use mkExprInternal in evaluate
+- Literal inherits from ExprValue
 
 COMPLETED:
 
@@ -38,6 +38,8 @@ COMPLETED:
 - ensure assumption scope level is preserved per include file
 - X remove custom nil construction policy?
 - separate symbol table for proof rules?
+- type field separate from Expr? (to save memory)
+- Temporary memory allocation of Expr within calls to evaluation?
 
 CVC5-TODO:
 

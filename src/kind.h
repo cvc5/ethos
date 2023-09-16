@@ -33,7 +33,6 @@ enum class Kind
   NIL,
   PROGRAM,
   COLLECT,
-  FAIL,
 
   // literals
   BOOLEAN,
