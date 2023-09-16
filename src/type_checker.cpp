@@ -917,20 +917,23 @@ ExprValue* getNAryChildren(ExprValue* e,
 Expr TypeChecker::evaluateLiteralOpInternal(
     Kind k, const std::vector<ExprValue*>& args)
 {
+  Assert (!args.empty());
   Trace("type_checker") << "EVALUATE-LIT " << k << " " << args << std::endl;
   switch (k)
   {
     case Kind::EVAL_IS_EQ:
     {
       Assert (args.size()==2);
-      // evaluation is indepdent of whether it is a literal
       bool ret = args[0]==args[1];
       if (ret)
       {
+        // eagerly evaluate if sides and equal and non-ground
         return d_state.mkTrue();
       }
       else if (isGround(args))
       {
+        // otherwise, if both sides are ground, we evaluate to false.
+        // note this is independent of whether they are values.
         return d_state.mkFalse();
       }
       return d_null;
@@ -938,10 +941,10 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     break;
     case Kind::EVAL_IF_THEN_ELSE:
     {
-      // temporary
       const Literal* l = d_state.getLiteral(args[0]);
       if (l!=nullptr && l->d_tag==Literal::BOOL)
       {
+        // eagerly evaluate even if branches are non-ground
         return Expr(args[l->d_bool ? 1 : 2]);
       }
       /*
@@ -958,6 +961,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     {
       if (args[0]==args[1])
       {
+        // eagerly evaluate even if body is non-ground
         return Expr(args[2]);
       }
       if (TraceIsOn("type_checker"))
@@ -980,22 +984,68 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       }
       return d_null;
     }
+    default:
+      break;
+  }
+  if (!isGround(args))
+  {
+    Trace("type_checker") << "...does not evaluate (non-ground)" << std::endl;
+    return d_null;
+  }
+  // convert argument expressions to literals
+  std::vector<const Literal*> lits;
+  bool allValues = true;
+  for (ExprValue* e : args)
+  {
+    const Literal* l = d_state.getLiteral(e);
+    // symbols are stored as literals but do not evaluate
+    if (l==nullptr || l->d_tag==Literal::SYMBOL)
+    {
+      Trace("type_checker") << "...does not evaluate (argument)" << std::endl;
+      // failed to convert an argument
+      allValues = false;
+      break;
+    }
+    lits.push_back(l);
+  }
+  if (allValues)
+  {
+    // evaluate
+    Literal eval = Literal::evaluate(k, lits);
+    if (eval.d_tag==Literal::INVALID)
+    {
+      Trace("type_checker") << "...does not evaluate (return)" << std::endl;
+      // failed to evaluate
+      return d_null;
+    }
+    // convert back to an expression
+    Expr lit = d_state.mkLiteral(eval.toKind(), eval.toString());
+    Trace("type_checker") << "...evaluates to " << lit << std::endl;
+    return lit;
+  }
+  // otherwise, maybe a list operation
+  AppInfo* ac = d_state.getAppInfo(args[0]);
+  if (ac==nullptr)
+  {
+    // not an associative operator
+    return d_null;
+  }
+  Attr ck = ac->d_attrCons;
+  if (ck!=Attr::RIGHT_ASSOC_NIL && ck!=Attr::LEFT_ASSOC_NIL)
+  {
+    // not an associative operator
+    return d_null;
+  }
+  bool isLeft = (ck==Attr::LEFT_ASSOC_NIL);
+  Trace("type_checker_debug") << "CONS: " << isLeft << " " << args << std::endl;
+  ExprValue* op = args[0];
+  switch (k)
+  {
     case Kind::EVAL_CONS:
     case Kind::EVAL_APPEND:
     case Kind::EVAL_TO_LIST:
     case Kind::EVAL_FROM_LIST:
     {
-      AppInfo* ac = d_state.getAppInfo(args[0]);
-      if (ac==nullptr)
-      {
-        // not an associative operator
-        return d_null;
-      }
-      Attr ck = ac->d_attrCons;
-      Assert (ck==Attr::RIGHT_ASSOC_NIL || ck==Attr::LEFT_ASSOC_NIL);
-      bool isLeft = (ck==Attr::LEFT_ASSOC_NIL);
-      Trace("type_checker_debug") << "CONS: " << isLeft << " " << args << std::endl;
-      ExprValue* op = args[0];
       size_t tailIndex = (isLeft ? 1 : 2);
       size_t headIndex = (isLeft ? 2 : 1);
       // harg is either the head (cons/append) or the argument (to_list/from_list)
@@ -1084,37 +1134,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     default:
       break;
   }
-  if (!isGround(args))
-  {
-    Trace("type_checker") << "...does not evaluate (non-ground)" << std::endl;
-    return d_null;
-  }
-  // convert argument expressions to literals
-  std::vector<const Literal*> lits;
-  for (ExprValue* e : args)
-  {
-    const Literal* l = d_state.getLiteral(e);
-    // symbols are stored as literals but do not evaluate
-    if (l==nullptr || l->d_tag==Literal::SYMBOL)
-    {
-      Trace("type_checker") << "...does not evaluate (argument)" << std::endl;
-      // failed to convert an argument
-      return d_null;
-    }
-    lits.push_back(l);
-  }
-  // evaluate
-  Literal eval = Literal::evaluate(k, lits);
-  if (eval.d_tag==Literal::INVALID)
-  {
-    Trace("type_checker") << "...does not evaluate (return)" << std::endl;
-    // failed to evaluate
-    return d_null;
-  }
-  // convert back to an expression
-  Expr lit = d_state.mkLiteral(eval.toKind(), eval.toString());
-  Trace("type_checker") << "...evaluates to " << lit << std::endl;
-  return lit;
+  return d_null;
 }
 
 ExprValue* TypeChecker::getLiteralOpType(Kind k,

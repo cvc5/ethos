@@ -23,16 +23,18 @@ enum class Kind
   // terms
   APPLY,
   LAMBDA,
+  TUPLE,
+  NIL,
+  PROGRAM,
+  COLLECT,
+
+  // symbols
   PARAM,
   CONST,
   PROGRAM_CONST,
   PROOF_RULE,
   VARIABLE,
   ORACLE,
-  TUPLE,
-  NIL,
-  PROGRAM,
-  COLLECT,
 
   // literals
   BOOLEAN,
