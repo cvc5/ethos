@@ -510,6 +510,7 @@ ExprValue* State::mkSymbolInternal(Kind k,
                                    const std::string& name,
                                    const Expr& type)
 {
+  d_stats.d_mkExprCount++;
   // TODO: symbols can be shared if no attributes
   /*
   std::tuple<Kind, std::string, Expr> key(k, name, type);  
@@ -520,6 +521,7 @@ ExprValue* State::mkSymbolInternal(Kind k,
   }
   */
   d_stats.d_symCount++;
+  d_stats.d_exprCount++;
   std::vector<ExprValue*> emptyVec;
   ExprValue* v = new ExprValue(k, emptyVec);
   // immediately set its type
@@ -738,6 +740,7 @@ Expr State::mkFalse()
 
 Expr State::mkLiteral(Kind k, const std::string& s)
 {
+  d_stats.d_mkExprCount++;
   std::pair<Kind, std::string> key(k, s);
   std::map<std::pair<Kind, std::string>, ExprValue*>::iterator it = d_literalTrie.find(key);
   if (it!=d_literalTrie.end())
@@ -745,9 +748,9 @@ Expr State::mkLiteral(Kind k, const std::string& s)
     return Expr(it->second);
   }
   d_stats.d_litCount++;
+  d_stats.d_exprCount++;
   std::vector<ExprValue*> emptyVec;
   ExprValue* lv = new ExprValue(k, emptyVec);
-  Expr lit(lv);
   // map to the data
   d_literalTrie[key] = lv;
   d_literalTrieRev[lv] = key;
@@ -761,22 +764,21 @@ Expr State::mkLiteral(Kind k, const std::string& s)
     case Kind::NUMERAL: d_literals[lv] = Literal(Integer(s)); break;
     case Kind::DECIMAL: d_literals[lv] = Literal(Rational(s)); break;
     case Kind::HEXADECIMAL:
-      // TODO: should normalize to binary?
+      // NOTE: hexadecimal and binary bitvectors are different expressions currently
+      d_literals[lv] = Literal(BitVector(s, 16));
       break;
     case Kind::BINARY: d_literals[lv] = Literal(BitVector(s, 2)); break;
     case Kind::STRING: d_literals[lv] = Literal(String(s, true)); break;
     default:
       break;
   }
-  return lit;
+  Assert (d_literals[lv].toString()==s);
+  return Expr(lv);
 }
 
 Expr State::mkLiteralNumeral(size_t val)
 {
-  // TODO: optimize
-  std::stringstream ss;
-  ss << val;
-  return mkLiteral(Kind::NUMERAL, ss.str());
+  return mkLiteral(Kind::NUMERAL, std::to_string(val));
 }
 
 ExprValue* State::mkApplyInternal(const std::vector<ExprValue*>& children)

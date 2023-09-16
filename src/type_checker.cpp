@@ -443,20 +443,28 @@ bool TypeChecker::match(ExprValue* a,
   return true;
 }
 
-/*
+/** Evaluation frame, used in evaluate below. */
 class EvFrame
 {
  public:
-  ExprValue* d_init;
-  std::unordered_map<ExprValue*, Expr> d_visited;
-  Ctx d_ctx;
-  std::vector<ExprValue*> d_visit;
-
-  void pop()
-  {
+  EvFrame(ExprValue* i, Ctx& ctx, ExprTrie* r) : d_init(i), d_ctx(ctx), d_result(r) {
+    if (d_init!=nullptr)
+    {
+      d_visit.push_back(d_init);
+    }
   }
+  ~EvFrame(){}
+  /** The initial value we are evaluating */
+  ExprValue* d_init;
+  /** The context it is being evaluated in */
+  Ctx d_ctx;
+  /** Cache of visited subterms */
+  std::unordered_map<ExprValue*, Expr> d_visited;
+  /** The subterms to visit */
+  std::vector<ExprValue*> d_visit;
+  /** An (optional) pointer of a trie of where to store the result */
+  ExprTrie * d_result;
 };
-*/
 
 Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
 {
@@ -470,31 +478,28 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
   // appear in the above trie.
   std::unordered_set<ExprValue*> keep;
   std::vector<Expr> keepList;
-  // temporary stack
   std::unordered_map<ExprValue*, Expr>::iterator it;
   Ctx::iterator itc;
-  std::vector<std::unordered_map<ExprValue*, Expr>> visiteds;
-  std::vector<Ctx> ctxs;
-  std::vector<std::vector<ExprValue*>> visits;
-  std::vector<ExprTrie*> ets;
+  // the evaluation stack
+  std::vector<EvFrame> estack;
+  estack.emplace_back(e, ctx, nullptr);
   Expr evaluated;
   ExprValue* cur;
-  ExprValue* init;
-  visiteds.emplace_back();
-  ctxs.emplace_back(ctx);
-  visits.emplace_back(std::vector<ExprValue*>{e});
   Kind ck;
-  while (!visits.empty())
+  bool newContext = false;
+  bool canEvaluate = true;
+  while (!estack.empty())
   {
-    std::unordered_map<ExprValue*, Expr>& visited = visiteds.back();
-    std::vector<ExprValue*>& visit = visits.back();
-    Ctx& cctx = ctxs.back();
-    init = visit[0];
+    EvFrame& evf = estack.back();
+    std::unordered_map<ExprValue*, Expr>& visited = evf.d_visited;
+    std::vector<ExprValue*>& visit = evf.d_visit;
+    Ctx& cctx = evf.d_ctx;
     while (!visit.empty())
     {
+      Assert (!newContext && canEvaluate);
       cur = visit.back();
       Trace("type_checker_debug") << "visit " << Expr(cur) << " " << cctx
-                                  << ", depth=" << visits.size() << std::endl;
+                                  << ", depth=" << estack.size() << std::endl;
       // the term will stay the same if it is not evaluatable and either it
       // is ground, or the context is empty.
       if (!cur->isEvaluatable() && (cur->isGround() || cctx.empty()))
@@ -570,8 +575,6 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
           }
         }
         evaluated = d_null;
-        bool newContext = false;
-        bool canEvaluate = true;
         switch (ck)
         {
           case Kind::FAIL:
@@ -618,11 +621,7 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
                 {
                   // otherwise push an evaluation scope
                   newContext = true;
-                  ctxs.push_back(newCtx);
-                  visits.emplace_back(
-                      std::vector<ExprValue*>{evaluated.getValue()});
-                  visiteds.emplace_back();
-                  ets.push_back(et);
+                  estack.emplace_back(evaluated.getValue(), newCtx, et);
                 }
               }
             }
@@ -696,6 +695,7 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
         }
         else
         {
+          canEvaluate = true;
           Trace("type_checker_debug") << "cannot evaluate" << std::endl;
         }
       }
@@ -705,35 +705,39 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
       }
     }
     // if we are done evaluating the current context
-    if (visits.back().empty())
+    if (!newContext)
     {
       // get the result from the inner evaluation
-      evaluated = visiteds.back()[init];
-      // pop the evaluation context
-      visiteds.pop_back();
-      visits.pop_back();
-      // set the result
-      if (!visits.empty())
+      ExprValue* init = evf.d_init;
+      Assert (evf.d_visited.find(init)!=evf.d_visited.end());
+      evaluated = evf.d_visited[init];
+      Trace("type_checker") << "EVALUATE " << Expr(init) << ", "
+                            << evf.d_ctx << " = " << evaluated << std::endl;
+      if (evf.d_result!=nullptr)
       {
-        Trace("type_checker") << "EVALUATE " << Expr(init) << ", "
-                              << ctxs.back() << " = " << evaluated << std::endl;
-        visiteds.back()[visits.back().back()] = evaluated;
-        visits.back().pop_back();
-        // store the evaluation
-        Assert(!ets.empty());
         ExprValue * ev = evaluated.getValue();
         if (keep.insert(ev).second)
         {
           keepList.emplace_back(ev);
         }
-        ets.back()->d_data = ev;
-        ets.pop_back();
+        evf.d_result->d_data = ev;
       }
-      ctxs.pop_back();
+      // pop the evaluation context
+      estack.pop_back();
+      // carry to lower context
+      if (!estack.empty())
+      {
+        EvFrame& evp = estack.back();
+        Assert (!evp.d_visit.empty());
+        evp.d_visited[evp.d_visit.back()] = evaluated;
+        evp.d_visit.pop_back();
+      }
+    }
+    else
+    {
+      newContext = false;
     }
   }
-  Trace("type_checker") << "EVALUATE " << Expr(e) << ", " << ctx << " = "
-                        << evaluated << std::endl;
   return evaluated;
 }
 

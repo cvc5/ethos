@@ -29,6 +29,7 @@ int main( int argc, char* argv[] )
     else if (arg=="--run-compile")
     {
       opts.d_runCompile = true;
+      // TODO: warn if not compiled?
     }
     else if (arg=="--no-print-let")
     {
