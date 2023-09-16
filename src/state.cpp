@@ -220,25 +220,29 @@ void State::markDeleted(ExprValue* e)
   d_inGarbageCollection = true;
   do
   {
-    Trace("gc") << "Delete " << e << " " << e->getKind() << std::endl;
-    if (isLiteral(e->getKind()))
+    Kind k = e->getKind();
+    Trace("gc") << "Delete " << e << " " << k << std::endl;
+    if (isLiteral(k))
     {
+      std::map<const ExprValue*, Literal>::const_iterator itl =
+          d_literals.find(e);
+      if (itl != d_literals.end())
+      {
+        d_literals.erase(itl);
+      }
       std::map<ExprValue*, std::pair<Kind, std::string>>::iterator itk = d_literalTrieRev.find(e);
       Assert (itk!=d_literalTrieRev.end());
-      std::map<std::pair<Kind, std::string>, ExprValue*>::iterator itl = d_literalTrie.find(itk->second);
-      Assert (itl!=d_literalTrie.end());
-      d_literalTrie.erase(itl);
+      std::map<std::pair<Kind, std::string>, ExprValue*>::iterator itlt = d_literalTrie.find(itk->second);
+      Assert (itlt!=d_literalTrie.end());
+      d_literalTrie.erase(itlt);
     }
-    std::map<const ExprValue*, AppInfo>::const_iterator it = d_appData.find(e);
-    if (it != d_appData.end())
+    else if (isSymbol(k))
     {
-      d_appData.erase(it);
-    }
-    std::map<const ExprValue*, Literal>::const_iterator itl =
-        d_literals.find(e);
-    if (itl != d_literals.end())
-    {
-      d_literals.erase(itl);
+      std::map<const ExprValue*, AppInfo>::const_iterator it = d_appData.find(e);
+      if (it != d_appData.end())
+      {
+        d_appData.erase(it);
+      }
     }
     std::map<const ExprValue*, size_t>::const_iterator ith = d_hashMap.find(e);
     if (ith != d_hashMap.end())
@@ -681,7 +685,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     {
       // have to check whether we have the program, i.e. if we are constructing
       // applications corresponding to the cases in the program definition itself.
-      if (d_tc.hasProgram(hd))
+      if (getConstructorKind(hd)==Attr::PROGRAM)
       {
         Expr hdt = Expr(hd);
         const Expr& t = d_tc.getType(hdt);
@@ -926,6 +930,16 @@ bool State::getActualPremises(const ExprValue* rule,
   actual = given;
   return true;
 }
+
+Expr State::getProgram(const ExprValue* ev)
+{
+  AppInfo* ainfo = getAppInfo(ev);
+  if (ainfo!=nullptr && ainfo->d_attrCons==Attr::PROGRAM)
+  {
+    return ainfo->d_attrConsTerm;
+  }
+  return d_null;
+}
 bool State::getOracleCmd(const ExprValue* oracle, std::string& ocmd)
 {
   AppInfo* ainfo = getAppInfo(oracle);
@@ -1040,7 +1054,7 @@ void State::bindBuiltinEval(const std::string& name, Kind k, Attr ac)
 
 void State::defineProgram(const Expr& v, const Expr& prog)
 {
-  d_tc.defineProgram(v, prog);
+  markConstructorKind(v, Attr::PROGRAM, prog);
   if (d_compiler!=nullptr)
   {
     d_compiler->defineProgram(v, prog);
@@ -1065,6 +1079,7 @@ bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
     }
     acons = mkLiteral(Kind::STRING, inputPath);
   }
+  Assert (isSymbol(v.getKind()));
   AppInfo& ai = d_appData[v.getValue()];
   Assert (ai.d_attrCons==Attr::NONE);
   ai.d_attrCons = a;

@@ -84,16 +84,6 @@ ExprValue* TypeChecker::getOrSetLiteralTypeRule(Kind k)
   return it->second.getValue();
 }
 
-void TypeChecker::defineProgram(const Expr& v, const Expr& prog)
-{
-  d_programs[v.getValue()] = prog;
-}
-
-bool TypeChecker::hasProgram(const ExprValue * v) const
-{
-  return d_programs.find(v) != d_programs.end();
-}
-
 Expr TypeChecker::getType(Expr& e, std::ostream* out)
 {
   std::map<const ExprValue*, Expr>::iterator itt;
@@ -454,20 +444,35 @@ bool TypeChecker::match(ExprValue* a,
 }
 
 /*
-Expr TypeChecker::evaluate(Expr& e, Ctx& ctx)
+class EvFrame
 {
-  return evaluate(e.getValue(), ctx);
-}
+ public:
+  ExprValue* d_init;
+  std::unordered_map<ExprValue*, Expr> d_visited;
+  Ctx d_ctx;
+  std::vector<ExprValue*> d_visit;
+
+  void pop()
+  {
+  }
+};
 */
+
 Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
 {
+  Assert (e!=nullptr);
+  // A trie for all programs/oracles we have evaluated during this call.
+  // This is required to ensure that programs that traverse terms recursively
+  // preform a dag traversal.
   ExprTrie evalTrie;
+  // A set of terms that we are manually incrementing their ref count (via
+  // adding them to keepList). This set of terms includes the terms that
+  // appear in the above trie.
   std::unordered_set<ExprValue*> keep;
   std::vector<Expr> keepList;
-  Assert (e!=nullptr);
+  // temporary stack
   std::unordered_map<ExprValue*, Expr>::iterator it;
   Ctx::iterator itc;
-
   std::vector<std::unordered_map<ExprValue*, Expr>> visiteds;
   std::vector<Ctx> ctxs;
   std::vector<std::vector<ExprValue*>> visits;
@@ -792,16 +797,16 @@ Expr TypeChecker::evaluateProgramInternal(
       return Expr(ret);
     }
     size_t nargs = children.size();
-    std::map<const ExprValue*, Expr>::iterator it = d_programs.find(hd);
-    Assert (it!=d_programs.end());
-    if (it!=d_programs.end())
+    Expr prog = d_state.getProgram(hd);
+    Assert (!prog.isNull());
+    if (!prog.isNull())
     {
       Trace("type_checker") << "INTERPRET program " << children << std::endl;
       // otherwise, evaluate
-      for (size_t i = 0, nchildren = it->second.getNumChildren(); i < nchildren;
+      for (size_t i = 0, nchildren = prog.getNumChildren(); i < nchildren;
            i++)
       {
-        const Expr& c = it->second[i];
+        const Expr& c = prog[i];
         newCtx.clear();
         ExprValue* hd = c[0].getValue();
         std::vector<ExprValue*>& hchildren = hd->d_children;

@@ -126,6 +126,8 @@ class State
   bool getActualPremises(const ExprValue* ev,
                          std::vector<Expr>& given,
                          std::vector<Expr>& actual);
+  /** Get the program */
+  Expr getProgram(const ExprValue* ev);
   /** Get the oracle command */
   bool getOracleCmd(const ExprValue* ev, std::string& ocmd);
   /** Get symbol */

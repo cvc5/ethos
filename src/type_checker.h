@@ -46,10 +46,6 @@ class TypeChecker
    * Evaluate the expression e in the given context.
    */
   Expr evaluate(ExprValue* e, Ctx& ctx);
-  /** Define program */
-  void defineProgram(const Expr& v, const Expr& prog);
-  /** Has program */
-  bool hasProgram(const ExprValue * v) const;
   /**
    * Evaluate program, where args[0] is a term of kind PROGRAM_CONST
    * and the remaining args are what is being applied to.
@@ -112,8 +108,6 @@ class TypeChecker
   State& d_state;
   /** Mapping literal kinds to type rules */
   std::map<Kind, Expr> d_literalTypeRules;
-  /** Programs */
-  std::map<const ExprValue*, Expr> d_programs;
   /** The null expression */
   Expr d_null;
 };

@@ -555,24 +555,33 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
           argList << s.getNameFor(cur[i]) << ".getValue()";
         }
         argList << "}";
-        if (cs.d_progEval && ck == Kind::APPLY
-            && cur[0].getKind() == Kind::PROGRAM_CONST)
+        bool wroteExpr = false;
+        if (cs.d_progEval)
         {
-          // we should just evaluate it if the scope specifies it should be evaluated
-          os << "  _ctxTmp.clear();" << std::endl;
-          os << "  _etmp = evaluateProgram(" << argList.str()
-             << ", _ctxTmp);" << std::endl;
-          os << "  " << cs.d_prefix << ret
-             << " = evaluate(_etmp.getValue(), _ctxTmp);" << std::endl;
+          if (ck == Kind::APPLY)
+          {
+            Kind hk = cur[0].getKind();
+            if (hk==Kind::PROGRAM_CONST || hk==Kind::ORACLE)
+            {
+              // we should just evaluate it if the scope specifies it should be evaluated
+              os << "  _ctxTmp.clear();" << std::endl;
+              os << "  _etmp = evaluateProgram(" << argList.str()
+                << ", _ctxTmp);" << std::endl;
+              os << "  " << cs.d_prefix << ret
+                << " = evaluate(_etmp.getValue(), _ctxTmp);" << std::endl;
+              wroteExpr = true;
+            }
+          }
+          else if (isLiteralOp(ck))
+          {
+            os << "  " << cs.d_prefix << ret
+              << " = evaluateLiteralOp(Kind::";
+            os << cur.getKind() << ", " << argList.str() << ");"
+              << std::endl;
+            wroteExpr = true;
+          }
         }
-        else if (cs.d_progEval && isLiteralOp(ck))
-        {
-          os << "  " << cs.d_prefix << ret
-             << " = evaluateLiteralOp(Kind::";
-          os << cur.getKind() << ", " << argList.str() << ");"
-             << std::endl;
-        }
-        else
+        if (!wroteExpr)
         {
           os << "  " << cs.d_prefix << ret << " = Expr(";
           if (!cs.isGlobal())

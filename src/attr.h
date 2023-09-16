@@ -19,6 +19,7 @@ enum class Attr
   //------------------ below here is mutually exclusive?
   LIST,
   SYNTAX,
+  PROGRAM,
   ORACLE,
   
   // indicate how to construct proof rule steps
