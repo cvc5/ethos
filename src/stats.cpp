@@ -113,7 +113,7 @@ std::string Stats::toString(State& s) const
       const RuleStat& rs = itr->second;
       Assert (e->getKind()==Kind::PROOF_RULE);
       std::stringstream sss;
-      sss << s.getSymbol(e) << ": ";
+      sss << Expr(e) << ": ";
       ss << std::right << std::setw(28) << sss.str() << rs.toString(totalTime) << std::endl;
     }
   }

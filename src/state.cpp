@@ -222,12 +222,6 @@ void State::markDeleted(ExprValue* e)
     Trace("gc") << "Delete " << e << " " << k << std::endl;
     if (isLiteral(k))
     {
-      std::map<const ExprValue*, Literal>::const_iterator itl =
-          d_literals.find(e);
-      if (itl != d_literals.end())
-      {
-        d_literals.erase(itl);
-      }
       std::map<ExprValue*, std::pair<Kind, std::string>>::iterator itk = d_literalTrieRev.find(e);
       Assert (itk!=d_literalTrieRev.end());
       std::map<std::pair<Kind, std::string>, ExprValue*>::iterator itlt = d_literalTrie.find(itk->second);
@@ -521,11 +515,9 @@ ExprValue* State::mkSymbolInternal(Kind k,
   d_stats.d_symCount++;
   d_stats.d_exprCount++;
   std::vector<ExprValue*> emptyVec;
-  ExprValue* v = new ExprValue(k, emptyVec);
+  ExprValue* v = new Literal(k, name);
   // immediately set its type
   d_typeCache[v] = type;
-  // map to the data
-  d_literals[v] = Literal(name);
   Trace("type_checker") << "TYPE " << name << " : " << type << std::endl;
   //d_symcMap[key] = v;
   return v;
@@ -747,30 +739,28 @@ Expr State::mkLiteral(Kind k, const std::string& s)
   }
   d_stats.d_litCount++;
   d_stats.d_exprCount++;
-  std::vector<ExprValue*> emptyVec;
-  ExprValue* lv = new ExprValue(k, emptyVec);
-  // map to the data
-  d_literalTrie[key] = lv;
-  d_literalTrieRev[lv] = key;
+  Literal* lv = nullptr;
   // convert string to literal
   switch (k)
   {
     case Kind::BOOLEAN:
       Assert (s=="true" || s=="false");
-      d_literals[lv] = Literal(s == "true");
+      lv = new Literal(s == "true");
       break;
-    case Kind::NUMERAL: d_literals[lv] = Literal(Integer(s)); break;
-    case Kind::DECIMAL: d_literals[lv] = Literal(Rational(s)); break;
+    case Kind::NUMERAL: lv = new Literal(Integer(s)); break;
+    case Kind::DECIMAL: lv = new Literal(Rational(s)); break;
     case Kind::HEXADECIMAL:
       // NOTE: hexadecimal and binary bitvectors are different expressions currently
-      d_literals[lv] = Literal(BitVector(s, 16));
+      lv = new Literal(BitVector(s, 16));
       break;
-    case Kind::BINARY: d_literals[lv] = Literal(BitVector(s, 2)); break;
-    case Kind::STRING: d_literals[lv] = Literal(String(s, true)); break;
+    case Kind::BINARY: lv = new Literal(BitVector(s, 2)); break;
+    case Kind::STRING: lv = new Literal(String(s, true)); break;
     default:
       break;
   }
-  Assert (d_literals[lv].toString()==s);
+  // map to the data
+  d_literalTrie[key] = lv;
+  d_literalTrieRev[lv] = key;
   return Expr(lv);
 }
 
@@ -878,16 +868,6 @@ Expr State::getProofRule(const std::string& name) const
   return d_null;
 }
 
-const Literal* State::getLiteral(const ExprValue* e) const
-{
-  std::map<const ExprValue*, Literal>::const_iterator it = d_literals.find(e);
-  if (it!=d_literals.end())
-  {
-    return &it->second;
-  }
-  return nullptr;
-}
-
 bool State::getActualPremises(const ExprValue* rule,
                               std::vector<Expr>& given,
                               std::vector<Expr>& actual)
@@ -951,16 +931,6 @@ bool State::getOracleCmd(const ExprValue* oracle, std::string& ocmd)
     return true;
   }
   return false;
-}
-
-std::string State::getSymbol(const ExprValue* ev) const
-{
-  const Literal* l = getLiteral(ev);
-  if (l != nullptr)
-  {
-    return l->toString();
-  }
-  return "";
 }
 
 size_t State::getAssumptionLevel() const

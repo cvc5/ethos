@@ -627,9 +627,9 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
           {
             Assert (cchildren[0]!=nullptr);
             // get the evaluation of the condition
-            const Literal* l = d_state.getLiteral(cchildren[0]);
-            if (l!=nullptr && l->d_tag==Literal::BOOL)
+            if (cchildren[0]->getKind()==Kind::BOOLEAN)
             {
+              const Literal* l = cchildren[0]->asLiteral();
               // inspect the relevant child only
               size_t index = l->d_bool ? 1 : 2;
               if (cchildren[index] == nullptr)
@@ -941,9 +941,9 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     break;
     case Kind::EVAL_IF_THEN_ELSE:
     {
-      const Literal* l = d_state.getLiteral(args[0]);
-      if (l!=nullptr && l->d_tag==Literal::BOOL)
+      if (args[0]->getKind()==Kind::BOOLEAN)
       {
+        const Literal* l = args[0]->asLiteral();
         // eagerly evaluate even if branches are non-ground
         return Expr(args[l->d_bool ? 1 : 2]);
       }
@@ -997,30 +997,30 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   bool allValues = true;
   for (ExprValue* e : args)
   {
-    const Literal* l = d_state.getLiteral(e);
     // symbols are stored as literals but do not evaluate
-    if (l==nullptr || l->d_tag==Literal::SYMBOL)
+    if (!isLiteral(e->getKind()))
     {
-      Trace("type_checker") << "...does not evaluate (argument)" << std::endl;
+      Trace("type_checker") << "...does not value-evaluate (argument)" << std::endl;
       // failed to convert an argument
       allValues = false;
       break;
     }
-    lits.push_back(l);
+    lits.push_back(e->asLiteral());
   }
+  // if all values, run the literal evaluator
   if (allValues)
   {
     // evaluate
     Literal eval = Literal::evaluate(k, lits);
-    if (eval.d_tag==Literal::INVALID)
+    if (eval.getKind()==Kind::NONE)
     {
-      Trace("type_checker") << "...does not evaluate (return)" << std::endl;
+      Trace("type_checker") << "...does not value-evaluate (return)" << std::endl;
       // failed to evaluate
       return d_null;
     }
     // convert back to an expression
-    Expr lit = d_state.mkLiteral(eval.toKind(), eval.toString());
-    Trace("type_checker") << "...evaluates to " << lit << std::endl;
+    Expr lit = d_state.mkLiteral(eval.getKind(), eval.toString());
+    Trace("type_checker") << "...value-evaluates to " << lit << std::endl;
     return lit;
   }
   // otherwise, maybe a list operation
@@ -1037,7 +1037,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     return d_null;
   }
   bool isLeft = (ck==Attr::LEFT_ASSOC_NIL);
-  Trace("type_checker_debug") << "CONS: " << isLeft << " " << args << std::endl;
+  Trace("type_checker_debug") << "EVALUATE-LIT (list) " << k << " " << isLeft << " " << args << std::endl;
   ExprValue* op = args[0];
   switch (k)
   {

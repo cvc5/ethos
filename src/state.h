@@ -120,8 +120,6 @@ class State
   Expr getVar(const std::string& name) const;
   /** Get the proof rule with the given name or nullptr if it does not exist */
   Expr getProofRule(const std::string& name) const;
-  /** Get the literal associated with e or nullptr if it does not exist */
-  const Literal* getLiteral(const ExprValue* ev) const;
   /** Get actual premises */
   bool getActualPremises(const ExprValue* ev,
                          std::vector<Expr>& given,
@@ -130,8 +128,6 @@ class State
   Expr getProgram(const ExprValue* ev);
   /** Get the oracle command */
   bool getOracleCmd(const ExprValue* ev, std::string& ocmd);
-  /** Get symbol */
-  std::string getSymbol(const ExprValue* ev) const;
   /** */
   size_t getAssumptionLevel() const;
   /** */
@@ -218,8 +214,6 @@ class State
   /** Cache for literals */
   std::map<std::pair<Kind, std::string>, ExprValue*> d_literalTrie;
   std::map<ExprValue*, std::pair<Kind, std::string>> d_literalTrieRev;
-  /** Map from expressions to literals */
-  std::map<const ExprValue*, Literal> d_literals;
   // -------------------- symbols
   /** Cache for symbols */
   // std::map<std::tuple<Kind, std::string, const ExprValue *>, Expr> d_symcMap;

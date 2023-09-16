@@ -12,20 +12,9 @@
 
 namespace alfc {
 
-struct Literal
+class Literal : public ExprValue
 {
-  /* Describes which type of result is being stored */
-  enum
-  {
-    BOOL,
-    INTEGER,
-    RATIONAL,
-    BITVECTOR,
-    STRING,
-    SYMBOL,
-    INVALID
-  } d_tag;
-
+public:
   /* Stores the actual result */
   union
   {
@@ -38,19 +27,19 @@ struct Literal
   };
 
   Literal(const Literal& other);
-  Literal() : d_tag(INVALID) {}
-  Literal(bool b) : d_tag(BOOL), d_bool(b) {}
-  Literal(const Integer& i) : d_tag(INTEGER), d_int(i) {}
-  Literal(const Rational& r) : d_tag(RATIONAL), d_rat(r) {}
-  Literal(const BitVector& bv) : d_tag(BITVECTOR), d_bv(bv) {}
-  Literal(const String& str) : d_tag(STRING), d_str(str) {}
-  Literal(const std::string& sym) : d_tag(SYMBOL), d_sym(sym) {}
+  Literal() {}
+  Literal(bool b) : ExprValue(Kind::BOOLEAN, {}), d_bool(b) {}
+  Literal(const Integer& i) : ExprValue(Kind::NUMERAL, {}), d_int(i) {}
+  Literal(const Rational& r) : ExprValue(Kind::DECIMAL, {}), d_rat(r) {}
+  Literal(const BitVector& bv) : ExprValue(Kind::BINARY, {}), d_bv(bv) {}
+  Literal(const String& str) : ExprValue(Kind::STRING, {}), d_str(str) {}
+  Literal(Kind k, const std::string& sym) : ExprValue(k, {}), d_sym(sym) {}
 
   Literal& operator=(const Literal& other);
 
   ~Literal() {}
-
-  Kind toKind() const;
+  /** as literal */
+  const Literal* asLiteral() const override { return this; }
   std::string toString() const;
 
   /** Evaluate literal op */

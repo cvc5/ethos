@@ -427,7 +427,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
       Kind ck = cur.getKind();
       if (isLiteral(ck))
       {
-        curLit = d_state.getLiteral(cv);
+        curLit = cv->asLiteral();
         Assert(curLit != nullptr);
         os << "  " << cs.d_prefix << ret << " = ";
         os << "mkLiteral(Kind::" << cur.getKind() << ", \""
@@ -436,7 +436,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
       else if (isSymbol(ck))
       {
         Assert(isg);
-        curLit = d_state.getLiteral(cv);
+        curLit = cv->asLiteral();
         Assert(curLit != nullptr);
         os << "  " << cs.d_prefix << ret << " = ";
         // special case: d_self
@@ -467,7 +467,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         // we have only written the condition
         Expr condc = cur[0];
         std::string cond = s.getNameFor(condc);
-        os << "  _ltmp = d_state.getLiteral(" << cond << ".getValue());"
+        os << "  _ltmp = " << cond << ".getValue()->asLiteral();"
            << std::endl;
         os << "  _btmp = (_ltmp!=nullptr && _ltmp->d_tag==Literal::BOOL);" << std::endl;
         os << "  _btmp2 = (_btmp && _ltmp->d_bool);" << std::endl;

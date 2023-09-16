@@ -14,6 +14,7 @@ class State;
 class ExprValue;
 class TypeChecker;
 class Expr;
+class Literal;
 
 /** 
  * Expression class
@@ -28,6 +29,8 @@ class ExprValue
   ExprValue();
   ExprValue(Kind k, const std::vector<ExprValue*>& children);
   ~ExprValue();
+  /** as literal */
+  virtual const Literal* asLiteral() const { return nullptr; }
   /** is null? */
   bool isNull() const;
   /** get the kind of this expression */
@@ -50,7 +53,7 @@ class ExprValue
   bool isProgEvaluatable();
   /** Is part of compiled code */
   bool isCompiled();
- private:
+ protected:
   /** The kind */
   Kind d_kind;
   /** The children of this expression */

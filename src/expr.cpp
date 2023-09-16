@@ -188,7 +188,12 @@ void Expr::setCompiled()
 }
 std::string Expr::getSymbol() const
 {
-  return ExprValue::d_state->getSymbol(d_value);
+  const Literal * l = d_value->asLiteral();
+  if (l != nullptr)
+  {
+    return l->toString();
+  }
+  return "";
 }
 
 ExprValue* Expr::getValue() const { return d_value; }
@@ -298,18 +303,24 @@ void Expr::printDebugInternal(const Expr& e,
       Kind k = cur.first->getKind();
       if (cur.first->getNumChildren() == 0)
       {
-        const Literal* l = ExprValue::d_state->getLiteral(cur.first);
+        const Literal* l = cur.first->asLiteral();
         if (l!=nullptr)
         {
-          switch (l->d_tag)
+          switch (k)
           {
-            case Literal::BITVECTOR:os << "#b" << l->toString();break;
-            case Literal::STRING:os << "\"" << l->toString() << "\"";break;
-            case Literal::SYMBOL:
-              // symbols must be quoted if they have illegal characters
-              os << quoteSymbol(l->toString());
+            case Kind::BINARY:os << "#b" << l->toString();break;
+            case Kind::STRING:os << "\"" << l->toString() << "\"";break;
+            default:
+              if (isSymbol(k))
+              {
+                // symbols must be quoted if they have illegal characters
+                os << quoteSymbol(l->toString());
+              }
+              else
+              {
+                os << l->toString();
+              }
               break;
-            default:os << l->toString();break;
           }
         }
         else
