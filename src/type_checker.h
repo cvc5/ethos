@@ -39,7 +39,7 @@ class TypeChecker
   /**
    * Check arity for kind, returns false if k cannot be applied to nargs.
    */
-  static bool checkArity(Kind k, size_t nargs);
+  static bool checkArity(Kind k, size_t nargs, std::ostream* out = nullptr);
   /** Set type rule for literal kind k to t */
   void setLiteralTypeRule(Kind k, const Expr& t);
   /**

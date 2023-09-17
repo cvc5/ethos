@@ -59,7 +59,7 @@
       ((resolve C1 C2 pol L)
         (let ((lp (alf.ite pol L (not L))))
         (let ((ln (alf.ite pol (not L) L)))
-            (alf.from_list or (alf.append or
+            (alf.from_list or (alf.concat or
                     (removeSelf lp (list.intro or false C1))
                     (removeSelf ln (list.intro or false C2)))))))
     )
@@ -81,7 +81,7 @@
             (chainResolveRec
                 (let ((lp (alf.ite pol L (not L))))
                 (let ((ln (alf.ite pol (not L) L)))
-                    (alf.append or
+                    (alf.concat or
                             (removeSelf lp C1)
                             (removeSelf ln (alf.to_list or C2))))) Cs args))
     )

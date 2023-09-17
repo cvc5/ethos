@@ -130,25 +130,30 @@ Expr TypeChecker::getType(Expr& e, std::ostream* out)
   return ret;
 }
 
-bool TypeChecker::checkArity(Kind k, size_t nargs)
+bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
 {
+  bool ret = false;
   // check arities
   switch(k)
   {
     case Kind::NIL:
-      return nargs==0;
+      ret = (nargs==0);
+      break;
     case Kind::EVAL_IS_EQ:
-    case Kind::EVAL_TO_LIST:
-    case Kind::EVAL_FROM_LIST:
     case Kind::EVAL_AND:
     case Kind::EVAL_OR:
     case Kind::EVAL_ADD:
     case Kind::EVAL_MUL:
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_RAT_DIV:
-    case Kind::EVAL_CONCAT:
     case Kind::EVAL_TO_BV:
-      return nargs==2;
+    case Kind::EVAL_FIND:
+    case Kind::EVAL_CONS:
+      ret = (nargs==2);
+      break;
+    case Kind::EVAL_CONCAT:
+      ret = (nargs>=2);
+      break;
     case Kind::PROOF_TYPE:
     case Kind::EVAL_HASH:
     case Kind::EVAL_NOT:
@@ -159,26 +164,38 @@ bool TypeChecker::checkArity(Kind k, size_t nargs)
     case Kind::EVAL_TO_INT:
     case Kind::EVAL_TO_RAT:
     case Kind::EVAL_TO_STRING:
-      return nargs==1;
+    case Kind::EVAL_TO_LIST:
+    case Kind::EVAL_FROM_LIST:
+      ret = (nargs==1);
+      break;
     case Kind::EVAL_REQUIRES:
     case Kind::EVAL_IF_THEN_ELSE:
-    case Kind::EVAL_CONS:
-    case Kind::EVAL_APPEND:
+      ret = (nargs==3);
+      break;
     case Kind::EVAL_EXTRACT:
-      return nargs==3;
-    default:break;
-  }  
+      ret = (nargs==3 || nargs==2);
+      break;
+    default:
+      if (out)
+      {
+        (*out) << "Unknown arity for " << k;
+      }
+      break;
+  }
+  if (!ret)
+  {
+    if (out)
+    {
+      (*out) << "Incorrect arity for " << k;
+    }
+    return false;
+  }
   return true;
 }
 
 Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
 {
   Kind k = e->getKind();
-  if (!checkArity(k, e->getNumChildren()))
-  {
-    (*out) << "Incorrect arity for " << k;
-    return d_null;
-  }
   switch(k)
   {
     case Kind::APPLY:
@@ -200,6 +217,10 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       return d_state.mkFunctionType(args, ret);
     }
     case Kind::NIL:
+      if (!checkArity(k, e->getNumChildren(), out))
+      {
+        return d_null;
+      }
       // nil is its own type
       return Expr(e);
     case Kind::TYPE:
@@ -884,11 +905,15 @@ Expr TypeChecker::evaluateLiteralOp(Kind k,
   return Expr(d_state.mkExprInternal(k, args));
 }
 
+/**
+ * Get nary children, gets a list of children from op-application e
+ * up to maxChildren (0 means no limit), stores them in children.
+ */
 ExprValue* getNAryChildren(ExprValue* e,
                            ExprValue* op,
                            std::vector<ExprValue*>& children,
                            bool isLeft,
-                           bool extractAll)
+                           size_t maxChildren=0)
 {
   while (e->getKind()==Kind::APPLY)
   {
@@ -905,7 +930,7 @@ ExprValue* getNAryChildren(ExprValue* e,
     children.push_back(isLeft ? (*e)[1] : (*cop)[1]);
     // traverse to tail
     e = isLeft ? (*cop)[1] : (*e)[1];
-    if (!extractAll && children.size()==2)
+    if (children.size()==maxChildren)
     {
       return e;
     }
@@ -1041,21 +1066,20 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   ExprValue* op = args[0];
   size_t tailIndex = (isLeft ? 1 : 2);
   size_t headIndex = (isLeft ? 2 : 1);
-  // harg is either the head (cons/append) or the argument (to_list/from_list)
-  ExprValue* harg = args[args.size() == 2 ? 1 : headIndex];
   ExprValue* ret;
   std::vector<ExprValue*> hargs;
   switch (k)
   {
     case Kind::EVAL_TO_LIST:
     {
+      ExprValue* harg = args[1];
       if (harg == ac->d_attrConsTerm.getValue())
       {
         // already nil
         return Expr(harg);
       }
       ExprValue* a = harg;
-      a = getNAryChildren(a, op, hargs, isLeft, false);
+      a = getNAryChildren(a, op, hargs, isLeft);
       if (!hargs.empty())
       {
         // already a list
@@ -1068,13 +1092,14 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       break;
     case Kind::EVAL_FROM_LIST:
     {
-      ExprValue* a = harg;
-      a = getNAryChildren(a, op, hargs, isLeft, false);
+      ExprValue* a = args[1];
+      // once we have >=2 children, we know this is a no-op
+      a = getNAryChildren(a, op, hargs, isLeft, 2);
       if (hargs.size()==1)
       {
         if (a != ac->d_attrConsTerm.getValue())
         {
-          Warning() << "...failed to decompose " << Expr(harg)
+          Warning() << "...failed to decompose " << Expr(args[1])
                     << " in from_list" << std::endl;
           return d_null;
         }
@@ -1082,24 +1107,46 @@ Expr TypeChecker::evaluateLiteralOpInternal(
         return Expr(hargs[0]);
       }
       // otherwise self
-      return Expr(harg);
+      return Expr(args[1]);
     }
       break;
     case Kind::EVAL_CONS:
       ret = args[tailIndex];
-      hargs.push_back(harg);
+      hargs.push_back(args[headIndex]);
       break;
-    case Kind::EVAL_APPEND:
+    case Kind::EVAL_CONCAT:
     {
       ret = args[tailIndex];
-      ExprValue* a = harg;
+      ExprValue* a = args[headIndex];
       // Note we take the tail verbatim
-      a = getNAryChildren(a, op, hargs, isLeft, true);
+      a = getNAryChildren(a, op, hargs, isLeft);
       if (a != ac->d_attrConsTerm.getValue())
       {
-        Warning() << "...failed to decompose " << harg << " in append" << std::endl;
+        Warning() << "...failed to decompose " << Expr(args[headIndex]) << " in append" << std::endl;
         return d_null;
       }
+    }
+      break;
+    case Kind::EVAL_EXTRACT:
+    {
+      // (alf.extract <op> <term> <n>) returns the n^th child of <op>-application <term>
+      ExprValue* a = args[1];
+      if (args[2]->getKind()!=Kind::NUMERAL)
+      {
+        return d_null;
+      }
+      const Integer& index = args[2]->asLiteral()->d_int;
+      if (!index.fitsUnsignedInt())
+      {
+        return d_null;
+      }
+      size_t i = index.toUnsignedInt();
+      getNAryChildren(a, op, hargs, isLeft, i+1);
+      if (hargs.size()==i+1)
+      {
+        return Expr(hargs.back());
+      }
+      return d_null;
     }
       break;
     default:
@@ -1125,33 +1172,48 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
                                          std::vector<ExprValue*>& childTypes,
                                          std::ostream* out)
 {
+  // operators with functions at the first index are "indexed
+  size_t i = 0;
+  if (!childTypes.empty() && childTypes[0]->getKind()==Kind::FUNCTION_TYPE)
+  {
+    i++;
+  }
+  if (!checkArity(k, childTypes.size()-i, out))
+  {
+    return d_null.getValue();
+  }
   // NOTE: applications of most of these operators should only be in patterns,
   // where type checking is not strict.
   switch (k)
   {
+    case Kind::EVAL_NEG:
     case Kind::EVAL_ADD:
     case Kind::EVAL_MUL:
-    case Kind::EVAL_CONCAT:
-    case Kind::EVAL_NEG:
+      // NOTE: mixed arith
       return childTypes[0];
-    case Kind::EVAL_REQUIRES:
-      return childTypes[2];
     case Kind::EVAL_IF_THEN_ELSE:
     case Kind::EVAL_CONS:
-    case Kind::EVAL_APPEND:
     case Kind::EVAL_TO_LIST:
     case Kind::EVAL_FROM_LIST:
       return childTypes[1];
+    case Kind::EVAL_REQUIRES:
+      return childTypes[2];
+    case Kind::EVAL_CONCAT:
+    case Kind::EVAL_EXTRACT:
+      // the first child, maybe after a function
+      return childTypes[i];
     case Kind::EVAL_IS_EQ:
     case Kind::EVAL_NOT:
     case Kind::EVAL_AND:
     case Kind::EVAL_OR:
     case Kind::EVAL_IS_NEG:
-    case Kind::EVAL_IS_ZERO: return d_state.mkBoolType().getValue();
+    case Kind::EVAL_IS_ZERO:
+      return d_state.mkBoolType().getValue();
     case Kind::EVAL_HASH:
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_TO_INT:
     case Kind::EVAL_LENGTH:
+    case Kind::EVAL_FIND:
       return getOrSetLiteralTypeRule(Kind::NUMERAL);
     case Kind::EVAL_RAT_DIV:
     case Kind::EVAL_TO_RAT:

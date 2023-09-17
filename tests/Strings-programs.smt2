@@ -62,7 +62,7 @@
 ; taking the sort u of t1 for constructing the empty string.
 (program string_concat ((T Type) (t1 T) (t2 T))
   (T T) T
-  (((string_concat t1 t2) (alf.append str.++ t1 t2)))
+  (((string_concat t1 t2) (alf.concat str.++ t1 t2)))
 )
 
 ; Return reverse of t if rev = tt, return t unchanged otherwise.
@@ -115,7 +115,7 @@
     ((string_flatten_word t) 
       (alf.ite (check_length_one t) 
         (alf.cons str.++ t alf.nil)
-        (alf.cons str.++ (alf.extract 0 1 t) (string_flatten_word (alf.extract 1 (alf.len t) t)))))
+        (alf.cons str.++ (alf.extract t 0 1) (string_flatten_word (alf.extract t 1 (alf.len t))))))
   )
 )
 (program string_flatten ((U Type) (t U) (tail U :list) (tail2 U :list))
@@ -124,12 +124,12 @@
     ((string_flatten alf.nil) alf.nil)
     ; required for sequences
     ((string_flatten (str.++ (str.++ t tail2) tail)) 
-        (alf.append str.++ (str.++ t tail2) (string_flatten tail)))
+        (alf.concat str.++ (str.++ t tail2) (string_flatten tail)))
     ((string_flatten (str.++ t tail))
         ; otherwise, check whether t is a word constant of length greater than one
         (alf.ite (check_length_gt_one t)
           ; if so, we flatten the word using the method above and concatenate it.
-          (alf.append str.++ (string_flatten_word t) (string_flatten tail))
+          (alf.concat str.++ (string_flatten_word t) (string_flatten tail))
           ; if not, we just append it to the result of the recursive call
           (alf.cons str.++ t (string_flatten tail))))
   )

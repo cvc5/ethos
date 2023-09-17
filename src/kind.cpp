@@ -44,7 +44,6 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::EVAL_TO_LIST: o << "EVAL_TO_LIST"; break;
     case Kind::EVAL_FROM_LIST: o << "EVAL_FROM_LIST"; break;
     case Kind::EVAL_CONS: o << "EVAL_CONS"; break;
-    case Kind::EVAL_APPEND: o << "EVAL_APPEND"; break;
     // boolean
     case Kind::EVAL_NOT: o << "EVAL_NOT"; break;
     case Kind::EVAL_AND: o << "EVAL_AND"; break;
@@ -61,6 +60,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::EVAL_LENGTH: o << "EVAL_LENGTH"; break;
     case Kind::EVAL_CONCAT: o << "EVAL_CONCAT"; break;
     case Kind::EVAL_EXTRACT: o << "EVAL_EXTRACT"; break;
+    case Kind::EVAL_FIND: o << "EVAL_FIND"; break;
     // conversions
     case Kind::EVAL_TO_INT: o << "EVAL_TO_INT"; break;
     case Kind::EVAL_TO_RAT: o << "EVAL_TO_RAT"; break;
@@ -102,7 +102,6 @@ std::string kindToTerm(Kind k)
         case Kind::EVAL_TO_LIST: ss << "to_list"; break;
         case Kind::EVAL_FROM_LIST: ss << "from_list"; break;
         case Kind::EVAL_CONS: ss << "cons"; break;
-        case Kind::EVAL_APPEND: ss << "append"; break;
         // boolean
         case Kind::EVAL_NOT: ss << "not"; break;
         case Kind::EVAL_AND: ss << "and"; break;
@@ -119,6 +118,7 @@ std::string kindToTerm(Kind k)
         case Kind::EVAL_LENGTH: ss << "len"; break;
         case Kind::EVAL_CONCAT: ss << "concat"; break;
         case Kind::EVAL_EXTRACT: ss << "extract"; break;
+        case Kind::EVAL_FIND: ss << "find"; break;
         // conversions
         case Kind::EVAL_TO_INT: ss << "to_z";break;
         case Kind::EVAL_TO_RAT: ss << "to_q";break;
@@ -176,7 +176,6 @@ bool isLiteralOp(Kind k)
     case Kind::EVAL_TO_LIST:
     case Kind::EVAL_FROM_LIST:
     case Kind::EVAL_CONS:
-    case Kind::EVAL_APPEND:
     // boolean
     case Kind::EVAL_NOT:
     case Kind::EVAL_AND:
@@ -189,9 +188,12 @@ bool isLiteralOp(Kind k)
     case Kind::EVAL_RAT_DIV:
     case Kind::EVAL_IS_NEG:
     case Kind::EVAL_IS_ZERO:
+    // strings
     case Kind::EVAL_LENGTH:
     case Kind::EVAL_CONCAT:
     case Kind::EVAL_EXTRACT:
+    case Kind::EVAL_FIND:
+    // conversions
     case Kind::EVAL_TO_INT:
     case Kind::EVAL_TO_RAT:
     case Kind::EVAL_TO_BV:

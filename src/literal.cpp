@@ -268,35 +268,57 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
       }
       break;
     case Kind::EVAL_CONCAT:
-      if (args[0]->d_kind==args[1]->d_kind)
+      switch (args[0]->d_kind)
       {
-        switch (args[0]->d_kind)
+        case Kind::BINARY:
         {
-          case Kind::BINARY:return Literal(args[0]->d_bv.concat(args[1]->d_bv));
-          case Kind::STRING:return Literal(args[0]->d_str.concat(args[1]->d_str));
-          default: break;
+          BitVector res = args[0]->d_bv;
+          for (size_t i=1, nargs=args.size(); i<nargs; i++)
+          {
+            if (args[i]->getKind()!=Kind::BINARY)
+            {
+              return Literal();
+            }
+            res = res.concat(args[i]->d_bv);
+          }
+          return Literal(res);
         }
+        case Kind::STRING:
+        {
+          String res = args[0]->d_str;
+          for (size_t i=1, nargs=args.size(); i<nargs; i++)
+          {
+            if (args[i]->getKind()!=Kind::STRING)
+            {
+              return Literal();
+            }
+            res = res.concat(args[i]->d_str);
+          }
+          return Literal(res);
+        }
+          break;
+        default: break;
       }
       break;
     case Kind::EVAL_EXTRACT:
-      if (args[0]->d_kind==Kind::NUMERAL && args[0]->d_int.fitsUnsignedInt() &&
-          args[1]->d_kind==Kind::NUMERAL && args[1]->d_int.fitsUnsignedInt())
+      if (args[1]->d_kind==Kind::NUMERAL && args[1]->d_int.fitsUnsignedInt() &&
+          args[2]->d_kind==Kind::NUMERAL && args[2]->d_int.fitsUnsignedInt())
       {
-        uint32_t v1 = args[0]->d_int.toUnsignedInt();
-        uint32_t v2 = args[1]->d_int.toUnsignedInt();
-        switch (args[2]->d_kind)
+        uint32_t v1 = args[1]->d_int.toUnsignedInt();
+        uint32_t v2 = args[2]->d_int.toUnsignedInt();
+        switch (args[0]->d_kind)
         {
           // extract is high to low
           case Kind::BINARY:
             if (v1<=v2)
             {
-              return Literal(args[2]->d_bv.extract(v2, v1));
+              return Literal(args[0]->d_bv.extract(v2, v1));
             }
             break;
           case Kind::STRING:
           {
             size_t ssize = v2>=v1 ? (v2-v1) : 0;
-            return Literal(String(args[2]->d_str.substr(v1, ssize)));
+            return Literal(String(args[0]->d_str.substr(v1, ssize)));
           }
             break;
           default: break;

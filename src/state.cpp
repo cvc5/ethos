@@ -43,7 +43,6 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("to_list", Kind::EVAL_TO_LIST);
   bindBuiltinEval("from_list", Kind::EVAL_FROM_LIST);
   bindBuiltinEval("cons", Kind::EVAL_CONS);
-  bindBuiltinEval("append", Kind::EVAL_APPEND);
   // boolean
   bindBuiltinEval("not", Kind::EVAL_NOT);
   bindBuiltinEval("and", Kind::EVAL_AND);
@@ -617,10 +616,10 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
             {
               cc[prevIndex] = curr;
               cc[nextIndex] = vchildren[isLeft ? i : nchild - i];
-              // if the "head" child is marked as list, we construct Kind::EVAL_APPEND
+              // if the "head" child is marked as list, we construct Kind::EVAL_CONCAT
               if (getConstructorKind(cc[nextIndex]) == Attr::LIST)
               {
-                curr = mkExprInternal(Kind::EVAL_APPEND, cc);
+                curr = mkExprInternal(Kind::EVAL_CONCAT, cc);
               }
               else
               {

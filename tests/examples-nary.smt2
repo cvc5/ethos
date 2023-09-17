@@ -38,7 +38,7 @@
 ; Concat
 (declare-rule check_concat((t1 S) (t2 S) (out S))
     :args (t1 t2 out)
-    :requires (((alf.append cons t1 t2) out))
+    :requires (((alf.concat cons t1 t2) out))
     :conclusion true
 )
 

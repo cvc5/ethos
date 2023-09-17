@@ -54,7 +54,6 @@ enum class Kind
   EVAL_TO_LIST,
   EVAL_FROM_LIST,
   EVAL_CONS,
-  EVAL_APPEND,
   // boolean
   EVAL_NOT,
   EVAL_AND,
@@ -71,6 +70,7 @@ enum class Kind
   EVAL_LENGTH,
   EVAL_CONCAT,
   EVAL_EXTRACT,
+  EVAL_FIND,
   // conversions
   EVAL_TO_INT,
   EVAL_TO_RAT,

@@ -87,6 +87,9 @@ set(alfc_test_file_list
     Strings-theory.smt2
     Strings-programs.smt2
     self-requires.smt2
+    bv-extract.smt2
+    Sets-theory.smt2
+    Datatypes-theory.smt2
 )
 
 macro(alfc_test file)
