@@ -185,6 +185,15 @@ class Integer
   std::string toString(int base = 10) const;
 
   /**
+   * Computes the hash of the node from the first word of the
+   * numerator, the denominator.
+   */
+  size_t hash() const;
+
+  /** */
+  static size_t gmpHash(const mpz_t toHash);
+
+  /**
    * Returns true iff bit n is set.
    *
    * @param n the bit to test (0 == least significant bit)
@@ -217,6 +226,12 @@ class Integer
    */
   mpz_class d_value;
 }; /* class Integer */
+
+
+struct IntegerHashFunction
+{
+  inline size_t operator()(const Integer& i) const { return i.hash(); }
+};
 
 }  // namespace cvc5::internal
 

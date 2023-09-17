@@ -52,6 +52,11 @@ std::string BitVector::toString(unsigned int base) const
   }
 }
 
+size_t BitVector::hash() const
+{
+  return std::hash<size_t>()(d_value.hash()) ^ std::hash<size_t>()(d_size);
+}
+
 BitVector& BitVector::setBit(uint32_t i, bool value)
 {
   Assert(i < d_size);

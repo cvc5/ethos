@@ -129,6 +129,15 @@ class String
    * Corresponds to the maximum size of d_str.
    */
   static size_t maxSize();
+  /** Hash function */
+  size_t hash() const
+  {
+    std::size_t seed = d_str.size();
+    for(auto& i : d_str) {
+      seed ^= i + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    }
+    return seed;
+  }
  private:
   /**
    * Helper for toInternal: add character ch to vector vec, storing a string in
@@ -151,10 +160,15 @@ class String
   int cmp(const String& y) const;
   /** The data */
   std::vector<unsigned> d_str;
-}; /* class String */
+};
 
 std::ostream& operator<<(std::ostream& os, const String& s);
 
-}  // namespace cvc5::internal
+struct StringHashFunction
+{
+  inline size_t operator()(const String& s) const { return s.hash(); }
+};
+
+}
 
 #endif /* UTIL__STRING_H */

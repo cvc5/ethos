@@ -280,6 +280,23 @@ bool Integer::divides(const Integer& y) const
 
 std::string Integer::toString(int base) const { return d_value.get_str(base); }
 
+
+size_t Integer::hash() const
+{
+  return gmpHash(d_value.get_mpz_t());
+}
+
+size_t Integer::gmpHash(const mpz_t toHash)
+{
+  size_t hash = 0;
+  for (int i = 0, n = mpz_size(toHash); i < n; ++i){
+    mp_limb_t limb = mpz_getlimbn(toHash, i);
+    hash = hash * 2;
+    hash = hash xor limb;
+  }
+  return hash;
+}
+
 bool Integer::testBit(unsigned n) const
 {
   return mpz_tstbit(d_value.get_mpz_t(), n);

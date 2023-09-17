@@ -105,6 +105,16 @@ class Rational
   /** Returns a string representing the rational in the given base. */
   std::string toString(int base = 10) const { return d_value.get_str(base); }
 
+  /**
+   * Computes the hash of the rational from hashes of the numerator and the
+   * denominator.
+   */
+  size_t hash() const
+  {
+    size_t numeratorHash = Integer::gmpHash(d_value.get_num_mpz_t());
+    size_t denominatorHash = Integer::gmpHash(d_value.get_den_mpz_t());
+    return numeratorHash xor denominatorHash;
+  }
  private:
   /**
    * Stores the value of the rational is stored in a C++ GMP rational class.
@@ -113,6 +123,11 @@ class Rational
   mpq_class d_value;
 
 }; /* class Rational */
+
+struct RationalHashFunction
+{
+  inline size_t operator()(const Rational& r) const { return r.hash(); }
+};
 
 }  // namespace alfc
 

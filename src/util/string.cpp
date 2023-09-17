@@ -334,4 +334,4 @@ std::ostream &operator<<(std::ostream &os, const String &s) {
   return os << "\"" << s.toString() << "\"";
 }
 
-}  // namespace cvc5::internal
+}

@@ -85,7 +85,8 @@ class BitVector
   Integer toSignedInteger() const;
   /* Return (binary) string representation. */
   std::string toString(unsigned int base = 2) const;
-
+  /* Return hash value. */
+  size_t hash() const;
   /**
    * Set bit at index 'i' to given value.
    * Returns a reference to this bit-vector to allow for chaining.
@@ -238,6 +239,13 @@ BitVector operator-(const BitVector& a);
 BitVector operator*(const BitVector& a, const BitVector& b);
 
 
-}  // namespace cvc5::internal
 
-#endif /* CVC5__BITVECTOR_H */
+/* Hash function for the BitVector constants. */
+struct BitVectorHashFunction
+{
+  inline size_t operator()(const BitVector& bv) const { return bv.hash(); }
+};
+
+}
+
+#endif

@@ -1019,7 +1019,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       return d_null;
     }
     // convert back to an expression
-    Expr lit = d_state.mkLiteral(eval.getKind(), eval.toString());
+    Expr lit = Expr(d_state.mkLiteralInternal(eval));
     Trace("type_checker") << "...value-evaluates to " << lit << std::endl;
     return lit;
   }
@@ -1078,7 +1078,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
                     << " in from_list" << std::endl;
           return d_null;
         }
-        // turn singleton list
+        // eliminate singleton list
         return Expr(hargs[0]);
       }
       // otherwise self

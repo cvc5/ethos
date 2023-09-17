@@ -77,9 +77,9 @@ State::State(Options& opts, Stats& stats)
   // common constants
   d_type = Expr(mkExprInternal(Kind::TYPE, {}));
   d_boolType = Expr(mkExprInternal(Kind::BOOL_TYPE, {}));
-  d_true = mkLiteral(Kind::BOOLEAN, "true");
+  d_true = Expr(new Literal(true));
   bind("true", d_true);
-  d_false = mkLiteral(Kind::BOOLEAN, "false");
+  d_false = Expr(new Literal(false));
   bind("false", d_false);
   if (d_opts.d_runCompile)
   {
@@ -220,21 +220,48 @@ void State::markDeleted(ExprValue* e)
   {
     Kind k = e->getKind();
     Trace("gc") << "Delete " << e << " " << k << std::endl;
-    if (isLiteral(k))
+    switch(k)
     {
-      std::map<ExprValue*, std::pair<Kind, std::string>>::iterator itk = d_literalTrieRev.find(e);
-      Assert (itk!=d_literalTrieRev.end());
-      std::map<std::pair<Kind, std::string>, ExprValue*>::iterator itlt = d_literalTrie.find(itk->second);
-      Assert (itlt!=d_literalTrie.end());
-      d_literalTrie.erase(itlt);
-    }
-    else if (isSymbol(k))
-    {
-      std::map<const ExprValue*, AppInfo>::const_iterator it = d_appData.find(e);
-      if (it != d_appData.end())
+      case Kind::NUMERAL:
       {
-        d_appData.erase(it);
+        std::unordered_map<Integer, Expr, IntegerHashFunction>::iterator it = d_litIntMap.find(e->asLiteral()->d_int);
+        Assert (it!=d_litIntMap.end());
+        d_litIntMap.erase(it);
       }
+        break;
+      case Kind::DECIMAL:
+      {
+        std::unordered_map<Rational, Expr, RationalHashFunction>::iterator it = d_litRatMap.find(e->asLiteral()->d_rat);
+        Assert (it!=d_litRatMap.end());
+        d_litRatMap.erase(it);
+      }
+        break;
+      case Kind::BINARY:
+      {
+        std::unordered_map<BitVector, Expr, BitVectorHashFunction>::iterator it = d_litBvMap.find(e->asLiteral()->d_bv);
+        Assert (it!=d_litBvMap.end());
+        d_litBvMap.erase(it);
+      }
+        break;
+      case Kind::STRING:
+      {
+        std::unordered_map<String, Expr, StringHashFunction>::iterator it = d_litStrMap.find(e->asLiteral()->d_str);
+        Assert (it!=d_litStrMap.end());
+        d_litStrMap.erase(it);
+      }
+        break;
+      default:
+      {
+        if (isSymbol(k))
+        {
+          std::map<const ExprValue*, AppInfo>::const_iterator it = d_appData.find(e);
+          if (it != d_appData.end())
+          {
+            d_appData.erase(it);
+          }
+        }
+      }
+      break;
     }
     std::map<const ExprValue*, size_t>::const_iterator ith = d_hashMap.find(e);
     if (ith != d_hashMap.end())
@@ -730,38 +757,88 @@ Expr State::mkFalse()
 
 Expr State::mkLiteral(Kind k, const std::string& s)
 {
-  d_stats.d_mkExprCount++;
-  std::pair<Kind, std::string> key(k, s);
-  std::map<std::pair<Kind, std::string>, ExprValue*>::iterator it = d_literalTrie.find(key);
-  if (it!=d_literalTrie.end())
-  {
-    return Expr(it->second);
-  }
-  d_stats.d_litCount++;
-  d_stats.d_exprCount++;
-  Literal* lv = nullptr;
   // convert string to literal
+  Literal lit;
   switch (k)
   {
     case Kind::BOOLEAN:
       Assert (s=="true" || s=="false");
-      lv = new Literal(s == "true");
+      return s=="true" ? d_true : d_false;
       break;
-    case Kind::NUMERAL: lv = new Literal(Integer(s)); break;
-    case Kind::DECIMAL: lv = new Literal(Rational(s)); break;
+    case Kind::NUMERAL: lit = Literal(Integer(s)); break;
+    case Kind::DECIMAL: lit = Literal(Rational(s)); break;
     case Kind::HEXADECIMAL:
       // NOTE: hexadecimal and binary bitvectors are different expressions currently
-      lv = new Literal(BitVector(s, 16));
+      lit = Literal(BitVector(s, 16));
       break;
-    case Kind::BINARY: lv = new Literal(BitVector(s, 2)); break;
-    case Kind::STRING: lv = new Literal(String(s, true)); break;
+    case Kind::BINARY: lit = Literal(BitVector(s, 2)); break;
+    case Kind::STRING: lit = Literal(String(s, true)); break;
     default:
+      ALFC_FATAL() << "Unknown kind for mkLiteral " << k;
       break;
   }
-  // map to the data
-  d_literalTrie[key] = lv;
-  d_literalTrieRev[lv] = key;
-  return Expr(lv);
+  return Expr(mkLiteralInternal(lit));
+}
+
+ExprValue* State::mkLiteralInternal(Literal& l)
+{
+  d_stats.d_mkExprCount++;
+  ExprValue * ev;
+  switch (l.getKind())
+  {
+    case Kind::BOOLEAN:
+      return l.d_bool ? d_true.getValue() : d_false.getValue();
+    case Kind::NUMERAL:
+    {
+      std::unordered_map<Integer, Expr, IntegerHashFunction>::iterator it = d_litIntMap.find(l.d_int);
+      if (it!=d_litIntMap.end())
+      {
+        return it->second.getValue();
+      }
+      ev = new Literal(l.d_int);
+      d_litIntMap[l.d_int] = Expr(ev);
+    }
+      break;
+    case Kind::DECIMAL:
+    {
+      std::unordered_map<Rational, Expr, RationalHashFunction>::iterator it = d_litRatMap.find(l.d_rat);
+      if (it!=d_litRatMap.end())
+      {
+        return it->second.getValue();
+      }
+      ev = new Literal(l.d_rat);
+      d_litRatMap[l.d_rat] = Expr(ev);
+    }
+      break;
+    case Kind::BINARY:
+    {
+      std::unordered_map<BitVector, Expr, BitVectorHashFunction>::iterator it = d_litBvMap.find(l.d_bv);
+      if (it!=d_litBvMap.end())
+      {
+        return it->second.getValue();
+      }
+      ev = new Literal(l.d_bv);
+      d_litBvMap[l.d_bv] = Expr(ev);
+    }
+      break;
+    case Kind::STRING:
+    {
+      std::unordered_map<String, Expr, StringHashFunction>::iterator it = d_litStrMap.find(l.d_str);
+      if (it!=d_litStrMap.end())
+      {
+        return it->second.getValue();
+      }
+      ev = new Literal(l.d_str);
+      d_litStrMap[l.d_str] = Expr(ev);
+    }
+      break;
+    default:
+      ALFC_FATAL() << "Unknown kind for mkLiteralInternal " << l.getKind();
+      break;
+  }
+  d_stats.d_litCount++;
+  d_stats.d_exprCount++;
+  return ev;
 }
 
 Expr State::mkLiteralNumeral(size_t val)
