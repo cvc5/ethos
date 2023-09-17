@@ -1039,102 +1039,86 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   bool isLeft = (ck==Attr::LEFT_ASSOC_NIL);
   Trace("type_checker_debug") << "EVALUATE-LIT (list) " << k << " " << isLeft << " " << args << std::endl;
   ExprValue* op = args[0];
+  size_t tailIndex = (isLeft ? 1 : 2);
+  size_t headIndex = (isLeft ? 2 : 1);
+  // harg is either the head (cons/append) or the argument (to_list/from_list)
+  ExprValue* harg = args[args.size() == 2 ? 1 : headIndex];
+  ExprValue* ret;
+  std::vector<ExprValue*> hargs;
   switch (k)
   {
-    case Kind::EVAL_CONS:
-    case Kind::EVAL_APPEND:
     case Kind::EVAL_TO_LIST:
+    {
+      if (harg == ac->d_attrConsTerm.getValue())
+      {
+        // already nil
+        return Expr(harg);
+      }
+      ExprValue* a = harg;
+      a = getNAryChildren(a, op, hargs, isLeft, false);
+      if (!hargs.empty())
+      {
+        // already a list
+        return Expr(harg);
+      }
+      // otherwise, turn into singleton list
+      ret = ac->d_attrConsTerm.getValue();
+      hargs.push_back(a);
+    }
+      break;
     case Kind::EVAL_FROM_LIST:
     {
-      size_t tailIndex = (isLeft ? 1 : 2);
-      size_t headIndex = (isLeft ? 2 : 1);
-      // harg is either the head (cons/append) or the argument (to_list/from_list)
-      ExprValue* harg = args[args.size() == 2 ? 1 : headIndex];
-      if (!harg->isGround()) // or LIST?
+      ExprValue* a = harg;
+      a = getNAryChildren(a, op, hargs, isLeft, false);
+      if (hargs.size()==1)
       {
-        // not ready
-        Trace("type_checker_debug") << "...head is non-ground" <<std::endl;
+        if (a != ac->d_attrConsTerm.getValue())
+        {
+          Warning() << "...failed to decompose " << Expr(harg)
+                    << " in from_list" << std::endl;
+          return d_null;
+        }
+        // turn singleton list
+        return Expr(hargs[0]);
+      }
+      // otherwise self
+      return Expr(harg);
+    }
+      break;
+    case Kind::EVAL_CONS:
+      ret = args[tailIndex];
+      hargs.push_back(harg);
+      break;
+    case Kind::EVAL_APPEND:
+    {
+      ret = args[tailIndex];
+      ExprValue* a = harg;
+      // Note we take the tail verbatim
+      a = getNAryChildren(a, op, hargs, isLeft, true);
+      if (a != ac->d_attrConsTerm.getValue())
+      {
+        Warning() << "...failed to decompose " << harg << " in append" << std::endl;
         return d_null;
       }
-      ExprValue* ret;
-      std::vector<ExprValue*> hargs;
-      switch (k)
-      {
-        case Kind::EVAL_TO_LIST:
-        {
-          if (harg == ac->d_attrConsTerm.getValue())
-          {
-            // already nil
-            return Expr(harg);
-          }
-          ExprValue* a = harg;
-          a = getNAryChildren(a, op, hargs, isLeft, false);
-          if (!hargs.empty())
-          {
-            // already a list
-            return Expr(harg);
-          }
-          // otherwise, turn into singleton list
-          ret = ac->d_attrConsTerm.getValue();
-          hargs.push_back(a);
-        }
-          break;
-        case Kind::EVAL_FROM_LIST:
-        {
-          ExprValue* a = harg;
-          a = getNAryChildren(a, op, hargs, isLeft, false);
-          if (hargs.size()==1)
-          {
-            if (a != ac->d_attrConsTerm.getValue())
-            {
-              Warning() << "...failed to decompose " << Expr(harg)
-                        << " in from_list" << std::endl;
-              return d_null;
-            }
-            // turn singleton list
-            return Expr(hargs[0]);
-          }
-          // otherwise self
-          return Expr(harg);
-        }
-          break;
-        case Kind::EVAL_CONS:
-          ret = args[tailIndex];
-          hargs.push_back(harg);
-          break;
-        case Kind::EVAL_APPEND:
-        {
-          ret = args[tailIndex];
-          ExprValue* a = harg;
-          // Note we take the tail verbatim
-          a = getNAryChildren(a, op, hargs, isLeft, true);
-          if (a != ac->d_attrConsTerm.getValue())
-          {
-            Warning() << "...failed to decompose " << harg << " in append" << std::endl;
-            return d_null;
-          }
-        }
-          break;
-        default:
-          break;
-      }
-      std::vector<ExprValue*> cc;
-      cc.push_back(op);
-      cc.push_back(nullptr);
-      cc.push_back(nullptr);
-      for (size_t i=0, nargs=hargs.size(); i<nargs; i++)
-      {
-        cc[tailIndex] = ret;
-        cc[headIndex] = hargs[isLeft ? i : (nargs-1-i)];
-        ret = d_state.mkApplyInternal(cc);
-      }
-      Trace("type_checker_debug") << "CONS: " << isLeft << " " << args << " -> " << ret << std::endl;
-      return Expr(ret);
     }
+      break;
     default:
+      // not a list operator
+      return d_null;
       break;
   }
-  return d_null;
+  std::vector<ExprValue*> cc;
+  cc.push_back(op);
+  cc.push_back(nullptr);
+  cc.push_back(nullptr);
+  for (size_t i=0, nargs=hargs.size(); i<nargs; i++)
+  {
+    cc[tailIndex] = ret;
+    cc[headIndex] = hargs[isLeft ? i : (nargs-1-i)];
+    ret = d_state.mkApplyInternal(cc);
+  }
+  Trace("type_checker_debug") << "CONS: " << isLeft << " " << args << " -> " << ret << std::endl;
+  return Expr(ret);
 }
 
 ExprValue* TypeChecker::getLiteralOpType(Kind k,
