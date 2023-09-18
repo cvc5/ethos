@@ -32,7 +32,7 @@ class Integer
    */
   explicit Integer(const std::string& s, unsigned base = 10);
 
-  Integer(unsigned int z) : d_value(z) {}
+  explicit Integer(unsigned int z) : d_value(z) {}
   Integer(const Integer& q) : d_value(q.d_value) {}
 
   /** Destructor. */

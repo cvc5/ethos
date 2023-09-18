@@ -10,7 +10,7 @@ TODO:
 - lazy construction of definitions when compiled?
   - compiled fine grain inclusion??
 - non-exponential alf.ite compilation
-- warn unused parameters / memory safe
+- warn unused parameters
 - n-ary literal ops
 - don't always use mkExprInternal in evaluate
 - Literal inherits from ExprValue
@@ -40,6 +40,7 @@ COMPLETED:
 - separate symbol table for proof rules?
 - type field separate from Expr? (to save memory)
 - Temporary memory allocation of Expr within calls to evaluation?
+- memory safe
 
 CVC5-TODO:
 

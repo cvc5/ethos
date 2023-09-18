@@ -840,11 +840,6 @@ ExprValue* State::mkLiteralInternal(Literal& l)
   return ev;
 }
 
-Expr State::mkLiteralNumeral(size_t val)
-{
-  return mkLiteral(Kind::NUMERAL, std::to_string(val));
-}
-
 ExprValue* State::mkApplyInternal(const std::vector<ExprValue*>& children)
 {
   Assert(children.size() > 2);

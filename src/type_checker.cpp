@@ -582,15 +582,21 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
       if (it->second.isNull())
       {
         std::vector<ExprValue*> cchildren;
+        bool cchanged = false;
         for (ExprValue* cp : children)
         {
           it = visited.find(cp);
           if (it != visited.end())
           {
             cchildren.push_back(it->second.getValue());
+            if (!cchanged)
+            {
+              cchanged = (cp!=it->second.getValue());
+            }
           }
           else
           {
+            // we won't evaluate on this iteration
             cchildren.push_back(nullptr);
           }
         }
@@ -627,7 +633,7 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
                 // see if we evaluate
                 evaluated = evaluateProgramInternal(cchildren, newCtx);
                 //std::cout << "Evaluate prog returned " << evaluated << std::endl;
-                if (evaluated.isNull() || newCtx.empty())
+                if (evaluated.isNull() || evaluated.isGround() || newCtx.empty())
                 {
                   // if the evaluation can be shortcircuited, don't need to
                   // push a context
@@ -701,7 +707,15 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
         {
           if (evaluated.isNull())
           {
-            evaluated = Expr(d_state.mkExprInternal(ck, cchildren));
+            if (cchanged)
+            {
+              evaluated = Expr(d_state.mkExprInternal(ck, cchildren));
+            }
+            else
+            {
+              // children didn't change, just take the original
+              evaluated = Expr(cur);
+            }
             Trace("type_checker_debug")
                 << "evaluated via mkExprInternal" << std::endl;
           }
@@ -979,13 +993,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
         // eagerly evaluate even if branches are non-ground
         return Expr(args[l->d_bool ? 1 : 2]);
       }
-      /*
-      // branches equal
-      if (args[1]==args[2])
-      {
-        return args[1];
-      }
-      */
+      // note that we do not simplify based on the branches being equal
       return d_null;
     }
     break;
@@ -1011,7 +1019,8 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       if (args[0]->isGround())
       {
         size_t h = d_state.getHash(args[0]);
-        return d_state.mkLiteralNumeral(h);
+        Literal lh(Integer(static_cast<unsigned int>(h)));
+        return Expr(d_state.mkLiteralInternal(lh));
       }
       return d_null;
     }

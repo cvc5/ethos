@@ -112,8 +112,6 @@ class State
    * @return A constant
    */
   Expr mkLiteral(Kind k, const std::string& s);
-  /** */
-  Expr mkLiteralNumeral(size_t val);
   //--------------------------------------
   /** is closure */
   bool isClosure(const ExprValue* ev) const;

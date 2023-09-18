@@ -469,7 +469,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         std::string cond = s.getNameFor(condc);
         os << "  _ltmp = " << cond << ".getValue()->asLiteral();"
            << std::endl;
-        os << "  _btmp = (_ltmp!=nullptr && _ltmp->d_tag==Literal::BOOL);" << std::endl;
+        os << "  _btmp = (_ltmp!=nullptr && _ltmp->getKind()==Kind::BOOLEAN);" << std::endl;
         os << "  _btmp2 = (_btmp && _ltmp->d_bool);" << std::endl;
         std::stringstream osite;
         std::vector<std::string> branches;

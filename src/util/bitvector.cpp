@@ -178,7 +178,7 @@ BitVector BitVector::unsignedDivTotal(const BitVector& y) const
 {
   Assert(d_size == y.d_size);
   /* d_value / 0 = -1 = 2^d_size - 1 */
-  if (y.d_value == 0)
+  if (y.d_value.sgn()==0)
   {
     return BitVector(d_size, Integer(1).oneExtend(1, d_size - 1));
   }
@@ -190,7 +190,7 @@ BitVector BitVector::unsignedDivTotal(const BitVector& y) const
 BitVector BitVector::unsignedRemTotal(const BitVector& y) const
 {
   Assert(d_size == y.d_size);
-  if (y.d_value == 0)
+  if (y.d_value.sgn()==0)
   {
     return BitVector(d_size, d_value);
   }
