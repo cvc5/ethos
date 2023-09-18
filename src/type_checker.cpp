@@ -1166,7 +1166,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       {
         if (d_negOne.isNull())
         {
-          Literal lno(Integer(-1));
+          Literal lno(Integer("-1"));
           d_negOne = Expr(d_state.mkLiteralInternal(lno));
         }
         return d_negOne;
