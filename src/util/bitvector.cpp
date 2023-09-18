@@ -108,8 +108,8 @@ bool operator==(const BitVector& a, const BitVector& b)
 bool BitVector::signedLessThan(const BitVector& y) const
 {
   Assert(d_size == y.d_size);
-  Assert(d_value >= 0);
-  Assert(y.d_value >= 0);
+  Assert(d_value.sgn()>=0);
+  Assert(y.d_value.sgn() >= 0);
   Integer a = (*this).toSignedInteger();
   Integer b = y.toSignedInteger();
 
@@ -119,8 +119,8 @@ bool BitVector::signedLessThan(const BitVector& y) const
 bool BitVector::signedLessThanEq(const BitVector& y) const
 {
   Assert(d_size == y.d_size);
-  Assert(d_value >= 0);
-  Assert(y.d_value >= 0);
+  Assert(d_value.sgn() >= 0);
+  Assert(y.d_value.sgn() >= 0);
   Integer a = (*this).toSignedInteger();
   Integer b = y.toSignedInteger();
 
@@ -182,8 +182,8 @@ BitVector BitVector::unsignedDivTotal(const BitVector& y) const
   {
     return BitVector(d_size, Integer(1).oneExtend(1, d_size - 1));
   }
-  Assert(d_value >= 0);
-  Assert(y.d_value > 0);
+  Assert(d_value.sgn() >= 0);
+  Assert(y.d_value.sgn() > 0);
   return BitVector(d_size, d_value.floorDivideQuotient(y.d_value));
 }
 
@@ -194,8 +194,8 @@ BitVector BitVector::unsignedRemTotal(const BitVector& y) const
   {
     return BitVector(d_size, d_value);
   }
-  Assert(d_value >= 0);
-  Assert(y.d_value > 0);
+  Assert(d_value.sgn() >= 0);
+  Assert(y.d_value.sgn() > 0);
   return BitVector(d_size, d_value.floorDivideRemainder(y.d_value));
 }
 
