@@ -90,6 +90,7 @@ set(alfc_test_file_list
     bv-extract.smt2
     Sets-theory.smt2
     Datatypes-theory.smt2
+    str-eval.smt2
 )
 
 macro(alfc_test file)

@@ -301,24 +301,37 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
       }
       break;
     case Kind::EVAL_EXTRACT:
-      if (args[1]->d_kind==Kind::NUMERAL && args[1]->d_int.fitsUnsignedInt() &&
-          args[2]->d_kind==Kind::NUMERAL && args[2]->d_int.fitsUnsignedInt())
+      if (args[1]->d_kind==Kind::NUMERAL && args[2]->d_kind==Kind::NUMERAL)
       {
-        uint32_t v1 = args[1]->d_int.toUnsignedInt();
-        uint32_t v2 = args[2]->d_int.toUnsignedInt();
         switch (args[0]->d_kind)
         {
           // extract is high to low
           case Kind::BINARY:
-            if (v1<=v2)
+            if (args[1]->d_int.fitsUnsignedInt() && args[2]->d_int.fitsUnsignedInt())
             {
-              return Literal(args[0]->d_bv.extract(v2, v1));
+              uint32_t v1 = args[1]->d_int.toUnsignedInt();
+              uint32_t v2 = args[2]->d_int.toUnsignedInt();
+              if (v1<=v2)
+              {
+                return Literal(args[0]->d_bv.extract(v2, v1));
+              }
             }
             break;
           case Kind::STRING:
           {
-            size_t ssize = v2>=v1 ? (v2-v1) : 0;
-            return Literal(String(args[0]->d_str.substr(v1, ssize)));
+            Integer ssize(args[0]->d_str.size());
+            const Integer& i1 = args[1]->d_int;
+            const Integer& i2 = args[2]->d_int;
+            if (i1.sgn()<0 || i2.sgn()<=0 || i1>ssize)
+            {
+              return Literal(String(""));
+            }
+            uint32_t v1 = i1.toUnsignedInt();
+            uint32_t v2 = i2.toUnsignedInt();
+            uint32_t vs = ssize.toUnsignedInt();
+            v2 = v2>vs ? vs : v2;
+            size_t esize = v2>=v1 ? (v2-v1) : 0;
+            return Literal(String(args[0]->d_str.substr(v1, esize)));
           }
             break;
           default: break;
@@ -371,6 +384,25 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
         case Kind::BINARY:return Literal(String(args[0]->toString()));
         case Kind::STRING: return *args[0];break;
         default: break;
+      }
+      break;
+    case Kind::EVAL_FIND:
+      if (args[0]->d_kind==args[1]->d_kind)
+      {
+        switch (args[0]->d_kind)
+        {
+          case Kind::STRING:
+          {
+            std::size_t i = args[0]->d_str.find(args[1]->d_str);
+            if (i==std::string::npos)
+            {
+              return Literal(Integer("-1"));
+            }
+            return Literal(Integer(i));
+          }
+          break;
+          default: break;
+        }
       }
       break;
     default:break;

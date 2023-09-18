@@ -63,7 +63,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("len", Kind::EVAL_LENGTH);
   bindBuiltinEval("concat", Kind::EVAL_CONCAT);
   bindBuiltinEval("extract", Kind::EVAL_EXTRACT);
-  // TODO: find
+  bindBuiltinEval("find", Kind::EVAL_FIND);
 
   d_nil = Expr(mkExprInternal(Kind::NIL, {}));
   bind("alf.nil", d_nil);

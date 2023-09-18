@@ -21,6 +21,7 @@
 (declare-const str.++ (-> String String String))
 (declare-const str.len (-> String Int))
 (declare-const str.substr (-> String Int Int String))
+(declare-const str.indexof (-> String String Int Int))
 
 (program str.eval ((S Type) (a String) (b String) (z S) (n Int) (m Int))
     (S) S
@@ -28,8 +29,14 @@
       ((str.eval (= a b))            (alf.is_eq (str.eval a) (str.eval b)))
       ((str.eval (str.++ a b))       (alf.concat (str.eval a) (str.eval b)))
       ((str.eval (str.len a))        (alf.len (str.eval a)))
-      ((str.eval (str.substr a n m)) (alf.extract (arith.eval n) (arith.eval (+ n m)) (str.eval a)))
-      ((str.eval z)                  z)
+      ((str.eval (str.substr a n m)) (let ((en (str.eval n)))
+                                        (alf.extract (str.eval a) en (alf.add en (str.eval m)))))
+      ((str.eval (str.indexof a b n))(let ((en (str.eval n)))
+                                     (let ((ea (str.eval a)))
+                                     (let ((eas (str.eval (str.substr ea en (str.len ea)))))
+                                     (let ((et (alf.find eas b)))
+                                       (alf.ite (alf.is_neg et) et (alf.add en et)))))))
+      ((str.eval z)                  (arith.eval z))
     )
 )
 
@@ -48,3 +55,5 @@
 (step a4 (= "B" (str.substr (str.++ "A" "BC") 1 1)) :rule eval :premises ("B" (str.substr (str.++ "A" "BC") 1 1)))
 (step a5 (= 9 (str.len "\u{45}\uu{\u1A11\u0")) :rule eval :premises (9 (str.len "\u{45}\uu{\u1A11\u0")))
 (step a6 (= "E" "\u{45}") :rule eval :premises ("E" "\u{45}"))
+(step a7 (= (str.indexof "AAB" "B" 0) 2) :rule eval :premises ((str.indexof "AAB" "B" 0) 2))
+(step a8 (= (str.indexof "ABB" "A" 2) (alf.neg 1)) :rule eval :premises ((str.indexof "ABB" "A" 2) (alf.neg 1)))

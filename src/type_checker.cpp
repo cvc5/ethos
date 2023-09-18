@@ -911,10 +911,12 @@ Expr TypeChecker::evaluateLiteralOp(Kind k,
  */
 ExprValue* getNAryChildren(ExprValue* e,
                            ExprValue* op,
+                           ExprValue* nil,
                            std::vector<ExprValue*>& children,
                            bool isLeft,
                            size_t maxChildren=0)
 {
+  ExprValue* orig = e;
   while (e->getKind()==Kind::APPLY)
   {
     ExprValue* cop = (*e)[0];
@@ -934,6 +936,11 @@ ExprValue* getNAryChildren(ExprValue* e,
     {
       return e;
     }
+  }
+  if (nil!=nullptr && e!=nil)
+  {
+    Warning() << "...expected associative application to end in " << Expr(nil) << ", got " << Expr(orig) << std::endl;
+    return nullptr;
   }
   // must be equal to the nil term
   return e;
@@ -995,7 +1002,6 @@ Expr TypeChecker::evaluateLiteralOpInternal(
         {
           Trace("type_checker") << "REQUIRES: failed " << Expr(args[0])
                                 << " == " << Expr(args[1]) << std::endl;
-          AlwaysAssert(false);
         }
       }
       return d_null;
@@ -1052,6 +1058,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   AppInfo* ac = d_state.getAppInfo(args[0]);
   if (ac==nullptr)
   {
+    Trace("type_checker") << "...not list op, return null" << std::endl;
     // not an associative operator
     return d_null;
   }
@@ -1064,6 +1071,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   bool isLeft = (ck==Attr::LEFT_ASSOC_NIL);
   Trace("type_checker_debug") << "EVALUATE-LIT (list) " << k << " " << isLeft << " " << args << std::endl;
   ExprValue* op = args[0];
+  ExprValue* nil = ac->d_attrConsTerm.getValue();
   size_t tailIndex = (isLeft ? 1 : 2);
   size_t headIndex = (isLeft ? 2 : 1);
   ExprValue* ret;
@@ -1073,17 +1081,21 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_TO_LIST:
     {
       ExprValue* harg = args[1];
-      if (harg == ac->d_attrConsTerm.getValue())
+      if (harg == nil)
       {
         // already nil
         return Expr(harg);
       }
-      ExprValue* a = harg;
-      a = getNAryChildren(a, op, hargs, isLeft);
+      // check if already has children
+      ExprValue* a = getNAryChildren(harg, op, nullptr, hargs, isLeft);
       if (!hargs.empty())
       {
         // already a list
         return Expr(harg);
+      }
+      else if (a==nullptr)
+      {
+        return d_null;
       }
       // otherwise, turn into singleton list
       ret = ac->d_attrConsTerm.getValue();
@@ -1092,15 +1104,13 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       break;
     case Kind::EVAL_FROM_LIST:
     {
-      ExprValue* a = args[1];
       // once we have >=2 children, we know this is a no-op
-      a = getNAryChildren(a, op, hargs, isLeft, 2);
+      ExprValue* a = getNAryChildren(args[1], op, nil, hargs, isLeft, 2);
       if (hargs.size()==1)
       {
-        if (a != ac->d_attrConsTerm.getValue())
+        if (a==nullptr)
         {
-          Warning() << "...failed to decompose " << Expr(args[1])
-                    << " in from_list" << std::endl;
+          // unexpected nil terminator
           return d_null;
         }
         // eliminate singleton list
@@ -1116,13 +1126,12 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       break;
     case Kind::EVAL_CONCAT:
     {
+      // note we take the tail verbatim
       ret = args[tailIndex];
-      ExprValue* a = args[headIndex];
-      // Note we take the tail verbatim
-      a = getNAryChildren(a, op, hargs, isLeft);
-      if (a != ac->d_attrConsTerm.getValue())
+      // extract all children of the head
+      ExprValue* a = getNAryChildren(args[headIndex], op, nil, hargs, isLeft);
+      if (a==nullptr)
       {
-        Warning() << "...failed to decompose " << Expr(args[headIndex]) << " in append" << std::endl;
         return d_null;
       }
     }
@@ -1130,7 +1139,6 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_EXTRACT:
     {
       // (alf.extract <op> <term> <n>) returns the n^th child of <op>-application <term>
-      ExprValue* a = args[1];
       if (args[2]->getKind()!=Kind::NUMERAL)
       {
         return d_null;
@@ -1141,12 +1149,31 @@ Expr TypeChecker::evaluateLiteralOpInternal(
         return d_null;
       }
       size_t i = index.toUnsignedInt();
-      getNAryChildren(a, op, hargs, isLeft, i+1);
+      // extract up to i+1 children
+      getNAryChildren(args[1], op, nil, hargs, isLeft, i+1);
       if (hargs.size()==i+1)
       {
         return Expr(hargs.back());
       }
       return d_null;
+    }
+      break;
+    case Kind::EVAL_FIND:
+    {
+      getNAryChildren(args[1], op, nil, hargs, isLeft);
+      std::vector<ExprValue*>::iterator it = std::find(hargs.begin(), hargs.end(), args[2]);
+      if (it==hargs.end())
+      {
+        if (d_negOne.isNull())
+        {
+          Literal lno(Integer(-1));
+          d_negOne = Expr(d_state.mkLiteralInternal(lno));
+        }
+        return d_negOne;
+      }
+      size_t iret = std::distance(hargs.begin(), it);
+      Literal lret = Literal(Integer(iret));
+      return Expr(d_state.mkLiteralInternal(lret));
     }
       break;
     default:
@@ -1176,6 +1203,7 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
   size_t i = 0;
   if (!childTypes.empty() && childTypes[0]->getKind()==Kind::FUNCTION_TYPE)
   {
+    // TODO: ensure the function is binary with same types
     i++;
   }
   if (!checkArity(k, childTypes.size()-i, out))
@@ -1200,7 +1228,7 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
       return childTypes[2];
     case Kind::EVAL_CONCAT:
     case Kind::EVAL_EXTRACT:
-      // the first child, maybe after a function
+      // type is the first child, maybe after a function
       return childTypes[i];
     case Kind::EVAL_IS_EQ:
     case Kind::EVAL_NOT:

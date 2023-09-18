@@ -110,6 +110,7 @@ class TypeChecker
   std::map<Kind, Expr> d_literalTypeRules;
   /** The null expression */
   Expr d_null;
+  Expr d_negOne;
 };
 
 }  // namespace alfc
