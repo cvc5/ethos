@@ -1,0 +1,47 @@
+# Introduction
+
+This is the user manual for the AletheLF checker (alfc). It is a high performance proof checking tool
+
+## The AletheLF (ALF) language
+
+The AletheLF (ALF) language is an extension of SMT-LIB version 3.0 for defining proof rules and writing proofs from SMT solvers. The core features of this language include:
+- Support for SMT-LIB version 3.0 syntax for defining theory signatures. This includes support for associating syntactic categories with types.
+- A set of commands for specifying proofs (`step`, `assume`, and so on), whose syntax closely follows the Alethe proof format.
+- A command for defining proof rules (`declare-rule`).
+
+## The ALF checker (alfc)
+
+The AletheLF checker (alfc) supports the core language of ALF and extends this language with several features:
+- A command for defining side conditions (`program`) as a list of rewrite rules.
+- A library of operations (`alf.add`, `alf.mul`, `alf.concat`, `alf.extract`) for performing computations.
+- Support for user-provided oracles via the command `declare-oracle-fun`, which can be used e.g. for modular proof checking.
+- Support for file inclusion (`include`) and referencing (`reference`). The latter command can be used to specify the name of a *.smt2 that the proof is associated with.
+
+In the following sections, we review these features in more detail. A full syntax for the commands is given at the end of this document.
+
+# Declarating theory signatures
+
+
+
+# Defining Proof Rules
+
+
+#
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Oracles
+
+
+
+# Full syntax for commands
