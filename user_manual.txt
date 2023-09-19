@@ -1,6 +1,6 @@
 # Introduction
 
-This is the user manual for the AletheLF checker (alfc). It is a high performance proof checking tool
+This is the user manual for the AletheLF checker (alfc). It is a high performance proof checking tool for the AletheLF language.
 
 ## The AletheLF (ALF) language
 
@@ -32,15 +32,18 @@ The ALF language is built on SMT-LIB version 3.0 and can be used a framework for
 
 In ALF, a common BNF is used to specify terms, types and kinds. In the following, we informally write BNF categories `<symbol>` to denote an SMT-LIB version 3.0 symbol, `<term>` to denote an arbitrary SMT-LIB term and `<type>` to denote an SMT-LIB term whose type is `Type`, `<sorted-var-list>`
 
-The following SMT-LIB version 3.0 commands are supported for declaring and defining types and terms:
+The following commands are supported for declaring and defining types and terms, most of which are taken from SMT-LIB version 3.0:
 - `(declare-const <symbol> <type>)` declares a new term named `<symbol>` whose type is `<type>`.
 - `(declare-fun <symbol> (<type>*) <type>)` declares a new term named `<symbol>` whose type is specified by the given argument types and return type.
 - `(declare-sort <symbol> <numeral>)` declares a new type named `<symbol>` whose kind is `(-> Type^n Type)` if `n>0` or `Type` for the provided numeral `n`.
 - `(declare-type <symbol> (<type>*))` declares a new type named `<symbol>` whose kind is specified by the given argument types and return type `Type`.
 - `(define-const <symbol> <term>)` defines `<symbol>` to be the given term.
-- `(define-fun <symbol> (<sorted-var>*) <type> <term>)` defines `<symbol>` to be a lambda term whose arguments, return type and body and given by the three arguments, if the argument list is non-empty, or the body otherwise.
-- `(define-sort <symbol> (<symbol>*) <type>)` defines `<symbol>` to be a lambda term whose arguments are given by variables of kind `Type` and whose body is given by the return type.
+- `(define-fun <symbol> (<sorted-var>*) <type> <term>)` defines `<symbol>` to be a lambda term whose arguments, return type and body and given by the three arguments, or the body if the argument list is empty.
+- `(define-sort <symbol> (<symbol>*) <type>)` defines `<symbol>` to be a lambda term whose arguments are given by variables of kind `Type` and whose body is given by the return type, or the return type if the argument is empty.
 - `(define-type <symbol> (<type>*) <type>)` defines `<symbol>` to be a lambda term whose kind is given
+- `(declare-datatype <datatype-def>)`
+- `(declare-datatypes <datatypes-def>)`
+- `(declare-consts <literal-category> <type>)` declares the class of symbols denoted by the literal category to have the given type.
 
 ### Basic Declarations
 
@@ -207,8 +210,14 @@ As before, the definition of `P` is syntax sugar for `(or x (or y false))`.
 In contrast, the definition of `Q` is simply `(or x y)`, since `y` has been marked with `:list`.
 Conceptually, our definition of `Q` denotes that we expect to `y` to be treated as the tail of `or` in the body of `Q`.
 
-In the remainder of the example, `P` and `Q` are applied to the pair of arguments `a` and `(or a b)`.
+Then, `P` and `Q` are both applied to the pair of arguments `a` and `(or a b)`.
 In the former (i.e. `Paab`), the definition is equivalent after desugaring to `(or a (or (or a (or b false)) false))`, whereas in the latter (i.e. `Qaab`) the definition is equivalent after desugaring to `(or a (or a (or b false)))`.
+In other words, the definitions of `Paab` and `Qaab` are equivalent to the terms `(or a (or a b))` and `(or a a b)` respectively prior to desugaring.
+
+More generally, for an right-associative operator `f` with nil terminator `nil`,
+the term `(f t1 ... tn)` is de-sugared based on whether each `t1 ... tn` is marked with `:list`.
+- The nil terminator is inserted at the end unless `tn` is marked as `:list`,
+- When `ti` is marked as `:list` where `i<n`, then the term denotes the result of a concatentation operation. We will describe this in more detail later.
 
 
 ### Chainable
@@ -221,20 +230,21 @@ In the former (i.e. `Paab`), the definition is equivalent after desugaring to `(
 (define-fun Q ((x Int) (y Int)) Bool (>= x y))
 ```
 
-In the above example, `(>= x y z)` is syntax sugar for `(and (>= x y) (>= y z))`,
+In the above example, `(>= x y z w)` is syntax sugar for `(and (>= x y) (>= y z))`,
 whereas the term `(>= x y)` is not impacted by the annotation `:chainable` since it has fewer than 3 children.
 
-
-Note that the type for chainable operators is typically `(-> T T S)` for some types `T` and `S,
+Note that the type for chainable operators is typically `(-> T T S)` for some types `T` and `S`,
 where the type of its chaining operator is `(-> S S S)`.
 
 ### Pairwise
 
 ```
+(declare-sort Int 0)
 (declare-const and (-> Bool Bool Bool) :right-assoc)
-(declare-const distinct (-> Bool Bool Bool) :pairwise and)
+(declare-const distinct (-> (! Type :var T :implicit) T T Bool) :pairwise and)
+(define-fun P ((x Int) (y Int) (z Int)) Bool (distinct x y z))
 ```
-
+In the above example, `(distinct x y z)` is syntax sugar for `(and (distinct x y) (distinct x z) (distinct y z))`.
 
 Note that the type for chainable operators is typically `(-> T T S)` for some types `T` and `S,
 where the type of its chaining operator is `(-> S S S)`.
@@ -248,26 +258,53 @@ The ALF language supports associating SMT-LIB version 3.0 syntactic categories w
 - `<binary>` denoting the category of binary constants `#b<0|1>+`,
 - `<hexadecimal>` denoting the category of hexadecimal constants `#x<hex-digit>+`,
 - `<string>` denoting the category of string literals `"<char>*"`.
+Apart from `<rational>`, these literals have the same syntax as in SMT-LIB version 3.0.
 
-
-## Types indexed by values (BitVectors)
+### Declare constants
 
 ```
-(declare-type BitVec (Int))
+(declare-sort Int 0)
+(declare-consts <numeral> Int)
+(declare-fun P ((x Int)) Bool (> x 7))
 ```
 
+In the above example, the `declare-consts` command associates
 
 
 # Declaring Proof Rules
 
-
+The ALF language supports a command `declare-rule` for defining proof rules. Its syntax is given by:
+```
+(declare-rule <symbol> (<sorted-var>*) <assumption>? <premises>? <arguments>? <requirements>? :conclusion <term>)
+<assumption>    ::= :assumption <term>
+<premises>      ::= :premises (<term>*) | :premise-list <term> <term>
+<arguments>     ::= :args (<term>*)
+<requirements>  ::= :requires ((<term> <term>)*)
+```
 
 ## Symmetry of Equality
 
-## Requires
+```
+(declare-rule refl ((T Type) (t T))
+    :premises ()
+    :args (t)
+    :conclusion (= t t)
+)
+(declare-rule symm ((T Type) (t T) (s T))
+    :premises ((= t s))
+    :conclusion (= s t)
+)
+```
+
+
 
 ## Axiom
 
+The ALF language supports a command `declare-axiom`, which is a simplified version of `declare-rule`:
+```
+(declare-axiom <symbol> (<sorted-var>*) <requirements>? :conclusion <term>)
+<requirements>  ::= :requires ((<term> <term>)*)
+```
 
 
 # Defining Proofs
@@ -275,15 +312,17 @@ The ALF language supports associating SMT-LIB version 3.0 syntactic categories w
 
 ## Proofs with scopes
 
-## Term evaluator
-
 
 # Computations in alfc
 
 
+## Type rules for BitVectors
+
+
+## Type rule for BitVector constants
+
 
 ## Term evaluator
-
 
 
 # Side Conditions
@@ -296,6 +335,8 @@ The ALF language supports associating SMT-LIB version 3.0 syntactic categories w
 ## A computational type rule
 
 ## Match
+
+## Term evaluator
 
 # Oracles
 
