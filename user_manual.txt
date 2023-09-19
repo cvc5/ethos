@@ -5,43 +5,124 @@ This is the user manual for the AletheLF checker (alfc). It is a high performanc
 ## The AletheLF (ALF) language
 
 The AletheLF (ALF) language is an extension of SMT-LIB version 3.0 for defining proof rules and writing proofs from SMT solvers. The core features of this language include:
-- Support for SMT-LIB version 3.0 syntax for defining theory signatures. This includes support for associating syntactic categories with types.
+- Support for SMT-LIB version 3.0 syntax for defining theory signatures. This includes support for associating literals (as specified by SMT-LIB categories e.g. `<numeral>`) with types.
 - A set of commands for specifying proofs (`step`, `assume`, and so on), whose syntax closely follows the Alethe proof format.
 - A command for defining proof rules (`declare-rule`).
+
 
 ## The ALF checker (alfc)
 
 The AletheLF checker (alfc) supports the core language of ALF and extends this language with several features:
+- A library of operations (`alf.add`, `alf.mul`, `alf.concat`, `alf.extract`) for performing computations over literals.
 - A command for defining side conditions (`program`) as a list of rewrite rules.
-- A library of operations (`alf.add`, `alf.mul`, `alf.concat`, `alf.extract`) for performing computations.
 - Support for user-provided oracles via the command `declare-oracle-fun`, which can be used e.g. for modular proof checking.
 - Support for file inclusion (`include`) and referencing (`reference`). The latter command can be used to specify the name of a *.smt2 that the proof is associated with.
 
 In the following sections, we review these features in more detail. A full syntax for the commands is given at the end of this document.
 
-# Declarating theory signatures
+
+# Declaring theory signatures
+
+The ALF language is built on SMT-LIB version 3.0 and can be used a framework for defining theories. Note that the core language of ALF does not assume any definitions of SMT-LIB theories. Instead SMT-LIB theories may defined as ALF signatures. Specifically, the ALF language has the following builtin expressions:
+- `Type`, denoting the kind of all types,
+- `->`, denoting the function type,
+- `_`, denoting (higher-order) function application,
+- `Bool`, denoting the Boolean type.
+
+In SMT-LIB version 3, a common BNF is used to specify terms, types and kinds. This is
+
+In the following, we informally write BNF categories `<symbol>` to denote an SMT-LIB version 3.0 symbol, `<term>` to denote an arbitrary SMT-LIB term and `<type>` to denote an SMT-LIB term whose type is `Type`, `<sorted-var-list>`
+
+The following SMT-LIB version 3.0 commands are supported for declaring and defining types and terms:
+- `(declare-const <symbol> <type>)` declares a new expression named `<symbol>` whose type is `<type>`.
+- `(declare-fun <symbol> (<type>*) <type>)` declares a new expression named `<symbol>` whose type is specified by the given argument types and return type.
+- `(declare-sort <symbol> <numeral>)` declares a new expression named `<symbol>` whose type is `(-> Type^n Type)` if `n>0` or `Type` for the provided numeral `n`.
+- `(declare-type <symbol> (<type>*))` declares a new expression named `<symbol>` whose type is specified by the given argument types and return type `Type`.
+- `(define-const <symbol> <term>)` defines `<symbol>` to be the given term.
+- `(define-fun <symbol> (<sorted-var-list>) <type> <term>)`
+- `(define-sort <symbol> (<symbol>*) <type>)`
+- `(declare-type <symbol> (<type>*) <type>)`
+
+### Example
+
+```
+(declare-sort Int 0)
+(declare-const c Int)
+(declare-const f (-> Int Int Int))
+(declare-fun g (Int Int) Int)
+(declare-fun P (Int) Bool)
+```
+
+Since alfc does not assume any builtin definitions of SMT-LIB theories, definitions of standard symbols (such as `Int`) may be provided in ALF signatures. In the above example, `c` is declared to be a constant (0-ary) symbol of type `Int`. The symbol `f` is a function taking two integers and returning an integer.
+
+> Despite using different syntax in their declarations, the types of `f` and `g` in the above example are identical.
+
+> In alfc, all functions are unary. In the above example, `(-> Int Int Int)` is internally treated as `(-> Int (-> Int Int))`.
+
+### Example
+
+```
+(declare-const not (-> Bool Bool))
+(define-fun id ((x Bool)) Bool x)
+(define-fun notId ((x Int)) Bool (not (id x)))
+```
+
+In the example above, `not` is declared to be a unary function over Booleans. Then, `id`
+
+>
+
+## Polymorphism (Arrays)
+
+## Types indexed by values (BitVectors)
+
+## Declarations with attributes
+
+## Right associative with nil
 
 
 
-# Defining Proof Rules
-
-
-#
+# Declaring Proof Rules
 
 
 
+## Symmetry of Equality
+
+## Requires
+
+## Axiom
 
 
 
+# Defining Proofs
+
+
+## Proofs with scopes
+
+## Term evaluator
+
+
+# Computations in alfc
 
 
 
+## Term evaluator
 
 
 
+# Side Conditions
+
+
+## Example:
+
+## Transitivity rule with arbitrary arguments
+
+## A computational type rule
+
+## Match
 
 # Oracles
 
 
+## Example:
 
 # Full syntax for commands
