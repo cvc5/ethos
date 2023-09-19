@@ -20,7 +20,6 @@ The AletheLF checker (alfc) supports the core language of ALF and extends this l
 
 In the following sections, we review these features in more detail. A full syntax for the commands is given at the end of this document.
 
-
 # Declaring theory signatures
 
 The ALF language is built on SMT-LIB version 3.0 and can be used a framework for defining theories. Note that the core language of ALF does not assume any definitions of SMT-LIB theories. Instead SMT-LIB theories may defined as ALF signatures. Specifically, the ALF language has the following builtin expressions:
@@ -29,6 +28,8 @@ The ALF language is built on SMT-LIB version 3.0 and can be used a framework for
 - `_`, denoting (higher-order) function application,
 - `Bool`, denoting the Boolean type,
 - `true` and `false`, denoting constants of type `Bool`.
+
+> The core logic of the ALF checker also uses several builtin types (e.g. `Proof` and `Quote`) which are intentionally left hidden from the user. Details on these types can be found throughout this document. More details on the core logic of the ALF checker can be found here [].
 
 In ALF, a common BNF is used to specify terms, types and kinds. In the following, we informally write BNF categories `<symbol>` to denote an SMT-LIB version 3.0 symbol, `<term>` to denote an arbitrary SMT-LIB term and `<type>` to denote an SMT-LIB term whose type is `Type`, `<sorted-var-list>`
 
@@ -59,7 +60,7 @@ Since alfc does not assume any builtin definitions of SMT-LIB theories, definiti
 
 Note that despite using different syntax in their declarations, the types of `f` and `g` in the above example are identical.
 
-> In alfc, all functions are unary. In the above example, `(-> Int Int Int)` is internally treated as `(-> Int (-> Int Int))`.
+> In alfc, all functions are unary. In the above example, `(-> Int Int Int)` is internally treated as `(-> Int (-> Int Int))`. Correspondingly, applications of functions are curried, e.g. `(f a b)` is treated as `(_ (_ f a) b)` where `_` denotes higher-order function application.
 
 ### Definitions
 
@@ -144,8 +145,9 @@ Arguments to functions can also be annotated with the attribute `:requires (<ter
 The above declares the integer sort and the bitvector sort that expects a non-negative integer `w`.
 
 In detail, the first argument of `BitVec` is an integer sort, which is named `w` via `:var`.
-The second annotation
+The second annotation indicates that `(alf.is_neg w)` must evaluate to `false`, where note that `alf.is_neg` returns `true` if and only if its argument is a negative numeral (for details, see []).
 
+> Internally, (! T :requires (t s)) is syntax sugar for `(alf.requires t s T)` where `alf.requires` is an operator that evalutes to its third argument if and only if its first two arguments are equivalent (details on this operator are given in []). Furthermore, the function type `(-> (alf.requires t s T) S)` is semantically equivalent to `(-> T (alf.requires t s S))`; the ALF checker rewrites all types of the former to the latter.
 
 ## Declarations with attributes
 
@@ -209,7 +211,7 @@ Right and left associative operators with nil terminators also have a relationsh
 
 Note that the type for right and left associative operators with nil terminators is typically `(-> T T T)` for some `T`, where their nil terminator has type `T`.
 
-### List variables
+### List
 
 Symbols can be marked with the annotation `:list`. Conceptually, this annotation marks that the term should be treated as a list of arguments when it occurs as an argument of a right (left) associative operator with a nil element. Note the following example:
 
@@ -233,7 +235,7 @@ In the former (i.e. `Paab`), the definition is equivalent after desugaring to `(
 In other words, the definitions of `Paab` and `Qaab` are equivalent to the terms `(or a (or a b))` and `(or a a b)` respectively prior to desugaring.
 
 More generally, for an right-associative operator `f` with nil terminator `nil`,
-the term `(f t1 ... tn)` is de-sugared based on whether each `t1 ... tn` is marked with `:list`.
+the term `(f t1 [] tn)` is de-sugared based on whether each `t1 [] tn` is marked with `:list`.
 - The nil terminator is inserted at the end unless `tn` is marked as `:list`,
 - When `ti` is marked as `:list` where `i<n`, then the term denotes the result of a concatentation operation. We will describe this in more detail later.
 
@@ -280,6 +282,7 @@ Apart from `<rational>`, these literals have the same syntax as in SMT-LIB versi
 
 ### Declare constants
 
+The following gives an example of how to define the class of numeral constants.
 ```
 (declare-sort Int 0)
 (declare-consts <numeral> Int)
@@ -289,6 +292,7 @@ Apart from `<rational>`, these literals have the same syntax as in SMT-LIB versi
 In the above example, the `declare-consts` command specifies that numerals (`1`, `2`, `3`, and so on) have type `Int`.
 The signature can now refer to arbitrary numerals in definitions, e.g. `7` in the definition of `P`.
 
+> Internally, the command above only impacts the type rule assigned to numerals that are parsed. Furthermore, the ALF checker internally distinguishes whether a term is a numeral, independently of its type, for the purposes of computational operators (see []).
 
 # Declaring Proof Rules
 
@@ -318,7 +322,8 @@ If these criteria are met, then the proof rule proves the result of applying `S`
 
 A proof rule is only well defined if the free parameters of the requirements and conclusion term are also contained in the arguments and premises.
 
-> Internally, proofs can be seen as terms whose type is given by a distinguished `Proof` type. In particular, `Proof` is a type whose kind is `(-> Bool Type)`, where the argument of this type is the formula that is proven. For example, `(Proof (> x 0))` is the proof that `x` is greater than zero. By design, the user cannot declare terms involving type `Proof`. Terms of type `Proof` can only be introduced via an assumption command (`assume`) a command (`step`) for applying a proof rule to list of premises and arguments.
+> Internally, proofs can be seen as terms whose type is given by a distinguished `Proof` type. In particular, `Proof` is a type whose kind is `(-> Bool Type)`, where the argument of this type is the formula that is proven. For example, `(Proof (> x 0))` is the proof that `x` is greater than zero. By design, the user cannot declare terms involving type `Proof`.
+
 
 ### Example rule: Reflexivity of equality
 
@@ -363,10 +368,20 @@ A list of requirements can be given to a proof rule.
     :conclusion false)
 ```
 
+This rule expects an arithmetic inequality.
+It requires that the left hand side of this inequality `x` is a negative numeral, which is checked via the requirement `:requires (((alf.is_neg x) true))`.
 
 ## Premise lists
 
 A rule can take an arbitrary number of premises via the syntax `:premise-list <term> <term>`.
+For example:
+```
+(declare-fun and (-> Bool Bool Bool) :right-assoc-nil true)
+(declare-rule and-intro ((F Bool))
+    :premise-list F and
+    :conclusion F)
+```
+This syntax
 
 ### Example rule:
 
@@ -381,14 +396,14 @@ The ALF language supports a command `declare-axiom`, which is a simplified versi
 
 The command
 ```
-(declare-axiom S ((t1 T1) ... (tn Tn)) R? t)
+(declare-axiom S ((t1 T1) [] (tn Tn)) R? t)
 ```
 is syntax sugar for
 ```
-(declare-rule S ((t1 T1) ... (tn Tn)) :args (t1 ... tn) R? :conclusion t)
+(declare-rule S ((t1 T1) [] (tn Tn)) :args (t1 [] tn) R? :conclusion t)
 ```
 where `R` is an (optional) requirements annotation.
-More generally, any argument `t1 ... tn` that is marked with `:implicit` from the argument list of the declared rule.
+More generally, any argument `t1 [] tn` that is marked with `:implicit` from the argument list of the declared rule.
 
 ### Example: reflexive equality as axiom
 
@@ -431,6 +446,7 @@ where
 ## Proofs with scopes
 
 
+
 # Computations in alfc
 
 
@@ -446,19 +462,71 @@ where
 # Side Conditions
 
 
-## Example:
+### Example: Contains
 
-## Transitivity rule with arbitrary arguments
 
-## A computational type rule
 
-## Match
+### Example: Substitution
 
-## Term evaluator
+### Example: Transitivity rule with arbitrary arguments
+
+### Example: A computational type rule
+
+### Example: Match
+
+### Example: Term evaluator
 
 # Oracles
 
 
 ## Example:
 
-# Full syntax for commands
+# Appendix
+
+## Full syntax for commands
+
+## Proofs as terms
+
+This section overviews the semantics of proofs in the ALF language.
+Proof checking can be seen as a special instance of type checking terms involving the `Proof` and `Quote` types.
+
+### Declared rules
+
+The command:
+```
+(declare-rule s ((v1 T1) ... (vi Ti)) :premises (p1 ... pn) :args (t1 ... tm) :requires ((r1 s1) ... (rk sk)) :conclusion t)
+```
+can be seen as syntax sugar for:
+```
+(declare-fun s
+    (->
+        (! T1 :implicit) ... (! Ti :implicit)
+        (Proof p1) ... (Proof pn)
+        (Quote t1) ... (Quote tm)
+        (alf.requires r1 s1 ... (alf.requires rk sk
+            (Proof t)))))
+```
+where `V` is a list of implicit arguments as defined in the parameter list of the proof rule.
+
+### Proof assumptions
+
+The command:
+```
+(assume s f :rule)
+```
+can be seen as syntax sugar for:
+```
+(declare-const s (Proof f))
+```
+
+### Proof steps
+
+The command:
+```
+(step s f :rule r :premises (p1 ... pn) :args (t1 ... tm))
+```
+can be seen as syntax sugar for:
+```
+(define-fun s () (Proof f) (r p1 ... pn t1 ... tm))
+```
+Notice this is only the case if `r` does not take an assumption or premise list as arguments, that is, the declaration of `r` does not involve `:assumption` or `:premise-list`.
