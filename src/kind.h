@@ -40,6 +40,7 @@ enum class Kind
   BOOLEAN,
   NUMERAL,
   DECIMAL,
+  RATIONAL,
   HEXADECIMAL,
   BINARY,
   STRING,
@@ -58,6 +59,7 @@ enum class Kind
   EVAL_NOT,
   EVAL_AND,
   EVAL_OR,
+  EVAL_XOR,
   // arithmetic
   EVAL_ADD,
   EVAL_NEG,

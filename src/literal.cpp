@@ -92,6 +92,19 @@ std::string Literal::toString() const
   return "?";
 }
 
+bool allSameKind(const std::vector<const Literal*>& args)
+{
+  Kind k = args[0]->getKind();
+  for (size_t i=0, nargs=args.size(); i<nargs; i++)
+  {
+    if (args[i]->getKind()!=k)
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
 Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
 {
   Assert (k!=Kind::EVAL_IS_EQ && k!=Kind::EVAL_IF_THEN_ELSE && k!=Kind::EVAL_REQUIRES);
@@ -107,25 +120,48 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
       }
       break;
     case Kind::EVAL_AND:
-      if (args[0]->d_kind==args[1]->d_kind)
-      {
-        switch (args[0]->d_kind)
-        {
-          case Kind::BOOLEAN:return Literal(args[0]->d_bool && args[1]->d_bool);
-          case Kind::BINARY:return Literal(args[0]->d_bv & args[1]->d_bv);
-          default: break;
-        }
-      }
-      break;
     case Kind::EVAL_OR:
-      if (args[0]->d_kind==args[1]->d_kind)
+    case Kind::EVAL_XOR:
+      if (!allSameKind(args))
       {
-        switch (args[0]->d_kind)
+        return Literal();
+      }
+      switch (args[0]->d_kind)
+      {
+        case Kind::BOOLEAN:
         {
-          case Kind::BOOLEAN:return Literal(args[0]->d_bool || args[1]->d_bool);
-          case Kind::BINARY:return Literal(args[0]->d_bv | args[1]->d_bv);
-          default: break;
+          bool res = args[0]->d_bool;
+          for (size_t i=1, nargs = args.size(); i<nargs; i++)
+          {
+            switch (k)
+            {
+            case Kind::EVAL_AND: res = (res && args[i]->d_bool); break;
+            case Kind::EVAL_OR: res = (res || args[i]->d_bool); break;
+            case Kind::EVAL_XOR:res = (res != args[i]->d_bool); break;
+            default:break;
+            }
+          }
+          return Literal(res);
         }
+          break;
+        case Kind::BINARY:
+        {
+          BitVector res = args[0]->d_bv;
+          for (size_t i=1, nargs = args.size(); i<nargs; i++)
+          {
+            switch (k)
+            {
+            case Kind::EVAL_AND: res = (res & args[i]->d_bv); break;
+            case Kind::EVAL_OR: res = (res | args[i]->d_bv); break;
+            case Kind::EVAL_XOR:res = (res ^ args[i]->d_bv); break;
+            default:break;
+            }
+          }
+          return Literal(res);
+        }
+          break;
+        default:
+          break;
       }
       break;
     case Kind::EVAL_ADD:
@@ -268,6 +304,10 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
       }
       break;
     case Kind::EVAL_CONCAT:
+      if (!allSameKind(args))
+      {
+        return Literal();
+      }
       switch (args[0]->d_kind)
       {
         case Kind::BINARY:
@@ -275,10 +315,6 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
           BitVector res = args[0]->d_bv;
           for (size_t i=1, nargs=args.size(); i<nargs; i++)
           {
-            if (args[i]->getKind()!=Kind::BINARY)
-            {
-              return Literal();
-            }
             res = res.concat(args[i]->d_bv);
           }
           return Literal(res);
@@ -288,10 +324,6 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
           String res = args[0]->d_str;
           for (size_t i=1, nargs=args.size(); i<nargs; i++)
           {
-            if (args[i]->getKind()!=Kind::STRING)
-            {
-              return Literal();
-            }
             res = res.concat(args[i]->d_str);
           }
           return Literal(res);

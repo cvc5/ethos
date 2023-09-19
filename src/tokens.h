@@ -54,6 +54,7 @@ enum class Token
   PROOF,
   PROOF_TYPE,
   QUOTED_SYMBOL,
+  RATIONAL,
   REFERENCE,
   RESET,
   RPAREN,

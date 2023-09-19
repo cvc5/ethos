@@ -32,6 +32,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::BOOLEAN: o << "BOOLEAN"; break;
     case Kind::NUMERAL: o << "NUMERAL"; break;
     case Kind::DECIMAL: o << "DECIMAL"; break;
+    case Kind::RATIONAL: o << "RATIONAL"; break;
     case Kind::HEXADECIMAL: o << "HEXADECIMAL"; break;
     case Kind::BINARY: o << "BINARY"; break;
     case Kind::STRING: o << "STRING"; break;
@@ -106,6 +107,7 @@ std::string kindToTerm(Kind k)
         case Kind::EVAL_NOT: ss << "not"; break;
         case Kind::EVAL_AND: ss << "and"; break;
         case Kind::EVAL_OR: ss << "or"; break;
+        case Kind::EVAL_XOR: ss << "xor"; break;
         // arithmetic
         case Kind::EVAL_ADD: ss << "add";break;
         case Kind::EVAL_NEG: ss << "neg";break;
@@ -157,6 +159,7 @@ bool isLiteral(Kind k)
     case Kind::BOOLEAN:
     case Kind::NUMERAL:
     case Kind::DECIMAL:
+    case Kind::RATIONAL:
     case Kind::HEXADECIMAL:
     case Kind::BINARY:
     case Kind::STRING: return true; break;
@@ -180,6 +183,7 @@ bool isLiteralOp(Kind k)
     case Kind::EVAL_NOT:
     case Kind::EVAL_AND:
     case Kind::EVAL_OR:
+    case Kind::EVAL_XOR:
     // arithmetic
     case Kind::EVAL_ADD:
     case Kind::EVAL_NEG:

@@ -293,6 +293,41 @@ The signature can now refer to arbitrary numerals in definitions, e.g. `7` in th
 
 > Internally, the command above only impacts the type rule assigned to numerals that are parsed. Furthermore, the ALF checker internally distinguishes whether a term is a numeral, independently of its type, for the purposes of computational operators (see []).
 
+# Computations in alfc
+
+The ALF checker has builtin support for efficient computations over all syntactic categories of SMT-LIB version 3.0.
+
+The core operators:
+- `(alf.is_eq t1 t2)`
+- `(alf.ite t1 t2 t3)`
+- `(alf.requires t1 t2 t3)`
+The Boolean operators:
+- `(alf.and t1 t2)`
+- `(alf.or t1 t2)`
+- `(alf.xor t1 t2)`
+- `(alf.not t1)`
+The arithmetic operators:
+- `(alf.add t1 t2)`
+- `(alf.neg t1)`
+- `(alf.mul t1 t2)`
+- `(alf.qdiv t1 t2)`
+- `(alf.zdiv t1 t2)`
+- `(alf.is_neg t1)`
+
+The string operators:
+
+The conversion operators:
+
+
+We now give some examples of how these operators can be leveraged in definitions.
+
+## Type rules for BitVector concatentation.
+
+
+## Type rule for BitVector constants
+
+
+
 # Declaring Proof Rules
 
 The ALF language supports a command `declare-rule` for defining proof rules. Its syntax is given by:
@@ -444,23 +479,54 @@ where
 (step @p1 (= b a) :rule symm :premises (@p0))
 ```
 
-## Proofs with scopes
+## Proofs with local assumptions
 
+The ALF language includes commands `assume-push` and `step-pop` with the same syntax as `assume` and `step` respectively.
+However, the former can be seen as introducing a local assumption that is consumed by the latter.
+We give an example of this in following.
 
+```
+(declare-const => (-> Bool Bool Bool))
+(declare-rule implies-intro ((F Bool) (G Bool))
+  :assumption F
+  :premises (G)
+  :conclusion (=> F G)
+)
+(declare-rule contra ((F Bool))
+  :premises (false)
+  :args (F)
+  :conclusion F)
+(assume-push @p1 false)
+(step @p2 true :rule contra :premises (@p1) :args (true))
+(step-pop @p3 (=> false true) :rule implies-intro :premises (@p2))
+```
 
-# Computations in alfc
+In this signature, we define a proof rule for implication introduction.
+The rule takes an assumption `:assumption F`, which denotes that it will consume a local assumption introduced by `assume-push`.
+We also define a rule for contradiction that states any formula can be proven if we prove `false`.
 
+The command `assume-push` denotes that `@p1` is a (locally assumed) proof of `false`.
+The proof `@p1` is then used as a premise to the step `@p2`, which proves `true`.
+The command `step-pop` then consumes the proof of `@p1` and binds `@p3` to a proof of `(=> false true)`.
+Notice that `@p1` is removed from scope after `@p3` is applied.
 
-## Type rules for BitVectors
-
-
-## Type rule for BitVector constants
-
-
-## Term evaluator
-
+Locally assumptions can be arbitrarily nested, for example the above can be extended to:
+```
+...
+(assume-push @p0 true)
+(assume-push @p1 false)
+(step @p2 true :rule contra :premises (@p1) :args (true))
+(step-pop @p3 (=> false true) :rule implies-intro :premises (@p2))
+(step-pop @p4 (=> true (=> false true)) :rule implies-intro :premises (@p3))
+```
 
 # Side Conditions
+
+The ALF language supports a command for defining ordered lists of rewrite rules that can be seen as computational side conditions.
+The syntax for this command is as follows.
+```
+(program <symbol> (<sorted-var>*) (<type>*) <type> ((<term> <term>)*))
+```
 
 
 ### Example: Contains

@@ -140,8 +140,6 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
       ret = (nargs==0);
       break;
     case Kind::EVAL_IS_EQ:
-    case Kind::EVAL_AND:
-    case Kind::EVAL_OR:
     case Kind::EVAL_ADD:
     case Kind::EVAL_MUL:
     case Kind::EVAL_INT_DIV:
@@ -151,6 +149,9 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_CONS:
       ret = (nargs==2);
       break;
+    case Kind::EVAL_AND:
+    case Kind::EVAL_OR:
+    case Kind::EVAL_XOR:
     case Kind::EVAL_CONCAT:
       ret = (nargs>=2);
       break;
@@ -1223,10 +1224,15 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
   // where type checking is not strict.
   switch (k)
   {
-    case Kind::EVAL_NEG:
     case Kind::EVAL_ADD:
     case Kind::EVAL_MUL:
       // NOTE: mixed arith
+      return childTypes[0];
+    case Kind::EVAL_NEG:
+    case Kind::EVAL_AND:
+    case Kind::EVAL_OR:
+    case Kind::EVAL_XOR:
+    case Kind::EVAL_NOT:
       return childTypes[0];
     case Kind::EVAL_IF_THEN_ELSE:
     case Kind::EVAL_CONS:
@@ -1240,9 +1246,6 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
       // type is the first child, maybe after a function
       return childTypes[i];
     case Kind::EVAL_IS_EQ:
-    case Kind::EVAL_NOT:
-    case Kind::EVAL_AND:
-    case Kind::EVAL_OR:
     case Kind::EVAL_IS_NEG:
     case Kind::EVAL_IS_ZERO:
       return d_state.mkBoolType().getValue();
