@@ -29,21 +29,19 @@ The ALF language is built on SMT-LIB version 3.0 and can be used a framework for
 - `_`, denoting (higher-order) function application,
 - `Bool`, denoting the Boolean type.
 
-In SMT-LIB version 3, a common BNF is used to specify terms, types and kinds. This is
-
-In the following, we informally write BNF categories `<symbol>` to denote an SMT-LIB version 3.0 symbol, `<term>` to denote an arbitrary SMT-LIB term and `<type>` to denote an SMT-LIB term whose type is `Type`, `<sorted-var-list>`
+In ALF, a common BNF is used to specify terms, types and kinds. In the following, we informally write BNF categories `<symbol>` to denote an SMT-LIB version 3.0 symbol, `<term>` to denote an arbitrary SMT-LIB term and `<type>` to denote an SMT-LIB term whose type is `Type`, `<sorted-var-list>`
 
 The following SMT-LIB version 3.0 commands are supported for declaring and defining types and terms:
-- `(declare-const <symbol> <type>)` declares a new expression named `<symbol>` whose type is `<type>`.
-- `(declare-fun <symbol> (<type>*) <type>)` declares a new expression named `<symbol>` whose type is specified by the given argument types and return type.
-- `(declare-sort <symbol> <numeral>)` declares a new expression named `<symbol>` whose type is `(-> Type^n Type)` if `n>0` or `Type` for the provided numeral `n`.
-- `(declare-type <symbol> (<type>*))` declares a new expression named `<symbol>` whose type is specified by the given argument types and return type `Type`.
+- `(declare-const <symbol> <type>)` declares a new term named `<symbol>` whose type is `<type>`.
+- `(declare-fun <symbol> (<type>*) <type>)` declares a new term named `<symbol>` whose type is specified by the given argument types and return type.
+- `(declare-sort <symbol> <numeral>)` declares a new type named `<symbol>` whose kind is `(-> Type^n Type)` if `n>0` or `Type` for the provided numeral `n`.
+- `(declare-type <symbol> (<type>*))` declares a new type named `<symbol>` whose kind is specified by the given argument types and return type `Type`.
 - `(define-const <symbol> <term>)` defines `<symbol>` to be the given term.
-- `(define-fun <symbol> (<sorted-var-list>) <type> <term>)`
-- `(define-sort <symbol> (<symbol>*) <type>)`
-- `(declare-type <symbol> (<type>*) <type>)`
+- `(define-fun <symbol> (<sorted-var>*) <type> <term>)` defines `<symbol>` to be a lambda term whose arguments, return type and body and given by the three arguments, if the argument list is non-empty, or the body otherwise.
+- `(define-sort <symbol> (<symbol>*) <type>)` defines `<symbol>` to be a lambda term whose arguments are given by variables of kind `Type` and whose body is given by the return type.
+- `(define-type <symbol> (<type>*) <type>)` defines `<symbol>` to be a lambda term whose kind is
 
-### Example
+### Example: Basic Declarations
 
 ```
 (declare-sort Int 0)
@@ -55,11 +53,11 @@ The following SMT-LIB version 3.0 commands are supported for declaring and defin
 
 Since alfc does not assume any builtin definitions of SMT-LIB theories, definitions of standard symbols (such as `Int`) may be provided in ALF signatures. In the above example, `c` is declared to be a constant (0-ary) symbol of type `Int`. The symbol `f` is a function taking two integers and returning an integer.
 
-> Despite using different syntax in their declarations, the types of `f` and `g` in the above example are identical.
+Note that despite using different syntax in their declarations, the types of `f` and `g` in the above example are identical.
 
 > In alfc, all functions are unary. In the above example, `(-> Int Int Int)` is internally treated as `(-> Int (-> Int Int))`.
 
-### Example
+### Example: Definitions
 
 ```
 (declare-const not (-> Bool Bool))
@@ -67,17 +65,67 @@ Since alfc does not assume any builtin definitions of SMT-LIB theories, definiti
 (define-fun notId ((x Int)) Bool (not (id x)))
 ```
 
-In the example above, `not` is declared to be a unary function over Booleans. Then, `id`
+In the example above, `not` is declared to be a unary function over Booleans. Two defined functions are given, the first being an identity function over Booleans, and the second returning the negation of the first.
 
->
+> Internally, `id` is mapped to the lambda term whose SMT-LIB version 3 syntax is `(lambda ((x Bool)) x)`.
 
-## Polymorphism (Arrays)
+By default, defined functions are treated as macros and are eagerly beta-reduced. Thus, `notId` is mapped to the lambda term `(lambda ((x Bool)) (not x))`. Furthermore, the following file is equivalent to the one above:
+```
+(declare-const not (-> Bool Bool))
+(define-fun id ((x Bool)) Bool x)
+(define-fun notId ((x Int)) Bool (not x))
+```
 
-## Types indexed by values (BitVectors)
+## Example: Polymorphism (Arrays)
+
+```
+(declare-sort Int 0)
+(declare-sort Array 2)
+(declare-const a (Array Int Bool))
+
+(define-sort IntArray (T) (Array Int T))
+(declare-const b (IntArray Bool))
+```
+
+In the above example, we define the integer sort and the array sort, whose kind is `(-> Type Type Type)`.
+
+Note the following definitions are equivalent:
+
+```
+(declare-type Array (Type Type))
+```
+
+## Dependent types
+
+The ALF language uses the standard term annotations `:var` and `:implicit` for naming arguments of functions and specifying they are implicit.
+
+```
+(declare-sort Int 0)
+(declare-const eq (-> (! Type :var T) T T Bool))
+(define-fun P ((x Int) (y Int)) Bool (eq Int x y))
+```
+
+The above example declares a predicate `eq` whose first argument is a type, that is given a name `T`. It then expects two terms of type `T` and returns a `Bool`. In the definition of `P`, this predicate is applied to two variables, where the type `Int` must be explicitly provided.
+
+```
+(declare-sort Int 0)
+(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(define-fun P ((x Int) (y Int)) Bool (= x y))
+```
+
+In contrast, the above example declares a predicate `=` where the type of the arguments is implicit (this corresponds to the SMT-LIB standard definition of equality). In the definition of `P`, the type of the arguments `Int` does not need to be provided.
 
 ## Declarations with attributes
 
-## Right associative with nil
+The ALF language supports term annotations that denote
+
+
+
+## Types indexed by values (BitVectors)
+
+```
+(declare-type BitVec (Int))
+```
 
 
 

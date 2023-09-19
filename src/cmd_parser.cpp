@@ -463,6 +463,7 @@ bool CmdParser::parseNextCommand()
       //d_state.checkThatLogicIsSet();
       std::string name = d_eparser.parseSymbol();
       //d_state.checkUserSymbol(name);
+      std::vector<Expr> vars;
       std::vector<std::string> snames =
           d_eparser.parseSymbolList();
       if (!snames.empty())
@@ -474,12 +475,15 @@ bool CmdParser::parseNextCommand()
         {
           Expr v = d_state.mkSymbol(Kind::PARAM, sname, ttype);
           d_eparser.bind(sname, v);
+          vars.push_back(v);
         }
       }
       Expr t = d_eparser.parseType();
       if (!snames.empty())
       {
         d_state.popScope();
+        Expr vl = d_state.mkExpr(Kind::TUPLE, vars);
+        t = d_state.mkExpr(Kind::LAMBDA, {vl, t});
       }
       d_eparser.bind(name, t);
     }

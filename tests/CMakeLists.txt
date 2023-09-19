@@ -91,6 +91,7 @@ set(alfc_test_file_list
     Sets-theory.smt2
     Datatypes-theory.smt2
     str-eval.smt2
+    define-sort-iarray.smt2
 )
 
 macro(alfc_test file)
