@@ -71,9 +71,9 @@ Note that despite using different syntax in their declarations, the types of `f`
 
 In the example above, `not` is declared to be a unary function over Booleans. Two defined functions are given, the first being an identity function over Booleans, and the second returning the negation of the first.
 
-> Internally, `id` is mapped to the lambda term whose SMT-LIB version 3 syntax is `(lambda ((x Bool)) x)`.
+> Since `define-fun` commands are treated as macro definitions, in this example, `id` is mapped to the lambda term whose SMT-LIB version 3 syntax is `(lambda ((x Bool)) x)`. Furthermore, `notId` is mapped to the lambda term `(lambda ((x Bool)) (not x))`.
 
-By default, defined functions are treated as macros and are eagerly beta-reduced. Thus, `notId` is mapped to the lambda term `(lambda ((x Bool)) (not x))`. Furthermore, the following file is equivalent to the one above:
+The following file is equivalent to the one above:
 ```
 (declare-const not (-> Bool Bool))
 (define-fun id ((x Bool)) Bool x)
@@ -103,7 +103,7 @@ Note the following declarations all generate types of the same kind:
 
 ## Variable and implicit annotations
 
-The ALF language uses the standard term annotations `:var` and `:implicit` for naming arguments of functions and specifying they are implicit.
+The ALF language uses the SMT-LIB version 3.0 attributes `:var <symbol>` and `:implicit` in term annotations for naming arguments of functions and specifying they are implicit.
 
 ```
 (declare-sort Int 0)
@@ -128,6 +128,24 @@ We call `T` in the above definitions a *parameter*. The free parameters of the r
 (declare-sort Int 0)
 (declare-const f (-> (! Type :var T :implicit) Int T))
 ```
+
+> Internally, `(! T :var t)` is syntax sugar for the type `(Quote t)` where `t` is a parameter of type `T` and `Quote` is a distinguished type of kind `(-> (! Type :var U) U Type)`. When type checking applications of functions of type `(-> (Quote t) S)`, the parameter `t` is bound to the argument the function is applied to.
+
+> Internally, `(! T :implicit)` drops `T` from the list of arguments of the function type we are defining.
+
+## Requires annotations
+
+Arguments to functions can also be annotated with the attribute `:requires (<term> <term>)` to denote a condition under which the
+
+```
+(declare-sort Int 0)
+(declare-const BitVec (-> (! Int :var w :requires ((alf.is_neg w) false)) Type))
+```
+The above declares the integer sort and the bitvector sort that expects a non-negative integer `w`.
+
+In detail, the first argument of `BitVec` is an integer sort, which is named `w` via `:var`.
+The second annotation
+
 
 ## Declarations with attributes
 
@@ -300,6 +318,8 @@ If these criteria are met, then the proof rule proves the result of applying `S`
 
 A proof rule is only well defined if the free parameters of the requirements and conclusion term are also contained in the arguments and premises.
 
+> Internally, proofs can be seen as terms whose type is given by a distinguished `Proof` type. In particular, `Proof` is a type whose kind is `(-> Bool Type)`, where the argument of this type is the formula that is proven. For example, `(Proof (> x 0))` is the proof that `x` is greater than zero. By design, the user cannot declare terms involving type `Proof`. Terms of type `Proof` can only be introduced via an assumption command (`assume`) a command (`step`) for applying a proof rule to list of premises and arguments.
+
 ### Example rule: Reflexivity of equality
 
 ```
@@ -326,13 +346,23 @@ Notice that the type `T` is a part of the parameter list and not explicitly prov
 )
 ```
 
-This rule specifies symmetry of equality.
-Given a proof of some equality `(= a b)` for terms `a`, `b`, this rule will prove `(= b a)`.
-In detail, an application of this proof rule will compute the substitution `{ t -> a, s -> b }` and apply it to the conclusion term to obtain `(= b a)`.
+This rule specifies symmetry of equality. This rule takes as premise an equality `(= t s)` and no arguments.
+In detail, an application of this proof rule for premise proof `(= a b)` for concrete terms `a,b` will compute the substitution `{ t -> a, s -> b }` and apply it to the conclusion term to obtain `(= b a)`.
 
 ## Requirements
 
 A list of requirements can be given to a proof rule.
+
+```
+(declare-sort Int 0)
+(declare-consts <numeral> Int)
+(declare-fun >= (Int Int) Bool)
+(declare-rule leq-contra ((x Int))
+    :premise ((>= x 0))
+    :requires (((alf.is_neg x) true))
+    :conclusion false)
+```
+
 
 ## Premise lists
 
@@ -383,7 +413,20 @@ where
 <premises>      ::= :premises (<term>*)
 <arguments>     ::= :args (<term>*)
 ```
+### Example proof: symmetry of equality
 
+```
+(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-rule symm ((T Type) (t T) (s T))
+    :premises ((= t s))
+    :conclusion (= s t)
+)
+(declare-sort Int 0)
+(declare-const a Int)
+(declare-const b Int)
+(assume @p0 (= a b))
+(step @p1 (= b a) :rule symm :premises (@p0))
+```
 
 ## Proofs with scopes
 
