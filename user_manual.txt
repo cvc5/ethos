@@ -235,10 +235,9 @@ In the former (i.e. `Paab`), the definition is equivalent after desugaring to `(
 In other words, the definitions of `Paab` and `Qaab` are equivalent to the terms `(or a (or a b))` and `(or a a b)` respectively prior to desugaring.
 
 More generally, for an right-associative operator `f` with nil terminator `nil`,
-the term `(f t1 [] tn)` is de-sugared based on whether each `t1 [] tn` is marked with `:list`.
+the term `(f t1 ... tn)` is de-sugared based on whether each `t1 ... tn` is marked with `:list`.
 - The nil terminator is inserted at the end unless `tn` is marked as `:list`,
-- When `ti` is marked as `:list` where `i<n`, then the term denotes the result of a concatentation operation. We will describe this in more detail later.
-
+- When `ti` is marked as `:list` where `1<=i<n`, then the term denotes the result of a concatentation operation. For example, `(f a b)` is desugared to the term `(alf.concat f a b)` when both `a` and `b` are marked as list variables. The semantics of `alf.concat` is provided later in [].
 
 ### Chainable
 
@@ -373,18 +372,20 @@ It requires that the left hand side of this inequality `x` is a negative numeral
 
 ## Premise lists
 
-A rule can take an arbitrary number of premises via the syntax `:premise-list <term> <term>`.
-For example:
+A rule can take an arbitrary number of premises via the syntax `:premise-list <term> <term>`. For example:
+
 ```
 (declare-fun and (-> Bool Bool Bool) :right-assoc-nil true)
 (declare-rule and-intro ((F Bool))
     :premise-list F and
     :conclusion F)
 ```
-This syntax
+This syntax specifies that the number of premises that are provided to this rule are arbitrary.
+When applying this rule, the formulas proven to this rule (say `F1 ... Fn`) will be collected and constructed as a single formula via the provided operator (`and`), and subsequently matched against the premise pattern `F.
+In particular, in this case `F` is bound to `(and F1 ... Fn)`.
+The conclusion of the rule returns `F` itself.
 
-### Example rule:
-
+Note that the type of functions provided as the second argument of `:premise-list` should be operators that are marked to take an arbitrary number of arguments, that is those marked with `:right-assoc-nil`, `:chainable`.
 
 ## Axioms
 
@@ -396,14 +397,14 @@ The ALF language supports a command `declare-axiom`, which is a simplified versi
 
 The command
 ```
-(declare-axiom S ((t1 T1) [] (tn Tn)) R? t)
+(declare-axiom S ((t1 T1) .. (tn Tn)) R? t)
 ```
 is syntax sugar for
 ```
-(declare-rule S ((t1 T1) [] (tn Tn)) :args (t1 [] tn) R? :conclusion t)
+(declare-rule S ((t1 T1) ... (tn Tn)) :args (t1 ... tn) R? :conclusion t)
 ```
 where `R` is an (optional) requirements annotation.
-More generally, any argument `t1 [] tn` that is marked with `:implicit` from the argument list of the declared rule.
+More generally, any argument `t1 ... tn` that is marked with `:implicit` from the argument list of the declared rule.
 
 ### Example: reflexive equality as axiom
 
