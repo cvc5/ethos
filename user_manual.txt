@@ -27,7 +27,8 @@ The ALF language is built on SMT-LIB version 3.0 and can be used a framework for
 - `Type`, denoting the kind of all types,
 - `->`, denoting the function type,
 - `_`, denoting (higher-order) function application,
-- `Bool`, denoting the Boolean type.
+- `Bool`, denoting the Boolean type,
+- `true` and `false`, denoting constants of type `Bool`.
 
 In ALF, a common BNF is used to specify terms, types and kinds. In the following, we informally write BNF categories `<symbol>` to denote an SMT-LIB version 3.0 symbol, `<term>` to denote an arbitrary SMT-LIB term and `<type>` to denote an SMT-LIB term whose type is `Type`, `<sorted-var-list>`
 
@@ -39,9 +40,9 @@ The following SMT-LIB version 3.0 commands are supported for declaring and defin
 - `(define-const <symbol> <term>)` defines `<symbol>` to be the given term.
 - `(define-fun <symbol> (<sorted-var>*) <type> <term>)` defines `<symbol>` to be a lambda term whose arguments, return type and body and given by the three arguments, if the argument list is non-empty, or the body otherwise.
 - `(define-sort <symbol> (<symbol>*) <type>)` defines `<symbol>` to be a lambda term whose arguments are given by variables of kind `Type` and whose body is given by the return type.
-- `(define-type <symbol> (<type>*) <type>)` defines `<symbol>` to be a lambda term whose kind is
+- `(define-type <symbol> (<type>*) <type>)` defines `<symbol>` to be a lambda term whose kind is given
 
-### Example: Basic Declarations
+### Basic Declarations
 
 ```
 (declare-sort Int 0)
@@ -57,7 +58,7 @@ Note that despite using different syntax in their declarations, the types of `f`
 
 > In alfc, all functions are unary. In the above example, `(-> Int Int Int)` is internally treated as `(-> Int (-> Int Int))`.
 
-### Example: Definitions
+### Definitions
 
 ```
 (declare-const not (-> Bool Bool))
@@ -76,7 +77,7 @@ By default, defined functions are treated as macros and are eagerly beta-reduced
 (define-fun notId ((x Int)) Bool (not x))
 ```
 
-## Example: Polymorphism (Arrays)
+## Polymorphic types
 
 ```
 (declare-sort Int 0)
@@ -89,13 +90,15 @@ By default, defined functions are treated as macros and are eagerly beta-reduced
 
 In the above example, we define the integer sort and the array sort, whose kind is `(-> Type Type Type)`.
 
-Note the following definitions are equivalent:
+Note the following declarations all generate types of the same kind:
 
 ```
-(declare-type Array (Type Type))
+(declare-sort Array_v1 2)
+(declare-type Array_v2 (Type Type))
+(declare-const Array_v3 (-> Type Type Type))
 ```
 
-## Dependent types
+## Variable and implicit annotations
 
 The ALF language uses the standard term annotations `:var` and `:implicit` for naming arguments of functions and specifying they are implicit.
 
@@ -115,10 +118,136 @@ The above example declares a predicate `eq` whose first argument is a type, that
 
 In contrast, the above example declares a predicate `=` where the type of the arguments is implicit (this corresponds to the SMT-LIB standard definition of equality). In the definition of `P`, the type of the arguments `Int` does not need to be provided.
 
+We call `T` in the above definitions a *parameter*. The free parameters of the return type of an expression should be contained in at least one non-implicit argument. In particular, the following declaration is malformed, since the return type of `f` cannot be inferred from its arguments:
+
+
+```
+(declare-sort Int 0)
+(declare-const f (-> (! Type :var T :implicit) Int T))
+```
+
 ## Declarations with attributes
 
-The ALF language supports term annotations that denote
+The ALF language supports term annotations on declared functions, which can allow the user to treat a declared function as being variadic, i.e. taking an arbitrary number of arguments. These annotations are:
+- `:right-assoc` (resp. `:left-assoc`) denoting that the term is right (resp. left) associative,
+- `:right-assoc-nil <term>` (resp. `:left-assoc-nil <term>`) denoting that the term is right (resp. left) associative with the given nil terminator,
+- `:list`, denoting that the term should be treated as a list when appearing as a child of an application of a right (left) associative operator,
+- `:chainable <term>` denoting that the arguments of the term are chainable using the given (binary) operator,
+- `:pairwise <term>` denoting that the arguments of term are treated pairwise using the given (binary) operator.
 
+### Right/Left associative
+
+```
+(declare-const or (-> Bool Bool Bool) :right-assoc)
+(define-fun P ((x Bool) (y Bool) (z Bool)) Bool (or x y z))
+(define-fun Q ((x Bool) (y Bool)) Bool (or x y))
+(define-fun R ((x Bool)) (-> Bool Bool) (or x))
+```
+
+In the above example, `(or x y z)` is syntax sugar for `(or x (or y z))`.
+The term `(or x y)` is not impacted by the annotation `:right-assoc` since it has fewer than 3 children.
+The term `(or x)` is also not impacted by the annotation, and denotes the partial application of `or` to `x`, whose type is `(-> Bool Bool)`.
+
+```
+(declare-const and (-> Bool Bool Bool) :left-assoc)
+(define-fun P ((x Bool) (y Bool) (z Bool)) Bool (and x y z))
+```
+
+Similarly, in the above example, `(and x y z)` is syntax sugar for `(and (and x y) z)`.
+
+Note that the type for right and left associative operators is typically `(-> T T T)` for some `T`.
+
+### Right/Left associative with nil terminator
+
+ALF supports a variant of the aforementioned functionality where a nil terminator is provided.
+
+```
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+(define-fun P ((x Bool) (y Bool) (z Bool)) Bool (or x y z))
+(define-fun Q ((x Bool) (y Bool)) Bool (or x y))
+(define-fun R ((x Bool) (y Bool)) Bool (or x))
+```
+
+In the above example, `(or x y z)` is syntax sugar for `(or x (or y (or z false)))`,
+`(or x y)` is syntax sugar for `(or x (or y false))`,
+and `(or x)` is syntax sugar for `(or x false)`.
+
+The advantage of right (resp. left) associative operators nil terminators is that the terms they specify are unambiguous, in constrast to operators without nil terminators.
+In particular, note the following example:
+
+```
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+(define-fun P ((x Bool) (y Bool) (z Bool)) Bool (or x (or y z)))
+(define-fun Q ((x Bool) (y Bool) (z Bool)) Bool (or x y z))
+```
+
+If `or` would have been marked `:right-assoc`, then the definition of both `P` and `Q` would be `(or x (or y z))` after desugaring.
+In contrast, marking `or` with `:right-assoc-nil false` leads to the distinct terms `(or x (or (or y z) false))` and `(or x (or y (or z false)))` after desugaring.
+
+Right and left associative operators with nil terminators also have a relationship with list variables (as we will see in the following section), and in computational operators.
+
+Note that the type for right and left associative operators with nil terminators is typically `(-> T T T)` for some `T`, where their nil terminator has type `T`.
+
+### List variables
+
+Symbols can be marked with the annotation `:list`. Conceptually, this annotation marks that the term should be treated as a list of arguments when it occurs as an argument of a right (left) associative operator with a nil element. Note the following example:
+
+```
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+(define-fun P ((x Bool) (y Bool)) Bool (or x y))
+(define-fun Q ((x Bool) (y Bool :list)) Bool (or x y))
+(declare-const a Bool)
+(declare-const b Bool)
+(define-const Paab Bool (P a (or a b)))
+(define-const Qaab Bool (Q a (or a b)))
+```
+
+In the above example, note that `or` has been marked `:right-assoc-nil false`.
+As before, the definition of `P` is syntax sugar for `(or x (or y false))`.
+In contrast, the definition of `Q` is simply `(or x y)`, since `y` has been marked with `:list`.
+Conceptually, our definition of `Q` denotes that we expect to `y` to be treated as the tail of `or` in the body of `Q`.
+
+In the remainder of the example, `P` and `Q` are applied to the pair of arguments `a` and `(or a b)`.
+In the former (i.e. `Paab`), the definition is equivalent after desugaring to `(or a (or (or a (or b false)) false))`, whereas in the latter (i.e. `Qaab`) the definition is equivalent after desugaring to `(or a (or a (or b false)))`.
+
+
+### Chainable
+
+```
+(declare-sort Int 0)
+(declare-const and (-> Bool Bool Bool) :right-assoc)
+(declare-const >= (-> Int Int Bool) :chainable)
+(define-fun P ((x Int) (y Int) (z Int)) Bool (>= x y z))
+(define-fun Q ((x Int) (y Int)) Bool (>= x y))
+```
+
+In the above example, `(>= x y z)` is syntax sugar for `(and (>= x y) (>= y z))`,
+whereas the term `(>= x y)` is not impacted by the annotation `:chainable` since it has fewer than 3 children.
+
+
+Note that the type for chainable operators is typically `(-> T T S)` for some types `T` and `S,
+where the type of its chaining operator is `(-> S S S)`.
+
+### Pairwise
+
+```
+(declare-const and (-> Bool Bool Bool) :right-assoc)
+(declare-const distinct (-> Bool Bool Bool) :pairwise and)
+```
+
+
+Note that the type for chainable operators is typically `(-> T T S)` for some types `T` and `S,
+where the type of its chaining operator is `(-> S S S)`.
+
+## Literal types
+
+The ALF language supports associating SMT-LIB version 3.0 syntactic categories with types. In detail, a syntax category is one of the following:
+- `<numeral>` denoting the category of numerals `<digit>+`,
+- `<decimal>` denoting the category of decimals `<digit>+.<digit>+`,
+- `<rational>` denoting the category of rationals `<digit>+/<digit>+`,
+- `<binary>` denoting the category of binary constants `#b<0|1>+`,
+- `<hexadecimal>` denoting the category of hexadecimal constants `#x<hex-digit>+`,
+- `<string>` denoting the category of string literals `"<char>*"`.
 
 
 ## Types indexed by values (BitVectors)
