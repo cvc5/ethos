@@ -1,5 +1,5 @@
 
-(include "./simple-sig-2.smt2")
+(include "./simple-sig-2.smt3")
 
 (declare-sort Int 0)
 (declare-fun a () Int)

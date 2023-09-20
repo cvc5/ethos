@@ -1,5 +1,5 @@
-(include "Builtin-theory.smt2")
-(include "Quantifiers-theory.smt2")
+(include "Builtin-theory.smt3")
+(include "Quantifiers-theory.smt3")
 
 (program substitute
   ((T Type) (U Type) (S Type) (V Type) (x S) (y S) (f (-> T U)) (a T) (z U) (w V))

@@ -1,4 +1,4 @@
-(include "Utils.smt2")
+(include "Utils.smt3")
 
 (declare-const forall (-> @List Bool Bool))
 

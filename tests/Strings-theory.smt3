@@ -1,5 +1,5 @@
-(include "Builtin-theory.smt2")
-(include "Arith-theory.smt2")
+(include "Builtin-theory.smt3")
+(include "Arith-theory.smt3")
 
 (declare-sort RegLan 0)
 (declare-type Seq (Type))

@@ -1,4 +1,4 @@
-(include "Strings-programs.smt2")
+(include "Strings-programs.smt3")
 
 ; the PfRule::CONCAT_EQ rule
 (declare-rule concat_eq ((U Type) (s U) (t U) (rev Bool))

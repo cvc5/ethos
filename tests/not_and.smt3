@@ -1,5 +1,5 @@
-(include "Builtin-theory.smt2")
-(include "Nary.smt2")
+(include "Builtin-theory.smt3")
+(include "Nary.smt3")
 
 ; NOT_AND
 (program lowerNot ((l Bool) (ls Bool :list))

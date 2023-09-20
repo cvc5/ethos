@@ -1,4 +1,4 @@
-(include "./substitution.smt2")
+(include "./substitution.smt3")
 
 (declare-const a Bool)
 (declare-const b Bool)

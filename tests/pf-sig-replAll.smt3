@@ -1,4 +1,4 @@
-(include "./sig-replAll.smt2")
+(include "./sig-replAll.smt3")
 
 (declare-const a Bool)
 (declare-const b Bool)

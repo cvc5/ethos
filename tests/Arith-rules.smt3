@@ -1,8 +1,8 @@
 ; depends: arith_programs.plf
 
-(include "Builtin-theory.smt2")
-(include "Arith-theory.smt2")
-(include "Utils.smt2")
+(include "Builtin-theory.smt3")
+(include "Arith-theory.smt3")
+(include "Utils.smt3")
 
 
 (program arith_rel_sum ((T Type) (U Type) (S Type) (r1 T) (r2 U))

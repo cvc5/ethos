@@ -1,4 +1,4 @@
-(include "./substitution-over-or.smt2")
+(include "./substitution-over-or.smt3")
 
 (declare-const a Bool)
 (declare-const b Bool)

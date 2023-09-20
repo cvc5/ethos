@@ -1,5 +1,5 @@
-(include "Nary.smt2")
-(include "Arith-theory.smt2")
+(include "Nary.smt3")
+(include "Arith-theory.smt3")
 
 (declare-const UnitTuple Type)
 (declare-const Tuple (-> Type Type Type) :right-assoc-nil UnitTuple)

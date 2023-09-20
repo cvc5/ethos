@@ -43,6 +43,20 @@ int main( int argc, char* argv[] )
     {
       opts.d_ruleSymTable = false;
     }
+    else if (arg=="--help")
+    {
+      std::stringstream out;
+      out << "             --help: displays this message." << std::endl;
+      out << "      --show-config: displays the build information for this binary." << std::endl;
+      out << "     --no-print-let: do not letify the output of terms in error messages and trace messages." << std::endl;
+      out << "      --gen-compile: output the C++ code for all included signatures from the input file." << std::endl;
+      out << "      --run-compile: use the compiled C++ signatures whenever available." << std::endl;
+      out << "--no-rule-sym-table: do not use a separate symbol table for proof rules and declared terms." << std::endl;
+      out << "           -t <tag>: enables the given trace tag (requires debug build)." << std::endl;
+      out << "                 -v: verbose mode, enable all standard trace messages (requires debug build)." << std::endl;
+      std::cout << out.str();
+      return 0;
+    }
     else if (arg=="--show-config")
     {
       std::stringstream out;
@@ -101,6 +115,15 @@ int main( int argc, char* argv[] )
     }
     else
     {
+      // maybe one of these is a wrong option
+      for (size_t i=0; i<2; i++)
+      {
+        std::string oarg(i==0 ? file : arg);
+        if (oarg.compare(0, 2, "--")==0)
+        {
+          ALFC_FATAL() << "Error: unrecognized option " << oarg;
+        }
+      }
       ALFC_FATAL() << "Error: mulitple files specified, \"" << file << "\" and \"" << arg << "\"";
     }
   }

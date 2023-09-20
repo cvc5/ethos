@@ -1,4 +1,4 @@
-(include "./arith-eval.smt2")
+(include "./arith-eval.smt3")
 
 (step a1 (= (+ 0.5 0.25) 0.75) :rule eval :args ((+ 0.5 0.25) 0.75))
 (step a2 (= (- 0.6 0.2) 0.4) :rule eval :args ((- 0.6 0.2) 0.4))

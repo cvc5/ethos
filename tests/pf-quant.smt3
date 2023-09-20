@@ -1,4 +1,4 @@
-(include "./quant.smt2")
+(include "./quant.smt3")
 
 (declare-sort Int 0)
 
