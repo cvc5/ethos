@@ -13,14 +13,23 @@ cmake ..
 ```
 The `alfc` binary will be available in `build/src/`.
 
+### Debug build
+
+By default, the above will be a production build of `alfc`. To build a debug version of `alfc`, that is significantly slower but has assertions and trace messages enabled, run:
+```
+mkdir build -DCMAKE_BUILD_TYPE=Debug
+cd build
+cmake ..
+```
+The `alfc` binary will be available in `build/src/`.
 
 ## Command line interface of alfc
 
-Running `alfc` from the command line can be done via:
+`alfc` can be run from the command line via:
 ```
 alfc <option>* <file>
 ```
-The set of available options `<option>` are given in the appendix. Note the command line interface of `alfc` expects exactly one file. The file and options can appear in any order.
+The set of available options `<option>` are given in the appendix. Note the command line interface of `alfc` expects exactly one file (which itself may reference other files via the `include` command as we will see later). The file and options can appear in any order.
 
 The ALF checker will either emit an error message indicating:
 - The kind of failure (type checking, proof checking, lexer error),
@@ -635,6 +644,9 @@ The syntax for this command is as follows.
 ### Example: Match
 
 ### Example: Term evaluator
+
+# Including and referencing files
+
 
 # Oracles
 
