@@ -279,6 +279,8 @@ The ALF language supports associating SMT-LIB version 3.0 syntactic categories w
 - `<string>` denoting the category of string literals `"<char>*"`.
 Apart from `<rational>`, these literals have the same syntax as in SMT-LIB version 3.0.
 
+> Note that the user does not specify that `true` and `false` are values of type `Bool`. Instead, it is assumed that the syntactic category `<boolean>` of Boolean values (`true` and `false`) has been associated with the Boolean sort. In other words, `(declare-consts <boolean> Bool)` is a part of the builtin ALF signature.
+
 ### Declare constants
 
 The following gives an example of how to define the class of numeral constants.
@@ -296,27 +298,76 @@ The signature can now refer to arbitrary numerals in definitions, e.g. `7` in th
 # Computations in alfc
 
 The ALF checker has builtin support for efficient computations over all syntactic categories of SMT-LIB version 3.0.
+We list the operators below, roughly categorized by domain.
+However, note that the operators are polymorphic and in some cases can be applied to multiple syntactic categories.
+For example, `alf.add` returns the result of adding two integers or rationals, but also can be used to add binary constants (integers modulo a given bitwidth).
+Similarly, `alf.concat` returns the result of concatenating two string literals, but can also concatenate binary constants.
+We remark on the semantics in the following.
 
-The core operators:
+In the following, we say a term is *ground* if it contains no parameters as subterms.
+
+Core operators:
 - `(alf.is_eq t1 t2)`
+    - Returns `true` if `t1` and `t2` are (syntactically) equal, and `false` otherwise. Notice that the evaluation of `alf.is_eq` does not coincide the SMT-LIB semantics of equality, for example, it always returns `false` for any distinct pair of constants.
 - `(alf.ite t1 t2 t3)`
+    - Returns `t2` if `t1` evaluates to `true`, `t3` if `t1` evaluates to `false`, and is not evaluated otherwise.
 - `(alf.requires t1 t2 t3)`
-The Boolean operators:
+    - Returns `t3` if `t1` is (syntactically) equal to `t2`, and is not evaluated otherwise.
+- `(alf.hash t1)`
+    - If `t1` is a ground term, this returns a numeral that is unique to `t1`.
+Boolean operators:
 - `(alf.and t1 t2)`
+    - Boolean conjunction if `t1` and `t2` are Boolean values (`true` or `false`).
+    - Bitwise conjunction if `t1` and `t2` are binary values.
 - `(alf.or t1 t2)`
+    - Boolean disjunction if `t1` and `t2` are Boolean values.
+    - Bitwise disjunction if `t1` and `t2` are binary values.
 - `(alf.xor t1 t2)`
+    - Boolean xor if `t1` and `t2` are Boolean values.
+    - Bitwise xor if `t1` and `t2` are binary values.
 - `(alf.not t1)`
-The arithmetic operators:
+    - Boolean negation if `t1` is a Boolean value.
+    - Bitwise negation if `t1` is a binary values.
+Arithmetic operators:
 - `(alf.add t1 t2)`
-- `(alf.neg t1)`
+    - If `t1` and `t2` are arithmetic (numeral or rational) values, then this returns the multiplication of `t1` and `t2`, which is a rational value if either of `t1, t2` is a rational value, or a numeral value otherwise.
+    - If `t1` and `t2` are binary constants of the same bitwidth, this returns the binary value corresponding to their (unsigned) addition modulo their bitwidth.
 - `(alf.mul t1 t2)`
+    - If `t1` and `t2` are arithmetic (numeral or rational) values, then this returns the multiplication of `t1` and `t2`, which is a rational value if either of `t1, t2` is a rational value, or a numeral value otherwise.
+    - If `t1` and `t2` are binary constants of the same bitwidth, this returns the binary value corresponding to their (unsigned) multiplication modulo their bitwidth.
+- `(alf.neg t1)`
+    - If `t1` is a numeral or rational value, this returns the arithmetic negation of `t1`.
+    - If `t1` is a binary value, this returns its arithmetic negation.
 - `(alf.qdiv t1 t2)`
+    - If `t1` and `t2` are arithmetic (numeral or rational) values and `t2` is non-zero, then this returns the rational division of `t1` and `t2`.
 - `(alf.zdiv t1 t2)`
+    - If `t1` and `t2` are numeral values and `t2` is non-zero, then this returns the integer division of `t1` and `t2`.
 - `(alf.is_neg t1)`
-
-The string operators:
-
-The conversion operators:
+    - If `t1` is a numeral or rational value, this returns `true` if `t1` is negative and `false` otherwise. Otherwise, this operator is not evaluated.
+String operators:
+- `(alf.len t1)`
+    - Binary length (bitwidth) if `t1` is a binary value.
+    - String length if `t1` is a string value.
+- `(alf.concat t1 t2)`
+    - The concatenation of bits if `t1` and `t2` are binary values.
+    - The concatenation of strings if `t1` and `t2` are string values.
+- `(alf.extract t1 t2 t3)`
+    - If `t1` is a binary value and `t2` and `t3` are numeral values,
+    - If `t1` is a string value and `t2` and `t3` are numeral values,
+- `(alf.find t1 t2)`
+    - If `t1` and `t2` are string values, this returns a numeral value corresponding to the first index (left to right) that `t2` occurs as a substring of `t1` or the numeral value `-1` otherwise.
+Conversion operators:
+- `(alf.to_z t1)`
+    - If `t1` is a numeral value, this is a no-op.
+    - If `t1` is a binary value, this returns the numeral value corresponding to `t1`.
+    - If `t1` is a string value containing only digits, this returns the numeral value
+- `(alf.to_q t1)`
+    - If `t1` is a rational value, this is a no-op.
+    - If `t1` is a numeral value, this returns the (integral) rational value that is equivalent to `t1`.
+- `(alf.to_bin t1 t2)`
+    - If `t1` is a binary value and `t2` is a numeral value, this returns a binary value whose value is `t1` and whose bitwidth is `t2`.
+    - If `t1` and `t2` are numeral values,
+- `(alf.to_str t1)`
 
 
 We now give some examples of how these operators can be leveraged in definitions.
