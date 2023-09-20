@@ -1,22 +1,58 @@
 # Introduction
 
-This is the user manual for the AletheLF checker (alfc). It is a high performance proof checking tool for the AletheLF language.
+This is the user manual for the AletheLF checker (alfc), an efficient and extensible tool for checking proofs of Satisfiability Modulo Theories (SMT) solvers.
 
-## The AletheLF (ALF) language
+## Building alfc
 
-The AletheLF (ALF) language is an extension of SMT-LIB version 3.0 for defining proof rules and writing proofs from SMT solvers. The core features of this language include:
-- Support for SMT-LIB version 3.0 syntax for defining theory signatures. This includes support for associating literals (as specified by SMT-LIB categories e.g. `<numeral>`) with types.
-- A set of commands for specifying proofs (`step`, `assume`, and so on), whose syntax closely follows the Alethe proof format.
-- A command for defining proof rules (`declare-rule`).
+The source code for alfc is available here: https://github.com/ajreynol/AletheLF-tc.
+To build alfc, run:
+```
+mkdir build
+cd build
+cmake ..
+```
+The `alfc` binary will be available in `build/src/`.
 
 
-## The ALF checker (alfc)
+## Command line interface of alfc
 
-The AletheLF checker (alfc) supports the core language of ALF and extends this language with several features:
-- A library of operations (`alf.add`, `alf.mul`, `alf.concat`, `alf.extract`) for performing computations over literals.
-- A command for defining side conditions (`program`) as a list of rewrite rules.
-- Support for user-provided oracles via the command `declare-oracle-fun`, which can be used e.g. for modular proof checking.
-- Support for file inclusion (`include`) and referencing (`reference`). The latter command can be used to specify the name of a *.smt2 that the proof is associated with.
+Running `alfc` from the command line can be done via:
+```
+alfc <option>* <file>
+```
+The set of available options `<option>` are given in the appendix. Note the command line interface of `alfc` expects exactly one file. The file and options can appear in any order.
+
+The ALF checker will either emit an error message indicating:
+- The kind of failure (type checking, proof checking, lexer error),
+- The line and column of the failure.
+Otherwise, the ALF checker will print `success` when it finished parsing all commands in the file or encounters and `exit` command.
+Further output can be given by user-provided `echo` commands.
+
+### Streaming input to the ALF checker
+
+The `alfc` binary accepts input piped from stdin. The following are all equivalent ways of running `alfc`:
+```
+% alfc <file>
+% alfc < <file>
+% cat <file> | alfc
+```
+
+## Overview of Features
+
+The AletheLF (ALF) language is an extension of SMT-LIB version 3.0 for defining proof rules and writing proofs from SMT solvers. Since ALF is closely based on the SMT-LIB format, ALF files typically are given the suffix `*.smt3`.
+
+The core features of the ALF language include:
+- Support for SMT-LIB version 3.0 syntax for defining theory signatures.
+- Support for associating syntactic categories (as specified by SMT-LIB e.g. `<numeral>`) with types.
+- A set of commands for specifying proofs (`step`, `assume`, and so on), whose syntax closely follows the Alethe proof format (for details see []).
+- A command `declare-rule` for defining proof rules.
+
+The ALF checker alfc extends this language with several features:
+- A library of operations (`alf.add`, `alf.mul`, `alf.concat`, `alf.extract`) for performing computations over values.
+- A command `program` for defining side conditions as ordered list of rewrite rules.
+- A command `declare-oracle-fun` for user-provided oracles, that is, function symbols whose semantics are given by external binaries. Oracles can be used e.g. for modular proof checking.
+- Commands for file inclusion (`include`) and referencing (`reference`). The latter command can be used to specify the name of a `*.smt3` that the proof is associated with.
+- Support for compiling ALF signatures to C++ code that can be integrated into `alfc`.
 
 In the following sections, we review these features in more detail. A full syntax for the commands is given at the end of this document.
 
@@ -31,20 +67,25 @@ The ALF language is built on SMT-LIB version 3.0 and can be used a framework for
 
 > The core logic of the ALF checker also uses several builtin types (e.g. `Proof` and `Quote`) which are intentionally left hidden from the user. Details on these types can be found throughout this document. More details on the core logic of the ALF checker can be found here [].
 
-In ALF, a common BNF is used to specify terms, types and kinds. In the following, we informally write BNF categories `<symbol>` to denote an SMT-LIB version 3.0 symbol, `<term>` to denote an arbitrary SMT-LIB term and `<type>` to denote an SMT-LIB term whose type is `Type`, `<sorted-var-list>`
+In ALF, a common BNF is used to specify terms, types and kinds. In the following, we informally write BNF categories `<symbol>` to denote an SMT-LIB version 3.0 symbol, `<term>` to denote an arbitrary SMT-LIB term and `<type>` to denote an SMT-LIB term whose type is `Type`, `<typed-var>` is a pair `(<symbol> <type>)` that binds `<symbol>` as a fresh parameter of the given type.
 
 The following commands are supported for declaring and defining types and terms, most of which are taken from SMT-LIB version 3.0:
-- `(declare-const <symbol> <type>)` declares a new term named `<symbol>` whose type is `<type>`.
-- `(declare-fun <symbol> (<type>*) <type>)` declares a new term named `<symbol>` whose type is specified by the given argument types and return type.
+- `(declare-const <symbol> <type>)` declares a constant named `<symbol>` whose type is `<type>`.
+- `(declare-fun <symbol> (<type>*) <type>)` declares a constant named `<symbol>` whose (function) type is given by the argument types and return type.
 - `(declare-sort <symbol> <numeral>)` declares a new type named `<symbol>` whose kind is `(-> Type^n Type)` if `n>0` or `Type` for the provided numeral `n`.
-- `(declare-type <symbol> (<type>*))` declares a new type named `<symbol>` whose kind is specified by the given argument types and return type `Type`.
+- `(declare-type <symbol> (<type>*))` declares a new type named `<symbol>` whose kind is given by the argument types and return type `Type`.
 - `(define-const <symbol> <term>)` defines `<symbol>` to be the given term.
-- `(define-fun <symbol> (<sorted-var>*) <type> <term>)` defines `<symbol>` to be a lambda term whose arguments, return type and body and given by the three arguments, or the body if the argument list is empty.
+- `(define-fun <symbol> (<typed-var>*) <type> <term>)` defines `<symbol>` to be a lambda term whose arguments, return type and body and given by the three arguments, or the body if the argument list is empty.
 - `(define-sort <symbol> (<symbol>*) <type>)` defines `<symbol>` to be a lambda term whose arguments are given by variables of kind `Type` and whose body is given by the return type, or the return type if the argument is empty.
 - `(define-type <symbol> (<type>*) <type>)` defines `<symbol>` to be a lambda term whose kind is given
-- `(declare-datatype <datatype-def>)`
-- `(declare-datatypes <datatypes-def>)`
+- `(declare-datatype <symbol> <datatype-dec>)` defines a datatype `<symbol>`, along with its associated constructors, selectors, discriminators and updaters.
+- `(declare-datatypes (<sort-dec>^n) (<datatype-dec>^n))` defines a list of `n` datatypes for some `n>0`.
+- `(reset)` removes all declarations and definitions and resets the global scope.
+
+The ALF language contains further commands:
+- `(declare-var <symbol> <type>)` declares a variable named `<symbol>` whose type is `<type>`.
 - `(declare-consts <literal-category> <type>)` declares the class of symbols denoted by the literal category to have the given type.
+
 
 ### Basic Declarations
 
@@ -355,20 +396,21 @@ String operators:
     - If `t1` is a binary value and `t2` and `t3` are numeral values,
     - If `t1` is a string value and `t2` and `t3` are numeral values,
 - `(alf.find t1 t2)`
-    - If `t1` and `t2` are string values, this returns a numeral value corresponding to the first index (left to right) that `t2` occurs as a substring of `t1` or the numeral value `-1` otherwise.
+    - If `t1` and `t2` are string values, this returns a numeral value corresponding to the first index (left to right) where `t2` occurs as a substring of `t1`, or the numeral value `-1` otherwise.
 Conversion operators:
 - `(alf.to_z t1)`
-    - If `t1` is a numeral value, this is a no-op.
+    - If `t1` is a numeral value, return `t1`.
     - If `t1` is a binary value, this returns the numeral value corresponding to `t1`.
     - If `t1` is a string value containing only digits, this returns the numeral value
 - `(alf.to_q t1)`
-    - If `t1` is a rational value, this is a no-op.
+    - If `t1` is a rational value, return `t1`.
     - If `t1` is a numeral value, this returns the (integral) rational value that is equivalent to `t1`.
 - `(alf.to_bin t1 t2)`
     - If `t1` is a binary value and `t2` is a numeral value, this returns a binary value whose value is `t1` and whose bitwidth is `t2`.
-    - If `t1` and `t2` are numeral values,
+    - If `t1` and `t2` are numeral values, return the binary value whose value is `t1` (modulo `2^t2`) and whose bitwidth is `t2`.
 - `(alf.to_str t1)`
-
+    - If `t1` is a string value, return `t1`.
+    - Otherwise, if `t1` is a binary or arithmetic value, return the string value corresponding to the result of printing `t1`.
 
 We now give some examples of how these operators can be leveraged in definitions.
 
@@ -383,7 +425,7 @@ We now give some examples of how these operators can be leveraged in definitions
 
 The ALF language supports a command `declare-rule` for defining proof rules. Its syntax is given by:
 ```
-(declare-rule <symbol> (<sorted-var>*) <assumption>? <premises>? <arguments>? <requirements>? :conclusion <term>)
+(declare-rule <symbol> (<typed-var>*) <assumption>? <premises>? <arguments>? <requirements>? :conclusion <term>)
 where
 <assumption>    ::= :assumption <term>
 <premises>      ::= :premises (<term>*) | :premise-list <term> <term>
@@ -407,7 +449,7 @@ If these criteria are met, then the proof rule proves the result of applying `S`
 
 A proof rule is only well defined if the free parameters of the requirements and conclusion term are also contained in the arguments and premises.
 
-> Internally, proofs can be seen as terms whose type is given by a distinguished `Proof` type. In particular, `Proof` is a type whose kind is `(-> Bool Type)`, where the argument of this type is the formula that is proven. For example, `(Proof (> x 0))` is the proof that `x` is greater than zero. By design, the user cannot declare terms involving type `Proof`.
+> Internally, proofs can be seen as terms whose type is given by a distinguished `Proof` type. In particular, `Proof` is a type whose kind is `(-> Bool Type)`, where the argument of this type is the formula that is proven. For example, `(Proof (> x 0))` is the proof that `x` is greater than zero. By design, the user cannot declare terms involving type `Proof`. Instead, proofs can only be constructed via the commands `assume` and `step` as we describe in [].
 
 
 ### Example rule: Reflexivity of equality
@@ -477,7 +519,7 @@ Note that the type of functions provided as the second argument of `:premise-lis
 
 The ALF language supports a command `declare-axiom`, which is a simplified version of `declare-rule`:
 ```
-(declare-axiom <symbol> (<sorted-var>*) <requirements>? <term>)
+(declare-axiom <symbol> (<typed-var>*) <requirements>? <term>)
 <requirements>  ::= :requires ((<term> <term>)*)
 ```
 
@@ -505,7 +547,7 @@ The argument `T` to `refl` has been marked as `:implicit`, and thus it does not 
 argument
 
 
-# Defining Proofs
+# Writing Proofs
 
 The ALF language provies the commands `assume` and `step` for defining proofs. Their syntax is given by:
 ```
@@ -576,7 +618,7 @@ Locally assumptions can be arbitrarily nested, for example the above can be exte
 The ALF language supports a command for defining ordered lists of rewrite rules that can be seen as computational side conditions.
 The syntax for this command is as follows.
 ```
-(program <symbol> (<sorted-var>*) (<type>*) <type> ((<term> <term>)*))
+(program <symbol> (<typed-var>*) (<type>*) <type> ((<term> <term>)*))
 ```
 
 
@@ -597,11 +639,25 @@ The syntax for this command is as follows.
 # Oracles
 
 
-## Example:
+## Example: Invoking the DRAT proof checker drat-trim.
 
 # Appendix
 
+## Command line options
+
+The ALF command line interface can be invoked by `alfc <option>* <file>` where `<option>` is one of the following:
+- `--help`: displays a help message.
+- `--show-config`: displays the build information for the given binary.
+- `--no-print-let`: do not letify the output of terms in error messages and trace messages.
+- `--gen-compile`: output the C++ code for all included signatures from the input file.
+- `--run-compile`: use the compiled C++ signatures whenever available.
+- `--no-rule-sym-table`: do not use a separate symbol table for proof rules and declared terms.
+- `-t <tag>`: enables the given trace tag (for debugging).
+- `-v`: verbose mode, enable all standard trace messages.
+
 ## Full syntax for commands
+
+
 
 ## Proofs as terms
 
