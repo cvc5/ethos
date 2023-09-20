@@ -34,7 +34,15 @@ std::ostream& operator<<(std::ostream& out, const Ctx& c)
 
 TypeChecker::TypeChecker(State& s) : d_state(s)
 {
-  std::set<Kind> literalKinds = { Kind::BOOLEAN, Kind::NUMERAL,  Kind::DECIMAL, Kind::HEXADECIMAL, Kind::BINARY, Kind::STRING };
+  std::set<Kind> literalKinds = { Kind::BOOLEAN, Kind::NUMERAL, Kind::RATIONAL, Kind::BINARY, Kind::STRING };
+  if (!d_state.getOptions().d_normalizeDecimal)
+  {
+    literalKinds.insert(Kind::DECIMAL);
+  }  
+  if (!d_state.getOptions().d_normalizeHexadecimal)
+  {
+    literalKinds.insert(Kind::HEXADECIMAL);
+  }
   // initialize literal kinds 
   for (Kind k : literalKinds)
   {
@@ -254,6 +262,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       return d_state.mkBoolType();
     case Kind::NUMERAL:
     case Kind::DECIMAL:
+    case Kind::RATIONAL:
     case Kind::HEXADECIMAL:
     case Kind::BINARY:
     case Kind::STRING:
@@ -1257,7 +1266,7 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
       return getOrSetLiteralTypeRule(Kind::NUMERAL);
     case Kind::EVAL_RAT_DIV:
     case Kind::EVAL_TO_RAT:
-      return getOrSetLiteralTypeRule(Kind::DECIMAL);
+      return getOrSetLiteralTypeRule(Kind::RATIONAL);
     default:break;
   }
   if (out)

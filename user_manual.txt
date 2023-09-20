@@ -67,16 +67,20 @@ In the following sections, we review these features in more detail. A full synta
 
 # Declaring theory signatures
 
-The ALF language is built on SMT-LIB version 3.0 and can be used a framework for defining theories. Note that the core language of ALF does not assume any definitions of SMT-LIB theories. Instead SMT-LIB theories may defined as ALF signatures. Specifically, the ALF language has the following builtin expressions:
+In ALF as in SMT-LIB version 3.0, a common BNF is used to specify terms, types and kinds. Thus, in this document, a *term* may denote an ordinary term, a type or a kind.
+Terms are composed of applications, built-in symbols of the language (e.g. for performing computations), and three kinds of 0-ary symbols (constants, variables, and parameters) which we will describe in the following.
+
+The core language of ALF does not assume any definitions of standard SMT-LIB theories. Instead, SMT-LIB theories may defined as ALF signatures.
+Specifically, the ALF language has the following builtin expressions:
 - `Type`, denoting the kind of all types,
 - `->`, denoting the function type,
 - `_`, denoting (higher-order) function application,
 - `Bool`, denoting the Boolean type,
-- `true` and `false`, denoting constants of type `Bool`.
+- `true` and `false`, denoting values of type `Bool`.
 
-> The core logic of the ALF checker also uses several builtin types (e.g. `Proof` and `Quote`) which are intentionally left hidden from the user. Details on these types can be found throughout this document. More details on the core logic of the ALF checker can be found here [].
+> The core logic of the ALF checker also uses several builtin types (e.g. `Proof` and `Quote`) which define the semantics of proof rules. These types are intentionally left hidden from the user. Details on these types can be found throughout this document. More details on the core logic of the ALF checker can be found here [].
 
-In ALF, a common BNF is used to specify terms, types and kinds. In the following, we informally write BNF categories `<symbol>` to denote an SMT-LIB version 3.0 symbol, `<term>` to denote an arbitrary SMT-LIB term and `<type>` to denote an SMT-LIB term whose type is `Type`, `<typed-var>` is a pair `(<symbol> <type>)` that binds `<symbol>` as a fresh parameter of the given type.
+In the following, we informally write BNF categories `<symbol>` to denote an SMT-LIB version 3.0 symbol, `<term>` to denote an SMT-LIB term and `<type>` to denote a term whose type is `Type`, `<typed-param>` is a pair `(<symbol> <type>)` that binds `<symbol>` as a fresh parameter of the given type.
 
 The following commands are supported for declaring and defining types and terms, most of which are taken from SMT-LIB version 3.0:
 - `(declare-const <symbol> <type>)` declares a constant named `<symbol>` whose type is `<type>`.
@@ -84,17 +88,16 @@ The following commands are supported for declaring and defining types and terms,
 - `(declare-sort <symbol> <numeral>)` declares a new type named `<symbol>` whose kind is `(-> Type^n Type)` if `n>0` or `Type` for the provided numeral `n`.
 - `(declare-type <symbol> (<type>*))` declares a new type named `<symbol>` whose kind is given by the argument types and return type `Type`.
 - `(define-const <symbol> <term>)` defines `<symbol>` to be the given term.
-- `(define-fun <symbol> (<typed-var>*) <type> <term>)` defines `<symbol>` to be a lambda term whose arguments, return type and body and given by the three arguments, or the body if the argument list is empty.
+- `(define-fun <symbol> (<typed-param>*) <type> <term>)` defines `<symbol>` to be a lambda term whose arguments, return type and body and given by the three arguments, or the body if the argument list is empty.
 - `(define-sort <symbol> (<symbol>*) <type>)` defines `<symbol>` to be a lambda term whose arguments are given by variables of kind `Type` and whose body is given by the return type, or the return type if the argument is empty.
 - `(define-type <symbol> (<type>*) <type>)` defines `<symbol>` to be a lambda term whose kind is given
 - `(declare-datatype <symbol> <datatype-dec>)` defines a datatype `<symbol>`, along with its associated constructors, selectors, discriminators and updaters.
 - `(declare-datatypes (<sort-dec>^n) (<datatype-dec>^n))` defines a list of `n` datatypes for some `n>0`.
 - `(reset)` removes all declarations and definitions and resets the global scope.
 
-The ALF language contains further commands:
+The ALF language contains further commands for declaring symbols:
 - `(declare-var <symbol> <type>)` declares a variable named `<symbol>` whose type is `<type>`.
 - `(declare-consts <literal-category> <type>)` declares the class of symbols denoted by the literal category to have the given type.
-
 
 ### Basic Declarations
 
@@ -327,7 +330,9 @@ The ALF language supports associating SMT-LIB version 3.0 syntactic categories w
 - `<binary>` denoting the category of binary constants `#b<0|1>+`,
 - `<hexadecimal>` denoting the category of hexadecimal constants `#x<hex-digit>+`,
 - `<string>` denoting the category of string literals `"<char>*"`.
-Apart from `<rational>`, these literals have the same syntax as in SMT-LIB version 3.0.
+
+By default, decimal literals will be treated as syntax sugar for rational literals unless the option `--no-normalize-dec` is enabled.
+Similarly, hexadecimal literals will be treated as syntax sugar for binary literals unless the option `--no-normalize-hex` is enabled.
 
 > Note that the user does not specify that `true` and `false` are values of type `Bool`. Instead, it is assumed that the syntactic category `<boolean>` of Boolean values (`true` and `false`) has been associated with the Boolean sort. In other words, `(declare-consts <boolean> Bool)` is a part of the builtin ALF signature.
 
@@ -421,6 +426,25 @@ Conversion operators:
     - If `t1` is a string value, return `t1`.
     - Otherwise, if `t1` is a binary or arithmetic value, return the string value corresponding to the result of printing `t1`.
 
+### Examples
+
+```
+```
+    
+## Extensions to lists
+
+List operators:
+- `(alf.cons f t1 t2)`
+    - If `f` is a right (resp. left) associative operator with nil terminator with nil terminator `nil`,
+- `(alf.concat f t1 t2)`
+    - If `f` is a right (resp. left) associative operator with nil terminator with nil terminator `nil`,
+- `(alf.extract f t1 t2)`
+    - If `f` is a right (resp. left) associative operator with nil terminator with nil terminator `nil`,
+- `(alf.find f t1 t2)`
+    - If `f` is a right (resp. left) associative operator with nil terminator with nil terminator `nil`,
+
+    
+
 We now give some examples of how these operators can be leveraged in definitions.
 
 ## Type rules for BitVector concatentation.
@@ -434,7 +458,7 @@ We now give some examples of how these operators can be leveraged in definitions
 
 The ALF language supports a command `declare-rule` for defining proof rules. Its syntax is given by:
 ```
-(declare-rule <symbol> (<typed-var>*) <assumption>? <premises>? <arguments>? <requirements>? :conclusion <term>)
+(declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <requirements>? :conclusion <term>)
 where
 <assumption>    ::= :assumption <term>
 <premises>      ::= :premises (<term>*) | :premise-list <term> <term>
@@ -528,7 +552,7 @@ Note that the type of functions provided as the second argument of `:premise-lis
 
 The ALF language supports a command `declare-axiom`, which is a simplified version of `declare-rule`:
 ```
-(declare-axiom <symbol> (<typed-var>*) <requirements>? <term>)
+(declare-axiom <symbol> (<typed-param>*) <requirements>? <term>)
 <requirements>  ::= :requires ((<term> <term>)*)
 ```
 
@@ -627,12 +651,31 @@ Locally assumptions can be arbitrarily nested, for example the above can be exte
 The ALF language supports a command for defining ordered lists of rewrite rules that can be seen as computational side conditions.
 The syntax for this command is as follows.
 ```
-(program <symbol> (<typed-var>*) (<type>*) <type> ((<term> <term>)*))
+(program <symbol> (<typed-param>*) (<type>*) <type> ((<term> <term>)+))
 ```
+This command declares a program named `<symbol>`.
+The provided type parameters are implicit and are used to define its type signature and body.
 
+The type of the program is given immediately after the parameter list, provided as a list of argument types and a return type.
+The semantics of the program is given by a non-empty list of pairs of terms, which we call its *body*.
+For program `f`, This list is expected to be a list of well-typed terms of the form `(((f t11 ... t1n) r1) ... ((f tm1 ... tmn) rm))`.
+A (ground) term `(f s1 ... sn)` evaluates by finding the first term in the first position of a pair of this list that matches it for substitution `S`, and returns the result of applying `S` to the right hand side of that pair.
 
 ### Example: Contains
 
+The following program (recursively) computes whether a formula `l` is contained as the direct child of an application of `or`:
+```
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+(program contains
+    ((l Bool) (x Bool) (xs Bool :list))
+    (Bool Bool) Bool
+    (
+        ((contains l (or l xs)) true)
+        ((contains l (or x xs)) (contains l xs))
+        ((contains l false)     false)
+    )
+)
+```
 
 
 ### Example: Substitution
@@ -665,6 +708,8 @@ The ALF command line interface can be invoked by `alfc <option>* <file>` where `
 - `--gen-compile`: output the C++ code for all included signatures from the input file.
 - `--run-compile`: use the compiled C++ signatures whenever available.
 - `--no-rule-sym-table`: do not use a separate symbol table for proof rules and declared terms.
+- `--no-normalize-dec`: do not treat decimal literals as syntax sugar for rational literals.
+- `--no-normalize-hex`: do not treat hexadecimal literals as syntax sugar for binary literals.
 - `-t <tag>`: enables the given trace tag (for debugging).
 - `-v`: verbose mode, enable all standard trace messages.
 

@@ -30,8 +30,8 @@ public:
   Literal() {}
   Literal(bool b) : ExprValue(Kind::BOOLEAN, {}), d_bool(b) {}
   Literal(const Integer& i) : ExprValue(Kind::NUMERAL, {}), d_int(i) {}
-  Literal(const Rational& r) : ExprValue(Kind::DECIMAL, {}), d_rat(r) {}
-  Literal(const BitVector& bv) : ExprValue(Kind::BINARY, {}), d_bv(bv) {}
+  Literal(Kind k, const Rational& r) : ExprValue(k, {}), d_rat(r) {}
+  Literal(Kind k, const BitVector& bv) : ExprValue(k, {}), d_bv(bv) {}
   Literal(const String& str) : ExprValue(Kind::STRING, {}), d_str(str) {}
   Literal(Kind k, const std::string& sym) : ExprValue(k, {}), d_sym(sym) {}
 

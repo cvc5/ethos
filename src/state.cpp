@@ -15,6 +15,8 @@ Options::Options()
   d_printLet = false;
   d_stats = false;
   d_ruleSymTable = true;
+  d_normalizeDecimal = true;
+  d_normalizeHexadecimal = true;
 }
 
 State::State(Options& opts, Stats& stats)
@@ -229,17 +231,23 @@ void State::markDeleted(ExprValue* e)
       }
         break;
       case Kind::DECIMAL:
+      case Kind::RATIONAL:
       {
-        std::unordered_map<Rational, Expr, RationalHashFunction>::iterator it = d_litRatMap.find(e->asLiteral()->d_rat);
-        Assert (it!=d_litRatMap.end());
-        d_litRatMap.erase(it);
+        size_t i = k==Kind::DECIMAL ? 0 : 1;
+        std::unordered_map<Rational, Expr, RationalHashFunction>& m = d_litRatMap[i];
+        std::unordered_map<Rational, Expr, RationalHashFunction>::iterator it = m.find(e->asLiteral()->d_rat);
+        Assert (it!=m.end());
+        m.erase(it);
       }
         break;
+      case Kind::HEXADECIMAL:
       case Kind::BINARY:
       {
-        std::unordered_map<BitVector, Expr, BitVectorHashFunction>::iterator it = d_litBvMap.find(e->asLiteral()->d_bv);
-        Assert (it!=d_litBvMap.end());
-        d_litBvMap.erase(it);
+        size_t i = k==Kind::HEXADECIMAL ? 0 : 1;
+        std::unordered_map<BitVector, Expr, BitVectorHashFunction>& m = d_litBvMap[i];
+        std::unordered_map<BitVector, Expr, BitVectorHashFunction>::iterator it = m.find(e->asLiteral()->d_bv);
+        Assert (it!=m.end());
+        m.erase(it);
       }
         break;
       case Kind::STRING:
@@ -765,12 +773,10 @@ Expr State::mkLiteral(Kind k, const std::string& s)
       return s=="true" ? d_true : d_false;
       break;
     case Kind::NUMERAL: lit = Literal(Integer(s)); break;
-    case Kind::DECIMAL: lit = Literal(Rational(s)); break;
-    case Kind::HEXADECIMAL:
-      // NOTE: hexadecimal and binary bitvectors are different expressions currently
-      lit = Literal(BitVector(s, 16));
-      break;
-    case Kind::BINARY: lit = Literal(BitVector(s, 2)); break;
+    case Kind::DECIMAL: lit = Literal(k, Rational::fromDecimal(s)); break;
+    case Kind::RATIONAL: lit = Literal(k, Rational(s)); break;
+    case Kind::HEXADECIMAL: lit = Literal(k, BitVector(s, 16)); break;
+    case Kind::BINARY: lit = Literal(k, BitVector(s, 2)); break;
     case Kind::STRING: lit = Literal(String(s, true)); break;
     default:
       ALFC_FATAL() << "Unknown kind for mkLiteral " << k;
@@ -783,7 +789,8 @@ ExprValue* State::mkLiteralInternal(Literal& l)
 {
   d_stats.d_mkExprCount++;
   ExprValue * ev;
-  switch (l.getKind())
+  Kind k = l.getKind();
+  switch (k)
   {
     case Kind::BOOLEAN:
       return l.d_bool ? d_true.getValue() : d_false.getValue();
@@ -799,25 +806,31 @@ ExprValue* State::mkLiteralInternal(Literal& l)
     }
       break;
     case Kind::DECIMAL:
+    case Kind::RATIONAL:
     {
-      std::unordered_map<Rational, Expr, RationalHashFunction>::iterator it = d_litRatMap.find(l.d_rat);
-      if (it!=d_litRatMap.end())
+      size_t i = k==Kind::DECIMAL ? 0 : 1;
+      std::unordered_map<Rational, Expr, RationalHashFunction>& m = d_litRatMap[i];
+      std::unordered_map<Rational, Expr, RationalHashFunction>::iterator it = m.find(l.d_rat);
+      if (it!=m.end())
       {
         return it->second.getValue();
       }
-      ev = new Literal(l.d_rat);
-      d_litRatMap[l.d_rat] = Expr(ev);
+      ev = new Literal(k, l.d_rat);
+      m[l.d_rat] = Expr(ev);
     }
       break;
+    case Kind::HEXADECIMAL:
     case Kind::BINARY:
     {
-      std::unordered_map<BitVector, Expr, BitVectorHashFunction>::iterator it = d_litBvMap.find(l.d_bv);
-      if (it!=d_litBvMap.end())
+      size_t i = k==Kind::HEXADECIMAL ? 0 : 1;
+      std::unordered_map<BitVector, Expr, BitVectorHashFunction>& m = d_litBvMap[i];
+      std::unordered_map<BitVector, Expr, BitVectorHashFunction>::iterator it = m.find(l.d_bv);
+      if (it!=m.end())
       {
         return it->second.getValue();
       }
-      ev = new Literal(l.d_bv);
-      d_litBvMap[l.d_bv] = Expr(ev);
+      ev = new Literal(k, l.d_bv);
+      m[l.d_bv] = Expr(ev);
     }
       break;
     case Kind::STRING:

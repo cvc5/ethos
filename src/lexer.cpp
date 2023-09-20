@@ -287,10 +287,10 @@ Token Lexer::computeNextToken()
         parseCharList(CharacterClass::DECIMAL_DIGIT);
         // maybe .[0-9]+
         ch = nextChar();
-        if (ch == '.')
+        if (ch == '.' || ch=='/')
         {
           pushToToken(ch);
-          res = Token::DECIMAL_LITERAL;
+          res = ch == '.' ? Token::DECIMAL_LITERAL : Token::RATIONAL_LITERAL;
           // parse [0-9]+
           if (!parseNonEmptyCharList(CharacterClass::DECIMAL_DIGIT))
           {

@@ -83,6 +83,7 @@ ExprParser::ExprParser(Lexer& lex, State& state)
   d_strToLiteralKind["<boolean>"] = Kind::BOOLEAN;
   d_strToLiteralKind["<numeral>"] = Kind::NUMERAL;
   d_strToLiteralKind["<decimal>"] = Kind::DECIMAL;
+  d_strToLiteralKind["<rational>"] = Kind::RATIONAL;
   d_strToLiteralKind["<hexadecimal>"] = Kind::HEXADECIMAL;
   d_strToLiteralKind["<binary>"] = Kind::BINARY;
   d_strToLiteralKind["<string>"] = Kind::STRING;
@@ -222,17 +223,38 @@ Expr ExprParser::parseExpr()
       break;
       case Token::DECIMAL_LITERAL:
       {
-        // must normalize from decimal, since mkLiteral requires a canonical
-        // (rational) string input.
-        Rational r = Rational::fromDecimal(d_lex.tokenStr());
-        ret = d_state.mkLiteral(Kind::DECIMAL, r.toString());
+        if (d_state.getOptions().d_normalizeDecimal)
+        {
+          // normalize from decimal
+          Rational r = Rational::fromDecimal(d_lex.tokenStr());
+          ret = d_state.mkLiteral(Kind::RATIONAL, r.toString());
+        }
+        else
+        {
+          ret = d_state.mkLiteral(Kind::DECIMAL, d_lex.tokenStr());
+        }
+      }
+      break;
+      case Token::RATIONAL_LITERAL:
+      {
+        ret = d_state.mkLiteral(Kind::RATIONAL, d_lex.tokenStr());
       }
       break;
       case Token::HEX_LITERAL:
       {
         std::string hexStr = d_lex.tokenStr();
         hexStr = hexStr.substr(2);
-        ret = d_state.mkLiteral(Kind::HEXADECIMAL, hexStr);
+        // must normalize
+        if (d_state.getOptions().d_normalizeHexadecimal)
+        {
+          // normalize from hexadecimal
+          BitVector bv(hexStr, 16);
+          ret = d_state.mkLiteral(Kind::BINARY, bv.toString());
+        }
+        else
+        {
+          ret = d_state.mkLiteral(Kind::HEXADECIMAL, hexStr);
+        }
       }
       break;
       case Token::BINARY_LITERAL:

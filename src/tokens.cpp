@@ -52,7 +52,7 @@ std::ostream& operator<<(std::ostream& o, Token t)
     case Token::PROOF: o << "PROOF"; break;
     case Token::PROOF_TYPE: o << "PROOF_TYPE"; break;
     case Token::QUOTED_SYMBOL: o << "QUOTED_SYMBOL"; break;
-    case Token::RATIONAL: o << "RATIONAL"; break;
+    case Token::RATIONAL_LITERAL: o << "RATIONAL_LITERAL"; break;
     case Token::REFERENCE: o << "REFERENCE"; break;
     case Token::RESET: o << "RESET"; break;
     case Token::RPAREN: o << "RPAREN"; break;

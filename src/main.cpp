@@ -52,6 +52,8 @@ int main( int argc, char* argv[] )
       out << "      --gen-compile: output the C++ code for all included signatures from the input file." << std::endl;
       out << "      --run-compile: use the compiled C++ signatures whenever available." << std::endl;
       out << "--no-rule-sym-table: do not use a separate symbol table for proof rules and declared terms." << std::endl;
+      out << " --no-normalize-dec: do not treat decimal literals as syntax sugar for rational literals." << std::endl;
+      out << " --no-normalize-hex: do not treat hexadecimal literals as syntax sugar for binary literals." << std::endl;
       out << "           -t <tag>: enables the given trace tag (requires debug build)." << std::endl;
       out << "                 -v: verbose mode, enable all standard trace messages (requires debug build)." << std::endl;
       std::cout << out.str();

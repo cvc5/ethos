@@ -27,6 +27,8 @@ class Options
   bool d_printLet;
   bool d_stats;
   bool d_ruleSymTable;
+  bool d_normalizeDecimal;
+  bool d_normalizeHexadecimal;
 };
 
 /**
@@ -213,10 +215,10 @@ class State
   std::map<Kind, ExprTrie> d_trie;
   //--------------------- literals
   /** Cache for literals */
-  std::unordered_map<Rational, Expr, RationalHashFunction> d_litRatMap;
+  std::unordered_map<Rational, Expr, RationalHashFunction> d_litRatMap[2];
   std::unordered_map<String, Expr, StringHashFunction> d_litStrMap;
   std::unordered_map<Integer, Expr, IntegerHashFunction> d_litIntMap;
-  std::unordered_map<BitVector, Expr, BitVectorHashFunction> d_litBvMap;
+  std::unordered_map<BitVector, Expr, BitVectorHashFunction> d_litBvMap[2];
   // -------------------- symbols
   /** Cache for symbols */
   // std::map<std::tuple<Kind, std::string, const ExprValue *>, Expr> d_symcMap;
