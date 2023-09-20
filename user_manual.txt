@@ -315,7 +315,7 @@ where the type of its chaining operator is `(-> S S S)`.
 ```
 In the above example, `(distinct x y z)` is syntax sugar for `(and (distinct x y) (distinct x z) (distinct y z))`.
 
-Note that the type for chainable operators is typically `(-> T T S)` for some types `T` and `S,
+Note that the type for chainable operators is typically `(-> T T S)` for some types `T` and `S`,
 where the type of its chaining operator is `(-> S S S)`.
 
 ## Literal types
@@ -648,6 +648,7 @@ The syntax for this command is as follows.
 # Including and referencing files
 
 
+
 # Oracles
 
 
@@ -686,19 +687,18 @@ can be seen as syntax sugar for:
 ```
 (declare-fun s
     (->
-        (! T1 :implicit) ... (! Ti :implicit)
+        (! T1 :var v1 :implicit) ... (! Ti :var vi :implicit)
         (Proof p1) ... (Proof pn)
         (Quote t1) ... (Quote tm)
         (alf.requires r1 s1 ... (alf.requires rk sk
             (Proof t)))))
 ```
-where `V` is a list of implicit arguments as defined in the parameter list of the proof rule.
 
 ### Proof assumptions
 
 The command:
 ```
-(assume s f :rule)
+(assume s f)
 ```
 can be seen as syntax sugar for:
 ```
