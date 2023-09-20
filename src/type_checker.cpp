@@ -32,14 +32,14 @@ std::ostream& operator<<(std::ostream& out, const Ctx& c)
   return out;
 }
 
-TypeChecker::TypeChecker(State& s) : d_state(s)
+TypeChecker::TypeChecker(State& s, Options& opts) : d_state(s)
 {
   std::set<Kind> literalKinds = { Kind::BOOLEAN, Kind::NUMERAL, Kind::RATIONAL, Kind::BINARY, Kind::STRING };
-  if (!d_state.getOptions().d_normalizeDecimal)
+  if (!opts.d_normalizeDecimal)
   {
     literalKinds.insert(Kind::DECIMAL);
   }  
-  if (!d_state.getOptions().d_normalizeHexadecimal)
+  if (!opts.d_normalizeHexadecimal)
   {
     literalKinds.insert(Kind::HEXADECIMAL);
   }

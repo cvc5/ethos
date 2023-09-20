@@ -2,7 +2,6 @@
 (declare-sort Real 0)
 
 (declare-consts <numeral> Int)
-(declare-consts <decimal> Real)
 (declare-consts <rational> Real)
 
 

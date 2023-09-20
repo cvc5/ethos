@@ -23,7 +23,7 @@ State::State(Options& opts, Stats& stats)
     : d_hashCounter(0),
       d_hasReference(false),
       d_inGarbageCollection(false),
-      d_tc(*this),
+      d_tc(*this, opts),
       d_opts(opts),
       d_stats(stats)
 {

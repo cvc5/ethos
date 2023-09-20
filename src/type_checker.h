@@ -9,6 +9,7 @@
 namespace alfc {
 
 class State;
+class Options;
 
 using Ctx = std::map<ExprValue*, ExprValue*>;
 std::ostream& operator<<(std::ostream& out, const Ctx& c);
@@ -23,7 +24,7 @@ class TypeChecker
   friend class Compiler;
 
  public:
-  TypeChecker(State& s);
+  TypeChecker(State& s, Options& opts);
   ~TypeChecker();
   /**
    * Return the type of expression e. This returns nullptr if e
