@@ -135,6 +135,8 @@ class State
   std::vector<Expr> getCurrentAssumptions() const;
   /** Get hash for expression */
   size_t getHash(const ExprValue* ev);
+  /** Has reference */
+  bool hasReference() const;
   /** Print compiled files (for --show-config) */
   static std::string showCompiledFiles();
   //--------------------------------------

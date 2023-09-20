@@ -1042,6 +1042,11 @@ size_t State::getHash(const ExprValue* e)
   return ret;
 }
 
+bool State::hasReference() const
+{
+  return d_hasReference;
+}
+
 AppInfo* State::getAppInfo(const ExprValue* e)
 {
   std::map<const ExprValue *, AppInfo>::iterator it = d_appData.find(e);

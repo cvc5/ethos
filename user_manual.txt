@@ -350,7 +350,7 @@ The signature can now refer to arbitrary numerals in definitions, e.g. `7` in th
 
 > Internally, the command above only impacts the type rule assigned to numerals that are parsed. Furthermore, the ALF checker internally distinguishes whether a term is a numeral, independently of its type, for the purposes of computational operators (see []).
 
-# Computations in alfc
+# Computational Operators in alfc
 
 The ALF checker has builtin support for efficient computations over all syntactic categories of SMT-LIB version 3.0.
 We list the operators below, roughly categorized by domain.
@@ -658,8 +658,11 @@ The provided type parameters are implicit and are used to define its type signat
 
 The type of the program is given immediately after the parameter list, provided as a list of argument types and a return type.
 The semantics of the program is given by a non-empty list of pairs of terms, which we call its *body*.
-For program `f`, This list is expected to be a list of well-typed terms of the form `(((f t11 ... t1n) r1) ... ((f tm1 ... tmn) rm))`.
+For program `f`, This list is expected to be a list of terms of the form `(((f t11 ... t1n) r1) ... ((f tm1 ... tmn) rm))`
+where `t11...t1n, ..., tm1...tmn` do not contain computational operators.
 A (ground) term `(f s1 ... sn)` evaluates by finding the first term in the first position of a pair of this list that matches it for substitution `S`, and returns the result of applying `S` to the right hand side of that pair.
+
+> Program bodies are not statically typed. Evaluating a program may introduce non-well-typed terms if the program body is malformed.
 
 ### Example: Contains
 
@@ -670,13 +673,20 @@ The following program (recursively) computes whether a formula `l` is contained 
     ((l Bool) (x Bool) (xs Bool :list))
     (Bool Bool) Bool
     (
+        ((contains l false)     false)
         ((contains l (or l xs)) true)
         ((contains l (or x xs)) (contains l xs))
-        ((contains l false)     false)
     )
 )
 ```
 
+First, we declare the parameters `l, x, xs`, each of type `Bool`.
+These parameters are used for defining the body of the program, but do *not* necessarily coincide with the expected arguments to the program.
+We then declare the type of the program `(Bool Bool) Bool`, i.e. the type of `contains` is a function expecting two Booleans and returning a Boolean.
+The body of the program is then given in three cases.
+First, terms of the form `(contains l false)` reduce to `false`, that is, we failed to find `l` in the second argument.
+Second, terms of the form `(contains l (or l xs))` reduce to `true`, that is we found `l` in the first position of the second argument.
+Otherwise, terms of the form `(contains l (or x xs))` reduce to `(contains l xs)`, in other words, we make a recursive call to find `l` in the tail of the list `xs`.
 
 ### Example: Substitution
 
@@ -690,7 +700,50 @@ The following program (recursively) computes whether a formula `l` is contained 
 
 # Including and referencing files
 
+The ALF checker supports the following commands for file inclusion:
+- `(include <string>)`, which includes the file indicated by the given string. The path to the file is taken relative to the directory of the file that includes it.
+- `(reference <string>)`, which similar to `include` includes the file indicated by the given string, and furthermore marks that file as being the *reference input* for the current run of the checker (see below).
 
+## Validation Proofs via Reference Inputs
+
+When the ALF checker encounters a command of the form `(reference <string>)`, the checker enables a further set of checks that ensures that all assumptions in proofs correspond to assertions from the reference file.
+
+In particular, when the command `(reference "file.smt2")` is read, the ALF checker will parse `file.smt2`.
+The definitions and declaration commands in this file will be treated as normal, that is, they will populate the symbol table of the ALF checker as they normally would if they were to appear in an `*.smt3` input.
+The commands of the form `(assert F)` will add `F` to a set of formulas we will refer to as the *reference assertions*.
+Other commands in `file.smt2` (e.g. `set-logic`, `set-option`, and so on) will be ignored.
+
+If alfc has read a reference file, then for each command of the form `(assume <symbol> G)`, alfc will check whether `G` occurs in the set of parsed reference assertions.
+If it does not, then an error is thrown indicating that the proof is assuming a formula that is not a part of the original input.
+
+> Only one reference command can be executed for each run of alfc.
+
+> Incremental `*.smt2` inputs are not supported as reference files in the current version of alfc.
+
+## Partial Validation
+
+Since the validation is relying on the fact that alfc can faithfully parse the original *.smt2 file, validation will only succeed if the signatures used by the ALF checker exactly match the syntax for terms in the *.smt2 file.
+Minor changes in how terms are represented will lead to mismatches.
+For this reason, alfc additionally supports providing an optional normalization routine to the `reference` command:
+- `(reference <string> <term>)`, which includes the file indicated by the given string and specifies all assumptions must match an assertion after running the provided normalization function.
+
+For example:
+```
+(declare-sort Int 0)
+(declare-sort Real 0)
+(declare-const / (-> Int Int Real))
+(program normalize ((T Type) (S Type) (f (-> S T)) (x S) (a Int) (b Int))
+   (T) T
+   (
+     ((normalize (/ a b)) (alf.qdiv a b))
+     ((normalize (f x))   (_ (normalize f) (normalize x)))
+     ((normalize y)       y)
+   )
+)
+(reference "file.smt2" normalize)
+```
+Here, `normalize` is introduced as a program which recursively replaces all occurrences of division (over integer constants) with the resulting rational constant.
+This method can be used for handling solvers that interpret constant division as the construction of a rational constant.
 
 # Oracles
 

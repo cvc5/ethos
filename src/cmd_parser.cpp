@@ -514,6 +514,10 @@ bool CmdParser::parseNextCommand()
     case Token::REFERENCE:
     {
       bool isReference = (tok==Token::REFERENCE);
+      if (isReference && d_state.hasReference())
+      {
+        d_lex.parseError("Cannot use more than one reference");
+      }
       if (d_state.getAssumptionLevel()>0)
       {
         d_lex.parseError("Includes must be done at assumption level zero");
