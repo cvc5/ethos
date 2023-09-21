@@ -59,7 +59,7 @@ The core features of the ALF language include:
 The ALF checker alfc extends this language with several features:
 - A library of operations (`alf.add`, `alf.mul`, `alf.concat`, `alf.extract`) for performing computations over values.
 - A command `program` for defining side conditions as ordered list of rewrite rules.
-- A command `declare-oracle-fun` for user-provided oracles, that is, function symbols whose semantics are given by external binaries. Oracles can be used e.g. for modular proof checking.
+- A command `declare-oracle-fun` for user-provided oracles, that is, functions whose semantics are given by external binaries. Oracles can be used e.g. for modular proof checking.
 - Commands for file inclusion (`include`) and referencing (`reference`). The latter command can be used to specify the name of a `*.smt3` that the proof is associated with.
 - Support for compiling ALF signatures to C++ code that can be integrated into `alfc`.
 
@@ -104,7 +104,7 @@ The ALF language contains further commands for declaring symbols that are not st
 - `(declare-var <symbol> <type>)` declares a variable named `<symbol>` whose type is `<type>`.
 - `(declare-consts <literal-category> <type>)` declares the class of symbols denoted by the literal category to have the given type.
 
-> Variables are internally treated the same as constants by the ALF checker, but are provided as a separate category, e.g. for user signatures that wish to distinguish universally quantified variables from free constant symbols.
+> Variables are internally treated the same as constants by the ALF checker, but are provided as a separate category, e.g. for user signatures that wish to distinguish universally quantified variables from free constants.
 
 ### Basic Declarations
 
@@ -207,7 +207,7 @@ The above declares the integer sort and the bitvector sort that expects a non-ne
 In detail, the first argument of `BitVec` is an integer sort, which is named `w` via `:var`.
 The second annotation indicates that `(alf.is_neg w)` must evaluate to `false`, where note that `alf.is_neg` returns `true` if and only if its argument is a negative numeral (for details, see []).
 
-> Internally, (! T :requires (t s)) is syntax sugar for `(alf.requires t s T)` where `alf.requires` is an operator that evalutes to its third argument if and only if its first two arguments are equivalent (details on this operator are given in []). Furthermore, the function type `(-> (alf.requires t s T) S)` is semantically equivalent to `(-> T (alf.requires t s S))`; the ALF checker rewrites all types of the former to the latter.
+> Internally, `(! T :requires (t s))` is syntax sugar for `(alf.requires t s T)` where `alf.requires` is an operator that evalutes to its third argument if and only if its first two arguments are equivalent (details on this operator are given in []). Furthermore, the function type `(-> (alf.requires t s T) S)` is treated as `(-> T (alf.requires t s S))`. The ALF checker rewrites all types of the former to the latter.
 
 ## Declarations with attributes
 
@@ -267,13 +267,13 @@ In particular, note the following example:
 If `or` would have been marked `:right-assoc`, then the definition of both `P` and `Q` would be `(or x (or y z))` after desugaring.
 In contrast, marking `or` with `:right-assoc-nil false` leads to the distinct terms `(or x (or (or y z) false))` and `(or x (or y (or z false)))` after desugaring.
 
-Right and left associative operators with nil terminators also have a relationship with list variables (as we will see in the following section), and in computational operators.
+Right and left associative operators with nil terminators also have a relationship with list terms (as we will see in the following section), and in computational operators.
 
 Note that the type for right and left associative operators with nil terminators is typically `(-> T T T)` for some `T`, where their nil terminator has type `T`.
 
 ### List
 
-Symbols can be marked with the annotation `:list`. Conceptually, this annotation marks that the term should be treated as a list of arguments when it occurs as an argument of a right (left) associative operator with a nil element. Note the following example:
+Atomic terms can be marked with the annotation `:list`. Conceptually, this annotation marks that the term should be treated as a list of arguments when it occurs as an argument of a right (left) associative operator with a nil element. Note the following example:
 
 ```
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
@@ -296,8 +296,8 @@ In other words, the definitions of `Paab` and `Qaab` are equivalent to the terms
 
 More generally, for an right-associative operator `f` with nil terminator `nil`,
 the term `(f t1 ... tn)` is de-sugared based on whether each `t1 ... tn` is marked with `:list`.
-- The nil terminator is inserted at the end unless `tn` is marked as `:list`,
-- When `ti` is marked as `:list` where `1<=i<n`, then the term denotes the result of a concatentation operation. For example, `(f a b)` is desugared to the term `(alf.concat f a b)` when both `a` and `b` are marked as list variables. The semantics of `alf.concat` is provided later in [].
+- The nil terminator is inserted at the tail of the function application unless `tn` is marked as `:list`,
+- If `ti` is marked as `:list` where `1<=i<n`, then the term denotes the result of a concatentation operation. For example, `(f a b)` is desugared to the term `(alf.concat f a b)` when both `a` and `b` are marked as list variables. The semantics of `alf.concat` is provided later in [].
 
 ### Chainable
 
@@ -368,6 +368,7 @@ We remark on the semantics in the following.
 
 In the following, we say a term is *ground* if it contains no parameters as subterms.
 We say an *arithmetic value* is a numeral, decimal or rational value.
+A 32-bit numeral value is a numeral value between `0` and `2^32-1`.
 
 Core operators:
 - `(alf.is_eq t1 t2)`
@@ -394,17 +395,17 @@ Boolean operators:
 Arithmetic operators:
 - `(alf.add t1 t2)`
     - If `t1` and `t2` are arithmetic values, then this returns the multiplication of `t1` and `t2`, which is a rational value if either of `t1, t2` is a rational value, or a numeral value otherwise.
-    - If `t1` and `t2` are binary constants of the same bitwidth, this returns the binary value corresponding to their (unsigned) addition modulo their bitwidth.
+    - If `t1` and `t2` are binary values of the same bitwidth, this returns the binary value corresponding to their (unsigned) addition modulo their bitwidth.
 - `(alf.mul t1 t2)`
     - If `t1` and `t2` are arithmetic values, then this returns the multiplication of `t1` and `t2`, which is a rational value if either of `t1, t2` is a rational value, or a numeral value otherwise.
-    - If `t1` and `t2` are binary constants of the same bitwidth, this returns the binary value corresponding to their (unsigned) multiplication modulo their bitwidth.
+    - If `t1` and `t2` are binary values of the same bitwidth, this returns the binary value corresponding to their (unsigned) multiplication modulo their bitwidth.
 - `(alf.neg t1)`
     - If `t1` is a arithmetic value, this returns the arithmetic negation of `t1`.
     - If `t1` is a binary value, this returns its arithmetic negation.
 - `(alf.qdiv t1 t2)`
     - If `t1` and `t2` are arithmetic values and `t2` is non-zero, then this returns the rational division of `t1` and `t2`.
 - `(alf.zdiv t1 t2)`
-    - If `t1` and `t2` are numeral values and `t2` is non-zero, then this returns the integer division of `t1` and `t2`.
+    - If `t1` and `t2` are numeral values and `t2` is non-zero, then this returns the integer division (floor) of `t1` and `t2`.
 - `(alf.is_neg t1)`
     - If `t1` is an arithmetic value, this returns `true` if `t1` is zero and `false` otherwise. Otherwise, this operator is not evaluated.
 - `(alf.is_zero t1)`
@@ -430,17 +431,59 @@ Conversion operators:
     - If `t1` is a rational value, return `t1`.
     - If `t1` is a numeral value, this returns the (integral) rational value that is equivalent to `t1`.
 - `(alf.to_bin t1 t2)`
-    - If `t1` is a binary value and `t2` is a numeral value, this returns a binary value whose value is `t1` and whose bitwidth is `t2`.
+    - If `t1` is a binary value and `t2` is a 32-bit numeral value, this returns a binary value whose value is `t1` and whose bitwidth is `t2`.
     - If `t1` and `t2` are numeral values, return the binary value whose value is `t1` (modulo `2^t2`) and whose bitwidth is `t2`.
 - `(alf.to_str t1)`
     - If `t1` is a string value, return `t1`.
     - Otherwise, if `t1` is a binary or arithmetic value, return the string value corresponding to the result of printing `t1`.
 
+
+The ALF checker eagerly evaluates ground applications of computational operators.
+In other words, the term `(alf.add 1 1)` is syntactically equivalent in all contexts to `2`.
+
 ### Examples
 
 ```
+(alf.and true false)        == false
+(alf.add 1 1)               == 2
+(alf.add 1/2 1/3)           == 5/6
+(alf.add #b01 #b01)         == #b10
+(alf.qdiv 7 2)              == 7/2
+(alf.qdiv 7 0)              == (alf.qdiv 7 0)
+(alf.zdiv 7 2)              == 3
+(alf.xor #b111 #b011)       == #b100
+(alf.not #b1010)            == #b0101
+(alf.concat "abc" "def")    == "abcdef"
+(alf.find "abc" "bc")       == 1
+(alf.find "abc" "")         == 0
+(alf.find "abcdef" "g")     == -1
+(alf.to_bin 3 4)            == #b0011
+(alf.to_bin #b1 4)          == #b0001
+(alf.to_bin #b10101010 2)   == #b10
+(alf.to_str 123)            == "123"
 ```
-    
+Note the following examples of core operators:
+
+```
+(declare-sort Int 0)
+(declare-const x Int)
+(declare-const y Int)
+;;
+(alf.is_eq 0 1)                         == false
+(alf.is_eq x y)                         == false
+(alf.is_eq x x)                         == true
+(alf.requires x 0 true)                 == (alf.requires x 0 true)
+(alf.requires x x true)                 == true
+(alf.ite false x y)                     == y
+
+(alf.is_eq x (alf.requires x 0 x))      == false
+(alf.ite (alf.is_eq x 1) x y)           == y
+(alf.ite (alf.requires x 0 true) x y)   == (alf.ite (alf.requires x 0 true) x y)
+```
+
+In the above, it is important to note that `alf.is_eq` is a check for syntactic equality, and does not ensure that its arguments denote values.
+
+
 ## Extensions to lists
 
 Below, we assume that `f, t1, t2` are ground. Otherwise, the following operators do not evaluate.
@@ -449,7 +492,7 @@ List operators:
 - `(alf.cons f t1 t2)`
     - If `f` is a right associative operator with nil terminator with nil terminator `nil`, then this returns the term `(f t1 t2)`.
 - `(alf.concat f t1 t2)`
-    - If `f` is a right associative operator with nil terminator with nil terminator `nil`, then this returns `(f t11 ... t1n t2)` if `t1` is `(f t11 ... t1n)` for `n>0`, or `t2 if `t1` is `nil`. Otherwise, this operator does not evaluate.
+    - If `f` is a right associative operator with nil terminator with nil terminator `nil`, then this returns `(f t11 ... t1n t2)` if `t1` is `(f t11 ... t1n)` for `n>0`, or `t2` if `t1` is `nil`. Otherwise, this operator does not evaluate.
 - `(alf.extract f t1 t2)`
     - If `f` is a right associative operator with nil terminator with nil terminator `nil`, `t1` is `(f s0 ... s{n-1})`, and `t2` is a numeral value such that `0<=t2<n`, then this returns `s_{t2}`. Otherwise, this operator does not evaluate.
 - `(alf.find f t1 t2)`
