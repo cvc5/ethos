@@ -297,7 +297,7 @@ In other words, the definitions of `Paab` and `Qaab` are equivalent to the terms
 More generally, for an right-associative operator `f` with nil terminator `nil`,
 the term `(f t1 ... tn)` is de-sugared based on whether each `t1 ... tn` is marked with `:list`.
 - The nil terminator is inserted at the tail of the function application unless `tn` is marked as `:list`,
-- If `ti` is marked as `:list` where `1<=i<n`, then the term denotes the result of a concatentation operation. For example, `(f a b)` is desugared to the term `(alf.concat f a b)` when both `a` and `b` are marked as list variables. The semantics of `alf.concat` is provided later in [].
+- If `ti` is marked as `:list` where `1<=i<n`, then the term denotes the result of a concatentation operation. For example, `(f a b)` is desugared to the term `(alf.concat f a b)` when both `a` and `b` are marked as list variables. The semantics of `alf.concat` for list terms is provided later in [list-computation](#list-computation).
 
 ### Chainable
 
@@ -355,7 +355,7 @@ The following gives an example of how to define the class of numeral constants.
 In the above example, the `declare-consts` command specifies that numerals (`1`, `2`, `3`, and so on) are constants of type `Int`.
 The signature can now refer to arbitrary numerals in definitions, e.g. `7` in the definition of `P`.
 
-> Internally, the command above only impacts the type rule assigned to numerals that are parsed. Furthermore, the ALF checker internally distinguishes whether a term is a numeral value, independently of its type, for the purposes of computational operators (see [link](#computation)).
+> Internally, the command above only impacts the type rule assigned to numerals that are parsed. Furthermore, the ALF checker internally distinguishes whether a term is a numeral value, independently of its type, for the purposes of computational operators (see [computation](#computation)).
 
 > For specifying literals whose type rule varies based on the content of the constant, the ALF language uses a distinguished variable `alf.self` which can be used in `declare-consts` definitions. For an example, see the type rule for SMT-LIB bit-vector constants, described later in [].
 
@@ -518,7 +518,7 @@ Note the following examples of core operators for the given signature
 In the above, it is important to note that `alf.is_eq` is a check for syntactic equality.
 It does not ensure that its arguments denote values.
 
-## Extensions to lists
+## <a name="list-computation"></a> List computations
 
 Below, we assume that `f, t1, t2` are ground. Otherwise, the following operators do not evaluate.
 
