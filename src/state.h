@@ -5,16 +5,16 @@
 #include <set>
 #include <string>
 #include <unordered_map>
-#include <filesystem>
 
 #include "attr.h"
-#include "stats.h"
+#include "compiler.h"
 #include "expr.h"
 #include "expr_info.h"
 #include "expr_trie.h"
-#include "type_checker.h"
-#include "compiler.h"
 #include "literal.h"
+#include "stats.h"
+#include "type_checker.h"
+#include "util/filesystem.h"
 
 namespace alfc {
 
@@ -163,7 +163,7 @@ class State
   /** Get the constructor kind for symbol v */
   Attr getConstructorKind(const ExprValue* v) const;
   /** Mark that file s was included */
-  bool markIncluded(const std::string& s);
+  bool markIncluded(const Filepath& s);
   /** mark deleted */
   void markDeleted(ExprValue* e);
   /** Make (<APPLY> children), curried. */
@@ -226,9 +226,9 @@ class State
   // std::map<std::tuple<Kind, std::string, const ExprValue *>, Expr> d_symcMap;
   //--------------------- includes
   /** input file */
-  std::filesystem::path d_inputFile;
+  Filepath d_inputFile;
   /** Cache of files included */
-  std::set<std::filesystem::path> d_includes;
+  std::set<Filepath> d_includes;
   /** Have we parsed a reference file to check assumptions? */
   bool d_hasReference;
   /** The reference normalization function, if it exists */

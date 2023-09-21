@@ -6,6 +6,7 @@
 #include "base/check.h"
 #include "base/output.h"
 #include "state.h"
+#include "util/filesystem.h"
 
 namespace alfc {
 
@@ -201,11 +202,12 @@ void Compiler::setLiteralTypeRule(Kind k, const Expr& t)
   d_init << "  d_tc.setLiteralTypeRule(Kind::" << k << ", _e" << id << ");" << std::endl;
 }
 
-void Compiler::includeFile(const std::string& s)
+void Compiler::includeFile(const Filepath& s)
 {
   Assert (d_nscopes==0);
-  d_init << "  markIncluded(\"" << s << "\");" << std::endl;
-  d_config << "  ss << std::setw(15) << \" \" << \"" << s << "\" << std::endl;" << std::endl;
+  d_init << "  markIncluded(\"" << s.getRawPath() << "\");" << std::endl;
+  d_config << "  ss << std::setw(15) << \" \" << \"" << s.getRawPath()
+           << "\" << std::endl;" << std::endl;
 }
 
 void Compiler::bind(const std::string& name, const Expr& e)
