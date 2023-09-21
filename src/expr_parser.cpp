@@ -640,6 +640,12 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList()
     // parse attribute list
     AttrMap attrs;
     parseAttributeList(v, attrs);
+    bool isImplicit = false;
+    if (attrs.find(Attr::IMPLICIT)!=attrs.end())
+    {
+      attrs.erase(Attr::IMPLICIT);
+      isImplicit = true;
+    }
     if (processAttributeMap(attrs, ck, cons))
     {
       d_state.markConstructorKind(v, ck, cons);
@@ -647,7 +653,10 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList()
       cons = d_null;
     }
     d_lex.eatToken(Token::RPAREN);
-    varList.push_back(v);
+    if (!isImplicit)
+    {
+      varList.push_back(v);
+    }
   }
   return varList;
 }

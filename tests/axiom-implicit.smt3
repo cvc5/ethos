@@ -1,0 +1,8 @@
+(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-axiom refl ((T Type :implicit) (t T))
+    (= t t)
+)
+
+(declare-const a Bool)
+
+(step @p0 (= a a) :rule refl :args (a))

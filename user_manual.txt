@@ -575,11 +575,11 @@ Note the following definition is equivalent to the previously declared version o
 ```
 (declare-const = (-> (! Type :var T :implicit) T T Bool))
 (declare-axiom refl ((T Type :implicit) (t T))
-    (= t t))
+    (= t t)
 )
 ```
 The argument `T` to `refl` has been marked as `:implicit`, and thus it does not appear in the
-argument
+argument.
 
 
 # Writing Proofs
