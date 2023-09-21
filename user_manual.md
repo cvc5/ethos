@@ -582,7 +582,7 @@ The terms on both sides of the given evaluation are written in their form prior 
 (declare-consts <numeral> Int)
 (declare-type BitVec (Int))
 
-(declare-const bvconcat (->
+(declare-const concat (->
   (! Int :var n :implicit)
   (! Int :var m :implicit)
   (BitVec n)
@@ -591,8 +591,23 @@ The terms on both sides of the given evaluation are written in their form prior 
 
 (declare-fun x () (BitVec 2))
 (declare-fun y () (BitVec 3))
-(define-fun z () (BitVec 5) (bvconcat x y))
+(define-fun z () (BitVec 5) (concat x y))
 ```
+
+Above, we define a type declaration for `BitVec` that expects an integer (i.e. denoting the bitwidth) as an argument.
+Then, a type rule is given for bitvector concatenation `concat`, involves the result of invoking `alf.add` on the bitwidth of its two arguments.
+
+Since `alf.add` only evaluates on numeral values, this means that this type rule will only give the intended result when the bitwidth arguments to this function are concrete.
+If on the other hand we defined:
+```
+...
+(declare-const a Int)
+(declare-const b Int)
+(declare-fun x2 () (BitVec a))
+(declare-fun y2 () (BitVec b))
+```
+The type of `(concat x2 y2)` is the above example would be `(BitVec (alf.add a b))`.
+Further use of this term would lead to type checking errors, in particular since the ALF checker does not support matching on computational operators.
 
 ## Type rule for BitVector constants
 
@@ -605,7 +620,9 @@ The terms on both sides of the given evaluation are written in their form prior 
 
 (define-const x (BitVec 3) #b000)
 ```
-
+To define the class of binary values, whose type depends on the number of bits they contain, the ALF checker provides support for a distinguished parameter `alf.self`.
+The type checker for values applies the substitution mapping `alf.self` to the term being type checked.
+This means that when type checking the binary constant `#b0000`, its type prior to evaluation is `(BitVec (alf.len #b0000))`, which evaluates to `(BitVec 4)`.
 
 # Declaring Proof Rules
 
