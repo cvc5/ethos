@@ -379,35 +379,43 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
     case Kind::EVAL_EXTRACT:
       if (args[1]->d_kind==Kind::NUMERAL && args[2]->d_kind==Kind::NUMERAL)
       {
-        switch (args[0]->d_kind)
+        const Integer& i1 = args[1]->d_int;
+        const Integer& i2 = args[2]->d_int;
+        Kind ka = args[0]->d_kind;
+        switch (ka)
         {
           // extract is high to low
           case Kind::HEXADECIMAL:
           case Kind::BINARY:
-            if (args[1]->d_int.fitsUnsignedInt() && args[2]->d_int.fitsUnsignedInt())
+          {
+            Integer dsize(args[0]->d_bv.getSize());
+            if (i1.sgn()<0 || i2.sgn()<0 || i1>dsize || dsize.sgn()==0)
             {
-              uint32_t v1 = args[1]->d_int.toUnsignedInt();
-              uint32_t v2 = args[2]->d_int.toUnsignedInt();
-              if (v1<=v2)
-              {
-                return Literal(args[0]->d_kind, args[0]->d_bv.extract(v2, v1));
-              }
+              return Literal(ka, BitVector(0));
             }
+            Assert (i1.fitsUnsignedInt() && dsize.fitsUnsignedInt());
+            uint32_t v1 = i1.toUnsignedInt();
+            uint32_t vs = dsize.toUnsignedInt();
+            uint32_t v2 = i2>dsize ? vs-1 : i2.toUnsignedInt();
+            if (v1>v2)
+            {
+              return Literal(ka, BitVector(0));
+            }
+            return Literal(ka, args[0]->d_bv.extract(v2, v1));
+          }
             break;
           case Kind::STRING:
           {
-            Integer ssize(args[0]->d_str.size());
-            const Integer& i1 = args[1]->d_int;
-            const Integer& i2 = args[2]->d_int;
-            if (i1.sgn()<0 || i2.sgn()<=0 || i1>ssize)
+            Integer dsize(args[0]->d_str.size());
+            if (i1.sgn()<0 || i2.sgn()<0 || i1>dsize || dsize.sgn()==0)
             {
               return Literal(String(""));
             }
+            Assert (i1.fitsUnsignedInt() && dsize.fitsUnsignedInt());
             uint32_t v1 = i1.toUnsignedInt();
-            uint32_t v2 = i2.toUnsignedInt();
-            uint32_t vs = ssize.toUnsignedInt();
-            v2 = v2>vs ? vs : v2;
-            size_t esize = v2>=v1 ? (v2-v1) : 0;
+            uint32_t vs = dsize.toUnsignedInt();
+            uint32_t v2 = (i1+i2)>=dsize ? vs-1 : i2.toUnsignedInt();
+            size_t esize = v2>=v1 ? (v2+1-v1) : 0;
             return Literal(String(args[0]->d_str.substr(v1, esize)));
           }
             break;

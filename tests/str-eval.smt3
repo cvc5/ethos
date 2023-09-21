@@ -30,7 +30,7 @@
       ((str.eval (str.++ a b))       (alf.concat (str.eval a) (str.eval b)))
       ((str.eval (str.len a))        (alf.len (str.eval a)))
       ((str.eval (str.substr a n m)) (let ((en (str.eval n)))
-                                        (alf.extract (str.eval a) en (alf.add en (str.eval m)))))
+                                        (alf.extract (str.eval a) en (alf.add en (alf.add (alf.neg 1) (str.eval m))))))
       ((str.eval (str.indexof a b n))(let ((en (str.eval n)))
                                      (let ((ea (str.eval a)))
                                      (let ((eas (str.eval (str.substr ea en (str.len ea)))))

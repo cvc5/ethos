@@ -357,6 +357,8 @@ The signature can now refer to arbitrary numerals in definitions, e.g. `7` in th
 
 > Internally, the command above only impacts the type rule assigned to numerals that are parsed. Furthermore, the ALF checker internally distinguishes whether a term is a numeral value, independently of its type, for the purposes of computational operators (see []).
 
+> For specifying literals whose type rule varies based on the content of the constant, the ALF language uses a distinguished variable `alf.self` which can be used in `declare-consts` definitions. For an example, see the type rule for SMT-LIB bit-vector constants, described later in [].
+
 # Computational Operators in alfc
 
 The ALF checker has builtin support for computations over all syntactic categories of SMT-LIB version 3.0.
@@ -369,6 +371,7 @@ We remark on the semantics in the following.
 In the following, we say a term is *ground* if it contains no parameters as subterms.
 We say an *arithmetic value* is a numeral, decimal or rational value.
 A 32-bit numeral value is a numeral value between `0` and `2^32-1`.
+Binary values are considered to be in little endian form.
 
 Core operators:
 - `(alf.is_eq t1 t2)`
@@ -401,7 +404,7 @@ Arithmetic operators:
     - If `t1` and `t2` are binary values of the same bitwidth, this returns the binary value corresponding to their (unsigned) multiplication modulo their bitwidth.
 - `(alf.neg t1)`
     - If `t1` is a arithmetic value, this returns the arithmetic negation of `t1`.
-    - If `t1` is a binary value, this returns its arithmetic negation.
+    - If `t1` is a binary value, this returns its (signed) arithmetic negation.
 - `(alf.qdiv t1 t2)`
     - If `t1` and `t2` are arithmetic values and `t2` is non-zero, then this returns the rational division of `t1` and `t2`.
 - `(alf.zdiv t1 t2)`
@@ -418,15 +421,16 @@ String operators:
     - The concatenation of bits if `t1` and `t2` are binary values.
     - The concatenation of strings if `t1` and `t2` are string values.
 - `(alf.extract t1 t2 t3)`
-    - If `t1` is a binary value and `t2` and `t3` are numeral values,
-    - If `t1` is a string value and `t2` and `t3` are numeral values,
+    - If `t1` is a binary value and `t2` and `t3` are numeral values, this returns the binary value corresponding to the bits in `t1` from position `t2` through `t3` if `0<=t2`, or the empty binary value otherwise.
+    - If `t1` is a string value and `t2` and `t3` are numeral values, this returns the string value corresponding to the characters in `t1` from position `t2` through `t3` inclusive if `0<=t2`, or the empty string value otherwise.
 - `(alf.find t1 t2)`
     - If `t1` and `t2` are string values, this returns a numeral value corresponding to the first index (left to right) where `t2` occurs as a substring of `t1`, or the numeral value `-1` otherwise.
 Conversion operators:
 - `(alf.to_z t1)`
     - If `t1` is a numeral value, return `t1`.
+    - If `t1` is a rational value, return the numeral value corresponding to the floor of `t1`.
     - If `t1` is a binary value, this returns the numeral value corresponding to `t1`.
-    - If `t1` is a string value containing only digits, this returns the numeral value
+    - If `t1` is a string value containing only digits, this returns the numeral value. This operation is agnostic to leading zeroes.
 - `(alf.to_q t1)`
     - If `t1` is a rational value, return `t1`.
     - If `t1` is a numeral value, this returns the (integral) rational value that is equivalent to `t1`.
@@ -445,24 +449,53 @@ In other words, the term `(alf.add 1 1)` is syntactically equivalent in all cont
 
 ```
 (alf.and true false)        == false
+(alf.and #b1110 #b0110)     == #b0110
+(alf.or true false)         == true
+(alf.xor true true)         == false
+(alf.xor #b111 #b011)       == #b100
+(alf.not true)              == false
+(alf.not #b1010)            == #b0101
 (alf.add 1 1)               == 2
 (alf.add 1/2 1/3)           == 5/6
 (alf.add #b01 #b01)         == #b10
+(alf.mul 1/2 1/4)           == 1/8
+(alf.neg -15)               == 15
 (alf.qdiv 7 2)              == 7/2
 (alf.qdiv 7 0)              == (alf.qdiv 7 0)
+(alf.zdiv 12 3)             == 4
 (alf.zdiv 7 2)              == 3
-(alf.xor #b111 #b011)       == #b100
-(alf.not #b1010)            == #b0101
+(alf.is_neg 0)              == false
+(alf.is_neg -7/2)           == true
+(alf.is_zero 1/100)         == false
+(alf.len "abc")             == 3
+(alf.len #b11100)           == 5
 (alf.concat "abc" "def")    == "abcdef"
+(alf.concat #b000 #b11)     == #b00011
+(alf.extract "abcdef" 0 1)  == "ab"
+(alf.extract "abcdef" -1 3) == ""
+(alf.extract "abcdef" 1 10) == "bcdef"
+(alf.extract #b11100 2 5)   == #b111
+(alf.extract #b11100 2 1)   == #b
+(alf.extract #b111000 1 10) == #b11100
+(alf.extract #b10 -1 2)     == #b
 (alf.find "abc" "bc")       == 1
 (alf.find "abc" "")         == 0
 (alf.find "abcdef" "g")     == -1
+(alf.to_z 3/2)              == 1
+(alf.to_z 45)               == 45
+(alf.to_z "451")            == 451
+(alf.to_z "0051")           == 51
+(alf.to_z "5a1")            == (alf.to_z "5a1")
+(alf.to_q 6)                == 6/1
 (alf.to_bin 3 4)            == #b0011
 (alf.to_bin #b1 4)          == #b0001
 (alf.to_bin #b10101010 2)   == #b10
 (alf.to_str 123)            == "123"
+(alf.to_str 1/2)            == "1/2"
+(alf.to_str #b101)          == "#b101"
 ```
-Note the following examples of core operators:
+
+Note the following examples of core operators for the given signature
 
 ```
 (declare-sort Int 0)
@@ -476,13 +509,14 @@ Note the following examples of core operators:
 (alf.requires x x true)                 == true
 (alf.ite false x y)                     == y
 
+(alf.is_eq 2 (alf.add 1 1))             == true
 (alf.is_eq x (alf.requires x 0 x))      == false
 (alf.ite (alf.is_eq x 1) x y)           == y
 (alf.ite (alf.requires x 0 true) x y)   == (alf.ite (alf.requires x 0 true) x y)
 ```
 
-In the above, it is important to note that `alf.is_eq` is a check for syntactic equality, and does not ensure that its arguments denote values.
-
+In the above, it is important to note that `alf.is_eq` is a check for syntactic equality.
+It does not ensure that its arguments denote values.
 
 ## Extensions to lists
 
@@ -499,13 +533,40 @@ List operators:
     - If `f` is a right associative operator with nil terminator with nil terminator `nil` and `t1` is `(f s0 ... s{n-1})`, then this returns the smallest numeral value `i` such that `t2` is syntactically eqaul to `si`, or `-1` if no such `si` can be found.
 
 
-We now give some examples of how these operators can be leveraged in definitions.
 
-## Type rules for BitVector concatentation.
 
+We now give some examples of how computational operators can be leveraged in definitions.
+
+## Type rule for BitVector concatentation
+
+```
+(declare-sort Int 0)
+(declare-consts <numeral> Int)
+(declare-type BitVec (Int))
+
+(declare-const bvconcat (->
+  (! Int :var n :implicit)
+  (! Int :var m :implicit)
+  (BitVec n)
+  (BitVec m)
+  (BitVec (alf.add n m))))
+
+(declare-fun x () (BitVec 2))
+(declare-fun y () (BitVec 3))
+(define-fun z () (BitVec 5) (bvconcat x y))
+```
 
 ## Type rule for BitVector constants
 
+```
+(declare-sort Int 0)
+(declare-consts <numeral> Int)
+(declare-type BitVec (Int))
+
+(declare-consts <binary> (BitVec (alf.len alf.self)))
+
+(define-const x (BitVec 3) #b000)
+```
 
 
 # Declaring Proof Rules

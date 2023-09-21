@@ -115,7 +115,7 @@
     ((string_flatten_word t) 
       (alf.ite (check_length_one t) 
         (alf.cons str.++ t alf.nil)
-        (alf.cons str.++ (alf.extract t 0 1) (string_flatten_word (alf.extract t 1 (alf.len t))))))
+        (alf.cons str.++ (alf.extract t 0 0) (string_flatten_word (alf.extract t 1 (alf.len t))))))
   )
 )
 (program string_flatten ((U Type) (t U) (tail U :list) (tail2 U :list))
