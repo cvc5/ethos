@@ -106,6 +106,8 @@ The ALF language contains further commands for declaring symbols that are not st
 
 > Variables are internally treated the same as constants by the ALF checker, but are provided as a separate category, e.g. for user signatures that wish to distinguish universally quantified variables from free constants.
 
+> Symbols cannot be overloaded in the ALF checker.
+
 ### Basic Declarations
 
 ```
@@ -120,7 +122,7 @@ Since alfc does not assume any builtin definitions of SMT-LIB theories, definiti
 
 Note that despite using different syntax in their declarations, the types of `f` and `g` in the above example are identical.
 
-> In alfc, all functions are unary. In the above example, `(-> Int Int Int)` is internally treated as `(-> Int (-> Int Int))`. Correspondingly, applications of functions are curried, e.g. `(f a b)` is treated as `(_ (_ f a) b)` where `_` denotes higher-order function application.
+> In alfc, all functions are unary. In the above example, `(-> Int Int Int)` is internally treated as `(-> Int (-> Int Int))`. Correspondingly, applications of functions are curried, e.g. `(f a b)` is treated as `((f a) b)`, which in turn can be seen as `(_ (_ f a) b)` where `_` denotes higher-order function application.
 
 ### Definitions
 
@@ -205,9 +207,9 @@ Arguments to functions can also be annotated with the attribute `:requires (<ter
 The above declares the integer sort and the bitvector sort that expects a non-negative integer `w`.
 
 In detail, the first argument of `BitVec` is an integer sort, which is named `w` via `:var`.
-The second annotation indicates that `(alf.is_neg w)` must evaluate to `false`, where note that `alf.is_neg` returns `true` if and only if its argument is a negative numeral (for details, see []).
+The second annotation indicates that `(alf.is_neg w)` must evaluate to `false`, where note that `alf.is_neg` returns `true` if and only if its argument is a negative numeral (for details, see [computation](#computation)).
 
-> Internally, `(! T :requires (t s))` is syntax sugar for `(alf.requires t s T)` where `alf.requires` is an operator that evalutes to its third argument if and only if its first two arguments are equivalent (details on this operator are given in []). Furthermore, the function type `(-> (alf.requires t s T) S)` is treated as `(-> T (alf.requires t s S))`. The ALF checker rewrites all types of the former to the latter.
+> Internally, `(! T :requires (t s))` is syntax sugar for `(alf.requires t s T)` where `alf.requires` is an operator that evalutes to its third argument if and only if its first two arguments are equivalent (details on this operator are given in [computation](#computation)). Furthermore, the function type `(-> (alf.requires t s T) S)` is treated as `(-> T (alf.requires t s S))`. The ALF checker rewrites all types of the former to the latter.
 
 ## Declarations with attributes
 
@@ -559,10 +561,10 @@ The terms on both sides of the given evaluation are written in their form prior 
 
 (alf.concat or (or a b) (or b))     == (or a b b)
 (alf.concat or false (or b))        == (or b)
-(alf.concat or (or a) (or b))       == (or a b)
 (alf.concat or (or a b b) false)    == (or a b b)
 (alf.concat or a (or b))            == (alf.concat or a (or b))
 (alf.concat or (or a) b)            == (alf.concat or (or a) b)
+(alf.concat or (or a) (or b))       == (or a b)
 (alf.concat or (and a b) false)     == (alf.concat or (and a b) false)
 
 (alf.extract or (or a b a) 1)       == b
@@ -941,7 +943,7 @@ The ALF checker supports an operator `alf.match` for performing pattern matching
 ```
 (alf.match (<typed-param>*) <term> ((<term> <term>)*))
 ```
-The term `(alf.match V t ((s1 r1) ... (sn rn)))` finds the first term `si` in the list `s1 ... sn` that `t` can be matched with under some substitution and returns the result of applying that substitution to `ri`.
+The term `(alf.match (...) t ((s1 r1) ... (sn rn)))` finds the first term `si` in the list `s1 ... sn` that `t` can be matched with under some substitution and returns the result of applying that substitution to `ri`.
 
 > Similar to programs, the free parameters of `ri` must be a subset of `si`, or else an error is thrown.
 

@@ -13,7 +13,6 @@ TODO:
 - warn unused parameters
 - n-ary literal ops
 - don't always use mkExprInternal in evaluate
-- Literal inherits from ExprValue
 
 COMPLETED:
 
@@ -41,6 +40,7 @@ COMPLETED:
 - type field separate from Expr? (to save memory)
 - Temporary memory allocation of Expr within calls to evaluation?
 - memory safe
+- Literal inherits from ExprValue
 
 CVC5-TODO:
 
