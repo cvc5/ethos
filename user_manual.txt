@@ -336,7 +336,7 @@ Similarly, hexadecimal literals will be treated as syntax sugar for binary liter
 
 > Note that the user does not specify that `true` and `false` are values of type `Bool`. Instead, it is assumed that the syntactic category `<boolean>` of Boolean values (`true` and `false`) has been associated with the Boolean sort. In other words, `(declare-consts <boolean> Bool)` is a part of the builtin ALF signature.
 
-### Declare constants
+### Declaring classes of literals
 
 The following gives an example of how to define the class of numeral constants.
 ```
@@ -345,14 +345,14 @@ The following gives an example of how to define the class of numeral constants.
 (declare-fun P ((x Int)) Bool (> x 7))
 ```
 
-In the above example, the `declare-consts` command specifies that numerals (`1`, `2`, `3`, and so on) have type `Int`.
+In the above example, the `declare-consts` command specifies that numerals (`1`, `2`, `3`, and so on) are constants of type `Int`.
 The signature can now refer to arbitrary numerals in definitions, e.g. `7` in the definition of `P`.
 
-> Internally, the command above only impacts the type rule assigned to numerals that are parsed. Furthermore, the ALF checker internally distinguishes whether a term is a numeral, independently of its type, for the purposes of computational operators (see []).
+> Internally, the command above only impacts the type rule assigned to numerals that are parsed. Furthermore, the ALF checker internally distinguishes whether a term is a numeral value, independently of its type, for the purposes of computational operators (see []).
 
 # Computational Operators in alfc
 
-The ALF checker has builtin support for efficient computations over all syntactic categories of SMT-LIB version 3.0.
+The ALF checker has builtin support for computations over all syntactic categories of SMT-LIB version 3.0.
 We list the operators below, roughly categorized by domain.
 However, note that the operators are polymorphic and in some cases can be applied to multiple syntactic categories.
 For example, `alf.add` returns the result of adding two integers or rationals, but also can be used to add binary constants (integers modulo a given bitwidth).
@@ -433,15 +433,17 @@ Conversion operators:
     
 ## Extensions to lists
 
+Below, we assume that `f, t1, t2` are ground. Otherwise, the following operators do not evaluate.
+
 List operators:
 - `(alf.cons f t1 t2)`
-    - If `f` is a right (resp. left) associative operator with nil terminator with nil terminator `nil`,
+    - If `f` is a right associative operator with nil terminator with nil terminator `nil`,
 - `(alf.concat f t1 t2)`
-    - If `f` is a right (resp. left) associative operator with nil terminator with nil terminator `nil`,
+    - If `f` is a right associative operator with nil terminator with nil terminator `nil`,
 - `(alf.extract f t1 t2)`
-    - If `f` is a right (resp. left) associative operator with nil terminator with nil terminator `nil`,
+    - If `f` is a right associative operator with nil terminator with nil terminator `nil`,
 - `(alf.find f t1 t2)`
-    - If `f` is a right (resp. left) associative operator with nil terminator with nil terminator `nil`,
+    - If `f` is a right associative operator with nil terminator with nil terminator `nil`,
 
     
 
@@ -662,9 +664,13 @@ For program `f`, This list is expected to be a list of terms of the form `(((f t
 where `t11...t1n, ..., tm1...tmn` do not contain computational operators.
 A (ground) term `(f s1 ... sn)` evaluates by finding the first term in the first position of a pair of this list that matches it for substitution `S`, and returns the result of applying `S` to the right hand side of that pair.
 
-> Program bodies are not statically typed. Evaluating a program may introduce non-well-typed terms if the program body is malformed.
+> Terms in program bodies are not statically type checked. Evaluating a program may introduce non-well-typed terms if the program body is malformed.
 
-### Example: Contains
+> For each case `((f ti1 ... tin) ri)` in the program body, the free parameters in `ri` are expected to be a subset of the free parameters in `(f ti1 ... tin)`. Otherwise, an error is thrown.
+
+> If a case is provided `(si ri)` in the definition of program `f` where `si` is not an application of `f`, an error is thrown.
+
+### Example: Contains in a `or` term
 
 The following program (recursively) computes whether a formula `l` is contained as the direct child of an application of `or`:
 ```
@@ -690,13 +696,79 @@ Otherwise, terms of the form `(contains l (or x xs))` reduce to `(contains l xs)
 
 ### Example: Substitution
 
-### Example: Transitivity rule with arbitrary arguments
+```
+(program substitute
+  ((T Type) (U Type) (S Type) (x S) (y S) (f (-> T U)) (a T) (z U))
+  (S S U) U
+  (
+  ((substitute x y x)     y)
+  ((substitute x y (f a)) (_ (substitute x y f) (substitute x y a)))
+  ((substitute x y z)     z)
+  )
+)
+```
+
 
 ### Example: A computational type rule
 
-### Example: Match
+```
+(declare-sort Int 0)
+(declare-sort Real 0)
+(program arith.typeunion ()
+    (Type Type) Type
+    (
+      ((arith.typeunion Int Int) Int)
+      ((arith.typeunion Int Real) Real)
+      ((arith.typeunion Real Int) Real)
+      ((arith.typeunion Real Real) Real)
+    )
+)
+(declare-const + (-> (! Type :var T :implicit)
+                     (! Type :var U :implicit)
+                     T U (arith.typeunion T U)))
+```
+
 
 ### Example: Term evaluator
+
+
+## Match statements in ALF
+
+The ALF checker supports an operator `alf.match` for performing pattern matching on a target term. The syntax of this term is:
+```
+(alf.match (<typed-param>*) <term> ((<term> <term>)*))
+```
+The term `(alf.match V t ((s1 r1) ... (sn rn)))` finds the first term `si` in the list `s1 ... sn` that `t` can be matched with under some substitution and returns the result of applying that substitution to `ri`.
+
+> Similar to programs, the free parameters of `ri` must be a subset of `si`, or else an error is thrown.
+
+### Example:
+
+### Example: Transitivity proof rule with a premise list
+
+```
+(declare-sort Int 0)
+(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-const and (-> Bool Bool Bool) :left-assoc)
+
+(program mk_trans ((t1 Int) (t2 Int) (t3 Int) (t4 Int) (tail Bool :list))
+    (Int Int Bool) Bool
+    (
+        ((mk_trans t1 t2 (and (= t3 t4) tail)) (alf.requires t2 t3 (mk_trans t1 t4 tail)))
+        ((mk_trans t1 t2 true)                 (= t1 t2))
+    )
+)
+
+(declare-rule trans (E Bool))
+    :premise-list E and
+    :conclusion
+        (alf.match ((t1 Int) (t2 Int) (tail Bool :list))
+        E
+        ((and (= t1 t2) tail) (mk_trans t1 t2 tail)))
+)
+```
+
+For simplicity, the rule is given only for equalities of the integer sort, although this rule can be generalized.
 
 # Including and referencing files
 
@@ -749,6 +821,8 @@ This method can be used for handling solvers that interpret constant division as
 
 
 ## Example: Invoking the DRAT proof checker drat-trim.
+
+# Compiling signatures to C++
 
 # Appendix
 
