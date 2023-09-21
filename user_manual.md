@@ -377,9 +377,9 @@ Binary values are considered to be in little endian form.
 
 Core operators:
 - `(alf.is_eq t1 t2)`
-    - Returns `true` if `t1` and `t2` are (syntactically) equal, and `false` otherwise. Notice that the evaluation of `alf.is_eq` does not coincide the SMT-LIB semantics of equality, for example, it always returns `false` for any distinct pair of constants.
+    - Returns `true` if `t1` is (syntactically) equal to `t2`, or `false` if `t1` and `t2` are distinct and ground. Otherwise, it does not evaluate.
 - `(alf.ite t1 t2 t3)`
-    - Returns `t2` if `t1` evaluates to `true`, `t3` if `t2` evaluates to `false`, and is not evaluated otherwise. Note that the branches of this term are only evaluated if they are the returned term of the `ite`.
+    - Returns `t2` if `t1` evaluates to `true`, `t3` if `t2` evaluates to `false`, and is not evaluated otherwise. Note that the branches of this term are only evaluated if they are the return term.
 - `(alf.requires t1 t2 t3)`
     - Returns `t3` if `t1` is (syntactically) equal to `t2`, and is not evaluated otherwise.
 - `(alf.hash t1)`
@@ -443,7 +443,6 @@ Conversion operators:
     - If `t1` is a string value, return `t1`.
     - Otherwise, if `t1` is a binary or arithmetic value, return the string value corresponding to the result of printing `t1`.
 
-
 The ALF checker eagerly evaluates ground applications of computational operators.
 In other words, the term `(alf.add 1 1)` is syntactically equivalent in all contexts to `2`.
 
@@ -506,13 +505,17 @@ Note the following examples of core operators for the given signature
 (declare-sort Int 0)
 (declare-const x Int)
 (declare-const y Int)
+(declare-const a Bool)
 ;;
 (alf.is_eq 0 1)                         == false
 (alf.is_eq x y)                         == false
 (alf.is_eq x x)                         == true
 (alf.requires x 0 true)                 == (alf.requires x 0 true)
-(alf.requires x x true)                 == true
+(alf.requires x x y)                    == y
+(alf.requires x x Int)                  == Int
 (alf.ite false x y)                     == y
+(alf.ite true Bool Int)                 == Bool
+(alf.ite a x x)                         == (alf.ite a x x)
 
 (alf.is_eq 2 (alf.add 1 1))             == true
 (alf.is_eq x (alf.requires x 0 x))      == false
@@ -520,8 +523,8 @@ Note the following examples of core operators for the given signature
 (alf.ite (alf.requires x 0 true) x y)   == (alf.ite (alf.requires x 0 true) x y)
 ```
 
-In the above, it is important to note that `alf.is_eq` is a check for syntactic equality, after evaluation.
-It does not ensure that its arguments denote values.
+In the above, it is important to note that `alf.is_eq` is a check for syntactic equality after evaluation.
+It does not require that its arguments denote values, so for example `(alf.is_eq x y)` returns `false`.
 
 ## <a name="list-computation"></a> List computations
 
@@ -1053,6 +1056,21 @@ The ALF command line interface can be invoked by `alfc <option>* <file>` where `
 
 This section overviews the semantics of proofs in the ALF language.
 Proof checking can be seen as a special instance of type checking terms involving the `Proof` and `Quote` types.
+The type system of the ALF can be summarized as follows, where `t : U` are assumed axioms for all atomic terms `t` of type `U`:
+
+```
+f : (-> (Quote u) S)  t : T
+---------------------------- if u * sigma = t
+(f t) : S * sigma
+
+
+f : (-> U S)  t : T
+------------------- if U * sigma = T
+(f t) : S * sigma
+
+for all other (non-Quote) types U.
+
+```
 
 ### Declared rules
 
