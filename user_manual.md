@@ -355,11 +355,11 @@ The following gives an example of how to define the class of numeral constants.
 In the above example, the `declare-consts` command specifies that numerals (`1`, `2`, `3`, and so on) are constants of type `Int`.
 The signature can now refer to arbitrary numerals in definitions, e.g. `7` in the definition of `P`.
 
-> Internally, the command above only impacts the type rule assigned to numerals that are parsed. Furthermore, the ALF checker internally distinguishes whether a term is a numeral value, independently of its type, for the purposes of computational operators (see []).
+> Internally, the command above only impacts the type rule assigned to numerals that are parsed. Furthermore, the ALF checker internally distinguishes whether a term is a numeral value, independently of its type, for the purposes of computational operators (see #computation).
 
 > For specifying literals whose type rule varies based on the content of the constant, the ALF language uses a distinguished variable `alf.self` which can be used in `declare-consts` definitions. For an example, see the type rule for SMT-LIB bit-vector constants, described later in [].
 
-# Computational Operators in alfc
+# <a name="computation"></a>Computational Operators in alfc
 
 The ALF checker has builtin support for computations over all syntactic categories of SMT-LIB version 3.0.
 We list the operators below, roughly categorized by domain.
@@ -445,7 +445,7 @@ Conversion operators:
 The ALF checker eagerly evaluates ground applications of computational operators.
 In other words, the term `(alf.add 1 1)` is syntactically equivalent in all contexts to `2`.
 
-### Examples
+### Computation Examples
 
 ```
 (alf.and true false)        == false
@@ -532,10 +532,12 @@ List operators:
 - `(alf.find f t1 t2)`
     - If `f` is a right associative operator with nil terminator with nil terminator `nil` and `t1` is `(f s0 ... s{n-1})`, then this returns the smallest numeral value `i` such that `t2` is syntactically eqaul to `si`, or `-1` if no such `si` can be found.
 
+### List Computation Examples
 
+```
 
+```
 
-We now give some examples of how computational operators can be leveraged in definitions.
 
 ## Type rule for BitVector concatentation
 
@@ -695,7 +697,7 @@ The argument `T` to `refl` has been marked as `:implicit`, and thus it does not 
 argument.
 
 
-# Writing Proofs
+#  <a name="proofs"></a> Proofs
 
 The ALF language provies the commands `assume` and `step` for defining proofs. Their syntax is given by:
 ```
