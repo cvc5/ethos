@@ -523,14 +523,15 @@ It does not ensure that its arguments denote values.
 
 ## <a name="list-computation"></a> List computations
 
-Below, we assume that `f, t1, t2` are ground. Otherwise, the following operators do not evaluate.
+Below, we assume that `f` is right associative operator with nil terminator `nil` and `t1, t2` are ground. Otherwise, the following operators do not evaluate.
 We describe the evaluation for right associative operators; left associative evaluation is defined analogously.
+We say that a term is an `f`-list with children `t1 ... tn` if it is of the form `(f t1 ... tn)` where `n>0` or `nil` if `n=0`.
 
 List operators:
 - `(alf.cons f t1 t2)`
-    - If `f` is a right associative operator with nil terminator with nil terminator `nil`, then this returns the term `(f t1 t2)`. That is, `t2` is treated as a list term; the nil terminator is not added to end of this application.
+    - If `t2` is an `f`-list, then this returns the term `(f t1 t2)`.
 - `(alf.concat f t1 t2)`
-    - If `f` is a right associative operator with nil terminator with nil terminator `nil`, then this returns `(f t11 ... t1n t2)` if `t1` is `(f t11 ... t1n)` for `n>0`, or `t2` if `t1` is `nil`. Otherwise, this operator does not evaluate. Note that `t2` is treated as a list term.
+    - If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, this returns `(f t11 ... t1n t21 ... t2m)` if `n+m>0` and `nil` otherwise. Otherwise, this operator does not evaluate.
 - `(alf.extract f t1 t2)`
     - If `f` is a right associative operator with nil terminator with nil terminator `nil`, `t1` is `(f s0 ... s{n-1})`, and `t2` is a numeral value such that `0<=t2<n`, then this returns `s_{t2}`. Otherwise, this operator does not evaluate.
 - `(alf.find f t1 t2)`
@@ -550,6 +551,7 @@ The terms on both sides of the given evaluation are written in their form prior 
 (alf.cons or false (or a b))        == (or false a b)
 (alf.cons or (or a b) (or b))       == (or (or a b) b)
 (alf.cons or false false)           == false
+(alf.cons or a b)                   == (alf.cons or a b)
 (alf.cons or a (or b))              == (or a b)
 (alf.cons and (or a b) (and b))     == (and (or a b) b)
 (alf.cons and true (and a))         == (and a)
@@ -558,9 +560,10 @@ The terms on both sides of the given evaluation are written in their form prior 
 (alf.concat or (or a b) (or b))     == (or a b b)
 (alf.concat or false (or b))        == (or b)
 (alf.concat or (or a) (or b))       == (or a b)
-(alf.concat or (or a b) false)      == (or a b)
-(alf.concat or a b)                 == (alf.concat or a b)
-(alf.concat or (and a b) b)         == (alf.concat or (and a b) b)
+(alf.concat or (or a b b) false)    == (or a b b)
+(alf.concat or a (or b))            == (alf.concat or a (or b))
+(alf.concat or (or a) b)            == (alf.concat or (or a) b)
+(alf.concat or (and a b) false)     == (alf.concat or (and a b) false)
 
 (alf.extract or (or a b a) 1)       == b
 (alf.extract or (or a) 0)           == a
@@ -750,7 +753,7 @@ The argument `T` to `refl` has been marked as `:implicit`, and thus it does not 
 argument.
 
 
-#  <a name="proofs"></a> Proofs
+#  <a name="proofs"></a> Writing Proofs
 
 The ALF language provies the commands `assume` and `step` for defining proofs. Their syntax is given by:
 ```

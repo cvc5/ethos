@@ -1140,19 +1140,31 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     }
       break;
     case Kind::EVAL_CONS:
-      ret = args[tailIndex];
-      hargs.push_back(args[headIndex]);
-      break;
     case Kind::EVAL_CONCAT:
     {
-      // note we take the tail verbatim
-      ret = args[tailIndex];
-      // extract all children of the head
-      ExprValue* a = getNAryChildren(args[headIndex], op, nil, hargs, isLeft);
-      if (a==nullptr)
+      std::vector<ExprValue*> targs;
+      ExprValue* b = getNAryChildren(args[tailIndex], op, nil, targs, isLeft);
+      if (b==nullptr)
       {
+        // tail is not in list form
         return d_null;
       }
+      if (k==Kind::EVAL_CONS)
+      {
+        hargs.push_back(args[headIndex]);
+      }
+      else
+      {
+        // extract all children of the head
+        ExprValue* a = getNAryChildren(args[headIndex], op, nil, hargs, isLeft);
+        if (a==nullptr)
+        {
+          // head is not in list form
+          return d_null;
+        }
+      }
+      // note we take the tail verbatim
+      ret = args[tailIndex];
     }
       break;
     case Kind::EVAL_EXTRACT:
