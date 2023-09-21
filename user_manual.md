@@ -70,7 +70,7 @@ In the following sections, we review these features in more detail. A full synta
 
 In ALF as in SMT-LIB version 3.0, a common BNF is used to specify terms, types and kinds.
 In this document, a *term* may denote an ordinary term, a type or a kind.
-Terms are composed of applications, several built-in operators of the language (e.g. for performing computations, see []), and three kinds of atomic terms (*constants*, *variables*, and *parameters*) which we will describe in the following.
+Terms are composed of applications, several built-in operators of the language (e.g. for performing computations, see [computation](#computation)), and three kinds of atomic terms (*constants*, *variables*, and *parameters*) which we will describe in the following.
 A *function* is an atomic term having a function type.
 The standard `let` binder can be used for specifying terms that contain common subterms, which is treated as syntax sugar.
 
@@ -357,7 +357,7 @@ The signature can now refer to arbitrary numerals in definitions, e.g. `7` in th
 
 > Internally, the command above only impacts the type rule assigned to numerals that are parsed. Furthermore, the ALF checker internally distinguishes whether a term is a numeral value, independently of its type, for the purposes of computational operators (see [computation](#computation)).
 
-> For specifying literals whose type rule varies based on the content of the constant, the ALF language uses a distinguished variable `alf.self` which can be used in `declare-consts` definitions. For an example, see the type rule for SMT-LIB bit-vector constants, described later in [].
+> For specifying literals whose type rule varies based on the content of the constant, the ALF language uses a distinguished variable `alf.self` which can be used in `declare-consts` definitions. For an example, see the type rule for SMT-LIB bit-vector constants, described later in [bv-literals](#bv-literals).
 
 # <a name="computation"></a>Computational Operators in alfc
 
@@ -377,7 +377,7 @@ Core operators:
 - `(alf.is_eq t1 t2)`
     - Returns `true` if `t1` and `t2` are (syntactically) equal, and `false` otherwise. Notice that the evaluation of `alf.is_eq` does not coincide the SMT-LIB semantics of equality, for example, it always returns `false` for any distinct pair of constants.
 - `(alf.ite t1 t2 t3)`
-    - Returns `t2` if `t1` evaluates to `true`, `t3` if `t1` evaluates to `false`, and is not evaluated otherwise.
+    - Returns `t2` if `t1` evaluates to `true`, `t3` if `t2` evaluates to `false`, and is not evaluated otherwise. Note that the branches of this term are only evaluated if they are the returned term of the `ite`.
 - `(alf.requires t1 t2 t3)`
     - Returns `t3` if `t1` is (syntactically) equal to `t2`, and is not evaluated otherwise.
 - `(alf.hash t1)`
@@ -444,6 +444,9 @@ Conversion operators:
 
 The ALF checker eagerly evaluates ground applications of computational operators.
 In other words, the term `(alf.add 1 1)` is syntactically equivalent in all contexts to `2`.
+
+Currently, apart from applications of `alf.ite`, all terms are evaluated bottom-up.
+This means that e.g. in the evaluation of `(alf.or A B)`, both `A` and `B` are always evaluated even if `A` evaluates to `true`.
 
 ### Computation Examples
 
@@ -515,26 +518,59 @@ Note the following examples of core operators for the given signature
 (alf.ite (alf.requires x 0 true) x y)   == (alf.ite (alf.requires x 0 true) x y)
 ```
 
-In the above, it is important to note that `alf.is_eq` is a check for syntactic equality.
+In the above, it is important to note that `alf.is_eq` is a check for syntactic equality, after evaluation.
 It does not ensure that its arguments denote values.
 
 ## <a name="list-computation"></a> List computations
 
 Below, we assume that `f, t1, t2` are ground. Otherwise, the following operators do not evaluate.
+We describe the evaluation for right associative operators; left associative evaluation is defined analogously.
 
 List operators:
 - `(alf.cons f t1 t2)`
-    - If `f` is a right associative operator with nil terminator with nil terminator `nil`, then this returns the term `(f t1 t2)`.
+    - If `f` is a right associative operator with nil terminator with nil terminator `nil`, then this returns the term `(f t1 t2)`. That is, `t2` is treated as a list term; the nil terminator is not added to end of this application.
 - `(alf.concat f t1 t2)`
-    - If `f` is a right associative operator with nil terminator with nil terminator `nil`, then this returns `(f t11 ... t1n t2)` if `t1` is `(f t11 ... t1n)` for `n>0`, or `t2` if `t1` is `nil`. Otherwise, this operator does not evaluate.
+    - If `f` is a right associative operator with nil terminator with nil terminator `nil`, then this returns `(f t11 ... t1n t2)` if `t1` is `(f t11 ... t1n)` for `n>0`, or `t2` if `t1` is `nil`. Otherwise, this operator does not evaluate. Note that `t2` is treated as a list term.
 - `(alf.extract f t1 t2)`
     - If `f` is a right associative operator with nil terminator with nil terminator `nil`, `t1` is `(f s0 ... s{n-1})`, and `t2` is a numeral value such that `0<=t2<n`, then this returns `s_{t2}`. Otherwise, this operator does not evaluate.
 - `(alf.find f t1 t2)`
-    - If `f` is a right associative operator with nil terminator with nil terminator `nil` and `t1` is `(f s0 ... s{n-1})`, then this returns the smallest numeral value `i` such that `t2` is syntactically eqaul to `si`, or `-1` if no such `si` can be found.
+    - If `f` is a right associative operator with nil terminator with nil terminator `nil` and `t1` is `(f s0 ... s{n-1})`, then this returns the smallest numeral value `i` such that `t2` is syntactically eqaul to `si`, or `-1` if no such `si` can be found. Otherwise, this operator does not evaluate.
 
 ### List Computation Examples
 
+The terms on both sides of the given evaluation are written in their form prior to desugaring, where recall that e.g. `(or a)` after desugaring is `(or a false)` and `(or a b)` is `(or a (or b false))`.
+
 ```
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+(declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
+(declare-const a Bool)
+(declare-const b Bool)
+
+(alf.cons or a (or a b))            == (or a a b)
+(alf.cons or false (or a b))        == (or false a b)
+(alf.cons or (or a b) (or b))       == (or (or a b) b)
+(alf.cons or false false)           == false
+(alf.cons or a (or b))              == (or a b)
+(alf.cons and (or a b) (and b))     == (and (or a b) b)
+(alf.cons and true (and a))         == (and a)
+(alf.cons and (and a) true)         == (and (and a))
+
+(alf.concat or (or a b) (or b))     == (or a b b)
+(alf.concat or false (or b))        == (or b)
+(alf.concat or (or a) (or b))       == (or a b)
+(alf.concat or (or a b) false)      == (or a b)
+(alf.concat or a b)                 == (alf.concat or a b)
+(alf.concat or (and a b) b)         == (alf.concat or (and a b) b)
+
+(alf.extract or (or a b a) 1)       == b
+(alf.extract or (or a) 0)           == a
+(alf.extract or false 0)            == (alf.extract or false 0)
+(alf.extract or (or a b a) 3)       == (alf.extract or (or a b a) 3)
+(alf.extract or (and a b b) 0)      == (alf.extract or (and a b b) 0)
+
+(alf.find or (or a b a) b)          == 1
+(alf.find or (or a b a) true)       == -1
+(alf.find or (and a b b) a)         == (alf.find or (and a b b) a)
 
 ```
 
@@ -599,7 +635,7 @@ If these criteria are met, then the proof rule proves the result of applying `S`
 
 A proof rule is only well defined if the free parameters of the requirements and conclusion term are also contained in the arguments and premises.
 
-> Internally, proofs can be seen as terms whose type is given by a distinguished `Proof` type. In particular, `Proof` is a type whose kind is `(-> Bool Type)`, where the argument of this type is the formula that is proven. For example, `(Proof (> x 0))` is the proof that `x` is greater than zero. By design, the user cannot declare terms involving type `Proof`. Instead, proofs can only be constructed via the commands `assume` and `step` as we describe in [].
+> Internally, proofs can be seen as terms whose type is given by a distinguished `Proof` type. In particular, `Proof` is a type whose kind is `(-> Bool Type)`, where the argument of this type is the formula that is proven. For example, `(Proof (> x 0))` is the proof that `x` is greater than zero. By design, the user cannot declare terms involving type `Proof`. Instead, proofs can only be constructed via the commands `assume` and `step` as we describe in [proofs](#proofs).
 
 
 ### Example rule: Reflexivity of equality

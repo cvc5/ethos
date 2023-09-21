@@ -935,7 +935,7 @@ Expr TypeChecker::evaluateLiteralOp(Kind k,
  */
 ExprValue* getNAryChildren(ExprValue* e,
                            ExprValue* op,
-                           ExprValue* nil,
+                           ExprValue* checkNil,
                            std::vector<ExprValue*>& children,
                            bool isLeft,
                            size_t maxChildren=0)
@@ -961,12 +961,12 @@ ExprValue* getNAryChildren(ExprValue* e,
       return e;
     }
   }
-  if (nil!=nullptr && e!=nil)
+  // must be equal to the nil term, if provided
+  if (checkNil!=nullptr && e!=checkNil)
   {
-    Warning() << "...expected associative application to end in " << Expr(nil) << ", got " << Expr(orig) << std::endl;
+    Warning() << "...expected associative application to end in " << Expr(checkNil) << ", got " << Expr(orig) << std::endl;
     return nullptr;
   }
-  // must be equal to the nil term
   return e;
 }
 
