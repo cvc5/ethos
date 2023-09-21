@@ -65,12 +65,17 @@ The ALF checker alfc extends this language with several features:
 
 In the following sections, we review these features in more detail. A full syntax for the commands is given at the end of this document.
 
+
 # Declaring theory signatures
 
-In ALF as in SMT-LIB version 3.0, a common BNF is used to specify terms, types and kinds. Thus, in this document, a *term* may denote an ordinary term, a type or a kind.
-Terms are composed of applications, built-in symbols of the language (e.g. for performing computations), and three kinds of 0-ary symbols (constants, variables, and parameters) which we will describe in the following.
+In ALF as in SMT-LIB version 3.0, a common BNF is used to specify terms, types and kinds.
+In this document, a *term* may denote an ordinary term, a type or a kind.
+Terms are composed of applications, several built-in operators of the language (e.g. for performing computations, see []), and three kinds of atomic terms (*constants*, *variables*, and *parameters*) which we will describe in the following.
+A *function* is an atomic term having a function type.
+The standard `let` binder can be used for specifying terms that contain common subterms, which is treated as syntax sugar.
 
-The core language of ALF does not assume any definitions of standard SMT-LIB theories. Instead, SMT-LIB theories may defined as ALF signatures.
+As mentioned, the core language of ALF does not assume any definitions of standard SMT-LIB theories.
+Instead, SMT-LIB theories may defined as ALF signatures.
 Specifically, the ALF language has the following builtin expressions:
 - `Type`, denoting the kind of all types,
 - `->`, denoting the function type,
@@ -84,20 +89,22 @@ In the following, we informally write BNF categories `<symbol>` to denote an SMT
 
 The following commands are supported for declaring and defining types and terms, most of which are taken from SMT-LIB version 3.0:
 - `(declare-const <symbol> <type>)` declares a constant named `<symbol>` whose type is `<type>`.
-- `(declare-fun <symbol> (<type>*) <type>)` declares a constant named `<symbol>` whose (function) type is given by the argument types and return type.
+- `(declare-fun <symbol> (<type>*) <type>)` declares a constant named `<symbol>` whose type is given by the argument types and return type.
 - `(declare-sort <symbol> <numeral>)` declares a new type named `<symbol>` whose kind is `(-> Type^n Type)` if `n>0` or `Type` for the provided numeral `n`.
 - `(declare-type <symbol> (<type>*))` declares a new type named `<symbol>` whose kind is given by the argument types and return type `Type`.
 - `(define-const <symbol> <term>)` defines `<symbol>` to be the given term.
-- `(define-fun <symbol> (<typed-param>*) <type> <term>)` defines `<symbol>` to be a lambda term whose arguments, return type and body and given by the three arguments, or the body if the argument list is empty.
+- `(define-fun <symbol> (<typed-param>*) <type> <term>)` defines `<symbol>` to be a lambda term whose arguments, return type and body and given by the command, or the body if the argument list is empty.
 - `(define-sort <symbol> (<symbol>*) <type>)` defines `<symbol>` to be a lambda term whose arguments are given by variables of kind `Type` and whose body is given by the return type, or the return type if the argument is empty.
 - `(define-type <symbol> (<type>*) <type>)` defines `<symbol>` to be a lambda term whose kind is given
 - `(declare-datatype <symbol> <datatype-dec>)` defines a datatype `<symbol>`, along with its associated constructors, selectors, discriminators and updaters.
 - `(declare-datatypes (<sort-dec>^n) (<datatype-dec>^n))` defines a list of `n` datatypes for some `n>0`.
 - `(reset)` removes all declarations and definitions and resets the global scope.
 
-The ALF language contains further commands for declaring symbols:
+The ALF language contains further commands for declaring symbols that are not standard SMT-LIB version 3.0:
 - `(declare-var <symbol> <type>)` declares a variable named `<symbol>` whose type is `<type>`.
 - `(declare-consts <literal-category> <type>)` declares the class of symbols denoted by the literal category to have the given type.
+
+> Variables are internally treated the same as constants by the ALF checker, but are provided as a separate category, e.g. for user signatures that wish to distinguish universally quantified variables from free constant symbols.
 
 ### Basic Declarations
 
@@ -125,9 +132,9 @@ Note that despite using different syntax in their declarations, the types of `f`
 
 In the example above, `not` is declared to be a unary function over Booleans. Two defined functions are given, the first being an identity function over Booleans, and the second returning the negation of the first.
 
-> Since `define-fun` commands are treated as macro definitions, in this example, `id` is mapped to the lambda term whose SMT-LIB version 3 syntax is `(lambda ((x Bool)) x)`. Furthermore, `notId` is mapped to the lambda term `(lambda ((x Bool)) (not x))`.
-
-The following file is equivalent to the one above:
+Since `define-fun` commands are treated as macro definitions, in this example, `id` is mapped to the lambda term whose SMT-LIB version 3 syntax is `(lambda ((x Bool)) x)`.
+Furthermore, `notId` is mapped to the lambda term `(lambda ((x Bool)) (not x))`.
+In other words, the following file is equivalent to the one above after parsing:
 ```
 (declare-const not (-> Bool Bool))
 (define-fun id ((x Bool)) Bool x)
@@ -360,6 +367,7 @@ Similarly, `alf.concat` returns the result of concatenating two string literals,
 We remark on the semantics in the following.
 
 In the following, we say a term is *ground* if it contains no parameters as subterms.
+We say an *arithmetic value* is a numeral, decimal or rational value.
 
 Core operators:
 - `(alf.is_eq t1 t2)`
@@ -385,20 +393,22 @@ Boolean operators:
     - Bitwise negation if `t1` is a binary values.
 Arithmetic operators:
 - `(alf.add t1 t2)`
-    - If `t1` and `t2` are arithmetic (numeral or rational) values, then this returns the multiplication of `t1` and `t2`, which is a rational value if either of `t1, t2` is a rational value, or a numeral value otherwise.
+    - If `t1` and `t2` are arithmetic values, then this returns the multiplication of `t1` and `t2`, which is a rational value if either of `t1, t2` is a rational value, or a numeral value otherwise.
     - If `t1` and `t2` are binary constants of the same bitwidth, this returns the binary value corresponding to their (unsigned) addition modulo their bitwidth.
 - `(alf.mul t1 t2)`
-    - If `t1` and `t2` are arithmetic (numeral or rational) values, then this returns the multiplication of `t1` and `t2`, which is a rational value if either of `t1, t2` is a rational value, or a numeral value otherwise.
+    - If `t1` and `t2` are arithmetic values, then this returns the multiplication of `t1` and `t2`, which is a rational value if either of `t1, t2` is a rational value, or a numeral value otherwise.
     - If `t1` and `t2` are binary constants of the same bitwidth, this returns the binary value corresponding to their (unsigned) multiplication modulo their bitwidth.
 - `(alf.neg t1)`
-    - If `t1` is a numeral or rational value, this returns the arithmetic negation of `t1`.
+    - If `t1` is a arithmetic value, this returns the arithmetic negation of `t1`.
     - If `t1` is a binary value, this returns its arithmetic negation.
 - `(alf.qdiv t1 t2)`
-    - If `t1` and `t2` are arithmetic (numeral or rational) values and `t2` is non-zero, then this returns the rational division of `t1` and `t2`.
+    - If `t1` and `t2` are arithmetic values and `t2` is non-zero, then this returns the rational division of `t1` and `t2`.
 - `(alf.zdiv t1 t2)`
     - If `t1` and `t2` are numeral values and `t2` is non-zero, then this returns the integer division of `t1` and `t2`.
 - `(alf.is_neg t1)`
-    - If `t1` is a numeral or rational value, this returns `true` if `t1` is negative and `false` otherwise. Otherwise, this operator is not evaluated.
+    - If `t1` is an arithmetic value, this returns `true` if `t1` is zero and `false` otherwise. Otherwise, this operator is not evaluated.
+- `(alf.is_zero t1)`
+    - If `t1` is an arithmetic value, this returns `true` if `t1` is zero and `false` otherwise. Otherwise, this operator is not evaluated.
 String operators:
 - `(alf.len t1)`
     - Binary length (bitwidth) if `t1` is a binary value.
@@ -437,15 +447,14 @@ Below, we assume that `f, t1, t2` are ground. Otherwise, the following operators
 
 List operators:
 - `(alf.cons f t1 t2)`
-    - If `f` is a right associative operator with nil terminator with nil terminator `nil`,
+    - If `f` is a right associative operator with nil terminator with nil terminator `nil`, then this returns the term `(f t1 t2)`.
 - `(alf.concat f t1 t2)`
-    - If `f` is a right associative operator with nil terminator with nil terminator `nil`,
+    - If `f` is a right associative operator with nil terminator with nil terminator `nil`, then this returns `(f t11 ... t1n t2)` if `t1` is `(f t11 ... t1n)` for `n>0`, or `t2 if `t1` is `nil`. Otherwise, this operator does not evaluate.
 - `(alf.extract f t1 t2)`
-    - If `f` is a right associative operator with nil terminator with nil terminator `nil`,
+    - If `f` is a right associative operator with nil terminator with nil terminator `nil`, `t1` is `(f s0 ... s{n-1})`, and `t2` is a numeral value such that `0<=t2<n`, then this returns `s_{t2}`. Otherwise, this operator does not evaluate.
 - `(alf.find f t1 t2)`
-    - If `f` is a right associative operator with nil terminator with nil terminator `nil`,
+    - If `f` is a right associative operator with nil terminator with nil terminator `nil` and `t1` is `(f s0 ... s{n-1})`, then this returns the smallest numeral value `i` such that `t2` is syntactically eqaul to `si`, or `-1` if no such `si` can be found.
 
-    
 
 We now give some examples of how these operators can be leveraged in definitions.
 
@@ -708,6 +717,37 @@ Otherwise, terms of the form `(contains l (or x xs))` reduce to `(contains l xs)
 )
 ```
 
+The term `(substitute x y t)` replaces all occurrences of `x` by `y` in `t`.
+Note that this side condition is fully general and does not depend on the shape of terms in `t`.
+In detail, the ALF checker treats all function applications as curried.
+In particular, this implies that `(f a)` matches any application term since both `f` and `a` are parameters.
+Thus, the side condition is written in three cases: either `t` is `x` in which case we return `y`,
+`t` is a function application in which case we recurse, or otherwise `t` is a constant not equal to `x` and we return itself.
+
+### Example: Term evaluator
+
+```
+(declare-sort Int 0)
+(declare-consts <numeral> Int)
+(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-const + (-> Int Int Int))
+(declare-const - (-> Int Int Int))
+(declare-const < (-> Int Int Bool))
+(declare-const <= (-> Int Int Bool))
+
+(program run_evaluate ((T Type) (U Type) (S Type) (a T) (b U) (z S))
+    (S) S
+    (
+      ((run_evaluate (= a b))  (alf.is_eq (run_evaluate a) (run_evaluate b)))
+      ((run_evaluate (< a b))  (alf.is_neg (run_evaluate (- a b))))
+      ((run_evaluate (<= a b)) (let ((x (run_evaluate (- a b))))
+                                 (alf.or (alf.is_neg x) (alf.is_zero x))))
+      ((run_evaluate (+ a b))  (alf.add (run_evaluate a) (run_evaluate b)))
+      ((run_evaluate (- a b))  (alf.add (run_evaluate a) (alf.neg (run_evaluate b))))
+      ((run_evaluate z)        z)
+    )
+)
+```
 
 ### Example: A computational type rule
 
@@ -728,8 +768,9 @@ Otherwise, terms of the form `(contains l (or x xs))` reduce to `(contains l xs)
                      T U (arith.typeunion T U)))
 ```
 
-
-### Example: Term evaluator
+In the above example, a side condition is being used to define the type rule for the function `+`.
+In particular, `arith.typeunion` is a program taking two types and returning a type, which is `Real` if either argument is `Real` or `Int` otherwise.
+The return type of `+` invokes this side condition, which conceptually is implementing a policy for subtyping over arithmetic types which the ALF checker does not have builtin support for.
 
 
 ## Match statements in ALF
