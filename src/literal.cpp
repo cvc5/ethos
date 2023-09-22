@@ -114,7 +114,6 @@ Kind allSameKind(const std::vector<const Literal*>& args)
 Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
 {
   Assert (k!=Kind::EVAL_IS_EQ && k!=Kind::EVAL_IF_THEN_ELSE && k!=Kind::EVAL_REQUIRES);
-  /*
   Kind ka = Kind::NONE;
   if (k!=Kind::EVAL_EXTRACT && k!=Kind::EVAL_TO_BV)
   {
@@ -124,28 +123,26 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
       return Literal();
     }
   }
-  */
   switch (k)
   {
     // boolean
     case Kind::EVAL_NOT:
-      switch (args[0]->d_kind)
+      switch (ka)
       {
         case Kind::BOOLEAN:return Literal(!args[0]->d_bool);
         case Kind::HEXADECIMAL:
-        case Kind::BINARY:return Literal(args[0]->d_kind, ~args[0]->d_bv);
+        case Kind::BINARY:return Literal(ka, ~args[0]->d_bv);
         default: break;
       }
       break;
+    // n-ary operators
     case Kind::EVAL_AND:
     case Kind::EVAL_OR:
     case Kind::EVAL_XOR:
+    case Kind::EVAL_ADD:
+    case Kind::EVAL_MUL:
+    case Kind::EVAL_CONCAT:
     {
-      Kind ka = allSameKind(args);
-      if (ka==Kind::NONE)
-      {
-        return Literal();
-      }
       switch (ka)
       {
         case Kind::BOOLEAN:
@@ -158,12 +155,44 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
             case Kind::EVAL_AND: res = (res && args[i]->d_bool); break;
             case Kind::EVAL_OR: res = (res || args[i]->d_bool); break;
             case Kind::EVAL_XOR:res = (res != args[i]->d_bool); break;
-            default:break;
+            default: return Literal(); break;
             }
           }
           return Literal(res);
         }
           break;
+        case Kind::NUMERAL:
+        {
+          Integer res = args[0]->d_int;
+          for (size_t i=1, nargs = args.size(); i<nargs; i++)
+          {
+            switch (k)
+            {
+            case Kind::EVAL_ADD: res = (res + args[i]->d_int); break;
+            case Kind::EVAL_MUL: res = (res * args[i]->d_int); break;
+            default: return Literal(); break;
+            }
+          }
+          return Literal(ka, res);
+        }
+          break;
+        case Kind::DECIMAL:
+        case Kind::RATIONAL:
+        {
+          Rational res = args[0]->d_rat;
+          for (size_t i=1, nargs = args.size(); i<nargs; i++)
+          {
+            switch (k)
+            {
+            case Kind::EVAL_ADD: res = (res + args[i]->d_rat); break;
+            case Kind::EVAL_MUL: res = (res * args[i]->d_rat); break;
+            default: return Literal(); break;
+            }
+          }
+          return Literal(ka, res);
+        }
+          break;
+        case Kind::HEXADECIMAL:
         case Kind::BINARY:
         {
           BitVector res = args[0]->d_bv;
@@ -174,10 +203,26 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
             case Kind::EVAL_AND: res = (res & args[i]->d_bv); break;
             case Kind::EVAL_OR: res = (res | args[i]->d_bv); break;
             case Kind::EVAL_XOR:res = (res ^ args[i]->d_bv); break;
-            default:break;
+            case Kind::EVAL_ADD: res = (res + args[i]->d_bv); break;
+            case Kind::EVAL_MUL: res = (res * args[i]->d_bv); break;
+            case Kind::EVAL_CONCAT: res = res.concat(args[i]->d_bv);break;
+            default: return Literal(); break;
             }
           }
           return Literal(ka, res);
+        }
+          break;
+        case Kind::STRING:
+        {
+          if (k==Kind::EVAL_CONCAT)
+          {
+            String res = args[0]->d_str;
+            for (size_t i=1, nargs=args.size(); i<nargs; i++)
+            {
+              res = res.concat(args[i]->d_str);
+            }
+            return Literal(res);
+          }
         }
           break;
         default:
@@ -185,91 +230,19 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
       }
     }
       break;
-    case Kind::EVAL_ADD:
-      // we allow mixed arithmetic here
-      switch (args[0]->d_kind)
-      {
-        case Kind::NUMERAL:
-        switch (args[1]->d_kind)
-        {
-          case Kind::RATIONAL:return Literal(Kind::RATIONAL, Rational(args[0]->d_int) + args[1]->d_rat);
-          case Kind::NUMERAL:return Literal(args[0]->d_int + args[1]->d_int);
-          default:break;
-        }
-        break;
-        case Kind::RATIONAL:
-        switch (args[1]->d_kind)
-        {
-          case Kind::NUMERAL:return Literal(Kind::RATIONAL, args[0]->d_rat + Rational(args[1]->d_int));
-          case Kind::RATIONAL:return Literal(Kind::RATIONAL, args[0]->d_rat + args[1]->d_rat);
-          default:break;
-        }
-        break;
-        case Kind::BINARY:
-        {
-          Kind ka = allSameKind(args);
-          if (ka==Kind::NONE)
-          {
-            return Literal();
-          }
-          return Literal(ka, args[0]->d_bv + args[1]->d_bv);
-        }
-          break;
-        default: break;
-      }
-      break;
     case Kind::EVAL_NEG:
-      switch (args[0]->d_kind)
+      switch (ka)
       {
         case Kind::NUMERAL:return Literal(-args[0]->d_int);
         case Kind::DECIMAL:
-        case Kind::RATIONAL:return Literal(args[0]->d_kind, -args[0]->d_rat);
+        case Kind::RATIONAL:return Literal(ka, -args[0]->d_rat);
         case Kind::HEXADECIMAL:
-        case Kind::BINARY:return Literal(args[0]->d_kind, -args[0]->d_bv);
-        default: break;
-      }
-      break;
-    case Kind::EVAL_MUL:
-      // we allow mixed arithmetic here
-      switch (args[0]->d_kind)
-      {
-        case Kind::NUMERAL:
-        switch (args[1]->d_kind)
-        {
-          case Kind::RATIONAL:return Literal(Kind::RATIONAL, Rational(args[0]->d_int) * args[1]->d_rat);
-          case Kind::NUMERAL:return Literal(args[0]->d_int * args[1]->d_int);
-          default:break;
-        }
-        break;
-        case Kind::RATIONAL:
-        switch (args[1]->d_kind)
-        {
-          case Kind::NUMERAL:return Literal(Kind::RATIONAL, args[0]->d_rat * Rational(args[1]->d_int));
-          case Kind::RATIONAL:return Literal(Kind::RATIONAL, args[0]->d_rat * args[1]->d_rat);
-          default:break;
-        }
-        break;
-        case Kind::HEXADECIMAL:
-        case Kind::BINARY:
-        {
-          Kind ka = allSameKind(args);
-          if (ka==Kind::NONE)
-          {
-            return Literal();
-          }
-          return Literal(ka, args[0]->d_bv * args[1]->d_bv);
-        }
-          break;
+        case Kind::BINARY:return Literal(ka, -args[0]->d_bv);
         default: break;
       }
       break;
     case Kind::EVAL_INT_DIV:
     {
-      Kind ka = allSameKind(args);
-      if (ka==Kind::NONE)
-      {
-        return Literal();
-      }
       switch (ka)
       {
         case Kind::NUMERAL:
@@ -290,34 +263,32 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
     }
       break;
     case Kind::EVAL_RAT_DIV:
-      switch (args[0]->d_kind)
+      switch (ka)
       {
         case Kind::NUMERAL:
-          if (args[1]->d_kind==Kind::NUMERAL)
+        {
+          const Integer& d = args[1]->d_int;
+          if (d.sgn()!=0)
           {
-            const Integer& d = args[1]->d_int;
-            if (d.sgn()!=0)
-            {
-              return Literal(Kind::RATIONAL, Rational(args[0]->d_int, d));
-            }
+            return Literal(Kind::RATIONAL, Rational(args[0]->d_int, d));
           }
+        }
           break;
         case Kind::DECIMAL:
         case Kind::RATIONAL:
-          if (args[1]->d_kind==Kind::RATIONAL)
+        {
+          const Rational& d = args[1]->d_rat;
+          if (d.sgn()!=0)
           {
-            const Rational& d = args[1]->d_rat;
-            if (d.sgn()!=0)
-            {
-              return Literal(Kind::RATIONAL, Rational(args[0]->d_rat / d));
-            }
+            return Literal(Kind::RATIONAL, Rational(args[0]->d_rat / d));
           }
+        }
           break;
         default: break;
       }
       break;
     case Kind::EVAL_IS_NEG:
-      switch (args[0]->d_kind)
+      switch (ka)
       {
         case Kind::NUMERAL:return Literal(args[0]->d_int.sgn()==-1);
         case Kind::DECIMAL:
@@ -326,7 +297,7 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
       }
       break;
     case Kind::EVAL_IS_ZERO:
-      switch (args[0]->d_kind)
+      switch (ka)
       {
         case Kind::NUMERAL:return Literal(args[0]->d_int.sgn()==0);
         case Kind::DECIMAL:
@@ -336,45 +307,12 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
       break;
     // strings
     case Kind::EVAL_LENGTH:
-      switch (args[0]->d_kind)
+      switch (ka)
       {
         case Kind::BINARY:return Literal(Integer(args[0]->d_bv.getSize()));
         case Kind::STRING:return Literal(Integer(args[0]->d_str.size()));
         default: break;
       }
-      break;
-    case Kind::EVAL_CONCAT:
-    {
-      Kind ka = allSameKind(args);
-      if (ka==Kind::NONE)
-      {
-        return Literal();
-      }
-      switch (ka)
-      {
-        case Kind::HEXADECIMAL:
-        case Kind::BINARY:
-        {
-          BitVector res = args[0]->d_bv;
-          for (size_t i=1, nargs=args.size(); i<nargs; i++)
-          {
-            res = res.concat(args[i]->d_bv);
-          }
-          return Literal(ka, res);
-        }
-        case Kind::STRING:
-        {
-          String res = args[0]->d_str;
-          for (size_t i=1, nargs=args.size(); i<nargs; i++)
-          {
-            res = res.concat(args[i]->d_str);
-          }
-          return Literal(res);
-        }
-          break;
-        default: break;
-      }
-    }
       break;
     case Kind::EVAL_EXTRACT:
       if (args[1]->d_kind==Kind::NUMERAL && args[2]->d_kind==Kind::NUMERAL)
@@ -425,7 +363,7 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
       break;
     // conversions
     case Kind::EVAL_TO_INT:
-      switch (args[0]->d_kind)
+      switch (ka)
       {
         case Kind::DECIMAL:
         case Kind::RATIONAL:return Literal(args[0]->d_rat.floor());
@@ -443,7 +381,7 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
       }
       break;
     case Kind::EVAL_TO_RAT:
-      switch (args[0]->d_kind)
+      switch (ka)
       {
         case Kind::RATIONAL: return *args[0];
         case Kind::DECIMAL: return Literal(Kind::RATIONAL, args[0]->d_rat);
@@ -465,7 +403,7 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
       }
       break;
     case Kind::EVAL_TO_STRING:
-      switch (args[0]->d_kind)
+      switch (ka)
       {
         case Kind::NUMERAL:
         case Kind::DECIMAL:
@@ -477,22 +415,19 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
       }
       break;
     case Kind::EVAL_FIND:
-      if (args[0]->d_kind==args[1]->d_kind)
+      switch (ka)
       {
-        switch (args[0]->d_kind)
+        case Kind::STRING:
         {
-          case Kind::STRING:
+          std::size_t i = args[0]->d_str.find(args[1]->d_str);
+          if (i==std::string::npos)
           {
-            std::size_t i = args[0]->d_str.find(args[1]->d_str);
-            if (i==std::string::npos)
-            {
-              return Literal(Integer("-1"));
-            }
-            return Literal(Integer(i));
+            return Literal(Integer("-1"));
           }
-          break;
-          default: break;
+          return Literal(Integer(i));
         }
+        break;
+        default: break;
       }
       break;
     default:break;

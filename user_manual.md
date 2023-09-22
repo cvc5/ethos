@@ -93,7 +93,7 @@ The following commands are supported for declaring and defining types and terms,
 - `(declare-sort <symbol> <numeral>)` declares a new type named `<symbol>` whose kind is `(-> Type^n Type)` if `n>0` or `Type` for the provided numeral `n`.
 - `(declare-type <symbol> (<type>*))` declares a new type named `<symbol>` whose kind is given by the argument types and return type `Type`.
 - `(define-const <symbol> <term>)` defines `<symbol>` to be the given term.
-- `(define-fun <symbol> (<typed-param>*) <type> <term>)` defines `<symbol>` to be a lambda term whose arguments, return type and body and given by the command, or the body if the argument list is empty.
+- `(define-fun <symbol> (<typed-param>*) <type> <term>)` defines `<symbol>` to be a lambda term whose arguments, return type and body and given by the command, or the body if the argument list is empty. This throws an error if the type of the body term is not the specified type.
 - `(define-sort <symbol> (<symbol>*) <type>)` defines `<symbol>` to be a lambda term whose arguments are given by variables of kind `Type` and whose body is given by the return type, or the return type if the argument is empty.
 - `(define-type <symbol> (<type>*) <type>)` defines `<symbol>` to be a lambda term whose kind is given
 - `(declare-datatype <symbol> <datatype-dec>)` defines a datatype `<symbol>`, along with its associated constructors, selectors, discriminators and updaters.
@@ -103,6 +103,7 @@ The following commands are supported for declaring and defining types and terms,
 The ALF language contains further commands for declaring symbols that are not standard SMT-LIB version 3.0:
 - `(declare-var <symbol> <type>)` declares a variable named `<symbol>` whose type is `<type>`.
 - `(declare-consts <literal-category> <type>)` declares the class of symbols denoted by the literal category to have the given type.
+- `(define <symbol> (<typed-param>*) <term>)`, which is identical to `define-fun` but the body term is not type checked against a reference type.
 
 > Variables are internally treated the same as constants by the ALF checker, but are provided as a separate category, e.g. for user signatures that wish to distinguish universally quantified variables from free constants.
 
@@ -124,7 +125,7 @@ Note that despite using different syntax in their declarations, the types of `f`
 
 > In alfc, all functions are unary. In the above example, `(-> Int Int Int)` is internally treated as `(-> Int (-> Int Int))`. Correspondingly, applications of functions are curried, e.g. `(f a b)` is treated as `((f a) b)`, which in turn can be seen as `(_ (_ f a) b)` where `_` denotes higher-order function application.
 
-### Definitions
+### Basic Definitions
 
 ```
 (declare-const not (-> Bool Bool))
@@ -164,7 +165,7 @@ Note the following declarations all generate types of the same kind:
 (declare-const Array_v3 (-> Type Type Type))
 ```
 
-## Variable and implicit annotations
+## :var and :implicit annotations
 
 The ALF language uses the SMT-LIB version 3.0 attributes `:var <symbol>` and `:implicit` in term annotations for naming arguments of functions and specifying they are implicit.
 
@@ -196,7 +197,7 @@ We call `T` in the above definitions a *parameter*. The free parameters of the r
 
 > Internally, `(! T :implicit)` drops `T` from the list of arguments of the function type we are defining.
 
-## Requires annotations
+## The :requires annotation
 
 Arguments to functions can also be annotated with the attribute `:requires (<term> <term>)` to denote a condition under which the
 
@@ -213,7 +214,7 @@ The second annotation indicates that `(alf.is_neg w)` must evaluate to `false`, 
 
 ## Declarations with attributes
 
-The ALF language supports term annotations on declared functions, which can allow the user to treat a declared function as being variadic, i.e. taking an arbitrary number of arguments. These annotations are:
+The ALF language supports term annotations on declared functions, which for instance can allow the user to treat a declared function as being variadic, i.e. taking an arbitrary number of arguments. The available annotations in the ALF checker are:
 - `:right-assoc` (resp. `:left-assoc`) denoting that the term is right (resp. left) associative,
 - `:right-assoc-nil <term>` (resp. `:left-assoc-nil <term>`) denoting that the term is right (resp. left) associative with the given nil terminator,
 - `:list`, denoting that the term should be treated as a list when appearing as a child of an application of a right (left) associative operator,
@@ -233,12 +234,12 @@ In the above example, `(or x y z)` is syntax sugar for `(or x (or y z))`.
 The term `(or x y)` is not impacted by the annotation `:right-assoc` since it has fewer than 3 children.
 The term `(or x)` is also not impacted by the annotation, and denotes the partial application of `or` to `x`, whose type is `(-> Bool Bool)`.
 
+Left associative can be defined analogously:
 ```
 (declare-const and (-> Bool Bool Bool) :left-assoc)
 (define-fun P ((x Bool) (y Bool) (z Bool)) Bool (and x y z))
 ```
-
-Similarly, in the above example, `(and x y z)` is syntax sugar for `(and (and x y) z)`.
+In the above example, `(and x y z)` is syntax sugar for `(and (and x y) z)`.
 
 Note that the type for right and left associative operators is typically `(-> T T T)` for some `T`.
 
@@ -315,7 +316,7 @@ In the above example, `(>= x y z w)` is syntax sugar for `(and (>= x y) (>= y z)
 whereas the term `(>= x y)` is not impacted by the annotation `:chainable` since it has fewer than 3 children.
 
 Note that the type for chainable operators is typically `(-> T T S)` for some types `T` and `S`,
-where the type of its chaining operator is `(-> S S S)`.
+where the type of its chaining operator is `(-> S S S)`, and that operator has been as variadic via some attribute.
 
 ### Pairwise
 
@@ -328,14 +329,14 @@ where the type of its chaining operator is `(-> S S S)`.
 In the above example, `(distinct x y z)` is syntax sugar for `(and (distinct x y) (distinct x z) (distinct y z))`.
 
 Note that the type for chainable operators is typically `(-> T T S)` for some types `T` and `S`,
-where the type of its chaining operator is `(-> S S S)`.
+where the type of its pairwise operator is `(-> S S S)`, and that operator has been as variadic via some attribute.
 
 ## Literal types
 
 The ALF language supports associating SMT-LIB version 3.0 syntactic categories with types. In detail, a syntax category is one of the following:
-- `<numeral>` denoting the category of numerals `<digit>+`,
-- `<decimal>` denoting the category of decimals `<digit>+.<digit>+`,
-- `<rational>` denoting the category of rationals `<digit>+/<digit>+`,
+- `<numeral>` denoting the category of numerals `-?<digit>+`,
+- `<decimal>` denoting the category of decimals `-?<digit>+.<digit>+`,
+- `<rational>` denoting the category of rationals `-?<digit>+/<digit>+`,
 - `<binary>` denoting the category of binary constants `#b<0|1>+`,
 - `<hexadecimal>` denoting the category of hexadecimal constants `#x<hex-digit>+`,
 - `<string>` denoting the category of string literals `"<char>*"`.
@@ -343,7 +344,12 @@ The ALF language supports associating SMT-LIB version 3.0 syntactic categories w
 By default, decimal literals will be treated as syntax sugar for rational literals unless the option `--no-normalize-dec` is enabled.
 Similarly, hexadecimal literals will be treated as syntax sugar for binary literals unless the option `--no-normalize-hex` is enabled.
 
-> Note that the user does not specify that `true` and `false` are values of type `Bool`. Instead, it is assumed that the syntactic category `<boolean>` of Boolean values (`true` and `false`) has been associated with the Boolean sort. In other words, `(declare-consts <boolean> Bool)` is a part of the builtin ALF signature.
+In contrast to SMT-LIB version 2, note that rational values can be specified directly using the syntax `5/11, 2/4, 0/1` and so on.
+Rationals are normalized so that e.g. `2/4` and `1/2` are syntactically equivalent after parsing.
+Similarly, decimals are normalized so that e.g. `10.300` is syntactically equivalent to `10.3` after parsing (note this is independent of whether these decimal values are further normalized to rational values).
+Also in contrast to SMT-LIB version 2, negative arithmetic can be provided using the syntax e.g. `-1, -10.5, -1/3` and so on.
+
+> Note that the user is not required to declare that `true` and `false` are values of type `Bool`. Instead, it is assumed that the syntactic category `<boolean>` of Boolean values (`true` and `false`) has been associated with the Boolean sort. In other words, `(declare-consts <boolean> Bool)` is a part of the builtin ALF signature.
 
 ### Declaring classes of literals
 
