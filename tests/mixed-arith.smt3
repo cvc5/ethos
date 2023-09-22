@@ -60,3 +60,8 @@
 (step a6 (= (= 3/2 1.5) true) :rule eval :args ((= 3/2 1.5) true))
 ; not possible to do rational arithmetic with decimal syntax
 (step a7 (= (= (+ 1/3 1/6) 1/2) true) :rule eval :args ((= (+ 1/3 1/6) 1/2) true))
+
+; negatives
+(step a8 (= (= (+ 1/3 -1/6) 1/6) true) :rule eval :args ((= (+ 1/3 -1/6) 1/6) true))
+(step a9 (= -10.5 -21/2) :rule eval :args (-10.5 -21/2))
+(step a10 (= -1 (- 0 1)) :rule eval :args (-1 (- 0 1)))

@@ -1056,7 +1056,7 @@ The ALF command line interface can be invoked by `alfc <option>* <file>` where `
 
 This section overviews the semantics of proofs in the ALF language.
 Proof checking can be seen as a special instance of type checking terms involving the `Proof` and `Quote` types.
-The type system of the ALF can be summarized as follows, where `t : U` are assumed axioms for all atomic terms `t` of type `U`:
+The type system of the ALF can be summarized as follows, where `t : S` are assumed axioms for all atomic terms `t` of type `S`:
 
 ```
 f : (-> (Quote u) S)  t : T
