@@ -14,14 +14,14 @@
 (program check_sign ((x Int))
   (Int) Bool
   (
-    ((check_sign x) (alf.ite (alf.is_zero x) x (alf.ite (alf.is_neg x) (- x 1) (+ x 1))))
+    ((check_sign x) (alf.ite (alf.is_eq x 0) x (alf.ite (alf.is_neg x) (- x 1) (+ x 1))))
   )
 )
 
 (program factorial ((x Int))
   (Int) Bool
   (
-    ((factorial x) (alf.ite (alf.is_zero x) 1 (alf.mul x (factorial (alf.add x (alf.neg 1))))))
+    ((factorial x) (alf.ite (alf.is_eq x 0) 1 (alf.mul x (factorial (alf.add x (alf.neg 1))))))
   )
 )
 

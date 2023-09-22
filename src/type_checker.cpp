@@ -148,8 +148,6 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
       ret = (nargs==0);
       break;
     case Kind::EVAL_IS_EQ:
-    case Kind::EVAL_ADD:
-    case Kind::EVAL_MUL:
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_RAT_DIV:
     case Kind::EVAL_TO_BV:
@@ -157,6 +155,8 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_CONS:
       ret = (nargs==2);
       break;
+    case Kind::EVAL_ADD:
+    case Kind::EVAL_MUL:
     case Kind::EVAL_AND:
     case Kind::EVAL_OR:
     case Kind::EVAL_XOR:
@@ -168,7 +168,6 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_NOT:
     case Kind::EVAL_NEG:
     case Kind::EVAL_IS_NEG:
-    case Kind::EVAL_IS_ZERO:
     case Kind::EVAL_LENGTH:
     case Kind::EVAL_TO_INT:
     case Kind::EVAL_TO_RAT:
@@ -1268,7 +1267,6 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
       return childTypes[i];
     case Kind::EVAL_IS_EQ:
     case Kind::EVAL_IS_NEG:
-    case Kind::EVAL_IS_ZERO:
       return d_state.mkBoolType().getValue();
     case Kind::EVAL_HASH:
     case Kind::EVAL_INT_DIV:

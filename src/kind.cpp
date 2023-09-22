@@ -56,7 +56,6 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::EVAL_INT_DIV: o << "EVAL_INT_DIV"; break;
     case Kind::EVAL_RAT_DIV: o << "EVAL_RAT_DIV"; break;
     case Kind::EVAL_IS_NEG: o << "EVAL_IS_NEG"; break;
-    case Kind::EVAL_IS_ZERO: o << "EVAL_IS_ZERO"; break;
     // strings
     case Kind::EVAL_LENGTH: o << "EVAL_LENGTH"; break;
     case Kind::EVAL_CONCAT: o << "EVAL_CONCAT"; break;
@@ -115,7 +114,6 @@ std::string kindToTerm(Kind k)
         case Kind::EVAL_INT_DIV: ss << "zdiv";break;
         case Kind::EVAL_RAT_DIV: ss << "qdiv";break;
         case Kind::EVAL_IS_NEG: ss << "is_neg";break;
-        case Kind::EVAL_IS_ZERO: ss << "is_zero";break;
         // strings
         case Kind::EVAL_LENGTH: ss << "len"; break;
         case Kind::EVAL_CONCAT: ss << "concat"; break;
@@ -191,7 +189,6 @@ bool isLiteralOp(Kind k)
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_RAT_DIV:
     case Kind::EVAL_IS_NEG:
-    case Kind::EVAL_IS_ZERO:
     // strings
     case Kind::EVAL_LENGTH:
     case Kind::EVAL_CONCAT:

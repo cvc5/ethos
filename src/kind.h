@@ -67,7 +67,6 @@ enum class Kind
   EVAL_INT_DIV,
   EVAL_RAT_DIV,
   EVAL_IS_NEG,
-  EVAL_IS_ZERO,
   // strings
   EVAL_LENGTH,
   EVAL_CONCAT,

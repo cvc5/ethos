@@ -349,8 +349,14 @@ Rationals are normalized so that e.g. `2/4` and `1/2` are syntactically equivale
 Similarly, decimals are normalized so that e.g. `1.300` is syntactically equivalent to `1.3` after parsing.
 Note this is independent of whether these decimal values are further normalized to rational values.
 In other words, by default `1.300` is syntactically equivalent to the rational `13/10`.
-
 Also note in contrast to SMT-LIB version 2, negative arithmetic can be provided using the syntax e.g. `-1, -10.5, -1/3` and so on, instead of `(- 1), (- 10.5), (/ (- 1) 3)`.
+
+String values use the standard escape sequences as specified in SMT-LIB version 2.6, namely `""` within a string literal denotes `"`.
+The only other escape sequences are of the form `\u{dn ...d1}` for `1<=n<=5` and `\u d4 d3 d2 d1` for hexadecimal digits `d1...d5` where `d5` is in the range `[0-2]`.
+
+> Numeral, rational and decimal values are implemented by the arbtirary precision arithmetic library GMP.
+Binary and hexadecimal values are implemented as layer on top of numeral values that tracks a bitwidth.
+String values are implemented as a vector of unsigned integers whose maximum value is specified by SMT-LIB version 2.6, namely the character set corresponds to Unicode values 0 to 196607.
 
 > Note that the user is not required to declare that `true` and `false` are values of type `Bool`. Instead, it is assumed that the syntactic category `<boolean>` of Boolean values (`true` and `false`) has been associated with the Boolean sort. In other words, `(declare-consts <boolean> Bool)` is a part of the builtin ALF signature.
 
@@ -381,6 +387,7 @@ We remark on the semantics in the following.
 
 In the following, we say a term is *ground* if it contains no parameters as subterms.
 We say an *arithmetic value* is a numeral, decimal or rational value.
+We say a *bitwise value* is a binary or hexadecimal value.
 A 32-bit numeral value is a numeral value between `0` and `2^32-1`.
 Binary values are considered to be in little endian form.
 
@@ -396,23 +403,23 @@ Core operators:
 Boolean operators:
 - `(alf.and t1 t2)`
     - Boolean conjunction if `t1` and `t2` are Boolean values (`true` or `false`).
-    - Bitwise conjunction if `t1` and `t2` are binary values.
+    - Bitwise conjunction if `t1` and `t2` are bitwise values of the same category.
 - `(alf.or t1 t2)`
     - Boolean disjunction if `t1` and `t2` are Boolean values.
-    - Bitwise disjunction if `t1` and `t2` are binary values.
+    - Bitwise disjunction if `t1` and `t2` are bitwise values of the same category.
 - `(alf.xor t1 t2)`
     - Boolean xor if `t1` and `t2` are Boolean values.
-    - Bitwise xor if `t1` and `t2` are binary values.
+    - Bitwise xor if `t1` and `t2` are bitwise values of the same category.
 - `(alf.not t1)`
     - Boolean negation if `t1` is a Boolean value.
-    - Bitwise negation if `t1` is a binary values.
+    - Bitwise negation if `t1` is a bitwise values of the same category.
 Arithmetic operators:
 - `(alf.add t1 t2)`
     - If `t1` and `t2` are arithmetic values of the same category, then this returns the multiplication of `t1` and `t2`, which is a rational value if either of `t1, t2` is a rational value, or a numeral value otherwise.
-    - If `t1` and `t2` are binary values of the same bitwidth, this returns the binary value corresponding to their (unsigned) addition modulo their bitwidth.
+    - If `t1` and `t2` are bitwise values of the same category and bitwidth, this returns the binary value corresponding to their (unsigned) addition modulo their bitwidth.
 - `(alf.mul t1 t2)`
     - If `t1` and `t2` are arithmetic values of the same category, then this returns the multiplication of `t1` and `t2`, which is a rational value if either of `t1, t2` is a rational value, or a numeral value otherwise.
-    - If `t1` and `t2` are binary values of the same bitwidth, this returns the binary value corresponding to their (unsigned) multiplication modulo their bitwidth.
+    - If `t1` and `t2` are bitwise values of the same category and bitwidth, this returns the binary value corresponding to their (unsigned) multiplication modulo their bitwidth.
 - `(alf.neg t1)`
     - If `t1` is a arithmetic value, this returns the arithmetic negation of `t1`.
     - If `t1` is a binary value, this returns its (signed) arithmetic negation.
@@ -420,9 +427,8 @@ Arithmetic operators:
     - If `t1` and `t2` are values and `t2` is non-zero, then this returns the rational division of `t1` and `t2`.
 - `(alf.zdiv t1 t2)`
     - If `t1` and `t2` are numeral values and `t2` is non-zero, then this returns the integer division (floor) of `t1` and `t2`.
+    - If `t1` and `t2` are bitwise values of the same category and bitwidth, then this returns their (total, unsigned) division, where division by zero returns the max unsigned value.
 - `(alf.is_neg t1)`
-    - If `t1` is an arithmetic value, this returns `true` if `t1` is zero and `false` otherwise. Otherwise, this operator is not evaluated.
-- `(alf.is_zero t1)`
     - If `t1` is an arithmetic value, this returns `true` if `t1` is zero and `false` otherwise. Otherwise, this operator is not evaluated.
 String operators:
 - `(alf.len t1)`
@@ -473,8 +479,8 @@ This means that e.g. in the evaluation of `(alf.or A B)`, both `A` and `B` are a
 (alf.add 2 1/3)             == (alf.add 2 1/3)  ; no mixed arithmetic
 (alf.add 2/1 1/3)           == 7/3
 (alf.add 2.0 1/3)           == 7/3  ; with default options
-(alf.add 2.0 1/3)           == (alf.add 2.0 1/3)  ; if --no-normalize-dec is enabled
-(alf.add 2.0 2.5)           == 4.5  ; which is syntactically distinct from 9/2 if --no-normalize-dec is enabled
+(alf.add 2.0 1/3)           == (alf.add 2.0 1/3)  ; if --no-normalize-dec is enabled, since no mixed arithmetic
+(alf.add 2.0 2.5)           == 4.5  ; which is not syntactically equal to 9/2 if --no-normalize-dec is enabled
 (alf.add #b01 #b01)         == #b10
 (alf.add #x1 #b0001)        == #b0002  ; with default options
 (alf.add #x1 #b0001)        == (alf.add #x1 #b0001)  ; if --no-normalize-hex is enabled
@@ -490,8 +496,10 @@ This means that e.g. in the evaluation of `(alf.or A B)`, both `A` and `B` are a
 (alf.zdiv 7 2)              == 3
 (alf.is_neg 0)              == false
 (alf.is_neg -7/2)           == true
-(alf.is_zero 1/100)         == false
 (alf.len "abc")             == 3
+(alf.len """hi""")          == 4
+(alf.len "\u{AB0E}")        == 1
+(alf.len "\uA")             == 3
 (alf.len #b11100)           == 5
 (alf.concat "abc" "def")    == "abcdef"
 (alf.concat #b000 #b11)     == #b00011
@@ -927,7 +935,7 @@ Thus, the side condition is written in three cases: either `t` is `x` in which c
       ((run_evaluate (= a b))  (alf.is_eq (run_evaluate a) (run_evaluate b)))
       ((run_evaluate (< a b))  (alf.is_neg (run_evaluate (- a b))))
       ((run_evaluate (<= a b)) (let ((x (run_evaluate (- a b))))
-                                 (alf.or (alf.is_neg x) (alf.is_zero x))))
+                                 (alf.or (alf.is_neg x) (alf.is_eq x 0))))
       ((run_evaluate (+ a b))  (alf.add (run_evaluate a) (run_evaluate b)))
       ((run_evaluate (- a b))  (alf.add (run_evaluate a) (alf.neg (run_evaluate b))))
       ((run_evaluate z)        z)

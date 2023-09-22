@@ -111,6 +111,19 @@ Kind allSameKind(const std::vector<const Literal*>& args)
   return k;
 }
 
+bool allSameBitWidth(const std::vector<const Literal*>& args)
+{
+  unsigned sz = args[0]->d_bv.getSize();
+  for (size_t i=1, nargs=args.size(); i<nargs; i++)
+  {
+    if (args[i]->d_bv.getSize()!=sz)
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
 Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
 {
   Assert (k!=Kind::EVAL_IS_EQ && k!=Kind::EVAL_IF_THEN_ELSE && k!=Kind::EVAL_REQUIRES);
@@ -195,6 +208,10 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
         case Kind::HEXADECIMAL:
         case Kind::BINARY:
         {
+          if (!allSameBitWidth(args))
+          {
+            return Literal();
+          }
           BitVector res = args[0]->d_bv;
           for (size_t i=1, nargs = args.size(); i<nargs; i++)
           {
@@ -256,6 +273,10 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
           break;
         case Kind::HEXADECIMAL:
         case Kind::BINARY:
+          if (!allSameBitWidth(args))
+          {
+            return Literal();
+          }
           return Literal(ka, BitVector(args[0]->d_bv.unsignedDivTotal(args[1]->d_bv)));
           break;
         default: break;
@@ -293,15 +314,6 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
         case Kind::NUMERAL:return Literal(args[0]->d_int.sgn()==-1);
         case Kind::DECIMAL:
         case Kind::RATIONAL:return Literal(args[0]->d_rat.sgn()==-1);
-        default: break;
-      }
-      break;
-    case Kind::EVAL_IS_ZERO:
-      switch (ka)
-      {
-        case Kind::NUMERAL:return Literal(args[0]->d_int.sgn()==0);
-        case Kind::DECIMAL:
-        case Kind::RATIONAL:return Literal(args[0]->d_rat.sgn()==0);
         default: break;
       }
       break;
