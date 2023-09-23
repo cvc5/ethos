@@ -155,8 +155,11 @@ void State::popAssumptionScope()
   d_assumptionsSizeCtx.pop_back();
   d_assumptions.resize(lastSize);
 }
-
-bool State::includeFile(const std::string& s, bool isReference)
+bool State::includeFile(const std::string& s)
+{
+  return includeFile(s, false, d_null);
+}
+bool State::includeFile(const std::string& s, bool isReference, const Expr& referenceNf)
 {
   std::filesystem::path inputPath;
   try {
@@ -170,10 +173,14 @@ bool State::includeFile(const std::string& s, bool isReference)
   {
     return true;
   }
+  Assert (!isReference || d_hasReference);
+  d_hasReference = isReference;
+  d_referenceNf = referenceNf;
   std::filesystem::path currentPath = d_inputFile;
   d_inputFile = inputPath;
   if (d_compiler!=nullptr)
   {
+    Assert (!isReference);
     d_compiler->includeFile(inputPath);
   }
   Trace("state") << "Include " << inputPath << std::endl;
@@ -307,7 +314,12 @@ bool State::addAssumption(const Expr& a)
     // only care if at assumption level zero
     if (d_assumptionsSizeCtx.empty())
     {
-      return d_referenceAsserts.find(a.getValue()) != d_referenceAsserts.end();
+      Expr aa = a;
+      if (!d_referenceNf.isNull())
+      {
+        aa = mkExpr(Kind::APPLY, {d_referenceNf, a});
+      }
+      return d_referenceAsserts.find(aa.getValue()) != d_referenceAsserts.end();
     }
   }
   return true;
@@ -315,9 +327,14 @@ bool State::addAssumption(const Expr& a)
 
 void State::addReferenceAssert(const Expr& a)
 {
-  d_referenceAsserts.insert(a.getValue());
+  Expr aa = a;
+  if (!d_referenceNf.isNull())
+  {
+    aa = mkExpr(Kind::APPLY, {d_referenceNf, a});
+  }
+  d_referenceAsserts.insert(aa.getValue());
   // ensure ref count
-  d_referenceAssertList.push_back(a);
+  d_referenceAssertList.push_back(aa);
 }
 
 void State::setLiteralTypeRule(Kind k, const Expr& t)
@@ -1147,10 +1164,6 @@ bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
     d_compiler->markConstructorKind(v, a, acons);
   }
   return true;
-}
-void State::markHasReference()
-{
-  d_hasReference = true;
 }
 
 }  // namespace alfc

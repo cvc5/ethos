@@ -120,7 +120,9 @@ bool CmdParser::parseNextCommand()
       d_eparser.bind(name, v);
       if (!d_state.addAssumption(proven))
       {
-        d_lex.parseError("A provided assumption was not part of the referenced assertions");
+        std::stringstream ss;
+        ss << "The assumption " << name << " was not part of the referenced assertions";
+        d_lex.parseError(ss.str());
       }
     }
     break;
@@ -514,9 +516,16 @@ bool CmdParser::parseNextCommand()
     case Token::REFERENCE:
     {
       bool isReference = (tok==Token::REFERENCE);
-      if (isReference && d_state.hasReference())
+      if (isReference)
       {
-        d_lex.parseError("Cannot use more than one reference");
+        if (d_state.hasReference())
+        {
+          d_lex.parseError("Cannot use more than one reference");
+        }
+        if (d_state.getOptions().d_compile)
+        {
+          d_lex.parseError("Cannot use reference when compiling");
+        }
       }
       if (d_state.getAssumptionLevel()>0)
       {
@@ -529,15 +538,17 @@ bool CmdParser::parseNextCommand()
       }
       // include the file
       std::string file = d_eparser.parseStr(true);
-      if (!d_state.includeFile(file, isReference))
+      // read the optional reference normalize function
+      Expr referenceNf;
+      if (isReference && d_lex.peekToken()!=Token::RPAREN)
+      {
+        referenceNf = d_eparser.parseExpr();
+      }
+      if (!d_state.includeFile(file, isReference, referenceNf))
       {
         std::stringstream ss;
         ss << "Cannot include file " << file;
         d_lex.parseError(ss.str());
-      }
-      if (isReference)
-      {
-        d_state.markHasReference();
       }
     }
     break;

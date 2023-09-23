@@ -55,7 +55,9 @@ class State
   /** Pop assumption scope */
   void popAssumptionScope();
   /** include file, if not already done, return false if error */
-  bool includeFile(const std::string& s, bool isReference = false);
+  bool includeFile(const std::string& s);
+  /** include file, possibly as a reference */
+  bool includeFile(const std::string& s, bool isReference, const Expr& referenceNf);
   /** add assumption */
   bool addAssumption(const Expr& a);
   /** add reference assert */
@@ -68,8 +70,6 @@ class State
   bool markConstructorKind(const Expr& v, Attr a, const Expr& cons);
   /** Define program, where v is PROGRAM_CONST and prog is PROGRAM. */
   void defineProgram(const Expr& v, const Expr& prog);
-  /** Mark has reference */
-  void markHasReference();
   //--------------------------------------
   /** Type */
   Expr mkType();
@@ -231,6 +231,8 @@ class State
   std::set<std::filesystem::path> d_includes;
   /** Have we parsed a reference file to check assumptions? */
   bool d_hasReference;
+  /** The reference normalization function, if it exists */
+  Expr d_referenceNf;
   /** Reference asserts */
   std::unordered_set<const ExprValue*> d_referenceAsserts;
   /** Reference assert list */
