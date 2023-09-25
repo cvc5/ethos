@@ -88,8 +88,8 @@ Specifically, the ALF language has the following builtin expressions:
 In the following, we informally write BNF categories `<symbol>` to denote an SMT-LIB version 3.0 symbol, `<term>` to denote an SMT-LIB term and `<type>` to denote a term whose type is `Type`, `<typed-param>` is a pair `(<symbol> <type>)` that binds `<symbol>` as a fresh parameter of the given type.
 
 The following commands are supported for declaring and defining types and terms, most of which are taken from SMT-LIB version 3.0:
-- `(declare-const <symbol> <type>)` declares a constant named `<symbol>` whose type is `<type>`.
-- `(declare-fun <symbol> (<type>*) <type>)` declares a constant named `<symbol>` whose type is given by the argument types and return type.
+- `(declare-const <symbol> <type> <attr>*)` declares a constant named `<symbol>` whose type is `<type>`. Can be given an optional list of attributes (see [attributes](#attributes)).
+- `(declare-fun <symbol> (<type>*) <type> <attr>*)` declares a constant named `<symbol>` whose type is given by the argument types and return type. Can be given an optional list of attributes.
 - `(declare-sort <symbol> <numeral>)` declares a new type named `<symbol>` whose kind is `(-> Type^n Type)` if `n>0` or `Type` for the provided numeral `n`.
 - `(declare-type <symbol> (<type>*))` declares a new type named `<symbol>` whose kind is given by the argument types and return type `Type`.
 - `(define-const <symbol> <term>)` defines `<symbol>` to be the given term.
@@ -102,7 +102,7 @@ The following commands are supported for declaring and defining types and terms,
 
 The ALF language contains further commands for declaring symbols that are not standard SMT-LIB version 3.0:
 - `(declare-var <symbol> <type>)` declares a variable named `<symbol>` whose type is `<type>`.
-- `(declare-consts <literal-category> <type>)` declares the class of symbols denoted by the literal category to have the given type.
+- `(declare-consts <lit-category> <type>)` declares the class of symbols denoted by the literal category to have the given type.
 - `(define <symbol> (<typed-param>*) <term>)`, which is identical to `define-fun` but the body term is not type checked against a reference type.
 
 > Variables are internally treated the same as constants by the ALF checker, but are provided as a separate category, e.g. for user signatures that wish to distinguish universally quantified variables from free constants.
@@ -212,7 +212,7 @@ The second annotation indicates that `(alf.is_neg w)` must evaluate to `false`, 
 
 > Internally, `(! T :requires (t s))` is syntax sugar for `(alf.requires t s T)` where `alf.requires` is an operator that evalutes to its third argument if and only if its first two arguments are equivalent (details on this operator are given in [computation](#computation)). Furthermore, the function type `(-> (alf.requires t s T) S)` is treated as `(-> T (alf.requires t s S))`. The ALF checker rewrites all types of the former to the latter.
 
-## Declarations with attributes
+## <a name="attributes"></a>Declarations with attributes
 
 The ALF language supports term annotations on declared functions, which for instance can allow the user to treat a declared function as being variadic, i.e. taking an arbitrary number of arguments. The available annotations in the ALF checker are:
 - `:right-assoc` (resp. `:left-assoc`) denoting that the term is right (resp. left) associative,
@@ -245,7 +245,7 @@ Note that the type for right and left associative operators is typically `(-> T 
 
 ### Right/Left associative with nil terminator
 
-ALF supports a variant of the aforementioned functionality where a nil terminator is provided.
+ALF supports a variant of the aforementioned functionality where a (ground) nil terminator is provided.
 
 ```
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
@@ -464,6 +464,8 @@ In other words, the term `(alf.add 1 1)` is syntactically equivalent in all cont
 Currently, apart from applications of `alf.ite`, all terms are evaluated bottom-up.
 This means that e.g. in the evaluation of `(alf.or A B)`, both `A` and `B` are always evaluated even if `A` evaluates to `true`.
 
+The ALF checker supports extensions of `alf.and, alf.or, alf.xor, alf.add, alf.mul, alf.concat` to an arbitrary number of arguments `>=2`.
+
 ### Computation Examples
 
 ```
@@ -663,19 +665,19 @@ This means that when type checking the binary constant `#b0000`, its type prior 
 
 The ALF language supports a command `declare-rule` for defining proof rules. Its syntax is given by:
 ```
-(declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <requirements>? :conclusion <term>)
+(declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term>)
 where
 <assumption>    ::= :assumption <term>
 <premises>      ::= :premises (<term>*) | :premise-list <term> <term>
 <arguments>     ::= :args (<term>*)
-<requirements>  ::= :requires ((<term> <term>)*)
+<reqs>          ::= :requires ((<term> <term>)*)
 ```
 
 A proof rule begins by defining a list of free parameters, followed by 4 optional fields and a conclusion term.
 These fields include:
 - `<premises>`, denoting the premise patterns of the proof rule. This is either a list of formulas (via `:premises`) or the specification of list of premises via (via `:premise-list`), which will be described in detail later.
 - `<arguments>`, denoting argument patterns of provide to a proof rule.
-- `<requirements>`, denoting a list of pairs of terms.
+- `<reqs>`, denoting a list of pairs of terms.
 Proof rules with assumptions `<assumption>` are used in proof with local scopes and will be discussed in detail later.
 
 At a high level, an application of a proof rule is given a concrete list of (premise) proofs, and a concrete list of (argument) terms.
@@ -757,8 +759,8 @@ Note that the type of functions provided as the second argument of `:premise-lis
 
 The ALF language supports a command `declare-axiom`, which is a simplified version of `declare-rule`:
 ```
-(declare-axiom <symbol> (<typed-param>*) <requirements>? <term>)
-<requirements>  ::= :requires ((<term> <term>)*)
+(declare-axiom <symbol> (<typed-param>*) <reqs>? <term>)
+<reqs>  ::= :requires ((<term> <term>)*)
 ```
 
 The command
@@ -1077,6 +1079,60 @@ The ALF command line interface can be invoked by `alfc <option>* <file>` where `
 
 ## Full syntax for commands
 
+Inputs to the ALF checker should be `<command>*`, where:
+
+```
+;;;
+<command> ::=
+    (assume <symbol> <term>) |
+    (declare-const <symbol> <type> <attr>*)
+    (declare-consts <lit-category> <type>) |
+    (declare-datatype <symbol> <datatype-dec>) |
+    (declare-datatypes (<sort-dec>^n) (<datatype-dec>^n)) |
+    (declare-fun <symbol> (<type>*) <type> <attr>*) |
+    (declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term>) |
+    (declare-sort <symbol> <numeral>) |
+    (declare-type <symbol> (<type>*)) |
+    (declare-var <symbol> <type>) |
+    (define-const <symbol> <term>) |
+    (define <symbol> (<typed-param>*) <term>) |
+    (define-fun <symbol> (<typed-param>*) <type> <term>) |
+    (define-sort <symbol> (<symbol>*) <type>) |
+    (define-type <symbol> (<type>*) <type>) |
+    (include <string>) |
+    (program <symbol> (<typed-param>*) (<type>*) <type> ((<term> <term>)+)) |
+    (reference <string> <symbol>?) |
+    (reset) |
+    (step <symbol> <term>? :rule <symbol> <simple-premises>? <arguments>?) |
+    <smtlib2-command>
+
+;;;
+<smtlib2-command> ::=
+    (assert <term>) |
+    (check-sat) |
+    (check-sat-assuming (<term>*)) |
+    (set-info <attr>) |
+    (set-logic <symbol>) |
+    (set-option <attr>)
+
+;;;
+<keyword>       ::= :<symbol>
+<attr>          ::= <keyword> <term>?
+<term>          ::= <symbol> | (<symbol> <term>+) | (! <term> <attr>+) | (alf.match (<typed-param>*) <term> ((<term> <term>)*))
+<type>          ::= <term>
+<typed-param>   ::= (<symbol> <type>)
+<sort-dec>      ::=
+<datatype-dec>  ::=
+
+;;;
+<assumption>      ::= :assumption <term>
+<premises>        ::= <simple-premises> | :premise-list <term> <term>
+<simple-premises> ::= :premises (<term>*)
+<arguments>       ::= :args (<term>*)
+<reqs>            ::= :requires ((<term> <term>)*)
+
+
+```
 
 
 ## Proofs as terms
@@ -1099,8 +1155,6 @@ for all other (non-Quote) types U.
 
 ```
 
-### Declared rules
-
 The command:
 ```
 (declare-rule s ((v1 T1) ... (vi Ti)) :premises (p1 ... pn) :args (t1 ... tm) :requires ((r1 s1) ... (rk sk)) :conclusion t)
@@ -1116,8 +1170,6 @@ can be seen as syntax sugar for:
             (Proof t)))))
 ```
 
-### Proof assumptions
-
 The command:
 ```
 (assume s f)
@@ -1126,8 +1178,6 @@ can be seen as syntax sugar for:
 ```
 (declare-const s (Proof f))
 ```
-
-### Proof steps
 
 The command:
 ```

@@ -159,7 +159,7 @@ bool CmdParser::parseNextCommand()
         std::string oname = d_eparser.parseSymbol();
         cons = d_state.mkLiteral(Kind::STRING, oname);
       }
-      else if (tok==Token::DECLARE_CONST)
+      else if (tok==Token::DECLARE_CONST || tok==Token::DECLARE_FUN)
       {
         sk = Kind::CONST;
         // possible attribute list
