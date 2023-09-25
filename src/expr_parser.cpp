@@ -423,6 +423,7 @@ Expr ExprParser::parseExpr()
           // add the head
           sf.d_args.push_back(ret);
           ret = d_null;
+          d_lex.eatToken(Token::LPAREN);
           // we now parse a pattern
           sf.d_ctx = ParseCtx::MATCH_NEXT_CASE;
           needsUpdateCtx = true;
@@ -456,6 +457,7 @@ Expr ExprParser::parseExpr()
           {
             if (d_lex.eatTokenChoice(Token::RPAREN, Token::LPAREN))
             {
+              d_lex.eatToken(Token::RPAREN);
               Trace("parser") << "Parsed match " << args << std::endl;
               // make a program
               if (args.size()<=2)
@@ -472,7 +474,8 @@ Expr ExprParser::parseExpr()
                 vl.push_back(args[0][i]);
               }
               Expr hd = args[1];
-              std::vector<Expr> allVars = Expr::getVariables(args);
+              std::vector<Expr> caseArgs(args.begin()+2, args.end());
+              std::vector<Expr> allVars = Expr::getVariables(caseArgs);
               std::vector<Expr> env;
               std::vector<Expr> fargTypes;
               fargTypes.push_back(atype);
@@ -496,9 +499,9 @@ Expr ExprParser::parseExpr()
               Expr pv = d_state.mkSymbol(Kind::PROGRAM_CONST, pvname.str(), ftype);
               // process the cases
               std::vector<Expr> cases;
-              for (size_t i=2, nargs = args.size(); i<nargs; i++)
+              for (size_t i=0, nargs = caseArgs.size(); i<nargs; i++)
               {
-                const Expr& cs = args[i];
+                const Expr& cs = caseArgs[i];
                 Assert(cs.getKind() == Kind::TUPLE);
                 const Expr& lhs = cs[0];
                 // check that variables in the pattern are only from the binder
@@ -508,6 +511,27 @@ Expr ExprParser::parseExpr()
                 appArgs.insert(appArgs.end(), env.begin(), env.end());
                 Expr lhsa = d_state.mkExpr(Kind::APPLY, appArgs);
                 cases.push_back(d_state.mkPair(lhsa, rhs));
+                // check free variable requirement
+                std::vector<Expr> bvsl = Expr::getVariables(lhs);
+                std::vector<Expr> bvsr = Expr::getVariables(rhs);
+                for (const Expr& v : bvsr)
+                {
+                  // if not in the locally bound variable list, skip
+                  if (std::find(vl.begin(), vl.end(), v)==vl.end())
+                  {
+                    continue;
+                  }
+                  // otherwise, must be in the left hand side
+                  if (std::find(bvsl.begin(), bvsl.end(), v)==bvsl.end())
+                  {
+                    std::stringstream msg;
+                    msg << "Unexpected free parameter in match case:" << std::endl;
+                    msg << "       Expression: " << rhs << std::endl;
+                    msg << "   Free parameter: " << v << std::endl;
+                    msg << "Does not occur in: " << lhs << std::endl;
+                    d_lex.parseError(msg.str());
+                  }
+                }
               }
               Expr prog = d_state.mkExpr(Kind::PROGRAM, cases);
               d_state.defineProgram(pv, prog);
@@ -1152,10 +1176,10 @@ void ExprParser::ensureBound(const Expr& e, const std::vector<Expr>& bvs)
     if (std::find(bvs.begin(), bvs.end(), v)==bvs.end())
     {
       std::stringstream msg;
-      msg << "Unexpected free variable in expression:" << std::endl;
-      msg << "     Expression: " << e << std::endl;
-      msg << "  Free variable: " << v << std::endl;
-      msg << "Bound variables: " << bvs << std::endl;
+      msg << "Unexpected free parameter in expression:" << std::endl;
+      msg << "      Expression: " << e << std::endl;
+      msg << "  Free parameter: " << v << std::endl;
+      msg << "Bound parameters: " << bvs << std::endl;
       d_lex.parseError(msg.str());
     }
   }

@@ -93,6 +93,7 @@ set(alfc_test_file_list
     str-eval.smt3
     define-sort-iarray.smt3
     axiom-implicit.smt3
+    match-variants.smt3
 )
 
 macro(alfc_test file)

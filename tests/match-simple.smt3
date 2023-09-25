@@ -22,10 +22,12 @@
         ; head
         (rm_from_sum x z)
         ; matches (pair w b)
+        (
         ((pair w b) (alf.ite 
                       (alf.is_eq x y) 
                       (pair w true) 
                       (pair (+ y w) b)))
+        )
       ))
     ((rm_from_sum x y) (pair y false))
   )
@@ -36,7 +38,7 @@
   :conclusion (=> (< 0 x)
                 (alf.match ((w Int) (b Bool))
                   (rm_from_sum x y) ; head
-                  ((pair w b) (alf.ite b (< w y) (= w y)))))
+                  (((pair w b) (alf.ite b (< w y) (= w y))))))
 )
 
 (declare-const a Int)

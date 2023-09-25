@@ -15,8 +15,11 @@
     :conclusion
         (alf.match ((T Type) (t1 T) (t2 T))
             F
-            ((= t1 t2)       (= t2 t1))
-            ((not (= t1 t2)) (not (= t2 t1))))
+            (
+              ((= t1 t2)       (= t2 t1))
+              ((not (= t1 t2)) (not (= t2 t1)))
+            )
+        )
 )
 
 ; TRANS
@@ -35,7 +38,7 @@
     :conclusion
         (alf.match ((t1 U) (t2 U) (tail Bool :list))
         E
-        ((and (= t1 t2) tail) (mk_trans t1 t2 tail)))
+        (((and (= t1 t2) tail) (mk_trans t1 t2 tail))))
 )
 
 ; CONG
@@ -115,7 +118,7 @@
     :conclusion
         (alf.match ((t1 U) (t2 U) (tail Bool :list))
         E
-        ((and (= t1 t2) tail) (mk_ho_cong t1 t2 tail)))
+        (((and (= t1 t2) tail) (mk_ho_cong t1 t2 tail))))
 )
 
 ; HO_APP_ENCODE

@@ -98,7 +98,7 @@
     :conclusion
         (alf.match ((C1 Bool) (C2 Bool :list))
             Cs
-            ((and C1 C2) (chainResolveRec (alf.to_list or C1) C2 args)))
+            (((and C1 C2) (chainResolveRec (alf.to_list or C1) C2 args))))
 )
 
 ; FACTORING

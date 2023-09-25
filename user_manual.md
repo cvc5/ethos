@@ -477,6 +477,7 @@ The ALF checker supports extensions of `alf.and, alf.or, alf.xor, alf.add, alf.m
 (alf.not true)              == false
 (alf.not #b1010)            == #b0101
 (alf.add 1 1)               == 2
+(alf.add 1 1 1 0)           == 3
 (alf.add 1/2 1/3)           == 5/6
 (alf.add 2 1/3)             == (alf.add 2 1/3)  ; no mixed arithmetic
 (alf.add 2/1 1/3)           == 7/3
@@ -487,6 +488,7 @@ The ALF checker supports extensions of `alf.and, alf.or, alf.xor, alf.add, alf.m
 (alf.add #x1 #b0001)        == #b0002  ; with default options
 (alf.add #x1 #b0001)        == (alf.add #x1 #b0001)  ; if --no-normalize-hex is enabled
 (alf.mul 2 7)               == 14
+(alf.mul 2 2 7)             == 28
 (alf.mul 1/2 1/4)           == 1/8
 (alf.neg -15)               == 15
 (alf.qdiv 12 6)             == 3/1
@@ -977,9 +979,93 @@ The ALF checker supports an operator `alf.match` for performing pattern matching
 ```
 The term `(alf.match (...) t ((s1 r1) ... (sn rn)))` finds the first term `si` in the list `s1 ... sn` that `t` can be matched with under some substitution and returns the result of applying that substitution to `ri`.
 
-> Similar to programs, the free parameters of `ri` must be a subset of `si`, or else an error is thrown.
+> Match terms require the free parameters of `ri` are a subset of the provided parameter list.
+In other words, all patterns must only involve parameters that are locally bound as the first argument of the match term.
+Also, similar to programs, the free parameters of `ri` that occur in the parameter list must be a subset of `si`, or else an error is thrown.
 
-### Example:
+### Examples of legal and illegal match terms
+
+```
+(declare-sort Int 0)
+(declare-const F Bool)
+(declare-const a Int)
+(declare-const P (-> Int Bool))
+(declare-const f (-> Int Int))
+; Legal match terms:
+(define-fun test1 ((x Int)) Int
+    (alf.match ((y Int)) 
+        x 
+        (
+            (a a) 
+            (b b) 
+            ((f (f a)) a)
+            (y a)
+        )
+    ))
+(define-fun test2 ((F Bool)) Int
+    (alf.match ((x Int))
+        F
+        (
+            ((P x) x)
+        )
+    ))
+(define test3 ((F Bool) (y Int)) 
+    (f (alf.match ((x Int)) 
+            F 
+            (
+                ((P x) y)
+            )
+        )))
+
+; Illegal match terms:
+(define test4 ((F Bool) (y Int)) (alf.match ((x Int)) F (((P y) a))))  ; since y is not locally bound
+(define test5 ((F Bool) (y Int)) (alf.match ((x Int)) F (((P a) x))))  ; since x is not bound by (P a)
+```
+
+
+### Example: Symmetry of (dis)equality
+
+```
+(declare-sort Int 0)
+(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-const not (-> Bool Bool))
+(declare-rule symm ((F Bool))
+    :premises (F)
+    :args ()
+    :conclusion
+        (alf.match ((t1 Int) (t2 Int))
+            F
+            (
+                ((= t1 t2)       (= t2 t1))
+                ((not (= t1 t2)) (not (= t2 t1)))
+            )
+        )
+)
+```
+The above rule performs symmetry on equality or disequality.
+It matches the given premise `F` with either `(= t1 t2)` or `(not (= t1 t2))` and flips the terms on the sides of the (dis)equality.
+
+Internally, the semantics of `alf.match` can be seen as an (inlined) program, such that the above example is equivalent to:
+```
+(declare-sort Int 0)
+(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-const not (-> Bool Bool))
+(program matchF ((t1 Int) (t2 Int))
+    (Bool) Bool
+    (
+      ((matchF (= t1 t2))       (= t2 t1))
+      ((matchF (not (= t1 t2))) (not (= t2 t1)))
+    )
+)
+(declare-rule symm ((F Bool))
+    :premises (F)
+    :args ()
+    :conclusion (matchF F)
+)
+```
+
+> The ALF checker automatically performs the above transformation on match terms for consistency.
+In more general cases, if the body of the match term contains free variables, these are added to the argument list of the internally generated program.
 
 ### Example: Transitivity proof rule with a premise list
 
@@ -1001,7 +1087,9 @@ The term `(alf.match (...) t ((s1 r1) ... (sn rn)))` finds the first term `si` i
     :conclusion
         (alf.match ((t1 Int) (t2 Int) (tail Bool :list))
         E
-        ((and (= t1 t2) tail) (mk_trans t1 t2 tail)))
+        (
+            ((and (= t1 t2) tail) (mk_trans t1 t2 tail))
+        ))
 )
 ```
 

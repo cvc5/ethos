@@ -55,8 +55,10 @@
       (alf.ite (check_length_one t)
         (alf.match ((s1 String) (s2 String)) 
           (string_collect_acc tail)
-          ((pair alf.nil s2) (pair t s2))
-          ((pair s1 s2) (pair (alf.concat t s1) s2))
+          (
+            ((pair alf.nil s2) (pair t s2))
+            ((pair s1 s2) (pair (alf.concat t s1) s2))
+          )
         )
         (pair alf.nil (str.++ t tail))))
   )
@@ -67,8 +69,10 @@
   :args (s)
   :conclusion (alf.match ((s1 String) (s2 String :list)) 
                 (string_collect_acc s) 
-                ((pair alf.nil s2)  (= s s2))
-                ((pair s1 s2)       (= s (str.++ s1 s2)))
+                (
+                  ((pair alf.nil s2)  (= s s2))
+                  ((pair s1 s2)       (= s (str.++ s1 s2)))
+                )
               )
 )
 

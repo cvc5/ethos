@@ -152,8 +152,10 @@
       (alf.ite (check_length_one t)
         (alf.match ((s1 U) (s2 U)) 
           (string_collect_acc tail)
-          ((@pair alf.nil s2)  (@pair t s2))
-          ((@pair s1 s2)       (@pair (alf.concat t s1) s2))    ; concatentate the constant
+          (
+            ((@pair alf.nil s2)  (@pair t s2))
+            ((@pair s1 s2)       (@pair (alf.concat t s1) s2))    ; concatentate the constant
+          )
         )
         (@pair alf.nil (str.++ t tail))))
     ((string_collect_acc alf.nil)            (@pair alf.nil alf.nil))
@@ -174,12 +176,14 @@
     ((string_collect (str.++ t s))
       (alf.match ((s1 U) (s2 U))
         (string_collect_acc (str.++ t s))
-        ; did not strip a constant prefix, just append t to the result of processing s
-        ((@pair alf.nil s2)
-          (alf.cons str.++ t (string_collect s)))
-        ; stripped a constant prefix, append it to second term in the pair
-        ((@pair s1 s2)
-          (alf.cons str.++ s1 (string_collect s2)))
+        (
+          ; did not strip a constant prefix, just append t to the result of processing s
+          ((@pair alf.nil s2)
+            (alf.cons str.++ t (string_collect s)))
+          ; stripped a constant prefix, append it to second term in the pair
+          ((@pair s1 s2)
+            (alf.cons str.++ s1 (string_collect s2)))
+        )
       )
     )
   )
