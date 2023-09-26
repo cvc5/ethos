@@ -870,14 +870,16 @@ The semantics of the program is given by a non-empty list of pairs of terms, whi
 For program `f`, This list is expected to be a list of terms of the form `(((f t11 ... t1n) r1) ... ((f tm1 ... tmn) rm))`
 where `t11...t1n, ..., tm1...tmn` do not contain computational operators.
 A (ground) term `(f s1 ... sn)` evaluates by finding the first term in the first position of a pair of this list that matches it for substitution `S`, and returns the result of applying `S` to the right hand side of that pair.
+If no such term can be found, then the application does not evaluate.
 
 > Terms in program bodies are not statically type checked. Evaluating a program may introduce non-well-typed terms if the program body is malformed.
 
-> For each case `((f ti1 ... tin) ri)` in the program body, the free parameters in `ri` are expected to be a subset of the free parameters in `(f ti1 ... tin)`. Otherwise, an error is thrown.
+> For each case `((f ti1 ... tin) ri)` in the program body, the free parameters in `ri` are required to be a subset of the free parameters in `(f ti1 ... tin)`. Otherwise, an error is thrown.
 
 > If a case is provided `(si ri)` in the definition of program `f` where `si` is not an application of `f`, an error is thrown.
+Furthermore, if `si` contains any computational operators (i.e. those with `alf.` prefix), then an error is thrown.
 
-### Example: Contains in a `or` term
+### Example: Finding a child of an `or` term
 
 The following program (recursively) computes whether a formula `l` is contained as the direct child of an application of `or`:
 ```
@@ -886,9 +888,9 @@ The following program (recursively) computes whether a formula `l` is contained 
     ((l Bool) (x Bool) (xs Bool :list))
     (Bool Bool) Bool
     (
-        ((contains l false)     false)
-        ((contains l (or l xs)) true)
-        ((contains l (or x xs)) (contains l xs))
+        ((contains false l)     false)
+        ((contains (or l xs) l) true)
+        ((contains (or x xs) l) (contains l xs))
     )
 )
 ```
@@ -897,9 +899,53 @@ First, we declare the parameters `l, x, xs`, each of type `Bool`.
 These parameters are used for defining the body of the program, but do *not* necessarily coincide with the expected arguments to the program.
 We then declare the type of the program `(Bool Bool) Bool`, i.e. the type of `contains` is a function expecting two Booleans and returning a Boolean.
 The body of the program is then given in three cases.
-First, terms of the form `(contains l false)` reduce to `false`, that is, we failed to find `l` in the second argument.
-Second, terms of the form `(contains l (or l xs))` reduce to `true`, that is we found `l` in the first position of the second argument.
-Otherwise, terms of the form `(contains l (or x xs))` reduce to `(contains l xs)`, in other words, we make a recursive call to find `l` in the tail of the list `xs`.
+First, terms of the form `(contains false l)` evaluate to `false`, that is, we failed to find `l` in the second argument.
+Second, terms of the form `(contains (or l xs) l)` evaluate to `true`, that is we found `l` in the first position of the second argument.
+Otherwise, terms of the form `(contains (or x xs) l)` evaluate in one step to `(contains xs l)`, in other words, we make a recursive call to find `l` in the tail of the list `xs`.
+
+In this example, since `xs` was marked with `:list`, the terms `(or l xs)` and `(or x xs)` are desugared to terms where `xs` is matched with the tail of the input.
+The next two examples show variants where an incorrect definition of this program is defined.
+
+> As mentioned in [list-computation](#list-computation), ALF has dedicated support for operators over lists.
+The term `(contains l c)` in the above example is equivalent to `(alf.not (alf.is_neg (alf.find or c l)))`.
+Computing the latter is significantly faster in practice.
+
+### Example: Finding a child of an `or` term (incorrect version)
+```
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+(program contains
+    ((l Bool) (x Bool) (xs Bool))
+    (Bool Bool) Bool
+    (
+        ((contains false l)     false)
+        ((contains (or l xs) l) true)
+        ((contains (or x xs) l) (contains l xs))
+    )
+)
+```
+
+In this variant, `xs` was not marked with `:list`.
+Thus, `(or l xs)` and `(or x xs)` are desugared to `(or l (or xs false))` and `(or x (or xs false))` respectively.
+In other words, these terms will match `or` terms with *exactly* two children, for example `(contains (or a b) a)` will evaluate to `true`.
+However, the side condition will not evaluate when given an input `or` with more than 2 children, for example `(contains (or a b c) a)` does not evaluate in this example.
+
+### Example: Finding a child of an `or` term (incorrect version 2)
+```
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+(program contains
+    ((l Bool) (x Bool :list) (xs Bool :list))
+    (Bool Bool) Bool
+    (
+        ((contains false l)     false)
+        ((contains (or l xs) l) true)
+        ((contains (or x xs) l) (contains l xs))
+    )
+)
+```
+In this variant, both `xs` and `x` were marked with `:list`.
+The ALF checker will reject this definition since it implies that a computational operator appears in a pattern for matching.
+In particular, the term `(contains (or x xs) l)` is equivalent to `(alf.concat or x xs)` after desugaring.
+Thus, the third case of the program, `(contains (alf.concat or x xs) l)`, is not a legal pattern.
 
 ### Example: Substitution
 
