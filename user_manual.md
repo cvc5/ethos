@@ -587,7 +587,7 @@ The terms on both sides of the given evaluation are written in their form prior 
 (alf.cons or false (or a b))        == (or false a b)
 (alf.cons or (or a b) (or b))       == (or (or a b) b)
 (alf.cons or false false)           == false
-(alf.cons or a b)                   == (alf.cons or a b)
+(alf.cons or a b)                   == (alf.cons or a b)                ; since b is not an or-list
 (alf.cons or a (or b))              == (or a b)
 (alf.cons and (or a b) (and b))     == (and (or a b) b)
 (alf.cons and true (and a))         == (and a)
@@ -596,20 +596,20 @@ The terms on both sides of the given evaluation are written in their form prior 
 (alf.concat or (or a b) (or b))     == (or a b b)
 (alf.concat or false (or b))        == (or b)
 (alf.concat or (or a b b) false)    == (or a b b)
-(alf.concat or a (or b))            == (alf.concat or a (or b))
-(alf.concat or (or a) b)            == (alf.concat or (or a) b)
+(alf.concat or a (or b))            == (alf.concat or a (or b))         ; since a is not an or-list
+(alf.concat or (or a) b)            == (alf.concat or (or a) b)         ; since b is not an or-list
 (alf.concat or (or a) (or b))       == (or a b)
-(alf.concat or (and a b) false)     == (alf.concat or (and a b) false)
+(alf.concat or (and a b) false)     == (alf.concat or (and a b) false)  ; since (and a b) is not an or-list
 
 (alf.extract or (or a b a) 1)       == b
 (alf.extract or (or a) 0)           == a
-(alf.extract or false 0)            == (alf.extract or false 0)
-(alf.extract or (or a b a) 3)       == (alf.extract or (or a b a) 3)
-(alf.extract or (and a b b) 0)      == (alf.extract or (and a b b) 0)
+(alf.extract or false 0)            == (alf.extract or false 0)         ; since false has <=0 children
+(alf.extract or (or a b a) 3)       == (alf.extract or (or a b a) 3)    ; since (or a b a) has <=3 children
+(alf.extract or (and a b b) 0)      == (alf.extract or (and a b b) 0)   ; since (and a b b) is not an or-list
 
 (alf.find or (or a b a) b)          == 1
 (alf.find or (or a b a) true)       == -1
-(alf.find or (and a b b) a)         == (alf.find or (and a b b) a)
+(alf.find or (and a b b) a)         == (alf.find or (and a b b) a)      ; since (and a b b) is not an or-list
 ```
 
 ## Type rule for BitVector concatentation
@@ -645,7 +645,7 @@ If on the other hand we defined:
 (define z2 () (concat x2 y2))
 ```
 The type `z2` in the above example is `(BitVec (alf.add a b))`, where the application of `alf.add` does not evaluate.
-Further use of `z2` would lead to type checking errors if given as an argument to a function that did not expect this type verbatim.
+Although the above term does not lead to a type checking error, further use of `z2` would lead to errors if given as an argument to a function that did not expect this type verbatim.
 For example, given a function `f` of type `(-> (BitVec (alf.add b a)) T)`, the term `(f z2)` is not well-typed, since `(alf.add a b)` is not syntactically equal to `(alf.add b a)`.
 
 ## Type rule for BitVector constants
@@ -692,7 +692,6 @@ If these criteria are met, then the proof rule proves the result of applying `S`
 A proof rule is only well defined if the free parameters of the requirements and conclusion term are also contained in the arguments and premises.
 
 > Internally, proofs can be seen as terms whose type is given by a distinguished `Proof` type. In particular, `Proof` is a type whose kind is `(-> Bool Type)`, where the argument of this type is the formula that is proven. For example, `(Proof (> x 0))` is the proof that `x` is greater than zero. By design, the user cannot declare terms involving type `Proof`. Instead, proofs can only be constructed via the commands `assume` and `step` as we describe in [proofs](#proofs).
-
 
 ### Example rule: Reflexivity of equality
 
@@ -755,16 +754,15 @@ When applying this rule, the formulas proven to this rule (say `F1 ... Fn`) will
 In particular, in this case `F` is bound to `(and F1 ... Fn)`.
 The conclusion of the rule returns `F` itself.
 
-Note that the type of functions provided as the second argument of `:premise-list` should be operators that are marked to take an arbitrary number of arguments, that is those marked with `:right-assoc-nil`, `:chainable`.
+Note that the type of functions provided as the second argument of `:premise-list` should be operators that are marked to take an arbitrary number of arguments, that is those marked e.g. with `:right-assoc-nil` or `:chainable`.
 
 ## Axioms
 
-The ALF language supports a command `declare-axiom`, which is a simplified version of `declare-rule`:
+The ALF language supports a command `declare-axiom` which is a more concise way to specify proof rules taking no premises:
 ```
 (declare-axiom <symbol> (<typed-param>*) <reqs>? <term>)
 <reqs>  ::= :requires ((<term> <term>)*)
 ```
-
 The command
 ```
 (declare-axiom S ((x1 T1) .. (xn Tn)) R? t)
@@ -1014,6 +1012,40 @@ In the above example, a side condition is being used to define the type rule for
 In particular, `arith.typeunion` is a program taking two types and returning a type, which is `Real` if either argument is `Real` or `Int` otherwise.
 The return type of `+` invokes this side condition, which conceptually is implementing a policy for subtyping over arithmetic types which the ALF checker does not have builtin support for.
 
+### Example: Conversion to DIMACS
+
+```
+(declare-sort String 0)
+(declare-consts <string> String)
+(declare-const not (-> Bool Bool))
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+(declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
+
+(program to_drat_lit ((l Bool))
+  (Bool) Int
+  (
+    ((to_drat_lit (not l))  (alf.neg (alf.hash l)))
+    ((to_drat_lit l)        (alf.hash l))
+  )
+)
+(program to_drat_clause ((l Bool) (C Bool :list))
+  (Bool) String
+  (
+    ((to_drat_clause false)    "0")
+    ((to_drat_clause (or l C)) (alf.concat (alf.to_str (to_drat_lit l)) " " (to_drat_clause C)))
+    ((to_drat_clause l)        (alf.concat (alf.to_str (to_drat_lit l)) " 0"))
+  )
+)
+(program to_dimacs ((C Bool) (F Bool :list))
+  (Bool) String
+  (
+    ((to_dimacs true)       "")
+    ((to_dimacs (and C F))  (alf.concat (to_drat_clause C) " " (to_dimacs F)))
+  )
+)
+```
+The above program `to_dimacs` converts an ALF formula into DIMACS form, where `alf.hash` is used to assign atoms to integer identifiers.
+
 ## Match statements in ALF
 
 The ALF checker supports an operator `alf.match` for performing pattern matching on a target term. The syntax of this term is:
@@ -1050,7 +1082,7 @@ Also, similar to programs, the free parameters of `ri` that occur in the paramet
 (define test2 ((F Bool) (y Int)) 
     (alf.match ((x Int)) F 
         (
-            ((P x) y)           ; ok since y is bound at a higher scope, x is bound locally
+            ((P x) y)           ; ok since y is bound at a higher scope and x is bound locally
         )
     ))
 
@@ -1201,26 +1233,63 @@ In particular, the ALF checker supports the command:
 ```
 Like `declare-fun`, this command declares a constant named `<symbol>` whose type is given by the argument types and return type.
 In addition, a symbol is provided at the end of the command which specifies the name of executable command to run.
+Ground applications of oracle functions are eagerly evaluated by invoking the binary and parsing its result, which we describe in more detail in the following.
 
+## Example: Is-Prime
 
+```
+(declare-sort Int 0)
+(declare-consts <numeral> Int)
+(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-const >= (-> Int Int Bool))
 
-## Example: Invoking the DRAT proof checker drat-trim.
+(declare-oracle-fun runIsPrime (Int) Bool ./isPrime)
+
+(declare-rule ((x Int) (y Int) (z Int))
+    :premises ((>= z 2) (= (* x y) z))
+    :requires (((runIsPrime z) false))
+    :conclusion false)
+```
+
+In the above example, `./isPrime` is assumed to be an executable that given text as input returns either the text `true` denoting that the input text denotes a prime integer value or `false` if the text denotes a composite integer value.
+Otherwise, it is expected to exit with a (non-zero) error code.
+
+An application of `(runIsPrime z)` for a ground term `z` invokes `./isPrime`.
+If `./isPrime` returns with an error, then `(runIsPrime z)` does not evaluate.
+Otherwise, `(runIsPrime z)` evaluates to the result of parsing its output using the current ALF parser state.
+In this example, an output of response of `true` (resp. `false`) from the executable will be parsed back at the Boolean value `true` (resp. `false`).
+More generally, input and output of oracles may contain symbols that are defined in the current ALF parser state.
+The user is responsible that the input can be properly parsed by the oracle, and the outputs of oracles can be properly parsed by the ALF checker.
+
+In the above example, a proof rule is then defined that says that if `z` is an integer greater than or equal to `2`, is the product of two integers `x` and `y`, and is prime based on invoking `runIsPrime` in the given requirement, then we can conclude `false`.
 
 # Compiling signatures to C++
+
+For the purposes of optimizing proof checking times, the ALF checker supports compiling user signatures to C++, which can subsequently by compiled as part of the ALF checker.
+When invoked with the option `--gen-compile`, the ALF checker will generate C++ code corresponding to type checking, evaluation of terms and matching for programs for all definitions it reads.
+After incorporating this code by recompiling the checker, this code can be run via the command line option `--run-compile`.
+
+In detail, the recommended steps for compiling an ALF signature are:
+1. Run `alfc --gen-compile <signature>`. This will generate `compiled.out.cpp` in the current directory.
+2. Replacing the file `./src/compiled.cpp` with this file and recompile `alfc`.
+3. Run `alfc --run-compile <proof>`, where `<proof>` includes `<signature>`.
+
+Running with `--run-compile` leads to performance gains that depend on the signature, but are typically up to 50% faster.
 
 # Appendix
 
 ## Command line options
 
 The ALF command line interface can be invoked by `alfc <option>* <file>` where `<option>` is one of the following:
-- `--help`: displays a help message.
-- `--show-config`: displays the build information for the given binary.
-- `--no-print-let`: do not letify the output of terms in error messages and trace messages.
 - `--gen-compile`: output the C++ code for all included signatures from the input file.
-- `--run-compile`: use the compiled C++ signatures whenever available.
-- `--no-rule-sym-table`: do not use a separate symbol table for proof rules and declared terms.
+- `--help`: displays a help message.
 - `--no-normalize-dec`: do not treat decimal literals as syntax sugar for rational literals.
 - `--no-normalize-hex`: do not treat hexadecimal literals as syntax sugar for binary literals.
+- `--no-print-let`: do not letify the output of terms in error messages and trace messages.
+- `--no-rule-sym-table`: do not use a separate symbol table for proof rules and declared terms.
+- `--run-compile`: use the compiled C++ signatures whenever available.
+- `--show-config`: displays the build information for the given binary.
+- `--stats`: enables detailed statistics.
 - `-t <tag>`: enables the given trace tag (for debugging).
 - `-v`: verbose mode, enable all standard trace messages.
 

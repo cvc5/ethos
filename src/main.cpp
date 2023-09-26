@@ -46,14 +46,15 @@ int main( int argc, char* argv[] )
     else if (arg=="--help")
     {
       std::stringstream out;
-      out << "             --help: displays this message." << std::endl;
-      out << "      --show-config: displays the build information for this binary." << std::endl;
-      out << "     --no-print-let: do not letify the output of terms in error messages and trace messages." << std::endl;
       out << "      --gen-compile: output the C++ code for all included signatures from the input file." << std::endl;
-      out << "      --run-compile: use the compiled C++ signatures whenever available." << std::endl;
-      out << "--no-rule-sym-table: do not use a separate symbol table for proof rules and declared terms." << std::endl;
+      out << "             --help: displays this message." << std::endl;
       out << " --no-normalize-dec: do not treat decimal literals as syntax sugar for rational literals." << std::endl;
       out << " --no-normalize-hex: do not treat hexadecimal literals as syntax sugar for binary literals." << std::endl;
+      out << "     --no-print-let: do not letify the output of terms in error messages and trace messages." << std::endl;
+      out << "--no-rule-sym-table: do not use a separate symbol table for proof rules and declared terms." << std::endl;
+      out << "      --run-compile: use the compiled C++ signatures whenever available." << std::endl;
+      out << "      --show-config: displays the build information for this binary." << std::endl;
+      out << "            --stats: enables detailed statistics." << std::endl;
       out << "           -t <tag>: enables the given trace tag (requires debug build)." << std::endl;
       out << "                 -v: verbose mode, enable all standard trace messages (requires debug build)." << std::endl;
       std::cout << out.str();
