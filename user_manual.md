@@ -531,6 +531,8 @@ The ALF checker supports extensions of `alf.and, alf.or, alf.xor, alf.add, alf.m
 (alf.to_str #b101)          == "#b101"
 ```
 
+### Core Computation Examples
+
 Note the following examples of core operators for the given signature
 
 ```
@@ -612,7 +614,7 @@ The terms on both sides of the given evaluation are written in their form prior 
 (alf.find or (and a b b) a)         == (alf.find or (and a b b) a)      ; since (and a b b) is not an or-list
 ```
 
-## Example: Type rule for BitVector concatentation
+### Example: Type rule for BitVector concatentation
 
 ```
 (declare-sort Int 0)
@@ -648,7 +650,7 @@ The type `z2` in the above example is `(BitVec (alf.add a b))`, where the applic
 Although the above term does not lead to a type checking error, further use of `z2` would lead to errors if given as an argument to a function that did not expect this type verbatim.
 For example, given a function `f` of type `(-> (BitVec (alf.add b a)) T)`, the term `(f z2)` is not well-typed, since `(alf.add a b)` is not syntactically equal to `(alf.add b a)`.
 
-## Example: Type rule for BitVector constants
+### Example: Type rule for BitVector constants
 
 ```
 (declare-sort Int 0)
@@ -1233,7 +1235,7 @@ Like `declare-fun`, this command declares a constant named `<symbol>` whose type
 In addition, a symbol is provided at the end of the command which specifies the name of executable command to run.
 Ground applications of oracle functions are eagerly evaluated by invoking the binary and parsing its result, which we describe in more detail in the following.
 
-## Example: Oracle isPrime
+### Example: Oracle isPrime
 
 ```
 (declare-sort Int 0)
@@ -1293,38 +1295,41 @@ The ALF command line interface can be invoked by `alfc <option>* <file>` where `
 
 ## Full syntax for ALF commands
 
-Inputs to the ALF checker should be `<command>*`, where:
+Valid inputs to the ALF checker are `<alf-command>*`, where:
 
 ```
 ;;;
-<command> ::=
+<alf-command> ::=
     (assume <symbol> <term>) |
     (assume-push <symbol> <term>) |
     (declare-axiom <symbol> (<typed-param>*) <reqs>? <term>) |
-    (declare-const <symbol> <type> <attr>*)
     (declare-consts <lit-category> <type>) |
-    (declare-datatype <symbol> <datatype-dec>) |
-    (declare-datatypes (<sort-dec>^n) (<datatype-dec>^n)) |
-    (declare-fun <symbol> (<type>*) <type> <attr>*) |
     (declare-oracle-fun <symbol> (<type>*) <type> <symbol>) |
     (declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term>) |
-    (declare-sort <symbol> <numeral>) |
     (declare-type <symbol> (<type>*)) |
     (declare-var <symbol> <type>) |
-    (define-const <symbol> <term>) |
     (define <symbol> (<typed-param>*) <term>) |
-    (define-fun <symbol> (<typed-param>*) <type> <term>) |
-    (define-sort <symbol> (<symbol>*) <type>) |
     (define-type <symbol> (<type>*) <type>) |
-    (echo <string>?) |
-    (exit) |
     (include <string>) |
     (program <symbol> (<typed-param>*) (<type>*) <type> ((<term> <term>)+)) |
     (reference <string> <symbol>?) |
-    (reset) |
     (step <symbol> <term>? :rule <symbol> <simple-premises>? <arguments>?) |
     (step-pop <symbol> <term>? :rule <symbol> <simple-premises>? <arguments>?) |
-    <smtlib2-command>
+    <common-command>
+
+;;;
+<common-command> ::=
+    (declare-const <symbol> <type> <attr>*)
+    (declare-datatype <symbol> <datatype-dec>) |
+    (declare-datatypes (<sort-dec>^n) (<datatype-dec>^n)) |
+    (declare-fun <symbol> (<type>*) <type> <attr>*) |
+    (declare-sort <symbol> <numeral>) |
+    (define-const <symbol> <term>) |
+    (define-fun <symbol> (<typed-param>*) <type> <term>) |
+    (define-sort <symbol> (<symbol>*) <type>) |
+    (echo <string>?) |
+    (exit) |
+    (reset)
 
 ;;;
 <smtlib2-command> ::=
@@ -1333,7 +1338,8 @@ Inputs to the ALF checker should be `<command>*`, where:
     (check-sat-assuming (<term>*)) |
     (set-info <attr>) |
     (set-logic <symbol>) |
-    (set-option <attr>)
+    (set-option <attr>) |
+    <common-command>
 
 ;;;
 <keyword>       ::= :<symbol>
@@ -1353,9 +1359,10 @@ Inputs to the ALF checker should be `<command>*`, where:
 <arguments>       ::= :args (<term>*)
 <reqs>            ::= :requires ((<term> <term>)*)
 
-
 ```
 
+Moreover, a valid input for a file included by the ALF command `<reference>` is `<smtlib2-command>*`;
+a valid input for a file included by the ALF command `<include>` is `<alf-command>*`.
 
 ## Proofs as terms
 
