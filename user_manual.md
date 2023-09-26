@@ -1109,10 +1109,8 @@ Also, similar to programs, the free parameters of `ri` that occur in the paramet
 (declare-const not (-> Bool Bool))
 (declare-rule symm ((F Bool))
     :premises (F)
-    :args ()
     :conclusion
-        (alf.match ((t1 Int) (t2 Int))
-            F
+        (alf.match ((t1 Int) (t2 Int)) F
             (
                 ((= t1 t2)       (= t2 t1))
                 ((not (= t1 t2)) (not (= t2 t1)))
@@ -1163,8 +1161,7 @@ In more general cases, if the body of the match term contains free variables, th
 (declare-rule trans (E Bool))
     :premise-list E and
     :conclusion
-        (alf.match ((t1 Int) (t2 Int) (tail Bool :list))
-        E
+        (alf.match ((t1 Int) (t2 Int) (tail Bool :list)) E
         (
             ((and (= t1 t2) tail) (mk_trans t1 t2 tail))
         ))
@@ -1220,6 +1217,7 @@ For example:
 ```
 Here, `normalize` is introduced as a program which recursively replaces all occurrences of division (over integer constants) with the resulting rational constant.
 This method can be used for handling solvers that interpret constant division as the construction of a rational constant.
+The above program will be invoked on all formulas occuring in `assert` commands in `"file.smt2"`.
 
 # Oracles
 
@@ -1235,7 +1233,7 @@ Like `declare-fun`, this command declares a constant named `<symbol>` whose type
 In addition, a symbol is provided at the end of the command which specifies the name of executable command to run.
 Ground applications of oracle functions are eagerly evaluated by invoking the binary and parsing its result, which we describe in more detail in the following.
 
-## Example: Is-Prime
+## Example: Oracle isPrime
 
 ```
 (declare-sort Int 0)
@@ -1263,7 +1261,7 @@ The user is responsible that the input can be properly parsed by the oracle, and
 
 In the above example, a proof rule is then defined that says that if `z` is an integer greater than or equal to `2`, is the product of two integers `x` and `y`, and is prime based on invoking `runIsPrime` in the given requirement, then we can conclude `false`.
 
-# Compiling signatures to C++
+# Compiling ALF signatures to C++
 
 For the purposes of optimizing proof checking times, the ALF checker supports compiling user signatures to C++, which can subsequently by compiled as part of the ALF checker.
 When invoked with the option `--gen-compile`, the ALF checker will generate C++ code corresponding to type checking, evaluation of terms and matching for programs for all definitions it reads.
@@ -1278,7 +1276,7 @@ Running with `--run-compile` leads to performance gains that depend on the signa
 
 # Appendix
 
-## Command line options
+## Command line options of alfc
 
 The ALF command line interface can be invoked by `alfc <option>* <file>` where `<option>` is one of the following:
 - `--gen-compile`: output the C++ code for all included signatures from the input file.
@@ -1293,7 +1291,7 @@ The ALF command line interface can be invoked by `alfc <option>* <file>` where `
 - `-t <tag>`: enables the given trace tag (for debugging).
 - `-v`: verbose mode, enable all standard trace messages.
 
-## Full syntax for commands
+## Full syntax for ALF commands
 
 Inputs to the ALF checker should be `<command>*`, where:
 
@@ -1339,8 +1337,10 @@ Inputs to the ALF checker should be `<command>*`, where:
 <term>          ::= <symbol> | (<symbol> <term>+) | (! <term> <attr>+) | (alf.match (<typed-param>*) <term> ((<term> <term>)*))
 <type>          ::= <term>
 <typed-param>   ::= (<symbol> <type>)
-<sort-dec>      ::=
-<datatype-dec>  ::=
+<sort-dec>      ::= (<symbol> <numeral>)
+<cons-dec>      ::= (<symbol> <typed-param>*)
+<datatype-dec>  ::= (<cons-dec>+)
+<lit-category>  ::= '<numeral>' | '<decimal>' | '<rational>' | '<binary>' | '<hexadecimal>' | '<string>'
 
 ;;;
 <assumption>      ::= :assumption <term>
@@ -1375,13 +1375,16 @@ for all other (non-Quote) types U.
 
 The command:
 ```
-(declare-rule s ((v1 T1) ... (vi Ti)) :premises (p1 ... pn) :args (t1 ... tm) :requires ((r1 s1) ... (rk sk)) :conclusion t)
+(declare-rule s ((v1 T1) ... (vi Ti)) 
+    :premises (p1 ... pn) 
+    :args (t1 ... tm) 
+    :requires ((r1 s1) ... (rk sk)) 
+    :conclusion t)
 ```
 can be seen as syntax sugar for:
 ```
 (declare-fun s
-    (->
-        (! T1 :var v1 :implicit) ... (! Ti :var vi :implicit)
+    (-> (! T1 :var v1 :implicit) ... (! Ti :var vi :implicit)
         (Proof p1) ... (Proof pn)
         (Quote t1) ... (Quote tm)
         (alf.requires r1 s1 ... (alf.requires rk sk
@@ -1405,4 +1408,4 @@ can be seen as syntax sugar for:
 ```
 (define-fun s () (Proof f) (r p1 ... pn t1 ... tm))
 ```
-Notice this is only the case if `r` does not take an assumption or premise list as arguments, that is, the declaration of `r` does not involve `:assumption` or `:premise-list`.
+Notice this is only the case if the declaration of `r` does not involve `:assumption` or `:premise-list`.
