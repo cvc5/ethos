@@ -767,16 +767,16 @@ The ALF language supports a command `declare-axiom`, which is a simplified versi
 
 The command
 ```
-(declare-axiom S ((t1 T1) .. (tn Tn)) R? t)
+(declare-axiom S ((x1 T1) .. (xn Tn)) R? t)
 ```
 is syntax sugar for
 ```
-(declare-rule S ((t1 T1) ... (tn Tn)) :args (t1 ... tn) R? :conclusion t)
+(declare-rule S ((x1 T1) ... (xn Tn)) :args (x1 ... xn) R? :conclusion t)
 ```
 where `R` is an (optional) requirements annotation.
-More generally, any argument `t1 ... tn` that is marked with `:implicit` from the argument list of the declared rule.
+More generally, any argument `x1 ... xn` that is not marked with `:implicit` is assumed to be in the argument list of the declared rule.
 
-### Example: reflexive equality as axiom
+### Example: Reflexivity of Equality as an Axiom
 
 Note the following definition is equivalent to the previously declared version of `refl`:
 ```
@@ -785,9 +785,7 @@ Note the following definition is equivalent to the previously declared version o
     (= t t)
 )
 ```
-The argument `T` to `refl` has been marked as `:implicit`, and thus it does not appear in the
-argument.
-
+The argument `T` to `refl` has been marked as `:implicit`, and thus it does not appear in the argument list.
 
 #  <a name="proofs"></a> Writing Proofs
 
@@ -1016,7 +1014,6 @@ In the above example, a side condition is being used to define the type rule for
 In particular, `arith.typeunion` is a program taking two types and returning a type, which is `Real` if either argument is `Real` or `Int` otherwise.
 The return type of `+` invokes this side condition, which conceptually is implementing a policy for subtyping over arithmetic types which the ALF checker does not have builtin support for.
 
-
 ## Match statements in ALF
 
 The ALF checker supports an operator `alf.match` for performing pattern matching on a target term. The syntax of this term is:
@@ -1029,6 +1026,8 @@ The term `(alf.match (...) t ((s1 r1) ... (sn rn)))` finds the first term `si` i
 In other words, all patterns must only involve parameters that are locally bound as the first argument of the match term.
 Also, similar to programs, the free parameters of `ri` that occur in the parameter list must be a subset of `si`, or else an error is thrown.
 
+> Like programs, match terms are not statically type checked.
+
 ### Examples of legal and illegal match terms
 
 ```
@@ -1038,38 +1037,39 @@ Also, similar to programs, the free parameters of `ri` that occur in the paramet
 (declare-const P (-> Int Bool))
 (declare-const f (-> Int Int))
 ; Legal match terms:
-(define-fun test1 ((x Int)) Int
-    (alf.match ((y Int)) 
-        x 
-        (
-            (a a) 
-            (b b) 
-            ((f (f a)) a)
-            (y a)
-        )
-    ))
-(define-fun test2 ((F Bool)) Int
-    (alf.match ((x Int))
-        F
-        (
-            ((P x) x)
-        )
-    ))
-(define test3 ((F Bool) (y Int)) 
-    (f (alf.match ((x Int)) 
-            F 
+(define test1 ((x Int))
+    (f (alf.match ((y Int)) x 
             (
-                ((P x) y)
+                (a a) 
+                (b b) 
+                ((f (f a)) a)   ; can use arbitrary nesting in pattern terms
+                ((f (f y)) b)
+                (y a)
             )
         )))
+(define test2 ((F Bool) (y Int)) 
+    (alf.match ((x Int)) F 
+        (
+            ((P x) y)           ; ok since y is bound at a higher scope, x is bound locally
+        )
+    ))
 
 ; Illegal match terms:
-(define test4 ((F Bool) (y Int)) (alf.match ((x Int)) F (((P y) a))))  ; since y is not locally bound
-(define test5 ((F Bool) (y Int)) (alf.match ((x Int)) F (((P a) x))))  ; since x is not bound by (P a)
+(define test3 ((F Bool) (y Int)) 
+    (alf.match ((x Int)) F 
+        (
+            ((P y) a)       ; since y is not locally bound
+        )
+    ))
+(define test4 ((F Bool) (y Int)) 
+    (alf.match ((x Int)) F 
+        (
+            ((P a) x)       ; since x does not occur in (P a)
+        )))  
 ```
 
 
-### Example: Symmetry of (dis)equality
+### Example: Proof rule for symmetry of (dis)equality
 
 ```
 (declare-sort Int 0)
@@ -1091,7 +1091,7 @@ Also, similar to programs, the free parameters of `ri` that occur in the paramet
 The above rule performs symmetry on equality or disequality.
 It matches the given premise `F` with either `(= t1 t2)` or `(not (= t1 t2))` and flips the terms on the sides of the (dis)equality.
 
-Internally, the semantics of `alf.match` can be seen as an (inlined) program, such that the above example is equivalent to:
+Internally, the semantics of `alf.match` can be seen as an (inlined) program applied to its head, such that the above example is equivalent to:
 ```
 (declare-sort Int 0)
 (declare-const = (-> (! Type :var T :implicit) T T Bool))
@@ -1113,7 +1113,7 @@ Internally, the semantics of `alf.match` can be seen as an (inlined) program, su
 > The ALF checker automatically performs the above transformation on match terms for consistency.
 In more general cases, if the body of the match term contains free variables, these are added to the argument list of the internally generated program.
 
-### Example: Transitivity proof rule with a premise list
+### Example: Proof rule for transitivity of equality with a premise list
 
 ```
 (declare-sort Int 0)
@@ -1140,12 +1140,13 @@ In more general cases, if the body of the match term contains free variables, th
 ```
 
 For simplicity, the rule is given only for equalities of the integer sort, although this rule can be generalized.
+The recursive calls in this side condition `mk_trans` accumulate the endpoints of an equality chain and ensure via `alf.requires` that further equalities extend the left hand side of this chain.
 
 # Including and referencing files
 
 The ALF checker supports the following commands for file inclusion:
 - `(include <string>)`, which includes the file indicated by the given string. The path to the file is taken relative to the directory of the file that includes it.
-- `(reference <string>)`, which similar to `include` includes the file indicated by the given string, and furthermore marks that file as being the *reference input* for the current run of the checker (see below).
+- `(reference <string> <symbol>?)`, which similar to `include` includes the file indicated by the given string, and furthermore marks that file as being the *reference input* for the current run of the checker (see below). The optional symbol can refer to a normalization routine (see below).
 
 ## Validation Proofs via Reference Inputs
 
@@ -1163,7 +1164,7 @@ If it does not, then an error is thrown indicating that the proof is assuming a 
 
 > Incremental `*.smt2` inputs are not supported as reference files in the current version of alfc.
 
-## Partial Validation
+## Validation up to Normalization
 
 Since the validation is relying on the fact that alfc can faithfully parse the original *.smt2 file, validation will only succeed if the signatures used by the ALF checker exactly match the syntax for terms in the *.smt2 file.
 Minor changes in how terms are represented will lead to mismatches.
@@ -1189,6 +1190,18 @@ Here, `normalize` is introduced as a program which recursively replaces all occu
 This method can be used for handling solvers that interpret constant division as the construction of a rational constant.
 
 # Oracles
+
+The ALF checker supports a command, `declare-oracle-fun`, which associates the semantics of a function with an external binary.
+We reference to such functions as *oracle functions*.
+The syntax and semantics of such functions are described in [].
+
+In particular, the ALF checker supports the command:
+```
+(declare-oracle-fun <symbol> (<type>*) <type> <symbol>)
+```
+Like `declare-fun`, this command declares a constant named `<symbol>` whose type is given by the argument types and return type.
+In addition, a symbol is provided at the end of the command which specifies the name of executable command to run.
+
 
 
 ## Example: Invoking the DRAT proof checker drat-trim.
@@ -1219,11 +1232,13 @@ Inputs to the ALF checker should be `<command>*`, where:
 ;;;
 <command> ::=
     (assume <symbol> <term>) |
+    (declare-axiom <symbol> (<typed-param>*) <reqs>? <term>) |
     (declare-const <symbol> <type> <attr>*)
     (declare-consts <lit-category> <type>) |
     (declare-datatype <symbol> <datatype-dec>) |
     (declare-datatypes (<sort-dec>^n) (<datatype-dec>^n)) |
     (declare-fun <symbol> (<type>*) <type> <attr>*) |
+    (declare-oracle-fun <symbol> (<type>*) <type> <symbol>) |
     (declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term>) |
     (declare-sort <symbol> <numeral>) |
     (declare-type <symbol> (<type>*)) |
