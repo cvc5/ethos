@@ -109,7 +109,7 @@ The ALF language contains further commands for declaring symbols that are not st
 
 > Symbols cannot be overloaded in the ALF checker.
 
-### Basic Declarations
+### Example: Basic Declarations
 
 ```
 (declare-sort Int 0)
@@ -125,7 +125,7 @@ Note that despite using different syntax in their declarations, the types of `f`
 
 > In alfc, all functions are unary. In the above example, `(-> Int Int Int)` is internally treated as `(-> Int (-> Int Int))`. Correspondingly, applications of functions are curried, e.g. `(f a b)` is treated as `((f a) b)`, which in turn can be seen as `(_ (_ f a) b)` where `_` denotes higher-order function application.
 
-### Basic Definitions
+### Example: Basic Definitions
 
 ```
 (declare-const not (-> Bool Bool))
@@ -144,7 +144,7 @@ In other words, the following file is equivalent to the one above after parsing:
 (define-fun notId ((x Int)) Bool (not x))
 ```
 
-## Polymorphic types
+### Example: Polymorphic types
 
 ```
 (declare-sort Int 0)
@@ -165,7 +165,7 @@ Note the following declarations all generate types of the same kind:
 (declare-const Array_v3 (-> Type Type Type))
 ```
 
-## :var and :implicit annotations
+## The :var and :implicit annotations
 
 The ALF language uses the SMT-LIB version 3.0 attributes `:var <symbol>` and `:implicit` in term annotations for naming arguments of functions and specifying they are implicit.
 
@@ -612,7 +612,7 @@ The terms on both sides of the given evaluation are written in their form prior 
 (alf.find or (and a b b) a)         == (alf.find or (and a b b) a)      ; since (and a b b) is not an or-list
 ```
 
-## Type rule for BitVector concatentation
+## Example: Type rule for BitVector concatentation
 
 ```
 (declare-sort Int 0)
@@ -648,7 +648,7 @@ The type `z2` in the above example is `(BitVec (alf.add a b))`, where the applic
 Although the above term does not lead to a type checking error, further use of `z2` would lead to errors if given as an argument to a function that did not expect this type verbatim.
 For example, given a function `f` of type `(-> (BitVec (alf.add b a)) T)`, the term `(f z2)` is not well-typed, since `(alf.add a b)` is not syntactically equal to `(alf.add b a)`.
 
-## Type rule for BitVector constants
+## Example: Type rule for BitVector constants
 
 ```
 (declare-sort Int 0)
@@ -1299,6 +1299,7 @@ Inputs to the ALF checker should be `<command>*`, where:
 ;;;
 <command> ::=
     (assume <symbol> <term>) |
+    (assume-push <symbol> <term>) |
     (declare-axiom <symbol> (<typed-param>*) <reqs>? <term>) |
     (declare-const <symbol> <type> <attr>*)
     (declare-consts <lit-category> <type>) |
@@ -1315,11 +1316,14 @@ Inputs to the ALF checker should be `<command>*`, where:
     (define-fun <symbol> (<typed-param>*) <type> <term>) |
     (define-sort <symbol> (<symbol>*) <type>) |
     (define-type <symbol> (<type>*) <type>) |
+    (echo <string>?) |
+    (exit) |
     (include <string>) |
     (program <symbol> (<typed-param>*) (<type>*) <type> ((<term> <term>)+)) |
     (reference <string> <symbol>?) |
     (reset) |
     (step <symbol> <term>? :rule <symbol> <simple-premises>? <arguments>?) |
+    (step-pop <symbol> <term>? :rule <symbol> <simple-premises>? <arguments>?) |
     <smtlib2-command>
 
 ;;;
