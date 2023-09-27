@@ -49,6 +49,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("not", Kind::EVAL_NOT);
   bindBuiltinEval("and", Kind::EVAL_AND);
   bindBuiltinEval("or", Kind::EVAL_OR);
+  bindBuiltinEval("xor", Kind::EVAL_XOR);
   // arithmetic
   bindBuiltinEval("add", Kind::EVAL_ADD);
   bindBuiltinEval("neg", Kind::EVAL_NEG);

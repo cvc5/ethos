@@ -880,7 +880,7 @@ If no such term can be found, then the application does not evaluate.
 > If a case is provided `(si ri)` in the definition of program `f` where `si` is not an application of `f`, an error is thrown.
 Furthermore, if `si` contains any computational operators (i.e. those with `alf.` prefix), then an error is thrown.
 
-### Example: Finding a child of an `or` term
+### Example: Finding a child in an `or` term
 
 The following program (recursively) computes whether a formula `l` is contained as the direct child of an application of `or`:
 ```
@@ -909,9 +909,9 @@ The next two examples show variants where an incorrect definition of this progra
 
 > As mentioned in [list-computation](#list-computation), ALF has dedicated support for operators over lists.
 The term `(contains l c)` in the above example is equivalent to `(alf.not (alf.is_neg (alf.find or c l)))`.
-Computing the latter is significantly faster in practice.
+Computing the latter is significantly faster in practice in the ALF checker.
 
-### Example: Finding a child of an `or` term (incorrect version)
+### Example: Finding a child in an `or` term (incorrect version)
 ```
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (program contains
@@ -927,10 +927,10 @@ Computing the latter is significantly faster in practice.
 
 In this variant, `xs` was not marked with `:list`.
 Thus, `(or l xs)` and `(or x xs)` are desugared to `(or l (or xs false))` and `(or x (or xs false))` respectively.
-In other words, these terms will match `or` terms with *exactly* two children, for example `(contains (or a b) a)` will evaluate to `true`.
-However, the side condition will not evaluate when given an input `or` with more than 2 children, for example `(contains (or a b c) a)` does not evaluate in this example.
+In other words, these terms will match `or` terms with *exactly* two children, for example `(contains (or a b) a)` will still evaluate to `true`.
+However, `(contains (or a b c) a)` does not evaluate in this example.
 
-### Example: Finding a child of an `or` term (incorrect version 2)
+### Example: Finding a child in an `or` term (incorrect version 2)
 ```
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (program contains
@@ -964,10 +964,9 @@ Thus, the third case of the program, `(contains (alf.concat or x xs) l)`, is not
 
 The term `(substitute x y t)` replaces all occurrences of `x` by `y` in `t`.
 Note that this side condition is fully general and does not depend on the shape of terms in `t`.
-In detail, the ALF checker treats all function applications as curried.
-In particular, this implies that `(f a)` matches any application term since both `f` and `a` are parameters.
-Thus, the side condition is written in three cases: either `t` is `x` in which case we return `y`,
-`t` is a function application in which case we recurse, or otherwise `t` is a constant not equal to `x` and we return itself.
+In detail, recall that the ALF checker treats all function applications as curried (unary) applications.
+In particular, this implies that `(f a)` matches any application term, since both `f` and `a` are parameters.
+Thus, the side condition is written in three cases: either `t` is `x` in which case we return `y`, `t` is a function application in which case we recurse, or otherwise `t` is a constant not equal to `x` and we return itself.
 
 ### Example: Term evaluator
 
@@ -993,6 +992,7 @@ Thus, the side condition is written in three cases: either `t` is `x` in which c
     )
 )
 ```
+The above example recursively evaluates arithmetic terms and predicates according to their intended semantics.
 
 ### Example: A computational type rule
 
@@ -1015,7 +1015,7 @@ Thus, the side condition is written in three cases: either `t` is `x` in which c
 
 In the above example, a side condition is being used to define the type rule for the function `+`.
 In particular, `arith.typeunion` is a program taking two types and returning a type, which is `Real` if either argument is `Real` or `Int` otherwise.
-The return type of `+` invokes this side condition, which conceptually is implementing a policy for subtyping over arithmetic types which the ALF checker does not have builtin support for.
+The return type of `+` invokes this side condition, which conceptually is implementing a policy for subtyping over arithmetic types.
 
 ### Example: Conversion to DIMACS
 
