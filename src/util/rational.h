@@ -103,7 +103,10 @@ class Rational
   bool isIntegral() const;
 
   /** Returns a string representing the rational in the given base. */
-  std::string toString(int base = 10) const { return d_value.get_str(base); }
+  std::string toString(int base = 10) const;
+  /** Returns a string representing the rational as a decimal. */
+  std::string toStringDecimal() const;
+
 
   /**
    * Computes the hash of the rational from hashes of the numerator and the

@@ -43,6 +43,14 @@ int main( int argc, char* argv[] )
     {
       opts.d_ruleSymTable = false;
     }
+    else if (arg=="--no-normalize-dec")
+    {
+      opts.d_normalizeDecimal = false;
+    }
+    else if (arg=="--no-normalize-hex")
+    {
+      opts.d_normalizeHexadecimal = false;
+    }
     else if (arg=="--help")
     {
       std::stringstream out;

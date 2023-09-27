@@ -308,6 +308,7 @@ void Expr::printDebugInternal(const Expr& e,
         {
           switch (k)
           {
+            case Kind::HEXADECIMAL:os << "#x" << l->toString();break;
             case Kind::BINARY:os << "#b" << l->toString();break;
             case Kind::STRING:os << "\"" << l->toString() << "\"";break;
             default:

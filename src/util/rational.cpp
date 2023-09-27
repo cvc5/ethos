@@ -1,6 +1,8 @@
 #include <cmath>
 #include <sstream>
 #include <string>
+#include <iostream>
+#include <gmpxx.h>
 
 #include "rational.h"
 
@@ -33,5 +35,18 @@ Rational Rational::fromDecimal(const std::string& dec) {
 }
 
 bool Rational::isIntegral() const { return mpz_cmp_ui(d_value.get_den_mpz_t(), 1) == 0; }
+
+std::string Rational::toString(int base) const { return d_value.get_str(base); }
+std::string Rational::toStringDecimal() const
+{
+  // TODO
+  return toString();
+  /*
+  mpf_class floatValue(d_value);
+  std::stringstream ss;
+  ss << floatValue << std::endl;
+  return ss.str();
+  */
+}
 
 }  // namespace alfc

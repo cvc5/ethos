@@ -780,6 +780,7 @@ Expr State::mkFalse()
 
 Expr State::mkLiteral(Kind k, const std::string& s)
 {
+  std::cout << "mkLiteral " << k << " " << s << std::endl;
   // convert string to literal
   Literal lit;
   switch (k)
@@ -798,6 +799,7 @@ Expr State::mkLiteral(Kind k, const std::string& s)
       ALFC_FATAL() << "Unknown kind for mkLiteral " << k;
       break;
   }
+  std::cout << "call mk internal " << lit.toString() << " " << lit.d_rat.toString() << std::endl;
   return Expr(mkLiteralInternal(lit));
 }
 
@@ -829,10 +831,12 @@ ExprValue* State::mkLiteralInternal(Literal& l)
       std::unordered_map<Rational, Expr, RationalHashFunction>::iterator it = m.find(l.d_rat);
       if (it!=m.end())
       {
+        std::cout << "**** return existing " << it->second << std::endl;
         return it->second.getValue();
       }
       ev = new Literal(k, l.d_rat);
       m[l.d_rat] = Expr(ev);
+      std::cout << "**** made " << m[l.d_rat] << " from " << l.toString() << std::endl;
     }
       break;
     case Kind::HEXADECIMAL:

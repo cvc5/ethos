@@ -85,7 +85,7 @@ Specifically, the ALF language has the following builtin expressions:
 
 > The core logic of the ALF checker also uses several builtin types (e.g. `Proof` and `Quote`) which define the semantics of proof rules. These types are intentionally left hidden from the user. Details on these types can be found throughout this document. More details on the core logic of the ALF checker can be found here [].
 
-In the following, we informally write BNF categories `<symbol>` to denote an SMT-LIB version 3.0 symbol, `<term>` to denote an SMT-LIB term and `<type>` to denote a term whose type is `Type`, `<typed-param>` is a pair `(<symbol> <type>)` that binds `<symbol>` as a fresh parameter of the given type.
+In the following, we informally write BNF categories `<symbol>` to denote an SMT-LIB version 3.0 symbol, `<term>` to denote an SMT-LIB term and `<type>` to denote a term whose type is `Type`, `<typed-param>` has syntax `(<symbol> <type> <attr>*)` and binds `<symbol>` as a fresh parameter of the given type and attributes (if provided).
 
 The following commands are supported for declaring and defining types and terms, most of which are taken from SMT-LIB version 3.0:
 - `(declare-const <symbol> <type> <attr>*)` declares a constant named `<symbol>` whose type is `<type>`. Can be given an optional list of attributes (see [attributes](#attributes)).
@@ -214,12 +214,14 @@ The second annotation indicates that `(alf.is_neg w)` must evaluate to `false`, 
 
 ## <a name="attributes"></a>Declarations with attributes
 
-The ALF language supports term annotations on declared functions, which for instance can allow the user to treat a declared function as being variadic, i.e. taking an arbitrary number of arguments. The available annotations in the ALF checker are:
+The ALF language supports term annotations on parameters and declared functions, which for instance can allow the user to treat a declared function as being variadic, i.e. taking an arbitrary number of arguments. The available annotations in the ALF checker are:
 - `:right-assoc` (resp. `:left-assoc`) denoting that the term is right (resp. left) associative,
 - `:right-assoc-nil <term>` (resp. `:left-assoc-nil <term>`) denoting that the term is right (resp. left) associative with the given nil terminator,
 - `:list`, denoting that the term should be treated as a list when appearing as a child of an application of a right (left) associative operator,
 - `:chainable <term>` denoting that the arguments of the term are chainable using the given (binary) operator,
 - `:pairwise <term>` denoting that the arguments of term are treated pairwise using the given (binary) operator.
+
+A parameter or function can be marked with at most one of the above attributes or an error is thrown.
 
 ### Right/Left associative
 
@@ -338,7 +340,7 @@ The ALF language supports associating SMT-LIB version 3.0 syntactic categories w
 - `<decimal>` denoting the category of decimals `-?<digit>+.<digit>+`,
 - `<rational>` denoting the category of rationals `-?<digit>+/<digit>+`,
 - `<binary>` denoting the category of binary constants `#b<0|1>+`,
-- `<hexadecimal>` denoting the category of hexadecimal constants `#x<hex-digit>+`,
+- `<hexadecimal>` denoting the category of hexadecimal constants `#x<hex-digit>+` where hexdigit is `[0-9] | [a-f] | [A-F]`,
 - `<string>` denoting the category of string literals `"<char>*"`.
 
 By default, decimal literals will be treated as syntax sugar for rational literals unless the option `--no-normalize-dec` is enabled.
@@ -456,7 +458,7 @@ Conversion operators:
     - If `t1` and `t2` are numeral values, return the binary value whose value is `t1` (modulo `2^t2`) and whose bitwidth is `t2`.
 - `(alf.to_str t1)`
     - If `t1` is a string value, return `t1`.
-    - Otherwise, if `t1` is a binary or arithmetic value, return the string value corresponding to the result of printing `t1`.
+    - Otherwise, if `t1` is a binary or arithmetic value, return the string value corresponding to the result of printing `t1`. Hexadecimal values will use lowercase letters for digits greater than `9`.
 
 The ALF checker eagerly evaluates ground applications of computational operators.
 In other words, the term `(alf.add 1 1)` is syntactically equivalent in all contexts to `2`.
@@ -510,7 +512,7 @@ The ALF checker supports extensions of `alf.and, alf.or, alf.xor, alf.add, alf.m
 (alf.extract "abcdef" 0 1)  == "ab"
 (alf.extract "abcdef" -1 3) == ""
 (alf.extract "abcdef" 1 10) == "bcdef"
-(alf.extract #b11100 2 5)   == #b111
+(alf.extract #b11100 2 4)   == #b111
 (alf.extract #b11100 2 1)   == #b
 (alf.extract #b111000 1 10) == #b11100
 (alf.extract #b10 -1 2)     == #b
@@ -1346,8 +1348,9 @@ Valid inputs to the ALF checker are `<alf-command>*`, where:
 <attr>          ::= <keyword> <term>?
 <term>          ::= <symbol> | (<symbol> <term>+) | (! <term> <attr>+) | (alf.match (<typed-param>*) <term> ((<term> <term>)*))
 <type>          ::= <term>
-<typed-param>   ::= (<symbol> <type>)
+<typed-param>   ::= (<symbol> <type> <attr>*)
 <sort-dec>      ::= (<symbol> <numeral>)
+<sel-dec>       ::= (<symbol> <type>)
 <cons-dec>      ::= (<symbol> <typed-param>*)
 <datatype-dec>  ::= (<cons-dec>+)
 <lit-category>  ::= '<numeral>' | '<decimal>' | '<rational>' | '<binary>' | '<hexadecimal>' | '<string>'

@@ -82,10 +82,10 @@ std::string Literal::toString() const
   switch (d_kind)
   {
     case Kind::BOOLEAN: return d_bool ? "true" : "false";
-    case Kind::DECIMAL:
+    case Kind::DECIMAL: return d_rat.toStringDecimal();
     case Kind::RATIONAL: return d_rat.toString();
     case Kind::NUMERAL: return d_int.toString();
-    case Kind::HEXADECIMAL:
+    case Kind::HEXADECIMAL: return d_bv.toString(16);
     case Kind::BINARY: return d_bv.toString();
     case Kind::STRING: return d_str.toString();
     case Kind::NONE: break;
@@ -419,9 +419,9 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
       {
         case Kind::NUMERAL:
         case Kind::DECIMAL:
-        case Kind::RATIONAL:
-        case Kind::HEXADECIMAL:
-        case Kind::BINARY:return Literal(String(args[0]->toString()));
+        case Kind::RATIONAL:return Literal(String(args[0]->toString()));
+        case Kind::HEXADECIMAL:return Literal(String("#x" + args[0]->toString()));
+        case Kind::BINARY:return Literal(String("#b" + args[0]->toString()));
         case Kind::STRING: return *args[0];break;
         default: break;
       }
