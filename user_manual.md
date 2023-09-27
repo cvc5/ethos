@@ -278,7 +278,8 @@ Note that the type for right and left associative operators with nil terminators
 
 ### List
 
-Atomic terms can be marked with the annotation `:list`. Conceptually, this annotation marks that the term should be treated as a list of arguments when it occurs as an argument of a right (left) associative operator with a nil element. Note the following example:
+Atomic terms can be marked with the annotation `:list`.
+This annotation marks that the term should be treated as a list of arguments when it occurs as an argument of a right (left) associative operator with a nil element. Note the following example:
 
 ```
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
@@ -293,7 +294,7 @@ Atomic terms can be marked with the annotation `:list`. Conceptually, this annot
 In the above example, note that `or` has been marked `:right-assoc-nil false`.
 As before, the definition of `P` is syntax sugar for `(or x (or y false))`.
 In contrast, the definition of `Q` is simply `(or x y)`, since `y` has been marked with `:list`.
-Conceptually, our definition of `Q` denotes that we expect to `y` to be treated as the tail of `or` in the body of `Q`.
+Conceptually, our definition of `P` treats `y` as the second child of an `or` term, whereas our definition of `Q` treats `y` as the *tail* of an `or` term.
 
 Then, `P` and `Q` are both applied to the pair of arguments `a` and `(or a b)`.
 In the former (i.e. `Paab`), the definition is equivalent after desugaring to `(or a (or (or a (or b false)) false))`, whereas in the latter (i.e. `Qaab`) the definition is equivalent after desugaring to `(or a (or a (or b false)))`.
