@@ -642,7 +642,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
               cc[prevIndex] = curr;
               cc[nextIndex] = vchildren[isLeft ? i : nchild - i];
               // if the "head" child is marked as list, we construct Kind::EVAL_CONCAT
-              if (getConstructorKind(cc[nextIndex]) == Attr::LIST)
+              if (isNil && getConstructorKind(cc[nextIndex]) == Attr::LIST)
               {
                 curr = mkExprInternal(Kind::EVAL_CONCAT, cc);
               }
