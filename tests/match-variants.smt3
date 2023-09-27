@@ -1,0 +1,34 @@
+(declare-sort Int 0)
+(declare-const a Int)
+(declare-const b Int)
+(declare-const P (-> Int Bool))
+(declare-const f (-> Int Int))
+; Legal match terms:
+(define test1 ((x Int))
+    (alf.match ((y Int)) 
+        x 
+        (
+            (a a) 
+            (b b) 
+            ((f (f a)) a)
+            (y a)
+        )
+    ))
+(define test2 ((F Bool))
+    (alf.match ((x Int))
+        F
+        (
+            ((P x) x)
+        )
+    ))
+(define test3 ((F Bool) (y Int)) 
+    (f (alf.match ((x Int)) 
+            F 
+            (
+                ((P x) y)
+            )
+        )))
+
+; These do not work:
+;(define test4 ((F Bool) (y Int)) (alf.match ((x Int)) F (((P y) a))))  ; since y is not locally bound
+;(define test5 ((F Bool) (y Int)) (alf.match ((x Int)) F (((P a) x))))  ; since x is not bound by (P a)
