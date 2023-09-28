@@ -403,6 +403,7 @@ Core operators:
     - Returns `t3` if `t1` is (syntactically) equal to `t2`, and is not evaluated otherwise.
 - `(alf.hash t1)`
     - If `t1` is a ground term, this returns a numeral that is unique to `t1`.
+    
 Boolean operators:
 - `(alf.and t1 t2)`
     - Boolean conjunction if `t1` and `t2` are Boolean values (`true` or `false`).
@@ -416,6 +417,7 @@ Boolean operators:
 - `(alf.not t1)`
     - Boolean negation if `t1` is a Boolean value.
     - Bitwise negation if `t1` is a bitwise values of the same category.
+    
 Arithmetic operators:
 - `(alf.add t1 t2)`
     - If `t1` and `t2` are arithmetic values of the same category, then this returns the multiplication of `t1` and `t2`, which is a rational value if either of `t1, t2` is a rational value, or a numeral value otherwise.
@@ -433,6 +435,7 @@ Arithmetic operators:
     - If `t1` and `t2` are bitwise values of the same category and bitwidth, then this returns their (total, unsigned) division, where division by zero returns the max unsigned value.
 - `(alf.is_neg t1)`
     - If `t1` is an arithmetic value, this returns `true` if `t1` is zero and `false` otherwise. Otherwise, this operator is not evaluated.
+    
 String operators:
 - `(alf.len t1)`
     - Binary length (bitwidth) if `t1` is a binary value.
@@ -445,6 +448,7 @@ String operators:
     - If `t1` is a string value and `t2` and `t3` are numeral values, this returns the string value corresponding to the characters in `t1` from position `t2` through `t3` inclusive if `0<=t2`, or the empty string value otherwise.
 - `(alf.find t1 t2)`
     - If `t1` and `t2` are string values, this returns a numeral value corresponding to the first index (left to right) where `t2` occurs as a substring of `t1`, or the numeral value `-1` otherwise.
+    
 Conversion operators:
 - `(alf.to_z t1)`
     - If `t1` is a numeral value, return `t1`.
@@ -1202,8 +1206,7 @@ If it does not, then an error is thrown indicating that the proof is assuming a 
 
 Since the validation is relying on the fact that alfc can faithfully parse the original *.smt2 file, validation will only succeed if the signatures used by the ALF checker exactly match the syntax for terms in the *.smt2 file.
 Minor changes in how terms are represented will lead to mismatches.
-For this reason, alfc additionally supports providing an optional normalization routine to the `reference` command:
-- `(reference <string> <term>)`, which includes the file indicated by the given string and specifies all assumptions must match an assertion after running the provided normalization function.
+For this reason, alfc additionally supports providing an optional normalization routine via `(reference <string> <term>)`, which includes the file indicated by the given string and specifies all assumptions must match an assertion after running the provided normalization function.
 
 For example:
 ```
@@ -1222,7 +1225,7 @@ For example:
 ```
 Here, `normalize` is introduced as a program which recursively replaces all occurrences of division (over integer constants) with the resulting rational constant.
 This method can be used for handling solvers that interpret constant division as the construction of a rational constant.
-The above program will be invoked on all formulas occuring in `assert` commands in `"file.smt2"`.
+The above program will be invoked on all formulas occuring in `assert` commands in `"file.smt2"` and subsequently formulas in `assume` commands.
 
 # Oracles
 
@@ -1352,7 +1355,7 @@ Valid inputs to the ALF checker are `<alf-command>*`, where:
 <typed-param>   ::= (<symbol> <type> <attr>*)
 <sort-dec>      ::= (<symbol> <numeral>)
 <sel-dec>       ::= (<symbol> <type>)
-<cons-dec>      ::= (<symbol> <typed-param>*)
+<cons-dec>      ::= (<symbol> <sel-dec>*)
 <datatype-dec>  ::= (<cons-dec>+)
 <lit-category>  ::= '<numeral>' | '<decimal>' | '<rational>' | '<binary>' | '<hexadecimal>' | '<string>'
 
