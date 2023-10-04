@@ -622,14 +622,17 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
             {
               // maybe the evaluation is already cached
               // ensure things in the evalTrie are ref counted
+              std::vector<ExprValue*> cchildrenh;
               for (ExprValue* e : cchildren)
               {
-                if (keep.insert(e).second)
+                ExprValue* eh = ensureHashed(e);
+                if (keep.insert(eh).second)
                 {
-                  keepList.emplace_back(e);
+                  keepList.emplace_back(eh);
                 }
+                cchildrenh.push_back(eh);
               }
-              ExprTrie* et = evalTrie.get(cchildren);
+              ExprTrie* et = evalTrie.get(cchildrenh);
               if (et->d_data!=nullptr)
               {
                 evaluated = Expr(et->d_data);
@@ -640,7 +643,7 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
               {
                 Ctx newCtx;
                 // see if we evaluate
-                evaluated = evaluateProgramInternal(cchildren, newCtx);
+                evaluated = evaluateProgramInternal(cchildrenh, newCtx);
                 //std::cout << "Evaluate prog returned " << evaluated << std::endl;
                 if (evaluated.isNull() || evaluated.isGround() || newCtx.empty())
                 {
@@ -718,7 +721,8 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
           {
             if (cchanged)
             {
-              evaluated = Expr(d_state.mkExprInternal(ck, cchildren));
+              //evaluated = Expr(d_state.mkExprInternal(ck, cchildren));
+              evaluated = Expr(new ExprValue(ck, cchildren));
             }
             else
             {
@@ -778,7 +782,7 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
       newContext = false;
     }
   }
-  return evaluated;
+  return Expr(ensureHashed(evaluated.getValue()));
 }
 
 Expr TypeChecker::evaluateProgram(
@@ -790,7 +794,7 @@ Expr TypeChecker::evaluateProgram(
     return ret;
   }
   // otherwise does not evaluate, return application
-  return Expr(d_state.mkExprInternal(Kind::APPLY, children));
+  return Expr(new ExprValue(Kind::APPLY, children));
 }
 
 bool TypeChecker::isGround(const std::vector<ExprValue*>& args)
@@ -925,7 +929,7 @@ Expr TypeChecker::evaluateLiteralOp(Kind k,
     return ret;
   }
   // otherwise does not evaluate, return application
-  return Expr(d_state.mkExprInternal(k, args));
+  return Expr(new ExprValue(k, args));
 }
 
 /**
@@ -979,7 +983,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_IS_EQ:
     {
       Assert (args.size()==2);
-      bool ret = args[0]==args[1];
+      bool ret = ensureHashed(args[0])==ensureHashed(args[1]);
       if (ret)
       {
         // eagerly evaluate if sides and equal and non-ground
@@ -1027,9 +1031,10 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     {
       if (args[0]->isGround())
       {
-        size_t h = d_state.getHash(args[0]);
-        Literal lh(Integer(static_cast<unsigned int>(h)));
-        return Expr(d_state.mkLiteralInternal(lh));
+        ExprValue* eh = ensureHashed(args[0]);
+        size_t h = d_state.getHash(eh);
+        //Literal lh(Integer(static_cast<unsigned int>(h)));
+        return Expr(new Literal(Integer(static_cast<unsigned int>(h))));
       }
       return d_null;
     }
@@ -1068,7 +1073,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       return d_null;
     }
     // convert back to an expression
-    Expr lit = Expr(d_state.mkLiteralInternal(eval));
+    Expr lit = Expr(new Literal(eval));
     Trace("type_checker") << "...value-evaluates to " << lit << std::endl;
     return lit;
   }
@@ -1196,14 +1201,12 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       {
         if (d_negOne.isNull())
         {
-          Literal lno(Integer("-1"));
-          d_negOne = Expr(d_state.mkLiteralInternal(lno));
+          d_negOne = Expr(new Literal(Integer("-1")));
         }
         return d_negOne;
       }
       size_t iret = std::distance(hargs.begin(), it);
-      Literal lret = Literal(Integer(iret));
-      return Expr(d_state.mkLiteralInternal(lret));
+      return Expr(new Literal(Integer(iret)));
     }
       break;
     default:
@@ -1223,6 +1226,63 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   }
   Trace("type_checker_debug") << "CONS: " << isLeft << " " << args << " -> " << ret << std::endl;
   return Expr(ret);
+}
+
+ExprValue* TypeChecker::ensureHashed(ExprValue* ev)
+{
+  if (ev->getFlag(ExprValue::Flag::IS_HASHED))
+  {
+    return ev;
+  }
+  std::unordered_map<ExprValue*, ExprValue*> visited;
+  std::vector<ExprValue*> visit;
+  std::unordered_map<ExprValue*, ExprValue*>::iterator it;
+  visit.emplace_back(ev);
+  ExprValue* cur;
+  do
+  {
+    cur = visit.back();
+    if (cur->getFlag(ExprValue::Flag::IS_HASHED))
+    {
+      visited[cur] = cur;
+      visit.pop_back();
+      continue;
+    }
+    it = visited.find(cur);
+    if (it == visited.end())
+    {
+      std::vector<ExprValue*>& children = cur->d_children;
+      // otherwise, visit children
+      visited[cur] = nullptr;
+      visit.insert(visit.end(), children.begin(), children.end());
+      continue;
+    }
+    visit.pop_back();
+    if (it->second==nullptr)
+    {
+      Kind ck = cur->getKind();
+      if (isLiteral(ck))
+      {
+        visited[cur] = d_state.mkLiteralInternal(*static_cast<Literal*>(cur));
+      }
+      else
+      {
+        Assert (!isSymbol(ck)) << "Not hashed : " << Expr(cur);
+        std::vector<ExprValue*>& children = cur->d_children;
+        std::vector<ExprValue*> cchildren;
+        for (ExprValue* cp : children)
+        {
+          it = visited.find(cp);
+          Assert (it != visited.end());
+          cchildren.push_back(it->second);
+        }
+        visited[cur] = d_state.mkExprInternal(cur->getKind(), cchildren);
+      }
+    }
+    // TODO: could optimize by deep updating cur's children
+  }
+  while (!visit.empty());
+  return visited[ev];
 }
 
 ExprValue* TypeChecker::getLiteralOpType(Kind k,

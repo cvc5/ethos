@@ -44,6 +44,7 @@ Literal& Literal::operator=(const Literal& other)
   if (this != &other)
   {
     d_kind = other.d_kind;
+    d_flags = other.d_flags;
     switch (d_kind)
     {
       case Kind::BOOLEAN: d_bool = other.d_bool; break;

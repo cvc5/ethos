@@ -95,6 +95,8 @@ class TypeChecker
   ExprValue* getLiteralOpType(Kind k,
                               std::vector<ExprValue*>& childTypes,
                               std::ostream* out);
+  /** */
+  ExprValue* ensureHashed(ExprValue* ev);
   //---------------- compiled methods
   /** Compiled version */
   Expr run_getTypeInternal(ExprValue* hdType,

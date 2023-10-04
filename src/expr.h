@@ -66,7 +66,8 @@ class ExprValue
     IS_EVAL = (1 << 1),
     IS_PROG_EVAL = (1 << 2),
     IS_NON_GROUND = (1 << 3),
-    IS_COMPILED = (1 << 4)
+    IS_COMPILED = (1 << 4),
+    IS_HASHED = (1 << 5)
   };
   char d_flags;
   /** */

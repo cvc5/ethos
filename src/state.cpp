@@ -79,8 +79,10 @@ State::State(Options& opts, Stats& stats)
   d_type = Expr(mkExprInternal(Kind::TYPE, {}));
   d_boolType = Expr(mkExprInternal(Kind::BOOL_TYPE, {}));
   d_true = Expr(new Literal(true));
+  d_true.getValue()->setFlag(ExprValue::Flag::IS_HASHED, true);
   bind("true", d_true);
   d_false = Expr(new Literal(false));
+  d_false.getValue()->setFlag(ExprValue::Flag::IS_HASHED, true);
   bind("false", d_false);
   if (d_opts.d_runCompile)
   {
@@ -567,6 +569,7 @@ ExprValue* State::mkSymbolInternal(Kind k,
   d_stats.d_exprCount++;
   std::vector<ExprValue*> emptyVec;
   ExprValue* v = new Literal(k, name);
+  v->setFlag(ExprValue::Flag::IS_HASHED, true);
   // immediately set its type
   d_typeCache[v] = type;
   Trace("type_checker") << "TYPE " << name << " : " << type << std::endl;
@@ -867,6 +870,7 @@ ExprValue* State::mkLiteralInternal(Literal& l)
   }
   d_stats.d_litCount++;
   d_stats.d_exprCount++;
+  ev->setFlag(ExprValue::Flag::IS_HASHED, true);
   return ev;
 }
 
@@ -887,6 +891,10 @@ ExprValue* State::mkExprInternal(Kind k,
 {
   d_stats.d_mkExprCount++;
   ExprTrie* et = &d_trie[k];
+  for (ExprValue* e : children)
+  {
+    Assert (e->getFlag(ExprValue::Flag::IS_HASHED)) << "Not hashed : " << Expr(e);
+  }
   et = et->get(children);
   if (et->d_data!=nullptr)
   {
@@ -894,6 +902,7 @@ ExprValue* State::mkExprInternal(Kind k,
   }
   d_stats.d_exprCount++;
   ExprValue* ev = new ExprValue(k, children);
+  ev->setFlag(ExprValue::Flag::IS_HASHED, true);
   Trace("gc") << "New " << ev << " " << k << std::endl;
   et->d_data = ev;
   return ev;

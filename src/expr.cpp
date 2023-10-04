@@ -138,7 +138,8 @@ bool ExprValue::isCompiled()
 void ExprValue::dec()
 {
   d_rc--;
-  if (d_rc == 0)
+  // only delete if hashed
+  if (d_rc == 0 && getFlag(ExprValue::Flag::IS_HASHED))
   {
     Assert(d_state != nullptr);
     d_state->markDeleted(this);
