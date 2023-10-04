@@ -528,19 +528,6 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         os << "    " << cs.d_prefix << ret << " = _btmp2 ? " << branches[0] << " : " << branches[1] << ";" << std::endl;
         os << "  }" << std::endl;
       }
-      else if (ck==Kind::EVAL_REQUIRES && cs.d_progEval)
-      {
-        // call mkRequiresType, which simplifies
-        std::string a1 = s.getNameFor(cur[0]);
-        std::string a2 = s.getNameFor(cur[1]);
-        std::string a3 = s.getNameFor(cur[2]);
-        os << "    " << cs.d_prefix << ret << " = ";
-        if (!cs.isGlobal())
-        {
-          os << "d_state.";
-        }
-        os << "mkRequires(" << a1 << ", " << a2 << ", " << a3 << ");" << std::endl;
-      }
       else
       {
         std::stringstream argList;

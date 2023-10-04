@@ -498,6 +498,7 @@ class EvFrame
 Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
 {
   Assert (e!=nullptr);
+  Assert (e->getFlag(ExprValue::Flag::IS_HASHED));
   // A trie for all programs/oracles we have evaluated during this call.
   // This is required to ensure that programs that traverse terms recursively
   // preform a dag traversal.

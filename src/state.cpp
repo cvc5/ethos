@@ -894,10 +894,12 @@ ExprValue* State::mkExprInternal(Kind k,
 {
   d_stats.d_mkExprCount++;
   ExprTrie* et = &d_trie[k];
+  /*
   for (ExprValue* e : children)
   {
     Assert (e->getFlag(ExprValue::Flag::IS_HASHED)) << "Not hashed : " << Expr(e);
   }
+  */
   et = et->get(children);
   if (et->d_data!=nullptr)
   {
