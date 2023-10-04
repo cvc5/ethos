@@ -723,6 +723,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           ctx[vars[i]] = vchildren[i + 1];
         }
         Expr ret = d_tc.evaluate((*hd)[1], ctx);
+        Assert (ret.getValue()->getFlag(ExprValue::Flag::IS_HASHED)) << ret;
         Trace("state") << "BETA_REDUCE " << Expr((*hd)[1]) << " " << ctx << " = " << ret << std::endl;
         return ret;
       }
@@ -742,8 +743,10 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           Expr e = d_tc.evaluateProgramInternal(vchildren, ctx);
           if (!e.isNull())
           {
-            Expr ret = d_tc.evaluate(e.getValue(), ctx);
+            ExprValue * eh = d_tc.ensureHashed(e.getValue());
+            Expr ret = d_tc.evaluate(eh, ctx);
             Trace("state") << "EAGER_EVALUATE " << ret << std::endl;
+            Assert (ret.getValue()->getFlag(ExprValue::Flag::IS_HASHED)) << ret;
             return ret;
           }
         }

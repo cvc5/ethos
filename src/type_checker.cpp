@@ -791,10 +791,10 @@ Expr TypeChecker::evaluateProgram(
   const Expr& ret = evaluateProgramInternal(children, newCtx);
   if (!ret.isNull())
   {
-    return ret;
+    return Expr(ensureHashed(ret.getValue()));
   }
   // otherwise does not evaluate, return application
-  return Expr(new ExprValue(Kind::APPLY, children));
+  return Expr(d_state.mkExprInternal(Kind::APPLY, children));
 }
 
 bool TypeChecker::isGround(const std::vector<ExprValue*>& args)
@@ -926,10 +926,10 @@ Expr TypeChecker::evaluateLiteralOp(Kind k,
   Expr ret = evaluateLiteralOpInternal(k, args);
   if (!ret.isNull())
   {
-    return ret;
+    return Expr(ensureHashed(ret.getValue()));
   }
   // otherwise does not evaluate, return application
-  return Expr(new ExprValue(k, args));
+  return Expr(d_state.mkExprInternal(k, args));
 }
 
 /**
@@ -1222,7 +1222,8 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   {
     cc[tailIndex] = ret;
     cc[headIndex] = hargs[isLeft ? i : (nargs-1-i)];
-    ret = d_state.mkApplyInternal(cc);
+    ret = new ExprValue(Kind::APPLY, {cc[0], cc[1]});
+    ret = new ExprValue(Kind::APPLY, {ret, cc[2]});
   }
   Trace("type_checker_debug") << "CONS: " << isLeft << " " << args << " -> " << ret << std::endl;
   return Expr(ret);
