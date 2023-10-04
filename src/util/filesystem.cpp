@@ -1,5 +1,6 @@
 #include "util/filesystem.h"
 
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <vector>
@@ -11,6 +12,7 @@ Filepath::Filepath() {}
 
 Filepath::Filepath(std::string rawPath)
 {
+#ifndef USE_CPP_FILESYSTEM
   /* Trim the input path */
   size_t first = rawPath.find_first_not_of(' ');
   if (std::string::npos == first)
@@ -20,10 +22,14 @@ Filepath::Filepath(std::string rawPath)
   }
   size_t last = rawPath.find_last_not_of(' ');
   this->rawPath = rawPath.substr(first, (last - first + 1));
+#else
+  this->rawPath = rawPath;
+#endif
 }
 
 Filepath::Filepath(const char* rawPath)
 {
+#ifndef USE_CPP_FILESYSTEM
   std::string path = std::string(rawPath);
   /* Trim the input path */
   size_t first = path.find_first_not_of(' ');
@@ -34,28 +40,49 @@ Filepath::Filepath(const char* rawPath)
   }
   size_t last = path.find_last_not_of(' ');
   this->rawPath = path.substr(first, (last - first + 1));
+#else
+  this->rawPath = rawPath;
+#endif
 }
 
 Filepath::~Filepath() {}
 
 bool Filepath::isAbsoluste() const
 {
+#ifndef USE_CPP_FILESYSTEM
 #ifdef _WIN32
   static_assert(false, "File system support for Windows not implemented.");
 #endif
   return rawPath[0] == '/';
+
+#else
+  return rawPath.is_absolute();
+#endif
 }
 
 bool Filepath::exists() const
 {
+#ifndef USE_CPP_FILESYSTEM
   std::ifstream f;
   return f.good();
+#else
+  return std::filesystem::exists(rawPath)
+         && std::filesystem::is_regular_file(rawPath);
+#endif
 }
 
-void Filepath::append(const Filepath path) { rawPath.append(path.rawPath); }
+void Filepath::append(const Filepath path)
+{
+#ifndef USE_CPP_FILESYSTEM
+  rawPath.append(path.rawPath);
+#else
+  rawPath /= path.rawPath;
+#endif
+}
 
 void Filepath::makeCanonical()
 {
+#ifndef USE_CPP_FILESYSTEM
 #ifdef _WIN32
   static_assert(false, "File system support for Windows not implemented.");
 #endif
@@ -141,10 +168,14 @@ void Filepath::makeCanonical()
     first = false;
   }
   rawPath = newPath.str();
+#else
+  rawPath = std::filesystem::canonical(rawPath);
+#endif
 }
 
 Filepath Filepath::parentPath() const
 {
+#ifndef USE_CPP_FILESYSTEM
 #ifdef _WIN32
   static_assert(false, "File system support for Windows not implemented.");
 #endif
@@ -157,6 +188,9 @@ Filepath Filepath::parentPath() const
   }
   std::string newPath = this->rawPath.substr(0, last + 1);
   return Filepath(newPath);
+#else
+  return Filepath(rawPath.parent_path());
+#endif
 }
 
 std::string Filepath::getRawPath() const { return this->rawPath; }

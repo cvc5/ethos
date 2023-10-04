@@ -3,6 +3,14 @@
 
 #include <string>
 
+#ifndef USE_STANDALONE_FILESYSTEM
+#define USE_CPP_FILESYSTEM
+#endif
+
+#ifdef USE_CPP_FILESYSTEM
+#include <filesystem>
+#endif
+
 namespace alfc {
 
 /**
@@ -62,7 +70,11 @@ class Filepath
   std::string getRawPath() const;
 
  private:
+#ifndef USE_CPP_FILESYSTEM
   std::string rawPath;
+#else
+  std::filesystem::path rawPath;
+#endif
 };
 
 bool operator<(const Filepath&, const Filepath&);
