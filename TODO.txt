@@ -4,15 +4,17 @@ TODO:
 - arity overloading?
 - remove closure parsing? maybe alf.lambda is useful for a native alf.map
 - check type preservation for evaluation?
-  - more generally: a weaker type system for program bodies??
+  - more generally: a weaker type system for program bodies?
 - minimize compiled code by recognizing alpha-equivalent patterns
     - parameters can be shared??
 - lazy construction of definitions when compiled?
   - compiled fine grain inclusion??
 - non-exponential alf.ite compilation
 - warn unused parameters
-- n-ary literal ops
 - don't always use mkExprInternal in evaluate
+- fix printing decimals
+- define-fun-rec parsing
+- non-macro define-fun?
 
 COMPLETED:
 
@@ -41,6 +43,7 @@ COMPLETED:
 - Temporary memory allocation of Expr within calls to evaluation?
 - memory safe
 - Literal inherits from ExprValue
+- n-ary literal ops
 
 CVC5-TODO:
 
