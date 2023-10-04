@@ -176,7 +176,7 @@ bool State::includeFile(const std::string& s, bool isReference, const Expr& refe
   {
     return true;
   }
-  Assert (!isReference || d_hasReference);
+  Assert (!isReference || !d_hasReference);
   d_hasReference = isReference;
   d_referenceNf = referenceNf;
   Filepath currentPath = d_inputFile;
