@@ -1012,7 +1012,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     break;
     case Kind::EVAL_REQUIRES:
     {
-      if (args[0]==args[1])
+      if (ensureHashed(args[0])==ensureHashed(args[1]))
       {
         // eagerly evaluate even if body is non-ground
         return Expr(args[2]);
