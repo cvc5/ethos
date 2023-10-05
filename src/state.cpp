@@ -5,6 +5,7 @@
 #include "base/check.h"
 #include "base/output.h"
 #include "parser.h"
+#include "util/filesystem.h"
 
 namespace alfc {
 
@@ -162,22 +163,23 @@ bool State::includeFile(const std::string& s)
 }
 bool State::includeFile(const std::string& s, bool isReference, const Expr& referenceNf)
 {
-  std::filesystem::path inputPath;
-  try {
-    inputPath = std::filesystem::canonical(d_inputFile.parent_path() / s);
-  }
-  catch (std::filesystem::filesystem_error const&)
+  Filepath inputPath = d_inputFile.parentPath();
+  inputPath.append(Filepath(s));
+  inputPath.makeCanonical();
+
+  if (!inputPath.exists())
   {
     return false;
   }
+
   if (!markIncluded(inputPath))
   {
     return true;
   }
-  Assert (!isReference || d_hasReference);
+  Assert (!isReference || !d_hasReference);
   d_hasReference = isReference;
   d_referenceNf = referenceNf;
-  std::filesystem::path currentPath = d_inputFile;
+  Filepath currentPath = d_inputFile;
   d_inputFile = inputPath;
   if (d_compiler!=nullptr)
   {
@@ -187,7 +189,7 @@ bool State::includeFile(const std::string& s, bool isReference, const Expr& refe
   Trace("state") << "Include " << inputPath << std::endl;
   Assert (getAssumptionLevel()==0);
   Parser p(*this, isReference);
-  p.setFileInput(inputPath);
+  p.setFileInput(inputPath.getRawPath());
   bool parsedCommand;
   do
   {
@@ -198,15 +200,16 @@ bool State::includeFile(const std::string& s, bool isReference, const Expr& refe
   Trace("state") << "...finished" << std::endl;
   if (getAssumptionLevel()!=0)
   {
-    ALFC_FATAL() << "Including file " << inputPath << " did not preserve assumption scope";
+    ALFC_FATAL() << "Including file " << inputPath.getRawPath()
+                 << " did not preserve assumption scope";
   }
   return true;
 }
 
-bool State::markIncluded(const std::string& s)
+bool State::markIncluded(const Filepath& s)
 {
-  std::set<std::filesystem::path>::iterator it = d_includes.find(s);
-  if (it!=d_includes.end())
+  std::set<Filepath>::iterator it = d_includes.find(s);
+  if (it != d_includes.end())
   {
     return false;
   }
@@ -1144,16 +1147,18 @@ bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
   {
     // use full path
     std::string ocmd = cons.getSymbol();
-    std::filesystem::path inputPath;
-    try {
-      inputPath = std::filesystem::canonical(d_inputFile.parent_path() / ocmd);
-    }
-    catch (std::filesystem::filesystem_error const&)
+
+    Filepath inputPath = d_inputFile.parentPath();
+    inputPath.append(Filepath(ocmd));
+    inputPath.makeCanonical();
+
+    if (!inputPath.exists())
     {
       Warning() << "State:: could not include \"" + ocmd + "\" for oracle definition";
       return false;
     }
-    acons = mkLiteral(Kind::STRING, inputPath);
+
+    acons = mkLiteral(Kind::STRING, inputPath.getRawPath());
   }
   Assert (isSymbol(v.getKind()));
   AppInfo& ai = d_appData[v.getValue()];

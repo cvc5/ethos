@@ -3,15 +3,15 @@
 
 #include <map>
 #include <set>
-#include <string>
 #include <sstream>
-#include <filesystem>
+#include <string>
 
 #include "attr.h"
 #include "expr.h"
 #include "expr_info.h"
 #include "expr_trie.h"
 #include "type_checker.h"
+#include "util/filesystem.h"
 
 namespace alfc {
 
@@ -140,7 +140,7 @@ public:
   /** Pop scope */
   void popScope();
   /** include file, if not already done */
-  void includeFile(const std::string& s);
+  void includeFile(const Filepath& s);
   /** Set type rule for literal kind k to t */
   void setLiteralTypeRule(Kind k, const Expr& t);
   /** */
