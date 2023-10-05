@@ -163,8 +163,17 @@ bool State::includeFile(const std::string& s)
 }
 bool State::includeFile(const std::string& s, bool isReference, const Expr& referenceNf)
 {
-  Filepath inputPath = d_inputFile.parentPath();
-  inputPath.append(Filepath(s));
+  Filepath inputPath;
+  Filepath file(s);
+  if (file.isAbsolute())
+  {
+    inputPath = file;
+  }
+  else
+  {
+    inputPath = d_inputFile.parentPath();
+    inputPath.append(file);
+  }
   inputPath.makeCanonical();
 
   if (!inputPath.exists())

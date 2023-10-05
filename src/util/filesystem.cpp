@@ -46,7 +46,7 @@ Filepath::Filepath(const char* rawPath)
 
 Filepath::~Filepath() {}
 
-bool Filepath::isAbsoluste() const
+bool Filepath::isAbsolute() const
 {
 #ifndef USE_CPP_FILESYSTEM
 #ifdef _WIN32

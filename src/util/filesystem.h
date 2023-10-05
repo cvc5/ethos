@@ -36,7 +36,7 @@ class Filepath
   /**
    * @return `true` if the current path starts with '/'.
    */
-  bool isAbsoluste() const;
+  bool isAbsolute() const;
 
   /**
    * @return `true` the current path points to an existing file.
