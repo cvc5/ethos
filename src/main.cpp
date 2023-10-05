@@ -176,10 +176,12 @@ int main( int argc, char* argv[] )
     Trace("compile") << "```" << std::endl;
     Trace("compile") << c->toString() << std::endl;
     Trace("compile") << "```" << std::endl;
-
-
   }
-  std::cout << stats.toString(s);
+  if (opts.d_stats)
+  {
+    std::cout << stats.toString(s);
+  }
+  // exit immediately, which avoids deleting all expressions which can take time
   exit(0);
   return 0;
 }
