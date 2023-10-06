@@ -1,0 +1,12 @@
+(declare-sort Int 0)
+(declare-consts <numeral> Int)
+
+(declare-oracle-fun test_oracle (Int) Bool ./tiny_oracle.sh)
+
+(declare-rule test_rule ((i Int))
+  :args (i)
+  :requires (((test_oracle i)  true))
+  :conclusion false
+)
+
+(step p1 false :rule test_rule :args (42))

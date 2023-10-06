@@ -1,14 +1,25 @@
 #include "type_checker.h"
 
+#include <fcntl.h>
+#include <sched.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
+#include <cstdint>
+#include <cstdlib>
+#include <cwchar>
 #include <iostream>
+#include <ostream>
 #include <set>
+#include <type_traits>
 #include <unordered_map>
 
 #include "base/check.h"
 #include "base/output.h"
-#include "state.h"
-#include "parser.h"
+#include "expr.h"
 #include "literal.h"
+#include "parser.h"
+#include "state.h"
 
 namespace alfc {
   
@@ -805,17 +816,79 @@ bool TypeChecker::isGround(const std::vector<ExprValue*>& args)
   return true;
 }
 
-int run(const std::string& call, std::ostream& response)
+int run(const std::string& call,
+        const std::string& content,
+        std::ostream& response)
 {
-  FILE* stream = popen(call.c_str(), "r");
-  if (stream != nullptr)
+  int read_pipe[2];
+  int write_pipe[2];
+  pipe(read_pipe);
+  pipe(write_pipe);
+
+  pid_t pid = fork();
+  if (pid == -1)
   {
-    int ch;
-    while ((ch = fgetc(stream)) != EOF)
+    // Forking failed.
+    return -1;
+  }
+  if (pid == 0)
+  {
+    // We are the fork
+    // Close parent ends of the pipe
+    close(write_pipe[1]);
+    close(read_pipe[0]);
+
+    // Wire our ends of the pipe to stdin/out
+    dup2(write_pipe[0], STDIN_FILENO);
+    close(write_pipe[0]);
+    dup2(read_pipe[1], STDOUT_FILENO);
+    close(read_pipe[1]);
+
+    const char* argv[] = {call.c_str(), NULL};
+    execv(call.c_str(), (char**)argv);
+    _exit(-1);  // This point is only reached if there is an error
+  }
+  else
+  {
+    // We are the parent
+    // Close child ends of the pipe
+    close(write_pipe[0]);
+    close(read_pipe[1]);
+
+    write(write_pipe[1], content.c_str(), content.length() + 1);
+    // Wait for child and get return code
+    int status;
+    pid_t ret;
+    bool error = false;
+    while ((ret = waitpid(pid, &status, 0)) == -1)
     {
-      response << (unsigned char)ch;
+      if (errno != EINTR)
+      {
+        error = true;
+        break;
+      }
     }
-    return pclose(stream);
+    if ((ret == 0) || error || !(WIFEXITED(status) && !WEXITSTATUS(status)))
+    {
+      close(write_pipe[1]);
+      close(read_pipe[0]);
+      return -1;
+    }
+
+    char buffer[255];
+    size_t num;
+    // Do not block if pipe is not empty.
+    fcntl(read_pipe[0], F_SETFL, O_NONBLOCK);
+    while ((num = read(read_pipe[0], buffer, 255)) == 255)
+    {
+      response << buffer;
+    }
+    // Write partial buffer.
+    response.write(buffer, num);
+
+    close(write_pipe[1]);
+    close(read_pipe[0]);
+    return WEXITSTATUS(status);
   }
   return -1;
 }
@@ -888,18 +961,19 @@ Expr TypeChecker::evaluateProgramInternal(
     {
       return d_null;
     }
-    std::stringstream call;
-    call << ocmd;
-    for (size_t i=1, nchildren=children.size(); i<nchildren; i++)
+    std::stringstream call_content;
+    call_content << "(" << std::endl;
+    for (size_t i = 0, nchildren = children.size(); i < nchildren; i++)
     {
-      call << " " << Expr(children[i]);
+      call_content << Expr(children[i]) << std::endl;
     }
-    Trace("oracles") << "Call oracle " << ocmd << " with arguments:" << std::endl;
+    call_content << ")" << std::endl;
+    Trace("oracles") << "Call oracle " << ocmd << " with content:" << std::endl;
     Trace("oracles") << "```" << std::endl;
-    Trace("oracles") << call.str() << std::endl;
+    Trace("oracles") << call_content.str() << std::endl;
     Trace("oracles") << "```" << std::endl;
     std::stringstream response;
-    int retVal = run(call.str(), response);
+    int retVal = run(ocmd, call_content.str(), response);
     if (retVal!=0)
     {
       Trace("oracles") << "...failed to run" << std::endl;
