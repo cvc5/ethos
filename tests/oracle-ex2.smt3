@@ -65,4 +65,4 @@
 (assume @p3 (not B))
 (assume @p4 (or B (not C)))
 
-;(step @p5 false :rule drat :premises (@p1 @p2 @p3 @p4) :args ("drat-proof.txt"))
+(step @p5 false :rule drat :premises (@p1 @p2 @p3 @p4) :args ("drat-proof.txt"))
