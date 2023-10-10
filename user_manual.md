@@ -216,7 +216,7 @@ The second annotation indicates that `(alf.is_neg w)` must evaluate to `false`, 
 
 The ALF language supports term annotations on parameters and declared functions, which for instance can allow the user to treat a declared function as being variadic, i.e. taking an arbitrary number of arguments. The available annotations in the ALF checker are:
 - `:right-assoc` (resp. `:left-assoc`) denoting that the term is right (resp. left) associative,
-- `:right-assoc-nil <term>` (resp. `:left-assoc-nil <term>`) denoting that the term is right (resp. left) associative with the given nil terminator,
+- `:right-assoc-nil <term>?` (resp. `:left-assoc-nil <term>?`) denoting that the term is right (resp. left) associative with the given nil terminator,
 - `:list`, denoting that the term should be treated as a list when appearing as a child of an application of a right (left) associative operator,
 - `:chainable <term>` denoting that the arguments of the term are chainable using the given (binary) operator,
 - `:pairwise <term>` denoting that the arguments of term are treated pairwise using the given (binary) operator.
@@ -275,6 +275,8 @@ In contrast, marking `or` with `:right-assoc-nil false` leads to the distinct te
 Right and left associative operators with nil terminators also have a relationship with list terms (as we will see in the following section), and in computational operators.
 
 Note that the type for right and left associative operators with nil terminators is typically `(-> T T T)` for some `T`, where their nil terminator has type `T`.
+
+> Currently, if no nil terminator is provided, then the ALF checker will use the term `alf.nil` as the nil terminator for the operator. The type rule for the operator is internally updated to accept `alf.nil` as its second child.
 
 ### List
 
