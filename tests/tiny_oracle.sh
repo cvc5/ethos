@@ -3,7 +3,6 @@
 # This reads exactly one function call from stdin, and returns
 # true if it is as expected:
 # (
-# test_oracle
 # 42
 # )
 
@@ -12,11 +11,9 @@ while read -r line
     do
     if (( count == 0 )) && [[ "$line" == "(" ]]; then
         count=$((count+1))
-    elif (( count == 1 )) && [[ "$line" == "test_oracle" ]]; then
+    elif (( count == 1 )) && [[ "$line" == "42" ]]; then
         count=$((count+1))
-    elif (( count == 2 )) && [[ "$line" == "42" ]]; then
-        count=$((count+1))
-    elif (( count == 3 )) && [[ "$line" == ")" ]]; then
+    elif (( count == 2 )) && [[ "$line" == ")" ]]; then
         echo "true"
         break
     else

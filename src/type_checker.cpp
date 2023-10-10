@@ -963,7 +963,7 @@ Expr TypeChecker::evaluateProgramInternal(
     }
     std::stringstream call_content;
     call_content << "(" << std::endl;
-    for (size_t i = 0, nchildren = children.size(); i < nchildren; i++)
+    for (size_t i = 1, nchildren = children.size(); i < nchildren; i++)
     {
       call_content << Expr(children[i]) << std::endl;
     }
