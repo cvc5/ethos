@@ -48,4 +48,4 @@
 (assume @p3 (not B))
 (assume @p4 (or B (not C)))
 
-;(step @p5 false :rule drat :premises (@p1 @p2 @p3 @p4) :args ((@am.cons 1 A (@am.cons 2 B (@am.cons 3 C @am.nil))) "drat-proof.txt"))
+(step @p5 false :rule drat :premises (@p1 @p2 @p3 @p4) :args ((@am.cons 1 A (@am.cons 2 B (@am.cons 3 C @am.nil))) "drat-proof.txt"))
