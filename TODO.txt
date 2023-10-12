@@ -1,7 +1,6 @@
 TODO:
 
 - :syntax
-- arity overloading?
 - remove closure parsing? maybe alf.lambda is useful for a native alf.map
 - check type preservation for evaluation?
   - more generally: a weaker type system for program bodies?
@@ -11,7 +10,7 @@ TODO:
   - compiled fine grain inclusion??
 - non-exponential alf.ite compilation
 - warn unused parameters
-- don't always use mkExprInternal in evaluate
+- don't always use mkExprInternal in evaluate (@lazyHash)
 - fix printing decimals
 - define-fun-rec parsing
 - non-macro define-fun? assume-define?
@@ -45,6 +44,7 @@ COMPLETED:
 - memory safe
 - Literal inherits from ExprValue
 - n-ary literal ops
+- arity overloading?
 
 CVC5-TODO:
 

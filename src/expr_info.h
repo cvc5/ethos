@@ -26,6 +26,8 @@ public:
   Expr d_attrConsTerm;
   /** Associated kind */
   Kind d_kind;
+  /** Overloading */
+  std::map<size_t, Expr> d_overloads;
 };
 
 }  // namespace alfc

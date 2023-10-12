@@ -197,7 +197,7 @@ class State
   /** Symbol table for proof rules, if using separate table */
   std::map<std::string, Expr> d_ruleSymTable;
   /** Context stacks */
-  std::vector<std::string> d_decls;
+  std::vector<std::pair<std::string, size_t>> d_decls;
   /** Context size */
   std::vector<size_t> d_declsSizeCtx;
   /** All free assumptions */

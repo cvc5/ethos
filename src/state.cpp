@@ -132,7 +132,17 @@ void State::popScope()
   d_declsSizeCtx.pop_back();
   for (size_t i=lastSize, currSize = d_decls.size(); i<currSize; i++)
   {
-    d_symTable.erase(d_decls[i]);
+    if (d_decls[i].second==0)
+    {
+      d_symTable.erase(d_decls[i].first);
+    }
+    else
+    {
+      // otherwise this is an overload
+      AppInfo* ai = getAppInfo(d_symTable[d_decls[i].first].getValue());
+      Assert (ai!=nullptr);
+      ai->d_overloads.erase(d_decls[i].second-1);
+    }
   }
   d_decls.resize(lastSize);
 }
@@ -601,18 +611,32 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     AppInfo* ai = getAppInfo(hd);
     if (ai!=nullptr)
     {
-      if (ai->d_kind==Kind::FUNCTION_TYPE)
+      if (ai->d_kind!=Kind::NONE)
       {
-        // functions (from parsing) are flattened here
-        std::vector<Expr> achildren(children.begin()+1, children.end()-1);
-        return mkFunctionType(achildren, children.back());
-      }
-      else if (ai->d_kind!=Kind::NONE)
-      {
+        if (ai->d_kind==Kind::FUNCTION_TYPE)
+        {
+          // functions (from parsing) are flattened here
+          std::vector<Expr> achildren(children.begin()+1, children.end()-1);
+          return mkFunctionType(achildren, children.back());
+        }
         // another builtin operator, possibly APPLY
         std::vector<Expr> achildren(children.begin()+1, children.end());
         // must call mkExpr again, since we may auto-evaluate
         return mkExpr(ai->d_kind, achildren);
+      }
+      if (!ai->d_overloads.empty())
+      {
+        Trace("overload") << "Use overload when constructing " << k << " " << children << std::endl;
+        std::map<size_t, Expr>::iterator ito = ai->d_overloads.find(children.size()-1);
+        if (ito!=ai->d_overloads.end() && ito->second.getValue()!=hd)
+        {
+          std::vector<Expr> newChildren;
+          newChildren.emplace_back(ito->second);
+          newChildren.insert(newChildren.end(), children.begin()+1, children.end());
+          Expr ret = mkExpr(k, newChildren);
+          Trace("overload") << "...made " << ret << std::endl;
+          return ret;
+        }
       }
       // if it has a constructor attribute
       switch (ai->d_attrCons)
@@ -736,11 +760,12 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         return ret;
       }
     }
-    else if (hk==Kind::PROGRAM_CONST)
+    else if (hk==Kind::PROGRAM_CONST || hk==Kind::ORACLE)
     {
-      // have to check whether we have the program, i.e. if we are constructing
-      // applications corresponding to the cases in the program definition itself.
-      if (getConstructorKind(hd)==Attr::PROGRAM)
+      // have to check whether we have marked the constructor kind, which is
+      // not the case i.e. if we are constructing applications corresponding to
+      // the cases in the program definition itself.
+      if (getConstructorKind(hd)!=Attr::NONE)
       {
         Expr hdt = Expr(hd);
         const Expr& t = d_tc.getType(hdt);
@@ -931,16 +956,41 @@ bool State::bind(const std::string& name, const Expr& e)
     return true;
   }
   // otherwise use the main symbol table
-  if (d_symTable.find(name)!=d_symTable.end())
+  std::map<std::string, Expr>::iterator its = d_symTable.find(name);
+  if (its!=d_symTable.end())
   {
-    return false;
+    // try to overload?
+    AppInfo& ai = d_appData[its->second.getValue()];
+    Expr ee = e;
+    Expr et = d_tc.getType(ee);
+    size_t arity = 0;
+    while (et.getKind()==Kind::FUNCTION_TYPE)
+    {
+      arity++;
+      et = et[et.getNumChildren()-1];
+      while (et.getKind()==Kind::EVAL_REQUIRES)
+      {
+        et = et[2];
+      }
+    }
+    Trace("overload") << "Overload " << e << " for " << its->second << " with arity " << arity << std::endl;
+    if (ai.d_overloads.find(arity)!=ai.d_overloads.end())
+    {
+      return false;
+    }
+    ai.d_overloads[arity] = e;
+    if (!d_declsSizeCtx.empty())
+    {
+      d_decls.emplace_back(name, arity+1);
+    }
+    return true;
   }
-  // Trace("ajr-temp") << "bind " << name << " -> " << &e << std::endl;
+  // Trace("state-debug") << "bind " << name << " -> " << &e << std::endl;
   d_symTable[name] = e;
   // only have to remember if not at global scope
   if (!d_declsSizeCtx.empty())
   {
-    d_decls.push_back(name);
+    d_decls.emplace_back(name, 0);
   }
   return true;
 }

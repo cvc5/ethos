@@ -95,6 +95,7 @@ set(alfc_test_file_list
     axiom-implicit.smt3
     match-variants.smt3
     tiny_oracle.smt3
+    arity-overload.smt3
 )
 
 macro(alfc_test file)
