@@ -691,6 +691,7 @@ These fields include:
 - `<premises>`, denoting the premise patterns of the proof rule. This is either a list of formulas (via `:premises`) or the specification of list of premises via (via `:premise-list`), which will be described in detail later.
 - `<arguments>`, denoting argument patterns of provide to a proof rule.
 - `<reqs>`, denoting a list of pairs of terms.
+
 Proof rules with assumptions `<assumption>` are used in proof with local scopes and will be discussed in detail later.
 
 At a high level, an application of a proof rule is given a concrete list of (premise) proofs, and a concrete list of (argument) terms.
@@ -761,7 +762,7 @@ A rule can take an arbitrary number of premises via the syntax `:premise-list <t
     :conclusion F)
 ```
 This syntax specifies that the number of premises that are provided to this rule are arbitrary.
-When applying this rule, the formulas proven to this rule (say `F1 ... Fn`) will be collected and constructed as a single formula via the provided operator (`and`), and subsequently matched against the premise pattern `F.
+When applying this rule, the formulas proven to this rule (say `F1 ... Fn`) will be collected and constructed as a single formula via the provided operator (`and`), and subsequently matched against the premise pattern `F`.
 In particular, in this case `F` is bound to `(and F1 ... Fn)`.
 The conclusion of the rule returns `F` itself.
 
@@ -914,7 +915,7 @@ In this example, since `xs` was marked with `:list`, the terms `(or l xs)` and `
 The next two examples show variants where an incorrect definition of this program is defined.
 
 > As mentioned in [list-computation](#list-computation), ALF has dedicated support for operators over lists.
-The term `(contains l c)` in the above example is equivalent to `(alf.not (alf.is_neg (alf.find or c l)))`.
+For the definition of `contains` in the above example, the term `(contains l c)` is equivalent to `(alf.not (alf.is_neg (alf.find or c l)))`.
 Computing the latter is significantly faster in practice in the ALF checker.
 
 ### Example: Finding a child in an `or` term (incorrect version)
@@ -951,7 +952,7 @@ However, `(contains (or a b c) a)` does not evaluate in this example.
 ```
 In this variant, both `xs` and `x` were marked with `:list`.
 The ALF checker will reject this definition since it implies that a computational operator appears in a pattern for matching.
-In particular, the term `(contains (or x xs) l)` is equivalent to `(alf.concat or x xs)` after desugaring.
+In particular, the term `(or x xs)` is equivalent to `(alf.concat or x xs)` after desugaring.
 Thus, the third case of the program, `(contains (alf.concat or x xs) l)`, is not a legal pattern.
 
 ### Example: Substitution
@@ -1087,7 +1088,7 @@ Also, similar to programs, the free parameters of `ri` that occur in the paramet
                 (b b) 
                 ((f (f a)) a)   ; can use arbitrary nesting in pattern terms
                 ((f (f y)) b)
-                (y a)
+                (y a)           ; note that using a parameter as a pattern acts as a default case
             )
         )))
 (define test2 ((F Bool) (y Int)) 
@@ -1180,7 +1181,8 @@ In more general cases, if the body of the match term contains free variables, th
 ```
 
 For simplicity, the rule is given only for equalities of the integer sort, although this rule can be generalized.
-The recursive calls in this side condition `mk_trans` accumulate the endpoints of an equality chain and ensure via `alf.requires` that further equalities extend the left hand side of this chain.
+The proof rule `trans` first packages an arbtirary number of premises, constructs a conjunction of these premises, which to bound to `E` and passed to the match term in the conclusion.
+The recursive calls in the side condition `mk_trans` accumulate the endpoints of an equality chain and ensure via `alf.requires` that further equalities extend the left hand side of this chain.
 
 # Including and referencing files
 
