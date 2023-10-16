@@ -1,6 +1,6 @@
 # AletheLF Checker
 
-## An Experimental Proof Checker
+## A Flexible and Efficient Proof Checker for SMT Solvers
 
 ## Building the AletheLF checker
 
@@ -50,6 +50,8 @@ alfc [script]
 ```
 where `script` is an AletheLF script.  See `tests` and `proofs` for examples.
 
+For further details, see the user manual [here](.user_manual.md).
+
 ## Running Tests
 
 You can add tests in the `tests` directory.
@@ -59,5 +61,5 @@ Run them using `make test` in the build directory.
 You can also filter tests using regular expressions for example:
 
 ```
-ctest -R theories/BitVectors.smt
+ctest -R arith
 ```
