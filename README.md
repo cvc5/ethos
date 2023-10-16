@@ -50,7 +50,7 @@ alfc [script]
 ```
 where `script` is an AletheLF script.  See `tests` and `proofs` for examples.
 
-For further details, see the user manual [here](.user_manual.md).
+For further details, see the user manual [here](user_manual.md).
 
 ## Running Tests
 
