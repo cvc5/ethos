@@ -17,6 +17,8 @@ int run(const std::string& call,
       const std::string& content,
       std::ostream& response);
 
+int runFile(const std::string& call, std::ostream& response);
+
 }  // namespace alfc
 
 #endif

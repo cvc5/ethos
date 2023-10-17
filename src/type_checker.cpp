@@ -875,6 +875,8 @@ Expr TypeChecker::evaluateProgramInternal(
     {
       return d_null;
     }
+    int retVal;
+#if 1
     std::stringstream call_content;
     call_content << "(" << std::endl;
     for (size_t i = 1, nchildren = children.size(); i < nchildren; i++)
@@ -887,7 +889,21 @@ Expr TypeChecker::evaluateProgramInternal(
     Trace("oracles") << call_content.str() << std::endl;
     Trace("oracles") << "```" << std::endl;
     std::stringstream response;
-    int retVal = run(ocmd, call_content.str(), response);
+    retVal = run(ocmd, call_content.str(), response);
+#else
+    std::stringstream call;
+    call << ocmd;
+    for (size_t i = 1, nchildren = children.size(); i < nchildren; i++)
+    {
+      call << " " << Expr(children[i]);
+    }
+    Trace("oracles") << "Call oracle " << ocmd << " with content:" << std::endl;
+    Trace("oracles") << "```" << std::endl;
+    Trace("oracles") << call.str() << std::endl;
+    Trace("oracles") << "```" << std::endl;
+    std::stringstream response;
+    retVal = runFile(call.str(), response);
+#endif
     if (retVal!=0)
     {
       Trace("oracles") << "...failed to run" << std::endl;

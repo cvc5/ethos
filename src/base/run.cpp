@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <cwchar>
 #include <type_traits>
+#include <iostream>
 
 namespace alfc {
 
@@ -85,6 +86,21 @@ int run(const std::string& call,
     close(write_pipe[1]);
     close(read_pipe[0]);
     return WEXITSTATUS(status);
+  }
+  return -1;
+}
+
+int runFile(const std::string& call, std::ostream& response)
+{
+  FILE* stream = popen(call.c_str(), "r");
+  if (stream != nullptr)
+  {
+    int ch;
+    while ((ch = fgetc(stream)) != EOF)
+    {
+      response << (unsigned char)ch;
+    }
+    return pclose(stream);
   }
   return -1;
 }
