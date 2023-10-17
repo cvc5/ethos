@@ -69,11 +69,11 @@ void Lexer::parseError(const std::string& msg, bool eofException)
 {
   std::stringstream os;
   if( d_span.d_start.d_line > 0 ) {
-    ALFC_FATAL() << "Parse Error: " << d_inputName << ":"
+    ALFC_FATAL() << "Error: " << d_inputName << ":"
                  << d_span.d_start.d_line << "." << d_span.d_start.d_column
                  << ": " << msg << std::endl;
   } else {
-    ALFC_FATAL() << "Parse Error: " << msg << std::endl;
+    ALFC_FATAL() << "Error: " << msg << std::endl;
   }
 }
 
