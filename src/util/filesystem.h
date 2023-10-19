@@ -3,8 +3,8 @@
 
 #include <string>
 
-// comment this to avoid issues in older versions of gcc/C++
-#define USE_CPP_FILESYSTEM
+// comment this to avoid issues in older versions of g++/C++
+//#define USE_CPP_FILESYSTEM
 
 #ifdef USE_CPP_FILESYSTEM
 #include <filesystem>
