@@ -1053,15 +1053,7 @@ bool State::getActualPremises(const ExprValue* rule,
         }
         achildren.push_back(eproven[0]);
       }
-      Expr ap;
-      if (achildren.size()==2)
-      {
-        ap = achildren[1];
-      }
-      else
-      {
-        ap = mkExpr(Kind::APPLY, achildren);
-      }
+      Expr ap = mkExpr(Kind::APPLY, achildren);
       Expr pfap = mkProofType(ap);
       // TODO: collect operator???
       // dummy, const term of the given proof type
