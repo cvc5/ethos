@@ -49,6 +49,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::EVAL_NOT: o << "EVAL_NOT"; break;
     case Kind::EVAL_AND: o << "EVAL_AND"; break;
     case Kind::EVAL_OR: o << "EVAL_OR"; break;
+    case Kind::EVAL_XOR: o << "EVAL_XOR"; break;
     // arithmetic
     case Kind::EVAL_ADD: o << "EVAL_ADD"; break;
     case Kind::EVAL_NEG: o << "EVAL_NEG"; break;
