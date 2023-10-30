@@ -895,6 +895,7 @@ std::string Compiler::toString()
   std::stringstream ss;
   ss << "#include \"state.h\"" << std::endl;
   ss << "#include \"type_checker.h\"" << std::endl;
+  ss << "#include <iomanip>" << std::endl;
   ss << std::endl;
   ss << "namespace alfc {" << std::endl;
   ss << std::endl;
