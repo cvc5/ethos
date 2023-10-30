@@ -70,12 +70,6 @@ class Integer
   /** Return this*(2^pow). */
   Integer multiplyByPow2(uint32_t pow) const;
 
-  /** Set the ith bit of the current Integer to 'value'.  */
-  void setBit(uint32_t i, bool value);
-
-  /** Return true if bit at index 'i' is 1, and false otherwise. */
-  bool isBitSet(uint32_t i) const;
-
   /**
    * Returns the integer with the binary representation of 'size' bits
    * extended with 'amount' 1's.
@@ -200,12 +194,6 @@ class Integer
    * @return true if bit n is set in this integer; false otherwise
    */
   bool testBit(unsigned n) const;
-
-  /**
-   * Returns k if the integer is equal to 2^(k-1)
-   * @return k if the integer is equal to 2^(k-1) and 0 otherwise
-   */
-  unsigned isPow2() const;
 
   /**
    * If x != 0, returns the smallest n s.t. 2^{n-1} <= abs(x) < 2^{n}.

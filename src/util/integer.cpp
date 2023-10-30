@@ -76,23 +76,6 @@ Integer Integer::multiplyByPow2(uint32_t pow) const
   return Integer(result);
 }
 
-void Integer::setBit(uint32_t i, bool value)
-{
-  if (value)
-  {
-    mpz_setbit(d_value.get_mpz_t(), i);
-  }
-  else
-  {
-    mpz_clrbit(d_value.get_mpz_t(), i);
-  }
-}
-
-bool Integer::isBitSet(uint32_t i) const
-{
-  return extractBitRange(1, i).sgn()!=0;
-}
-
 Integer Integer::oneExtend(uint32_t size, uint32_t amount) const
 {
   // check that the size is accurate
@@ -300,18 +283,6 @@ size_t Integer::gmpHash(const mpz_t toHash)
 bool Integer::testBit(unsigned n) const
 {
   return mpz_tstbit(d_value.get_mpz_t(), n);
-}
-
-unsigned Integer::isPow2() const
-{
-  if (d_value <= 0) return 0;
-  // check that the number of ones in the binary representation is 1
-  if (mpz_popcount(d_value.get_mpz_t()) == 1)
-  {
-    // return the index of the first one plus 1
-    return mpz_scan1(d_value.get_mpz_t(), 0) + 1;
-  }
-  return 0;
 }
 
 size_t Integer::length() const

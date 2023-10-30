@@ -81,27 +81,10 @@ class BitVector
 
   /* Return value. */
   Integer toInteger() const;
-  /* Return Integer corresponding to two's complement interpretation of this. */
-  Integer toSignedInteger() const;
   /* Return (binary) string representation. */
   std::string toString(unsigned int base = 2) const;
   /* Return hash value. */
   size_t hash() const;
-  /**
-   * Set bit at index 'i' to given value.
-   * Returns a reference to this bit-vector to allow for chaining.
-   *
-   * value: True to set bit to 1, and false to set it to 0.
-   *
-   * Note: Least significant bit is at index 0.
-   */
-  BitVector& setBit(uint32_t i, bool value);
-
-  /** Return true if bit at index 'i' is 1, and false otherwise. */
-  bool isBitSet(uint32_t i) const;
-
-  /* Return k if the value of this is equal to 2^{k-1}, and zero otherwise. */
-  unsigned isPow2() const;
 
   /* -----------------------------------------------------------------------
    ** Operators
@@ -115,14 +98,6 @@ class BitVector
   /* Return the bit range from index 'high' to index 'low'. */
   BitVector extract(unsigned high, unsigned low) const;
 
-  /* Signed Inequality ----------------------------------------------------- */
-
-  /* Return true if this is signed less than bit-vector 'y'. */
-  bool signedLessThan(const BitVector& y) const;
-
-  /* Return true if this is signed less than or equal to bit-vector 'y'. */
-  bool signedLessThanEq(const BitVector& y) const;
-
   /* Arithmetic operations ------------------------------------------------- */
 
   /* Total division function.
@@ -135,46 +110,6 @@ class BitVector
    * Returns this when the denominator is zero, and the unsigned remainder
    * (this % y), otherwise.  */
   BitVector unsignedRemTotal(const BitVector& y) const;
-
-  /* Extend operations ----------------------------------------------------- */
-
-  /* Return a bit-vector representing this extended by 'n' zero bits. */
-  BitVector zeroExtend(unsigned n) const;
-
-  /* Return a bit-vector representing this extended by 'n' bits of the value
-   * of the signed bit. */
-  BitVector signExtend(unsigned n) const;
-
-  /* Shift operations ------------------------------------------------------ */
-
-  /* Return a bit-vector representing a left shift of this by 'y'. */
-  BitVector leftShift(const BitVector& y) const;
-
-  /* Return a bit-vector representing a logical right shift of this by 'y'. */
-  BitVector logicalRightShift(const BitVector& y) const;
-
-  /* Return a bit-vector representing an arithmetic right shift of this
-   * by 'y'.*/
-  BitVector arithRightShift(const BitVector& y) const;
-
-  /* -----------------------------------------------------------------------
-   ** Static helpers.
-   * ----------------------------------------------------------------------- */
-
-  /* Create zero bit-vector of given size. */
-  static BitVector mkZero(unsigned size);
-
-  /* Create bit-vector representing value 1 of given size. */
-  static BitVector mkOne(unsigned size);
-
-  /* Create bit-vector of ones of given size. */
-  static BitVector mkOnes(unsigned size);
-
-  /* Create bit-vector representing the minimum signed value of given size. */
-  static BitVector mkMinSigned(unsigned size);
-
-  /* Create bit-vector representing the maximum signed value of given size. */
-  static BitVector mkMaxSigned(unsigned size);
 
  private:
   /**
