@@ -65,6 +65,7 @@ enum class Kind
   EVAL_NEG,
   EVAL_MUL,
   EVAL_INT_DIV,
+  EVAL_INT_MOD,
   EVAL_RAT_DIV,
   EVAL_IS_NEG,
   // strings
