@@ -435,6 +435,9 @@ Arithmetic operators:
 - `(alf.zdiv t1 t2)`
     - If `t1` and `t2` are numeral values and `t2` is non-zero, then this returns the integer division (floor) of `t1` and `t2`.
     - If `t1` and `t2` are bitwise values of the same category and bitwidth, then this returns their (total, unsigned) division, where division by zero returns the max unsigned value.
+- `(alf.zmod t1 t2)`
+    - If `t1` and `t2` are numeral values and `t2` is non-zero, then this returns the integer remainder of `t1` and `t2`.
+    - If `t1` and `t2` are bitwise values of the same category and bitwidth, then this returns their (total, unsigned) remainder, where remainder by zero returns `t1`.
 - `(alf.is_neg t1)`
     - If `t1` is an arithmetic value, this returns `true` if `t1` is zero and `false` otherwise. Otherwise, this operator is not evaluated.
     
