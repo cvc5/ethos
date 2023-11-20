@@ -16,6 +16,20 @@ TODO:
 - non-macro define-fun? assume-define?
 - set-option
 
+
+CVC5-TODO:
+
+- define-fun-rec
+- fine grained inclusion of signatures to avoid overloading
+- set.insert
+- ambiguous datatype constructors
+
+- rewrite as a ALF proof rule
+- minimize rewrite proofs? A = A' ^ B = true => (or A B) = true -----> B = true => (or A B) = true
+- substitute as an ALF proof rule
+- convert as an ALF proof rule
+
+
 COMPLETED:
 
 - datatypes
@@ -46,10 +60,5 @@ COMPLETED:
 - n-ary literal ops
 - arity overloading?
 
-CVC5-TODO:
-
 - sorts introduced internally to proof (fmf-fun)
-- fine grained inclusion of signatures to avoid overloading
-- set.insert
 - INDEXED_ROOT_PREDICATE
-- ambiguous datatype constructors
