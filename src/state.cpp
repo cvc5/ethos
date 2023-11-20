@@ -56,6 +56,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("neg", Kind::EVAL_NEG);
   bindBuiltinEval("mul", Kind::EVAL_MUL);
   bindBuiltinEval("zdiv", Kind::EVAL_INT_DIV);
+  bindBuiltinEval("zmod", Kind::EVAL_INT_MOD);
   bindBuiltinEval("qdiv", Kind::EVAL_RAT_DIV);
   bindBuiltinEval("is_neg", Kind::EVAL_IS_NEG);
   bindBuiltinEval("to_z", Kind::EVAL_TO_INT);

@@ -70,12 +70,6 @@ class Integer
   /** Return this*(2^pow). */
   Integer multiplyByPow2(uint32_t pow) const;
 
-  /** Set the ith bit of the current Integer to 'value'.  */
-  void setBit(uint32_t i, bool value);
-
-  /** Return true if bit at index 'i' is 1, and false otherwise. */
-  bool isBitSet(uint32_t i) const;
-
   /**
    * Returns the integer with the binary representation of 'size' bits
    * extended with 'amount' 1's.
@@ -98,18 +92,6 @@ class Integer
 
   /** Returns r == this - floor(this/y)*y */
   Integer floorDivideRemainder(const Integer& y) const;
-
-  /** Computes a floor quotient and remainder for x divided by y.  */
-  static void floorQR(Integer& q,
-                      Integer& r,
-                      const Integer& x,
-                      const Integer& y);
-
-  /** Returns the ceil(this / y). */
-  Integer ceilingDivideQuotient(const Integer& y) const;
-
-  /** Returns the ceil(this / y). */
-  Integer ceilingDivideRemainder(const Integer& y) const;
 
   /**
    * Computes a quotient and remainder according to Boute's Euclidean
@@ -137,49 +119,14 @@ class Integer
    */
   Integer euclidianDivideRemainder(const Integer& y) const;
 
-  /** If y divides *this, then exactQuotient returns (this/y). */
-  Integer exactQuotient(const Integer& y) const;
-
   /** Returns y mod 2^exp. */
   Integer modByPow2(uint32_t exp) const;
-
-  /** Returns y / 2^exp. */
-  Integer divByPow2(uint32_t exp) const;
 
   /** Return 1 if this is > 0, 0 if it is 0, and -1 if it is < 0. */
   int sgn() const;
 
   /** Raise this Integer to the power 'exp'. */
   Integer pow(uint32_t exp) const;
-
-  /** Compute addition of this Integer x + y modulo m. */
-  Integer modAdd(const Integer& y, const Integer& m) const;
-
-  /** Compute multiplication of this Integer x * y modulo m. */
-  Integer modMultiply(const Integer& y, const Integer& m) const;
-
-  /**
-   * Compute modular inverse x^-1 of this Integer x modulo m with m > 0.
-   * Returns a value x^-1 with 0 <= x^-1 < m such that x * x^-1 = 1 modulo m
-   * if such an inverse exists, and -1 otherwise.
-   *
-   * Such an inverse only exists if
-   *   - x is non-zero
-   *   - x and m are coprime, i.e., if gcd (x, m) = 1
-   *
-   * Note that if x and m are coprime, then x^-1 > 0 if m > 1 and x^-1 = 0
-   * if m = 1 (the zero ring).
-   */
-  Integer modInverse(const Integer& m) const;
-
-  /**
-   * Return true if 'y' divides this integer.
-   * Note: All non-zero integers devide zero, and zero does not divide zero.
-   */
-  bool divides(const Integer& y) const;
-
-  /** Return the absolute value of this integer.  */
-  Integer abs() const;
 
   /** Return a string representation of this Integer. */
   std::string toString(int base = 10) const;
@@ -192,20 +139,6 @@ class Integer
 
   /** */
   static size_t gmpHash(const mpz_t toHash);
-
-  /**
-   * Returns true iff bit n is set.
-   *
-   * @param n the bit to test (0 == least significant bit)
-   * @return true if bit n is set in this integer; false otherwise
-   */
-  bool testBit(unsigned n) const;
-
-  /**
-   * Returns k if the integer is equal to 2^(k-1)
-   * @return k if the integer is equal to 2^(k-1) and 0 otherwise
-   */
-  unsigned isPow2() const;
 
   /**
    * If x != 0, returns the smallest n s.t. 2^{n-1} <= abs(x) < 2^{n}.

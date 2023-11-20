@@ -259,7 +259,9 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
       }
       break;
     case Kind::EVAL_INT_DIV:
+    case Kind::EVAL_INT_MOD:
     {
+      bool isDiv = (k==Kind::EVAL_INT_DIV);
       switch (ka)
       {
         case Kind::NUMERAL:
@@ -267,7 +269,8 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
           const Integer& d = args[1]->d_int;
           if (d.sgn()!=0)
           {
-            return Literal(Integer(args[0]->d_int.euclidianDivideQuotient(d)));
+            return Literal(isDiv ? args[0]->d_int.euclidianDivideQuotient(d) : 
+                                  args[0]->d_int.euclidianDivideRemainder(d));
           }
         }
           break;
@@ -277,7 +280,8 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
           {
             return Literal();
           }
-          return Literal(ka, BitVector(args[0]->d_bv.unsignedDivTotal(args[1]->d_bv)));
+          return Literal(ka, isDiv ? args[0]->d_bv.unsignedDivTotal(args[1]->d_bv) : 
+                                     args[0]->d_bv.unsignedRemTotal(args[1]->d_bv));
           break;
         default: break;
       }

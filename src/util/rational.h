@@ -68,13 +68,6 @@ class Rational
     return Integer(q);
   }
 
-  Integer ceiling() const
-  {
-    mpz_class q;
-    mpz_cdiv_q(q.get_mpz_t(), d_value.get_num_mpz_t(), d_value.get_den_mpz_t());
-    return Integer(q);
-  }
-
   Rational& operator=(const Rational& x)
   {
     if (this == &x) return *this;
