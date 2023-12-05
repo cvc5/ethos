@@ -422,7 +422,7 @@ Boolean operators:
     
 Arithmetic operators:
 - `(alf.add t1 t2)`
-    - If `t1` and `t2` are arithmetic values of the same category, then this returns the multiplication of `t1` and `t2`, which is a rational value if either of `t1, t2` is a rational value, or a numeral value otherwise.
+    - If `t1` and `t2` are arithmetic values of the same category, then this returns the addition of `t1` and `t2`, which is a rational value if either of `t1, t2` is a rational value, or a numeral value otherwise.
     - If `t1` and `t2` are bitwise values of the same category and bitwidth, this returns the binary value corresponding to their (unsigned) addition modulo their bitwidth.
 - `(alf.mul t1 t2)`
     - If `t1` and `t2` are arithmetic values of the same category, then this returns the multiplication of `t1` and `t2`, which is a rational value if either of `t1, t2` is a rational value, or a numeral value otherwise.
