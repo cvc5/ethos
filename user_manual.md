@@ -4,7 +4,7 @@ This is the user manual for the AletheLF checker (alfc), an efficient and extens
 
 ## Building alfc
 
-The source code for alfc is available here: https://github.com/ajreynol/AletheLF-tc.
+The source code for alfc is available here: https://github.com/cvc5/alfc.
 To build alfc, run:
 ```
 mkdir build
