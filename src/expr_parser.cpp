@@ -1197,6 +1197,7 @@ bool ExprParser::processAttributeMap(const AttrMap& attrs, Attr& ck, Expr& cons)
         case Attr::LIST:
         case Attr::SYNTAX:
         case Attr::PREMISE_LIST:
+        case Attr::PREMISE_LIST_MATCH_CONCLUSION:
         case Attr::LEFT_ASSOC:
         case Attr::RIGHT_ASSOC:
         case Attr::LEFT_ASSOC_NIL:

@@ -58,6 +58,7 @@ set(alfc_test_file_list
     nat-type.smt3
     use-match.smt3
     match-simple.smt3
+    match_conclusion.smt3
     and-intro-old.smt3
     strings-rules-test.smt3
     ite-compile-test.smt3

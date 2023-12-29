@@ -13,6 +13,10 @@ std::ostream& operator<<(std::ostream& o, Attr a)
     case Attr::SYNTAX: o << "SYNTAX"; break;
     case Attr::REQUIRES: o << "REQUIRES"; break;
     case Attr::PREMISE_LIST: o << "PREMISE_LIST"; break;
+    case Attr::MATCH_CONCLUSION: o << "MATCH_CONCLUSION"; break;
+    case Attr::PREMISE_LIST_MATCH_CONCLUSION:
+      o << "PREMISE_LIST_MATCH_CONCLUSION";
+      break;
     case Attr::PROGRAM: o << "PROGRAM"; break;
     case Attr::ORACLE: o << "ORACLE"; break;
     case Attr::RIGHT_ASSOC: o << "RIGHT_ASSOC"; break;

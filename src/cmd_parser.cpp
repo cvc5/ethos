@@ -284,6 +284,7 @@ bool CmdParser::parseNextCommand()
       std::vector<Expr> args;
       std::vector<Expr> reqs;
       Expr conc;
+      bool matchConclusion = false;
       if (tok==Token::DECLARE_RULE)
       {
         // parse premises, optionally
@@ -320,10 +321,12 @@ bool CmdParser::parseNextCommand()
           keyword = d_eparser.parseKeyword();
         }
         // parse conclusion
-        if (keyword!="conclusion")
+        if (keyword != "conclusion" && keyword != "match-conclusion")
         {
-          d_lex.parseError("Expected conclusion in declare-rule");
+          d_lex.parseError(
+              "Expected conclusion or match-conclusion in declare-rule");
         }
+        matchConclusion = (keyword == "match-conclusion");
         conc = d_eparser.parseExpr();
       }
       else
@@ -342,6 +345,11 @@ bool CmdParser::parseNextCommand()
       {
         Expr pet = d_state.mkProofType(e);
         argTypes.push_back(pet);
+      }
+      if (matchConclusion)
+      {
+        Expr et = d_state.mkQuoteType(conc);
+        argTypes.push_back(et);
       }
       for (Expr& e : args)
       {
@@ -370,7 +378,23 @@ bool CmdParser::parseNextCommand()
       d_eparser.bind(name, rule);
       if (!plCons.isNull())
       {
-        d_state.markConstructorKind(rule, Attr::PREMISE_LIST, plCons);
+        if (matchConclusion)
+        {
+          d_state.markConstructorKind(
+              rule, Attr::PREMISE_LIST_MATCH_CONCLUSION, plCons);
+        }
+        else
+        {
+          d_state.markConstructorKind(rule, Attr::PREMISE_LIST, plCons);
+        }
+      }
+      else
+      {
+        if (matchConclusion)
+        {
+          d_state.markConstructorKind(
+              rule, Attr::MATCH_CONCLUSION, d_state.mkNil());
+        }
       }
     }
     break;
@@ -696,6 +720,18 @@ bool CmdParser::parseNextCommand()
       }
       // premises before arguments
       children.insert(children.end(), premises.begin(), premises.end());
+      if (d_state.matchesConclusion(rule.getValue()))
+      {
+        Trace("step") << "Matches conclusion " << ruleName << std::endl;
+        if (proven.isNull())
+        {
+          std::stringstream ss;
+          ss << "The proof rule " << ruleName
+             << " expects an explicit conclusion.";
+          d_lex.parseError(ss.str());
+        }
+        children.push_back(proven);
+      }
       for (const Expr& e : args)
       {
         children.push_back(e);

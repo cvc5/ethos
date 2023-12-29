@@ -1,0 +1,12 @@
+(include "Builtin-theory.smt3")
+
+(declare-rule match1 ((F1 Bool) (F2 Bool))
+    :match-conclusion (and F1 F2)
+)
+
+(declare-const c1 Bool)
+(declare-const c2 Bool)
+(step test1 (and c1 c2) :rule match1)
+
+; This fails as expected:
+; (step test2 :rule match1)

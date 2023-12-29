@@ -121,6 +121,8 @@ class State
   Expr getVar(const std::string& name) const;
   /** Get the proof rule with the given name or nullptr if it does not exist */
   Expr getProofRule(const std::string& name) const;
+  /** Returns true if e is a rule that matches on the conclusion */
+  bool matchesConclusion(const ExprValue* rule);
   /** Get actual premises */
   bool getActualPremises(const ExprValue* ev,
                          std::vector<Expr>& given,

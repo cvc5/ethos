@@ -1032,12 +1032,22 @@ Expr State::getProofRule(const std::string& name) const
   return d_null;
 }
 
+bool State::matchesConclusion(const ExprValue* rule)
+{
+  AppInfo* ainfo = getAppInfo(rule);
+  return (ainfo != nullptr
+          && (ainfo->d_attrCons == Attr::MATCH_CONCLUSION
+              || ainfo->d_attrCons == Attr::PREMISE_LIST_MATCH_CONCLUSION));
+}
+
 bool State::getActualPremises(const ExprValue* rule,
                               std::vector<Expr>& given,
                               std::vector<Expr>& actual)
 {
   AppInfo* ainfo = getAppInfo(rule);
-  if (ainfo!=nullptr && ainfo->d_attrCons==Attr::PREMISE_LIST)
+  if (ainfo != nullptr
+      && (ainfo->d_attrCons == Attr::PREMISE_LIST
+          || ainfo->d_attrCons == Attr::PREMISE_LIST_MATCH_CONCLUSION))
   {
     Expr plCons = ainfo->d_attrConsTerm;
     if (!plCons.isNull())

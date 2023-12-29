@@ -11,7 +11,7 @@ namespace alfc {
 enum class Attr
 {
   NONE = 0,
-  
+
   VAR,
   IMPLICIT,
   REQUIRES,
@@ -21,9 +21,11 @@ enum class Attr
   SYNTAX,
   PROGRAM,
   ORACLE,
-  
+
   // indicate how to construct proof rule steps
   PREMISE_LIST,
+  MATCH_CONCLUSION,
+  PREMISE_LIST_MATCH_CONCLUSION,  // It is possible to have both
 
   // indicate how to construct apps of function symbols
   RIGHT_ASSOC,
@@ -37,7 +39,7 @@ enum class Attr
   DATATYPE,
   DATATYPE_CONSTRUCTOR,
   CODATATYPE,
-  
+
   // internal
   CLOSURE
 };
