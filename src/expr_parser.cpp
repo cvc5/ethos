@@ -671,6 +671,10 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList(bool isLookup)
       // lookup and type check
       v = getVar(name);
       typeCheck(v, t);
+      if (v.getKind()!=Kind::VARIABLE)
+      {
+        d_lex.parseError("Expected a variable in binder");
+      }
     }
     else
     {
