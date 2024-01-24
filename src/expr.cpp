@@ -1,3 +1,11 @@
+/******************************************************************************
+ * This file is part of the alfc project.
+ *
+ * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
+ * in the top-level source directory and their institutional affiliations.
+ * All rights reserved.  See the file COPYING in the top-level source
+ * directory for licensing information.
+ ******************************************************************************/
 #include "expr.h"
 
 #include <iostream>
@@ -513,4 +521,3 @@ std::ostream& operator<<(std::ostream& out, const std::vector<ExprValue*>& es)
 }
 
 }  // namespace alfc
-

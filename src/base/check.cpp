@@ -8,7 +8,7 @@
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
- * ****************************************************************************
+ ******************************************************************************
  *
  * Assertion utility classes, functions and macros.
  */
