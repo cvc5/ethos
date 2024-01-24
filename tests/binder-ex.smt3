@@ -3,5 +3,14 @@
 (declare-const P (-> Int Bool))
 (declare-const forall (-> Bool Bool) :binder)
 (declare-const x Int)
+(declare-const z Int)
+
+(declare-rule id ((y Bool)) :premises (y) :conclusion y)
 
 (assume @p0 (forall ((x Int)) (P x)))
+
+; should match
+(step @p1 (forall ((x Int)) (P x)) :rule id :premises (@p0))
+
+; wrong
+; (step @p1 (forall ((z Int)) (P z)) :rule id :premises (@p0))

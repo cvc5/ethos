@@ -169,9 +169,11 @@ Expr ExprParser::parseExpr()
             if (d_state.isBinder(v.getValue()))
             {
               nscopes = 1;
-              // If it is a closure, immediately read the bound variable list.
-              // We instead lookup the variables if we are not parsing a
-              // reference.
+              // If it is a binder, immediately read the bound variable list.
+              // If d_isReference is true, we parse the variable list and
+              // construct fresh variables.
+              // If d_isReference is false, we lookup the variables in the
+              // specified list.
               d_state.pushScope();
               std::vector<Expr> vs = parseAndBindSortedVarList(!d_isReference);
               if (vs.empty())
