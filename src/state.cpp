@@ -474,7 +474,13 @@ Expr State::mkBuiltinType(Kind k)
 
 Expr State::mkAnnotatedType(const Expr& t, Attr ck, const Expr& cons)
 {
-  if (ck!=Attr::RIGHT_ASSOC_NIL && ck!=Attr::LEFT_ASSOC_NIL)
+  if (ck==Attr::BINDER)
+  {
+    // prepend to argument types the type of tuples (abstract type)
+    Expr atype = mkAbstractType();
+    return mkFunctionType({atype}, t);
+  }
+  else if (ck!=Attr::RIGHT_ASSOC_NIL && ck!=Attr::LEFT_ASSOC_NIL)
   {
     return t;
   }
@@ -996,9 +1002,9 @@ bool State::bind(const std::string& name, const Expr& e)
   return true;
 }
 
-bool State::isClosure(const ExprValue* e) const
+bool State::isBinder(const ExprValue* e) const
 {
-  return getConstructorKind(e) == Attr::CLOSURE;
+  return getConstructorKind(e) == Attr::BINDER;
 }
 
 Attr State::getConstructorKind(const ExprValue* v) const

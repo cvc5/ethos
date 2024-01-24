@@ -5,7 +5,7 @@ namespace alfc {
 Parser::Parser(State& s, bool isReference)
     : d_lex(),
       d_state(s),
-      d_eparser(d_lex, d_state),
+      d_eparser(d_lex, d_state, isReference),
       d_cmdParser(d_lex, d_state, d_eparser, isReference)
 {
 }

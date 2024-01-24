@@ -39,7 +39,7 @@ enum class Attr
   CODATATYPE,
   
   // internal
-  CLOSURE
+  BINDER
 };
 
 /** Print a kind to the stream, for debugging */

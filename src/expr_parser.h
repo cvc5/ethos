@@ -16,7 +16,7 @@ namespace alfc {
 class ExprParser
 {
  public:
-  ExprParser(Lexer& lex, State& state);
+  ExprParser(Lexer& lex, State& state, bool isReference);
   virtual ~ExprParser() {}
 
   /** Parses an SMT-LIB term <term> */
@@ -38,8 +38,11 @@ class ExprParser
   /**
    * Parse parentheses-enclosed sorted variable list of the form:
    * ((<symbol> <sort>)*)
+   * 
+   * @param isLookup If true, we expect the variable list to be already bound
+   * variables and throw an error if a variable does not match.
    */
-  std::vector<Expr> parseAndBindSortedVarList();
+  std::vector<Expr> parseAndBindSortedVarList(bool isLookup=false);
   /**
    * Parse symbol, which returns the string of the parsed symbol if the next
    * token is a valid smt2 symbol.
@@ -144,6 +147,8 @@ class ExprParser
   Lexer& d_lex;
   /** The state */
   State& d_state;
+  /** */
+  bool d_isReference;
   /** Strings to attributes */
   std::map<std::string, Attr> d_strToAttr;
   /** Mapping symbols to literal kinds */

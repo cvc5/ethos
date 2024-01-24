@@ -65,8 +65,8 @@ enum class ParseCtx
   TERM_ANNOTATE_BODY
 };
 
-ExprParser::ExprParser(Lexer& lex, State& state)
-    : d_lex(lex), d_state(state)
+ExprParser::ExprParser(Lexer& lex, State& state, bool isReference)
+    : d_lex(lex), d_state(state), d_isReference(isReference)
 {
   d_strToAttr[":var"] = Attr::VAR;
   d_strToAttr[":implicit"] = Attr::IMPLICIT;
@@ -79,6 +79,7 @@ ExprParser::ExprParser(Lexer& lex, State& state)
   d_strToAttr[":right-assoc-nil"] = Attr::RIGHT_ASSOC_NIL;
   d_strToAttr[":chainable"] = Attr::CHAINABLE;
   d_strToAttr[":pairwise"] = Attr::PAIRWISE;
+  d_strToAttr[":binder"] = Attr::BINDER;
   
   d_strToLiteralKind["<boolean>"] = Kind::BOOLEAN;
   d_strToLiteralKind["<numeral>"] = Kind::NUMERAL;
@@ -164,13 +165,15 @@ Expr ExprParser::parseExpr()
             Expr v = getVar(name);
             args.push_back(v);
             size_t nscopes = 0;
-            // if a closure, read a variable list and push a scope
-            if (d_state.isClosure(v.getValue()))
+            // if a binder, read a variable list and push a scope
+            if (d_state.isBinder(v.getValue()))
             {
               nscopes = 1;
-              // if it is a closure, immediately read the bound variable list
+              // If it is a closure, immediately read the bound variable list.
+              // We instead lookup the variables if we are not parsing a
+              // reference.
               d_state.pushScope();
-              std::vector<Expr> vs = parseAndBindSortedVarList();
+              std::vector<Expr> vs = parseAndBindSortedVarList(!d_isReference);
               if (vs.empty())
               {
                 d_lex.parseError("Expected non-empty sorted variable list");
@@ -646,7 +649,7 @@ std::vector<Expr> ExprParser::parseExprPairList()
   return terms;
 }
 
-std::vector<Expr> ExprParser::parseAndBindSortedVarList()
+std::vector<Expr> ExprParser::parseAndBindSortedVarList(bool isLookup)
 {
   std::vector<Expr> varList;
   d_lex.eatToken(Token::LPAREN);
@@ -659,22 +662,32 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList()
   {
     name = parseSymbol();
     t = parseType();
-    Expr v = d_state.mkSymbol(Kind::PARAM, name, t);
-    bind(name, v);
-    // parse attribute list
-    AttrMap attrs;
-    parseAttributeList(v, attrs);
+    Expr v;
     bool isImplicit = false;
-    if (attrs.find(Attr::IMPLICIT)!=attrs.end())
+    if (isLookup)
     {
-      attrs.erase(Attr::IMPLICIT);
-      isImplicit = true;
+      // lookup and type check
+      v = getVar(name);
+      typeCheck(v, t);
     }
-    if (processAttributeMap(attrs, ck, cons))
+    else
     {
-      d_state.markConstructorKind(v, ck, cons);
-      ck = Attr::NONE;
-      cons = d_null;
+      v = d_state.mkSymbol(Kind::PARAM, name, t);
+      bind(name, v);
+      // parse attribute list
+      AttrMap attrs;
+      parseAttributeList(v, attrs);
+      if (attrs.find(Attr::IMPLICIT)!=attrs.end())
+      {
+        attrs.erase(Attr::IMPLICIT);
+        isImplicit = true;
+      }
+      if (processAttributeMap(attrs, ck, cons))
+      {
+        d_state.markConstructorKind(v, ck, cons);
+        ck = Attr::NONE;
+        cons = d_null;
+      }
     }
     d_lex.eatToken(Token::RPAREN);
     if (!isImplicit)
@@ -982,6 +995,7 @@ void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedS
       case Attr::IMPLICIT:
       case Attr::RIGHT_ASSOC:
       case Attr::LEFT_ASSOC:
+      case Attr::BINDER:
         // requires no value
         break;
       case Attr::RIGHT_ASSOC_NIL:
@@ -1203,6 +1217,8 @@ bool ExprParser::processAttributeMap(const AttrMap& attrs, Attr& ck, Expr& cons)
         case Attr::RIGHT_ASSOC_NIL:
         case Attr::CHAINABLE:
         case Attr::PAIRWISE:
+        case Attr::BINDER:
+        {
           if (ck!=Attr::NONE)
           {
             std::stringstream ss;
@@ -1214,6 +1230,7 @@ bool ExprParser::processAttributeMap(const AttrMap& attrs, Attr& ck, Expr& cons)
           // it specifies how to construct terms involving this term
           ck = a.first;
           cons = av;
+        }
           break;
         default:
           std::stringstream ss;

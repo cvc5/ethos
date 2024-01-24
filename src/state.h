@@ -116,7 +116,7 @@ class State
   Expr mkLiteral(Kind k, const std::string& s);
   //--------------------------------------
   /** is closure */
-  bool isClosure(const ExprValue* ev) const;
+  bool isBinder(const ExprValue* ev) const;
   /** Get the variable with the given name or nullptr if it does not exist */
   Expr getVar(const std::string& name) const;
   /** Get the proof rule with the given name or nullptr if it does not exist */

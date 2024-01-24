@@ -1,0 +1,7 @@
+(declare-sort Int 0)
+
+(declare-const P (-> Int Bool))
+(declare-const forall (-> Bool Bool) :binder)
+(declare-const x Int)
+
+(assume @p0 (forall ((x Int)) (P x)))
