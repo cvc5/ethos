@@ -1,3 +1,11 @@
+/******************************************************************************
+ * This file is part of the alfc project.
+ *
+ * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
+ * in the top-level source directory and their institutional affiliations.
+ * All rights reserved.  See the file COPYING in the top-level source
+ * directory for licensing information.
+ ******************************************************************************/
 #include "base/run.h"
 
 #include <fcntl.h>
@@ -106,4 +114,3 @@ int runFile(const std::string& call, std::ostream& response)
 }
 
 }  // namespace alfc
-
