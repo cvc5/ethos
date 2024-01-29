@@ -174,8 +174,10 @@ Expr ExprParser::parseExpr()
               // construct fresh variables.
               // If d_isReference is false, we lookup the variables in the
               // specified list.
+              // This is overriden if the option d_binderFresh is true.
+              bool isLookup = !d_state.getOptions().d_binderFresh && !d_isReference;
               d_state.pushScope();
-              std::vector<Expr> vs = parseAndBindSortedVarList(!d_isReference);
+              std::vector<Expr> vs = parseAndBindSortedVarList(isLookup);
               if (vs.empty())
               {
                 d_lex.parseError("Expected non-empty sorted variable list");

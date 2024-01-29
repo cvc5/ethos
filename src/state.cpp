@@ -18,6 +18,7 @@ Options::Options()
   d_ruleSymTable = true;
   d_normalizeDecimal = true;
   d_normalizeHexadecimal = true;
+  d_binderFresh = false;
 }
 
 State::State(Options& opts, Stats& stats)

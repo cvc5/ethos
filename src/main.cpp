@@ -24,7 +24,11 @@ int main( int argc, char* argv[] )
   {
     std::string arg(argv[i]);
     i++;
-    if (arg=="--gen-compile")
+    if (arg=="--binder-fresh")
+    {
+      opts.d_binderFresh = true;
+    }
+    else if (arg=="--gen-compile")
     {
       opts.d_compile = true;
     }
@@ -56,6 +60,7 @@ int main( int argc, char* argv[] )
     else if (arg=="--help")
     {
       std::stringstream out;
+      out << "     --binder-fresh: binders generate fresh variables when parsed in proof files." << std::endl;
       out << "      --gen-compile: output the C++ code for all included signatures from the input file." << std::endl;
       out << "             --help: displays this message." << std::endl;
       out << " --no-normalize-dec: do not treat decimal literals as syntax sugar for rational literals." << std::endl;

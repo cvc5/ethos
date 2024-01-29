@@ -29,6 +29,8 @@ class Options
   bool d_ruleSymTable;
   bool d_normalizeDecimal;
   bool d_normalizeHexadecimal;
+  /** Binders generate fresh variables in proof files */
+  bool d_binderFresh;
 };
 
 /**
