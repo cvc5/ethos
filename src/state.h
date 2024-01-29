@@ -29,7 +29,7 @@ class Options
   bool d_ruleSymTable;
   bool d_normalizeDecimal;
   bool d_normalizeHexadecimal;
-  /** Binders generate fresh variables in proof files */
+  /** Binders generate fresh variables in proof and reference files */
   bool d_binderFresh;
 };
 

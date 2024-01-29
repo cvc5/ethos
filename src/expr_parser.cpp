@@ -170,12 +170,11 @@ Expr ExprParser::parseExpr()
             {
               nscopes = 1;
               // If it is a binder, immediately read the bound variable list.
-              // If d_isReference is true, we parse the variable list and
-              // construct fresh variables.
-              // If d_isReference is false, we lookup the variables in the
-              // specified list.
-              // This is overriden if the option d_binderFresh is true.
-              bool isLookup = !d_state.getOptions().d_binderFresh && !d_isReference;
+              // If option d_binderFresh is true, we parse and bind fresh
+              // variables. Otherwise, we make calls to State::getBoundVar
+              // meaning the bound variables are unique for each (name, type)
+              // pair.
+              bool isLookup = !d_state.getOptions().d_binderFresh;
               d_state.pushScope();
               std::vector<Expr> vs = parseAndBindSortedVarList(isLookup);
               if (vs.empty())
