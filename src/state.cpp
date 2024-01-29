@@ -1028,6 +1028,19 @@ Expr State::getVar(const std::string& name) const
   return d_null;
 }
 
+Expr State::getBoundVar(const std::string& name, const Expr& type)
+{
+  std::pair<std::string, const ExprValue*> key(name, type.getValue());
+  std::map<std::pair<std::string, const ExprValue*>, Expr>::iterator it = d_boundVars.find(key);
+  if (it!=d_boundVars.end())
+  {
+    return it->second;
+  }
+  Expr ret = mkSymbol(Kind::VARIABLE, name, type);
+  d_boundVars[key] = ret;
+  return ret;
+}
+
 Expr State::getProofRule(const std::string& name) const
 {
   const std::map<std::string, Expr>& t = d_opts.d_ruleSymTable ? d_ruleSymTable : d_symTable;

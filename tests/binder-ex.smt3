@@ -2,8 +2,6 @@
 
 (declare-const P (-> Int Bool))
 (declare-const forall (-> Bool Bool) :binder)
-(declare-var x Int)
-(declare-var z Int)
 
 (declare-rule id ((y Bool)) :premises (y) :conclusion y)
 

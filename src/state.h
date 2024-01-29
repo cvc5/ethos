@@ -121,6 +121,11 @@ class State
   bool isBinder(const ExprValue* ev) const;
   /** Get the variable with the given name or nullptr if it does not exist */
   Expr getVar(const std::string& name) const;
+  /**
+   * Get the bound variable with the given type. This method always returns the
+   * same variable for the same name and type.
+   */
+  Expr getBoundVar(const std::string& name, const Expr& type);
   /** Get the proof rule with the given name or nullptr if it does not exist */
   Expr getProofRule(const std::string& name) const;
   /** Get actual premises */
@@ -198,6 +203,8 @@ class State
   std::map<std::string, Expr> d_symTable;
   /** Symbol table for proof rules, if using separate table */
   std::map<std::string, Expr> d_ruleSymTable;
+  /** The (canonical) bound variables for binders */
+  std::map<std::pair<std::string, const ExprValue*>, Expr> d_boundVars;
   /** Context stacks */
   std::vector<std::pair<std::string, size_t>> d_decls;
   /** Context size */
