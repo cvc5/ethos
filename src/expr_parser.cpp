@@ -173,11 +173,11 @@ Expr ExprParser::parseExpr()
               // variables. Otherwise, we make calls to State::getBoundVar
               // meaning the bound variables are unique for each (name, type)
               // pair.
-              tok = d_lex.peekToken();
-              // We only do this if there is a left parenthesis. Otherwise we
+              // We only do this if there are two left parentheses. Otherwise we
               // will parse a tuple term that stands for a symbolic bound
-              // variable list.
-              if (tok==Token::LPAREN)
+              // variable list. We do this because there are no terms that
+              // begin ((... currently allowed in this parser.
+              if (d_lex.peekToken()==Token::LPAREN && d_lex.peekToken()==Token::LPAREN)
               {
                 nscopes = 1;
                 bool isLookup = !d_state.getOptions().d_binderFresh;
