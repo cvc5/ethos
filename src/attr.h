@@ -29,6 +29,7 @@ enum class Attr
   SYNTAX,
   PROGRAM,
   ORACLE,
+  BINDER,
   
   // indicate how to construct proof rule steps
   PREMISE_LIST,
@@ -44,10 +45,7 @@ enum class Attr
   // datatypes
   DATATYPE,
   DATATYPE_CONSTRUCTOR,
-  CODATATYPE,
-  
-  // internal
-  CLOSURE
+  CODATATYPE
 };
 
 /** Print a kind to the stream, for debugging */

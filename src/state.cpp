@@ -26,6 +26,7 @@ Options::Options()
   d_ruleSymTable = true;
   d_normalizeDecimal = true;
   d_normalizeHexadecimal = true;
+  d_binderFresh = false;
 }
 
 State::State(Options& opts, Stats& stats)
@@ -482,7 +483,18 @@ Expr State::mkBuiltinType(Kind k)
 
 Expr State::mkAnnotatedType(const Expr& t, Attr ck, const Expr& cons)
 {
-  if (ck!=Attr::RIGHT_ASSOC_NIL && ck!=Attr::LEFT_ASSOC_NIL)
+  if (ck==Attr::BINDER)
+  {
+    // prepend to argument types the return type of the constructor
+    Expr c = cons;
+    const Expr& ct = d_tc.getType(c);
+    if (ct.getKind()!=Kind::FUNCTION_TYPE || ct[1].getKind()!=Kind::FUNCTION_TYPE)
+    {
+      return d_null;
+    }
+    return mkFunctionType({ct[1][1]}, t);
+  }
+  else if (ck!=Attr::RIGHT_ASSOC_NIL && ck!=Attr::LEFT_ASSOC_NIL)
   {
     return t;
   }
@@ -1004,9 +1016,20 @@ bool State::bind(const std::string& name, const Expr& e)
   return true;
 }
 
-bool State::isClosure(const ExprValue* e) const
+bool State::isBinder(const ExprValue* e) const
 {
-  return getConstructorKind(e) == Attr::CLOSURE;
+  return getConstructorKind(e) == Attr::BINDER;
+}
+
+Expr State::mkBinderList(const ExprValue* ev, const std::vector<Expr>& vs)
+{
+  Assert (!vs.empty());
+  std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(ev);
+  Assert (it!=d_appData.end());
+  std::vector<Expr> vlist;
+  vlist.push_back(it->second.d_attrConsTerm);
+  vlist.insert(vlist.end(), vs.begin(), vs.end());
+  return mkExpr(Kind::APPLY, vlist);
 }
 
 Attr State::getConstructorKind(const ExprValue* v) const
@@ -1027,6 +1050,19 @@ Expr State::getVar(const std::string& name) const
     return it->second;
   }
   return d_null;
+}
+
+Expr State::getBoundVar(const std::string& name, const Expr& type)
+{
+  std::pair<std::string, const ExprValue*> key(name, type.getValue());
+  std::map<std::pair<std::string, const ExprValue*>, Expr>::iterator it = d_boundVars.find(key);
+  if (it!=d_boundVars.end())
+  {
+    return it->second;
+  }
+  Expr ret = mkSymbol(Kind::VARIABLE, name, type);
+  d_boundVars[key] = ret;
+  return ret;
 }
 
 Expr State::getProofRule(const std::string& name) const

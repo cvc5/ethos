@@ -23,6 +23,7 @@ std::ostream& operator<<(std::ostream& o, Attr a)
     case Attr::PREMISE_LIST: o << "PREMISE_LIST"; break;
     case Attr::PROGRAM: o << "PROGRAM"; break;
     case Attr::ORACLE: o << "ORACLE"; break;
+    case Attr::BINDER: o << "BINDER"; break;
     case Attr::RIGHT_ASSOC: o << "RIGHT_ASSOC"; break;
     case Attr::LEFT_ASSOC: o << "LEFT_ASSOC"; break;
     case Attr::RIGHT_ASSOC_NIL: o << "RIGHT_ASSOC_NIL"; break;
@@ -32,7 +33,6 @@ std::ostream& operator<<(std::ostream& o, Attr a)
     case Attr::DATATYPE: o << "DATATYPE"; break;
     case Attr::CODATATYPE: o << "CODATATYPE"; break;
     case Attr::DATATYPE_CONSTRUCTOR: o << "DATATYPE_CONSTRUCTOR"; break;
-    case Attr::CLOSURE: o << "CLOSURE"; break;
     default: o << "UnknownAttr(" << unsigned(a) << ")"; break;
   }
   return o;

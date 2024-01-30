@@ -73,8 +73,8 @@ enum class ParseCtx
   TERM_ANNOTATE_BODY
 };
 
-ExprParser::ExprParser(Lexer& lex, State& state)
-    : d_lex(lex), d_state(state)
+ExprParser::ExprParser(Lexer& lex, State& state, bool isReference)
+    : d_lex(lex), d_state(state), d_isReference(isReference)
 {
   d_strToAttr[":var"] = Attr::VAR;
   d_strToAttr[":implicit"] = Attr::IMPLICIT;
@@ -87,6 +87,7 @@ ExprParser::ExprParser(Lexer& lex, State& state)
   d_strToAttr[":right-assoc-nil"] = Attr::RIGHT_ASSOC_NIL;
   d_strToAttr[":chainable"] = Attr::CHAINABLE;
   d_strToAttr[":pairwise"] = Attr::PAIRWISE;
+  d_strToAttr[":binder"] = Attr::BINDER;
   
   d_strToLiteralKind["<boolean>"] = Kind::BOOLEAN;
   d_strToLiteralKind["<numeral>"] = Kind::NUMERAL;
@@ -172,19 +173,31 @@ Expr ExprParser::parseExpr()
             Expr v = getVar(name);
             args.push_back(v);
             size_t nscopes = 0;
-            // if a closure, read a variable list and push a scope
-            if (d_state.isClosure(v.getValue()))
+            // if a binder, read a variable list and push a scope
+            if (d_state.isBinder(v.getValue()))
             {
-              nscopes = 1;
-              // if it is a closure, immediately read the bound variable list
-              d_state.pushScope();
-              std::vector<Expr> vs = parseAndBindSortedVarList();
-              if (vs.empty())
+              // If it is a binder, immediately read the bound variable list.
+              // If option d_binderFresh is true, we parse and bind fresh
+              // variables. Otherwise, we make calls to State::getBoundVar
+              // meaning the bound variables are unique for each (name, type)
+              // pair.
+              // We only do this if there are two left parentheses. Otherwise we
+              // will parse a tuple term that stands for a symbolic bound
+              // variable list. We do this because there are no terms that
+              // begin ((... currently allowed in this parser.
+              if (d_lex.peekToken()==Token::LPAREN && d_lex.peekToken()==Token::LPAREN)
               {
-                d_lex.parseError("Expected non-empty sorted variable list");
+                nscopes = 1;
+                bool isLookup = !d_state.getOptions().d_binderFresh;
+                d_state.pushScope();
+                std::vector<Expr> vs = parseAndBindSortedVarList(isLookup);
+                if (vs.empty())
+                {
+                  d_lex.parseError("Expected non-empty sorted variable list");
+                }
+                Expr vl = d_state.mkBinderList(v.getValue(), vs);
+                args.push_back(vl);
               }
-              Expr vl = d_state.mkExpr(Kind::TUPLE, vs);
-              args.push_back(vl);
             }
             pstack.emplace_back(ParseCtx::NEXT_ARG, nscopes, args);
           }
@@ -654,7 +667,7 @@ std::vector<Expr> ExprParser::parseExprPairList()
   return terms;
 }
 
-std::vector<Expr> ExprParser::parseAndBindSortedVarList()
+std::vector<Expr> ExprParser::parseAndBindSortedVarList(bool isLookup)
 {
   std::vector<Expr> varList;
   d_lex.eatToken(Token::LPAREN);
@@ -667,22 +680,33 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList()
   {
     name = parseSymbol();
     t = parseType();
-    Expr v = d_state.mkSymbol(Kind::PARAM, name, t);
-    bind(name, v);
-    // parse attribute list
-    AttrMap attrs;
-    parseAttributeList(v, attrs);
+    Expr v;
     bool isImplicit = false;
-    if (attrs.find(Attr::IMPLICIT)!=attrs.end())
+    if (isLookup)
     {
-      attrs.erase(Attr::IMPLICIT);
-      isImplicit = true;
+      // lookup and type check
+      v = d_state.getBoundVar(name, t);
+      // bind it for now
+      bind(name, v);
     }
-    if (processAttributeMap(attrs, ck, cons))
+    else
     {
-      d_state.markConstructorKind(v, ck, cons);
-      ck = Attr::NONE;
-      cons = d_null;
+      v = d_state.mkSymbol(Kind::PARAM, name, t);
+      bind(name, v);
+      // parse attribute list
+      AttrMap attrs;
+      parseAttributeList(v, attrs);
+      if (attrs.find(Attr::IMPLICIT)!=attrs.end())
+      {
+        attrs.erase(Attr::IMPLICIT);
+        isImplicit = true;
+      }
+      if (processAttributeMap(attrs, ck, cons))
+      {
+        d_state.markConstructorKind(v, ck, cons);
+        ck = Attr::NONE;
+        cons = d_null;
+      }
     }
     d_lex.eatToken(Token::RPAREN);
     if (!isImplicit)
@@ -1009,6 +1033,7 @@ void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedS
         break;
       case Attr::CHAINABLE:
       case Attr::PAIRWISE:
+      case Attr::BINDER:
       {
         // requires an expression that follows
         val = parseExpr();
@@ -1211,6 +1236,8 @@ bool ExprParser::processAttributeMap(const AttrMap& attrs, Attr& ck, Expr& cons)
         case Attr::RIGHT_ASSOC_NIL:
         case Attr::CHAINABLE:
         case Attr::PAIRWISE:
+        case Attr::BINDER:
+        {
           if (ck!=Attr::NONE)
           {
             std::stringstream ss;
@@ -1222,6 +1249,7 @@ bool ExprParser::processAttributeMap(const AttrMap& attrs, Attr& ck, Expr& cons)
           // it specifies how to construct terms involving this term
           ck = a.first;
           cons = av;
+        }
           break;
         default:
           std::stringstream ss;
