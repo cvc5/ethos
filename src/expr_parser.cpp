@@ -168,21 +168,28 @@ Expr ExprParser::parseExpr()
             // if a binder, read a variable list and push a scope
             if (d_state.isBinder(v.getValue()))
             {
-              nscopes = 1;
               // If it is a binder, immediately read the bound variable list.
               // If option d_binderFresh is true, we parse and bind fresh
               // variables. Otherwise, we make calls to State::getBoundVar
               // meaning the bound variables are unique for each (name, type)
               // pair.
-              bool isLookup = !d_state.getOptions().d_binderFresh;
-              d_state.pushScope();
-              std::vector<Expr> vs = parseAndBindSortedVarList(isLookup);
-              if (vs.empty())
+              tok = d_lex.peekToken();
+              // We only do this if there is a left parenthesis. Otherwise we
+              // will parse a tuple term that stands for a symbolic bound
+              // variable list.
+              if (tok==Token::LPAREN)
               {
-                d_lex.parseError("Expected non-empty sorted variable list");
+                nscopes = 1;
+                bool isLookup = !d_state.getOptions().d_binderFresh;
+                d_state.pushScope();
+                std::vector<Expr> vs = parseAndBindSortedVarList(isLookup);
+                if (vs.empty())
+                {
+                  d_lex.parseError("Expected non-empty sorted variable list");
+                }
+                Expr vl = d_state.mkExpr(Kind::TUPLE, vs);
+                args.push_back(vl);
               }
-              Expr vl = d_state.mkExpr(Kind::TUPLE, vs);
-              args.push_back(vl);
             }
             pstack.emplace_back(ParseCtx::NEXT_ARG, nscopes, args);
           }
