@@ -50,6 +50,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("ite", Kind::EVAL_IF_THEN_ELSE);
   bindBuiltinEval("requires", Kind::EVAL_REQUIRES);
   bindBuiltinEval("hash", Kind::EVAL_HASH);
+  bindBuiltinEval("typeof", Kind::EVAL_TYPE_OF);
   // TODO: compare?
   // lists
   bindBuiltinEval("to_list", Kind::EVAL_TO_LIST);

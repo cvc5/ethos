@@ -175,6 +175,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
       ret = (nargs>=2);
       break;
     case Kind::PROOF_TYPE:
+    case Kind::EVAL_TYPE_OF:
     case Kind::EVAL_HASH:
     case Kind::EVAL_NOT:
     case Kind::EVAL_NEG:
@@ -246,6 +247,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
     case Kind::ABSTRACT_TYPE:
     case Kind::BOOL_TYPE:
     case Kind::FUNCTION_TYPE:
+    case Kind::EVAL_TYPE_OF:
       return d_state.mkType();
     case Kind::PROOF_TYPE:
     {
@@ -1036,6 +1038,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       }
       return d_null;
     }
+    break;
     case Kind::EVAL_HASH:
     {
       if (args[0]->isGround())
@@ -1046,6 +1049,18 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       }
       return d_null;
     }
+    break;
+    case Kind::EVAL_TYPE_OF:
+    {
+      // get the type if ground
+      if (isGround(args))
+      {
+        Expr e(args[0]);
+        return getType(e);
+      }
+      return d_null;
+    }
+    break;
     default:
       break;
   }

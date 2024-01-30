@@ -1,0 +1,18 @@
+(declare-const = (-> (! Type :var A :implicit) A A Bool))
+
+(declare-sort Int 0)
+(declare-consts <numeral> Int)
+
+(declare-sort Real 0)
+(declare-consts <rational> Real)
+
+(declare-const to_real (-> Int Real))
+(declare-const not (-> Bool Bool))
+
+(declare-rule not_half ((T Type) (x T))
+  :args (x)
+  :requires (((alf.typeof x) Int))
+  :conclusion (not (= (to_real x) 0.5)))
+
+
+(step @p0 (not (= (to_real 1) 0.5)) :rule not_half :args (1))

@@ -97,6 +97,7 @@ set(alfc_test_file_list
     tiny_oracle.smt3
     arity-overload.smt3
     binder-ex.smt3
+    typeof.smt3
 )
 
 macro(alfc_test file)
