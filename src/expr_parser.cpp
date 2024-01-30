@@ -669,6 +669,13 @@ std::vector<Expr> ExprParser::parseExprPairList()
 
 std::vector<Expr> ExprParser::parseAndBindSortedVarList(bool isLookup)
 {
+  std::vector<Expr> impls;
+  return parseAndBindSortedVarList(impls, isLookup);
+}
+
+std::vector<Expr> ExprParser::parseAndBindSortedVarList(
+                     std::vector<Expr>& impls, bool isLookup)
+{
   std::vector<Expr> varList;
   d_lex.eatToken(Token::LPAREN);
   std::string name;
@@ -700,6 +707,7 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList(bool isLookup)
       {
         attrs.erase(Attr::IMPLICIT);
         isImplicit = true;
+        impls.push_back(v);
       }
       if (processAttributeMap(attrs, ck, cons))
       {

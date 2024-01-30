@@ -52,6 +52,13 @@ class ExprParser
    */
   std::vector<Expr> parseAndBindSortedVarList(bool isLookup=false);
   /**
+   * Same as above, but tracks implicit variables. All variables marked
+   * :implicit that were parsed and not added to the return value of this
+   * method are added to impls.
+   */
+  std::vector<Expr> parseAndBindSortedVarList(std::vector<Expr>& impls,
+                                              bool isLookup=false);
+  /**
    * Parse symbol, which returns the string of the parsed symbol if the next
    * token is a valid smt2 symbol.
    *

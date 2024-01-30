@@ -428,11 +428,27 @@ bool CmdParser::parseNextCommand()
     case Token::DEFINE:
     {
       d_state.pushScope();
-      //d_state.checkThatLogicIsSet();
       std::string name = d_eparser.parseSymbol();
       //d_state.checkUserSymbol(name);
+      std::vector<Expr> impls;
       std::vector<Expr> vars =
-          d_eparser.parseAndBindSortedVarList();
+          d_eparser.parseAndBindSortedVarList(impls);
+      if (!impls.empty())
+      {
+        // If there were implicit variables, we go back and refine what is
+        // bound in the body to only include the explicit arguments. This
+        // ensures that `T` is not parsable in the body of a definition like:
+        //   (define test ((T Type :implicit) (x T)) T)
+        // It should not be parsable since it is not bound when test is applied,
+        // which prevents users from generating definitions that lead to
+        // unexpected unbound arguments.
+        d_state.popScope();
+        d_state.pushScope();
+        for (const Expr& e : vars)
+        {
+          d_state.bind(e.getSymbol(), e);
+        }
+      }
       Expr ret;
       if (tok == Token::DEFINE_FUN)
       {
