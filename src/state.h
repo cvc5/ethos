@@ -117,8 +117,10 @@ class State
    */
   Expr mkLiteral(Kind k, const std::string& s);
   //--------------------------------------
-  /** is closure */
+  /** is binder */
   bool isBinder(const ExprValue* ev) const;
+  /** make binder list */
+  Expr mkBinderList(const ExprValue* ev, const std::vector<Expr>& vs);
   /** Get the variable with the given name or nullptr if it does not exist */
   Expr getVar(const std::string& name) const;
   /**

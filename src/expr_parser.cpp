@@ -187,7 +187,7 @@ Expr ExprParser::parseExpr()
                 {
                   d_lex.parseError("Expected non-empty sorted variable list");
                 }
-                Expr vl = d_state.mkExpr(Kind::TUPLE, vs);
+                Expr vl = d_state.mkBinderList(v.getValue(), vs);
                 args.push_back(vl);
               }
             }
@@ -1006,7 +1006,6 @@ void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedS
       case Attr::IMPLICIT:
       case Attr::RIGHT_ASSOC:
       case Attr::LEFT_ASSOC:
-      case Attr::BINDER:
         // requires no value
         break;
       case Attr::RIGHT_ASSOC_NIL:
@@ -1026,6 +1025,7 @@ void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedS
         break;
       case Attr::CHAINABLE:
       case Attr::PAIRWISE:
+      case Attr::BINDER:
       {
         // requires an expression that follows
         val = parseExpr();
