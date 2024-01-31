@@ -185,19 +185,28 @@ Expr ExprParser::parseExpr()
               // will parse a tuple term that stands for a symbolic bound
               // variable list. We do this because there are no terms that
               // begin ((... currently allowed in this parser.
-              if (d_lex.peekToken()==Token::LPAREN &&
-                  d_lex.peekToken()==Token::LPAREN)
+              tok = d_lex.nextToken();
+              if (tok==Token::LPAREN)
               {
-                nscopes = 1;
-                bool isLookup = !d_state.getOptions().d_binderFresh;
-                d_state.pushScope();
-                std::vector<Expr> vs = parseAndBindSortedVarList(isLookup);
-                if (vs.empty())
+                tok = d_lex.peekToken();
+                d_lex.reinsertToken(Token::LPAREN);
+                if (tok==Token::LPAREN)
                 {
-                  d_lex.parseError("Expected non-empty sorted variable list");
+                  nscopes = 1;
+                  bool isLookup = !d_state.getOptions().d_binderFresh;
+                  d_state.pushScope();
+                  std::vector<Expr> vs = parseAndBindSortedVarList(isLookup);
+                  if (vs.empty())
+                  {
+                    d_lex.parseError("Expected non-empty sorted variable list");
+                  }
+                  Expr vl = d_state.mkBinderList(v.getValue(), vs);
+                  args.push_back(vl);
                 }
-                Expr vl = d_state.mkBinderList(v.getValue(), vs);
-                args.push_back(vl);
+              }
+              else
+              {
+                d_lex.reinsertToken(tok);
               }
             }
             pstack.emplace_back(ParseCtx::NEXT_ARG, nscopes, args);
