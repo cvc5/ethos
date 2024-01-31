@@ -185,6 +185,7 @@ Expr ExprParser::parseExpr()
               // will parse a tuple term that stands for a symbolic bound
               // variable list. We do this because there are no terms that
               // begin ((... currently allowed in this parser.
+              // Note we use nextToken here since we cannot peek more than once.
               tok = d_lex.nextToken();
               if (tok==Token::LPAREN)
               {
