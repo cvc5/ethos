@@ -111,11 +111,10 @@ Token Lexer::nextToken()
 {
   if (d_peeked.empty())
   {
-    // Call the derived yylex() and convert it to a token
     return nextTokenInternal();
   }
-  Token t = d_peeked.back();
-  d_peeked.pop_back();
+  Token t = d_peeked[0];
+  d_peeked.erase(d_peeked.begin());
   return t;
 }
 

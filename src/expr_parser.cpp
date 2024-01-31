@@ -185,7 +185,8 @@ Expr ExprParser::parseExpr()
               // will parse a tuple term that stands for a symbolic bound
               // variable list. We do this because there are no terms that
               // begin ((... currently allowed in this parser.
-              if (d_lex.peekToken()==Token::LPAREN && d_lex.peekToken()==Token::LPAREN)
+              if (d_lex.peekToken()==Token::LPAREN &&
+                  d_lex.peekToken()==Token::LPAREN)
               {
                 nscopes = 1;
                 bool isLookup = !d_state.getOptions().d_binderFresh;

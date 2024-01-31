@@ -25,3 +25,9 @@
   :conclusion false)
 
 (step @p3 false :rule q-rule :premises (@p2))
+
+
+(declare-const f_list (-> Int @List))
+(declare-const a Int)
+
+(assume @pf (forall (f_list a) false))
