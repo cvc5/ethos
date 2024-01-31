@@ -1,0 +1,16 @@
+(declare-sort @List 0)
+(declare-const @list.nil @List)
+(declare-const @list.cons (-> (! Type :var T :implicit) T @List @List) :right-assoc-nil @list.nil)
+
+(declare-sort Int 0)
+(declare-const P (-> Int Bool))
+(declare-const forall (-> Bool Bool) :binder @list.cons)
+(declare-rule id ((y Bool)) :premises (y) :conclusion y)
+
+(declare-var x Int)
+(define Q () (P x))
+
+(assume @p0 (forall ((x Int)) Q))
+(step @p1 (forall ((x Int)) (P x)) :rule id :premises (@p0))
+
+

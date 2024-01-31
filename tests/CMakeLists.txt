@@ -98,6 +98,7 @@ set(alfc_test_file_list
     arity-overload.smt3
     binder-ex.smt3
     typeof.smt3
+    binder-subterm-share.smt3
 )
 
 macro(alfc_test file)

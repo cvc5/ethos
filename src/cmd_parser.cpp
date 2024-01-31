@@ -152,32 +152,39 @@ bool CmdParser::parseNextCommand()
       Attr ck = Attr::NONE;
       Expr cons;
       Kind sk;
-      if (tok==Token::DECLARE_ORACLE_FUN)
+      Expr v;
+      if (tok==Token::DECLARE_VAR)
       {
-        ck = Attr::ORACLE;
-        sk = Kind::ORACLE;
-        std::string oname = d_eparser.parseSymbol();
-        cons = d_state.mkLiteral(Kind::STRING, oname);
-      }
-      else if (tok==Token::DECLARE_CONST || tok==Token::DECLARE_FUN)
-      {
-        sk = Kind::CONST;
-        // possible attribute list
-        AttrMap attrs;
-        d_eparser.parseAttributeList(t, attrs);
-        // determine if an attribute specified a constructor kind
-        if (d_eparser.processAttributeMap(attrs, ck, cons))
-        {
-          // if so, this may transform the type
-          t = d_state.mkAnnotatedType(t, ck, cons);
-        }
+        // Don't permit attributes for variables
+        // We get the canonical variable, not a fresh one. This ensures that
+        // globally defined variables coincide with those that appear in
+        // binders when applicable.
+        v = d_state.getBoundVar(name, t);
       }
       else
       {
-        sk = Kind::VARIABLE;
-        // don't permit attributes for variables
+        if (tok==Token::DECLARE_ORACLE_FUN)
+        {
+          ck = Attr::ORACLE;
+          sk = Kind::ORACLE;
+          std::string oname = d_eparser.parseSymbol();
+          cons = d_state.mkLiteral(Kind::STRING, oname);
+        }
+        else if (tok==Token::DECLARE_CONST || tok==Token::DECLARE_FUN)
+        {
+          sk = Kind::CONST;
+          // possible attribute list
+          AttrMap attrs;
+          d_eparser.parseAttributeList(t, attrs);
+          // determine if an attribute specified a constructor kind
+          if (d_eparser.processAttributeMap(attrs, ck, cons))
+          {
+            // if so, this may transform the type
+            t = d_state.mkAnnotatedType(t, ck, cons);
+          }
+        }
+        v = d_state.mkSymbol(sk, name, t);
       }
-      Expr v = d_state.mkSymbol(sk, name, t);
       // if the type has a property, we mark it on the variable of this type
       if (ck!=Attr::NONE)
       {
