@@ -4,7 +4,7 @@
 
 (declare-sort Int 0)
 (declare-const P (-> Int Bool))
-(declare-const forall (-> Bool Bool) :binder @list.cons)
+(declare-const forall (-> @List Bool Bool) :binder @list.cons)
 (declare-rule id ((y Bool)) :premises (y) :conclusion y)
 
 (declare-var x Int)

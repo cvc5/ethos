@@ -484,18 +484,7 @@ Expr State::mkBuiltinType(Kind k)
 
 Expr State::mkAnnotatedType(const Expr& t, Attr ck, const Expr& cons)
 {
-  if (ck==Attr::BINDER)
-  {
-    // prepend to argument types the return type of the constructor
-    Expr c = cons;
-    const Expr& ct = d_tc.getType(c);
-    if (ct.getKind()!=Kind::FUNCTION_TYPE || ct[1].getKind()!=Kind::FUNCTION_TYPE)
-    {
-      return d_null;
-    }
-    return mkFunctionType({ct[1][1]}, t);
-  }
-  else if (ck!=Attr::RIGHT_ASSOC_NIL && ck!=Attr::LEFT_ASSOC_NIL)
+  if (ck!=Attr::RIGHT_ASSOC_NIL && ck!=Attr::LEFT_ASSOC_NIL)
   {
     return t;
   }
