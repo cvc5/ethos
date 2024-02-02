@@ -100,6 +100,7 @@ set(alfc_test_file_list
     typeof.smt3
     binder-subterm-share.smt3
     or-concat-false.smt3
+    emptylist.smt3
 )
 
 macro(alfc_test file)

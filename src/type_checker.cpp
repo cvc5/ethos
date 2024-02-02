@@ -164,6 +164,8 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_TO_BV:
     case Kind::EVAL_FIND:
     case Kind::EVAL_CONS:
+    case Kind::EVAL_TO_LIST:
+    case Kind::EVAL_FROM_LIST:
       ret = (nargs==2);
       break;
     case Kind::EVAL_ADD:
@@ -184,8 +186,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_TO_INT:
     case Kind::EVAL_TO_RAT:
     case Kind::EVAL_TO_STRING:
-    case Kind::EVAL_TO_LIST:
-    case Kind::EVAL_FROM_LIST:
+    case Kind::EVAL_EMPTYLIST:
       ret = (nargs==1);
       break;
     case Kind::EVAL_REQUIRES:
@@ -1124,6 +1125,11 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   std::vector<ExprValue*> hargs;
   switch (k)
   {
+    case Kind::EVAL_EMPTYLIST:
+    {
+      return ac->d_attrConsTerm;
+    }
+    break;
     case Kind::EVAL_TO_LIST:
     {
       ExprValue* harg = args[1];
@@ -1276,6 +1282,10 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_MUL:
       // NOTE: mixed arith
       return childTypes[0];
+    case Kind::EVAL_EMPTYLIST:
+      // type is not computable here, since it is the return type of function
+      // applications of the argument. just use abstract.
+      return d_state.mkAbstractType().getValue();
     case Kind::EVAL_NEG:
     case Kind::EVAL_AND:
     case Kind::EVAL_OR:

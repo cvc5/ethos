@@ -61,6 +61,7 @@ enum class Kind
   EVAL_HASH,
   EVAL_TYPE_OF,
   // lists
+  EVAL_EMPTYLIST,
   EVAL_TO_LIST,
   EVAL_FROM_LIST,
   EVAL_CONS,
