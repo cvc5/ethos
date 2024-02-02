@@ -1,0 +1,10 @@
+(declare-const a Bool)
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+
+
+(assume @p0 false)
+
+
+(declare-rule id ((B Bool)) :premises (B) :conclusion (alf.cons or false B))
+
+(step @p1 (or false) :rule id :premises (@p0))

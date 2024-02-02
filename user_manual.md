@@ -600,7 +600,7 @@ The terms on both sides of the given evaluation are written in their form prior 
 (alf.cons or a (or a b))            == (or a a b)
 (alf.cons or false (or a b))        == (or false a b)
 (alf.cons or (or a b) (or b))       == (or (or a b) b)
-(alf.cons or false false)           == false
+(alf.cons or false false)           == (or false)
 (alf.cons or a b)                   == (alf.cons or a b)                ; since b is not an or-list
 (alf.cons or a (or b))              == (or a b)
 (alf.cons and (or a b) (and b))     == (and (or a b) b)
