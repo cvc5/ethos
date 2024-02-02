@@ -607,6 +607,7 @@ The terms on both sides of the given evaluation are written in their form prior 
 (alf.cons and true (and a))         == (and a)
 (alf.cons and (and a) true)         == (and (and a))
 
+(alf.concat or false false)         == false
 (alf.concat or (or a b) (or b))     == (or a b b)
 (alf.concat or false (or b))        == (or b)
 (alf.concat or (or a b b) false)    == (or a b b)
