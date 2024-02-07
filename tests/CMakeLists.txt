@@ -101,6 +101,7 @@ set(alfc_test_file_list
     binder-subterm-share.smt3
     or-concat-false.smt3
     emptylist.smt3
+    premise-list-empty.smt3
 )
 
 macro(alfc_test file)

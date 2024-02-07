@@ -1089,7 +1089,25 @@ bool State::getActualPremises(const ExprValue* rule,
         }
         achildren.push_back(eproven[0]);
       }
-      Expr ap = mkExpr(Kind::APPLY, achildren);
+      Expr ap;
+      if (achildren.size()==1)
+      {
+        // the nil terminator if applied to empty list
+        AppInfo* aic = getAppInfo(plCons.getValue());
+        Attr ck = aic->d_attrCons;
+        if (ck==Attr::RIGHT_ASSOC_NIL || ck==Attr::LEFT_ASSOC_NIL)
+        {
+          ap = aic->d_attrConsTerm;
+        }
+        else
+        {
+          return false;
+        }
+      }
+      else
+      {
+        ap = mkExpr(Kind::APPLY, achildren);
+      }
       Expr pfap = mkProofType(ap);
       // TODO: collect operator???
       // dummy, const term of the given proof type

@@ -1,0 +1,9 @@
+
+(declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
+
+(declare-rule and-intro ((P Bool) (F Bool))
+    :premise-list P and
+    :conclusion P
+)
+
+(step @p0 true :rule and-intro :premises ())
