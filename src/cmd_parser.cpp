@@ -163,6 +163,7 @@ bool CmdParser::parseNextCommand()
       }
       else
       {
+        sk = Kind::CONST;
         if (tok==Token::DECLARE_ORACLE_FUN)
         {
           ck = Attr::ORACLE;
@@ -172,7 +173,6 @@ bool CmdParser::parseNextCommand()
         }
         else if (tok==Token::DECLARE_CONST || tok==Token::DECLARE_FUN)
         {
-          sk = Kind::CONST;
           // possible attribute list
           AttrMap attrs;
           d_eparser.parseAttributeList(t, attrs);
