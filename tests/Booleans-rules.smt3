@@ -1,46 +1,6 @@
 (include "Builtin-theory.smt3")
 (include "Arith-theory.smt3")
-
 (include "Nary.smt3")
-
-; SCOPE
-
-(declare-rule scope
-  ((F Bool) (G Bool))
-  :assumption F
-  :premises (G)
-  :args ()
-  :conclusion (=> F G)
-)
-
-; `extract_antec F C`
-; returns the antecedant of F up to C,
-; e.g. returns (and G1 G2) when F is (=> G1 (=> G2 C)).
-(program extract_antec
-   ((C Bool) (F1 Bool) (F2 Bool))
-   (Bool Bool) Bool
-   (
-   ((extract_antec C C) true)
-   ((extract_antec (=> F1 F2) C) (alf.cons and F1 (extract_antec F2 C)))
-   )
-)
-
-(program run_process_scope
-   ((C Bool) (F Bool))
-   (Bool Bool) Bool
-   (
-   ((run_process_scope F false) (not (alf.from_list and (extract_antec F false))))
-   ((run_process_scope F C) (=> (alf.from_list and (extract_antec F C)) C))
-   )
-)
-
-; this rule processes the result of n scopes into the conclusion expected by PfRule::SCOPE
-(declare-rule process_scope
-  ((C Bool) (F Bool))
-  :premises (F)
-  :args (C)
-  :conclusion (run_process_scope F C)
-)
 
 ; SPLIT
 (declare-rule split ((F Bool))
@@ -60,8 +20,8 @@
         (let ((lp (alf.ite pol L (not L))))
         (let ((ln (alf.ite pol (not L) L)))
             (alf.from_list or (alf.concat or
-                    (removeSelf lp (list.intro or false C1))
-                    (removeSelf ln (list.intro or false C2)))))))
+                    (removeSelf lp (alf.to_list or C1))
+                    (removeSelf ln (alf.to_list or C2)))))))
     )
 )
 
@@ -107,11 +67,11 @@
 (program factorLiterals ((xs Bool :list) (l Bool) (ls Bool :list))
     (Bool Bool) Bool
     (
-        ((factorLiterals xs (or l ls)) (let ((cond (nary.ctn or false l xs)))
+        ((factorLiterals xs (or l ls)) (let ((cond (alf.is_neg (alf.find or xs l))))
                                        (let ((ret (factorLiterals
-                                                    (alf.ite cond xs (alf.cons or l xs))
+                                                    (alf.ite cond (alf.cons or l xs) xs)
                                                     ls)))
-                                            (alf.ite cond ret (alf.cons or l ret)))))
+                                            (alf.ite cond (alf.cons or l ret) ret))))
         ((factorLiterals xs false)      false)
     )
 )
@@ -156,7 +116,7 @@
 (declare-rule and_elim ((Fs Bool) (i Int))
     :premises (Fs)
     :args (i)
-    :conclusion (nary.at and true i Fs)
+    :conclusion (alf.extract and Fs i)
 )
 
 ; AND_INTRO
@@ -169,7 +129,7 @@
 (declare-rule not_or_elim ((Fs Bool) (i Int))
     :premises ((not Fs))
     :args (i)
-    :conclusion (not (nary.at or false i Fs))
+    :conclusion (not (alf.extract or Fs i))
 )
 
 ; IMPLIES_ELIM
@@ -283,7 +243,7 @@
 ; CNF_AND_POS
 (declare-rule cnf_and_pos ((Fs Bool) (i Int))
     :args (Fs i)
-    :conclusion (or (not Fs) (nary.at and true i Fs))
+    :conclusion (or (not Fs) (alf.extract and Fs i))
 )
 
 ; CNF_AND_NEG
@@ -301,7 +261,7 @@
 ; CNF_OR_NEG
 (declare-rule cnf_or_neg ((Fs Bool) (i Int))
     :args (Fs i)
-    :conclusion (or Fs (not (nary.at or false i Fs)))
+    :conclusion (or Fs (not (alf.extract or Fs i)))
 )
 
 ; CNF_IMPLIES_POS
