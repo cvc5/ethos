@@ -54,8 +54,6 @@ State::State(Options& opts, Stats& stats)
   // TODO: compare?
   // lists
   bindBuiltinEval("emptylist", Kind::EVAL_EMPTYLIST);
-  bindBuiltinEval("to_list", Kind::EVAL_TO_LIST);
-  bindBuiltinEval("from_list", Kind::EVAL_FROM_LIST);
   bindBuiltinEval("cons", Kind::EVAL_CONS);
   // boolean
   bindBuiltinEval("not", Kind::EVAL_NOT);

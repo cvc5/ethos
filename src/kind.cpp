@@ -52,8 +52,6 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::EVAL_TYPE_OF: o << "EVAL_TYPE_OF"; break;
     // lists
     case Kind::EVAL_EMPTYLIST: o << "EVAL_EMPTYLIST";break;
-    case Kind::EVAL_TO_LIST: o << "EVAL_TO_LIST"; break;
-    case Kind::EVAL_FROM_LIST: o << "EVAL_FROM_LIST"; break;
     case Kind::EVAL_CONS: o << "EVAL_CONS"; break;
     // boolean
     case Kind::EVAL_NOT: o << "EVAL_NOT"; break;
@@ -113,8 +111,6 @@ std::string kindToTerm(Kind k)
         case Kind::EVAL_TYPE_OF: ss << "typeof"; break;
         // lists
         case Kind::EVAL_EMPTYLIST: ss << "emptylist"; break;
-        case Kind::EVAL_TO_LIST: ss << "to_list"; break;
-        case Kind::EVAL_FROM_LIST: ss << "from_list"; break;
         case Kind::EVAL_CONS: ss << "cons"; break;
         // boolean
         case Kind::EVAL_NOT: ss << "not"; break;
@@ -191,8 +187,6 @@ bool isLiteralOp(Kind k)
     case Kind::EVAL_TYPE_OF:
     // lists
     case Kind::EVAL_EMPTYLIST:
-    case Kind::EVAL_TO_LIST:
-    case Kind::EVAL_FROM_LIST:
     case Kind::EVAL_CONS:
     // boolean
     case Kind::EVAL_NOT:

@@ -164,8 +164,6 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_TO_BV:
     case Kind::EVAL_FIND:
     case Kind::EVAL_CONS:
-    case Kind::EVAL_TO_LIST:
-    case Kind::EVAL_FROM_LIST:
       ret = (nargs==2);
       break;
     case Kind::EVAL_ADD:
@@ -1130,48 +1128,6 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       return ac->d_attrConsTerm;
     }
     break;
-    case Kind::EVAL_TO_LIST:
-    {
-      ExprValue* harg = args[1];
-      if (harg == nil)
-      {
-        // already nil
-        return Expr(harg);
-      }
-      // check if already has children
-      ExprValue* a = getNAryChildren(harg, op, nullptr, hargs, isLeft);
-      if (!hargs.empty())
-      {
-        // already a list
-        return Expr(harg);
-      }
-      else if (a==nullptr)
-      {
-        return d_null;
-      }
-      // otherwise, turn into singleton list
-      ret = ac->d_attrConsTerm.getValue();
-      hargs.push_back(a);
-    }
-      break;
-    case Kind::EVAL_FROM_LIST:
-    {
-      // once we have >=2 children, we know this is a no-op
-      ExprValue* a = getNAryChildren(args[1], op, nil, hargs, isLeft, 2);
-      if (hargs.size()==1)
-      {
-        if (a==nullptr)
-        {
-          // unexpected nil terminator
-          return d_null;
-        }
-        // eliminate singleton list
-        return Expr(hargs[0]);
-      }
-      // otherwise self
-      return Expr(args[1]);
-    }
-      break;
     case Kind::EVAL_CONS:
     case Kind::EVAL_CONCAT:
     {
@@ -1294,8 +1250,6 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
       return childTypes[0];
     case Kind::EVAL_IF_THEN_ELSE:
     case Kind::EVAL_CONS:
-    case Kind::EVAL_TO_LIST:
-    case Kind::EVAL_FROM_LIST:
       return childTypes[1];
     case Kind::EVAL_REQUIRES:
       return childTypes[2];
