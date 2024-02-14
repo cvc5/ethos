@@ -270,7 +270,7 @@ In particular, note the following example:
 ```
 
 If `or` would have been marked `:right-assoc`, then the definition of both `P` and `Q` would be `(or x (or y z))` after desugaring.
-In contrast, marking `or` with `:right-assoc-nil false` leads to the distinct terms `(or x (or (or y z) false))` and `(or x (or y (or z false)))` after desugaring.
+In contrast, marking `or` with `:right-assoc-nil false` leads to the distinct terms `(or x (or (or y (or z false)) false))` and `(or x (or y (or z false)))` after desugaring.
 
 Right and left associative operators with nil terminators also have a relationship with list terms (as we will see in the following section), and in computational operators.
 
