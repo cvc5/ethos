@@ -822,20 +822,22 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     // below
     if (vchildren.size()==2)
     {
+      Trace("overload") << "process alf.as " << children[0] << " " << children[1] << std::endl;
       AppInfo* ai = getAppInfo(vchildren[0]);
       Expr ret;
       if (ai!=nullptr && !ai->d_overloads.empty())
       {
         size_t arity = 0;
         Expr cur = children[1];
-        while (cur.getKind()!=Kind::FUNCTION_TYPE)
+        while (cur.getKind()==Kind::FUNCTION_TYPE)
         {
           size_t nchild = cur.getNumChildren();
           arity += nchild-1;
           cur = cur[nchild-1];
         }
+        Trace("overload") << "...overloaded with arity " << arity << std::endl;
         // look up the overload
-        std::map<size_t, Expr>::iterator ito = ai->d_overloads.find(children.size()-1);
+        std::map<size_t, Expr>::iterator ito = ai->d_overloads.find(arity);
         if (ito!=ai->d_overloads.end())
         {
           ret = ito->second;
@@ -843,11 +845,13 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       }
       else
       {
+        Trace("overload") << "...not overloaded" << std::endl;
         ret = children[0];
       }
       if (!ret.isNull())
       {
         Expr tret = d_tc.getType(ret);
+        Trace("overload") << "Compare " << tret << " " << children[1] << std::endl;
         // must be matchable
         Ctx ctx;
         if (d_tc.match(tret.getValue(), vchildren[1], ctx))
