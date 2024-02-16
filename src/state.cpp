@@ -78,6 +78,9 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("extract", Kind::EVAL_EXTRACT);
   bindBuiltinEval("find", Kind::EVAL_FIND);
 
+  // as
+  bindBuiltinEval("as", Kind::AS);
+  
   d_nil = Expr(mkExprInternal(Kind::NIL, {}));
   bind("alf.nil", d_nil);
   // self is a distinguished parameter
@@ -807,10 +810,51 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
   else if (isLiteralOp(k))
   {
     // only if correct arity, else we will catch the type error
-    if (TypeChecker::checkArity(k, children.size()))
+    if (TypeChecker::checkArity(k, vchildren.size()))
     {
       // return the evaluation
       return d_tc.evaluateLiteralOp(k, vchildren);
+    }
+  }
+  else if (k==Kind::AS)
+  {
+    // if it has 2 children, process it, otherwise we make the bogus term
+    // below
+    if (vchildren.size()==2)
+    {
+      AppInfo* ai = getAppInfo(vchildren[0]);
+      Expr ret;
+      if (ai!=nullptr && !ai->d_overloads.empty())
+      {
+        size_t arity = 0;
+        Expr cur = children[1];
+        while (cur.getKind()!=Kind::FUNCTION_TYPE)
+        {
+          size_t nchild = cur.getNumChildren();
+          arity += nchild-1;
+          cur = cur[nchild-1];
+        }
+        // look up the overload
+        std::map<size_t, Expr>::iterator ito = ai->d_overloads.find(children.size()-1);
+        if (ito!=ai->d_overloads.end())
+        {
+          ret = ito->second;
+        }
+      }
+      else
+      {
+        ret = children[0];
+      }
+      if (!ret.isNull())
+      {
+        Expr tret = d_tc.getType(ret);
+        // must be matchable
+        Ctx ctx;
+        if (d_tc.match(tret.getValue(), vchildren[1], ctx))
+        {
+          return ret;
+        }
+      }
     }
   }
   return Expr(mkExprInternal(k, vchildren));

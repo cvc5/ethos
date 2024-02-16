@@ -35,6 +35,7 @@ enum class Kind
   NIL,
   PROGRAM,
   COLLECT,
+  AS,
 
   // symbols
   PARAM,

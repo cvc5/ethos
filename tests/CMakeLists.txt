@@ -102,6 +102,7 @@ set(alfc_test_file_list
     or-concat-false.smt3
     emptylist.smt3
     premise-list-empty.smt3
+    overloading-as.smt3
 )
 
 macro(alfc_test file)

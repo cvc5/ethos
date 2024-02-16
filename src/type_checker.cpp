@@ -290,6 +290,16 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       return Expr(ret);
     }
       break;
+    case Kind::AS:
+    {
+      // constructing an application of AS means the type was incorrect.
+      if (out)
+      {
+        (*out) << "Encountered bad type for alf.as";
+      }
+      return d_null;
+    }
+      break;
     default:
       // if a literal operator, consult auxiliary method
       if (isLiteralOp(k))
