@@ -206,20 +206,31 @@ std::string Expr::getSymbol() const
 
 ExprValue* Expr::getValue() const { return d_value; }
 
-size_t Expr::getFunctionArity() const
+std::pair<std::vector<Expr>, Expr> Expr::getFunctionType() const
 {
   Expr et = *this;
-  size_t arity = 0;
+  std::vector<Expr> args;
   while (et.getKind()==Kind::FUNCTION_TYPE)
   {
-    arity += et.getNumChildren()-1;
-    et = et[et.getNumChildren()-1];
+    size_t nchild = et.getNumChildren();
+    for (size_t i=0; i<nchild-1; i++)
+    {
+      args.push_back(et[i]);
+    }
+    et = et[nchild-1];
+    // strip off requires
     while (et.getKind()==Kind::EVAL_REQUIRES)
     {
       et = et[2];
     }
   }
-  return arity;
+  return std::pair<std::vector<Expr>, Expr>(args, et);
+}
+
+size_t Expr::getFunctionArity() const
+{
+  std::pair<std::vector<Expr>, Expr> ftype = getFunctionType();
+  return ftype.first.size();
 }
 
 /**

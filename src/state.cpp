@@ -825,9 +825,10 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       Trace("overload") << "process alf.as " << children[0] << " " << children[1] << std::endl;
       AppInfo* ai = getAppInfo(vchildren[0]);
       Expr ret = children[0];
+      std::pair<std::vector<Expr>, Expr> ftype = children[1].getFunctionType();
       if (ai!=nullptr && !ai->d_overloads.empty())
       {
-        size_t arity = children[1].getFunctionArity();
+        size_t arity = ftype.first.size();
         Trace("overload") << "...overloaded, check arity " << arity << std::endl;
         // look up the overload
         std::map<size_t, Expr>::iterator ito = ai->d_overloads.find(arity);
@@ -841,11 +842,21 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       {
         Trace("overload") << "...not overloaded" << std::endl;
       }
-      Expr tret = d_tc.getType(ret);
-      Trace("overload") << "Compare " << tret << " " << children[1] << std::endl;
-      // must be matchable
-      Ctx ctx;
-      if (d_tc.match(tret.getValue(), vchildren[1], ctx))
+      Trace("overload") << "Apply " << ret << " of type " << d_tc.getType(ret) <<  " to children of types:" << std::endl;
+      std::vector<Expr> cchildren;
+      cchildren.push_back(ret);
+      for (const Expr& t : ftype.first)
+      {
+        Trace("overload") << "- " << t << std::endl;
+        cchildren.push_back(getBoundVar("as.v", t));
+      }
+      std::stringstream ss;
+      Expr cret = mkExpr(Kind::APPLY, cchildren);
+      Expr tcret = d_tc.getType(cret, &ss);
+      Trace("overload") << "Range expected/computed: " << ftype.second << " " << tcret << ", err " << ss.str() << std::endl;
+      // if succeeded, we return the disambiguated return, otherwise the alf.as does not evaluate
+      // and we construct the (bogus) term below.
+      if (ftype.second==tcret)
       {
         return ret;
       }
