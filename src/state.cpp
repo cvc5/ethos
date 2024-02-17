@@ -836,7 +836,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         {
           ret = ito->second;
         }
-        // otherwise try the default (first) symbol parsed, which should be children[0]
+        // otherwise try the default (first) symbol parsed, which is children[0]
       }
       else
       {
@@ -850,11 +850,10 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         Trace("overload") << "- " << t << std::endl;
         cchildren.push_back(getBoundVar("as.v", t));
       }
-      std::stringstream ss;
       Expr cret = mkExpr(Kind::APPLY, cchildren);
-      Expr tcret = d_tc.getType(cret, &ss);
-      Trace("overload") << "Range expected/computed: " << ftype.second << " " << tcret << ", err " << ss.str() << std::endl;
-      // if succeeded, we return the disambiguated return, otherwise the alf.as does not evaluate
+      Expr tcret = d_tc.getType(cret);
+      Trace("overload") << "Range expected/computed: " << ftype.second << " " << tcret<< std::endl;
+      // if succeeded, we return the disambiguated term, otherwise the alf.as does not evaluate
       // and we construct the (bogus) term below.
       if (ftype.second==tcret)
       {
