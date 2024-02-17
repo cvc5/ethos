@@ -157,7 +157,8 @@ class Expr
   std::string getSymbol() const;
   /** Get underlying value */
   ExprValue* getValue() const;
-
+  /** Get arity, where this is a function type. Used for overloading. */
+  size_t getFunctionArity() const;
  private:
   /** The underlying value */
   ExprValue* d_value;

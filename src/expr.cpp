@@ -206,6 +206,22 @@ std::string Expr::getSymbol() const
 
 ExprValue* Expr::getValue() const { return d_value; }
 
+size_t Expr::getFunctionArity() const
+{
+  Expr et = *this;
+  size_t arity = 0;
+  while (et.getKind()==Kind::FUNCTION_TYPE)
+  {
+    arity += et.getNumChildren()-1;
+    et = et[et.getNumChildren()-1];
+    while (et.getKind()==Kind::EVAL_REQUIRES)
+    {
+      et = et[2];
+    }
+  }
+  return arity;
+}
+
 /**
  * SMT-LIB 2 quoting for symbols
  */
