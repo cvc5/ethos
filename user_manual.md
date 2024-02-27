@@ -219,7 +219,8 @@ The ALF language supports term annotations on parameters and declared functions,
 - `:right-assoc-nil <term>?` (resp. `:left-assoc-nil <term>?`) denoting that the term is right (resp. left) associative with the given nil terminator,
 - `:list`, denoting that the term should be treated as a list when appearing as a child of an application of a right (left) associative operator,
 - `:chainable <term>` denoting that the arguments of the term are chainable using the given (binary) operator,
-- `:pairwise <term>` denoting that the arguments of term are treated pairwise using the given (binary) operator.
+- `:pairwise <term>` denoting that the arguments of the term are treated pairwise using the given (binary) operator.
+- `:binder <term>` denoting that the first argument of the term can be provided using a syntax for variable lists whose constructor is the one provided.
 
 A parameter or function can be marked with at most one of the above attributes or an error is thrown.
 
@@ -356,7 +357,7 @@ In the above example, `forall` is declared as a binder.
 This indicates that the parser (optionally) accepts a variable list as the first argument when parsing applications of `forall` instead of a term.
 In particular, in the last two commands, the parser accepts `(forall ((x Int)) (P x))` for the variable list containing `x`.
 A variable list parsed in this way binds the symbol `x` to a variable of type `Int` when parsing the remaining arguments of `forall`, i.e. its body.
-The variable list passed as the first argument to the binder is determined by applying the specified constructor (in this case `@cons`) to the list of variables, so that `(forall ((x Int)) (P x))` becomes `(forall (@cons x) (P x))`.
+The variable list passed as the first argument to the binder is determined by applying the specified constructor (in this case `@cons`) to the list of variables, so that `(forall ((x Int)) (P x))` is syntax sugar for `(forall (@cons x) (P x))`.
 The constructor specified in declarations of binders should accept a variable number of arguments, e.g. `@cons` is declared with attribute `:right-assoc-nil`.
 
 Variables introduced when parsing binders are always the same for each (symbol, type) pair unless the option `--binder-fresh` is enabled, in which case the variable is always unique.
@@ -365,7 +366,7 @@ On the other hand, the definition `Q3` is distinct from both of these, since `y`
 
 Furthermore, note that a binder also may accept an explicit term as its first argument.
 In the above example, `Q4` has `(@cons x)` as its first argument, where `x` was explicitly declared as a variable.
-This means that `Q4` is also syntactically equivalent to the definition of `Q1` and `Q2`, again assuming that `--binder-fresh` is not enabled.
+This means that the definition of `Q4` is also syntactically equivalent to the definition of `Q1` and `Q2`, again assuming that `--binder-fresh` is not enabled.
 
 ## Literal types
 
@@ -436,6 +437,8 @@ Core operators:
     - Returns `t3` if `t1` is (syntactically) equal to `t2`, and is not evaluated otherwise.
 - `(alf.hash t1)`
     - If `t1` is a ground term, this returns a numeral that is unique to `t1`.
+- `(alf.typeof t1)`
+    - If `t1` is a ground term, this returns the type of `t1`.
     
 Boolean operators:
 - `(alf.and t1 t2)`
@@ -713,6 +716,20 @@ For example, given a function `f` of type `(-> (BitVec (alf.add b a)) T)`, the t
 To define the class of binary values, whose type depends on the number of bits they contain, the ALF checker provides support for a distinguished parameter `alf.self`.
 The type checker for values applies the substitution mapping `alf.self` to the term being type checked.
 This means that when type checking the binary constant `#b0000`, its type prior to evaluation is `(BitVec (alf.len #b0000))`, which evaluates to `(BitVec 4)`.
+
+## Overloading
+
+The ALF checker supports limited cases of overloading where all instances of the overloaded symbol have distinct arity.
+In particular the following is accepted:
+```
+(declare-const - (-> Int Int))
+(declare-const - (-> Int Int Int))
+```
+When parsing a term whose head is `-`, the ALF checker will automatically chose which symbol to use based on the number of arguments passed to it, e.g. `(- 1)` uses the first, and `(- 0 1)` uses the second.
+
+Furthermore, the ALF checker supports an operator `alf.as` for disambiguation whose syntax is `(alf.as <term> <type>)`.
+A term of the form `(alf.as t (-> T1 ... Tn T))` evaluates to `t` only if `(t k1 ... kn)` has type `T` where `k1 ... kn` are variables of type `T1 ... Tn`.
+Otherwise, the term `(alf.as t (-> T1 ... Tn T))` is unevaluated.
 
 # Declaring Proof Rules
 
