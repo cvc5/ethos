@@ -726,6 +726,7 @@ In particular the following is accepted:
 (declare-const - (-> Int Int Int))
 ```
 When parsing a term whose head is `-`, the ALF checker will automatically chose which symbol to use based on the number of arguments passed to it, e.g. `(- 1)` uses the first, and `(- 0 1)` uses the second.
+If a symbol is unapplied, then the ALF checker will interpret it as the first declared term for that symbol.
 
 Furthermore, the ALF checker supports an operator `alf.as` for disambiguation whose syntax is `(alf.as <term> <type>)`.
 A term of the form `(alf.as t (-> T1 ... Tn T))` evaluates to `t` only if `(t k1 ... kn)` has type `T` where `k1 ... kn` are variables of type `T1 ... Tn`.
