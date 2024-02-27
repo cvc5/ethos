@@ -77,12 +77,12 @@ class TypeChecker
    * operator does not evaluate.
    */
   Expr evaluateLiteralOp(Kind k, const std::vector<ExprValue*>& args);
+ private:
   /**
    * Match expression a with b. If this returns true, then ctx is a substitution
    * that when applied to b gives a. The substitution
    */
   bool match(ExprValue* a, ExprValue* b, Ctx& ctx);
- private:
   /** Same as above, but takes a cache of pairs we have already visited */
   bool match(ExprValue* a,
              ExprValue* b,

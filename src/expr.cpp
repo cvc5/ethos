@@ -206,6 +206,33 @@ std::string Expr::getSymbol() const
 
 ExprValue* Expr::getValue() const { return d_value; }
 
+std::pair<std::vector<Expr>, Expr> Expr::getFunctionType() const
+{
+  Expr et = *this;
+  std::vector<Expr> args;
+  while (et.getKind()==Kind::FUNCTION_TYPE)
+  {
+    size_t nchild = et.getNumChildren();
+    for (size_t i=0; i<nchild-1; i++)
+    {
+      args.push_back(et[i]);
+    }
+    et = et[nchild-1];
+    // strip off requires
+    while (et.getKind()==Kind::EVAL_REQUIRES)
+    {
+      et = et[2];
+    }
+  }
+  return std::pair<std::vector<Expr>, Expr>(args, et);
+}
+
+size_t Expr::getFunctionArity() const
+{
+  std::pair<std::vector<Expr>, Expr> ftype = getFunctionType();
+  return ftype.first.size();
+}
+
 /**
  * SMT-LIB 2 quoting for symbols
  */
