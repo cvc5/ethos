@@ -60,7 +60,7 @@ The ALF checker alfc extends this language with several features:
 - A library of operations (`alf.add`, `alf.mul`, `alf.concat`, `alf.extract`) for performing computations over values.
 - A command `program` for defining side conditions as ordered list of rewrite rules.
 - A command `declare-oracle-fun` for user-provided oracles, that is, functions whose semantics are given by external binaries. Oracles can be used e.g. for modular proof checking.
-- Commands for file inclusion (`include`) and referencing (`reference`). The latter command can be used to specify the name of a `*.smt3` that the proof is associated with.
+- Commands for file inclusion (`include`) and referencing (`reference`). The latter command can be used to specify the name of an `*.smt2` input file that the proof is associated with.
 - Support for compiling ALF signatures to C++ code that can be integrated into `alfc`.
 
 In the following sections, we review these features in more detail. A full syntax for the commands is given at the end of this document.
@@ -157,7 +157,7 @@ In other words, the following file is equivalent to the one above after parsing:
 
 In the above example, we define the integer sort and the array sort, whose kind is `(-> Type Type Type)`.
 
-Note the following declarations all generate types of the same kind:
+Note the following declarations all generate terms of the same type:
 
 ```
 (declare-sort Array_v1 2)
