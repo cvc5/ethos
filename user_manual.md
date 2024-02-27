@@ -105,9 +105,9 @@ The ALF language contains further commands for declaring symbols that are not st
 - `(declare-consts <lit-category> <type>)` declares the class of symbols denoted by the literal category to have the given type.
 - `(define <symbol> (<typed-param>*) <term>)`, which is identical to `define-fun` but the body term is not type checked against a reference type.
 
-> Variables are internally treated the same as constants by the ALF checker, but are provided as a separate category, e.g. for user signatures that wish to distinguish universally quantified variables from free constants. They also have a relationship with user-defined binders, see [binders](#binders)
+> Variables are internally treated the same as constants by the ALF checker, but are provided as a separate category, e.g. for user signatures that wish to distinguish universally quantified variables from free constants. They also have a relationship with user-defined binders, see [binders](#binders).
 
-> Symbols cannot be overloaded in the ALF checker.
+> Limited cases of symbol overloading are supported, see [overloading](#overloading).
 
 ### Example: Basic Declarations
 
@@ -717,7 +717,7 @@ To define the class of binary values, whose type depends on the number of bits t
 The type checker for values applies the substitution mapping `alf.self` to the term being type checked.
 This means that when type checking the binary constant `#b0000`, its type prior to evaluation is `(BitVec (alf.len #b0000))`, which evaluates to `(BitVec 4)`.
 
-## Overloading
+## <a name="overloading"></a>Overloading
 
 The ALF checker supports limited cases of overloading where all instances of the overloaded symbol have distinct arity.
 In particular the following is accepted:
