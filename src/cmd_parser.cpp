@@ -323,15 +323,28 @@ bool CmdParser::parseNextCommand()
         // parse requirements, optionally
         if (keyword=="requires")
         {
+          // we support alf.conclusion in requirements
+          d_state.pushScope();
+          d_state.bind("alf.conclusion", d_state.mkConclusion());
+          // parse the expression pair list
           reqs = d_eparser.parseExprPairList();
           keyword = d_eparser.parseKeyword();
+          d_state.popScope();
         }
         // parse conclusion
-        if (keyword!="conclusion")
+        if (keyword=="conclusion")
+        {
+          conc = d_eparser.parseExpr();
+        }
+        else if (keyword=="conclusion-given")
+        {
+          // :conclusion-given is equivalent to :conclusion alf.conclusion
+          conc = d_state.mkConclusion();
+        }
+        else
         {
           d_lex.parseError("Expected conclusion in declare-rule");
         }
-        conc = d_eparser.parseExpr();
       }
       else
       {

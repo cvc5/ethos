@@ -11,7 +11,10 @@
 
 (declare-rule split ()
   :requires (((is_split alf.conclusion) true))
-  :conclusion alf.conclusion
+  :conclusion-given
 )
 
 (step @p0 (or true (not true)) :rule split)
+
+; fails
+;(step @p1 (or false (not true)) :rule split)
