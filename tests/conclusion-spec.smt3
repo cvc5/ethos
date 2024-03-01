@@ -1,0 +1,17 @@
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil true)
+(declare-const not (-> Bool Bool))
+
+(program is_split ((F Bool))
+  (Bool) Bool
+  (
+    ((is_split (or F (not F))) true)
+    ((is_split (or (not F) F)) true)
+  )
+)
+
+(declare-rule split ()
+  :requires (((is_split alf.conclusion) true))
+  :conclusion alf.conclusion
+)
+
+(step @p0 (or true (not true)) :rule split)

@@ -746,9 +746,9 @@ bool CmdParser::parseNextCommand()
           concType = d_state.getTypeChecker().evaluate(concType.getValue(), cctx);
         }
       }
+      // ensure proof type, note this is where "proof checking" happens.
       if (concType.getKind() != Kind::PROOF_TYPE)
       {
-        // ensure proof type, note this is where "proof checking" happens.
         std::stringstream ss;
         ss << "Non-proof conclusion for step, got " << concType;
         d_lex.parseError(ss.str());
