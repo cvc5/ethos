@@ -1227,6 +1227,11 @@ void ExprParser::ensureBound(const Expr& e, const std::vector<Expr>& bvs)
   {
     if (std::find(bvs.begin(), bvs.end(), v)==bvs.end())
     {
+      // ignore distinguished variables
+      if (v==d_state.mkConclusion() || v==d_state.mkSelf())
+      {
+        continue;
+      }
       std::stringstream msg;
       msg << "Unexpected free parameter in expression:" << std::endl;
       msg << "      Expression: " << e << std::endl;

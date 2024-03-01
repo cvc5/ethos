@@ -86,6 +86,8 @@ State::State(Options& opts, Stats& stats)
   // self is a distinguished parameter
   d_self = Expr(mkSymbolInternal(Kind::PARAM, "alf.self", mkAbstractType()));
   bind("alf.self", d_self);
+  d_conclusion = Expr(mkSymbolInternal(Kind::PARAM, "alf.conclusion", mkBoolType()));
+  bind("alf.conclusion", d_conclusion);
 
   // note we don't allow parsing (Proof ...), (Quote ...), or (quote ...).
 
@@ -572,6 +574,11 @@ Expr State::mkSymbol(Kind k, const std::string& name, const Expr& type)
 Expr State::mkSelf()
 {
   return d_self;
+}
+
+Expr State::mkConclusion()
+{
+  return d_conclusion;
 }
 
 Expr State::mkNil()

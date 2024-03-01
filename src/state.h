@@ -109,6 +109,8 @@ class State
   Expr mkNil();
   /** */
   Expr mkSelf();
+  /** Make the conclusion variable */
+  Expr mkConclusion();
   /** Make pair */
   Expr mkPair(const Expr& t1, const Expr& t2);
   /** */
@@ -175,6 +177,7 @@ class State
   Expr d_true;
   Expr d_false;
   Expr d_self;
+  Expr d_conclusion;
   Expr d_nil;
   Expr d_fail;
   /** Get the constructor kind for symbol v */

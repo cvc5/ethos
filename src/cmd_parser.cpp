@@ -734,21 +734,32 @@ bool CmdParser::parseNextCommand()
       {
         concType = d_eparser.typeCheck(rule);
       }
-      // ensure proof type, note this is where "proof checking" happens.
+      // if we specified a conclusion, we will possibly evaluate the type
+      // under the substitution `alf.conclusion -> proven`. We only do this
+      // if we did not already match what was proven.
+      if (!proven.isNull())
+      {
+        if (concType.getKind()!=Kind::PROOF_TYPE || concType[0]!=proven)
+        {
+          Ctx cctx;
+          cctx[d_state.mkConclusion().getValue()] = proven.getValue();
+          concType = d_state.getTypeChecker().evaluate(concType.getValue(), cctx);
+        }
+      }
       if (concType.getKind() != Kind::PROOF_TYPE)
       {
+        // ensure proof type, note this is where "proof checking" happens.
         std::stringstream ss;
         ss << "Non-proof conclusion for step, got " << concType;
         d_lex.parseError(ss.str());
       }
       if (!proven.isNull())
       {
-        const Expr& actual = concType[0];
-        if (actual!=proven)
+        if (concType[0]!=proven)
         {
           std::stringstream ss;
           ss << "Unexpected conclusion for step " << ruleName << ":" << std::endl;
-          ss << "    Proves: " << actual << std::endl;
+          ss << "    Proves: " << concType << std::endl;
           ss << "  Expected: " << proven;
           d_lex.parseError(ss.str());
         }
