@@ -27,8 +27,15 @@ int run(const std::string& call,
 {
   int read_pipe[2];
   int write_pipe[2];
-  pipe(read_pipe);
-  pipe(write_pipe);
+  if (pipe(read_pipe))
+  {
+    // Creating the pipe failed.
+    return -1;
+  }
+  if (pipe(write_pipe))
+  {
+    return -1;
+  }
 
   pid_t pid = fork();
   if (pid == -1)
@@ -60,7 +67,17 @@ int run(const std::string& call,
     close(write_pipe[0]);
     close(read_pipe[1]);
 
-    write(write_pipe[1], content.c_str(), content.length() + 1);
+    ssize_t written =
+        write(write_pipe[1], content.c_str(), content.length() + 1);
+    // Error cases: -1 is explicit error, or it's an incomplete write.
+    // Second case we could write more bytes, but we are writing to a pipe. So
+    // something odd must have happened.
+    if (written == -1 || written != static_cast<ssize_t>(content.length()) + 1)
+    {
+      close(write_pipe[1]);
+      close(read_pipe[0]);
+      return -1;
+    }
     // Wait for child and get return code
     int status;
     pid_t ret;
