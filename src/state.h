@@ -33,6 +33,8 @@ class Options
   bool d_compile;
   bool d_runCompile;
   bool d_printLet;
+  /** 'let' is lexed as the SMT-LIB syntax for a dag term specified by a let */
+  bool d_parseLet;
   bool d_stats;
   bool d_ruleSymTable;
   bool d_normalizeDecimal;

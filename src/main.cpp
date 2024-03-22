@@ -45,6 +45,10 @@ int main( int argc, char* argv[] )
       opts.d_runCompile = true;
       // TODO: warn if not compiled?
     }
+    else if (arg=="--no-parse-let")
+    {
+      opts.d_parseLet = false;
+    }
     else if (arg=="--no-print-let")
     {
       opts.d_printLet = false;

@@ -25,8 +25,9 @@ std::ostream& operator<<(std::ostream& o, const Span& l)
   return o << l.d_start << "-" << l.d_end;
 }
 
-Lexer::Lexer()
-    : d_bufferPos(0), d_bufferEnd(0), d_peekedChar(false), d_chPeeked(0)
+Lexer::Lexer(bool lexLet)
+    : d_lexLet(lexLet), d_isInteractive(false), d_bufferPos(0), d_bufferEnd(0),
+      d_peekedChar(false), d_chPeeked(0)
 {
   for (int32_t ch = 'a'; ch <= 'z'; ++ch)
   {
