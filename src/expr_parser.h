@@ -28,9 +28,9 @@ class ExprParser
   virtual ~ExprParser() {}
 
   /** Parses an SMT-LIB term <term> */
-  Expr parseExpr();
+  Expr parseExpr(bool allowVar = false);
   /** Parses an SMT-LIB type <type> */
-  Expr parseType();
+  Expr parseType(bool allowVar = false);
   /** Parses an SMT-LIB formula <formula> */
   Expr parseFormula();
   /** Parses an SMT-LIB term pair */
@@ -103,13 +103,11 @@ class ExprParser
    * 
    * @param e The expression we are applying to
    * @param attr The attributes which are populated
-   * @param pushedScope True if we pushed a scope while reading the list. This
+   * @param allowVar True if we pushed a scope while reading the list. This
    * is true when e.g. the attribute :var is read. The caller of this method
    * is responsible for popping the scope.
    */
-  void parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedScope);
-  /** Same as above, but ensures we pop the scope */
-  void parseAttributeList(const Expr& e, AttrMap& attrs);
+  void parseAttributeList(const Expr& e, AttrMap& attrs, bool allowVar = false);
   
   /**
    * Parse literal kind.

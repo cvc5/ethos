@@ -118,7 +118,7 @@ public:
   }
 };
 
-Expr ExprParser::parseExpr()
+Expr ExprParser::parseExpr(bool allowVar)
 {
   // the last parsed term
   Expr ret;
@@ -404,15 +404,9 @@ Expr ExprParser::parseExpr()
         {
           // now parse attribute list
           AttrMap attrs;
-          bool pushedScope = false;
           // NOTE parsing attributes may trigger recursive calls to this
           // method.
-          parseAttributeList(ret, attrs, pushedScope);
-          // the scope of the variable is one level up
-          if (pushedScope && pstack.size()>1)
-          {
-            pstack[pstack.size()-2].d_nscopes++;
-          }
+          parseAttributeList(ret, attrs, allowVar);
           // process the attributes
           for (std::pair<const Attr, std::vector<Expr>>& a : attrs)
           {
@@ -586,9 +580,9 @@ Expr ExprParser::parseExpr()
   return ret;
 }
 
-Expr ExprParser::parseType()
+Expr ExprParser::parseType(bool allowVar)
 {
-  Expr e = parseExpr();
+  Expr e = parseExpr(allowVar);
   // ensure it is a type
   typeCheck(e, d_state.mkType());
   return e;
@@ -987,7 +981,7 @@ std::string ExprParser::parseStr(bool unescape)
   return s;
 }
 
-void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedScope)
+void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool allowVar)
 {
   std::map<std::string, Attr>::iterator its;
   // while the next token is KEYWORD, exit if RPAREN
@@ -1013,6 +1007,10 @@ void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedS
     {
       case Attr::VAR:
       {
+        if (!allowVar)
+        {
+          d_lex.parseError("Cannot use :var in this context");
+        }
         if (attrs.find(Attr::VAR)!=attrs.end())
         {
           d_lex.parseError("Cannot use :var on the same term more than once");
@@ -1020,12 +1018,6 @@ void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedS
         std::string name = parseSymbol();
         // e should be a type
         val = d_state.mkSymbol(Kind::PARAM, name, e);
-        // immediately bind
-        if (!pushedScope)
-        {
-          pushedScope = true;
-          d_state.pushScope();
-        }
         bind(name, val);
       }
         break;
@@ -1071,17 +1063,6 @@ void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedS
     attrs[its->second].push_back(val);
   }
   d_lex.reinsertToken(Token::RPAREN);
-}
-
-void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs)
-{
-  bool pushedScope = false;
-  parseAttributeList(e, attrs, pushedScope);
-  // pop the scope if necessary
-  if (pushedScope)
-  {
-    d_state.popScope();
-  }
 }
 
 Kind ExprParser::parseLiteralKind()

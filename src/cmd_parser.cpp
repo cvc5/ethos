@@ -144,7 +144,9 @@ bool CmdParser::parseNextCommand()
       {
         sorts = d_eparser.parseTypeList();
       }
-      Expr t = d_eparser.parseType();
+      // push scope to account for local variables via :var
+      d_state.pushScope();
+      Expr t = d_eparser.parseType(true);
       if (!sorts.empty())
       {
         t = d_state.mkFunctionType(sorts, t, flattenFunction);
@@ -185,6 +187,8 @@ bool CmdParser::parseNextCommand()
         }
         v = d_state.mkSymbol(sk, name, t);
       }
+      // unbind any variables from :var
+      d_state.popScope();
       // if the type has a property, we mark it on the variable of this type
       if (ck!=Attr::NONE)
       {
