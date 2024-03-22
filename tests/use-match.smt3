@@ -2,7 +2,7 @@
     (T T) T
     (
       ((maybe_nil t t)       t)
-      ((maybe_nil t alf.nil) t)
+      ((maybe_nil t alf.null) t)
     )
 )
 
@@ -26,7 +26,7 @@
     ((L Type) (cons (-> L L L)) (x L) (xs L :list) (ys L))
     ((-> L L L) L L) L
     (
-        ((nary.concat cons alf.nil ys) ys)
+        ((nary.concat cons alf.null ys) ys)
         ((nary.concat cons (cons x xs) ys) (nary.append cons x (nary.concat cons xs ys)))
     )
 )
@@ -49,18 +49,18 @@
 (program string_collect_acc ((t String) (tail String :list))
   (String) (Pair String String)
   (
-    ((string_collect_acc alf.nil)         (pair alf.nil alf.nil))
+    ((string_collect_acc alf.null)         (pair alf.null alf.null))
     ; Check if t is a word constant
     ((string_collect_acc (str.++ t tail))
       (alf.ite (check_length_one t)
         (alf.match ((s1 String) (s2 String)) 
           (string_collect_acc tail)
           (
-            ((pair alf.nil s2) (pair t s2))
+            ((pair alf.null s2) (pair t s2))
             ((pair s1 s2) (pair (alf.concat t s1) s2))
           )
         )
-        (pair alf.nil (str.++ t tail))))
+        (pair alf.null (str.++ t tail))))
   )
 )
 
@@ -70,7 +70,7 @@
   :conclusion (alf.match ((s1 String) (s2 String :list)) 
                 (string_collect_acc s) 
                 (
-                  ((pair alf.nil s2)  (= s s2))
+                  ((pair alf.null s2)  (= s s2))
                   ((pair s1 s2)       (= s (str.++ s1 s2)))
                 )
               )
