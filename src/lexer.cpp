@@ -435,7 +435,7 @@ Token Lexer::tokenizeCurrentSymbol() const
       }
       break;
     case 'l':
-      if (d_token.size() == 3 && d_token[1] == 'e' && d_token[2] == 't')
+      if (d_lexLet && d_token.size() == 3 && d_token[1] == 'e' && d_token[2] == 't')
       {
         return Token::LET;
       }
