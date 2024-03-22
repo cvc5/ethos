@@ -33,7 +33,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::VARIABLE: o << "VARIABLE"; break;
     case Kind::ORACLE: o << "ORACLE"; break;
     case Kind::TUPLE: o << "TUPLE"; break;
-    case Kind::NIL: o << "NIL"; break;
+    case Kind::NULL_EXPR: o << "NIL"; break;
     case Kind::PROGRAM: o << "PROGRAM"; break;
     case Kind::COLLECT: o << "COLLECT"; break;
     case Kind::AS: o << "AS"; break;
@@ -52,7 +52,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::EVAL_HASH: o << "EVAL_HASH"; break;
     case Kind::EVAL_TYPE_OF: o << "EVAL_TYPE_OF"; break;
     // lists
-    case Kind::EVAL_EMPTYLIST: o << "EVAL_EMPTYLIST";break;
+    case Kind::EVAL_NIL: o << "EVAL_EMPTYLIST";break;
     case Kind::EVAL_CONS: o << "EVAL_CONS"; break;
     // boolean
     case Kind::EVAL_NOT: o << "EVAL_NOT"; break;
@@ -93,7 +93,7 @@ std::string kindToTerm(Kind k)
     case Kind::ABSTRACT_TYPE: ss << "?"; break;
     case Kind::BOOL_TYPE: ss << "Bool"; break;
     case Kind::QUOTE_TYPE: ss << "Quote"; break;
-    case Kind::NIL: ss << "alf.nil"; break;
+    case Kind::NULL_EXPR: ss << "alf.nil"; break;
     // terms
     case Kind::APPLY: ss << "@"; break;
     case Kind::LAMBDA: ss << "lambda"; break;
@@ -112,7 +112,7 @@ std::string kindToTerm(Kind k)
         case Kind::EVAL_HASH: ss << "hash"; break;
         case Kind::EVAL_TYPE_OF: ss << "typeof"; break;
         // lists
-        case Kind::EVAL_EMPTYLIST: ss << "emptylist"; break;
+        case Kind::EVAL_NIL: ss << "emptylist"; break;
         case Kind::EVAL_CONS: ss << "cons"; break;
         // boolean
         case Kind::EVAL_NOT: ss << "not"; break;
@@ -188,7 +188,7 @@ bool isLiteralOp(Kind k)
     case Kind::EVAL_HASH:
     case Kind::EVAL_TYPE_OF:
     // lists
-    case Kind::EVAL_EMPTYLIST:
+    case Kind::EVAL_NIL:
     case Kind::EVAL_CONS:
     // boolean
     case Kind::EVAL_NOT:

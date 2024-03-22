@@ -53,7 +53,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("typeof", Kind::EVAL_TYPE_OF);
   // TODO: compare?
   // lists
-  bindBuiltinEval("emptylist", Kind::EVAL_EMPTYLIST);
+  bindBuiltinEval("nil", Kind::EVAL_NIL);
   bindBuiltinEval("cons", Kind::EVAL_CONS);
   // boolean
   bindBuiltinEval("not", Kind::EVAL_NOT);
@@ -81,8 +81,8 @@ State::State(Options& opts, Stats& stats)
   // as
   bindBuiltinEval("as", Kind::AS);
   
-  d_nil = Expr(mkExprInternal(Kind::NIL, {}));
-  bind("alf.nil", d_nil);
+  d_nullExpr = Expr(mkExprInternal(Kind::NULL_EXPR, {}));
+  bind("alf.null", d_nullExpr);
   // self is a distinguished parameter
   d_self = Expr(mkSymbolInternal(Kind::PARAM, "alf.self", mkAbstractType()));
   bind("alf.self", d_self);
@@ -493,7 +493,7 @@ Expr State::mkAnnotatedType(const Expr& t, Attr ck, const Expr& cons)
   {
     return t;
   }
-  if (cons.getKind() != Kind::NIL)
+  if (cons.getKind() != Kind::NULL_EXPR)
   {
     return t;
   }
@@ -542,7 +542,7 @@ Expr State::mkAnnotatedType(const Expr& t, Attr ck, const Expr& cons)
   std::stringstream ss;
   ss << nilArg << "_or_nil";
   Expr u = mkSymbol(Kind::PARAM, ss.str(), d_type);
-  Expr cond = mkExpr(Kind::EVAL_IS_EQ, {u, d_nil});
+  Expr cond = mkExpr(Kind::EVAL_IS_EQ, {u, d_nullExpr});
   if (isRight)
   {
     // (-> t1 (-> t2 t3)) :right-assoc-nil
@@ -584,7 +584,7 @@ Expr State::mkConclusion()
 
 Expr State::mkNil()
 {
-  return d_nil;
+  return d_nullExpr;
 }
 
 Expr State::mkPair(const Expr& t1, const Expr& t2)
@@ -682,7 +682,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
             size_t nextIndex = isLeft ? 2 : 1;
             size_t prevIndex = isLeft ? 1 : 2;
             // note the nil element is always treated as a list
-            if (curr->getKind()!=Kind::NIL && isNil)
+            if (curr->getKind()!=Kind::NULL_EXPR && isNil)
             {
               if (getConstructorKind(curr) != Attr::LIST)
               {

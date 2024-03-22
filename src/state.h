@@ -178,7 +178,7 @@ class State
   Expr d_false;
   Expr d_self;
   Expr d_conclusion;
-  Expr d_nil;
+  Expr d_nullExpr;
   Expr d_fail;
   /** Get the constructor kind for symbol v */
   Attr getConstructorKind(const ExprValue* v) const;

@@ -13,14 +13,14 @@
 (program elim_singleton_list_rhs ((T Type) (f (-> T T T)) (t T) (s T :list))
   ((-> T T T) T) T
   (
-  ((elim_singleton_list_rhs f (f t s)) (alf.ite (alf.is_eq s (alf.emptylist f)) t (f t s)))
+  ((elim_singleton_list_rhs f (f t s)) (alf.ite (alf.is_eq s (alf.nil f)) t (f t s)))
   ((elim_singleton_list_rhs f t)       t)
   )
 )
 (program elim_singleton_list_lhs ((T Type) (f (-> T T T)) (t T :list) (s T))
   ((-> T T T) T) T
   (
-  ((elim_singleton_list_lhs f (f t s)) (alf.ite (alf.is_eq t (alf.emptylist f)) s (f t s)))
+  ((elim_singleton_list_lhs f (f t s)) (alf.ite (alf.is_eq t (alf.nil f)) s (f t s)))
   ((elim_singleton_list_lhs f s)       s)
   )
 )

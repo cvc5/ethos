@@ -2,7 +2,7 @@
     (T T) T
     (
       ((maybe_nil t t)       t)
-      ((maybe_nil t alf.nil) t)
+      ((maybe_nil t alf.null) t)
     )
 )
 

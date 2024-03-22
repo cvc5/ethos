@@ -2,7 +2,7 @@
     (T T) T
     (
       ((maybe_nil t t)       t)
-      ((maybe_nil t alf.nil) t)
+      ((maybe_nil t alf.null) t)
     )
 )
 
@@ -12,7 +12,7 @@
 (program mk_cong_eq ((T Type) (U Type) (f1 (-> T U)) (f2 (-> T U)) (t1 U) (t2 U) (tail Bool :list))
     (Bool Bool) Bool
     (
-        ((mk_cong_eq (= f1 f2) alf.nil)              (= f1 f2))
+        ((mk_cong_eq (= f1 f2) alf.null)              (= f1 f2))
         ((mk_cong_eq (= f1 f2) (and (= t1 t2) tail)) (mk_cong_eq (= (f1 t1) (f2 t2)) tail))
     )
 )

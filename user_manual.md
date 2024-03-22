@@ -277,7 +277,7 @@ Right and left associative operators with nil terminators also have a relationsh
 
 Note that the type for right and left associative operators with nil terminators is typically `(-> T T T)` for some `T`, where their nil terminator has type `T`.
 
-> Currently, if no nil terminator is provided, then the ALF checker will use the term `alf.nil` as the nil terminator for the operator. The type rule for the operator is internally updated to accept `alf.nil` as its second child.
+> Currently, if no nil terminator is provided, then the ALF checker will use the term `alf.null` as the nil terminator for the operator. The type rule for the operator is internally updated to accept `alf.null` as its second child.
 
 ### List
 
@@ -612,7 +612,7 @@ We describe the evaluation for right associative operators; left associative eva
 We say that a term is an `f`-list with children `t1 ... tn` if it is of the form `(f t1 ... tn)` where `n>0` or `nil` if `n=0`.
 
 List operators:
-- `(alf.emptylist f)`
+- `(alf.nil f)`
     - If `f` is a right associative operator, return its nil terminator.
 - `(alf.cons f t1 t2)`
     - If `t2` is an `f`-list, then this returns the term `(f t1 t2)`.
@@ -633,8 +633,8 @@ The terms on both sides of the given evaluation are written in their form prior 
 (declare-const a Bool)
 (declare-const b Bool)
 
-(alf.emptylist or)                  == false
-(alf.emptylist a)                   == (alf.emptylist a)                ; since a is not an associative operator
+(alf.nil or)                  == false
+(alf.nil a)                   == (alf.nil a)                ; since a is not an associative operator
 
 (alf.cons or a (or a b))            == (or a a b)
 (alf.cons or false (or a b))        == (or false a b)

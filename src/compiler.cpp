@@ -460,7 +460,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
       {
         os << "  " << cs.d_prefix << ret << " = d_boolType;" << std::endl;
       }
-      else if (ck==Kind::NIL)
+      else if (ck==Kind::NULL_EXPR)
       {
         os << "  " << cs.d_prefix << ret << " = d_nil;" << std::endl;
       }
