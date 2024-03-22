@@ -32,7 +32,7 @@ enum class Kind
   APPLY,
   LAMBDA,
   TUPLE,
-  NIL,
+  NULL_EXPR,
   PROGRAM,
   COLLECT,
   AS,
@@ -62,7 +62,7 @@ enum class Kind
   EVAL_HASH,
   EVAL_TYPE_OF,
   // lists
-  EVAL_EMPTYLIST,
+  EVAL_NIL,
   EVAL_CONS,
   // boolean
   EVAL_NOT,
