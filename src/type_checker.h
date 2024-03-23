@@ -104,6 +104,7 @@ class TypeChecker
   Expr evaluateLiteralOpInternal(Kind k, const std::vector<ExprValue*>& args);
   /** Type check */
   ExprValue* getLiteralOpType(Kind k,
+                              std::vector<ExprValue*>& children,
                               std::vector<ExprValue*>& childTypes,
                               std::ostream* out);
   //---------------- compiled methods

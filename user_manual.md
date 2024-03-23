@@ -439,6 +439,8 @@ Core operators:
     - If `t1` is a ground term, this returns a numeral that is unique to `t1`.
 - `(alf.typeof t1)`
     - If `t1` is a ground term, this returns the type of `t1`.
+- `(alf.var t1 t2)`
+    - If `t1` is a string value and `t2` is ground type, this returns the variable whose name is `t1` and whose type is `t2`.
     
 Boolean operators:
 - `(alf.and t1 t2)`

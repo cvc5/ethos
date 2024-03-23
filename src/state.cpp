@@ -52,6 +52,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("requires", Kind::EVAL_REQUIRES);
   bindBuiltinEval("hash", Kind::EVAL_HASH);
   bindBuiltinEval("typeof", Kind::EVAL_TYPE_OF);
+  bindBuiltinEval("var", Kind::EVAL_VAR);
   // TODO: compare?
   // lists
   bindBuiltinEval("nil", Kind::EVAL_NIL);

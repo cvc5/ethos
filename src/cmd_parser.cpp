@@ -773,7 +773,7 @@ bool CmdParser::parseNextCommand()
           std::stringstream ss;
           ss << "Unexpected conclusion for step " << ruleName << ":" << std::endl;
           ss << "    Proves: " << concType << std::endl;
-          ss << "  Expected: " << proven;
+          ss << "  Expected: (Proof " << proven << ")";
           d_lex.parseError(ss.str());
         }
       }

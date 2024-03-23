@@ -158,6 +158,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
       ret = (nargs==0);
       break;
     case Kind::EVAL_IS_EQ:
+    case Kind::EVAL_VAR:
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_INT_MOD:
     case Kind::EVAL_RAT_DIV:
@@ -246,7 +247,6 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
     case Kind::ABSTRACT_TYPE:
     case Kind::BOOL_TYPE:
     case Kind::FUNCTION_TYPE:
-    case Kind::EVAL_TYPE_OF:
       return d_state.mkType();
     case Kind::PROOF_TYPE:
     {
@@ -310,7 +310,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
         {
           ctypes.push_back(d_state.lookupType(c));
         }
-        return Expr(getLiteralOpType(k, ctypes, out));
+        return Expr(getLiteralOpType(k, children, ctypes, out));
       }
       break;
   }
@@ -1006,7 +1006,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       bool ret = args[0]==args[1];
       if (ret)
       {
-        // eagerly evaluate if sides and equal and non-ground
+        // eagerly evaluate if sides are equal, even if non-ground
         return d_state.mkTrue();
       }
       else if (isGround(args))
@@ -1068,6 +1068,21 @@ Expr TypeChecker::evaluateLiteralOpInternal(
         return getType(e);
       }
       return d_null;
+    }
+    break;
+    case Kind::EVAL_VAR:
+    {
+      // if arguments are ground and the first argument is a string
+      if (args[0]->getKind()==Kind::STRING && args[1]->isGround())
+      {
+        Expr type(args[1]);
+        Expr tt = getType(type);
+        if (!tt.isNull() && tt.getKind()==Kind::TYPE)
+        {
+          const Literal* l = args[0]->asLiteral();
+          return d_state.getBoundVar(l->d_str.toString(), type);
+        }
+      }
     }
     break;
     default:
@@ -1226,6 +1241,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
 }
 
 ExprValue* TypeChecker::getLiteralOpType(Kind k,
+                                         std::vector<ExprValue*>& children,
                                          std::vector<ExprValue*>& childTypes,
                                          std::ostream* out)
 {
@@ -1244,6 +1260,11 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
   // where type checking is not strict.
   switch (k)
   {
+    case Kind::EVAL_TYPE_OF:
+      return d_state.mkType().getValue();
+    case Kind::EVAL_VAR:
+      // its type is the second argument
+      return children[0];
     case Kind::EVAL_ADD:
     case Kind::EVAL_MUL:
       // NOTE: mixed arith

@@ -1,0 +1,19 @@
+
+(declare-sort @List 0)
+(declare-const @list (-> (! Type :var T :implicit) T @List @List) :right-assoc-nil)
+
+(declare-const forall (-> @List Bool Bool) :binder @list)
+
+(declare-const = (-> (! Type :var A :implicit) A A Bool))
+
+(declare-rule refl ((F Bool))
+  :args (F)
+  :conclusion (= F F))
+
+
+(declare-const P (-> Bool Bool))
+(define x.1 () (alf.var "x" Bool))
+
+(step @p0 (= (forall ((x Bool)) (P x)) (forall ((x Bool)) (P x.1))) :rule refl :args ((forall ((x Bool)) (P x))))
+(step @p1 (= (forall ((x Bool)) (P x)) (forall ((x Bool)) (P (alf.var "x" Bool)))) :rule refl :args ((forall ((x Bool)) (P x))))
+(step @p2 (= (forall ((x Bool)) (P x)) (forall (@list x.1) (P x.1))) :rule refl :args ((forall ((x Bool)) (P x))))

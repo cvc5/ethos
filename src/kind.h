@@ -60,6 +60,7 @@ enum class Kind
   EVAL_IF_THEN_ELSE,
   EVAL_REQUIRES,
   EVAL_HASH,
+  EVAL_VAR,
   EVAL_TYPE_OF,
   // lists
   EVAL_NIL,

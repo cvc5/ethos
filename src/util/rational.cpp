@@ -47,7 +47,7 @@ bool Rational::isIntegral() const { return mpz_cmp_ui(d_value.get_den_mpz_t(), 1
 std::string Rational::toString(int base) const { return d_value.get_str(base); }
 std::string Rational::toStringDecimal() const
 {
-  // TODO
+  // FIXME
   return toString();
   /*
   mpf_class floatValue(d_value);
