@@ -105,6 +105,7 @@ set(alfc_test_file_list
     overloading-as.smt3
     conclusion-spec.smt3
     var-binders-syntax.smt3
+    nground-nil.smt3
 )
 
 macro(alfc_test file)

@@ -182,6 +182,7 @@ class State
   Expr d_conclusion;
   Expr d_nullExpr;
   Expr d_fail;
+  Expr d_tmpSelf;
   /** Get the constructor kind for symbol v */
   Attr getConstructorKind(const ExprValue* v) const;
   /** Mark that file s was included */

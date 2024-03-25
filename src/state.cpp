@@ -87,6 +87,7 @@ State::State(Options& opts, Stats& stats)
   bind("alf.null", d_nullExpr);
   // self is a distinguished parameter
   d_self = Expr(mkSymbolInternal(Kind::PARAM, "alf.self", mkAbstractType()));
+  d_tmpSelf = Expr(mkSymbolInternal(Kind::CONST, "_tmp_self", mkAbstractType()));
   bind("alf.self", d_self);
   d_conclusion = Expr(mkSymbolInternal(Kind::PARAM, "alf.conclusion", mkBoolType()));
   // alf.conclusion is not globally bound, since it can only appear
@@ -669,6 +670,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         case Attr::LEFT_ASSOC_NIL:
         case Attr::RIGHT_ASSOC_NIL:
         {
+          bool ngroundNil = false;
           size_t nchild = vchildren.size();
           // note that nchild>=2 treats e.g. (or a) as (or a false).
           // checking nchild>2 treats (or a) as a function Bool -> Bool.
@@ -691,6 +693,12 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
                 // if the last term is not marked as a list variable and
                 // we have a null terminator, then we insert the null terminator
                 curr = ai->d_attrConsTerm.getValue();
+                if (!curr->isGround())
+                {
+                  Trace("state-nground-nil") << "Non-ground nil " << Expr(curr) << std::endl;
+                  ngroundNil = true;
+                  curr = d_self.getValue();
+                }
                 i--;
               }
             }
@@ -710,6 +718,24 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
                 curr = mkApplyInternal(cc);
               }
               i++;
+            }
+            if (ngroundNil)
+            {
+              Expr currOrig = Expr(curr);
+              Trace("state-nground-nil") << "Make non-ground nil: " << Expr(curr) << std::endl;
+              Ctx ctx;
+              ctx[d_self.getValue()] = d_tmpSelf.getValue();
+              Trace("state-nground-nil") << "Evaluate " << Expr(curr) << " for " << d_self << " -> " << d_tmpSelf << std::endl;
+              Expr currTmp = d_tc.evaluate(curr, ctx);
+              Trace("state-nground-nil") << "Set to temporary: " << currTmp << std::endl;
+              ctx[d_self.getValue()] = currTmp.getValue();
+              Trace("state-nground-nil") << "Evaluate " << ai->d_attrConsTerm << " for " << d_self << " -> " << currTmp << std::endl;
+              Expr ev = d_tc.evaluate(ai->d_attrConsTerm.getValue(), ctx);
+              Trace("state-nground-nil") << "Computed nil: " << ev << std::endl;
+              ctx[d_self.getValue()] = ev.getValue();
+              Expr eret = d_tc.evaluate(curr, ctx);
+              Trace("state-nground-nil") << "Substituted nil: " << eret << std::endl;
+              return eret;
             }
             return Expr(curr);
           }
