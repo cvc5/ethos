@@ -623,7 +623,7 @@ List operators:
 - `(alf.extract f t1 t2)`
     - If `f` is a right associative operator with nil terminator with nil terminator `nil`, `t1` is `(f s0 ... s{n-1})`, and `t2` is a numeral value such that `0<=t2<n`, then this returns `s_{t2}`. Otherwise, this operator does not evaluate.
 - `(alf.find f t1 t2)`
-    - If `f` is a right associative operator with nil terminator with nil terminator `nil` and `t1` is `(f s0 ... s{n-1})`, then this returns the smallest numeral value `i` such that `t2` is syntactically eqaul to `si`, or `-1` if no such `si` can be found. Otherwise, this operator does not evaluate.
+    - If `f` is a right associative operator with nil terminator with nil terminator `nil` and `t1` is `(f s0 ... s{n-1})`, then this returns the smallest numeral value `i` such that `t2` is syntactically equal to `si`, or `-1` if no such `si` can be found. Otherwise, this operator does not evaluate.
 
 ### List Computation Examples
 
@@ -727,7 +727,7 @@ In particular the following is accepted:
 (declare-const - (-> Int Int))
 (declare-const - (-> Int Int Int))
 ```
-When parsing a term whose head is `-`, the ALF checker will automatically chose which symbol to use based on the number of arguments passed to it, e.g. `(- 1)` uses the first, and `(- 0 1)` uses the second.
+When parsing a term whose head is `-`, the ALF checker will automatically choose which symbol to use based on the number of arguments passed to it, e.g. `(- 1)` uses the first, and `(- 0 1)` uses the second.
 If a symbol is unapplied, then the ALF checker will interpret it as the first declared term for that symbol.
 
 Furthermore, the ALF checker supports an operator `alf.as` for disambiguation whose syntax is `(alf.as <term> <type>)`.
