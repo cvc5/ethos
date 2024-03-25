@@ -150,6 +150,7 @@ Expr TypeChecker::getType(Expr& e, std::ostream* out)
 
 bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
 {
+  // Note this is the arity after the list operator for alf.cons, alf.find, and so on.
   bool ret = false;
   // check arities
   switch(k)
@@ -1111,6 +1112,11 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   // if all values, run the literal evaluator
   if (allValues)
   {
+    if (!checkArity(k, args.size()))
+    {
+      // does not evaluate if arity is wrong
+      return d_null;
+    }
     // evaluate
     Literal eval = Literal::evaluate(k, lits);
     if (eval.getKind()==Kind::NONE)
