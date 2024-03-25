@@ -1,0 +1,65 @@
+(declare-sort Int 0)
+(declare-consts <numeral> Int)
+
+(declare-const BitVec (-> Int Type))
+(declare-consts <binary> (BitVec (alf.len alf.self)))
+
+(program $get_bitwidth ((T Type) (n Int))
+  (Type) Int
+  (
+    (($get_bitwidth (BitVec n)) n)
+  )
+)
+
+(program $type_first_arg ((T Type) (S Type) (f (-> T S S)) (x T) (y S :list))
+  (S) Type
+  (
+    (($type_first_arg (f x y)) (alf.typeof x))
+  )
+)
+
+; used as the nil terminator for concat
+(define bvempty () (alf.to_bin 0 0))
+
+(declare-const concat (->
+  (! Int :var n :implicit)
+  (! Int :var m :implicit)
+  (BitVec n)
+  (BitVec m)
+  (BitVec (alf.add n m))) :right-assoc-nil bvempty
+)
+
+(declare-const bvor
+    (-> (! Int :var m :implicit)
+        (! (BitVec m) :var x) (BitVec m) (BitVec m))
+    :right-assoc-nil (alf.to_bin ($get_bitwidth ($type_first_arg alf.self)) 0)
+)
+
+
+(declare-const bvand
+    (-> (! Int :var m :implicit)
+        (! (BitVec m) :var x) (BitVec m) (BitVec m))
+    :right-assoc-nil (alf.not (alf.to_bin ($get_bitwidth ($type_first_arg alf.self)) 0))
+)
+
+(program $get_tail ((T Type) (f (-> T T T)) (t T) (s T :list))
+  ((-> T T T) T) T
+  (
+  (($get_tail f (f t s)) s)
+  )
+)
+
+(declare-const is-tail-of (-> (! Type :var T :implicit) (! Type :var U :implicit) T U Bool))
+
+(declare-rule find_tail ((T Type) (f (-> T T T)) (t T) (s T :list))
+  :args ((f t s))
+  :conclusion (is-tail-of ($get_tail f (f t s)) (f t s)))
+
+
+(declare-const a (BitVec 4))
+(declare-const b (BitVec 4))
+(declare-const c (BitVec 3))
+
+(step @p0 (is-tail-of #b0000 (bvor a)) :rule find_tail :args ((bvor a)))
+(step @p1 (is-tail-of #b111 (bvand c)) :rule find_tail :args ((bvand c)))
+(step @p0 (is-tail-of (bvand b) (bvand a b)) :rule find_tail :args ((bvand a b)))
