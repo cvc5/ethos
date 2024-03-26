@@ -86,6 +86,8 @@ State::State(Options& opts, Stats& stats)
   
   d_nullExpr = Expr(mkExprInternal(Kind::NULL_EXPR, {}));
   bind("alf.null", d_nullExpr);
+  // for now, alf.? is (undocumented) syntax for abstract type
+  bind("alf.?", mkAbstractType());
   // self is a distinguished parameter
   d_self = Expr(mkSymbolInternal(Kind::PARAM, "alf.self", mkAbstractType()));
   bind("alf.self", d_self);

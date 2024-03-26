@@ -414,12 +414,6 @@ Token Lexer::tokenizeCurrentSymbol() const
       }
     }
       break;
-    case '?':
-      if (d_token.size()==1)
-      {
-        return Token::ABSTRACT_TYPE;
-      }
-      break;
     case 'a':
       if (d_token.size() == 9 && d_token[1] == 'l' && d_token[2] == 'f' && 
           d_token[3] == '.' && d_token[4] == 'm' && d_token[5] == 'a' &&
