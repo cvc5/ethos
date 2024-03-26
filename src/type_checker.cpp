@@ -178,6 +178,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
       break;
     case Kind::PROOF_TYPE:
     case Kind::EVAL_TYPE_OF:
+    case Kind::EVAL_NAME_OF:
     case Kind::EVAL_HASH:
     case Kind::EVAL_NOT:
     case Kind::EVAL_NEG:
@@ -1071,6 +1072,21 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       return d_null;
     }
     break;
+    case Kind::EVAL_NAME_OF:
+    {
+      // get the type if ground
+      if (isGround(args))
+      {
+        Kind k = args[0]->getKind();
+        if (k==Kind::CONST || k==Kind::VARIABLE)
+        {
+          Literal sym(String(Expr(args[0]).getSymbol()));
+          return Expr(d_state.mkLiteralInternal(sym));
+        }
+      }
+      return d_null;
+    }
+    break;
     case Kind::EVAL_VAR:
     {
       // if arguments are ground and the first argument is a string
@@ -1307,6 +1323,7 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_RAT_DIV:
     case Kind::EVAL_TO_RAT:
       return getOrSetLiteralTypeRule(Kind::RATIONAL);
+    case Kind::EVAL_NAME_OF:
     case Kind::EVAL_TO_STRING:
       return getOrSetLiteralTypeRule(Kind::STRING);
     default:break;

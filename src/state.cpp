@@ -51,6 +51,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("ite", Kind::EVAL_IF_THEN_ELSE);
   bindBuiltinEval("requires", Kind::EVAL_REQUIRES);
   bindBuiltinEval("hash", Kind::EVAL_HASH);
+  bindBuiltinEval("nameof", Kind::EVAL_NAME_OF);
   bindBuiltinEval("typeof", Kind::EVAL_TYPE_OF);
   bindBuiltinEval("var", Kind::EVAL_VAR);
   // TODO: compare?

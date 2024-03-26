@@ -19,4 +19,4 @@
 (step @p2 (= (forall ((x Bool)) (P x)) (forall (@list x.1) (P x.1))) :rule refl :args ((forall ((x Bool)) (P x))))
 
 
-; (step @p3 (= x.1 (alf.var (alf.to_str x.1) (alf.typeof x.1))) :rule refl :args (x.1))
+(step @p3 (= x.1 (alf.var (alf.nameof x.1) (alf.typeof x.1))) :rule refl :args (x.1))

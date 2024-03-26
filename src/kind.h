@@ -62,6 +62,7 @@ enum class Kind
   EVAL_HASH,
   EVAL_VAR,
   EVAL_TYPE_OF,
+  EVAL_NAME_OF,
   // lists
   EVAL_NIL,
   EVAL_CONS,
