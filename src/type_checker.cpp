@@ -1270,7 +1270,7 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
       return d_state.mkType().getValue();
     case Kind::EVAL_VAR:
       // its type is the second argument
-      return children[0];
+      return children[1];
     case Kind::EVAL_ADD:
     case Kind::EVAL_MUL:
       // NOTE: mixed arith
@@ -1307,6 +1307,8 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_RAT_DIV:
     case Kind::EVAL_TO_RAT:
       return getOrSetLiteralTypeRule(Kind::RATIONAL);
+    case Kind::EVAL_TO_STRING:
+      return getOrSetLiteralTypeRule(Kind::STRING);
     default:break;
   }
   if (out)
