@@ -87,7 +87,7 @@ Specifically, the ALF language has the following builtin expressions:
 
 In the following, we informally write BNF categories `<symbol>` to denote an SMT-LIB version 3.0 symbol, `<term>` to denote an SMT-LIB term and `<type>` to denote a term whose type is `Type`, `<typed-param>` has syntax `(<symbol> <type> <attr>*)` and binds `<symbol>` as a fresh parameter of the given type and attributes (if provided).
 
-The following commands are supported for declaring and defining types and terms, most of which are taken from SMT-LIB version 3.0:
+The following commands are supported for declaring and defining types and terms. The first set of commands are identical to those in SMT-LIB version 3.0:
 - `(declare-const <symbol> <type> <attr>*)` declares a constant named `<symbol>` whose type is `<type>`. Can be given an optional list of attributes (see [attributes](#attributes)).
 - `(declare-fun <symbol> (<type>*) <type> <attr>*)` declares a constant named `<symbol>` whose type is given by the argument types and return type. Can be given an optional list of attributes.
 - `(declare-sort <symbol> <numeral>)` declares a new type named `<symbol>` whose kind is `(-> Type^n Type)` if `n>0` or `Type` for the provided numeral `n`.
@@ -506,7 +506,9 @@ Conversion operators:
     - If `t1` and `t2` are numeral values, return the binary value whose value is `t1` (modulo `2^t2`) and whose bitwidth is `t2`.
 - `(alf.to_str t1)`
     - If `t1` is a string value, return `t1`.
-    - Otherwise, if `t1` is a binary or arithmetic value, return the string value corresponding to the result of printing `t1`. Hexadecimal values will use lowercase letters for digits greater than `9`.
+    - If `t1` is a numeric, rational or binary value, return the string value corresponding to the result of printing `t1`. 
+    - If `t1` is a hexadecimal value, return the string value corresponding to the result of printing `t1`. This will use lowercase letters for digits greater than `9`.
+    - If `t1` is a decimal value, return the string value corresponding to the result of printing `t1` as a rational.
 
 The ALF checker eagerly evaluates ground applications of computational operators.
 In other words, the term `(alf.add 1 1)` is syntactically equivalent in all contexts to `2`.

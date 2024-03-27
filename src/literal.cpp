@@ -429,8 +429,8 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
     case Kind::EVAL_TO_STRING:
       switch (ka)
       {
+        case Kind::DECIMAL:  // note we print the decimal as a rational here
         case Kind::NUMERAL:
-        case Kind::DECIMAL:
         case Kind::RATIONAL:return Literal(String(args[0]->toString()));
         case Kind::HEXADECIMAL:return Literal(String("#x" + args[0]->toString()));
         case Kind::BINARY:return Literal(String("#b" + args[0]->toString()));
