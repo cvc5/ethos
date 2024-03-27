@@ -47,6 +47,10 @@ bool Rational::isIntegral() const { return mpz_cmp_ui(d_value.get_den_mpz_t(), 1
 std::string Rational::toString(int base) const { return d_value.get_str(base); }
 std::string Rational::toStringDecimal() const
 {
+  // NOTE: we simply print as a rational for now, due to limitations in
+  // how decimals should be printed.
+  return toString();
+  /*
   // truncate to 256 digits
   // NOTE: this method is not used since it has limitations. We always print
   // decimals as rationals.
@@ -56,6 +60,7 @@ std::string Rational::toStringDecimal() const
   std::stringstream ss;
   ss << buf;
   return ss.str();
+  */
 }
 
 }  // namespace alfc

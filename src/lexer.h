@@ -240,10 +240,6 @@ class Lexer
   Token tokenizeCurrentSymbol() const;
   /** The characters in the current token */
   std::vector<char> d_token;
-  /** Is strict parsing enabled */
-  bool d_isStrict;
-  /** Is sygus enabled */
-  bool d_isSygus;
   /** The character classes. */
   std::array<uint8_t, 256> d_charClass{};  // value-initialized to 0
 };
