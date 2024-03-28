@@ -376,7 +376,7 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
             Assert (i1.fitsUnsignedInt() && dsize.fitsUnsignedInt());
             uint32_t v1 = i1.toUnsignedInt();
             uint32_t vs = dsize.toUnsignedInt();
-            uint32_t v2 = (i1+i2)>=dsize ? vs-1 : i2.toUnsignedInt();
+            uint32_t v2 = i2>=dsize ? vs-1 : i2.toUnsignedInt();
             size_t esize = v2>=v1 ? (v2+1-v1) : 0;
             return Literal(String(args[0]->d_str.substr(v1, esize)));
           }
