@@ -73,7 +73,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("is_neg", Kind::EVAL_IS_NEG);
   bindBuiltinEval("to_z", Kind::EVAL_TO_INT);
   bindBuiltinEval("to_q", Kind::EVAL_TO_RAT);
-  bindBuiltinEval("to_bin", Kind::EVAL_TO_BV);
+  bindBuiltinEval("to_bin", Kind::EVAL_TO_BIN);
   bindBuiltinEval("to_str", Kind::EVAL_TO_STRING);
   // strings
   bindBuiltinEval("len", Kind::EVAL_LENGTH);

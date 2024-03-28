@@ -136,7 +136,7 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
 {
   Assert (k!=Kind::EVAL_IS_EQ && k!=Kind::EVAL_IF_THEN_ELSE && k!=Kind::EVAL_REQUIRES);
   Kind ka = Kind::NONE;
-  if (k!=Kind::EVAL_EXTRACT && k!=Kind::EVAL_TO_BV)
+  if (k!=Kind::EVAL_EXTRACT && k!=Kind::EVAL_TO_BIN)
   {
     ka = allSameKind(args);
     if (ka==Kind::NONE)
@@ -413,7 +413,7 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
         default: break;
       }
       break;
-    case Kind::EVAL_TO_BV:
+    case Kind::EVAL_TO_BIN:
       if (args[0]->d_kind==Kind::NUMERAL && args[0]->d_int.fitsUnsignedInt())
       {
         uint32_t size = args[0]->d_int.toUnsignedInt();

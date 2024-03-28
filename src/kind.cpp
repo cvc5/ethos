@@ -77,7 +77,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     // conversions
     case Kind::EVAL_TO_INT: o << "EVAL_TO_INT"; break;
     case Kind::EVAL_TO_RAT: o << "EVAL_TO_RAT"; break;
-    case Kind::EVAL_TO_BV: o << "EVAL_TO_BV"; break;
+    case Kind::EVAL_TO_BIN: o << "EVAL_TO_BIN"; break;
     case Kind::EVAL_TO_STRING: o << "EVAL_TO_STRING"; break;
     default: o << "UnknownKind(" << unsigned(k) << ")"; break;
   }
@@ -139,7 +139,7 @@ std::string kindToTerm(Kind k)
         // conversions
         case Kind::EVAL_TO_INT: ss << "to_z";break;
         case Kind::EVAL_TO_RAT: ss << "to_q";break;
-        case Kind::EVAL_TO_BV: ss << "to_bv";break;
+        case Kind::EVAL_TO_BIN: ss << "to_bin";break;
         case Kind::EVAL_TO_STRING: ss << "to_str";break;
         default:ss << "[" << k << "]";break;
         }
@@ -217,7 +217,7 @@ bool isLiteralOp(Kind k)
     // conversions
     case Kind::EVAL_TO_INT:
     case Kind::EVAL_TO_RAT:
-    case Kind::EVAL_TO_BV:
+    case Kind::EVAL_TO_BIN:
     case Kind::EVAL_TO_STRING:return true; break;
     default: break;
   }

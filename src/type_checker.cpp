@@ -163,7 +163,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_INT_MOD:
     case Kind::EVAL_RAT_DIV:
-    case Kind::EVAL_TO_BV:
+    case Kind::EVAL_TO_BIN:
     case Kind::EVAL_FIND:
     case Kind::EVAL_CONS:
       ret = (nargs==2);

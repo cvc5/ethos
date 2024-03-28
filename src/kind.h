@@ -87,7 +87,7 @@ enum class Kind
   // conversions
   EVAL_TO_INT,
   EVAL_TO_RAT,
-  EVAL_TO_BV,
+  EVAL_TO_BIN,
   EVAL_TO_STRING
 };
 
