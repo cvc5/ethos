@@ -557,7 +557,6 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     ExprValue* hd = vchildren[0];
     // immediately strip off PARAMETERIZED if it exists
     hd = hd->getKind()==Kind::PARAMETERIZED ? (*hd)[1] : hd;
-    vchildren[0] = hd;
     AppInfo* ai = getAppInfo(hd);
     if (ai!=nullptr)
     {
@@ -641,10 +640,12 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
               // if the "head" child is marked as list, we construct Kind::EVAL_CONCAT
               if (isNil && getConstructorKind(cc[nextIndex]) == Attr::LIST)
               {
+                cc[0] = vchildren[0];
                 curr = mkExprInternal(Kind::EVAL_CONCAT, cc);
               }
               else
               {
+                cc[0] = hd;
                 curr = mkApplyInternal(cc);
               }
               i++;
