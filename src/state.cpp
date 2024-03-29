@@ -1106,7 +1106,7 @@ Expr State::computeConstructorTermInternal(AppInfo* ai,
   // lookup the base operator if necessary
   Expr hd = children[0];
   Expr ct = ai->d_attrConsTerm;
-  if (ct.isNull())
+  if (ct.isNull() || ct.getKind()!=Kind::PARAMETERIZED)
   {
     // if not parameterized, just return self
     return ct;
