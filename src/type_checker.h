@@ -13,6 +13,7 @@
 #include <set>
 #include "expr.h"
 #include "expr_trie.h"
+#include "expr_info.h"
 
 namespace alfc {
 
@@ -122,6 +123,9 @@ class TypeChecker
   /** Compiled version */
   ExprValue* run_evaluateProgram(const std::vector<ExprValue*>& args, Ctx& ctx);
   //---------------- end compiled methods
+  /** Get the nil terminator */
+  Expr computeConstructorTermInternal(AppInfo* ai, 
+                                      const std::vector<Expr>& children);
   /** The state */
   State& d_state;
   /** Mapping literal kinds to type rules */

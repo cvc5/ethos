@@ -1160,7 +1160,10 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     return lit;
   }
   // otherwise, maybe a list operation
-  AppInfo* ac = d_state.getAppInfo(args[0]);
+  ExprValue* op = args[0];
+  // immediately strip off parameterized
+  op = op->getKind()==Kind::PARAMETERIZED ? (*op)[1] : op;
+  AppInfo* ac = d_state.getAppInfo(op);
   if (ac==nullptr)
   {
     Trace("type_checker") << "...not list op, return null" << std::endl;
@@ -1175,7 +1178,6 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   }
   bool isLeft = (ck==Attr::LEFT_ASSOC_NIL);
   Trace("type_checker_debug") << "EVALUATE-LIT (list) " << k << " " << isLeft << " " << args << std::endl;
-  ExprValue* op = args[0];
   ExprValue* nil = ac->d_attrConsTerm.getValue();
   size_t tailIndex = (isLeft ? 1 : 2);
   size_t headIndex = (isLeft ? 2 : 1);
@@ -1348,6 +1350,57 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
     (*out) << "Unknown type for literal operator " << k;
   }
   return nullptr;
+}
+
+Expr TypeChecker::computeConstructorTermInternal(AppInfo* ai, 
+                                                 const std::vector<Expr>& children)
+{
+  if (ai==nullptr)
+  {
+    return d_null;
+  }
+  // lookup the base operator if necessary
+  Expr hd = children[0];
+  Expr ct = ai->d_attrConsTerm;
+  if (ct.isNull() || ct.getKind()!=Kind::PARAMETERIZED)
+  {
+    // if not parameterized, just return self
+    return ct;
+  }
+  Ctx ctx;
+  // if explicit parameters, then evaluate the constructor term
+  if (hd.getKind()==Kind::PARAMETERIZED)
+  {
+    if (hd.getNumChildren()==ct.getNumChildren())
+    {
+      for (size_t i=0, nparams = hd[0].getNumChildren(); i<nparams; i++)
+      {
+        ctx[ct[0][i].getValue()] = hd[0][i].getValue();
+      }
+    }
+    else
+    {
+      // error
+      Warning() << "Failed to determine constructor term for " << hd[1]
+                << ", expected " << ct.getNumChildren() << " parameters, got "
+                << hd.getNumChildren() << std::endl;
+      return d_state.mkNil();
+    }
+  }
+  else
+  {
+    // otherwise, we must infer the parameters
+    Trace("ajr-temp") << "Infer params for " << hd << " @ " << children[1] << std::endl;
+    if (isNAryAttr(ai->d_attrCons))
+    {
+      std::vector<ExprValue*> app;
+      app.push_back(hd.getValue());
+      app.push_back(children[1].getValue());
+      getTypeAppInternal(app, ctx);
+    }
+  }
+  Trace("ajr-temp") << "Context: " << ctx << std::endl;
+  return evaluate(ct[1].getValue(), ctx);
 }
 
 }  // namespace alfc

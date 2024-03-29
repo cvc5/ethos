@@ -677,7 +677,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       }
       size_t nchild = vchildren.size();
       // determine the constructor term, which may involve parameter inference
-      Expr consTerm = computeConstructorTermInternal(ai, children);
+      Expr consTerm = d_tc.computeConstructorTermInternal(ai, children);
       // if it has a constructor attribute
       switch (ai->d_attrCons)
       {
@@ -1094,57 +1094,6 @@ const ExprValue* State::getBaseOperator(const ExprValue * v) const
     return (*v)[0];
   }
   return v;
-}
-
-Expr State::computeConstructorTermInternal(AppInfo* ai, 
-                                           const std::vector<Expr>& children)
-{
-  if (ai==nullptr)
-  {
-    return d_null;
-  }
-  // lookup the base operator if necessary
-  Expr hd = children[0];
-  Expr ct = ai->d_attrConsTerm;
-  if (ct.isNull() || ct.getKind()!=Kind::PARAMETERIZED)
-  {
-    // if not parameterized, just return self
-    return ct;
-  }
-  Ctx ctx;
-  // if explicit parameters, then evaluate the constructor term
-  if (hd.getKind()==Kind::PARAMETERIZED)
-  {
-    if (hd.getNumChildren()==ct.getNumChildren())
-    {
-      for (size_t i=0, nparams = hd[0].getNumChildren(); i<nparams; i++)
-      {
-        ctx[ct[0][i].getValue()] = hd[0][i].getValue();
-      }
-    }
-    else
-    {
-      // error
-      Warning() << "Failed to determine constructor term for " << hd[1]
-                << ", expected " << ct.getNumChildren() << " parameters, got "
-                << hd.getNumChildren() << std::endl;
-      return d_nullExpr;
-    }
-  }
-  else
-  {
-    // otherwise, we must infer the parameters
-    Trace("ajr-temp") << "Infer params for " << hd << " @ " << children[1] << std::endl;
-    if (isNAryAttr(ai->d_attrCons))
-    {
-      std::vector<Expr> app;
-      app.push_back(hd);
-      app.push_back(children[1]);
-      d_tc.getTypeApp(app, ctx);
-    }
-  }
-  Trace("ajr-temp") << "Context: " << ctx << std::endl;
-  return d_tc.evaluate(ct[1].getValue(), ctx);
 }
 
 Attr State::getConstructorKind(const ExprValue* v) const
