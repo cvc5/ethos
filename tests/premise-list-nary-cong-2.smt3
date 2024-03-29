@@ -19,7 +19,7 @@
 (program mk_nary_cong_eq ((U Type) (f (-> U U)) (t1 U :list) (t2 U :list) (s1 U) (s2 U) (tail Bool :list))
     ((-> U U) Bool) Bool
     (
-        ((mk_nary_cong_eq f alf.null)              (= alf.null alf.null))
+        ((mk_nary_cong_eq f true)                 (= true true))
         ((mk_nary_cong_eq f (and (= s1 s2) tail)) (add_nary_arg f s1 s2 (mk_nary_cong_eq f tail)))
     )
 )

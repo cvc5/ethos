@@ -596,8 +596,6 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         }
       }
       size_t nchild = vchildren.size();
-      // determine the constructor term, which may involve parameter inference
-      Expr consTerm = d_tc.computeConstructorTermInternal(ai, children);
       // if it has a constructor attribute
       switch (ai->d_attrCons)
       {
@@ -626,6 +624,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
               {
                 // if the last term is not marked as a list variable and
                 // we have a null terminator, then we insert the null terminator
+                Expr consTerm = d_tc.computeConstructorTermInternal(ai, children);
                 curr = consTerm.getValue();
                 i--;
               }
@@ -654,9 +653,10 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           break;
         case Attr::CHAINABLE:
         {
+          Expr consTerm = d_tc.computeConstructorTermInternal(ai, children);
           std::vector<Expr> cchildren;
-          Assert(!ai->d_attrConsTerm.isNull());
-          cchildren.push_back(ai->d_attrConsTerm);
+          Assert(!consTerm.isNull());
+          cchildren.push_back(consTerm);
           std::vector<ExprValue*> cc{hd, nullptr, nullptr};
           for (size_t i=1, nchild = vchildren.size()-1; i<nchild; i++)
           {
@@ -675,9 +675,10 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           break;
         case Attr::PAIRWISE:
         {
+          Expr consTerm = d_tc.computeConstructorTermInternal(ai, children);
           std::vector<Expr> cchildren;
-          Assert(!ai->d_attrConsTerm.isNull());
-          cchildren.push_back(ai->d_attrConsTerm);
+          Assert(!consTerm.isNull());
+          cchildren.push_back(consTerm);
           std::vector<ExprValue*> cc{hd, nullptr, nullptr};
           for (size_t i=1, nchild = vchildren.size(); i<nchild-1; i++)
           {

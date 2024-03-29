@@ -1398,6 +1398,12 @@ Expr TypeChecker::computeConstructorTermInternal(AppInfo* ai,
       std::vector<ExprValue*> app;
       app.push_back(hd.getValue());
       app.push_back(children[1].getValue());
+      // ensure children are type checked
+      for (ExprValue* e : app)
+      {
+        Expr expr(e);
+        getType(expr);
+      }
       getTypeAppInternal(app, ctx);
     }
   }

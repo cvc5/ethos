@@ -720,7 +720,8 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList(
         isImplicit = true;
         impls.push_back(v);
       }
-      if (processAttributeMap(attrs, ck, cons, {}))
+      processAttributeMap(attrs, ck, cons, {});
+      if (ck!=Attr::NONE)
       {
         d_state.markConstructorKind(v, ck, cons);
         ck = Attr::NONE;
