@@ -277,8 +277,6 @@ Right and left associative operators with nil terminators also have a relationsh
 
 Note that the type for right and left associative operators with nil terminators is typically `(-> T T T)` for some `T`, where their nil terminator has type `T`.
 
-> Currently, if no nil terminator is provided, then the ALF checker will use the term `alf.null` as the nil terminator for the operator. The type rule for the operator is internally updated to accept `alf.null` as its second child.
-
 ### List
 
 Atomic terms can be marked with the annotation `:list`.
