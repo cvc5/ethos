@@ -332,17 +332,12 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
 
 Expr TypeChecker::getTypeApp(std::vector<Expr>& children, std::ostream* out)
 {
-  Ctx ctx;
-  return getTypeApp(children, ctx, out);
-}
-
-Expr TypeChecker::getTypeApp(std::vector<Expr>& children, Ctx& ctx, std::ostream* out)
-{
   std::vector<ExprValue*> vchildren;
   for (const Expr& c : children)
   {
     vchildren.push_back(c.getValue());
   }
+  Ctx ctx;
   return getTypeAppInternal(vchildren, ctx, out);
 }
 
@@ -1367,6 +1362,7 @@ Expr TypeChecker::computeConstructorTermInternal(AppInfo* ai,
     // if not parameterized, just return self
     return ct;
   }
+  Trace("type_checker") << "Determine constructor term for " << hd << std::endl;
   Ctx ctx;
   // if explicit parameters, then evaluate the constructor term
   if (hd.getKind()==Kind::PARAMETERIZED)
@@ -1381,16 +1377,22 @@ Expr TypeChecker::computeConstructorTermInternal(AppInfo* ai,
     else
     {
       // error
-      Warning() << "Failed to determine constructor term for " << hd[1]
+      Warning() << "Unexpected number of parameters for " << hd[1]
                 << ", expected " << ct.getNumChildren() << " parameters, got "
                 << hd.getNumChildren() << std::endl;
       return d_state.mkNil();
     }
   }
+  else if (children.size()==1)
+  {
+    // if not in an application, we fail
+    Warning() << "Failed to determine parameters for " << hd << std::endl;
+    return d_state.mkNil();
+  }
   else
   {
     // otherwise, we must infer the parameters
-    Trace("ajr-temp") << "Infer params for " << hd << " @ " << children[1] << std::endl;
+    Trace("type_checker") << "Infer params for " << hd << " @ " << children[1] << std::endl;
     if (isNAryAttr(ai->d_attrCons))
     {
       std::vector<ExprValue*> app;
@@ -1399,7 +1401,7 @@ Expr TypeChecker::computeConstructorTermInternal(AppInfo* ai,
       getTypeAppInternal(app, ctx);
     }
   }
-  Trace("ajr-temp") << "Context: " << ctx << std::endl;
+  Trace("type_checker") << "Context for constructor term: " << ctx << std::endl;
   return evaluate(ct[1].getValue(), ctx);
 }
 
