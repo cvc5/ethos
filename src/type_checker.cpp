@@ -1173,7 +1173,13 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   }
   bool isLeft = (ck==Attr::LEFT_ASSOC_NIL);
   Trace("type_checker_debug") << "EVALUATE-LIT (list) " << k << " " << isLeft << " " << args << std::endl;
-  ExprValue* nil = ac->d_attrConsTerm.getValue();
+  Expr nilExpr = computeConstructorTermInternal(ac, {Expr(args[0])});
+  if (nilExpr.isNull())
+  {
+    Trace("type_checker") << "...failed to get nil" << std::endl;
+    return d_null;
+  }
+  ExprValue * nil = nilExpr.getValue();
   size_t tailIndex = (isLeft ? 1 : 2);
   size_t headIndex = (isLeft ? 2 : 1);
   ExprValue* ret;
@@ -1192,6 +1198,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       ExprValue* b = getNAryChildren(args[tailIndex], op, nil, targs, isLeft);
       if (b==nullptr)
       {
+        Trace("type_checker") << "...tail not in list form, nil is " << nilExpr << std::endl;
         // tail is not in list form
         return d_null;
       }
@@ -1205,6 +1212,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
         ExprValue* a = getNAryChildren(args[headIndex], op, nil, hargs, isLeft);
         if (a==nullptr)
         {
+          Trace("type_checker") << "...head not in list form" << std::endl;
           // head is not in list form
           return d_null;
         }

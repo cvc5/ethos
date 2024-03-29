@@ -604,6 +604,9 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         case Attr::LEFT_ASSOC_NIL:
         case Attr::RIGHT_ASSOC_NIL:
         {
+          // NOTE: we only call computeConstructorTermInternal when necessary.
+          // This means that we don't construct bogus terms when e.g.
+          // right-assoc-nil operators are used in side condition bodies.
           // note that nchild>=2 treats e.g. (or a) as (or a false).
           // checking nchild>2 treats (or a) as a function Bool -> Bool.
           if (nchild>=2)

@@ -24,7 +24,7 @@
   (-> (! Type :var T :implicit)
       (Seq T) Int))
 (declare-parameterized-const str.++ ((T Type))
-  (-> (Seq T) (Seq T) (Seq T)) :right-assoc-nil (mk_emptystr T))
+  (-> (Seq T) (Seq T) (Seq T)) :right-assoc-nil (mk_emptystr (Seq T)))
 
 ; extended functions
 (declare-const str.substr (-> (! Type :var T :implicit)
