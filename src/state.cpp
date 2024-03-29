@@ -46,6 +46,7 @@ State::State(Options& opts, Stats& stats)
   //bindBuiltin("lambda", Kind::LAMBDA, true);
   bindBuiltin("->", Kind::FUNCTION_TYPE);
   bindBuiltin("_", Kind::APPLY);
+  bindBuiltin("__", Kind::PARAMETERIZED);
 
   bindBuiltinEval("is_eq", Kind::EVAL_IS_EQ);
   bindBuiltinEval("ite", Kind::EVAL_IF_THEN_ELSE);
@@ -664,6 +665,21 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           return ret;
         }
       }
+      size_t nchild = vchildren.size();
+      // determine the constructor term
+      ExprValue* consTerm = ai->d_attrConsTerm.getValue();
+      if (consTerm!=nullptr && consTerm->getKind()==Kind::PARAMETERIZED && nchild>=2)
+      {
+        // TODO
+        /*
+        Expr argType = d_tc.getType(children[1]);
+        Expr hdType = d_tc.getType(children[0]);
+        if (hdType.getKind()==Kind::FUNCTION_TYPE)
+        {
+          hdType = hdType[0];
+        }
+        */
+      }
       // if it has a constructor attribute
       switch (ai->d_attrCons)
       {
@@ -672,7 +688,6 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         case Attr::LEFT_ASSOC_NIL:
         case Attr::RIGHT_ASSOC_NIL:
         {
-          size_t nchild = vchildren.size();
           // note that nchild>=2 treats e.g. (or a) as (or a false).
           // checking nchild>2 treats (or a) as a function Bool -> Bool.
           if (nchild>=2)
@@ -693,7 +708,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
               {
                 // if the last term is not marked as a list variable and
                 // we have a null terminator, then we insert the null terminator
-                curr = ai->d_attrConsTerm.getValue();
+                curr = consTerm;
                 i--;
               }
             }
@@ -1065,6 +1080,7 @@ bool State::isBinder(const ExprValue* e) const
 Expr State::mkBinderList(const ExprValue* ev, const std::vector<Expr>& vs)
 {
   Assert (!vs.empty());
+  Assert (ev->getKind()!=Kind::PARAMETERIZED);
   std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(ev);
   Assert (it!=d_appData.end());
   std::vector<Expr> vlist;
@@ -1073,14 +1089,54 @@ Expr State::mkBinderList(const ExprValue* ev, const std::vector<Expr>& vs)
   return mkExpr(Kind::APPLY, vlist);
 }
 
+const ExprValue* State::getBaseOperator(const ExprValue * v) const
+{
+  if (v->getKind()==Kind::PARAMETERIZED)
+  {
+    return (*v)[0];
+  }
+  return v;
+}
+
 Attr State::getConstructorKind(const ExprValue* v) const
 {
-  std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(v);
+  const ExprValue* vb = getBaseOperator(v);
+  std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(vb);
   if (it!=d_appData.end())
   {
     return it->second.d_attrCons;
   }
   return Attr::NONE;
+}
+
+Expr State::computeConstructorTerm(const ExprValue* v)
+{
+  const ExprValue* vb = getBaseOperator(v);
+  std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(vb);
+  if (it!=d_appData.end())
+  {
+    Expr ct = it->second.d_attrConsTerm;
+    if (!ct.isNull() && ct.getKind()==Kind::PARAMETERIZED)
+    {
+      Expr vv(v);
+      // if explicit parameters, then evaluate the constructor term
+      if (vv.getKind()==Kind::PARAMETERIZED && vv.getNumChildren()==ct.getNumChildren())
+      {
+        Ctx ctx;
+        for (size_t i=0, nparams = vv[0].getNumChildren(); i<nparams; i++)
+        {
+          ctx[ct[0][i].getValue()] = vv[0][i].getValue();
+        }
+        return d_tc.evaluate(ct.getValue(), ctx);
+      }
+      else
+      {
+        // error?
+      }
+    }
+    return ct;
+  }
+  return d_null;
 }
 
 Expr State::getVar(const std::string& name) const
@@ -1224,7 +1280,8 @@ bool State::hasReference() const
 
 AppInfo* State::getAppInfo(const ExprValue* e)
 {
-  std::map<const ExprValue *, AppInfo>::iterator it = d_appData.find(e);
+  const ExprValue * eb = getBaseOperator(e);
+  std::map<const ExprValue *, AppInfo>::iterator it = d_appData.find(eb);
   if (it!=d_appData.end())
   {
     return &it->second;

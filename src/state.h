@@ -182,6 +182,10 @@ class State
   Expr d_conclusion;
   Expr d_nullExpr;
   Expr d_fail;
+  /** Get base operator */
+  const ExprValue* getBaseOperator(const ExprValue * v) const;
+  /** Get the nil terminator */
+  Expr computeConstructorTerm(const ExprValue* v);
   /** Get the constructor kind for symbol v */
   Attr getConstructorKind(const ExprValue* v) const;
   /** Mark that file s was included */

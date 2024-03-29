@@ -35,8 +35,8 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::TUPLE: o << "TUPLE"; break;
     case Kind::NULL_EXPR: o << "NIL"; break;
     case Kind::PROGRAM: o << "PROGRAM"; break;
-    case Kind::COLLECT: o << "COLLECT"; break;
     case Kind::AS: o << "AS"; break;
+    case Kind::PARAMETERIZED: o << "PARAMETERIZED"; break;
     // literals
     case Kind::BOOLEAN: o << "BOOLEAN"; break;
     case Kind::NUMERAL: o << "NUMERAL"; break;
@@ -97,10 +97,11 @@ std::string kindToTerm(Kind k)
     case Kind::QUOTE_TYPE: ss << "Quote"; break;
     case Kind::NULL_EXPR: ss << "alf.nil"; break;
     // terms
-    case Kind::APPLY: ss << "@"; break;
+    case Kind::APPLY: ss << "_"; break;
     case Kind::LAMBDA: ss << "lambda"; break;
     case Kind::PROGRAM: ss << "program"; break;
     case Kind::AS: ss << "alf.as"; break;
+    case Kind::PARAMETERIZED: ss << "__"; break;
     // operations on literals
     default:
       if (isLiteralOp(k))

@@ -36,6 +36,7 @@ CmdParser::CmdParser(Lexer& lex,
   d_table["declare-datatype"] = Token::DECLARE_DATATYPE;
   d_table["declare-datatypes"] = Token::DECLARE_DATATYPES;
   d_table["declare-fun"] = Token::DECLARE_FUN;
+  d_table["declare-parameterized-fun"] = Token::DECLARE_PARAMETERIZED_CONST;
   d_table["declare-oracle-fun"] = Token::DECLARE_ORACLE_FUN;
   d_table["declare-sort"] = Token::DECLARE_SORT;
   d_table["define-const"] = Token::DEFINE_CONST;
@@ -129,9 +130,11 @@ bool CmdParser::parseNextCommand()
     // (declare-fun <symbol> (<sort>∗) <sort>)
     // (declare-oracle-fun <symbol> (<sort>∗) <sort>)
     // (declare-const <symbol> <sort>)
+    // (declare-parameterized-const (<sorted_var>*) <symbol> <sort>)
     // (declare-var <symbol> <sort>)
     case Token::DECLARE_CONST:
     case Token::DECLARE_FUN:
+    case Token::DECLARE_PARAMETERIZED_CONST:
     case Token::DECLARE_ORACLE_FUN:
     case Token::DECLARE_VAR:
     {
@@ -139,10 +142,17 @@ bool CmdParser::parseNextCommand()
       std::string name = d_eparser.parseSymbol();
       //d_state.checkUserSymbol(name);
       std::vector<Expr> sorts;
+      std::vector<Expr> params;
       bool flattenFunction = (tok != Token::DECLARE_ORACLE_FUN);
       if (tok == Token::DECLARE_FUN || tok == Token::DECLARE_ORACLE_FUN)
       {
         sorts = d_eparser.parseTypeList();
+      }
+      else if (tok == Token::DECLARE_PARAMETERIZED_CONST)
+      {
+        d_state.pushScope();
+        std::vector<Expr> vs =
+            d_eparser.parseAndBindSortedVarList();
       }
       Expr t = d_eparser.parseType();
       if (!sorts.empty())
@@ -171,13 +181,13 @@ bool CmdParser::parseNextCommand()
           std::string oname = d_eparser.parseSymbol();
           cons = d_state.mkLiteral(Kind::STRING, oname);
         }
-        else if (tok==Token::DECLARE_CONST || tok==Token::DECLARE_FUN)
+        else if (tok==Token::DECLARE_CONST || tok==Token::DECLARE_FUN || tok==Token::DECLARE_PARAMETERIZED_CONST)
         {
           // possible attribute list
           AttrMap attrs;
           d_eparser.parseAttributeList(t, attrs);
           // determine if an attribute specified a constructor kind
-          if (d_eparser.processAttributeMap(attrs, ck, cons))
+          if (d_eparser.processAttributeMap(attrs, ck, cons, params))
           {
             // if so, this may transform the type
             t = d_state.mkAnnotatedType(t, ck, cons);
@@ -194,6 +204,11 @@ bool CmdParser::parseNextCommand()
           ss << "Failed to mark " << v << " with attribute " << ck;
           d_lex.parseError(ss.str());
         }
+      }
+      // pop the scope
+      if (tok == Token::DECLARE_PARAMETERIZED_CONST)
+      {
+        d_state.popScope();
       }
       // bind
       d_eparser.bind(name, v);
