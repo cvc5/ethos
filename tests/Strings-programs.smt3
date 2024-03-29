@@ -19,12 +19,8 @@
   )
 )
 
-(program $char_type_of ((T Type))
-  (Type) Type
-  (
-    (($char_type_of (Seq T)) T)
-  )
-)
+(define $char_type_of ((T Type)) 
+  (alf.match ((U Type)) T (((Seq U) U))))
 (define $str_concat ((T Type :implicit) (x (Seq T)) (y (Seq T)))
   (alf.concat (__ str.++ ($char_type_of (alf.typeof x))) x y))
 (define $str_cons ((T Type :implicit) (x (Seq T)) (y (Seq T)))

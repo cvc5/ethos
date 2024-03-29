@@ -1110,6 +1110,14 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       }
     }
     break;
+    case Kind::PARAMETERIZED:
+    {
+      if (isGround(args) && args.size()==2)
+      {
+        return Expr(args[1]);
+      }
+    }
+    break;
     default:
       break;
   }
@@ -1411,6 +1419,12 @@ Expr TypeChecker::computeConstructorTermInternal(AppInfo* ai,
       {
         Expr expr(e);
         getType(expr);
+        ExprValue* t = d_state.lookupType(e);
+        if (t==nullptr)
+        {
+          Warning() << "Type inference failed for " << hd << " applied to " << children[1] << std::endl;
+          return d_state.mkNil();
+        }
       }
       getTypeAppInternal(app, ctx);
     }
