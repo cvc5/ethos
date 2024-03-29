@@ -16,12 +16,10 @@
 
 (declare-const and
 (->
-    (! Type :var U :implicit)
     Bool
-    U
-    (maybe_nil Bool U)
-) :right-assoc-nil)
-
+    Bool
+    Bool
+) :right-assoc-nil true)
 
 ;;;;;; (-> Bool (-> U (maybe_nil Bool U)))
 ;;;;;; (-> Bool (-> U (Requires (alf.ite (alf.is_eq U alf.null) Bool U) Bool Bool)))
@@ -33,30 +31,15 @@
     Bool
     Bool
     Bool
-) :right-assoc-nil)
+) :right-assoc-nil true)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(declare-const bvand
-(->
-    (! Type :var U :implicit)
-    (! Int :var m :implicit)
+(declare-parameterized-const bvand ((m Int))
+(-> (BitVec m)
     (BitVec m)
-    U
-    (maybe_nil (BitVec m) U)
-) :right-assoc-nil)
-
-;;;;;; (-> (BitVec m) (-> U (maybe_nil (BitVec m) U)))
-;;;;;; (-> (BitVec m) (-> U (Requires (alf.ite (alf.is_eq U alf.null) (BitVec m) U) (BitVec m) (BitVec m))))
-;;;;;; (-> (BitVec m) (-> U (alf.ite (alf.is_eq U alf.null) (BitVec m) (Requires U (BitVec m) (BitVec m)))))
-
-(declare-const bvand2
-(->
-    (! Int :var m :implicit)
-    (BitVec m)
-    (BitVec m)
-    (BitVec m)
-) :right-assoc-nil)
+    (BitVec m))
+:right-assoc-nil (alf.not (alf.to_bin m 0)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -80,7 +63,7 @@
     T
     U
     (arith_typeunion_nary T U)
-) :right-assoc-nil)
+) :right-assoc-nil 0)
 
 ;;;;;; (-> T (-> U (arith_typeunion_nary T U)))
 ;;;;;; (-> T (-> U (alf.ite (alf.is_eq U alf.null) (arith_typeunion_nary T U) (Requires U U (arith_typeunion_nary T U)))))
@@ -96,27 +79,21 @@
       ((is_string_type U) false)
     )
 )
+(declare-const seq.empty (-> (! Type :var T) T))
+(program mk_emptystr ((U Type))
+  (Type) U
+  (
+    ((mk_emptystr String)  "")
+    ((mk_emptystr (Seq U)) (seq.empty (Seq U)))
+  )
+)
+(declare-parameterized-const str.++ ((T Type))
+  (-> (Seq T) (Seq T) (Seq T)) :right-assoc-nil (mk_emptystr T))
 
-(declare-const str.++
-(->
-    (! Type :var T :implicit)
-    (! Type :var U :implicit)
-    T
-    U
-    (! T :requires ((is_string_type T) true) :requires ((maybe_nil T U) T))
-) :right-assoc-nil)
 
 ;;;;;; (-> T (-> U (Requires (is_string_type T) true (Requires (maybe_nil T U) T T))))
 ;;;;;; (-> T (Requires (is_string_type T) true (-> U (alf.ite (alf.is_eq U alf.null) T T))))
 
-
-(declare-const str.++2
-(->
-    (! Type :var T :implicit)
-    (! T :requires ((is_string_type T) true))
-    T
-    T
-) :right-assoc-nil)
 
 
 ; (-> t1 (-> t2 t3)) :right-assoc-nil

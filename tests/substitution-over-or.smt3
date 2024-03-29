@@ -6,8 +6,8 @@
     )
 )
 
-(declare-const or (-> Bool Bool Bool) :right-assoc-nil)
-(declare-const and (-> Bool Bool Bool) :right-assoc-nil)
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+(declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
 (declare-const not (-> Bool Bool))
 (declare-const = (-> (! Type :var T :implicit) T T Bool))
 
@@ -25,7 +25,7 @@
   (
   ((substitute-over-or x y (or x l)) (append y (substitute-over-or x y l)))
   ((substitute-over-or x y (or z l)) (append z (substitute-over-or x y l)))
-  ((substitute-over-or x y alf.null)  alf.null)
+  ((substitute-over-or x y false)    false)
   )
 )
 

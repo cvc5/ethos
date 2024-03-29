@@ -9,15 +9,6 @@
 ; This signature is used for both strings and sequences, where we often
 ; write "string" in the documentation to refer to a string or sequence.
 
-; Make empty string of the given string-like sort U.
-(program mk_emptystr ((U Type))
-  (Type) U
-  (
-    ((mk_emptystr String)  "")
-    ((mk_emptystr (Seq U)) (seq.empty (Seq U)))
-  )
-)
-
 ; Return true if s is the empty string or sequence.
 (program string_is_empty ((U Type) (x U))
   (U) Bool

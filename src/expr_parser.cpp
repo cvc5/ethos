@@ -1037,19 +1037,6 @@ void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedS
         break;
       case Attr::RIGHT_ASSOC_NIL:
       case Attr::LEFT_ASSOC_NIL:
-      {
-        // optional value
-        Token tok = d_lex.peekToken();
-        if (tok!=Token::RPAREN && tok!=Token::KEYWORD)
-        {
-          val = parseExpr();
-        }
-        else
-        {
-          val = d_state.mkNil();
-        }
-      } 
-        break;
       case Attr::CHAINABLE:
       case Attr::PAIRWISE:
       case Attr::BINDER:
@@ -1242,7 +1229,7 @@ void ExprParser::ensureBound(const Expr& e, const std::vector<Expr>& bvs)
   }
 }
 
-bool ExprParser::processAttributeMap(const AttrMap& attrs,
+void ExprParser::processAttributeMap(const AttrMap& attrs,
                                      Attr& ck,
                                      Expr& cons,
                                      const std::vector<Expr>& params)
@@ -1302,7 +1289,6 @@ bool ExprParser::processAttributeMap(const AttrMap& attrs,
       }
     }
   }
-  return ck!=Attr::NONE;
 }
 
 }  // namespace alfc

@@ -186,11 +186,7 @@ bool CmdParser::parseNextCommand()
           AttrMap attrs;
           d_eparser.parseAttributeList(t, attrs);
           // determine if an attribute specified a constructor kind
-          if (d_eparser.processAttributeMap(attrs, ck, cons, params))
-          {
-            // if so, this may transform the type
-            t = d_state.mkAnnotatedType(t, ck, cons);
-          }
+          d_eparser.processAttributeMap(attrs, ck, cons, params);
         }
         v = d_state.mkSymbol(sk, name, t);
       }

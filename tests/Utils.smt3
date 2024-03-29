@@ -27,5 +27,6 @@
 
 ; untyped list
 (declare-sort @List 0)
-(declare-const @list (-> (! Type :var T :implicit) T @List @List) :right-assoc-nil)
+(declare-const @list.nil @List)
+(declare-const @list (-> (! Type :var T :implicit) T @List @List) :right-assoc-nil @list.nil)
 

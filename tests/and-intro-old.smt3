@@ -5,7 +5,7 @@
       ((maybe_nil t alf.null) t)
     )
 )
-(declare-const and (-> (! Type :var U :implicit) Bool U (maybe_nil Bool U)) :right-assoc-nil)
+(declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
 (declare-const = (-> (! Type :var T :implicit) T T Bool))
 
 ; nary.append cons c xs

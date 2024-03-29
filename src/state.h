@@ -100,8 +100,6 @@ class State
   /** */
   Expr mkBuiltinType(Kind k);
   /** */
-  Expr mkAnnotatedType(const Expr& t, Attr ck, const Expr& cons);
-  /** */
   Expr mkSymbol(Kind k, const std::string& name, const Expr& type);
   /** (alf.requires <pair>+ <type>) */
   Expr mkRequires(const std::vector<Expr>& args, const Expr& ret);

@@ -7,8 +7,7 @@
 )
 
 (declare-const = (-> (! Type :var T :implicit) T T Bool))
-(declare-const and (-> (! Type :var U :implicit) Bool U (maybe_nil Bool U)) :right-assoc-nil)
-
+(declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
 
 (program add_nary_arg ((U Type) (f (-> U U)) (s1 U) (s2 U) (t1 U) (t2 U) (nil U :list))
     ((-> U U) U U Bool) Bool
