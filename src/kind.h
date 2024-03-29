@@ -34,8 +34,8 @@ enum class Kind
   TUPLE,
   NULL_EXPR,
   PROGRAM,
-  COLLECT,
   AS,
+  PARAMETERIZED,
 
   // symbols
   PARAM,

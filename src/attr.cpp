@@ -38,4 +38,21 @@ std::ostream& operator<<(std::ostream& o, Attr a)
   return o;
 }
 
+bool isNAryAttr(Attr a)
+{
+  switch (a)
+  {
+    case Attr::LEFT_ASSOC:
+    case Attr::RIGHT_ASSOC:
+    case Attr::LEFT_ASSOC_NIL:
+    case Attr::RIGHT_ASSOC_NIL:
+    case Attr::CHAINABLE:
+    case Attr::PAIRWISE:
+      return true;
+    default:
+      break;
+  }
+  return false;
+}
+
 }  // namespace alfc

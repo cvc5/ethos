@@ -100,8 +100,6 @@ class State
   /** */
   Expr mkBuiltinType(Kind k);
   /** */
-  Expr mkAnnotatedType(const Expr& t, Attr ck, const Expr& cons);
-  /** */
   Expr mkSymbol(Kind k, const std::string& name, const Expr& type);
   /** (alf.requires <pair>+ <type>) */
   Expr mkRequires(const std::vector<Expr>& args, const Expr& ret);
@@ -182,6 +180,8 @@ class State
   Expr d_conclusion;
   Expr d_nullExpr;
   Expr d_fail;
+  /** Get base operator */
+  const ExprValue* getBaseOperator(const ExprValue * v) const;
   /** Get the constructor kind for symbol v */
   Attr getConstructorKind(const ExprValue* v) const;
   /** Mark that file s was included */
@@ -203,6 +203,7 @@ class State
   ExprValue* mkLiteralInternal(Literal& l);
   /** Get the internal data for expression e. */
   AppInfo* getAppInfo(const ExprValue* e);
+  const AppInfo* getAppInfo(const ExprValue* e) const;
   /** lookup type */
   ExprValue* lookupType(const ExprValue* e) const;
   /** Bind builtin */

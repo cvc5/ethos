@@ -222,7 +222,8 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
   {
     case Kind::APPLY:
     {
-      return getTypeAppInternal(e->d_children, out);
+      Ctx ctx;
+      return getTypeAppInternal(e->d_children, ctx, out);
     }
     case Kind::LAMBDA:
     {
@@ -302,6 +303,12 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       return d_null;
     }
       break;
+    case Kind::PARAMETERIZED:
+    {
+      // type of the second child
+      return Expr(d_state.lookupType(e->d_children[1]));
+    }
+      break;
     default:
       // if a literal operator, consult auxiliary method
       if (isLiteralOp(k))
@@ -330,10 +337,12 @@ Expr TypeChecker::getTypeApp(std::vector<Expr>& children, std::ostream* out)
   {
     vchildren.push_back(c.getValue());
   }
-  return getTypeAppInternal(vchildren, out);
+  Ctx ctx;
+  return getTypeAppInternal(vchildren, ctx, out);
 }
 
 Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
+                                     Ctx& ctx,
                                      std::ostream* out)
 {
   Assert (!children.empty());
@@ -388,7 +397,6 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     Trace("type_checker") << "RUN type check " << Expr(hdType) << std::endl;
     return run_getTypeInternal(hdType, ctypes, out);
   }
-  Ctx ctx;
   std::set<std::pair<ExprValue*, ExprValue*>> visited;
   for (size_t i=0, nchild=ctypes.size(); i<nchild; i++)
   {
@@ -1147,7 +1155,10 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     return lit;
   }
   // otherwise, maybe a list operation
-  AppInfo* ac = d_state.getAppInfo(args[0]);
+  ExprValue* op = args[0];
+  // immediately strip off parameterized
+  op = op->getKind()==Kind::PARAMETERIZED ? (*op)[1] : op;
+  AppInfo* ac = d_state.getAppInfo(op);
   if (ac==nullptr)
   {
     Trace("type_checker") << "...not list op, return null" << std::endl;
@@ -1162,8 +1173,13 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   }
   bool isLeft = (ck==Attr::LEFT_ASSOC_NIL);
   Trace("type_checker_debug") << "EVALUATE-LIT (list) " << k << " " << isLeft << " " << args << std::endl;
-  ExprValue* op = args[0];
-  ExprValue* nil = ac->d_attrConsTerm.getValue();
+  Expr nilExpr = computeConstructorTermInternal(ac, {Expr(args[0])});
+  if (nilExpr.isNull())
+  {
+    Trace("type_checker") << "...failed to get nil" << std::endl;
+    return d_null;
+  }
+  ExprValue * nil = nilExpr.getValue();
   size_t tailIndex = (isLeft ? 1 : 2);
   size_t headIndex = (isLeft ? 2 : 1);
   ExprValue* ret;
@@ -1182,6 +1198,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       ExprValue* b = getNAryChildren(args[tailIndex], op, nil, targs, isLeft);
       if (b==nullptr)
       {
+        Trace("type_checker") << "...tail not in list form, nil is " << nilExpr << std::endl;
         // tail is not in list form
         return d_null;
       }
@@ -1195,6 +1212,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
         ExprValue* a = getNAryChildren(args[headIndex], op, nil, hargs, isLeft);
         if (a==nullptr)
         {
+          Trace("type_checker") << "...head not in list form" << std::endl;
           // head is not in list form
           return d_null;
         }
@@ -1326,6 +1344,8 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_NAME_OF:
     case Kind::EVAL_TO_STRING:
       return getOrSetLiteralTypeRule(Kind::STRING);
+    case Kind::EVAL_TO_BIN:
+      return getOrSetLiteralTypeRule(Kind::BINARY);
     default:break;
   }
   if (out)
@@ -1333,6 +1353,70 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
     (*out) << "Unknown type for literal operator " << k;
   }
   return nullptr;
+}
+
+Expr TypeChecker::computeConstructorTermInternal(AppInfo* ai, 
+                                                 const std::vector<Expr>& children)
+{
+  if (ai==nullptr)
+  {
+    return d_null;
+  }
+  // lookup the base operator if necessary
+  Expr hd = children[0];
+  Expr ct = ai->d_attrConsTerm;
+  if (ct.isNull() || ct.getKind()!=Kind::PARAMETERIZED)
+  {
+    // if not parameterized, just return self
+    return ct;
+  }
+  Trace("type_checker") << "Determine constructor term for " << hd << std::endl;
+  Ctx ctx;
+  // if explicit parameters, then evaluate the constructor term
+  if (hd.getKind()==Kind::PARAMETERIZED)
+  {
+    if (hd.getNumChildren()==ct.getNumChildren())
+    {
+      for (size_t i=0, nparams = hd[0].getNumChildren(); i<nparams; i++)
+      {
+        ctx[ct[0][i].getValue()] = hd[0][i].getValue();
+      }
+    }
+    else
+    {
+      // error
+      Warning() << "Unexpected number of parameters for " << hd[1]
+                << ", expected " << ct.getNumChildren() << " parameters, got "
+                << hd.getNumChildren() << std::endl;
+      return d_state.mkNil();
+    }
+  }
+  else if (children.size()==1)
+  {
+    // if not in an application, we fail
+    Warning() << "Failed to determine parameters for " << hd << std::endl;
+    return d_state.mkNil();
+  }
+  else
+  {
+    // otherwise, we must infer the parameters
+    Trace("type_checker") << "Infer params for " << hd << " @ " << children[1] << std::endl;
+    if (isNAryAttr(ai->d_attrCons))
+    {
+      std::vector<ExprValue*> app;
+      app.push_back(hd.getValue());
+      app.push_back(children[1].getValue());
+      // ensure children are type checked
+      for (ExprValue* e : app)
+      {
+        Expr expr(e);
+        getType(expr);
+      }
+      getTypeAppInternal(app, ctx);
+    }
+  }
+  Trace("type_checker") << "Context for constructor term: " << ctx << std::endl;
+  return evaluate(ct[1].getValue(), ctx);
 }
 
 }  // namespace alfc

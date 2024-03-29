@@ -46,6 +46,7 @@ State::State(Options& opts, Stats& stats)
   //bindBuiltin("lambda", Kind::LAMBDA, true);
   bindBuiltin("->", Kind::FUNCTION_TYPE);
   bindBuiltin("_", Kind::APPLY);
+  bindBuiltin("__", Kind::PARAMETERIZED);
 
   bindBuiltinEval("is_eq", Kind::EVAL_IS_EQ);
   bindBuiltinEval("ite", Kind::EVAL_IF_THEN_ELSE);
@@ -85,7 +86,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("as", Kind::AS);
   
   d_nullExpr = Expr(mkExprInternal(Kind::NULL_EXPR, {}));
-  bind("alf.null", d_nullExpr);
+  // we do not export alf.null
   // for now, alf.? is (undocumented) syntax for abstract type
   bind("alf.?", mkAbstractType());
   // self is a distinguished parameter
@@ -492,86 +493,6 @@ Expr State::mkBuiltinType(Kind k)
   return d_absType;
 }
 
-Expr State::mkAnnotatedType(const Expr& t, Attr ck, const Expr& cons)
-{
-  if (ck!=Attr::RIGHT_ASSOC_NIL && ck!=Attr::LEFT_ASSOC_NIL)
-  {
-    return t;
-  }
-  if (cons.getKind() != Kind::NULL_EXPR)
-  {
-    return t;
-  }
-  bool isRight = (ck==Attr::RIGHT_ASSOC_NIL);
-  std::vector<Expr> args;
-  // decompose into (-> t1 t2 t3)
-  Expr curr = t;
-  std::vector<Expr> currReqs;
-  do
-  {
-    Expr argAdd;
-    if (curr.getKind() == Kind::FUNCTION_TYPE && curr.getNumChildren() == 2)
-    {
-      argAdd = curr[0];
-      curr = curr[1];
-    }
-    else if (curr.getKind() == Kind::EVAL_REQUIRES)
-    {
-      currReqs.push_back(mkPair(curr[0], curr[1]));
-      curr = curr[2];
-    }
-    else
-    {
-      argAdd = curr;
-      curr = Expr();
-    }
-    if (!argAdd.isNull())
-    {
-      if (!currReqs.empty())
-      {
-        if (args.empty())
-        {
-          return d_null;
-        }
-        args.back() = mkRequires(currReqs, args.back());
-        currReqs.clear();
-      }
-      args.push_back(argAdd);
-    }
-  } while (!curr.isNull() && args.size() < 3);
-  if (args.size()<3)
-  {
-    return d_null;
-  }
-  Expr nilArg = args[isRight ? 1 : 0];
-  std::stringstream ss;
-  ss << nilArg << "_or_nil";
-  Expr u = mkSymbol(Kind::PARAM, ss.str(), d_type);
-  Expr cond = mkExpr(Kind::EVAL_IS_EQ, {u, d_nullExpr});
-  if (isRight)
-  {
-    // (-> t1 (-> t2 t3)) :right-assoc-nil
-    //   is
-    // (-> t1 (-> U (alf.ite (alf.is_eq U alf.nil) t3 (Requires U t2 t3))))
-    Expr ret = args[2];
-    ret = mkExpr(Kind::EVAL_IF_THEN_ELSE, {
-                cond, ret, mkRequires(u, nilArg, ret)});
-    return mkFunctionType({args[0], u}, ret);
-  }
-  else
-  {
-    // (-> t1 (-> t2 t3)) :left-assoc-nil
-    //   is
-    // (-> U (alf.ite (alf.is_eq U alf.nil) (-> t2 t3) (Requires U t1 (-> t2 t3))))
-    Expr ret = mkFunctionType({args[1]}, args[2]);
-    ret = mkExpr(Kind::EVAL_IF_THEN_ELSE, {
-                  cond, ret, mkRequires(u, nilArg, ret)});
-    return mkFunctionType({u}, ret);
-  }
-
-  return t;
-}
-
 Expr State::mkSymbol(Kind k, const std::string& name, const Expr& type)
 {
   return Expr(mkSymbolInternal(k, name, type));
@@ -634,6 +555,9 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     Assert(!children.empty());
     // see if there is a special way of building terms for the head
     ExprValue* hd = vchildren[0];
+    // immediately strip off PARAMETERIZED if it exists
+    hd = hd->getKind()==Kind::PARAMETERIZED ? (*hd)[1] : hd;
+    vchildren[0] = hd;
     AppInfo* ai = getAppInfo(hd);
     if (ai!=nullptr)
     {
@@ -644,6 +568,13 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           // functions (from parsing) are flattened here
           std::vector<Expr> achildren(children.begin()+1, children.end()-1);
           return mkFunctionType(achildren, children.back());
+        }
+        else if (ai->d_kind==Kind::PARAMETERIZED)
+        {
+          // make as tuple
+          std::vector<Expr> achildren(children.begin()+2, children.end());
+          Expr vl = mkExpr(Kind::TUPLE, achildren);
+          return mkExpr(Kind::PARAMETERIZED, {vl, children[1]});
         }
         // another builtin operator, possibly APPLY
         std::vector<Expr> achildren(children.begin()+1, children.end());
@@ -664,6 +595,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           return ret;
         }
       }
+      size_t nchild = vchildren.size();
       // if it has a constructor attribute
       switch (ai->d_attrCons)
       {
@@ -672,7 +604,9 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         case Attr::LEFT_ASSOC_NIL:
         case Attr::RIGHT_ASSOC_NIL:
         {
-          size_t nchild = vchildren.size();
+          // NOTE: we only call computeConstructorTermInternal when necessary.
+          // This means that we don't construct bogus terms when e.g.
+          // right-assoc-nil operators are used in side condition bodies.
           // note that nchild>=2 treats e.g. (or a) as (or a false).
           // checking nchild>2 treats (or a) as a function Bool -> Bool.
           if (nchild>=2)
@@ -693,7 +627,8 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
               {
                 // if the last term is not marked as a list variable and
                 // we have a null terminator, then we insert the null terminator
-                curr = ai->d_attrConsTerm.getValue();
+                Expr consTerm = d_tc.computeConstructorTermInternal(ai, children);
+                curr = consTerm.getValue();
                 i--;
               }
             }
@@ -721,9 +656,10 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           break;
         case Attr::CHAINABLE:
         {
+          Expr consTerm = d_tc.computeConstructorTermInternal(ai, children);
           std::vector<Expr> cchildren;
-          Assert(!ai->d_attrConsTerm.isNull());
-          cchildren.push_back(ai->d_attrConsTerm);
+          Assert(!consTerm.isNull());
+          cchildren.push_back(consTerm);
           std::vector<ExprValue*> cc{hd, nullptr, nullptr};
           for (size_t i=1, nchild = vchildren.size()-1; i<nchild; i++)
           {
@@ -742,9 +678,10 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           break;
         case Attr::PAIRWISE:
         {
+          Expr consTerm = d_tc.computeConstructorTermInternal(ai, children);
           std::vector<Expr> cchildren;
-          Assert(!ai->d_attrConsTerm.isNull());
-          cchildren.push_back(ai->d_attrConsTerm);
+          Assert(!consTerm.isNull());
+          cchildren.push_back(consTerm);
           std::vector<ExprValue*> cc{hd, nullptr, nullptr};
           for (size_t i=1, nchild = vchildren.size(); i<nchild-1; i++)
           {
@@ -1065,6 +1002,7 @@ bool State::isBinder(const ExprValue* e) const
 Expr State::mkBinderList(const ExprValue* ev, const std::vector<Expr>& vs)
 {
   Assert (!vs.empty());
+  Assert (ev->getKind()!=Kind::PARAMETERIZED);
   std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(ev);
   Assert (it!=d_appData.end());
   std::vector<Expr> vlist;
@@ -1073,15 +1011,25 @@ Expr State::mkBinderList(const ExprValue* ev, const std::vector<Expr>& vs)
   return mkExpr(Kind::APPLY, vlist);
 }
 
+const ExprValue* State::getBaseOperator(const ExprValue * v) const
+{
+  if (v->getKind()==Kind::PARAMETERIZED)
+  {
+    return (*v)[0];
+  }
+  return v;
+}
+
 Attr State::getConstructorKind(const ExprValue* v) const
 {
-  std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(v);
-  if (it!=d_appData.end())
+  const AppInfo* ai = getAppInfo(v);
+  if (ai!=nullptr)
   {
-    return it->second.d_attrCons;
+    return ai->d_attrCons;
   }
   return Attr::NONE;
 }
+
 
 Expr State::getVar(const std::string& name) const
 {
@@ -1224,7 +1172,19 @@ bool State::hasReference() const
 
 AppInfo* State::getAppInfo(const ExprValue* e)
 {
+  Assert (e->getKind()!=Kind::PARAMETERIZED);
   std::map<const ExprValue *, AppInfo>::iterator it = d_appData.find(e);
+  if (it!=d_appData.end())
+  {
+    return &it->second;
+  }
+  return nullptr;
+}
+
+const AppInfo* State::getAppInfo(const ExprValue* e) const
+{
+  Assert (e->getKind()!=Kind::PARAMETERIZED);
+  std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(e);
   if (it!=d_appData.end())
   {
     return &it->second;

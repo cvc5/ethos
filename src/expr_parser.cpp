@@ -720,7 +720,8 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList(
         isImplicit = true;
         impls.push_back(v);
       }
-      if (processAttributeMap(attrs, ck, cons))
+      processAttributeMap(attrs, ck, cons, {});
+      if (ck!=Attr::NONE)
       {
         d_state.markConstructorKind(v, ck, cons);
         ck = Attr::NONE;
@@ -1037,19 +1038,6 @@ void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedS
         break;
       case Attr::RIGHT_ASSOC_NIL:
       case Attr::LEFT_ASSOC_NIL:
-      {
-        // optional value
-        Token tok = d_lex.peekToken();
-        if (tok!=Token::RPAREN && tok!=Token::KEYWORD)
-        {
-          val = parseExpr();
-        }
-        else
-        {
-          val = d_state.mkNil();
-        }
-      } 
-        break;
       case Attr::CHAINABLE:
       case Attr::PAIRWISE:
       case Attr::BINDER:
@@ -1242,7 +1230,10 @@ void ExprParser::ensureBound(const Expr& e, const std::vector<Expr>& bvs)
   }
 }
 
-bool ExprParser::processAttributeMap(const AttrMap& attrs, Attr& ck, Expr& cons)
+void ExprParser::processAttributeMap(const AttrMap& attrs,
+                                     Attr& ck,
+                                     Expr& cons,
+                                     const std::vector<Expr>& params)
 {
   ck = Attr::NONE;
   for (const std::pair<const Attr, std::vector<Expr>>& a : attrs)
@@ -1271,8 +1262,24 @@ bool ExprParser::processAttributeMap(const AttrMap& attrs, Attr& ck, Expr& cons)
             continue;
           }
           // it specifies how to construct terms involving this term
+          // if the constructor spec is non-ground, make a lambda
+          if (!av.isNull() && !av.isGround())
+          {
+            Assert (!params.empty());
+            Expr vl = d_state.mkExpr(Kind::TUPLE, params);
+            cons = d_state.mkExpr(Kind::PARAMETERIZED, {vl, av});
+          }
+          else
+          {
+            cons = av;
+            // if the nil constructor doesn't use parameters, just ignore
+            if (!params.empty())
+            {
+              Warning() << "Ignoring unused parameters for definition of "
+                        << "symbol with nil constructor " << av << std::endl;
+            }
+          }
           ck = a.first;
-          cons = av;
         }
           break;
         default:
@@ -1283,7 +1290,6 @@ bool ExprParser::processAttributeMap(const AttrMap& attrs, Attr& ck, Expr& cons)
       }
     }
   }
-  return ck!=Attr::NONE;
 }
 
 }  // namespace alfc

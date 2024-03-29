@@ -15,7 +15,7 @@
   (@List @List U) U
   (
     ((substitute_list (@list x xs) (@list t ts) F) (substitute_list xs ts (substitute x t F)))
-    ((substitute_list alf.null alf.null F)           F)
+    ((substitute_list @list.nil @list.nil F)           F)
   )
 )
 
@@ -30,7 +30,7 @@
   (@List Bool) @List
   (
     ((mk_skolems (@list x xs) F) (alf.cons @list (skolem (@k.QUANTIFIERS_SKOLEMIZE F x)) (mk_skolems xs F)))
-    ((mk_skolems alf.null F)      alf.null)
+    ((mk_skolems @list.nil F)      @list.nil)
   )
 )
 
