@@ -5,13 +5,6 @@
 (declare-sort String 0)
 (declare-type Seq (Type))
 
-(program maybe_nil ((T Type) (t T) (U Type))
-    (T U) T
-    (
-      ((maybe_nil t t)       t)
-      ((maybe_nil t alf.null) t)
-    )
-)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (declare-const and
@@ -20,10 +13,6 @@
     Bool
     Bool
 ) :right-assoc-nil true)
-
-;;;;;; (-> Bool (-> U (maybe_nil Bool U)))
-;;;;;; (-> Bool (-> U (Requires (alf.ite (alf.is_eq U alf.null) Bool U) Bool Bool)))
-;;;;;; (-> Bool (-> U (alf.ite (alf.is_eq U alf.null) Bool (Requires U Bool Bool))))
 
 
 (declare-const and2
@@ -49,10 +38,8 @@
     (
       ((arith_typeunion_nary Int Real) Real)
       ((arith_typeunion_nary Int Int) Int)
-      ((arith_typeunion_nary Int alf.null) Int)
       ((arith_typeunion_nary Real Real) Real)
       ((arith_typeunion_nary Real Int) Real)
-      ((arith_typeunion_nary Real alf.null) Real)
     )
 )
 
@@ -64,10 +51,6 @@
     U
     (arith_typeunion_nary T U)
 ) :right-assoc-nil 0)
-
-;;;;;; (-> T (-> U (arith_typeunion_nary T U)))
-;;;;;; (-> T (-> U (alf.ite (alf.is_eq U alf.null) (arith_typeunion_nary T U) (Requires U U (arith_typeunion_nary T U)))))
-;;;;;; which simplifies to (-> T (-> U (arith_typeunion_nary T U)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -91,23 +74,3 @@
   (-> (Seq T) (Seq T) (Seq T)) :right-assoc-nil (mk_emptystr T))
 
 
-;;;;;; (-> T (-> U (Requires (is_string_type T) true (Requires (maybe_nil T U) T T))))
-;;;;;; (-> T (Requires (is_string_type T) true (-> U (alf.ite (alf.is_eq U alf.null) T T))))
-
-
-
-; (-> t1 (-> t2 t3)) :right-assoc-nil
-;   is
-; (-> t1 (-> U (alf.ite (alf.is_eq U alf.null) t3 (Requires U t2 t3))))
-
-; (-> t1 (-> t2 t3)) :left-assoc-nil
-;   is
-; (-> U (alf.ite (alf.is_eq U alf.null) (-> t2 t3) (Requires U t1 (-> t2 t3))))
-; ????
-
-
-;(declare-const = (-> (! Type :var A :implicit) A A Bool) :chainable and)
-;(declare-rule refl ((T Type) (x T))
-;    :args (x)
-;    :conclusion (= x x))
-;(step @p0 (= t t) :rule refl :args (t))

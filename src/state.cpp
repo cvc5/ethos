@@ -86,7 +86,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("as", Kind::AS);
   
   d_nullExpr = Expr(mkExprInternal(Kind::NULL_EXPR, {}));
-  bind("alf.null", d_nullExpr);
+  // we do not export alf.null
   // for now, alf.? is (undocumented) syntax for abstract type
   bind("alf.?", mkAbstractType());
   // self is a distinguished parameter

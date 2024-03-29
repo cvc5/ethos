@@ -107,16 +107,16 @@
 ; str.++ application corresponding to a string term in cvc5 rewritten form.
 ; It returns the flattened form such that there are no nested applications of
 ; str.++. For example, given input:
-;    (str.++ "AB" (str.++ x alf.null))
+;    (str.++ "AB" (str.++ x ""))
 ; we return:
-;    (str.++ "A" (str.++ "B" (str.++ x alf.null)))
+;    (str.++ "A" (str.++ "B" (str.++ x "")))
 ; Notice that this is done for all word constants in the chain recursively.
 ; It does not insist that the nested concatenations are over characters only.
 ; This rule may fail if s is not a str.++ application corresponding to a term
 ; in cvc5 rewritten form.
 
 ; Helper for below, assumes t is a non-empty word constant.
-; For example, given "AB", this returns (str.++ "A" (str.++ "B" alf.null)).
+; For example, given "AB", this returns (str.++ "A" (str.++ "B" "")).
 (program string_flatten_word ((t String))
   (String) String
   (
@@ -148,9 +148,9 @@
 ; whose first component corresponds to a word constant, and whose second
 ; component is a str.++ application whose first element is not a character.
 ; For example, for:
-;   (str.++ "A" (str.++ "B" (str.++ x alf.null)))
+;   (str.++ "A" (str.++ "B" (str.++ x "")))
 ; We return:
-;   (@pair "AB" (str.++ x alf.null))
+;   (@pair "AB" (str.++ x ""))
 (program string_collect_acc ((U Type) (t U) (tail String :list))
   (U) (@Pair U U)
   (
@@ -161,19 +161,19 @@
         (alf.match ((s1 U) (s2 U)) 
           (string_collect_acc tail)
           (
-            ((@pair alf.null s2)  (@pair t s2))
+            ((@pair "" s2)  (@pair t s2))
             ((@pair s1 s2)       (@pair (alf.concat t s1) s2))    ; concatentate the constant
           )
         )
-        (@pair alf.null (str.++ t tail))))
+        (@pair "" (str.++ t tail))))
     ((string_collect_acc t)            (alf.requires t (mk_emptystr (alf.typeof t)) (@pair t t)))
   )
 )
 
 ; Collect adjacent constants for the prefix of string s. For example:
-;    (str.++ "A" (str.++ "B" (str.++ x alf.null)))
+;    (str.++ "A" (str.++ "B" (str.++ x "")))
 ; we return:
-;    (str.++ (str.++ "A" (str.++ "B" alf.null)) (str.++ x alf.null))
+;    (str.++ (str.++ "A" (str.++ "B" "")) (str.++ x ""))
 ; This side condition may fail if s is not a str.++ application.
 ; Notice that the collection of constants is done for all word constants in the
 ; term s recursively.
@@ -185,7 +185,7 @@
         (string_collect_acc (str.++ t s))
         (
           ; did not strip a constant prefix, just append t to the result of processing s
-          ((@pair alf.null s2)
+          ((@pair "" s2)
             ($str_cons t (string_collect s)))
           ; stripped a constant prefix, append it to second term in the pair
           ((@pair s1 s2)
