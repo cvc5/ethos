@@ -22,9 +22,9 @@
 (define $char_type_of ((T Type)) 
   (alf.match ((U Type)) T (((Seq U) U))))
 (define $str_concat ((T Type :implicit) (x (Seq T)) (y (Seq T)))
-  (alf.concat (__ str.++ ($char_type_of (alf.typeof x))) x y))
+  (alf.concat (alf._ str.++ ($char_type_of (alf.typeof x))) x y))
 (define $str_cons ((T Type :implicit) (x (Seq T)) (y (Seq T)))
-  (alf.cons (__ str.++ ($char_type_of (alf.typeof x))) x y))
+  (alf.cons (alf._ str.++ ($char_type_of (alf.typeof x))) x y))
 
 ;;-------------------- Skolem terms
 ; The following side conditions are used for computing terms that define
@@ -67,7 +67,7 @@
     ((T Type) (t (Seq T)) (ss (Seq T) :list) (acc (Seq T)))
     ((Seq T) (Seq T) Type) (Seq T)
     (
-        (($string_rev_rec (str.++ t ss) acc T) ($string_rev_rec ss (alf.cons (__ str.++ T) t acc) T))
+        (($string_rev_rec (str.++ t ss) acc T) ($string_rev_rec ss (alf.cons (alf._ str.++ T) t acc) T))
         (($string_rev_rec t acc T)             (alf.requires t (mk_emptystr (Seq T)) acc))
     )
 )
