@@ -106,6 +106,7 @@ set(alfc_test_file_list
     conclusion-spec.smt3
     var-binders-syntax.smt3
     to_string.smt3
+    nground-nil-v3.smt3
 )
 
 macro(alfc_test file)

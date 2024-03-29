@@ -1125,6 +1125,10 @@ Expr State::computeConstructorTermInternal(AppInfo* ai,
     else
     {
       // error
+      Warning() << "Failed to determine constructor term for " << hd[1]
+                << ", expected " << ct.getNumChildren() << " parameters, got "
+                << hd.getNumChildren() << std::endl;
+      return d_nullExpr;
     }
   }
   else

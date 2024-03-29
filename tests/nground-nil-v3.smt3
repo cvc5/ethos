@@ -4,36 +4,10 @@
 (declare-const BitVec (-> Int Type))
 (declare-consts <binary> (BitVec (alf.len alf.self)))
 
-(program $get_bitwidth ((T Type) (n Int))
-  (Type) Int
-  (
-    (($get_bitwidth (BitVec n)) n)
-  )
-)
-
-(program $type_first_arg ((T Type) (S Type) (f (-> T S S)) (x T) (y S :list))
-  (S) Type
-  (
-    (($type_first_arg (f x y)) (alf.typeof x))
-  )
-)
-
-; used as the nil terminator for concat
-(define bvempty () (alf.to_bin 0 0))
-
-(declare-const concat (->
-  (! Int :var n :implicit)
-  (! Int :var m :implicit)
-  (BitVec n)
-  (BitVec m)
-  (BitVec (alf.add n m))) :right-assoc-nil bvempty
-)
-
 (declare-parameterized-const bvor ((m Int))
     (-> (BitVec m) (BitVec m) (BitVec m))
     :right-assoc-nil (alf.to_bin m 0)
 )
-
 
 (declare-parameterized-const bvand ((m Int))
     (-> (BitVec m) (BitVec m) (BitVec m))
@@ -52,7 +26,6 @@
 (declare-rule find_tail ((T Type) (f (-> T T T)) (t T) (s T :list))
   :args ((f t s))
   :conclusion (is-tail-of ($get_tail f (f t s)) (f t s)))
-
 
 (declare-const a (BitVec 4))
 (declare-const b (BitVec 4))

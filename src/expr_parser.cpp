@@ -1287,7 +1287,8 @@ bool ExprParser::processAttributeMap(const AttrMap& attrs,
             // if the nil constructor doesn't use parameters, just ignore
             if (!params.empty())
             {
-              Warning() << "Ignoring unused parameters for definition of symbol with nil constructor " << av;
+              Warning() << "Ignoring unused parameters for definition of "
+                        << "symbol with nil constructor " << av << std::endl;
             }
           }
           ck = a.first;
