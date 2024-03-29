@@ -186,7 +186,7 @@ class State
   const ExprValue* getBaseOperator(const ExprValue * v) const;
   /** Get the nil terminator */
   Expr computeConstructorTermInternal(AppInfo* ai, 
-                                      const std::vector<ExprValue*>& children);
+                                      const std::vector<Expr>& children);
   /** Get the constructor kind for symbol v */
   Attr getConstructorKind(const ExprValue* v) const;
   /** Mark that file s was included */

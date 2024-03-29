@@ -222,7 +222,8 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
   {
     case Kind::APPLY:
     {
-      return getTypeAppInternal(e->d_children, out);
+      Ctx ctx;
+      return getTypeAppInternal(e->d_children, ctx, out);
     }
     case Kind::LAMBDA:
     {
@@ -302,6 +303,12 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       return d_null;
     }
       break;
+    case Kind::PARAMETERIZED:
+    {
+      // type of the second child
+      return Expr(d_state.lookupType(e->d_children[1]));
+    }
+      break;
     default:
       // if a literal operator, consult auxiliary method
       if (isLiteralOp(k))
@@ -325,15 +332,22 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
 
 Expr TypeChecker::getTypeApp(std::vector<Expr>& children, std::ostream* out)
 {
+  Ctx ctx;
+  return getTypeApp(children, ctx, out);
+}
+
+Expr TypeChecker::getTypeApp(std::vector<Expr>& children, Ctx& ctx, std::ostream* out)
+{
   std::vector<ExprValue*> vchildren;
   for (const Expr& c : children)
   {
     vchildren.push_back(c.getValue());
   }
-  return getTypeAppInternal(vchildren, out);
+  return getTypeAppInternal(vchildren, ctx, out);
 }
 
 Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
+                                     Ctx& ctx,
                                      std::ostream* out)
 {
   Assert (!children.empty());
@@ -388,7 +402,6 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     Trace("type_checker") << "RUN type check " << Expr(hdType) << std::endl;
     return run_getTypeInternal(hdType, ctypes, out);
   }
-  Ctx ctx;
   std::set<std::pair<ExprValue*, ExprValue*>> visited;
   for (size_t i=0, nchild=ctypes.size(); i<nchild; i++)
   {
@@ -1326,6 +1339,8 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_NAME_OF:
     case Kind::EVAL_TO_STRING:
       return getOrSetLiteralTypeRule(Kind::STRING);
+    case Kind::EVAL_TO_BIN:
+      return getOrSetLiteralTypeRule(Kind::BINARY);
     default:break;
   }
   if (out)

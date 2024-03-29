@@ -48,6 +48,12 @@ enum class Attr
   CODATATYPE
 };
 
+/**
+ * Is the Attr indicate that any number of children can be passed to the given
+ * operator?
+ */
+bool isNAryAttr(Attr a);
+
 /** Print a kind to the stream, for debugging */
 std::ostream& operator<<(std::ostream& o, Attr a);
 

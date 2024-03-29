@@ -58,6 +58,7 @@
 (declare-const b (BitVec 4))
 (declare-const c (BitVec 3))
 
+(step @p0-explicit (is-tail-of #b0000 (_ (__ bvor 4) a)) :rule find_tail :args ((_ (__ bvor 4) a)))
 (step @p0 (is-tail-of #b0000 (bvor a)) :rule find_tail :args ((bvor a)))
 (step @p1 (is-tail-of #b111 (bvand c)) :rule find_tail :args ((bvand c)))
 (step @p0 (is-tail-of (bvand b) (bvand a b)) :rule find_tail :args ((bvand a b)))

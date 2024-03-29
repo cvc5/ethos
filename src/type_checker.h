@@ -46,6 +46,10 @@ class TypeChecker
    */
   Expr getTypeApp(std::vector<Expr>& children, std::ostream* out = nullptr);
   /**
+   * Same as above, but computes the context for the type checking.
+   */
+  Expr getTypeApp(std::vector<Expr>& children, Ctx& ctx, std::ostream* out = nullptr);
+  /**
    * Check arity for kind, returns false if k cannot be applied to nargs.
    */
   static bool checkArity(Kind k, size_t nargs, std::ostream* out = nullptr);
@@ -90,6 +94,7 @@ class TypeChecker
              std::set<std::pair<ExprValue*, ExprValue*>>& visited);
   /** */
   Expr getTypeAppInternal(std::vector<ExprValue*>& children,
+                          Ctx& ctx,
                           std::ostream* out = nullptr);
   /** Are all args ground? */
   static bool isGround(const std::vector<ExprValue*>& args);

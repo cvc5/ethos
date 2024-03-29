@@ -1242,7 +1242,10 @@ void ExprParser::ensureBound(const Expr& e, const std::vector<Expr>& bvs)
   }
 }
 
-bool ExprParser::processAttributeMap(const AttrMap& attrs, Attr& ck, Expr& cons, const std::vector<Expr>& params)
+bool ExprParser::processAttributeMap(const AttrMap& attrs,
+                                     Attr& ck,
+                                     Expr& cons,
+                                     const std::vector<Expr>& params)
 {
   ck = Attr::NONE;
   for (const std::pair<const Attr, std::vector<Expr>>& a : attrs)
@@ -1276,11 +1279,16 @@ bool ExprParser::processAttributeMap(const AttrMap& attrs, Attr& ck, Expr& cons,
           {
             Assert (!params.empty());
             Expr vl = d_state.mkExpr(Kind::TUPLE, params);
-            cons = d_state.mkExpr(Kind::TUPLE, {vl, av});
+            cons = d_state.mkExpr(Kind::PARAMETERIZED, {vl, av});
           }
           else
           {
             cons = av;
+            // if the nil constructor doesn't use parameters, just ignore
+            if (!params.empty())
+            {
+              Warning() << "Ignoring unused parameters for definition of symbol with nil constructor " << av;
+            }
           }
           ck = a.first;
         }

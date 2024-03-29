@@ -636,7 +636,8 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     // see if there is a special way of building terms for the head
     ExprValue* hd = vchildren[0];
     // immediately strip off PARAMETERIZED if it exists
-    hd = hd->getKind()==Kind::PARAMETERIZED ? (*hd)[0] : hd;
+    hd = hd->getKind()==Kind::PARAMETERIZED ? (*hd)[1] : hd;
+    vchildren[0] = hd;
     AppInfo* ai = getAppInfo(hd);
     if (ai!=nullptr)
     {
@@ -647,6 +648,13 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           // functions (from parsing) are flattened here
           std::vector<Expr> achildren(children.begin()+1, children.end()-1);
           return mkFunctionType(achildren, children.back());
+        }
+        else if (ai->d_kind==Kind::PARAMETERIZED)
+        {
+          // make as tuple
+          std::vector<Expr> achildren(children.begin()+2, children.end());
+          Expr vl = mkExpr(Kind::TUPLE, achildren);
+          return mkExpr(Kind::PARAMETERIZED, {vl, children[1]});
         }
         // another builtin operator, possibly APPLY
         std::vector<Expr> achildren(children.begin()+1, children.end());
@@ -669,7 +677,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       }
       size_t nchild = vchildren.size();
       // determine the constructor term, which may involve parameter inference
-      Expr consTerm = computeConstructorTermInternal(ai, vchildren);
+      Expr consTerm = computeConstructorTermInternal(ai, children);
       // if it has a constructor attribute
       switch (ai->d_attrCons)
       {
@@ -1089,35 +1097,50 @@ const ExprValue* State::getBaseOperator(const ExprValue * v) const
 }
 
 Expr State::computeConstructorTermInternal(AppInfo* ai, 
-                                           const std::vector<ExprValue*>& children)
+                                           const std::vector<Expr>& children)
 {
   if (ai==nullptr)
   {
     return d_null;
   }
   // lookup the base operator if necessary
-  Expr hd(children[0]);
+  Expr hd = children[0];
   Expr ct = ai->d_attrConsTerm;
   if (ct.isNull())
   {
     // if not parameterized, just return self
     return ct;
   }
+  Ctx ctx;
   // if explicit parameters, then evaluate the constructor term
-  if (hd.getKind()==Kind::PARAMETERIZED && hd.getNumChildren()==ct.getNumChildren())
+  if (hd.getKind()==Kind::PARAMETERIZED)
   {
-    Ctx ctx;
-    for (size_t i=0, nparams = hd[0].getNumChildren(); i<nparams; i++)
+    if (hd.getNumChildren()==ct.getNumChildren())
     {
-      ctx[ct[0][i].getValue()] = hd[0][i].getValue();
+      for (size_t i=0, nparams = hd[0].getNumChildren(); i<nparams; i++)
+      {
+        ctx[ct[0][i].getValue()] = hd[0][i].getValue();
+      }
     }
-    return d_tc.evaluate(ct.getValue(), ctx);
+    else
+    {
+      // error
+    }
   }
   else
   {
     // otherwise, we must infer the parameters
+    Trace("ajr-temp") << "Infer params for " << hd << " @ " << children[1] << std::endl;
+    if (isNAryAttr(ai->d_attrCons))
+    {
+      std::vector<Expr> app;
+      app.push_back(hd);
+      app.push_back(children[1]);
+      d_tc.getTypeApp(app, ctx);
+    }
   }
-  return ct;
+  Trace("ajr-temp") << "Context: " << ctx << std::endl;
+  return d_tc.evaluate(ct[1].getValue(), ctx);
 }
 
 Attr State::getConstructorKind(const ExprValue* v) const

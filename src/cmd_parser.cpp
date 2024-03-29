@@ -36,7 +36,7 @@ CmdParser::CmdParser(Lexer& lex,
   d_table["declare-datatype"] = Token::DECLARE_DATATYPE;
   d_table["declare-datatypes"] = Token::DECLARE_DATATYPES;
   d_table["declare-fun"] = Token::DECLARE_FUN;
-  d_table["declare-parameterized-fun"] = Token::DECLARE_PARAMETERIZED_CONST;
+  d_table["declare-parameterized-const"] = Token::DECLARE_PARAMETERIZED_CONST;
   d_table["declare-oracle-fun"] = Token::DECLARE_ORACLE_FUN;
   d_table["declare-sort"] = Token::DECLARE_SORT;
   d_table["define-const"] = Token::DEFINE_CONST;
@@ -151,8 +151,7 @@ bool CmdParser::parseNextCommand()
       else if (tok == Token::DECLARE_PARAMETERIZED_CONST)
       {
         d_state.pushScope();
-        std::vector<Expr> vs =
-            d_eparser.parseAndBindSortedVarList();
+        params = d_eparser.parseAndBindSortedVarList();
       }
       Expr t = d_eparser.parseType();
       if (!sorts.empty())
