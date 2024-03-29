@@ -348,7 +348,7 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
   Assert (!children.empty());
   ExprValue* hd = children[0];
   ExprValue* hdType = d_state.lookupType(hd);
-  Assert(hdType != nullptr);
+  Assert(hdType != nullptr) << "No type for " << Expr(hd);
   if (hdType->getKind()!=Kind::FUNCTION_TYPE)
   {
     // non-function at head

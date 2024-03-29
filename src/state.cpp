@@ -562,6 +562,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     {
       if (ai->d_kind!=Kind::NONE)
       {
+        Trace("state-debug") << "Process builtin app " << ai->d_kind << std::endl;
         if (ai->d_kind==Kind::FUNCTION_TYPE)
         {
           // functions (from parsing) are flattened here
@@ -594,7 +595,9 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           return ret;
         }
       }
+      Trace("state-debug") << "Process category " << ai->d_attrCons << " for " << children[0] << std::endl;
       size_t nchild = vchildren.size();
+      Expr consTerm;
       // if it has a constructor attribute
       switch (ai->d_attrCons)
       {
@@ -626,7 +629,8 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
               {
                 // if the last term is not marked as a list variable and
                 // we have a null terminator, then we insert the null terminator
-                Expr consTerm = d_tc.computeConstructorTermInternal(ai, children);
+                consTerm = d_tc.computeConstructorTermInternal(ai, children);
+                Trace("state-debug") << "...insert nil terminator " << consTerm << std::endl;
                 curr = consTerm.getValue();
                 i--;
               }
@@ -650,6 +654,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
               }
               i++;
             }
+            Trace("type_checker") << "...return for " << children[0] << std::endl;// << ": " << Expr(curr) << std::endl;
             return Expr(curr);
           }
           // otherwise partial??
@@ -657,7 +662,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           break;
         case Attr::CHAINABLE:
         {
-          Expr consTerm = d_tc.computeConstructorTermInternal(ai, children);
+          consTerm = d_tc.computeConstructorTermInternal(ai, children);
           std::vector<Expr> cchildren;
           Assert(!consTerm.isNull());
           cchildren.push_back(consTerm);
@@ -679,7 +684,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           break;
         case Attr::PAIRWISE:
         {
-          Expr consTerm = d_tc.computeConstructorTermInternal(ai, children);
+          consTerm = d_tc.computeConstructorTermInternal(ai, children);
           std::vector<Expr> cchildren;
           Assert(!consTerm.isNull());
           cchildren.push_back(consTerm);
@@ -921,6 +926,7 @@ ExprValue* State::mkApplyInternal(const std::vector<ExprValue*>& children)
   Assert(children.size() > 2);
   // requires currying
   ExprValue* curr = children[0];
+  Assert (curr->getKind()!=Kind::PARAMETERIZED);
   for (size_t i=1, nchildren = children.size(); i<nchildren; i++)
   {
     curr = mkExprInternal(Kind::APPLY, {curr, children[i]});
