@@ -185,7 +185,8 @@ class State
   /** Get base operator */
   const ExprValue* getBaseOperator(const ExprValue * v) const;
   /** Get the nil terminator */
-  Expr computeConstructorTerm(const ExprValue* v);
+  Expr computeConstructorTermInternal(AppInfo* ai, 
+                                      const std::vector<ExprValue*>& children);
   /** Get the constructor kind for symbol v */
   Attr getConstructorKind(const ExprValue* v) const;
   /** Mark that file s was included */
@@ -207,6 +208,7 @@ class State
   ExprValue* mkLiteralInternal(Literal& l);
   /** Get the internal data for expression e. */
   AppInfo* getAppInfo(const ExprValue* e);
+  const AppInfo* getAppInfo(const ExprValue* e) const;
   /** lookup type */
   ExprValue* lookupType(const ExprValue* e) const;
   /** Bind builtin */

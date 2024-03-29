@@ -635,6 +635,8 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     Assert(!children.empty());
     // see if there is a special way of building terms for the head
     ExprValue* hd = vchildren[0];
+    // immediately strip off PARAMETERIZED if it exists
+    hd = hd->getKind()==Kind::PARAMETERIZED ? (*hd)[0] : hd;
     AppInfo* ai = getAppInfo(hd);
     if (ai!=nullptr)
     {
@@ -666,20 +668,8 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         }
       }
       size_t nchild = vchildren.size();
-      // determine the constructor term
-      ExprValue* consTerm = ai->d_attrConsTerm.getValue();
-      if (consTerm!=nullptr && consTerm->getKind()==Kind::PARAMETERIZED && nchild>=2)
-      {
-        // TODO
-        /*
-        Expr argType = d_tc.getType(children[1]);
-        Expr hdType = d_tc.getType(children[0]);
-        if (hdType.getKind()==Kind::FUNCTION_TYPE)
-        {
-          hdType = hdType[0];
-        }
-        */
-      }
+      // determine the constructor term, which may involve parameter inference
+      Expr consTerm = computeConstructorTermInternal(ai, vchildren);
       // if it has a constructor attribute
       switch (ai->d_attrCons)
       {
@@ -708,7 +698,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
               {
                 // if the last term is not marked as a list variable and
                 // we have a null terminator, then we insert the null terminator
-                curr = consTerm;
+                curr = consTerm.getValue();
                 i--;
               }
             }
@@ -1098,46 +1088,48 @@ const ExprValue* State::getBaseOperator(const ExprValue * v) const
   return v;
 }
 
+Expr State::computeConstructorTermInternal(AppInfo* ai, 
+                                           const std::vector<ExprValue*>& children)
+{
+  if (ai==nullptr)
+  {
+    return d_null;
+  }
+  // lookup the base operator if necessary
+  Expr hd(children[0]);
+  Expr ct = ai->d_attrConsTerm;
+  if (ct.isNull())
+  {
+    // if not parameterized, just return self
+    return ct;
+  }
+  // if explicit parameters, then evaluate the constructor term
+  if (hd.getKind()==Kind::PARAMETERIZED && hd.getNumChildren()==ct.getNumChildren())
+  {
+    Ctx ctx;
+    for (size_t i=0, nparams = hd[0].getNumChildren(); i<nparams; i++)
+    {
+      ctx[ct[0][i].getValue()] = hd[0][i].getValue();
+    }
+    return d_tc.evaluate(ct.getValue(), ctx);
+  }
+  else
+  {
+    // otherwise, we must infer the parameters
+  }
+  return ct;
+}
+
 Attr State::getConstructorKind(const ExprValue* v) const
 {
-  const ExprValue* vb = getBaseOperator(v);
-  std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(vb);
-  if (it!=d_appData.end())
+  const AppInfo* ai = getAppInfo(v);
+  if (ai!=nullptr)
   {
-    return it->second.d_attrCons;
+    return ai->d_attrCons;
   }
   return Attr::NONE;
 }
 
-Expr State::computeConstructorTerm(const ExprValue* v)
-{
-  const ExprValue* vb = getBaseOperator(v);
-  std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(vb);
-  if (it!=d_appData.end())
-  {
-    Expr ct = it->second.d_attrConsTerm;
-    if (!ct.isNull() && ct.getKind()==Kind::PARAMETERIZED)
-    {
-      Expr vv(v);
-      // if explicit parameters, then evaluate the constructor term
-      if (vv.getKind()==Kind::PARAMETERIZED && vv.getNumChildren()==ct.getNumChildren())
-      {
-        Ctx ctx;
-        for (size_t i=0, nparams = vv[0].getNumChildren(); i<nparams; i++)
-        {
-          ctx[ct[0][i].getValue()] = vv[0][i].getValue();
-        }
-        return d_tc.evaluate(ct.getValue(), ctx);
-      }
-      else
-      {
-        // error?
-      }
-    }
-    return ct;
-  }
-  return d_null;
-}
 
 Expr State::getVar(const std::string& name) const
 {
@@ -1280,8 +1272,19 @@ bool State::hasReference() const
 
 AppInfo* State::getAppInfo(const ExprValue* e)
 {
-  const ExprValue * eb = getBaseOperator(e);
-  std::map<const ExprValue *, AppInfo>::iterator it = d_appData.find(eb);
+  Assert (e->getKind()!=Kind::PARAMETERIZED);
+  std::map<const ExprValue *, AppInfo>::iterator it = d_appData.find(e);
+  if (it!=d_appData.end())
+  {
+    return &it->second;
+  }
+  return nullptr;
+}
+
+const AppInfo* State::getAppInfo(const ExprValue* e) const
+{
+  Assert (e->getKind()!=Kind::PARAMETERIZED);
+  std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(e);
   if (it!=d_appData.end())
   {
     return &it->second;
