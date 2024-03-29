@@ -1110,14 +1110,6 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       }
     }
     break;
-    case Kind::PARAMETERIZED:
-    {
-      if (isGround(args) && args.size()==2)
-      {
-        return Expr(args[1]);
-      }
-    }
-    break;
     default:
       break;
   }
@@ -1196,7 +1188,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   {
     case Kind::EVAL_NIL:
     {
-      return ac->d_attrConsTerm;
+      return nilExpr;
     }
     break;
     case Kind::EVAL_CONS:
