@@ -727,6 +727,10 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         Trace("state") << "BETA_REDUCE " << Expr((*hd)[1]) << " " << ctx << " = " << ret << std::endl;
         return ret;
       }
+      else
+      {
+        Warning() << "Wrong number of arguments when applying " << Expr(hd) << std::endl;
+      }
     }
     else if (hk==Kind::PROGRAM_CONST || hk==Kind::ORACLE)
     {
