@@ -126,6 +126,10 @@ class State
    * @return A constant
    */
   Expr mkLiteral(Kind k, const std::string& s);
+  /**
+   * Make parameterized with given parameters
+   */
+  Expr mkParameterized(const ExprValue* hd, const std::vector<Expr>& params);
   //--------------------------------------
   /** is binder */
   bool isBinder(const ExprValue* ev) const;

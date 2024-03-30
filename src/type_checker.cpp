@@ -1408,7 +1408,7 @@ Expr TypeChecker::computeConstructorTermInternal(AppInfo* ai,
         {
           args.emplace_back(tctx[ct[0][i].getValue()]);
         }
-        hd = d_state.mkExpr(Kind::PARAMETERIZED, {d_state.mkExpr(Kind::TUPLE, args), hd});
+        hd = d_state.mkParameterized(hd.getValue(), args);
       }
       else
       {

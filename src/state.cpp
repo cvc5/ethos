@@ -572,9 +572,8 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         else if (ai->d_kind==Kind::PARAMETERIZED)
         {
           // make as tuple
-          std::vector<Expr> achildren(children.begin()+2, children.end());
-          Expr vl = mkExpr(Kind::TUPLE, achildren);
-          return mkExpr(Kind::PARAMETERIZED, {vl, children[1]});
+          std::vector<Expr> achildren(vchildren.begin()+2, vchildren.end());
+          return mkParameterized(vchildren[1], achildren);
         }
         // another builtin operator, possibly APPLY
         std::vector<Expr> achildren(children.begin()+1, children.end());
@@ -851,6 +850,11 @@ Expr State::mkLiteral(Kind k, const std::string& s)
       break;
   }
   return Expr(mkLiteralInternal(lit));
+}
+
+Expr State::mkParameterized(const ExprValue* hd, const std::vector<Expr>& params)
+{
+  return mkExpr(Kind::PARAMETERIZED, {mkExpr(Kind::TUPLE, params), Expr(hd)});
 }
 
 ExprValue* State::mkLiteralInternal(Literal& l)

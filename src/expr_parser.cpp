@@ -1266,8 +1266,7 @@ void ExprParser::processAttributeMap(const AttrMap& attrs,
           if (!av.isNull() && !av.isGround())
           {
             Assert (!params.empty());
-            Expr vl = d_state.mkExpr(Kind::TUPLE, params);
-            cons = d_state.mkExpr(Kind::PARAMETERIZED, {vl, av});
+            cons = d_state.mkParameterized(av.getValue(), params);
           }
           else
           {
