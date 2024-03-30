@@ -753,6 +753,10 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
             return ret;
           }
         }
+        else
+        {
+          Warning() << "Wrong number of arguments when applying program " << Expr(hd) << std::endl;
+        }
       }
     }
     // Most functions are unary and require currying if applied to more than one argument.
