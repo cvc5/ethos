@@ -525,7 +525,7 @@ Expr ExprParser::parseExpr()
               Trace("parser") << "Binder is " << vl << std::endl;
               Trace("parser") << "Env is " << env << std::endl;
               // make the program variable, whose type is abstract
-              Expr ftype = d_state.mkFunctionType(fargTypes, atype);
+              Expr ftype = d_state.mkFunctionType(fargTypes, atype, false);
               std::stringstream pvname;
               pvname << "_match_" << hd;
               Expr pv = d_state.mkSymbol(Kind::PROGRAM_CONST, pvname.str(), ftype);

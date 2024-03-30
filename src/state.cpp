@@ -755,7 +755,9 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         }
         else
         {
-          Warning() << "Wrong number of arguments when applying program " << Expr(hd) << std::endl;
+          Warning() << "Wrong number of arguments when applying program " << Expr(hd)
+                    << ", " << t.getNumChildren() << " arguments expected, got "
+                    << children.size() << std::endl;
         }
       }
     }
