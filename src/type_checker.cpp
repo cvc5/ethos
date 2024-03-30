@@ -1358,17 +1358,30 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
 Expr TypeChecker::computeConstructorTermInternal(AppInfo* ai, 
                                                  const std::vector<Expr>& children)
 {
+  Expr hd;
+  Expr nil;
+  computedParameterizedInternal(ai, children, hd, nil);
+  return nil;
+}
+
+bool TypeChecker::computedParameterizedInternal(AppInfo* ai,
+                                                const std::vector<Expr>& children,
+                                                Expr& hd,
+                                                Expr& nil)
+{
+  hd = children[0];
+  nil = d_null;
   if (ai==nullptr)
   {
-    return d_null;
+    return true;
   }
   // lookup the base operator if necessary
-  Expr hd = children[0];
   Expr ct = ai->d_attrConsTerm;
   if (ct.isNull() || ct.getKind()!=Kind::PARAMETERIZED)
   {
     // if not parameterized, just return self
-    return ct;
+    nil = ct;
+    return true;
   }
   Trace("type_checker") << "Determine constructor term for " << hd << std::endl;
   // if explicit parameters, then evaluate the constructor term
@@ -1378,7 +1391,7 @@ Expr TypeChecker::computeConstructorTermInternal(AppInfo* ai,
     {
       // if not in an application, we fail
       Warning() << "Failed to determine parameters for " << hd << std::endl;
-      return d_state.mkNil();
+      return false;
     }
     else
     {
@@ -1398,7 +1411,7 @@ Expr TypeChecker::computeConstructorTermInternal(AppInfo* ai,
           if (t==nullptr)
           {
             Warning() << "Type inference failed for " << hd << " applied to " << children[1] << std::endl;
-            return d_state.mkNil();
+            return false;
           }
         }
         Ctx tctx;
@@ -1408,12 +1421,13 @@ Expr TypeChecker::computeConstructorTermInternal(AppInfo* ai,
         {
           args.emplace_back(tctx[ct[0][i].getValue()]);
         }
+        // the head is now disambiguated
         hd = d_state.mkParameterized(hd.getValue(), args);
       }
       else
       {
         Warning() << "Unknown category for parameterized operator " << hd << std::endl;
-        return d_state.mkNil();
+        return false;
       }
     }
   }
@@ -1432,12 +1446,11 @@ Expr TypeChecker::computeConstructorTermInternal(AppInfo* ai,
     Warning() << "Unexpected number of parameters for " << hd[1]
               << ", expected " << ct.getNumChildren() << " parameters, got "
               << hd.getNumChildren() << std::endl;
-    return d_state.mkNil();
+    return false;
   }
   Trace("type_checker") << "Context for constructor term: " << ctx << std::endl;
-  Expr nil = evaluate(ct[1].getValue(), ctx);
-
-  return nil;
+  nil = evaluate(ct[1].getValue(), ctx);
+  return true;
 }
 
 }  // namespace alfc

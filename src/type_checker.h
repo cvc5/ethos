@@ -122,6 +122,11 @@ class TypeChecker
   /** Get the nil terminator */
   Expr computeConstructorTermInternal(AppInfo* ai,
                                       const std::vector<Expr>& children);
+  /** Returns the (possibly disambiguated) operator in children and its nil terminator */
+  bool computedParameterizedInternal(AppInfo* ai,
+                                     const std::vector<Expr>& children,
+                                     Expr& hd,
+                                     Expr& nil);
   /** The state */
   State& d_state;
   /** Mapping literal kinds to type rules */
