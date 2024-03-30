@@ -120,7 +120,7 @@ class TypeChecker
   ExprValue* run_evaluateProgram(const std::vector<ExprValue*>& args, Ctx& ctx);
   //---------------- end compiled methods
   /** Get the nil terminator */
-  Expr computeConstructorTermInternal(AppInfo* ai, 
+  Expr computeConstructorTermInternal(AppInfo* ai,
                                       const std::vector<Expr>& children);
   /** The state */
   State& d_state;

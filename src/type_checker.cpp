@@ -1371,58 +1371,73 @@ Expr TypeChecker::computeConstructorTermInternal(AppInfo* ai,
     return ct;
   }
   Trace("type_checker") << "Determine constructor term for " << hd << std::endl;
-  Ctx ctx;
   // if explicit parameters, then evaluate the constructor term
-  if (hd.getKind()==Kind::PARAMETERIZED)
+  if (hd.getKind()!=Kind::PARAMETERIZED)
   {
-    if (hd.getNumChildren()==ct.getNumChildren())
+    if (children.size()==1)
     {
-      for (size_t i=0, nparams = hd[0].getNumChildren(); i<nparams; i++)
-      {
-        ctx[ct[0][i].getValue()] = hd[0][i].getValue();
-      }
+      // if not in an application, we fail
+      Warning() << "Failed to determine parameters for " << hd << std::endl;
+      return d_state.mkNil();
     }
     else
     {
-      // error
-      Warning() << "Unexpected number of parameters for " << hd[1]
-                << ", expected " << ct.getNumChildren() << " parameters, got "
-                << hd.getNumChildren() << std::endl;
-      return d_state.mkNil();
+      // otherwise, we must infer the parameters
+      Trace("type_checker") << "Infer params for " << hd << " @ " << children[1] << std::endl;
+      if (isNAryAttr(ai->d_attrCons))
+      {
+        std::vector<ExprValue*> app;
+        app.push_back(hd.getValue());
+        app.push_back(children[1].getValue());
+        // ensure children are type checked
+        for (ExprValue* e : app)
+        {
+          Expr expr(e);
+          getType(expr);
+          ExprValue* t = d_state.lookupType(e);
+          if (t==nullptr)
+          {
+            Warning() << "Type inference failed for " << hd << " applied to " << children[1] << std::endl;
+            return d_state.mkNil();
+          }
+        }
+        Ctx tctx;
+        getTypeAppInternal(app, tctx);
+        std::vector<Expr> args;
+        for (size_t i=0, nparams = ct[0].getNumChildren(); i<nparams; i++)
+        {
+          args.emplace_back(tctx[ct[0][i].getValue()]);
+        }
+        hd = d_state.mkExpr(Kind::PARAMETERIZED, {d_state.mkExpr(Kind::TUPLE, args), hd});
+      }
+      else
+      {
+        Warning() << "Unknown category for parameterized operator " << hd << std::endl;
+        return d_state.mkNil();
+      }
     }
   }
-  else if (children.size()==1)
+  Assert (hd.getKind()==Kind::PARAMETERIZED);
+  Ctx ctx;
+  if (hd[0].getNumChildren()==ct[0].getNumChildren())
   {
-    // if not in an application, we fail
-    Warning() << "Failed to determine parameters for " << hd << std::endl;
-    return d_state.mkNil();
+    for (size_t i=0, nparams = hd[0].getNumChildren(); i<nparams; i++)
+    {
+      ctx[ct[0][i].getValue()] = hd[0][i].getValue();
+    }
   }
   else
   {
-    // otherwise, we must infer the parameters
-    Trace("type_checker") << "Infer params for " << hd << " @ " << children[1] << std::endl;
-    if (isNAryAttr(ai->d_attrCons))
-    {
-      std::vector<ExprValue*> app;
-      app.push_back(hd.getValue());
-      app.push_back(children[1].getValue());
-      // ensure children are type checked
-      for (ExprValue* e : app)
-      {
-        Expr expr(e);
-        getType(expr);
-        ExprValue* t = d_state.lookupType(e);
-        if (t==nullptr)
-        {
-          Warning() << "Type inference failed for " << hd << " applied to " << children[1] << std::endl;
-          return d_state.mkNil();
-        }
-      }
-      getTypeAppInternal(app, ctx);
-    }
+    // error
+    Warning() << "Unexpected number of parameters for " << hd[1]
+              << ", expected " << ct.getNumChildren() << " parameters, got "
+              << hd.getNumChildren() << std::endl;
+    return d_state.mkNil();
   }
   Trace("type_checker") << "Context for constructor term: " << ctx << std::endl;
-  return evaluate(ct[1].getValue(), ctx);
+  Expr nil = evaluate(ct[1].getValue(), ctx);
+
+  return nil;
 }
 
 }  // namespace alfc
