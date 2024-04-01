@@ -596,7 +596,17 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       }
       Trace("state-debug") << "Process category " << ai->d_attrCons << " for " << children[0] << std::endl;
       size_t nchild = vchildren.size();
+      // Compute the "constructor term" for the operator, which may involve
+      // type inference. We store the constructor term in consTerm and operator
+      // in hdTerm, where notice hdTerm is of kind PARAMETERIZED if consTerm
+      // (prior to resolution) was PARAMETERIZED. So, for example, applying
+      // `bvor` to `a` of type `(BitVec 4)` results in
+      //   hdTerm := (PARAMETERIZED (4) bvor),
+      //   consTerm := #b0000.
+      Expr hdTerm;
       Expr consTerm;
+      d_tc.computedParameterizedInternal(ai, children, hdTerm, consTerm);
+      vchildren[0] = hdTerm.getValue();
       // if it has a constructor attribute
       switch (ai->d_attrCons)
       {
@@ -605,7 +615,6 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         case Attr::LEFT_ASSOC_NIL:
         case Attr::RIGHT_ASSOC_NIL:
         {
-          // NOTE: we only call computeConstructorTermInternal when necessary.
           // This means that we don't construct bogus terms when e.g.
           // right-assoc-nil operators are used in side condition bodies.
           // note that nchild>=2 treats e.g. (or a) as (or a false).
@@ -628,7 +637,6 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
               {
                 // if the last term is not marked as a list variable and
                 // we have a null terminator, then we insert the null terminator
-                consTerm = d_tc.computeConstructorTermInternal(ai, children);
                 Trace("state-debug") << "...insert nil terminator " << consTerm << std::endl;
                 curr = consTerm.getValue();
                 i--;
@@ -661,7 +669,6 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           break;
         case Attr::CHAINABLE:
         {
-          consTerm = d_tc.computeConstructorTermInternal(ai, children);
           std::vector<Expr> cchildren;
           Assert(!consTerm.isNull());
           cchildren.push_back(consTerm);
@@ -683,7 +690,6 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           break;
         case Attr::PAIRWISE:
         {
-          consTerm = d_tc.computeConstructorTermInternal(ai, children);
           std::vector<Expr> cchildren;
           Assert(!consTerm.isNull());
           cchildren.push_back(consTerm);
