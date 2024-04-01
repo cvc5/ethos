@@ -1156,9 +1156,10 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   }
   // otherwise, maybe a list operation
   ExprValue* op = args[0];
-  // immediately strip off parameterized
-  op = op->getKind()==Kind::PARAMETERIZED ? (*op)[1] : op;
-  AppInfo* ac = d_state.getAppInfo(op);
+  // strip off parameterized to look up AppInfo, otherwise we use the original
+  // op
+  ExprValue* opb = op->getKind()==Kind::PARAMETERIZED ? (*op)[1] : op;
+  AppInfo* ac = d_state.getAppInfo(opb);
   if (ac==nullptr)
   {
     Trace("type_checker") << "...not list op, return null" << std::endl;
@@ -1410,12 +1411,14 @@ bool TypeChecker::computedParameterizedInternal(AppInfo* ai,
           ExprValue* t = d_state.lookupType(e);
           if (t==nullptr)
           {
-            Warning() << "Type inference failed for " << hd << " applied to " << children[1] << std::endl;
+            Warning() << "Type inference failed for " << hd << " applied to " << children[1] << ", failed to type check " << expr << std::endl;
             return false;
           }
+          Trace("type_checker_debug") << "Type for " << expr << " is " << Expr(t) << std::endl;
         }
         Ctx tctx;
         getTypeAppInternal(app, tctx);
+        Trace("type_checker_debug") << "Context was " << tctx << std::endl;
         std::vector<Expr> args;
         for (size_t i=0, nparams = ct[0].getNumChildren(); i<nparams; i++)
         {
@@ -1423,6 +1426,7 @@ bool TypeChecker::computedParameterizedInternal(AppInfo* ai,
         }
         // the head is now disambiguated
         hd = d_state.mkParameterized(hd.getValue(), args);
+        Trace("type_checker_debug") << "Infered parameterized op " << hd << std::endl;
       }
       else
       {

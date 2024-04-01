@@ -46,20 +46,20 @@
 
 ; Get the term corresponding to the prefix of s before the first occurrence of
 ; t in s.
-(define skolem_first_ctn_pre ((U Type) (s U) (t U))
+(define skolem_first_ctn_pre ((U Type) (s (Seq U)) (t (Seq U)))
   (skolem_prefix U s (str.indexof s t 0)))
 
 ; Get the term corresponding to the suffix of s after the first occurrence of
 ; t in s.
-(define skolem_first_ctn_post ((U Type) (s U) (t U))
+(define skolem_first_ctn_post ((U Type) (s (Seq U)) (t (Seq U)))
   (skolem_suffix_rem U s (+ (str.len (skolem (skolem_first_ctn_pre U s t))) (str.len t))))
 
 ;;-------------------- Utilities
 
 ; Concatenation str.++ applications t1 and t2. Note this side condition requires
 ; taking the sort u of t1 for constructing the empty string.
-(program string_concat ((T Type) (t1 T) (t2 T))
-  (T T) T
+(program string_concat ((T Type) (t1 (Seq T)) (t2 (Seq T)))
+  ((Seq T) (Seq T)) (Seq T)
   (((string_concat t1 t2) ($str_concat t1 t2)))
 )
 
@@ -81,7 +81,7 @@
 )
 
 ; Return reverse of t if rev = tt, return t unchanged otherwise.
-(define string_rev ((U Type) (rev Bool) (t U)) (alf.ite rev ($string_rev t) t))
+(define string_rev ((U Type) (rev Bool) (t (Seq U))) (alf.ite rev ($string_rev t) t))
 
 ; Returns true if the length of s evaluates to one, false otherwise.
 (define check_length_one ((s String)) (check_true (alf.is_eq (alf.len s) 1)))
@@ -122,8 +122,8 @@
         ($str_cons (alf.extract t 0 0) (string_flatten_word (alf.extract t 1 (alf.len t))))))
   )
 )
-(program string_flatten ((U Type) (t U) (tail U :list) (tail2 U :list))
-  (U) U
+(program string_flatten ((U Type) (t (Seq U)) (tail (Seq U) :list) (tail2 (Seq U) :list))
+  ((Seq U)) (Seq U)
   (
     ; required for sequences
     ((string_flatten (str.++ (str.++ t tail2) tail)) 
@@ -147,18 +147,18 @@
 ;   (str.++ "A" (str.++ "B" (str.++ x "")))
 ; We return:
 ;   (@pair "AB" (str.++ x ""))
-(program string_collect_acc ((U Type) (t U) (tail String :list))
-  (U) (@Pair U U)
+(program string_collect_acc ((U Type) (t (Seq U)) (tail (Seq U) :list))
+  ((Seq U)) (@Pair (Seq U) (Seq U))
   (
     ; TODO: sequences
     ; Check if t is a word constant
     ((string_collect_acc (str.++ t tail))
       (alf.ite (check_length_one t)
-        (alf.match ((s1 U) (s2 U)) 
+        (alf.match ((s1 (Seq U)) (s2 (Seq U))) 
           (string_collect_acc tail)
           (
             ((@pair "" s2)  (@pair t s2))
-            ((@pair s1 s2)       (@pair (alf.concat t s1) s2))    ; concatentate the constant
+            ((@pair s1 s2)  (@pair (alf.concat t s1) s2))    ; concatentate the constant
           )
         )
         (@pair "" (str.++ t tail))))
@@ -173,11 +173,11 @@
 ; This side condition may fail if s is not a str.++ application.
 ; Notice that the collection of constants is done for all word constants in the
 ; term s recursively.
-(program string_collect ((U Type) (t U) (s U :list))
-  (U) U
+(program string_collect ((U Type) (t (Seq U)) (s (Seq U) :list))
+  ((Seq U)) (Seq U)
   (
     ((string_collect (str.++ t s))
-      (alf.match ((s1 U) (s2 U))
+      (alf.match ((s1 (Seq U)) (s2 (Seq U)))
         (string_collect_acc (str.++ t s))
         (
           ; did not strip a constant prefix, just append t to the result of processing s
@@ -200,8 +200,8 @@
 ; This method will return:
 ;   (pair (str.++ y (str.++ z "")) (str.++ w ""))
 ; This side condition may fail if s or t is not a str.++ application.
-(program strip_prefix ((U Type) (t U) (s U) (t2 U :list) (s2 U :list))
-  (U U) (@Pair U U)
+(program strip_prefix ((U Type) (t (Seq U)) (s (Seq U)) (t2 (Seq U) :list) (s2 (Seq U) :list))
+  ((Seq U) (Seq U)) (@Pair (Seq U) (Seq U))
   (
     ((strip_prefix (str.++ t t2) (str.++ t s2)) (strip_prefix t2 s2))
     ((strip_prefix t s)                         (@pair t s))

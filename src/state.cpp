@@ -606,7 +606,9 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       Expr hdTerm;
       Expr consTerm;
       d_tc.computedParameterizedInternal(ai, children, hdTerm, consTerm);
-      vchildren[0] = hdTerm.getValue();
+      hd = hdTerm.getValue();
+      Trace("state-debug") << "...updated " << hdTerm << " / " << consTerm << std::endl;
+      vchildren[0] = hd;
       // if it has a constructor attribute
       switch (ai->d_attrCons)
       {
@@ -651,12 +653,10 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
               // if the "head" child is marked as list, we construct Kind::EVAL_CONCAT
               if (isNil && getConstructorKind(cc[nextIndex]) == Attr::LIST)
               {
-                cc[0] = vchildren[0];
                 curr = mkExprInternal(Kind::EVAL_CONCAT, cc);
               }
               else
               {
-                cc[0] = hd;
                 curr = mkApplyInternal(cc);
               }
               i++;
@@ -946,7 +946,6 @@ ExprValue* State::mkApplyInternal(const std::vector<ExprValue*>& children)
   Assert(children.size() > 2);
   // requires currying
   ExprValue* curr = children[0];
-  Assert (curr->getKind()!=Kind::PARAMETERIZED);
   for (size_t i=1, nchildren = children.size(); i<nchildren; i++)
   {
     curr = mkExprInternal(Kind::APPLY, {curr, children[i]});
