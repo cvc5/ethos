@@ -1422,7 +1422,13 @@ bool TypeChecker::computedParameterizedInternal(AppInfo* ai,
         std::vector<Expr> args;
         for (size_t i=0, nparams = ct[0].getNumChildren(); i<nparams; i++)
         {
-          args.emplace_back(tctx[ct[0][i].getValue()]);
+          Expr cv(tctx[ct[0][i].getValue()]);
+          if (cv.isNull())
+          {
+            Warning() << "Failed to find context for " << ct[0][i] << " when applying " << hd << " @ " << children[1] << std::endl;
+            return false;
+          }
+          args.emplace_back(cv);
         }
         // the head is now disambiguated
         hd = d_state.mkParameterized(hd.getValue(), args);
