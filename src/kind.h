@@ -102,6 +102,8 @@ bool isSymbol(Kind k);
 bool isLiteral(Kind k);
 /** */
 bool isLiteralOp(Kind k);
+/** Is k a list literal operator? */
+bool isListLiteralOp(Kind k);
 
 }  // namespace alfc
 

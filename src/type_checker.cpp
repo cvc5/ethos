@@ -1154,6 +1154,10 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     Trace("type_checker") << "...value-evaluates to " << lit << std::endl;
     return lit;
   }
+  if (!isListLiteralOp(k))
+  {
+    return d_null;
+  }
   // otherwise, maybe a list operation
   ExprValue* op = args[0];
   // strip off parameterized to look up AppInfo
@@ -1398,6 +1402,7 @@ bool TypeChecker::computedParameterizedInternal(AppInfo* ai,
     {
       // if not in an application, we fail
       Warning() << "Failed to determine parameters for " << hd << std::endl;
+      AlwaysAssert(false);
       return false;
     }
     else

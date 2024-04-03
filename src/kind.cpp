@@ -224,5 +224,20 @@ bool isLiteralOp(Kind k)
   }
   return false;
 }
+bool isListLiteralOp(Kind k)
+{
+  switch (k)
+  {
+    case Kind::EVAL_NIL:
+    case Kind::EVAL_CONS:
+    case Kind::EVAL_CONCAT:
+    case Kind::EVAL_EXTRACT:
+    case Kind::EVAL_FIND:
+      return true;
+    default:
+      break;
+  }
+  return false;
+}
 
 }  // namespace alfc
