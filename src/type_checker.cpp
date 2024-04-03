@@ -1174,7 +1174,13 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   bool isLeft = (ck==Attr::LEFT_ASSOC_NIL);
   Trace("type_checker_debug") << "EVALUATE-LIT (list) " << k << " " << isLeft << " " << args << std::endl;
   // infer the nil expression, which depends on the type of args[1]
-  Expr nilExpr = computeConstructorTermInternal(ac, {Expr(args[0]), Expr(args[1])});
+  std::vector<Expr> eargs;
+  eargs.emplace_back(args[0]);
+  if (args.size()>1)
+  {
+    eargs.emplace_back(args[1]);
+  }
+  Expr nilExpr = computeConstructorTermInternal(ac, eargs);
   if (nilExpr.isNull())
   {
     Trace("type_checker") << "...failed to get nil" << std::endl;

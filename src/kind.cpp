@@ -54,7 +54,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::EVAL_TYPE_OF: o << "EVAL_TYPE_OF"; break;
     case Kind::EVAL_NAME_OF: o << "EVAL_NAME_OF"; break;
     // lists
-    case Kind::EVAL_NIL: o << "EVAL_EMPTYLIST";break;
+    case Kind::EVAL_NIL: o << "EVAL_NIL";break;
     case Kind::EVAL_CONS: o << "EVAL_CONS"; break;
     // boolean
     case Kind::EVAL_NOT: o << "EVAL_NOT"; break;
