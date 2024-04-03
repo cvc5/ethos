@@ -1156,10 +1156,9 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   }
   // otherwise, maybe a list operation
   ExprValue* op = args[0];
-  // strip off parameterized to look up AppInfo, otherwise we use the original
-  // op
-  ExprValue* opb = op->getKind()==Kind::PARAMETERIZED ? (*op)[1] : op;
-  AppInfo* ac = d_state.getAppInfo(opb);
+  // strip off parameterized to look up AppInfo
+  op = op->getKind()==Kind::PARAMETERIZED ? (*op)[1] : op;
+  AppInfo* ac = d_state.getAppInfo(op);
   if (ac==nullptr)
   {
     Trace("type_checker") << "...not list op, return null" << std::endl;
@@ -1174,7 +1173,8 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   }
   bool isLeft = (ck==Attr::LEFT_ASSOC_NIL);
   Trace("type_checker_debug") << "EVALUATE-LIT (list) " << k << " " << isLeft << " " << args << std::endl;
-  Expr nilExpr = computeConstructorTermInternal(ac, {Expr(args[0])});
+  // infer the nil expression, which depends on the type of args[1]
+  Expr nilExpr = computeConstructorTermInternal(ac, {Expr(args[0]), Expr(args[1])});
   if (nilExpr.isNull())
   {
     Trace("type_checker") << "...failed to get nil" << std::endl;

@@ -606,7 +606,6 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       Expr hdTerm;
       Expr consTerm;
       d_tc.computedParameterizedInternal(ai, children, hdTerm, consTerm);
-      hd = hdTerm.getValue();
       Trace("state-debug") << "...updated " << hdTerm << " / " << consTerm << std::endl;
       vchildren[0] = hd;
       // if it has a constructor attribute
