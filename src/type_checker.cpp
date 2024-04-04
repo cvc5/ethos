@@ -190,6 +190,9 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_NIL:
       ret = (nargs==1);
       break;
+    case Kind::EVAL_NIL_OF:
+      ret = (nargs>=1);
+      break;
     case Kind::EVAL_REQUIRES:
     case Kind::EVAL_IF_THEN_ELSE:
       ret = (nargs==3);
@@ -1198,6 +1201,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   switch (k)
   {
     case Kind::EVAL_NIL:
+    case Kind::EVAL_NIL_OF:
     {
       return nilExpr;
     }
@@ -1437,6 +1441,13 @@ bool TypeChecker::computedParameterizedInternal(AppInfo* ai,
           if (cv.isNull())
           {
             Warning() << "Failed to find context for " << ct[0][i] << " when applying " << hd << " @ " << children[1] << std::endl;
+            return false;
+          }
+          if (!cv.isGround())
+          {
+            // If the parameter is non-ground, we also wait to construct;
+            // if the nil terminator is used, it will be replaced by a
+            // placeholder involving alf.nil_of.
             return false;
           }
           args.emplace_back(cv);

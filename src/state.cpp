@@ -639,7 +639,19 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
                 // if the last term is not marked as a list variable and
                 // we have a null terminator, then we insert the null terminator
                 Trace("state-debug") << "...insert nil terminator " << consTerm << std::endl;
-                curr = consTerm.getValue();
+                if (consTerm.isNull())
+                {
+                  // if we failed to infer a nil terminator (likely due to
+                  // a non-ground parameter), then we insert a placeholder
+                  // (alf.nil f t1 ... tn), which if t1...tn are non-ground
+                  // will evaluate to the proper nil terminator when
+                  // instantiated.
+                  curr = mkExprInternal(Kind::EVAL_NIL_OF, vchildren);
+                }
+                else
+                {
+                  curr = consTerm.getValue();
+                }
                 i--;
               }
             }
