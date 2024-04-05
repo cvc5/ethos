@@ -103,7 +103,7 @@ The following commands are supported for declaring and defining types and terms.
 The ALF language contains further commands for declaring symbols that are not standard SMT-LIB version 3.0:
 - `(declare-consts <lit-category> <type>)` declares the class of symbols denoted by the literal category to have the given type.
 - `(define <symbol> (<typed-param>*) <term>)`, which is identical to `define-fun` but the body term is not type checked against a reference type.
-- `(declare-parameterized-const <symbol> (<typed-param>*) <type>)` declares a variable named `<symbol>` whose type is `<type>`.
+- `(declare-parameterized-const <symbol> (<typed-param>*) <type> <attr>*)` declares a variable named `<symbol>` whose type is `<type>`.
 
 > Variables are internally treated the same as constants by the ALF checker, but are provided as a separate category, e.g. for user signatures that wish to distinguish universally quantified variables from free constants. They also have a relationship with user-defined binders, see [binders](#binders), and can be accessed via the builtin operator `alf.var` (see [computation](#computation)).
 
@@ -295,7 +295,7 @@ For example, say we wish to declare bitvector-or (`bvor` in SMT-LIB), where its 
 A possible declaration is the following:
 ```
 (declare-const bvor
-    (-> (! Int :var m) (BitVec m) (BitVec m) (BitVec m))
+    (-> (! Int :var m :implicit) (BitVec m) (BitVec m) (BitVec m))
     :right-assoc-nil ???
 )
 ```
@@ -719,6 +719,13 @@ The terms on both sides of the given evaluation are written in their form prior 
 (alf.find or (and a b b) a)         == (alf.find or (and a b b) a)      ; since (and a b b) is not an or-list
 ```
 
+### Nil terminator with additional arguments
+
+As we will introduce in [param-constants](#param-constants),
+`alf.nil` is overloaded to accept addition arguments beyond the operator.
+In particular, `(alf.nil or a b)` intuitively denotes the nil terminator
+for the term `or` applied to arguments `a,b`.
+
 ### Example: Type rule for BitVector concatentation
 
 ```
@@ -774,6 +781,10 @@ This means that when type checking the binary constant `#b0000`, its type prior 
 
 Recall that in [assoc-nil](#assoc-nil), when using `declare-const` to define associative operators with nil terminators, it is not possible to have the nil terminator for that operator depend on its type parameters.
 In this section, we introduce a new command `declare-parameterized-const` which overcomes this limitation.
+Its syntax is:
+```
+(declare-parameterized-const <symbol> (<typed-param>*) <type> <attr>*)
+```
 
 In the following example,
 we declare bitvector-or (`bvor` in SMT-LIB) where its nil terminator is bitvector zero for the given bitwidth.
@@ -792,11 +803,43 @@ we declare bitvector-or (`bvor` in SMT-LIB) where its nil terminator is bitvecto
 ```
 In this example, we first declare the `Int` and `BitVec` sorts, and associate numeral and binary values with those sorts (see [declare-consts](#declare-consts)).
 Then, we declare `bvor` using `declare-parameterized-const` where its parameter is an integer `m`.
-The provided parameters are in scope for the remainder of the command, which in particular means they can appear in the nil terminator of the operator.
+The provided parameters are in scope for the remainder of the command, which means they can appear in the nil terminator of the operator.
 Here, we specify `(bvzero m)` as the nil terminator for `bvor`.
 
+The parameter list of a parameterized constant are treated as *implicit* arguments.
+In this example, the type of `bvor` is `(-> (! Int :var m :implicit) (BitVec m) (BitVec m) (BitVec m))`.
+
+If a function `f` is given a nil terminator with free parameters, this impacts:
+- How applications of `f` are desugared, and
+- How list operations such as `alf.nil`, `alf.cons`, and `alf.concat` are computed for `f`.
+
+For the former, say we apply `(f t1 ... tn)`, where `f` is right associative with nil terminator `nil`, where `nil` has free paramters `u1 ... um`.
+Similar to the procedure described in [assoc-nil](#assoc-nil), if `tn` is not marked with `:list`, we insert the nil terminator of `f` to the end of the argument list.
+To compute the parameters of the nil terminator, we first compute the type of `f` applied to arguments `t1 ... tn`.
+If successful, this is the type `T [v1 ... vm / u1 ... um]` for some terms `v1 ... vm` and the given return type `T` of `f`.
+If any of `v1 ... vm` is non-ground, or if the application fails to type check,
+the nil terminator is `(alf.nil f t1 ... tn)`.
+In other words, the computation of the nil terminator is deferred to the result of this evaluation.
+Otherwise, the nil terminator is `nil[ v1 ... vm / u1 ... um]`.
+Constructing `(f t1 ... tn)` then proceeds inductively via [assoc-nil](#assoc-nil).
+Examples of this are given in the following, assuming the declaration of `bvor` above.
+```
+(define-fun test ((x (BitVec 4)) (y (BitVec 4)) (n Int) (z (BitVec n)) (w (BitVec n) :list))
+    (bvor
+        (bvor x y)        ; (bvor x (bvor y #b0000))
+        (bvor x)          ; (bvor x #b0000)
+        (bvor z w)        ; (bvor z w)
+        (bvor z z)        ; (bvor z (bvor z (alf.nil bvor z z)))
+        (bvor w z)        ; (alf.concat bvor w (bvor z (alf.nil bvor w z)))
+    ))
+```
+
+For the latter, any list operation involving `f` first requires computing the nil terminator.
 
 
+Alternatively, the parameters of a function `f` may be provided explicitly using the syntax `(alf._ f p1 ... pn)`.
+
+> If no free parameters are used in the nil terminator of a parameterized constant, then it is treated equivalent to if it were declared via an ordinary declare-const command.
 
 ## <a name="overloading"></a>Overloading
 
@@ -1454,7 +1497,7 @@ Valid inputs to the ALF checker are `<alf-command>*`, where:
     (assume-push <symbol> <term>) |
     (declare-axiom <symbol> (<typed-param>*) <reqs>? <term>) |
     (declare-consts <lit-category> <type>) |
-    (declare-parameterized-const <symbol> (<typed-param>*) <type>) |
+    (declare-parameterized-const <symbol> (<typed-param>*) <type> <attr>*) |
     (declare-oracle-fun <symbol> (<type>*) <type> <symbol>) |
     (declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term>) |
     (declare-type <symbol> (<type>*)) |
