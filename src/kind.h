@@ -66,9 +66,6 @@ enum class Kind
   // lists
   EVAL_NIL,
   EVAL_CONS,
-  // internal only, (alf.nil_of f t1 ... tn) is the nil terminator of f
-  // applied to t1 ... tn.
-  EVAL_NIL_OF,
   // boolean
   EVAL_NOT,
   EVAL_AND,

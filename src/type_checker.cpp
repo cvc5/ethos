@@ -187,10 +187,9 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_TO_INT:
     case Kind::EVAL_TO_RAT:
     case Kind::EVAL_TO_STRING:
-    case Kind::EVAL_NIL:
       ret = (nargs==1);
       break;
-    case Kind::EVAL_NIL_OF:
+    case Kind::EVAL_NIL:
       ret = (nargs>=1);
       break;
     case Kind::EVAL_REQUIRES:
@@ -1201,7 +1200,6 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   switch (k)
   {
     case Kind::EVAL_NIL:
-    case Kind::EVAL_NIL_OF:
     {
       return nilExpr;
     }
@@ -1447,7 +1445,7 @@ bool TypeChecker::computedParameterizedInternal(AppInfo* ai,
           {
             // If the parameter is non-ground, we also wait to construct;
             // if the nil terminator is used, it will be replaced by a
-            // placeholder involving alf.nil_of.
+            // placeholder involving alf.nil.
             return false;
           }
           args.emplace_back(cv);
