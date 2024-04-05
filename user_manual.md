@@ -875,11 +875,11 @@ An example use case for this feature is directly refer to the nil terminator of 
 
 > If no free parameters are used in the nil terminator of a parameterized constant, then it is treated equivalent to if it were declared via an ordinary declare-const command.
 
-For example:
+The following are examples of list operations when using parameterized constant `bvor`:
 ```
 (declare-const a (BitVec 4))
 (declare-const b (BitVec 4))
-(declare-const c (BitVec 4))
+(declare-const c (BitVec 5))
 
 (alf.nil bvor)                == (alf.nil bvor)     ; since we cannot infer the type of bvor
 (alf.nil bvor a)              == #b0000             ; since #b0000 is the nil terminator of (bvor a)
