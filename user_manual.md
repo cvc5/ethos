@@ -873,8 +873,6 @@ Furthermore, these parameters are dropped when applying the operator to argument
 For example `(_ (alf._ bvor 4) a b)` is equivalent to `(bvor a (bvor b #b0000))` after desugaring.
 An example use case for this feature is directly refer to the nil terminator of a concrete instance of `bvor`, e.g. `(alf.nil (alf._ bvor 4))` evaluates to `#b0000`.
 
-> If no free parameters are used in the nil terminator of a parameterized constant, then it is treated equivalent to if it were declared via an ordinary declare-const command.
-
 The following are examples of list operations when using parameterized constant `bvor`:
 ```
 (declare-const a (BitVec 4))
@@ -893,6 +891,8 @@ The following are examples of list operations when using parameterized constant 
 (alf.concat bvor #b0000 #b0000)       == #b0000
 (alf.concat bvor (bvor a b) (bvor b)) == (bvor a b b)
 ```
+
+> If no free parameters are used in the nil terminator of a parameterized constant, then it is treated equivalent to if it were declared via an ordinary declare-const command, and a warning is issued.
 
 ## <a name="overloading"></a>Overloading
 
