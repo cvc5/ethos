@@ -1,0 +1,18 @@
+
+
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+
+(declare-const a Bool)
+(declare-const b Bool)
+
+(define-fun P ((x Bool)) Bool x)
+(define-fun Q ((x Bool :list)) Bool (or x))
+
+(declare-const = (-> (! Type :var A :implicit) A A Bool))
+(declare-rule refl ((T Type) (t T))
+    :premises ()
+    :args (t)
+    :conclusion (= t t)
+)
+
+(step @p0 (= (P a) (Q a)) :rule refl :args ((P a)))

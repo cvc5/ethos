@@ -70,7 +70,7 @@ In the following sections, we review these features in more detail. A full synta
 
 In ALF as in SMT-LIB version 3.0, a common BNF is used to specify terms, types and kinds.
 In this document, a *term* may denote an ordinary term, a type or a kind.
-Terms are composed of applications, several built-in operators of the language (e.g. for performing computations, see [computation](#computation)), and three kinds of atomic terms (*constants*, *variables*, and *parameters*) which we will describe in the following.
+Terms are composed of applications, built-in operators of the language (e.g. for performing computations, see [computation](#computation)), literals (see [literals](#literals)), and three kinds of atomic terms (*constants*, *variables*, and *parameters*) which we will describe in the following.
 A *function* is an atomic term having a function type.
 The standard `let` binder can be used for specifying terms that contain common subterms, which is treated as syntax sugar.
 
@@ -101,11 +101,11 @@ The following commands are supported for declaring and defining types and terms.
 - `(reset)` removes all declarations and definitions and resets the global scope.
 
 The ALF language contains further commands for declaring symbols that are not standard SMT-LIB version 3.0:
-- `(declare-var <symbol> <type>)` declares a variable named `<symbol>` whose type is `<type>`.
 - `(declare-consts <lit-category> <type>)` declares the class of symbols denoted by the literal category to have the given type.
 - `(define <symbol> (<typed-param>*) <term>)`, which is identical to `define-fun` but the body term is not type checked against a reference type.
+- `(declare-parameterized-const <symbol> (<typed-param>*) <type>)` declares a variable named `<symbol>` whose type is `<type>`.
 
-> Variables are internally treated the same as constants by the ALF checker, but are provided as a separate category, e.g. for user signatures that wish to distinguish universally quantified variables from free constants. They also have a relationship with user-defined binders, see [binders](#binders).
+> Variables are internally treated the same as constants by the ALF checker, but are provided as a separate category, e.g. for user signatures that wish to distinguish universally quantified variables from free constants. They also have a relationship with user-defined binders, see [binders](#binders), and can be accessed via the builtin operator `alf.var` (see [computation](#computation)).
 
 > Limited cases of symbol overloading are supported, see [overloading](#overloading).
 
@@ -275,7 +275,53 @@ In contrast, marking `or` with `:right-assoc-nil false` leads to the distinct te
 
 Right and left associative operators with nil terminators also have a relationship with list terms (as we will see in the following section), and in computational operators.
 
-Note that the type for right and left associative operators with nil terminators is typically `(-> T T T)` for some `T`, where their nil terminator has type `T`.
+The type for right and left associative operators with nil terminators is typically `(-> T T T)` for some `T`, where their nil terminator has type `T`.
+
+The nil terminator of a right associative operator may involve previously declared symbols in the signature.
+For example:
+
+```
+(declare-sort RegLan 0)
+(declare-const re.all RegLan)
+(declare-const re.inter (-> RegLan RegLan RegLan) :right-assoc-nil re.all)
+```
+
+This example defines the constant `re.all` (in SMT-LIB, this is the regular expression accepting all strings)
+and the function `re.inter` (in SMT-LIB, the intersection of regular expressions), where the latter is defined to have a nil terminator
+that references the free constant `re.all`.
+
+However, when using `declare-const`, the nil terminator of an associative operator cannot depend on the parameters of the type of that function.
+For example, say we wish to declare bitvector-or (`bvor` in SMT-LIB), where its nil terminator is bitvector zero for the given bitwidth.
+A possible declaration is the following:
+```
+(declare-const bvor
+    (-> (! Int :var m) (BitVec m) (BitVec m) (BitVec m))
+    :right-assoc-nil ???
+)
+```
+The nil terminator of this operator is the bitvector zero whose width is `m`.
+However note that `m` is not in scope of the declaration of its nil terminator.
+We instead require such declarations to be made with `declare-parameterized-const`, which we describe next.
+
+#### Parameterized constants with nil terminators
+
+In the following example,
+we declare bitvector-or where its nil terminator is bitvector zero for the given bitwidth.
+```
+(declare-sort Int 0)
+(declare-consts <numeral> Int)                ; numeral literals denote Int constants
+(declare-type BitVec (Int))
+(declare-consts <binary> 
+    (BitVec (alf.len alf.self)))              ; binary literals denote BitVec constants of their length
+(define bvzero ((m Int)) (alf.to_bin m 0))    ; returns the bitvector value zero for bitwidth m
+
+(declare-parameterized-const bvor ((m Int))   ; bvor is parameterized by a bitwidth m
+    (-> (BitVec m) (BitVec m) (BitVec m))
+    :right-assoc-nil (bvzero m)               ; its nil terminator depends on m
+)
+```
+In this example, we first declare the `Int` and `BitVec` sorts, and associate numeral and binary values with those sorts (see [declare-consts](#declare-consts)).
+
 
 ### List
 
@@ -311,7 +357,7 @@ If `tn` is marked with `:list`, the returned term is initialized to `tn` and we 
 If `tn` is not marked with `:list`, the return term is initialized to the nil terminator of `f` and we process children `ti` from `i = n .. 1`.
 For each term `ti` we process, the returned term `r` is updated to `(f ti r)` if `ti` is not marked with `:list`, or to `(alf.concat f ti r)`
 if `ti` is marked with `:list`.
-Examples of this desugaring are given below. We provide the result of how each term is desugared.
+Examples of this desugaring are given below.
 
 ```
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
@@ -343,7 +389,7 @@ In the above example, `(>= x y z w)` is syntax sugar for `(and (>= x y) (>= y z)
 whereas the term `(>= x y)` is not impacted by the annotation `:chainable` since it has fewer than 3 children.
 
 Note that the type for chainable operators is typically `(-> T T S)` for some types `T` and `S`,
-where the type of its chaining operator is `(-> S S S)`, and that operator has been as variadic via some attribute.
+where the type of its chaining operator is `(-> S S S)`, and that operator has been as variadic via some attribute (e.g. `:right-assoc`).
 
 ### Pairwise
 
@@ -371,7 +417,7 @@ where the type of its pairwise operator is `(-> S S S)`, and that operator has b
 (define-fun Q2 () Bool (forall ((x Int)) (P x)))
 (define-fun Q3 () Bool (forall ((y Int)) (P y)))
 
-(declare-var x Int)
+(define x () (alf.var "x" Int))
 (define-fun Q4 () Bool (forall (@cons x) (P x)))
 ```
 In the above example, `forall` is declared as a binder.
@@ -386,10 +432,10 @@ In particular, this means that the definitions of `Q1` and `Q2` are syntacticall
 On the other hand, the definition `Q3` is distinct from both of these, since `y` is a distinct variable from `x`.
 
 Furthermore, note that a binder also may accept an explicit term as its first argument.
-In the above example, `Q4` has `(@cons x)` as its first argument, where `x` was explicitly declared as a variable.
+In the above example, `Q4` has `(@cons x)` as its first argument, where `x` was explicitly defined as a variable.
 This means that the definition of `Q4` is also syntactically equivalent to the definition of `Q1` and `Q2`, again assuming that `--binder-fresh` is not enabled.
 
-## Literal types
+## <a name="literals"></a>Literal types
 
 The ALF language supports associating SMT-LIB version 3.0 syntactic categories with types. In detail, a syntax category is one of the following:
 - `<numeral>` denoting the category of numerals `-?<digit>+`,
@@ -418,7 +464,7 @@ String values are implemented as a vector of unsigned integers whose maximum val
 
 > Note that the user is not required to declare that `true` and `false` are values of type `Bool`. Instead, it is assumed that the syntactic category `<boolean>` of Boolean values (`true` and `false`) has been associated with the Boolean sort. In other words, `(declare-consts <boolean> Bool)` is a part of the builtin ALF signature.
 
-### Declaring classes of literals
+### <a name="declare-consts"></a>Declaring classes of literals
 
 The following gives an example of how to define the class of numeral constants.
 ```
@@ -1400,10 +1446,10 @@ Valid inputs to the ALF checker are `<alf-command>*`, where:
     (assume-push <symbol> <term>) |
     (declare-axiom <symbol> (<typed-param>*) <reqs>? <term>) |
     (declare-consts <lit-category> <type>) |
+    (declare-parameterized-const <symbol> (<typed-param>*) <type>) |
     (declare-oracle-fun <symbol> (<type>*) <type> <symbol>) |
     (declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term>) |
     (declare-type <symbol> (<type>*)) |
-    (declare-var <symbol> <type>) |
     (define <symbol> (<typed-param>*) <term>) |
     (define-type <symbol> (<type>*) <type>) |
     (include <string>) |
