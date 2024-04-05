@@ -246,7 +246,7 @@ In the above example, `(and x y z)` is syntax sugar for `(and (and x y) z)`.
 
 Note that the type for right and left associative operators is typically `(-> T T T)` for some `T`.
 
-### Right/Left associative with nil terminator
+### <a name="assoc-nil"></a>Right/Left associative with nil terminator
 
 ALF supports a variant of the aforementioned functionality where a (ground) nil terminator is provided.
 
@@ -772,8 +772,11 @@ This means that when type checking the binary constant `#b0000`, its type prior 
 
 ## <a name="param-constants"></a>Parameterized constants
 
+Recall that in [assoc-nil](#assoc-nil), when using `declare-const` to define associative operators with nil terminators, it is not possible to have the nil terminator for that operator depend on its type parameters.
+In this section, we introduce a new command `declare-parameterized-const` which overcomes this limitation.
+
 In the following example,
-we declare bitvector-or where its nil terminator is bitvector zero for the given bitwidth.
+we declare bitvector-or (`bvor` in SMT-LIB) where its nil terminator is bitvector zero for the given bitwidth.
 ```
 (declare-sort Int 0)
 (declare-consts <numeral> Int)                ; numeral literals denote Int constants
@@ -788,6 +791,11 @@ we declare bitvector-or where its nil terminator is bitvector zero for the given
 )
 ```
 In this example, we first declare the `Int` and `BitVec` sorts, and associate numeral and binary values with those sorts (see [declare-consts](#declare-consts)).
+Then, we declare `bvor` using `declare-parameterized-const` where its parameter is an integer `m`.
+The provided parameters are in scope for the remainder of the command, which in particular means they can appear in the nil terminator of the operator.
+Here, we specify `(bvzero m)` as the nil terminator for `bvor`.
+
+
 
 
 ## <a name="overloading"></a>Overloading
