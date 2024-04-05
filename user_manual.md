@@ -821,7 +821,7 @@ If any of `v1 ... vm` is non-ground, or if the application fails to type check,
 the nil terminator is `(alf.nil f t1 ... tn)`.
 In other words, the computation of the nil terminator is deferred to this term (which itself may not evaluate).
 Otherwise, the nil terminator is `nil[ v1 ... vm / u1 ... um]`.
-Constructing `(f t1 ... tn)` then proceeds inductively via [assoc-nil](#assoc-nil).
+Constructing `(f t1 ... tn)` then proceeds inductively via the same procedure described in [assoc-nil](#assoc-nil).
 Examples of this are given in the following, assuming the declaration of `bvor` above.
 ```
 (declare-const p (-> Bool Bool))
@@ -865,7 +865,7 @@ Consider again the term `(bvor z w)` from the previous example:
 The term in the body of `test` desugars to `(bvor z (bvor w (alf.nil bvor z w)))`, where
 `(alf.nil bvor z w)` does not evaluate since the nil terminator of `(bvor z w)` involves a non-ground parameter `n`.
 In this example, we instantiate this definition in the body of `test4`, where `n=4`, `z=a` and `w=b`.
-The term `(bvor a (bvor b (alf.nil bvor a b)))` then evaluates to `(bvor a (bvor b #b0000)`, since the nil terminator of `(bvor a b)` has non-ground paramters `n=4` and evaluates to `#b0000`.
+The term `(bvor a (bvor b (alf.nil bvor a b)))` then evaluates to `(bvor a (bvor b #b0000)`, since the nil terminator of `(bvor a b)` has ground parameter `n=4` and evaluates to `#b0000`.
 
 > Alternatively, the parameters of a function `f` may be provided explicitly using the syntax `(alf._ f p1 ... pn)`.
 When parameters are provided, these are used instead of the type inference method above.
