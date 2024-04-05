@@ -301,27 +301,7 @@ A possible declaration is the following:
 ```
 The nil terminator of this operator is the bitvector zero whose width is `m`.
 However note that `m` is not in scope of the declaration of its nil terminator.
-We instead require such declarations to be made with `declare-parameterized-const`, which we describe next.
-
-#### Parameterized constants with nil terminators
-
-In the following example,
-we declare bitvector-or where its nil terminator is bitvector zero for the given bitwidth.
-```
-(declare-sort Int 0)
-(declare-consts <numeral> Int)                ; numeral literals denote Int constants
-(declare-type BitVec (Int))
-(declare-consts <binary> 
-    (BitVec (alf.len alf.self)))              ; binary literals denote BitVec constants of their length
-(define bvzero ((m Int)) (alf.to_bin m 0))    ; returns the bitvector value zero for bitwidth m
-
-(declare-parameterized-const bvor ((m Int))   ; bvor is parameterized by a bitwidth m
-    (-> (BitVec m) (BitVec m) (BitVec m))
-    :right-assoc-nil (bvzero m)               ; its nil terminator depends on m
-)
-```
-In this example, we first declare the `Int` and `BitVec` sorts, and associate numeral and binary values with those sorts (see [declare-consts](#declare-consts)).
-
+We instead require such declarations to be made with `declare-parameterized-const`, which we will describe later in [param-constants](#param-constants).
 
 ### List
 
@@ -789,6 +769,26 @@ For example, given a function `f` of type `(-> (BitVec (alf.add b a)) T)`, the t
 To define the class of binary values, whose type depends on the number of bits they contain, the ALF checker provides support for a distinguished parameter `alf.self`.
 The type checker for values applies the substitution mapping `alf.self` to the term being type checked.
 This means that when type checking the binary constant `#b0000`, its type prior to evaluation is `(BitVec (alf.len #b0000))`, which evaluates to `(BitVec 4)`.
+
+## <a name="param-constants"></a>Parameterized constants
+
+In the following example,
+we declare bitvector-or where its nil terminator is bitvector zero for the given bitwidth.
+```
+(declare-sort Int 0)
+(declare-consts <numeral> Int)                ; numeral literals denote Int constants
+(declare-type BitVec (Int))
+(declare-consts <binary> 
+    (BitVec (alf.len alf.self)))              ; binary literals denote BitVec constants of their length
+(define bvzero ((m Int)) (alf.to_bin m 0))    ; returns the bitvector value zero for bitwidth m
+
+(declare-parameterized-const bvor ((m Int))   ; bvor is parameterized by a bitwidth m
+    (-> (BitVec m) (BitVec m) (BitVec m))
+    :right-assoc-nil (bvzero m)               ; its nil terminator depends on m
+)
+```
+In this example, we first declare the `Int` and `BitVec` sorts, and associate numeral and binary values with those sorts (see [declare-consts](#declare-consts)).
+
 
 ## <a name="overloading"></a>Overloading
 
