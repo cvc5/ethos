@@ -819,19 +819,21 @@ To compute the parameters of the nil terminator, we first compute the type of `f
 If successful, this is the type `T [v1 ... vm / u1 ... um]` for some terms `v1 ... vm` and the given return type `T` of `f`.
 If any of `v1 ... vm` is non-ground, or if the application fails to type check,
 the nil terminator is `(alf.nil f t1 ... tn)`.
-In other words, the computation of the nil terminator is deferred to the result of this evaluation.
+In other words, the computation of the nil terminator is deferred to this term (which itself may not evaluate).
 Otherwise, the nil terminator is `nil[ v1 ... vm / u1 ... um]`.
 Constructing `(f t1 ... tn)` then proceeds inductively via [assoc-nil](#assoc-nil).
 Examples of this are given in the following, assuming the declaration of `bvor` above.
 ```
-(define-fun test ((x (BitVec 4)) (y (BitVec 4)) (n Int) (z (BitVec n)) (w (BitVec n)) (u (BitVec n) :list))
-    (bvor
-        (bvor x y)        ; (bvor x (bvor y #b0000))
-        (bvor x)          ; (bvor x #b0000)
-        (bvor z w)        ; (bvor z (bvor w (alf.nil bvor z w)))
-        (bvor z u)        ; (bvor z u)
-        (bvor u z)        ; (alf.concat bvor u (bvor z (alf.nil bvor u z)))
-    ))
+(declare-const p (-> Bool Bool))
+(define test ((x (BitVec 4)) (y (BitVec 4)) (n Int) (z (BitVec n)) (w (BitVec n)) (u (BitVec n) :list))
+    ...
+    (bvor x y)        ; (bvor x (bvor y #b0000))
+    (bvor x)          ; (bvor x #b0000)
+    (bvor z w)        ; (bvor z (bvor w (alf.nil bvor z w)))
+    (bvor z u)        ; (bvor z u)
+    (bvor u z)        ; (alf.concat bvor u (bvor z (alf.nil bvor u z)))
+    ...
+)
 ```
 Above, notice that `x` and `y` have concrete bitwidths and `z,w,u` have the free parameter `n` as their bitwidth.
 In the first term, `(bvor x y)` is type checked to `(BitVec m)[4/m]`.
@@ -849,6 +851,30 @@ Similar to the third example, a placeholder for the nil terminator is generated.
 Any list operation involving `f` first requires computing the nil terminator in question.
 This is done using the same procedure as described above.
 If we do not infer a ground nil terminator, then the term does not evaluate.
+Examples can be found at the end of this section.
+
+Consider again the term `(bvor z w)` from the previous example:
+```
+(define test ((n Int) (z (BitVec n)) (w (BitVec n)))
+    (bvor z w)        ; (bvor z (bvor w (alf.nil bvor z w)))
+)
+(declare-const a (BitVec 4))
+(declare-const b (BitVec 4))
+(define test4 () (test 4 a b))
+```
+The term in the body of `test` desugars to `(bvor z (bvor w (alf.nil bvor z w)))`, where
+`(alf.nil bvor z w)` does not evaluate since the nil terminator of `(bvor z w)` involves a non-ground parameter `n`.
+In this example, we instantiate this definition in the body of `test4`, where `n=4`, `z=a` and `w=b`.
+The term `(bvor a (bvor b (alf.nil bvor a b)))` then evaluates to `(bvor a (bvor b #b0000)`, since the nil terminator of `(bvor a b)` has non-ground paramters `n=4` and evaluates to `#b0000`.
+
+> Alternatively, the parameters of a function `f` may be provided explicitly using the syntax `(alf._ f p1 ... pn)`.
+When parameters are provided, these are used instead of the type inference method above.
+Furthermore, these parameters are dropped when applying the operator to arguments.
+For example `(_ (alf._ bvor 4) a b)` is equivalent to `(bvor a (bvor b #b0000))` after desugaring.
+An example use case for this feature is directly refer to the nil terminator of a concrete instance of `bvor`, e.g. `(alf.nil (alf._ bvor 4))` evaluates to `#b0000`.
+
+> If no free parameters are used in the nil terminator of a parameterized constant, then it is treated equivalent to if it were declared via an ordinary declare-const command.
+
 For example:
 ```
 (declare-const a (BitVec 4))
@@ -858,6 +884,7 @@ For example:
 (alf.nil bvor)                == (alf.nil bvor)     ; since we cannot infer the type of bvor
 (alf.nil bvor a)              == #b0000             ; since #b0000 is the nil terminator of (bvor a)
 (alf.nil bvor a c)            == (alf.nil bvor a c) ; since (bvor a c) is ill-typed
+(alf.nil (alf._ bvor 4))      == #b0000
 
 (alf.cons bvor a #b0000)            == (bvor a)
 (alf.cons bvor c #b0000)            == (alf.cons bvor c #b0000) ; since (bvor c #b0000) is ill-typed
@@ -866,12 +893,6 @@ For example:
 (alf.concat bvor #b0000 #b0000)       == #b0000
 (alf.concat bvor (bvor a b) (bvor b)) == (bvor a b b)
 ```
-
-Alternatively, the parameters of a function `f` may be provided explicitly using the syntax `(alf._ f p1 ... pn)`.
-These parameters are dropped when applying the operator to arguments.
-For example `(_ (alf._ bvor 4) a b)` is equivalent to `(bvor a (bvor b #b0000))` after desugaring.
-
-> If no free parameters are used in the nil terminator of a parameterized constant, then it is treated equivalent to if it were declared via an ordinary declare-const command.
 
 ## <a name="overloading"></a>Overloading
 
