@@ -304,7 +304,30 @@ In other words, the definitions of `Paab` and `Qaab` are equivalent to the terms
 More generally, for an right-associative operator `f` with nil terminator `nil`,
 the term `(f t1 ... tn)` is de-sugared based on whether each `t1 ... tn` is marked with `:list`.
 - The nil terminator is inserted at the tail of the function application unless `tn` is marked as `:list`,
-- If `ti` is marked as `:list` where `1<=i<n`, then the term denotes the result of a concatentation operation. For example, `(f a b)` is desugared to the term `(alf.concat f a b)` when both `a` and `b` are marked as list variables. The semantics of `alf.concat` for list terms is provided later in [list-computation](#list-computation).
+- If `ti` is marked as `:list` where `1<=i<n`, then `ti` is prepended to the overall application using a concatentation operation `alf.concat`. The semantics of this operator is provided later in [list-computation](#list-computation).
+
+In detail, the returned term from desugaring `(f t1 ... tn)` is constructed inductively.
+If `tn` is marked with `:list`, the returned term is initialized to `tn` and we process children `ti` from `i = n-1 ... 1`.
+If `tn` is not marked with `:list`, the return term is initialized to the nil terminator of `f` and we process children `ti` from `i = n .. 1`.
+For each term `ti` we process, the returned term `r` is updated to `(f ti r)` if `ti` is not marked with `:list`, or to `(alf.concat f ti r)`
+if `ti` is marked with `:list`.
+Examples of this desugaring are given below. We provide the result of how each term is desugared.
+
+```
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+(define-fun test ((x Bool) (y Bool) (z Bool :list) (w Bool :list))
+    (and
+        (or x y)        ; (or x (or y false))
+        (or x z)        ; (or x z)
+        (or x z y)      ; (or x (alf.concat or z (or y false)))
+        (or x)          ; (or x false)
+        (or z)          ; z
+        (or z y w x)    ; (alf.concat or z (or y (alf.concat w (or x false)))
+    ))
+```
+
+Note that in the case of `(or z)`, no application of `or` is constructed, since only one argument term is given, since it is marked with `:list`.
+In contrast, `(or x)` denotes the `or` whose children are `x` and `false`.
 
 ### Chainable
 

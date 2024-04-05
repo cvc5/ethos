@@ -108,6 +108,7 @@ set(alfc_test_file_list
     to_string.smt3
     nground-nil-v3.smt3
     ff-nil.smt3
+    or-variant.smt3
 )
 
 macro(alfc_test file)
