@@ -824,20 +824,52 @@ Otherwise, the nil terminator is `nil[ v1 ... vm / u1 ... um]`.
 Constructing `(f t1 ... tn)` then proceeds inductively via [assoc-nil](#assoc-nil).
 Examples of this are given in the following, assuming the declaration of `bvor` above.
 ```
-(define-fun test ((x (BitVec 4)) (y (BitVec 4)) (n Int) (z (BitVec n)) (w (BitVec n) :list))
+(define-fun test ((x (BitVec 4)) (y (BitVec 4)) (n Int) (z (BitVec n)) (w (BitVec n)) (u (BitVec n) :list))
     (bvor
         (bvor x y)        ; (bvor x (bvor y #b0000))
         (bvor x)          ; (bvor x #b0000)
-        (bvor z w)        ; (bvor z w)
-        (bvor z z)        ; (bvor z (bvor z (alf.nil bvor z z)))
-        (bvor w z)        ; (alf.concat bvor w (bvor z (alf.nil bvor w z)))
+        (bvor z w)        ; (bvor z (bvor w (alf.nil bvor z w)))
+        (bvor z u)        ; (bvor z u)
+        (bvor u z)        ; (alf.concat bvor u (bvor z (alf.nil bvor u z)))
     ))
 ```
+Above, notice that `x` and `y` have concrete bitwidths and `z,w,u` have the free parameter `n` as their bitwidth.
+In the first term, `(bvor x y)` is type checked to `(BitVec m)[4/m]`.
+Since `4` is ground, we compute the nil terminator `(bvzero 4)`, which evaluates to `#b0000`.
+This is then used as the nil terminator, since `y` is not marked with `:list`.
+The second example is similar.
 
-For the latter, any list operation involving `f` first requires computing the nil terminator.
+In the third, example, `(bvor z w)` is type checked to `(BitVec m)[n/m]`, where note that `n` is *not* ground.
+Thus, we do not compute its nil terminator and instead construct the placeholder `(alf.nil bvor z w)`.
+This is then used as the nil terminator since `w` is not marked as `:list`.
+In the fourth example, `(bvor z u)` is also type checked to `(BitVec m)[n/m]`, but in this case the nil terminator is not used since `u` is marked as `:list`.
+In the fifth example, we use `alf.concat` as before since the list term `u` appears as the first argument.
+Similar to the third example, a placeholder for the nil terminator is generated.
 
+Any list operation involving `f` first requires computing the nil terminator in question.
+This is done using the same procedure as described above.
+If we do not infer a ground nil terminator, then the term does not evaluate.
+For example:
+```
+(declare-const a (BitVec 4))
+(declare-const b (BitVec 4))
+(declare-const c (BitVec 4))
+
+(alf.nil bvor)                == (alf.nil bvor)     ; since we cannot infer the type of bvor
+(alf.nil bvor a)              == #b0000             ; since #b0000 is the nil terminator of (bvor a)
+(alf.nil bvor a c)            == (alf.nil bvor a c) ; since (bvor a c) is ill-typed
+
+(alf.cons bvor a #b0000)            == (bvor a)
+(alf.cons bvor c #b0000)            == (alf.cons bvor c #b0000) ; since (bvor c #b0000) is ill-typed
+(alf.cons bvor a (bvor a b))        == (bvor a a b)
+
+(alf.concat bvor #b0000 #b0000)       == #b0000
+(alf.concat bvor (bvor a b) (bvor b)) == (bvor a b b)
+```
 
 Alternatively, the parameters of a function `f` may be provided explicitly using the syntax `(alf._ f p1 ... pn)`.
+These parameters are dropped when applying the operator to arguments.
+For example `(_ (alf._ bvor 4) a b)` is equivalent to `(bvor a (bvor b #b0000))` after desugaring.
 
 > If no free parameters are used in the nil terminator of a parameterized constant, then it is treated equivalent to if it were declared via an ordinary declare-const command.
 
