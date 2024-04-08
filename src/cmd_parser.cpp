@@ -363,20 +363,20 @@ bool CmdParser::parseNextCommand()
         conc = d_eparser.parseExpr();
       }
       std::vector<Expr> argTypes;
-      if (!assume.isNull())
+      for (Expr& e : args)
       {
-        Expr ast = d_state.mkQuoteType(assume);
-        argTypes.push_back(ast);
+        Expr et = d_state.mkQuoteType(e);
+        argTypes.push_back(et);
       }
       for (const Expr& e : premises)
       {
         Expr pet = d_state.mkProofType(e);
         argTypes.push_back(pet);
       }
-      for (Expr& e : args)
+      if (!assume.isNull())
       {
-        Expr et = d_state.mkQuoteType(e);
-        argTypes.push_back(et);
+        Expr ast = d_state.mkQuoteType(assume);
+        argTypes.push_back(ast);
       }
       Expr ret = d_state.mkProofType(conc);
       // include the requirements into the return type
@@ -728,6 +728,9 @@ bool CmdParser::parseNextCommand()
       }
       std::vector<Expr> children;
       children.push_back(rule);
+      children.insert(children.end(), args.begin(), args.end());
+      // premises after arguments
+      children.insert(children.end(), premises.begin(), premises.end());
       // the assumption, if pop
       if (isPop)
       {
@@ -739,12 +742,6 @@ bool CmdParser::parseNextCommand()
         Assert (as.size()==1);
         // push the assumption
         children.push_back(as[0]);
-      }
-      // premises before arguments
-      children.insert(children.end(), premises.begin(), premises.end());
-      for (const Expr& e : args)
-      {
-        children.push_back(e);
       }
       // compute the type of applying the rule
       Expr concType;

@@ -45,10 +45,12 @@ std::string BitVector::toString(unsigned int base) const
     }
     return zeroes + str;
   }
-  else
+  else if (d_size==0)
   {
-    return str;
+    // special case, if size is zero, then print nothing
+    return "";
   }
+  return str;
 }
 
 size_t BitVector::hash() const

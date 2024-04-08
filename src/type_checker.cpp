@@ -418,6 +418,7 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
         (*out) << "  LHS " << evaluate(hdtypes[i], ctx) << ", from "
                << Expr(hdtypes[i]) << std::endl;
         (*out) << "  RHS " << Expr(ctypes[i]) << std::endl;
+        (*out) << "  Context " << ctx << std::endl;
       }
       return d_null;
     }
