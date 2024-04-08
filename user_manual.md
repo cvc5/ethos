@@ -624,7 +624,7 @@ The ALF checker supports extensions of `alf.and, alf.or, alf.xor, alf.add, alf.m
 (alf.to_q 6)                == 6/1
 (alf.to_bin 4 3)            == #b0011
 (alf.to_bin 4 #b1)          == #b0001
-(alf.to_bin #b10101010 2)   == #b10
+(alf.to_bin 2 #b10101010)   == #b10
 (alf.to_str 123)            == "123"
 (alf.to_str 1/2)            == "1/2"
 (alf.to_str #b101)          == "#b101"
