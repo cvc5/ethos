@@ -411,16 +411,24 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     hdt = hdt->getKind() == Kind::QUOTE_TYPE ? hdt->d_children[0] : hdt;
     if (!match(hdt, ctypes[i], ctx, visited))
     {
-      if (out)
+      // If we failed to match, we then check modulo evaluation. This is a
+      // optimization. In theory, we should always evaluate eagerly in the
+      // check above, but instead we only check when the matching above fails.
+      Expr hdEval = evaluate(hdt, ctx);
+      Expr ctypeEval = evaluate(ctypes[i], ctx);
+      if (!match(hdEval.getValue(), ctypeEval.getValue(), ctx, visited))
       {
-        (*out) << "Unexpected argument type " << i << " of " << Expr(hd)
-               << std::endl;
-        (*out) << "  LHS " << evaluate(hdtypes[i], ctx) << ", from "
-               << Expr(hdtypes[i]) << std::endl;
-        (*out) << "  RHS " << Expr(ctypes[i]) << std::endl;
-        (*out) << "  Context " << ctx << std::endl;
+        if (out)
+        {
+          (*out) << "Unexpected argument type " << i << " of " << Expr(hd)
+                << std::endl;
+          (*out) << "  LHS " << evaluate(hdtypes[i], ctx) << ", from "
+                << Expr(hdtypes[i]) << std::endl;
+          (*out) << "  RHS " << Expr(ctypes[i]) << std::endl;
+          (*out) << "  Context " << ctx << std::endl;
+        }
+        return d_null;
       }
-      return d_null;
     }
   }
   // evaluate in the matched context
