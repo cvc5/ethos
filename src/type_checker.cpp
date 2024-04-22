@@ -400,6 +400,7 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     return run_getTypeInternal(hdType, ctypes, out);
   }
   std::set<std::pair<ExprValue*, ExprValue*>> visited;
+  Expr hdEval;
   for (size_t i=0, nchild=ctypes.size(); i<nchild; i++)
   {
     Assert(ctypes[i] != nullptr);
@@ -409,14 +410,20 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     // which along with how ctypes[i] is the argument itself, has the effect
     // of an implicit upcast.
     hdt = hdt->getKind() == Kind::QUOTE_TYPE ? hdt->d_children[0] : hdt;
+    // must evaluate here
+    if (hdt->isEvaluatable())
+    {
+      hdEval = evaluate(hdt, ctx);
+      hdt = hdEval.getValue();
+    }
     if (!match(hdt, ctypes[i], ctx, visited))
     {
       if (out)
       {
         (*out) << "Unexpected argument type " << i << " of " << Expr(hd)
-               << std::endl;
+              << std::endl;
         (*out) << "  LHS " << evaluate(hdtypes[i], ctx) << ", from "
-               << Expr(hdtypes[i]) << std::endl;
+              << Expr(hdtypes[i]) << std::endl;
         (*out) << "  RHS " << Expr(ctypes[i]) << std::endl;
         (*out) << "  Context " << ctx << std::endl;
       }
