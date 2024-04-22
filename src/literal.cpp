@@ -395,9 +395,11 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
         case Kind::BINARY:return Literal(args[0]->d_bv.getValue());
         case Kind::STRING:
         {
-          if (args[0]->d_str.isNumber())
+          // if a string of length one, we return the code point of the
+          // character
+          if (args[0]->d_str.size()==1)
           {
-            return Literal(Integer(args[0]->d_str.toString()));
+            return Literal(Integer(args[0]->d_str.getVec()[0]));
           }
         }
           break;
@@ -431,6 +433,19 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
       {
         case Kind::DECIMAL:return Literal(String(args[0]->d_rat.toStringDecimal()));
         case Kind::NUMERAL:
+        {
+          // if integer is 0...num_codes-1, we convert to the string whose code
+          // point is the integer
+          if (args[0]->d_int.fitsUnsignedInt())
+          {
+            unsigned n = args[0]->d_int.toUnsignedInt();
+            if (n<String::num_codes())
+            {
+              std::vector<unsigned> vec{n};
+              return Literal(String(vec));
+            }
+          }
+        }
         case Kind::RATIONAL:return Literal(String(args[0]->toString()));
         case Kind::HEXADECIMAL:return Literal(String("#x" + args[0]->toString()));
         case Kind::BINARY:return Literal(String("#b" + args[0]->toString()));
