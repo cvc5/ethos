@@ -400,6 +400,7 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     return run_getTypeInternal(hdType, ctypes, out);
   }
   std::set<std::pair<ExprValue*, ExprValue*>> visited;
+  Expr hdEval;
   for (size_t i=0, nchild=ctypes.size(); i<nchild; i++)
   {
     Assert(ctypes[i] != nullptr);
@@ -409,26 +410,24 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     // which along with how ctypes[i] is the argument itself, has the effect
     // of an implicit upcast.
     hdt = hdt->getKind() == Kind::QUOTE_TYPE ? hdt->d_children[0] : hdt;
+    // must evaluate here
+    if (hdt->isEvaluatable())
+    {
+      hdEval = evaluate(hdt, ctx);
+      hdt = hdEval.getValue();
+    }
     if (!match(hdt, ctypes[i], ctx, visited))
     {
-      // If we failed to match, we then check modulo evaluation. This is a
-      // optimization. In theory, we should always evaluate eagerly in the
-      // check above, but instead we only check when the matching above fails.
-      Expr hdEval = evaluate(hdt, ctx);
-      Expr ctypeEval = evaluate(ctypes[i], ctx);
-      if (!match(hdEval.getValue(), ctypeEval.getValue(), ctx, visited))
+      if (out)
       {
-        if (out)
-        {
-          (*out) << "Unexpected argument type " << i << " of " << Expr(hd)
-                << std::endl;
-          (*out) << "  LHS " << evaluate(hdtypes[i], ctx) << ", from "
-                << Expr(hdtypes[i]) << std::endl;
-          (*out) << "  RHS " << Expr(ctypes[i]) << std::endl;
-          (*out) << "  Context " << ctx << std::endl;
-        }
-        return d_null;
+        (*out) << "Unexpected argument type " << i << " of " << Expr(hd)
+              << std::endl;
+        (*out) << "  LHS " << evaluate(hdtypes[i], ctx) << ", from "
+              << Expr(hdtypes[i]) << std::endl;
+        (*out) << "  RHS " << Expr(ctypes[i]) << std::endl;
+        (*out) << "  Context " << ctx << std::endl;
       }
+      return d_null;
     }
   }
   // evaluate in the matched context
