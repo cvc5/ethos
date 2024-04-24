@@ -553,7 +553,7 @@ Conversion operators:
     - If ``t1` is a 32-bit numeral value and `t2` is a numeral value, return the binary value whose value is `t2` (modulo `2^t1`) and whose bitwidth is `t1`.
 - `(alf.to_str t1)`
     - If `t1` is a string value, return `t1`.
-    - If `t1` is a numeral value between `0` and `196607`, return the string of length one whose character has code point `t1`.
+    - If `t1` is a numeral value specifying a code point from Unicode planes `0-2` (i.e. a numeral between `0` and `196607`), return the string of length one whose character has code point `t1`.
     - If `t1` is a rational or binary value, return the string value corresponding to the result of printing `t1`. 
     - If `t1` is a hexadecimal value, return the string value corresponding to the result of printing `t1`. This will use lowercase letters for digits greater than `9`.
     - If `t1` is a decimal value, return the string value corresponding to the result of printing `t1` as a rational.
@@ -623,6 +623,7 @@ The ALF checker supports extensions of `alf.and, alf.or, alf.xor, alf.add, alf.m
 (alf.to_z "1")              == 49
 (alf.to_z "451")            == (alf.to_z "451")  ; string is not length one
 (alf.to_z "")               == (alf.to_z "")  ; string is not length one
+(alf.to_z "\u{9876}")       == 9876
 (alf.to_q 6)                == 6/1
 (alf.to_bin 4 3)            == #b0011
 (alf.to_bin 4 #b1)          == #b0001
