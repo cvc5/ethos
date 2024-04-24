@@ -544,7 +544,7 @@ Conversion operators:
     - If `t1` is a numeral value, return `t1`.
     - If `t1` is a rational value, return the numeral value corresponding to the floor of `t1`.
     - If `t1` is a binary value, this returns the numeral value corresponding to `t1`.
-    - If `t1` is a string value containing only digits, this returns the numeral value. This operation is agnostic to leading zeroes.
+    - If `t1` is a string value of length one, this returns the code point of its character.
 - `(alf.to_q t1)`
     - If `t1` is a rational value, return `t1`.
     - If `t1` is a numeral value, this returns the (integral) rational value that is equivalent to `t1`.
@@ -553,7 +553,8 @@ Conversion operators:
     - If ``t1` is a 32-bit numeral value and `t2` is a numeral value, return the binary value whose value is `t2` (modulo `2^t1`) and whose bitwidth is `t1`.
 - `(alf.to_str t1)`
     - If `t1` is a string value, return `t1`.
-    - If `t1` is a numeric, rational or binary value, return the string value corresponding to the result of printing `t1`. 
+    - If `t1` is a numeral value specifying a code point from Unicode planes `0-2` (i.e. a numeral between `0` and `196607`), return the string of length one whose character has code point `t1`.
+    - If `t1` is a rational or binary value, return the string value corresponding to the result of printing `t1`. 
     - If `t1` is a hexadecimal value, return the string value corresponding to the result of printing `t1`. This will use lowercase letters for digits greater than `9`.
     - If `t1` is a decimal value, return the string value corresponding to the result of printing `t1` as a rational.
 
@@ -618,14 +619,19 @@ The ALF checker supports extensions of `alf.and, alf.or, alf.xor, alf.add, alf.m
 (alf.find "abcdef" "g")     == -1
 (alf.to_z 3/2)              == 1
 (alf.to_z 45)               == 45
-(alf.to_z "451")            == 451
-(alf.to_z "0051")           == 51
-(alf.to_z "5a1")            == (alf.to_z "5a1")  ; string contains a non-digit
+(alf.to_z "A")              == 65
+(alf.to_z "1")              == 49
+(alf.to_z "451")            == (alf.to_z "451")  ; string is not length one
+(alf.to_z "")               == (alf.to_z "")  ; string is not length one
+(alf.to_z "\u{9876}")       == 9876
 (alf.to_q 6)                == 6/1
 (alf.to_bin 4 3)            == #b0011
 (alf.to_bin 4 #b1)          == #b0001
 (alf.to_bin 2 #b10101010)   == #b10
-(alf.to_str 123)            == "123"
+(alf.to_str 65)             == "A"
+(alf.to_str 123)            == "{"
+(alf.to_str -1)             == (alf.to_str -1) ; since not a valid code point
+(alf.to_str 200000)         == (alf.to_str 200000) ; since not a valid code point
 (alf.to_str 1/2)            == "1/2"
 (alf.to_str #b101)          == "#b101"
 ```
