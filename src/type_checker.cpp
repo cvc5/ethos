@@ -1439,16 +1439,15 @@ bool TypeChecker::computedParameterizedInternal(AppInfo* ai,
         for (ExprValue* e : app)
         {
           Expr expr(e);
-          if (!expr.isGround())
-          {
-            // if the argument is non-ground, we don't try to type check
-            return false;
-          }
           getType(expr);
           ExprValue* t = d_state.lookupType(e);
           if (t==nullptr)
           {
-            Warning() << "Type inference failed for " << hd << " applied to " << children[1] << ", failed to type check " << expr << std::endl;
+            // only warn if ground
+            if (expr.isGround())
+            {
+              Warning() << "Type inference failed for " << hd << " applied to " << children[1] << ", failed to type check " << expr << std::endl;
+            }
             return false;
           }
           Trace("type_checker_debug") << "Type for " << expr << " is " << Expr(t) << std::endl;
