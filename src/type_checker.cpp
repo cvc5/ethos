@@ -1441,6 +1441,11 @@ bool TypeChecker::computedParameterizedInternal(AppInfo* ai,
         for (ExprValue* e : app)
         {
           Expr expr(e);
+          if (!expr.isGround())
+          {
+            // if the argument is non-ground, we don't try to type check
+            return false;
+          }
           getType(expr);
           ExprValue* t = d_state.lookupType(e);
           if (t==nullptr)
