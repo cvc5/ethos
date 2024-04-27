@@ -718,8 +718,6 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
               const Literal* l = cchildren[0]->asLiteral();
               // inspect the relevant child only
               size_t index = l->d_bool ? 1 : 2;
-              // NOTE: we may be a malformed ITE where index>=children.size(),
-              // which we currently don't guard for.
               if (cchildren[index] == nullptr)
               {
                 canEvaluate = false;
