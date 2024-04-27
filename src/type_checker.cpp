@@ -621,6 +621,13 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
         visited[cur] = d_null;
         if (ck==Kind::EVAL_IF_THEN_ELSE)
         {
+          // if it is malformed, it does not evaluate
+          if (children.size()!=3)
+          {
+            visited[cur] = Expr(cur);
+            visit.pop_back();
+            continue;
+          }
           // special case: visit only the condition
           visit.push_back(children[0]);
         }
@@ -704,12 +711,15 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
           case Kind::EVAL_IF_THEN_ELSE:
           {
             Assert (cchildren[0]!=nullptr);
+            Assert (children.size()==3);
             // get the evaluation of the condition
             if (cchildren[0]->getKind()==Kind::BOOLEAN)
             {
               const Literal* l = cchildren[0]->asLiteral();
               // inspect the relevant child only
               size_t index = l->d_bool ? 1 : 2;
+              // NOTE: we may be a malformed ITE where index>=children.size(),
+              // which we currently don't guard for.
               if (cchildren[index] == nullptr)
               {
                 canEvaluate = false;
@@ -1040,6 +1050,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     break;
     case Kind::EVAL_IF_THEN_ELSE:
     {
+      Assert (args.size()==3);
       if (args[0]->getKind()==Kind::BOOLEAN)
       {
         const Literal* l = args[0]->asLiteral();
@@ -1148,6 +1159,8 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   {
     if (!checkArity(k, args.size()))
     {
+      Warning() << "Wrong number of arguments when applying literal op " << k
+                << ", " << args.size() << " arguments (" << args << ")" << std::endl;
       // does not evaluate if arity is wrong
       return d_null;
     }
@@ -1306,7 +1319,7 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
                                          std::vector<ExprValue*>& childTypes,
                                          std::ostream* out)
 {
-  // operators with functions at the first index are "indexed
+  // operators with functions at the first index are "indexed"
   size_t i = 0;
   if (!childTypes.empty() && childTypes[0]->getKind()==Kind::FUNCTION_TYPE)
   {
