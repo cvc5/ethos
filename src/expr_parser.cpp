@@ -164,6 +164,16 @@ Expr ExprParser::parseExpr()
           case Token::ATTRIBUTE:
             pstack.emplace_back(ParseCtx::TERM_ANNOTATE_BODY);
             break;
+          case Token::LPAREN:
+          {
+            // we allow the syntax ((_ to begin a term
+            pstack.emplace_back(ParseCtx::NEXT_ARG);
+            tok = d_lex.nextToken();
+            if (tokenStrToSymbol(tok)!="_")
+            {
+              d_lex.parseError("Expected indexed symbol as head of apply");
+            }
+          }
           case Token::SYMBOL:
           case Token::QUOTED_SYMBOL:
           {
