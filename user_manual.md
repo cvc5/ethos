@@ -550,7 +550,7 @@ Conversion operators:
     - If `t1` is a numeral value, this returns the (integral) rational value that is equivalent to `t1`.
 - `(alf.to_bin t1 t2)`
     - If `t1` is a 32-bit numeral value and `t2` is a binary value, this returns a binary value whose value is `t2` and whose bitwidth is `t1`.
-    - If ``t1` is a 32-bit numeral value and `t2` is a numeral value, return the binary value whose value is `t2` (modulo `2^t1`) and whose bitwidth is `t1`.
+    - If `t1` is a 32-bit numeral value and `t2` is a numeral value, return the binary value whose value is `t2` (modulo `2^t1`) and whose bitwidth is `t1`.
 - `(alf.to_str t1)`
     - If `t1` is a string value, return `t1`.
     - If `t1` is a numeral value specifying a code point from Unicode planes `0-2` (i.e. a numeral between `0` and `196607`), return the string of length one whose character has code point `t1`.
