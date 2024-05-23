@@ -216,7 +216,7 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
         case Kind::HEXADECIMAL:
         case Kind::BINARY:
         {
-          if (!allSameBitWidth(args))
+          if (k!=Kind::EVAL_CONCAT && !allSameBitWidth(args))
           {
             return Literal();
           }
