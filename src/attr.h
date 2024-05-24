@@ -30,6 +30,7 @@ enum class Attr
   PROGRAM,
   ORACLE,
   BINDER,
+  OPAQUE,
   
   // indicate how to construct proof rule steps
   PREMISE_LIST,

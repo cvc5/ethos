@@ -723,6 +723,8 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           return mkExpr(Kind::APPLY, cchildren);
         }
           break;
+        case Attr::OPAQUE:
+          return mkExpr(Kind::APPLY_OPAQUE, children);
         default:
           break;
       }

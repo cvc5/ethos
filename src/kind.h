@@ -36,6 +36,7 @@ enum class Kind
   PROGRAM,
   AS,
   PARAMETERIZED,
+  APPLY_OPAQUE,
 
   // symbols
   PARAM,

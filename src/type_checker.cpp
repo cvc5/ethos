@@ -662,6 +662,7 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
         switch (ck)
         {
           case Kind::APPLY:
+          case Kind::APPLY_OPAQUE:
           {
             Trace("type_checker_debug")
                 << "evaluated args " << cchildren << std::endl;

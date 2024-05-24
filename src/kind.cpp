@@ -37,6 +37,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::PROGRAM: o << "PROGRAM"; break;
     case Kind::AS: o << "AS"; break;
     case Kind::PARAMETERIZED: o << "PARAMETERIZED"; break;
+    case Kind::APPLY_OPAQUE: o << "APPLY_OPAQUE"; break;
     // literals
     case Kind::BOOLEAN: o << "BOOLEAN"; break;
     case Kind::NUMERAL: o << "NUMERAL"; break;
