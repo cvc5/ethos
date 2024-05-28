@@ -279,7 +279,19 @@ Expr ExprParser::parseExpr()
       break;
       case Token::RATIONAL_LITERAL:
       {
-        ret = d_state.mkLiteral(Kind::RATIONAL, d_lex.tokenStr());
+        std::string s = d_lex.tokenStr();
+        size_t spos = s.find('/');
+        if (spos != std::string::npos)
+        {
+          // Ensure the denominator contains a non-zero digit. We catch this here to
+          // avoid a floating point exception in GMP. This exception will be caught
+          // and given the standard error message below.
+          if (s.find_first_not_of('0', spos + 1) == std::string::npos)
+          {
+            d_lex.parseError("Expected non-zero denominator", true);
+          }
+        }
+        ret = d_state.mkLiteral(Kind::RATIONAL, s);
       }
       break;
       case Token::HEX_LITERAL:
