@@ -615,7 +615,7 @@ bool CmdParser::parseNextCommand()
       // it may have been forward declared
       Expr pprev = d_state.getVar(name);
       Expr pvar;
-      if (pprev.isNull())
+      if (!pprev.isNull())
       {
         if (pprev.getKind()!=Kind::PROGRAM_CONST)
         {
