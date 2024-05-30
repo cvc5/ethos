@@ -157,6 +157,14 @@ class State
   std::vector<Expr> getCurrentAssumptions() const;
   /** Get hash for expression */
   size_t getHash(const ExprValue* ev);
+  /**
+   * Lookup type, returns the type of e if it has been computed, or nullptr
+   * otherwise.
+   *
+   * @param e The term whose type we want to lookup.
+   * @return the type of e if it has been computed already.
+   */
+  ExprValue* lookupType(const ExprValue* e) const;
   /** Has reference */
   bool hasReference() const;
   /** Print compiled files (for --show-config) */
@@ -172,8 +180,6 @@ class State
   void setPlugin(Plugin* p);
   /** Get plugin */
   Plugin* getPlugin();
-  /** lookup type */
-  ExprValue* lookupType(const ExprValue* e) const;
 
  private:
   /** Common constants */
