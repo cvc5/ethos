@@ -29,29 +29,74 @@ class Plugin
 public:
   Plugin() {}
   virtual ~Plugin() {}
-  /** Reset */
+  /**
+   * Reset. Called when the command reset is called.
+   */
   virtual void reset() = 0;
-  /** Push scope */
+  /**
+   * Push scope. Called when assume-push is called.
+   */
   virtual void pushScope() = 0;
-  /** Pop scope */
+  /**
+   * Pop scope. Called when step-pop is called.
+   */
   virtual void popScope() = 0;
-  /** include file, if not already done */
+  /**
+   * Include file, if not already done so.
+   * @param s Specifies the path and name of the file to include.
+   */
   virtual void includeFile(const Filepath& s) = 0;
-  /** Set type rule for literal kind k to t */
+  /**
+   * Set type rule for literal kind k to t. This is called when the
+   * command declare-consts is executed.
+   * @param k The kind to associate, e.g. NUMERAL.
+   * @param t The type to associate terms of that kind with, e.g. the
+   * integer tpye.
+   */
   virtual void setLiteralTypeRule(Kind k, const Expr& t) = 0;
-  /** Called when expression e is bound to the given name */
+  /**
+   * Called when expression e is bound to the given name.
+   * @param name The name we are binding.
+   * @param e The expression that name is bound to.
+   */
   virtual void bind(const std::string& name, const Expr& e) = 0;
-  /** Mark attributes */
+  /**
+   * Mark constructor kind.
+   * @param v The term to mark constructor kind, e.g. or
+   * @param a The constructor kind of v, e.g. Attr::RIGHT_ASSOC_NIL.
+   * @param cons The associated constructor term. For example, if a is
+   * Attr::RIGHT_ASSOC_NIL, then cons is the nil terminator for v.
+   */
   virtual void markConstructorKind(const Expr& v, Attr a, const Expr& cons) = 0;
-  /** Mark oracle command */
+  /**
+   * Mark oracle command. Called when declare-oracle-fun is executed.
+   * @param v The variable corresponding to the oracle function.
+   * @param ocmd The command specified as the command to run the oracle.
+   */
   virtual void markOracleCmd(const Expr& v, const std::string& ocmd) = 0;
-  /** Define program */
+  /**
+   * Define program. Called when a program is declared via program.
+   * @param v The variable corresponding to the program.
+   * @param prog Its definition, which is a term of kind PROGRAM.
+   */
   virtual void defineProgram(const Expr& v, const Expr& prog) = 0;
-  /** Define constructor */
+  /**
+   * Define constructor. Called when a datatype constructor is declared
+   * within a declare-datatype or declare-datatypes command.
+   * @param c The constructor.
+   * @param sels The list of its selectors.
+   */
   virtual void defineConstructor(const Expr& c, const std::vector<Expr>& sels) = 0;
-  /** Define datatype */
+  /**
+   * Define datatype. Called when declare-datatype is executed, or
+   * declare-datatypes is executed for each datatype.
+   * @param d The type corresponding to the datatype.
+   * @param cons The list of its constructors.
+   */
   virtual void defineDatatype(const Expr& d, const std::vector<Expr>& cons) = 0;
-  /** Finalize */
+  /**
+   * Finalize. Called once when the proof checker has finished parsing all input.
+   */
   virtual void finalize() = 0;
 };
 
