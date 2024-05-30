@@ -100,6 +100,7 @@ std::string kindToTerm(Kind k)
     case Kind::TUPLE: ss << "alf.tuple"; break;
     // terms
     case Kind::APPLY: ss << "_"; break;
+    case Kind::APPLY_OPAQUE: ss << "_"; break;
     case Kind::LAMBDA: ss << "lambda"; break;
     case Kind::PROGRAM: ss << "program"; break;
     case Kind::AS: ss << "alf.as"; break;

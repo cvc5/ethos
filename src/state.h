@@ -78,8 +78,16 @@ class State
   void setLiteralTypeRule(Kind k, const Expr& t);
   /** */
   bool bind(const std::string& name, const Expr& e);
-  /** Mark constructor kind */
-  bool markConstructorKind(const Expr& v, Attr a, const Expr& cons);
+  /** 
+   * Mark constructor kind.
+   * @param v The function symbol we are marking.
+   * @param a The constructor kind we are marking v with.
+   * @param cons The constructor associated with v, e.g. the nil terminator
+   * if a is right associative with nil.
+   * @param nargs The number of arguments explicitly provided when constructing
+   * v, which impacts how opaque symbols are handled.
+   */
+  bool markConstructorKind(const Expr& v, Attr a, const Expr& cons, size_t nargs=0);
   /** Define program, where v is PROGRAM_CONST and prog is PROGRAM. */
   void defineProgram(const Expr& v, const Expr& prog);
   //--------------------------------------

@@ -582,6 +582,35 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       }
       if (!ai->d_overloads.empty())
       {
+        if (ai->d_attrCons==Attr::OPAQUE)
+        {
+          Assert (ai->d_overloads.size()==1);
+          // determine how many opaque children
+          size_t nargs = ai->d_overloads.begin()->first;
+          Expr hdt = Expr(hd);
+          Trace("opaque") << "Opaque operator " << hdt << " has " << nargs << " opaque arguments" << std::endl;
+          if (nargs>=children.size())
+          {
+            Warning() << "Too few arguments when applying opaque symbol " << hdt << std::endl;
+          }
+          else
+          {
+            std::vector<Expr> ochildren(children.begin(), children.begin()+nargs+1);
+            Expr op = mkExpr(Kind::APPLY_OPAQUE, ochildren);
+            Trace("opaque") << "Construct opaque operator " << op << std::endl;
+            if (nargs+1==children.size())
+            {
+              Trace("opaque") << "...return operator" << std::endl;
+              return op;
+            }
+            // higher order
+            std::vector<Expr> rchildren;
+            rchildren.push_back(op);
+            rchildren.insert(rchildren.end(), children.begin()+nargs+2, children.end());
+            Trace("opaque") << "...will apply via " << rchildren << std::endl;
+            return mkExpr(Kind::APPLY, rchildren);
+          }
+        }
         Trace("overload") << "Use overload when constructing " << k << " " << children << std::endl;
         std::map<size_t, Expr>::iterator ito = ai->d_overloads.find(children.size()-1);
         if (ito!=ai->d_overloads.end() && ito->second.getValue()!=hd)
@@ -723,36 +752,6 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           return mkExpr(Kind::APPLY, cchildren);
         }
           break;
-        case Attr::OPAQUE:
-        {
-          // determine how many opaque children
-          Expr hdt = Expr(hd);
-          const Expr& t = d_tc.getType(hdt);
-          Assert (t.getKind()==Kind::FUNCTION_TYPE && t[0].getKind()==Kind::QUOTE_TYPE && t[0][0].getKind()==Kind::TUPLE);
-          size_t nargs = t[0][0].getNumChildren();
-          if (nargs>=children.size())
-          {
-            Warning() << "Too few arguments when applying opaque symbol " << hdt << std::endl;
-          }
-          else
-          {
-            std::vector<Expr> ochildren(children.begin()+1, children.begin()+1+nargs);
-            Expr args = mkExpr(Kind::TUPLE, ochildren);
-            Expr op = mkExpr(Kind::APPLY_OPAQUE, {hdt, args});
-            Trace("opaque") << "Construct opaque operator " << op << std::endl;
-            if (nargs+1==children.size())
-            {
-              Trace("opaque") << "...return operator" << std::endl;
-              return op;
-            }
-            // higher order
-            std::vector<Expr> rchildren;
-            rchildren.push_back(op);
-            rchildren.insert(rchildren.end(), children.begin()+2+nargs, children.end());
-            Trace("opaque") << "...will apply via " << rchildren << std::endl;
-            return mkExpr(Kind::APPLY, rchildren);
-          }
-        }
         default:
           break;
       }
@@ -1339,7 +1338,7 @@ void State::defineProgram(const Expr& v, const Expr& prog)
   }
 }
 
-bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
+bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons, size_t nargs)
 {
   Expr acons = cons;
   if (a==Attr::ORACLE)
@@ -1364,6 +1363,10 @@ bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
   Assert (ai.d_attrCons==Attr::NONE);
   ai.d_attrCons = a;
   ai.d_attrConsTerm = acons;
+  if (a==Attr::OPAQUE)
+  {
+    ai.d_overloads[nargs] = v;
+  }
   if (d_compiler!=nullptr)
   {
     d_compiler->markConstructorKind(v, a, acons);
