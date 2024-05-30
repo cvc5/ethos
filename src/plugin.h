@@ -34,11 +34,13 @@ public:
    */
   virtual void reset() = 0;
   /**
-   * Push scope. Called when assume-push is called.
+   * Push scope. Called when assume-push is called, or when the expression
+   * parser pushes an internal scope.
    */
   virtual void pushScope() = 0;
   /**
-   * Pop scope. Called when step-pop is called.
+   * Pop scope. Called when step-pop is called, or when the expression
+   * parser pops an internal scope.
    */
   virtual void popScope() = 0;
   /**
