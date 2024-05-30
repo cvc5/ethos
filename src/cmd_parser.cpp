@@ -153,10 +153,11 @@ bool CmdParser::parseNextCommand()
         d_state.pushScope();
         params = d_eparser.parseAndBindSortedVarList();
       }
-      Expr t = d_eparser.parseType();
+      Expr ret = d_eparser.parseType();
+      Expr t = ret;
       if (!sorts.empty())
       {
-        t = d_state.mkFunctionType(sorts, t, flattenFunction);
+        t = d_state.mkFunctionType(sorts, ret, flattenFunction);
       }
       Attr ck = Attr::NONE;
       Expr cons;
@@ -188,12 +189,27 @@ bool CmdParser::parseNextCommand()
           // determine if an attribute specified a constructor kind
           d_eparser.processAttributeMap(attrs, ck, cons, params);
         }
+        // if opaque, we group the given argument list
+        if (ck==Attr::OPAQUE)
+        {
+          if (sorts.empty())
+          {
+            Warning() << "Using :opaque with no argument sorts has no effect";
+            ck = Attr::NONE;
+          }
+          else
+          {
+            // do not flatten
+            t = d_state.mkFunctionType({sorts}, ret, false);
+            Trace("opaque") << "Update function type to " << t << std::endl;
+          }
+        }
         v = d_state.mkSymbol(sk, name, t);
       }
       // if the type has a property, we mark it on the variable of this type
       if (ck!=Attr::NONE)
       {
-        if (!d_state.markConstructorKind(v, ck, cons, sorts.size()))
+        if (!d_state.markConstructorKind(v, ck, cons))
         {
           std::stringstream ss;
           ss << "Failed to mark " << v << " with attribute " << ck;
