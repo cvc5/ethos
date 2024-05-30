@@ -739,14 +739,17 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
             std::vector<Expr> ochildren(children.begin()+1, children.begin()+1+nargs);
             Expr args = mkExpr(Kind::TUPLE, ochildren);
             Expr op = mkExpr(Kind::APPLY_OPAQUE, {hdt, args});
+            Trace("opaque") << "Construct opaque operator " << op << std::endl;
             if (nargs+1==children.size())
             {
+              Trace("opaque") << "...return operator" << std::endl;
               return op;
             }
             // higher order
             std::vector<Expr> rchildren;
             rchildren.push_back(op);
             rchildren.insert(rchildren.end(), children.begin()+2+nargs, children.end());
+            Trace("opaque") << "...will apply via " << rchildren << std::endl;
             return mkExpr(Kind::APPLY, rchildren);
           }
         }

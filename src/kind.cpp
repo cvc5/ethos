@@ -97,6 +97,7 @@ std::string kindToTerm(Kind k)
     case Kind::BOOL_TYPE: ss << "Bool"; break;
     case Kind::QUOTE_TYPE: ss << "Quote"; break;
     case Kind::NULL_EXPR: ss << "alf.nil"; break;
+    case Kind::TUPLE: ss << "alf.tuple"; break;
     // terms
     case Kind::APPLY: ss << "_"; break;
     case Kind::LAMBDA: ss << "lambda"; break;

@@ -198,11 +198,9 @@ bool CmdParser::parseNextCommand()
           Expr sortArgs = d_state.mkExpr(Kind::TUPLE, sorts);
           sortArgs = d_state.mkExpr(Kind::QUOTE_TYPE, {sortArgs});
           t = d_state.mkFunctionType({sortArgs}, t, flattenFunction);
+          Trace("opaque") << "Update function type to " << t << std::endl;
         }
-        else
-        {
-          v = d_state.mkSymbol(sk, name, t);
-        }
+        v = d_state.mkSymbol(sk, name, t);
       }
       // if the type has a property, we mark it on the variable of this type
       if (ck!=Attr::NONE)

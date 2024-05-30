@@ -223,6 +223,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
   switch(k)
   {
     case Kind::APPLY:
+    case Kind::APPLY_OPAQUE:
     {
       Ctx ctx;
       return getTypeAppInternal(e->d_children, ctx, out);

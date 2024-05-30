@@ -1063,6 +1063,8 @@ void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedS
         val = parseExprPair();
       }
         break;
+      case Attr::OPAQUE:
+        break;
       default:
         d_lex.parseError("Unhandled attribute");
         break;
@@ -1263,6 +1265,7 @@ void ExprParser::processAttributeMap(const AttrMap& attrs,
         case Attr::CHAINABLE:
         case Attr::PAIRWISE:
         case Attr::BINDER:
+        case Attr::OPAQUE:
         {
           if (ck!=Attr::NONE)
           {
