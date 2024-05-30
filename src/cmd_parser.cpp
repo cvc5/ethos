@@ -188,7 +188,21 @@ bool CmdParser::parseNextCommand()
           // determine if an attribute specified a constructor kind
           d_eparser.processAttributeMap(attrs, ck, cons, params);
         }
-        v = d_state.mkSymbol(sk, name, t);
+        // if opaque, we group the given argument list
+        if (ck==Attr::OPAQUE)
+        {
+          if (sorts.empty())
+          {
+            Warning() << "Using :opaque with no argument sorts has no effect";
+          }
+          Expr sortArgs = d_state.mkExpr(Kind::TUPLE, sorts);
+          sortArgs = d_state.mkExpr(Kind::QUOTE_TYPE, {sortArgs});
+          t = d_state.mkFunctionType({sortArgs}, t, flattenFunction);
+        }
+        else
+        {
+          v = d_state.mkSymbol(sk, name, t);
+        }
       }
       // if the type has a property, we mark it on the variable of this type
       if (ck!=Attr::NONE)

@@ -724,7 +724,32 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         }
           break;
         case Attr::OPAQUE:
-          return mkExpr(Kind::APPLY_OPAQUE, children);
+        {
+          // determine how many opaque children
+          Expr hdt = Expr(hd);
+          const Expr& t = d_tc.getType(hdt);
+          Assert (t.getKind()==Kind::FUNCTION_TYPE && t[0].getKind()==Kind::QUOTE_TYPE && t[0][0].getKind()==Kind::TUPLE);
+          size_t nargs = t[0][0].getNumChildren();
+          if (nargs>=children.size())
+          {
+            Warning() << "Too few arguments when applying opaque symbol " << hdt << std::endl;
+          }
+          else
+          {
+            std::vector<Expr> ochildren(children.begin()+1, children.begin()+1+nargs);
+            Expr args = mkExpr(Kind::TUPLE, ochildren);
+            Expr op = mkExpr(Kind::APPLY_OPAQUE, {hdt, args});
+            if (nargs+1==children.size())
+            {
+              return op;
+            }
+            // higher order
+            std::vector<Expr> rchildren;
+            rchildren.push_back(op);
+            rchildren.insert(rchildren.end(), children.begin()+2+nargs, children.end());
+            return mkExpr(Kind::APPLY, rchildren);
+          }
+        }
         default:
           break;
       }
