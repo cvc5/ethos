@@ -19,7 +19,10 @@
 namespace alfc {
 
 /**
- * A plugin class.
+ * A plugin class. This is a virtual base class that receives callbacks from
+ * the core of the ALFC checker.
+ *
+ * An example use of this class is to compile an ALF signature to C++.
  */
 class Plugin
 {
@@ -36,7 +39,7 @@ public:
   virtual void includeFile(const Filepath& s) = 0;
   /** Set type rule for literal kind k to t */
   virtual void setLiteralTypeRule(Kind k, const Expr& t) = 0;
-  /** */
+  /** Called when expression e is bound to the given name */
   virtual void bind(const std::string& name, const Expr& e) = 0;
   /** Mark attributes */
   virtual void markConstructorKind(const Expr& v, Attr a, const Expr& cons) = 0;
