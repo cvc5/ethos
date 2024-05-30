@@ -1025,6 +1025,10 @@ void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedS
     {
       case Attr::VAR:
       {
+        if (e.isNull())
+        {
+          d_lex.parseError("Cannot use :var in this context");
+        }
         if (attrs.find(Attr::VAR)!=attrs.end())
         {
           d_lex.parseError("Cannot use :var on the same term more than once");

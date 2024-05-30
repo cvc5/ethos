@@ -154,41 +154,30 @@ bool CmdParser::parseNextCommand()
         params = d_eparser.parseAndBindSortedVarList();
       }
       Expr ret = d_eparser.parseType();
-      Expr t = ret;
-      if (!sorts.empty())
-      {
-        t = d_state.mkFunctionType(sorts, ret, flattenFunction);
-      }
       Attr ck = Attr::NONE;
       Expr cons;
       Kind sk;
-      Expr v;
+      Expr t;
+      sk = Kind::CONST;
       if (tok==Token::DECLARE_VAR)
       {
         // Don't permit attributes for variables
-        // We get the canonical variable, not a fresh one. This ensures that
-        // globally defined variables coincide with those that appear in
-        // binders when applicable.
-        v = d_state.getBoundVar(name, t);
+        sk = Kind::VARIABLE;
       }
-      else
+      if (tok==Token::DECLARE_ORACLE_FUN)
       {
-        sk = Kind::CONST;
-        if (tok==Token::DECLARE_ORACLE_FUN)
-        {
-          ck = Attr::ORACLE;
-          sk = Kind::ORACLE;
-          std::string oname = d_eparser.parseSymbol();
-          cons = d_state.mkLiteral(Kind::STRING, oname);
-        }
-        else if (tok==Token::DECLARE_CONST || tok==Token::DECLARE_FUN || tok==Token::DECLARE_PARAMETERIZED_CONST)
-        {
-          // possible attribute list
-          AttrMap attrs;
-          d_eparser.parseAttributeList(t, attrs);
-          // determine if an attribute specified a constructor kind
-          d_eparser.processAttributeMap(attrs, ck, cons, params);
-        }
+        ck = Attr::ORACLE;
+        sk = Kind::ORACLE;
+        std::string oname = d_eparser.parseSymbol();
+        cons = d_state.mkLiteral(Kind::STRING, oname);
+      }
+      else if (tok==Token::DECLARE_CONST || tok==Token::DECLARE_FUN || tok==Token::DECLARE_PARAMETERIZED_CONST)
+      {
+        // possible attribute list
+        AttrMap attrs;
+        d_eparser.parseAttributeList(t, attrs);
+        // determine if an attribute specified a constructor kind
+        d_eparser.processAttributeMap(attrs, ck, cons, params);
         // if opaque, we group the given argument list
         if (ck==Attr::OPAQUE)
         {
@@ -200,10 +189,25 @@ bool CmdParser::parseNextCommand()
           else
           {
             // do not flatten
-            t = d_state.mkFunctionType({sorts}, ret, false);
-            Trace("opaque") << "Update function type to " << t << std::endl;
+            flattenFunction = false;
           }
         }
+      }
+      t = ret;
+      if (!sorts.empty())
+      {
+        t = d_state.mkFunctionType(sorts, ret, flattenFunction);
+      }
+      Expr v;
+      if (sk==Kind::VARIABLE)
+      {
+        // We get the canonical variable, not a fresh one. This ensures that
+        // globally defined variables coincide with those that appear in
+        // binders when applicable.
+        v = d_state.getBoundVar(name, t);
+      }
+      else
+      {
         v = d_state.mkSymbol(sk, name, t);
       }
       // if the type has a property, we mark it on the variable of this type

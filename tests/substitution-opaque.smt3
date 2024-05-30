@@ -41,4 +41,5 @@
 
 (assume a1 (or (= n m) (= (@array_deq_diff n m) v)))
 (assume a2 (= n m))
+; substitution will not impact the n within the opaque symbol
 (step a3 (or (= m m) (= (@array_deq_diff n m) v)) :rule eq-subs :premises (a1 a2))
