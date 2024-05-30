@@ -8,7 +8,6 @@
  ******************************************************************************/
 
 #include <unistd.h>
-#include <fstream>
 #include <iomanip>
 #include <iostream>
 
@@ -16,6 +15,7 @@
 #include "base/output.h"
 #include "parser.h"
 #include "state.h"
+#include "compiler.h"
 
 using namespace alfc;
 
@@ -158,6 +158,12 @@ int main( int argc, char* argv[] )
     }
   }
   State s(opts, stats);
+  std::unique_ptr<Compiler> d_compiler;
+  if (opts.d_compile)
+  {
+    d_compiler.reset(new Compiler(s));
+    s.setPlugin(d_compiler.get());
+  }
   if (!readFile)
   {
     // no file, either std::in is piped, or the user forgot to provide an input
@@ -182,17 +188,10 @@ int main( int argc, char* argv[] )
     }
   }
   std::cout << "success" << std::endl;
-  if (opts.d_compile)
+  Plugin * p = s.getPlugin();
+  if (p != nullptr)
   {
-    Compiler * c = s.getCompiler();
-    std::fstream fs("compiled.out.cpp", std::ios::out);
-    fs << "/** ================ AUTO GENERATED ============ */" << std::endl;
-    fs << c->toString() << std::endl;
-    fs.close();
-    Trace("compile") << "GEN-COMPILE" << std::endl;
-    Trace("compile") << "```" << std::endl;
-    Trace("compile") << c->toString() << std::endl;
-    Trace("compile") << "```" << std::endl;
+    p->finalize();
   }
   if (opts.d_stats)
   {

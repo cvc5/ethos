@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <fstream>
 
 #include "base/check.h"
 #include "base/output.h"
@@ -253,6 +254,11 @@ void Compiler::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
   d_init << ");" << std::endl;
 }
 
+void Compiler::markOracleCmd(const Expr& v, const std::string& ocmd)
+{
+  ALFC_FATAL() << "Compiler::markOracleCmd: unimplemented";
+}
+
 void Compiler::defineProgram(const Expr& v, const Expr& prog)
 {
   // we define regardless of scope level
@@ -346,6 +352,18 @@ void Compiler::defineDatatype(const Expr& d, const std::vector<Expr>& cons)
   d_init << "  defineDatatype(_e" << did << ", ";
   writeArgumentList(d_init, cons);
   d_init << ");" << std::endl;
+}
+
+void Compiler::finalize()
+{
+  std::fstream fs("compiled.out.cpp", std::ios::out);
+  fs << "/** ================ AUTO GENERATED ============ */" << std::endl;
+  fs << toString() << std::endl;
+  fs.close();
+  Trace("compile") << "GEN-COMPILE" << std::endl;
+  Trace("compile") << "```" << std::endl;
+  Trace("compile") << toString() << std::endl;
+  Trace("compile") << "```" << std::endl;
 }
 
 size_t Compiler::markCompiled(std::ostream& os, const Expr& e)

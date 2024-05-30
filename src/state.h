@@ -15,7 +15,7 @@
 #include <unordered_map>
 
 #include "attr.h"
-#include "compiler.h"
+#include "plugin.h"
 #include "expr.h"
 #include "expr_info.h"
 #include "expr_trie.h"
@@ -49,7 +49,6 @@ class Options
 class State
 {
   friend class TypeChecker;
-  friend class Compiler;
   friend class ExprValue;
 
  public:
@@ -169,8 +168,12 @@ class State
   Options& getOptions();
   /** Get stats */
   Stats& getStats();
-  /** Get compiler */
-  Compiler* getCompiler();
+  /** Set the plugin */
+  void setPlugin(Plugin* p);
+  /** Get plugin */
+  Plugin* getPlugin();
+  /** lookup type */
+  ExprValue* lookupType(const ExprValue* e) const;
 
  private:
   /** Common constants */
@@ -208,8 +211,6 @@ class State
   /** Get the internal data for expression e. */
   AppInfo* getAppInfo(const ExprValue* e);
   const AppInfo* getAppInfo(const ExprValue* e) const;
-  /** lookup type */
-  ExprValue* lookupType(const ExprValue* e) const;
   /** Bind builtin */
   void bindBuiltin(const std::string& name, Kind k, Attr ac = Attr::NONE);
   /** Bind builtin */
@@ -278,8 +279,8 @@ class State
   Options& d_opts;
   /** Stats */
   Stats& d_stats;
-  /** Compiler, if compiling code */
-  std::unique_ptr<Compiler> d_compiler;
+  /** Plugin, if using one */
+  Plugin* d_plugin;
 };
 
 }  // namespace alfc
