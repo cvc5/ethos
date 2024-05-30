@@ -598,7 +598,7 @@ bool CmdParser::parseNextCommand()
       }
     }
     break;
-    // (program (<sort>*) <sort> (<sorted_var>*) <term_pair>+)
+    // (program <symbol> (<sorted_var>*) (<sort>*) <sort> (<term_pair>+)?)
     case Token::PROGRAM:
     {
       std::string name = d_eparser.parseSymbol();
@@ -612,51 +612,86 @@ bool CmdParser::parseNextCommand()
       {
         progType = d_state.mkFunctionType(argTypes, retType, false);
       }
-      // the type of the program variable is a function
-      Expr pvar = d_state.mkSymbol(Kind::PROGRAM_CONST, name, progType);
+      // it may have been forward declared
+      Expr pprev = d_state.getVar(name);
+      Expr pvar;
+      if (pprev.isNull())
+      {
+        if (pprev.getKind()!=Kind::PROGRAM_CONST)
+        {
+          std::stringstream ss;
+          ss << "Already declared symbol " << name << " as a non-program";
+          d_lex.parseError(ss.str());
+        }
+        // it should be a program with the same type
+        d_eparser.typeCheck(pprev, progType);
+        pvar = pprev;
+      }
+      else
+      {
+        // the type of the program variable is a function
+        pvar = d_state.mkSymbol(Kind::PROGRAM_CONST, name, progType);
+      }
       // bind the program
       d_eparser.bind(name, pvar);
-      // parse the body
-      std::vector<Expr> pchildren = d_eparser.parseExprPairList();
-      if (pchildren.empty())
+      Expr program;
+      tok = d_lex.peekToken();
+      // if RPAREN follows, it is a forward declaration, we do not define the program
+      if (tok!=Token::RPAREN)
       {
-        d_lex.parseError("Expected non-empty list of cases");
-      }
-      // ensure program cases are
-      // (A) applications of the program
-      // (B) have arguments that are not evaluatable
-      for (Expr& p : pchildren)
-      {
-        Expr pc = p[0];
-        if (pc.getKind() != Kind::APPLY || pc[0] != pvar)
+        // parse the body
+        std::vector<Expr> pchildren = d_eparser.parseExprPairList();
+        if (pchildren.empty())
         {
-          d_lex.parseError("Expected application of program as case");
+          d_lex.parseError("Expected non-empty list of cases");
         }
-        if (pc.getNumChildren() != argTypes.size() + 1)
+        // ensure program cases are
+        // (A) applications of the program
+        // (B) have arguments that are not evaluatable
+        for (Expr& p : pchildren)
         {
-          d_lex.parseError("Wrong arity for pattern");
-        }
-        // ensure some type checking??
-        //d_eparser.typeCheck(pc);
-        // ensure the right hand side is bound by the left hand side
-        std::vector<Expr> bvs = Expr::getVariables(pc);
-        Expr rhs = p[1];
-        d_eparser.ensureBound(rhs, bvs);
-        // TODO: allow variable or default case?
-        for (size_t i = 0, nchildren = pc.getNumChildren(); i < nchildren; i++)
-        {
-          Expr ecc = pc[i];
-          if (ecc.isEvaluatable())
+          Expr pc = p[0];
+          if (pc.getKind() != Kind::APPLY || pc[0] != pvar)
           {
-            std::stringstream ss;
-            ss << "Cannot match on evaluatable subterm " << pc[i];
-            d_lex.parseError(ss.str());
+            d_lex.parseError("Expected application of program as case");
+          }
+          if (pc.getNumChildren() != argTypes.size() + 1)
+          {
+            d_lex.parseError("Wrong arity for pattern");
+          }
+          // ensure some type checking??
+          //d_eparser.typeCheck(pc);
+          // ensure the right hand side is bound by the left hand side
+          std::vector<Expr> bvs = Expr::getVariables(pc);
+          Expr rhs = p[1];
+          d_eparser.ensureBound(rhs, bvs);
+          // TODO: allow variable or default case?
+          for (size_t i = 0, nchildren = pc.getNumChildren(); i < nchildren; i++)
+          {
+            Expr ecc = pc[i];
+            if (ecc.isEvaluatable())
+            {
+              std::stringstream ss;
+              ss << "Cannot match on evaluatable subterm " << pc[i];
+              d_lex.parseError(ss.str());
+            }
           }
         }
+        program = d_state.mkExpr(Kind::PROGRAM, pchildren);
       }
       d_state.popScope();
-      Expr program = d_state.mkExpr(Kind::PROGRAM, pchildren);
-      d_state.defineProgram(pvar, program);
+      if (!program.isNull())
+      {
+        if (!pprev.isNull())
+        {
+          Expr prevProg = d_state.getProgram(pvar.getValue());
+          if (!prevProg.isNull())
+          {
+            d_lex.parseError("Cannot define program more than once");
+          }
+        }
+        d_state.defineProgram(pvar, program);
+      }
       // rebind the program
       d_eparser.bind(name, pvar);
     }
