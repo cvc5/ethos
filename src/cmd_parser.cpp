@@ -178,7 +178,8 @@ bool CmdParser::parseNextCommand()
         d_eparser.parseAttributeList(t, attrs);
         // determine if an attribute specified a constructor kind
         d_eparser.processAttributeMap(attrs, ck, cons, params);
-        // if opaque, we group the given argument list
+        // If opaque, we do not flatten the function type. We also throw an
+        // error if no arguments were provided.
         if (ck==Attr::OPAQUE)
         {
           if (sorts.empty())
