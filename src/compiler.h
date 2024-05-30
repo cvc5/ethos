@@ -157,10 +157,6 @@ public:
   void markOracleCmd(const Expr& v, const std::string& ocmd) override;
   /** Define program */
   void defineProgram(const Expr& v, const Expr& prog) override;
-  /** Define constructor */
-  void defineConstructor(const Expr& c, const std::vector<Expr>& sels) override;
-  /** Define datatype */
-  void defineDatatype(const Expr& d, const std::vector<Expr>& cons) override;
   /** Finalize */
   void finalize() override;
   /** To string, which returns the compiled C++ code for the given run */

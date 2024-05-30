@@ -81,20 +81,6 @@ public:
    */
   virtual void defineProgram(const Expr& v, const Expr& prog) = 0;
   /**
-   * Define constructor. Called when a datatype constructor is declared
-   * within a declare-datatype or declare-datatypes command.
-   * @param c The constructor.
-   * @param sels The list of its selectors.
-   */
-  virtual void defineConstructor(const Expr& c, const std::vector<Expr>& sels) = 0;
-  /**
-   * Define datatype. Called when declare-datatype is executed, or
-   * declare-datatypes is executed for each datatype.
-   * @param d The type corresponding to the datatype.
-   * @param cons The list of its constructors.
-   */
-  virtual void defineDatatype(const Expr& d, const std::vector<Expr>& cons) = 0;
-  /**
    * Finalize. Called once when the proof checker has finished parsing all input.
    */
   virtual void finalize() = 0;

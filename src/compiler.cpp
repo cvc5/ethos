@@ -338,22 +338,6 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
   os << osEnd.str();
 }
 
-void Compiler::defineConstructor(const Expr& c, const std::vector<Expr>& sels)
-{
-  size_t cid = writeGlobalExpr(c);
-  d_init << "  defineConstructor(_e" << cid << ", ";
-  writeArgumentList(d_init, sels);
-  d_init << ");" << std::endl;
-}
-
-void Compiler::defineDatatype(const Expr& d, const std::vector<Expr>& cons)
-{
-  size_t did = writeGlobalExpr(d);
-  d_init << "  defineDatatype(_e" << did << ", ";
-  writeArgumentList(d_init, cons);
-  d_init << ");" << std::endl;
-}
-
 void Compiler::finalize()
 {
   std::fstream fs("compiled.out.cpp", std::ios::out);
