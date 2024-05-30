@@ -14,12 +14,10 @@
 #include <sstream>
 #include <string>
 
-#include "attr.h"
-#include "expr.h"
+#include "plugin.h"
 #include "expr_info.h"
 #include "expr_trie.h"
 #include "type_checker.h"
-#include "util/filesystem.h"
 
 namespace alfc {
 
@@ -135,34 +133,32 @@ private:
  * C++ code for replaying those calls during initialization and for
  * compiled type checking, term substitution, and side condition matching.
  */
-class Compiler
+class Compiler : public Plugin
 {
   friend class TypeChecker;
 public:
   Compiler(State& s);
   ~Compiler();
   /** Reset */
-  void reset();
+  void reset() override;
   /** Push scope */
-  void pushScope();
+  void pushScope() override;
   /** Pop scope */
-  void popScope();
+  void popScope() override;
   /** include file, if not already done */
-  void includeFile(const Filepath& s);
+  void includeFile(const Filepath& s) override;
   /** Set type rule for literal kind k to t */
-  void setLiteralTypeRule(Kind k, const Expr& t);
+  void setLiteralTypeRule(Kind k, const Expr& t) override;
   /** */
-  void bind(const std::string& name, const Expr& e);
+  void bind(const std::string& name, const Expr& e) override;
   /** Mark attributes */
-  void markConstructorKind(const Expr& v, Attr a, const Expr& cons);
+  void markConstructorKind(const Expr& v, Attr a, const Expr& cons) override;
   /** Mark oracle command */
-  void markOracleCmd(const Expr& v, const std::string& ocmd);
+  void markOracleCmd(const Expr& v, const std::string& ocmd) override;
   /** Define program */
-  void defineProgram(const Expr& v, const Expr& prog);
-  /** Define constructor */
-  void defineConstructor(const Expr& c, const std::vector<Expr>& sels);
-  /** Define datatype */
-  void defineDatatype(const Expr& d, const std::vector<Expr>& cons);
+  void defineProgram(const Expr& v, const Expr& prog) override;
+  /** Finalize */
+  void finalize() override;
   /** To string, which returns the compiled C++ code for the given run */
   std::string toString();
 private:
@@ -255,4 +251,4 @@ private:
 
 }  // namespace alfc
 
-#endif /* STATE_H */
+#endif /* COMPILER_H */

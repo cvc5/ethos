@@ -110,10 +110,6 @@ State::State(Options& opts, Stats& stats)
     Assert(!d_opts.d_compile);
     run_initialize();
   }
-  else if (d_opts.d_compile)
-  {
-    d_compiler.reset(new Compiler(*this));
-  }
 }
 
 State::~State() {}
@@ -125,26 +121,26 @@ void State::reset()
   d_assumptionsSizeCtx.clear();
   d_decls.clear();
   d_declsSizeCtx.clear();
-  if (d_compiler!=nullptr)
+  if (d_plugin!=nullptr)
   {
-    d_compiler->reset();
+    d_plugin->reset();
   }
 }
 
 void State::pushScope()
 {
   d_declsSizeCtx.push_back(d_decls.size());
-  if (d_compiler!=nullptr)
+  if (d_plugin!=nullptr)
   {
-    d_compiler->pushScope();
+    d_plugin->pushScope();
   }
 }
 
 void State::popScope()
 {
-  if (d_compiler!=nullptr)
+  if (d_plugin!=nullptr)
   {
-    d_compiler->popScope();
+    d_plugin->popScope();
   }
   if (d_declsSizeCtx.empty())
   {
@@ -171,18 +167,18 @@ void State::popScope()
 
 void State::pushAssumptionScope()
 {
-  if (d_compiler!=nullptr)
+  if (d_plugin!=nullptr)
   {
-    d_compiler->popScope();
+    d_plugin->popScope();
   }
   d_assumptionsSizeCtx.push_back(d_assumptions.size());
 }
 
 void State::popAssumptionScope()
 {
-  if (d_compiler!=nullptr)
+  if (d_plugin!=nullptr)
   {
-    d_compiler->popScope();
+    d_plugin->popScope();
   }
   // process assumptions
   size_t lastSize = d_assumptionsSizeCtx.back();
@@ -222,10 +218,10 @@ bool State::includeFile(const std::string& s, bool isReference, const Expr& refe
   d_referenceNf = referenceNf;
   Filepath currentPath = d_inputFile;
   d_inputFile = inputPath;
-  if (d_compiler!=nullptr)
+  if (d_plugin!=nullptr)
   {
     Assert (!isReference);
-    d_compiler->includeFile(inputPath);
+    d_plugin->includeFile(inputPath);
   }
   Trace("state") << "Include " << inputPath << std::endl;
   Assert (getAssumptionLevel()==0);
@@ -385,9 +381,9 @@ void State::addReferenceAssert(const Expr& a)
 void State::setLiteralTypeRule(Kind k, const Expr& t)
 {
   d_tc.setLiteralTypeRule(k, t);
-  if (d_compiler!=nullptr)
+  if (d_plugin!=nullptr)
   {
-    d_compiler->setLiteralTypeRule(k, t);
+    d_plugin->setLiteralTypeRule(k, t);
   }
 }
 
@@ -1001,9 +997,9 @@ ExprValue* State::mkExprInternal(Kind k,
 bool State::bind(const std::string& name, const Expr& e)
 {
   // compiler is agnostic to which symbol table, record it here
-  if (d_compiler!=nullptr)
+  if (d_plugin!=nullptr)
   {
-    d_compiler->bind(name, e);
+    d_plugin->bind(name, e);
   }
   // if using a separate symbol table for rules
   if (d_opts.d_ruleSymTable && e.getKind() == Kind::PROOF_RULE)
@@ -1271,9 +1267,14 @@ Stats& State::getStats()
   return d_stats;
 }
 
-Compiler* State::getCompiler()
+void State::setPlugin(Plugin* p)
 {
-  return d_compiler.get();
+  d_plugin = p;
+}
+
+Plugin* State::getPlugin()
+{
+  return d_plugin;
 }
 
 void State::bindBuiltin(const std::string& name, Kind k, Attr ac)
@@ -1303,9 +1304,9 @@ void State::bindBuiltinEval(const std::string& name, Kind k, Attr ac)
 void State::defineProgram(const Expr& v, const Expr& prog)
 {
   markConstructorKind(v, Attr::PROGRAM, prog);
-  if (d_compiler!=nullptr)
+  if (d_plugin!=nullptr)
   {
-    d_compiler->defineProgram(v, prog);
+    d_plugin->defineProgram(v, prog);
   }
 }
 
@@ -1334,9 +1335,9 @@ bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
   Assert (ai.d_attrCons==Attr::NONE);
   ai.d_attrCons = a;
   ai.d_attrConsTerm = acons;
-  if (d_compiler!=nullptr)
+  if (d_plugin!=nullptr)
   {
-    d_compiler->markConstructorKind(v, a, acons);
+    d_plugin->markConstructorKind(v, a, acons);
   }
   return true;
 }
