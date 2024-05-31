@@ -15,7 +15,7 @@
 #include <unordered_map>
 
 #include "attr.h"
-#include "compiler.h"
+#include "plugin.h"
 #include "expr.h"
 #include "expr_info.h"
 #include "expr_trie.h"
@@ -30,8 +30,6 @@ class Options
 {
  public:
   Options();
-  bool d_compile;
-  bool d_runCompile;
   bool d_printLet;
   /** 'let' is lexed as the SMT-LIB syntax for a dag term specified by a let */
   bool d_parseLet;
@@ -49,7 +47,6 @@ class Options
 class State
 {
   friend class TypeChecker;
-  friend class Compiler;
   friend class ExprValue;
 
  public:
@@ -164,10 +161,16 @@ class State
   std::vector<Expr> getCurrentAssumptions() const;
   /** Get hash for expression */
   size_t getHash(const ExprValue* ev);
+  /**
+   * Lookup type, returns the type of e if it has been computed, or nullptr
+   * otherwise.
+   *
+   * @param e The term whose type we want to lookup.
+   * @return the type of e if it has been computed already.
+   */
+  ExprValue* lookupType(const ExprValue* e) const;
   /** Has reference */
   bool hasReference() const;
-  /** Print compiled files (for --show-config) */
-  static std::string showCompiledFiles();
   //--------------------------------------
   /** Get the type checker */
   TypeChecker& getTypeChecker();
@@ -175,8 +178,10 @@ class State
   Options& getOptions();
   /** Get stats */
   Stats& getStats();
-  /** Get compiler */
-  Compiler* getCompiler();
+  /** Set the plugin */
+  void setPlugin(Plugin* p);
+  /** Get plugin */
+  Plugin* getPlugin();
 
  private:
   /** Common constants */
@@ -214,16 +219,12 @@ class State
   /** Get the internal data for expression e. */
   AppInfo* getAppInfo(const ExprValue* e);
   const AppInfo* getAppInfo(const ExprValue* e) const;
-  /** lookup type */
-  ExprValue* lookupType(const ExprValue* e) const;
   /** Bind builtin */
   void bindBuiltin(const std::string& name, Kind k, Attr ac = Attr::NONE);
   /** Bind builtin */
   void bindBuiltin(const std::string& name, Kind k, Attr ac, const Expr& t);
   /** Bind builtin eval */
   void bindBuiltinEval(const std::string& name, Kind k, Attr ac = Attr::NONE);
-  /** Compiled initialization code. */
-  void run_initialize();
   //--------------------- parsing state
   /** The symbol table */
   std::map<std::string, Expr> d_symTable;
@@ -284,8 +285,8 @@ class State
   Options& d_opts;
   /** Stats */
   Stats& d_stats;
-  /** Compiler, if compiling code */
-  std::unique_ptr<Compiler> d_compiler;
+  /** Plugin, if using one */
+  Plugin* d_plugin;
 };
 
 }  // namespace alfc

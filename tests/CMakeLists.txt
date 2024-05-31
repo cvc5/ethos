@@ -112,6 +112,7 @@ set(alfc_test_file_list
     substitution-opaque.smt3
     opaque-inst.smt3
     opaque-inst2.smt3
+    mutual-rec.smt3
 )
 
 macro(alfc_test file)

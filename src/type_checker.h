@@ -19,9 +19,7 @@ namespace alfc {
 
 class State;
 class Options;
-
-using Ctx = std::map<ExprValue*, ExprValue*>;
-std::ostream& operator<<(std::ostream& out, const Ctx& c);
+class Plugin;
 
 /** 
  * The type checker for AletheLF. The main algorithms it implements are
@@ -30,7 +28,6 @@ std::ostream& operator<<(std::ostream& out, const Ctx& c);
 class TypeChecker
 {
   friend class State;
-  friend class Compiler;
 
  public:
   TypeChecker(State& s, Options& opts);
@@ -109,16 +106,6 @@ class TypeChecker
                               std::vector<ExprValue*>& children,
                               std::vector<ExprValue*>& childTypes,
                               std::ostream* out);
-  //---------------- compiled methods
-  /** Compiled version */
-  Expr run_getTypeInternal(ExprValue* hdType,
-                           const std::vector<ExprValue*>& args,
-                           std::ostream* out);
-  /** Compiled version */
-  Expr run_evaluate(ExprValue* e, Ctx& ctx);
-  /** Compiled version */
-  ExprValue* run_evaluateProgram(const std::vector<ExprValue*>& args, Ctx& ctx);
-  //---------------- end compiled methods
   /** Get the nil terminator */
   Expr computeConstructorTermInternal(AppInfo* ai,
                                       const std::vector<Expr>& children);
@@ -129,6 +116,8 @@ class TypeChecker
                                      Expr& nil);
   /** The state */
   State& d_state;
+  /** Plugin of the state */
+  Plugin * d_plugin;
   /** Mapping literal kinds to type rules */
   std::map<Kind, Expr> d_literalTypeRules;
   /** The null expression */

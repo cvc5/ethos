@@ -8,7 +8,6 @@
  ******************************************************************************/
 
 #include <unistd.h>
-#include <fstream>
 #include <iomanip>
 #include <iostream>
 
@@ -35,15 +34,6 @@ int main( int argc, char* argv[] )
     if (arg=="--binder-fresh")
     {
       opts.d_binderFresh = true;
-    }
-    else if (arg=="--gen-compile")
-    {
-      opts.d_compile = true;
-    }
-    else if (arg=="--run-compile")
-    {
-      opts.d_runCompile = true;
-      // TODO: warn if not compiled?
     }
     else if (arg=="--no-parse-let")
     {
@@ -73,13 +63,12 @@ int main( int argc, char* argv[] )
     {
       std::stringstream out;
       out << "     --binder-fresh: binders generate fresh variables when parsed in proof files." << std::endl;
-      out << "      --gen-compile: output the C++ code for all included signatures from the input file." << std::endl;
       out << "             --help: displays this message." << std::endl;
       out << " --no-normalize-dec: do not treat decimal literals as syntax sugar for rational literals." << std::endl;
       out << " --no-normalize-hex: do not treat hexadecimal literals as syntax sugar for binary literals." << std::endl;
+      out << "     --no-parse-let: do not treat let as a builtin symbol for specifying terms having shared subterms." << std::endl;
       out << "     --no-print-let: do not letify the output of terms in error messages and trace messages." << std::endl;
       out << "--no-rule-sym-table: do not use a separate symbol table for proof rules and declared terms." << std::endl;
-      out << "      --run-compile: use the compiled C++ signatures whenever available." << std::endl;
       out << "      --show-config: displays the build information for this binary." << std::endl;
       out << "            --stats: enables detailed statistics." << std::endl;
       out << "           -t <tag>: enables the given trace tag (requires debug build)." << std::endl;
@@ -100,17 +89,6 @@ int main( int argc, char* argv[] )
       out << "no";
 #endif
       out << std::endl;
-      out << std::setw(w) << "compiled : ";
-      std::string cfiles = State::showCompiledFiles();
-      if (!cfiles.empty())
-      {
-        out << "yes" << std::endl;
-        out << cfiles;
-      }
-      else
-      {
-        out << "no" << std::endl;
-      }
       std::cout << out.str();
       return 0;
     }
@@ -158,6 +136,12 @@ int main( int argc, char* argv[] )
     }
   }
   State s(opts, stats);
+  Plugin * plugin = nullptr;
+  // NOTE: initialization of plugin goes here
+  if (plugin!=nullptr)
+  {
+    s.setPlugin(plugin);
+  }
   if (!readFile)
   {
     // no file, either std::in is piped, or the user forgot to provide an input
@@ -182,17 +166,9 @@ int main( int argc, char* argv[] )
     }
   }
   std::cout << "success" << std::endl;
-  if (opts.d_compile)
+  if (plugin != nullptr)
   {
-    Compiler * c = s.getCompiler();
-    std::fstream fs("compiled.out.cpp", std::ios::out);
-    fs << "/** ================ AUTO GENERATED ============ */" << std::endl;
-    fs << c->toString() << std::endl;
-    fs.close();
-    Trace("compile") << "GEN-COMPILE" << std::endl;
-    Trace("compile") << "```" << std::endl;
-    Trace("compile") << c->toString() << std::endl;
-    Trace("compile") << "```" << std::endl;
+    plugin->finalize();
   }
   if (opts.d_stats)
   {

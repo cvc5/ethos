@@ -21,28 +21,8 @@
 #include "state.h"
 
 namespace alfc {
-  
-std::ostream& operator<<(std::ostream& out, const Ctx& c)
-{
-  out << "[";
-  bool firstTime = true;
-  for (const std::pair<ExprValue* const, ExprValue*>& cc : c)
-  {
-    if (firstTime)
-    {
-      firstTime = false;
-    }
-    else
-    {
-      out << ", ";
-    }
-    out << Expr(cc.first) << " -> " << Expr(cc.second);
-  }
-  out << "]";
-  return out;
-}
 
-TypeChecker::TypeChecker(State& s, Options& opts) : d_state(s)
+TypeChecker::TypeChecker(State& s, Options& opts) : d_state(s), d_plugin(nullptr)
 {
   std::set<Kind> literalKinds = { Kind::BOOLEAN, Kind::NUMERAL, Kind::RATIONAL, Kind::BINARY, Kind::STRING };
   if (!opts.d_normalizeDecimal)
@@ -408,11 +388,11 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     }
     ctypes.emplace_back(arg);
   }
-  // if compiled, run the compiled version of the type checker
-  if (hdType->isCompiled())
+  // if plugin can evaluate, run the compiled version of the type checker
+  if (d_plugin!=nullptr && d_plugin->hasEvaluation(hdType))
   {
     Trace("type_checker") << "RUN type check " << Expr(hdType) << std::endl;
-    return run_getTypeInternal(hdType, ctypes, out);
+    return d_plugin->getType(hdType, ctypes, out);
   }
   std::set<std::pair<ExprValue*, ExprValue*>> visited;
   Expr hdEval;
@@ -617,10 +597,10 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
       if (it == visited.end())
       {
         // if it is compiled, we run its evaluation here
-        if (cur->isCompiled())
+        if (d_plugin && d_plugin->hasEvaluation(cur))
         {
           Trace("type_checker") << "RUN evaluate " << cur << std::endl;
-          Expr retev = run_evaluate(cur, cctx);
+          Expr retev = d_plugin->evaluate(cur, cctx);
           Assert(!retev.isNull());
           if (!retev.isNull())
           {
@@ -883,13 +863,10 @@ Expr TypeChecker::evaluateProgramInternal(
   Kind hk = hd->getKind();
   if (hk==Kind::PROGRAM_CONST)
   {
-    if (hd->isCompiled())
+    if (d_plugin && d_plugin->hasEvaluation(hd))
     {
       Trace("type_checker") << "RUN program " << children << std::endl;
-      ExprValue* ret = run_evaluateProgram(children, newCtx);
-      Trace("type_checker")
-          << "...matches " << Expr(ret) << ", ctx = " << newCtx << std::endl;
-      return Expr(ret);
+      return d_plugin->evaluateProgram(hd, children, newCtx);
     }
     size_t nargs = children.size();
     Expr prog = d_state.getProgram(hd);

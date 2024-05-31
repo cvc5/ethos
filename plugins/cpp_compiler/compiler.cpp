@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <fstream>
 
 #include "base/check.h"
 #include "base/output.h"
@@ -121,15 +122,15 @@ Compiler::Compiler(State& s) :
   d_decl << "bool _btmp;" << std::endl;
   d_decl << "bool _btmp2;" << std::endl;
   d_decl << "const Literal* _ltmp;" << std::endl;
-  d_config << "std::string State::showCompiledFiles()" << std::endl;
+  d_config << "std::string Executor::showCompiledFiles()" << std::endl;
   d_config << "{" << std::endl;
   d_config << "  std::stringstream ss;" << std::endl;
   d_configEnd << "  return ss.str();" << std::endl;
   d_configEnd << "}" << std::endl;
-  d_init << "void State::run_initialize()" << std::endl;
+  d_init << "void Executor::initialize()" << std::endl;
   d_init << "{" << std::endl;
   d_initEnd << "}" << std::endl;
-  d_tc << "Expr TypeChecker::run_getTypeInternal(ExprValue* hdType, const "
+  d_tc << "Expr Executor::getType(ExprValue* hdType, const "
           "std::vector<ExprValue*>& args, std::ostream* out)"
        << std::endl;
   d_tc << "{" << std::endl;
@@ -144,7 +145,7 @@ Compiler::Compiler(State& s) :
   // TODO: write error?
   d_tcEnd << "  return d_null;" << std::endl;
   d_tcEnd << "}" << std::endl;
-  d_eval << "Expr TypeChecker::run_evaluate(ExprValue* e, Ctx& ctx)"
+  d_eval << "Expr Executor::evaluate(ExprValue* e, Ctx& ctx)"
          << std::endl;
   d_eval << "{" << std::endl;
   d_eval << "  Ctx::iterator itc;" << std::endl;
@@ -158,7 +159,7 @@ Compiler::Compiler(State& s) :
   d_evalEnd << "  }" << std::endl;
   d_evalEnd << "  return d_null;" << std::endl;
   d_evalEnd << "}" << std::endl;
-  d_evalp << "ExprValue* TypeChecker::run_evaluateProgram(const "
+  d_evalp << "ExprValue* Executor::evaluateProgramInternal(const "
              "std::vector<ExprValue*>& args, Ctx& ctx)"
           << std::endl;
   d_evalp << "{" << std::endl;
@@ -202,10 +203,14 @@ void Compiler::setLiteralTypeRule(Kind k, const Expr& t)
   d_init << "  d_tc.setLiteralTypeRule(Kind::" << k << ", _e" << id << ");" << std::endl;
 }
 
-void Compiler::includeFile(const Filepath& s)
+void Compiler::includeFile(const Filepath& s, bool isReference, const Expr& referenceNf)
 {
+  if (isReference)
+  {
+    ALFC_FATAL() << "Compiler::includeFile: cannot use reference when compiling";
+  }
   Assert (d_nscopes==0);
-  d_init << "  markIncluded(\"" << s.getRawPath() << "\");" << std::endl;
+  d_init << "  d_state.markIncluded(\"" << s.getRawPath() << "\");" << std::endl;
   d_config << "  ss << std::setw(15) << \" \" << \"" << s.getRawPath()
            << "\" << std::endl;" << std::endl;
 }
@@ -219,7 +224,7 @@ void Compiler::bind(const std::string& name, const Expr& e)
   // write the code for constructing the expression
   size_t id = writeGlobalExpr(e);
   // bind the symbol
-  d_init << "  bind(\"" << name << "\", _e" << id << ");" << std::endl;
+  d_init << "  d_state.bind(\"" << name << "\", _e" << id << ");" << std::endl;
   // write its type checker (if necessary)
   ExprValue* t = d_state.lookupType(e.getValue());
   if (t != nullptr)
@@ -251,6 +256,11 @@ void Compiler::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
     d_init << "_e" << idc;
   }
   d_init << ");" << std::endl;
+}
+
+void Compiler::markOracleCmd(const Expr& v, const std::string& ocmd)
+{
+  ALFC_FATAL() << "Compiler::markOracleCmd: unimplemented";
 }
 
 void Compiler::defineProgram(const Expr& v, const Expr& prog)
@@ -332,20 +342,16 @@ void Compiler::defineProgram(const Expr& v, const Expr& prog)
   os << osEnd.str();
 }
 
-void Compiler::defineConstructor(const Expr& c, const std::vector<Expr>& sels)
+void Compiler::finalize()
 {
-  size_t cid = writeGlobalExpr(c);
-  d_init << "  defineConstructor(_e" << cid << ", ";
-  writeArgumentList(d_init, sels);
-  d_init << ");" << std::endl;
-}
-
-void Compiler::defineDatatype(const Expr& d, const std::vector<Expr>& cons)
-{
-  size_t did = writeGlobalExpr(d);
-  d_init << "  defineDatatype(_e" << did << ", ";
-  writeArgumentList(d_init, cons);
-  d_init << ");" << std::endl;
+  std::fstream fs("compiled.out.cpp", std::ios::out);
+  fs << "/** ================ AUTO GENERATED ============ */" << std::endl;
+  fs << toString() << std::endl;
+  fs.close();
+  Trace("compile") << "GEN-COMPILE" << std::endl;
+  Trace("compile") << "```" << std::endl;
+  Trace("compile") << toString() << std::endl;
+  Trace("compile") << "```" << std::endl;
 }
 
 size_t Compiler::markCompiled(std::ostream& os, const Expr& e)
@@ -432,7 +438,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         curLit = cv->asLiteral();
         Assert(curLit != nullptr);
         os << "  " << cs.d_prefix << ret << " = ";
-        os << "mkLiteral(Kind::" << cur.getKind() << ", \""
+        os << "d_state.mkLiteral(Kind::" << cur.getKind() << ", \""
            << curLit->toString() << "\");" << std::endl;
       }
       else if (isSymbol(ck))
@@ -444,25 +450,25 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         // special case: d_self
         if (cur == d_state.mkSelf())
         {
-          os << "d_self;" << std::endl;
+          os << "d_state.mkSelf();" << std::endl;
         }
         else
         {
-          os << "mkSymbol(Kind::" << cur.getKind() << ", \""
+          os << "d_state.mkSymbol(Kind::" << cur.getKind() << ", \""
              << curLit->toString() << "\", _e" << tid << ");" << std::endl;
         }
       }
       else if (ck==Kind::TYPE)
       {
-        os << "  " << cs.d_prefix << ret << " = d_type;" << std::endl;
+        os << "  " << cs.d_prefix << ret << " = d_state.mkType();" << std::endl;
       }
       else if (ck==Kind::BOOL_TYPE)
       {
-        os << "  " << cs.d_prefix << ret << " = d_boolType;" << std::endl;
+        os << "  " << cs.d_prefix << ret << " = d_state.mkBoolType();" << std::endl;
       }
       else if (ck==Kind::NULL_EXPR)
       {
-        os << "  " << cs.d_prefix << ret << " = d_nil;" << std::endl;
+        os << "  " << cs.d_prefix << ret << " = d_state.mkNil();" << std::endl;
       }
       else if (ck==Kind::EVAL_IF_THEN_ELSE && cs.d_progEval)
       {
@@ -517,10 +523,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         os << "  if (!_btmp)" << std::endl;
         os << "  {" << std::endl;
         os << "    " << cs.d_prefix << ret << " = Expr(";
-        if (!cs.isGlobal())
-        {
-          os << "d_state.";
-        }
+        os << "d_state.";
         os << "mkExprInternal(Kind::EVAL_IF_THEN_ELSE, {" << cond
            << ".getValue(), " << branches[0] << ".getValue(), " << branches[1]
            << ".getValue()}));" << std::endl;
@@ -537,10 +540,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         std::string a2 = s.getNameFor(cur[1]);
         std::string a3 = s.getNameFor(cur[2]);
         os << "    " << cs.d_prefix << ret << " = ";
-        if (!cs.isGlobal())
-        {
-          os << "d_state.";
-        }
+        os << "d_state.";
         os << "mkRequires(" << a1 << ", " << a2 << ", " << a3 << ");" << std::endl;
       }
       else
@@ -567,7 +567,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
             {
               // we should just evaluate it if the scope specifies it should be evaluated
               os << "  _ctxTmp.clear();" << std::endl;
-              os << "  _etmp = evaluateProgram(" << argList.str()
+              os << "  _etmp = d_tc.evaluateProgram(" << argList.str()
                 << ", _ctxTmp);" << std::endl;
               os << "  " << cs.d_prefix << ret
                 << " = evaluate(_etmp.getValue(), _ctxTmp);" << std::endl;
@@ -577,7 +577,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
           else if (isLiteralOp(ck))
           {
             os << "  " << cs.d_prefix << ret
-              << " = evaluateLiteralOp(Kind::";
+              << " = d_tc.evaluateLiteralOp(Kind::";
             os << cur.getKind() << ", " << argList.str() << ");"
               << std::endl;
             wroteExpr = true;
@@ -586,10 +586,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
         if (!wroteExpr)
         {
           os << "  " << cs.d_prefix << ret << " = Expr(";
-          if (!cs.isGlobal())
-          {
-            os << "d_state.";
-          }
+          os << "d_state.";
           os << "mkExprInternal(Kind::" << cur.getKind() << ", "
              << argList.str() << "));" << std::endl;
           if (isg)
@@ -598,7 +595,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
             ExprValue* t = d_state.lookupType(cur.getValue());
             if (t != nullptr)
             {
-              os << "  d_typeCache[" << d_global.d_prefix << ret
+              os << "  d_state.d_typeCache[" << d_global.d_prefix << ret
                  << ".getValue()] = " << d_global.d_prefix << tid << ";"
                  << std::endl;
             }
@@ -893,6 +890,7 @@ void Compiler::writeEvaluate(std::ostream& os, const Expr& e)
 std::string Compiler::toString()
 {
   std::stringstream ss;
+  ss << "#include \"executor.h\"" << std::endl;
   ss << "#include \"state.h\"" << std::endl;
   ss << "#include \"type_checker.h\"" << std::endl;
   ss << "#include <iomanip>" << std::endl;
