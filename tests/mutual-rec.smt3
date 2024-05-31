@@ -11,7 +11,7 @@
   (
   ((is-even 0) true)
   ((is-even 1) false)
-  ((is-even n) (is-odd (alf.add n -1))
+  ((is-even n) (is-odd (alf.add n -1)))
   )
 )
 
@@ -20,11 +20,11 @@
   (
   ((is-odd 0) false)
   ((is-odd 1) true)
-  ((is-odd n) (is-even (alf.add n -1))
+  ((is-odd n) (is-even (alf.add n -1)))
   )
 )
 
-
+(declare-fun not (Bool) Bool)
 (declare-fun pred_is_even (Int) Bool)
 
 (declare-rule find_is_even ((n Int))
@@ -40,6 +40,6 @@
 )
 
 
-(step a1 (pred_is_even 4) :rule dummy :premises () :args (4))
-(step a2 (not (pred_is_even 3)) :rule dummy :premises () :args (3))
+(step a1 (pred_is_even 4) :rule find_is_even :premises () :args (4))
+(step a2 (not (pred_is_even 3)) :rule find_is_odd :premises () :args (3))
 
