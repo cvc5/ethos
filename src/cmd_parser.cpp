@@ -623,6 +623,12 @@ bool CmdParser::parseNextCommand()
           ss << "Already declared symbol " << name << " as a non-program";
           d_lex.parseError(ss.str());
         }
+        // should not already have a definition
+        Expr prevProg = d_state.getProgram(pprev.getValue());
+        if (!prevProg.isNull())
+        {
+          d_lex.parseError("Cannot define program more than once");
+        }
         // it should be a program with the same type
         d_eparser.typeCheck(pprev, progType);
         pvar = pprev;
@@ -631,9 +637,9 @@ bool CmdParser::parseNextCommand()
       {
         // the type of the program variable is a function
         pvar = d_state.mkSymbol(Kind::PROGRAM_CONST, name, progType);
+        // bind the program, temporarily
+        d_eparser.bind(name, pvar);
       }
-      // bind the program
-      d_eparser.bind(name, pvar);
       Expr program;
       tok = d_lex.peekToken();
       // if RPAREN follows, it is a forward declaration, we do not define the program
@@ -653,6 +659,7 @@ bool CmdParser::parseNextCommand()
           Expr pc = p[0];
           if (pc.getKind() != Kind::APPLY || pc[0] != pvar)
           {
+            Trace("program") << pc << " " << pvar << std::endl;
             d_lex.parseError("Expected application of program as case");
           }
           if (pc.getNumChildren() != argTypes.size() + 1)
@@ -682,18 +689,13 @@ bool CmdParser::parseNextCommand()
       d_state.popScope();
       if (!program.isNull())
       {
-        if (!pprev.isNull())
-        {
-          Expr prevProg = d_state.getProgram(pvar.getValue());
-          if (!prevProg.isNull())
-          {
-            d_lex.parseError("Cannot define program more than once");
-          }
-        }
         d_state.defineProgram(pvar, program);
       }
-      // rebind the program
-      d_eparser.bind(name, pvar);
+      if (pprev.isNull())
+      {
+        // rebind the program, if new
+        d_eparser.bind(name, pvar);
+      }
     }
     break;
     // (reset)
