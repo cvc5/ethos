@@ -135,11 +135,11 @@ int main( int argc, char* argv[] )
     }
   }
   State s(opts, stats);
-  Plugin * p = nullptr;
+  Plugin * plugin = nullptr;
   // NOTE: initialization of plugin goes here
-  if (p!=nullptr)
+  if (plugin!=nullptr)
   {
-    s.setPlugin(p);
+    s.setPlugin(plugin);
   }
   if (!readFile)
   {
@@ -165,10 +165,9 @@ int main( int argc, char* argv[] )
     }
   }
   std::cout << "success" << std::endl;
-  Plugin * p = s.getPlugin();
-  if (p != nullptr)
+  if (plugin != nullptr)
   {
-    p->finalize();
+    plugin->finalize();
   }
   if (opts.d_stats)
   {

@@ -146,7 +146,7 @@ public:
   /** Pop scope */
   void popScope() override;
   /** include file, if not already done */
-  void includeFile(const Filepath& s) override;
+  void includeFile(const Filepath& s, bool isReference, const Expr& referenceNf) override;
   /** Set type rule for literal kind k to t */
   void setLiteralTypeRule(Kind k, const Expr& t) override;
   /** */
