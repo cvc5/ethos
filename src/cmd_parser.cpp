@@ -659,7 +659,6 @@ bool CmdParser::parseNextCommand()
           Expr pc = p[0];
           if (pc.getKind() != Kind::APPLY || pc[0] != pvar)
           {
-            Trace("program") << pc << " " << pvar << std::endl;
             d_lex.parseError("Expected application of program as case");
           }
           if (pc.getNumChildren() != argTypes.size() + 1)
