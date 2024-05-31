@@ -30,8 +30,6 @@ class Options
 {
  public:
   Options();
-  bool d_compile;
-  bool d_runCompile;
   bool d_printLet;
   /** 'let' is lexed as the SMT-LIB syntax for a dag term specified by a let */
   bool d_parseLet;

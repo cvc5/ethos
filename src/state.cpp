@@ -19,8 +19,6 @@ namespace alfc {
 
 Options::Options()
 {
-  d_compile = false;
-  d_runCompile = false;
   d_parseLet = true;
   d_printLet = false;
   d_stats = false;
