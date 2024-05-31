@@ -160,10 +160,16 @@ int main( int argc, char* argv[] )
   }
   State s(opts, stats);
   std::unique_ptr<Compiler> d_compiler;
+  std::unique_ptr<Executor> d_executor;
   if (opts.d_compile)
   {
     d_compiler.reset(new Compiler(s));
     s.setPlugin(d_compiler.get());
+  }
+  else if (opts.d_runCompile)
+  {
+    d_executor.reset(new Executor(s));
+    s.setPlugin(d_executor.get());
   }
   if (!readFile)
   {
