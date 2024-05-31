@@ -185,6 +185,9 @@ class Expr
 std::ostream& operator<<(std::ostream& out, const Expr& e);
 std::ostream& operator<<(std::ostream& out, const std::vector<ExprValue*>& es);
 
+using Ctx = std::map<ExprValue*, ExprValue*>;
+std::ostream& operator<<(std::ostream& out, const Ctx& c);
+
 }  // namespace alfc
 
 #endif 

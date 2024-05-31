@@ -29,6 +29,12 @@ class Plugin
 public:
   Plugin() {}
   virtual ~Plugin() {}
+  //--------- initialize
+  /**
+   * Initialize. Called when the proof checker is initalized with this plugin.
+   */
+  virtual void initialize() {}
+  //--------- parsing
   /**
    * Reset. Called when the command reset is called.
    */
@@ -83,6 +89,42 @@ public:
    */
   virtual void defineProgram(const Expr& v, const Expr& prog) {}
   //--------- evaluation
+  /**
+   * @return true if this plugin implements the evaluation methods below for
+   * type, expression or program e.
+   */
+  virtual bool hasEvaluation(ExprValue* e) { return false; }
+  /**
+   * Get type.
+   * @param hdType The type of the function we are applying.
+   * @param args Its arguments.
+   * @param out An (optional) pointer to an output stream, for debugging.
+   * @return The computed type of hdType for the given arguments.
+   */
+  virtual Expr getType(ExprValue* hdType,
+                       const std::vector<ExprValue*>& args,
+                       std::ostream* out) { return Expr(); }
+  /**
+   * Evaluate.
+   * @param e The expression to evaluate
+   * @param ctx The context under which we are evaluating, which is a
+   * substitution from variables to their value.
+   * @return The result of evaluation e in context ctx.
+   */
+  virtual Expr evaluate(ExprValue* e, Ctx& ctx) { return Expr(); }
+  /**
+   * Evaluate program.
+   * @param prog The program to evaluate.
+   * @param args Its arguments. The program to evaluate is at args[0].
+   * @param ctx The context under which we are evaluating, which is a
+   * substitution from variables to their value.
+   * @return The result of evaluation prog for the given argumetns in context
+   * ctx.
+   */
+  virtual Expr evaluateProgram(ExprValue* prog,
+                               const std::vector<ExprValue*>& args,
+                               Ctx& newCtx) { return Expr(); }
+  //--------- finalize
   /**
    * Finalize. Called once when the proof checker has finished parsing all input.
    */

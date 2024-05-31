@@ -16,6 +16,7 @@
 #include "parser.h"
 #include "state.h"
 #include "compiler.h"
+#include "executor.h"
 
 using namespace alfc;
 
@@ -101,7 +102,7 @@ int main( int argc, char* argv[] )
 #endif
       out << std::endl;
       out << std::setw(w) << "compiled : ";
-      std::string cfiles = State::showCompiledFiles();
+      std::string cfiles = Executor::showCompiledFiles();
       if (!cfiles.empty())
       {
         out << "yes" << std::endl;

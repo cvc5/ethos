@@ -127,10 +127,10 @@ Compiler::Compiler(State& s) :
   d_config << "  std::stringstream ss;" << std::endl;
   d_configEnd << "  return ss.str();" << std::endl;
   d_configEnd << "}" << std::endl;
-  d_init << "void State::run_initialize()" << std::endl;
+  d_init << "void Executor::initialize()" << std::endl;
   d_init << "{" << std::endl;
   d_initEnd << "}" << std::endl;
-  d_tc << "Expr TypeChecker::run_getTypeInternal(ExprValue* hdType, const "
+  d_tc << "Expr Executor::getType(ExprValue* hdType, const "
           "std::vector<ExprValue*>& args, std::ostream* out)"
        << std::endl;
   d_tc << "{" << std::endl;
@@ -145,7 +145,7 @@ Compiler::Compiler(State& s) :
   // TODO: write error?
   d_tcEnd << "  return d_null;" << std::endl;
   d_tcEnd << "}" << std::endl;
-  d_eval << "Expr TypeChecker::run_evaluate(ExprValue* e, Ctx& ctx)"
+  d_eval << "Expr Executor::evaluate(ExprValue* e, Ctx& ctx)"
          << std::endl;
   d_eval << "{" << std::endl;
   d_eval << "  Ctx::iterator itc;" << std::endl;
@@ -159,7 +159,7 @@ Compiler::Compiler(State& s) :
   d_evalEnd << "  }" << std::endl;
   d_evalEnd << "  return d_null;" << std::endl;
   d_evalEnd << "}" << std::endl;
-  d_evalp << "ExprValue* TypeChecker::run_evaluateProgram(const "
+  d_evalp << "ExprValue* Executor::evaluateProgram(const "
              "std::vector<ExprValue*>& args, Ctx& ctx)"
           << std::endl;
   d_evalp << "{" << std::endl;
@@ -895,6 +895,7 @@ void Compiler::writeEvaluate(std::ostream& os, const Expr& e)
 std::string Compiler::toString()
 {
   std::stringstream ss;
+  ss << "#include \"executor.h\"" << std::endl;
   ss << "#include \"state.h\"" << std::endl;
   ss << "#include \"type_checker.h\"" << std::endl;
   ss << "#include <iomanip>" << std::endl;
