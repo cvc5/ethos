@@ -50,6 +50,7 @@ class State
 {
   friend class TypeChecker;
   friend class ExprValue;
+  friend class Executor;
 
  public:
   State(Options& opts, Stats& stats);
@@ -167,8 +168,6 @@ class State
   ExprValue* lookupType(const ExprValue* e) const;
   /** Has reference */
   bool hasReference() const;
-  /** Print compiled files (for --show-config) */
-  static std::string showCompiledFiles();
   //--------------------------------------
   /** Get the type checker */
   TypeChecker& getTypeChecker();
@@ -223,8 +222,6 @@ class State
   void bindBuiltin(const std::string& name, Kind k, Attr ac, const Expr& t);
   /** Bind builtin eval */
   void bindBuiltinEval(const std::string& name, Kind k, Attr ac = Attr::NONE);
-  /** Compiled initialization code. */
-  void run_initialize();
   //--------------------- parsing state
   /** The symbol table */
   std::map<std::string, Expr> d_symTable;

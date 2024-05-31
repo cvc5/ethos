@@ -106,11 +106,6 @@ State::State(Options& opts, Stats& stats)
   bind("true", d_true);
   d_false = Expr(new Literal(false));
   bind("false", d_false);
-  if (d_opts.d_runCompile)
-  {
-    Assert(!d_opts.d_compile);
-    run_initialize();
-  }
 }
 
 State::~State() {}
@@ -1270,7 +1265,11 @@ Stats& State::getStats()
 
 void State::setPlugin(Plugin* p)
 {
+  Assert (p!=nullptr);
   d_plugin = p;
+  d_tc.d_plugin = p;
+  // call the initialize method of the plugin
+  d_plugin->initialize();
 }
 
 Plugin* State::getPlugin()

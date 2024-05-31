@@ -547,4 +547,24 @@ std::ostream& operator<<(std::ostream& out, const std::vector<ExprValue*>& es)
   return out;
 }
 
+std::ostream& operator<<(std::ostream& out, const Ctx& c)
+{
+  out << "[";
+  bool firstTime = true;
+  for (const std::pair<ExprValue* const, ExprValue*>& cc : c)
+  {
+    if (firstTime)
+    {
+      firstTime = false;
+    }
+    else
+    {
+      out << ", ";
+    }
+    out << Expr(cc.first) << " -> " << Expr(cc.second);
+  }
+  out << "]";
+  return out;
+}
+
 }  // namespace alfc

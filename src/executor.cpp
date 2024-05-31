@@ -8,31 +8,29 @@
  ******************************************************************************/
 
 #include "executor.h"
+#include "state.h"
 
 namespace alfc {
   
-std::string Executor::showCompiledFiles()
+Executor::Executor(State& s) : d_state(s), d_tc(s.getTypeChecker()) {}
+
+Executor::~Executor() {}
+  
+bool Executor::hasEvaluation(ExprValue* e)
 {
-  return "";
+  return e->isCompiled();
 }
 
-void Executor::initialize()
+Expr Executor::evaluateProgram(ExprValue* prog,
+                               const std::vector<ExprValue*>& args,
+                               Ctx& ctx)
 {
-}
-
-Expr Executor::getType(ExprValue* hdType,
-                       const std::vector<ExprValue*>& args,
-                       std::ostream* out)
-{
-  return d_null;
-}
-
-Expr Executor::evaluate(ExprValue* e, Ctx& ctx) { return d_null; }
-
-ExprValue* Executor::evaluateProgramInternal(const std::vector<ExprValue*>& args,
-                                            Ctx& ctx)
-{
-  return nullptr;
+  ExprValue * ev = evaluateProgramInternal(args, ctx);
+  if (ev==nullptr)
+  {
+    return d_null;
+  }
+  return Expr(ev);
 }
 
 }
