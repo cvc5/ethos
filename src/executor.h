@@ -47,6 +47,8 @@ public:
 private:
   /** Reference to the state */
   State& d_state;
+  /** Reference to the type checker */
+  TypeChecker& d_tc;
   /** The null expression */
   Expr d_null;
   /** Compiled version */

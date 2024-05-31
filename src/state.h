@@ -50,6 +50,7 @@ class State
 {
   friend class TypeChecker;
   friend class ExprValue;
+  friend class Executor;
 
  public:
   State(Options& opts, Stats& stats);
