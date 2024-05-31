@@ -563,7 +563,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
             {
               // we should just evaluate it if the scope specifies it should be evaluated
               os << "  _ctxTmp.clear();" << std::endl;
-              os << "  _etmp = evaluateProgramInternal(" << argList.str()
+              os << "  _etmp = d_tc.evaluateProgram(" << argList.str()
                 << ", _ctxTmp);" << std::endl;
               os << "  " << cs.d_prefix << ret
                 << " = evaluate(_etmp.getValue(), _ctxTmp);" << std::endl;
@@ -573,7 +573,7 @@ size_t Compiler::writeExprInternal(const Expr& e, CompilerScope& s)
           else if (isLiteralOp(ck))
           {
             os << "  " << cs.d_prefix << ret
-              << " = evaluateLiteralOp(Kind::";
+              << " = d_tc.evaluateLiteralOp(Kind::";
             os << cur.getKind() << ", " << argList.str() << ");"
               << std::endl;
             wroteExpr = true;
