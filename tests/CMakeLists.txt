@@ -109,6 +109,7 @@ set(alfc_test_file_list
     nground-nil-v3.smt3
     ff-nil.smt3
     or-variant.smt3
+    mutual-rec.smt3
 )
 
 macro(alfc_test file)
