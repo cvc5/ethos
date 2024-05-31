@@ -66,6 +66,7 @@ int main( int argc, char* argv[] )
       out << "             --help: displays this message." << std::endl;
       out << " --no-normalize-dec: do not treat decimal literals as syntax sugar for rational literals." << std::endl;
       out << " --no-normalize-hex: do not treat hexadecimal literals as syntax sugar for binary literals." << std::endl;
+      out << "     --no-parse-let: do not treat let as a builtin symbol for specifying terms having shared subterms." << std::endl;
       out << "     --no-print-let: do not letify the output of terms in error messages and trace messages." << std::endl;
       out << "--no-rule-sym-table: do not use a separate symbol table for proof rules and declared terms." << std::endl;
       out << "      --show-config: displays the build information for this binary." << std::endl;

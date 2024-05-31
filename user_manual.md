@@ -1518,6 +1518,7 @@ In the above example, a proof rule is then defined that says that if `z` is an i
 ## Command line options of alfc
 
 The ALF command line interface can be invoked by `alfc <option>* <file>` where `<option>` is one of the following:
+- `--binder-fresh`: binders generate fresh variables when parsed in proof files.
 - `--help`: displays a help message.
 - `--no-normalize-dec`: do not treat decimal literals as syntax sugar for rational literals.
 - `--no-normalize-hex`: do not treat hexadecimal literals as syntax sugar for binary literals.
