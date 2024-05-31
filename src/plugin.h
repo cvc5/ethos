@@ -82,6 +82,7 @@ public:
    * @param prog Its definition, which is a term of kind PROGRAM.
    */
   virtual void defineProgram(const Expr& v, const Expr& prog) = 0;
+  //--------- evaluation
   /**
    * Finalize. Called once when the proof checker has finished parsing all input.
    */
