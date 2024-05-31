@@ -28,7 +28,6 @@ class Plugin;
 class TypeChecker
 {
   friend class State;
-  friend class Compiler;
 
  public:
   TypeChecker(State& s, Options& opts);

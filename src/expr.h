@@ -17,7 +17,6 @@
 
 namespace alfc {
 
-class Compiler;
 class State;
 class ExprValue;
 class TypeChecker;
