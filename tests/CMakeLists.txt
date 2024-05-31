@@ -111,6 +111,7 @@ set(alfc_test_file_list
     or-variant.smt3
     substitution-opaque.smt3
     opaque-inst.smt3
+    opaque-inst2.smt3
 )
 
 macro(alfc_test file)
