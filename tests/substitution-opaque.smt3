@@ -29,12 +29,14 @@
 (declare-sort Array 2)
 (declare-sort Int 0)
 
-
-(declare-fun @array_deq_diff 
-  ((Array Int Int) (Array Int Int))
-  Int
-  :opaque
+(declare-const @array_deq_diff 
+  (-> 
+    (! (Array Int Int) :opaque)
+    (! (Array Int Int) :opaque)
+    Int
+  )
 )
+
 (declare-const n (Array Int Int))
 (declare-const m (Array Int Int))
 (declare-const v Int)

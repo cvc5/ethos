@@ -27,6 +27,7 @@ enum class Kind
   ABSTRACT_TYPE,
   BOOL_TYPE,
   QUOTE_TYPE,
+  OPAQUE_TYPE, // an argument marked :opaque, temporary during parsing
   
   // terms
   APPLY,

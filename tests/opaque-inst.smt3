@@ -13,10 +13,12 @@
 (declare-const select (-> (Array Int Int) Int Int))
 
 
-(declare-fun @array_deq_diff 
-  ((Array Int Int) (Array Int Int))
-  Int
-  :opaque
+(declare-const @array_deq_diff 
+  (-> 
+    (! (Array Int Int) :opaque)
+    (! (Array Int Int) :opaque)
+    Int
+  )
 )
 
 

@@ -445,6 +445,9 @@ Expr ExprParser::parseExpr()
                 }
                 ret = d_state.mkRequires(a.second, ret);
                 break;
+              case Attr::OPAQUE:
+                ret = d_state.mkExpr(Kind::OPAQUE_TYPE, {ret});
+                break;
               default:
                 std::stringstream ss;
                 ss << "Unprocessed attribute " << a.first << std::endl;
@@ -1049,6 +1052,7 @@ void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedS
       case Attr::IMPLICIT:
       case Attr::RIGHT_ASSOC:
       case Attr::LEFT_ASSOC:
+      case Attr::OPAQUE:
         // requires no value
         break;
       case Attr::RIGHT_ASSOC_NIL:
@@ -1066,8 +1070,6 @@ void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedS
         // requires a pair
         val = parseExprPair();
       }
-        break;
-      case Attr::OPAQUE:
         break;
       default:
         d_lex.parseError("Unhandled attribute");
@@ -1269,7 +1271,6 @@ void ExprParser::processAttributeMap(const AttrMap& attrs,
         case Attr::CHAINABLE:
         case Attr::PAIRWISE:
         case Attr::BINDER:
-        case Attr::OPAQUE:
         {
           if (ck!=Attr::NONE)
           {

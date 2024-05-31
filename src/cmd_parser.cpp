@@ -178,26 +178,29 @@ bool CmdParser::parseNextCommand()
         d_eparser.parseAttributeList(t, attrs);
         // determine if an attribute specified a constructor kind
         d_eparser.processAttributeMap(attrs, ck, cons, params);
-        // If opaque, we do not flatten the function type. We also throw an
-        // error if no arguments were provided.
-        if (ck==Attr::OPAQUE)
-        {
-          if (sorts.empty())
-          {
-            Warning() << "Using :opaque with no argument sorts has no effect";
-            ck = Attr::NONE;
-          }
-          else
-          {
-            // do not flatten
-            flattenFunction = false;
-          }
-        }
       }
       t = ret;
       if (!sorts.empty())
       {
         t = d_state.mkFunctionType(sorts, ret, flattenFunction);
+      }
+      std::vector<Expr> opaqueArgs;
+      while (t.getKind()==Kind::FUNCTION_TYPE && t[0].getKind()==Kind::OPAQUE_TYPE)
+      {
+        Assert (t.getNumChildren()==2);
+        Assert (t[0].getNumChildren()==1);
+        opaqueArgs.push_back(t[0][0]);
+        t = t[1];
+      }
+      if (!opaqueArgs.empty())
+      {
+        if (ck!=Attr::NONE)
+        {
+          d_lex.parseError("Can only use opaque argument on functions without attributes.");
+        }
+        // Reconstruct with opaque arguments, do not flatten function type.
+        t = d_state.mkFunctionType(opaqueArgs, t, false);
+        ck = Attr::OPAQUE;
       }
       Expr v;
       if (sk==Kind::VARIABLE)
