@@ -115,7 +115,8 @@ public:
   /**
    * Evaluate program.
    * @param prog The program to evaluate.
-   * @param args Its arguments. The program to evaluate is at args[0].
+   * @param args The arguments of the program application. Note that prog is
+   * included in this list, at position 0 of args.
    * @param ctx The context under which we are evaluating, which is a
    * substitution from variables to their value.
    * @return The result of evaluation prog for the given argumetns in context
