@@ -36,7 +36,8 @@ State::State(Options& opts, Stats& stats)
       d_inGarbageCollection(false),
       d_tc(*this, opts),
       d_opts(opts),
-      d_stats(stats)
+      d_stats(stats),
+      d_plugin(nullptr)
 {
   ExprValue::d_state = this;
   d_absType = Expr(mkExprInternal(Kind::ABSTRACT_TYPE, {}));
