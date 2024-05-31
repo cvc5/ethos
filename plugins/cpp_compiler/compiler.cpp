@@ -203,8 +203,12 @@ void Compiler::setLiteralTypeRule(Kind k, const Expr& t)
   d_init << "  d_tc.setLiteralTypeRule(Kind::" << k << ", _e" << id << ");" << std::endl;
 }
 
-void Compiler::includeFile(const Filepath& s)
+void Compiler::includeFile(const Filepath& s, bool isReference, const Expr& referenceNf)
 {
+  if (isReference)
+  {
+    ALFC_FATAL() << "Compiler::includeFile: cannot use reference when compiling";
+  }
   Assert (d_nscopes==0);
   d_init << "  d_state.markIncluded(\"" << s.getRawPath() << "\");" << std::endl;
   d_config << "  ss << std::setw(15) << \" \" << \"" << s.getRawPath()

@@ -19,8 +19,6 @@ namespace alfc {
 
 Options::Options()
 {
-  d_compile = false;
-  d_runCompile = false;
   d_parseLet = true;
   d_printLet = false;
   d_stats = false;
@@ -217,7 +215,7 @@ bool State::includeFile(const std::string& s, bool isReference, const Expr& refe
   if (d_plugin!=nullptr)
   {
     Assert (!isReference);
-    d_plugin->includeFile(inputPath);
+    d_plugin->includeFile(inputPath, isReference, referenceNf);
   }
   Trace("state") << "Include " << inputPath << std::endl;
   Assert (getAssumptionLevel()==0);

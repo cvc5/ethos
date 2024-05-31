@@ -30,8 +30,6 @@ class Options
 {
  public:
   Options();
-  bool d_compile;
-  bool d_runCompile;
   bool d_printLet;
   /** 'let' is lexed as the SMT-LIB syntax for a dag term specified by a let */
   bool d_parseLet;
@@ -50,7 +48,6 @@ class State
 {
   friend class TypeChecker;
   friend class ExprValue;
-  friend class Executor;
 
  public:
   State(Options& opts, Stats& stats);

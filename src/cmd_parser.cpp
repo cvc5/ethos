@@ -568,10 +568,6 @@ bool CmdParser::parseNextCommand()
         {
           d_lex.parseError("Cannot use more than one reference");
         }
-        if (d_state.getOptions().d_compile)
-        {
-          d_lex.parseError("Cannot use reference when compiling");
-        }
       }
       if (d_state.getAssumptionLevel()>0)
       {
