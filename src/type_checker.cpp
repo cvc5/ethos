@@ -203,6 +203,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
   switch(k)
   {
     case Kind::APPLY:
+    case Kind::APPLY_OPAQUE:
     {
       Ctx ctx;
       return getTypeAppInternal(e->d_children, ctx, out);
@@ -249,6 +250,20 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       return d_state.mkType();
     case Kind::QUOTE_TYPE:
       // anything can be quoted
+      return d_state.mkType();
+    case Kind::OPAQUE_TYPE:
+    {
+      ExprValue* ctype = d_state.lookupType(e->d_children[0]);
+      Assert(ctype != nullptr);
+      if (ctype->getKind()!=Kind::TYPE)
+      {
+        if (out)
+        {
+          (*out) << "Non-Type for argument of opaque type";
+        }
+        return d_null;
+      }
+    }
       return d_state.mkType();
     case Kind::TUPLE:
       // not typed
@@ -642,6 +657,7 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
         switch (ck)
         {
           case Kind::APPLY:
+          case Kind::APPLY_OPAQUE:
           {
             Trace("type_checker_debug")
                 << "evaluated args " << cchildren << std::endl;

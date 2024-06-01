@@ -713,6 +713,35 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           return mkExpr(Kind::APPLY, cchildren);
         }
           break;
+        case Attr::OPAQUE:
+        {
+          // determine how many opaque children
+          Expr hdt = Expr(hd);
+          const Expr& t = d_tc.getType(hdt);
+          Assert (t.getKind()==Kind::FUNCTION_TYPE);
+          size_t nargs = t.getNumChildren()-1;
+          if (nargs>=children.size())
+          {
+            Warning() << "Too few arguments when applying opaque symbol " << hdt << std::endl;
+          }
+          else
+          {
+            std::vector<Expr> ochildren(children.begin(), children.begin()+1+nargs);
+            Expr op = mkExpr(Kind::APPLY_OPAQUE, ochildren);
+            Trace("opaque") << "Construct opaque operator " << op << std::endl;
+            if (nargs+1==children.size())
+            {
+              Trace("opaque") << "...return operator" << std::endl;
+              return op;
+            }
+            // higher order
+            std::vector<Expr> rchildren;
+            rchildren.push_back(op);
+            rchildren.insert(rchildren.end(), children.begin()+2+nargs, children.end());
+            Trace("opaque") << "...return operator" << std::endl;
+            return mkExpr(Kind::APPLY, rchildren);
+          }
+        }
         default:
           break;
       }

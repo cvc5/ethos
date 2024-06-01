@@ -1,0 +1,39 @@
+
+
+
+(declare-const = (-> (! Type :var T :implicit) T T Bool))
+
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+(declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
+(declare-const not (-> Bool Bool))
+
+(declare-sort Array 2)
+(declare-sort Int 0)
+
+(declare-const select (-> (Array Int Int) Int Int))
+
+
+(declare-const @array_deq_diff 
+  (-> 
+    (! Type :implicit :var T)
+    (! Type :implicit :var U)
+    (! (Array T U) :opaque)
+    (! (Array T U) :opaque)
+    T
+  )
+)
+
+
+(declare-rule array-ext
+   ((a (Array Int Int)) (b (Array Int Int)))
+   :premises ((not (= a b)))
+   :args ()
+   :conclusion (not (= (select a (@array_deq_diff a b)) (select b (@array_deq_diff a b))))
+)
+
+(declare-const n (Array Int Int))
+(declare-const m (Array Int Int))
+(declare-const v Int)
+
+(assume a1 (not (= n m)))
+(step a2 (not (= (select n (@array_deq_diff n m)) (select m (@array_deq_diff n m)))) :rule array-ext :premises (a1))

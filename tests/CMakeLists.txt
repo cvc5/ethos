@@ -109,6 +109,9 @@ set(alfc_test_file_list
     nground-nil-v3.smt3
     ff-nil.smt3
     or-variant.smt3
+    substitution-opaque.smt3
+    opaque-inst.smt3
+    opaque-inst2.smt3
     mutual-rec.smt3
 )
 

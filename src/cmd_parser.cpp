@@ -153,18 +153,58 @@ bool CmdParser::parseNextCommand()
         d_state.pushScope();
         params = d_eparser.parseAndBindSortedVarList();
       }
-      Expr t = d_eparser.parseType();
-      if (!sorts.empty())
-      {
-        t = d_state.mkFunctionType(sorts, t, flattenFunction);
-      }
+      Expr ret = d_eparser.parseType();
       Attr ck = Attr::NONE;
       Expr cons;
       Kind sk;
-      Expr v;
+      Expr t;
+      sk = Kind::CONST;
       if (tok==Token::DECLARE_VAR)
       {
         // Don't permit attributes for variables
+        sk = Kind::VARIABLE;
+      }
+      if (tok==Token::DECLARE_ORACLE_FUN)
+      {
+        ck = Attr::ORACLE;
+        sk = Kind::ORACLE;
+        std::string oname = d_eparser.parseSymbol();
+        cons = d_state.mkLiteral(Kind::STRING, oname);
+      }
+      else if (tok==Token::DECLARE_CONST || tok==Token::DECLARE_FUN || tok==Token::DECLARE_PARAMETERIZED_CONST)
+      {
+        // possible attribute list
+        AttrMap attrs;
+        d_eparser.parseAttributeList(t, attrs);
+        // determine if an attribute specified a constructor kind
+        d_eparser.processAttributeMap(attrs, ck, cons, params);
+      }
+      t = ret;
+      if (!sorts.empty())
+      {
+        t = d_state.mkFunctionType(sorts, ret, flattenFunction);
+      }
+      std::vector<Expr> opaqueArgs;
+      while (t.getKind()==Kind::FUNCTION_TYPE && t[0].getKind()==Kind::OPAQUE_TYPE)
+      {
+        Assert (t.getNumChildren()==2);
+        Assert (t[0].getNumChildren()==1);
+        opaqueArgs.push_back(t[0][0]);
+        t = t[1];
+      }
+      if (!opaqueArgs.empty())
+      {
+        if (ck!=Attr::NONE)
+        {
+          d_lex.parseError("Can only use opaque argument on functions without attributes.");
+        }
+        // Reconstruct with opaque arguments, do not flatten function type.
+        t = d_state.mkFunctionType(opaqueArgs, t, false);
+        ck = Attr::OPAQUE;
+      }
+      Expr v;
+      if (sk==Kind::VARIABLE)
+      {
         // We get the canonical variable, not a fresh one. This ensures that
         // globally defined variables coincide with those that appear in
         // binders when applicable.
@@ -172,22 +212,6 @@ bool CmdParser::parseNextCommand()
       }
       else
       {
-        sk = Kind::CONST;
-        if (tok==Token::DECLARE_ORACLE_FUN)
-        {
-          ck = Attr::ORACLE;
-          sk = Kind::ORACLE;
-          std::string oname = d_eparser.parseSymbol();
-          cons = d_state.mkLiteral(Kind::STRING, oname);
-        }
-        else if (tok==Token::DECLARE_CONST || tok==Token::DECLARE_FUN || tok==Token::DECLARE_PARAMETERIZED_CONST)
-        {
-          // possible attribute list
-          AttrMap attrs;
-          d_eparser.parseAttributeList(t, attrs);
-          // determine if an attribute specified a constructor kind
-          d_eparser.processAttributeMap(attrs, ck, cons, params);
-        }
         v = d_state.mkSymbol(sk, name, t);
       }
       // if the type has a property, we mark it on the variable of this type

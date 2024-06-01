@@ -24,6 +24,7 @@ std::ostream& operator<<(std::ostream& o, Attr a)
     case Attr::PROGRAM: o << "PROGRAM"; break;
     case Attr::ORACLE: o << "ORACLE"; break;
     case Attr::BINDER: o << "BINDER"; break;
+    case Attr::OPAQUE: o << "OPAQUE"; break;
     case Attr::RIGHT_ASSOC: o << "RIGHT_ASSOC"; break;
     case Attr::LEFT_ASSOC: o << "LEFT_ASSOC"; break;
     case Attr::RIGHT_ASSOC_NIL: o << "RIGHT_ASSOC_NIL"; break;

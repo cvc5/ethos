@@ -1,0 +1,47 @@
+
+
+
+(declare-const = (-> (! Type :var T :implicit) T T Bool))
+
+(program substitute
+  ((T Type) (U Type) (S Type) (x S) (y S) (f (-> T U)) (a T) (z U))
+  (S S U) U
+  (
+  ((substitute x y x)     y)
+  ((substitute x y (f a)) (_ (substitute x y f) (substitute x y a)))
+  ((substitute x y z)     z)
+  )
+)
+
+
+(declare-rule eq-subs
+   ((f Bool) (a Bool) (b Bool))
+   :premises (f (= a b))
+   :args ()
+   :conclusion (substitute a b f)
+)
+
+
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+(declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
+(declare-const not (-> Bool Bool))
+
+(declare-sort Array 2)
+(declare-sort Int 0)
+
+(declare-const @array_deq_diff 
+  (-> 
+    (! (Array Int Int) :opaque)
+    (! (Array Int Int) :opaque)
+    Int
+  )
+)
+
+(declare-const n (Array Int Int))
+(declare-const m (Array Int Int))
+(declare-const v Int)
+
+(assume a1 (or (= n m) (= (@array_deq_diff n m) v)))
+(assume a2 (= n m))
+; substitution will not impact the n within the opaque symbol
+(step a3 (or (= m m) (= (@array_deq_diff n m) v)) :rule eq-subs :premises (a1 a2))

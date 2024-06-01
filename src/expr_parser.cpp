@@ -88,6 +88,7 @@ ExprParser::ExprParser(Lexer& lex, State& state, bool isReference)
   d_strToAttr[":chainable"] = Attr::CHAINABLE;
   d_strToAttr[":pairwise"] = Attr::PAIRWISE;
   d_strToAttr[":binder"] = Attr::BINDER;
+  d_strToAttr[":opaque"] = Attr::OPAQUE;
   
   d_strToLiteralKind["<boolean>"] = Kind::BOOLEAN;
   d_strToLiteralKind["<numeral>"] = Kind::NUMERAL;
@@ -455,6 +456,9 @@ Expr ExprParser::parseExpr()
                   d_lex.parseError("Cannot mark requires on implicit argument");
                 }
                 ret = d_state.mkRequires(a.second, ret);
+                break;
+              case Attr::OPAQUE:
+                ret = d_state.mkExpr(Kind::OPAQUE_TYPE, {ret});
                 break;
               default:
                 std::stringstream ss;
@@ -1036,6 +1040,10 @@ void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedS
     {
       case Attr::VAR:
       {
+        if (e.isNull())
+        {
+          d_lex.parseError("Cannot use :var in this context");
+        }
         if (attrs.find(Attr::VAR)!=attrs.end())
         {
           d_lex.parseError("Cannot use :var on the same term more than once");
@@ -1056,6 +1064,7 @@ void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedS
       case Attr::IMPLICIT:
       case Attr::RIGHT_ASSOC:
       case Attr::LEFT_ASSOC:
+      case Attr::OPAQUE:
         // requires no value
         break;
       case Attr::RIGHT_ASSOC_NIL:
