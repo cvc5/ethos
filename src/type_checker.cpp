@@ -146,6 +146,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_TO_BIN:
     case Kind::EVAL_FIND:
     case Kind::EVAL_CONS:
+    case Kind::EVAL_COMPARE:
       ret = (nargs==2);
       break;
     case Kind::EVAL_ADD:
@@ -1081,6 +1082,18 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       return d_null;
     }
     break;
+    case Kind::EVAL_COMPARE:
+    {
+      if (args[0]->isGround() && args[1]->isGround())
+      {
+        size_t h1 = d_state.getHash(args[0]);
+        size_t h2 = d_state.getHash(args[1]);
+        Literal lb(h1>h2);
+        return Expr(d_state.mkLiteralInternal(lb));
+      }
+      return d_null;
+    }
+    break;
     case Kind::EVAL_TYPE_OF:
     {
       // get the type if ground
@@ -1355,6 +1368,7 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
       return childTypes[i];
     case Kind::EVAL_IS_EQ:
     case Kind::EVAL_IS_NEG:
+    case Kind::EVAL_COMPARE:
       return d_state.mkBoolType().getValue();
     case Kind::EVAL_HASH:
     case Kind::EVAL_INT_DIV:

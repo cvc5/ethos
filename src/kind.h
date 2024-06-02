@@ -65,6 +65,7 @@ enum class Kind
   EVAL_VAR,
   EVAL_TYPE_OF,
   EVAL_NAME_OF,
+  EVAL_COMPARE,
   // lists
   EVAL_NIL,
   EVAL_CONS,

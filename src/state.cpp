@@ -54,6 +54,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("nameof", Kind::EVAL_NAME_OF);
   bindBuiltinEval("typeof", Kind::EVAL_TYPE_OF);
   bindBuiltinEval("var", Kind::EVAL_VAR);
+  bindBuiltinEval("cmp", Kind::EVAL_COMPARE);
   // TODO: compare?
   // lists
   bindBuiltinEval("nil", Kind::EVAL_NIL);
