@@ -1527,6 +1527,7 @@ The ALF command line interface can be invoked by `alfc <option>* <file>` where `
 - `--no-rule-sym-table`: do not use a separate symbol table for proof rules and declared terms.
 - `--show-config`: displays the build information for the given binary.
 - `--stats`: enables detailed statistics.
+- `--stats-compact`: print statistics in a compact format.
 - `-t <tag>`: enables the given trace tag (for debugging).
 - `-v`: verbose mode, enable all standard trace messages.
 

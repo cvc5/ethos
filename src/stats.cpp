@@ -83,10 +83,13 @@ struct SortRuleTime
   }
 };
 
-std::string Stats::toString(State& s) const
+std::string Stats::toString(State& s, bool compact) const
 {
   std::stringstream ss;
-  ss << "========================================================================" << std::endl;
+  if (!compact)
+  {
+    ss << "========================================================================" << std::endl;
+  }
   ss << "mkExprCount = " << d_mkExprCount << std::endl;
   ss << "newExprCount = " << d_exprCount << std::endl;
   ss << "deleteExprCount = " << d_deleteExprCount << std::endl;
@@ -96,14 +99,17 @@ std::string Stats::toString(State& s) const
   ss << "time = " << totalTime << std::endl;
   if (!d_rstats.empty())
   {
-    ss << "========================================================================" << std::endl;
-    ss << std::right << std::setw(28) << "Rule  ";
-    ss << std::left << std::setw(17) << "t";
-    ss << std::left << std::setw(7) << "#";
-    ss << std::left << std::setw(10) << "t/#";
-    ss << std::left << std::setw(10) << "#mkExpr";
-    ss << std::endl;
-    ss << "========================================================================" << std::endl;
+    if (!compact)
+    {
+      ss << "========================================================================" << std::endl;
+      ss << std::right << std::setw(28) << "Rule  ";
+      ss << std::left << std::setw(17) << "t";
+      ss << std::left << std::setw(7) << "#";
+      ss << std::left << std::setw(10) << "t/#";
+      ss << std::left << std::setw(10) << "#mkExpr";
+      ss << std::endl;
+      ss << "========================================================================" << std::endl;
+    }
     // display stats for each rule
     std::vector<const ExprValue*> sortedStats;
     for (const std::pair<const ExprValue* const, RuleStat>& r : d_rstats)
@@ -114,6 +120,9 @@ std::string Stats::toString(State& s) const
     SortRuleTime srt(d_rstats);
     std::sort(sortedStats.begin(), sortedStats.end(), srt);    
     std::map<const ExprValue*, RuleStat>::const_iterator itr;
+    std::stringstream ssCheck;
+    std::stringstream ssMkExpr;
+    bool firstTime = true;
     for (const ExprValue* e : sortedStats)
     {
       itr = d_rstats.find(e);
@@ -121,8 +130,31 @@ std::string Stats::toString(State& s) const
       const RuleStat& rs = itr->second;
       Assert (e->getKind()==Kind::PROOF_RULE);
       std::stringstream sss;
-      sss << Expr(e) << ": ";
-      ss << std::right << std::setw(28) << sss.str() << rs.toString(totalTime) << std::endl;
+      sss << Expr(e);
+      if (compact)
+      {
+        if (firstTime)
+        {
+          firstTime = false;
+        }
+        else
+        {
+          ssCheck << ", ";
+          ssMkExpr << ", ";
+        }
+        ssCheck << sss.str() << ": " << rs.d_time;
+        ssMkExpr << sss.str() << ": " << rs.d_mkExprCount;
+      }
+      else
+      {
+        sss << ": ";
+        ss << std::right << std::setw(28) << sss.str() << rs.toString(totalTime) << std::endl;
+      }
+    }
+    if (compact)
+    {
+      ss << "checkTime = { " << ssCheck.str() << " }" << std::endl;
+      ss << "mkExpr = { " << ssMkExpr.str() << " }" << std::endl;
     }
   }
   return ss.str();

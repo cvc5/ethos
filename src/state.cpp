@@ -22,6 +22,7 @@ Options::Options()
   d_parseLet = true;
   d_printLet = false;
   d_stats = false;
+  d_statsCompact = false;
   d_ruleSymTable = true;
   d_normalizeDecimal = true;
   d_normalizeHexadecimal = true;
