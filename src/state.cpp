@@ -59,6 +59,10 @@ State::State(Options& opts, Stats& stats)
   // lists
   bindBuiltinEval("nil", Kind::EVAL_NIL);
   bindBuiltinEval("cons", Kind::EVAL_CONS);
+  bindBuiltinEval("list_len", Kind::EVAL_LIST_LENGTH);
+  bindBuiltinEval("list_concat", Kind::EVAL_LIST_CONCAT);
+  bindBuiltinEval("list_nth", Kind::EVAL_LIST_NTH);
+  bindBuiltinEval("list_find", Kind::EVAL_LIST_FIND);
   // boolean
   bindBuiltinEval("not", Kind::EVAL_NOT);
   bindBuiltinEval("and", Kind::EVAL_AND);
