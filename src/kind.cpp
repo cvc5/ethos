@@ -209,6 +209,10 @@ bool isLiteralOp(Kind k)
     // lists
     case Kind::EVAL_NIL:
     case Kind::EVAL_CONS:
+    case Kind::EVAL_LIST_LENGTH:
+    case Kind::EVAL_LIST_CONCAT:
+    case Kind::EVAL_LIST_NTH:
+    case Kind::EVAL_LIST_FIND:
     // boolean
     case Kind::EVAL_NOT:
     case Kind::EVAL_AND:
@@ -242,9 +246,10 @@ bool isListLiteralOp(Kind k)
   {
     case Kind::EVAL_NIL:
     case Kind::EVAL_CONS:
-    case Kind::EVAL_CONCAT:
-    case Kind::EVAL_EXTRACT:
-    case Kind::EVAL_FIND:
+    case Kind::EVAL_LIST_LENGTH:
+    case Kind::EVAL_LIST_CONCAT:
+    case Kind::EVAL_LIST_NTH:
+    case Kind::EVAL_LIST_FIND:
       return true;
     default:
       break;

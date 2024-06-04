@@ -22,7 +22,7 @@
 (define $char_type_of ((T Type)) 
   (alf.match ((U Type)) T (((Seq U) U))))
 (define $str_concat ((T Type :implicit) (x (Seq T)) (y (Seq T)))
-  (alf.concat str.++ x y))
+  (alf.list_concat str.++ x y))
 (define $str_cons ((T Type :implicit) (x (Seq T)) (y (Seq T)))
   (alf.cons str.++ x y))
 
