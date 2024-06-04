@@ -706,14 +706,20 @@ The terms on both sides of the given evaluation are written in their form prior 
 (alf.cons and true (and a))         == (and a)
 (alf.cons and (and a) true)         == (and (and a))
 
-(alf.list_concat or false false)         == false
-(alf.list_concat or (or a b) (or b))     == (or a b b)
-(alf.list_concat or false (or b))        == (or b)
-(alf.list_concat or (or a b b) false)    == (or a b b)
-(alf.list_concat or a (or b))            == (alf.list_concat or a (or b))         ; since a is not an or-list
-(alf.list_concat or (or a) b)            == (alf.list_concat or (or a) b)         ; since b is not an or-list
-(alf.list_concat or (or a) (or b))       == (or a b)
-(alf.list_concat or (and a b) false)     == (alf.list_concat or (and a b) false)  ; since (and a b) is not an or-list
+(alf.list_len or (or a b))          == 2
+(alf.list_len or (or (or a a) b))   == 2
+(alf.list_len or false)             == 0
+(alf.list_len or (and a b))         == (alf.list_len or (and a b))  ; since (and a b) is not an or-list
+
+(alf.list_concat or false false)            == false
+(alf.list_concat or (or a b) (or b))        == (or a b b)
+(alf.list_concat or (or (or a a)) (or b))   == (or(or a a) b)
+(alf.list_concat or false (or b))           == (or b)
+(alf.list_concat or (or a b b) false)       == (or a b b)
+(alf.list_concat or a (or b))               == (alf.list_concat or a (or b))         ; since a is not an or-list
+(alf.list_concat or (or a) b)               == (alf.list_concat or (or a) b)         ; since b is not an or-list
+(alf.list_concat or (or a) (or b))          == (or a b)
+(alf.list_concat or (and a b) false)        == (alf.list_concat or (and a b) false)  ; since (and a b) is not an or-list
 
 (alf.list_nth or (or a b a) 1)           == b
 (alf.list_nth or (or a) 0)               == a
