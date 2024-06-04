@@ -713,7 +713,7 @@ The terms on both sides of the given evaluation are written in their form prior 
 
 (alf.list_concat or false false)            == false
 (alf.list_concat or (or a b) (or b))        == (or a b b)
-(alf.list_concat or (or (or a a)) (or b))   == (or(or a a) b)
+(alf.list_concat or (or (or a a)) (or b))   == (or (or a a) b)
 (alf.list_concat or false (or b))           == (or b)
 (alf.list_concat or (or a b b) false)       == (or a b b)
 (alf.list_concat or a (or b))               == (alf.list_concat or a (or b))         ; since a is not an or-list
