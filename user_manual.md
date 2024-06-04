@@ -329,12 +329,12 @@ In other words, the definitions of `Paab` and `Qaab` are equivalent to the terms
 More generally, for an right-associative operator `f` with nil terminator `nil`,
 the term `(f t1 ... tn)` is de-sugared based on whether each `t1 ... tn` is marked with `:list`.
 - The nil terminator is inserted at the tail of the function application unless `tn` is marked as `:list`,
-- If `ti` is marked as `:list` where `1<=i<n`, then `ti` is prepended to the overall application using a concatentation operation `alf.concat`. The semantics of this operator is provided later in [list-computation](#list-computation).
+- If `ti` is marked as `:list` where `1<=i<n`, then `ti` is prepended to the overall application using a concatentation operation `alf.list_concat`. The semantics of this operator is provided later in [list-computation](#list-computation).
 
 In detail, the returned term from desugaring `(f t1 ... tn)` is constructed inductively.
 If `tn` is marked with `:list`, the returned term is initialized to `tn` and we process children `ti` from `i = n-1 ... 1`.
 If `tn` is not marked with `:list`, the return term is initialized to the nil terminator of `f` and we process children `ti` from `i = n .. 1`.
-For each term `ti` we process, the returned term `r` is updated to `(f ti r)` if `ti` is not marked with `:list`, or to `(alf.concat f ti r)`
+For each term `ti` we process, the returned term `r` is updated to `(f ti r)` if `ti` is not marked with `:list`, or to `(alf.list_concat f ti r)`
 if `ti` is marked with `:list`.
 Examples of this desugaring are given below.
 
@@ -344,10 +344,10 @@ Examples of this desugaring are given below.
     (and
         (or x y)        ; (or x (or y false))
         (or x z)        ; (or x z)
-        (or x z y)      ; (or x (alf.concat or z (or y false)))
+        (or x z y)      ; (or x (alf.list_concat or z (or y false)))
         (or x)          ; (or x false)
         (or z)          ; z
-        (or z y w x)    ; (alf.concat or z (or y (alf.concat w (or x false)))
+        (or z y w x)    ; (alf.list_concat or z (or y (alf.list_concat or w (or x false)))
     ))
 ```
 
@@ -674,11 +674,13 @@ List operators:
     - If `f` is a right associative operator, return its nil terminator.
 - `(alf.cons f t1 t2)`
     - If `t2` is an `f`-list, then this returns the term `(f t1 t2)`.
-- `(alf.concat f t1 t2)`
+- `(alf.list_len f t)`
+    - If `t` is an `f`-list with children `t1 ... tn`, then this returns `n`.
+- `(alf.list_concat f t1 t2)`
     - If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, this returns `(f t11 ... t1n t21 ... t2m)` if `n+m>0` and `nil` otherwise. Otherwise, this operator does not evaluate.
-- `(alf.extract f t1 t2)`
+- `(alf.list_nth f t1 t2)`
     - If `f` is a right associative operator with nil terminator with nil terminator `nil`, `t1` is `(f s0 ... s{n-1})`, and `t2` is a numeral value such that `0<=t2<n`, then this returns `s_{t2}`. Otherwise, this operator does not evaluate.
-- `(alf.find f t1 t2)`
+- `(alf.list_find f t1 t2)`
     - If `f` is a right associative operator with nil terminator with nil terminator `nil` and `t1` is `(f s0 ... s{n-1})`, then this returns the smallest numeral value `i` such that `t2` is syntactically equal to `si`, or `-1` if no such `si` can be found. Otherwise, this operator does not evaluate.
 
 ### List Computation Examples
@@ -704,24 +706,30 @@ The terms on both sides of the given evaluation are written in their form prior 
 (alf.cons and true (and a))         == (and a)
 (alf.cons and (and a) true)         == (and (and a))
 
-(alf.concat or false false)         == false
-(alf.concat or (or a b) (or b))     == (or a b b)
-(alf.concat or false (or b))        == (or b)
-(alf.concat or (or a b b) false)    == (or a b b)
-(alf.concat or a (or b))            == (alf.concat or a (or b))         ; since a is not an or-list
-(alf.concat or (or a) b)            == (alf.concat or (or a) b)         ; since b is not an or-list
-(alf.concat or (or a) (or b))       == (or a b)
-(alf.concat or (and a b) false)     == (alf.concat or (and a b) false)  ; since (and a b) is not an or-list
+(alf.list_len or (or a b))          == 2
+(alf.list_len or (or (or a a) b))   == 2
+(alf.list_len or false)             == 0
+(alf.list_len or (and a b))         == (alf.list_len or (and a b))  ; since (and a b) is not an or-list
 
-(alf.extract or (or a b a) 1)       == b
-(alf.extract or (or a) 0)           == a
-(alf.extract or false 0)            == (alf.extract or false 0)         ; since false has <=0 children
-(alf.extract or (or a b a) 3)       == (alf.extract or (or a b a) 3)    ; since (or a b a) has <=3 children
-(alf.extract or (and a b b) 0)      == (alf.extract or (and a b b) 0)   ; since (and a b b) is not an or-list
+(alf.list_concat or false false)            == false
+(alf.list_concat or (or a b) (or b))        == (or a b b)
+(alf.list_concat or (or (or a a)) (or b))   == (or (or a a) b)
+(alf.list_concat or false (or b))           == (or b)
+(alf.list_concat or (or a b b) false)       == (or a b b)
+(alf.list_concat or a (or b))               == (alf.list_concat or a (or b))         ; since a is not an or-list
+(alf.list_concat or (or a) b)               == (alf.list_concat or (or a) b)         ; since b is not an or-list
+(alf.list_concat or (or a) (or b))          == (or a b)
+(alf.list_concat or (and a b) false)        == (alf.list_concat or (and a b) false)  ; since (and a b) is not an or-list
 
-(alf.find or (or a b a) b)          == 1
-(alf.find or (or a b a) true)       == -1
-(alf.find or (and a b b) a)         == (alf.find or (and a b b) a)      ; since (and a b b) is not an or-list
+(alf.list_nth or (or a b a) 1)           == b
+(alf.list_nth or (or a) 0)               == a
+(alf.list_nth or false 0)                == (alf.list_nth or false 0)         ; since false has <=0 children
+(alf.list_nth or (or a b a) 3)           == (alf.list_nth or (or a b a) 3)    ; since (or a b a) has <=3 children
+(alf.list_nth or (and a b b) 0)          == (alf.list_nth or (and a b b) 0)   ; since (and a b b) is not an or-list
+
+(alf.list_find or (or a b a) b)          == 1
+(alf.list_find or (or a b a) true)       == -1
+(alf.list_find or (and a b b) a)         == (alf.find or (and a b b) a)      ; since (and a b b) is not an or-list
 ```
 
 ### Nil terminator with additional arguments
@@ -816,7 +824,7 @@ In this example, the type of `bvor` is `(-> (! Int :var m :implicit) (BitVec m) 
 
 If a function `f` is given a nil terminator with free parameters, this impacts:
 - How applications of `f` are desugared, and
-- How list operations such as `alf.nil`, `alf.cons`, and `alf.concat` are computed for `f`.
+- How list operations such as `alf.nil`, `alf.cons`, and `alf.list_concat` are computed for `f`.
 
 For the former, say we apply `(f t1 ... tn)`, where `f` is right associative with nil terminator `nil`, where `nil` has free paramters `u1 ... um`.
 Similar to the procedure described in [assoc-nil](#assoc-nil), if `tn` is not marked with `:list`, we insert the nil terminator of `f` to the end of the argument list.
@@ -836,7 +844,7 @@ Examples of this are given in the following, assuming the declaration of `bvor` 
     (bvor x)          ; (bvor x #b0000)
     (bvor z w)        ; (bvor z (bvor w (alf.nil bvor z w)))
     (bvor z u)        ; (bvor z u)
-    (bvor u z)        ; (alf.concat bvor u (bvor z (alf.nil bvor u z)))
+    (bvor u z)        ; (alf.list_concat bvor u (bvor z (alf.nil bvor u z)))
     ...
 )
 ```
@@ -850,7 +858,7 @@ In the third, example, `(bvor z w)` is type checked to `(BitVec m)[n/m]`, where 
 Thus, we do not compute its nil terminator and instead construct the placeholder `(alf.nil bvor z w)`.
 This is then used as the nil terminator since `w` is not marked as `:list`.
 In the fourth example, `(bvor z u)` is also type checked to `(BitVec m)[n/m]`, but in this case the nil terminator is not used since `u` is marked as `:list`.
-In the fifth example, we use `alf.concat` as before since the list term `u` appears as the first argument.
+In the fifth example, we use `alf.list_concat` as before since the list term `u` appears as the first argument.
 Similar to the third example, a placeholder for the nil terminator is generated.
 
 Any list operation involving `f` first requires computing the nil terminator in question.
@@ -893,8 +901,8 @@ The following are examples of list operations when using parameterized constant 
 (alf.cons bvor c #b0000)            == (alf.cons bvor c #b0000) ; since (bvor c #b0000) is ill-typed
 (alf.cons bvor a (bvor a b))        == (bvor a a b)
 
-(alf.concat bvor #b0000 #b0000)       == #b0000
-(alf.concat bvor (bvor a b) (bvor b)) == (bvor a b b)
+(alf.list_concat bvor #b0000 #b0000)       == #b0000
+(alf.list_concat bvor (bvor a b) (bvor b)) == (bvor a b b)
 ```
 
 > If no free parameters are used in the nil terminator of a parameterized constant, then it is treated equivalent to if it were declared via an ordinary declare-const command, and a warning is issued.
@@ -1192,8 +1200,8 @@ However, `(contains (or a b c) a)` does not evaluate in this example.
 ```
 In this variant, both `xs` and `x` were marked with `:list`.
 The ALF checker will reject this definition since it implies that a computational operator appears in a pattern for matching.
-In particular, the term `(or x xs)` is equivalent to `(alf.concat or x xs)` after desugaring.
-Thus, the third case of the program, `(contains (alf.concat or x xs) l)`, is not a legal pattern.
+In particular, the term `(or x xs)` is equivalent to `(alf.list_concat or x xs)` after desugaring.
+Thus, the third case of the program, `(contains (alf.list_concat or x xs) l)`, is not a legal pattern.
 
 ### Example: Substitution
 

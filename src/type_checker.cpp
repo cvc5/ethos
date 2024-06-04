@@ -130,7 +130,6 @@ Expr TypeChecker::getType(Expr& e, std::ostream* out)
 
 bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
 {
-  // Note this is the arity after the list operator for alf.cons, alf.find, and so on.
   bool ret = false;
   // check arities
   switch(k)
@@ -145,7 +144,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_RAT_DIV:
     case Kind::EVAL_TO_BIN:
     case Kind::EVAL_FIND:
-    case Kind::EVAL_CONS:
+    case Kind::EVAL_LIST_LENGTH:
       ret = (nargs==2);
       break;
     case Kind::EVAL_ADD:
@@ -155,6 +154,9 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_XOR:
     case Kind::EVAL_CONCAT:
       ret = (nargs>=2);
+      break;
+    case Kind::EVAL_LIST_CONCAT:
+      ret = (nargs>=3);
       break;
     case Kind::PROOF_TYPE:
     case Kind::EVAL_TYPE_OF:
@@ -174,6 +176,8 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
       break;
     case Kind::EVAL_REQUIRES:
     case Kind::EVAL_IF_THEN_ELSE:
+    case Kind::EVAL_CONS:
+    case Kind::EVAL_LIST_NTH:
       ret = (nargs==3);
       break;
     case Kind::EVAL_EXTRACT:
@@ -1217,7 +1221,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     }
     break;
     case Kind::EVAL_CONS:
-    case Kind::EVAL_CONCAT:
+    case Kind::EVAL_LIST_CONCAT:
     {
       std::vector<ExprValue*> targs;
       ExprValue* b = getNAryChildren(args[tailIndex], op, nil, targs, isLeft);
@@ -1246,7 +1250,19 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       ret = args[tailIndex];
     }
       break;
-    case Kind::EVAL_EXTRACT:
+    case Kind::EVAL_LIST_LENGTH:
+    {
+      ExprValue* a = getNAryChildren(args[1], op, nil, hargs, isLeft);
+      if (a==nullptr)
+      {
+        Trace("type_checker") << "...head not in list form" << std::endl;
+        return d_null;
+      }
+      Literal lret = Literal(Integer(hargs.size()));
+      return Expr(d_state.mkLiteralInternal(lret));
+    }
+      break;
+    case Kind::EVAL_LIST_NTH:
     {
       // (alf.extract <op> <term> <n>) returns the n^th child of <op>-application <term>
       if (args[2]->getKind()!=Kind::NUMERAL)
@@ -1268,7 +1284,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       return d_null;
     }
       break;
-    case Kind::EVAL_FIND:
+    case Kind::EVAL_LIST_FIND:
     {
       getNAryChildren(args[1], op, nil, hargs, isLeft);
       std::vector<ExprValue*>::iterator it = std::find(hargs.begin(), hargs.end(), args[2]);
@@ -1310,14 +1326,7 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
                                          std::vector<ExprValue*>& childTypes,
                                          std::ostream* out)
 {
-  // operators with functions at the first index are "indexed"
-  size_t i = 0;
-  if (!childTypes.empty() && childTypes[0]->getKind()==Kind::FUNCTION_TYPE)
-  {
-    // TODO: ensure the function is binary with same types
-    i++;
-  }
-  if (!checkArity(k, childTypes.size()-i, out))
+  if (!checkArity(k, childTypes.size(), out))
   {
     return d_null.getValue();
   }
@@ -1349,10 +1358,13 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
       return childTypes[1];
     case Kind::EVAL_REQUIRES:
       return childTypes[2];
+    case Kind::EVAL_LIST_CONCAT:
+    case Kind::EVAL_LIST_NTH:
+      return childTypes[1];
     case Kind::EVAL_CONCAT:
     case Kind::EVAL_EXTRACT:
-      // type is the first child, maybe after a function
-      return childTypes[i];
+      // type is the first child
+      return childTypes[0];
     case Kind::EVAL_IS_EQ:
     case Kind::EVAL_IS_NEG:
       return d_state.mkBoolType().getValue();
@@ -1362,6 +1374,8 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_TO_INT:
     case Kind::EVAL_LENGTH:
     case Kind::EVAL_FIND:
+    case Kind::EVAL_LIST_LENGTH:
+    case Kind::EVAL_LIST_FIND:
       return getOrSetLiteralTypeRule(Kind::NUMERAL);
     case Kind::EVAL_RAT_DIV:
     case Kind::EVAL_TO_RAT:

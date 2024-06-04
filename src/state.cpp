@@ -59,6 +59,10 @@ State::State(Options& opts, Stats& stats)
   // lists
   bindBuiltinEval("nil", Kind::EVAL_NIL);
   bindBuiltinEval("cons", Kind::EVAL_CONS);
+  bindBuiltinEval("list_len", Kind::EVAL_LIST_LENGTH);
+  bindBuiltinEval("list_concat", Kind::EVAL_LIST_CONCAT);
+  bindBuiltinEval("list_nth", Kind::EVAL_LIST_NTH);
+  bindBuiltinEval("list_find", Kind::EVAL_LIST_FIND);
   // boolean
   bindBuiltinEval("not", Kind::EVAL_NOT);
   bindBuiltinEval("and", Kind::EVAL_AND);
@@ -652,10 +656,10 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
             {
               cc[prevIndex] = curr;
               cc[nextIndex] = vchildren[isLeft ? i : nchild - i];
-              // if the "head" child is marked as list, we construct Kind::EVAL_CONCAT
+              // if the "head" child is marked as list, we construct Kind::EVAL_LIST_CONCAT
               if (isNil && getConstructorKind(cc[nextIndex]) == Attr::LIST)
               {
-                curr = mkExprInternal(Kind::EVAL_CONCAT, cc);
+                curr = mkExprInternal(Kind::EVAL_LIST_CONCAT, cc);
               }
               else
               {
@@ -812,18 +816,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
   else if (isLiteralOp(k))
   {
     // only if correct arity, else we will catch the type error
-    bool isArityOk = false;
-    if (TypeChecker::checkArity(k, vchildren.size()))
-    {
-      isArityOk = true;
-    }
-    else if (TypeChecker::checkArity(k, vchildren.size()-1))
-    {
-      // handles the case where the operator is "indexed" by a function
-      Expr cc1 = children[0];
-      Expr tc1 = d_tc.getType(cc1);
-      isArityOk = (tc1.getKind()==Kind::FUNCTION_TYPE);
-    }
+    bool isArityOk = TypeChecker::checkArity(k, vchildren.size());
     if (isArityOk)
     {
       // return the evaluation

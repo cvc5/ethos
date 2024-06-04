@@ -58,6 +58,10 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     // lists
     case Kind::EVAL_NIL: o << "EVAL_NIL";break;
     case Kind::EVAL_CONS: o << "EVAL_CONS"; break;
+    case Kind::EVAL_LIST_LENGTH: o << "EVAL_LIST_LENGTH"; break;
+    case Kind::EVAL_LIST_CONCAT: o << "EVAL_LIST_CONCAT"; break;
+    case Kind::EVAL_LIST_NTH: o << "EVAL_LIST_NTH"; break;
+    case Kind::EVAL_LIST_FIND: o << "EVAL_LIST_FIND"; break;
     // boolean
     case Kind::EVAL_NOT: o << "EVAL_NOT"; break;
     case Kind::EVAL_AND: o << "EVAL_AND"; break;
@@ -123,6 +127,10 @@ std::string kindToTerm(Kind k)
         // lists
         case Kind::EVAL_NIL: ss << "nil"; break;
         case Kind::EVAL_CONS: ss << "cons"; break;
+        case Kind::EVAL_LIST_LENGTH: ss << "list_len"; break;
+        case Kind::EVAL_LIST_CONCAT: ss << "list_concat"; break;
+        case Kind::EVAL_LIST_NTH: ss << "list_nth"; break;
+        case Kind::EVAL_LIST_FIND: ss << "list_find"; break;
         // boolean
         case Kind::EVAL_NOT: ss << "not"; break;
         case Kind::EVAL_AND: ss << "and"; break;
@@ -201,6 +209,10 @@ bool isLiteralOp(Kind k)
     // lists
     case Kind::EVAL_NIL:
     case Kind::EVAL_CONS:
+    case Kind::EVAL_LIST_LENGTH:
+    case Kind::EVAL_LIST_CONCAT:
+    case Kind::EVAL_LIST_NTH:
+    case Kind::EVAL_LIST_FIND:
     // boolean
     case Kind::EVAL_NOT:
     case Kind::EVAL_AND:
@@ -234,9 +246,10 @@ bool isListLiteralOp(Kind k)
   {
     case Kind::EVAL_NIL:
     case Kind::EVAL_CONS:
-    case Kind::EVAL_CONCAT:
-    case Kind::EVAL_EXTRACT:
-    case Kind::EVAL_FIND:
+    case Kind::EVAL_LIST_LENGTH:
+    case Kind::EVAL_LIST_CONCAT:
+    case Kind::EVAL_LIST_NTH:
+    case Kind::EVAL_LIST_FIND:
       return true;
     default:
       break;

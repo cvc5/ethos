@@ -26,7 +26,7 @@
 )
 
 (declare-axiom bool-or-false ((xs Bool :list) (ys Bool :list))
-  (= (or xs false ys) (elim_singleton_list_rhs or (alf.concat or xs ys)))
+  (= (or xs false ys) (elim_singleton_list_rhs or (alf.list_concat or xs ys)))
 )
 
 (step @p0 (= (or a b true c) true) :rule bool-or-true :args ((or a b) (or c)))
@@ -38,7 +38,7 @@
 (step @p5 (= (or (or a b) false) (or a b)) :rule bool-or-false :args ((or (or a b)) false))
 
 (declare-axiom bool-and-true ((xs Bool :list) (ys Bool :list))
-  (= (and xs true ys) (elim_singleton_list_lhs and (alf.concat and xs ys)))
+  (= (and xs true ys) (elim_singleton_list_lhs and (alf.list_concat and xs ys)))
 )
 
 (declare-axiom bool-and-false ((xs Bool :list) (ys Bool :list))

@@ -68,6 +68,10 @@ enum class Kind
   // lists
   EVAL_NIL,
   EVAL_CONS,
+  EVAL_LIST_LENGTH,
+  EVAL_LIST_CONCAT,
+  EVAL_LIST_NTH,
+  EVAL_LIST_FIND,
   // boolean
   EVAL_NOT,
   EVAL_AND,
