@@ -138,7 +138,7 @@
 (declare-rule and_elim ((Fs Bool) (i Int))
     :premises (Fs)
     :args (i)
-    :conclusion (alf.list_extract and Fs i)
+    :conclusion (alf.list_nth and Fs i)
 )
 
 ; AND_INTRO
@@ -151,7 +151,7 @@
 (declare-rule not_or_elim ((Fs Bool) (i Int))
     :premises ((not Fs))
     :args (i)
-    :conclusion (not (alf.list_extract or Fs i))
+    :conclusion (not (alf.list_nth or Fs i))
 )
 
 ; IMPLIES_ELIM
@@ -265,7 +265,7 @@
 ; CNF_AND_POS
 (declare-rule cnf_and_pos ((Fs Bool) (i Int))
     :args (Fs i)
-    :conclusion (or (not Fs) (alf.list_extract and Fs i))
+    :conclusion (or (not Fs) (alf.list_nth and Fs i))
 )
 
 ; CNF_AND_NEG
@@ -283,7 +283,7 @@
 ; CNF_OR_NEG
 (declare-rule cnf_or_neg ((Fs Bool) (i Int))
     :args (Fs i)
-    :conclusion (or Fs (not (alf.list_extract or Fs i)))
+    :conclusion (or Fs (not (alf.list_nth or Fs i)))
 )
 
 ; CNF_IMPLIES_POS

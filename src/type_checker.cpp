@@ -144,7 +144,6 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_RAT_DIV:
     case Kind::EVAL_TO_BIN:
     case Kind::EVAL_FIND:
-    case Kind::EVAL_CONS:
     case Kind::EVAL_LIST_LENGTH:
       ret = (nargs==2);
       break;
@@ -177,6 +176,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
       break;
     case Kind::EVAL_REQUIRES:
     case Kind::EVAL_IF_THEN_ELSE:
+    case Kind::EVAL_CONS:
     case Kind::EVAL_LIST_NTH:
       ret = (nargs==3);
       break;

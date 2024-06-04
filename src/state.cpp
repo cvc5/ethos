@@ -816,18 +816,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
   else if (isLiteralOp(k))
   {
     // only if correct arity, else we will catch the type error
-    bool isArityOk = false;
-    if (TypeChecker::checkArity(k, vchildren.size()))
-    {
-      isArityOk = true;
-    }
-    else if (TypeChecker::checkArity(k, vchildren.size()-1))
-    {
-      // handles the case where the operator is "indexed" by a function
-      Expr cc1 = children[0];
-      Expr tc1 = d_tc.getType(cc1);
-      isArityOk = (tc1.getKind()==Kind::FUNCTION_TYPE);
-    }
+    bool isArityOk = TypeChecker::checkArity(k, vchildren.size());
     if (isArityOk)
     {
       // return the evaluation
