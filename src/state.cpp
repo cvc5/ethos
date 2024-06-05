@@ -89,7 +89,6 @@ State::State(Options& opts, Stats& stats)
   // as
   bindBuiltinEval("as", Kind::AS);
   
-  d_nullExpr = Expr(mkExprInternal(Kind::NULL_EXPR, {}));
   // we do not export alf.null
   // for now, alf.? is (undocumented) syntax for abstract type
   bind("alf.?", mkAbstractType());
@@ -503,11 +502,6 @@ Expr State::mkConclusion()
   return d_conclusion;
 }
 
-Expr State::mkNil()
-{
-  return d_nullExpr;
-}
-
 Expr State::mkPair(const Expr& t1, const Expr& t2)
 {
   return Expr(mkExprInternal(Kind::TUPLE, {t1.getValue(), t2.getValue()}));
@@ -626,8 +620,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
             std::vector<ExprValue*> cc{hd, nullptr, nullptr};
             size_t nextIndex = isLeft ? 2 : 1;
             size_t prevIndex = isLeft ? 1 : 2;
-            // note the nil element is always treated as a list
-            if (curr->getKind()!=Kind::NULL_EXPR && isNil)
+            if (isNil)
             {
               if (getConstructorKind(curr) != Attr::LIST)
               {

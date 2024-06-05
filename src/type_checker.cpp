@@ -134,9 +134,6 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
   // check arities
   switch(k)
   {
-    case Kind::NULL_EXPR:
-      ret = (nargs==0);
-      break;
     case Kind::EVAL_IS_EQ:
     case Kind::EVAL_VAR:
     case Kind::EVAL_INT_DIV:
@@ -227,13 +224,6 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       Assert(!ret.isNull());
       return d_state.mkFunctionType(args, ret);
     }
-    case Kind::NULL_EXPR:
-      if (!checkArity(k, e->getNumChildren(), out))
-      {
-        return d_null;
-      }
-      // nil is its own type
-      return Expr(e);
     case Kind::TYPE:
     case Kind::ABSTRACT_TYPE:
     case Kind::BOOL_TYPE:

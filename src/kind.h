@@ -33,7 +33,6 @@ enum class Kind
   APPLY,
   LAMBDA,
   TUPLE,
-  NULL_EXPR,
   PROGRAM,
   AS,
   PARAMETERIZED,

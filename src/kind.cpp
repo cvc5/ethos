@@ -34,7 +34,6 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::VARIABLE: o << "VARIABLE"; break;
     case Kind::ORACLE: o << "ORACLE"; break;
     case Kind::TUPLE: o << "TUPLE"; break;
-    case Kind::NULL_EXPR: o << "NIL"; break;
     case Kind::PROGRAM: o << "PROGRAM"; break;
     case Kind::AS: o << "AS"; break;
     case Kind::PARAMETERIZED: o << "PARAMETERIZED"; break;
@@ -101,7 +100,6 @@ std::string kindToTerm(Kind k)
     case Kind::ABSTRACT_TYPE: ss << "?"; break;
     case Kind::BOOL_TYPE: ss << "Bool"; break;
     case Kind::QUOTE_TYPE: ss << "Quote"; break;
-    case Kind::NULL_EXPR: ss << "alf.nil"; break;
     case Kind::TUPLE: ss << "alf.tuple"; break;
     // terms
     case Kind::APPLY: ss << "_"; break;

@@ -109,8 +109,6 @@ class State
   Expr mkRequires(const std::vector<Expr>& args, const Expr& ret);
   /** (alf.requires <arg1> <arg2> <type>) */
   Expr mkRequires(const Expr& a1, const Expr& a2, const Expr& ret);
-  /** alf.nil */
-  Expr mkNil();
   /** */
   Expr mkSelf();
   /** Make the conclusion variable */
@@ -194,7 +192,6 @@ class State
   Expr d_false;
   Expr d_self;
   Expr d_conclusion;
-  Expr d_nullExpr;
   Expr d_fail;
   /** Get base operator */
   const ExprValue* getBaseOperator(const ExprValue * v) const;
