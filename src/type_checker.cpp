@@ -1090,7 +1090,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       {
         size_t h1 = d_state.getHash(args[0]);
         size_t h2 = d_state.getHash(args[1]);
-        Literal lb(h1>=h2);
+        Literal lb(h1>h2);
         return Expr(d_state.mkLiteralInternal(lb));
       }
       return d_null;
