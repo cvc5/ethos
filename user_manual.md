@@ -492,13 +492,13 @@ Core operators:
 - `(alf.is_z t)`
     - Equivalent to `(alf.is_eq (alf.to_z t) t)`.
 - `(alf.is_q t)`
-    - Equivalent to `(alf.is_eq (alf.to_q x) x)`.
+    - Equivalent to `(alf.is_eq (alf.to_q t) t)`.
 - `(alf.is_bin t)`
-    - Equivalent to `(alf.is_eq (alf.to_bin (alf.len x) x) x)`.
+    - Equivalent to `(alf.is_eq (alf.to_bin (alf.len t) t) t)`.
 - `(alf.is_str t)`
-    - Equivalent to `(alf.is_eq (alf.to_str x) x)`.
+    - Equivalent to `(alf.is_eq (alf.to_str t) t)`.
 - `(alf.is_bool t)`
-    - Equivalent to `(alf.or (alf.is_eq x true) (alf.is_eq x false))`.
+    - Equivalent to `(alf.or (alf.is_eq t true) (alf.is_eq t false))`.
 - `(alf.is_var t)`
     - Equivalent to `(alf.is_eq (alf.var (alf.nameof t) (alf.typeof t)) t)`.
 
