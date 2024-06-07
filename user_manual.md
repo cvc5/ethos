@@ -489,7 +489,19 @@ Core operators:
     - If `t1` is a ground constant or variable, this returns the name of `t1`, i.e. the string corresponding to the symbol it was declared with.
 - `(alf.var t1 t2)`
     - If `t1` is a string value and `t2` is ground type, this returns the variable whose name is `t1` and whose type is `t2`.
-    
+- `(alf.is_z t)`
+    - Equivalent to `(alf.is_eq (alf.to_z t) t)`.
+- `(alf.is_q t)`
+    - Equivalent to `(alf.is_eq (alf.to_q x) x)`.
+- `(alf.is_bin t)`
+    - Equivalent to `(alf.is_eq (alf.to_bin (alf.len x) x) x)`.
+- `(alf.is_str t)`
+    - Equivalent to `(alf.is_eq (alf.to_str x) x)`.
+- `(alf.is_bool t)`
+    - Equivalent to `(alf.or (alf.is_eq x true) (alf.is_eq x false))`.
+- `(alf.is_var t)`
+    - Equivalent to `(alf.is_eq (alf.var (alf.nameof t) (alf.typeof t)) t)`.
+
 Boolean operators:
 - `(alf.and t1 t2)`
     - Boolean conjunction if `t1` and `t2` are Boolean values (`true` or `false`).
@@ -524,7 +536,9 @@ Arithmetic operators:
     - If `t1` and `t2` are bitwise values of the same category and bitwidth, then this returns their (total, unsigned) remainder, where remainder by zero returns `t1`.
 - `(alf.is_neg t1)`
     - If `t1` is an arithmetic value, this returns `true` if `t1` is strictly negative and `false` otherwise. Otherwise, this operator is not evaluated.
-    
+- `(alf.gt t1 t2)`
+    - Equivalent to `(alf.is_neg (alf.add (alf.neg t1) t2))`.
+
 String operators:
 - `(alf.len t1)`
     - Binary length (bitwidth) if `t1` is a binary value.
