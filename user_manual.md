@@ -477,6 +477,7 @@ Binary values are considered to be in little endian form.
 Some of the following operators can be defined in terms of the other operators.
 For these operators, we provide the equivalent formulation.
 A signature defining these files can be found in [non-core-eval](#non-core-eval).
+Note however that the evaluation of these operators is handled by more efficient methods internally in the ALF checker, that is, they are not treated as syntax sugar internally.
 
 Core operators:
 - `(alf.is_eq t1 t2)`
@@ -498,9 +499,9 @@ Core operators:
 - `(alf.is_z t)`
     - Equivalent to `(alf.is_eq (alf.to_z t) t)`.
 - `(alf.is_q t)`
-    - Equivalent to `(alf.is_eq (alf.to_q t) t)`.
+    - Equivalent to `(alf.is_eq (alf.to_q t) t)`. Note this returns false for decimal literals.
 - `(alf.is_bin t)`
-    - Equivalent to `(alf.is_eq (alf.to_bin (alf.len t) t) t)`.
+    - Equivalent to `(alf.is_eq (alf.to_bin (alf.len t) t) t)`. Note this returns false for hexadecimal literals.
 - `(alf.is_str t)`
     - Equivalent to `(alf.is_eq (alf.to_str t) t)`.
 - `(alf.is_bool t)`
