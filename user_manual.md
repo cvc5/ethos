@@ -1637,13 +1637,13 @@ The following signature can be used to define operators that are not required to
 
 ```
 
-; Returns true if x is a rational literal.
-(define alf.is_q ((T Type :implicit) (x T))
-  (alf.is_eq (alf.to_q x) x))
-
 ; Returns true if x is a numeral literal.
 (define alf.is_z ((T Type :implicit) (x T))
   (alf.is_eq (alf.to_z x) x))
+
+; Returns true if x is a rational literal.
+(define alf.is_q ((T Type :implicit) (x T))
+  (alf.is_eq (alf.to_q x) x))
 
 ; Returns true if x is a binary literal.
 (define alf.is_bin ((T Type :implicit) (x T))
@@ -1656,6 +1656,10 @@ The following signature can be used to define operators that are not required to
 ; Returns true if x is a Boolean literal.
 (define alf.is_bool ((T Type :implicit) (x T))
   (alf.ite (alf.is_eq x true) true (alf.is_eq x false)))
+
+; Returns true if x is a variable.
+(define alf.is_var ((T Type :implicit) (x T))
+  (alf.is_eq (alf.var (alf.nameof x) (alf.typeof x)) x))
 
 ; Compare arithmetic greater than. Assumes x and y are values.
 ; Returns true if x > y.
