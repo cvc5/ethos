@@ -113,6 +113,7 @@ set(alfc_test_file_list
     opaque-inst.smt3
     opaque-inst2.smt3
     mutual-rec.smt3
+    push-pop.smt3
 )
 
 macro(alfc_test file)

@@ -47,6 +47,11 @@ int main( int argc, char* argv[] )
     {
       opts.d_stats = true;
     }
+    else if (arg=="--stats-compact")
+    {
+      opts.d_stats = true;
+      opts.d_statsCompact = true;
+    }
     else if (arg=="--no-rule-sym-table")
     {
       opts.d_ruleSymTable = false;
@@ -71,6 +76,7 @@ int main( int argc, char* argv[] )
       out << "--no-rule-sym-table: do not use a separate symbol table for proof rules and declared terms." << std::endl;
       out << "      --show-config: displays the build information for this binary." << std::endl;
       out << "            --stats: enables detailed statistics." << std::endl;
+      out << "    --stats-compact: print statistics in a compact format." << std::endl;
       out << "           -t <tag>: enables the given trace tag (requires debug build)." << std::endl;
       out << "                 -v: verbose mode, enable all standard trace messages (requires debug build)." << std::endl;
       std::cout << out.str();
@@ -172,7 +178,7 @@ int main( int argc, char* argv[] )
   }
   if (opts.d_stats)
   {
-    std::cout << stats.toString(s);
+    std::cout << stats.toString(s, opts.d_statsCompact);
   }
   // exit immediately, which avoids deleting all expressions which can take time
   exit(0);
