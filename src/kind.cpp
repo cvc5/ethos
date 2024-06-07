@@ -129,12 +129,12 @@ std::string kindToTerm(Kind k)
         case Kind::EVAL_TYPE_OF: ss << "typeof"; break;
         case Kind::EVAL_NAME_OF: ss << "nameof"; break;
         case Kind::EVAL_COMPARE: ss << "cmp"; break;
-        case Kind::EVAL_IS_Z: o << "is_z"; break;
-        case Kind::EVAL_IS_Q: o << "is_q"; break;
-        case Kind::EVAL_IS_BIN: o << "is_bin"; break;
-        case Kind::EVAL_IS_STR: o << "is_str"; break;
-        case Kind::EVAL_IS_BOOL: o << "is_bool"; break;
-        case Kind::EVAL_IS_VAR: o << "is_var"; break;
+        case Kind::EVAL_IS_Z: ss << "is_z"; break;
+        case Kind::EVAL_IS_Q: ss << "is_q"; break;
+        case Kind::EVAL_IS_BIN: ss << "is_bin"; break;
+        case Kind::EVAL_IS_STR: ss << "is_str"; break;
+        case Kind::EVAL_IS_BOOL: ss << "is_bool"; break;
+        case Kind::EVAL_IS_VAR: ss << "is_var"; break;
         // lists
         case Kind::EVAL_NIL: ss << "nil"; break;
         case Kind::EVAL_CONS: ss << "cons"; break;
@@ -214,6 +214,12 @@ bool isLiteralOp(Kind k)
     case Kind::EVAL_TYPE_OF:
     case Kind::EVAL_NAME_OF:
     case Kind::EVAL_COMPARE:
+    case Kind::EVAL_IS_Z:
+    case Kind::EVAL_IS_Q:
+    case Kind::EVAL_IS_BIN:
+    case Kind::EVAL_IS_STR:
+    case Kind::EVAL_IS_BOOL:
+    case Kind::EVAL_IS_VAR:
     // lists
     case Kind::EVAL_NIL:
     case Kind::EVAL_CONS:
@@ -230,6 +236,7 @@ bool isLiteralOp(Kind k)
     case Kind::EVAL_INT_MOD:
     case Kind::EVAL_RAT_DIV:
     case Kind::EVAL_IS_NEG:
+    case Kind::EVAL_GT:
     // strings
     case Kind::EVAL_LENGTH:
     case Kind::EVAL_CONCAT:
