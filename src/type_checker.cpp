@@ -141,6 +141,8 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_RAT_DIV:
     case Kind::EVAL_TO_BIN:
     case Kind::EVAL_FIND:
+    case Kind::EVAL_COMPARE:
+    case Kind::EVAL_GT:
     case Kind::EVAL_LIST_LENGTH:
       ret = (nargs==2);
       break;
@@ -166,6 +168,12 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_TO_INT:
     case Kind::EVAL_TO_RAT:
     case Kind::EVAL_TO_STRING:
+    case Kind::EVAL_IS_Z:
+    case Kind::EVAL_IS_Q:
+    case Kind::EVAL_IS_BIN:
+    case Kind::EVAL_IS_STR:
+    case Kind::EVAL_IS_BOOL:
+    case Kind::EVAL_IS_VAR:
       ret = (nargs==1);
       break;
     case Kind::EVAL_NIL:
@@ -1076,6 +1084,48 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       return d_null;
     }
     break;
+    case Kind::EVAL_COMPARE:
+    {
+      if (args[0]->isGround() && args[1]->isGround())
+      {
+        size_t h1 = d_state.getHash(args[0]);
+        size_t h2 = d_state.getHash(args[1]);
+        Literal lb(h1>h2);
+        return Expr(d_state.mkLiteralInternal(lb));
+      }
+      return d_null;
+    }
+    break;
+    case Kind::EVAL_IS_Z:
+    {
+      Literal lb(args[0]->getKind()==Kind::NUMERAL);
+      return Expr(d_state.mkLiteralInternal(lb));
+    }
+    case Kind::EVAL_IS_Q:
+    {
+      Literal lb(args[0]->getKind()==Kind::RATIONAL);
+      return Expr(d_state.mkLiteralInternal(lb));
+    }
+    case Kind::EVAL_IS_BIN:
+    {
+      Literal lb(args[0]->getKind()==Kind::BINARY);
+      return Expr(d_state.mkLiteralInternal(lb));
+    }
+    case Kind::EVAL_IS_STR:
+    {
+      Literal lb(args[0]->getKind()==Kind::STRING);
+      return Expr(d_state.mkLiteralInternal(lb));
+    }
+    case Kind::EVAL_IS_BOOL:
+    {
+      Literal lb(args[0]->getKind()==Kind::BOOLEAN);
+      return Expr(d_state.mkLiteralInternal(lb));
+    }
+    case Kind::EVAL_IS_VAR:
+    {
+      Literal lb(args[0]->getKind()==Kind::VARIABLE);
+      return Expr(d_state.mkLiteralInternal(lb));
+    }
     case Kind::EVAL_TYPE_OF:
     {
       // get the type if ground
@@ -1358,6 +1408,13 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
       return childTypes[0];
     case Kind::EVAL_IS_EQ:
     case Kind::EVAL_IS_NEG:
+    case Kind::EVAL_COMPARE:
+    case Kind::EVAL_IS_Z:
+    case Kind::EVAL_IS_Q:
+    case Kind::EVAL_IS_BIN:
+    case Kind::EVAL_IS_STR:
+    case Kind::EVAL_IS_BOOL:
+    case Kind::EVAL_IS_VAR:
       return d_state.mkBoolType().getValue();
     case Kind::EVAL_HASH:
     case Kind::EVAL_INT_DIV:

@@ -55,7 +55,13 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("nameof", Kind::EVAL_NAME_OF);
   bindBuiltinEval("typeof", Kind::EVAL_TYPE_OF);
   bindBuiltinEval("var", Kind::EVAL_VAR);
-  // TODO: compare?
+  bindBuiltinEval("cmp", Kind::EVAL_COMPARE);
+  bindBuiltinEval("is_z", Kind::EVAL_IS_Z);
+  bindBuiltinEval("is_q", Kind::EVAL_IS_Q);
+  bindBuiltinEval("is_bin", Kind::EVAL_IS_BIN);
+  bindBuiltinEval("is_str", Kind::EVAL_IS_STR);
+  bindBuiltinEval("is_bool", Kind::EVAL_IS_BOOL);
+  bindBuiltinEval("is_var", Kind::EVAL_IS_VAR);
   // lists
   bindBuiltinEval("nil", Kind::EVAL_NIL);
   bindBuiltinEval("cons", Kind::EVAL_CONS);
@@ -80,6 +86,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("to_q", Kind::EVAL_TO_RAT);
   bindBuiltinEval("to_bin", Kind::EVAL_TO_BIN);
   bindBuiltinEval("to_str", Kind::EVAL_TO_STRING);
+  bindBuiltinEval("gt", Kind::EVAL_GT);
   // strings
   bindBuiltinEval("len", Kind::EVAL_LENGTH);
   bindBuiltinEval("concat", Kind::EVAL_CONCAT);

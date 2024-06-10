@@ -64,6 +64,13 @@ enum class Kind
   EVAL_VAR,
   EVAL_TYPE_OF,
   EVAL_NAME_OF,
+  EVAL_COMPARE,
+  EVAL_IS_Z,
+  EVAL_IS_Q,
+  EVAL_IS_BIN,
+  EVAL_IS_STR,
+  EVAL_IS_BOOL,
+  EVAL_IS_VAR,
   // lists
   EVAL_NIL,
   EVAL_CONS,
@@ -84,6 +91,7 @@ enum class Kind
   EVAL_INT_MOD,
   EVAL_RAT_DIV,
   EVAL_IS_NEG,
+  EVAL_GT,
   // strings
   EVAL_LENGTH,
   EVAL_CONCAT,

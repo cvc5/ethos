@@ -100,6 +100,10 @@ class Rational
   {
     return Rational(d_value / y.d_value);
   }
+  bool operator>(const Rational& y) const
+  {
+    return d_value > y.d_value;
+  }
 
   bool isIntegral() const;
 

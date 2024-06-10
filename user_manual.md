@@ -474,6 +474,11 @@ We say a *bitwise value* is a binary or hexadecimal value.
 A 32-bit numeral value is a numeral value between `0` and `2^32-1`.
 Binary values are considered to be in little endian form.
 
+Some of the following operators can be defined in terms of the other operators.
+For these operators, we provide the equivalent formulation.
+A signature defining these files can be found in [non-core-eval](#non-core-eval).
+Note however that the evaluation of these operators is handled by more efficient methods internally in the ALF checker, that is, they are not treated as syntax sugar internally.
+
 Core operators:
 - `(alf.is_eq t1 t2)`
     - Returns `true` if `t1` is (syntactically) equal to `t2`, or `false` if `t1` and `t2` are distinct and ground. Otherwise, it does not evaluate.
@@ -489,7 +494,21 @@ Core operators:
     - If `t1` is a ground constant or variable, this returns the name of `t1`, i.e. the string corresponding to the symbol it was declared with.
 - `(alf.var t1 t2)`
     - If `t1` is a string value and `t2` is ground type, this returns the variable whose name is `t1` and whose type is `t2`.
-    
+- `(alf.cmp t1 t2)`
+    - Equivalent to `(alf.is_neg (alf.add (alf.neg (alf.hash t1)) (alf.hash t2)))`. Note that this method corresponds to an arbitrary total order on terms.
+- `(alf.is_z t)`
+    - Equivalent to `(alf.is_eq (alf.to_z t) t)`.
+- `(alf.is_q t)`
+    - Equivalent to `(alf.is_eq (alf.to_q t) t)`. Note this returns false for decimal literals when `--no-normalize-dec` is enabled.
+- `(alf.is_bin t)`
+    - Equivalent to `(alf.is_eq (alf.to_bin (alf.len t) t) t)`. Note this returns false for hexadecimal literals  when `--no-normalize-hex` is enabled.
+- `(alf.is_str t)`
+    - Equivalent to `(alf.is_eq (alf.to_str t) t)`.
+- `(alf.is_bool t)`
+    - Equivalent to `(alf.or (alf.is_eq t true) (alf.is_eq t false))`.
+- `(alf.is_var t)`
+    - Equivalent to `(alf.is_eq (alf.var (alf.nameof t) (alf.typeof t)) t)`.
+
 Boolean operators:
 - `(alf.and t1 t2)`
     - Boolean conjunction if `t1` and `t2` are Boolean values (`true` or `false`).
@@ -524,7 +543,9 @@ Arithmetic operators:
     - If `t1` and `t2` are bitwise values of the same category and bitwidth, then this returns their (total, unsigned) remainder, where remainder by zero returns `t1`.
 - `(alf.is_neg t1)`
     - If `t1` is an arithmetic value, this returns `true` if `t1` is strictly negative and `false` otherwise. Otherwise, this operator is not evaluated.
-    
+- `(alf.gt t1 t2)`
+    - Equivalent to `(alf.is_neg (alf.add (alf.neg t1) t2))`.
+
 String operators:
 - `(alf.len t1)`
     - Binary length (bitwidth) if `t1` is a binary value.
@@ -775,7 +796,7 @@ The type `z2` in the above example is `(BitVec (alf.add a b))`, where the applic
 Although the above term does not lead to a type checking error, further use of `z2` would lead to errors if given as an argument to a function that did not expect this type verbatim.
 For example, given a function `f` of type `(-> (BitVec (alf.add b a)) T)`, the term `(f z2)` is not well-typed, since `(alf.add a b)` is not syntactically equal to `(alf.add b a)`.
 
-### Example: Type rule for BitVector constants
+### <a name="bv-literals"></a>Example: Type rule for BitVector constants
 
 ```
 (declare-sort Int 0)
@@ -1610,6 +1631,48 @@ Valid inputs to the ALF checker are `<alf-command>*`, where:
 
 Moreover, a valid input for a file included by the ALF command `<reference>` is `<smtlib2-command>*`;
 a valid input for a file included by the ALF command `<include>` is `<alf-command>*`.
+
+### <a name="bv-literals"></a>Definitions of Non-Core Evaluation Operators
+
+The following signature can be used to define operators that are not required to be supported as core evaluation operators.
+
+```
+
+; Returns true if x is a numeral literal.
+(define alf.is_z ((T Type :implicit) (x T))
+  (alf.is_eq (alf.to_z x) x))
+
+; Returns true if x is a rational literal.
+(define alf.is_q ((T Type :implicit) (x T))
+  (alf.is_eq (alf.to_q x) x))
+
+; Returns true if x is a binary literal.
+(define alf.is_bin ((T Type :implicit) (x T))
+  (alf.is_eq (alf.to_bin (alf.len x) x) x))
+
+; Returns true if x is a string literal.
+(define alf.is_str ((T Type :implicit) (x T))
+  (alf.is_eq (alf.to_str x) x))
+
+; Returns true if x is a Boolean literal.
+(define alf.is_bool ((T Type :implicit) (x T))
+  (alf.ite (alf.is_eq x true) true (alf.is_eq x false)))
+
+; Returns true if x is a variable.
+(define alf.is_var ((T Type :implicit) (x T))
+  (alf.is_eq (alf.var (alf.nameof x) (alf.typeof x)) x))
+
+; Compare arithmetic greater than. Assumes x and y are values.
+; Returns true if x > y.
+(define alf.gt ((T Type :implicit) (x T) (y T))
+  (alf.is_neg (alf.add (alf.neg x) y)))
+
+; An arbitrary deterministic comparison of terms. Returns true if a > b based
+; on this ordering.
+(define alf.com ((T Type :implicit) (U Type :implicit) (a T) (b U))
+  (alf.is_neg (alf.add (alf.hash b) (alf.neg (alf.hash a)))))
+
+```
 
 ## Proofs as terms
 
