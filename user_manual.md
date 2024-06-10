@@ -1037,35 +1037,6 @@ The conclusion of the rule returns `F` itself.
 
 Note that the type of functions provided as the second argument of `:premise-list` should be operators that are marked to take an arbitrary number of arguments, that is those marked e.g. with `:right-assoc-nil` or `:chainable`.
 
-## Axioms
-
-The ALF language supports a command `declare-axiom` which is a more concise way to specify proof rules taking no premises:
-```
-(declare-axiom <symbol> (<typed-param>*) <reqs>? <term>)
-<reqs>  ::= :requires ((<term> <term>)*)
-```
-The command
-```
-(declare-axiom S ((x1 T1) .. (xn Tn)) R? t)
-```
-is syntax sugar for
-```
-(declare-rule S ((x1 T1) ... (xn Tn)) :args (x1 ... xn) R? :conclusion t)
-```
-where `R` is an (optional) requirements annotation.
-More generally, any argument `x1 ... xn` that is not marked with `:implicit` is assumed to be in the argument list of the declared rule.
-
-### Example: Reflexivity of Equality as an Axiom
-
-Note the following definition is equivalent to the previously declared version of `refl`:
-```
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
-(declare-axiom refl ((T Type :implicit) (t T))
-    (= t t)
-)
-```
-The argument `T` to `refl` has been marked as `:implicit`, and thus it does not appear in the argument list.
-
 #  <a name="proofs"></a> Writing Proofs
 
 The ALF language provies the commands `assume` and `step` for defining proofs. Their syntax is given by:
@@ -1569,7 +1540,6 @@ Valid inputs to the ALF checker are `<alf-command>*`, where:
 <alf-command> ::=
     (assume <symbol> <term>) |
     (assume-push <symbol> <term>) |
-    (declare-axiom <symbol> (<typed-param>*) <reqs>? <term>) |
     (declare-consts <lit-category> <type>) |
     (declare-parameterized-const <symbol> (<typed-param>*) <type> <attr>*) |
     (declare-oracle-fun <symbol> (<type>*) <type> <symbol>) |
