@@ -828,7 +828,7 @@ bool CmdParser::parseNextCommand()
       if (concType.getKind() != Kind::PROOF_TYPE)
       {
         std::stringstream ss;
-        ss << "Non-proof conclusion for step " << ruleName << ", got " << concType;
+        ss << "Non-proof conclusion for rule " << ruleName << ", got " << concType;
         d_lex.parseError(ss.str());
       }
       if (!proven.isNull())
@@ -836,7 +836,7 @@ bool CmdParser::parseNextCommand()
         if (concType[0]!=proven)
         {
           std::stringstream ss;
-          ss << "Unexpected conclusion for step " << ruleName << ":" << std::endl;
+          ss << "Unexpected conclusion for rule " << ruleName << ":" << std::endl;
           ss << "    Proves: " << concType << std::endl;
           ss << "  Expected: (Proof " << proven << ")";
           d_lex.parseError(ss.str());
