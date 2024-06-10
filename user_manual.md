@@ -495,7 +495,7 @@ Core operators:
 - `(alf.var t1 t2)`
     - If `t1` is a string value and `t2` is ground type, this returns the variable whose name is `t1` and whose type is `t2`.
 - `(alf.cmp t1 t2)`
-    - Equivalent to `(alf.is_neg (alf.add (alf.neg (alf.hash t1)) (alf.hash t2)))`.
+    - Equivalent to `(alf.is_neg (alf.add (alf.neg (alf.hash t1)) (alf.hash t2)))`. Note that this method corresponds to an arbitrary total order on terms.
 - `(alf.is_z t)`
     - Equivalent to `(alf.is_eq (alf.to_z t) t)`.
 - `(alf.is_q t)`

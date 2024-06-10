@@ -456,11 +456,14 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
     case Kind::EVAL_GT:
       switch (ka)
       {
-        case Kind::NUMERAL:return Literal(args[0]->d_int>args[0]->d_int);
+        case Kind::NUMERAL:
+          return Literal(args[0]->d_int>args[0]->d_int);
         case Kind::DECIMAL:
-        case Kind::RATIONAL:return Literal(args[0]->d_rat>args[0]->d_rat);
+        case Kind::RATIONAL:
+          return Literal(args[0]->d_rat>args[0]->d_rat);
         case Kind::HEXADECIMAL:
-        case Kind::BINARY:return Literal(args[0]->d_bv.toInteger()>args[0]->d_bv.toInteger());
+        case Kind::BINARY:
+          return Literal(args[0]->d_bv.toInteger()>args[0]->d_bv.toInteger());
         default: break;
       }
       break;
