@@ -63,7 +63,6 @@ CmdParser::CmdParser(Lexer& lex,
     // not defined in smt 2.6, or not supported
     d_table["assume"] = Token::ASSUME;
     d_table["assume-push"] = Token::ASSUME_PUSH;
-    d_table["declare-axiom"] = Token::DECLARE_AXIOM;
     d_table["declare-consts"] = Token::DECLARE_CONSTS;
     d_table["declare-rule"] = Token::DECLARE_RULE;
     d_table["declare-type"] = Token::DECLARE_TYPE;
@@ -310,7 +309,6 @@ bool CmdParser::parseNextCommand()
     break;
     // (declare-rule ...)
     case Token::DECLARE_RULE:
-    case Token::DECLARE_AXIOM:
     {
       // ensure zero scope
       if (d_state.getAssumptionLevel()>0)
@@ -327,66 +325,57 @@ bool CmdParser::parseNextCommand()
       std::vector<Expr> args;
       std::vector<Expr> reqs;
       Expr conc;
-      if (tok==Token::DECLARE_RULE)
+      // parse premises, optionally
+      std::string keyword = d_eparser.parseKeyword();
+      if (keyword=="assumption")
       {
-        // parse premises, optionally
-        std::string keyword = d_eparser.parseKeyword();
-        if (keyword=="assumption")
-        {
-          assume = d_eparser.parseExpr();
-          keyword = d_eparser.parseKeyword();
-        }
-        if (keyword=="premises")
-        {
-          premises = d_eparser.parseExprList();
-          keyword = d_eparser.parseKeyword();
-        }
-        else if (keyword=="premise-list")
-        {
-          // :premise-list <pattern> <cons>
-          Expr pat = d_eparser.parseExpr();
-          plCons = d_eparser.parseExpr();
-          // pattern is the single premise
-          premises.push_back(pat);
-          keyword = d_eparser.parseKeyword();
-        }
-        // parse args, optionally
-        if (keyword=="args")
-        {
-          args = d_eparser.parseExprList();
-          keyword = d_eparser.parseKeyword();
-        }
-        // parse requirements, optionally
-        if (keyword=="requires")
-        {
-          // we support alf.conclusion in requirements
-          d_state.pushScope();
-          d_state.bind("alf.conclusion", d_state.mkConclusion());
-          // parse the expression pair list
-          reqs = d_eparser.parseExprPairList();
-          keyword = d_eparser.parseKeyword();
-          d_state.popScope();
-        }
-        // parse conclusion
-        if (keyword=="conclusion")
-        {
-          conc = d_eparser.parseExpr();
-        }
-        else if (keyword=="conclusion-given")
-        {
-          // :conclusion-given is equivalent to :conclusion alf.conclusion
-          conc = d_state.mkConclusion();
-        }
-        else
-        {
-          d_lex.parseError("Expected conclusion in declare-rule");
-        }
+        assume = d_eparser.parseExpr();
+        keyword = d_eparser.parseKeyword();
+      }
+      if (keyword=="premises")
+      {
+        premises = d_eparser.parseExprList();
+        keyword = d_eparser.parseKeyword();
+      }
+      else if (keyword=="premise-list")
+      {
+        // :premise-list <pattern> <cons>
+        Expr pat = d_eparser.parseExpr();
+        plCons = d_eparser.parseExpr();
+        // pattern is the single premise
+        premises.push_back(pat);
+        keyword = d_eparser.parseKeyword();
+      }
+      // parse args, optionally
+      if (keyword=="args")
+      {
+        args = d_eparser.parseExprList();
+        keyword = d_eparser.parseKeyword();
+      }
+      // parse requirements, optionally
+      if (keyword=="requires")
+      {
+        // we support alf.conclusion in requirements
+        d_state.pushScope();
+        d_state.bind("alf.conclusion", d_state.mkConclusion());
+        // parse the expression pair list
+        reqs = d_eparser.parseExprPairList();
+        keyword = d_eparser.parseKeyword();
+        d_state.popScope();
+      }
+      // parse conclusion
+      if (keyword=="conclusion")
+      {
+        conc = d_eparser.parseExpr();
+      }
+      else if (keyword=="conclusion-given")
+      {
+        // :conclusion-given is equivalent to :conclusion alf.conclusion
+        conc = d_state.mkConclusion();
       }
       else
       {
-        // arguments are the parameters
-        args.insert(args.end(), vs.begin(), vs.end());
-        conc = d_eparser.parseExpr();
+        d_lex.parseError("Expected conclusion in declare-rule");
       }
       std::vector<Expr> argTypes;
       for (Expr& e : args)

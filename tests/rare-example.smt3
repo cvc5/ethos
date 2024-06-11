@@ -6,8 +6,9 @@
 (declare-const b Bool)
 (declare-const c Bool)
 
-(declare-axiom bool-or-true ((xs Bool :list) (ys Bool :list))
-  (= (or xs true ys) true)
+(declare-rule bool-or-true ((xs Bool :list) (ys Bool :list))
+  :args (xs ys)
+  :conclusion (= (or xs true ys) true)
 )
 
 (program elim_singleton_list_rhs ((T Type) (f (-> T T T)) (t T) (s T :list))
@@ -25,8 +26,9 @@
   )
 )
 
-(declare-axiom bool-or-false ((xs Bool :list) (ys Bool :list))
-  (= (or xs false ys) (elim_singleton_list_rhs or (alf.list_concat or xs ys)))
+(declare-rule bool-or-false ((xs Bool :list) (ys Bool :list))
+  :args (xs ys)
+  :conclusion (= (or xs false ys) (elim_singleton_list_rhs or (alf.list_concat or xs ys)))
 )
 
 (step @p0 (= (or a b true c) true) :rule bool-or-true :args ((or a b) (or c)))
@@ -37,12 +39,14 @@
 (step @p4 (= (or a false) a) :rule bool-or-false :args ((or a) false))
 (step @p5 (= (or (or a b) false) (or a b)) :rule bool-or-false :args ((or (or a b)) false))
 
-(declare-axiom bool-and-true ((xs Bool :list) (ys Bool :list))
-  (= (and xs true ys) (elim_singleton_list_lhs and (alf.list_concat and xs ys)))
+(declare-rule bool-and-true ((xs Bool :list) (ys Bool :list))
+  :args (xs ys)
+  :conclusion (= (and xs true ys) (elim_singleton_list_lhs and (alf.list_concat and xs ys)))
 )
 
-(declare-axiom bool-and-false ((xs Bool :list) (ys Bool :list))
-  (= (and xs false ys) false)
+(declare-rule bool-and-false ((xs Bool :list) (ys Bool :list))
+  :args (xs ys)
+  :conclusion (= (and xs false ys) false)
 )
 
 (step @p6 (= (and a b false c) false) :rule bool-and-false :args ((and a b) (and c)))
