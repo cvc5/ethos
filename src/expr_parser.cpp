@@ -79,7 +79,6 @@ ExprParser::ExprParser(Lexer& lex, State& state, bool isReference)
   d_strToAttr[":var"] = Attr::VAR;
   d_strToAttr[":implicit"] = Attr::IMPLICIT;
   d_strToAttr[":list"] = Attr::LIST;
-  d_strToAttr[":syntax"] = Attr::SYNTAX;
   d_strToAttr[":requires"] = Attr::REQUIRES;
   d_strToAttr[":left-assoc"] = Attr::LEFT_ASSOC;
   d_strToAttr[":right-assoc"] = Attr::RIGHT_ASSOC;
@@ -89,6 +88,8 @@ ExprParser::ExprParser(Lexer& lex, State& state, bool isReference)
   d_strToAttr[":pairwise"] = Attr::PAIRWISE;
   d_strToAttr[":binder"] = Attr::BINDER;
   d_strToAttr[":opaque"] = Attr::OPAQUE;
+  d_strToAttr[":syntax"] = Attr::SYNTAX;
+  d_strToAttr[":restrict"] = Attr::RESTRICT;
   
   d_strToLiteralKind["<boolean>"] = Kind::BOOLEAN;
   d_strToLiteralKind["<numeral>"] = Kind::NUMERAL;
@@ -461,8 +462,9 @@ Expr ExprParser::parseExpr()
                 ret = d_state.mkExpr(Kind::OPAQUE_TYPE, {ret});
                 break;
               default:
+                // ignored
                 std::stringstream ss;
-                ss << "Unprocessed attribute " << a.first << std::endl;
+                ss << "Unprocessed attribute " << a.first;
                 d_lex.warning(ss.str());
                 break;
             }
@@ -1072,6 +1074,7 @@ void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedS
       case Attr::CHAINABLE:
       case Attr::PAIRWISE:
       case Attr::BINDER:
+      case Attr::RESTRICT:
       {
         // requires an expression that follows
         val = parseExpr();
@@ -1081,6 +1084,12 @@ void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedS
       {
         // requires a pair
         val = parseExprPair();
+      }
+        break;
+      case Attr::SYNTAX:
+      {
+        // ignores the literal kind
+        parseLiteralKind();
       }
         break;
       default:

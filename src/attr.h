@@ -26,11 +26,14 @@ enum class Attr
 
   //------------------ below here is mutually exclusive?
   LIST,
-  SYNTAX,
   PROGRAM,
   ORACLE,
   BINDER,
   OPAQUE,
+  
+  // smt3 things that are not strictly supported
+  SYNTAX,
+  RESTRICT,
   
   // indicate how to construct proof rule steps
   PREMISE_LIST,

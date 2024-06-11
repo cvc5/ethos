@@ -114,6 +114,7 @@ set(alfc_test_file_list
     opaque-inst2.smt3
     mutual-rec.smt3
     push-pop.smt3
+    bv-extract-smt3.smt3
 )
 
 macro(alfc_test file)

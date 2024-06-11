@@ -18,13 +18,14 @@ std::ostream& operator<<(std::ostream& o, Attr a)
     case Attr::VAR: o << "VAR"; break;
     case Attr::IMPLICIT: o << "IMPLICIT"; break;
     case Attr::LIST: o << "LIST"; break;
-    case Attr::SYNTAX: o << "SYNTAX"; break;
     case Attr::REQUIRES: o << "REQUIRES"; break;
     case Attr::PREMISE_LIST: o << "PREMISE_LIST"; break;
     case Attr::PROGRAM: o << "PROGRAM"; break;
     case Attr::ORACLE: o << "ORACLE"; break;
     case Attr::BINDER: o << "BINDER"; break;
     case Attr::OPAQUE: o << "OPAQUE"; break;
+    case Attr::SYNTAX: o << "SYNTAX"; break;
+    case Attr::RESTRICT: o << "RESTRICT"; break;
     case Attr::RIGHT_ASSOC: o << "RIGHT_ASSOC"; break;
     case Attr::LEFT_ASSOC: o << "LEFT_ASSOC"; break;
     case Attr::RIGHT_ASSOC_NIL: o << "RIGHT_ASSOC_NIL"; break;
