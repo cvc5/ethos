@@ -116,6 +116,7 @@ set(alfc_test_file_list
     push-pop.smt3
     bv-extract-smt3.smt3
     distinct_value_testers.smt3
+    gt_eval.smt3
 )
 
 macro(alfc_test file)

@@ -1,0 +1,24 @@
+
+(declare-sort Int 0)
+(declare-consts <numeral> Int)
+(declare-const > (-> Int Int Bool))
+
+(declare-rule value_gt ((t Int) (s Int))
+    :args (t s)
+    :requires (((alf.gt t s) true))
+    :conclusion (> t s)
+)
+
+(declare-sort Bin 0)
+(declare-consts <binary> Bin)
+(declare-const bvugt (-> Bin Bin Bool))
+
+(declare-rule value_gt_bin ((t Bin) (s Bin))
+    :args (t s)
+    :requires (((alf.gt t s) true))
+    :conclusion (bvugt t s)
+)
+
+(step @p0 (> 2 1) :rule value_gt :args (2 1))
+(step @p1 (> 0 -1) :rule value_gt :args (0 -1))
+(step @p2 (bvugt #b100 #b011) :rule value_gt_bin :args (#b100 #b011))
