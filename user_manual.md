@@ -1528,6 +1528,7 @@ The ALF command line interface can be invoked by `alfc <option>* <file>` where `
 - `--show-config`: displays the build information for the given binary.
 - `--stats`: enables detailed statistics.
 - `--stats-compact`: print statistics in a compact format.
+- `--strict-parsing`: only accept commands in the SMT-LIB version 3.0 proposal. No proofs are supported when this option is enabled.
 - `-t <tag>`: enables the given trace tag (for debugging).
 - `-v`: verbose mode, enable all standard trace messages.
 
