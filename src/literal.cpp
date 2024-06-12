@@ -91,7 +91,12 @@ std::string Literal::toString() const
   {
     case Kind::BOOLEAN: return d_bool ? "true" : "false";
     case Kind::DECIMAL: return d_rat.toStringDecimal();
-    case Kind::RATIONAL: return d_rat.toString();
+    case Kind::RATIONAL:
+      if (d_rat.isIntegral())
+      {
+        return d_rat.toString() + "/1";
+      }
+      return d_rat.toString();
     case Kind::NUMERAL: return d_int.toString();
     case Kind::HEXADECIMAL: return d_bv.toString(16);
     case Kind::BINARY: return d_bv.toString();
