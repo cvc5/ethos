@@ -1097,35 +1097,32 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     }
     break;
     case Kind::EVAL_IS_Z:
-    {
-      Literal lb(args[0]->getKind()==Kind::NUMERAL);
-      return Expr(d_state.mkLiteralInternal(lb));
-    }
     case Kind::EVAL_IS_Q:
-    {
-      Literal lb(args[0]->getKind()==Kind::RATIONAL);
-      return Expr(d_state.mkLiteralInternal(lb));
-    }
     case Kind::EVAL_IS_BIN:
-    {
-      Literal lb(args[0]->getKind()==Kind::BINARY);
-      return Expr(d_state.mkLiteralInternal(lb));
-    }
     case Kind::EVAL_IS_STR:
-    {
-      Literal lb(args[0]->getKind()==Kind::STRING);
-      return Expr(d_state.mkLiteralInternal(lb));
-    }
     case Kind::EVAL_IS_BOOL:
-    {
-      Literal lb(args[0]->getKind()==Kind::BOOLEAN);
-      return Expr(d_state.mkLiteralInternal(lb));
-    }
     case Kind::EVAL_IS_VAR:
     {
-      Literal lb(args[0]->getKind()==Kind::VARIABLE);
+      if (!args[0]->isGround())
+      {
+        return d_null;
+      }
+      Kind kk;
+      switch (k)
+      {
+      case Kind::EVAL_IS_Z:kk = Kind::NUMERAL;break;
+      case Kind::EVAL_IS_Q:kk = Kind::RATIONAL;break;
+      case Kind::EVAL_IS_BIN:kk = Kind::BINARY;break;
+      case Kind::EVAL_IS_STR:kk = Kind::STRING;break;
+      case Kind::EVAL_IS_BOOL:kk = Kind::BOOLEAN;break;
+      case Kind::EVAL_IS_VAR:kk = Kind::VARIABLE;break;
+      default:
+        return d_null;
+      }
+      Literal lb(args[0]->getKind()==kk);
       return Expr(d_state.mkLiteralInternal(lb));
     }
+    break;
     case Kind::EVAL_TYPE_OF:
     {
       // get the type if ground
