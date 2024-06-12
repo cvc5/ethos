@@ -1,8 +1,9 @@
 (declare-const = (-> (! Type :var A :implicit) A A Bool))
 
+(declare-const and (-> Bool Bool Bool) :left-assoc)
 (declare-sort Int 0)
 (declare-const < (-> Int Int Bool))
-(declare-const <= (-> Int Int Bool))
+(declare-const <= (-> Int Int Bool) :chainable and)
 (declare-const - (-> Int Int Int))
 (declare-const +1 (-> Int Int))
 
