@@ -91,7 +91,7 @@ The following commands are supported for declaring and defining types and terms.
 - `(declare-fun <symbol> (<type>*) <type> <attr>*)` declares a constant named `<symbol>` whose type is given by the argument types and return type. Can be given an optional list of attributes.
 - `(declare-sort <symbol> <numeral>)` declares a new type named `<symbol>` whose kind is `(-> Type^n Type)` if `n>0` or `Type` for the provided numeral `n`.
 - `(declare-type <symbol> (<type>*))` declares a new type named `<symbol>` whose kind is given by the argument types and return type `Type`.
-- `(define-const <symbol> <term>)` defines `<symbol>` to be the given term.\
+- `(define-const <symbol> <term>)` defines `<symbol>` to be the given term.
 - `(define-sort <symbol> (<symbol>*) <type>)` defines `<symbol>` to be a lambda term whose arguments are given by variables of kind `Type` and whose body is given by the return type, or the return type if the argument is empty.
 - `(define-type <symbol> (<type>*) <type>)` defines `<symbol>` to be a lambda term whose kind is given
 - `(declare-datatype <symbol> <datatype-dec>)` defines a datatype `<symbol>`, along with its associated constructors, selectors, discriminators and updaters.

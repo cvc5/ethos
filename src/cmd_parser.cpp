@@ -510,17 +510,25 @@ bool CmdParser::parseNextCommand()
         // We assume that a symbol named "=" has been defined.
         Expr eq = d_state.getVar("=");
         Expr rhs = expr;
+        Expr t = ret;
         if (!vars.empty())
         {
           // We assume that a symbol named "lambda" has been defined as a binder.
           Expr lambda = d_state.getVar("lambda");
           Expr bvl = d_state.mkBinderList(lambda.getValue(), vars);
           rhs = d_state.mkExpr(Kind::APPLY, {lambda, bvl, rhs});
+          std::vector<Expr> types;
+          for (Expr& e : vars)
+          {
+            types.push_back(d_eparser.typeCheck(e));
+          }
+          t = d_state.mkFunctionType(types, t, false);
         }
-        Expr t = d_eparser.typeCheck(rhs);
         Expr sym = d_state.mkSymbol(Kind::CONST, name, t);
+        Trace("define") << "Define: " << name << " -> " << sym << std::endl;
         d_eparser.bind(name, sym);
         Expr a = d_state.mkExpr(Kind::APPLY, {eq, sym, rhs});
+        Trace("define") << "Define-fun reference assert " << a << std::endl;
         d_state.addReferenceAssert(a);
       }
       else
