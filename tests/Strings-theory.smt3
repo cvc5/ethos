@@ -4,7 +4,7 @@
 (declare-sort RegLan 0)
 (declare-type Seq (Type))
 (declare-sort Char 0)
-(define-fun String () Type (Seq Char))
+(define String () (Seq Char))
 
 (declare-consts <string> String)
 
