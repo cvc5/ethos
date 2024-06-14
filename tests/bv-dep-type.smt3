@@ -13,4 +13,4 @@
 
 (declare-fun x () (BitVec m))
 (declare-fun y () (BitVec m))
-(define z () (bvadd m x y))
+(define z () (bvadd m x y) :type (BitVec m))

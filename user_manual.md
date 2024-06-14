@@ -163,6 +163,17 @@ Note the following declarations all generate terms of the same type:
 (declare-const Array_v3 (-> Type Type Type))
 ```
 
+## The :type attribute
+
+To type check terms, define statements can be annotated with `:type <term>`.
+In particular:
+```
+(declare-const not (-> Bool Bool))
+(define notTrue () (not true) :type Bool)
+```
+This indicates that the checker should compute the type of the term `(not true)`.
+If this is not the specified type (in this case `Bool`), an error will be thrown.
+
 ## The :var and :implicit annotations
 
 The ALF language uses the SMT-LIB version 3.0 attributes `:var <symbol>` and `:implicit` in term annotations for naming arguments of functions and specifying they are implicit.
