@@ -1,5 +1,5 @@
 (declare-sort Int 0)
 (declare-datatypes ((List 1)) ((par (T) ((nil) (cons (head T) (tail (List T)))))))
-(declare-var y (List Int))
+(define y () (alf.var "y" (List Int)))
 (define-fun @t1 () (List Int) (tail y))
 (define-fun @t2 () Int (head y))

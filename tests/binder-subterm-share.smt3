@@ -7,7 +7,7 @@
 (declare-const forall (-> @List Bool Bool) :binder @list.cons)
 (declare-rule id ((y Bool)) :premises (y) :conclusion y)
 
-(declare-var x Int)
+(define x () (alf.var "x" Int))
 (define Q () (P x))
 
 (assume @p0 (forall ((x Int)) Q))

@@ -2,7 +2,7 @@
 
 (declare-sort Int 0)
 
-(declare-var x1 Int)
+(define x1 () (alf.var "x1" Int))
 (declare-const a Int)
 
 (step x_eq_x (= x1 x1) :rule refl :args (x1))

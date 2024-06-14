@@ -74,7 +74,6 @@ CmdParser::CmdParser(Lexer& lex,
       d_table["assume-push"] = Token::ASSUME_PUSH;
       d_table["declare-consts"] = Token::DECLARE_CONSTS;
       d_table["declare-rule"] = Token::DECLARE_RULE;
-      d_table["declare-var"] = Token::DECLARE_VAR;
       d_table["define"] = Token::DEFINE;
       d_table["include"] = Token::INCLUDE;
       d_table["program"] = Token::PROGRAM;
@@ -140,12 +139,10 @@ bool CmdParser::parseNextCommand()
     // (declare-oracle-fun <symbol> (<sort>∗) <sort>)
     // (declare-const <symbol> <sort>)
     // (declare-parameterized-const (<sorted_var>*) <symbol> <sort>)
-    // (declare-var <symbol> <sort>)
     case Token::DECLARE_CONST:
     case Token::DECLARE_FUN:
     case Token::DECLARE_PARAMETERIZED_CONST:
     case Token::DECLARE_ORACLE_FUN:
-    case Token::DECLARE_VAR:
     {
       //d_state.checkThatLogicIsSet();
       std::string name = d_eparser.parseSymbol();
@@ -168,17 +165,13 @@ bool CmdParser::parseNextCommand()
       Kind sk;
       Expr t;
       sk = Kind::CONST;
-      if (tok==Token::DECLARE_VAR)
-      {
-        // Don't permit attributes for variables
-        sk = Kind::VARIABLE;
-      }
       if (tok==Token::DECLARE_ORACLE_FUN)
       {
         ck = Attr::ORACLE;
         sk = Kind::ORACLE;
         std::string oname = d_eparser.parseSymbol();
         cons = d_state.mkLiteral(Kind::STRING, oname);
+        // don't permit attributes for oracle functions
       }
       else if (tok==Token::DECLARE_CONST || tok==Token::DECLARE_FUN || tok==Token::DECLARE_PARAMETERIZED_CONST)
       {
