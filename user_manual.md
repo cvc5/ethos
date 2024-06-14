@@ -951,7 +951,7 @@ The generic syntax for a `declare-rule` command accepted by `alfc` is:
 ```
 When parsing this command, `alfc` will determine the format of the expected arguments based on the given keyword.
 If the `<keyword>` is not provided, the we assume it has been marked `:alfc`.
-All rules not marked with `:alfc` are not supported by the checker and will be ignored.
+All rules not marked with `:alfc` are not supported by the checker are unsupported and will cause the checker to terminate.
 
 If the keyword is `:alfc`, then the expected syntax that follows is given below:
 ```
@@ -1119,7 +1119,7 @@ Similar to `declare-rule`, the ALF checker supports an extensible syntax for pro
 ```
 When parsing this command, `alfc` will determine the format of the expected arguments based on the given keyword.
 If the `<keyword>` is not provided, the we assume it has been marked `:alfc`.
-All programs not marked with `:alfc` are not supported by the checker and will be ignored.
+All programs not marked with `:alfc` are not supported by the checker are unsupported and will cause the checker to terminate.
 
 If the keyword is `:alfc`, then the expected syntax that follows is given below, and is used for defining recursive programs.
 In particular, in the ALF checker, a program is an ordered lists of rewrite rules.
