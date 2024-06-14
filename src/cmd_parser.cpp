@@ -503,22 +503,35 @@ bool CmdParser::parseNextCommand()
         d_eparser.typeCheck(expr, ret);
       }
       d_state.popScope();
-      // make a lambda if given arguments
-      if (vars.size() > 0)
-      {
-        Expr vl = d_state.mkExpr(Kind::TUPLE, vars);
-        expr = d_state.mkExpr(Kind::LAMBDA, {vl, expr});
-      }
       if (tok == Token::DEFINE_FUN)
       {
-        // TODO: creates symbol, binds and adds to reference assertions
+        // We assume that a symbol named "=" has been defined.
+        Expr eq = d_state.getVar("=");
+        Expr rhs = expr;
+        if (!vars.empty())
+        {
+          // We assume that a symbol named "lambda" has been defined.
+          Expr lambda = d_state.getVar("lambda");
+          Expr bvl = d_state.mkBinderList(lambda.getValue(), vars);
+          rhs = d_state.mkExpr(Kind::APPLY, {lambda, bvl, rhs});
+        }
       }
-      d_eparser.bind(name, expr);
-      Trace("define") << "Define: " << name << " -> " << expr << std::endl;
-      if (tok == Token::DEFINE)
+      else
       {
-        AttrMap attrs;
-        d_eparser.parseAttributeList(expr, attrs);
+        // make a lambda if given arguments
+        if (vars.size() > 0)
+        {
+          Expr vl = d_state.mkExpr(Kind::TUPLE, vars);
+          expr = d_state.mkExpr(Kind::LAMBDA, {vl, expr});
+        }
+        d_eparser.bind(name, expr);
+        Trace("define") << "Define: " << name << " -> " << expr << std::endl;
+        // define additionally takes attributes
+        if (tok == Token::DEFINE)
+        {
+          AttrMap attrs;
+          d_eparser.parseAttributeList(expr, attrs);
+        }
       }
     }
     break;
