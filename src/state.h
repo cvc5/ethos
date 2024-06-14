@@ -38,6 +38,8 @@ class Options
   bool d_ruleSymTable;
   bool d_normalizeDecimal;
   bool d_normalizeHexadecimal;
+  /** Whether we only accept commands in the SMT-LIB version 3 proposal */
+  bool d_strictParsing;
   /** Binders generate fresh variables in proof and reference files */
   bool d_binderFresh;
 };
