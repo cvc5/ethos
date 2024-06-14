@@ -516,6 +516,10 @@ bool CmdParser::parseNextCommand()
         Expr vl = d_state.mkExpr(Kind::TUPLE, vars);
         expr = d_state.mkExpr(Kind::LAMBDA, {vl, expr});
       }
+      if (tok == Token::DEFINE_FUN)
+      {
+        // TODO: creates symbol, binds and adds to reference assertions
+      }
       d_eparser.bind(name, expr);
       Trace("define") << "Define: " << name << " -> " << expr << std::endl;
     }
