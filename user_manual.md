@@ -786,7 +786,7 @@ for the term `or` applied to arguments `a,b`.
 
 (declare-fun x () (BitVec 2))
 (declare-fun y () (BitVec 3))
-(define z () (concat x y)) ; has type (BitVec 5)
+(define z () (concat x y) :type (BitVec 5))
 ```
 
 Above, we define a type declaration for `BitVec` that expects an integer (i.e. denoting the bitwidth) as an argument.
@@ -1707,6 +1707,7 @@ The command:
 ```
 can be seen as syntax sugar for:
 ```
-(define s () (r p1 ... pn t1 ... tm))
+(define s () (r p1 ... pn t1 ... tm) :type (Proof f))
 ```
+If no conlusion is provided, then the type attribute is not specified.
 Notice this is only the case if the declaration of `r` does not involve `:assumption` or `:premise-list`.
