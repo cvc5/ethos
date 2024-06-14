@@ -318,6 +318,14 @@ bool CmdParser::parseNextCommand()
       }
       d_state.pushScope();
       std::string name = d_eparser.parseSymbol();
+      if (d_lex.peekToken()==Token::KEYWORD)
+      {
+        std::string keyword = d_eparser.parseKeyword();
+        if (keyword!="alfc")
+        {
+          d_lex.parseError("Unsupported rule format");
+        }
+      }
       std::vector<Expr> vs =
           d_eparser.parseAndBindSortedVarList();
       Expr assume;
@@ -610,10 +618,18 @@ bool CmdParser::parseNextCommand()
       }
     }
     break;
-    // (program <symbol> (<sorted_var>*) (<sort>*) <sort> (<term_pair>+)?)
+    // (program <symbol> <keyword>? (<sorted_var>*) (<sort>*) <sort> (<term_pair>+)?)
     case Token::PROGRAM:
     {
       std::string name = d_eparser.parseSymbol();
+      if (d_lex.peekToken()==Token::KEYWORD)
+      {
+        std::string keyword = d_eparser.parseKeyword();
+        if (keyword!="alfc")
+        {
+          d_lex.parseError("Unsupported program format");
+        }
+      }
       // push the scope
       d_state.pushScope();
       std::vector<Expr> vars = d_eparser.parseAndBindSortedVarList();
