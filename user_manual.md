@@ -945,15 +945,28 @@ Otherwise, the term `(alf.as t (-> T1 ... Tn T))` is unevaluated.
 
 # Declaring Proof Rules
 
-The ALF language supports a command `declare-rule` for defining proof rules. Its syntax is given by:
+The generic syntax for a `declare-rule` command accepted by `alfc` is:
 ```
-(declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term>)
+(declare-rule <symbol> <keyword>? <sexpr>*)
+```
+When parsing this command, `alfc` will determine the format of the rule based on the given keyword.
+If the `<keyword>` is not provided, the we assume it has been marked `:alfc`.
+All rules not marked with `:alfc` are not supported by the checker.
+
+Conversely, if the keyword is `:alfc`, then the syntax that follows is more specifically specified below,
+and is used for defining proof rules in the format expected by the ALF checker.
+In particular, this syntax is:
+```
+(declare-rule <symbol> :alfc (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term>)
 where
 <assumption>    ::= :assumption <term>
 <premises>      ::= :premises (<term>*) | :premise-list <term> <term>
 <arguments>     ::= :args (<term>*)
 <reqs>          ::= :requires ((<term> <term>)*)
 ```
+
+After declaring the symbol,
+if the `<keyword>` is not provided, alfc will assume this
 
 A proof rule begins by defining a list of free parameters, followed by 4 optional fields and a conclusion term.
 These fields include:
@@ -1544,7 +1557,7 @@ Valid inputs to the ALF checker are `<alf-command>*`, where:
     (declare-consts <lit-category> <type>) |
     (declare-parameterized-const <symbol> (<typed-param>*) <type> <attr>*) |
     (declare-oracle-fun <symbol> (<type>*) <type> <symbol>) |
-    (declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term>) |
+    (declare-rule <symbol> <keyword>? <sexpr>*) |
     (declare-type <symbol> (<type>*)) |
     (define <symbol> (<typed-param>*) <term>) |
     (define-type <symbol> (<type>*) <type>) |
