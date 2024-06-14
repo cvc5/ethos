@@ -505,19 +505,27 @@ bool CmdParser::parseNextCommand()
       d_state.popScope();
       if (tok == Token::DEFINE_FUN)
       {
+        // This is for reference checking only. Note that = and lambda are
+        // not builtin symbols, thus we must assume they are defined by the user.
         // We assume that a symbol named "=" has been defined.
         Expr eq = d_state.getVar("=");
         Expr rhs = expr;
         if (!vars.empty())
         {
-          // We assume that a symbol named "lambda" has been defined.
+          // We assume that a symbol named "lambda" has been defined as a binder.
           Expr lambda = d_state.getVar("lambda");
           Expr bvl = d_state.mkBinderList(lambda.getValue(), vars);
           rhs = d_state.mkExpr(Kind::APPLY, {lambda, bvl, rhs});
         }
+        Expr t = d_eparser.typeCheck(rhs);
+        Expr sym = d_state.mkSymbol(Kind::CONST, name, t);
+        d_eparser.bind(name, sym);
+        Expr a = d_state.mkExpr(Kind::APPLY, {eq, sym, rhs});
+        d_state.addReferenceAssert(a);
       }
       else
       {
+        // defines as a macro
         // make a lambda if given arguments
         if (vars.size() > 0)
         {
