@@ -963,9 +963,6 @@ where
 <reqs>          ::= :requires ((<term> <term>)*)
 ```
 
-After declaring the symbol,
-if the `<keyword>` is not provided, alfc will assume this
-
 A proof rule begins by defining a list of free parameters, followed by 4 optional fields and a conclusion term.
 These fields include:
 - `<premises>`, denoting the premise patterns of the proof rule. This is either a list of formulas (via `:premises`) or the specification of list of premises via (via `:premise-list`), which will be described in detail later.
@@ -1564,13 +1561,13 @@ Valid inputs to the ALF checker are `<alf-command>*`, where:
     (declare-consts <lit-category> <type>) |
     (declare-parameterized-const <symbol> (<typed-param>*) <type> <attr>*) |
     (declare-oracle-fun <symbol> (<type>*) <type> <symbol>) |
-    (declare-rule <symbol> <keyword>? <sexpr>*) |
-    (declare-rule <symbol> :alfc (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term>) |
+    (declare-rule <symbol> <keyword> <sexpr>*) |
+    (declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term>) |
     (declare-type <symbol> (<type>*)) |
     (define <symbol> (<typed-param>*) <term>) |
     (define-type <symbol> (<type>*) <type>) |
     (include <string>) |
-    (program <symbol> <keyword>? <sexpr>*) |
+    (program <symbol> <keyword> <sexpr>*) |
     (program <symbol> (<typed-param>*) (<type>*) <type> ((<term> <term>)+)) |
     (reference <string> <symbol>?) |
     (step <symbol> <term>? :rule <symbol> <simple-premises>? <arguments>?) |
