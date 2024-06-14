@@ -4,8 +4,8 @@
 (include "Uf-rules.smt3")
 (include "Arith-rules.smt3")
 
-(declare-var alf.1.x Int)
-(declare-var x Int)
+(define alf.1.x () (alf.var "alf.1.x" Int))
+(define x () (alf.var "x" Int))
 (define f () (lambda x false))
 (define g () (lambda alf.1.x true))
 (define @t1 () (lambda x false))
