@@ -460,7 +460,7 @@ bool CmdParser::parseNextCommand()
     break;
     // (define-fun <symbol> (<sorted_var>*) <sort> <term>)
     // (define-type <symbol> (<sorted_var>*) <term>)
-    // (define <symbol> (<sorted_var>*) <term>)
+    // (define <symbol> (<sorted_var>*) <term> <attr>*)
     case Token::DEFINE_FUN:
     case Token::DEFINE_TYPE:
     case Token::DEFINE:
@@ -515,6 +515,11 @@ bool CmdParser::parseNextCommand()
       }
       d_eparser.bind(name, expr);
       Trace("define") << "Define: " << name << " -> " << expr << std::endl;
+      if (tok == Token::DEFINE)
+      {
+        AttrMap attrs;
+        d_eparser.parseAttributeList(expr, attrs);
+      }
     }
     break;
     // (define-sort <symbol> (<symbol>*) <sort>)

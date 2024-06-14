@@ -107,9 +107,9 @@ class ExprParser
    * is true when e.g. the attribute :var is read. The caller of this method
    * is responsible for popping the scope.
    */
-  void parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedScope);
+  void parseAttributeList(Expr& e, AttrMap& attrs, bool& pushedScope);
   /** Same as above, but ensures we pop the scope */
-  void parseAttributeList(const Expr& e, AttrMap& attrs);
+  void parseAttributeList(Expr& e, AttrMap& attrs);
   
   /**
    * Parse literal kind.
