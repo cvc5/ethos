@@ -87,22 +87,36 @@ Specifically, the ALF language has the following builtin expressions:
 In the following, we informally write BNF categories `<symbol>` to denote an SMT-LIB version 3.0 symbol, `<term>` to denote an SMT-LIB term and `<type>` to denote a term whose type is `Type`, `<typed-param>` has syntax `(<symbol> <type> <attr>*)` and binds `<symbol>` as a fresh parameter of the given type and attributes (if provided).
 
 The following commands are supported for declaring and defining types and terms. The first set of commands are identical to those in SMT-LIB version 3.0:
+
 - `(declare-const <symbol> <type> <attr>*)` declares a constant named `<symbol>` whose type is `<type>`. Can be given an optional list of attributes (see [attributes](#attributes)).
 - `(declare-fun <symbol> (<type>*) <type> <attr>*)` declares a constant named `<symbol>` whose type is given by the argument types and return type. Can be given an optional list of attributes.
+  >> This should be used only to declare functions declared with `declare-fun` in the original SMT-LIB script.
 - `(declare-sort <symbol> <numeral>)` declares a new type named `<symbol>` whose kind is `(-> Type^n Type)` if `n>0` or `Type` for the provided numeral `n`.
+  >> This command should not be used only to declare types declared with `declare-sort` in the original SMT-LIB script. Otherwise, `declare-type` should be preferred.
 - `(declare-type <symbol> (<type>*))` declares a new type named `<symbol>` whose kind is given by the argument types and return type `Type`.
 - `(define-const <symbol> <term>)` defines `<symbol>` to be the given term.
+  >> This should not be used. `define` should be used instead.
+    (Also, note that  `define-const` does require a type argument in SMT-LIB 3.)
 - `(define-fun <symbol> (<typed-param>*) <type> <term>)` defines `<symbol>` to be a lambda term whose arguments, return type and body and given by the command, or the body if the argument list is empty. This throws an error if the type of the body term is not the specified type.
+   >> This should not be used. `define` should be used instead, with the `:type <type>` attribute for the return type.
 - `(define-sort <symbol> (<symbol>*) <type>)` defines `<symbol>` to be a lambda term whose arguments are given by variables of kind `Type` and whose body is given by the return type, or the return type if the argument is empty.
-- `(define-type <symbol> (<type>*) <type>)` defines `<symbol>` to be a lambda term whose kind is given
+   >> This should be used only if present in the original SMT-LIB script.
+- `(define-type <symbol> (<type>*) <type>)` defines `<symbol>` to be a lambda term whose kind is given.
+  >> It would be better for generality if the arguments where not limited to types but could also be value. Hence syntax should be 
+  `(define-type <symbol> ((<symbol> <type2>)*) <type>)` where `<type2> ::= <type> | Type`.
 - `(declare-datatype <symbol> <datatype-dec>)` defines a datatype `<symbol>`, along with its associated constructors, selectors, discriminators and updaters.
 - `(declare-datatypes (<sort-dec>^n) (<datatype-dec>^n))` defines a list of `n` datatypes for some `n>0`.
 - `(reset)` removes all declarations and definitions and resets the global scope.
+  >> This reset may be confused with the SMT-LIB `reset`. Maybe we need another name for it. `(clear)`?
 
 The ALF language contains further commands for declaring symbols that are not standard SMT-LIB version 3.0:
+
 - `(declare-consts <lit-category> <type>)` declares the class of symbols denoted by the literal category to have the given type.
+   >> This command is actually not needed as in SMT-LIB 3, `declare-const` can be used for with literal categories too.
 - `(define <symbol> (<typed-param>*) <term>)`, which is identical to `define-fun` but the body term is not type checked against a reference type.
+  >> The description here needs updating.
 - `(declare-parameterized-const <symbol> (<typed-param>*) <type> <attr>*)` declares a variable named `<symbol>` whose type is `<type>`.
+  >> It is strange to call "variable" something that needs to be applied to arguments.
 
 > Variables are internally treated the same as constants by the ALF checker, but are provided as a separate category, e.g. for user signatures that wish to distinguish universally quantified variables from free constants. They also have a relationship with user-defined binders, see [binders](#binders), and can be accessed via the builtin operator `alf.var` (see [computation](#computation)).
 
@@ -110,7 +124,7 @@ The ALF language contains further commands for declaring symbols that are not st
 
 ### Example: Basic Declarations
 
-```
+```scheme
 (declare-sort Int 0)
 (declare-const c Int)
 (declare-const f (-> Int Int Int))
@@ -126,7 +140,7 @@ Note that despite using different syntax in their declarations, the types of `f`
 
 ### Example: Basic Definitions
 
-```
+```scheme
 (declare-const not (-> Bool Bool))
 (define-fun id ((x Bool)) Bool x)
 (define-fun notId ((x Int)) Bool (not (id x)))
@@ -137,7 +151,7 @@ In the example above, `not` is declared to be a unary function over Booleans. Tw
 Since `define-fun` commands are treated as macro definitions, in this example, `id` is mapped to the lambda term whose SMT-LIB version 3 syntax is `(lambda ((x Bool)) x)`.
 Furthermore, `notId` is mapped to the lambda term `(lambda ((x Bool)) (not x))`.
 In other words, the following file is equivalent to the one above after parsing:
-```
+```scheme
 (declare-const not (-> Bool Bool))
 (define-fun id ((x Bool)) Bool x)
 (define-fun notId ((x Int)) Bool (not x))
@@ -145,7 +159,7 @@ In other words, the following file is equivalent to the one above after parsing:
 
 ### Example: Polymorphic types
 
-```
+```scheme
 (declare-sort Int 0)
 (declare-sort Array 2)
 (declare-const a (Array Int Bool))
@@ -158,7 +172,7 @@ In the above example, we define the integer sort and the array sort, whose kind 
 
 Note the following declarations all generate terms of the same type:
 
-```
+```scheme
 (declare-sort Array_v1 2)
 (declare-type Array_v2 (Type Type))
 (declare-const Array_v3 (-> Type Type Type))
@@ -168,7 +182,7 @@ Note the following declarations all generate terms of the same type:
 
 The ALF language uses the SMT-LIB version 3.0 attributes `:var <symbol>` and `:implicit` in term annotations for naming arguments of functions and specifying they are implicit.
 
-```
+```scheme
 (declare-sort Int 0)
 (declare-const eq (-> (! Type :var T) T T Bool))
 (define-fun P ((x Int) (y Int)) Bool (eq Int x y))
@@ -176,7 +190,7 @@ The ALF language uses the SMT-LIB version 3.0 attributes `:var <symbol>` and `:i
 
 The above example declares a predicate `eq` whose first argument is a type, that is given a name `T`. It then expects two terms of type `T` and returns a `Bool`. In the definition of `P`, this predicate is applied to two variables, where the type `Int` must be explicitly provided.
 
-```
+```scheme
 (declare-sort Int 0)
 (declare-const = (-> (! Type :var T :implicit) T T Bool))
 (define-fun P ((x Int) (y Int)) Bool (= x y))
@@ -187,45 +201,71 @@ In contrast, the above example declares a predicate `=` where the type of the ar
 We call `T` in the above definitions a *parameter*. The free parameters of the return type of an expression should be contained in at least one non-implicit argument. In particular, the following declaration is malformed, since the return type of `f` cannot be inferred from its arguments:
 
 
-```
+```scheme
 (declare-sort Int 0)
 (declare-const f (-> (! Type :var T :implicit) Int T))
 ```
 
 > Internally, `(! T :var t)` is syntax sugar for the type `(Quote t)` where `t` is a parameter of type `T` and `Quote` is a distinguished type of kind `(-> (! Type :var U) U Type)`. When type checking applications of functions of type `(-> (Quote t) S)`, the parameter `t` is bound to the argument the function is applied to.
 
+>> The definition of `(! T :var t)` is circular unless we do not make the notation syntactic sugar for kinds: 
+`(! T :var t)` is syntax sugar for the type `(Quote t)`
+where `Quote` is a distinguished type of kind `(-> (! Type :var U) U Type)`.
+Is `(! Type :var U)` syntactic sugar too?
+The meaning of `(! T :var t)` cannot really disentangled from that of `->`.
+`(! T :var t)` does not mean anything in isolation. In contrast, and more generally,
+`(-> (! <type2> :var x) <type2>)` means `(Pi (x <type>) <type>)`.
+The explanation of `Quote` needs to be rewritten.
+
 > Internally, `(! T :implicit)` drops `T` from the list of arguments of the function type we are defining.
 
 ## The :requires annotation
 
 Arguments to functions can also be annotated with the attribute `:requires (<term> <term>)` to denote a condition under which the
+>> The sentence above is missing text.
 
-```
+```scheme
 (declare-sort Int 0)
 (declare-const BitVec (-> (! Int :var w :requires ((alf.is_neg w) false)) Type))
 ```
+
 The above declares the integer sort and the bitvector sort that expects a non-negative integer `w`.
 
 In detail, the first argument of `BitVec` is an integer sort, which is named `w` via `:var`.
 The second annotation indicates that `(alf.is_neg w)` must evaluate to `false`, where note that `alf.is_neg` returns `true` if and only if its argument is a negative numeral (for details, see [computation](#computation)).
 
-> Internally, `(! T :requires (t s))` is syntax sugar for `(alf.requires t s T)` where `alf.requires` is an operator that evalutes to its third argument if and only if its first two arguments are equivalent (details on this operator are given in [computation](#computation)). Furthermore, the function type `(-> (alf.requires t s T) S)` is treated as `(-> T (alf.requires t s S))`. The ALF checker rewrites all types of the former to the latter.
+> Internally, `(! T :requires (t s))` is syntax sugar for `(alf.requires t s T)` where `alf.requires` is an operator that evaluates to its third argument if and only if its first two arguments are equivalent (details on this operator are given in [computation](#computation)). Furthermore, the function type `(-> (alf.requires t s T) S)` is treated as `(-> T (alf.requires t s S))`. The ALF checker rewrites all types of the former to the latter.
+>>
+>> This should not be explained as syntactic sugar. Instead, it should be explained
+in terms of requirements on the type-checking procedure.
+
+
 
 ## <a name="attributes"></a>Declarations with attributes
 
+>> I think we should distinguish attributes for declared symbols from attributes for input parameters.
+The text below is confusing as it seems to state that all of the following attributes apply indiscriminately to declared symbols and to parameters.
+
 The ALF language supports term annotations on parameters and declared functions, which for instance can allow the user to treat a declared function as being variadic, i.e. taking an arbitrary number of arguments. The available annotations in the ALF checker are:
+
 - `:right-assoc` (resp. `:left-assoc`) denoting that the term is right (resp. left) associative,
+  >> The symbol and not the term. Terms cannot be declared associative.
 - `:right-assoc-nil <term>?` (resp. `:left-assoc-nil <term>?`) denoting that the term is right (resp. left) associative with the given nil terminator,
+  >> This needs to be explained better.
 - `:list`, denoting that the term should be treated as a list when appearing as a child of an application of a right (left) associative operator,
+  >> This needs to be explained better. It is too vague and potentially confusing.
 - `:chainable <term>` denoting that the arguments of the term are chainable using the given (binary) operator,
+  >> Shouldn't `<term>` be `<symbol>` instead?
 - `:pairwise <term>` denoting that the arguments of the term are treated pairwise using the given (binary) operator.
+  >> Shouldn't `<term>` be `<symbol>` instead?
 - `:binder <term>` denoting that the first argument of the term can be provided using a syntax for variable lists whose constructor is the one provided.
 
 A parameter or function can be marked with at most one of the above attributes or an error is thrown.
+>> Really? A parameter can be declared as right-associative?!
 
 ### Right/Left associative
 
-```
+```scheme
 (declare-const or (-> Bool Bool Bool) :right-assoc)
 (define-fun P ((x Bool) (y Bool) (z Bool)) Bool (or x y z))
 (define-fun Q ((x Bool) (y Bool)) Bool (or x y))
@@ -237,7 +277,7 @@ The term `(or x y)` is not impacted by the annotation `:right-assoc` since it ha
 The term `(or x)` is also not impacted by the annotation, and denotes the partial application of `or` to `x`, whose type is `(-> Bool Bool)`.
 
 Left associative can be defined analogously:
-```
+```scheme
 (declare-const and (-> Bool Bool Bool) :left-assoc)
 (define-fun P ((x Bool) (y Bool) (z Bool)) Bool (and x y z))
 ```
@@ -249,7 +289,7 @@ Note that the type for right and left associative operators is typically `(-> T 
 
 ALF supports a variant of the aforementioned functionality where a (ground) nil terminator is provided.
 
-```
+```scheme
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (define-fun P ((x Bool) (y Bool) (z Bool)) Bool (or x y z))
 (define-fun Q ((x Bool) (y Bool)) Bool (or x y))
@@ -260,10 +300,10 @@ In the above example, `(or x y z)` is syntax sugar for `(or x (or y (or z false)
 `(or x y)` is syntax sugar for `(or x (or y false))`,
 and `(or x)` is syntax sugar for `(or x false)`.
 
-The advantage of right (resp. left) associative operators nil terminators is that the terms they specify are unambiguous, in constrast to operators without nil terminators.
+The advantage of right (resp. left) associative operators nil terminators is that the terms they specify are unambiguous, in contrast to operators without nil terminators.
 In particular, note the following example:
 
-```
+```scheme
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (define-fun P ((x Bool) (y Bool) (z Bool)) Bool (or x (or y z)))
 (define-fun Q ((x Bool) (y Bool) (z Bool)) Bool (or x y z))
@@ -279,7 +319,7 @@ The type for right and left associative operators with nil terminators is typica
 The nil terminator of a right associative operator may involve previously declared symbols in the signature.
 For example:
 
-```
+```scheme
 (declare-sort RegLan 0)
 (declare-const re.all RegLan)
 (declare-const re.inter (-> RegLan RegLan RegLan) :right-assoc-nil re.all)
@@ -292,7 +332,7 @@ that references the free constant `re.all`.
 However, when using `declare-const`, the nil terminator of an associative operator cannot depend on the parameters of the type of that function.
 For example, say we wish to declare bitvector-or (`bvor` in SMT-LIB), where its nil terminator is bitvector zero for the given bitwidth.
 A possible declaration is the following:
-```
+```scheme
 (declare-const bvor
     (-> (! Int :var m :implicit) (BitVec m) (BitVec m) (BitVec m))
     :right-assoc-nil ???
@@ -307,7 +347,7 @@ We instead require such declarations to be made with `declare-parameterized-cons
 Atomic terms can be marked with the annotation `:list`.
 This annotation marks that the term should be treated as a list of arguments when it occurs as an argument of a right (left) associative operator with a nil element. Note the following example:
 
-```
+```scheme
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (define-fun P ((x Bool) (y Bool)) Bool (or x y))
 (define-fun Q ((x Bool) (y Bool :list)) Bool (or x y))
@@ -328,6 +368,7 @@ In other words, the definitions of `Paab` and `Qaab` are equivalent to the terms
 
 More generally, for an right-associative operator `f` with nil terminator `nil`,
 the term `(f t1 ... tn)` is de-sugared based on whether each `t1 ... tn` is marked with `:list`.
+
 - The nil terminator is inserted at the tail of the function application unless `tn` is marked as `:list`,
 - If `ti` is marked as `:list` where `1<=i<n`, then `ti` is prepended to the overall application using a concatentation operation `alf.list_concat`. The semantics of this operator is provided later in [list-computation](#list-computation).
 
@@ -338,7 +379,7 @@ For each term `ti` we process, the returned term `r` is updated to `(f ti r)` if
 if `ti` is marked with `:list`.
 Examples of this desugaring are given below.
 
-```
+```scheme
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (define-fun test ((x Bool) (y Bool) (z Bool :list) (w Bool :list))
     (and
@@ -348,7 +389,7 @@ Examples of this desugaring are given below.
         (or x)          ; (or x false)
         (or z)          ; z
         (or z y w x)    ; (alf.list_concat or z (or y (alf.list_concat or w (or x false)))
-    ))
+    )))
 ```
 
 Note that in the case of `(or z)`, no application of `or` is constructed, since only one argument term is given, since it is marked with `:list`.
@@ -356,7 +397,7 @@ In contrast, `(or x)` denotes the `or` whose children are `x` and `false`.
 
 ### Chainable
 
-```
+```scheme
 (declare-sort Int 0)
 (declare-const and (-> Bool Bool Bool) :right-assoc)
 (declare-const >= (-> Int Int Bool) :chainable)
@@ -372,19 +413,29 @@ where the type of its chaining operator is `(-> S S S)`, and that operator has b
 
 ### Pairwise
 
-```
+```scheme
 (declare-sort Int 0)
 (declare-const and (-> Bool Bool Bool) :right-assoc)
 (declare-const distinct (-> (! Type :var T :implicit) T T Bool) :pairwise and)
 (define-fun P ((x Int) (y Int) (z Int)) Bool (distinct x y z))
 ```
+
+>> For compatibility with SMT-LIB we could make the value of `:pairwise` optional, defaulting to `and` when it is missing.
+
+
 In the above example, `(distinct x y z)` is syntax sugar for `(and (distinct x y) (distinct x z) (distinct y z))`.
 
 Note that the type for chainable operators is typically `(-> T T S)` for some types `T` and `S`,
 where the type of its pairwise operator is `(-> S S S)`, and that operator has been as variadic via some attribute.
 
 ### <a name="binders"></a>Binder
-```
+
+>> This needs serious discussion. The type of `forall` is missing syntax and semantics.
+That does not make sense to me.
+We probably need an explicit `declare-binder` command.
+
+
+```scheme
 (declare-sort Int 0)
 (declare-sort @List 0)
 (declare-const @nil @List)
@@ -446,7 +497,7 @@ String values are implemented as a vector of unsigned integers whose maximum val
 ### <a name="declare-consts"></a>Declaring classes of literals
 
 The following gives an example of how to define the class of numeral constants.
-```
+```scheme
 (declare-sort Int 0)
 (declare-consts <numeral> Int)
 (declare-fun P ((x Int)) Bool (> x 7))
@@ -480,6 +531,9 @@ A signature defining these files can be found in [non-core-eval](#non-core-eval)
 Note however that the evaluation of these operators is handled by more efficient methods internally in the ALF checker, that is, they are not treated as syntax sugar internally.
 
 Core operators:
+
+>> The semantics of the alf operators is better explained in terms of an evaluation function. Will fix.
+
 - `(alf.is_eq t1 t2)`
     - Returns `true` if `t1` is (syntactically) equal to `t2`, or `false` if `t1` and `t2` are distinct and ground. Otherwise, it does not evaluate.
 - `(alf.ite t1 t2 t3)`
@@ -588,7 +642,7 @@ The ALF checker supports extensions of `alf.and, alf.or, alf.xor, alf.add, alf.m
 
 ### Computation Examples
 
-```
+```scheme
 (alf.and true false)        == false
 (alf.and #b1110 #b0110)     == #b0110
 (alf.or true false)         == true
@@ -660,7 +714,7 @@ The ALF checker supports extensions of `alf.and, alf.or, alf.xor, alf.add, alf.m
 
 Note the following examples of core operators for the given signature
 
-```
+```scheme
 (declare-sort Int 0)
 (declare-const x Int)
 (declare-const y Int)
@@ -708,7 +762,7 @@ List operators:
 
 The terms on both sides of the given evaluation are written in their form prior to desugaring, where recall that e.g. `(or a)` after desugaring is `(or a false)` and `(or a b)` is `(or a (or b false))`.
 
-```
+```scheme
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
 (declare-const a Bool)
@@ -762,7 +816,7 @@ for the term `or` applied to arguments `a,b`.
 
 ### Example: Type rule for BitVector concatentation
 
-```
+```scheme
 (declare-sort Int 0)
 (declare-consts <numeral> Int)
 (declare-type BitVec (Int))
@@ -798,7 +852,7 @@ For example, given a function `f` of type `(-> (BitVec (alf.add b a)) T)`, the t
 
 ### <a name="bv-literals"></a>Example: Type rule for BitVector constants
 
-```
+```scheme
 (declare-sort Int 0)
 (declare-consts <numeral> Int)
 (declare-type BitVec (Int))
@@ -816,13 +870,13 @@ This means that when type checking the binary constant `#b0000`, its type prior 
 Recall that in [assoc-nil](#assoc-nil), when using `declare-const` to define associative operators with nil terminators, it is not possible to have the nil terminator for that operator depend on its type parameters.
 In this section, we introduce a new command `declare-parameterized-const` which overcomes this limitation.
 Its syntax is:
-```
+```scheme
 (declare-parameterized-const <symbol> (<typed-param>*) <type> <attr>*)
 ```
 
 In the following example,
 we declare bitvector-or (`bvor` in SMT-LIB) where its nil terminator is bitvector zero for the given bitwidth.
-```
+```scheme
 (declare-sort Int 0)
 (declare-consts <numeral> Int)                ; numeral literals denote Int constants
 (declare-type BitVec (Int))
@@ -857,7 +911,7 @@ In other words, the computation of the nil terminator is deferred to this term (
 Otherwise, the nil terminator is `nil[ v1 ... vm / u1 ... um]`.
 Constructing `(f t1 ... tn)` then proceeds inductively via the same procedure described in [assoc-nil](#assoc-nil).
 Examples of this are given in the following, assuming the declaration of `bvor` above.
-```
+```scheme
 (declare-const p (-> Bool Bool))
 (define test ((x (BitVec 4)) (y (BitVec 4)) (n Int) (z (BitVec n)) (w (BitVec n)) (u (BitVec n) :list))
     ...
@@ -888,7 +942,7 @@ If we do not infer a ground nil terminator, then the term does not evaluate.
 Examples can be found at the end of this section.
 
 Consider again the term `(bvor z w)` from the previous example:
-```
+```scheme
 (define test ((n Int) (z (BitVec n)) (w (BitVec n)))
     (bvor z w)        ; (bvor z (bvor w (alf.nil bvor z w)))
 )
@@ -908,7 +962,7 @@ For example `(_ (alf._ bvor 4) a b)` is equivalent to `(bvor a (bvor b #b0000))`
 An example use case for this feature is directly refer to the nil terminator of a concrete instance of `bvor`, e.g. `(alf.nil (alf._ bvor 4))` evaluates to `#b0000`.
 
 The following are examples of list operations when using parameterized constant `bvor`:
-```
+```scheme
 (declare-const a (BitVec 4))
 (declare-const b (BitVec 4))
 (declare-const c (BitVec 5))
@@ -932,7 +986,7 @@ The following are examples of list operations when using parameterized constant 
 
 The ALF checker supports limited cases of overloading where all instances of the overloaded symbol have distinct arity.
 In particular the following is accepted:
-```
+```scheme
 (declare-const - (-> Int Int))
 (declare-const - (-> Int Int Int))
 ```
@@ -946,7 +1000,7 @@ Otherwise, the term `(alf.as t (-> T1 ... Tn T))` is unevaluated.
 # Declaring Proof Rules
 
 The ALF language supports a command `declare-rule` for defining proof rules. Its syntax is given by:
-```
+```scheme
 (declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term>)
 where
 <assumption>    ::= :assumption <term>
@@ -976,7 +1030,7 @@ A proof rule is only well defined if the free parameters of the requirements and
 
 ### Example rule: Reflexivity of equality
 
-```
+```scheme
 (declare-const = (-> (! Type :var T :implicit) T T Bool))
 (declare-rule refl ((T Type) (t T))
     :premises ()
@@ -992,7 +1046,7 @@ Notice that the type `T` is a part of the parameter list and not explicitly prov
 
 ### Example rule: Symmetry of Equality
 
-```
+```scheme
 (declare-const = (-> (! Type :var T :implicit) T T Bool))
 (declare-rule symm ((T Type) (t T) (s T))
     :premises ((= t s))
@@ -1007,7 +1061,7 @@ In detail, an application of this proof rule for premise proof `(= a b)` for con
 
 A list of requirements can be given to a proof rule.
 
-```
+```scheme
 (declare-sort Int 0)
 (declare-consts <numeral> Int)
 (declare-fun >= (Int Int) Bool)
@@ -1024,7 +1078,7 @@ It requires that the left hand side of this inequality `x` is a negative numeral
 
 A rule can take an arbitrary number of premises via the syntax `:premise-list <term> <term>`. For example:
 
-```
+```scheme
 (declare-fun and (-> Bool Bool Bool) :right-assoc-nil true)
 (declare-rule and-intro ((F Bool))
     :premise-list F and
@@ -1040,7 +1094,7 @@ Note that the type of functions provided as the second argument of `:premise-lis
 #  <a name="proofs"></a> Writing Proofs
 
 The ALF language provies the commands `assume` and `step` for defining proofs. Their syntax is given by:
-```
+```scheme
 (assume <symbol> <term>)
 (step <symbol> <term>? :rule <symbol> <premises>? <arguments>?)
 where
@@ -1049,7 +1103,7 @@ where
 ```
 ### Example proof: symmetry of equality
 
-```
+```scheme
 (declare-const = (-> (! Type :var T :implicit) T T Bool))
 (declare-rule symm ((T Type) (t T) (s T))
     :premises ((= t s))
@@ -1068,7 +1122,7 @@ The ALF language includes commands `assume-push` and `step-pop` with the same sy
 However, the former can be seen as introducing a local assumption that is consumed by the latter.
 We give an example of this in following.
 
-```
+```scheme
 (declare-const => (-> Bool Bool Bool))
 (declare-rule implies-intro ((F Bool) (G Bool))
   :assumption F
@@ -1107,7 +1161,7 @@ Locally assumptions can be arbitrarily nested, for example the above can be exte
 
 The ALF language supports a command for defining ordered lists of rewrite rules that can be seen as computational side conditions.
 The syntax for this command is as follows.
-```
+```scheme
 (program <symbol> (<typed-param>*) (<type>*) <type> ((<term> <term>)+))
 ```
 This command declares a program named `<symbol>`.
@@ -1130,7 +1184,7 @@ Furthermore, if `si` contains any computational operators (i.e. those with `alf.
 ### Example: Finding a child in an `or` term
 
 The following program (recursively) computes whether a formula `l` is contained as the direct child of an application of `or`:
-```
+```scheme
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (program contains
     ((l Bool) (x Bool) (xs Bool :list))
@@ -1159,7 +1213,7 @@ For the definition of `contains` in the above example, the term `(contains l c)`
 Computing the latter is significantly faster in practice in the ALF checker.
 
 ### Example: Finding a child in an `or` term (incorrect version)
-```
+```scheme
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (program contains
     ((l Bool) (x Bool) (xs Bool))
@@ -1178,7 +1232,7 @@ In other words, these terms will match `or` terms with *exactly* two children, f
 However, `(contains (or a b c) a)` does not evaluate in this example.
 
 ### Example: Finding a child in an `or` term (incorrect version 2)
-```
+```scheme
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (program contains
     ((l Bool) (x Bool :list) (xs Bool :list))
@@ -1197,7 +1251,7 @@ Thus, the third case of the program, `(contains (alf.list_concat or x xs) l)`, i
 
 ### Example: Substitution
 
-```
+```scheme
 (program substitute
   ((T Type) (U Type) (S Type) (x S) (y S) (f (-> T U)) (a T) (z U))
   (S S U) U
@@ -1217,7 +1271,7 @@ Thus, the side condition is written in three cases: either `t` is `x` in which c
 
 ### Example: Term evaluator
 
-```
+```scheme
 (declare-sort Int 0)
 (declare-consts <numeral> Int)
 (declare-const = (-> (! Type :var T :implicit) T T Bool))
@@ -1243,7 +1297,7 @@ The above example recursively evaluates arithmetic terms and predicates accordin
 
 ### Example: A computational type rule
 
-```
+```scheme
 (declare-sort Int 0)
 (declare-sort Real 0)
 (program arith.typeunion ()
@@ -1266,7 +1320,7 @@ The return type of `+` invokes this side condition, which conceptually is implem
 
 ### Example: Conversion to DIMACS
 
-```
+```scheme
 (declare-sort String 0)
 (declare-consts <string> String)
 (declare-const not (-> Bool Bool))
@@ -1301,7 +1355,7 @@ The above program `to_dimacs` converts an ALF formula into DIMACS form, where `a
 ## Match statements in ALF
 
 The ALF checker supports an operator `alf.match` for performing pattern matching on a target term. The syntax of this term is:
-```
+```scheme
 (alf.match (<typed-param>*) <term> ((<term> <term>)*))
 ```
 The term `(alf.match (...) t ((s1 r1) ... (sn rn)))` finds the first term `si` in the list `s1 ... sn` that `t` can be matched with under some substitution and returns the result of applying that substitution to `ri`.
@@ -1314,7 +1368,7 @@ Also, similar to programs, the free parameters of `ri` that occur in the paramet
 
 ### Examples of legal and illegal match terms
 
-```
+```scheme
 (declare-sort Int 0)
 (declare-const F Bool)
 (declare-const a Int)
@@ -1355,7 +1409,7 @@ Also, similar to programs, the free parameters of `ri` that occur in the paramet
 
 ### Example: Proof rule for symmetry of (dis)equality
 
-```
+```scheme
 (declare-sort Int 0)
 (declare-const = (-> (! Type :var T :implicit) T T Bool))
 (declare-const not (-> Bool Bool))
@@ -1374,7 +1428,7 @@ The above rule performs symmetry on equality or disequality.
 It matches the given premise `F` with either `(= t1 t2)` or `(not (= t1 t2))` and flips the terms on the sides of the (dis)equality.
 
 Internally, the semantics of `alf.match` can be seen as an (inlined) program applied to its head, such that the above example is equivalent to:
-```
+```scheme
 (declare-sort Int 0)
 (declare-const = (-> (! Type :var T :implicit) T T Bool))
 (declare-const not (-> Bool Bool))
@@ -1397,7 +1451,7 @@ In more general cases, if the body of the match term contains free variables, th
 
 ### Example: Proof rule for transitivity of equality with a premise list
 
-```
+```scheme
 (declare-sort Int 0)
 (declare-const = (-> (! Type :var T :implicit) T T Bool))
 (declare-const and (-> Bool Bool Bool) :left-assoc)
@@ -1453,7 +1507,7 @@ Minor changes in how terms are represented will lead to mismatches.
 For this reason, alfc additionally supports providing an optional normalization routine via `(reference <string> <term>)`, which includes the file indicated by the given string and specifies all assumptions must match an assertion after running the provided normalization function.
 
 For example:
-```
+```scheme
 (declare-sort Int 0)
 (declare-sort Real 0)
 (declare-const / (-> Int Int Real))
@@ -1478,7 +1532,7 @@ We reference to such functions as *oracle functions*.
 The syntax and semantics of such functions are described in [].
 
 In particular, the ALF checker supports the command:
-```
+```scheme
 (declare-oracle-fun <symbol> (<type>*) <type> <symbol>)
 ```
 Like `declare-fun`, this command declares a constant named `<symbol>` whose type is given by the argument types and return type.
@@ -1487,7 +1541,7 @@ Ground applications of oracle functions are eagerly evaluated by invoking the bi
 
 ### Example: Oracle isPrime
 
-```
+```scheme
 (declare-sort Int 0)
 (declare-consts <numeral> Int)
 (declare-const = (-> (! Type :var T :implicit) T T Bool))
@@ -1666,7 +1720,7 @@ for all other (non-Quote) types U.
 ```
 
 The command:
-```
+```scheme
 (declare-rule s ((v1 T1) ... (vi Ti)) 
     :premises (p1 ... pn) 
     :args (t1 ... tm) 
@@ -1674,7 +1728,7 @@ The command:
     :conclusion t)
 ```
 can be seen as syntax sugar for:
-```
+```scheme
 (declare-fun s
     (-> (! T1 :var v1 :implicit) ... (! Ti :var vi :implicit)
         (Proof p1) ... (Proof pn)
@@ -1684,20 +1738,20 @@ can be seen as syntax sugar for:
 ```
 
 The command:
-```
+```scheme
 (assume s f)
 ```
 can be seen as syntax sugar for:
-```
+```scheme
 (declare-const s (Proof f))
 ```
 
 The command:
-```
+```scheme
 (step s f :rule r :premises (p1 ... pn) :args (t1 ... tm))
 ```
 can be seen as syntax sugar for:
-```
+```scheme
 (define-fun s () (Proof f) (r p1 ... pn t1 ... tm))
 ```
 Notice this is only the case if the declaration of `r` does not involve `:assumption` or `:premise-list`.
