@@ -96,11 +96,12 @@ The following commands are supported for declaring and defining types and terms.
 - `(define-type <symbol> (<type>*) <type>)` defines `<symbol>` to be a lambda term whose kind is given
 - `(declare-datatype <symbol> <datatype-dec>)` defines a datatype `<symbol>`, along with its associated constructors, selectors, discriminators and updaters.
 - `(declare-datatypes (<sort-dec>^n) (<datatype-dec>^n))` defines a list of `n` datatypes for some `n>0`.
-- `(reset)` removes all declarations and definitions and resets the global scope.
+- `(exit)` causes the checker to immediately terminate.
+- `(reset)` removes all declarations and definitions and resets the global scope. This command is similar in nature to its counterpart in SMT-LIB.
 
 The ALF language contains further commands for declaring symbols that are not standard SMT-LIB version 3.0:
 - `(declare-consts <lit-category> <type>)` declares the class of symbols denoted by the literal category to have the given type.
-- `(define <symbol> (<typed-param>*) <term>)`, defines `<symbol>` to be a lambda term whose arguments and body and given by the command, or the body if the argument list is empty. Note that in contrast to the SMT-LIB command `define-fun`, a return type is not provided.
+- `(define <symbol> (<typed-param>*) <term> <attr>*)`, defines `<symbol>` to be a lambda term whose arguments and body and given by the command, or the body if the argument list is empty. Note that in contrast to the SMT-LIB command `define-fun`, a return type is not provided. The provided attributes may instruct the checker to perform e.g. type checking on the given term see [type checking define](#tcdefine).
 - `(declare-parameterized-const <symbol> (<typed-param>*) <type> <attr>*)` declares a variable named `<symbol>` whose type is `<type>`.
 
 > Variables are internally treated the same as constants by the ALF checker, but are provided as a separate category, e.g. for user signatures that wish to distinguish universally quantified variables from free constants. They also have a relationship with user-defined binders, see [binders](#binders), and can be accessed via the builtin operator `alf.var` (see [computation](#computation)).
@@ -163,7 +164,7 @@ Note the following declarations all generate terms of the same type:
 (declare-const Array_v3 (-> Type Type Type))
 ```
 
-## The :type attribute
+## <a name="literals"></a>The :type attribute for definitions
 
 To type check terms, define statements can be annotated with `:type <term>`.
 In particular:
@@ -223,15 +224,16 @@ The second annotation indicates that `(alf.is_neg w)` must evaluate to `false`, 
 
 ## <a name="attributes"></a>Declarations with attributes
 
-The ALF language supports term annotations on parameters and declared functions, which for instance can allow the user to treat a declared function as being variadic, i.e. taking an arbitrary number of arguments. The available annotations in the ALF checker are:
-- `:right-assoc` (resp. `:left-assoc`) denoting that the term is right (resp. left) associative,
-- `:right-assoc-nil <term>?` (resp. `:left-assoc-nil <term>?`) denoting that the term is right (resp. left) associative with the given nil terminator,
-- `:list`, denoting that the term should be treated as a list when appearing as a child of an application of a right (left) associative operator,
-- `:chainable <term>` denoting that the arguments of the term are chainable using the given (binary) operator,
-- `:pairwise <term>` denoting that the arguments of the term are treated pairwise using the given (binary) operator.
-- `:binder <term>` denoting that the first argument of the term can be provided using a syntax for variable lists whose constructor is the one provided.
+The ALF language supports term annotations on declared constants, which for instance can allow the user to treat a constant as being variadic, i.e. taking an arbitrary number of arguments. The available annotations in the ALF checker for this purpose are:
+- `:right-assoc` (resp. `:left-assoc`) denoting that the declared constant is right (resp. left) associative,
+- `:right-assoc-nil <symbol>` (resp. `:left-assoc-nil <symbol>`) denoting that the declared constant is right (resp. left) associative with the given nil terminator given by `<symbol>`,
+- `:chainable <symbol>` denoting that the arguments of the declared constant are chainable using the (binary) operator given by `<symbol>`,
+- `:pairwise <symbol>` denoting that the arguments of the declared constant are treated pairwise using the (binary) operator given by `<symbol>`.
+- `:binder <symbol>` denoting that the first argument of the declared constant can be provided using a syntax for variable lists whose constructor is the one provided by `<symbol>`.
+A declared function can be marked with at most one of the above attributes or an error is thrown.
 
-A parameter or function can be marked with at most one of the above attributes or an error is thrown.
+A parameter may be marked with the following attributes:
+- `:list`, denoting that the parameter should be treated as a list when appearing as a child of an application of a right (left) associative operator.
 
 ### Right/Left associative
 
