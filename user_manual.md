@@ -945,9 +945,17 @@ Otherwise, the term `(alf.as t (-> T1 ... Tn T))` is unevaluated.
 
 # Declaring Proof Rules
 
-The ALF language supports a command `declare-rule` for defining proof rules. Its syntax is given by:
+The generic syntax for a `declare-rule` command accepted by `alfc` is:
 ```
-(declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term>)
+(declare-rule <symbol> <keyword>? <sexpr>*)
+```
+When parsing this command, `alfc` will determine the format of the expected arguments based on the given keyword.
+If the `<keyword>` is not provided, the we assume it has been marked `:alfc`.
+All rules not marked with `:alfc` are not supported by the checker are unsupported and will cause the checker to terminate.
+
+If the keyword is `:alfc`, then the expected syntax that follows is given below:
+```
+(declare-rule <symbol> :alfc (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term>)
 where
 <assumption>    ::= :assumption <term>
 <premises>      ::= :premises (<term>*) | :premise-list <term> <term>
@@ -1105,10 +1113,19 @@ Locally assumptions can be arbitrarily nested, for example the above can be exte
 
 # Side Conditions
 
-The ALF language supports a command for defining ordered lists of rewrite rules that can be seen as computational side conditions.
+Similar to `declare-rule`, the ALF checker supports an extensible syntax for programs whose generic syntax is given by:
+```
+(program <symbol> <keyword>? <sexpr>*)
+```
+When parsing this command, `alfc` will determine the format of the expected arguments based on the given keyword.
+If the `<keyword>` is not provided, the we assume it has been marked `:alfc`.
+All programs not marked with `:alfc` are not supported by the checker are unsupported and will cause the checker to terminate.
+
+If the keyword is `:alfc`, then the expected syntax that follows is given below, and is used for defining recursive programs.
+In particular, in the ALF checker, a program is an ordered lists of rewrite rules.
 The syntax for this command is as follows.
 ```
-(program <symbol> (<typed-param>*) (<type>*) <type> ((<term> <term>)+))
+(program <symbol> :alfc (<typed-param>*) (<type>*) <type> ((<term> <term>)+))
 ```
 This command declares a program named `<symbol>`.
 The provided type parameters are implicit and are used to define its type signature and body.
@@ -1544,11 +1561,13 @@ Valid inputs to the ALF checker are `<alf-command>*`, where:
     (declare-consts <lit-category> <type>) |
     (declare-parameterized-const <symbol> (<typed-param>*) <type> <attr>*) |
     (declare-oracle-fun <symbol> (<type>*) <type> <symbol>) |
+    (declare-rule <symbol> <keyword> <sexpr>*) |
     (declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term>) |
     (declare-type <symbol> (<type>*)) |
     (define <symbol> (<typed-param>*) <term>) |
     (define-type <symbol> (<type>*) <type>) |
     (include <string>) |
+    (program <symbol> <keyword> <sexpr>*) |
     (program <symbol> (<typed-param>*) (<type>*) <type> ((<term> <term>)+)) |
     (reference <string> <symbol>?) |
     (step <symbol> <term>? :rule <symbol> <simple-premises>? <arguments>?) |
