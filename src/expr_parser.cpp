@@ -78,6 +78,7 @@ ExprParser::ExprParser(Lexer& lex, State& state, bool isReference)
 {
   d_strToAttr[":var"] = Attr::VAR;
   d_strToAttr[":implicit"] = Attr::IMPLICIT;
+  d_strToAttr[":type"] = Attr::TYPE;
   d_strToAttr[":list"] = Attr::LIST;
   d_strToAttr[":requires"] = Attr::REQUIRES;
   d_strToAttr[":left-assoc"] = Attr::LEFT_ASSOC;
@@ -1016,7 +1017,7 @@ std::string ExprParser::parseStr(bool unescape)
   return s;
 }
 
-void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedScope)
+void ExprParser::parseAttributeList(Expr& e, AttrMap& attrs, bool& pushedScope)
 {
   std::map<std::string, Attr>::iterator its;
   // while the next token is KEYWORD, exit if RPAREN
@@ -1092,6 +1093,17 @@ void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedS
         parseLiteralKind();
       }
         break;
+      case Attr::TYPE:
+      {
+        val = parseExpr();
+        // run type checking
+        if (e.isNull())
+        {
+          d_lex.parseError("Cannot use :type in this context");
+        }
+        typeCheck(e, val);
+      }
+        break;
       default:
         d_lex.parseError("Unhandled attribute");
         break;
@@ -1101,7 +1113,7 @@ void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs, bool& pushedS
   d_lex.reinsertToken(Token::RPAREN);
 }
 
-void ExprParser::parseAttributeList(const Expr& e, AttrMap& attrs)
+void ExprParser::parseAttributeList(Expr& e, AttrMap& attrs)
 {
   bool pushedScope = false;
   parseAttributeList(e, attrs, pushedScope);

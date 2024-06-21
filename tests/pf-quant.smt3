@@ -13,7 +13,7 @@
 (step a_inst (=> (forall x1 (= x1 x1)) (= a a)) :rule forall-inst :premises (forall_x_eq_x) :args (a))
 
 
-(define-fun F_x () Bool (exists x1 (= x1 x1)))
+(define F_x () (exists x1 (= x1 x1)))
 
 (assume ex_x F_x)
 

@@ -5,7 +5,7 @@
 
 
 (declare-sort U 0)
-(define-fun f_true ((x U)) Bool true)
+(define f_true ((x U)) true)
 
 
 (declare-rule trust ((f Bool))

@@ -5,8 +5,8 @@
 (declare-const a Bool)
 (declare-const b Bool)
 
-(define-fun P ((x Bool)) Bool x)
-(define-fun Q ((x Bool :list)) Bool (or x))
+(define P ((x Bool)) x)
+(define Q ((x Bool :list)) (or x))
 
 (declare-const = (-> (! Type :var A :implicit) A A Bool))
 (declare-rule refl ((T Type) (t T))

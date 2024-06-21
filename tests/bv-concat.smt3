@@ -20,5 +20,5 @@
 
 (declare-fun x () (BitVec 2))
 (declare-fun y () (BitVec 3))
-(define-fun z () (BitVec 5) (bvconcat x y))
+(define z () (bvconcat x y) :type (BitVec 5))
 

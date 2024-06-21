@@ -23,6 +23,7 @@ enum class Attr
   VAR,
   IMPLICIT,
   REQUIRES,
+  TYPE,
 
   //------------------ below here is mutually exclusive?
   LIST,

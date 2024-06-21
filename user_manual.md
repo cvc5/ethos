@@ -92,7 +92,6 @@ The following commands are supported for declaring and defining types and terms.
 - `(declare-sort <symbol> <numeral>)` declares a new type named `<symbol>` whose kind is `(-> Type^n Type)` if `n>0` or `Type` for the provided numeral `n`.
 - `(declare-type <symbol> (<type>*))` declares a new type named `<symbol>` whose kind is given by the argument types and return type `Type`.
 - `(define-const <symbol> <term>)` defines `<symbol>` to be the given term.
-- `(define-fun <symbol> (<typed-param>*) <type> <term>)` defines `<symbol>` to be a lambda term whose arguments, return type and body and given by the command, or the body if the argument list is empty. This throws an error if the type of the body term is not the specified type.
 - `(define-sort <symbol> (<symbol>*) <type>)` defines `<symbol>` to be a lambda term whose arguments are given by variables of kind `Type` and whose body is given by the return type, or the return type if the argument is empty.
 - `(define-type <symbol> (<type>*) <type>)` defines `<symbol>` to be a lambda term whose kind is given
 - `(declare-datatype <symbol> <datatype-dec>)` defines a datatype `<symbol>`, along with its associated constructors, selectors, discriminators and updaters.
@@ -101,7 +100,7 @@ The following commands are supported for declaring and defining types and terms.
 
 The ALF language contains further commands for declaring symbols that are not standard SMT-LIB version 3.0:
 - `(declare-consts <lit-category> <type>)` declares the class of symbols denoted by the literal category to have the given type.
-- `(define <symbol> (<typed-param>*) <term>)`, which is identical to `define-fun` but the body term is not type checked against a reference type.
+- `(define <symbol> (<typed-param>*) <term>)`, defines `<symbol>` to be a lambda term whose arguments and body and given by the command, or the body if the argument list is empty. Note that in contrast to the SMT-LIB command `define-fun`, a return type is not provided.
 - `(declare-parameterized-const <symbol> (<typed-param>*) <type> <attr>*)` declares a variable named `<symbol>` whose type is `<type>`.
 
 > Variables are internally treated the same as constants by the ALF checker, but are provided as a separate category, e.g. for user signatures that wish to distinguish universally quantified variables from free constants. They also have a relationship with user-defined binders, see [binders](#binders), and can be accessed via the builtin operator `alf.var` (see [computation](#computation)).
@@ -128,19 +127,19 @@ Note that despite using different syntax in their declarations, the types of `f`
 
 ```
 (declare-const not (-> Bool Bool))
-(define-fun id ((x Bool)) Bool x)
-(define-fun notId ((x Int)) Bool (not (id x)))
+(define id ((x Bool)) x)
+(define notId ((x Int)) (not (id x)))
 ```
 
 In the example above, `not` is declared to be a unary function over Booleans. Two defined functions are given, the first being an identity function over Booleans, and the second returning the negation of the first.
 
-Since `define-fun` commands are treated as macro definitions, in this example, `id` is mapped to the lambda term whose SMT-LIB version 3 syntax is `(lambda ((x Bool)) x)`.
+Since `define` commands are treated as macro definitions, in this example, `id` is mapped to the lambda term whose SMT-LIB version 3 syntax is `(lambda ((x Bool)) x)`.
 Furthermore, `notId` is mapped to the lambda term `(lambda ((x Bool)) (not x))`.
 In other words, the following file is equivalent to the one above after parsing:
 ```
 (declare-const not (-> Bool Bool))
-(define-fun id ((x Bool)) Bool x)
-(define-fun notId ((x Int)) Bool (not x))
+(define id ((x Bool)) x)
+(define notId ((x Int)) (not x))
 ```
 
 ### Example: Polymorphic types
@@ -164,6 +163,17 @@ Note the following declarations all generate terms of the same type:
 (declare-const Array_v3 (-> Type Type Type))
 ```
 
+## The :type attribute
+
+To type check terms, define statements can be annotated with `:type <term>`.
+In particular:
+```
+(declare-const not (-> Bool Bool))
+(define notTrue () (not true) :type Bool)
+```
+This indicates that the checker should compute the type of the term `(not true)`.
+If this is not the specified type (in this case `Bool`), an error will be thrown.
+
 ## The :var and :implicit annotations
 
 The ALF language uses the SMT-LIB version 3.0 attributes `:var <symbol>` and `:implicit` in term annotations for naming arguments of functions and specifying they are implicit.
@@ -171,7 +181,7 @@ The ALF language uses the SMT-LIB version 3.0 attributes `:var <symbol>` and `:i
 ```
 (declare-sort Int 0)
 (declare-const eq (-> (! Type :var T) T T Bool))
-(define-fun P ((x Int) (y Int)) Bool (eq Int x y))
+(define P ((x Int) (y Int)) (eq Int x y))
 ```
 
 The above example declares a predicate `eq` whose first argument is a type, that is given a name `T`. It then expects two terms of type `T` and returns a `Bool`. In the definition of `P`, this predicate is applied to two variables, where the type `Int` must be explicitly provided.
@@ -179,7 +189,7 @@ The above example declares a predicate `eq` whose first argument is a type, that
 ```
 (declare-sort Int 0)
 (declare-const = (-> (! Type :var T :implicit) T T Bool))
-(define-fun P ((x Int) (y Int)) Bool (= x y))
+(define P ((x Int) (y Int)) (= x y))
 ```
 
 In contrast, the above example declares a predicate `=` where the type of the arguments is implicit (this corresponds to the SMT-LIB standard definition of equality). In the definition of `P`, the type of the arguments `Int` does not need to be provided.
@@ -227,9 +237,9 @@ A parameter or function can be marked with at most one of the above attributes o
 
 ```
 (declare-const or (-> Bool Bool Bool) :right-assoc)
-(define-fun P ((x Bool) (y Bool) (z Bool)) Bool (or x y z))
-(define-fun Q ((x Bool) (y Bool)) Bool (or x y))
-(define-fun R ((x Bool)) (-> Bool Bool) (or x))
+(define P ((x Bool) (y Bool) (z Bool)) (or x y z))
+(define Q ((x Bool) (y Bool)) (or x y))
+(define R ((x Bool)) (or x))
 ```
 
 In the above example, `(or x y z)` is syntax sugar for `(or x (or y z))`.
@@ -239,7 +249,7 @@ The term `(or x)` is also not impacted by the annotation, and denotes the partia
 Left associative can be defined analogously:
 ```
 (declare-const and (-> Bool Bool Bool) :left-assoc)
-(define-fun P ((x Bool) (y Bool) (z Bool)) Bool (and x y z))
+(define P ((x Bool) (y Bool) (z Bool)) (and x y z))
 ```
 In the above example, `(and x y z)` is syntax sugar for `(and (and x y) z)`.
 
@@ -251,9 +261,9 @@ ALF supports a variant of the aforementioned functionality where a (ground) nil 
 
 ```
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
-(define-fun P ((x Bool) (y Bool) (z Bool)) Bool (or x y z))
-(define-fun Q ((x Bool) (y Bool)) Bool (or x y))
-(define-fun R ((x Bool) (y Bool)) Bool (or x))
+(define P ((x Bool) (y Bool) (z Bool)) (or x y z))
+(define Q ((x Bool) (y Bool)) (or x y))
+(define R ((x Bool) (y Bool)) (or x))
 ```
 
 In the above example, `(or x y z)` is syntax sugar for `(or x (or y (or z false)))`,
@@ -265,8 +275,8 @@ In particular, note the following example:
 
 ```
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
-(define-fun P ((x Bool) (y Bool) (z Bool)) Bool (or x (or y z)))
-(define-fun Q ((x Bool) (y Bool) (z Bool)) Bool (or x y z))
+(define P ((x Bool) (y Bool) (z Bool)) (or x (or y z)))
+(define Q ((x Bool) (y Bool) (z Bool)) (or x y z))
 ```
 
 If `or` would have been marked `:right-assoc`, then the definition of both `P` and `Q` would be `(or x (or y z))` after desugaring.
@@ -309,8 +319,8 @@ This annotation marks that the term should be treated as a list of arguments whe
 
 ```
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
-(define-fun P ((x Bool) (y Bool)) Bool (or x y))
-(define-fun Q ((x Bool) (y Bool :list)) Bool (or x y))
+(define P ((x Bool) (y Bool)) (or x y))
+(define Q ((x Bool) (y Bool :list)) (or x y))
 (declare-const a Bool)
 (declare-const b Bool)
 (define-const Paab Bool (P a (or a b)))
@@ -340,7 +350,7 @@ Examples of this desugaring are given below.
 
 ```
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
-(define-fun test ((x Bool) (y Bool) (z Bool :list) (w Bool :list))
+(define test ((x Bool) (y Bool) (z Bool :list) (w Bool :list))
     (and
         (or x y)        ; (or x (or y false))
         (or x z)        ; (or x z)
@@ -360,8 +370,8 @@ In contrast, `(or x)` denotes the `or` whose children are `x` and `false`.
 (declare-sort Int 0)
 (declare-const and (-> Bool Bool Bool) :right-assoc)
 (declare-const >= (-> Int Int Bool) :chainable)
-(define-fun P ((x Int) (y Int) (z Int)) Bool (>= x y z))
-(define-fun Q ((x Int) (y Int)) Bool (>= x y))
+(define ((x Int) (y Int) (z Int)) (>= x y z))
+(define Q ((x Int) (y Int)) (>= x y))
 ```
 
 In the above example, `(>= x y z w)` is syntax sugar for `(and (>= x y) (>= y z))`,
@@ -376,7 +386,7 @@ where the type of its chaining operator is `(-> S S S)`, and that operator has b
 (declare-sort Int 0)
 (declare-const and (-> Bool Bool Bool) :right-assoc)
 (declare-const distinct (-> (! Type :var T :implicit) T T Bool) :pairwise and)
-(define-fun P ((x Int) (y Int) (z Int)) Bool (distinct x y z))
+(define P ((x Int) (y Int) (z Int)) (distinct x y z))
 ```
 In the above example, `(distinct x y z)` is syntax sugar for `(and (distinct x y) (distinct x z) (distinct y z))`.
 
@@ -392,12 +402,12 @@ where the type of its pairwise operator is `(-> S S S)`, and that operator has b
 (declare-const forall (-> @List Bool Bool) :binder @cons)
 (declare-fun P (Int) Bool)
 
-(define-fun Q1 () Bool (forall ((x Int)) (P x)))
-(define-fun Q2 () Bool (forall ((x Int)) (P x)))
-(define-fun Q3 () Bool (forall ((y Int)) (P y)))
+(define Q1 () (forall ((x Int)) (P x)))
+(define Q2 () (forall ((x Int)) (P x)))
+(define Q3 () (forall ((y Int)) (P y)))
 
 (define x () (alf.var "x" Int))
-(define-fun Q4 () Bool (forall (@cons x) (P x)))
+(define Q4 () (forall (@cons x) (P x)))
 ```
 In the above example, `forall` is declared as a binder.
 This indicates that the parser (optionally) accepts a variable list as the first argument when parsing applications of `forall` instead of a term.
@@ -776,7 +786,7 @@ for the term `or` applied to arguments `a,b`.
 
 (declare-fun x () (BitVec 2))
 (declare-fun y () (BitVec 3))
-(define-fun z () (BitVec 5) (concat x y))
+(define z () (concat x y) :type (BitVec 5))
 ```
 
 Above, we define a type declaration for `BitVec` that expects an integer (i.e. denoting the bitwidth) as an argument.
@@ -1582,7 +1592,6 @@ Valid inputs to the ALF checker are `<alf-command>*`, where:
     (declare-fun <symbol> (<type>*) <type> <attr>*) |
     (declare-sort <symbol> <numeral>) |
     (define-const <symbol> <term>) |
-    (define-fun <symbol> (<typed-param>*) <type> <term>) |
     (define-sort <symbol> (<symbol>*) <type>) |
     (echo <string>?) |
     (exit) |
@@ -1593,6 +1602,7 @@ Valid inputs to the ALF checker are `<alf-command>*`, where:
     (assert <term>) |
     (check-sat) |
     (check-sat-assuming (<term>*)) |
+    (define-fun <symbol> (<typed-param>*) <type> <term>) |
     (set-info <attr>) |
     (set-logic <symbol>) |
     (set-option <attr>) |
@@ -1694,7 +1704,7 @@ The command:
 ```
 can be seen as syntax sugar for:
 ```
-(declare-fun s
+(declare-const s
     (-> (! T1 :var v1 :implicit) ... (! Ti :var vi :implicit)
         (Proof p1) ... (Proof pn)
         (Quote t1) ... (Quote tm)
@@ -1717,6 +1727,7 @@ The command:
 ```
 can be seen as syntax sugar for:
 ```
-(define-fun s () (Proof f) (r p1 ... pn t1 ... tm))
+(define s () (r p1 ... pn t1 ... tm) :type (Proof f))
 ```
+If no conlusion is provided, then the type attribute is not specified.
 Notice this is only the case if the declaration of `r` does not involve `:assumption` or `:premise-list`.

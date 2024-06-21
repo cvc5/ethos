@@ -5,4 +5,4 @@
 (define-sort IntArray (T) (Array Int T))
 (declare-const a (Array Int Bool))
 (declare-const b (IntArray Bool))
-(define-fun P () Bool (= a b))
+(define P () (= a b) :type Bool)

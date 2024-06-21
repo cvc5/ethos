@@ -36,7 +36,6 @@ CmdParser::CmdParser(Lexer& lex,
   d_table["declare-fun"] = Token::DECLARE_FUN;
   d_table["declare-sort"] = Token::DECLARE_SORT;
   d_table["define-const"] = Token::DEFINE_CONST;
-  d_table["define-fun"] = Token::DEFINE_FUN;
   d_table["define-sort"] = Token::DEFINE_SORT;
   d_table["echo"] = Token::ECHO;
   d_table["exit"] = Token::EXIT;
@@ -56,6 +55,7 @@ CmdParser::CmdParser(Lexer& lex,
   {
     // only used in smt2 queries
     d_table["assert"] = Token::ASSERT;
+    d_table["define-fun"] = Token::DEFINE_FUN;
     d_table["check-sat"] = Token::CHECK_SAT;
     d_table["check-sat-assuming"] = Token::CHECK_SAT_ASSUMING;
     d_table["set-logic"] = Token::SET_LOGIC;
@@ -476,7 +476,7 @@ bool CmdParser::parseNextCommand()
     break;
     // (define-fun <symbol> (<sorted_var>*) <sort> <term>)
     // (define-type <symbol> (<sorted_var>*) <term>)
-    // (define <symbol> (<sorted_var>*) <term>)
+    // (define <symbol> (<sorted_var>*) <term> <attr>*)
     case Token::DEFINE_FUN:
     case Token::DEFINE_TYPE:
     case Token::DEFINE:
@@ -519,14 +519,60 @@ bool CmdParser::parseNextCommand()
         d_eparser.typeCheck(expr, ret);
       }
       d_state.popScope();
-      // make a lambda if given arguments
-      if (vars.size() > 0)
+      if (tok == Token::DEFINE_FUN)
       {
-        Expr vl = d_state.mkExpr(Kind::TUPLE, vars);
-        expr = d_state.mkExpr(Kind::LAMBDA, {vl, expr});
+        // This is for reference checking only. Note that = and lambda are
+        // not builtin symbols, thus we must assume they are defined by the user.
+        // We assume that a symbol named "=" has been defined.
+        Expr eq = d_state.getVar("=");
+        if (eq.isNull())
+        {
+          d_lex.parseError("Expected symbol '=' to be defined when parsing define-fun.");
+        }
+        Expr rhs = expr;
+        Expr t = ret;
+        if (!vars.empty())
+        {
+          // We assume that a symbol named "lambda" has been defined as a binder.
+          Expr lambda = d_state.getVar("lambda");
+          if (lambda.isNull())
+          {
+            d_lex.parseError("Expected symbol 'lambda' to be defined when parsing define-fun.");
+          }
+          Expr bvl = d_state.mkBinderList(lambda.getValue(), vars);
+          rhs = d_state.mkExpr(Kind::APPLY, {lambda, bvl, rhs});
+          std::vector<Expr> types;
+          for (Expr& e : vars)
+          {
+            types.push_back(d_eparser.typeCheck(e));
+          }
+          t = d_state.mkFunctionType(types, t, false);
+        }
+        Expr sym = d_state.mkSymbol(Kind::CONST, name, t);
+        Trace("define") << "Define: " << name << " -> " << sym << std::endl;
+        d_eparser.bind(name, sym);
+        Expr a = d_state.mkExpr(Kind::APPLY, {eq, sym, rhs});
+        Trace("define") << "Define-fun reference assert " << a << std::endl;
+        d_state.addReferenceAssert(a);
       }
-      d_eparser.bind(name, expr);
-      Trace("define") << "Define: " << name << " -> " << expr << std::endl;
+      else
+      {
+        // defines as a macro
+        // make a lambda if given arguments
+        if (vars.size() > 0)
+        {
+          Expr vl = d_state.mkExpr(Kind::TUPLE, vars);
+          expr = d_state.mkExpr(Kind::LAMBDA, {vl, expr});
+        }
+        d_eparser.bind(name, expr);
+        Trace("define") << "Define: " << name << " -> " << expr << std::endl;
+        // define additionally takes attributes
+        if (tok == Token::DEFINE)
+        {
+          AttrMap attrs;
+          d_eparser.parseAttributeList(expr, attrs);
+        }
+      }
     }
     break;
     // (define-sort <symbol> (<symbol>*) <sort>)
