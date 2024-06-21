@@ -209,7 +209,7 @@ We call `T` in the above definitions a *parameter*. The free parameters of the r
 
 ## The :requires annotation
 
-Arguments to functions can also be annotated with the attribute `:requires (<term> <term>)` to denote a condition under which the
+Arguments to functions can also be annotated with the attribute `:requires (<term> <term>)` to denote a equality condition that is required for applications of the term to type check.
 
 ```
 (declare-sort Int 0)
