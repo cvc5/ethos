@@ -1,4 +1,4 @@
-(declare-sort Int 0)
+(declare-type Int ())
 (declare-const - (-> Int Int Int))
 (declare-const - (-> Int Int))
 

@@ -1,5 +1,5 @@
-(declare-sort Int 0)
-(declare-sort Real 0)
+(declare-type Int ())
+(declare-type Real ())
 
 (declare-consts <numeral> Int)
 (declare-consts <rational> Real)

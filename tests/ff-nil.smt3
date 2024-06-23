@@ -1,4 +1,4 @@
-(declare-sort Int 0)
+(declare-type Int ())
 (declare-consts <numeral> Int)
 (declare-const FiniteField (-> Int Type))
 
@@ -10,7 +10,7 @@
     :right-assoc-nil (ff.value p 0)
 )
 
-(declare-fun c () (_ FiniteField 17))
+(declare-const c (_ FiniteField 17))
 
 (declare-const eq (-> (! Type :var T :implicit) T T Bool))
 

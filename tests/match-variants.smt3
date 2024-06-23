@@ -1,4 +1,4 @@
-(declare-sort Int 0)
+(declare-type Int ())
 (declare-const a Int)
 (declare-const b Int)
 (declare-const P (-> Int Bool))

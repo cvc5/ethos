@@ -11,7 +11,7 @@
    :conclusion a
 )
 
-(declare-sort U 0)
+(declare-type U ())
 
 (declare-const a U)
 (declare-const b U)

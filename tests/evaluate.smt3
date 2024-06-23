@@ -1,5 +1,5 @@
 
-(declare-sort Int 0)
+(declare-type Int ())
 
 (declare-const and (-> Bool Bool Bool))
 (declare-const i0 Int)
@@ -21,7 +21,7 @@
 )
 
 
-(declare-fun P () Bool)
-(declare-fun Q () Bool)
+(declare-const P Bool)
+(declare-const Q Bool)
 (assume a0 (and P Q))
 (step a1 P :rule and_elim :premises (a0) :args (i0))

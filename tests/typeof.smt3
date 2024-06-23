@@ -1,9 +1,9 @@
 (declare-const = (-> (! Type :var A :implicit) A A Bool))
 
-(declare-sort Int 0)
+(declare-type Int ())
 (declare-consts <numeral> Int)
 
-(declare-sort Real 0)
+(declare-type Real ())
 (declare-consts <rational> Real)
 
 (declare-const to_real (-> Int Real))

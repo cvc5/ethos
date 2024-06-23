@@ -1,6 +1,6 @@
 
 
-(declare-sort Int 0)
+(declare-type Int ())
 (declare-consts <numeral> Int)
 
 (declare-const and (-> Bool Bool Bool))
@@ -29,8 +29,8 @@
    :conclusion (select i (and f g))
 )
 
-(declare-fun P () Bool)
-(declare-fun Q () Bool)
+(declare-const P Bool)
+(declare-const Q Bool)
 (assume a0 (and P Q))
 (step a1 Q :rule and_elim :premises (a0) :args (1))
 

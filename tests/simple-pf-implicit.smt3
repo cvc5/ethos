@@ -8,9 +8,9 @@
   :conclusion (= y x))
 
   
-(declare-sort Int 0)
-(declare-fun a () Int)
-(declare-fun b () Int)
-(declare-fun c () Bool)
+(declare-type Int ())
+(declare-const a Int)
+(declare-const b Int)
+(declare-const c Bool)
 (assume a1 (= a b))
 (step a2 (= b a) :rule eq-symm :premises (a1) :args ())

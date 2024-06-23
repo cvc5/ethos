@@ -1,4 +1,4 @@
-(declare-sort Int 0)
+(declare-type Int ())
 (declare-consts <numeral> Int)
 (declare-const + (-> Int Int Int))
 (declare-const - (-> Int Int Int))
@@ -25,7 +25,7 @@
   )
 )
 
-(declare-fun f (Int) Int)
+(declare-const f (-> Int Int))
 
 
 (declare-rule eval_factorial ((x Int))
@@ -35,7 +35,7 @@
 (step @p0 (= (f 4) 24) :rule eval_factorial :args (4))
 
 
-(declare-fun e (Int) Int)
+(declare-const e (-> Int Int))
 
 (declare-rule eval_check_sign ((x Int))
   :args (x)

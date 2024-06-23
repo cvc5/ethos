@@ -1,4 +1,4 @@
-(declare-sort Int 0)
+(declare-type Int ())
 (declare-consts <numeral> Int)
 
 (declare-type BitVec (Int)) 
@@ -18,7 +18,7 @@
   (BitVec (alf.add n m))))
   
 
-(declare-fun x () (BitVec 2))
-(declare-fun y () (BitVec 3))
+(declare-const x (BitVec 2))
+(declare-const y (BitVec 3))
 (define z () (bvconcat x y) :type (BitVec 5))
 

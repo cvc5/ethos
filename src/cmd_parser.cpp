@@ -33,9 +33,6 @@ CmdParser::CmdParser(Lexer& lex,
   d_table["declare-const"] = Token::DECLARE_CONST;
   d_table["declare-datatype"] = Token::DECLARE_DATATYPE;
   d_table["declare-datatypes"] = Token::DECLARE_DATATYPES;
-  d_table["declare-fun"] = Token::DECLARE_FUN;
-  d_table["declare-sort"] = Token::DECLARE_SORT;
-  d_table["define-const"] = Token::DEFINE_CONST;
   d_table["echo"] = Token::ECHO;
   d_table["exit"] = Token::EXIT;
   d_table["pop"] = Token::POP;
@@ -54,6 +51,9 @@ CmdParser::CmdParser(Lexer& lex,
   {
     // only used in smt2 queries
     d_table["assert"] = Token::ASSERT;
+    d_table["declare-fun"] = Token::DECLARE_FUN;
+    d_table["declare-sort"] = Token::DECLARE_SORT;
+    d_table["define-const"] = Token::DEFINE_CONST;
     d_table["define-fun"] = Token::DEFINE_FUN;
     d_table["define-sort"] = Token::DEFINE_SORT;
     d_table["check-sat"] = Token::CHECK_SAT;
@@ -173,7 +173,7 @@ bool CmdParser::parseNextCommand()
         cons = d_state.mkLiteral(Kind::STRING, oname);
         // don't permit attributes for oracle functions
       }
-      else if (tok==Token::DECLARE_CONST || tok==Token::DECLARE_FUN || tok==Token::DECLARE_PARAMETERIZED_CONST)
+      else if (tok==Token::DECLARE_CONST || tok==Token::DECLARE_PARAMETERIZED_CONST)
       {
         // possible attribute list
         AttrMap attrs;
@@ -181,6 +181,7 @@ bool CmdParser::parseNextCommand()
         // determine if an attribute specified a constructor kind
         d_eparser.processAttributeMap(attrs, ck, cons, params);
       }
+      // declare-fun does not parse attribute list, as it is only in smt2
       t = ret;
       if (!sorts.empty())
       {

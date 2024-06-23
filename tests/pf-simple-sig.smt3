@@ -1,10 +1,10 @@
 
 (include "./simple-sig.smt3")
 
-(declare-sort Int 0)
-(declare-fun a () Int)
-(declare-fun b () Int)
-(declare-fun c () Bool)
+(declare-type Int ())
+(declare-const a Int)
+(declare-const b Int)
+(declare-const c Bool)
 (assume a1 (= a b))
 (assume a2 (not (= b a)))
 (step a3 (= b a) :rule eq-symm :premises (a1) :args ())
