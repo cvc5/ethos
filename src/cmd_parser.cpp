@@ -29,17 +29,15 @@ CmdParser::CmdParser(Lexer& lex,
 {
   // initialize the command tokens
   // commands supported in both inputs and proofs
-  d_table["declare-codatatype"] = Token::DECLARE_CODATATYPE;    // TODO: remove
-  d_table["declare-codatatypes"] = Token::DECLARE_CODATATYPES;  // TODO: remove
+  d_table["declare-codatatype"] = Token::DECLARE_CODATATYPE;    // undocumented, TODO: remove
+  d_table["declare-codatatypes"] = Token::DECLARE_CODATATYPES;  // undocumented, TODO: remove
   d_table["declare-const"] = Token::DECLARE_CONST;
   d_table["declare-datatype"] = Token::DECLARE_DATATYPE;
   d_table["declare-datatypes"] = Token::DECLARE_DATATYPES;
-  d_table["declare-oracle-fun"] = Token::DECLARE_ORACLE_FUN;
-  d_table["declare-parameterized-const"] = Token::DECLARE_PARAMETERIZED_CONST;
   d_table["echo"] = Token::ECHO;
   d_table["exit"] = Token::EXIT;
-  d_table["pop"] = Token::POP;
-  d_table["push"] = Token::PUSH;
+  d_table["pop"] = Token::POP;    // undocumented
+  d_table["push"] = Token::PUSH;  // undocumented
   d_table["reset"] = Token::RESET;
 
   if (d_isReference)
@@ -62,6 +60,8 @@ CmdParser::CmdParser(Lexer& lex,
     d_table["assume"] = Token::ASSUME;
     d_table["assume-push"] = Token::ASSUME_PUSH;
     d_table["declare-consts"] = Token::DECLARE_CONSTS;
+    d_table["declare-oracle-fun"] = Token::DECLARE_ORACLE_FUN;
+    d_table["declare-parameterized-const"] = Token::DECLARE_PARAMETERIZED_CONST;
     d_table["declare-rule"] = Token::DECLARE_RULE;
     d_table["declare-type"] = Token::DECLARE_TYPE;
     d_table["define"] = Token::DEFINE;
