@@ -1,9 +1,9 @@
 (include "Arith-rules.smt3")
 
-(declare-fun x () Int)
-(declare-fun y () Int)
-(declare-fun z () Int)
-(declare-fun w () Int)
+(declare-const x Int)
+(declare-const y Int)
+(declare-const z Int)
+(declare-const w Int)
 
 (assume @p0 (< x (* 2 y)))
 (assume @p1 (< y z))

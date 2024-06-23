@@ -404,7 +404,7 @@ where the type of its pairwise operator is `(-> S S S)`, and that operator has b
 (declare-const @nil @List)
 (declare-const @cons (-> (! Type :var T :implicit) T @List @List) :right-assoc-nil @nil)
 (declare-const forall (-> @List Bool Bool) :binder @cons)
-(declare-fun P (Int) Bool)
+(declare-const P (-> Int Bool))
 
 (define Q1 () (forall ((x Int)) (P x)))
 (define Q2 () (forall ((x Int)) (P x)))
@@ -463,7 +463,7 @@ The following gives an example of how to define the class of numeral constants.
 ```
 (declare-sort Int 0)
 (declare-consts <numeral> Int)
-(declare-fun P ((x Int)) Bool (> x 7))
+(define P ((x Int)) (> x 7))
 ```
 
 In the above example, the `declare-consts` command specifies that numerals (`1`, `2`, `3`, and so on) are constants of type `Int`.
@@ -788,8 +788,8 @@ for the term `or` applied to arguments `a,b`.
   (BitVec m)
   (BitVec (alf.add n m))))
 
-(declare-fun x () (BitVec 2))
-(declare-fun y () (BitVec 3))
+(declare-const x (BitVec 2))
+(declare-const y (BitVec 3))
 (define z () (concat x y) :type (BitVec 5))
 ```
 
@@ -802,8 +802,8 @@ If on the other hand we defined:
 ...
 (declare-const a Int)
 (declare-const b Int)
-(declare-fun x2 () (BitVec a))
-(declare-fun y2 () (BitVec b))
+(declare-const x2 (BitVec a))
+(declare-const y2 (BitVec b))
 (define z2 () (concat x2 y2))
 ```
 The type `z2` in the above example is `(BitVec (alf.add a b))`, where the application of `alf.add` does not evaluate.

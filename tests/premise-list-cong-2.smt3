@@ -29,7 +29,7 @@
 (declare-const b U)
 (declare-const c U)
 (declare-const d U)
-(declare-fun f (U U) U)
+(declare-const f (-> U U U))
 
 (assume @p0 (= a b))
 (assume @p1 (= c d))
