@@ -52,10 +52,6 @@ int main( int argc, char* argv[] )
       opts.d_stats = true;
       opts.d_statsCompact = true;
     }
-    else if (arg=="--strict-parsing")
-    {
-      opts.d_strictParsing = true;
-    }
     else if (arg=="--no-rule-sym-table")
     {
       opts.d_ruleSymTable = false;
@@ -81,7 +77,6 @@ int main( int argc, char* argv[] )
       out << "      --show-config: displays the build information for this binary." << std::endl;
       out << "            --stats: enables detailed statistics." << std::endl;
       out << "    --stats-compact: print statistics in a compact format." << std::endl;
-      out << "   --strict-parsing: only accept commands in the SMT-LIB version 3.0 proposal. No proofs are supported when this is enabled." << std::endl;
       out << "           -t <tag>: enables the given trace tag (requires debug build)." << std::endl;
       out << "                 -v: verbose mode, enable all standard trace messages (requires debug build)." << std::endl;
       std::cout << out.str();
