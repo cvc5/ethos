@@ -52,6 +52,7 @@ CmdParser::CmdParser(Lexer& lex,
     // only used in smt2 queries
     d_table["assert"] = Token::ASSERT;
     d_table["declare-fun"] = Token::DECLARE_FUN;
+    d_table["define-const"] = Token::DEFINE_CONST;
     d_table["define-fun"] = Token::DEFINE_FUN;
     d_table["declare-sort"] = Token::DECLARE_SORT;
     d_table["define-sort"] = Token::DEFINE_SORT;
@@ -459,6 +460,18 @@ bool CmdParser::parseNextCommand()
       }
       Expr decType = d_state.mkSymbol(Kind::CONST, name, type);
       d_eparser.bind(name, decType);
+    }
+    break;
+    // (define-const <symbol> <sort> <term>)
+    case Token::DEFINE_CONST:
+    {
+      //d_state.checkThatLogicIsSet();
+      std::string name = d_eparser.parseSymbol();
+      //d_state.checkUserSymbol(name);
+      Expr ret = d_eparser.parseType();
+      Expr e = d_eparser.parseExpr();
+      d_eparser.typeCheck(e, ret);
+      d_eparser.bind(name, e);
     }
     break;
     // (define-fun <symbol> (<sorted_var>*) <sort> <term>)
