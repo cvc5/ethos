@@ -1,5 +1,5 @@
 
-(declare-sort Int 0)
+(declare-type Int ())
 
 (declare-const and (-> Bool Bool Bool))
 (declare-const i0 Int)

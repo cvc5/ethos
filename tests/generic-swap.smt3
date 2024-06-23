@@ -19,7 +19,7 @@
   :conclusion (is_swap t (swap t))
 )
 
-(declare-sort Int 0)
+(declare-type Int ())
 (declare-const a Int)
 (declare-const b Int)
 

@@ -2,7 +2,7 @@
 ; we can't do options in regression tests, these pass with:
 ; `--no-normalize-dec --no-normalize-hex`
 
-(declare-sort Real 0)
+(declare-type Real ())
 (declare-consts <rational> Real)
 ;(declare-consts <decimal> Real)
 (declare-sort BitVec 0)

@@ -14,7 +14,7 @@
   :conclusion false
 )
 
-(declare-sort Int 0)
+(declare-type Int ())
 (declare-const x Int)
 (declare-const y Int)
 (declare-const c Bool)

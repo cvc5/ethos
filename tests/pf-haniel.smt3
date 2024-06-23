@@ -1,7 +1,7 @@
 (include "Uf-rules.smt3")
 (include "Builtin-rules.smt3")
 (include "Booleans-rules.smt3")
-(declare-sort U 0)
+(declare-type U ())
 (declare-const f (-> U U U))
 (declare-const p2 Bool)
 (declare-const p3 Bool)

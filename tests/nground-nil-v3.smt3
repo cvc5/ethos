@@ -1,4 +1,4 @@
-(declare-sort Int 0)
+(declare-type Int ())
 (declare-consts <numeral> Int)
 
 (declare-const BitVec (-> Int Type))

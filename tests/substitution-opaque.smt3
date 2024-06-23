@@ -27,7 +27,7 @@
 (declare-const not (-> Bool Bool))
 
 (declare-sort Array 2)
-(declare-sort Int 0)
+(declare-type Int ())
 
 (declare-const @array_deq_diff 
   (-> 

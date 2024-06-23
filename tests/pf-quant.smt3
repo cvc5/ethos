@@ -1,6 +1,6 @@
 (include "./quant.smt3")
 
-(declare-sort Int 0)
+(declare-type Int ())
 
 (define x1 () (alf.var "x1" Int))
 (declare-const a Int)

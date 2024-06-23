@@ -1,6 +1,6 @@
 
-(declare-sort Int 0)
-(declare-sort Real 0)
+(declare-type Int ())
+(declare-type Real ())
 (declare-const BitVec (-> Int Type))
 (declare-sort String 0)
 (declare-type Seq (Type))
