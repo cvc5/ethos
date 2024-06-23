@@ -1,7 +1,7 @@
 
 (declare-const not (-> Bool Bool))
 
-(define f_true true)
+(define f_true () true)
 
 
 (declare-rule trust ((f Bool))
