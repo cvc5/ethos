@@ -814,7 +814,7 @@ For example, given a function `f` of type `(-> (BitVec (alf.add b a)) T)`, the t
 
 (declare-consts <binary> (BitVec (alf.len alf.self)))
 
-(define-const x (BitVec 3) #b000)
+(define x () #b000 :type (BitVec 3))
 ```
 To define the class of binary values, whose type depends on the number of bits they contain, the ALF checker provides support for a distinguished parameter `alf.self`.
 The type checker for values applies the substitution mapping `alf.self` to the term being type checked.
@@ -1027,7 +1027,7 @@ A list of requirements can be given to a proof rule.
 ```
 (declare-type Int ())
 (declare-consts <numeral> Int)
-(declare-fun >= (Int Int) Bool)
+(declare-const >= (-> Int Int Bool))
 (declare-rule leq-contra ((x Int))
     :premise ((>= x 0))
     :requires (((alf.is_neg x) true))
@@ -1042,7 +1042,7 @@ It requires that the left hand side of this inequality `x` is a negative numeral
 A rule can take an arbitrary number of premises via the syntax `:premise-list <term> <term>`. For example:
 
 ```
-(declare-fun and (-> Bool Bool Bool) :right-assoc-nil true)
+(declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
 (declare-rule and-intro ((F Bool))
     :premise-list F and
     :conclusion F)
