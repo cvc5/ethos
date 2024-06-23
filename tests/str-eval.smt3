@@ -15,7 +15,7 @@
     )
 )
 
-(declare-sort String 0)
+(declare-type String ())
 (declare-consts <string> String)
   
 (declare-const str.++ (-> String String String))

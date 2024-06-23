@@ -5,10 +5,10 @@
 (declare-type Real ())
 (declare-consts <rational> Real)
 ;(declare-consts <decimal> Real)
-(declare-sort BitVec 0)
+(declare-type BitVec ())
 (declare-consts <binary> BitVec)
 ;(declare-consts <hexadecimal> BitVec)
-(declare-sort String 0)
+(declare-type String ())
 (declare-consts <string> String)
 
 (declare-const ok (-> (! Type :var T :implicit) T Bool))

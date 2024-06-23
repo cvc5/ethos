@@ -26,7 +26,7 @@
 )
 
 
-(declare-sort String 0)
+(declare-type String ())
 (declare-consts <string> String)
 
 (declare-rule disinct_value_str ((t String) (s String))
@@ -35,7 +35,7 @@
     :conclusion (not (= t s))
 )
 
-(declare-sort Bin 0)
+(declare-type Bin ())
 (declare-consts <binary> Bin)
 
 (declare-rule disinct_value_bin ((t Bin) (s Bin))

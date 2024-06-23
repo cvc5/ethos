@@ -1,6 +1,6 @@
 (declare-type Int ())
 (declare-consts <numeral> Int)
-(declare-sort String 0)
+(declare-type String ())
 (declare-consts <string> String)
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (declare-const and (-> Bool Bool Bool) :right-assoc-nil true)

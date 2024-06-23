@@ -9,7 +9,7 @@
     :conclusion (> t s)
 )
 
-(declare-sort Bin 0)
+(declare-type Bin ())
 (declare-consts <binary> Bin)
 (declare-const bvugt (-> Bin Bin Bool))
 
