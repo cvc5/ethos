@@ -52,9 +52,9 @@ CmdParser::CmdParser(Lexer& lex,
     // only used in smt2 queries
     d_table["assert"] = Token::ASSERT;
     d_table["declare-fun"] = Token::DECLARE_FUN;
+    d_table["declare-sort"] = Token::DECLARE_SORT;
     d_table["define-const"] = Token::DEFINE_CONST;
     d_table["define-fun"] = Token::DEFINE_FUN;
-    d_table["declare-sort"] = Token::DECLARE_SORT;
     d_table["define-sort"] = Token::DEFINE_SORT;
     d_table["check-sat"] = Token::CHECK_SAT;
     d_table["check-sat-assuming"] = Token::CHECK_SAT_ASSUMING;
