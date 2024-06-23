@@ -33,7 +33,6 @@ CmdParser::CmdParser(Lexer& lex,
   d_table["declare-const"] = Token::DECLARE_CONST;
   d_table["declare-datatype"] = Token::DECLARE_DATATYPE;
   d_table["declare-datatypes"] = Token::DECLARE_DATATYPES;
-  d_table["define-const"] = Token::DEFINE_CONST;
   d_table["echo"] = Token::ECHO;
   d_table["exit"] = Token::EXIT;
   d_table["pop"] = Token::POP;
@@ -460,18 +459,6 @@ bool CmdParser::parseNextCommand()
       }
       Expr decType = d_state.mkSymbol(Kind::CONST, name, type);
       d_eparser.bind(name, decType);
-    }
-    break;
-    // (define-const <symbol> <sort> <term>)
-    case Token::DEFINE_CONST:
-    {
-      //d_state.checkThatLogicIsSet();
-      std::string name = d_eparser.parseSymbol();
-      //d_state.checkUserSymbol(name);
-      Expr ret = d_eparser.parseType();
-      Expr e = d_eparser.parseExpr();
-      d_eparser.typeCheck(e, ret);
-      d_eparser.bind(name, e);
     }
     break;
     // (define-fun <symbol> (<sorted_var>*) <sort> <term>)
