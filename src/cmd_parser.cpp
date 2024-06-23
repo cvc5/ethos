@@ -173,7 +173,7 @@ bool CmdParser::parseNextCommand()
         cons = d_state.mkLiteral(Kind::STRING, oname);
         // don't permit attributes for oracle functions
       }
-      else if (tok==Token::DECLARE_CONST || tok==Token::DECLARE_FUN || tok==Token::DECLARE_PARAMETERIZED_CONST)
+      else if (tok==Token::DECLARE_CONST || tok==Token::DECLARE_PARAMETERIZED_CONST)
       {
         // possible attribute list
         AttrMap attrs;
@@ -181,6 +181,7 @@ bool CmdParser::parseNextCommand()
         // determine if an attribute specified a constructor kind
         d_eparser.processAttributeMap(attrs, ck, cons, params);
       }
+      // declare-fun does not parse attribute list, as it is only in smt2
       t = ret;
       if (!sorts.empty())
       {
