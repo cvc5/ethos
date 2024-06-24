@@ -2,6 +2,8 @@
 
 This is the user manual for the AletheLF checker (alfc), an efficient and extensible tool for checking proofs of Satisfiability Modulo Theories (SMT) solvers.
 
+> Note that alfc is a research project. We are planning to release a checker in the coming months whose codebase will inherit that of alfc but will have a new name.
+
 ## Building alfc
 
 The source code for alfc is available here: https://github.com/cvc5/alfc.
