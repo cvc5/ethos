@@ -415,7 +415,13 @@ bool CmdParser::parseNextCommand()
       {
         std::vector<Expr> vs =
             d_eparser.parseAndBindSortedVarList();
-        
+        Expr lhs = d_eparser.parseExpr();
+        Expr rhs = d_eparser.parseExpr();
+        // we require that eq is defined
+        Expr eq = d_state.getVar("=");
+        eq = d_state.mkExpr(Kind::APPLY, {eq, lhs, rhs});
+        Expr ret = d_state.mkProofType(eq);
+        rule = d_state.mkSymbol(Kind::PROOF_RULE, name, ret);
       }
       else
       {
@@ -523,20 +529,13 @@ bool CmdParser::parseNextCommand()
         // not builtin symbols, thus we must assume they are defined by the user.
         // We assume that a symbol named "=" has been defined.
         Expr eq = d_state.getVar("=");
-        if (eq.isNull())
-        {
-          d_lex.parseError("Expected symbol '=' to be defined when parsing define-fun.");
-        }
+        Assert (!eq.isNull());
         Expr rhs = expr;
         Expr t = ret;
         if (!vars.empty())
         {
           // We assume that a symbol named "lambda" has been defined as a binder.
           Expr lambda = d_state.getVar("lambda");
-          if (lambda.isNull())
-          {
-            d_lex.parseError("Expected symbol 'lambda' to be defined when parsing define-fun.");
-          }
           Expr bvl = d_state.mkBinderList(lambda.getValue(), vars);
           rhs = d_state.mkExpr(Kind::APPLY, {lambda, bvl, rhs});
           std::vector<Expr> types;
