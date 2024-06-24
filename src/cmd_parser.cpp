@@ -310,6 +310,7 @@ bool CmdParser::parseNextCommand()
       d_state.pushScope();
       std::string name = d_eparser.parseSymbol();
       Format fm = d_eparser.parseFormat();
+      Expr rule;
       if (fm==Format::ALF)
       {
         std::vector<Expr> vs =
@@ -404,10 +405,7 @@ bool CmdParser::parseNextCommand()
         {
           ret = d_state.mkFunctionType(argTypes, ret, false);
         }
-        d_state.popScope();
-        Expr rule = d_state.mkSymbol(Kind::PROOF_RULE, name, ret);
-        d_eparser.typeCheck(rule);
-        d_eparser.bind(name, rule);
+        rule = d_state.mkSymbol(Kind::PROOF_RULE, name, ret);
         if (!plCons.isNull())
         {
           d_state.markConstructorKind(rule, Attr::PREMISE_LIST, plCons);
@@ -415,8 +413,17 @@ bool CmdParser::parseNextCommand()
       }
       else if (fm==Format::RARE)
       {
+        std::vector<Expr> vs =
+            d_eparser.parseAndBindSortedVarList();
         
       }
+      else
+      {
+        d_lex.parseError("Unknown format for declare-rule");
+      }
+      d_state.popScope();
+      d_eparser.typeCheck(rule);
+      d_eparser.bind(name, rule);
     }
     break;
     // (declare-sort <symbol> <numeral>)
