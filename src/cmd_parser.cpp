@@ -309,113 +309,113 @@ bool CmdParser::parseNextCommand()
       }
       d_state.pushScope();
       std::string name = d_eparser.parseSymbol();
-      if (d_lex.peekToken()==Token::KEYWORD)
+      Format fm = d_eparser.parseFormat();
+      if (fm==Format::ALF)
       {
+        std::vector<Expr> vs =
+            d_eparser.parseAndBindSortedVarList();
+        Expr assume;
+        Expr plCons;
+        std::vector<Expr> premises;
+        std::vector<Expr> args;
+        std::vector<Expr> reqs;
+        Expr conc;
+        // parse premises, optionally
         std::string keyword = d_eparser.parseKeyword();
-        if (keyword!="alfc")
+        if (keyword=="assumption")
         {
-          d_lex.parseError("Unsupported rule format");
+          assume = d_eparser.parseExpr();
+          keyword = d_eparser.parseKeyword();
+        }
+        if (keyword=="premises")
+        {
+          premises = d_eparser.parseExprList();
+          keyword = d_eparser.parseKeyword();
+        }
+        else if (keyword=="premise-list")
+        {
+          // :premise-list <pattern> <cons>
+          Expr pat = d_eparser.parseExpr();
+          plCons = d_eparser.parseExpr();
+          // pattern is the single premise
+          premises.push_back(pat);
+          keyword = d_eparser.parseKeyword();
+        }
+        // parse args, optionally
+        if (keyword=="args")
+        {
+          args = d_eparser.parseExprList();
+          keyword = d_eparser.parseKeyword();
+        }
+        // parse requirements, optionally
+        if (keyword=="requires")
+        {
+          // we support alf.conclusion in requirements
+          d_state.pushScope();
+          d_state.bind("alf.conclusion", d_state.mkConclusion());
+          // parse the expression pair list
+          reqs = d_eparser.parseExprPairList();
+          keyword = d_eparser.parseKeyword();
+          d_state.popScope();
+        }
+        // parse conclusion
+        if (keyword=="conclusion")
+        {
+          conc = d_eparser.parseExpr();
+        }
+        else if (keyword=="conclusion-given")
+        {
+          // :conclusion-given is equivalent to :conclusion alf.conclusion
+          conc = d_state.mkConclusion();
+        }
+        else
+        {
+          d_lex.parseError("Expected conclusion in declare-rule");
+        }
+        std::vector<Expr> argTypes;
+        for (Expr& e : args)
+        {
+          Expr et = d_state.mkQuoteType(e);
+          argTypes.push_back(et);
+        }
+        for (const Expr& e : premises)
+        {
+          Expr pet = d_state.mkProofType(e);
+          argTypes.push_back(pet);
+        }
+        if (!assume.isNull())
+        {
+          Expr ast = d_state.mkQuoteType(assume);
+          argTypes.push_back(ast);
+        }
+        Expr ret = d_state.mkProofType(conc);
+        // include the requirements into the return type
+        if (!reqs.empty())
+        {
+          ret = d_state.mkRequires(reqs, ret);
+        }
+        // Ensure all free variables in the conclusion are bound in the arguments.
+        // Otherwise, this rule will always generate a free variable, which is
+        // likely unintentional.
+        std::vector<Expr> bvs = Expr::getVariables(argTypes);
+        d_eparser.ensureBound(ret, bvs);
+        // make the overall type
+        if (!argTypes.empty())
+        {
+          ret = d_state.mkFunctionType(argTypes, ret, false);
+        }
+        d_state.popScope();
+        Expr rule = d_state.mkSymbol(Kind::PROOF_RULE, name, ret);
+        d_eparser.typeCheck(rule);
+        d_eparser.bind(name, rule);
+        if (!plCons.isNull())
+        {
+          d_state.markConstructorKind(rule, Attr::PREMISE_LIST, plCons);
         }
       }
-      std::vector<Expr> vs =
-          d_eparser.parseAndBindSortedVarList();
-      Expr assume;
-      Expr plCons;
-      std::vector<Expr> premises;
-      std::vector<Expr> args;
-      std::vector<Expr> reqs;
-      Expr conc;
-      // parse premises, optionally
-      std::string keyword = d_eparser.parseKeyword();
-      if (keyword=="assumption")
+      else if (fm==Format::RARE)
       {
-        assume = d_eparser.parseExpr();
-        keyword = d_eparser.parseKeyword();
-      }
-      if (keyword=="premises")
-      {
-        premises = d_eparser.parseExprList();
-        keyword = d_eparser.parseKeyword();
-      }
-      else if (keyword=="premise-list")
-      {
-        // :premise-list <pattern> <cons>
-        Expr pat = d_eparser.parseExpr();
-        plCons = d_eparser.parseExpr();
-        // pattern is the single premise
-        premises.push_back(pat);
-        keyword = d_eparser.parseKeyword();
-      }
-      // parse args, optionally
-      if (keyword=="args")
-      {
-        args = d_eparser.parseExprList();
-        keyword = d_eparser.parseKeyword();
-      }
-      // parse requirements, optionally
-      if (keyword=="requires")
-      {
-        // we support alf.conclusion in requirements
-        d_state.pushScope();
-        d_state.bind("alf.conclusion", d_state.mkConclusion());
-        // parse the expression pair list
-        reqs = d_eparser.parseExprPairList();
-        keyword = d_eparser.parseKeyword();
-        d_state.popScope();
-      }
-      // parse conclusion
-      if (keyword=="conclusion")
-      {
-        conc = d_eparser.parseExpr();
-      }
-      else if (keyword=="conclusion-given")
-      {
-        // :conclusion-given is equivalent to :conclusion alf.conclusion
-        conc = d_state.mkConclusion();
-      }
-      else
-      {
-        d_lex.parseError("Expected conclusion in declare-rule");
-      }
-      std::vector<Expr> argTypes;
-      for (Expr& e : args)
-      {
-        Expr et = d_state.mkQuoteType(e);
-        argTypes.push_back(et);
-      }
-      for (const Expr& e : premises)
-      {
-        Expr pet = d_state.mkProofType(e);
-        argTypes.push_back(pet);
-      }
-      if (!assume.isNull())
-      {
-        Expr ast = d_state.mkQuoteType(assume);
-        argTypes.push_back(ast);
-      }
-      Expr ret = d_state.mkProofType(conc);
-      // include the requirements into the return type
-      if (!reqs.empty())
-      {
-        ret = d_state.mkRequires(reqs, ret);
-      }
-      // Ensure all free variables in the conclusion are bound in the arguments.
-      // Otherwise, this rule will always generate a free variable, which is
-      // likely unintentional.
-      std::vector<Expr> bvs = Expr::getVariables(argTypes);
-      d_eparser.ensureBound(ret, bvs);
-      // make the overall type
-      if (!argTypes.empty())
-      {
-        ret = d_state.mkFunctionType(argTypes, ret, false);
-      }
-      d_state.popScope();
-      Expr rule = d_state.mkSymbol(Kind::PROOF_RULE, name, ret);
-      d_eparser.typeCheck(rule);
-      d_eparser.bind(name, rule);
-      if (!plCons.isNull())
-      {
-        d_state.markConstructorKind(rule, Attr::PREMISE_LIST, plCons);
+        
       }
     }
     break;
