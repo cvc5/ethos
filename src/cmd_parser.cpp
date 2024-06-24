@@ -310,17 +310,16 @@ bool CmdParser::parseNextCommand()
       d_state.pushScope();
       std::string name = d_eparser.parseSymbol();
       Format fm = d_eparser.parseFormat();
-      Expr rule;
+      Expr conc;
+      Expr plCons;
+      std::vector<Expr> args;
+      std::vector<Expr> reqs;
+      std::vector<Expr> premises;
+      Expr assume;
       if (fm==Format::ALF)
       {
         std::vector<Expr> vs =
             d_eparser.parseAndBindSortedVarList();
-        Expr assume;
-        Expr plCons;
-        std::vector<Expr> premises;
-        std::vector<Expr> args;
-        std::vector<Expr> reqs;
-        Expr conc;
         // parse premises, optionally
         std::string keyword = d_eparser.parseKeyword();
         if (keyword=="assumption")
@@ -373,63 +372,60 @@ bool CmdParser::parseNextCommand()
         {
           d_lex.parseError("Expected conclusion in declare-rule");
         }
-        std::vector<Expr> argTypes;
-        for (Expr& e : args)
-        {
-          Expr et = d_state.mkQuoteType(e);
-          argTypes.push_back(et);
-        }
-        for (const Expr& e : premises)
-        {
-          Expr pet = d_state.mkProofType(e);
-          argTypes.push_back(pet);
-        }
-        if (!assume.isNull())
-        {
-          Expr ast = d_state.mkQuoteType(assume);
-          argTypes.push_back(ast);
-        }
-        Expr ret = d_state.mkProofType(conc);
-        // include the requirements into the return type
-        if (!reqs.empty())
-        {
-          ret = d_state.mkRequires(reqs, ret);
-        }
-        // Ensure all free variables in the conclusion are bound in the arguments.
-        // Otherwise, this rule will always generate a free variable, which is
-        // likely unintentional.
-        std::vector<Expr> bvs = Expr::getVariables(argTypes);
-        d_eparser.ensureBound(ret, bvs);
-        // make the overall type
-        if (!argTypes.empty())
-        {
-          ret = d_state.mkFunctionType(argTypes, ret, false);
-        }
-        rule = d_state.mkSymbol(Kind::PROOF_RULE, name, ret);
-        if (!plCons.isNull())
-        {
-          d_state.markConstructorKind(rule, Attr::PREMISE_LIST, plCons);
-        }
       }
       else if (fm==Format::RARE)
       {
-        std::vector<Expr> vs =
-            d_eparser.parseAndBindSortedVarList();
+        args = d_eparser.parseAndBindSortedVarList();
         Expr lhs = d_eparser.parseExpr();
         Expr rhs = d_eparser.parseExpr();
         // we require that eq is defined
         Expr eq = d_state.getVar("=");
-        eq = d_state.mkExpr(Kind::APPLY, {eq, lhs, rhs});
-        Expr ret = d_state.mkProofType(eq);
-        rule = d_state.mkSymbol(Kind::PROOF_RULE, name, ret);
+        conc = d_state.mkExpr(Kind::APPLY, {eq, lhs, rhs});
       }
       else
       {
         d_lex.parseError("Unknown format for declare-rule");
       }
+      std::vector<Expr> argTypes;
+      for (Expr& e : args)
+      {
+        Expr et = d_state.mkQuoteType(e);
+        argTypes.push_back(et);
+      }
+      for (const Expr& e : premises)
+      {
+        Expr pet = d_state.mkProofType(e);
+        argTypes.push_back(pet);
+      }
+      if (!assume.isNull())
+      {
+        Expr ast = d_state.mkQuoteType(assume);
+        argTypes.push_back(ast);
+      }
+      Expr ret = d_state.mkProofType(conc);
+      // include the requirements into the return type
+      if (!reqs.empty())
+      {
+        ret = d_state.mkRequires(reqs, ret);
+      }
+      // Ensure all free variables in the conclusion are bound in the arguments.
+      // Otherwise, this rule will always generate a free variable, which is
+      // likely unintentional.
+      std::vector<Expr> bvs = Expr::getVariables(argTypes);
+      d_eparser.ensureBound(ret, bvs);
+      // make the overall type
+      if (!argTypes.empty())
+      {
+        ret = d_state.mkFunctionType(argTypes, ret, false);
+      }
+      Expr rule = d_state.mkSymbol(Kind::PROOF_RULE, name, ret);
       d_state.popScope();
       d_eparser.typeCheck(rule);
       d_eparser.bind(name, rule);
+      if (!plCons.isNull())
+      {
+        d_state.markConstructorKind(rule, Attr::PREMISE_LIST, plCons);
+      }
     }
     break;
     // (declare-sort <symbol> <numeral>)
