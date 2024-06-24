@@ -13,4 +13,4 @@
 (declare-const b Bool)
 (declare-const c Bool)
 (declare-const d Bool)
-(step @p0 (= (and a b true) (and a b)) :rule bool-and-true :args ((and a b) false))
+(step @p0 (= (and a b true) (and a b)) :rule bool-and-true :args ((and a b) true))
