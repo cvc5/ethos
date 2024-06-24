@@ -5,7 +5,7 @@
 (define alf.1.x () (alf.var "alf.1.x" Int))
 (define x () (alf.var "x" Int))
 (define y () (alf.var "y" Int))
-(declare-fun P (Int Int) Bool)
+(declare-const P (-> Int Int Bool))
 (define @t1 () (forall (@list x y) (P x y)))
 (define @t2 () (P alf.1.x 5))
 (define @t3 () (exists (@list alf.1.x @list.nil) (not @t2)))

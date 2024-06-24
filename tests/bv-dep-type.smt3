@@ -1,4 +1,4 @@
-(declare-sort Int 0)
+(declare-type Int ())
 
 (declare-type BitVec (Int)) 
 
@@ -8,9 +8,9 @@
   (BitVec n)
   (BitVec n)))
 
-(declare-fun m () Int)
-(declare-fun dummy () Int)
+(declare-const m Int)
+(declare-const dummy Int)
 
-(declare-fun x () (BitVec m))
-(declare-fun y () (BitVec m))
+(declare-const x (BitVec m))
+(declare-const y (BitVec m))
 (define z () (bvadd m x y) :type (BitVec m))

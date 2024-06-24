@@ -1,9 +1,9 @@
 (include "Builtin-theory.smt3")
 (include "Arith-theory.smt3")
 
-(declare-sort RegLan 0)
+(declare-type RegLan ())
 (declare-type Seq (Type))
-(declare-sort Char 0)
+(declare-type Char ())
 (define String () (Seq Char))
 
 (declare-consts <string> String)

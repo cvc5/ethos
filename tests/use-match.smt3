@@ -20,7 +20,7 @@
     )
 )
 
-(declare-sort String 0)
+(declare-type String ())
 (declare-consts <string> String)
 (declare-const str.++ (-> String String String) :right-assoc-nil "")
 
@@ -65,5 +65,5 @@
               )
 )
 
-(declare-fun x () String)
+(declare-const x String)
 (step @p0 (= (str.++ "A" "B" x) (str.++ "AB" x)) :rule collect_acc :args ((str.++ "A" "B" x)))

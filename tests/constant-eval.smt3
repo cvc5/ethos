@@ -1,6 +1,6 @@
 
 
-(declare-sort Int 0)
+(declare-type Int ())
 (declare-consts <numeral> Int)
 
 (program less-than ()

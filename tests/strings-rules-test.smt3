@@ -15,10 +15,10 @@
           (string_from_flat_form U ts rev)))))
 )
 
-(declare-fun x () String)
-(declare-fun y () String)
-(declare-fun z () String)
-(declare-fun w () String)
+(declare-const x String)
+(declare-const y String)
+(declare-const z String)
+(declare-const w String)
 
 (assume @p0 (= (str.++ x y) (str.++ x z)))
 (step @q0 (= y z) :rule concat_eq :premises (@p0) :args (String false))

@@ -1,7 +1,7 @@
 
 (declare-const => (-> Bool Bool Bool))
 
-(declare-sort Int 0)
+(declare-type Int ())
 (declare-consts <numeral> Int)
 
 (declare-type Pair (Type Type))

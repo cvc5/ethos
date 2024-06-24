@@ -2,7 +2,7 @@
 (include "Arith-theory.smt3")
 (include "Datatypes-theory.smt3")
 
-(declare-sort Set 1)
+(declare-type Set (Type))
 
 ; NOTE: permits non-set types
 (declare-const set.empty (-> (! Type :var T) T))

@@ -26,7 +26,6 @@ Options::Options()
   d_ruleSymTable = true;
   d_normalizeDecimal = true;
   d_normalizeHexadecimal = true;
-  d_strictParsing = false;
   d_binderFresh = false;
 }
 

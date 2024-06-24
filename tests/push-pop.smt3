@@ -7,7 +7,7 @@
     :conclusion (= t t)
 )
 
-(declare-sort Int 0)
+(declare-type Int ())
 (declare-const b Int)
 
 (push)

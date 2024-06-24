@@ -1,20 +1,23 @@
 TODO:
 
-- :syntax
-- remove closure parsing? maybe alf.lambda is useful for a native alf.map
-- check type preservation for evaluation?
-  - more generally: a weaker type system for program bodies?
-- minimize compiled code by recognizing alpha-equivalent patterns
-    - parameters can be shared??
-- lazy construction of definitions when compiled?
-  - compiled fine grain inclusion??
-- non-exponential alf.ite compilation
+- Add options --include=X --reference=X
+  - remove reference command?
+- `let` is never builtin, use alf.let
+- Include command extensible?
+- A language can decide if its library is automatically included or not? Or done via include command.
+  - Maybe for consistency we always include.
+- We need a common way to mark "incomplete". E.g. :trusted on a rule.
+- alf.lambda?
+- weaker type system for program bodies?
+- :syntax?
 - warn unused parameters
 - don't always use mkExprInternal in evaluate (@lazyHash)
 - fix printing decimals
 - define-fun-rec parsing
 - non-macro define-fun? assume-define?
-- set-option
+- set-option?
+- quote function type
+- RARE rules
 
 
 CVC5-TODO:
@@ -23,7 +26,6 @@ CVC5-TODO:
 - fine grained inclusion of signatures to avoid overloading
 - set.insert
 - ambiguous datatype constructors
-
 - rewrite as a ALF proof rule
 - minimize rewrite proofs? A = A' ^ B = true => (or A B) = true -----> B = true => (or A B) = true
 - substitute as an ALF proof rule

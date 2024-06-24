@@ -28,32 +28,25 @@ CmdParser::CmdParser(Lexer& lex,
     : d_lex(lex), d_state(state), d_eparser(eparser), d_isReference(isReference), d_isFinished(false)
 {
   // initialize the command tokens
-  bool strictParsing = d_state.getOptions().d_strictParsing;
   // commands supported in both inputs and proofs
+  d_table["declare-codatatype"] = Token::DECLARE_CODATATYPE;    // undocumented, TODO: remove
+  d_table["declare-codatatypes"] = Token::DECLARE_CODATATYPES;  // undocumented, TODO: remove
   d_table["declare-const"] = Token::DECLARE_CONST;
   d_table["declare-datatype"] = Token::DECLARE_DATATYPE;
   d_table["declare-datatypes"] = Token::DECLARE_DATATYPES;
-  d_table["declare-fun"] = Token::DECLARE_FUN;
-  d_table["declare-sort"] = Token::DECLARE_SORT;
-  d_table["define-const"] = Token::DEFINE_CONST;
   d_table["echo"] = Token::ECHO;
   d_table["exit"] = Token::EXIT;
-  d_table["pop"] = Token::POP;
-  d_table["push"] = Token::PUSH;
+  d_table["pop"] = Token::POP;    // undocumented
+  d_table["push"] = Token::PUSH;  // undocumented
   d_table["reset"] = Token::RESET;
-  // non-standard commands supported in inputs and proofs
-  if (!strictParsing)
-  {
-    d_table["declare-codatatype"] = Token::DECLARE_CODATATYPE;
-    d_table["declare-codatatypes"] = Token::DECLARE_CODATATYPES;
-    d_table["declare-parameterized-const"] = Token::DECLARE_PARAMETERIZED_CONST;
-    d_table["declare-oracle-fun"] = Token::DECLARE_ORACLE_FUN;
-  }
 
   if (d_isReference)
   {
     // only used in smt2 queries
     d_table["assert"] = Token::ASSERT;
+    d_table["declare-fun"] = Token::DECLARE_FUN;
+    d_table["declare-sort"] = Token::DECLARE_SORT;
+    d_table["define-const"] = Token::DEFINE_CONST;
     d_table["define-fun"] = Token::DEFINE_FUN;
     d_table["define-sort"] = Token::DEFINE_SORT;
     d_table["check-sat"] = Token::CHECK_SAT;
@@ -64,23 +57,20 @@ CmdParser::CmdParser(Lexer& lex,
   }
   else
   {
-    // not defined in smt 2.6, or not supported
+    d_table["assume"] = Token::ASSUME;
+    d_table["assume-push"] = Token::ASSUME_PUSH;
+    d_table["declare-consts"] = Token::DECLARE_CONSTS;
+    d_table["declare-oracle-fun"] = Token::DECLARE_ORACLE_FUN;
+    d_table["declare-parameterized-const"] = Token::DECLARE_PARAMETERIZED_CONST;
+    d_table["declare-rule"] = Token::DECLARE_RULE;
     d_table["declare-type"] = Token::DECLARE_TYPE;
+    d_table["define"] = Token::DEFINE;
     d_table["define-type"] = Token::DEFINE_TYPE;
-    // not defined in smt 2.6 or in smt 3.0 proposal
-    if (!strictParsing)
-    {
-      d_table["assume"] = Token::ASSUME;
-      d_table["assume-push"] = Token::ASSUME_PUSH;
-      d_table["declare-consts"] = Token::DECLARE_CONSTS;
-      d_table["declare-rule"] = Token::DECLARE_RULE;
-      d_table["define"] = Token::DEFINE;
-      d_table["include"] = Token::INCLUDE;
-      d_table["program"] = Token::PROGRAM;
-      d_table["reference"] = Token::REFERENCE;
-      d_table["step"] = Token::STEP;
-      d_table["step-pop"] = Token::STEP_POP;
-    }
+    d_table["include"] = Token::INCLUDE;
+    d_table["program"] = Token::PROGRAM;
+    d_table["reference"] = Token::REFERENCE;
+    d_table["step"] = Token::STEP;
+    d_table["step-pop"] = Token::STEP_POP;
   }
   
   d_statsEnabled = d_state.getOptions().d_stats;
@@ -173,7 +163,7 @@ bool CmdParser::parseNextCommand()
         cons = d_state.mkLiteral(Kind::STRING, oname);
         // don't permit attributes for oracle functions
       }
-      else if (tok==Token::DECLARE_CONST || tok==Token::DECLARE_FUN || tok==Token::DECLARE_PARAMETERIZED_CONST)
+      else if (tok==Token::DECLARE_CONST || tok==Token::DECLARE_PARAMETERIZED_CONST)
       {
         // possible attribute list
         AttrMap attrs;
@@ -181,6 +171,7 @@ bool CmdParser::parseNextCommand()
         // determine if an attribute specified a constructor kind
         d_eparser.processAttributeMap(attrs, ck, cons, params);
       }
+      // declare-fun does not parse attribute list, as it is only in smt2
       t = ret;
       if (!sorts.empty())
       {

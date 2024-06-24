@@ -4,7 +4,7 @@
 (declare-const not (-> Bool Bool))
 
 
-(declare-sort U 0)
+(declare-type U ())
 (define f_true ((x U)) true)
 
 

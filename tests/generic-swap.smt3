@@ -1,4 +1,4 @@
-(declare-sort Pair 1)
+(declare-type Pair (Type))
 
 (declare-const pair (-> (! Type :var T :implicit) T T (Pair T)))
 
@@ -19,7 +19,7 @@
   :conclusion (is_swap t (swap t))
 )
 
-(declare-sort Int 0)
+(declare-type Int ())
 (declare-const a Int)
 (declare-const b Int)
 

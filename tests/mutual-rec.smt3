@@ -1,6 +1,6 @@
 
 
-(declare-sort Int 0)
+(declare-type Int ())
 (declare-consts <numeral> Int)
 
 ; forward declaration
@@ -24,8 +24,8 @@
   )
 )
 
-(declare-fun not (Bool) Bool)
-(declare-fun pred_is_even (Int) Bool)
+(declare-const not (-> Bool Bool))
+(declare-const pred_is_even (-> Int Bool))
 
 (declare-rule find_is_even ((n Int))
    :args (n)
