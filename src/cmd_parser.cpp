@@ -376,6 +376,16 @@ bool CmdParser::parseNextCommand()
       else if (fm==Format::RARE)
       {
         args = d_eparser.parseAndBindSortedVarList();
+        // parse premsises, optionally
+        if (d_lex.peekToken()==Token::KEYWORD)
+        {
+          std::string keyword = d_eparser.parseKeyword();
+          if (keyword=="premises")
+          {
+            premises = d_eparser.parseExprList();
+          }
+        }
+        // parse two terms, the left and right hand side
         Expr lhs = d_eparser.parseExpr();
         Expr rhs = d_eparser.parseExpr();
         // we require that eq is defined
