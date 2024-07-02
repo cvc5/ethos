@@ -800,10 +800,10 @@ std::vector<std::pair<Expr, Expr>> ExprParser::parseAndBindLetList()
     v = d_state.mkSymbol(Kind::VARIABLE, name, tt);
     letList.emplace_back(v, t);
   }
-  // now perform the bindings
+  // now perform the bindings, which bind to the variable, not its definition
   for (std::pair<Expr, Expr>& ll : letList)
   {
-    bind(ll.first.getSymbol(), ll.second);
+    bind(ll.first.getSymbol(), ll.first);
   }
   return letList;
 }
