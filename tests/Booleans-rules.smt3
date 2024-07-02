@@ -39,8 +39,8 @@
     (Bool Bool Bool Bool) Bool
     (
       ((resolve C1 C2 pol L)
-        (let ((lp (alf.ite pol L (not L))))
-        (let ((ln (alf.ite pol (not L) L)))
+        (alf.define ((lp (alf.ite pol L (not L))))
+        (alf.define ((ln (alf.ite pol (not L) L)))
             (from_clause (alf.list_concat or
                     (removeSelf lp (to_clause C1))
                     (removeSelf ln (to_clause C2)))))))
@@ -61,8 +61,8 @@
         ((chainResolveRec C1 true true)              (from_clause C1))
         ((chainResolveRec C1 (and C2 Cs) (and pol L args))
             (chainResolveRec
-                (let ((lp (alf.ite pol L (not L))))
-                (let ((ln (alf.ite pol (not L) L)))
+                (alf.define ((lp (alf.ite pol L (not L))))
+                (alf.define ((ln (alf.ite pol (not L) L)))
                     (alf.list_concat or
                             (removeSelf lp C1)
                             (removeSelf ln (to_clause C2))))) Cs args))
@@ -89,8 +89,8 @@
 (program factorLiterals ((xs Bool :list) (l Bool) (ls Bool :list))
     (Bool Bool) Bool
     (
-        ((factorLiterals xs (or l ls)) (let ((cond (alf.is_neg (alf.list_find or xs l))))
-                                       (let ((ret (factorLiterals
+        ((factorLiterals xs (or l ls)) (alf.define ((cond (alf.is_neg (alf.list_find or xs l))))
+                                       (alf.define ((ret (factorLiterals
                                                     (alf.ite cond (alf.cons or l xs) xs)
                                                     ls)))
                                             (alf.ite cond (alf.cons or l ret) ret))))
