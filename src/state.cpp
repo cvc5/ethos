@@ -1061,19 +1061,33 @@ bool State::bind(const std::string& name, const Expr& e)
   return true;
 }
 
-bool State::isBinder(const ExprValue* e) const
-{
-  return getConstructorKind(e) == Attr::BINDER;
-}
-
 Expr State::mkBinderList(const ExprValue* ev, const std::vector<Expr>& vs)
 {
   Assert (!vs.empty());
-  Assert (ev->getKind()!=Kind::PARAMETERIZED);
   std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(ev);
   Assert (it!=d_appData.end());
   std::vector<Expr> vlist;
   vlist.push_back(it->second.d_attrConsTerm);
+  vlist.insert(vlist.end(), vs.begin(), vs.end());
+  return mkExpr(Kind::APPLY, vlist);
+}
+
+Expr State::mkLetBinderList(const ExprValue* ev, const std::vector<std::pair<Expr, Expr>>& lls)
+{
+  Assert (!lls.empty());
+  std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(ev);
+  Assert (it!=d_appData.end());
+  Expr cons = it->second.d_attrConsTerm;
+  Assert (cons.getKind()==Kind::TUPLE && cons.getNumChildren()==2);
+  Expr pairCons = cons[0];
+  Expr listCons = cons[1];
+  std::vector<Expr> vs;
+  for (const std::pair<Expr, Expr>& ll : lls)
+  {
+    vs.emplace_back(mkExpr(Kind::APPLY, {pairCons, ll.first, ll.second}));
+  }
+  std::vector<Expr> vlist;
+  vlist.push_back(listCons);
   vlist.insert(vlist.end(), vs.begin(), vs.end());
   return mkExpr(Kind::APPLY, vlist);
 }

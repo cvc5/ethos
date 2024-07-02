@@ -30,6 +30,7 @@ enum class Attr
   PROGRAM,
   ORACLE,
   BINDER,
+  LET_BINDER,
   OPAQUE,
   
   // smt3 things that are not strictly supported

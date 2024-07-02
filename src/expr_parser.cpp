@@ -88,6 +88,7 @@ ExprParser::ExprParser(Lexer& lex, State& state, bool isReference)
   d_strToAttr[":chainable"] = Attr::CHAINABLE;
   d_strToAttr[":pairwise"] = Attr::PAIRWISE;
   d_strToAttr[":binder"] = Attr::BINDER;
+  d_strToAttr[":let-binder"] = Attr::LET_BINDER;
   d_strToAttr[":opaque"] = Attr::OPAQUE;
   d_strToAttr[":syntax"] = Attr::SYNTAX;
   d_strToAttr[":restrict"] = Attr::RESTRICT;
@@ -187,7 +188,8 @@ Expr ExprParser::parseExpr()
             args.push_back(v);
             size_t nscopes = 0;
             // if a binder, read a variable list and push a scope
-            if (d_state.isBinder(v.getValue()))
+            Attr ck = d_state.getConstructorKind(v.getValue());
+            if (ck==Attr::BINDER || ck==Attr::LET_BINDER)
             {
               // If it is a binder, immediately read the bound variable list.
               // If option d_binderFresh is true, we parse and bind fresh
@@ -206,16 +208,32 @@ Expr ExprParser::parseExpr()
                 d_lex.reinsertToken(Token::LPAREN);
                 if (tok==Token::LPAREN)
                 {
-                  nscopes = 1;
-                  bool isLookup = !d_state.getOptions().d_binderFresh;
-                  d_state.pushScope();
-                  std::vector<Expr> vs = parseAndBindSortedVarList(isLookup);
-                  if (vs.empty())
+                  if (ck==Attr::BINDER)
                   {
-                    d_lex.parseError("Expected non-empty sorted variable list");
+                    nscopes = 1;
+                    bool isLookup = !d_state.getOptions().d_binderFresh;
+                    d_state.pushScope();
+                    std::vector<Expr> vs = parseAndBindSortedVarList(isLookup);
+                    if (vs.empty())
+                    {
+                      d_lex.parseError("Expected non-empty sorted variable list");
+                    }
+                    Expr vl = d_state.mkBinderList(v.getValue(), vs);
+                    args.push_back(vl);
                   }
-                  Expr vl = d_state.mkBinderList(v.getValue(), vs);
-                  args.push_back(vl);
+                  else
+                  {
+                    Assert (ck==Attr::LET_BINDER);
+                    nscopes = 1;
+                    d_state.pushScope();
+                    std::vector<std::pair<Expr, Expr>> lls = parseAndBindLetList();
+                    if (lls.empty())
+                    {
+                      d_lex.parseError("Expected non-empty let list");
+                    }
+                    Expr vl = d_state.mkLetBinderList(v.getValue(), lls);
+                    args.push_back(vl);
+                  }
                 }
               }
               else
@@ -766,6 +784,14 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList(
   return varList;
 }
 
+std::vector<std::pair<Expr, Expr>> ExprParser::parseAndBindLetList()
+{
+  std::vector<std::pair<Expr, Expr>> letList;
+
+
+  return letList;
+}
+
 std::string ExprParser::parseSymbol()
 {
   Token tok = d_lex.nextToken();
@@ -1082,6 +1108,7 @@ void ExprParser::parseAttributeList(Expr& e, AttrMap& attrs, bool& pushedScope)
       }
         break;
       case Attr::REQUIRES:
+      case Attr::LET_BINDER:
       {
         // requires a pair
         val = parseExprPair();
@@ -1304,6 +1331,7 @@ void ExprParser::processAttributeMap(const AttrMap& attrs,
         case Attr::CHAINABLE:
         case Attr::PAIRWISE:
         case Attr::BINDER:
+        case Attr::LET_BINDER:
         {
           if (ck!=Attr::NONE)
           {

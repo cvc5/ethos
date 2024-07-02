@@ -59,6 +59,11 @@ class ExprParser
   std::vector<Expr> parseAndBindSortedVarList(std::vector<Expr>& impls,
                                               bool isLookup=false);
   /**
+   * Parse and bind a let list, i.e. ((x1 t1) ... (xn tn)), where x1...xn are
+   * symbols to bind to terms t1...tn.
+   */
+  std::vector<std::pair<Expr, Expr>> parseAndBindLetList();
+  /**
    * Parse symbol, which returns the string of the parsed symbol if the next
    * token is a valid smt2 symbol.
    *
