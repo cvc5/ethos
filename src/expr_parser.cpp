@@ -787,8 +787,24 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList(
 std::vector<std::pair<Expr, Expr>> ExprParser::parseAndBindLetList()
 {
   std::vector<std::pair<Expr, Expr>> letList;
-
-
+  d_lex.eatToken(Token::LPAREN);
+  std::string name;
+  Expr v, t, tt;
+  // while the next token is LPAREN, exit if RPAREN
+  while (d_lex.eatTokenChoice(Token::LPAREN, Token::RPAREN))
+  {
+    name = parseSymbol();
+    t = parseExpr();
+    d_lex.eatToken(Token::RPAREN);
+    tt = typeCheck(t);
+    v = d_state.mkSymbol(Kind::VARIABLE, name, tt);
+    letList.emplace_back(v, t);
+  }
+  // now perform the bindings
+  for (std::pair<Expr, Expr>& ll : letList)
+  {
+    bind(ll.first.getSymbol(), ll.second);
+  }
   return letList;
 }
 
