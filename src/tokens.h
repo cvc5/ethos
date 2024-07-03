@@ -48,12 +48,13 @@ enum class Token
   DEFINE_SORT,
   DEFINE_TYPE,
   ECHO,
+  EVAL_DEFINE,  // alf.define
+  EVAL_MATCH,   // alf.match
   EXIT,
   HEX_LITERAL,
   INCLUDE,
   INTEGER_LITERAL,
   KEYWORD,
-  MATCH,
   LET,
   LPAREN,
   NUMERAL,

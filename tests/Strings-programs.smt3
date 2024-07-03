@@ -76,7 +76,7 @@
     ((T Type) (t (Seq T)))
     ((Seq T)) (Seq T)
     (
-        (($string_rev t) (let ((U ($char_type_of (alf.typeof t)))) ($string_rev_rec t (mk_emptystr (Seq U)) U)))
+        (($string_rev t) (alf.define ((U ($char_type_of (alf.typeof t)))) ($string_rev_rec t (mk_emptystr (Seq U)) U)))
     )
 )
 
@@ -214,7 +214,7 @@
     ((Seq T)) (Seq T)
     (
         (($string_nary_intro (str.++ t ss)) (str.++ t ss))
-        (($string_nary_intro t)             (let ((nil (mk_emptystr (alf.typeof t))))
+        (($string_nary_intro t)             (alf.define ((nil (mk_emptystr (alf.typeof t))))
                                             (alf.ite (alf.is_eq t nil) t ($str_cons t nil))))
     )
 )
@@ -223,7 +223,7 @@
     ((T Type) (t (Seq T)) (ss (Seq T) :list))
     ((Seq T)) (Seq T)
     (
-        (($string_nary_elim (str.++ t ss)) (let ((nil (mk_emptystr (alf.typeof t))))
+        (($string_nary_elim (str.++ t ss)) (alf.define ((nil (mk_emptystr (alf.typeof t))))
                                            (alf.ite (alf.is_eq ss nil) t (str.++ t ss))))
         (($string_nary_elim t)             (alf.requires t (mk_emptystr (alf.typeof t)) t))
     )

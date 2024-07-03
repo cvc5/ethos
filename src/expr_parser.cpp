@@ -148,13 +148,14 @@ Expr ExprParser::parseExpr()
         switch (tok)
         {
           case Token::LET:
+          case Token::EVAL_DEFINE:
           {
             pstack.emplace_back(ParseCtx::LET_NEXT_BIND);
             needsUpdateCtx = true;
             letBinders.emplace_back();
           }
           break;
-          case Token::MATCH:
+          case Token::EVAL_MATCH:
           {
             // parse the variable list
             d_state.pushScope();
