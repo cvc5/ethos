@@ -874,6 +874,15 @@ bool CmdParser::parseNextCommand()
         ss << "Non-proof conclusion for rule " << ruleName << ", got " << concType;
         d_lex.parseError(ss.str());
       }
+      // Check that the proved term is actually Bool
+      Expr concTerm = concType[0];
+      Expr concTermType = d_eparser.typeCheck(concTerm);
+      if (concTermType.getKind() != Kind::BOOL_TYPE)
+      {
+        std::stringstream ss;
+        ss << "Non-bool conclusion for step, got " << concTermType;
+        d_lex.parseError(ss.str());
+      }
       if (!proven.isNull())
       {
         if (concType[0]!=proven)
