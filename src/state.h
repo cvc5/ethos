@@ -225,7 +225,8 @@ class State
    * application.
    * @return If possible, one of the elements of overloads that meets
    * the above requirements. If multiple are possible, we return the
-   * first. If none are possible, we return the null expression.
+   * first and give warnings for those beyond the first. If none are
+   * possible, we return the null expression.
    */
   Expr getOverloadInternal(const std::vector<Expr>& overloads,
                            const std::vector<Expr>& children,
