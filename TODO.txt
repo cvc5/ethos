@@ -1,15 +1,12 @@
 TODO:
 
+- document :sorry in user manual.
 - Add options --include=X --reference=X
   - remove reference command?
 - `let` is never builtin, use alf.let
-- Include command extensible?
 - A language can decide if its library is automatically included or not? Or done via include command.
   - Maybe for consistency we always include.
-- We need a common way to mark "incomplete". E.g. :trusted on a rule.
-- alf.lambda?
 - weaker type system for program bodies?
-- :syntax?
 - warn unused parameters
 - don't always use mkExprInternal in evaluate (@lazyHash)
 - fix printing decimals
