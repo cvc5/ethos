@@ -171,7 +171,22 @@ int main( int argc, char* argv[] )
       ALFC_FATAL() << "Error: cannot include file " << file;
     }
   }
-  std::cout << "success" << std::endl;
+  bool wasIncomplete = false;
+  std::map<const ExprValue*, RuleStat>& rs = stats.d_rstats;
+  for (const std::pair<const ExprValue* const, RuleStat>& r : rs)
+  {
+    if (s.isProofRuleSorry(r.first))
+    {
+      std::cout << "incomplete" << std::endl;
+      wasIncomplete = true;
+      break;
+    }
+  }
+  if (!wasIncomplete)
+  {
+    // TODO: to be renamed "correct"
+    std::cout << "success" << std::endl;
+  }
   if (plugin != nullptr)
   {
     plugin->finalize();

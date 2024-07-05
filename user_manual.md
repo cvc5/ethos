@@ -969,7 +969,7 @@ All rules not marked with `:alfc` are not supported by the checker are unsupport
 
 If the keyword is `:alfc`, then the expected syntax that follows is given below:
 ```
-(declare-rule <symbol> :alfc (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term>)
+(declare-rule <symbol> :alfc (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term> <attr>*)
 where
 <assumption>    ::= :assumption <term>
 <premises>      ::= :premises (<term>*) | :premise-list <term> <term>
@@ -1575,7 +1575,7 @@ Valid inputs to the ALF checker are `<alf-command>*`, where:
     (declare-parameterized-const <symbol> (<typed-param>*) <type> <attr>*) |
     (declare-oracle-fun <symbol> (<type>*) <type> <symbol>) |
     (declare-rule <symbol> <keyword> <sexpr>*) |
-    (declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term>) |
+    (declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term> <attr>*) |
     (declare-type <symbol> (<type>*)) |
     (define <symbol> (<typed-param>*) <term>) |
     (define-type <symbol> (<type>*) <type>) |

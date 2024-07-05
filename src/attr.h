@@ -24,6 +24,8 @@ enum class Attr
   IMPLICIT,
   REQUIRES,
   TYPE,
+  // properties of rules
+  SORRY,
 
   //------------------ below here is mutually exclusive?
   LIST,

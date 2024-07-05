@@ -25,7 +25,8 @@ CmdParser::CmdParser(Lexer& lex,
                      State& state,
                      ExprParser& eparser,
                      bool isReference)
-    : d_lex(lex), d_state(state), d_eparser(eparser), d_isReference(isReference), d_isFinished(false)
+    : d_lex(lex), d_state(state), d_sts(state.getStats()),
+      d_eparser(eparser), d_isReference(isReference), d_isFinished(false)
 {
   // initialize the command tokens
   // commands supported in both inputs and proofs
@@ -795,12 +796,10 @@ bool CmdParser::parseNextCommand()
       }
       std::string ruleName = d_eparser.parseSymbol();
       Expr rule = d_eparser.getProofRule(ruleName);
-      RuleStat * rs = nullptr;
+      RuleStat * rs = &d_sts.d_rstats[rule.getValue()];
       if (d_statsEnabled)
       {
-        Stats& s = d_state.getStats();
-        rs = &s.d_rstats[rule.getValue()];
-        RuleStat::start(s);
+        RuleStat::start(d_sts);
       }
       // parse premises, optionally
       if (d_lex.peekToken()==Token::KEYWORD)
@@ -902,12 +901,15 @@ bool CmdParser::parseNextCommand()
       {
         d_state.popAssumptionScope();
       }
+      Assert (rs!=nullptr);
       if (d_statsEnabled)
       {
-        Assert (rs!=nullptr);
-        Stats& s = d_state.getStats();
         // increment the stats
-        rs->increment(s);
+        rs->increment(d_sts);
+      }
+      else
+      {
+        rs->d_count++;
       }
     }
     break;

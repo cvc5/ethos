@@ -1233,6 +1233,16 @@ bool State::hasReference() const
   return d_hasReference;
 }
 
+void State::markProofRuleSorry(const ExprValue * e)
+{
+  d_pfrSorry.insert(e);
+}
+
+bool State::isProofRuleSorry(const ExprValue* e) const
+{
+  return d_pfrSorry.find(e)!=d_pfrSorry.end();
+}
+
 AppInfo* State::getAppInfo(const ExprValue* e)
 {
   Assert (e->getKind()!=Kind::PARAMETERIZED);

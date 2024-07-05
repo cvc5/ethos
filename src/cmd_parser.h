@@ -40,6 +40,8 @@ class CmdParser
   Lexer& d_lex;
   /** The state */
   State& d_state;
+  /** Reference to the stats */
+  Stats& d_sts;
   /** The term parser */
   ExprParser& d_eparser;
   /** Map strings to tokens */
