@@ -177,12 +177,15 @@ int main( int argc, char* argv[] )
   {
     if (s.isProofRuleSorry(r.first))
     {
-      std::cout << "incomplete" << std::endl;
       wasIncomplete = true;
       break;
     }
   }
-  if (!wasIncomplete)
+  if (wasIncomplete)
+  {
+    std::cout << "incomplete" << std::endl;
+  }
+  else
   {
     // TODO: to be renamed "correct"
     std::cout << "success" << std::endl;

@@ -101,15 +101,20 @@ class ExprParser
    * Parse attribute list
    * <attr_1> ... <attr_n>
    * 
+   * @param k The category of expression we are applying attributes to which is:
+   * - PARAM if applied to a parameter,
+   * - PROOF_RULE if applied to the symbol introduced by a declare-rule command,
+   * - CONSTANT if applied to the symbol introduced by a declare-const command,
+   * - NONE otherwise.
    * @param e The expression we are applying to
    * @param attr The attributes which are populated
    * @param pushedScope True if we pushed a scope while reading the list. This
    * is true when e.g. the attribute :var is read. The caller of this method
    * is responsible for popping the scope.
    */
-  void parseAttributeList(Expr& e, AttrMap& attrs, bool& pushedScope);
+  void parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushedScope);
   /** Same as above, but ensures we pop the scope */
-  void parseAttributeList(Expr& e, AttrMap& attrs);
+  void parseAttributeList(Kind k, Expr& e, AttrMap& attrs);
   
   /**
    * Parse literal kind.

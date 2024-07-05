@@ -434,7 +434,7 @@ Expr ExprParser::parseExpr()
           bool pushedScope = false;
           // NOTE parsing attributes may trigger recursive calls to this
           // method.
-          parseAttributeList(ret, attrs, pushedScope);
+          parseAttributeList(Kind::NONE, ret, attrs, pushedScope);
           // the scope of the variable is one level up
           if (pushedScope && pstack.size()>1)
           {
@@ -747,7 +747,7 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList(
       bind(name, v);
       // parse attribute list
       AttrMap attrs;
-      parseAttributeList(v, attrs);
+      parseAttributeList(Kind::PARAM, v, attrs);
       if (attrs.find(Attr::IMPLICIT)!=attrs.end())
       {
         attrs.erase(Attr::IMPLICIT);
@@ -1022,7 +1022,7 @@ std::string ExprParser::parseStr(bool unescape)
   return s;
 }
 
-void ExprParser::parseAttributeList(Expr& e, AttrMap& attrs, bool& pushedScope)
+void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushedScope)
 {
   std::map<std::string, Attr>::iterator its;
   // while the next token is KEYWORD, exit if RPAREN
@@ -1044,93 +1044,133 @@ void ExprParser::parseAttributeList(Expr& e, AttrMap& attrs, bool& pushedScope)
       attrs[Attr::NONE].push_back(val);
       continue;
     }
-    switch (its->second)
+    Attr a = its->second;
+    bool handled = false;
+    switch (k)
     {
-      case Attr::VAR:
+      case Kind::PROOF_RULE:
       {
-        if (e.isNull())
+        if (a==Attr::SORRY)
         {
-          d_lex.parseError("Cannot use :var in this context");
+          handled = true;
+          d_state.markProofRuleSorry(e.getValue());
         }
-        if (attrs.find(Attr::VAR)!=attrs.end())
-        {
-          d_lex.parseError("Cannot use :var on the same term more than once");
-        }
-        std::string name = parseSymbol();
-        // e should be a type
-        val = d_state.mkSymbol(Kind::PARAM, name, e);
-        // immediately bind
-        if (!pushedScope)
-        {
-          pushedScope = true;
-          d_state.pushScope();
-        }
-        bind(name, val);
       }
         break;
-      case Attr::LIST:
-      case Attr::IMPLICIT:
-      case Attr::RIGHT_ASSOC:
-      case Attr::LEFT_ASSOC:
-      case Attr::OPAQUE:
-        // requires no value
-        break;
-      case Attr::RIGHT_ASSOC_NIL:
-      case Attr::LEFT_ASSOC_NIL:
-      case Attr::CHAINABLE:
-      case Attr::PAIRWISE:
-      case Attr::BINDER:
-      case Attr::RESTRICT:
+      case Kind::PARAM:
       {
-        // requires an expression that follows
-        val = parseExpr();
-      }
-        break;
-      case Attr::REQUIRES:
-      {
-        // requires a pair
-        val = parseExprPair();
-      }
-        break;
-      case Attr::SYNTAX:
-      {
-        // ignores the literal kind
-        parseLiteralKind();
-      }
-        break;
-      case Attr::TYPE:
-      {
-        val = parseExpr();
-        // run type checking
-        if (e.isNull())
+        if (a==Attr::LIST || a==Attr::IMPLICIT)
         {
-          d_lex.parseError("Cannot use :type in this context");
+          handled = true;
         }
-        typeCheck(e, val);
       }
         break;
-      case Attr::SORRY:
+      case Kind::CONST:
       {
-        if (e.isNull() || e.getKind()!=Kind::PROOF_RULE)
+        switch (a)
         {
-          d_lex.parseError("Cannot use :sorry in this context");
+          case Attr::RIGHT_ASSOC:
+          case Attr::LEFT_ASSOC:
+            // requires no value
+            handled = true;
+            break;
+          case Attr::RIGHT_ASSOC_NIL:
+          case Attr::LEFT_ASSOC_NIL:
+          case Attr::CHAINABLE:
+          case Attr::PAIRWISE:
+          case Attr::BINDER:
+          {
+            // requires an expression that follows
+            handled = true;
+            val = parseExpr();
+          }
+            break;
+          default:break;
         }
-        d_state.markProofRuleSorry(e.getValue());
+      }
+        break;
+      case Kind::NONE:
+      {
+        handled = true;
+        switch (a)
+        {
+          case Attr::IMPLICIT:
+          case Attr::OPAQUE:
+            // requires no value
+            break;
+          case Attr::VAR:
+          {
+            if (e.isNull())
+            {
+              d_lex.parseError("Cannot use :var in this context");
+            }
+            if (attrs.find(Attr::VAR)!=attrs.end())
+            {
+              d_lex.parseError("Cannot use :var on the same term more than once");
+            }
+            std::string name = parseSymbol();
+            // e should be a type
+            val = d_state.mkSymbol(Kind::PARAM, name, e);
+            // immediately bind
+            if (!pushedScope)
+            {
+              pushedScope = true;
+              d_state.pushScope();
+            }
+            bind(name, val);
+          }
+          break;
+          case Attr::RESTRICT:
+          {
+            // requires an expression that follows
+            val = parseExpr();
+          }
+            break;
+          case Attr::REQUIRES:
+          {
+            // requires a pair
+            val = parseExprPair();
+          }
+            break;
+          case Attr::SYNTAX:
+          {
+            // ignores the literal kind
+            parseLiteralKind();
+          }
+            break;
+          case Attr::TYPE:
+          {
+            val = parseExpr();
+            // run type checking
+            if (e.isNull())
+            {
+              d_lex.parseError("Cannot use :type in this context");
+            }
+            typeCheck(e, val);
+          }
+            break;
+          default:
+            handled = false;
+            break;
+        }
       }
         break;
       default:
-        d_lex.parseError("Unhandled attribute");
         break;
+    }
+    if (!handled)
+    {
+      d_lex.parseError("Unhandled attribute " + key);
     }
     attrs[its->second].push_back(val);
   }
   d_lex.reinsertToken(Token::RPAREN);
 }
 
-void ExprParser::parseAttributeList(Expr& e, AttrMap& attrs)
+void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs)
 {
   bool pushedScope = false;
-  parseAttributeList(e, attrs, pushedScope);
+  parseAttributeList(k, e, attrs, pushedScope);
   // pop the scope if necessary
   if (pushedScope)
   {

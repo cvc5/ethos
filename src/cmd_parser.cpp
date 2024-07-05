@@ -168,7 +168,7 @@ bool CmdParser::parseNextCommand()
       {
         // possible attribute list
         AttrMap attrs;
-        d_eparser.parseAttributeList(t, attrs);
+        d_eparser.parseAttributeList(Kind::CONST, t, attrs);
         // determine if an attribute specified a constructor kind
         d_eparser.processAttributeMap(attrs, ck, cons, params);
       }
@@ -419,7 +419,7 @@ bool CmdParser::parseNextCommand()
         d_state.markConstructorKind(rule, Attr::PREMISE_LIST, plCons);
       }
       AttrMap attrs;
-      d_eparser.parseAttributeList(rule, attrs);
+      d_eparser.parseAttributeList(Kind::PROOF_RULE, rule, attrs);
     }
     break;
     // (declare-sort <symbol> <numeral>)
@@ -564,7 +564,7 @@ bool CmdParser::parseNextCommand()
         if (tok == Token::DEFINE)
         {
           AttrMap attrs;
-          d_eparser.parseAttributeList(expr, attrs);
+          d_eparser.parseAttributeList(Kind::NONE, expr, attrs);
         }
       }
     }
