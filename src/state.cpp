@@ -155,17 +155,19 @@ void State::popScope()
   d_declsSizeCtx.pop_back();
   for (size_t i=lastSize, currSize = d_decls.size(); i<currSize; i++)
   {
-    if (d_decls[i].second==0)
+    // it might be overloaded
+    AppInfo* ai = getAppInfo(d_symTable[d_decls[i]].getValue());
+    Assert (ai!=nullptr);
+    if (!ai->d_overloads.empty())
     {
-      d_symTable.erase(d_decls[i].first);
+      ai->d_overloads.pop_back();
+      if (ai->d_overloads.size()!=1)
+      {
+        continue;
+      }
+      ai->d_overloads.clear();
     }
-    else
-    {
-      // otherwise this is an overload
-      AppInfo* ai = getAppInfo(d_symTable[d_decls[i].first].getValue());
-      Assert (ai!=nullptr);
-      ai->d_overloads.erase(d_decls[i].second-1);
-    }
+    d_symTable.erase(d_decls[i]);
   }
   d_decls.resize(lastSize);
 }
@@ -579,14 +581,9 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       if (!ai->d_overloads.empty())
       {
         Trace("overload") << "Use overload when constructing " << k << " " << children << std::endl;
-        std::map<size_t, Expr>::iterator ito = ai->d_overloads.find(children.size()-1);
-        if (ito!=ai->d_overloads.end() && ito->second.getValue()!=hd)
+        Expr ret = getOverload(ai->d_overloads, children);
+        if (!ret.isNull())
         {
-          std::vector<Expr> newChildren;
-          newChildren.emplace_back(ito->second);
-          newChildren.insert(newChildren.end(), children.begin()+1, children.end());
-          Expr ret = mkExpr(k, newChildren);
-          Trace("overload") << "...made " << ret << std::endl;
           return ret;
         }
       }
@@ -843,10 +840,10 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         size_t arity = ftype.first.size();
         Trace("overload") << "...overloaded, check arity " << arity << std::endl;
         // look up the overload
-        std::map<size_t, Expr>::iterator ito = ai->d_overloads.find(arity);
-        if (ito!=ai->d_overloads.end())
+        Expr reto = d_tc.getOverloadTypes(ai->d_overloads, ftype.first);
+        if (!reto.isNull())
         {
-          ret = ito->second;
+          ret = reto;
         }
         // otherwise try the default (first) symbol parsed, which is children[0]
       }
@@ -1034,20 +1031,17 @@ bool State::bind(const std::string& name, const Expr& e)
   std::map<std::string, Expr>::iterator its = d_symTable.find(name);
   if (its!=d_symTable.end())
   {
-    // try to overload?
+    // if already bound, we overload
     AppInfo& ai = d_appData[its->second.getValue()];
-    Expr ee = e;
-    Expr et = d_tc.getType(ee);
-    size_t arity = et.getFunctionArity();
-    Trace("overload") << "Overload " << e << " for " << its->second << " with arity " << arity << std::endl;
-    if (ai.d_overloads.find(arity)!=ai.d_overloads.end())
+    // if the first time overloading, add the original
+    if (ai.d_overloads.empty())
     {
-      return false;
+      ai.d_overloads.insert(its->second);
     }
-    ai.d_overloads[arity] = e;
+    ai.d_overloads.insert(e);
     if (!d_declsSizeCtx.empty())
     {
-      d_decls.emplace_back(name, arity+1);
+      d_decls.emplace_back(name);
     }
     return true;
   }
@@ -1056,7 +1050,7 @@ bool State::bind(const std::string& name, const Expr& e)
   // only have to remember if not at global scope
   if (!d_declsSizeCtx.empty())
   {
-    d_decls.emplace_back(name, 0);
+    d_decls.emplace_back(name);
   }
   return true;
 }

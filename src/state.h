@@ -231,7 +231,7 @@ class State
   /** The (canonical) bound variables for binders */
   std::map<std::pair<std::string, const ExprValue*>, Expr> d_boundVars;
   /** Context stacks */
-  std::vector<std::pair<std::string, size_t>> d_decls;
+  std::vector<std::string> d_decls;
   /** Context size */
   std::vector<size_t> d_declsSizeCtx;
   /** All free assumptions */
