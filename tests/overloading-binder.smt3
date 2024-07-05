@@ -1,0 +1,18 @@
+(declare-type Int ())
+(declare-consts <numeral> Int)
+(declare-type Real ())
+(declare-consts <rational> Real)
+(declare-const f (-> Int Int Int))
+
+(declare-const = (-> (! Type :var T :implicit) T T Bool))
+
+
+(declare-type @List ())
+(declare-const @nil @List)
+(declare-const @cons (-> (! Type :var T :implicit) T @List @List) :right-assoc-nil @nil)
+(declare-const forall (-> @List Bool Bool) :binder @cons)
+(declare-const to_real (-> Int Real))
+
+(define @p0 () (forall ((f (-> Real Real Real))) (= (f 1.0 2.0) (to_real (f 1 3)))) :type Bool)
+
+(define @p1 () (forall ((f (-> Real Real))) (= (f 1.0) (to_real (f 1 3)))) :type Bool)

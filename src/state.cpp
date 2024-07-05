@@ -165,13 +165,14 @@ void State::popScope()
       Assert (ai!=nullptr);
       Assert (!ai->d_overloads.empty());
       ai->d_overloads.pop_back();
-      if (ai->d_overloads.size()!=1)
+      if (ai->d_overloads.size()==1)
       {
-        // still overloaded
-        continue;
+        Trace("overload") << "** no-overload: " << d_decls[i] << std::endl;
+        // no longer overloaded since the overload vector is now size one
+        ai->d_overloads.clear();
       }
-      // no longer overloaded since the overload vector is now size one
-      ai->d_overloads.clear();
+      // was overloaded, so we don't unbind
+      continue;
     }
     d_symTable.erase(d_decls[i]);
   }
@@ -858,7 +859,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       }
       else
       {
-        Trace("overload") << "...overloaded" << std::endl;
+        Trace("overload") << "...not overloaded" << std::endl;
         reto = getOverloadInternal({children[0]}, dummyChildren, ftype.second.getValue());
       }
       if (!reto.isNull())
@@ -1034,6 +1035,7 @@ bool State::bind(const std::string& name, const Expr& e)
     // if the first time overloading, add the original
     if (ai.d_overloads.empty())
     {
+      Trace("overload") << "** overload: " << name << std::endl;
       ai.d_overloads.push_back(its->second);
     }
     ai.d_overloads.push_back(e);
