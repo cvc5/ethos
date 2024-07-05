@@ -214,7 +214,19 @@ class State
                               const Expr& type);
   /** Make literal internal */
   ExprValue* mkLiteralInternal(Literal& l);
-  /** */
+  /**
+   * Get overload internal. This determines which one of the operators
+   * in overloads (if any) should be applied in the Kind::APPLY we are
+   * constructing with the given children.
+   * @param overloads The candidate operators.
+   * @param children The children of the Kind::APPLY we are trying to
+   * construct. This includes a head operator.
+   * @param retType If non-null, this is required return type of the
+   * application.
+   * @return If possible, one of the elements of overloads that meets
+   * the above requirements. If multiple are possible, we return the
+   * first. If none are possible, we return the null expression.
+   */
   Expr getOverloadInternal(const std::vector<Expr>& overloads,
                            const std::vector<Expr>& children,
                            const ExprValue* retType = nullptr);
@@ -228,17 +240,28 @@ class State
   /** Bind builtin eval */
   void bindBuiltinEval(const std::string& name, Kind k, Attr ac = Attr::NONE);
   //--------------------- parsing state
-  /** The symbol table */
+  /** The symbol table, mapping symbols */
   std::map<std::string, Expr> d_symTable;
   /** Symbol table for proof rules, if using separate table */
   std::map<std::string, Expr> d_ruleSymTable;
   /** The (canonical) bound variables for binders */
   std::map<std::pair<std::string, const ExprValue*>, Expr> d_boundVars;
-  /** Context stacks */
+  /**
+   * The list of declared symbols in the order they were bound.
+   */
   std::vector<std::string> d_decls;
-  /** Overloaded context */
+  /**
+   * The list of declared symbols that were overloaded when they
+   * were bound. This is a sublist of d_decls. For example if
+   *   d_decls = { "A", "B", "A", "C", "A", "B" }
+   * then
+   *   d_overloadedDecls = { "A", "A", "B" }.
+   */
   std::vector<std::string> d_overloadedDecls;
-  /** Context size */
+  /**
+   * Context size, which is the size of d_decls at the time of when each
+   * current pushScope was called.
+   */
   std::vector<size_t> d_declsSizeCtx;
   /** All free assumptions */
   std::vector<Expr> d_assumptions;

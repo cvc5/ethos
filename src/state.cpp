@@ -155,18 +155,22 @@ void State::popScope()
   d_declsSizeCtx.pop_back();
   for (size_t i=lastSize, currSize = d_decls.size(); i<currSize; i++)
   {
-    // check if overloaded
+    // Check if overloaded, which is the case if the last overloaded
+    // declaration had the same name.
     if (!d_overloadedDecls.empty() && d_overloadedDecls.back()==d_decls[i])
     {
       d_overloadedDecls.pop_back();
-      // it might be overloaded
+      // it should be overloaded
       AppInfo* ai = getAppInfo(d_symTable[d_decls[i]].getValue());
       Assert (ai!=nullptr);
+      Assert (!ai->d_overloads.empty());
       ai->d_overloads.pop_back();
       if (ai->d_overloads.size()!=1)
       {
+        // still overloaded
         continue;
       }
+      // no longer overloaded since the overload vector is now size one
       ai->d_overloads.clear();
     }
     d_symTable.erase(d_decls[i]);
