@@ -586,8 +586,9 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         Expr ret = d_tc.getOverload(ai->d_overloads, children);
         if (!ret.isNull())
         {
-          // FIXME: apply ret
-          return ret;
+          vchildren[0] = ret.getValue();
+          Trace("overload") << "...found overload " << ret << std::endl;
+          return Expr(mkApplyInternal(vchildren));
         }
       }
       Trace("state-debug") << "Process category " << ai->d_attrCons << " for " << children[0] << std::endl;
@@ -843,7 +844,12 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         size_t arity = ftype.first.size();
         Trace("overload") << "...overloaded, check arity " << arity << std::endl;
         // look up the overload
-        Expr reto = d_tc.getOverloadTypes(ai->d_overloads, ftype.first);
+        std::vector<Expr> dummyChildren;
+        for (const Expr& t : ftype.first)
+        {
+          dummyChildren.emplace_back(mkSymbol(Kind::CONST, "tmp", t));
+        }
+        Expr reto = d_tc.getOverload(ai->d_overloads, dummyChildren);
         if (!reto.isNull())
         {
           ret = reto;

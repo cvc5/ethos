@@ -357,16 +357,6 @@ Expr TypeChecker::getOverload(std::vector<Expr>& overloads, const std::vector<Ex
   return d_null;
 }
 
-Expr TypeChecker::getOverloadTypes(std::vector<Expr>& overloads, const std::vector<Expr>& types)
-{
-  std::vector<Expr> children;
-  for (const Expr& t : types)
-  {
-    children.emplace_back(d_state.mkSymbol(Kind::VARIABLE, "@o", t));
-  }
-  return getOverload(overloads, children);
-}
-
 Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
                                      Ctx& ctx,
                                      std::ostream* out)

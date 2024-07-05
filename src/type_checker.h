@@ -45,8 +45,6 @@ class TypeChecker
   Expr getTypeApp(std::vector<Expr>& children, std::ostream* out = nullptr);
   /** */
   Expr getOverload(std::vector<Expr>& overloads, const std::vector<Expr>& children);
-  /** */
-  Expr getOverloadTypes(std::vector<Expr>& overloads, const std::vector<Expr>& types);
   /**
    * Check arity for kind, returns false if k cannot be applied to nargs.
    */
