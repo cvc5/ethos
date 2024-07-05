@@ -1046,10 +1046,12 @@ void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushe
     }
     Attr a = its->second;
     bool handled = false;
+    // split on the context of the attribute, as given by a kind
     switch (k)
     {
       case Kind::PROOF_RULE:
       {
+        // attributes on declare-rule
         if (a==Attr::SORRY)
         {
           handled = true;
@@ -1059,6 +1061,7 @@ void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushe
         break;
       case Kind::PARAM:
       {
+        // attributes on parameters
         if (a==Attr::LIST || a==Attr::IMPLICIT)
         {
           handled = true;
@@ -1067,6 +1070,7 @@ void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushe
         break;
       case Kind::CONST:
       {
+        // attributes on declare-const
         switch (a)
         {
           case Attr::RIGHT_ASSOC:
@@ -1091,6 +1095,8 @@ void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushe
         break;
       case Kind::NONE:
       {
+        // attributes on general terms, including type arguments
+        // also used for attribute list on define
         handled = true;
         switch (a)
         {

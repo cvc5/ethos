@@ -104,7 +104,7 @@ class ExprParser
    * @param k The category of expression we are applying attributes to which is:
    * - PARAM if applied to a parameter,
    * - PROOF_RULE if applied to the symbol introduced by a declare-rule command,
-   * - CONSTANT if applied to the symbol introduced by a declare-const command,
+   * - CONST if applied to the symbol introduced by a declare-const command,
    * - NONE otherwise.
    * @param e The expression we are applying to
    * @param attr The attributes which are populated
