@@ -119,6 +119,7 @@ set(alfc_test_file_list
     gt_eval.smt3
     skolemize-v1.smt3
     skolemize-v2.smt3
+    overloading-arith.smt3
 )
 
 macro(alfc_test file)
