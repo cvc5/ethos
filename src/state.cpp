@@ -155,11 +155,13 @@ void State::popScope()
   d_declsSizeCtx.pop_back();
   for (size_t i=lastSize, currSize = d_decls.size(); i<currSize; i++)
   {
-    // it might be overloaded
-    AppInfo* ai = getAppInfo(d_symTable[d_decls[i]].getValue());
-    Assert (ai!=nullptr);
-    if (!ai->d_overloads.empty())
+    // check if overloaded
+    if (!d_overloadedDecls.empty() && d_overloadedDecls.back()==d_decls[i])
     {
+      d_overloadedDecls.pop_back();
+      // it might be overloaded
+      AppInfo* ai = getAppInfo(d_symTable[d_decls[i]].getValue());
+      Assert (ai!=nullptr);
       ai->d_overloads.pop_back();
       if (ai->d_overloads.size()!=1)
       {
@@ -581,9 +583,10 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       if (!ai->d_overloads.empty())
       {
         Trace("overload") << "Use overload when constructing " << k << " " << children << std::endl;
-        Expr ret = getOverload(ai->d_overloads, children);
+        Expr ret = d_tc.getOverload(ai->d_overloads, children);
         if (!ret.isNull())
         {
+          // FIXME: apply ret
           return ret;
         }
       }
@@ -1036,12 +1039,13 @@ bool State::bind(const std::string& name, const Expr& e)
     // if the first time overloading, add the original
     if (ai.d_overloads.empty())
     {
-      ai.d_overloads.insert(its->second);
+      ai.d_overloads.push_back(its->second);
     }
-    ai.d_overloads.insert(e);
+    ai.d_overloads.push_back(e);
     if (!d_declsSizeCtx.empty())
     {
       d_decls.emplace_back(name);
+      d_overloadedDecls.emplace_back(name);
     }
     return true;
   }

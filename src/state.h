@@ -232,6 +232,8 @@ class State
   std::map<std::pair<std::string, const ExprValue*>, Expr> d_boundVars;
   /** Context stacks */
   std::vector<std::string> d_decls;
+  /** Overloaded context */
+  std::vector<std::string> d_overloadedDecls;
   /** Context size */
   std::vector<size_t> d_declsSizeCtx;
   /** All free assumptions */

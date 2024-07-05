@@ -341,7 +341,7 @@ Expr TypeChecker::getTypeApp(std::vector<Expr>& children, std::ostream* out)
   return getTypeAppInternal(vchildren, ctx, out);
 }
 
-Expr TypeChecker::getOverload(std::vector<Expr>& overloads, std::vector<Expr>& children)
+Expr TypeChecker::getOverload(std::vector<Expr>& overloads, const std::vector<Expr>& children)
 {
   std::vector<Expr> newChildren = children;
   // try each overload
@@ -351,16 +351,16 @@ Expr TypeChecker::getOverload(std::vector<Expr>& overloads, std::vector<Expr>& c
     Expr t = getTypeApp(newChildren);
     if (!t.isNull())
     {
-      return mkExpr(k, newChildren);
+      return o;
     }
   }
   return d_null;
 }
 
-Expr TypeChecker::getOverloadTypes(std::vector<Expr>& overloads, std::vector<Expr>& types)
+Expr TypeChecker::getOverloadTypes(std::vector<Expr>& overloads, const std::vector<Expr>& types)
 {
   std::vector<Expr> children;
-  for (Expr& t : types)
+  for (const Expr& t : types)
   {
     children.emplace_back(d_state.mkSymbol(Kind::VARIABLE, "@o", t));
   }
