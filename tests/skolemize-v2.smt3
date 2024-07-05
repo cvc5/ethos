@@ -1,0 +1,60 @@
+(declare-type @List ())
+(declare-const @nil @List)
+(declare-const @cons (-> (! Type :var T :implicit) T @List @List) :right-assoc-nil @nil)
+
+(declare-const exists (-> @List Bool Bool) :binder @cons)
+(declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
+(declare-const = (-> (! Type :var A :implicit) A A Bool) :chainable and)
+
+(program $substitute
+  ((T Type) (U Type) (S Type) (x S) (y S) (f (-> T U)) (a T) (z U) (w T))
+  (S S U) U
+  (
+  (($substitute x y x)             y)
+  (($substitute x y (f a))         (_ ($substitute x y f) ($substitute x y a)))
+  (($substitute x y z)             z)
+  )
+)
+
+(program $substitute_list ((T Type) (U Type) (F U) (x T) (xs @List :list) (t T) (ts @List :list))
+  (@List @List U) U
+  (
+    (($substitute_list (@cons x xs) (@cons t ts) F) ($substitute_list xs ts ($substitute x t F)))
+    (($substitute_list @nil @nil F)       F)
+  )
+)
+
+;; ---------------------
+
+(program $get_choice_type ((x @List))
+  (@List) Type
+  (
+    (($get_choice_type (@cons x)) (alf.typeof x))
+  )
+)
+(declare-const choice (-> (! @List :var L) Bool ($get_choice_type L)) :binder @cons)
+
+(program $mk_skolems ((T Type) (x T) (xs @List :list) (F Bool))
+  (@List Bool) @List
+  (
+    (($mk_skolems (@cons x) F)    (@cons (choice (@cons x) F)))
+    (($mk_skolems (@cons x xs) F) (alf.define ((F2 (exists xs F)))
+                                  (alf.define ((c (choice (@cons x) F2)))
+                                  (alf.define ((Fs ($substitute x c F)))
+                                    (alf.cons @cons c ($mk_skolems xs Fs))))))
+  )
+)
+
+(declare-rule skolemize ((x @List) (F Bool))
+  :premises ((exists x F))
+  :conclusion ($substitute_list x ($mk_skolems x F) F)
+)
+
+;; ---------------------
+
+(declare-type Int ())
+(declare-const a Int)
+(declare-const b Int)
+(define Q () (exists ((x Int) (y Int)) (and (= x a) (= y b))))
+(assume @p0 Q)
+(step @p1 :rule skolemize :premises (@p0))

@@ -155,17 +155,26 @@ void State::popScope()
   d_declsSizeCtx.pop_back();
   for (size_t i=lastSize, currSize = d_decls.size(); i<currSize; i++)
   {
-    if (d_decls[i].second==0)
+    // Check if overloaded, which is the case if the last overloaded
+    // declaration had the same name.
+    if (!d_overloadedDecls.empty() && d_overloadedDecls.back()==d_decls[i])
     {
-      d_symTable.erase(d_decls[i].first);
-    }
-    else
-    {
-      // otherwise this is an overload
-      AppInfo* ai = getAppInfo(d_symTable[d_decls[i].first].getValue());
+      d_overloadedDecls.pop_back();
+      // it should be overloaded
+      AppInfo* ai = getAppInfo(d_symTable[d_decls[i]].getValue());
       Assert (ai!=nullptr);
-      ai->d_overloads.erase(d_decls[i].second-1);
+      Assert (!ai->d_overloads.empty());
+      ai->d_overloads.pop_back();
+      if (ai->d_overloads.size()==1)
+      {
+        Trace("overload") << "** no-overload: " << d_decls[i] << std::endl;
+        // no longer overloaded since the overload vector is now size one
+        ai->d_overloads.clear();
+      }
+      // was overloaded, so we don't unbind
+      continue;
     }
+    d_symTable.erase(d_decls[i]);
   }
   d_decls.resize(lastSize);
 }
@@ -579,15 +588,12 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       if (!ai->d_overloads.empty())
       {
         Trace("overload") << "Use overload when constructing " << k << " " << children << std::endl;
-        std::map<size_t, Expr>::iterator ito = ai->d_overloads.find(children.size()-1);
-        if (ito!=ai->d_overloads.end() && ito->second.getValue()!=hd)
+        Expr ret = getOverloadInternal(ai->d_overloads, children);
+        if (!ret.isNull())
         {
-          std::vector<Expr> newChildren;
-          newChildren.emplace_back(ito->second);
-          newChildren.insert(newChildren.end(), children.begin()+1, children.end());
-          Expr ret = mkExpr(k, newChildren);
-          Trace("overload") << "...made " << ret << std::endl;
-          return ret;
+          vchildren[0] = ret.getValue();
+          Trace("overload") << "...found overload " << ret << std::endl;
+          return vchildren.size()<=2 ? Expr(mkExprInternal(k, vchildren)) : Expr(mkApplyInternal(vchildren));
         }
       }
       Trace("state-debug") << "Process category " << ai->d_attrCons << " for " << children[0] << std::endl;
@@ -838,38 +844,28 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       AppInfo* ai = getAppInfo(vchildren[0]);
       Expr ret = children[0];
       std::pair<std::vector<Expr>, Expr> ftype = children[1].getFunctionType();
+      Expr reto;
+      // look up the overload
+      std::vector<Expr> dummyChildren;
+      dummyChildren.push_back(children[1]);
+      for (const Expr& t : ftype.first)
+      {
+        dummyChildren.emplace_back(mkSymbol(Kind::CONST, "tmp", t));
+      }
       if (ai!=nullptr && !ai->d_overloads.empty())
       {
-        size_t arity = ftype.first.size();
-        Trace("overload") << "...overloaded, check arity " << arity << std::endl;
-        // look up the overload
-        std::map<size_t, Expr>::iterator ito = ai->d_overloads.find(arity);
-        if (ito!=ai->d_overloads.end())
-        {
-          ret = ito->second;
-        }
-        // otherwise try the default (first) symbol parsed, which is children[0]
+        Trace("overload") << "...overloaded" << std::endl;
+        reto = getOverloadInternal(ai->d_overloads, dummyChildren, ftype.second.getValue());
       }
       else
       {
         Trace("overload") << "...not overloaded" << std::endl;
+        reto = getOverloadInternal({children[0]}, dummyChildren, ftype.second.getValue());
       }
-      Trace("overload") << "Apply " << ret << " of type " << d_tc.getType(ret) <<  " to children of types:" << std::endl;
-      std::vector<Expr> cchildren;
-      cchildren.push_back(ret);
-      for (const Expr& t : ftype.first)
+      if (!reto.isNull())
       {
-        Trace("overload") << "- " << t << std::endl;
-        cchildren.push_back(getBoundVar("as.v", t));
-      }
-      Expr cret = mkExpr(Kind::APPLY, cchildren);
-      Expr tcret = d_tc.getType(cret);
-      Trace("overload") << "Range expected/computed: " << ftype.second << " " << tcret<< std::endl;
-      // if succeeded, we return the disambiguated term, otherwise the alf.as does not evaluate
-      // and we construct the (bogus) term below.
-      if (ftype.second==tcret)
-      {
-        return ret;
+        Trace("overload") << "...found overload " << reto << " " << d_tc.getType(reto) << std::endl;
+        return reto;
       }
     }
   }
@@ -1034,20 +1030,20 @@ bool State::bind(const std::string& name, const Expr& e)
   std::map<std::string, Expr>::iterator its = d_symTable.find(name);
   if (its!=d_symTable.end())
   {
-    // try to overload?
+    // if already bound, we overload
     AppInfo& ai = d_appData[its->second.getValue()];
-    Expr ee = e;
-    Expr et = d_tc.getType(ee);
-    size_t arity = et.getFunctionArity();
-    Trace("overload") << "Overload " << e << " for " << its->second << " with arity " << arity << std::endl;
-    if (ai.d_overloads.find(arity)!=ai.d_overloads.end())
+    // if the first time overloading, add the original
+    if (ai.d_overloads.empty())
     {
-      return false;
+      Trace("overload") << "** overload: " << name << std::endl;
+      ai.d_overloads.push_back(its->second);
     }
-    ai.d_overloads[arity] = e;
+    ai.d_overloads.push_back(e);
+    // add to declaration
     if (!d_declsSizeCtx.empty())
     {
-      d_decls.emplace_back(name, arity+1);
+      d_decls.emplace_back(name);
+      d_overloadedDecls.emplace_back(name);
     }
     return true;
   }
@@ -1056,7 +1052,7 @@ bool State::bind(const std::string& name, const Expr& e)
   // only have to remember if not at global scope
   if (!d_declsSizeCtx.empty())
   {
-    d_decls.emplace_back(name, 0);
+    d_decls.emplace_back(name);
   }
   return true;
 }
@@ -1361,6 +1357,39 @@ bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
     d_plugin->markConstructorKind(v, a, acons);
   }
   return true;
+}
+
+Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
+                                const std::vector<Expr>& children,
+                                const ExprValue* retType)
+{
+  Assert (!overloads.empty());
+  Trace("overload") << "Get overload" << std::endl;
+  std::vector<ExprValue*> vchildren;
+  for (const Expr& c : children)
+  {
+    vchildren.push_back(c.getValue());
+  }
+  Expr ret;
+  // try overloads in order until one is found
+  for (const Expr& o : overloads)
+  {
+    vchildren[0] = o.getValue();
+    Expr x = Expr(vchildren.size()>2 ? mkApplyInternal(vchildren) : mkExprInternal(Kind::APPLY, vchildren));
+    Expr t = d_tc.getType(x);
+    // if term is well-formed, and matches the return type if it exists
+    if (!t.isNull() && (retType==nullptr || retType==t.getValue()))
+    {
+      if (!ret.isNull())
+      {
+        Warning() << "State::getOverloadInternal ambiguous application of " << ret << std::endl;
+        continue;
+      }
+      ret = o;
+    }
+  }
+  // otherwise, none found, return null
+  return ret;
 }
 
 }  // namespace alfc
