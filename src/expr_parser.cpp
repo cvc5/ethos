@@ -91,6 +91,7 @@ ExprParser::ExprParser(Lexer& lex, State& state, bool isReference)
   d_strToAttr[":opaque"] = Attr::OPAQUE;
   d_strToAttr[":syntax"] = Attr::SYNTAX;
   d_strToAttr[":restrict"] = Attr::RESTRICT;
+  d_strToAttr[":sorry"] = Attr::SORRY;
   
   d_strToLiteralKind["<boolean>"] = Kind::BOOLEAN;
   d_strToLiteralKind["<numeral>"] = Kind::NUMERAL;
@@ -1039,7 +1040,7 @@ void ExprParser::parseAttributeList(Expr& e, AttrMap& attrs, bool& pushedScope)
         parseSymbolicExpr();
       }
       // store dummy, to mark that we read an attribute
-      Warning() << "Unsupported attribute " << key;
+      Warning() << "Unsupported attribute " << key << std::endl;
       attrs[Attr::NONE].push_back(val);
       continue;
     }
@@ -1106,6 +1107,15 @@ void ExprParser::parseAttributeList(Expr& e, AttrMap& attrs, bool& pushedScope)
           d_lex.parseError("Cannot use :type in this context");
         }
         typeCheck(e, val);
+      }
+        break;
+      case Attr::SORRY:
+      {
+        if (e.isNull() || e.getKind()!=Kind::PROOF_RULE)
+        {
+          d_lex.parseError("Cannot use :sorry in this context");
+        }
+        d_state.markProofRuleSorry(e.getValue());
       }
         break;
       default:

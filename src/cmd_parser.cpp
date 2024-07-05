@@ -418,6 +418,8 @@ bool CmdParser::parseNextCommand()
       {
         d_state.markConstructorKind(rule, Attr::PREMISE_LIST, plCons);
       }
+      AttrMap attrs;
+      d_eparser.parseAttributeList(rule, attrs);
     }
     break;
     // (declare-sort <symbol> <numeral>)
