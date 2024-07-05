@@ -583,12 +583,12 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       if (!ai->d_overloads.empty())
       {
         Trace("overload") << "Use overload when constructing " << k << " " << children << std::endl;
-        Expr ret = d_tc.getOverload(ai->d_overloads, children);
+        Expr ret = getOverloadInternal(ai->d_overloads, children);
         if (!ret.isNull())
         {
           vchildren[0] = ret.getValue();
           Trace("overload") << "...found overload " << ret << std::endl;
-          return Expr(mkApplyInternal(vchildren));
+          return vchildren.size()<=2 ? Expr(mkExprInternal(k, vchildren)) : Expr(mkApplyInternal(vchildren));
         }
       }
       Trace("state-debug") << "Process category " << ai->d_attrCons << " for " << children[0] << std::endl;
@@ -845,11 +845,12 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         Trace("overload") << "...overloaded, check arity " << arity << std::endl;
         // look up the overload
         std::vector<Expr> dummyChildren;
+        dummyChildren.push_back(children[0]);
         for (const Expr& t : ftype.first)
         {
           dummyChildren.emplace_back(mkSymbol(Kind::CONST, "tmp", t));
         }
-        Expr reto = d_tc.getOverload(ai->d_overloads, dummyChildren);
+        Expr reto = getOverloadInternal(ai->d_overloads, dummyChildren);
         if (!reto.isNull())
         {
           ret = reto;
@@ -1048,6 +1049,7 @@ bool State::bind(const std::string& name, const Expr& e)
       ai.d_overloads.push_back(its->second);
     }
     ai.d_overloads.push_back(e);
+    // add to declaration
     if (!d_declsSizeCtx.empty())
     {
       d_decls.emplace_back(name);
@@ -1365,6 +1367,30 @@ bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
     d_plugin->markConstructorKind(v, a, acons);
   }
   return true;
+}
+
+Expr State::getOverloadInternal(const std::vector<Expr>& overloads, const std::vector<Expr>& children)
+{
+  Assert (!overloads.empty());
+  Trace("overload") << "Get overload" << std::endl;
+  std::vector<ExprValue*> vchildren;
+  for (const Expr& c : children)
+  {
+    vchildren.push_back(c.getValue());
+  }
+  // try overloads in order until one is found
+  for (const Expr& o : overloads)
+  {
+    vchildren[0] = o.getValue();
+    Expr x = Expr(vchildren.size()>2 ? mkApplyInternal(vchildren) : mkExprInternal(Kind::APPLY, vchildren));
+    Expr t = d_tc.getType(x);
+    if (!t.isNull())
+    {
+      return o;
+    }
+  }
+  // otherwise, none found, return null
+  return d_null;
 }
 
 }  // namespace alfc

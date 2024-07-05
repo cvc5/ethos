@@ -341,22 +341,6 @@ Expr TypeChecker::getTypeApp(std::vector<Expr>& children, std::ostream* out)
   return getTypeAppInternal(vchildren, ctx, out);
 }
 
-Expr TypeChecker::getOverload(std::vector<Expr>& overloads, const std::vector<Expr>& children)
-{
-  std::vector<Expr> newChildren = children;
-  // try each overload
-  for (Expr& o : overloads)
-  {
-    newChildren[0] = o;
-    Expr t = getTypeApp(newChildren);
-    if (!t.isNull())
-    {
-      return o;
-    }
-  }
-  return d_null;
-}
-
 Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
                                      Ctx& ctx,
                                      std::ostream* out)
