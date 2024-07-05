@@ -839,44 +839,28 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       AppInfo* ai = getAppInfo(vchildren[0]);
       Expr ret = children[0];
       std::pair<std::vector<Expr>, Expr> ftype = children[1].getFunctionType();
+      Expr reto;
+      // look up the overload
+      std::vector<Expr> dummyChildren;
+      dummyChildren.push_back(children[1]);
+      for (const Expr& t : ftype.first)
+      {
+        dummyChildren.emplace_back(mkSymbol(Kind::CONST, "tmp", t));
+      }
       if (ai!=nullptr && !ai->d_overloads.empty())
       {
-        size_t arity = ftype.first.size();
-        Trace("overload") << "...overloaded, check arity " << arity << std::endl;
-        // look up the overload
-        std::vector<Expr> dummyChildren;
-        dummyChildren.push_back(children[0]);
-        for (const Expr& t : ftype.first)
-        {
-          dummyChildren.emplace_back(mkSymbol(Kind::CONST, "tmp", t));
-        }
-        Expr reto = getOverloadInternal(ai->d_overloads, dummyChildren);
-        if (!reto.isNull())
-        {
-          ret = reto;
-        }
-        // otherwise try the default (first) symbol parsed, which is children[0]
+        Trace("overload") << "...overloaded" << std::endl;
+        reto = getOverloadInternal(ai->d_overloads, dummyChildren, ftype.second.getValue());
       }
       else
       {
-        Trace("overload") << "...not overloaded" << std::endl;
+        Trace("overload") << "...overloaded" << std::endl;
+        reto = getOverloadInternal({children[0]}, dummyChildren, ftype.second.getValue());
       }
-      Trace("overload") << "Apply " << ret << " of type " << d_tc.getType(ret) <<  " to children of types:" << std::endl;
-      std::vector<Expr> cchildren;
-      cchildren.push_back(ret);
-      for (const Expr& t : ftype.first)
+      if (!reto.isNull())
       {
-        Trace("overload") << "- " << t << std::endl;
-        cchildren.push_back(getBoundVar("as.v", t));
-      }
-      Expr cret = mkExpr(Kind::APPLY, cchildren);
-      Expr tcret = d_tc.getType(cret);
-      Trace("overload") << "Range expected/computed: " << ftype.second << " " << tcret<< std::endl;
-      // if succeeded, we return the disambiguated term, otherwise the alf.as does not evaluate
-      // and we construct the (bogus) term below.
-      if (ftype.second==tcret)
-      {
-        return ret;
+        Trace("overload") << "...found overload " << reto << " " << d_tc.getType(reto) << std::endl;
+        return reto;
       }
     }
   }
@@ -1369,7 +1353,9 @@ bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
   return true;
 }
 
-Expr State::getOverloadInternal(const std::vector<Expr>& overloads, const std::vector<Expr>& children)
+Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
+                                const std::vector<Expr>& children,
+                                const ExprValue* retType)
 {
   Assert (!overloads.empty());
   Trace("overload") << "Get overload" << std::endl;
@@ -1384,7 +1370,8 @@ Expr State::getOverloadInternal(const std::vector<Expr>& overloads, const std::v
     vchildren[0] = o.getValue();
     Expr x = Expr(vchildren.size()>2 ? mkApplyInternal(vchildren) : mkExprInternal(Kind::APPLY, vchildren));
     Expr t = d_tc.getType(x);
-    if (!t.isNull())
+    // if term is well-formed, and matches the return type if it exists
+    if (!t.isNull() && (retType==nullptr || retType==t.getValue()))
     {
       return o;
     }

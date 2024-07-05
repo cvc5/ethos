@@ -215,7 +215,9 @@ class State
   /** Make literal internal */
   ExprValue* mkLiteralInternal(Literal& l);
   /** */
-  Expr getOverloadInternal(const std::vector<Expr>& overloads, const std::vector<Expr>& children);
+  Expr getOverloadInternal(const std::vector<Expr>& overloads,
+                           const std::vector<Expr>& children,
+                           const ExprValue* retType = nullptr);
   /** Get the internal data for expression e. */
   AppInfo* getAppInfo(const ExprValue* e);
   const AppInfo* getAppInfo(const ExprValue* e) const;
