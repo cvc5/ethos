@@ -104,7 +104,7 @@ The ALF language contains further commands for declaring symbols that are not st
 
 > Variables are internally treated the same as constants by the ALF checker, but are provided as a separate category, e.g. for user signatures that wish to distinguish universally quantified variables from free constants. They also have a relationship with user-defined binders, see [binders](#binders), and can be accessed via the builtin operator `alf.var` (see [computation](#computation)).
 
-> Limited cases of symbol overloading are supported, see [overloading](#overloading).
+> Symbol overloading is supported, see [overloading](#overloading).
 
 ### Example: Basic Declarations
 
@@ -939,14 +939,19 @@ The following are examples of list operations when using parameterized constant 
 
 ## <a name="overloading"></a>Overloading
 
-The ALF checker supports limited cases of overloading where all instances of the overloaded symbol have distinct arity.
-In particular the following is accepted:
+The ALF checker supports symbol overloading.
+For example, the following is accepted:
 ```
 (declare-const - (-> Int Int))
 (declare-const - (-> Int Int Int))
+(declare-const - (-> Real Real Real))
 ```
-When parsing a term whose head is `-`, the ALF checker will automatically choose which symbol to use based on the number of arguments passed to it, e.g. `(- 1)` uses the first, and `(- 0 1)` uses the second.
+When parsing a term whose head is `-`, the ALF checker will automatically choose which symbol to use based on the arguments passed to it.
+In particular, if a symbol is overloaded, the ALF checker will use the first symbol that results in a well-typed term if applied.
+For example, ssuming standard definitions of SMT-LIB literal values,
+`(- 1)` uses the first, `(- 0 1)` uses the second, and `(- 0.0 1.0)` uses the third.
 If a symbol is unapplied, then the ALF checker will interpret it as the first declared term for that symbol.
+A warning is printed if multiple symbols are applicable.
 
 Furthermore, the ALF checker supports an operator `alf.as` for disambiguation whose syntax is `(alf.as <term> <type>)`.
 A term of the form `(alf.as t (-> T1 ... Tn T))` evaluates to `t` only if `(t k1 ... kn)` has type `T` where `k1 ... kn` are variables of type `T1 ... Tn`.
@@ -1630,7 +1635,7 @@ Valid inputs to the ALF checker are `<alf-command>*`, where:
 Moreover, a valid input for a file included by the ALF command `<reference>` is `<smtlib2-command>*`;
 a valid input for a file included by the ALF command `<include>` is `<alf-command>*`.
 
-### <a name="bv-literals"></a>Definitions of Non-Core Evaluation Operators
+### <a name="non-core-eval"></a>Definitions of Non-Core Evaluation Operators
 
 The following signature can be used to define operators that are not required to be supported as core evaluation operators.
 
