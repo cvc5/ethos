@@ -1131,6 +1131,13 @@ void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushe
             val = parseExpr();
           }
             break;
+          case Attr::LET_BINDER:
+          {
+            // requires an expression pair that follows
+            handled = true;
+            val = parseExprPair();
+          }
+            break;
           default:break;
         }
       }
