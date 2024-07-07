@@ -133,10 +133,12 @@ class State
    */
   Expr mkParameterized(const ExprValue* hd, const std::vector<Expr>& params);
   //--------------------------------------
-  /** is binder */
-  bool isBinder(const ExprValue* ev) const;
+  /** Get the constructor kind for symbol v */
+  Attr getConstructorKind(const ExprValue* v) const;
   /** make binder list */
   Expr mkBinderList(const ExprValue* ev, const std::vector<Expr>& vs);
+  /** */
+  Expr mkLetBinderList(const ExprValue* ev, const std::vector<std::pair<Expr, Expr>>& lls);
   /** Get the variable with the given name or nullptr if it does not exist */
   Expr getVar(const std::string& name) const;
   /**
@@ -195,8 +197,6 @@ class State
   Expr d_fail;
   /** Get base operator */
   const ExprValue* getBaseOperator(const ExprValue * v) const;
-  /** Get the constructor kind for symbol v */
-  Attr getConstructorKind(const ExprValue* v) const;
   /** Mark that file s was included */
   bool markIncluded(const Filepath& s);
   /** mark deleted */

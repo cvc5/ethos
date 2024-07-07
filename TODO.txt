@@ -12,12 +12,11 @@ TODO:
 - :syntax?
 - warn unused parameters
 - don't always use mkExprInternal in evaluate (@lazyHash)
-- fix printing decimals
+- fix printing decimals?
 - define-fun-rec parsing
-- non-macro define-fun? assume-define?
 - set-option?
 - quote function type
-- RARE rules
+- RARE rules (@alfRare)
 
 
 CVC5-TODO:
