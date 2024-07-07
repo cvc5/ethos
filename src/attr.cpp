@@ -60,4 +60,9 @@ bool isNAryAttr(Attr a)
   return false;
 }
 
+bool isConstructorKindAttr(Attr a)
+{
+  return isNAryAttr(a) || a==Attr::BINDER || a==Attr::LET_BINDER || a==Attr::LIST;
+}
+
 }  // namespace alfc

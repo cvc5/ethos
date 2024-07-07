@@ -1401,53 +1401,40 @@ void ExprParser::processAttributeMap(const AttrMap& attrs,
   {
     for (const Expr& av : a.second)
     {
-      switch(a.first)
+      if (isConstructorKindAttr(a.first))
       {
-        case Attr::LIST:
-        case Attr::SYNTAX:
-        case Attr::PREMISE_LIST:
-        case Attr::LEFT_ASSOC:
-        case Attr::RIGHT_ASSOC:
-        case Attr::LEFT_ASSOC_NIL:
-        case Attr::RIGHT_ASSOC_NIL:
-        case Attr::CHAINABLE:
-        case Attr::PAIRWISE:
-        case Attr::BINDER:
-        case Attr::LET_BINDER:
+        if (ck!=Attr::NONE)
         {
-          if (ck!=Attr::NONE)
-          {
-            std::stringstream ss;
-            ss << "Cannot set multiple constructor types ";
-            ss << "(" << ck << " and " << a.first << ")" << std::endl;
-            d_lex.warning(ss.str());
-            continue;
-          }
-          // it specifies how to construct terms involving this term
-          // if the constructor spec is non-ground, make a lambda
-          if (!av.isNull() && !av.isGround())
-          {
-            Assert (!params.empty());
-            cons = d_state.mkParameterized(av.getValue(), params);
-          }
-          else
-          {
-            cons = av;
-            // if the nil constructor doesn't use parameters, just ignore
-            if (!params.empty())
-            {
-              Warning() << "Ignoring unused parameters for definition of "
-                        << "symbol with nil constructor " << av << std::endl;
-            }
-          }
-          ck = a.first;
-        }
-          break;
-        default:
           std::stringstream ss;
-          ss << "Unhandled attribute " << a.first << std::endl;
+          ss << "Cannot set multiple constructor types ";
+          ss << "(" << ck << " and " << a.first << ")" << std::endl;
           d_lex.warning(ss.str());
-          break;
+          continue;
+        }
+        // it specifies how to construct terms involving this term
+        // if the constructor spec is non-ground, make a lambda
+        if (!av.isNull() && !av.isGround())
+        {
+          Assert (!params.empty());
+          cons = d_state.mkParameterized(av.getValue(), params);
+        }
+        else
+        {
+          cons = av;
+          // if the nil constructor doesn't use parameters, just ignore
+          if (!params.empty())
+          {
+            Warning() << "Ignoring unused parameters for definition of "
+                      << "symbol with nil constructor " << av << std::endl;
+          }
+        }
+        ck = a.first;
+      }
+      else
+      {
+        std::stringstream ss;
+        ss << "Unhandled attribute " << a.first << std::endl;
+        d_lex.warning(ss.str());
       }
     }
   }

@@ -904,14 +904,13 @@ bool CmdParser::parseNextCommand()
         d_state.popAssumptionScope();
       }
       Assert (rs!=nullptr);
+      // increment the count regardless of whether stats are enabled, since it
+      // may impact whether we report incomplete
+      rs->d_count++;
       if (d_statsEnabled)
       {
         // increment the stats
         rs->increment(d_sts);
-      }
-      else
-      {
-        rs->d_count++;
       }
     }
     break;

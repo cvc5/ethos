@@ -61,6 +61,10 @@ enum class Attr
  * operator?
  */
 bool isNAryAttr(Attr a);
+/**
+ * Is the Attr specifying a constructor kind?
+ */
+bool isConstructorKindAttr(Attr a);
 
 /** Print a kind to the stream, for debugging */
 std::ostream& operator<<(std::ostream& o, Attr a);
