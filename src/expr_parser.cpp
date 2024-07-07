@@ -149,13 +149,14 @@ Expr ExprParser::parseExpr()
         switch (tok)
         {
           case Token::LET:
+          case Token::EVAL_DEFINE:
           {
             pstack.emplace_back(ParseCtx::LET_NEXT_BIND);
             needsUpdateCtx = true;
             letBinders.emplace_back();
           }
           break;
-          case Token::MATCH:
+          case Token::EVAL_MATCH:
           {
             // parse the variable list
             d_state.pushScope();
@@ -697,13 +698,16 @@ std::string ExprParser::parseSymbolicExpr()
   do
   {
     tok = d_lex.nextToken();
-    if (tok==Token::LPAREN)
+    switch (tok)
     {
-      nparen++;
-    }
-    else if (tok==Token::RPAREN)
-    {
-      nparen--;
+      case Token::LPAREN: nparen++; break;
+      case Token::RPAREN: nparen--; break;
+      case Token::EOF_TOK:
+      {
+        d_lex.parseError("Expected s-expression");
+      }
+      break;
+      default: break;
     }
     ss << d_lex.tokenStr() << " ";
   }while (nparen!=0);

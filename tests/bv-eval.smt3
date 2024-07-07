@@ -12,7 +12,7 @@
     (
       ((arith.eval (= a b))  (alf.is_eq (arith.eval a) (arith.eval b)))
       ((arith.eval (< a b))  (alf.is_neg (arith.eval (- a b))))
-      ((arith.eval (<= a b)) (let ((x (arith.eval (- a b)))) 
+      ((arith.eval (<= a b)) (alf.define ((x (arith.eval (- a b)))) 
                                  (alf.or (alf.is_neg x) (alf.is_eq x 0))))
       ((arith.eval (+ a b))  (alf.add (arith.eval a) (arith.eval b)))
       ((arith.eval (- a b))  (alf.add (arith.eval a) (alf.neg (arith.eval b))))

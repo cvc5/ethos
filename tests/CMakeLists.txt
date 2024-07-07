@@ -118,6 +118,10 @@ set(alfc_test_file_list
     distinct_value_testers.smt3
     gt_eval.smt3
     let-binder-ex.smt3
+    skolemize-v1.smt3
+    skolemize-v2.smt3
+    overloading-arith.smt3
+    overloading-binder.smt3
 )
 
 macro(alfc_test file)

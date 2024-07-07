@@ -415,11 +415,21 @@ Token Lexer::tokenizeCurrentSymbol() const
     }
       break;
     case 'a':
-      if (d_token.size() == 9 && d_token[1] == 'l' && d_token[2] == 'f' && 
-          d_token[3] == '.' && d_token[4] == 'm' && d_token[5] == 'a' &&
-          d_token[6] == 't' && d_token[7] == 'c' && d_token[8] == 'h')
+      if (d_token.size()>=4 && d_token[1] == 'l' && d_token[2] == 'f' && d_token[3] == '.')
       {
-        return Token::MATCH;
+        if (d_token.size()==9 && d_token[4]=='m' && d_token[5]=='a' &&
+            d_token[6]=='t' && d_token[7]=='c' && d_token[8]=='h')
+        {
+          // alf.match
+          return Token::EVAL_MATCH;
+        }
+        else if (d_token.size()==10 && d_token[4]=='d' && d_token[5]=='e' &&
+                 d_token[6]=='f' && d_token[7]=='i' && d_token[8]=='n' &&
+                 d_token[9]=='e')
+        {
+          // alf.define
+          return Token::EVAL_DEFINE;
+        }
       }
       break;
     case 'p':
@@ -429,6 +439,7 @@ Token Lexer::tokenizeCurrentSymbol() const
       }
       break;
     case 'l':
+      // only lex let if option is true (d_lexLet)
       if (d_lexLet && d_token.size() == 3 && d_token[1] == 'e' && d_token[2] == 't')
       {
         return Token::LET;

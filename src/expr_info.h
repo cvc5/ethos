@@ -35,7 +35,7 @@ public:
   /** Associated kind */
   Kind d_kind;
   /** Overloading */
-  std::map<size_t, Expr> d_overloads;
+  std::vector<Expr> d_overloads;
 };
 
 }  // namespace alfc

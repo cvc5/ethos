@@ -12,7 +12,7 @@
     (
       ((run_evaluate (= a b))  (alf.is_eq (run_evaluate a) (run_evaluate b)))
       ((run_evaluate (> a b))  (alf.is_neg (run_evaluate (- b a))))
-      ((run_evaluate (>= a b)) (let ((x (run_evaluate (- b a)))) 
+      ((run_evaluate (>= a b)) (alf.define ((x (run_evaluate (- b a)))) 
                                  (alf.or (alf.is_neg x) (alf.is_eq x 0))))
       ((run_evaluate (+ a b))  (alf.add (run_evaluate a) (run_evaluate b)))
       ((run_evaluate (- a b))  (alf.add (run_evaluate a) (alf.neg (run_evaluate b))))
