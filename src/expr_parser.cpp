@@ -772,6 +772,7 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList(
         isImplicit = true;
         impls.push_back(v);
       }
+      // process the attribute map, which may mark the parameter as a list
       processAttributeMap(attrs, ck, cons, {});
       if (ck!=Attr::NONE)
       {
@@ -1142,10 +1143,22 @@ void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushe
         }
       }
         break;
+      case Kind::LAMBDA:
+      {
+        // only :type is available in define
+        if (a==Attr::TYPE)
+        {
+          Assert (!e.isNull());
+          handled = true;
+          val = parseExpr();
+          // run type checking
+          typeCheck(e, val);
+        }
+      }
+        break;
       case Kind::NONE:
       {
         // attributes on general terms, including type arguments
-        // also used for attribute list on define
         handled = true;
         switch (a)
         {
@@ -1191,17 +1204,6 @@ void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushe
           {
             // ignores the literal kind
             parseLiteralKind();
-          }
-            break;
-          case Attr::TYPE:
-          {
-            val = parseExpr();
-            // run type checking
-            if (e.isNull())
-            {
-              d_lex.parseError("Cannot use :type in this context");
-            }
-            typeCheck(e, val);
           }
             break;
           default:

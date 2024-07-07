@@ -564,7 +564,7 @@ bool CmdParser::parseNextCommand()
         if (tok == Token::DEFINE)
         {
           AttrMap attrs;
-          d_eparser.parseAttributeList(Kind::NONE, expr, attrs);
+          d_eparser.parseAttributeList(Kind::LAMBDA, expr, attrs);
         }
       }
     }

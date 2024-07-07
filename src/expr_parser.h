@@ -110,6 +110,7 @@ class ExprParser
    * - PARAM if applied to a parameter,
    * - PROOF_RULE if applied to the symbol introduced by a declare-rule command,
    * - CONST if applied to the symbol introduced by a declare-const command,
+   * - LAMBDA is applied to a term from a define command,
    * - NONE otherwise.
    * @param e The expression we are applying to
    * @param attr The attributes which are populated
