@@ -122,6 +122,7 @@ set(alfc_test_file_list
     skolemize-v2.smt3
     overloading-arith.smt3
     overloading-binder.smt3
+    sorry.smt3
 )
 
 macro(alfc_test file)

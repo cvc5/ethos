@@ -1,0 +1,8 @@
+(declare-rule trust ((F Bool))
+    :args (F)
+    :conclusion F
+    :sorry
+)
+
+; if this is applied, then we mark "incomplete".
+;(step @p0 false :rule trust :args (false))
