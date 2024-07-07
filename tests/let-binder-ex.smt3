@@ -1,0 +1,16 @@
+(declare-type @List ())
+(declare-const @nil @List)
+(declare-const @cons (-> (! Type :var T :implicit) T @List @List) :right-assoc-nil @nil)
+
+(declare-type @Pair (Type Type))
+(declare-const @pair (-> (! Type :var U :implicit) (! Type :var T :implicit) U T (@Pair U T)))
+
+(declare-const myLet (-> @List (! Type :var T :implicit) T T) :let-binder (@pair @cons))
+
+(declare-rule let-id-elim ((T Type) (x T) (t T))
+  :premises ((myLet (@cons (@pair x t)) x))
+  :conclusion t
+)
+
+(assume @p0 (myLet ((y true)) y))
+(step @p1 true :rule let-id-elim :premises (@p0))
