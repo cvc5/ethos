@@ -18,6 +18,7 @@ std::ostream& operator<<(std::ostream& o, Attr a)
     case Attr::VAR: o << "VAR"; break;
     case Attr::IMPLICIT: o << "IMPLICIT"; break;
     case Attr::TYPE: o << "TYPE"; break;
+    case Attr::SORRY: o << "SORRY"; break;
     case Attr::LIST: o << "LIST"; break;
     case Attr::REQUIRES: o << "REQUIRES"; break;
     case Attr::PREMISE_LIST: o << "PREMISE_LIST"; break;
@@ -57,6 +58,11 @@ bool isNAryAttr(Attr a)
       break;
   }
   return false;
+}
+
+bool isConstructorKindAttr(Attr a)
+{
+  return isNAryAttr(a) || a==Attr::BINDER || a==Attr::LET_BINDER || a==Attr::LIST;
 }
 
 }  // namespace alfc

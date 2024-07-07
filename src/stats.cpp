@@ -34,7 +34,7 @@ void RuleStat::start(Stats& s)
 
 void RuleStat::increment(Stats& s)
 {
-  d_count++;
+  // we assume count is already incremented separately
   d_mkExprCount += (s.d_mkExprCount-d_startMkExprCount);
   d_time += (Stats::getCurrentTime()-d_startTime);
 }

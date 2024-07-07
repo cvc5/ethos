@@ -170,8 +170,12 @@ class State
    * @return the type of e if it has been computed already.
    */
   ExprValue* lookupType(const ExprValue* e) const;
-  /** Has reference */
+  /** Have we already run a reference command? */
   bool hasReference() const;
+  /** Mark e as a proof rule with :sorry */
+  void markProofRuleSorry(const ExprValue * e);
+  /** Does e refer to a proof rule marked :sorry? */
+  bool isProofRuleSorry(const ExprValue* e) const;
   //--------------------------------------
   /** Get the type checker */
   TypeChecker& getTypeChecker();
@@ -291,6 +295,8 @@ class State
   //--------------------- includes
   /** input file */
   Filepath d_inputFile;
+  /** The proof rules marked :sorry */
+  std::unordered_set<const ExprValue*> d_pfrSorry;
   /** Cache of files included */
   std::set<Filepath> d_includes;
   /** Have we parsed a reference file to check assumptions? */

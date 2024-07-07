@@ -92,6 +92,7 @@ ExprParser::ExprParser(Lexer& lex, State& state, bool isReference)
   d_strToAttr[":opaque"] = Attr::OPAQUE;
   d_strToAttr[":syntax"] = Attr::SYNTAX;
   d_strToAttr[":restrict"] = Attr::RESTRICT;
+  d_strToAttr[":sorry"] = Attr::SORRY;
   
   d_strToLiteralKind["<boolean>"] = Kind::BOOLEAN;
   d_strToLiteralKind["<numeral>"] = Kind::NUMERAL;
@@ -451,7 +452,7 @@ Expr ExprParser::parseExpr()
           bool pushedScope = false;
           // NOTE parsing attributes may trigger recursive calls to this
           // method.
-          parseAttributeList(ret, attrs, pushedScope);
+          parseAttributeList(Kind::NONE, ret, attrs, pushedScope);
           // the scope of the variable is one level up
           if (pushedScope && pstack.size()>1)
           {
@@ -764,13 +765,14 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList(
       bind(name, v);
       // parse attribute list
       AttrMap attrs;
-      parseAttributeList(v, attrs);
+      parseAttributeList(Kind::PARAM, v, attrs);
       if (attrs.find(Attr::IMPLICIT)!=attrs.end())
       {
         attrs.erase(Attr::IMPLICIT);
         isImplicit = true;
         impls.push_back(v);
       }
+      // process the attribute map, which may mark the parameter as a list
       processAttributeMap(attrs, ck, cons, {});
       if (ck!=Attr::NONE)
       {
@@ -1063,7 +1065,7 @@ std::string ExprParser::parseStr(bool unescape)
   return s;
 }
 
-void ExprParser::parseAttributeList(Expr& e, AttrMap& attrs, bool& pushedScope)
+void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushedScope)
 {
   std::map<std::string, Attr>::iterator its;
   // while the next token is KEYWORD, exit if RPAREN
@@ -1081,89 +1083,151 @@ void ExprParser::parseAttributeList(Expr& e, AttrMap& attrs, bool& pushedScope)
         parseSymbolicExpr();
       }
       // store dummy, to mark that we read an attribute
-      Warning() << "Unsupported attribute " << key;
+      Warning() << "Unsupported attribute " << key << std::endl;
       attrs[Attr::NONE].push_back(val);
       continue;
     }
-    switch (its->second)
+    Attr a = its->second;
+    bool handled = false;
+    // split on the context of the attribute, as given by a kind
+    switch (k)
     {
-      case Attr::VAR:
+      case Kind::PROOF_RULE:
       {
-        if (e.isNull())
+        // attributes on declare-rule
+        if (a==Attr::SORRY)
         {
-          d_lex.parseError("Cannot use :var in this context");
+          handled = true;
+          d_state.markProofRuleSorry(e.getValue());
         }
-        if (attrs.find(Attr::VAR)!=attrs.end())
-        {
-          d_lex.parseError("Cannot use :var on the same term more than once");
-        }
-        std::string name = parseSymbol();
-        // e should be a type
-        val = d_state.mkSymbol(Kind::PARAM, name, e);
-        // immediately bind
-        if (!pushedScope)
-        {
-          pushedScope = true;
-          d_state.pushScope();
-        }
-        bind(name, val);
       }
         break;
-      case Attr::LIST:
-      case Attr::IMPLICIT:
-      case Attr::RIGHT_ASSOC:
-      case Attr::LEFT_ASSOC:
-      case Attr::OPAQUE:
-        // requires no value
-        break;
-      case Attr::RIGHT_ASSOC_NIL:
-      case Attr::LEFT_ASSOC_NIL:
-      case Attr::CHAINABLE:
-      case Attr::PAIRWISE:
-      case Attr::BINDER:
-      case Attr::RESTRICT:
+      case Kind::PARAM:
       {
-        // requires an expression that follows
-        val = parseExpr();
-      }
-        break;
-      case Attr::REQUIRES:
-      case Attr::LET_BINDER:
-      {
-        // requires a pair
-        val = parseExprPair();
-      }
-        break;
-      case Attr::SYNTAX:
-      {
-        // ignores the literal kind
-        parseLiteralKind();
-      }
-        break;
-      case Attr::TYPE:
-      {
-        val = parseExpr();
-        // run type checking
-        if (e.isNull())
+        // attributes on parameters
+        if (a==Attr::LIST || a==Attr::IMPLICIT)
         {
-          d_lex.parseError("Cannot use :type in this context");
+          handled = true;
         }
-        typeCheck(e, val);
+      }
+        break;
+      case Kind::CONST:
+      {
+        // attributes on declare-const
+        switch (a)
+        {
+          case Attr::RIGHT_ASSOC:
+          case Attr::LEFT_ASSOC:
+            // requires no value
+            handled = true;
+            break;
+          case Attr::RIGHT_ASSOC_NIL:
+          case Attr::LEFT_ASSOC_NIL:
+          case Attr::CHAINABLE:
+          case Attr::PAIRWISE:
+          case Attr::BINDER:
+          {
+            // requires an expression that follows
+            handled = true;
+            val = parseExpr();
+          }
+            break;
+          case Attr::LET_BINDER:
+          {
+            // requires an expression pair that follows
+            handled = true;
+            val = parseExprPair();
+          }
+            break;
+          default:break;
+        }
+      }
+        break;
+      case Kind::LAMBDA:
+      {
+        // only :type is available in define
+        if (a==Attr::TYPE)
+        {
+          Assert (!e.isNull());
+          handled = true;
+          val = parseExpr();
+          // run type checking
+          typeCheck(e, val);
+        }
+      }
+        break;
+      case Kind::NONE:
+      {
+        // attributes on general terms, including type arguments
+        handled = true;
+        switch (a)
+        {
+          case Attr::IMPLICIT:
+          case Attr::OPAQUE:
+            // requires no value
+            break;
+          case Attr::VAR:
+          {
+            if (e.isNull())
+            {
+              d_lex.parseError("Cannot use :var in this context");
+            }
+            if (attrs.find(Attr::VAR)!=attrs.end())
+            {
+              d_lex.parseError("Cannot use :var on the same term more than once");
+            }
+            std::string name = parseSymbol();
+            // e should be a type
+            val = d_state.mkSymbol(Kind::PARAM, name, e);
+            // immediately bind
+            if (!pushedScope)
+            {
+              pushedScope = true;
+              d_state.pushScope();
+            }
+            bind(name, val);
+          }
+          break;
+          case Attr::RESTRICT:
+          {
+            // requires an expression that follows
+            val = parseExpr();
+          }
+            break;
+          case Attr::REQUIRES:
+          {
+            // requires a pair
+            val = parseExprPair();
+          }
+            break;
+          case Attr::SYNTAX:
+          {
+            // ignores the literal kind
+            parseLiteralKind();
+          }
+            break;
+          default:
+            handled = false;
+            break;
+        }
       }
         break;
       default:
-        d_lex.parseError("Unhandled attribute");
         break;
+    }
+    if (!handled)
+    {
+      d_lex.parseError("Unhandled attribute " + key);
     }
     attrs[its->second].push_back(val);
   }
   d_lex.reinsertToken(Token::RPAREN);
 }
 
-void ExprParser::parseAttributeList(Expr& e, AttrMap& attrs)
+void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs)
 {
   bool pushedScope = false;
-  parseAttributeList(e, attrs, pushedScope);
+  parseAttributeList(k, e, attrs, pushedScope);
   // pop the scope if necessary
   if (pushedScope)
   {
@@ -1339,53 +1403,40 @@ void ExprParser::processAttributeMap(const AttrMap& attrs,
   {
     for (const Expr& av : a.second)
     {
-      switch(a.first)
+      if (isConstructorKindAttr(a.first))
       {
-        case Attr::LIST:
-        case Attr::SYNTAX:
-        case Attr::PREMISE_LIST:
-        case Attr::LEFT_ASSOC:
-        case Attr::RIGHT_ASSOC:
-        case Attr::LEFT_ASSOC_NIL:
-        case Attr::RIGHT_ASSOC_NIL:
-        case Attr::CHAINABLE:
-        case Attr::PAIRWISE:
-        case Attr::BINDER:
-        case Attr::LET_BINDER:
+        if (ck!=Attr::NONE)
         {
-          if (ck!=Attr::NONE)
-          {
-            std::stringstream ss;
-            ss << "Cannot set multiple constructor types ";
-            ss << "(" << ck << " and " << a.first << ")" << std::endl;
-            d_lex.warning(ss.str());
-            continue;
-          }
-          // it specifies how to construct terms involving this term
-          // if the constructor spec is non-ground, make a lambda
-          if (!av.isNull() && !av.isGround())
-          {
-            Assert (!params.empty());
-            cons = d_state.mkParameterized(av.getValue(), params);
-          }
-          else
-          {
-            cons = av;
-            // if the nil constructor doesn't use parameters, just ignore
-            if (!params.empty())
-            {
-              Warning() << "Ignoring unused parameters for definition of "
-                        << "symbol with nil constructor " << av << std::endl;
-            }
-          }
-          ck = a.first;
-        }
-          break;
-        default:
           std::stringstream ss;
-          ss << "Unhandled attribute " << a.first << std::endl;
+          ss << "Cannot set multiple constructor types ";
+          ss << "(" << ck << " and " << a.first << ")" << std::endl;
           d_lex.warning(ss.str());
-          break;
+          continue;
+        }
+        // it specifies how to construct terms involving this term
+        // if the constructor spec is non-ground, make a lambda
+        if (!av.isNull() && !av.isGround())
+        {
+          Assert (!params.empty());
+          cons = d_state.mkParameterized(av.getValue(), params);
+        }
+        else
+        {
+          cons = av;
+          // if the nil constructor doesn't use parameters, just ignore
+          if (!params.empty())
+          {
+            Warning() << "Ignoring unused parameters for definition of "
+                      << "symbol with nil constructor " << av << std::endl;
+          }
+        }
+        ck = a.first;
+      }
+      else
+      {
+        std::stringstream ss;
+        ss << "Unhandled attribute " << a.first << std::endl;
+        d_lex.warning(ss.str());
       }
     }
   }
