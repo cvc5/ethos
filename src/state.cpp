@@ -1394,7 +1394,6 @@ Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
   {
     vchildren.push_back(c.getValue());
   }
-  Expr ret;
   // try overloads in order until one is found
   for (const Expr& o : overloads)
   {
@@ -1404,16 +1403,12 @@ Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
     // if term is well-formed, and matches the return type if it exists
     if (!t.isNull() && (retType==nullptr || retType==t.getValue()))
     {
-      if (!ret.isNull())
-      {
-        Warning() << "State::getOverloadInternal ambiguous application of " << ret << std::endl;
-        continue;
-      }
-      ret = o;
+      // return the operator, do not check the remainder
+      return o;
     }
   }
   // otherwise, none found, return null
-  return ret;
+  return d_null;
 }
 
 }  // namespace alfc
