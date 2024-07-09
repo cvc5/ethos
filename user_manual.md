@@ -952,7 +952,7 @@ For example, ssuming standard definitions of SMT-LIB literal values,
 `(- 1)` uses the first, `(- 0 1)` uses the second, and `(- 0.0 1.0)` uses the third.
 If a symbol is unapplied, then the ALF checker will interpret it as the first declared term for that symbol.
 
-> The ALF checker will not throw a warning if multiple variants are applicable, and instead use the first one. This behavior permits the user to order the declarations in the order of their precedence. For example, the SMT-LIB operator for unary negation should be declared *before* the declaration for subtraction. If this were done in the opposite order, then (- t) would be interpreted as the partial application of subtraction to the term t.
+> When multiple variants are possible, the ALF checker will use the first one and will *not* throw a warning. This behavior permits the user to order the declarations in the order of their precedence. For example, the SMT-LIB operator for unary negation should be declared *before* the declaration for subtraction. If this were done in the opposite order, then (- t) would be interpreted as the partial application of subtraction to the term t.
 
 Furthermore, the ALF checker supports an operator `alf.as` for disambiguation whose syntax is `(alf.as <term> <type>)`.
 A term of the form `(alf.as t (-> T1 ... Tn T))` evaluates to `t` only if `(t k1 ... kn)` has type `T` where `k1 ... kn` are variables of type `T1 ... Tn`.
