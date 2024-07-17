@@ -123,6 +123,7 @@ set(alfc_test_file_list
     overloading-arith.smt3
     overloading-binder.smt3
     sorry.smt3
+    disamb-arith.smt3
 )
 
 macro(alfc_test file)

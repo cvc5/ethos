@@ -1,0 +1,8 @@
+(declare-type Int ())
+(declare-const - (-> Int Int))
+(declare-const - (-> Int Int Int))
+
+(declare-const = (-> (! Type :var A :implicit) A A Bool))
+(declare-consts <numeral> Int)
+
+(assume @p0 (= (- 1) -1))
