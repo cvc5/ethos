@@ -1395,16 +1395,18 @@ Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
     vchildren.push_back(c.getValue());
   }
   // try overloads in order until one is found
-  for (const Expr& o : overloads)
+  for (size_t i=0, noverloads = overloads.size(); i<noverloads; i++)
   {
-    vchildren[0] = o.getValue();
+    // search in reverse order, i.e. the last bound symbol takes precendence
+    size_t ii = (noverloads-1)-i;
+    vchildren[0] = overloads[ii].getValue();
     Expr x = Expr(vchildren.size()>2 ? mkApplyInternal(vchildren) : mkExprInternal(Kind::APPLY, vchildren));
     Expr t = d_tc.getType(x);
     // if term is well-formed, and matches the return type if it exists
     if (!t.isNull() && (retType==nullptr || retType==t.getValue()))
     {
       // return the operator, do not check the remainder
-      return o;
+      return overloads[ii];
     }
   }
   // otherwise, none found, return null
