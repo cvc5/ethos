@@ -36,7 +36,7 @@ The set of available options `<option>` are given in the appendix. Note the comm
 The ALF checker will either emit an error message indicating:
 - The kind of failure (type checking, proof checking, lexer error),
 - The line and column of the failure.
-Otherwise, the ALF checker will print `success` when it finished parsing all commands in the file or encounters and `exit` command.
+Otherwise, the ALF checker will print a successful response (see [responses](#responses)) when it finished parsing all commands in the file or encounters and `exit` command.
 Further output can be given by user-provided `echo` commands.
 
 ### Streaming input to the ALF checker
@@ -986,6 +986,10 @@ These fields include:
 
 Proof rules with assumptions `<assumption>` are used in proof with local scopes and will be discussed in detail later.
 
+Proof rules may be marked with attributes at the end of their definition. 
+The only attribute of this form that is currently supported is `:sorry`, which indicates that the proof rule does not have a formal justification.
+This in turn impacts the response of the ALF checker, as described in [responses](#responses).
+
 At a high level, an application of a proof rule is given a concrete list of (premise) proofs, and a concrete list of (argument) terms.
 A proof rule checks if a substitution `S` can be found such that:
 - The formulas proven by the premise proofs match provided premise patterns under substitution `S`,
@@ -1544,6 +1548,12 @@ More generally, input and output of oracles may contain symbols that are defined
 The user is responsible that the input can be properly parsed by the oracle, and the outputs of oracles can be properly parsed by the ALF checker.
 
 In the above example, a proof rule is then defined that says that if `z` is an integer greater than or equal to `2`, is the product of two integers `x` and `y`, and is prime based on invoking `runIsPrime` in the given requirement, then we can conclude `false`.
+
+# <a name="list-computation"></a> Checker Response
+
+After successfully parsing an input file with no errors, the ALF checker will respond with one of two possibilities:
+- `incomplete` if it parsed any proof rule that was marked with the attribute `:sorry`, or
+- `correct` otherwise.
 
 # Appendix
 
