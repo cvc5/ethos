@@ -187,8 +187,7 @@ int main( int argc, char* argv[] )
   }
   else
   {
-    // TODO: to be renamed "correct"
-    std::cout << "success" << std::endl;
+    std::cout << "correct" << std::endl;
   }
   if (plugin != nullptr)
   {
