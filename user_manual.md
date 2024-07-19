@@ -36,7 +36,7 @@ The set of available options `<option>` are given in the appendix. Note the comm
 The ALF checker will either emit an error message indicating:
 - The kind of failure (type checking, proof checking, lexer error),
 - The line and column of the failure.
-Otherwise, the ALF checker will print a successful response (see [responses](#responses)) when it finished parsing all commands in the file or encounters and `exit` command.
+Otherwise, the ALF checker will print a [successful response](#responses) when it finished parsing all commands in the file or encounters and `exit` command.
 Further output can be given by user-provided `echo` commands.
 
 ### Streaming input to the ALF checker
@@ -1549,11 +1549,14 @@ The user is responsible that the input can be properly parsed by the oracle, and
 
 In the above example, a proof rule is then defined that says that if `z` is an integer greater than or equal to `2`, is the product of two integers `x` and `y`, and is prime based on invoking `runIsPrime` in the given requirement, then we can conclude `false`.
 
-# <a name="list-computation"></a> Checker Response
+# <a name="responses"></a> Checker Response
 
 After successfully parsing an input file with no errors, the ALF checker will respond with one of two possibilities:
-- `incomplete` if it parsed any proof rule that was marked with the attribute `:sorry`, or
+- `incomplete` if it parsed any `step` or `step-pop` application that referenced a proof rule that was marked with the attribute `:sorry`, or
 - `correct` otherwise.
+
+Note however that the ALF checker does not impose any requirements on *what* was proven in the proof.
+The user is responsible for ensure that e.g. the proof contains a step with a desired conclusion (e.g. `false`).
 
 # Appendix
 
