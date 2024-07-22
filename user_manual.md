@@ -1,56 +1,56 @@
 # Introduction
 
-This is the user manual for the AletheLF checker (alfc), an efficient and extensible tool for checking proofs of Satisfiability Modulo Theories (SMT) solvers.
+This is the user manual for the Eunoia checker (ethos), an efficient and extensible tool for checking proofs of Satisfiability Modulo Theories (SMT) solvers.
 
-> Note that alfc should currently be considered experimental and done not yet have a stable release. We are planning to provide a stable release of a proof checker in the coming months whose codebase will inherit that of alfc but will have a new name.
+> Note that ethos should currently be considered experimental and done not yet have a stable release. We are planning to provide a stable release of a proof checker in the coming months whose codebase will inherit that of ethos but will have a new name.
 
-## Building alfc
+## Building ethos
 
-The source code for alfc is available here: https://github.com/cvc5/alfc.
-To build alfc, run:
+The source code for ethos is available here: https://github.com/cvc5/ethos.
+To build ethos, run:
 ```
 mkdir build
 cd build
 cmake ..
 ```
-The `alfc` binary will be available in `build/src/`.
+The `ethos` binary will be available in `build/src/`.
 
 ### Debug build
 
-By default, the above will be a production build of `alfc`. To build a debug version of `alfc`, that is significantly slower but has assertions and trace messages enabled, run:
+By default, the above will be a production build of `ethos`. To build a debug version of `ethos`, that is significantly slower but has assertions and trace messages enabled, run:
 ```
 mkdir build -DCMAKE_BUILD_TYPE=Debug
 cd build
 cmake ..
 ```
-The `alfc` binary will be available in `build/src/`.
+The `ethos` binary will be available in `build/src/`.
 
-## Command line interface of alfc
+## Command line interface of ethos
 
-`alfc` can be run from the command line via:
+`ethos` can be run from the command line via:
 ```
-alfc <option>* <file>
+ethos <option>* <file>
 ```
-The set of available options `<option>` are given in the appendix. Note the command line interface of `alfc` expects exactly one file (which itself may reference other files via the `include` command as we will see later). The file and options can appear in any order.
+The set of available options `<option>` are given in the appendix. Note the command line interface of `ethos` expects exactly one file (which itself may reference other files via the `include` command as we will see later). The file and options can appear in any order.
 
-The ALF checker will either emit an error message indicating:
+The Ethos will either emit an error message indicating:
 - The kind of failure (type checking, proof checking, lexer error),
 - The line and column of the failure.
-Otherwise, the ALF checker will print a [successful response](#responses) when it finished parsing all commands in the file or encounters and `exit` command.
+Otherwise, the Ethos will print a [successful response](#responses) when it finished parsing all commands in the file or encounters and `exit` command.
 Further output can be given by user-provided `echo` commands.
 
-### Streaming input to the ALF checker
+### Streaming input to the Ethos
 
-The `alfc` binary accepts input piped from stdin. The following are all equivalent ways of running `alfc`:
+The `ethos` binary accepts input piped from stdin. The following are all equivalent ways of running `ethos`:
 ```
-% alfc <file>
-% alfc < <file>
-% cat <file> | alfc
+% ethos <file>
+% ethos < <file>
+% cat <file> | ethos
 ```
 
 ## Overview of Features
 
-The AletheLF (ALF) language is an extension of SMT-LIB version 3.0 for defining proof rules and writing proofs from SMT solvers. Since ALF is closely based on the SMT-LIB format, ALF files typically are given the suffix `*.smt3`.
+The Eunoia (ALF) language is an extension of SMT-LIB version 3.0 for defining proof rules and writing proofs from SMT solvers. Since ALF is closely based on the SMT-LIB format, ALF files typically are given the suffix `*.smt3`.
 
 The core features of the ALF language include:
 - Support for SMT-LIB version 3.0 syntax for defining theory signatures.
@@ -58,7 +58,7 @@ The core features of the ALF language include:
 - A set of commands for specifying proofs (`step`, `assume`, and so on), whose syntax closely follows the Alethe proof format (for details see []).
 - A command `declare-rule` for defining proof rules.
 
-The ALF checker alfc extends this language with several features:
+The Ethos ethos extends this language with several features:
 - A library of operations (`alf.add`, `alf.mul`, `alf.concat`, `alf.extract`) for performing computations over values.
 - A command `program` for defining side conditions as ordered list of rewrite rules.
 - A command `declare-oracle-fun` for user-provided oracles, that is, functions whose semantics are given by external binaries. Oracles can be used e.g. for modular proof checking.
@@ -84,7 +84,7 @@ Specifically, the ALF language has the following builtin expressions:
 - `Bool`, denoting the Boolean type,
 - `true` and `false`, denoting values of type `Bool`.
 
-> The core logic of the ALF checker also uses several builtin types (e.g. `Proof` and `Quote`) which define the semantics of proof rules. These types are intentionally left hidden from the user. Details on these types can be found throughout this document. More details on the core logic of the ALF checker can be found here [].
+> The core logic of the Ethos also uses several builtin types (e.g. `Proof` and `Quote`) which define the semantics of proof rules. These types are intentionally left hidden from the user. Details on these types can be found throughout this document. More details on the core logic of the Ethos can be found here [].
 
 In the following, we informally write BNF categories `<symbol>` to denote an SMT-LIB version 3.0 symbol, `<term>` to denote an SMT-LIB term and `<type>` to denote a term whose type is `Type`, `<typed-param>` has syntax `(<symbol> <type> <attr>*)` and binds `<symbol>` as a fresh parameter of the given type and attributes (if provided).
 
@@ -102,7 +102,7 @@ The ALF language contains further commands for declaring symbols that are not st
 - `(define <symbol> (<typed-param>*) <term> <attr>*)`, defines `<symbol>` to be a lambda term whose arguments and body and given by the command, or the body if the argument list is empty. Note that in contrast to the SMT-LIB command `define-fun`, a return type is not provided. The provided attributes may instruct the checker to perform e.g. type checking on the given term see [type checking define](#tcdefine).
 - `(declare-parameterized-const <symbol> (<typed-param>*) <type> <attr>*)` declares a variable named `<symbol>` whose type is `<type>`.
 
-> Variables are internally treated the same as constants by the ALF checker, but are provided as a separate category, e.g. for user signatures that wish to distinguish universally quantified variables from free constants. They also have a relationship with user-defined binders, see [binders](#binders), and can be accessed via the builtin operator `alf.var` (see [computation](#computation)).
+> Variables are internally treated the same as constants by the Ethos, but are provided as a separate category, e.g. for user signatures that wish to distinguish universally quantified variables from free constants. They also have a relationship with user-defined binders, see [binders](#binders), and can be accessed via the builtin operator `alf.var` (see [computation](#computation)).
 
 > Symbol overloading is supported, see [overloading](#overloading).
 
@@ -116,11 +116,11 @@ The ALF language contains further commands for declaring symbols that are not st
 (declare-const P (-> Int Bool))
 ```
 
-Since alfc does not assume any builtin definitions of SMT-LIB theories, definitions of standard symbols (such as `Int`) may be provided in ALF signatures. In the above example, `c` is declared to be a constant (0-ary) symbol of type `Int`. The symbol `f` is a function taking two integers and returning an integer.
+Since ethos does not assume any builtin definitions of SMT-LIB theories, definitions of standard symbols (such as `Int`) may be provided in ALF signatures. In the above example, `c` is declared to be a constant (0-ary) symbol of type `Int`. The symbol `f` is a function taking two integers and returning an integer.
 
 Note that despite using different syntax in their declarations, the types of `f` and `g` in the above example are identical.
 
-> In alfc, all functions are unary. In the above example, `(-> Int Int Int)` is internally treated as `(-> Int (-> Int Int))`. Correspondingly, applications of functions are curried, e.g. `(f a b)` is treated as `((f a) b)`, which in turn can be seen as `(_ (_ f a) b)` where `_` denotes higher-order function application.
+> In ethos, all functions are unary. In the above example, `(-> Int Int Int)` is internally treated as `(-> Int (-> Int Int))`. Correspondingly, applications of functions are curried, e.g. `(f a b)` is treated as `((f a) b)`, which in turn can be seen as `(_ (_ f a) b)` where `_` denotes higher-order function application.
 
 ### Example: Basic Definitions
 
@@ -217,11 +217,11 @@ The above declares the integer sort and the bitvector sort that expects a non-ne
 In detail, the first argument of `BitVec` is an integer sort, which is named `w` via `:var`.
 The second annotation indicates that `(alf.is_neg w)` must evaluate to `false`, where note that `alf.is_neg` returns `true` if and only if its argument is a negative numeral (for details, see [computation](#computation)).
 
-> Internally, `(! T :requires (t s))` is syntax sugar for `(alf.requires t s T)` where `alf.requires` is an operator that evalutes to its third argument if and only if its first two arguments are equivalent (details on this operator are given in [computation](#computation)). Furthermore, the function type `(-> (alf.requires t s T) S)` is treated as `(-> T (alf.requires t s S))`. The ALF checker rewrites all types of the former to the latter.
+> Internally, `(! T :requires (t s))` is syntax sugar for `(alf.requires t s T)` where `alf.requires` is an operator that evalutes to its third argument if and only if its first two arguments are equivalent (details on this operator are given in [computation](#computation)). Furthermore, the function type `(-> (alf.requires t s T) S)` is treated as `(-> T (alf.requires t s S))`. The Ethos rewrites all types of the former to the latter.
 
 ## <a name="attributes"></a>Declarations with attributes
 
-The ALF language supports term annotations on declared constants, which for instance can allow the user to treat a constant as being variadic, i.e. taking an arbitrary number of arguments. The available annotations in the ALF checker for this purpose are:
+The ALF language supports term annotations on declared constants, which for instance can allow the user to treat a constant as being variadic, i.e. taking an arbitrary number of arguments. The available annotations in the Ethos for this purpose are:
 - `:right-assoc` (resp. `:left-assoc`) denoting that the declared constant is right (resp. left) associative,
 - `:right-assoc-nil <symbol>` (resp. `:left-assoc-nil <symbol>`) denoting that the declared constant is right (resp. left) associative with the given nil terminator given by `<symbol>`,
 - `:chainable <symbol>` denoting that the arguments of the declared constant are chainable using the (binary) operator given by `<symbol>`,
@@ -464,13 +464,13 @@ The following gives an example of how to define the class of numeral constants.
 In the above example, the `declare-consts` command specifies that numerals (`1`, `2`, `3`, and so on) are constants of type `Int`.
 The signature can now refer to arbitrary numerals in definitions, e.g. `7` in the definition of `P`.
 
-> Internally, the command above only impacts the type rule assigned to numerals that are parsed. Furthermore, the ALF checker internally distinguishes whether a term is a numeral value, independently of its type, for the purposes of computational operators (see [computation](#computation)).
+> Internally, the command above only impacts the type rule assigned to numerals that are parsed. Furthermore, the Ethos internally distinguishes whether a term is a numeral value, independently of its type, for the purposes of computational operators (see [computation](#computation)).
 
 > For specifying literals whose type rule varies based on the content of the constant, the ALF language uses a distinguished variable `alf.self` which can be used in `declare-consts` definitions. For an example, see the type rule for SMT-LIB bit-vector constants, described later in [bv-literals](#bv-literals).
 
-# <a name="computation"></a>Computational Operators in alfc
+# <a name="computation"></a>Computational Operators in ethos
 
-The ALF checker has builtin support for computations over all syntactic categories of SMT-LIB version 3.0.
+The Ethos has builtin support for computations over all syntactic categories of SMT-LIB version 3.0.
 We list the operators below, roughly categorized by domain.
 However, note that the operators are polymorphic and in some cases can be applied to multiple syntactic categories.
 For example, `alf.add` returns the result of adding two integers or rationals, but also can be used to add binary constants (integers modulo a given bitwidth).
@@ -486,7 +486,7 @@ Binary values are considered to be in little endian form.
 Some of the following operators can be defined in terms of the other operators.
 For these operators, we provide the equivalent formulation.
 A signature defining these files can be found in [non-core-eval](#non-core-eval).
-Note however that the evaluation of these operators is handled by more efficient methods internally in the ALF checker, that is, they are not treated as syntax sugar internally.
+Note however that the evaluation of these operators is handled by more efficient methods internally in the Ethos, that is, they are not treated as syntax sugar internally.
 
 Core operators:
 - `(alf.is_eq t1 t2)`
@@ -587,13 +587,13 @@ Conversion operators:
     - If `t1` is a hexadecimal value, return the string value corresponding to the result of printing `t1`. This will use lowercase letters for digits greater than `9`.
     - If `t1` is a decimal value, return the string value corresponding to the result of printing `t1` as a rational.
 
-The ALF checker eagerly evaluates ground applications of computational operators.
+The Ethos eagerly evaluates ground applications of computational operators.
 In other words, the term `(alf.add 1 1)` is syntactically equivalent in all contexts to `2`.
 
 Currently, apart from applications of `alf.ite`, all terms are evaluated bottom-up.
 This means that e.g. in the evaluation of `(alf.or A B)`, both `A` and `B` are always evaluated even if `A` evaluates to `true`.
 
-The ALF checker supports extensions of `alf.and, alf.or, alf.xor, alf.add, alf.mul, alf.concat` to an arbitrary number of arguments `>=2`.
+The Ethos supports extensions of `alf.and, alf.or, alf.xor, alf.add, alf.mul, alf.concat` to an arbitrary number of arguments `>=2`.
 
 ### Computation Examples
 
@@ -816,7 +816,7 @@ For example, given a function `f` of type `(-> (BitVec (alf.add b a)) T)`, the t
 
 (define x () #b000 :type (BitVec 3))
 ```
-To define the class of binary values, whose type depends on the number of bits they contain, the ALF checker provides support for a distinguished parameter `alf.self`.
+To define the class of binary values, whose type depends on the number of bits they contain, the Ethos provides support for a distinguished parameter `alf.self`.
 The type checker for values applies the substitution mapping `alf.self` to the term being type checked.
 This means that when type checking the binary constant `#b0000`, its type prior to evaluation is `(BitVec (alf.len #b0000))`, which evaluates to `(BitVec 4)`.
 
@@ -939,38 +939,38 @@ The following are examples of list operations when using parameterized constant 
 
 ## <a name="overloading"></a>Overloading
 
-The ALF checker supports symbol overloading.
+The Ethos supports symbol overloading.
 For example, the following is accepted:
 ```
 (declare-const - (-> Int Int))
 (declare-const - (-> Int Int Int))
 (declare-const - (-> Real Real Real))
 ```
-When parsing a term whose head is `-`, the ALF checker will automatically choose which symbol to use based on the arguments passed to it.
-In particular, if a symbol is overloaded, the ALF checker will use the first symbol that results in a well-typed term if applied.
+When parsing a term whose head is `-`, the Ethos will automatically choose which symbol to use based on the arguments passed to it.
+In particular, if a symbol is overloaded, the Ethos will use the first symbol that results in a well-typed term if applied.
 For example, ssuming standard definitions of SMT-LIB literal values,
 `(- 1)` uses the first, `(- 0 1)` uses the second, and `(- 0.0 1.0)` uses the third.
-If a symbol is unapplied, then the ALF checker will interpret it as the first declared term for that symbol.
+If a symbol is unapplied, then the Ethos will interpret it as the first declared term for that symbol.
 
-> When multiple variants are possible, the ALF checker will use the first one and will *not* throw a warning. This behavior permits the user to order the declarations in the order of their precedence. For example, the SMT-LIB operator for unary negation should be declared *before* the declaration for subtraction. If this were done in the opposite order, then (- t) would be interpreted as the partial application of subtraction to the term t.
+> When multiple variants are possible, the Ethos will use the first one and will *not* throw a warning. This behavior permits the user to order the declarations in the order of their precedence. For example, the SMT-LIB operator for unary negation should be declared *before* the declaration for subtraction. If this were done in the opposite order, then (- t) would be interpreted as the partial application of subtraction to the term t.
 
-Furthermore, the ALF checker supports an operator `alf.as` for disambiguation whose syntax is `(alf.as <term> <type>)`.
+Furthermore, the Ethos supports an operator `alf.as` for disambiguation whose syntax is `(alf.as <term> <type>)`.
 A term of the form `(alf.as t (-> T1 ... Tn T))` evaluates to `t` only if `(t k1 ... kn)` has type `T` where `k1 ... kn` are variables of type `T1 ... Tn`.
 Otherwise, the term `(alf.as t (-> T1 ... Tn T))` is unevaluated.
 
 # Declaring Proof Rules
 
-The generic syntax for a `declare-rule` command accepted by `alfc` is:
+The generic syntax for a `declare-rule` command accepted by `ethos` is:
 ```
 (declare-rule <symbol> <keyword>? <sexpr>*)
 ```
-When parsing this command, `alfc` will determine the format of the expected arguments based on the given keyword.
-If the `<keyword>` is not provided, the we assume it has been marked `:alfc`.
-All rules not marked with `:alfc` are not supported by the checker are unsupported and will cause the checker to terminate.
+When parsing this command, `ethos` will determine the format of the expected arguments based on the given keyword.
+If the `<keyword>` is not provided, the we assume it has been marked `:ethos`.
+All rules not marked with `:ethos` are not supported by the checker are unsupported and will cause the checker to terminate.
 
-If the keyword is `:alfc`, then the expected syntax that follows is given below:
+If the keyword is `:ethos`, then the expected syntax that follows is given below:
 ```
-(declare-rule <symbol> :alfc (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term> <attr>*)
+(declare-rule <symbol> :ethos (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term> <attr>*)
 where
 <assumption>    ::= :assumption <term>
 <premises>      ::= :premises (<term>*) | :premise-list <term> <term>
@@ -988,7 +988,7 @@ Proof rules with assumptions `<assumption>` are used in proof with local scopes 
 
 Proof rules may be marked with attributes at the end of their definition. 
 The only attribute of this form that is currently supported is `:sorry`, which indicates that the proof rule does not have a formal justification.
-This in turn impacts the response of the ALF checker, as described in [responses](#responses).
+This in turn impacts the response of the Ethos, as described in [responses](#responses).
 
 At a high level, an application of a proof rule is given a concrete list of (premise) proofs, and a concrete list of (argument) terms.
 A proof rule checks if a substitution `S` can be found such that:
@@ -1132,19 +1132,19 @@ Locally assumptions can be arbitrarily nested, for example the above can be exte
 
 # Side Conditions
 
-Similar to `declare-rule`, the ALF checker supports an extensible syntax for programs whose generic syntax is given by:
+Similar to `declare-rule`, the Ethos supports an extensible syntax for programs whose generic syntax is given by:
 ```
 (program <symbol> <keyword>? <sexpr>*)
 ```
-When parsing this command, `alfc` will determine the format of the expected arguments based on the given keyword.
-If the `<keyword>` is not provided, the we assume it has been marked `:alfc`.
-All programs not marked with `:alfc` are not supported by the checker are unsupported and will cause the checker to terminate.
+When parsing this command, `ethos` will determine the format of the expected arguments based on the given keyword.
+If the `<keyword>` is not provided, the we assume it has been marked `:ethos`.
+All programs not marked with `:ethos` are not supported by the checker are unsupported and will cause the checker to terminate.
 
-If the keyword is `:alfc`, then the expected syntax that follows is given below, and is used for defining recursive programs.
-In particular, in the ALF checker, a program is an ordered lists of rewrite rules.
+If the keyword is `:ethos`, then the expected syntax that follows is given below, and is used for defining recursive programs.
+In particular, in the Ethos, a program is an ordered lists of rewrite rules.
 The syntax for this command is as follows.
 ```
-(program <symbol> :alfc (<typed-param>*) (<type>*) <type> ((<term> <term>)+))
+(program <symbol> :ethos (<typed-param>*) (<type>*) <type> ((<term> <term>)+))
 ```
 This command declares a program named `<symbol>`.
 The provided type parameters are implicit and are used to define its type signature and body.
@@ -1192,7 +1192,7 @@ The next two examples show variants where an incorrect definition of this progra
 
 > As mentioned in [list-computation](#list-computation), ALF has dedicated support for operators over lists.
 For the definition of `contains` in the above example, the term `(contains l c)` is equivalent to `(alf.not (alf.is_neg (alf.find or c l)))`.
-Computing the latter is significantly faster in practice in the ALF checker.
+Computing the latter is significantly faster in practice in the Ethos.
 
 ### Example: Finding a child in an `or` term (incorrect version)
 ```
@@ -1227,7 +1227,7 @@ However, `(contains (or a b c) a)` does not evaluate in this example.
 )
 ```
 In this variant, both `xs` and `x` were marked with `:list`.
-The ALF checker will reject this definition since it implies that a computational operator appears in a pattern for matching.
+The Ethos will reject this definition since it implies that a computational operator appears in a pattern for matching.
 In particular, the term `(or x xs)` is equivalent to `(alf.list_concat or x xs)` after desugaring.
 Thus, the third case of the program, `(contains (alf.list_concat or x xs) l)`, is not a legal pattern.
 
@@ -1247,7 +1247,7 @@ Thus, the third case of the program, `(contains (alf.list_concat or x xs) l)`, i
 
 The term `(substitute x y t)` replaces all occurrences of `x` by `y` in `t`.
 Note that this side condition is fully general and does not depend on the shape of terms in `t`.
-In detail, recall that the ALF checker treats all function applications as curried (unary) applications.
+In detail, recall that the Ethos treats all function applications as curried (unary) applications.
 In particular, this implies that `(f a)` matches any application term, since both `f` and `a` are parameters.
 Thus, the side condition is written in three cases: either `t` is `x` in which case we return `y`, `t` is a function application in which case we recurse, or otherwise `t` is a constant not equal to `x` and we return itself.
 
@@ -1336,7 +1336,7 @@ The above program `to_dimacs` converts an ALF formula into DIMACS form, where `a
 
 ## Match statements in ALF
 
-The ALF checker supports an operator `alf.match` for performing pattern matching on a target term. The syntax of this term is:
+The Ethos supports an operator `alf.match` for performing pattern matching on a target term. The syntax of this term is:
 ```
 (alf.match (<typed-param>*) <term> ((<term> <term>)*))
 ```
@@ -1428,7 +1428,7 @@ Internally, the semantics of `alf.match` can be seen as an (inlined) program app
 )
 ```
 
-> The ALF checker automatically performs the above transformation on match terms for consistency.
+> The Ethos automatically performs the above transformation on match terms for consistency.
 In more general cases, if the body of the match term contains free variables, these are added to the argument list of the internally generated program.
 
 ### Example: Proof rule for transitivity of equality with a premise list
@@ -1462,31 +1462,31 @@ The recursive calls in the side condition `mk_trans` accumulate the endpoints of
 
 # Including and referencing files
 
-The ALF checker supports the following commands for file inclusion:
+The Ethos supports the following commands for file inclusion:
 - `(include <string>)`, which includes the file indicated by the given string. The path to the file is taken relative to the directory of the file that includes it.
 - `(reference <string> <symbol>?)`, which similar to `include` includes the file indicated by the given string, and furthermore marks that file as being the *reference input* for the current run of the checker (see below). The optional symbol can refer to a normalization routine (see below).
 
 ## Validation Proofs via Reference Inputs
 
-When the ALF checker encounters a command of the form `(reference <string>)`, the checker enables a further set of checks that ensures that all assumptions in proofs correspond to assertions from the reference file.
+When the Ethos encounters a command of the form `(reference <string>)`, the checker enables a further set of checks that ensures that all assumptions in proofs correspond to assertions from the reference file.
 
-In particular, when the command `(reference "file.smt2")` is read, the ALF checker will parse `file.smt2`.
-The definitions and declaration commands in this file will be treated as normal, that is, they will populate the symbol table of the ALF checker as they normally would if they were to appear in an `*.smt3` input.
+In particular, when the command `(reference "file.smt2")` is read, the Ethos will parse `file.smt2`.
+The definitions and declaration commands in this file will be treated as normal, that is, they will populate the symbol table of the Ethos as they normally would if they were to appear in an `*.smt3` input.
 The commands of the form `(assert F)` will add `F` to a set of formulas we will refer to as the *reference assertions*.
 Other commands in `file.smt2` (e.g. `set-logic`, `set-option`, and so on) will be ignored.
 
-If alfc has read a reference file, then for each command of the form `(assume <symbol> G)`, alfc will check whether `G` occurs in the set of parsed reference assertions.
+If ethos has read a reference file, then for each command of the form `(assume <symbol> G)`, ethos will check whether `G` occurs in the set of parsed reference assertions.
 If it does not, then an error is thrown indicating that the proof is assuming a formula that is not a part of the original input.
 
-> Only one reference command can be executed for each run of alfc.
+> Only one reference command can be executed for each run of ethos.
 
-> Incremental `*.smt2` inputs are not supported as reference files in the current version of alfc.
+> Incremental `*.smt2` inputs are not supported as reference files in the current version of ethos.
 
 ## Validation up to Normalization
 
-Since the validation is relying on the fact that alfc can faithfully parse the original *.smt2 file, validation will only succeed if the signatures used by the ALF checker exactly match the syntax for terms in the *.smt2 file.
+Since the validation is relying on the fact that ethos can faithfully parse the original *.smt2 file, validation will only succeed if the signatures used by the Ethos exactly match the syntax for terms in the *.smt2 file.
 Minor changes in how terms are represented will lead to mismatches.
-For this reason, alfc additionally supports providing an optional normalization routine via `(reference <string> <term>)`, which includes the file indicated by the given string and specifies all assumptions must match an assertion after running the provided normalization function.
+For this reason, ethos additionally supports providing an optional normalization routine via `(reference <string> <term>)`, which includes the file indicated by the given string and specifies all assumptions must match an assertion after running the provided normalization function.
 
 For example:
 ```
@@ -1509,11 +1509,11 @@ The above program will be invoked on all formulas occuring in `assert` commands 
 
 # Oracles
 
-The ALF checker supports a command, `declare-oracle-fun`, which associates the semantics of a function with an external binary.
+The Ethos supports a command, `declare-oracle-fun`, which associates the semantics of a function with an external binary.
 We reference to such functions as *oracle functions*.
 The syntax and semantics of such functions are described in [].
 
-In particular, the ALF checker supports the command:
+In particular, the Ethos supports the command:
 ```
 (declare-oracle-fun <symbol> (<type>*) <type> <symbol>)
 ```
@@ -1545,24 +1545,24 @@ If `./isPrime` returns with an error, then `(runIsPrime z)` does not evaluate.
 Otherwise, `(runIsPrime z)` evaluates to the result of parsing its output using the current ALF parser state.
 In this example, an output of response of `true` (resp. `false`) from the executable will be parsed back at the Boolean value `true` (resp. `false`).
 More generally, input and output of oracles may contain symbols that are defined in the current ALF parser state.
-The user is responsible that the input can be properly parsed by the oracle, and the outputs of oracles can be properly parsed by the ALF checker.
+The user is responsible that the input can be properly parsed by the oracle, and the outputs of oracles can be properly parsed by the Ethos.
 
 In the above example, a proof rule is then defined that says that if `z` is an integer greater than or equal to `2`, is the product of two integers `x` and `y`, and is prime based on invoking `runIsPrime` in the given requirement, then we can conclude `false`.
 
 # <a name="responses"></a> Checker Response
 
-After successfully parsing an input file with no errors, the ALF checker will respond with one of two possibilities:
+After successfully parsing an input file with no errors, the Ethos will respond with one of two possibilities:
 - `incomplete` if it parsed any `step` or `step-pop` application that referenced a proof rule that was marked with the attribute `:sorry`, or
 - `correct` otherwise.
 
-Note however that the ALF checker does not impose any requirements on *what* was proven in the proof.
+Note however that the Ethos does not impose any requirements on *what* was proven in the proof.
 The user is responsible for ensure that e.g. the proof contains a step with a desired conclusion (e.g. `false`).
 
 # Appendix
 
-## Command line options of alfc
+## Command line options of ethos
 
-The ALF command line interface can be invoked by `alfc <option>* <file>` where `<option>` is one of the following:
+The ALF command line interface can be invoked by `ethos <option>* <file>` where `<option>` is one of the following:
 - `--binder-fresh`: binders generate fresh variables when parsed in proof files.
 - `--help`: displays a help message.
 - `--no-normalize-dec`: do not treat decimal literals as syntax sugar for rational literals.
@@ -1578,7 +1578,7 @@ The ALF command line interface can be invoked by `alfc <option>* <file>` where `
 
 ## Full syntax for ALF commands
 
-Valid inputs to the ALF checker are `<alf-command>*`, where:
+Valid inputs to the Ethos are `<alf-command>*`, where:
 
 ```
 ;;;
