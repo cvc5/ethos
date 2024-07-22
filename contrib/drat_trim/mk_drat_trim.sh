@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ALFC_SIG_DIR=/space/ajreynol/cvc5-ajr/proofs/alf
+ETHOS_SIG_DIR=/space/ajreynol/cvc5-ajr/proofs/eo/cpc
 
 gcc -O2 -o drat-trim drat-trim.c
-cp drat-trim $ALFC_SIG_DIR/rules/drat/drat-trim
+cp drat-trim $ETHOS_SIG_DIR/rules/drat/drat-trim

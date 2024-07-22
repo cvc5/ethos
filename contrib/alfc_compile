@@ -1,17 +1,17 @@
 #!/bin/bash
 
-## expects [alfc executable] [*.smt2 to compile]
+## expects [ethos executable] [*.smt2 to compile]
 
 SRCDIR=../src/
 
-ALFC=$1
+ETHOS=$1
 shift
 
 FILE=$1
 shift
 
-echo "Generate compiled code via $ALFC --gen-compile $FILE"
-$ALFC --gen-compile $FILE
+echo "Generate compiled code via $ETHOS --gen-compile $FILE"
+$ETHOS --gen-compile $FILE
 
 echo "Copy compiled code via cp compiled.out.cpp $SRCDIR/compiled.cpp"
 cp $SRCDIR/compiled.cpp compiled.orig.cpp

@@ -1,10 +1,10 @@
 #!/bin/bash
 
-## expects [alfc executable] [*.smt2 to compile] [*.smt2 to run, which includes the second argument]
+## expects [ethos executable] [*.smt2 to compile] [*.smt2 to run, which includes the second argument]
 
 SRCDIR=../src/
 
-ALFC=$1
+ETHOS=$1
 shift
 
 FILE_GEN=$1
@@ -13,8 +13,8 @@ shift
 FILE_RUN=$1
 shift
 
-echo "Recompile via alfc_compile $ALFC $FILE_GEN"
-alfc_compile $ALFC $FILE_GEN
+echo "Recompile via ethos_compile $ETHOS $FILE_GEN"
+ethos_compile $ETHOS $FILE_GEN
 
-echo "Run via $ALFC --run-compile $FILE_RUN"
-$ALFC --run-compile $FILE_RUN
+echo "Run via $ETHOS --run-compile $FILE_RUN"
+$ETHOS --run-compile $FILE_RUN
