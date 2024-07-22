@@ -38,7 +38,7 @@
   :args ())
 
 (assume-push a5 false)
-(step-pop a6 (not false) :rule scope-false :premises (a1))
+(step-pop a6 (not false) :rule scope-false :premises (a5))
 
 
 (exit)

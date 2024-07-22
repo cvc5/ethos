@@ -895,14 +895,15 @@ bool CmdParser::parseNextCommand()
           d_lex.parseError(ss.str());
         }
       }
-      // bind to variable, note that the definition term is not kept
-      Expr v = d_state.mkSymbol(Kind::CONST, name, concType);
-      d_eparser.bind(name, v);
-      // d_eparser.bind(name, def);
+      // pop the assumption scope, before it is bound
       if (isPop)
       {
         d_state.popAssumptionScope();
       }
+      // bind to variable, note that the definition term is not kept
+      Expr v = d_state.mkSymbol(Kind::CONST, name, concType);
+      d_eparser.bind(name, v);
+      // d_eparser.bind(name, def);
       Assert (rs!=nullptr);
       // increment the count regardless of whether stats are enabled, since it
       // may impact whether we report incomplete

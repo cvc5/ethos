@@ -181,23 +181,20 @@ void State::popScope()
 
 void State::pushAssumptionScope()
 {
-  if (d_plugin!=nullptr)
-  {
-    d_plugin->popScope();
-  }
+  // push scope
+  pushScope();
+  // remember assumption size
   d_assumptionsSizeCtx.push_back(d_assumptions.size());
 }
 
 void State::popAssumptionScope()
 {
-  if (d_plugin!=nullptr)
-  {
-    d_plugin->popScope();
-  }
   // process assumptions
   size_t lastSize = d_assumptionsSizeCtx.back();
   d_assumptionsSizeCtx.pop_back();
   d_assumptions.resize(lastSize);
+  // pop the parsing scope
+  popScope();
 }
 bool State::includeFile(const std::string& s)
 {
