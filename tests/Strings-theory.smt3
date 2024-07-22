@@ -82,7 +82,7 @@
 
 ; Sequences
 (declare-const seq.unit (-> (! Type :var T :implicit) T (Seq T)))
-(declare-const seq.nth (-> (! Type :var T :implicit) (Seq T) Int (alf.ite (alf.is_eq T Char) Int T)))
+(declare-const seq.nth (-> (! Type :var T :implicit) (Seq T) Int (eo::ite (eo::is_eq T Char) Int T)))
 (declare-const seq.len (-> (! Type :var T :implicit) (Seq T) Int))
 
 ; sequence operators just convert to the string operators

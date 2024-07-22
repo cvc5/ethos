@@ -33,7 +33,7 @@
     ((check_true b) false)
   )
 )
-(define check_length_one ((s String)) (check_true (alf.is_eq (alf.len s) 1)))
+(define check_length_one ((s String)) (check_true (eo::is_eq (eo::len s) 1)))
 
 (program string_collect_acc ((t String) (tail String :list))
   (String) (Pair String String)
@@ -41,12 +41,12 @@
     ((string_collect_acc "")         (pair "" ""))
     ; Check if t is a word constant
     ((string_collect_acc (str.++ t tail))
-      (alf.ite (check_length_one t)
-        (alf.match ((s1 String) (s2 String)) 
+      (eo::ite (check_length_one t)
+        (eo::match ((s1 String) (s2 String)) 
           (string_collect_acc tail)
           (
             ((pair "" s2) (pair t s2))
-            ((pair s1 s2) (pair (alf.concat t s1) s2))
+            ((pair s1 s2) (pair (eo::concat t s1) s2))
           )
         )
         (pair "" (str.++ t tail))))
@@ -56,7 +56,7 @@
 
 (declare-rule collect_acc ((s String))
   :args (s)
-  :conclusion (alf.match ((s1 String) (s2 String :list)) 
+  :conclusion (eo::match ((s1 String) (s2 String :list)) 
                 (string_collect_acc s) 
                 (
                   ((pair "" s2)  (= s s2))

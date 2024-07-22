@@ -105,9 +105,9 @@ class State
   Expr mkBuiltinType(Kind k);
   /** */
   Expr mkSymbol(Kind k, const std::string& name, const Expr& type);
-  /** (alf.requires <pair>+ <type>) */
+  /** (eo::requires <pair>+ <type>) */
   Expr mkRequires(const std::vector<Expr>& args, const Expr& ret);
-  /** (alf.requires <arg1> <arg2> <type>) */
+  /** (eo::requires <arg1> <arg2> <type>) */
   Expr mkRequires(const Expr& a1, const Expr& a2, const Expr& ret);
   /** */
   Expr mkSelf();

@@ -108,19 +108,19 @@ std::string kindToTerm(Kind k)
     case Kind::ABSTRACT_TYPE: ss << "?"; break;
     case Kind::BOOL_TYPE: ss << "Bool"; break;
     case Kind::QUOTE_TYPE: ss << "Quote"; break;
-    case Kind::TUPLE: ss << "alf.tuple"; break;
+    case Kind::TUPLE: ss << "eo::tuple"; break;
     // terms
     case Kind::APPLY: ss << "_"; break;
     case Kind::APPLY_OPAQUE: ss << "_"; break;
     case Kind::LAMBDA: ss << "lambda"; break;
     case Kind::PROGRAM: ss << "program"; break;
-    case Kind::AS: ss << "alf.as"; break;
-    case Kind::PARAMETERIZED: ss << "alf._"; break;
+    case Kind::AS: ss << "eo::as"; break;
+    case Kind::PARAMETERIZED: ss << "eo::_"; break;
     // operations on literals
     default:
       if (isLiteralOp(k))
       {
-        ss << "alf.";
+        ss << "eo::";
         switch (k)
         {
         case Kind::EVAL_IS_EQ: ss << "is_eq"; break;

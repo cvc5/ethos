@@ -7,11 +7,11 @@
   (R) Bool
   (
     ((between_zero_and_one c) 
-      (alf.ite (alf.is_neg c)
+      (eo::ite (eo::is_neg c)
         false
-        (alf.ite (alf.is_eq c 1)
+        (eo::ite (eo::is_eq c 1)
           true
-          (alf.is_neg (alf.add c (alf.neg 1.0))))))
+          (eo::is_neg (eo::add c (eo::neg 1.0))))))
   )
 )
 

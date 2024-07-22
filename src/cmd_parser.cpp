@@ -356,9 +356,9 @@ bool CmdParser::parseNextCommand()
       // parse requirements, optionally
       if (keyword=="requires")
       {
-        // we support alf.conclusion in requirements
+        // we support eo::conclusion in requirements
         d_state.pushScope();
-        d_state.bind("alf.conclusion", d_state.mkConclusion());
+        d_state.bind("eo::conclusion", d_state.mkConclusion());
         // parse the expression pair list
         reqs = d_eparser.parseExprPairList();
         keyword = d_eparser.parseKeyword();
@@ -371,7 +371,7 @@ bool CmdParser::parseNextCommand()
       }
       else if (keyword=="conclusion-given")
       {
-        // :conclusion-given is equivalent to :conclusion alf.conclusion
+        // :conclusion-given is equivalent to :conclusion eo::conclusion
         conc = d_state.mkConclusion();
       }
       else
@@ -857,7 +857,7 @@ bool CmdParser::parseNextCommand()
         concType = d_eparser.typeCheck(rule);
       }
       // if we specified a conclusion, we will possibly evaluate the type
-      // under the substitution `alf.conclusion -> proven`. We only do this
+      // under the substitution `eo::conclusion -> proven`. We only do this
       // if we did not already match what was proven.
       if (!proven.isNull())
       {

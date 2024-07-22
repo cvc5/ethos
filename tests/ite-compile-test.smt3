@@ -7,21 +7,21 @@
 (program check_pos ((x Int))
   (Int) Bool
   (
-    ((check_pos x) (alf.ite (alf.is_neg x) (- x 1) (+ x 1)))
+    ((check_pos x) (eo::ite (eo::is_neg x) (- x 1) (+ x 1)))
   )
 )
 
 (program check_sign ((x Int))
   (Int) Bool
   (
-    ((check_sign x) (alf.ite (alf.is_eq x 0) x (alf.ite (alf.is_neg x) (- x 1) (+ x 1))))
+    ((check_sign x) (eo::ite (eo::is_eq x 0) x (eo::ite (eo::is_neg x) (- x 1) (+ x 1))))
   )
 )
 
 (program factorial ((x Int))
   (Int) Bool
   (
-    ((factorial x) (alf.ite (alf.is_eq x 0) 1 (alf.mul x (factorial (alf.add x (alf.neg 1))))))
+    ((factorial x) (eo::ite (eo::is_eq x 0) 1 (eo::mul x (factorial (eo::add x (eo::neg 1))))))
   )
 )
 

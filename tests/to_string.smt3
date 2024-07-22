@@ -15,7 +15,7 @@
 
 (declare-rule test_to_str ((T Type) (x T) (s String))
   :args (x s)
-  :requires (((alf.to_str x) s))
+  :requires (((eo::to_str x) s))
   :conclusion (ok x))
 
 ;(step @p0 (ok 1.1) :rule test_to_str :args (1.1 "1.1"))

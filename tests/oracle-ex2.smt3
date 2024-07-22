@@ -9,16 +9,16 @@
 (program to_drat_lit ((l Bool))
   (Bool) Int
   (
-    ((to_drat_lit (not l))  (alf.neg (alf.hash l)))
-    ((to_drat_lit l)        (alf.hash l))
+    ((to_drat_lit (not l))  (eo::neg (eo::hash l)))
+    ((to_drat_lit l)        (eo::hash l))
   )
 )
 (program to_drat_clause ((l Bool) (C Bool :list))
   (Bool) String
   (
     ((to_drat_clause false)    "0")
-    ((to_drat_clause (or l C)) (alf.concat (alf.to_str (to_drat_lit l)) (alf.concat " " (to_drat_clause C))))
-    ((to_drat_clause l)        (alf.concat (alf.to_str (to_drat_lit l)) " 0"))
+    ((to_drat_clause (or l C)) (eo::concat (eo::to_str (to_drat_lit l)) (eo::concat " " (to_drat_clause C))))
+    ((to_drat_clause l)        (eo::concat (eo::to_str (to_drat_lit l)) " 0"))
   )
 )
 
@@ -26,13 +26,13 @@
   (Bool) String
   (
     ((to_drat_input true)       "")
-    ((to_drat_input (and C F)) (alf.concat (to_drat_clause C) (alf.concat " " (to_drat_input F))))
+    ((to_drat_input (and C F)) (eo::concat (to_drat_clause C) (eo::concat " " (to_drat_input F))))
   )
 )
 
 ; ./dratt-verify.sh takes:
 ; - A string corresponding to a DIMACS declaration of the input with an arbitrary mapping,
-; in particular, the mapping is determined by alf.hash in the side conditions above.
+; in particular, the mapping is determined by eo::hash in the side conditions above.
 ; - A DRAT proof file, whose file name is given as a String.
 ; It returns "true" if the preamble of the DRAT proof file matches (modulo renaming
 ; identifiers) the input clauses, as determined by the first arguments.

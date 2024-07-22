@@ -43,7 +43,7 @@
     ((L Type) (cons (-> L L L)) (nil L) (c L) (t L) (xs L :list))
     ((-> L L L) L L L) Bool
     (
-        ((nary.is_subset cons nil (cons c xs) t) (alf.ite (nary.ctn cons nil c t) (nary.is_subset cons nil xs t) false))
+        ((nary.is_subset cons nil (cons c xs) t) (eo::ite (nary.ctn cons nil c t) (nary.is_subset cons nil xs t) false))
         ((nary.is_subset cons nil nil t)         true)
     )
 )
@@ -55,7 +55,7 @@
     ((-> L L L) L L L) L
     (
         ((nary.remove cons nil c (cons c xs)) xs)
-        ((nary.remove cons nil c (cons y xs)) (alf.cons cons y (nary.remove cons nil c xs)))
+        ((nary.remove cons nil c (cons y xs)) (eo::cons cons y (nary.remove cons nil c xs)))
         ((nary.remove cons nil c nil)         nil)
     )
 )
@@ -65,7 +65,7 @@
     ((L Type) (cons (-> L L L)) (nil L) (x L) (xs L :list) (l L :list))
     ((-> L L L) L L L) L
     (
-        ((nary.reverseRec cons nil (cons x xs) l) (nary.reverseRec cons nil xs (alf.cons cons x l)))
+        ((nary.reverseRec cons nil (cons x xs) l) (nary.reverseRec cons nil xs (eo::cons cons x l)))
         ((nary.reverseRec cons nil nil l)         l)
     )
 )
@@ -100,7 +100,7 @@
     (
         ((nary.intro cons nil intro-nil (cons x xs)) (cons x xs))
         ((nary.intro cons nil intro-nil nil)         intro-nil)
-        ((nary.intro cons nil intro-nil x)           (alf.cons cons x intro-nil))
+        ((nary.intro cons nil intro-nil x)           (eo::cons cons x intro-nil))
     )
 )
 (program list.intro
@@ -109,7 +109,7 @@
     (
         ((list.intro cons nil (cons x xs)) (cons x xs))
         ((list.intro cons nil nil)         nil)
-        ((list.intro cons nil x)           (alf.cons cons x nil))
+        ((list.intro cons nil x)           (eo::cons cons x nil))
     )
 )
 
@@ -120,7 +120,7 @@
     ((-> L L L) L I L) L
     (
         ((nary.at cons nil 0 (cons x xs)) x)
-        ((nary.at cons nil i (cons x xs)) (nary.at cons nil (alf.add i (alf.neg 1)) xs))
+        ((nary.at cons nil i (cons x xs)) (nary.at cons nil (eo::add i (eo::neg 1)) xs))
         ((nary.at cons nil 0 x)           x) ; if not in list form
     )
 )
@@ -130,7 +130,7 @@
     ((L Type) (I Type) (cons (-> L L L)) (nil L) (i I) (x L) (xs L :list))
     ((-> L L L) L L) I
     (
-        ((nary.nchild cons nil (cons x xs)) (alf.add 1 (nary.nchild cons nil xs)))
+        ((nary.nchild cons nil (cons x xs)) (eo::add 1 (nary.nchild cons nil xs)))
         ((nary.nchild cons nil nil)         0)
         ((nary.nchild cons nil x)           1) ; if not in list form
     )
@@ -144,7 +144,7 @@
     ((-> L L L) L L L) Bool
     (
         ((nary.is_prefix cons nil nil t)                       true)
-        ((nary.is_prefix cons nil (cons c1 xs1) (cons c2 xs2)) (alf.ite (alf.is_eq c1 c2) (nary.is_prefix cons nil xs1 xs2) false))
+        ((nary.is_prefix cons nil (cons c1 xs1) (cons c2 xs2)) (eo::ite (eo::is_eq c1 c2) (nary.is_prefix cons nil xs1 xs2) false))
     )
 )
 

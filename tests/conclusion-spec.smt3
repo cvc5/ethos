@@ -10,7 +10,7 @@
 )
 
 (declare-rule split ()
-  :requires (((is_split alf.conclusion) true))
+  :requires (((is_split eo::conclusion) true))
   :conclusion-given
 )
 

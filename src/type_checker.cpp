@@ -298,7 +298,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       // constructing an application of AS means the type was incorrect.
       if (out)
       {
-        (*out) << "Encountered bad type for alf.as";
+        (*out) << "Encountered bad type for eo::as";
       }
       return d_null;
     }
@@ -1302,7 +1302,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       break;
     case Kind::EVAL_LIST_NTH:
     {
-      // (alf.extract <op> <term> <n>) returns the n^th child of <op>-application <term>
+      // (eo::extract <op> <term> <n>) returns the n^th child of <op>-application <term>
       if (args[2]->getKind()!=Kind::NUMERAL)
       {
         return d_null;
@@ -1520,7 +1520,7 @@ bool TypeChecker::computedParameterizedInternal(AppInfo* ai,
           {
             // If the parameter is non-ground, we also wait to construct;
             // if the nil terminator is used, it will be replaced by a
-            // placeholder involving alf.nil.
+            // placeholder involving eo::nil.
             return false;
           }
           args.emplace_back(cv);

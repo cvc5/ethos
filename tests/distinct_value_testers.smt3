@@ -3,7 +3,7 @@
 
 (declare-rule disinct_value_bool ((t Bool) (s Bool))
     :args (t s)
-    :requires (((alf.is_bool t) true) ((alf.is_bool s) true) ((alf.is_eq t s) false))
+    :requires (((eo::is_bool t) true) ((eo::is_bool s) true) ((eo::is_eq t s) false))
     :conclusion (not (= t s))
 )
 
@@ -12,7 +12,7 @@
 
 (declare-rule disinct_value_int ((t Int) (s Int))
     :args (t s)
-    :requires (((alf.is_z t) true) ((alf.is_z s) true) ((alf.is_eq t s) false))
+    :requires (((eo::is_z t) true) ((eo::is_z s) true) ((eo::is_eq t s) false))
     :conclusion (not (= t s))
 )
 
@@ -21,7 +21,7 @@
 
 (declare-rule disinct_value_real ((t Real) (s Real))
     :args (t s)
-    :requires (((alf.is_q t) true) ((alf.is_q s) true) ((alf.is_eq t s) false))
+    :requires (((eo::is_q t) true) ((eo::is_q s) true) ((eo::is_eq t s) false))
     :conclusion (not (= t s))
 )
 
@@ -31,7 +31,7 @@
 
 (declare-rule disinct_value_str ((t String) (s String))
     :args (t s)
-    :requires (((alf.is_str t) true) ((alf.is_str s) true) ((alf.is_eq t s) false))
+    :requires (((eo::is_str t) true) ((eo::is_str s) true) ((eo::is_eq t s) false))
     :conclusion (not (= t s))
 )
 
@@ -40,7 +40,7 @@
 
 (declare-rule disinct_value_bin ((t Bin) (s Bin))
     :args (t s)
-    :requires (((alf.is_bin t) true) ((alf.is_bin s) true) ((alf.is_eq t s) false))
+    :requires (((eo::is_bin t) true) ((eo::is_bin s) true) ((eo::is_eq t s) false))
     :conclusion (not (= t s))
 )
 

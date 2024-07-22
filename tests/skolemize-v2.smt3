@@ -29,7 +29,7 @@
 (program $get_choice_type ((x @List))
   (@List) Type
   (
-    (($get_choice_type (@cons x)) (alf.typeof x))
+    (($get_choice_type (@cons x)) (eo::typeof x))
   )
 )
 (declare-const choice (-> (! @List :var L) Bool ($get_choice_type L)) :binder @cons)
@@ -38,10 +38,10 @@
   (@List Bool) @List
   (
     (($mk_skolems (@cons x) F)    (@cons (choice (@cons x) F)))
-    (($mk_skolems (@cons x xs) F) (alf.define ((F2 (exists xs F)))
-                                  (alf.define ((c (choice (@cons x) F2)))
-                                  (alf.define ((Fs ($substitute x c F)))
-                                    (alf.cons @cons c ($mk_skolems xs Fs))))))
+    (($mk_skolems (@cons x xs) F) (eo::define ((F2 (exists xs F)))
+                                  (eo::define ((c (choice (@cons x) F2)))
+                                  (eo::define ((Fs ($substitute x c F)))
+                                    (eo::cons @cons c ($mk_skolems xs Fs))))))
   )
 )
 

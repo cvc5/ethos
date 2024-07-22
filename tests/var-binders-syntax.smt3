@@ -13,11 +13,11 @@
 
 
 (declare-const P (-> Bool Bool))
-(define x.1 () (alf.var "x" Bool))
+(define x.1 () (eo::var "x" Bool))
 
 (step @p0 (= (forall ((x Bool)) (P x)) (forall ((x Bool)) (P x.1))) :rule refl :args ((forall ((x Bool)) (P x))))
-(step @p1 (= (forall ((x Bool)) (P x)) (forall ((x Bool)) (P (alf.var "x" Bool)))) :rule refl :args ((forall ((x Bool)) (P x))))
+(step @p1 (= (forall ((x Bool)) (P x)) (forall ((x Bool)) (P (eo::var "x" Bool)))) :rule refl :args ((forall ((x Bool)) (P x))))
 (step @p2 (= (forall ((x Bool)) (P x)) (forall (@list x.1) (P x.1))) :rule refl :args ((forall ((x Bool)) (P x))))
 
 
-(step @p3 (= x.1 (alf.var (alf.nameof x.1) (alf.typeof x.1))) :rule refl :args (x.1))
+(step @p3 (= x.1 (eo::var (eo::nameof x.1) (eo::typeof x.1))) :rule refl :args (x.1))

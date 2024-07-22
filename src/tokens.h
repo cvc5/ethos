@@ -48,8 +48,8 @@ enum class Token
   DEFINE_SORT,
   DEFINE_TYPE,
   ECHO,
-  EVAL_DEFINE,  // alf.define
-  EVAL_MATCH,   // alf.match
+  EVAL_DEFINE,  // eo::define
+  EVAL_MATCH,   // eo::match
   EXIT,
   HEX_LITERAL,
   INCLUDE,

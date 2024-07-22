@@ -11,7 +11,7 @@
 
 (declare-rule not_half ((T Type) (x T))
   :args (x)
-  :requires (((alf.typeof x) Int))
+  :requires (((eo::typeof x) Int))
   :conclusion (not (= (to_real x) 0.5)))
 
 

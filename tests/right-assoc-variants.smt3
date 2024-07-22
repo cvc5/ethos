@@ -28,7 +28,7 @@
 (-> (BitVec m)
     (BitVec m)
     (BitVec m))
-:right-assoc-nil (alf.not (alf.to_bin m 0)))
+:right-assoc-nil (eo::not (eo::to_bin m 0)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

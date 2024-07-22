@@ -10,12 +10,12 @@
 (program arith.eval ((S Type) (a Int) (b Int) (z S))
     (S) S
     (
-      ((arith.eval (= a b))  (alf.is_eq (arith.eval a) (arith.eval b)))
-      ((arith.eval (< a b))  (alf.is_neg (arith.eval (- a b))))
-      ((arith.eval (<= a b)) (alf.define ((x (arith.eval (- a b)))) 
-                                 (alf.or (alf.is_neg x) (alf.is_eq x 0))))
-      ((arith.eval (+ a b))  (alf.add (arith.eval a) (arith.eval b)))
-      ((arith.eval (- a b))  (alf.add (arith.eval a) (alf.neg (arith.eval b))))
+      ((arith.eval (= a b))  (eo::is_eq (arith.eval a) (arith.eval b)))
+      ((arith.eval (< a b))  (eo::is_neg (arith.eval (- a b))))
+      ((arith.eval (<= a b)) (eo::define ((x (arith.eval (- a b)))) 
+                                 (eo::or (eo::is_neg x) (eo::is_eq x 0))))
+      ((arith.eval (+ a b))  (eo::add (arith.eval a) (arith.eval b)))
+      ((arith.eval (- a b))  (eo::add (arith.eval a) (eo::neg (arith.eval b))))
       ((arith.eval z)        z)
     )
 )
@@ -23,7 +23,7 @@
 (declare-const BitVec 
   (-> Int Type))
 
-(declare-consts <binary> (BitVec (alf.len alf.self)))
+(declare-consts <binary> (BitVec (eo::len eo::self)))
 
 (declare-const bvadd (->
   (! Int :var n :implicit)
@@ -55,10 +55,10 @@
 (program bv.eval ((T Type) (U Type) (S Type) (a T) (b U) (z S) (h Int) (l Int))
     (S) S
     (
-      ((bv.eval (= a b))           (alf.is_eq (bv.eval a) (bv.eval b)))
-      ((bv.eval (bvadd a b))       (alf.add (bv.eval a) (bv.eval b)))
-      ((bv.eval (bvconcat a b))    (alf.concat (bv.eval a) (bv.eval b)))
-      ((bv.eval (bvextract h l a)) (alf.extract (bv.eval a) l h)) ; note swap l/h
+      ((bv.eval (= a b))           (eo::is_eq (bv.eval a) (bv.eval b)))
+      ((bv.eval (bvadd a b))       (eo::add (bv.eval a) (bv.eval b)))
+      ((bv.eval (bvconcat a b))    (eo::concat (bv.eval a) (bv.eval b)))
+      ((bv.eval (bvextract h l a)) (eo::extract (bv.eval a) l h)) ; note swap l/h
       ((bv.eval z)                 z)
     )
 )

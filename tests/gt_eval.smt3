@@ -5,7 +5,7 @@
 
 (declare-rule value_gt ((t Int) (s Int))
     :args (t s)
-    :requires (((alf.gt t s) true))
+    :requires (((eo::gt t s) true))
     :conclusion (> t s)
 )
 
@@ -15,7 +15,7 @@
 
 (declare-rule value_gt_bin ((t Bin) (s Bin))
     :args (t s)
-    :requires (((alf.gt t s) true))
+    :requires (((eo::gt t s) true))
     :conclusion (bvugt t s)
 )
 

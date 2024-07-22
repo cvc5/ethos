@@ -46,7 +46,7 @@ State::State(Options& opts, Stats& stats)
   //bindBuiltin("lambda", Kind::LAMBDA, true);
   bindBuiltin("->", Kind::FUNCTION_TYPE);
   bindBuiltin("_", Kind::APPLY);
-  bindBuiltin("alf._", Kind::PARAMETERIZED);
+  bindBuiltin("eo::_", Kind::PARAMETERIZED);
 
   bindBuiltinEval("is_eq", Kind::EVAL_IS_EQ);
   bindBuiltinEval("ite", Kind::EVAL_IF_THEN_ELSE);
@@ -96,14 +96,14 @@ State::State(Options& opts, Stats& stats)
   // as
   bindBuiltinEval("as", Kind::AS);
   
-  // we do not export alf.null
-  // for now, alf.? is (undocumented) syntax for abstract type
-  bind("alf.?", mkAbstractType());
+  // we do not export eo::null
+  // for now, eo::? is (undocumented) syntax for abstract type
+  bind("eo::?", mkAbstractType());
   // self is a distinguished parameter
-  d_self = Expr(mkSymbolInternal(Kind::PARAM, "alf.self", mkAbstractType()));
-  bind("alf.self", d_self);
-  d_conclusion = Expr(mkSymbolInternal(Kind::PARAM, "alf.conclusion", mkBoolType()));
-  // alf.conclusion is not globally bound, since it can only appear
+  d_self = Expr(mkSymbolInternal(Kind::PARAM, "eo::self", mkAbstractType()));
+  bind("eo::self", d_self);
+  d_conclusion = Expr(mkSymbolInternal(Kind::PARAM, "eo::conclusion", mkBoolType()));
+  // eo::conclusion is not globally bound, since it can only appear
   // in :requires.
 
   // note we don't allow parsing (Proof ...), (Quote ...), or (quote ...).
@@ -644,7 +644,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
                 {
                   // if we failed to infer a nil terminator (likely due to
                   // a non-ground parameter), then we insert a placeholder
-                  // (alf.nil f t1 ... tn), which if t1...tn are non-ground
+                  // (eo::nil f t1 ... tn), which if t1...tn are non-ground
                   // will evaluate to the proper nil terminator when
                   // instantiated.
                   curr = mkExprInternal(Kind::EVAL_NIL, vchildren);
@@ -840,7 +840,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     // below
     if (vchildren.size()==2)
     {
-      Trace("overload") << "process alf.as " << children[0] << " " << children[1] << std::endl;
+      Trace("overload") << "process eo::as " << children[0] << " " << children[1] << std::endl;
       AppInfo* ai = getAppInfo(vchildren[0]);
       Expr ret = children[0];
       std::pair<std::vector<Expr>, Expr> ftype = children[1].getFunctionType();
@@ -1339,7 +1339,7 @@ void State::bindBuiltin(const std::string& name, Kind k, Attr ac, const Expr& t)
 
 void State::bindBuiltinEval(const std::string& name, Kind k, Attr ac)
 {
-  bindBuiltin("alf."+name, k, ac);
+  bindBuiltin("eo::"+name, k, ac);
 }
 
 void State::defineProgram(const Expr& v, const Expr& prog)

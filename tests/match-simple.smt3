@@ -18,13 +18,13 @@
   (Int Int) (Pair Int Bool)
   (
     ((rm_from_sum x (+ y z))
-      (alf.match ((w Int) (b Bool))
+      (eo::match ((w Int) (b Bool))
         ; head
         (rm_from_sum x z)
         ; matches (pair w b)
         (
-        ((pair w b) (alf.ite 
-                      (alf.is_eq x y) 
+        ((pair w b) (eo::ite 
+                      (eo::is_eq x y) 
                       (pair w true) 
                       (pair (+ y w) b)))
         )
@@ -36,9 +36,9 @@
 (declare-rule rm_sum ((x Int) (y Int))
   :args (x y)
   :conclusion (=> (< 0 x)
-                (alf.match ((w Int) (b Bool))
+                (eo::match ((w Int) (b Bool))
                   (rm_from_sum x y) ; head
-                  (((pair w b) (alf.ite b (< w y) (= w y))))))
+                  (((pair w b) (eo::ite b (< w y) (= w y))))))
 )
 
 (declare-const a Int)

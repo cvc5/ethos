@@ -13,7 +13,7 @@
     :premises (F)
     :args ()
     :conclusion
-        (alf.match ((T Type) (t1 T) (t2 T))
+        (eo::match ((T Type) (t1 T) (t2 T))
             F
             (
               ((= t1 t2)       (= t2 t1))
@@ -28,7 +28,7 @@
     (U U Bool) Bool
     (
         ((mk_trans t1 t2 (and (= t3 t4) tail))
-            (alf.requires t2 t3 (mk_trans t1 t4 tail)))
+            (eo::requires t2 t3 (mk_trans t1 t4 tail)))
         ((mk_trans t1 t2 true)              (= t1 t2))
     )
 )
@@ -36,7 +36,7 @@
 (declare-rule trans ((T Type) (U Type) (E Bool) (f (-> T U)))
     :premise-list E and
     :conclusion
-        (alf.match ((t1 U) (t2 U) (tail Bool :list))
+        (eo::match ((t1 U) (t2 U) (tail Bool :list))
         E
         (((and (= t1 t2) tail) (mk_trans t1 t2 tail))))
 )
@@ -116,7 +116,7 @@
     :premise-list E and
     :args ()
     :conclusion
-        (alf.match ((t1 U) (t2 U) (tail Bool :list))
+        (eo::match ((t1 U) (t2 U) (tail Bool :list))
         E
         (((and (= t1 t2) tail) (mk_ho_cong t1 t2 tail))))
 )

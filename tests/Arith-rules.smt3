@@ -129,7 +129,7 @@
 (declare-rule int_tight_ub ((s Int) (t Real) (c Int))
   :premises ((< s t))
   :args (c)
-  :requires (((between_zero_and_one (alf.add t (alf.neg c))) true))
+  :requires (((between_zero_and_one (eo::add t (eo::neg c))) true))
   :conclusion (<= s c)
 )
 
@@ -138,6 +138,6 @@
 (declare-rule int_tight_lb ((s Int) (t Real) (c Int))
   :premises ((> s t))
   :args (c)
-  :requires (((between_zero_and_one (alf.add c (alf.neg t))) true))
+  :requires (((between_zero_and_one (eo::add c (eo::neg t))) true))
   :conclusion (>= s c)
 )
