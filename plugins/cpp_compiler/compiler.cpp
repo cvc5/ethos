@@ -9,7 +9,7 @@
 #include "state.h"
 #include "util/filesystem.h"
 
-namespace alfc {
+namespace ethos {
 
 CompilerScope::CompilerScope(std::ostream& decl,
                              std::ostream& out,
@@ -207,7 +207,7 @@ void Compiler::includeFile(const Filepath& s, bool isReference, const Expr& refe
 {
   if (isReference)
   {
-    ALFC_FATAL() << "Compiler::includeFile: cannot use reference when compiling";
+    EO_FATAL() << "Compiler::includeFile: cannot use reference when compiling";
   }
   Assert (d_nscopes==0);
   d_init << "  d_state.markIncluded(\"" << s.getRawPath() << "\");" << std::endl;
@@ -260,7 +260,7 @@ void Compiler::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
 
 void Compiler::markOracleCmd(const Expr& v, const std::string& ocmd)
 {
-  ALFC_FATAL() << "Compiler::markOracleCmd: unimplemented";
+  EO_FATAL() << "Compiler::markOracleCmd: unimplemented";
 }
 
 void Compiler::defineProgram(const Expr& v, const Expr& prog)
@@ -895,7 +895,7 @@ std::string Compiler::toString()
   ss << "#include \"type_checker.h\"" << std::endl;
   ss << "#include <iomanip>" << std::endl;
   ss << std::endl;
-  ss << "namespace alfc {" << std::endl;
+  ss << "namespace ethos {" << std::endl;
   ss << std::endl;
   ss << d_decl.str() << std::endl;
   ss << d_config.str();
@@ -959,4 +959,4 @@ void Compiler::writeArgumentList(std::ostream& os,
   os << "}";
 }
 
-}  // namespace alfc
+}  // namespace ethos
