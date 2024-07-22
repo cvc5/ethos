@@ -1,5 +1,5 @@
-file(GLOB_RECURSE alfc_SRC CONFIGURE_DEPENDS "*.h" "*.cpp")
+file(GLOB_RECURSE ethos_SRC CONFIGURE_DEPENDS "*.h" "*.cpp")
 
-add_executable(alfc ${alfc_SRC})
+add_executable(ethos ${ethos_SRC})
 
-target_link_libraries(alfc ${LIBRARIES})
+target_link_libraries(ethos ${LIBRARIES})

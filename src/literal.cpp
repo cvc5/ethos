@@ -1,5 +1,5 @@
 /******************************************************************************
- * This file is part of the alfc project.
+ * This file is part of the ethos project.
  *
  * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
@@ -11,7 +11,7 @@
 #include "base/check.h"
 #include <iostream>
 
-namespace alfc {
+namespace ethos {
 
 Literal::Literal(const Literal& other)
 {
@@ -107,7 +107,7 @@ std::string Literal::toString() const
       return d_sym;
       break;
   }
-  ALFC_FATAL() << "Cannot convert literal to string " << d_kind;
+  EO_FATAL() << "Cannot convert literal to string " << d_kind;
   return "?";
 }
 
@@ -493,4 +493,4 @@ Literal Literal::evaluate(Kind k, const std::vector<const Literal*>& args)
   return Literal();
 }
 
-}  // namespace alfc
+}  // namespace ethos

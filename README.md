@@ -1,22 +1,22 @@
-# AletheLF Checker
+# Ethos Checker
 
 ## A Flexible and Efficient Proof Checker for SMT Solvers
 
-## Building the AletheLF checker
+## Building the Ethos checker
 
-You need cmake (>= version 3.12) and gmp to build the AletheLF Checker.
+You need cmake (>= version 3.12) and gmp to build the Ethos Checker.
 
 To build a regular build, issue:
 
 ```bash
-cd /path/to/alethelf_checker
+cd /path/to/ethos_checker
 mkdir build
 cd build
 cmake ..
 make
 ```
 
-The executable, called `alfc`, will be created in the build/src folder.
+The executable, called `ethos`, will be created in the build/src folder.
 
 Alternatively you can configure a regular build with
 
@@ -26,7 +26,7 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 To build a regular build and install it into /path/to/install, issue:
 
 ```bash
-cd /path/to/alethelf_checker
+cd /path/to/ethos_checker
 mkdir build
 cd build
 cmake -DCMAKE_INSTALL_PREFIX:PATH=/path/to/install ..
@@ -43,12 +43,12 @@ cmake -DCMAKE_BUILD_TYPE=Debug ..
 make
 ```
 
-## Using the AletheLF checker
+## Using the Ethos checker
 
 ```
-alfc [script]
+ethos [script]
 ```
-where `script` is an AletheLF script.  See `tests` and `proofs` for examples.
+where `script` is a Eunoia script.  See `tests` and `proofs` for examples.
 
 For further details, see the user manual [here](user_manual.md).
 

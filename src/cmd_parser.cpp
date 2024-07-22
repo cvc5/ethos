@@ -19,7 +19,7 @@
 #include <ostream>
 #include "base/output.h"
 
-namespace alfc {
+namespace ethos {
 
 CmdParser::CmdParser(Lexer& lex,
                      State& state,
@@ -313,7 +313,7 @@ bool CmdParser::parseNextCommand()
       if (d_lex.peekToken()==Token::KEYWORD)
       {
         std::string keyword = d_eparser.parseKeyword();
-        if (keyword!="alfc")
+        if (keyword!="ethos")
         {
           d_lex.parseError("Unsupported rule format");
         }
@@ -665,7 +665,7 @@ bool CmdParser::parseNextCommand()
       if (d_lex.peekToken()==Token::KEYWORD)
       {
         std::string keyword = d_eparser.parseKeyword();
-        if (keyword!="alfc")
+        if (keyword!="ethos")
         {
           d_lex.parseError("Unsupported program format");
         }
@@ -975,14 +975,14 @@ bool CmdParser::parseNextCommand()
     }
     break;
     case Token::EOF_TOK:
-      d_lex.parseError("Expected AletheLF command", true);
+      d_lex.parseError("Expected Eunoia command", true);
       break;
     default:
-      d_lex.unexpectedTokenError(tok, "Expected AletheLF command");
+      d_lex.unexpectedTokenError(tok, "Expected Eunoia command");
       break;
   }
   d_lex.eatToken(Token::RPAREN);
   return true;
 }
 
-}  // namespace alfc
+}  // namespace ethos

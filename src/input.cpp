@@ -1,5 +1,5 @@
 /******************************************************************************
- * This file is part of the alfc project.
+ * This file is part of the ethos project.
  *
  * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
@@ -13,7 +13,7 @@
 
 #include "base/check.h"
 
-namespace alfc {
+namespace ethos {
 
 /** File input class */
 class FileInput : public Input
@@ -24,7 +24,7 @@ class FileInput : public Input
     d_fs.open(filename, std::fstream::in);
     if (!d_fs.is_open())
     {
-      ALFC_FATAL() << "Couldn't open file: " << filename;
+      EO_FATAL() << "Couldn't open file: " << filename;
     }
   }
   std::istream* getStream() override { return &d_fs; }
@@ -75,4 +75,4 @@ std::unique_ptr<Input> Input::mkStringInput(const std::string& input)
   return std::unique_ptr<Input>(new StringInput(input));
 }
 
-}  // namespace alfc
+}  // namespace ethos

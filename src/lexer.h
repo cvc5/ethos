@@ -1,5 +1,5 @@
 /******************************************************************************
- * This file is part of the alfc project.
+ * This file is part of the ethos project.
  *
  * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
@@ -19,7 +19,7 @@
 #include "input.h"
 #include "tokens.h"
 
-namespace alfc {
+namespace ethos {
 
 /** A location for tracking parse errors */
 struct Location
@@ -244,6 +244,6 @@ class Lexer
   std::array<uint8_t, 256> d_charClass{};  // value-initialized to 0
 };
 
-}  // namespace alfc
+}  // namespace ethos
 
 #endif

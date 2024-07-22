@@ -1,5 +1,5 @@
 /******************************************************************************
- * This file is part of the alfc project.
+ * This file is part of the ethos project.
  *
  * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
@@ -24,7 +24,7 @@
 #include "type_checker.h"
 #include "util/filesystem.h"
 
-namespace alfc {
+namespace ethos {
 
 class Options
 {
@@ -322,6 +322,6 @@ class State
   Plugin* d_plugin;
 };
 
-}  // namespace alfc
+}  // namespace ethos
 
 #endif /* STATE_H */

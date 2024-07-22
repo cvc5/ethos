@@ -1,5 +1,5 @@
 /******************************************************************************
- * This file is part of the alfc project.
+ * This file is part of the ethos project.
  *
  * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
@@ -8,7 +8,7 @@
  ******************************************************************************/
 #include "parser.h"
 
-namespace alfc {
+namespace ethos {
 
 Parser::Parser(State& s, bool isReference)
     : d_lex(s.getOptions().d_parseLet),
@@ -46,4 +46,4 @@ Expr Parser::parseNextExpr()
   return d_eparser.parseExpr();
 }
 
-}  // namespace alfc
+}  // namespace ethos

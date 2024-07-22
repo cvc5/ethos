@@ -1,5 +1,5 @@
 /******************************************************************************
- * This file is part of the alfc project.
+ * This file is part of the ethos project.
  *
  * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
@@ -14,7 +14,7 @@
 
 #include "base/check.h"
 
-namespace alfc {
+namespace ethos {
 
 std::ostream& operator<<(std::ostream& o, const Location& l)
 {
@@ -80,11 +80,11 @@ void Lexer::parseError(const std::string& msg, bool eofException)
 {
   std::stringstream os;
   if( d_span.d_start.d_line > 0 ) {
-    ALFC_FATAL() << "Error: " << d_inputName << ":"
+    EO_FATAL() << "Error: " << d_inputName << ":"
                  << d_span.d_start.d_line << "." << d_span.d_start.d_column
                  << ": " << msg << std::endl;
   } else {
-    ALFC_FATAL() << "Error: " << msg << std::endl;
+    EO_FATAL() << "Error: " << msg << std::endl;
   }
 }
 
@@ -465,4 +465,4 @@ Token Lexer::tokenizeCurrentSymbol() const
   return Token::SYMBOL;
 }
 
-}  // namespace alfc
+}  // namespace ethos

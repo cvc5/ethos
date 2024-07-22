@@ -1,5 +1,5 @@
 /******************************************************************************
- * This file is part of the alfc project.
+ * This file is part of the ethos project.
  *
  * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
@@ -15,7 +15,7 @@
 #include "parser.h"
 #include "util/filesystem.h"
 
-namespace alfc {
+namespace ethos {
 
 Options::Options()
 {
@@ -149,7 +149,7 @@ void State::popScope()
   }
   if (d_declsSizeCtx.empty())
   {
-    ALFC_FATAL() << "State::popScope: empty context";
+    EO_FATAL() << "State::popScope: empty context";
   }
   size_t lastSize = d_declsSizeCtx.back();
   d_declsSizeCtx.pop_back();
@@ -251,7 +251,7 @@ bool State::includeFile(const std::string& s, bool isReference, const Expr& refe
   Trace("state") << "...finished" << std::endl;
   if (getAssumptionLevel()!=0)
   {
-    ALFC_FATAL() << "Including file " << inputPath.getRawPath()
+    EO_FATAL() << "Including file " << inputPath.getRawPath()
                  << " did not preserve assumption scope";
   }
   return true;
@@ -899,7 +899,7 @@ Expr State::mkLiteral(Kind k, const std::string& s)
     case Kind::BINARY: lit = Literal(k, BitVector(s, 2)); break;
     case Kind::STRING: lit = Literal(String(s, true)); break;
     default:
-      ALFC_FATAL() << "Unknown kind for mkLiteral " << k;
+      EO_FATAL() << "Unknown kind for mkLiteral " << k;
       break;
   }
   return Expr(mkLiteralInternal(lit));
@@ -970,7 +970,7 @@ ExprValue* State::mkLiteralInternal(Literal& l)
     }
       break;
     default:
-      ALFC_FATAL() << "Unknown kind for mkLiteralInternal " << l.getKind();
+      EO_FATAL() << "Unknown kind for mkLiteralInternal " << l.getKind();
       break;
   }
   d_stats.d_litCount++;
@@ -1413,4 +1413,4 @@ Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
   return d_null;
 }
 
-}  // namespace alfc
+}  // namespace ethos

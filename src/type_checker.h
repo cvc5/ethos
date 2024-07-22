@@ -1,5 +1,5 @@
 /******************************************************************************
- * This file is part of the alfc project.
+ * This file is part of the ethos project.
  *
  * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
@@ -15,14 +15,14 @@
 #include "expr_trie.h"
 #include "expr_info.h"
 
-namespace alfc {
+namespace ethos {
 
 class State;
 class Options;
 class Plugin;
 
 /** 
- * The type checker for AletheLF. The main algorithms it implements are
+ * The type checker for Ethos. The main algorithms it implements are
  * getType, match, and evaluate.
  */
 class TypeChecker
@@ -125,6 +125,6 @@ class TypeChecker
   Expr d_negOne;
 };
 
-}  // namespace alfc
+}  // namespace ethos
 
 #endif 

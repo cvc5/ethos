@@ -1,5 +1,5 @@
 /******************************************************************************
- * This file is part of the alfc project.
+ * This file is part of the ethos project.
  *
  * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
@@ -12,7 +12,7 @@
 #include <sstream>
 #include <string>
 
-namespace alfc {
+namespace ethos {
 
 /**
  */
@@ -69,6 +69,6 @@ bool isConstructorKindAttr(Attr a);
 /** Print a kind to the stream, for debugging */
 std::ostream& operator<<(std::ostream& o, Attr a);
 
-}  // namespace alfc
+}  // namespace ethos
 
 #endif /* ATTR_H */

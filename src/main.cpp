@@ -1,5 +1,5 @@
 /******************************************************************************
- * This file is part of the alfc project.
+ * This file is part of the ethos project.
  *
  * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
@@ -16,7 +16,7 @@
 #include "parser.h"
 #include "state.h"
 
-using namespace alfc;
+using namespace ethos;
 
 int main( int argc, char* argv[] )
 {
@@ -85,11 +85,11 @@ int main( int argc, char* argv[] )
     else if (arg=="--show-config")
     {
       std::stringstream out;
-      out << "This is alfc version 0.0." << std::endl;
+      out << "This is ethos version 0.0." << std::endl;
       out << std::endl;
       size_t w = 15;
       out << std::setw(w) << "tracing : ";
-#ifdef ALFC_TRACING
+#ifdef EO_TRACING
       out << "yes";
 #else
       out << "no";
@@ -102,16 +102,16 @@ int main( int argc, char* argv[] )
     {
       std::string targ(argv[i]);
       i++;
-#ifdef ALFC_TRACING
+#ifdef EO_TRACING
       TraceChannel.on(targ);
 #else
-      ALFC_FATAL() << "Error: tracing not enabled in this build" << std::endl;
+      EO_FATAL() << "Error: tracing not enabled in this build" << std::endl;
 #endif
     }
     else if (arg=="-v")
     {
 // enable all traces
-#ifdef ALFC_TRACING
+#ifdef EO_TRACING
       TraceChannel.on("compiler");
       TraceChannel.on("expr_parser");
       TraceChannel.on("state");
@@ -119,7 +119,7 @@ int main( int argc, char* argv[] )
       TraceChannel.on("compile");
       TraceChannel.on("step");
 #else
-      ALFC_FATAL() << "Error: tracing not enabled in this build";
+      EO_FATAL() << "Error: tracing not enabled in this build";
 #endif
     }
     else if (!readFile)
@@ -135,10 +135,10 @@ int main( int argc, char* argv[] )
         std::string oarg(i==0 ? file : arg);
         if (oarg.compare(0, 2, "--")==0)
         {
-          ALFC_FATAL() << "Error: unrecognized option " << oarg;
+          EO_FATAL() << "Error: unrecognized option " << oarg;
         }
       }
-      ALFC_FATAL() << "Error: mulitple files specified, \"" << file << "\" and \"" << arg << "\"";
+      EO_FATAL() << "Error: mulitple files specified, \"" << file << "\" and \"" << arg << "\"";
     }
   }
   State s(opts, stats);
@@ -153,7 +153,7 @@ int main( int argc, char* argv[] )
     // no file, either std::in is piped, or the user forgot to provide an input
     if (isatty(fileno(stdin)))
     {
-      ALFC_FATAL() << "Error: no input specified.";
+      EO_FATAL() << "Error: no input specified.";
     }
     // parse from std::cin.
     Parser p(s, false);
@@ -168,7 +168,7 @@ int main( int argc, char* argv[] )
     // include the file
     if (!s.includeFile(file))
     {
-      ALFC_FATAL() << "Error: cannot include file " << file;
+      EO_FATAL() << "Error: cannot include file " << file;
     }
   }
   bool wasIncomplete = false;

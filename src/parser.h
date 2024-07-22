@@ -1,5 +1,5 @@
 /******************************************************************************
- * This file is part of the alfc project.
+ * This file is part of the ethos project.
  *
  * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
@@ -15,7 +15,7 @@
 #include "expr_parser.h"
 #include "input.h"
 
-namespace alfc {
+namespace ethos {
 
 /**
  * smt2 parser. It maintains a lexer, a state, a term parser and a
@@ -71,6 +71,6 @@ class Parser
   CmdParser d_cmdParser;
 };
 
-}  // namespace alfc
+}  // namespace ethos
 
 #endif /* PARSER_H */

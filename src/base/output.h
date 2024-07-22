@@ -13,8 +13,8 @@
  * Output utility classes and functions.
  */
 
-#ifndef ALFC__OUTPUT_H
-#define ALFC__OUTPUT_H
+#ifndef EO__OUTPUT_H
+#define EO__OUTPUT_H
 
 #include <algorithm>
 #include <cstdio>
@@ -25,7 +25,7 @@
 #include <utility>
 #include <vector>
 
-namespace alfc {
+namespace ethos {
 
 template <class T, class U>
 std::ostream& operator<<(std::ostream& out, const std::pair<T, U>& p)
@@ -206,7 +206,7 @@ class WarningC
 
   // This function supports the WarningOnce() macro, which allows you
   // to easily indicate that a warning should be emitted, but only
-  // once for a given run of alfc.
+  // once for a given run of ethos.
   bool warnOnce(const std::string& file, size_t line)
   {
     std::pair<std::string, size_t> pr = std::make_pair(file, line);
@@ -285,26 +285,26 @@ extern WarningC WarningChannel;
 extern TraceC TraceChannel;
 
 #define Warning \
-  (!alfc::WarningChannel.isOn()) ? alfc::nullStream : alfc::WarningChannel
+  (!ethos::WarningChannel.isOn()) ? ethos::nullStream : ethos::WarningChannel
 #define WarningOnce                                       \
-  (!alfc::WarningChannel.isOn()                           \
-   || !alfc::WarningChannel.warnOnce(__FILE__, __LINE__)) \
-      ? alfc::nullStream                                  \
-      : alfc::WarningChannel
-#ifdef ALFC_TRACING
-#define TraceIsOn alfc::TraceChannel.isOn
+  (!ethos::WarningChannel.isOn()                           \
+   || !ethos::WarningChannel.warnOnce(__FILE__, __LINE__)) \
+      ? ethos::nullStream                                  \
+      : ethos::WarningChannel
+#ifdef EO_TRACING
+#define TraceIsOn ethos::TraceChannel.isOn
 #define Trace(tag) \
-  !alfc::TraceChannel.isOn(tag) ? alfc::nullStream : alfc::TraceChannel()
-#else /* ALFC_TRACING */
-#define TraceIsOn alfc::__alfc_true() ? false : alfc::TraceChannel.isOn
-#define Trace(tag) alfc::__alfc_true() ? alfc::nullStream : alfc::TraceChannel()
-#endif /* ALFC_TRACING */
+  !ethos::TraceChannel.isOn(tag) ? ethos::nullStream : ethos::TraceChannel()
+#else /* EO_TRACING */
+#define TraceIsOn ethos::__ethos_true() ? false : ethos::TraceChannel.isOn
+#define Trace(tag) ethos::__ethos_true() ? ethos::nullStream : ethos::TraceChannel()
+#endif /* EO_TRACING */
 
 // Disallow e.g. !Trace("foo").isOn() forms
 // because the ! will apply before the ? .
 // If a compiler error has directed you here,
 // just parenthesize it e.g. !(Trace("foo").isOn())
-class __alfc_true
+class __ethos_true
 {
   [[maybe_unused]] void operator!();
   [[maybe_unused]] void operator~();
@@ -313,8 +313,8 @@ class __alfc_true
 
  public:
   inline operator bool() { return true; }
-}; /* __alfc_true */
+}; /* __ethos_true */
 
-}  // namespace alfc
+}  // namespace ethos
 
-#endif /* ALFC__OUTPUT_H */
+#endif /* EO__OUTPUT_H */

@@ -18,7 +18,7 @@
 #include <cstdlib>
 #include <iostream>
 
-namespace alfc {
+namespace ethos {
 
 FatalStream::FatalStream(const char* function, const char* file, int line) : d_abort(true)
 {
@@ -47,4 +47,4 @@ void FatalStream::Flush()
   stream().flush();
 }
 
-}  // namespace alfc
+}  // namespace ethos
