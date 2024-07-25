@@ -796,11 +796,11 @@ If on the other hand we defined:
 (declare-const b Int)
 (declare-const x2 (BitVec a))
 (declare-const y2 (BitVec b))
-(define z2 () (concat x2 y2))
+(define z2 () (concat x2 y2) :type (BitVec (eo::add a b)))
 ```
-The type `z2` in the above example is `(BitVec (eo::add a b))`, where the application of `eo::add` does not evaluate.
-Although the above term does not lead to a type checking error, further use of `z2` would lead to errors if given as an argument to a function that did not expect this type verbatim.
-For example, given a function `f` of type `(-> (BitVec (eo::add b a)) T)`, the term `(f z2)` is not well-typed, since `(eo::add a b)` is not syntactically equal to `(eo::add b a)`.
+Based on the definition of `concat`, the return type of `z2` in the above example is `(BitVec (eo::add a b))`, where the application of `eo::add` does not evaluate since `a` and `b` are not values.
+However, any term with a type that is both ground (i.e. containing no parameters) and evaluatable (i.e. containing an application of a program or builtin evaluation operator) is considered ill-typed by Ethos.
+Hence, the above example results in a type checking error.
 
 ### <a name="bv-literals"></a>Example: Type rule for BitVector constants
 
@@ -1707,6 +1707,8 @@ f : (-> U S)  t : T
 for all other (non-Quote) types U.
 
 ```
+
+Note that Ethos additionally requires that all well-typed terms have a type that is either non-ground, or is fully reduced, i.e. contains no unreduced applications of programs or evaluation operators.
 
 The command:
 ```
