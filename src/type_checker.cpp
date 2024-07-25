@@ -122,6 +122,10 @@ Expr TypeChecker::getType(Expr& e, std::ostream* out)
       {
         Trace("type_checker")
             << "TYPE " << Expr(cur) << " : [FAIL] due to evaluatable " << ret << std::endl;
+        if (out)
+        {
+          (*out) << "Has type " << ret << " that is ground and evaluatable";
+        }
         return d_null;
       }
       tc[cur] = ret;
