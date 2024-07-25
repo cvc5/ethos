@@ -36,7 +36,7 @@ make install
 To build a debug build, issue:
 
 ```bash
-cd /path/to/alethelf_checker
+cd /path/to/ethos_checker
 mkdir build
 cd build
 cmake -DCMAKE_BUILD_TYPE=Debug ..
