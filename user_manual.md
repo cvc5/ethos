@@ -1708,7 +1708,7 @@ for all other (non-Quote) types U.
 
 ```
 
-Note that Ethos additionally requires that all well-typed terms have a type that is either non-ground, or is fully reduced, i.e. contains no unreduced applications of programs or evaluation operators.
+Note that Ethos additionally requires that all well-typed terms have a type that is either non-ground, or is fully reduced, i.e. contains no irreducible applications of programs or evaluation operators.
 
 The command:
 ```
