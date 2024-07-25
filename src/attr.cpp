@@ -1,5 +1,5 @@
 /******************************************************************************
- * This file is part of the alfc project.
+ * This file is part of the ethos project.
  *
  * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
@@ -8,7 +8,7 @@
  ******************************************************************************/
 #include "attr.h"
 
-namespace alfc {
+namespace ethos {
 
 std::ostream& operator<<(std::ostream& o, Attr a)
 {
@@ -65,4 +65,4 @@ bool isConstructorKindAttr(Attr a)
   return isNAryAttr(a) || a==Attr::BINDER || a==Attr::LET_BINDER || a==Attr::LIST;
 }
 
-}  // namespace alfc
+}  // namespace ethos

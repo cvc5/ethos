@@ -1,5 +1,5 @@
 /******************************************************************************
- * This file is part of the alfc project.
+ * This file is part of the ethos project.
  *
  * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
@@ -16,7 +16,7 @@
 #include "base/output.h"
 #include "type_checker.h"
 
-namespace alfc {
+namespace ethos {
 
 /**
  * Definition of state identifiers when parsing terms
@@ -1442,4 +1442,4 @@ void ExprParser::processAttributeMap(const AttrMap& attrs,
   }
 }
 
-}  // namespace alfc
+}  // namespace ethos

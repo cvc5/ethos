@@ -1,5 +1,5 @@
 /******************************************************************************
- * This file is part of the alfc project.
+ * This file is part of the ethos project.
  *
  * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
@@ -14,7 +14,7 @@
 #include "base/output.h"
 #include "state.h"
 
-namespace alfc {
+namespace ethos {
 
 ExprValue ExprValue::s_null;
 State* ExprValue::d_state = nullptr;
@@ -567,4 +567,4 @@ std::ostream& operator<<(std::ostream& out, const Ctx& c)
   return out;
 }
 
-}  // namespace alfc
+}  // namespace ethos

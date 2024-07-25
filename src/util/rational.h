@@ -1,5 +1,5 @@
 /******************************************************************************
- * This file is part of the alfc project.
+ * This file is part of the ethos project.
  *
  * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
@@ -16,7 +16,7 @@
 
 #include "integer.h"
 
-namespace alfc {
+namespace ethos {
 
 /**
  * A multi-precision rational constant.
@@ -137,6 +137,6 @@ struct RationalHashFunction
   inline size_t operator()(const Rational& r) const { return r.hash(); }
 };
 
-}  // namespace alfc
+}  // namespace ethos
 
 #endif

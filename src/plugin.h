@@ -1,5 +1,5 @@
 /******************************************************************************
- * This file is part of the alfc project.
+ * This file is part of the ethos project.
  *
  * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
@@ -16,13 +16,13 @@
 #include "expr_info.h"
 #include "util/filesystem.h"
 
-namespace alfc {
+namespace ethos {
 
 /**
  * A plugin class. This is a virtual base class that receives callbacks from
- * the core of the ALFC checker.
+ * the core of the EO checker.
  *
- * An example use of this class is to compile an ALF signature to C++.
+ * An example use of this class is to compile an Eunoia signature to C++.
  */
 class Plugin
 {
@@ -134,6 +134,6 @@ public:
   virtual void finalize() {}
 };
 
-}  // namespace alfc
+}  // namespace ethos
 
 #endif /* STATE_H */

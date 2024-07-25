@@ -1,5 +1,5 @@
 /******************************************************************************
- * This file is part of the alfc project.
+ * This file is part of the ethos project.
  *
  * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
@@ -14,7 +14,7 @@
 
 #include "rational.h"
 
-namespace alfc {
+namespace ethos {
 
 std::ostream& operator<<(std::ostream& os, const Rational& q){
   return os << q.toString();
@@ -63,4 +63,4 @@ std::string Rational::toStringDecimal() const
   */
 }
 
-}  // namespace alfc
+}  // namespace ethos

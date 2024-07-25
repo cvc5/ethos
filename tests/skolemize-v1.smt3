@@ -31,7 +31,7 @@
 (program $mk_skolems ((T Type) (x T) (xs @List :list) (F Bool))
   (@List Bool) @List
   (
-    (($mk_skolems (@cons x xs) F) (alf.cons @cons (@qskolem F x) ($mk_skolems xs F)))
+    (($mk_skolems (@cons x xs) F) (eo::cons @cons (@qskolem F x) ($mk_skolems xs F)))
     (($mk_skolems @nil F)         @nil)
   )
 )
@@ -48,7 +48,7 @@
 (declare-const b Int)
 (define Q () (exists ((x Int) (y Int)) (and (= x a) (= y b))))
 (assume @p0 Q)
-(define x () (alf.var "x" Int))
-(define y () (alf.var "y" Int))
+(define x () (eo::var "x" Int))
+(define y () (eo::var "y" Int))
 (define Result () (and (= (@qskolem Q x) a) (= (@qskolem Q y) b)))
 (step @p1 Result :rule skolemize :premises (@p0))

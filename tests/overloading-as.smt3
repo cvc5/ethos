@@ -5,4 +5,4 @@
 (declare-const ho_pred (-> (-> Int Int) Bool))
 
 
-(assume @p0 (ho_pred (alf.as - (-> Int Int))))
+(assume @p0 (ho_pred (eo::as - (-> Int Int))))

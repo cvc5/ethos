@@ -1,5 +1,5 @@
 /******************************************************************************
- * This file is part of the alfc project.
+ * This file is part of the ethos project.
  *
  * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
@@ -12,7 +12,7 @@
 #include <sstream>
 #include <string>
 
-namespace alfc {
+namespace ethos {
 
 /**
  */
@@ -48,8 +48,8 @@ enum class Token
   DEFINE_SORT,
   DEFINE_TYPE,
   ECHO,
-  EVAL_DEFINE,  // alf.define
-  EVAL_MATCH,   // alf.match
+  EVAL_DEFINE,  // eo::define
+  EVAL_MATCH,   // eo::match
   EXIT,
   HEX_LITERAL,
   INCLUDE,
@@ -85,6 +85,6 @@ enum class Token
 /** Print a token to the stream, for debugging */
 std::ostream& operator<<(std::ostream& o, Token t);
 
-}  // namespace alfc
+}  // namespace ethos
 
 #endif /* TOKENS_H */

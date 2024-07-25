@@ -1,4 +1,4 @@
-set(alfc_test_file_list
+set(ethos_test_file_list
     Bools.smt3
     literals.smt3
     simple-pf2.smt3
@@ -126,16 +126,16 @@ set(alfc_test_file_list
     disamb-arith.smt3
 )
 
-macro(alfc_test file)
+macro(ethos_test file)
   add_test(
     NAME ${file}
-    COMMAND $<TARGET_FILE:alfc> ${CMAKE_CURRENT_LIST_DIR}/${file}
+    COMMAND $<TARGET_FILE:ethos> ${CMAKE_CURRENT_LIST_DIR}/${file}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   )
   set_tests_properties(${file} PROPERTIES TIMEOUT 40)
 endmacro()
 
-foreach(file ${alfc_test_file_list})
-  alfc_test(${file})
+foreach(file ${ethos_test_file_list})
+  ethos_test(${file})
 endforeach()
 

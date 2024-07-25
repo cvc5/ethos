@@ -29,7 +29,7 @@
 (program mk_skolems ((x @List) (xs @List :list) (F Bool))
   (@List Bool) @List
   (
-    ((mk_skolems (@list x xs) F) (alf.cons @list (skolem (@k.QUANTIFIERS_SKOLEMIZE F x)) (mk_skolems xs F)))
+    ((mk_skolems (@list x xs) F) (eo::cons @list (skolem (@k.QUANTIFIERS_SKOLEMIZE F x)) (mk_skolems xs F)))
     ((mk_skolems @list.nil F)      @list.nil)
   )
 )
@@ -37,7 +37,7 @@
 (declare-rule skolemize ((F Bool))
   :premises (F)
   :conclusion
-    (alf.match ((T Type) (x @List) (G Bool))
+    (eo::match ((T Type) (x @List) (G Bool))
         F
         (
           ((exists x G)       (substitute_list x (mk_skolems x F) G))

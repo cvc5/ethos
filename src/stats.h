@@ -1,5 +1,5 @@
 /******************************************************************************
- * This file is part of the alfc project.
+ * This file is part of the ethos project.
  *
  * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
@@ -14,7 +14,7 @@
 
 #include <ctime>
 
-namespace alfc {
+namespace ethos {
 
 class ExprValue;
 class Stats;
@@ -51,6 +51,6 @@ public:
   static std::time_t getCurrentTime();
 };
 
-}  // namespace alfc
+}  // namespace ethos
 
 #endif /* STATS_H */

@@ -17,7 +17,7 @@
 
 #include <iostream>
 
-namespace alfc {
+namespace ethos {
 
 /* Definitions of the declared globals from output.h... */
 
@@ -32,4 +32,4 @@ const int Alfcostream::s_indentIosIndex = std::ios_base::xalloc();
 WarningC WarningChannel(&std::cerr);
 TraceC TraceChannel(&std::cout);
 
-}  // namespace alfc
+}  // namespace ethos

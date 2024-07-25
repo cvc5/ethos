@@ -1,5 +1,5 @@
 /******************************************************************************
- * This file is part of the alfc project.
+ * This file is part of the ethos project.
  *
  * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
@@ -15,7 +15,7 @@
 #include "parser.h"
 #include "util/filesystem.h"
 
-namespace alfc {
+namespace ethos {
 
 Options::Options()
 {
@@ -46,7 +46,7 @@ State::State(Options& opts, Stats& stats)
   //bindBuiltin("lambda", Kind::LAMBDA, true);
   bindBuiltin("->", Kind::FUNCTION_TYPE);
   bindBuiltin("_", Kind::APPLY);
-  bindBuiltin("alf._", Kind::PARAMETERIZED);
+  bindBuiltin("eo::_", Kind::PARAMETERIZED);
 
   bindBuiltinEval("is_eq", Kind::EVAL_IS_EQ);
   bindBuiltinEval("ite", Kind::EVAL_IF_THEN_ELSE);
@@ -96,14 +96,14 @@ State::State(Options& opts, Stats& stats)
   // as
   bindBuiltinEval("as", Kind::AS);
   
-  // we do not export alf.null
-  // for now, alf.? is (undocumented) syntax for abstract type
-  bind("alf.?", mkAbstractType());
+  // we do not export eo::null
+  // for now, eo::? is (undocumented) syntax for abstract type
+  bind("eo::?", mkAbstractType());
   // self is a distinguished parameter
-  d_self = Expr(mkSymbolInternal(Kind::PARAM, "alf.self", mkAbstractType()));
-  bind("alf.self", d_self);
-  d_conclusion = Expr(mkSymbolInternal(Kind::PARAM, "alf.conclusion", mkBoolType()));
-  // alf.conclusion is not globally bound, since it can only appear
+  d_self = Expr(mkSymbolInternal(Kind::PARAM, "eo::self", mkAbstractType()));
+  bind("eo::self", d_self);
+  d_conclusion = Expr(mkSymbolInternal(Kind::PARAM, "eo::conclusion", mkBoolType()));
+  // eo::conclusion is not globally bound, since it can only appear
   // in :requires.
 
   // note we don't allow parsing (Proof ...), (Quote ...), or (quote ...).
@@ -149,7 +149,7 @@ void State::popScope()
   }
   if (d_declsSizeCtx.empty())
   {
-    ALFC_FATAL() << "State::popScope: empty context";
+    EO_FATAL() << "State::popScope: empty context";
   }
   size_t lastSize = d_declsSizeCtx.back();
   d_declsSizeCtx.pop_back();
@@ -248,7 +248,7 @@ bool State::includeFile(const std::string& s, bool isReference, const Expr& refe
   Trace("state") << "...finished" << std::endl;
   if (getAssumptionLevel()!=0)
   {
-    ALFC_FATAL() << "Including file " << inputPath.getRawPath()
+    EO_FATAL() << "Including file " << inputPath.getRawPath()
                  << " did not preserve assumption scope";
   }
   return true;
@@ -641,7 +641,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
                 {
                   // if we failed to infer a nil terminator (likely due to
                   // a non-ground parameter), then we insert a placeholder
-                  // (alf.nil f t1 ... tn), which if t1...tn are non-ground
+                  // (eo::nil f t1 ... tn), which if t1...tn are non-ground
                   // will evaluate to the proper nil terminator when
                   // instantiated.
                   curr = mkExprInternal(Kind::EVAL_NIL, vchildren);
@@ -837,7 +837,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     // below
     if (vchildren.size()==2)
     {
-      Trace("overload") << "process alf.as " << children[0] << " " << children[1] << std::endl;
+      Trace("overload") << "process eo::as " << children[0] << " " << children[1] << std::endl;
       AppInfo* ai = getAppInfo(vchildren[0]);
       Expr ret = children[0];
       std::pair<std::vector<Expr>, Expr> ftype = children[1].getFunctionType();
@@ -896,7 +896,7 @@ Expr State::mkLiteral(Kind k, const std::string& s)
     case Kind::BINARY: lit = Literal(k, BitVector(s, 2)); break;
     case Kind::STRING: lit = Literal(String(s, true)); break;
     default:
-      ALFC_FATAL() << "Unknown kind for mkLiteral " << k;
+      EO_FATAL() << "Unknown kind for mkLiteral " << k;
       break;
   }
   return Expr(mkLiteralInternal(lit));
@@ -967,7 +967,7 @@ ExprValue* State::mkLiteralInternal(Literal& l)
     }
       break;
     default:
-      ALFC_FATAL() << "Unknown kind for mkLiteralInternal " << l.getKind();
+      EO_FATAL() << "Unknown kind for mkLiteralInternal " << l.getKind();
       break;
   }
   d_stats.d_litCount++;
@@ -1336,7 +1336,7 @@ void State::bindBuiltin(const std::string& name, Kind k, Attr ac, const Expr& t)
 
 void State::bindBuiltinEval(const std::string& name, Kind k, Attr ac)
 {
-  bindBuiltin("alf."+name, k, ac);
+  bindBuiltin("eo::"+name, k, ac);
 }
 
 void State::defineProgram(const Expr& v, const Expr& prog)
@@ -1410,4 +1410,4 @@ Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
   return d_null;
 }
 
-}  // namespace alfc
+}  // namespace ethos

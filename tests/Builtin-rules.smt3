@@ -16,7 +16,7 @@
    (Bool Bool) Bool
    (
    ((extract_antec_rec C C)          true)
-   ((extract_antec_rec (=> F1 F2) C) (alf.cons and F1 (extract_antec_rec F2 C)))
+   ((extract_antec_rec (=> F1 F2) C) (eo::cons and F1 (extract_antec_rec F2 C)))
    )
 )
 ; Calls the above method if necessary.
@@ -49,7 +49,7 @@
 (declare-rule remove_term_formula_axiom ((T Type) (b Bool) (t1 T) (t2 T))
   :args ((ite b t1 t2))
   :conclusion
-    (alf.define ((k (ite b t1 t2))) (ite b (= k t1) (= k t2))))
+    (eo::define ((k (ite b t1 t2))) (ite b (= k t1) (= k t2))))
 
 (declare-rule trust ((F Bool))
     :args (F)

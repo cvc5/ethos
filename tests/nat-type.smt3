@@ -1,8 +1,8 @@
 (declare-type Nat ())
 
-(declare-consts <numeral> (! Nat :requires ((alf.is_neg alf.self) false)))
+(declare-consts <numeral> (! Nat :requires ((eo::is_neg eo::self) false)))
 
 (declare-const f (-> Nat Bool))
 
 (assume @p0 (f 0))
-;(assume @p0 (f (alf.neg 1)))
+;(assume @p0 (f (eo::neg 1)))

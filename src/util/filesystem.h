@@ -1,5 +1,5 @@
 /******************************************************************************
- * This file is part of the alfc project.
+ * This file is part of the ethos project.
  *
  * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
@@ -18,7 +18,7 @@
 #include <filesystem>
 #endif
 
-namespace alfc {
+namespace ethos {
 
 /**
  * Simple handler for filepaths.  Only supports Unix-style paths for
@@ -87,6 +87,6 @@ class Filepath
 bool operator<(const Filepath&, const Filepath&);
 std::ostream& operator<<(std::ostream&, const Filepath&);
 
-}  // namespace alfc
+}  // namespace ethos
 
 #endif /* FILESYSTEM_H */

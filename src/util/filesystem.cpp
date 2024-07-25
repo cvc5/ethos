@@ -1,5 +1,5 @@
 /******************************************************************************
- * This file is part of the alfc project.
+ * This file is part of the ethos project.
  *
  * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
@@ -14,7 +14,7 @@
 
 #include "base/check.h"
 
-namespace alfc {
+namespace ethos {
 Filepath::Filepath() {}
 
 Filepath::Filepath(std::string rawPath)
@@ -212,4 +212,4 @@ std::ostream& operator<<(std::ostream& os, const Filepath& obj)
   os << obj.getRawPath() << '\n';
   return os;
 }
-}  // namespace alfc
+}  // namespace ethos

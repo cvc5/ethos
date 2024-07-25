@@ -1,5 +1,5 @@
 /******************************************************************************
- * This file is part of the alfc project.
+ * This file is part of the ethos project.
  *
  * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
@@ -20,7 +20,7 @@
 #include "parser.h"
 #include "state.h"
 
-namespace alfc {
+namespace ethos {
 
 TypeChecker::TypeChecker(State& s, Options& opts) : d_state(s), d_plugin(nullptr)
 {
@@ -50,13 +50,13 @@ void TypeChecker::setLiteralTypeRule(Kind k, const Expr& t)
   if (it==d_literalTypeRules.end())
   {
     std::stringstream ss;
-    ALFC_FATAL() << "TypeChecker::setTypeRule: cannot set type rule for kind "
+    EO_FATAL() << "TypeChecker::setTypeRule: cannot set type rule for kind "
                  << k;
   }
   else if (!it->second.isNull() && it->second != t)
   {
     std::stringstream ss;
-    ALFC_FATAL() << "TypeChecker::setTypeRule: cannot set type rule for kind "
+    EO_FATAL() << "TypeChecker::setTypeRule: cannot set type rule for kind "
                  << k << " to " << t << ", since its type was already set to "
                  << it->second;
   }
@@ -69,7 +69,7 @@ ExprValue* TypeChecker::getOrSetLiteralTypeRule(Kind k)
   if (it==d_literalTypeRules.end())
   {
     std::stringstream ss;
-    ALFC_FATAL() << "TypeChecker::getOrSetLiteralTypeRule: cannot get type rule for kind "
+    EO_FATAL() << "TypeChecker::getOrSetLiteralTypeRule: cannot get type rule for kind "
                  << k;
   }
   if (it->second.isNull())
@@ -298,7 +298,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       // constructing an application of AS means the type was incorrect.
       if (out)
       {
-        (*out) << "Encountered bad type for alf.as";
+        (*out) << "Encountered bad type for eo::as";
       }
       return d_null;
     }
@@ -1302,7 +1302,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       break;
     case Kind::EVAL_LIST_NTH:
     {
-      // (alf.extract <op> <term> <n>) returns the n^th child of <op>-application <term>
+      // (eo::extract <op> <term> <n>) returns the n^th child of <op>-application <term>
       if (args[2]->getKind()!=Kind::NUMERAL)
       {
         return d_null;
@@ -1520,7 +1520,7 @@ bool TypeChecker::computedParameterizedInternal(AppInfo* ai,
           {
             // If the parameter is non-ground, we also wait to construct;
             // if the nil terminator is used, it will be replaced by a
-            // placeholder involving alf.nil.
+            // placeholder involving eo::nil.
             return false;
           }
           args.emplace_back(cv);
@@ -1558,4 +1558,4 @@ bool TypeChecker::computedParameterizedInternal(AppInfo* ai,
   return true;
 }
 
-}  // namespace alfc
+}  // namespace ethos

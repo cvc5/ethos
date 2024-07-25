@@ -1,5 +1,5 @@
 /******************************************************************************
- * This file is part of the alfc project.
+ * This file is part of the ethos project.
  *
  * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
@@ -19,7 +19,7 @@
 #include <type_traits>
 #include <iostream>
 
-namespace alfc {
+namespace ethos {
 
 int run(const std::string& call,
         const std::string& content,
@@ -130,4 +130,4 @@ int runFile(const std::string& call, std::ostream& response)
   return -1;
 }
 
-}  // namespace alfc
+}  // namespace ethos

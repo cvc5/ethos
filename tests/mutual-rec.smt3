@@ -11,7 +11,7 @@
   (
   ((is-even 0) true)
   ((is-even 1) false)
-  ((is-even n) (is-odd (alf.add n -1)))
+  ((is-even n) (is-odd (eo::add n -1)))
   )
 )
 
@@ -20,7 +20,7 @@
   (
   ((is-odd 0) false)
   ((is-odd 1) true)
-  ((is-odd n) (is-even (alf.add n -1)))
+  ((is-odd n) (is-even (eo::add n -1)))
   )
 )
 

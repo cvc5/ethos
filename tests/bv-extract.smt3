@@ -9,8 +9,8 @@
   (! Int :var l)
   (BitVec n)
   (!
-    (BitVec (alf.add h (alf.add (alf.neg l) 1)))
-      :requires ((alf.is_neg l) false)
+    (BitVec (eo::add h (eo::add (eo::neg l) 1)))
+      :requires ((eo::is_neg l) false)
       ; TODO: more conditions
   ))
 )

@@ -1,5 +1,5 @@
 /******************************************************************************
- * This file is part of the alfc project.
+ * This file is part of the ethos project.
  *
  * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
@@ -14,7 +14,7 @@
 
 #include "base/check.h"
 
-namespace alfc {
+namespace ethos {
 
 std::ostream& operator<<(std::ostream& o, const Location& l)
 {
@@ -61,6 +61,8 @@ Lexer::Lexer(bool lexLet)
     d_charClass[ch] |= static_cast<uint32_t>(CharacterClass::SYMBOL_START);
     d_charClass[ch] |= static_cast<uint32_t>(CharacterClass::SYMBOL);
   }
+  // allowed to support eo::
+  d_charClass[':'] |= static_cast<uint32_t>(CharacterClass::SYMBOL);
   // whitespace
   d_charClass[' '] |= static_cast<uint32_t>(CharacterClass::WHITESPACE);
   d_charClass['\t'] |= static_cast<uint32_t>(CharacterClass::WHITESPACE);
@@ -78,11 +80,11 @@ void Lexer::parseError(const std::string& msg, bool eofException)
 {
   std::stringstream os;
   if( d_span.d_start.d_line > 0 ) {
-    ALFC_FATAL() << "Error: " << d_inputName << ":"
+    EO_FATAL() << "Error: " << d_inputName << ":"
                  << d_span.d_start.d_line << "." << d_span.d_start.d_column
                  << ": " << msg << std::endl;
   } else {
-    ALFC_FATAL() << "Error: " << msg << std::endl;
+    EO_FATAL() << "Error: " << msg << std::endl;
   }
 }
 
@@ -414,20 +416,20 @@ Token Lexer::tokenizeCurrentSymbol() const
       }
     }
       break;
-    case 'a':
-      if (d_token.size()>=4 && d_token[1] == 'l' && d_token[2] == 'f' && d_token[3] == '.')
+    case 'e':
+      if (d_token.size()>=4 && d_token[1] == 'o' && d_token[2] == ':' && d_token[3] == ':')
       {
         if (d_token.size()==9 && d_token[4]=='m' && d_token[5]=='a' &&
             d_token[6]=='t' && d_token[7]=='c' && d_token[8]=='h')
         {
-          // alf.match
+          // eo::match
           return Token::EVAL_MATCH;
         }
         else if (d_token.size()==10 && d_token[4]=='d' && d_token[5]=='e' &&
                  d_token[6]=='f' && d_token[7]=='i' && d_token[8]=='n' &&
                  d_token[9]=='e')
         {
-          // alf.define
+          // eo::define
           return Token::EVAL_DEFINE;
         }
       }
@@ -463,4 +465,4 @@ Token Lexer::tokenizeCurrentSymbol() const
   return Token::SYMBOL;
 }
 
-}  // namespace alfc
+}  // namespace ethos

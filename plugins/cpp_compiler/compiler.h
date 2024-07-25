@@ -1,5 +1,5 @@
 /******************************************************************************
- * This file is part of the alfc project.
+ * This file is part of the ethos project.
  *
  * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
@@ -19,7 +19,7 @@
 #include "expr_trie.h"
 #include "type_checker.h"
 
-namespace alfc {
+namespace ethos {
 
 class State;
 class TypeChecker;
@@ -249,6 +249,6 @@ private:
                          const std::vector<Expr>& args);
 };
 
-}  // namespace alfc
+}  // namespace ethos
 
 #endif /* COMPILER_H */

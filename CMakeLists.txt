@@ -7,7 +7,7 @@ macro(add_cxx_flag flag)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}")
 endmacro()
 
-project (alethelf_checker)
+project (ethos_checker)
 
 set (CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 

@@ -1,5 +1,5 @@
 /******************************************************************************
- * This file is part of the alfc project.
+ * This file is part of the ethos project.
  *
  * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
@@ -17,13 +17,13 @@
 
 #include "base/check.h"
 
-namespace alfc {
+namespace ethos {
 
 //static_assert(std::UCHAR_MAX == 255, "Unsigned char is assumed to have 256 values.");
 
 String::String(const std::vector<unsigned> &s) : d_str(s)
 {
-#ifdef ALFC_ASSERTIONS
+#ifdef EO_ASSERTIONS
   for (unsigned u : d_str)
   {
     Assert(u < num_codes());
@@ -185,7 +185,7 @@ std::vector<unsigned> String::toInternal(const std::string& s,
       str.insert(str.end(), nonEscCache.begin(), nonEscCache.end());
     }
   }
-#ifdef ALFC_ASSERTIONS
+#ifdef EO_ASSERTIONS
   for (unsigned u : str)
   {
     Assert(u < num_codes());

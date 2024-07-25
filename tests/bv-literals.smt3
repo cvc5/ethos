@@ -6,7 +6,7 @@
 (declare-const BitVec 
   (-> Int Type))
 
-(declare-consts <binary> (BitVec (alf.len alf.self)))
+(declare-consts <binary> (BitVec (eo::len eo::self)))
   
 (declare-const bvadd (->
   (! Int :var n :implicit)

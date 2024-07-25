@@ -20,11 +20,11 @@
 )
 
 (define $char_type_of ((T Type)) 
-  (alf.match ((U Type)) T (((Seq U) U))))
+  (eo::match ((U Type)) T (((Seq U) U))))
 (define $str_concat ((T Type :implicit) (x (Seq T)) (y (Seq T)))
-  (alf.list_concat str.++ x y))
+  (eo::list_concat str.++ x y))
 (define $str_cons ((T Type :implicit) (x (Seq T)) (y (Seq T)))
-  (alf.cons str.++ x y))
+  (eo::cons str.++ x y))
 
 ;;-------------------- Skolem terms
 ; The following side conditions are used for computing terms that define
@@ -67,8 +67,8 @@
     ((T Type) (t (Seq T)) (ss (Seq T) :list) (acc (Seq T)))
     ((Seq T) (Seq T) Type) (Seq T)
     (
-        (($string_rev_rec (str.++ t ss) acc T) ($string_rev_rec ss (alf.cons (alf._ str.++ T) t acc) T))
-        (($string_rev_rec t acc T)             (alf.requires t (mk_emptystr (Seq T)) acc))
+        (($string_rev_rec (str.++ t ss) acc T) ($string_rev_rec ss (eo::cons (eo::_ str.++ T) t acc) T))
+        (($string_rev_rec t acc T)             (eo::requires t (mk_emptystr (Seq T)) acc))
     )
 )
 
@@ -76,18 +76,18 @@
     ((T Type) (t (Seq T)))
     ((Seq T)) (Seq T)
     (
-        (($string_rev t) (alf.define ((U ($char_type_of (alf.typeof t)))) ($string_rev_rec t (mk_emptystr (Seq U)) U)))
+        (($string_rev t) (eo::define ((U ($char_type_of (eo::typeof t)))) ($string_rev_rec t (mk_emptystr (Seq U)) U)))
     )
 )
 
 ; Return reverse of t if rev = tt, return t unchanged otherwise.
-(define string_rev ((U Type) (rev Bool) (t (Seq U))) (alf.ite rev ($string_rev t) t))
+(define string_rev ((U Type) (rev Bool) (t (Seq U))) (eo::ite rev ($string_rev t) t))
 
 ; Returns true if the length of s evaluates to one, false otherwise.
-(define check_length_one ((s String)) (check_true (alf.is_eq (alf.len s) 1)))
+(define check_length_one ((s String)) (check_true (eo::is_eq (eo::len s) 1)))
 
 ; Returns true if the length of s evaluates to greater than one, false otherwise.
-(define check_length_gt_one ((s String)) (check_true (alf.is_neg (alf.add 1 (alf.neg (alf.len s))))))
+(define check_length_gt_one ((s String)) (check_true (eo::is_neg (eo::add 1 (eo::neg (eo::len s))))))
 
 ; Flatten constants in str.++ application s. Notice that the rewritten form
 ; of strings in cvc5 are such that constants are grouped into constants of
@@ -117,9 +117,9 @@
   (String) String
   (
     ((string_flatten_word t) 
-      (alf.ite (check_length_one t) 
+      (eo::ite (check_length_one t) 
         ($str_cons t "")
-        ($str_cons (alf.extract t 0 0) (string_flatten_word (alf.extract t 1 (alf.len t))))))
+        ($str_cons (eo::extract t 0 0) (string_flatten_word (eo::extract t 1 (eo::len t))))))
   )
 )
 (program string_flatten ((U Type) (t (Seq U)) (tail (Seq U) :list) (tail2 (Seq U) :list))
@@ -130,12 +130,12 @@
         ($str_concat (str.++ t tail2) (string_flatten tail)))
     ((string_flatten (str.++ t tail))
         ; otherwise, check whether t is a word constant of length greater than one
-        (alf.ite (check_length_gt_one t)
+        (eo::ite (check_length_gt_one t)
           ; if so, we flatten the word using the method above and concatenate it.
           ($str_concat (string_flatten_word t) (string_flatten tail))
           ; if not, we just append it to the result of the recursive call
           ($str_cons t (string_flatten tail))))
-    ((string_flatten t)   (alf.requires t (mk_emptystr (alf.typeof t)) t))
+    ((string_flatten t)   (eo::requires t (mk_emptystr (eo::typeof t)) t))
   )
 )
 
@@ -153,16 +153,16 @@
     ; TODO: sequences
     ; Check if t is a word constant
     ((string_collect_acc (str.++ t tail))
-      (alf.ite (check_length_one t)
-        (alf.match ((s1 (Seq U)) (s2 (Seq U))) 
+      (eo::ite (check_length_one t)
+        (eo::match ((s1 (Seq U)) (s2 (Seq U))) 
           (string_collect_acc tail)
           (
             ((@pair "" s2)  (@pair t s2))
-            ((@pair s1 s2)  (@pair (alf.concat t s1) s2))    ; concatentate the constant
+            ((@pair s1 s2)  (@pair (eo::concat t s1) s2))    ; concatentate the constant
           )
         )
         (@pair "" (str.++ t tail))))
-    ((string_collect_acc t)            (alf.requires t (mk_emptystr (alf.typeof t)) (@pair t t)))
+    ((string_collect_acc t)            (eo::requires t (mk_emptystr (eo::typeof t)) (@pair t t)))
   )
 )
 
@@ -177,7 +177,7 @@
   ((Seq U)) (Seq U)
   (
     ((string_collect (str.++ t s))
-      (alf.match ((s1 (Seq U)) (s2 (Seq U)))
+      (eo::match ((s1 (Seq U)) (s2 (Seq U)))
         (string_collect_acc (str.++ t s))
         (
           ; did not strip a constant prefix, just append t to the result of processing s
@@ -189,7 +189,7 @@
         )
       )
     )
-    ((string_collect t)       (alf.requires t (mk_emptystr (alf.typeof t)) t))
+    ((string_collect t)       (eo::requires t (mk_emptystr (eo::typeof t)) t))
   )
 )
 
@@ -214,8 +214,8 @@
     ((Seq T)) (Seq T)
     (
         (($string_nary_intro (str.++ t ss)) (str.++ t ss))
-        (($string_nary_intro t)             (alf.define ((nil (mk_emptystr (alf.typeof t))))
-                                            (alf.ite (alf.is_eq t nil) t ($str_cons t nil))))
+        (($string_nary_intro t)             (eo::define ((nil (mk_emptystr (eo::typeof t))))
+                                            (eo::ite (eo::is_eq t nil) t ($str_cons t nil))))
     )
 )
 
@@ -223,9 +223,9 @@
     ((T Type) (t (Seq T)) (ss (Seq T) :list))
     ((Seq T)) (Seq T)
     (
-        (($string_nary_elim (str.++ t ss)) (alf.define ((nil (mk_emptystr (alf.typeof t))))
-                                           (alf.ite (alf.is_eq ss nil) t (str.++ t ss))))
-        (($string_nary_elim t)             (alf.requires t (mk_emptystr (alf.typeof t)) t))
+        (($string_nary_elim (str.++ t ss)) (eo::define ((nil (mk_emptystr (eo::typeof t))))
+                                           (eo::ite (eo::is_eq ss nil) t (str.++ t ss))))
+        (($string_nary_elim t)             (eo::requires t (mk_emptystr (eo::typeof t)) t))
     )
 )
 

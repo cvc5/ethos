@@ -1,5 +1,5 @@
 /******************************************************************************
- * This file is part of the alfc project.
+ * This file is part of the ethos project.
  *
  * Copyright (c) 2023-2024 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
@@ -15,7 +15,7 @@
 #include <memory>
 #include "kind.h"
 
-namespace alfc {
+namespace ethos {
 
 class State;
 class ExprValue;
@@ -187,6 +187,6 @@ std::ostream& operator<<(std::ostream& out, const std::vector<ExprValue*>& es);
 using Ctx = std::map<ExprValue*, ExprValue*>;
 std::ostream& operator<<(std::ostream& out, const Ctx& c);
 
-}  // namespace alfc
+}  // namespace ethos
 
 #endif 

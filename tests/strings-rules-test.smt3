@@ -5,7 +5,7 @@
   :premises ((= s t))
   :args (U rev)
   :conclusion
-    (alf.match ((ss U) (ts U))
+    (eo::match ((ss U) (ts U))
       (strip_prefix
            (string_to_flat_form U s rev)
            (string_to_flat_form U t rev))

@@ -15,7 +15,7 @@
   (! Int :var m :implicit)
   (BitVec n)
   (BitVec m)
-  (BitVec (alf.add n m))))
+  (BitVec (eo::add n m))))
   
 
 (declare-const x (BitVec 2))

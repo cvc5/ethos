@@ -6,7 +6,7 @@
     (Bool) Bool
     (
         ((lowerNot true)           false)
-        ((lowerNot (and l ls))     (alf.cons or (not l) (lowerNot ls)))
+        ((lowerNot (and l ls))     (eo::cons or (not l) (lowerNot ls)))
     )
 )
 

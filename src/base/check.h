@@ -22,19 +22,19 @@
  * Assert is an AlwaysAssert that is only enabled in debug builds.
  *   Assert(pointer != nullptr);
  *
- * ALFC_FATAL() can be used to indicate unreachable code.
+ * EO_FATAL() can be used to indicate unreachable code.
  *
  * Note: The AlwaysAssert and Assert macros are not safe for use in
  *       signal-handling code.
  */
 
-#ifndef ALFC__CHECK_H
-#define ALFC__CHECK_H
+#ifndef EO__CHECK_H
+#define EO__CHECK_H
 
 #include <cstdarg>
 #include <ostream>
 
-namespace alfc {
+namespace ethos {
 
 // Implementation notes:
 // To understand FatalStream and OStreamVoider, it is useful to understand
@@ -76,7 +76,7 @@ class OstreamVoider
   void operator&(std::ostream&) {}
 };
 
-// ALFC_FATAL() always aborts a function and provides a convenient way of
+// EO_FATAL() always aborts a function and provides a convenient way of
 // formatting error messages. This can be used instead of a return type.
 //
 // Example function that returns a type Foo:
@@ -84,40 +84,40 @@ class OstreamVoider
 //     switch(t.type()) {
 //     ...
 //     default:
-//       ALFC_FATAL() << "Unknown T type " << t.enum();
+//       EO_FATAL() << "Unknown T type " << t.enum();
 //     }
 //   }
-#define ALFC_FATAL() \
+#define EO_FATAL() \
   FatalStream().stream()
 
-/* GCC <= 9.2 ignores ALFC_NO_RETURN of ~FatalStream() if
+/* GCC <= 9.2 ignores EO_NO_RETURN of ~FatalStream() if
  * used in template classes (e.g., CDHashMap::save()).  As a workaround we
  * explicitly call abort() to let the compiler know that the
  * corresponding function call will not return. */
 #define SuppressWrongNoReturnWarning abort()
 
-// Define ALFC_PREDICT_FALSE// Define ALFC_PREDICT_FALSE(x) that helps the
+// Define EO_PREDICT_FALSE// Define EO_PREDICT_FALSE(x) that helps the
 // compiler predict that x will be false (if there is compiler support).
 #ifdef __has_builtin
 #if __has_builtin(__builtin_expect)
-#define ALFC_PREDICT_FALSE(x) (__builtin_expect(x, false))
-#define ALFC_PREDICT_TRUE(x) (__builtin_expect(x, true))
+#define EO_PREDICT_FALSE(x) (__builtin_expect(x, false))
+#define EO_PREDICT_TRUE(x) (__builtin_expect(x, true))
 #else
-#define ALFC_PREDICT_FALSE(x) x
-#define ALFC_PREDICT_TRUE(x) x
+#define EO_PREDICT_FALSE(x) x
+#define EO_PREDICT_TRUE(x) x
 #endif
 #else
-#define ALFC_PREDICT_FALSE(x) x
-#define ALFC_PREDICT_TRUE(x) x
+#define EO_PREDICT_FALSE(x) x
+#define EO_PREDICT_TRUE(x) x
 #endif
 
 // If `cond` is true, log an error message and abort the process.
 // Otherwise, does nothing. This leaves a hanging std::ostream& that can be
 // inserted into.
-#define ALFC_FATAL_IF(cond, function, file, line) \
-  ALFC_PREDICT_FALSE(!(cond))                     \
+#define EO_FATAL_IF(cond, function, file, line) \
+  EO_PREDICT_FALSE(!(cond))                     \
   ? (void)0                                       \
-  : alfc::OstreamVoider() & alfc::FatalStream(function, file, line).stream()
+  : ethos::OstreamVoider() & ethos::FatalStream(function, file, line).stream()
 
 // If `cond` is false, log an error message and abort()'s the process.
 // Otherwise, does nothing. This leaves a hanging std::ostream& that can be
@@ -127,18 +127,18 @@ class OstreamVoider
 //   AlwaysAssert(x >= 0) << "expected a positive value. Got " << x << "
 //   instead";
 #define AlwaysAssert(cond)                                        \
-  ALFC_FATAL_IF(!(cond), __PRETTY_FUNCTION__, __FILE__, __LINE__) \
+  EO_FATAL_IF(!(cond), __PRETTY_FUNCTION__, __FILE__, __LINE__) \
       << "Check failure\n\n " << #cond << "\n"
 
 // Assert is a variant of AlwaysAssert() that is only checked when
-// ALFC_ASSERTIONS is defined. We rely on the optimizer to remove the deadcode.
-#ifdef ALFC_ASSERTIONS
+// EO_ASSERTIONS is defined. We rely on the optimizer to remove the deadcode.
+#ifdef EO_ASSERTIONS
 #define Assert(cond) AlwaysAssert(cond)
 #else
 #define Assert(cond) \
-  ALFC_FATAL_IF(false, __PRETTY_FUNCTION__, __FILE__, __LINE__)
+  EO_FATAL_IF(false, __PRETTY_FUNCTION__, __FILE__, __LINE__)
 #endif
 
-}  // namespace alfc
+}  // namespace ethos
 
-#endif /* ALFC__CHECK_H */
+#endif /* EO__CHECK_H */

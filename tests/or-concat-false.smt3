@@ -5,8 +5,8 @@
 (assume @p0 false)
 
 
-(declare-rule id ((B Bool)) :premises (B) :conclusion (alf.cons or false B))
-(declare-rule concatOr ((A Bool) (B Bool)) :premises (A B) :conclusion (alf.list_concat or A B))
+(declare-rule id ((B Bool)) :premises (B) :conclusion (eo::cons or false B))
+(declare-rule concatOr ((A Bool) (B Bool)) :premises (A B) :conclusion (eo::list_concat or A B))
 
 (step @p1 (or false) :rule id :premises (@p0))
 
