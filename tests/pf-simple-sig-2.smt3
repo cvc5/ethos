@@ -1,8 +1,0 @@
-
-(include "./simple-sig-2.smt3")
-
-(declare-type Int ())
-(declare-const a Int)
-(declare-const b Int)
-(assume a1 (= a b))
-(step a2 (= b a) :rule eq-symm-flip :premises (a1))

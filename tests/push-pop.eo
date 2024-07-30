@@ -1,0 +1,25 @@
+(include "Builtin-theory.eo")
+
+; REFL
+(declare-rule refl ((T Type) (t T))
+    :premises ()
+    :args (t)
+    :conclusion (= t t)
+)
+
+(declare-type Int ())
+(declare-const b Int)
+
+(push)
+(declare-const a Bool)
+(step @p0 (= a a) :rule refl :args (a))
+(pop)
+
+(push 2)
+(declare-const a Bool)
+(step @p0 (= a a) :rule refl :args (a))
+(pop)
+
+(declare-const a Int)
+(step @p0 (= a a) :rule refl :args (a))
+(step @p1 (= b b) :rule refl :args (b))

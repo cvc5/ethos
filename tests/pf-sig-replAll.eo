@@ -1,0 +1,10 @@
+(include "./sig-replAll.eo")
+
+(declare-const a Bool)
+(declare-const b Bool)
+(assume a1 (or a b b a b))
+(assume a2 (= a b))
+(step a3 (or b b b b b) :rule or_repl-all  :premises (a1 a2))
+
+
+

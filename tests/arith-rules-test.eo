@@ -1,0 +1,15 @@
+(include "Arith-rules.eo")
+
+(declare-const x Int)
+(declare-const y Int)
+(declare-const z Int)
+(declare-const w Int)
+
+(assume @p0 (< x (* 2 y)))
+(assume @p1 (< y z))
+(assume @p2 (<= w 0))
+
+
+(step @p3 :rule arith_sum_ub :premises (@p0 @p1 @p2))
+(step @p4 (=> (and (> 4 0) (> y z)) (> (* 4 y) (* 4 z))) :rule arith_mult_pos :args (4 (> y z)))
+(step @p5 :rule arith_mult_neg :args ((eo::neg 4) (> y z)))

@@ -1,0 +1,25 @@
+(include "Quantifiers-rules.eo")
+(include "Booleans-rules.eo")
+(include "Builtin-rules.eo")
+(include "Uf-rules.eo")
+(include "Arith-rules.eo")
+
+(define eo::1.x () (eo::var "eo::1.x" Int))
+(define x () (eo::var "x" Int))
+(define f () (lambda x false))
+(define g () (lambda eo::1.x true))
+(define @t1 () (lambda x false))
+(define @t2 () (lambda eo::1.x true))
+(define @t3 () (f 0))
+(define @t4 () (_ @t1 0))
+(step @p1 (= @t1 @t1) :rule refl :args (@t1))
+(step @p2 (= @t2 @t2) :rule refl :args (@t2))
+(assume @p3 @t3)
+; WARNING: add trust step for THEORY_REWRITE
+; trust THEORY_REWRITE
+(step @p4 (= @t4 false) :rule trust :args ((= @t4 false)))
+(step @p5 (= 0 0) :rule refl :args (0))
+(step @p6 (= @t3 @t4) :rule ho_cong :premises (@p1 @p5))
+(step @p7 (= @t3 false) :rule trans :premises (@p6 @p4))
+(step @p8 false :rule eq_resolve :premises (@p3 @p7))
+
