@@ -55,7 +55,7 @@ The core features of Eunoia include:
 - Support for SMT-LIB version 3.0 syntax for defining theory signatures.
 - Support for associating syntactic categories (as specified by SMT-LIB e.g. `<numeral>`) with types.
 - A command `declare-rule` for defining proof rules.
-- A set of commands for specifying proofs (`step`, `assume`, and so on), whose syntax closely follows the Alethe proof format (for details see []).
+- A set of commands for specifying proofs (`step`, `assume`, and so on), whose syntax closely follows the Alethe proof format (for details see [here](https://verit.gitlabpages.uliege.be/alethe/specification.pdf)).
 - A library of operations (`eo::add`, `eo::mul`, `eo::concat`, `eo::extract`) for performing computations over values.
 - A command `program` for defining side conditions as ordered list of rewrite rules.
 - A command `declare-oracle-fun` for user-provided oracles, that is, functions whose semantics are given by external binaries. Oracles can be used e.g. for modular proof checking.
@@ -81,7 +81,7 @@ Specifically, the Eunoia language has the following builtin expressions:
 - `Bool`, denoting the Boolean type,
 - `true` and `false`, denoting values of type `Bool`.
 
-> The core logic of the Ethos also uses several builtin types (e.g. `Proof` and `Quote`) which define the semantics of proof rules. These types are intentionally left hidden from the user. Details on these types can be found throughout this document. More details on the core logic of the Ethos can be found here [].
+> The core logic of the Ethos also uses several builtin types (e.g. `Proof` and `Quote`) which define the semantics of proof rules. These types are intentionally left hidden from the user. Details on these types can be found throughout this document. More details on the core logic of the Ethos can be found in a forthcoming publication.
 
 In the following, we informally write BNF categories `<symbol>` to denote an SMT-LIB version 3.0 symbol, `<term>` to denote an SMT-LIB term and `<type>` to denote a term whose type is `Type`, `<typed-param>` has syntax `(<symbol> <type> <attr>*)` and binds `<symbol>` as a fresh parameter of the given type and attributes (if provided).
 
@@ -1508,7 +1508,7 @@ The above program will be invoked on all formulas occuring in `assert` commands 
 
 The Ethos supports a command, `declare-oracle-fun`, which associates the semantics of a function with an external binary.
 We reference to such functions as *oracle functions*.
-The syntax and semantics of such functions are described in [].
+The syntax and semantics of such functions are described in this [paper](https://homepage.divms.uiowa.edu/~ajreynol/vmcai22a.pdf).
 
 In particular, the Ethos supports the command:
 ```
