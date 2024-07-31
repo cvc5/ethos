@@ -518,29 +518,29 @@ Core operators:
 Boolean operators:
 - `(eo::and t1 t2)`
     - Boolean conjunction if `t1` and `t2` are Boolean values (`true` or `false`).
-    - Bitwise conjunction if `t1` and `t2` are bitwise values of the same category.
+    - Bitwise conjunction if `t1` and `t2` are bitwise values of the same category and bitwidth.
 - `(eo::or t1 t2)`
     - Boolean disjunction if `t1` and `t2` are Boolean values.
-    - Bitwise disjunction if `t1` and `t2` are bitwise values of the same category.
+    - Bitwise disjunction if `t1` and `t2` are bitwise values of the same category and bitwidth.
 - `(eo::xor t1 t2)`
     - Boolean xor if `t1` and `t2` are Boolean values.
-    - Bitwise xor if `t1` and `t2` are bitwise values of the same category.
+    - Bitwise xor if `t1` and `t2` are bitwise values of the same category and bitwidth.
 - `(eo::not t1)`
     - Boolean negation if `t1` is a Boolean value.
-    - Bitwise negation if `t1` is a bitwise values of the same category.
+    - Bitwise negation if `t1` is a bitwise value.
     
 Arithmetic operators:
 - `(eo::add t1 t2)`
-    - If `t1` and `t2` are arithmetic values of the same category, then this returns the addition of `t1` and `t2`, which is a rational value if either of `t1, t2` is a rational value, or a numeral value otherwise.
+    - If `t1` and `t2` are arithmetic values of the same category, then this returns the addition of `t1` and `t2`.
     - If `t1` and `t2` are bitwise values of the same category and bitwidth, this returns the binary value corresponding to their (unsigned) addition modulo their bitwidth.
 - `(eo::mul t1 t2)`
-    - If `t1` and `t2` are arithmetic values of the same category, then this returns the multiplication of `t1` and `t2`, which is a rational value if either of `t1, t2` is a rational value, or a numeral value otherwise.
+    - If `t1` and `t2` are arithmetic values of the same category, then this returns the multiplication of `t1` and `t2`.
     - If `t1` and `t2` are bitwise values of the same category and bitwidth, this returns the binary value corresponding to their (unsigned) multiplication modulo their bitwidth.
 - `(eo::neg t1)`
     - If `t1` is a arithmetic value, this returns the arithmetic negation of `t1`.
     - If `t1` is a binary value, this returns its (signed) arithmetic negation.
 - `(eo::qdiv t1 t2)`
-    - If `t1` and `t2` are values and `t2` is non-zero, then this returns the rational division of `t1` and `t2`.
+    - If `t1` and `t2` are values of the same category and `t2` is non-zero, then this returns the rational division of `t1` and `t2`.
 - `(eo::zdiv t1 t2)`
     - If `t1` and `t2` are numeral values and `t2` is non-zero, then this returns the integer division (floor) of `t1` and `t2`.
     - If `t1` and `t2` are bitwise values of the same category and bitwidth, then this returns their (total, unsigned) division, where division by zero returns the max unsigned value.
