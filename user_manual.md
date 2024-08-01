@@ -952,8 +952,10 @@ If a symbol is unapplied, then the Ethos will interpret it as the first declared
 > When multiple variants are possible, the Ethos will use the first one and will *not* throw a warning. This behavior permits the user to order the declarations in the order of their precedence. For example, the SMT-LIB operator for unary negation should be declared *before* the declaration for subtraction. If this were done in the opposite order, then (- t) would be interpreted as the partial application of subtraction to the term t.
 
 Furthermore, the Ethos supports an operator `eo::as` for disambiguation whose syntax is `(eo::as <term> <type>)`.
-A term of the form `(eo::as t (-> T1 ... Tn T))` evaluates to `t` only if `(t k1 ... kn)` has type `T` where `k1 ... kn` are variables of type `T1 ... Tn`.
+A term of the form `(eo::as t (-> T1 ... Tn T))` evaluates to term `s` only if `(s k1 ... kn)` has type `T` where `k1 ... kn` are variables of type `T1 ... Tn`, and `t` and `s` are atomic terms with the same name.
+If multiple such terms `s` exist, then the most recent one is returned.
 Otherwise, the term `(eo::as t (-> T1 ... Tn T))` is unevaluated.
+For example, `(eo::as - (-> Int Int Int))` evaluates to the second declared symbol in the example above.
 
 # Declaring Proof Rules
 
