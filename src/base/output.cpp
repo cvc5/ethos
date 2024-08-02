@@ -26,8 +26,8 @@ std::ostream null_os(&null_sb);
 
 NullC nullStream;
 
-const std::string Alfcostream::s_tab = "  ";
-const int Alfcostream::s_indentIosIndex = std::ios_base::xalloc();
+const std::string Ethosostream::s_tab = "  ";
+const int Ethosostream::s_indentIosIndex = std::ios_base::xalloc();
 
 WarningC WarningChannel(&std::cerr);
 TraceC TraceChannel(&std::cout);

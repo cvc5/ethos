@@ -1,13 +1,13 @@
-The authors, designers, and main contributors to alfc are listed below.
-alfc's copyright is held by these individuals and the affiliated
+The authors, designers, and main contributors to ethos are listed below.
+ethos's copyright is held by these individuals and the affiliated
 institutions at the time of their contributions (note that some authors have
 had more than one affiliated institution).  See the file COPYING for details on
-the copyright and licensing of alfc.
+the copyright and licensing of ethos.
 
-The developers and authors of alfc are:
+The developers and authors of ethos are:
 	Andrew Reynolds, The University of Iowa, Amazon Web Services
 	Hans-Jörg Schurr, The University of Iowa
 
-The alfc codebase contains some source code from the cvc5 project.
+The ethos codebase contains some source code from the cvc5 project.
 The copyright of these files is held by the cvc5 authors.  See the
 cvc5 repository at https://github.com/cvc5/cvc5 for details.

@@ -76,7 +76,7 @@ extern null_streambuf null_sb;
 /** A null output stream singleton */
 extern std::ostream null_os;
 
-class Alfcostream
+class Ethosostream
 {
   static const std::string s_tab;
   static const int s_indentIosIndex;
@@ -90,16 +90,16 @@ class Alfcostream
   std::ostream& (*const d_endl)(std::ostream&);
 
   // do not allow use
-  Alfcostream& operator=(const Alfcostream&);
+  Ethosostream& operator=(const Ethosostream&);
 
  public:
-  Alfcostream() : d_os(NULL), d_firstColumn(false), d_endl(&std::endl) {}
-  explicit Alfcostream(std::ostream* os)
+  Ethosostream() : d_os(NULL), d_firstColumn(false), d_endl(&std::endl) {}
+  explicit Ethosostream(std::ostream* os)
       : d_os(os), d_firstColumn(true), d_endl(&std::endl)
   {
   }
 
-  Alfcostream& flush()
+  Ethosostream& flush()
   {
     if (d_os != NULL)
     {
@@ -114,7 +114,7 @@ class Alfcostream
   std::ostream* getStreamPointer() const { return d_os; }
 
   template <class T>
-  Alfcostream& operator<<(T const& t)
+  Ethosostream& operator<<(T const& t)
   {
     if (d_os != nullptr)
     {
@@ -133,7 +133,7 @@ class Alfcostream
   }
 
   // support manipulators, endl, etc..
-  Alfcostream& operator<<(std::ostream& (*pf)(std::ostream&))
+  Ethosostream& operator<<(std::ostream& (*pf)(std::ostream&))
   {
     if (d_os != NULL)
     {
@@ -146,7 +146,7 @@ class Alfcostream
     }
     return *this;
   }
-  Alfcostream& operator<<(std::ios& (*pf)(std::ios&))
+  Ethosostream& operator<<(std::ios& (*pf)(std::ios&))
   {
     if (d_os != NULL)
     {
@@ -154,7 +154,7 @@ class Alfcostream
     }
     return *this;
   }
-  Alfcostream& operator<<(std::ios_base& (*pf)(std::ios_base&))
+  Ethosostream& operator<<(std::ios_base& (*pf)(std::ios_base&))
   {
     if (d_os != NULL)
     {
@@ -162,11 +162,11 @@ class Alfcostream
     }
     return *this;
   }
-  Alfcostream& operator<<(Alfcostream& (*pf)(Alfcostream&))
+  Ethosostream& operator<<(Ethosostream& (*pf)(Ethosostream&))
   {
     return pf(*this);
   }
-}; /* class Alfcostream */
+}; /* class Ethosostream */
 
 /**
  * Does nothing; designed for compilation of non-debug/non-trace
@@ -177,7 +177,7 @@ class NullC
 {
  public:
   operator bool() const { return false; }
-  operator Alfcostream() const { return Alfcostream(); }
+  operator Ethosostream() const { return Ethosostream(); }
   operator std::ostream&() const { return null_os; }
 }; /* class NullC */
 
@@ -192,7 +192,7 @@ class WarningC
  public:
   explicit WarningC(std::ostream* os) : d_os(os) {}
 
-  Alfcostream operator()() const { return Alfcostream(d_os); }
+  Ethosostream operator()() const { return Ethosostream(d_os); }
 
   std::ostream& setStream(std::ostream* os)
   {
@@ -232,16 +232,16 @@ class TraceC
  public:
   explicit TraceC(std::ostream* os) : d_os(os) {}
 
-  Alfcostream operator()() const { return Alfcostream(d_os); }
-  Alfcostream operator()(const std::string& tag) const
+  Ethosostream operator()() const { return Ethosostream(d_os); }
+  Ethosostream operator()(const std::string& tag) const
   {
     if (isOn(tag))
     {
-      return Alfcostream(d_os);
+      return Ethosostream(d_os);
     }
     else
     {
-      return Alfcostream();
+      return Ethosostream();
     }
   }
 
