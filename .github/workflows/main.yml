@@ -10,39 +10,65 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        name: [ production, debug ]
+        name: [linux-x86_64, macOS-x86_64, macOS-arm64]
+        build-type: [ production, debug ]
+        include:
+        - name: linux-x86_64
+          os: ubuntu-20.04
+        - name: macOS-x86_64
+          os: macos-13
+        - name: macOS-arm64
+          os: macos-14
 
-    name: ${{ matrix.os }}:${{ matrix.name }}
+    name: ${{ matrix.name }}:${{ matrix.build-type }}
     # The type of runner that the job will run on
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set MACOSX_DEPLOYMENT_TARGET
+      if: runner.os == 'macOS'
+      run: echo "MACOSX_DEPLOYMENT_TARGET=11.0" >> $GITHUB_ENV
+
     - name: Install Packages
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
         sudo apt-get install -y \
           libgmp-dev
+
     - name: Install Packages (MacOS)
       if: runner.os == 'macOS'
       run: |
         brew install \
           gmp
+
     - name: Setup Build Dir
       run: mkdir build
+
     - name: Configure
-      if: matrix.name == 'production'
+      if: matrix.build-type == 'production'
       run: cmake -DCMAKE_BUILD_TYPE=Release ..
       working-directory: build
+
     - name: Configure
-      if: matrix.name == 'debug'
+      if: matrix.build-type == 'debug'
       run: cmake -DCMAKE_BUILD_TYPE=Debug ..
       working-directory: build
+
     - name: Build
       run: make -j2
       working-directory: build
+
     - name: Test
       run: ctest --output-on-failure
       working-directory: build
+
+    - name: Upload binary
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.build-type == 'production'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ethos-${{ matrix.name }}
+        path: build/src/ethos
