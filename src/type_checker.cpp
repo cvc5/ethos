@@ -124,7 +124,7 @@ Expr TypeChecker::getType(Expr& e, std::ostream* out)
             << "TYPE " << Expr(cur) << " : [FAIL] due to evaluatable " << ret << std::endl;
         if (out)
         {
-          (*out) << "Has type " << ret << " that is ground and evaluatable";
+          (*out) << "Has type " << ret << " whose evaluation cannot be reduced";
         }
         return d_null;
       }
