@@ -192,7 +192,7 @@ class State
   /** Get the type checker */
   TypeChecker& getTypeChecker();
   /** Get options */
-  ConfigOptions& getOptions(bool isReference);
+  ConfigOptions& getOptions(bool isReference=false);
   /** Get stats */
   Stats& getStats();
   /** Set the plugin */

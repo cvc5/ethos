@@ -94,13 +94,23 @@ ExprParser::ExprParser(Lexer& lex, State& state, bool isReference)
   d_strToAttr[":restrict"] = Attr::RESTRICT;
   d_strToAttr[":sorry"] = Attr::SORRY;
   
+  ConfigOptions& co = d_state.getOptions(d_isReference);
   d_strToLiteralKind["<boolean>"] = Kind::BOOLEAN;
-  d_strToLiteralKind["<numeral>"] = Kind::NUMERAL;
-  d_strToLiteralKind["<decimal>"] = Kind::DECIMAL;
+  if (!co.d_normalizeNumeral)
+  {
+    d_strToLiteralKind["<numeral>"] = Kind::NUMERAL;
+  }
+  if (!co.d_normalizeDecimal)
+  {
+    d_strToLiteralKind["<decimal>"] = Kind::DECIMAL;
+  }
   d_strToLiteralKind["<rational>"] = Kind::RATIONAL;
-  d_strToLiteralKind["<hexadecimal>"] = Kind::HEXADECIMAL;
   d_strToLiteralKind["<binary>"] = Kind::BINARY;
   d_strToLiteralKind["<string>"] = Kind::STRING;
+  if (!co.d_normalizeHexadecimal)
+  {
+    d_strToLiteralKind["<hexadecimal>"] = Kind::HEXADECIMAL;
+  }
 }
 
 class StackFrame
@@ -213,7 +223,7 @@ Expr ExprParser::parseExpr()
                   if (ck==Attr::BINDER)
                   {
                     nscopes = 1;
-                    bool isLookup = !d_state.getOptions().d_binderFresh;
+                    bool isLookup = !d_state.getOptions(d_isReference).d_binderFresh;
                     d_state.pushScope();
                     std::vector<Expr> vs = parseAndBindSortedVarList(isLookup);
                     if (vs.empty())
@@ -283,12 +293,21 @@ Expr ExprParser::parseExpr()
       break;
       case Token::INTEGER_LITERAL:
       {
-        ret = d_state.mkLiteral(Kind::NUMERAL, d_lex.tokenStr());
+        if (d_state.getOptions(d_isReference).d_normalizeNumeral)
+        {
+          // normalize from decimal
+          Rational r(d_lex.tokenStr());
+          ret = d_state.mkLiteral(Kind::RATIONAL, r.toString());
+        }
+        else
+        {
+          ret = d_state.mkLiteral(Kind::NUMERAL, d_lex.tokenStr());
+        }
       }
       break;
       case Token::DECIMAL_LITERAL:
       {
-        if (d_state.getOptions().d_normalizeDecimal)
+        if (d_state.getOptions(d_isReference).d_normalizeDecimal)
         {
           // normalize from decimal
           Rational r = Rational::fromDecimal(d_lex.tokenStr());
@@ -322,7 +341,7 @@ Expr ExprParser::parseExpr()
         std::string hexStr = d_lex.tokenStr();
         hexStr = hexStr.substr(2);
         // must normalize
-        if (d_state.getOptions().d_normalizeHexadecimal)
+        if (d_state.getOptions(d_isReference).d_normalizeHexadecimal)
         {
           // normalize from hexadecimal
           BitVector bv(hexStr, 16);

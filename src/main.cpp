@@ -32,21 +32,21 @@ int main( int argc, char* argv[] )
     std::string arg(argv[i]);
     std::vector<ConfigOptions*> configs;
     std::string opt;
-    if (args.substr(0,4)=="--eo")
+    if (arg.substr(0,4)=="--eo")
     {
       configs.push_back(&opts.d_eo);
-      opt = args.substr(4);
+      opt = arg.substr(4);
     }
-    else if (args.substr(0,6)=="--smt2")
+    else if (arg.substr(0,6)=="--smt2")
     {
       configs.push_back(&opts.d_smt2);
-      opt = args.substr(4);
+      opt = arg.substr(4);
     }
-    else if (args.substr(0,2)=="--")
+    else if (arg.substr(0,2)=="--")
     {
       configs.push_back(&opts.d_eo);
       configs.push_back(&opts.d_smt2);
-      opt = args.substr(2);
+      opt = arg.substr(2);
     }
     i++;
     if (opt=="binder-fresh")
@@ -243,9 +243,9 @@ int main( int argc, char* argv[] )
   {
     plugin->finalize();
   }
-  if (opts.d_stats)
+  if (opts.d_eo.d_stats)
   {
-    std::cout << stats.toString(s, opts.d_statsCompact);
+    std::cout << stats.toString(s, opts.d_eo.d_statsCompact);
   }
   // exit immediately, which avoids deleting all expressions which can take time
   exit(0);

@@ -17,7 +17,7 @@
 
 namespace ethos {
 
-Options::ConfigOptions()
+ConfigOptions::ConfigOptions()
 {
   d_parseLet = true;
   d_printLet = false;
@@ -1013,7 +1013,7 @@ bool State::bind(const std::string& name, const Expr& e)
     d_plugin->bind(name, e);
   }
   // if using a separate symbol table for rules
-  if (d_opts.d_ruleSymTable && e.getKind() == Kind::PROOF_RULE)
+  if (d_opts.d_eo.d_ruleSymTable && e.getKind() == Kind::PROOF_RULE)
   {
     // don't bind at non-global scope
     Assert (d_declsSizeCtx.empty());
@@ -1131,7 +1131,7 @@ Expr State::getBoundVar(const std::string& name, const Expr& type)
 
 Expr State::getProofRule(const std::string& name) const
 {
-  const std::map<std::string, Expr>& t = d_opts.d_ruleSymTable ? d_ruleSymTable : d_symTable;
+  const std::map<std::string, Expr>& t = d_opts.d_eo.d_ruleSymTable ? d_ruleSymTable : d_symTable;
   std::map<std::string, Expr>::const_iterator it = t.find(name);
   if (it!=t.end())
   {
