@@ -26,22 +26,34 @@
 
 namespace ethos {
 
-class Options
+class ConfigOptions
 {
  public:
-  Options();
+  ConfigOptions();
   bool d_printLet;
   /** 'let' is lexed as the SMT-LIB syntax for a dag term specified by a let */
   bool d_parseLet;
   bool d_stats;
   bool d_statsCompact;
   bool d_ruleSymTable;
+  /** Treat decimal literals as rational literals */
   bool d_normalizeDecimal;
+  /** Treat hexidecimals as binary literals */
   bool d_normalizeHexadecimal;
+  /** Treat numerals as rational literals */
+  bool d_normalizeNumeral;
   /** Binders generate fresh variables in proof and reference files */
   bool d_binderFresh;
 };
 
+class Options
+{
+public:
+  /** Options when parsing Eunoia */
+  ConfigOptions d_eo;
+  /** Options when parsing smt2 */
+  ConfigOptions d_smt2;
+};
 /**
  * The state class which manages both the parsing state and the expression database.
  */
@@ -180,7 +192,7 @@ class State
   /** Get the type checker */
   TypeChecker& getTypeChecker();
   /** Get options */
-  Options& getOptions();
+  ConfigOptions& getOptions(bool isReference);
   /** Get stats */
   Stats& getStats();
   /** Set the plugin */

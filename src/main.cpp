@@ -30,47 +30,97 @@ int main( int argc, char* argv[] )
   while (i<nargs)
   {
     std::string arg(argv[i]);
+    std::vector<ConfigOptions*> configs;
+    std::string opt;
+    if (args.substr(0,4)=="--eo")
+    {
+      configs.push_back(&opts.d_eo);
+      opt = args.substr(4);
+    }
+    else if (args.substr(0,6)=="--smt2")
+    {
+      configs.push_back(&opts.d_smt2);
+      opt = args.substr(4);
+    }
+    else if (args.substr(0,2)=="--")
+    {
+      configs.push_back(&opts.d_eo);
+      configs.push_back(&opts.d_smt2);
+      opt = args.substr(2);
+    }
     i++;
-    if (arg=="--binder-fresh")
+    if (opt=="binder-fresh")
     {
-      opts.d_binderFresh = true;
+      for (ConfigOptions* co : configs)
+      {
+        co->d_binderFresh = true;
+      }
     }
-    else if (arg=="--no-parse-let")
+    else if (opt=="no-parse-let")
     {
-      opts.d_parseLet = false;
+      for (ConfigOptions* co : configs)
+      {
+        co->d_parseLet = false;
+      }
     }
-    else if (arg=="--no-print-let")
+    else if (opt=="no-print-let")
     {
-      opts.d_printLet = false;
+      for (ConfigOptions* co : configs)
+      {
+        co->d_printLet = false;
+      }
+    }
+    else if (opt=="no-normalize-dec")
+    {
+      for (ConfigOptions* co : configs)
+      {
+        co->d_normalizeDecimal = false;
+      }
+    }
+    else if (opt=="no-normalize-hex")
+    {
+      for (ConfigOptions* co : configs)
+      {
+        co->d_normalizeHexadecimal = false;
+      }
+    }
+    else if (opt=="normalize-num")
+    {
+      for (ConfigOptions* co : configs)
+      {
+        co->d_normalizeNumeral = true;
+      }
     }
     else if (arg=="--stats")
     {
-      opts.d_stats = true;
+      for (ConfigOptions* co : configs)
+      {
+        co->d_stats = true;
+      }
     }
     else if (arg=="--stats-compact")
     {
-      opts.d_stats = true;
-      opts.d_statsCompact = true;
+      for (ConfigOptions* co : configs)
+      {
+        co->d_stats = true;
+        co->d_statsCompact = true;
+      }
     }
     else if (arg=="--no-rule-sym-table")
     {
-      opts.d_ruleSymTable = false;
+      for (ConfigOptions* co : configs)
+      {
+        co->d_ruleSymTable = false;
+      }
     }
-    else if (arg=="--no-normalize-dec")
-    {
-      opts.d_normalizeDecimal = false;
-    }
-    else if (arg=="--no-normalize-hex")
-    {
-      opts.d_normalizeHexadecimal = false;
-    }
-    else if (arg=="--help")
+    else if (opt=="--help")
     {
       std::stringstream out;
       out << "     --binder-fresh: binders generate fresh variables when parsed in proof files." << std::endl;
       out << "             --help: displays this message." << std::endl;
       out << " --no-normalize-dec: do not treat decimal literals as syntax sugar for rational literals." << std::endl;
       out << " --no-normalize-hex: do not treat hexadecimal literals as syntax sugar for binary literals." << std::endl;
+      out << "    --normalize-num: treat numeral literals as syntax sugar for rational literals." << std::endl;
       out << "     --no-parse-let: do not treat let as a builtin symbol for specifying terms having shared subterms." << std::endl;
       out << "     --no-print-let: do not letify the output of terms in error messages and trace messages." << std::endl;
       out << "--no-rule-sym-table: do not use a separate symbol table for proof rules and declared terms." << std::endl;
@@ -82,7 +132,7 @@ int main( int argc, char* argv[] )
       std::cout << out.str();
       return 0;
     }
-    else if (arg=="--show-config")
+    else if (opt=="--show-config")
     {
       std::stringstream out;
       out << "This is ethos version 0.1.0." << std::endl;
@@ -98,7 +148,7 @@ int main( int argc, char* argv[] )
       std::cout << out.str();
       return 0;
     }
-    else if (arg=="-t")
+    else if (opt=="-t")
     {
       std::string targ(argv[i]);
       i++;
@@ -108,7 +158,7 @@ int main( int argc, char* argv[] )
       EO_FATAL() << "Error: tracing not enabled in this build" << std::endl;
 #endif
     }
-    else if (arg=="-v")
+    else if (opt=="-v")
     {
 // enable all traces
 #ifdef EO_TRACING

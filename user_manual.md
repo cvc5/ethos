@@ -1576,6 +1576,10 @@ The Ethos command line interface can be invoked by `ethos <option>* <file>` wher
 - `-t <tag>`: enables the given trace tag (for debugging).
 - `-v`: verbose mode, enable all standard trace messages.
 
+When applicable, options may be prefixed by `smt2` to apply the option only to when parsing reference files.
+For example, `--smt2-binder-fresh` makes Ethos generate fresh varaibles, but only when parsing reference files.
+Similarly, the prefix `eo` makes the option only apply when parsing Eunoia (signature) files.
+
 ## Full syntax for Eunoia commands
 
 Valid inputs to the Ethos are `<eo-command>*`, where:
@@ -1686,7 +1690,7 @@ The following signature can be used to define operators that are not required to
 
 ; An arbitrary deterministic comparison of terms. Returns true if a > b based
 ; on this ordering.
-(define eo::com ((T Type :implicit) (U Type :implicit) (a T) (b U))
+(define eo::cmp ((T Type :implicit) (U Type :implicit) (a T) (b U))
   (eo::is_neg (eo::add (eo::hash b) (eo::neg (eo::hash a)))))
 
 ```

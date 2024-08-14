@@ -17,7 +17,7 @@
 
 namespace ethos {
 
-Options::Options()
+Options::ConfigOptions()
 {
   d_parseLet = true;
   d_printLet = false;
@@ -26,6 +26,7 @@ Options::Options()
   d_ruleSymTable = true;
   d_normalizeDecimal = true;
   d_normalizeHexadecimal = true;
+  d_normalizeNumeral = false;
   d_binderFresh = false;
 }
 
@@ -1291,9 +1292,9 @@ TypeChecker& State::getTypeChecker()
   return d_tc;
 }
 
-Options& State::getOptions()
+ConfigOptions& State::getOptions(bool isReference)
 {
-  return d_opts;
+  return isReference ? d_opts.d_smt2 : d_opts.d_eo;
 }
 
 Stats& State::getStats()
