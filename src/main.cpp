@@ -35,18 +35,18 @@ int main( int argc, char* argv[] )
     if (arg.substr(0,4)=="--eo")
     {
       configs.push_back(&opts.d_eo);
-      opt = arg.substr(4);
+      opt = arg.substr(5);
     }
     else if (arg.substr(0,6)=="--smt2")
     {
       configs.push_back(&opts.d_smt2);
-      opt = arg.substr(4);
+      opt = arg.substr(7);
     }
     else if (arg.substr(0,2)=="--")
     {
       configs.push_back(&opts.d_eo);
       configs.push_back(&opts.d_smt2);
-      opt = arg.substr(2);
+      opt = arg.substr(3);
     }
     i++;
     if (opt=="binder-fresh")
