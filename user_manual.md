@@ -1565,6 +1565,7 @@ The user is responsible for ensure that e.g. the proof contains a step with a de
 The Ethos command line interface can be invoked by `ethos <option>* <file>` where `<option>` is one of the following:
 - `--binder-fresh`: binders generate fresh variables when parsed in proof files.
 - `--help`: displays a help message.
+- `--normalize-num`: treat numeral literals as syntax sugar for (integral) rational literals.
 - `--no-normalize-dec`: do not treat decimal literals as syntax sugar for rational literals.
 - `--no-normalize-hex`: do not treat hexadecimal literals as syntax sugar for binary literals.
 - `--no-parse-let`: do not treat `let` as a builtin symbol for specifying terms having shared subterms.
@@ -1577,7 +1578,7 @@ The Ethos command line interface can be invoked by `ethos <option>* <file>` wher
 - `-v`: verbose mode, enable all standard trace messages.
 
 When applicable, options may be prefixed by `smt2` to apply the option only to when parsing reference files.
-For example, `--smt2-binder-fresh` makes Ethos generate fresh varaibles, but only when parsing reference files.
+For example, `--smt2-binder-fresh` makes Ethos generate fresh variables, but only when parsing reference files.
 Similarly, the prefix `eo` makes the option only apply when parsing Eunoia (signature) files.
 
 ## Full syntax for Eunoia commands
