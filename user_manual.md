@@ -435,6 +435,8 @@ The Eunoia language supports associating SMT-LIB version 3.0 syntactic categorie
 
 When parsing reference files, by default, decimal literals will be treated as syntax sugar for rational literals unless the option `--no-normalize-dec` is enabled.
 Similarly, hexadecimal literals will be treated as syntax sugar for binary literals unless the option `--no-normalize-hex` is enabled.
+Some SMT-LIB logics (e.g. `QF_LRA`) state that numerals should be treated as syntax sugar for rational literals.
+This behavior can be enabled when parsing reference files using the option `--normalize-num`.
 
 In contrast to SMT-LIB version 2, note that rational values can be specified directly using the syntax `5/11, 2/4, 0/1` and so on.
 Rationals are normalized so that e.g. `2/4` and `1/2` are syntactically equivalent after parsing.
