@@ -243,6 +243,20 @@ Intuitively, `d` should be considered an atomic constant symbol, where `A` and `
 In particular, this means that any computation that pattern matches `d` will not consider it to be a function application.
 We give an example of this later in [ex-substitution](#ex-substitution).
 
+Functions can mix opaque and ordinary arguments. These arguments can be passed to the symbol in the order they are given.
+For example:
+```
+(declare-type Int ())
+(declare-const @purify_fun (-> (! (-> Int Int) :opaque) Int Int))
+
+(declare-const f (-> Int Int))
+(declare-const a Int)
+(define d () (@purify_fun f a) :type Int)
+```
+In this example, `@purify_fun` is declared as a function with one opaque argument, and ordinary integer argument, and returns an integer.
+Intuitively, this definition is introducing a new function, indexed by a function, that is of type `(-> Int Int)`.
+After parsing, the term `(@purify_fun f a)` is a function application whose operator is `(@purify_fun f)` and has a single child `a`.
+
 ## <a name="attributes"></a>Declarations with attributes
 
 The Eunoia language supports term annotations on declared constants, which for instance can allow the user to treat a constant as being variadic, i.e. taking an arbitrary number of arguments. The available annotations in the Ethos for this purpose are:
