@@ -216,6 +216,33 @@ The second annotation indicates that `(eo::is_neg w)` must evaluate to `false`, 
 
 > Internally, `(! T :requires (t s))` is syntax sugar for `(eo::requires t s T)` where `eo::requires` is an operator that evalutes to its third argument if and only if its first two arguments are equivalent (details on this operator are given in [computation](#computation)). Furthermore, the function type `(-> (eo::requires t s T) S)` is treated as `(-> T (eo::requires t s S))`. The Ethos rewrites all types of the former to the latter.
 
+## <a name="opaque"></a>The :opaque annotation
+
+The attribute `:opaque` can be used to denote that an argument to a function should not be considered a child of that function, but instead intuitively considered to be an index of that function.
+An example of this annotation is the following:
+
+```
+(declare-type Array (Type Type))
+(declare-const @array_deq_diff
+   (-> (! Type :var T :implicit) (! Type :var U :implicit)
+   (! (Array T U) :opaque)
+   (! (Array T U) :opaque)
+   T))
+
+(declare-type Int ())
+(declare-const A (Array Int Int))
+(declare-const B (Array Int Int))
+(define d () (@array_deq_diff A B) :type Int)
+```
+
+The above example declares a function `@array_deq_diff` symbol. 
+This has two implicit type arguments `T` and `U` followed by two opaque array arguments and has `T` as a return type.
+In the remainder of the example, we define `d` to be this function applied to the arrays `A` and `B`, where `d` has type `Int`.
+
+Intuitively, `d` should be considered an atomic constant symbol, where `A` and `B` are its indices and not its children.
+In particular, this means that any computation that pattern matches `d` will not consider it to be a function application.
+We give an example of this later in [ex-substitution](#ex-substitution).
+
 ## <a name="attributes"></a>Declarations with attributes
 
 The Eunoia language supports term annotations on declared constants, which for instance can allow the user to treat a constant as being variadic, i.e. taking an arbitrary number of arguments. The available annotations in the Ethos for this purpose are:
@@ -1231,7 +1258,7 @@ The Ethos will reject this definition since it implies that a computational oper
 In particular, the term `(or x xs)` is equivalent to `(eo::list_concat or x xs)` after desugaring.
 Thus, the third case of the program, `(contains (eo::list_concat or x xs) l)`, is not a legal pattern.
 
-### Example: Substitution
+### <a name="ex-substitution"></a>Example: Substitution
 
 ```
 (program substitute
@@ -1250,6 +1277,10 @@ Note that this side condition is fully general and does not depend on the shape 
 In detail, recall that the Ethos treats all function applications as curried (unary) applications.
 In particular, this implies that `(f a)` matches any application term, since both `f` and `a` are parameters.
 Thus, the side condition is written in three cases: either `t` is `x` in which case we return `y`, `t` is a function application in which case we recurse, or otherwise `t` is a constant not equal to `x` and we return itself.
+
+This method will not replace subterms inside of opaque arguments (see [opaque](#opaque)).
+In particular, a term such as `(@array_deq_diff A B)` will remain unchanged for a substitution e.g. replacing `A` with `B`, since `(@array_deq_diff A B)` is not a function application.
+Hence when `t` is `(@array_deq_diff A B)`, we fall into the third case of the method above for any call to `substitute` where `x` is not `(@array_deq_diff A B)` itself.
 
 ### Example: Term evaluator
 
