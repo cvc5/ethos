@@ -11,7 +11,7 @@
 namespace ethos {
 
 Parser::Parser(State& s, bool isReference)
-    : d_lex(s.getOptions().d_parseLet),
+    : d_lex(isReference && s.getOptions().d_parseLet),  // only consider let when reference parsing
       d_state(s),
       d_eparser(d_lex, d_state, isReference),
       d_cmdParser(d_lex, d_state, d_eparser, isReference)
