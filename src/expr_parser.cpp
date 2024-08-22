@@ -98,9 +98,9 @@ ExprParser::ExprParser(Lexer& lex, State& state, bool isReference)
   d_strToLiteralKind["<numeral>"] = Kind::NUMERAL;
   d_strToLiteralKind["<decimal>"] = Kind::DECIMAL;
   d_strToLiteralKind["<rational>"] = Kind::RATIONAL;
+  d_strToLiteralKind["<hexadecimal>"] = Kind::HEXADECIMAL;
   d_strToLiteralKind["<binary>"] = Kind::BINARY;
   d_strToLiteralKind["<string>"] = Kind::STRING;
-  d_strToLiteralKind["<hexadecimal>"] = Kind::HEXADECIMAL;
 }
 
 class StackFrame
