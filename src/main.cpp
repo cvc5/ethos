@@ -60,6 +60,10 @@ int main( int argc, char* argv[] )
     {
       opts.d_normalizeDecimal = false;
     }
+    else if (arg=="--normalize-num")
+    {
+      opts.d_normalizeNumeral = false;
+    }
     else if (arg=="--no-normalize-hex")
     {
       opts.d_normalizeHexadecimal = false;
@@ -69,6 +73,7 @@ int main( int argc, char* argv[] )
       std::stringstream out;
       out << "     --binder-fresh: binders generate fresh variables when parsed in proof files." << std::endl;
       out << "             --help: displays this message." << std::endl;
+      out << "    --normalize-num: treat numeral literals as syntax sugar for rational literals." << std::endl;
       out << " --no-normalize-dec: do not treat decimal literals as syntax sugar for rational literals." << std::endl;
       out << " --no-normalize-hex: do not treat hexadecimal literals as syntax sugar for binary literals." << std::endl;
       out << "     --no-parse-let: do not treat let as a builtin symbol for specifying terms having shared subterms." << std::endl;

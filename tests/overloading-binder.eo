@@ -1,7 +1,7 @@
 (declare-type Int ())
 (declare-consts <numeral> Int)
 (declare-type Real ())
-(declare-consts <rational> Real)
+(declare-consts <decimal> Real)
 (declare-const f (-> Int Int Int))
 
 (declare-const = (-> (! Type :var T :implicit) T T Bool))

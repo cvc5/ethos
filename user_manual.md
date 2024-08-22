@@ -1563,8 +1563,9 @@ The user is responsible for ensure that e.g. the proof contains a step with a de
 ## Command line options of ethos
 
 The Ethos command line interface can be invoked by `ethos <option>* <file>` where `<option>` is one of the following:
-- `--binder-fresh`: binders generate fresh variables when parsed in proof files.
+- `--binder-fresh`: binders generate fresh variables when parsed in reference files.
 - `--help`: displays a help message.
+- `--normalize-num`: treat numeral literals as syntax sugar for (integral) rational literals.
 - `--no-normalize-dec`: do not treat decimal literals as syntax sugar for rational literals.
 - `--no-normalize-hex`: do not treat hexadecimal literals as syntax sugar for binary literals.
 - `--no-parse-let`: do not treat `let` as a builtin symbol for specifying terms having shared subterms.
@@ -1686,7 +1687,7 @@ The following signature can be used to define operators that are not required to
 
 ; An arbitrary deterministic comparison of terms. Returns true if a > b based
 ; on this ordering.
-(define eo::com ((T Type :implicit) (U Type :implicit) (a T) (b U))
+(define eo::cmp ((T Type :implicit) (U Type :implicit) (a T) (b U))
   (eo::is_neg (eo::add (eo::hash b) (eo::neg (eo::hash a)))))
 
 ```

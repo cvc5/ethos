@@ -20,7 +20,7 @@
 
 
 (declare-consts <numeral> Int)
-(declare-consts <rational> Real)
+(declare-consts <decimal> Real)
 
 
 (assume a1 (= (+ 1.0 1) (+ 2.0 2)))

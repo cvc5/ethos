@@ -24,15 +24,7 @@ namespace ethos {
 
 TypeChecker::TypeChecker(State& s, Options& opts) : d_state(s), d_plugin(nullptr)
 {
-  std::set<Kind> literalKinds = { Kind::BOOLEAN, Kind::NUMERAL, Kind::RATIONAL, Kind::BINARY, Kind::STRING };
-  if (!opts.d_normalizeDecimal)
-  {
-    literalKinds.insert(Kind::DECIMAL);
-  }  
-  if (!opts.d_normalizeHexadecimal)
-  {
-    literalKinds.insert(Kind::HEXADECIMAL);
-  }
+  std::set<Kind> literalKinds = { Kind::BOOLEAN, Kind::NUMERAL, Kind::RATIONAL, Kind::BINARY, Kind::STRING, Kind::DECIMAL, Kind::HEXADECIMAL };
   // initialize literal kinds 
   for (Kind k : literalKinds)
   {
