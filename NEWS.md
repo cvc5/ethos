@@ -1,5 +1,11 @@
 This file contains a summary of important user-visible changes.
 
+ethos 0.1.1 prerelease
+======================
+
+- The options `--no-normalize-dec`, `--no-normalize-hex`, `--binder-fresh`, and `--no-parse-let` now only apply when reference parsing. In other words, when parsing Eunoia signatures and proofs, decimals and hexidecimals are never normalized, variables are always unique for their name and type, and let is never treated as a builtin way of specifying macros.
+- Adds a new option `--normalize-num`, which also only applies when reference parsing. This option treats numerals as rationals, which can be used when parsing SMT-LIB inputs in logics where numerals are shorthand for rationals.
+
 ethos 0.1.0
 ===========
 
