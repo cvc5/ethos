@@ -124,6 +124,7 @@ set(ethos_test_file_list
     overloading-binder.eo
     sorry.eo
     disamb-arith.eo
+    opaque-inline.eo
 )
 
 macro(ethos_test file)
