@@ -470,6 +470,7 @@ Expr ExprParser::parseExpr()
                 break;
               case Attr::IMPLICIT:
                 // the term will not be added as an argument to the parent
+                // note this always comes after VAR due to enum order
                 ret = d_null;
                 break;
               case Attr::REQUIRES:
@@ -480,6 +481,14 @@ Expr ExprParser::parseExpr()
                 ret = d_state.mkRequires(a.second, ret);
                 break;
               case Attr::OPAQUE:
+                if (ret.isNull())
+                {
+                  d_lex.parseError("Cannot mark opaque on implicit argument");
+                }
+                if (ret.getKind()==Kind::EVAL_REQUIRES)
+                {
+                  d_lex.parseError("Cannot combine opaque and requires");
+                }
                 ret = d_state.mkExpr(Kind::OPAQUE_TYPE, {ret});
                 break;
               default:

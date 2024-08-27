@@ -1,0 +1,4 @@
+
+(declare-const = (-> (! Type :implicit :var T) T T Bool))
+
+(define d () (= true false) :type Bool)

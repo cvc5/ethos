@@ -1,5 +1,10 @@
 This file contains a summary of important user-visible changes.
 
+ethos 0.1.1 prerelease
+======================
+
+- Fixed a bug when applying operators with opaque arguments.
+
 ethos 0.1.0
 ===========
 
