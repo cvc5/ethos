@@ -746,8 +746,8 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
             // higher order
             std::vector<Expr> rchildren;
             rchildren.push_back(op);
-            rchildren.insert(rchildren.end(), children.begin()+2+nargs, children.end());
-            Trace("opaque") << "...return operator" << std::endl;
+            rchildren.insert(rchildren.end(), children.begin()+1+nargs, children.end());
+            Trace("opaque") << "...return operator applied to children" << std::endl;
             return mkExpr(Kind::APPLY, rchildren);
           }
         }
