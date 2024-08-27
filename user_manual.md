@@ -258,6 +258,8 @@ In this example, `@purify_fun` is declared as a function with one opaque argumen
 Intuitively, this definition is introducing a new function, indexed by a function, that is of type `(-> Int Int)`.
 After parsing, the term `(@purify_fun f a)` is a function application whose operator is `(@purify_fun f)` and has a single child `a`.
 
+> Opaque arguments should always be expected before other arguments. Otherwise all applications of the given function will be ill-typed.
+
 ## <a name="attributes"></a>Declarations with attributes
 
 The Eunoia language supports term annotations on declared constants, which for instance can allow the user to treat a constant as being variadic, i.e. taking an arbitrary number of arguments. The available annotations in the Ethos for this purpose are:
