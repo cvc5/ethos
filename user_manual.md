@@ -478,7 +478,7 @@ The Eunoia language supports associating SMT-LIB version 3.0 syntactic categorie
 - `<hexadecimal>` denoting the category of hexadecimal constants `#x<hex-digit>+` where hexdigit is `[0-9] | [a-f] | [A-F]`,
 - `<string>` denoting the category of string literals `"<char>*"`.
 
-When parsing reference files, by default, decimal literals will be treated as syntax sugar for rational literals unless the option `--no-normalize-dec` is enabled.
+When parsing proofs and reference files, by default, decimal literals will be treated as syntax sugar for rational literals unless the option `--no-normalize-dec` is enabled.
 Similarly, hexadecimal literals will be treated as syntax sugar for binary literals unless the option `--no-normalize-hex` is enabled.
 Some SMT-LIB logics (e.g. `QF_LRA`) state that numerals should be treated as syntax sugar for rational literals.
 This behavior can be enabled when parsing proofs and reference files using the option `--normalize-num`.
