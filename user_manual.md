@@ -457,13 +457,16 @@ A variable list parsed in this way binds the symbol `x` to a variable of type `I
 The variable list passed as the first argument to the binder is determined by applying the specified constructor (in this case `@cons`) to the list of variables, so that `(forall ((x Int)) (P x))` is syntax sugar for `(forall (@cons x) (P x))`.
 The constructor specified in declarations of binders should accept a variable number of arguments, e.g. `@cons` is declared with attribute `:right-assoc-nil`.
 
-Variables introduced when parsing binders are always the same for each (symbol, type) pair unless the option `--binder-fresh` is enabled, in which case the variable is always unique.
+Variables introduced when parsing binders are always the same for each (symbol, type) pair.
 In particular, this means that the definitions of `Q1` and `Q2` are syntactically identical in the above example.
 On the other hand, the definition `Q3` is distinct from both of these, since `y` is a distinct variable from `x`.
 
 Furthermore, note that a binder also may accept an explicit term as its first argument.
 In the above example, `Q4` has `(@cons x)` as its first argument, where `x` was explicitly defined as a variable.
-This means that the definition of `Q4` is also syntactically equivalent to the definition of `Q1` and `Q2`, again assuming that `--binder-fresh` is not enabled.
+This means that the definition of `Q4` is also syntactically equivalent to the definition of `Q1` and `Q2`.
+
+Note that if the option `--binder-fresh` is enabled, then when parsing reference files, the variables in binders are always fresh.
+This option does not impact how binders are parsed in Eunoia files.
 
 ## <a name="literals"></a>Literal types
 
@@ -475,8 +478,10 @@ The Eunoia language supports associating SMT-LIB version 3.0 syntactic categorie
 - `<hexadecimal>` denoting the category of hexadecimal constants `#x<hex-digit>+` where hexdigit is `[0-9] | [a-f] | [A-F]`,
 - `<string>` denoting the category of string literals `"<char>*"`.
 
-By default, decimal literals will be treated as syntax sugar for rational literals unless the option `--no-normalize-dec` is enabled.
+When parsing reference files, by default, decimal literals will be treated as syntax sugar for rational literals unless the option `--no-normalize-dec` is enabled.
 Similarly, hexadecimal literals will be treated as syntax sugar for binary literals unless the option `--no-normalize-hex` is enabled.
+Some SMT-LIB logics (e.g. `QF_LRA`) state that numerals should be treated as syntax sugar for rational literals.
+This behavior can be enabled when parsing reference files using the option `--normalize-num`.
 
 In contrast to SMT-LIB version 2, note that rational values can be specified directly using the syntax `5/11, 2/4, 0/1` and so on.
 Rationals are normalized so that e.g. `2/4` and `1/2` are syntactically equivalent after parsing.
@@ -550,9 +555,9 @@ Core operators:
 - `(eo::is_z t)`
     - Equivalent to `(eo::is_eq (eo::to_z t) t)`.
 - `(eo::is_q t)`
-    - Equivalent to `(eo::is_eq (eo::to_q t) t)`. Note this returns false for decimal literals when `--no-normalize-dec` is enabled.
+    - Equivalent to `(eo::is_eq (eo::to_q t) t)`. Note this returns false for decimal literals.
 - `(eo::is_bin t)`
-    - Equivalent to `(eo::is_eq (eo::to_bin (eo::len t) t) t)`. Note this returns false for hexadecimal literals  when `--no-normalize-hex` is enabled.
+    - Equivalent to `(eo::is_eq (eo::to_bin (eo::len t) t) t)`. Note this returns false for hexadecimal literals.
 - `(eo::is_str t)`
     - Equivalent to `(eo::is_eq (eo::to_str t) t)`.
 - `(eo::is_bool t)`
@@ -652,12 +657,10 @@ The Ethos supports extensions of `eo::and, eo::or, eo::xor, eo::add, eo::mul, eo
 (eo::add 1/2 1/3)           == 5/6
 (eo::add 2 1/3)             == (eo::add 2 1/3)  ; no mixed arithmetic
 (eo::add 2/1 1/3)           == 7/3
-(eo::add 2.0 1/3)           == 7/3  ; with default options
-(eo::add 2.0 1/3)           == (eo::add 2.0 1/3)  ; if --no-normalize-dec is enabled, since no mixed arithmetic
-(eo::add 2.0 2.5)           == 4.5  ; which is not syntactically equal to 9/2 if --no-normalize-dec is enabled
+(eo::add 2.0 1/3)           == (eo::add 2.0 1/3)  ; since no mixed arithmetic
+(eo::add 2.0 2.5)           == 4.5
 (eo::add #b01 #b01)         == #b10
-(eo::add #x1 #b0001)        == #b0002  ; with default options
-(eo::add #x1 #b0001)        == (eo::add #x1 #b0001)  ; if --no-normalize-hex is enabled
+(eo::add #x1 #b0001)        == (eo::add #x1 #b0001)  ; since no mixed arithmetic
 (eo::mul 2 7)               == 14
 (eo::mul 2 2 7)             == 28
 (eo::mul 1/2 1/4)           == 1/8
@@ -665,7 +668,7 @@ The Ethos supports extensions of `eo::and, eo::or, eo::xor, eo::add, eo::mul, eo
 (eo::qdiv 12 6)             == 3/1
 (eo::qdiv 7 2)              == 7/2
 (eo::qdiv 7/1 2/1)          == 7/2
-(eo::qdiv 7.0 2.0)          == 7/2  ; regardless of whether --no-normalize-dec is enabled
+(eo::qdiv 7.0 2.0)          == 7/2
 (eo::qdiv 7 0)              == (eo::qdiv 7 0)  ; no division by zero
 (eo::zdiv 12 3)             == 4
 (eo::zdiv 7 2)              == 3
@@ -1628,11 +1631,7 @@ The user is responsible for ensure that e.g. the proof contains a step with a de
 ## Command line options of ethos
 
 The Ethos command line interface can be invoked by `ethos <option>* <file>` where `<option>` is one of the following:
-- `--binder-fresh`: binders generate fresh variables when parsed in proof files.
 - `--help`: displays a help message.
-- `--no-normalize-dec`: do not treat decimal literals as syntax sugar for rational literals.
-- `--no-normalize-hex`: do not treat hexadecimal literals as syntax sugar for binary literals.
-- `--no-parse-let`: do not treat `let` as a builtin symbol for specifying terms having shared subterms.
 - `--no-print-let`: do not letify the output of terms in error messages and trace messages.
 - `--no-rule-sym-table`: do not use a separate symbol table for proof rules and declared terms.
 - `--show-config`: displays the build information for the given binary.
@@ -1640,6 +1639,13 @@ The Ethos command line interface can be invoked by `ethos <option>* <file>` wher
 - `--stats-compact`: print statistics in a compact format.
 - `-t <tag>`: enables the given trace tag (for debugging).
 - `-v`: verbose mode, enable all standard trace messages.
+
+The following options impact how reference files are parsed:
+- `--binder-fresh`: binders generate fresh variables.
+- `--normalize-num`: treat numeral literals as syntax sugar for (integral) rational literals.
+- `--no-normalize-dec`: do not treat decimal literals as syntax sugar for rational literals.
+- `--no-normalize-hex`: do not treat hexadecimal literals as syntax sugar for binary literals.
+- `--no-parse-let`: do not treat `let` as a builtin symbol for specifying terms having shared subterms.
 
 ## Full syntax for Eunoia commands
 
@@ -1751,7 +1757,7 @@ The following signature can be used to define operators that are not required to
 
 ; An arbitrary deterministic comparison of terms. Returns true if a > b based
 ; on this ordering.
-(define eo::com ((T Type :implicit) (U Type :implicit) (a T) (b U))
+(define eo::cmp ((T Type :implicit) (U Type :implicit) (a T) (b U))
   (eo::is_neg (eo::add (eo::hash b) (eo::neg (eo::hash a)))))
 
 ```

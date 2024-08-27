@@ -5,7 +5,7 @@
 
 (declare-const = (-> (! Type :var A :implicit) A A Bool))
 (declare-consts <numeral> Int)
-(declare-consts <rational> Real)
+(declare-consts <decimal> Real)
 
 (assume @p0 (= (+ 1.3 1.5) 2.8))
 (assume @p1 (= (+ 1 1) 2))

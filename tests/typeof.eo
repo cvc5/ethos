@@ -4,7 +4,7 @@
 (declare-consts <numeral> Int)
 
 (declare-type Real ())
-(declare-consts <rational> Real)
+(declare-consts <decimal> Real)
 
 (declare-const to_real (-> Int Real))
 (declare-const not (-> Bool Bool))
