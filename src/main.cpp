@@ -161,7 +161,7 @@ int main( int argc, char* argv[] )
       EO_FATAL() << "Error: no input specified.";
     }
     // parse from std::cin.
-    Parser p(s, false);
+    Parser p(s, false, false);
     p.setStreamInput(std::cin);
     // parse commands until finished
     while (p.parseNextCommand())

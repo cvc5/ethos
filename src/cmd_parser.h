@@ -27,6 +27,7 @@ class CmdParser
   CmdParser(Lexer& lex,
             State& state,
             ExprParser& eparser,
+            bool isSignature,
             bool isReference);
   virtual ~CmdParser() {}
   /**
