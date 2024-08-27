@@ -1657,7 +1657,7 @@ We distinguish three kinds of file inputs:
 Their expected syntax is `<eo-command>*`.
 - *Reference files* are files included via the `reference` command.
 Their expected syntax is `<smtlib2-command>*`.
-- *Signature files* are files that given via command line option that do have extension `*.eo`, or those that are included via the command `include`.
+- *Signature files* are files that given via command line option that have extension `*.eo`, or those that are included via the command `include`.
 
 As mentioned, the first two kinds of file inputs take into account options concerning the normalization of terms (e.g. `--normalize-num`), while signature files do not.
 When streaming input to Ethos, we assume the input is being given for a proof file.
