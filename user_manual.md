@@ -244,7 +244,8 @@ Intuitively, `d` should be considered an atomic constant symbol, where `A` and `
 In particular, this means that any computation that pattern matches `d` will not consider it to be a function application.
 We give examples of this later in [ex-substitution](#ex-substitution).
 
-Functions can mix opaque and ordinary arguments. These arguments can be passed to the symbol in the order they are given.
+Functions can have both opaque and ordinary arguments, where the opaque arguments are expected to come first.
+The concatentation of the expected arguments can be passed to the symbol in the order they are given.
 For example:
 ```
 (declare-type Int ())
