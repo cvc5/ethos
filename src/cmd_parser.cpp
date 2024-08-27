@@ -650,7 +650,8 @@ bool CmdParser::parseNextCommand()
       {
         referenceNf = d_eparser.parseExpr();
       }
-      if (!d_state.includeFile(file, isReference, referenceNf))
+      // if not reference, we assume it is a signature
+      if (!d_state.includeFile(file, !isReference, isReference, referenceNf))
       {
         std::stringstream ss;
         ss << "Cannot include file " << file;

@@ -24,7 +24,7 @@ namespace ethos {
 class ExprParser
 {
  public:
-  ExprParser(Lexer& lex, State& state, bool isSignature, bool isReference);
+  ExprParser(Lexer& lex, State& state, bool isSignature);
   virtual ~ExprParser() {}
 
   /** Parses an SMT-LIB term <term> */
