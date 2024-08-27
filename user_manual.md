@@ -481,7 +481,7 @@ The Eunoia language supports associating SMT-LIB version 3.0 syntactic categorie
 When parsing reference files, by default, decimal literals will be treated as syntax sugar for rational literals unless the option `--no-normalize-dec` is enabled.
 Similarly, hexadecimal literals will be treated as syntax sugar for binary literals unless the option `--no-normalize-hex` is enabled.
 Some SMT-LIB logics (e.g. `QF_LRA`) state that numerals should be treated as syntax sugar for rational literals.
-This behavior can be enabled when parsing reference files using the option `--normalize-num`.
+This behavior can be enabled when parsing proofs and reference files using the option `--normalize-num`.
 
 In contrast to SMT-LIB version 2, note that rational values can be specified directly using the syntax `5/11, 2/4, 0/1` and so on.
 Rationals are normalized so that e.g. `2/4` and `1/2` are syntactically equivalent after parsing.
@@ -1536,7 +1536,7 @@ The Ethos supports the following commands for file inclusion:
 
 ## Validation Proofs via Reference Inputs
 
-When the Ethos encounters a command of the form `(reference <string>)`, the checker enables a further set of checks that ensures that all assumptions in proofs correspond to assertions from the reference file.
+When the Ethos encounters a command of the form `(reference <string>)`, the checker enables a further set of checks that ensures that all assumptions in proofs correspond to assertions from the file referenced by the given string.
 
 In particular, when the command `(reference "file.smt2")` is read, the Ethos will parse `file.smt2`.
 The definitions and declaration commands in this file will be treated as normal, that is, they will populate the symbol table of the Ethos as they normally would if they were to appear in an `*.eo` input.
@@ -1640,16 +1640,26 @@ The Ethos command line interface can be invoked by `ethos <option>* <file>` wher
 - `-t <tag>`: enables the given trace tag (for debugging).
 - `-v`: verbose mode, enable all standard trace messages.
 
-The following options impact how reference files are parsed:
+The following options impact how proof files and reference files are parsed only (for details on classifications of files, see [full-syntax](#full-syntax). 
+They do not impact how signature files (*.eo) are parsed:
 - `--binder-fresh`: binders generate fresh variables.
 - `--normalize-num`: treat numeral literals as syntax sugar for (integral) rational literals.
 - `--no-normalize-dec`: do not treat decimal literals as syntax sugar for rational literals.
 - `--no-normalize-hex`: do not treat hexadecimal literals as syntax sugar for binary literals.
-- `--no-parse-let`: do not treat `let` as a builtin symbol for specifying terms having shared subterms.
+- `--no-parse-let`: do not treat `let` as a builtin symbol for specifying a macro.
 
-## Full syntax for Eunoia commands
+## <a name="full-syntax"></a> Full syntax for Eunoia commands
 
-Valid inputs to the Ethos are `<eo-command>*`, where:
+Below defines the syntax accepted by the Ethos parser.
+
+We distinguish three kinds of file inputs:
+- *Proof files* are files that are given via command line option that do *not* have extension `*.eo`.
+Their expected syntax is `<eo-command>*`.
+- *Reference files* are files included via the `reference` command.
+Their expected syntax is `<smtlib2-command>*`.
+- *Signature files* are files that given via command line option that do have extension `*.eo`, or those that are included via the command `include`.
+
+As mentioned, the first two kinds of file inputs take into account options concerning the normalization of terms (e.g. `--normalize-num`), while signature files do not.
 
 ```
 ;;;
@@ -1716,9 +1726,6 @@ Valid inputs to the Ethos are `<eo-command>*`, where:
 <reqs>            ::= :requires ((<term> <term>)*)
 
 ```
-
-Moreover, a valid input for a file included by the Eunoia command `<reference>` is `<smtlib2-command>*`;
-a valid input for a file included by the Eunoia command `<include>` is `<eo-command>*`.
 
 ### <a name="non-core-eval"></a>Definitions of Non-Core Evaluation Operators
 
