@@ -218,12 +218,13 @@ The second annotation indicates that `(eo::is_neg w)` must evaluate to `false`, 
 
 ## <a name="opaque"></a>The :opaque annotation
 
-The attribute `:opaque` can be used to denote that an argument to a function should not be considered a child of that function, but instead intuitively considered to be an index of that function.
+The attribute `:opaque` can be used to denote that a distinguished argument to a function.
+In particular, functions with opaque arguments intuitively can be considered a *family* of functions indexed by their opaque arguments.
 An example of this annotation is the following:
 
 ```
 (declare-type Array (Type Type))
-(declare-const @array_deq_diff
+(declare-const @array_diff
    (-> (! Type :var T :implicit) (! Type :var U :implicit)
    (! (Array T U) :opaque)
    (! (Array T U) :opaque)
@@ -232,16 +233,16 @@ An example of this annotation is the following:
 (declare-type Int ())
 (declare-const A (Array Int Int))
 (declare-const B (Array Int Int))
-(define d () (@array_deq_diff A B) :type Int)
+(define d () (@array_diff A B) :type Int)
 ```
 
-The above example declares a function `@array_deq_diff` symbol. 
+The above example declares a function `@array_diff` symbol. 
 This has two implicit type arguments `T` and `U` followed by two opaque array arguments and has `T` as a return type.
 In the remainder of the example, we define `d` to be this function applied to the arrays `A` and `B`, where `d` has type `Int`.
 
 Intuitively, `d` should be considered an atomic constant symbol, where `A` and `B` are its indices and not its children.
 In particular, this means that any computation that pattern matches `d` will not consider it to be a function application.
-We give an example of this later in [ex-substitution](#ex-substitution).
+We give examples of this later in [ex-substitution](#ex-substitution).
 
 Functions can mix opaque and ordinary arguments. These arguments can be passed to the symbol in the order they are given.
 For example:
@@ -1293,8 +1294,24 @@ In particular, this implies that `(f a)` matches any application term, since bot
 Thus, the side condition is written in three cases: either `t` is `x` in which case we return `y`, `t` is a function application in which case we recurse, or otherwise `t` is a constant not equal to `x` and we return itself.
 
 This method will not replace subterms inside of opaque arguments (see [opaque](#opaque)).
-In particular, a term such as `(@array_deq_diff A B)` will remain unchanged for a substitution e.g. replacing `A` with `B`, since `(@array_deq_diff A B)` is not a function application.
-Hence when `t` is `(@array_deq_diff A B)`, we fall into the third case of the method above for any call to `substitute` where `x` is not `(@array_deq_diff A B)` itself.
+In particular, a term such as `(@array_diff A B)` will remain unchanged for a substitution e.g. replacing `A` with `B`, since `(@array_diff A B)` is not a function application.
+Hence when `t` is `(@array_diff A B)`, we fall into the third case of the method above for any call to `substitute` where `x` is not `(@array_diff A B)` itself.
+
+Alternatively, the following version of substitution `substitute-o` pattern matches on applications of `@array_diff` explicitly.
+Calling it with arguments `A`, `B`, and `(@array_diff A B)` would return `(@array_diff B B)`.
+
+```
+(program substitute-o
+  ((T Type) (U Type) (S Type) (x S) (y S) (a (Array T U)) (b (Array T U)) (z U))
+  (S S U) U
+  (
+  ((substitute-o x y x)                 y)
+  ((substitute-o x y (f a))             (_ (substitute-o x y f) (substitute-o x y a)))
+  ((substitute-o x y (@array_diff a b)) (@array_diff (substitute-o x y a) (substitute-o x y b)))
+  ((substitute-o x y z)                 z)
+  )
+)
+```
 
 ### Example: Term evaluator
 
