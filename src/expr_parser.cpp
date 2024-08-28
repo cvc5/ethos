@@ -73,8 +73,8 @@ enum class ParseCtx
   TERM_ANNOTATE_BODY
 };
 
-ExprParser::ExprParser(Lexer& lex, State& state, bool isReference)
-    : d_lex(lex), d_state(state), d_isReference(isReference)
+ExprParser::ExprParser(Lexer& lex, State& state, bool isSignature)
+    : d_lex(lex), d_state(state), d_isSignature(isSignature)
 {
   d_strToAttr[":var"] = Attr::VAR;
   d_strToAttr[":implicit"] = Attr::IMPLICIT;
@@ -213,8 +213,8 @@ Expr ExprParser::parseExpr()
                   if (ck==Attr::BINDER)
                   {
                     nscopes = 1;
-                    // we always do lookups if not parsing reference
-                    bool isLookup = !d_isReference || !d_state.getOptions().d_binderFresh;
+                    // we always do lookups if parsing signature
+                    bool isLookup = d_isSignature || !d_state.getOptions().d_binderFresh;
                     d_state.pushScope();
                     std::vector<Expr> vs = parseAndBindSortedVarList(isLookup);
                     if (vs.empty())
@@ -284,8 +284,8 @@ Expr ExprParser::parseExpr()
       break;
       case Token::INTEGER_LITERAL:
       {
-        // normalize to rational if reference and option is set
-        if (d_isReference && d_state.getOptions().d_normalizeNumeral)
+        // normalize to rational if not signature and option is set
+        if (!d_isSignature && d_state.getOptions().d_normalizeNumeral)
         {
           Rational r(d_lex.tokenStr());
           ret = d_state.mkLiteral(Kind::RATIONAL, r.toString());
@@ -298,8 +298,8 @@ Expr ExprParser::parseExpr()
       break;
       case Token::DECIMAL_LITERAL:
       {
-        // normalize to rational if reference and option is set
-        if (d_isReference && d_state.getOptions().d_normalizeDecimal)
+        // normalize to rational if not signature and option is set
+        if (!d_isSignature && d_state.getOptions().d_normalizeDecimal)
         {
           // normalize from decimal
           Rational r = Rational::fromDecimal(d_lex.tokenStr());
@@ -332,8 +332,8 @@ Expr ExprParser::parseExpr()
       {
         std::string hexStr = d_lex.tokenStr();
         hexStr = hexStr.substr(2);
-        // normalize to binary if reference and option is set
-        if (d_isReference && d_state.getOptions().d_normalizeHexadecimal)
+        // normalize to binary if not signature and option is set
+        if (!d_isSignature && d_state.getOptions().d_normalizeHexadecimal)
         {
           // normalize from hexadecimal
           BitVector bv(hexStr, 16);

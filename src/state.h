@@ -67,9 +67,9 @@ class State
   /** Pop assumption scope */
   void popAssumptionScope();
   /** include file, if not already done, return false if error */
-  bool includeFile(const std::string& s);
+  bool includeFile(const std::string& s, bool isSignature);
   /** include file, possibly as a reference */
-  bool includeFile(const std::string& s, bool isReference, const Expr& referenceNf);
+  bool includeFile(const std::string& s, bool isSignature, bool isReference, const Expr& referenceNf);
   /** add assumption */
   bool addAssumption(const Expr& a);
   /** add reference assert */

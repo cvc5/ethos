@@ -197,11 +197,11 @@ void State::popAssumptionScope()
   // pop the parsing scope
   popScope();
 }
-bool State::includeFile(const std::string& s)
+bool State::includeFile(const std::string& s, bool isSignature)
 {
-  return includeFile(s, false, d_null);
+  return includeFile(s, isSignature, false, d_null);
 }
-bool State::includeFile(const std::string& s, bool isReference, const Expr& referenceNf)
+bool State::includeFile(const std::string& s, bool isSignature, bool isReference, const Expr& referenceNf)
 {
   Filepath inputPath;
   Filepath file(s);
@@ -237,7 +237,7 @@ bool State::includeFile(const std::string& s, bool isReference, const Expr& refe
   }
   Trace("state") << "Include " << inputPath << std::endl;
   Assert (getAssumptionLevel()==0);
-  Parser p(*this, isReference);
+  Parser p(*this, isSignature, isReference);
   p.setFileInput(inputPath.getRawPath());
   bool parsedCommand;
   do

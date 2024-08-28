@@ -161,7 +161,8 @@ int main( int argc, char* argv[] )
       EO_FATAL() << "Error: no input specified.";
     }
     // parse from std::cin.
-    Parser p(s, false);
+    // we assume this is a proof (not signature, not reference)
+    Parser p(s, false, false);
     p.setStreamInput(std::cin);
     // parse commands until finished
     while (p.parseNextCommand())
@@ -170,8 +171,10 @@ int main( int argc, char* argv[] )
   }
   else
   {
+    // whether it is a signature is determined by file extension *.eo.
+    bool isSignature = (file.substr(file.size()-3)==".eo");
     // include the file
-    if (!s.includeFile(file))
+    if (!s.includeFile(file, isSignature))
     {
       EO_FATAL() << "Error: cannot include file " << file;
     }
