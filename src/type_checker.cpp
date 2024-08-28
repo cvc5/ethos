@@ -238,6 +238,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
     case Kind::ABSTRACT_TYPE:
     case Kind::BOOL_TYPE:
     case Kind::FUNCTION_TYPE:
+    case Kind::QFUNCTION_TYPE:
       return d_state.mkType();
     case Kind::PROOF_TYPE:
     {
@@ -351,7 +352,8 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
   ExprValue* hd = children[0];
   ExprValue* hdType = d_state.lookupType(hd);
   Assert(hdType != nullptr) << "No type for " << Expr(hd);
-  if (hdType->getKind()!=Kind::FUNCTION_TYPE)
+  Kind hk = hdType->getKind();
+  if (hk!=Kind::FUNCTION_TYPE && hk!=Kind::QFUNCTION_TYPE)
   {
     // non-function at head
     if (out)
@@ -376,12 +378,9 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
   for (size_t i=1, nchild=children.size(); i<nchild; i++)
   {
     Assert (children[i]!=nullptr);
-    // if the argument type is (Quote t), then we implicitly upcast
-    // the argument c to (quote c). This is equivalent to matching
-    // c to t directly, hence we take the child itself and not its
-    // type.
+    // if we are a "quote function" type, then we take the argument itself.
     ExprValue* arg;
-    if (hdtypes[i-1]->getKind()==Kind::QUOTE_TYPE)
+    if (hk==Kind::QFUNCTION_TYPE)
     {
       // don't need to evaluate
       arg = children[i];

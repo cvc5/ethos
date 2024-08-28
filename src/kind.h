@@ -23,10 +23,11 @@ enum class Kind
   // types
   TYPE,
   FUNCTION_TYPE,
+  QFUNCTION_TYPE, // quote arrow
   PROOF_TYPE,
   ABSTRACT_TYPE,
   BOOL_TYPE,
-  QUOTE_TYPE,
+  QUOTE_TYPE, // an argument marked :var, temporary during parsing
   OPAQUE_TYPE, // an argument marked :opaque, temporary during parsing
   
   // terms

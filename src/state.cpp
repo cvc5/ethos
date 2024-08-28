@@ -444,15 +444,22 @@ Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool 
   for (size_t i=0, nargs = args.size(); i<nargs; i++)
   {
     Expr a = args[(nargs-1)-i];
+    Kind ak = a.getKind();
     // process arguments
-    if (a.getKind() == Kind::EVAL_REQUIRES)
+    if (ak == Kind::EVAL_REQUIRES)
     {
       curr = mkRequires(a[0], a[1], curr);
       a = a[2];
+      ak = a.getKind();
+    }
+    Kind fk = Kind::FUNCTION_TYPE;
+    if (ak==Kind::QUOTE_TYPE)
+    {
+      fk = Kind::QFUNCTION_TYPE;
+      a = a[0];
     }
     // append the function
-    curr = Expr(
-        mkExprInternal(Kind::FUNCTION_TYPE, {a.getValue(), curr.getValue()}));
+    curr = Expr(mkExprInternal(fk, {a.getValue(), curr.getValue()}));
   }
   return curr;
 }
