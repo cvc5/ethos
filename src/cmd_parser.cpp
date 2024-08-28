@@ -408,6 +408,7 @@ bool CmdParser::parseNextCommand()
       // make the overall type
       if (!argTypes.empty())
       {
+        // issue: don't flatten which means that Quote is not processed.
         ret = d_state.mkFunctionType(argTypes, ret, false);
       }
       d_state.popScope();
