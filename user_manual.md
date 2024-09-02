@@ -81,10 +81,8 @@ In the following sections, we describe these features in more detail. A full syn
 In Eunoia, as in SMT-LIB version 3.0, a common BNF is used to specify _terms_ (expressions denoting values), _types_ (expressions denoting sets of values) and _kinds_ (expressions denoting sets of types).
 In this document, unless specified otherwise, we will use _term_ more generally to refer to a value term, a type, or a kind
 Terms are composed of applications, built-in operators of the language (e.g., for performing computations, see [computation](#computation)), literals (see [literals](#literals)), and three kinds of atomic terms (_constants_, _variables_, and _parameters_) which we describe in the following.
-A _function (symbol)_ is an atomic term having a function type, that is, a type of the form `(->... ...)`.
-The standard `let` binder can be used for specifying terms that contain common subterms,
-which is treated as syntax sugar.
-<!--CT This is to be discussed further since I am not clear that it is really treated as syntactic sugar. -->
+A _function (symbol)_ is an atomic term having a function type, that is, a type of the form `(-> ... ...)`.
+The builtin `eo::define` binder can be used for specifying terms that contain common subterms analogously to `let` binders in other languages.
 
 The core language of Eunoia does not have any builtin SMT-LIB theories.
 Instead, SMT-LIB theories may defined as Eunoia signatures.
@@ -111,7 +109,7 @@ The following commands are supported for declaring and defining types and terms.
   <!-- Added-->
   This is a derived command as it is a shorthand for
   `(declare-const <symbol> Type)` if `<type>*` is empty, and for
-  `(declare-const <symbol> (-><type>* Type))` otherwise.
+  `(declare-const <symbol> (-> <type>* Type))` otherwise.
 
 <!--CT Do we really need `define-type`? -->
 - `(define-type <symbol> (<type>*) <type>)` defines `<symbol>` to be a lambda term whose type is given by the argument and return types.
@@ -129,7 +127,7 @@ The Eunoia language contains further commands for declaring symbols that are not
 
 - `(declare-parameterized-const <symbol> (<typed-param>*) <type> <attr>*)` declares a globally scoped variable named `<symbol>` whose type is `<type>`.
 
-> __Note:__ Variables are internally treated the same as constants by Ethos. However, but are provided as a separate category, e.g., for user signatures that wish to distinguish universally quantified variables from free constants. They also have a relationship with user-defined binders, see [binders](#binders), and can be accessed via the builtin operator `eo::var` (see [computation](#computation)).
+> __Note:__ Variables are internally treated the same as constants by Ethos. However, they are provided as a separate category, e.g., for user signatures that wish to distinguish universally quantified variables from free constants. They also have a relationship with user-defined binders, see [binders](#binders), and can be accessed via the builtin operator `eo::var` (see [computation](#computation)).
 
 > __Note:__ Symbol overloading is supported, see [overloading](#overloading).
 
@@ -143,7 +141,7 @@ The Eunoia language contains further commands for declaring symbols that are not
 (declare-const P (-> Int Bool))
 ```
 
-Since Ethos does not assume any builtin definitions of SMT-LIB theories, definitions of standard symbols (such as `Int`) may be provided in Eunoia signatures<!--CT How are they provided? And aren't integers builtin? -->. In the above example, symbol `c` is declared to be a constant (0-ary) symbol of type `Int`. The symbol `f` is a function taking two integers and returning an integer.
+Since Ethos does not assume any builtin definitions of SMT-LIB theories, definitions of standard symbols (such as `Int`) may be provided in Eunoia signatures<!--CT I bet this point is going to be confusing to users. -->. In the above example, symbol `c` is declared to be a constant (0-ary) symbol of type `Int`. The symbol `f` is a function taking two integers and returning an integer.
 
 Observe that despite using different syntax in their declarations, the types of `f` and `g` in the above example are identical as `->` is a right-associative binary type constructor.
 
@@ -152,7 +150,7 @@ Observe that despite using different syntax in their declarations, the types of 
 #### Example: Basic Definitions
 
 ```smt
-(declare-const not (->Bool Bool))
+(declare-const not (-> Bool Bool))
 (define id ((x Bool)) x)
 (define notId ((x Int)) (not (id x)))
 ```
@@ -163,9 +161,8 @@ Since `define` commands are treated as (hygienic) macro definitions, in this exa
 Furthermore, `notId` is mapped to the lambda term `(lambda ((x Bool)) (not x))`.
 In other words, the following sequence of commands is equivalent to the one above after parsing:
 
-<!--CT This is literally identical to the previous list of commands -->
 ```smt
-(declare-const not (->Bool Bool))
+(declare-const not (-> Bool Bool))
 (define id ((x Bool)) x)
 (define notId ((x Int)) (not x))
 ```
@@ -183,7 +180,7 @@ Eunoia supports the declaration of polymorphic types, that is, types depending o
 (declare-const b (IntArray Bool))
 ```
 
-In the above example, we declare and integer type constructor of kind `Type` and array type constructor of kind is `(->Type Type Type)`.
+In the above example, we declare and integer type constructor of kind `Type` and array type constructor of kind is `(-> Type Type Type)`.
 
 <!-- We should say something about the defines above -->
 
@@ -191,7 +188,7 @@ Note the following declarations generate terms of the same type:
 
 ```smt
 (declare-type Array_v2 (Type Type))
-(declare-const Array_v3 (->Type Type Type))
+(declare-const Array_v3 (-> Type Type Type))
 ```
 
 <a name="literals"></a>
@@ -203,7 +200,7 @@ To type check terms, `define` statements can be annotated with `:type <term>`.
 In particular:
 
 ```smt
-(declare-const not (->Bool Bool))
+(declare-const not (-> Bool Bool))
 (define notTrue () (not true) :type Bool)
 ```
 
@@ -215,7 +212,7 @@ The Eunoia language uses the SMT-LIB version 3.0 attributes `:var <symbol>` and 
 
 ```smt
 (declare-type Int ())
-(declare-const eq (->(! Type :var T) T T Bool))
+(declare-const eq (-> (! Type :var T) T T Bool))
 (define P ((x Int) (y Int)) (eq Int x y))
 ```
 
@@ -225,7 +222,7 @@ In contrast, the example below declares a predicate `=` where the type of the ar
 
 ```smt
 (declare-type Int ())
-(declare-const = (->(! Type :var T :implicit) T T Bool))
+(declare-const = (-> (! Type :var T :implicit) T T Bool))
 (define P ((x Int) (y Int)) (= x y))
 ```
 
@@ -236,10 +233,10 @@ We call `T` in the above definitions a _parameter_. The free parameters of the r
 
 ```smt
 (declare-type Int ())
-(declare-const f (->(! Type :var T :implicit) Int T))
+(declare-const f (-> (! Type :var T :implicit) Int T))
 ```
 
-> __Note:__ Internally, `(! T :var t)` is syntax sugar for the type `(Quote t)` where `t` is a parameter of type `T` and `Quote` is a distinguished type of kind `(->(! Type :var U) U Type)`. When type checking applications of functions of type `(->(Quote t) S)`, the parameter `t` is bound to the argument the function is applied to.
+> __Note:__ Internally, `(! T :var t)` is syntax sugar for the type `(Quote t)` where `t` is a parameter of type `T` and `Quote` is a distinguished type of kind `(-> (! Type :var U) U Type)`. When type checking applications of functions of type `(-> (Quote t) S)`, the parameter `t` is bound to the argument the function is applied to.
 
 > __Note:__ Internally, `(! T :implicit)` drops `T` from the list of arguments of the function type we are defining.
 
@@ -249,7 +246,7 @@ Arguments to functions can also be annotated with the attribute `:requires (<ter
 
 ```smt
 (declare-type Int ())
-(declare-const BitVec (->(! Int :var w :requires ((eo::is_neg w) false)) Type))
+(declare-const BitVec (-> (! Int :var w :requires ((eo::is_neg w) false)) Type))
 ```
 The above declares the integer type `Int` and a bitvector type constructor `BitVec` that expects a _non-negative integer_ `w`.
 In detail, the first argument of `BitVec` is supposed to be an `Int` value and is named `w` via the `:var` attribute.
@@ -258,7 +255,7 @@ Symbol `eo::is_neg` denotes a builtin function that returns `true` if its argume
 <!-- This needs discussion, what is the input type of `eo::is_neg`? How can `eo::is_neg` accept a value of a user-defined type `Int` given that it is builtin?  -->
 
 > __Note:__ Internally, `(! T :requires (t s))` is syntax sugar for the type term `(eo::requires t s T)` where `eo::requires` is an operator that evaluates to its third argument if and only if its first two arguments are _computationally_ equivalent (details on this operator are given in [computation](#computation))<!--CT This is non-ideal from a language design point of view as it makes the semantic of Eunoia non-compositional: the meaning of `eo::requires` applications changes depending on whether there are in positive or negative positions. -->.
-Furthermore, the function type `(->(eo::requires t s T) S)` is treated as `(->T (eo::requires t s S))`. Ethos rewrites all types of the former form to the latter.
+Furthermore, the function type `(-> (eo::requires t s T) S)` is treated as `(-> T (eo::requires t s S))`. Ethos rewrites all types of the former form to the latter.
 
 <a name="attributes"></a>
 
@@ -268,7 +265,7 @@ The Eunoia language supports term annotations on declared constants, which for i
 
 - `:right-assoc` (resp. `:left-assoc`) denoting that application of the declared binary constant to more than two terms are to be treated as right (resp. left) associative,
 
-- `:right-assoc-nil <symbol>` (resp. `:left-assoc-nil <symbol>`) denoting that applications of the declared binary constant to one or more terms are to be treated as right (resp. left) associative, with the given `<symbol>` used as an additional rightmost (resp. leftmost) argument.
+- `:right-assoc-nil <term>` (resp. `:left-assoc-nil <term>`) denoting that applications of the declared binary constant to one or more terms are to be treated as right (resp. left) associative, with the given `<term>` used as an additional rightmost (resp. leftmost) argument.
 <!--CT Do we really want to restrict the nil element to be a symbol, as opposed to a term? -->
 
 - `:chainable <symbol>` denoting that the arguments of the declared binary constant are chainable using the (binary) operator given by `<symbol>`,
@@ -286,7 +283,7 @@ A parameter in a function symbol declaration may be marked with the following at
 #### Right/Left associative
 
 ```smt
-(declare-const or (->Bool Bool Bool) :right-assoc)
+(declare-const or (-> Bool Bool Bool) :right-assoc)
 (define P ((x Bool) (y Bool) (z Bool)) (or x y z))
 (define Q ((x Bool) (y Bool)) (or x y))
 (define R ((x Bool)) (or x))
@@ -294,18 +291,19 @@ A parameter in a function symbol declaration may be marked with the following at
 
 In the above example, `(or x y z)` is treated as `(or x (or y z))`.
 The term `(or x y)` is not impacted by the annotation `:right-assoc` since it has fewer than 3 children.
-The term `(or x)` is also not impacted by the annotation, and denotes the _partial application_ of `or` to `x`, whose type is `(->Bool Bool)`.
+The term `(or x)` is also not impacted by the annotation, and denotes the _partial application_ of `or` to `x`, whose type is `(-> Bool Bool)`.
 
 Left associative can be defined analogously:
 
 ```smt
-(declare-const and (->Bool Bool Bool) :left-assoc)
+(declare-const and (-> Bool Bool Bool) :left-assoc)
 (define P ((x Bool) (y Bool) (z Bool)) (and x y z))
 ```
 
 In the above example, `(and x y z)` is treated as `(and (and x y) z)`.
 
-Note that the type for right and left associative operators is typically `(->T T T)` for some type `T`. <!--CT Added. Is this the case in Ethos? -->More generally, a constant declared with the `:right-associative` annotation must have a type of the form `(->T1 T2 T2)` for some types `T1` and `T2`. Similarly, a constant declared with the `:left-associative` annotation must have a type of the form `(->T1 T2 T1)`.
+Note that the type for right and left associative operators is typically `(-> T T T)` for some type `T`.
+More generally, a constant declared with the `:right-associative` annotation must have a type of the form `(-> T1 T2 T2)` for some types `T1` and `T2`. Similarly, a constant declared with the `:left-associative` annotation must have a type of the form `(-> T1 T2 T1)`.
 
 <a name="assoc-nil"></a>
 
@@ -314,7 +312,7 @@ Note that the type for right and left associative operators is typically `(->T T
 Eunoia supports a variant of the aforementioned functionality where a (ground) nil terminator is provided.
 
 ```smt
-(declare-const or (->Bool Bool Bool) :right-assoc-nil false)
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (define P ((x Bool) (y Bool) (z Bool)) (or x y z))
 (define Q ((x Bool) (y Bool)) (or x y))
 (define R ((x Bool) (y Bool)) (or x))
@@ -332,12 +330,15 @@ The advantage of right or left associative operators with nil terminators is tha
 In particular, note the following example:
 
 ```smt
-(declare-const or (->Bool Bool Bool) :right-assoc-nil false)
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (define P ((x Bool) (y Bool) (z Bool)) (or x (or y z)))
 (define Q ((x Bool) (y Bool) (z Bool)) (or x y z))
 ```
 
-<!--CT I do not think this is a cogent example since `(or x (or y z)))` and `(or x (or y z)))` are semantically equivalent anyway given that `false` is a neutral element for `or`. The difference would be clearer with a nil element that was not also a neutral element. 
+<!--CT We should stress that we get to different AST for the P and Q above.
+-->
+
+ <!--CT We should point out that the nil element should be a left and right identity of the assoc symbol, otherwise non-intuitive results occur. 
 
 For instance, with
 (declare-const + (-> Int Int Int) :right-assoc-nil 1)
@@ -353,7 +354,7 @@ In contrast, marking `or` with `:right-assoc-nil false` leads to the distinct te
 
 Right and left associative operators with nil terminators also have a relationship with list terms (as we will see in the following section), and in computational operators.
 
-The type for right and left associative operators with nil terminators is typically `(->T T T)` for some `T`, where their nil terminator has type `T`. <!--CT Added. Is it the case in Ethos? -->More generally, a constant declared with the `:right-associative-nil` annotation must have a type of the form `(->T1 T2 T2)` where `T2` is the type of the nil constant, for some types `T1` and `T2`. Similarly, a constant declared with the `:left-associative` annotation must have a type of the form `(->T1 T2 T1)` where `T1` is the type of the nil constant.
+The type for right and left associative operators with nil terminators is typically `(-> T T T)` for some `T`, where their nil terminator has type `T`. <!--CT Added.--> More generally, a constant declared with the `:right-associative-nil` annotation must have a type of the form `(-> T1 T2 T2)` where `T2` is the type of the nil constant, for some types `T1` and `T2`. Similarly, a constant declared with the `:left-associative` annotation must have a type of the form `(-> T1 T2 T1)` where `T1` is the type of the nil constant.
 
 The nil terminator of a right associative operator may involve previously declared symbols in the signature.
 For example:
@@ -361,7 +362,7 @@ For example:
 ```smt
 (declare-type RegLan ())
 (declare-const re.all RegLan)
-(declare-const re.inter (->RegLan RegLan RegLan) :right-assoc-nil re.all)
+(declare-const re.inter (-> RegLan RegLan RegLan) :right-assoc-nil re.all)
 ```
 
 This example defines the constant `re.all` (in SMT-LIB, this is the regular expression generating the set of all strings)
@@ -374,7 +375,7 @@ A possible declaration is the following:
 
 ```smt
 (declare-const bvor
-    (->(! Int :var m :implicit) (BitVec m) (BitVec m) (BitVec m))
+    (-> (! Int :var m :implicit) (BitVec m) (BitVec m) (BitVec m))
     :right-assoc-nil ???
 )
 ```
@@ -389,7 +390,7 @@ Atomic terms can be marked with the annotation `:list`.<!--CT Do we really need 
 This annotation marks that the term should be treated as a list of arguments when it occurs as an argument of a right (left) associative operator with a nil element. Note the following example:
 
 ```smt
-(declare-const or (->Bool Bool Bool) :right-assoc-nil false)
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (define P ((x Bool) (y Bool)) (or x y))
 (define Q ((x Bool) (y Bool :list)) (or x y))
 (declare-const a Bool)
@@ -420,7 +421,7 @@ if `ti` is marked with `:list`.
 Examples of this desugaring are given below.
 
 ```smt
-(declare-const or (->Bool Bool Bool) :right-assoc-nil false)
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (define test ((x Bool) (y Bool) (z Bool :list) (w Bool :list))
     (and
         (or x y)        ; (or x (or y false))
@@ -439,7 +440,7 @@ In contrast, `(or x)` denotes the `or` whose children are `x` and `false`.
 
 ```smt
 (declare-type Int ())
-(declare-const and (->Bool Bool Bool) :right-assoc)
+(declare-const and (-> Bool Bool Bool) :right-assoc)
 (declare-const >= (-> Int Int Bool) :chainable)
 (define ((x Int) (y Int) (z Int)) (>= x y z))
 (define Q ((x Int) (y Int)) (>= x y))
@@ -448,24 +449,24 @@ In contrast, `(or x)` denotes the `or` whose children are `x` and `false`.
 In the above example, `(>= x y z w)` is syntax sugar for `(and (>= x y) (>= y z))`,
 whereas the term `(>= x y)` is not impacted by the annotation `:chainable` since it has fewer than 3 children.
 
-Note that the type for chainable operators is typically `(->T T S)` for some types `T` and `S`,
-where the type of its chaining operator is `(->S S S)`, and that operator has been as variadic via some attribute (e.g. `:right-assoc`).
+Note that the type for chainable operators is typically `(-> T T S)` for some types `T` and `S`,
+where the type of its chaining operator is `(-> S S S)`, and that operator has been as variadic via some attribute (e.g. `:right-assoc`).
 
 #### Pairwise
 
 ```smt
 (declare-type Int ())
-(declare-const and (->Bool Bool Bool) :right-assoc)
-(declare-const distinct (->(! Type :var T :implicit) T T Bool)
+(declare-const and (-> Bool Bool Bool) :right-assoc)
+(declare-const distinct (-> (! Type :var T :implicit) T T Bool)
  :pairwise and)
 (define P ((x Int) (y Int) (z Int)) (distinct x y z))
 ```
 
 In the above example, `(distinct x y z)` is treated as `(and (distinct x y) (distinct x z) (distinct y z))`.
 
-Note that the type for chainable operators is typically `(->T T S)` for some types `T` and `S`,
-where the type of its pairwise operator is `(->S S S)`,
-and that operator has been as variadic via some attribute<!--CT I do not understand this sentence -->.
+Note that the type for pairwise operators is typically `(-> T T S)` for some types `T` and `S`,
+where the type of its pairwise operator is `(-> S S S)`<!--CT This could be generalized, right? -->,
+and that operator has been marked as variadic via some attribute.
 
 <a name="binders"></a>
 
@@ -477,9 +478,9 @@ and that operator has been as variadic via some attribute<!--CT I do not underst
 (declare-type Int ())
 (declare-type @List ())
 (declare-const @nil @List)
-(declare-const @cons (->(! Type :var T :implicit) T @List @List)
+(declare-const @cons (-> (! Type :var T :implicit) T @List @List)
  :right-assoc-nil @nil)
-(declare-const forall (->@List Bool Bool) :binder @cons)
+(declare-const forall (-> @List Bool Bool) :binder @cons)
 (declare-const P (-> Int Bool))
 
 (define Q1 () (forall ((x Int)) (P x)))
@@ -836,8 +837,8 @@ We say that a term is an `f`-list with children `t1 ... tn` if it is of the form
 The terms on both sides of the given evaluation are written in their form prior to desugaring, where recall that e.g. `(or a)` after desugaring is `(or a false)` and `(or a b)` is `(or a (or b false))`.
 
 ```smt
-(declare-const or (->Bool Bool Bool) :right-assoc-nil false)
-(declare-const and (->Bool Bool Bool) :right-assoc-nil true)
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+(declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
 (declare-const a Bool)
 (declare-const b Bool)
 
@@ -968,7 +969,7 @@ we declare bitvector-or (`bvor` in SMT-LIB) where its nil terminator is bitvecto
 (define bvzero ((m Int)) (eo::to_bin m 0))    ; returns the bitvector value zero for bitwidth m
 
 (declare-parameterized-const bvor ((m Int))   ; bvor is parameterized by a bitwidth m
-    (->(BitVec m) (BitVec m) (BitVec m))
+    (-> (BitVec m) (BitVec m) (BitVec m))
     :right-assoc-nil (bvzero m)               ; its nil terminator depends on m
 )
 ```
@@ -979,7 +980,7 @@ The provided parameters are in scope for the remainder of the command, which mea
 Here, we specify `(bvzero m)` as the nil terminator for `bvor`.
 
 The parameter list of a parameterized constant are treated as _implicit_ arguments.
-In this example, the type of `bvor` is `(->(! Int :var m :implicit) (BitVec m) (BitVec m) (BitVec m))`.
+In this example, the type of `bvor` is `(-> (! Int :var m :implicit) (BitVec m) (BitVec m) (BitVec m))`.
 
 If a function `f` is given a nil terminator with free parameters, this impacts:
 
@@ -998,7 +999,7 @@ Constructing `(f t1 ... tn)` then proceeds inductively via the same procedure de
 Examples of this are given in the following, assuming the declaration of `bvor` above.
 
 ```smt
-(declare-const p (->Bool Bool))
+(declare-const p (-> Bool Bool))
 (define test ((x (BitVec 4)) (y (BitVec 4)) (n Int) (z (BitVec n)) (w (BitVec n)) (u (BitVec n) :list))
     ...
     (bvor x y)        ; (bvor x (bvor y #b0000))
@@ -1094,9 +1095,9 @@ If a symbol is unapplied, then the Ethos will interpret it as the first declared
 > __Note:__ When multiple variants are possible, the Ethos will use the first one and will _not_ throw a warning. This behavior permits the user to order the declarations in the order of their precedence. For example, the SMT-LIB operator for unary negation should be declared _before_ the declaration for subtraction. If this were done in the opposite order, then (- t) would be interpreted as the partial application of subtraction to the term t.
 
 Furthermore, the Ethos supports an operator `eo::as` for disambiguation whose syntax is `(eo::as <term><type>)`.
-A term of the form `(eo::as t (->T1 ... Tn T))` evaluates to term `s` only if `(s k1 ... kn)` has type `T` where `k1 ... kn` are variables of type `T1 ... Tn`, and `t` and `s` are atomic terms with the same name.
+A term of the form `(eo::as t (-> T1 ... Tn T))` evaluates to term `s` only if `(s k1 ... kn)` has type `T` where `k1 ... kn` are variables of type `T1 ... Tn`, and `t` and `s` are atomic terms with the same name.
 If multiple such terms `s` exist, then the most recent one is returned.
-Otherwise, the term `(eo::as t (->T1 ... Tn T))` is unevaluated.
+Otherwise, the term `(eo::as t (-> T1 ... Tn T))` is unevaluated.
 For example, `(eo::as - (-> Int Int Int))` evaluates to the second declared symbol in the example above.
 
 ## Declaring Proof Rules
@@ -1145,12 +1146,12 @@ If these criteria are met, then the proof rule proves the result of applying `S`
 
 A proof rule is only well defined if the free parameters of the requirements and conclusion term are also contained in the arguments and premises.
 
-> __Note:__ Internally, proofs can be seen as terms whose type is given by a distinguished `Proof` type. In particular, `Proof` is a type whose kind is `(->Bool Type)`, where the argument of this type is the formula that is proven. For example, `(Proof (> x 0))` is the proof that `x` is greater than zero. By design, the user cannot declare terms involving type `Proof`. Instead, proofs can only be constructed via the commands `assume` and `step` as we describe in [proofs](#proofs).
+> __Note:__ Internally, proofs can be seen as terms whose type is given by a distinguished `Proof` type. In particular, `Proof` is a type whose kind is `(-> Bool Type)`, where the argument of this type is the formula that is proven. For example, `(Proof (> x 0))` is the proof that `x` is greater than zero. By design, the user cannot declare terms involving type `Proof`. Instead, proofs can only be constructed via the commands `assume` and `step` as we describe in [proofs](#proofs).
 
 ### Example rule: Reflexivity of equality
 
 ```smt
-(declare-const = (->(! Type :var T :implicit) T T Bool))
+(declare-const = (-> (! Type :var T :implicit) T T Bool))
 (declare-rule refl ((T Type) (t T))
     :premises ()
     :args (t)
@@ -1166,7 +1167,7 @@ Notice that the type `T` is a part of the parameter list and not explicitly prov
 ### Example rule: Symmetry of Equality
 
 ```smt
-(declare-const = (->(! Type :var T :implicit) T T Bool))
+(declare-const = (-> (! Type :var T :implicit) T T Bool))
 (declare-rule symm ((T Type) (t T) (s T))
     :premises ((= t s))
     :conclusion (= s t)
@@ -1198,7 +1199,7 @@ It requires that the left hand side of this inequality `x` is a negative numeral
 A rule can take an arbitrary number of premises via the syntax `:premise-list <term><term>`. For example:
 
 ```smt
-(declare-const and (->Bool Bool Bool) :right-assoc-nil true)
+(declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
 (declare-rule and-intro ((F Bool))
     :premise-list F and
     :conclusion F)
@@ -1228,7 +1229,7 @@ where
 ### Example proof: symmetry of equality
 
 ```smt
-(declare-const = (->(! Type :var T :implicit) T T Bool))
+(declare-const = (-> (! Type :var T :implicit) T T Bool))
 (declare-rule symm ((T Type) (t T) (s T))
     :premises ((= t s))
     :conclusion (= s t)
@@ -1247,7 +1248,7 @@ However, the former can be seen as introducing a local assumption that is consum
 We give an example of this in following.
 
 ```smt
-(declare-const => (->Bool Bool Bool))
+(declare-const => (-> Bool Bool Bool))
 (declare-rule implies-intro ((F Bool) (G Bool))
   :assumption F
   :premises (G)
@@ -1324,7 +1325,7 @@ Furthermore, if `si` contains any computational operators (i.e. those with `eo::
 The following program (recursively) computes whether a formula `l` is contained as the direct child of an application of `or`:
 
 ```smt
-(declare-const or (->Bool Bool Bool) :right-assoc-nil false)
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (program contains
     ((l Bool) (x Bool) (xs Bool :list))
     (Bool Bool) Bool
@@ -1354,7 +1355,7 @@ Computing the latter is significantly faster in practice in the Ethos.
 ### Example: Finding a child in an `or` term (incorrect version)
 
 ```smt
-(declare-const or (->Bool Bool Bool) :right-assoc-nil false)
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (program contains
     ((l Bool) (x Bool) (xs Bool))
     (Bool Bool) Bool
@@ -1374,7 +1375,7 @@ However, `(contains (or a b c) a)` does not evaluate in this example.
 ### Example: Finding a child in an `or` term (incorrect version 2)
 
 ```smt
-(declare-const or (->Bool Bool Bool) :right-assoc-nil false)
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (program contains
     ((l Bool) (x Bool :list) (xs Bool :list))
     (Bool Bool) Bool
@@ -1395,7 +1396,7 @@ Thus, the third case of the program, `(contains (eo::list_concat or x xs) l)`, i
 
 ```smt
 (program substitute
-  ((T Type) (U Type) (S Type) (x S) (y S) (f (->T U)) (a T) (z U))
+  ((T Type) (U Type) (S Type) (x S) (y S) (f (-> T U)) (a T) (z U))
   (S S U) U
   (
   ((substitute x y x)     y)
@@ -1416,7 +1417,7 @@ Thus, the side condition is written in three cases: either `t` is `x` in which c
 ```smt
 (declare-type Int ())
 (declare-consts <numeral> Int)
-(declare-const = (->(! Type :var T :implicit) T T Bool))
+(declare-const = (-> (! Type :var T :implicit) T T Bool))
 (declare-const + (-> Int Int Int))
 (declare-const - (-> Int Int Int))
 (declare-const < (-> Int Int Bool))
@@ -1452,7 +1453,7 @@ The above example recursively evaluates arithmetic terms and predicates accordin
       ((arith.typeunion Real Real) Real)
     )
 )
-(declare-const + (->(! Type :var T :implicit)
+(declare-const + (-> (! Type :var T :implicit)
                      (! Type :var U :implicit)
                      T U (arith.typeunion T U)))
 ```
@@ -1466,9 +1467,9 @@ The return type of `+` invokes this side condition, which conceptually is implem
 ```smt
 (declare-type String ())
 (declare-consts <string> String)
-(declare-const not (->Bool Bool))
-(declare-const or (->Bool Bool Bool) :right-assoc-nil false)
-(declare-const and (->Bool Bool Bool) :right-assoc-nil true)
+(declare-const not (-> Bool Bool))
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+(declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
 
 (program to_drat_lit ((l Bool))
   (Bool) Int
@@ -1556,8 +1557,8 @@ Also, similar to programs, the free parameters of `ri` that occur in the paramet
 
 ```smt
 (declare-type Int ())
-(declare-const = (->(! Type :var T :implicit) T T Bool))
-(declare-const not (->Bool Bool))
+(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-const not (-> Bool Bool))
 (declare-rule symm ((F Bool))
     :premises (F)
     :conclusion
@@ -1577,8 +1578,8 @@ Internally, the semantics of `eo::match` can be seen as an (inlined) program app
 
 ```smt
 (declare-type Int ())
-(declare-const = (->(! Type :var T :implicit) T T Bool))
-(declare-const not (->Bool Bool))
+(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-const not (-> Bool Bool))
 (program matchF ((t1 Int) (t2 Int))
     (Bool) Bool
     (
@@ -1600,8 +1601,8 @@ In more general cases, if the body of the match term contains free variables, th
 
 ```smt
 (declare-type Int ())
-(declare-const = (->(! Type :var T :implicit) T T Bool))
-(declare-const and (->Bool Bool Bool) :left-assoc)
+(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-const and (-> Bool Bool Bool) :left-assoc)
 
 (program mk_trans ((t1 Int) (t2 Int) (t3 Int) (t4 Int) (tail Bool :list))
     (Int Int Bool) Bool
@@ -1660,7 +1661,7 @@ For example:
 (declare-type Int ())
 (declare-type Real ())
 (declare-const / (-> Int Int Real))
-(program normalize ((T Type) (S Type) (f (->S T)) (x S) (a Int) (b Int))
+(program normalize ((T Type) (S Type) (f (-> S T)) (x S) (a Int) (b Int))
    (T) T
    (
      ((normalize (/ a b)) (eo::qdiv a b))
@@ -1694,7 +1695,7 @@ Ground applications of oracle functions are eagerly evaluated by invoking the bi
 ```smt
 (declare-type Int ())
 (declare-consts <numeral> Int)
-(declare-const = (->(! Type :var T :implicit) T T Bool))
+(declare-const = (-> (! Type :var T :implicit) T T Bool))
 (declare-const >= (-> Int Int Bool))
 
 (declare-oracle-fun runIsPrime (Int) Bool ./isPrime)
@@ -1871,12 +1872,12 @@ Proof checking can be seen as a special instance of type checking terms involvin
 The type system of the Ethos can be summarized as follows, where `t : S` are assumed axioms for all atomic terms `t` of type `S`:
 
 ```smt
-f : (->(Quote u) S)  t : T
+f : (-> (Quote u) S)  t : T
 ---------------------------- if u * sigma = t
 (f t) : S * sigma
 
 
-f : (->U S)  t : T
+f : (-> U S)  t : T
 ------------------- if U * sigma = T
 (f t) : S * sigma
 
@@ -1899,7 +1900,7 @@ can be seen as syntax sugar for:
 
 ```smt
 (declare-const s
-    (->(! T1 :var v1 :implicit) ... (! Ti :var vi :implicit)
+    (-> (! T1 :var v1 :implicit) ... (! Ti :var vi :implicit)
         (Proof p1) ... (Proof pn)
         (Quote t1) ... (Quote tm)
         (eo::requires r1 s1 ... (eo::requires rk sk
