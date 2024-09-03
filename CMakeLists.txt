@@ -35,6 +35,10 @@ else()
   message(FATAL_ERROR "Invalid build type '${CMAKE_BUILD_TYPE}'")
 endif()
 
+if(ENABLE_ORACLES)
+  add_definitions(-DEO_ORACLES)
+endif()
+
 enable_testing()
 
 include_directories(src)

@@ -1,6 +1,6 @@
 file(GLOB_RECURSE ethos_SRC CONFIGURE_DEPENDS "*.h" "*.cpp")
 
-if(NOT EO_ORACLES)
+if(NOT ENABLE_ORACLES)
   # Remove run.h and run.cpp from ethos_SRC
   list(FILTER ethos_SRC EXCLUDE REGEX ".*[/\\]run\\.h$")
   list(FILTER ethos_SRC EXCLUDE REGEX ".*[/\\]run\\.cpp$")

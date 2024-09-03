@@ -125,7 +125,7 @@ set(ethos_test_file_list
     implicit-then-var.eo
 )
 
-if(EO_ORACLES)
+if(ENABLE_ORACLES)
   list(APPEND ethos_test_file_list
       oracle-ex.eo
       oracle-ex2.eo
