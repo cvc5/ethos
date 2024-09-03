@@ -39,6 +39,13 @@ class Filepath
    */
   Filepath(const char* rawPath);
 
+#ifdef USE_CPP_FILESYSTEM
+  /**
+   * @param rawPath A C++17 filepath.
+   */
+  Filepath(std::filesystem::path rawPath);
+#endif
+
   ~Filepath();
 
   /**
