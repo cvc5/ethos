@@ -9,6 +9,10 @@ endmacro()
 
 project (ethos_checker)
 
+# >> 2-valued: ON OFF
+#    > for options where we don't need to detect if set by user (default: OFF)
+option(ENABLE_ORACLES "Enable support for Oracles" ON)
+
 set (CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 find_package(GMP REQUIRED)

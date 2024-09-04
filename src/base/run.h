@@ -9,6 +9,8 @@
 #ifndef RUN_H
 #define RUN_H
 
+#ifdef EO_ORACLES
+
 #include <string>
 #include <ostream>
 
@@ -29,4 +31,5 @@ int runFile(const std::string& call, std::ostream& response);
 
 }  // namespace ethos
 
-#endif
+#endif /* EO_ORACLES */
+#endif /* RUN_H */
