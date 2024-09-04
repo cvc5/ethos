@@ -257,6 +257,56 @@ Symbol `eo::is_neg` denotes a builtin function that returns `true` if its argume
 > __Note:__ Internally, `(! T :requires (t s))` is syntax sugar for the type term `(eo::requires t s T)` where `eo::requires` is an operator that evaluates to its third argument if and only if its first two arguments are _computationally_ equivalent (details on this operator are given in [computation](#computation))<!--CT This is non-ideal from a language design point of view as it makes the semantic of Eunoia non-compositional: the meaning of `eo::requires` applications changes depending on whether there are in positive or negative positions. -->.
 Furthermore, the function type `(-> (eo::requires t s T) S)` is treated as `(-> T (eo::requires t s S))`. Ethos rewrites all types of the former form to the latter.
 
+
+<a name="opaque"></a>
+
+### The :opaque annotation
+
+The attribute `:opaque` can be used to denote that a distinguished argument to a function.
+In particular, functions with opaque arguments intuitively can be considered a _family_ of functions indexed by their opaque arguments.
+An example of this annotation is the following:
+
+```smt
+(declare-type Array (Type Type))
+(declare-const @array_diff
+   (-> (! Type :var T :implicit) (! Type :var U :implicit)
+   (! (Array T U) :opaque)
+   (! (Array T U) :opaque)
+   T))
+
+(declare-type Int ())
+(declare-const A (Array Int Int))
+(declare-const B (Array Int Int))
+(define d () (@array_diff A B) :type Int)
+```
+
+The above example declares a function `@array_diff` symbol.
+This has two implicit type arguments `T` and `U` followed by two opaque array arguments and has `T` as a return type.
+In the remainder of the example, we define `d` to be this function applied to the arrays `A` and `B`, where `d` has type `Int`.
+
+Intuitively, `d` should be considered an atomic constant symbol, where `A` and `B` are its indices and not its children.
+In particular, this means that any computation that pattern matches `d` will not consider it to be a function application.
+We give examples of this later in [ex-substitution](#ex-substitution).
+
+Functions can have both opaque and ordinary arguments, where the opaque arguments are expected to come first.
+The concatenation of the expected arguments can be passed to the symbol in the order they are given.
+For example:
+
+```smt
+(declare-type Int ())
+(declare-const @purify_fun (-> (! (-> Int Int) :opaque) Int Int))
+
+(declare-const f (-> Int Int))
+(declare-const a Int)
+(define d () (@purify_fun f a) :type Int)
+```
+
+In this example, `@purify_fun` is declared as a function with one opaque argument, and ordinary integer argument, and returns an integer.
+Intuitively, this definition is introducing a new function, indexed by a function, that is of type `(-> Int Int)`.
+After parsing, the term `(@purify_fun f a)` is a function application whose operator is `(@purify_fun f)` and has a single child `a`.
+
+> __Note:__ Opaque arguments should always be expected before other arguments. Otherwise all applications of the given function will be ill-typed.
+
 <a name="attributes"></a>
 
 ### Declarations with attributes
@@ -498,13 +548,16 @@ A variable list parsed in this way binds the symbol `x` to a variable of type `I
 The variable list passed as the first argument to the binder is determined by applying the specified constructor (in this case `@cons`) to the list of variables, so that `(forall ((x Int)) (P x))` is syntax sugar for `(forall (@cons x) (P x))`.
 The constructor specified in declarations of binders should accept a variable number of arguments, e.g. `@cons` is declared with attribute `:right-assoc-nil`.
 
-Variables introduced when parsing binders are always the same for each (symbol, type) pair unless the option `--binder-fresh` is enabled, in which case the variable is always unique.
+Variables introduced when parsing binders are always the same for each (symbol, type) pair.
 In particular, this means that the definitions of `Q1` and `Q2` are syntactically identical in the above example.
 On the other hand, the definition `Q3` is distinct from both of these, since `y` is a distinct variable from `x`.
 
 Furthermore, note that a binder also may accept an explicit term as its first argument.
 In the above example, `Q4` has `(@cons x)` as its first argument, where `x` was explicitly defined as a variable.
-This means that the definition of `Q4` is also syntactically equivalent to the definition of `Q1` and `Q2`, again assuming that `--binder-fresh` is not enabled.
+This means that the definition of `Q4` is also syntactically equivalent to the definition of `Q1` and `Q2`.
+
+Note that if the option `--binder-fresh` is enabled, then when parsing reference files, the variables in binders are always fresh.
+This option does not impact how binders are parsed in Eunoia files.
 
 <a name="literals"></a>
 
@@ -519,8 +572,10 @@ The Eunoia language supports associating SMT-LIB version 3.0 syntactic categorie
 - `<hexadecimal>` denoting the category of hexadecimal constants `#x<hex-digit>+` where hexdigit is `[0-9] | [a-f] | [A-F]`,
 - `<string>` denoting the category of string literals `"<char>*"`.
 
-By default, decimal literals will be treated as syntax sugar for rational literals unless the option `--no-normalize-dec` is enabled.
+When parsing proofs and reference files, by default, decimal literals will be treated as syntax sugar for rational literals unless the option `--no-normalize-dec` is enabled.
 Similarly, hexadecimal literals will be treated as syntax sugar for binary literals unless the option `--no-normalize-hex` is enabled.
+Some SMT-LIB logics (e.g. `QF_LRA`) state that numerals should be treated as syntax sugar for rational literals.
+This behavior can be enabled when parsing proofs and reference files using the option `--normalize-num`.
 
 In contrast to SMT-LIB version 2, note that rational values can be specified directly using the syntax `5/11, 2/4, 0/1` and so on.
 Rationals are normalized so that e.g. `2/4` and `1/2` are syntactically equivalent after parsing.
@@ -620,9 +675,9 @@ Note however that the evaluation of these operators is handled by more efficient
 - `(eo::is_z t)`
   - Equivalent to `(eo::is_eq (eo::to_z t) t)`.
 - `(eo::is_q t)`
-  - Equivalent to `(eo::is_eq (eo::to_q t) t)`. Note this returns false for decimal literals when `--no-normalize-dec` is enabled.
+    - Equivalent to `(eo::is_eq (eo::to_q t) t)`. Note this returns false for decimal literals.
 - `(eo::is_bin t)`
-  - Equivalent to `(eo::is_eq (eo::to_bin (eo::len t) t) t)`. Note this returns false for hexadecimal literals  when `--no-normalize-hex` is enabled.
+    - Equivalent to `(eo::is_eq (eo::to_bin (eo::len t) t) t)`. Note this returns false for hexadecimal literals.
 - `(eo::is_str t)`
   - Equivalent to `(eo::is_eq (eo::to_str t) t)`.
 - `(eo::is_bool t)`
@@ -726,12 +781,10 @@ The Ethos supports extensions of `eo::and, eo::or, eo::xor, eo::add, eo::mul, eo
 (eo::add 1/2 1/3)           == 5/6
 (eo::add 2 1/3)             == (eo::add 2 1/3)  ; no mixed arithmetic
 (eo::add 2/1 1/3)           == 7/3
-(eo::add 2.0 1/3)           == 7/3  ; with default options
-(eo::add 2.0 1/3)           == (eo::add 2.0 1/3)  ; if --no-normalize-dec is enabled, since no mixed arithmetic
-(eo::add 2.0 2.5)           == 4.5  ; which is not syntactically equal to 9/2 if --no-normalize-dec is enabled
+(eo::add 2.0 1/3)           == (eo::add 2.0 1/3)  ; since no mixed arithmetic
+(eo::add 2.0 2.5)           == 4.5
 (eo::add #b01 #b01)         == #b10
-(eo::add #x1 #b0001)        == #b0002  ; with default options
-(eo::add #x1 #b0001)        == (eo::add #x1 #b0001)  ; if --no-normalize-hex is enabled
+(eo::add #x1 #b0001)        == (eo::add #x1 #b0001)  ; since no mixed arithmetic
 (eo::mul 2 7)               == 14
 (eo::mul 2 2 7)             == 28
 (eo::mul 1/2 1/4)           == 1/8
@@ -739,7 +792,7 @@ The Ethos supports extensions of `eo::and, eo::or, eo::xor, eo::add, eo::mul, eo
 (eo::qdiv 12 6)             == 3/1
 (eo::qdiv 7 2)              == 7/2
 (eo::qdiv 7/1 2/1)          == 7/2
-(eo::qdiv 7.0 2.0)          == 7/2  ; regardless of whether --no-normalize-dec is enabled
+(eo::qdiv 7.0 2.0)          == 7/2
 (eo::qdiv 7 0)              == (eo::qdiv 7 0)  ; no division by zero
 (eo::zdiv 12 3)             == 4
 (eo::zdiv 7 2)              == 3
@@ -1412,6 +1465,26 @@ In detail, recall that the Ethos treats all function applications as curried (un
 In particular, this implies that `(f a)` matches any application term, since both `f` and `a` are parameters.
 Thus, the side condition is written in three cases: either `t` is `x` in which case we return `y`, `t` is a function application in which case we recurse, or otherwise `t` is a constant not equal to `x` and we return itself.
 
+This method will not replace subterms inside of opaque arguments (see [opaque](#opaque)).
+In particular, a term such as `(@array_diff A B)` will remain unchanged for a substitution e.g. replacing `A` with `B`, since `(@array_diff A B)` is not a function application.
+Hence when `t` is `(@array_diff A B)`, we fall into the third case of the method above for any call to `substitute` where `x` is not `(@array_diff A B)` itself.
+
+Alternatively, the following version of substitution `substitute-o` pattern matches on applications of `@array_diff` explicitly.
+Calling it with arguments `A`, `B`, and `(@array_diff A B)` would return `(@array_diff B B)`.
+
+```smt
+(program substitute-o
+  ((T Type) (U Type) (S Type) (x S) (y S) (a (Array T U)) (b (Array T U)) (z U))
+  (S S U) U
+  (
+  ((substitute-o x y x)                 y)
+  ((substitute-o x y (f a))             (_ (substitute-o x y f) (substitute-o x y a)))
+  ((substitute-o x y (@array_diff a b)) (@array_diff (substitute-o x y a) (substitute-o x y b)))
+  ((substitute-o x y z)                 z)
+  )
+)
+```
+
 ### Example: Term evaluator
 
 ```smt
@@ -1749,9 +1822,31 @@ The Ethos command line interface can be invoked by `ethos <option>* <file>` wher
 - `-t <tag>`: enables the given trace tag (for debugging).
 - `-v`: verbose mode, enable all standard trace messages.
 
-### Full syntax for Eunoia commands
+The following options impact how proof files and reference files are parsed only (for details on classifications of files, see [full-syntax](#full-syntax)).
+They do not impact how signature files (*.eo) are parsed:
 
-Valid inputs to the Ethos are `<eo-command>*`, where:
+- `--binder-fresh`: binders generate fresh variables.
+- `--normalize-num`: treat numeral literals as syntax sugar for (integral) rational literals.
+- `--no-normalize-dec`: do not treat decimal literals as syntax sugar for rational literals.
+- `--no-normalize-hex`: do not treat hexadecimal literals as syntax sugar for binary literals.
+- `--no-parse-let`: do not treat `let` as a builtin symbol for specifying a macro.
+
+<a name="full-syntax"></a>
+
+## Full syntax for Eunoia commands
+
+Below defines the syntax accepted by the Ethos parser.
+
+We distinguish three kinds of file inputs:
+
+- _Proof files_ are files that are given via command line option that do _not_ have extension `*.eo`.
+Their expected syntax is `<eo-command>*`.
+- _Reference files_ are files included via the `reference` command.
+Their expected syntax is `<smtlib2-command>*`.
+- _Signature files_ are files that given via command line option that have extension `*.eo`, or those that are included via the command `include`.
+
+As mentioned, the first two kinds of file inputs take into account options concerning the normalization of terms (e.g. `--normalize-num`), while signature files do not.
+When streaming input to Ethos, we assume the input is being given for a proof file.
 
 ```smt
 ;;;
@@ -1860,7 +1955,7 @@ The following signature can be used to define operators that are not required to
 
 ; An arbitrary deterministic comparison of terms. Returns true if a > b based
 ; on this ordering.
-(define eo::com ((T Type :implicit) (U Type :implicit) (a T) (b U))
+(define eo::cmp ((T Type :implicit) (U Type :implicit) (a T) (b U))
   (eo::is_neg (eo::add (eo::hash b) (eo::neg (eo::hash a)))))
 
 ```
