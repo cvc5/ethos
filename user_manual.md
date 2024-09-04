@@ -576,8 +576,8 @@ We call _literal_ or _value_ any element of the seven syntactic categories above
 <!--CT Added. -->
 > __Note:__ Numerals include _negated_ literals such as `-1`, `-43`, and so on. Also, and in contrast to SMT-LIB version 2, rational literals can be specified directly using the syntax `5/11`, `2/4`, `0/1` and so on, and negative values can be provided as single literals, e.g., `-1`, `-10.5`, `-1/3` and so on, instead of more complex expressions such as `(- 1)`, `(- 10.5)`, and `(/ (- 1) 3)`.
 
-By default, decimal literals are treated by Ethos as syntax sugar for rational literals unless the option `--no-normalize-dec` is enabled.
-Similarly, hexadecimal literals are treated as syntax sugar for binary literals unless the option `--no-normalize-hex` is enabled.
+By default, decimal literals are treated by Ethos as syntax sugar for rational literals.
+Similarly, hexadecimal literals are treated as syntax sugar for binary literals.
 Rationals are normalized so that, e.g., `2/4` and `1/2` are syntactically equivalent after parsing.
 Similarly, decimals are normalized so that e.g. `1.300` is syntactically equivalent to `1.3` after parsing.
 Note this is independent of whether these decimal values are further normalized to rational values.
@@ -726,7 +726,7 @@ In the following, we list the core builtin operators of Ethos.
    is treated as `(eo::is_eq (eo::to_q t) t)`:
   $$[(\textsf{eo::is_q}\ t)] =[(\textsf{eo::is_eq}\ (\textsf{eo::to_q}\ t)\ t)]$$
 
-   Note this evaluates to `false` for decimal literals when `--no-normalize-dec` is enabled.
+   Note this evaluates to `false` for decimal literals.
    <br><br>
 
 - `(eo::is_bin t)`
@@ -734,7 +734,7 @@ In the following, we list the core builtin operators of Ethos.
   is treated as `(eo::is_eq (eo::to_bin (eo::len t) t) t)`:
   $$[(\textsf{eo::is_bin}\ t)] =[(\textsf{eo::is_eq}\ (\textsf{eo::to_bin}\ (\textsf{eo::len}\ t)\ t))]$$
 
-  Note this evaluates to `false` for hexadecimal literals when `--no-normalize-hex` is enabled.
+  Note this evaluates to `false` for hexadecimal literals.
    <br><br>
 
 - `(eo::is_str t)`
@@ -1834,7 +1834,7 @@ For example:
 
 Here, `normalize` is introduced as a program which recursively replaces all occurrences of division (over integer constants) with the resulting rational constant.
 This method can be used for handling solvers that interpret constant division as the construction of a rational constant.
-The above program will be invoked on all formulas occuring in `assert` commands in `"file.smt2"` and subsequently formulas in `assume` commands.
+The above program will be invoked on all formulas occurring in `assert` commands in `"file.smt2"` and subsequently formulas in `assume` commands.
 
 ## Oracles
 
