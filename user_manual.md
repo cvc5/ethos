@@ -60,7 +60,7 @@ The `ethos` binary accepts input piped from stdin. The following are all equival
 Eunoia is the name of the logical framework and language that is supported natively by the Ethos checker.
 Although it is a general logical framework, Eunoia is geared towards defining proof systems used by SMT solvers and writing proofs in those systems.
 
-Eunoia files are text file that are typically given the suffix `*.eo`.
+Eunoia files are text files that are typically given the suffix `*.eo`.
 
 The core features of Eunoia include:
 
@@ -70,7 +70,7 @@ The core features of Eunoia include:
 - A set of commands for specifying proofs (`step`, `assume`, and so on), whose syntax closely follows that of the Alethe proof format (for details, see [here](https://verit.gitlabpages.uliege.be/alethe/specification.pdf)).
 - A set of built-in basic types and a library of operations (`eo::add`, `eo::mul`, `eo::concat`, `eo::extract`) for performing computations over values.
   <!--CT It would be more consistent with the rest of the terminology to use `define-program` instead -->
-- A command, `program`, for defining side conditions as ordered list of rewrite rules.
+- A command, `program`, for defining side conditions as an ordered list of rewrite rules.
 - A command, `declare-oracle-fun`, for defining external, user-provided oracles, that is, functions whose semantics are given by external binaries. Oracles can be used, e.g., for modular proof checking.
 - Commands for file inclusion (`include`) and referencing (`reference`). The latter command can be used to specify the name of an `*.smt2` input file that the proof is associated with.
 
@@ -79,14 +79,14 @@ In the following sections, we describe these features in more detail. A full syn
 ### Declaring theory signatures
 
 In Eunoia, as in SMT-LIB version 3.0, a common BNF is used to specify _terms_ (expressions denoting values), _types_ (expressions denoting sets of values) and _kinds_ (expressions denoting sets of types).
-In this document, unless specified otherwise, we will use _term_ more generally to refer to a value term, a type, or a kind
+In this document, unless specified otherwise, we will use _term_ more generally to refer to a value term, a type, or a kind.
 Terms are composed of applications, built-in operators of the language (e.g., for performing computations, see [computation](#computation)), literals (see [literals](#literals)), and three kinds of atomic terms (_constants_, _variables_, and _parameters_) which we describe in the following.
 A _function (symbol)_ is an atomic term having a function type, that is, a type of the form `(-> ... ...)`.
 The builtin `eo::define` binder can be used for specifying terms that contain common subterms analogously to `let` binders in other languages.
 
 The core language of Eunoia does not have any builtin SMT-LIB theories.
 Instead, SMT-LIB theories may defined as Eunoia signatures.
-To enable that, the Eunoia language has the following builtin constants:
+For this purpose, the Eunoia language has the following builtin constants:
 
 - `Type`, denoting the kind of all types,
 - `->`, denoting the function type,
@@ -196,7 +196,7 @@ Note the following declarations generate terms of the same type:
 ### The :type attribute for definitions
 
 To type check terms, `define` statements can be annotated with `:type <term>`.
-<!-- We should motivate this feature. Why is it there? -->
+This allows the user to eagerly check that a term has a particular type at the place where it is defined.
 In particular:
 
 ```smt
@@ -316,7 +316,6 @@ The Eunoia language supports term annotations on declared constants, which for i
 - `:right-assoc` (resp. `:left-assoc`) denoting that application of the declared binary constant to more than two terms are to be treated as right (resp. left) associative,
 
 - `:right-assoc-nil <term>` (resp. `:left-assoc-nil <term>`) denoting that applications of the declared binary constant to one or more terms are to be treated as right (resp. left) associative, with the given `<term>` used as an additional rightmost (resp. leftmost) argument.
-<!--CT Do we really want to restrict the nil element to be a symbol, as opposed to a term? -->
 
 - `:chainable <symbol>` denoting that the arguments of the declared binary constant are chainable using the (binary) operator given by `<symbol>`,
 
@@ -326,7 +325,7 @@ The Eunoia language supports term annotations on declared constants, which for i
 
 A declared function can be marked with at most one of the above attributes or an error is thrown.
 
-A parameter in a function symbol declaration may be marked with the following attribute:
+A parameter may be marked with the following attribute:
 
 - `:list`, denoting that the parameter should be treated as a list when appearing as a child of an application of a right (left) associative operator.
 
@@ -436,7 +435,8 @@ We instead require such declarations to be made with `declare-parameterized-cons
 
 #### List
 
-Atomic terms can be marked with the annotation `:list`.<!--CT Do we really need this level of generality? Can we restrict the annotation to just function arguments or perhaps just typed vars? -->
+Parameters can be marked with the annotation `:list`. 
+This includes those in function symbol declarations, as well as parameters to (e.g. `define`, `program`, `declare-rule`) commands.
 This annotation marks that the term should be treated as a list of arguments when it occurs as an argument of a right (left) associative operator with a nil element. Note the following example:
 
 ```smt
@@ -515,7 +515,7 @@ where the type of its chaining operator is `(-> S S S)`, and that operator has b
 In the above example, `(distinct x y z)` is treated as `(and (distinct x y) (distinct x z) (distinct y z))`.
 
 Note that the type for pairwise operators is typically `(-> T T S)` for some types `T` and `S`,
-where the type of its pairwise operator is `(-> S S S)`<!--CT This could be generalized, right? -->,
+where the type of its pairwise operator is `(-> S S S)`,
 and that operator has been marked as variadic via some attribute.
 
 <a name="binders"></a>
@@ -589,7 +589,7 @@ The only other escape sequences are of the form `\u{dn ...d1}` for `1<=n<=5` and
 
 > __Note:__ Numeral, rational and decimal values are implemented by the arbitrary precision arithmetic library GMP. Binary and hexadecimal values are implemented as layer on top of numeral values that tracks a bit width. String values are implemented as a vector of unsigned integers whose maximum value is specified by SMT-LIB version 2.6, namely the character set corresponds to Unicode values 0 to 196607.
 
-> __Note:__ The user is not required to declare that `true` and `false` are values of type `Bool`. Instead, it is assumed that the syntactic category `<boolean>` of Boolean values (`true` and `false`) has been associated with the Boolean sort. In other words, `(declare-consts <boolean> __Note:__Bool)` is a part of the builtin signature assumed by Ethos.
+> __Note:__ The user is not required to declare that `true` and `false` are values of type `Bool`. Instead, it is assumed that the syntactic category `<boolean>` of Boolean values (`true` and `false`) has been associated with the Boolean sort. In other words, `(declare-consts <boolean> Bool)` is a part of the builtin signature assumed by Ethos.
 
 <a name="declare-consts"></a>
 
@@ -1171,9 +1171,9 @@ If the keyword is `:ethos`, then the expected syntax that follows is given below
 (declare-rule <symbol> :ethos (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term> <attr>*)
 where
 <assumption>   ::= :assumption <term>
-<premises>     ::= :premises (<term>*) | :premise-list <term><term>
+<premises>     ::= :premises (<term>*) | :premise-list <term> <term>
 <arguments>    ::= :args (<term>*)
-<reqs>         ::= :requires ((<term><term>)*)
+<reqs>         ::= :requires ((<term> <term>)*)
 ```
 
 A proof rule begins by defining a list of free parameters, followed by 4 optional fields and a conclusion term.
@@ -1228,7 +1228,7 @@ Notice that the type `T` is a part of the parameter list and not explicitly prov
 ```
 
 This rule specifies symmetry of equality. This rule takes as premise an equality `(= t s)` and no arguments.
-In detail, an application of this proof rule for premise proof `(= a b)` for concrete terms `a,b` will compute the substitution `{ t ->a, s ->b }` and apply it to the conclusion term to obtain `(= b a)`.
+In detail, an application of this proof rule for premise proof `(= a b)` for concrete terms `a,b` will compute the substitution `{ t -> a, s -> b }` and apply it to the conclusion term to obtain `(= b a)`.
 
 ### Requirements
 
@@ -1341,7 +1341,7 @@ Locally assumptions can be arbitrarily nested, for example the above can be exte
 Similar to `declare-rule`, the Ethos supports an extensible syntax for programs whose generic syntax is given by:
 
 ```smt
-(program <symbol> > <keyword>? <sexpr>*)
+(program <symbol> <keyword>? <sexpr>*)
 ```
 
 When parsing this command, `ethos` will determine the format of the expected arguments based on the given keyword.
@@ -1667,7 +1667,7 @@ Internally, the semantics of `eo::match` can be seen as an (inlined) program app
 )
 ```
 
-> __Note:__ The Ethos automatically performs the above transformation on match terms for consistency.
+> __Note:__ The Ethos checker automatically performs the above transformation on match terms for consistency.
 In more general cases, if the body of the match term contains free variables, these are added to the argument list of the internally generated program.
 
 ### Example: Proof rule for transitivity of equality with a premise list
@@ -1708,7 +1708,7 @@ The Ethos supports the following commands for file inclusion:
 
 ### Validation Proofs via Reference Inputs
 
-When the Ethos encounters a command of the form `(reference <string>)`, the checker enables a further set of checks that ensures that all assumptions in proofs correspond to assertions from the reference file.
+When the Ethos encounters a command of the form `(reference <string>)`, the checker enables a further set of checks that ensures that all assumptions in proofs correspond to assertions from the file referenced by the given string.
 
 In particular, when the command `(reference "file.smt2")` is read, the Ethos will parse `file.smt2`.
 The definitions and declaration commands in this file will be treated as normal, that is, they will populate the symbol table of the Ethos as they normally would if they were to appear in an `*.eo` input.
@@ -1800,7 +1800,7 @@ After successfully parsing an input file with no errors, the Ethos will respond 
 - `incomplete` if it parsed any `step` or `step-pop` application that referenced a proof rule that was marked with the attribute `:sorry`, or
 - `correct` otherwise.
 
-Note however that the Ethos does not impose any requirements on _what_ was proven in the proof.
+Note however that Ethos does not impose any requirements on _what_ was proven in the proof.
 The user is responsible for ensure that e.g. the proof contains a step with a desired conclusion (e.g. `false`).
 
 ## Appendix
@@ -1914,8 +1914,6 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
 
 ```
 
-Moreover, a valid input for a file included by the Eunoia command `<reference>` is `<smtlib2-command>*`;
-a valid input for a file included by the Eunoia command `<include>` is `<eo-command>*`.
 
  <a name="non-core-eval"></a>
 
