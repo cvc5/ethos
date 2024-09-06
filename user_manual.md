@@ -1786,11 +1786,7 @@ The user is responsible for ensure that e.g. the proof contains a step with a de
 
 The Ethos command line interface can be invoked by `ethos <option>* <file>` where `<option>` is one of the following:
 
-- `--binder-fresh`: binders generate fresh variables when parsed in proof files.
 - `--help`: displays a help message.
-- `--no-normalize-dec`: do not treat decimal literals as syntax sugar for rational literals.
-- `--no-normalize-hex`: do not treat hexadecimal literals as syntax sugar for binary literals.
-- `--no-parse-let`: do not treat `let` as a builtin symbol for specifying terms having shared subterms.
 - `--no-print-let`: do not letify the output of terms in error messages and trace messages.
 - `--no-rule-sym-table`: do not use a separate symbol table for proof rules and declared terms.
 - `--show-config`: displays the build information for the given binary.
