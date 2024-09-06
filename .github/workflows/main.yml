@@ -1,24 +1,29 @@
 name: CI
 
-on:
-  push:
-    branches: [ main, devel/cmake ]
-  pull_request:
-    branches: [ main ]
+on: [push, pull_request]
 
 jobs:
   build:
     strategy:
       matrix:
-        name: [linux-x86_64, macOS-x86_64, macOS-arm64]
-        build-type: [ production, debug ]
+        name: [linux-x86_64, macOS-x86_64, macOS-arm64, windows-x86_64]
+        build-type: [ Release, Debug ]
         include:
         - name: linux-x86_64
           os: ubuntu-20.04
+          shell: bash
         - name: macOS-x86_64
           os: macos-13
+          shell: bash
         - name: macOS-arm64
           os: macos-14
+          shell: bash
+        - name: windows-x86_64
+          os: windows-latest
+          shell: 'msys2 {0}'
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
 
     name: ${{ matrix.name }}:${{ matrix.build-type }}
     # The type of runner that the job will run on
@@ -32,35 +37,40 @@ jobs:
       if: runner.os == 'macOS'
       run: echo "MACOSX_DEPLOYMENT_TARGET=11.0" >> $GITHUB_ENV
 
-    - name: Install Packages
+    - name: Install Packages (Linux)
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
         sudo apt-get install -y \
           libgmp-dev
 
-    - name: Install Packages (MacOS)
+    - name: Install Packages (macOS)
       if: runner.os == 'macOS'
       run: |
         brew install \
           gmp
 
-    - name: Setup Build Dir
-      run: mkdir build
-
-    - name: Configure
-      if: matrix.build-type == 'production'
-      run: cmake -DCMAKE_BUILD_TYPE=Release ..
-      working-directory: build
-
-    - name: Configure
-      if: matrix.build-type == 'debug'
-      run: cmake -DCMAKE_BUILD_TYPE=Debug ..
-      working-directory: build
+    - name: Install Packages (Windows)
+      uses: msys2/setup-msys2@v2
+      if: runner.os == 'Windows'
+      with:
+        msystem: mingw64
+        path-type: inherit
+        install: |
+          make
+          mingw-w64-x86_64-cmake
+          mingw-w64-x86_64-gcc
+          mingw-w64-x86_64-gmp
 
     - name: Build
-      run: make -j2
-      working-directory: build
+      run: |
+        mkdir build
+        cd build
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          export CMAKE_GENERATOR="MSYS Makefiles"
+        fi
+        cmake -DCMAKE_BUILD_TYPE=${{ matrix.build-type  }} ..
+        make -j2
 
     - name: Test
       run: ctest --output-on-failure
