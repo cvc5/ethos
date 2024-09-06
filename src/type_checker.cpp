@@ -14,7 +14,9 @@
 
 #include "base/check.h"
 #include "base/output.h"
+#ifdef EO_ORACLES
 #include "base/run.h"
+#endif /* EO_ORACLES */
 #include "expr.h"
 #include "literal.h"
 #include "parser.h"
@@ -915,6 +917,7 @@ Expr TypeChecker::evaluateProgramInternal(
   }
   else if (hk==Kind::ORACLE)
   {
+#ifdef EO_ORACLES
     // get the command
     std::string ocmd;
     if (!d_state.getOracleCmd(hd, ocmd))
@@ -961,6 +964,10 @@ Expr TypeChecker::evaluateProgramInternal(
     Expr ret = poracle.parseNextExpr();
     Trace("oracles") << "returns " << ret << std::endl;
     return ret;
+#else /* EO_ORACLES */
+    Trace("oracles") << "...not supported in this build" << std::endl;
+    return d_null;
+#endif /* EO_ORACLES */
   }
   // just return nullptr, which should be interpreted as a failed evaluation
   return d_null;

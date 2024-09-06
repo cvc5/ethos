@@ -67,8 +67,6 @@ set(ethos_test_file_list
     rare-example.eo
     define-fun.alfc.eo
     quant-sk-small.alfc.eo
-    oracle-ex.eo
-    oracle-ex2.eo
     Arith-rules.eo
     Arith-theory.eo
     Booleans-rules.eo
@@ -94,7 +92,6 @@ set(ethos_test_file_list
     define-sort-iarray.eo
     axiom-implicit.eo
     match-variants.eo
-    tiny_oracle.eo
     arity-overload.eo
     binder-ex.eo
     typeof.eo
@@ -127,6 +124,14 @@ set(ethos_test_file_list
     opaque-inline.eo
     implicit-then-var.eo
 )
+
+if(ENABLE_ORACLES)
+  list(APPEND ethos_test_file_list
+      oracle-ex.eo
+      oracle-ex2.eo
+      tiny_oracle.eo
+  )
+endif()
 
 macro(ethos_test file)
   add_test(

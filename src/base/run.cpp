@@ -6,6 +6,9 @@
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
  ******************************************************************************/
+
+#ifdef EO_ORACLES
+
 #include "base/run.h"
 
 #include <fcntl.h>
@@ -131,3 +134,5 @@ int runFile(const std::string& call, std::ostream& response)
 }
 
 }  // namespace ethos
+
+#endif /* EO_ORACLES */
