@@ -106,7 +106,6 @@ The following commands are supported for declaring and defining types and terms.
 - `(declare-consts <lit-category> <type>)` declares the class of symbols denoted by the literal category to have the given type.
 
 - `(declare-type <symbol> (<type>*))` declares a new type constructor named `<symbol>` whose kind is `Type` if `<type>*` is empty. If `<type>*` is `<type_1> ... <type_n>`, then kind of `<symbol>` is `(-> <type_1> ... <type_n> Type)`.
-  <!-- Added-->
   This is a derived command as it is a shorthand for
   `(declare-const <symbol> Type)` if `<type>*` is empty, and for
   `(declare-const <symbol> (-> <type>* Type))` otherwise.
@@ -141,9 +140,9 @@ The Eunoia language contains further commands for declaring symbols that are not
 (declare-const P (-> Int Bool))
 ```
 
-Since Ethos does not assume any builtin definitions of SMT-LIB theories, definitions of standard symbols (such as `Int`) may be provided in Eunoia signatures<!--CT I bet this point is going to be confusing to users. -->. In the above example, symbol `c` is declared to be a constant (0-ary) symbol of type `Int`. The symbol `f` is a function taking two integers and returning an integer.
+Since Ethos does not assume any builtin definitions of SMT-LIB theories, definitions of standard symbols in SMT-LIB theories(such as `Int`, `+`, etc.) must be provided in Eunoia signatures. In the above example, symbol `c` is declared to be a constant (0-ary) symbol of type `Int`. The symbol `f` is a function taking two integers and returning an integer.
 
-Observe that despite using different syntax in their declarations, the types of `f` and `g` in the above example are identical as `->` is a right-associative binary type constructor.
+Observe that despite the use of different syntax in their declarations, the types of `f` and `g` in the above example are identical as `->` is a right-associative binary type constructor.
 
 > __Note:__ In Eunoia, all functions are unary. In the above example, `(-> Int Int Int)` is internally treated as `(-> Int (-> Int Int))`. Correspondingly, applications of functions are curried, e.g. `(f a b)` is treated as `((f a) b)`, which in turn can be seen as `(_ (_ f a) b)` where `_` denotes higher-order function application.
 
@@ -226,7 +225,6 @@ In contrast, the example below declares a predicate `=` where the type of the ar
 (define P ((x Int) (y Int)) (= x y))
 ```
 
-<!--CT Added -->
 In general, an argument can be made implicit if its value can be inferred from the type of later arguments.
 
 We call `T` in the above definitions a _parameter_. The free parameters of the return type of an expression should be contained in at least one non-implicit argument. In particular, the following declaration is malformed, since the return type of `f` cannot be inferred from its arguments:
@@ -254,9 +252,8 @@ The second annotation indicates that the term `(eo::is_neg w)` must evaluate to 
 Symbol `eo::is_neg` denotes a builtin function that returns `true` if its argument is a negative numeral, and returns false otherwise (for details, see [computation](#computation)).
 <!-- This needs discussion, what is the input type of `eo::is_neg`? How can `eo::is_neg` accept a value of a user-defined type `Int` given that it is builtin?  -->
 
-> __Note:__ Internally, `(! T :requires (t s))` is syntax sugar for the type term `(eo::requires t s T)` where `eo::requires` is an operator that evaluates to its third argument if and only if its first two arguments are _computationally_ equivalent (details on this operator are given in [computation](#computation))<!--CT This is non-ideal from a language design point of view as it makes the semantic of Eunoia non-compositional: the meaning of `eo::requires` applications changes depending on whether there are in positive or negative positions. -->.
+> __Note:__ Internally, `(! T :requires (t s))` is syntax sugar for the type term `(eo::requires t s T)` where `eo::requires` is an operator that evaluates to its third argument if and only if its first two arguments are _computationally_ equivalent (details on this operator are given in [computation](#computation)).
 Furthermore, the function type `(-> (eo::requires t s T) S)` is treated as `(-> T (eo::requires t s S))`. Ethos rewrites all types of the former form to the latter.
-
 
 <a name="opaque"></a>
 
@@ -370,40 +367,39 @@ Eunoia supports a variant of the aforementioned functionality where a (ground) n
 In the above example, `(or x y z)` is treated as `(or x (or y (or z false)))`,
 `(or x y)` is treated as `(or x (or y false))`,
 and `(or x)` is treated as `(or x false)`.
-<!--CT added -->In contrast, if `or` was annotated with `left-associative-nil`,
+In contrast, if `or` was annotated with `left-associative-nil`,
 `(or x y z)` would be treated as `(or (or (or false x) y) z)`,
 `(or x y)` as `(or (or false x) y)`,
 and `(or x)` as `(or false x)`.
 
 The advantage of right or left associative operators with nil terminators is that the terms they specify are unambiguous, which is not the case for right or left associative operators without nil terminators.
-In particular, note the following example:
+Consider the following example:
 
 ```smt
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
-(define P ((x Bool) (y Bool) (z Bool)) (or x (or y z)))
-(define Q ((x Bool) (y Bool) (z Bool)) (or x y z))
+(define P1 ((x Bool) (y Bool) (z Bool)) (or x (or y z)))
+(define P2 ((x Bool) (y Bool) (z Bool)) (or x y z))
 ```
 
-<!--CT We should stress that we get to different AST for the P and Q above.
--->
+If `or` had been marked `:right-assoc`, after desugaring, the abstract syntax tree for (the terms named) `P2` would have been the same `P1`.
+In contrast, marking `or` with `:right-assoc-nil false` leads after desugaring to the distinct terms
 
- <!--CT We should point out that the nil element should be a left and right identity of the assoc symbol, otherwise non-intuitive results occur. 
+- `(or x (or (or y (or z false)) false))` for `P1` and
+- `(or x (or y (or z false)))` for `P2`.
 
-For instance, with
-(declare-const + (-> Int Int Int) :right-assoc-nil 1)
-We have that 
-(+ x (+ y z))) = (+ x (+ (+ y (+ z 1)) 1)) = x + y + z + 2
-is not equivalent to
-(+ x (+ y (+ z 1))) = x + y + z + 1
-However, I would use this example not to argue that it is advantageous to use the :[left|right]-associative-nil annotation but to warn the reader that the nil element better be a left/right identity for the binary operator, otherwise the semantic is highly unintuitive.
--->
-
-If `or` had been marked `:right-assoc`, then the definition of both `P` and `Q` would be `(or x (or y z))` after desugaring.
-In contrast, marking `or` with `:right-assoc-nil false` leads to the distinct terms `(or x (or (or y (or z false)) false))` and `(or x (or y (or z false)))` after desugaring.
+> __Note:__ While the value provided for the `:right-assoc-nil` attribute (`false` in the example above) can be an arbitrary term of the proper type, it is advisable for it to be a _neutral_, or identity, element of the binary operator in question (`or` in the example). Otherwise, this gives rise to non-intuitive syntax.
+>
+> For instance, with
+>
+> ```smt
+> (declare-const + (-> Int Int Int) :right-assoc-nil 1)
+> ```
+>
+> where `+` is meant to be the integer addition operator, the choice of `1` as terminator instead of the identity element `0` means that the expressions `(+ x (+ y z)))` and `(+ x y z)` desugar to terms (`(+ x (+ (+ y (+ z 1) 1)))` and `(+ x (+ y (+ z 1)))`, respectively) that are distinct not just syntactically but also semantically.
 
 Right and left associative operators with nil terminators also have a relationship with list terms (as we will see in the following section), and in computational operators.
 
-The type for right and left associative operators with nil terminators is typically `(-> T T T)` for some `T`, where their nil terminator has type `T`. <!--CT Added.--> More generally, a constant declared with the `:right-associative-nil` annotation must have a type of the form `(-> T1 T2 T2)` where `T2` is the type of the nil constant, for some types `T1` and `T2`. Similarly, a constant declared with the `:left-associative` annotation must have a type of the form `(-> T1 T2 T1)` where `T1` is the type of the nil constant.
+The type for right and left associative operators with nil terminators is typically `(-> T T T)` for some `T`, where their nil terminator has type `T`. More generally, a constant declared with the `:right-associative-nil` annotation must have a type of the form `(-> T1 T2 T2)` where `T2` is the type of the nil constant, for some types `T1` and `T2`. Similarly, a constant declared with the `:left-associative` annotation must have a type of the form `(-> T1 T2 T1)` where `T1` is the type of the nil constant.
 
 The nil terminator of a right associative operator may involve previously declared symbols in the signature.
 For example:
@@ -435,7 +431,7 @@ We instead require such declarations to be made with `declare-parameterized-cons
 
 #### List
 
-Parameters can be marked with the annotation `:list`. 
+Parameters can be marked with the annotation `:list`.
 This includes those in function symbol declarations, as well as parameters to (e.g. `define`, `program`, `declare-rule`) commands.
 This annotation marks that the term should be treated as a list of arguments when it occurs as an argument of a right (left) associative operator with a nil element. Note the following example:
 
@@ -460,6 +456,7 @@ In other words, the definitions of `Paab` and `Qaab` are equivalent to the terms
 
 More generally, for an right-associative operator `f` with nil terminator `nil`,
 the term `(f t1 ... tn)` is de-sugared based on whether each `t1 ... tn` is marked with `:list`.
+
 - The nil terminator is inserted at the tail of the function application unless `tn` is marked as `:list`,
 - If `ti` is marked as `:list` where `1<=i<n`, then `ti` is prepended to the overall application using a concatentation operation `eo::list_concat`. The semantics of this operator is provided later in [list-computation](#list-computation).
 
@@ -521,8 +518,6 @@ and that operator has been marked as variadic via some attribute.
 <a name="binders"></a>
 
 #### Binder
-
-<!--CT Section to be reviewed further -->
 
 ```smt
 (declare-type Int ())
@@ -637,28 +632,8 @@ Note however that the evaluation of these operators is handled by more efficient
 - `(eo::is_eq t1 t2)`
   - Returns `true` if `t1` is (syntactically) equal to `t2`, or `false` if `t1` and `t2` are distinct and ground. Otherwise, it does not evaluate.
 
- <!--CT To be discussed with Andy
-    $$[(\textsf{eo::is_eq}\ t_1\ t_2)] =
-    \begin{cases}
-     \textsf{true} & \text{if } [t_1], [t_2] \text{ are identical} \\
-     \textsf{false} & \text{if } [t_1], [t_2] \text{ are distinct and ground} \\
-     (\textsf{eo::is_eq}\ t_1\ t_2) & \text{otherwise}
-    \end{cases}
-    $$
--->
-
 - `(eo::ite t1 t2 t3)`
   - Returns `t2` if `t1` evaluates to `true`, `t3` if `t2` evaluates to `false`, and is not evaluated otherwise. Note that the branches of this term are only evaluated if they are the return term.
-
- <!--CT To be discussed with Andy
-    $$[(\textsf{eo::ite}\ t_1\ t_2\ t_3)] =
-    \begin{cases}
-     [t_2] & \text{if } [t_1] = \textsf{true} \\
-     [t_3] & \text{if } [t_1] = \textsf{false} \\
-     (\textsf{eo::ite}\ t_1\ t_2\ t_3) & \text{otherwise}
-    \end{cases}
-    $$
--->
 
 - `(eo::requires t1 t2 t3)`
   - Returns `t3` if `t1` is (syntactically) equal to `t2`, and is not evaluated otherwise.
@@ -1756,9 +1731,11 @@ We reference to such functions as _oracle functions_.
 The syntax and semantics of such functions are described in this [paper](https://homepage.divms.uiowa.edu/~ajreynol/vmcai22a.pdf).
 
 In particular, the Ethos supports the command:
+
 ```smt
 (declare-oracle-fun <symbol> (<type>*) <type> <symbol>)
 ```
+
 Like the `declare-fun` command from SMT-LIB, this command declares a constant named `<symbol>` whose type is given by the argument types and return type.
 In addition, a symbol is provided at the end of the command which specifies the name of executable command to run.
 Ground applications of oracle functions are eagerly evaluated by invoking the binary and parsing its result, which we describe in more detail in the following.
@@ -1913,7 +1890,6 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
 <reqs>            ::= :requires ((<term> <term>)*)
 
 ```
-
 
  <a name="non-core-eval"></a>
 
