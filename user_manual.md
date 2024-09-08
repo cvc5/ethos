@@ -458,7 +458,8 @@ More generally, for an right-associative operator `f` with nil terminator `nil`,
 the term `(f t1 ... tn)` is de-sugared based on whether each `t1 ... tn` is marked with `:list`.
 
 - The nil terminator is inserted at the tail of the function application unless `tn` is marked as `:list`,
-- If `ti` is marked as `:list` where `1<=i<n`, then `ti` is prepended to the overall application using a concatentation operation `eo::list_concat`. The semantics of this operator is provided later in [list-computation](#list-computation).
+
+- If `ti` is marked as `:list` where `1<=i<n`, then `ti` is prepended to the overall application using a concatenation operation `eo::list_concat`. The semantics of this operator is provided later in [list-computation](#list-computation).
 
 In detail, the returned term from desugaring `(f t1 ... tn)` is constructed inductively.
 If `tn` is marked with `:list`, the returned term is initialized to `tn` and we process children `ti` from `i = n-1 ... 1`.
@@ -560,31 +561,34 @@ This option does not impact how binders are parsed in Eunoia files.
 
 The Eunoia language supports associating SMT-LIB version 3.0 syntactic categories with types. In detail, a syntax category is one of the following:
 
-- `<numeral>` denoting the category of numerals `-?<digit>+`,
-- `<decimal>` denoting the category of decimals `-?<digit>+.<digit>+`,
-- `<rational>` denoting the category of rationals `-?<digit>+/<digit>+`,
-- `<binary>` denoting the category of binary constants `#b<0|1>+`,
-- `<hexadecimal>` denoting the category of hexadecimal constants `#x<hex-digit>+` where hexdigit is `[0-9] | [a-f] | [A-F]`,
-- `<string>` denoting the category of string literals `"<char>*"`.
+- `<boolean>` denoting the category of _Boolean_ literals `true | false`,
+- `<numeral>` denoting the category of (integer) _numerals_ `-?<digit>+`,
+- `<decimal>` denoting the category of _decimals_ `-?<digit>+.<digit>+`,
+- `<rational>` denoting the category of _rationals_ `-?<digit>+/<digit>+`,
+- `<binary>` denoting the category of _binary_ literals `#b<0|1>+`,
+- `<hexadecimal>` denoting the category of _hexadecimals_ `#x<hex-digit>+` where hexdigit is `[0-9] | [a-f] | [A-F]`,
+- `<string>` denoting the category of _strings_ literals `"<char>*"` <!--CT Added --> where `<char>` consists of the set of UTF-8 characters.
 
-When parsing proofs and reference files, by default, decimal literals will be treated as syntax sugar for rational literals unless the option `--no-normalize-dec` is enabled.
-Similarly, hexadecimal literals will be treated as syntax sugar for binary literals unless the option `--no-normalize-hex` is enabled.
-Some SMT-LIB logics (e.g. `QF_LRA`) state that numerals should be treated as syntax sugar for rational literals.
-This behavior can be enabled when parsing proofs and reference files using the option `--normalize-num`.
+<!--CT Added. -->
+We call _literal_ or _value_ any element of the seven syntactic categories above.
 
-In contrast to SMT-LIB version 2, note that rational values can be specified directly using the syntax `5/11, 2/4, 0/1` and so on.
-Rationals are normalized so that e.g. `2/4` and `1/2` are syntactically equivalent after parsing.
+<!--CT Added. -->
+> __Note:__ Numerals include _negated_ literals such as `-1`, `-43`, and so on. Also, and in contrast to SMT-LIB version 2, rational literals can be specified directly using the syntax `5/11`, `2/4`, `0/1` and so on, and negative values can be provided as single literals, e.g., `-1`, `-10.5`, `-1/3` and so on, instead of more complex expressions such as `(- 1)`, `(- 10.5)`, and `(/ (- 1) 3)`.
+
+By default, decimal literals are treated by Ethos as syntax sugar for rational literals.
+Similarly, hexadecimal literals are treated as syntax sugar for binary literals.
+Rationals are normalized so that, e.g., `2/4` and `1/2` are syntactically equivalent after parsing.
 Similarly, decimals are normalized so that e.g. `1.300` is syntactically equivalent to `1.3` after parsing.
 Note this is independent of whether these decimal values are further normalized to rational values.
 In other words, by default `1.300` is syntactically equivalent to the rational `13/10`.
-Also note in contrast to SMT-LIB version 2, negative arithmetic can be provided using the syntax e.g. `-1, -10.5, -1/3` and so on, instead of `(- 1), (- 10.5), (/ (- 1) 3)`.
 
 String values use the standard escape sequences as specified in SMT-LIB version 2.6, namely `""` within a string literal denotes `"`.
 The only other escape sequences are of the form `\u{dn ...d1}` for `1<=n<=5` and `\u d4 d3 d2 d1` for hexadecimal digits `d1...d5` where `d5` is in the range `[0-2]`.
 
 > __Note:__ Numeral, rational and decimal values are implemented by the arbitrary precision arithmetic library GMP. Binary and hexadecimal values are implemented as layer on top of numeral values that tracks a bit width. String values are implemented as a vector of unsigned integers whose maximum value is specified by SMT-LIB version 2.6, namely the character set corresponds to Unicode values 0 to 196607.
+> __Note:__ Numeral, rational and decimal values are implemented by the arbitrary precision arithmetic library GMP. Binary and hexadecimal values are implemented as layer on top of numeral values that tracks a bit width. String values are implemented as a vector of unsigned integers whose maximum value is specified by SMT-LIB version 2.6, namely the character set corresponds to Unicode values 0 to 196607.
 
-> __Note:__ The user is not required to declare that `true` and `false` are values of type `Bool`. Instead, it is assumed that the syntactic category `<boolean>` of Boolean values (`true` and `false`) has been associated with the Boolean sort. In other words, `(declare-consts <boolean> Bool)` is a part of the builtin signature assumed by Ethos.
+> __Note:__ Except for `<boolean>`, the literal categories above are not associated to any type by default. The user must decides what type to assign to each of them, with the command `declare-consts`. In contrast, the values of `<boolean>` have the predefined type `Bool`. In other words, `(declare-type Bool ())` and `(declare-consts <boolean> Bool)` are part of the builtin signature assumed by Ethos.
 
 <a name="declare-consts"></a>
 
@@ -604,144 +608,256 @@ The signature can now refer to arbitrary numerals in definitions, e.g. `7` in th
 > __Note:__ Internally, the command above only impacts the type rule assigned to numerals that are parsed. Furthermore, the Ethos internally distinguishes whether a term is a numeral value, independently of its type, for the purposes of computational operators (see [computation](#computation)).
 
 > __Note:__ For specifying literals whose type rule varies based on the content of the constant, the Eunoia language uses a distinguished variable `eo::self` which can be used in `declare-consts` definitions. For an example, see the type rule for SMT-LIB bit-vector constants, described later in [bv-literals](#bv-literals).
+> __Note:__ For specifying literals whose type rule varies based on the content of the constant, the Eunoia language uses a distinguished variable `eo::self` which can be used in `declare-consts` definitions. For an example, see the type rule for SMT-LIB bit-vector constants, described later in [bv-literals](#bv-literals).
 
+<a name="computation"></a>
+
+## Computational Operators
 <a name="computation"></a>
 
 ## Computational Operators
 
 The Ethos has builtin support for computations over all syntactic categories of SMT-LIB version 3.0.
 We list the operators below, roughly categorized by domain.
-However, note that the operators are polymorphic and in some cases can be applied to multiple syntactic categories.
-For example, `eo::add` returns the result of adding two integers or rationals, but also can be used to add binary constants (integers modulo a given bitwidth).
-Similarly, `eo::concat` returns the result of concatenating two string literals, but can also concatenate binary constants.
+<!--CT Added -->
+Note that all the operators operate on _terms_, _regardless_ of the user-defined type
+assigned to those terms. The behavior of each operator is based only on the syntax of its input terms, not their types.
+
+Some of the operators are overloaded, i.e., they can be applied to multiple syntactic categories, with different behavior for each category.
+For example, `eo::add` returns the result of adding two numerals or rationals, but also can be used to add binary values (integers modulo a given bit width).
+Similarly, `eo::concat` returns the result of concatenating two string values, but can also concatenate two binary values.
 We remark on the semantics in the following.
 
 In the following, we say a term is _ground_ if it contains no parameters as subterms.
-We say an _arithmetic value_ is a numeral, decimal or rational value.
-We say a _bitwise value_ is a binary or hexadecimal value.
-A 32-bit numeral value is a numeral value between `0` and `2^32-1`.
+A _Boolean value_ is one of the Booleans `true` or `false`.
+An _arithmetic value_ is a (possibly negated) numeral, decimal or rational value.
+A _bit vector value_ (of bit width n) is a binary or hexadecimal value (of bit width n).
+An _$n$-bit numeral_, for $n ≥ 0$ is an numeral between $0$ and $2^n-1$.
 Binary values are considered to be in little endian form.
 
 Some of the following operators can be defined in terms of the other operators.
 For these operators, we provide the equivalent formulation.
 A signature defining these files can be found in [non-core-eval](#non-core-eval).
-Note however that the evaluation of these operators is handled by more efficient methods internally in the Ethos, that is, they are not treated as syntax sugar internally.
+Note however that the evaluation of these operators is handled by more efficient methods internally in the Ethos checker, that is, they are not treated as syntax sugar internally.
+
+<!--CT Added -->
+The semantics of each operator is described in terms of an evaluation function [ _ ] that takes a term containing applications of the operators and returns a term resulting from this evaluation.
+The function [ _ ] is defined below by specifying how applications of each operator _reduce_ to some (irreducible) term.
+
+<!--CT Added -->
+Ideally, the evaluation of an application of the form `(op t1 ... tn)`, where `op` is one of the operators below, results in a term from the set of values (Boolean, arithmetic, etc.).
+However, this is not always the case since several operators denote partial functions.
+For an input tuple `t1`, ..., `tn` outside of the definition domain of an operator `op`, the term `(op t1 ... tn)` does not evaluate, or rather, reduces to itself.
+
+<!--CT Added -->
+For brevity, the specification of the partial operators provided below is (intentionally) incomplete. It is understood that in the unspecified cases, the application `(op t1 ... tn)` reduces to itself. In other words, unless specified otherwise in the specifications below, [`(op t1 ... tn)`] = `(op t1 ... tn)`.
+
+In general, we refer to the term [`(op t1 ... tn)`], whether it reduces to a value or not, as the _result_ of applying `op` to the terms `t1`, ... `tn`.
 
 ### Core operators
 
-- `(eo::is_eq t1 t2)`
-  - Returns `true` if `t1` is (syntactically) equal to `t2`, or `false` if `t1` and `t2` are distinct and ground. Otherwise, it does not evaluate.
+In the following, we list the core builtin operators of Ethos.
 
-- `(eo::ite t1 t2 t3)`
-  - Returns `t2` if `t1` evaluates to `true`, `t3` if `t2` evaluates to `false`, and is not evaluated otherwise. Note that the branches of this term are only evaluated if they are the return term.
+- `(eo::is_eq t1 t2)`
+
+  evaluates to `true` if `t1` and `t2` evaluate to the same term, and `false` if `t1` and `t2` evaluate to distinct, ground terms. (Otherwise, it evaluates to itself.)
+    More formally, 
+    $$[(\textsf{eo::is_eq}\ t_1\ t_2)] =
+    \begin{cases}
+     \textsf{true} & \text{if } [t_1], [t_2] \text{ are identical} \\
+     \textsf{false} & \text{if } [t_1], [t_2] \text{ are distinct and ground}
+    \end{cases}
+    $$
+   Recalling the note above, the specification of `eo::is_eq` implicitly says that $[(\textsf{eo::is_eq}\ t_1\ t_2)] = (\textsf{eo::is_eq}\ t_1\ t_2)$
+   when $[t_1]$ and $[t_2]$ are distinct but at least one of them is not ground.
+  <br><br>
+
+- `(eo::ite t t1 t2)`
+
+  evaluates to the value of `t1` if `t` evaluates to `true` and to the value of `t2` if `t` evaluates to `false`:
+
+    $$[(\textsf{eo::ite}\ t\ t_1\ t_2)] =
+    \begin{cases}
+     [t_1] & \text{if } [t] = \textsf{true} \\
+     [t_2] & \text{if } [t] = \textsf{false}
+    \end{cases}
+    $$
+  Note that the subterms `t1` and `t2` are only evaluated if they are the return term.
+  <br><br>
 
 - `(eo::requires t1 t2 t3)`
-  - Returns `t3` if `t1` is (syntactically) equal to `t2`, and is not evaluated otherwise.
-- `(eo::hash t1)`
-  - If `t1` is a ground term, this returns a numeral that is unique to `t1`.
-- `(eo::typeof t1)`
-  - If `t1` is a ground term, this returns the type of `t1`.
-- `(eo::nameof t1)`
-  - If `t1` is a ground constant or variable, this returns the name of `t1`, i.e. the string corresponding to the symbol it was declared with.
+
+  evaluates to the value of `t3` if `t1` and `t2` evaluate to the same term:
+
+    $$[(\textsf{eo::requires}\ t_1\ t_2\ t_3)] = [t_3] \quad \text{if } [t_1] = [t_2]$$
+
+- `(eo::hash t)`
+
+  If `t` evaluates to a ground term `u`, this evaluates to a numeral that is unique to `u`.
+  <br><br>
+
+- `(eo::typeof t)`
+
+  If `t` evaluates to a ground term `u`, this returns the type of `u`.
+  <br><br>
+
+- `(eo::nameof t)`
+
+  If `t` evaluates to a ground constant or variable `u`, this returns the name of `u`, i.e., the string corresponding to the symbol it was declared with.
+   <br><br>
+
 - `(eo::var t1 t2)`
-  - If `t1` is a string value and `t2` is ground type, this returns the variable whose name is `t1` and whose type is `t2`.
+
+  If `t1` evaluates to a string value and `t2` to a ground type, this evaluates to the variable whose name is [`t1`] and whose type is [`t2`].
+   <br><br>
+
 - `(eo::cmp t1 t2)`
-  - Equivalent to `(eo::is_neg (eo::add (eo::neg (eo::hash t1)) (eo::hash t2)))`. Note that this method corresponds to an arbitrary total order on terms.
+
+  is treated as `(eo::is_neg (eo::add (eo::neg (eo::hash t1)) (eo::hash t2)))`:
+  $$[(\textsf{eo::cmp}\ t_1\ t_2)] = [(\textsf{eo::is_neg}\ t)]$$
+  where $t$ is $(\textsf{eo::add}\ (\textsf{eo::neg}\ (\textsf{eo::hash}\ t_1))\ (\textsf{eo::hash}\ t_2))$.
+
+   Note that this method induces an arbitrary total order on values.
+   <br><br>
+
 - `(eo::is_z t)`
-  - Equivalent to `(eo::is_eq (eo::to_z t) t)`.
+
+  is treated as `(eo::is_eq (eo::to_z t) t)`:
+  $$[(\textsf{eo::is_z}\ t)] =[(\textsf{eo::is_eq}\ (\textsf{eo::to_z}\ t)\ t)]$$
+
 - `(eo::is_q t)`
-    - Equivalent to `(eo::is_eq (eo::to_q t) t)`. Note this returns false for decimal literals.
+
+   is treated as `(eo::is_eq (eo::to_q t) t)`:
+  $$[(\textsf{eo::is_q}\ t)] =[(\textsf{eo::is_eq}\ (\textsf{eo::to_q}\ t)\ t)]$$
+
+   Note this evaluates to `false` for decimal literals.
+   <br><br>
+
 - `(eo::is_bin t)`
-    - Equivalent to `(eo::is_eq (eo::to_bin (eo::len t) t) t)`. Note this returns false for hexadecimal literals.
+
+  is treated as `(eo::is_eq (eo::to_bin (eo::len t) t) t)`:
+  $$[(\textsf{eo::is_bin}\ t)] =[(\textsf{eo::is_eq}\ (\textsf{eo::to_bin}\ (\textsf{eo::len}\ t)\ t))]$$
+
+  Note this evaluates to `false` for hexadecimal literals.
+   <br><br>
+
 - `(eo::is_str t)`
-  - Equivalent to `(eo::is_eq (eo::to_str t) t)`.
+
+  is treated as `(eo::is_eq (eo::to_str t) t)`:
+  $$[(\textsf{eo::is_str}\ t)] =[(\textsf{eo::is_eq}\ (\textsf{eo::to_str}\ t)\ t)]$$
+
 - `(eo::is_bool t)`
-  - Equivalent to `(eo::or (eo::is_eq t true) (eo::is_eq t false))`.
+
+  is treated as `(eo::or (eo::is_eq t true) (eo::is_eq t false))`:
+  $$[(\textsf{eo::is_bool}\ t)] =[(\textsf{eo::is_eq}\ t\ \textsf{true})]$$
+
 - `(eo::is_var t)`
-  - Equivalent to `(eo::is_eq (eo::var (eo::nameof t) (eo::typeof t)) t)`.
+
+  is treated as `(eo::is_eq (eo::var (eo::nameof t) (eo::typeof t)) t)`:
+  $$[(\textsf{eo::is_var}\ t)] =[(\textsf{eo::is_eq}\ (\textsf{eo::var}\ (\textsf{eo::nameof}\ t)\ (\textsf{eo::typeof}\ t))\ t)]$$
 
 ### Boolean operators
 
 - `(eo::and t1 t2)`
-  - Boolean conjunction if `t1` and `t2` are Boolean values (`true` or `false`).
-  - Bitwise conjunction if `t1` and `t2` are bitwise values of the same category and bitwidth.
+  - Boolean conjunction if [`t1`] and [`t2`] are Boolean values (`true` or `false`).
+  - Bitwise conjunction if [`t1`] and [`t2`] are bit vector values of the same category and bit width.
+
 - `(eo::or t1 t2)`
-  - Boolean disjunction if `t1` and `t2` are Boolean values.
-  - Bitwise disjunction if `t1` and `t2` are bitwise values of the same category and bitwidth.
+  - Boolean disjunction if [`t1`] and [`t2`] are Boolean values.
+  - Bitwise disjunction if [`t1`] and [`t2`] are bit vector values of the same category and bit width.
 - `(eo::xor t1 t2)`
-  - Boolean xor if `t1` and `t2` are Boolean values.
-  - Bitwise xor if `t1` and `t2` are bitwise values of the same category and bitwidth.
+  - Boolean exclusive or if [`t1`] and [`t2`] are Boolean values.
+  - Bitwise exclusive or if [`t1`] and [`t2`] are bit vector values of the same category and bit width.
 - `(eo::not t1)`
-  - Boolean negation if `t1` is a Boolean value.
-  - Bitwise negation if `t1` is a bitwise value.
+  - Boolean negation if [`t1`] is a Boolean value.
+  - Bitwise negation if [`t1`] is a bit vector value.
 
 ### Arithmetic operators
 
 - `(eo::add t1 t2)`
-  - If `t1` and `t2` are arithmetic values of the same category, then this returns the addition of `t1` and `t2`.
-  - If `t1` and `t2` are bitwise values of the same category and bitwidth, this returns the binary value corresponding to their (unsigned) addition modulo their bitwidth.
+  - If [`t1`] and [`t2`] are arithmetic values of the same category, then this evaluates to the sum of [`t1`] and [`t2`].
+  - If [`t1`] and [`t2`] are bit vector values of the same category and bit width $n$, this evaluates to the binary value corresponding to their (unsigned) sum modulo $n$.
+
 - `(eo::mul t1 t2)`
-  - If `t1` and `t2` are arithmetic values of the same category, then this returns the multiplication of `t1` and `t2`.
-  - If `t1` and `t2` are bitwise values of the same category and bitwidth, this returns the binary value corresponding to their (unsigned) multiplication modulo their bitwidth.
+  - If [`t1`] and [`t2`] are arithmetic values of the same category, then this returns the product of [`t1`] and [`t2`].
+  - If [`t1`] and [`t2`] are bit vector values of the same category and bit width $n$, this returns the binary value corresponding to their (unsigned) product modulo $n$.
+
 - `(eo::neg t1)`
-  - If `t1` is a arithmetic value, this returns the arithmetic negation of `t1`.
-  - If `t1` is a binary value, this returns its (signed) arithmetic negation.
+  - If [`t1`] is a arithmetic value $a$, this returns the arithmetic negation of $a$.
+  - If [`t1`] is a bit vector value, this returns its (signed) arithmetic negation.
+
 - `(eo::qdiv t1 t2)`
-  - If `t1` and `t2` are values of the same category and `t2` is non-zero, then this returns the rational division of `t1` and `t2`.
+  - If [`t1`] and [`t2`] are arithmetic values of the same category and [`t2`] is non-zero, this returns the rational quotient of [`t1`] divided by [`t2`].
+
 - `(eo::zdiv t1 t2)`
-  - If `t1` and `t2` are numeral values and `t2` is non-zero, then this returns the integer division (floor) of `t1` and `t2`.
-  - If `t1` and `t2` are bitwise values of the same category and bitwidth, then this returns their (total, unsigned) division, where division by zero returns the max unsigned value.
+  - If [`t1`] and [`t2`] are numerals and [`t2`] is non-zero, this returns the integer quotient (floor) of [`t1`] divided by [`t2`].
+  - If [`t1`] and [`t2`] are bit vector values of the same syntactic category and bit width n, then this returns their (total, unsigned) quotient, with division by zero returning the max unsigned value of bit width n.
+
 - `(eo::zmod t1 t2)`
-  - If `t1` and `t2` are numeral values and `t2` is non-zero, then this returns the integer remainder of `t1` and `t2`.
-  - If `t1` and `t2` are bitwise values of the same category and bitwidth, then this returns their (total, unsigned) remainder, where remainder by zero returns `t1`.
+  - If [`t1`] and [`t2`] are numerals and [`t2`] is non-zero, then this returns the integer remainder of [`t1`] divided by [`t2`].
+  - If [`t1`] and [`t2`] are bit vector values of the same category and bit width, then this returns their (total, unsigned) remainder, where remainder by zero returns [`t1`].
+
 - `(eo::is_neg t1)`
-  - If `t1` is an arithmetic value, this returns `true` if `t1` is strictly negative and `false` otherwise. Otherwise, this operator is not evaluated.
+  - If [`t1`] is an arithmetic value, this returns `true` if [`t1`] is strictly negative and `false` otherwise.
+
 - `(eo::gt t1 t2)`
-  - Equivalent to `(eo::is_neg (eo::add (eo::neg t1) t2))`.
+
+  is treated as `(eo::is_neg (eo::add (eo::neg t1) t2))`.
 
 ### String operators
 
 - `(eo::len t1)`
-  - Binary length (bitwidth) if `t1` is a binary value.
-  - String length if `t1` is a string value.
+  - Binary length (bit width) if [`t1`] is a binary value.
+  - String length if [`t1`] is a string value.
+
 - `(eo::concat t1 t2)`
-  - The concatenation of bits if `t1` and `t2` are binary values.
-  - The concatenation of strings if `t1` and `t2` are string values.
+  - The bit vector concatenation of [`t1`] and [`t2`] if they are both binary values.
+  - The string concatenation of [`t1`] and [`t2`] if they are both are string values.
+
 - `(eo::extract t1 t2 t3)`
-  - If `t1` is a binary value and `t2` and `t3` are numeral values, this returns the binary value corresponding to the bits in `t1` from position `t2` through `t3` if `0<=t2`, or the empty binary value otherwise.
-  - If `t1` is a string value and `t2` and `t3` are numeral values, this returns the string value corresponding to the characters in `t1` from position `t2` through `t3` inclusive if `0<=t2`, or the empty string value otherwise.
+  - If [`t1`] is a binary value and [`t2`] and [`t3`] are numerals, this returns the binary value corresponding to the bits in [`t1`] from position [`t2`] through [`t3`] if [`t2`] is non-negative, or the empty bit vector otherwise.<!--CT this may need revising -->
+  - If [`t1`] is a string value and [`t2`] and [`t3`] are numerals, this returns the string value corresponding to the characters in [`t1`] from position [`t2`] through [`t3`] inclusive if [`t2`] is non-negative, or the empty string otherwise.
+
 - `(eo::find t1 t2)`
-  - If `t1` and `t2` are string values, this returns a numeral value corresponding to the first index (left to right) where `t2` occurs as a substring of `t1`, or the numeral value `-1` otherwise.
+  
+  If [`t1`] and [`t2`] are string values, this returns the numeral corresponding to the first index (left to right) where [`t2`] occurs as a substring of [`t1`], or the numeral value `-1` otherwise.
 
 ### Conversion operators
 
 - `(eo::to_z t1)`
-  - If `t1` is a numeral value, return `t1`.
-  - If `t1` is a rational value, return the numeral value corresponding to the floor of `t1`.
-  - If `t1` is a binary value, this returns the numeral value corresponding to `t1`.
-  - If `t1` is a string value of length one, this returns the code point of its character.
+  - If [`t1`] is an numeral value $n$, this evaluates to $n$.
+  - If [`t1`] is a rational value $r$, this evaluates to the numeral value corresponding to the floor of $r$ <!--CT this may need further clarification for the case when r is negative -->.
+  - If [`t1`] is a binary value $b$, this evaluates to the numeral value corresponding to $b$ <!--CT signed or unsigned? -->.
+  - If [`t1`] is a string value $s$ of length one, this evaluates the code point of $s$'s (only) character.
+
 - `(eo::to_q t1)`
-  - If `t1` is a rational value, return `t1`.
-  - If `t1` is a numeral value, this returns the (integral) rational value that is equivalent to `t1`.
+  - If [`t1`] is a rational value $r$, this evaluates to $r$.
+  - If [`t1`] is an numeral value $n$, this evaluates the (integral) rational value corresponding to $n$.
+
 - `(eo::to_bin t1 t2)`
-  - If `t1` is a 32-bit numeral value and `t2` is a binary value, this returns a binary value whose value is `t2` and whose bitwidth is `t1`.
-  - If `t1` is a 32-bit numeral value and `t2` is a numeral value, return the binary value whose value is `t2` (modulo `2^t1`) and whose bitwidth is `t1`.
+  - If [`t1`] is a 32-bit numeral $w_1$ and [`t2`] is a binary value $b$ of bit width $w_2$, this evaluates to the binary value $b$ of bit width $w_1$.<!--CT This does not seem well-defined. What happens when w_1 < w_2 or w_1 > w_2?  Zero-extension? Truncation?-->
+  - If [`t1`] is a 32-bit numeral $w$ and [`t2`] is a numeral $m$, this evaluates to the binary value of bit width $w$ corresponding to $(m \mod 2^w)$.
+
 - `(eo::to_str t1)`
-  - If `t1` is a string value, return `t1`.
-  - If `t1` is a numeral value specifying a code point from Unicode planes `0-2` (i.e. a numeral between `0` and `196607`), return the string of length one whose character has code point `t1`.
-  - If `t1` is a rational or binary value, return the string value corresponding to the result of printing `t1`. 
-  - If `t1` is a hexadecimal value, return the string value corresponding to the result of printing `t1`. This will use lowercase letters for digits greater than `9`.
-  - If `t1` is a decimal value, return the string value corresponding to the result of printing `t1` as a rational.
+  - If [`t1`] is a string value $s$, this evaluates to $s$.
+  - If [`t1`] is a numeral value $n$ specifying a code point from Unicode planes `0-2` (i.e., a numeral between `0` and `196607`), this evaluates to the string of length one whose character has code point $n$.
+  - If [`t1`] is a rational or bit vector value $v$, this evaluates to the string value `"`$v$`"`. Note that if $v$ is a hexadecimal, it will contain lowercase letters for digits greater than `9`.
+  - If [`t1`] is a decimal value $d$, this evaluates to [`(eo::to_str r)`] where `r` is the (normalized) rational corresponding to $d$.
 
 The Ethos eagerly evaluates ground applications of computational operators.
-In other words, the term `(eo::add 1 1)` is syntactically equivalent in all contexts to `2`.
+In other words, the term `(eo::mul (eo::add 1 1) 3)` is syntactically equivalent in all contexts to `6`.
+<!--CT Added -->
+ In contrast, expressions like `(eo::add (+ 1 1) 3)` and `(eo::mul (eo::add 1 1) a)` where `a` and `+` are user-declared symbols evaluate to themselves since neither `(+ 1 1)` nor `a` are values.
 
-Currently, apart from applications of `eo::ite`, all terms are evaluated bottom-up.
-This means that e.g. in the evaluation of `(eo::or A B)`, both `A` and `B` are always evaluated even if `A` evaluates to `true`.
+Currently, as it can be evinced of the description of [ _ ] above, term evaluation is eager and bottom-up with the only exception of `eo::ite`.
+This means that e.g. in the evaluation of `(eo::or t1 t2)`, both `t1` and `t2` are always evaluated even if `t1` evaluates to `true`.
+In contrast, in the evaluation of `(eo::ite t t1 t2)`, `t1` is evaluated only if `t` evaluates to `true` and `t2` is evaluated only if `t` evaluates to `false`.
 
-The Ethos supports extensions of `eo::and, eo::or, eo::xor, eo::add, eo::mul, eo::concat` to an arbitrary number of arguments `>=2`.
+The Ethos supports extensions of `eo::and, eo::or, eo::xor, eo::add, eo::mul, eo::concat` to an arbitrary number of arguments `>=2`, with the expected semantics.
 
 ### Computation Examples
+
+Here are a few examples of evaluations where the syntax `t1 == t2` means that [`t1`] is `t2`.
 
 ```smt
 (eo::and true false)        == false
@@ -850,15 +966,15 @@ We say that a term is an `f`-list with children `t1 ... tn` if it is of the form
 - `(eo::nil f)`
   - If `f` is a right associative operator, return its nil terminator.
 - `(eo::cons f t1 t2)`
-  - If `t2` is an `f`-list, then this returns the term `(f t1 t2)`.
+  - If [`t2`] is an `f`-list, then this returns the term `(f t1 t2)`.
 - `(eo::list_len f t)`
   - If `t` is an `f`-list with children `t1 ... tn`, then this returns `n`.
 - `(eo::list_concat f t1 t2)`
-  - If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, this returns `(f t11 ... t1n t21 ... t2m)` if `n+m>0` and `nil` otherwise. Otherwise, this operator does not evaluate.
+  - If [`t1`] is an `f`-list with children `t11 ... t1n` and [`t2`] is an `f`-list with children `t21 ... t2m`, this returns `(f t11 ... t1n t21 ... t2m)` if `n+m>0` and `nil` otherwise. Otherwise, this operator does not evaluate.
 - `(eo::list_nth f t1 t2)`
-  - If `f` is a right associative operator with nil terminator with nil terminator `nil`, `t1` is `(f s0 ... s{n-1})`, and `t2` is a numeral value such that `0<=t2<n`, then this returns `s_{t2}`. Otherwise, this operator does not evaluate.
+  - If `f` is a right associative operator with nil terminator with nil terminator `nil`, [`t1`] is `(f s0 ... s{n-1})`, and [`t2`] is a numeral value such that `0<=t2<n`, then this returns `s_{t2}`. Otherwise, this operator does not evaluate.
 - `(eo::list_find f t1 t2)`
-  - If `f` is a right associative operator with nil terminator with nil terminator `nil` and `t1` is `(f s0 ... s{n-1})`, then this returns the smallest numeral value `i` such that `t2` is syntactically equal to `si`, or `-1` if no such `si` can be found. Otherwise, this operator does not evaluate.
+  - If `f` is a right associative operator with nil terminator with nil terminator `nil` and [`t1`] is `(f s0 ... s{n-1})`, then this returns the smallest numeral value `i` such that [`t2`] is syntactically equal to `si`, or `-1` if no such `si` can be found. Otherwise, this operator does not evaluate.
 
 ### List Computation Examples
 
@@ -935,10 +1051,10 @@ for the term `or` applied to arguments `a,b`.
 (define z () (concat x y) :type (BitVec 5))
 ```
 
-Above, we define a type declaration for `BitVec` that expects an integer (i.e. denoting the bitwidth) as an argument.
-Then, a type rule is given for bitvector concatenation `concat`, involves the result of invoking `eo::add` on the bitwidth of its two arguments.
+Above, we define a type declaration for `BitVec` that expects an integer (i.e. denoting the bit width) as an argument.
+Then, a type rule is given for bitvector concatenation `concat`, involves the result of invoking `eo::add` on the bit width of its two arguments.
 
-Since `eo::add` only evaluates on numeral values, this means that this type rule will only give the intended result when the bitwidth arguments to this function are concrete.
+Since `eo::add` only evaluates on numeral values, this means that this type rule will only give the intended result when the bit width arguments to this function are concrete.
 If on the other hand we defined:
 
 ```smt
@@ -986,7 +1102,7 @@ Its syntax is:
 ```
 
 In the following example,
-we declare bitvector-or (`bvor` in SMT-LIB) where its nil terminator is bitvector zero for the given bitwidth.
+we declare bitvector-or (`bvor` in SMT-LIB) where its nil terminator is bitvector zero for the given bit width.
 
 ```smt
 (declare-type Int ())
@@ -994,9 +1110,9 @@ we declare bitvector-or (`bvor` in SMT-LIB) where its nil terminator is bitvecto
 (declare-type BitVec (Int))
 (declare-consts <binary>
     (BitVec (eo::len eo::self)))              ; binary literals denote BitVec constants of their length
-(define bvzero ((m Int)) (eo::to_bin m 0))    ; returns the bitvector value zero for bitwidth m
+(define bvzero ((m Int)) (eo::to_bin m 0))    ; returns the bitvector value zero for bit width m
 
-(declare-parameterized-const bvor ((m Int))   ; bvor is parameterized by a bitwidth m
+(declare-parameterized-const bvor ((m Int))   ; bvor is parameterized by a bit width m
     (-> (BitVec m) (BitVec m) (BitVec m))
     :right-assoc-nil (bvzero m)               ; its nil terminator depends on m
 )
@@ -1039,7 +1155,7 @@ Examples of this are given in the following, assuming the declaration of `bvor` 
 )
 ```
 
-Above, notice that `x` and `y` have concrete bitwidths and `z,w,u` have the free parameter `n` as their bitwidth.
+Above, notice that `x` and `y` have concrete bit widths and `z,w,u` have the free parameter `n` as their bit width.
 In the first term, `(bvor x y)` is type checked to `(BitVec m)[4/m]`.
 Since `4` is ground, we compute the nil terminator `(bvzero 4)`, which evaluates to `#b0000`.
 This is then used as the nil terminator, since `y` is not marked with `:list`.
@@ -1722,7 +1838,7 @@ For example:
 
 Here, `normalize` is introduced as a program which recursively replaces all occurrences of division (over integer constants) with the resulting rational constant.
 This method can be used for handling solvers that interpret constant division as the construction of a rational constant.
-The above program will be invoked on all formulas occuring in `assert` commands in `"file.smt2"` and subsequently formulas in `assume` commands.
+The above program will be invoked on all formulas occurring in `assert` commands in `"file.smt2"` and subsequently formulas in `assume` commands.
 
 ## Oracles
 
@@ -1787,6 +1903,9 @@ The user is responsible for ensure that e.g. the proof contains a step with a de
 The Ethos command line interface can be invoked by `ethos <option>* <file>` where `<option>` is one of the following:
 
 - `--help`: displays a help message.
+- `--no-normalize-dec`: do not treat decimal literals as syntax sugar for rational literals.
+- `--no-normalize-hex`: do not treat hexadecimal literals as syntax sugar for binary literals.
+- `--no-parse-let`: do not treat `let` as a builtin symbol for specifying terms having shared subterms.
 - `--no-print-let`: do not letify the output of terms in error messages and trace messages.
 - `--no-rule-sym-table`: do not use a separate symbol table for proof rules and declared terms.
 - `--show-config`: displays the build information for the given binary.
