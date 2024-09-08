@@ -1961,7 +1961,7 @@ Their expected syntax is `<smtlib2-command>*`.
 As mentioned, the first two kinds of file inputs take into account options concerning the normalization of terms (e.g. `--normalize-num`), while signature files do not.
 When streaming input to Ethos, we assume the input is being given for a proof file.
 
-```smt
+```bnf
 ;;;
 <eo-command> ::=
     (assume <symbol> <term>) |
