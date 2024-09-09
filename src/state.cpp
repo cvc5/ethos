@@ -30,6 +30,56 @@ Options::Options()
   d_binderFresh = false;
 }
 
+bool Options::setOption(const std::string& key, bool val)
+{
+  if (key=="binder-fresh")
+  {
+    d_binderFresh = val;
+  }
+  else if (key=="parse-let")
+  {
+    d_parseLet = val;
+  }
+  else if (key=="print-let")
+  {
+    d_printLet = val;
+  }
+  else if (key=="stats")
+  {
+    d_stats = val;
+  }
+  else if (key=="stats-compact")
+  {
+    if (val)
+    {
+      // also implies stats are enabled.
+      d_stats = val;
+    }
+    d_statsCompact = val;
+  }
+  else if (key=="rule-sym-table")
+  {
+    d_ruleSymTable = val;
+  }
+  else if (key=="normalize-dec")
+  {
+    d_normalizeDecimal = val;
+  }
+  else if (key=="normalize-num")
+  {
+    d_normalizeNumeral = val;
+  }
+  else if (key=="normalize-hex")
+  {
+    d_normalizeHexadecimal = val;
+  }
+  else
+  {
+    return false;
+  }
+  return true;
+}
+  
 State::State(Options& opts, Stats& stats)
     : d_hashCounter(0),
       d_hasReference(false),

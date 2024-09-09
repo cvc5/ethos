@@ -30,6 +30,10 @@ class Options
 {
  public:
   Options();
+  /**
+   * @return true if the option was successfully set.
+   */
+  bool setOption(const std::string& key, bool val);
   bool d_printLet;
   /** 'let' is lexed as the SMT-LIB syntax for a dag term specified by a let */
   bool d_parseLet;

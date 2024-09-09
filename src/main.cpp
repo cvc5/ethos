@@ -31,44 +31,21 @@ int main( int argc, char* argv[] )
   {
     std::string arg(argv[i]);
     i++;
-    if (arg=="--binder-fresh")
+    if (arg.compare(0, 5, "--no-")==0)
     {
-      opts.d_binderFresh = true;
+      if (opts.setOption(arg.substr(5), false))
+      {
+        continue;
+      }
     }
-    else if (arg=="--no-parse-let")
+    else if (arg.compare(0, 2, "--")==0)
     {
-      opts.d_parseLet = false;
+      if (opts.setOption(arg.substr(2), true))
+      {
+        continue;
+      }
     }
-    else if (arg=="--no-print-let")
-    {
-      opts.d_printLet = false;
-    }
-    else if (arg=="--stats")
-    {
-      opts.d_stats = true;
-    }
-    else if (arg=="--stats-compact")
-    {
-      opts.d_stats = true;
-      opts.d_statsCompact = true;
-    }
-    else if (arg=="--no-rule-sym-table")
-    {
-      opts.d_ruleSymTable = false;
-    }
-    else if (arg=="--no-normalize-dec")
-    {
-      opts.d_normalizeDecimal = false;
-    }
-    else if (arg=="--normalize-num")
-    {
-      opts.d_normalizeNumeral = false;
-    }
-    else if (arg=="--no-normalize-hex")
-    {
-      opts.d_normalizeHexadecimal = false;
-    }
-    else if (arg=="--help")
+    if (arg=="--help")
     {
       std::stringstream out;
       out << "     --binder-fresh: binders generate fresh variables when parsed in proof files." << std::endl;
