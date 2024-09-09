@@ -978,17 +978,18 @@ bool CmdParser::parseNextCommand()
       {
         // otherwise, it may be an Ethos option
         bool success = false;
-        if (d_lex.peekToken()==Token::SYMBOL)
+        if (d_lex.peekToken() == Token::SYMBOL)
         {
           std::string str(d_lex.tokenStr());
-          if (str=="true" || str=="false")
+          if (str == "true" || str == "false")
           {
-            success = d_state.getOptions().setOption(key, str=="true");
+            success = d_state.getOptions().setOption(key, str == "true");
           }
         }
         if (!success)
         {
-          Warning() << "Unsupported option or value for option " << key << std::endl;
+          Warning() << "Unsupported option or value for option " << key
+                    << std::endl;
         }
       }
       // now parse the symbol

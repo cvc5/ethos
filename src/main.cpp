@@ -31,21 +31,21 @@ int main( int argc, char* argv[] )
   {
     std::string arg(argv[i]);
     i++;
-    if (arg.compare(0, 5, "--no-")==0)
+    if (arg.compare(0, 5, "--no-") == 0)
     {
       if (opts.setOption(arg.substr(5), false))
       {
         continue;
       }
     }
-    else if (arg.compare(0, 2, "--")==0)
+    else if (arg.compare(0, 2, "--") == 0)
     {
       if (opts.setOption(arg.substr(2), true))
       {
         continue;
       }
     }
-    if (arg=="--help")
+    if (arg == "--help")
     {
       std::stringstream out;
       out << "     --binder-fresh: binders generate fresh variables when parsed in proof files." << std::endl;
