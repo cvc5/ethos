@@ -973,7 +973,7 @@ bool CmdParser::parseNextCommand()
     case Token::SET_OPTION:
     {
       std::string key = d_eparser.parseKeyword();
-      // if reference, just parse value and ignore
+      // if reference, we always ignore this command
       if (!d_isReference)
       {
         // otherwise, it may be an Ethos option
