@@ -77,6 +77,7 @@ bool Options::setOption(const std::string& key, bool val)
   {
     return false;
   }
+  Trace("options") << "setOption(\"" << key << "\", " << val << ")" << std::endl;
   return true;
 }
   

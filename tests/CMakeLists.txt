@@ -125,6 +125,7 @@ set(ethos_test_file_list
     implicit-then-var.eo
     simple-reference.eo
     simple-quant-reference.eo
+    simple-lra-reference.eo
 )
 
 if(ENABLE_ORACLES)
