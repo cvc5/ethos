@@ -1804,6 +1804,9 @@ They do not impact how signature files (*.eo) are parsed:
 - `--no-normalize-hex`: do not treat hexadecimal literals as syntax sugar for binary literals.
 - `--no-parse-let`: do not treat `let` as a builtin symbol for specifying a macro.
 
+Most of the above options can also be set via `set-option` commands within proofs or Eunoia scripts. 
+For example, the command `(set-option binder-fresh true)` tells Ethos to generate fresh variables when parsing binders always.
+
 <a name="full-syntax"></a>
 
 ## Full syntax for Eunoia commands
@@ -1849,7 +1852,8 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
     (declare-datatypes (<sort-dec>^n) (<datatype-dec>^n)) |
     (echo <string>?) |
     (exit) |
-    (reset)
+    (reset) |
+    (set-option <attr>)
 
 ;;;
 <smtlib2-command> ::=
@@ -1863,7 +1867,6 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
     (define-sort <symbol> (<symbol>*) <type>) |
     (set-info <attr>) |
     (set-logic <symbol>) |
-    (set-option <attr>) |
     <common-command>
 
 ;;;
