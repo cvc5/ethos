@@ -94,14 +94,13 @@ For this purpose, the Eunoia language has the following builtin constants:
 - `Bool`, denoting the Boolean type,
 - `true` and `false`, denoting the two values of type `Bool`.
 
-> __Note:__ The core logic of the Ethos also uses several builtin types (e.g. `Proof` and `Quote`) which define the semantics of proof rules. These types are intentionally to exposed to the Eunoia user. Details on then can be found throughout this document. More details on the core logic of the Ethos will be available in a forthcoming publication.
+> __Note:__ The core logic of the Ethos also uses several builtin types (e.g. `Proof` and `Quote`) which define the semantics of proof rules. These types are intentionally not exposed to the Eunoia user. Details on then can be found throughout this document. More details on the core logic of the Ethos will be available in a forthcoming publication.
 
 In the following, we informally use the syntactic categories `<symbol>` to denote an SMT-LIB 3.0 symbol, `<term>` to denote an SMT-LIB term and `<type>` to denote a term whose type is `Type`. The syntactic category `<typed-param>` is defined, BNF-style, as `(<symbol> <type> <attr>*)`. It binds `<symbol>` as a fresh parameter of the given type and attributes (if provided).
 
-The following commands are supported for declaring and defining types and terms. The first set of commands are identical to those in SMT-LIB version 3.0:
+The following commands are supported for declaring and defining types and terms. The first set of commands are identical to those in the upcoming SMT-LIB version 3.0:
 
 - `(declare-const <symbol> <type> <attr>*)` declares a constant named `<symbol>` whose type is `<type>`. Can be given an optional list of attributes (see [attributes](#attributes)).
-<!-- Moved here because it is present in SMT-LIB 3 -->
 
 - `(declare-consts <lit-category> <type>)` declares the class of symbols denoted by the literal category to have the given type.
 
@@ -110,8 +109,9 @@ The following commands are supported for declaring and defining types and terms.
   `(declare-const <symbol> Type)` if `<type>*` is empty, and for
   `(declare-const <symbol> (-> <type>* Type))` otherwise.
 
-<!--CT Do we really need `define-type`? -->
+<!--CT Do w really need `define-type`? -->
 - `(define-type <symbol> (<type>*) <type>)` defines `<symbol>` to be a lambda term whose type is given by the argument and return types.
+
 - `(declare-datatype <symbol> <datatype-dec>)` defines a datatype `<symbol>`, along with its associated constructors, selectors, discriminators and updaters.
 
 - `(declare-datatypes (<sort-dec>^n) (<datatype-dec>^n))` defines a list of `n` datatypes for some `n>0`.
@@ -120,19 +120,19 @@ The following commands are supported for declaring and defining types and terms.
 
 - `(reset)` removes all declarations and definitions and resets the global scope. This command is similar in nature to its counterpart in SMT-LIB.
 
-The Eunoia language contains further commands for declaring symbols that are not standard SMT-LIB version 3.0:
+The Eunoia language contains further commands for declaring symbols that are not standard SMT-LIB 3.
 
 - `(define <symbol> (<typed-param>*) <term> <attr>*)`, defines `<symbol>` to be a lambda term whose arguments and body and given by the command, or the body if the argument list is empty. Note that in contrast to the SMT-LIB command `define-fun`, a return type is not provided. The provided attributes may instruct the checker to perform e.g. type checking on the given term see [type checking define](#tcdefine).
 
 - `(declare-parameterized-const <symbol> (<typed-param>*) <type> <attr>*)` declares a globally scoped variable named `<symbol>` whose type is `<type>`.
 
 > __Note:__ Variables are internally treated the same as constants by Ethos. However, they are provided as a separate category, e.g., for user signatures that wish to distinguish universally quantified variables from free constants. They also have a relationship with user-defined binders, see [binders](#binders), and can be accessed via the builtin operator `eo::var` (see [computation](#computation)).
-
+>
 > __Note:__ Symbol overloading is supported, see [overloading](#overloading).
 
 #### Example: Basic Declarations
 
-```smt
+```clojure
 (declare-type Int ())
 (declare-const c Int)
 (declare-const f (-> Int Int Int))
@@ -140,7 +140,7 @@ The Eunoia language contains further commands for declaring symbols that are not
 (declare-const P (-> Int Bool))
 ```
 
-Since Ethos does not assume any builtin definitions of SMT-LIB theories, definitions of standard symbols in SMT-LIB theories(such as `Int`, `+`, etc.) must be provided in Eunoia signatures. In the above example, symbol `c` is declared to be a constant (0-ary) symbol of type `Int`. The symbol `f` is a function taking two integers and returning an integer.
+Since Ethos does not assume any builtin definitions of any theories, definitions of standard symbols in SMT-LIB theories (such as `Int`, `+`, etc.) must be provided in Eunoia signatures. In the above example, symbol `c` is declared to be a constant (0-ary) symbol of type `Int`. The symbol `f` is a function taking two integers and returning an integer.
 
 Observe that despite the use of different syntax in their declarations, the types of `f` and `g` in the above example are identical as `->` is a right-associative binary type constructor.
 
@@ -148,7 +148,7 @@ Observe that despite the use of different syntax in their declarations, the type
 
 #### Example: Basic Definitions
 
-```smt
+```clojure
 (declare-const not (-> Bool Bool))
 (define id ((x Bool)) x)
 (define notId ((x Int)) (not (id x)))
@@ -160,7 +160,7 @@ Since `define` commands are treated as (hygienic) macro definitions, in this exa
 Furthermore, `notId` is mapped to the lambda term `(lambda ((x Bool)) (not x))`.
 In other words, the following sequence of commands is equivalent to the one above after parsing:
 
-```smt
+```clojure
 (declare-const not (-> Bool Bool))
 (define id ((x Bool)) x)
 (define notId ((x Int)) (not x))
@@ -170,7 +170,7 @@ In other words, the following sequence of commands is equivalent to the one abov
 
 Eunoia supports the declaration of polymorphic types, that is, types depending on other types.
 
-```smt
+```clojure
 (declare-type Int ())
 (declare-type Array (Type Type))
 (declare-const a (Array Int Bool))
@@ -185,7 +185,7 @@ In the above example, we declare and integer type constructor of kind `Type` and
 
 Note the following declarations generate terms of the same type:
 
-```smt
+```clojure
 (declare-type Array_v2 (Type Type))
 (declare-const Array_v3 (-> Type Type Type))
 ```
@@ -198,7 +198,7 @@ To type check terms, `define` statements can be annotated with `:type <term>`.
 This allows the user to eagerly check that a term has a particular type at the place where it is defined.
 In particular:
 
-```smt
+```clojure
 (declare-const not (-> Bool Bool))
 (define notTrue () (not true) :type Bool)
 ```
@@ -209,7 +209,7 @@ This indicates that the checker compare the type it computed for the term `(not 
 
 The Eunoia language uses the SMT-LIB version 3.0 attributes `:var <symbol>` and `:implicit` in term annotations for naming arguments of functions and specifying they are implicit.
 
-```smt
+```clojure
 (declare-type Int ())
 (declare-const eq (-> (! Type :var T) T T Bool))
 (define P ((x Int) (y Int)) (eq Int x y))
@@ -219,7 +219,7 @@ The above example declares a predicate symbol `eq` whose first argument is a typ
 
 In contrast, the example below declares a predicate `=` where the type of the arguments is implicit (this corresponds to the SMT-LIB standard definition of `=`). In the definition of `P`, the type of the arguments `Int` is not provided.
 
-```smt
+```clojure
 (declare-type Int ())
 (declare-const = (-> (! Type :var T :implicit) T T Bool))
 (define P ((x Int) (y Int)) (= x y))
@@ -229,20 +229,20 @@ In general, an argument can be made implicit if its value can be inferred from t
 
 We call `T` in the above definitions a _parameter_. The free parameters of the return type of an expression should be contained in at least one non-implicit argument. In particular, the following declaration is malformed, since the return type of `f` cannot be inferred from its arguments:
 
-```smt
+```clojure
 (declare-type Int ())
 (declare-const f (-> (! Type :var T :implicit) Int T))
 ```
 
 > __Note:__ Internally, `(! T :var t)` is syntax sugar for the type `(Quote t)` where `t` is a parameter of type `T` and `Quote` is a distinguished type of kind `(-> (! Type :var U) U Type)`. When type checking applications of functions of type `(-> (Quote t) S)`, the parameter `t` is bound to the argument the function is applied to.
-
+>
 > __Note:__ Internally, `(! T :implicit)` drops `T` from the list of arguments of the function type we are defining.
 
 ### The :requires annotation
 
 Arguments to functions can also be annotated with the attribute `:requires (<term> <term>)` to denote a equality condition that is required for applications of the term to type check.
 
-```smt
+```clojure
 (declare-type Int ())
 (declare-const BitVec (-> (! Int :var w :requires ((eo::is_neg w) false)) Type))
 ```
@@ -252,7 +252,7 @@ The second annotation indicates that the term `(eo::is_neg w)` must evaluate to 
 Symbol `eo::is_neg` denotes a builtin function that returns `true` if its argument is a negative numeral, and returns false otherwise (for details, see [computation](#computation)).
 <!-- This needs discussion, what is the input type of `eo::is_neg`? How can `eo::is_neg` accept a value of a user-defined type `Int` given that it is builtin?  -->
 
-> __Note:__ Internally, `(! T :requires (t s))` is syntax sugar for the type term `(eo::requires t s T)` where `eo::requires` is an operator that evaluates to its third argument if and only if its first two arguments are _computationally_ equivalent (details on this operator are given in [computation](#computation)).
+> __Note:__ Internally, `(! T :requires (t s))` is treated as the type term `(eo::requires t s T)` where `eo::requires` is an operator that evaluates to its third argument if and only if its first two arguments are _computationally_ equivalent (details on this operator are given in [computation](#computation)).
 Furthermore, the function type `(-> (eo::requires t s T) S)` is treated as `(-> T (eo::requires t s S))`. Ethos rewrites all types of the former form to the latter.
 
 <a name="opaque"></a>
@@ -263,7 +263,7 @@ The attribute `:opaque` can be used to denote that a distinguished argument to a
 In particular, functions with opaque arguments intuitively can be considered a _family_ of functions indexed by their opaque arguments.
 An example of this annotation is the following:
 
-```smt
+```clojure
 (declare-type Array (Type Type))
 (declare-const @array_diff
    (-> (! Type :var T :implicit) (! Type :var U :implicit)
@@ -289,7 +289,7 @@ Functions can have both opaque and ordinary arguments, where the opaque argument
 The concatenation of the expected arguments can be passed to the symbol in the order they are given.
 For example:
 
-```smt
+```clojure
 (declare-type Int ())
 (declare-const @purify_fun (-> (! (-> Int Int) :opaque) Int Int))
 
@@ -328,7 +328,7 @@ A parameter may be marked with the following attribute:
 
 #### Right/Left associative
 
-```smt
+```clojure
 (declare-const or (-> Bool Bool Bool) :right-assoc)
 (define P ((x Bool) (y Bool) (z Bool)) (or x y z))
 (define Q ((x Bool) (y Bool)) (or x y))
@@ -341,7 +341,7 @@ The term `(or x)` is also not impacted by the annotation, and denotes the _parti
 
 Left associative can be defined analogously:
 
-```smt
+```clojure
 (declare-const and (-> Bool Bool Bool) :left-assoc)
 (define P ((x Bool) (y Bool) (z Bool)) (and x y z))
 ```
@@ -357,7 +357,7 @@ More generally, a constant declared with the `:right-associative` annotation mus
 
 Eunoia supports a variant of the aforementioned functionality where a (ground) nil terminator is provided.
 
-```smt
+```clojure
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (define P ((x Bool) (y Bool) (z Bool)) (or x y z))
 (define Q ((x Bool) (y Bool)) (or x y))
@@ -375,7 +375,7 @@ and `(or x)` as `(or false x)`.
 The advantage of right or left associative operators with nil terminators is that the terms they specify are unambiguous, which is not the case for right or left associative operators without nil terminators.
 Consider the following example:
 
-```smt
+```clojure
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (define P1 ((x Bool) (y Bool) (z Bool)) (or x (or y z)))
 (define P2 ((x Bool) (y Bool) (z Bool)) (or x y z))
@@ -391,7 +391,7 @@ In contrast, marking `or` with `:right-assoc-nil false` leads after desugaring t
 >
 > For instance, with
 >
-> ```smt
+> ```clojure
 > (declare-const + (-> Int Int Int) :right-assoc-nil 1)
 > ```
 >
@@ -404,7 +404,7 @@ The type for right and left associative operators with nil terminators is typica
 The nil terminator of a right associative operator may involve previously declared symbols in the signature.
 For example:
 
-```smt
+```clojure
 (declare-type RegLan ())
 (declare-const re.all RegLan)
 (declare-const re.inter (-> RegLan RegLan RegLan) :right-assoc-nil re.all)
@@ -418,7 +418,7 @@ However, when using `declare-const`, the nil terminator of an associative operat
 For example, say we wish to declare bitvector or (`bvor` in SMT-LIB), where its nil terminator is bitvector zero for the given bit width.
 A possible declaration is the following:
 
-```smt
+```clojure
 (declare-const bvor
     (-> (! Int :var m :implicit) (BitVec m) (BitVec m) (BitVec m))
     :right-assoc-nil ???
@@ -435,7 +435,7 @@ Parameters can be marked with the annotation `:list`.
 This includes those in function symbol declarations, as well as parameters to (e.g. `define`, `program`, `declare-rule`) commands.
 This annotation marks that the term should be treated as a list of arguments when it occurs as an argument of a right (left) associative operator with a nil element. Note the following example:
 
-```smt
+```clojure
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (define P ((x Bool) (y Bool)) (or x y))
 (define Q ((x Bool) (y Bool :list)) (or x y))
@@ -458,7 +458,8 @@ More generally, for an right-associative operator `f` with nil terminator `nil`,
 the term `(f t1 ... tn)` is de-sugared based on whether each `t1 ... tn` is marked with `:list`.
 
 - The nil terminator is inserted at the tail of the function application unless `tn` is marked as `:list`,
-- If `ti` is marked as `:list` where `1<=i<n`, then `ti` is prepended to the overall application using a concatentation operation `eo::list_concat`. The semantics of this operator is provided later in [list-computation](#list-computation).
+
+- If `ti` is marked as `:list` where `1 <= i < n`, then `ti` is prepended to the overall application using a concatenation operation `eo::list_concat`. The semantics of this operator is provided later in [list-computation](#list-computation).
 
 In detail, the returned term from desugaring `(f t1 ... tn)` is constructed inductively.
 If `tn` is marked with `:list`, the returned term is initialized to `tn` and we process children `ti` from `i = n-1 ... 1`.
@@ -467,7 +468,7 @@ For each term `ti` we process, the returned term `r` is updated to `(f ti r)` if
 if `ti` is marked with `:list`.
 Examples of this desugaring are given below.
 
-```smt
+```clojure
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (define test ((x Bool) (y Bool) (z Bool :list) (w Bool :list))
     (and
@@ -485,7 +486,7 @@ In contrast, `(or x)` denotes the `or` whose children are `x` and `false`.
 
 #### Chainable
 
-```smt
+```clojure
 (declare-type Int ())
 (declare-const and (-> Bool Bool Bool) :right-assoc)
 (declare-const >= (-> Int Int Bool) :chainable)
@@ -501,7 +502,7 @@ where the type of its chaining operator is `(-> S S S)`, and that operator has b
 
 #### Pairwise
 
-```smt
+```clojure
 (declare-type Int ())
 (declare-const and (-> Bool Bool Bool) :right-assoc)
 (declare-const distinct (-> (! Type :var T :implicit) T T Bool)
@@ -519,7 +520,7 @@ and that operator has been marked as variadic via some attribute.
 
 #### Binder
 
-```smt
+```clojure
 (declare-type Int ())
 (declare-type @List ())
 (declare-const @nil @List)
@@ -560,31 +561,36 @@ This option does not impact how binders are parsed in Eunoia files.
 
 The Eunoia language supports associating SMT-LIB version 3.0 syntactic categories with types. In detail, a syntax category is one of the following:
 
-- `<numeral>` denoting the category of numerals `-?<digit>+`,
-- `<decimal>` denoting the category of decimals `-?<digit>+.<digit>+`,
-- `<rational>` denoting the category of rationals `-?<digit>+/<digit>+`,
-- `<binary>` denoting the category of binary constants `#b<0|1>+`,
-- `<hexadecimal>` denoting the category of hexadecimal constants `#x<hex-digit>+` where hexdigit is `[0-9] | [a-f] | [A-F]`,
-- `<string>` denoting the category of string literals `"<char>*"`.
+- `<boolean>` denoting the category of _Boolean_ literals `true | false`,
+- `<numeral>` denoting the category of (integer) _numerals_ `-?<digit>+` where `<digit>` is `[0-9]`,
+- `<decimal>` denoting the category of _decimals_ `-?<digit>+.<digit>+`,
+- `<rational>` denoting the category of _rationals_ `-?<digit>+/<digit>+`,
+- `<binary>` denoting the category of _binaries_ `#b[0-1]+`,
+- `<hexadecimal>` denoting the category of _hexadecimals_ `#x<hex-digit>+` where `<hex-digit>` is `[0-9] | [a-f] | [A-F]`,
+- `<string>` denoting the category of _strings_ literals `"<char>*"` <!--CT Added-->where `<char>` consists of the set of UTF-8 characters.
 
-When parsing proofs and reference files, by default, decimal literals will be treated as syntax sugar for rational literals unless the option `--no-normalize-dec` is enabled.
-Similarly, hexadecimal literals will be treated as syntax sugar for binary literals unless the option `--no-normalize-hex` is enabled.
-Some SMT-LIB logics (e.g. `QF_LRA`) state that numerals should be treated as syntax sugar for rational literals.
-This behavior can be enabled when parsing proofs and reference files using the option `--normalize-num`.
+<!--CT Added. -->
+We call _literal_ or _value_ any element of the seven syntactic categories above.
+We refer to collectively to binaries and hexadecimals as _bit vector values_ and to numerals, decimals and rationals as _arithmetic values_.
 
-In contrast to SMT-LIB version 2, note that rational values can be specified directly using the syntax `5/11, 2/4, 0/1` and so on.
-Rationals are normalized so that e.g. `2/4` and `1/2` are syntactically equivalent after parsing.
-Similarly, decimals are normalized so that e.g. `1.300` is syntactically equivalent to `1.3` after parsing.
+<!--CT Added. -->
+> __Note:__ Numerals include _negated_ literals such as `-1`, `-43`, and so on. Also, and in contrast to SMT-LIB version 2, rational literals can be specified directly using the syntax `5/11`, `2/4`, `0/1` and so on, and negative values can be provided as single literals, e.g., `-1`, `-10.5`, `-1/3` and so on, instead of terms such as `(- 1)`, `(- 10.5)`, and `(/ (- 1) 3)`.
+
+By default, decimal literals are treated by Ethos as syntax sugar for rational literals.
+Similarly, hexadecimal literals are treated as syntax sugar for binary literals.
+Rationals are normalized so that, e.g., `2/4` and `1/2` are syntactically equivalent after parsing.
+Similarly, decimals are normalized so that, e.g., `1.300` is syntactically equivalent to `1.3` after parsing.
 Note this is independent of whether these decimal values are further normalized to rational values.
 In other words, by default `1.300` is syntactically equivalent to the rational `13/10`.
-Also note in contrast to SMT-LIB version 2, negative arithmetic can be provided using the syntax e.g. `-1, -10.5, -1/3` and so on, instead of `(- 1), (- 10.5), (/ (- 1) 3)`.
 
 String values use the standard escape sequences as specified in SMT-LIB version 2.6, namely `""` within a string literal denotes `"`.
 The only other escape sequences are of the form `\u{dn ...d1}` for `1<=n<=5` and `\u d4 d3 d2 d1` for hexadecimal digits `d1...d5` where `d5` is in the range `[0-2]`.
 
 > __Note:__ Numeral, rational and decimal values are implemented by the arbitrary precision arithmetic library GMP. Binary and hexadecimal values are implemented as layer on top of numeral values that tracks a bit width. String values are implemented as a vector of unsigned integers whose maximum value is specified by SMT-LIB version 2.6, namely the character set corresponds to Unicode values 0 to 196607.
-
-> __Note:__ The user is not required to declare that `true` and `false` are values of type `Bool`. Instead, it is assumed that the syntactic category `<boolean>` of Boolean values (`true` and `false`) has been associated with the Boolean sort. In other words, `(declare-consts <boolean> Bool)` is a part of the builtin signature assumed by Ethos.
+>
+> __Note:__ Numeral, rational and decimal values are implemented by the arbitrary precision arithmetic library GMP. Binary and hexadecimal values are implemented as layer on top of numeral values that tracks a bit width. String values are implemented as a vector of unsigned integers whose maximum value is specified by SMT-LIB version 2.6, namely the character set corresponds to Unicode values 0 to 196607.
+>
+> __Note:__ Except for `<boolean>`, the literal categories above are not associated to any type by default. The user must decides what type to assign to each of them, with the command `declare-consts`. In contrast, the values of `<boolean>` have the predefined type `Bool`. In other words, `(declare-type Bool ())` and `(declare-consts <boolean> Bool)` are part of the builtin signature assumed by Ethos.
 
 <a name="declare-consts"></a>
 
@@ -592,7 +598,7 @@ The only other escape sequences are of the form `\u{dn ...d1}` for `1<=n<=5` and
 
 The following gives an example of how to define the class of numeral constants.
 
-```smt
+```clojure
 (declare-type Int ())
 (declare-consts <numeral> Int)
 (define P ((x Int)) (> x 7))
@@ -601,8 +607,10 @@ The following gives an example of how to define the class of numeral constants.
 In the above example, the `declare-consts` command specifies that numerals (`1`, `2`, `3`, and so on) are constants of type `Int`.
 The signature can now refer to arbitrary numerals in definitions, e.g. `7` in the definition of `P`.
 
-> __Note:__ Internally, the command above only impacts the type rule assigned to numerals that are parsed. Furthermore, the Ethos internally distinguishes whether a term is a numeral value, independently of its type, for the purposes of computational operators (see [computation](#computation)).
-
+> __Note:__ Internally, the `declare-consts` command above only impacts the type rule assigned to numerals that are parsed. Furthermore, Ethos internally distinguishes whether a term is a numeral value, independently of its type, for the purposes of computational operators (see [computation](#computation)).
+>
+> __Note:__ For specifying literals whose type rule varies based on the content of the constant, the Eunoia language uses a distinguished variable `eo::self` which can be used in `declare-consts` definitions. For an example, see the type rule for SMT-LIB bit-vector constants, described later in [bv-literals](#bv-literals).
+>
 > __Note:__ For specifying literals whose type rule varies based on the content of the constant, the Eunoia language uses a distinguished variable `eo::self` which can be used in `declare-consts` definitions. For an example, see the type rule for SMT-LIB bit-vector constants, described later in [bv-literals](#bv-literals).
 
 <a name="computation"></a>
@@ -611,227 +619,362 @@ The signature can now refer to arbitrary numerals in definitions, e.g. `7` in th
 
 The Ethos has builtin support for computations over all syntactic categories of SMT-LIB version 3.0.
 We list the operators below, roughly categorized by domain.
-However, note that the operators are polymorphic and in some cases can be applied to multiple syntactic categories.
-For example, `eo::add` returns the result of adding two integers or rationals, but also can be used to add binary constants (integers modulo a given bitwidth).
-Similarly, `eo::concat` returns the result of concatenating two string literals, but can also concatenate binary constants.
+<!--CT Added --> All the builtin operators operate on _terms_, _regardless_ of the user-defined type assigned to those terms. The behavior of each operator is based only on the syntax of its input terms, not their types.
+
+Some of the operators are overloaded, i.e., they can be applied to multiple syntactic categories, with different behavior for each category.
+For example, `eo::add` returns the result of adding two numerals or two rationals, but also can be used to add two binary values (seen as integers modulo a given bit width).
+Similarly, `eo::concat` returns the result of concatenating two string values, but can also concatenate two binary values.
 We remark on the semantics in the following.
 
 In the following, we say a term is _ground_ if it contains no parameters as subterms.
-We say an _arithmetic value_ is a numeral, decimal or rational value.
-We say a _bitwise value_ is a binary or hexadecimal value.
-A 32-bit numeral value is a numeral value between `0` and `2^32-1`.
+Recall that a _boolean value_ is one of the Booleans `true` or `false`.
+An _arithmetic value_ is a (possibly negated) numeral, decimal or rational value.
+An _$n$-bit numeral_, for $n ≥ 0$ is an numeral between $0$ and $2^n-1$.
+A _bit vector value_ (of bit width n) is a binary or hexadecimal value (of bit width n).
 Binary values are considered to be in little endian form.
 
 Some of the following operators can be defined in terms of the other operators.
 For these operators, we provide the equivalent formulation.
 A signature defining these files can be found in [non-core-eval](#non-core-eval).
-Note however that the evaluation of these operators is handled by more efficient methods internally in the Ethos, that is, they are not treated as syntax sugar internally.
+Note however that the evaluation of these operators is handled by more efficient methods internally in the Ethos checker, that is, they are not treated as syntax sugar internally.
+
+<!--CT Added -->
+The semantics of each operator is described in terms of an evaluation function $[ \cdot ]$ that takes a term containing applications of the operators and returns a term resulting from this evaluation.
+The function $[ \cdot ]$ is defined below by specifying how applications of each operator _reduce_ to some (irreducible) term.
+With one exception, the if-then-else operator `eo::ite`, term evaluation is bottom up, where the evaluation of an application of the form $(op\ t_1\ \cdots\ t_n)$ is defined with respect to the reduced terms $[t_1]$, ..., $[t_n]$.
+
+<!--CT Added -->
+Ideally, the evaluation of an application $(op\ t_1\ \cdots\ t_n)$ results in a term from the set of values (Boolean, arithmetic, etc.).
+However, this is not always the case since several operators denote partial functions.
+For input terms $t_1, \ldots, t_n$, with at least one of them outside the definition domain of the operator $op$, the term $(op\ t_1\ \cdots\ t_n)$ reduces to the _stuck_ term $(op\ [t_1] \cdots\ [t_n])$.
+In general, we refer to the term $[(op\ t_1\ \cdots\ t_n)]$, whether it is a value or a stuck term, as the _result_ of applying $op$ to the terms $t_1, \ldots, t_n$.
+<!--CT What happens if a term t contains undeclared symbols? Does that make t only partially reducible or does it raise an error at parse time?-->
+
+<!--CT Added -->
+> __Note:__ Because of the bottom up evaluation, the specification of the partial operators provided below  assumes for convenience that the provided argument terms $r_1, \ldots, r_n$ __are already reduced__ with respect to $[-]$, that is, $[r_i] = r_i$ for all $i=1,\ldots,n$. <!--CT This assumes that [_] is terminating.-->
+Moreover, the specification of each operator $op$ is (intentionally) incomplete. It is understood that in the unspecified cases, if any, $[(op\ r_1\ \cdots\ r_n)] = (op\ [r_1]\ \cdots\ [r_n]) = (op\ r_1\ \cdots\ r_n)$.
+
+<!--CT Used - instead of _ for operator names in latex because itd does not render properly on Github-->
 
 ### Core operators
 
-- `(eo::is_eq t1 t2)`
-  - Returns `true` if `t1` is (syntactically) equal to `t2`, or `false` if `t1` and `t2` are distinct and ground. Otherwise, it does not evaluate.
+In the following, we list the core builtin operators of Ethos.
 
-- `(eo::ite t1 t2 t3)`
-  - Returns `t2` if `t1` evaluates to `true`, `t3` if `t2` evaluates to `false`, and is not evaluated otherwise. Note that the branches of this term are only evaluated if they are the return term.
+- `(eo::is_eq r1 r2)`
 
-- `(eo::requires t1 t2 t3)`
-  - Returns `t3` if `t1` is (syntactically) equal to `t2`, and is not evaluated otherwise.
-- `(eo::hash t1)`
-  - If `t1` is a ground term, this returns a numeral that is unique to `t1`.
-- `(eo::typeof t1)`
-  - If `t1` is a ground term, this returns the type of `t1`.
-- `(eo::nameof t1)`
-  - If `t1` is a ground constant or variable, this returns the name of `t1`, i.e. the string corresponding to the symbol it was declared with.
-- `(eo::var t1 t2)`
-  - If `t1` is a string value and `t2` is ground type, this returns the variable whose name is `t1` and whose type is `t2`.
-- `(eo::cmp t1 t2)`
-  - Equivalent to `(eo::is_neg (eo::add (eo::neg (eo::hash t1)) (eo::hash t2)))`. Note that this method corresponds to an arbitrary total order on terms.
-- `(eo::is_z t)`
-  - Equivalent to `(eo::is_eq (eo::to_z t) t)`.
-- `(eo::is_q t)`
-    - Equivalent to `(eo::is_eq (eo::to_q t) t)`. Note this returns false for decimal literals.
-- `(eo::is_bin t)`
-    - Equivalent to `(eo::is_eq (eo::to_bin (eo::len t) t) t)`. Note this returns false for hexadecimal literals.
-- `(eo::is_str t)`
-  - Equivalent to `(eo::is_eq (eo::to_str t) t)`.
-- `(eo::is_bool t)`
-  - Equivalent to `(eo::or (eo::is_eq t true) (eo::is_eq t false))`.
-- `(eo::is_var t)`
-  - Equivalent to `(eo::is_eq (eo::var (eo::nameof t) (eo::typeof t)) t)`.
+  evaluates to `true` if `r1` and `r2` are the same term, and `false` if `r1` and `r2` are distinct, ground terms. (Otherwise, it evaluates to itself.)
+    More formally,
+
+    $$[(\textsf{eo::is-eq}\ r_1\ r_2)] =
+    \begin{cases}
+     \textsf{true} & \text{if } r_1 = r_2 \\
+     \textsf{false} & \text{if } r_1, r_2 \text{ are distinct and ground}
+    \end{cases}
+    $$
+
+   Recalling the note above, the specification of `eo::is_eq` implicitly says that $[(\textsf{eo::is-eq}\ r_1\ r_2)] = (\textsf{eo::is-eq}\ r_1\ r_2)$
+   when $r_1$ and $r_2$ are distinct but at least one of them is not ground.
+
+   __Example:__ `(eo::is_eq 5 5)` evaluates to `true`, `(eo::is_eq 4 5)` and `(eo::is_eq true 5)` evaluate to `false`, and `(eo::is_eq 5 x)` to itself.
+  <br><br>
+
+- `(eo::ite r t1 t2)`
+
+  evaluates to the value of `t1` if `r` is `true` and to the value of `t2` if `r` is `false`:
+
+    $$
+    \begin{array}{rcl}
+     [(\textsf{eo::ite}\ \textsf{true}\ t_1\ t_2)] & = & [t_1]  \\
+     [(\textsf{eo::ite}\ \textsf{false}\ t_1\ t_2)] & = & [t_2]  \\
+    \end{array}
+    $$
+  Note that int his operator (and this one only) the subterms `t1` and  `t2` are only evaluated if they are the return term.
+  <br><br>
+
+- `(eo::requires r1 r2 r3)`
+
+  evaluates to `r3` if `r1` and `r2` are the same term:
+
+    $$[(\textsf{eo::requires}\ r\ r\ r_3)] = r_3$$
+
+   __Example:__ `(eo::requires (eo::is_eq 5 5) true "ok")` evaluates to `"ok"` since `(eo::is_eq 5 5)` evaluates to `true`.
+  <br><br>
+
+- `(eo::hash r)`
+
+  If `r` is ground, this evaluates to a numeral that is unique to `r`.
+  <br><br>
+
+- `(eo::typeof r)`
+
+  If `r` is ground, this returns the type of `r` (based on the types declared for the constants in `r`).<!--CT What if r contains undeclared symbols? Also, this assume a type preservation theorem where t and [t] have the same type for all t. -->
+  <br><br>
+
+- `(eo::nameof r)`
+
+  If `r` is a ground constant or variable, this returns the name of `r`, i.e., the string corresponding to the symbol it was declared with.
+  
+   __Example:__ `(eo::nameof 125)` evaluates to `"125"` and `(eo::nameof x)` evaluates to `"x"`.
+   <br><br>
+
+- `(eo::var r1 r2)`
+
+  If `r1` is a string value and `r2` is a ground type, this evaluates to the (unique) variable with name `r1` and type is `r2`.
+
+  >__Note:__ If `(List Int)`, say, is a type, `(eo::nameof (eo::var "x" (List Int)))` evaluates to `"x"` and `(eo::typeof (eo::var "x" (List Int)))` to `(List Int)`.
+  <br>
+
+- `(eo::cmp r1 r2)`
+
+  is treated as `(eo::is_neg (eo::add (eo::neg (eo::hash r1)) (eo::hash r2)))`, that is, it  evaluates to `true` (resp., `false`) if `r1` has a smaller (resp., greater) hash value than `r2`. Note that this method induces a total order on all values based on the hashing function `eo::hash`.
+   <br><br>
+
+- `(eo::is_z r)`
+
+  is treated as `(eo::is_eq (eo::to_z r) r)`, that is, it evaluates to `true` (resp., `false`) if `r` is a numeral (resp., is a value other than a numeral).
+
+  __Example:__ `(eo::is_z 125)` and `(eo::is_z -125)` evaluate to `true`, `(eo::is_z 3.2)` to `false` and `(eo::is_z x)` to `(eo::is_z x)`.
+  <br><br>
+
+- `(eo::is_q r)`
+
+   is treated as `(eo::is_eq (eo::to_q r) r)`, that is, `(eo::is_q r)` evaluates to `true` (resp., `false`) if `r` is a rational (resp., is a value other than a rational).
+  Note that this evaluates to `false` for decimal literals.
+   <br><br>
+
+- `(eo::is_bin r)`
+
+  is treated as `(eo::is_eq (eo::to_bin (eo::len r) r) r)`.
+  Note that it evaluates to `false` for hexadecimal literals.
+   <br><br>
+
+- `(eo::is_str r)`
+
+  is treated as `(eo::is_eq (eo::to_str r) r)`, that is, it evaluates to `true` if converting `r` to a string produces `r` itself, and it evaluates to `false` otherwise.
+   <br><br>
+
+- `(eo::is_bool r)`
+
+  is treated as `(eo::or (eo::is_eq r true) (eo::is_eq r false))`.<!-- 
+   Is this really the case?  
+   Does (eo::is_bool x) (where x is a constant/variable) evaluate 
+   to (eo::or (eo::is_eq x true) (eo::is_eq x false)) ? 
+  -->
+   <br><br>
+
+- `(eo::is_var r)`
+
+  is treated as `(eo::is_eq (eo::var (eo::nameof r) (eo::typeof r)) r)`, that is, it evaluates to `true` if constructing a variable with `r`'s name and type yields `r` itself.
+<!--CT what about the other case, doesn't it get stuck sometimes? Do we want that instead of `false` in those cases?-->
 
 ### Boolean operators
 
-- `(eo::and t1 t2)`
-  - Boolean conjunction if `t1` and `t2` are Boolean values (`true` or `false`).
-  - Bitwise conjunction if `t1` and `t2` are bitwise values of the same category and bitwidth.
-- `(eo::or t1 t2)`
-  - Boolean disjunction if `t1` and `t2` are Boolean values.
-  - Bitwise disjunction if `t1` and `t2` are bitwise values of the same category and bitwidth.
-- `(eo::xor t1 t2)`
-  - Boolean xor if `t1` and `t2` are Boolean values.
-  - Bitwise xor if `t1` and `t2` are bitwise values of the same category and bitwidth.
-- `(eo::not t1)`
-  - Boolean negation if `t1` is a Boolean value.
-  - Bitwise negation if `t1` is a bitwise value.
+- `(eo::and r1 r2)`
+  - Boolean conjunction if `r1` and `r2` are booleans.
+  - Bitwise conjunction if `r1` and `r2` are bit vector values of the same category and bit width.
+   <br><br>
+
+- `(eo::or r1 r2)`
+  - Boolean disjunction if `r1` and `r2` are booleans.
+  - Bitwise disjunction if `r1` and `r2` are bit vector values of the same category and bit width.
+   <br><br>
+
+- `(eo::xor r1 r2)`
+  - Boolean exclusive or if `r1` and `r2` are booleans.
+  - Bitwise exclusive or if `r1` and `r2` are bit vector values of the same category and bit width.
+   <br><br>
+
+- `(eo::not r1)`
+  - Boolean negation if `r1` is a boolean.
+  - Bitwise negation if `r1` is a bit vector value.
 
 ### Arithmetic operators
 
-- `(eo::add t1 t2)`
-  - If `t1` and `t2` are arithmetic values of the same category, then this returns the addition of `t1` and `t2`.
-  - If `t1` and `t2` are bitwise values of the same category and bitwidth, this returns the binary value corresponding to their (unsigned) addition modulo their bitwidth.
-- `(eo::mul t1 t2)`
-  - If `t1` and `t2` are arithmetic values of the same category, then this returns the multiplication of `t1` and `t2`.
-  - If `t1` and `t2` are bitwise values of the same category and bitwidth, this returns the binary value corresponding to their (unsigned) multiplication modulo their bitwidth.
-- `(eo::neg t1)`
-  - If `t1` is a arithmetic value, this returns the arithmetic negation of `t1`.
-  - If `t1` is a binary value, this returns its (signed) arithmetic negation.
-- `(eo::qdiv t1 t2)`
-  - If `t1` and `t2` are values of the same category and `t2` is non-zero, then this returns the rational division of `t1` and `t2`.
-- `(eo::zdiv t1 t2)`
-  - If `t1` and `t2` are numeral values and `t2` is non-zero, then this returns the integer division (floor) of `t1` and `t2`.
-  - If `t1` and `t2` are bitwise values of the same category and bitwidth, then this returns their (total, unsigned) division, where division by zero returns the max unsigned value.
-- `(eo::zmod t1 t2)`
-  - If `t1` and `t2` are numeral values and `t2` is non-zero, then this returns the integer remainder of `t1` and `t2`.
-  - If `t1` and `t2` are bitwise values of the same category and bitwidth, then this returns their (total, unsigned) remainder, where remainder by zero returns `t1`.
-- `(eo::is_neg t1)`
-  - If `t1` is an arithmetic value, this returns `true` if `t1` is strictly negative and `false` otherwise. Otherwise, this operator is not evaluated.
-- `(eo::gt t1 t2)`
-  - Equivalent to `(eo::is_neg (eo::add (eo::neg t1) t2))`.
+- `(eo::add r1 r2)`
+  - If `r1` and `r2` are arithmetic values of the same category, then this evaluates to the sum of `r1` and `r2`.
+  - If `r1` and `r2` are bit vector values of the same category and bit width $n$, this evaluates to the binary value corresponding to their (unsigned) sum modulo $n$.
+   <br><br>
+
+- `(eo::mul r1 r2)`
+  - If `r1` and `r2` are arithmetic values of the same category, then this returns the product of `r1` and `r2`.
+  - If `r1` and `r2` are bit vector values of the same category and bit width $n$, this returns the binary value corresponding to their (unsigned) product modulo $n$.
+   <br><br>
+
+- `(eo::neg r1)`
+  - If `r1` is a arithmetic value $a$, this returns the arithmetic negation of $a$.
+  - If `r1` is a bit vector value, this returns its (signed) arithmetic negation.
+   <br><br>
+
+- `(eo::qdiv r1 r2)`
+  - If `r1` and `r2` are arithmetic values of the same category and `r2` is non-zero, this returns the rational quotient of `r1` divided by `r2`.
+   <br><br>
+
+- `(eo::zdiv r1 r2)`
+  - If `r1` and `r2` are numerals and `r2` is non-zero, this returns the integer quotient (floor) of `r1` divided by `r2`.
+  - If `r1` and `r2` are bit vector values of the same syntactic category and bit width n, then this returns their (total, unsigned) quotient, with division by zero returning the max unsigned value of bit width n.
+   <br><br>
+
+- `(eo::zmod r1 r2)`
+  - If `r1` and `r2` are numerals and `r2` is non-zero, then this returns the integer remainder of `r1` divided by `r2`.
+  - If `r1` and `r2` are bit vector values of the same category and bit width, then this returns their (total, unsigned) remainder, where remainder by zero returns `r1`.
+   <br><br>
+
+- `(eo::is_neg r1)`
+  - If `r1` is an arithmetic value, this returns `true` if `r1` is strictly negative and `false` otherwise.
+   <br><br>
+
+- `(eo::gt r1 r2)`
+
+  is treated as `(eo::is_neg (eo::add (eo::neg r1) r2))`.
 
 ### String operators
 
-- `(eo::len t1)`
-  - Binary length (bitwidth) if `t1` is a binary value.
-  - String length if `t1` is a string value.
-- `(eo::concat t1 t2)`
-  - The concatenation of bits if `t1` and `t2` are binary values.
-  - The concatenation of strings if `t1` and `t2` are string values.
-- `(eo::extract t1 t2 t3)`
-  - If `t1` is a binary value and `t2` and `t3` are numeral values, this returns the binary value corresponding to the bits in `t1` from position `t2` through `t3` if `0<=t2`, or the empty binary value otherwise.
-  - If `t1` is a string value and `t2` and `t3` are numeral values, this returns the string value corresponding to the characters in `t1` from position `t2` through `t3` inclusive if `0<=t2`, or the empty string value otherwise.
-- `(eo::find t1 t2)`
-  - If `t1` and `t2` are string values, this returns a numeral value corresponding to the first index (left to right) where `t2` occurs as a substring of `t1`, or the numeral value `-1` otherwise.
+- `(eo::len r1)`
+  - Binary length (bit width) if `r1` is a binary value.
+  - String length if `r1` is a string value.
+   <br><br>
+
+- `(eo::concat r1 r2)`
+  - The bit vector concatenation of `r1` and `r2` if they are both binary values.
+  - The string concatenation of `r1` and `r2` if they are both are string values.
+   <br><br>
+
+- `(eo::extract r1 r2 t3)`
+  - If `r1` is a binary value and `r2` and `r3` are numerals, this returns the binary value corresponding to the bits in `r1` from position `r2` through `r3` if `r2` is non-negative, or the empty bit vector otherwise.<!--CT this may need revising -->
+  - If `r1` is a string value and `r2` and `r3` are numerals, this returns the string value corresponding to the characters in `r1` from position `r2` through `r3` inclusive if `r2` is non-negative, or the empty string otherwise.
+   <br><br>
+
+- `(eo::find r1 r2)`
+  
+  If `r1` and `r2` are string values, this returns the numeral corresponding to the first index (left to right) where `r2` occurs as a substring of `r1`, or the numeral value `-1` otherwise.
 
 ### Conversion operators
 
-- `(eo::to_z t1)`
-  - If `t1` is a numeral value, return `t1`.
-  - If `t1` is a rational value, return the numeral value corresponding to the floor of `t1`.
-  - If `t1` is a binary value, this returns the numeral value corresponding to `t1`.
-  - If `t1` is a string value of length one, this returns the code point of its character.
-- `(eo::to_q t1)`
-  - If `t1` is a rational value, return `t1`.
-  - If `t1` is a numeral value, this returns the (integral) rational value that is equivalent to `t1`.
-- `(eo::to_bin t1 t2)`
-  - If `t1` is a 32-bit numeral value and `t2` is a binary value, this returns a binary value whose value is `t2` and whose bitwidth is `t1`.
-  - If `t1` is a 32-bit numeral value and `t2` is a numeral value, return the binary value whose value is `t2` (modulo `2^t1`) and whose bitwidth is `t1`.
-- `(eo::to_str t1)`
-  - If `t1` is a string value, return `t1`.
-  - If `t1` is a numeral value specifying a code point from Unicode planes `0-2` (i.e. a numeral between `0` and `196607`), return the string of length one whose character has code point `t1`.
-  - If `t1` is a rational or binary value, return the string value corresponding to the result of printing `t1`. 
-  - If `t1` is a hexadecimal value, return the string value corresponding to the result of printing `t1`. This will use lowercase letters for digits greater than `9`.
-  - If `t1` is a decimal value, return the string value corresponding to the result of printing `t1` as a rational.
+- `(eo::to_z r1)`
+  - If `r1` is an numeral value $n$, this evaluates to $n$.
+  - If `r1` is a rational value $r$, this evaluates to the numeral value corresponding to the floor of $r$ <!--CT this may need further clarification for the case when r is negative -->.
+  - If `r1` is a binary value $b$, this evaluates to the numeral value corresponding to $b$ <!--CT signed or unsigned? -->.
+  - If `r1` is a string value $s$ of length one, this evaluates the code point of $s$'s (only) character.
+   <br><br>
+
+- `(eo::to_q r1)`
+  - If `r1` is a rational value $r$, this evaluates to $r$.
+  - If `r1` is a numeral value $n$, this evaluates the (integral) rational value corresponding to $n$.
+   <br><br>
+
+- `(eo::to_bin r1 r2)`
+  - If `r1` is a 32-bit numeral $w_1$ and `r2` is a binary value $b$ of bit width $w_2$, this evaluates to the binary value $b$ of bit width $w_1$.<!--CT This does not seem well-defined. What happens when w_1 < w_2 or w_1 > w_2?  Zero-extension? Truncation?-->
+  - If `r1` is a 32-bit numeral $w$ and `r2` is a numeral $m$, this evaluates to the binary value of bit width $w$ corresponding to $(m \mod 2^w)$.
+   <br><br>
+
+- `(eo::to_str r1)`
+  - If `r1` is a string value $s$, this evaluates to $s$.
+  - If `r1` is a numeral value $n$ specifying a code point from Unicode planes `0-2` (i.e., a numeral between `0` and `196607`), this evaluates to the string of length one whose character has code point $n$.
+  - If `r1` is a rational or bit vector value $v$, this evaluates to the string value `"`$v$`"`. Note that if $v$ is a hexadecimal, it will contain lowercase letters for digits greater than `9`.
+  - If `r1` is a decimal value $d$, this evaluates to [`(eo::to_str r)`] where `r` is the (normalized) rational corresponding to $d$.
 
 The Ethos eagerly evaluates ground applications of computational operators.
-In other words, the term `(eo::add 1 1)` is syntactically equivalent in all contexts to `2`.
+In other words, the term `(eo::mul (eo::add 1 1) 3)` is syntactically equivalent in all contexts to `6`.
+<!--CT Added -->
+ In contrast, expressions like `(eo::add (+ 1 1) 3)` and `(eo::mul (eo::add 1 1) a)`, where `a` and `+` are user-declared symbols, evaluate to themselves since neither `(+ 1 1)` nor `a` are values.
 
-Currently, apart from applications of `eo::ite`, all terms are evaluated bottom-up.
-This means that e.g. in the evaluation of `(eo::or A B)`, both `A` and `B` are always evaluated even if `A` evaluates to `true`.
-
-The Ethos supports extensions of `eo::and, eo::or, eo::xor, eo::add, eo::mul, eo::concat` to an arbitrary number of arguments `>=2`.
+The Ethos supports extensions of `eo::and, eo::or, eo::xor, eo::add, eo::mul, eo::concat` to an arbitrary number of arguments $ \geq 2$, with the expected semantics.
 
 ### Computation Examples
 
-```smt
-(eo::and true false)        == false
-(eo::and #b1110 #b0110)     == #b0110
-(eo::or true false)         == true
-(eo::xor true true)         == false
-(eo::xor #b111 #b011)       == #b100
-(eo::not true)              == false
-(eo::not #b1010)            == #b0101
-(eo::add 1 1)               == 2
-(eo::add 1 1 1 0)           == 3
-(eo::add 1/2 1/3)           == 5/6
-(eo::add 2 1/3)             == (eo::add 2 1/3)  ; no mixed arithmetic
-(eo::add 2/1 1/3)           == 7/3
-(eo::add 2.0 1/3)           == (eo::add 2.0 1/3)  ; since no mixed arithmetic
-(eo::add 2.0 2.5)           == 4.5
-(eo::add #b01 #b01)         == #b10
-(eo::add #x1 #b0001)        == (eo::add #x1 #b0001)  ; since no mixed arithmetic
-(eo::mul 2 7)               == 14
-(eo::mul 2 2 7)             == 28
-(eo::mul 1/2 1/4)           == 1/8
-(eo::neg -15)               == 15
-(eo::qdiv 12 6)             == 3/1
-(eo::qdiv 7 2)              == 7/2
-(eo::qdiv 7/1 2/1)          == 7/2
-(eo::qdiv 7.0 2.0)          == 7/2
-(eo::qdiv 7 0)              == (eo::qdiv 7 0)  ; no division by zero
-(eo::zdiv 12 3)             == 4
-(eo::zdiv 7 2)              == 3
-(eo::is_neg 0)              == false
-(eo::is_neg -7/2)           == true
-(eo::len "abc")             == 3
-(eo::len """hi""")          == 4
-(eo::len "\u{AB0E}")        == 1
-(eo::len "\uA")             == 3
-(eo::len #b11100)           == 5
-(eo::concat "abc" "def")    == "abcdef"
-(eo::concat #b000 #b11)     == #b00011
-(eo::extract "abcdef" 0 1)  == "ab"
-(eo::extract "abcdef" -1 3) == ""
-(eo::extract "abcdef" 1 10) == "bcdef"
-(eo::extract #b11100 2 4)   == #b111
-(eo::extract #b11100 2 1)   == #b
-(eo::extract #b111000 1 10) == #b11100
-(eo::extract #b10 -1 2)     == #b
-(eo::find "abc" "bc")       == 1
-(eo::find "abc" "")         == 0
-(eo::find "abcdef" "g")     == -1
-(eo::to_z 3/2)              == 1
-(eo::to_z 45)               == 45
-(eo::to_z "A")              == 65
-(eo::to_z "1")              == 49
-(eo::to_z "451")            == (eo::to_z "451")  ; string is not length one
-(eo::to_z "")               == (eo::to_z "")  ; string is not length one
-(eo::to_z "\u{9876}")       == 9876
-(eo::to_q 6)                == 6/1
-(eo::to_bin 4 3)            == #b0011
-(eo::to_bin 4 #b1)          == #b0001
-(eo::to_bin 2 #b10101010)   == #b10
-(eo::to_str 65)             == "A"
-(eo::to_str 123)            == "{"
-(eo::to_str -1)             == (eo::to_str -1) ; since not a valid code point
-(eo::to_str 200000)         == (eo::to_str 200000) ; since not a valid code point
-(eo::to_str 1/2)            == "1/2"
-(eo::to_str #b101)          == "#b101"
+Here are a few examples of evaluations, where the syntax `t --> r` means that [`t`] is `r`.
+
+```clojure
+(eo::and true false)         -->  false
+(eo::and #b1110 #b0110)      -->  #b0110
+(eo::or true false)          -->  true
+(eo::xor true true)          -->  false
+(eo::xor #b111 #b011)        -->  #b100
+(eo::not true)               -->  false
+(eo::not #b1010)             -->  #b0101
+(eo::add 1 1)                -->  2
+(eo::add 1 1 1 0)            -->  3
+(eo::add 1/2 1/3)            -->  5/6
+(eo::add 2 1/3)              -->  (eo::add 2 1/3)  ; no mixed arithmetic
+(eo::add 2/1 1/3)            -->  7/3
+(eo::add 2.0 1/3)            -->  (eo::add 2.0 1/3)  ; since no mixed arithmetic
+(eo::add 2.0 2.5)            -->  4.5
+(eo::add #b01 #b01)          -->  #b10
+(eo::add #x1 #b0001)         -->  (eo::add #x1 #b0001)  ; since no mixed arithmetic
+(eo::mul 2 7)                -->  14
+(eo::mul 2 2 7)              -->  28
+(eo::mul 1/2 1/4)            -->  1/8
+(eo::neg -15)                -->  15
+(eo::qdiv 12 6)              -->  3/1
+(eo::qdiv 7 2)               -->  7/2
+(eo::qdiv 7/1 2/1)           -->  7/2
+(eo::qdiv 7.0 2.0)           -->  7/2
+(eo::qdiv 7 0)               -->  (eo::qdiv 7 0)  ; no division by zero
+(eo::zdiv 12 3)              -->  4
+(eo::zdiv 7 2)               -->  3
+(eo::is_neg 0)               -->  false
+(eo::is_neg -7/2)            -->  true
+(eo::len "abc")              -->  3
+(eo::len """hi""")           -->  4
+(eo::len "\u{AB0E}")         -->  1
+(eo::len "\uA")              -->  3
+(eo::len #b11100)            -->  5
+(eo::concat "abc" "def")     -->  "abcdef"
+(eo::concat #b000 #b11)      -->  #b00011
+(eo::extract "abcdef" 0 1)   -->  "ab"
+(eo::extract "abcdef" -1 3)  -->  ""
+(eo::extract "abcdef" 1 10)  -->  "bcdef"
+(eo::extract #b11100 2 4)    -->  #b111
+(eo::extract #b11100 2 1)    -->  #b
+(eo::extract #b111000 1 10)  -->  #b11100
+(eo::extract #b10 -1 2)      -->  #b
+(eo::find "abc" "bc")        -->  1
+(eo::find "abc" "")          -->  0
+(eo::find "abcdef" "g")      -->  -1
+(eo::to_z 3/2)               -->  1
+(eo::to_z 45)                -->  45
+(eo::to_z "A")               -->  65
+(eo::to_z "1")               -->  49
+(eo::to_z "451")             -->  (eo::to_z "451")  ; string is not length one
+(eo::to_z "")                -->  (eo::to_z "")  ; string is not length one
+(eo::to_z "\u{9876}")        -->  9876
+(eo::to_q 6)                 -->  6/1
+(eo::to_bin 4 3)             -->  #b0011
+(eo::to_bin 4 #b1)           -->  #b0001
+(eo::to_bin 2 #b10101010)    -->  #b10
+(eo::to_str 65)              -->  "A"
+(eo::to_str 123)             -->  "{"
+(eo::to_str -1)              -->  (eo::to_str -1) ; since not a valid code point
+(eo::to_str 200000)          -->  (eo::to_str 200000) ; since not a valid code point
+(eo::to_str 1/2)             -->  "1/2"
+(eo::to_str #b101)           -->  "#b101"
 ```
 
 ### Core Computation Examples
 
-Note the following examples of core operators for the given signature
-
-```smt
+```clojure
 (declare-type Int ())
 (declare-const x Int)
 (declare-const y Int)
 (declare-const a Bool)
-;;
-(eo::is_eq 0 1)                         == false
-(eo::is_eq x y)                         == false
-(eo::is_eq x x)                         == true
-(eo::requires x 0 true)                 == (eo::requires x 0 true)  ; x and 0 are not syntactically equal
-(eo::requires x x y)                    == y
-(eo::requires x x Int)                  == Int
-(eo::ite false x y)                     == y
-(eo::ite true Bool Int)                 == Bool
-(eo::ite a x x)                         == (eo::ite a x x)  ; a is not a value
+```
 
-(eo::is_eq 2 (eo::add 1 1))             == true
-(eo::is_eq x (eo::requires x 0 x))      == false
-(eo::ite (eo::is_eq x 1) x y)           == y
+Note the following examples of core operators for the signature above:
+
+```clojure
+(eo::is_eq 0 1)                     -->  false
+(eo::is_eq x y)                     -->  false
+(eo::is_eq x x)                     -->  true
+(eo::requires x 0 true)             -->  (eo::requires x 0 true)  ; x and 0 are not syntactically equal
+(eo::requires x x y)                -->  y
+(eo::requires x x Int)              -->  Int
+(eo::ite false x y)                 -->  y
+(eo::ite true Bool Int)             -->  Bool
+(eo::ite a x x)                     -->  (eo::ite a x x)  ; a is not a value
+
+(eo::is_eq 2 (eo::add 1 1))         -->  true
+(eo::is_eq x (eo::requires x 0 x))  -->  false
+(eo::ite (eo::is_eq x 1) x y)       -->  y
 ```
 
 In the above, it is important to note that `eo::is_eq` is a check for syntactic equality after evaluation.
@@ -850,63 +993,65 @@ We say that a term is an `f`-list with children `t1 ... tn` if it is of the form
 - `(eo::nil f)`
   - If `f` is a right associative operator, return its nil terminator.
 - `(eo::cons f t1 t2)`
-  - If `t2` is an `f`-list, then this returns the term `(f t1 t2)`.
+  - If `r2` is an `f`-list, then this returns the term `(f t1 t2)`.
 - `(eo::list_len f t)`
   - If `t` is an `f`-list with children `t1 ... tn`, then this returns `n`.
 - `(eo::list_concat f t1 t2)`
-  - If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, this returns `(f t11 ... t1n t21 ... t2m)` if `n+m>0` and `nil` otherwise. Otherwise, this operator does not evaluate.
+  - If `r1` is an `f`-list with children `t11 ... t1n` and `r2` is an `f`-list with children `t21 ... t2m`, this returns `(f t11 ... t1n t21 ... t2m)` if `n+m>0` and `nil` otherwise. Otherwise, this operator does not evaluate.
 - `(eo::list_nth f t1 t2)`
-  - If `f` is a right associative operator with nil terminator with nil terminator `nil`, `t1` is `(f s0 ... s{n-1})`, and `t2` is a numeral value such that `0<=t2<n`, then this returns `s_{t2}`. Otherwise, this operator does not evaluate.
+  - If `f` is a right associative operator with nil terminator with nil terminator `nil`, `r1` is `(f s0 ... s{n-1})`, and `r2` is a numeral value such that `0<=t2<n`, then this returns `s_{t2}`. Otherwise, this operator does not evaluate.
 - `(eo::list_find f t1 t2)`
-  - If `f` is a right associative operator with nil terminator with nil terminator `nil` and `t1` is `(f s0 ... s{n-1})`, then this returns the smallest numeral value `i` such that `t2` is syntactically equal to `si`, or `-1` if no such `si` can be found. Otherwise, this operator does not evaluate.
+  - If `f` is a right associative operator with nil terminator with nil terminator `nil` and `r1` is `(f s0 ... s{n-1})`, then this returns the smallest numeral value `i` such that `r2` is syntactically equal to `si`, or `-1` if no such `si` can be found. Otherwise, this operator does not evaluate.
 
 ### List Computation Examples
 
-The terms on both sides of the given evaluation are written in their form prior to desugaring, where recall that e.g. `(or a)` after desugaring is `(or a false)` and `(or a b)` is `(or a (or b false))`.
-
-```smt
+```clojure
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
 (declare-const a Bool)
 (declare-const b Bool)
+```
 
-(eo::nil or)                  == false
-(eo::nil a)                   == (eo::nil a)                ; since a is not an associative operator
+Given the signature above, the terms on both sides of the evaluation below are written in their form prior to desugaring, where recall that, e.g., `(or a)` after desugaring is `(or a false)` and `(or a b)` is `(or a (or b false))`.
 
-(eo::cons or a (or a b))            == (or a a b)
-(eo::cons or false (or a b))        == (or false a b)
-(eo::cons or (or a b) (or b))       == (or (or a b) b)
-(eo::cons or false false)           == (or false)
-(eo::cons or a b)                   == (eo::cons or a b)                ; since b is not an or-list
-(eo::cons or a (or b))              == (or a b)
-(eo::cons and (or a b) (and b))     == (and (or a b) b)
-(eo::cons and true (and a))         == (and a)
-(eo::cons and (and a) true)         == (and (and a))
+```clojure
+(eo::nil or)  -->  false
+(eo::nil a)   -->  (eo::nil a)                ; since a is not an associative operator
 
-(eo::list_len or (or a b))          == 2
-(eo::list_len or (or (or a a) b))   == 2
-(eo::list_len or false)             == 0
-(eo::list_len or (and a b))         == (eo::list_len or (and a b))  ; since (and a b) is not an or-list
+(eo::cons or a (or a b))         -->  (or a a b)
+(eo::cons or false (or a b))     -->  (or false a b)
+(eo::cons or (or a b) (or b))    -->  (or (or a b) b)
+(eo::cons or false false)        -->  (or false)
+(eo::cons or a b)                -->  (eo::cons or a b)                ; since b is not an or-list
+(eo::cons or a (or b))           -->  (or a b)
+(eo::cons and (or a b) (and b))  -->  (and (or a b) b)
+(eo::cons and true (and a))      -->  (and a)
+(eo::cons and (and a) true)      -->  (and (and a))
 
-(eo::list_concat or false false)            == false
-(eo::list_concat or (or a b) (or b))        == (or a b b)
-(eo::list_concat or (or (or a a)) (or b))   == (or (or a a) b)
-(eo::list_concat or false (or b))           == (or b)
-(eo::list_concat or (or a b b) false)       == (or a b b)
-(eo::list_concat or a (or b))               == (eo::list_concat or a (or b))         ; since a is not an or-list
-(eo::list_concat or (or a) b)               == (eo::list_concat or (or a) b)         ; since b is not an or-list
-(eo::list_concat or (or a) (or b))          == (or a b)
-(eo::list_concat or (and a b) false)        == (eo::list_concat or (and a b) false)  ; since (and a b) is not an or-list
+(eo::list_len or (or a b))         -->  2
+(eo::list_len or (or (or a a) b))  -->  2
+(eo::list_len or false)            -->  0
+(eo::list_len or (and a b))        -->  (eo::list_len or (and a b))  ; since (and a b) is not an or-list
 
-(eo::list_nth or (or a b a) 1)           == b
-(eo::list_nth or (or a) 0)               == a
-(eo::list_nth or false 0)                == (eo::list_nth or false 0)         ; since false has <=0 children
-(eo::list_nth or (or a b a) 3)           == (eo::list_nth or (or a b a) 3)    ; since (or a b a) has <=3 children
-(eo::list_nth or (and a b b) 0)          == (eo::list_nth or (and a b b) 0)   ; since (and a b b) is not an or-list
+(eo::list_concat or false false)           -->  false
+(eo::list_concat or (or a b) (or b))       -->  (or a b b)
+(eo::list_concat or (or (or a a)) (or b))  -->  (or (or a a) b)
+(eo::list_concat or false (or b))          -->  (or b)
+(eo::list_concat or (or a b b) false)      -->  (or a b b)
+(eo::list_concat or a (or b))              -->  (eo::list_concat or a (or b))         ; since a is not an or-list
+(eo::list_concat or (or a) b)              -->  (eo::list_concat or (or a) b)         ; since b is not an or-list
+(eo::list_concat or (or a) (or b))         -->  (or a b)
+(eo::list_concat or (and a b) false)       -->  (eo::list_concat or (and a b) false)  ; since (and a b) is not an or-list
 
-(eo::list_find or (or a b a) b)          == 1
-(eo::list_find or (or a b a) true)       == -1
-(eo::list_find or (and a b b) a)         == (eo::find or (and a b b) a)      ; since (and a b b) is not an or-list
+(eo::list_nth or (or a b a) 1)   -->  b
+(eo::list_nth or (or a) 0)       -->  a
+(eo::list_nth or false 0)        -->  (eo::list_nth or false 0)         ; since false has <=0 children
+(eo::list_nth or (or a b a) 3)   -->  (eo::list_nth or (or a b a) 3)    ; since (or a b a) has <=3 children
+(eo::list_nth or (and a b b) 0)  -->  (eo::list_nth or (and a b b) 0)   ; since (and a b b) is not an or-list
+
+(eo::list_find or (or a b a) b)     -->  1
+(eo::list_find or (or a b a) true)  -->  -1
+(eo::list_find or (and a b b) a)    -->  (eo::find or (and a b b) a)      ; since (and a b b) is not an or-list
 ```
 
 ### Nil terminator with additional arguments
@@ -914,11 +1059,11 @@ The terms on both sides of the given evaluation are written in their form prior 
 As we will introduce in [param-constants](#param-constants),
 `eo::nil` is overloaded to accept addition arguments beyond the operator.
 In particular, `(eo::nil or a b)` intuitively denotes the nil terminator
-for the term `or` applied to arguments `a,b`.
+for the term `or` applied to arguments `a` and `b`.
 
 ### Example: Type rule for BitVector concatenation
 
-```smt
+```clojure
 (declare-type Int ())
 (declare-consts <numeral> Int)
 (declare-type BitVec (Int))
@@ -935,13 +1080,13 @@ for the term `or` applied to arguments `a,b`.
 (define z () (concat x y) :type (BitVec 5))
 ```
 
-Above, we define a type declaration for `BitVec` that expects an integer (i.e. denoting the bitwidth) as an argument.
-Then, a type rule is given for bitvector concatenation `concat`, involves the result of invoking `eo::add` on the bitwidth of its two arguments.
+Above, we define a type declaration for `BitVec` that expects an integer (i.e. denoting the bit width) as an argument.
+Then, a type rule is given for bitvector concatenation `concat`, involves the result of invoking `eo::add` on the bit width of its two arguments.
 
-Since `eo::add` only evaluates on numeral values, this means that this type rule will only give the intended result when the bitwidth arguments to this function are concrete.
+Since `eo::add` only evaluates on numeral values, this means that this type rule will only give the intended result when the bit width arguments to this function are concrete.
 If on the other hand we defined:
 
-```smt
+```clojure
 ...
 (declare-const a Int)
 (declare-const b Int)
@@ -959,7 +1104,7 @@ This was not the case with `z` in the previous example, whose type prior to eval
 
 ### Example: Type rule for BitVector constants
 
-```smt
+```clojure
 (declare-type Int ())
 (declare-consts <numeral> Int)
 (declare-type BitVec (Int))
@@ -981,22 +1126,22 @@ Recall that in [assoc-nil](#assoc-nil), when using `declare-const` to define ass
 In this section, we introduce a new command `declare-parameterized-const` which overcomes this limitation.
 Its syntax is:
 
-```smt
+```clojure
 (declare-parameterized-const <symbol> (<typed-param>*) <type> > <attr>*)
 ```
 
 In the following example,
-we declare bitvector-or (`bvor` in SMT-LIB) where its nil terminator is bitvector zero for the given bitwidth.
+we declare bitvector-or (`bvor` in SMT-LIB) where its nil terminator is bitvector zero for the given bit width.
 
-```smt
+```clojure
 (declare-type Int ())
 (declare-consts <numeral>Int)                ; numeral literals denote Int constants
 (declare-type BitVec (Int))
 (declare-consts <binary>
     (BitVec (eo::len eo::self)))              ; binary literals denote BitVec constants of their length
-(define bvzero ((m Int)) (eo::to_bin m 0))    ; returns the bitvector value zero for bitwidth m
+(define bvzero ((m Int)) (eo::to_bin m 0))    ; returns the bitvector value zero for bit width m
 
-(declare-parameterized-const bvor ((m Int))   ; bvor is parameterized by a bitwidth m
+(declare-parameterized-const bvor ((m Int))   ; bvor is parameterized by a bit width m
     (-> (BitVec m) (BitVec m) (BitVec m))
     :right-assoc-nil (bvzero m)               ; its nil terminator depends on m
 )
@@ -1026,7 +1171,7 @@ Otherwise, the nil terminator is `nil[ v1 ... vm / u1 ... um]`.
 Constructing `(f t1 ... tn)` then proceeds inductively via the same procedure described in [assoc-nil](#assoc-nil).
 Examples of this are given in the following, assuming the declaration of `bvor` above.
 
-```smt
+```clojure
 (declare-const p (-> Bool Bool))
 (define test ((x (BitVec 4)) (y (BitVec 4)) (n Int) (z (BitVec n)) (w (BitVec n)) (u (BitVec n) :list))
     ...
@@ -1039,7 +1184,7 @@ Examples of this are given in the following, assuming the declaration of `bvor` 
 )
 ```
 
-Above, notice that `x` and `y` have concrete bitwidths and `z,w,u` have the free parameter `n` as their bitwidth.
+Above, notice that `x` and `y` have concrete bit widths and `z,w,u` have the free parameter `n` as their bit width.
 In the first term, `(bvor x y)` is type checked to `(BitVec m)[4/m]`.
 Since `4` is ground, we compute the nil terminator `(bvzero 4)`, which evaluates to `#b0000`.
 This is then used as the nil terminator, since `y` is not marked with `:list`.
@@ -1059,7 +1204,7 @@ Examples can be found at the end of this section.
 
 Consider again the term `(bvor z w)` from the previous example:
 
-```smt
+```clojure
 (define test ((n Int) (z (BitVec n)) (w (BitVec n)))
     (bvor z w)        ; (bvor z (bvor w (eo::nil bvor z w)))
 )
@@ -1081,22 +1226,22 @@ An example use case for this feature is directly refer to the nil terminator of 
 
 The following are examples of list operations when using parameterized constant `bvor`:
 
-```smt
+```clojure
 (declare-const a (BitVec 4))
 (declare-const b (BitVec 4))
 (declare-const c (BitVec 5))
 
-(eo::nil bvor)                == (eo::nil bvor)     ; since we cannot infer the type of bvor
-(eo::nil bvor a)              == #b0000             ; since #b0000 is the nil terminator of (bvor a)
-(eo::nil bvor a c)            == (eo::nil bvor a c) ; since (bvor a c) is ill-typed
-(eo::nil (eo::_ bvor 4))      == #b0000
+(eo::nil bvor)                 -->  (eo::nil bvor)     ; since we cannot infer the type of bvor
+(eo::nil bvor a)               -->  #b0000             ; since #b0000 is the nil terminator of (bvor a)
+(eo::nil bvor a c)             -->  (eo::nil bvor a c) ; since (bvor a c) is ill-typed
+(eo::nil (eo::_ bvor 4))       -->  #b0000
 
-(eo::cons bvor a #b0000)            == (bvor a)
-(eo::cons bvor c #b0000)            == (eo::cons bvor c #b0000) ; since (bvor c #b0000) is ill-typed
-(eo::cons bvor a (bvor a b))        == (bvor a a b)
+(eo::cons bvor a #b0000)             -->  (bvor a)
+(eo::cons bvor c #b0000)            --> (eo::cons bvor c #b0000) ; since (bvor c #b0000) is ill-typed
+(eo::cons bvor a (bvor a b))        --> (bvor a a b)
 
-(eo::list_concat bvor #b0000 #b0000)       == #b0000
-(eo::list_concat bvor (bvor a b) (bvor b)) == (bvor a b b)
+(eo::list_concat bvor #b0000 #b0000)       --> #b0000
+(eo::list_concat bvor (bvor a b) (bvor b)) --> (bvor a b b)
 ```
 
 > __Note:__ If no free parameters are used in the nil terminator of a parameterized constant, then it is treated equivalent to if it were declared via an ordinary declare-const command, and a warning is issued.
@@ -1108,7 +1253,7 @@ The following are examples of list operations when using parameterized constant 
 The Ethos supports symbol overloading.
 For example, the following is accepted:
 
-```smt
+```clojure
 (declare-const - (-> Int Int))
 (declare-const - (-> Int Int Int))
 (declare-const - (-> Real Real Real))
@@ -1132,7 +1277,7 @@ For example, `(eo::as - (-> Int Int Int))` evaluates to the second declared symb
 
 The generic syntax for a `declare-rule` command accepted by `ethos` is:
 
-```smt
+```clojure
 (declare-rule <symbol> <keyword>? <sexpr>*)
 ```
 
@@ -1142,7 +1287,7 @@ All rules not marked with `:ethos` are not supported by the checker are unsuppor
 
 If the keyword is `:ethos`, then the expected syntax that follows is given below:
 
-```smt
+```clojure
 (declare-rule <symbol> :ethos (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term> <attr>*)
 where
 <assumption>   ::= :assumption <term>
@@ -1178,7 +1323,7 @@ A proof rule is only well defined if the free parameters of the requirements and
 
 ### Example rule: Reflexivity of equality
 
-```smt
+```clojure
 (declare-const = (-> (! Type :var T :implicit) T T Bool))
 (declare-rule refl ((T Type) (t T))
     :premises ()
@@ -1194,7 +1339,7 @@ Notice that the type `T` is a part of the parameter list and not explicitly prov
 
 ### Example rule: Symmetry of Equality
 
-```smt
+```clojure
 (declare-const = (-> (! Type :var T :implicit) T T Bool))
 (declare-rule symm ((T Type) (t T) (s T))
     :premises ((= t s))
@@ -1209,7 +1354,7 @@ In detail, an application of this proof rule for premise proof `(= a b)` for con
 
 A list of requirements can be given to a proof rule.
 
-```smt
+```clojure
 (declare-type Int ())
 (declare-consts <numeral> Int)
 (declare-const >= (-> Int Int Bool))
@@ -1226,7 +1371,7 @@ It requires that the left hand side of this inequality `x` is a negative numeral
 
 A rule can take an arbitrary number of premises via the syntax `:premise-list <term><term>`. For example:
 
-```smt
+```clojure
 (declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
 (declare-rule and-intro ((F Bool))
     :premise-list F and
@@ -1246,7 +1391,7 @@ Note that the type of functions provided as the second argument of `:premise-lis
 
 The Eunoia language provides the commands `assume` and `step` for defining proofs. Their syntax is given by:
 
-```smt
+```clojure
 (assume <symbol> <term>)
 (step <symbol> <term>? :rule <symbol> <premises>? <arguments>?)
 where
@@ -1256,7 +1401,7 @@ where
 
 ### Example proof: symmetry of equality
 
-```smt
+```clojure
 (declare-const = (-> (! Type :var T :implicit) T T Bool))
 (declare-rule symm ((T Type) (t T) (s T))
     :premises ((= t s))
@@ -1275,7 +1420,7 @@ The Eunoia language includes commands `assume-push` and `step-pop` with the same
 However, the former can be seen as introducing a local assumption that is consumed by the latter.
 We give an example of this in following.
 
-```smt
+```clojure
 (declare-const => (-> Bool Bool Bool))
 (declare-rule implies-intro ((F Bool) (G Bool))
   :assumption F
@@ -1302,7 +1447,7 @@ Notice that `@p1` is removed from scope after `@p3` is applied.
 
 Locally assumptions can be arbitrarily nested, for example the above can be extended to:
 
-```smt
+```clojure
 ...
 (assume-push @p0 true)
 (assume-push @p1 false)
@@ -1315,7 +1460,7 @@ Locally assumptions can be arbitrarily nested, for example the above can be exte
 
 Similar to `declare-rule`, the Ethos supports an extensible syntax for programs whose generic syntax is given by:
 
-```smt
+```clojure
 (program <symbol> <keyword>? <sexpr>*)
 ```
 
@@ -1327,7 +1472,7 @@ If the keyword is `:ethos`, then the expected syntax that follows is given below
 In particular, in the Ethos, a program is an ordered lists of rewrite rules.
 The syntax for this command is as follows.
 
-```smt
+```clojure
 (program <symbol> :ethos (<typed-param>*) (<type>*) <type> ((<term> <term>)+))
 ```
 
@@ -1342,9 +1487,9 @@ A (ground) term `(f s1 ... sn)` evaluates by finding the first term in the first
 If no such term can be found, then the application does not evaluate.
 
 > __Note:__ Terms in program bodies are not statically type checked. Evaluating a program may introduce non-well-typed terms if the program body is malformed.
-
+>
 > __Note:__ For each case `((f ti1 ... tin) ri)` in the program body, the free parameters in `ri` are required to be a subset of the free parameters in `(f ti1 ... tin)`. Otherwise, an error is thrown.
-
+>
 > __Note:__ If a case is provided `(si ri)` in the definition of program `f` where `si` is not an application of `f`, an error is thrown.
 Furthermore, if `si` contains any computational operators (i.e. those with `eo::` prefix), then an error is thrown.
 
@@ -1352,7 +1497,7 @@ Furthermore, if `si` contains any computational operators (i.e. those with `eo::
 
 The following program (recursively) computes whether a formula `l` is contained as the direct child of an application of `or`:
 
-```smt
+```clojure
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (program contains
     ((l Bool) (x Bool) (xs Bool :list))
@@ -1382,7 +1527,7 @@ Computing the latter is significantly faster in practice in the Ethos.
 
 ### Example: Finding a child in an `or` term (incorrect version)
 
-```smt
+```clojure
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (program contains
     ((l Bool) (x Bool) (xs Bool))
@@ -1402,7 +1547,7 @@ However, `(contains (or a b c) a)` does not evaluate in this example.
 
 ### Example: Finding a child in an `or` term (incorrect version 2)
 
-```smt
+```clojure
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (program contains
     ((l Bool) (x Bool :list) (xs Bool :list))
@@ -1422,7 +1567,7 @@ Thus, the third case of the program, `(contains (eo::list_concat or x xs) l)`, i
 
 ### Example: Substitution
 
-```smt
+```clojure
 (program substitute
   ((T Type) (U Type) (S Type) (x S) (y S) (f (-> T U)) (a T) (z U))
   (S S U) U
@@ -1447,7 +1592,7 @@ Hence when `t` is `(@array_diff A B)`, we fall into the third case of the method
 Alternatively, the following version of substitution `substitute-o` pattern matches on applications of `@array_diff` explicitly.
 Calling it with arguments `A`, `B`, and `(@array_diff A B)` would return `(@array_diff B B)`.
 
-```smt
+```clojure
 (program substitute-o
   ((T Type) (U Type) (S Type) (x S) (y S) (a (Array T U)) (b (Array T U)) (z U))
   (S S U) U
@@ -1462,7 +1607,7 @@ Calling it with arguments `A`, `B`, and `(@array_diff A B)` would return `(@arra
 
 ### Example: Term evaluator
 
-```smt
+```clojure
 (declare-type Int ())
 (declare-consts <numeral> Int)
 (declare-const = (-> (! Type :var T :implicit) T T Bool))
@@ -1489,7 +1634,7 @@ The above example recursively evaluates arithmetic terms and predicates accordin
 
 ### Example: A computational type rule
 
-```smt
+```clojure
 (declare-type Int ())
 (declare-type Real ())
 (program arith.typeunion ()
@@ -1512,7 +1657,7 @@ The return type of `+` invokes this side condition, which conceptually is implem
 
 ### Example: Conversion to DIMACS
 
-```smt
+```clojure
 (declare-type String ())
 (declare-consts <string> String)
 (declare-const not (-> Bool Bool))
@@ -1549,7 +1694,7 @@ The above program `to_dimacs` converts an SMT formula into DIMACS form, where `e
 
 The Ethos supports an operator `eo::match` for performing pattern matching on a target term. The syntax of this term is:
 
-```smt
+```clojure
 (eo::match (<typed-param>*) <term> ((<term> <term>)*))
 ```
 
@@ -1558,12 +1703,12 @@ The term `(eo::match (...) t ((s1 r1) ... (sn rn)))` finds the first term `si` i
 > __Note:__  Match terms require the free parameters of `ri` are a subset of the provided parameter list.
 In other words, all patterns must only involve parameters that are locally bound as the first argument of the match term.
 Also, similar to programs, the free parameters of `ri` that occur in the parameter list must be a subset of `si`, or else an error is thrown.
-
+>
 > __Note:__ Like programs, match terms are not statically type checked.
 
 ### Examples of legal and illegal match terms
 
-```smt
+```clojure
 (declare-type Int ())
 (declare-const F Bool)
 (declare-const a Int)
@@ -1603,7 +1748,7 @@ Also, similar to programs, the free parameters of `ri` that occur in the paramet
 
 ### Example: Proof rule for symmetry of (dis)equality
 
-```smt
+```clojure
 (declare-type Int ())
 (declare-const = (-> (! Type :var T :implicit) T T Bool))
 (declare-const not (-> Bool Bool))
@@ -1624,7 +1769,7 @@ It matches the given premise `F` with either `(= t1 t2)` or `(not (= t1 t2))` an
 
 Internally, the semantics of `eo::match` can be seen as an (inlined) program applied to its head, such that the above example is equivalent to:
 
-```smt
+```clojure
 (declare-type Int ())
 (declare-const = (-> (! Type :var T :implicit) T T Bool))
 (declare-const not (-> Bool Bool))
@@ -1647,7 +1792,7 @@ In more general cases, if the body of the match term contains free variables, th
 
 ### Example: Proof rule for transitivity of equality with a premise list
 
-```smt
+```clojure
 (declare-type Int ())
 (declare-const = (-> (! Type :var T :implicit) T T Bool))
 (declare-const and (-> Bool Bool Bool) :left-assoc)
@@ -1694,7 +1839,7 @@ If ethos has read a reference file, then for each command of the form `(assume <
 If it does not, then an error is thrown indicating that the proof is assuming a formula that is not a part of the original input.
 
 > __Note:__ Only one reference command can be executed for each run of ethos.
-
+>
 > __Note:__ Incremental `*.smt2` inputs are not supported as reference files in the current version of ethos.
 
 ### Validation up to Normalization
@@ -1705,7 +1850,7 @@ For this reason, ethos additionally supports providing an optional normalization
 
 For example:
 
-```smt
+```clojure
 (declare-type Int ())
 (declare-type Real ())
 (declare-const / (-> Int Int Real))
@@ -1722,7 +1867,7 @@ For example:
 
 Here, `normalize` is introduced as a program which recursively replaces all occurrences of division (over integer constants) with the resulting rational constant.
 This method can be used for handling solvers that interpret constant division as the construction of a rational constant.
-The above program will be invoked on all formulas occuring in `assert` commands in `"file.smt2"` and subsequently formulas in `assume` commands.
+The above program will be invoked on all formulas occurring in `assert` commands in `"file.smt2"` and subsequently formulas in `assume` commands.
 
 ## Oracles
 
@@ -1732,7 +1877,7 @@ The syntax and semantics of such functions are described in this [paper](https:/
 
 In particular, the Ethos supports the command:
 
-```smt
+```clojure
 (declare-oracle-fun <symbol> (<type>*) <type> <symbol>)
 ```
 
@@ -1742,7 +1887,7 @@ Ground applications of oracle functions are eagerly evaluated by invoking the bi
 
 ### Example: Oracle isPrime
 
-```smt
+```clojure
 (declare-type Int ())
 (declare-consts <numeral> Int)
 (declare-const = (-> (! Type :var T :implicit) T T Bool))
@@ -1787,6 +1932,9 @@ The user is responsible for ensure that e.g. the proof contains a step with a de
 The Ethos command line interface can be invoked by `ethos <option>* <file>` where `<option>` is one of the following:
 
 - `--help`: displays a help message.
+- `--no-normalize-dec`: do not treat decimal literals as syntax sugar for rational literals.
+- `--no-normalize-hex`: do not treat hexadecimal literals as syntax sugar for binary literals.
+- `--no-parse-let`: do not treat `let` as a builtin symbol for specifying terms having shared subterms.
 - `--no-print-let`: do not letify the output of terms in error messages and trace messages.
 - `--no-rule-sym-table`: do not use a separate symbol table for proof rules and declared terms.
 - `--show-config`: displays the build information for the given binary.
@@ -1824,7 +1972,7 @@ Their expected syntax is `<smtlib2-command>*`.
 As mentioned, the first two kinds of file inputs take into account options concerning the normalization of terms (e.g. `--normalize-num`), while signature files do not.
 When streaming input to Ethos, we assume the input is being given for a proof file.
 
-```smt
+```bnf
 ;;;
 <eo-command> ::=
     (assume <symbol> <term>) |
@@ -1896,7 +2044,7 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
 
 The following signature can be used to define operators that are not required to be supported as core evaluation operators.
 
-```smt
+```clojure
 ; Returns true if x is a numeral literal.
 (define eo::is_z ((T Type :implicit) (x T))
   (eo::is_eq (eo::to_z x) x))
@@ -1939,7 +2087,7 @@ This section overviews the semantics of proofs in the Eunoia language.
 Proof checking can be seen as a special instance of type checking terms involving the `Proof` and `Quote` types.
 The type system of the Ethos can be summarized as follows, where `t : S` are assumed axioms for all atomic terms `t` of type `S`:
 
-```smt
+```clojure
 f : (-> (Quote u) S)  t : T
 ---------------------------- if u * sigma = t
 (f t) : S * sigma
@@ -1956,7 +2104,7 @@ Note that Ethos additionally requires that all well-typed terms have a type that
 
 The command:
 
-```smt
+```clojure
 (declare-rule s ((v1 T1) ... (vi Ti)) 
     :premises (p1 ... pn) 
     :args (t1 ... tm) 
@@ -1966,7 +2114,7 @@ The command:
 
 can be seen as syntax sugar for:
 
-```smt
+```clojure
 (declare-const s
     (-> (! T1 :var v1 :implicit) ... (! Ti :var vi :implicit)
         (Proof p1) ... (Proof pn)
@@ -1977,25 +2125,25 @@ can be seen as syntax sugar for:
 
 The command:
 
-```smt
+```clojure
 (assume s f)
 ```
 
 can be seen as syntax sugar for:
 
-```smt
+```clojure
 (declare-const s (Proof f))
 ```
 
 The command:
 
-```smt
+```clojure
 (step s f :rule r :premises (p1 ... pn) :args (t1 ... tm))
 ```
 
 can be seen as syntax sugar for:
 
-```smt
+```clojure
 (define s () (r p1 ... pn t1 ... tm) :type (Proof f))
 ```
 
