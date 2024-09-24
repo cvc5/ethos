@@ -109,6 +109,7 @@ The following commands are supported for declaring and defining types and terms.
   This is a derived command as it is a shorthand for
   `(declare-const <symbol> Type)` if `<type>*` is empty, and for
   `(declare-const <symbol> (-> <type>* Type))` otherwise.
+<!--HL In the publically available version of the SMT-LIB 3 proposal it says that this syntax is not allowed even though one could be seen as an abbreviation. Maybe add the same disclaimer here unless this was changed on purpose? -->
 
 <!--CT Do we really need `define-type`? -->
 - `(define-type <symbol> (<type>*) <type>)` defines `<symbol>` to be a lambda term whose type is given by the argument and return types.
