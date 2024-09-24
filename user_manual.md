@@ -241,7 +241,7 @@ We call `T` in the above definitions a _parameter_. The free parameters of the r
 
 ### The :requires annotation
 
-Arguments to functions can also be annotated with the attribute `:requires (<term> <term>)` to denote a equality condition that is required for applications of the term to type check.
+Arguments to functions can also be annotated with the attribute `:requires (<term> <term>)` to denote an equality condition that is required for applications of the term to type check.
 
 ```smt
 (declare-type Int ())
