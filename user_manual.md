@@ -94,7 +94,7 @@ For this purpose, the Eunoia language has the following builtin constants:
 - `Bool`, denoting the Boolean type,
 - `true` and `false`, denoting the two values of type `Bool`.
 
-> __Note:__ The core logic of the Ethos also uses several builtin types (e.g. `Proof` and `Quote`) which define the semantics of proof rules. These types are intentionally to exposed to the Eunoia user. Details on then can be found throughout this document. More details on the core logic of the Ethos will be available in a forthcoming publication.
+> __Note:__ The core logic of the Ethos also uses several builtin types (e.g. `Proof` and `Quote`) which define the semantics of proof rules. These types are intentionally not exposed to the Eunoia user. Details on then can be found throughout this document. More details on the core logic of the Ethos will be available in a forthcoming publication.
 
 In the following, we informally use the syntactic categories `<symbol>` to denote an SMT-LIB 3.0 symbol, `<term>` to denote an SMT-LIB term and `<type>` to denote a term whose type is `Type`. The syntactic category `<typed-param>` is defined, BNF-style, as `(<symbol> <type> <attr>*)`. It binds `<symbol>` as a fresh parameter of the given type and attributes (if provided).
 
