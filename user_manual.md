@@ -141,7 +141,7 @@ The Eunoia language contains further commands for declaring symbols that are not
 (declare-const P (-> Int Bool))
 ```
 
-Since Ethos does not assume any builtin definitions of SMT-LIB theories, definitions of standard symbols in SMT-LIB theories(such as `Int`, `+`, etc.) must be provided in Eunoia signatures. In the above example, symbol `c` is declared to be a constant (0-ary) symbol of type `Int`. The symbol `f` is a function taking two integers and returning an integer.
+Since Ethos does not assume any builtin definitions of SMT-LIB theories, definitions of standard symbols in SMT-LIB theories (such as `Int`, `+`, etc.) must be provided in Eunoia signatures. In the above example, symbol `c` is declared to be a constant (0-ary) symbol of type `Int`. The symbol `f` is a function taking two integers and returning an integer.
 
 Observe that despite the use of different syntax in their declarations, the types of `f` and `g` in the above example are identical as `->` is a right-associative binary type constructor.
 
@@ -152,7 +152,7 @@ Observe that despite the use of different syntax in their declarations, the type
 ```smt
 (declare-const not (-> Bool Bool))
 (define id ((x Bool)) x)
-(define notId ((x Int)) (not (id x)))
+(define notId ((x Bool)) (not (id x)))
 ```
 
 In the example above, `not` is declared to be a unary function over Booleans. Two defined functions are given, the first being an identity function over Booleans, and the second returning the negation of the first.
@@ -164,7 +164,7 @@ In other words, the following sequence of commands is equivalent to the one abov
 ```smt
 (declare-const not (-> Bool Bool))
 (define id ((x Bool)) x)
-(define notId ((x Int)) (not x))
+(define notId ((x Bool)) (not x))
 ```
 
 #### Example: Polymorphic types
