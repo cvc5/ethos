@@ -1681,6 +1681,8 @@ Ethos supports the following commands for file inclusion:
 - `(include <string>)`, which includes the file indicated by the given string. The path to the file is taken relative to the directory of the file that includes it.
 - `(reference <string> <symbol>?)`, which similar to `include` includes the file indicated by the given string, and furthermore marks that file as being the _reference input_ for the current run of the checker (see below). The optional symbol can refer to a normalization routine (see below).
 
+Additionally, files may be included or referenced on the command line with the options `--include=X` and `--reference=X` respectively.
+
 ### Validation Proofs via Reference Inputs
 
 When Ethos encounters a command of the form `(reference <string>)`, the checker enables a further set of checks that ensures that all assumptions in proofs correspond to assertions from the file referenced by the given string.
@@ -1787,8 +1789,10 @@ The user is responsible for ensure that e.g. the proof contains a step with a de
 The Ethos command line interface can be invoked by `ethos <option>* <file>` where `<option>` is one of the following:
 
 - `--help`: displays a help message.
+- `--include=X`: includes the file specified by `X`.
 - `--no-print-let`: do not letify the output of terms in error messages and trace messages.
 - `--no-rule-sym-table`: do not use a separate symbol table for proof rules and declared terms.
+- `--reference=X`: includes the file specified by `X` as a reference file.
 - `--show-config`: displays the build information for the given binary.
 - `--stats`: enables detailed statistics.
 - `--stats-compact`: print statistics in a compact format.
@@ -1804,8 +1808,10 @@ They do not impact how signature files (*.eo) are parsed:
 - `--no-normalize-hex`: do not treat hexadecimal literals as syntax sugar for binary literals.
 - `--no-parse-let`: do not treat `let` as a builtin symbol for specifying a macro.
 
-Most of the above options can also be set via `set-option` commands within proofs or Eunoia scripts. 
+Most of the above options can also be set via `set-option` commands within proofs or Eunoia scripts.
 For example, the command `(set-option binder-fresh true)` tells Ethos to generate fresh variables when parsing binders always.
+Further note that option names in this interface should exclude `no-`, which is equivalent to setting the value of the option to false.
+For example, `(set-option normalize-dec false)` is equivalent to the command line option `--no-normalize-dec`.
 
 <a name="full-syntax"></a>
 

@@ -6,6 +6,7 @@ ethos 0.1.1 prerelease
 - When parsing Eunoia signatures, decimals and hexidecimals are never normalized, variables in binders are always unique for their name and type, and let is never treated as a builtin way of specifying macros. The options `--no-normalize-dec`, `--no-normalize-hex`, `--binder-fresh`, and `--no-parse-let` now only apply when parsing proofs and reference files.
 - Adds a new option `--normalize-num`, which also only applies when reference parsing. This option treats numerals as rationals, which can be used when parsing SMT-LIB inputs in logics where numerals are shorthand for rationals.
 - Makes the `set-option` command available in proofs and Eunoia files.
+- Adds `--include=X` and `--reference=X` to the command line interface for including (reference) files.
 - Fixed a bug when applying operators with opaque arguments.
 
 ethos 0.1.0

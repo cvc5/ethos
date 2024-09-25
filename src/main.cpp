@@ -22,6 +22,8 @@ int main( int argc, char* argv[] )
 {
   Options opts;
   Stats stats;
+  State s(opts, stats);
+  Plugin* plugin = nullptr;
   // read the options
   size_t i = 1;
   std::string file;
@@ -45,10 +47,24 @@ int main( int argc, char* argv[] )
         continue;
       }
     }
+    bool isInclude = (arg.compare(0, 10, "--include=") == 0);
+    if (isInclude || arg.compare(0, 12, "--reference=") == 0)
+    {
+      size_t first = arg.find_first_of("=");
+      std::string file = arg.substr(first + 1);
+      // cannot provide reference
+      Expr refNf;
+      if (!s.includeFile(file, isInclude, !isInclude, refNf))
+      {
+        EO_FATAL() << "Error: cannot include file " << file;
+      }
+      continue;
+    }
     if (arg == "--help")
     {
       std::stringstream out;
       out << "     --binder-fresh: binders generate fresh variables when parsed in proof files." << std::endl;
+      out << "        --include=X: includes the file specified by X." << std::endl;
       out << "             --help: displays this message." << std::endl;
       out << "    --normalize-num: treat numeral literals as syntax sugar for rational literals." << std::endl;
       out << " --no-normalize-dec: do not treat decimal literals as syntax sugar for rational literals." << std::endl;
@@ -56,6 +72,7 @@ int main( int argc, char* argv[] )
       out << "     --no-parse-let: do not treat let as a builtin symbol for specifying terms having shared subterms." << std::endl;
       out << "     --no-print-let: do not letify the output of terms in error messages and trace messages." << std::endl;
       out << "--no-rule-sym-table: do not use a separate symbol table for proof rules and declared terms." << std::endl;
+      out << "      --reference=X: includes the file specified by X as a reference file." << std::endl;
       out << "      --show-config: displays the build information for this binary." << std::endl;
       out << "            --stats: enables detailed statistics." << std::endl;
       out << "    --stats-compact: print statistics in a compact format." << std::endl;
@@ -94,12 +111,11 @@ int main( int argc, char* argv[] )
     {
 // enable all traces
 #ifdef EO_TRACING
-      TraceChannel.on("compiler");
       TraceChannel.on("expr_parser");
+      TraceChannel.on("oracles");
       TraceChannel.on("state");
-      TraceChannel.on("type_checker");
-      TraceChannel.on("compile");
       TraceChannel.on("step");
+      TraceChannel.on("type_checker");
 #else
       EO_FATAL() << "Error: tracing not enabled in this build";
 #endif
@@ -123,8 +139,6 @@ int main( int argc, char* argv[] )
       EO_FATAL() << "Error: mulitple files specified, \"" << file << "\" and \"" << arg << "\"";
     }
   }
-  State s(opts, stats);
-  Plugin * plugin = nullptr;
   // NOTE: initialization of plugin goes here
   if (plugin!=nullptr)
   {
