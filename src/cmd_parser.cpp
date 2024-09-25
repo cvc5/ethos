@@ -37,6 +37,7 @@ CmdParser::CmdParser(Lexer& lex,
   d_table["declare-datatypes"] = Token::DECLARE_DATATYPES;
   d_table["echo"] = Token::ECHO;
   d_table["exit"] = Token::EXIT;
+  d_table["set-option"] = Token::SET_OPTION;
   d_table["pop"] = Token::POP;    // undocumented
   d_table["push"] = Token::PUSH;  // undocumented
   d_table["reset"] = Token::RESET;
@@ -54,7 +55,6 @@ CmdParser::CmdParser(Lexer& lex,
     d_table["check-sat-assuming"] = Token::CHECK_SAT_ASSUMING;
     d_table["set-logic"] = Token::SET_LOGIC;
     d_table["set-info"] = Token::SET_INFO;
-    d_table["set-option"] = Token::SET_OPTION;
   }
   else
   {
@@ -973,6 +973,26 @@ bool CmdParser::parseNextCommand()
     case Token::SET_OPTION:
     {
       std::string key = d_eparser.parseKeyword();
+      // if reference, we always ignore this command
+      if (!d_isReference)
+      {
+        // otherwise, it may be an Ethos option
+        bool success = false;
+        if (d_lex.peekToken() == Token::SYMBOL)
+        {
+          std::string str(d_lex.tokenStr());
+          if (str == "true" || str == "false")
+          {
+            success = d_state.getOptions().setOption(key, str == "true");
+          }
+        }
+        if (!success)
+        {
+          Warning() << "Unsupported option or value for option " << key
+                    << std::endl;
+        }
+      }
+      // now parse the symbol
       d_eparser.parseSymbolicExpr();
     }
     break;

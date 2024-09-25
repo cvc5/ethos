@@ -207,7 +207,7 @@ This indicates that the checker compare the type it computed for the term `(not 
 
 ### The :var and :implicit annotations
 
-The Eunoia language uses the SMT-LIB version 3.0 attributes `:var <symbol>` and `:implicit` in term annotations for naming arguments of functions and specifying they are implicit.
+The Eunoia language uses the SMT-LIB version 3.0 attributes `:var <symbol>` and `:implicit` in term annotations, for naming arguments of functions and specifying that they are implicit.
 
 ```smt
 (declare-type Int ())
@@ -215,9 +215,9 @@ The Eunoia language uses the SMT-LIB version 3.0 attributes `:var <symbol>` and 
 (define P ((x Int) (y Int)) (eq Int x y))
 ```
 
-The above example declares a predicate symbol `eq` whose first argument is a type, that is given a name `T`. It then expects two terms of type `T` and returns a `Bool`. In the definition of `P`, `eq` is applied to two variables, with type `Int` explicitly provided.
+The above example declares a predicate symbol `eq` whose first argument is a type, that is given name `T`. It then expects two terms of type `T` and returns a `Bool`. In the definition of `P`, `eq` is applied to two variables, with type `Int` explicitly provided.
 
-In contrast, the example below declares a predicate `=` where the type of the arguments is implicit (this corresponds to the SMT-LIB standard definition of `=`). In the definition of `P`, the type of the arguments `Int` is not provided.
+In contrast, the example below declares a predicate `=` where the type of the arguments is implicit (this corresponds to the SMT-LIB standard definition of `=`). In the definition of `P`, the type `Int` of the arguments is not provided.
 
 ```smt
 (declare-type Int ())
@@ -308,7 +308,7 @@ After parsing, the term `(@purify_fun f a)` is a function application whose oper
 
 ### Declarations with attributes
 
-The Eunoia language supports term annotations on declared constants, which for instance allow the user to treat a constant as being variadic, i.e. taking an arbitrary number of arguments. The available annotations for this purpose are:
+The Eunoia language supports term annotations on declared constants which, for instance, allow the user to treat a constant as being variadic, i.e. taking an arbitrary number of arguments. The available annotations for this purpose are:
 
 - `:right-assoc` (resp. `:left-assoc`) denoting that application of the declared binary constant to more than two terms are to be treated as right (resp. left) associative,
 
@@ -582,7 +582,7 @@ Also note in contrast to SMT-LIB version 2, negative arithmetic can be provided 
 String values use the standard escape sequences as specified in SMT-LIB version 2.6, namely `""` within a string literal denotes `"`.
 The only other escape sequences are of the form `\u{dn ...d1}` for `1<=n<=5` and `\u d4 d3 d2 d1` for hexadecimal digits `d1...d5` where `d5` is in the range `[0-2]`.
 
-> __Note:__ Numeral, rational and decimal values are implemented by the arbitrary precision arithmetic library GMP. Binary and hexadecimal values are implemented as layer on top of numeral values that tracks a bit width. String values are implemented as a vector of unsigned integers whose maximum value is specified by SMT-LIB version 2.6, namely the character set corresponds to Unicode values 0 to 196607.
+> __Note:__ Numeral, rational and decimal values are implemented by the arbitrary precision arithmetic library GMP. Binary and hexadecimal values are implemented as a layer on top of numeral values that tracks a bit width. String values are implemented as a vector of unsigned integers whose maximum value is specified by SMT-LIB version 2.6, namely the character set corresponds to Unicode values 0 to 196607.
 
 > __Note:__ The user is not required to declare that `true` and `false` are values of type `Bool`. Instead, it is assumed that the syntactic category `<boolean>` of Boolean values (`true` and `false`) has been associated with the Boolean sort. In other words, `(declare-consts <boolean> Bool)` is a part of the builtin signature assumed by Ethos.
 
@@ -1137,8 +1137,8 @@ The generic syntax for a `declare-rule` command accepted by `ethos` is:
 ```
 
 When parsing this command, `ethos` will determine the format of the expected arguments based on the given keyword.
-If the `<keyword>` is not provided, the we assume it has been marked `:ethos`.
-All rules not marked with `:ethos` are not supported by the checker are unsupported and will cause the checker to terminate.
+If the `<keyword>` is not provided, then we assume it has been marked `:ethos`.
+All rules not marked with `:ethos` are not supported by the checker and will cause it to terminate.
 
 If the keyword is `:ethos`, then the expected syntax that follows is given below:
 
@@ -1154,20 +1154,20 @@ where
 A proof rule begins by defining a list of free parameters, followed by 4 optional fields and a conclusion term.
 These fields include:
 
-- `<premises>`, denoting the premise patterns of the proof rule. This is either a list of formulas (via `:premises`) or the specification of list of premises via (via `:premise-list`), which will be described in detail later.
-- `<arguments>`, denoting argument patterns of provide to a proof rule.
+- `<premises>`, denoting the premise patterns of the proof rule. This is, either, a list of formulas (via `:premises`) or the specification of a list of premises (via `:premise-list`), which will be described in detail later.
+- `<arguments>`, denoting argument patterns provided to a proof rule.
 - `<reqs>`, denoting a list of pairs of terms.
 
-Proof rules with assumptions `<assumption>` are used in proof with local scopes and will be discussed in detail later.
+Proof rules with assumptions `<assumption>` are used in proofs with local scopes and will be discussed in detail later.
 
 Proof rules may be marked with attributes at the end of their definition. 
 The only attribute of this form that is currently supported is `:sorry`, which indicates that the proof rule does not have a formal justification.
-This in turn impacts the response of Ethos, as described in [responses](#responses).
+This, in turn, impacts the response of Ethos, as described in [responses](#responses).
 
 At a high level, an application of a proof rule is given a concrete list of (premise) proofs, and a concrete list of (argument) terms.
 A proof rule checks if a substitution `S` can be found such that:
 
-- The formulas proven by the premise proofs match provided premise patterns under substitution `S`,
+- The formulas proved by the premise proofs match the provided premise patterns under substitution `S`,
 - The argument terms match the provided argument patterns under substitution `S`,
 - The requirements are _satisfied_ under substitution `S`, namely, each pair of terms in the requirements list evaluates pairwise to the same term.
 If these criteria are met, then the proof rule proves the result of applying `S` to the conclusion term.
@@ -1320,11 +1320,11 @@ Similar to `declare-rule`, Ethos supports an extensible syntax for programs whos
 ```
 
 When parsing this command, `ethos` will determine the format of the expected arguments based on the given keyword.
-If the `<keyword>` is not provided, the we assume it has been marked `:ethos`.
-All programs not marked with `:ethos` are not supported by the checker are unsupported and will cause the checker to terminate.
+If the `<keyword>` is not provided, then we assume it has been marked `:ethos`.
+All programs not marked with `:ethos` are not supported by the checker and will cause it to terminate.
 
 If the keyword is `:ethos`, then the expected syntax that follows is given below, and is used for defining recursive programs.
-In particular, in Ethos, a program is an ordered lists of rewrite rules.
+In particular, in Ethos, a program is an ordered list of rewrite rules.
 The syntax for this command is as follows.
 
 ```smt
@@ -1332,13 +1332,13 @@ The syntax for this command is as follows.
 ```
 
 This command declares a program named `<symbol>`.
-The provided type parameters are implicit and are used to define its type signature and body.
+The provided type parameters are implicit and are used to define the program's type signature and body.
 
 The type of the program is given immediately after the parameter list, provided as a list of argument types and a return type.
 The semantics of the program is given by a non-empty list of pairs of terms, which we call its _body_.
-For program `f`, This list is expected to be a list of terms of the form `(((f t11 ... t1n) r1) ... ((f tm1 ... tmn) rm))`
+For program `f`, this list is expected to have the form `(((f t11 ... t1n) r1) ... ((f tm1 ... tmn) rm))`
 where `t11...t1n, ..., tm1...tmn` do not contain computational operators.
-A (ground) term `(f s1 ... sn)` evaluates by finding the first term in the first position of a pair of this list that matches it for substitution `S`, and returns the result of applying `S` to the right hand side of that pair.
+A (ground) term `(f s1 ... sn)` evaluates by finding the first term from the first component of a pair from `f`'s body that matches it for a substitution `S`, and returns the result of applying `S` to the second component of said pair.
 If no such term can be found, then the application does not evaluate.
 
 > __Note:__ Terms in program bodies are not statically type checked. Evaluating a program may introduce non-well-typed terms if the program body is malformed.
@@ -1804,6 +1804,9 @@ They do not impact how signature files (*.eo) are parsed:
 - `--no-normalize-hex`: do not treat hexadecimal literals as syntax sugar for binary literals.
 - `--no-parse-let`: do not treat `let` as a builtin symbol for specifying a macro.
 
+Most of the above options can also be set via `set-option` commands within proofs or Eunoia scripts. 
+For example, the command `(set-option binder-fresh true)` tells Ethos to generate fresh variables when parsing binders always.
+
 <a name="full-syntax"></a>
 
 ## Full syntax for Eunoia commands
@@ -1849,7 +1852,8 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
     (declare-datatypes (<sort-dec>^n) (<datatype-dec>^n)) |
     (echo <string>?) |
     (exit) |
-    (reset)
+    (reset) |
+    (set-option <attr>)
 
 ;;;
 <smtlib2-command> ::=
@@ -1863,7 +1867,6 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
     (define-sort <symbol> (<symbol>*) <type>) |
     (set-info <attr>) |
     (set-logic <symbol>) |
-    (set-option <attr>) |
     <common-command>
 
 ;;;
