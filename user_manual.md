@@ -1,6 +1,6 @@
 # The Ethos user manual
 
-This is the user manual for the Ethos, an efficient and extensible tool for checking proofs of Satisfiability Modulo Theories (SMT) solvers.
+This is the user manual for Ethos, an efficient and extensible tool for checking proofs of Satisfiability Modulo Theories (SMT) solvers.
 
 ## Building the Ethos executable
 
@@ -37,7 +37,7 @@ ethos <option>* <file>
 
 The set of available options `<option>` are given in the appendix. Note the command line interface of `ethos` expects exactly one file (which itself may reference other files via the `include` command as we will see later). The file and options can appear in any order.
 
-The Ethos will either emit an error message indicating:
+Ethos will either emit an error message indicating:
 
 - the kind of failure (type checking, proof checking, lexer error),
 - the line and column of the failure,
@@ -45,7 +45,7 @@ The Ethos will either emit an error message indicating:
 or will print a [successful response](#responses) when it finished parsing all commands in the file or encounters and `exit` command.
 Further output can be given by user-provided `echo` commands.
 
-### Streaming input to the Ethos
+### Streaming input to Ethos
 
 The `ethos` binary accepts input piped from stdin. The following are all equivalent ways of running `ethos`:
 
@@ -94,7 +94,7 @@ For this purpose, the Eunoia language has the following builtin constants:
 - `Bool`, denoting the Boolean type,
 - `true` and `false`, denoting the two values of type `Bool`.
 
-> __Note:__ The core logic of the Ethos also uses several builtin types (e.g. `Proof` and `Quote`) which define the semantics of proof rules. These types are intentionally to exposed to the Eunoia user. Details on then can be found throughout this document. More details on the core logic of the Ethos will be available in a forthcoming publication.
+> __Note:__ The core logic of Ethos also uses several builtin types (e.g. `Proof` and `Quote`) which define the semantics of proof rules. These types are intentionally to exposed to the user. Details on then can be found throughout this document. More details on the core logic of Ethos will be available in a forthcoming publication.
 
 In the following, we informally use the syntactic categories `<symbol>` to denote an SMT-LIB 3.0 symbol, `<term>` to denote an SMT-LIB term and `<type>` to denote a term whose type is `Type`. The syntactic category `<typed-param>` is defined, BNF-style, as `(<symbol> <type> <attr>*)`. It binds `<symbol>` as a fresh parameter of the given type and attributes (if provided).
 
@@ -601,7 +601,7 @@ The following gives an example of how to define the class of numeral constants.
 In the above example, the `declare-consts` command specifies that numerals (`1`, `2`, `3`, and so on) are constants of type `Int`.
 The signature can now refer to arbitrary numerals in definitions, e.g. `7` in the definition of `P`.
 
-> __Note:__ Internally, the command above only impacts the type rule assigned to numerals that are parsed. Furthermore, the Ethos internally distinguishes whether a term is a numeral value, independently of its type, for the purposes of computational operators (see [computation](#computation)).
+> __Note:__ Internally, the command above only impacts the type rule assigned to numerals that are parsed. Furthermore, Ethos internally distinguishes whether a term is a numeral value, independently of its type, for the purposes of computational operators (see [computation](#computation)).
 
 > __Note:__ For specifying literals whose type rule varies based on the content of the constant, the Eunoia language uses a distinguished variable `eo::self` which can be used in `declare-consts` definitions. For an example, see the type rule for SMT-LIB bit-vector constants, described later in [bv-literals](#bv-literals).
 
@@ -609,7 +609,7 @@ The signature can now refer to arbitrary numerals in definitions, e.g. `7` in th
 
 ## Computational Operators
 
-The Ethos has builtin support for computations over all syntactic categories of SMT-LIB version 3.0.
+Ethos has builtin support for computations over all syntactic categories of SMT-LIB version 3.0.
 We list the operators below, roughly categorized by domain.
 However, note that the operators are polymorphic and in some cases can be applied to multiple syntactic categories.
 For example, `eo::add` returns the result of adding two integers or rationals, but also can be used to add binary constants (integers modulo a given bitwidth).
@@ -625,7 +625,7 @@ Binary values are considered to be in little endian form.
 Some of the following operators can be defined in terms of the other operators.
 For these operators, we provide the equivalent formulation.
 A signature defining these files can be found in [non-core-eval](#non-core-eval).
-Note however that the evaluation of these operators is handled by more efficient methods internally in the Ethos, that is, they are not treated as syntax sugar internally.
+Note however that the evaluation of these operators is handled by more efficient methods internally in Ethos, that is, they are not treated as syntax sugar internally.
 
 ### Core operators
 
@@ -733,13 +733,13 @@ Note however that the evaluation of these operators is handled by more efficient
   - If `t1` is a hexadecimal value, return the string value corresponding to the result of printing `t1`. This will use lowercase letters for digits greater than `9`.
   - If `t1` is a decimal value, return the string value corresponding to the result of printing `t1` as a rational.
 
-The Ethos eagerly evaluates ground applications of computational operators.
+Ethos eagerly evaluates ground applications of computational operators.
 In other words, the term `(eo::add 1 1)` is syntactically equivalent in all contexts to `2`.
 
 Currently, apart from applications of `eo::ite`, all terms are evaluated bottom-up.
 This means that e.g. in the evaluation of `(eo::or A B)`, both `A` and `B` are always evaluated even if `A` evaluates to `true`.
 
-The Ethos supports extensions of `eo::and, eo::or, eo::xor, eo::add, eo::mul, eo::concat` to an arbitrary number of arguments `>=2`.
+Ethos supports extensions of `eo::and, eo::or, eo::xor, eo::add, eo::mul, eo::concat` to an arbitrary number of arguments `>=2`.
 
 ### Computation Examples
 
@@ -969,7 +969,7 @@ This was not the case with `z` in the previous example, whose type prior to eval
 (define x () #b000 :type (BitVec 3))
 ```
 
-To define the class of binary values, whose type depends on the number of bits they contain, the Ethos provides support for a distinguished parameter `eo::self`.
+To define the class of binary values, whose type depends on the number of bits they contain, Ethos provides support for a distinguished parameter `eo::self`.
 The type checker for values applies the substitution mapping `eo::self` to the term being type checked.
 This means that when type checking the binary constant `#b0000`, its type prior to evaluation is `(BitVec (eo::len #b0000))`, which evaluates to `(BitVec 4)`.
 
@@ -1105,7 +1105,7 @@ The following are examples of list operations when using parameterized constant 
 
 ## Overloading
 
-The Ethos supports symbol overloading.
+Ethos supports symbol overloading.
 For example, the following is accepted:
 
 ```smt
@@ -1114,15 +1114,15 @@ For example, the following is accepted:
 (declare-const - (-> Real Real Real))
 ```
 
-When parsing a term whose head is `-`, the Ethos will automatically choose which symbol to use based on the arguments passed to it.
-In particular, if a symbol is overloaded, the Ethos will use the first symbol that results in a well-typed term if applied.
+When parsing a term whose head is `-`, Ethos will automatically choose which symbol to use based on the arguments passed to it.
+In particular, if a symbol is overloaded, Ethos will use the first symbol that results in a well-typed term if applied.
 For example, assuming standard definitions of SMT-LIB literal values,
 `(- 1)` uses the first, `(- 0 1)` uses the second, and `(- 0.0 1.0)` uses the third.
-If a symbol is unapplied, then the Ethos will interpret it as the first declared term for that symbol.
+If a symbol is unapplied, then Ethos will interpret it as the first declared term for that symbol.
 
-> __Note:__ When multiple variants are possible, the Ethos will use the first one and will _not_ throw a warning. This behavior permits the user to order the declarations in the order of their precedence. For example, the SMT-LIB operator for unary negation should be declared _before_ the declaration for subtraction. If this were done in the opposite order, then (- t) would be interpreted as the partial application of subtraction to the term t.
+> __Note:__ When multiple variants are possible, Ethos will use the first one and will _not_ throw a warning. This behavior permits the user to order the declarations in the order of their precedence. For example, the SMT-LIB operator for unary negation should be declared _before_ the declaration for subtraction. If this were done in the opposite order, then (- t) would be interpreted as the partial application of subtraction to the term t.
 
-Furthermore, the Ethos supports an operator `eo::as` for disambiguation whose syntax is `(eo::as <term><type>)`.
+Furthermore, Ethos supports an operator `eo::as` for disambiguation whose syntax is `(eo::as <term><type>)`.
 A term of the form `(eo::as t (-> T1 ... Tn T))` evaluates to term `s` only if `(s k1 ... kn)` has type `T` where `k1 ... kn` are variables of type `T1 ... Tn`, and `t` and `s` are atomic terms with the same name.
 If multiple such terms `s` exist, then the most recent one is returned.
 Otherwise, the term `(eo::as t (-> T1 ... Tn T))` is unevaluated.
@@ -1162,7 +1162,7 @@ Proof rules with assumptions `<assumption>` are used in proofs with local scopes
 
 Proof rules may be marked with attributes at the end of their definition. 
 The only attribute of this form that is currently supported is `:sorry`, which indicates that the proof rule does not have a formal justification.
-This, in turn, impacts the response of the Ethos, as described in [responses](#responses).
+This, in turn, impacts the response of Ethos, as described in [responses](#responses).
 
 At a high level, an application of a proof rule is given a concrete list of (premise) proofs, and a concrete list of (argument) terms.
 A proof rule checks if a substitution `S` can be found such that:
@@ -1313,7 +1313,7 @@ Locally assumptions can be arbitrarily nested, for example the above can be exte
 
 ## Side Conditions
 
-Similar to `declare-rule`, the Ethos supports an extensible syntax for programs whose generic syntax is given by:
+Similar to `declare-rule`, Ethos supports an extensible syntax for programs whose generic syntax is given by:
 
 ```smt
 (program <symbol> <keyword>? <sexpr>*)
@@ -1324,7 +1324,7 @@ If the `<keyword>` is not provided, then we assume it has been marked `:ethos`.
 All programs not marked with `:ethos` are not supported by the checker and will cause it to terminate.
 
 If the keyword is `:ethos`, then the expected syntax that follows is given below, and is used for defining recursive programs.
-In particular, in the Ethos, a program is an ordered list of rewrite rules.
+In particular, in Ethos, a program is an ordered list of rewrite rules.
 The syntax for this command is as follows.
 
 ```smt
@@ -1378,7 +1378,7 @@ The next two examples show variants where an incorrect definition of this progra
 
 > __Note:__ As mentioned in [list-computation](#list-computation), Eunoia has dedicated support for operators over lists.
 For the definition of `contains` in the above example, the term `(contains l c)` is equivalent to `(eo::not (eo::is_neg (eo::find or c l)))`.
-Computing the latter is significantly faster in practice in the Ethos.
+Computing the latter is significantly faster in practice in Ethos.
 
 ### Example: Finding a child in an `or` term (incorrect version)
 
@@ -1416,7 +1416,7 @@ However, `(contains (or a b c) a)` does not evaluate in this example.
 ```
 
 In this variant, both `xs` and `x` were marked with `:list`.
-The Ethos will reject this definition since it implies that a computational operator appears in a pattern for matching.
+Ethos will reject this definition since it implies that a computational operator appears in a pattern for matching.
 In particular, the term `(or x xs)` is equivalent to `(eo::list_concat or x xs)` after desugaring.
 Thus, the third case of the program, `(contains (eo::list_concat or x xs) l)`, is not a legal pattern.
 
@@ -1436,7 +1436,7 @@ Thus, the third case of the program, `(contains (eo::list_concat or x xs) l)`, i
 
 The term `(substitute x y t)` replaces all occurrences of `x` by `y` in `t`.
 Note that this side condition is fully general and does not depend on the shape of terms in `t`.
-In detail, recall that the Ethos treats all function applications as curried (unary) applications.
+In detail, recall that Ethos treats all function applications as curried (unary) applications.
 In particular, this implies that `(f a)` matches any application term, since both `f` and `a` are parameters.
 Thus, the side condition is written in three cases: either `t` is `x` in which case we return `y`, `t` is a function application in which case we recurse, or otherwise `t` is a constant not equal to `x` and we return itself.
 
@@ -1547,7 +1547,7 @@ The above program `to_dimacs` converts an SMT formula into DIMACS form, where `e
 
 ### Match statements
 
-The Ethos supports an operator `eo::match` for performing pattern matching on a target term. The syntax of this term is:
+Ethos supports an operator `eo::match` for performing pattern matching on a target term. The syntax of this term is:
 
 ```smt
 (eo::match (<typed-param>*) <term> ((<term> <term>)*))
@@ -1676,17 +1676,17 @@ The recursive calls in the side condition `mk_trans` accumulate the endpoints of
 
 ## Including and referencing files
 
-The Ethos supports the following commands for file inclusion:
+Ethos supports the following commands for file inclusion:
 
 - `(include <string>)`, which includes the file indicated by the given string. The path to the file is taken relative to the directory of the file that includes it.
 - `(reference <string> <symbol>?)`, which similar to `include` includes the file indicated by the given string, and furthermore marks that file as being the _reference input_ for the current run of the checker (see below). The optional symbol can refer to a normalization routine (see below).
 
 ### Validation Proofs via Reference Inputs
 
-When the Ethos encounters a command of the form `(reference <string>)`, the checker enables a further set of checks that ensures that all assumptions in proofs correspond to assertions from the file referenced by the given string.
+When Ethos encounters a command of the form `(reference <string>)`, the checker enables a further set of checks that ensures that all assumptions in proofs correspond to assertions from the file referenced by the given string.
 
-In particular, when the command `(reference "file.smt2")` is read, the Ethos will parse `file.smt2`.
-The definitions and declaration commands in this file will be treated as normal, that is, they will populate the symbol table of the Ethos as they normally would if they were to appear in an `*.eo` input.
+In particular, when the command `(reference "file.smt2")` is read, Ethos will parse `file.smt2`.
+The definitions and declaration commands in this file will be treated as normal, that is, they will populate the symbol table of Ethos as they normally would if they were to appear in an `*.eo` input.
 The commands of the form `(assert F)` will add `F` to a set of formulas we will refer to as the _reference assertions_.
 Other commands in `file.smt2` (e.g. `set-logic`, `set-option`, and so on) will be ignored.
 
@@ -1699,7 +1699,7 @@ If it does not, then an error is thrown indicating that the proof is assuming a 
 
 ### Validation up to Normalization
 
-Since the validation is relying on the fact that ethos can faithfully parse the original *.smt2 file, validation will only succeed if the signatures used by the Ethos exactly match the syntax for terms in the *.smt2 file.
+Since the validation is relying on the fact that ethos can faithfully parse the original *.smt2 file, validation will only succeed if the signatures used by Ethos exactly match the syntax for terms in the *.smt2 file.
 Minor changes in how terms are represented will lead to mismatches.
 For this reason, ethos additionally supports providing an optional normalization routine via `(reference <string> <term>)`, which includes the file indicated by the given string and specifies all assumptions must match an assertion after running the provided normalization function.
 
@@ -1726,11 +1726,11 @@ The above program will be invoked on all formulas occuring in `assert` commands 
 
 ## Oracles
 
-The Ethos supports a command, `declare-oracle-fun`, which associates the semantics of a function with an external binary.
+Ethos supports a command, `declare-oracle-fun`, which associates the semantics of a function with an external binary.
 We reference to such functions as _oracle functions_.
 The syntax and semantics of such functions are described in this [paper](https://homepage.divms.uiowa.edu/~ajreynol/vmcai22a.pdf).
 
-In particular, the Ethos supports the command:
+In particular, Ethos supports the command:
 
 ```smt
 (declare-oracle-fun <symbol> (<type>*) <type> <symbol>)
@@ -1764,7 +1764,7 @@ If `./isPrime` returns with an error, then `(runIsPrime z)` does not evaluate.
 Otherwise, `(runIsPrime z)` evaluates to the result of parsing its output using the current parser state.
 In this example, an output of response of `true` (resp. `false`) from the executable will be parsed back at the Boolean value `true` (resp. `false`).
 More generally, input and output of oracles may contain symbols that are defined in the current parser state.
-The user is responsible that the input can be properly parsed by the oracle, and the outputs of oracles can be properly parsed by the Ethos.
+The user is responsible that the input can be properly parsed by the oracle, and the outputs of oracles can be properly parsed by Ethos.
 
 In the above example, a proof rule is then defined that says that if `z` is an integer greater than or equal to `2`, is the product of two integers `x` and `y`, and is prime based on invoking `runIsPrime` in the given requirement, then we can conclude `false`.
 
@@ -1772,7 +1772,7 @@ In the above example, a proof rule is then defined that says that if `z` is an i
 
 ## Checker Response
 
-After successfully parsing an input file with no errors, the Ethos will respond with one of two possibilities:
+After successfully parsing an input file with no errors, Ethos will respond with one of two possibilities:
 
 - `incomplete` if it parsed any `step` or `step-pop` application that referenced a proof rule that was marked with the attribute `:sorry`, or
 - `correct` otherwise.
@@ -1937,7 +1937,7 @@ The following signature can be used to define operators that are not required to
 
 This section overviews the semantics of proofs in the Eunoia language.
 Proof checking can be seen as a special instance of type checking terms involving the `Proof` and `Quote` types.
-The type system of the Ethos can be summarized as follows, where `t : S` are assumed axioms for all atomic terms `t` of type `S`:
+The type system of Eunoia can be summarized as follows, where `t : S` are assumed axioms for all atomic terms `t` of type `S`:
 
 ```smt
 f : (-> (Quote u) S)  t : T
