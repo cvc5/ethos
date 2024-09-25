@@ -23,7 +23,7 @@ int main( int argc, char* argv[] )
   Options opts;
   Stats stats;
   State s(opts, stats);
-  Plugin * plugin = nullptr;
+  Plugin* plugin = nullptr;
   // read the options
   size_t i = 1;
   std::string file;
@@ -47,11 +47,11 @@ int main( int argc, char* argv[] )
         continue;
       }
     }
-    bool isInclude = (arg.compare(0, 10, "--include=")==0);
-    if (isInclude || arg.compare(0, 12, "--reference=")==0)
+    bool isInclude = (arg.compare(0, 10, "--include=") == 0);
+    if (isInclude || arg.compare(0, 12, "--reference=") == 0)
     {
       size_t first = arg.find_first_of("=");
-      std::string file = arg.substr(first+1);
+      std::string file = arg.substr(first + 1);
       // cannot provide reference
       Expr refNf;
       if (!s.includeFile(file, isInclude, !isInclude, refNf))
