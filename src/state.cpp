@@ -1246,7 +1246,7 @@ bool State::getActualPremises(const ExprValue* rule,
         // the nil terminator if applied to empty list
         AppInfo* aic = getAppInfo(plCons.getValue());
         Attr ck = aic->d_attrCons;
-        if (ck==Attr::RIGHT_ASSOC_NIL || ck==Attr::LEFT_ASSOC_NIL)
+        if (isNAryNilAttr(ck))
         {
           ap = aic->d_attrConsTerm;
         }

@@ -45,23 +45,34 @@ std::ostream& operator<<(std::ostream& o, Attr a)
   return o;
 }
 
+bool isNAryNilAttr(Attr a)
+{
+  switch (a)
+  {
+    case Attr::LEFT_ASSOC_NIL:
+    case Attr::RIGHT_ASSOC_NIL:
+    case Attr::LEFT_ASSOC_NIL_COLLAPSE:
+    case Attr::RIGHT_ASSOC_NIL_COLLAPSE:
+      return true;
+    default:
+      break;
+  }
+  return false;
+}
+
 bool isNAryAttr(Attr a)
 {
   switch (a)
   {
     case Attr::LEFT_ASSOC:
     case Attr::RIGHT_ASSOC:
-    case Attr::LEFT_ASSOC_NIL:
-    case Attr::RIGHT_ASSOC_NIL:
-    case Attr::LEFT_ASSOC_NIL_COLLAPSE:
-    case Attr::RIGHT_ASSOC_NIL_COLLAPSE:
     case Attr::CHAINABLE:
     case Attr::PAIRWISE:
       return true;
     default:
       break;
   }
-  return false;
+  return isNAryNilAttr(a);
 }
 
 bool isConstructorKindAttr(Attr a)

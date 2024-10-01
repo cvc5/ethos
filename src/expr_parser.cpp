@@ -1145,6 +1145,8 @@ void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushe
             break;
           case Attr::RIGHT_ASSOC_NIL:
           case Attr::LEFT_ASSOC_NIL:
+          case Attr::RIGHT_ASSOC_NIL_COLLAPSE:
+          case Attr::LEFT_ASSOC_NIL_COLLAPSE:
           case Attr::CHAINABLE:
           case Attr::PAIRWISE:
           case Attr::BINDER:
