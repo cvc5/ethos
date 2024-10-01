@@ -85,6 +85,8 @@ ExprParser::ExprParser(Lexer& lex, State& state, bool isSignature)
   d_strToAttr[":right-assoc"] = Attr::RIGHT_ASSOC;
   d_strToAttr[":left-assoc-nil"] = Attr::LEFT_ASSOC_NIL;
   d_strToAttr[":right-assoc-nil"] = Attr::RIGHT_ASSOC_NIL;
+  d_strToAttr[":left-assoc-nil-collapse"] = Attr::LEFT_ASSOC_NIL_COLLAPSE;
+  d_strToAttr[":right-assoc-nil-collapse"] = Attr::RIGHT_ASSOC_NIL_COLLAPSE;
   d_strToAttr[":chainable"] = Attr::CHAINABLE;
   d_strToAttr[":pairwise"] = Attr::PAIRWISE;
   d_strToAttr[":binder"] = Attr::BINDER;

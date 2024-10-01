@@ -122,6 +122,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("list_concat", Kind::EVAL_LIST_CONCAT);
   bindBuiltinEval("list_nth", Kind::EVAL_LIST_NTH);
   bindBuiltinEval("list_find", Kind::EVAL_LIST_FIND);
+  bindBuiltinEval("list_collapse", Kind::EVAL_LIST_COLLAPSE);
   // boolean
   bindBuiltinEval("not", Kind::EVAL_NOT);
   bindBuiltinEval("and", Kind::EVAL_AND);
@@ -667,6 +668,8 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         case Attr::RIGHT_ASSOC:
         case Attr::LEFT_ASSOC_NIL:
         case Attr::RIGHT_ASSOC_NIL:
+        case Attr::LEFT_ASSOC_NIL_COLLAPSE:
+        case Attr::RIGHT_ASSOC_NIL_COLLAPSE:
         {
           // This means that we don't construct bogus terms when e.g.
           // right-assoc-nil operators are used in side condition bodies.
@@ -675,9 +678,13 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           if (nchild>=2)
           {
             bool isLeft = (ai->d_attrCons==Attr::LEFT_ASSOC ||
-                           ai->d_attrCons==Attr::LEFT_ASSOC_NIL);
+                           ai->d_attrCons==Attr::LEFT_ASSOC_NIL ||
+                          ai->d_attrCons==Attr::LEFT_ASSOC_NIL_COLLAPSE);
+            bool isNilCollapse = (ai->d_attrCons==Attr::RIGHT_ASSOC_NIL_COLLAPSE ||
+                          ai->d_attrCons==Attr::LEFT_ASSOC_NIL_COLLAPSE);
             bool isNil = (ai->d_attrCons==Attr::RIGHT_ASSOC_NIL ||
-                          ai->d_attrCons==Attr::LEFT_ASSOC_NIL);
+                          ai->d_attrCons==Attr::LEFT_ASSOC_NIL ||
+                          isNilCollapse);
             size_t i = 1;
             ExprValue* curr = vchildren[isLeft ? i : nchild - i];
             std::vector<ExprValue*> cc{hd, nullptr, nullptr};
@@ -723,7 +730,26 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
               }
               i++;
             }
-            Trace("type_checker") << "...return for " << children[0] << std::endl;// << ": " << Expr(curr) << std::endl;
+            if (isNilCollapse)
+            {
+              size_t nlistChildren = 0;
+              for (ExprValue* v : vchildren)
+              {
+                if (getConstructorKind(v) != Attr::LIST)
+                {
+                  nlistChildren++;
+                  if (nlistChildren>=2)
+                  {
+                    break;
+                  }
+                }
+              }
+              if (nlistChildren<2)
+              {
+                curr = mkExprInternal(Kind::EVAL_LIST_COLLAPSE, {hd, curr});
+              }
+            }
+            Trace("type_checker") << "...return for " << children[0] << std::endl;
             return Expr(curr);
           }
           // otherwise partial??

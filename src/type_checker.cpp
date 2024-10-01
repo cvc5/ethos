@@ -1349,6 +1349,17 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       return Expr(d_state.mkLiteralInternal(lret));
     }
       break;
+    case Kind::EVAL_LIST_COLLAPSE:
+    {
+      getNAryChildren(args[1], op, nil, hargs, isLeft);
+      if (hargs.size()==1)
+      {
+        return Expr(hargs[0]);
+      }
+      // otherwise unchanged
+      return Expr(args[1]);
+    }
+      break;
     default:
       // not a list operator
       return d_null;
@@ -1407,6 +1418,7 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
       return childTypes[2];
     case Kind::EVAL_LIST_CONCAT:
     case Kind::EVAL_LIST_NTH:
+    case Kind::EVAL_LIST_COLLAPSE:
       return childTypes[1];
     case Kind::EVAL_CONCAT:
     case Kind::EVAL_EXTRACT:

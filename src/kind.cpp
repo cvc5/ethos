@@ -68,6 +68,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::EVAL_LIST_CONCAT: o << "EVAL_LIST_CONCAT"; break;
     case Kind::EVAL_LIST_NTH: o << "EVAL_LIST_NTH"; break;
     case Kind::EVAL_LIST_FIND: o << "EVAL_LIST_FIND"; break;
+    case Kind::EVAL_LIST_COLLAPSE: o << "EVAL_LIST_COLLAPSE"; break;
     // boolean
     case Kind::EVAL_NOT: o << "EVAL_NOT"; break;
     case Kind::EVAL_AND: o << "EVAL_AND"; break;
@@ -144,6 +145,7 @@ std::string kindToTerm(Kind k)
         case Kind::EVAL_LIST_CONCAT: ss << "list_concat"; break;
         case Kind::EVAL_LIST_NTH: ss << "list_nth"; break;
         case Kind::EVAL_LIST_FIND: ss << "list_find"; break;
+        case Kind::EVAL_LIST_COLLAPSE: ss << "list_collapse"; break;
         // boolean
         case Kind::EVAL_NOT: ss << "not"; break;
         case Kind::EVAL_AND: ss << "and"; break;
@@ -233,6 +235,7 @@ bool isLiteralOp(Kind k)
     case Kind::EVAL_LIST_CONCAT:
     case Kind::EVAL_LIST_NTH:
     case Kind::EVAL_LIST_FIND:
+    case Kind::EVAL_LIST_COLLAPSE:
     // boolean
     case Kind::EVAL_NOT:
     case Kind::EVAL_AND:
@@ -271,6 +274,7 @@ bool isListLiteralOp(Kind k)
     case Kind::EVAL_LIST_CONCAT:
     case Kind::EVAL_LIST_NTH:
     case Kind::EVAL_LIST_FIND:
+    case Kind::EVAL_LIST_COLLAPSE:
       return true;
     default:
       break;
