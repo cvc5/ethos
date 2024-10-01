@@ -126,6 +126,7 @@ set(ethos_test_file_list
     disamb-arith.eo
     opaque-inline.eo
     implicit-then-var.eo
+    is_eq.eo
 )
 
 macro(ethos_test file)
