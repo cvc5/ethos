@@ -6,7 +6,7 @@
 (declare-const b Bool)
 (declare-const c Bool)
 
-(define singleton-list ((T Type :implicit) (f (-> T T T)) (a T)) (eo::cons f a (eo::nil f)))
+(define singleton-list ((T Type :implicit) (f (-> T T T)) (x T)) (eo::cons f x (eo::nil f)))
 
 (declare-rule bool-or-true ((xs Bool :list) (ys Bool :list))
   :args (xs ys)
