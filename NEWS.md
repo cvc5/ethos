@@ -8,6 +8,7 @@ ethos 0.1.1 prerelease
 - Makes the `set-option` command available in proofs and Eunoia files.
 - Adds `--include=X` and `--reference=X` to the command line interface for including (reference) files.
 - Fixed a bug when applying operators with opaque arguments.
+- Fixed a bug in the evaluation of `eo::cons` for left associative operators.
 
 ethos 0.1.0
 ===========
