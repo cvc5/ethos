@@ -1256,8 +1256,6 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     return d_null;
   }
   ExprValue * nil = nilExpr.getValue();
-  size_t tailIndex = (isLeft ? 1 : 2);
-  size_t headIndex = (isLeft ? 2 : 1);
   ExprValue* ret;
   std::vector<ExprValue*> hargs;
   switch (k)
@@ -1270,8 +1268,12 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_CONS:
     case Kind::EVAL_LIST_CONCAT:
     {
+      bool isConcat = (k==Kind::EVAL_LIST_CONCAT);
+      size_t tailIndex = (isLeft ? 1 : 2);
+      size_t headIndex = (isLeft ? 2 : 1);
+      ret = args[isConcat ? tailIndex : 2];
       std::vector<ExprValue*> targs;
-      ExprValue* b = getNAryChildren(args[tailIndex], op, nil, targs, isLeft);
+      ExprValue* b = getNAryChildren(ret, op, nil, targs, isLeft);
       if (b==nullptr)
       {
         Trace("type_checker") << "...tail not in list form, nil is " << nilExpr << std::endl;
@@ -1280,7 +1282,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       }
       if (k==Kind::EVAL_CONS)
       {
-        hargs.push_back(args[headIndex]);
+        hargs.push_back(args[1]);
       }
       else
       {
@@ -1294,7 +1296,18 @@ Expr TypeChecker::evaluateLiteralOpInternal(
         }
       }
       // note we take the tail verbatim
-      ret = args[tailIndex];
+      std::vector<ExprValue*> cc;
+      cc.push_back(op);
+      cc.push_back(nullptr);
+      cc.push_back(nullptr);
+      for (size_t i=0, nargs=hargs.size(); i<nargs; i++)
+      {
+        cc[tailIndex] = ret;
+        cc[headIndex] = hargs[isLeft ? i : (nargs-1-i)];
+        ret = d_state.mkApplyInternal(cc);
+      }
+      Trace("type_checker_debug") << "CONS: " << isLeft << " " << args << " -> " << ret << std::endl;
+      return Expr(ret);
     }
       break;
     case Kind::EVAL_LIST_LENGTH:
@@ -1350,22 +1363,9 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     }
       break;
     default:
-      // not a list operator
-      return d_null;
       break;
   }
-  std::vector<ExprValue*> cc;
-  cc.push_back(op);
-  cc.push_back(nullptr);
-  cc.push_back(nullptr);
-  for (size_t i=0, nargs=hargs.size(); i<nargs; i++)
-  {
-    cc[tailIndex] = ret;
-    cc[headIndex] = hargs[isLeft ? i : (nargs-1-i)];
-    ret = d_state.mkApplyInternal(cc);
-  }
-  Trace("type_checker_debug") << "CONS: " << isLeft << " " << args << " -> " << ret << std::endl;
-  return Expr(ret);
+  return d_null;
 }
 
 ExprValue* TypeChecker::getLiteralOpType(Kind k,
