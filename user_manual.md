@@ -582,6 +582,7 @@ Also note in contrast to SMT-LIB version 2, negative arithmetic can be provided 
 
 String values use the standard escape sequences as specified in SMT-LIB version 2.6, namely `""` within a string literal denotes `"`.
 The only other escape sequences are of the form `\u{dn ...d1}` for `1<=n<=5` and `\u d4 d3 d2 d1` for hexadecimal digits `d1...d5` where `d5` is in the range `[0-2]`.
+<!-- HL: This is unclear to me (why not \u d6 d4 d3 d2 d1?) and in the SMT-LIB standard it seems to say that "" is the only escape character?-->  
 
 > __Note:__ Numeral, rational and decimal values are implemented by the arbitrary precision arithmetic library GMP. Binary and hexadecimal values are implemented as layer on top of numeral values that tracks a bit width. String values are implemented as a vector of unsigned integers whose maximum value is specified by SMT-LIB version 2.6, namely the character set corresponds to Unicode values 0 to 196607.
 
@@ -598,6 +599,8 @@ The following gives an example of how to define the class of numeral constants.
 (declare-consts <numeral> Int)
 (define P ((x Int)) (> x 7))
 ```
+<!-- HL: This is unclear to me but I am not sure if I have any suggestions to make it clearer. Why can I now write 7? Why can < be used on integers?-->
+
 
 In the above example, the `declare-consts` command specifies that numerals (`1`, `2`, `3`, and so on) are constants of type `Int`.
 The signature can now refer to arbitrary numerals in definitions, e.g. `7` in the definition of `P`.
@@ -650,6 +653,7 @@ Note however that the evaluation of these operators is handled by more efficient
   - Equivalent to `(eo::is_neg (eo::add (eo::neg (eo::hash t1)) (eo::hash t2)))`. Note that this method corresponds to an arbitrary total order on terms.
 - `(eo::is_z t)`
   - Equivalent to `(eo::is_eq (eo::to_z t) t)`.
+<!-- HL: Maybe move after the description of to_z? It seems weird that this is a core operator when it builds up on a non core operator. However, I see that this is not a conversion operator. Same actually with the next couple of operators. --> 
 - `(eo::is_q t)`
     - Equivalent to `(eo::is_eq (eo::to_q t) t)`. Note this returns false for decimal literals.
 - `(eo::is_bin t)`
