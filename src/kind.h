@@ -78,6 +78,7 @@ enum class Kind
   EVAL_LIST_CONCAT,
   EVAL_LIST_NTH,
   EVAL_LIST_FIND,
+  EVAL_LIST_COLLAPSE,
   // boolean
   EVAL_NOT,
   EVAL_AND,

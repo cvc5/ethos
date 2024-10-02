@@ -33,6 +33,8 @@ std::ostream& operator<<(std::ostream& o, Attr a)
     case Attr::LEFT_ASSOC: o << "LEFT_ASSOC"; break;
     case Attr::RIGHT_ASSOC_NIL: o << "RIGHT_ASSOC_NIL"; break;
     case Attr::LEFT_ASSOC_NIL: o << "LEFT_ASSOC_NIL"; break;
+    case Attr::RIGHT_ASSOC_NIL_COLLAPSE: o << "RIGHT_ASSOC_NIL_COLLAPSE"; break;
+    case Attr::LEFT_ASSOC_NIL_COLLAPSE: o << "LEFT_ASSOC_NIL_COLLAPSE"; break;
     case Attr::CHAINABLE: o << "CHAINABLE"; break;
     case Attr::PAIRWISE: o << "PAIRWISE"; break;
     case Attr::DATATYPE: o << "DATATYPE"; break;
@@ -43,21 +45,34 @@ std::ostream& operator<<(std::ostream& o, Attr a)
   return o;
 }
 
+bool isNAryNilAttr(Attr a)
+{
+  switch (a)
+  {
+    case Attr::LEFT_ASSOC_NIL:
+    case Attr::RIGHT_ASSOC_NIL:
+    case Attr::LEFT_ASSOC_NIL_COLLAPSE:
+    case Attr::RIGHT_ASSOC_NIL_COLLAPSE:
+      return true;
+    default:
+      break;
+  }
+  return false;
+}
+
 bool isNAryAttr(Attr a)
 {
   switch (a)
   {
     case Attr::LEFT_ASSOC:
     case Attr::RIGHT_ASSOC:
-    case Attr::LEFT_ASSOC_NIL:
-    case Attr::RIGHT_ASSOC_NIL:
     case Attr::CHAINABLE:
     case Attr::PAIRWISE:
       return true;
     default:
       break;
   }
-  return false;
+  return isNAryNilAttr(a);
 }
 
 bool isConstructorKindAttr(Attr a)

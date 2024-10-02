@@ -47,6 +47,8 @@ enum class Attr
   LEFT_ASSOC,
   RIGHT_ASSOC_NIL,
   LEFT_ASSOC_NIL,
+  RIGHT_ASSOC_NIL_COLLAPSE,
+  LEFT_ASSOC_NIL_COLLAPSE,
   CHAINABLE,
   PAIRWISE,
 
@@ -57,7 +59,11 @@ enum class Attr
 };
 
 /**
- * Is the Attr indicate that any number of children can be passed to the given
+ * Does the Attr indicate a nil terminated n-ary kind?
+ */
+bool isNAryNilAttr(Attr a);
+/**
+ * Does the Attr indicate that any number of children can be passed to the given
  * operator?
  */
 bool isNAryAttr(Attr a);

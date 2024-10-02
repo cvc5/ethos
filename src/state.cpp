@@ -122,6 +122,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("list_concat", Kind::EVAL_LIST_CONCAT);
   bindBuiltinEval("list_nth", Kind::EVAL_LIST_NTH);
   bindBuiltinEval("list_find", Kind::EVAL_LIST_FIND);
+  bindBuiltinEval("list_collapse", Kind::EVAL_LIST_COLLAPSE);
   // boolean
   bindBuiltinEval("not", Kind::EVAL_NOT);
   bindBuiltinEval("and", Kind::EVAL_AND);
@@ -213,18 +214,15 @@ void State::popScope()
     if (!d_overloadedDecls.empty() && d_overloadedDecls.back()==d_decls[i])
     {
       d_overloadedDecls.pop_back();
+      std::map<std::string, Expr>::iterator its = d_symTable.find(d_decls[i]);
+      Assert (its!=d_symTable.end());
       // it should be overloaded
-      AppInfo* ai = getAppInfo(d_symTable[d_decls[i]].getValue());
+      AppInfo* ai = getAppInfo(its->second.getValue());
       Assert (ai!=nullptr);
-      Assert (!ai->d_overloads.empty());
+      Assert (ai->d_overloads.size()>=2);
+      // was overloaded, we revert the binding
       ai->d_overloads.pop_back();
-      if (ai->d_overloads.size()==1)
-      {
-        Trace("overload") << "** no-overload: " << d_decls[i] << std::endl;
-        // no longer overloaded since the overload vector is now size one
-        ai->d_overloads.clear();
-      }
-      // was overloaded, so we don't unbind
+      its->second = ai->d_overloads.back();
       continue;
     }
     d_symTable.erase(d_decls[i]);
@@ -667,6 +665,8 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         case Attr::RIGHT_ASSOC:
         case Attr::LEFT_ASSOC_NIL:
         case Attr::RIGHT_ASSOC_NIL:
+        case Attr::LEFT_ASSOC_NIL_COLLAPSE:
+        case Attr::RIGHT_ASSOC_NIL_COLLAPSE:
         {
           // This means that we don't construct bogus terms when e.g.
           // right-assoc-nil operators are used in side condition bodies.
@@ -675,9 +675,13 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           if (nchild>=2)
           {
             bool isLeft = (ai->d_attrCons==Attr::LEFT_ASSOC ||
-                           ai->d_attrCons==Attr::LEFT_ASSOC_NIL);
+                           ai->d_attrCons==Attr::LEFT_ASSOC_NIL ||
+                          ai->d_attrCons==Attr::LEFT_ASSOC_NIL_COLLAPSE);
+            bool isNilCollapse = (ai->d_attrCons==Attr::RIGHT_ASSOC_NIL_COLLAPSE ||
+                          ai->d_attrCons==Attr::LEFT_ASSOC_NIL_COLLAPSE);
             bool isNil = (ai->d_attrCons==Attr::RIGHT_ASSOC_NIL ||
-                          ai->d_attrCons==Attr::LEFT_ASSOC_NIL);
+                          ai->d_attrCons==Attr::LEFT_ASSOC_NIL ||
+                          isNilCollapse);
             size_t i = 1;
             ExprValue* curr = vchildren[isLeft ? i : nchild - i];
             std::vector<ExprValue*> cc{hd, nullptr, nullptr};
@@ -723,7 +727,26 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
               }
               i++;
             }
-            Trace("type_checker") << "...return for " << children[0] << std::endl;// << ": " << Expr(curr) << std::endl;
+            if (isNilCollapse)
+            {
+              size_t nlistChildren = 0;
+              for (ExprValue* v : vchildren)
+              {
+                if (getConstructorKind(v) != Attr::LIST)
+                {
+                  nlistChildren++;
+                  if (nlistChildren>=2)
+                  {
+                    break;
+                  }
+                }
+              }
+              if (nlistChildren<2)
+              {
+                curr = mkExprInternal(Kind::EVAL_LIST_COLLAPSE, {hd, curr});
+              }
+            }
+            Trace("type_checker") << "...return for " << children[0] << std::endl;
             return Expr(curr);
           }
           // otherwise partial??
@@ -1080,22 +1103,27 @@ bool State::bind(const std::string& name, const Expr& e)
   std::map<std::string, Expr>::iterator its = d_symTable.find(name);
   if (its!=d_symTable.end())
   {
+    Trace("overload") << "** overload: " << name << std::endl;
     // if already bound, we overload
     AppInfo& ai = d_appData[its->second.getValue()];
-    // if the first time overloading, add the original
-    if (ai.d_overloads.empty())
+    std::vector<Expr>& ov = ai.d_overloads;
+    AppInfo& ain = d_appData[e.getValue()];
+    std::vector<Expr>& ovn = ain.d_overloads;
+    if (ov.empty())
     {
-      Trace("overload") << "** overload: " << name << std::endl;
-      ai.d_overloads.push_back(its->second);
+      // if first time overloading, add the original symbol
+      ovn.emplace_back(its->second);
     }
-    ai.d_overloads.push_back(e);
+    else
+    {
+      ovn.insert(ovn.end(), ov.begin(), ov.end());
+    }
+    ovn.emplace_back(e);
     // add to declaration
     if (!d_declsSizeCtx.empty())
     {
-      d_decls.emplace_back(name);
       d_overloadedDecls.emplace_back(name);
     }
-    return true;
   }
   // Trace("state-debug") << "bind " << name << " -> " << &e << std::endl;
   d_symTable[name] = e;
@@ -1220,7 +1248,7 @@ bool State::getActualPremises(const ExprValue* rule,
         // the nil terminator if applied to empty list
         AppInfo* aic = getAppInfo(plCons.getValue());
         Attr ck = aic->d_attrCons;
-        if (ck==Attr::RIGHT_ASSOC_NIL || ck==Attr::LEFT_ASSOC_NIL)
+        if (isNAryNilAttr(ck))
         {
           ap = aic->d_attrConsTerm;
         }

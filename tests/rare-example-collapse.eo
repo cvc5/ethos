@@ -1,0 +1,46 @@
+(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil-collapse false)
+(declare-const and (-> Bool Bool Bool) :left-assoc-nil-collapse true)
+
+(declare-const a Bool)
+(declare-const b Bool)
+(declare-const c Bool)
+
+(define singleton-list ((T Type :implicit) (f (-> T T T)) (a T)) (eo::cons f a (eo::nil f)))
+
+(declare-rule bool-or-true ((xs Bool :list) (ys Bool :list))
+  :args (xs ys)
+  :conclusion (= (or xs true ys) true)
+)
+
+(declare-rule bool-or-false ((xs Bool :list) (ys Bool :list))
+  :args (xs ys)
+  :conclusion (= (or xs false ys) (or xs ys))
+)
+
+(step @p0 (= (or a b true c) true) :rule bool-or-true :args ((or a b) (singleton-list or c)))
+(step @p1 (= (or a true) true) :rule bool-or-true :args ((singleton-list or a) false))
+(step @p2 (= (or (or a b) true) true) :rule bool-or-true :args ((singleton-list or (or a b)) false))
+
+(step @p3 (= (or a b false c) (or a b c)) :rule bool-or-false :args ((or a b) (or c)))
+(step @p4 (= (or a false) a) :rule bool-or-false :args ((or a) false))
+(step @p5 (= (or (or a b) false) (or a b)) :rule bool-or-false :args ((singleton-list or (or a b)) false))
+
+(declare-rule bool-and-true ((xs Bool :list) (ys Bool :list))
+  :args (xs ys)
+  :conclusion (= (and xs true ys) (and xs ys))
+)
+
+(declare-rule bool-and-false ((xs Bool :list) (ys Bool :list))
+  :args (xs ys)
+  :conclusion (= (and xs false ys) false)
+)
+
+(step @p6 (= (and a b false c) false) :rule bool-and-false :args ((and a b) (singleton-list and c)))
+(step @p7 (= (and a false) false) :rule bool-and-false :args ((singleton-list and a) true))
+(step @p8 (= (and (and a b) false) false) :rule bool-and-false :args ((singleton-list and (and a b)) true))
+
+(step @p9 (= (and a b true c) (and a b c)) :rule bool-and-true :args ((and a b) (singleton-list and c)))
+(step @p10 (= (and a true) a) :rule bool-and-true :args ((singleton-list and a) true))
+(step @p11 (= (and (and a b) true) (and a b)) :rule bool-and-true :args ((singleton-list and (and a b)) true))
+
