@@ -218,6 +218,7 @@ void State::popScope()
       // it should be overloaded
       AppInfo* ai = getAppInfo(its->second.getValue());
       Assert (ai!=nullptr);
+      // we always have at least 2 overloads
       Assert (ai->d_overloads.size()>=2);
       // was overloaded, we revert the binding
       ai->d_overloads.pop_back();
@@ -1090,6 +1091,10 @@ bool State::bind(const std::string& name, const Expr& e)
     }
     else
     {
+      // Otherwise, carry all of the overloads from the previous symbol.
+      // Note that since we carry the overloads for each symbol, the space
+      // required here is quadratic, but the number of overloads per symbol
+      // should be very small.
       ovn.insert(ovn.end(), ov.begin(), ov.end());
     }
     ovn.emplace_back(e);
