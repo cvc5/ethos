@@ -599,8 +599,6 @@ The following gives an example of how to define the class of numeral constants.
 (declare-consts <numeral> Int)
 (define P ((x Int)) (> x 7))
 ```
-<!-- HL: This is unclear to me but I am not sure if I have any suggestions to make it clearer. Why can I now write 7? Why can < be used on integers?-->
-
 
 In the above example, the `declare-consts` command specifies that numerals (`1`, `2`, `3`, and so on) are constants of type `Int`.
 The signature can now refer to arbitrary numerals in definitions, e.g. `7` in the definition of `P`.
