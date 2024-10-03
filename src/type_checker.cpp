@@ -1268,7 +1268,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_CONS:
     case Kind::EVAL_LIST_CONCAT:
     {
-      bool isConcat = (k==Kind::EVAL_LIST_CONCAT);
+      bool isConcat = (k == Kind::EVAL_LIST_CONCAT);
       size_t tailIndex = (isLeft ? 1 : 2);
       size_t headIndex = (isLeft ? 2 : 1);
       ret = args[isConcat ? tailIndex : 2];
@@ -1300,13 +1300,14 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       cc.push_back(op);
       cc.push_back(nullptr);
       cc.push_back(nullptr);
-      for (size_t i=0, nargs=hargs.size(); i<nargs; i++)
+      for (size_t i = 0, nargs = hargs.size(); i < nargs; i++)
       {
         cc[tailIndex] = ret;
-        cc[headIndex] = hargs[isLeft ? i : (nargs-1-i)];
+        cc[headIndex] = hargs[isLeft ? i : (nargs - 1 - i)];
         ret = d_state.mkApplyInternal(cc);
       }
-      Trace("type_checker_debug") << "CONS: " << isLeft << " " << args << " -> " << ret << std::endl;
+      Trace("type_checker_debug")
+          << "CONS: " << isLeft << " " << args << " -> " << ret << std::endl;
       return Expr(ret);
     }
       break;
