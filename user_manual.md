@@ -1229,7 +1229,7 @@ It requires that the left hand side of this inequality `x` is a negative numeral
 
 ### Premise lists
 
-A rule can take an arbitrary number of premises via the syntax `:premise-list <term><term>`. For example:
+A rule can take an arbitrary number of premises via the syntax `:premise-list <term>*`. For example:
 
 ```smt
 (declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
@@ -1239,7 +1239,7 @@ A rule can take an arbitrary number of premises via the syntax `:premise-list <t
 ```
 
 This syntax specifies that the number of premises that are provided to this rule are arbitrary.
-When applying this rule, the formulas proven to this rule (say `F1 ... Fn`) will be collected and constructed as a single formula via the provided operator (`and`), and subsequently matched against the premise pattern `F`.
+When applying this rule, the formulas previously proven and given to this rule (say `F1 ... Fn`) will be collected and constructed as a single formula via the provided operator (`and`), and subsequently matched against the premise pattern `F`.
 In particular, in this case `F` is bound to `(and F1 ... Fn)`.
 The conclusion of the rule returns `F` itself.
 
