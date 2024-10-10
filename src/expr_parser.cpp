@@ -660,6 +660,14 @@ Expr ExprParser::parseType()
   Expr e = parseExpr();
   // ensure it is a type
   typeCheck(e, d_state.mkType());
+  // should not contain stuck term
+  if (e.isGround() && e.isEvaluatable())
+  {
+    std::stringstream msg;
+    msg << "Parsed type has an unevalated term:" << std::endl;
+    msg << "Type: " << e << std::endl;
+    d_lex.parseError(msg.str());
+  }
   return e;
 }
 
