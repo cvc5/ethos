@@ -213,18 +213,16 @@ void State::popScope()
     if (!d_overloadedDecls.empty() && d_overloadedDecls.back()==d_decls[i])
     {
       d_overloadedDecls.pop_back();
+      std::map<std::string, Expr>::iterator its = d_symTable.find(d_decls[i]);
+      Assert (its!=d_symTable.end());
       // it should be overloaded
-      AppInfo* ai = getAppInfo(d_symTable[d_decls[i]].getValue());
+      AppInfo* ai = getAppInfo(its->second.getValue());
       Assert (ai!=nullptr);
-      Assert (!ai->d_overloads.empty());
+      // we always have at least 2 overloads
+      Assert (ai->d_overloads.size()>=2);
+      // was overloaded, we revert the binding
       ai->d_overloads.pop_back();
-      if (ai->d_overloads.size()==1)
-      {
-        Trace("overload") << "** no-overload: " << d_decls[i] << std::endl;
-        // no longer overloaded since the overload vector is now size one
-        ai->d_overloads.clear();
-      }
-      // was overloaded, so we don't unbind
+      its->second = ai->d_overloads.back();
       continue;
     }
     d_symTable.erase(d_decls[i]);
@@ -723,7 +721,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
               }
               i++;
             }
-            Trace("type_checker") << "...return for " << children[0] << std::endl;// << ": " << Expr(curr) << std::endl;
+            Trace("type_checker") << "...return for " << children[0] << std::endl;
             return Expr(curr);
           }
           // otherwise partial??
@@ -1080,22 +1078,31 @@ bool State::bind(const std::string& name, const Expr& e)
   std::map<std::string, Expr>::iterator its = d_symTable.find(name);
   if (its!=d_symTable.end())
   {
+    Trace("overload") << "** overload: " << name << std::endl;
     // if already bound, we overload
     AppInfo& ai = d_appData[its->second.getValue()];
-    // if the first time overloading, add the original
-    if (ai.d_overloads.empty())
+    std::vector<Expr>& ov = ai.d_overloads;
+    AppInfo& ain = d_appData[e.getValue()];
+    std::vector<Expr>& ovn = ain.d_overloads;
+    if (ov.empty())
     {
-      Trace("overload") << "** overload: " << name << std::endl;
-      ai.d_overloads.push_back(its->second);
+      // if first time overloading, add the original symbol
+      ovn.emplace_back(its->second);
     }
-    ai.d_overloads.push_back(e);
+    else
+    {
+      // Otherwise, carry all of the overloads from the previous symbol.
+      // Note that since we carry the overloads for each symbol, the space
+      // required here is quadratic, but the number of overloads per symbol
+      // should be very small.
+      ovn.insert(ovn.end(), ov.begin(), ov.end());
+    }
+    ovn.emplace_back(e);
     // add to declaration
     if (!d_declsSizeCtx.empty())
     {
-      d_decls.emplace_back(name);
       d_overloadedDecls.emplace_back(name);
     }
-    return true;
   }
   // Trace("state-debug") << "bind " << name << " -> " << &e << std::endl;
   d_symTable[name] = e;

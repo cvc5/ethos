@@ -34,7 +34,10 @@ public:
   Expr d_attrConsTerm;
   /** Associated kind */
   Kind d_kind;
-  /** Overloading */
+  /**
+   * The symbols that are overloads of this symbol at the time this symbol was
+   * bound, including itself. This vector is either empty or has size >=2.
+   */
   std::vector<Expr> d_overloads;
 };
 

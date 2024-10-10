@@ -7,6 +7,7 @@ ethos 0.1.1 prerelease
 - Adds a new option `--normalize-num`, which also only applies when reference parsing. This option treats numerals as rationals, which can be used when parsing SMT-LIB inputs in logics where numerals are shorthand for rationals.
 - Makes the `set-option` command available in proofs and Eunoia files.
 - Adds `--include=X` and `--reference=X` to the command line interface for including (reference) files.
+- Fixed the disambiguation of overloaded symbols that are not applied to arguments.
 - Fixed a bug when applying operators with opaque arguments.
 - Fixed a bug in the evaluation of `eo::cons` for left associative operators.
 
