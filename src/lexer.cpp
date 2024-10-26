@@ -182,12 +182,10 @@ const char* Lexer::tokenStr() const
 
 Token Lexer::nextTokenInternal()
 {
-  //Trace("lexer-debug") << "Call nextToken" << std::endl;
   d_token.clear();
   Token ret = computeNextToken();
   // null terminate?
   d_token.push_back(0);
-  //Trace("lexer-debug") << "Return nextToken " << ret << " / " << tokenStr() << std::endl;
   return ret;
 }
 
