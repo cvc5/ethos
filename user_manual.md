@@ -11,6 +11,7 @@ To build ethos, run:
 mkdir build
 cd build
 cmake ..
+make
 ```
 
 The `ethos` binary will be available in `build/src/`.
@@ -20,9 +21,10 @@ The `ethos` binary will be available in `build/src/`.
 By default, the above will be a production build of `ethos`. To build a debug version of `ethos`, that is significantly slower but has assertions and trace messages enabled, run:
 
 ```shell
-mkdir build -DCMAKE_BUILD_TYPE=Debug
+mkdir build
 cd build
-cmake ..
+cmake -DCMAKE_BUILD_TYPE=Debug ..
+make
 ```
 
 The `ethos` binary will be available in `build/src/`.
@@ -39,8 +41,8 @@ The set of available options `<option>` are given in the appendix. Note the comm
 
 Ethos will either emit an error message indicating:
 
-- the kind of failure (type checking, proof checking, lexer error),
-- the line and column of the failure,
+- the kind of failure (type checking, proof checking, lexer error)
+- the line and column of the failure
 
 or will print a [successful response](#responses) when it finished parsing all commands in the file or encounters and `exit` command.
 Further output can be given by user-provided `echo` commands.
@@ -122,7 +124,7 @@ The following commands are supported for declaring and defining types and terms.
 
 The Eunoia language contains further commands for declaring symbols that are not standard SMT-LIB version 3.0:
 
-- `(define <symbol> (<typed-param>*) <term> <attr>*)`, defines `<symbol>` to be a lambda term whose arguments and body and given by the command, or the body if the argument list is empty. Note that in contrast to the SMT-LIB command `define-fun`, a return type is not provided. The provided attributes may instruct the checker to perform e.g. type checking on the given term see [type checking define](#tcdefine).
+- `(define <symbol> (<typed-param>*) <term> <attr>*)`, defines `<symbol>` to be a lambda term whose arguments and body are given by the command, or the body if the argument list is empty. Note that in contrast to the SMT-LIB command `define-fun`, a return type is not provided. The provided attributes may instruct the checker to perform e.g. type checking on the given term see [type checking define](#tcdefine).
 
 - `(declare-parameterized-const <symbol> (<typed-param>*) <type> <attr>*)` declares a globally scoped variable named `<symbol>` whose type is `<type>`.
 
@@ -151,7 +153,7 @@ Observe that despite the use of different syntax in their declarations, the type
 ```smt
 (declare-const not (-> Bool Bool))
 (define id ((x Bool)) x)
-(define notId ((x Int)) (not (id x)))
+(define notId ((x Bool)) (not (id x)))
 ```
 
 In the example above, `not` is declared to be a unary function over Booleans. Two defined functions are given, the first being an identity function over Booleans, and the second returning the negation of the first.
@@ -163,7 +165,7 @@ In other words, the following sequence of commands is equivalent to the one abov
 ```smt
 (declare-const not (-> Bool Bool))
 (define id ((x Bool)) x)
-(define notId ((x Int)) (not x))
+(define notId ((x Bool)) (not x))
 ```
 
 #### Example: Polymorphic types
@@ -906,7 +908,7 @@ The terms on both sides of the given evaluation are written in their form prior 
 
 (eo::list_find or (or a b a) b)          == 1
 (eo::list_find or (or a b a) true)       == -1
-(eo::list_find or (and a b b) a)         == (eo::find or (and a b b) a)      ; since (and a b b) is not an or-list
+(eo::list_find or (and a b b) a)         == (eo::list_find or (and a b b) a)      ; since (and a b b) is not an or-list
 ```
 
 ### Nil terminator with additional arguments
@@ -1360,7 +1362,7 @@ The following program (recursively) computes whether a formula `l` is contained 
     (
         ((contains false l)     false)
         ((contains (or l xs) l) true)
-        ((contains (or x xs) l) (contains l xs))
+        ((contains (or x xs) l) (contains xs l))
     )
 )
 ```
@@ -1369,8 +1371,8 @@ First, we declare the parameters `l, x, xs`, each of type `Bool`.
 These parameters are used for defining the body of the program, but do _not_ necessarily coincide with the expected arguments to the program.
 We then declare the type of the program `(Bool Bool) Bool`, i.e. the type of `contains` is a function expecting two Booleans and returning a Boolean.
 The body of the program is then given in three cases.
-First, terms of the form `(contains false l)` evaluate to `false`, that is, we failed to find `l` in the second argument.
-Second, terms of the form `(contains (or l xs) l)` evaluate to `true`, that is we found `l` in the first position of the second argument.
+First, terms of the form `(contains false l)` evaluate to `false`, that is, we failed to find `l` in the first argument.
+Second, terms of the form `(contains (or l xs) l)` evaluate to `true`, that is we found `l` in the first position of the first argument.
 Otherwise, terms of the form `(contains (or x xs) l)` evaluate in one step to `(contains xs l)`, in other words, we make a recursive call to find `l` in the tail of the list `xs`.
 
 In this example, since `xs` was marked with `:list`, the terms `(or l xs)` and `(or x xs)` are desugared to terms where `xs` is matched with the tail of the input.
