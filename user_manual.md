@@ -1379,7 +1379,7 @@ In this example, since `xs` was marked with `:list`, the terms `(or l xs)` and `
 The next two examples show variants where an incorrect definition of this program is defined.
 
 > __Note:__ As mentioned in [list-computation](#list-computation), Eunoia has dedicated support for operators over lists.
-For the definition of `contains` in the above example, the term `(contains l c)` is equivalent to `(eo::not (eo::is_neg (eo::find or c l)))`.
+For the definition of `contains` in the above example, the term `(contains c l)` is equivalent to `(eo::not (eo::is_neg (eo::list_find or c l)))`.
 Computing the latter is significantly faster in practice in Ethos.
 
 ### Example: Finding a child in an `or` term (incorrect version)
@@ -1392,7 +1392,7 @@ Computing the latter is significantly faster in practice in Ethos.
     (
         ((contains false l)     false)
         ((contains (or l xs) l) true)
-        ((contains (or x xs) l) (contains l xs))
+        ((contains (or x xs) l) (contains xs l))
     )
 )
 ```
@@ -1412,7 +1412,7 @@ However, `(contains (or a b c) a)` does not evaluate in this example.
     (
         ((contains false l)     false)
         ((contains (or l xs) l) true)
-        ((contains (or x xs) l) (contains l xs))
+        ((contains (or x xs) l) (contains xs l))
     )
 )
 ```
