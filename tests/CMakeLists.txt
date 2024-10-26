@@ -126,6 +126,8 @@ set(ethos_test_file_list
     simple-reference.eo
     simple-quant-reference.eo
     simple-lra-reference.eo
+    left-cons.eo
+    overload-standalone.eo
 )
 
 if(ENABLE_ORACLES)
