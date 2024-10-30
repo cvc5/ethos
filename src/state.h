@@ -205,6 +205,9 @@ class State
   Expr d_self;
   Expr d_conclusion;
   Expr d_fail;
+  Expr d_listType;
+  Expr d_listNil;
+  Expr d_listCons;
   /** Get base operator */
   const ExprValue* getBaseOperator(const ExprValue * v) const;
   /** Mark that file s was included */

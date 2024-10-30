@@ -148,16 +148,6 @@ State::State(Options& opts, Stats& stats)
 
   // as
   bindBuiltinEval("as", Kind::AS);
-  
-  // we do not export eo::null
-  // for now, eo::? is (undocumented) syntax for abstract type
-  bind("eo::?", mkAbstractType());
-  // self is a distinguished parameter
-  d_self = Expr(mkSymbolInternal(Kind::PARAM, "eo::self", mkAbstractType()));
-  bind("eo::self", d_self);
-  d_conclusion = Expr(mkSymbolInternal(Kind::PARAM, "eo::conclusion", mkBoolType()));
-  // eo::conclusion is not globally bound, since it can only appear
-  // in :requires.
 
   // note we don't allow parsing (Proof ...), (Quote ...), or (quote ...).
 
@@ -168,6 +158,30 @@ State::State(Options& opts, Stats& stats)
   bind("true", d_true);
   d_false = Expr(new Literal(false));
   bind("false", d_false);
+  
+  // builtin lists
+  d_listType = Expr(mkSymbolInternal(Kind::CONST, "eo::List", d_type));
+  bind("eo::List", d_listType);
+  d_listNil = Expr(mkSymbolInternal(Kind::CONST, "eo::List::nil", d_listType));
+  bind("eo::List::nil", d_listNil);
+  Expr t = Expr(mkSymbolInternal(Kind::PARAM, "T", d_type));
+  std::vector<Expr> argTypes;
+  argTypes.push_back(t);
+  argTypes.push_back(d_listType);
+  Expr consType = mkFunctionType(argTypes, d_listType);
+  d_listCons = Expr(mkSymbolInternal(Kind::CONST, "eo::List::cons", consType));
+  bind("eo::List::cons", d_listCons);
+  markConstructorKind(d_listCons, Attr::RIGHT_ASSOC_NIL, d_listNil);
+  
+  // we do not export eo::null
+  // for now, eo::? is (undocumented) syntax for abstract type
+  bind("eo::?", d_absType);
+  // self is a distinguished parameter
+  d_self = Expr(mkSymbolInternal(Kind::PARAM, "eo::self", d_absType));
+  bind("eo::self", d_self);
+  d_conclusion = Expr(mkSymbolInternal(Kind::PARAM, "eo::conclusion", d_boolType));
+  // eo::conclusion is not globally bound, since it can only appear
+  // in :requires.
 }
 
 State::~State() {}
