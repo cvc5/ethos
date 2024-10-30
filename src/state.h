@@ -138,6 +138,9 @@ class State
    * Make parameterized with given parameters
    */
   Expr mkParameterized(const ExprValue* hd, const std::vector<Expr>& params);
+  /**
+   */
+  Expr mkList(const std::vector<Expr>& args);
   //--------------------------------------
   /** Get the constructor kind for symbol v */
   Attr getConstructorKind(const ExprValue* v) const;

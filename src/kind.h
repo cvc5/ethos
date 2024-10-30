@@ -101,7 +101,9 @@ enum class Kind
   EVAL_TO_INT,
   EVAL_TO_RAT,
   EVAL_TO_BIN,
-  EVAL_TO_STRING
+  EVAL_TO_STRING,
+  // datatypes
+  EVAL_DEF_OF
 };
 
 /** Print a kind to the stream, for debugging */

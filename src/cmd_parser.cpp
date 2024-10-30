@@ -278,13 +278,13 @@ bool CmdParser::parseNextCommand()
       for (std::pair<const ExprValue* const, std::vector<Expr>>& d : dts)
       {
         Expr dt = Expr(d.first);
-        Expr ctuple = d_state.mkExpr(Kind::TUPLE, d.second);
+        Expr ctuple = d_state.mkList(d.second);
         d_state.markConstructorKind(dt, attr, ctuple);
       }
       for (std::pair<const ExprValue* const, std::vector<Expr>>& c : dtcons)
       {
         Expr cons = Expr(c.first);
-        Expr stuple = d_state.mkExpr(Kind::TUPLE, c.second);
+        Expr stuple = d_state.mkList(c.second);
         d_state.markConstructorKind(cons, Attr::DATATYPE_CONSTRUCTOR, stuple);
       }
       d_lex.eatToken(Token::RPAREN);

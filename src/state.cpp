@@ -145,6 +145,8 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("concat", Kind::EVAL_CONCAT);
   bindBuiltinEval("extract", Kind::EVAL_EXTRACT);
   bindBuiltinEval("find", Kind::EVAL_FIND);
+  // datatypes
+  bindBuiltinEval("def_of", Kind::EVAL_DEF_OF);
 
   // as
   bindBuiltinEval("as", Kind::AS);
@@ -970,6 +972,18 @@ Expr State::mkLiteral(Kind k, const std::string& s)
 Expr State::mkParameterized(const ExprValue* hd, const std::vector<Expr>& params)
 {
   return mkExpr(Kind::PARAMETERIZED, {mkExpr(Kind::TUPLE, params), Expr(hd)});
+}
+
+Expr State::mkList(const std::vector<Expr>& args)
+{
+  if (args.empty())
+  {
+    return d_listNil;
+  }
+  std::vector<Expr> largs;
+  largs.push_back(d_listCons);
+  largs.insert(largs.end(), args.begin(), args.end());
+  return mkExpr(Kind::APPLY, largs);
 }
 
 ExprValue* State::mkLiteralInternal(Literal& l)

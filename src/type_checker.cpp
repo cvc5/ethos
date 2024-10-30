@@ -178,6 +178,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_IS_STR:
     case Kind::EVAL_IS_BOOL:
     case Kind::EVAL_IS_VAR:
+    case Kind::EVAL_DEF_OF:
       ret = (nargs==1);
       break;
     case Kind::EVAL_NIL:
@@ -1169,6 +1170,20 @@ Expr TypeChecker::evaluateLiteralOpInternal(
         {
           const Literal* l = args[0]->asLiteral();
           return d_state.getBoundVar(l->d_str.toString(), type);
+        }
+      }
+    }
+    break;
+    case Kind::EVAL_DEF_OF:
+    {
+      AppInfo* ac = d_state.getAppInfo(args[0]);
+      if (ac!=nullptr)
+      {
+        Assert (args[0]->isGround());
+        Attr a = ac->d_attrCons;
+        if (a==Attr::DATATYPE || a==Attr::DATATYPE_CONSTRUCTOR)
+        {
+          return ac->d_attrConsTerm;
         }
       }
     }
