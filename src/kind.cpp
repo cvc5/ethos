@@ -170,7 +170,7 @@ std::string kindToTerm(Kind k)
         case Kind::EVAL_TO_BIN: ss << "to_bin";break;
         case Kind::EVAL_TO_STRING: ss << "to_str";break;
         // datatypes
-        case Kind::EVAL_DEF_OF: ss << "def_of"; break;
+        case Kind::EVAL_DEF_OF: ss << "defof"; break;
         default:ss << "[" << k << "]";break;
         }
       }

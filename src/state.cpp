@@ -146,7 +146,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("extract", Kind::EVAL_EXTRACT);
   bindBuiltinEval("find", Kind::EVAL_FIND);
   // datatypes
-  bindBuiltinEval("def_of", Kind::EVAL_DEF_OF);
+  bindBuiltinEval("defof", Kind::EVAL_DEF_OF);
 
   // as
   bindBuiltinEval("as", Kind::AS);
