@@ -1,0 +1,23 @@
+(declare-type Int ())
+(declare-datatypes ((Lst 0)) (((cons (head Int) (tail Lst)) (nil))))
+
+
+(declare-const is (-> (! Type :var C :implicit) (! Type :var D :implicit) C D Bool))
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+
+(program $mk_split ((D Type) (x D) (T Type) (c T) (xs eo::List :list))
+  (eo::List D) Bool
+  (
+    (($mk_split eo::List::nil x)          false)
+    (($mk_split (eo::List::cons c xs) x)  (eo::cons or (is c x) ($mk_split xs x)))
+  )
+)
+
+(declare-rule dt-split ((D Type) (x D))
+  :args (x)
+  :conclusion ($mk_split (eo::defof (eo::typeof x)) x)
+)
+
+(declare-const x Lst)
+
+(step @p0 (or (is cons x) (is nil x)) :rule dt-split :args (x))
