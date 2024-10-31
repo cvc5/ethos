@@ -1347,7 +1347,12 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       break;
     case Kind::EVAL_LIST_FIND:
     {
-      getNAryChildren(args[1], op, nil, hargs, isLeft);
+      ExprValue* a = getNAryChildren(args[1], op, nil, hargs, isLeft);
+      if (a==nullptr)
+      {
+        Trace("type_checker") << "...head not in list form" << std::endl;
+        return d_null;
+      }
       std::vector<ExprValue*>::iterator it = std::find(hargs.begin(), hargs.end(), args[2]);
       if (it==hargs.end())
       {
