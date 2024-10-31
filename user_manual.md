@@ -1155,7 +1155,7 @@ In detail, for the purposes of representing the return value of these operators,
 > __Note:__ `eo::List` is not itself a datatype type.
 
 The constructor `eo::List::cons` is heterogeneous in that terms of any type can be included in the same list.
-Given a datatype with constructors `c_1, \ldots, c_n`, the `eo::dt_constructors` will return the term `(eo::List::cons c_1 \ldots c_n)`.
+Given a datatype with constructors `c_1 ... c_n`, the `eo::dt_constructors` will return the term `(eo::List::cons c_1 ... c_n)`.
 Examples of these operators are given below.
 
 ```smt
@@ -1181,7 +1181,7 @@ We assume the declaration of a generic `is` predicate (often called a "tester" p
 
 ```smt
 
-; (is c x) is true iff x is an application of constructor c
+; The constraint (is c x) is true iff x is an application of constructor c
 (declare-const is (-> (! Type :var C :implicit) (! Type :var D :implicit) C D Bool))
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 
