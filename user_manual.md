@@ -1130,6 +1130,94 @@ If multiple such terms `s` exist, then the most recent one is returned.
 Otherwise, the term `(eo::as t (-> T1 ... Tn T))` is unevaluated.
 For example, `(eo::as - (-> Int Int Int))` evaluates to the second declared symbol in the example above.
 
+<a name="datatypes"></a>
+
+## Generic Reasoning about Datatypes
+
+Eunoia has support for retrieving the list of constructors associated with a datatype, as well as the list of selectors associated with a datatype constructor.
+This allows one to write side conditions and proof rules that reason about datatypes in a generic way, independent of the specific instance of the datatype.
+
+In particular, Eunoia has support for:
+- `(eo::dt_constructors T)`
+  - If `T` is a datatype type (that is, `T` was declared via `declare-datatype` or `declare-datatypes` command), then this returns the list (see below) of constructors for that type. Otherwise this operator does not evaluate.
+- `(eo::dt_selectors c)`
+  - If `c` is a datatype constructor (that is, `c` was declared as a constructor within a `declare-datatype` or `declare-datatypes` command), then this returns the list of selectors of that constructor. Otherwise this operator does not evaluate.
+
+In detail, for the purposes of representing the return value of these operators, Eunoia assumes the definition of a type `eo::List` with constructors `eo::List::nil` and `eo::List::cons`, where the latter is right associative with the former as its nil terminator. In other words, the following commands can be assumed as part of the builtin signature assumed by Ethos:
+
+```smt
+(declare-type eo::List ())
+(declare-const eo::List::nil eo::List)
+(declare-const eo::List::cons (-> (! Type :var T :implicit) T eo::List eo::List)
+               :right-assoc-nil eo::List::nil)
+```
+
+> __Note:__ `eo::List` is not itself a datatype type.
+
+The constructor `eo::List::cons` is heterogeneous in that terms of any type can be included in the same list.
+Given a datatype with constructors `c_1, \ldots, c_n`, the `eo::dt_constructors` will return the term `(eo::List::cons c_1 \ldots c_n)`.
+Examples of these operators are given below.
+
+```smt
+(declare-datatypes ((myList 0)) (((myCons (head Int) (tail Lst)) (myNil))))
+
+(eo::dt_constructors myList)  == (eo::List::cons myCons (eo::List::cons myNil eo::List::nil))
+(eo::dt_selectors myCons)     == (eo::List::cons head (eo::List::cons tail eo::List::nil))
+(eo::dt_selectors myNil)      == eo::List::nil
+
+(declare-datatypes ((Color 0)) (((red) (green) (blue))))
+
+(eo::dt_constructors Color)   == (eo::List::cons red (eo::List::cons green (eo::List::cons blue eo::List::nil)))
+(eo::dt_selectors red)        == eo::List::nil
+
+```
+
+<a name="dt-split"></a>
+
+### Example: A generic splitting rule for Datatypes
+
+The following declares a generic proof rule for splitting on the top constructor symbol of a term of datatype type.
+We assume the declaration of a generic `is` predicate (often called a "tester" predicate) which takes as input a constructor symbol and a datatype term.
+
+```smt
+
+; (is c x) is true iff x is an application of constructor c
+(declare-const is (-> (! Type :var C :implicit) (! Type :var D :implicit) C D Bool))
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+
+(program $mk_dt_split ((D Type) (x D) (T Type) (c T) (xs eo::List :list))
+  (eo::List D) Bool
+  (
+    (($mk_dt_split eo::List::nil x)          false)
+    (($mk_dt_split (eo::List::cons c xs) x)  (eo::cons or (is c x) ($mk_dt_split xs x)))
+  )
+)
+
+(declare-rule dt-split ((D Type) (x D))
+  :args (x)
+  :conclusion ($mk_dt_split (eo::dt_constructors (eo::typeof x)) x)
+)
+
+(declare-type Int ())
+(declare-datatypes ((myList 0)) (((myCons (head Int) (tail Lst)) (myNil))))
+
+(declare-const x myList)
+(step @p0 (or (is myCons x) (is myNil x)) :rule dt-split :args (x))
+
+(declare-datatypes ((Color 0)) (((red) (green) (blue))))
+(declare-const y Color)
+(step @p0 (or (is red y) (is green y) (is blue y)) :rule dt-split :args (y))
+```
+
+In this example, after declaring our tester predicate `is`, we introduce a side condition `$mk_dt_split` that is used for defining a proof rule `dt-split`.
+The side condition recurses over a list of constructors, which was obtained in the definition of the proof rule from applying `eo::dt_constructors` to the type of `x`.
+For each constructor `c` in this list, we prepend a disjunct `(is c x)` to a recursive call to this method.
+
+As part of the example, we see a particular definition of a list, called `myList`.
+Applying the proof rule `dt-split` to a variable `x` of type `myList` allows us to conclude that `x` must either be an application of `myCons` or `myNil`.
+Note that the definitino of `dt-split` is applicable to *any* datatype definition, not just lists.
+In particular, as a second example, we see the rule applied to a term `y` of type `Color` gives us a conclusion with three disjuncts.
+
 ## Declaring Proof Rules
 
 The generic syntax for a `declare-rule` command accepted by `ethos` is:
