@@ -10,6 +10,7 @@ ethos 0.1.1 prerelease
 - Fixed the disambiguation of overloaded symbols that are not applied to arguments.
 - Fixed the interpretation of operators that combine opaque and ordinary arguments.
 - Fixed a bug in the evaluation of `eo::cons` for left associative operators, which would construct erroneous terms.
+- Adds support for `eo::dt_constructors` which returns the list of constructors associated with a datatype, and `eo::dt_selectors` which returns the list of selectors associated with a datatype constructor.
 
 ethos 0.1.0
 ===========
