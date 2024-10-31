@@ -1,5 +1,11 @@
+; (declare-type eo::List ())
+; (declare-const eo::List::nil eo::List)
+; (declare-const eo::List::cons (-> (! Type :var T :implicit) T eo::List eo::List))
+
 (declare-type Int ())
 (declare-datatypes ((Lst 0)) (((cons (head Int) (tail Lst)) (nil))))
+
+
 
 
 (declare-const is (-> (! Type :var C :implicit) (! Type :var D :implicit) C D Bool))
@@ -16,7 +22,7 @@
 
 (declare-rule dt-split ((D Type) (x D))
   :args (x)
-  :conclusion ($mk_dt_split (eo::defof (eo::typeof x)) x)
+  :conclusion ($mk_dt_split (eo::dt_constructors (eo::typeof x)) x)
 )
 
 (declare-const x Lst)
@@ -34,7 +40,7 @@
 
 (declare-rule dt-inst ((D Type) (T Type) (c T) (x D))
   :args (c x)
-  :conclusion (= (is c x) (= x ($mk_dt_inst (eo::defof c) x c)))
+  :conclusion (= (is c x) (= x ($mk_dt_inst (eo::dt_selectors c) x c)))
 )
 
 (step @p1 (= (is cons x) (= x (cons (head x) (tail x)))) :rule dt-inst :args (cons x))

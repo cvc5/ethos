@@ -103,6 +103,8 @@ class State
   Expr mkAbstractType();
   /** Bool */
   Expr mkBoolType();
+  /** eo::List */
+  Expr mkListType();
   /** (Proof <proven>) */
   Expr mkProofType(const Expr& proven);
   /** (Quote <term>) */
@@ -139,6 +141,7 @@ class State
    */
   Expr mkParameterized(const ExprValue* hd, const std::vector<Expr>& params);
   /**
+   * Make (eo::List::Cons <args>) if args is non-empty or eo::List::nil otherwise.
    */
   Expr mkList(const std::vector<Expr>& args);
   //--------------------------------------

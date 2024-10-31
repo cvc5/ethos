@@ -103,7 +103,8 @@ enum class Kind
   EVAL_TO_BIN,
   EVAL_TO_STRING,
   // datatypes
-  EVAL_DEF_OF
+  EVAL_DT_CONSTRUCTORS,
+  EVAL_DT_SELECTORS
 };
 
 /** Print a kind to the stream, for debugging */

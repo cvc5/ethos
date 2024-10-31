@@ -146,7 +146,8 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("extract", Kind::EVAL_EXTRACT);
   bindBuiltinEval("find", Kind::EVAL_FIND);
   // datatypes
-  bindBuiltinEval("defof", Kind::EVAL_DEF_OF);
+  bindBuiltinEval("dt_constructors", Kind::EVAL_DT_CONSTRUCTORS);
+  bindBuiltinEval("dt_selectors", Kind::EVAL_DT_SELECTORS);
 
   // as
   bindBuiltinEval("as", Kind::AS);
@@ -552,6 +553,12 @@ Expr State::mkBoolType()
 {
   return d_boolType;
 }
+
+Expr State::mkListType()
+{
+  return d_listType;
+}
+
 Expr State::mkProofType(const Expr& proven)
 {
   return Expr(mkExprInternal(Kind::PROOF_TYPE, {proven.getValue()}));
