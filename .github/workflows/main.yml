@@ -64,7 +64,7 @@ jobs:
 
     - name: Build
       run: |
-        ./configure ${{ matrix.build-type  }}
+        ./configure.sh ${{ matrix.build-type  }}
         cd build
         make -j2
 
