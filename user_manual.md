@@ -1159,7 +1159,7 @@ Given a datatype with constructors `c_1 ... c_n`, the `eo::dt_constructors` will
 Examples of these operators are given below.
 
 ```smt
-(declare-datatypes ((myList 0)) (((myCons (head Int) (tail Lst)) (myNil))))
+(declare-datatypes ((myList 0)) (((myCons (head Int) (tail myList)) (myNil))))
 
 (eo::dt_constructors myList)  == (eo::List::cons myCons (eo::List::cons myNil eo::List::nil))
 (eo::dt_selectors myCons)     == (eo::List::cons head (eo::List::cons tail eo::List::nil))
@@ -1199,14 +1199,14 @@ We assume the declaration of a generic `is` predicate (often called a "tester" p
 )
 
 (declare-type Int ())
-(declare-datatypes ((myList 0)) (((myCons (head Int) (tail Lst)) (myNil))))
+(declare-datatypes ((myList 0)) (((myCons (head Int) (tail myList)) (myNil))))
 
 (declare-const x myList)
 (step @p0 (or (is myCons x) (is myNil x)) :rule dt-split :args (x))
 
 (declare-datatypes ((Color 0)) (((red) (green) (blue))))
 (declare-const y Color)
-(step @p0 (or (is red y) (is green y) (is blue y)) :rule dt-split :args (y))
+(step @p1 (or (is red y) (is green y) (is blue y)) :rule dt-split :args (y))
 ```
 
 In this example, after declaring our tester predicate `is`, we introduce a side condition `$mk_dt_split` that is used for defining a proof rule `dt-split`.
