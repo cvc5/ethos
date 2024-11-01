@@ -207,7 +207,7 @@ void State::popScope()
   size_t lastSize = d_declsSizeCtx.back();
   d_declsSizeCtx.pop_back();
   size_t i = d_decls.size();
-  while (i>lastSize)
+  while (i > lastSize)
   {
     i--;
     // Check if overloaded, which is the case if the last overloaded
