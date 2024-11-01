@@ -1159,11 +1159,11 @@ Given a datatype with constructors `c_1 ... c_n`, the `eo::dt_constructors` will
 Examples of these operators are given below.
 
 ```smt
-(declare-datatypes ((myList 0)) (((myCons (head Int) (tail myList)) (myNil))))
+(declare-datatypes ((Tree 0)) (((node (left Tree) (right Tree)) (leaf))))
 
-(eo::dt_constructors myList)  == (eo::List::cons myCons (eo::List::cons myNil eo::List::nil))
-(eo::dt_selectors myCons)     == (eo::List::cons head (eo::List::cons tail eo::List::nil))
-(eo::dt_selectors myNil)      == eo::List::nil
+(eo::dt_constructors Tree)  == (eo::List::cons node (eo::List::cons leaf eo::List::nil))
+(eo::dt_selectors node)     == (eo::List::cons left (eo::List::cons right eo::List::nil))
+(eo::dt_selectors leaf)      == eo::List::nil
 
 (declare-datatypes ((Color 0)) (((red) (green) (blue))))
 
@@ -1183,6 +1183,7 @@ We assume the declaration of a generic `is` predicate (often called a "tester" p
 
 ; The constraint (is c x) is true iff x is an application of constructor c
 (declare-const is (-> (! Type :var C :implicit) (! Type :var D :implicit) C D Bool))
+
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 
 (program $mk_dt_split ((D Type) (x D) (T Type) (c T) (xs eo::List :list))
