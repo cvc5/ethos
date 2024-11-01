@@ -15,5 +15,5 @@
 (declare-const a Int)
 (declare-const b Int)
 
-(step @p99 :rule refl :args ((forall ((a Int) (b Int)))))
+(step @p99 :rule refl :args ((forall ((a Int) (b Int)) true)))
 (step @p106 :rule refl :args (a))
