@@ -224,8 +224,10 @@ void State::popScope()
   }
   size_t lastSize = d_declsSizeCtx.back();
   d_declsSizeCtx.pop_back();
-  for (size_t i=lastSize, currSize = d_decls.size(); i<currSize; i++)
+  size_t i = d_decls.size();
+  while (i > lastSize)
   {
+    i--;
     // Check if overloaded, which is the case if the last overloaded
     // declaration had the same name.
     if (!d_overloadedDecls.empty() && d_overloadedDecls.back()==d_decls[i])
@@ -243,6 +245,7 @@ void State::popScope()
       its->second = ai->d_overloads.back();
       continue;
     }
+    Trace("overload") << "** unbind " << d_decls[i] << std::endl;
     d_symTable.erase(d_decls[i]);
   }
   d_decls.resize(lastSize);
