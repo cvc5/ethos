@@ -179,9 +179,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_IS_BOOL:
     case Kind::EVAL_IS_VAR:
     case Kind::EVAL_DT_CONSTRUCTORS:
-    case Kind::EVAL_DT_SELECTORS:
-      ret = (nargs==1);
-      break;
+    case Kind::EVAL_DT_SELECTORS: ret = (nargs == 1); break;
     case Kind::EVAL_NIL:
       ret = (nargs>=1);
       break;
@@ -1179,12 +1177,13 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_DT_SELECTORS:
     {
       AppInfo* ac = d_state.getAppInfo(args[0]);
-      if (ac!=nullptr)
+      if (ac != nullptr)
       {
-        Assert (args[0]->isGround());
+        Assert(args[0]->isGround());
         Attr a = ac->d_attrCons;
-        if ((a==Attr::DATATYPE && k==Kind::EVAL_DT_CONSTRUCTORS) ||
-            (a==Attr::DATATYPE_CONSTRUCTOR && k==Kind::EVAL_DT_SELECTORS))
+        if ((a == Attr::DATATYPE && k == Kind::EVAL_DT_CONSTRUCTORS)
+            || (a == Attr::DATATYPE_CONSTRUCTOR
+                && k == Kind::EVAL_DT_SELECTORS))
         {
           return ac->d_attrConsTerm;
         }
@@ -1459,8 +1458,7 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_TO_BIN:
       return getOrSetLiteralTypeRule(Kind::BINARY);
     case Kind::EVAL_DT_CONSTRUCTORS:
-    case Kind::EVAL_DT_SELECTORS:
-      return d_state.mkListType().getValue();
+    case Kind::EVAL_DT_SELECTORS: return d_state.mkListType().getValue();
     default:break;
   }
   if (out)
