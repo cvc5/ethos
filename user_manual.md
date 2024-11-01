@@ -1199,11 +1199,10 @@ We assume the declaration of a generic `is` predicate (often called a "tester" p
   :conclusion ($mk_dt_split (eo::dt_constructors (eo::typeof x)) x)
 )
 
-(declare-type Int ())
-(declare-datatypes ((myList 0)) (((myCons (head Int) (tail myList)) (myNil))))
+(declare-datatypes ((Tree 0)) (((node (left Tree) (right Tree)) (leaf))))
 
-(declare-const x myList)
-(step @p0 (or (is myCons x) (is myNil x)) :rule dt-split :args (x))
+(declare-const x Tree)
+(step @p0 (or (is node x) (is leaf x)) :rule dt-split :args (x))
 
 (declare-datatypes ((Color 0)) (((red) (green) (blue))))
 (declare-const y Color)
@@ -1214,9 +1213,9 @@ In this example, after declaring our tester predicate `is`, we introduce a side 
 The side condition recurses over a list of constructors, which was obtained in the definition of the proof rule from applying `eo::dt_constructors` to the type of `x`.
 For each constructor `c` in this list, we prepend a disjunct `(is c x)` to a recursive call to this method.
 
-As part of the example, we see a particular definition of a list, called `myList`.
-Applying the proof rule `dt-split` to a variable `x` of type `myList` allows us to conclude that `x` must either be an application of `myCons` or `myNil`.
-Note that the definitino of `dt-split` is applicable to *any* datatype definition, not just lists.
+As part of the example, we see a particular definition of a list, called `Tree`.
+Applying the proof rule `dt-split` to a variable `x` of type `Tree` allows us to conclude that `x` must either be an application of `node` or `leaf`.
+Note that the definitino of `dt-split` is applicable to *any* datatype definition.
 In particular, as a second example, we see the rule applied to a term `y` of type `Color` gives us a conclusion with three disjuncts.
 
 ## Declaring Proof Rules
