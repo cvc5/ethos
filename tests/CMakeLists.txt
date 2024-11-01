@@ -130,6 +130,7 @@ set(ethos_test_file_list
     overload-standalone.eo
     datatypes-split-rule.eo
     singular-datatype.eo
+    simul-overload.eo
 )
 
 if(ENABLE_ORACLES)
