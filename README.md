@@ -4,43 +4,33 @@
 
 ## Building the Ethos checker
 
-You need cmake (>= version 3.12) and gmp to build the Ethos Checker.
+You need CMake (>= version 3.12) and GMP to build the Ethos Checker.
 
 To build a regular build, issue:
 
 ```bash
 cd /path/to/ethos_checker
-mkdir build
-cd build
-cmake ..
-make
+./configure.sh
+    # use --prefix to specify an install prefix (default: /usr/local)
+    # use --name=<PATH> for custom build directory
+cd <build_dir>   # default is ./build
+make             # use -jN for parallel build with N threads
+make install     # to install into the prefix specified above
 ```
 
-The executable, called `ethos`, will be created in the build/src folder.
+The executable, called `ethos`, will be created in the `<build_dir>/src` folder.
 
-Alternatively you can configure a regular build with
+The ethos's build system provides the following pre-defined build profiles:
 
-```bash
-cmake -DCMAKE_BUILD_TYPE=Release ..
-```
-To build a regular build and install it into /path/to/install, issue:
+- *release*: Optimized, assertions and tracing disabled.
 
-```bash
-cd /path/to/ethos_checker
-mkdir build
-cd build
-cmake -DCMAKE_INSTALL_PREFIX:PATH=/path/to/install ..
-make install
-```
+- *debug*: Unoptimized, debug symbols, assertions, and tracing enabled.
 
-To build a debug build, issue:
+The default build profile is **release**, which you will get if you just run
+`./configure.sh`. To choose a different build profile use:
 
 ```bash
-cd /path/to/ethos_checker
-mkdir build
-cd build
-cmake -DCMAKE_BUILD_TYPE=Debug ..
-make
+./configure.sh <profile>
 ```
 
 ## Using the Ethos checker
