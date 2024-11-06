@@ -220,7 +220,6 @@ Token Lexer::computeNextToken()
   pushToToken(ch);
   switch (ch)
   {
-    case '!': return Token::ATTRIBUTE;
     case '(': return Token::LPAREN;
     case ')': return Token::RPAREN;
     case '|':
@@ -383,6 +382,12 @@ Token Lexer::tokenizeCurrentSymbol() const
   Assert(!d_token.empty());
   switch (d_token[0])
   {
+    case '!':
+      if (d_token.size()==1)
+      {
+        return Token::ATTRIBUTE;
+      }
+      break;
     case '-':
     {
       if (d_token.size()>=2)

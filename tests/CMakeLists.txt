@@ -129,6 +129,7 @@ set(ethos_test_file_list
     left-cons.eo
     overload-standalone.eo
     simul-overload.eo
+    bang-lex.eo
 )
 
 if(ENABLE_ORACLES)
