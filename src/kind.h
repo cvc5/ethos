@@ -19,7 +19,7 @@ namespace ethos {
 enum class Kind
 {
   NONE = 0,
-  
+
   // types
   TYPE,
   FUNCTION_TYPE,
@@ -27,8 +27,8 @@ enum class Kind
   ABSTRACT_TYPE,
   BOOL_TYPE,
   QUOTE_TYPE,
-  OPAQUE_TYPE, // an argument marked :opaque, temporary during parsing
-  
+  OPAQUE_TYPE,  // an argument marked :opaque, temporary during parsing
+
   // terms
   APPLY,
   LAMBDA,
@@ -101,7 +101,10 @@ enum class Kind
   EVAL_TO_INT,
   EVAL_TO_RAT,
   EVAL_TO_BIN,
-  EVAL_TO_STRING
+  EVAL_TO_STRING,
+  // datatypes
+  EVAL_DT_CONSTRUCTORS,
+  EVAL_DT_SELECTORS
 };
 
 /** Print a kind to the stream, for debugging */
