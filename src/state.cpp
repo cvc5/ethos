@@ -667,6 +667,8 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           Trace("overload") << "...found overload " << ret << std::endl;
           return vchildren.size()<=2 ? Expr(mkExprInternal(k, vchildren)) : Expr(mkApplyInternal(vchildren));
         }
+        Warning() << "No overload found when constructing application "
+                  << children << std::endl;
       }
       Trace("state-debug") << "Process category " << ai->d_attrCons << " for " << children[0] << std::endl;
       size_t nchild = vchildren.size();

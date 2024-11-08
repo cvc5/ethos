@@ -346,6 +346,11 @@ void Expr::printDebugInternal(const Expr& e,
             case Kind::HEXADECIMAL:os << "#x" << l->toString();break;
             case Kind::BINARY:os << "#b" << l->toString();break;
             case Kind::STRING:os << "\"" << l->toString() << "\"";break;
+            case Kind::DECIMAL:
+              // currently don't have a way to print decimals natively, just
+              // use attribute
+              os << "(! " << l->toString() << " :decimal)";
+              break;
             default:
               if (isSymbol(k))
               {
