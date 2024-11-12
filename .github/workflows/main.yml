@@ -72,9 +72,12 @@ jobs:
       run: ctest --output-on-failure
       working-directory: build
 
-    - name: Upload binary
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.build-type == 'release'
-      uses: actions/upload-artifact@v4
+    - name: Upload artifact
+      if: |
+        github.event_name == 'push' &&
+        github.ref == 'refs/heads/main' &&
+        matrix.build-type == 'release'
+      uses: ./.github/actions/upload-artifact
       with:
-        name: ethos-${{ matrix.name }}
-        path: build/src/ethos
+        binary-dir: build/src
+        shell: ${{ matrix.shell }}
