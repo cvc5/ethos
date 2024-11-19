@@ -369,9 +369,29 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     // incorrect arity
     if (out)
     {
-      (*out) << "Incorrect arity for " << Expr(hd)
-             << ", #argTypes=" << hdtypes.size()
-             << " #children=" << children.size();
+      (*out) << "Incorrect arity for " << Expr(hd);
+      if (hdtypes[hdtypes.size()-1]->getKind()==Kind::PROOF_TYPE)
+      {
+        // proof rule can give more information, partioned into args/premises
+        size_t npIndex1 = hdtypes.size()-1;
+        while (npIndex1>0 && hdtypes[npIndex1-1]->getKind()==Kind::PROOF_TYPE)
+        {
+          npIndex1--;
+        }
+        size_t npIndex2 = children.size()-1;
+        while (npIndex2>0 && d_state.lookupType(children[npIndex2-1])->getKind()==Kind::PROOF_TYPE)
+        {
+          npIndex2--;
+        }
+        (*out) << ", which expects " << npIndex1 << " arguments and "
+               << (hdtypes.size()-1-npIndex1) << " premises but " 
+               << npIndex2 << " arguments and "
+               << (children.size()-1-npIndex2) << " premises were provided";
+      }
+      else
+      {
+        (*out) << ", which expects " << (hdtypes.size()-1) << " arguments but " << (children.size()-1) << " were provided";
+      }
     }
     return d_null;
   }
