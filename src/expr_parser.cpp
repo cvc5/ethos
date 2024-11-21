@@ -1338,7 +1338,8 @@ void ExprParser::bind(const std::string& name, Expr& e)
   if (!d_state.bind(name, e))
   {
     std::stringstream ss;
-    ss << "Failed to bind symbol " << name;
+    ss << "Failed to bind symbol " << name
+       << ", since the symbol has already been defined";
     d_lex.parseError(ss.str());
   }
 }
@@ -1376,8 +1377,10 @@ Expr ExprParser::typeCheckApp(std::vector<Expr>& children)
     std::stringstream ss;
     d_state.getTypeChecker().getTypeApp(children, &ss);
     std::stringstream msg;
-    msg << "Type checking application failed:" << std::endl;
-    msg << "Children: " << children << std::endl;
+    msg << "Type checking application failed when applying " << children[0]
+        << std::endl;
+    msg << "Children: "
+        << std::vector<Expr>(children.begin() + 1, children.end()) << std::endl;
     msg << "Message: " << ss.str() << std::endl;
     d_lex.parseError(msg.str());
   }
