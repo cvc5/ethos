@@ -178,8 +178,8 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_IS_STR:
     case Kind::EVAL_IS_BOOL:
     case Kind::EVAL_IS_VAR:
-      ret = (nargs==1);
-      break;
+    case Kind::EVAL_DT_CONSTRUCTORS:
+    case Kind::EVAL_DT_SELECTORS: ret = (nargs == 1); break;
     case Kind::EVAL_NIL:
       ret = (nargs>=1);
       break;
@@ -369,9 +369,34 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     // incorrect arity
     if (out)
     {
-      (*out) << "Incorrect arity for " << Expr(hd)
-             << ", #argTypes=" << hdtypes.size()
-             << " #children=" << children.size();
+      (*out) << "Incorrect arity for " << Expr(hd);
+      if (hdtypes[hdtypes.size() - 1]->getKind() == Kind::PROOF_TYPE)
+      {
+        // proof rule can give more information, partioned into args/premises
+        size_t npIndex1 = hdtypes.size() - 1;
+        while (npIndex1 > 0
+               && hdtypes[npIndex1 - 1]->getKind() == Kind::PROOF_TYPE)
+        {
+          npIndex1--;
+        }
+        size_t npIndex2 = children.size() - 1;
+        while (npIndex2 > 0
+               && d_state.lookupType(children[npIndex2 - 1])->getKind()
+                      == Kind::PROOF_TYPE)
+        {
+          npIndex2--;
+        }
+        (*out) << ", which expects " << npIndex1 << " arguments and "
+               << (hdtypes.size() - 1 - npIndex1) << " premises but "
+               << npIndex2 << " arguments and "
+               << (children.size() - 1 - npIndex2) << " premises were provided";
+      }
+      else
+      {
+        (*out) << ", which expects " << (hdtypes.size() - 1)
+               << " arguments but " << (children.size() - 1)
+               << " were provided";
+      }
     }
     return d_null;
   }
@@ -1173,6 +1198,23 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       }
     }
     break;
+    case Kind::EVAL_DT_CONSTRUCTORS:
+    case Kind::EVAL_DT_SELECTORS:
+    {
+      AppInfo* ac = d_state.getAppInfo(args[0]);
+      if (ac != nullptr)
+      {
+        Assert(args[0]->isGround());
+        Attr a = ac->d_attrCons;
+        if ((a == Attr::DATATYPE && k == Kind::EVAL_DT_CONSTRUCTORS)
+            || (a == Attr::DATATYPE_CONSTRUCTOR
+                && k == Kind::EVAL_DT_SELECTORS))
+        {
+          return ac->d_attrConsTerm;
+        }
+      }
+    }
+    break;
     default:
       break;
   }
@@ -1445,6 +1487,8 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
       return getOrSetLiteralTypeRule(Kind::STRING);
     case Kind::EVAL_TO_BIN:
       return getOrSetLiteralTypeRule(Kind::BINARY);
+    case Kind::EVAL_DT_CONSTRUCTORS:
+    case Kind::EVAL_DT_SELECTORS: return d_state.mkListType().getValue();
     default:break;
   }
   if (out)

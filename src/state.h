@@ -103,6 +103,8 @@ class State
   Expr mkAbstractType();
   /** Bool */
   Expr mkBoolType();
+  /** eo::List */
+  Expr mkListType();
   /** (Proof <proven>) */
   Expr mkProofType(const Expr& proven);
   /** (Quote <term>) */
@@ -138,6 +140,11 @@ class State
    * Make parameterized with given parameters
    */
   Expr mkParameterized(const ExprValue* hd, const std::vector<Expr>& params);
+  /**
+   * Make (eo::List::Cons <args>) if args is non-empty or eo::List::nil
+   * otherwise.
+   */
+  Expr mkList(const std::vector<Expr>& args);
   //--------------------------------------
   /** Get the constructor kind for symbol v */
   Attr getConstructorKind(const ExprValue* v) const;
@@ -205,6 +212,9 @@ class State
   Expr d_self;
   Expr d_conclusion;
   Expr d_fail;
+  Expr d_listType;
+  Expr d_listNil;
+  Expr d_listCons;
   /** Get base operator */
   const ExprValue* getBaseOperator(const ExprValue * v) const;
   /** Mark that file s was included */

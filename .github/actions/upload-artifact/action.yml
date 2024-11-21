@@ -1,0 +1,40 @@
+name: Upload artifact
+description: Create and upload an artifact with the binary and libraries
+inputs:
+  binary-dir:
+    description: path to the directory with the binary
+  shell:
+    default: bash
+
+runs:
+  using: composite
+  steps:
+    - name: Prepare artifact (Linux / macOS)
+      shell: ${{ inputs.shell }}
+      if: ${{ runner.os != 'Windows' }}
+      run: |
+        mkdir artifact
+        cp COPYING ./artifact/
+        cp -r licenses ./artifact/
+        cp ${{ inputs.binary-dir }}/ethos ./artifact/
+
+    - name: Prepare artifact (Windows)
+      shell: ${{ inputs.shell }}
+      if: ${{ runner.os == 'Windows' }}
+      run: |
+        mkdir artifact
+        cp COPYING ./artifact/
+        cp -r licenses ./artifact/
+        cp -r /mingw64/share/licenses/libwinpthread ./artifact/licenses/
+        cp -r /mingw64/share/licenses/gcc-libs ./artifact/licenses/
+        cp ${{ inputs.binary-dir }}/ethos.exe ./artifact/
+        cp /mingw64/bin/libgcc_s_seh-1.dll ./artifact/
+        cp /mingw64/bin/libstdc++-6.dll ./artifact/
+        cp /mingw64/bin/libwinpthread-1.dll ./artifact/
+        cp /mingw64/bin/libgmp-10.dll ./artifact/
+
+    - name: Upload binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: ethos-${{ matrix.name }}
+        path: artifact/*

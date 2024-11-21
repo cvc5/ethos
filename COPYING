@@ -27,3 +27,13 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+-------------------------------------------------------------------------------
+ Third-Party Software
+-------------------------------------------------------------------------------
+
+ethos by default links against The GNU Multiple Precision (GMP) Arithmetic
+Library, which is licensed under GNU LGPL v3.  See the file
+licenses/lgpl-3.0.txt for a copy of that license.  Note that according to the
+terms of the LGPL, both ethos's source, and the combined work (ethos linked with
+GMP) may (and do) remain under the more permissive modified BSD license.

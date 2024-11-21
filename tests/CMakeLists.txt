@@ -128,6 +128,10 @@ set(ethos_test_file_list
     simple-lra-reference.eo
     left-cons.eo
     overload-standalone.eo
+    datatypes-split-rule.eo
+    singular-datatype.eo
+    simul-overload.eo
+    bang-lex.eo
 )
 
 if(ENABLE_ORACLES)

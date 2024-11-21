@@ -239,14 +239,13 @@ bool CmdParser::parseNextCommand()
     {
       bool isCo = (tok==Token::DECLARE_CODATATYPES || tok==Token::DECLARE_CODATATYPE);
       bool isMulti = (tok==Token::DECLARE_CODATATYPES || tok==Token::DECLARE_DATATYPES);
-      //d_state.checkThatLogicIsSet();
-      d_lex.eatToken(Token::LPAREN);
       std::vector<std::string> dnames;
       std::vector<size_t> arities;
       std::map<const ExprValue*, std::vector<Expr>> dts;
       std::map<const ExprValue*, std::vector<Expr>> dtcons;
       if (isMulti)
       {
+        d_lex.eatToken(Token::LPAREN);
         // parse (<sort_dec>^{n+1})
         // while the next token is LPAREN, exit if RPAREN
         while (d_lex.eatTokenChoice(Token::LPAREN, Token::RPAREN))
@@ -278,16 +277,19 @@ bool CmdParser::parseNextCommand()
       for (std::pair<const ExprValue* const, std::vector<Expr>>& d : dts)
       {
         Expr dt = Expr(d.first);
-        Expr ctuple = d_state.mkExpr(Kind::TUPLE, d.second);
+        Expr ctuple = d_state.mkList(d.second);
         d_state.markConstructorKind(dt, attr, ctuple);
       }
       for (std::pair<const ExprValue* const, std::vector<Expr>>& c : dtcons)
       {
         Expr cons = Expr(c.first);
-        Expr stuple = d_state.mkExpr(Kind::TUPLE, c.second);
+        Expr stuple = d_state.mkList(c.second);
         d_state.markConstructorKind(cons, Attr::DATATYPE_CONSTRUCTOR, stuple);
       }
-      d_lex.eatToken(Token::RPAREN);
+      if (isMulti)
+      {
+        d_lex.eatToken(Token::RPAREN);
+      }
     }
     break;
     // (declare-consts <symbol> <sort>)

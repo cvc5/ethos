@@ -145,19 +145,12 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("concat", Kind::EVAL_CONCAT);
   bindBuiltinEval("extract", Kind::EVAL_EXTRACT);
   bindBuiltinEval("find", Kind::EVAL_FIND);
+  // datatypes
+  bindBuiltinEval("dt_constructors", Kind::EVAL_DT_CONSTRUCTORS);
+  bindBuiltinEval("dt_selectors", Kind::EVAL_DT_SELECTORS);
 
   // as
   bindBuiltinEval("as", Kind::AS);
-  
-  // we do not export eo::null
-  // for now, eo::? is (undocumented) syntax for abstract type
-  bind("eo::?", mkAbstractType());
-  // self is a distinguished parameter
-  d_self = Expr(mkSymbolInternal(Kind::PARAM, "eo::self", mkAbstractType()));
-  bind("eo::self", d_self);
-  d_conclusion = Expr(mkSymbolInternal(Kind::PARAM, "eo::conclusion", mkBoolType()));
-  // eo::conclusion is not globally bound, since it can only appear
-  // in :requires.
 
   // note we don't allow parsing (Proof ...), (Quote ...), or (quote ...).
 
@@ -168,6 +161,31 @@ State::State(Options& opts, Stats& stats)
   bind("true", d_true);
   d_false = Expr(new Literal(false));
   bind("false", d_false);
+
+  // builtin lists
+  d_listType = Expr(mkSymbolInternal(Kind::CONST, "eo::List", d_type));
+  bind("eo::List", d_listType);
+  d_listNil = Expr(mkSymbolInternal(Kind::CONST, "eo::List::nil", d_listType));
+  bind("eo::List::nil", d_listNil);
+  Expr t = Expr(mkSymbolInternal(Kind::PARAM, "T", d_type));
+  std::vector<Expr> argTypes;
+  argTypes.push_back(t);
+  argTypes.push_back(d_listType);
+  Expr consType = mkFunctionType(argTypes, d_listType);
+  d_listCons = Expr(mkSymbolInternal(Kind::CONST, "eo::List::cons", consType));
+  bind("eo::List::cons", d_listCons);
+  markConstructorKind(d_listCons, Attr::RIGHT_ASSOC_NIL, d_listNil);
+
+  // we do not export eo::null
+  // for now, eo::? is (undocumented) syntax for abstract type
+  bind("eo::?", d_absType);
+  // self is a distinguished parameter
+  d_self = Expr(mkSymbolInternal(Kind::PARAM, "eo::self", d_absType));
+  bind("eo::self", d_self);
+  d_conclusion =
+      Expr(mkSymbolInternal(Kind::PARAM, "eo::conclusion", d_boolType));
+  // eo::conclusion is not globally bound, since it can only appear
+  // in :requires.
 }
 
 State::~State() {}
@@ -206,8 +224,10 @@ void State::popScope()
   }
   size_t lastSize = d_declsSizeCtx.back();
   d_declsSizeCtx.pop_back();
-  for (size_t i=lastSize, currSize = d_decls.size(); i<currSize; i++)
+  size_t i = d_decls.size();
+  while (i > lastSize)
   {
+    i--;
     // Check if overloaded, which is the case if the last overloaded
     // declaration had the same name.
     if (!d_overloadedDecls.empty() && d_overloadedDecls.back()==d_decls[i])
@@ -225,6 +245,7 @@ void State::popScope()
       its->second = ai->d_overloads.back();
       continue;
     }
+    Trace("overload") << "** unbind " << d_decls[i] << std::endl;
     d_symTable.erase(d_decls[i]);
   }
   d_decls.resize(lastSize);
@@ -536,6 +557,9 @@ Expr State::mkBoolType()
 {
   return d_boolType;
 }
+
+Expr State::mkListType() { return d_listType; }
+
 Expr State::mkProofType(const Expr& proven)
 {
   return Expr(mkExprInternal(Kind::PROOF_TYPE, {proven.getValue()}));
@@ -643,6 +667,8 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           Trace("overload") << "...found overload " << ret << std::endl;
           return vchildren.size()<=2 ? Expr(mkExprInternal(k, vchildren)) : Expr(mkApplyInternal(vchildren));
         }
+        Warning() << "No overload found when constructing application "
+                  << children << std::endl;
       }
       Trace("state-debug") << "Process category " << ai->d_attrCons << " for " << children[0] << std::endl;
       size_t nchild = vchildren.size();
@@ -956,6 +982,18 @@ Expr State::mkLiteral(Kind k, const std::string& s)
 Expr State::mkParameterized(const ExprValue* hd, const std::vector<Expr>& params)
 {
   return mkExpr(Kind::PARAMETERIZED, {mkExpr(Kind::TUPLE, params), Expr(hd)});
+}
+
+Expr State::mkList(const std::vector<Expr>& args)
+{
+  if (args.empty())
+  {
+    return d_listNil;
+  }
+  std::vector<Expr> largs;
+  largs.push_back(d_listCons);
+  largs.insert(largs.end(), args.begin(), args.end());
+  return mkExpr(Kind::APPLY, largs);
 }
 
 ExprValue* State::mkLiteralInternal(Literal& l)
