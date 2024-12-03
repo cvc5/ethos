@@ -163,7 +163,7 @@ int main( int argc, char* argv[] )
   else
   {
     // whether it is a signature is determined by file extension *.eo.
-    bool isSignature = (file.substr(file.size()-3)==".eo");
+    bool isSignature = (file.size() >= 3 && file.substr(file.size()-3)==".eo");
     // include the file
     if (!s.includeFile(file, isSignature))
     {
