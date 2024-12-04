@@ -132,6 +132,7 @@ set(ethos_test_file_list
     singular-datatype.eo
     simul-overload.eo
     bang-lex.eo
+    segfault-98.eo
 )
 
 if(ENABLE_ORACLES)

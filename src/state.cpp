@@ -242,7 +242,8 @@ void State::popScope()
       Assert (ai->d_overloads.size()>=2);
       // was overloaded, we revert the binding
       ai->d_overloads.pop_back();
-      its->second = ai->d_overloads.back();
+      Expr tmp = ai->d_overloads.back();
+      its->second = tmp;
       continue;
     }
     Trace("overload") << "** unbind " << d_decls[i] << std::endl;
