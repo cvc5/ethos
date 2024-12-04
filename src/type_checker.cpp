@@ -447,11 +447,27 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     {
       if (out)
       {
-        (*out) << "Unexpected argument type " << i << " of " << Expr(hd)
-              << std::endl;
-        (*out) << "  LHS " << evaluate(hdtypes[i], ctx) << ", from "
-              << Expr(hdtypes[i]) << std::endl;
-        (*out) << "  RHS " << Expr(ctypes[i]) << std::endl;
+        ExprValue* hdto = hdtypes[i];
+        if (hdtypes[i]->getKind() == Kind::QUOTE_TYPE)
+        {
+          (*out) << "Unexpected child #" << i << std::endl;
+          (*out) << "  Term: " << Expr(children[i + 1]) << std::endl;
+          (*out) << "  Expected pattern: ";
+          hdto = hdto->d_children[0];
+        }
+        else
+        {
+          (*out) << "Unexpected type of child #" << i << std::endl;
+          (*out) << "  Term: " << Expr(children[i + 1]) << std::endl;
+          (*out) << "  Has type: " << Expr(ctypes[i]) << std::endl;
+          (*out) << "  Expected type: ";
+        }
+        (*out) << Expr(hdt);
+        if (hdto != hdt)
+        {
+          (*out) << ", from " << Expr(hdto);
+        }
+        (*out) << std::endl;
         (*out) << "  Context " << ctx << std::endl;
       }
       return d_null;
