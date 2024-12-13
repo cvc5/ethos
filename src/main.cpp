@@ -99,6 +99,10 @@ int main( int argc, char* argv[] )
     }
     else if (arg=="-t")
     {
+      if (i >= nargs)
+      {
+        EO_FATAL() << "Error: Missing trace tag.";
+      }
       std::string targ(argv[i]);
       i++;
 #ifdef EO_TRACING
