@@ -321,8 +321,9 @@ bool State::includeFile(const std::string& s, bool isSignature, bool isReference
   Trace("state") << "...finished" << std::endl;
   if (getAssumptionLevel()!=0)
   {
+    Assert(!d_declsSizeCtx.empty() && d_declsSizeCtx.back()<d_decls.size());
     EO_FATAL() << "Including file " << inputPath.getRawPath()
-                 << " did not preserve assumption scope";
+                 << " did not preserve assumption scope. The most recent open assumption was " << d_decls[d_declsSizeCtx.back()] << ".";
   }
   return true;
 }
