@@ -351,7 +351,7 @@ Left associative can be defined analogously:
 In the above example, `(and x y z)` is treated as `(and (and x y) z)`.
 
 Note that the type for right and left associative operators is typically `(-> T T T)` for some type `T`.
-More generally, a constant declared with the `:right-associative` annotation must have a type of the form `(-> T1 T2 T2)` for some types `T1` and `T2`. Similarly, a constant declared with the `:left-associative` annotation must have a type of the form `(-> T1 T2 T1)`.
+More generally, a constant declared with the `:right-assoc` annotation must have a type of the form `(-> T1 T2 T2)` for some types `T1` and `T2`. Similarly, a constant declared with the `:left-assoc` annotation must have a type of the form `(-> T1 T2 T1)`.
 
 <a name="assoc-nil"></a>
 
@@ -401,7 +401,7 @@ In contrast, marking `or` with `:right-assoc-nil false` leads after desugaring t
 
 Right and left associative operators with nil terminators also have a relationship with list terms (as we will see in the following section), and in computational operators.
 
-The type for right and left associative operators with nil terminators is typically `(-> T T T)` for some `T`, where their nil terminator has type `T`. More generally, a constant declared with the `:right-associative-nil` annotation must have a type of the form `(-> T1 T2 T2)` where `T2` is the type of the nil constant, for some types `T1` and `T2`. Similarly, a constant declared with the `:left-associative` annotation must have a type of the form `(-> T1 T2 T1)` where `T1` is the type of the nil constant.
+The type for right and left associative operators with nil terminators is typically `(-> T T T)` for some `T`, where their nil terminator has type `T`. More generally, a constant declared with the `:right-assoc-nil` annotation must have a type of the form `(-> T1 T2 T2)` where `T2` is the type of the nil constant, for some types `T1` and `T2`. Similarly, a constant declared with the `:left-associative` annotation must have a type of the form `(-> T1 T2 T1)` where `T1` is the type of the nil constant.
 
 The nil terminator of a right associative operator may involve previously declared symbols in the signature.
 For example:
@@ -727,7 +727,7 @@ Note however that the evaluation of these operators is handled by more efficient
   - If `t1` is a numeral value, this returns the (integral) rational value that is equivalent to `t1`.
 - `(eo::to_bin t1 t2)`
   - If `t1` is a 32-bit numeral value and `t2` is a binary value, this returns a binary value whose value is `t2` and whose bitwidth is `t1`.
-  - If `t1` is a 32-bit numeral value and `t2` is a numeral value, return the binary value whose value is `t2` (modulo `2^t1`) and whose bitwidth is `t1`.
+  - If `t1` is a 32-bit numeral value and `t2` is a non-negative numeral value, return the binary value whose value is `t2` (modulo `2^t1`) and whose bitwidth is `t1`.
 - `(eo::to_str t1)`
   - If `t1` is a string value, return `t1`.
   - If `t1` is a numeral value specifying a code point from Unicode planes `0-2` (i.e. a numeral between `0` and `196607`), return the string of length one whose character has code point `t1`.
