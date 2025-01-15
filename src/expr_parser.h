@@ -164,7 +164,8 @@ class ExprParser
       Expr& dt,
       std::vector<Expr>& conslist,
       std::map<const ExprValue*, std::vector<Expr>>& dtcons,
-      std::vector<std::pair<std::string, Expr>>& toBind);
+      std::vector<std::pair<std::string, Expr>>& toBind,
+      const std::vector<Expr>& params);
   /** Return the unsigned for the current token string. */
   uint32_t tokenStrToUnsigned();
   /**

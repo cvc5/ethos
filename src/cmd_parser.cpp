@@ -282,9 +282,10 @@ bool CmdParser::parseNextCommand()
       }
       for (std::pair<const ExprValue* const, std::vector<Expr>>& c : dtcons)
       {
+        Attr ac = Attr::DATATYPE_CONSTRUCTOR;
         Expr cons = Expr(c.first);
         Expr stuple = d_state.mkList(c.second);
-        d_state.markConstructorKind(cons, Attr::DATATYPE_CONSTRUCTOR, stuple);
+        d_state.markConstructorKind(cons, ac, stuple);
       }
       if (isMulti)
       {

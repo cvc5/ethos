@@ -53,6 +53,7 @@ enum class Attr
   // datatypes
   DATATYPE,
   DATATYPE_CONSTRUCTOR,
+  PARAM_DATATYPE_CONSTRUCTOR,
   CODATATYPE
 };
 

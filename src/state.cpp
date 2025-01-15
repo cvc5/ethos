@@ -1494,13 +1494,24 @@ Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
     vchildren.push_back(c.getValue());
   }
   // try overloads in order until one is found
+  Expr tmp;
   for (size_t i=0, noverloads = overloads.size(); i<noverloads; i++)
   {
     // search in reverse order, i.e. the last bound symbol takes precendence
     size_t ii = (noverloads-1)-i;
     vchildren[0] = overloads[ii].getValue();
+    if (getConstructorKind(vchildren[0]) == Attr::DATATYPE_CONSTRUCTOR)
+    {
+      Trace("overload") << "...maybe needs type argument?" << std::endl;
+      Expr cons(vchildren[0]);
+      Expr rt(retType);
+      tmp = mkExpr(Kind::APPLY_OPAQUE, {cons, rt});
+      vchildren[0] = tmp.getValue();
+    }
     Expr x = Expr(vchildren.size()>2 ? mkApplyInternal(vchildren) : mkExprInternal(Kind::APPLY, vchildren));
+    Trace("overload") << "...check type of " << x << std::endl;
     Expr t = d_tc.getType(x);
+    Trace("overload") << "...has type " << t << std::endl;
     // if term is well-formed, and matches the return type if it exists
     if (!t.isNull() && (retType==nullptr || retType==t.getValue()))
     {

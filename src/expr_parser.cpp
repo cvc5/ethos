@@ -962,7 +962,8 @@ bool ExprParser::parseDatatypesDef(
       dti = d_state.mkExpr(Kind::APPLY, dapp);
     }
     std::vector<std::pair<std::string, Expr>> toBind;
-    parseConstructorDefinitionList(dti, dts[dt.getValue()], dtcons, toBind);
+    std::vector<Expr>& clist = dts[dt.getValue()];
+    parseConstructorDefinitionList(dti, clist, dtcons, toBind, params);
     if (pushedScope)
     {
       d_lex.eatToken(Token::RPAREN);
@@ -990,7 +991,8 @@ void ExprParser::parseConstructorDefinitionList(
     Expr& dt,
     std::vector<Expr>& conslist,
     std::map<const ExprValue*, std::vector<Expr>>& dtcons,
-    std::vector<std::pair<std::string, Expr>>& toBind)
+    std::vector<std::pair<std::string, Expr>>& toBind,
+    const std::vector<Expr>& params)
 {
   d_lex.eatToken(Token::LPAREN);
   Expr boolType = d_state.mkBoolType();
@@ -1000,6 +1002,12 @@ void ExprParser::parseConstructorDefinitionList(
     std::string name = parseSymbol();
     std::vector<Expr> typelist;
     std::vector<Expr> sels;
+    if (!params.empty())
+    {
+      Expr odt = d_state.mkQuoteType(dt);
+      odt = d_state.mkExpr(Kind::OPAQUE_TYPE, {odt});
+      typelist.push_back(odt);
+    }
     // parse another selector or close the current constructor
     while (d_lex.eatTokenChoice(Token::LPAREN, Token::RPAREN))
     {
