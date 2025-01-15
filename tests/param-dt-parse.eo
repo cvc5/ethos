@@ -10,4 +10,5 @@
 (par ( X ) ( (nil) (cons (head X) (tail (List X)))))
 ))
 
-(define d () (eo::as nil (List Int)) :type (List Int))
+(define d1 () (eo::as nil (List Int)) :type (List Int))
+(define d2 () (cons 0 d1) :type (List Int))
