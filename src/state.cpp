@@ -1508,7 +1508,7 @@ Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
       tmp = mkExpr(Kind::APPLY_OPAQUE, {cons, rt});
       vchildren[0] = tmp.getValue();
     }
-    Expr x = Expr(vchildren.size()>2 ? mkApplyInternal(vchildren) : mkExprInternal(Kind::APPLY, vchildren));
+    Expr x = vchildren.size()==1 ? Expr(vchildren[0]) : ( Expr(vchildren.size()>2 ? mkApplyInternal(vchildren) : mkExprInternal(Kind::APPLY, vchildren)));
     Trace("overload") << "...check type of " << x << std::endl;
     Expr t = d_tc.getType(x);
     Trace("overload") << "...has type " << t << std::endl;
@@ -1516,7 +1516,7 @@ Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
     if (!t.isNull() && (retType==nullptr || retType==t.getValue()))
     {
       // return the operator, do not check the remainder
-      return overloads[ii];
+      return Expr(vchildren[0]);
     }
   }
   // otherwise, none found, return null

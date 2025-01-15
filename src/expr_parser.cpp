@@ -1005,7 +1005,6 @@ void ExprParser::parseConstructorDefinitionList(
     if (!params.empty())
     {
       Expr odt = d_state.mkQuoteType(dt);
-      odt = d_state.mkExpr(Kind::OPAQUE_TYPE, {odt});
       typelist.push_back(odt);
     }
     // parse another selector or close the current constructor
