@@ -831,21 +831,6 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
             return mkExpr(Kind::APPLY, rchildren);
           }
         }
-        case Attr::DATATYPE_CONSTRUCTOR:
-        {
-          // determine how many opaque children
-          Expr hdt = Expr(hd);
-          Expr t = d_tc.getType(hdt);
-          std::vector<Expr> cchildren(children.begin(), children.end());
-          if (t.getKind()==Kind::FUNCTION_TYPE && t[0].getKind()==Kind::QUOTE_TYPE)
-          {
-            // since it was not given an annotation
-            Expr rt = t.getFunctionType().second;
-            Expr ohd = mkExpr(Kind::APPLY_OPAQUE, {children[0], rt});
-            vchildren[0] = ohd.getValue();
-            return Expr(mkApplyInternal(vchildren));
-          }
-        }
         default:
           break;
       }

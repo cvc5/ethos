@@ -139,7 +139,14 @@ class ExprParser
   Expr getProofRule(const std::string& name);
   /** Bind, or throw error otherwise */
   void bind(const std::string& name, Expr& e);
-  /** Ensure bound */
+  /**
+   * @return a variable from bvs that is not in the free variables of e if
+   * one exists, or the null expression otherwise.
+   */
+  Expr findFreeVar(const Expr& e, const std::vector<Expr>& bvs);
+  /**
+   * Throw an exception if bvs are not contained in the free variables of e.
+   */
   void ensureBound(const Expr& e, const std::vector<Expr>& bvs);
   //-------------------------- end checking
   /**

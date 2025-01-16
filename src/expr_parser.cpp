@@ -1002,11 +1002,6 @@ void ExprParser::parseConstructorDefinitionList(
     std::string name = parseSymbol();
     std::vector<Expr> typelist;
     std::vector<Expr> sels;
-    if (!params.empty())
-    {
-      Expr odt = d_state.mkQuoteType(dt);
-      typelist.push_back(odt);
-    }
     // parse another selector or close the current constructor
     while (d_lex.eatTokenChoice(Token::LPAREN, Token::RPAREN))
     {
@@ -1023,6 +1018,21 @@ void ExprParser::parseConstructorDefinitionList(
       Expr updater = d_state.mkSymbol(Kind::CONST, ss.str(), utype);
       toBind.emplace_back(ss.str(), updater);
       d_lex.eatToken(Token::RPAREN);
+    }
+    if (!params.empty())
+    {
+      // if this is an ambiguous datatype constructor, we add (Quote T)
+      // as the first argument type.
+      Expr tup = d_state.mkExpr(Kind::TUPLE, typelist);
+      std::vector<Expr> pargs = Expr::getVariables(tup);
+      Expr fv = findFreeVar(dt, pargs);
+      Trace("param-dt") << "Parameteric datatype constructor: " << name;
+      Trace("param-dt") << (fv.isNull() ? " un" : " ") << "ambiguous" << std::endl;
+      if (!fv.isNull())
+      {
+        Expr odt = d_state.mkQuoteType(dt);
+        typelist.insert(typelist.begin(), odt);
+      }
     }
     Expr ctype = d_state.mkFunctionType(typelist, dt);
     Expr cons = d_state.mkSymbol(Kind::CONST, name, ctype);
@@ -1409,7 +1419,7 @@ Expr ExprParser::typeCheck(Expr& e, const Expr& expected)
   return et;
 }
 
-void ExprParser::ensureBound(const Expr& e, const std::vector<Expr>& bvs)
+Expr ExprParser::findFreeVar(const Expr& e, const std::vector<Expr>& bvs)
 {
   std::vector<Expr> efv = Expr::getVariables(e);
   for (const Expr& v : efv)
@@ -1421,13 +1431,24 @@ void ExprParser::ensureBound(const Expr& e, const std::vector<Expr>& bvs)
       {
         continue;
       }
-      std::stringstream msg;
-      msg << "Unexpected free parameter in expression:" << std::endl;
-      msg << "      Expression: " << e << std::endl;
-      msg << "  Free parameter: " << v << std::endl;
-      msg << "Bound parameters: " << bvs << std::endl;
-      d_lex.parseError(msg.str());
+      return v;
     }
+  }
+  return d_null;
+}
+
+void ExprParser::ensureBound(const Expr& e, const std::vector<Expr>& bvs)
+{
+  Expr v = findFreeVar(e, bvs);
+  std::vector<Expr> efv = Expr::getVariables(e);
+  if (!v.isNull())
+  {
+    std::stringstream msg;
+    msg << "Unexpected free parameter in expression:" << std::endl;
+    msg << "      Expression: " << e << std::endl;
+    msg << "  Free parameter: " << v << std::endl;
+    msg << "Bound parameters: " << bvs << std::endl;
+    d_lex.parseError(msg.str());
   }
 }
 
