@@ -1500,7 +1500,7 @@ Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
     // search in reverse order, i.e. the last bound symbol takes precendence
     size_t ii = (noverloads-1)-i;
     vchildren[0] = overloads[ii].getValue();
-    if (getConstructorKind(vchildren[0]) == Attr::DATATYPE_CONSTRUCTOR)
+    if (getConstructorKind(vchildren[0]) == Attr::AMB_DATAYPE_CONSTRUCTOR)
     {
       Trace("overload") << "...maybe needs type argument?" << std::endl;
       Expr cons(vchildren[0]);

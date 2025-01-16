@@ -867,7 +867,8 @@ bool ExprParser::parseDatatypesDef(
     const std::vector<std::string>& dnames,
     const std::vector<size_t>& arities,
     std::map<const ExprValue*, std::vector<Expr>>& dts,
-    std::map<const ExprValue*, std::vector<Expr>>& dtcons)
+    std::map<const ExprValue*, std::vector<Expr>>& dtcons,
+    std::unordered_set<const ExprValue*>& ambCons)
 {
   Assert(dnames.size() == arities.size()
          || (dnames.size() == 1 && arities.empty()));
@@ -963,7 +964,7 @@ bool ExprParser::parseDatatypesDef(
     }
     std::vector<std::pair<std::string, Expr>> toBind;
     std::vector<Expr>& clist = dts[dt.getValue()];
-    parseConstructorDefinitionList(dti, clist, dtcons, toBind, params);
+    parseConstructorDefinitionList(dti, clist, dtcons, toBind, ambCons, params);
     if (pushedScope)
     {
       d_lex.eatToken(Token::RPAREN);
@@ -992,6 +993,7 @@ void ExprParser::parseConstructorDefinitionList(
     std::vector<Expr>& conslist,
     std::map<const ExprValue*, std::vector<Expr>>& dtcons,
     std::vector<std::pair<std::string, Expr>>& toBind,
+    std::unordered_set<const ExprValue*>& ambCons,
     const std::vector<Expr>& params)
 {
   d_lex.eatToken(Token::LPAREN);
@@ -1019,6 +1021,7 @@ void ExprParser::parseConstructorDefinitionList(
       toBind.emplace_back(ss.str(), updater);
       d_lex.eatToken(Token::RPAREN);
     }
+    bool isAmb = false;
     if (!params.empty())
     {
       // if this is an ambiguous datatype constructor, we add (Quote T)
@@ -1032,6 +1035,7 @@ void ExprParser::parseConstructorDefinitionList(
       {
         Expr odt = d_state.mkQuoteType(dt);
         typelist.insert(typelist.begin(), odt);
+        isAmb = true;
       }
     }
     Expr ctype = d_state.mkFunctionType(typelist, dt);
@@ -1045,6 +1049,10 @@ void ExprParser::parseConstructorDefinitionList(
     Expr tester = d_state.mkSymbol(Kind::CONST, ss.str(), dtype);
     toBind.emplace_back(ss.str(), tester);
     dtcons[cons.getValue()] = sels;
+    if (isAmb)
+    {
+      ambCons.insert(cons.getValue());
+    }
   }
 }
 
