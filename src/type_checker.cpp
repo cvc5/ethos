@@ -1217,6 +1217,8 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_DT_CONSTRUCTORS:
     case Kind::EVAL_DT_SELECTORS:
     {
+      // it may be an ambiguous constructor with an annotation, in which
+      // case we extract the underlying symbol
       Expr sym(args[0]);
       sym = sym.getKind() == Kind::APPLY_OPAQUE ? sym[0] : sym;
       AppInfo* ac = d_state.getAppInfo(sym.getValue());
