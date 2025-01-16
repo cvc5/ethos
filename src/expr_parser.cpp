@@ -1449,7 +1449,6 @@ Expr ExprParser::findFreeVar(const Expr& e, const std::vector<Expr>& bvs)
 void ExprParser::ensureBound(const Expr& e, const std::vector<Expr>& bvs)
 {
   Expr v = findFreeVar(e, bvs);
-  std::vector<Expr> efv = Expr::getVariables(e);
   if (!v.isNull())
   {
     std::stringstream msg;
