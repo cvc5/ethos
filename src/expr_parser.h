@@ -85,7 +85,7 @@ class ExprParser
    * datatype_dec :=
    *   (<constructor_dec>+) | (par (<symbol>+) (<constructor_dec>+))
    * constructor_dec := (<symbol> (<symbol> <sort>)∗)
-   * 
+   *
    * @param dnames The names of the datatypes.
    * @param arities The arities of the datatypes given by the names dnames.
    * @param dts Mapping from datatypes to their constructor symbols.

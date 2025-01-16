@@ -1030,7 +1030,8 @@ void ExprParser::parseConstructorDefinitionList(
       std::vector<Expr> pargs = Expr::getVariables(tup);
       Expr fv = findFreeVar(dt, pargs);
       Trace("param-dt") << "Parameteric datatype constructor: " << name;
-      Trace("param-dt") << (fv.isNull() ? " un" : " ") << "ambiguous" << std::endl;
+      Trace("param-dt") << (fv.isNull() ? " un" : " ") << "ambiguous"
+                        << std::endl;
       if (!fv.isNull())
       {
         Expr odt = d_state.mkQuoteType(dt);

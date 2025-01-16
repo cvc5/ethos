@@ -1218,7 +1218,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_DT_SELECTORS:
     {
       Expr sym(args[0]);
-      sym = sym.getKind()==Kind::APPLY_OPAQUE ? sym[0] : sym;
+      sym = sym.getKind() == Kind::APPLY_OPAQUE ? sym[0] : sym;
       AppInfo* ac = d_state.getAppInfo(sym.getValue());
       if (ac != nullptr)
       {
