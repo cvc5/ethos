@@ -1500,9 +1500,13 @@ Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
     // search in reverse order, i.e. the last bound symbol takes precendence
     size_t ii = (noverloads-1)-i;
     vchildren[0] = overloads[ii].getValue();
+    // The syntax e.g. (eo::as nil (List Int)) has a different behavior.
+    // it does not distinguish a symbol but instead annotates the constructor
+    // symbol. This is done as an *opaque* argument to ensure type annotations
+    // are not in ordinary positions.
     if (getConstructorKind(vchildren[0]) == Attr::AMB_DATAYPE_CONSTRUCTOR)
     {
-      Trace("overload") << "...maybe needs type argument?" << std::endl;
+      Trace("overload") << "...type arg for ambiguous constructor" << std::endl;
       Expr cons(vchildren[0]);
       Expr rt(retType);
       tmp = mkExpr(Kind::APPLY_OPAQUE, {cons, rt});
