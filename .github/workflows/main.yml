@@ -6,11 +6,14 @@ jobs:
   build:
     strategy:
       matrix:
-        name: [linux-x86_64, macOS-x86_64, macOS-arm64, windows-x86_64]
+        name: [linux-x86_64, linux-arm64, macOS-x86_64, macOS-arm64, windows-x86_64]
         build-type: [ release, debug ]
         include:
         - name: linux-x86_64
           os: ubuntu-20.04
+          shell: bash
+        - name: linux-arm64
+          os: ubuntu-22.04-arm
           shell: bash
         - name: macOS-x86_64
           os: macos-13
