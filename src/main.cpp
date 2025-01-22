@@ -86,7 +86,7 @@ int main( int argc, char* argv[] )
     else if (arg=="--show-config")
     {
       std::stringstream out;
-      out << "This is ethos version 0.2.0." << std::endl;
+      out << "This is ethos version 0.1.1." << std::endl;
       out << std::endl;
       size_t w = 15;
       out << std::setw(w) << "tracing : ";
