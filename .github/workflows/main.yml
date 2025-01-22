@@ -32,6 +32,11 @@ jobs:
     # The type of runner that the job will run on
     runs-on: ${{ matrix.os }}
 
+    # cancel already running jobs for the same branch/pr/tag
+    concurrency:
+      group: build-${{ github.ref }}-${{ matrix.name }}-${{ github.ref != 'refs/heads/main' || github.run_id }}
+      cancel-in-progress: ${{ github.repository != 'cvc5/ethos' || startsWith(github.ref, 'refs/pull/') }}
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
