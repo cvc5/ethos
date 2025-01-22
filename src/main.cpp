@@ -79,12 +79,14 @@ int main( int argc, char* argv[] )
       out << "           -t <tag>: enables the given trace tag (requires debug build)." << std::endl;
       out << "                 -v: verbose mode, enable all standard trace messages (requires debug build)." << std::endl;
       std::cout << out.str();
+      // exit immediately
+      exit(0);
       return 0;
     }
     else if (arg=="--show-config")
     {
       std::stringstream out;
-      out << "This is ethos version 0.1.0." << std::endl;
+      out << "This is ethos version 0.2.0." << std::endl;
       out << std::endl;
       size_t w = 15;
       out << std::setw(w) << "tracing : ";
@@ -95,6 +97,8 @@ int main( int argc, char* argv[] )
 #endif
       out << std::endl;
       std::cout << out.str();
+      // exit immediately
+      exit(0);
       return 0;
     }
     else if (arg=="-t")
