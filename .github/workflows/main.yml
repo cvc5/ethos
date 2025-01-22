@@ -34,7 +34,7 @@ jobs:
 
     # cancel already running jobs for the same branch/pr/tag
     concurrency:
-      group: build-${{ github.ref }}-${{ github.job }}-${{ github.ref != 'refs/heads/main' || github.run_id }}
+      group: build-${{ github.ref }}-${{ matrix.name }}:${{ matrix.build-type }}-${{ github.ref != 'refs/heads/main' || github.run_id }}
       cancel-in-progress: ${{ github.repository != 'cvc5/ethos' || startsWith(github.ref, 'refs/pull/') }}
 
     steps:
