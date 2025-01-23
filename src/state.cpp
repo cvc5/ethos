@@ -1499,6 +1499,7 @@ Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
   }
   // try overloads in order until one is found
   Expr tmp;
+  const ExprValue* retTypeExpect;
   for (size_t i=0, noverloads = overloads.size(); i<noverloads; i++)
   {
     // search in reverse order, i.e. the last bound symbol takes precendence
@@ -1515,6 +1516,12 @@ Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
       Expr rt(retType);
       tmp = mkExpr(Kind::APPLY_OPAQUE, {cons, rt});
       vchildren[0] = tmp.getValue();
+      // don't expect type to match, as it may have arguments
+      retTypeExpect = nullptr;
+    }
+    else
+    {
+      retTypeExpect = retType;
     }
     Expr x = vchildren.size() == 1
                  ? Expr(vchildren[0])
@@ -1525,7 +1532,7 @@ Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
     Expr t = d_tc.getType(x);
     Trace("overload") << "...has type " << t << std::endl;
     // if term is well-formed, and matches the return type if it exists
-    if (!t.isNull() && (retType==nullptr || retType==t.getValue()))
+    if (!t.isNull() && (retTypeExpect==nullptr || retTypeExpect==t.getValue()))
     {
       // return the operator, do not check the remainder
       return Expr(vchildren[0]);
