@@ -1,7 +1,7 @@
 ; This version of the signature assumes testers are written e.g. (_ is (as nil (Lst Int))), for the instantiated version of the constructor
 
-; use SMT-LIB syntax for eo::as
-;(define as ((T Type :implicit) (x T) (S Type)) (eo::as x S))
+; use SMT-LIB syntax for as
+;(define as ((T Type :implicit) (x T) (S Type)) (as x S))
 
 (declare-type Int ())
 (declare-datatypes ((Lst 1)) ((par (X)((cons (head X) (tail (Lst X))) (nil)))))
@@ -26,7 +26,7 @@
 
 (declare-const x (Lst Int))
 
-(step @p0 (or (is cons x) (is (eo::as nil (Lst Int)) x)) :rule dt-split :args (x))
+(step @p0 (or (is cons x) (is (as nil (Lst Int)) x)) :rule dt-split :args (x))
 
 
 (program $mk_dt_inst ((D Type) (x D) (T Type) (t T) (S Type) (s S) (xs eo::List :list))
@@ -43,4 +43,4 @@
 )
 
 (step @p1 (= (is cons x) (= x (cons (head x) (tail x)))) :rule dt-inst :args (cons x))
-(step @p1 (= (is (eo::as nil (Lst Int)) x) (= x (eo::as nil (Lst Int)))) :rule dt-inst :args ((eo::as nil (Lst Int)) x))
+(step @p1 (= (is (as nil (Lst Int)) x) (= x (as nil (Lst Int)))) :rule dt-inst :args ((as nil (Lst Int)) x))

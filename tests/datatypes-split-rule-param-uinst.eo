@@ -57,4 +57,4 @@
 )
 
 (step @p1 (= (is cons x) (= x (cons (head x) (tail x)))) :rule dt-inst :args (cons x))
-(step @p1 (= (is nil x) (= x (eo::as nil (Lst Int)))) :rule dt-inst :args (nil x))
+(step @p1 (= (is nil x) (= x (as nil (Lst Int)))) :rule dt-inst :args (nil x))

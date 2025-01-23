@@ -150,6 +150,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("dt_selectors", Kind::EVAL_DT_SELECTORS);
 
   // as
+  bindBuiltin("as", Kind::AS);
   bindBuiltinEval("as", Kind::AS);
 
   // note we don't allow parsing (Proof ...), (Quote ...), or (quote ...).
