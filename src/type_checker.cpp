@@ -1214,7 +1214,6 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       }
     }
     break;
-    case Kind::EVAL_DT_CONSTRUCTORS:
     case Kind::EVAL_DT_SELECTORS:
     {
       // it may be an ambiguous constructor with an annotation, in which
@@ -1226,12 +1225,41 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       {
         Assert(args[0]->isGround());
         Attr a = ac->d_attrCons;
-        if ((a == Attr::DATATYPE && k == Kind::EVAL_DT_CONSTRUCTORS)
-            || ((a == Attr::DATATYPE_CONSTRUCTOR || a == Attr::AMB_DATATYPE_CONSTRUCTOR)
-                && k == Kind::EVAL_DT_SELECTORS))
+        if (a == Attr::DATATYPE_CONSTRUCTOR || a == Attr::AMB_DATATYPE_CONSTRUCTOR)
         {
           return ac->d_attrConsTerm;
         }
+      }
+    }
+    break;
+    case Kind::EVAL_DT_CONSTRUCTORS:
+    {
+      Expr sym(args[0]);
+      // might be a parametric datatype?
+      bool isParam = false;
+      AppInfo* ac = d_state.getAppInfo(sym.getValue());
+      if (ac != nullptr && ac->d_attrCons == Attr::DATATYPE)
+      {
+        // if parametric, add opaque argument annotations
+        if (isParam)
+        {
+          std::vector<ExprValue*> cargs;
+          Expr cop = d_state.mkListCons();
+          getNAryChildren(ac->d_attrConsTerm.getValue(), cop.getValue(), nullptr, cargs, false);
+          std::vector<Expr> cargsp;
+          for (ExprValue* c : cargs)
+          {
+            Expr ce(c);
+            if (d_state.getConstructorKind(c)==Attr::AMB_DATATYPE_CONSTRUCTOR)
+            {
+              Expr dt(args[0]);
+              ce = d_state.mkExpr(Kind::APPLY_OPAQUE, {ce, dt});
+            }
+            cargsp.push_back(ce);
+          }
+          return d_state.mkList(cargsp);
+        }
+        return ac->d_attrConsTerm;
       }
     }
     break;
