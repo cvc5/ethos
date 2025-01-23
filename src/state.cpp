@@ -566,7 +566,7 @@ Expr State::mkListType() { return d_listType; }
 
 Expr State::mkListCons() { return d_listCons; }
 Expr State::mkListNil() { return d_listNil; }
-  
+
 Expr State::mkProofType(const Expr& proven)
 {
   return Expr(mkExprInternal(Kind::PROOF_TYPE, {proven.getValue()}));
