@@ -285,7 +285,7 @@ bool CmdParser::parseNextCommand()
       {
         // may be ambiguous
         Attr ac = ambCons.find(c.first) != ambCons.end()
-                      ? Attr::AMB_DATAYPE_CONSTRUCTOR
+                      ? Attr::AMB_DATATYPE_CONSTRUCTOR
                       : Attr::DATATYPE_CONSTRUCTOR;
         Expr cons = Expr(c.first);
         Expr stuple = d_state.mkList(c.second);

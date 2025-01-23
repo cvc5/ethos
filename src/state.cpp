@@ -1504,7 +1504,7 @@ Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
     // it does not distinguish a symbol but instead annotates the constructor
     // symbol. This is done as an *opaque* argument to ensure type annotations
     // are not in ordinary positions.
-    if (getConstructorKind(vchildren[0]) == Attr::AMB_DATAYPE_CONSTRUCTOR)
+    if (getConstructorKind(vchildren[0]) == Attr::AMB_DATATYPE_CONSTRUCTOR)
     {
       Trace("overload") << "...type arg for ambiguous constructor" << std::endl;
       Expr cons(vchildren[0]);

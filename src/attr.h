@@ -53,7 +53,7 @@ enum class Attr
   // datatypes
   DATATYPE,
   DATATYPE_CONSTRUCTOR,
-  AMB_DATAYPE_CONSTRUCTOR,  // constructors requiring an opaque type argument
+  AMB_DATATYPE_CONSTRUCTOR,  // constructors requiring an opaque type argument
   CODATATYPE
 };
 

@@ -1227,7 +1227,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
         Assert(args[0]->isGround());
         Attr a = ac->d_attrCons;
         if ((a == Attr::DATATYPE && k == Kind::EVAL_DT_CONSTRUCTORS)
-            || (a == Attr::DATATYPE_CONSTRUCTOR
+            || ((a == Attr::DATATYPE_CONSTRUCTOR || a == Attr::AMB_DATATYPE_CONSTRUCTOR)
                 && k == Kind::EVAL_DT_SELECTORS))
         {
           return ac->d_attrConsTerm;
