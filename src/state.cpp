@@ -1532,7 +1532,7 @@ Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
     Expr t = d_tc.getType(x);
     Trace("overload") << "...has type " << t << std::endl;
     // if term is well-formed, and matches the return type if it exists
-    if (!t.isNull() && (rtExpect==nullptr || rtExpect==t.getValue()))
+    if (!t.isNull() && (rtExpect == nullptr || rtExpect == t.getValue()))
     {
       // return the operator, do not check the remainder
       return Expr(vchildren[0]);
