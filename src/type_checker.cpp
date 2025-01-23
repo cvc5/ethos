@@ -1246,7 +1246,6 @@ Expr TypeChecker::evaluateLiteralOpInternal(
           sym = sym[0];
         }while (sym.getKind()==Kind::APPLY);
       }
-      Trace("ajr-temp") << "Get constructors " << Expr(args[0]) << " " << sym << ", isParam=" << isParam << std::endl;
       AppInfo* ac = d_state.getAppInfo(sym.getValue());
       if (ac != nullptr && ac->d_attrCons == Attr::DATATYPE)
       {

@@ -1,3 +1,4 @@
+; This version of the signature assumes testers are written e.g. (_ is (as nil (Lst Int))), for the instantiated version of the constructor
 
 ; use SMT-LIB syntax for eo::as
 ;(define as ((T Type :implicit) (x T) (S Type)) (eo::as x S))
