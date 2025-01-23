@@ -134,6 +134,8 @@ set(ethos_test_file_list
     bang-lex.eo
     segfault-98.eo
     param-dt-parse.eo
+    datatypes-split-rule-param.eo
+    datatypes-split-rule-param-uinst.eo
 )
 
 if(ENABLE_ORACLES)
