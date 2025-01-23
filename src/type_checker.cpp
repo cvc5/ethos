@@ -1235,12 +1235,22 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_DT_CONSTRUCTORS:
     {
       Expr sym(args[0]);
-      // might be a parametric datatype?
+      // It might be a parametric datatype? We check if it is an apply and
+      // that it is fully applied (i.e. its type is Type).
       bool isParam = false;
+      if (sym.getKind()==Kind::APPLY && getType(sym)==d_state.mkType())
+      {
+        isParam = true;
+        do
+        {
+          sym = sym[0];
+        }while (sym.getKind()==Kind::APPLY);
+      }
       AppInfo* ac = d_state.getAppInfo(sym.getValue());
       if (ac != nullptr && ac->d_attrCons == Attr::DATATYPE)
       {
-        // if parametric, add opaque argument annotations
+        // if parametric, add opaque argument annotations to constructors
+        // that are marked as AMB_DATATYPE_CONSTRUCTOR.
         if (isParam)
         {
           std::vector<ExprValue*> cargs;
