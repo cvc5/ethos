@@ -925,12 +925,13 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       Trace("overload") << "...type arg for ambiguous constructor" << std::endl;
       return mkExpr(Kind::APPLY_OPAQUE, {children[0], children[1]});
     }
-    // note we don't support other uses of `as` for symbol disambiguation yet
+    // note we don't support other uses of `as` for symbol disambiguation yet,
+    // we fallthrough and construct the bogus term of kind AS_RETURN.
   }
   else if (k==Kind::AS)
   {
-    // if it has 2 children, process it, otherwise we make the bogus term
-    // below
+    // if it has 2 children, process it, otherwise we make the bogus term of
+    // kind AS below
     if (vchildren.size()==2)
     {
       Trace("overload") << "process eo::as " << children[0] << " " << children[1] << std::endl;

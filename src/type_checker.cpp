@@ -298,11 +298,12 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
     }
       break;
     case Kind::AS:
+    case Kind::AS_RETURN:
     {
       // constructing an application of AS means the type was incorrect.
       if (out)
       {
-        (*out) << "Encountered bad type for eo::as";
+        (*out) << "Encountered bad type for " << kindToTerm(k);
       }
       return d_null;
     }
