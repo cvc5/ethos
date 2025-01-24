@@ -150,7 +150,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("dt_selectors", Kind::EVAL_DT_SELECTORS);
 
   // as
-  bindBuiltin("as", Kind::AS);
+  bindBuiltin("as", Kind::AS_RETURN);
   bindBuiltinEval("as", Kind::AS);
 
   // note we don't allow parsing (Proof ...), (Quote ...), or (quote ...).
@@ -916,6 +916,15 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
                 << ", " << children.size() << " arguments" << std::endl;
     }
   }
+  else if (k==Kind::AS_RETURN)
+  {
+    // (as nil (List Int)) --> (_ nil (List Int))
+    if (getConstructorKind(vchildren[0]) == Attr::AMB_DATATYPE_CONSTRUCTOR)
+    {
+      Trace("overload") << "...type arg for ambiguous constructor" << std::endl;
+      return mkExpr(Kind::APPLY_OPAQUE, {children[0], children[1]});
+    }
+  }
   else if (k==Kind::AS)
   {
     // if it has 2 children, process it, otherwise we make the bogus term
@@ -1498,44 +1507,18 @@ Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
     vchildren.push_back(c.getValue());
   }
   // try overloads in order until one is found
-  Expr tmp;
-  const ExprValue* rtExpect;
   for (size_t i=0, noverloads = overloads.size(); i<noverloads; i++)
   {
     // search in reverse order, i.e. the last bound symbol takes precendence
     size_t ii = (noverloads-1)-i;
     vchildren[0] = overloads[ii].getValue();
-    // The syntax e.g. (eo::as nil (List Int)) has a different behavior.
-    // it does not distinguish a symbol but instead annotates the constructor
-    // symbol. This is done as an *opaque* argument to ensure type annotations
-    // are not in ordinary positions.
-    if (getConstructorKind(vchildren[0]) == Attr::AMB_DATATYPE_CONSTRUCTOR)
-    {
-      Trace("overload") << "...type arg for ambiguous constructor" << std::endl;
-      Expr cons(vchildren[0]);
-      Expr rt(retType);
-      tmp = mkExpr(Kind::APPLY_OPAQUE, {cons, rt});
-      vchildren[0] = tmp.getValue();
-      // don't expect type to match, as it may be a functional type
-      rtExpect = nullptr;
-    }
-    else
-    {
-      rtExpect = retType;
-    }
-    Expr x = vchildren.size() == 1
-                 ? Expr(vchildren[0])
-                 : (Expr(vchildren.size() > 2
-                             ? mkApplyInternal(vchildren)
-                             : mkExprInternal(Kind::APPLY, vchildren)));
-    Trace("overload") << "...check type of " << x << std::endl;
+    Expr x = Expr(vchildren.size()>2 ? mkApplyInternal(vchildren) : mkExprInternal(Kind::APPLY, vchildren));
     Expr t = d_tc.getType(x);
-    Trace("overload") << "...has type " << t << std::endl;
     // if term is well-formed, and matches the return type if it exists
-    if (!t.isNull() && (rtExpect == nullptr || rtExpect == t.getValue()))
+    if (!t.isNull() && (retType==nullptr || retType==t.getValue()))
     {
       // return the operator, do not check the remainder
-      return Expr(vchildren[0]);
+      return overloads[ii];
     }
   }
   // otherwise, none found, return null
