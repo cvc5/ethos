@@ -919,11 +919,12 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
   else if (k==Kind::AS_RETURN)
   {
     // (as nil (List Int)) --> (_ nil (List Int))
-    if (getConstructorKind(vchildren[0]) == Attr::AMB_DATATYPE_CONSTRUCTOR)
+    if (getConstructorKind(vchildren[0]) == Attr::AMB_DATATYPE_CONSTRUCTOR && children.size()==2)
     {
       Trace("overload") << "...type arg for ambiguous constructor" << std::endl;
       return mkExpr(Kind::APPLY_OPAQUE, {children[0], children[1]});
     }
+    // note we don't support other uses of `as` for symbol disambiguation yet
   }
   else if (k==Kind::AS)
   {
