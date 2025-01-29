@@ -92,6 +92,7 @@ void ExprValue::computeFlags()
         // requires type and literal operator kinds evaluate
         cur->setFlag(Flag::IS_EVAL, true);
       }
+      // flags are a union of the flags of the children
       for (ExprValue* c : children)
       {
         cur->d_flags |= static_cast<uint8_t>(c->d_flags);
