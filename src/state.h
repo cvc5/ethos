@@ -254,11 +254,11 @@ class State
   AppInfo* getAppInfo(const ExprValue* e);
   const AppInfo* getAppInfo(const ExprValue* e) const;
   /** Bind builtin */
-  void bindBuiltin(const std::string& name, Kind k, Attr ac = Attr::NONE);
+  Expr bindBuiltin(const std::string& name, Kind k, Attr ac = Attr::NONE);
   /** Bind builtin */
-  void bindBuiltin(const std::string& name, Kind k, Attr ac, const Expr& t);
+  Expr bindBuiltin(const std::string& name, Kind k, Attr ac, const Expr& t);
   /** Bind builtin eval */
-  void bindBuiltinEval(const std::string& name, Kind k, Attr ac = Attr::NONE);
+  Expr bindBuiltinEval(const std::string& name, Kind k, Attr ac = Attr::NONE);
   //--------------------- parsing state
   /** The symbol table, mapping symbols */
   std::map<std::string, Expr> d_symTable;

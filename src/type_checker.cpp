@@ -940,6 +940,7 @@ Expr TypeChecker::evaluateProgramInternal(
         bool matchSuccess = true;
         for (size_t i=1; i<nargs; i++)
         {
+          // TODO: should we abort here?
           if (children[i]->isEvaluatable())
           {
             return d_null;
