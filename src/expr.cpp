@@ -67,7 +67,7 @@ void ExprValue::computeFlags()
     std::vector<ExprValue*>& children = cur->d_children;
     if (children.empty())
     {
-      bool isEval = (ck==Kind::PROGRAM_CONST || ck==Kind::ORACLE);
+      bool isEval = (ck == Kind::PROGRAM_CONST || ck == Kind::ORACLE);
       bool isNonGround = (ck==Kind::PARAM);
       cur->setFlag(Flag::IS_EVAL, isEval);
       cur->setFlag(Flag::IS_NON_GROUND, isNonGround);

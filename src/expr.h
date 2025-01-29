@@ -61,20 +61,20 @@ class ExprValue
   Kind d_kind;
   /** The children of this expression */
   std::vector<ExprValue*> d_children;
-  /** 
-   * Flags, indicating properties of the term. 
+  /**
+   * Flags, indicating properties of the term.
    */
   enum class Flag
   {
     NONE = 0,
     /** Have we computed the flags for this term? */
     IS_FLAGS_COMPUTED = (1 << 0),
-    /** 
+    /**
      * Is the term "evaluatable", i.e. contains a literal op, program or oracle
      * as a subterm?
      */
     IS_EVAL = (1 << 1),
-    /** 
+    /**
      * Is the term non-ground, i.e. contains a parameter as a subterm?
      */
     IS_NON_GROUND = (1 << 2),
