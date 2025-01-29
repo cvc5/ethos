@@ -933,13 +933,17 @@ Expr TypeChecker::evaluateProgramInternal(
         if (nargs != hchildren.size())
         {
           // TODO: catch this during weak type checking of program bodies
-          Warning() << "*** Bad number of arguments provided in function call to " << hd << std::endl;
+          Warning() << "*** Bad number of arguments provided in function call to " << Expr(hd) << std::endl;
           Warning() << "  Arguments: " << children << std::endl;
           return d_null;
         }
         bool matchSuccess = true;
         for (size_t i=1; i<nargs; i++)
         {
+          if (children[i]->isEvaluatable())
+          {
+            return d_null;
+          }
           if (!match(hchildren[i], children[i], newCtx))
           {
             matchSuccess = false;
