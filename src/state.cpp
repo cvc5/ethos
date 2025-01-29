@@ -1440,6 +1440,7 @@ Expr State::bindBuiltin(const std::string& name, Kind k, Attr ac, const Expr& t)
 Expr State::bindBuiltinEval(const std::string& name, Kind k, Attr ac)
 {
   Expr c = bindBuiltin("eo::"+name, k, ac);
+  // these operators are considered evaluatable.
   c.getValue()->setFlag(ExprValue::Flag::IS_FLAGS_COMPUTED, true);
   c.getValue()->setFlag(ExprValue::Flag::IS_EVAL, true);
   return c;
