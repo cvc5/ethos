@@ -94,14 +94,7 @@ void ExprValue::computeFlags()
       }
       for (ExprValue* c : children)
       {
-        if (c->getFlag(Flag::IS_NON_GROUND))
-        {
-          cur->setFlag(Flag::IS_NON_GROUND, true);
-        }
-        if (c->getFlag(Flag::IS_EVAL))
-        {
-          cur->setFlag(Flag::IS_EVAL, true);
-        }
+        cur->d_flags |= static_cast<uint8_t>(c->d_flags);
       }
     }
   }
