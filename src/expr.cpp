@@ -102,10 +102,6 @@ void ExprValue::computeFlags()
         {
           cur->setFlag(Flag::IS_EVAL, true);
         }
-        if (c->getFlag(Flag::IS_PROG_EVAL))
-        {
-          cur->setFlag(Flag::IS_PROG_EVAL, true);
-        }
       }
     }
   }
@@ -121,18 +117,6 @@ bool ExprValue::isGround()
 {
   computeFlags();
   return !getFlag(ExprValue::Flag::IS_NON_GROUND);
-}
-
-bool ExprValue::isProgEvaluatable()
-{
-  computeFlags();
-  return getFlag(ExprValue::Flag::IS_PROG_EVAL);
-}
-
-bool ExprValue::isCompiled()
-{
-  // this is set manually
-  return getFlag(ExprValue::Flag::IS_COMPILED);
 }
 
 void ExprValue::dec()
@@ -180,12 +164,6 @@ Expr::~Expr()
 bool Expr::isNull() const { return d_value->isNull(); }
 bool Expr::isEvaluatable() const { return d_value->isEvaluatable(); }
 bool Expr::isGround() const { return d_value->isGround(); }
-bool Expr::isProgEvaluatable() const { return d_value->isProgEvaluatable(); }
-bool Expr::isCompiled() const { return d_value->isCompiled(); }
-void Expr::setCompiled()
-{
-  return d_value->setFlag(ExprValue::Flag::IS_COMPILED, true);
-}
 std::string Expr::getSymbol() const
 {
   const Literal * l = d_value->asLiteral();
