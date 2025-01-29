@@ -87,11 +87,6 @@ void ExprValue::computeFlags()
     else
     {
       visit.pop_back();
-      if (isLiteralOp(ck))
-      {
-        // requires type and literal operator kinds evaluate
-        cur->setFlag(Flag::IS_EVAL, true);
-      }
       // flags are a union of the flags of the children
       for (ExprValue* c : children)
       {
