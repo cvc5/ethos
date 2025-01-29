@@ -67,8 +67,9 @@ void ExprValue::computeFlags()
     std::vector<ExprValue*>& children = cur->d_children;
     if (children.empty())
     {
+      bool isEval = (ck==Kind::PROGRAM_CONST || ck==Kind::ORACLE);
       bool isNonGround = (ck==Kind::PARAM);
-      cur->setFlag(Flag::IS_EVAL, false);
+      cur->setFlag(Flag::IS_EVAL, isEval);
       cur->setFlag(Flag::IS_NON_GROUND, isNonGround);
       visit.pop_back();
     }
@@ -86,16 +87,7 @@ void ExprValue::computeFlags()
     else
     {
       visit.pop_back();
-      if (ck==Kind::APPLY)
-      {
-        Kind cck = children[0]->getKind();
-        if (cck==Kind::PROGRAM_CONST || cck==Kind::ORACLE)
-        {
-          cur->setFlag(Flag::IS_PROG_EVAL, true);
-          cur->setFlag(Flag::IS_EVAL, true);
-        }
-      }
-      else if (isLiteralOp(ck))
+      if (isLiteralOp(ck))
       {
         // requires type and literal operator kinds evaluate
         cur->setFlag(Flag::IS_EVAL, true);
