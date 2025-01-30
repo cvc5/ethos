@@ -1438,6 +1438,10 @@ If no such term can be found, then the application does not evaluate.
 > __Note:__ If a case is provided `(si ri)` in the definition of program `f` where `si` is not an application of `f`, an error is thrown.
 Furthermore, if `si` contains any computational operators (i.e. those with `eo::` prefix), then an error is thrown.
 
+> __Note:__ Programs are *not* evaluated on terms that fail to evaluate. For example, if a function `f : Int -> Int` is applied to `(eo::add "A" "B")`, we return `(f (eo::add "A" "B"))`.
+
+> __Note:__ Programs cannot be passed as arguments to other programs in this version of Ethos. For example, calling a function `f : (Int -> Int) -> Int` on another user defined program `g : Int -> Int`, the result will be unevaluated, i.e. `(f g)`.
+
 ### Example: Finding a child in an `or` term
 
 The following program (recursively) computes whether a formula `l` is contained as the direct child of an application of `or`:

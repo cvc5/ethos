@@ -940,7 +940,13 @@ Expr TypeChecker::evaluateProgramInternal(
         bool matchSuccess = true;
         for (size_t i=1; i<nargs; i++)
         {
-          // TODO: should we abort here?
+          // Note we abort here, which changed in Ethos versions >=0.1.2.
+          // The motivation is to disallow unintuitive behaviors of Ethos,
+          // which includes:
+          // - Passing (unapplied) user programs, user oracles or builtin
+          // operators, which we do not support in this current version.
+          // - Passing stuck terms, where we chose to propagate the failure,
+          // e.g. (<program> t) is also stuck if t is stuck.
           if (children[i]->isEvaluatable())
           {
             return d_null;
