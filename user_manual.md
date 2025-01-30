@@ -1238,9 +1238,9 @@ Instances of ambiguous datatype constructors are expected to be annotated with t
 This denotes a constant (e.g. a term with zero arguments), whose type is `(Tree Int)`.
 
 > __Note:__ Internally, all ambiguous datatype constructors are instead defined to be of type `(-> (Quote T) T1 ... Tn T)`
-This is done automatically, so that for the aforementioned datatype, `(eo::typeof leaf) == (-> (Quote (Tree X)) (Tree X))`.
+This is done automatically, so that for the aforementioned datatype, the type of `leaf` is `(-> (Quote (Tree X)) (Tree X))`.
 Ethos interprets `(as leaf (Tree Int))` as `(_ leaf (Tree Int))`, where this is an "opaque" application (see [opaque](#opaque)).
-Conceptually, this means that (_ leaf (Tree Int)) is a constant symbol that is indexed by its type.
+Conceptually, this means that `(_ leaf (Tree Int))` is a constant symbol (with no children) that is indexed by its type.
 
 The semantics of `eo::dt_constructors` and `eo::dt_selectors` is overloaded to handle (annotated) constructors and (instantiated) parameteric datatypes.
 For example, given the previous definition, note the following:
