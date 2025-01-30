@@ -3,8 +3,8 @@ This file contains a summary of important user-visible changes.
 ethos 0.1.2 prerelease
 ======================
 
-- Change the execution semantics when a term fails to evaluate. In particular, we do not call user provided programs and oracles when at least argument could not be evaluated. This change was made to make errors more intuitive. Note it is a backwards-incompatible change in semantics to programs that previously relied on begin called on unevaluated terms.
-- User programs, user oracles, and builtin operators that are unapplied are now considered unevaluated. This makes the type checker more strict and disallows passing them as arguments to other programs.
+- Change the execution semantics when a program takes an unevalated term as an argument. In particular, we do not call user provided programs and oracles when at least argument could not be evaluated. This change was made to make errors more intuitive. Note this changes the semantics of programs that previously relied on being called on unevaluated terms.
+- User programs, user oracles, and builtin operators that are unapplied are now considered unevaluated. This makes the type checker more strict and disallows passing them as arguments to other programs, which previously led to undefined behavior.
 
 ethos 0.1.1
 ===========
