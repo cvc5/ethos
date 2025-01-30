@@ -1161,8 +1161,8 @@ Examples of these operators are given below.
 ```smt
 (declare-datatypes ((Tree 0)) (((node (left Tree) (right Tree)) (leaf))))
 
-(eo::dt_constructors Tree)  == (eo::List::cons node (eo::List::cons leaf eo::List::nil))
-(eo::dt_selectors node)     == (eo::List::cons left (eo::List::cons right eo::List::nil))
+(eo::dt_constructors Tree)   == (eo::List::cons node (eo::List::cons leaf eo::List::nil))
+(eo::dt_selectors node)      == (eo::List::cons left (eo::List::cons right eo::List::nil))
 (eo::dt_selectors leaf)      == eo::List::nil
 
 (declare-datatypes ((Color 0)) (((red) (green) (blue))))
@@ -1217,6 +1217,45 @@ As part of the example, we see a particular definition of a list, called `Tree`.
 Applying the proof rule `dt-split` to a variable `x` of type `Tree` allows us to conclude that `x` must either be an application of `node` or `leaf`.
 Note that the definitino of `dt-split` is applicable to *any* datatype definition.
 In particular, as a second example, we see the rule applied to a term `y` of type `Color` gives us a conclusion with three disjuncts.
+
+### Parametric datatypes
+
+Ethos supports reasoning about parametric datatypes with ambiguous datatype construtors using the same syntax as SMT-LIB 2.6.
+
+In detail, we say a datatype constructor is "ambiguous" if it of type:
+```
+(-> T1 ... Tn T)
+```
+where some free parameter of T is not contained in the free parameters of `T1, ..., Tn`. (Note n may be 0).
+
+All ambiguous datatype constructors are required to be annotated using the SMT-LIB 2.6 syntax `(as <constructor> <type>)`.
+For example:
+```
+(declare-datatypes ((Tree 1)) ((par (X) (((node (left Tree) (data X) (right Tree)) (leaf))))))
+```
+In the above example, `leaf` is an ambiguous datatype constructor, while `node` is not.
+Instances of ambiguous datatype constructors are expected to be annotated with their return type using the syntax e.g. `(as leaf (Tree Int))`.
+This denotes a constant (e.g. a term with zero arguments), whose type is `(Tree Int)`.
+
+> __Note:__ Internally, all ambiguous datatype constructors are instead defined to be of type `(-> (Quote T) T1 ... Tn T)`
+This is done automatically, so that for the aforementioned datatype, `(eo::typeof leaf) == (-> (Quote (Tree X)) (Tree X))`.
+Ethos interprets `(as leaf (Tree Int))` as `(_ leaf (Tree Int))`, where this is an "opaque" application (see [opaque](#opaque)).
+Conceptually, this means that (_ leaf (Tree Int)) is a constant symbol that is indexed by its type.
+
+The semantics of `eo::dt_constructors` and `eo::dt_selectors` is overloaded to handle (annotated) constructors and (instantiated) parameteric datatypes.
+For example, given the previous definition, note the following:
+```
+(eo::dt_constructors Tree)              == (eo::List::cons node (eo::List::cons leaf eo::List::nil))
+(eo::dt_constructors (Tree Int))        == (eo::List::cons node (eo::List::cons (as leaf (Tree Int)) eo::List::nil))
+(eo::dt_constructors (Tree U))          == (eo::List::cons node (eo::List::cons (as leaf (Tree U)) eo::List::nil))
+
+(eo::dt_selectors node)                 == (eo::List::cons left (eo::List::cons data (eo::List::cons right eo::List::nil)))
+(eo::dt_selectors leaf)                 == eo::List::nil
+(eo::dt_selectors (as leaf (Tree Int))) == eo::List::nil
+```
+
+In particular, the constructors of a *fully* instantiated parameteric datatype are such that its ambiguous constructors are annotated in the return value, and its unambiguous constructors are included as-is.
+The selectors of a constructor (which are never ambiguous) are returned independently of whether the constructor is annotated.
 
 ## Declaring Proof Rules
 
