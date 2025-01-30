@@ -1257,6 +1257,8 @@ For example, given the previous definition, note the following:
 In particular, the constructors of a *fully* instantiated parameteric datatype are such that its ambiguous constructors are annotated in the return value, and its unambiguous constructors are included as-is.
 The selectors of a constructor (which are never ambiguous) are returned independently of whether the constructor is annotated.
 
+> __Note:__ Note that `eo::dt_constructors` does not evaluate on parametric types that are partially applied, e.g. `(eo::dt_constructors (Pair Int))` does not evaluate, where `Pair` expects two type parameters.
+
 ## Declaring Proof Rules
 
 The generic syntax for a `declare-rule` command accepted by `ethos` is:
