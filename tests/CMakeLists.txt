@@ -134,6 +134,7 @@ set(ethos_test_file_list
     bang-lex.eo
     segfault-98.eo
     eo-add-non-first-class.eo
+    unstuck-eval-bv-example.eo
 )
 
 if(ENABLE_ORACLES)

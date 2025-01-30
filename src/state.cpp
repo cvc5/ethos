@@ -1417,13 +1417,13 @@ Plugin* State::getPlugin()
   return d_plugin;
 }
 
-Expr State::bindBuiltin(const std::string& name, Kind k, Attr ac)
+void State::bindBuiltin(const std::string& name, Kind k, Attr ac)
 {
   // type is irrelevant, assign abstract
-  return bindBuiltin(name, k, ac, d_absType);
+  bindBuiltin(name, k, ac, d_absType);
 }
 
-Expr State::bindBuiltin(const std::string& name, Kind k, Attr ac, const Expr& t)
+void State::bindBuiltin(const std::string& name, Kind k, Attr ac, const Expr& t)
 {
   Expr c = mkSymbol(Kind::CONST, name, t);
   bind(name, c);
@@ -1434,16 +1434,11 @@ Expr State::bindBuiltin(const std::string& name, Kind k, Attr ac, const Expr& t)
     ai.d_kind = k;
     ai.d_attrCons = ac;
   }
-  return c;
 }
 
-Expr State::bindBuiltinEval(const std::string& name, Kind k, Attr ac)
+void State::bindBuiltinEval(const std::string& name, Kind k, Attr ac)
 {
-  Expr c = bindBuiltin("eo::"+name, k, ac);
-  // these operators are considered evaluatable.
-  c.getValue()->setFlag(ExprValue::Flag::IS_FLAGS_COMPUTED, true);
-  c.getValue()->setFlag(ExprValue::Flag::IS_EVAL, true);
-  return c;
+  bindBuiltin("eo::"+name, k, ac);
 }
 
 void State::defineProgram(const Expr& v, const Expr& prog)
