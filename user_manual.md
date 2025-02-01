@@ -426,19 +426,22 @@ and the function `re.inter` (in SMT-LIB, the intersection of regular expressions
 that references the free constant `re.all`.
 
 However, when using `declare-const`, the nil terminator of an associative operator cannot depend on the parameters of the type of that function.
-For example, say we wish to declare bitvector or (`bvor` in SMT-LIB), where its nil terminator is bitvector zero for the given bit width.
+For example, say we wish to declare bitvector or (`bvor` in SMT-LIB), where its nil terminator is the bitvector zero.
 A possible declaration is the following:
 
 ```smt
 (declare-const bvor
     (-> (! Int :var m :implicit) (BitVec m) (BitVec m) (BitVec m))
-    :right-assoc-nil ???
+    :right-assoc-nil #b0000
 )
 ```
 
-The nil terminator of this operator is the bitvector zero whose width is `m`.
-However note that `m` is not in scope of the declaration of its nil terminator.
-We instead require such declarations to be made with `declare-parameterized-const`, which we will describe later in [param-constants](#param-constants).
+Above, note that `m` was not in scope when defining the nil terminator of this operator,
+and thus we have hardcoded the nil terminator to be a bitvector of width `4`.
+This definition is clearly limited, as applications of this operator will fail to type check if `m` is not `4`.
+However,
+the command `declare-parameterized-const` can be used to define a version of `bvor` whose nil terminator depends on `m`,
+which we will describe later in [param-constants](#param-constants).
 
 #### List
 
