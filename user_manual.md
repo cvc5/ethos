@@ -39,7 +39,16 @@ ethos <option>* <file>
 
 The set of available options `<option>` are given in the appendix. Note the command line interface of `ethos` expects exactly one file (which itself may reference other files via the `include` command as we will see later). The file and options can appear in any order.
 
-Ethos will either emit an error message indicating:
+The `<file>` passed to Ethos on the command line is either:
+
+- A Eunoia file, defining a background theory or proof calculus (extension `.eo`), or
+- A file containing a proof.
+
+Any file with extension that is not `.eo` is assumed to be the latter.
+All proof files are expected to contain a reference to a Eunoia file that defines its symbols.
+Complete details on the kinds of files are described later in this document [here](#full-syntax).
+
+When invoking Ethos on the command line, Ethos will either emit an error message indicating:
 
 - the kind of failure (type checking, proof checking, lexer error)
 - the line and column of the failure
