@@ -45,8 +45,8 @@ The `<file>` passed to Ethos on the command line is either:
 - A file containing a proof.
 
 Any file with extension that is not `.eo` is assumed to be the latter.
-All proof files are expected to contain a reference to a Eunoia file that defines its symbols.
-Complete details on the kinds of files are described later in this document [here](#full-syntax).
+All proof files are expected to contain a reference to a Eunoia file that defines its symbols via an include command or using the command line option `--include=X`.
+Complete details on the categories of files accepted by Ethos are described later in this document [here](#full-syntax).
 
 When invoking Ethos on the command line, Ethos will either emit an error message indicating:
 
