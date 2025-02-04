@@ -54,7 +54,7 @@ install_prefix=default
 
 buildtype=default
 
-build_shared=ON
+build_static=default
 
 #--------------------------------------------------------------------------#
 
@@ -80,8 +80,8 @@ do
     --name) die "missing argument to $1 (try -h)" ;;
     --name=*) build_dir=${1##*=} ;;
 
-    --static) build_shared=OFF;;
-    --no-static) build_shared=ON;;
+    --static) build_static=ON;;
+    --no-static) build_static=OFF;;
 
     -D*) cmake_opts="${cmake_opts} $1" ;;
 
@@ -103,8 +103,8 @@ done
   && cmake_opts="$cmake_opts -DCMAKE_BUILD_TYPE=$buildtype"
 [ "$install_prefix" != default ] \
   && cmake_opts="$cmake_opts -DCMAKE_INSTALL_PREFIX=$install_prefix"
-[ $build_shared != default ] \
-  && cmake_opts="$cmake_opts -DBUILD_SHARED_LIBS=$build_shared"
+[ $build_static != default ] \
+  && cmake_opts="$cmake_opts -DBUILD_STATIC=$build_static"
 
 uname_output=$(uname)
 [[ $uname_output =~ ^MSYS || $uname_output =~ ^MINGW ]] \

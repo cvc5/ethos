@@ -11,14 +11,17 @@ project (ethos_checker)
 
 # >> 2-valued: ON OFF
 #    > for options where we don't need to detect if set by user (default: OFF)
-option(BUILD_SHARED_LIBS          "Build shared libraries and binary")
-option(ENABLE_ORACLES             "Enable support for Oracles" ON)
+option(BUILD_STATIC          "Build static binary" OFF)
+option(ENABLE_ORACLES        "Enable support for Oracles" ON)
 
-if(NOT BUILD_SHARED_LIBS)
+if(BUILD_STATIC)
+  set(BUILD_SHARED_LIBS OFF)
+  set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
+  # Linking system libraries statically is strongly discouraged on macOS.
+  # See https://developer.apple.com/library/archive/qa/qa1118/_index.html
   if(NOT APPLE)
     set(CMAKE_EXE_LINKER_FLAGS "-static")
   endif()
-    set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
 endif()
 
 set (CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
