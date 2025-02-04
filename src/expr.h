@@ -9,6 +9,7 @@
 #ifndef EXPR_H
 #define EXPR_H
 
+#include <cstdint>
 #include <map>
 #include <unordered_set>
 #include <vector>

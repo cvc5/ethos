@@ -298,11 +298,12 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
     }
       break;
     case Kind::AS:
+    case Kind::AS_RETURN:
     {
       // constructing an application of AS means the type was incorrect.
       if (out)
       {
-        (*out) << "Encountered bad type for eo::as";
+        (*out) << "Encountered bad type for " << kindToTerm(k);
       }
       return d_null;
     }
@@ -1225,20 +1226,67 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       }
     }
     break;
-    case Kind::EVAL_DT_CONSTRUCTORS:
     case Kind::EVAL_DT_SELECTORS:
     {
-      AppInfo* ac = d_state.getAppInfo(args[0]);
+      // it may be an ambiguous constructor with an annotation, in which
+      // case we extract the underlying symbol
+      Expr sym(args[0]);
+      sym = sym.getKind() == Kind::APPLY_OPAQUE ? sym[0] : sym;
+      AppInfo* ac = d_state.getAppInfo(sym.getValue());
       if (ac != nullptr)
       {
         Assert(args[0]->isGround());
         Attr a = ac->d_attrCons;
-        if ((a == Attr::DATATYPE && k == Kind::EVAL_DT_CONSTRUCTORS)
-            || (a == Attr::DATATYPE_CONSTRUCTOR
-                && k == Kind::EVAL_DT_SELECTORS))
+        if (a == Attr::DATATYPE_CONSTRUCTOR
+            || a == Attr::AMB_DATATYPE_CONSTRUCTOR)
         {
           return ac->d_attrConsTerm;
         }
+      }
+    }
+    break;
+    case Kind::EVAL_DT_CONSTRUCTORS:
+    {
+      Expr sym(args[0]);
+      // It might be a parametric datatype? We check if it is an apply and
+      // that it is fully applied (i.e. its type is Type).
+      bool isParam = false;
+      if (sym.getKind() == Kind::APPLY && getType(sym) == d_state.mkType())
+      {
+        isParam = true;
+        do
+        {
+          sym = sym[0];
+        } while (sym.getKind() == Kind::APPLY);
+      }
+      AppInfo* ac = d_state.getAppInfo(sym.getValue());
+      if (ac != nullptr && ac->d_attrCons == Attr::DATATYPE)
+      {
+        // if parametric, add opaque argument annotations to constructors
+        // that are marked as AMB_DATATYPE_CONSTRUCTOR.
+        if (isParam)
+        {
+          std::vector<ExprValue*> cargs;
+          Expr cop = d_state.mkListCons();
+          getNAryChildren(ac->d_attrConsTerm.getValue(),
+                          cop.getValue(),
+                          nullptr,
+                          cargs,
+                          false);
+          std::vector<Expr> cargsp;
+          for (ExprValue* c : cargs)
+          {
+            Expr ce(c);
+            if (d_state.getConstructorKind(c) == Attr::AMB_DATATYPE_CONSTRUCTOR)
+            {
+              Expr dt(args[0]);
+              ce = d_state.mkExpr(Kind::APPLY_OPAQUE, {ce, dt});
+            }
+            cargsp.push_back(ce);
+          }
+          return d_state.mkList(cargsp);
+        }
+        return ac->d_attrConsTerm;
       }
     }
     break;

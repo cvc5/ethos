@@ -34,7 +34,8 @@ enum class Kind
   LAMBDA,
   TUPLE,
   PROGRAM,
-  AS,
+  AS,         // (eo::as t T), where T is the type of t
+  AS_RETURN,  // SMT-LIB (as t T), where T is the return type of t
   PARAMETERIZED,
   APPLY_OPAQUE,
 
