@@ -149,7 +149,7 @@ class ExprParser
   /** Bind, or throw error otherwise */
   void bind(const std::string& name, Expr& e);
   /**
-   * @return a variable from the free variables of e that is not in bvs
+   * @return a variable from the free variables of e that is not in bvs if
    * one exists, or the null expression otherwise.
    */
   Expr findFreeVar(const Expr& e, const std::vector<Expr>& bvs);

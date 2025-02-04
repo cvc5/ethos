@@ -1226,14 +1226,14 @@ In detail, we say a datatype constructor is "ambiguous" if it of type:
 ```
 (-> T1 ... Tn T)
 ```
-where some free parameter of T is not contained in the free parameters of `T1, ..., Tn`. (Note n may be 0).
+where some free parameter of T is not contained in the free parameters of `T1, ..., Tn`. (Note `n` may be 0).
 
 All ambiguous datatype constructors are required to be annotated using the SMT-LIB 2.6 syntax `(as <constructor> <type>)`.
 For example:
 ```
 (declare-datatypes ((Tree 1)) ((par (X) (((node (left Tree) (data X) (right Tree)) (leaf))))))
 ```
-In the above example, `leaf` is an ambiguous datatype constructor, while `node` is not.
+In the this example, `leaf` is an ambiguous datatype constructor, while `node` is not.
 Instances of ambiguous datatype constructors are expected to be annotated with their return type using the syntax e.g. `(as leaf (Tree Int))`.
 This denotes a constant (e.g. a term with zero arguments), whose type is `(Tree Int)`.
 
