@@ -133,6 +133,10 @@ set(ethos_test_file_list
     simul-overload.eo
     bang-lex.eo
     segfault-98.eo
+    param-dt-parse.eo
+    param-dt-parse-amb-fun.eo
+    datatypes-split-rule-param.eo
+    datatypes-split-rule-param-uinst.eo
 )
 
 if(ENABLE_ORACLES)

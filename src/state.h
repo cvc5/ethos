@@ -105,6 +105,10 @@ class State
   Expr mkBoolType();
   /** eo::List */
   Expr mkListType();
+  /** eo::List::cons */
+  Expr mkListCons();
+  /** eo::List::nil */
+  Expr mkListNil();
   /** (Proof <proven>) */
   Expr mkProofType(const Expr& proven);
   /** (Quote <term>) */

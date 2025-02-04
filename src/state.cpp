@@ -150,6 +150,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("dt_selectors", Kind::EVAL_DT_SELECTORS);
 
   // as
+  bindBuiltin("as", Kind::AS_RETURN);
   bindBuiltinEval("as", Kind::AS);
 
   // note we don't allow parsing (Proof ...), (Quote ...), or (quote ...).
@@ -564,6 +565,9 @@ Expr State::mkBoolType()
 
 Expr State::mkListType() { return d_listType; }
 
+Expr State::mkListCons() { return d_listCons; }
+Expr State::mkListNil() { return d_listNil; }
+
 Expr State::mkProofType(const Expr& proven)
 {
   return Expr(mkExprInternal(Kind::PROOF_TYPE, {proven.getValue()}));
@@ -912,10 +916,22 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
                 << ", " << children.size() << " arguments" << std::endl;
     }
   }
+  else if (k == Kind::AS_RETURN)
+  {
+    // (as nil (List Int)) --> (_ nil (List Int))
+    if (getConstructorKind(vchildren[0]) == Attr::AMB_DATATYPE_CONSTRUCTOR
+        && children.size() == 2)
+    {
+      Trace("overload") << "...type arg for ambiguous constructor" << std::endl;
+      return mkExpr(Kind::APPLY_OPAQUE, {children[0], children[1]});
+    }
+    // note we don't support other uses of `as` for symbol disambiguation yet,
+    // we fallthrough and construct the bogus term of kind AS_RETURN.
+  }
   else if (k==Kind::AS)
   {
-    // if it has 2 children, process it, otherwise we make the bogus term
-    // below
+    // if it has 2 children, process it, otherwise we make the bogus term of
+    // kind AS below
     if (vchildren.size()==2)
     {
       Trace("overload") << "process eo::as " << children[0] << " " << children[1] << std::endl;
