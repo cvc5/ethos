@@ -3,6 +3,8 @@ This file contains a summary of important user-visible changes.
 ethos 0.1.2 prerelease
 ======================
 
+- Change the execution semantics when a program takes an unevalated term as an argument. In particular, we do not call user provided programs and oracles when at least argument could not be evaluated. This change was made to make errors more intuitive. Note this changes the semantics of programs that previously relied on being called on unevaluated terms.
+- User programs, user oracles, and builtin operators that are unapplied are now considered unevaluated. This makes the type checker more strict and disallows passing them as arguments to other programs, which previously led to undefined behavior.
 - Adds support for the SMT-LIB `as` annotations for ambiguous datatype constructors, i.e. those whose return type cannot be inferred from its argument types. Following SMT-LIB convention, ambiguous datatype constructors are expected to be annotated with their *return* type using `as`, which internally is treated as a type argument to the constructor.
 - The semantics for `eo::dt_constructors` is extended for instantiated parametric datatypes. For example calling `eo::dt_constructors` on `(List Int)` returns the list containing `cons` and `(as nil (List Int))`.
 - The semantics for `eo::dt_selectors` is extended for annotated constructors. For example calling `eo::dt_selectors` on `(as nil (List Int))` returns the empty list.

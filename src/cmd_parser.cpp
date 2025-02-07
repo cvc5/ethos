@@ -748,7 +748,8 @@ bool CmdParser::parseNextCommand()
           Expr rhs = p[1];
           d_eparser.ensureBound(rhs, bvs);
           // TODO: allow variable or default case?
-          for (size_t i = 0, nchildren = pc.getNumChildren(); i < nchildren; i++)
+          for (size_t i = 1, nchildren = pc.getNumChildren(); i < nchildren;
+               i++)
           {
             Expr ecc = pc[i];
             if (ecc.isEvaluatable())

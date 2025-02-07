@@ -133,6 +133,8 @@ set(ethos_test_file_list
     simul-overload.eo
     bang-lex.eo
     segfault-98.eo
+    eo-add-non-first-class.eo
+    unstuck-eval-bv-example.eo
     param-dt-parse.eo
     param-dt-parse-amb-fun.eo
     datatypes-split-rule-param.eo

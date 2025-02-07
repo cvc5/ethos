@@ -934,13 +934,24 @@ Expr TypeChecker::evaluateProgramInternal(
         if (nargs != hchildren.size())
         {
           // TODO: catch this during weak type checking of program bodies
-          Warning() << "*** Bad number of arguments provided in function call to " << hd << std::endl;
+          Warning() << "*** Bad number of arguments provided in function call to " << Expr(hd) << std::endl;
           Warning() << "  Arguments: " << children << std::endl;
           return d_null;
         }
         bool matchSuccess = true;
         for (size_t i=1; i<nargs; i++)
         {
+          // Note we abort here, which changed in Ethos versions >=0.1.2.
+          // The motivation is to disallow unintuitive behaviors of Ethos,
+          // which includes:
+          // - Passing (unapplied) user programs, user oracles or builtin
+          // operators, which we do not support in this current version.
+          // - Passing stuck terms, where we chose to propagate the failure,
+          // e.g. (<program> t) is also stuck if t is stuck.
+          if (children[i]->isEvaluatable())
+          {
+            return d_null;
+          }
           if (!match(hchildren[i], children[i], newCtx))
           {
             matchSuccess = false;

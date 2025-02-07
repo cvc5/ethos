@@ -57,24 +57,28 @@ class ExprValue
   bool isEvaluatable();
   /** Has variable */
   bool isGround();
-  /** Has program variable */
-  bool isProgEvaluatable();
-  /** Is part of compiled code */
-  bool isCompiled();
  protected:
   /** The kind */
   Kind d_kind;
   /** The children of this expression */
   std::vector<ExprValue*> d_children;
-  /** flags */
+  /**
+   * Flags, indicating properties of the term.
+   */
   enum class Flag
   {
     NONE = 0,
+    /** Have we computed the flags for this term? */
     IS_FLAGS_COMPUTED = (1 << 0),
+    /**
+     * Is the term "evaluatable", i.e. contains a literal op, program or oracle
+     * as a subterm?
+     */
     IS_EVAL = (1 << 1),
-    IS_PROG_EVAL = (1 << 2),
-    IS_NON_GROUND = (1 << 3),
-    IS_COMPILED = (1 << 4)
+    /**
+     * Is the term non-ground, i.e. contains a parameter as a subterm?
+     */
+    IS_NON_GROUND = (1 << 2),
   };
   char d_flags;
   /** */
@@ -147,12 +151,6 @@ class Expr
   bool isEvaluatable() const;
   /** Has variable */
   bool isGround() const;
-  /** Has program variable */
-  bool isProgEvaluatable() const;
-  /** Is part of compiled code */
-  bool isCompiled() const;
-  /** Set compiled */
-  void setCompiled();
   /** Get symbol */
   std::string getSymbol() const;
   /** Get underlying value */
