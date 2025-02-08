@@ -162,6 +162,7 @@ std::string kindToTerm(Kind k)
         case Kind::EVAL_INT_MOD: ss << "zmod";break;
         case Kind::EVAL_RAT_DIV: ss << "qdiv";break;
         case Kind::EVAL_IS_NEG: ss << "is_neg";break;
+        case Kind::EVAL_GT: return "gt";break;
         // strings
         case Kind::EVAL_LENGTH: ss << "len"; break;
         case Kind::EVAL_CONCAT: ss << "concat"; break;
