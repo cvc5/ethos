@@ -36,15 +36,14 @@ public:
   Kind d_kind;
   /**
    * Whether this symbol is overloaded. The overloads for this symbol are
-   * maintained in State::d_overloads[sym], where sym is the symbol for this
-   * term.
+   * maintained in State::d_overloads[d_overloadName].
    */
   bool d_isOverloaded;
   /**
-   * The name of the symbol, if overloaded. Note this is required to handle
-   * cases where symbols are bound to terms that do not have their given
-   * name, e.g. (define s () (+ 1 1)) maps "s" to the term (+ 1 1), which
-   * does not have the name "s".
+   * The name of the symbol, if overloaded. Note this is required to be
+   * stored explicitly to handle cases where symbols are bound to terms that do
+   * not have their given name, e.g. (define s () (+ 1 1)) maps "s" to the term
+   * (+ 1 1), which does not have the name "s".
    */
   std::string d_overloadName;
 };
