@@ -112,6 +112,12 @@ bool CmdParser::parseNextCommand()
       {
         d_state.pushAssumptionScope();
       }
+      else if (d_state.getAssumptionLevel()!=0)
+      {
+        std::stringstream ss;
+        ss << "Cannot make global assume at nested assumption level";
+        d_lex.parseError(ss.str());
+      }
       std::string name = d_eparser.parseSymbol();
       // parse what is proven
       Expr proven = d_eparser.parseFormula();
