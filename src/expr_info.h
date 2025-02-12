@@ -34,7 +34,11 @@ public:
   Expr d_attrConsTerm;
   /** Associated kind */
   Kind d_kind;
-  /** Is overloaded? */
+  /**
+   * Whether this symbol is overloaded. The overloads for this symbol are
+   * maintained in State::d_overloads[sym], where sym is the symbol for this
+   * term.
+   */
   bool d_isOverloaded;
 };
 
