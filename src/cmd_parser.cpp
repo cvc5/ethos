@@ -112,12 +112,8 @@ bool CmdParser::parseNextCommand()
       {
         d_state.pushAssumptionScope();
       }
-      else if (d_state.getAssumptionLevel()!=0)
-      {
-        std::stringstream ss;
-        ss << "Cannot make global assume at nested assumption level";
-        d_lex.parseError(ss.str());
-      }
+      // note we typically expect d_state.getAssumptionLevel() to be zero
+      // when using ASSUME, but we do not check for this here.
       std::string name = d_eparser.parseSymbol();
       // parse what is proven
       Expr proven = d_eparser.parseFormula();
@@ -856,7 +852,10 @@ bool CmdParser::parseNextCommand()
           d_lex.parseError("Cannot pop at level zero");
         }
         std::vector<Expr> as = d_state.getCurrentAssumptions();
-        Assert (as.size()==1);
+        // The size of assumptions should be one, but may contain more
+        // assumptions if e.g. we encountered assume in a nested assumption
+        // scope. Nevertheless, as[0] is always the first assumption in
+        // the assume-push.
         // push the assumption
         children.push_back(as[0]);
       }
