@@ -283,8 +283,8 @@ class State
    */
   std::vector<std::string> d_overloadedDecls;
   /**
-   * The symbols that are overloads of this symbol at the time this symbol was
-   * bound, including itself. This vector is either empty or has size >=2.
+   * Maps symbols that are bound to >= 2 terms to the list of all terms bound
+   * to that symbol. Each vector in the range of this map has size >=2.
    */
   std::map<std::string, std::vector<Expr>> d_overloads;
   /**
