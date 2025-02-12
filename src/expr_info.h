@@ -40,6 +40,13 @@ public:
    * term.
    */
   bool d_isOverloaded;
+  /**
+   * The name of the symbol, if overloaded. Note this is required to handle
+   * cases where symbols are bound to terms that do not have their given
+   * name, e.g. (define s () (+ 1 1)) maps "s" to the term (+ 1 1), which
+   * does not have the name "s".
+   */
+  std::string d_overloadName;
 };
 
 }  // namespace ethos

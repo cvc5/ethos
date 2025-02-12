@@ -671,7 +671,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       if (ai->d_isOverloaded)
       {
         Trace("overload") << "Use overload when constructing " << k << " " << children << std::endl;
-        std::vector<Expr>& ov = d_overloads[children[0].getSymbol()];
+        std::vector<Expr>& ov = d_overloads[ai->d_overloadName];
         Assert (ov.size()>=2);
         Expr ret = getOverloadInternal(ov, children);
         if (!ret.isNull())
@@ -954,7 +954,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       if (ai!=nullptr && ai->d_isOverloaded)
       {
         Trace("overload") << "...overloaded" << std::endl;
-        std::vector<Expr>& ov = d_overloads[children[0].getSymbol()];
+        std::vector<Expr>& ov = d_overloads[ai->d_overloadName];
         Assert (ov.size()>=2);
         reto = getOverloadInternal(ov, dummyChildren, ftype.second.getValue());
       }
@@ -1147,6 +1147,7 @@ bool State::bind(const std::string& name, const Expr& e)
     // if already bound, mark as overloaded
     AppInfo& ain = d_appData[e.getValue()];
     ain.d_isOverloaded = true;
+    ain.d_overloadName = name;
     std::vector<Expr>& ov = d_overloads[name];
     if (ov.empty())
     {
