@@ -27,18 +27,15 @@ using AttrMap = std::map<Attr, std::vector<Expr>>;
 class AppInfo
 {
 public:
-  AppInfo() : d_attrCons( ), d_kind(Kind::NONE) {}
+  AppInfo() : d_attrCons( ), d_kind(Kind::NONE), d_isOverloaded(false) {}
   /** Attribute */
   Attr d_attrCons;
   /** Attribute */
   Expr d_attrConsTerm;
   /** Associated kind */
   Kind d_kind;
-  /**
-   * The symbols that are overloads of this symbol at the time this symbol was
-   * bound, including itself. This vector is either empty or has size >=2.
-   */
-  std::vector<Expr> d_overloads;
+  /** Is overloaded? */
+  bool d_isOverloaded;
 };
 
 }  // namespace ethos

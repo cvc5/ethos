@@ -283,6 +283,11 @@ class State
    */
   std::vector<std::string> d_overloadedDecls;
   /**
+   * The symbols that are overloads of this symbol at the time this symbol was
+   * bound, including itself. This vector is either empty or has size >=2.
+   */
+  std::map<std::string, std::vector<Expr>> d_overloads;
+  /**
    * Context size, which is the size of d_decls at the time of when each
    * current pushScope was called.
    */
