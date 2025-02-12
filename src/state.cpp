@@ -246,7 +246,7 @@ void State::popScope()
       its->second = tmp;
       if (ov.size()==1)
       {
-        ov.clear();
+        d_overloads.erase(d_decls[i]);
       }
       continue;
     }
