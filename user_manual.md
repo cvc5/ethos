@@ -91,7 +91,7 @@ In the following sections, we describe these features in more detail. A full syn
 
 In Eunoia, as in SMT-LIB version 3.0, a common BNF is used to specify _terms_ (expressions denoting values), _types_ (expressions denoting sets of values) and _kinds_ (expressions denoting sets of types).
 In this document, unless specified otherwise, we will use _term_ more generally to refer to a value term, a type, or a kind.
-Terms are composed of applications, built-in operators of the language (e.g., for performing computations, see [computation](#computation)), literals (see [literals](#literals)), and three kinds of atomic terms (_constants_, _variables_, and _parameters_) which we describe in the following.
+Terms are composed of applications, built-in operators of the language (e.g., for performing computations, see [computation](#computation)), literals (see [literals](#literals)), and three kinds of atomic terms (_constants_, _variables_, and _parameters_) which we describe below.
 A _function (symbol)_ is an atomic term having a function type, that is, a type of the form `(-> ... ...)`.
 The builtin `eo::define` binder can be used for specifying terms that contain common subterms analogously to `let` binders in other languages.
 
@@ -151,7 +151,7 @@ The Eunoia language contains further commands for declaring symbols that are not
 (declare-const P (-> Int Bool))
 ```
 
-Since Ethos does not assume any builtin definitions of SMT-LIB theories, definitions of standard symbols in SMT-LIB theories(such as `Int`, `+`, etc.) must be provided in Eunoia signatures. In the above example, symbol `c` is declared to be a constant (0-ary) symbol of type `Int`. The symbol `f` is a function taking two integers and returning an integer.
+Since Ethos does not assume any builtin definitions of SMT-LIB theories, definitions of standard symbols in SMT-LIB theories (such as `Int`, `+`, etc.) must be provided in Eunoia signatures. In the above example, symbol `c` is declared to be a constant (0-ary) symbol of type `Int`. The symbol `f` is a function taking two integers and returning an integer.
 
 Observe that despite the use of different syntax in their declarations, the types of `f` and `g` in the above example are identical as `->` is a right-associative binary type constructor.
 
@@ -190,7 +190,7 @@ Eunoia supports the declaration of polymorphic types, that is, types depending o
 (declare-const b (IntArray Bool))
 ```
 
-In the above example, we declare and integer type constructor of kind `Type` and array type constructor of kind is `(-> Type Type Type)`.
+In the above example, we declare an integer type constructor of kind `Type` and array type constructor of kind `(-> Type Type Type)`.
 
 <!-- We should say something about the defines above -->
 
@@ -214,7 +214,7 @@ In particular:
 (define notTrue () (not true) :type Bool)
 ```
 
-This indicates that the checker compare the type it computed for the term `(not true)` and compare it with the specified type `Bool`. An error will be thrown if the two types are not identical.
+This indicates the checker to compare the type it computed for the term `(not true)`, with the specified type `Bool`. An error will be thrown if the two types are not identical.
 
 ### The :var and :implicit annotations
 
@@ -1926,7 +1926,7 @@ After successfully parsing an input file with no errors, Ethos will respond with
 - `incomplete` if it parsed any `step` or `step-pop` application that referenced a proof rule that was marked with the attribute `:sorry`, or
 - `correct` otherwise.
 
-Note however that Ethos does not impose any requirements on _what_ was proven in the proof.
+Note, however, that Ethos does not impose any requirements on _what_ was proven in the proof.
 The user is responsible for ensure that e.g. the proof contains a step with a desired conclusion (e.g. `false`).
 
 ## Appendix
