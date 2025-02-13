@@ -10,6 +10,7 @@
 #define LEXER_H
 
 #include <array>
+#include <cstdint>
 #include <fstream>
 #include <iosfwd>
 #include <string>

@@ -67,8 +67,9 @@ void ExprValue::computeFlags()
     std::vector<ExprValue*>& children = cur->d_children;
     if (children.empty())
     {
+      bool isEval = (ck == Kind::PROGRAM_CONST || ck == Kind::ORACLE);
       bool isNonGround = (ck==Kind::PARAM);
-      cur->setFlag(Flag::IS_EVAL, false);
+      cur->setFlag(Flag::IS_EVAL, isEval);
       cur->setFlag(Flag::IS_NON_GROUND, isNonGround);
       visit.pop_back();
     }
@@ -86,34 +87,15 @@ void ExprValue::computeFlags()
     else
     {
       visit.pop_back();
-      if (ck==Kind::APPLY)
+      if (isLiteralOp(ck))
       {
-        Kind cck = children[0]->getKind();
-        if (cck==Kind::PROGRAM_CONST || cck==Kind::ORACLE)
-        {
-          cur->setFlag(Flag::IS_PROG_EVAL, true);
-          cur->setFlag(Flag::IS_EVAL, true);
-        }
-      }
-      else if (isLiteralOp(ck))
-      {
-        // requires type and literal operator kinds evaluate
+        // literal operator kinds are evaluatable
         cur->setFlag(Flag::IS_EVAL, true);
       }
+      // flags are a union of the flags of the children
       for (ExprValue* c : children)
       {
-        if (c->getFlag(Flag::IS_NON_GROUND))
-        {
-          cur->setFlag(Flag::IS_NON_GROUND, true);
-        }
-        if (c->getFlag(Flag::IS_EVAL))
-        {
-          cur->setFlag(Flag::IS_EVAL, true);
-        }
-        if (c->getFlag(Flag::IS_PROG_EVAL))
-        {
-          cur->setFlag(Flag::IS_PROG_EVAL, true);
-        }
+        cur->d_flags |= static_cast<uint8_t>(c->d_flags);
       }
     }
   }
@@ -129,18 +111,6 @@ bool ExprValue::isGround()
 {
   computeFlags();
   return !getFlag(ExprValue::Flag::IS_NON_GROUND);
-}
-
-bool ExprValue::isProgEvaluatable()
-{
-  computeFlags();
-  return getFlag(ExprValue::Flag::IS_PROG_EVAL);
-}
-
-bool ExprValue::isCompiled()
-{
-  // this is set manually
-  return getFlag(ExprValue::Flag::IS_COMPILED);
 }
 
 void ExprValue::dec()
@@ -188,12 +158,6 @@ Expr::~Expr()
 bool Expr::isNull() const { return d_value->isNull(); }
 bool Expr::isEvaluatable() const { return d_value->isEvaluatable(); }
 bool Expr::isGround() const { return d_value->isGround(); }
-bool Expr::isProgEvaluatable() const { return d_value->isProgEvaluatable(); }
-bool Expr::isCompiled() const { return d_value->isCompiled(); }
-void Expr::setCompiled()
-{
-  return d_value->setFlag(ExprValue::Flag::IS_COMPILED, true);
-}
 std::string Expr::getSymbol() const
 {
   const Literal * l = d_value->asLiteral();

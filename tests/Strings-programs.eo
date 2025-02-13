@@ -84,10 +84,10 @@
 (define string_rev ((U Type) (rev Bool) (t (Seq U))) (eo::ite rev ($string_rev t) t))
 
 ; Returns true if the length of s evaluates to one, false otherwise.
-(define check_length_one ((s String)) (check_true (eo::is_eq (eo::len s) 1)))
+(define check_length_one ((s String)) (eo::is_eq (eo::len s) 1))
 
 ; Returns true if the length of s evaluates to greater than one, false otherwise.
-(define check_length_gt_one ((s String)) (check_true (eo::is_neg (eo::add 1 (eo::neg (eo::len s))))))
+(define check_length_gt_one ((s String)) (eo::is_eq (eo::is_neg (eo::add 1 (eo::neg (eo::len s)))) true))
 
 ; Flatten constants in str.++ application s. Notice that the rewritten form
 ; of strings in cvc5 are such that constants are grouped into constants of

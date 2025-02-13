@@ -6,17 +6,24 @@ jobs:
   build:
     strategy:
       matrix:
-        name: [linux-x86_64, macOS-x86_64, macOS-arm64, windows-x86_64]
+        name: [linux-x86_64, linux-arm64, macOS-x86_64, macOS-arm64, windows-x86_64]
         build-type: [ release, debug ]
         include:
         - name: linux-x86_64
-          os: ubuntu-20.04
+          os: ubuntu-22.04
+          shell: bash
+        - name: linux-arm64
+          os: ubuntu-22.04-arm
           shell: bash
         - name: macOS-x86_64
           os: macos-13
+          bottle-suffix: monterey
+          gmp-sha256: b04023f65b8c79c45798a4bfd97fdbeb10f1bf9e8416e22e8eeedbd9b2a8c102
           shell: bash
         - name: macOS-arm64
           os: macos-14
+          bottle-suffix: arm64_monterey
+          gmp-sha256: 2115b33b8b4052f91ffb85e476c7fc0388cf4e614af1ce6453b35e6d25473911
           shell: bash
         - name: windows-x86_64
           os: windows-latest
@@ -29,13 +36,28 @@ jobs:
     # The type of runner that the job will run on
     runs-on: ${{ matrix.os }}
 
+    # cancel already running jobs for the same branch/pr/tag
+    concurrency:
+      group: build-${{ github.ref }}-${{ matrix.name }}:${{ matrix.build-type }}-${{ github.ref != 'refs/heads/main' || github.run_id }}
+      cancel-in-progress: ${{ github.repository != 'cvc5/ethos' || startsWith(github.ref, 'refs/pull/') }}
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
     - name: Set MACOSX_DEPLOYMENT_TARGET
       if: runner.os == 'macOS'
-      run: echo "MACOSX_DEPLOYMENT_TARGET=11.0" >> $GITHUB_ENV
+      run: echo "MACOSX_DEPLOYMENT_TARGET=12.0" >> $GITHUB_ENV
+
+    - name: Install Packages (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        # Install GMP 6.3.0 bottle for macOS 12.0 (monterey)
+        # Ensure compatibility with older versions of macOS
+        GMP_BOTTLE=gmp-6.3.0.${{ matrix.bottle-suffix }}.bottle.tar.gz
+        curl -L -H "Authorization: Bearer QQ==" -o $GMP_BOTTLE \
+          https://ghcr.io/v2/homebrew/core/gmp/blobs/sha256:${{ matrix.gmp-sha256 }}
+        brew reinstall -f $GMP_BOTTLE
 
     - name: Install Packages (Linux)
       if: runner.os == 'Linux'
@@ -43,12 +65,6 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y \
           libgmp-dev
-
-    - name: Install Packages (macOS)
-      if: runner.os == 'macOS'
-      run: |
-        brew install \
-          gmp
 
     - name: Install Packages (Windows)
       uses: msys2/setup-msys2@v2
@@ -62,14 +78,22 @@ jobs:
           mingw-w64-x86_64-gcc
           mingw-w64-x86_64-gmp
 
+    - name: Set up num_proc variable
+      run: |
+        if [ "${{ runner.os }}" = "macOS" ]; then
+          echo "num_proc=$(( $(sysctl -n hw.logicalcpu) + 1 ))" >> $GITHUB_ENV
+        else
+          echo "num_proc=$(( $(nproc) + 1 ))" >> $GITHUB_ENV
+        fi
+
     - name: Build
       run: |
-        ./configure.sh ${{ matrix.build-type  }}
+        ./configure.sh ${{ matrix.build-type  }} --static
         cd build
-        make -j2
+        make -j${{ env.num_proc }}
 
     - name: Test
-      run: ctest --output-on-failure
+      run: ctest -j${{ env.num_proc }} --output-on-failure
       working-directory: build
 
     - name: Upload artifact

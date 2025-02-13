@@ -39,7 +39,16 @@ ethos <option>* <file>
 
 The set of available options `<option>` are given in the appendix. Note the command line interface of `ethos` expects exactly one file (which itself may reference other files via the `include` command as we will see later). The file and options can appear in any order.
 
-Ethos will either emit an error message indicating:
+The `<file>` passed to Ethos on the command line is either:
+
+- A Eunoia file, defining a background theory or proof calculus (extension `.eo`), or
+- A file containing a proof.
+
+Any file with extension that is not `.eo` is assumed to be the latter.
+All proof files are expected to contain a reference to a Eunoia file that defines its symbols via an include command or using the command line option `--include=X`.
+Complete details on the categories of files accepted by Ethos are described later in this document [here](#full-syntax).
+
+When invoking Ethos on the command line, Ethos will either emit an error message indicating:
 
 - the kind of failure (type checking, proof checking, lexer error)
 - the line and column of the failure
@@ -351,7 +360,7 @@ Left associative can be defined analogously:
 In the above example, `(and x y z)` is treated as `(and (and x y) z)`.
 
 Note that the type for right and left associative operators is typically `(-> T T T)` for some type `T`.
-More generally, a constant declared with the `:right-associative` annotation must have a type of the form `(-> T1 T2 T2)` for some types `T1` and `T2`. Similarly, a constant declared with the `:left-associative` annotation must have a type of the form `(-> T1 T2 T1)`.
+More generally, a constant declared with the `:right-assoc` annotation must have a type of the form `(-> T1 T2 T2)` for some types `T1` and `T2`. Similarly, a constant declared with the `:left-assoc` annotation must have a type of the form `(-> T1 T2 T1)`.
 
 <a name="assoc-nil"></a>
 
@@ -401,7 +410,7 @@ In contrast, marking `or` with `:right-assoc-nil false` leads after desugaring t
 
 Right and left associative operators with nil terminators also have a relationship with list terms (as we will see in the following section), and in computational operators.
 
-The type for right and left associative operators with nil terminators is typically `(-> T T T)` for some `T`, where their nil terminator has type `T`. More generally, a constant declared with the `:right-associative-nil` annotation must have a type of the form `(-> T1 T2 T2)` where `T2` is the type of the nil constant, for some types `T1` and `T2`. Similarly, a constant declared with the `:left-associative` annotation must have a type of the form `(-> T1 T2 T1)` where `T1` is the type of the nil constant.
+The type for right and left associative operators with nil terminators is typically `(-> T T T)` for some `T`, where their nil terminator has type `T`. More generally, a constant declared with the `:right-assoc-nil` annotation must have a type of the form `(-> T1 T2 T2)` where `T2` is the type of the nil constant, for some types `T1` and `T2`. Similarly, a constant declared with the `:left-associative` annotation must have a type of the form `(-> T1 T2 T1)` where `T1` is the type of the nil constant.
 
 The nil terminator of a right associative operator may involve previously declared symbols in the signature.
 For example:
@@ -417,19 +426,22 @@ and the function `re.inter` (in SMT-LIB, the intersection of regular expressions
 that references the free constant `re.all`.
 
 However, when using `declare-const`, the nil terminator of an associative operator cannot depend on the parameters of the type of that function.
-For example, say we wish to declare bitvector or (`bvor` in SMT-LIB), where its nil terminator is bitvector zero for the given bit width.
+For example, say we wish to declare bitvector or (`bvor` in SMT-LIB), where its nil terminator is the bitvector zero.
 A possible declaration is the following:
 
 ```smt
 (declare-const bvor
     (-> (! Int :var m :implicit) (BitVec m) (BitVec m) (BitVec m))
-    :right-assoc-nil ???
+    :right-assoc-nil #b0000
 )
 ```
 
-The nil terminator of this operator is the bitvector zero whose width is `m`.
-However note that `m` is not in scope of the declaration of its nil terminator.
-We instead require such declarations to be made with `declare-parameterized-const`, which we will describe later in [param-constants](#param-constants).
+Above, note that `m` was not in scope when defining the nil terminator of this operator,
+and thus we have hardcoded the nil terminator to be a bitvector of width `4`.
+This definition is clearly limited, as applications of this operator will fail to type check if `m` is not `4`.
+However,
+the command `declare-parameterized-const` can be used to define a version of `bvor` whose nil terminator depends on `m`,
+which we will describe later in [param-constants](#param-constants).
 
 #### List
 
@@ -727,7 +739,7 @@ Note, however, that the evaluation of these operators is handled by more efficie
   - If `t1` is a numeral value, this returns the (integral) rational value that is equivalent to `t1`.
 - `(eo::to_bin t1 t2)`
   - If `t1` is a 32-bit numeral value and `t2` is a binary value, this returns a binary value whose value is `t2` and whose bitwidth is `t1`.
-  - If `t1` is a 32-bit numeral value and `t2` is a numeral value, return the binary value whose value is `t2` (modulo `2^t1`) and whose bitwidth is `t1`.
+  - If `t1` is a 32-bit numeral value and `t2` is a non-negative numeral value, return the binary value whose value is `t2` (modulo `2^t1`) and whose bitwidth is `t1`.
 - `(eo::to_str t1)`
   - If `t1` is a string value, return `t1`.
   - If `t1` is a numeral value specifying a code point from Unicode planes `0-2` (i.e. a numeral between `0` and `196607`), return the string of length one whose character has code point `t1`.
@@ -1161,8 +1173,8 @@ Examples of these operators are given below.
 ```smt
 (declare-datatypes ((Tree 0)) (((node (left Tree) (right Tree)) (leaf))))
 
-(eo::dt_constructors Tree)  == (eo::List::cons node (eo::List::cons leaf eo::List::nil))
-(eo::dt_selectors node)     == (eo::List::cons left (eo::List::cons right eo::List::nil))
+(eo::dt_constructors Tree)   == (eo::List::cons node (eo::List::cons leaf eo::List::nil))
+(eo::dt_selectors node)      == (eo::List::cons left (eo::List::cons right eo::List::nil))
 (eo::dt_selectors leaf)      == eo::List::nil
 
 (declare-datatypes ((Color 0)) (((red) (green) (blue))))
@@ -1217,6 +1229,47 @@ As part of the example, we see a particular definition of a list, called `Tree`.
 Applying the proof rule `dt-split` to a variable `x` of type `Tree` allows us to conclude that `x` must either be an application of `node` or `leaf`.
 Note that the definitino of `dt-split` is applicable to *any* datatype definition.
 In particular, as a second example, we see the rule applied to a term `y` of type `Color` gives us a conclusion with three disjuncts.
+
+### Parametric datatypes
+
+Ethos supports reasoning about parametric datatypes with ambiguous datatype construtors using the same syntax as SMT-LIB 2.6.
+
+In detail, we say a datatype constructor is "ambiguous" if it of type:
+```
+(-> T1 ... Tn T)
+```
+where some free parameter of T is not contained in the free parameters of `T1, ..., Tn`. (Note `n` may be 0).
+
+All ambiguous datatype constructors are required to be annotated using the SMT-LIB 2.6 syntax `(as <constructor> <type>)`.
+For example:
+```
+(declare-datatypes ((Tree 1)) ((par (X) (((node (left Tree) (data X) (right Tree)) (leaf))))))
+```
+In the this example, `leaf` is an ambiguous datatype constructor, while `node` is not.
+Instances of ambiguous datatype constructors are expected to be annotated with their return type using the syntax e.g. `(as leaf (Tree Int))`.
+This denotes a constant (e.g. a term with zero arguments), whose type is `(Tree Int)`.
+
+> __Note:__ Internally, all ambiguous datatype constructors are instead defined to be of type `(-> (Quote T) T1 ... Tn T)`
+This is done automatically, so that for the aforementioned datatype, the type of `leaf` is `(-> (Quote (Tree X)) (Tree X))`.
+Ethos interprets `(as leaf (Tree Int))` as `(_ leaf (Tree Int))`, where this is an "opaque" application (see [opaque](#opaque)).
+Conceptually, this means that `(_ leaf (Tree Int))` is a constant symbol (with no children) that is indexed by its type.
+
+The semantics of `eo::dt_constructors` and `eo::dt_selectors` is overloaded to handle (annotated) constructors and (instantiated) parameteric datatypes.
+For example, given the previous definition, note the following:
+```
+(eo::dt_constructors Tree)              == (eo::List::cons node (eo::List::cons leaf eo::List::nil))
+(eo::dt_constructors (Tree Int))        == (eo::List::cons node (eo::List::cons (as leaf (Tree Int)) eo::List::nil))
+(eo::dt_constructors (Tree U))          == (eo::List::cons node (eo::List::cons (as leaf (Tree U)) eo::List::nil))
+
+(eo::dt_selectors node)                 == (eo::List::cons left (eo::List::cons data (eo::List::cons right eo::List::nil)))
+(eo::dt_selectors leaf)                 == eo::List::nil
+(eo::dt_selectors (as leaf (Tree Int))) == eo::List::nil
+```
+
+In particular, the constructors of a *fully* instantiated parameteric datatype are such that its ambiguous constructors are annotated in the return value, and its unambiguous constructors are included as-is.
+The selectors of a constructor (which are never ambiguous) are returned independently of whether the constructor is annotated.
+
+> __Note:__ Note that `eo::dt_constructors` does not evaluate on parametric types that are partially applied, e.g. `(eo::dt_constructors (Pair Int))` does not evaluate, where `Pair` expects two type parameters.
 
 ## Declaring Proof Rules
 
@@ -1437,6 +1490,10 @@ If no such term can be found, then the application does not evaluate.
 
 > __Note:__ If a case is provided `(si ri)` in the definition of program `f` where `si` is not an application of `f`, an error is thrown.
 Furthermore, if `si` contains any computational operators (i.e. those with `eo::` prefix), then an error is thrown.
+
+> __Note:__ Programs are *not* invoked on terms that fail to evaluate. For example, if a function `f : Int -> Int` is applied to `(eo::add "A" "B")`, we return `(f (eo::add "A" "B"))`.
+
+> __Note:__ Programs are *not* invoked when applied to other programs in this version of Ethos. For example, the application of a program `f : (Int -> Int) -> Int` to another user defined program `g : Int -> Int` will be unevaluated, i.e. `(f g)`. Similarly, programs are not invoked when applied to builtin operators `eo::` and oracle functions. In contrast, `f` is invoked when `g` is an ordinary term e.g. one defined by `declare-const`.
 
 ### Example: Finding a child in an `or` term
 
@@ -1915,7 +1972,7 @@ We distinguish three kinds of file inputs:
 Their expected syntax is `<eo-command>*`.
 - _Reference files_ are files included via the `reference` command.
 Their expected syntax is `<smtlib2-command>*`.
-- _Signature files_ are files that given via command line option that have extension `*.eo`, or those that are included via the command `include`.
+- _Signature files_ are files that given via command line option that have extension `*.eo`, or those that are included via the command `include`. Like proof files, their expected syntax is `<eo-command>*`.
 
 As mentioned, the first two kinds of file inputs take into account options concerning the normalization of terms (e.g. `--normalize-num`), while signature files do not.
 When streaming input to Ethos, we assume the input is being given for a proof file.
