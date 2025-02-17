@@ -49,6 +49,7 @@ int main( int argc, char* argv[] )
     bool isInclude = (arg.compare(0, 10, "--include=") == 0);
     if (isInclude || arg.compare(0, 12, "--reference=") == 0)
     {
+      // defer the inclusion until the options are finalized
       size_t first = arg.find_first_of("=");
       std::string file = arg.substr(first + 1);
       includes.emplace_back(file, isInclude);
@@ -142,6 +143,7 @@ int main( int argc, char* argv[] )
       EO_FATAL() << "Error: mulitple files specified, \"" << file << "\" and \"" << arg << "\"";
     }
   }
+  // options are finalized, now initialize the state and run the includes
   Stats stats;
   State s(opts, stats);
   Plugin* plugin = nullptr;
