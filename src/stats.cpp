@@ -93,7 +93,7 @@ std::string Stats::toString(State& s, bool compact, bool all) const
   std::stringstream ss;
   if (!compact)
   {
-    ss << "========================================================================" << std::endl;
+    ss << "====================================================================================" << std::endl;
   }
   ss << "mkExprCount = " << d_mkExprCount << std::endl;
   ss << "newExprCount = " << d_exprCount << std::endl;
