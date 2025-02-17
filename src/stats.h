@@ -47,7 +47,7 @@ public:
   std::time_t d_startTime;
   std::map<const ExprValue*, RuleStat> d_rstats;
   std::map<const ExprValue*, RuleStat> d_pstats;
-  std::string toString(State& s, bool compact) const;
+  std::string toString(State& s, bool compact, bool all) const;
 
   static std::time_t getCurrentTime();
 };

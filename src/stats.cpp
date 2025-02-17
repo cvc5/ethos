@@ -80,15 +80,15 @@ struct SortRuleTime
     std::map<const ExprValue*, RuleStat>::const_iterator itrj;
     itrj = d_rstats.find(j);
     Assert (itrj!=d_rstats.end());
-    if (itri->second.d_time>itrj->second.d_time)
+    if (itri->second.d_time==itrj->second.d_time)
     {
-      return true;
+      return itri->second.d_count>itrj->second.d_count;
     }
-    return itri->second.d_count>itrj->second.d_count;
+    return itri->second.d_time>itrj->second.d_time;
   }
 };
 
-std::string Stats::toString(State& s, bool compact) const
+std::string Stats::toString(State& s, bool compact, bool all) const
 {
   std::stringstream ss;
   if (!compact)
@@ -102,7 +102,8 @@ std::string Stats::toString(State& s, bool compact) const
   ss << "litCount = " << d_litCount << std::endl;
   std::time_t totalTime = (getCurrentTime()-d_startTime);
   ss << "time = " << totalTime << std::endl;
-  for (size_t i=0; i<2; i++)
+  size_t imax = all ? 2 : 1;
+  for (size_t i=0; i<imax; i++)
   {
     const std::map<const ExprValue*, RuleStat>& rs = i==0 ? d_rstats : d_pstats;
     if (rs.empty())
@@ -111,22 +112,29 @@ std::string Stats::toString(State& s, bool compact) const
     }
     if (!compact)
     {
-      ss << "========================================================================" << std::endl;
-      ss << std::right << std::setw(28) << (i==0 ? "Rule  " : "Program  ");
+      ss << "====================================================================================" << std::endl;
+      ss << std::right << std::setw(40) << (i==0 ? "Rule  " : "Program  ");
       ss << std::left << std::setw(7) << "#";
-      if (i==1)
+      if (i==0)
       {
         ss << std::left << std::setw(17) << "t";
         ss << std::left << std::setw(10) << "t/#";
         ss << std::left << std::setw(10) << "#mkExpr";
       }
       ss << std::endl;
-      ss << "========================================================================" << std::endl;
+      ss << "====================================================================================" << std::endl;
     }
     // display stats for each rule
     std::vector<const ExprValue*> sortedStats;
     for (const std::pair<const ExprValue* const, RuleStat>& r : rs)
     {
+      // might be an internal match program, in which case, skip
+      Expr sym(r.first);
+      std::string symbol = sym.getSymbol();
+      if (symbol.compare(0, 4, "eo::")==0)
+      {
+        continue;
+      }
       sortedStats.push_back(r.first);
     }
     // sort based on time
@@ -163,7 +171,7 @@ std::string Stats::toString(State& s, bool compact) const
       else
       {
         sss << ": ";
-        ss << std::right << std::setw(28) << sss.str();
+        ss << std::right << std::setw(40) << sss.str();
         if (i==0)
         {
           ss << rs.toString(totalTime) << std::endl;

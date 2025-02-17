@@ -936,7 +936,11 @@ Expr TypeChecker::evaluateProgramInternal(
     Expr prog = d_state.getProgram(hd);
     if (d_statsEnabled)
     {
-      d_sts.d_pstats[prog.getValue()].d_count++;
+      Trace("type_checker") << "increment stat " << Expr(hd) << std::endl;
+      RuleStat * ps = &d_sts.d_pstats[hd];
+      Trace("type_checker") << "rule " << ps << std::endl;
+      ps->d_count++;
+      Trace("type_checker") << "...finish" << std::endl;
     }
     Assert (!prog.isNull());
     if (!prog.isNull())

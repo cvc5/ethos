@@ -38,6 +38,7 @@ class Options
   /** 'let' is lexed as the SMT-LIB syntax for a dag term specified by a let */
   bool d_parseLet;
   bool d_stats;
+  bool d_statsAll;
   bool d_statsCompact;
   bool d_ruleSymTable;
   bool d_normalizeDecimal;
@@ -332,12 +333,12 @@ class State
   /** Are we in garbage collection? */
   bool d_inGarbageCollection;
   //--------------------- utilities
-  /** Type checker */
-  TypeChecker d_tc;
   /** Options */
   Options& d_opts;
   /** Stats */
   Stats& d_stats;
+  /** Type checker */
+  TypeChecker d_tc;
   /** Plugin, if using one */
   Plugin* d_plugin;
 };

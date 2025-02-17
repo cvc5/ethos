@@ -596,7 +596,7 @@ Expr ExprParser::parseExpr()
               // make the program variable, whose type is abstract
               Expr ftype = d_state.mkFunctionType(fargTypes, atype, false);
               std::stringstream pvname;
-              pvname << "_match_" << hd;
+              pvname << "eo::match_" << hd;
               Expr pv = d_state.mkSymbol(Kind::PROGRAM_CONST, pvname.str(), ftype);
               // process the cases
               std::vector<Expr> cases;
