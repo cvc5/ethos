@@ -18,6 +18,7 @@
 namespace ethos {
 
 class State;
+class Stats;
 class Options;
 class Plugin;
 
@@ -123,6 +124,10 @@ class TypeChecker
   /** The null expression */
   Expr d_null;
   Expr d_negOne;
+  /** Stats enabled? */
+  bool d_statsEnabled;
+  /** Reference to the stats */
+  Stats& d_sts;
 };
 
 }  // namespace ethos
