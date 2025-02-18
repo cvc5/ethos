@@ -42,8 +42,8 @@ void RuleStat::increment(Stats& s)
 std::string RuleStat::toString(std::time_t totalTime) const
 {
   std::stringstream ss;
-  ss << std::left << std::setw(7) << d_count;
   std::stringstream st;
+  ss << std::left << std::setw(7) << d_count;
   double pct = static_cast<double>(100*d_time)/static_cast<double>(totalTime);
   st << d_time << " (" << std::fixed << std::setprecision(1) << pct << "%)";
   ss << std::left << std::setw(17) << st.str();
@@ -150,8 +150,8 @@ std::string Stats::toString(State& s, bool compact, bool all) const
       itr = rs.find(e);
       Assert (itr!=rs.end());
       const RuleStat& rs = itr->second;
-      std::stringstream sss;
-      sss << Expr(e);
+      std::stringstream ssExpr;
+      ssExpr << Expr(e);
       if (compact)
       {
         if (firstTime)
@@ -164,14 +164,14 @@ std::string Stats::toString(State& s, bool compact, bool all) const
           ssCheck << ", ";
           ssMkExpr << ", ";
         }
-        ssCount << sss.str() << ": " << rs.d_count;
-        ssCheck << sss.str() << ": " << rs.d_time;
-        ssMkExpr << sss.str() << ": " << rs.d_mkExprCount;
+        ssCount << ssExpr.str() << ": " << rs.d_count;
+        ssCheck << ssExpr.str() << ": " << rs.d_time;
+        ssMkExpr << ssExpr.str() << ": " << rs.d_mkExprCount;
       }
       else
       {
-        sss << ": ";
-        ss << std::right << std::setw(40) << sss.str();
+        ssExpr << ": ";
+        ss << std::right << std::setw(40) << ssExpr.str();
         if (i==0)
         {
           ss << rs.toString(totalTime) << std::endl;
