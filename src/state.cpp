@@ -22,6 +22,7 @@ Options::Options()
   d_parseLet = true;
   d_printLet = false;
   d_stats = false;
+  d_statsAll = false;
   d_statsCompact = false;
   d_ruleSymTable = true;
   d_normalizeDecimal = true;
@@ -48,13 +49,16 @@ bool Options::setOption(const std::string& key, bool val)
   {
     d_stats = val;
   }
+  else if (key == "stats-all")
+  {
+    // also implies stats are enabled.
+    d_stats = val ? true : d_stats;
+    d_statsAll = val;
+  }
   else if (key == "stats-compact")
   {
-    if (val)
-    {
-      // also implies stats are enabled.
-      d_stats = val;
-    }
+    // also implies stats are enabled.
+    d_stats = val ? true : d_stats;
     d_statsCompact = val;
   }
   else if (key == "rule-sym-table")
@@ -86,9 +90,9 @@ State::State(Options& opts, Stats& stats)
     : d_hashCounter(0),
       d_hasReference(false),
       d_inGarbageCollection(false),
-      d_tc(*this, opts),
       d_opts(opts),
       d_stats(stats),
+      d_tc(*this, opts),
       d_plugin(nullptr)
 {
   ExprValue::d_state = this;

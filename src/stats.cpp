@@ -43,12 +43,10 @@ std::string RuleStat::toString(std::time_t totalTime) const
 {
   std::stringstream ss;
   std::stringstream st;
+  ss << std::left << std::setw(7) << d_count;
   double pct = static_cast<double>(100*d_time)/static_cast<double>(totalTime);
   st << d_time << " (" << std::fixed << std::setprecision(1) << pct << "%)";
   ss << std::left << std::setw(17) << st.str();
-  std::stringstream sc;
-  sc << d_count;
-  ss << std::left << std::setw(7) << sc.str();
   // time per rule
   double timePerRule = static_cast<double>(d_time)/static_cast<double>(d_count);
   std::stringstream sp;
@@ -65,6 +63,9 @@ Stats::Stats() : d_mkExprCount(0), d_exprCount(0), d_deleteExprCount(0), d_symCo
   d_startTime = getCurrentTime();
 }
 
+/**
+ * Either sorts by time or by counts
+ */
 struct SortRuleTime
 {
   SortRuleTime(const std::map<const ExprValue*, RuleStat>& rs) : d_rstats(rs)
@@ -79,16 +80,20 @@ struct SortRuleTime
     std::map<const ExprValue*, RuleStat>::const_iterator itrj;
     itrj = d_rstats.find(j);
     Assert (itrj!=d_rstats.end());
+    if (itri->second.d_time==itrj->second.d_time)
+    {
+      return itri->second.d_count>itrj->second.d_count;
+    }
     return itri->second.d_time>itrj->second.d_time;
   }
 };
 
-std::string Stats::toString(State& s, bool compact) const
+std::string Stats::toString(State& s, bool compact, bool all) const
 {
   std::stringstream ss;
   if (!compact)
   {
-    ss << "========================================================================" << std::endl;
+    ss << "====================================================================================" << std::endl;
   }
   ss << "mkExprCount = " << d_mkExprCount << std::endl;
   ss << "newExprCount = " << d_exprCount << std::endl;
@@ -97,40 +102,56 @@ std::string Stats::toString(State& s, bool compact) const
   ss << "litCount = " << d_litCount << std::endl;
   std::time_t totalTime = (getCurrentTime()-d_startTime);
   ss << "time = " << totalTime << std::endl;
-  if (!d_rstats.empty())
+  size_t imax = all ? 2 : 1;
+  for (size_t i=0; i<imax; i++)
   {
+    const std::map<const ExprValue*, RuleStat>& rs = i==0 ? d_rstats : d_pstats;
+    if (rs.empty())
+    {
+      continue;
+    }
     if (!compact)
     {
-      ss << "========================================================================" << std::endl;
-      ss << std::right << std::setw(28) << "Rule  ";
-      ss << std::left << std::setw(17) << "t";
+      ss << "====================================================================================" << std::endl;
+      ss << std::right << std::setw(40) << (i==0 ? "Rule  " : "Program  ");
       ss << std::left << std::setw(7) << "#";
-      ss << std::left << std::setw(10) << "t/#";
-      ss << std::left << std::setw(10) << "#mkExpr";
+      if (i==0)
+      {
+        ss << std::left << std::setw(17) << "t";
+        ss << std::left << std::setw(10) << "t/#";
+        ss << std::left << std::setw(10) << "#mkExpr";
+      }
       ss << std::endl;
-      ss << "========================================================================" << std::endl;
+      ss << "====================================================================================" << std::endl;
     }
     // display stats for each rule
     std::vector<const ExprValue*> sortedStats;
-    for (const std::pair<const ExprValue* const, RuleStat>& r : d_rstats)
+    for (const std::pair<const ExprValue* const, RuleStat>& r : rs)
     {
+      // might be an internal match program, in which case, skip
+      Expr sym(r.first);
+      std::string symbol = sym.getSymbol();
+      if (symbol.compare(0, 4, "eo::")==0)
+      {
+        continue;
+      }
       sortedStats.push_back(r.first);
     }
     // sort based on time
-    SortRuleTime srt(d_rstats);
+    SortRuleTime srt(rs);
     std::sort(sortedStats.begin(), sortedStats.end(), srt);    
     std::map<const ExprValue*, RuleStat>::const_iterator itr;
+    std::stringstream ssCount;
     std::stringstream ssCheck;
     std::stringstream ssMkExpr;
     bool firstTime = true;
     for (const ExprValue* e : sortedStats)
     {
-      itr = d_rstats.find(e);
-      Assert (itr!=d_rstats.end());
+      itr = rs.find(e);
+      Assert (itr!=rs.end());
       const RuleStat& rs = itr->second;
-      Assert (e->getKind()==Kind::PROOF_RULE);
-      std::stringstream sss;
-      sss << Expr(e);
+      std::stringstream ssExpr;
+      ssExpr << Expr(e);
       if (compact)
       {
         if (firstTime)
@@ -139,22 +160,36 @@ std::string Stats::toString(State& s, bool compact) const
         }
         else
         {
+          ssCount << ", ";
           ssCheck << ", ";
           ssMkExpr << ", ";
         }
-        ssCheck << sss.str() << ": " << rs.d_time;
-        ssMkExpr << sss.str() << ": " << rs.d_mkExprCount;
+        ssCount << ssExpr.str() << ": " << rs.d_count;
+        ssCheck << ssExpr.str() << ": " << rs.d_time;
+        ssMkExpr << ssExpr.str() << ": " << rs.d_mkExprCount;
       }
       else
       {
-        sss << ": ";
-        ss << std::right << std::setw(28) << sss.str() << rs.toString(totalTime) << std::endl;
+        ssExpr << ": ";
+        ss << std::right << std::setw(40) << ssExpr.str();
+        if (i==0)
+        {
+          ss << rs.toString(totalTime) << std::endl;
+        }
+        else
+        {
+          ss << rs.d_count << std::endl;
+        }
       }
     }
     if (compact)
     {
-      ss << "checkTime = { " << ssCheck.str() << " }" << std::endl;
-      ss << "mkExpr = { " << ssMkExpr.str() << " }" << std::endl;
+      ss << (i==0 ? "rule" : "prog") << "Count = { " << ssCount.str() << " }" << std::endl;
+      if (i==0)
+      {
+        ss << "checkTime = { " << ssCheck.str() << " }" << std::endl;
+        ss << "mkExpr = { " << ssMkExpr.str() << " }" << std::endl;
+      }
     }
   }
   return ss.str();
