@@ -241,14 +241,17 @@ void State::popScope()
       std::map<std::string, Expr>::iterator its = d_symTable.find(d_decls[i]);
       Assert (its!=d_symTable.end());
       // it should be overloaded
-      AppInfo* ai = getAppInfo(its->second.getValue());
-      Assert (ai!=nullptr);
+      std::vector<Expr>& ov = d_overloads[d_decls[i]];
       // we always have at least 2 overloads
-      Assert (ai->d_overloads.size()>=2);
+      Assert (ov.size()>=2);
       // was overloaded, we revert the binding
-      ai->d_overloads.pop_back();
-      Expr tmp = ai->d_overloads.back();
+      ov.pop_back();
+      Expr tmp = ov.back();
       its->second = tmp;
+      if (ov.size()==1)
+      {
+        d_overloads.erase(d_decls[i]);
+      }
       continue;
     }
     Trace("overload") << "** unbind " << d_decls[i] << std::endl;
@@ -669,10 +672,12 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         // must call mkExpr again, since we may auto-evaluate
         return mkExpr(ai->d_kind, achildren);
       }
-      if (!ai->d_overloads.empty())
+      if (ai->d_isOverloaded)
       {
         Trace("overload") << "Use overload when constructing " << k << " " << children << std::endl;
-        Expr ret = getOverloadInternal(ai->d_overloads, children);
+        std::vector<Expr>& ov = d_overloads[ai->d_overloadName];
+        Assert (ov.size()>=2);
+        Expr ret = getOverloadInternal(ov, children);
         if (!ret.isNull())
         {
           vchildren[0] = ret.getValue();
@@ -950,10 +955,12 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       {
         dummyChildren.emplace_back(mkSymbol(Kind::CONST, "tmp", t));
       }
-      if (ai!=nullptr && !ai->d_overloads.empty())
+      if (ai!=nullptr && ai->d_isOverloaded)
       {
         Trace("overload") << "...overloaded" << std::endl;
-        reto = getOverloadInternal(ai->d_overloads, dummyChildren, ftype.second.getValue());
+        std::vector<Expr>& ov = d_overloads[ai->d_overloadName];
+        Assert (ov.size()>=2);
+        reto = getOverloadInternal(ov, dummyChildren, ftype.second.getValue());
       }
       else
       {
@@ -1141,25 +1148,17 @@ bool State::bind(const std::string& name, const Expr& e)
   if (its!=d_symTable.end())
   {
     Trace("overload") << "** overload: " << name << std::endl;
-    // if already bound, we overload
-    AppInfo& ai = d_appData[its->second.getValue()];
-    std::vector<Expr>& ov = ai.d_overloads;
+    // if already bound, mark as overloaded
     AppInfo& ain = d_appData[e.getValue()];
-    std::vector<Expr>& ovn = ain.d_overloads;
+    ain.d_isOverloaded = true;
+    ain.d_overloadName = name;
+    std::vector<Expr>& ov = d_overloads[name];
     if (ov.empty())
     {
       // if first time overloading, add the original symbol
-      ovn.emplace_back(its->second);
+      ov.emplace_back(its->second);
     }
-    else
-    {
-      // Otherwise, carry all of the overloads from the previous symbol.
-      // Note that since we carry the overloads for each symbol, the space
-      // required here is quadratic, but the number of overloads per symbol
-      // should be very small.
-      ovn.insert(ovn.end(), ov.begin(), ov.end());
-    }
-    ovn.emplace_back(e);
+    ov.emplace_back(e);
     // add to declaration
     if (!d_declsSizeCtx.empty())
     {

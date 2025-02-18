@@ -284,6 +284,11 @@ class State
    */
   std::vector<std::string> d_overloadedDecls;
   /**
+   * Maps symbols that are bound to >= 2 terms to the list of all terms bound
+   * to that symbol. Each vector in the range of this map has size >=2.
+   */
+  std::map<std::string, std::vector<Expr>> d_overloads;
+  /**
    * Context size, which is the size of d_decls at the time of when each
    * current pushScope was called.
    */
