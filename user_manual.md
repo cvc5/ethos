@@ -503,7 +503,7 @@ In contrast, `(or x)` denotes the `or` whose children are `x` and `false`.
 (declare-type Int ())
 (declare-const and (-> Bool Bool Bool) :right-assoc)
 (declare-const >= (-> Int Int Bool) :chainable and)
-(define ((x Int) (y Int) (z Int)) (>= x y z))
+(define P ((x Int) (y Int) (z Int)) (>= x y z))
 (define Q ((x Int) (y Int)) (>= x y))
 ```
 
