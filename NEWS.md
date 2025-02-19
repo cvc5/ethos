@@ -8,6 +8,8 @@ ethos 0.1.2 prerelease
 - Adds support for the SMT-LIB `as` annotations for ambiguous datatype constructors, i.e. those whose return type cannot be inferred from its argument types. Following SMT-LIB convention, ambiguous datatype constructors are expected to be annotated with their *return* type using `as`, which internally is treated as a type argument to the constructor.
 - The semantics for `eo::dt_constructors` is extended for instantiated parametric datatypes. For example calling `eo::dt_constructors` on `(List Int)` returns the list containing `cons` and `(as nil (List Int))`.
 - The semantics for `eo::dt_selectors` is extended for annotated constructors. For example calling `eo::dt_selectors` on `(as nil (List Int))` returns the empty list.
+- Changed the semantics of pairwise and chainable operators for a single argument, which now reduces to the neutral element of the combining operator instead of a parse error.
+- Added the option `--stats-all` to track the number of times side conditions are invoked.
 
 ethos 0.1.1
 ===========
