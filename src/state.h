@@ -38,6 +38,7 @@ class Options
   /** 'let' is lexed as the SMT-LIB syntax for a dag term specified by a let */
   bool d_parseLet;
   bool d_stats;
+  bool d_statsAll;
   bool d_statsCompact;
   bool d_ruleSymTable;
   bool d_normalizeDecimal;
@@ -283,6 +284,11 @@ class State
    */
   std::vector<std::string> d_overloadedDecls;
   /**
+   * Maps symbols that are bound to >= 2 terms to the list of all terms bound
+   * to that symbol. Each vector in the range of this map has size >=2.
+   */
+  std::map<std::string, std::vector<Expr>> d_overloads;
+  /**
    * Context size, which is the size of d_decls at the time of when each
    * current pushScope was called.
    */
@@ -332,12 +338,12 @@ class State
   /** Are we in garbage collection? */
   bool d_inGarbageCollection;
   //--------------------- utilities
-  /** Type checker */
-  TypeChecker d_tc;
   /** Options */
   Options& d_opts;
   /** Stats */
   Stats& d_stats;
+  /** Type checker */
+  TypeChecker d_tc;
   /** Plugin, if using one */
   Plugin* d_plugin;
 };

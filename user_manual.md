@@ -1942,6 +1942,7 @@ The Ethos command line interface can be invoked by `ethos <option>* <file>` wher
 - `--reference=X`: includes the file specified by `X` as a reference file.
 - `--show-config`: displays the build information for the given binary.
 - `--stats`: enables detailed statistics.
+- `--stats-all`: enables all available statistics, including program invocations.
 - `--stats-compact`: print statistics in a compact format.
 - `-t <tag>`: enables the given trace tag (for debugging).
 - `-v`: verbose mode, enable all standard trace messages.

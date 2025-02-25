@@ -21,14 +21,13 @@ using namespace ethos;
 int main( int argc, char* argv[] )
 {
   Options opts;
-  Stats stats;
-  State s(opts, stats);
-  Plugin* plugin = nullptr;
   // read the options
   size_t i = 1;
   std::string file;
   bool readFile = false;
   size_t nargs = static_cast<size_t>(argc);
+  // the list of includes and whether they were an include or reference
+  std::vector<std::pair<std::string, bool>> includes;
   while (i<nargs)
   {
     std::string arg(argv[i]);
@@ -50,14 +49,10 @@ int main( int argc, char* argv[] )
     bool isInclude = (arg.compare(0, 10, "--include=") == 0);
     if (isInclude || arg.compare(0, 12, "--reference=") == 0)
     {
+      // defer the inclusion until the options are finalized
       size_t first = arg.find_first_of("=");
       std::string file = arg.substr(first + 1);
-      // cannot provide reference
-      Expr refNf;
-      if (!s.includeFile(file, isInclude, !isInclude, refNf))
-      {
-        EO_FATAL() << "Error: cannot include file " << file;
-      }
+      includes.emplace_back(file, isInclude);
       continue;
     }
     if (arg == "--help")
@@ -75,6 +70,7 @@ int main( int argc, char* argv[] )
       out << "      --reference=X: includes the file specified by X as a reference file." << std::endl;
       out << "      --show-config: displays the build information for this binary." << std::endl;
       out << "            --stats: enables detailed statistics." << std::endl;
+      out << "        --stats-all: enables all available statistics." << std::endl;
       out << "    --stats-compact: print statistics in a compact format." << std::endl;
       out << "           -t <tag>: enables the given trace tag (requires debug build)." << std::endl;
       out << "                 -v: verbose mode, enable all standard trace messages (requires debug build)." << std::endl;
@@ -147,6 +143,21 @@ int main( int argc, char* argv[] )
       EO_FATAL() << "Error: mulitple files specified, \"" << file << "\" and \"" << arg << "\"";
     }
   }
+  // options are finalized, now initialize the state and run the includes
+  Stats stats;
+  State s(opts, stats);
+  Plugin* plugin = nullptr;
+  for (size_t i=0, nincludes=includes.size(); i<nincludes; i++)
+  {
+    std::string file = includes[i].first;
+    bool isInclude = includes[i].second;
+    // cannot provide reference
+    Expr refNf;
+    if (!s.includeFile(file, isInclude, !isInclude, refNf))
+    {
+      EO_FATAL() << "Error: cannot include file " << file;
+    }
+  }
   // NOTE: initialization of plugin goes here
   if (plugin!=nullptr)
   {
@@ -202,7 +213,7 @@ int main( int argc, char* argv[] )
   }
   if (opts.d_stats)
   {
-    std::cout << stats.toString(s, opts.d_statsCompact);
+    std::cout << stats.toString(s, opts.d_statsCompact, opts.d_statsAll);
   }
   // exit immediately, which avoids deleting all expressions which can take time
   exit(0);

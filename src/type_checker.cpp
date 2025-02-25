@@ -24,7 +24,7 @@
 
 namespace ethos {
 
-TypeChecker::TypeChecker(State& s, Options& opts) : d_state(s), d_plugin(nullptr)
+TypeChecker::TypeChecker(State& s, Options& opts) : d_state(s), d_plugin(nullptr), d_sts(s.getStats())
 {
   std::set<Kind> literalKinds = { Kind::BOOLEAN, Kind::NUMERAL, Kind::RATIONAL, Kind::BINARY, Kind::STRING, Kind::DECIMAL, Kind::HEXADECIMAL };
   // initialize literal kinds 
@@ -32,6 +32,7 @@ TypeChecker::TypeChecker(State& s, Options& opts) : d_state(s), d_plugin(nullptr
   {
     d_literalTypeRules[k] = d_null;
   }
+  d_statsEnabled = opts.d_stats;
 }
 
 TypeChecker::~TypeChecker()
@@ -908,6 +909,21 @@ Expr TypeChecker::evaluateProgramInternal(
     // do not evaluate on non-ground
     return d_null;
   }
+  // Note we abort here, which changed in Ethos versions >=0.1.2.
+  // The motivation is to disallow unintuitive behaviors of Ethos,
+  // which includes:
+  // - Passing (unapplied) user programs, user oracles or builtin
+  // operators, which we do not support in this current version.
+  // - Passing stuck terms, where we chose to propagate the failure,
+  // e.g. (<program> t) is also stuck if t is stuck.
+  size_t nargs = children.size();
+  for (size_t j=1; j<nargs; j++)
+  {
+    if (children[j]->isEvaluatable())
+    {
+      return d_null;
+    }
+  }
   ExprValue* hd = children[0];
   Kind hk = hd->getKind();
   if (hk==Kind::PROGRAM_CONST)
@@ -917,8 +933,12 @@ Expr TypeChecker::evaluateProgramInternal(
       Trace("type_checker") << "RUN program " << children << std::endl;
       return d_plugin->evaluateProgram(hd, children, newCtx);
     }
-    size_t nargs = children.size();
     Expr prog = d_state.getProgram(hd);
+    if (d_statsEnabled)
+    {
+      RuleStat * ps = &d_sts.d_pstats[hd];
+      ps->d_count++;
+    }
     Assert (!prog.isNull());
     if (!prog.isNull())
     {
@@ -939,20 +959,9 @@ Expr TypeChecker::evaluateProgramInternal(
           return d_null;
         }
         bool matchSuccess = true;
-        for (size_t i=1; i<nargs; i++)
+        for (size_t j = 1; j<nargs; j++)
         {
-          // Note we abort here, which changed in Ethos versions >=0.1.2.
-          // The motivation is to disallow unintuitive behaviors of Ethos,
-          // which includes:
-          // - Passing (unapplied) user programs, user oracles or builtin
-          // operators, which we do not support in this current version.
-          // - Passing stuck terms, where we chose to propagate the failure,
-          // e.g. (<program> t) is also stuck if t is stuck.
-          if (children[i]->isEvaluatable())
-          {
-            return d_null;
-          }
-          if (!match(hchildren[i], children[i], newCtx))
+          if (!match(hchildren[j], children[j], newCtx))
           {
             matchSuccess = false;
             break;
@@ -978,10 +987,9 @@ Expr TypeChecker::evaluateProgramInternal(
       return d_null;
     }
     int retVal;
-#if 1
     std::stringstream call_content;
     call_content << "(" << std::endl;
-    for (size_t i = 1, nchildren = children.size(); i < nchildren; i++)
+    for (size_t i = 1; i < nargs; i++)
     {
       call_content << Expr(children[i]) << std::endl;
     }
@@ -992,20 +1000,6 @@ Expr TypeChecker::evaluateProgramInternal(
     Trace("oracles") << "```" << std::endl;
     std::stringstream response;
     retVal = run(ocmd, call_content.str(), response);
-#else
-    std::stringstream call;
-    call << ocmd;
-    for (size_t i = 1, nchildren = children.size(); i < nchildren; i++)
-    {
-      call << " " << Expr(children[i]);
-    }
-    Trace("oracles") << "Call oracle " << ocmd << " with content:" << std::endl;
-    Trace("oracles") << "```" << std::endl;
-    Trace("oracles") << call.str() << std::endl;
-    Trace("oracles") << "```" << std::endl;
-    std::stringstream response;
-    retVal = runFile(call.str(), response);
-#endif
     if (retVal!=0)
     {
       Trace("oracles") << "...failed to run" << std::endl;
