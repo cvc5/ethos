@@ -29,6 +29,7 @@ Options::Options()
   d_normalizeHexadecimal = true;
   d_normalizeNumeral = false;
   d_binderFresh = false;
+  d_runTimeTc = false;
 }
 
 bool Options::setOption(const std::string& key, bool val)
@@ -76,6 +77,10 @@ bool Options::setOption(const std::string& key, bool val)
   else if (key == "normalize-hex")
   {
     d_normalizeHexadecimal = val;
+  }
+  else if (key == "run-time-tc")
+  {
+    d_runTimeTc = val;
   }
   else
   {

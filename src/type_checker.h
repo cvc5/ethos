@@ -126,6 +126,10 @@ class TypeChecker
   Expr d_negOne;
   /** Stats enabled? */
   bool d_statsEnabled;
+  /** Is runtime type checking enabled? */
+  bool d_runTimeTc;
+  /** The current return type of the program we are executing */
+  Expr d_runTimeReturn;
   /** Reference to the stats */
   Stats& d_sts;
 };

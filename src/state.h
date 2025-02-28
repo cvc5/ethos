@@ -47,6 +47,8 @@ class Options
   bool d_normalizeNumeral;
   /** Binders generate fresh variables in proof and reference files */
   bool d_binderFresh;
+  /** Do run time type checking */
+  bool d_runTimeTc;
 };
 
 /**

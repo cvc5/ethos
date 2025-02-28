@@ -33,6 +33,7 @@ TypeChecker::TypeChecker(State& s, Options& opts) : d_state(s), d_plugin(nullptr
     d_literalTypeRules[k] = d_null;
   }
   d_statsEnabled = opts.d_stats;
+  d_runTimeTc = opts.d_runTimeTc;
 }
 
 TypeChecker::~TypeChecker()
@@ -922,6 +923,23 @@ Expr TypeChecker::evaluateProgramInternal(
     if (children[j]->isEvaluatable())
     {
       return d_null;
+    }
+  }
+  if (d_runTimeTc)
+  {
+    std::vector<ExprValue*> cchildren = children;
+    d_runTimeReturn = getTypeAppInternal(cchildren, newCtx);
+    if (d_runTimeReturn.isNull())
+    {
+      std::stringstream msg;
+      msg << "Type checking application failed when applying " << children[0]
+          << " at run time" << std::endl;
+      msg << "Children: "
+          << std::vector<Expr>(children.begin() + 1, children.end()) << std::endl;
+      msg << "Message: ";
+      d_state.getTypeChecker().getTypeAppInternal(cchildren, newCtx, &msg);
+      msg << std::endl;
+      EO_FATAL() << msg.str();
     }
   }
   ExprValue* hd = children[0];
