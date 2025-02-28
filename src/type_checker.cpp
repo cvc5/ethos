@@ -507,11 +507,7 @@ bool TypeChecker::match(ExprValue* a,
       // holds trivially
       continue;
     }
-    else if (curr.first->isGround())
-    {
-      // ground, return false
-      return false;
-    }
+    // could return false by looking ahead if curr is ground here, but probably not worthwhile
     it = visited.find(curr);
     if (it != visited.end())
     {
@@ -537,6 +533,8 @@ bool TypeChecker::match(ExprValue* a,
         {
           // if we saw this variable before, make sure that (now and before) it
           // maps to the same subterm
+          // We push a recursive check here. This is terminating since
+          // we never increase the size of the RHS.
           stack.emplace_back(ctxIt->second, curr.second);
         }
       }
@@ -951,6 +949,7 @@ Expr TypeChecker::evaluateProgramInternal(
       msg << std::endl;
       EO_FATAL() << msg.str();
     }
+    newCtx.clear();
   }
   ExprValue* hd = children[0];
   Kind hk = hd->getKind();
