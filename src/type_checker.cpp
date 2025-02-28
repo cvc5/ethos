@@ -507,6 +507,11 @@ bool TypeChecker::match(ExprValue* a,
       // holds trivially
       continue;
     }
+    else if (curr.first->isGround())
+    {
+      // ground, return false
+      return false;
+    }
     it = visited.find(curr);
     if (it != visited.end())
     {
@@ -532,7 +537,7 @@ bool TypeChecker::match(ExprValue* a,
         {
           // if we saw this variable before, make sure that (now and before) it
           // maps to the same subterm
-          return false;
+          stack.emplace_back(ctxIt->second, curr.second);
         }
       }
       else
