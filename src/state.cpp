@@ -20,7 +20,7 @@ namespace ethos {
 Options::Options()
 {
   d_parseLet = true;
-  d_printLet = false;
+  d_printDag = true;
   d_stats = false;
   d_statsAll = false;
   d_statsCompact = false;
@@ -41,9 +41,9 @@ bool Options::setOption(const std::string& key, bool val)
   {
     d_parseLet = val;
   }
-  else if (key == "print-let")
+  else if (key == "print-dag")
   {
-    d_printLet = val;
+    d_printDag = val;
   }
   else if (key == "stats")
   {

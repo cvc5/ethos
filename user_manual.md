@@ -1937,7 +1937,7 @@ The Ethos command line interface can be invoked by `ethos <option>* <file>` wher
 
 - `--help`: displays a help message.
 - `--include=X`: includes the file specified by `X`.
-- `--no-print-let`: do not letify the output of terms in error messages and trace messages.
+- `--no-print-dag`: do not dagify the output of terms in error messages and trace messages.
 - `--no-rule-sym-table`: do not use a separate symbol table for proof rules and declared terms.
 - `--reference=X`: includes the file specified by `X` as a reference file.
 - `--show-config`: displays the build information for the given binary.

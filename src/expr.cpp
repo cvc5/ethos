@@ -364,7 +364,7 @@ void Expr::printDebug(const Expr& e, std::ostream& os)
 {
   std::map<const ExprValue*, size_t> lbind;
   std::string cparen;
-  if (ExprValue::d_state->getOptions().d_printLet)
+  if (ExprValue::d_state->getOptions().d_printDag)
   {
     std::vector<Expr> ll;
     lbind = computeLetBinding(e, ll);
@@ -373,7 +373,7 @@ void Expr::printDebug(const Expr& e, std::ostream& os)
     {
       const ExprValue* lv = l.getValue();
       size_t id = lbind[lv];
-      os << "(let ((_v" << id << " ";
+      os << "(eo::define ((_v" << id << " ";
       lbind.erase(lv);
       printDebugInternal(l, os, lbind);
       lbind[lv] = id;
