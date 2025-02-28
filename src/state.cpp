@@ -177,7 +177,7 @@ State::State(Options& opts, Stats& stats)
   bind("eo::List", d_listType);
   d_listNil = Expr(mkSymbolInternal(Kind::CONST, "eo::List::nil", d_listType));
   bind("eo::List::nil", d_listNil);
-  Expr t = Expr(mkSymbolInternal(Kind::PARAM, "T", d_type));
+  Expr t = Expr(mkSymbolInternal(Kind::PARAM, "_T_", d_type));
   std::vector<Expr> argTypes;
   argTypes.push_back(t);
   argTypes.push_back(d_listType);
@@ -186,9 +186,6 @@ State::State(Options& opts, Stats& stats)
   bind("eo::List::cons", d_listCons);
   markConstructorKind(d_listCons, Attr::RIGHT_ASSOC_NIL, d_listNil);
 
-  // we do not export eo::null
-  // for now, eo::? is (undocumented) syntax for abstract type
-  bind("eo::?", d_absType);
   // self is a distinguished parameter
   d_self = Expr(mkSymbolInternal(Kind::PARAM, "eo::self", d_absType));
   bind("eo::self", d_self);
@@ -511,6 +508,11 @@ Expr State::mkTypeConstant(const std::string& name, size_t arity)
   return mkSymbol(Kind::CONST, name, t);
 }
 
+Expr State::mkAnonymousTypeParam()
+{
+  return Expr(mkSymbolInternal(Kind::PARAM, "_A_", d_type));
+}
+
 Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool flatten)
 {
   if (args.empty())
@@ -584,15 +586,10 @@ Expr State::mkProofType(const Expr& proven)
 {
   return Expr(mkExprInternal(Kind::PROOF_TYPE, {proven.getValue()}));
 }
+
 Expr State::mkQuoteType(const Expr& t)
 {
   return Expr(mkExprInternal(Kind::QUOTE_TYPE, {t.getValue()}));
-}
-
-Expr State::mkBuiltinType(Kind k)
-{
-  // for now, just use abstract type
-  return d_absType;
 }
 
 Expr State::mkSymbol(Kind k, const std::string& name, const Expr& type)

@@ -565,7 +565,6 @@ Expr ExprParser::parseExpr()
               {
                 d_lex.parseError("Expected non-empty list of cases");
               }
-              Expr atype = d_state.mkAbstractType();
               // environment is the variable list
               std::vector<Expr> vl;
               for (size_t i = 0, nchildren = args[0].getNumChildren();
@@ -579,7 +578,7 @@ Expr ExprParser::parseExpr()
               std::vector<Expr> allVars = Expr::getVariables(caseArgs);
               std::vector<Expr> env;
               std::vector<Expr> fargTypes;
-              fargTypes.push_back(atype);
+              fargTypes.push_back(d_state.mkAnonymousTypeParam());
               for (const Expr& v : allVars)
               {
                 if (std::find(vl.begin(), vl.end(), v)==vl.end())
@@ -588,13 +587,13 @@ Expr ExprParser::parseExpr()
                   // add it to the environment.
                   env.push_back(v);
                   // It will be an argument to the internal program
-                  fargTypes.push_back(atype);
+                  fargTypes.push_back(d_state.mkAnonymousTypeParam());
                 }
               }
               Trace("parser") << "Binder is " << vl << std::endl;
               Trace("parser") << "Env is " << env << std::endl;
               // make the program variable, whose type is abstract
-              Expr ftype = d_state.mkFunctionType(fargTypes, atype, false);
+              Expr ftype = d_state.mkFunctionType(fargTypes, d_state.mkAnonymousTypeParam(), false);
               std::stringstream pvname;
               pvname << "eo::match_" << hd;
               Expr pv = d_state.mkSymbol(Kind::PROGRAM_CONST, pvname.str(), ftype);
@@ -1403,7 +1402,7 @@ Expr ExprParser::typeCheckApp(std::vector<Expr>& children)
     std::stringstream ss;
     d_state.getTypeChecker().getTypeApp(children, &ss);
     std::stringstream msg;
-    msg << "Type checking application failed when applying " << children[0]
+    msg << "Type checking application failed when applying " << Expr(children[0])
         << std::endl;
     msg << "Children: "
         << std::vector<Expr>(children.begin() + 1, children.end()) << std::endl;

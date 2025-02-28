@@ -71,7 +71,7 @@ ExprValue* TypeChecker::getOrSetLiteralTypeRule(Kind k)
   if (it->second.isNull())
   {
     // If no type rule, assign the type rule to the builtin type
-    Expr t = d_state.mkBuiltinType(k);
+    Expr t = d_state.mkAbstractType();
     d_literalTypeRules[k] = t;
     return t.getValue();
   }
@@ -928,11 +928,16 @@ Expr TypeChecker::evaluateProgramInternal(
   if (d_runTimeTc)
   {
     std::vector<ExprValue*> cchildren = children;
+    for (ExprValue * ec : children)
+    {
+      Expr ece(ec);
+      getType(ece);
+    }
     d_runTimeReturn = getTypeAppInternal(cchildren, newCtx);
     if (d_runTimeReturn.isNull())
     {
       std::stringstream msg;
-      msg << "Type checking application failed when applying " << children[0]
+      msg << "Type checking application failed when applying " << Expr(children[0])
           << " at run time" << std::endl;
       msg << "Children: "
           << std::vector<Expr>(children.begin() + 1, children.end()) << std::endl;

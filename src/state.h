@@ -100,6 +100,8 @@ class State
   Expr mkType();
   /** Make type constant (-> Type ... Type Type) */
   Expr mkTypeConstant(const std::string& name, size_t arity);
+  /** Make a fresh anonymous type parameter */
+  Expr mkAnonymousTypeParam();
   /** (-> <type>+ <type>) */
   Expr mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool flatten = true);
   /** ? */
@@ -116,8 +118,6 @@ class State
   Expr mkProofType(const Expr& proven);
   /** (Quote <term>) */
   Expr mkQuoteType(const Expr& t);
-  /** */
-  Expr mkBuiltinType(Kind k);
   /** */
   Expr mkSymbol(Kind k, const std::string& name, const Expr& type);
   /** (eo::requires <pair>+ <type>) */
