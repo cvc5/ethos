@@ -116,8 +116,8 @@ class State
   Expr mkQuoteType(const Expr& t);
   /** */
   Expr mkBuiltinType(Kind k);
-  /** null */
-  Expr mkNull();
+  /** null type, used for :implicit */
+  Expr mkNullType();
   /** */
   Expr mkSymbol(Kind k, const std::string& name, const Expr& type);
   /** (eo::requires <pair>+ <type>) */

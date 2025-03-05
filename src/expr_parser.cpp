@@ -482,7 +482,7 @@ Expr ExprParser::parseExpr()
               case Attr::IMPLICIT:
                 // the term will not be added as an argument to the parent
                 // note this always comes after VAR due to enum order
-                ret = d_state.mkNull();
+                ret = d_state.mkNullType();
                 break;
               case Attr::REQUIRES:
                 if (ret.isNull())

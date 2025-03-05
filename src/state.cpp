@@ -612,7 +612,7 @@ Expr State::mkBuiltinType(Kind k)
   return d_absType;
 }
 
-Expr State::mkNull()
+Expr State::mkNullType()
 {
   return d_nullType;
 }
