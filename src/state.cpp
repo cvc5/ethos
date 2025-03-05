@@ -524,6 +524,10 @@ Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool 
     return Expr(mkExprInternal(Kind::FUNCTION_TYPE, atypes));
   }
   Expr curr = ret;
+  if (ret.getKind()==Kind::QUOTE_TYPE || ret.getKind()==Kind::OPAQUE_TYPE || ret.getKind()==Kind::EVAL_REQUIRES)
+  {
+    EO_FATAL() << "Bad function return type " << ret;
+  }
   for (size_t i=0, nargs = args.size(); i<nargs; i++)
   {
     Expr a = args[(nargs-1)-i];
