@@ -22,8 +22,8 @@
 
 (declare-const BitVec 
   (-> 
-    (! Int :var w :requires ((run_evaluate (> w 0)) true))
-    Type))
+    (! Int :var w)
+    (! Type :requires ((run_evaluate (> w 0)) true))))
 
 (declare-const bvadd (->
   (! Int :var n :implicit)
