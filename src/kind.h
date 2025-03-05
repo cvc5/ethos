@@ -28,6 +28,7 @@ enum class Kind
   BOOL_TYPE,
   QUOTE_TYPE,
   OPAQUE_TYPE,  // an argument marked :opaque, temporary during parsing
+  NULL_TYPE,         // an argument marked :implicit, temporary during parsing
 
   // terms
   APPLY,

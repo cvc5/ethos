@@ -1538,6 +1538,7 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_IS_STR:
     case Kind::EVAL_IS_BOOL:
     case Kind::EVAL_IS_VAR:
+    case Kind::EVAL_GT:
       return d_state.mkBoolType().getValue();
     case Kind::EVAL_HASH:
     case Kind::EVAL_INT_DIV:

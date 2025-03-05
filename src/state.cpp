@@ -159,6 +159,7 @@ State::State(Options& opts, Stats& stats)
 
   // note we don't allow parsing (Proof ...), (Quote ...), or (quote ...).
 
+  d_nullType = Expr(mkExprInternal(Kind::NULL_TYPE, {}));
   // common constants
   d_type = Expr(mkExprInternal(Kind::TYPE, {}));
   d_boolType = Expr(mkExprInternal(Kind::BOOL_TYPE, {}));
@@ -524,18 +525,35 @@ Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool 
     return Expr(mkExprInternal(Kind::FUNCTION_TYPE, atypes));
   }
   Expr curr = ret;
-  if (ret.getKind()==Kind::QUOTE_TYPE || ret.getKind()==Kind::OPAQUE_TYPE || ret.getKind()==Kind::EVAL_REQUIRES)
+  Kind rk = ret.getKind();
+  if (rk==Kind::EVAL_REQUIRES)
   {
-    EO_FATAL() << "Bad function return type " << ret;
+    Expr currBase = ret;
+    do
+    {
+      currBase = currBase[2];
+      rk = currBase.getKind();
+    }while (rk==Kind::EVAL_REQUIRES);
+  }
+  if (rk==Kind::QUOTE_TYPE || rk==Kind::OPAQUE_TYPE || rk==Kind::NULL_TYPE)
+  {
+    EO_FATAL() << "Cannot use :var, :implicit or :opaque on return types, got " << ret;
   }
   for (size_t i=0, nargs = args.size(); i<nargs; i++)
   {
     Expr a = args[(nargs-1)-i];
     // process arguments
-    if (a.getKind() == Kind::EVAL_REQUIRES)
+    Kind ak = a.getKind();
+    while (ak == Kind::EVAL_REQUIRES)
     {
       curr = mkRequires(a[0], a[1], curr);
       a = a[2];
+      ak = a.getKind();
+    }
+    if (ak==Kind::NULL_TYPE)
+    {
+      // implicit argument is skipped
+      continue;
     }
     // append the function
     curr = Expr(
@@ -592,6 +610,11 @@ Expr State::mkBuiltinType(Kind k)
 {
   // for now, just use abstract type
   return d_absType;
+}
+
+Expr State::mkNull()
+{
+  return d_nullType;
 }
 
 Expr State::mkSymbol(Kind k, const std::string& name, const Expr& type)
