@@ -6,11 +6,11 @@
 (declare-const extract (->
   (! Int :var n :implicit)
   (! Int :var h)
-  (! Int :var l)
+  (! Int :var l :requires ((eo::is_neg l) false))
   (BitVec n)
-  (!
-    (BitVec (eo::add h (eo::add (eo::neg l) 1)))
-      :requires ((eo::is_neg l) false)
-      ; TODO: more conditions
-  ))
+
+  (BitVec (eo::add h (eo::add (eo::neg l) 1)))
+
+    ; TODO: more conditions
+  )
 )
