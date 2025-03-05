@@ -9,6 +9,7 @@ ethos 0.1.2 prerelease
 - The semantics for `eo::dt_constructors` is extended for instantiated parametric datatypes. For example calling `eo::dt_constructors` on `(List Int)` returns the list containing `cons` and `(as nil (List Int))`.
 - The semantics for `eo::dt_selectors` is extended for annotated constructors. For example calling `eo::dt_selectors` on `(as nil (List Int))` returns the empty list.
 - The option `--print-let` has been renamed to `--print-dag` and is now enabled by default. The printer is changed to use `eo::define` instead of `let`.
+- Ethos now explicitly forbids `:var`, `:implicit`, and `:opaque` on return types.
 
 ethos 0.1.1
 ===========
