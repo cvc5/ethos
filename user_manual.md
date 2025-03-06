@@ -654,7 +654,7 @@ Note, however, that the evaluation of these operators is handled by more efficie
 - `(eo::hash t1)`
   - If `t1` is a ground term, this returns a numeral that is unique to `t1`.
 - `(eo::typeof t1)`
-  - If `t1` is a ground term, this returns the type of `t1`.
+  - If `t1` is a ground term, this returns the type of `t1` if its type is ground.
 - `(eo::nameof t1)`
   - If `t1` is a ground constant or variable, this returns the name of `t1`, i.e. the string corresponding to the symbol it was declared with.
 - `(eo::var t1 t2)`
