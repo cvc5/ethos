@@ -1453,6 +1453,9 @@ void State::bindBuiltin(const std::string& name, Kind k, Attr ac, const Expr& t)
     ai.d_kind = k;
     ai.d_attrCons = ac;
   }
+  // mark it evaluatable, which prevents e.g. eo::add as being passed as an
+  // argument to other operators or side conditions.
+  c.getValue()->d_flags = static_cast<uint8_t>(ExprValue::Flag::IS_FLAGS_COMPUTED) | static_cast<uint8_t>(ExprValue::Flag::IS_EVAL);
 }
 
 void State::bindBuiltinEval(const std::string& name, Kind k, Attr ac)
