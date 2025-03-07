@@ -141,6 +141,7 @@ set(ethos_test_file_list
     datatypes-split-rule-param-uinst.eo
     overload-define.eo
     nested-requires.eo
+    pairwise-singleton.eo
 )
 
 if(ENABLE_ORACLES)

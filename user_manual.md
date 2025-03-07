@@ -505,8 +505,8 @@ In contrast, `(or x)` denotes the `or` whose children are `x` and `false`.
 ```smt
 (declare-type Int ())
 (declare-const and (-> Bool Bool Bool) :right-assoc)
-(declare-const >= (-> Int Int Bool) :chainable)
-(define ((x Int) (y Int) (z Int)) (>= x y z))
+(declare-const >= (-> Int Int Bool) :chainable and)
+(define P ((x Int) (y Int) (z Int)) (>= x y z))
 (define Q ((x Int) (y Int)) (>= x y))
 ```
 
@@ -514,23 +514,29 @@ In the above example, `(>= x y z w)` is syntax sugar for `(and (>= x y) (>= y z)
 whereas the term `(>= x y)` is not impacted by the annotation `:chainable` since it has fewer than 3 children.
 
 Note that the type for chainable operators is typically `(-> T T S)` for some types `T` and `S`,
-where the type of its chaining operator is `(-> S S S)`, and that operator has been as variadic via some attribute (e.g. `:right-assoc`).
+where the type of its combining operator is `(-> S S S)`, and that operator has been marked as variadic via some attribute (e.g. `:right-assoc`).
+
+A chainable operator applied to a single argument reduces to the neutral element of the combining operator.
+For example, `(>= x)` is equivalent to `true`.
 
 #### Pairwise
 
 ```smt
 (declare-type Int ())
 (declare-const and (-> Bool Bool Bool) :right-assoc)
-(declare-const distinct (-> (! Type :var T :implicit) T T Bool)
- :pairwise and)
+(declare-const distinct (-> (! Type :var T :implicit) T T Bool) :pairwise and)
 (define P ((x Int) (y Int) (z Int)) (distinct x y z))
 ```
 
 In the above example, `(distinct x y z)` is treated as `(and (distinct x y) (distinct x z) (distinct y z))`.
 
 Note that the type for pairwise operators is typically `(-> T T S)` for some types `T` and `S`,
-where the type of its pairwise operator is `(-> S S S)`,
+where the type of its combining operator is `(-> S S S)`,
 and that operator has been marked as variadic via some attribute.
+
+Similar to chainable operators,
+a pairwise operator applied to a single argument reduces to the neutral element of the combining operator.
+For example, `(distinct x)` is equivalent to `true`.
 
 <a name="binders"></a>
 
@@ -657,7 +663,7 @@ Note, however, that the evaluation of these operators is handled by more efficie
 - `(eo::hash t1)`
   - If `t1` is a ground term, this returns a numeral that is unique to `t1`.
 - `(eo::typeof t1)`
-  - If `t1` is a ground term, this returns the type of `t1`.
+  - If `t1` is a ground term, this returns the type of `t1` if its type is ground.
 - `(eo::nameof t1)`
   - If `t1` is a ground constant or variable, this returns the name of `t1`, i.e. the string corresponding to the symbol it was declared with.
 - `(eo::var t1 t2)`

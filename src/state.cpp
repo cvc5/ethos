@@ -794,7 +794,15 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
             Trace("type_checker") << "...return for " << children[0] << std::endl;
             return Expr(curr);
           }
-          // otherwise partial??
+          else
+          {
+            // Otherwise we are applying the operator to zero arguments. This 
+            // can never occur in standard parsing since it is not possible
+            // to apply a function to zero arguments. However, this case may
+            // arise if e.g. a pairwise or chainable operator is applied to
+            // exactly one argument, e.g. (distinct t) is equivalent to true.
+            return consTerm;
+          }
         }
           break;
         case Attr::CHAINABLE:
@@ -1471,7 +1479,7 @@ void State::bindBuiltin(const std::string& name, Kind k, Attr ac)
 
 void State::bindBuiltin(const std::string& name, Kind k, Attr ac, const Expr& t)
 {
-  Expr c = mkSymbol(Kind::CONST, name, t);
+  Expr c = mkSymbol(Kind::BUILTIN_CONST, name, t);
   bind(name, c);
   if (ac!=Attr::NONE || k!=Kind::NONE)
   {

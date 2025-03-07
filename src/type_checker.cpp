@@ -1173,7 +1173,13 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       if (isGround(args))
       {
         Expr e(args[0]);
-        return getType(e);
+        Expr et = getType(e);
+        if (et.isGround())
+        {
+          // don't permit ground evaluatable types
+          Assert (!et.isEvaluatable());
+          return et;
+        }
       }
       return d_null;
     }
