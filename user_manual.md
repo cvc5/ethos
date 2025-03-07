@@ -511,7 +511,7 @@ In the above example, `(>= x y z w)` is syntax sugar for `(and (>= x y) (>= y z)
 whereas the term `(>= x y)` is not impacted by the annotation `:chainable` since it has fewer than 3 children.
 
 Note that the type for chainable operators is typically `(-> T T S)` for some types `T` and `S`,
-where the type of its combining operator is `(-> S S S)`, and that operator has been as variadic via some attribute (e.g. `:right-assoc`).
+where the type of its combining operator is `(-> S S S)`, and that operator has been marked as variadic via some attribute (e.g. `:right-assoc`).
 
 A chainable operator applied to a single argument reduces to the neutral element of the combining operator.
 For example, `(>= x)` is equivalent to `true`.
