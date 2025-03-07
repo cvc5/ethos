@@ -1444,7 +1444,7 @@ void State::bindBuiltin(const std::string& name, Kind k, Attr ac)
 
 void State::bindBuiltin(const std::string& name, Kind k, Attr ac, const Expr& t)
 {
-  Expr c = mkSymbol(Kind::CONST, name, t);
+  Expr c = mkSymbol(Kind::BUILTIN_CONST, name, t);
   bind(name, c);
   if (ac!=Attr::NONE || k!=Kind::NONE)
   {

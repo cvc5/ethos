@@ -42,6 +42,7 @@ enum class Kind
   // symbols
   PARAM,
   CONST,
+  BUILTIN_CONST,    // used for e.g. _, ->, eo::*, as, etc. which are temporary during parsing only
   PROGRAM_CONST,
   PROOF_RULE,
   VARIABLE,

@@ -29,6 +29,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::LAMBDA: o << "LAMBDA"; break;
     case Kind::PARAM: o << "PARAM"; break;
     case Kind::CONST: o << "CONST"; break;
+    case Kind::BUILTIN_CONST: o << "BUILTIN_CONST"; break;
     case Kind::PROGRAM_CONST: o << "PROGRAM_CONST"; break;
     case Kind::PROOF_RULE: o << "PROOF_RULE"; break;
     case Kind::VARIABLE: o << "VARIABLE"; break;
