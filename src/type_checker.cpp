@@ -257,24 +257,12 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
     }
       return d_state.mkType();
     case Kind::QUOTE_TYPE:
-      // anything can be quoted
-      return d_state.mkType();
     case Kind::OPAQUE_TYPE:
-    {
-      ExprValue* ctype = d_state.lookupType(e->d_children[0]);
-      Assert(ctype != nullptr);
-      if (ctype->getKind()!=Kind::TYPE)
-      {
-        if (out)
-        {
-          (*out) << "Non-Type for argument of opaque type";
-        }
-        return d_null;
-      }
-    }
-      return d_state.mkType();
+    case Kind::NULL_TYPE:
     case Kind::TUPLE:
-      // not typed
+      // These things are essentially not typed.
+      // We require the first 3 to be an abstract type, not type,
+      // to prevent them from being used as (return) types of terms.
       return d_state.mkAbstractType();
     case Kind::BOOLEAN:
       // note that Bool is builtin
@@ -1544,6 +1532,7 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_IS_STR:
     case Kind::EVAL_IS_BOOL:
     case Kind::EVAL_IS_VAR:
+    case Kind::EVAL_GT:
       return d_state.mkBoolType().getValue();
     case Kind::EVAL_HASH:
     case Kind::EVAL_INT_DIV:

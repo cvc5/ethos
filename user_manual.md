@@ -238,6 +238,8 @@ In contrast, the example below declares a predicate `=` where the type of the ar
 
 In general, an argument can be made implicit if its value can be inferred from the type of later arguments.
 
+Return types cannot be marked `:implicit` or `:var` or a type error will be immediately reported.
+
 We call `T` in the above definitions a _parameter_. The free parameters of the return type of an expression should be contained in at least one non-implicit argument. In particular, the following declaration is malformed, since the return type of `f` cannot be inferred from its arguments:
 
 ```smt
@@ -297,6 +299,7 @@ In particular, this means that any computation that pattern matches `d` will not
 We give examples of this later in [ex-substitution](#ex-substitution).
 
 Functions can have both opaque and ordinary arguments, where the opaque arguments are expected to come first.
+Return types can never be marked `:opaque` or a type error will be immediately reported.
 The concatenation of the expected arguments can be passed to the symbol in the order they are given.
 For example:
 

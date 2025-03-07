@@ -11,6 +11,7 @@ ethos 0.1.2 prerelease
 - Changed the semantics of pairwise and chainable operators for a single argument, which now reduces to the neutral element of the combining operator instead of a parse error.
 - Added the option `--stats-all` to track the number of times side conditions are invoked.
 - The option `--print-let` has been renamed to `--print-dag` and is now enabled by default. The printer is changed to use `eo::define` instead of `let`.
+- Ethos now explicitly forbids `:var`, `:implicit`, and `:opaque` on return types.
 - The operator `eo::typeof` now fails to evaluate if the type of the given term is not ground.
 
 ethos 0.1.1
