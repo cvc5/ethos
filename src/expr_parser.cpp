@@ -280,6 +280,12 @@ Expr ExprParser::parseExpr()
       {
         std::string name = tokenStrToSymbol(tok);
         ret = getVar(name);
+        if (ret.getKind()==Kind::BUILTIN_CONST)
+        {
+          std::stringstream ss;
+          ss << "Cannot use \"" << name << "\" as a first-class term.";
+          d_lex.parseError(ss.str());
+        }
       }
       break;
       case Token::INTEGER_LITERAL:

@@ -660,7 +660,7 @@ Note, however, that the evaluation of these operators is handled by more efficie
 - `(eo::hash t1)`
   - If `t1` is a ground term, this returns a numeral that is unique to `t1`.
 - `(eo::typeof t1)`
-  - If `t1` is a ground term, this returns the type of `t1`.
+  - If `t1` is a ground term, this returns the type of `t1` if its type is ground.
 - `(eo::nameof t1)`
   - If `t1` is a ground constant or variable, this returns the name of `t1`, i.e. the string corresponding to the symbol it was declared with.
 - `(eo::var t1 t2)`
@@ -1943,7 +1943,7 @@ The Ethos command line interface can be invoked by `ethos <option>* <file>` wher
 
 - `--help`: displays a help message.
 - `--include=X`: includes the file specified by `X`.
-- `--no-print-let`: do not letify the output of terms in error messages and trace messages.
+- `--no-print-dag`: do not dagify the output of terms in error messages and trace messages.
 - `--no-rule-sym-table`: do not use a separate symbol table for proof rules and declared terms.
 - `--reference=X`: includes the file specified by `X` as a reference file.
 - `--show-config`: displays the build information for the given binary.
