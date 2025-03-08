@@ -837,7 +837,7 @@ std::vector<std::pair<Expr, Expr>> ExprParser::parseAndBindLetList()
     t = parseExpr();
     d_lex.eatToken(Token::RPAREN);
     tt = typeCheck(t);
-    v = d_state.mkSymbol(Kind::VARIABLE, name, tt);
+    v = d_state.getBoundVar(name, tt);
     letList.emplace_back(v, t);
   }
   // now perform the bindings, which bind to the variable, not its definition
