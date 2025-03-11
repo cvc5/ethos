@@ -255,7 +255,6 @@ std::map<const ExprValue*, size_t> Expr::computeLetBinding(
     if (visited.find(cv) == visited.end())
     {
       visited.insert(cv);
-      llv.push_back(cur);
       for (size_t i = 0, nchildren = cur.getNumChildren(); i < nchildren; i++)
       {
         visit.push_back(cur[i]);
@@ -264,13 +263,14 @@ std::map<const ExprValue*, size_t> Expr::computeLetBinding(
     }
     if (lbind.find(cv) == lbind.end())
     {
+      llv.push_back(cur);
       lbind[cv] = idc;
       idc++;
     }
   }while(!visit.empty());
   for (size_t i=0, lsize = llv.size(); i<lsize; i++)
   {
-    const Expr& l = llv[lsize - 1 - i];
+    const Expr& l = llv[i];
     const ExprValue* lv = l.getValue();
     if (lbind.find(lv) != lbind.end())
     {
