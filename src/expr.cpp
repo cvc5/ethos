@@ -236,8 +236,6 @@ std::string quoteSymbol(const std::string& s)
 std::map<const ExprValue*, size_t> Expr::computeLetBinding(
     const Expr& e, std::vector<Expr>& ll)
 {
-  size_t idc = 0;
-  std::map<const ExprValue*, size_t> lbind;
   std::map<const ExprValue*, size_t> lcount;
   std::unordered_set<const ExprValue*> visited;
   std::vector<Expr> visit;
@@ -263,14 +261,16 @@ std::map<const ExprValue*, size_t> Expr::computeLetBinding(
       continue;
     }
     visit.pop_back();
+    // add to vector, which is done after all subterms of cv are added to llv
     if (lcount.find(cv)==lcount.end())
     {
       llv.push_back(cur);
-      lbind[cv] = idc;
-      idc++;
     }
     lcount[cv]++;
   }while(!visit.empty());
+  // go back and only keep the ones that were found more than once.
+  std::map<const ExprValue*, size_t> lbind;
+  size_t idc = 0;
   for (size_t i=0, lsize = llv.size(); i<lsize; i++)
   {
     const Expr& l = llv[i];
@@ -278,10 +278,8 @@ std::map<const ExprValue*, size_t> Expr::computeLetBinding(
     if (lcount[lv]>1)
     {
       ll.push_back(l);
-    }
-    else
-    {
-      lbind.erase(lv);
+      lbind[lv] = idc;
+      idc++;
     }
   }
   return lbind;
