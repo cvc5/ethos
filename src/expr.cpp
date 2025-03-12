@@ -238,6 +238,7 @@ std::map<const ExprValue*, size_t> Expr::computeLetBinding(
 {
   size_t idc = 0;
   std::map<const ExprValue*, size_t> lbind;
+  std::map<const ExprValue*, size_t> lcount;
   std::unordered_set<const ExprValue*> visited;
   std::vector<Expr> visit;
   std::vector<Expr> llv;
@@ -246,9 +247,9 @@ std::map<const ExprValue*, size_t> Expr::computeLetBinding(
   do
   {
     cur = visit.back();
-    visit.pop_back();
     if (cur.getNumChildren() == 0)
     {
+      visit.pop_back();
       continue;
     }
     const ExprValue* cv = cur.getValue();
@@ -261,20 +262,26 @@ std::map<const ExprValue*, size_t> Expr::computeLetBinding(
       }
       continue;
     }
-    if (lbind.find(cv) == lbind.end())
+    visit.pop_back();
+    if (lcount.find(cv)==lcount.end())
     {
       llv.push_back(cur);
       lbind[cv] = idc;
       idc++;
     }
+    lcount[cv]++;
   }while(!visit.empty());
   for (size_t i=0, lsize = llv.size(); i<lsize; i++)
   {
     const Expr& l = llv[i];
     const ExprValue* lv = l.getValue();
-    if (lbind.find(lv) != lbind.end())
+    if (lcount[lv]>1)
     {
       ll.push_back(l);
+    }
+    else
+    {
+      lbind.erase(lv);
     }
   }
   return lbind;
