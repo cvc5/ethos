@@ -2228,6 +2228,8 @@ The initial state can be understood by parsing the following background definiti
 
 ; including eo::var, eo::list_concat
 
+; eo::conclusion, eo::self?
+
 ```
 
 ### Scoping of parameters
@@ -2265,7 +2267,8 @@ We assume the following helper methods:
 - `NAME(x)`: returns a string corresponding to the name of parameter or constant x.
 - `FREE_PARAMS(t)`: returns the set of parameters that occur as subterms of t.
 - `SUBS( t, [x_1, ..., x_n], [s_1, ..., s_n] )`: returns the result of replacing all occurrences of parameters `x_1, ..., x_n` by `s_1, ..., s_n` simultaneously.
-- `FRESH_CONST(s, T)`: constructs a constant with name `s` and type `T`.
+- `FRESH_CONST(s, T)`: returns a fresh constant with name `s` and type `T`.
+- `CATEGORY(t)`: returns the `<lit-category>` for a term, if `t` is a literal.
 
 
 ```
@@ -2554,9 +2557,11 @@ RUN(C):
   (step s F :rule r :premises (p_1 ... p_k) :args (t_1 ... t_n)):
     if A[r] = [premise-list, g]
       Let p = FRESH_CONST( p, DESUGAR( (Proof (g F_1 ... F_k) ) ) ), where p_1, ..., p_k have type (Proof F_1), ...., (Proof F_k).
-      return RUN( (define s () (r t_1 ... t_n p)) )
+      Let res = SUBS( (r t_1 ... t_n p), [eo::conclusion], [F] )
+      return RUN( (define s () res) )
     else
-      return RUN( (define s () (r t_1 ... t_n p_1 ... p_k)) )
+      Let res = SUBS( (r t_1 ... t_n p_1 ... p_k), [eo::conclusion], [F] )
+      return RUN( (define s () res) )
 
   (program s ((x_1 U_1) ... (x_m U_m))
     (T_1 ... T_n) T
@@ -2625,8 +2630,8 @@ f : (--> U_1 ... U_n S)  t_1 : T_1 ... t_n : T_n
 ------------------------------------------------- if SUBS( (Tuple U_1 ... U_n), X, R) = (Tuple T_1 ... T_n)
 (_ f t_1 ... t_n) : EVAL( S, X, R )
 
------------------------------------------- if CATEGORY(c) is defined
-c : EVAL( L(CATEGORY(c)), [eo::self], [c])
+------------------------------------------ if CATEGORY(t) is defined
+t : EVAL( L(CATEGORY(t)), [eo::self], [t])
 
 ```
 
