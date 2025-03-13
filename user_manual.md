@@ -2205,6 +2205,7 @@ All state initially empty.
 # Desugaring of terms
 
 Takes as input the syntax given for a term. Returns a <pterm>.
+
 ```
 DESUGAR(t):
 
@@ -2397,118 +2398,141 @@ DESUGAR(t):
 
 # Desugaring of commands
 
+Takes as input the syntax given for a command. Optionally returns a <const>.
+
 ```
-(declare-const s T a), where the attribute of a is one of {right-assoc, right-assoc-nil, left-assoc, left-assoc-nil, pairwise, chainable, binder, let-binder, opaque, none}:
-  Let x = FRESH_CONST(s, DESUGAR(T))
-  A[x] := a
-  S[s] += x
-  return x
+RUN(C):
 
-(declare-const s T):
-  Let U = DESUGAR( T )
-  if U is (-> (Opaque U_1) ... (-> (Opaque U_n) V) ... )
-    return RUN( (declare-const s (-> U_1 ... U_n V) :opaque (Tuple U_1 ... U_n)) )
-  else
-    return RUN( (declare-const s U :none) )
+  (declare-const s T a), where the attribute of a is one of 
+  {right-assoc, right-assoc-nil, left-assoc, left-assoc-nil, pairwise, chainable, binder, let-binder, opaque, none}:
+    Let x = FRESH_CONST(s, DESUGAR(T))
+    A[x] := a
+    S[s] += x
+    return x
 
-(declare-rule s ((y_1 U_1) ... (y_n U_n))
-  :premises (p_1 ... p_k)
-  :args (t_1 ... t_l)
-  :requires ((s_1 r_1) ... (s_1 s_m))
-  :conclusion F):
-  RUN( (declare-const s (-> (Quote t_1) ... (Quote t_l) (Proof p_1) ... (Proof p_k) (! F :requires (s_1 r_1) ... :requires (s_1 s_m)))) )
-
-(declare-rule s ((y_1 U_1) ... (y_n U_n))
-  :premise-list x c
-  :args (t_1 ... t_l)
-  :requires ((s_1 r_1) ... (s_1 s_m))
-  :conclusion F):
-  x = RUN( (declare-const s (-> (Quote t_1) ... (Quote t_l) (Proof x) (! F :requires (s_1 r_1) ... :requires (s_1 s_m)))) )
-  A[x] := [premise-list, c]
-
-(declare-rule x ((y_1 U_1) ... (y_n U_n))
-  :assumption a
-  :args (t_1 ... t_l)
-  :requires ((s_1 r_1) ... (s_1 s_m))
-  :conclusion F)
-  RUN( (declare-const s (-> (Quote t_1) ... (Quote t_l) (Proof p_1) ... (Proof p_k) (Proof a) (! F :requires (s_1 r_1) ... :requires (s_1 s_m)))) )
-
-(declare-type s (U_1 ... U_n)):
-  RUN( (declare-const s (-> U_1 ... U_n Type)) )
-
-(define s ((y_1 U_1) ... (y_n U_n)) t):
-  A[x] := [define, (Lambda (Tuple y_1 ... y_n) t)]
-  S[s] += x
-
-(declare-datatype s () (par (U_1 ... U_n) ((c_1 (s_11 T_11) ... (s1m T_1m)) ... (c_n (s_n1 T_n1) ... (snm T_nm))))):
-  Let DC = RUN( (declare-type s (U_1 ... U_n)) )
-  Let D = DESUGAR( (DC U_1 ... U_n) ) if n>0, or DC otherwise.
-  for i = 1 ... n:
-    for j = 1 ... m:
-      Let ds_ij = RUN( (declare-const s_ij (-> D T_ij)) )
-    Let sels = (Tuple ds_i1 ... ds_im).
-    if [U_1 ... U_n] is not a subset of FREE_PARAMS(T_i1, ..., T_im)
-      Let dc_i = RUN( (declare-const c_i (-> (Quote D) T_i1 ... T_im D)) )
-      A[dc_i] := [amb-datatype-constructor, sels]
+  (declare-const s T):
+    Let U = DESUGAR( T )
+    if U is (-> (Opaque U_1) ... (-> (Opaque U_n) V) ... )
+      return RUN( (declare-const s (-> U_1 ... U_n V) :opaque (Tuple U_1 ... U_n)) )
     else
-      Let dc_i = RUN( (declare-const c_i (-> T_i1 ... T_im D)) )
-      A[dc_i] := [amb-datatype-constructor, sels]
-  A[D] := [datatype, (Tuple dc_1 ... dc_n)]
+      return RUN( (declare-const s U :none) )
 
-(declare-datatype s () ((c_1 (s_11 T_11) ... (s1m T_1m)) ... (c_n (s_n1 T_n1) ... (snm T_nm))))
-  RUN( (declare-datatype s () (par () ((c_1 (s_11 T_11) ... (s1m T_1m)) ... (c_n (s_n1 T_n1) ... (snm T_nm))))) )
+  (declare-rule s ((y_1 U_1) ... (y_n U_n))
+    :premises (p_1 ... p_k)
+    :args (t_1 ... t_l)
+    :requires ((s_1 r_1) ... (s_1 s_m))
+    :conclusion F):
+    return RUN( 
+      (declare-const s (-> (Quote t_1) ... (Quote t_l) 
+                          (Proof p_1) ... (Proof p_k) 
+                          (! F :requires (s_1 r_1) ... :requires (s_1 s_m)))) )
 
-(assume s F):
-  ASSERT( F in Ax )
-  RUN( (declare-const s (Proof F)) )
+  (declare-rule s ((y_1 U_1) ... (y_n U_n))
+    :premise-list x c
+    :args (t_1 ... t_l)
+    :requires ((s_1 r_1) ... (s_1 s_m))
+    :conclusion F):
+    x = RUN( 
+      (declare-const s (-> (Quote t_1) ... (Quote t_l) 
+                          (Proof x)
+                          (! F :requires (s_1 r_1) ... :requires (s_1 s_m)))) )
+    A[x] := [premise-list, c]
+    return x
 
-(step s F :rule r :premises (p_1 ... p_k) :args (t_1 ... t_n))
-  if A[r] = [premise-list, c]
-    RUN( (define s () (r t_1 ... t_n (ProofFromList c p_1 ... p_k))) )
-  else
-    RUN( (define s () (r t_1 ... t_n p_1 ... p_k)) )
+  (declare-rule x ((y_1 U_1) ... (y_n U_n))
+    :assumption a
+    :args (t_1 ... t_l)
+    :requires ((s_1 r_1) ... (s_1 s_m))
+    :conclusion F):
+    return RUN( 
+      (declare-const s (-> (Quote t_1) ... (Quote t_l) 
+                          (Proof p_1) ... (Proof p_k) (Proof a) 
+                          (! F :requires (s_1 r_1) ... :requires (s_1 s_m)))) )
 
-(program s ((x_1 U_1) ... (x_m U_m))
-  (T_1 ... T_n) T
-  (
-  ((s a_11 ... a_1n) r_0)
-  ...
-  ((s a_k1 ... y_kn) r_k)
-  )
-):
-  Let x = FRESH_CONST(s, DESUGAR((-> T_1 ... T_n T)))
-  A[x] := [program, (((s a_11 ... a_1n) r_0) ... ((s a_k1 ... y_kn) r_k))]
-  S[s] += x
-  return x
+  (declare-type s (U_1 ... U_n)):
+    return RUN( (declare-const s (-> U_1 ... U_n Type)) )
 
-;;; push/pop
+  (define s ((y_1 U_1) ... (y_n U_n)) t):
+    A[x] := [define, (Lambda (Tuple y_1 ... y_n) t)]
+    S[s] += x
+    return x
 
-(assume-push s F)
-  RUN( (declare-const s (Proof F)) )
+  (declare-datatype s () (par (U_1 ... U_n) ((c_1 (s_11 T_11) ... (s1m T_1m)) ... (c_n (s_n1 T_n1) ... (snm T_nm))))):
+    Let DC = RUN( (declare-type s (U_1 ... U_n)) )
+    Let D = DESUGAR( (DC U_1 ... U_n) ) if n>0, or DC otherwise.
+    for i = 1 ... n:
+      for j = 1 ... m:
+        Let ds_ij = RUN( (declare-const s_ij (-> D T_ij)) )
+      Let sels = (Tuple ds_i1 ... ds_im).
+      if [U_1 ... U_n] is not a subset of FREE_PARAMS(T_i1, ..., T_im)
+        Let dc_i = RUN( (declare-const c_i (-> (Quote D) T_i1 ... T_im D)) )
+        A[dc_i] := [amb-datatype-constructor, sels]
+      else
+        Let dc_i = RUN( (declare-const c_i (-> T_i1 ... T_im D)) )
+        A[dc_i] := [amb-datatype-constructor, sels]
+    A[DC] := [datatype, (Tuple dc_1 ... dc_n)]
+    return DC
 
+  (declare-datatype s () ((c_1 (s_11 T_11) ... (s1m T_1m)) ... (c_n (s_n1 T_n1) ... (snm T_nm)))):
+    return RUN( (declare-datatype s () (par () ((c_1 (s_11 T_11) ... (s1m T_1m)) ... (c_n (s_n1 T_n1) ... (snm T_nm))))) )
 
-(step-pop s F :rule r :premises (p_1 ... p_k) :args (t_1 ... t_n)), where (assume-push s G) is the assumption that is being popped:
-  TODO
+  (assume s F):
+    ASSERT( F in Ax )
+    return RUN( (declare-const s (Proof F)) )
 
-;;; SMT-LIB
+  (step s F :rule r :premises (p_1 ... p_k) :args (t_1 ... t_n)):
+    if A[r] = [premise-list, c]
+      return RUN( (define s () (r t_1 ... t_n (ProofFromList c p_1 ... p_k))) )
+    else
+      return RUN( (define s () (r t_1 ... t_n p_1 ... p_k)) )
 
-(declare-fun s () T):
-  RUN( (declare-const x T) )
+  (program s ((x_1 U_1) ... (x_m U_m))
+    (T_1 ... T_n) T
+    (
+    ((s a_11 ... a_1n) r_0)
+    ...
+    ((s a_k1 ... y_kn) r_k)
+    )
+  ):
+    Let x = FRESH_CONST(s, DESUGAR((eo::arrow T_1 ... T_n T)))
+    A[x] := [program, (((s a_11 ... a_1n) r_0) ... ((s a_k1 ... y_kn) r_k))]
+    S[s] += x
+    return x
+  
+  (declare-oracle-fun s () T o):
+    return RUN( (declare-const s T :oracle o) )
 
-(declare-fun s (T_1 ... T_n) T):
-  RUN( (declare-const x (-> T_1 ... T_n T)) )
+  (declare-oracle-fun s (T_1 ... T_n) T o):
+    return RUN( (declare-const s (eo::arrow T_1 ... T_n T) :oracle o) )
 
-(define-fun x ((y_1 U_1) ... (y_n U_n)) T t):
-  Ax := Ax ++ [DESUGAR( (= x (lambda ((y_1 U_1) ... (y_n U_n)) t)) )]
-  RUN( (declare-const x (-> U_1 ... U_n T)) )
+  ;;; push/pop
 
-(define-fun x () T t):
-  Ax := Ax ++ [DESUGAR( (= x t) )]
-  RUN( (declare-const x T) )
+  (assume-push s F)
+    return RUN( (declare-const s (Proof F)) )
 
-(assert F):
-  Ax := Ax ++ [F]
+  (step-pop s F :rule r :premises (p_1 ... p_k) :args (t_1 ... t_n)), where (assume-push s G)
+  is the assumption that is being popped:
+    TODO
 
-(check-sat):
-  ; do nothing
+  ;;; SMT-LIB
+
+  (declare-fun s () T):
+    RUN( (declare-const x T) )
+
+  (declare-fun s (T_1 ... T_n) T):
+    RUN( (declare-const x (-> T_1 ... T_n T)) )
+
+  (define-fun x () T t):
+    Ax := Ax ++ [DESUGAR( (= x t) )]  ; assumes user definition of =.
+    RUN( (declare-const x T) )
+
+  (define-fun x ((y_1 U_1) ... (y_n U_n)) T t):
+    Ax := Ax ++ [DESUGAR( (= x (lambda ((y_1 U_1) ... (y_n U_n)) t)) )] ; assumes user definition of =, lambda.
+    RUN( (declare-const x (-> U_1 ... U_n T)) )
+
+  (assert F):
+    Ax := Ax ++ [F]
+
+  (check-sat):
+    ; do nothing
 ```
