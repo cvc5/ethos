@@ -2183,8 +2183,7 @@ The category <pterm> denotes "pre-terms", which include intermediate constructor
 Constructors specific to pre-terms are not expected to be returned by the desugar method for a well-formed term.
 In particular, this means that annotations e.g. `:implicit`, `:opaque`, `:var` should not appear anywhere but in function arguments, 
 symbols introduced by the command `define` must be fully applied.
-
-Pre-terms may appear as the second field of term annotations <annot>.
+As an exception, we often use `Tuple` in the second field of term annotations <annot>.
 
 ```
   <lit-category>  := '<numeral>' | '<decimal>' | '<rational>' | '<binary>' | '<hexadecimal>' | '<string>'
@@ -2351,6 +2350,7 @@ DESUGAR(t):
   (as f T), where A(f) = [amb-datatype-constructor, s]:
     return (_# f DESUGAR(T) )
 
+  ; TODO: refactor base case
   (eo::as f (-> T_1 ... T_n T)), where S[NAME(f)] = [f_1, ..., f_m]:
     Let [k_1, ..., k_n] = [FRESH_CONST(k_1,T_1), ..., FRESH_CONST(k_n, T_n)]
     return DESUGAR(
@@ -2639,3 +2639,7 @@ The type rules for `_#` is identical to those for `_`.
 The submethod `EVAL( t, [x_1, ..., x_n], [r_1, ..., r_n] )` 
 is the result of evaluating `t` in the context where parameters `[x_1, ..., x_n]`
 are bound to `[r_1, ..., r_n]`.
+
+### Execution semantics
+
+TODO
