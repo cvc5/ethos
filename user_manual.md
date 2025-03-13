@@ -2505,6 +2505,9 @@ RUN(C):
   (declare-oracle-fun s (T_1 ... T_n) T o):
     return RUN( (declare-const s (--> T_1 ... T_n T) :oracle o) )
 
+  (declare-consts cat T)
+    L[cat] := T
+
   ;;; push/pop
 
   (assume-push s F)
@@ -2517,18 +2520,18 @@ RUN(C):
   ;;; SMT-LIB
 
   (declare-fun s () T):
-    RUN( (declare-const x T) )
+    return RUN( (declare-const x T) )
 
   (declare-fun s (T_1 ... T_n) T):
-    RUN( (declare-const x (-> T_1 ... T_n T)) )
+    return RUN( (declare-const x (-> T_1 ... T_n T)) )
 
   (define-fun x () T t):
     Ax := Ax ++ [DESUGAR( (= x t) )]  ; assumes user definition of =.
-    RUN( (declare-const x T) )
+    return RUN( (declare-const x T) )
 
   (define-fun x ((y_1 U_1) ... (y_n U_n)) T t):
     Ax := Ax ++ [DESUGAR( (= x (lambda ((y_1 U_1) ... (y_n U_n)) t)) )] ; assumes user definition of =, lambda.
-    RUN( (declare-const x (-> U_1 ... U_n T)) )
+    return RUN( (declare-const x (-> U_1 ... U_n T)) )
 
   (assert F):
     Ax := Ax ++ [F]
