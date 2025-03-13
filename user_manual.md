@@ -2164,3 +2164,351 @@ can be seen as syntax sugar for:
 
 If no conlusion is provided, then the type attribute is not specified.
 Notice this is only the case if the declaration of `r` does not involve `:assumption` or `:premise-list`.
+
+
+### Formal Definition of Preprocessor
+
+# Core syntax of terms
+
+```
+  <lit-category>  := '<numeral>' | '<decimal>' | '<rational>' | '<binary>' | '<hexadecimal>' | '<string>'
+  <attr>          :=  right-assoc-nil | right-assoc | left-assoc | left-assoc-nil |
+                      chainable | pairwise | binder | let-binder |
+                      program | oracle |
+                      list | opaque |
+                      datatype | datatype-constructor | amb-datatype-constructor |
+                      premise-list | none
+  <annot>         := [ <attr>, <pterm> ]
+  <term>          := <param> | <const> | (eo::var <term> <term>) |
+                      (-> <term> <term>) | (~> <term> <term>) | (eo::arrow <term>* <term>) |
+                      (_ <term> <term>) | (_# <term> <term>) | (<prog-const> <term>*)
+  <prog-const>    := <const> | eo::requires | eo::list_concat | eo::nil | eo::ite | eo::typeof | eo::is_eq
+
+  <pterm> := <term> | Null | (Opaque <pterm>) | (Quote <pterm>) | (Nil <pterm>*) | (Tuple <pterm>*) | (Lambda (Tuple <pterm>*) <pterm>) | Fail
+```
+
+# Parser State
+
+```
+  ; Symbol table.
+  S : maps strings to a list of <term>.
+  ; Attribute mapping.
+  A : maps <const> to <annot>.
+  ; Assertions (formulas provided in assert commands).
+  Ax : a list of <term>.
+  ; Category types, maps literal categories to their types.
+  L : maps <lit-category> to <term>
+```
+All state initially empty.
+
+
+# Desugaring of terms
+
+Takes as input the syntax given for a term. Returns a <pterm>.
+```
+DESUGAR(t):
+
+  ;;; annotations
+
+  (! T :implicit a_1 ... a_n):
+    return DESUGAR( (! Null a_1 ... a_n) )
+
+  (! T :opaque a_1 ... a_n), where T != Null:
+    return DESUGAR( (! (Opaque T) a_1 ... a_n) )
+
+  (! T :requires (t1 t2) a_1 ... a_n), where T != Null:
+    return DESUGAR( (! (eo::requires t_1 t_2 T) a_1 ... a_n) )
+
+  (! T :var x a_2 ... a_n), where T != Null, (Quote T_0) for any T_0:
+    Let x is a fresh parameter of type T.
+    return DESUGAR( (! (Quote x) a_2 ... a_n) )
+
+  (! t):
+    return DESUGAR(t)
+
+  ;;; function types
+
+  (-> Null T_1 ... T_n):
+    return DESUGAR( (-> T_1 ... T_n) )
+
+  (-> (Opaque T_0) ... (Opaque T_m) T_{m+1} ... T_n):
+    return (-> DESUGAR( (Opaque (Tuple T_0 ... T_m)) ) DESUGAR( (-> T_{m+1} ... T_n) ) )
+
+  (-> (eo::requires s1 s2 T_0) T_1 ... T_n):
+    return DESUGAR( (-> T_0 (eo::requires s1 s2 (-> T_1 ... T_n))) )
+
+  (-> (Quote T_0) ... T_n):
+    return (~> DESUGAR(T_0) DESUGAR( (-> T_1 ... T_n) ) )
+
+  (-> T_0 ... T_n), where n>0:
+    return (-> DESUGAR(T_0) DESUGAR( (-> T_1 ... T_n) ) )
+
+  (-> T_0):
+    return DESUGAR( T_0 )
+
+  ;;; binders, definitions
+
+  (f ((x_0 U_0) ... (x_m U_m)) t_1 ... t_n), where A(f) = [binder, c]:
+    Let [v_0, ..., v_m] = [(eo::var NAME(x_0) U_0) ... (eo::var NAME(x_m) U_m)]
+    return DESUGAR( SUBS( (f (c x_0 ... x_m) t_1 ... t_n), [x_0, ..., x_m], [v_0, ..., v_m]) )
+
+  (f ((x_0 s_0) ... (x_m s_m)) t), where A(f) = [let-binder, (Tuple lp lc)]:
+    Let [v_1, ..., v_m] = [(eo::var NAME(x_1) U_1) ... (eo::var NAME(x_m) U_m)]
+    return DESUGAR( SUBS( (f (lc (lp x_1 s_1) ... (lp x_m s_m)) t), [x_1, ..., x_m], [v_1, ..., v_m]) )
+
+  (f t_1 ... t_n), where A(f) = [define, (Lambda (Tuple x_1 ... x_n) t)]:
+    return DESUGAR( SUBS( t, [x_1, ..., x_n], [t_1, ..., t_n]) )
+
+  (eo::define ((x_1 s_1) ... (x_m s_m)) t):
+    return DESUGAR( SUBS( t, [x_1, ..., x_m], [s_1, ..., s_m]) )
+
+  ;;; match
+
+  (eo::match ((x_1 U_1) ... (x_m U_m)) t (((p_1 r_1) ... (p_n r_n)))):
+    Let [y_1, ..., y_k] = FREE_PARAMS(r_1, ..., r_n) \ [x_1, ..., x_m], having type [T_1, ..., T_k]
+    Let W, V be fresh parameters of type Type.
+    Let h = RUN( (program s ((x_1 U_1) ... (x_m U_m) (y_1 T_1) ... (y_k T_k))
+                    (W T_1 ... T_k) V
+                    ((((s p_1 y_1 ... y_k) r_1)
+                      ...
+                      ((s p_n y_1 ... y_k) r_n)))) )
+    return DESUGAR( (h t y_1 ... y_k) )
+
+  ;;; special operators
+
+  (_ t_1 ... t_n):
+    return DESUGAR( (t_1 ... t_n) )
+
+  (as f T), where A(f) = [amb-datatype-constructor, s]:
+    return (_# f DESUGAR(T) )
+
+  (eo::as f (-> T_1 ... T_n T)), where S[NAME(f)] = [f_1, ..., f_m]:
+    Let [k_1, ..., k_n] be fresh constants of type [T_1, ..., T_n]
+    return DESUGAR(
+      (eo::ite (eo::is_eq (eo::typeof (f_m k_1 ... k_n)) T) f_m
+      ...
+      (eo::ite (eo::is_eq (eo::typeof (f_1 k_1 ... k_n)) T) f_1
+                                                            Fail)...) )
+
+  ;;; pre-term operators
+
+  (Opaque t_1):
+    return (Opaque DESUGAR(t_1))
+
+  (Quote t_1):
+    return (Quote DESUGAR(t_1))
+
+  (Nil f t_1 ... t_n):
+    return (eo::nil f DESUGAR(t_1) ... DESUGAR(t_n))
+
+  ;;; n-ary kinds
+
+  ; where A(f) = [right-assoc-nil, c]:
+
+  (f t_1 ... t_n), where t_n != (Nil ...), A[t_n] != [list, Null]:
+    return DESUGAR( (f t_1 ... t_n (Nil f t_1 ... t_n)) )
+
+  (f t_1 ... t_n), where A[t_1] = [list, Null], n>1:
+    return (eo::list_concat f DESUGAR(t_1) DESUGAR( (f t_2 ... t_n) ))
+
+  (f t_1 ... t_n), where A[t_1] != [list, Null], n>1:
+    return (_ (_ f DESUGAR(t_1)) DESUGAR( (f t_2 ... t_n) ))
+
+  (f t_1), where A(f) = [right-assoc-nil, c]:
+    return DESUGAR(t_1)
+
+  ; where A(f) = [right-assoc, Null]:
+
+  (f t_1 ... t_n), where, n>1:
+    return (_ (_ f DESUGAR(t_1)) DESUGAR( (f t_2 ... t_n) ) )
+
+  (f t_1):
+    return DESUGAR(t_1)
+
+  ; where A(f) = [left-assoc-nil, c]:
+
+  (f t_1 ... t_n), where t_1 != (Nil ...), A[t_1] != [list, Null]:
+    return DESUGAR( (f (Nil f t_1 ... t_n) t_1 ... t_n) )
+
+  (f t_1 ... t_n), where A[t_1] = [list, Null], n>1:
+    return (eo::list_concat f DESUGAR( (f t_2 ... t_n) ) DESUGAR(t_1))
+
+  (f t_1 ... t_n), where A[t_1] != [list, Null], n>1:
+    return (_ (_ f DESUGAR( (f t_2 ... t_n) )) DESUGAR(t_1))
+
+  (f t_1):
+    return DESUGAR(t_1)
+
+  ; where A(f) = [left-assoc, Null]:
+
+  (f t_1 ... t_n), n>1:
+    return (_ (_ f DESUGAR( (f t_2 ... t_n) )) DESUGAR(t_1))
+
+  (f t_1):
+    return DESUGAR(t_1)
+
+  ; where A(f) = [chainable, c]:
+
+  (f t_1 t_2):
+    return (_ (_ f DESUGAR(t_1)) DESUGAR(t_2))
+
+  (f t_1 ... t_n), n != 2:
+    return DESUGAR( (c (f t_1 t_2) (f t_2 t_3) ... (f t_{n-1} t_n)) )
+
+  ; where A(f) = [pairwise, c]:
+
+  (f t_1 t_2):
+    return (_ (_ f DESUGAR(t_1)) DESUGAR(t_2))
+
+  (f t_1 ... t_n), n != 2:
+    return DESUGAR( (c (f t_1 t_2) (f t_1 t_3) ... (f t_2 t_3) ... (f t_{n-1} t_n)) )
+
+  ;;; opaque
+
+  ; where A(f) = [opaque, (Tuple T_1 ... T_m)]:
+
+  (f t_1 ... t_n), n = m:
+    return (_# (_# f DESUGAR(t_1)) ... DESUGAR(t_m))
+
+  (f t_1 ... t_n), n > m:
+    return DESUGAR( ((_# (_# f DESUGAR(t_1)) ... DESUGAR(t_m)) t_{m+1} ... t_n) )
+
+
+  ;;; programs, oracles, ordinary functions
+
+  (f t_1 ... t_n), where A(f) = [program, p]:
+    return (f DESUGAR(t_1) ... DESUGAR(t_n))
+
+  (f t_1 ... t_n), where A(f) = [oracle, s]:
+    return (f DESUGAR(t_1) ... DESUGAR(t_n))
+
+  (f t_1 ... t_n), n>1:
+    return (_ DESUGAR( (f t_1 ... t_{n-1}) ) t_n)
+
+  (f t_1):
+    return (_ f DESUGAR(t_1))
+
+  ;;; base case
+
+  s:
+    return s
+```
+
+
+# Desugaring of commands
+
+```
+(declare-const s T a), where the attribute of a is one of {right-assoc, right-assoc-nil, left-assoc, left-assoc-nil, pairwise, chainable, binder, let-binder, opaque, none}:
+  Let x = FRESH_CONST(s, DESUGAR(T))
+  A[x] := a
+  S[s] += x
+  return x
+
+(declare-const s T):
+  Let U = DESUGAR( T )
+  if U is (-> (Opaque U_1) ... (-> (Opaque U_n) V) ... )
+    return RUN( (declare-const s (-> U_1 ... U_n V) :opaque (Tuple U_1 ... U_n)) )
+  else
+    return RUN( (declare-const s U :none) )
+
+(declare-rule s ((y_1 U_1) ... (y_n U_n))
+  :premises (p_1 ... p_k)
+  :args (t_1 ... t_l)
+  :requires ((s_1 r_1) ... (s_1 s_m))
+  :conclusion F):
+  RUN( (declare-const s (-> (Quote t_1) ... (Quote t_l) (Proof p_1) ... (Proof p_k) (! F :requires (s_1 r_1) ... :requires (s_1 s_m)))) )
+
+(declare-rule s ((y_1 U_1) ... (y_n U_n))
+  :premise-list x c
+  :args (t_1 ... t_l)
+  :requires ((s_1 r_1) ... (s_1 s_m))
+  :conclusion F):
+  x = RUN( (declare-const s (-> (Quote t_1) ... (Quote t_l) (Proof x) (! F :requires (s_1 r_1) ... :requires (s_1 s_m)))) )
+  A[x] := [premise-list, c]
+
+(declare-rule x ((y_1 U_1) ... (y_n U_n))
+  :assumption a
+  :args (t_1 ... t_l)
+  :requires ((s_1 r_1) ... (s_1 s_m))
+  :conclusion F)
+  RUN( (declare-const s (-> (Quote t_1) ... (Quote t_l) (Proof p_1) ... (Proof p_k) (Proof a) (! F :requires (s_1 r_1) ... :requires (s_1 s_m)))) )
+
+(declare-type s (U_1 ... U_n)):
+  RUN( (declare-const s (-> U_1 ... U_n Type)) )
+
+(define s ((y_1 U_1) ... (y_n U_n)) t):
+  A[x] := [define, (Lambda (Tuple y_1 ... y_n) t)]
+  S[s] += x
+
+(declare-datatype s () (par (U_1 ... U_n) ((c_1 (s_11 T_11) ... (s1m T_1m)) ... (c_n (s_n1 T_n1) ... (snm T_nm))))):
+  Let DC = RUN( (declare-type s (U_1 ... U_n)) )
+  Let D = DESUGAR( (DC U_1 ... U_n) ) if n>0, or DC otherwise.
+  for i = 1 ... n:
+    for j = 1 ... m:
+      Let ds_ij = RUN( (declare-const s_ij (-> D T_ij)) )
+    Let sels = (Tuple ds_i1 ... ds_im).
+    if [U_1 ... U_n] is not a subset of FREE_PARAMS(T_i1, ..., T_im)
+      Let dc_i = RUN( (declare-const c_i (-> (Quote D) T_i1 ... T_im D)) )
+      A[dc_i] := [amb-datatype-constructor, sels]
+    else
+      Let dc_i = RUN( (declare-const c_i (-> T_i1 ... T_im D)) )
+      A[dc_i] := [amb-datatype-constructor, sels]
+  A[D] := [datatype, (Tuple dc_1 ... dc_n)]
+
+(declare-datatype s () ((c_1 (s_11 T_11) ... (s1m T_1m)) ... (c_n (s_n1 T_n1) ... (snm T_nm))))
+  RUN( (declare-datatype s () (par () ((c_1 (s_11 T_11) ... (s1m T_1m)) ... (c_n (s_n1 T_n1) ... (snm T_nm))))) )
+
+(assume s F):
+  ASSERT( F in Ax )
+  RUN( (declare-const s (Proof F)) )
+
+(step s F :rule r :premises (p_1 ... p_k) :args (t_1 ... t_n))
+  if A[r] = [premise-list, c]
+    RUN( (define s () (r t_1 ... t_n (ProofFromList c p_1 ... p_k))) )
+  else
+    RUN( (define s () (r t_1 ... t_n p_1 ... p_k)) )
+
+(program s ((x_1 U_1) ... (x_m U_m))
+  (T_1 ... T_n) T
+  (
+  ((s a_11 ... a_1n) r_0)
+  ...
+  ((s a_k1 ... y_kn) r_k)
+  )
+):
+  Let x = FRESH_CONST(s, DESUGAR((-> T_1 ... T_n T)))
+  A[x] := [program, (((s a_11 ... a_1n) r_0) ... ((s a_k1 ... y_kn) r_k))]
+  S[s] += x
+  return x
+
+;;; push/pop
+
+(assume-push s F)
+  RUN( (declare-const s (Proof F)) )
+
+
+(step-pop s F :rule r :premises (p_1 ... p_k) :args (t_1 ... t_n)), where (assume-push s G) is the assumption that is being popped:
+  TODO
+
+;;; SMT-LIB
+
+(declare-fun s () T):
+  RUN( (declare-const x T) )
+
+(declare-fun s (T_1 ... T_n) T):
+  RUN( (declare-const x (-> T_1 ... T_n T)) )
+
+(define-fun x ((y_1 U_1) ... (y_n U_n)) T t):
+  Ax := Ax ++ [DESUGAR( (= x (lambda ((y_1 U_1) ... (y_n U_n)) t)) )]
+  RUN( (declare-const x (-> U_1 ... U_n T)) )
+
+(define-fun x () T t):
+  Ax := Ax ++ [DESUGAR( (= x t) )]
+  RUN( (declare-const x T) )
+
+(assert F):
+  Ax := Ax ++ [F]
+
+(check-sat):
+  ; do nothing
+```
