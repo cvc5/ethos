@@ -2035,13 +2035,14 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
 ;;;
 <keyword>       ::= :<symbol>
 <attr>          ::= <keyword> <term>?
-<term>          ::= <symbol> | (<symbol> <term>+) | (! <term> <attr>+) | (eo::match (<typed-param>*) <term> ((<term> <term>)*))
+<term>          ::= <symbol> | (<symbol> <term>+) | (! <term> <attr>+) | (eo::match (<typed-param>*) <term> ((<term> <term>)*)) |
+                    (<symbol> (<typed-param>*) <term>*) | (<symbol> ((<symbol> <term>)*) <term>)
 <type>          ::= <term>
 <typed-param>   ::= (<symbol> <type> <attr>*)
 <sort-dec>      ::= (<symbol> <numeral>)
 <sel-dec>       ::= (<symbol> <type>)
 <cons-dec>      ::= (<symbol> <sel-dec>*)
-<datatype-dec>  ::= (<cons-dec>+)
+<datatype-dec>  ::= (<cons-dec>+) | (par (<symbol>+) (<cons-dec>+))
 <lit-category>  ::= '<numeral>' | '<decimal>' | '<rational>' | '<binary>' | '<hexadecimal>' | '<string>'
 
 ;;;
@@ -2166,9 +2167,21 @@ If no conlusion is provided, then the type attribute is not specified.
 Notice this is only the case if the declaration of `r` does not involve `:assumption` or `:premise-list`.
 
 
-### Formal Definition of Preprocessor
+# Formal Definition of Preprocessor
 
-# Core syntax of terms
+### Core syntax of terms
+
+The category <term> denotes all terms and types.
+This includes parameters, constants, and variables.
+In detail,
+`->` is function arrow, `~>` is quote arrow, `-->` is program arrow, 
+`_` is application and `_#` is opaque application.
+
+The category <pterm> denotes "pre-terms", which include intermediate constructors that are used in the desugar mentioned below.
+Constructors specific to pre-terms are not expected to be returned by the desugar method for a well-formed term.
+In particular, this means that annotations e.g. `:implicit`, `:opaque`, `:var` should not appear anywhere by in function arguments, symbols introduced by the command `define` must be fully applied.
+
+Pre-terms may appear as the second field of term annotations <annot>.
 
 ```
   <lit-category>  := '<numeral>' | '<decimal>' | '<rational>' | '<binary>' | '<hexadecimal>' | '<string>'
@@ -2182,13 +2195,13 @@ Notice this is only the case if the declaration of `r` does not involve `:assump
   <term>          := <param> | <const> | (eo::var <term> <term>) |
                       (-> <term> <term>) | (~> <term> <term>) | (--> <term>* <term>) |
                       (_ <term> <term>) | (_# <term> <term>) | (<prog-const> <term>*)
-  <prog-const>    := <const> | eo::requires | eo::list_concat | eo::nil | eo::ite | eo::typeof | eo::is_eq
+  <prog-const>    := <const> | eo::requires | eo::nil | eo::ite | eo::typeof | eo::is_eq
 
   <pterm>         := <term> | Null | (Opaque <pterm>) | (Quote <pterm>) | (Nil <pterm>*) |
-                     (Tuple <pterm>*) | (Lambda (Tuple <pterm>*) <pterm>) | Fail
+                     (Tuple <pterm>*) | (Lambda (Tuple <pterm>*) <pterm>)
 ```
 
-# Parser State
+### Parser State
 
 ```
   ; Symbol table.
@@ -2200,12 +2213,49 @@ Notice this is only the case if the declaration of `r` does not involve `:assump
   ; Category types, maps literal categories to their types.
   L : maps <lit-category> to <term>
 ```
-All state initially empty.
 
+The initial state can be understood by parsing the following background definitions:
+```
+(declare-const Bool Type)
+(declare-consts <boolean> Bool)
 
-# Desugaring of terms
+; Definitions of applicaable eo::
+```
+
+### Scoping of parameters
+
+Parameter lists `(<typed-param>*)` introduce fresh parameters that are processed as follows.
+
+A typed parameter `(x T)` in a type parameter list constructs a fresh parameter term (independent of whether another parameter of that name and type already exist), and adds `x` to the symbol table `S` in the duration `x` is in scope. 
+
+In particular,
+parameters introduced by a list at the beginning of commands
+`define`, `declare-parameterized-const`, `program`, `define-fun`, `declare-rule`
+are in scope for the remainder of the command.
+Parameters introduced at the term level e.g. by `eo::match`, `eo::define`, or as the first argument of functions having attribute `binder` or `let-binder` are in the scope only in further arguments to that term.
+As an exception,
+parameters marked `(x T :implicit)` are only in scope in the remainder of parsing the parameter list, 
+and are omitted from the parameter list after they are parsed.
+
+Parameters are generated in several other special contexts.
+In parameteric datatype definitions `(par (U_1 ... U_n) (<cons-dec>+))`, 
+`U_1, ..., U_n` are fresh parameters of type `Type` that are in scope of the definition of the constructors for that datatype.
+In variable annotations, e.g. `(-> (! T :var x) U)`, 
+`x` is a fresh parameter of type `T`, and is in scope of the remainder of the arguments to the function type.
+
+Parameters marked with the annotation `(x T :list)` are such that the attribute map `A(x)` is set to `[list, Null]`.
+
+### Desugaring of terms
 
 Takes as input the syntax given for a term. Returns a <pterm>.
+We use meta-variables `t_i, s_j` to denote terms, `T_i, U_j, V_k` to denote types (terms whose type is Type), `a_i, a_j` to denote annotations.
+We use `f` to denote a term of some function type.
+
+We assume the following helper methods:
+- `NAME(x)`: returns a string corresponding to the name of parameter or constant x.
+- `FREE_PARAMS(t)`: returns the set of parameters that occur as subterms of t.
+- `SUBS( t, [x_1, ..., x_n], [s_1, ..., s_n] )`: returns the result of replacing all occurrences of parameters `x_1, ..., x_n` by `s_1, ..., s_n` simultaneously.
+
 
 ```
 DESUGAR(t):
@@ -2221,9 +2271,9 @@ DESUGAR(t):
   (! T :requires (t1 t2) a_1 ... a_n), where T != Null:
     return DESUGAR( (! (eo::requires t_1 t_2 T) a_1 ... a_n) )
 
-  (! T :var x a_2 ... a_n), where T != Null, (Quote T_0) for any T_0:
+  (! T :var x a_1 ... a_n), where T != Null, (Quote U) for any U:
     Let x is a fresh parameter of type T.
-    return DESUGAR( (! (Quote x) a_2 ... a_n) )
+    return DESUGAR( (! (Quote x) a_1 ... a_n) )
 
   (! t):
     return DESUGAR(t)
@@ -2232,9 +2282,6 @@ DESUGAR(t):
 
   (-> Null T_1 ... T_n):
     return DESUGAR( (-> T_1 ... T_n) )
-
-  (-> (Opaque T_0) ... (Opaque T_m) T_{m+1} ... T_n):
-    return (-> DESUGAR( (Opaque (Tuple T_0 ... T_m)) ) DESUGAR( (-> T_{m+1} ... T_n) ) )
 
   (-> (eo::requires s1 s2 T_0) T_1 ... T_n):
     return DESUGAR( (-> T_0 (eo::requires s1 s2 (-> T_1 ... T_n))) )
@@ -2250,13 +2297,13 @@ DESUGAR(t):
 
   ;;; binders, definitions
 
-  (f ((x_0 U_0) ... (x_m U_m)) t_1 ... t_n), where A(f) = [binder, c]:
-    Let [v_0, ..., v_m] = [(eo::var NAME(x_0) U_0) ... (eo::var NAME(x_m) U_m)]
-    return DESUGAR( SUBS( (f (c x_0 ... x_m) t_1 ... t_n), [x_0, ..., x_m], [v_0, ..., v_m]) )
-
-  (f ((x_0 s_0) ... (x_m s_m)) t), where A(f) = [let-binder, (Tuple lp lc)]:
+  (f ((x_1 U_1) ... (x_m U_m)) t_1 ... t_n), where A(f) = [binder, g]:
     Let [v_1, ..., v_m] = [(eo::var NAME(x_1) U_1) ... (eo::var NAME(x_m) U_m)]
-    return DESUGAR( SUBS( (f (lc (lp x_1 s_1) ... (lp x_m s_m)) t), [x_1, ..., x_m], [v_1, ..., v_m]) )
+    return DESUGAR( SUBS( (f (g x_1 ... x_m) t_1 ... t_n), [x_1, ..., x_m], [v_1, ..., v_m]) )
+
+  (f ((x_1 s_1) ... (x_m s_m)) t), where A(f) = [let-binder, (Tuple lp ll)]:
+    Let [v_1, ..., v_m] = [(eo::var NAME(x_1) U_1) ... (eo::var NAME(x_m) U_m)]
+    return DESUGAR( SUBS( (f (ll (lp x_1 s_1) ... (lp x_m s_m)) t), [x_1, ..., x_m], [v_1, ..., v_m]) )
 
   (f t_1 ... t_n), where A(f) = [define, (Lambda (Tuple x_1 ... x_n) t)]:
     return DESUGAR( SUBS( t, [x_1, ..., x_n], [t_1, ..., t_n]) )
@@ -2289,8 +2336,8 @@ DESUGAR(t):
     return DESUGAR(
       (eo::ite (eo::is_eq (eo::typeof (f_m k_1 ... k_n)) T) f_m
       ...
-      (eo::ite (eo::is_eq (eo::typeof (f_1 k_1 ... k_n)) T) f_1
-                                                            Fail)...) )
+      (eo::ite (eo::is_eq (eo::typeof (f_2 k_1 ... k_n)) T) f_2
+        (eo::requires (eo::typeof (f_1 k_1 ... k_n)) T f_1)...)) )
 
   ;;; pre-term operators
 
@@ -2305,7 +2352,7 @@ DESUGAR(t):
 
   ;;; n-ary kinds
 
-  ; where A(f) = [right-assoc-nil, c]:
+  ; where A(f) = [right-assoc-nil, g]:
 
   (f t_1 ... t_n), where t_n != (Nil ...), A[t_n] != [list, Null]:
     return DESUGAR( (f t_1 ... t_n (Nil f t_1 ... t_n)) )
@@ -2316,7 +2363,7 @@ DESUGAR(t):
   (f t_1 ... t_n), where A[t_1] != [list, Null], n>1:
     return (_ (_ f DESUGAR(t_1)) DESUGAR( (f t_2 ... t_n) ))
 
-  (f t_1), where A(f) = [right-assoc-nil, c]:
+  (f t_1), where A(f) = [right-assoc-nil, g]:
     return DESUGAR(t_1)
 
   ; where A(f) = [right-assoc, Null]:
@@ -2327,7 +2374,7 @@ DESUGAR(t):
   (f t_1):
     return DESUGAR(t_1)
 
-  ; where A(f) = [left-assoc-nil, c]:
+  ; where A(f) = [left-assoc-nil, g]:
 
   (f t_1 ... t_n), where t_1 != (Nil ...), A[t_1] != [list, Null]:
     return DESUGAR( (f (Nil f t_1 ... t_n) t_1 ... t_n) )
@@ -2349,21 +2396,21 @@ DESUGAR(t):
   (f t_1):
     return DESUGAR(t_1)
 
-  ; where A(f) = [chainable, c]:
+  ; where A(f) = [chainable, g]:
 
   (f t_1 t_2):
     return (_ (_ f DESUGAR(t_1)) DESUGAR(t_2))
 
   (f t_1 ... t_n), n != 2:
-    return DESUGAR( (c (f t_1 t_2) (f t_2 t_3) ... (f t_{n-1} t_n)) )
+    return DESUGAR( (g (f t_1 t_2) (f t_2 t_3) ... (f t_{n-1} t_n)) )
 
-  ; where A(f) = [pairwise, c]:
+  ; where A(f) = [pairwise, g]:
 
   (f t_1 t_2):
     return (_ (_ f DESUGAR(t_1)) DESUGAR(t_2))
 
   (f t_1 ... t_n), n != 2:
-    return DESUGAR( (c (f t_1 t_2) (f t_1 t_3) ... (f t_2 t_3) ... (f t_{n-1} t_n)) )
+    return DESUGAR( (g (f t_1 t_2) (f t_1 t_3) ... (f t_2 t_3) ... (f t_{n-1} t_n)) )
 
   ;;; opaque
 
@@ -2392,8 +2439,8 @@ DESUGAR(t):
 
   ;;; base case
 
-  s:
-    return s
+  t:
+    return t
 ```
 
 
@@ -2411,11 +2458,14 @@ RUN(C):
     return x
 
   (declare-const s T):
-    Let U = DESUGAR( T )
+    Let U = DESUGAR(T)
     if U is (-> (Opaque U_1) ... (-> (Opaque U_n) V) ... )
       return RUN( (declare-const s (-> U_1 ... U_n V) :opaque (Tuple U_1 ... U_n)) )
     else
       return RUN( (declare-const s U :none) )
+
+  (declare-parameterized-const ((y_1 U_1) ... (y_n U_n)) T a):
+    TODO
 
   (declare-rule s ((y_1 U_1) ... (y_n U_n))
     :premises (p_1 ... p_k)
@@ -2428,7 +2478,7 @@ RUN(C):
                            (! F :requires (s_1 r_1) ... :requires (s_1 s_m)))) )
 
   (declare-rule s ((y_1 U_1) ... (y_n U_n))
-    :premise-list x c
+    :premise-list x g
     :args (t_1 ... t_l)
     :requires ((s_1 r_1) ... (s_1 s_m))
     :conclusion F):
@@ -2436,7 +2486,7 @@ RUN(C):
       (declare-const s (-> (Quote t_1) ... (Quote t_l)
                            (Proof x)
                            (! F :requires (s_1 r_1) ... :requires (s_1 s_m)))) )
-    A[x] := [premise-list, c]
+    A[x] := [premise-list, g]
     return x
 
   (declare-rule x ((y_1 U_1) ... (y_n U_n))
@@ -2485,8 +2535,8 @@ RUN(C):
     return RUN( (declare-const s (Proof F)) )
 
   (step s F :rule r :premises (p_1 ... p_k) :args (t_1 ... t_n)):
-    if A[r] = [premise-list, c]
-      return RUN( (define s () (r t_1 ... t_n (ProofFromList c p_1 ... p_k))) )
+    if A[r] = [premise-list, g]
+      return RUN( (define s () (r t_1 ... t_n (ProofFromList g p_1 ... p_k))) )
     else
       return RUN( (define s () (r t_1 ... t_n p_1 ... p_k)) )
 
