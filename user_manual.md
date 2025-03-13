@@ -2550,6 +2550,7 @@ RUN(C):
     ASSERT( F in Ax )
     return RUN( (declare-const s (Proof F)) )
 
+  ; TODO: improve handling of premise-list
   (step s F :rule r :premises (p_1 ... p_k) :args (t_1 ... t_n)):
     if A[r] = [premise-list, g]
       Let p = FRESH_CONST( p, DESUGAR( (Proof (g F_1 ... F_k) ) ) ), where p_1, ..., p_k have type (Proof F_1), ...., (Proof F_k).
@@ -2574,8 +2575,8 @@ RUN(C):
   (declare-oracle-fun s (T_1 ... T_n) T o):
     return RUN( (declare-const s (--> T_1 ... T_n T) :oracle o) )
 
-  (declare-consts cat T)
-    L[cat] := T
+  (declare-consts c T)
+    L[c] := T
 
   ;;; push/pop
 
@@ -2617,19 +2618,19 @@ f : (~> u S)  t : T
 (_ f t) : EVAL( S, X, R )
 
 f : (-> U S)  t : T
--------------------------- if SUBS(U, X, R) = Y
+-------------------------- if SUBS(U, X, R) = T
 (_ f t) : EVAL( S, X, R )
 
 f : (--> U_1 ... U_n S)  t_1 : T_1 ... t_n : T_n
 ------------------------------------------------- if SUBS( (Tuple U_1 ... U_n), X, R) = (Tuple T_1 ... T_n)
 (_ f t_1 ... t_n) : EVAL( S, X, R )
 
-------------------------------------------
+------------------------------------------ if CATEGORY(c) is defined
 c : EVAL( L(CATEGORY(c)), [eo::self], [c])
 
 ```
 
-The type rule for `_#` is identical to those for `_`.
-The submethod `EVAL( t, [x_1, ..., x_n], [s_1, ..., s_n] )` 
+The type rules for `_#` is identical to those for `_`.
+The submethod `EVAL( t, [x_1, ..., x_n], [r_1, ..., r_n] )` 
 is the result of evaluating `t` in the context where parameters `[x_1, ..., x_n]`
-are bound to `[s_1, ..., s_n]`.
+are bound to `[r_1, ..., r_n]`.
