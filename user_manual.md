@@ -2184,7 +2184,8 @@ Notice this is only the case if the declaration of `r` does not involve `:assump
                       (_ <term> <term>) | (_# <term> <term>) | (<prog-const> <term>*)
   <prog-const>    := <const> | eo::requires | eo::list_concat | eo::nil | eo::ite | eo::typeof | eo::is_eq
 
-  <pterm> := <term> | Null | (Opaque <pterm>) | (Quote <pterm>) | (Nil <pterm>*) | (Tuple <pterm>*) | (Lambda (Tuple <pterm>*) <pterm>) | Fail
+  <pterm>         := <term> | Null | (Opaque <pterm>) | (Quote <pterm>) | (Nil <pterm>*) |
+                     (Tuple <pterm>*) | (Lambda (Tuple <pterm>*) <pterm>) | Fail
 ```
 
 # Parser State
@@ -2403,8 +2404,7 @@ Takes as input the syntax given for a command. Optionally returns a <const>.
 ```
 RUN(C):
 
-  (declare-const s T a), where the attribute of a is one of 
-  {right-assoc, right-assoc-nil, left-assoc, left-assoc-nil, pairwise, chainable, binder, let-binder, opaque, none}:
+  (declare-const s T a):
     Let x = FRESH_CONST(s, DESUGAR(T))
     A[x] := a
     S[s] += x
@@ -2423,9 +2423,9 @@ RUN(C):
     :requires ((s_1 r_1) ... (s_1 s_m))
     :conclusion F):
     return RUN( 
-      (declare-const s (-> (Quote t_1) ... (Quote t_l) 
-                          (Proof p_1) ... (Proof p_k) 
-                          (! F :requires (s_1 r_1) ... :requires (s_1 s_m)))) )
+      (declare-const s (-> (Quote t_1) ... (Quote t_l)
+                           (Proof p_1) ... (Proof p_k)
+                           (! F :requires (s_1 r_1) ... :requires (s_1 s_m)))) )
 
   (declare-rule s ((y_1 U_1) ... (y_n U_n))
     :premise-list x c
@@ -2433,9 +2433,9 @@ RUN(C):
     :requires ((s_1 r_1) ... (s_1 s_m))
     :conclusion F):
     x = RUN( 
-      (declare-const s (-> (Quote t_1) ... (Quote t_l) 
-                          (Proof x)
-                          (! F :requires (s_1 r_1) ... :requires (s_1 s_m)))) )
+      (declare-const s (-> (Quote t_1) ... (Quote t_l)
+                           (Proof x)
+                           (! F :requires (s_1 r_1) ... :requires (s_1 s_m)))) )
     A[x] := [premise-list, c]
     return x
 
@@ -2445,9 +2445,9 @@ RUN(C):
     :requires ((s_1 r_1) ... (s_1 s_m))
     :conclusion F):
     return RUN( 
-      (declare-const s (-> (Quote t_1) ... (Quote t_l) 
-                          (Proof p_1) ... (Proof p_k) (Proof a) 
-                          (! F :requires (s_1 r_1) ... :requires (s_1 s_m)))) )
+      (declare-const s (-> (Quote t_1) ... (Quote t_l)
+                           (Proof p_1) ... (Proof p_k) (Proof a)
+                           (! F :requires (s_1 r_1) ... :requires (s_1 s_m)))) )
 
   (declare-type s (U_1 ... U_n)):
     return RUN( (declare-const s (-> U_1 ... U_n Type)) )
@@ -2474,7 +2474,11 @@ RUN(C):
     return DC
 
   (declare-datatype s () ((c_1 (s_11 T_11) ... (s1m T_1m)) ... (c_n (s_n1 T_n1) ... (snm T_nm)))):
-    return RUN( (declare-datatype s () (par () ((c_1 (s_11 T_11) ... (s1m T_1m)) ... (c_n (s_n1 T_n1) ... (snm T_nm))))) )
+    return RUN( (declare-datatype s ()
+                  (par () ((c_1 (s_11 T_11) ... (s1m T_1m)) ... (c_n (s_n1 T_n1) ... (snm T_nm))))) )
+
+  (declare-datatypes ...):
+    TODO
 
   (assume s F):
     ASSERT( F in Ax )
@@ -2494,10 +2498,8 @@ RUN(C):
     ((s a_k1 ... y_kn) r_k)
     )
   ):
-    Let x = FRESH_CONST(s, DESUGAR((--> T_1 ... T_n T)))
-    A[x] := [program, (((s a_11 ... a_1n) r_0) ... ((s a_k1 ... y_kn) r_k))]
-    S[s] += x
-    return x
+    return RUN( (declare-const s (--> T_1 ... T_n T)
+                  :program (Tuple (Tuple (f a_11 ... a_1n) r_0) ... (Tuple (f a_k1 ... y_kn) r_k))) )
   
   (declare-oracle-fun s () T o):
     return RUN( (declare-const s T :oracle o) )
