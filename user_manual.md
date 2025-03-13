@@ -2181,7 +2181,7 @@ In detail,
 
 The category <pterm> denotes "pre-terms", which include intermediate constructors that are used in the desugar mentioned below.
 Constructors specific to pre-terms are not expected to be returned by the desugar method for a well-formed term.
-In particular, this means that annotations e.g. `:implicit`, `:opaque`, `:var` should not appear anywhere by in function arguments, 
+In particular, this means that annotations e.g. `:implicit`, `:opaque`, `:var` should not appear anywhere but in function arguments, 
 symbols introduced by the command `define` must be fully applied.
 
 Pre-terms may appear as the second field of term annotations <annot>.
@@ -2195,7 +2195,7 @@ Pre-terms may appear as the second field of term annotations <annot>.
                       datatype | datatype-constructor | amb-datatype-constructor |
                       premise-list | none
   <annot>         := [ <attr>, <pterm> ]
-  <term>          := <param> | <const> | (eo::var <term> <term>) |
+  <term>          := <param> | <const> |
                       (-> <term> <term>) | (~> <term> <term>) | (--> <term>* <term>) |
                       (_ <term> <term>) | (_# <term> <term>) | (<prog-const> <term>*)
   <prog-const>    := <const> | eo::requires | eo::nil | eo::ite | eo::typeof | eo::is_eq
@@ -2225,6 +2225,9 @@ The initial state can be understood by parsing the following background definiti
 (declare-consts <boolean> Bool)
 
 ; TODO: Definitions of eo::
+
+; including eo::var, eo::list_concat
+
 ```
 
 ### Scoping of parameters
@@ -2477,8 +2480,8 @@ RUN(C):
     else
       return RUN( (declare-const s U :none) )
 
-  (declare-parameterized-const ((y_1 U_1) ... (y_n U_n)) T a):
-    TODO
+  (declare-parameterized-const s ((y_1 U_1) ... (y_n U_n)) T a):
+    return RUN( (declare-const s T a) )
 
   (declare-rule s ((y_1 U_1) ... (y_n U_n))
     :premises (p_1 ... p_k)
@@ -2549,7 +2552,8 @@ RUN(C):
 
   (step s F :rule r :premises (p_1 ... p_k) :args (t_1 ... t_n)):
     if A[r] = [premise-list, g]
-      return RUN( (define s () (r t_1 ... t_n (ProofFromList g p_1 ... p_k))) )
+      Let p = FRESH_CONST( p, DESUGAR( (Proof (g F_1 ... F_k) ) ) ), where p_1, ..., p_k have type (Proof F_1), ...., (Proof F_k).
+      return RUN( (define s () (r t_1 ... t_n p)) )
     else
       return RUN( (define s () (r t_1 ... t_n p_1 ... p_k)) )
 
@@ -2604,3 +2608,28 @@ RUN(C):
   (check-sat):
     ; do nothing
 ```
+
+### Type system
+
+```smt
+f : (~> u S)  t : T
+-------------------------- if SUBS(u, X, R) = t
+(_ f t) : EVAL( S, X, R )
+
+f : (-> U S)  t : T
+-------------------------- if SUBS(U, X, R) = Y
+(_ f t) : EVAL( S, X, R )
+
+f : (--> U_1 ... U_n S)  t_1 : T_1 ... t_n : T_n
+------------------------------------------------- if SUBS( (Tuple U_1 ... U_n), X, R) = (Tuple T_1 ... T_n)
+(_ f t_1 ... t_n) : EVAL( S, X, R )
+
+------------------------------------------
+c : EVAL( L(CATEGORY(c)), [eo::self], [c])
+
+```
+
+The type rule for `_#` is identical to those for `_`.
+The submethod `EVAL( t, [x_1, ..., x_n], [s_1, ..., s_n] )` 
+is the result of evaluating `t` in the context where parameters `[x_1, ..., x_n]`
+are bound to `[s_1, ..., s_n]`.
