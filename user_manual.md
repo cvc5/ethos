@@ -2169,6 +2169,8 @@ Notice this is only the case if the declaration of `r` does not involve `:assump
 
 # Formal Definition of Preprocessor
 
+This section defines a conversion from (full) Eunoia input syntax to a core logic.
+
 ### Core syntax of terms
 
 The category <term> denotes all terms and types.
@@ -2179,7 +2181,8 @@ In detail,
 
 The category <pterm> denotes "pre-terms", which include intermediate constructors that are used in the desugar mentioned below.
 Constructors specific to pre-terms are not expected to be returned by the desugar method for a well-formed term.
-In particular, this means that annotations e.g. `:implicit`, `:opaque`, `:var` should not appear anywhere by in function arguments, symbols introduced by the command `define` must be fully applied.
+In particular, this means that annotations e.g. `:implicit`, `:opaque`, `:var` should not appear anywhere by in function arguments, 
+symbols introduced by the command `define` must be fully applied.
 
 Pre-terms may appear as the second field of term annotations <annot>.
 
@@ -2201,6 +2204,8 @@ Pre-terms may appear as the second field of term annotations <annot>.
                      (Tuple <pterm>*) | (Lambda (Tuple <pterm>*) <pterm>)
 ```
 
+### Type 
+
 ### Parser State
 
 ```
@@ -2219,7 +2224,7 @@ The initial state can be understood by parsing the following background definiti
 (declare-const Bool Type)
 (declare-consts <boolean> Bool)
 
-; Definitions of applicaable eo::
+; TODO: Definitions of eo::
 ```
 
 ### Scoping of parameters
@@ -2248,13 +2253,16 @@ Parameters marked with the annotation `(x T :list)` are such that the attribute 
 ### Desugaring of terms
 
 Takes as input the syntax given for a term. Returns a <pterm>.
-We use meta-variables `t_i, s_j` to denote terms, `T_i, U_j, V_k` to denote types (terms whose type is Type), `a_i, a_j` to denote annotations.
-We use `f` to denote a term of some function type.
+We use meta-variables `t_i, s_j, f, g, h` to denote terms, 
+`T_i, U_j, V_k` to denote types (terms whose type is Type), and
+`a_i, a_j` to denote annotations.
+We write `s` to denote a symbol.
 
 We assume the following helper methods:
 - `NAME(x)`: returns a string corresponding to the name of parameter or constant x.
 - `FREE_PARAMS(t)`: returns the set of parameters that occur as subterms of t.
 - `SUBS( t, [x_1, ..., x_n], [s_1, ..., s_n] )`: returns the result of replacing all occurrences of parameters `x_1, ..., x_n` by `s_1, ..., s_n` simultaneously.
+- `FRESH_CONST(s, T)`: constructs a constant with name `s` and type `T`.
 
 
 ```
@@ -2297,16 +2305,22 @@ DESUGAR(t):
 
   ;;; binders, definitions
 
-  (f ((x_1 U_1) ... (x_m U_m)) t_1 ... t_n), where A(f) = [binder, g]:
-    Let [v_1, ..., v_m] = [(eo::var NAME(x_1) U_1) ... (eo::var NAME(x_m) U_m)]
-    return DESUGAR( SUBS( (f (g x_1 ... x_m) t_1 ... t_n), [x_1, ..., x_m], [v_1, ..., v_m]) )
+  If A(f) = [binder, g]:
 
-  (f ((x_1 s_1) ... (x_m s_m)) t), where A(f) = [let-binder, (Tuple lp ll)]:
-    Let [v_1, ..., v_m] = [(eo::var NAME(x_1) U_1) ... (eo::var NAME(x_m) U_m)]
-    return DESUGAR( SUBS( (f (ll (lp x_1 s_1) ... (lp x_m s_m)) t), [x_1, ..., x_m], [v_1, ..., v_m]) )
+    (f ((x_1 U_1) ... (x_m U_m)) t_1 ... t_n):
+      Let [v_1, ..., v_m] = [(eo::var NAME(x_1) U_1) ... (eo::var NAME(x_m) U_m)]
+      return DESUGAR( SUBS( (f (g x_1 ... x_m) t_1 ... t_n), [x_1, ..., x_m], [v_1, ..., v_m]) )
 
-  (f t_1 ... t_n), where A(f) = [define, (Lambda (Tuple x_1 ... x_n) t)]:
-    return DESUGAR( SUBS( t, [x_1, ..., x_n], [t_1, ..., t_n]) )
+  If A(f) = [let-binder, (Tuple lp ll)]:
+
+    (f ((x_1 s_1) ... (x_m s_m)) t):
+      Let [v_1, ..., v_m] = [(eo::var NAME(x_1) U_1) ... (eo::var NAME(x_m) U_m)]
+      return DESUGAR( SUBS( (f (ll (lp x_1 s_1) ... (lp x_m s_m)) t), [x_1, ..., x_m], [v_1, ..., v_m]) )
+
+  If A(f) = [define, (Lambda (Tuple x_1 ... x_n) t)]:
+
+    (f t_1 ... t_n):
+      return DESUGAR( SUBS( t, [x_1, ..., x_n], [t_1, ..., t_n]) )
 
   (eo::define ((x_1 s_1) ... (x_m s_m)) t):
     return DESUGAR( SUBS( t, [x_1, ..., x_m], [s_1, ..., s_m]) )
@@ -2332,7 +2346,7 @@ DESUGAR(t):
     return (_# f DESUGAR(T) )
 
   (eo::as f (-> T_1 ... T_n T)), where S[NAME(f)] = [f_1, ..., f_m]:
-    Let [k_1, ..., k_n] be fresh constants of type [T_1, ..., T_n]
+    Let [k_1, ..., k_n] = [FRESH_CONST(k_1,T_1), ..., FRESH_CONST(k_n, T_n)]
     return DESUGAR(
       (eo::ite (eo::is_eq (eo::typeof (f_m k_1 ... k_n)) T) f_m
       ...
@@ -2352,84 +2366,83 @@ DESUGAR(t):
 
   ;;; n-ary kinds
 
-  ; where A(f) = [right-assoc-nil, g]:
+  If A(f) = [right-assoc-nil, g]:
 
-  (f t_1 ... t_n), where t_n != (Nil ...), A[t_n] != [list, Null]:
-    return DESUGAR( (f t_1 ... t_n (Nil f t_1 ... t_n)) )
+    (f t_1 ... t_n), where t_n != (Nil ...), A[t_n] != [list, Null]:
+      return DESUGAR( (f t_1 ... t_n (Nil f t_1 ... t_n)) )
 
-  (f t_1 ... t_n), where A[t_1] = [list, Null], n>1:
-    return (eo::list_concat f DESUGAR(t_1) DESUGAR( (f t_2 ... t_n) ))
+    (f t_1 ... t_n), where A[t_1] = [list, Null], n>1:
+      return (eo::list_concat f DESUGAR(t_1) DESUGAR( (f t_2 ... t_n) ))
 
-  (f t_1 ... t_n), where A[t_1] != [list, Null], n>1:
-    return (_ (_ f DESUGAR(t_1)) DESUGAR( (f t_2 ... t_n) ))
+    (f t_1 ... t_n), where A[t_1] != [list, Null], n>1:
+      return (_ (_ f DESUGAR(t_1)) DESUGAR( (f t_2 ... t_n) ))
 
-  (f t_1), where A(f) = [right-assoc-nil, g]:
-    return DESUGAR(t_1)
+    (f t_1), where A(f) = [right-assoc-nil, g]:
+      return DESUGAR(t_1)
 
-  ; where A(f) = [right-assoc, Null]:
+  If A(f) = [right-assoc, Null]:
 
-  (f t_1 ... t_n), where, n>1:
-    return (_ (_ f DESUGAR(t_1)) DESUGAR( (f t_2 ... t_n) ) )
+    (f t_1 ... t_n), where, n>1:
+      return (_ (_ f DESUGAR(t_1)) DESUGAR( (f t_2 ... t_n) ) )
 
-  (f t_1):
-    return DESUGAR(t_1)
+    (f t_1):
+      return DESUGAR(t_1)
 
-  ; where A(f) = [left-assoc-nil, g]:
+  If A(f) = [left-assoc-nil, g]:
 
-  (f t_1 ... t_n), where t_1 != (Nil ...), A[t_1] != [list, Null]:
-    return DESUGAR( (f (Nil f t_1 ... t_n) t_1 ... t_n) )
+    (f t_1 ... t_n), where t_1 != (Nil ...), A[t_1] != [list, Null]:
+      return DESUGAR( (f (Nil f t_1 ... t_n) t_1 ... t_n) )
 
-  (f t_1 ... t_n), where A[t_1] = [list, Null], n>1:
-    return (eo::list_concat f DESUGAR( (f t_2 ... t_n) ) DESUGAR(t_1))
+    (f t_1 ... t_n), where A[t_1] = [list, Null], n>1:
+      return (eo::list_concat f DESUGAR( (f t_2 ... t_n) ) DESUGAR(t_1))
 
-  (f t_1 ... t_n), where A[t_1] != [list, Null], n>1:
-    return (_ (_ f DESUGAR( (f t_2 ... t_n) )) DESUGAR(t_1))
+    (f t_1 ... t_n), where A[t_1] != [list, Null], n>1:
+      return (_ (_ f DESUGAR( (f t_2 ... t_n) )) DESUGAR(t_1))
 
-  (f t_1):
-    return DESUGAR(t_1)
+    (f t_1):
+      return DESUGAR(t_1)
 
-  ; where A(f) = [left-assoc, Null]:
+  If A(f) = [left-assoc, Null]:
 
-  (f t_1 ... t_n), n>1:
-    return (_ (_ f DESUGAR( (f t_2 ... t_n) )) DESUGAR(t_1))
+    (f t_1 ... t_n), n>1:
+      return (_ (_ f DESUGAR( (f t_2 ... t_n) )) DESUGAR(t_1))
 
-  (f t_1):
-    return DESUGAR(t_1)
+    (f t_1):
+      return DESUGAR(t_1)
 
-  ; where A(f) = [chainable, g]:
+  If A(f) = [chainable, g]:
 
-  (f t_1 t_2):
-    return (_ (_ f DESUGAR(t_1)) DESUGAR(t_2))
+    (f t_1 t_2):
+      return (_ (_ f DESUGAR(t_1)) DESUGAR(t_2))
 
-  (f t_1 ... t_n), n != 2:
-    return DESUGAR( (g (f t_1 t_2) (f t_2 t_3) ... (f t_{n-1} t_n)) )
+    (f t_1 ... t_n), n != 2:
+      return DESUGAR( (g (f t_1 t_2) (f t_2 t_3) ... (f t_{n-1} t_n)) )
 
-  ; where A(f) = [pairwise, g]:
+  If A(f) = [pairwise, g]:
 
-  (f t_1 t_2):
-    return (_ (_ f DESUGAR(t_1)) DESUGAR(t_2))
+    (f t_1 t_2):
+      return (_ (_ f DESUGAR(t_1)) DESUGAR(t_2))
 
-  (f t_1 ... t_n), n != 2:
-    return DESUGAR( (g (f t_1 t_2) (f t_1 t_3) ... (f t_2 t_3) ... (f t_{n-1} t_n)) )
+    (f t_1 ... t_n), n != 2:
+      return DESUGAR( (g (f t_1 t_2) (f t_1 t_3) ... (f t_2 t_3) ... (f t_{n-1} t_n)) )
 
   ;;; opaque
 
-  ; where A(f) = [opaque, (Tuple T_1 ... T_m)]:
+  If A(f) = [opaque, (Tuple T_1 ... T_m)]:
 
-  (f t_1 ... t_n), n = m:
-    return (_# (_# f DESUGAR(t_1)) ... DESUGAR(t_m))
+    (f t_1 ... t_n), n = m:
+      return (_# (_# f DESUGAR(t_1)) ... DESUGAR(t_m))
 
-  (f t_1 ... t_n), n > m:
-    return DESUGAR( ((_# (_# f DESUGAR(t_1)) ... DESUGAR(t_m)) t_{m+1} ... t_n) )
+    (f t_1 ... t_n), n > m:
+      return DESUGAR( ((_# (_# f DESUGAR(t_1)) ... DESUGAR(t_m)) t_{m+1} ... t_n) )
 
 
   ;;; programs, oracles, ordinary functions
 
-  (f t_1 ... t_n), where A(f) = [program, p]:
-    return (f DESUGAR(t_1) ... DESUGAR(t_n))
+  If A(f) = [program, p] or A(f) = [oracle, o]:
 
-  (f t_1 ... t_n), where A(f) = [oracle, s]:
-    return (f DESUGAR(t_1) ... DESUGAR(t_n))
+    (f t_1 ... t_n)
+      return (f DESUGAR(t_1) ... DESUGAR(t_n))
 
   (f t_1 ... t_n), n>1:
     return (_ DESUGAR( (f t_1 ... t_{n-1}) ) t_n)
@@ -2453,7 +2466,7 @@ RUN(C):
 
   (declare-const s T a):
     Let x = FRESH_CONST(s, DESUGAR(T))
-    A[x] := a
+    A[x] := [a.attr, DESUGAR(a.pterm)]
     S[s] += x
     return x
 
