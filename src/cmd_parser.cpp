@@ -177,7 +177,9 @@ bool CmdParser::parseNextCommand()
       t = ret;
       if (!sorts.empty())
       {
-        t = (tok==Token::DECLARE_ORACLE_FUN) ? d_state.mkProgramType(sorts, ret) : d_state.mkFunctionType(sorts, ret);
+        t = (tok == Token::DECLARE_ORACLE_FUN)
+                ? d_state.mkProgramType(sorts, ret)
+                : d_state.mkFunctionType(sorts, ret);
       }
       std::vector<Expr> opaqueArgs;
       while (t.getKind()==Kind::FUNCTION_TYPE && t[0].getKind()==Kind::OPAQUE_TYPE)
