@@ -2180,7 +2180,7 @@ Notice this is only the case if the declaration of `r` does not involve `:assump
                       premise-list | none
   <annot>         := [ <attr>, <pterm> ]
   <term>          := <param> | <const> | (eo::var <term> <term>) |
-                      (-> <term> <term>) | (~> <term> <term>) | (eo::arrow <term>* <term>) |
+                      (-> <term> <term>) | (~> <term> <term>) | (--> <term>* <term>) |
                       (_ <term> <term>) | (_# <term> <term>) | (<prog-const> <term>*)
   <prog-const>    := <const> | eo::requires | eo::list_concat | eo::nil | eo::ite | eo::typeof | eo::is_eq
 
@@ -2494,7 +2494,7 @@ RUN(C):
     ((s a_k1 ... y_kn) r_k)
     )
   ):
-    Let x = FRESH_CONST(s, DESUGAR((eo::arrow T_1 ... T_n T)))
+    Let x = FRESH_CONST(s, DESUGAR((--> T_1 ... T_n T)))
     A[x] := [program, (((s a_11 ... a_1n) r_0) ... ((s a_k1 ... y_kn) r_k))]
     S[s] += x
     return x
@@ -2503,7 +2503,7 @@ RUN(C):
     return RUN( (declare-const s T :oracle o) )
 
   (declare-oracle-fun s (T_1 ... T_n) T o):
-    return RUN( (declare-const s (eo::arrow T_1 ... T_n T) :oracle o) )
+    return RUN( (declare-const s (--> T_1 ... T_n T) :oracle o) )
 
   ;;; push/pop
 
