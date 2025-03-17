@@ -2173,17 +2173,16 @@ This section defines a conversion from (full) Eunoia input syntax to a core logi
 
 ### Core syntax of terms
 
-The category <term> denotes all terms and types.
+The category `<term>` denotes all terms and types.
 This includes parameters, constants, and variables.
 In detail,
 `->` is function arrow, `~>` is quote arrow, `-->` is program arrow, 
 `_` is application and `_#` is opaque application.
 
-The category <pterm> denotes "pre-terms", which include intermediate constructors that are used in the desugar mentioned below.
+The category `<pterm>` denotes "pre-terms", which include intermediate constructors that are used in the desugar mentioned below.
 Constructors specific to pre-terms are not expected to be returned by the desugar method for a well-formed term.
-In particular, this means that annotations e.g. `:implicit`, `:opaque`, `:var` should not appear anywhere but in function arguments, 
-symbols introduced by the command `define` must be fully applied.
-As an exception, we often use `Tuple` in the second field of term annotations <annot>.
+In particular, this means that annotations (e.g. `:implicit`, `:opaque`, `:var`) should not appear anywhere but in function arguments. Symbols introduced by the command `define` must be fully applied.
+As an exception, we often use `Tuple` in the second field of term annotations `<annot>`.
 
 ```
   <lit-category>  := '<numeral>' | '<decimal>' | '<rational>' | '<binary>' | '<hexadecimal>' | '<string>'
@@ -2256,7 +2255,7 @@ Parameters marked with the annotation `(x T :list)` are such that the attribute 
 
 ### Desugaring of terms
 
-Takes as input the syntax given for a term. Returns a <pterm>.
+Takes as input the syntax given for a term. Returns a `<pterm>`.
 We use meta-variables `t_i, s_j, f, g, h` to denote terms, 
 `T_i, U_j, V_k` to denote types (terms whose type is Type), and
 `a_i, a_j` to denote annotations.
@@ -2465,7 +2464,7 @@ DESUGAR(t):
 
 # Desugaring of commands
 
-Takes as input the syntax given for a command. Optionally returns a <const>.
+Takes as input the syntax given for a command. Optionally returns a `<const>`.
 
 ```
 RUN(C):
@@ -2635,7 +2634,7 @@ t : EVAL( L(CATEGORY(t)), [eo::self], [t])
 
 ```
 
-The type rules for `_#` is identical to those for `_`.
+The type rules for `_#` are identical to those for `_`.
 The submethod `EVAL( t, [x_1, ..., x_n], [r_1, ..., r_n] )` 
 is the result of evaluating `t` in the context where parameters `[x_1, ..., x_n]`
 are bound to `[r_1, ..., r_n]`.
