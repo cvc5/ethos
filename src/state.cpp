@@ -20,7 +20,7 @@ namespace ethos {
 Options::Options()
 {
   d_parseLet = true;
-  d_printLet = false;
+  d_printDag = true;
   d_stats = false;
   d_statsAll = false;
   d_statsCompact = false;
@@ -41,9 +41,9 @@ bool Options::setOption(const std::string& key, bool val)
   {
     d_parseLet = val;
   }
-  else if (key == "print-let")
+  else if (key == "print-dag")
   {
-    d_printLet = val;
+    d_printDag = val;
   }
   else if (key == "stats")
   {
@@ -159,6 +159,7 @@ State::State(Options& opts, Stats& stats)
 
   // note we don't allow parsing (Proof ...), (Quote ...), or (quote ...).
 
+  d_nullType = Expr(mkExprInternal(Kind::NULL_TYPE, {}));
   // common constants
   d_type = Expr(mkExprInternal(Kind::TYPE, {}));
   d_boolType = Expr(mkExprInternal(Kind::BOOL_TYPE, {}));
@@ -524,14 +525,35 @@ Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool 
     return Expr(mkExprInternal(Kind::FUNCTION_TYPE, atypes));
   }
   Expr curr = ret;
+  Kind rk = ret.getKind();
+  if (rk==Kind::EVAL_REQUIRES)
+  {
+    Expr currBase = ret;
+    do
+    {
+      currBase = currBase[2];
+      rk = currBase.getKind();
+    }while (rk==Kind::EVAL_REQUIRES);
+  }
+  if (rk==Kind::QUOTE_TYPE || rk==Kind::OPAQUE_TYPE || rk==Kind::NULL_TYPE)
+  {
+    EO_FATAL() << "Cannot use :var, :implicit or :opaque on return types, got " << ret;
+  }
   for (size_t i=0, nargs = args.size(); i<nargs; i++)
   {
     Expr a = args[(nargs-1)-i];
     // process arguments
-    if (a.getKind() == Kind::EVAL_REQUIRES)
+    Kind ak = a.getKind();
+    while (ak == Kind::EVAL_REQUIRES)
     {
       curr = mkRequires(a[0], a[1], curr);
       a = a[2];
+      ak = a.getKind();
+    }
+    if (ak==Kind::NULL_TYPE)
+    {
+      // implicit argument is skipped
+      continue;
     }
     // append the function
     curr = Expr(
@@ -588,6 +610,11 @@ Expr State::mkBuiltinType(Kind k)
 {
   // for now, just use abstract type
   return d_absType;
+}
+
+Expr State::mkNullType()
+{
+  return d_nullType;
 }
 
 Expr State::mkSymbol(Kind k, const std::string& name, const Expr& type)
@@ -767,7 +794,15 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
             Trace("type_checker") << "...return for " << children[0] << std::endl;
             return Expr(curr);
           }
-          // otherwise partial??
+          else
+          {
+            // Otherwise we are applying the operator to zero arguments. This 
+            // can never occur in standard parsing since it is not possible
+            // to apply a function to zero arguments. However, this case may
+            // arise if e.g. a pairwise or chainable operator is applied to
+            // exactly one argument, e.g. (distinct t) is equivalent to true.
+            return consTerm;
+          }
         }
           break;
         case Attr::CHAINABLE:
@@ -1444,7 +1479,7 @@ void State::bindBuiltin(const std::string& name, Kind k, Attr ac)
 
 void State::bindBuiltin(const std::string& name, Kind k, Attr ac, const Expr& t)
 {
-  Expr c = mkSymbol(Kind::CONST, name, t);
+  Expr c = mkSymbol(Kind::BUILTIN_CONST, name, t);
   bind(name, c);
   if (ac!=Attr::NONE || k!=Kind::NONE)
   {

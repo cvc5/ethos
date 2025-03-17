@@ -280,6 +280,12 @@ Expr ExprParser::parseExpr()
       {
         std::string name = tokenStrToSymbol(tok);
         ret = getVar(name);
+        if (ret.getKind()==Kind::BUILTIN_CONST)
+        {
+          std::stringstream ss;
+          ss << "Cannot use \"" << name << "\" as a first-class term.";
+          d_lex.parseError(ss.str());
+        }
       }
       break;
       case Token::INTEGER_LITERAL:
@@ -482,7 +488,7 @@ Expr ExprParser::parseExpr()
               case Attr::IMPLICIT:
                 // the term will not be added as an argument to the parent
                 // note this always comes after VAR due to enum order
-                ret = d_null;
+                ret = d_state.mkNullType();
                 break;
               case Attr::REQUIRES:
                 if (ret.isNull())
