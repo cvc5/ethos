@@ -2267,7 +2267,7 @@ We assume the following helper methods:
 - `SUBS( t, [x_1, ..., x_n], [s_1, ..., s_n] )`: returns the result of replacing all occurrences of parameters `x_1, ..., x_n` by `s_1, ..., s_n` simultaneously.
 - `FRESH_CONST(s, T)`: returns a fresh constant with name `s` and type `T`.
 - `CATEGORY(t)`: returns the `<lit-category>` for a term, if `t` is a literal.
-
+- `RUN(C)`: returns the constant declared by command `C`, or `Null` if the command did not declare a constant.
 
 ```
 DESUGAR(t):
@@ -2467,7 +2467,7 @@ DESUGAR(t):
 
 # Desugaring of commands
 
-Takes as input the syntax given for a command. Optionally returns a `<const>`.
+Takes as input the syntax given for a command. Either returns a `<const>` or the `Null` term.
 
 ```
 RUN(C):
@@ -2501,12 +2501,12 @@ RUN(C):
   (declare-rule s ((y_1 U_1) ... (y_n U_n))
     :premise-list x g
     :args (t_1 ... t_l)
-    :requires ((s_1 r_1) ... (s_1 s_m))
+    :requires ((s_1 r_1) ... (s_m r_m))
     :conclusion F):
     return RUN( 
       (declare-const s (-> (Quote t_1) ... (Quote t_l)
                            (Proof x)
-                           (! F :requires (s_1 r_1) ... :requires (s_1 s_m))) :premise-list g) )
+                           (! F :requires (s_1 r_1) ... :requires (s_m r_m))) :premise-list g) )
 
   (declare-rule x ((y_1 U_1) ... (y_n U_n))
     :assumption a
@@ -2581,6 +2581,7 @@ RUN(C):
 
   (declare-consts c T)
     L[c] := T
+    return Null
 
   ;;; push/pop
 
@@ -2609,9 +2610,11 @@ RUN(C):
 
   (assert F):
     Ax := Ax ++ [F]
+    return Null
 
   (check-sat):
     ; do nothing
+    return Null
 ```
 
 ### Type system
