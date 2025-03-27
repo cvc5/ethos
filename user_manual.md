@@ -2349,14 +2349,13 @@ DESUGAR(t):
   (as f T), where A(f) = [amb-datatype-constructor, s]:
     return (_# f DESUGAR(T) )
 
-  ; TODO: refactor base case
   (eo::as f (-> T_1 ... T_n T)), where S[NAME(f)] = [f_1, ..., f_m]:
     Let [k_1, ..., k_n] = [FRESH_CONST(k_1,T_1), ..., FRESH_CONST(k_n, T_n)]
     return DESUGAR(
       (eo::ite (eo::is_eq (eo::typeof (f_m k_1 ... k_n)) T) f_m
       ...
-      (eo::ite (eo::is_eq (eo::typeof (f_2 k_1 ... k_n)) T) f_2
-        (eo::requires (eo::typeof (f_1 k_1 ... k_n)) T f_1)...)) )
+      (eo::ite (eo::is_eq (eo::typeof (f_1 k_1 ... k_n)) T) f_1
+        f_m ...)) )  ; In practice, we give a warning in this case if the types fail for all overloads.
 
   ;;; pre-term operators
 
@@ -2382,7 +2381,7 @@ DESUGAR(t):
     (f t_1 ... t_n), where A[t_1] != [list, Null], n>1:
       return (_ (_ f DESUGAR(t_1)) DESUGAR( (f t_2 ... t_n) ))
 
-    (f t_1), where A(f) = [right-assoc-nil, g]:
+    (f t_1):
       return DESUGAR(t_1)
 
   If A(f) = [right-assoc, Null]:
@@ -2442,20 +2441,24 @@ DESUGAR(t):
       return DESUGAR( ((_# (_# f DESUGAR(t_1)) ... DESUGAR(t_m)) t_{m+1} ... t_n) )
 
 
-  ;;; programs, oracles, ordinary functions
+  ;;; programs, oracles
 
   If A(f) = [program, p] or A(f) = [oracle, o]:
 
-    (f t_1 ... t_n)
+    (f t_1 ... t_n):
       return (f DESUGAR(t_1) ... DESUGAR(t_n))
 
-  (f t_1 ... t_n), n>1:
-    return (_ DESUGAR( (f t_1 ... t_{n-1}) ) t_n)
+  ;;; ordinary functions
 
-  (f t_1):
-    return (_ f DESUGAR(t_1))
+  if A(f) = [none, Null}:
 
-  ;;; base case
+    (f t_1 ... t_n), n>1:
+      return (_ DESUGAR( (f t_1 ... t_{n-1}) ) t_n)
+
+    (f t_1):
+      return (_ f DESUGAR(t_1))
+
+  ;;; atomic terms
 
   t:
     return t
