@@ -2500,12 +2500,10 @@ RUN(C):
     :args (t_1 ... t_l)
     :requires ((s_1 r_1) ... (s_1 s_m))
     :conclusion F):
-    x = RUN( 
+    return RUN( 
       (declare-const s (-> (Quote t_1) ... (Quote t_l)
                            (Proof x)
-                           (! F :requires (s_1 r_1) ... :requires (s_1 s_m)))) )
-    A[x] := [premise-list, g]
-    return x
+                           (! F :requires (s_1 r_1) ... :requires (s_1 s_m))) :premise-list g) )
 
   (declare-rule x ((y_1 U_1) ... (y_n U_n))
     :assumption a
@@ -2521,9 +2519,7 @@ RUN(C):
     return RUN( (declare-const s (-> U_1 ... U_n Type)) )
 
   (define s ((y_1 U_1) ... (y_n U_n)) t):
-    A[x] := [define, (Lambda (Tuple y_1 ... y_n) t)]
-    S[s] += x
-    return x
+    return RUN( (declare-const s (-> U_1 ... U_n (eo::typeof t)) :define (Lambda (Tuple y_1 ... y_n) t)) )
 
   (declare-datatype s () (par (U_1 ... U_n) ((c_1 (s_11 T_11) ... (s1m T_1m)) ... (c_n (s_n1 T_n1) ... (snm T_nm))))):
     Let DC = RUN( (declare-type s (U_1 ... U_n)) )
@@ -2565,13 +2561,14 @@ RUN(C):
   (program s ((x_1 U_1) ... (x_m U_m))
     (T_1 ... T_n) T
     (
-    ((s a_11 ... a_1n) r_0)
+    ((s a_11 ... a_1n) r_1)
     ...
     ((s a_k1 ... y_kn) r_k)
     )
   ):
-    return RUN( (declare-const s (--> T_1 ... T_n T)
-                  :program (Tuple (Tuple (f a_11 ... a_1n) r_0) ... (Tuple (f a_k1 ... y_kn) r_k))) )
+    Let p = RUN( (declare-const s (--> T_1 ... T_n T)) )
+    A[p] := [program, (Tuple (Tuple (p a_11 ... a_1n) r_1) ... (Tuple (p a_k1 ... y_kn) r_k))]
+    return p
   
   (declare-oracle-fun s () T o):
     return RUN( (declare-const s T :oracle o) )
