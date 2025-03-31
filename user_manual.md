@@ -2268,7 +2268,7 @@ We assume the following helper methods:
 - `SUBS( t, [x_1, ..., x_n], [s_1, ..., s_n] )`: returns the result of replacing all occurrences of parameters `x_1, ..., x_n` by `s_1, ..., s_n` simultaneously.
 - `FRESH_CONST(s, T)`: returns a fresh constant with name `s` and type `T`.
 - `CATEGORY(t)`: returns the `<lit-category>` for a term, if `t` is a literal.
-- `RUN(C)`: returns the constant declared by command `C`, or `Null` if the command did not declare a constant.
+- `RUN(C)`: returns the constant declared by command `C`, or `Null` if the command did not declare a constant. A comprehensive definition of this method is given later.
 
 Prior to calling `DESUGAR`, we assume all applications of overloaded functions are handled as follows.
 Assume `f` is overloaded such that `S[NAME(f)] = [f_1, ..., f_m]` where `m>1`.
@@ -2334,7 +2334,7 @@ DESUGAR(t):
       (eo::ite DESUGAR( (eo::is_eq (eo::typeof (f_m k_1 ... k_n)) T) ) f_m
       ...
       (eo::ite DESUGAR( (eo::is_eq (eo::typeof (f_1 k_1 ... k_n)) T) ) f_1
-        (eo::as f_m DESUGAR( (-> T_1 ... T_n T) ) ...)) )  ; Otherwise, eo::as is unprocessed, will be a type error.
+        (eo::as f_m DESUGAR( (-> T_1 ... T_n T) ) ...)) )  ; Otherwise, eo::as is unprocessed.
 
   ;;; binders, definitions
 
