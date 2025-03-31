@@ -2194,8 +2194,8 @@ As an exception, we often use `Tuple` in the second field of term annotations `<
                       premise-list | none
   <annot>         := [ <attr>, <pterm> ]
   <term>          := <param> | <const> |
-                      (-> <term> <term>) | (~> <term> <term>) | (--> <term>* <term>) |
-                      (_ <term> <term>) | (_# <term> <term>) | (<prog-const> <term>*)
+                      (-> <term> <term>) | (~> <term> <term>) | (--> <term>+ <term>) |
+                      (_ <term> <term>) | (_# <term> <term>) | (<prog-const> <term>+)
   <prog-const>    := <const> | eo::requires | eo::nil | eo::ite | eo::typeof | eo::is_eq
 
   <pterm>         := <term> | Null | (Opaque <pterm>) | (Quote <pterm>) | (Nil <pterm>*) |
@@ -2571,10 +2571,10 @@ RUN(C):
     if A[r] = [premise-list, g]
       Let p = FRESH_CONST( p, DESUGAR( (Proof (g F_1 ... F_k) ) ) ), where p_1, ..., p_k have type (Proof F_1), ...., (Proof F_k).
       Let res = SUBS( (r t_1 ... t_n p), [eo::conclusion], [F] )
-      return RUN( (define s () res) )
+      return RUN( (define s () res :type (Proof F)) )
     else
       Let res = SUBS( (r t_1 ... t_n p_1 ... p_k), [eo::conclusion], [F] )
-      return RUN( (define s () res) )
+      return RUN( (define s () res :type (Proof F)) )
 
   (program s ((x_1 U_1) ... (x_m U_m))
     (T_1 ... T_n) T
@@ -2634,6 +2634,7 @@ RUN(C):
 
 ### Type system
 
+
 ```smt
 f : (~> u S)  t : T
 -------------------------- if SUBS(u, X, R) = t
@@ -2656,6 +2657,11 @@ The type rules for `_#` are identical to those for `_`.
 The submethod `EVAL( t, [x_1, ..., x_n], [r_1, ..., r_n] )` 
 is the result of evaluating `t` in the context where parameters `[x_1, ..., x_n]`
 are bound to `[r_1, ..., r_n]`.
+
+By convention, we assume
+a term is well typed only if its type does not contain an application of a program or builtin evaluation operator.
+In other words, all type rules above assume the side condition that `T` respects this restriction if `t : T` is concluded.
+Moreover we assume that all types are fully evaluated when assigned to atomic terms.
 
 ### Execution semantics
 
