@@ -2255,7 +2255,8 @@ Parameters marked with the annotation `(x T :list)` are such that the attribute 
 
 ### Desugaring of terms
 
-Takes as input the syntax given for a term. Returns a `<pterm>`.
+Below, we define a method `DESUGAR` which takes as input the syntax given for a term.
+It returns a `<pterm>`.
 We use meta-variables `t_i, s_j, f, g, h` to denote terms, 
 `T_i, U_j, V_k` to denote types (terms whose type is Type), and
 `a_i, a_j` to denote annotations.
@@ -2268,6 +2269,18 @@ We assume the following helper methods:
 - `FRESH_CONST(s, T)`: returns a fresh constant with name `s` and type `T`.
 - `CATEGORY(t)`: returns the `<lit-category>` for a term, if `t` is a literal.
 - `RUN(C)`: returns the constant declared by command `C`, or `Null` if the command did not declare a constant.
+
+Prior to calling `DESUGAR`, we assume all applications of overloaded functions are handled as follows.
+Assume `f` is overloaded such that `S[NAME(f)] = [f_1, ..., f_m]` where `m>1`.
+We replace all function applications of the form `(f t_1 ... t_n)` with:
+```
+(eo::ite (eo::is_eq (eo::typeof (f_m t_1 ... t_n)) T) (f_m t_1 ... t_n)
+...
+(eo::ite (eo::is_eq (eo::typeof (f_1 t_1 ... t_n)) T) (f_1 t_1 ... t_n)
+  (f_m t_1 ... t_n)) ...)
+```
+where notice that we use the most recently bound function symbol `f_m` if type-checking fails for all overloads.
+In this case, the reduced term `(f_m t_1 ... t_n)` will be ill-typed.
 
 ```
 DESUGAR(t):
@@ -2467,7 +2480,9 @@ DESUGAR(t):
 
 # Desugaring of commands
 
-Takes as input the syntax given for a command. Either returns a `<const>` or the `Null` term.
+Below, we define a method `RUN` which takes as input the syntax given for a command. 
+This method either returns a `<const>`, indicating the constant that was declared by the command,
+or otherwise returns the `Null` term.
 
 ```
 RUN(C):
