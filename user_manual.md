@@ -2307,6 +2307,31 @@ DESUGAR(t):
   (-> T_0):
     return DESUGAR( T_0 )
 
+  ;;; special operators
+
+  (_ t_1 ... t_n):
+    return DESUGAR( (t_1 ... t_n) )
+
+  (as f T), where A(f) = [amb-datatype-constructor, s]:
+    return (_# f DESUGAR(T) )
+
+  (eo::as f (-> T_1 ... T_n T)), where S[NAME(f)] = [f_1, ..., f_m]:
+    Let [k_1, ..., k_n] = [FRESH_CONST("", T_1), ..., FRESH_CONST("", T_n)]
+    return
+      (eo::ite DESUGAR( (eo::is_eq (eo::typeof (f_m k_1 ... k_n)) T) ) f_m
+      ...
+      (eo::ite DESUGAR( (eo::is_eq (eo::typeof (f_1 k_1 ... k_n)) T) ) f_1
+        (eo::as f_m DESUGAR( (-> T_1 ... T_n T) ) ...)) )  ; eo::as is unprocessed, will be a type error.
+
+  ;;; overloaded functions
+
+  (f t_1 ... t_n), where S[NAME(f)] = [f_1, ..., f_m], m>1:
+    return DESUGAR(
+      (_ (eo::ite (eo::is_eq (eo::typeof (f_m t_1 ... t_n)) T) f_m
+         ...
+         (eo::ite (eo::is_eq (eo::typeof (f_1 t_1 ... t_n)) T) f_1
+            f_m ...)) t_1 ... t_n)  )  ; Defaults to most recent if type checking fails for all overloads, we give a warning in this case.
+
   ;;; binders, definitions
 
   If A(f) = [binder, g]:
@@ -2340,22 +2365,6 @@ DESUGAR(t):
                       ...
                       ((s p_n y_1 ... y_k) r_n)))) )
     return DESUGAR( (h t y_1 ... y_k) )
-
-  ;;; special operators
-
-  (_ t_1 ... t_n):
-    return DESUGAR( (t_1 ... t_n) )
-
-  (as f T), where A(f) = [amb-datatype-constructor, s]:
-    return (_# f DESUGAR(T) )
-
-  (eo::as f (-> T_1 ... T_n T)), where S[NAME(f)] = [f_1, ..., f_m]:
-    Let [k_1, ..., k_n] = [FRESH_CONST(k_1,T_1), ..., FRESH_CONST(k_n, T_n)]
-    return DESUGAR(
-      (eo::ite (eo::is_eq (eo::typeof (f_m k_1 ... k_n)) T) f_m
-      ...
-      (eo::ite (eo::is_eq (eo::typeof (f_1 k_1 ... k_n)) T) f_1
-        f_m ...)) )  ; In practice, we give a warning in this case if the types fail for all overloads.
 
   ;;; pre-term operators
 
