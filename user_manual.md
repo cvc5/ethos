@@ -2321,16 +2321,16 @@ DESUGAR(t):
       (eo::ite DESUGAR( (eo::is_eq (eo::typeof (f_m k_1 ... k_n)) T) ) f_m
       ...
       (eo::ite DESUGAR( (eo::is_eq (eo::typeof (f_1 k_1 ... k_n)) T) ) f_1
-        (eo::as f_m DESUGAR( (-> T_1 ... T_n T) ) ...)) )  ; eo::as is unprocessed, will be a type error.
+        (eo::as f_m DESUGAR( (-> T_1 ... T_n T) ) ...)) )  ; Otherwise, eo::as is unprocessed, will be a type error.
 
   ;;; overloaded functions
 
-  (f t_1 ... t_n), where S[NAME(f)] = [f_1, ..., f_m], m>1:
+  (f t_1 ... t_n), where S[NAME(f)] = [f_1, ..., f_m] and m>1:
     return DESUGAR(
       (_ (eo::ite (eo::is_eq (eo::typeof (f_m t_1 ... t_n)) T) f_m
          ...
          (eo::ite (eo::is_eq (eo::typeof (f_1 t_1 ... t_n)) T) f_1
-            f_m ...)) t_1 ... t_n)  )  ; Defaults to most recent if type checking fails for all overloads, we give a warning in this case.
+            f_m ...)) t_1 ... t_n)  )  ; Otherwise, defaults to most recent if type checking fails for all overloads, we give a warning in this case.
 
   ;;; binders, definitions
 
