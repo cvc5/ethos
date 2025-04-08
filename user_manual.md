@@ -133,9 +133,7 @@ The following commands are supported for declaring and defining types and terms.
 
 The Eunoia language contains further commands for declaring symbols that are not standard SMT-LIB version 3.0:
 
-- `(define <symbol> (<typed-param>*) <term> <attr>*)`, defines `<symbol>` to be a lambda term whose arguments and body are given by the command, or just an arbitrary term defined by provided the body, if the argument list is empty (i.e., it can be even a non-function term). Note that in contrast to the SMT-LIB command `define-fun`, a return type is not provided. 
-<!-- Are there other attributes that can be provided? -->
-At present time, it is possible to provide the attribute `:type` to the definition, which instructs the checker to perform type checking on the given term (see [type checking define](#tcdefine)).
+- `(define <symbol> (<typed-param>*) <term> <attr>*)`, defines `<symbol>` to be a lambda term whose arguments and body are given by the command, or just an arbitrary term defined by the provided the body, if the argument list is empty (i.e., it may be a non-function term). Note that in contrast to the SMT-LIB command `define-fun`, a return type is not provided. It is also possible to provide attributes to the definition: e.g. `:type`, which instructs the checker to perform type checking on the given term (see [type checking define](#tcdefine)).
 
 - `(declare-parameterized-const <symbol> (<typed-param>*) <type> <attr>*)` declares a globally scoped variable named `<symbol>` whose type is `<type>`.
 
