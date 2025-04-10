@@ -34,5 +34,10 @@
 (step a3 (= (@const 1 T) (f (@const 1 U))) :rule eq-subs :premises (a1 a2))
 
 
-
+; same thing should work for parameterized const
 (declare-parameterized-const @pconst ((id Int :opaque) (T Type :opaque)) T)
+
+(assume aa1 (= (@pconst 1 T) (f (@pconst 1 U))))
+(assume aa2 (= T U))
+; substitution will not impact the n within the opaque symbol
+(step aa3 (= (@pconst 1 T) (f (@pconst 1 U))) :rule eq-subs :premises (aa1 aa2))

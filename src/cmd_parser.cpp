@@ -200,6 +200,7 @@ bool CmdParser::parseNextCommand()
           Expr qt = d_state.mkQuoteType(params[ii]);
           if (std::find(oparams.begin(), oparams.end(), params[ii])!=oparams.end())
           {
+            // if marked opaque, it is an opaque argument
             opaqueArgs.insert(opaqueArgs.begin(), qt);
           }
           else

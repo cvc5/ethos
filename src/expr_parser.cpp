@@ -801,11 +801,27 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList(
       // parse attribute list
       AttrMap attrs;
       parseAttributeList(Kind::PARAM, v, attrs);
-      if (attrs.find(Attr::IMPLICIT)!=attrs.end())
+      std::vector<Attr> toErase;
+      for (std::pair<const Attr, std::vector<Expr>>& a : attrs)
       {
-        attrs.erase(Attr::IMPLICIT);
-        isImplicit = true;
-        impls.push_back(v);
+        switch(a.first)
+        {
+          case Attr::IMPLICIT:
+            toErase.push_back(Attr::IMPLICIT);
+            isImplicit = true;
+            impls.push_back(v);
+            break;
+          case Attr::OPAQUE:
+            toErase.push_back(Attr::OPAQUE);
+            opaques.push_back(v);
+            break;
+          default:
+            break;
+        }
+      }
+      for (Attr a : toErase)
+      {
+        attrs.erase(a);
       }
       // process the attribute map, which may mark the parameter as a list
       processAttributeMap(attrs, ck, cons);
