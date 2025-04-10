@@ -137,11 +137,13 @@ bool CmdParser::parseNextCommand()
     case Token::DECLARE_PARAMETERIZED_CONST:
     case Token::DECLARE_ORACLE_FUN:
     {
-      //d_state.checkThatLogicIsSet();
       std::string name = d_eparser.parseSymbol();
       //d_state.checkUserSymbol(name);
       std::vector<Expr> sorts;
+      // the parameters, if declare-parameterized-const
       std::vector<Expr> params;
+      // the subset of above marked :opaque
+      std::vector<Expr> oparams;
       bool flattenFunction = (tok != Token::DECLARE_ORACLE_FUN);
       if (tok == Token::DECLARE_FUN || tok == Token::DECLARE_ORACLE_FUN)
       {
@@ -150,7 +152,8 @@ bool CmdParser::parseNextCommand()
       else if (tok == Token::DECLARE_PARAMETERIZED_CONST)
       {
         d_state.pushScope();
-        params = d_eparser.parseAndBindSortedVarList();
+        std::vector<Expr> impl;
+        params = d_eparser.parseAndBindSortedVarList(impl, oparams);
       }
       Expr ret = d_eparser.parseType();
       Attr ck = Attr::NONE;
@@ -180,15 +183,6 @@ bool CmdParser::parseNextCommand()
       {
         t = d_state.mkFunctionType(sorts, ret, flattenFunction);
       }
-      if (!params.empty())
-      {
-        // explicit parameters are quote arrows
-        for (size_t i=0, nparams = params.size(); i<nparams; i++)
-        {
-          size_t ii = nparams-i-1;
-          t = d_state.mkFunctionType({d_state.mkQuoteType(params[ii])}, t);
-        }
-      }
       std::vector<Expr> opaqueArgs;
       while (t.getKind()==Kind::FUNCTION_TYPE && t[0].getKind()==Kind::OPAQUE_TYPE)
       {
@@ -196,6 +190,27 @@ bool CmdParser::parseNextCommand()
         Assert (t[0].getNumChildren()==1);
         opaqueArgs.push_back(t[0][0]);
         t = t[1];
+      }
+      if (!params.empty())
+      {
+        // explicit parameters are quote arrows
+        for (size_t i=0, nparams = params.size(); i<nparams; i++)
+        {
+          size_t ii = nparams-i-1;
+          Expr qt = d_state.mkQuoteType(params[ii]);
+          if (std::find(oparams.begin(), oparams.end(), params[ii])!=oparams.end())
+          {
+            opaqueArgs.insert(opaqueArgs.begin(), qt);
+          }
+          else
+          {
+            if (!opaqueArgs.empty())
+            {
+              d_lex.parseError("Opaque arguments must be a prefix of arguments.");
+            }
+            t = d_state.mkFunctionType({qt}, t);
+          }
+        }
       }
       if (!opaqueArgs.empty())
       {
@@ -497,8 +512,9 @@ bool CmdParser::parseNextCommand()
       std::string name = d_eparser.parseSymbol();
       //d_state.checkUserSymbol(name);
       std::vector<Expr> impls;
+      std::vector<Expr> opaques;
       std::vector<Expr> vars =
-          d_eparser.parseAndBindSortedVarList(impls);
+          d_eparser.parseAndBindSortedVarList(impls, opaques);
       if (!impls.empty())
       {
         // If there were implicit variables, we go back and refine what is

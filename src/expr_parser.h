@@ -57,6 +57,7 @@ class ExprParser
    * method are added to impls.
    */
   std::vector<Expr> parseAndBindSortedVarList(std::vector<Expr>& impls,
+                                              std::vector<Expr>& opaques,
                                               bool isLookup=false);
   /**
    * Parse and bind a let list, i.e. ((x1 t1) ... (xn tn)), where x1...xn are

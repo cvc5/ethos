@@ -35,4 +35,4 @@
 
 
 
-;(declare-parameterized-const @pconst ((id Int :opaque) (T Type :opaque))
+(declare-parameterized-const @pconst ((id Int :opaque) (T Type :opaque)) T)
