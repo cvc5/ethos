@@ -182,7 +182,7 @@ bool CmdParser::parseNextCommand()
       }
       if (!params.empty())
       {
-        // parameters are quote arrows
+        // explicit parameters are quote arrows
         for (size_t i=0, nparams = params.size(); i<nparams; i++)
         {
           size_t ii = nparams-i-1;
