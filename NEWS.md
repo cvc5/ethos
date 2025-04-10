@@ -5,16 +5,18 @@ ethos 0.1.2 prerelease
 
 - Change the execution semantics when a program takes an unevalated term as an argument. In particular, we do not call user provided programs and oracles when at least argument could not be evaluated. This change was made to make errors more intuitive. Note this changes the semantics of programs that previously relied on being called on unevaluated terms.
 - User programs, user oracles, and builtin operators that are unapplied are now considered unevaluated. This makes the type checker more strict and disallows passing them as arguments to other programs, which previously led to undefined behavior.
+- Changes the semantics of `declare-parameterized-const`. In particular, the parameters of a parameterized constants are no longer assumed to be implicit, and are explicit by default. The `:implicit` attribute can be used on all parameters to recover the previous behavior.
+- Remove support for the explicit parameter annotation `eo::_`, which was used to provide annotations for implicit arguments to parameterized constants.
+- Changed the semantics of pairwise and chainable operators for a single argument, which now reduces to the neutral element of the combining operator instead of a parse error.
+- The operator `eo::typeof` now fails to evaluate if the type of the given term is not ground.
+
 - Adds support for the SMT-LIB `as` annotations for ambiguous datatype constructors, i.e. those whose return type cannot be inferred from its argument types. Following SMT-LIB convention, ambiguous datatype constructors are expected to be annotated with their *return* type using `as`, which internally is treated as a type argument to the constructor.
 - The semantics for `eo::dt_constructors` is extended for instantiated parametric datatypes. For example calling `eo::dt_constructors` on `(List Int)` returns the list containing `cons` and `(as nil (List Int))`.
 - The semantics for `eo::dt_selectors` is extended for annotated constructors. For example calling `eo::dt_selectors` on `(as nil (List Int))` returns the empty list.
-- Changed the semantics of pairwise and chainable operators for a single argument, which now reduces to the neutral element of the combining operator instead of a parse error.
+
 - Added the option `--stats-all` to track the number of times side conditions are invoked.
 - The option `--print-let` has been renamed to `--print-dag` and is now enabled by default. The printer is changed to use `eo::define` instead of `let`.
 - Ethos now explicitly forbids `:var`, `:implicit`, and `:opaque` on return types.
-- The operator `eo::typeof` now fails to evaluate if the type of the given term is not ground.
-- Changes the semantics of `declare-parameterized-const`. In particular, the parameters of a parameterized constants are no longer assumed to be implicit, and are explicit by default. The `:implicit` attribute can be used on all parameters to recover the previous behavior.
-- Remove support for the explicit parameter annotation `eo::_`, which was used to provide annotations for implicit arguments to parameterized constants.
 
 ethos 0.1.1
 ===========
