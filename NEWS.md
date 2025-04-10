@@ -13,6 +13,8 @@ ethos 0.1.2 prerelease
 - The option `--print-let` has been renamed to `--print-dag` and is now enabled by default. The printer is changed to use `eo::define` instead of `let`.
 - Ethos now explicitly forbids `:var`, `:implicit`, and `:opaque` on return types.
 - The operator `eo::typeof` now fails to evaluate if the type of the given term is not ground.
+- Changes the semantics of `declare-parameterized-const`. In particular, the parameters of a parameterized constants are no longer assumed to be implicit, and are explicit by default. The `:implicit` attribute can be used on all parameters to recover the previous behavior.
+- Remove support for the explicit parameter annotation `eo::_`, which was used to provide annotations for implicit arguments to parameterized constants.
 
 ethos 0.1.1
 ===========
