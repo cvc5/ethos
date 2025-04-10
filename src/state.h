@@ -100,6 +100,8 @@ class State
   Expr mkTypeConstant(const std::string& name, size_t arity);
   /** (-> <type>+ <type>) */
   Expr mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool flatten = true);
+  /** (-> <type>+ <type>) */
+  Expr mkProgramType(const std::vector<Expr>& args, const Expr& ret);
   /** ? */
   Expr mkAbstractType();
   /** Bool */
