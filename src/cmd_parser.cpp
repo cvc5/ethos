@@ -180,6 +180,15 @@ bool CmdParser::parseNextCommand()
       {
         t = d_state.mkFunctionType(sorts, ret, flattenFunction);
       }
+      if (!params.empty())
+      {
+        // parameters are quote arrows
+        for (size_t i=0, nparams = params.size(); i<nparams; i++)
+        {
+          size_t ii = nparams-i-1;
+          t = d_state.mkFunctionType({d_state.mkQuoteType(params[ii])}, t);
+        }
+      }
       std::vector<Expr> opaqueArgs;
       while (t.getKind()==Kind::FUNCTION_TYPE && t[0].getKind()==Kind::OPAQUE_TYPE)
       {
@@ -197,15 +206,6 @@ bool CmdParser::parseNextCommand()
         // Reconstruct with opaque arguments, do not flatten function type.
         t = d_state.mkFunctionType(opaqueArgs, t, false);
         ck = Attr::OPAQUE;
-      }
-      else if (!params.empty())
-      {
-        // parameters are quote arrows
-        for (size_t i=0, nparams = params.size(); i<nparams; i++)
-        {
-          size_t ii = nparams-i-1;
-          t = d_state.mkFunctionType({d_state.mkQuoteType(params[ii])}, t);
-        }
       }
       Expr v;
       if (sk==Kind::VARIABLE)

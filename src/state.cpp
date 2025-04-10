@@ -103,7 +103,6 @@ State::State(Options& opts, Stats& stats)
   //bindBuiltin("lambda", Kind::LAMBDA, true);
   bindBuiltin("->", Kind::FUNCTION_TYPE);
   bindBuiltin("_", Kind::APPLY);
-  bindBuiltin("eo::_", Kind::PARAMETERIZED);
 
   bindBuiltinEval("is_eq", Kind::EVAL_IS_EQ);
   bindBuiltinEval("ite", Kind::EVAL_IF_THEN_ELSE);
