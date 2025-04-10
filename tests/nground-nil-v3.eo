@@ -4,12 +4,12 @@
 (declare-const BitVec (-> Int Type))
 (declare-consts <binary> (BitVec (eo::len eo::self)))
 
-(declare-parameterized-const bvor ((m Int))
+(declare-parameterized-const bvor ((m Int :implicit))
     (-> (BitVec m) (BitVec m) (BitVec m))
     :right-assoc-nil (eo::to_bin m 0)
 )
 
-(declare-parameterized-const bvand ((m Int))
+(declare-parameterized-const bvand ((m Int :implicit))
     (-> (BitVec m) (BitVec m) (BitVec m))
     :right-assoc-nil (eo::not (eo::to_bin m 0))
 )

@@ -165,12 +165,10 @@ class ExprParser
    * @param attrs The attributes we just processed.
    * @param ck The constructor kind contained in attrs.
    * @param cons The corresponding constructor with ck.
-   * @param params The free parameters, if processing a constant.
    */
   void processAttributeMap(const AttrMap& attrs,
                            Attr& ck,
-                           Expr& cons,
-                           const std::vector<Expr>& params);
+                           Expr& cons);
  protected:
   /**
    * Parse constructor definition list, add to declaration type. The expected

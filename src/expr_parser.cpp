@@ -807,7 +807,7 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList(
         impls.push_back(v);
       }
       // process the attribute map, which may mark the parameter as a list
-      processAttributeMap(attrs, ck, cons, {});
+      processAttributeMap(attrs, ck, cons);
       if (ck!=Attr::NONE)
       {
         d_state.markConstructorKind(v, ck, cons);
@@ -1468,8 +1468,7 @@ void ExprParser::ensureBound(const Expr& e, const std::vector<Expr>& bvs)
 
 void ExprParser::processAttributeMap(const AttrMap& attrs,
                                      Attr& ck,
-                                     Expr& cons,
-                                     const std::vector<Expr>& params)
+                                     Expr& cons)
 {
   ck = Attr::NONE;
   for (const std::pair<const Attr, std::vector<Expr>>& a : attrs)
@@ -1490,18 +1489,13 @@ void ExprParser::processAttributeMap(const AttrMap& attrs,
         // if the constructor spec is non-ground, make a lambda
         if (!av.isNull() && !av.isGround())
         {
+          std::vector<Expr> params = Expr::getVariables(av);
           Assert (!params.empty());
           cons = d_state.mkParameterized(av.getValue(), params);
         }
         else
         {
           cons = av;
-          // if the nil constructor doesn't use parameters, just ignore
-          if (!params.empty())
-          {
-            Warning() << "Ignoring unused parameters for definition of "
-                      << "symbol with nil constructor " << av << std::endl;
-          }
         }
         ck = a.first;
       }
