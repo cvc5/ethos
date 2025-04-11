@@ -45,8 +45,6 @@ class Options
   bool d_normalizeHexadecimal;
   /** Treat numerals as rational literals */
   bool d_normalizeNumeral;
-  /** Binders generate fresh variables in proof and reference files */
-  bool d_binderFresh;
 };
 
 /**

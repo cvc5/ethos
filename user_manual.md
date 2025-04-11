@@ -135,7 +135,7 @@ The Eunoia language contains further commands for declaring symbols that are not
 
 - `(define <symbol> (<typed-param>*) <term> <attr>*)`, defines `<symbol>` to be a lambda term whose arguments and body are given by the command, or just an arbitrary term defined by the provided the body, if the argument list is empty (i.e., it may be a non-function term). Note that in contrast to the SMT-LIB command `define-fun`, a return type is not provided. It is also possible to provide attributes to the definition: e.g. `:type`, which instructs the checker to perform type checking on the given term (see [type checking define](#tcdefine)).
 
-- `(declare-parameterized-const <symbol> (<typed-param>*) <type> <attr>*)` declares a globally scoped variable named `<symbol>` whose type is `<type>`.
+- `(declare-parameterized-const <symbol> (<typed-param>*) <type> <attr>*)` declares a globally scoped variable named `<symbol>` whose expected arguments are given by the argument list, and whose return type is `<type>`.
 
 > __Note:__ Variables are internally treated the same as constants by Ethos. However, they are provided as a separate category, e.g., for user signatures that wish to distinguish universally quantified variables from free constants. They also have a relationship with user-defined binders, see [binders](#binders), and can be accessed via the builtin operator `eo::var` (see [computation](#computation)).
 
@@ -573,9 +573,6 @@ On the other hand, the definition `Q3` is distinct from both of these, since `y`
 Furthermore, note that a binder also may accept an explicit term as its first argument.
 In the above example, `Q4` has `(@cons x)` as its first argument, where `x` was explicitly defined as a variable.
 This means that the definition of `Q4` is also syntactically equivalent to the definition of `Q1` and `Q2`.
-
-Note that if the option `--binder-fresh` is enabled, then when parsing reference files, the variables in binders are always fresh.
-This option does not impact how binders are parsed in Eunoia files.
 
 <a name="literals"></a>
 
@@ -1019,7 +1016,7 @@ we declare bitvector-or (`bvor` in SMT-LIB) where its nil terminator is bitvecto
     (BitVec (eo::len eo::self)))              ; binary literals denote BitVec constants of their length
 (define bvzero ((m Int)) (eo::to_bin m 0))    ; returns the bitvector value zero for bitwidth m
 
-(declare-parameterized-const bvor ((m Int))   ; bvor is parameterized by a bitwidth m
+(declare-parameterized-const bvor ((m Int :implicit))   ; bvor is parameterized by a bitwidth m
     (-> (BitVec m) (BitVec m) (BitVec m))
     :right-assoc-nil (bvzero m)               ; its nil terminator depends on m
 )
@@ -1030,8 +1027,9 @@ Then, we declare `bvor` using `declare-parameterized-const` where its parameter 
 The provided parameters are in scope for the remainder of the command, which means they can appear in the nil terminator of the operator.
 Here, we specify `(bvzero m)` as the nil terminator for `bvor`.
 
-The parameter list of a parameterized constant are treated as _implicit_ arguments.
-In this example, the type of `bvor` is `(-> (! Int :var m :implicit) (BitVec m) (BitVec m) (BitVec m))`.
+The parameter list of a parameterized constant may either be implicit or explicit arguments.
+In this example, the argument `m` to `bvor` is implicit.
+Thus, it expects two bit-vectors of the same width and returns a bit-vector of that width.
 
 If a function `f` is given a nil terminator with free parameters, this impacts:
 
@@ -1096,12 +1094,6 @@ The term in the body of `test` desugars to `(bvor z (bvor w (eo::nil bvor z w)))
 In this example, we instantiate this definition in the body of `test4`, where `n=4`, `z=a` and `w=b`.
 The term `(bvor a (bvor b (eo::nil bvor a b)))` then evaluates to `(bvor a (bvor b #b0000)`, since the nil terminator of `(bvor a b)` has ground parameter `n=4` and evaluates to `#b0000`.
 
-> __Note:__ Alternatively, the parameters of a function `f` may be provided explicitly using the syntax `(eo::_ f p1 ... pn)`.
-When parameters are provided, these are used instead of the type inference method above.
-Furthermore, these parameters are dropped when applying the operator to arguments.
-For example `(_ (eo::_ bvor 4) a b)` is equivalent to `(bvor a (bvor b #b0000))` after desugaring.
-An example use case for this feature is directly refer to the nil terminator of a concrete instance of `bvor`, e.g. `(eo::nil (eo::_ bvor 4))` evaluates to `#b0000`.
-
 The following are examples of list operations when using parameterized constant `bvor`:
 
 ```smt
@@ -1112,7 +1104,6 @@ The following are examples of list operations when using parameterized constant 
 (eo::nil bvor)                == (eo::nil bvor)     ; since we cannot infer the type of bvor
 (eo::nil bvor a)              == #b0000             ; since #b0000 is the nil terminator of (bvor a)
 (eo::nil bvor a c)            == (eo::nil bvor a c) ; since (bvor a c) is ill-typed
-(eo::nil (eo::_ bvor 4))      == #b0000
 
 (eo::cons bvor a #b0000)            == (bvor a)
 (eo::cons bvor c #b0000)            == (eo::cons bvor c #b0000) ; since (bvor c #b0000) is ill-typed
@@ -1122,7 +1113,7 @@ The following are examples of list operations when using parameterized constant 
 (eo::list_concat bvor (bvor a b) (bvor b)) == (bvor a b b)
 ```
 
-> __Note:__ If no free parameters are used in the nil terminator of a parameterized constant, then it is treated equivalent to if it were declared via an ordinary declare-const command, and a warning is issued.
+> __Note:__ If no free parameters are used in the nil terminator of a parameterized constant, then no special handling of the nil element of that function is necessary. In particular, this means that all applications of the `eo::nil` are eagerly replaced by the (ground) nil terminator.
 
 <a name="overloading"></a>
 
@@ -1959,14 +1950,13 @@ The Ethos command line interface can be invoked by `ethos <option>* <file>` wher
 The following options impact how proof files and reference files are parsed only (for details on classifications of files, see [full-syntax](#full-syntax)).
 They do not impact how signature files (*.eo) are parsed:
 
-- `--binder-fresh`: binders generate fresh variables.
 - `--normalize-num`: treat numeral literals as syntax sugar for (integral) rational literals.
 - `--no-normalize-dec`: do not treat decimal literals as syntax sugar for rational literals.
 - `--no-normalize-hex`: do not treat hexadecimal literals as syntax sugar for binary literals.
 - `--no-parse-let`: do not treat `let` as a builtin symbol for specifying a macro.
 
 Most of the above options can also be set via `set-option` commands within proofs or Eunoia scripts.
-For example, the command `(set-option binder-fresh true)` tells Ethos to generate fresh variables when parsing binders always.
+For example, the command `(set-option normalize-num true)` tells Ethos to normalize numerals always.
 Further note that option names in this interface should exclude `no-`, which is equivalent to setting the value of the option to false.
 As another example, `(set-option normalize-dec false)` is equivalent to the command line option `--no-normalize-dec`.
 
