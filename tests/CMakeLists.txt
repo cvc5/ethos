@@ -143,6 +143,7 @@ set(ethos_test_file_list
     nested-requires.eo
     pairwise-singleton.eo
     quote-opaque.eo
+    quote-requires.eo
 )
 
 if(ENABLE_ORACLES)
