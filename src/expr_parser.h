@@ -48,7 +48,7 @@ class ExprParser
    * ((<symbol> <sort>)*) All variables marked
    * :implicit that were parsed and not added to the return value of this
    * method.
-   * 
+   *
    * @param k The category of the parameter list:
    * - CONST if this is a parameter list of declare-paramaterized-const
    * - LAMBDA if this is the parameter list of a define command.
@@ -61,8 +61,8 @@ class ExprParser
   /**
    * Same as above, but tracks attributes.
    */
-  std::vector<Expr> parseAndBindSortedVarList(Kind k,
-                                              std::map<ExprValue*, AttrMap>& amap);
+  std::vector<Expr> parseAndBindSortedVarList(
+      Kind k, std::map<ExprValue*, AttrMap>& amap);
   /**
    * Parse and bind a let list, i.e. ((x1 t1) ... (xn tn)), where x1...xn are
    * symbols to bind to terms t1...tn.
@@ -115,11 +115,11 @@ class ExprParser
    * string when `unescape` is set to true.
    */
   std::string parseStr(bool unescape);
-  
+
   /**
    * Parse attribute list
    * <attr_1> ... <attr_n>
-   * 
+   *
    * @param k The category of expression we are applying attributes to which is:
    * - PARAM if applied to a parameter,
    * - PROOF_RULE if applied to the symbol introduced by a declare-rule command,
@@ -134,10 +134,17 @@ class ExprParser
    * @param plk If k is PARAM, this is the category of the parameter list
    * which that parameter belongs to
    */
-  void parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushedScope, Kind plk = Kind::NONE);
+  void parseAttributeList(Kind k,
+                          Expr& e,
+                          AttrMap& attrs,
+                          bool& pushedScope,
+                          Kind plk = Kind::NONE);
   /** Same as above, but ensures we pop the scope */
-  void parseAttributeList(Kind k, Expr& e, AttrMap& attrs, Kind plk = Kind::NONE);
-  
+  void parseAttributeList(Kind k,
+                          Expr& e,
+                          AttrMap& attrs,
+                          Kind plk = Kind::NONE);
+
   /**
    * Parse literal kind.
    */
@@ -178,9 +185,8 @@ class ExprParser
    * @param ck The constructor kind contained in attrs.
    * @param cons The corresponding constructor with ck.
    */
-  void processAttributeMap(const AttrMap& attrs,
-                           Attr& ck,
-                           Expr& cons);
+  void processAttributeMap(const AttrMap& attrs, Attr& ck, Expr& cons);
+
  protected:
   /**
    * Parse constructor definition list, add to declaration type. The expected

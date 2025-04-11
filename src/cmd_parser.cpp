@@ -196,11 +196,11 @@ bool CmdParser::parseNextCommand()
         // explicit parameters are quote arrows
         std::map<ExprValue*, AttrMap>::iterator itp;
         AttrMap::iterator itpa;
-        for (size_t i=0, nparams = params.size(); i<nparams; i++)
+        for (size_t i = 0, nparams = params.size(); i < nparams; i++)
         {
-          size_t ii = nparams-i-1;
+          size_t ii = nparams - i - 1;
           Expr qt = d_state.mkQuoteType(params[ii]);
-          itp = pattrMap.find(params[ii].getValue()); 
+          itp = pattrMap.find(params[ii].getValue());
           if (itp != pattrMap.end())
           {
             itpa = itp->second.find(Attr::REQUIRES);
@@ -532,7 +532,7 @@ bool CmdParser::parseNextCommand()
       std::map<ExprValue*, AttrMap> pattrMap;
       std::vector<Expr> vars =
           d_eparser.parseAndBindSortedVarList(Kind::LAMBDA, pattrMap);
-      if (vars.size()<pattrMap.size())
+      if (vars.size() < pattrMap.size())
       {
         // If there were implicit variables, we go back and refine what is
         // bound in the body to only include the explicit arguments. This
@@ -726,7 +726,8 @@ bool CmdParser::parseNextCommand()
       }
       // push the scope
       d_state.pushScope();
-      std::vector<Expr> vars = d_eparser.parseAndBindSortedVarList(Kind::PROGRAM);
+      std::vector<Expr> vars =
+          d_eparser.parseAndBindSortedVarList(Kind::PROGRAM);
       std::vector<Expr> argTypes = d_eparser.parseTypeList();
       Expr retType = d_eparser.parseType();
       Expr progType = retType;

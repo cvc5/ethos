@@ -212,7 +212,8 @@ Expr ExprParser::parseExpr()
                   {
                     nscopes = 1;
                     d_state.pushScope();
-                    std::vector<Expr> vs = parseAndBindSortedVarList(Kind::NONE);
+                    std::vector<Expr> vs =
+                        parseAndBindSortedVarList(Kind::NONE);
                     if (vs.empty())
                     {
                       d_lex.parseError("Expected non-empty sorted variable list");
@@ -769,7 +770,7 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList(Kind k)
 }
 
 std::vector<Expr> ExprParser::parseAndBindSortedVarList(
-                     Kind k, std::map<ExprValue*, AttrMap>& amap)
+    Kind k, std::map<ExprValue*, AttrMap>& amap)
 {
   std::vector<Expr> varList;
   d_lex.eatToken(Token::LPAREN);
@@ -782,7 +783,7 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList(
     t = parseType();
     Expr v;
     bool isImplicit = false;
-    if (k==Kind::NONE)
+    if (k == Kind::NONE)
     {
       // lookup and type check
       v = d_state.getBoundVar(name, t);
@@ -1114,7 +1115,8 @@ std::string ExprParser::parseStr(bool unescape)
   return s;
 }
 
-void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushedScope, Kind plk)
+void ExprParser::parseAttributeList(
+    Kind k, Expr& e, AttrMap& attrs, bool& pushedScope, Kind plk)
 {
   std::map<std::string, Attr>::iterator its;
   // while the next token is KEYWORD, exit if RPAREN
@@ -1156,7 +1158,7 @@ void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushe
         // attributes on parameters
         // parameter lists of define and declare-parameterized-const
         // allow for several attributes
-        if (plk==Kind::CONST || plk==Kind::LAMBDA)
+        if (plk == Kind::CONST || plk == Kind::LAMBDA)
         {
           handled = true;
           switch (a)
@@ -1166,18 +1168,14 @@ void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushe
             case Attr::OPAQUE:
               // requires no value
               break;
-            case Attr::REQUIRES:
-              val = parseExprPair();
-              break;
-            default:
-              handled = false;
-              break;
+            case Attr::REQUIRES: val = parseExprPair(); break;
+            default: handled = false; break;
           }
         }
         else
         {
           // all others only allow for :list
-          handled = (a==Attr::LIST);
+          handled = (a == Attr::LIST);
         }
       }
         break;
@@ -1484,7 +1482,7 @@ void ExprParser::processAttributeMaps(const std::map<ExprValue*, AttrMap>& amap)
     Attr ck = Attr::NONE;
     Expr cons;
     processAttributeMap(as.second, ck, cons);
-    if (ck!=Attr::NONE)
+    if (ck != Attr::NONE)
     {
       Expr v(as.first);
       d_state.markConstructorKind(v, ck, cons);
@@ -1492,9 +1490,7 @@ void ExprParser::processAttributeMaps(const std::map<ExprValue*, AttrMap>& amap)
   }
 }
 
-void ExprParser::processAttributeMap(const AttrMap& attrs,
-                                     Attr& ck,
-                                     Expr& cons)
+void ExprParser::processAttributeMap(const AttrMap& attrs, Attr& ck, Expr& cons)
 {
   ck = Attr::NONE;
   for (const std::pair<const Attr, std::vector<Expr>>& a : attrs)
