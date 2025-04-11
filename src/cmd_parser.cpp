@@ -142,8 +142,8 @@ bool CmdParser::parseNextCommand()
       std::vector<Expr> sorts;
       // the parameters, if declare-parameterized-const
       std::vector<Expr> params;
-      // the subset of above marked :opaque
-      std::vector<Expr> oparams;
+      // attributes marked on variables
+      std::map<ExprValue*, AttrMap> pattrMap;
       bool flattenFunction = (tok != Token::DECLARE_ORACLE_FUN);
       if (tok == Token::DECLARE_FUN || tok == Token::DECLARE_ORACLE_FUN)
       {
@@ -152,8 +152,7 @@ bool CmdParser::parseNextCommand()
       else if (tok == Token::DECLARE_PARAMETERIZED_CONST)
       {
         d_state.pushScope();
-        std::vector<Expr> impl;
-        params = d_eparser.parseAndBindSortedVarList(impl, oparams);
+        params = d_eparser.parseAndBindSortedVarList(Kind::CONST, pattrMap);
       }
       Expr ret = d_eparser.parseType();
       Attr ck = Attr::NONE;
@@ -194,11 +193,13 @@ bool CmdParser::parseNextCommand()
       if (!params.empty())
       {
         // explicit parameters are quote arrows
+        std::map<ExprValue*, AttrMap>::iterator itp;
         for (size_t i=0, nparams = params.size(); i<nparams; i++)
         {
           size_t ii = nparams-i-1;
           Expr qt = d_state.mkQuoteType(params[ii]);
-          if (std::find(oparams.begin(), oparams.end(), params[ii])!=oparams.end())
+          itp = pattrMap.find(params[ii].getValue()); 
+          if (itp != pattrMap.end() && itp->second.find(Attr::OPAQUE)!= itp->second.end())
           {
             // if marked opaque, it is an opaque argument
             opaqueArgs.insert(opaqueArgs.begin(), qt);
@@ -353,7 +354,7 @@ bool CmdParser::parseNextCommand()
         }
       }
       std::vector<Expr> vs =
-          d_eparser.parseAndBindSortedVarList();
+          d_eparser.parseAndBindSortedVarList(Kind::PROOF_RULE);
       Expr assume;
       Expr plCons;
       std::vector<Expr> premises;
@@ -514,9 +515,10 @@ bool CmdParser::parseNextCommand()
       //d_state.checkUserSymbol(name);
       std::vector<Expr> impls;
       std::vector<Expr> opaques;
+      std::map<ExprValue*, AttrMap> pattrMap;
       std::vector<Expr> vars =
-          d_eparser.parseAndBindSortedVarList(impls, opaques);
-      if (!impls.empty())
+          d_eparser.parseAndBindSortedVarList(Kind::LAMBDA, pattrMap);
+      if (vars.size()<pattrMap.size())
       {
         // If there were implicit variables, we go back and refine what is
         // bound in the body to only include the explicit arguments. This
@@ -532,6 +534,8 @@ bool CmdParser::parseNextCommand()
           d_state.bind(e.getSymbol(), e);
         }
       }
+      // now process remainder of map
+      d_eparser.processAttributeMaps(pattrMap);
       Expr ret;
       if (tok == Token::DEFINE_FUN)
       {
@@ -708,7 +712,7 @@ bool CmdParser::parseNextCommand()
       }
       // push the scope
       d_state.pushScope();
-      std::vector<Expr> vars = d_eparser.parseAndBindSortedVarList();
+      std::vector<Expr> vars = d_eparser.parseAndBindSortedVarList(Kind::PROGRAM);
       std::vector<Expr> argTypes = d_eparser.parseTypeList();
       Expr retType = d_eparser.parseType();
       Expr progType = retType;

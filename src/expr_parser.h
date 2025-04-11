@@ -45,20 +45,24 @@ class ExprParser
   std::vector<Expr> parseExprPairList();
   /**
    * Parse parentheses-enclosed sorted variable list of the form:
-   * ((<symbol> <sort>)*)
-   * 
-   * @param isLookup If true, we expect the variable list to be already bound
-   * variables and throw an error if a variable does not match.
-   */
-  std::vector<Expr> parseAndBindSortedVarList(bool isLookup=false);
-  /**
-   * Same as above, but tracks implicit variables. All variables marked
+   * ((<symbol> <sort>)*) All variables marked
    * :implicit that were parsed and not added to the return value of this
-   * method are added to impls.
+   * method.
+   * 
+   * @param k The category of the parameter list:
+   * - CONST if this is a parameter list of declare-paramaterized-const
+   * - LAMBDA if this is the parameter list of a define command.
+   * - PROOF_RULE if this is the parameter list of a declare-rule command.
+   * - PROGRAM if this is the parameter list of a program or eo::match.
+   * - NONE otherwise (e.g. if an SMT-LIB binder).
+   * This impacts which attributes are available and how they are handled.
    */
-  std::vector<Expr> parseAndBindSortedVarList(std::vector<Expr>& impls,
-                                              std::vector<Expr>& opaques,
-                                              bool isLookup=false);
+  std::vector<Expr> parseAndBindSortedVarList(Kind k);
+  /**
+   * Same as above, but tracks attributes.
+   */
+  std::vector<Expr> parseAndBindSortedVarList(Kind k,
+                                              std::map<ExprValue*, AttrMap>& amap);
   /**
    * Parse and bind a let list, i.e. ((x1 t1) ... (xn tn)), where x1...xn are
    * symbols to bind to terms t1...tn.
@@ -159,6 +163,11 @@ class ExprParser
    */
   void ensureBound(const Expr& e, const std::vector<Expr>& bvs);
   //-------------------------- end checking
+  /**
+   * Process attribute maps. Calls the method above for each entry in the map,
+   * where ex
+   */
+  void processAttributeMaps(const std::map<ExprValue*, AttrMap>& amap);
   /**
    * Process attribute map. This processes an attribute list to
    * assign a "constructor kind" to a constant or parameter.

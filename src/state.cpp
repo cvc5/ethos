@@ -28,16 +28,11 @@ Options::Options()
   d_normalizeDecimal = true;
   d_normalizeHexadecimal = true;
   d_normalizeNumeral = false;
-  d_binderFresh = false;
 }
 
 bool Options::setOption(const std::string& key, bool val)
 {
-  if (key == "binder-fresh")
-  {
-    d_binderFresh = val;
-  }
-  else if (key == "parse-let")
+  if (key == "parse-let")
   {
     d_parseLet = val;
   }
