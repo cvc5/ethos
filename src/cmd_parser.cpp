@@ -190,30 +190,44 @@ bool CmdParser::parseNextCommand()
         opaqueArgs.push_back(t[0][0]);
         t = t[1];
       }
+      // process the parameter list
       if (!params.empty())
       {
         // explicit parameters are quote arrows
         std::map<ExprValue*, AttrMap>::iterator itp;
+        AttrMap::iterator itpa;
         for (size_t i=0, nparams = params.size(); i<nparams; i++)
         {
           size_t ii = nparams-i-1;
           Expr qt = d_state.mkQuoteType(params[ii]);
           itp = pattrMap.find(params[ii].getValue()); 
-          if (itp != pattrMap.end() && itp->second.find(Attr::OPAQUE)!= itp->second.end())
+          if (itp != pattrMap.end())
           {
-            // if marked opaque, it is an opaque argument
-            opaqueArgs.insert(opaqueArgs.begin(), qt);
-          }
-          else
-          {
-            if (!opaqueArgs.empty())
+            itpa = itp->second.find(Attr::REQUIRES);
+            if (itpa != itp->second.end())
             {
-              d_lex.parseError("Opaque arguments must be a prefix of arguments.");
+              // requires adds to return type
+              t = d_state.mkRequires(itpa->second, t);
+              itp->second.erase(itpa);
             }
-            t = d_state.mkFunctionType({qt}, t);
+            itpa = itp->second.find(Attr::OPAQUE);
+            if (itpa != itp->second.end())
+            {
+              // if marked opaque, it is an opaque argument
+              opaqueArgs.insert(opaqueArgs.begin(), qt);
+              itp->second.erase(itpa);
+              continue;
+            }
           }
+          if (!opaqueArgs.empty())
+          {
+            d_lex.parseError("Opaque arguments must be a prefix of arguments.");
+          }
+          t = d_state.mkFunctionType({qt}, t);
         }
       }
+      // now process remainder of map
+      d_eparser.processAttributeMaps(pattrMap);
       if (!opaqueArgs.empty())
       {
         if (ck!=Attr::NONE)
