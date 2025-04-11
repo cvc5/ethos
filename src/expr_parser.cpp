@@ -795,7 +795,9 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList(
       bind(name, v);
       // parse attribute list
       AttrMap& attrs = amap[v.getValue()];
-      parseAttributeList(Kind::PARAM, v, attrs);
+      // all other parameter lists make fresh parameters, pass along the
+      // parameter list kind k
+      parseAttributeList(Kind::PARAM, v, attrs, k);
       if (attrs.find(Attr::IMPLICIT)!=attrs.end())
       {
         attrs.erase(Attr::IMPLICIT);
@@ -1112,7 +1114,7 @@ std::string ExprParser::parseStr(bool unescape)
   return s;
 }
 
-void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushedScope)
+void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushedScope, Kind plk)
 {
   std::map<std::string, Attr>::iterator its;
   // while the next token is KEYWORD, exit if RPAREN
@@ -1152,9 +1154,30 @@ void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushe
       case Kind::PARAM:
       {
         // attributes on parameters
-        if (a==Attr::LIST || a==Attr::IMPLICIT || a==Attr::OPAQUE)
+        // parameter lists of define and declare-parameterized-const
+        // allow for several attributes
+        if (plk==Kind::CONST || plk==Kind::LAMBDA)
         {
           handled = true;
+          switch (a)
+          {
+            case Attr::LIST:
+            case Attr::IMPLICIT:
+            case Attr::OPAQUE:
+              // requires no value
+              break;
+            case Attr::REQUIRES:
+              val = parseExprPair();
+              break;
+            default:
+              handled = false;
+              break;
+          }
+        }
+        else
+        {
+          // all others only allow for :list
+          handled = (a==Attr::LIST);
         }
       }
         break;
@@ -1271,10 +1294,10 @@ void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushe
   d_lex.reinsertToken(Token::RPAREN);
 }
 
-void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs)
+void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs, Kind plk)
 {
   bool pushedScope = false;
-  parseAttributeList(k, e, attrs, pushedScope);
+  parseAttributeList(k, e, attrs, pushedScope, plk);
   // pop the scope if necessary
   if (pushedScope)
   {

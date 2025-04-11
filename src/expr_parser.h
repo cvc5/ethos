@@ -131,10 +131,12 @@ class ExprParser
    * @param pushedScope True if we pushed a scope while reading the list. This
    * is true when e.g. the attribute :var is read. The caller of this method
    * is responsible for popping the scope.
+   * @param plk If k is PARAM, this is the category of the parameter list
+   * which that parameter belongs to
    */
-  void parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushedScope);
+  void parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushedScope, Kind plk = Kind::NONE);
   /** Same as above, but ensures we pop the scope */
-  void parseAttributeList(Kind k, Expr& e, AttrMap& attrs);
+  void parseAttributeList(Kind k, Expr& e, AttrMap& attrs, Kind plk = Kind::NONE);
   
   /**
    * Parse literal kind.

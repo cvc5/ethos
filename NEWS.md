@@ -5,7 +5,7 @@ ethos 0.1.2 prerelease
 
 - Change the execution semantics when a program takes an unevalated term as an argument. In particular, we do not call user provided programs and oracles when at least argument could not be evaluated. This change was made to make errors more intuitive. Note this changes the semantics of programs that previously relied on being called on unevaluated terms.
 - User programs, user oracles, and builtin operators that are unapplied are now considered unevaluated. This makes the type checker more strict and disallows passing them as arguments to other programs, which previously led to undefined behavior.
-- Changes the semantics of `declare-parameterized-const`. In particular, the parameters of a parameterized constants are no longer assumed to be implicit, and are explicit by default. The `:implicit` attribute can be used on all parameters to recover the previous behavior.
+- Changes the semantics of `declare-parameterized-const`. In particular, the parameters of a parameterized constants are no longer assumed to be implicit, and are explicit by default. The `:implicit` attribute can be used on all parameters to recover the previous behavior. Other attributes such as `:opaque` and `:requires` can be used on parameters to this command.
 - Remove support for the explicit parameter annotation `eo::_`, which was used to provide annotations for implicit arguments to parameterized constants.
 - Changed the semantics of pairwise and chainable operators for a single argument, which now reduces to the neutral element of the combining operator instead of a parse error.
 - The operator `eo::typeof` now fails to evaluate if the type of the given term is not ground.
