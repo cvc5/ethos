@@ -574,9 +574,6 @@ Furthermore, note that a binder also may accept an explicit term as its first ar
 In the above example, `Q4` has `(@cons x)` as its first argument, where `x` was explicitly defined as a variable.
 This means that the definition of `Q4` is also syntactically equivalent to the definition of `Q1` and `Q2`.
 
-Note that if the option `--binder-fresh` is enabled, then when parsing reference files, the variables in binders are always fresh.
-This option does not impact how binders are parsed in Eunoia files.
-
 <a name="literals"></a>
 
 ### Literal types
@@ -1953,14 +1950,13 @@ The Ethos command line interface can be invoked by `ethos <option>* <file>` wher
 The following options impact how proof files and reference files are parsed only (for details on classifications of files, see [full-syntax](#full-syntax)).
 They do not impact how signature files (*.eo) are parsed:
 
-- `--binder-fresh`: binders generate fresh variables.
 - `--normalize-num`: treat numeral literals as syntax sugar for (integral) rational literals.
 - `--no-normalize-dec`: do not treat decimal literals as syntax sugar for rational literals.
 - `--no-normalize-hex`: do not treat hexadecimal literals as syntax sugar for binary literals.
 - `--no-parse-let`: do not treat `let` as a builtin symbol for specifying a macro.
 
 Most of the above options can also be set via `set-option` commands within proofs or Eunoia scripts.
-For example, the command `(set-option binder-fresh true)` tells Ethos to generate fresh variables when parsing binders always.
+For example, the command `(set-option normalize-num true)` tells Ethos to normalize numerals always.
 Further note that option names in this interface should exclude `no-`, which is equivalent to setting the value of the option to false.
 As another example, `(set-option normalize-dec false)` is equivalent to the command line option `--no-normalize-dec`.
 
