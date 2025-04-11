@@ -17,7 +17,7 @@ ethos 0.1.2 prerelease
 - Added the option `--stats-all` to track the number of times side conditions are invoked.
 - The option `--print-let` has been renamed to `--print-dag` and is now enabled by default. The printer is changed to use `eo::define` instead of `let`.
 - Ethos now explicitly forbids `:var`, `:implicit`, and `:opaque` on return types.
-- The option `--binder-fresh`, which allowed fresh variables to be constructed when parsing binders, has been removed.
+- The option `--binder-fresh`, which specified for fresh variables to be constructed when parsing binders, has been removed.
 
 ethos 0.1.1
 ===========
