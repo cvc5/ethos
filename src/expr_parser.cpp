@@ -463,15 +463,9 @@ Expr ExprParser::parseExpr()
         {
           // now parse attribute list
           AttrMap attrs;
-          bool pushedScope = false;
           // NOTE parsing attributes may trigger recursive calls to this
           // method.
-          parseAttributeList(Kind::NONE, ret, attrs, pushedScope);
-          // the scope of the variable is one level up
-          if (pushedScope && pstack.size()>1)
-          {
-            pstack[pstack.size()-2].d_nscopes++;
-          }
+          parseAttributeList(Kind::NONE, ret, attrs);
           // process the attributes
           for (std::pair<const Attr, std::vector<Expr>>& a : attrs)
           {
@@ -1098,7 +1092,7 @@ std::string ExprParser::parseStr(bool unescape)
 }
 
 void ExprParser::parseAttributeList(
-    Kind k, Expr& e, AttrMap& attrs, bool& pushedScope, Kind plk)
+    Kind k, Expr& e, AttrMap& attrs, Kind plk)
 {
   std::map<std::string, Attr>::iterator its;
   // while the next token is KEYWORD, exit if RPAREN
@@ -1235,17 +1229,6 @@ void ExprParser::parseAttributeList(
     attrs[its->second].push_back(val);
   }
   d_lex.reinsertToken(Token::RPAREN);
-}
-
-void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs, Kind plk)
-{
-  bool pushedScope = false;
-  parseAttributeList(k, e, attrs, pushedScope, plk);
-  // pop the scope if necessary
-  if (pushedScope)
-  {
-    d_state.popScope();
-  }
 }
 
 Kind ExprParser::parseLiteralKind()
