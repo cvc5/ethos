@@ -118,9 +118,9 @@ class Expr
   explicit Expr(const ExprValue* ev);
   Expr(const Expr& e);
   ~Expr();
-  /** Get the free symbols */
+  /** Get the free parameters in expression e */
   static std::vector<Expr> getVariables(const Expr& e);
-  /** Get the free symbols in vector es */
+  /** Get the free parameters in vector es */
   static std::vector<Expr> getVariables(const std::vector<Expr>& es);
   /** Get the free symbols */
   static bool hasVariable(const Expr& e,

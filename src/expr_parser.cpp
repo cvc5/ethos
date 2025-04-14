@@ -161,7 +161,7 @@ Expr ExprParser::parseExpr()
           {
             // parse the variable list
             d_state.pushScope();
-            std::vector<Expr> vs = parseAndBindSortedVarList();
+            std::vector<Expr> vs = parseAndBindSortedVarList(Kind::PROGRAM);
             std::vector<Expr> args;
             args.emplace_back(d_state.mkExpr(Kind::TUPLE, vs));
             pstack.emplace_back(ParseCtx::MATCH_HEAD, 1, args);
@@ -194,10 +194,8 @@ Expr ExprParser::parseExpr()
             if (ck==Attr::BINDER || ck==Attr::LET_BINDER)
             {
               // If it is a binder, immediately read the bound variable list.
-              // If option d_binderFresh is true, we parse and bind fresh
-              // variables. Otherwise, we make calls to State::getBoundVar
-              // meaning the bound variables are unique for each (name, type)
-              // pair.
+              // We make calls to State::getBoundVar meaning the bound variables
+              // are unique for each (name, type) pair.
               // We only do this if there are two left parentheses. Otherwise we
               // will parse a tuple term that stands for a symbolic bound
               // variable list. We do this because there are no terms that
@@ -213,10 +211,9 @@ Expr ExprParser::parseExpr()
                   if (ck==Attr::BINDER)
                   {
                     nscopes = 1;
-                    // we always do lookups if parsing signature
-                    bool isLookup = d_isSignature || !d_state.getOptions().d_binderFresh;
                     d_state.pushScope();
-                    std::vector<Expr> vs = parseAndBindSortedVarList(isLookup);
+                    std::vector<Expr> vs =
+                        parseAndBindSortedVarList(Kind::NONE);
                     if (vs.empty())
                     {
                       d_lex.parseError("Expected non-empty sorted variable list");
@@ -764,21 +761,21 @@ std::vector<Expr> ExprParser::parseExprPairList()
   return terms;
 }
 
-std::vector<Expr> ExprParser::parseAndBindSortedVarList(bool isLookup)
+std::vector<Expr> ExprParser::parseAndBindSortedVarList(Kind k)
 {
-  std::vector<Expr> impls;
-  return parseAndBindSortedVarList(impls, isLookup);
+  std::map<ExprValue*, AttrMap> amap;
+  std::vector<Expr> vars = parseAndBindSortedVarList(k, amap);
+  processAttributeMaps(amap);
+  return vars;
 }
 
 std::vector<Expr> ExprParser::parseAndBindSortedVarList(
-                     std::vector<Expr>& impls, bool isLookup)
+    Kind k, std::map<ExprValue*, AttrMap>& amap)
 {
   std::vector<Expr> varList;
   d_lex.eatToken(Token::LPAREN);
   std::string name;
   Expr t;
-  Attr ck = Attr::NONE;
-  Expr cons;
   // while the next token is LPAREN, exit if RPAREN
   while (d_lex.eatTokenChoice(Token::LPAREN, Token::RPAREN))
   {
@@ -786,7 +783,7 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList(
     t = parseType();
     Expr v;
     bool isImplicit = false;
-    if (isLookup)
+    if (k == Kind::NONE)
     {
       // lookup and type check
       v = d_state.getBoundVar(name, t);
@@ -798,21 +795,14 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList(
       v = d_state.mkSymbol(Kind::PARAM, name, t);
       bind(name, v);
       // parse attribute list
-      AttrMap attrs;
-      parseAttributeList(Kind::PARAM, v, attrs);
+      AttrMap& attrs = amap[v.getValue()];
+      // all other parameter lists make fresh parameters, pass along the
+      // parameter list kind k
+      parseAttributeList(Kind::PARAM, v, attrs, k);
       if (attrs.find(Attr::IMPLICIT)!=attrs.end())
       {
         attrs.erase(Attr::IMPLICIT);
         isImplicit = true;
-        impls.push_back(v);
-      }
-      // process the attribute map, which may mark the parameter as a list
-      processAttributeMap(attrs, ck, cons, {});
-      if (ck!=Attr::NONE)
-      {
-        d_state.markConstructorKind(v, ck, cons);
-        ck = Attr::NONE;
-        cons = d_null;
       }
     }
     d_lex.eatToken(Token::RPAREN);
@@ -837,7 +827,7 @@ std::vector<std::pair<Expr, Expr>> ExprParser::parseAndBindLetList()
     t = parseExpr();
     d_lex.eatToken(Token::RPAREN);
     tt = typeCheck(t);
-    v = d_state.mkSymbol(Kind::VARIABLE, name, tt);
+    v = d_state.getBoundVar(name, tt);
     letList.emplace_back(v, t);
   }
   // now perform the bindings, which bind to the variable, not its definition
@@ -1125,7 +1115,8 @@ std::string ExprParser::parseStr(bool unescape)
   return s;
 }
 
-void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushedScope)
+void ExprParser::parseAttributeList(
+    Kind k, Expr& e, AttrMap& attrs, bool& pushedScope, Kind plk)
 {
   std::map<std::string, Attr>::iterator its;
   // while the next token is KEYWORD, exit if RPAREN
@@ -1165,9 +1156,26 @@ void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushe
       case Kind::PARAM:
       {
         // attributes on parameters
-        if (a==Attr::LIST || a==Attr::IMPLICIT)
+        // parameter lists of define and declare-parameterized-const
+        // allow for several attributes
+        if (plk == Kind::CONST || plk == Kind::LAMBDA)
         {
           handled = true;
+          switch (a)
+          {
+            case Attr::LIST:
+            case Attr::IMPLICIT:
+            case Attr::OPAQUE:
+              // requires no value
+              break;
+            case Attr::REQUIRES: val = parseExprPair(); break;
+            default: handled = false; break;
+          }
+        }
+        else
+        {
+          // all others only allow for :list
+          handled = (a == Attr::LIST);
         }
       }
         break;
@@ -1284,10 +1292,10 @@ void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushe
   d_lex.reinsertToken(Token::RPAREN);
 }
 
-void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs)
+void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs, Kind plk)
 {
   bool pushedScope = false;
-  parseAttributeList(k, e, attrs, pushedScope);
+  parseAttributeList(k, e, attrs, pushedScope, plk);
   // pop the scope if necessary
   if (pushedScope)
   {
@@ -1466,10 +1474,23 @@ void ExprParser::ensureBound(const Expr& e, const std::vector<Expr>& bvs)
   }
 }
 
-void ExprParser::processAttributeMap(const AttrMap& attrs,
-                                     Attr& ck,
-                                     Expr& cons,
-                                     const std::vector<Expr>& params)
+void ExprParser::processAttributeMaps(const std::map<ExprValue*, AttrMap>& amap)
+{
+  // process the attribute map, which may mark the parameter as a list
+  for (const std::pair<ExprValue* const, AttrMap>& as : amap)
+  {
+    Attr ck = Attr::NONE;
+    Expr cons;
+    processAttributeMap(as.second, ck, cons);
+    if (ck != Attr::NONE)
+    {
+      Expr v(as.first);
+      d_state.markConstructorKind(v, ck, cons);
+    }
+  }
+}
+
+void ExprParser::processAttributeMap(const AttrMap& attrs, Attr& ck, Expr& cons)
 {
   ck = Attr::NONE;
   for (const std::pair<const Attr, std::vector<Expr>>& a : attrs)
@@ -1490,18 +1511,13 @@ void ExprParser::processAttributeMap(const AttrMap& attrs,
         // if the constructor spec is non-ground, make a lambda
         if (!av.isNull() && !av.isGround())
         {
+          std::vector<Expr> params = Expr::getVariables(av);
           Assert (!params.empty());
           cons = d_state.mkParameterized(av.getValue(), params);
         }
         else
         {
           cons = av;
-          // if the nil constructor doesn't use parameters, just ignore
-          if (!params.empty())
-          {
-            Warning() << "Ignoring unused parameters for definition of "
-                      << "symbol with nil constructor " << av << std::endl;
-          }
         }
         ck = a.first;
       }

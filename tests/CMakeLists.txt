@@ -142,6 +142,8 @@ set(ethos_test_file_list
     overload-define.eo
     nested-requires.eo
     pairwise-singleton.eo
+    quote-opaque.eo
+    quote-requires.eo
 )
 
 if(ENABLE_ORACLES)

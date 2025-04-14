@@ -1599,7 +1599,6 @@ bool TypeChecker::computedParameterizedInternal(AppInfo* ai,
     {
       // if not in an application, we fail
       Warning() << "Failed to determine parameters for " << hd << std::endl;
-      AlwaysAssert(false);
       return false;
     }
     else

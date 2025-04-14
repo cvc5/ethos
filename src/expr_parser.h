@@ -46,18 +46,24 @@ class ExprParser
   /**
    * Parse parentheses-enclosed sorted variable list of the form:
    * ((<symbol> <sort>)*)
-   * 
-   * @param isLookup If true, we expect the variable list to be already bound
-   * variables and throw an error if a variable does not match.
-   */
-  std::vector<Expr> parseAndBindSortedVarList(bool isLookup=false);
-  /**
-   * Same as above, but tracks implicit variables. All variables marked
+   * All variables marked
    * :implicit that were parsed and not added to the return value of this
-   * method are added to impls.
+   * method.
+   *
+   * @param k The category of the parameter list:
+   * - CONST if this is a parameter list of declare-paramaterized-const.
+   * - LAMBDA if this is the parameter list of a define command.
+   * - PROOF_RULE if this is the parameter list of a declare-rule command.
+   * - PROGRAM if this is the parameter list of a program or eo::match.
+   * - NONE otherwise (e.g. if an SMT-LIB binder).
+   * This impacts which attributes are available and how they are handled.
    */
-  std::vector<Expr> parseAndBindSortedVarList(std::vector<Expr>& impls,
-                                              bool isLookup=false);
+  std::vector<Expr> parseAndBindSortedVarList(Kind k);
+  /**
+   * Same as above, but tracks attributes.
+   */
+  std::vector<Expr> parseAndBindSortedVarList(
+      Kind k, std::map<ExprValue*, AttrMap>& amap);
   /**
    * Parse and bind a let list, i.e. ((x1 t1) ... (xn tn)), where x1...xn are
    * symbols to bind to terms t1...tn.
@@ -110,11 +116,11 @@ class ExprParser
    * string when `unescape` is set to true.
    */
   std::string parseStr(bool unescape);
-  
+
   /**
    * Parse attribute list
    * <attr_1> ... <attr_n>
-   * 
+   *
    * @param k The category of expression we are applying attributes to which is:
    * - PARAM if applied to a parameter,
    * - PROOF_RULE if applied to the symbol introduced by a declare-rule command,
@@ -126,11 +132,20 @@ class ExprParser
    * @param pushedScope True if we pushed a scope while reading the list. This
    * is true when e.g. the attribute :var is read. The caller of this method
    * is responsible for popping the scope.
+   * @param plk If k is PARAM, this is the category of the parameter list
+   * which that parameter belongs to
    */
-  void parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushedScope);
+  void parseAttributeList(Kind k,
+                          Expr& e,
+                          AttrMap& attrs,
+                          bool& pushedScope,
+                          Kind plk = Kind::NONE);
   /** Same as above, but ensures we pop the scope */
-  void parseAttributeList(Kind k, Expr& e, AttrMap& attrs);
-  
+  void parseAttributeList(Kind k,
+                          Expr& e,
+                          AttrMap& attrs,
+                          Kind plk = Kind::NONE);
+
   /**
    * Parse literal kind.
    */
@@ -159,18 +174,20 @@ class ExprParser
   void ensureBound(const Expr& e, const std::vector<Expr>& bvs);
   //-------------------------- end checking
   /**
+   * Process attribute maps. Calls the method above for each entry in the map,
+   * where ex
+   */
+  void processAttributeMaps(const std::map<ExprValue*, AttrMap>& amap);
+  /**
    * Process attribute map. This processes an attribute list to
    * assign a "constructor kind" to a constant or parameter.
    *
    * @param attrs The attributes we just processed.
    * @param ck The constructor kind contained in attrs.
    * @param cons The corresponding constructor with ck.
-   * @param params The free parameters, if processing a constant.
    */
-  void processAttributeMap(const AttrMap& attrs,
-                           Attr& ck,
-                           Expr& cons,
-                           const std::vector<Expr>& params);
+  void processAttributeMap(const AttrMap& attrs, Attr& ck, Expr& cons);
+
  protected:
   /**
    * Parse constructor definition list, add to declaration type. The expected
