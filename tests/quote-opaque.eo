@@ -5,7 +5,7 @@
 
 
 
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 
 (program substitute
   ((T Type) (U Type) (S Type) (x S) (y S) (f (-> T U)) (a T) (z U))

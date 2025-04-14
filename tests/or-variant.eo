@@ -8,7 +8,7 @@
 (define P ((x Bool)) x)
 (define Q ((x Bool :list)) (or x))
 
-(declare-const = (-> (! Type :var A :implicit) A A Bool))
+(declare-parameterized-const = ((A Type :implicit)) (-> A A Bool))
 (declare-rule refl ((T Type) (t T))
     :premises ()
     :args (t)

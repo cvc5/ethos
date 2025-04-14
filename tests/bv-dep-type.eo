@@ -2,10 +2,7 @@
 
 (declare-type BitVec (Int)) 
 
-(declare-const bvadd (->
-  (! Int :var n)
-  (BitVec n)
-  (BitVec n)
+(declare-parameterized-const bvadd ((n Int)) (-> (BitVec n) (BitVec n)
   (BitVec n)))
 
 (declare-const m Int)

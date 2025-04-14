@@ -11,12 +11,10 @@
     )
 )
 
-(declare-const + (-> (! Type :var T :implicit) 
-                     (! Type :var U :implicit) 
-                     T U (a.typeunion T U)))
+(declare-parameterized-const + ((T Type :implicit) (U Type :implicit)) (-> T U (a.typeunion T U)))
 
 
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 
 
 (declare-consts <numeral> Int)
