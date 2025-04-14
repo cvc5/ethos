@@ -1,7 +1,7 @@
 (declare-type Int ())
 (declare-consts <numeral> Int)
 
-(declare-const @const (-> (! Int :opaque) (! Type :var T :opaque) T))
+(declare-parameterized-const @const ((id Int :opaque) (T Type :opaque)) T)
 
 
 

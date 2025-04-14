@@ -1233,7 +1233,15 @@ void ExprParser::parseAttributeList(
       }
         break;
       case Kind::NONE:
-        // nothing handled
+          handled = true;
+          switch (a)
+          {
+            case Attr::OPAQUE:
+              // requires no value
+              break;
+            case Attr::REQUIRES: val = parseExprPair(); break;
+            default: handled = false; break;
+          }
         break;
       default:
         break;
