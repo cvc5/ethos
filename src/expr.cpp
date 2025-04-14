@@ -262,7 +262,7 @@ std::map<const ExprValue*, size_t> Expr::computeLetBinding(
     }
     visit.pop_back();
     // add to vector, which is done after all subterms of cv are added to llv
-    if (lcount.find(cv)==lcount.end())
+    if (lcount.find(cv) == lcount.end())
     {
       llv.push_back(cur);
     }
@@ -275,7 +275,7 @@ std::map<const ExprValue*, size_t> Expr::computeLetBinding(
   {
     const Expr& l = llv[i];
     const ExprValue* lv = l.getValue();
-    if (lcount[lv]>1)
+    if (lcount[lv] > 1)
     {
       ll.push_back(l);
       lbind[lv] = idc;
