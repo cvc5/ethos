@@ -477,28 +477,10 @@ Expr ExprParser::parseExpr()
           {
             switch(a.first)
             {
-              case Attr::VAR:
-                Assert (a.second.size()==1);
-                // it is now (Quote v) for that variable
-                ret = d_state.mkQuoteType(a.second[0]);
-                break;
-              case Attr::IMPLICIT:
-                // the term will not be added as an argument to the parent
-                // note this always comes after VAR due to enum order
-                ret = d_state.mkNullType();
-                break;
               case Attr::REQUIRES:
-                if (ret.isNull())
-                {
-                  d_lex.parseError("Cannot mark requires on implicit argument");
-                }
                 ret = d_state.mkRequires(a.second, ret);
                 break;
               case Attr::OPAQUE:
-                if (ret.isNull())
-                {
-                  d_lex.parseError("Cannot mark opaque on implicit argument");
-                }
                 if (ret.getKind()==Kind::EVAL_REQUIRES)
                 {
                   d_lex.parseError("Cannot combine opaque and requires");
