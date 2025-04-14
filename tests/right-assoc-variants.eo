@@ -43,14 +43,9 @@
     )
 )
 
-(declare-const +
-(->
-    (! Type :var T :implicit)
-    (! Type :var U :implicit)
-    T
+(declare-parameterized-const + ((T Type :implicit) (U Type :implicit)) (-> T
     U
-    (arith_typeunion_nary T U)
-) :right-assoc-nil 0)
+    (arith_typeunion_nary T U)) :right-assoc-nil 0)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -62,7 +57,7 @@
       ((is_string_type U) false)
     )
 )
-(declare-const seq.empty (-> (! Type :var T) T))
+(declare-parameterized-const seq.empty ((T Type)) (-> T))
 (program mk_emptystr ((U Type))
   (Type) U
   (
