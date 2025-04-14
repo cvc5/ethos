@@ -4,9 +4,9 @@
 
 
 (declare-const extract (->
-  (! Int :var n :implicit)
-  (! Int :var h)
-  (! Int :var l)
+  (n Int :implicit)
+  (h Int)
+  (l Int)
   (BitVec n)
   (!
     (BitVec (eo::add h (eo::add (eo::neg l) 1)))

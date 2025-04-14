@@ -3,7 +3,7 @@
 (declare-type BitVec (Int)) 
 
 (declare-const bvadd (->
-  (! Int :var n)
+  (n Int)
   (BitVec n)
   (BitVec n)
   (BitVec n)))

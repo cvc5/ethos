@@ -3,7 +3,7 @@
 (declare-const FiniteField (-> Int Type))
 
 (declare-const ff.value
-    (-> (! Int :var p) Int (FiniteField p)))
+    (-> (p Int) Int (FiniteField p)))
 
 (declare-parameterized-const ff.add ((p Int :implicit))
     (-> (FiniteField p) (FiniteField p) (FiniteField p)) 
@@ -12,7 +12,7 @@
 
 (declare-const c (_ FiniteField 17))
 
-(declare-const eq (-> (! Type :var T :implicit) T T Bool))
+(declare-const eq (-> (T Type :implicit) T T Bool))
 
 (program f_eq_args ((U Type) (f (-> U U)) (a U) (b U :list))
   (U) U

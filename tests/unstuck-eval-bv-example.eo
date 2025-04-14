@@ -4,7 +4,7 @@
 (declare-type Int ())
 (declare-consts <numeral> Int)
 
-(declare-const = (-> (! Type :var A :implicit) A A Bool))
+(declare-const = (-> (A Type :implicit) A A Bool))
 (declare-const < (-> Int Int Bool))
 (declare-const - (-> Int Int Int))
 
@@ -13,24 +13,24 @@
 (declare-consts <binary> (BitVec (eo::len eo::self)))
 
 ; bvsize
-(declare-const @bvsize (-> (! Int :var m :implicit) (BitVec m) Int))
+(declare-const @bvsize (-> (m Int :implicit) (BitVec m) Int))
 
 ; define: @bv_empty
 ; return: The empty bitvector.
 (define @bv_empty () (eo::to_bin 0 0))
 
 (declare-const concat (->
-  (! Int :var n :implicit)
-  (! Int :var m :implicit)
+  (n Int :implicit)
+  (m Int :implicit)
   (BitVec n)
   (BitVec m)
   (BitVec (eo::add n m))) :right-assoc-nil @bv_empty
 )
 
 (declare-const extract (->
-  (! Int :var n :implicit)
-  (! Int :var h)
-  (! Int :var l)
+  (n Int :implicit)
+  (h Int)
+  (l Int)
   (BitVec n)
   (BitVec (eo::add h (eo::neg l) 1))
   )

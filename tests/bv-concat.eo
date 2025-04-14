@@ -5,14 +5,14 @@
 
 
 (declare-const bvadd (->
-  (! Int :var n :implicit)
+  (n Int :implicit)
   (BitVec n)
   (BitVec n)
   (BitVec n)))
 
 (declare-const bvconcat (->
-  (! Int :var n :implicit)
-  (! Int :var m :implicit)
+  (n Int :implicit)
+  (m Int :implicit)
   (BitVec n)
   (BitVec m)
   (BitVec (eo::add n m))))

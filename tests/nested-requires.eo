@@ -1,5 +1,5 @@
 (declare-type Int ())
 (declare-consts <numeral> Int)
-(declare-const C (-> (! Int :var x) (! (! Int :var y :requires ((eo::gt x y) true)) :requires ((eo::gt x y) true)) Type))
+(declare-const C (-> (x Int) (! (y Int :requires ((eo::gt x y) true)) :requires ((eo::gt x y) true)) Type))
 
 (declare-const test (C 4 3))

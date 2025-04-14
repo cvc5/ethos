@@ -1,7 +1,7 @@
 
 (declare-const and (-> Bool Bool Bool) :right-assoc)
 
-(declare-const = (-> (! Type :var T :implicit) T T Bool) :chainable and)
+(declare-const = (-> (T Type :implicit) T T Bool) :chainable and)
 
 
 (declare-rule and_elim1 ((f Bool) (g Bool :list))

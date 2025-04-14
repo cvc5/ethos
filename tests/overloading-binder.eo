@@ -4,12 +4,12 @@
 (declare-consts <decimal> Real)
 (declare-const f (-> Int Int Int))
 
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-const = (-> (T Type :implicit) T T Bool))
 
 
 (declare-type @List ())
 (declare-const @nil @List)
-(declare-const @cons (-> (! Type :var T :implicit) T @List @List) :right-assoc-nil @nil)
+(declare-const @cons (-> (T Type :implicit) T @List @List) :right-assoc-nil @nil)
 (declare-const forall (-> @List Bool Bool) :binder @cons)
 (declare-const to_real (-> Int Real))
 

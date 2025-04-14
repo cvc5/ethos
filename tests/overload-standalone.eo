@@ -1,5 +1,5 @@
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-const = (-> (T Type :implicit) T T Bool))
 
 (declare-const a Bool)
 (declare-const b Bool)

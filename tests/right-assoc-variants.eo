@@ -45,8 +45,8 @@
 
 (declare-const +
 (->
-    (! Type :var T :implicit)
-    (! Type :var U :implicit)
+    (T Type :implicit)
+    (U Type :implicit)
     T
     U
     (arith_typeunion_nary T U)
@@ -62,7 +62,7 @@
       ((is_string_type U) false)
     )
 )
-(declare-const seq.empty (-> (! Type :var T) T))
+(declare-const seq.empty (-> (T Type) T))
 (program mk_emptystr ((U Type))
   (Type) U
   (

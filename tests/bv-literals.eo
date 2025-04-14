@@ -1,7 +1,7 @@
 (declare-type Int ())
 (declare-consts <numeral> Int)
 
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-const = (-> (T Type :implicit) T T Bool))
 
 (declare-const BitVec 
   (-> Int Type))
@@ -9,7 +9,7 @@
 (declare-consts <binary> (BitVec (eo::len eo::self)))
   
 (declare-const bvadd (->
-  (! Int :var n :implicit)
+  (n Int :implicit)
   (BitVec n)
   (BitVec n)
   (BitVec n)))

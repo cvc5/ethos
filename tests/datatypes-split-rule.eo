@@ -1,6 +1,6 @@
 ; (declare-type eo::List ())
 ; (declare-const eo::List::nil eo::List)
-; (declare-const eo::List::cons (-> (! Type :var T :implicit) T eo::List eo::List))
+; (declare-const eo::List::cons (-> (T Type :implicit) T eo::List eo::List))
 
 (declare-type Int ())
 (declare-datatypes ((Lst 0)) (((cons (head Int) (tail Lst)) (nil))))
@@ -8,9 +8,9 @@
 
 
 
-(declare-const is (-> (! Type :var C :implicit) (! Type :var D :implicit) C D Bool))
+(declare-const is (-> (C Type :implicit) (D Type :implicit) C D Bool))
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-const = (-> (T Type :implicit) T T Bool))
 
 (program $mk_dt_split ((D Type) (x D) (T Type) (c T) (xs eo::List :list))
   (eo::List D) Bool

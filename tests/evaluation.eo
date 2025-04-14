@@ -3,7 +3,7 @@
 (declare-consts <numeral> Int)
 
 
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-const = (-> (T Type :implicit) T T Bool))
 
 (declare-const + (-> Int Int Int) :right-assoc)
 

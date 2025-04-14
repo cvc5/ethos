@@ -1,5 +1,5 @@
 (declare-const not (-> Bool Bool))
-(declare-const = (-> (! Type :var A :implicit) A A Bool))
+(declare-const = (-> (A Type :implicit) A A Bool))
 
 (declare-rule disinct_value_bool ((t Bool) (s Bool))
     :args (t s)
