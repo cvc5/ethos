@@ -45,12 +45,13 @@ class ExprParser
   std::vector<Expr> parseExprPairList();
   /**
    * Parse parentheses-enclosed sorted variable list of the form:
-   * ((<symbol> <sort>)*) All variables marked
+   * ((<symbol> <sort>)*)
+   * All variables marked
    * :implicit that were parsed and not added to the return value of this
    * method.
    *
    * @param k The category of the parameter list:
-   * - CONST if this is a parameter list of declare-paramaterized-const
+   * - CONST if this is a parameter list of declare-paramaterized-const.
    * - LAMBDA if this is the parameter list of a define command.
    * - PROOF_RULE if this is the parameter list of a declare-rule command.
    * - PROGRAM if this is the parameter list of a program or eo::match.
