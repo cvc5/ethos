@@ -1168,6 +1168,14 @@ void ExprParser::parseAttributeList(
             case Attr::OPAQUE:
               // requires no value
               break;
+            case Attr::RESTRICT:
+              // requires an expression that follows
+              val = parseExpr();
+              break;
+            case Attr::SYNTAX:
+              // ignores the literal kind
+              parseLiteralKind();
+              break;
             case Attr::REQUIRES: val = parseExprPair(); break;
             default: handled = false; break;
           }
@@ -1225,60 +1233,7 @@ void ExprParser::parseAttributeList(
       }
         break;
       case Kind::NONE:
-      {
-        // attributes on general terms, including type arguments
-        handled = true;
-        switch (a)
-        {
-          case Attr::IMPLICIT:
-          case Attr::OPAQUE:
-            // requires no value
-            break;
-          case Attr::VAR:
-          {
-            if (e.isNull())
-            {
-              d_lex.parseError("Cannot use :var in this context");
-            }
-            if (attrs.find(Attr::VAR)!=attrs.end())
-            {
-              d_lex.parseError("Cannot use :var on the same term more than once");
-            }
-            std::string name = parseSymbol();
-            // e should be a type
-            val = d_state.mkSymbol(Kind::PARAM, name, e);
-            // immediately bind
-            if (!pushedScope)
-            {
-              pushedScope = true;
-              d_state.pushScope();
-            }
-            bind(name, val);
-          }
-          break;
-          case Attr::RESTRICT:
-          {
-            // requires an expression that follows
-            val = parseExpr();
-          }
-            break;
-          case Attr::REQUIRES:
-          {
-            // requires a pair
-            val = parseExprPair();
-          }
-            break;
-          case Attr::SYNTAX:
-          {
-            // ignores the literal kind
-            parseLiteralKind();
-          }
-            break;
-          default:
-            handled = false;
-            break;
-        }
-      }
+        // nothing handled
         break;
       default:
         break;
