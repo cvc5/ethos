@@ -28,16 +28,11 @@ Options::Options()
   d_normalizeDecimal = true;
   d_normalizeHexadecimal = true;
   d_normalizeNumeral = false;
-  d_binderFresh = false;
 }
 
 bool Options::setOption(const std::string& key, bool val)
 {
-  if (key == "binder-fresh")
-  {
-    d_binderFresh = val;
-  }
-  else if (key == "parse-let")
+  if (key == "parse-let")
   {
     d_parseLet = val;
   }
@@ -103,7 +98,6 @@ State::State(Options& opts, Stats& stats)
   //bindBuiltin("lambda", Kind::LAMBDA, true);
   bindBuiltin("->", Kind::FUNCTION_TYPE);
   bindBuiltin("_", Kind::APPLY);
-  bindBuiltin("eo::_", Kind::PARAMETERIZED);
 
   bindBuiltinEval("is_eq", Kind::EVAL_IS_EQ);
   bindBuiltinEval("ite", Kind::EVAL_IF_THEN_ELSE);

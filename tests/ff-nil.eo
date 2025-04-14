@@ -5,7 +5,7 @@
 (declare-const ff.value
     (-> (! Int :var p) Int (FiniteField p)))
 
-(declare-parameterized-const ff.add ((p Int))
+(declare-parameterized-const ff.add ((p Int :implicit))
     (-> (FiniteField p) (FiniteField p) (FiniteField p)) 
     :right-assoc-nil (ff.value p 0)
 )
