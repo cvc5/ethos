@@ -239,13 +239,19 @@ Token Lexer::computeNextToken()
       {
         case 'b':
           pushToToken(ch);
-          // parse [01]*
-          parseCharList(CharacterClass::BIT);
+          // parse [01]+
+          if (!parseNonEmptyCharList(CharacterClass::BIT))
+          {
+            parseError("Error expected bit string");
+          }
           return Token::BINARY_LITERAL;
         case 'x':
           pushToToken(ch);
-          // parse [0-9a-fA-F]*
-          parseCharList(CharacterClass::HEXADECIMAL_DIGIT);
+          // parse [0-9a-fA-F]+
+          if (!parseNonEmptyCharList(CharacterClass::HEXADECIMAL_DIGIT))
+          {
+            parseError("Error expected hexadecimal string");
+          }
           return Token::HEX_LITERAL;
         default:
           // otherwise error
