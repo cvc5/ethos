@@ -1,7 +1,7 @@
 
 
 
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
@@ -13,10 +13,8 @@
 (declare-const select (-> (Array Int Int) Int Int))
 
 
-(declare-const @array_deq_diff 
+(declare-parameterized-const @array_deq_diff ((T Type :implicit) (U Type :implicit))
   (-> 
-    (! Type :implicit :var T)
-    (! Type :implicit :var U)
     (! (Array T U) :opaque)
     (! (Array T U) :opaque)
     T

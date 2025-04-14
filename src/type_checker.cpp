@@ -258,7 +258,6 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       return d_state.mkType();
     case Kind::QUOTE_TYPE:
     case Kind::OPAQUE_TYPE:
-    case Kind::NULL_TYPE:
     case Kind::TUPLE:
       // These things are essentially not typed.
       // We require the first 3 to be an abstract type, not type,

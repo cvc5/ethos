@@ -1,4 +1,4 @@
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 (declare-rule refl ((T Type) (t T))
     :args (t)
     :conclusion (= t t)

@@ -1,10 +1,10 @@
 
 (declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
-(declare-const distinct (-> (! Type :var A :implicit) A A Bool) :pairwise and)
+(declare-parameterized-const distinct ((A Type :implicit)) (-> A A Bool) :pairwise and)
 
 (declare-const b Bool)
 
-(declare-const = (-> (! Type :var A :implicit) A A Bool) :chainable and)
+(declare-parameterized-const = ((A Type :implicit)) (-> A A Bool) :chainable and)
 
 (define a () (= b) :type Bool)
 

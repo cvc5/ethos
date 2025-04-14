@@ -11,7 +11,7 @@
 (declare-type String ())
 (declare-consts <string> String)
 
-(declare-const ok (-> (! Type :var T :implicit) T Bool))
+(declare-parameterized-const ok ((T Type :implicit)) (-> T Bool))
 
 (declare-rule test_to_str ((T Type) (x T) (s String))
   :args (x s)

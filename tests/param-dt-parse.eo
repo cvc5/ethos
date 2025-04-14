@@ -2,7 +2,7 @@
 (declare-type Int ())
 (declare-consts <numeral> Int)
 
-(declare-const @test (-> (! Type :opaque :var T) Int T))
+(declare-parameterized-const @test ((T Type :opaque)) (-> Int T))
 
 (define t () (@test Bool 0) :type Bool)
 

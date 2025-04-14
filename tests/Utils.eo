@@ -1,6 +1,6 @@
 
 (declare-type @Pair (Type Type))
-(declare-const @pair (-> (! Type :var U :implicit) (! Type :var T :implicit) U T (@Pair U T)))
+(declare-parameterized-const @pair ((U Type :implicit) (T Type :implicit)) (-> U T (@Pair U T)))
 
 ; Returns true if c is a rational between zero and one, inclusive
 (program between_zero_and_one ((R Type) (c R))
@@ -28,5 +28,5 @@
 ; untyped list
 (declare-type @List ())
 (declare-const @list.nil @List)
-(declare-const @list (-> (! Type :var T :implicit) T @List @List) :right-assoc-nil @list.nil)
+(declare-parameterized-const @list ((T Type :implicit)) (-> T @List @List) :right-assoc-nil @list.nil)
 
