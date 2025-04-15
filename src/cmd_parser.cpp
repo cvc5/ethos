@@ -162,6 +162,10 @@ bool CmdParser::parseNextCommand()
       sk = Kind::CONST;
       if (tok==Token::DECLARE_ORACLE_FUN)
       {
+        if (sorts.empty())
+        {
+          d_lex.parseError("Oracle functions must have at least one argument");
+        }
         ck = Attr::ORACLE;
         sk = Kind::ORACLE;
         std::string oname = d_eparser.parseSymbol();
@@ -359,14 +363,6 @@ bool CmdParser::parseNextCommand()
       }
       d_state.pushScope();
       std::string name = d_eparser.parseSymbol();
-      if (d_lex.peekToken()==Token::KEYWORD)
-      {
-        std::string keyword = d_eparser.parseKeyword();
-        if (keyword!="ethos")
-        {
-          d_lex.parseError("Unsupported rule format");
-        }
-      }
       std::vector<Expr> vs =
           d_eparser.parseAndBindSortedVarList(Kind::PROOF_RULE);
       Expr assume;
@@ -716,14 +712,6 @@ bool CmdParser::parseNextCommand()
     case Token::PROGRAM:
     {
       std::string name = d_eparser.parseSymbol();
-      if (d_lex.peekToken()==Token::KEYWORD)
-      {
-        std::string keyword = d_eparser.parseKeyword();
-        if (keyword!="ethos")
-        {
-          d_lex.parseError("Unsupported program format");
-        }
-      }
       // push the scope
       d_state.pushScope();
       std::vector<Expr> vars =
@@ -734,6 +722,10 @@ bool CmdParser::parseNextCommand()
       if (!argTypes.empty())
       {
         progType = d_state.mkFunctionType(argTypes, retType, false);
+      }
+      else
+      {
+        d_lex.parseError("Programs must have at least one argument");
       }
       // it may have been forward declared
       Expr pprev = d_state.getVar(name);
