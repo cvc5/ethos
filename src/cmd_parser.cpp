@@ -144,7 +144,6 @@ bool CmdParser::parseNextCommand()
       std::vector<Expr> params;
       // attributes marked on variables
       std::map<ExprValue*, AttrMap> pattrMap;
-      bool flattenFunction = (tok != Token::DECLARE_ORACLE_FUN);
       if (tok == Token::DECLARE_FUN || tok == Token::DECLARE_ORACLE_FUN)
       {
         sorts = d_eparser.parseTypeList();
@@ -180,7 +179,9 @@ bool CmdParser::parseNextCommand()
       t = ret;
       if (!sorts.empty())
       {
-        t = d_state.mkFunctionType(sorts, ret, flattenFunction);
+        t = (tok == Token::DECLARE_ORACLE_FUN)
+                ? d_state.mkProgramType(sorts, ret)
+                : d_state.mkFunctionType(sorts, ret);
       }
       std::vector<Expr> opaqueArgs;
       while (t.getKind()==Kind::FUNCTION_TYPE && t[0].getKind()==Kind::OPAQUE_TYPE)
@@ -733,7 +734,7 @@ bool CmdParser::parseNextCommand()
       Expr progType = retType;
       if (!argTypes.empty())
       {
-        progType = d_state.mkFunctionType(argTypes, retType, false);
+        progType = d_state.mkProgramType(argTypes, retType);
       }
       // it may have been forward declared
       Expr pprev = d_state.getVar(name);
