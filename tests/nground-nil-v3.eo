@@ -21,7 +21,7 @@
   )
 )
 
-(declare-const is-tail-of (-> (! Type :var T :implicit) (! Type :var U :implicit) T U Bool))
+(declare-parameterized-const is-tail-of ((T Type :implicit) (U Type :implicit)) (-> T U Bool))
 
 (declare-rule find_tail ((T Type) (f (-> T T T)) (t T) (s T :list))
   :args ((f t s))

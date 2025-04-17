@@ -3,7 +3,7 @@
 ; Bool is builtin
 ;(declare-type Bool ())
 
-(declare-const ite (-> (! Type :var A :implicit) Bool A A A))
+(declare-parameterized-const ite ((A Type :implicit)) (-> Bool A A A))
 (declare-const not (-> Bool Bool))
 
 (declare-const or (-> Bool Bool Bool)
@@ -19,22 +19,21 @@
    :left-assoc
 )
 
-(declare-const = (-> (! Type :var A :implicit) A A Bool)
-   :chainable and
+(declare-parameterized-const = ((A Type :implicit)) (-> A A Bool) :chainable and
 )
 
-(declare-const lambda (-> (! Type :var A :implicit) (! Type :var B :implicit) A B (-> A B)))
+(declare-parameterized-const lambda ((A Type :implicit) (B Type :implicit)) (-> A B (-> A B)))
 
-(declare-const distinct (-> (! Type :var A :implicit) A A Bool) :pairwise and)
+(declare-parameterized-const distinct ((A Type :implicit)) (-> A A Bool) :pairwise and)
 
 ;;;;;;;;;;;;;;;;;;
 
 
 ; generic variables
 ; NOTE: does not check that U is a numeral
-(declare-const const (-> (! Type :var U :implicit) U (! Type :var T) T))
+(declare-parameterized-const const ((U Type :implicit) (u U) (T Type)) T)
 
-(declare-const skolem (-> (! Type :var A :implicit) A A))
+(declare-parameterized-const skolem ((A Type :implicit)) (-> A A))
 
 ; We construct all skolems by wrapping them in an application of `skolem`.
 ; The argument is either

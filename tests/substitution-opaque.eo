@@ -1,7 +1,7 @@
 
 
 
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 
 (program substitute
   ((T Type) (U Type) (S Type) (x S) (y S) (f (-> T U)) (a T) (z U))
@@ -29,12 +29,8 @@
 (declare-type Array (Type Type))
 (declare-type Int ())
 
-(declare-const @array_deq_diff 
-  (-> 
-    (! (Array Int Int) :opaque)
-    (! (Array Int Int) :opaque)
-    Int
-  )
+(declare-parameterized-const @array_deq_diff ((a (Array Int Int) :opaque) (b (Array Int Int) :opaque))
+  Int
 )
 
 (declare-const n (Array Int Int))

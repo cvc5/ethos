@@ -1,6 +1,6 @@
 
 (declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 
 ; nary.append cons c xs
 ; Appends `c` to the head of `xs`.

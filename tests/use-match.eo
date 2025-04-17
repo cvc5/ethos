@@ -7,8 +7,8 @@
 )
 
 (declare-type Pair (Type Type))
-(declare-const pair (-> (! Type :var U :implicit) (! Type :var T :implicit) U T (Pair U T)))
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const pair ((U Type :implicit) (T Type :implicit)) (-> U T (Pair U T)))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 
 ; nary.append cons c xs
 ; Appends `c` to the head of `xs`.

@@ -1,11 +1,11 @@
 
 (declare-type @List ())
 (declare-const @list.nil @List)
-(declare-const @list (-> (! Type :var T :implicit) T @List @List) :right-assoc-nil @list.nil)
+(declare-parameterized-const @list ((T Type :implicit)) (-> T @List @List) :right-assoc-nil @list.nil)
 
 (declare-const forall (-> @List Bool Bool) :binder @list)
 
-(declare-const = (-> (! Type :var A :implicit) A A Bool))
+(declare-parameterized-const = ((A Type :implicit)) (-> A A Bool))
 
 (declare-rule refl ((F Bool))
   :args (F)

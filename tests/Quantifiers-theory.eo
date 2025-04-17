@@ -4,9 +4,9 @@
 
 (declare-const exists (-> @List Bool Bool))
 
-(declare-const witness (-> (! Type :var T :implicit) T Bool T))
+(declare-parameterized-const witness ((T Type :implicit)) (-> T Bool T))
 
 
 ; maybe just change to lists
 
-(declare-const @k.QUANTIFIERS_SKOLEMIZE (-> (! Type :var T :implicit) Bool T T))
+(declare-parameterized-const @k.QUANTIFIERS_SKOLEMIZE ((T Type :implicit)) (-> Bool T T))
