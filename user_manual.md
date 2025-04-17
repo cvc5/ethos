@@ -1276,16 +1276,6 @@ The selectors of a constructor (which are never ambiguous) are returned independ
 The generic syntax for a `declare-rule` command accepted by `ethos` is:
 
 ```smt
-(declare-rule <symbol> <keyword>? <sexpr>*)
-```
-
-When parsing this command, `ethos` will determine the format of the expected arguments based on the given keyword.
-If the `<keyword>` is not provided, then we assume it has been marked `:ethos`.
-All rules not marked with `:ethos` are not supported by the checker and will cause it to terminate.
-
-If the keyword is `:ethos`, then the expected syntax that follows is given below:
-
-```smt
 (declare-rule <symbol> :ethos (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term> <attr>*)
 where
 <assumption>   ::= :assumption <term>
@@ -1456,22 +1446,12 @@ Locally assumptions can be arbitrarily nested, for example the above can be exte
 
 ## Side Conditions
 
-Similar to `declare-rule`, Ethos supports an extensible syntax for programs whose generic syntax is given by:
-
-```smt
-(program <symbol> <keyword>? <sexpr>*)
-```
-
-When parsing this command, `ethos` will determine the format of the expected arguments based on the given keyword.
-If the `<keyword>` is not provided, then we assume it has been marked `:ethos`.
-All programs not marked with `:ethos` are not supported by the checker and will cause it to terminate.
-
-If the keyword is `:ethos`, then the expected syntax that follows is given below, and is used for defining recursive programs.
+Ethos supports a `program` command for defining recursive programs.
 In particular, in Ethos, a program is an ordered list of rewrite rules.
 The syntax for this command is as follows.
 
 ```smt
-(program <symbol> :ethos (<typed-param>*) (<type>*) <type> ((<term> <term>)+))
+(program <symbol> :ethos (<typed-param>*) (<type>+) <type> ((<term> <term>)+))
 ```
 
 This command declares a program named `<symbol>`.
@@ -1882,7 +1862,7 @@ The syntax and semantics of such functions are described in this [paper](https:/
 In particular, Ethos supports the command:
 
 ```smt
-(declare-oracle-fun <symbol> (<type>*) <type> <symbol>)
+(declare-oracle-fun <symbol> (<type>+) <type> <symbol>)
 ```
 
 Like the `declare-fun` command from SMT-LIB, this command declares a constant named `<symbol>` whose type is given by the argument types and return type.
@@ -1984,15 +1964,13 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
     (assume-push <symbol> <term>) |
     (declare-consts <lit-category> <type>) |
     (declare-parameterized-const <symbol> (<typed-param>*) <type> <attr>*) |
-    (declare-oracle-fun <symbol> (<type>*) <type> <symbol>) |
-    (declare-rule <symbol> <keyword> <sexpr>*) |
+    (declare-oracle-fun <symbol> (<type>+) <type> <symbol>) |
     (declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term> <attr>*) |
     (declare-type <symbol> (<type>*)) |
     (define <symbol> (<typed-param>*) <term> <attr>*) |
     (define-type <symbol> (<type>*) <type>) |
     (include <string>) |
-    (program <symbol> <keyword> <sexpr>*) |
-    (program <symbol> (<typed-param>*) (<type>*) <type> ((<term> <term>)+)) |
+    (program <symbol> (<typed-param>*) (<type>+) <type> ((<term> <term>)+)) |
     (reference <string> <symbol>?) |
     (step <symbol> <term>? :rule <symbol> <simple-premises>? <arguments>?) |
     (step-pop <symbol> <term>? :rule <symbol> <simple-premises>? <arguments>?) |
