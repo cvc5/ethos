@@ -216,40 +216,46 @@ In particular:
 
 This indicates the checker to compare the type it computed for the term `(not true)`, with the specified type `Bool`. An error will be thrown if the two types are not identical.
 
-### The :var and :implicit annotations
+### Declaring Parameterized Constants
 
-The Eunoia language uses the SMT-LIB version 3.0 attributes `:var <symbol>` and `:implicit` in term annotations, for naming arguments of functions and specifying that they are implicit.
+The Eunoia language uses the command `declare-parameterized-const`, for declaring constants that have (possibly) dependent types.
+In particular, this command allows naming arguments of functions and specifying that they are implicit.
+The syntax of this command is the following:
+
+```smt
+(declare-parameterized-const <symbol> (<typed-param>*) <type> > <attr>*)
+```
+
+Consider the following example:
 
 ```smt
 (declare-type Int ())
-(declare-const eq (-> (! Type :var T) T T Bool))
+(declare-parameterized-const eq ((T Type)) (-> T T Bool))
 (define P ((x Int) (y Int)) (eq Int x y))
 ```
 
 The above example declares a predicate symbol `eq` whose first argument is a type, that is given name `T`. It then expects two terms of type `T` and returns a `Bool`. In the definition of `P`, `eq` is applied to two variables, with type `Int` explicitly provided.
 
-In contrast, the example below declares a predicate `=` where the type of the arguments is implicit (this corresponds to the SMT-LIB standard definition of `=`). In the definition of `P`, the type `Int` of the arguments is not provided.
+In contrast, the example below declares a predicate `=` where the type of the arguments is implicit (this corresponds to the SMT-LIB standard definition of `=`). An implicit argument for a parameterized constant can be given by the annotation `:implicit`. In the definition of `P`, the type `Int` of the arguments is not provided.
 
 ```smt
 (declare-type Int ())
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 (define P ((x Int) (y Int)) (= x y))
 ```
 
 In general, an argument can be made implicit if its value can be inferred from the type of later arguments.
 
-Return types cannot be marked `:implicit` or `:var` or a type error will be immediately reported.
-
 We call `T` in the above definitions a _parameter_. The free parameters of the return type of an expression should be contained in at least one non-implicit argument. In particular, the following declaration is malformed, since the return type of `f` cannot be inferred from its arguments:
 
 ```smt
 (declare-type Int ())
-(declare-const f (-> (! Type :var T :implicit) Int T))
+(declare-const f ((T Type :implicit)) (-> Int T))
 ```
 
-> __Note:__ Internally, `(! T :var t)` is syntax sugar for the type `(Quote t)` where `t` is a parameter of type `T` and `Quote` is a distinguished type of kind `(-> (! Type :var U) U Type)`. When type checking applications of functions of type `(-> (Quote t) S)`, the parameter `t` is bound to the argument the function is applied to.
+> __Note:__ Internally, parameters `(t T)` in the command `declare-parameterized-const` are handled specially in the type system. In particular `(declare-parameterized-const foo ((T Type)) T)` defines `foo` to be of "quote arrow" type, `(~> T T)`, where the argument to `foo` is bound to `T`, e.g. `(foo Int)` binds `T` to `Int` and thus has type `Int`. Technical details of the type system can be found at the end of this manual.
 
-> __Note:__ Internally, `(! T :implicit)` drops `T` from the list of arguments of the function type we are defining.
+> __Note:__ Internally, `(t T :implicit)` drops `t` from the list of arguments of the function type we are defining.
 
 ### The :requires annotation
 
@@ -257,7 +263,7 @@ Arguments to functions can also be annotated with the attribute `:requires (<ter
 
 ```smt
 (declare-type Int ())
-(declare-const BitVec (-> (! Int :var w :requires ((eo::is_neg w) false)) Type))
+(declare-parameterized-const BitVec ((w Int :requires ((eo::is_neg w) false))) Type)
 ```
 The above declares the integer type `Int` and a bitvector type constructor `BitVec` that expects a _non-negative integer_ `w`.
 In detail, the first argument of `BitVec` is supposed to be an `Int` value and is named `w` via the `:var` attribute.
@@ -265,8 +271,8 @@ The second annotation indicates that the term `(eo::is_neg w)` must evaluate to 
 Symbol `eo::is_neg` denotes a builtin function that returns `true` if its argument is a negative numeral, and returns false otherwise (for details, see [computation](#computation)).
 <!-- This needs discussion, what is the input type of `eo::is_neg`? How can `eo::is_neg` accept a value of a user-defined type `Int` given that it is builtin?  -->
 
-> __Note:__ Internally, `(! T :requires (t s))` is syntax sugar for the type term `(eo::requires t s T)` where `eo::requires` is an operator that evaluates to its third argument if and only if its first two arguments are _computationally_ equivalent (details on this operator are given in [computation](#computation)).
-Furthermore, the function type `(-> (eo::requires t s T) S)` is treated as `(-> T (eo::requires t s S))`. Ethos rewrites all types of the former form to the latter.
+> __Note:__ Internally, a parameter `(t T :requires (s r))` is syntax sugar for the type term `(eo::requires s r T)` where `eo::requires` is an operator that evaluates to its third argument if and only if its first two arguments are _computationally_ equivalent (details on this operator are given in [computation](#computation)).
+Furthermore, the function type `(-> (eo::requires s r T) S)` is treated as `(-> T (eo::requires s r S))`. Ethos rewrites all types of the former form to the latter.
 
 <a name="opaque"></a>
 
@@ -278,8 +284,8 @@ An example of this annotation is the following:
 
 ```smt
 (declare-type Array (Type Type))
-(declare-const @array_diff
-   (-> (! Type :var T :implicit) (! Type :var U :implicit)
+(declare-parameterized-const @array_diff ((T Type :implicit) (U Type :implicit))
+   (->
    (! (Array T U) :opaque)
    (! (Array T U) :opaque)
    T))
@@ -430,20 +436,7 @@ that references the free constant `re.all`.
 
 However, when using `declare-const`, the nil terminator of an associative operator cannot depend on the parameters of the type of that function.
 For example, say we wish to declare bitvector or (`bvor` in SMT-LIB), where its nil terminator is the bitvector zero.
-A possible declaration is the following:
-
-```smt
-(declare-const bvor
-    (-> (! Int :var m :implicit) (BitVec m) (BitVec m) (BitVec m))
-    :right-assoc-nil #b0000
-)
-```
-
-Above, note that `m` was not in scope when defining the nil terminator of this operator,
-and thus we have hardcoded the nil terminator to be a bitvector of width `4`.
-This definition is clearly limited, as applications of this operator will fail to type check if `m` is not `4`.
-However,
-the command `declare-parameterized-const` can be used to define a version of `bvor` whose nil terminator depends on `m`,
+The command `declare-parameterized-const` can be used to define a version of `bvor` whose nil terminator depends on `m`,
 which we will describe later in [param-constants](#param-constants).
 
 #### List
@@ -524,7 +517,7 @@ For example, `(>= x)` is equivalent to `true`.
 ```smt
 (declare-type Int ())
 (declare-const and (-> Bool Bool Bool) :right-assoc)
-(declare-const distinct (-> (! Type :var T :implicit) T T Bool) :pairwise and)
+(declare-parameterized-const distinct ((T Type :implicit)) (-> T T Bool) :pairwise and)
 (define P ((x Int) (y Int) (z Int)) (distinct x y z))
 ```
 
@@ -546,7 +539,7 @@ For example, `(distinct x)` is equivalent to `true`.
 (declare-type Int ())
 (declare-type @List ())
 (declare-const @nil @List)
-(declare-const @cons (-> (! Type :var T :implicit) T @List @List)
+(declare-parameterized-const @cons ((T Type :implicit)) (-> T @List @List)
  :right-assoc-nil @nil)
 (declare-const forall (-> @List Bool Bool) :binder @cons)
 (declare-const P (-> Int Bool))
@@ -943,9 +936,8 @@ for the term `or` applied to arguments `a,b`.
 (declare-consts <numeral> Int)
 (declare-type BitVec (Int))
 
-(declare-const concat (->
-  (! Int :var n :implicit)
-  (! Int :var m :implicit)
+(declare-parameterized-const concat ((n Int :implicit) (m Int :implicit))
+  (->
   (BitVec n)
   (BitVec m)
   (BitVec (eo::add n m))))
@@ -995,15 +987,10 @@ This means that when type checking the binary constant `#b0000`, its type prior 
 
 <a name="param-constants"></a>
 
-## Parameterized constants
+## Parameterized constants with Attributes
 
 Recall that in [assoc-nil](#assoc-nil), when using `declare-const` to define associative operators with nil terminators, it is not possible to have the nil terminator for that operator depend on its type parameters.
-In this section, we introduce a new command `declare-parameterized-const` which overcomes this limitation.
-Its syntax is:
-
-```smt
-(declare-parameterized-const <symbol> (<typed-param>*) <type> > <attr>*)
-```
+In this section, we note that `declare-parameterized-const` which overcomes this limitation.
 
 In the following example,
 we declare bitvector-or (`bvor` in SMT-LIB) where its nil terminator is bitvector zero for the given bitwidth.
@@ -1160,7 +1147,7 @@ In detail, for the purposes of representing the return value of these operators,
 ```smt
 (declare-type eo::List ())
 (declare-const eo::List::nil eo::List)
-(declare-const eo::List::cons (-> (! Type :var T :implicit) T eo::List eo::List)
+(declare-const eo::List::cons ((T Type :implicit)) (-> T eo::List eo::List)
                :right-assoc-nil eo::List::nil)
 ```
 
@@ -1194,7 +1181,7 @@ We assume the declaration of a generic `is` predicate (often called a "tester" p
 ```smt
 
 ; The constraint (is c x) is true iff x is an application of constructor c
-(declare-const is (-> (! Type :var C :implicit) (! Type :var D :implicit) C D Bool))
+(declare-parameterized-const is ((C Type :implicit) (D Type :implicit)) (-> C D Bool))
 
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 
@@ -1322,7 +1309,7 @@ A proof rule is only well defined if the free parameters of the requirements and
 ### Example rule: Reflexivity of equality
 
 ```smt
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 (declare-rule refl ((T Type) (t T))
     :premises ()
     :args (t)
@@ -1338,7 +1325,7 @@ Notice that the type `T` is a part of the parameter list and not explicitly prov
 ### Example rule: Symmetry of Equality
 
 ```smt
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 (declare-rule symm ((T Type) (t T) (s T))
     :premises ((= t s))
     :conclusion (= s t)
@@ -1400,7 +1387,7 @@ where
 ### Example proof: symmetry of equality
 
 ```smt
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 (declare-rule symm ((T Type) (t T) (s T))
     :premises ((= t s))
     :conclusion (= s t)
@@ -1612,7 +1599,7 @@ Calling it with arguments `A`, `B`, and `(@array_diff A B)` would return `(@arra
 ```smt
 (declare-type Int ())
 (declare-consts <numeral> Int)
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 (declare-const + (-> Int Int Int))
 (declare-const - (-> Int Int Int))
 (declare-const < (-> Int Int Bool))
@@ -1648,9 +1635,8 @@ The above example recursively evaluates arithmetic terms and predicates accordin
       ((arith.typeunion Real Real) Real)
     )
 )
-(declare-const + (-> (! Type :var T :implicit)
-                     (! Type :var U :implicit)
-                     T U (arith.typeunion T U)))
+(declare-parameterized-const + ((T Type :implicit) (U Type :implicit))
+  (-> T U (arith.typeunion T U)))
 ```
 
 In the above example, a side condition is being used to define the type rule for the function `+`.
@@ -1752,7 +1738,7 @@ Also, similar to programs, the free parameters of `ri` that occur in the paramet
 
 ```smt
 (declare-type Int ())
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 (declare-const not (-> Bool Bool))
 (declare-rule symm ((F Bool))
     :premises (F)
@@ -1773,7 +1759,7 @@ Internally, the semantics of `eo::match` can be seen as an (inlined) program app
 
 ```smt
 (declare-type Int ())
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 (declare-const not (-> Bool Bool))
 (program matchF ((t1 Int) (t2 Int))
     (Bool) Bool
@@ -1796,7 +1782,7 @@ In more general cases, if the body of the match term contains free variables, th
 
 ```smt
 (declare-type Int ())
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 (declare-const and (-> Bool Bool Bool) :left-assoc)
 
 (program mk_trans ((t1 Int) (t2 Int) (t3 Int) (t4 Int) (tail Bool :list))
@@ -1894,7 +1880,7 @@ Ground applications of oracle functions are eagerly evaluated by invoking the bi
 ```smt
 (declare-type Int ())
 (declare-consts <numeral> Int)
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 (declare-const >= (-> Int Int Bool))
 
 (declare-oracle-fun runIsPrime (Int) Bool ./isPrime)
@@ -2120,9 +2106,8 @@ The command:
 can be seen as syntax sugar for:
 
 ```smt
-(declare-const s
-    (-> (! T1 :var v1 :implicit) ... (! Ti :var vi :implicit)
-        (Proof p1) ... (Proof pn)
+(declare-parameterized-const s ((v1 T1 :implicit) ... (vi Ti :implicit))
+    (-> (Proof p1) ... (Proof pn)
         (Quote t1) ... (Quote tm)
         (eo::requires r1 s1 ... (eo::requires rk sk
             (Proof t)))))
