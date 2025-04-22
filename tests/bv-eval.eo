@@ -37,8 +37,8 @@
       (BitVec (arith.eval (+ (- h l) 1))))))))
 )
 
-(declare-parameterized-const bvconcat ((n Int :implicit) (m Int :implicit)) (-> (BitVec n) (BitVec m)
-  (BitVec (arith.eval (+ n m)))))
+(declare-parameterized-const bvconcat ((n Int :implicit) (m Int :implicit)) 
+  (-> (BitVec n) (BitVec m) (BitVec (arith.eval (+ n m)))))
 
 (program bv.eval ((T Type) (U Type) (S Type) (a T) (b U) (z S) (h Int) (l Int))
     (S) S

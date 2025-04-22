@@ -20,12 +20,11 @@
 (define @bv_empty () (eo::to_bin 0 0))
 
 (declare-parameterized-const concat ((n Int :implicit) (m Int :implicit)) (-> (BitVec n) (BitVec m)
-  (BitVec (eo::add n m))) :right-assoc-nil @bv_empty
-)
+  (BitVec (eo::add n m))) :right-assoc-nil @bv_empty)
 
-(declare-parameterized-const extract ((n Int :implicit) (h Int) (l Int)) (-> (BitVec n) (BitVec (eo::add h (eo::neg l) 1))
-  )
-)
+(declare-parameterized-const extract ((n Int :implicit) (h Int) (l Int)) 
+  (-> (BitVec n) (BitVec (eo::add h (eo::neg l) 1))))
+  
 (declare-rule bv-extract-concat-4 ((@n0 Int) (@n1 Int) (@n2 Int) (x1 (BitVec @n0)) (y1 (BitVec @n1)) (xs1 (BitVec @n2) :list) (i1 Int) (j1 Int))
   :premises ((= (< j1 (- (@bvsize (concat x1 xs1 y1)) (@bvsize x1))) true))
   :args (x1 y1 xs1 i1 j1)

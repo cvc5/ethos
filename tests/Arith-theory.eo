@@ -35,39 +35,51 @@
 )
 
 ; Must use integer nil terminators to avoid confusion with subtyping
-(declare-parameterized-const + ((T Type :implicit) (U Type :implicit)) (-> T U (arith_typeunion_nary T U)) :right-assoc-nil 0)
-(declare-parameterized-const - ((T Type :implicit) (U Type :implicit)) (-> T U (arith_typeunion T U)) :left-assoc)
-(declare-parameterized-const * ((T Type :implicit) (U Type :implicit)) (-> T U (arith_typeunion_nary T U)) :right-assoc-nil 1)
+(declare-parameterized-const + ((T Type :implicit) (U Type :implicit)) 
+  (-> T U (arith_typeunion_nary T U)) :right-assoc-nil 0)
+(declare-parameterized-const - ((T Type :implicit) (U Type :implicit)) 
+  (-> T U (arith_typeunion T U)) :left-assoc)
+(declare-parameterized-const * ((T Type :implicit) (U Type :implicit)) 
+  (-> T U (arith_typeunion_nary T U)) :right-assoc-nil 1)
 
-(declare-parameterized-const < ((T Type :implicit) (U Type :implicit)) (-> (! T :requires ((is_arith_type T) true))
+(declare-parameterized-const < ((T Type :implicit) (U Type :implicit)) (-> 
+                     (! T :requires ((is_arith_type T) true))
                      (! U :requires ((is_arith_type U) true))
                      Bool)
                      :chainable and)
-(declare-parameterized-const <= ((T Type :implicit) (U Type :implicit)) (-> (! T :requires ((is_arith_type T) true))
+(declare-parameterized-const <= ((T Type :implicit) (U Type :implicit)) (-> 
+                      (! T :requires ((is_arith_type T) true))
                       (! U :requires ((is_arith_type U) true))
                       Bool)
                       :chainable and)
-(declare-parameterized-const > ((T Type :implicit) (U Type :implicit)) (-> (! T :requires ((is_arith_type T) true))
-                     (! U :requires ((is_arith_type U) true))
-                     Bool)
-                     :chainable and)
-(declare-parameterized-const >= ((T Type :implicit) (U Type :implicit)) (-> (! T :requires ((is_arith_type T) true))
+(declare-parameterized-const > ((T Type :implicit) (U Type :implicit)) (-> 
+                      (! T :requires ((is_arith_type T) true))
+                      (! U :requires ((is_arith_type U) true))
+                      Bool)
+                      :chainable and)
+(declare-parameterized-const >= ((T Type :implicit) (U Type :implicit)) (-> 
+                      (! T :requires ((is_arith_type T) true))
                       (! U :requires ((is_arith_type U) true))
                       Bool)
                       :chainable and)
 
-(declare-parameterized-const to_real ((T Type :implicit)) (-> (! T :requires ((is_arith_type T) true))
+(declare-parameterized-const to_real ((T Type :implicit)) (-> 
+                           (! T :requires ((is_arith_type T) true))
                            Real))
-(declare-parameterized-const to_int ((T Type :implicit)) (-> (! T :requires ((is_arith_type T) true))
+(declare-parameterized-const to_int ((T Type :implicit)) (-> 
+                          (! T :requires ((is_arith_type T) true))
                           Int))
-(declare-parameterized-const is_int ((T Type :implicit)) (-> (! T :requires ((is_arith_type T) true))
+(declare-parameterized-const is_int ((T Type :implicit)) (-> 
+                          (! T :requires ((is_arith_type T) true))
                           Bool))
-(declare-parameterized-const abs ((T Type :implicit)) (-> (! T :requires ((is_arith_type T) true))
+(declare-parameterized-const abs ((T Type :implicit)) (-> 
+                       (! T :requires ((is_arith_type T) true))
                        T))
 
 ; power
-(declare-parameterized-const ^ ((T Type :implicit) (U Type :implicit)) (-> T U (arith_typeunion T U)))
+(declare-parameterized-const ^ ((T Type :implicit) (U Type :implicit)) 
+  (-> T U (arith_typeunion T U)))
 
 ; currently unary negation cannot use overload
-(declare-parameterized-const u- ((T Type :implicit)) (-> (! T :requires ((is_arith_type T) true))
-                      T))
+(declare-parameterized-const u- ((T Type :implicit)) 
+  (-> (! T :requires ((is_arith_type T) true)) T))
