@@ -240,8 +240,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
     case Kind::TYPE:
     case Kind::ABSTRACT_TYPE:
     case Kind::BOOL_TYPE:
-    case Kind::FUNCTION_TYPE:
-      return d_state.mkType();
+    case Kind::FUNCTION_TYPE: return d_state.mkType();
     case Kind::PROOF_TYPE:
     {
       ExprValue* ctype = d_state.lookupType(e->d_children[0]);
@@ -343,7 +342,7 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
   ExprValue* hd = children[0];
   ExprValue* hdType = d_state.lookupType(hd);
   Assert(hdType != nullptr) << "No type for " << Expr(hd);
-  if (hdType->getKind()!=Kind::FUNCTION_TYPE)
+  if (hdType->getKind() != Kind::FUNCTION_TYPE)
   {
     // non-function at head
     if (out)

@@ -28,7 +28,7 @@ enum class Kind
   BOOL_TYPE,
   QUOTE_TYPE,
   OPAQUE_TYPE,  // an argument marked :opaque, temporary during parsing
-  NULL_TYPE,         // an argument marked :implicit, temporary during parsing
+  NULL_TYPE,    // an argument marked :implicit, temporary during parsing
 
   // terms
   APPLY,
@@ -43,7 +43,8 @@ enum class Kind
   // symbols
   PARAM,
   CONST,
-  BUILTIN_CONST,    // used for e.g. _, ->, eo::*, as, etc. which are temporary during parsing only
+  BUILTIN_CONST,  // used for e.g. _, ->, eo::*, as, etc. which are temporary
+                  // during parsing only
   PROGRAM_CONST,
   PROOF_RULE,
   VARIABLE,
