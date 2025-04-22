@@ -556,6 +556,18 @@ Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool 
   return curr;
 }
 
+Expr State::mkProgramType(const std::vector<Expr>& args, const Expr& ret)
+{
+  Assert(!args.empty());
+  std::vector<ExprValue*> atypes;
+  for (size_t i = 0, nargs = args.size(); i < nargs; i++)
+  {
+    atypes.push_back(args[i].getValue());
+  }
+  atypes.push_back(ret.getValue());
+  return Expr(mkExprInternal(Kind::PROGRAM_TYPE, atypes));
+}
+
 Expr State::mkRequires(const std::vector<Expr>& args, const Expr& ret)
 {
   Expr curr = ret;

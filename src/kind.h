@@ -23,6 +23,7 @@ enum class Kind
   // types
   TYPE,
   FUNCTION_TYPE,
+  PROGRAM_TYPE,
   PROOF_TYPE,
   ABSTRACT_TYPE,
   BOOL_TYPE,
