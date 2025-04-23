@@ -242,14 +242,13 @@ bool CmdParser::parseNextCommand()
         Expr tup = d_state.mkExpr(Kind::TUPLE, argTypes);
         std::vector<Expr> pargs = Expr::getVariables(tup);
         Expr fv = d_eparser.findFreeVar(ft.second, pargs);
-        Trace("ajr-temp") << "Looking for free variable in " << ft.second << " returned " << fv << std::endl;
         if (!fv.isNull())
         {
           if (ck!=Attr::NONE)
           {
             d_lex.parseError("Ambiguous functions cannot have attributes");
           }
-          else if(!opaqueArgs.empty())
+          else if (!opaqueArgs.empty())
           {
             d_lex.parseError("Ambiguous functions cannot have opaque arguments");
           }
