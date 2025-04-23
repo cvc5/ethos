@@ -231,7 +231,7 @@ bool CmdParser::parseNextCommand()
           t = d_state.mkFunctionType({qt}, t);
         }
       }
-      if (tok==Token::DECLARE_PARAMETERIZED_CONST)
+      if (tok == Token::DECLARE_PARAMETERIZED_CONST)
       {
         // If this is an ambiguous function, we add (Quote T)
         // as the first argument type. We only need to test if we are parsing
@@ -244,13 +244,14 @@ bool CmdParser::parseNextCommand()
         Expr fv = d_eparser.findFreeVar(ft.second, pargs);
         if (!fv.isNull())
         {
-          if (ck!=Attr::NONE)
+          if (ck != Attr::NONE)
           {
             d_lex.parseError("Ambiguous functions cannot have attributes");
           }
           else if (!opaqueArgs.empty())
           {
-            d_lex.parseError("Ambiguous functions cannot have opaque arguments");
+            d_lex.parseError(
+                "Ambiguous functions cannot have opaque arguments");
           }
           Expr qt = d_state.mkQuoteType(ft.second);
           t = d_state.mkFunctionType({qt}, t);
