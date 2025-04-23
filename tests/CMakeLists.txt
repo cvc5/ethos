@@ -144,6 +144,7 @@ set(ethos_test_file_list
     pairwise-singleton.eo
     quote-opaque.eo
     quote-requires.eo
+    set-empty-amb.eo
 )
 
 if(ENABLE_ORACLES)
