@@ -230,30 +230,32 @@ bool CmdParser::parseNextCommand()
           }
           t = d_state.mkFunctionType({qt}, t);
         }
-        if (tok==Token::DECLARE_PARAMETERIZED_CONST)
+      }
+      if (tok==Token::DECLARE_PARAMETERIZED_CONST)
+      {
+        // If this is an ambiguous function, we add (Quote T)
+        // as the first argument type. We only need to test if we are parsing
+        // the command declare-parameterized-const.
+        std::pair<std::vector<Expr>, Expr> ft = t.getFunctionType();
+        std::vector<Expr> argTypes = ft.first;
+        argTypes.insert(argTypes.end(), opaqueArgs.begin(), opaqueArgs.end());
+        Expr tup = d_state.mkExpr(Kind::TUPLE, argTypes);
+        std::vector<Expr> pargs = Expr::getVariables(tup);
+        Expr fv = d_eparser.findFreeVar(ft.second, pargs);
+        Trace("ajr-temp") << "Looking for free variable in " << ft.second << " returned " << fv << std::endl;
+        if (!fv.isNull())
         {
-          // if this is an ambiguous datatype constructor, we add (Quote T)
-          // as the first argument type.
-          std::pair<std::vector<Expr>, Expr> ft = t.getFunctionType();
-          std::vector<Expr> argTypes = ft.first;
-          argTypes.insert(argTypes.end(), opaqueArgs.begin(), opaqueArgs.end());
-          Expr tup = d_state.mkExpr(Kind::TUPLE, argTypes);
-          std::vector<Expr> pargs = Expr::getVariables(tup);
-          Expr fv = d_eparser.findFreeVar(ft.second, pargs);
-          if (!fv.isNull())
+          if (ck!=Attr::NONE)
           {
-            if (ck!=Attr::NONE)
-            {
-              d_lex.parseError("Ambiguous functions cannot have attributes");
-            }
-            else if(!opaqueArgs.empty())
-            {
-              d_lex.parseError("Ambiguous functions cannot have opaque arguments");
-            }
-            Expr qt = d_state.mkQuoteType(ft.second);
-            t = d_state.mkFunctionType({qt}, t);
-            ck = Attr::AMB;
+            d_lex.parseError("Ambiguous functions cannot have attributes");
           }
+          else if(!opaqueArgs.empty())
+          {
+            d_lex.parseError("Ambiguous functions cannot have opaque arguments");
+          }
+          Expr qt = d_state.mkQuoteType(ft.second);
+          t = d_state.mkFunctionType({qt}, t);
+          ck = Attr::AMB;
         }
       }
       // now process remainder of map
