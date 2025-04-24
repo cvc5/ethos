@@ -590,7 +590,7 @@ For example, consider a generic definition of the empty set:
 
 Above, set is declared as a parameteric type.
 The empty set has an implicit type argument `T` and has return type `(Set T)`.
-Since `T` is a free parameter, and `set.empty` has no implicit arguments, it is an ambiguous function.
+Since `T` is a free parameter, and `set.empty` has no explicit arguments, it is an ambiguous function.
 All uses of ambiguous functions must use the SMT-LIB syntax `as`,
 which expects the symbol to annotate and the return type of that instance.
 Above, `(as set.empty (Set Int))` refers to the instance of `set.empty` that has type `(Set Int)`.
