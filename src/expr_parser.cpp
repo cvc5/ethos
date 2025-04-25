@@ -175,9 +175,11 @@ Expr ExprParser::parseExpr()
             // we allow the syntax ((_ to begin a term
             pstack.emplace_back(ParseCtx::NEXT_ARG);
             tok = d_lex.nextToken();
-            if (tokenStrToSymbol(tok)!="_" && tokenStrToSymbol(tok)!="as")
+            if (tokenStrToSymbol(tok) != "_" && tokenStrToSymbol(tok) != "as")
             {
-              d_lex.parseError("Expected qualified identifier or indexed symbol as head of apply");
+              d_lex.parseError(
+                  "Expected qualified identifier or indexed symbol as head of "
+                  "apply");
             }
           }
           case Token::SYMBOL:
