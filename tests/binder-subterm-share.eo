@@ -1,6 +1,6 @@
 (declare-type @List ())
 (declare-const @list.nil @List)
-(declare-const @list.cons (-> (! Type :var T :implicit) T @List @List) :right-assoc-nil @list.nil)
+(declare-parameterized-const @list.cons ((T Type :implicit)) (-> T @List @List) :right-assoc-nil @list.nil)
 
 (declare-type Int ())
 (declare-const P (-> Int Bool))

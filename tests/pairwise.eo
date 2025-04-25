@@ -1,7 +1,7 @@
 
 (declare-const and (-> Bool Bool Bool) :right-assoc)
 
-(declare-const distinct (-> (! Type :var T :implicit) T T Bool) :pairwise and)
+(declare-parameterized-const distinct ((T Type :implicit)) (-> T T Bool) :pairwise and)
 
 
 (declare-rule identity

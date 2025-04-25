@@ -1,4 +1,4 @@
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (declare-const and (-> Bool Bool Bool) :left-assoc-nil true)
 

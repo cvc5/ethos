@@ -1,7 +1,7 @@
 (declare-type Int ())
 (declare-consts <numeral> Int)
 
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 (declare-const + (-> Int Int Int))
 (declare-const - (-> Int Int Int))
 (declare-const > (-> Int Int Bool))
@@ -20,16 +20,10 @@
     )
 )
 
-(declare-const BitVec 
-  (-> 
-    (! Int :var w)
-    (! Type :requires ((run_evaluate (> w 0)) true))))
+(declare-parameterized-const BitVec ((w Int :requires ((run_evaluate (> w 0)) true))) Type)
 
-(declare-const bvadd (->
-  (! Int :var n :implicit)
-  (BitVec n)
-  (BitVec n)
-  (BitVec n)))
+(declare-parameterized-const bvadd ((n Int :implicit)) 
+  (-> (BitVec n) (BitVec n) (BitVec n)))
 
 (declare-const a (BitVec 4))
 
