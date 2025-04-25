@@ -573,7 +573,7 @@ Expr ExprParser::parseExpr()
               Trace("parser") << "Binder is " << vl << std::endl;
               Trace("parser") << "Env is " << env << std::endl;
               // make the program variable, whose type is abstract
-              Expr ftype = d_state.mkFunctionType(fargTypes, atype, false);
+              Expr ftype = d_state.mkProgramType(fargTypes, atype);
               std::stringstream pvname;
               pvname << "eo::match_" << hd;
               Expr pv = d_state.mkSymbol(Kind::PROGRAM_CONST, pvname.str(), ftype);
@@ -803,7 +803,7 @@ std::vector<std::pair<Expr, Expr>> ExprParser::parseAndBindLetList()
     t = parseExpr();
     d_lex.eatToken(Token::RPAREN);
     tt = typeCheck(t);
-    v = d_state.mkSymbol(Kind::VARIABLE, name, tt);
+    v = d_state.getBoundVar(name, tt);
     letList.emplace_back(v, t);
   }
   // now perform the bindings, which bind to the variable, not its definition
@@ -1153,6 +1153,14 @@ void ExprParser::parseAttributeList(
               parseLiteralKind();
               break;
             case Attr::REQUIRES: val = parseExprPair(); break;
+            case Attr::RESTRICT:
+              // requires an expression that follows
+              val = parseExpr();
+              break;
+            case Attr::SYNTAX:
+              // ignores the literal kind
+              parseLiteralKind();
+              break;
             default: handled = false; break;
           }
         }

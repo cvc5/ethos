@@ -23,6 +23,7 @@ enum class Kind
   // types
   TYPE,
   FUNCTION_TYPE,
+  PROGRAM_TYPE,
   PROOF_TYPE,
   ABSTRACT_TYPE,
   BOOL_TYPE,
@@ -42,7 +43,8 @@ enum class Kind
   // symbols
   PARAM,
   CONST,
-  BUILTIN_CONST,    // used for e.g. _, ->, eo::*, as, etc. which are temporary during parsing only
+  BUILTIN_CONST,  // used for e.g. _, ->, eo::*, as, etc. which are temporary
+                  // during parsing only
   PROGRAM_CONST,
   PROOF_RULE,
   VARIABLE,

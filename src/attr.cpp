@@ -37,6 +37,7 @@ std::ostream& operator<<(std::ostream& o, Attr a)
     case Attr::PAIRWISE: o << "PAIRWISE"; break;
     case Attr::DATATYPE: o << "DATATYPE"; break;
     case Attr::CODATATYPE: o << "CODATATYPE"; break;
+    case Attr::AMB: o << "AMB"; break;
     case Attr::DATATYPE_CONSTRUCTOR: o << "DATATYPE_CONSTRUCTOR"; break;
     case Attr::AMB_DATATYPE_CONSTRUCTOR: o << "AMB_DATATYPE_CONSTRUCTOR"; break;
     default: o << "UnknownAttr(" << unsigned(a) << ")"; break;

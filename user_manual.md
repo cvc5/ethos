@@ -201,7 +201,7 @@ Note the following declarations generate terms of the same type:
 (declare-const Array_v3 (-> Type Type Type))
 ```
 
-<a name="literals"></a>
+<a name="tcdefine"></a>
 
 ### The :type attribute for definitions
 
@@ -246,12 +246,10 @@ In contrast, the example below declares a predicate `=` where the type of the ar
 
 In general, an argument can be made implicit if its value can be inferred from the type of later arguments.
 
-We call `T` in the above definitions a _parameter_. The free parameters of the return type of an expression should be contained in at least one non-implicit argument. In particular, the following declaration is malformed, since the return type of `f` cannot be inferred from its arguments:
-
-```smt
-(declare-type Int ())
-(declare-const f ((T Type :implicit)) (-> Int T))
-```
+We call `T` in the above definitions a _parameter_.
+Typically, the free parameters of the return type of a function should be contained in an explicit argument.
+If not, the function is considered *ambiguous* and requires an annotation with the SMT-LIB syntax `as`.
+For details, see [ambiguous functions](#amb-functions).
 
 > __Note:__ Internally, parameters `(t T)` in the command `declare-parameterized-const` are handled specially in the type system. In particular `(declare-parameterized-const foo ((T Type)) T)` defines `foo` to be of "quote arrow" type, `(~> T T)`, where the argument to `foo` is bound to `T`, e.g. `(foo Int)` binds `T` to `Int` and thus has type `Int`. Technical details of the type system can be found at the end of this manual.
 
@@ -566,6 +564,36 @@ On the other hand, the definition `Q3` is distinct from both of these, since `y`
 Furthermore, note that a binder also may accept an explicit term as its first argument.
 In the above example, `Q4` has `(@cons x)` as its first argument, where `x` was explicitly defined as a variable.
 This means that the definition of `Q4` is also syntactically equivalent to the definition of `Q1` and `Q2`.
+
+<a name="amb-functions"></a>
+
+### Ambiguous Functions
+
+Functions and constants that are declared via the command `declare-parameterized-const` may have return types that contain free parameters.
+If these parameters are *not* contained in any explicit argument to the function, then the function or constant is considered *ambiguous*.
+For example, consider a generic definition of the empty set:
+
+```smt
+(declare-type Set (Type))
+(declare-parameterized-const set.empty ((T Type :implicit)) (Set T))
+
+(declare-type Int ())
+(define f () (as set.empty (Set Int)) :type (Set Int))
+```
+
+Above, set is declared as a parameteric type.
+The empty set has an implicit type argument `T` and has return type `(Set T)`.
+Since `T` is a free parameter, and `set.empty` has no explicit arguments, it is an ambiguous function.
+All uses of ambiguous functions must use the SMT-LIB syntax `as`,
+which expects the symbol to annotate and the return type of that instance.
+Above, `(as set.empty (Set Int))` refers to the instance of `set.empty` that has type `(Set Int)`.
+
+> __Note:__ After preprocessing, the type of all ambiguous functions is automatically extended with an opaque type argument.
+In the above example, `set.empty` is internally defined to be of type `(-> (Quote (Set T)) (Set T))`.
+Ethos interprets `(as set.empty (Set Int))` as `(_ set.empty (Set Int))`, where this is an "opaque" application (see [opaque](#opaque)).
+Conceptually, this means that `(_ set.empty (Set Int))` is a constant symbol (with no children) that is indexed by its type.
+
+A similar treatment is given to ambiguous datatype constructors, which we describe later in [parameteric datatypes](#par-datatypes).
 
 <a name="literals"></a>
 
@@ -1217,6 +1245,9 @@ Applying the proof rule `dt-split` to a variable `x` of type `Tree` allows us to
 Note that the definitino of `dt-split` is applicable to *any* datatype definition.
 In particular, as a second example, we see the rule applied to a term `y` of type `Color` gives us a conclusion with three disjuncts.
 
+
+<a name="par-datatypes"></a>
+
 ### Parametric datatypes
 
 Ethos supports reasoning about parametric datatypes with ambiguous datatype construtors using the same syntax as SMT-LIB 2.6.
@@ -1261,16 +1292,6 @@ The selectors of a constructor (which are never ambiguous) are returned independ
 ## Declaring Proof Rules
 
 The generic syntax for a `declare-rule` command accepted by `ethos` is:
-
-```smt
-(declare-rule <symbol> <keyword>? <sexpr>*)
-```
-
-When parsing this command, `ethos` will determine the format of the expected arguments based on the given keyword.
-If the `<keyword>` is not provided, then we assume it has been marked `:ethos`.
-All rules not marked with `:ethos` are not supported by the checker and will cause it to terminate.
-
-If the keyword is `:ethos`, then the expected syntax that follows is given below:
 
 ```smt
 (declare-rule <symbol> :ethos (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term> <attr>*)
@@ -1443,22 +1464,12 @@ Locally assumptions can be arbitrarily nested, for example the above can be exte
 
 ## Side Conditions
 
-Similar to `declare-rule`, Ethos supports an extensible syntax for programs whose generic syntax is given by:
-
-```smt
-(program <symbol> <keyword>? <sexpr>*)
-```
-
-When parsing this command, `ethos` will determine the format of the expected arguments based on the given keyword.
-If the `<keyword>` is not provided, then we assume it has been marked `:ethos`.
-All programs not marked with `:ethos` are not supported by the checker and will cause it to terminate.
-
-If the keyword is `:ethos`, then the expected syntax that follows is given below, and is used for defining recursive programs.
+Ethos supports a `program` command for defining recursive programs.
 In particular, in Ethos, a program is an ordered list of rewrite rules.
 The syntax for this command is as follows.
 
 ```smt
-(program <symbol> :ethos (<typed-param>*) (<type>*) <type> ((<term> <term>)+))
+(program <symbol> :ethos (<typed-param>*) (<type>+) <type> ((<term> <term>)+))
 ```
 
 This command declares a program named `<symbol>`.
@@ -1868,7 +1879,7 @@ The syntax and semantics of such functions are described in this [paper](https:/
 In particular, Ethos supports the command:
 
 ```smt
-(declare-oracle-fun <symbol> (<type>*) <type> <symbol>)
+(declare-oracle-fun <symbol> (<type>+) <type> <symbol>)
 ```
 
 Like the `declare-fun` command from SMT-LIB, this command declares a constant named `<symbol>` whose type is given by the argument types and return type.
@@ -1970,15 +1981,13 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
     (assume-push <symbol> <term>) |
     (declare-consts <lit-category> <type>) |
     (declare-parameterized-const <symbol> (<typed-param>*) <type> <attr>*) |
-    (declare-oracle-fun <symbol> (<type>*) <type> <symbol>) |
-    (declare-rule <symbol> <keyword> <sexpr>*) |
+    (declare-oracle-fun <symbol> (<type>+) <type> <symbol>) |
     (declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term> <attr>*) |
     (declare-type <symbol> (<type>*)) |
     (define <symbol> (<typed-param>*) <term> <attr>*) |
     (define-type <symbol> (<type>*) <type>) |
     (include <string>) |
-    (program <symbol> <keyword> <sexpr>*) |
-    (program <symbol> (<typed-param>*) (<type>*) <type> ((<term> <term>)+)) |
+    (program <symbol> (<typed-param>*) (<type>+) <type> ((<term> <term>)+)) |
     (reference <string> <symbol>?) |
     (step <symbol> <term>? :rule <symbol> <simple-premises>? <arguments>?) |
     (step-pop <symbol> <term>? :rule <symbol> <simple-premises>? <arguments>?) |

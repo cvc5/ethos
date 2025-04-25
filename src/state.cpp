@@ -552,6 +552,18 @@ Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool 
   return curr;
 }
 
+Expr State::mkProgramType(const std::vector<Expr>& args, const Expr& ret)
+{
+  Assert(!args.empty());
+  std::vector<ExprValue*> atypes;
+  for (size_t i = 0, nargs = args.size(); i < nargs; i++)
+  {
+    atypes.push_back(args[i].getValue());
+  }
+  atypes.push_back(ret.getValue());
+  return Expr(mkExprInternal(Kind::PROGRAM_TYPE, atypes));
+}
+
 Expr State::mkRequires(const std::vector<Expr>& args, const Expr& ret)
 {
   Expr curr = ret;
@@ -948,7 +960,8 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
   else if (k == Kind::AS_RETURN)
   {
     // (as nil (List Int)) --> (_ nil (List Int))
-    if (getConstructorKind(vchildren[0]) == Attr::AMB_DATATYPE_CONSTRUCTOR
+    Attr ck = getConstructorKind(vchildren[0]);
+    if ((ck == Attr::AMB_DATATYPE_CONSTRUCTOR || ck == Attr::AMB)
         && children.size() == 2)
     {
       Trace("overload") << "...type arg for ambiguous constructor" << std::endl;
