@@ -1144,14 +1144,6 @@ void ExprParser::parseAttributeList(
             case Attr::OPAQUE:
               // requires no value
               break;
-            case Attr::RESTRICT:
-              // requires an expression that follows
-              val = parseExpr();
-              break;
-            case Attr::SYNTAX:
-              // ignores the literal kind
-              parseLiteralKind();
-              break;
             case Attr::REQUIRES: val = parseExprPair(); break;
             case Attr::RESTRICT:
               // requires an expression that follows
