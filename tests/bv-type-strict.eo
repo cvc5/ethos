@@ -22,8 +22,8 @@
 
 (declare-parameterized-const BitVec ((w Int :requires ((run_evaluate (> w 0)) true))) Type)
 
-(declare-parameterized-const bvadd ((n Int :implicit)) (-> (BitVec n) (BitVec n)
-  (BitVec n)))
+(declare-parameterized-const bvadd ((n Int :implicit)) 
+  (-> (BitVec n) (BitVec n) (BitVec n)))
 
 (declare-const a (BitVec 4))
 
