@@ -145,6 +145,7 @@ set(ethos_test_file_list
     quote-opaque.eo
     quote-requires.eo
     set-empty-amb.eo
+    const-array.eo
 )
 
 if(ENABLE_ORACLES)
