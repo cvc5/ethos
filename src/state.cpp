@@ -969,7 +969,8 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
   else if (k == Kind::AS_RETURN)
   {
     // (as nil (List Int)) --> (_ nil (List Int))
-    if (getConstructorKind(vchildren[0]) == Attr::AMB_DATATYPE_CONSTRUCTOR
+    Attr ck = getConstructorKind(vchildren[0]);
+    if ((ck == Attr::AMB_DATATYPE_CONSTRUCTOR || ck == Attr::AMB)
         && children.size() == 2)
     {
       Trace("overload") << "...type arg for ambiguous constructor" << std::endl;

@@ -50,6 +50,9 @@ enum class Attr
   CHAINABLE,
   PAIRWISE,
 
+  // ambiguous functions e.g. set.empty which require annotations
+  AMB,
+
   // datatypes
   DATATYPE,
   DATATYPE_CONSTRUCTOR,

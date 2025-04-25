@@ -231,6 +231,33 @@ bool CmdParser::parseNextCommand()
           t = d_state.mkFunctionType({qt}, t);
         }
       }
+      if (tok == Token::DECLARE_PARAMETERIZED_CONST)
+      {
+        // If this is an ambiguous function, we add (Quote T)
+        // as the first argument type. We only need to test if we are parsing
+        // the command declare-parameterized-const.
+        std::pair<std::vector<Expr>, Expr> ft = t.getFunctionType();
+        std::vector<Expr> argTypes = ft.first;
+        argTypes.insert(argTypes.end(), opaqueArgs.begin(), opaqueArgs.end());
+        Expr tup = d_state.mkExpr(Kind::TUPLE, argTypes);
+        std::vector<Expr> pargs = Expr::getVariables(tup);
+        Expr fv = d_eparser.findFreeVar(ft.second, pargs);
+        if (!fv.isNull())
+        {
+          if (ck != Attr::NONE)
+          {
+            d_lex.parseError("Ambiguous functions cannot have attributes");
+          }
+          else if (!opaqueArgs.empty())
+          {
+            d_lex.parseError(
+                "Ambiguous functions cannot have opaque arguments");
+          }
+          Expr qt = d_state.mkQuoteType(ft.second);
+          t = d_state.mkFunctionType({qt}, t);
+          ck = Attr::AMB;
+        }
+      }
       // now process remainder of map
       d_eparser.processAttributeMaps(pattrMap);
       if (!opaqueArgs.empty())
@@ -243,18 +270,7 @@ bool CmdParser::parseNextCommand()
         t = d_state.mkFunctionType(opaqueArgs, t, false);
         ck = Attr::OPAQUE;
       }
-      Expr v;
-      if (sk==Kind::VARIABLE)
-      {
-        // We get the canonical variable, not a fresh one. This ensures that
-        // globally defined variables coincide with those that appear in
-        // binders when applicable.
-        v = d_state.getBoundVar(name, t);
-      }
-      else
-      {
-        v = d_state.mkSymbol(sk, name, t);
-      }
+      Expr v = d_state.mkSymbol(sk, name, t);
       // if the type has a property, we mark it on the variable of this type
       if (ck!=Attr::NONE)
       {

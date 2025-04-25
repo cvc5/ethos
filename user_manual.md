@@ -201,7 +201,7 @@ Note the following declarations generate terms of the same type:
 (declare-const Array_v3 (-> Type Type Type))
 ```
 
-<a name="literals"></a>
+<a name="tcdefine"></a>
 
 ### The :type attribute for definitions
 
@@ -240,12 +240,10 @@ In general, an argument can be made implicit if its value can be inferred from t
 
 Return types cannot be marked `:implicit` or `:var` or a type error will be immediately reported.
 
-We call `T` in the above definitions a _parameter_. The free parameters of the return type of an expression should be contained in at least one non-implicit argument. In particular, the following declaration is malformed, since the return type of `f` cannot be inferred from its arguments:
-
-```smt
-(declare-type Int ())
-(declare-const f (-> (! Type :var T :implicit) Int T))
-```
+We call `T` in the above definitions a _parameter_.
+Typically, the free parameters of the return type of a function should be contained in an explicit argument.
+If not, the function is considered *ambiguous* and requires an annotation with the SMT-LIB syntax `as`.
+For details, see [ambiguous functions](#amb-functions).
 
 > __Note:__ Internally, `(! T :var t)` is syntax sugar for the type `(Quote t)` where `t` is a parameter of type `T` and `Quote` is a distinguished type of kind `(-> (! Type :var U) U Type)`. When type checking applications of functions of type `(-> (Quote t) S)`, the parameter `t` is bound to the argument the function is applied to.
 
@@ -573,6 +571,36 @@ On the other hand, the definition `Q3` is distinct from both of these, since `y`
 Furthermore, note that a binder also may accept an explicit term as its first argument.
 In the above example, `Q4` has `(@cons x)` as its first argument, where `x` was explicitly defined as a variable.
 This means that the definition of `Q4` is also syntactically equivalent to the definition of `Q1` and `Q2`.
+
+<a name="amb-functions"></a>
+
+### Ambiguous Functions
+
+Functions and constants that are declared via the command `declare-parameterized-const` may have return types that contain free parameters.
+If these parameters are *not* contained in any explicit argument to the function, then the function or constant is considered *ambiguous*.
+For example, consider a generic definition of the empty set:
+
+```smt
+(declare-type Set (Type))
+(declare-parameterized-const set.empty ((T Type :implicit)) (Set T))
+
+(declare-type Int ())
+(define f () (as set.empty (Set Int)) :type (Set Int))
+```
+
+Above, set is declared as a parameteric type.
+The empty set has an implicit type argument `T` and has return type `(Set T)`.
+Since `T` is a free parameter, and `set.empty` has no explicit arguments, it is an ambiguous function.
+All uses of ambiguous functions must use the SMT-LIB syntax `as`,
+which expects the symbol to annotate and the return type of that instance.
+Above, `(as set.empty (Set Int))` refers to the instance of `set.empty` that has type `(Set Int)`.
+
+> __Note:__ After preprocessing, the type of all ambiguous functions is automatically extended with an opaque type argument.
+In the above example, `set.empty` is internally defined to be of type `(-> (Quote (Set T)) (Set T))`.
+Ethos interprets `(as set.empty (Set Int))` as `(_ set.empty (Set Int))`, where this is an "opaque" application (see [opaque](#opaque)).
+Conceptually, this means that `(_ set.empty (Set Int))` is a constant symbol (with no children) that is indexed by its type.
+
+A similar treatment is given to ambiguous datatype constructors, which we describe later in [parameteric datatypes](#par-datatypes).
 
 <a name="literals"></a>
 
@@ -1229,6 +1257,9 @@ As part of the example, we see a particular definition of a list, called `Tree`.
 Applying the proof rule `dt-split` to a variable `x` of type `Tree` allows us to conclude that `x` must either be an application of `node` or `leaf`.
 Note that the definitino of `dt-split` is applicable to *any* datatype definition.
 In particular, as a second example, we see the rule applied to a term `y` of type `Color` gives us a conclusion with three disjuncts.
+
+
+<a name="par-datatypes"></a>
 
 ### Parametric datatypes
 
