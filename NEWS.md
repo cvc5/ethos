@@ -10,7 +10,7 @@ ethos 0.1.2 prerelease
 - Changed the semantics of pairwise and chainable operators for a single argument, which now reduces to the neutral element of the combining operator instead of a parse error.
 - The operator `eo::typeof` now fails to evaluate if the type of the given term is not ground.
 
-- Adds support for the SMT-LIB `as` annotations for ambiguous functions and constants, i.e. those whose return type cannot be inferred from their argument types. Following SMT-LIB convention, ambiguous functions and constants are expected to be annotated with their *return* type using `as`, which internally is treated as a type argument to the function. This policy is applied both for ambiguous datatype constructors and ambiguous functions and constants declared with `declare-parameterized-const`.
+- Adds support for the SMT-LIB `as` annotations for ambiguous functions and constants, i.e. those whose return type cannot be inferred from their argument types. Following SMT-LIB convention, ambiguous functions and constants are expected to be annotated with their *return* type using as.  Eunoia translates this into a type argument to the function. This policy is applied both for ambiguous datatype constructors and ambiguous functions and constants declared with `declare-parameterized-const`.
 - The semantics for `eo::dt_constructors` is extended for instantiated parametric datatypes. For example calling `eo::dt_constructors` on `(List Int)` returns the list containing `cons` and `(as nil (List Int))`.
 - The semantics for `eo::dt_selectors` is extended for annotated constructors. For example calling `eo::dt_selectors` on `(as nil (List Int))` returns the empty list.
 

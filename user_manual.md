@@ -595,7 +595,7 @@ All uses of ambiguous functions must use the SMT-LIB syntax `as`,
 which expects the symbol to annotate and the return type of that instance.
 Above, `(as set.empty (Set Int))` refers to the instance of `set.empty` that has type `(Set Int)`.
 
-> __Note:__ Internally, the type of all ambiguous functions is automatically extended with an opaque type argument.
+> __Note:__ After preprocessing, the type of all ambiguous functions is automatically extended with an opaque type argument.
 In the above example, `set.empty` is internally defined to be of type `(-> (Quote (Set T)) (Set T))`.
 Ethos interprets `(as set.empty (Set Int))` as `(_ set.empty (Set Int))`, where this is an "opaque" application (see [opaque](#opaque)).
 Conceptually, this means that `(_ set.empty (Set Int))` is a constant symbol (with no children) that is indexed by its type.
