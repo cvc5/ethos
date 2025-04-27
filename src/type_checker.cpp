@@ -394,8 +394,7 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
   for (size_t i=1, nchild=children.size(); i<nchild; i++)
   {
     Assert (children[i]!=nullptr);
-    // if the argument type is (Quote t), then we implicitly upcast
-    // the argument c to (quote c). This is equivalent to matching
+    // if the argument type is (Quote t), then we match
     // c to t directly, hence we take the child itself and not its
     // type.
     ExprValue* arg;
@@ -419,20 +418,43 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
   }
   std::set<std::pair<ExprValue*, ExprValue*>> visited;
   Expr hdEval;
+  bool isQuote;
   for (size_t i=0, nchild=ctypes.size(); i<nchild; i++)
   {
     Assert(ctypes[i] != nullptr);
     // matching, update context
     ExprValue* hdt = hdtypes[i];
-    // if the argument is (Quote t), we match on its argument,
-    // which along with how ctypes[i] is the argument itself, has the effect
-    // of an implicit upcast.
-    hdt = hdt->getKind() == Kind::QUOTE_TYPE ? hdt->d_children[0] : hdt;
+    // if the argument is (Quote t), we match on its argument
+    isQuote = (hdt->getKind() == Kind::QUOTE_TYPE);
+    if (isQuote)
+    {
+      hdt = hdt->d_children[0];
+    }
     // must evaluate here
     if (hdt->isEvaluatable())
     {
       hdEval = evaluate(hdt, ctx);
       hdt = hdEval.getValue();
+    }
+    if (isQuote)
+    {
+      Expr hdte(hdt);
+      Expr htt  = getType(hdte);
+      ExprValue* qt1 = htt.getValue();
+      ExprValue* qt2  = d_state.lookupType(ctypes[i]);
+      Ctx tctx;
+      std::set<std::pair<ExprValue*, ExprValue*>> tvisited;
+      if (!match(qt1, qt2, tctx, tvisited))
+      {
+        if (out)
+        {
+          (*out) << "Unexpected type of #" << i << std::endl;
+          (*out) << "  Term: " << Expr(children[i + 1]) << std::endl;
+          (*out) << "  Its type: " << Expr(qt2) << std::endl;
+          (*out) << "  Expected type: " << Expr(qt1) << std::endl;
+        }
+        return d_null;
+      }
     }
     if (!match(hdt, ctypes[i], ctx, visited))
     {

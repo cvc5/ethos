@@ -14,7 +14,7 @@
 (declare-const c4 S)
 
 ; nary.ctn
-(declare-rule check_nary.ctn((c S) (l S) (out S))
+(declare-rule check_nary.ctn((S Type) (c S) (l S) (out S))
     :args (c l out)
     :requires (((nary.ctn cons nil c l) out))
     :conclusion true
