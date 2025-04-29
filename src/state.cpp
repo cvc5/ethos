@@ -1283,7 +1283,7 @@ Expr State::getBoundVar(const std::string& name, const Expr& type)
   if (!type.isGround())
   {
     // If the type is non-ground, we cannot evaluate it yet. Moreover this is
-    // not cached
+    // not cached here, instead it is cached as part of mkExpr.
     Expr ename = mkLiteral(Kind::STRING, name);
     return mkExpr(Kind::EVAL_VAR, {ename, type});
   }
