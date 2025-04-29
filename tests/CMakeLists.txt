@@ -146,6 +146,7 @@ set(ethos_test_file_list
     quote-requires.eo
     set-empty-amb.eo
     const-array.eo
+    type-var-exists.eo
 )
 
 if(ENABLE_ORACLES)
