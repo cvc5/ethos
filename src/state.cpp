@@ -1280,6 +1280,13 @@ Expr State::getVar(const std::string& name) const
 
 Expr State::getBoundVar(const std::string& name, const Expr& type)
 {
+  if (!type.isGround())
+  {
+    // If the type is non-ground, we cannot evaluate it yet. Moreover this is
+    // not cached here, instead it is cached as part of mkExpr.
+    Expr ename = mkLiteral(Kind::STRING, name);
+    return mkExpr(Kind::EVAL_VAR, {ename, type});
+  }
   std::pair<std::string, const ExprValue*> key(name, type.getValue());
   std::map<std::pair<std::string, const ExprValue*>, Expr>::iterator it = d_boundVars.find(key);
   if (it!=d_boundVars.end())
