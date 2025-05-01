@@ -1029,10 +1029,7 @@ Expr State::mkFalse()
   return d_false;
 }
 
-Expr State::mkBool(bool val)
-{
-  return val ? d_true : d_false;
-}
+Expr State::mkBool(bool val) { return val ? d_true : d_false; }
 
 Expr State::mkLiteral(Kind k, const std::string& s)
 {
