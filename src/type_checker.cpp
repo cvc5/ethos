@@ -1069,18 +1069,43 @@ Expr TypeChecker::evaluateLiteralOpInternal(
 {
   Assert (!args.empty());
   Trace("type_checker") << "EVALUATE-LIT " << k << " " << args << std::endl;
-  if (k==Kind::EVAL_IF_THEN_ELSE)
+  // special cases: ITE may evaluate if non-ground
+  switch (k)
   {
-    Assert (args.size()==3);
-    if (args[0]->getKind()==Kind::BOOLEAN)
+    case Kind::EVAL_IF_THEN_ELSE:
     {
-      const Literal* l = args[0]->asLiteral();
-      // eagerly evaluate even if branches are non-ground
-      return Expr(args[l->d_bool ? 1 : 2]);
+      Assert (args.size()==3);
+      if (args[0]->getKind()==Kind::BOOLEAN)
+      {
+        const Literal* l = args[0]->asLiteral();
+        // eagerly evaluate even if branches are non-ground
+        return Expr(args[l->d_bool ? 1 : 2]);
+      }
+      // note that we do not simplify based on the branches being equal
+      return d_null;
     }
-    // note that we do not simplify based on the branches being equal
-    return d_null;
+    break;
+    case Kind::EVAL_REQUIRES:
+    {
+      // eagerly 
+      if (args[0]->isGround() && !args[0]->isEvaluatable() && args[1]->isGround() && !args[1]->isEvaluatable() && args[0]==args[1])
+      {
+        return Expr(args[2]);
+      }
+      if (TraceIsOn("type_checker"))
+      {
+        if (isGround(args))
+        {
+          Trace("type_checker") << "REQUIRES: failed " << Expr(args[0])
+                                << " == " << Expr(args[1]) << std::endl;
+        }
+      }
+      return d_null;
+    }
+    break;
+    default: break;
   }
+  // further evaluation only if non-ground
   if (!isGround(args))
   {
     Trace("type_checker") << "...does not evaluate (non-ground)" << std::endl;
@@ -1091,29 +1116,25 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_IS_OK:
     {
       Assert (args.size()==1);
-      return args[0]->isEvaluatable() ? d_state.mkTrue() : d_state.mkFalse();
+      // returns true or false based on whether the argument is stuck
+      return d_state.mkBool(!args[0]->isEvaluatable());
     }
     break;
     case Kind::EVAL_IS_EQ:
     {
       Assert (args.size()==2);
-      return !args[0]->isEvaluatable() && !args[1]->isEvaluatable()() && args[0]==args[1];
+      // true if both arguments are not stuck and are equal, false otherwise
+      // Note that (eo::is_eq t s) is equivalent to
+      // (eo::ite (eo::and (eo::is_ok t) (eo::is_ok s)) (eo::eq s t) false)
+      return d_state.mkBool(!args[0]->isEvaluatable() && !args[1]->isEvaluatable() && args[0]==args[1]);
     }
     break;
-    case Kind::EVAL_REQUIRES:
+    case Kind::EVAL_EQ:
     {
-      if (args[0]==args[1])
+      // syntactic equality, only evaluated if the terms are values
+      if (args[0]->isEvaluatable() && args[1]->isEvaluatable())
       {
-        // eagerly evaluate even if body is non-ground
-        return Expr(args[2]);
-      }
-      if (TraceIsOn("type_checker"))
-      {
-        if (isGround(args))
-        {
-          Trace("type_checker") << "REQUIRES: failed " << Expr(args[0])
-                                << " == " << Expr(args[1]) << std::endl;
-        }
+        return d_state.mkBool(args[0]==args[1]);
       }
       return d_null;
     }
