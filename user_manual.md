@@ -695,16 +695,16 @@ Note, however, that the evaluation of these operators is handled by more efficie
   - Equivalent to `(eo::ite (eo::and (eo::is_ok t) (eo::is_ok s)) (eo::eq s t) false)`.
 
 - `(eo::requires t1 t2 t3)`
-  - Returns `t3` if `(eo::is_eq t1 t2)` evaluates to `true`, and is not evaluated otherwise. If the case that this operator evaluates, it may be the case that `t3` is non-ground.
+  - Returns `t3` if `(eo::is_eq t1 t2)` evaluates to `true`, and is not evaluated otherwise. In the case this operator evaluates, it may be the case that `t3` is non-ground.
 
 - `(eo::hash t1)`
-  - If `t1` is a ground term, this returns a numeral that is unique to `t1`.
+  - If `t1` is a value, this returns a numeral that is unique to `t1`.
 - `(eo::typeof t1)`
-  - If `t1` is a ground term, this returns the type of `t1` if its type is ground.
+  - If `t1` is a value, this returns the type of `t1` if its type is ground.
 - `(eo::nameof t1)`
   - If `t1` is a ground constant or variable, this returns the name of `t1`, i.e. the string corresponding to the symbol it was declared with.
 - `(eo::var t1 t2)`
-  - If `t1` is a string value and `t2` is ground type, this returns the variable whose name is `t1` and whose type is `t2`.
+  - If `t1` is a string value and `t2` is a ground type, this returns the variable whose name is `t1` and whose type is `t2`.
 - `(eo::cmp t1 t2)`
   - Equivalent to `(eo::is_neg (eo::add (eo::neg (eo::hash t1)) (eo::hash t2)))`. Note that this method corresponds to an arbitrary total order on terms.
 - `(eo::is_z t)`
