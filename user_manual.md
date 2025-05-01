@@ -665,10 +665,15 @@ Similarly, `eo::concat` returns the result of concatenating two string literals,
 We remark on the semantics in the following.
 
 In the following, we say a term is _ground_ if it contains no parameters as subterms.
+We say a term is a _value_ if it is ground and has no occurrences of unevaluated builtin operators.
 We say an _arithmetic value_ is a numeral, decimal or rational value.
 We say a _bitwise value_ is a binary or hexadecimal value.
 A 32-bit numeral value is a numeral value between `0` and `2^32-1`.
 Binary values are considered to be in little endian form.
+
+Apart from `eo::ite`, all cases of evaluation assume that the arguments are fully reduced.
+In other words, apart from `eo::ite`, all evaluation proceeds bottom-up,
+where the arguments of builtin operators are evaluated before the builtin operator is evaluated.
 
 Some of the following operators can be defined in terms of the other operators.
 For these operators, we provide the equivalent formulation.
@@ -677,14 +682,20 @@ Note, however, that the evaluation of these operators is handled by more efficie
 
 ### Core operators
 
-- `(eo::is_eq t1 t2)`
-  - Returns `true` if `t1` is (syntactically) equal to `t2`, or `false` if `t1` and `t2` are distinct and ground. Otherwise, it does not evaluate.
+- `(eo::is_ok t)`
+  - If `t` is ground, this returns true if `t` is a value, and false otherwise. If `t` is not ground, it does not evaluate.
 
 - `(eo::ite t1 t2 t3)`
   - Returns `t2` if `t1` evaluates to `true`, `t3` if `t1` evaluates to `false`, and is not evaluated otherwise. Note that the branches of this term are only evaluated if they are the return term.
 
+- `(eo::eq t1 t2)`
+  - If `t1` and `t2` are ground values, this returns `true` if `t1` is (syntactically) equal to `t2` and false otherwise. Otherwise, if either `t1` or `t2` is non-ground, it does not evaluate.
+- `(eo::is_eq t1 t2)`
+  - Equivalent to `(eo::ite (eo::and (eo::is_ok t) (eo::is_ok s)) (eo::eq s t) false)`.
+
 - `(eo::requires t1 t2 t3)`
-  - Returns `t3` if `t1` is (syntactically) equal to `t2`, and is not evaluated otherwise.
+  - Returns `t3` if `(eo::is_eq t1 t2)` evaluates to `true`, and is not evaluated otherwise. If the case that this operator evaluates, it may be the case that `t3` is non-ground.
+
 - `(eo::hash t1)`
   - If `t1` is a ground term, this returns a numeral that is unique to `t1`.
 - `(eo::typeof t1)`
@@ -698,9 +709,9 @@ Note, however, that the evaluation of these operators is handled by more efficie
 - `(eo::is_z t)`
   - Equivalent to `(eo::is_eq (eo::to_z t) t)`.
 - `(eo::is_q t)`
-    - Equivalent to `(eo::is_eq (eo::to_q t) t)`. Note this returns false for decimal literals.
+  - Equivalent to `(eo::is_eq (eo::to_q t) t)`. Note this returns false for decimal literals.
 - `(eo::is_bin t)`
-    - Equivalent to `(eo::is_eq (eo::to_bin (eo::len t) t) t)`. Note this returns false for hexadecimal literals.
+  - Equivalent to `(eo::is_eq (eo::to_bin (eo::len t) t) t)`. Note this returns false for hexadecimal literals.
 - `(eo::is_str t)`
   - Equivalent to `(eo::is_eq (eo::to_str t) t)`.
 - `(eo::is_bool t)`
