@@ -62,6 +62,7 @@ enum class Kind
 
   // operations on literals
   // core
+  EVAL_IS_OK,
   EVAL_IS_EQ,
   EVAL_IF_THEN_ELSE,
   EVAL_REQUIRES,
@@ -70,12 +71,15 @@ enum class Kind
   EVAL_TYPE_OF,
   EVAL_NAME_OF,
   EVAL_COMPARE,
+  // testers
   EVAL_IS_Z,
   EVAL_IS_Q,
   EVAL_IS_BIN,
   EVAL_IS_STR,
   EVAL_IS_BOOL,
   EVAL_IS_VAR,
+  // equality
+  EVAL_EQ,
   // lists
   EVAL_NIL,
   EVAL_CONS,

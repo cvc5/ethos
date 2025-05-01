@@ -141,6 +141,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
   {
     case Kind::EVAL_IS_EQ:
     case Kind::EVAL_VAR:
+    case Kind::EVAL_EQ:
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_INT_MOD:
     case Kind::EVAL_RAT_DIV:
@@ -163,6 +164,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
       ret = (nargs>=3);
       break;
     case Kind::PROOF_TYPE:
+    case Kind::EVAL_IS_OK:
     case Kind::EVAL_TYPE_OF:
     case Kind::EVAL_NAME_OF:
     case Kind::EVAL_HASH:
@@ -1067,37 +1069,35 @@ Expr TypeChecker::evaluateLiteralOpInternal(
 {
   Assert (!args.empty());
   Trace("type_checker") << "EVALUATE-LIT " << k << " " << args << std::endl;
+  if (k==Kind::EVAL_IF_THEN_ELSE)
+  {
+    Assert (args.size()==3);
+    if (args[0]->getKind()==Kind::BOOLEAN)
+    {
+      const Literal* l = args[0]->asLiteral();
+      // eagerly evaluate even if branches are non-ground
+      return Expr(args[l->d_bool ? 1 : 2]);
+    }
+    // note that we do not simplify based on the branches being equal
+    return d_null;
+  }
+  if (!isGround(args))
+  {
+    Trace("type_checker") << "...does not evaluate (non-ground)" << std::endl;
+    return d_null;
+  }
   switch (k)
   {
+    case Kind::EVAL_IS_OK:
+    {
+      Assert (args.size()==1);
+      return args[0]->isEvaluatable() ? d_state.mkTrue() : d_state.mkFalse();
+    }
+    break;
     case Kind::EVAL_IS_EQ:
     {
       Assert (args.size()==2);
-      bool ret = args[0]==args[1];
-      if (ret)
-      {
-        // eagerly evaluate if sides are equal, even if non-ground
-        return d_state.mkTrue();
-      }
-      else if (isGround(args))
-      {
-        // otherwise, if both sides are ground, we evaluate to false.
-        // note this is independent of whether they are values.
-        return d_state.mkFalse();
-      }
-      return d_null;
-    }
-    break;
-    case Kind::EVAL_IF_THEN_ELSE:
-    {
-      Assert (args.size()==3);
-      if (args[0]->getKind()==Kind::BOOLEAN)
-      {
-        const Literal* l = args[0]->asLiteral();
-        // eagerly evaluate even if branches are non-ground
-        return Expr(args[l->d_bool ? 1 : 2]);
-      }
-      // note that we do not simplify based on the branches being equal
-      return d_null;
+      return !args[0]->isEvaluatable() && !args[1]->isEvaluatable()() && args[0]==args[1];
     }
     break;
     case Kind::EVAL_REQUIRES:
@@ -1120,25 +1120,18 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     break;
     case Kind::EVAL_HASH:
     {
-      if (args[0]->isGround())
-      {
-        size_t h = d_state.getHash(args[0]);
-        Literal lh(Integer(static_cast<unsigned int>(h)));
-        return Expr(d_state.mkLiteralInternal(lh));
-      }
-      return d_null;
+      Assert (args.size()==1);
+      size_t h = d_state.getHash(args[0]);
+      Literal lh(Integer(static_cast<unsigned int>(h)));
+      return Expr(d_state.mkLiteralInternal(lh));
     }
     break;
     case Kind::EVAL_COMPARE:
     {
-      if (args[0]->isGround() && args[1]->isGround())
-      {
-        size_t h1 = d_state.getHash(args[0]);
-        size_t h2 = d_state.getHash(args[1]);
-        Literal lb(h1>h2);
-        return Expr(d_state.mkLiteralInternal(lb));
-      }
-      return d_null;
+      size_t h1 = d_state.getHash(args[0]);
+      size_t h2 = d_state.getHash(args[1]);
+      Literal lb(h1>h2);
+      return Expr(d_state.mkLiteralInternal(lb));
     }
     break;
     case Kind::EVAL_IS_Z:
@@ -1148,10 +1141,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_IS_BOOL:
     case Kind::EVAL_IS_VAR:
     {
-      if (!args[0]->isGround())
-      {
-        return d_null;
-      }
+      Assert (args.size()==1);
       Kind kk;
       switch (k)
       {
@@ -1171,39 +1161,31 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_TYPE_OF:
     {
       // get the type if ground
-      if (isGround(args))
+      Expr e(args[0]);
+      Expr et = getType(e);
+      if (et.isGround())
       {
-        Expr e(args[0]);
-        Expr et = getType(e);
-        if (et.isGround())
-        {
-          // don't permit ground evaluatable types
-          Assert (!et.isEvaluatable());
-          return et;
-        }
+        // don't permit ground evaluatable types
+        Assert (!et.isEvaluatable());
+        return et;
       }
       return d_null;
     }
     break;
     case Kind::EVAL_NAME_OF:
     {
-      // get the type if ground
-      if (isGround(args))
+      Kind k = args[0]->getKind();
+      if (k==Kind::CONST || k==Kind::VARIABLE)
       {
-        Kind k = args[0]->getKind();
-        if (k==Kind::CONST || k==Kind::VARIABLE)
-        {
-          Literal sym(String(Expr(args[0]).getSymbol()));
-          return Expr(d_state.mkLiteralInternal(sym));
-        }
+        Literal sym(String(Expr(args[0]).getSymbol()));
+        return Expr(d_state.mkLiteralInternal(sym));
       }
-      return d_null;
     }
     break;
     case Kind::EVAL_VAR:
     {
       // if arguments are ground and the first argument is a string
-      if (args[0]->getKind()==Kind::STRING && args[1]->isGround())
+      if (args[0]->getKind()==Kind::STRING)
       {
         Expr type(args[1]);
         Expr tt = getType(type);
@@ -1281,11 +1263,6 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     break;
     default:
       break;
-  }
-  if (!isGround(args))
-  {
-    Trace("type_checker") << "...does not evaluate (non-ground)" << std::endl;
-    return d_null;
   }
   // convert argument expressions to literals
   std::vector<const Literal*> lits;
