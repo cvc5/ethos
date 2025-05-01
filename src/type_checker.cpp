@@ -1154,6 +1154,10 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_HASH:
     {
       Assert(args.size() == 1);
+      if (args[0]->isEvaluatable())
+      {
+        return d_null;
+      }
       size_t h = d_state.getHash(args[0]);
       Literal lh(Integer(static_cast<unsigned int>(h)));
       return Expr(d_state.mkLiteralInternal(lh));
@@ -1161,6 +1165,10 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     break;
     case Kind::EVAL_COMPARE:
     {
+      if (args[0]->isEvaluatable() || args[1]->isEvaluatable())
+      {
+        return d_null;
+      }
       size_t h1 = d_state.getHash(args[0]);
       size_t h2 = d_state.getHash(args[1]);
       Literal lb(h1 > h2);
@@ -1175,6 +1183,10 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_IS_VAR:
     {
       Assert(args.size() == 1);
+      if (args[0]->isEvaluatable())
+      {
+        return d_null;
+      }
       Kind kk;
       switch (k)
       {
@@ -1193,14 +1205,17 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     break;
     case Kind::EVAL_TYPE_OF:
     {
-      // get the type if ground
-      Expr e(args[0]);
-      Expr et = getType(e);
-      if (et.isGround())
+      if (!args[0]->isEvaluatable())
       {
-        // don't permit ground evaluatable types
-        Assert(!et.isEvaluatable());
-        return et;
+        // get the type if ground
+        Expr e(args[0]);
+        Expr et = getType(e);
+        if (et.isGround())
+        {
+          // don't permit ground evaluatable types
+          Assert(!et.isEvaluatable());
+          return et;
+        }
       }
       return d_null;
     }
@@ -1218,7 +1233,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_VAR:
     {
       // if arguments are ground and the first argument is a string
-      if (args[0]->getKind() == Kind::STRING)
+      if (args[0]->getKind() == Kind::STRING && !args[1]->isEvaluatable())
       {
         Expr type(args[1]);
         Expr tt = getType(type);
@@ -1247,6 +1262,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
           return ac->d_attrConsTerm;
         }
       }
+      return d_null;
     }
     break;
     case Kind::EVAL_DT_CONSTRUCTORS:
@@ -1292,6 +1308,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
         }
         return ac->d_attrConsTerm;
       }
+      return d_null;
     }
     break;
     default:
