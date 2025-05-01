@@ -1087,7 +1087,9 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     break;
     case Kind::EVAL_REQUIRES:
     {
-      // eagerly
+      // (eo::requires t s r) ---> r if (eo::is_eq t s) = true
+      // Note that this is independent of whether r is ground, and hence is
+      // a special case prior to check for all arguments to be ground.
       if (args[0]->isGround() && !args[0]->isEvaluatable()
           && args[1]->isGround() && !args[1]->isEvaluatable()
           && args[0] == args[1])
@@ -1118,16 +1120,22 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_IS_OK:
     {
       Assert(args.size() == 1);
-      // returns true or false based on whether the argument is stuck
+      // returns false iff the argument is stuck, only evaluated if the argument
+      // is ground.
       return d_state.mkBool(!args[0]->isEvaluatable());
     }
     break;
     case Kind::EVAL_IS_EQ:
     {
       Assert(args.size() == 2);
-      // true if both arguments are not stuck and are equal, false otherwise
       // Note that (eo::is_eq t s) is equivalent to
       // (eo::ite (eo::and (eo::is_ok t) (eo::is_ok s)) (eo::eq s t) false)
+      // In other words, eo::is_eq if true if both arguments are syntactically
+      // equal and not stuck, false otherwise.
+      // Since eo::and does not short circuit, this means that the condition of
+      // the ITE is only evaluated when t and s are ground, hence eo::is_eq
+      // only evaluates when its arguments are ground, and so it is handled
+      // here.
       return d_state.mkBool(!args[0]->isEvaluatable()
                             && !args[1]->isEvaluatable() && args[0] == args[1]);
     }
@@ -1139,6 +1147,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       {
         return d_state.mkBool(args[0] == args[1]);
       }
+      // does not evaluate otherwise
       return d_null;
     }
     break;
