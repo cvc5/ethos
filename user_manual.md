@@ -690,6 +690,7 @@ Note, however, that the evaluation of these operators is handled by more efficie
 
 - `(eo::eq t1 t2)`
   - If `t1` and `t2` are ground values, this returns `true` if `t1` is (syntactically) equal to `t2` and false otherwise. Otherwise, if either `t1` or `t2` is non-ground, it does not evaluate.
+
 - `(eo::is_eq t1 t2)`
   - Equivalent to `(eo::ite (eo::and (eo::is_ok t) (eo::is_ok s)) (eo::eq s t) false)`.
 
