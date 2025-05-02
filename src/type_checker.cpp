@@ -1143,7 +1143,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_EQ:
     {
       // syntactic equality, only evaluated if the terms are values
-      if (args[0]->isEvaluatable() && args[1]->isEvaluatable())
+      if (!args[0]->isEvaluatable() && !args[1]->isEvaluatable())
       {
         return d_state.mkBool(args[0] == args[1]);
       }
