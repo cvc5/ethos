@@ -1183,10 +1183,6 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_IS_VAR:
     {
       Assert(args.size() == 1);
-      if (args[0]->isEvaluatable())
-      {
-        return d_null;
-      }
       Kind kk;
       switch (k)
       {
