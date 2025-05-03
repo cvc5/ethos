@@ -546,6 +546,7 @@ bool TypeChecker::match(ExprValue* a,
           ExprValue* t = d_state.lookupType(curr.second);
           if (t == nullptr)
           {
+            std::cout << "Failed to get type of " << Expr(t) << std::endl;
             return false;
           }
           stack.emplace_back(curr.first->d_children[1], t);
