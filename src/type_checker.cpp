@@ -805,16 +805,6 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
             }
           }
             break;
-          case Kind::ANNOT_PARAM:
-          {
-            // if the type is ground, we can "evaluate" to the first argument
-            if (cchildren[0]->isGround() || cchildren[1]->isGround())
-            {
-              // by construction, cchildren[0] should have type cchildren[1]
-              evaluated = Expr(cchildren[0]);
-            }
-          }
-            break;
           default:
             if (isLiteralOp(ck))
             {
@@ -1132,6 +1122,18 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       return d_null;
     }
     break;
+    case Kind::ANNOT_PARAM:
+    {
+      // if the first argument is ground, then we know by construction
+      // if the second argument is ground, then as an optimization,
+      // we can simply return the second argument.
+      if (args[0]->isGround() || args[1]->isGround())
+      {
+        // by construction, args[0] should have type args[1]
+        return Expr(args[0]);
+      }
+    }
+      break;
     case Kind::EVAL_REQUIRES:
     {
       if (args[0]==args[1])
