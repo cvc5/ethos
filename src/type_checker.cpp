@@ -463,6 +463,7 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
         }
         (*out) << std::endl;
         (*out) << "  Context " << ctx << std::endl;
+        AlwaysAssert(false);
       }
       return d_null;
     }

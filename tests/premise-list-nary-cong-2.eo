@@ -9,7 +9,7 @@
     )
 )
 
-(program mk_nary_cong_eq ((U Type) (f (-> U U)) (t1 U :list) (t2 U :list) (s1 U) (s2 U) (tail Bool :list))
+(program mk_nary_cong_eq ((U Type) (f (-> U U U)) (t1 U :list) (t2 U :list) (s1 U) (s2 U) (tail Bool :list))
     ((-> U U) Bool) Bool
     (
         ((mk_nary_cong_eq f true)                 (= true true))
@@ -17,7 +17,7 @@
     )
 )
 
-(declare-rule nary_cong ((U Type) (E Bool) (f (-> U U)))
+(declare-rule nary_cong ((U Type) (E Bool) (f (-> U U U)))
     :premise-list E and
     :args (f)
     :conclusion (mk_nary_cong_eq f E)

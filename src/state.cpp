@@ -1259,6 +1259,10 @@ const ExprValue* State::getBaseOperator(const ExprValue * v) const
 
 Attr State::getConstructorKind(const ExprValue* v) const
 {
+  if (v->getKind()==Kind::ANNOT_PARAM)
+  {
+    return getConstructorKind(v->d_children[0]);
+  }
   const AppInfo* ai = getAppInfo(v);
   if (ai!=nullptr)
   {
@@ -1426,7 +1430,7 @@ bool State::isProofRuleSorry(const ExprValue* e) const
 
 AppInfo* State::getAppInfo(const ExprValue* e)
 {
-  Assert (e->getKind()!=Kind::PARAMETERIZED);
+  Assert (e->getKind()!=Kind::ANNOT_PARAM);
   std::map<const ExprValue *, AppInfo>::iterator it = d_appData.find(e);
   if (it!=d_appData.end())
   {
@@ -1437,7 +1441,7 @@ AppInfo* State::getAppInfo(const ExprValue* e)
 
 const AppInfo* State::getAppInfo(const ExprValue* e) const
 {
-  Assert (e->getKind()!=Kind::PARAMETERIZED);
+  Assert (e->getKind()!=Kind::ANNOT_PARAM);
   std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(e);
   if (it!=d_appData.end())
   {
@@ -1520,6 +1524,10 @@ void State::defineProgram(const Expr& v, const Expr& prog)
 
 bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
 {
+  if (v.getKind()==Kind::ANNOT_PARAM)
+  {
+    return markConstructorKind(v[0], a, cons);
+  }
   Expr acons = cons;
   if (a==Attr::ORACLE)
   {
