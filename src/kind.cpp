@@ -229,6 +229,7 @@ bool isLiteralOp(Kind k)
 {
   switch(k)
   {
+    case Kind::ANNOT_PARAM:
     case Kind::EVAL_IS_EQ:
     case Kind::EVAL_IF_THEN_ELSE:
     case Kind::EVAL_REQUIRES:

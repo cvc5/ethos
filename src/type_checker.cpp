@@ -139,6 +139,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
   // check arities
   switch(k)
   {
+    case Kind::ANNOT_PARAM:
     case Kind::EVAL_IS_EQ:
     case Kind::EVAL_VAR:
     case Kind::EVAL_INT_DIV:
@@ -463,7 +464,6 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
         }
         (*out) << std::endl;
         (*out) << "  Context " << ctx << std::endl;
-        AlwaysAssert(false);
       }
       return d_null;
     }
@@ -808,7 +808,7 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
           case Kind::ANNOT_PARAM:
           {
             // if the type is ground, we can "evaluate" to the first argument
-            if (cchildren[1]->isGround())
+            if (cchildren[0]->isGround() || cchildren[1]->isGround())
             {
               // by construction, cchildren[0] should have type cchildren[1]
               evaluated = Expr(cchildren[0]);

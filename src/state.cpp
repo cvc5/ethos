@@ -1430,7 +1430,8 @@ bool State::isProofRuleSorry(const ExprValue* e) const
 
 AppInfo* State::getAppInfo(const ExprValue* e)
 {
-  Assert (e->getKind()!=Kind::ANNOT_PARAM);
+  // we may be an ANNOT_PARAM here, which will never have relevant properties
+  // in the context where it is being used as the head of an application
   std::map<const ExprValue *, AppInfo>::iterator it = d_appData.find(e);
   if (it!=d_appData.end())
   {
@@ -1441,7 +1442,7 @@ AppInfo* State::getAppInfo(const ExprValue* e)
 
 const AppInfo* State::getAppInfo(const ExprValue* e) const
 {
-  Assert (e->getKind()!=Kind::ANNOT_PARAM);
+  // similar to above, we may be ANNOT_PARAM.
   std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(e);
   if (it!=d_appData.end())
   {
