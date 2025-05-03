@@ -40,7 +40,8 @@ enum class Kind
   AS_RETURN,  // SMT-LIB (as t T), where T is the return type of t
   PARAMETERIZED,
   APPLY_OPAQUE,
-  ANNOT_PARAM,  // a parameter with non-ground type that appears in type checking
+  ANNOT_PARAM,  // a parameter with non-ground type that appears in type
+                // checking
 
   // symbols
   PARAM,

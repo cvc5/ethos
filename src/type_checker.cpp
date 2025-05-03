@@ -539,12 +539,12 @@ bool TypeChecker::match(ExprValue* a,
       if (curr.first->getNumChildren() != curr.second->getNumChildren()
           || curr.first->getKind() != curr.second->getKind())
       {
-        if (curr.first->getKind()==Kind::ANNOT_PARAM)
+        if (curr.first->getKind() == Kind::ANNOT_PARAM)
         {
           stack.emplace_back(curr.first->d_children[0], curr.second);
           // independently check its type
           ExprValue* t = d_state.lookupType(curr.second);
-          if (t==nullptr)
+          if (t == nullptr)
           {
             return false;
           }
@@ -557,7 +557,8 @@ bool TypeChecker::match(ExprValue* a,
         // recurse on children
         for (size_t i = 0, n = curr.first->getNumChildren(); i < n; ++i)
         {
-          stack.emplace_back(curr.first->d_children[i], curr.second->d_children[i]);
+          stack.emplace_back(curr.first->d_children[i],
+                             curr.second->d_children[i]);
         }
       }
     }
