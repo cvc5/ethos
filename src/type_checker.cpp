@@ -1135,8 +1135,11 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       // to the type of the (instantiated) first argument.
       if (args[0]->isGround())
       {
-        // by construction, args[0] should have type args[1]
-        return Expr(args[0]);
+        // by construction, args[0] should have type args[1], this is
+        // an assertion that is not checked in production.
+        Expr ret(args[0]);
+        Assert (getType(ret).getValue()==args[1]);
+        return Expr(ret);
       }
     }
       break;
