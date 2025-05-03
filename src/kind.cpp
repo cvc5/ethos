@@ -42,6 +42,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::AS_RETURN: o << "AS_RETURN"; break;
     case Kind::PARAMETERIZED: o << "PARAMETERIZED"; break;
     case Kind::APPLY_OPAQUE: o << "APPLY_OPAQUE"; break;
+    case Kind::ANNOT_PARAM: o << "ANNOT_PARAM"; break;
     // literals
     case Kind::BOOLEAN: o << "BOOLEAN"; break;
     case Kind::NUMERAL: o << "NUMERAL"; break;
@@ -122,6 +123,7 @@ std::string kindToTerm(Kind k)
     // terms
     case Kind::APPLY: ss << "_"; break;
     case Kind::APPLY_OPAQUE: ss << "_"; break;
+    case Kind::ANNOT_PARAM: ss << "eo::param"; break;
     case Kind::LAMBDA: ss << "lambda"; break;
     case Kind::PROGRAM: ss << "program"; break;
     case Kind::AS: ss << "eo::as"; break;

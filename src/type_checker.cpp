@@ -256,6 +256,9 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       }
     }
       return d_state.mkType();
+    case Kind::ANNOT_PARAM:
+      // its type is the second child
+      return Expr(e->d_children[1]);
     case Kind::QUOTE_TYPE:
     case Kind::OPAQUE_TYPE:
     case Kind::NULL_TYPE:
@@ -536,12 +539,26 @@ bool TypeChecker::match(ExprValue* a,
       if (curr.first->getNumChildren() != curr.second->getNumChildren()
           || curr.first->getKind() != curr.second->getKind())
       {
+        if (curr.first->getKind()==Kind::ANNOT_PARAM)
+        {
+          stack.emplace_back(curr.first->d_children[0], curr.second);
+          // independently check its type
+          ExprValue* t = d_state.lookupType(curr.second);
+          if (t==nullptr)
+          {
+            return false;
+          }
+          stack.emplace_back(curr.first->d_children[1], t);
+        }
         return false;
       }
-      // recurse on children
-      for (size_t i = 0, n = curr.first->getNumChildren(); i < n; ++i)
+      else
       {
-        stack.emplace_back((*curr.first)[i], (*curr.second)[i]);
+        // recurse on children
+        for (size_t i = 0, n = curr.first->getNumChildren(); i < n; ++i)
+        {
+          stack.emplace_back(curr.first->d_children[i], curr.second->d_children[i]);
+        }
       }
     }
   }
