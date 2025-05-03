@@ -1129,8 +1129,12 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::ANNOT_PARAM:
     {
       // if the first argument is ground, then we know by construction
+      // that its type is equal to the second argument. This invariant
+      // is ensured by the fact that the context we are in is the result
+      // of a context that was extended by matching the second argument
+      // to the type of the (instantiated) first argument.
       // if the second argument is ground, then as an optimization,
-      // we can simply return the second argument.
+      // we can simply return the second argument. TODO: remove?
       if (args[0]->isGround() || args[1]->isGround())
       {
         // by construction, args[0] should have type args[1]
