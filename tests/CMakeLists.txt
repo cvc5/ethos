@@ -147,6 +147,7 @@ set(ethos_test_file_list
     set-empty-amb.eo
     const-array.eo
     type-var-exists.eo
+    array-ext-implicit-type-infer.eo
 )
 
 if(ENABLE_ORACLES)

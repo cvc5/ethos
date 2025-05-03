@@ -546,12 +546,14 @@ bool TypeChecker::match(ExprValue* a,
           ExprValue* t = d_state.lookupType(curr.second);
           if (t == nullptr)
           {
-            std::cout << "Failed to get type of " << Expr(t) << std::endl;
             return false;
           }
           stack.emplace_back(curr.first->d_children[1], t);
         }
-        return false;
+        else
+        {
+          return false;
+        }
       }
       else
       {
@@ -799,6 +801,16 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
                   canEvaluate = false;
                 }
               }
+            }
+          }
+            break;
+          case Kind::ANNOT_PARAM:
+          {
+            // if the type is ground, we can "evaluate" to the first argument
+            if (cchildren[1]->isGround())
+            {
+              // by construction, cchildren[0] should have type cchildren[1]
+              evaluated = Expr(cchildren[0]);
             }
           }
             break;
