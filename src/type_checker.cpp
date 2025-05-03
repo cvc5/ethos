@@ -540,6 +540,10 @@ bool TypeChecker::match(ExprValue* a,
       if (curr.first->getNumChildren() != curr.second->getNumChildren()
           || curr.first->getKind() != curr.second->getKind())
       {
+        // Special case: if we are an annotated parameter, then matching takes into account
+        // its *type*. In particular, the type of the term we are matching is matched
+        // against the annotated type. This has the effect that free parameters in the
+        // type of parameters are also bound, if the parameter is annotated.
         if (curr.first->getKind() == Kind::ANNOT_PARAM)
         {
           stack.emplace_back(curr.first->d_children[0], curr.second);
