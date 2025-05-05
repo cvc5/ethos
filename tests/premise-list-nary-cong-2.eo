@@ -2,15 +2,15 @@
 (declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 (declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
 
-(program add_nary_arg ((U Type) (f (-> U U)) (s1 U) (s2 U) (t1 U) (t2 U) (nil U :list))
-    ((-> U U) U U Bool) Bool
+(program add_nary_arg ((U Type) (f (-> U U U)) (s1 U) (s2 U) (t1 U) (t2 U) (nil U :list))
+    ((-> U U U) U U Bool) Bool
     (
       ((add_nary_arg f s1 s2 (= t1 t2)) (= (f s1 t1) (f s2 t2)))
     )
 )
 
 (program mk_nary_cong_eq ((U Type) (f (-> U U U)) (t1 U :list) (t2 U :list) (s1 U) (s2 U) (tail Bool :list))
-    ((-> U U) Bool) Bool
+    ((-> U U U) Bool) Bool
     (
         ((mk_nary_cong_eq f true)                 (= true true))
         ((mk_nary_cong_eq f (and (= s1 s2) tail)) (add_nary_arg f s1 s2 (mk_nary_cong_eq f tail)))
