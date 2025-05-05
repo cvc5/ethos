@@ -494,11 +494,20 @@ bool TypeChecker::match(ExprValue* a,
   {
     curr = stack.back();
     stack.pop_back();
-    if (curr.first == curr.second)
+    // if we are ground
+    if (curr.first->isGround())
     {
-      // holds trivially
-      continue;
+      if (curr.first == curr.second)
+      {
+        // holds trivially
+        continue;
+      }
+      // otherwise fails
+      return false;
     }
+    // note that if curr.first == curr.second, and both are non-ground,
+    // then we still require recursing, which will bind identity substitutions
+    // on each of their parameters.
     it = visited.find(curr);
     if (it != visited.end())
     {
