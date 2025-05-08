@@ -549,10 +549,11 @@ bool TypeChecker::match(ExprValue* a,
       if (curr.first->getNumChildren() != curr.second->getNumChildren()
           || curr.first->getKind() != curr.second->getKind())
       {
-        // Special case: if we are an annotated parameter, then matching takes into account
-        // its *type*. In particular, the type of the term we are matching is matched
-        // against the annotated type. This has the effect that free parameters in the
-        // type of parameters are also bound, if the parameter is annotated.
+        // Special case: if we are an annotated parameter, then matching takes
+        // into account its *type*. In particular, the type of the term we are
+        // matching is matched against the annotated type. This has the effect
+        // that free parameters in the type of parameters are also bound, if the
+        // parameter is annotated.
         if (curr.first->getKind() == Kind::ANNOT_PARAM)
         {
           stack.emplace_back(curr.first->d_children[0], curr.second);
@@ -1147,11 +1148,11 @@ Expr TypeChecker::evaluateLiteralOpInternal(
         // by construction, args[0] should have type args[1], this is
         // an assertion that is not checked in production.
         Expr ret(args[0]);
-        Assert (getType(ret).getValue()==args[1]);
+        Assert(getType(ret).getValue() == args[1]);
         return Expr(ret);
       }
     }
-      break;
+    break;
     case Kind::EVAL_REQUIRES:
     {
       if (args[0]==args[1])
