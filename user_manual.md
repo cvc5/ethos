@@ -669,7 +669,7 @@ In other words, apart from `eo::ite`, all evaluation proceeds bottom-up,
 where their arguments are evaluated before the builtin operator is evaluated.
 
 In the following, we say a term is _ground_ if it contains no parameters as subterms.
-We say a term is a _value_ if it is ground and has no occurrences of builtin operators that failed to evaluate.
+We say a term is a _value_ if it is ground and has no occurrences of builtin operators or programs that failed to evaluate.
 We say an _arithmetic value_ is a numeral, decimal or rational value.
 We say a _bitwise value_ is a binary or hexadecimal value.
 A 32-bit numeral value is a numeral value between `0` and `2^32-1`.
