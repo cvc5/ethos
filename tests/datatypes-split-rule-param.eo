@@ -4,7 +4,7 @@
 ;(define as ((T Type :implicit) (x T) (S Type)) (as x S))
 
 (declare-type Int ())
-(declare-datatypes ((Lst 1)) ((par (X)((cons (head X) (tail (Lst X))) (nil)))))
+(declare-datatypes ((Lst 1)) ((par (X) ((cons (head X) (tail (Lst X))) (nil)))))
 
 
 (declare-parameterized-const is ((C Type :implicit) (D Type :implicit)) (-> C D Bool))
@@ -30,7 +30,7 @@
 
 
 (program $mk_dt_inst ((D Type) (x D) (T Type) (t T) (S Type) (s S) (xs eo::List :list))
-  (eo::List D T) Bool
+  (eo::List D T) D
   (
     (($mk_dt_inst eo::List::nil x t)          t)
     (($mk_dt_inst (eo::List::cons s xs) x t)  ($mk_dt_inst xs x (t (s x))))
