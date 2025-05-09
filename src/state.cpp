@@ -1263,6 +1263,13 @@ const ExprValue* State::getBaseOperator(const ExprValue * v) const
 
 Attr State::getConstructorKind(const ExprValue* v) const
 {
+  // If we ask for the constructor kind of an annotated parameter,
+  // it is stored on the parameter it annotates. This makes a difference
+  // for parameters with non-ground type that are marked :list.
+  if (v->getKind() == Kind::ANNOT_PARAM)
+  {
+    return getConstructorKind(v->d_children[0]);
+  }
   const AppInfo* ai = getAppInfo(v);
   if (ai!=nullptr)
   {
@@ -1430,7 +1437,8 @@ bool State::isProofRuleSorry(const ExprValue* e) const
 
 AppInfo* State::getAppInfo(const ExprValue* e)
 {
-  Assert (e->getKind()!=Kind::PARAMETERIZED);
+  // we may be an ANNOT_PARAM here, which will never have relevant properties
+  // in the context where it is being used as the head of an application
   std::map<const ExprValue *, AppInfo>::iterator it = d_appData.find(e);
   if (it!=d_appData.end())
   {
@@ -1441,7 +1449,7 @@ AppInfo* State::getAppInfo(const ExprValue* e)
 
 const AppInfo* State::getAppInfo(const ExprValue* e) const
 {
-  Assert (e->getKind()!=Kind::PARAMETERIZED);
+  // similar to above, we may be ANNOT_PARAM.
   std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(e);
   if (it!=d_appData.end())
   {
@@ -1524,6 +1532,11 @@ void State::defineProgram(const Expr& v, const Expr& prog)
 
 bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
 {
+  // If marking an annotated parameter, we mark the parameter it annotates.
+  if (v.getKind() == Kind::ANNOT_PARAM)
+  {
+    return markConstructorKind(v[0], a, cons);
+  }
   Expr acons = cons;
   if (a==Attr::ORACLE)
   {

@@ -1,5 +1,5 @@
-(program maybe_nil ((T Type) (t T))
-    (T T) T
+(program maybe_nil ((T Type) (U Type) (t T))
+    (T U) T
     (
       ((maybe_nil t t)       t)
       ((maybe_nil t "") t)
