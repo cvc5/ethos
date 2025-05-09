@@ -175,9 +175,11 @@ Expr ExprParser::parseExpr()
             // we allow the syntax ((_ to begin a term
             pstack.emplace_back(ParseCtx::NEXT_ARG);
             tok = d_lex.nextToken();
-            if (tokenStrToSymbol(tok)!="_")
+            if (tokenStrToSymbol(tok) != "_" && tokenStrToSymbol(tok) != "as")
             {
-              d_lex.parseError("Expected indexed symbol as head of apply");
+              d_lex.parseError(
+                  "Expected qualified identifier or indexed symbol as head of "
+                  "apply");
             }
           }
           case Token::SYMBOL:
@@ -769,6 +771,14 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList(
     else
     {
       v = d_state.mkSymbol(Kind::PARAM, name, t);
+      // if this parameter is used to define the type of a constant or proof
+      // rule, then if it has non-ground type, its type will be taken into
+      // account for matching and evaluation. We wrap it in (eo::param ...)
+      // here.
+      if ((k == Kind::CONST || k == Kind::PROOF_RULE) && !t.isGround())
+      {
+        v = d_state.mkExpr(Kind::ANNOT_PARAM, {v, t});
+      }
       bind(name, v);
       // parse attribute list
       AttrMap& attrs = amap[v.getValue()];

@@ -139,6 +139,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
   // check arities
   switch(k)
   {
+    case Kind::ANNOT_PARAM:
     case Kind::EVAL_IS_EQ:
     case Kind::EVAL_VAR:
     case Kind::EVAL_INT_DIV:
@@ -256,6 +257,9 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       }
     }
       return d_state.mkType();
+    case Kind::ANNOT_PARAM:
+      // its type is the second child
+      return Expr(e->d_children[1]);
     case Kind::QUOTE_TYPE:
     case Kind::OPAQUE_TYPE:
     case Kind::TUPLE:
@@ -489,11 +493,20 @@ bool TypeChecker::match(ExprValue* a,
   {
     curr = stack.back();
     stack.pop_back();
-    if (curr.first == curr.second)
+    // if we are ground
+    if (curr.first->isGround())
     {
-      // holds trivially
-      continue;
+      if (curr.first == curr.second)
+      {
+        // holds trivially
+        continue;
+      }
+      // otherwise fails
+      return false;
     }
+    // note that if curr.first == curr.second, and both are non-ground,
+    // then we still require recursing, which will bind identity substitutions
+    // on each of their parameters.
     it = visited.find(curr);
     if (it != visited.end())
     {
@@ -535,12 +548,35 @@ bool TypeChecker::match(ExprValue* a,
       if (curr.first->getNumChildren() != curr.second->getNumChildren()
           || curr.first->getKind() != curr.second->getKind())
       {
-        return false;
+        // Special case: if we are an annotated parameter, then matching takes
+        // into account its *type*. In particular, the type of the term we are
+        // matching is matched against the annotated type. This has the effect
+        // that free parameters in the type of parameters are also bound, if the
+        // parameter is annotated.
+        if (curr.first->getKind() == Kind::ANNOT_PARAM)
+        {
+          stack.emplace_back(curr.first->d_children[0], curr.second);
+          // independently check its type
+          ExprValue* t = d_state.lookupType(curr.second);
+          if (t == nullptr)
+          {
+            return false;
+          }
+          stack.emplace_back(curr.first->d_children[1], t);
+        }
+        else
+        {
+          return false;
+        }
       }
-      // recurse on children
-      for (size_t i = 0, n = curr.first->getNumChildren(); i < n; ++i)
+      else
       {
-        stack.emplace_back((*curr.first)[i], (*curr.second)[i]);
+        // recurse on children
+        for (size_t i = 0, n = curr.first->getNumChildren(); i < n; ++i)
+        {
+          stack.emplace_back(curr.first->d_children[i],
+                             curr.second->d_children[i]);
+        }
       }
     }
   }
@@ -1097,6 +1133,23 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       }
       // note that we do not simplify based on the branches being equal
       return d_null;
+    }
+    break;
+    case Kind::ANNOT_PARAM:
+    {
+      // if the first argument is ground, then we know by construction
+      // that its type is equal to the second argument. This invariant
+      // is ensured by the fact that the context we are in is the result
+      // of a context that was extended by matching the second argument
+      // to the type of the (instantiated) first argument.
+      if (args[0]->isGround())
+      {
+        // by construction, args[0] should have type args[1], this is
+        // an assertion that is not checked in production.
+        Expr ret(args[0]);
+        Assert(getType(ret).getValue() == args[1]);
+        return Expr(ret);
+      }
     }
     break;
     case Kind::EVAL_REQUIRES:
