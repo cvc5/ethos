@@ -1698,26 +1698,8 @@ bool TypeChecker::computedParameterizedInternal(AppInfo* ai,
     }
     args.emplace_back(cv);
   }
-  // the head is now disambiguated
-  Trace("type_checker_debug") << "Infered parameterized op" << std::endl;
-  Ctx ctx;
-  if (args.size()==ct[0].getNumChildren())
-  {
-    for (size_t i=0, nparams = args.size(); i<nparams; i++)
-    {
-      ctx[ct[0][i].getValue()] = args[i].getValue();
-    }
-  }
-  else
-  {
-    // error
-    Warning() << "Unexpected number of parameters for " << hd[1]
-              << ", expected " << ct.getNumChildren() << " parameters, got "
-              << args.size() << std::endl;
-    return false;
-  }
-  Trace("type_checker") << "Context for constructor term: " << ctx << std::endl;
-  nil = evaluate(ct[1].getValue(), ctx);
+  Trace("type_checker") << "Context for constructor term: " << tctx << std::endl;
+  nil = evaluate(ct[1].getValue(), tctx);
   return true;
 }
 
