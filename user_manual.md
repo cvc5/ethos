@@ -282,11 +282,9 @@ An example of this annotation is the following:
 
 ```smt
 (declare-type Array (Type Type))
-(declare-parameterized-const @array_diff ((T Type :implicit) (U Type :implicit))
-   (->
-   (! (Array T U) :opaque)
-   (! (Array T U) :opaque)
-   T))
+(declare-parameterized-const @array_diff
+  ((T Type :implicit) (U Type :implicit) (t (Array T U) :opaque) (u (Array T U) :opaque))
+   T)
 
 (declare-type Int ())
 (declare-const A (Array Int Int))
@@ -309,14 +307,14 @@ For example:
 
 ```smt
 (declare-type Int ())
-(declare-const @purify_fun (-> (! (-> Int Int) :opaque) Int Int))
+(declare-parameterized-const @purify_fun ((f (-> Int Int) :opaque)) (-> Int Int))
 
 (declare-const f (-> Int Int))
 (declare-const a Int)
 (define d () (@purify_fun f a) :type Int)
 ```
 
-In this example, `@purify_fun` is declared as a function with one opaque argument, and ordinary integer argument, and returns an integer.
+In this example, `@purify_fun` is declared as a function with one opaque argument, an ordinary integer argument, and returns an integer.
 Intuitively, this definition is introducing a new function, indexed by a function, that is of type `(-> Int Int)`.
 After parsing, the term `(@purify_fun f a)` is a function application whose operator is `(@purify_fun f)` and has a single child `a`.
 
