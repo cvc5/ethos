@@ -282,11 +282,9 @@ An example of this annotation is the following:
 
 ```smt
 (declare-type Array (Type Type))
-(declare-parameterized-const @array_diff ((T Type :implicit) (U Type :implicit))
-   (->
-   (! (Array T U) :opaque)
-   (! (Array T U) :opaque)
-   T))
+(declare-parameterized-const @array_diff
+  ((T Type :implicit) (U Type :implicit) (t (Array T U) :opaque) (u (Array T U) :opaque))
+   T)
 
 (declare-type Int ())
 (declare-const A (Array Int Int))
@@ -309,7 +307,7 @@ For example:
 
 ```smt
 (declare-type Int ())
-(declare-const @purify_fun (-> (! (-> Int Int) :opaque) Int Int))
+(declare-parameterized-const @purify_fun ((f (-> Int Int) :opaque)) (-> Int Int))
 
 (declare-const f (-> Int Int))
 (declare-const a Int)
