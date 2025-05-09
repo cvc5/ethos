@@ -188,13 +188,6 @@ bool CmdParser::parseNextCommand()
                 : d_state.mkFunctionType(sorts, ret);
       }
       std::vector<Expr> opaqueArgs;
-      while (t.getKind()==Kind::FUNCTION_TYPE && t[0].getKind()==Kind::OPAQUE_TYPE)
-      {
-        Assert (t.getNumChildren()==2);
-        Assert (t[0].getNumChildren()==1);
-        opaqueArgs.push_back(t[0][0]);
-        t = t[1];
-      }
       // process the parameter list
       if (!params.empty())
       {

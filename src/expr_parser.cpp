@@ -471,25 +471,10 @@ Expr ExprParser::parseExpr()
           // process the attributes
           for (std::pair<const Attr, std::vector<Expr>>& a : attrs)
           {
-            switch(a.first)
-            {
-              case Attr::REQUIRES:
-                ret = d_state.mkRequires(a.second, ret);
-                break;
-              case Attr::OPAQUE:
-                if (ret.getKind()==Kind::EVAL_REQUIRES)
-                {
-                  d_lex.parseError("Cannot combine opaque and requires");
-                }
-                ret = d_state.mkExpr(Kind::OPAQUE_TYPE, {ret});
-                break;
-              default:
-                // ignored
-                std::stringstream ss;
-                ss << "Unprocessed attribute " << a.first;
-                d_lex.warning(ss.str());
-                break;
-            }
+            // all term attributes are ignored
+            std::stringstream ss;
+            ss << "Unprocessed attribute " << a.first;
+            d_lex.warning(ss.str());
           }
           d_lex.eatToken(Token::RPAREN);
           // finished parsing attributes, ret is either nullptr if implicit,

@@ -24,7 +24,6 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::ABSTRACT_TYPE: o << "ABSTRACT_TYPE"; break;
     case Kind::BOOL_TYPE: o << "BOOL_TYPE"; break;
     case Kind::QUOTE_TYPE: o << "QUOTE_TYPE"; break;
-    case Kind::OPAQUE_TYPE: o << "OPAQUE_TYPE"; break;
     // terms
     case Kind::APPLY: o << "APPLY"; break;
     case Kind::LAMBDA: o << "LAMBDA"; break;
@@ -117,7 +116,6 @@ std::string kindToTerm(Kind k)
     case Kind::BOOL_TYPE: ss << "Bool"; break;
     case Kind::QUOTE_TYPE: ss << "Quote"; break;
     case Kind::TUPLE: ss << "eo::tuple"; break;
-    case Kind::OPAQUE_TYPE: ss << "Opaque"; break;
     // terms
     case Kind::APPLY: ss << "_"; break;
     case Kind::APPLY_OPAQUE: ss << "_"; break;

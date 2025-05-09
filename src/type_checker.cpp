@@ -261,7 +261,6 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       // its type is the second child
       return Expr(e->d_children[1]);
     case Kind::QUOTE_TYPE:
-    case Kind::OPAQUE_TYPE:
     case Kind::TUPLE:
       // These things are essentially not typed.
       // We require the first 3 to be an abstract type, not type,

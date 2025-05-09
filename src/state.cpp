@@ -529,11 +529,7 @@ Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool 
     }while (rk==Kind::EVAL_REQUIRES);
   }
   // no way to construct quote types, e.g. on return types
-  Assert ( rk!=Kind::QUOTE_TYPE);
-  if (rk==Kind::OPAQUE_TYPE)
-  {
-    EO_FATAL() << "Cannot use :opaque on return types, got " << ret;
-  }
+  Assert (rk!=Kind::QUOTE_TYPE);
   for (size_t i=0, nargs = args.size(); i<nargs; i++)
   {
     Expr a = args[(nargs-1)-i];
