@@ -1619,18 +1619,15 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
 Expr TypeChecker::computeConstructorTermInternal(AppInfo* ai, 
                                                  const std::vector<Expr>& children)
 {
-  Expr hd;
   Expr nil;
-  computedParameterizedInternal(ai, children, hd, nil);
+  computedParameterizedInternal(ai, children, nil);
   return nil;
 }
 
 bool TypeChecker::computedParameterizedInternal(AppInfo* ai,
                                                 const std::vector<Expr>& children,
-                                                Expr& hd,
                                                 Expr& nil)
 {
-  hd = children[0];
   nil = d_null;
   if (ai==nullptr)
   {
@@ -1644,81 +1641,71 @@ bool TypeChecker::computedParameterizedInternal(AppInfo* ai,
     nil = ct;
     return true;
   }
+  const Expr& hd = children[0];
   Trace("type_checker") << "Determine constructor term for " << hd << std::endl;
   // if explicit parameters, then evaluate the constructor term
-  if (hd.getKind()!=Kind::PARAMETERIZED)
+  if (children.size()==1)
   {
-    if (children.size()==1)
+    // if not in an application, we fail
+    Warning() << "Failed to determine parameters for " << hd << std::endl;
+    return false;
+  }
+  // otherwise, we must infer the parameters
+  Trace("type_checker") << "Infer params for " << hd << " @ " << children[1] << std::endl;
+  if (!isNAryAttr(ai->d_attrCons))
+  {
+    Warning() << "Unknown category for parameterized operator " << hd << std::endl;
+    return false;
+  }
+  std::vector<ExprValue*> app;
+  app.push_back(hd.getValue());
+  app.push_back(children[1].getValue());
+  // ensure children are type checked
+  for (ExprValue* e : app)
+  {
+    Expr expr(e);
+    getType(expr);
+    ExprValue* t = d_state.lookupType(e);
+    if (t==nullptr)
     {
-      // if not in an application, we fail
-      Warning() << "Failed to determine parameters for " << hd << std::endl;
+      // only warn if ground
+      if (expr.isGround())
+      {
+        Warning() << "Type inference failed for " << hd << " applied to " << children[1] << ", failed to type check " << expr << std::endl;
+      }
       return false;
     }
-    else
-    {
-      // otherwise, we must infer the parameters
-      Trace("type_checker") << "Infer params for " << hd << " @ " << children[1] << std::endl;
-      if (isNAryAttr(ai->d_attrCons))
-      {
-        std::vector<ExprValue*> app;
-        app.push_back(hd.getValue());
-        app.push_back(children[1].getValue());
-        // ensure children are type checked
-        for (ExprValue* e : app)
-        {
-          Expr expr(e);
-          getType(expr);
-          ExprValue* t = d_state.lookupType(e);
-          if (t==nullptr)
-          {
-            // only warn if ground
-            if (expr.isGround())
-            {
-              Warning() << "Type inference failed for " << hd << " applied to " << children[1] << ", failed to type check " << expr << std::endl;
-            }
-            return false;
-          }
-          Trace("type_checker_debug") << "Type for " << expr << " is " << Expr(t) << std::endl;
-        }
-        Ctx tctx;
-        getTypeAppInternal(app, tctx);
-        Trace("type_checker_debug") << "Context was " << tctx << std::endl;
-        std::vector<Expr> args;
-        for (size_t i=0, nparams = ct[0].getNumChildren(); i<nparams; i++)
-        {
-          Expr cv(tctx[ct[0][i].getValue()]);
-          if (cv.isNull())
-          {
-            Warning() << "Failed to find context for " << ct[0][i] << " when applying " << hd << " @ " << children[1] << std::endl;
-            return false;
-          }
-          if (!cv.isGround())
-          {
-            // If the parameter is non-ground, we also wait to construct;
-            // if the nil terminator is used, it will be replaced by a
-            // placeholder involving eo::nil.
-            return false;
-          }
-          args.emplace_back(cv);
-        }
-        // the head is now disambiguated
-        hd = d_state.mkParameterized(hd.getValue(), args);
-        Trace("type_checker_debug") << "Infered parameterized op " << hd << std::endl;
-      }
-      else
-      {
-        Warning() << "Unknown category for parameterized operator " << hd << std::endl;
-        return false;
-      }
-    }
+    Trace("type_checker_debug") << "Type for " << expr << " is " << Expr(t) << std::endl;
   }
-  Assert (hd.getKind()==Kind::PARAMETERIZED);
-  Ctx ctx;
-  if (hd[0].getNumChildren()==ct[0].getNumChildren())
+  Ctx tctx;
+  getTypeAppInternal(app, tctx);
+  Trace("type_checker_debug") << "Context was " << tctx << std::endl;
+  std::vector<Expr> args;
+  for (size_t i=0, nparams = ct[0].getNumChildren(); i<nparams; i++)
   {
-    for (size_t i=0, nparams = hd[0].getNumChildren(); i<nparams; i++)
+    Expr cv(tctx[ct[0][i].getValue()]);
+    if (cv.isNull())
     {
-      ctx[ct[0][i].getValue()] = hd[0][i].getValue();
+      Warning() << "Failed to find context for " << ct[0][i] << " when applying " << hd << " @ " << children[1] << std::endl;
+      return false;
+    }
+    if (!cv.isGround())
+    {
+      // If the parameter is non-ground, we also wait to construct;
+      // if the nil terminator is used, it will be replaced by a
+      // placeholder involving eo::nil.
+      return false;
+    }
+    args.emplace_back(cv);
+  }
+  // the head is now disambiguated
+  Trace("type_checker_debug") << "Infered parameterized op" << std::endl;
+  Ctx ctx;
+  if (args.size()==ct[0].getNumChildren())
+  {
+    for (size_t i=0, nparams = args.size(); i<nparams; i++)
+    {
+      ctx[ct[0][i].getValue()] = args[i].getValue();
     }
   }
   else
@@ -1726,7 +1713,7 @@ bool TypeChecker::computedParameterizedInternal(AppInfo* ai,
     // error
     Warning() << "Unexpected number of parameters for " << hd[1]
               << ", expected " << ct.getNumChildren() << " parameters, got "
-              << hd.getNumChildren() << std::endl;
+              << args.size() << std::endl;
     return false;
   }
   Trace("type_checker") << "Context for constructor term: " << ctx << std::endl;
