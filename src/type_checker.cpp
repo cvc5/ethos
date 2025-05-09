@@ -1616,30 +1616,19 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
   return nullptr;
 }
 
-Expr TypeChecker::computeConstructorTermInternal(AppInfo* ai, 
-                                                 const std::vector<Expr>& children)
+Expr TypeChecker::computeConstructorTermInternal(AppInfo* ai,
+                                                const std::vector<Expr>& children)
 {
-  Expr nil;
-  computedParameterizedInternal(ai, children, nil);
-  return nil;
-}
-
-bool TypeChecker::computedParameterizedInternal(AppInfo* ai,
-                                                const std::vector<Expr>& children,
-                                                Expr& nil)
-{
-  nil = d_null;
   if (ai==nullptr)
   {
-    return true;
+    return d_null;
   }
   // lookup the base operator if necessary
   Expr ct = ai->d_attrConsTerm;
   if (ct.isNull() || ct.getKind()!=Kind::PARAMETERIZED)
   {
     // if not parameterized, just return self
-    nil = ct;
-    return true;
+    return ct;
   }
   const Expr& hd = children[0];
   Trace("type_checker") << "Determine constructor term for " << hd << std::endl;
@@ -1648,14 +1637,14 @@ bool TypeChecker::computedParameterizedInternal(AppInfo* ai,
   {
     // if not in an application, we fail
     Warning() << "Failed to determine parameters for " << hd << std::endl;
-    return false;
+    return d_null;
   }
   // otherwise, we must infer the parameters
   Trace("type_checker") << "Infer params for " << hd << " @ " << children[1] << std::endl;
   if (!isNAryAttr(ai->d_attrCons))
   {
     Warning() << "Unknown category for parameterized operator " << hd << std::endl;
-    return false;
+    return d_null;
   }
   std::vector<ExprValue*> app;
   app.push_back(hd.getValue());
@@ -1673,34 +1662,31 @@ bool TypeChecker::computedParameterizedInternal(AppInfo* ai,
       {
         Warning() << "Type inference failed for " << hd << " applied to " << children[1] << ", failed to type check " << expr << std::endl;
       }
-      return false;
+      return d_null;
     }
     Trace("type_checker_debug") << "Type for " << expr << " is " << Expr(t) << std::endl;
   }
   Ctx tctx;
   getTypeAppInternal(app, tctx);
   Trace("type_checker_debug") << "Context was " << tctx << std::endl;
-  std::vector<Expr> args;
   for (size_t i=0, nparams = ct[0].getNumChildren(); i<nparams; i++)
   {
-    Expr cv(tctx[ct[0][i].getValue()]);
-    if (cv.isNull())
+    ExprValue* cv = tctx[ct[0][i].getValue()];
+    if (cv->isNull())
     {
       Warning() << "Failed to find context for " << ct[0][i] << " when applying " << hd << " @ " << children[1] << std::endl;
-      return false;
+      return d_null;
     }
-    if (!cv.isGround())
+    if (!cv->isGround())
     {
       // If the parameter is non-ground, we also wait to construct;
       // if the nil terminator is used, it will be replaced by a
       // placeholder involving eo::nil.
-      return false;
+      return d_null;
     }
-    args.emplace_back(cv);
   }
   Trace("type_checker") << "Context for constructor term: " << tctx << std::endl;
-  nil = evaluate(ct[1].getValue(), tctx);
-  return true;
+  return evaluate(ct[1].getValue(), tctx);
 }
 
 }  // namespace ethos

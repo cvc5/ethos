@@ -728,8 +728,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       // (prior to resolution) was PARAMETERIZED. So, for example, applying
       // `bvor` to `a` of type `(BitVec 4)` results in
       //   consTerm := #b0000.
-      Expr consTerm;
-      d_tc.computedParameterizedInternal(ai, children, consTerm);
+      Expr consTerm = d_tc.computeConstructorTermInternal(ai, children);
       Trace("state-debug") << "...updated " << consTerm << std::endl;
       vchildren[0] = hd;
       // if it has a constructor attribute
