@@ -42,6 +42,7 @@ enum class Kind
   APPLY_OPAQUE,
   ANNOT_PARAM,  // a parameter with non-ground type that appears in type
                 // checking
+  ANY,          // atomic ground term standing for an unknown
 
   // symbols
   PARAM,

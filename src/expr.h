@@ -57,6 +57,8 @@ class ExprValue
   bool isEvaluatable();
   /** Has variable */
   bool isGround();
+  /** Has "any" as a subterm? */
+  bool isAny();
  protected:
   /** The kind */
   Kind d_kind;
@@ -79,6 +81,10 @@ class ExprValue
      * Is the term non-ground, i.e. contains a parameter as a subterm?
      */
     IS_NON_GROUND = (1 << 2),
+    /**
+     * Is there an occurrence of "any"?
+     */
+    IS_ANY = (1 << 3)
   };
   char d_flags;
   /** */
@@ -151,6 +157,8 @@ class Expr
   bool isEvaluatable() const;
   /** Has variable */
   bool isGround() const;
+  /** Has "any" as a subterm? */
+  bool isAny() const;
   /** Get symbol */
   std::string getSymbol() const;
   /** Get underlying value */
