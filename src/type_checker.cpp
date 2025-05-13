@@ -941,6 +941,16 @@ Expr TypeChecker::evaluateProgram(
   return Expr(d_state.mkExprInternal(Kind::APPLY, children));
 }
 
+char TypeChecker::getFlags(const std::vector<ExprValue*>& args)
+{
+  char flags = 0;
+  for (ExprValue* e : args)
+  {
+    flags |= static_cast<uint8_t>(e->d_flags);
+  }
+  return flags;
+}
+
 bool TypeChecker::isGround(const std::vector<ExprValue*>& args)
 {
   for (ExprValue* e : args)
@@ -1125,6 +1135,11 @@ ExprValue* getNAryChildren(ExprValue* e,
   return e;
 }
 
+bool isEq(ExprValue* a, ExprValue* b)
+{
+  return a==b || a->isAny() || b->isAny();
+}
+
 Expr TypeChecker::evaluateLiteralOpInternal(
     Kind k, const std::vector<ExprValue*>& args)
 {
@@ -1142,6 +1157,10 @@ Expr TypeChecker::evaluateLiteralOpInternal(
         // eagerly evaluate even if branches are non-ground
         return Expr(args[l->d_bool ? 1 : 2]);
       }
+      else if (args[0]->isAny())
+      {
+        return d_state.mkAny();
+      }
       // note that we do not simplify based on the branches being equal
       return d_null;
     }
@@ -1155,10 +1174,14 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       // to the type of the (instantiated) first argument.
       if (args[0]->isGround())
       {
+        if (args[0]->isAny())
+        {
+          return d_state.mkAny();
+        }
         // by construction, args[0] should have type args[1], this is
         // an assertion that is not checked in production.
         Expr ret(args[0]);
-        Assert(getType(ret).getValue() == args[1]);
+        Assert(isEq(getType(ret)->getValue(), args[1]));
         return Expr(ret);
       }
     }
@@ -1170,7 +1193,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       // a special case prior to check for all arguments to be ground.
       if (args[0]->isGround() && !args[0]->isEvaluatable()
           && args[1]->isGround() && !args[1]->isEvaluatable()
-          && args[0] == args[1])
+          && isEq(args[0], args[1]))
       {
         return Expr(args[2]);
       }
@@ -1188,6 +1211,8 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     default: break;
   }
   // further evaluation only if non-ground
+  //char flags = getFlags(args);
+  //if (ExprValue::getFlag(ExprValue::Flag::IS_NON_GROUND, flags))
   if (!isGround(args))
   {
     Trace("type_checker") << "...does not evaluate (non-ground)" << std::endl;
@@ -1215,7 +1240,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       // only evaluates when its arguments are ground, and so it is handled
       // here.
       return d_state.mkBool(!args[0]->isEvaluatable()
-                            && !args[1]->isEvaluatable() && args[0] == args[1]);
+                            && !args[1]->isEvaluatable() && isEq(args[0], args[1]));
     }
     break;
     case Kind::EVAL_EQ:
@@ -1223,7 +1248,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       // syntactic equality, only evaluated if the terms are values
       if (!args[0]->isEvaluatable() && !args[1]->isEvaluatable())
       {
-        return d_state.mkBool(args[0] == args[1]);
+        return d_state.mkBool(isEq(args[0], args[1]));
       }
       // does not evaluate otherwise
       return d_null;
