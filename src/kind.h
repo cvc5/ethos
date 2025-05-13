@@ -25,7 +25,6 @@ enum class Kind
   FUNCTION_TYPE,
   PROGRAM_TYPE,
   PROOF_TYPE,
-  ABSTRACT_TYPE,
   BOOL_TYPE,
   QUOTE_TYPE,
   OPAQUE_TYPE,  // an argument marked :opaque, temporary during parsing

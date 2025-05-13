@@ -367,9 +367,6 @@ Expr ExprParser::parseExpr()
         ret = d_state.mkLiteral(Kind::STRING, str.toString());
       }
       break;
-      case Token::ABSTRACT_TYPE:
-      ret = d_state.mkAbstractType();
-      break;
       case Token::TYPE:
       ret = d_state.mkType();
       break;
@@ -570,7 +567,7 @@ Expr ExprParser::parseExpr()
               {
                 d_lex.parseError("Expected non-empty list of cases");
               }
-              Expr atype = d_state.mkAbstractType();
+              Expr atype = d_state.mkAny();
               // environment is the variable list
               std::vector<Expr> vl;
               for (size_t i = 0, nchildren = args[0].getNumChildren();

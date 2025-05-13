@@ -241,7 +241,6 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       return d_state.mkFunctionType(args, ret);
     }
     case Kind::TYPE:
-    case Kind::ABSTRACT_TYPE:
     case Kind::BOOL_TYPE:
     case Kind::FUNCTION_TYPE:
     case Kind::PROGRAM_TYPE:
@@ -270,7 +269,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       // These things are essentially not typed.
       // We require the first 3 to be an abstract type, not type,
       // to prevent them from being used as (return) types of terms.
-      return d_state.mkAbstractType();
+      return d_state.mkAny();
     case Kind::BOOLEAN:
       // note that Bool is builtin
       return d_state.mkBoolType();
@@ -1649,7 +1648,7 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_NIL:
       // type is not computable here, since it is the return type of function
       // applications of the argument. just use abstract.
-      return d_state.mkAbstractType().getValue();
+      return d_state.mkAny().getValue();
     case Kind::EVAL_NEG:
     case Kind::EVAL_AND:
     case Kind::EVAL_OR:

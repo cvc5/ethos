@@ -100,8 +100,6 @@ class State
   Expr mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool flatten = true);
   /** (-> <type>+ <type>) */
   Expr mkProgramType(const std::vector<Expr>& args, const Expr& ret);
-  /** ? */
-  Expr mkAbstractType();
   /** Bool */
   Expr mkBoolType();
   /** eo::List */
@@ -218,7 +216,6 @@ class State
   Expr d_nullType;
   Expr d_type;
   Expr d_boolType;
-  Expr d_absType;
   Expr d_true;
   Expr d_false;
   Expr d_self;
