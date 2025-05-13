@@ -350,6 +350,10 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
   ExprValue* hdType = d_state.lookupType(hd);
   Assert(hdType != nullptr) << "No type for " << Expr(hd);
   Kind hk = hdType->getKind();
+  if (hk == Kind::ANY)
+  {
+    return Expr(hdType);
+  }
   if (hk != Kind::FUNCTION_TYPE && hk != Kind::PROGRAM_TYPE)
   {
     // non-function at head
@@ -498,15 +502,18 @@ bool TypeChecker::match(ExprValue* a,
     curr = stack.back();
     stack.pop_back();
     // if we are ground
-    if (curr.first->isGround() && !curr.second->isAny())
+    if (curr.first->isGround())
     {
       if (curr.first == curr.second)
       {
         // holds trivially
         continue;
       }
-      // otherwise fails
-      return false;
+      // otherwise fails if not any
+      if (!curr.first->isAny() && !curr.second->isAny())
+      {
+        return false;
+      }
     }
     // note that if curr.first == curr.second, and both are non-ground,
     // then we still require recursing, which will bind identity substitutions
@@ -1646,6 +1653,8 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
       // NOTE: mixed arith
       return childTypes[0];
     case Kind::EVAL_NIL:
+    case Kind::EVAL_CONS:
+    case Kind::EVAL_IF_THEN_ELSE:
       // type is not computable here, since it is the return type of function
       // applications of the argument. just use abstract.
       return d_state.mkAny().getValue();
@@ -1655,9 +1664,6 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_XOR:
     case Kind::EVAL_NOT:
       return childTypes[0];
-    case Kind::EVAL_IF_THEN_ELSE:
-    case Kind::EVAL_CONS:
-      return childTypes[1];
     case Kind::EVAL_REQUIRES:
       return childTypes[2];
     case Kind::EVAL_LIST_CONCAT:
@@ -1668,6 +1674,7 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
       // type is the first child
       return childTypes[0];
     case Kind::EVAL_IS_EQ:
+    case Kind::EVAL_EQ:
     case Kind::EVAL_IS_NEG:
     case Kind::EVAL_COMPARE:
     case Kind::EVAL_IS_Z:

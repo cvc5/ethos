@@ -34,7 +34,7 @@
 )
 (declare-parameterized-const choice ((L @List)) (-> Bool ($get_choice_type L)) :binder @cons)
 
-(program $mk_skolems ((T Type) (x T) (xs @List :list) (F Bool))
+(program $mk_skolems ((x eo::?) (xs @List :list) (F Bool))
   (@List Bool) @List
   (
     (($mk_skolems (@cons x) F)    (@cons (choice (@cons x) F)))

@@ -5,23 +5,23 @@
 (include "Utils.eo")
 
 
-(program arith_rel_sum ((T Type) (U Type) (S Type) (r1 T) (r2 U))
-  (T U) S
+(program arith_rel_sum ((T Type) (U Type) (V Type) (W Type) (a eo::?) (b eo::?))
+  (T U V W) Bool
   (
-    ((arith_rel_sum < <) <)
-    ((arith_rel_sum < =) <)
-    ((arith_rel_sum < <=) <)
-    ((arith_rel_sum <= <) <)
-    ((arith_rel_sum <= =) <=)
-    ((arith_rel_sum <= <=) <=)
-    ((arith_rel_sum = <) <)
-    ((arith_rel_sum = =) <=)  ; could be =, but internal proof checker does <=
-    ((arith_rel_sum = <=) <=)
+    ((arith_rel_sum < < a b) (< a b))
+    ((arith_rel_sum < = a b) (< a b))
+    ((arith_rel_sum < <= a b) (< a b))
+    ((arith_rel_sum <= < a b) (< a b))
+    ((arith_rel_sum <= = a b) (<= a b))
+    ((arith_rel_sum <= <= a b) (<= a b))
+    ((arith_rel_sum = < a b) (< a b))
+    ((arith_rel_sum = = a b) (<= a b))  ; could be =, but internal proof checker does <=
+    ((arith_rel_sum = <= a b) (<= a b))
   )
 )
 
-(program arith_rel_inv ((T Type) (U Type) (S Type))
-  (T) S
+(program arith_rel_inv ((T Type))
+  (T) T
   (
     ((arith_rel_inv =) =)
     ((arith_rel_inv <) >)
@@ -31,8 +31,8 @@
   )
 )
 
-(program arith_rel_neg ((T Type) (U Type) (S Type))
-  (T) S
+(program arith_rel_neg ((T Type))
+  (T) T
   (
     ((arith_rel_neg <) >=)
     ((arith_rel_neg <=) >)
@@ -41,15 +41,15 @@
   )
 )
 
-(program arith_rel_trichotomy ((T Type) (U Type) (S Type))
-  (T U) S
+(program arith_rel_trichotomy ((T Type) (U Type) (V Type) (W Type) (a eo::?) (b eo::?))
+  (T U V W) Bool
   (
-    ((arith_rel_trichotomy = <) >)
-    ((arith_rel_trichotomy = >) <)
-    ((arith_rel_trichotomy > =) <)
-    ((arith_rel_trichotomy < =) >)
-    ((arith_rel_trichotomy > <) =)
-    ((arith_rel_trichotomy < >) =)
+    ((arith_rel_trichotomy = < a b) (> a b))
+    ((arith_rel_trichotomy = > a b) (< a b))
+    ((arith_rel_trichotomy > = a b) (< a b))
+    ((arith_rel_trichotomy < = a b) (> a b))
+    ((arith_rel_trichotomy > < a b) (= a b))
+    ((arith_rel_trichotomy < > a b) (= a b))
   )
 )
 
@@ -67,7 +67,7 @@
   ((T Type) (U Type) (S Type) (V Type) (r1 (-> T U Bool)) (a1 T) (b1 U) (r2 (-> S V Bool)) (a2 S :list) (b2 V :list))
   (Bool Bool) Bool
   (
-    ((mk_arith_sum_ub_step (r1 a1 b1) (r2 a2 b2)) (_ (arith_rel_sum r1 r2) (+ a1 a2) (+ b1 b2)))
+    ((mk_arith_sum_ub_step (r1 a1 b1) (r2 a2 b2)) (arith_rel_sum r1 r2 (+ a1 a2) (+ b1 b2)))
   )
 )
 
@@ -115,7 +115,7 @@
 (program mk_arith_trichotomy ((T Type) (U Type) (S Type) (r1 (-> T U Bool)) (r2 (-> T U Bool)) (a T) (b U) (m S))
   (Bool S) Bool
   (
-    ((mk_arith_trichotomy (r1 a b) (r2 a b)) (_ (arith_rel_trichotomy r1 r2) a b))
+    ((mk_arith_trichotomy (r1 a b) (r2 a b)) (arith_rel_trichotomy r1 r2 a b))
   )
 )
 
