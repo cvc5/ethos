@@ -946,6 +946,7 @@ char TypeChecker::getFlags(const std::vector<ExprValue*>& args)
   char flags = 0;
   for (ExprValue* e : args)
   {
+    e->computeFlags();
     flags |= static_cast<uint8_t>(e->d_flags);
   }
   return flags;
@@ -1211,9 +1212,8 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     default: break;
   }
   // further evaluation only if non-ground
-  //char flags = getFlags(args);
-  //if (ExprValue::getFlag(ExprValue::Flag::IS_NON_GROUND, flags))
-  if (!isGround(args))
+  char flags = getFlags(args);
+  if (ExprValue::getFlag(ExprValue::Flag::IS_NON_GROUND, flags))
   {
     Trace("type_checker") << "...does not evaluate (non-ground)" << std::endl;
     return d_null;
@@ -1286,6 +1286,10 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_IS_VAR:
     {
       Assert(args.size() == 1);
+      if (args[0]->isAny())
+      {
+        return d_state.mkTrue();
+      }
       Kind kk;
       switch (k)
       {
