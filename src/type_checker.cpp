@@ -967,10 +967,16 @@ bool TypeChecker::isGround(const std::vector<ExprValue*>& args)
 Expr TypeChecker::evaluateProgramInternal(
     const std::vector<ExprValue*>& children, Ctx& newCtx)
 {
-  if (!isGround(children))
+  char flags = getFlags(children);
+  if (ExprValue::getFlag(ExprValue::Flag::IS_NON_GROUND, flags))
   {
     // do not evaluate on non-ground
     return d_null;
+  }
+  // if any "any", return any
+  if (ExprValue::getFlag(ExprValue::Flag::IS_ANY, flags))
+  {
+    return d_state.mkAny();
   }
   // Note we abort here, which changed in Ethos versions >=0.1.2.
   // The motivation is to disallow unintuitive behaviors of Ethos,
