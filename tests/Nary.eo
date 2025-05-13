@@ -1,6 +1,7 @@
 ; Programs to work with n-ary operators
 
 (include "Utils.eo")
+(include "Arith-theory.eo")
 
 ; =============================================
 ;  Right-associative null-terminated operators
