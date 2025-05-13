@@ -29,7 +29,7 @@
 (step @p0 (or (is cons x) (is (as nil (Lst Int)) x)) :rule dt-split :args (x))
 
 
-(program $mk_dt_inst ((D Type) (x D) (T Type) (t T) (S Type) (s S) (xs eo::List :list))
+(program $mk_dt_inst ((D Type) (x D) (T Type) (t eo::?) (s eo::?) (xs eo::List :list))
   (eo::List D T) D
   (
     (($mk_dt_inst eo::List::nil x t)          t)

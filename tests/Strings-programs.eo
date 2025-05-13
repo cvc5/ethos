@@ -122,7 +122,7 @@
         ($str_cons (eo::extract t 0 0) (string_flatten_word (eo::extract t 1 (eo::len t))))))
   )
 )
-(program string_flatten ((U Type) (t (Seq U)) (tail (Seq U) :list) (tail2 (Seq U) :list))
+(program string_flatten ((U Type) (t eo::?) (tail (Seq U) :list) (tail2 (Seq U) :list))
   ((Seq U)) (Seq U)
   (
     ; required for sequences
