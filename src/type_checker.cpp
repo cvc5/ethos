@@ -1601,6 +1601,7 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
       // type is the first child
       return childTypes[0];
     case Kind::EVAL_IS_EQ:
+    case Kind::EVAL_EQ:
     case Kind::EVAL_IS_NEG:
     case Kind::EVAL_COMPARE:
     case Kind::EVAL_IS_Z:
