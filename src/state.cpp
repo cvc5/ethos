@@ -186,6 +186,8 @@ State::State(Options& opts, Stats& stats)
   bind("eo::self", d_self);
   d_conclusion =
       Expr(mkSymbolInternal(Kind::PARAM, "eo::conclusion", d_boolType));
+  d_any = Expr(mkExpr(Kind::ANY, {}));
+  bind("eo::?", d_any);
   // eo::conclusion is not globally bound, since it can only appear
   // in :requires.
 }
@@ -630,12 +632,12 @@ Expr State::mkSymbol(Kind k, const std::string& name, const Expr& type)
   return Expr(mkSymbolInternal(k, name, type));
 }
 
-Expr State::mkSelf()
+Expr State::mkSelf() const
 {
   return d_self;
 }
 
-Expr State::mkConclusion()
+Expr State::mkConclusion() const
 {
   return d_conclusion;
 }
@@ -1021,17 +1023,19 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
   return Expr(mkExprInternal(k, vchildren));
 }
 
-Expr State::mkTrue()
+Expr State::mkTrue() const
 {
   return d_true;
 }
 
-Expr State::mkFalse()
+Expr State::mkFalse() const
 {
   return d_false;
 }
 
-Expr State::mkBool(bool val) { return val ? d_true : d_false; }
+Expr State::mkBool(bool val) const { return val ? d_true : d_false; }
+
+Expr State::mkAny() const { return d_any; }
 
 Expr State::mkLiteral(Kind k, const std::string& s)
 {

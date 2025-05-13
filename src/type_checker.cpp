@@ -259,6 +259,9 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       }
     }
       return d_state.mkType();
+    case Kind::ANY:
+      // it is its own type
+      return Expr(e);
     case Kind::ANNOT_PARAM:
       // its type is the second child
       return Expr(e->d_children[1]);
@@ -521,7 +524,8 @@ bool TypeChecker::match(ExprValue* a,
     {
       // if the two subterms are not equal and the first one is a bound
       // variable...
-      if (curr.first->getKind() == Kind::PARAM)
+      Kind patk = curr.first->getKind();
+      if (patk == Kind::PARAM)
       {
         // and we have not seen this variable before...
         ctxIt = ctx.find(curr.first);
@@ -533,14 +537,25 @@ bool TypeChecker::match(ExprValue* a,
         }
         else if (ctxIt->second!=curr.second)
         {
-          // if we saw this variable before, make sure that (now and before) it
-          // maps to the same subterm
-          return false;
+          if (ctxIt->second->getKind()==Kind::ANY)
+          {
+            // skip
+          }
+          else if (curr.second->getKind()==Kind::ANY)
+          {
+            ctxIt->second = curr.second;
+          }
+          else
+          {
+            // if we saw this variable before, make sure that (now and before) it
+            // maps to the same subterm
+            return false;
+          }
         }
       }
-      else
+      else if (patk != Kind::ANY)
       {
-        // the two subterms are not equal
+        // the two subterms are not equal, "any" skips
         return false;
       }
     }
@@ -566,6 +581,16 @@ bool TypeChecker::match(ExprValue* a,
             return false;
           }
           stack.emplace_back(curr.first->d_children[1], t);
+        }
+        else if (curr.second->getKind()==Kind::ANY)
+        {
+          // Special case: if the left hand side is "any", then match each
+          // child to "any".
+          for (size_t i = 0, n = curr.first->getNumChildren(); i < n; ++i)
+          {
+            stack.emplace_back(curr.first->d_children[i],
+                               curr.second);
+          }
         }
         else
         {

@@ -794,12 +794,17 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList(
     }
     else
     {
+      bool typeIsGround = t.isGround();
+      if (k==Kind::PROGRAM && !typeIsGround)
+      {
+        t = d_state.mkAny();
+      }
       v = d_state.mkSymbol(Kind::PARAM, name, t);
       // if this parameter is used to define the type of a constant or proof
       // rule, then if it has non-ground type, its type will be taken into
       // account for matching and evaluation. We wrap it in (eo::param ...)
       // here.
-      if ((k == Kind::CONST || k == Kind::PROOF_RULE) && !t.isGround())
+      if ((k == Kind::CONST || k == Kind::PROOF_RULE) && !typeIsGround)
       {
         v = d_state.mkExpr(Kind::ANNOT_PARAM, {v, t});
       }
