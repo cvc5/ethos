@@ -1789,7 +1789,7 @@ bool TypeChecker::computedParameterizedInternal(AppInfo* ai,
             Warning() << "Failed to find context for " << ct[0][i] << " when applying " << hd << " @ " << children[1] << std::endl;
             return false;
           }
-          if (!cv.isGround())
+          if (!cv.isGround() || cv.isAny())
           {
             // If the parameter is non-ground, we also wait to construct;
             // if the nil terminator is used, it will be replaced by a
