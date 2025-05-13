@@ -1300,7 +1300,8 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       case Kind::EVAL_IS_BOOL:kk = Kind::BOOLEAN;break;
       case Kind::EVAL_IS_VAR:kk = Kind::VARIABLE;break;
       default:
-        return d_null;
+        Assert (false);
+        break;
       }
       Literal lb(args[0]->getKind()==kk);
       return Expr(d_state.mkLiteralInternal(lb));
@@ -1320,7 +1321,6 @@ Expr TypeChecker::evaluateLiteralOpInternal(
           return et;
         }
       }
-      return d_null;
     }
     break;
     case Kind::EVAL_NAME_OF:
@@ -1365,7 +1365,6 @@ Expr TypeChecker::evaluateLiteralOpInternal(
           return ac->d_attrConsTerm;
         }
       }
-      return d_null;
     }
     break;
     case Kind::EVAL_DT_CONSTRUCTORS:
@@ -1411,11 +1410,15 @@ Expr TypeChecker::evaluateLiteralOpInternal(
         }
         return ac->d_attrConsTerm;
       }
-      return d_null;
     }
     break;
     default:
       break;
+  }
+  // all other literal operators return "any".
+  if (ExprValue::getFlag(ExprValue::Flag::IS_ANY, flags))
+  {
+    return d_state.mkAny();
   }
   // convert argument expressions to literals
   std::vector<const Literal*> lits;
