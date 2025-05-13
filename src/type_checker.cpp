@@ -979,15 +979,15 @@ Expr TypeChecker::evaluateProgramInternal(
     const std::vector<ExprValue*>& children, Ctx& newCtx)
 {
   char flags = getFlags(children);
-  if (ExprValue::getFlag(ExprValue::Flag::IS_NON_GROUND, flags))
-  {
-    // do not evaluate on non-ground
-    return d_null;
-  }
   // if any "any", return any
   if (ExprValue::getFlag(ExprValue::Flag::IS_ANY, flags))
   {
     return d_state.mkAny();
+  }
+  if (ExprValue::getFlag(ExprValue::Flag::IS_NON_GROUND, flags))
+  {
+    // do not evaluate on non-ground
+    return d_null;
   }
   // Note we abort here, which changed in Ethos versions >=0.1.2.
   // The motivation is to disallow unintuitive behaviors of Ethos,
@@ -1235,6 +1235,11 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     Trace("type_checker") << "...does not evaluate (non-ground)" << std::endl;
     return d_null;
   }
+  // all other literal operators return "any".
+  if (ExprValue::getFlag(ExprValue::Flag::IS_ANY, flags))
+  {
+    return d_state.mkAny();
+  }
   switch (k)
   {
     case Kind::EVAL_IS_OK:
@@ -1431,11 +1436,6 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     break;
     default:
       break;
-  }
-  // all other literal operators return "any".
-  if (ExprValue::getFlag(ExprValue::Flag::IS_ANY, flags))
-  {
-    return d_state.mkAny();
   }
   // convert argument expressions to literals
   std::vector<const Literal*> lits;
