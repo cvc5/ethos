@@ -244,7 +244,8 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
     case Kind::ABSTRACT_TYPE:
     case Kind::BOOL_TYPE:
     case Kind::FUNCTION_TYPE:
-    case Kind::PROGRAM_TYPE: return d_state.mkType();
+    case Kind::PROGRAM_TYPE:
+    case Kind::ANY: return d_state.mkType();
     case Kind::PROOF_TYPE:
     {
       ExprValue* ctype = d_state.lookupType(e->d_children[0]);
@@ -259,9 +260,6 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       }
     }
       return d_state.mkType();
-    case Kind::ANY:
-      // it is its own type
-      return Expr(e);
     case Kind::ANNOT_PARAM:
       // its type is the second child
       return Expr(e->d_children[1]);
@@ -358,7 +356,8 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     // non-function at head
     if (out)
     {
-      (*out) << "Non-function " << Expr(hd) << " as head of APPLY";
+      (*out) << "Non-function " << Expr(hd) << " as head of APPLY" << std::endl;
+      (*out) << "Its type is " << Expr(hdType);
     }
     return d_null;
   }
@@ -500,7 +499,7 @@ bool TypeChecker::match(ExprValue* a,
     curr = stack.back();
     stack.pop_back();
     // if we are ground
-    if (curr.first->isGround())
+    if (curr.first->isGround() && !curr.second->isAny())
     {
       if (curr.first == curr.second)
       {
@@ -543,6 +542,7 @@ bool TypeChecker::match(ExprValue* a,
           }
           else if (curr.second->getKind()==Kind::ANY)
           {
+            // any overwrites concrete assignment
             ctxIt->second = curr.second;
           }
           else
@@ -553,7 +553,7 @@ bool TypeChecker::match(ExprValue* a,
           }
         }
       }
-      else if (patk != Kind::ANY)
+      else if (patk != Kind::ANY && curr.second->getKind()!=Kind::ANY)
       {
         // the two subterms are not equal, "any" skips
         return false;
@@ -811,7 +811,8 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
             Assert (cchildren[0]!=nullptr);
             Assert (children.size()==3);
             // get the evaluation of the condition
-            if (cchildren[0]->getKind()==Kind::BOOLEAN)
+            Kind ck = cchildren[0]->getKind();
+            if (ck==Kind::BOOLEAN)
             {
               const Literal* l = cchildren[0]->asLiteral();
               // inspect the relevant child only
@@ -827,6 +828,10 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
                 evaluated = Expr(cchildren[index]);
                 Trace("type_checker_debug") << "evaluated via ite" << std::endl;
               }
+            }
+            else if (ck==Kind::ANY)
+            {
+              evaluated = d_state.mkAny();
             }
             else
             {
@@ -1188,7 +1193,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
         // by construction, args[0] should have type args[1], this is
         // an assertion that is not checked in production.
         Expr ret(args[0]);
-        Assert(isEq(getType(ret)->getValue(), args[1]));
+        Assert(isEq(getType(ret).getValue(), args[1]));
         return Expr(ret);
       }
     }

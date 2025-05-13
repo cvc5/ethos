@@ -7,7 +7,7 @@
 (declare-const > (-> Int Int Bool))
 (declare-const >= (-> Int Int Bool))
 
-(program run_evaluate ((T Type) (U Type) (S Type) (a T) (b U) (z S))
+(program run_evaluate ((T Type) (U Type) (S Type) (a eo::?) (b eo::?) (z S))
     (S) S
     (
       ((run_evaluate (= a b))  (eo::is_eq (run_evaluate a) (run_evaluate b)))

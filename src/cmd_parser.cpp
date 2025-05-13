@@ -798,7 +798,7 @@ bool CmdParser::parseNextCommand()
             d_lex.parseError("Wrong arity for pattern");
           }
           // ensure some type checking??
-          //d_eparser.typeCheck(pc);
+          d_eparser.typeCheck(pc);
           // ensure the right hand side is bound by the left hand side
           std::vector<Expr> bvs = Expr::getVariables(pc);
           Expr rhs = p[1];
