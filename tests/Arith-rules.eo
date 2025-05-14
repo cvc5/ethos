@@ -20,24 +20,24 @@
   )
 )
 
-(program arith_rel_inv ((T Type))
-  (T) T
+(program arith_rel_inv ((T Type) (U Type) (V Type) (W Type) (a eo::?) (b eo::?))
+  (T U V) Bool
   (
-    ((arith_rel_inv =) =)
-    ((arith_rel_inv <) >)
-    ((arith_rel_inv <=) >=)
-    ((arith_rel_inv >) <)
-    ((arith_rel_inv >=) <=)
+    ((arith_rel_inv = a b) (= a b))
+    ((arith_rel_inv < a b) (> a b))
+    ((arith_rel_inv <= a b) (>= a b))
+    ((arith_rel_inv > a b) (< a b))
+    ((arith_rel_inv >= a b) (<= a b))
   )
 )
 
-(program arith_rel_neg ((T Type))
-  (T) T
+(program arith_rel_neg ((T Type) (U Type) (V Type) (W Type) (a eo::?) (b eo::?))
+  (T U V) Bool
   (
-    ((arith_rel_neg <) >=)
-    ((arith_rel_neg <=) >)
-    ((arith_rel_neg >) <=)
-    ((arith_rel_neg >=) <)
+    ((arith_rel_neg < a b) (>= a b))
+    ((arith_rel_neg <= a b) (> a b))
+    ((arith_rel_neg > a b) (<= a b))
+    ((arith_rel_neg >= a b) (< a b))
   )
 )
 
@@ -58,7 +58,7 @@
   (Bool) Bool
   (
     ((arith_normalize_lit (not (not (r a b)))) (r a b))
-    ((arith_normalize_lit (not (r a b)))       (_ (arith_rel_neg r) a b))
+    ((arith_normalize_lit (not (r a b)))       (arith_rel_neg r a b))
     ((arith_normalize_lit (r a b))             (r a b))
   )
 )
@@ -101,7 +101,7 @@
 (program mk_arith_mult_neg ((T Type) (U Type) (S Type) (r (-> T U Bool)) (a T) (b U) (m S))
   (S Bool) Bool
   (
-    ((mk_arith_mult_neg m (r a b)) (_ (arith_rel_inv r) (* m a) (* m b)))
+    ((mk_arith_mult_neg m (r a b)) (arith_rel_inv r (* m a) (* m b)))
   )
 )
 
