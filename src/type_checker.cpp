@@ -484,6 +484,21 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
   return evaluate(hdtypes.back(), ctx);
 }
 
+bool isEvaluationApp(const ExprValue* e)
+{
+  Kind k = e->getKind();
+  if (isLiteralOp(k))
+  {
+    return true;
+  }
+  else if (k==Kind::APPLY || k==Kind::APPLY_OPAQUE)
+  {
+    Kind hk = (*e)[0]->getKind();
+    return (hk==Kind::PROGRAM_CONST || hk==Kind::ORACLE);
+  }
+  return false;
+}
+
 bool TypeChecker::match(ExprValue* a, ExprValue* b, Ctx& ctx)
 {
   std::set<std::pair<ExprValue*, ExprValue*>> visited;
@@ -515,7 +530,7 @@ bool TypeChecker::match(ExprValue* a,
         continue;
       }
       // otherwise fails if not any
-      if (!curr.first->isAny() && !curr.second->isAny())
+      if (!curr.first->isAny() && !curr.second->isAny() && !curr.second->isEvaluatable())
       {
         return false;
       }
@@ -541,20 +556,27 @@ bool TypeChecker::match(ExprValue* a,
         ctxIt = ctx.find(curr.first);
         if (ctxIt == ctx.cend())
         {
-          // note that we do not ensure the types match here
-          // add the two subterms to `sub`
-          ctx.emplace(curr.first, curr.second);
+          if (isEvaluationApp(curr.second))
+          {
+            ctx.emplace(curr.first, d_state.mkAny().getValue());
+          }
+          else
+          {
+            // note that we do not ensure the types match here
+            // add the two subterms to `sub`
+            ctx.emplace(curr.first, curr.second);
+          }
         }
         else if (ctxIt->second!=curr.second)
         {
           if (ctxIt->second->getKind()==Kind::ANY)
           {
-            // skip
-          }
-          else if (curr.second->getKind()==Kind::ANY)
-          {
             // any overwrites concrete assignment
             ctxIt->second = curr.second;
+          }
+          else if (curr.second->getKind()==Kind::ANY || isEvaluationApp(curr.second))
+          {
+            // skip
           }
           else
           {
@@ -564,7 +586,7 @@ bool TypeChecker::match(ExprValue* a,
           }
         }
       }
-      else if (patk != Kind::ANY && curr.second->getKind()!=Kind::ANY)
+      else if (patk != Kind::ANY && curr.second->getKind()!=Kind::ANY && !isEvaluationApp(curr.second))
       {
         // the two subterms are not equal, "any" skips
         return false;
@@ -582,7 +604,9 @@ bool TypeChecker::match(ExprValue* a,
         // matching is matched against the annotated type. This has the effect
         // that free parameters in the type of parameters are also bound, if the
         // parameter is annotated.
-        if (curr.first->getKind() == Kind::ANNOT_PARAM)
+        Kind ck1 = curr.first->getKind();
+        Kind ck2 = curr.second->getKind();
+        if (ck1 == Kind::ANNOT_PARAM)
         {
           stack.emplace_back(curr.first->d_children[0], curr.second);
           // independently check its type
@@ -593,7 +617,11 @@ bool TypeChecker::match(ExprValue* a,
           }
           stack.emplace_back(curr.first->d_children[1], t);
         }
-        else if (curr.second->getKind()==Kind::ANY)
+        else if (isEvaluationApp(curr.first) || isEvaluationApp(curr.second))
+        {
+          // skip;
+        }
+        else if (ck2==Kind::ANY)
         {
           // Special case: if the left hand side is "any", then match each
           // child to "any".
@@ -1656,6 +1684,8 @@ Expr TypeChecker::getLiteralOpType(Kind k,
       return Expr(children[1]);
     case Kind::EVAL_ADD:
     case Kind::EVAL_MUL:
+      // there is the possibility of mixing, if the types are disequal, then
+      // one of those children should be the any type
       if (childTypes[0]==childTypes[1])
       {
         return Expr(childTypes[0]);
