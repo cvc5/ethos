@@ -58,7 +58,7 @@ void TypeChecker::setLiteralTypeRule(Kind k, const Expr& t)
   it->second = t;
 }
 
-ExprValue* TypeChecker::getOrSetLiteralTypeRule(Kind k)
+Expr TypeChecker::getOrSetLiteralTypeRule(Kind k, ExprValue * self)
 {
   std::map<Kind, Expr>::iterator it = d_literalTypeRules.find(k);
   if (it==d_literalTypeRules.end())
@@ -67,14 +67,26 @@ ExprValue* TypeChecker::getOrSetLiteralTypeRule(Kind k)
     EO_FATAL() << "TypeChecker::getOrSetLiteralTypeRule: cannot get type rule for kind "
                  << k;
   }
+  Expr tp;
   if (it->second.isNull())
   {
     // If no type rule, assign the type rule to the builtin type
-    Expr t = d_state.mkBuiltinType(k);
-    d_literalTypeRules[k] = t;
-    return t.getValue();
+    tp = d_state.mkBuiltinType(k);
+    d_literalTypeRules[k] = tp;
   }
-  return it->second.getValue();
+  else
+  {
+    tp = it->second;
+  }
+  // it may involve the "self" parameter
+  if (!tp.isGround())
+  {
+    Expr eself = self==nullptr ? d_state.mkAny() : Expr(self);
+    Ctx ctx;
+    ctx[d_state.mkSelf().getValue()] = eself.getValue();
+    return evaluate(tp.getValue(), ctx);
+  }
+  return tp;
 }
 
 Expr TypeChecker::getType(Expr& e, std::ostream* out)
@@ -281,15 +293,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
     case Kind::STRING:
     {
       // use the literal type rule
-      ExprValue* ret = getOrSetLiteralTypeRule(k);
-      // it may involve the "self" parameter
-      if (!ret->isGround())
-      {
-        Ctx ctx;
-        ctx[d_state.mkSelf().getValue()] = e;
-        return evaluate(ret, ctx);
-      }
-      return Expr(ret);
+      return getOrSetLiteralTypeRule(k, e);
     }
       break;
     case Kind::AS:
@@ -319,7 +323,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
         {
           ctypes.push_back(d_state.lookupType(c));
         }
-        return Expr(getLiteralOpType(k, children, ctypes, out));
+        return getLiteralOpType(k, children, ctypes, out);
       }
       break;
   }
@@ -1632,48 +1636,46 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   return d_null;
 }
 
-ExprValue* TypeChecker::getLiteralOpType(Kind k,
+Expr TypeChecker::getLiteralOpType(Kind k,
                                          std::vector<ExprValue*>& children,
                                          std::vector<ExprValue*>& childTypes,
                                          std::ostream* out)
 {
   if (!checkArity(k, childTypes.size(), out))
   {
-    return d_null.getValue();
+    return d_null;
   }
   // NOTE: applications of most of these operators should only be in patterns,
   // where type checking is not strict.
   switch (k)
   {
     case Kind::EVAL_TYPE_OF:
-      return d_state.mkType().getValue();
+      return d_state.mkType();
     case Kind::EVAL_VAR:
       // its type is the second argument
-      return children[1];
+      return Expr(children[1]);
     case Kind::EVAL_ADD:
     case Kind::EVAL_MUL:
       // NOTE: mixed arith
-      return childTypes[0];
+      return Expr(childTypes[0]);
     case Kind::EVAL_NIL:
     case Kind::EVAL_CONS:
     case Kind::EVAL_IF_THEN_ELSE:
     case Kind::EVAL_LIST_NTH:
     case Kind::EVAL_LIST_CONCAT:
+    case Kind::EVAL_CONCAT:
+    case Kind::EVAL_EXTRACT:
       // type is not computable here, since it is the return type of function
       // applications of the argument. just use abstract.
-      return d_state.mkAny().getValue();
+      return d_state.mkAny();
     case Kind::EVAL_NEG:
     case Kind::EVAL_AND:
     case Kind::EVAL_OR:
     case Kind::EVAL_XOR:
     case Kind::EVAL_NOT:
-      return childTypes[0];
+      return Expr(childTypes[0]);
     case Kind::EVAL_REQUIRES:
-      return childTypes[2];
-    case Kind::EVAL_CONCAT:
-    case Kind::EVAL_EXTRACT:
-      // type is the first child
-      return childTypes[0];
+      return Expr(childTypes[2]);
     case Kind::EVAL_IS_EQ:
     case Kind::EVAL_EQ:
     case Kind::EVAL_IS_NEG:
@@ -1685,7 +1687,7 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_IS_BOOL:
     case Kind::EVAL_IS_VAR:
     case Kind::EVAL_GT:
-      return d_state.mkBoolType().getValue();
+      return d_state.mkBoolType();
     case Kind::EVAL_HASH:
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_INT_MOD:
@@ -1704,14 +1706,14 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_TO_BIN:
       return getOrSetLiteralTypeRule(Kind::BINARY);
     case Kind::EVAL_DT_CONSTRUCTORS:
-    case Kind::EVAL_DT_SELECTORS: return d_state.mkListType().getValue();
+    case Kind::EVAL_DT_SELECTORS: return d_state.mkListType();
     default:break;
   }
   if (out)
   {
     (*out) << "Unknown type for literal operator " << k;
   }
-  return nullptr;
+  return d_null;
 }
 
 Expr TypeChecker::computeConstructorTermInternal(AppInfo* ai, 
