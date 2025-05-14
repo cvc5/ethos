@@ -615,7 +615,7 @@ Expr ExprParser::parseExpr()
                 Expr lhsa = d_state.mkExpr(Kind::APPLY, appArgs);
                 cases.push_back(d_state.mkPair(lhsa, rhs));
                 // type check the pair
-                typeCheckProgramPair(lhsa, rhs);
+                typeCheckProgramPair(lhsa, rhs, false);
                 // check free variable requirement
                 std::vector<Expr> bvsl = Expr::getVariables(lhs);
                 std::vector<Expr> bvsr = Expr::getVariables(rhs);
@@ -794,11 +794,13 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList(
     else
     {
       bool typeIsGround = t.isGround();
+      /*
       if (k == Kind::PROGRAM && !typeIsGround)
       {
         t = d_state.mkAny();
         typeIsGround = false;
       }
+      */
       v = d_state.mkSymbol(Kind::PARAM, name, t);
       // if this parameter is used to define the type of a constant or proof
       // rule, then if it has non-ground type, its type will be taken into
@@ -1465,11 +1467,11 @@ Expr ExprParser::typeCheck(Expr& e, const Expr& expected)
   return et;
 }
 
-void ExprParser::typeCheckProgramPair(Expr& pat, Expr& ret)
+void ExprParser::typeCheckProgramPair(Expr& pat, Expr& ret, bool checkPreservation)
 {
   Expr patType = typeCheck(pat);
   Expr retType = typeCheck(ret);
-  if (patType!=retType || patType.isAny())
+  if (checkPreservation && (patType!=retType || patType.isAny()))
   {
     std::stringstream ss;
     ss << "Could not show equivalence of pattern and return: " << pat << " / " << ret << " whose types are " << patType << " and " << retType << std::endl; 

@@ -814,7 +814,7 @@ bool CmdParser::parseNextCommand()
             }
           }
           // type check whether this is a legal pattern/return pair.
-          d_eparser.typeCheckProgramPair(pc, rhs);
+          d_eparser.typeCheckProgramPair(pc, rhs, true);
         }
         program = d_state.mkExpr(Kind::PROGRAM, pchildren);
       }
