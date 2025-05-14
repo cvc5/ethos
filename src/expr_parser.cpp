@@ -609,11 +609,13 @@ Expr ExprParser::parseExpr()
                 const Expr& lhs = cs[0];
                 // check that variables in the pattern are only from the binder
                 ensureBound(lhs, vl);
-                const Expr& rhs = cs[1];
+                Expr rhs = caseArgs[i][1];
                 std::vector<Expr> appArgs{pv, lhs};
                 appArgs.insert(appArgs.end(), env.begin(), env.end());
                 Expr lhsa = d_state.mkExpr(Kind::APPLY, appArgs);
                 cases.push_back(d_state.mkPair(lhsa, rhs));
+                // type check the pair
+                typeCheckProgramPair(lhsa, rhs);
                 // check free variable requirement
                 std::vector<Expr> bvsl = Expr::getVariables(lhs);
                 std::vector<Expr> bvsr = Expr::getVariables(rhs);
@@ -1456,6 +1458,25 @@ Expr ExprParser::typeCheck(Expr& e, const Expr& expected)
     d_lex.parseError(msg.str());
   }
   return et;
+}
+
+void ExprParser::typeCheckProgramPair(Expr& pat, Expr& ret)
+{
+  Expr patType = typeCheck(pat);
+  Expr retType = typeCheck(ret);
+  if (patType!=retType || patType.isAny())
+  {
+    std::stringstream ss;
+    ss << "Could not show equivalence of pattern and return: " << pat << " / " << ret << " whose types are " << patType << " and " << retType << std::endl; 
+    if (patType.isAny() || retType.isAny())
+    {
+      Warning() << ss.str();
+    }
+    else
+    {
+      d_lex.parseError(ss.str());
+    }
+  }
 }
 
 Expr ExprParser::findFreeVar(const Expr& e, const std::vector<Expr>& bvs)

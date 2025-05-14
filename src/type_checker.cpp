@@ -450,6 +450,7 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
       if (out)
       {
         ExprValue* hdto = hdtypes[i];
+        (*out) << "Checking application of " << Expr(hd) << std::endl;
         if (hdtypes[i]->getKind() == Kind::QUOTE_TYPE)
         {
           (*out) << "Unexpected child #" << i << std::endl;
@@ -1153,11 +1154,6 @@ ExprValue* getNAryChildren(ExprValue* e,
   return e;
 }
 
-bool isEq(ExprValue* a, ExprValue* b)
-{
-  return a==b || a->isAny() || b->isAny();
-}
-
 Expr TypeChecker::evaluateLiteralOpInternal(
     Kind k, const std::vector<ExprValue*>& args)
 {
@@ -1199,7 +1195,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
         // by construction, args[0] should have type args[1], this is
         // an assertion that is not checked in production.
         Expr ret(args[0]);
-        Assert(isEq(getType(ret).getValue(), args[1]));
+        Assert(getType(ret).getValue()==args[1] || args[1]->isAny());
         return Expr(ret);
       }
     }
@@ -1210,10 +1206,16 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       // Note that this is independent of whether r is ground, and hence is
       // a special case prior to check for all arguments to be ground.
       if (args[0]->isGround() && !args[0]->isEvaluatable()
-          && args[1]->isGround() && !args[1]->isEvaluatable()
-          && isEq(args[0], args[1]))
+          && args[1]->isGround() && !args[1]->isEvaluatable())
       {
-        return Expr(args[2]);
+        if (args[0]->isAny() || args[1]->isAny())
+        {
+          return d_state.mkAny();
+        }
+        if (args[0]==args[1])
+        {
+          return Expr(args[2]);
+        }
       }
       if (TraceIsOn("type_checker"))
       {
@@ -1230,15 +1232,15 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   }
   // further evaluation only if non-ground
   char flags = getFlags(args);
-  if (ExprValue::getFlag(ExprValue::Flag::IS_NON_GROUND, flags))
-  {
-    Trace("type_checker") << "...does not evaluate (non-ground)" << std::endl;
-    return d_null;
-  }
   // all other literal operators return "any".
   if (ExprValue::getFlag(ExprValue::Flag::IS_ANY, flags))
   {
     return d_state.mkAny();
+  }
+  if (ExprValue::getFlag(ExprValue::Flag::IS_NON_GROUND, flags))
+  {
+    Trace("type_checker") << "...does not evaluate (non-ground)" << std::endl;
+    return d_null;
   }
   switch (k)
   {
@@ -1262,7 +1264,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       // only evaluates when its arguments are ground, and so it is handled
       // here.
       return d_state.mkBool(!args[0]->isEvaluatable()
-                            && !args[1]->isEvaluatable() && isEq(args[0], args[1]));
+                            && !args[1]->isEvaluatable() && args[0]==args[1]);
     }
     break;
     case Kind::EVAL_EQ:
@@ -1270,7 +1272,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       // syntactic equality, only evaluated if the terms are values
       if (!args[0]->isEvaluatable() && !args[1]->isEvaluatable())
       {
-        return d_state.mkBool(isEq(args[0], args[1]));
+        return d_state.mkBool(args[0]==args[1]);
       }
       // does not evaluate otherwise
       return d_null;
@@ -1655,6 +1657,8 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_NIL:
     case Kind::EVAL_CONS:
     case Kind::EVAL_IF_THEN_ELSE:
+    case Kind::EVAL_LIST_NTH:
+    case Kind::EVAL_LIST_CONCAT:
       // type is not computable here, since it is the return type of function
       // applications of the argument. just use abstract.
       return d_state.mkAny().getValue();
@@ -1666,9 +1670,6 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
       return childTypes[0];
     case Kind::EVAL_REQUIRES:
       return childTypes[2];
-    case Kind::EVAL_LIST_CONCAT:
-    case Kind::EVAL_LIST_NTH:
-      return childTypes[1];
     case Kind::EVAL_CONCAT:
     case Kind::EVAL_EXTRACT:
       // type is the first child

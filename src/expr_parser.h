@@ -157,6 +157,8 @@ class ExprParser
   Expr typeCheckApp(std::vector<Expr>& children);
   /** ensure type */
   Expr typeCheck(Expr& e, const Expr& expected);
+  /** Type check program pair */
+  void typeCheckProgramPair(Expr& pat, Expr& ret);
   /** get variable, else error */
   Expr getVar(const std::string& name);
   /** get variable, else error */

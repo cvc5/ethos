@@ -797,12 +797,9 @@ bool CmdParser::parseNextCommand()
           {
             d_lex.parseError("Wrong arity for pattern");
           }
-          // ensure some type checking??
-          d_eparser.typeCheck(pc);
           // ensure the right hand side is bound by the left hand side
           std::vector<Expr> bvs = Expr::getVariables(pc);
           Expr rhs = p[1];
-          d_eparser.typeCheck(rhs);
           d_eparser.ensureBound(rhs, bvs);
           // TODO: allow variable or default case?
           for (size_t i = 1, nchildren = pc.getNumChildren(); i < nchildren;
@@ -816,6 +813,8 @@ bool CmdParser::parseNextCommand()
               d_lex.parseError(ss.str());
             }
           }
+          // type check whether this is a legal pattern/return pair.
+          d_eparser.typeCheckProgramPair(pc, rhs);
         }
         program = d_state.mkExpr(Kind::PROGRAM, pchildren);
       }
