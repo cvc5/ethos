@@ -157,7 +157,14 @@ class ExprParser
   Expr typeCheckApp(std::vector<Expr>& children);
   /** ensure type */
   Expr typeCheck(Expr& e, const Expr& expected);
-  /** Type check program pair */
+  /**
+   * Type check program pair. This method is called when (pat, ret) is
+   * parsed as a pattern/return pair for a program or eo::match.
+   * If checkPreservation is true, we should expect it to be possible to
+   * show that pat and ret have the same type and give an error or warning
+   * otherwise.
+   * NOTE: currently this method is not implemented.
+   */
   void typeCheckProgramPair(Expr& pat, Expr& ret, bool checkPreservation);
   /** get variable, else error */
   Expr getVar(const std::string& name);
