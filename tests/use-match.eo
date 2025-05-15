@@ -1,6 +1,3 @@
-(declare-type String ())
-(declare-consts <string> String)
-
 (program maybe_nil ((T Type) (U Type) (t T))
     (T U) T
     (
@@ -23,6 +20,8 @@
     )
 )
 
+(declare-type String ())
+(declare-consts <string> String)
 (declare-const str.++ (-> String String String) :right-assoc-nil "")
 
 ; `check_true b`

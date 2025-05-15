@@ -1,7 +1,6 @@
 ; Programs to work with n-ary operators
 
 (include "Utils.eo")
-(include "Arith-theory.eo")
 
 ; =============================================
 ;  Right-associative null-terminated operators
@@ -128,8 +127,8 @@
 
 ; returns the number of children of the input
 (program nary.nchild
-    ((L Type) (cons (-> L L L)) (nil L) (i Int) (x L) (xs L :list))
-    ((-> L L L) L L) Int
+    ((L Type) (I Type) (cons (-> L L L)) (nil L) (i I) (x L) (xs L :list))
+    ((-> L L L) L L) I
     (
         ((nary.nchild cons nil (cons x xs)) (eo::add 1 (nary.nchild cons nil xs)))
         ((nary.nchild cons nil nil)         0)

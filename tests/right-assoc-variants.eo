@@ -58,9 +58,13 @@
     )
 )
 (declare-parameterized-const seq.empty ((T Type)) (-> T))
-(define mk_emptystr ((U Type))
-  (eo::ite (eo::is_eq U String) "" (seq.empty U)))
-
+(program mk_emptystr ((U Type))
+  (Type) U
+  (
+    ((mk_emptystr String)  "")
+    ((mk_emptystr (Seq U)) (seq.empty (Seq U)))
+  )
+)
 (declare-parameterized-const str.++ ((T Type))
   (-> (Seq T) (Seq T) (Seq T)) :right-assoc-nil (mk_emptystr T))
 

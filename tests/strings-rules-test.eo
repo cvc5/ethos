@@ -1,11 +1,11 @@
 (include "Strings-programs.eo")
 
 ; the PfRule::CONCAT_EQ rule
-(declare-rule concat_eq ((U Type) (s (Seq U)) (t (Seq U)) (rev Bool))
+(declare-rule concat_eq ((U Type) (s U) (t U) (rev Bool))
   :premises ((= s t))
-  :args ((Seq U) rev)
+  :args (U rev)
   :conclusion
-    (eo::match ((ss (Seq U)) (ts (Seq U)))
+    (eo::match ((ss U) (ts U))
       (strip_prefix
            (string_to_flat_form U s rev)
            (string_to_flat_form U t rev))
