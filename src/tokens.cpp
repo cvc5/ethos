@@ -17,7 +17,6 @@ std::ostream& operator<<(std::ostream& o, Token t)
   switch (t)
   {
     case Token::EOF_TOK: o << "EOF"; break;
-    case Token::ABSTRACT_TYPE: o << "ABSTRACT_TYPE"; break;
     case Token::ASSUME: o << "ASSUME"; break;
     case Token::ASSUME_PUSH: o << "ASSUME_PUSH"; break;
     case Token::ASSERT: o << "ASSERT"; break;

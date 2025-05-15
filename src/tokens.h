@@ -19,7 +19,6 @@ namespace ethos {
 enum class Token
 {
   EOF_TOK = 0,
-  ABSTRACT_TYPE,
   ASSERT,
   ASSUME,
   ASSUME_PUSH,
