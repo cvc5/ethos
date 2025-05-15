@@ -90,11 +90,6 @@ class ExprValue
   {
     return static_cast<uint8_t>(d_flags) & static_cast<uint8_t>(f);
   }
-  /** get flag */
-  static bool getFlag(Flag f, char fs)
-  {
-    return static_cast<uint8_t>(fs) & static_cast<uint8_t>(f);
-  }
   /** Set flag */
   void setFlag(Flag f, bool value)
   {

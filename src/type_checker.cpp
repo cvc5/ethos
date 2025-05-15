@@ -563,7 +563,6 @@ bool TypeChecker::match(ExprValue* a,
         // that free parameters in the type of parameters are also bound, if the
         // parameter is annotated.
         Kind ck1 = curr.first->getKind();
-        Kind ck2 = curr.second->getKind();
         if (ck1 == Kind::ANNOT_PARAM)
         {
           stack.emplace_back(curr.first->d_children[0], curr.second);

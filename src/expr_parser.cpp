@@ -793,20 +793,12 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList(
     }
     else
     {
-      bool typeIsGround = t.isGround();
-      /*
-      if (k == Kind::PROGRAM && !typeIsGround)
-      {
-        t = d_state.mkAny();
-        typeIsGround = false;
-      }
-      */
       v = d_state.mkSymbol(Kind::PARAM, name, t);
       // if this parameter is used to define the type of a constant or proof
       // rule, then if it has non-ground type, its type will be taken into
       // account for matching and evaluation. We wrap it in (eo::param ...)
       // here.
-      if ((k == Kind::CONST || k == Kind::PROOF_RULE) && !typeIsGround)
+      if ((k == Kind::CONST || k == Kind::PROOF_RULE) && !t.isGround())
       {
         v = d_state.mkExpr(Kind::ANNOT_PARAM, {v, t});
       }
@@ -1469,21 +1461,7 @@ Expr ExprParser::typeCheck(Expr& e, const Expr& expected)
 
 void ExprParser::typeCheckProgramPair(Expr& pat, Expr& ret, bool checkPreservation)
 {
-  Expr patType = typeCheck(pat);
-  Expr retType = typeCheck(ret);
-  if (checkPreservation && (patType!=retType || patType.isEvaluatable()))
-  {
-    std::stringstream ss;
-    ss << "Could not show equivalence of pattern and return: " << pat << " / " << ret << " whose types are " << patType << " and " << retType << std::endl; 
-    if (patType.isEvaluatable() || retType.isEvaluatable())
-    {
-      Warning() << ss.str();
-    }
-    else
-    {
-      d_lex.parseError(ss.str());
-    }
-  }
+  // currently, does nothing
 }
 
 Expr ExprParser::findFreeVar(const Expr& e, const std::vector<Expr>& bvs)
