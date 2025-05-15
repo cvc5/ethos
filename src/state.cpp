@@ -1549,15 +1549,19 @@ bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
 
     if (!inputPath.exists())
     {
-      Warning() << "State:: could not include \"" + ocmd + "\" for oracle definition";
+      Warning() << "State:: could not include \"" + ocmd + "\" for oracle definition" << std::endl;
       return false;
     }
-
     acons = mkLiteral(Kind::STRING, inputPath.getRawPath());
   }
   Assert (isSymbol(v.getKind()));
   AppInfo& ai = d_appData[v.getValue()];
-  Assert (ai.d_attrCons==Attr::NONE);
+  if (ai.d_attrCons!=Attr::NONE)
+  {
+    // note this fails even if we mark the same constructor, e.g. :list twice
+    Warning() << "Cannot set the constructor kind for a term more than once (" << ai.d_attrCons << " and " << a << ")" << std::endl;
+    return false;
+  }
   ai.d_attrCons = a;
   ai.d_attrConsTerm = acons;
   if (d_plugin!=nullptr)
