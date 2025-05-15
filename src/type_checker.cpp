@@ -530,7 +530,7 @@ bool TypeChecker::match(ExprValue* a,
         continue;
       }
       // otherwise fails if not any
-      if (!curr.first->isAny() && !curr.second->isAny() && !curr.second->isEvaluatable())
+      if (!curr.second->isEvaluatable())
       {
         return false;
       }
@@ -1012,11 +1012,6 @@ Expr TypeChecker::evaluateProgramInternal(
     const std::vector<ExprValue*>& children, Ctx& newCtx)
 {
   char flags = getFlags(children);
-  // if any "any", return any
-  if (ExprValue::getFlag(ExprValue::Flag::IS_ANY, flags))
-  {
-    return d_state.mkAny();
-  }
   if (ExprValue::getFlag(ExprValue::Flag::IS_NON_GROUND, flags))
   {
     // do not evaluate on non-ground
@@ -1203,10 +1198,6 @@ Expr TypeChecker::evaluateLiteralOpInternal(
         // eagerly evaluate even if branches are non-ground
         return Expr(args[l->d_bool ? 1 : 2]);
       }
-      else if (args[0]->isAny())
-      {
-        return d_state.mkAny();
-      }
       // note that we do not simplify based on the branches being equal
       return d_null;
     }
@@ -1220,14 +1211,10 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       // to the type of the (instantiated) first argument.
       if (args[0]->isGround())
       {
-        if (args[0]->isAny())
-        {
-          return d_state.mkAny();
-        }
         // by construction, args[0] should have type args[1], this is
         // an assertion that is not checked in production.
         Expr ret(args[0]);
-        Assert(getType(ret).getValue()==args[1] || args[1]->isAny());
+        Assert(getType(ret).getValue()==args[1]);
         return Expr(ret);
       }
     }
@@ -1240,10 +1227,6 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       if (args[0]->isGround() && !args[0]->isEvaluatable()
           && args[1]->isGround() && !args[1]->isEvaluatable())
       {
-        if (args[0]->isAny() || args[1]->isAny())
-        {
-          return d_state.mkAny();
-        }
         if (args[0]==args[1])
         {
           return Expr(args[2]);
@@ -1264,11 +1247,6 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   }
   // further evaluation only if non-ground
   char flags = getFlags(args);
-  // all other literal operators return "any".
-  if (ExprValue::getFlag(ExprValue::Flag::IS_ANY, flags))
-  {
-    return d_state.mkAny();
-  }
   if (ExprValue::getFlag(ExprValue::Flag::IS_NON_GROUND, flags))
   {
     Trace("type_checker") << "...does not evaluate (non-ground)" << std::endl;
@@ -1342,10 +1320,6 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_IS_VAR:
     {
       Assert(args.size() == 1);
-      if (args[0]->isAny())
-      {
-        return d_state.mkTrue();
-      }
       Kind kk;
       switch (k)
       {
@@ -1833,7 +1807,7 @@ bool TypeChecker::computedParameterizedInternal(AppInfo* ai,
             Warning() << "Failed to find context for " << ct[0][i] << " when applying " << hd << " @ " << children[1] << std::endl;
             return false;
           }
-          if (!cv.isGround() || cv.isAny())
+          if (!cv.isGround())
           {
             // If the parameter is non-ground, we also wait to construct;
             // if the nil terminator is used, it will be replaced by a

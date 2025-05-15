@@ -5,7 +5,7 @@
 (include "Utils.eo")
 
 
-(program arith_rel_sum ((T Type) (U Type) (V Type) (W Type) (a eo::?) (b eo::?))
+(program arith_rel_sum ((T Type) (U Type) (V Type) (W Type) (a V) (b W))
   (T U V W) Bool
   (
     ((arith_rel_sum < < a b) (< a b))

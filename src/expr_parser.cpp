@@ -1471,11 +1471,11 @@ void ExprParser::typeCheckProgramPair(Expr& pat, Expr& ret, bool checkPreservati
 {
   Expr patType = typeCheck(pat);
   Expr retType = typeCheck(ret);
-  if (checkPreservation && (patType!=retType || patType.isAny() || patType.isEvaluatable()))
+  if (checkPreservation && (patType!=retType || patType.isEvaluatable()))
   {
     std::stringstream ss;
     ss << "Could not show equivalence of pattern and return: " << pat << " / " << ret << " whose types are " << patType << " and " << retType << std::endl; 
-    if (patType.isAny() || retType.isAny() || patType.isEvaluatable() || retType.isEvaluatable())
+    if (patType.isEvaluatable() || retType.isEvaluatable())
     {
       Warning() << ss.str();
     }

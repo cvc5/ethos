@@ -69,10 +69,8 @@ void ExprValue::computeFlags()
     {
       bool isEval = (ck == Kind::PROGRAM_CONST || ck == Kind::ORACLE || ck==Kind::ANY);
       bool isNonGround = (ck==Kind::PARAM || ck==Kind::ANY);
-      bool isAny = false;//(ck==Kind::ANY);
       cur->setFlag(Flag::IS_EVAL, isEval);
       cur->setFlag(Flag::IS_NON_GROUND, isNonGround);
-      cur->setFlag(Flag::IS_ANY, isAny);
       visit.pop_back();
     }
     else if (visited.find(cur)==visited.end())
@@ -113,12 +111,6 @@ bool ExprValue::isGround()
 {
   computeFlags();
   return !getFlag(ExprValue::Flag::IS_NON_GROUND);
-}
-
-bool ExprValue::isAny()
-{
-  computeFlags();
-  return getFlag(ExprValue::Flag::IS_ANY);
 }
 
 void ExprValue::dec()
@@ -166,7 +158,6 @@ Expr::~Expr()
 bool Expr::isNull() const { return d_value->isNull(); }
 bool Expr::isEvaluatable() const { return d_value->isEvaluatable(); }
 bool Expr::isGround() const { return d_value->isGround(); }
-bool Expr::isAny() const { return d_value->isAny(); }
 std::string Expr::getSymbol() const
 {
   const Literal * l = d_value->asLiteral();

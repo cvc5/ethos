@@ -1,8 +1,8 @@
 ; This version of the signature assumes testers are written e.g. (_ is nil), for the uninstantiated version of the constructor
 
 ; helper method to get the *uninstantiated* form of the list of constructors of a datatype
-(program $dt_get_constructors ((D Type) (T Type) (DC eo::?))
-  (Type) eo::List
+(program $dt_get_constructors ((D Type) (T Type) (U Type) (DC (-> Type Type)))
+  (U) eo::List
   (
     (($dt_get_constructors (DC T))        ($dt_get_constructors DC))   ; user-defined parameteric datatypes, traverse
     (($dt_get_constructors D)             (eo::dt_constructors D))     ; ordinary user-defined datatypes
@@ -36,7 +36,7 @@
 
 
 (program $mk_dt_inst ((D Type) (x D) (T Type) (t eo::?) (s eo::?) (xs eo::List :list))
-  (eo::List D T) D
+  (eo::List D T) eo::?
   (
     (($mk_dt_inst eo::List::nil x t)          t)
     (($mk_dt_inst (eo::List::cons s xs) x t)  ($mk_dt_inst xs x (t (s x))))

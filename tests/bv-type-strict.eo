@@ -7,15 +7,15 @@
 (declare-const > (-> Int Int Bool))
 (declare-const >= (-> Int Int Bool))
 
-(program run_evaluate ((T Type) (U Type) (S Type) (a eo::?) (b eo::?) (z S))
+(program run_evaluate ((T Type) (U Type) (S Type) (a T) (b T) (ai Int) (bi Int) (z S))
     (S) S
     (
       ((run_evaluate (= a b))  (eo::is_eq (run_evaluate a) (run_evaluate b)))
-      ((run_evaluate (> a b))  (eo::is_neg (run_evaluate (- b a))))
-      ((run_evaluate (>= a b)) (eo::define ((x (run_evaluate (- b a)))) 
+      ((run_evaluate (> ai bi))  (eo::is_neg (run_evaluate (- bi ai))))
+      ((run_evaluate (>= ai bi)) (eo::define ((x (run_evaluate (- bi ai)))) 
                                  (eo::or (eo::is_neg x) (eo::is_eq x 0))))
-      ((run_evaluate (+ a b))  (eo::add (run_evaluate a) (run_evaluate b)))
-      ((run_evaluate (- a b))  (eo::add (run_evaluate a) (eo::neg (run_evaluate b))))
+      ((run_evaluate (+ ai bi))  (eo::add (run_evaluate ai) (run_evaluate bi)))
+      ((run_evaluate (- ai bi))  (eo::add (run_evaluate ai) (eo::neg (run_evaluate bi))))
       ((run_evaluate z)        z)
     )
 )
