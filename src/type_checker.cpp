@@ -58,7 +58,7 @@ void TypeChecker::setLiteralTypeRule(Kind k, const Expr& t)
   it->second = t;
 }
 
-Expr TypeChecker::getOrSetLiteralTypeRule(Kind k, ExprValue * self)
+Expr TypeChecker::getOrSetLiteralTypeRule(Kind k, ExprValue* self)
 {
   std::map<Kind, Expr>::iterator it = d_literalTypeRules.find(k);
   if (it==d_literalTypeRules.end())
@@ -81,7 +81,7 @@ Expr TypeChecker::getOrSetLiteralTypeRule(Kind k, ExprValue * self)
   // it may involve the "self" parameter
   if (!tp.isGround())
   {
-    Expr eself = self==nullptr ? d_state.mkAny() : Expr(self);
+    Expr eself = self == nullptr ? d_state.mkAny() : Expr(self);
     Ctx ctx;
     ctx[d_state.mkSelf().getValue()] = eself.getValue();
     return evaluate(tp.getValue(), ctx);
@@ -1140,7 +1140,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
         // by construction, args[0] should have type args[1], this is
         // an assertion that is not checked in production.
         Expr ret(args[0]);
-        Assert(getType(ret).getValue()==args[1]);
+        Assert(getType(ret).getValue() == args[1]);
         return Expr(ret);
       }
     }
@@ -1252,9 +1252,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       case Kind::EVAL_IS_STR:kk = Kind::STRING;break;
       case Kind::EVAL_IS_BOOL:kk = Kind::BOOLEAN;break;
       case Kind::EVAL_IS_VAR:kk = Kind::VARIABLE;break;
-      default:
-        Assert (false);
-        break;
+      default: Assert(false); break;
       }
       Literal lb(args[0]->getKind()==kk);
       return Expr(d_state.mkLiteralInternal(lb));
@@ -1564,9 +1562,9 @@ Expr TypeChecker::evaluateLiteralOpInternal(
 }
 
 Expr TypeChecker::getLiteralOpType(Kind k,
-                                         std::vector<ExprValue*>& children,
-                                         std::vector<ExprValue*>& childTypes,
-                                         std::ostream* out)
+                                   std::vector<ExprValue*>& children,
+                                   std::vector<ExprValue*>& childTypes,
+                                   std::ostream* out)
 {
   if (!checkArity(k, childTypes.size(), out))
   {
@@ -1576,8 +1574,7 @@ Expr TypeChecker::getLiteralOpType(Kind k,
   // where type checking is not strict.
   switch (k)
   {
-    case Kind::EVAL_TYPE_OF:
-      return d_state.mkType();
+    case Kind::EVAL_TYPE_OF: return d_state.mkType();
     case Kind::EVAL_VAR:
       // its type is the second argument
       return Expr(children[1]);
@@ -1586,7 +1583,7 @@ Expr TypeChecker::getLiteralOpType(Kind k,
       // there is the possibility of mixing, if the types are disequal, then
       // one of those children should be the any type
       // FIXME: n children
-      if (childTypes[0]==childTypes[1])
+      if (childTypes[0] == childTypes[1])
       {
         return Expr(childTypes[0]);
       }
@@ -1603,7 +1600,7 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_LIST_CONCAT:
       // if branches have the same type, use it
       // FIXME: n children
-      if (childTypes[1]==childTypes[2])
+      if (childTypes[1] == childTypes[2])
       {
         return Expr(childTypes[1]);
       }
@@ -1612,10 +1609,8 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_AND:
     case Kind::EVAL_OR:
     case Kind::EVAL_XOR:
-    case Kind::EVAL_NOT:
-      return Expr(childTypes[0]);
-    case Kind::EVAL_REQUIRES:
-      return Expr(childTypes[2]);
+    case Kind::EVAL_NOT: return Expr(childTypes[0]);
+    case Kind::EVAL_REQUIRES: return Expr(childTypes[2]);
     case Kind::EVAL_IS_EQ:
     case Kind::EVAL_EQ:
     case Kind::EVAL_IS_NEG:
@@ -1626,8 +1621,7 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_IS_STR:
     case Kind::EVAL_IS_BOOL:
     case Kind::EVAL_IS_VAR:
-    case Kind::EVAL_GT:
-      return d_state.mkBoolType();
+    case Kind::EVAL_GT: return d_state.mkBoolType();
     case Kind::EVAL_HASH:
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_INT_MOD:

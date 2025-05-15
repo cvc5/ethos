@@ -1459,7 +1459,9 @@ Expr ExprParser::typeCheck(Expr& e, const Expr& expected)
   return et;
 }
 
-void ExprParser::typeCheckProgramPair(Expr& pat, Expr& ret, bool checkPreservation)
+void ExprParser::typeCheckProgramPair(Expr& pat,
+                                      Expr& ret,
+                                      bool checkPreservation)
 {
   // currently, does nothing
 }

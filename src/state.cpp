@@ -626,15 +626,9 @@ Expr State::mkSymbol(Kind k, const std::string& name, const Expr& type)
   return Expr(mkSymbolInternal(k, name, type));
 }
 
-Expr State::mkSelf() const
-{
-  return d_self;
-}
+Expr State::mkSelf() const { return d_self; }
 
-Expr State::mkConclusion() const
-{
-  return d_conclusion;
-}
+Expr State::mkConclusion() const { return d_conclusion; }
 
 Expr State::mkPair(const Expr& t1, const Expr& t2)
 {
@@ -1017,15 +1011,9 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
   return Expr(mkExprInternal(k, vchildren));
 }
 
-Expr State::mkTrue() const
-{
-  return d_true;
-}
+Expr State::mkTrue() const { return d_true; }
 
-Expr State::mkFalse() const
-{
-  return d_false;
-}
+Expr State::mkFalse() const { return d_false; }
 
 Expr State::mkBool(bool val) const { return val ? d_true : d_false; }
 
