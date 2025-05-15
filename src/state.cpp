@@ -177,8 +177,6 @@ State::State(Options& opts, Stats& stats)
   bind("eo::List::cons", d_listCons);
   markConstructorKind(d_listCons, Attr::RIGHT_ASSOC_NIL, d_listNil);
 
-  d_any = Expr(mkExpr(Kind::ANY, {}));
-  bind("eo::?", d_any);
   // self is a distinguished parameter
   d_self = Expr(mkSymbolInternal(Kind::PARAM, "eo::self", d_any));
   bind("eo::self", d_self);

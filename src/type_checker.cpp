@@ -354,10 +354,6 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
   ExprValue* hdType = d_state.lookupType(hd);
   Assert(hdType != nullptr) << "No type for " << Expr(hd);
   Kind hk = hdType->getKind();
-  if (hk == Kind::ANY)
-  {
-    return Expr(hdType);
-  }
   if (hk != Kind::FUNCTION_TYPE && hk != Kind::PROGRAM_TYPE)
   {
     // non-function at head
@@ -484,21 +480,6 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
   return evaluate(hdtypes.back(), ctx);
 }
 
-bool isEvaluationApp(const ExprValue* e)
-{
-  Kind k = e->getKind();
-  if (isLiteralOp(k))
-  {
-    return true;
-  }
-  else if (k==Kind::APPLY || k==Kind::APPLY_OPAQUE)
-  {
-    Kind hk = (*e)[0]->getKind();
-    return (hk==Kind::PROGRAM_CONST || hk==Kind::ORACLE);
-  }
-  return false;
-}
-
 bool TypeChecker::match(ExprValue* a, ExprValue* b, Ctx& ctx)
 {
   std::set<std::pair<ExprValue*, ExprValue*>> visited;
@@ -529,11 +510,8 @@ bool TypeChecker::match(ExprValue* a,
         // holds trivially
         continue;
       }
-      // otherwise fails if not any
-      if (!curr.second->isEvaluatable())
-      {
-        return false;
-      }
+      // otherwise fails
+      return false;
     }
     // note that if curr.first == curr.second, and both are non-ground,
     // then we still require recursing, which will bind identity substitutions
@@ -549,46 +527,26 @@ bool TypeChecker::match(ExprValue* a,
     {
       // if the two subterms are not equal and the first one is a bound
       // variable...
-      Kind patk = curr.first->getKind();
-      if (patk == Kind::PARAM)
+      if (curr.first->getKind() == Kind::PARAM)
       {
         // and we have not seen this variable before...
         ctxIt = ctx.find(curr.first);
         if (ctxIt == ctx.cend())
         {
-          if (isEvaluationApp(curr.second))
-          {
-            ctx.emplace(curr.first, d_state.mkAny().getValue());
-          }
-          else
-          {
-            // note that we do not ensure the types match here
-            // add the two subterms to `sub`
-            ctx.emplace(curr.first, curr.second);
-          }
+          // note that we do not ensure the types match here
+          // add the two subterms to `sub`
+          ctx.emplace(curr.first, curr.second);
         }
         else if (ctxIt->second!=curr.second)
         {
-          if (ctxIt->second->getKind()==Kind::ANY)
-          {
-            // any overwrites concrete assignment
-            ctxIt->second = curr.second;
-          }
-          else if (curr.second->getKind()==Kind::ANY || isEvaluationApp(curr.second))
-          {
-            // skip
-          }
-          else
-          {
-            // if we saw this variable before, make sure that (now and before) it
-            // maps to the same subterm
-            return false;
-          }
+          // if we saw this variable before, make sure that (now and before) it
+          // maps to the same subterm
+          return false;
         }
       }
-      else if (patk != Kind::ANY && curr.second->getKind()!=Kind::ANY && !isEvaluationApp(curr.second))
+      else
       {
-        // the two subterms are not equal, "any" skips
+        // the two subterms are not equal
         return false;
       }
     }
@@ -616,20 +574,6 @@ bool TypeChecker::match(ExprValue* a,
             return false;
           }
           stack.emplace_back(curr.first->d_children[1], t);
-        }
-        else if (isEvaluationApp(curr.first) || isEvaluationApp(curr.second))
-        {
-          // skip;
-        }
-        else if (ck2==Kind::ANY)
-        {
-          // Special case: if the left hand side is "any", then match each
-          // child to "any".
-          for (size_t i = 0, n = curr.first->getNumChildren(); i < n; ++i)
-          {
-            stack.emplace_back(curr.first->d_children[i],
-                               curr.second);
-          }
         }
         else
         {
@@ -850,8 +794,7 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
             Assert (cchildren[0]!=nullptr);
             Assert (children.size()==3);
             // get the evaluation of the condition
-            Kind ck = cchildren[0]->getKind();
-            if (ck==Kind::BOOLEAN)
+            if (cchildren[0]->getKind()==Kind::BOOLEAN)
             {
               const Literal* l = cchildren[0]->asLiteral();
               // inspect the relevant child only
@@ -867,10 +810,6 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
                 evaluated = Expr(cchildren[index]);
                 Trace("type_checker_debug") << "evaluated via ite" << std::endl;
               }
-            }
-            else if (ck==Kind::ANY)
-            {
-              evaluated = d_state.mkAny();
             }
             else
             {
@@ -985,17 +924,6 @@ Expr TypeChecker::evaluateProgram(
   return Expr(d_state.mkExprInternal(Kind::APPLY, children));
 }
 
-char TypeChecker::getFlags(const std::vector<ExprValue*>& args)
-{
-  char flags = 0;
-  for (ExprValue* e : args)
-  {
-    e->computeFlags();
-    flags |= static_cast<uint8_t>(e->d_flags);
-  }
-  return flags;
-}
-
 bool TypeChecker::isGround(const std::vector<ExprValue*>& args)
 {
   for (ExprValue* e : args)
@@ -1011,8 +939,7 @@ bool TypeChecker::isGround(const std::vector<ExprValue*>& args)
 Expr TypeChecker::evaluateProgramInternal(
     const std::vector<ExprValue*>& children, Ctx& newCtx)
 {
-  char flags = getFlags(children);
-  if (ExprValue::getFlag(ExprValue::Flag::IS_NON_GROUND, flags))
+  if (!isGround(children))
   {
     // do not evaluate on non-ground
     return d_null;

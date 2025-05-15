@@ -91,8 +91,6 @@ class TypeChecker
   Expr getTypeAppInternal(std::vector<ExprValue*>& children,
                           Ctx& ctx,
                           std::ostream* out = nullptr);
-  /** Compute the union of flags of terms in args */
-  static char getFlags(const std::vector<ExprValue*>& args);
   /** Are all args ground? */
   static bool isGround(const std::vector<ExprValue*>& args);
   /** Maybe evaluate */
