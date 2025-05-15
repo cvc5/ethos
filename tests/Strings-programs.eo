@@ -113,8 +113,8 @@
 
 ; Helper for below, assumes t is a non-empty word constant.
 ; For example, given "AB", this returns (str.++ "A" (str.++ "B" "")).
-(program string_flatten_word ((t String))
-  (String) String
+(program string_flatten_word ((U Type) (t (Seq U)))
+  ((Seq U)) (Seq U)
   (
     ((string_flatten_word t) 
       (eo::ite (check_length_one t) 
@@ -122,7 +122,7 @@
         ($str_cons (eo::extract t 0 0) (string_flatten_word (eo::extract t 1 (eo::len t))))))
   )
 )
-(program string_flatten ((U Type) (t eo::?) (tail (Seq U) :list) (tail2 (Seq U) :list))
+(program string_flatten ((U Type) (t (Seq U)) (tail (Seq U) :list) (tail2 (Seq U) :list))
   ((Seq U)) (Seq U)
   (
     ; required for sequences

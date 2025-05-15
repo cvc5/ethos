@@ -20,7 +20,7 @@
   )
 )
 
-(program arith_rel_inv ((T Type) (U Type) (V Type) (W Type) (a eo::?) (b eo::?))
+(program arith_rel_inv ((T Type) (U Type) (V Type) (W Type) (a U) (b V))
   (T U V) Bool
   (
     ((arith_rel_inv = a b) (= a b))
@@ -31,7 +31,7 @@
   )
 )
 
-(program arith_rel_neg ((T Type) (U Type) (V Type) (W Type) (a eo::?) (b eo::?))
+(program arith_rel_neg ((T Type) (U Type) (V Type) (W Type) (a U) (b V))
   (T U V) Bool
   (
     ((arith_rel_neg < a b) (>= a b))
@@ -41,7 +41,7 @@
   )
 )
 
-(program arith_rel_trichotomy ((T Type) (U Type) (V Type) (W Type) (a eo::?) (b eo::?))
+(program arith_rel_trichotomy ((T Type) (U Type) (V Type) (W Type) (a V) (b W))
   (T U V W) Bool
   (
     ((arith_rel_trichotomy = < a b) (> a b))
