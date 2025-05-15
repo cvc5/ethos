@@ -99,7 +99,9 @@ State::State(Options& opts, Stats& stats)
   bindBuiltin("->", Kind::FUNCTION_TYPE);
   bindBuiltin("_", Kind::APPLY);
 
+  bindBuiltinEval("is_ok", Kind::EVAL_IS_OK);
   bindBuiltinEval("is_eq", Kind::EVAL_IS_EQ);
+  bindBuiltinEval("eq", Kind::EVAL_EQ);
   bindBuiltinEval("ite", Kind::EVAL_IF_THEN_ELSE);
   bindBuiltinEval("requires", Kind::EVAL_REQUIRES);
   bindBuiltinEval("hash", Kind::EVAL_HASH);
@@ -1028,6 +1030,8 @@ Expr State::mkFalse()
 {
   return d_false;
 }
+
+Expr State::mkBool(bool val) { return val ? d_true : d_false; }
 
 Expr State::mkLiteral(Kind k, const std::string& s)
 {
