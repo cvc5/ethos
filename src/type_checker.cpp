@@ -1225,12 +1225,10 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       // Note that this is independent of whether r is ground, and hence is
       // a special case prior to check for all arguments to be ground.
       if (args[0]->isGround() && !args[0]->isEvaluatable()
-          && args[1]->isGround() && !args[1]->isEvaluatable())
+          && args[1]->isGround() && !args[1]->isEvaluatable()
+          && args[0] == args[1])
       {
-        if (args[0]==args[1])
-        {
-          return Expr(args[2]);
-        }
+        return Expr(args[2]);
       }
       if (TraceIsOn("type_checker"))
       {
@@ -1246,8 +1244,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     default: break;
   }
   // further evaluation only if non-ground
-  char flags = getFlags(args);
-  if (ExprValue::getFlag(ExprValue::Flag::IS_NON_GROUND, flags))
+  if (!isGround(args))
   {
     Trace("type_checker") << "...does not evaluate (non-ground)" << std::endl;
     return d_null;
@@ -1274,7 +1271,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       // only evaluates when its arguments are ground, and so it is handled
       // here.
       return d_state.mkBool(!args[0]->isEvaluatable()
-                            && !args[1]->isEvaluatable() && args[0]==args[1]);
+                            && !args[1]->isEvaluatable() && args[0] == args[1]);
     }
     break;
     case Kind::EVAL_EQ:
@@ -1282,7 +1279,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       // syntactic equality, only evaluated if the terms are values
       if (!args[0]->isEvaluatable() && !args[1]->isEvaluatable())
       {
-        return d_state.mkBool(args[0]==args[1]);
+        return d_state.mkBool(args[0] == args[1]);
       }
       // does not evaluate otherwise
       return d_null;
@@ -1395,6 +1392,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
           return ac->d_attrConsTerm;
         }
       }
+      return d_null;
     }
     break;
     case Kind::EVAL_DT_CONSTRUCTORS:
@@ -1440,6 +1438,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
         }
         return ac->d_attrConsTerm;
       }
+      return d_null;
     }
     break;
     default:
