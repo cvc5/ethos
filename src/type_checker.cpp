@@ -1574,36 +1574,37 @@ Expr TypeChecker::getLiteralOpType(Kind k,
   // where type checking is not strict.
   switch (k)
   {
-    case Kind::EVAL_TYPE_OF: return d_state.mkType();
+    case Kind::EVAL_TYPE_OF:
+      return d_state.mkType();
     case Kind::EVAL_VAR:
       // its type is the second argument
       return Expr(children[1]);
     case Kind::EVAL_ADD:
     case Kind::EVAL_MUL:
-      // NOTE: for now, assume all types are equivalent, but this is not checked
+      // NOTE: mixed arith
       return Expr(childTypes[0]);
     case Kind::EVAL_NIL:
-    case Kind::EVAL_CONS:
-    case Kind::EVAL_LIST_CONCAT:
-    case Kind::EVAL_LIST_NTH:
-    case Kind::EVAL_CONCAT:
-    case Kind::EVAL_EXTRACT:
       // type is not computable here, since it is the return type of function
-      // applications of the argument. just use abstract.
-      return d_state.mkAny();
-    case Kind::EVAL_IF_THEN_ELSE:
-      // if branches have the same type, use it
-      if (childTypes[1] == childTypes[2])
-      {
-        return Expr(childTypes[1]);
-      }
+      // applications of the argument. just use any.
       return d_state.mkAny();
     case Kind::EVAL_NEG:
     case Kind::EVAL_AND:
     case Kind::EVAL_OR:
     case Kind::EVAL_XOR:
-    case Kind::EVAL_NOT: return Expr(childTypes[0]);
-    case Kind::EVAL_REQUIRES: return Expr(childTypes[2]);
+    case Kind::EVAL_NOT:
+      return Expr(childTypes[0]);
+    case Kind::EVAL_IF_THEN_ELSE:
+    case Kind::EVAL_CONS:
+      return Expr(childTypes[1]);
+    case Kind::EVAL_REQUIRES:
+      return Expr(childTypes[2]);
+    case Kind::EVAL_LIST_CONCAT:
+    case Kind::EVAL_LIST_NTH:
+      return Expr(childTypes[1]);
+    case Kind::EVAL_CONCAT:
+    case Kind::EVAL_EXTRACT:
+      // type is the first child
+      return Expr(childTypes[0]);
     case Kind::EVAL_IS_EQ:
     case Kind::EVAL_EQ:
     case Kind::EVAL_IS_NEG:
@@ -1614,7 +1615,8 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_IS_STR:
     case Kind::EVAL_IS_BOOL:
     case Kind::EVAL_IS_VAR:
-    case Kind::EVAL_GT: return d_state.mkBoolType();
+    case Kind::EVAL_GT:
+      return d_state.mkBoolType();
     case Kind::EVAL_HASH:
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_INT_MOD:
