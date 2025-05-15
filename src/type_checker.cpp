@@ -1580,15 +1580,11 @@ Expr TypeChecker::getLiteralOpType(Kind k,
       return Expr(children[1]);
     case Kind::EVAL_ADD:
     case Kind::EVAL_MUL:
-      // there is the possibility of mixing, if the types are disequal, then
-      // one of those children should be the any type
-      // FIXME: n children
-      if (childTypes[0] == childTypes[1])
-      {
-        return Expr(childTypes[0]);
-      }
-      return d_state.mkAny();
+      // NOTE: for now, assume all types are equivalent, but this is not checked
+      return Expr(childTypes[0]);
     case Kind::EVAL_NIL:
+    case Kind::EVAL_CONS:
+    case Kind::EVAL_LIST_CONCAT:
     case Kind::EVAL_LIST_NTH:
     case Kind::EVAL_CONCAT:
     case Kind::EVAL_EXTRACT:
@@ -1596,10 +1592,7 @@ Expr TypeChecker::getLiteralOpType(Kind k,
       // applications of the argument. just use abstract.
       return d_state.mkAny();
     case Kind::EVAL_IF_THEN_ELSE:
-    case Kind::EVAL_CONS:
-    case Kind::EVAL_LIST_CONCAT:
       // if branches have the same type, use it
-      // FIXME: n children
       if (childTypes[1] == childTypes[2])
       {
         return Expr(childTypes[1]);
