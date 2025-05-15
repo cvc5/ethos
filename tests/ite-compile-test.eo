@@ -5,21 +5,21 @@
 (declare-const = (-> Int Int Bool))
 
 (program check_pos ((x Int))
-  (Int) Bool
+  (Int) Int
   (
     ((check_pos x) (eo::ite (eo::is_neg x) (- x 1) (+ x 1)))
   )
 )
 
 (program check_sign ((x Int))
-  (Int) Bool
+  (Int) Int
   (
     ((check_sign x) (eo::ite (eo::is_eq x 0) x (eo::ite (eo::is_neg x) (- x 1) (+ x 1))))
   )
 )
 
 (program factorial ((x Int))
-  (Int) Bool
+  (Int) Int
   (
     ((factorial x) (eo::ite (eo::is_eq x 0) 1 (eo::mul x (factorial (eo::add x (eo::neg 1))))))
   )

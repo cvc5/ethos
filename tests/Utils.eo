@@ -2,18 +2,6 @@
 (declare-type @Pair (Type Type))
 (declare-parameterized-const @pair ((U Type :implicit) (T Type :implicit)) (-> U T (@Pair U T)))
 
-; Returns true if c is a rational between zero and one, inclusive
-(program between_zero_and_one ((R Type) (c R))
-  (R) Bool
-  (
-    ((between_zero_and_one c) 
-      (eo::ite (eo::is_neg c)
-        false
-        (eo::ite (eo::is_eq c 1)
-          true
-          (eo::is_neg (eo::add c (eo::neg 1.0))))))
-  )
-)
 
 ; `check_true b`
 ; returns true if b is true, returns false otherwise
