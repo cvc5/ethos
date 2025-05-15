@@ -733,7 +733,7 @@ bool CmdParser::parseNextCommand()
       d_state.pushScope();
       std::vector<Expr> vars =
           d_eparser.parseAndBindSortedVarList(Kind::PROGRAM);
-      std::vector<Expr> argTypes = d_eparser.parseTypeList();
+      std::vector<Expr> argTypes = d_eparser.parseTypeList(true);
       Expr retType = d_eparser.parseType();
       Expr progType = retType;        
       Expr tup = d_state.mkExpr(Kind::TUPLE, argTypes);

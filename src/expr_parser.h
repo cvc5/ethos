@@ -29,8 +29,11 @@ class ExprParser
 
   /** Parses an SMT-LIB term <term> */
   Expr parseExpr();
-  /** Parses an SMT-LIB type <type> */
-  Expr parseType();
+  /**
+   * Parses an SMT-LIB type <type>
+   * @param allowQuoteArg If true, we also permit (eo::arg <term>).
+   */
+  Expr parseType(bool allowQuoteArg=false);
   /** Parses an SMT-LIB formula <formula> */
   Expr parseFormula();
   /** Parses an SMT-LIB term pair */
@@ -39,8 +42,11 @@ class ExprParser
   std::string parseSymbolicExpr();
   /** Parses parentheses-enclosed term list (<term>*) */
   std::vector<Expr> parseExprList();
-  /** Parses parentheses-enclosed term list (<type>*) */
-  std::vector<Expr> parseTypeList();
+  /**
+   * Parses parentheses-enclosed term list (<type>*)
+   * @param allowQuoteArg If true, we also permit (eo::arg t).
+   */
+  std::vector<Expr> parseTypeList(bool allowQuoteArg=false);
   /** Parses parentheses-enclosed term list ((<term> <term>)*) */
   std::vector<Expr> parseExprPairList();
   /**
