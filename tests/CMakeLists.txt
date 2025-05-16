@@ -150,6 +150,7 @@ set(ethos_test_file_list
     array-ext-implicit-type-infer.eo
     define-scope-attr.eo
     is-eq-tests.eo
+    eo-arg-ex.eo
 )
 
 if(ENABLE_ORACLES)
