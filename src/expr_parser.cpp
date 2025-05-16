@@ -370,6 +370,7 @@ Expr ExprParser::parseExpr()
       case Token::ABSTRACT_TYPE:
       ret = d_state.mkAbstractType();
       break;
+
       case Token::TYPE:
       ret = d_state.mkType();
       break;
@@ -660,8 +661,36 @@ Expr ExprParser::parseExpr()
   return ret;
 }
 
-Expr ExprParser::parseType()
+Expr ExprParser::parseType(bool allowQuoteArg)
 {
+  if (allowQuoteArg)
+  {
+    Token tok = d_lex.nextToken();
+    if (tok==Token::LPAREN)
+    {
+      tok = d_lex.nextToken();
+      if (tok==Token::SYMBOL)
+      {
+        std::string s = d_lex.tokenStr();
+        if (s=="eo::arg")
+        {
+          Expr t = parseExpr();
+          if (t.getKind()!=Kind::PARAM)
+          {
+            d_lex.parseError("Expected a parameter as argument to eo::arg");
+          }
+          d_lex.eatToken(Token::RPAREN);
+          return d_state.mkQuoteType(t);
+        }
+      }
+      d_lex.reinsertToken(tok);
+      d_lex.reinsertToken(Token::LPAREN);
+    }
+    else
+    {
+      d_lex.reinsertToken(tok);
+    }
+  }
   Expr e = parseExpr();
   // ensure it is a type
   typeCheck(e, d_state.mkType());
@@ -700,7 +729,7 @@ std::vector<Expr> ExprParser::parseExprList()
   return terms;
 }
 
-std::vector<Expr> ExprParser::parseTypeList()
+std::vector<Expr> ExprParser::parseTypeList(bool allowQuoteArg)
 {
   d_lex.eatToken(Token::LPAREN);
   std::vector<Expr> terms;
@@ -708,7 +737,7 @@ std::vector<Expr> ExprParser::parseTypeList()
   while (tok != Token::RPAREN)
   {
     d_lex.reinsertToken(tok);
-    Expr t = parseType();
+    Expr t = parseType(allowQuoteArg);
     terms.push_back(t);
     tok = d_lex.nextToken();
   }
