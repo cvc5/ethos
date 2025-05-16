@@ -8,7 +8,6 @@ ethos 0.1.2 prerelease
 - User programs, user oracles, and builtin operators that are unapplied are now considered unevaluated. This makes the type checker more strict and disallows passing them as arguments to other programs, which previously led to undefined behavior.
 - Changes the interface of `declare-parameterized-const`. In particular, the parameters of a parameterized constants are no longer assumed to be implicit, and are explicit by default. The `:implicit` attribute can be used on all parameters to recover the previous behavior. Other attributes such as `:opaque` and `:requires` can now be used on parameters to this command.
 - In type checking, the free parameters in the types of parameters are now also bound when that parameter is instantiated.
-- Remove support for the explicit parameter annotation `eo::_`, which was used to provide annotations for implicit arguments to parameterized constants.
 - Changed the semantics of pairwise and chainable operators for a single argument, which now reduces to the neutral element of the combining operator instead of a parse error.
 - The operator `eo::typeof` now fails to evaluate if the type of the given term is not ground.
 
