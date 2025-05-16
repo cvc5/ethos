@@ -1754,7 +1754,7 @@ For example, the above program could be generalized to concatentate an arbitrary
 )
 
 (declare-const a (BitVec 5))
-(define foo () (repeat_term a 7) :type (BitVec 35))
+(define foo2 () (repeat_term a 7) :type (BitVec 35))
 ```
 
 ### Match statements
