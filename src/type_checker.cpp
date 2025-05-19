@@ -1103,6 +1103,24 @@ ExprValue* getNAryChildren(ExprValue* e,
   return e;
 }
 
+Expr TypeChecker::prependNAryChildren(ExprValue* op, ExprValue * ret, const std::vector<ExprValue*>& hargs, bool isLeft)
+{
+  // note we take the tail verbatim
+  std::vector<ExprValue*> cc;
+  cc.push_back(op);
+  cc.push_back(nullptr);
+  cc.push_back(nullptr);
+  size_t tailIndex = (isLeft ? 1 : 2);
+  size_t headIndex = (isLeft ? 2 : 1);
+  for (size_t i = 0, nargs = hargs.size(); i < nargs; i++)
+  {
+    cc[tailIndex] = ret;
+    cc[headIndex] = hargs[isLeft ? i : (nargs - 1 - i)];
+    ret = d_state.mkApplyInternal(cc);
+  }
+  return Expr(ret);
+}
+
 Expr TypeChecker::evaluateLiteralOpInternal(
     Kind k, const std::vector<ExprValue*>& args)
 {
@@ -1480,20 +1498,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
           return d_null;
         }
       }
-      // note we take the tail verbatim
-      std::vector<ExprValue*> cc;
-      cc.push_back(op);
-      cc.push_back(nullptr);
-      cc.push_back(nullptr);
-      for (size_t i = 0, nargs = hargs.size(); i < nargs; i++)
-      {
-        cc[tailIndex] = ret;
-        cc[headIndex] = hargs[isLeft ? i : (nargs - 1 - i)];
-        ret = d_state.mkApplyInternal(cc);
-      }
-      Trace("type_checker_debug")
-          << "CONS: " << isLeft << " " << args << " -> " << ret << std::endl;
-      return Expr(ret);
+      return prependNAryChildren(op, ret, hargs, isLeft);
     }
       break;
     case Kind::EVAL_LIST_LENGTH:
@@ -1555,6 +1560,15 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       break;
     case Kind::EVAL_LIST_REV:
     {
+      ExprValue* a = getNAryChildren(args[1], op, nil, hargs, isLeft);
+      if (a==nullptr)
+      {
+        Trace("type_checker") << "...head not in list form" << std::endl;
+        return d_null;
+      }
+      std::reverse(hargs.begin(), hargs.end());
+      ret = nilExpr.getValue();
+      return prependNAryChildren(op, ret, hargs, isLeft);
     }
       break;
     case Kind::EVAL_LIST_SETOF:
