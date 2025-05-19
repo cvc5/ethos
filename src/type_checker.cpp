@@ -151,6 +151,8 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_COMPARE:
     case Kind::EVAL_GT:
     case Kind::EVAL_LIST_LENGTH:
+    case Kind::EVAL_LIST_REV:
+    case Kind::EVAL_LIST_SETOF:
       ret = (nargs==2);
       break;
     case Kind::EVAL_ADD:
@@ -192,6 +194,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_CONS:
     case Kind::EVAL_LIST_FIND:
     case Kind::EVAL_LIST_NTH:
+    case Kind::EVAL_LIST_IS_SUBMSET:
       ret = (nargs==3);
       break;
     case Kind::EVAL_EXTRACT:
@@ -1550,6 +1553,18 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       return Expr(d_state.mkLiteralInternal(lret));
     }
       break;
+    case Kind::EVAL_LIST_REV:
+    {
+    }
+      break;
+    case Kind::EVAL_LIST_SETOF:
+    {
+    }
+      break;
+    case Kind::EVAL_LIST_IS_SUBMSET:
+    {
+    }
+      break;
     default:
       break;
   }
@@ -1594,7 +1609,9 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_REQUIRES:
       return childTypes[2];
     case Kind::EVAL_LIST_CONCAT:
-    case Kind::EVAL_LIST_NTH:
+    case Kind::EVAL_LIST_NTH:  
+    case Kind::EVAL_LIST_REV:
+    case Kind::EVAL_LIST_SETOF:
       return childTypes[1];
     case Kind::EVAL_CONCAT:
     case Kind::EVAL_EXTRACT:
@@ -1611,6 +1628,7 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_IS_BOOL:
     case Kind::EVAL_IS_VAR:
     case Kind::EVAL_GT:
+    case Kind::EVAL_LIST_IS_SUBMSET:
       return d_state.mkBoolType().getValue();
     case Kind::EVAL_HASH:
     case Kind::EVAL_INT_DIV:

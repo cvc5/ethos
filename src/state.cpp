@@ -122,6 +122,9 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("list_concat", Kind::EVAL_LIST_CONCAT);
   bindBuiltinEval("list_nth", Kind::EVAL_LIST_NTH);
   bindBuiltinEval("list_find", Kind::EVAL_LIST_FIND);
+  bindBuiltinEval("list_rev", Kind::EVAL_LIST_REV);
+  bindBuiltinEval("list_setof", Kind::EVAL_LIST_SETOF);
+  bindBuiltinEval("list_is_submset", Kind::EVAL_LIST_IS_SUBMSET);
   // boolean
   bindBuiltinEval("not", Kind::EVAL_NOT);
   bindBuiltinEval("and", Kind::EVAL_AND);
