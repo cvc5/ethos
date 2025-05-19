@@ -152,9 +152,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_GT:
     case Kind::EVAL_LIST_LENGTH:
     case Kind::EVAL_LIST_REV:
-    case Kind::EVAL_LIST_SETOF:
-      ret = (nargs==2);
-      break;
+    case Kind::EVAL_LIST_SETOF: ret = (nargs == 2); break;
     case Kind::EVAL_ADD:
     case Kind::EVAL_MUL:
     case Kind::EVAL_AND:
@@ -194,9 +192,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_CONS:
     case Kind::EVAL_LIST_FIND:
     case Kind::EVAL_LIST_NTH:
-    case Kind::EVAL_LIST_IS_SUBMSET:
-      ret = (nargs==3);
-      break;
+    case Kind::EVAL_LIST_IS_SUBMSET: ret = (nargs == 3); break;
     case Kind::EVAL_EXTRACT:
       ret = (nargs==3 || nargs==2);
       break;
@@ -1103,7 +1099,10 @@ ExprValue* getNAryChildren(ExprValue* e,
   return e;
 }
 
-Expr TypeChecker::prependNAryChildren(ExprValue* op, ExprValue * ret, const std::vector<ExprValue*>& hargs, bool isLeft)
+Expr TypeChecker::prependNAryChildren(ExprValue* op,
+                                      ExprValue* ret,
+                                      const std::vector<ExprValue*>& hargs,
+                                      bool isLeft)
 {
   // note we take the tail verbatim
   std::vector<ExprValue*> cc;
@@ -1557,11 +1556,11 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       Literal lret = Literal(Integer(iret));
       return Expr(d_state.mkLiteralInternal(lret));
     }
-      break;
+    break;
     case Kind::EVAL_LIST_REV:
     {
       ExprValue* a = getNAryChildren(args[1], op, nil, hargs, isLeft);
-      if (a==nullptr)
+      if (a == nullptr)
       {
         Trace("type_checker") << "...head not in list form" << std::endl;
         return d_null;
@@ -1570,26 +1569,28 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       ret = nilExpr.getValue();
       return prependNAryChildren(op, ret, hargs, isLeft);
     }
-      break;
+    break;
     case Kind::EVAL_LIST_SETOF:
     {
       ExprValue* a = getNAryChildren(args[1], op, nil, hargs, isLeft);
-      if (a==nullptr)
+      if (a == nullptr)
       {
         Trace("type_checker") << "...head not in list form" << std::endl;
         return d_null;
       }
       std::unordered_set<ExprValue*> seen;
       std::vector<ExprValue*> result;
-      for (ExprValue* elem : hargs) {
-          if (seen.insert(elem).second) {
-              result.emplace_back(elem);
-          }
+      for (ExprValue* elem : hargs)
+      {
+        if (seen.insert(elem).second)
+        {
+          result.emplace_back(elem);
+        }
       }
       ret = nilExpr.getValue();
       return prependNAryChildren(op, ret, hargs, isLeft);
     }
-      break;
+    break;
     case Kind::EVAL_LIST_IS_SUBMSET:
     {
     }
@@ -1638,10 +1639,9 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_REQUIRES:
       return childTypes[2];
     case Kind::EVAL_LIST_CONCAT:
-    case Kind::EVAL_LIST_NTH:  
+    case Kind::EVAL_LIST_NTH:
     case Kind::EVAL_LIST_REV:
-    case Kind::EVAL_LIST_SETOF:
-      return childTypes[1];
+    case Kind::EVAL_LIST_SETOF: return childTypes[1];
     case Kind::EVAL_CONCAT:
     case Kind::EVAL_EXTRACT:
       // type is the first child
@@ -1657,8 +1657,7 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_IS_BOOL:
     case Kind::EVAL_IS_VAR:
     case Kind::EVAL_GT:
-    case Kind::EVAL_LIST_IS_SUBMSET:
-      return d_state.mkBoolType().getValue();
+    case Kind::EVAL_LIST_IS_SUBMSET: return d_state.mkBoolType().getValue();
     case Kind::EVAL_HASH:
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_INT_MOD:

@@ -312,8 +312,7 @@ bool isListLiteralOp(Kind k)
     case Kind::EVAL_LIST_FIND:
     case Kind::EVAL_LIST_REV:
     case Kind::EVAL_LIST_SETOF:
-    case Kind::EVAL_LIST_IS_SUBMSET:
-      return true;
+    case Kind::EVAL_LIST_IS_SUBMSET: return true;
     default:
       break;
   }

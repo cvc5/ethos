@@ -107,7 +107,10 @@ class TypeChecker
    * using n-ary operator op, which is :right-assoc-nil or :left-assoc-nil
    * if isLeft is true.
    */
-  Expr prependNAryChildren(ExprValue* op, ExprValue * ret, const std::vector<ExprValue*>& hargs, bool isLeft);
+  Expr prependNAryChildren(ExprValue* op,
+                           ExprValue* ret,
+                           const std::vector<ExprValue*>& hargs,
+                           bool isLeft);
   /** Type check */
   ExprValue* getLiteralOpType(Kind k,
                               std::vector<ExprValue*>& children,
