@@ -1704,7 +1704,7 @@ The above program `to_dimacs` converts an SMT formula into DIMACS form, where `e
 ### Dependently-Typed Programs
 
 In Eunoia, a program can be given dependent types.
-The syntax `eo::arg` is used for this purpose, which can specify an input parameter to that function,
+The syntax `eo::quote` is used for this purpose, which can specify an input parameter to that function,
 and is provided as part of the type signature of the program.
 
 ```
@@ -1719,7 +1719,7 @@ and is provided as part of the type signature of the program.
   (-> (BitVec n) (BitVec m) (BitVec (eo::add n m))))
 
 (program repeat_zero ((n Int))
-  ((eo::arg n)) (BitVec n)
+  ((eo::quote n)) (BitVec n)
   (
     ((repeat_zero 0) @bv_empty)
     ((repeat_zero n) (eo::requires (eo::is_neg n) false
@@ -1735,17 +1735,17 @@ which concatenates two bit-vectors and whose type is the sum of its arguments.
 We then define a recursive program `repeat_zero` that concatenates the bit-vector value `#b0`
 `n` times, where `n` is its argument.
 This program returns a bit-vector of size `n`.
-Its specified type uses `eo::arg` to give a name to the argument of this program,
+Its specified type uses `eo::quote` to give a name to the argument of this program,
 allowing its return type to refer to that argument.
 
-> __Note:__ The argument of `eo::arg` must be a parameter introduced in the parameter list declared at the beginning of the program command.
+> __Note:__ The argument of `eo::quote` must be a parameter introduced in the parameter list declared at the beginning of the program command.
 
-Note that arguments that use the annotation `eo::arg` can be freely mixed with other type arguments.
+Note that arguments that use the annotation `eo::quote` can be freely mixed with other type arguments.
 For example, the above program could be generalized to concatentate an arbitrary BitVec term `n` times:
 
 ```
 (program repeat_term ((m Int) (n Int) (x (BitVec m))
-  ((BitVec m) (eo::arg n)) (BitVec (eo::mul m n))
+  ((BitVec m) (eo::quote n)) (BitVec (eo::mul m n))
   (
     ((repeat_term x 0) @bv_empty)
     ((repeat_term x n) (eo::requires (eo::is_neg n) false

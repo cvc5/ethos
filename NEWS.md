@@ -16,7 +16,7 @@ ethos 0.1.2 prerelease
 - The semantics for `eo::dt_constructors` is extended for instantiated parametric datatypes. For example calling `eo::dt_constructors` on `(List Int)` returns the list containing `cons` and `(as nil (List Int))`.
 - The semantics for `eo::dt_selectors` is extended for annotated constructors. For example calling `eo::dt_selectors` on `(as nil (List Int))` returns the empty list.
 
-- Adds support for dependent types for programs. The argument types of programs can now use `eo::arg` to specify an input parameter to that program.
+- Adds support for dependent types for programs. The argument types of programs can now use `eo::quote` to specify an input parameter to that program.
 
 - Adds builtin primitives `eo::eq` and `eo::is_ok`.
 - Added the option `--stats-all` to track the number of times side conditions are invoked.

@@ -10,7 +10,7 @@
   :right-assoc-nil @bv_empty)
 
 (program zero_of_width ((n Int))
-  ((eo::arg n)) (BitVec n)
+  ((eo::quote n)) (BitVec n)
   (
     ((zero_of_width 0) @bv_empty)
     ((zero_of_width n) (eo::requires (eo::is_neg n) false
@@ -22,7 +22,7 @@
 
 
 (program repeat_term ((m Int) (n Int) (x (BitVec m)))
-  ((BitVec m) (eo::arg n)) (BitVec (eo::mul m n))
+  ((BitVec m) (eo::quote n)) (BitVec (eo::mul m n))
   (
     ((repeat_term x 0) @bv_empty)
     ((repeat_term x n) (eo::requires (eo::is_neg n) false
