@@ -1596,25 +1596,26 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       ExprValue* a1 = getNAryChildren(args[1], op, nil, hargs, isLeft);
       std::vector<ExprValue*> hargs2;
       ExprValue* a2 = getNAryChildren(args[2], op, nil, hargs2, isLeft);
-      if (a1 == nullptr || a2==nullptr)
+      if (a1 == nullptr || a2 == nullptr)
       {
         Trace("type_checker") << "...head not in list form" << std::endl;
         return d_null;
-      }   
+      }
       std::unordered_map<const ExprValue*, uint32_t> count1, count2;
       for (const ExprValue* elem : hargs)
       {
         ++count1[elem];
       }
-      for (const ExprValue* elem : hargs2) 
+      for (const ExprValue* elem : hargs2)
       {
         ++count2[elem];
       }
-      for (const std::pair<const ExprValue* const, uint32_t>& entry : count1) {
-          if (count2[entry.first] < entry.second)
-          {
-            return d_state.mkFalse();
-          }
+      for (const std::pair<const ExprValue* const, uint32_t>& entry : count1)
+      {
+        if (count2[entry.first] < entry.second)
+        {
+          return d_state.mkFalse();
+        }
       }
       return d_state.mkTrue();
     }
