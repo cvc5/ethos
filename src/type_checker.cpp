@@ -1573,6 +1573,21 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       break;
     case Kind::EVAL_LIST_SETOF:
     {
+      ExprValue* a = getNAryChildren(args[1], op, nil, hargs, isLeft);
+      if (a==nullptr)
+      {
+        Trace("type_checker") << "...head not in list form" << std::endl;
+        return d_null;
+      }
+      std::unordered_set<ExprValue*> seen;
+      std::vector<ExprValue*> result;
+      for (ExprValue* elem : hargs) {
+          if (seen.insert(elem).second) {
+              result.emplace_back(elem);
+          }
+      }
+      ret = nilExpr.getValue();
+      return prependNAryChildren(op, ret, hargs, isLeft);
     }
       break;
     case Kind::EVAL_LIST_IS_SUBMSET:
