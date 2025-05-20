@@ -1562,7 +1562,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_LIST_ERASE:
     {
       ExprValue* a = getNAryChildren(args[1], op, nil, hargs, isLeft);
-      if (a==nullptr)
+      if (a == nullptr)
       {
         Trace("type_checker") << "...head not in list form" << std::endl;
         return d_null;
@@ -1571,7 +1571,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       bool changed = false;
       for (ExprValue* elem : hargs)
       {
-        if (elem==args[2])
+        if (elem == args[2])
         {
           changed = true;
           continue;
@@ -1632,7 +1632,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
         return d_null;
       }
       // optimization: reflexive true
-      if (args[1]==args[2])
+      if (args[1] == args[2])
       {
         return d_state.mkTrue();
       }
@@ -1645,16 +1645,17 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       {
         ++count2[elem];
       }
-      bool isEq = (k==Kind::EVAL_LIST_MEQ);
+      bool isEq = (k == Kind::EVAL_LIST_MEQ);
       // if equal, must be same size, this further ensures we only need to check
       // equal elements in one direction.
-      if (isEq && count1.size()!=count2.size())
+      if (isEq && count1.size() != count2.size())
       {
         return d_state.mkFalse();
       }
       for (const std::pair<const ExprValue* const, uint32_t>& entry : count1)
       {
-        if (isEq ? count2[entry.first] != entry.second : count2[entry.first] < entry.second)
+        if (isEq ? count2[entry.first] != entry.second
+                 : count2[entry.first] < entry.second)
         {
           return d_state.mkFalse();
         }
@@ -1725,8 +1726,8 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_IS_BOOL:
     case Kind::EVAL_IS_VAR:
     case Kind::EVAL_GT:
-    case Kind::EVAL_LIST_MINCLUDE: 
-    case Kind::EVAL_LIST_MEQ:return d_state.mkBoolType().getValue();
+    case Kind::EVAL_LIST_MINCLUDE:
+    case Kind::EVAL_LIST_MEQ: return d_state.mkBoolType().getValue();
     case Kind::EVAL_HASH:
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_INT_MOD:
