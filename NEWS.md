@@ -17,6 +17,7 @@ ethos 0.1.2 prerelease
 - The semantics for `eo::dt_selectors` is extended for annotated constructors. For example calling `eo::dt_selectors` on `(as nil (List Int))` returns the empty list.
 
 - Adds builtin primitives `eo::eq` and `eo::is_ok`.
+- Adds builtin list operators `eo::list_rev`, `eo::list_erase`, `eo::list_setof`, `eo::list_minclude` and `eo::list_meq`.
 - Added the option `--stats-all` to track the number of times side conditions are invoked.
 - The option `--print-let` has been renamed to `--print-dag` and is now enabled by default. The printer is changed to use `eo::define` instead of `let`.
 - Ethos now explicitly forbids `:var`, `:implicit`, and `:opaque` on return types.
