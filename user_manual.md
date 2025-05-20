@@ -912,6 +912,16 @@ We say that a term is an `f`-list with children `t1 ... tn` if it is of the form
   - If `f` is a right associative operator with nil terminator with nil terminator `nil`, `t1` is `(f s0 ... s{n-1})`, and `t2` is a numeral value such that `0<=t2<n`, then this returns `s_{t2}`. Otherwise, this operator does not evaluate.
 - `(eo::list_find f t1 t2)`
   - If `f` is a right associative operator with nil terminator with nil terminator `nil` and `t1` is `(f s0 ... s{n-1})`, then this returns the smallest numeral value `i` such that `t2` is syntactically equal to `si`, or `-1` if no such `si` can be found. Otherwise, this operator does not evaluate.
+- `(eo::list_erase f t1 t2)`
+  - If `f` is a right associative operator with nil terminator and `t1` is an `f`-list, then this returns the result of removing all occurrences of `t2` from `t1`.
+- `(eo::list_rev f t1)`
+  - If `t` is an `f`-list with children `t1 ... tn`, then this returns `(f tn ... t1)`.
+- `(eo::list_setof f t1)`
+  - If `t1` is an `f`-list with children `t11 ... t1n`, this returns the `f`-list obtained by dropping each element from this list beyond the first occurrence.
+- `(eo::list_minclude f t1 t2)`
+  - (Multiset inclusion) If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, then this returns true if each unique element in `t11 ... t1n` occurs with the greater than or equal multiplicity in `t21 ... t2m`.
+- `(eo::list_meq f t1 t2)`
+  - (Multiset equal) Equivalent to `(eo::and (eo::list_minclude f t1 t2) (eo::list_minclude t2 t1))`.
 
 ### List Computation Examples
 

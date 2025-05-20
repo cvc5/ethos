@@ -122,10 +122,11 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("list_concat", Kind::EVAL_LIST_CONCAT);
   bindBuiltinEval("list_nth", Kind::EVAL_LIST_NTH);
   bindBuiltinEval("list_find", Kind::EVAL_LIST_FIND);
+  bindBuiltinEval("list_erase", Kind::EVAL_LIST_ERASE);
   bindBuiltinEval("list_rev", Kind::EVAL_LIST_REV);
   bindBuiltinEval("list_setof", Kind::EVAL_LIST_SETOF);
-  bindBuiltinEval("list_is_submset", Kind::EVAL_LIST_IS_SUBMSET);
-  bindBuiltinEval("list_is_mset_eq", Kind::EVAL_LIST_IS_MSET_EQ);
+  bindBuiltinEval("list_minclude", Kind::EVAL_LIST_MINCLUDE);
+  bindBuiltinEval("list_meq", Kind::EVAL_LIST_MEQ);
   // boolean
   bindBuiltinEval("not", Kind::EVAL_NOT);
   bindBuiltinEval("and", Kind::EVAL_AND);

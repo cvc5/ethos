@@ -76,10 +76,11 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::EVAL_LIST_CONCAT: o << "EVAL_LIST_CONCAT"; break;
     case Kind::EVAL_LIST_NTH: o << "EVAL_LIST_NTH"; break;
     case Kind::EVAL_LIST_FIND: o << "EVAL_LIST_FIND"; break;
+    case Kind::EVAL_LIST_ERASE: o << "EVAL_LIST_ERASE"; break;
     case Kind::EVAL_LIST_REV: o << "EVAL_LIST_REV"; break;
     case Kind::EVAL_LIST_SETOF: o << "EVAL_LIST_SETOF"; break;
-    case Kind::EVAL_LIST_IS_SUBMSET: o << "EVAL_LIST_IS_SUBMSET"; break;
-    case Kind::EVAL_LIST_IS_MSET_EQ: o << "EVAL_LIST_IS_MSET_EQ"; break;
+    case Kind::EVAL_LIST_MINCLUDE: o << "EVAL_LIST_MINCLUDE"; break;
+    case Kind::EVAL_LIST_MEQ: o << "EVAL_LIST_MEQ"; break;
     // boolean
     case Kind::EVAL_NOT: o << "EVAL_NOT"; break;
     case Kind::EVAL_AND: o << "EVAL_AND"; break;
@@ -167,10 +168,11 @@ std::string kindToTerm(Kind k)
           case Kind::EVAL_LIST_CONCAT: ss << "list_concat"; break;
           case Kind::EVAL_LIST_NTH: ss << "list_nth"; break;
           case Kind::EVAL_LIST_FIND: ss << "list_find"; break;
+          case Kind::EVAL_LIST_ERASE: ss << "list_erase"; break;
           case Kind::EVAL_LIST_REV: ss << "list_rev"; break;
           case Kind::EVAL_LIST_SETOF: ss << "list_setof"; break;
-          case Kind::EVAL_LIST_IS_SUBMSET: ss << "list_is_submset"; break;
-          case Kind::EVAL_LIST_IS_MSET_EQ: ss << "list_is_mset_eq"; break;
+          case Kind::EVAL_LIST_MINCLUDE: ss << "list_minclude"; break;
+          case Kind::EVAL_LIST_MEQ: ss << "list_meq"; break;
           // boolean
           case Kind::EVAL_NOT: ss << "not"; break;
           case Kind::EVAL_AND: ss << "and"; break;
@@ -268,10 +270,11 @@ bool isLiteralOp(Kind k)
     case Kind::EVAL_LIST_CONCAT:
     case Kind::EVAL_LIST_NTH:
     case Kind::EVAL_LIST_FIND:
+    case Kind::EVAL_LIST_ERASE:
     case Kind::EVAL_LIST_REV:
     case Kind::EVAL_LIST_SETOF:
-    case Kind::EVAL_LIST_IS_SUBMSET:
-    case Kind::EVAL_LIST_IS_MSET_EQ:
+    case Kind::EVAL_LIST_MINCLUDE:
+    case Kind::EVAL_LIST_MEQ:
     // boolean
     case Kind::EVAL_NOT:
     case Kind::EVAL_AND:
@@ -313,10 +316,11 @@ bool isListLiteralOp(Kind k)
     case Kind::EVAL_LIST_CONCAT:
     case Kind::EVAL_LIST_NTH:
     case Kind::EVAL_LIST_FIND:
+    case Kind::EVAL_LIST_ERASE:
     case Kind::EVAL_LIST_REV:
     case Kind::EVAL_LIST_SETOF:
-    case Kind::EVAL_LIST_IS_SUBMSET: 
-    case Kind::EVAL_LIST_IS_MSET_EQ: return true;
+    case Kind::EVAL_LIST_MINCLUDE: 
+    case Kind::EVAL_LIST_MEQ: return true;
     default:
       break;
   }

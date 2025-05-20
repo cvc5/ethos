@@ -191,9 +191,10 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_IF_THEN_ELSE:
     case Kind::EVAL_CONS:
     case Kind::EVAL_LIST_FIND:
+    case Kind::EVAL_LIST_ERASE:
     case Kind::EVAL_LIST_NTH:
-    case Kind::EVAL_LIST_IS_SUBMSET:
-    case Kind::EVAL_LIST_IS_MSET_EQ: ret = (nargs == 3); break;
+    case Kind::EVAL_LIST_MINCLUDE:
+    case Kind::EVAL_LIST_MEQ: ret = (nargs == 3); break;
     case Kind::EVAL_EXTRACT:
       ret = (nargs==3 || nargs==2);
       break;
@@ -1558,6 +1559,33 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       return Expr(d_state.mkLiteralInternal(lret));
     }
     break;
+    case Kind::EVAL_LIST_ERASE:
+    {
+      ExprValue* a = getNAryChildren(args[1], op, nil, hargs, isLeft);
+      if (a==nullptr)
+      {
+        Trace("type_checker") << "...head not in list form" << std::endl;
+        return d_null;
+      }
+      std::vector<ExprValue*> result;
+      bool changed = false;
+      for (ExprValue* elem : hargs)
+      {
+        if (elem==args[2])
+        {
+          changed = true;
+          continue;
+        }
+        result.emplace_back(elem);
+      }
+      if (!changed)
+      {
+        return Expr(args[1]);
+      }
+      ret = nilExpr.getValue();
+      return prependNAryChildren(op, ret, result, isLeft);
+    }
+    break;
     case Kind::EVAL_LIST_REV:
     {
       ExprValue* a = getNAryChildren(args[1], op, nil, hargs, isLeft);
@@ -1592,8 +1620,8 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       return prependNAryChildren(op, ret, result, isLeft);
     }
     break;
-    case Kind::EVAL_LIST_IS_SUBMSET:
-    case Kind::EVAL_LIST_IS_MSET_EQ:
+    case Kind::EVAL_LIST_MINCLUDE:
+    case Kind::EVAL_LIST_MEQ:
     {
       ExprValue* a1 = getNAryChildren(args[1], op, nil, hargs, isLeft);
       std::vector<ExprValue*> hargs2;
@@ -1602,6 +1630,11 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       {
         Trace("type_checker") << "...head not in list form" << std::endl;
         return d_null;
+      }
+      // optimization: reflexive true
+      if (args[1]==args[2])
+      {
+        return d_state.mkTrue();
       }
       std::unordered_map<const ExprValue*, uint32_t> count1, count2;
       for (const ExprValue* elem : hargs)
@@ -1612,7 +1645,13 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       {
         ++count2[elem];
       }
-      bool isEq = (k==Kind::EVAL_LIST_IS_MSET_EQ);
+      bool isEq = (k==Kind::EVAL_LIST_MEQ);
+      // if equal, must be same size, this further ensures we only need to check
+      // equal elements in one direction.
+      if (isEq && count1.size()!=count2.size())
+      {
+        return d_state.mkFalse();
+      }
       for (const std::pair<const ExprValue* const, uint32_t>& entry : count1)
       {
         if (isEq ? count2[entry.first] != entry.second : count2[entry.first] < entry.second)
@@ -1668,6 +1707,7 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
       return childTypes[2];
     case Kind::EVAL_LIST_CONCAT:
     case Kind::EVAL_LIST_NTH:
+    case Kind::EVAL_LIST_ERASE:
     case Kind::EVAL_LIST_REV:
     case Kind::EVAL_LIST_SETOF: return childTypes[1];
     case Kind::EVAL_CONCAT:
@@ -1685,8 +1725,8 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_IS_BOOL:
     case Kind::EVAL_IS_VAR:
     case Kind::EVAL_GT:
-    case Kind::EVAL_LIST_IS_SUBMSET: 
-    case Kind::EVAL_LIST_IS_MSET_EQ:return d_state.mkBoolType().getValue();
+    case Kind::EVAL_LIST_MINCLUDE: 
+    case Kind::EVAL_LIST_MEQ:return d_state.mkBoolType().getValue();
     case Kind::EVAL_HASH:
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_INT_MOD:
