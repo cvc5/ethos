@@ -915,7 +915,9 @@ We say that a term is an `f`-list with children `t1 ... tn` if it is of the form
 - `(eo::list_rev f t1)`
   - If `t1` is an `f`-list with children `t11 ... t1n`, then this returns `(f t1n ... t11)`.
 - `(eo::list_erase f t1 t2)`
-  - If `t1` is an `f`-list, then this returns the result of removing all occurrences of `t2` from `t1`. Note that the remaining elements are kept in order.
+  - If `t1` is an `f`-list, then this returns the result of removing the first occurrence of `t2` from `t1` if it exists. Returns `t1` unchanged if it does not contain `t2`.
+- `(eo::list_erase_all f t1 t2)`
+  - If `t1` is an `f`-list, then this returns the result of removing all occurrences of `t2` from `t1`, where the remaining elements are kept in order. Returns `t1` unchanged if it does not contain `t2`.
 - `(eo::list_setof f t1)`
   - If `t1` is an `f`-list with children `t11 ... t1n`, this returns the `f`-list obtained by dropping each element from this list beyond the first occurrence. Note that the remaining elements are kept in order.
 - `(eo::list_minclude f t1 t2)`
