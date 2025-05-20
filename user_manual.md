@@ -975,9 +975,14 @@ The terms on both sides of the given evaluation are written in their form prior 
 (eo::list_rev or false)                   == false
 
 (eo::list_erase or (or a b c) a)          == (or b c)
-(eo::list_erase or (or a a b a) a)        == (or b)
+(eo::list_erase or (or c a a b a) a)      == (or c a b a)
 (eo::list_erase or (or a b c) d)          == (or a b c)
 (eo::list_erase or false d)               == false
+
+(eo::list_erase_all or (or a b c) a)          == (or b c)
+(eo::list_erase_all or (or a a b a) a)        == (or b)
+(eo::list_erase_all or (or a b c) d)          == (or a b c)
+(eo::list_erase_all or false d)               == false
 
 (eo::list_setof or (or a b c))            == (or a b c)
 (eo::list_setof or (or a b a c a b c))    == (or a b c)

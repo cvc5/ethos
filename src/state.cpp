@@ -123,6 +123,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("list_nth", Kind::EVAL_LIST_NTH);
   bindBuiltinEval("list_find", Kind::EVAL_LIST_FIND);
   bindBuiltinEval("list_erase", Kind::EVAL_LIST_ERASE);
+  bindBuiltinEval("list_erase_all", Kind::EVAL_LIST_ERASE_ALL);
   bindBuiltinEval("list_rev", Kind::EVAL_LIST_REV);
   bindBuiltinEval("list_setof", Kind::EVAL_LIST_SETOF);
   bindBuiltinEval("list_minclude", Kind::EVAL_LIST_MINCLUDE);

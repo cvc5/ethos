@@ -192,6 +192,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_CONS:
     case Kind::EVAL_LIST_FIND:
     case Kind::EVAL_LIST_ERASE:
+    case Kind::EVAL_LIST_ERASE_ALL:
     case Kind::EVAL_LIST_NTH:
     case Kind::EVAL_LIST_MINCLUDE:
     case Kind::EVAL_LIST_MEQ: ret = (nargs == 3); break;
@@ -1560,6 +1561,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     }
     break;
     case Kind::EVAL_LIST_ERASE:
+    case Kind::EVAL_LIST_ERASE_ALL:
     {
       ExprValue* a = getNAryChildren(args[1], op, nil, hargs, isLeft);
       if (a == nullptr)
@@ -1569,11 +1571,17 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       }
       std::vector<ExprValue*> result;
       bool changed = false;
+      bool doRem = true;
+      bool isAll = (k == Kind::EVAL_LIST_ERASE_ALL);
       for (ExprValue* elem : hargs)
       {
-        if (elem == args[2])
+        if (doRem && elem == args[2])
         {
           changed = true;
+          if (!isAll)
+          {
+            doRem = false;
+          }
           continue;
         }
         result.emplace_back(elem);
@@ -1709,6 +1717,7 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_LIST_CONCAT:
     case Kind::EVAL_LIST_NTH:
     case Kind::EVAL_LIST_ERASE:
+    case Kind::EVAL_LIST_ERASE_ALL:
     case Kind::EVAL_LIST_REV:
     case Kind::EVAL_LIST_SETOF: return childTypes[1];
     case Kind::EVAL_CONCAT:
