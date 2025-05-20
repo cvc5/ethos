@@ -894,7 +894,7 @@ It does not require that its arguments denote values, so for example `(eo::is_eq
 
 ## List computations
 
-Below, we assume that `f` is right associative operator with nil terminator `nil` and `t1, t2` are ground. Otherwise, the following operators do not evaluate.
+Below, we assume that `f` is right associative operator with nil terminator `nil` and `t1, t2` are values. Otherwise, the following operators do not evaluate.
 We describe the evaluation for right associative operators; left associative evaluation is defined analogously.
 We say that a term is an `f`-list with children `t1 ... tn` if it is of the form `(f t1 ... tn)` where `n>0` or `nil` if `n=0`.
 
@@ -961,15 +961,38 @@ The terms on both sides of the given evaluation are written in their form prior 
 (eo::list_concat or (or a) (or b))          == (or a b)
 (eo::list_concat or (and a b) false)        == (eo::list_concat or (and a b) false)  ; since (and a b) is not an or-list
 
-(eo::list_nth or (or a b a) 1)           == b
-(eo::list_nth or (or a) 0)               == a
-(eo::list_nth or false 0)                == (eo::list_nth or false 0)         ; since false has <=0 children
-(eo::list_nth or (or a b a) 3)           == (eo::list_nth or (or a b a) 3)    ; since (or a b a) has <=3 children
-(eo::list_nth or (and a b b) 0)          == (eo::list_nth or (and a b b) 0)   ; since (and a b b) is not an or-list
+(eo::list_nth or (or a b a) 1)            == b
+(eo::list_nth or (or a) 0)                == a
+(eo::list_nth or false 0)                 == (eo::list_nth or false 0)         ; since false has <=0 children
+(eo::list_nth or (or a b a) 3)            == (eo::list_nth or (or a b a) 3)    ; since (or a b a) has <=3 children
+(eo::list_nth or (and a b b) 0)           == (eo::list_nth or (and a b b) 0)   ; since (and a b b) is not an or-list
 
-(eo::list_find or (or a b a) b)          == 1
-(eo::list_find or (or a b a) true)       == -1
-(eo::list_find or (and a b b) a)         == (eo::list_find or (and a b b) a)      ; since (and a b b) is not an or-list
+(eo::list_find or (or a b a) b)           == 1
+(eo::list_find or (or a b a) true)        == -1
+(eo::list_find or (and a b b) a)          == (eo::list_find or (and a b b) a)      ; since (and a b b) is not an or-list
+
+(eo::list_rev or (or a b c))              == (or c b a)
+(eo::list_rev or false)                   == false
+
+(eo::list_erase or (or a b c) a)          == (or b c)
+(eo::list_erase or (or a a b a) a)        == (or b)
+(eo::list_erase or (or a b c) d)          == (or a b c)
+(eo::list_erase or false d)               == false
+
+(eo::list_setof or (or a b c))            == (or a b c)
+(eo::list_setof or (or a b a c a b c))    == (or a b c)
+(eo::list_setof or (or a a a))            == (or a)
+(eo::list_setof or false)                 == false
+
+(eo::list_minclude or (or a b) (or a a b))  == true
+(eo::list_minclude or (or a b) (or b a))    == true
+(eo::list_minclude or (or a b b) (or a b))  == false
+(eo::list_minclude or false (or a b))       == true
+
+(eo::list_meq or (or a b) (or a a b))       == false
+(eo::list_meq or (or a b c b) (or b a c b)) == true
+(eo::list_meq or (or a b b) (or a a b))     == false
+(eo::list_meq or false false)               == true
 ```
 
 ### Nil terminator with additional arguments
