@@ -79,6 +79,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::EVAL_LIST_REV: o << "EVAL_LIST_REV"; break;
     case Kind::EVAL_LIST_SETOF: o << "EVAL_LIST_SETOF"; break;
     case Kind::EVAL_LIST_IS_SUBMSET: o << "EVAL_LIST_IS_SUBMSET"; break;
+    case Kind::EVAL_LIST_IS_MSET_EQ: o << "EVAL_LIST_IS_MSET_EQ"; break;
     // boolean
     case Kind::EVAL_NOT: o << "EVAL_NOT"; break;
     case Kind::EVAL_AND: o << "EVAL_AND"; break;
@@ -169,6 +170,7 @@ std::string kindToTerm(Kind k)
           case Kind::EVAL_LIST_REV: ss << "list_rev"; break;
           case Kind::EVAL_LIST_SETOF: ss << "list_setof"; break;
           case Kind::EVAL_LIST_IS_SUBMSET: ss << "list_is_submset"; break;
+          case Kind::EVAL_LIST_IS_MSET_EQ: ss << "list_is_mset_eq"; break;
           // boolean
           case Kind::EVAL_NOT: ss << "not"; break;
           case Kind::EVAL_AND: ss << "and"; break;
@@ -269,6 +271,7 @@ bool isLiteralOp(Kind k)
     case Kind::EVAL_LIST_REV:
     case Kind::EVAL_LIST_SETOF:
     case Kind::EVAL_LIST_IS_SUBMSET:
+    case Kind::EVAL_LIST_IS_MSET_EQ:
     // boolean
     case Kind::EVAL_NOT:
     case Kind::EVAL_AND:
@@ -312,7 +315,8 @@ bool isListLiteralOp(Kind k)
     case Kind::EVAL_LIST_FIND:
     case Kind::EVAL_LIST_REV:
     case Kind::EVAL_LIST_SETOF:
-    case Kind::EVAL_LIST_IS_SUBMSET: return true;
+    case Kind::EVAL_LIST_IS_SUBMSET: 
+    case Kind::EVAL_LIST_IS_MSET_EQ: return true;
     default:
       break;
   }

@@ -92,6 +92,7 @@ enum class Kind
   EVAL_LIST_REV,
   EVAL_LIST_SETOF,
   EVAL_LIST_IS_SUBMSET,
+  EVAL_LIST_IS_MSET_EQ,
   // boolean
   EVAL_NOT,
   EVAL_AND,

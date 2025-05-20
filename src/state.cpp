@@ -125,6 +125,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("list_rev", Kind::EVAL_LIST_REV);
   bindBuiltinEval("list_setof", Kind::EVAL_LIST_SETOF);
   bindBuiltinEval("list_is_submset", Kind::EVAL_LIST_IS_SUBMSET);
+  bindBuiltinEval("list_is_mset_eq", Kind::EVAL_LIST_IS_MSET_EQ);
   // boolean
   bindBuiltinEval("not", Kind::EVAL_NOT);
   bindBuiltinEval("and", Kind::EVAL_AND);

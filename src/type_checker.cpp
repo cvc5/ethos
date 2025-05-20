@@ -192,7 +192,8 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_CONS:
     case Kind::EVAL_LIST_FIND:
     case Kind::EVAL_LIST_NTH:
-    case Kind::EVAL_LIST_IS_SUBMSET: ret = (nargs == 3); break;
+    case Kind::EVAL_LIST_IS_SUBMSET:
+    case Kind::EVAL_LIST_IS_MSET_EQ: ret = (nargs == 3); break;
     case Kind::EVAL_EXTRACT:
       ret = (nargs==3 || nargs==2);
       break;
@@ -1588,10 +1589,11 @@ Expr TypeChecker::evaluateLiteralOpInternal(
         }
       }
       ret = nilExpr.getValue();
-      return prependNAryChildren(op, ret, hargs, isLeft);
+      return prependNAryChildren(op, ret, result, isLeft);
     }
     break;
     case Kind::EVAL_LIST_IS_SUBMSET:
+    case Kind::EVAL_LIST_IS_MSET_EQ:
     {
       ExprValue* a1 = getNAryChildren(args[1], op, nil, hargs, isLeft);
       std::vector<ExprValue*> hargs2;
@@ -1610,9 +1612,10 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       {
         ++count2[elem];
       }
+      bool isEq = (k==Kind::EVAL_LIST_IS_MSET_EQ);
       for (const std::pair<const ExprValue* const, uint32_t>& entry : count1)
       {
-        if (count2[entry.first] < entry.second)
+        if (isEq ? count2[entry.first] != entry.second : count2[entry.first] < entry.second)
         {
           return d_state.mkFalse();
         }
@@ -1682,7 +1685,8 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_IS_BOOL:
     case Kind::EVAL_IS_VAR:
     case Kind::EVAL_GT:
-    case Kind::EVAL_LIST_IS_SUBMSET: return d_state.mkBoolType().getValue();
+    case Kind::EVAL_LIST_IS_SUBMSET: 
+    case Kind::EVAL_LIST_IS_MSET_EQ:return d_state.mkBoolType().getValue();
     case Kind::EVAL_HASH:
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_INT_MOD:
