@@ -729,12 +729,9 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       // in hdTerm, where notice hdTerm is of kind PARAMETERIZED if consTerm
       // (prior to resolution) was PARAMETERIZED. So, for example, applying
       // `bvor` to `a` of type `(BitVec 4)` results in
-      //   hdTerm := (PARAMETERIZED (4) bvor),
       //   consTerm := #b0000.
-      Expr hdTerm;
-      Expr consTerm;
-      d_tc.computedParameterizedInternal(ai, children, hdTerm, consTerm);
-      Trace("state-debug") << "...updated " << hdTerm << " / " << consTerm << std::endl;
+      Expr consTerm = d_tc.computeConstructorTermInternal(ai, children);
+      Trace("state-debug") << "...updated " << consTerm << std::endl;
       vchildren[0] = hd;
       // if it has a constructor attribute
       switch (ai->d_attrCons)
