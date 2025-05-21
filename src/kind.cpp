@@ -52,6 +52,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::BINARY: o << "BINARY"; break;
     case Kind::STRING: o << "STRING"; break;
     // operations on literals
+    case Kind::EVAL_IS_OK: o << "EVAL_IS_OK"; break;
     case Kind::EVAL_IS_EQ: o << "EVAL_IS_EQ"; break;
     case Kind::EVAL_IF_THEN_ELSE: o << "EVAL_IF_THEN_ELSE"; break;
     case Kind::EVAL_REQUIRES: o << "EVAL_REQUIRES"; break;
@@ -66,6 +67,8 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::EVAL_IS_STR: o << "EVAL_IS_STR"; break;
     case Kind::EVAL_IS_BOOL: o << "EVAL_IS_BOOL"; break;
     case Kind::EVAL_IS_VAR: o << "EVAL_IS_VAR"; break;
+    // equality
+    case Kind::EVAL_EQ: o << "EVAL_EQ"; break;
     // lists
     case Kind::EVAL_NIL: o << "EVAL_NIL";break;
     case Kind::EVAL_CONS: o << "EVAL_CONS"; break;
@@ -136,6 +139,7 @@ std::string kindToTerm(Kind k)
         ss << "eo::";
         switch (k)
         {
+          case Kind::EVAL_IS_OK: ss << "is_ok"; break;
           case Kind::EVAL_IS_EQ: ss << "is_eq"; break;
           case Kind::EVAL_IF_THEN_ELSE: ss << "ite"; break;
           case Kind::EVAL_REQUIRES: ss << "requires"; break;
@@ -150,6 +154,8 @@ std::string kindToTerm(Kind k)
           case Kind::EVAL_IS_STR: ss << "is_str"; break;
           case Kind::EVAL_IS_BOOL: ss << "is_bool"; break;
           case Kind::EVAL_IS_VAR: ss << "is_var"; break;
+          // equality
+          case Kind::EVAL_EQ: ss << "eq"; break;
           // lists
           case Kind::EVAL_NIL: ss << "nil"; break;
           case Kind::EVAL_CONS: ss << "cons"; break;
@@ -230,6 +236,7 @@ bool isLiteralOp(Kind k)
   switch(k)
   {
     case Kind::ANNOT_PARAM:
+    case Kind::EVAL_IS_OK:
     case Kind::EVAL_IS_EQ:
     case Kind::EVAL_IF_THEN_ELSE:
     case Kind::EVAL_REQUIRES:
@@ -244,6 +251,8 @@ bool isLiteralOp(Kind k)
     case Kind::EVAL_IS_STR:
     case Kind::EVAL_IS_BOOL:
     case Kind::EVAL_IS_VAR:
+    // equality
+    case Kind::EVAL_EQ:
     // lists
     case Kind::EVAL_NIL:
     case Kind::EVAL_CONS:

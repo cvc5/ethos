@@ -148,6 +148,8 @@ set(ethos_test_file_list
     const-array.eo
     type-var-exists.eo
     array-ext-implicit-type-infer.eo
+    define-scope-attr.eo
+    is-eq-tests.eo
 )
 
 if(ENABLE_ORACLES)
