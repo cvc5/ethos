@@ -1107,8 +1107,8 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   {
     case Kind::EVAL_IS_EQ:
     {
-      Assert (args.size()==2);
-      bool ret = args[0]==args[1];
+      Assert(args.size() == 2);
+      bool ret = args[0] == args[1];
       if (ret)
       {
         // eagerly evaluate if sides are equal, even if non-ground
@@ -1155,7 +1155,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     break;
     case Kind::EVAL_REQUIRES:
     {
-      if (args[0]==args[1])
+      if (args[0] == args[1])
       {
         // eagerly evaluate even if body is non-ground
         return Expr(args[2]);
@@ -1188,7 +1188,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       {
         size_t h1 = d_state.getHash(args[0]);
         size_t h2 = d_state.getHash(args[1]);
-        Literal lb(h1>h2);
+        Literal lb(h1 > h2);
         return Expr(d_state.mkLiteralInternal(lb));
       }
       return d_null;
@@ -1231,7 +1231,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
         if (et.isGround())
         {
           // don't permit ground evaluatable types
-          Assert (!et.isEvaluatable());
+          Assert(!et.isEvaluatable());
           return et;
         }
       }
@@ -1244,7 +1244,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       if (isGround(args))
       {
         Kind k = args[0]->getKind();
-        if (k==Kind::CONST || k==Kind::VARIABLE)
+        if (k == Kind::CONST || k == Kind::VARIABLE)
         {
           Literal sym(String(Expr(args[0]).getSymbol()));
           return Expr(d_state.mkLiteralInternal(sym));
@@ -1256,7 +1256,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_VAR:
     {
       // if arguments are ground and the first argument is a string
-      if (args[0]->getKind()==Kind::STRING && args[1]->isGround())
+      if (args[0]->getKind() == Kind::STRING && args[1]->isGround())
       {
         Expr type(args[1]);
         Expr tt = getType(type);
@@ -1616,8 +1616,8 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
   return nullptr;
 }
 
-Expr TypeChecker::computeConstructorTermInternal(AppInfo* ai,
-                                                const std::vector<Expr>& children)
+Expr TypeChecker::computeConstructorTermInternal(
+    AppInfo* ai, const std::vector<Expr>& children)
 {
   if (ai==nullptr)
   {
@@ -1633,17 +1633,19 @@ Expr TypeChecker::computeConstructorTermInternal(AppInfo* ai,
   const Expr& hd = children[0];
   Trace("type_checker") << "Determine constructor term for " << hd << std::endl;
   // if explicit parameters, then evaluate the constructor term
-  if (children.size()==1)
+  if (children.size() == 1)
   {
     // if not in an application, we fail
     Warning() << "Failed to determine parameters for " << hd << std::endl;
     return d_null;
   }
   // otherwise, we must infer the parameters
-  Trace("type_checker") << "Infer params for " << hd << " @ " << children[1] << std::endl;
+  Trace("type_checker") << "Infer params for " << hd << " @ " << children[1]
+                        << std::endl;
   if (!isNAryAttr(ai->d_attrCons))
   {
-    Warning() << "Unknown category for parameterized operator " << hd << std::endl;
+    Warning() << "Unknown category for parameterized operator " << hd
+              << std::endl;
     return d_null;
   }
   std::vector<ExprValue*> app;
@@ -1655,26 +1657,30 @@ Expr TypeChecker::computeConstructorTermInternal(AppInfo* ai,
     Expr expr(e);
     getType(expr);
     ExprValue* t = d_state.lookupType(e);
-    if (t==nullptr)
+    if (t == nullptr)
     {
       // only warn if ground
       if (expr.isGround())
       {
-        Warning() << "Type inference failed for " << hd << " applied to " << children[1] << ", failed to type check " << expr << std::endl;
+        Warning() << "Type inference failed for " << hd << " applied to "
+                  << children[1] << ", failed to type check " << expr
+                  << std::endl;
       }
       return d_null;
     }
-    Trace("type_checker_debug") << "Type for " << expr << " is " << Expr(t) << std::endl;
+    Trace("type_checker_debug")
+        << "Type for " << expr << " is " << Expr(t) << std::endl;
   }
   Ctx tctx;
   getTypeAppInternal(app, tctx);
   Trace("type_checker_debug") << "Context was " << tctx << std::endl;
-  for (size_t i=0, nparams = ct[0].getNumChildren(); i<nparams; i++)
+  for (size_t i = 0, nparams = ct[0].getNumChildren(); i < nparams; i++)
   {
     ExprValue* cv = tctx[ct[0][i].getValue()];
     if (cv->isNull())
     {
-      Warning() << "Failed to find context for " << ct[0][i] << " when applying " << hd << " @ " << children[1] << std::endl;
+      Warning() << "Failed to find context for " << ct[0][i]
+                << " when applying " << hd << " @ " << children[1] << std::endl;
       return d_null;
     }
     if (!cv->isGround())
@@ -1685,7 +1691,8 @@ Expr TypeChecker::computeConstructorTermInternal(AppInfo* ai,
       return d_null;
     }
   }
-  Trace("type_checker") << "Context for constructor term: " << tctx << std::endl;
+  Trace("type_checker") << "Context for constructor term: " << tctx
+                        << std::endl;
   return evaluate(ct[1].getValue(), tctx);
 }
 
