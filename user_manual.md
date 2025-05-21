@@ -934,6 +934,8 @@ The terms on both sides of the given evaluation are written in their form prior 
 (declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
 (declare-const a Bool)
 (declare-const b Bool)
+(declare-const c Bool)
+(declare-const d Bool)
 
 (eo::nil or)                  == false
 (eo::nil a)                   == (eo::nil a)                ; since a is not an associative operator
