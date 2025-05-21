@@ -1108,24 +1108,6 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   // special cases: ITE may evaluate if non-ground
   switch (k)
   {
-    case Kind::EVAL_IS_EQ:
-    {
-      Assert(args.size() == 2);
-      bool ret = args[0] == args[1];
-      if (ret)
-      {
-        // eagerly evaluate if sides are equal, even if non-ground
-        return d_state.mkTrue();
-      }
-      else if (isGround(args))
-      {
-        // otherwise, if both sides are ground, we evaluate to false.
-        // note this is independent of whether they are values.
-        return d_state.mkFalse();
-      }
-      return d_null;
-    }
-    break;
     case Kind::EVAL_IF_THEN_ELSE:
     {
       Assert (args.size()==3);
