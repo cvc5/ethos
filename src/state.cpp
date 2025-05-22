@@ -747,7 +747,8 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
                   // (eo::nil f t1 ... tn), which if t1...tn are non-ground
                   // will evaluate to the proper nil terminator when
                   // instantiated.
-                  curr = mkExprInternal(Kind::EVAL_NIL, vchildren);
+                  Expr typ = mkExprInternal(Kind::EVAL_TYPE_OF, vchildren[1]);
+                  curr = mkExprInternal(Kind::EVAL_ANNOT_NIL, {vchildren[0], typ.getValue()});
                 }
                 else
                 {

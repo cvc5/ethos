@@ -83,6 +83,7 @@ enum class Kind
   EVAL_EQ,
   // lists
   EVAL_NIL,
+  EVAL_ANNOT_NIL,  // annotated nil, only used internally
   EVAL_CONS,
   EVAL_LIST_LENGTH,
   EVAL_LIST_CONCAT,

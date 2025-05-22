@@ -163,6 +163,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_COMPARE:
     case Kind::EVAL_GT:
     case Kind::EVAL_LIST_LENGTH:
+    case Kind::EVAL_ANNOT_NIL:
       ret = (nargs==2);
       break;
     case Kind::EVAL_ADD:
@@ -195,10 +196,8 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_IS_BOOL:
     case Kind::EVAL_IS_VAR:
     case Kind::EVAL_DT_CONSTRUCTORS:
-    case Kind::EVAL_DT_SELECTORS: ret = (nargs == 1); break;
     case Kind::EVAL_NIL:
-      ret = (nargs>=1);
-      break;
+    case Kind::EVAL_DT_SELECTORS: ret = (nargs == 1); break;
     case Kind::EVAL_REQUIRES:
     case Kind::EVAL_IF_THEN_ELSE:
     case Kind::EVAL_CONS:
@@ -1446,6 +1445,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   switch (k)
   {
     case Kind::EVAL_NIL:
+    case Kind::EVAL_ANNOT_NIL:
     {
       return nilExpr;
     }
@@ -1575,6 +1575,7 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_TYPE_OF:
       return d_state.mkType();
     case Kind::EVAL_VAR:
+    case Kind::EVAL_ANNOT_NIL:
       // its type is the second argument
       return Expr(children[1]);
     case Kind::EVAL_ADD:
