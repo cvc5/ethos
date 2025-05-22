@@ -5,6 +5,6 @@
 
 (declare-parameterized-const extract ((n Int :implicit) (h Int) (l Int)) 
   (-> (BitVec n) 
-      (! (BitVec (eo::add h (eo::add (eo::neg l) 1))) :requires ((eo::is_neg l) false)
-  ))
+      (eo::requires (eo::is_neg l) false (BitVec (eo::add h (eo::add (eo::neg l) 1))))
+  )
 )

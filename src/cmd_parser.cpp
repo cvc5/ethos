@@ -188,13 +188,6 @@ bool CmdParser::parseNextCommand()
                 : d_state.mkFunctionType(sorts, ret);
       }
       std::vector<Expr> opaqueArgs;
-      while (t.getKind()==Kind::FUNCTION_TYPE && t[0].getKind()==Kind::OPAQUE_TYPE)
-      {
-        Assert (t.getNumChildren()==2);
-        Assert (t[0].getNumChildren()==1);
-        opaqueArgs.push_back(t[0][0]);
-        t = t[1];
-      }
       // process the parameter list
       if (!params.empty())
       {
@@ -797,8 +790,6 @@ bool CmdParser::parseNextCommand()
           {
             d_lex.parseError("Wrong arity for pattern");
           }
-          // ensure some type checking??
-          //d_eparser.typeCheck(pc);
           // ensure the right hand side is bound by the left hand side
           std::vector<Expr> bvs = Expr::getVariables(pc);
           Expr rhs = p[1];
@@ -815,6 +806,8 @@ bool CmdParser::parseNextCommand()
               d_lex.parseError(ss.str());
             }
           }
+          // type check whether this is a legal pattern/return pair.
+          d_eparser.typeCheckProgramPair(pc, rhs, true);
         }
         program = d_state.mkExpr(Kind::PROGRAM, pchildren);
       }

@@ -25,11 +25,8 @@ enum class Kind
   FUNCTION_TYPE,
   PROGRAM_TYPE,
   PROOF_TYPE,
-  ABSTRACT_TYPE,
   BOOL_TYPE,
   QUOTE_TYPE,
-  OPAQUE_TYPE,  // an argument marked :opaque, temporary during parsing
-  NULL_TYPE,    // an argument marked :implicit, temporary during parsing
 
   // terms
   APPLY,
@@ -42,6 +39,8 @@ enum class Kind
   APPLY_OPAQUE,
   ANNOT_PARAM,  // a parameter with non-ground type that appears in type
                 // checking
+  ANY,          // atomic term standing for an unknown, treated as non-ground
+                // and evaluatable.
 
   // symbols
   PARAM,

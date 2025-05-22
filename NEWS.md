@@ -3,12 +3,13 @@ This file contains a summary of important user-visible changes.
 ethos 0.1.2 prerelease
 ======================
 
+- Drops support for `:var` and `:implicit` as *term* attributes. The recommended way of introducing function symbols with named arguments is via the command `declare-parameterized-const`, which now permits the parameter annotations `:requires`, `:implicit`, and `:opaque`. The parameters of a parameterized constants are no longer assumed to be implicit, and are explicit by default. The `:implicit` attribute can be used on all parameters to recover the previous behavior.
+- Change the execution semantics when a program takes an unevalated term as an argument. In particular, we do not call user provided programs and oracles when at least argument could not be evaluated. This change was made to make errors more intuitive. Note this changes the semantics of programs that previously relied on being called on unevaluated terms.
 - Change the execution semantics when a program takes an unevalated term as an argument. In particular, we do not call user provided programs and oracles when at least one argument could not be evaluated. This change was made to make errors more intuitive. Note this changes the semantics of programs that previously relied on being called on unevaluated terms.
 - Change the semantics of a corner case of `eo::is_eq`. In particular, `eo::is_eq` now returns false if given two syntactically equivalent terms whose evaluation is stuck. This change also impacts the semantics of `eo::requires`, which evaluates to the third argument if and only if the first two arguments are syntactically equivalent *and* are fully evaluated.
 - User programs, user oracles, and builtin operators that are unapplied are now considered unevaluated. This makes the type checker more strict and disallows passing them as arguments to other programs, which previously led to undefined behavior.
 - Changes the interface of `declare-parameterized-const`. In particular, the parameters of a parameterized constants are no longer assumed to be implicit, and are explicit by default. The `:implicit` attribute can be used on all parameters to recover the previous behavior. Other attributes such as `:opaque` and `:requires` can now be used on parameters to this command.
 - In type checking, the free parameters in the types of parameters are now also bound when that parameter is instantiated.
-- Remove support for the explicit parameter annotation `eo::_`, which was used to provide annotations for implicit arguments to parameterized constants.
 - Changed the semantics of pairwise and chainable operators for a single argument, which now reduces to the neutral element of the combining operator instead of a parse error.
 - The operator `eo::typeof` now fails to evaluate if the type of the given term is not ground.
 
@@ -21,7 +22,6 @@ ethos 0.1.2 prerelease
 - Adds builtin primitives `eo::eq` and `eo::is_ok`.
 - Added the option `--stats-all` to track the number of times side conditions are invoked.
 - The option `--print-let` has been renamed to `--print-dag` and is now enabled by default. The printer is changed to use `eo::define` instead of `let`.
-- Ethos now explicitly forbids `:var`, `:implicit`, and `:opaque` on return types.
 - The option `--binder-fresh`, which specified for fresh variables to be constructed when parsing binders, has been removed.
 - Programs and oracles now are explicitly required to have at least one argument.
 - Remove support for the explicit parameter annotation `eo::_`, which was used to provide annotations for implicit arguments to parameterized constants.
