@@ -154,7 +154,6 @@ State::State(Options& opts, Stats& stats)
 
   // note we don't allow parsing (Proof ...), (Quote ...), or (quote ...).
 
-  d_nullType = Expr(mkExprInternal(Kind::NULL_TYPE, {}));
   // common constants
   d_type = Expr(mkExprInternal(Kind::TYPE, {}));
   d_boolType = Expr(mkExprInternal(Kind::BOOL_TYPE, {}));
@@ -529,10 +528,8 @@ Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool 
       rk = currBase.getKind();
     }while (rk==Kind::EVAL_REQUIRES);
   }
-  if (rk==Kind::QUOTE_TYPE || rk==Kind::OPAQUE_TYPE || rk==Kind::NULL_TYPE)
-  {
-    EO_FATAL() << "Cannot use :var, :implicit or :opaque on return types, got " << ret;
-  }
+  // no way to construct quote types, e.g. on return types
+  Assert (rk!=Kind::QUOTE_TYPE);
   for (size_t i=0, nargs = args.size(); i<nargs; i++)
   {
     Expr a = args[(nargs-1)-i];
@@ -543,11 +540,6 @@ Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool 
       curr = mkRequires(a[0], a[1], curr);
       a = a[2];
       ak = a.getKind();
-    }
-    if (ak==Kind::NULL_TYPE)
-    {
-      // implicit argument is skipped
-      continue;
     }
     // append the function
     curr = Expr(
@@ -614,11 +606,6 @@ Expr State::mkBuiltinType(Kind k)
 {
   // for now, just use any type
   return d_any;
-}
-
-Expr State::mkNullType()
-{
-  return d_nullType;
 }
 
 Expr State::mkSymbol(Kind k, const std::string& name, const Expr& type)
