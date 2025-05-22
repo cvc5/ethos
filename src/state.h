@@ -100,8 +100,6 @@ class State
   Expr mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool flatten = true);
   /** (-> <type>+ <type>) */
   Expr mkProgramType(const std::vector<Expr>& args, const Expr& ret);
-  /** ? */
-  Expr mkAbstractType();
   /** Bool */
   Expr mkBoolType();
   /** eo::List */
@@ -125,19 +123,21 @@ class State
   /** (eo::requires <arg1> <arg2> <type>) */
   Expr mkRequires(const Expr& a1, const Expr& a2, const Expr& ret);
   /** */
-  Expr mkSelf();
+  Expr mkSelf() const;
   /** Make the conclusion variable */
-  Expr mkConclusion();
+  Expr mkConclusion() const;
   /** Make pair */
   Expr mkPair(const Expr& t1, const Expr& t2);
   /** */
   Expr mkExpr(Kind k, const std::vector<Expr>& children);
   /** make true */
-  Expr mkTrue();
+  Expr mkTrue() const;
   /** make false */
-  Expr mkFalse();
+  Expr mkFalse() const;
   /** make Boolean value */
-  Expr mkBool(bool val);
+  Expr mkBool(bool val) const;
+  /** Make any */
+  Expr mkAny() const;
   /**
    * Create a literal from a string.
    * @param s The string representation of the literal, may represent an
@@ -216,10 +216,10 @@ class State
   Expr d_nullType;
   Expr d_type;
   Expr d_boolType;
-  Expr d_absType;
   Expr d_true;
   Expr d_false;
   Expr d_self;
+  Expr d_any;
   Expr d_conclusion;
   Expr d_fail;
   Expr d_listType;

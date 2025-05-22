@@ -91,7 +91,6 @@ State::State(Options& opts, Stats& stats)
       d_plugin(nullptr)
 {
   ExprValue::d_state = this;
-  d_absType = Expr(mkExprInternal(Kind::ABSTRACT_TYPE, {}));
 
   // lambda is not builtin?
   // forall, exists, choice?
@@ -178,11 +177,10 @@ State::State(Options& opts, Stats& stats)
   bind("eo::List::cons", d_listCons);
   markConstructorKind(d_listCons, Attr::RIGHT_ASSOC_NIL, d_listNil);
 
-  // we do not export eo::null
-  // for now, eo::? is (undocumented) syntax for abstract type
-  bind("eo::?", d_absType);
+  // any is used internally but is not avaiable to the user
+  d_any = Expr(mkExpr(Kind::ANY, {}));
   // self is a distinguished parameter
-  d_self = Expr(mkSymbolInternal(Kind::PARAM, "eo::self", d_absType));
+  d_self = Expr(mkSymbolInternal(Kind::PARAM, "eo::self", d_any));
   bind("eo::self", d_self);
   d_conclusion =
       Expr(mkSymbolInternal(Kind::PARAM, "eo::conclusion", d_boolType));
@@ -593,8 +591,6 @@ Expr State::mkRequires(const Expr& a1, const Expr& a2, const Expr& ret)
                              {a1.getValue(), a2.getValue(), ret.getValue()}));
 }
 
-Expr State::mkAbstractType() { return d_absType; }
-
 Expr State::mkBoolType()
 {
   return d_boolType;
@@ -616,8 +612,8 @@ Expr State::mkQuoteType(const Expr& t)
 
 Expr State::mkBuiltinType(Kind k)
 {
-  // for now, just use abstract type
-  return d_absType;
+  // for now, just use any type
+  return d_any;
 }
 
 Expr State::mkNullType()
@@ -630,15 +626,9 @@ Expr State::mkSymbol(Kind k, const std::string& name, const Expr& type)
   return Expr(mkSymbolInternal(k, name, type));
 }
 
-Expr State::mkSelf()
-{
-  return d_self;
-}
+Expr State::mkSelf() const { return d_self; }
 
-Expr State::mkConclusion()
-{
-  return d_conclusion;
-}
+Expr State::mkConclusion() const { return d_conclusion; }
 
 Expr State::mkPair(const Expr& t1, const Expr& t2)
 {
@@ -1018,17 +1008,13 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
   return Expr(mkExprInternal(k, vchildren));
 }
 
-Expr State::mkTrue()
-{
-  return d_true;
-}
+Expr State::mkTrue() const { return d_true; }
 
-Expr State::mkFalse()
-{
-  return d_false;
-}
+Expr State::mkFalse() const { return d_false; }
 
-Expr State::mkBool(bool val) { return val ? d_true : d_false; }
+Expr State::mkBool(bool val) const { return val ? d_true : d_false; }
+
+Expr State::mkAny() const { return d_any; }
 
 Expr State::mkLiteral(Kind k, const std::string& s)
 {
@@ -1497,7 +1483,7 @@ Plugin* State::getPlugin()
 void State::bindBuiltin(const std::string& name, Kind k, Attr ac)
 {
   // type is irrelevant, assign abstract
-  bindBuiltin(name, k, ac, d_absType);
+  bindBuiltin(name, k, ac, d_any);
 }
 
 void State::bindBuiltin(const std::string& name, Kind k, Attr ac, const Expr& t)

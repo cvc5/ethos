@@ -98,15 +98,19 @@ class TypeChecker
                               Ctx& newCtx);
   /** Return its type */
   Expr getTypeInternal(ExprValue* e, std::ostream* out);
-  /** Get or set type rule (to default) for literal kind k */
-  ExprValue* getOrSetLiteralTypeRule(Kind k);
+  /**
+   * Get or set type rule (to default) for literal kind k. The argument
+   * self is the expression to instantiate eo::self with, if applicable,
+   * otherwise eo::? is used.
+   */
+  Expr getOrSetLiteralTypeRule(Kind k, ExprValue* self = nullptr);
   /** Evaluate literal op */
   Expr evaluateLiteralOpInternal(Kind k, const std::vector<ExprValue*>& args);
   /** Type check */
-  ExprValue* getLiteralOpType(Kind k,
-                              std::vector<ExprValue*>& children,
-                              std::vector<ExprValue*>& childTypes,
-                              std::ostream* out);
+  Expr getLiteralOpType(Kind k,
+                        std::vector<ExprValue*>& children,
+                        std::vector<ExprValue*>& childTypes,
+                        std::ostream* out);
   /** Get the nil terminator */
   Expr computeConstructorTermInternal(AppInfo* ai,
                                       const std::vector<Expr>& children);

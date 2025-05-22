@@ -367,9 +367,6 @@ Expr ExprParser::parseExpr()
         ret = d_state.mkLiteral(Kind::STRING, str.toString());
       }
       break;
-      case Token::ABSTRACT_TYPE:
-      ret = d_state.mkAbstractType();
-      break;
       case Token::TYPE:
       ret = d_state.mkType();
       break;
@@ -570,7 +567,7 @@ Expr ExprParser::parseExpr()
               {
                 d_lex.parseError("Expected non-empty list of cases");
               }
-              Expr atype = d_state.mkAbstractType();
+              Expr atype = d_state.mkAny();
               // environment is the variable list
               std::vector<Expr> vl;
               for (size_t i = 0, nchildren = args[0].getNumChildren();
@@ -612,11 +609,13 @@ Expr ExprParser::parseExpr()
                 const Expr& lhs = cs[0];
                 // check that variables in the pattern are only from the binder
                 ensureBound(lhs, vl);
-                const Expr& rhs = cs[1];
+                Expr rhs = caseArgs[i][1];
                 std::vector<Expr> appArgs{pv, lhs};
                 appArgs.insert(appArgs.end(), env.begin(), env.end());
                 Expr lhsa = d_state.mkExpr(Kind::APPLY, appArgs);
                 cases.push_back(d_state.mkPair(lhsa, rhs));
+                // type check the pair
+                typeCheckProgramPair(lhsa, rhs, false);
                 // check free variable requirement
                 std::vector<Expr> bvsl = Expr::getVariables(lhs);
                 std::vector<Expr> bvsr = Expr::getVariables(rhs);
@@ -1461,6 +1460,13 @@ Expr ExprParser::typeCheck(Expr& e, const Expr& expected)
     d_lex.parseError(msg.str());
   }
   return et;
+}
+
+void ExprParser::typeCheckProgramPair(Expr& pat,
+                                      Expr& ret,
+                                      bool checkPreservation)
+{
+  // currently, does nothing
 }
 
 Expr ExprParser::findFreeVar(const Expr& e, const std::vector<Expr>& bvs)
