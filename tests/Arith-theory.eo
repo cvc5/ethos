@@ -42,30 +42,26 @@
 (declare-parameterized-const * ((T Type :implicit) (U Type :implicit)) 
   (-> T U (arith_typeunion_nary T U)) :right-assoc-nil 1)
 
-(declare-parameterized-const <
-  ((T Type :implicit) (U Type :implicit)
-   (t T :requires ((is_arith_type T) true))
-   (u U :requires ((is_arith_type U) true)))
-  Bool
-  :chainable and)
-(declare-parameterized-const <=
-  ((T Type :implicit) (U Type :implicit)
-   (t T :requires ((is_arith_type T) true))
-   (u U :requires ((is_arith_type U) true)))
-  Bool
-  :chainable and)
-(declare-parameterized-const >
-  ((T Type :implicit) (U Type :implicit)
-   (t T :requires ((is_arith_type T) true))
-   (u U :requires ((is_arith_type U) true)))
-  Bool
-  :chainable and)
-(declare-parameterized-const >=
-  ((T Type :implicit) (U Type :implicit)
-   (t T :requires ((is_arith_type T) true))
-   (u U :requires ((is_arith_type U) true)))
-  Bool
-  :chainable and)
+(declare-parameterized-const < ((T Type :implicit) (U Type :implicit))
+  (-> T U
+      (eo::requires (is_arith_type T) true
+      (eo::requires (is_arith_type U) true
+      Bool))) :chainable and)
+(declare-parameterized-const <= ((T Type :implicit) (U Type :implicit))
+  (-> T U
+      (eo::requires (is_arith_type T) true
+      (eo::requires (is_arith_type U) true
+      Bool))) :chainable and)
+(declare-parameterized-const > ((T Type :implicit) (U Type :implicit))
+  (-> T U
+      (eo::requires (is_arith_type T) true
+      (eo::requires (is_arith_type U) true
+      Bool))) :chainable and)
+(declare-parameterized-const >= ((T Type :implicit) (U Type :implicit))
+  (-> T U
+      (eo::requires (is_arith_type T) true
+      (eo::requires (is_arith_type U) true
+      Bool))) :chainable and)
 
 (declare-parameterized-const to_real
   ((T Type :implicit) (t T :requires ((is_arith_type T) true)))

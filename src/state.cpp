@@ -99,7 +99,9 @@ State::State(Options& opts, Stats& stats)
   bindBuiltin("->", Kind::FUNCTION_TYPE);
   bindBuiltin("_", Kind::APPLY);
 
+  bindBuiltinEval("is_ok", Kind::EVAL_IS_OK);
   bindBuiltinEval("is_eq", Kind::EVAL_IS_EQ);
+  bindBuiltinEval("eq", Kind::EVAL_EQ);
   bindBuiltinEval("ite", Kind::EVAL_IF_THEN_ELSE);
   bindBuiltinEval("requires", Kind::EVAL_REQUIRES);
   bindBuiltinEval("hash", Kind::EVAL_HASH);
@@ -714,12 +716,9 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       // in hdTerm, where notice hdTerm is of kind PARAMETERIZED if consTerm
       // (prior to resolution) was PARAMETERIZED. So, for example, applying
       // `bvor` to `a` of type `(BitVec 4)` results in
-      //   hdTerm := (PARAMETERIZED (4) bvor),
       //   consTerm := #b0000.
-      Expr hdTerm;
-      Expr consTerm;
-      d_tc.computedParameterizedInternal(ai, children, hdTerm, consTerm);
-      Trace("state-debug") << "...updated " << hdTerm << " / " << consTerm << std::endl;
+      Expr consTerm = d_tc.computeConstructorTermInternal(ai, children);
+      Trace("state-debug") << "...updated " << consTerm << std::endl;
       vchildren[0] = hd;
       // if it has a constructor attribute
       switch (ai->d_attrCons)
@@ -1015,6 +1014,8 @@ Expr State::mkFalse()
 {
   return d_false;
 }
+
+Expr State::mkBool(bool val) { return val ? d_true : d_false; }
 
 Expr State::mkLiteral(Kind k, const std::string& s)
 {
@@ -1532,15 +1533,22 @@ bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
 
     if (!inputPath.exists())
     {
-      Warning() << "State:: could not include \"" + ocmd + "\" for oracle definition";
+      Warning() << "State:: could not include \"" + ocmd
+                       + "\" for oracle definition"
+                << std::endl;
       return false;
     }
-
     acons = mkLiteral(Kind::STRING, inputPath.getRawPath());
   }
   Assert (isSymbol(v.getKind()));
   AppInfo& ai = d_appData[v.getValue()];
-  Assert (ai.d_attrCons==Attr::NONE);
+  if (ai.d_attrCons != Attr::NONE)
+  {
+    // note this fails even if we mark the same constructor, e.g. :list twice
+    Warning() << "Cannot set the constructor kind for a term more than once ("
+              << ai.d_attrCons << " and " << a << ")" << std::endl;
+    return false;
+  }
   ai.d_attrCons = a;
   ai.d_attrConsTerm = acons;
   if (d_plugin!=nullptr)

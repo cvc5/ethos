@@ -571,7 +571,6 @@ bool CmdParser::parseNextCommand()
       {
         d_eparser.typeCheck(expr, ret);
       }
-      d_state.popScope();
       if (tok == Token::DEFINE_FUN)
       {
         // This is for reference checking only. Note that = and lambda are
@@ -601,10 +600,8 @@ bool CmdParser::parseNextCommand()
           }
           t = d_state.mkFunctionType(types, t, false);
         }
-        Expr sym = d_state.mkSymbol(Kind::CONST, name, t);
-        Trace("define") << "Define: " << name << " -> " << sym << std::endl;
-        d_eparser.bind(name, sym);
-        Expr a = d_state.mkExpr(Kind::APPLY, {eq, sym, rhs});
+        expr = d_state.mkSymbol(Kind::CONST, name, t);
+        Expr a = d_state.mkExpr(Kind::APPLY, {eq, expr, rhs});
         Trace("define") << "Define-fun reference assert " << a << std::endl;
         d_state.addReferenceAssert(a);
       }
@@ -617,8 +614,6 @@ bool CmdParser::parseNextCommand()
           Expr vl = d_state.mkExpr(Kind::TUPLE, vars);
           expr = d_state.mkExpr(Kind::LAMBDA, {vl, expr});
         }
-        d_eparser.bind(name, expr);
-        Trace("define") << "Define: " << name << " -> " << expr << std::endl;
         // define additionally takes attributes
         if (tok == Token::DEFINE)
         {
@@ -626,6 +621,11 @@ bool CmdParser::parseNextCommand()
           d_eparser.parseAttributeList(Kind::LAMBDA, expr, attrs);
         }
       }
+      // now pop the scope
+      d_state.popScope();
+      // bind
+      Trace("define") << "Define: " << name << " -> " << expr << std::endl;
+      d_eparser.bind(name, expr);
     }
     break;
     // (define-sort <symbol> (<symbol>*) <sort>)

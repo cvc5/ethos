@@ -1,0 +1,11 @@
+
+
+(declare-type Int ())
+
+; should give a warning
+(program foo ((x Int :list :list))
+  (Int) Int
+  (
+    ((foo x) x)
+  )
+)

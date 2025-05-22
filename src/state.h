@@ -134,6 +134,8 @@ class State
   Expr mkTrue();
   /** make false */
   Expr mkFalse();
+  /** make Boolean value */
+  Expr mkBool(bool val);
   /**
    * Create a literal from a string.
    * @param s The string representation of the literal, may represent an
