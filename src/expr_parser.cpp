@@ -1166,6 +1166,15 @@ void ExprParser::parseAttributeList(
       case Kind::PARAM:
       {
         // attributes on parameters
+        if (a == Attr::LIST)
+        {
+          // list is always handled in all contexts and is processed
+          // immediately. We process immediately to ensure that
+          // e.g. if this parameter occurs in a type of another parameter
+          // we are parsing, it is handled as list.
+          d_state.markConstructorKind(e, a, d_null);
+          continue;
+        }
         // parameter lists of define and declare-parameterized-const
         // allow for several attributes
         if (plk == Kind::CONST || plk == Kind::LAMBDA)
@@ -1173,7 +1182,6 @@ void ExprParser::parseAttributeList(
           handled = true;
           switch (a)
           {
-            case Attr::LIST:
             case Attr::IMPLICIT:
             case Attr::OPAQUE:
               // requires no value
@@ -1189,11 +1197,6 @@ void ExprParser::parseAttributeList(
               break;
             default: handled = false; break;
           }
-        }
-        else
-        {
-          // all others only allow for :list
-          handled = (a == Attr::LIST);
         }
       }
         break;
