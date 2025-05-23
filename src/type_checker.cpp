@@ -1428,11 +1428,20 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   // infer the nil expression, which depends on the type of args[1]
   std::vector<Expr> eargs;
   eargs.emplace_back(args[0]);
-  if (args.size()>1)
+  Expr nilExpr;
+  if (k==Kind::EVAL_NIL)
+  {
+    // special case
+    Expr tmpType(args[1]);
+    Expr tmp = d_state.mkSymbol(Kind::CONST, "tmp", tmpType);
+    eargs.emplace_back(tmp);
+    return computeConstructorTermInternal(ac, eargs);
+  }
+  else if (args.size()>1)
   {
     eargs.emplace_back(args[1]);
+    nilExpr = computeConstructorTermInternal(ac, eargs);
   }
-  Expr nilExpr = computeConstructorTermInternal(ac, eargs);
   if (nilExpr.isNull())
   {
     Trace("type_checker") << "...failed to get nil" << std::endl;
@@ -1443,11 +1452,6 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   std::vector<ExprValue*> hargs;
   switch (k)
   {
-    case Kind::EVAL_NIL:
-    {
-      return nilExpr;
-    }
-    break;
     case Kind::EVAL_CONS:
     case Kind::EVAL_LIST_CONCAT:
     {
