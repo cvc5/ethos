@@ -4,7 +4,7 @@
 (declare-const a Bool)
 (declare-const b Bool)
 
-(define singleton-list ((T Type :implicit) (f (-> T T T)) (a T)) (eo::cons f a (eo::nil f)))
+(define singleton-list ((T Type :implicit) (f (-> T T T)) (a T)) (eo::cons f a (eo::nil f (eo::typeof a))))
 
 (declare-rule refl ((T Type) (t T))
   :args (t)
