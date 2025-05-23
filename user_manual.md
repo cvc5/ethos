@@ -899,7 +899,7 @@ We say that a term is an `f`-list with children `t1 ... tn` if it is of the form
 ### List operators
 
 - `(eo::nil f T)`
-  - If `f` is a right associative operator whose return type is ground type `T`, return its nil terminator.
+  - If `f` is a right associative operator, return its nil terminator if it is ground. If `f` has a parametric nil terminator, return that terminator specialized for ground type `T` (see examples of parametric nil terminators later in this section).
 - `(eo::cons f t1 t2)`
   - If `t2` is an `f`-list, then this returns the term `(f t1 t2)`.
 - `(eo::list_len f t)`
