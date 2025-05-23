@@ -58,7 +58,7 @@ void TypeChecker::setLiteralTypeRule(Kind k, const Expr& t)
   it->second = t;
 }
 
-Expr TypeChecker::getOrSetLiteralTypeRule(Kind k, ExprValue * self)
+Expr TypeChecker::getOrSetLiteralTypeRule(Kind k, ExprValue* self)
 {
   std::map<Kind, Expr>::iterator it = d_literalTypeRules.find(k);
   if (it==d_literalTypeRules.end())
@@ -81,7 +81,7 @@ Expr TypeChecker::getOrSetLiteralTypeRule(Kind k, ExprValue * self)
   // it may involve the "self" parameter
   if (!tp.isGround())
   {
-    Expr eself = self==nullptr ? d_state.mkAny() : Expr(self);
+    Expr eself = self == nullptr ? d_state.mkAny() : Expr(self);
     Ctx ctx;
     ctx[d_state.mkSelf().getValue()] = eself.getValue();
     return evaluate(tp.getValue(), ctx);
@@ -275,8 +275,6 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       // its type is the second child
       return Expr(e->d_children[1]);
     case Kind::QUOTE_TYPE:
-    case Kind::OPAQUE_TYPE:
-    case Kind::NULL_TYPE:
     case Kind::TUPLE:
       // These things are essentially not typed.
       // We require the first 3 to be an abstract type, not type,
@@ -1326,9 +1324,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       case Kind::EVAL_IS_STR:kk = Kind::STRING;break;
       case Kind::EVAL_IS_BOOL:kk = Kind::BOOLEAN;break;
       case Kind::EVAL_IS_VAR:kk = Kind::VARIABLE;break;
-      default:
-        Assert (false);
-        break;
+      default: Assert(false); break;
       }
       Literal lb(args[0]->getKind()==kk);
       return Expr(d_state.mkLiteralInternal(lb));
@@ -1638,9 +1634,9 @@ Expr TypeChecker::evaluateLiteralOpInternal(
 }
 
 Expr TypeChecker::getLiteralOpType(Kind k,
-                                         std::vector<ExprValue*>& children,
-                                         std::vector<ExprValue*>& childTypes,
-                                         std::ostream* out)
+                                   std::vector<ExprValue*>& children,
+                                   std::vector<ExprValue*>& childTypes,
+                                   std::ostream* out)
 {
   if (!checkArity(k, childTypes.size(), out))
   {
@@ -1670,7 +1666,7 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_CONCAT:
     case Kind::EVAL_EXTRACT:
       // type is not computable here, since it is the return type of function
-      // applications of the argument. just use abstract.
+      // applications of the argument. just use any.
       return d_state.mkAny();
     case Kind::EVAL_IF_THEN_ELSE:
     case Kind::EVAL_CONS:
@@ -1730,122 +1726,84 @@ Expr TypeChecker::getLiteralOpType(Kind k,
   return d_null;
 }
 
-Expr TypeChecker::computeConstructorTermInternal(AppInfo* ai, 
-                                                 const std::vector<Expr>& children)
+Expr TypeChecker::computeConstructorTermInternal(
+    AppInfo* ai, const std::vector<Expr>& children)
 {
-  Expr hd;
-  Expr nil;
-  computedParameterizedInternal(ai, children, hd, nil);
-  return nil;
-}
-
-bool TypeChecker::computedParameterizedInternal(AppInfo* ai,
-                                                const std::vector<Expr>& children,
-                                                Expr& hd,
-                                                Expr& nil)
-{
-  hd = children[0];
-  nil = d_null;
   if (ai==nullptr)
   {
-    return true;
+    return d_null;
   }
   // lookup the base operator if necessary
   Expr ct = ai->d_attrConsTerm;
   if (ct.isNull() || ct.getKind()!=Kind::PARAMETERIZED)
   {
     // if not parameterized, just return self
-    nil = ct;
-    return true;
+    return ct;
   }
+  const Expr& hd = children[0];
   Trace("type_checker") << "Determine constructor term for " << hd << std::endl;
   // if explicit parameters, then evaluate the constructor term
-  if (hd.getKind()!=Kind::PARAMETERIZED)
+  if (children.size() == 1)
   {
-    if (children.size()==1)
+    // if not in an application, we fail
+    Warning() << "Failed to determine parameters for " << hd << std::endl;
+    return d_null;
+  }
+  // otherwise, we must infer the parameters
+  Trace("type_checker") << "Infer params for " << hd << " @ " << children[1]
+                        << std::endl;
+  if (!isNAryAttr(ai->d_attrCons))
+  {
+    Warning() << "Unknown category for parameterized operator " << hd
+              << std::endl;
+    return d_null;
+  }
+  std::vector<ExprValue*> app;
+  app.push_back(hd.getValue());
+  app.push_back(children[1].getValue());
+  // ensure children are type checked
+  for (ExprValue* e : app)
+  {
+    Expr expr(e);
+    getType(expr);
+    ExprValue* t = d_state.lookupType(e);
+    if (t == nullptr)
     {
-      // if not in an application, we fail
-      Warning() << "Failed to determine parameters for " << hd << std::endl;
-      return false;
-    }
-    else
-    {
-      // otherwise, we must infer the parameters
-      Trace("type_checker") << "Infer params for " << hd << " @ " << children[1] << std::endl;
-      if (isNAryAttr(ai->d_attrCons))
+      // only warn if ground
+      if (expr.isGround())
       {
-        std::vector<ExprValue*> app;
-        app.push_back(hd.getValue());
-        app.push_back(children[1].getValue());
-        // ensure children are type checked
-        for (ExprValue* e : app)
-        {
-          Expr expr(e);
-          getType(expr);
-          ExprValue* t = d_state.lookupType(e);
-          if (t==nullptr)
-          {
-            // only warn if ground
-            if (expr.isGround())
-            {
-              Warning() << "Type inference failed for " << hd << " applied to " << children[1] << ", failed to type check " << expr << std::endl;
-            }
-            return false;
-          }
-          Trace("type_checker_debug") << "Type for " << expr << " is " << Expr(t) << std::endl;
-        }
-        Ctx tctx;
-        getTypeAppInternal(app, tctx);
-        Trace("type_checker_debug") << "Context was " << tctx << std::endl;
-        std::vector<Expr> args;
-        for (size_t i=0, nparams = ct[0].getNumChildren(); i<nparams; i++)
-        {
-          Expr cv(tctx[ct[0][i].getValue()]);
-          if (cv.isNull())
-          {
-            Warning() << "Failed to find context for " << ct[0][i] << " when applying " << hd << " @ " << children[1] << std::endl;
-            return false;
-          }
-          if (!cv.isGround())
-          {
-            // If the parameter is non-ground, we also wait to construct;
-            // if the nil terminator is used, it will be replaced by a
-            // placeholder involving eo::nil.
-            return false;
-          }
-          args.emplace_back(cv);
-        }
-        // the head is now disambiguated
-        hd = d_state.mkParameterized(hd.getValue(), args);
-        Trace("type_checker_debug") << "Infered parameterized op " << hd << std::endl;
+        Warning() << "Type inference failed for " << hd << " applied to "
+                  << children[1] << ", failed to type check " << expr
+                  << std::endl;
       }
-      else
-      {
-        Warning() << "Unknown category for parameterized operator " << hd << std::endl;
-        return false;
-      }
+      return d_null;
     }
+    Trace("type_checker_debug")
+        << "Type for " << expr << " is " << Expr(t) << std::endl;
   }
-  Assert (hd.getKind()==Kind::PARAMETERIZED);
-  Ctx ctx;
-  if (hd[0].getNumChildren()==ct[0].getNumChildren())
+  Ctx tctx;
+  getTypeAppInternal(app, tctx);
+  Trace("type_checker_debug") << "Context was " << tctx << std::endl;
+  for (size_t i = 0, nparams = ct[0].getNumChildren(); i < nparams; i++)
   {
-    for (size_t i=0, nparams = hd[0].getNumChildren(); i<nparams; i++)
+    ExprValue* cv = tctx[ct[0][i].getValue()];
+    if (cv->isNull())
     {
-      ctx[ct[0][i].getValue()] = hd[0][i].getValue();
+      Warning() << "Failed to find context for " << ct[0][i]
+                << " when applying " << hd << " @ " << children[1] << std::endl;
+      return d_null;
+    }
+    if (!cv->isGround())
+    {
+      // If the parameter is non-ground, we also wait to construct;
+      // if the nil terminator is used, it will be replaced by a
+      // placeholder involving eo::nil.
+      return d_null;
     }
   }
-  else
-  {
-    // error
-    Warning() << "Unexpected number of parameters for " << hd[1]
-              << ", expected " << ct.getNumChildren() << " parameters, got "
-              << hd.getNumChildren() << std::endl;
-    return false;
-  }
-  Trace("type_checker") << "Context for constructor term: " << ctx << std::endl;
-  nil = evaluate(ct[1].getValue(), ctx);
-  return true;
+  Trace("type_checker") << "Context for constructor term: " << tctx
+                        << std::endl;
+  return evaluate(ct[1].getValue(), tctx);
 }
 
 }  // namespace ethos

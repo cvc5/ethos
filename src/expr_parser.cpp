@@ -462,55 +462,16 @@ Expr ExprParser::parseExpr()
         {
           // now parse attribute list
           AttrMap attrs;
-          bool pushedScope = false;
           // NOTE parsing attributes may trigger recursive calls to this
           // method.
-          parseAttributeList(Kind::NONE, ret, attrs, pushedScope);
-          // the scope of the variable is one level up
-          if (pushedScope && pstack.size()>1)
-          {
-            pstack[pstack.size()-2].d_nscopes++;
-          }
+          parseAttributeList(Kind::NONE, ret, attrs);
           // process the attributes
           for (std::pair<const Attr, std::vector<Expr>>& a : attrs)
           {
-            switch(a.first)
-            {
-              case Attr::VAR:
-                Assert (a.second.size()==1);
-                // it is now (Quote v) for that variable
-                ret = d_state.mkQuoteType(a.second[0]);
-                break;
-              case Attr::IMPLICIT:
-                // the term will not be added as an argument to the parent
-                // note this always comes after VAR due to enum order
-                ret = d_state.mkNullType();
-                break;
-              case Attr::REQUIRES:
-                if (ret.isNull())
-                {
-                  d_lex.parseError("Cannot mark requires on implicit argument");
-                }
-                ret = d_state.mkRequires(a.second, ret);
-                break;
-              case Attr::OPAQUE:
-                if (ret.isNull())
-                {
-                  d_lex.parseError("Cannot mark opaque on implicit argument");
-                }
-                if (ret.getKind()==Kind::EVAL_REQUIRES)
-                {
-                  d_lex.parseError("Cannot combine opaque and requires");
-                }
-                ret = d_state.mkExpr(Kind::OPAQUE_TYPE, {ret});
-                break;
-              default:
-                // ignored
-                std::stringstream ss;
-                ss << "Unprocessed attribute " << a.first;
-                d_lex.warning(ss.str());
-                break;
-            }
+            // all term attributes are ignored
+            std::stringstream ss;
+            ss << "Unprocessed attribute " << a.first;
+            d_lex.warning(ss.str());
           }
           d_lex.eatToken(Token::RPAREN);
           // finished parsing attributes, ret is either nullptr if implicit,
@@ -1161,7 +1122,7 @@ std::string ExprParser::parseStr(bool unescape)
 }
 
 void ExprParser::parseAttributeList(
-    Kind k, Expr& e, AttrMap& attrs, bool& pushedScope, Kind plk)
+    Kind k, Expr& e, AttrMap& attrs, Kind plk)
 {
   std::map<std::string, Attr>::iterator its;
   // while the next token is KEYWORD, exit if RPAREN
@@ -1280,62 +1241,6 @@ void ExprParser::parseAttributeList(
         }
       }
         break;
-      case Kind::NONE:
-      {
-        // attributes on general terms, including type arguments
-        handled = true;
-        switch (a)
-        {
-          case Attr::IMPLICIT:
-          case Attr::OPAQUE:
-            // requires no value
-            break;
-          case Attr::VAR:
-          {
-            if (e.isNull())
-            {
-              d_lex.parseError("Cannot use :var in this context");
-            }
-            if (attrs.find(Attr::VAR)!=attrs.end())
-            {
-              d_lex.parseError("Cannot use :var on the same term more than once");
-            }
-            std::string name = parseSymbol();
-            // e should be a type
-            val = d_state.mkSymbol(Kind::PARAM, name, e);
-            // immediately bind
-            if (!pushedScope)
-            {
-              pushedScope = true;
-              d_state.pushScope();
-            }
-            bind(name, val);
-          }
-          break;
-          case Attr::RESTRICT:
-          {
-            // requires an expression that follows
-            val = parseExpr();
-          }
-            break;
-          case Attr::REQUIRES:
-          {
-            // requires a pair
-            val = parseExprPair();
-          }
-            break;
-          case Attr::SYNTAX:
-          {
-            // ignores the literal kind
-            parseLiteralKind();
-          }
-            break;
-          default:
-            handled = false;
-            break;
-        }
-      }
-        break;
       default:
         break;
     }
@@ -1346,17 +1251,6 @@ void ExprParser::parseAttributeList(
     attrs[its->second].push_back(val);
   }
   d_lex.reinsertToken(Token::RPAREN);
-}
-
-void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs, Kind plk)
-{
-  bool pushedScope = false;
-  parseAttributeList(k, e, attrs, pushedScope, plk);
-  // pop the scope if necessary
-  if (pushedScope)
-  {
-    d_state.popScope();
-  }
 }
 
 Kind ExprParser::parseLiteralKind()

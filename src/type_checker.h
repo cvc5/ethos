@@ -100,7 +100,7 @@ class TypeChecker
                               Ctx& newCtx);
   /** Return its type */
   Expr getTypeInternal(ExprValue* e, std::ostream* out);
-  /** 
+  /**
    * Get or set type rule (to default) for literal kind k. The argument
    * self is the expression to instantiate eo::self with, if applicable,
    * otherwise eo::? is used.
@@ -110,17 +110,12 @@ class TypeChecker
   Expr evaluateLiteralOpInternal(Kind k, const std::vector<ExprValue*>& args);
   /** Type check */
   Expr getLiteralOpType(Kind k,
-                              std::vector<ExprValue*>& children,
-                              std::vector<ExprValue*>& childTypes,
-                              std::ostream* out);
+                        std::vector<ExprValue*>& children,
+                        std::vector<ExprValue*>& childTypes,
+                        std::ostream* out);
   /** Get the nil terminator */
   Expr computeConstructorTermInternal(AppInfo* ai,
                                       const std::vector<Expr>& children);
-  /** Returns the (possibly disambiguated) operator in children and its nil terminator */
-  bool computedParameterizedInternal(AppInfo* ai,
-                                     const std::vector<Expr>& children,
-                                     Expr& hd,
-                                     Expr& nil);
   /** The state */
   State& d_state;
   /** Plugin of the state */
