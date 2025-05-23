@@ -898,8 +898,8 @@ We say that a term is an `f`-list with children `t1 ... tn` if it is of the form
 
 ### List operators
 
-- `(eo::nil f)`
-  - If `f` is a right associative operator, return its nil terminator.
+- `(eo::nil f T)`
+  - If `f` is a right associative operator whose return type is ground type `T`, return its nil terminator.
 - `(eo::cons f t1 t2)`
   - If `t2` is an `f`-list, then this returns the term `(f t1 t2)`.
 - `(eo::list_len f t)`
@@ -921,8 +921,8 @@ The terms on both sides of the given evaluation are written in their form prior 
 (declare-const a Bool)
 (declare-const b Bool)
 
-(eo::nil or)                  == false
-(eo::nil a)                   == (eo::nil a)                ; since a is not an associative operator
+(eo::nil or Bool)                   == false
+(eo::nil a Bool)                    == (eo::nil a Bool)                ; since a is not an associative operator
 
 (eo::cons or a (or a b))            == (or a a b)
 (eo::cons or false (or a b))        == (or false a b)
@@ -1034,7 +1034,7 @@ we declare bitvector-or (`bvor` in SMT-LIB) where its nil terminator is bitvecto
 
 ```smt
 (declare-type Int ())
-(declare-consts <numeral>Int)                ; numeral literals denote Int constants
+(declare-consts <numeral> Int)                ; numeral literals denote Int constants
 (declare-type BitVec (Int))
 (declare-consts <binary>
     (BitVec (eo::len eo::self)))              ; binary literals denote BitVec constants of their length
@@ -1133,10 +1133,10 @@ The following are examples of list operations when using parameterized constant 
 (declare-const c (BitVec 5))
 
 (eo::nil bvor)                == (eo::nil bvor)     ; since we cannot infer the type of bvor
-(eo::nil bvor (BitVec 4))     == #b0000             ; since #b0000 is the nil terminator of (bvor a)
+(eo::nil bvor (BitVec 4))     == #b0000
+(eo::nil bvor (BitVec 5))     == #b00000
 
 (eo::cons bvor a #b0000)            == (bvor a)
-(eo::cons bvor c #b0000)            == (eo::cons bvor c #b0000) ; since (bvor c #b0000) is ill-typed
 (eo::cons bvor a (bvor a b))        == (bvor a a b)
 
 (eo::list_concat bvor #b0000 #b0000)       == #b0000

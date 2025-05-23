@@ -163,7 +163,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_COMPARE:
     case Kind::EVAL_GT:
     case Kind::EVAL_LIST_LENGTH:
-    case Kind::EVAL_ANNOT_NIL:
+    case Kind::EVAL_NIL:
       ret = (nargs==2);
       break;
     case Kind::EVAL_ADD:
@@ -196,7 +196,6 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_IS_BOOL:
     case Kind::EVAL_IS_VAR:
     case Kind::EVAL_DT_CONSTRUCTORS:
-    case Kind::EVAL_NIL:
     case Kind::EVAL_DT_SELECTORS: ret = (nargs == 1); break;
     case Kind::EVAL_REQUIRES:
     case Kind::EVAL_IF_THEN_ELSE:
@@ -1445,7 +1444,6 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   switch (k)
   {
     case Kind::EVAL_NIL:
-    case Kind::EVAL_ANNOT_NIL:
     {
       return nilExpr;
     }
@@ -1575,17 +1573,13 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_TYPE_OF:
       return d_state.mkType();
     case Kind::EVAL_VAR:
-    case Kind::EVAL_ANNOT_NIL:
+    case Kind::EVAL_NIL:
       // its type is the second argument
       return Expr(children[1]);
     case Kind::EVAL_ADD:
     case Kind::EVAL_MUL:
       // NOTE: mixed arith
       return Expr(childTypes[0]);
-    case Kind::EVAL_NIL:
-      // type is not computable here, since it is the return type of function
-      // applications of the argument. just use any.
-      return d_state.mkAny();
     case Kind::EVAL_NEG:
     case Kind::EVAL_AND:
     case Kind::EVAL_OR:

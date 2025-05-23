@@ -69,7 +69,6 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::EVAL_EQ: o << "EVAL_EQ"; break;
     // lists
     case Kind::EVAL_NIL: o << "EVAL_NIL";break;
-    case Kind::EVAL_ANNOT_NIL: o << "EVAL_ANNOT_NIL"; break;
     case Kind::EVAL_CONS: o << "EVAL_CONS"; break;
     case Kind::EVAL_LIST_LENGTH: o << "EVAL_LIST_LENGTH"; break;
     case Kind::EVAL_LIST_CONCAT: o << "EVAL_LIST_CONCAT"; break;
@@ -155,7 +154,6 @@ std::string kindToTerm(Kind k)
           case Kind::EVAL_EQ: ss << "eq"; break;
           // lists
           case Kind::EVAL_NIL: ss << "nil"; break;
-          case Kind::EVAL_ANNOT_NIL: ss << "nil_of_type"; break;
           case Kind::EVAL_CONS: ss << "cons"; break;
           case Kind::EVAL_LIST_LENGTH: ss << "list_len"; break;
           case Kind::EVAL_LIST_CONCAT: ss << "list_concat"; break;
@@ -253,7 +251,6 @@ bool isLiteralOp(Kind k)
     case Kind::EVAL_EQ:
     // lists
     case Kind::EVAL_NIL:
-    case Kind::EVAL_ANNOT_NIL:
     case Kind::EVAL_CONS:
     case Kind::EVAL_LIST_LENGTH:
     case Kind::EVAL_LIST_CONCAT:
@@ -295,7 +292,6 @@ bool isListLiteralOp(Kind k)
   switch (k)
   {
     case Kind::EVAL_NIL:
-    case Kind::EVAL_ANNOT_NIL:
     case Kind::EVAL_CONS:
     case Kind::EVAL_LIST_LENGTH:
     case Kind::EVAL_LIST_CONCAT:

@@ -741,11 +741,11 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
                 {
                   // if we failed to infer a nil terminator (likely due to
                   // a non-ground parameter), then we insert a placeholder
-                  // (eo::nil f t1 ... tn), which if t1...tn are non-ground
+                  // (eo::nil f (eo::typeof t1)), which if t1 is non-ground
                   // will evaluate to the proper nil terminator when
                   // instantiated.
                   Expr typ = Expr(mkExprInternal(Kind::EVAL_TYPE_OF, {vchildren[1]}));
-                  curr = mkExprInternal(Kind::EVAL_ANNOT_NIL, {vchildren[0], typ.getValue()});
+                  curr = mkExprInternal(Kind::EVAL_NIL, {vchildren[0], typ.getValue()});
                 }
                 else
                 {
