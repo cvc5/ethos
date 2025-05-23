@@ -1055,6 +1055,8 @@ The parameter list of a parameterized constant may either be implicit or explici
 In this example, the argument `m` to `bvor` is implicit.
 Thus, it expects two bit-vectors of the same width and returns a bit-vector of that width.
 
+> __Note:__ Parameterized constants that have non-ground nil terminators are required to have type `(-> T T T)`.
+
 If a function `f` is given a nil terminator with free parameters, this impacts:
 
 - how applications of `f` are desugared, and
