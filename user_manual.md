@@ -899,7 +899,7 @@ We say that a term is an `f`-list with children `t1 ... tn` if it is of the form
 ### List operators
 
 - `(eo::nil f T)`
-  - If `f` is a right associative operator, return its nil terminator if it is ground. If `f` has a parametric nil terminator, return that terminator specialized for ground type `T` (see examples of parametric nil terminators later in this section).
+  - If `f` is a right associative operator and `T` is a ground type, return its nil terminator. If `f` has a parametric nil terminator, return the terminator is specialized for `T` (see examples of parametric nil terminators later in this section).
 - `(eo::cons f t1 t2)`
   - If `t2` is an `f`-list, then this returns the term `(f t1 t2)`.
 - `(eo::list_len f t)`
@@ -960,11 +960,11 @@ The terms on both sides of the given evaluation are written in their form prior 
 (eo::list_find or (and a b b) a)         == (eo::list_find or (and a b b) a)      ; since (and a b b) is not an or-list
 ```
 
-### Nil terminator with type argument
+### Parametric Nil terminators
 
 As we will introduce in [param-constants](#param-constants),
-`eo::nil` is overloaded to accept addition arguments beyond the operator.
-In particular, `(eo::nil bvor (BitVec 4))` denotes the nil terminator of `bvor` whose type is `(BitVec 4)`.
+`eo::nil` accepts a type argument in addition to the operator.
+For example, `(eo::nil bvor (BitVec 4))` denotes the nil terminator of `bvor` whose type is `(BitVec 4)`.
 
 ### Example: Type rule for BitVector concatenation
 
