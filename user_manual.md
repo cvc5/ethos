@@ -1118,7 +1118,7 @@ Consider again the term `(bvor z w)` from the previous example:
 )
 (declare-const a (BitVec 4))
 (declare-const b (BitVec 4))
-(define test4 () (test a b))
+(define test4 () (test a b) :type (BitVec 4))
 ```
 
 The term in the body of `test` desugars to `(bvor z (bvor w (eo::nil bvor (eo::typeof z))))`, where

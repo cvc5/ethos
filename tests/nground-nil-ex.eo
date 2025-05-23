@@ -15,4 +15,4 @@
 )
 (declare-const a (BitVec 4))
 (declare-const b (BitVec 4))
-(define test4 () (test a b))
+(define test4 () (test a b) :type (BitVec 4))
