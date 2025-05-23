@@ -16,6 +16,7 @@ ethos 0.1.2 prerelease
 - Adds support for the SMT-LIB `as` annotations for ambiguous functions and constants, i.e. those whose return type cannot be inferred from their argument types. Following SMT-LIB convention, ambiguous functions and constants are expected to be annotated with their *return* type using as.  Eunoia translates this into a type argument to the function. This policy is applied both for ambiguous datatype constructors and ambiguous functions and constants declared with `declare-parameterized-const`.
 - The semantics for `eo::dt_constructors` is extended for instantiated parametric datatypes. For example calling `eo::dt_constructors` on `(List Int)` returns the list containing `cons` and `(as nil (List Int))`.
 - The semantics for `eo::dt_selectors` is extended for annotated constructors. For example calling `eo::dt_selectors` on `(as nil (List Int))` returns the empty list.
+- To support parameteric nil terminators, the operator `eo::nil` now always requires two arguments, the list operator and the desired type for the nil terminator.
 
 - Adds builtin primitives `eo::eq` and `eo::is_ok`.
 - Added the option `--stats-all` to track the number of times side conditions are invoked.
