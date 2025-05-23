@@ -31,7 +31,7 @@ class ExprParser
   Expr parseExpr();
   /**
    * Parses an SMT-LIB type <type>
-   * @param allowQuoteArg If true, we also permit (eo::arg <term>).
+   * @param allowQuoteArg If true, we also permit (eo::quote <term>).
    */
   Expr parseType(bool allowQuoteArg=false);
   /** Parses an SMT-LIB formula <formula> */
@@ -44,7 +44,7 @@ class ExprParser
   std::vector<Expr> parseExprList();
   /**
    * Parses parentheses-enclosed term list (<type>*)
-   * @param allowQuoteArg If true, we also permit (eo::arg t).
+   * @param allowQuoteArg If true, we also permit (eo::quote t).
    */
   std::vector<Expr> parseTypeList(bool allowQuoteArg=false);
   /** Parses parentheses-enclosed term list ((<term> <term>)*) */

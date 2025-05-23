@@ -631,12 +631,12 @@ Expr ExprParser::parseType(bool allowQuoteArg)
       if (tok==Token::SYMBOL)
       {
         std::string s = d_lex.tokenStr();
-        if (s=="eo::arg")
+        if (s=="eo::quote")
         {
           Expr t = parseExpr();
           if (t.getKind()!=Kind::PARAM)
           {
-            d_lex.parseError("Expected a parameter as argument to eo::arg");
+            d_lex.parseError("Expected a parameter as argument to eo::quote");
           }
           d_lex.eatToken(Token::RPAREN);
           return d_state.mkQuoteType(t);
