@@ -3,12 +3,15 @@
 ; definition $eo_X. Modifying a Eunoia file to use $eo_ instead of eo:: should
 ; have no impact on behavior (apart from performance), unless otherwise noted.
 
+(declare-type Int ())
+(declare-consts <numeral> Int)
+
 ;;; $eo_nil
 
 ; Note that $eo_nil is dynamically modified based on the declared constants,
 ; as described below. This means we cannot provide a static definition of it
 ; in this signature, and this is not equivalent to the builtin eo::nil.
-(declare-parameterized-const $eo_nil 
+(declare-parameterized-const $eo_nil
   ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
    (f (-> T U V)) (W Type)) W)
 
@@ -24,7 +27,7 @@
 ; declared in the signature, we add the case to $eo_nil:
 ;   (($eo_nil f T) nil)
 ; For example, given:
-;   (declare-parameterized-const bvor ((m Int :implicit)) 
+;   (declare-parameterized-const bvor ((m Int :implicit))
 ;     (-> (BitVec m) (BitVec m) (BitVec m)) :right-assoc-nil (eo::to_bin 0 m))
 ; We add this case to $eo_nil above:
 ;   (($eo_nil bvor (BitVec m))  (eo::to_bin 0 m))
@@ -42,14 +45,14 @@
   )
 )
 
-(define $eo_is_list 
+(define $eo_is_list
   ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
    (f (-> T U V)) (x W))
   ($eo_is_list_rec f ($eo_nil f (eo::typeof x)) x))
 
 ;;; $eo_cons
 
-(define $eo_cons  
+(define $eo_cons
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)
    (W1 Type :implicit) (W2 Type :implicit)
    (f (-> T U V)) (e W1) (a W2))
@@ -74,19 +77,17 @@
 ;;; $eo_list_concat
 
 (program $eo_list_concat_rec
-  ((T Type) (U Type) (V Type) (W Type) (X Type)
-   (f (-> T U V)) (x T) (y U) (z X) (nil T) (Any Type))
-  ((-> T U V) W X) Any
+  ((T Type) (U Type) (V Type) (W Type) (f (-> T V V)) (x W) (y U) (z U) (nil U))
+  ((-> T V V) U U) U
   (
   (($eo_list_concat_rec f (f x y) z)  (f x ($eo_list_concat_rec f y z)))
   (($eo_list_concat_rec f nil z)      z)
   )
 )
 
-(define $eo_list_concat 
+(define $eo_list_concat
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)
-   (W1 Type :implicit) (W2 Type :implicit)
-   (f (-> T U V)) (a W1) (b W2))
+   (f (-> T V V)) (a U) (b U))
   (eo::requires ($eo_is_list f a) true
   (eo::requires ($eo_is_list f b) true
     ($eo_list_concat_rec f a b))))
@@ -94,9 +95,8 @@
 ;;; $eo_list_nth
 
 (program $eo_list_nth_rec
-  ((T Type) (U Type) (V Type) (W Type) (I Type)
-   (f (-> T U V)) (x T) (y U) (n I) (Any Type))
-  ((-> T U V) W I) Any
+  ((T Type) (U Type) (f (-> T T T)) (x U) (y U) (n Int))
+  ((-> T T T) U Int) U
   (
   (($eo_list_nth_rec f (f x y) 0)  x)
   (($eo_list_nth_rec f (f x y) n)  ($eo_list_nth_rec f y (eo::add n -1)))
@@ -104,19 +104,17 @@
 )
 
 (define $eo_list_nth
-  ((T Type :implicit) (U Type :implicit) (V Type :implicit)
-   (W Type :implicit) (I Type :implicit)
-   (f (-> T U V)) (a W) (n I))
+  ((T Type :implicit) (U Type :implicit)
+   (f (-> T T T)) (a U) (n Int))
   (eo::requires ($eo_is_list f a) true
     ($eo_list_nth_rec f a n)))
 
 ;;; $eo_list_find
 
-; I is assumed to be the type of <numeral>
 (program $eo_list_find_rec
-  ((T Type) (U Type) (V Type) (W Type) (X Type) (I Type)
-   (f (-> T U V)) (x W) (z W) (y U) (z X) (nil W) (n I))
-  ((-> T U V) W X I) I
+  ((T Type) (U Type) (V Type) (W Type) (X Type)
+   (f (-> T U V)) (x W) (z W) (y U) (z X) (nil W) (n Int))
+  ((-> T U V) W X Int) Int
   (
   (($eo_list_find_rec f (f x y) z n)  (eo::ite (eo::eq x z) n
                                         ($eo_list_find_rec f y z (eo::add n 1))))
@@ -124,7 +122,7 @@
   )
 )
 
-(define $eo_list_find 
+(define $eo_list_find
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)
    (W1 Type :implicit) (W2 Type :implicit)
    (f (-> T U V)) (a W1) (e W2))
@@ -134,9 +132,9 @@
 ;;; $eo_list_rev
 
 (program $eo_list_rev_rec
-  ((T Type) (U Type) (V Type) (W Type) (X Type) (Y Type) (Any Type)
-   (f (-> T U V)) (x W) (z W) (y U) (z X) (nil W) (acc Y))
-  ((-> T U V) W Y) Any
+  ((T Type) (U Type) (V Type) (W Type)
+   (f (-> T V V)) (x W) (y U) (nil U) (acc U))
+  ((-> T V V) U U) U
   (
     (($eo_list_rev_rec f (f x y) acc) ($eo_list_rev_rec f y (f x acc)))
     (($eo_list_rev_rec f nil acc)      acc)
@@ -144,37 +142,36 @@
 )
 
 (define $eo_list_rev
-  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
-   (f (-> T U V)) (a W))
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit)
+   (f (-> T V V)) (a U))
   (eo::requires ($eo_is_list f a) true
     ($eo_list_rev_rec f a ($eo_nil f (eo::typeof a)))))
 
 ;;; $eo_list_erase
 
 (program $eo_list_erase_rec
-  ((T Type) (U Type) (V Type) (W Type) (X Type) (Any Type)
-   (f (-> T U V)) (x W) (y U) (z X) (nil W))
-  ((-> T U V) W X) Any
+  ((T Type) (U Type) (V Type) (W Type) (X Type)
+   (f (-> T V V)) (x W) (y U) (z X) (nil U))
+  ((-> T V V) U X) U
   (
-  (($eo_list_erase_rec f (f x y) z)   (eo::ite (eo::eq z x) y 
+  (($eo_list_erase_rec f (f x y) z)   (eo::ite (eo::eq z x) y
                                         (f x ($eo_list_erase_rec f y z))))
   (($eo_list_erase_rec f nil z)       nil)
   )
 )
 
-(define $eo_list_erase 
-  ((T Type :implicit) (U Type :implicit) (V Type :implicit)
-   (W1 Type :implicit) (W2 Type :implicit)
-   (f (-> T U V)) (a W1) (e W2))
+(define $eo_list_erase
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
+   (f (-> T V V)) (a U) (e W))
   (eo::requires ($eo_is_list f a) true
     ($eo_list_erase_rec f a e)))
 
 ;;; $eo_list_erase_all
 
 (program $eo_list_erase_all_rec
-  ((T Type) (U Type) (V Type) (W Type) (X Type) (Any Type)
-   (f (-> T U V)) (x W) (y U) (z X) (nil W))
-  ((-> T U V) W X) Any
+  ((T Type) (U Type) (V Type) (W Type) (X Type)
+   (f (-> T V V)) (x W) (y U) (z X) (nil W))
+  ((-> T V V) U X) U
   (
   (($eo_list_erase_all_rec f (f x y) z)   (eo::define ((res ($eo_list_erase_all_rec f y z)))
                                             (eo::ite (eo::eq z x) res (f x res))))
@@ -182,19 +179,18 @@
   )
 )
 
-(define $eo_list_erase_all 
-  ((T Type :implicit) (U Type :implicit) (V Type :implicit)
-   (W1 Type :implicit) (W2 Type :implicit)
-   (f (-> T U V)) (a W1) (e W2))
+(define $eo_list_erase_all
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
+   (f (-> T V V)) (a U) (e W))
   (eo::requires ($eo_is_list f a) true
     ($eo_list_erase_all_rec f a e)))
 
 ;;; $eo_list_setof
 
 (program $eo_list_setof_rec
-  ((T Type) (U Type) (V Type) (W Type) (Any Type)
-   (f (-> T U V)) (x W) (y U) (nil W))
-  ((-> T U V) W) Any
+  ((T Type) (U Type) (V Type) (W Type)
+   (f (-> T V V)) (x W) (y U) (nil U))
+  ((-> T V V) U) U
   (
   (($eo_list_setof_rec f (f x y))  (f x ($eo_list_setof_rec f ($eo_list_erase_all f y x))))
   (($eo_list_setof_rec f nil)      nil)
@@ -202,16 +198,15 @@
 )
 
 (define $eo_list_setof
-  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
-   (f (-> T U V)) (x W))
-  (eo::requires ($eo_is_list f x) true
-    ($eo_list_setof_rec f x)))
-    
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (f (-> T V V)) (a U))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_setof_rec f a)))
+
 ;;; $eo_list_minclude
 
 (program $eo_list_minclude_rec
   ((T Type) (U Type) (V Type) (W Type) (X Type)
-   (f (-> T U V)) (x T) (y U) (z X) (nil T) (Any Type))
+   (f (-> T U V)) (x T) (y U) (z X) (nil W))
   ((-> T U V) W X) Bool
   (
   (($eo_list_minclude_rec f (f x y) z)  (eo::define ((res ($eo_list_erase f z x)))
@@ -221,7 +216,7 @@
   )
 )
 
-(define $eo_list_minclude 
+(define $eo_list_minclude
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)
    (W1 Type :implicit) (W2 Type :implicit)
    (f (-> T U V)) (a W1) (b W2))
@@ -245,6 +240,6 @@
 
 ;;; $eo_var
 
-(declare-parameterized-const $eo_var 
+(declare-parameterized-const $eo_var
   ((T Type :implicit) (x T :requires (($eo_is_str x) true)) (U Type))
   U)
