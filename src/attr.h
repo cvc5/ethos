@@ -41,9 +41,9 @@ enum class Attr
 
   // indicate how to construct proof rule steps
   RULE_PREMISE_LIST,
-  RULE_CONC_EXPLICIT,   // note this may also have a cons for a premise list
-  RULE_ASSUMPTION,      // similarly, may also have a cons for a premise list
-  RULE_ASSUMPTION_CE,   // both :assumption and :conclusion-explicit
+  RULE_CONC_EXPLICIT,  // note this may also have a cons for a premise list
+  RULE_ASSUMPTION,     // similarly, may also have a cons for a premise list
+  RULE_ASSUMPTION_CE,  // both :assumption and :conclusion-explicit
 
   // indicate how to construct apps of function symbols
   RIGHT_ASSOC,

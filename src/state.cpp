@@ -1307,7 +1307,7 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
       }
       children.push_back(proven);
     }
-    if (isPop==(a == Attr::RULE_ASSUMPTION || a == Attr::RULE_ASSUMPTION_CE))
+    if (isPop == (a == Attr::RULE_ASSUMPTION || a == Attr::RULE_ASSUMPTION_CE))
     {
       if (isPop)
       {
