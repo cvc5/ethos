@@ -1422,6 +1422,8 @@ For example:
 
 In the above rule definition, a proof rule `split` is given which expects a conclusion of the form `(or F (not F))` to be provided.
 A step invoking this rule is only valid if the provided conclusion of that step matches this pattern.
+Further requirements can be added, e.g. checking that `F` satisfies some side condition,
+where it is assumed that `F` is bound to the term found when matching the conclusion of the rule.
 Any step not providing a conclusion as the second argument to the step command will result in a proof checking failure.
 
 ## Writing Proofs
