@@ -1566,7 +1566,6 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_LIST_ERASE:
     case Kind::EVAL_LIST_ERASE_ALL:
       return evaluateListEraseInternal(k, op, nil, isLeft, args);
-      break;
     case Kind::EVAL_LIST_REV:
       return evaluateListRevInternal(op, nil, isLeft, args);
     case Kind::EVAL_LIST_SETOF:
