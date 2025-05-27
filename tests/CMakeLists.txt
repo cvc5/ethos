@@ -152,6 +152,7 @@ set(ethos_test_file_list
     is-eq-tests.eo
     double-list.eo
     list-param-immediate.eo
+    eo-definitions.eo
 )
 
 if(ENABLE_ORACLES)
