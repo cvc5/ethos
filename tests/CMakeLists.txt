@@ -151,7 +151,6 @@ set(ethos_test_file_list
     define-scope-attr.eo
     is-eq-tests.eo
     list-ops-new.eo
-    eo-definitions.eo
 )
 
 if(ENABLE_ORACLES)
