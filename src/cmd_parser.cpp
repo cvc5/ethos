@@ -433,7 +433,7 @@ bool CmdParser::parseNextCommand()
       {
         d_lex.parseError("Expected conclusion in declare-rule");
       }
-      // arguments first
+      // ordinary arguments first
       for (Expr& e : args)
       {
         Expr et = d_state.mkQuoteType(e);
@@ -445,17 +445,17 @@ bool CmdParser::parseNextCommand()
         Expr qct = d_state.mkQuoteType(conc);
         argTypes.push_back(qct);
       }
-      // then premises
-      for (const Expr& e : premises)
-      {
-        Expr pet = d_state.mkProofType(e);
-        argTypes.push_back(pet);
-      }
-      // finally, assumption
+      // then assumption
       if (!assume.isNull())
       {
         Expr ast = d_state.mkQuoteType(assume);
         argTypes.push_back(ast);
+      }
+      // finally, premises
+      for (const Expr& e : premises)
+      {
+        Expr pet = d_state.mkProofType(e);
+        argTypes.push_back(pet);
       }
       Expr ret = d_state.mkProofType(conc);
       // include the requirements into the return type
@@ -477,16 +477,24 @@ bool CmdParser::parseNextCommand()
       Expr rule = d_state.mkSymbol(Kind::PROOF_RULE, name, ret);
       d_eparser.typeCheck(rule);
       d_eparser.bind(name, rule);
-      if (concExplicit)
+      if (!assume.isNull())
+      {
+        Attr ra = concExplicit ? Attr::RULE_ASSUMPTION_CE : Attr::RULE_ASSUMPTION;
+        // we also carry plCons, in case the rule was marked
+        // :conclusion-explicit and :premise-list simulataneously. We will
+        // handle both special cases at once in State::getProofRuleArguments.
+        d_state.markConstructorKind(rule, ra, plCons);
+      }
+      else if (concExplicit)
       {
         // we also carry plCons, in case the rule was marked
         // :conclusion-explicit and :premise-list simulataneously. We will
         // handle both special cases at once in State::getProofRuleArguments.
-        d_state.markConstructorKind(rule, Attr::CONC_EXPLICIT, plCons);
+        d_state.markConstructorKind(rule, Attr::RULE_CONC_EXPLICIT, plCons);
       }
       else if (!plCons.isNull())
       {
-        d_state.markConstructorKind(rule, Attr::PREMISE_LIST, plCons);
+        d_state.markConstructorKind(rule, Attr::RULE_PREMISE_LIST, plCons);
       }
       AttrMap attrs;
       d_eparser.parseAttributeList(Kind::PROOF_RULE, rule, attrs);

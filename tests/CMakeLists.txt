@@ -153,6 +153,7 @@ set(ethos_test_file_list
     double-list.eo
     list-param-immediate.eo
     conclusion-explicit-cases.eo
+    rule-all-cases.eo
 )
 
 if(ENABLE_ORACLES)

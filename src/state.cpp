@@ -1297,7 +1297,8 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
   AppInfo* ainfo = getAppInfo(rule.getValue());
   if (ainfo != nullptr)
   {
-    if (ainfo->d_attrCons == Attr::CONC_EXPLICIT)
+    Attr a = ainfo->d_attrCons;
+    if (a == Attr::RULE_CONC_EXPLICIT || a == Attr::RULE_ASSUMPTION_CE)
     {
       if (proven.isNull())
       {
@@ -1306,11 +1307,27 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
       }
       children.push_back(proven);
     }
+    if (isPop)
+    {
+      if (a == Attr::RULE_ASSUMPTION || a == Attr::RULE_ASSUMPTION_CE)
+      {
+        std::vector<Expr> as = getCurrentAssumptions();
+        // The size of assumptions should be one, but may contain more
+        // assumptions if e.g. we encountered assume in a nested assumption
+        // scope. Nevertheless, as[0] is always the first assumption in
+        // the assume-push.
+        // push the assumption
+        children.push_back(as[0]);
+      }
+      else
+      {
+        // can only use in step-pop.
+        return false;
+      }
+    }
     Expr plCons = ainfo->d_attrConsTerm;
     if (!plCons.isNull())
     {
-      Assert(ainfo->d_attrCons == Attr::CONC_EXPLICIT
-             || ainfo->d_attrCons == Attr::PREMISE_LIST);
       std::vector<Expr> achildren;
       achildren.push_back(plCons);
       for (Expr& e : premises)
@@ -1357,17 +1374,11 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
   {
     // premises after arguments
     children.insert(children.end(), premises.begin(), premises.end());
-  }
-  // the assumption, if pop
-  if (isPop)
-  {
-    std::vector<Expr> as = getCurrentAssumptions();
-    // The size of assumptions should be one, but may contain more
-    // assumptions if e.g. we encountered assume in a nested assumption
-    // scope. Nevertheless, as[0] is always the first assumption in
-    // the assume-push.
-    // push the assumption
-    children.push_back(as[0]);
+    if (isPop)
+    {
+      // ordinary rule cannot use assumption
+      return false;
+    }
   }
   return true;
 }
