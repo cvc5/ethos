@@ -1304,12 +1304,13 @@ The selectors of a constructor (which are never ambiguous) are returned independ
 The generic syntax for a `declare-rule` command accepted by `ethos` is:
 
 ```smt
-(declare-rule <symbol> :ethos (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term> <attr>*)
+(declare-rule <symbol> :ethos (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? <conclusion> <attr>*)
 where
 <assumption>   ::= :assumption <term>
 <premises>     ::= :premises (<term>*) | :premise-list <term> <term>
 <arguments>    ::= :args (<term>*)
 <reqs>         ::= :requires ((<term> <term>)*)
+<conclusion>   ::= :conclusion <term> | :conclusion-explicit <term>
 ```
 
 A proof rule begins by defining a list of free parameters, followed by 4 optional fields and a conclusion term.
@@ -1402,6 +1403,26 @@ The conclusion of the rule returns `F` itself.
 Note that the type of functions provided as the second argument of `:premise-list` should be operators that are marked to take an arbitrary number of arguments, that is those marked e.g. with `:right-assoc-nil` or `:chainable`.
 
 <a name="proofs"></a>
+
+### Explicit Conclusions
+
+Rules can be specified to pattern match on the provided conclusion as input.
+This is useful if the proof rule is written in the style where an arbitrary conclusion can be provided by user, and is checked to see if it is a valid possible conclusion of the rule.
+For example:
+
+```smt
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil true)
+(declare-const not (-> Bool Bool))
+
+(declare-rule split ((F Bool))
+  :conclusion-explicit (or F (not F))
+)
+(step @p0 (or true (not true)) :rule split)
+```
+
+In the above rule definition, a proof rule `split` is given which expects a conclusion of the form `(or F (not F))` to be provided.
+A step invoking this rule is only valid if the provided conclusion of that step matches this pattern.
+Any step not providing a conclusion as the second argument to the step command will result in a proof checking failure.
 
 ## Writing Proofs
 
@@ -1992,7 +2013,7 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
     (declare-consts <lit-category> <type>) |
     (declare-parameterized-const <symbol> (<typed-param>*) <type> <attr>*) |
     (declare-oracle-fun <symbol> (<type>+) <type> <symbol>) |
-    (declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term> <attr>*) |
+    (declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? <conclusion> <attr>*) |
     (declare-type <symbol> (<type>*)) |
     (define <symbol> (<typed-param>*) <term> <attr>*) |
     (define-type <symbol> (<type>*) <type>) |
@@ -2045,6 +2066,7 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
 <simple-premises> ::= :premises (<term>*)
 <arguments>       ::= :args (<term>*)
 <reqs>            ::= :requires ((<term> <term>)*)
+<conclusion>      ::= :conclusion <term> | :conclusion-explicit <term>
 
 ```
 

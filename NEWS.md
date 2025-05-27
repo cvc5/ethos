@@ -23,6 +23,7 @@ ethos 0.1.2 prerelease
 - The option `--binder-fresh`, which specified for fresh variables to be constructed when parsing binders, has been removed.
 - Programs and oracles now are explicitly required to have at least one argument.
 - Remove support for the explicit parameter annotation `eo::_`, which was used to provide annotations for implicit arguments to parameterized constants.
+- Adds support for explicit conclusions to proof rules via `:conclusion-explicit`.
 
 ethos 0.1.1
 ===========
