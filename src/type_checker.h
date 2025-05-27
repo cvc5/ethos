@@ -113,7 +113,10 @@ class TypeChecker
    * @param args The arguments to the application.
    * @return The result of the evaluation.
    */
-  Expr evaluateListRevInternal(ExprValue * op, ExprValue * nil, bool isLeft, const std::vector<ExprValue*>& args);
+  Expr evaluateListRevInternal(ExprValue* op,
+                               ExprValue* nil,
+                               bool isLeft,
+                               const std::vector<ExprValue*>& args);
   /** Evaluate list erase internal
    * @param k The kind of application (ERASE or ERASE_ALL).
    * @param op The n-ary operator.
@@ -122,7 +125,11 @@ class TypeChecker
    * @param args The arguments to the application.
    * @return The result of the evaluation.
    */
-  Expr evaluateListEraseInternal(Kind k, ExprValue * op, ExprValue * nil, bool isLeft, const std::vector<ExprValue*>& args);
+  Expr evaluateListEraseInternal(Kind k,
+                                 ExprValue* op,
+                                 ExprValue* nil,
+                                 bool isLeft,
+                                 const std::vector<ExprValue*>& args);
   /** Evaluate list setof internal
    * @param op The n-ary operator.
    * @param nil The nil terminator for the operator.
@@ -130,7 +137,10 @@ class TypeChecker
    * @param args The arguments to the application.
    * @return The result of the evaluation.
    */
-  Expr evaluateListSetOfInternal(ExprValue * op, ExprValue * nil, bool isLeft, const std::vector<ExprValue*>& args);
+  Expr evaluateListSetOfInternal(ExprValue* op,
+                                 ExprValue* nil,
+                                 bool isLeft,
+                                 const std::vector<ExprValue*>& args);
   /** Evaluate list multiset predicate internal
    * @param k The kind of application (MINCLUDE or MEQ).
    * @param op The n-ary operator.
@@ -139,7 +149,11 @@ class TypeChecker
    * @param args The arguments to the application.
    * @return The result of the evaluation.
    */
-  Expr evaluateListMPredInternal(Kind k, ExprValue * op, ExprValue * nil, bool isLeft, const std::vector<ExprValue*>& args);
+  Expr evaluateListMPredInternal(Kind k,
+                                 ExprValue* op,
+                                 ExprValue* nil,
+                                 bool isLeft,
+                                 const std::vector<ExprValue*>& args);
   /**
    * Helper for above, starting with ret, append children in hargs to ret,
    * using n-ary operator op, which is :right-assoc-nil or :left-assoc-nil

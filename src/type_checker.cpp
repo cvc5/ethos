@@ -1566,7 +1566,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_LIST_ERASE:
     case Kind::EVAL_LIST_ERASE_ALL:
       return evaluateListEraseInternal(k, op, nil, isLeft, args);
-    break;
+      break;
     case Kind::EVAL_LIST_REV:
       return evaluateListRevInternal(op, nil, isLeft, args);
     case Kind::EVAL_LIST_SETOF:
@@ -1580,7 +1580,10 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   return d_null;
 }
 
-Expr TypeChecker::evaluateListRevInternal(ExprValue * op, ExprValue * nil, bool isLeft, const std::vector<ExprValue*>& args)
+Expr TypeChecker::evaluateListRevInternal(ExprValue* op,
+                                          ExprValue* nil,
+                                          bool isLeft,
+                                          const std::vector<ExprValue*>& args)
 {
   std::vector<ExprValue*> hargs;
   if (getNAryChildren(args[1], op, nil, hargs, isLeft) == nullptr)
@@ -1592,7 +1595,11 @@ Expr TypeChecker::evaluateListRevInternal(ExprValue * op, ExprValue * nil, bool 
   return prependNAryChildren(op, nil, hargs, isLeft);
 }
 
-Expr TypeChecker::evaluateListEraseInternal(Kind k, ExprValue * op, ExprValue * nil, bool isLeft, const std::vector<ExprValue*>& args)
+Expr TypeChecker::evaluateListEraseInternal(Kind k,
+                                            ExprValue* op,
+                                            ExprValue* nil,
+                                            bool isLeft,
+                                            const std::vector<ExprValue*>& args)
 {
   std::vector<ExprValue*> hargs;
   if (getNAryChildren(args[1], op, nil, hargs, isLeft) == nullptr)
@@ -1623,7 +1630,10 @@ Expr TypeChecker::evaluateListEraseInternal(Kind k, ExprValue * op, ExprValue * 
   return prependNAryChildren(op, nil, result, isLeft);
 }
 
-Expr TypeChecker::evaluateListSetOfInternal(ExprValue * op, ExprValue * nil, bool isLeft, const std::vector<ExprValue*>& args)
+Expr TypeChecker::evaluateListSetOfInternal(ExprValue* op,
+                                            ExprValue* nil,
+                                            bool isLeft,
+                                            const std::vector<ExprValue*>& args)
 {
   std::vector<ExprValue*> hargs;
   if (getNAryChildren(args[1], op, nil, hargs, isLeft) == nullptr)
@@ -1642,10 +1652,15 @@ Expr TypeChecker::evaluateListSetOfInternal(ExprValue * op, ExprValue * nil, boo
   return prependNAryChildren(op, nil, result, isLeft);
 }
 
-Expr TypeChecker::evaluateListMPredInternal(Kind k, ExprValue * op, ExprValue * nil, bool isLeft, const std::vector<ExprValue*>& args)
+Expr TypeChecker::evaluateListMPredInternal(Kind k,
+                                            ExprValue* op,
+                                            ExprValue* nil,
+                                            bool isLeft,
+                                            const std::vector<ExprValue*>& args)
 {
   std::vector<ExprValue*> hargs, hargs2;
-  if (getNAryChildren(args[1], op, nil, hargs, isLeft) == nullptr || getNAryChildren(args[2], op, nil, hargs2, isLeft) == nullptr)
+  if (getNAryChildren(args[1], op, nil, hargs, isLeft) == nullptr
+      || getNAryChildren(args[2], op, nil, hargs2, isLeft) == nullptr)
   {
     return d_null;
   }
@@ -1673,7 +1688,7 @@ Expr TypeChecker::evaluateListMPredInternal(Kind k, ExprValue * op, ExprValue * 
   for (const std::pair<const ExprValue* const, uint32_t>& entry : count1)
   {
     if (isEq ? count2[entry.first] != entry.second
-              : count2[entry.first] < entry.second)
+             : count2[entry.first] < entry.second)
     {
       return d_state.mkFalse();
     }
@@ -1723,8 +1738,7 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_LIST_ERASE:
     case Kind::EVAL_LIST_ERASE_ALL:
     case Kind::EVAL_LIST_REV:
-    case Kind::EVAL_LIST_SETOF:
-      return Expr(childTypes[1]);
+    case Kind::EVAL_LIST_SETOF: return Expr(childTypes[1]);
     case Kind::EVAL_CONCAT:
     case Kind::EVAL_EXTRACT:
       // type is the first child
@@ -1741,8 +1755,7 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_IS_VAR:
     case Kind::EVAL_GT:
     case Kind::EVAL_LIST_MINCLUDE:
-    case Kind::EVAL_LIST_MEQ:
-      return d_state.mkBoolType();
+    case Kind::EVAL_LIST_MEQ: return d_state.mkBoolType();
     case Kind::EVAL_HASH:
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_INT_MOD:
