@@ -428,23 +428,30 @@ bool CmdParser::parseNextCommand()
         // :conclusion-given is equivalent to :conclusion eo::conclusion
         conc = d_eparser.parseExpr();
         concExplicit = true;
-        Expr qct = d_state.mkQuoteType(conc);
-        argTypes.push_back(qct);
       }
       else
       {
         d_lex.parseError("Expected conclusion in declare-rule");
       }
+      // arguments first
       for (Expr& e : args)
       {
         Expr et = d_state.mkQuoteType(e);
         argTypes.push_back(et);
       }
+      // then explicit conclusion
+      if (concExplicit)
+      {
+        Expr qct = d_state.mkQuoteType(conc);
+        argTypes.push_back(qct);
+      }
+      // then premises
       for (const Expr& e : premises)
       {
         Expr pet = d_state.mkProofType(e);
         argTypes.push_back(pet);
       }
+      // finally, assumption
       if (!assume.isNull())
       {
         Expr ast = d_state.mkQuoteType(assume);
@@ -472,7 +479,9 @@ bool CmdParser::parseNextCommand()
       d_eparser.bind(name, rule);
       if (concExplicit)
       {
-        // we also carry plCons
+        // we also carry plCons, in case the rule was marked
+        // :conclusion-explicit and :premise-list simulataneously. We will
+        // handle both special cases at once in State::getProofRuleArguments.
         d_state.markConstructorKind(rule, Attr::CONC_EXPLICIT, plCons);
       }
       else if (!plCons.isNull())

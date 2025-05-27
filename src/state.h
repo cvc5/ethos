@@ -166,7 +166,19 @@ class State
   Expr getBoundVar(const std::string& name, const Expr& type);
   /** Get the proof rule with the given name or nullptr if it does not exist */
   Expr getProofRule(const std::string& name) const;
-  /** Get actual premises */
+  /**
+   * Get proof rule arguments, which determines the argument list to a proof
+   * rule in a step or step-pop. This takes into account whether the rule was
+   * marked :premise-list, :conclusion-explicit, or :assumption (for step-pop
+   * commands).
+   * @param children The vector of children to populate.
+   * @param rule The proof rule being applied.
+   * @param proven The conclusion of the proof rule, if provided.
+   * @param premises The provided premises of the proof rule.
+   * @param args The provided arguments of the proof rule.
+   * @param isPop Whether we were a step-pop.
+   * @return true if we successfully populated the arguments to the proof rule.
+   */
   bool getProofRuleArguments(std::vector<Expr>& children,
                              Expr& rule,
                              Expr& proven,

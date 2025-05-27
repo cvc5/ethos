@@ -1309,6 +1309,7 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
     Expr plCons = ainfo->d_attrConsTerm;
     if (!plCons.isNull())
     {
+      Assert (ainfo->d_attrCons==Attr::CONC_EXPLICIT || ainfo->d_attrCons==Attr::PREMISE_LIST);
       std::vector<Expr> achildren;
       achildren.push_back(plCons);
       for (Expr& e : premises)
@@ -1341,10 +1342,14 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
         ap = mkExpr(Kind::APPLY, achildren);
       }
       Expr pfap = mkProofType(ap);
-      // TODO: collect operator???
-      // dummy, const term of the given proof type
+      // dummy, "collected" term of the given proof type
       Expr n = mkSymbol(Kind::CONST, "tmp", pfap);
       children.push_back(n);
+    }
+    else
+    {
+      // otherwise ordinary premises
+      children.insert(children.end(), premises.begin(), premises.end());
     }
   }
   else

@@ -9,9 +9,9 @@
   )
 )
 
-(declare-rule split ()
-  :requires (((is_split eo::conclusion) true))
-  :conclusion-given
+(declare-rule split ((C Bool))
+  :requires (((is_split C) true))
+  :conclusion-explicit C
 )
 
 (step @p0 (or true (not true)) :rule split)
