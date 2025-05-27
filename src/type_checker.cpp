@@ -163,6 +163,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_COMPARE:
     case Kind::EVAL_GT:
     case Kind::EVAL_LIST_LENGTH:
+    case Kind::EVAL_NIL:
       ret = (nargs==2);
       break;
     case Kind::EVAL_ADD:
@@ -196,9 +197,6 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_IS_VAR:
     case Kind::EVAL_DT_CONSTRUCTORS:
     case Kind::EVAL_DT_SELECTORS: ret = (nargs == 1); break;
-    case Kind::EVAL_NIL:
-      ret = (nargs>=1);
-      break;
     case Kind::EVAL_REQUIRES:
     case Kind::EVAL_IF_THEN_ELSE:
     case Kind::EVAL_CONS:
@@ -1430,11 +1428,22 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   // infer the nil expression, which depends on the type of args[1]
   std::vector<Expr> eargs;
   eargs.emplace_back(args[0]);
-  if (args.size()>1)
+  Expr nilExpr;
+  if (k==Kind::EVAL_NIL)
+  {
+    // Special case: to handle (eo::nil x T), we construct
+    // a dummy term of type T to be consistent with other
+    // lookups for nil terminators.
+    Expr tmpType(args[1]);
+    Expr tmp = d_state.mkSymbol(Kind::CONST, "tmp", tmpType);
+    eargs.emplace_back(tmp);
+    return computeConstructorTermInternal(ac, eargs);
+  }
+  else if (args.size()>1)
   {
     eargs.emplace_back(args[1]);
+    nilExpr = computeConstructorTermInternal(ac, eargs);
   }
-  Expr nilExpr = computeConstructorTermInternal(ac, eargs);
   if (nilExpr.isNull())
   {
     Trace("type_checker") << "...failed to get nil" << std::endl;
@@ -1445,11 +1454,6 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   std::vector<ExprValue*> hargs;
   switch (k)
   {
-    case Kind::EVAL_NIL:
-    {
-      return nilExpr;
-    }
-    break;
     case Kind::EVAL_CONS:
     case Kind::EVAL_LIST_CONCAT:
     {
@@ -1575,16 +1579,13 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_TYPE_OF:
       return d_state.mkType();
     case Kind::EVAL_VAR:
+    case Kind::EVAL_NIL:
       // its type is the second argument
       return Expr(children[1]);
     case Kind::EVAL_ADD:
     case Kind::EVAL_MUL:
       // NOTE: mixed arith
       return Expr(childTypes[0]);
-    case Kind::EVAL_NIL:
-      // type is not computable here, since it is the return type of function
-      // applications of the argument. just use any.
-      return d_state.mkAny();
     case Kind::EVAL_NEG:
     case Kind::EVAL_AND:
     case Kind::EVAL_OR:
@@ -1704,7 +1705,7 @@ Expr TypeChecker::computeConstructorTermInternal(
   for (size_t i = 0, nparams = ct[0].getNumChildren(); i < nparams; i++)
   {
     ExprValue* cv = tctx[ct[0][i].getValue()];
-    if (cv->isNull())
+    if (cv==nullptr)
     {
       Warning() << "Failed to find context for " << ct[0][i]
                 << " when applying " << hd << " @ " << children[1] << std::endl;
