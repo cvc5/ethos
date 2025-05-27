@@ -477,24 +477,22 @@ bool CmdParser::parseNextCommand()
       Expr rule = d_state.mkSymbol(Kind::PROOF_RULE, name, ret);
       d_eparser.typeCheck(rule);
       d_eparser.bind(name, rule);
-      if (!assume.isNull())
+      if (!assume.isNull() || concExplicit || !plCons.isNull())
       {
-        Attr ra = concExplicit ? Attr::RULE_ASSUMPTION_CE : Attr::RULE_ASSUMPTION;
-        // we also carry plCons, in case the rule was marked
-        // :conclusion-explicit and :premise-list simulataneously. We will
-        // handle both special cases at once in State::getProofRuleArguments.
+        Attr ra = Attr::RULE_PREMISE_LIST;
+        if (!assume.isNull())
+        {
+          ra = concExplicit ? Attr::RULE_ASSUMPTION_CE : Attr::RULE_ASSUMPTION;
+        }
+        else if (concExplicit)
+        {
+          ra = Attr::RULE_CONC_EXPLICIT;
+        }
+        // we always carry plCons, in case the rule was marked
+        // :premise-list as well as :assumption or :conclusion-explicit
+        // simulataneously. We will handle all 3 special cases at once in
+        // State::getProofRuleArguments when the rule is applied.
         d_state.markConstructorKind(rule, ra, plCons);
-      }
-      else if (concExplicit)
-      {
-        // we also carry plCons, in case the rule was marked
-        // :conclusion-explicit and :premise-list simulataneously. We will
-        // handle both special cases at once in State::getProofRuleArguments.
-        d_state.markConstructorKind(rule, Attr::RULE_CONC_EXPLICIT, plCons);
-      }
-      else if (!plCons.isNull())
-      {
-        d_state.markConstructorKind(rule, Attr::RULE_PREMISE_LIST, plCons);
       }
       AttrMap attrs;
       d_eparser.parseAttributeList(Kind::PROOF_RULE, rule, attrs);
