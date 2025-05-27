@@ -152,6 +152,7 @@ set(ethos_test_file_list
     is-eq-tests.eo
     list-ops-new.eo
     eo-definitions.eo
+    eo-arg-ex.eo
     double-list.eo
     list-param-immediate.eo
     nground-nil-ex.eo
