@@ -113,8 +113,8 @@
 
 ; Helper for below, assumes t is a non-empty word constant.
 ; For example, given "AB", this returns (str.++ "A" (str.++ "B" "")).
-(program string_flatten_word ((t String))
-  (String) String
+(program string_flatten_word ((U Type) (t (Seq U)))
+  ((Seq U)) (Seq U)
   (
     ((string_flatten_word t) 
       (eo::ite (check_length_one t) 

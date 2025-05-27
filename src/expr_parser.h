@@ -129,18 +129,9 @@ class ExprParser
    * - NONE otherwise.
    * @param e The expression we are applying to
    * @param attr The attributes which are populated
-   * @param pushedScope True if we pushed a scope while reading the list. This
-   * is true when e.g. the attribute :var is read. The caller of this method
-   * is responsible for popping the scope.
    * @param plk If k is PARAM, this is the category of the parameter list
    * which that parameter belongs to
    */
-  void parseAttributeList(Kind k,
-                          Expr& e,
-                          AttrMap& attrs,
-                          bool& pushedScope,
-                          Kind plk = Kind::NONE);
-  /** Same as above, but ensures we pop the scope */
   void parseAttributeList(Kind k,
                           Expr& e,
                           AttrMap& attrs,
@@ -157,6 +148,15 @@ class ExprParser
   Expr typeCheckApp(std::vector<Expr>& children);
   /** ensure type */
   Expr typeCheck(Expr& e, const Expr& expected);
+  /**
+   * Type check program pair. This method is called when (pat, ret) is
+   * parsed as a pattern/return pair for a program or eo::match.
+   * If checkPreservation is true, we should expect it to be possible to
+   * show that pat and ret have the same type and give an error or warning
+   * otherwise.
+   * NOTE: currently this method is not implemented.
+   */
+  void typeCheckProgramPair(Expr& pat, Expr& ret, bool checkPreservation);
   /** get variable, else error */
   Expr getVar(const std::string& name);
   /** get variable, else error */

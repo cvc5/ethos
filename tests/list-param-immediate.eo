@@ -1,0 +1,6 @@
+
+(declare-const UnitTuple Type)
+(declare-const Tuple (-> Type Type Type) :right-assoc-nil UnitTuple)
+
+
+(define foo ((T1 Type) (T2 Type :list) (x (Tuple T1 T2))) x :type (-> Type Type (Tuple T1 T2) (Tuple T1 T2)))
