@@ -1285,19 +1285,19 @@ Expr State::getProofRule(const std::string& name) const
 }
 
 bool State::getProofRuleArguments(std::vector<Expr>& children,
-                             Expr& rule,
-                             Expr& proven,
-                             std::vector<Expr>& premises,
-                             std::vector<Expr>& args,
-                             bool isPop)
+                                  Expr& rule,
+                                  Expr& proven,
+                                  std::vector<Expr>& premises,
+                                  std::vector<Expr>& args,
+                                  bool isPop)
 {
   children.emplace_back(rule.getValue());
   // arguments first
   children.insert(children.end(), args.begin(), args.end());
   AppInfo* ainfo = getAppInfo(rule.getValue());
-  if (ainfo!=nullptr)
+  if (ainfo != nullptr)
   {
-    if (ainfo->d_attrCons==Attr::CONC_EXPLICIT)
+    if (ainfo->d_attrCons == Attr::CONC_EXPLICIT)
     {
       if (proven.isNull())
       {
@@ -1309,7 +1309,8 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
     Expr plCons = ainfo->d_attrConsTerm;
     if (!plCons.isNull())
     {
-      Assert (ainfo->d_attrCons==Attr::CONC_EXPLICIT || ainfo->d_attrCons==Attr::PREMISE_LIST);
+      Assert(ainfo->d_attrCons == Attr::CONC_EXPLICIT
+             || ainfo->d_attrCons == Attr::PREMISE_LIST);
       std::vector<Expr> achildren;
       achildren.push_back(plCons);
       for (Expr& e : premises)

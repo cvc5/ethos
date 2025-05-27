@@ -423,7 +423,7 @@ bool CmdParser::parseNextCommand()
       {
         conc = d_eparser.parseExpr();
       }
-      else if (keyword=="conclusion-explicit")
+      else if (keyword == "conclusion-explicit")
       {
         // :conclusion-given is equivalent to :conclusion eo::conclusion
         conc = d_eparser.parseExpr();
@@ -856,7 +856,7 @@ bool CmdParser::parseNextCommand()
       bool isPop = (tok==Token::STEP_POP);
       if (isPop)
       {
-        if (d_state.getAssumptionLevel()==0)
+        if (d_state.getAssumptionLevel() == 0)
         {
           d_lex.parseError("Cannot pop at level zero");
         }
@@ -904,7 +904,8 @@ bool CmdParser::parseNextCommand()
         args = d_eparser.parseExprList();
       }
       std::vector<Expr> children;
-      if (!d_state.getProofRuleArguments(children, rule, proven, premises, args, isPop))
+      if (!d_state.getProofRuleArguments(
+              children, rule, proven, premises, args, isPop))
       {
         d_lex.parseError("Failed to get arguments for proof rule");
       }
