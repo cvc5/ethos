@@ -353,7 +353,11 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
   ExprValue* hd = children[0];
   ExprValue* hdType = d_state.lookupType(hd);
   Assert(hdType != nullptr) << "No type for " << Expr(hd);
-  Kind hk = hdType->getKind();
+  Kind hk = hdType->getKind();  
+  if (hk == Kind::ANY)
+  {
+    return Expr(hdType);
+  }
   if (hk != Kind::FUNCTION_TYPE && hk != Kind::PROGRAM_TYPE)
   {
     // non-function at head
@@ -478,6 +482,21 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
   }
   // evaluate in the matched context
   return evaluate(hdtypes.back(), ctx);
+}
+
+bool isEvaluationApp(const ExprValue* e)
+{
+  Kind k = e->getKind();
+  if (isLiteralOp(k) || k==Kind::ANY)
+  {
+    return true;
+  }
+  else if (k==Kind::APPLY || k==Kind::APPLY_OPAQUE)
+  {
+    Kind hk = (*e)[0]->getKind();
+    return (hk==Kind::PROGRAM_CONST || hk==Kind::ORACLE);
+  }
+  return false;
 }
 
 bool TypeChecker::match(ExprValue* a, ExprValue* b, Ctx& ctx)

@@ -1388,7 +1388,23 @@ void ExprParser::typeCheckProgramPair(Expr& pat,
                                       Expr& ret,
                                       bool checkPreservation)
 {
-  // currently, does nothing
+#ifdef TYPE_CHECK_PROGRAMS
+  Expr patType = typeCheck(pat);
+  Expr retType = typeCheck(ret);
+  if (checkPreservation && (patType!=retType || patType.isEvaluatable()))
+  {
+    std::stringstream ss;
+    ss << "Could not show equivalence of pattern and return: " << pat << " / " << ret << " whose types are " << patType << " and " << retType << std::endl; 
+    if (patType.isEvaluatable() || retType.isEvaluatable())
+    {
+      Warning() << ss.str();
+    }
+    else
+    {
+      d_lex.parseError(ss.str());
+    }
+  }
+#endif
 }
 
 Expr ExprParser::findFreeVar(const Expr& e, const std::vector<Expr>& bvs)
