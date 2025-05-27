@@ -282,11 +282,9 @@ An example of this annotation is the following:
 
 ```smt
 (declare-type Array (Type Type))
-(declare-parameterized-const @array_diff ((T Type :implicit) (U Type :implicit))
-   (->
-   (! (Array T U) :opaque)
-   (! (Array T U) :opaque)
-   T))
+(declare-parameterized-const @array_diff
+  ((T Type :implicit) (U Type :implicit) (t (Array T U) :opaque) (u (Array T U) :opaque))
+   T)
 
 (declare-type Int ())
 (declare-const A (Array Int Int))
@@ -309,14 +307,14 @@ For example:
 
 ```smt
 (declare-type Int ())
-(declare-const @purify_fun (-> (! (-> Int Int) :opaque) Int Int))
+(declare-parameterized-const @purify_fun ((f (-> Int Int) :opaque)) (-> Int Int))
 
 (declare-const f (-> Int Int))
 (declare-const a Int)
 (define d () (@purify_fun f a) :type Int)
 ```
 
-In this example, `@purify_fun` is declared as a function with one opaque argument, and ordinary integer argument, and returns an integer.
+In this example, `@purify_fun` is declared as a function with one opaque argument, an ordinary integer argument, and returns an integer.
 Intuitively, this definition is introducing a new function, indexed by a function, that is of type `(-> Int Int)`.
 After parsing, the term `(@purify_fun f a)` is a function application whose operator is `(@purify_fun f)` and has a single child `a`.
 
@@ -900,8 +898,8 @@ We say that a term is an `f`-list with children `t1 ... tn` if it is of the form
 
 ### List operators
 
-- `(eo::nil f)`
-  - If `f` is a right associative operator, return its nil terminator.
+- `(eo::nil f T)`
+  - If `f` is a right associative operator and `T` is a ground type, return its nil terminator. If `f` has a parametric nil terminator, return the terminator is specialized for `T` (see examples of parametric nil terminators later in this section).
 - `(eo::cons f t1 t2)`
   - If `t2` is an `f`-list, then this returns the term `(f t1 t2)`.
 - `(eo::list_len f t)`
@@ -937,8 +935,8 @@ The terms on both sides of the given evaluation are written in their form prior 
 (declare-const c Bool)
 (declare-const d Bool)
 
-(eo::nil or)                  == false
-(eo::nil a)                   == (eo::nil a)                ; since a is not an associative operator
+(eo::nil or Bool)                   == false
+(eo::nil a Bool)                    == (eo::nil a Bool)                ; since a is not an associative operator
 
 (eo::cons or a (or a b))            == (or a a b)
 (eo::cons or false (or a b))        == (or false a b)
@@ -1004,12 +1002,11 @@ The terms on both sides of the given evaluation are written in their form prior 
 (eo::list_meq or false false)               == true
 ```
 
-### Nil terminator with additional arguments
+### Parametric Nil terminators
 
 As we will introduce in [param-constants](#param-constants),
-`eo::nil` is overloaded to accept addition arguments beyond the operator.
-In particular, `(eo::nil or a b)` intuitively denotes the nil terminator
-for the term `or` applied to arguments `a,b`.
+`eo::nil` accepts a type argument in addition to the operator.
+For example, `(eo::nil bvor (BitVec 4))` denotes the nil terminator of `bvor` whose type is `(BitVec 4)`.
 
 ### Example: Type rule for BitVector concatenation
 
@@ -1079,7 +1076,7 @@ we declare bitvector-or (`bvor` in SMT-LIB) where its nil terminator is bitvecto
 
 ```smt
 (declare-type Int ())
-(declare-consts <numeral>Int)                ; numeral literals denote Int constants
+(declare-consts <numeral> Int)                ; numeral literals denote Int constants
 (declare-type BitVec (Int))
 (declare-consts <binary>
     (BitVec (eo::len eo::self)))              ; binary literals denote BitVec constants of their length
@@ -1100,68 +1097,77 @@ The parameter list of a parameterized constant may either be implicit or explici
 In this example, the argument `m` to `bvor` is implicit.
 Thus, it expects two bit-vectors of the same width and returns a bit-vector of that width.
 
+> __Note:__ Parameterized constants that have non-ground nil terminators are required to have type `(-> T T T)`.
+
 If a function `f` is given a nil terminator with free parameters, this impacts:
 
 - how applications of `f` are desugared, and
-- how list operations such as `eo::nil`, `eo::cons`, and `eo::list_concat` are computed for `f`.
+- how `eo::nil` is computed for `f`.
 
-For the former, say we apply `(f t1 ... tn)`, where `f` is right associative with nil terminator `nil`, where `nil` has free paramters `u1 ... um`.
-Similar to the procedure described in [assoc-nil](#assoc-nil), if `tn` is not marked with `:list`, we insert the nil terminator of `f` to the end of the argument list.
-To compute the parameters of the nil terminator, we first compute the type of `f` applied to arguments `t1 ... tn`.
-If successful, this is the type `T [v1 ... vm / u1 ... um]` for some terms `v1 ... vm` and the given return type `T` of `f`.
-If any of `v1 ... vm` is non-ground, or if the application fails to type check,
-the nil terminator is `(eo::nil f t1 ... tn)`.
-In other words, the computation of the nil terminator is deferred to this term (which itself may not evaluate).
-Otherwise, the nil terminator is `nil[ v1 ... vm / u1 ... um]`.
-Constructing `(f t1 ... tn)` then proceeds inductively via the same procedure described in [assoc-nil](#assoc-nil).
+For the former, say we apply `(f t1 ... tn)`, where `f` is right associative with nil terminator `nil` that is _not_ ground.
+Similar to the procedure described in [assoc-nil](#assoc-nil),
+if `tn` is not marked with `:list`, we insert a term corresponding to the nil terminator of `f` to the end of the argument list.
+However, since `nil` is not ground, we use the term `(eo::nil f (eo::typeof t1))` instead of `nil` itself.
+This term is a placeholder for the nil terminator of the appropriate type, as determined by the type of the term we are constructing.
+Note that we use the first term `t1` in the argument list, as operators with non-ground nil terminators are required to be of type `(-> T T T)`, meaning that a single argument suffices to determine its parameters.
+
+For the latter, to handle parameteric nil terminators,
+`eo::nil` optionally accepts two arguments (the function and the return type of the nil terminator).
+For each declared function `f` of type `(-> T T T)` with nil terminator `nil`,
+we assume there is a case of `eo::nil` that matches the pair `(f, T)` and whose specified return is (non-ground term) `nil`,
+where notice that the free parameters of `nil` are expected to be contained in the free parameters of `T`.
+For example, for `bvor`, a case of `eo::nil` would map
+`(eo::nil bvor (BitVec m))` to `(bvzero m)`, where `m` is bound based on the provided (concrete) bit-vector type.
+
 Examples of this are given in the following, assuming the declaration of `bvor` above.
 
 ```smt
 (declare-const p (-> Bool Bool))
 (define test ((x (BitVec 4)) (y (BitVec 4)) (n Int) (z (BitVec n)) (w (BitVec n)) (u (BitVec n) :list))
     ...
+    (bvor z w)        ; (bvor z (bvor w (eo::nil bvor (eo::typeof z))))
+    (bvor z u)        ; (bvor z u)
+    (bvor u z)        ; (eo::list_concat bvor u (bvor z (eo::nil bvor (eo::typeof u))))
     (bvor x y)        ; (bvor x (bvor y #b0000))
     (bvor x)          ; (bvor x #b0000)
-    (bvor z w)        ; (bvor z (bvor w (eo::nil bvor z w)))
-    (bvor z u)        ; (bvor z u)
-    (bvor u z)        ; (eo::list_concat bvor u (bvor z (eo::nil bvor u z)))
     ...
 )
 ```
 
 Above, notice that `x` and `y` have concrete bitwidths and `z,w,u` have the free parameter `n` as their bitwidth.
-In the first term, `(bvor x y)` is type checked to `(BitVec m)[4/m]`.
-Since `4` is ground, we compute the nil terminator `(bvzero 4)`, which evaluates to `#b0000`.
-This is then used as the nil terminator, since `y` is not marked with `:list`.
-The second example is similar.
 
-In the third, example, `(bvor z w)` is type checked to `(BitVec m)[n/m]`, where note that `n` is _not_ ground.
-Thus, we do not compute its nil terminator and instead construct the placeholder `(eo::nil bvor z w)`.
-This is then used as the nil terminator since `w` is not marked as `:list`.
-In the fourth example, `(bvor z u)` is also type checked to `(BitVec m)[n/m]`, but in this case the nil terminator is not used since `u` is marked as `:list`.
-In the fifth example, we use `eo::list_concat` as before since the list term `u` appears as the first argument.
+In the first example, since `w` is not marked as a list and `bvor` has a non-ground nil terminator,
+we insert the nil terminator `(eo::nil bvor (eo::typeof z))`,
+which notice does _not_ evaluate since `z` has non-ground type `(BitVec n)`.
+In the second example, `(bvor z u)` is also type checked to `(BitVec n)`,
+but in this case the nil terminator is not used since `u` is marked as `:list`.
+In the third example, we use `eo::list_concat` as before since the list term `u` appears as the first argument.
 Similar to the third example, a placeholder for the nil terminator is generated.
 
-Any list operation involving `f` first requires computing the nil terminator in question.
-This is done using the same procedure as described above.
-If we do not infer a ground nil terminator, then the term does not evaluate.
-Examples can be found at the end of this section.
+In the fourth example,
+we have that `y` is not marked as a list and thus
+we insert the nil terminator `(eo::nil bvor (eo::typeof x))`.
+In contrast to the previous examples, `x` has ground type `(BitVec 4)`
+and hence this simplifies to `(eo::nil bvor (BitVec 4))`,
+which furthermore evaluates to `#b0000`.
+The fifth example is similar, for the case of a singleton list.
 
 Consider again the term `(bvor z w)` from the previous example:
 
 ```smt
-(define test ((n Int) (z (BitVec n)) (w (BitVec n)))
-    (bvor z w)        ; (bvor z (bvor w (eo::nil bvor z w)))
+(define test ((n Int :implicit) (z (BitVec n)) (w (BitVec n)))
+  (bvor z w)        ; (bvor z (bvor w (eo::nil bvor (eo::typeof z))))
 )
 (declare-const a (BitVec 4))
 (declare-const b (BitVec 4))
-(define test4 () (test 4 a b))
+(define test4 () (test a b) :type (BitVec 4))
 ```
 
-The term in the body of `test` desugars to `(bvor z (bvor w (eo::nil bvor z w)))`, where
-`(eo::nil bvor z w)` does not evaluate since the nil terminator of `(bvor z w)` involves a non-ground parameter `n`.
-In this example, we instantiate this definition in the body of `test4`, where `n=4`, `z=a` and `w=b`.
-The term `(bvor a (bvor b (eo::nil bvor a b)))` then evaluates to `(bvor a (bvor b #b0000)`, since the nil terminator of `(bvor a b)` has ground parameter `n=4` and evaluates to `#b0000`.
+The term in the body of `test` desugars to `(bvor z (bvor w (eo::nil bvor (eo::typeof z))))`, where
+`(eo::nil bvor (eo::typeof z))` does not evaluate since `z` has non-ground type.
+In this example, we instantiate this definition in the body of `test4`, where `z=a` and `w=b`.
+The term `(bvor a (bvor b (eo::nil bvor (eo::typeof a))))` then evaluates to `(bvor a (bvor b #b0000)`,
+noting that `(eo::nil bvor (eo::typeof a))` evaluates to `#b0000`.
 
 The following are examples of list operations when using parameterized constant `bvor`:
 
@@ -1171,11 +1177,10 @@ The following are examples of list operations when using parameterized constant 
 (declare-const c (BitVec 5))
 
 (eo::nil bvor)                == (eo::nil bvor)     ; since we cannot infer the type of bvor
-(eo::nil bvor a)              == #b0000             ; since #b0000 is the nil terminator of (bvor a)
-(eo::nil bvor a c)            == (eo::nil bvor a c) ; since (bvor a c) is ill-typed
+(eo::nil bvor (BitVec 4))     == #b0000
+(eo::nil bvor (BitVec 5))     == #b00000
 
 (eo::cons bvor a #b0000)            == (bvor a)
-(eo::cons bvor c #b0000)            == (eo::cons bvor c #b0000) ; since (bvor c #b0000) is ill-typed
 (eo::cons bvor a (bvor a b))        == (bvor a a b)
 
 (eo::list_concat bvor #b0000 #b0000)       == #b0000

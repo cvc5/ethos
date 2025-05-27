@@ -58,7 +58,7 @@ void TypeChecker::setLiteralTypeRule(Kind k, const Expr& t)
   it->second = t;
 }
 
-ExprValue* TypeChecker::getOrSetLiteralTypeRule(Kind k)
+Expr TypeChecker::getOrSetLiteralTypeRule(Kind k, ExprValue* self)
 {
   std::map<Kind, Expr>::iterator it = d_literalTypeRules.find(k);
   if (it==d_literalTypeRules.end())
@@ -67,14 +67,26 @@ ExprValue* TypeChecker::getOrSetLiteralTypeRule(Kind k)
     EO_FATAL() << "TypeChecker::getOrSetLiteralTypeRule: cannot get type rule for kind "
                  << k;
   }
+  Expr tp;
   if (it->second.isNull())
   {
     // If no type rule, assign the type rule to the builtin type
-    Expr t = d_state.mkBuiltinType(k);
-    d_literalTypeRules[k] = t;
-    return t.getValue();
+    tp = d_state.mkBuiltinType(k);
+    d_literalTypeRules[k] = tp;
   }
-  return it->second.getValue();
+  else
+  {
+    tp = it->second;
+  }
+  // it may involve the "self" parameter
+  if (!tp.isGround())
+  {
+    Expr eself = self == nullptr ? d_state.mkAny() : Expr(self);
+    Ctx ctx;
+    ctx[d_state.mkSelf().getValue()] = eself.getValue();
+    return evaluate(tp.getValue(), ctx);
+  }
+  return tp;
 }
 
 Expr TypeChecker::getType(Expr& e, std::ostream* out)
@@ -152,7 +164,10 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_GT:
     case Kind::EVAL_LIST_LENGTH:
     case Kind::EVAL_LIST_REV:
-    case Kind::EVAL_LIST_SETOF: ret = (nargs == 2); break;
+    case Kind::EVAL_LIST_SETOF:
+    case Kind::EVAL_NIL:
+      ret = (nargs==2);
+      break;
     case Kind::EVAL_ADD:
     case Kind::EVAL_MUL:
     case Kind::EVAL_AND:
@@ -184,9 +199,6 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_IS_VAR:
     case Kind::EVAL_DT_CONSTRUCTORS:
     case Kind::EVAL_DT_SELECTORS: ret = (nargs == 1); break;
-    case Kind::EVAL_NIL:
-      ret = (nargs>=1);
-      break;
     case Kind::EVAL_REQUIRES:
     case Kind::EVAL_IF_THEN_ELSE:
     case Kind::EVAL_CONS:
@@ -243,10 +255,10 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       return d_state.mkFunctionType(args, ret);
     }
     case Kind::TYPE:
-    case Kind::ABSTRACT_TYPE:
     case Kind::BOOL_TYPE:
     case Kind::FUNCTION_TYPE:
-    case Kind::PROGRAM_TYPE: return d_state.mkType();
+    case Kind::PROGRAM_TYPE:
+    case Kind::ANY: return d_state.mkType();
     case Kind::PROOF_TYPE:
     {
       ExprValue* ctype = d_state.lookupType(e->d_children[0]);
@@ -265,13 +277,11 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       // its type is the second child
       return Expr(e->d_children[1]);
     case Kind::QUOTE_TYPE:
-    case Kind::OPAQUE_TYPE:
-    case Kind::NULL_TYPE:
     case Kind::TUPLE:
       // These things are essentially not typed.
       // We require the first 3 to be an abstract type, not type,
       // to prevent them from being used as (return) types of terms.
-      return d_state.mkAbstractType();
+      return d_state.mkAny();
     case Kind::BOOLEAN:
       // note that Bool is builtin
       return d_state.mkBoolType();
@@ -283,15 +293,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
     case Kind::STRING:
     {
       // use the literal type rule
-      ExprValue* ret = getOrSetLiteralTypeRule(k);
-      // it may involve the "self" parameter
-      if (!ret->isGround())
-      {
-        Ctx ctx;
-        ctx[d_state.mkSelf().getValue()] = e;
-        return evaluate(ret, ctx);
-      }
-      return Expr(ret);
+      return getOrSetLiteralTypeRule(k, e);
     }
       break;
     case Kind::AS:
@@ -321,7 +323,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
         {
           ctypes.push_back(d_state.lookupType(c));
         }
-        return Expr(getLiteralOpType(k, children, ctypes, out));
+        return getLiteralOpType(k, children, ctypes, out);
       }
       break;
   }
@@ -357,7 +359,8 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     // non-function at head
     if (out)
     {
-      (*out) << "Non-function " << Expr(hd) << " as head of APPLY";
+      (*out) << "Non-function " << Expr(hd) << " as head of APPLY" << std::endl;
+      (*out) << "Its type is " << Expr(hdType);
     }
     return d_null;
   }
@@ -447,6 +450,7 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
       if (out)
       {
         ExprValue* hdto = hdtypes[i];
+        (*out) << "Checking application of " << Expr(hd) << std::endl;
         if (hdtypes[i]->getKind() == Kind::QUOTE_TYPE)
         {
           (*out) << "Unexpected child #" << i << std::endl;
@@ -558,7 +562,8 @@ bool TypeChecker::match(ExprValue* a,
         // matching is matched against the annotated type. This has the effect
         // that free parameters in the type of parameters are also bound, if the
         // parameter is annotated.
-        if (curr.first->getKind() == Kind::ANNOT_PARAM)
+        Kind ck1 = curr.first->getKind();
+        if (ck1 == Kind::ANNOT_PARAM)
         {
           stack.emplace_back(curr.first->d_children[0], curr.second);
           // independently check its type
@@ -1268,8 +1273,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       case Kind::EVAL_IS_STR:kk = Kind::STRING;break;
       case Kind::EVAL_IS_BOOL:kk = Kind::BOOLEAN;break;
       case Kind::EVAL_IS_VAR:kk = Kind::VARIABLE;break;
-      default:
-        return d_null;
+      default: Assert(false); break;
       }
       Literal lb(args[0]->getKind()==kk);
       return Expr(d_state.mkLiteralInternal(lb));
@@ -1289,7 +1293,6 @@ Expr TypeChecker::evaluateLiteralOpInternal(
           return et;
         }
       }
-      return d_null;
     }
     break;
     case Kind::EVAL_NAME_OF:
@@ -1450,11 +1453,22 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   // infer the nil expression, which depends on the type of args[1]
   std::vector<Expr> eargs;
   eargs.emplace_back(args[0]);
-  if (args.size()>1)
+  Expr nilExpr;
+  if (k==Kind::EVAL_NIL)
+  {
+    // Special case: to handle (eo::nil x T), we construct
+    // a dummy term of type T to be consistent with other
+    // lookups for nil terminators.
+    Expr tmpType(args[1]);
+    Expr tmp = d_state.mkSymbol(Kind::CONST, "tmp", tmpType);
+    eargs.emplace_back(tmp);
+    return computeConstructorTermInternal(ac, eargs);
+  }
+  else if (args.size()>1)
   {
     eargs.emplace_back(args[1]);
+    nilExpr = computeConstructorTermInternal(ac, eargs);
   }
-  Expr nilExpr = computeConstructorTermInternal(ac, eargs);
   if (nilExpr.isNull())
   {
     Trace("type_checker") << "...failed to get nil" << std::endl;
@@ -1465,11 +1479,6 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   std::vector<ExprValue*> hargs;
   switch (k)
   {
-    case Kind::EVAL_NIL:
-    {
-      return nilExpr;
-    }
-    break;
     case Kind::EVAL_CONS:
     case Kind::EVAL_LIST_CONCAT:
     {
@@ -1677,53 +1686,51 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   return d_null;
 }
 
-ExprValue* TypeChecker::getLiteralOpType(Kind k,
-                                         std::vector<ExprValue*>& children,
-                                         std::vector<ExprValue*>& childTypes,
-                                         std::ostream* out)
+Expr TypeChecker::getLiteralOpType(Kind k,
+                                   std::vector<ExprValue*>& children,
+                                   std::vector<ExprValue*>& childTypes,
+                                   std::ostream* out)
 {
   if (!checkArity(k, childTypes.size(), out))
   {
-    return d_null.getValue();
+    return d_null;
   }
   // NOTE: applications of most of these operators should only be in patterns,
   // where type checking is not strict.
   switch (k)
   {
     case Kind::EVAL_TYPE_OF:
-      return d_state.mkType().getValue();
+      return d_state.mkType();
     case Kind::EVAL_VAR:
+    case Kind::EVAL_NIL:
       // its type is the second argument
-      return children[1];
+      return Expr(children[1]);
     case Kind::EVAL_ADD:
     case Kind::EVAL_MUL:
       // NOTE: mixed arith
-      return childTypes[0];
-    case Kind::EVAL_NIL:
-      // type is not computable here, since it is the return type of function
-      // applications of the argument. just use abstract.
-      return d_state.mkAbstractType().getValue();
+      return Expr(childTypes[0]);
     case Kind::EVAL_NEG:
     case Kind::EVAL_AND:
     case Kind::EVAL_OR:
     case Kind::EVAL_XOR:
     case Kind::EVAL_NOT:
-      return childTypes[0];
+      return Expr(childTypes[0]);
     case Kind::EVAL_IF_THEN_ELSE:
     case Kind::EVAL_CONS:
-      return childTypes[1];
+      return Expr(childTypes[1]);
     case Kind::EVAL_REQUIRES:
-      return childTypes[2];
+      return Expr(childTypes[2]);
     case Kind::EVAL_LIST_CONCAT:
     case Kind::EVAL_LIST_NTH:
     case Kind::EVAL_LIST_ERASE:
     case Kind::EVAL_LIST_ERASE_ALL:
     case Kind::EVAL_LIST_REV:
-    case Kind::EVAL_LIST_SETOF: return childTypes[1];
+    case Kind::EVAL_LIST_SETOF:
+      return Expr(childTypes[1]);
     case Kind::EVAL_CONCAT:
     case Kind::EVAL_EXTRACT:
       // type is the first child
-      return childTypes[0];
+      return Expr(childTypes[0]);
     case Kind::EVAL_IS_EQ:
     case Kind::EVAL_EQ:
     case Kind::EVAL_IS_NEG:
@@ -1736,7 +1743,8 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_IS_VAR:
     case Kind::EVAL_GT:
     case Kind::EVAL_LIST_MINCLUDE:
-    case Kind::EVAL_LIST_MEQ: return d_state.mkBoolType().getValue();
+    case Kind::EVAL_LIST_MEQ:
+      return d_state.mkBoolType();
     case Kind::EVAL_HASH:
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_INT_MOD:
@@ -1755,132 +1763,94 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_TO_BIN:
       return getOrSetLiteralTypeRule(Kind::BINARY);
     case Kind::EVAL_DT_CONSTRUCTORS:
-    case Kind::EVAL_DT_SELECTORS: return d_state.mkListType().getValue();
+    case Kind::EVAL_DT_SELECTORS: return d_state.mkListType();
     default:break;
   }
   if (out)
   {
     (*out) << "Unknown type for literal operator " << k;
   }
-  return nullptr;
+  return d_null;
 }
 
-Expr TypeChecker::computeConstructorTermInternal(AppInfo* ai, 
-                                                 const std::vector<Expr>& children)
+Expr TypeChecker::computeConstructorTermInternal(
+    AppInfo* ai, const std::vector<Expr>& children)
 {
-  Expr hd;
-  Expr nil;
-  computedParameterizedInternal(ai, children, hd, nil);
-  return nil;
-}
-
-bool TypeChecker::computedParameterizedInternal(AppInfo* ai,
-                                                const std::vector<Expr>& children,
-                                                Expr& hd,
-                                                Expr& nil)
-{
-  hd = children[0];
-  nil = d_null;
   if (ai==nullptr)
   {
-    return true;
+    return d_null;
   }
   // lookup the base operator if necessary
   Expr ct = ai->d_attrConsTerm;
   if (ct.isNull() || ct.getKind()!=Kind::PARAMETERIZED)
   {
     // if not parameterized, just return self
-    nil = ct;
-    return true;
+    return ct;
   }
+  const Expr& hd = children[0];
   Trace("type_checker") << "Determine constructor term for " << hd << std::endl;
   // if explicit parameters, then evaluate the constructor term
-  if (hd.getKind()!=Kind::PARAMETERIZED)
+  if (children.size() == 1)
   {
-    if (children.size()==1)
+    // if not in an application, we fail
+    Warning() << "Failed to determine parameters for " << hd << std::endl;
+    return d_null;
+  }
+  // otherwise, we must infer the parameters
+  Trace("type_checker") << "Infer params for " << hd << " @ " << children[1]
+                        << std::endl;
+  if (!isNAryAttr(ai->d_attrCons))
+  {
+    Warning() << "Unknown category for parameterized operator " << hd
+              << std::endl;
+    return d_null;
+  }
+  std::vector<ExprValue*> app;
+  app.push_back(hd.getValue());
+  app.push_back(children[1].getValue());
+  // ensure children are type checked
+  for (ExprValue* e : app)
+  {
+    Expr expr(e);
+    getType(expr);
+    ExprValue* t = d_state.lookupType(e);
+    if (t == nullptr)
     {
-      // if not in an application, we fail
-      Warning() << "Failed to determine parameters for " << hd << std::endl;
-      return false;
-    }
-    else
-    {
-      // otherwise, we must infer the parameters
-      Trace("type_checker") << "Infer params for " << hd << " @ " << children[1] << std::endl;
-      if (isNAryAttr(ai->d_attrCons))
+      // only warn if ground
+      if (expr.isGround())
       {
-        std::vector<ExprValue*> app;
-        app.push_back(hd.getValue());
-        app.push_back(children[1].getValue());
-        // ensure children are type checked
-        for (ExprValue* e : app)
-        {
-          Expr expr(e);
-          getType(expr);
-          ExprValue* t = d_state.lookupType(e);
-          if (t==nullptr)
-          {
-            // only warn if ground
-            if (expr.isGround())
-            {
-              Warning() << "Type inference failed for " << hd << " applied to " << children[1] << ", failed to type check " << expr << std::endl;
-            }
-            return false;
-          }
-          Trace("type_checker_debug") << "Type for " << expr << " is " << Expr(t) << std::endl;
-        }
-        Ctx tctx;
-        getTypeAppInternal(app, tctx);
-        Trace("type_checker_debug") << "Context was " << tctx << std::endl;
-        std::vector<Expr> args;
-        for (size_t i=0, nparams = ct[0].getNumChildren(); i<nparams; i++)
-        {
-          Expr cv(tctx[ct[0][i].getValue()]);
-          if (cv.isNull())
-          {
-            Warning() << "Failed to find context for " << ct[0][i] << " when applying " << hd << " @ " << children[1] << std::endl;
-            return false;
-          }
-          if (!cv.isGround())
-          {
-            // If the parameter is non-ground, we also wait to construct;
-            // if the nil terminator is used, it will be replaced by a
-            // placeholder involving eo::nil.
-            return false;
-          }
-          args.emplace_back(cv);
-        }
-        // the head is now disambiguated
-        hd = d_state.mkParameterized(hd.getValue(), args);
-        Trace("type_checker_debug") << "Infered parameterized op " << hd << std::endl;
+        Warning() << "Type inference failed for " << hd << " applied to "
+                  << children[1] << ", failed to type check " << expr
+                  << std::endl;
       }
-      else
-      {
-        Warning() << "Unknown category for parameterized operator " << hd << std::endl;
-        return false;
-      }
+      return d_null;
     }
+    Trace("type_checker_debug")
+        << "Type for " << expr << " is " << Expr(t) << std::endl;
   }
-  Assert (hd.getKind()==Kind::PARAMETERIZED);
-  Ctx ctx;
-  if (hd[0].getNumChildren()==ct[0].getNumChildren())
+  Ctx tctx;
+  getTypeAppInternal(app, tctx);
+  Trace("type_checker_debug") << "Context was " << tctx << std::endl;
+  for (size_t i = 0, nparams = ct[0].getNumChildren(); i < nparams; i++)
   {
-    for (size_t i=0, nparams = hd[0].getNumChildren(); i<nparams; i++)
+    ExprValue* cv = tctx[ct[0][i].getValue()];
+    if (cv->isNull())
     {
-      ctx[ct[0][i].getValue()] = hd[0][i].getValue();
+      Warning() << "Failed to find context for " << ct[0][i]
+                << " when applying " << hd << " @ " << children[1] << std::endl;
+      return d_null;
+    }
+    if (!cv->isGround())
+    {
+      // If the parameter is non-ground, we also wait to construct;
+      // if the nil terminator is used, it will be replaced by a
+      // placeholder involving eo::nil.
+      return d_null;
     }
   }
-  else
-  {
-    // error
-    Warning() << "Unexpected number of parameters for " << hd[1]
-              << ", expected " << ct.getNumChildren() << " parameters, got "
-              << hd.getNumChildren() << std::endl;
-    return false;
-  }
-  Trace("type_checker") << "Context for constructor term: " << ctx << std::endl;
-  nil = evaluate(ct[1].getValue(), ctx);
-  return true;
+  Trace("type_checker") << "Context for constructor term: " << tctx
+                        << std::endl;
+  return evaluate(ct[1].getValue(), tctx);
 }
 
 }  // namespace ethos
