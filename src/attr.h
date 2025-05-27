@@ -41,6 +41,7 @@ enum class Attr
 
   // indicate how to construct proof rule steps
   PREMISE_LIST,
+  CONC_EXPLICIT, // note this may also have a cons for a premise list
 
   // indicate how to construct apps of function symbols
   RIGHT_ASSOC,

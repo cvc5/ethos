@@ -402,38 +402,39 @@ bool CmdParser::parseNextCommand()
         premises.push_back(pat);
         keyword = d_eparser.parseKeyword();
       }
+      // whether the conclusion was given via conclusion-explicit
+      bool concExplicit = false;
       // parse args, optionally
       if (keyword=="args")
       {
         args = d_eparser.parseExprList();
         keyword = d_eparser.parseKeyword();
       }
+      std::vector<Expr> argTypes;
       // parse requirements, optionally
       if (keyword=="requires")
       {
-        // we support eo::conclusion in requirements
-        d_state.pushScope();
-        d_state.bind("eo::conclusion", d_state.mkConclusion());
         // parse the expression pair list
         reqs = d_eparser.parseExprPairList();
         keyword = d_eparser.parseKeyword();
-        d_state.popScope();
       }
       // parse conclusion
       if (keyword=="conclusion")
       {
         conc = d_eparser.parseExpr();
       }
-      else if (keyword=="conclusion-given")
+      else if (keyword=="conclusion-explicit")
       {
         // :conclusion-given is equivalent to :conclusion eo::conclusion
-        conc = d_state.mkConclusion();
+        conc = d_eparser.parseExpr();
+        concExplicit = true;
+        Expr qct = d_state.mkQuoteType(conc);
+        argTypes.push_back(qct);
       }
       else
       {
         d_lex.parseError("Expected conclusion in declare-rule");
       }
-      std::vector<Expr> argTypes;
       for (Expr& e : args)
       {
         Expr et = d_state.mkQuoteType(e);
@@ -469,7 +470,12 @@ bool CmdParser::parseNextCommand()
       Expr rule = d_state.mkSymbol(Kind::PROOF_RULE, name, ret);
       d_eparser.typeCheck(rule);
       d_eparser.bind(name, rule);
-      if (!plCons.isNull())
+      if (concExplicit)
+      {
+        // we also carry plCons
+        d_state.markConstructorKind(rule, Attr::CONC_EXPLICIT, plCons);
+      }
+      else if (!plCons.isNull())
       {
         d_state.markConstructorKind(rule, Attr::PREMISE_LIST, plCons);
       }
@@ -839,6 +845,13 @@ bool CmdParser::parseNextCommand()
     case Token::STEP_POP:
     {
       bool isPop = (tok==Token::STEP_POP);
+      if (isPop)
+      {
+        if (d_state.getAssumptionLevel()==0)
+        {
+          d_lex.parseError("Cannot pop at level zero");
+        }
+      }
       std::string name = d_eparser.parseSymbol();
       Trace("step") << "Check step " << name << std::endl;
       Expr proven;
@@ -869,12 +882,7 @@ bool CmdParser::parseNextCommand()
       std::vector<Expr> premises;
       if (keyword=="premises")
       {
-        std::vector<Expr> given = d_eparser.parseExprList();
-        // maybe combine premises
-        if (!d_state.getActualPremises(rule.getValue(), given, premises))
-        {
-          d_lex.parseError("Failed to get premises");
-        }
+        premises = d_eparser.parseExprList();
         if (d_lex.peekToken()==Token::KEYWORD)
         {
           keyword = d_eparser.parseKeyword();
@@ -887,24 +895,9 @@ bool CmdParser::parseNextCommand()
         args = d_eparser.parseExprList();
       }
       std::vector<Expr> children;
-      children.push_back(rule);
-      children.insert(children.end(), args.begin(), args.end());
-      // premises after arguments
-      children.insert(children.end(), premises.begin(), premises.end());
-      // the assumption, if pop
-      if (isPop)
+      if (!d_state.getProofRuleArguments(children, rule, proven, premises, args, isPop))
       {
-        if (d_state.getAssumptionLevel()==0)
-        {
-          d_lex.parseError("Cannot pop at level zero");
-        }
-        std::vector<Expr> as = d_state.getCurrentAssumptions();
-        // The size of assumptions should be one, but may contain more
-        // assumptions if e.g. we encountered assume in a nested assumption
-        // scope. Nevertheless, as[0] is always the first assumption in
-        // the assume-push.
-        // push the assumption
-        children.push_back(as[0]);
+        d_lex.parseError("Failed to get arguments for proof rule");
       }
       // compute the type of applying the rule
       Expr concType;
@@ -916,18 +909,6 @@ bool CmdParser::parseNextCommand()
       else
       {
         concType = d_eparser.typeCheck(rule);
-      }
-      // if we specified a conclusion, we will possibly evaluate the type
-      // under the substitution `eo::conclusion -> proven`. We only do this
-      // if we did not already match what was proven.
-      if (!proven.isNull())
-      {
-        if (concType.getKind()!=Kind::PROOF_TYPE || concType[0]!=proven)
-        {
-          Ctx cctx;
-          cctx[d_state.mkConclusion().getValue()] = proven.getValue();
-          concType = d_state.getTypeChecker().evaluate(concType.getValue(), cctx);
-        }
       }
       // ensure proof type, note this is where "proof checking" happens.
       if (concType.getKind() != Kind::PROOF_TYPE)

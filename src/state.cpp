@@ -181,10 +181,6 @@ State::State(Options& opts, Stats& stats)
   // self is a distinguished parameter
   d_self = Expr(mkSymbolInternal(Kind::PARAM, "eo::self", d_any));
   bind("eo::self", d_self);
-  d_conclusion =
-      Expr(mkSymbolInternal(Kind::PARAM, "eo::conclusion", d_boolType));
-  // eo::conclusion is not globally bound, since it can only appear
-  // in :requires.
 }
 
 State::~State() {}
@@ -614,8 +610,6 @@ Expr State::mkSymbol(Kind k, const std::string& name, const Expr& type)
 }
 
 Expr State::mkSelf() const { return d_self; }
-
-Expr State::mkConclusion() const { return d_conclusion; }
 
 Expr State::mkPair(const Expr& t1, const Expr& t2)
 {
@@ -1290,19 +1284,34 @@ Expr State::getProofRule(const std::string& name) const
   return d_null;
 }
 
-bool State::getActualPremises(const ExprValue* rule,
-                              std::vector<Expr>& given,
-                              std::vector<Expr>& actual)
+bool State::getProofRuleArguments(std::vector<Expr>& children,
+                             Expr& rule,
+                             Expr& proven,
+                             std::vector<Expr>& premises,
+                             std::vector<Expr>& args,
+                             bool isPop)
 {
-  AppInfo* ainfo = getAppInfo(rule);
-  if (ainfo!=nullptr && ainfo->d_attrCons==Attr::PREMISE_LIST)
+  children.emplace_back(rule.getValue());
+  // arguments first
+  children.insert(children.end(), args.begin(), args.end());
+  AppInfo* ainfo = getAppInfo(rule.getValue());
+  if (ainfo!=nullptr)
   {
+    if (ainfo->d_attrCons==Attr::CONC_EXPLICIT)
+    {
+      if (proven.isNull())
+      {
+        // requires a conclusion to be provided
+        return false;
+      }
+      children.push_back(proven);
+    }
     Expr plCons = ainfo->d_attrConsTerm;
     if (!plCons.isNull())
     {
       std::vector<Expr> achildren;
       achildren.push_back(plCons);
-      for (Expr& e : given)
+      for (Expr& e : premises)
       {
         // should be proof types
         Expr eproven = d_tc.getType(e);
@@ -1335,11 +1344,25 @@ bool State::getActualPremises(const ExprValue* rule,
       // TODO: collect operator???
       // dummy, const term of the given proof type
       Expr n = mkSymbol(Kind::CONST, "tmp", pfap);
-      actual.push_back(n);
-      return true;
+      children.push_back(n);
     }
   }
-  actual = given;
+  else
+  {
+    // premises after arguments
+    children.insert(children.end(), premises.begin(), premises.end());
+  }
+  // the assumption, if pop
+  if (isPop)
+  {
+    std::vector<Expr> as = getCurrentAssumptions();
+    // The size of assumptions should be one, but may contain more
+    // assumptions if e.g. we encountered assume in a nested assumption
+    // scope. Nevertheless, as[0] is always the first assumption in
+    // the assume-push.
+    // push the assumption
+    children.push_back(as[0]);
+  }
   return true;
 }
 

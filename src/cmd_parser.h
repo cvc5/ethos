@@ -36,6 +36,14 @@ class CmdParser
  protected:
   /** Next command token */
   Token nextCommandToken();
+  /** Get the proof rule arguments for an application of a proof rule.
+   */
+  void getProofRuleArguments(std::vector<Expr>& children,
+                             Expr& rule,
+                             Expr& proven,
+                             const std::vector<Expr>& premises,
+                             const std::vector<Expr>& args,
+                             bool isPop);
   /** The lexer */
   Lexer& d_lex;
   /** The state */

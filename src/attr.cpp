@@ -22,6 +22,7 @@ std::ostream& operator<<(std::ostream& o, Attr a)
     case Attr::LIST: o << "LIST"; break;
     case Attr::REQUIRES: o << "REQUIRES"; break;
     case Attr::PREMISE_LIST: o << "PREMISE_LIST"; break;
+    case Attr::CONC_EXPLICIT: o << "CONC_EXPLICIT"; break;
     case Attr::PROGRAM: o << "PROGRAM"; break;
     case Attr::ORACLE: o << "ORACLE"; break;
     case Attr::BINDER: o << "BINDER"; break;

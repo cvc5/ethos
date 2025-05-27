@@ -122,8 +122,6 @@ class State
   Expr mkRequires(const Expr& a1, const Expr& a2, const Expr& ret);
   /** */
   Expr mkSelf() const;
-  /** Make the conclusion variable */
-  Expr mkConclusion() const;
   /** Make pair */
   Expr mkPair(const Expr& t1, const Expr& t2);
   /** */
@@ -169,9 +167,12 @@ class State
   /** Get the proof rule with the given name or nullptr if it does not exist */
   Expr getProofRule(const std::string& name) const;
   /** Get actual premises */
-  bool getActualPremises(const ExprValue* ev,
-                         std::vector<Expr>& given,
-                         std::vector<Expr>& actual);
+  bool getProofRuleArguments(std::vector<Expr>& children,
+                             Expr& rule,
+                             Expr& proven,
+                             std::vector<Expr>& premises,
+                             std::vector<Expr>& args,
+                             bool isPop);
   /** Get the program */
   Expr getProgram(const ExprValue* ev);
   /** Get the oracle command */
@@ -217,7 +218,6 @@ class State
   Expr d_false;
   Expr d_self;
   Expr d_any;
-  Expr d_conclusion;
   Expr d_fail;
   Expr d_listType;
   Expr d_listNil;
