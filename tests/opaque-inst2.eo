@@ -13,12 +13,9 @@
 (declare-const select (-> (Array Int Int) Int Int))
 
 
-(declare-parameterized-const @array_deq_diff ((T Type :implicit) (U Type :implicit))
-  (-> 
-    (! (Array T U) :opaque)
-    (! (Array T U) :opaque)
-    T
-  )
+(declare-parameterized-const @array_deq_diff
+  ((T Type :implicit) (U Type :implicit) (a (Array T U) :opaque) (b (Array T U) :opaque))
+  T
 )
 
 
