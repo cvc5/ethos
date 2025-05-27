@@ -1062,7 +1062,7 @@ If a function `f` is given a nil terminator with free parameters, this impacts:
 - how applications of `f` are desugared, and
 - how `eo::nil` is computed for `f`.
 
-For the former, say we apply `(f t1 ... tn)`, where `f` is right associative with nil terminator `nil` that is _not_ ground.
+For the former, say we apply `(f t1 ... tn)`, where `f` is right associative with nil terminator `nil` whose type is _not_ ground.
 Similar to the procedure described in [assoc-nil](#assoc-nil),
 if `tn` is not marked with `:list`, we insert a term corresponding to the nil terminator of `f` to the end of the argument list.
 However, since `nil` is not ground, we use the term `(eo::nil f (eo::typeof t1))` instead of `nil` itself.
