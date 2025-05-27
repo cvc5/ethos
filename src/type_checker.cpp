@@ -1705,7 +1705,7 @@ Expr TypeChecker::computeConstructorTermInternal(
   for (size_t i = 0, nparams = ct[0].getNumChildren(); i < nparams; i++)
   {
     ExprValue* cv = tctx[ct[0][i].getValue()];
-    if (cv->isNull())
+    if (cv==nullptr)
     {
       Warning() << "Failed to find context for " << ct[0][i]
                 << " when applying " << hd << " @ " << children[1] << std::endl;
