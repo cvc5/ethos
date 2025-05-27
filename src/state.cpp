@@ -1307,9 +1307,9 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
       }
       children.push_back(proven);
     }
-    if (isPop)
+    if (isPop==(a == Attr::RULE_ASSUMPTION || a == Attr::RULE_ASSUMPTION_CE))
     {
-      if (a == Attr::RULE_ASSUMPTION || a == Attr::RULE_ASSUMPTION_CE)
+      if (isPop)
       {
         std::vector<Expr> as = getCurrentAssumptions();
         // The size of assumptions should be one, but may contain more
@@ -1319,11 +1319,12 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
         // push the assumption
         children.push_back(as[0]);
       }
-      else
-      {
-        // can only use in step-pop.
-        return false;
-      }
+    }
+    else
+    {
+      // using step for a rule requiring an assumption, or step-pop for a rule
+      // not requiring an assumption.
+      return false;
     }
     Expr plCons = ainfo->d_attrConsTerm;
     if (!plCons.isNull())
