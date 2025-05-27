@@ -486,6 +486,7 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
 
 bool isEvaluationApp(const ExprValue* e)
 {
+#ifdef TYPE_CHECK_PROGRAMS
   Kind k = e->getKind();
   if (isLiteralOp(k) || k==Kind::ANY)
   {
@@ -496,6 +497,8 @@ bool isEvaluationApp(const ExprValue* e)
     Kind hk = (*e)[0]->getKind();
     return (hk==Kind::PROGRAM_CONST || hk==Kind::ORACLE);
   }
+  return false;
+#endif
   return false;
 }
 
@@ -529,8 +532,16 @@ bool TypeChecker::match(ExprValue* a,
         // holds trivially
         continue;
       }
+#ifdef TYPE_CHECK_PROGRAMS
+      // otherwise fails if not any
+      if (!curr.second->isEvaluatable())
+      {
+        return false;
+      }
+#else
       // otherwise fails
       return false;
+#endif
     }
     // note that if curr.first == curr.second, and both are non-ground,
     // then we still require recursing, which will bind identity substitutions
@@ -546,26 +557,46 @@ bool TypeChecker::match(ExprValue* a,
     {
       // if the two subterms are not equal and the first one is a bound
       // variable...
-      if (curr.first->getKind() == Kind::PARAM)
+      Kind patk = curr.first->getKind();
+      if (patk == Kind::PARAM)
       {
         // and we have not seen this variable before...
         ctxIt = ctx.find(curr.first);
         if (ctxIt == ctx.cend())
         {
-          // note that we do not ensure the types match here
-          // add the two subterms to `sub`
-          ctx.emplace(curr.first, curr.second);
+          if (isEvaluationApp(curr.second))
+          {
+            ctx.emplace(curr.first, d_state.mkAny().getValue());
+          }
+          else
+          {
+            // note that we do not ensure the types match here
+            // add the two subterms to `sub`
+            ctx.emplace(curr.first, curr.second);
+          }
         }
         else if (ctxIt->second!=curr.second)
         {
-          // if we saw this variable before, make sure that (now and before) it
-          // maps to the same subterm
-          return false;
+          if (ctxIt->second->getKind()==Kind::ANY)
+          {
+            // any overwrites concrete assignment
+            ctxIt->second = curr.second;
+          }
+          else if (isEvaluationApp(curr.second))
+          {
+            // skip
+          }
+          else
+          {
+            // if we saw this variable before, make sure that (now and before) it
+            // maps to the same subterm
+            return false;
+          }
         }
       }
-      else
+      else if (patk != Kind::ANY && !isEvaluationApp(curr.second))
       {
-        // the two subterms are not equal
+        // the two subterms are not equal, "any" skips
         return false;
       }
     }
@@ -592,6 +623,10 @@ bool TypeChecker::match(ExprValue* a,
             return false;
           }
           stack.emplace_back(curr.first->d_children[1], t);
+        }       
+        else if (isEvaluationApp(curr.first) || isEvaluationApp(curr.second))
+        {
+          // skip
         }
         else
         {
