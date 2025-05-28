@@ -106,6 +106,68 @@ class TypeChecker
   Expr getOrSetLiteralTypeRule(Kind k, ExprValue* self = nullptr);
   /** Evaluate literal op */
   Expr evaluateLiteralOpInternal(Kind k, const std::vector<ExprValue*>& args);
+  /** Evaluate list rev internal
+   * @param op The n-ary operator.
+   * @param nil The nil terminator for the operator.
+   * @param isLeft Whether we are :left-assoc-nil (or :right-assoc-nil).
+   * @param args The arguments to the application.
+   * @return The result of the evaluation.
+   */
+  Expr evaluateListRevInternal(ExprValue* op,
+                               ExprValue* nil,
+                               bool isLeft,
+                               const std::vector<ExprValue*>& args);
+  /** Evaluate list erase internal
+   * @param k The kind of application (ERASE or ERASE_ALL).
+   * @param op The n-ary operator.
+   * @param nil The nil terminator for the operator.
+   * @param isLeft Whether we are :left-assoc-nil (or :right-assoc-nil).
+   * @param args The arguments to the application.
+   * @return The result of the evaluation.
+   */
+  Expr evaluateListEraseInternal(Kind k,
+                                 ExprValue* op,
+                                 ExprValue* nil,
+                                 bool isLeft,
+                                 const std::vector<ExprValue*>& args);
+  /** Evaluate list setof internal
+   * @param op The n-ary operator.
+   * @param nil The nil terminator for the operator.
+   * @param isLeft Whether we are :left-assoc-nil (or :right-assoc-nil).
+   * @param args The arguments to the application.
+   * @return The result of the evaluation.
+   */
+  Expr evaluateListSetOfInternal(ExprValue* op,
+                                 ExprValue* nil,
+                                 bool isLeft,
+                                 const std::vector<ExprValue*>& args);
+  /** Evaluate list multiset predicate internal
+   * @param k The kind of application (MINCLUDE or MEQ).
+   * @param op The n-ary operator.
+   * @param nil The nil terminator for the operator.
+   * @param isLeft Whether we are :left-assoc-nil (or :right-assoc-nil).
+   * @param args The arguments to the application.
+   * @return The result of the evaluation.
+   */
+  Expr evaluateListMPredInternal(Kind k,
+                                 ExprValue* op,
+                                 ExprValue* nil,
+                                 bool isLeft,
+                                 const std::vector<ExprValue*>& args);
+  /**
+   * Helper for above, starting with ret, append children in hargs to ret,
+   * using n-ary operator op, which is :right-assoc-nil or :left-assoc-nil
+   * if isLeft is true.
+   * @param op The n-ary operator.
+   * @param ret The current return value.
+   * @param hargs The arguments to prepend to ret.
+   * @param isLeft Whether we are :left-assoc-nil (or :right-assoc-nil).
+   * @return The result of prepending the children.
+   */
+  Expr prependNAryChildren(ExprValue* op,
+                           ExprValue* ret,
+                           const std::vector<ExprValue*>& hargs,
+                           bool isLeft);
   /** Type check */
   Expr getLiteralOpType(Kind k,
                         std::vector<ExprValue*>& children,
