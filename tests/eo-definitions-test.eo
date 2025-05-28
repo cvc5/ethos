@@ -1,0 +1,13 @@
+
+(declare-type Int ())
+(declare-consts <numeral> Int)
+
+
+; Note that $eo_nil is dynamically modified based on the declared constants,
+; as described below. This means we cannot provide a static definition of it
+; in this signature, and this is not equivalent to the builtin eo::nil.
+(declare-parameterized-const $eo_nil
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
+   (f (-> T U V)) (W Type)) W)
+
+(include "eo-definitions.eo")

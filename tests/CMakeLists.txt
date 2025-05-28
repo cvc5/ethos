@@ -150,9 +150,11 @@ set(ethos_test_file_list
     array-ext-implicit-type-infer.eo
     define-scope-attr.eo
     is-eq-tests.eo
+    list-ops-new.eo
     double-list.eo
     list-param-immediate.eo
-    eo-definitions.eo
+    eo-definitions-test.eo
+    nground-nil-ex.eo
 )
 
 if(ENABLE_ORACLES)
