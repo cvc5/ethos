@@ -229,9 +229,8 @@
 ;;; $eo_list_minclude
 
 (program $eo_list_minclude_rec
-  ((T Type) (U Type) (V Type) (W Type) (X Type)
-   (f (-> T U V)) (x T) (y U) (z X) (nil W))
-  (W X) Bool
+  ((T Type) (x T) (y eo::List) (z eo::List))
+  (eo::List eo::List) Bool
   (
   (($eo_list_minclude_rec (eo::List::cons x y) z)  (eo::define ((res ($eo_list_erase eo::List::cons z x)))
                                                    (eo::requires (eo::eq res z) false   ; must have successfully removed occurrence of x from z
