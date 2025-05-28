@@ -1521,7 +1521,7 @@ Locally assumptions can be arbitrarily nested, for example the above can be exte
 (step-pop @p4 (=> true (=> false true)) :rule implies-intro :premises (@p3))
 ```
 
-## Side Conditions
+## Programs
 
 Ethos supports a `program` command for defining recursive programs.
 In particular, in Ethos, a program is an ordered list of rewrite rules.
@@ -1747,6 +1747,62 @@ The return type of `+` invokes this side condition, which conceptually is implem
 ```
 
 The above program `to_dimacs` converts an SMT formula into DIMACS form, where `eo::hash` is used to assign atoms to integer identifiers.
+
+### Dependently-Typed Programs
+
+In Eunoia, a program can be given dependent types.
+The syntax `eo::quote` is used for this purpose, which can specify an input parameter to that function,
+and is provided as part of the type signature of the program.
+
+```
+(declare-type Int ())
+(declare-consts <numeral> Int)
+(declare-type BitVec (Int))
+(declare-consts <binary> (BitVec (eo::len eo::self)))
+
+(declare-const @bv_empty (BitVec 0))
+
+(declare-parameterized-const concat ((n Int :implicit) (m Int :implicit))
+  (-> (BitVec n) (BitVec m) (BitVec (eo::add n m))))
+
+(program repeat_zero ((n Int))
+  ((eo::quote n)) (BitVec n)
+  (
+    ((repeat_zero 0) @bv_empty)
+    ((repeat_zero n) (eo::requires (eo::is_neg n) false
+                        (concat #b0 (repeat_zero (eo::add n -1)))))
+  )
+)
+
+(define foo () (repeat_zero 7) :type (BitVec 7))
+```
+
+In the above example, we define a parametric bit-vector type and the operator `concat`,
+which concatenates two bit-vectors and whose type is the sum of its arguments.
+We then define a recursive program `repeat_zero` that concatenates the bit-vector value `#b0`
+`n` times, where `n` is its argument.
+This program returns a bit-vector of size `n`.
+Its specified type uses `eo::quote` to give a name to the argument of this program,
+allowing its return type to refer to that argument.
+
+> __Note:__ The argument of `eo::quote` must be a parameter introduced in the parameter list declared at the beginning of the program command.
+
+Note that arguments that use the annotation `eo::quote` can be freely mixed with other type arguments.
+For example, the above program could be generalized to concatentate an arbitrary BitVec term `n` times:
+
+```
+(program repeat_term ((m Int) (n Int) (x (BitVec m))
+  ((BitVec m) (eo::quote n)) (BitVec (eo::mul m n))
+  (
+    ((repeat_term x 0) @bv_empty)
+    ((repeat_term x n) (eo::requires (eo::is_neg n) false
+                         (concat x (repeat_term (eo::add n -1)))))
+  )
+)
+
+(declare-const a (BitVec 5))
+(define foo2 () (repeat_term a 7) :type (BitVec 35))
+```
 
 ### Match statements
 
