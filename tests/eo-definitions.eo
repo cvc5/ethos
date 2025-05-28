@@ -228,7 +228,7 @@
   (eo::List eo::List) Bool
   (
   (($eo_list_minclude_rec (eo::List::cons x y) z)  (eo::define ((res ($eo_list_erase eo::List::cons z x)))
-                                                   (eo::ite (eo::eq res z) 
+                                                   (eo::ite (eo::eq res z)
                                                      false   ; must have successfully removed occurrence of x from z
                                                      ($eo_list_minclude_rec y res))))
   (($eo_list_minclude_rec eo::List::nil z)          true)
