@@ -45,10 +45,34 @@
   )
 )
 
+; Note: >
+;   This does not correspond to a builtin operator. It is used as a helper
+;   to define the preconditions on most of the operators below.
 (define $eo_is_list
   ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
    (f (-> T U V)) (x W))
   ($eo_is_list_rec f ($eo_nil f (eo::typeof x)) x))
+
+;;; $eo_get_elements
+
+(program $eo_get_elements_rec
+  ((T Type) (U Type) (V Type) (W Type)
+   (f (-> T U V)) (x T) (y U) (z W))
+  ((-> T U V) W) eo::List
+  (
+  (($eo_get_elements_rec f (f x y)) (eo::cons eo::List::cons x ($eo_get_elements_rec f y)))
+  (($eo_get_elements_rec f z)       eo::List::nil)
+  )
+)
+
+; Note: >
+;   This does not correspond to a builtin operator. It is used as a helper
+;   to define eo_list_minclude below.
+(define $eo_get_elements
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
+   (f (-> T U V)) (a W))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_get_elements_rec f a)))
 
 ;;; $eo_cons
 
@@ -62,7 +86,7 @@
 
 (program $eo_list_len_rec
   ((T Type) (U Type) (V Type) (W Type) (f (-> T U V)) (x T) (y U) (nil W))
-  ((-> T U V) W) Bool
+  ((-> T U V) W) Int
   (
   (($eo_list_len_rec f (f x y))  (eo::add 1 ($eo_list_len_rec f y)))
   (($eo_list_len_rec f nil)      0)
@@ -207,22 +231,27 @@
 (program $eo_list_minclude_rec
   ((T Type) (U Type) (V Type) (W Type) (X Type)
    (f (-> T U V)) (x T) (y U) (z X) (nil W))
-  ((-> T U V) W X) Bool
+  (W X) Bool
   (
-  (($eo_list_minclude_rec f (f x y) z)  (eo::define ((res ($eo_list_erase f z x)))
-                                        (eo::requires (eo::eq res z) false   ; must have successfully removed occurrence of x from z
-                                          ($eo_list_minclude_rec f y res))))
-  (($eo_list_minclude_rec f nil z)      true)
+  (($eo_list_minclude_rec (eo::List::cons x y) z)  (eo::define ((res ($eo_list_erase eo::List::cons z x)))
+                                                   (eo::requires (eo::eq res z) false   ; must have successfully removed occurrence of x from z
+                                                     ($eo_list_minclude_rec y res))))
+  (($eo_list_minclude_rec eo::List::nil z)          true)
   )
 )
 
+; Note: >
+;   Since $eo_list_erase is a key submethod for defining $eo_list_minclude,
+;   and $eo_list_erase requires functions (-> T V V), we convert the elements
+;   of both lists to builtin lists eo::List using the auxiliary method
+;   $eo_get_elements in this definition.
 (define $eo_list_minclude
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)
    (W1 Type :implicit) (W2 Type :implicit)
    (f (-> T U V)) (a W1) (b W2))
   (eo::requires ($eo_is_list f a) true
   (eo::requires ($eo_is_list f b) true
-    ($eo_list_minclude_rec f a b))))
+    ($eo_list_minclude_rec ($eo_get_elements f a) ($eo_get_elements f b)))))
 
 ;;; $eo_list_meq
 
