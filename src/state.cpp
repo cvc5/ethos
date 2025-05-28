@@ -121,6 +121,12 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("list_concat", Kind::EVAL_LIST_CONCAT);
   bindBuiltinEval("list_nth", Kind::EVAL_LIST_NTH);
   bindBuiltinEval("list_find", Kind::EVAL_LIST_FIND);
+  bindBuiltinEval("list_erase", Kind::EVAL_LIST_ERASE);
+  bindBuiltinEval("list_erase_all", Kind::EVAL_LIST_ERASE_ALL);
+  bindBuiltinEval("list_rev", Kind::EVAL_LIST_REV);
+  bindBuiltinEval("list_setof", Kind::EVAL_LIST_SETOF);
+  bindBuiltinEval("list_minclude", Kind::EVAL_LIST_MINCLUDE);
+  bindBuiltinEval("list_meq", Kind::EVAL_LIST_MEQ);
   // boolean
   bindBuiltinEval("not", Kind::EVAL_NOT);
   bindBuiltinEval("and", Kind::EVAL_AND);
@@ -659,8 +665,6 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     Assert(!children.empty());
     // see if there is a special way of building terms for the head
     ExprValue* hd = vchildren[0];
-    // immediately strip off PARAMETERIZED if it exists
-    hd = hd->getKind()==Kind::PARAMETERIZED ? (*hd)[1] : hd;
     AppInfo* ai = getAppInfo(hd);
     if (ai!=nullptr)
     {
@@ -709,7 +713,6 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       //   consTerm := #b0000.
       Expr consTerm = d_tc.computeConstructorTermInternal(ai, children);
       Trace("state-debug") << "...updated " << consTerm << std::endl;
-      vchildren[0] = hd;
       // if it has a constructor attribute
       switch (ai->d_attrCons)
       {
@@ -744,10 +747,11 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
                 {
                   // if we failed to infer a nil terminator (likely due to
                   // a non-ground parameter), then we insert a placeholder
-                  // (eo::nil f t1 ... tn), which if t1...tn are non-ground
+                  // (eo::nil f (eo::typeof t1)), which if t1 is non-ground
                   // will evaluate to the proper nil terminator when
                   // instantiated.
-                  curr = mkExprInternal(Kind::EVAL_NIL, vchildren);
+                  Expr typ = Expr(mkExprInternal(Kind::EVAL_TYPE_OF, {vchildren[1]}));
+                  curr = mkExprInternal(Kind::EVAL_NIL, {vchildren[0], typ.getValue()});
                 }
                 else
                 {
@@ -1220,15 +1224,6 @@ Expr State::mkLetBinderList(const ExprValue* ev, const std::vector<std::pair<Exp
   vlist.push_back(listCons);
   vlist.insert(vlist.end(), vs.begin(), vs.end());
   return mkExpr(Kind::APPLY, vlist);
-}
-
-const ExprValue* State::getBaseOperator(const ExprValue * v) const
-{
-  if (v->getKind()==Kind::PARAMETERIZED)
-  {
-    return (*v)[0];
-  }
-  return v;
 }
 
 Attr State::getConstructorKind(const ExprValue* v) const
