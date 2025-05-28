@@ -19,6 +19,7 @@ ethos 0.1.2 prerelease
 - To support parameteric nil terminators, the operator `eo::nil` now always requires two arguments, the list operator and the desired type for the nil terminator.
 
 - Adds builtin primitives `eo::eq` and `eo::is_ok`.
+- Adds builtin list operators `eo::list_rev`, `eo::list_erase`, `eo::list_erase_all`, `eo::list_setof` (returns the unique elements of the list), `eo::list_minclude` (multiset inclusion) and `eo::list_meq` (multiset equality).
 - Added the option `--stats-all` to track the number of times side conditions are invoked.
 - The option `--print-let` has been renamed to `--print-dag` and is now enabled by default. The printer is changed to use `eo::define` instead of `let`.
 - The option `--binder-fresh`, which specified for fresh variables to be constructed when parsing binders, has been removed.

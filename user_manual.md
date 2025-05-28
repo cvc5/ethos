@@ -892,7 +892,7 @@ It does not require that its arguments denote values, so for example `(eo::is_eq
 
 ## List computations
 
-Below, we assume that `f` is right associative operator with nil terminator `nil` and `t1, t2` are ground. Otherwise, the following operators do not evaluate.
+Below, we assume that `f` is right associative operator with nil terminator `nil` and `t1, t2` are values. Otherwise, the following operators do not evaluate.
 We describe the evaluation for right associative operators; left associative evaluation is defined analogously.
 We say that a term is an `f`-list with children `t1 ... tn` if it is of the form `(f t1 ... tn)` where `n>0` or `nil` if `n=0`.
 
@@ -907,9 +907,21 @@ We say that a term is an `f`-list with children `t1 ... tn` if it is of the form
 - `(eo::list_concat f t1 t2)`
   - If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, this returns `(f t11 ... t1n t21 ... t2m)` if `n+m>0` and `nil` otherwise. Otherwise, this operator does not evaluate.
 - `(eo::list_nth f t1 t2)`
-  - If `f` is a right associative operator with nil terminator with nil terminator `nil`, `t1` is `(f s0 ... s{n-1})`, and `t2` is a numeral value such that `0<=t2<n`, then this returns `s_{t2}`. Otherwise, this operator does not evaluate.
+  - If `t1` is `(f s0 ... s{n-1})` and `t2` is a numeral value such that `0<=t2<n`, then this returns `s_{t2}`. Otherwise, this operator does not evaluate.
 - `(eo::list_find f t1 t2)`
-  - If `f` is a right associative operator with nil terminator with nil terminator `nil` and `t1` is `(f s0 ... s{n-1})`, then this returns the smallest numeral value `i` such that `t2` is syntactically equal to `si`, or `-1` if no such `si` can be found. Otherwise, this operator does not evaluate.
+  - If `t1` is `(f s0 ... s{n-1})`, then this returns the smallest numeral value `i` such that `t2` is syntactically equal to `si`, or `-1` if no such `si` can be found. Otherwise, this operator does not evaluate.
+- `(eo::list_rev f t1)`
+  - If `t1` is an `f`-list with children `t11 ... t1n`, then this returns `(f t1n ... t11)`.
+- `(eo::list_erase f t1 t2)`
+  - If `t1` is an `f`-list, then this returns the result of removing the first occurrence of `t2` from `t1` if it exists. Returns `t1` unchanged if it does not contain `t2`.
+- `(eo::list_erase_all f t1 t2)`
+  - If `t1` is an `f`-list, then this returns the result of removing all occurrences of `t2` from `t1`, where the remaining elements are kept in order. Returns `t1` unchanged if it does not contain `t2`.
+- `(eo::list_setof f t1)`
+  - If `t1` is an `f`-list with children `t11 ... t1n`, this returns the `f`-list obtained by dropping each element from this list beyond the first occurrence. Note that the remaining elements are kept in order.
+- `(eo::list_minclude f t1 t2)`
+  - (Multiset inclusion) If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, then this returns true if each unique element in `t11 ... t1n` occurs with the greater than or equal multiplicity in `t21 ... t2m`. Note that order of the elements does not matter.
+- `(eo::list_meq f t1 t2)`
+  - (Multiset equal) Equivalent to `(eo::and (eo::list_minclude f t1 t2) (eo::list_minclude t2 t1))`.
 
 ### List Computation Examples
 
@@ -920,6 +932,8 @@ The terms on both sides of the given evaluation are written in their form prior 
 (declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
 (declare-const a Bool)
 (declare-const b Bool)
+(declare-const c Bool)
+(declare-const d Bool)
 
 (eo::nil or Bool)                   == false
 (eo::nil a Bool)                    == (eo::nil a Bool)                ; since a is not an associative operator
@@ -949,15 +963,43 @@ The terms on both sides of the given evaluation are written in their form prior 
 (eo::list_concat or (or a) (or b))          == (or a b)
 (eo::list_concat or (and a b) false)        == (eo::list_concat or (and a b) false)  ; since (and a b) is not an or-list
 
-(eo::list_nth or (or a b a) 1)           == b
-(eo::list_nth or (or a) 0)               == a
-(eo::list_nth or false 0)                == (eo::list_nth or false 0)         ; since false has <=0 children
-(eo::list_nth or (or a b a) 3)           == (eo::list_nth or (or a b a) 3)    ; since (or a b a) has <=3 children
-(eo::list_nth or (and a b b) 0)          == (eo::list_nth or (and a b b) 0)   ; since (and a b b) is not an or-list
+(eo::list_nth or (or a b a) 1)            == b
+(eo::list_nth or (or a) 0)                == a
+(eo::list_nth or false 0)                 == (eo::list_nth or false 0)         ; since false has <=0 children
+(eo::list_nth or (or a b a) 3)            == (eo::list_nth or (or a b a) 3)    ; since (or a b a) has <=3 children
+(eo::list_nth or (and a b b) 0)           == (eo::list_nth or (and a b b) 0)   ; since (and a b b) is not an or-list
 
-(eo::list_find or (or a b a) b)          == 1
-(eo::list_find or (or a b a) true)       == -1
-(eo::list_find or (and a b b) a)         == (eo::list_find or (and a b b) a)      ; since (and a b b) is not an or-list
+(eo::list_find or (or a b a) b)           == 1
+(eo::list_find or (or a b a) true)        == -1
+(eo::list_find or (and a b b) a)          == (eo::list_find or (and a b b) a)      ; since (and a b b) is not an or-list
+
+(eo::list_rev or (or a b c))              == (or c b a)
+(eo::list_rev or false)                   == false
+
+(eo::list_erase or (or a b c) a)          == (or b c)
+(eo::list_erase or (or c a a b a) a)      == (or c a b a)
+(eo::list_erase or (or a b c) d)          == (or a b c)
+(eo::list_erase or false d)               == false
+
+(eo::list_erase_all or (or a b c) a)          == (or b c)
+(eo::list_erase_all or (or a a b a) a)        == (or b)
+(eo::list_erase_all or (or a b c) d)          == (or a b c)
+(eo::list_erase_all or false d)               == false
+
+(eo::list_setof or (or a b c))            == (or a b c)
+(eo::list_setof or (or a b a c a b c))    == (or a b c)
+(eo::list_setof or (or a a a))            == (or a)
+(eo::list_setof or false)                 == false
+
+(eo::list_minclude or (or a b) (or a a b))  == true
+(eo::list_minclude or (or a b) (or b a))    == true
+(eo::list_minclude or (or a b b) (or a b))  == false
+(eo::list_minclude or false (or a b))       == true
+
+(eo::list_meq or (or a b) (or a a b))       == false
+(eo::list_meq or (or a b c b) (or b a c b)) == true
+(eo::list_meq or (or a b b) (or a a b))     == false
+(eo::list_meq or false false)               == true
 ```
 
 ### Parametric Nil terminators
