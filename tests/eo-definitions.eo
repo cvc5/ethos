@@ -51,12 +51,12 @@
 ;;; $eo_get_elements
 
 (program $eo_get_elements_rec
-  ((T Type) (U Type) (V Type) (W Type)
-   (f (-> T U V)) (x T) (y U) (z W))
-  ((-> T U V) W) eo::List
+  ((T Type) (U Type) (V Type) (W Type) (W1 Type) (W2 Type) (X Type)
+   (f (-> T U V)) (x W1) (y W2) (z X) (nil W))
+  ((-> T U V) W X) eo::List
   (
-  (($eo_get_elements_rec f (f x y)) (eo::cons eo::List::cons x ($eo_get_elements_rec f y)))
-  (($eo_get_elements_rec f z)       eo::List::nil)
+  (($eo_get_elements_rec f nil (f x y)) (eo::cons eo::List::cons x ($eo_get_elements_rec f nil y)))
+  (($eo_get_elements_rec f nil nil)     eo::List::nil)
   )
 )
 
@@ -67,7 +67,7 @@
   ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
    (f (-> T U V)) (a W))
   (eo::requires ($eo_is_list f a) true
-    ($eo_get_elements_rec f a)))
+    ($eo_get_elements_rec f ($eo_nil f (eo::typeof a)) a)))
 
 ;;; $eo_cons
 
@@ -224,11 +224,12 @@
 ;;; $eo_list_minclude
 
 (program $eo_list_minclude_rec
-  ((T Type) (x T) (y eo::List) (z eo::List))
+  ((T Type) (x T) (y eo::List :list) (z eo::List))
   (eo::List eo::List) Bool
   (
   (($eo_list_minclude_rec (eo::List::cons x y) z)  (eo::define ((res ($eo_list_erase eo::List::cons z x)))
-                                                   (eo::requires (eo::eq res z) false   ; must have successfully removed occurrence of x from z
+                                                   (eo::ite (eo::eq res z) 
+                                                     false   ; must have successfully removed occurrence of x from z
                                                      ($eo_list_minclude_rec y res))))
   (($eo_list_minclude_rec eo::List::nil z)          true)
   )

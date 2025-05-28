@@ -17,6 +17,7 @@
   (
   (($eo_nil or Bool) false)
   (($eo_nil and Bool) true)
+  (($eo_nil eo::List::cons eo::List) eo::List::nil)
   )
 )
 
@@ -77,12 +78,12 @@
 (declare-const test9 (eo::requires ($eo_list_setof or (or a a a)) (or a) Bool))
 (declare-const test10 (eo::requires ($eo_list_setof or false) false Bool))
 
-;(declare-const test11 (eo::requires ($eo_list_minclude or (or a b) (or a a b)) true Bool))
-;(declare-const test12 (eo::requires ($eo_list_minclude or (or a b) (or b a)) true Bool))
-;(declare-const test13 (eo::requires ($eo_list_minclude or (or a b b) (or a b)) false Bool))
-;(declare-const test14 (eo::requires ($eo_list_minclude or false (or a b)) true Bool))
+(declare-const test11 (eo::requires ($eo_list_minclude or (or a b) (or a a b)) true Bool))
+(declare-const test12 (eo::requires ($eo_list_minclude or (or a b) (or b a)) true Bool))
+(declare-const test13 (eo::requires ($eo_list_minclude or (or a b b) (or a b)) false Bool))
+(declare-const test14 (eo::requires ($eo_list_minclude or false (or a b)) true Bool))
 
-;(declare-const test15 (eo::requires ($eo_list_meq or (or a b) (or a a b)) false Bool))
-;(declare-const test16 (eo::requires ($eo_list_meq or (or a b c b) (or b a c b)) true Bool))
-;(declare-const test17 (eo::requires ($eo_list_meq or (or a b b) (or a a b)) false Bool))
-;(declare-const test18 (eo::requires ($eo_list_meq or false false) true Bool))
+(declare-const test15 (eo::requires ($eo_list_meq or (or a b) (or a a b)) false Bool))
+(declare-const test16 (eo::requires ($eo_list_meq or (or a b c b) (or b a c b)) true Bool))
+(declare-const test17 (eo::requires ($eo_list_meq or (or a b b) (or a a b)) false Bool))
+(declare-const test18 (eo::requires ($eo_list_meq or false false) true Bool))
