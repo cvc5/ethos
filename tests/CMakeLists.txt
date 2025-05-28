@@ -151,8 +151,10 @@ set(ethos_test_file_list
     define-scope-attr.eo
     is-eq-tests.eo
     eo-arg-ex.eo
+    list-ops-new.eo
     double-list.eo
     list-param-immediate.eo
+    nground-nil-ex.eo
 )
 
 if(ENABLE_ORACLES)
