@@ -255,15 +255,3 @@
    (W1 Type :implicit) (W2 Type :implicit)
    (f (-> T U V)) (a W1) (b W2))
   (eo::and ($eo_list_minclude f a b) ($eo_list_minclude f b a)))
-
-;;;;;;;;;;;;;;;;;;;; other....
-
-;;; $eo_is_str
-
-(declare-parameterized-const $eo_is_str ((T Type :implicit) (x T)) Bool)
-
-;;; $eo_var
-
-(declare-parameterized-const $eo_var
-  ((T Type :implicit) (x T :requires (($eo_is_str x) true)) (U Type))
-  U)
