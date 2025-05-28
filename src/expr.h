@@ -16,7 +16,7 @@
 #include <memory>
 #include "kind.h"
 
-//#define TYPE_CHECK_PROGRAMS
+#define TYPE_CHECK_PROGRAMS
 
 namespace ethos {
 

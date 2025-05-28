@@ -118,7 +118,7 @@
   (
     ((string_flatten_word t) 
       (eo::ite (check_length_one t) 
-        ($str_cons t "")
+        ($str_cons t (mk_emptystr (eo::typeof t)))
         ($str_cons (eo::extract t 0 0) (string_flatten_word (eo::extract t 1 (eo::len t))))))
   )
 )

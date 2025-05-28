@@ -1770,8 +1770,13 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_NOT:
       return Expr(childTypes[0]);
     case Kind::EVAL_IF_THEN_ELSE:
-    case Kind::EVAL_CONS:
       return Expr(childTypes[1]);
+    case Kind::EVAL_CONS:
+    {
+      // the type is the same as an ordinary application of the function
+      Expr consTerm(d_state.mkApplyInternal(children));
+      return getType(consTerm, out);
+    }
     case Kind::EVAL_REQUIRES:
       return Expr(childTypes[2]);
     case Kind::EVAL_LIST_CONCAT:
