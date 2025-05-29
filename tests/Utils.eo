@@ -6,7 +6,7 @@
 ; `check_true b`
 ; returns true if b is true, returns false otherwise
 (program check_true ((b Bool))
-  (Bool) Bool
+  :signature (Bool) Bool
   (
     ((check_true true) true)
     ((check_true b) false)

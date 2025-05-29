@@ -3,7 +3,7 @@
 
 ; NOT_AND
 (program lowerNot ((l Bool) (ls Bool :list))
-    (Bool) Bool
+  :signature (Bool) Bool
     (
         ((lowerNot true)           false)
         ((lowerNot (and l ls))     (eo::cons or (not l) (lowerNot ls)))

@@ -3,17 +3,15 @@
 
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 
-(program append 
-  ((h Bool) (t Bool :list))
-  (Bool Bool) Bool
+(program append ((h Bool) (t Bool :list))
+  :signature (Bool Bool) Bool
   (
   ((append h t) (or h t))
   )
 )
 
-(program replAll 
-  ((x Bool) (y Bool) (z Bool) (tail Bool :list))
-  (Bool Bool Bool) Bool
+(program replAll ((x Bool) (y Bool) (z Bool) (tail Bool :list))
+  :signature (Bool Bool Bool) Bool
   (
   ((replAll x y (or x tail)) (append y (replAll x y tail)))
   ((replAll x y (or z tail)) (append z (replAll x y tail)))

@@ -3,9 +3,8 @@
 
 (declare-const or (-> Bool Bool Bool) :right-assoc)
 
-(program replAll 
-  ((x Bool) (y Bool) (z Bool) (tail Bool :list))
-  (Bool Bool Bool) Bool
+(program replAll ((x Bool) (y Bool) (z Bool) (tail Bool :list))
+  :signature (Bool Bool Bool) Bool
   ; cases
   (
   ((replAll x y (or x tail)) (or y (replAll x y tail)))
