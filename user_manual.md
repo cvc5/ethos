@@ -2193,14 +2193,16 @@ have no impact on behavior (apart from performance), unless otherwise noted.
 <a name="derived-list-ops"></a>
 
 We now provide definitions of Eunoia list operators in terms
-of standard Eunoia side conditions.
-As an exception the behavior of `eo::nil` is dynamically modified based on the
-declared constants, as described below. This means we cannot provide a static
-definition of `$eo_nil` in this signature. Instead, the following definitions
-assume that `$eo_nil` is defined prior to parsing this file, as follows.
+of standard Eunoia programs.
+It is possible to define programs for *all* list operators with the exception
+of `eo::nil`, as we describe in the following.
 
-In particular, we assume the internal definition of $eo_nil has the following
-form:
+The behavior of `eo::nil` is dynamically modified based on the
+declared constants. This means we cannot provide a static
+definition of `$eo_nil` in this signature. Instead, we provide instructions
+for how to construct the definition of `$eo_nil` for a fixed signature.
+
+In particular, we assume the definition of `$eo_nil` has the following form:
 
 ```
 ; program: $eo_nil
@@ -2214,28 +2216,28 @@ form:
 ```
 
 For each declare-const or declare-parameterized-const `f` whose return type is `T`
-declared in the signature that is marked `:right-assoc-nil nil`, we add the
-case`(($eo_nil f T) nil)`.
+declared in the signature that is marked `:right-assoc-nil nil` or `:left-assoc-nil nil`,
+we add the case`(($eo_nil f T) nil)` to the definition of `$eo_nil` above.
 For example, given:
 ```
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 ```
-We add the case `(($eo_nil or Bool) false)` to $eo_nil above.
+We add the case `(($eo_nil or Bool) false)` to `$eo_nil` above.
 
-Note that we include the type as part of the case to support functions with
+Here, it is necessary to include the type as part of the case to support functions with
 non-ground nil terminators, which requiring instantiating the free parameters
 of `T`. For example, given:
 ```
 (declare-parameterized-const bvor ((m Int :implicit))
      (-> (BitVec m) (BitVec m) (BitVec m)) :right-assoc-nil (eo::to_bin 0 m))
 ```
-We add the case `(($eo_nil bvor (BitVec m))  (eo::to_bin 0 m))` to $eo_nil above.
+We add the case `(($eo_nil bvor (BitVec m))  (eo::to_bin 0 m))` to `$eo_nil` above.
 Providing a concrete type, e.g. `(BitVec 4)` will ensure `m` is bound to `4`
 and hence `($eo_nil bvor (BitVec 4))` evaluates to `(eo::to_bin 0 4)`, which is
 `#b0000`.
 
+All other list operators can be defined as ordinary Eunoia programs.
 
-All other list operators can be defined as follows.
 ```
 ; We assume that $eo_nil is defined prior to parsing this file based on the
 ; given signature.
