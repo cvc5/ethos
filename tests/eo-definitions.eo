@@ -40,6 +40,7 @@
 
 ;;; $eo_is_list
 
+; Note: a helper for $eo_is_list.
 (program $eo_is_list_rec
   ((T Type) (U Type) (V Type) (W Type) (X Type)
    (f (-> T U V)) (x T) (y U) (nil W) (z X))
@@ -52,7 +53,7 @@
 
 ; Note: >
 ;   This does not correspond to a builtin operator. It is used as a helper
-;   to define the preconditions on most of the operators below.
+;   to define the preconditions for most of the operators below.
 (define $eo_is_list
   ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
    (f (-> T U V)) (x W))
@@ -60,6 +61,7 @@
 
 ;;; $eo_get_elements
 
+; Note: a helper for $eo_get_elements.
 (program $eo_get_elements_rec
   ((T Type) (U Type) (V Type) (W Type) (W1 Type) (W2 Type) (X Type)
    (f (-> T U V)) (x W1) (y W2) (z X) (nil W))
@@ -91,6 +93,7 @@
 
 ;;; $eo_list_len
 
+; Note: a helper for $eo_list_len.
 (program $eo_list_len_rec
   ((T Type) (U Type) (V Type) (W Type) (f (-> T U V)) (x T) (y U) (nil W))
   ((-> T U V) W) Int
@@ -109,6 +112,7 @@
 
 ;;; $eo_list_concat
 
+; Note: a helper for $eo_list_concat.
 (program $eo_list_concat_rec
   ((T Type) (U Type) (V Type) (W Type) (f (-> T V V)) (x W) (y U) (z U) (nil U))
   ((-> T V V) U U) U
@@ -129,6 +133,7 @@
 
 ;;; $eo_list_nth
 
+; Note: a helper for $eo_list_nth.
 (program $eo_list_nth_rec
   ((T Type) (U Type) (f (-> T T T)) (x U) (y U) (n Int))
   ((-> T T T) U Int) U
@@ -148,6 +153,7 @@
 
 ;;; $eo_list_find
 
+; Note: a helper for $eo_list_find.
 (program $eo_list_find_rec
   ((T Type) (U Type) (V Type) (W Type) (X Type)
    (f (-> T U V)) (x W) (z W) (y U) (z X) (nil W) (n Int))
@@ -170,6 +176,7 @@
 
 ;;; $eo_list_rev
 
+; Note: a helper for $eo_list_rev.
 (program $eo_list_rev_rec
   ((T Type) (U Type) (V Type) (W Type)
    (f (-> T V V)) (x W) (y U) (nil U) (acc U))
@@ -190,6 +197,7 @@
 
 ;;; $eo_list_erase
 
+; Note: a helper for $eo_list_erase.
 (program $eo_list_erase_rec
   ((T Type) (U Type) (V Type) (W Type) (X Type)
    (f (-> T V V)) (x W) (y U) (z X) (nil U))
@@ -211,6 +219,7 @@
 
 ;;; $eo_list_erase_all
 
+; Note: a helper for $eo_list_erase_all.
 (program $eo_list_erase_all_rec
   ((T Type) (U Type) (V Type) (W Type) (X Type)
    (f (-> T V V)) (x W) (y U) (z X) (nil W))
@@ -232,6 +241,7 @@
 
 ;;; $eo_list_setof
 
+; Note: a helper for $eo_list_setof.
 (program $eo_list_setof_rec
   ((T Type) (U Type) (V Type) (W Type)
    (f (-> T V V)) (x W) (y U) (nil U))
@@ -251,6 +261,7 @@
 
 ;;; $eo_list_minclude
 
+; Note: a helper for $eo_list_minclude.
 (program $eo_list_minclude_rec
   ((T Type) (x T) (y eo::List :list) (z eo::List))
   (eo::List eo::List) Bool
