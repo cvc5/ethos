@@ -2104,11 +2104,14 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
 <a name="derived-ops"></a>
 
 The following signature can be used to give an alternative definition
-of certain builtin operators that can be expressed as standard Eunoia programs
+of certain builtin operators that can be expressed as standard Eunoia programs,
 or based on other operators.
-We provide this as a parsable Eunoia file.
+We provide this as a parsable Eunoia file, which is also part of our
+regressions (see <https://github.com/cvc5/ethos/tree/main/tests/eo-definitions.eo>).
+
 We use the convention that each `eo::X` definition is given a corresponding
-definition `$eo_X`. Including the following signature and modifying a Eunoia
+definition `$eo_X` in the following signature.
+Including this signature and modifying a Eunoia
 file to use `$eo_` instead of `eo::` should
 have no impact on behavior (apart from performance), unless otherwise noted.
 
