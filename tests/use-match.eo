@@ -2,7 +2,7 @@
 (declare-consts <string> String)
 
 (program maybe_nil ((T Type) (U Type) (t T))
-  :signature (T U) T
+    :signature (T U) T
     (
       ((maybe_nil t t)       t)
       ((maybe_nil t "") t)

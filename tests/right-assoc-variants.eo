@@ -34,7 +34,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (program arith_typeunion_nary ()
-  :signature (Type Type) Type
+    :signature (Type Type) Type
     (
       ((arith_typeunion_nary Int Real) Real)
       ((arith_typeunion_nary Int Int) Int)
@@ -50,7 +50,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (program is_string_type ((U Type))
-  :signature (Type) Bool
+    :signature (Type) Bool
     (
       ((is_string_type String) true)
       ((is_string_type (Seq U)) true)

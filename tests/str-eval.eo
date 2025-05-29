@@ -6,7 +6,7 @@
 (declare-const - (-> Int Int Int))
 
 (program arith.eval ((S Type) (a Int) (b Int) (z S))
-  :signature (S) S
+    :signature (S) S
     (
       ((arith.eval (= a b))  (eo::is_eq (arith.eval a) (arith.eval b)))
       ((arith.eval (+ a b))  (eo::add (arith.eval a) (arith.eval b)))
@@ -24,7 +24,7 @@
 (declare-const str.indexof (-> String String Int Int))
 
 (program str.eval ((S Type) (a String) (b String) (z S) (n Int) (m Int))
-  :signature (S) S
+    :signature (S) S
     (
       ((str.eval (= a b))            (eo::is_eq (str.eval a) (str.eval b)))
       ((str.eval (str.++ a b))       (eo::concat (str.eval a) (str.eval b)))

@@ -7,7 +7,7 @@
 (declare-const + (-> Int Int Int))
 
 (program run_inc ((a Int))
-  :signature (Int) Int
+    :signature (Int) Int
     (
       ((run_inc a) (eo::add 1 a))
     )

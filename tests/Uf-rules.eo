@@ -25,7 +25,7 @@
 ; TRANS
 ; note that we assume that there is never exactly one premise
 (program mk_trans ((U Type) (t1 U) (t2 U) (t3 U) (t4 U) (tail Bool :list))
-  :signature (U U Bool) Bool
+    :signature (U U Bool) Bool
     (
         ((mk_trans t1 t2 (and (= t3 t4) tail))
             (eo::requires t2 t3 (mk_trans t1 t4 tail)))

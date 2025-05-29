@@ -42,7 +42,8 @@
   :args (T)
   :conclusion (=> (exists x F) (substitute x (skolem T (exists x F)) F)))
 
-(program run_simplify ((T Type) (x T))
+(program run_simplify
+  ((T Type) (x T))
   :signature (Bool) Bool
   (
   ((run_simplify (forall x (= x x))) true)

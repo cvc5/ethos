@@ -4,8 +4,7 @@
 (declare-consts <numeral> Int)
 
 ; forward declaration
-(program is-odd ()
-  :signature (Int) Bool)
+(program is-odd () :signature (Int) Bool)
 
 (program is-even ((n Int))
   :signature (Int) Bool

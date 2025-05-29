@@ -124,7 +124,7 @@
 (assume a3 (not c2))
 
 (program resolve ((C1 Bool) (C2 Bool) (pol Bool) (L Bool))
-  :signature (Bool Bool Bool Bool) Bool
+    :signature (Bool Bool Bool Bool) Bool
     (
         ; Both "clauses" are just the literal
         ((resolve C1 (not C1) true  C1) false)
@@ -154,7 +154,7 @@
 
 ; Factoring
 (program factorLiterals ((l1 Bool) (l2 Bool) (ls Bool))
-  :signature (Bool) Bool
+    :signature (Bool) Bool
     (
         ((factorLiterals (or l1 l1)) l1)
         ((factorLiterals (or (or ls l1) l1)) (or (factorLiterals ls) l1))
@@ -176,7 +176,7 @@
 ; Reordering
 ; Naive O(n^2) test
 (program isPermutation ((l1 Bool) (l2 Bool) (ls Bool) (ls2 Bool))
-  :signature (Bool Bool) Bool
+    :signature (Bool Bool) Bool
     (
         ((isPermutation l1 l1) true)
         ((isPermutation (or l1 l2) (or l1 l2)) true)

@@ -8,7 +8,7 @@
 (declare-const <= (-> Int Int Bool))
 
 (program arith.eval ((S Type) (a Int) (b Int) (z S))
-  :signature (S) S
+    :signature (S) S
     (
       ((arith.eval (= a b))  (eo::is_eq (arith.eval a) (arith.eval b)))
       ((arith.eval (< a b))  (eo::is_neg (arith.eval (- a b))))
