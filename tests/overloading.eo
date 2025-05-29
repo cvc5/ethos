@@ -2,7 +2,7 @@
 (declare-type Real ())
 
 (program a.typeunion ()
-    (Type Type) Type
+    :signature (Type Type) Type
     (
       ((a.typeunion Int Int) Int)
       ((a.typeunion Int Real) Real)

@@ -44,7 +44,7 @@
 
 (program run_simplify
   ((T Type) (x T))
-  (Bool) Bool
+  :signature (Bool) Bool
   (
   ((run_simplify (forall x (= x x))) true)
   )

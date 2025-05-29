@@ -17,7 +17,7 @@
 )
 
 (program $substitute_list ((T Type) (U Type) (F U) (x T) (xs @List :list) (t T) (ts @List :list))
-  (@List @List U) U
+  :signature (@List @List U) U
   (
     (($substitute_list (@cons x xs) (@cons t ts) F) ($substitute_list xs ts ($substitute x t F)))
     (($substitute_list @nil @nil F)       F)
@@ -27,7 +27,7 @@
 ;; ---------------------
 
 (program $get_choice_type ((x @List))
-  (@List) Type
+  :signature (@List) Type
   (
     (($get_choice_type (@cons x)) (eo::typeof x))
   )
@@ -35,7 +35,7 @@
 (declare-parameterized-const choice ((L @List)) (-> Bool ($get_choice_type L)) :binder @cons)
 
 (program $mk_skolems ((T Type) (x T) (xs @List :list) (F Bool))
-  (@List Bool) @List
+  :signature (@List Bool) @List
   (
     (($mk_skolems (@cons x) F)    (@cons (choice (@cons x) F)))
     (($mk_skolems (@cons x xs) F) (eo::define ((F2 (exists xs F)))

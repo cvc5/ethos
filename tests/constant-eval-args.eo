@@ -3,7 +3,7 @@
 (declare-consts <numeral> Int)
 
 (program less-than ()
-  (Int Int) Bool
+  :signature (Int Int) Bool
   (
   ((less-than 0 2) true)
   ((less-than 1 2) true)

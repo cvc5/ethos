@@ -7,14 +7,14 @@
 (declare-const not (-> Bool Bool))
 
 (program to_drat_lit ((l Bool))
-  (Bool) Int
+  :signature (Bool) Int
   (
     ((to_drat_lit (not l))  (eo::neg (eo::hash l)))
     ((to_drat_lit l)        (eo::hash l))
   )
 )
 (program to_drat_clause ((l Bool) (C Bool :list))
-  (Bool) String
+  :signature (Bool) String
   (
     ((to_drat_clause false)    "0")
     ((to_drat_clause (or l C)) (eo::concat (eo::to_str (to_drat_lit l)) (eo::concat " " (to_drat_clause C))))
@@ -23,7 +23,7 @@
 )
 
 (program to_drat_input ((C Bool) (F Bool :list))
-  (Bool) String
+  :signature (Bool) String
   (
     ((to_drat_input true)       "")
     ((to_drat_input (and C F)) (eo::concat (to_drat_clause C) (eo::concat " " (to_drat_input F))))

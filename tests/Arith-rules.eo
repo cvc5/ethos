@@ -6,7 +6,7 @@
 
 
 (program arith_rel_sum ((T Type) (U Type) (V Type) (W Type) (a V) (b W))
-  (T U V W) Bool
+  :signature (T U V W) Bool
   (
     ((arith_rel_sum < < a b) (< a b))
     ((arith_rel_sum < = a b) (< a b))
@@ -21,7 +21,7 @@
 )
 
 (program arith_rel_inv ((T Type) (U Type) (V Type) (W Type) (a U) (b V))
-  (T U V) Bool
+  :signature (T U V) Bool
   (
     ((arith_rel_inv = a b) (= a b))
     ((arith_rel_inv < a b) (> a b))
@@ -32,7 +32,7 @@
 )
 
 (program arith_rel_neg ((T Type) (U Type) (V Type) (W Type) (a U) (b V))
-  (T U V) Bool
+  :signature (T U V) Bool
   (
     ((arith_rel_neg < a b) (>= a b))
     ((arith_rel_neg <= a b) (> a b))
@@ -42,7 +42,7 @@
 )
 
 (program arith_rel_trichotomy ((T Type) (U Type) (V Type) (W Type) (a V) (b W))
-  (T U V W) Bool
+  :signature (T U V W) Bool
   (
     ((arith_rel_trichotomy = < a b) (> a b))
     ((arith_rel_trichotomy = > a b) (< a b))
@@ -127,7 +127,7 @@
 
 ; Returns true if c is a rational between zero and one, inclusive
 (program between_zero_and_one ((R Type) (c R))
-  (R) Bool
+  :signature (R) Bool
   (
     ((between_zero_and_one c) 
       (eo::ite (eo::is_neg c)

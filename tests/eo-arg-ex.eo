@@ -10,7 +10,7 @@
   :right-assoc-nil @bv_empty)
 
 (program zero_of_width ((n Int))
-  ((eo::quote n)) (BitVec n)
+  :signature ((eo::quote n)) (BitVec n)
   (
     ((zero_of_width 0) @bv_empty)
     ((zero_of_width n) (eo::requires (eo::is_neg n) false

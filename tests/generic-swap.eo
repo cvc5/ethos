@@ -4,7 +4,7 @@
 
 
 (program swap ((T Type) (t1 T) (t2 T))
-  ((Pair T)) (Pair T)
+  :signature ((Pair T)) (Pair T)
   ; cases
   (
   ((swap (pair t1 t2)) (pair t2 t1))
