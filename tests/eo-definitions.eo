@@ -18,14 +18,23 @@
 ;  )
 ;)
 
-; For each (declare-parameterized-const f (...) (-> T T T) :right-assoc-nil nil)
-; declared in the signature, we add the case to $eo_nil:
+; For each declare-const or declare-parameterized-const f of type (-> T T T)
+; declared in the signature that is marked :right-assoc-nil nil, we add the
+; case to $eo_nil:
 ;   (($eo_nil f T) nil)
 ; For example, given:
+;   (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+; We add this case to $eo_nil above:
+;   (($eo_nil or Bool)          false)'
+
+; Note that we include the type as part of the case to support functions with
+; non-ground nil terminators, which requiring instantiating the free parameters
+; of T. For example, given:
 ;   (declare-parameterized-const bvor ((m Int :implicit))
 ;     (-> (BitVec m) (BitVec m) (BitVec m)) :right-assoc-nil (eo::to_bin 0 m))
 ; We add this case to $eo_nil above:
 ;   (($eo_nil bvor (BitVec m))  (eo::to_bin 0 m))
+; Providing a concrete type, e.g. (BitVec 4) will ensure m is bound to 4.
 
 
 ;;; $eo_is_list
