@@ -727,10 +727,10 @@ bool CmdParser::parseNextCommand()
       std::vector<Expr> vars =
           d_eparser.parseAndBindSortedVarList(Kind::PROGRAM);
       // read ":signature", optionally
-      if (d_lex.peekToken()==Token::KEYWORD)
+      if (d_lex.peekToken() == Token::KEYWORD)
       {
         std::string keyword = d_eparser.parseKeyword();
-        if (keyword!="signature")
+        if (keyword != "signature")
         {
           d_lex.parseError("Expected :signature attribute");
         }
