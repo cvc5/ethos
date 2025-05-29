@@ -8,7 +8,7 @@
 (declare-const >= (-> Int Int Bool))
 
 (program run_evaluate ((T Type) (U Type) (S Type) (a T) (b T) (ai Int) (bi Int) (z S))
-    (S) S
+    :signature (S) S
     (
       ((run_evaluate (= a b))  (eo::is_eq (run_evaluate a) (run_evaluate b)))
       ((run_evaluate (> ai bi))  (eo::is_neg (run_evaluate (- bi ai))))

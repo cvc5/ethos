@@ -2,7 +2,7 @@
 (declare-consts <string> String)
 
 (program maybe_nil ((T Type) (U Type) (t T))
-    (T U) T
+    :signature (T U) T
     (
       ((maybe_nil t t)       t)
       ((maybe_nil t "") t)
@@ -28,7 +28,7 @@
 ; `check_true b`
 ; returns true if b is true, returns false otherwise
 (program check_true ((b Bool))
-  (Bool) Bool
+  :signature (Bool) Bool
   (
     ((check_true true) true)
     ((check_true b) false)
@@ -37,7 +37,7 @@
 (define check_length_one ((s String)) (check_true (eo::is_eq (eo::len s) 1)))
 
 (program string_collect_acc ((t String) (tail String :list))
-  (String) (Pair String String)
+  :signature (String) (Pair String String)
   (
     ((string_collect_acc "")         (pair "" ""))
     ; Check if t is a word constant

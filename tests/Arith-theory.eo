@@ -8,7 +8,7 @@
 
 ; used for right-assoc-nil operators, must consider the nil terminator
 (program arith_typeunion_nary ()
-    (Type Type) Type
+    :signature (Type Type) Type
     (
       ((arith_typeunion_nary Int Real) Real)
       ((arith_typeunion_nary Int Int) Int)
@@ -17,7 +17,7 @@
     )
 )
 (program arith_typeunion ((x Type) (y Type))
-    (Type Type) Type
+    :signature (Type Type) Type
     (
       ((arith_typeunion Int Int) Int)
       ((arith_typeunion Real Real) Real)
@@ -27,7 +27,7 @@
 )
 
 (program is_arith_type ((x Type))
-    (Type) Bool
+    :signature (Type) Bool
     (
       ((is_arith_type Int) true)
       ((is_arith_type Real) true)
