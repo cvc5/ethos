@@ -564,20 +564,13 @@ bool TypeChecker::match(ExprValue* a,
         ctxIt = ctx.find(curr.first);
         if (ctxIt == ctx.cend())
         {
-          if (isEvaluationApp(curr.second))
-          {
-            ctx.emplace(curr.first, d_state.mkAny().getValue());
-          }
-          else
-          {
-            // note that we do not ensure the types match here
-            // add the two subterms to `sub`
-            ctx.emplace(curr.first, curr.second);
-          }
+          // note that we do not ensure the types match here
+          // add the two subterms to `sub`
+          ctx.emplace(curr.first, curr.second);
         }
         else if (ctxIt->second!=curr.second)
         {
-          if (ctxIt->second->getKind()==Kind::ANY)
+          if (isEvaluationApp(ctxIt->second))
           {
             // any overwrites concrete assignment
             ctxIt->second = curr.second;
