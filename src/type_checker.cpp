@@ -24,6 +24,24 @@
 
 namespace ethos {
 
+bool isEvaluationApp(const ExprValue* e)
+{
+#ifdef TYPE_CHECK_PROGRAMS
+  Kind k = e->getKind();
+  if (isLiteralOp(k) || k==Kind::ANY)
+  {
+    return true;
+  }
+  else if (k==Kind::APPLY || k==Kind::APPLY_OPAQUE)
+  {
+    Kind hk = (*e)[0]->getKind();
+    return (hk==Kind::PROGRAM_CONST || hk==Kind::ORACLE);
+  }
+  return false;
+#endif
+  return false;
+}
+
 TypeChecker::TypeChecker(State& s, Options& opts) : d_state(s), d_plugin(nullptr), d_sts(s.getStats())
 {
   std::set<Kind> literalKinds = { Kind::BOOLEAN, Kind::NUMERAL, Kind::RATIONAL, Kind::BINARY, Kind::STRING, Kind::DECIMAL, Kind::HEXADECIMAL };
@@ -353,11 +371,11 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
   ExprValue* hd = children[0];
   ExprValue* hdType = d_state.lookupType(hd);
   Assert(hdType != nullptr) << "No type for " << Expr(hd);
-  Kind hk = hdType->getKind();  
-  if (hk == Kind::ANY)
+  if (isEvaluationApp(hdType))
   {
-    return Expr(hdType);
+    return d_state.mkAny();
   }
+  Kind hk = hdType->getKind();
   if (hk != Kind::FUNCTION_TYPE && hk != Kind::PROGRAM_TYPE)
   {
     // non-function at head
@@ -482,24 +500,6 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
   }
   // evaluate in the matched context
   return evaluate(hdtypes.back(), ctx);
-}
-
-bool isEvaluationApp(const ExprValue* e)
-{
-#ifdef TYPE_CHECK_PROGRAMS
-  Kind k = e->getKind();
-  if (isLiteralOp(k) || k==Kind::ANY)
-  {
-    return true;
-  }
-  else if (k==Kind::APPLY || k==Kind::APPLY_OPAQUE)
-  {
-    Kind hk = (*e)[0]->getKind();
-    return (hk==Kind::PROGRAM_CONST || hk==Kind::ORACLE);
-  }
-  return false;
-#endif
-  return false;
 }
 
 bool TypeChecker::match(ExprValue* a, ExprValue* b, Ctx& ctx)
@@ -1805,6 +1805,7 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_EXTRACT:
       // type is the first child
       return Expr(childTypes[0]);
+    case Kind::EVAL_IS_OK:
     case Kind::EVAL_IS_EQ:
     case Kind::EVAL_EQ:
     case Kind::EVAL_IS_NEG:

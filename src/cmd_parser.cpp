@@ -436,6 +436,7 @@ bool CmdParser::parseNextCommand()
       std::vector<Expr> argTypes;
       for (Expr& e : args)
       {
+        d_eparser.typeCheck(e);
         Expr et = d_state.mkQuoteType(e);
         argTypes.push_back(et);
       }
