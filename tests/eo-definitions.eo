@@ -71,6 +71,8 @@
 
 ;;; $eo_cons
 
+; define: $eo_cons
+; implements: eo::cons
 (define $eo_cons
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)
    (W1 Type :implicit) (W2 Type :implicit)
@@ -88,6 +90,8 @@
   )
 )
 
+; define: $eo_list_len
+; implements: eo::list_len
 (define $eo_list_len
   ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
    (f (-> T U V)) (a W))
@@ -104,6 +108,8 @@
   )
 )
 
+; define: $eo_list_concat
+; implements: eo::list_concat
 (define $eo_list_concat
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)
    (f (-> T V V)) (a U) (b U))
@@ -122,6 +128,8 @@
   )
 )
 
+; define: $eo_list_nth
+; implements: eo::list_nth
 (define $eo_list_nth
   ((T Type :implicit) (U Type :implicit)
    (f (-> T T T)) (a U) (n Int))
@@ -141,6 +149,8 @@
   )
 )
 
+; define: $eo_list_find
+; implements: eo::list_find
 (define $eo_list_find
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)
    (W1 Type :implicit) (W2 Type :implicit)
@@ -160,6 +170,8 @@
   )
 )
 
+; define: $eo_list_rev
+; implements: eo::list_rev
 (define $eo_list_rev
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)
    (f (-> T V V)) (a U))
@@ -179,6 +191,8 @@
   )
 )
 
+; define: $eo_list_erase
+; implements: eo::list_erase
 (define $eo_list_erase
   ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
    (f (-> T V V)) (a U) (e W))
@@ -198,6 +212,8 @@
   )
 )
 
+; define: $eo_list_erase_all
+; implements: eo::list_erase_all
 (define $eo_list_erase_all
   ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
    (f (-> T V V)) (a U) (e W))
@@ -216,6 +232,8 @@
   )
 )
 
+; define: $eo_list_setof
+; implements: eo::list_setof
 (define $eo_list_setof
   ((T Type :implicit) (U Type :implicit) (V Type :implicit) (f (-> T V V)) (a U))
   (eo::requires ($eo_is_list f a) true
@@ -235,6 +253,8 @@
   )
 )
 
+; define: $eo_list_minclude
+; implements: eo::list_minclude
 ; Note: >
 ;   Since $eo_list_erase is a key submethod for defining $eo_list_minclude,
 ;   and $eo_list_erase requires functions (-> T V V), we convert the elements
@@ -250,6 +270,8 @@
 
 ;;; $eo_list_meq
 
+; define: $eo_list_meq
+; implements: eo::list_meq
 (define $eo_list_meq
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)
    (W1 Type :implicit) (W2 Type :implicit)
