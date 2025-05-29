@@ -19,7 +19,7 @@
 ;  )
 ;)
 
-; For each declare-const or declare-parameterized-const f of type (-> T T T)
+; For each declare-const or declare-parameterized-const f whose return type is T
 ; declared in the signature that is marked :right-assoc-nil nil, we add the
 ; case to $eo_nil:
 ;   (($eo_nil f T) nil)
