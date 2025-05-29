@@ -5,10 +5,11 @@
 
 ;;; $eo_nil
 
-; Note that $eo_nil is dynamically modified based on the declared constants,
-; as described below. This means we cannot provide a static definition of it
-; in this signature, and this is not equivalent to the builtin eo::nil.
-; We assume that $eo_nil is defined prior to parsing this file.
+; Note that the behavior of eo::nil is dynamically modified based on the
+; declared constants, as described below. This means we cannot provide a static
+; definition of $eo_nil in this signature. Instead, we assume that $eo_nil is
+; defined prior to parsing this file, and describe how to manually construct
+; such a definition for a given signature.
 
 ; The internal definition of $eo_nil has the following form.
 ;(program $eo_nil ((T Type) (U Type) (V Type) (W Type))
@@ -25,7 +26,7 @@
 ; For example, given:
 ;   (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 ; We add this case to $eo_nil above:
-;   (($eo_nil or Bool)          false)'
+;   (($eo_nil or Bool)          false)
 
 ; Note that we include the type as part of the case to support functions with
 ; non-ground nil terminators, which requiring instantiating the free parameters
