@@ -2195,11 +2195,9 @@ have no impact on behavior (apart from performance), unless otherwise noted.
 We now provide definitions of Eunoia list operators in terms
 of standard Eunoia programs.
 It is possible to define programs for *all* list operators with the exception
-of `eo::nil`, as we describe in the following.
-
-The behavior of `eo::nil` is dynamically modified based on the
-declared constants. This means we cannot provide a static
-definition of `$eo_nil` in this signature. Instead, we provide instructions
+of `eo::nil`.
+In particular, the behavior of `eo::nil` is dynamically modified based on the
+declared constants. We provide instructions
 for how to construct the definition of `$eo_nil` for a fixed signature.
 
 In particular, we assume the definition of `$eo_nil` has the following form:
