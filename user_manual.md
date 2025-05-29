@@ -668,7 +668,7 @@ Binary values are considered to be in little endian form.
 
 Some of the following operators can be defined in terms of the other operators.
 For these operators, we provide the equivalent formulation.
-A signature defining these files can be found in [non-core-eval](#non-core-eval).
+A signature defining these files can be found in [derived-ops](#derived-ops).
 Note, however, that the evaluation of these operators is handled by more efficient methods internally in Ethos, that is, they are not treated as syntax sugar internally.
 
 ### Core operators
@@ -895,6 +895,9 @@ It does not require that its arguments denote values, so for example `(eo::is_eq
 Below, we assume that `f` is right associative operator with nil terminator `nil` and `t1, t2` are values. Otherwise, the following operators do not evaluate.
 We describe the evaluation for right associative operators; left associative evaluation is defined analogously.
 We say that a term is an `f`-list with children `t1 ... tn` if it is of the form `(f t1 ... tn)` where `n>0` or `nil` if `n=0`.
+
+Note that all of the list operators here (with the exception of `eo::nil` have a semantics that can be described as an ordinary Eunoia program).
+We provide a signature of these definitions in [derived-list-ops](#derived-list-ops).
 
 ### List operators
 
@@ -2097,9 +2100,8 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
 
 ```
 
- <a name="non-core-eval"></a>
-
 ### Derived Definitions of Evaluation Operators
+<a name="derived-ops"></a>
 
 The following signature can be used to give an alternative definition
 of certain builtin operators that can be expressed as standard Eunoia programs
@@ -2187,6 +2189,8 @@ have no impact on behavior (apart from performance), unless otherwise noted.
   (eo::is_neg (eo::add (eo::hash b) (eo::neg (eo::hash a)))))
 
 ```
+### Derived Definitions of List Evaluation Operators
+<a name="derived-list-ops"></a>
 
 We now provide definitions of Eunoia list operators in terms
 of standard Eunoia side conditions.
@@ -2272,7 +2276,7 @@ All other list operators can be defined as follows.
 
 ; Note: >
 ;   This does not correspond to a builtin operator. It is used as a helper
-;   to define eo_list_minclude below.
+;   to define $eo_list_minclude below.
 (define $eo_get_elements
   ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
    (f (-> T U V)) (a W))
