@@ -11,7 +11,8 @@
 
 ; `extract_antec F C` returns the antecedant of F up to C,
 ; e.g. returns (and G1 G2) when F is (=> G1 (=> G2 C)), or true if F is C.
-(program extract_antec_rec ((C Bool) (F1 Bool) (F2 Bool))
+(program extract_antec_rec
+   ((C Bool) (F1 Bool) (F2 Bool))
    :signature (Bool Bool) Bool
    (
    ((extract_antec_rec C C)          true)
@@ -20,14 +21,16 @@
 )
 ; Calls the above method if necessary.
 ; Singleton case is handled here to avoid constructing AND with single child.
-(program extract_antec ((C Bool) (F Bool))
+(program extract_antec
+   ((C Bool) (F Bool))
    :signature (Bool Bool) Bool
    (
    ((extract_antec (=> F C) C) F)
    ((extract_antec F C)        (extract_antec_rec F C))
    )
 )
-(program run_process_scope ((C Bool) (F Bool))
+(program run_process_scope
+   ((C Bool) (F Bool))
    :signature (Bool Bool) Bool
    (
    ((run_process_scope F false) (not (extract_antec F false)))
@@ -36,7 +39,8 @@
 )
 
 ; this rule processes the result of n scopes into the conclusion expected by ProofRule::SCOPE
-(declare-rule process_scope ((C Bool) (F Bool))
+(declare-rule process_scope
+  ((C Bool) (F Bool))
   :premises (F)
   :args (C)
   :conclusion (run_process_scope F C)

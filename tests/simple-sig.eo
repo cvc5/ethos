@@ -18,7 +18,8 @@
 
 (declare-const or (-> Bool Bool Bool) :right-assoc)
 
-(program flip ((T Type) (x T) (y T))
+(program flip 
+  ((T Type) (x T) (y T))
   :signature (Bool) Bool
   (
   ((flip (= x y)) (= y x))
