@@ -624,9 +624,19 @@ bool TypeChecker::match(ExprValue* a,
           }
           stack.emplace_back(curr.first->d_children[1], t);
         }       
-        else if (isEvaluationApp(curr.first) || isEvaluationApp(curr.second))
+        else if (isEvaluationApp(curr.first))
         {
           // skip
+        }
+        else if (isEvaluationApp(curr.second))
+        {
+          // Special case: if the left hand side is "any", then match each
+          // child to "any".
+          ExprValue* any = d_state.mkAny().getValue();
+          for (size_t i = 0, n = curr.first->getNumChildren(); i < n; ++i)
+          {
+            stack.emplace_back(curr.first->d_children[i], any);
+          }
         }
         else
         {
