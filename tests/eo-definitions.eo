@@ -77,6 +77,8 @@
 (define $eo_cmp ((T Type :implicit) (U Type :implicit) (a T) (b U))
   (eo::is_neg (eo::add (eo::hash b) (eo::neg (eo::hash a)))))
 
+;;;;;; List operators
+
 ;;; $eo_nil
 
 ; Note that the behavior of eo::nil is dynamically modified based on the
