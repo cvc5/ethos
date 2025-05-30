@@ -2312,6 +2312,8 @@ As an exception, we often use `Tuple` in the second field of term annotations `<
   A : maps <const> to <annot>.
   ; Assertions (formulas provided in assert commands).
   Ax : a list of <term>.
+  ; Local assertions (formulas pushed via assume-push).
+  Axl : a list of <term>.
   ; Category types, maps literal categories to their types.
   L : maps <lit-category> to <term>
 ```
@@ -2621,17 +2623,40 @@ RUN(C):
     return RUN( (declare-const s (-> (eo::typeof z_1)  ... (eo::typeof z_m) (eo::typeof t)) :define (Lambda (Tuple z_1 ... z_m) t)) )
 
   (declare-rule s ((y_1 U_1) ... (y_n U_n))
-    [:assumption a]?
+    [:assumption q]?
     [:premises (p_1 ... p_k) | :premise-list pl_p pl_g]
     :args (t_1 ... t_l)
-    :requires ((s_1 r_1) ... (s_m r_m))
+    :requires ((s_1 r_1) ... (s_m r_m) a_s)
     [:conclusion F | :conclusion-explicit F_x]):
     return RUN(
       (declare-const s (-> (Quote t_1) ... (Quote t_l)
                            [(Proof p_1) ... (Proof p_k) | (Proof pl_p)]
-                           [(Quote a)]? [(Quote Fx)]?
+                           [(Quote q)]? [(Quote Fx)]?
                            (eo::requires s_1 r_1 ... (eo::requires s_m r_m
-                           [F | Fx]))) :rule (Tuple a? F_x? pl_g?)) )
+                           [F | Fx]))) :rule (Tuple q? pl_g? F_x?)) )
+
+  (assume s F):
+    ASSERT( F in Ax )
+    return RUN( (declare-const s (Proof F)) )
+
+  (assume-push s F)
+    Axl.push(F)
+    return RUN( (declare-const s (Proof F)) )
+
+  ([step | step-pop] s F? :rule r :premises (p_1 ... p_k) :args (t_1 ... t_n)):
+    ASSERT( A[r] = [rule, (Tuple q pl_g F_x)] )   ; r must be a proof rule
+    ASSERT( (q == Null) iff this.cmd == step )    ; step-pop used iff r has an assumption
+    ASSERT( (F_x == Null) or (F != Null) )        ; conclusion provided if r has an explicit conclusion
+    Let res = (
+      if pl_g == Null
+        (r t_1 ... t_n [Axl.pop()]? [F]? p_1 ... p_k)
+      else
+        Assume p_1, ..., p_k have type (Proof F_1), ...., (Proof F_k).
+        Let pl = RUN( (declare-const tmp DESUGAR( (Proof (g F_1 ... F_k) ) ) ) ).
+        (r t_1 ... t_n [Axl.pop()]? [F]? pl) )
+    return RUN( (define s () res :type (Proof F)) )
+      where the most recent assertion is popped via Axl.pop() and provided if q is not Null,
+        and F is provided if F_x is not null
 
   (declare-datatype s () (par (U_1 ... U_n) ((c_1 (s_11 T_11) ... (s1m T_1m)) ... (c_n (s_n1 T_n1) ... (snm T_nm))))):
     Let DC = RUN( (declare-type s (U_1 ... U_n)) )
@@ -2656,20 +2681,6 @@ RUN(C):
   (declare-datatypes ...):
     TODO
 
-  (assume s F):
-    ASSERT( F in Ax )
-    return RUN( (declare-const s (Proof F)) )
-
-  ; TODO: improve handling of premise-list
-  (step s F :rule r :premises (p_1 ... p_k) :args (t_1 ... t_n)):
-    if A[r] = [premise-list, g]
-      Let p = FRESH_CONST( p, DESUGAR( (Proof (g F_1 ... F_k) ) ) ), where p_1, ..., p_k have type (Proof F_1), ...., (Proof F_k).
-      Let res = SUBS( (r t_1 ... t_n p), [eo::conclusion], [F] )
-      return RUN( (define s () res :type (Proof F)) )
-    else
-      Let res = SUBS( (r t_1 ... t_n p_1 ... p_k), [eo::conclusion], [F] )
-      return RUN( (define s () res :type (Proof F)) )
-
   (program s ((x_1 U_1) ... (x_m U_m))
     :signature (T_1 ... T_n) T
     (
@@ -2678,9 +2689,9 @@ RUN(C):
     ((s a_k1 ... y_kn) r_k)
     )
   ):
-    Let p = RUN( (declare-const s (--> T_1 ... T_n T)) )
-    A[p] := [program, (Tuple (Tuple (p a_11 ... a_1n) r_1) ... (Tuple (p a_k1 ... y_kn) r_k))]
-    return p
+    return RUN(
+      (declare-const s (--> T_1 ... T_n T)
+        :program (Tuple (Tuple (Tuple a_11 ... a_1n) r_1) ... (Tuple (Tuple a_k1 ... y_kn) r_k))) )
   
   (declare-oracle-fun s () T o):
     return RUN( (declare-const s T :oracle o) )
@@ -2691,15 +2702,6 @@ RUN(C):
   (declare-consts c T)
     L[c] := T
     return Null
-
-  ;;; push/pop
-
-  (assume-push s F)
-    return RUN( (declare-const s (Proof F)) )
-
-  (step-pop s F :rule r :premises (p_1 ... p_k) :args (t_1 ... t_n)), where (assume-push s G)
-  is the assumption that is being popped:
-    TODO
 
   ;;; SMT-LIB
 
