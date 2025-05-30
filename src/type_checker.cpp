@@ -58,7 +58,7 @@ void TypeChecker::setLiteralTypeRule(Kind k, const Expr& t)
   it->second = t;
 }
 
-ExprValue* TypeChecker::getOrSetLiteralTypeRule(Kind k)
+Expr TypeChecker::getOrSetLiteralTypeRule(Kind k, ExprValue* self)
 {
   std::map<Kind, Expr>::iterator it = d_literalTypeRules.find(k);
   if (it==d_literalTypeRules.end())
@@ -67,14 +67,26 @@ ExprValue* TypeChecker::getOrSetLiteralTypeRule(Kind k)
     EO_FATAL() << "TypeChecker::getOrSetLiteralTypeRule: cannot get type rule for kind "
                  << k;
   }
+  Expr tp;
   if (it->second.isNull())
   {
     // If no type rule, assign the type rule to the builtin type
-    Expr t = d_state.mkBuiltinType(k);
-    d_literalTypeRules[k] = t;
-    return t.getValue();
+    tp = d_state.mkBuiltinType(k);
+    d_literalTypeRules[k] = tp;
   }
-  return it->second.getValue();
+  else
+  {
+    tp = it->second;
+  }
+  // it may involve the "self" parameter
+  if (!tp.isGround())
+  {
+    Expr eself = self == nullptr ? d_state.mkAny() : Expr(self);
+    Ctx ctx;
+    ctx[d_state.mkSelf().getValue()] = eself.getValue();
+    return evaluate(tp.getValue(), ctx);
+  }
+  return tp;
 }
 
 Expr TypeChecker::getType(Expr& e, std::ostream* out)
@@ -139,8 +151,10 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
   // check arities
   switch(k)
   {
+    case Kind::ANNOT_PARAM:
     case Kind::EVAL_IS_EQ:
     case Kind::EVAL_VAR:
+    case Kind::EVAL_EQ:
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_INT_MOD:
     case Kind::EVAL_RAT_DIV:
@@ -149,6 +163,9 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_COMPARE:
     case Kind::EVAL_GT:
     case Kind::EVAL_LIST_LENGTH:
+    case Kind::EVAL_LIST_REV:
+    case Kind::EVAL_LIST_SETOF: ret = (nargs == 2); break;
+    case Kind::EVAL_NIL:
       ret = (nargs==2);
       break;
     case Kind::EVAL_ADD:
@@ -163,6 +180,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
       ret = (nargs>=3);
       break;
     case Kind::PROOF_TYPE:
+    case Kind::EVAL_IS_OK:
     case Kind::EVAL_TYPE_OF:
     case Kind::EVAL_NAME_OF:
     case Kind::EVAL_HASH:
@@ -181,16 +199,15 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_IS_VAR:
     case Kind::EVAL_DT_CONSTRUCTORS:
     case Kind::EVAL_DT_SELECTORS: ret = (nargs == 1); break;
-    case Kind::EVAL_NIL:
-      ret = (nargs>=1);
-      break;
     case Kind::EVAL_REQUIRES:
     case Kind::EVAL_IF_THEN_ELSE:
     case Kind::EVAL_CONS:
     case Kind::EVAL_LIST_FIND:
+    case Kind::EVAL_LIST_ERASE:
+    case Kind::EVAL_LIST_ERASE_ALL:
     case Kind::EVAL_LIST_NTH:
-      ret = (nargs==3);
-      break;
+    case Kind::EVAL_LIST_MINCLUDE:
+    case Kind::EVAL_LIST_MEQ: ret = (nargs == 3); break;
     case Kind::EVAL_EXTRACT:
       ret = (nargs==3 || nargs==2);
       break;
@@ -238,10 +255,10 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       return d_state.mkFunctionType(args, ret);
     }
     case Kind::TYPE:
-    case Kind::ABSTRACT_TYPE:
     case Kind::BOOL_TYPE:
     case Kind::FUNCTION_TYPE:
-      return d_state.mkType();
+    case Kind::PROGRAM_TYPE:
+    case Kind::ANY: return d_state.mkType();
     case Kind::PROOF_TYPE:
     {
       ExprValue* ctype = d_state.lookupType(e->d_children[0]);
@@ -256,14 +273,15 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       }
     }
       return d_state.mkType();
+    case Kind::ANNOT_PARAM:
+      // its type is the second child
+      return Expr(e->d_children[1]);
     case Kind::QUOTE_TYPE:
-    case Kind::OPAQUE_TYPE:
-    case Kind::NULL_TYPE:
     case Kind::TUPLE:
       // These things are essentially not typed.
       // We require the first 3 to be an abstract type, not type,
       // to prevent them from being used as (return) types of terms.
-      return d_state.mkAbstractType();
+      return d_state.mkAny();
     case Kind::BOOLEAN:
       // note that Bool is builtin
       return d_state.mkBoolType();
@@ -275,15 +293,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
     case Kind::STRING:
     {
       // use the literal type rule
-      ExprValue* ret = getOrSetLiteralTypeRule(k);
-      // it may involve the "self" parameter
-      if (!ret->isGround())
-      {
-        Ctx ctx;
-        ctx[d_state.mkSelf().getValue()] = e;
-        return evaluate(ret, ctx);
-      }
-      return Expr(ret);
+      return getOrSetLiteralTypeRule(k, e);
     }
       break;
     case Kind::AS:
@@ -313,7 +323,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
         {
           ctypes.push_back(d_state.lookupType(c));
         }
-        return Expr(getLiteralOpType(k, children, ctypes, out));
+        return getLiteralOpType(k, children, ctypes, out);
       }
       break;
   }
@@ -343,12 +353,14 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
   ExprValue* hd = children[0];
   ExprValue* hdType = d_state.lookupType(hd);
   Assert(hdType != nullptr) << "No type for " << Expr(hd);
-  if (hdType->getKind()!=Kind::FUNCTION_TYPE)
+  Kind hk = hdType->getKind();
+  if (hk != Kind::FUNCTION_TYPE && hk != Kind::PROGRAM_TYPE)
   {
     // non-function at head
     if (out)
     {
-      (*out) << "Non-function " << Expr(hd) << " as head of APPLY";
+      (*out) << "Non-function " << Expr(hd) << " as head of APPLY" << std::endl;
+      (*out) << "Its type is " << Expr(hdType);
     }
     return d_null;
   }
@@ -438,6 +450,7 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
       if (out)
       {
         ExprValue* hdto = hdtypes[i];
+        (*out) << "Checking application of " << Expr(hd) << std::endl;
         if (hdtypes[i]->getKind() == Kind::QUOTE_TYPE)
         {
           (*out) << "Unexpected child #" << i << std::endl;
@@ -489,11 +502,20 @@ bool TypeChecker::match(ExprValue* a,
   {
     curr = stack.back();
     stack.pop_back();
-    if (curr.first == curr.second)
+    // if we are ground
+    if (curr.first->isGround())
     {
-      // holds trivially
-      continue;
+      if (curr.first == curr.second)
+      {
+        // holds trivially
+        continue;
+      }
+      // otherwise fails
+      return false;
     }
+    // note that if curr.first == curr.second, and both are non-ground,
+    // then we still require recursing, which will bind identity substitutions
+    // on each of their parameters.
     it = visited.find(curr);
     if (it != visited.end())
     {
@@ -535,12 +557,36 @@ bool TypeChecker::match(ExprValue* a,
       if (curr.first->getNumChildren() != curr.second->getNumChildren()
           || curr.first->getKind() != curr.second->getKind())
       {
-        return false;
+        // Special case: if we are an annotated parameter, then matching takes
+        // into account its *type*. In particular, the type of the term we are
+        // matching is matched against the annotated type. This has the effect
+        // that free parameters in the type of parameters are also bound, if the
+        // parameter is annotated.
+        Kind ck1 = curr.first->getKind();
+        if (ck1 == Kind::ANNOT_PARAM)
+        {
+          stack.emplace_back(curr.first->d_children[0], curr.second);
+          // independently check its type
+          ExprValue* t = d_state.lookupType(curr.second);
+          if (t == nullptr)
+          {
+            return false;
+          }
+          stack.emplace_back(curr.first->d_children[1], t);
+        }
+        else
+        {
+          return false;
+        }
       }
-      // recurse on children
-      for (size_t i = 0, n = curr.first->getNumChildren(); i < n; ++i)
+      else
       {
-        stack.emplace_back((*curr.first)[i], (*curr.second)[i]);
+        // recurse on children
+        for (size_t i = 0, n = curr.first->getNumChildren(); i < n; ++i)
+        {
+          stack.emplace_back(curr.first->d_children[i],
+                             curr.second->d_children[i]);
+        }
       }
     }
   }
@@ -1061,31 +1107,35 @@ ExprValue* getNAryChildren(ExprValue* e,
   return e;
 }
 
+Expr TypeChecker::prependNAryChildren(ExprValue* op,
+                                      ExprValue* ret,
+                                      const std::vector<ExprValue*>& hargs,
+                                      bool isLeft)
+{
+  // note we take the tail verbatim
+  std::vector<ExprValue*> cc;
+  cc.push_back(op);
+  cc.push_back(nullptr);
+  cc.push_back(nullptr);
+  size_t tailIndex = (isLeft ? 1 : 2);
+  size_t headIndex = (isLeft ? 2 : 1);
+  for (size_t i = 0, nargs = hargs.size(); i < nargs; i++)
+  {
+    cc[tailIndex] = ret;
+    cc[headIndex] = hargs[isLeft ? i : (nargs - 1 - i)];
+    ret = d_state.mkApplyInternal(cc);
+  }
+  return Expr(ret);
+}
+
 Expr TypeChecker::evaluateLiteralOpInternal(
     Kind k, const std::vector<ExprValue*>& args)
 {
   Assert (!args.empty());
   Trace("type_checker") << "EVALUATE-LIT " << k << " " << args << std::endl;
+  // special cases: ITE may evaluate if non-ground
   switch (k)
   {
-    case Kind::EVAL_IS_EQ:
-    {
-      Assert (args.size()==2);
-      bool ret = args[0]==args[1];
-      if (ret)
-      {
-        // eagerly evaluate if sides are equal, even if non-ground
-        return d_state.mkTrue();
-      }
-      else if (isGround(args))
-      {
-        // otherwise, if both sides are ground, we evaluate to false.
-        // note this is independent of whether they are values.
-        return d_state.mkFalse();
-      }
-      return d_null;
-    }
-    break;
     case Kind::EVAL_IF_THEN_ELSE:
     {
       Assert (args.size()==3);
@@ -1099,11 +1149,32 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       return d_null;
     }
     break;
+    case Kind::ANNOT_PARAM:
+    {
+      // if the first argument is ground, then we know by construction
+      // that its type is equal to the second argument. This invariant
+      // is ensured by the fact that the context we are in is the result
+      // of a context that was extended by matching the second argument
+      // to the type of the (instantiated) first argument.
+      if (args[0]->isGround())
+      {
+        // by construction, args[0] should have type args[1], this is
+        // an assertion that is not checked in production.
+        Expr ret(args[0]);
+        Assert(getType(ret).getValue() == args[1]);
+        return Expr(ret);
+      }
+    }
+    break;
     case Kind::EVAL_REQUIRES:
     {
-      if (args[0]==args[1])
+      // (eo::requires t s r) ---> r if (eo::is_eq t s) = true
+      // Note that this is independent of whether r is ground, and hence is
+      // a special case prior to check for all arguments to be ground.
+      if (args[0]->isGround() && !args[0]->isEvaluatable()
+          && args[1]->isGround() && !args[1]->isEvaluatable()
+          && args[0] == args[1])
       {
-        // eagerly evaluate even if body is non-ground
         return Expr(args[2]);
       }
       if (TraceIsOn("type_checker"))
@@ -1117,27 +1188,72 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       return d_null;
     }
     break;
+    default: break;
+  }
+  // further evaluation only if non-ground
+  if (!isGround(args))
+  {
+    Trace("type_checker") << "...does not evaluate (non-ground)" << std::endl;
+    return d_null;
+  }
+  switch (k)
+  {
+    case Kind::EVAL_IS_OK:
+    {
+      Assert(args.size() == 1);
+      // returns false iff the argument is stuck, only evaluated if the argument
+      // is ground.
+      return d_state.mkBool(!args[0]->isEvaluatable());
+    }
+    break;
+    case Kind::EVAL_IS_EQ:
+    {
+      Assert(args.size() == 2);
+      // Note that (eo::is_eq t s) is equivalent to
+      // (eo::ite (eo::and (eo::is_ok t) (eo::is_ok s)) (eo::eq s t) false)
+      // In other words, eo::is_eq if true if both arguments are syntactically
+      // equal and not stuck, false otherwise.
+      // Since eo::and does not short circuit, this means that the condition of
+      // the ITE is only evaluated when t and s are ground, hence eo::is_eq
+      // only evaluates when its arguments are ground, and so it is handled
+      // here.
+      return d_state.mkBool(!args[0]->isEvaluatable()
+                            && !args[1]->isEvaluatable() && args[0] == args[1]);
+    }
+    break;
+    case Kind::EVAL_EQ:
+    {
+      // syntactic equality, only evaluated if the terms are values
+      if (!args[0]->isEvaluatable() && !args[1]->isEvaluatable())
+      {
+        return d_state.mkBool(args[0] == args[1]);
+      }
+      // does not evaluate otherwise
+      return d_null;
+    }
+    break;
     case Kind::EVAL_HASH:
     {
-      if (args[0]->isGround())
+      Assert(args.size() == 1);
+      if (args[0]->isEvaluatable())
       {
-        size_t h = d_state.getHash(args[0]);
-        Literal lh(Integer(static_cast<unsigned int>(h)));
-        return Expr(d_state.mkLiteralInternal(lh));
+        return d_null;
       }
-      return d_null;
+      size_t h = d_state.getHash(args[0]);
+      Literal lh(Integer(static_cast<unsigned int>(h)));
+      return Expr(d_state.mkLiteralInternal(lh));
     }
     break;
     case Kind::EVAL_COMPARE:
     {
-      if (args[0]->isGround() && args[1]->isGround())
+      if (args[0]->isEvaluatable() || args[1]->isEvaluatable())
       {
-        size_t h1 = d_state.getHash(args[0]);
-        size_t h2 = d_state.getHash(args[1]);
-        Literal lb(h1>h2);
-        return Expr(d_state.mkLiteralInternal(lb));
+        return d_null;
       }
-      return d_null;
+      size_t h1 = d_state.getHash(args[0]);
+      size_t h2 = d_state.getHash(args[1]);
+      Literal lb(h1 > h2);
+      return Expr(d_state.mkLiteralInternal(lb));
     }
     break;
     case Kind::EVAL_IS_Z:
@@ -1147,10 +1263,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_IS_BOOL:
     case Kind::EVAL_IS_VAR:
     {
-      if (!args[0]->isGround())
-      {
-        return d_null;
-      }
+      Assert(args.size() == 1);
       Kind kk;
       switch (k)
       {
@@ -1160,8 +1273,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       case Kind::EVAL_IS_STR:kk = Kind::STRING;break;
       case Kind::EVAL_IS_BOOL:kk = Kind::BOOLEAN;break;
       case Kind::EVAL_IS_VAR:kk = Kind::VARIABLE;break;
-      default:
-        return d_null;
+      default: Assert(false); break;
       }
       Literal lb(args[0]->getKind()==kk);
       return Expr(d_state.mkLiteralInternal(lb));
@@ -1169,40 +1281,34 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     break;
     case Kind::EVAL_TYPE_OF:
     {
-      // get the type if ground
-      if (isGround(args))
+      if (!args[0]->isEvaluatable())
       {
+        // get the type if ground
         Expr e(args[0]);
         Expr et = getType(e);
         if (et.isGround())
         {
           // don't permit ground evaluatable types
-          Assert (!et.isEvaluatable());
+          Assert(!et.isEvaluatable());
           return et;
         }
       }
-      return d_null;
     }
     break;
     case Kind::EVAL_NAME_OF:
     {
-      // get the type if ground
-      if (isGround(args))
+      Kind k = args[0]->getKind();
+      if (k == Kind::CONST || k == Kind::VARIABLE)
       {
-        Kind k = args[0]->getKind();
-        if (k==Kind::CONST || k==Kind::VARIABLE)
-        {
-          Literal sym(String(Expr(args[0]).getSymbol()));
-          return Expr(d_state.mkLiteralInternal(sym));
-        }
+        Literal sym(String(Expr(args[0]).getSymbol()));
+        return Expr(d_state.mkLiteralInternal(sym));
       }
-      return d_null;
     }
     break;
     case Kind::EVAL_VAR:
     {
       // if arguments are ground and the first argument is a string
-      if (args[0]->getKind()==Kind::STRING && args[1]->isGround())
+      if (args[0]->getKind() == Kind::STRING && !args[1]->isEvaluatable())
       {
         Expr type(args[1]);
         Expr tt = getType(type);
@@ -1231,6 +1337,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
           return ac->d_attrConsTerm;
         }
       }
+      return d_null;
     }
     break;
     case Kind::EVAL_DT_CONSTRUCTORS:
@@ -1276,15 +1383,11 @@ Expr TypeChecker::evaluateLiteralOpInternal(
         }
         return ac->d_attrConsTerm;
       }
+      return d_null;
     }
     break;
     default:
       break;
-  }
-  if (!isGround(args))
-  {
-    Trace("type_checker") << "...does not evaluate (non-ground)" << std::endl;
-    return d_null;
   }
   // convert argument expressions to literals
   std::vector<const Literal*> lits;
@@ -1350,11 +1453,22 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   // infer the nil expression, which depends on the type of args[1]
   std::vector<Expr> eargs;
   eargs.emplace_back(args[0]);
-  if (args.size()>1)
+  Expr nilExpr;
+  if (k==Kind::EVAL_NIL)
+  {
+    // Special case: to handle (eo::nil x T), we construct
+    // a dummy term of type T to be consistent with other
+    // lookups for nil terminators.
+    Expr tmpType(args[1]);
+    Expr tmp = d_state.mkSymbol(Kind::CONST, "tmp", tmpType);
+    eargs.emplace_back(tmp);
+    return computeConstructorTermInternal(ac, eargs);
+  }
+  else if (args.size()>1)
   {
     eargs.emplace_back(args[1]);
+    nilExpr = computeConstructorTermInternal(ac, eargs);
   }
-  Expr nilExpr = computeConstructorTermInternal(ac, eargs);
   if (nilExpr.isNull())
   {
     Trace("type_checker") << "...failed to get nil" << std::endl;
@@ -1365,11 +1479,6 @@ Expr TypeChecker::evaluateLiteralOpInternal(
   std::vector<ExprValue*> hargs;
   switch (k)
   {
-    case Kind::EVAL_NIL:
-    {
-      return nilExpr;
-    }
-    break;
     case Kind::EVAL_CONS:
     case Kind::EVAL_LIST_CONCAT:
     {
@@ -1400,20 +1509,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
           return d_null;
         }
       }
-      // note we take the tail verbatim
-      std::vector<ExprValue*> cc;
-      cc.push_back(op);
-      cc.push_back(nullptr);
-      cc.push_back(nullptr);
-      for (size_t i = 0, nargs = hargs.size(); i < nargs; i++)
-      {
-        cc[tailIndex] = ret;
-        cc[headIndex] = hargs[isLeft ? i : (nargs - 1 - i)];
-        ret = d_state.mkApplyInternal(cc);
-      }
-      Trace("type_checker_debug")
-          << "CONS: " << isLeft << " " << args << " -> " << ret << std::endl;
-      return Expr(ret);
+      return prependNAryChildren(op, ret, hargs, isLeft);
     }
       break;
     case Kind::EVAL_LIST_LENGTH:
@@ -1472,58 +1568,185 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       Literal lret = Literal(Integer(iret));
       return Expr(d_state.mkLiteralInternal(lret));
     }
-      break;
+    break;
+    case Kind::EVAL_LIST_ERASE:
+    case Kind::EVAL_LIST_ERASE_ALL:
+      return evaluateListEraseInternal(k, op, nil, isLeft, args);
+    case Kind::EVAL_LIST_REV:
+      return evaluateListRevInternal(op, nil, isLeft, args);
+    case Kind::EVAL_LIST_SETOF:
+      return evaluateListSetOfInternal(op, nil, isLeft, args);
+    case Kind::EVAL_LIST_MINCLUDE:
+    case Kind::EVAL_LIST_MEQ:
+      return evaluateListMPredInternal(k, op, nil, isLeft, args);
     default:
       break;
   }
   return d_null;
 }
 
-ExprValue* TypeChecker::getLiteralOpType(Kind k,
-                                         std::vector<ExprValue*>& children,
-                                         std::vector<ExprValue*>& childTypes,
-                                         std::ostream* out)
+Expr TypeChecker::evaluateListRevInternal(ExprValue* op,
+                                          ExprValue* nil,
+                                          bool isLeft,
+                                          const std::vector<ExprValue*>& args)
+{
+  std::vector<ExprValue*> hargs;
+  if (getNAryChildren(args[1], op, nil, hargs, isLeft) == nullptr)
+  {
+    Trace("type_checker") << "...head not in list form" << std::endl;
+    return d_null;
+  }
+  std::reverse(hargs.begin(), hargs.end());
+  return prependNAryChildren(op, nil, hargs, isLeft);
+}
+
+Expr TypeChecker::evaluateListEraseInternal(Kind k,
+                                            ExprValue* op,
+                                            ExprValue* nil,
+                                            bool isLeft,
+                                            const std::vector<ExprValue*>& args)
+{
+  std::vector<ExprValue*> hargs;
+  if (getNAryChildren(args[1], op, nil, hargs, isLeft) == nullptr)
+  {
+    return d_null;
+  }
+  std::vector<ExprValue*> result;
+  bool changed = false;
+  bool doRem = true;
+  bool isAll = (k == Kind::EVAL_LIST_ERASE_ALL);
+  for (ExprValue* elem : hargs)
+  {
+    if (doRem && elem == args[2])
+    {
+      changed = true;
+      if (!isAll)
+      {
+        doRem = false;
+      }
+      continue;
+    }
+    result.emplace_back(elem);
+  }
+  if (!changed)
+  {
+    return Expr(args[1]);
+  }
+  return prependNAryChildren(op, nil, result, isLeft);
+}
+
+Expr TypeChecker::evaluateListSetOfInternal(ExprValue* op,
+                                            ExprValue* nil,
+                                            bool isLeft,
+                                            const std::vector<ExprValue*>& args)
+{
+  std::vector<ExprValue*> hargs;
+  if (getNAryChildren(args[1], op, nil, hargs, isLeft) == nullptr)
+  {
+    return d_null;
+  }
+  std::unordered_set<ExprValue*> seen;
+  std::vector<ExprValue*> result;
+  for (ExprValue* elem : hargs)
+  {
+    if (seen.insert(elem).second)
+    {
+      result.emplace_back(elem);
+    }
+  }
+  return prependNAryChildren(op, nil, result, isLeft);
+}
+
+Expr TypeChecker::evaluateListMPredInternal(Kind k,
+                                            ExprValue* op,
+                                            ExprValue* nil,
+                                            bool isLeft,
+                                            const std::vector<ExprValue*>& args)
+{
+  std::vector<ExprValue*> hargs, hargs2;
+  if (getNAryChildren(args[1], op, nil, hargs, isLeft) == nullptr
+      || getNAryChildren(args[2], op, nil, hargs2, isLeft) == nullptr)
+  {
+    return d_null;
+  }
+  // optimization: reflexive true
+  if (args[1] == args[2])
+  {
+    return d_state.mkTrue();
+  }
+  std::unordered_map<const ExprValue*, uint32_t> count1, count2;
+  for (const ExprValue* elem : hargs)
+  {
+    ++count1[elem];
+  }
+  for (const ExprValue* elem : hargs2)
+  {
+    ++count2[elem];
+  }
+  bool isEq = (k == Kind::EVAL_LIST_MEQ);
+  // if equal, must be same size, this further ensures we only need to check
+  // equal elements in one direction.
+  if (isEq && count1.size() != count2.size())
+  {
+    return d_state.mkFalse();
+  }
+  for (const std::pair<const ExprValue* const, uint32_t>& entry : count1)
+  {
+    if (isEq ? count2[entry.first] != entry.second
+             : count2[entry.first] < entry.second)
+    {
+      return d_state.mkFalse();
+    }
+  }
+  return d_state.mkTrue();
+}
+
+Expr TypeChecker::getLiteralOpType(Kind k,
+                                   std::vector<ExprValue*>& children,
+                                   std::vector<ExprValue*>& childTypes,
+                                   std::ostream* out)
 {
   if (!checkArity(k, childTypes.size(), out))
   {
-    return d_null.getValue();
+    return d_null;
   }
   // NOTE: applications of most of these operators should only be in patterns,
   // where type checking is not strict.
   switch (k)
   {
     case Kind::EVAL_TYPE_OF:
-      return d_state.mkType().getValue();
+      return d_state.mkType();
     case Kind::EVAL_VAR:
+    case Kind::EVAL_NIL:
       // its type is the second argument
-      return children[1];
+      return Expr(children[1]);
     case Kind::EVAL_ADD:
     case Kind::EVAL_MUL:
       // NOTE: mixed arith
-      return childTypes[0];
-    case Kind::EVAL_NIL:
-      // type is not computable here, since it is the return type of function
-      // applications of the argument. just use abstract.
-      return d_state.mkAbstractType().getValue();
+      return Expr(childTypes[0]);
     case Kind::EVAL_NEG:
     case Kind::EVAL_AND:
     case Kind::EVAL_OR:
     case Kind::EVAL_XOR:
     case Kind::EVAL_NOT:
-      return childTypes[0];
+      return Expr(childTypes[0]);
     case Kind::EVAL_IF_THEN_ELSE:
     case Kind::EVAL_CONS:
-      return childTypes[1];
+      return Expr(childTypes[1]);
     case Kind::EVAL_REQUIRES:
-      return childTypes[2];
+      return Expr(childTypes[2]);
     case Kind::EVAL_LIST_CONCAT:
     case Kind::EVAL_LIST_NTH:
-      return childTypes[1];
+    case Kind::EVAL_LIST_ERASE:
+    case Kind::EVAL_LIST_ERASE_ALL:
+    case Kind::EVAL_LIST_REV:
+    case Kind::EVAL_LIST_SETOF: return Expr(childTypes[1]);
     case Kind::EVAL_CONCAT:
     case Kind::EVAL_EXTRACT:
       // type is the first child
-      return childTypes[0];
+      return Expr(childTypes[0]);
     case Kind::EVAL_IS_EQ:
+    case Kind::EVAL_EQ:
     case Kind::EVAL_IS_NEG:
     case Kind::EVAL_COMPARE:
     case Kind::EVAL_IS_Z:
@@ -1533,7 +1756,8 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_IS_BOOL:
     case Kind::EVAL_IS_VAR:
     case Kind::EVAL_GT:
-      return d_state.mkBoolType().getValue();
+    case Kind::EVAL_LIST_MINCLUDE:
+    case Kind::EVAL_LIST_MEQ: return d_state.mkBoolType();
     case Kind::EVAL_HASH:
     case Kind::EVAL_INT_DIV:
     case Kind::EVAL_INT_MOD:
@@ -1552,133 +1776,94 @@ ExprValue* TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_TO_BIN:
       return getOrSetLiteralTypeRule(Kind::BINARY);
     case Kind::EVAL_DT_CONSTRUCTORS:
-    case Kind::EVAL_DT_SELECTORS: return d_state.mkListType().getValue();
+    case Kind::EVAL_DT_SELECTORS: return d_state.mkListType();
     default:break;
   }
   if (out)
   {
     (*out) << "Unknown type for literal operator " << k;
   }
-  return nullptr;
+  return d_null;
 }
 
-Expr TypeChecker::computeConstructorTermInternal(AppInfo* ai, 
-                                                 const std::vector<Expr>& children)
+Expr TypeChecker::computeConstructorTermInternal(
+    AppInfo* ai, const std::vector<Expr>& children)
 {
-  Expr hd;
-  Expr nil;
-  computedParameterizedInternal(ai, children, hd, nil);
-  return nil;
-}
-
-bool TypeChecker::computedParameterizedInternal(AppInfo* ai,
-                                                const std::vector<Expr>& children,
-                                                Expr& hd,
-                                                Expr& nil)
-{
-  hd = children[0];
-  nil = d_null;
   if (ai==nullptr)
   {
-    return true;
+    return d_null;
   }
   // lookup the base operator if necessary
   Expr ct = ai->d_attrConsTerm;
   if (ct.isNull() || ct.getKind()!=Kind::PARAMETERIZED)
   {
     // if not parameterized, just return self
-    nil = ct;
-    return true;
+    return ct;
   }
+  const Expr& hd = children[0];
   Trace("type_checker") << "Determine constructor term for " << hd << std::endl;
   // if explicit parameters, then evaluate the constructor term
-  if (hd.getKind()!=Kind::PARAMETERIZED)
+  if (children.size() == 1)
   {
-    if (children.size()==1)
+    // if not in an application, we fail
+    Warning() << "Failed to determine parameters for " << hd << std::endl;
+    return d_null;
+  }
+  // otherwise, we must infer the parameters
+  Trace("type_checker") << "Infer params for " << hd << " @ " << children[1]
+                        << std::endl;
+  if (!isNAryAttr(ai->d_attrCons))
+  {
+    Warning() << "Unknown category for parameterized operator " << hd
+              << std::endl;
+    return d_null;
+  }
+  std::vector<ExprValue*> app;
+  app.push_back(hd.getValue());
+  app.push_back(children[1].getValue());
+  // ensure children are type checked
+  for (ExprValue* e : app)
+  {
+    Expr expr(e);
+    getType(expr);
+    ExprValue* t = d_state.lookupType(e);
+    if (t == nullptr)
     {
-      // if not in an application, we fail
-      Warning() << "Failed to determine parameters for " << hd << std::endl;
-      AlwaysAssert(false);
-      return false;
-    }
-    else
-    {
-      // otherwise, we must infer the parameters
-      Trace("type_checker") << "Infer params for " << hd << " @ " << children[1] << std::endl;
-      if (isNAryAttr(ai->d_attrCons))
+      // only warn if ground
+      if (expr.isGround())
       {
-        std::vector<ExprValue*> app;
-        app.push_back(hd.getValue());
-        app.push_back(children[1].getValue());
-        // ensure children are type checked
-        for (ExprValue* e : app)
-        {
-          Expr expr(e);
-          getType(expr);
-          ExprValue* t = d_state.lookupType(e);
-          if (t==nullptr)
-          {
-            // only warn if ground
-            if (expr.isGround())
-            {
-              Warning() << "Type inference failed for " << hd << " applied to " << children[1] << ", failed to type check " << expr << std::endl;
-            }
-            return false;
-          }
-          Trace("type_checker_debug") << "Type for " << expr << " is " << Expr(t) << std::endl;
-        }
-        Ctx tctx;
-        getTypeAppInternal(app, tctx);
-        Trace("type_checker_debug") << "Context was " << tctx << std::endl;
-        std::vector<Expr> args;
-        for (size_t i=0, nparams = ct[0].getNumChildren(); i<nparams; i++)
-        {
-          Expr cv(tctx[ct[0][i].getValue()]);
-          if (cv.isNull())
-          {
-            Warning() << "Failed to find context for " << ct[0][i] << " when applying " << hd << " @ " << children[1] << std::endl;
-            return false;
-          }
-          if (!cv.isGround())
-          {
-            // If the parameter is non-ground, we also wait to construct;
-            // if the nil terminator is used, it will be replaced by a
-            // placeholder involving eo::nil.
-            return false;
-          }
-          args.emplace_back(cv);
-        }
-        // the head is now disambiguated
-        hd = d_state.mkParameterized(hd.getValue(), args);
-        Trace("type_checker_debug") << "Infered parameterized op " << hd << std::endl;
+        Warning() << "Type inference failed for " << hd << " applied to "
+                  << children[1] << ", failed to type check " << expr
+                  << std::endl;
       }
-      else
-      {
-        Warning() << "Unknown category for parameterized operator " << hd << std::endl;
-        return false;
-      }
+      return d_null;
     }
+    Trace("type_checker_debug")
+        << "Type for " << expr << " is " << Expr(t) << std::endl;
   }
-  Assert (hd.getKind()==Kind::PARAMETERIZED);
-  Ctx ctx;
-  if (hd[0].getNumChildren()==ct[0].getNumChildren())
+  Ctx tctx;
+  getTypeAppInternal(app, tctx);
+  Trace("type_checker_debug") << "Context was " << tctx << std::endl;
+  for (size_t i = 0, nparams = ct[0].getNumChildren(); i < nparams; i++)
   {
-    for (size_t i=0, nparams = hd[0].getNumChildren(); i<nparams; i++)
+    ExprValue* cv = tctx[ct[0][i].getValue()];
+    if (cv==nullptr)
     {
-      ctx[ct[0][i].getValue()] = hd[0][i].getValue();
+      Warning() << "Failed to find context for " << ct[0][i]
+                << " when applying " << hd << " @ " << children[1] << std::endl;
+      return d_null;
+    }
+    if (!cv->isGround())
+    {
+      // If the parameter is non-ground, we also wait to construct;
+      // if the nil terminator is used, it will be replaced by a
+      // placeholder involving eo::nil.
+      return d_null;
     }
   }
-  else
-  {
-    // error
-    Warning() << "Unexpected number of parameters for " << hd[1]
-              << ", expected " << ct.getNumChildren() << " parameters, got "
-              << hd.getNumChildren() << std::endl;
-    return false;
-  }
-  Trace("type_checker") << "Context for constructor term: " << ctx << std::endl;
-  nil = evaluate(ct[1].getValue(), ctx);
-  return true;
+  Trace("type_checker") << "Context for constructor term: " << tctx
+                        << std::endl;
+  return evaluate(ct[1].getValue(), tctx);
 }
 
 }  // namespace ethos

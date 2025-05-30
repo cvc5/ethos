@@ -1,5 +1,5 @@
 
-(declare-const = (-> (! Type :var T) T T Bool))
+(declare-parameterized-const = ((T Type)) (-> T T Bool))
 
 ;(declare-const = ((T Type)) (-> T T Bool))
 

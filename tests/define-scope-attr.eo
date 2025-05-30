@@ -1,0 +1,4 @@
+(define test ((Some_type Type) (A Some_type))
+        true
+        :type (-> Type (-> Some_type Bool))
+)

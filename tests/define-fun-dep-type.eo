@@ -1,5 +1,5 @@
 
-(declare-const = (-> (! Type :var A :implicit) A A Bool))
+(declare-parameterized-const = ((A Type :implicit)) (-> A A Bool))
 
 ; note that U is bound before x is parsed
 (define eq ((U Type) (x U)) (= x x))

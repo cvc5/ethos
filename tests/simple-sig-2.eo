@@ -1,9 +1,9 @@
 
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 
 (program flip 
   ((T Type) (x T) (y T))
-  (Bool) Bool
+  :signature (Bool) Bool
   (
   ((flip (= x y)) (= y x))
   )

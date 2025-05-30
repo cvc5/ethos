@@ -1,17 +1,17 @@
 (declare-type Pair (Type))
 
-(declare-const pair (-> (! Type :var T :implicit) T T (Pair T)))
+(declare-parameterized-const pair ((T Type :implicit)) (-> T T (Pair T)))
 
 
 (program swap ((T Type) (t1 T) (t2 T))
-  ((Pair T)) (Pair T)
+  :signature ((Pair T)) (Pair T)
   ; cases
   (
   ((swap (pair t1 t2)) (pair t2 t1))
   )
 )
 
-(declare-const is_swap (-> (! Type :var T :implicit) (Pair T) (Pair T) Bool))
+(declare-parameterized-const is_swap ((T Type :implicit)) (-> (Pair T) (Pair T) Bool))
 
 (declare-rule do_swap ((T Type) (t (Pair T)))
   :premises ()

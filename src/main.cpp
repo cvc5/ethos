@@ -58,7 +58,6 @@ int main( int argc, char* argv[] )
     if (arg == "--help")
     {
       std::stringstream out;
-      out << "     --binder-fresh: binders generate fresh variables when parsed in proof files." << std::endl;
       out << "        --include=X: includes the file specified by X." << std::endl;
       out << "             --help: displays this message." << std::endl;
       out << "    --normalize-num: treat numeral literals as syntax sugar for rational literals." << std::endl;

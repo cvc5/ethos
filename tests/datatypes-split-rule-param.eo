@@ -4,15 +4,15 @@
 ;(define as ((T Type :implicit) (x T) (S Type)) (as x S))
 
 (declare-type Int ())
-(declare-datatypes ((Lst 1)) ((par (X)((cons (head X) (tail (Lst X))) (nil)))))
+(declare-datatypes ((Lst 1)) ((par (X) ((cons (head X) (tail (Lst X))) (nil)))))
 
 
-(declare-const is (-> (! Type :var C :implicit) (! Type :var D :implicit) C D Bool))
+(declare-parameterized-const is ((C Type :implicit) (D Type :implicit)) (-> C D Bool))
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 
 (program $mk_dt_split ((D Type) (x D) (T Type) (c T) (xs eo::List :list))
-  (eo::List D) Bool
+  :signature (eo::List D) Bool
   (
     (($mk_dt_split eo::List::nil x)          false)
     (($mk_dt_split (eo::List::cons c xs) x)  (eo::cons or (is c x) ($mk_dt_split xs x)))
@@ -29,10 +29,10 @@
 (step @p0 (or (is cons x) (is (as nil (Lst Int)) x)) :rule dt-split :args (x))
 
 
-(program $mk_dt_inst ((D Type) (x D) (T Type) (t T) (S Type) (s S) (xs eo::List :list))
-  (eo::List D T) Bool
+(program $mk_dt_inst ((D Type) (x D) (T Type) (U Type) (t (-> T U)) (tb D) (s (-> D T)) (xs eo::List :list))
+  (eo::List D T) D
   (
-    (($mk_dt_inst eo::List::nil x t)          t)
+    (($mk_dt_inst eo::List::nil x tb)         tb)
     (($mk_dt_inst (eo::List::cons s xs) x t)  ($mk_dt_inst xs x (t (s x))))
   )
 )

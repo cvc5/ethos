@@ -28,16 +28,11 @@ Options::Options()
   d_normalizeDecimal = true;
   d_normalizeHexadecimal = true;
   d_normalizeNumeral = false;
-  d_binderFresh = false;
 }
 
 bool Options::setOption(const std::string& key, bool val)
 {
-  if (key == "binder-fresh")
-  {
-    d_binderFresh = val;
-  }
-  else if (key == "parse-let")
+  if (key == "parse-let")
   {
     d_parseLet = val;
   }
@@ -96,16 +91,16 @@ State::State(Options& opts, Stats& stats)
       d_plugin(nullptr)
 {
   ExprValue::d_state = this;
-  d_absType = Expr(mkExprInternal(Kind::ABSTRACT_TYPE, {}));
 
   // lambda is not builtin?
   // forall, exists, choice?
   //bindBuiltin("lambda", Kind::LAMBDA, true);
   bindBuiltin("->", Kind::FUNCTION_TYPE);
   bindBuiltin("_", Kind::APPLY);
-  bindBuiltin("eo::_", Kind::PARAMETERIZED);
 
+  bindBuiltinEval("is_ok", Kind::EVAL_IS_OK);
   bindBuiltinEval("is_eq", Kind::EVAL_IS_EQ);
+  bindBuiltinEval("eq", Kind::EVAL_EQ);
   bindBuiltinEval("ite", Kind::EVAL_IF_THEN_ELSE);
   bindBuiltinEval("requires", Kind::EVAL_REQUIRES);
   bindBuiltinEval("hash", Kind::EVAL_HASH);
@@ -126,6 +121,12 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("list_concat", Kind::EVAL_LIST_CONCAT);
   bindBuiltinEval("list_nth", Kind::EVAL_LIST_NTH);
   bindBuiltinEval("list_find", Kind::EVAL_LIST_FIND);
+  bindBuiltinEval("list_erase", Kind::EVAL_LIST_ERASE);
+  bindBuiltinEval("list_erase_all", Kind::EVAL_LIST_ERASE_ALL);
+  bindBuiltinEval("list_rev", Kind::EVAL_LIST_REV);
+  bindBuiltinEval("list_setof", Kind::EVAL_LIST_SETOF);
+  bindBuiltinEval("list_minclude", Kind::EVAL_LIST_MINCLUDE);
+  bindBuiltinEval("list_meq", Kind::EVAL_LIST_MEQ);
   // boolean
   bindBuiltinEval("not", Kind::EVAL_NOT);
   bindBuiltinEval("and", Kind::EVAL_AND);
@@ -159,7 +160,6 @@ State::State(Options& opts, Stats& stats)
 
   // note we don't allow parsing (Proof ...), (Quote ...), or (quote ...).
 
-  d_nullType = Expr(mkExprInternal(Kind::NULL_TYPE, {}));
   // common constants
   d_type = Expr(mkExprInternal(Kind::TYPE, {}));
   d_boolType = Expr(mkExprInternal(Kind::BOOL_TYPE, {}));
@@ -182,11 +182,10 @@ State::State(Options& opts, Stats& stats)
   bind("eo::List::cons", d_listCons);
   markConstructorKind(d_listCons, Attr::RIGHT_ASSOC_NIL, d_listNil);
 
-  // we do not export eo::null
-  // for now, eo::? is (undocumented) syntax for abstract type
-  bind("eo::?", d_absType);
+  // any is used internally but is not avaiable to the user
+  d_any = Expr(mkExpr(Kind::ANY, {}));
   // self is a distinguished parameter
-  d_self = Expr(mkSymbolInternal(Kind::PARAM, "eo::self", d_absType));
+  d_self = Expr(mkSymbolInternal(Kind::PARAM, "eo::self", d_any));
   bind("eo::self", d_self);
   d_conclusion =
       Expr(mkSymbolInternal(Kind::PARAM, "eo::conclusion", d_boolType));
@@ -535,10 +534,8 @@ Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool 
       rk = currBase.getKind();
     }while (rk==Kind::EVAL_REQUIRES);
   }
-  if (rk==Kind::QUOTE_TYPE || rk==Kind::OPAQUE_TYPE || rk==Kind::NULL_TYPE)
-  {
-    EO_FATAL() << "Cannot use :var, :implicit or :opaque on return types, got " << ret;
-  }
+  // no way to construct quote types, e.g. on return types
+  Assert (rk!=Kind::QUOTE_TYPE);
   for (size_t i=0, nargs = args.size(); i<nargs; i++)
   {
     Expr a = args[(nargs-1)-i];
@@ -550,16 +547,23 @@ Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool 
       a = a[2];
       ak = a.getKind();
     }
-    if (ak==Kind::NULL_TYPE)
-    {
-      // implicit argument is skipped
-      continue;
-    }
     // append the function
     curr = Expr(
         mkExprInternal(Kind::FUNCTION_TYPE, {a.getValue(), curr.getValue()}));
   }
   return curr;
+}
+
+Expr State::mkProgramType(const std::vector<Expr>& args, const Expr& ret)
+{
+  Assert(!args.empty());
+  std::vector<ExprValue*> atypes;
+  for (size_t i = 0, nargs = args.size(); i < nargs; i++)
+  {
+    atypes.push_back(args[i].getValue());
+  }
+  atypes.push_back(ret.getValue());
+  return Expr(mkExprInternal(Kind::PROGRAM_TYPE, atypes));
 }
 
 Expr State::mkRequires(const std::vector<Expr>& args, const Expr& ret)
@@ -585,8 +589,6 @@ Expr State::mkRequires(const Expr& a1, const Expr& a2, const Expr& ret)
                              {a1.getValue(), a2.getValue(), ret.getValue()}));
 }
 
-Expr State::mkAbstractType() { return d_absType; }
-
 Expr State::mkBoolType()
 {
   return d_boolType;
@@ -608,13 +610,8 @@ Expr State::mkQuoteType(const Expr& t)
 
 Expr State::mkBuiltinType(Kind k)
 {
-  // for now, just use abstract type
-  return d_absType;
-}
-
-Expr State::mkNullType()
-{
-  return d_nullType;
+  // for now, just use any type
+  return d_any;
 }
 
 Expr State::mkSymbol(Kind k, const std::string& name, const Expr& type)
@@ -622,15 +619,9 @@ Expr State::mkSymbol(Kind k, const std::string& name, const Expr& type)
   return Expr(mkSymbolInternal(k, name, type));
 }
 
-Expr State::mkSelf()
-{
-  return d_self;
-}
+Expr State::mkSelf() const { return d_self; }
 
-Expr State::mkConclusion()
-{
-  return d_conclusion;
-}
+Expr State::mkConclusion() const { return d_conclusion; }
 
 Expr State::mkPair(const Expr& t1, const Expr& t2)
 {
@@ -674,8 +665,6 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     Assert(!children.empty());
     // see if there is a special way of building terms for the head
     ExprValue* hd = vchildren[0];
-    // immediately strip off PARAMETERIZED if it exists
-    hd = hd->getKind()==Kind::PARAMETERIZED ? (*hd)[1] : hd;
     AppInfo* ai = getAppInfo(hd);
     if (ai!=nullptr)
     {
@@ -721,13 +710,9 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       // in hdTerm, where notice hdTerm is of kind PARAMETERIZED if consTerm
       // (prior to resolution) was PARAMETERIZED. So, for example, applying
       // `bvor` to `a` of type `(BitVec 4)` results in
-      //   hdTerm := (PARAMETERIZED (4) bvor),
       //   consTerm := #b0000.
-      Expr hdTerm;
-      Expr consTerm;
-      d_tc.computedParameterizedInternal(ai, children, hdTerm, consTerm);
-      Trace("state-debug") << "...updated " << hdTerm << " / " << consTerm << std::endl;
-      vchildren[0] = hd;
+      Expr consTerm = d_tc.computeConstructorTermInternal(ai, children);
+      Trace("state-debug") << "...updated " << consTerm << std::endl;
       // if it has a constructor attribute
       switch (ai->d_attrCons)
       {
@@ -762,10 +747,11 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
                 {
                   // if we failed to infer a nil terminator (likely due to
                   // a non-ground parameter), then we insert a placeholder
-                  // (eo::nil f t1 ... tn), which if t1...tn are non-ground
+                  // (eo::nil f (eo::typeof t1)), which if t1 is non-ground
                   // will evaluate to the proper nil terminator when
                   // instantiated.
-                  curr = mkExprInternal(Kind::EVAL_NIL, vchildren);
+                  Expr typ = Expr(mkExprInternal(Kind::EVAL_TYPE_OF, {vchildren[1]}));
+                  curr = mkExprInternal(Kind::EVAL_NIL, {vchildren[0], typ.getValue()});
                 }
                 else
                 {
@@ -963,7 +949,8 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
   else if (k == Kind::AS_RETURN)
   {
     // (as nil (List Int)) --> (_ nil (List Int))
-    if (getConstructorKind(vchildren[0]) == Attr::AMB_DATATYPE_CONSTRUCTOR
+    Attr ck = getConstructorKind(vchildren[0]);
+    if ((ck == Attr::AMB_DATATYPE_CONSTRUCTOR || ck == Attr::AMB)
         && children.size() == 2)
     {
       Trace("overload") << "...type arg for ambiguous constructor" << std::endl;
@@ -1012,15 +999,13 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
   return Expr(mkExprInternal(k, vchildren));
 }
 
-Expr State::mkTrue()
-{
-  return d_true;
-}
+Expr State::mkTrue() const { return d_true; }
 
-Expr State::mkFalse()
-{
-  return d_false;
-}
+Expr State::mkFalse() const { return d_false; }
+
+Expr State::mkBool(bool val) const { return val ? d_true : d_false; }
+
+Expr State::mkAny() const { return d_any; }
 
 Expr State::mkLiteral(Kind k, const std::string& s)
 {
@@ -1241,17 +1226,15 @@ Expr State::mkLetBinderList(const ExprValue* ev, const std::vector<std::pair<Exp
   return mkExpr(Kind::APPLY, vlist);
 }
 
-const ExprValue* State::getBaseOperator(const ExprValue * v) const
-{
-  if (v->getKind()==Kind::PARAMETERIZED)
-  {
-    return (*v)[0];
-  }
-  return v;
-}
-
 Attr State::getConstructorKind(const ExprValue* v) const
 {
+  // If we ask for the constructor kind of an annotated parameter,
+  // it is stored on the parameter it annotates. This makes a difference
+  // for parameters with non-ground type that are marked :list.
+  if (v->getKind() == Kind::ANNOT_PARAM)
+  {
+    return getConstructorKind(v->d_children[0]);
+  }
   const AppInfo* ai = getAppInfo(v);
   if (ai!=nullptr)
   {
@@ -1273,6 +1256,13 @@ Expr State::getVar(const std::string& name) const
 
 Expr State::getBoundVar(const std::string& name, const Expr& type)
 {
+  if (!type.isGround())
+  {
+    // If the type is non-ground, we cannot evaluate it yet. Moreover this is
+    // not cached here, instead it is cached as part of mkExpr.
+    Expr ename = mkLiteral(Kind::STRING, name);
+    return mkExpr(Kind::EVAL_VAR, {ename, type});
+  }
   std::pair<std::string, const ExprValue*> key(name, type.getValue());
   std::map<std::pair<std::string, const ExprValue*>, Expr>::iterator it = d_boundVars.find(key);
   if (it!=d_boundVars.end())
@@ -1412,7 +1402,8 @@ bool State::isProofRuleSorry(const ExprValue* e) const
 
 AppInfo* State::getAppInfo(const ExprValue* e)
 {
-  Assert (e->getKind()!=Kind::PARAMETERIZED);
+  // we may be an ANNOT_PARAM here, which will never have relevant properties
+  // in the context where it is being used as the head of an application
   std::map<const ExprValue *, AppInfo>::iterator it = d_appData.find(e);
   if (it!=d_appData.end())
   {
@@ -1423,7 +1414,7 @@ AppInfo* State::getAppInfo(const ExprValue* e)
 
 const AppInfo* State::getAppInfo(const ExprValue* e) const
 {
-  Assert (e->getKind()!=Kind::PARAMETERIZED);
+  // similar to above, we may be ANNOT_PARAM.
   std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(e);
   if (it!=d_appData.end())
   {
@@ -1474,7 +1465,7 @@ Plugin* State::getPlugin()
 void State::bindBuiltin(const std::string& name, Kind k, Attr ac)
 {
   // type is irrelevant, assign abstract
-  bindBuiltin(name, k, ac, d_absType);
+  bindBuiltin(name, k, ac, d_any);
 }
 
 void State::bindBuiltin(const std::string& name, Kind k, Attr ac, const Expr& t)
@@ -1506,6 +1497,11 @@ void State::defineProgram(const Expr& v, const Expr& prog)
 
 bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
 {
+  // If marking an annotated parameter, we mark the parameter it annotates.
+  if (v.getKind() == Kind::ANNOT_PARAM)
+  {
+    return markConstructorKind(v[0], a, cons);
+  }
   Expr acons = cons;
   if (a==Attr::ORACLE)
   {
@@ -1518,15 +1514,22 @@ bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
 
     if (!inputPath.exists())
     {
-      Warning() << "State:: could not include \"" + ocmd + "\" for oracle definition";
+      Warning() << "State:: could not include \"" + ocmd
+                       + "\" for oracle definition"
+                << std::endl;
       return false;
     }
-
     acons = mkLiteral(Kind::STRING, inputPath.getRawPath());
   }
   Assert (isSymbol(v.getKind()));
   AppInfo& ai = d_appData[v.getValue()];
-  Assert (ai.d_attrCons==Attr::NONE);
+  if (ai.d_attrCons != Attr::NONE)
+  {
+    // note this fails even if we mark the same constructor, e.g. :list twice
+    Warning() << "Cannot set the constructor kind for a term more than once ("
+              << ai.d_attrCons << " and " << a << ")" << std::endl;
+    return false;
+  }
   ai.d_attrCons = a;
   ai.d_attrConsTerm = acons;
   if (d_plugin!=nullptr)

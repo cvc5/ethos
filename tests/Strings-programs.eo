@@ -11,7 +11,7 @@
 
 ; Return true if s is the empty string or sequence.
 (program string_is_empty ((U Type) (x U))
-  (U) Bool
+  :signature (U) Bool
   (
     ((string_is_empty (seq.empty U)) true)
     ((string_is_empty "") true)
@@ -67,7 +67,7 @@
     ((T Type) (t (Seq T)) (ss (Seq T) :list) (acc (Seq T)))
     ((Seq T) (Seq T) Type) (Seq T)
     (
-        (($string_rev_rec (str.++ t ss) acc T) ($string_rev_rec ss (eo::cons (eo::_ str.++ T) t acc) T))
+        (($string_rev_rec (str.++ t ss) acc T) ($string_rev_rec ss (eo::cons str.++ t acc) T))
         (($string_rev_rec t acc T)             (eo::requires t (mk_emptystr (Seq T)) acc))
     )
 )
@@ -113,8 +113,8 @@
 
 ; Helper for below, assumes t is a non-empty word constant.
 ; For example, given "AB", this returns (str.++ "A" (str.++ "B" "")).
-(program string_flatten_word ((t String))
-  (String) String
+(program string_flatten_word ((U Type) (t (Seq U)))
+  ((Seq U)) (Seq U)
   (
     ((string_flatten_word t) 
       (eo::ite (check_length_one t) 

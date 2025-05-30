@@ -1,4 +1,4 @@
-(declare-const = (-> (! Type :var A :implicit) A A Bool))
+(declare-parameterized-const = ((A Type :implicit)) (-> A A Bool))
 
 (declare-const and (-> Bool Bool Bool) :left-assoc)
 (declare-type Int ())
@@ -8,9 +8,9 @@
 (declare-const +1 (-> Int Int))
 
 (declare-const BitVec (-> Int Type)) 
-(declare-const extract
-    (-> (! Int :var m :syntax <numeral> :implicit :restrict (< 0 m))
-        (! Int :var i :syntax <numeral> :restrict (< i m))
-        (! Int :var j :syntax <numeral> :restrict (<= 0 j i))
-        (! Int :var k :syntax <numeral> :implicit :restrict (= k (+1 (- i j))))
-        (BitVec m) (BitVec k)))
+(declare-parameterized-const extract (
+  (m Int :syntax <numeral> :implicit :restrict (< 0 m))
+  (i Int :syntax <numeral> :restrict (< i m))
+  (j Int :syntax <numeral> :restrict (<= 0 j i))
+  (k Int :syntax <numeral> :implicit :restrict (= k (+1 (- i j)))))
+    (-> (BitVec m) (BitVec k)))

@@ -8,44 +8,28 @@
 
 (declare-consts <string> String)
 
-(declare-const seq.empty (-> (! Type :var T) T))
+(declare-parameterized-const seq.empty ((T Type)) (-> T))
 
 ; Make empty string of the given string-like sort U.
-(program mk_emptystr ((U Type))
-  (Type) U
-  (
-    ((mk_emptystr String)  "")
-    ((mk_emptystr (Seq U)) (seq.empty (Seq U)))
-  )
-)
+(define mk_emptystr ((U Type)) 
+  (eo::ite (eo::eq U String) "" (seq.empty (Seq U))))
 
 ; core
-(declare-const str.len 
-  (-> (! Type :var T :implicit)
-      (Seq T) Int))
-(declare-parameterized-const str.++ ((T Type))
+(declare-parameterized-const str.len ((T Type :implicit)) (-> (Seq T) Int))
+(declare-parameterized-const str.++ ((T Type :implicit))
   (-> (Seq T) (Seq T) (Seq T)) :right-assoc-nil (mk_emptystr (Seq T)))
 
 ; extended functions
-(declare-const str.substr (-> (! Type :var T :implicit)
-                              (Seq T) Int Int (Seq T)))
-(declare-const str.contains (-> (! Type :var T :implicit)
-                                (Seq T) (Seq T) Bool))
-(declare-const str.replace (-> (! Type :var T :implicit)
-                               (Seq T) (Seq T) (Seq T) (Seq T)))
-(declare-const str.indexof (-> (! Type :var T :implicit)
-                               (Seq T) (Seq T) Int Int))
-(declare-const str.at (-> (! Type :var T :implicit)
-                          (Seq T) Int (Seq T)))
-(declare-const str.prefixof (-> (! Type :var T :implicit)
-                                (Seq T) (Seq T) Bool))
-(declare-const str.suffixof (-> (! Type :var T :implicit)
-                                (Seq T) (Seq T) Bool))
-(declare-const str.rev (-> (! Type :var T :implicit)
-                           (Seq T) (Seq T)))
+(declare-parameterized-const str.substr ((T Type :implicit)) (-> (Seq T) Int Int (Seq T)))
+(declare-parameterized-const str.contains ((T Type :implicit)) (-> (Seq T) (Seq T) Bool))
+(declare-parameterized-const str.replace ((T Type :implicit)) (-> (Seq T) (Seq T) (Seq T) (Seq T)))
+(declare-parameterized-const str.indexof ((T Type :implicit)) (-> (Seq T) (Seq T) Int Int))
+(declare-parameterized-const str.at ((T Type :implicit)) (-> (Seq T) Int (Seq T)))
+(declare-parameterized-const str.prefixof ((T Type :implicit)) (-> (Seq T) (Seq T) Bool))
+(declare-parameterized-const str.suffixof ((T Type :implicit)) (-> (Seq T) (Seq T) Bool))
+(declare-parameterized-const str.rev ((T Type :implicit)) (-> (Seq T) (Seq T)))
 (declare-const str.unit (-> Int String))
-(declare-const str.update (-> (! Type :var T :implicit)
-                              (Seq T) Int (Seq T) (Seq T)))
+(declare-parameterized-const str.update ((T Type :implicit)) (-> (Seq T) Int (Seq T) (Seq T)))
 (declare-const str.to_lower (-> String String))
 (declare-const str.to_upper (-> String String))
 (declare-const str.to_code (-> String Int))
@@ -55,8 +39,7 @@
 (declare-const str.from_int (-> Int String))
 (declare-const str.< (-> String String Bool))
 (declare-const str.<= (-> String String Bool))
-(declare-const str.replace_all (-> (! Type :var T :implicit)
-                                   (Seq T) (Seq T) (Seq T) (Seq T)))
+(declare-parameterized-const str.replace_all ((T Type :implicit)) (-> (Seq T) (Seq T) (Seq T) (Seq T)))
 (declare-const str.replace_re (-> String RegLan String String))
 (declare-const str.replace_re_all (-> String RegLan String String))
 (declare-const str.indexof_re (-> String RegLan Int Int))
@@ -81,9 +64,9 @@
 
 
 ; Sequences
-(declare-const seq.unit (-> (! Type :var T :implicit) T (Seq T)))
-(declare-const seq.nth (-> (! Type :var T :implicit) (Seq T) Int (eo::ite (eo::is_eq T Char) Int T)))
-(declare-const seq.len (-> (! Type :var T :implicit) (Seq T) Int))
+(declare-parameterized-const seq.unit ((T Type :implicit)) (-> T (Seq T)))
+(declare-parameterized-const seq.nth ((T Type :implicit)) (-> (Seq T) Int (eo::ite (eo::is_eq T Char) Int T)))
+(declare-parameterized-const seq.len ((T Type :implicit)) (-> (Seq T) Int))
 
 ; sequence operators just convert to the string operators
 (define seq.++ () str.++)
@@ -98,19 +81,19 @@
 
 ; skolems
 (declare-const @k.RE_UNFOLD_POS_COMPONENT (-> String RegLan Int String))
-(declare-const @k.STRINGS_DEQ_DIFF (-> (! Type :var T :implicit) (Seq T) (Seq T) Int))
+(declare-parameterized-const @k.STRINGS_DEQ_DIFF ((T Type :implicit)) (-> (Seq T) (Seq T) Int))
 (declare-const @k.STRINGS_STOI_RESULT (-> String Int Int))
 (declare-const @k.STRINGS_STOI_NON_DIGIT (-> String Int))
 (declare-const @k.STRINGS_ITOS_RESULT (-> Int Int Int))
 
-(declare-const @k.STRINGS_NUM_OCCUR (-> (! Type :var T :implicit) (Seq T) (Seq T) Int))
+(declare-parameterized-const @k.STRINGS_NUM_OCCUR ((T Type :implicit)) (-> (Seq T) (Seq T) Int))
 (declare-const @k.STRINGS_NUM_OCCUR_RE (-> String RegLan Int))
-(declare-const @k.STRINGS_OCCUR_INDEX (-> (! Type :var T :implicit) (Seq T) (Seq T) Int Int))
+(declare-parameterized-const @k.STRINGS_OCCUR_INDEX ((T Type :implicit)) (-> (Seq T) (Seq T) Int Int))
 (declare-const @k.STRINGS_OCCUR_INDEX_RE (-> String RegLan Int Int))
-(declare-const @k.STRINGS_OCCUR_LEN (-> (! Type :var T :implicit) (Seq T) (Seq T) Int Int))
+(declare-parameterized-const @k.STRINGS_OCCUR_LEN ((T Type :implicit)) (-> (Seq T) (Seq T) Int Int))
 (declare-const @k.STRINGS_OCCUR_LEN_RE (-> String RegLan Int Int))
 
-(declare-const @k.STRINGS_REPLACE_ALL_RESULT (-> (! Type :var T :implicit) (Seq T) Int (Seq T)))
+(declare-parameterized-const @k.STRINGS_REPLACE_ALL_RESULT ((T Type :implicit)) (-> (Seq T) Int (Seq T)))
 
 (declare-const @k.RE_FIRST_MATCH_PRE (-> String RegLan String))
 (declare-const @k.RE_FIRST_MATCH (-> String RegLan String))

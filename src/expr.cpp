@@ -67,8 +67,9 @@ void ExprValue::computeFlags()
     std::vector<ExprValue*>& children = cur->d_children;
     if (children.empty())
     {
-      bool isEval = (ck == Kind::PROGRAM_CONST || ck == Kind::ORACLE);
-      bool isNonGround = (ck==Kind::PARAM);
+      bool isEval =
+          (ck == Kind::PROGRAM_CONST || ck == Kind::ORACLE || ck == Kind::ANY);
+      bool isNonGround = (ck == Kind::PARAM || ck == Kind::ANY);
       cur->setFlag(Flag::IS_EVAL, isEval);
       cur->setFlag(Flag::IS_NON_GROUND, isNonGround);
       visit.pop_back();
@@ -236,8 +237,7 @@ std::string quoteSymbol(const std::string& s)
 std::map<const ExprValue*, size_t> Expr::computeLetBinding(
     const Expr& e, std::vector<Expr>& ll)
 {
-  size_t idc = 0;
-  std::map<const ExprValue*, size_t> lbind;
+  std::map<const ExprValue*, size_t> lcount;
   std::unordered_set<const ExprValue*> visited;
   std::vector<Expr> visit;
   std::vector<Expr> llv;
@@ -246,35 +246,41 @@ std::map<const ExprValue*, size_t> Expr::computeLetBinding(
   do
   {
     cur = visit.back();
-    visit.pop_back();
     if (cur.getNumChildren() == 0)
     {
+      visit.pop_back();
       continue;
     }
     const ExprValue* cv = cur.getValue();
     if (visited.find(cv) == visited.end())
     {
       visited.insert(cv);
-      llv.push_back(cur);
       for (size_t i = 0, nchildren = cur.getNumChildren(); i < nchildren; i++)
       {
         visit.push_back(cur[i]);
       }
       continue;
     }
-    if (lbind.find(cv) == lbind.end())
+    visit.pop_back();
+    // add to vector, which is done after all subterms of cv are added to llv
+    if (lcount.find(cv) == lcount.end())
     {
-      lbind[cv] = idc;
-      idc++;
+      llv.push_back(cur);
     }
+    lcount[cv]++;
   }while(!visit.empty());
+  // go back and only keep the ones that were found more than once.
+  std::map<const ExprValue*, size_t> lbind;
+  size_t idc = 0;
   for (size_t i=0, lsize = llv.size(); i<lsize; i++)
   {
-    const Expr& l = llv[lsize - 1 - i];
+    const Expr& l = llv[i];
     const ExprValue* lv = l.getValue();
-    if (lbind.find(lv) != lbind.end())
+    if (lcount[lv] > 1)
     {
       ll.push_back(l);
+      lbind[lv] = idc;
+      idc++;
     }
   }
   return lbind;

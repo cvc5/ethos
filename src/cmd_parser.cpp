@@ -137,12 +137,13 @@ bool CmdParser::parseNextCommand()
     case Token::DECLARE_PARAMETERIZED_CONST:
     case Token::DECLARE_ORACLE_FUN:
     {
-      //d_state.checkThatLogicIsSet();
       std::string name = d_eparser.parseSymbol();
       //d_state.checkUserSymbol(name);
       std::vector<Expr> sorts;
+      // the parameters, if declare-parameterized-const
       std::vector<Expr> params;
-      bool flattenFunction = (tok != Token::DECLARE_ORACLE_FUN);
+      // attributes marked on variables
+      std::map<ExprValue*, AttrMap> pattrMap;
       if (tok == Token::DECLARE_FUN || tok == Token::DECLARE_ORACLE_FUN)
       {
         sorts = d_eparser.parseTypeList();
@@ -150,7 +151,7 @@ bool CmdParser::parseNextCommand()
       else if (tok == Token::DECLARE_PARAMETERIZED_CONST)
       {
         d_state.pushScope();
-        params = d_eparser.parseAndBindSortedVarList();
+        params = d_eparser.parseAndBindSortedVarList(Kind::CONST, pattrMap);
       }
       Expr ret = d_eparser.parseType();
       Attr ck = Attr::NONE;
@@ -160,6 +161,10 @@ bool CmdParser::parseNextCommand()
       sk = Kind::CONST;
       if (tok==Token::DECLARE_ORACLE_FUN)
       {
+        if (sorts.empty())
+        {
+          d_lex.parseError("Oracle functions must have at least one argument");
+        }
         ck = Attr::ORACLE;
         sk = Kind::ORACLE;
         std::string oname = d_eparser.parseSymbol();
@@ -172,22 +177,82 @@ bool CmdParser::parseNextCommand()
         AttrMap attrs;
         d_eparser.parseAttributeList(Kind::CONST, t, attrs);
         // determine if an attribute specified a constructor kind
-        d_eparser.processAttributeMap(attrs, ck, cons, params);
+        d_eparser.processAttributeMap(attrs, ck, cons);
       }
       // declare-fun does not parse attribute list, as it is only in smt2
       t = ret;
       if (!sorts.empty())
       {
-        t = d_state.mkFunctionType(sorts, ret, flattenFunction);
+        t = (tok == Token::DECLARE_ORACLE_FUN)
+                ? d_state.mkProgramType(sorts, ret)
+                : d_state.mkFunctionType(sorts, ret);
       }
       std::vector<Expr> opaqueArgs;
-      while (t.getKind()==Kind::FUNCTION_TYPE && t[0].getKind()==Kind::OPAQUE_TYPE)
+      // process the parameter list
+      if (!params.empty())
       {
-        Assert (t.getNumChildren()==2);
-        Assert (t[0].getNumChildren()==1);
-        opaqueArgs.push_back(t[0][0]);
-        t = t[1];
+        // explicit parameters are quote arrows
+        std::map<ExprValue*, AttrMap>::iterator itp;
+        AttrMap::iterator itpa;
+        for (size_t i = 0, nparams = params.size(); i < nparams; i++)
+        {
+          size_t ii = nparams - i - 1;
+          Expr qt = d_state.mkQuoteType(params[ii]);
+          itp = pattrMap.find(params[ii].getValue());
+          if (itp != pattrMap.end())
+          {
+            itpa = itp->second.find(Attr::REQUIRES);
+            if (itpa != itp->second.end())
+            {
+              // requires adds to return type
+              t = d_state.mkRequires(itpa->second, t);
+              itp->second.erase(itpa);
+            }
+            itpa = itp->second.find(Attr::OPAQUE);
+            if (itpa != itp->second.end())
+            {
+              // if marked opaque, it is an opaque argument
+              opaqueArgs.insert(opaqueArgs.begin(), qt);
+              itp->second.erase(itpa);
+              continue;
+            }
+          }
+          if (!opaqueArgs.empty())
+          {
+            d_lex.parseError("Opaque arguments must be a prefix of arguments.");
+          }
+          t = d_state.mkFunctionType({qt}, t);
+        }
       }
+      if (tok == Token::DECLARE_PARAMETERIZED_CONST)
+      {
+        // If this is an ambiguous function, we add (Quote T)
+        // as the first argument type. We only need to test if we are parsing
+        // the command declare-parameterized-const.
+        std::pair<std::vector<Expr>, Expr> ft = t.getFunctionType();
+        std::vector<Expr> argTypes = ft.first;
+        argTypes.insert(argTypes.end(), opaqueArgs.begin(), opaqueArgs.end());
+        Expr tup = d_state.mkExpr(Kind::TUPLE, argTypes);
+        std::vector<Expr> pargs = Expr::getVariables(tup);
+        Expr fv = d_eparser.findFreeVar(ft.second, pargs);
+        if (!fv.isNull())
+        {
+          if (ck != Attr::NONE)
+          {
+            d_lex.parseError("Ambiguous functions cannot have attributes");
+          }
+          else if (!opaqueArgs.empty())
+          {
+            d_lex.parseError(
+                "Ambiguous functions cannot have opaque arguments");
+          }
+          Expr qt = d_state.mkQuoteType(ft.second);
+          t = d_state.mkFunctionType({qt}, t);
+          ck = Attr::AMB;
+        }
+      }
+      // now process remainder of map
+      d_eparser.processAttributeMaps(pattrMap);
       if (!opaqueArgs.empty())
       {
         if (ck!=Attr::NONE)
@@ -198,18 +263,7 @@ bool CmdParser::parseNextCommand()
         t = d_state.mkFunctionType(opaqueArgs, t, false);
         ck = Attr::OPAQUE;
       }
-      Expr v;
-      if (sk==Kind::VARIABLE)
-      {
-        // We get the canonical variable, not a fresh one. This ensures that
-        // globally defined variables coincide with those that appear in
-        // binders when applicable.
-        v = d_state.getBoundVar(name, t);
-      }
-      else
-      {
-        v = d_state.mkSymbol(sk, name, t);
-      }
+      Expr v = d_state.mkSymbol(sk, name, t);
       // if the type has a property, we mark it on the variable of this type
       if (ck!=Attr::NONE)
       {
@@ -319,16 +373,8 @@ bool CmdParser::parseNextCommand()
       }
       d_state.pushScope();
       std::string name = d_eparser.parseSymbol();
-      if (d_lex.peekToken()==Token::KEYWORD)
-      {
-        std::string keyword = d_eparser.parseKeyword();
-        if (keyword!="ethos")
-        {
-          d_lex.parseError("Unsupported rule format");
-        }
-      }
       std::vector<Expr> vs =
-          d_eparser.parseAndBindSortedVarList();
+          d_eparser.parseAndBindSortedVarList(Kind::PROOF_RULE);
       Expr assume;
       Expr plCons;
       std::vector<Expr> premises;
@@ -488,9 +534,11 @@ bool CmdParser::parseNextCommand()
       std::string name = d_eparser.parseSymbol();
       //d_state.checkUserSymbol(name);
       std::vector<Expr> impls;
+      std::vector<Expr> opaques;
+      std::map<ExprValue*, AttrMap> pattrMap;
       std::vector<Expr> vars =
-          d_eparser.parseAndBindSortedVarList(impls);
-      if (!impls.empty())
+          d_eparser.parseAndBindSortedVarList(Kind::LAMBDA, pattrMap);
+      if (vars.size() < pattrMap.size())
       {
         // If there were implicit variables, we go back and refine what is
         // bound in the body to only include the explicit arguments. This
@@ -506,6 +554,8 @@ bool CmdParser::parseNextCommand()
           d_state.bind(e.getSymbol(), e);
         }
       }
+      // now process remainder of map
+      d_eparser.processAttributeMaps(pattrMap);
       Expr ret;
       if (tok == Token::DEFINE_FUN)
       {
@@ -521,7 +571,6 @@ bool CmdParser::parseNextCommand()
       {
         d_eparser.typeCheck(expr, ret);
       }
-      d_state.popScope();
       if (tok == Token::DEFINE_FUN)
       {
         // This is for reference checking only. Note that = and lambda are
@@ -551,10 +600,8 @@ bool CmdParser::parseNextCommand()
           }
           t = d_state.mkFunctionType(types, t, false);
         }
-        Expr sym = d_state.mkSymbol(Kind::CONST, name, t);
-        Trace("define") << "Define: " << name << " -> " << sym << std::endl;
-        d_eparser.bind(name, sym);
-        Expr a = d_state.mkExpr(Kind::APPLY, {eq, sym, rhs});
+        expr = d_state.mkSymbol(Kind::CONST, name, t);
+        Expr a = d_state.mkExpr(Kind::APPLY, {eq, expr, rhs});
         Trace("define") << "Define-fun reference assert " << a << std::endl;
         d_state.addReferenceAssert(a);
       }
@@ -567,8 +614,6 @@ bool CmdParser::parseNextCommand()
           Expr vl = d_state.mkExpr(Kind::TUPLE, vars);
           expr = d_state.mkExpr(Kind::LAMBDA, {vl, expr});
         }
-        d_eparser.bind(name, expr);
-        Trace("define") << "Define: " << name << " -> " << expr << std::endl;
         // define additionally takes attributes
         if (tok == Token::DEFINE)
         {
@@ -576,6 +621,11 @@ bool CmdParser::parseNextCommand()
           d_eparser.parseAttributeList(Kind::LAMBDA, expr, attrs);
         }
       }
+      // now pop the scope
+      d_state.popScope();
+      // bind
+      Trace("define") << "Define: " << name << " -> " << expr << std::endl;
+      d_eparser.bind(name, expr);
     }
     break;
     // (define-sort <symbol> (<symbol>*) <sort>)
@@ -672,23 +722,29 @@ bool CmdParser::parseNextCommand()
     case Token::PROGRAM:
     {
       std::string name = d_eparser.parseSymbol();
-      if (d_lex.peekToken()==Token::KEYWORD)
-      {
-        std::string keyword = d_eparser.parseKeyword();
-        if (keyword!="ethos")
-        {
-          d_lex.parseError("Unsupported program format");
-        }
-      }
       // push the scope
       d_state.pushScope();
-      std::vector<Expr> vars = d_eparser.parseAndBindSortedVarList();
-      std::vector<Expr> argTypes = d_eparser.parseTypeList();
+      std::vector<Expr> vars =
+          d_eparser.parseAndBindSortedVarList(Kind::PROGRAM);
+      // read ":signature", optionally
+      if (d_lex.peekToken() == Token::KEYWORD)
+      {
+        std::string keyword = d_eparser.parseKeyword();
+        if (keyword != "signature")
+        {
+          d_lex.parseError("Expected :signature attribute");
+        }
+      }
+      std::vector<Expr> argTypes = d_eparser.parseTypeList(true);
       Expr retType = d_eparser.parseType();
       Expr progType = retType;
       if (!argTypes.empty())
       {
-        progType = d_state.mkFunctionType(argTypes, retType, false);
+        progType = d_state.mkProgramType(argTypes, retType);
+      }
+      else
+      {
+        d_lex.parseError("Programs must have at least one argument");
       }
       // it may have been forward declared
       Expr pprev = d_state.getVar(name);
@@ -743,8 +799,6 @@ bool CmdParser::parseNextCommand()
           {
             d_lex.parseError("Wrong arity for pattern");
           }
-          // ensure some type checking??
-          //d_eparser.typeCheck(pc);
           // ensure the right hand side is bound by the left hand side
           std::vector<Expr> bvs = Expr::getVariables(pc);
           Expr rhs = p[1];
@@ -761,6 +815,8 @@ bool CmdParser::parseNextCommand()
               d_lex.parseError(ss.str());
             }
           }
+          // type check whether this is a legal pattern/return pair.
+          d_eparser.typeCheckProgramPair(pc, rhs, true);
         }
         program = d_state.mkExpr(Kind::PROGRAM, pchildren);
       }

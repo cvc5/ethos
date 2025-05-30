@@ -12,7 +12,7 @@
   )
 )
 (program substitute_list ((T Type) (U Type) (F U) (x T) (xs @List :list) (t T) (ts @List :list))
-  (@List @List U) U
+  :signature (@List @List U) U
   (
     ((substitute_list (@list x xs) (@list t ts) F) (substitute_list xs ts (substitute x t F)))
     ((substitute_list @list.nil @list.nil F)           F)
@@ -27,7 +27,7 @@
 ; returns the list of skolems for F
 ; TODO: this could be a fold
 (program mk_skolems ((x @List) (xs @List :list) (F Bool))
-  (@List Bool) @List
+  :signature (@List Bool) @List
   (
     ((mk_skolems (@list x xs) F) (eo::cons @list (skolem (@k.QUANTIFIERS_SKOLEMIZE F x)) (mk_skolems xs F)))
     ((mk_skolems @list.nil F)      @list.nil)

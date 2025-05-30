@@ -23,12 +23,10 @@ enum class Kind
   // types
   TYPE,
   FUNCTION_TYPE,
+  PROGRAM_TYPE,
   PROOF_TYPE,
-  ABSTRACT_TYPE,
   BOOL_TYPE,
   QUOTE_TYPE,
-  OPAQUE_TYPE,  // an argument marked :opaque, temporary during parsing
-  NULL_TYPE,         // an argument marked :implicit, temporary during parsing
 
   // terms
   APPLY,
@@ -39,11 +37,16 @@ enum class Kind
   AS_RETURN,  // SMT-LIB (as t T), where T is the return type of t
   PARAMETERIZED,
   APPLY_OPAQUE,
+  ANNOT_PARAM,  // a parameter with non-ground type that appears in type
+                // checking
+  ANY,          // atomic term standing for an unknown, treated as non-ground
+                // and evaluatable.
 
   // symbols
   PARAM,
   CONST,
-  BUILTIN_CONST,    // used for e.g. _, ->, eo::*, as, etc. which are temporary during parsing only
+  BUILTIN_CONST,  // used for e.g. _, ->, eo::*, as, etc. which are temporary
+                  // during parsing only
   PROGRAM_CONST,
   PROOF_RULE,
   VARIABLE,
@@ -60,6 +63,7 @@ enum class Kind
 
   // operations on literals
   // core
+  EVAL_IS_OK,
   EVAL_IS_EQ,
   EVAL_IF_THEN_ELSE,
   EVAL_REQUIRES,
@@ -68,12 +72,15 @@ enum class Kind
   EVAL_TYPE_OF,
   EVAL_NAME_OF,
   EVAL_COMPARE,
+  // testers
   EVAL_IS_Z,
   EVAL_IS_Q,
   EVAL_IS_BIN,
   EVAL_IS_STR,
   EVAL_IS_BOOL,
   EVAL_IS_VAR,
+  // equality
+  EVAL_EQ,
   // lists
   EVAL_NIL,
   EVAL_CONS,
@@ -81,6 +88,12 @@ enum class Kind
   EVAL_LIST_CONCAT,
   EVAL_LIST_NTH,
   EVAL_LIST_FIND,
+  EVAL_LIST_ERASE,
+  EVAL_LIST_ERASE_ALL,
+  EVAL_LIST_REV,
+  EVAL_LIST_SETOF,
+  EVAL_LIST_MINCLUDE,
+  EVAL_LIST_MEQ,
   // boolean
   EVAL_NOT,
   EVAL_AND,

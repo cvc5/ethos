@@ -1,14 +1,14 @@
 (declare-type Int ())
 (declare-consts <numeral> Int)
 
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 (declare-const + (-> Int Int Int))
 (declare-const - (-> Int Int Int))
 (declare-const < (-> Int Int Bool))
 (declare-const <= (-> Int Int Bool))
 
 (program arith.eval ((S Type) (a Int) (b Int) (z S))
-    (S) S
+    :signature (S) S
     (
       ((arith.eval (= a b))  (eo::is_eq (arith.eval a) (arith.eval b)))
       ((arith.eval (< a b))  (eo::is_neg (arith.eval (- a b))))
@@ -25,34 +25,22 @@
 
 (declare-consts <binary> (BitVec (eo::len eo::self)))
 
-(declare-const bvadd (->
-  (! Int :var n :implicit)
-  (BitVec n)
-  (BitVec n)
+(declare-parameterized-const bvadd ((n Int :implicit)) (-> (BitVec n) (BitVec n)
   (BitVec n)))
 
-(declare-const bvextract (->
-  (! Int :var n :implicit)
-  (! Int :var h)
-  (! Int :var l)
-  (BitVec n)
-  (!
-    (BitVec (arith.eval (+ (- h l) 1)))
-      :requires ((arith.eval (<= 0 h)) true)
-      :requires ((arith.eval (< h n)) true)
-      :requires ((arith.eval (<= 0 l)) true)
-      :requires ((arith.eval (< l h)) true)
-  ))
+(declare-parameterized-const bvextract ((n Int :implicit) (h Int) (l Int)) 
+  (-> (BitVec n)
+    (eo::requires (arith.eval (<= 0 h)) true
+    (eo::requires (arith.eval (< h n)) true
+    (eo::requires (arith.eval (<= 0 l)) true
+    (eo::requires (arith.eval (< l h)) true
+      (BitVec (arith.eval (+ (- h l) 1))))))))
 )
 
-(declare-const bvconcat (->
-  (! Int :var n :implicit)
-  (! Int :var m :implicit)
-  (BitVec n)
-  (BitVec m)
-  (BitVec (arith.eval (+ n m)))))
+(declare-parameterized-const bvconcat ((n Int :implicit) (m Int :implicit)) 
+  (-> (BitVec n) (BitVec m) (BitVec (arith.eval (+ n m)))))
 
-(program bv.eval ((T Type) (U Type) (S Type) (a T) (b U) (z S) (h Int) (l Int))
+(program bv.eval ((T Type) (U Type) (S Type) (n Int) (a (BitVec n)) (b (BitVec n)) (z S) (h Int) (l Int))
     (S) S
     (
       ((bv.eval (= a b))           (eo::is_eq (bv.eval a) (bv.eval b)))
