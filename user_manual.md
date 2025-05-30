@@ -2294,15 +2294,18 @@ As an exception, we often use `Tuple` in the second field of term annotations `<
   <term>          := <param> | <const> |
                       (-> <term> <term>) | (~> <term> <term>) | (--> <term>+ <term>) |
                       (_ <term> <term>) | (_# <term> <term>) | (<prog-const> <term>+)
-  <prog-const>    := <const> | eo::requires | eo::nil | eo::ite | eo::typeof | eo::is_eq
+  <prog-const>    := <const> | eo::requires | eo::nil | eo::ite | eo::typeof | eo::eq
 
-  <pterm>         := <term> | (Opaque <pterm>) | (Quote <pterm>) | (Nil <pterm>*) |
+  ; "pre-terms", used during parsing
+  <pterm>         := <term> | (Opaque <pterm>) | (Quote <pterm>) | (Nil <pterm> <pterm>) |
                      (Tuple <pterm>*) | (Lambda (Tuple <pterm>*) <pterm>)
 ```
 
 ### Type 
 
 ### Parser State
+
+The following summarizes the state of the parser.
 
 ```
   ; Symbol table.
@@ -2317,7 +2320,7 @@ As an exception, we often use `Tuple` in the second field of term annotations `<
   L : maps <lit-category> to <term>
 ```
 
-The initial state can be understood by parsing the following background definitions:
+The initial state is the result of running the following background definitions:
 ```
 (declare-const Bool Type)
 (declare-consts <boolean> Bool)
