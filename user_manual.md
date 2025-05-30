@@ -2287,10 +2287,9 @@ As an exception, we often use `Tuple` in the second field of term annotations `<
   <lit-category>  := '<numeral>' | '<decimal>' | '<rational>' | '<binary>' | '<hexadecimal>' | '<string>'
   <attr>          :=  right-assoc-nil | right-assoc | left-assoc | left-assoc-nil |
                       chainable | pairwise | binder | let-binder |
-                      program | oracle |
-                      list | opaque |
+                      program | oracle | amb | list | opaque |
                       datatype | datatype-constructor | amb-datatype-constructor |
-                      premise-list | none
+                      rule | none
   <annot>         := [ <attr>, <pterm> ]
   <term>          := <param> | <const> |
                       (-> <term> <term>) | (~> <term> <term>) | (--> <term>+ <term>) |
@@ -2327,7 +2326,7 @@ The initial state can be understood by parsing the following background definiti
 
 ; including eo::var, eo::list_concat
 
-; eo::conclusion, eo::self?
+; eo::self?
 
 ```
 
@@ -2581,7 +2580,9 @@ RUN(C):
 
   (declare-const s T):
     Let U = DESUGAR(T)
-    if U is (-> (Opaque U_1) ... (-> (Opaque U_n) V) ... )
+    if U is ambiguous with return type R:
+      return RUN( (declare-const s (-> (Quote R) T) :amb) )
+    else if U is (-> (Opaque U_1) ... (-> (Opaque U_n) V) ... )
       return RUN( (declare-const s (-> U_1 ... U_n V) :opaque (Tuple U_1 ... U_n)) )
     else
       return RUN( (declare-const s U :none) )
