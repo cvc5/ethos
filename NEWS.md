@@ -18,6 +18,8 @@ ethos 0.1.2 prerelease
 - The semantics for `eo::dt_selectors` is extended for annotated constructors. For example calling `eo::dt_selectors` on `(as nil (List Int))` returns the empty list.
 - To support parameteric nil terminators, the operator `eo::nil` now always requires two arguments, the list operator and the desired type for the nil terminator.
 
+- Adds support for dependent types for programs. The argument types of programs can now use `eo::quote` to specify an input parameter to that program.
+
 - Adds builtin primitives `eo::eq` and `eo::is_ok`.
 - Adds builtin list operators `eo::list_rev`, `eo::list_erase`, `eo::list_erase_all`, `eo::list_setof` (returns the unique elements of the list), `eo::list_minclude` (multiset inclusion) and `eo::list_meq` (multiset equality).
 - Added the option `--stats-all` to track the number of times side conditions are invoked.
@@ -25,6 +27,7 @@ ethos 0.1.2 prerelease
 - The option `--binder-fresh`, which specified for fresh variables to be constructed when parsing binders, has been removed.
 - Programs and oracles now are explicitly required to have at least one argument.
 - Remove support for the explicit parameter annotation `eo::_`, which was used to provide annotations for implicit arguments to parameterized constants.
+- Programs are now recommended to use the attribute `:signature` to specify the argument and return types.
 
 ethos 0.1.1
 ===========

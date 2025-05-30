@@ -12,7 +12,7 @@
 ; In particular, if `F` is not an or-application or false, we return (or F),
 ; otherwise `F` is unchanged.
 (program to_clause ((F1 Bool) (F2 Bool :list))
-  (Bool) Bool
+  :signature (Bool) Bool
   (
     ((to_clause (or F1 F2)) (or F1 F2))
     ((to_clause false)      false)
@@ -22,7 +22,7 @@
 ; `from_clause F` converts "clause" `F` to a formula.
 ; In particular, if `F` is (or F), we return `F`, otherwise `F` is unchanged.
 (program from_clause ((F1 Bool) (F2 Bool :list))
-  (Bool) Bool
+  :signature (Bool) Bool
   (
     ((from_clause (or F1 F2)) (eo::ite (eo::is_eq F2 false) F1 (or F1 F2)))
     ((from_clause F1)         F1)
@@ -36,7 +36,7 @@
 
 ; RESOLUTION
 (program resolve ((C1 Bool) (C2 Bool) (pol Bool) (L Bool))
-    (Bool Bool Bool Bool) Bool
+    :signature (Bool Bool Bool Bool) Bool
     (
       ((resolve C1 C2 pol L)
         (eo::define ((lp (eo::ite pol L (not L))))
@@ -56,7 +56,7 @@
 ; CHAIN_RESOLUTION
 ; Applies multiple steps of resolution but leaves the first argument in n-ary form.
 (program chainResolveRec ((C1 Bool) (C2 Bool) (Cs Bool :list) (pol Bool) (L Bool) (args Bool :list))
-    (Bool Bool Bool) Bool
+    :signature (Bool Bool Bool) Bool
     (
         ((chainResolveRec C1 true true)              (from_clause C1))
         ((chainResolveRec C1 (and C2 Cs) (and pol L args))
@@ -87,7 +87,7 @@
 ; factorLiterals xs x returns x with duplicates removed, xs is a list of
 ; literals we have seen before.
 (program factorLiterals ((xs Bool :list) (l Bool) (ls Bool :list))
-    (Bool Bool) Bool
+    :signature (Bool Bool) Bool
     (
         ((factorLiterals xs (or l ls)) (eo::define ((cond (eo::is_neg (eo::list_find or xs l))))
                                        (eo::define ((ret (factorLiterals
@@ -250,7 +250,7 @@
 ; Moves a negation into a disjunction.
 ; `lowerNotAnd (and l1 .. ln) = (or (not l1) ... (not ln))`
 (program lowerNotAnd ((l Bool) (ls Bool :list))
-    (Bool) Bool
+    :signature (Bool) Bool
     (
         ((lowerNotAnd true)       false) ; Terminator changes
         ((lowerNotAnd (and l ls)) (eo::cons or (not l) (lowerNotAnd ls)))

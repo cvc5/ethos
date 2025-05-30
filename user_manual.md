@@ -1277,7 +1277,7 @@ We assume the declaration of a generic `is` predicate (often called a "tester" p
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 
 (program $mk_dt_split ((D Type) (x D) (T Type) (c T) (xs eo::List :list))
-  (eo::List D) Bool
+  :signature (eo::List D) Bool
   (
     (($mk_dt_split eo::List::nil x)          false)
     (($mk_dt_split (eo::List::cons c xs) x)  (eo::cons or (is c x) ($mk_dt_split xs x)))
@@ -1525,14 +1525,14 @@ Locally assumptions can be arbitrarily nested, for example the above can be exte
 (step-pop @p4 (=> true (=> false true)) :rule implies-intro :premises (@p3))
 ```
 
-## Side Conditions
+## Programs
 
 Ethos supports a `program` command for defining recursive programs.
 In particular, in Ethos, a program is an ordered list of rewrite rules.
 The syntax for this command is as follows.
 
 ```smt
-(program <symbol> :ethos (<typed-param>*) (<type>+) <type> ((<term> <term>)+))
+(program <symbol> (<typed-param>*) :signature (<type>+) <type> ((<term> <term>)+))
 ```
 
 This command declares a program named `<symbol>`.
@@ -1564,7 +1564,7 @@ The following program (recursively) computes whether a formula `l` is contained 
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (program contains
     ((l Bool) (x Bool) (xs Bool :list))
-    (Bool Bool) Bool
+    :signature (Bool Bool) Bool
     (
         ((contains false l)     false)
         ((contains (or l xs) l) true)
@@ -1594,7 +1594,7 @@ Computing the latter is significantly faster in practice in Ethos.
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (program contains
     ((l Bool) (x Bool) (xs Bool))
-    (Bool Bool) Bool
+    :signature (Bool Bool) Bool
     (
         ((contains false l)     false)
         ((contains (or l xs) l) true)
@@ -1614,7 +1614,7 @@ However, `(contains (or a b c) a)` does not evaluate in this example.
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (program contains
     ((l Bool) (x Bool :list) (xs Bool :list))
-    (Bool Bool) Bool
+    :signature (Bool Bool) Bool
     (
         ((contains false l)     false)
         ((contains (or l xs) l) true)
@@ -1633,7 +1633,7 @@ Thus, the third case of the program, `(contains (eo::list_concat or x xs) l)`, i
 ```smt
 (program substitute
   ((T Type) (U Type) (S Type) (x S) (y S) (f (-> T U)) (a T) (z U))
-  (S S U) U
+  :signature (S S U) U
   (
   ((substitute x y x)     y)
   ((substitute x y (f a)) (_ (substitute x y f) (substitute x y a)))
@@ -1658,7 +1658,7 @@ Calling it with arguments `A`, `B`, and `(@array_diff A B)` would return `(@arra
 ```smt
 (program substitute-o
   ((T Type) (U Type) (S Type) (x S) (y S) (a (Array T U)) (b (Array T U)) (z U))
-  (S S U) U
+  :signature (S S U) U
   (
   ((substitute-o x y x)                 y)
   ((substitute-o x y (f a))             (_ (substitute-o x y f) (substitute-o x y a)))
@@ -1680,7 +1680,7 @@ Calling it with arguments `A`, `B`, and `(@array_diff A B)` would return `(@arra
 (declare-const <= (-> Int Int Bool))
 
 (program run_evaluate ((T Type) (U Type) (S Type) (a T) (b U) (z S))
-    (S) S
+    :signature (S) S
     (
       ((run_evaluate (= a b))  (eo::is_eq (run_evaluate a) (run_evaluate b)))
       ((run_evaluate (< a b))  (eo::is_neg (run_evaluate (- a b))))
@@ -1701,7 +1701,7 @@ The above example recursively evaluates arithmetic terms and predicates accordin
 (declare-type Int ())
 (declare-type Real ())
 (program arith.typeunion ()
-    (Type Type) Type
+    :signature (Type Type) Type
     (
       ((arith.typeunion Int Int) Int)
       ((arith.typeunion Int Real) Real)
@@ -1727,14 +1727,14 @@ The return type of `+` invokes this side condition, which conceptually is implem
 (declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
 
 (program to_drat_lit ((l Bool))
-  (Bool) Int
+  :signature (Bool) Int
   (
     ((to_drat_lit (not l))  (eo::neg (eo::hash l)))
     ((to_drat_lit l)        (eo::hash l))
   )
 )
 (program to_drat_clause ((l Bool) (C Bool :list))
-  (Bool) String
+  :signature (Bool) String
   (
     ((to_drat_clause false)    "0")
     ((to_drat_clause (or l C)) (eo::concat (eo::to_str (to_drat_lit l)) " " (to_drat_clause C)))
@@ -1742,7 +1742,7 @@ The return type of `+` invokes this side condition, which conceptually is implem
   )
 )
 (program to_dimacs ((C Bool) (F Bool :list))
-  (Bool) String
+  :signature (Bool) String
   (
     ((to_dimacs true)       "")
     ((to_dimacs (and C F))  (eo::concat (to_drat_clause C) " " (to_dimacs F)))
@@ -1751,6 +1751,62 @@ The return type of `+` invokes this side condition, which conceptually is implem
 ```
 
 The above program `to_dimacs` converts an SMT formula into DIMACS form, where `eo::hash` is used to assign atoms to integer identifiers.
+
+### Dependently-Typed Programs
+
+In Eunoia, a program can be given dependent types.
+The syntax `eo::quote` is used for this purpose, which can specify an input parameter to that function,
+and is provided as part of the type signature of the program.
+
+```
+(declare-type Int ())
+(declare-consts <numeral> Int)
+(declare-type BitVec (Int))
+(declare-consts <binary> (BitVec (eo::len eo::self)))
+
+(declare-const @bv_empty (BitVec 0))
+
+(declare-parameterized-const concat ((n Int :implicit) (m Int :implicit))
+  (-> (BitVec n) (BitVec m) (BitVec (eo::add n m))))
+
+(program repeat_zero ((n Int))
+  :signature ((eo::quote n)) (BitVec n)
+  (
+    ((repeat_zero 0) @bv_empty)
+    ((repeat_zero n) (eo::requires (eo::is_neg n) false
+                        (concat #b0 (repeat_zero (eo::add n -1)))))
+  )
+)
+
+(define foo () (repeat_zero 7) :type (BitVec 7))
+```
+
+In the above example, we define a parametric bit-vector type and the operator `concat`,
+which concatenates two bit-vectors and whose type is the sum of its arguments.
+We then define a recursive program `repeat_zero` that concatenates the bit-vector value `#b0`
+`n` times, where `n` is its argument.
+This program returns a bit-vector of size `n`.
+Its specified type uses `eo::quote` to give a name to the argument of this program,
+allowing its return type to refer to that argument.
+
+> __Note:__ The argument of `eo::quote` must be a parameter introduced in the parameter list declared at the beginning of the program command.
+
+Note that arguments that use the annotation `eo::quote` can be freely mixed with other type arguments.
+For example, the above program could be generalized to concatentate an arbitrary BitVec term `n` times:
+
+```
+(program repeat_term ((m Int) (n Int) (x (BitVec m))
+  :signature ((BitVec m) (eo::quote n)) (BitVec (eo::mul m n))
+  (
+    ((repeat_term x 0) @bv_empty)
+    ((repeat_term x n) (eo::requires (eo::is_neg n) false
+                         (concat x (repeat_term (eo::add n -1)))))
+  )
+)
+
+(declare-const a (BitVec 5))
+(define foo2 () (repeat_term a 7) :type (BitVec 35))
+```
 
 ### Match statements
 
@@ -1836,7 +1892,7 @@ Internally, the semantics of `eo::match` can be seen as an (inlined) program app
 (declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 (declare-const not (-> Bool Bool))
 (program matchF ((t1 Int) (t2 Int))
-    (Bool) Bool
+    :signature (Bool) Bool
     (
       ((matchF (= t1 t2))       (= t2 t1))
       ((matchF (not (= t1 t2))) (not (= t2 t1)))
@@ -1860,7 +1916,7 @@ In more general cases, if the body of the match term contains free variables, th
 (declare-const and (-> Bool Bool Bool) :left-assoc)
 
 (program mk_trans ((t1 Int) (t2 Int) (t3 Int) (t4 Int) (tail Bool :list))
-    (Int Int Bool) Bool
+    :signature (Int Int Bool) Bool
     (
         ((mk_trans t1 t2 (and (= t3 t4) tail)) (eo::requires t2 t3 (mk_trans t1 t4 tail)))
         ((mk_trans t1 t2 true)                 (= t1 t2))
@@ -1919,7 +1975,7 @@ For example:
 (declare-type Real ())
 (declare-const / (-> Int Int Real))
 (program normalize ((T Type) (S Type) (f (-> S T)) (x S) (a Int) (b Int))
-   (T) T
+   :signature (T) T
    (
      ((normalize (/ a b)) (eo::qdiv a b))
      ((normalize (f x))   (_ (normalize f) (normalize x)))
@@ -2050,7 +2106,7 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
     (define <symbol> (<typed-param>*) <term> <attr>*) |
     (define-type <symbol> (<type>*) <type>) |
     (include <string>) |
-    (program <symbol> (<typed-param>*) (<type>+) <type> ((<term> <term>)+)) |
+    (program <symbol> (<typed-param>*) :signature (<type>+) <type> ((<term> <term>)+)) |
     (reference <string> <symbol>?) |
     (step <symbol> <term>? :rule <symbol> <simple-premises>? <arguments>?) |
     (step-pop <symbol> <term>? :rule <symbol> <simple-premises>? <arguments>?) |

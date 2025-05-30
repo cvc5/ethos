@@ -11,7 +11,7 @@
 
 ; Return true if s is the empty string or sequence.
 (program string_is_empty ((U Type) (x U))
-  (U) Bool
+  :signature (U) Bool
   (
     ((string_is_empty (seq.empty U)) true)
     ((string_is_empty "") true)

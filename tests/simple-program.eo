@@ -6,7 +6,7 @@
 (declare-const i1 Int)
 
 (program select ((f1 Bool) (f2 Bool))
-  (Int Bool) Bool
+  :signature (Int Bool) Bool
   ; cases
   (
   ((select i0 (and f1 f2)) f1)
