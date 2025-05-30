@@ -2386,26 +2386,11 @@ DESUGAR(t):
 
   ;;; annotations
 
-  (! T :implicit a_1 ... a_n):
-    return DESUGAR( (! Null a_1 ... a_n) )
-
-  (! T :opaque a_1 ... a_n), where T != Null:
-    return DESUGAR( (! (Opaque T) a_1 ... a_n) )
-
-  (! T :requires (t1 t2) a_1 ... a_n), where T != Null:
-    return DESUGAR( (! (eo::requires t_1 t_2 T) a_1 ... a_n) )
-
-  (! T :var x a_1 ... a_n), where T != Null, (Quote U) for any U:
-    Let x is a fresh parameter of type T.
-    return DESUGAR( (! (Quote x) a_1 ... a_n) )
-
-  (! t):
+  ; term attributes are ignored
+  (! t a_1 ... a_n):
     return DESUGAR(t)
 
   ;;; function types
-
-  (-> Null T_1 ... T_n):
-    return DESUGAR( (-> T_1 ... T_n) )
 
   (-> (eo::requires s1 s2 T_0) T_1 ... T_n):
     return DESUGAR( (-> T_0 (eo::requires s1 s2 (-> T_1 ... T_n))) )
@@ -2477,15 +2462,15 @@ DESUGAR(t):
   (Quote t_1):
     return (Quote DESUGAR(t_1))
 
-  (Nil f t_1 ... t_n):
-    return (eo::nil f DESUGAR(t_1) ... DESUGAR(t_n))
+  (Nil f T):
+    return (eo::nil f DESUGAR(T))
 
   ;;; n-ary kinds
 
   If A(f) = [right-assoc-nil, g]:
 
     (f t_1 ... t_n), where t_n != (Nil ...), A[t_n] != [list, Null]:
-      return DESUGAR( (f t_1 ... t_n (Nil f t_1 ... t_n)) )
+      return DESUGAR( (f t_1 ... t_n (Nil f (eo::typeof t_1))) )
 
     (f t_1 ... t_n), where A[t_1] = [list, Null], n>1:
       return (eo::list_concat f DESUGAR(t_1) DESUGAR( (f t_2 ... t_n) ))
@@ -2507,7 +2492,7 @@ DESUGAR(t):
   If A(f) = [left-assoc-nil, g]:
 
     (f t_1 ... t_n), where t_1 != (Nil ...), A[t_1] != [list, Null]:
-      return DESUGAR( (f (Nil f t_1 ... t_n) t_1 ... t_n) )
+      return DESUGAR( (f (Nil f (eo::typeof t_1)) t_1 ... t_n) )
 
     (f t_1 ... t_n), where A[t_1] = [list, Null], n>1:
       return (eo::list_concat f DESUGAR( (f t_2 ... t_n) ) DESUGAR(t_1))
