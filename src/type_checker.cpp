@@ -1107,6 +1107,19 @@ ExprValue* getNAryChildren(ExprValue* e,
   return e;
 }
 
+ExprValue* getNAryNth(ExprValue* e,
+                      bool isLeft,
+                      size_t n)
+{
+  for (size_t i=0; i<n; i++)
+  {
+    Assert (e->getKind()==Kind::APPLY && (*e)[0]->getKind()==Kind::APPLY);
+    // traverse to tail
+    e = isLeft ? (*(*e)[0])[1] : (*e)[1];
+  }
+  return e;
+}
+
 Expr TypeChecker::prependNAryChildren(ExprValue* op,
                                       ExprValue* ret,
                                       const std::vector<ExprValue*>& hargs,
@@ -1612,27 +1625,33 @@ Expr TypeChecker::evaluateListEraseInternal(Kind k,
     return d_null;
   }
   std::vector<ExprValue*> result;
-  bool changed = false;
-  bool doRem = true;
   bool isAll = (k == Kind::EVAL_LIST_ERASE_ALL);
-  for (ExprValue* elem : hargs)
+  size_t changeIndex = 0;
+  size_t changeSize = 0;
+  for (size_t i=0, nargs=hargs.size(); i<nargs; i++)
   {
-    if (doRem && elem == args[2])
+    if (hargs[i] == args[2])
     {
-      changed = true;
+      changeIndex = i+1;
       if (!isAll)
       {
-        doRem = false;
+        break;
       }
+      changeSize = result.size();
       continue;
     }
-    result.emplace_back(elem);
+    result.emplace_back(hargs[i]);
   }
-  if (!changed)
+  if (changeIndex==0)
   {
     return Expr(args[1]);
   }
-  return prependNAryChildren(op, nil, result, isLeft);
+  if (isAll)
+  {
+    result.resize(changeSize);
+  }
+  ExprValue* ret = getNAryNth(args[1], isLeft, changeIndex);
+  return prependNAryChildren(op, ret, result, isLeft);
 }
 
 Expr TypeChecker::evaluateListSetOfInternal(ExprValue* op,
@@ -1647,14 +1666,28 @@ Expr TypeChecker::evaluateListSetOfInternal(ExprValue* op,
   }
   std::unordered_set<ExprValue*> seen;
   std::vector<ExprValue*> result;
-  for (ExprValue* elem : hargs)
+  size_t changeIndex = 0;
+  size_t changeSize = 0;
+  for (size_t i=0, nargs=hargs.size(); i<nargs; i++)
   {
+    ExprValue * elem = hargs[i];
     if (seen.insert(elem).second)
     {
       result.emplace_back(elem);
     }
+    else
+    {
+      changeIndex = i+1;
+      changeSize = result.size();
+    }
   }
-  return prependNAryChildren(op, nil, result, isLeft);
+  if (changeIndex==0)
+  {
+    return Expr(args[1]);
+  }
+  result.resize(changeSize);
+  ExprValue* ret = getNAryNth(args[1], isLeft, changeIndex);
+  return prependNAryChildren(op, ret, result, isLeft);
 }
 
 Expr TypeChecker::evaluateListMPredInternal(Kind k,
