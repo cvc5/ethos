@@ -3,13 +3,25 @@
 ; definition $eo_X. Modifying a Eunoia file to use $eo_ instead of eo:: should
 ; have no impact on behavior (apart from performance), unless otherwise noted.
 
+;;; $eo_eq
+
+; program: $eo_eq
+; implements: eo::eq
+(program $eo_eq ((T Type) (S Type) (t T) (s S))
+  :signature (T S) Bool
+  (
+  (($eo_eq t t) true)
+  (($eo_eq t s) false)
+  )
+)
+
 ;;; $eo_is_eq
 
 ; Returns true if t and s are equivalent values (ground and fully evaluated).
 ; define: $eo_is_eq
 ; implements: eo::is_eq
 (define $eo_is_eq ((T Type :implicit) (S Type :implicit) (t T) (s S))
-  (eo::ite (eo::and (eo::is_ok t) (eo::is_ok s)) (eo::eq s t) false))
+  (eo::ite (eo::and (eo::is_ok t) (eo::is_ok s)) ($eo_eq s t) false))
 
 ;;; $eo_is_z
 
@@ -123,7 +135,7 @@
   ((-> T U V) W X) Bool
   (
   (($eo_is_list_rec f nil (f x y)) ($eo_is_list_rec f nil y))
-  (($eo_is_list_rec f nil z)       (eo::eq nil z))
+  (($eo_is_list_rec f nil z)       ($eo_eq nil z))
   )
 )
 
@@ -141,10 +153,10 @@
 (program $eo_get_elements_rec
   ((T Type) (U Type) (V Type) (W Type) (W1 Type) (W2 Type) (X Type)
    (f (-> T U V)) (x W1) (y W2) (z X) (nil W))
-  ((-> T U V) W X) eo::List
+  ((-> T U V) W X) eo_List
   (
-  (($eo_get_elements_rec f nil (f x y)) (eo::cons eo::List::cons x ($eo_get_elements_rec f nil y)))
-  (($eo_get_elements_rec f nil nil)     eo::List::nil)
+  (($eo_get_elements_rec f nil (f x y)) (eo::cons eo_List_cons x ($eo_get_elements_rec f nil y)))
+  (($eo_get_elements_rec f nil nil)     eo_List_nil)
   )
 )
 
@@ -235,7 +247,7 @@
    (f (-> T U V)) (x W) (z W) (y U) (z X) (nil W) (n Int))
   ((-> T U V) W X Int) Int
   (
-  (($eo_list_find_rec f (f x y) z n)  (eo::ite (eo::eq x z) n
+  (($eo_list_find_rec f (f x y) z n)  (eo::ite ($eo_eq x z) n
                                         ($eo_list_find_rec f y z (eo::add n 1))))
   (($eo_list_find_rec f nil z n)      -1)
   )
@@ -279,7 +291,7 @@
    (f (-> T V V)) (x W) (y U) (z X) (nil U))
   ((-> T V V) U X) U
   (
-  (($eo_list_erase_rec f (f x y) z)   (eo::ite (eo::eq z x) y
+  (($eo_list_erase_rec f (f x y) z)   (eo::ite ($eo_eq z x) y
                                         (f x ($eo_list_erase_rec f y z))))
   (($eo_list_erase_rec f nil z)       nil)
   )
@@ -302,7 +314,7 @@
   ((-> T V V) U X) U
   (
   (($eo_list_erase_all_rec f (f x y) z)   (eo::define ((res ($eo_list_erase_all_rec f y z)))
-                                            (eo::ite (eo::eq z x) res (f x res))))
+                                            (eo::ite ($eo_eq z x) res (f x res))))
   (($eo_list_erase_all_rec f nil z)       nil)
   )
 )
@@ -339,14 +351,14 @@
 
 ; Note: a helper for $eo_list_minclude.
 (program $eo_list_minclude_rec
-  ((T Type) (x T) (y eo::List :list) (z eo::List))
-  (eo::List eo::List) Bool
+  ((T Type) (x T) (y eo_List :list) (z eo_List))
+  (eo_List eo_List) Bool
   (
-  (($eo_list_minclude_rec (eo::List::cons x y) z)  (eo::define ((res ($eo_list_erase eo::List::cons z x)))
-                                                   (eo::ite (eo::eq res z)
+  (($eo_list_minclude_rec (eo_List_cons x y) z)  (eo::define ((res ($eo_list_erase eo_List_cons z x)))
+                                                   (eo::ite ($eo_eq res z)
                                                      false   ; must have successfully removed occurrence of x from z
                                                      ($eo_list_minclude_rec y res))))
-  (($eo_list_minclude_rec eo::List::nil z)          true)
+  (($eo_list_minclude_rec eo_List_nil z)          true)
   )
 )
 
@@ -355,7 +367,7 @@
 ; Note: >
 ;   Since $eo_list_erase is a key submethod for defining $eo_list_minclude,
 ;   and $eo_list_erase requires functions (-> T V V), we convert the elements
-;   of both lists to builtin lists eo::List using the auxiliary method
+;   of both lists to builtin lists eo_List using the auxiliary method
 ;   $eo_get_elements in this definition.
 (define $eo_list_minclude
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)

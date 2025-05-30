@@ -9,6 +9,13 @@
 (declare-const c Bool)
 (declare-const d Bool)
 
+; The builtin Eunoia list.
+(declare-type eo_List ())
+(declare-const eo_List_nil eo_List)
+(declare-parameterized-const eo_List_cons
+  ((T Type :implicit)) (-> T eo_List eo_List)
+  :right-assoc-nil eo_List_nil)
+
 ; Note that $eo_nil is dynamically modified based on the declared constants,
 ; as described below. This means we cannot provide a static definition of it
 ; in this signature, and this is not equivalent to the builtin $eo_nil.
@@ -17,7 +24,7 @@
   (
   (($eo_nil or Bool) false)
   (($eo_nil and Bool) true)
-  (($eo_nil eo::List::cons eo::List) eo::List::nil)
+  (($eo_nil eo_List_cons eo_List) eo_List_nil)
   )
 )
 

@@ -680,7 +680,7 @@ Note, however, that the evaluation of these operators is handled by more efficie
   - Returns `t2` if `t1` evaluates to `true`, `t3` if `t1` evaluates to `false`, and is not evaluated otherwise. Note that the branches of this term are only evaluated if they are the return term.
 
 - `(eo::eq t1 t2)`
-  - If `t1` and `t2` are ground values, this returns `true` if `t1` is (syntactically) equal to `t2` and false otherwise. Otherwise, if either `t1` or `t2` is non-ground, it does not evaluate.
+  - If `t1` and `t2` are ground values, this returns `true` if `t1` is (syntactically) equal to `t2` and false otherwise. Otherwise, if either `t1` or `t2` is non-ground, it does not evaluate. Note this can be expressed as an ordinary Eunoia program as we describe in [derived-ops](#derived-ops).
 
 - `(eo::is_eq t1 t2)`
   - Equivalent to `(eo::ite (eo::and (eo::is_ok t) (eo::is_ok s)) (eo::eq s t) false)`.
@@ -1237,8 +1237,9 @@ In detail, for the purposes of representing the return value of these operators,
 ```smt
 (declare-type eo::List ())
 (declare-const eo::List::nil eo::List)
-(declare-const eo::List::cons ((T Type :implicit)) (-> T eo::List eo::List)
-               :right-assoc-nil eo::List::nil)
+(declare-parameterized-const eo::List::cons ((T Type :implicit))
+  (-> T eo::List eo::List)
+  :right-assoc-nil eo::List::nil)
 ```
 
 > __Note:__ `eo::List` is not itself a datatype type.
@@ -2117,13 +2118,25 @@ have no impact on behavior (apart from performance), unless otherwise noted.
 
 ```smt
 
+;;; $eo_eq
+
+; program: $eo_eq
+; implements: eo::eq
+(program $eo_eq ((T Type) (S Type) (t T) (s S))
+  :signature (T S) Bool
+  (
+  (($eo_eq t t) true)
+  (($eo_eq t s) false)
+  )
+)
+
 ;;; $eo_is_eq
 
 ; Returns true if t and s are equivalent values (ground and fully evaluated).
 ; define: $eo_is_eq
 ; implements: eo::is_eq
 (define $eo_is_eq ((T Type :implicit) (S Type :implicit) (t T) (s S))
-  (eo::ite (eo::and (eo::is_ok t) (eo::is_ok s)) (eo::eq s t) false))
+  (eo::ite (eo::and (eo::is_ok t) (eo::is_ok s)) ($eo_eq s t) false))
 
 ;;; $eo_is_z
 
@@ -2203,7 +2216,19 @@ In particular, the behavior of `eo::nil` is dynamically modified based on the
 declared constants. We provide instructions
 for how to construct the definition of `$eo_nil` for a fixed signature.
 
-In particular, we assume the definition of `$eo_nil` has the following form:
+First, we redefine the builtin Eunoia list operator `eo::List` as
+the type `eo_List` and its constructors `eo::List::X` as `eo_List_X`.
+
+```
+;;; The builtin list definition.
+
+(declare-type eo_List ())
+(declare-const eo_List_nil $eo_List)
+(declare-const eo_List_cons ((T Type :implicit)) (-> T eo_List eo_List)
+               :right-assoc-nil $eo_List_nil)
+```
+
+Now, we assume the definition of `$eo_nil` has the following form:
 
 ```
 ; program: $eo_nil
@@ -2211,7 +2236,7 @@ In particular, we assume the definition of `$eo_nil` has the following form:
 (program $eo_nil ((T Type) (U Type) (V Type) (W Type))
   ((-> T U V) (eo::quote W)) W
   (
-  ; ... Cases for each operator, see description below.
+  ; ... Cases for each associative-nil operator, see description below.
   )
 )
 ```
@@ -2225,7 +2250,11 @@ For example, given:
 ```
 We add the case `(($eo_nil or Bool) false)` to `$eo_nil` above.
 
-Here, it is necessary to include the type as part of the case to support functions with
+> __Note:__ In our formulation, we assume that the case `(($eo_nil eo_List_cons eo_List) eo_List_nil)`
+for our (redefinition) of the builtin Eunoia list is included.
+
+In the definition of `$eo_nil`, notice that
+it is necessary to include the type as part of the case to support functions with
 non-ground nil terminators, which requiring instantiating the free parameters
 of `T`. For example, given:
 ```
@@ -2270,16 +2299,16 @@ All other list operators can be defined as ordinary Eunoia programs.
 (program $eo_get_elements_rec
   ((T Type) (U Type) (V Type) (W Type) (W1 Type) (W2 Type) (X Type)
    (f (-> T U V)) (x W1) (y W2) (z X) (nil W))
-  ((-> T U V) W X) eo::List
+  ((-> T U V) W X) eo_List
   (
-  (($eo_get_elements_rec f nil (f x y)) (eo::cons eo::List::cons x ($eo_get_elements_rec f nil y)))
-  (($eo_get_elements_rec f nil nil)     eo::List::nil)
+  (($eo_get_elements_rec f nil (f x y)) (eo::cons eo_List_cons x ($eo_get_elements_rec f nil y)))
+  (($eo_get_elements_rec f nil nil)     eo_List_nil)
   )
 )
 
 ; Note: >
 ;   This does not correspond to a builtin operator. It is used as a helper
-;   to define $eo_list_minclude below.
+;   to define eo_list_minclude below.
 (define $eo_get_elements
   ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
    (f (-> T U V)) (a W))
@@ -2364,7 +2393,7 @@ All other list operators can be defined as ordinary Eunoia programs.
    (f (-> T U V)) (x W) (z W) (y U) (z X) (nil W) (n Int))
   ((-> T U V) W X Int) Int
   (
-  (($eo_list_find_rec f (f x y) z n)  (eo::ite (eo::eq x z) n
+  (($eo_list_find_rec f (f x y) z n)  (eo::ite ($eo_eq x z) n
                                         ($eo_list_find_rec f y z (eo::add n 1))))
   (($eo_list_find_rec f nil z n)      -1)
   )
@@ -2408,7 +2437,7 @@ All other list operators can be defined as ordinary Eunoia programs.
    (f (-> T V V)) (x W) (y U) (z X) (nil U))
   ((-> T V V) U X) U
   (
-  (($eo_list_erase_rec f (f x y) z)   (eo::ite (eo::eq z x) y
+  (($eo_list_erase_rec f (f x y) z)   (eo::ite ($eo_eq z x) y
                                         (f x ($eo_list_erase_rec f y z))))
   (($eo_list_erase_rec f nil z)       nil)
   )
@@ -2431,7 +2460,7 @@ All other list operators can be defined as ordinary Eunoia programs.
   ((-> T V V) U X) U
   (
   (($eo_list_erase_all_rec f (f x y) z)   (eo::define ((res ($eo_list_erase_all_rec f y z)))
-                                            (eo::ite (eo::eq z x) res (f x res))))
+                                            (eo::ite ($eo_eq z x) res (f x res))))
   (($eo_list_erase_all_rec f nil z)       nil)
   )
 )
@@ -2468,14 +2497,14 @@ All other list operators can be defined as ordinary Eunoia programs.
 
 ; Note: a helper for $eo_list_minclude.
 (program $eo_list_minclude_rec
-  ((T Type) (x T) (y eo::List :list) (z eo::List))
-  (eo::List eo::List) Bool
+  ((T Type) (x T) (y eo_List :list) (z eo_List))
+  (eo_List eo_List) Bool
   (
-  (($eo_list_minclude_rec (eo::List::cons x y) z)  (eo::define ((res ($eo_list_erase eo::List::cons z x)))
-                                                   (eo::ite (eo::eq res z)
+  (($eo_list_minclude_rec (eo_List_cons x y) z)  (eo::define ((res ($eo_list_erase eo_List_cons z x)))
+                                                   (eo::ite ($eo_eq res z)
                                                      false   ; must have successfully removed occurrence of x from z
                                                      ($eo_list_minclude_rec y res))))
-  (($eo_list_minclude_rec eo::List::nil z)          true)
+  (($eo_list_minclude_rec eo_List_nil z)          true)
   )
 )
 
@@ -2484,7 +2513,7 @@ All other list operators can be defined as ordinary Eunoia programs.
 ; Note: >
 ;   Since $eo_list_erase is a key submethod for defining $eo_list_minclude,
 ;   and $eo_list_erase requires functions (-> T V V), we convert the elements
-;   of both lists to builtin lists eo::List using the auxiliary method
+;   of both lists to builtin lists eo_List using the auxiliary method
 ;   $eo_get_elements in this definition.
 (define $eo_list_minclude
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)
