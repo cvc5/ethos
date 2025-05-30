@@ -2266,7 +2266,7 @@ If no conlusion is provided, then the type attribute is not specified.
 Notice this is only the case if the declaration of `r` does not involve `:assumption` or `:premise-list`.
 
 
-# Formal Definition of Preprocessor
+# Formal Definition of Parser of Ethos
 
 This section defines a conversion from (full) Eunoia input syntax to a core logic.
 
