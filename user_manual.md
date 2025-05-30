@@ -2374,9 +2374,9 @@ Prior to calling `DESUGAR`, we assume all applications of overloaded functions a
 Assume `f` is overloaded such that `S[NAME(f)] = [f_1, ..., f_m]` where `m>1`.
 We replace all function applications of the form `(f t_1 ... t_n)` with:
 ```
-(eo::ite (eo::is_eq (eo::typeof (f_m t_1 ... t_n)) T) (f_m t_1 ... t_n)
+(eo::ite (eo::eq (eo::typeof (f_m t_1 ... t_n)) T) (f_m t_1 ... t_n)
 ...
-(eo::ite (eo::is_eq (eo::typeof (f_1 t_1 ... t_n)) T) (f_1 t_1 ... t_n)
+(eo::ite (eo::eq (eo::typeof (f_1 t_1 ... t_n)) T) (f_1 t_1 ... t_n)
   (f_m t_1 ... t_n)) ...)
 ```
 where notice that we use the most recently bound function symbol `f_m` if type-checking fails for all overloads.
@@ -2416,9 +2416,9 @@ DESUGAR(t):
   (eo::as f (-> T_1 ... T_n T)), where S[NAME(f)] = [f_1, ..., f_m]:
     Let [k_1, ..., k_n] = [FRESH_CONST("", T_1), ..., FRESH_CONST("", T_n)]
     return
-      (eo::ite DESUGAR( (eo::is_eq (eo::typeof (f_m k_1 ... k_n)) T) ) f_m
+      (eo::ite DESUGAR( (eo::eq (eo::typeof (f_m k_1 ... k_n)) T) ) f_m
       ...
-      (eo::ite DESUGAR( (eo::is_eq (eo::typeof (f_1 k_1 ... k_n)) T) ) f_1
+      (eo::ite DESUGAR( (eo::eq (eo::typeof (f_1 k_1 ... k_n)) T) ) f_1
         (eo::as f_m DESUGAR( (-> T_1 ... T_n T) ) ...)) )  ; Otherwise, eo::as is unprocessed.
 
   ;;; binders, definitions
@@ -2437,7 +2437,7 @@ DESUGAR(t):
 
   If A(f) = [define, (Lambda (Tuple x_1 ... x_n) t)]:
 
-    (f t_1 ... t_n):
+    (f t_1 ... t_n), n>0:
       return DESUGAR( SUBS( t, [x_1, ..., x_n], [t_1, ..., t_n]) )
 
   (eo::define ((x_1 s_1) ... (x_m s_m)) t):
@@ -2557,6 +2557,11 @@ DESUGAR(t):
       return (_ f DESUGAR(t_1))
 
   ;;; atomic terms
+
+  If A(t) = [define, (Lambda (Tuple) s)]:
+
+    t:
+      return s
 
   t:
     return t
