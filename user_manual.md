@@ -2297,7 +2297,7 @@ As an exception, we often use `Tuple` in the second field of term annotations `<
                       (_ <term> <term>) | (_# <term> <term>) | (<prog-const> <term>+)
   <prog-const>    := <const> | eo::requires | eo::nil | eo::ite | eo::typeof | eo::is_eq
 
-  <pterm>         := <term> | Null | (Opaque <pterm>) | (Quote <pterm>) | (Nil <pterm>*) |
+  <pterm>         := <term> | (Opaque <pterm>) | (Quote <pterm>) | (Nil <pterm>*) |
                      (Tuple <pterm>*) | (Lambda (Tuple <pterm>*) <pterm>)
 ```
 
@@ -2587,30 +2587,51 @@ RUN(C):
   (declare-parameterized-const s () T a):
     return RUN( (declare-const s T a) )
 
-  (declare-parameterized-const s ((y_1 U_1) ... (y_n U_n :implicit)) T a):
-    return RUN( (declare-parameterized-const s ((y_1 U_1) ... (y_{n-1} U_{n-1})) T a) )
+  (declare-parameterized-const s ((y_1 U_1 a_1) ... (y_n U_n a_n :list)) T a):
+    return RUN( (declare-parameterized-const s ((y_1 U_1 a_1) ... (y_n U_n a_n)) T a) )
 
-  (declare-parameterized-const s ((y_1 U_1) ... (y_n U_n :requires t s)) T a):
-    return RUN( (declare-parameterized-const s ((y_1 U_1) ... (y_n U_n)) (eo::requires t s T) a) )
+  (declare-parameterized-const s ((y_1 U_1 a_1) ... (y_n U_n a_n :requires t s)) T a):
+    return RUN( (declare-parameterized-const s ((y_1 U_1 a_1) ... (y_n U_n a_n)) (eo::requires t s T) a) )
 
-  (declare-rule s ((y_1 U_1) ... (y_n U_n))
-    [:assumption a]?
-    [:premises (p_1 ... p_k) | :premise-list pl g]
-    :args (t_1 ... t_l)
-    :requires ((s_1 r_1) ... (s_m r_m))
-    [:conclusion F | :conclusion-explicit Fx]):
-    return RUN( 
-      (declare-const s (-> (Quote t_1) ... (Quote t_l)
-                           [(Proof p_1) ... (Proof p_k) | (Proof pl)]
-                           [(Quote a)]? [(Quote Fx)]?
-                           (eo::requires s_1 r_1 ... (eo::requires s_m r_m
-                           [F | Fx])))) )
+  (declare-parameterized-const s ((y_1 U_1 a_1) ... (y_n U_n :implicit)) T a):
+    return RUN( (declare-parameterized-const s ((y_1 U_1 a_1) ... (y_{n-1} U_{n-1} a_{n-1})) T a) )
+
+  (declare-parameterized-const s ((y_1 U_1 a_1) ... (y_n U_n :opaque)) T a):
+    return RUN( (declare-parameterized-const s ((y_1 U_1 a_1) ... (y_{n-1} U_{n-1} a_{n-1})) (-> (Opaque (Quote y_n)) T) a) )
+
+  (declare-parameterized-const s ((y_1 U_1 a_1) ... (y_n U_n)) T a):
+    return RUN( (declare-parameterized-const s ((y_1 U_1 a_1) ... (y_{n-1} U_{n-1} a_{n-1})) (-> (Quote y_n) T) a) )
 
   (declare-type s (U_1 ... U_n)):
     return RUN( (declare-const s (-> U_1 ... U_n Type)) )
 
-  (define s ((y_1 U_1) ... (y_n U_n)) t):
-    return RUN( (declare-const s (-> U_1 ... U_n (eo::typeof t)) :define (Lambda (Tuple y_1 ... y_n) t)) )
+  (define s ((y_1 U_1 a_1) ... (y_n U_n a_n)) t):
+    return RUN( (define s ((y_1 U_1 a_1) ... (y_n U_n a_n)) t :define (Lambda (Tuple) t)) )
+
+  (define s ((y_1 U_1 a_1) ... (y_n U_n a_n :list)) t :define (Lambda (Tuple z_1 ... z_m) t)):
+    return RUN( (define s ((y_1 U_1 a_1) ... (y_n U_n a_n)) t :define (Lambda (Tuple z_1 ... z_m) t)) )
+
+  (define s ((y_1 U_1 a_1) ... (y_n U_n :implicit)) t :define (Lambda (Tuple z_1 ... z_m) t)):
+    return RUN( (define s ((y_1 U_1 a_1) ... (y_{n-1} U_{n-1} a_{n-1})) t :define (Lambda (Tuple z_1 ... z_m) t)) )
+
+  (define s ((y_1 U_1 a_1) ... (y_n U_n)) t :define (Lambda (Tuple z_1 ... z_m) t)):
+    return RUN( (define s ((y_1 U_1 a_1) ... (y_{n-1} U_{n-1} a_{n-1})) t :define (Lambda (Tuple y_n z_1 ... z_m) t)) )
+
+  (define s () t :define (Lambda (Tuple z_1 ... z_m) t)):
+    return RUN( (declare-const s (-> (eo::typeof z_1)  ... (eo::typeof z_m) (eo::typeof t)) :define (Lambda (Tuple z_1 ... z_m) t)) )
+
+  (declare-rule s ((y_1 U_1) ... (y_n U_n))
+    [:assumption a]?
+    [:premises (p_1 ... p_k) | :premise-list pl_p pl_g]
+    :args (t_1 ... t_l)
+    :requires ((s_1 r_1) ... (s_m r_m))
+    [:conclusion F | :conclusion-explicit F_x]):
+    return RUN(
+      (declare-const s (-> (Quote t_1) ... (Quote t_l)
+                           [(Proof p_1) ... (Proof p_k) | (Proof pl_p)]
+                           [(Quote a)]? [(Quote Fx)]?
+                           (eo::requires s_1 r_1 ... (eo::requires s_m r_m
+                           [F | Fx]))) :rule (Tuple a? F_x? pl_g?)) )
 
   (declare-datatype s () (par (U_1 ... U_n) ((c_1 (s_11 T_11) ... (s1m T_1m)) ... (c_n (s_n1 T_n1) ... (snm T_nm))))):
     Let DC = RUN( (declare-type s (U_1 ... U_n)) )
@@ -2624,7 +2645,7 @@ RUN(C):
         A[dc_i] := [amb-datatype-constructor, sels]
       else
         Let dc_i = RUN( (declare-const c_i (-> T_i1 ... T_im D)) )
-        A[dc_i] := [amb-datatype-constructor, sels]
+        A[dc_i] := [datatype-constructor, sels]
     A[DC] := [datatype, (Tuple dc_1 ... dc_n)]
     return DC
 
