@@ -2632,16 +2632,16 @@ RUN(C):
     return RUN(
       (declare-const s (-> (Quote t_1) ... (Quote t_l)
                            [(Proof p_1) ... (Proof p_k) | (Proof pl_p)]
-                           [(Quote q)]? [(Quote Fx)]?
+                           [(Quote q)]? [(Quote F_x)]?
                            (eo::requires s_1 r_1 ... (eo::requires s_m r_m
-                           [F | Fx]))) :rule (Tuple q? pl_g? F_x?)) )
+                           [F | F_x]))) :rule (Tuple q? pl_g? F_x?)) )
 
   (assume s F):
-    ASSERT( F in Ax )
+    ASSERT( DESUGAR( F ) in Ax )   ; the assumption must have occurred in an assert command
     return RUN( (declare-const s (Proof F)) )
 
   (assume-push s F)
-    Axl.push(F)
+    Axl.push( DESUGAR( F ) )
     return RUN( (declare-const s (Proof F)) )
 
   ([step | step-pop] s F? :rule r :premises (p_1 ... p_k) :args (t_1 ... t_n)):
@@ -2713,15 +2713,15 @@ RUN(C):
     return RUN( (declare-const x (-> T_1 ... T_n T)) )
 
   (define-fun x () T t):
-    Ax := Ax ++ [DESUGAR( (= x t) )]  ; assumes user definition of =.
+    Ax.push(DESUGAR( (= x t) ))    ; assumes user definition of =.
     return RUN( (declare-const x T) )
 
   (define-fun x ((y_1 U_1) ... (y_n U_n)) T t):
-    Ax := Ax ++ [DESUGAR( (= x (lambda ((y_1 U_1) ... (y_n U_n)) t)) )] ; assumes user definition of =, lambda.
+    Ax.push(DESUGAR( (= x (lambda ((y_1 U_1) ... (y_n U_n)) t)) )) ; assumes user definition of =, lambda.
     return RUN( (declare-const x (-> U_1 ... U_n T)) )
 
   (assert F):
-    Ax := Ax ++ [F]
+    Ax.push(DESUGAR( F ))
     return Null
 
   (check-sat):
