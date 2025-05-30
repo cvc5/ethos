@@ -2344,6 +2344,9 @@ Parameters introduced at the term level e.g. by `eo::match`, `eo::define`, or as
 As an exception,
 parameters marked `(x T :implicit)` are only in scope in the remainder of parsing the parameter list, 
 and are omitted from the parameter list after they are parsed.
+All parameters marked `(x T :list)` are such that `A[x]` is set to `[list, Null]`.
+For simplicity of presentation, for parameters with multiple attributes,
+we assume that attributes with keywords `:list` and `:requires` come after the other attributes.
 
 Parameters are generated in several other special contexts.
 In parameteric datatype definitions `(par (U_1 ... U_n) (<cons-dec>+))`, 
