@@ -101,7 +101,7 @@
 
 ; The internal definition of $eo_nil has the following form.
 ;(program $eo_nil ((T Type) (U Type) (V Type) (W Type))
-;  ((-> T U V) (eo::quote W)) W
+;  :signature ((-> T U V) (eo::quote W)) W
 ;  (
 ;  ; ... Cases for each operator, see description below.
 ;  )
@@ -132,7 +132,7 @@
 (program $eo_is_list_rec
   ((T Type) (U Type) (V Type) (W Type) (X Type)
    (f (-> T U V)) (x T) (y U) (nil W) (z X))
-  ((-> T U V) W X) Bool
+  :signature ((-> T U V) W X) Bool
   (
   (($eo_is_list_rec f nil (f x y)) ($eo_is_list_rec f nil y))
   (($eo_is_list_rec f nil z)       ($eo_eq nil z))
@@ -153,7 +153,7 @@
 (program $eo_get_elements_rec
   ((T Type) (U Type) (V Type) (W Type) (W1 Type) (W2 Type) (X Type)
    (f (-> T U V)) (x W1) (y W2) (z X) (nil W))
-  ((-> T U V) W X) eo_List
+  :signature ((-> T U V) W X) eo_List
   (
   (($eo_get_elements_rec f nil (f x y)) (eo::cons eo_List_cons x ($eo_get_elements_rec f nil y)))
   (($eo_get_elements_rec f nil nil)     eo_List_nil)
@@ -184,7 +184,7 @@
 ; Note: a helper for $eo_list_len.
 (program $eo_list_len_rec
   ((T Type) (U Type) (V Type) (W Type) (f (-> T U V)) (x T) (y U) (nil W))
-  ((-> T U V) W) Int
+  :signature ((-> T U V) W) Int
   (
   (($eo_list_len_rec f (f x y))  (eo::add 1 ($eo_list_len_rec f y)))
   (($eo_list_len_rec f nil)      0)
@@ -203,7 +203,7 @@
 ; Note: a helper for $eo_list_concat.
 (program $eo_list_concat_rec
   ((T Type) (U Type) (V Type) (W Type) (f (-> T V V)) (x W) (y U) (z U) (nil U))
-  ((-> T V V) U U) U
+  :signature ((-> T V V) U U) U
   (
   (($eo_list_concat_rec f (f x y) z)  (f x ($eo_list_concat_rec f y z)))
   (($eo_list_concat_rec f nil z)      z)
@@ -224,7 +224,7 @@
 ; Note: a helper for $eo_list_nth.
 (program $eo_list_nth_rec
   ((T Type) (U Type) (f (-> T T T)) (x U) (y U) (n Int))
-  ((-> T T T) U Int) U
+  :signature ((-> T T T) U Int) U
   (
   (($eo_list_nth_rec f (f x y) 0)  x)
   (($eo_list_nth_rec f (f x y) n)  ($eo_list_nth_rec f y (eo::add n -1)))
@@ -245,7 +245,7 @@
 (program $eo_list_find_rec
   ((T Type) (U Type) (V Type) (W Type) (X Type)
    (f (-> T U V)) (x W) (z W) (y U) (z X) (nil W) (n Int))
-  ((-> T U V) W X Int) Int
+  :signature ((-> T U V) W X Int) Int
   (
   (($eo_list_find_rec f (f x y) z n)  (eo::ite ($eo_eq x z) n
                                         ($eo_list_find_rec f y z (eo::add n 1))))
@@ -268,7 +268,7 @@
 (program $eo_list_rev_rec
   ((T Type) (U Type) (V Type) (W Type)
    (f (-> T V V)) (x W) (y U) (nil U) (acc U))
-  ((-> T V V) U U) U
+  :signature ((-> T V V) U U) U
   (
     (($eo_list_rev_rec f (f x y) acc) ($eo_list_rev_rec f y (f x acc)))
     (($eo_list_rev_rec f nil acc)      acc)

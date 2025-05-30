@@ -2290,7 +2290,7 @@ Now, we assume the definition of `$eo_nil` has the following form:
 ; program: $eo_nil
 ; implements: eo::nil
 (program $eo_nil ((T Type) (U Type) (V Type) (W Type))
-  ((-> T U V) (eo::quote W)) W
+  :signature ((-> T U V) (eo::quote W)) W
   (
   ; ... Cases for each associative-nil operator, see description below.
   )
@@ -2315,7 +2315,7 @@ non-ground nil terminators, which requiring instantiating the free parameters
 of `T`. For example, given:
 ```
 (declare-parameterized-const bvor ((m Int :implicit))
-     (-> (BitVec m) (BitVec m) (BitVec m)) :right-assoc-nil (eo::to_bin 0 m))
+  (-> (BitVec m) (BitVec m) (BitVec m)) :right-assoc-nil (eo::to_bin 0 m))
 ```
 We add the case `(($eo_nil bvor (BitVec m))  (eo::to_bin 0 m))` to `$eo_nil` above.
 Providing a concrete type, e.g. `(BitVec 4)` will ensure `m` is bound to `4`
@@ -2334,7 +2334,7 @@ All other list operators can be defined as ordinary Eunoia programs.
 (program $eo_is_list_rec
   ((T Type) (U Type) (V Type) (W Type) (X Type)
    (f (-> T U V)) (x T) (y U) (nil W) (z X))
-  ((-> T U V) W X) Bool
+  :signature ((-> T U V) W X) Bool
   (
   (($eo_is_list_rec f nil (f x y)) ($eo_is_list_rec f nil y))
   (($eo_is_list_rec f nil z)       (eo::eq nil z))
@@ -2355,7 +2355,7 @@ All other list operators can be defined as ordinary Eunoia programs.
 (program $eo_get_elements_rec
   ((T Type) (U Type) (V Type) (W Type) (W1 Type) (W2 Type) (X Type)
    (f (-> T U V)) (x W1) (y W2) (z X) (nil W))
-  ((-> T U V) W X) eo_List
+  :signature ((-> T U V) W X) eo_List
   (
   (($eo_get_elements_rec f nil (f x y)) (eo::cons eo_List_cons x ($eo_get_elements_rec f nil y)))
   (($eo_get_elements_rec f nil nil)     eo_List_nil)
@@ -2386,7 +2386,7 @@ All other list operators can be defined as ordinary Eunoia programs.
 ; Note: a helper for $eo_list_len.
 (program $eo_list_len_rec
   ((T Type) (U Type) (V Type) (W Type) (f (-> T U V)) (x T) (y U) (nil W))
-  ((-> T U V) W) Int
+  :signature ((-> T U V) W) Int
   (
   (($eo_list_len_rec f (f x y))  (eo::add 1 ($eo_list_len_rec f y)))
   (($eo_list_len_rec f nil)      0)
@@ -2405,7 +2405,7 @@ All other list operators can be defined as ordinary Eunoia programs.
 ; Note: a helper for $eo_list_concat.
 (program $eo_list_concat_rec
   ((T Type) (U Type) (V Type) (W Type) (f (-> T V V)) (x W) (y U) (z U) (nil U))
-  ((-> T V V) U U) U
+  :signature ((-> T V V) U U) U
   (
   (($eo_list_concat_rec f (f x y) z)  (f x ($eo_list_concat_rec f y z)))
   (($eo_list_concat_rec f nil z)      z)
@@ -2426,7 +2426,7 @@ All other list operators can be defined as ordinary Eunoia programs.
 ; Note: a helper for $eo_list_nth.
 (program $eo_list_nth_rec
   ((T Type) (U Type) (f (-> T T T)) (x U) (y U) (n Int))
-  ((-> T T T) U Int) U
+  :signature ((-> T T T) U Int) U
   (
   (($eo_list_nth_rec f (f x y) 0)  x)
   (($eo_list_nth_rec f (f x y) n)  ($eo_list_nth_rec f y (eo::add n -1)))
@@ -2447,7 +2447,7 @@ All other list operators can be defined as ordinary Eunoia programs.
 (program $eo_list_find_rec
   ((T Type) (U Type) (V Type) (W Type) (X Type)
    (f (-> T U V)) (x W) (z W) (y U) (z X) (nil W) (n Int))
-  ((-> T U V) W X Int) Int
+  :signature ((-> T U V) W X Int) Int
   (
   (($eo_list_find_rec f (f x y) z n)  (eo::ite ($eo_eq x z) n
                                         ($eo_list_find_rec f y z (eo::add n 1))))
@@ -2470,7 +2470,7 @@ All other list operators can be defined as ordinary Eunoia programs.
 (program $eo_list_rev_rec
   ((T Type) (U Type) (V Type) (W Type)
    (f (-> T V V)) (x W) (y U) (nil U) (acc U))
-  ((-> T V V) U U) U
+  :signature ((-> T V V) U U) U
   (
     (($eo_list_rev_rec f (f x y) acc) ($eo_list_rev_rec f y (f x acc)))
     (($eo_list_rev_rec f nil acc)      acc)
@@ -2491,7 +2491,7 @@ All other list operators can be defined as ordinary Eunoia programs.
 (program $eo_list_erase_rec
   ((T Type) (U Type) (V Type) (W Type) (X Type)
    (f (-> T V V)) (x W) (y U) (z X) (nil U))
-  ((-> T V V) U X) U
+  :signature ((-> T V V) U X) U
   (
   (($eo_list_erase_rec f (f x y) z)   (eo::ite ($eo_eq z x) y
                                         (f x ($eo_list_erase_rec f y z))))
@@ -2513,7 +2513,7 @@ All other list operators can be defined as ordinary Eunoia programs.
 (program $eo_list_erase_all_rec
   ((T Type) (U Type) (V Type) (W Type) (X Type)
    (f (-> T V V)) (x W) (y U) (z X) (nil W))
-  ((-> T V V) U X) U
+  :signature ((-> T V V) U X) U
   (
   (($eo_list_erase_all_rec f (f x y) z)   (eo::define ((res ($eo_list_erase_all_rec f y z)))
                                             (eo::ite ($eo_eq z x) res (f x res))))
@@ -2535,7 +2535,7 @@ All other list operators can be defined as ordinary Eunoia programs.
 (program $eo_list_setof_rec
   ((T Type) (U Type) (V Type) (W Type)
    (f (-> T V V)) (x W) (y U) (nil U))
-  ((-> T V V) U) U
+  :signature ((-> T V V) U) U
   (
   (($eo_list_setof_rec f (f x y))  (f x ($eo_list_setof_rec f ($eo_list_erase_all f y x))))
   (($eo_list_setof_rec f nil)      nil)
@@ -2554,7 +2554,7 @@ All other list operators can be defined as ordinary Eunoia programs.
 ; Note: a helper for $eo_list_minclude.
 (program $eo_list_minclude_rec
   ((T Type) (x T) (y eo_List :list) (z eo_List))
-  (eo_List eo_List) Bool
+  :signature (eo_List eo_List) Bool
   (
   (($eo_list_minclude_rec (eo_List_cons x y) z)  (eo::define ((res ($eo_list_erase eo_List_cons z x)))
                                                    (eo::ite ($eo_eq res z)
