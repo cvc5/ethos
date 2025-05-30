@@ -2584,38 +2584,27 @@ RUN(C):
     else
       return RUN( (declare-const s U :none) )
 
-  (declare-parameterized-const s ((y_1 U_1) ... (y_n U_n)) T a):
+  (declare-parameterized-const s () T a):
     return RUN( (declare-const s T a) )
 
-  (declare-rule s ((y_1 U_1) ... (y_n U_n))
-    :premises (p_1 ... p_k)
-    :args (t_1 ... t_l)
-    :requires ((s_1 r_1) ... (s_1 s_m))
-    :conclusion F):
-    return RUN( 
-      (declare-const s (-> (Quote t_1) ... (Quote t_l)
-                           (Proof p_1) ... (Proof p_k)
-                           (! F :requires (s_1 r_1) ... :requires (s_1 s_m)))) )
+  (declare-parameterized-const s ((y_1 U_1) ... (y_n U_n :implicit)) T a):
+    return RUN( (declare-parameterized-const s ((y_1 U_1) ... (y_{n-1} U_{n-1})) T a) )
+
+  (declare-parameterized-const s ((y_1 U_1) ... (y_n U_n :requires t s)) T a):
+    return RUN( (declare-parameterized-const s ((y_1 U_1) ... (y_n U_n)) (eo::requires t s T) a) )
 
   (declare-rule s ((y_1 U_1) ... (y_n U_n))
-    :premise-list x g
+    [:assumption a]?
+    [:premises (p_1 ... p_k) | :premise-list pl g]
     :args (t_1 ... t_l)
     :requires ((s_1 r_1) ... (s_m r_m))
-    :conclusion F):
+    [:conclusion F | :conclusion-explicit Fx]):
     return RUN( 
       (declare-const s (-> (Quote t_1) ... (Quote t_l)
-                           (Proof x)
-                           (! F :requires (s_1 r_1) ... :requires (s_m r_m))) :premise-list g) )
-
-  (declare-rule x ((y_1 U_1) ... (y_n U_n))
-    :assumption a
-    :args (t_1 ... t_l)
-    :requires ((s_1 r_1) ... (s_1 s_m))
-    :conclusion F):
-    return RUN( 
-      (declare-const s (-> (Quote t_1) ... (Quote t_l)
-                           (Proof p_1) ... (Proof p_k) (Proof a)
-                           (! F :requires (s_1 r_1) ... :requires (s_1 s_m)))) )
+                           [(Proof p_1) ... (Proof p_k) | (Proof pl)]
+                           [(Quote a)]? [(Quote Fx)]?
+                           (eo::requires s_1 r_1 ... (eo::requires s_m r_m
+                           [F | Fx])))) )
 
   (declare-type s (U_1 ... U_n)):
     return RUN( (declare-const s (-> U_1 ... U_n Type)) )
@@ -2661,7 +2650,7 @@ RUN(C):
       return RUN( (define s () res :type (Proof F)) )
 
   (program s ((x_1 U_1) ... (x_m U_m))
-    (T_1 ... T_n) T
+    :signature (T_1 ... T_n) T
     (
     ((s a_11 ... a_1n) r_1)
     ...
