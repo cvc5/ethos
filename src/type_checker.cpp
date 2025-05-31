@@ -1067,15 +1067,14 @@ Expr TypeChecker::evaluateLiteralOp(Kind k,
 }
 
 /**
- * Get nary children, gets a list of children from op-application e
- * up to maxChildren (0 means no limit), stores them in children.
+ * Get nary children, gets a list of children from op-application e,
+ * stores them in children.
  */
 ExprValue* getNAryChildren(ExprValue* e,
                            ExprValue* op,
                            ExprValue* checkNil,
                            std::vector<ExprValue*>& children,
-                           bool isLeft,
-                           size_t maxChildren=0)
+                           bool isLeft)
 {
   ExprValue* orig = e;
   while (e->getKind()==Kind::APPLY)
@@ -1089,10 +1088,6 @@ ExprValue* getNAryChildren(ExprValue* e,
     children.push_back(isLeft ? (*e)[1] : (*cop)[1]);
     // traverse to tail
     e = isLeft ? (*cop)[1] : (*e)[1];
-    if (children.size()==maxChildren)
-    {
-      return e;
-    }
   }
   // must be equal to the nil term, if provided
   if (checkNil!=nullptr && e!=checkNil)
@@ -1569,17 +1564,13 @@ Expr TypeChecker::evaluateLiteralOpInternal(
         return d_null;
       }
       size_t i = index.toUnsignedInt();
-      // extract up to i+1 children
-      ExprValue* rem = getNAryChildren(args[1], op, nil, hargs, isLeft, i + 1);
-      if (hargs.size()==i+1)
+      // extract all children, to ensure a list
+      ExprValue* a = getNAryChildren(args[1], op, nil, hargs, isLeft);
+      if (a==nullptr && i>=hargs.size())
       {
-        if (!isNAryList(rem, op, nil, isLeft))
-        {
-          return d_null;
-        }
-        return Expr(hargs.back());
+        return d_null;
       }
-      return d_null;
+      return Expr(hargs[i]);
     }
       break;
     case Kind::EVAL_LIST_FIND:
