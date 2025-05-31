@@ -1081,11 +1081,7 @@ ExprValue* getNAryChildren(ExprValue* e,
   while (e->getKind()==Kind::APPLY)
   {
     ExprValue* cop = (*e)[0];
-    if (cop->getKind()!=Kind::APPLY)
-    {
-      break;
-    }
-    if ((*cop)[0] != op)
+    if (cop->getKind()!=Kind::APPLY || (*cop)[0] != op)
     {
       break;
     }
@@ -1105,6 +1101,29 @@ ExprValue* getNAryChildren(ExprValue* e,
     return nullptr;
   }
   return e;
+}
+
+bool isNAryList(ExprValue* e,
+                ExprValue* op,
+                ExprValue* checkNil,
+                bool isLeft)
+{
+  while (e->getKind()==Kind::APPLY)
+  {
+    ExprValue* cop = (*e)[0];
+    if (cop->getKind()!=Kind::APPLY || (*cop)[0] != op)
+    {
+      return false;
+    }
+    // traverse to tail
+    e = isLeft ? (*cop)[1] : (*e)[1];
+  }
+  // must be equal to the nil term
+  if (e!=checkNil)
+  {
+    return false;
+  }
+  return true;
 }
 
 ExprValue* getNAryNth(ExprValue* e,
@@ -1499,9 +1518,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       size_t tailIndex = (isLeft ? 1 : 2);
       size_t headIndex = (isLeft ? 2 : 1);
       ret = args[isConcat ? tailIndex : 2];
-      std::vector<ExprValue*> targs;
-      ExprValue* b = getNAryChildren(ret, op, nil, targs, isLeft);
-      if (b==nullptr)
+      if (!isNAryList(ret, op, nil, isLeft))
       {
         Trace("type_checker") << "...tail not in list form, nil is " << nilExpr << std::endl;
         // tail is not in list form
@@ -1551,9 +1568,13 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       }
       size_t i = index.toUnsignedInt();
       // extract up to i+1 children
-      getNAryChildren(args[1], op, nil, hargs, isLeft, i+1);
+      ExprValue * rem = getNAryChildren(args[1], op, nil, hargs, isLeft, i+1);
       if (hargs.size()==i+1)
       {
+        if (!isNAryList(rem, op, nil, isLeft))
+        {
+          return d_null;
+        }
         return Expr(hargs.back());
       }
       return d_null;
