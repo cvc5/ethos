@@ -1081,7 +1081,7 @@ ExprValue* getNAryChildren(ExprValue* e,
   while (e->getKind()==Kind::APPLY)
   {
     ExprValue* cop = (*e)[0];
-    if (cop->getKind()!=Kind::APPLY || (*cop)[0] != op)
+    if (cop->getKind() != Kind::APPLY || (*cop)[0] != op)
     {
       break;
     }
@@ -1103,15 +1103,12 @@ ExprValue* getNAryChildren(ExprValue* e,
   return e;
 }
 
-bool isNAryList(ExprValue* e,
-                ExprValue* op,
-                ExprValue* checkNil,
-                bool isLeft)
+bool isNAryList(ExprValue* e, ExprValue* op, ExprValue* checkNil, bool isLeft)
 {
-  while (e->getKind()==Kind::APPLY)
+  while (e->getKind() == Kind::APPLY)
   {
     ExprValue* cop = (*e)[0];
-    if (cop->getKind()!=Kind::APPLY || (*cop)[0] != op)
+    if (cop->getKind() != Kind::APPLY || (*cop)[0] != op)
     {
       return false;
     }
@@ -1119,20 +1116,18 @@ bool isNAryList(ExprValue* e,
     e = isLeft ? (*cop)[1] : (*e)[1];
   }
   // must be equal to the nil term
-  if (e!=checkNil)
+  if (e != checkNil)
   {
     return false;
   }
   return true;
 }
 
-ExprValue* getNAryNth(ExprValue* e,
-                      bool isLeft,
-                      size_t n)
+ExprValue* getNAryNth(ExprValue* e, bool isLeft, size_t n)
 {
-  for (size_t i=0; i<n; i++)
+  for (size_t i = 0; i < n; i++)
   {
-    Assert (e->getKind()==Kind::APPLY && (*e)[0]->getKind()==Kind::APPLY);
+    Assert(e->getKind() == Kind::APPLY && (*e)[0]->getKind() == Kind::APPLY);
     // traverse to tail
     e = isLeft ? (*(*e)[0])[1] : (*e)[1];
   }
@@ -1568,7 +1563,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       }
       size_t i = index.toUnsignedInt();
       // extract up to i+1 children
-      ExprValue * rem = getNAryChildren(args[1], op, nil, hargs, isLeft, i+1);
+      ExprValue* rem = getNAryChildren(args[1], op, nil, hargs, isLeft, i + 1);
       if (hargs.size()==i+1)
       {
         if (!isNAryList(rem, op, nil, isLeft))
@@ -1649,11 +1644,11 @@ Expr TypeChecker::evaluateListEraseInternal(Kind k,
   bool isAll = (k == Kind::EVAL_LIST_ERASE_ALL);
   size_t changeIndex = 0;
   size_t changeSize = 0;
-  for (size_t i=0, nargs=hargs.size(); i<nargs; i++)
+  for (size_t i = 0, nargs = hargs.size(); i < nargs; i++)
   {
     if (hargs[i] == args[2])
     {
-      changeIndex = i+1;
+      changeIndex = i + 1;
       if (!isAll)
       {
         break;
@@ -1663,7 +1658,7 @@ Expr TypeChecker::evaluateListEraseInternal(Kind k,
     }
     result.emplace_back(hargs[i]);
   }
-  if (changeIndex==0)
+  if (changeIndex == 0)
   {
     return Expr(args[1]);
   }
@@ -1689,20 +1684,20 @@ Expr TypeChecker::evaluateListSetOfInternal(ExprValue* op,
   std::vector<ExprValue*> result;
   size_t changeIndex = 0;
   size_t changeSize = 0;
-  for (size_t i=0, nargs=hargs.size(); i<nargs; i++)
+  for (size_t i = 0, nargs = hargs.size(); i < nargs; i++)
   {
-    ExprValue * elem = hargs[i];
+    ExprValue* elem = hargs[i];
     if (seen.insert(elem).second)
     {
       result.emplace_back(elem);
     }
     else
     {
-      changeIndex = i+1;
+      changeIndex = i + 1;
       changeSize = result.size();
     }
   }
-  if (changeIndex==0)
+  if (changeIndex == 0)
   {
     return Expr(args[1]);
   }
