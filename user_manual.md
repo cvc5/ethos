@@ -892,14 +892,14 @@ It does not require that its arguments denote values, so for example `(eo::is_eq
 
 ## List computations
 
-Below, we assume that `f` is right associative operator with nil terminator `nil` and `t1, t2` are ground. Otherwise, the following operators do not evaluate.
+Below, we assume that `f` is right associative operator with nil terminator `nil` and `t1, t2` are values. Otherwise, the following operators do not evaluate.
 We describe the evaluation for right associative operators; left associative evaluation is defined analogously.
 We say that a term is an `f`-list with children `t1 ... tn` if it is of the form `(f t1 ... tn)` where `n>0` or `nil` if `n=0`.
 
 ### List operators
 
-- `(eo::nil f)`
-  - If `f` is a right associative operator, return its nil terminator.
+- `(eo::nil f T)`
+  - If `f` is a right associative operator and `T` is a ground type, return its nil terminator. If `f` has a parametric nil terminator, return the terminator is specialized for `T` (see examples of parametric nil terminators later in this section).
 - `(eo::cons f t1 t2)`
   - If `t2` is an `f`-list, then this returns the term `(f t1 t2)`.
 - `(eo::list_len f t)`
@@ -907,9 +907,21 @@ We say that a term is an `f`-list with children `t1 ... tn` if it is of the form
 - `(eo::list_concat f t1 t2)`
   - If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, this returns `(f t11 ... t1n t21 ... t2m)` if `n+m>0` and `nil` otherwise. Otherwise, this operator does not evaluate.
 - `(eo::list_nth f t1 t2)`
-  - If `f` is a right associative operator with nil terminator with nil terminator `nil`, `t1` is `(f s0 ... s{n-1})`, and `t2` is a numeral value such that `0<=t2<n`, then this returns `s_{t2}`. Otherwise, this operator does not evaluate.
+  - If `t1` is `(f s0 ... s{n-1})` and `t2` is a numeral value such that `0<=t2<n`, then this returns `s_{t2}`. Otherwise, this operator does not evaluate.
 - `(eo::list_find f t1 t2)`
-  - If `f` is a right associative operator with nil terminator with nil terminator `nil` and `t1` is `(f s0 ... s{n-1})`, then this returns the smallest numeral value `i` such that `t2` is syntactically equal to `si`, or `-1` if no such `si` can be found. Otherwise, this operator does not evaluate.
+  - If `t1` is `(f s0 ... s{n-1})`, then this returns the smallest numeral value `i` such that `t2` is syntactically equal to `si`, or `-1` if no such `si` can be found. Otherwise, this operator does not evaluate.
+- `(eo::list_rev f t1)`
+  - If `t1` is an `f`-list with children `t11 ... t1n`, then this returns `(f t1n ... t11)`.
+- `(eo::list_erase f t1 t2)`
+  - If `t1` is an `f`-list, then this returns the result of removing the first occurrence of `t2` from `t1` if it exists. Returns `t1` unchanged if it does not contain `t2`.
+- `(eo::list_erase_all f t1 t2)`
+  - If `t1` is an `f`-list, then this returns the result of removing all occurrences of `t2` from `t1`, where the remaining elements are kept in order. Returns `t1` unchanged if it does not contain `t2`.
+- `(eo::list_setof f t1)`
+  - If `t1` is an `f`-list with children `t11 ... t1n`, this returns the `f`-list obtained by dropping each element from this list beyond the first occurrence. Note that the remaining elements are kept in order.
+- `(eo::list_minclude f t1 t2)`
+  - (Multiset inclusion) If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, then this returns true if each unique element in `t11 ... t1n` occurs with the greater than or equal multiplicity in `t21 ... t2m`. Note that order of the elements does not matter.
+- `(eo::list_meq f t1 t2)`
+  - (Multiset equal) Equivalent to `(eo::and (eo::list_minclude f t1 t2) (eo::list_minclude t2 t1))`.
 
 ### List Computation Examples
 
@@ -920,9 +932,11 @@ The terms on both sides of the given evaluation are written in their form prior 
 (declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
 (declare-const a Bool)
 (declare-const b Bool)
+(declare-const c Bool)
+(declare-const d Bool)
 
-(eo::nil or)                  == false
-(eo::nil a)                   == (eo::nil a)                ; since a is not an associative operator
+(eo::nil or Bool)                   == false
+(eo::nil a Bool)                    == (eo::nil a Bool)                ; since a is not an associative operator
 
 (eo::cons or a (or a b))            == (or a a b)
 (eo::cons or false (or a b))        == (or false a b)
@@ -949,23 +963,50 @@ The terms on both sides of the given evaluation are written in their form prior 
 (eo::list_concat or (or a) (or b))          == (or a b)
 (eo::list_concat or (and a b) false)        == (eo::list_concat or (and a b) false)  ; since (and a b) is not an or-list
 
-(eo::list_nth or (or a b a) 1)           == b
-(eo::list_nth or (or a) 0)               == a
-(eo::list_nth or false 0)                == (eo::list_nth or false 0)         ; since false has <=0 children
-(eo::list_nth or (or a b a) 3)           == (eo::list_nth or (or a b a) 3)    ; since (or a b a) has <=3 children
-(eo::list_nth or (and a b b) 0)          == (eo::list_nth or (and a b b) 0)   ; since (and a b b) is not an or-list
+(eo::list_nth or (or a b a) 1)            == b
+(eo::list_nth or (or a) 0)                == a
+(eo::list_nth or false 0)                 == (eo::list_nth or false 0)         ; since false has <=0 children
+(eo::list_nth or (or a b a) 3)            == (eo::list_nth or (or a b a) 3)    ; since (or a b a) has <=3 children
+(eo::list_nth or (and a b b) 0)           == (eo::list_nth or (and a b b) 0)   ; since (and a b b) is not an or-list
 
-(eo::list_find or (or a b a) b)          == 1
-(eo::list_find or (or a b a) true)       == -1
-(eo::list_find or (and a b b) a)         == (eo::list_find or (and a b b) a)      ; since (and a b b) is not an or-list
+(eo::list_find or (or a b a) b)           == 1
+(eo::list_find or (or a b a) true)        == -1
+(eo::list_find or (and a b b) a)          == (eo::list_find or (and a b b) a)      ; since (and a b b) is not an or-list
+
+(eo::list_rev or (or a b c))              == (or c b a)
+(eo::list_rev or false)                   == false
+
+(eo::list_erase or (or a b c) a)          == (or b c)
+(eo::list_erase or (or c a a b a) a)      == (or c a b a)
+(eo::list_erase or (or a b c) d)          == (or a b c)
+(eo::list_erase or false d)               == false
+
+(eo::list_erase_all or (or a b c) a)          == (or b c)
+(eo::list_erase_all or (or a a b a) a)        == (or b)
+(eo::list_erase_all or (or a b c) d)          == (or a b c)
+(eo::list_erase_all or false d)               == false
+
+(eo::list_setof or (or a b c))            == (or a b c)
+(eo::list_setof or (or a b a c a b c))    == (or a b c)
+(eo::list_setof or (or a a a))            == (or a)
+(eo::list_setof or false)                 == false
+
+(eo::list_minclude or (or a b) (or a a b))  == true
+(eo::list_minclude or (or a b) (or b a))    == true
+(eo::list_minclude or (or a b b) (or a b))  == false
+(eo::list_minclude or false (or a b))       == true
+
+(eo::list_meq or (or a b) (or a a b))       == false
+(eo::list_meq or (or a b c b) (or b a c b)) == true
+(eo::list_meq or (or a b b) (or a a b))     == false
+(eo::list_meq or false false)               == true
 ```
 
-### Nil terminator with additional arguments
+### Parametric Nil terminators
 
 As we will introduce in [param-constants](#param-constants),
-`eo::nil` is overloaded to accept addition arguments beyond the operator.
-In particular, `(eo::nil or a b)` intuitively denotes the nil terminator
-for the term `or` applied to arguments `a,b`.
+`eo::nil` accepts a type argument in addition to the operator.
+For example, `(eo::nil bvor (BitVec 4))` denotes the nil terminator of `bvor` whose type is `(BitVec 4)`.
 
 ### Example: Type rule for BitVector concatenation
 
@@ -1035,7 +1076,7 @@ we declare bitvector-or (`bvor` in SMT-LIB) where its nil terminator is bitvecto
 
 ```smt
 (declare-type Int ())
-(declare-consts <numeral>Int)                ; numeral literals denote Int constants
+(declare-consts <numeral> Int)                ; numeral literals denote Int constants
 (declare-type BitVec (Int))
 (declare-consts <binary>
     (BitVec (eo::len eo::self)))              ; binary literals denote BitVec constants of their length
@@ -1056,68 +1097,77 @@ The parameter list of a parameterized constant may either be implicit or explici
 In this example, the argument `m` to `bvor` is implicit.
 Thus, it expects two bit-vectors of the same width and returns a bit-vector of that width.
 
+> __Note:__ Parameterized constants that have non-ground nil terminators are required to have type `(-> T T T)`.
+
 If a function `f` is given a nil terminator with free parameters, this impacts:
 
 - how applications of `f` are desugared, and
-- how list operations such as `eo::nil`, `eo::cons`, and `eo::list_concat` are computed for `f`.
+- how `eo::nil` is computed for `f`.
 
-For the former, say we apply `(f t1 ... tn)`, where `f` is right associative with nil terminator `nil`, where `nil` has free paramters `u1 ... um`.
-Similar to the procedure described in [assoc-nil](#assoc-nil), if `tn` is not marked with `:list`, we insert the nil terminator of `f` to the end of the argument list.
-To compute the parameters of the nil terminator, we first compute the type of `f` applied to arguments `t1 ... tn`.
-If successful, this is the type `T [v1 ... vm / u1 ... um]` for some terms `v1 ... vm` and the given return type `T` of `f`.
-If any of `v1 ... vm` is non-ground, or if the application fails to type check,
-the nil terminator is `(eo::nil f t1 ... tn)`.
-In other words, the computation of the nil terminator is deferred to this term (which itself may not evaluate).
-Otherwise, the nil terminator is `nil[ v1 ... vm / u1 ... um]`.
-Constructing `(f t1 ... tn)` then proceeds inductively via the same procedure described in [assoc-nil](#assoc-nil).
+For the former, say we apply `(f t1 ... tn)`, where `f` is right associative with nil terminator `nil` whose type is _not_ ground.
+Similar to the procedure described in [assoc-nil](#assoc-nil),
+if `tn` is not marked with `:list`, we insert a term corresponding to the nil terminator of `f` to the end of the argument list.
+However, since `nil` is not ground, we use the term `(eo::nil f (eo::typeof t1))` instead of `nil` itself.
+This term is a placeholder for the nil terminator of the appropriate type, as determined by the type of the term we are constructing.
+Note that we use the first term `t1` in the argument list, as operators with non-ground nil terminators are required to be of type `(-> T T T)`, meaning that a single argument suffices to determine its parameters.
+
+For the latter, to handle parameteric nil terminators,
+`eo::nil` optionally accepts two arguments (the function and the return type of the nil terminator).
+For each declared function `f` of type `(-> T T T)` with nil terminator `nil`,
+we assume there is a case of `eo::nil` that matches the pair `(f, T)` and whose specified return is (non-ground term) `nil`,
+where notice that the free parameters of `nil` are expected to be contained in the free parameters of `T`.
+For example, for `bvor`, a case of `eo::nil` would map
+`(eo::nil bvor (BitVec m))` to `(bvzero m)`, where `m` is bound based on the provided (concrete) bit-vector type.
+
 Examples of this are given in the following, assuming the declaration of `bvor` above.
 
 ```smt
 (declare-const p (-> Bool Bool))
 (define test ((x (BitVec 4)) (y (BitVec 4)) (n Int) (z (BitVec n)) (w (BitVec n)) (u (BitVec n) :list))
     ...
+    (bvor z w)        ; (bvor z (bvor w (eo::nil bvor (eo::typeof z))))
+    (bvor z u)        ; (bvor z u)
+    (bvor u z)        ; (eo::list_concat bvor u (bvor z (eo::nil bvor (eo::typeof u))))
     (bvor x y)        ; (bvor x (bvor y #b0000))
     (bvor x)          ; (bvor x #b0000)
-    (bvor z w)        ; (bvor z (bvor w (eo::nil bvor z w)))
-    (bvor z u)        ; (bvor z u)
-    (bvor u z)        ; (eo::list_concat bvor u (bvor z (eo::nil bvor u z)))
     ...
 )
 ```
 
 Above, notice that `x` and `y` have concrete bitwidths and `z,w,u` have the free parameter `n` as their bitwidth.
-In the first term, `(bvor x y)` is type checked to `(BitVec m)[4/m]`.
-Since `4` is ground, we compute the nil terminator `(bvzero 4)`, which evaluates to `#b0000`.
-This is then used as the nil terminator, since `y` is not marked with `:list`.
-The second example is similar.
 
-In the third, example, `(bvor z w)` is type checked to `(BitVec m)[n/m]`, where note that `n` is _not_ ground.
-Thus, we do not compute its nil terminator and instead construct the placeholder `(eo::nil bvor z w)`.
-This is then used as the nil terminator since `w` is not marked as `:list`.
-In the fourth example, `(bvor z u)` is also type checked to `(BitVec m)[n/m]`, but in this case the nil terminator is not used since `u` is marked as `:list`.
-In the fifth example, we use `eo::list_concat` as before since the list term `u` appears as the first argument.
+In the first example, since `w` is not marked as a list and `bvor` has a non-ground nil terminator,
+we insert the nil terminator `(eo::nil bvor (eo::typeof z))`,
+which notice does _not_ evaluate since `z` has non-ground type `(BitVec n)`.
+In the second example, `(bvor z u)` is also type checked to `(BitVec n)`,
+but in this case the nil terminator is not used since `u` is marked as `:list`.
+In the third example, we use `eo::list_concat` as before since the list term `u` appears as the first argument.
 Similar to the third example, a placeholder for the nil terminator is generated.
 
-Any list operation involving `f` first requires computing the nil terminator in question.
-This is done using the same procedure as described above.
-If we do not infer a ground nil terminator, then the term does not evaluate.
-Examples can be found at the end of this section.
+In the fourth example,
+we have that `y` is not marked as a list and thus
+we insert the nil terminator `(eo::nil bvor (eo::typeof x))`.
+In contrast to the previous examples, `x` has ground type `(BitVec 4)`
+and hence this simplifies to `(eo::nil bvor (BitVec 4))`,
+which furthermore evaluates to `#b0000`.
+The fifth example is similar, for the case of a singleton list.
 
 Consider again the term `(bvor z w)` from the previous example:
 
 ```smt
-(define test ((n Int) (z (BitVec n)) (w (BitVec n)))
-    (bvor z w)        ; (bvor z (bvor w (eo::nil bvor z w)))
+(define test ((n Int :implicit) (z (BitVec n)) (w (BitVec n)))
+  (bvor z w)        ; (bvor z (bvor w (eo::nil bvor (eo::typeof z))))
 )
 (declare-const a (BitVec 4))
 (declare-const b (BitVec 4))
-(define test4 () (test 4 a b))
+(define test4 () (test a b) :type (BitVec 4))
 ```
 
-The term in the body of `test` desugars to `(bvor z (bvor w (eo::nil bvor z w)))`, where
-`(eo::nil bvor z w)` does not evaluate since the nil terminator of `(bvor z w)` involves a non-ground parameter `n`.
-In this example, we instantiate this definition in the body of `test4`, where `n=4`, `z=a` and `w=b`.
-The term `(bvor a (bvor b (eo::nil bvor a b)))` then evaluates to `(bvor a (bvor b #b0000)`, since the nil terminator of `(bvor a b)` has ground parameter `n=4` and evaluates to `#b0000`.
+The term in the body of `test` desugars to `(bvor z (bvor w (eo::nil bvor (eo::typeof z))))`, where
+`(eo::nil bvor (eo::typeof z))` does not evaluate since `z` has non-ground type.
+In this example, we instantiate this definition in the body of `test4`, where `z=a` and `w=b`.
+The term `(bvor a (bvor b (eo::nil bvor (eo::typeof a))))` then evaluates to `(bvor a (bvor b #b0000)`,
+noting that `(eo::nil bvor (eo::typeof a))` evaluates to `#b0000`.
 
 The following are examples of list operations when using parameterized constant `bvor`:
 
@@ -1127,11 +1177,10 @@ The following are examples of list operations when using parameterized constant 
 (declare-const c (BitVec 5))
 
 (eo::nil bvor)                == (eo::nil bvor)     ; since we cannot infer the type of bvor
-(eo::nil bvor a)              == #b0000             ; since #b0000 is the nil terminator of (bvor a)
-(eo::nil bvor a c)            == (eo::nil bvor a c) ; since (bvor a c) is ill-typed
+(eo::nil bvor (BitVec 4))     == #b0000
+(eo::nil bvor (BitVec 5))     == #b00000
 
 (eo::cons bvor a #b0000)            == (bvor a)
-(eo::cons bvor c #b0000)            == (eo::cons bvor c #b0000) ; since (bvor c #b0000) is ill-typed
 (eo::cons bvor a (bvor a b))        == (bvor a a b)
 
 (eo::list_concat bvor #b0000 #b0000)       == #b0000
@@ -1224,7 +1273,7 @@ We assume the declaration of a generic `is` predicate (often called a "tester" p
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 
 (program $mk_dt_split ((D Type) (x D) (T Type) (c T) (xs eo::List :list))
-  (eo::List D) Bool
+  :signature (eo::List D) Bool
   (
     (($mk_dt_split eo::List::nil x)          false)
     (($mk_dt_split (eo::List::cons c xs) x)  (eo::cons or (is c x) ($mk_dt_split xs x)))
@@ -1495,14 +1544,14 @@ Locally assumptions can be arbitrarily nested, for example the above can be exte
 (step-pop @p4 (=> true (=> false true)) :rule implies-intro :premises (@p3))
 ```
 
-## Side Conditions
+## Programs
 
 Ethos supports a `program` command for defining recursive programs.
 In particular, in Ethos, a program is an ordered list of rewrite rules.
 The syntax for this command is as follows.
 
 ```smt
-(program <symbol> :ethos (<typed-param>*) (<type>+) <type> ((<term> <term>)+))
+(program <symbol> (<typed-param>*) :signature (<type>+) <type> ((<term> <term>)+))
 ```
 
 This command declares a program named `<symbol>`.
@@ -1534,7 +1583,7 @@ The following program (recursively) computes whether a formula `l` is contained 
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (program contains
     ((l Bool) (x Bool) (xs Bool :list))
-    (Bool Bool) Bool
+    :signature (Bool Bool) Bool
     (
         ((contains false l)     false)
         ((contains (or l xs) l) true)
@@ -1564,7 +1613,7 @@ Computing the latter is significantly faster in practice in Ethos.
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (program contains
     ((l Bool) (x Bool) (xs Bool))
-    (Bool Bool) Bool
+    :signature (Bool Bool) Bool
     (
         ((contains false l)     false)
         ((contains (or l xs) l) true)
@@ -1584,7 +1633,7 @@ However, `(contains (or a b c) a)` does not evaluate in this example.
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (program contains
     ((l Bool) (x Bool :list) (xs Bool :list))
-    (Bool Bool) Bool
+    :signature (Bool Bool) Bool
     (
         ((contains false l)     false)
         ((contains (or l xs) l) true)
@@ -1603,7 +1652,7 @@ Thus, the third case of the program, `(contains (eo::list_concat or x xs) l)`, i
 ```smt
 (program substitute
   ((T Type) (U Type) (S Type) (x S) (y S) (f (-> T U)) (a T) (z U))
-  (S S U) U
+  :signature (S S U) U
   (
   ((substitute x y x)     y)
   ((substitute x y (f a)) (_ (substitute x y f) (substitute x y a)))
@@ -1628,7 +1677,7 @@ Calling it with arguments `A`, `B`, and `(@array_diff A B)` would return `(@arra
 ```smt
 (program substitute-o
   ((T Type) (U Type) (S Type) (x S) (y S) (a (Array T U)) (b (Array T U)) (z U))
-  (S S U) U
+  :signature (S S U) U
   (
   ((substitute-o x y x)                 y)
   ((substitute-o x y (f a))             (_ (substitute-o x y f) (substitute-o x y a)))
@@ -1650,7 +1699,7 @@ Calling it with arguments `A`, `B`, and `(@array_diff A B)` would return `(@arra
 (declare-const <= (-> Int Int Bool))
 
 (program run_evaluate ((T Type) (U Type) (S Type) (a T) (b U) (z S))
-    (S) S
+    :signature (S) S
     (
       ((run_evaluate (= a b))  (eo::is_eq (run_evaluate a) (run_evaluate b)))
       ((run_evaluate (< a b))  (eo::is_neg (run_evaluate (- a b))))
@@ -1671,7 +1720,7 @@ The above example recursively evaluates arithmetic terms and predicates accordin
 (declare-type Int ())
 (declare-type Real ())
 (program arith.typeunion ()
-    (Type Type) Type
+    :signature (Type Type) Type
     (
       ((arith.typeunion Int Int) Int)
       ((arith.typeunion Int Real) Real)
@@ -1697,14 +1746,14 @@ The return type of `+` invokes this side condition, which conceptually is implem
 (declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
 
 (program to_drat_lit ((l Bool))
-  (Bool) Int
+  :signature (Bool) Int
   (
     ((to_drat_lit (not l))  (eo::neg (eo::hash l)))
     ((to_drat_lit l)        (eo::hash l))
   )
 )
 (program to_drat_clause ((l Bool) (C Bool :list))
-  (Bool) String
+  :signature (Bool) String
   (
     ((to_drat_clause false)    "0")
     ((to_drat_clause (or l C)) (eo::concat (eo::to_str (to_drat_lit l)) " " (to_drat_clause C)))
@@ -1712,7 +1761,7 @@ The return type of `+` invokes this side condition, which conceptually is implem
   )
 )
 (program to_dimacs ((C Bool) (F Bool :list))
-  (Bool) String
+  :signature (Bool) String
   (
     ((to_dimacs true)       "")
     ((to_dimacs (and C F))  (eo::concat (to_drat_clause C) " " (to_dimacs F)))
@@ -1721,6 +1770,62 @@ The return type of `+` invokes this side condition, which conceptually is implem
 ```
 
 The above program `to_dimacs` converts an SMT formula into DIMACS form, where `eo::hash` is used to assign atoms to integer identifiers.
+
+### Dependently-Typed Programs
+
+In Eunoia, a program can be given dependent types.
+The syntax `eo::quote` is used for this purpose, which can specify an input parameter to that function,
+and is provided as part of the type signature of the program.
+
+```
+(declare-type Int ())
+(declare-consts <numeral> Int)
+(declare-type BitVec (Int))
+(declare-consts <binary> (BitVec (eo::len eo::self)))
+
+(declare-const @bv_empty (BitVec 0))
+
+(declare-parameterized-const concat ((n Int :implicit) (m Int :implicit))
+  (-> (BitVec n) (BitVec m) (BitVec (eo::add n m))))
+
+(program repeat_zero ((n Int))
+  :signature ((eo::quote n)) (BitVec n)
+  (
+    ((repeat_zero 0) @bv_empty)
+    ((repeat_zero n) (eo::requires (eo::is_neg n) false
+                        (concat #b0 (repeat_zero (eo::add n -1)))))
+  )
+)
+
+(define foo () (repeat_zero 7) :type (BitVec 7))
+```
+
+In the above example, we define a parametric bit-vector type and the operator `concat`,
+which concatenates two bit-vectors and whose type is the sum of its arguments.
+We then define a recursive program `repeat_zero` that concatenates the bit-vector value `#b0`
+`n` times, where `n` is its argument.
+This program returns a bit-vector of size `n`.
+Its specified type uses `eo::quote` to give a name to the argument of this program,
+allowing its return type to refer to that argument.
+
+> __Note:__ The argument of `eo::quote` must be a parameter introduced in the parameter list declared at the beginning of the program command.
+
+Note that arguments that use the annotation `eo::quote` can be freely mixed with other type arguments.
+For example, the above program could be generalized to concatentate an arbitrary BitVec term `n` times:
+
+```
+(program repeat_term ((m Int) (n Int) (x (BitVec m))
+  :signature ((BitVec m) (eo::quote n)) (BitVec (eo::mul m n))
+  (
+    ((repeat_term x 0) @bv_empty)
+    ((repeat_term x n) (eo::requires (eo::is_neg n) false
+                         (concat x (repeat_term (eo::add n -1)))))
+  )
+)
+
+(declare-const a (BitVec 5))
+(define foo2 () (repeat_term a 7) :type (BitVec 35))
+```
 
 ### Match statements
 
@@ -1806,7 +1911,7 @@ Internally, the semantics of `eo::match` can be seen as an (inlined) program app
 (declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 (declare-const not (-> Bool Bool))
 (program matchF ((t1 Int) (t2 Int))
-    (Bool) Bool
+    :signature (Bool) Bool
     (
       ((matchF (= t1 t2))       (= t2 t1))
       ((matchF (not (= t1 t2))) (not (= t2 t1)))
@@ -1830,7 +1935,7 @@ In more general cases, if the body of the match term contains free variables, th
 (declare-const and (-> Bool Bool Bool) :left-assoc)
 
 (program mk_trans ((t1 Int) (t2 Int) (t3 Int) (t4 Int) (tail Bool :list))
-    (Int Int Bool) Bool
+    :signature (Int Int Bool) Bool
     (
         ((mk_trans t1 t2 (and (= t3 t4) tail)) (eo::requires t2 t3 (mk_trans t1 t4 tail)))
         ((mk_trans t1 t2 true)                 (= t1 t2))
@@ -1889,7 +1994,7 @@ For example:
 (declare-type Real ())
 (declare-const / (-> Int Int Real))
 (program normalize ((T Type) (S Type) (f (-> S T)) (x S) (a Int) (b Int))
-   (T) T
+   :signature (T) T
    (
      ((normalize (/ a b)) (eo::qdiv a b))
      ((normalize (f x))   (_ (normalize f) (normalize x)))
@@ -2020,7 +2125,7 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
     (define <symbol> (<typed-param>*) <term> <attr>*) |
     (define-type <symbol> (<type>*) <type>) |
     (include <string>) |
-    (program <symbol> (<typed-param>*) (<type>+) <type> ((<term> <term>)+)) |
+    (program <symbol> (<typed-param>*) :signature (<type>+) <type> ((<term> <term>)+)) |
     (reference <string> <symbol>?) |
     (step <symbol> <term>? :rule <symbol> <simple-premises>? <arguments>?) |
     (step-pop <symbol> <term>? :rule <symbol> <simple-premises>? <arguments>?) |

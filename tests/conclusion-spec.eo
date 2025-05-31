@@ -2,7 +2,7 @@
 (declare-const not (-> Bool Bool))
 
 (program is_split ((F Bool))
-  (Bool) Bool
+  :signature (Bool) Bool
   (
     ((is_split (or F (not F))) true)
     ((is_split (or (not F) F)) true)

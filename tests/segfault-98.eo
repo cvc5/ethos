@@ -1,5 +1,5 @@
 (program check_bind ((ctx Bool) (T Type) (l T) (r T) (l1 T) (r1 T))
-  (Bool T T T T) Bool
+  :signature (Bool T T T T) Bool
   (
    ((check_bind ctx l r l1 r1) true)
   )

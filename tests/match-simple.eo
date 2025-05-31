@@ -15,7 +15,7 @@
 ; `rm_from_sum a (+ c b)` = (pair (+ c b) false)
 ; 
 (program rm_from_sum ((x Int) (y Int) (z Int))
-  (Int Int) (Pair Int Bool)
+  :signature (Int Int) (Pair Int Bool)
   (
     ((rm_from_sum x (+ y z))
       (eo::match ((w Int) (b Bool))
