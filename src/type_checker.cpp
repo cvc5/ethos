@@ -1103,6 +1103,9 @@ ExprValue* getNAryChildren(ExprValue* e,
   return e;
 }
 
+/**
+ * Return true iff e is an op-list with nil terminator checkNil.
+ */
 bool isNAryList(ExprValue* e, ExprValue* op, ExprValue* checkNil, bool isLeft)
 {
   while (e->getKind() == Kind::APPLY)
@@ -1123,7 +1126,11 @@ bool isNAryList(ExprValue* e, ExprValue* op, ExprValue* checkNil, bool isLeft)
   return true;
 }
 
-ExprValue* getNAryNth(ExprValue* e, bool isLeft, size_t n)
+/**
+ * Return the n^th tail of e, where e is assumed to be an f-list
+ * of size >= n.
+ */
+ExprValue* getNAryNthTail(ExprValue* e, bool isLeft, size_t n)
 {
   for (size_t i = 0; i < n; i++)
   {
@@ -1662,11 +1669,15 @@ Expr TypeChecker::evaluateListEraseInternal(Kind k,
   {
     return Expr(args[1]);
   }
+  // We resize to the size of the vector at the place it was last modified,
+  // and take the changeIndex^th tail of args[1]. This is an important
+  // optimization to avoid reconstructing the remainder of the list past
+  // the point it was changed.
   if (isAll)
   {
     result.resize(changeSize);
   }
-  ExprValue* ret = getNAryNth(args[1], isLeft, changeIndex);
+  ExprValue* ret = getNAryNthTail(args[1], isLeft, changeIndex);
   return prependNAryChildren(op, ret, result, isLeft);
 }
 
@@ -1701,8 +1712,10 @@ Expr TypeChecker::evaluateListSetOfInternal(ExprValue* op,
   {
     return Expr(args[1]);
   }
+  // Similar to erase, for performance, we resize to the size of the vector at the place it was last modified,
+  // and take the changeIndex^th tail of args[1].
   result.resize(changeSize);
-  ExprValue* ret = getNAryNth(args[1], isLeft, changeIndex);
+  ExprValue* ret = getNAryNthTail(args[1], isLeft, changeIndex);
   return prependNAryChildren(op, ret, result, isLeft);
 }
 
