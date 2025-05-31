@@ -1712,8 +1712,9 @@ Expr TypeChecker::evaluateListSetOfInternal(ExprValue* op,
   {
     return Expr(args[1]);
   }
-  // Similar to erase, for performance, we resize to the size of the vector at the place it was last modified,
-  // and take the changeIndex^th tail of args[1].
+  // Similar to erase, for performance, we resize to the size of the vector at
+  // the place it was last modified, and take the changeIndex^th tail of
+  // args[1].
   result.resize(changeSize);
   ExprValue* ret = getNAryNthTail(args[1], isLeft, changeIndex);
   return prependNAryChildren(op, ret, result, isLeft);
