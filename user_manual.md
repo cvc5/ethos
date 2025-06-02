@@ -658,6 +658,7 @@ We remark on the semantics in the following.
 Apart from `eo::ite`, the evaluation of all operators assume that their arguments are fully reduced.
 In other words, apart from `eo::ite`, all evaluation proceeds bottom-up,
 where their arguments are evaluated before the builtin operator is evaluated.
+For `eo::ite`, we assume that its condition is fully reduced but its branches are not evaluated until its condition is resolved.
 
 In the following, we say a term is _ground_ if it contains no parameters as subterms.
 We say a term is a _value_ if it is ground and has no occurrences of builtin operators or programs that failed to evaluate.
@@ -677,7 +678,7 @@ Note, however, that the evaluation of these operators is handled by more efficie
   - If `t` is ground, this returns true if `t` is a value, and false otherwise. If `t` is not ground, it does not evaluate.
 
 - `(eo::ite t1 t2 t3)`
-  - Returns `t2` if `t1` evaluates to `true`, `t3` if `t1` evaluates to `false`, and is not evaluated otherwise. Note that the branches of this term are only evaluated if they are the return term.
+  - Returns `t2` if `t1` is `true`, `t3` if `t1` is `false`, and is not evaluated otherwise. Note that the branches of this term are only evaluated if they are the return term.
 
 - `(eo::eq t1 t2)`
   - If `t1` and `t2` are ground values, this returns `true` if `t1` is (syntactically) equal to `t2` and false otherwise. Otherwise, if either `t1` or `t2` is non-ground, it does not evaluate.
@@ -870,19 +871,25 @@ Note the following examples of core operators for the given signature
 (declare-const y Int)
 (declare-const a Bool)
 ;;
-(eo::is_eq 0 1)                         == false
-(eo::is_eq x y)                         == false
-(eo::is_eq x x)                         == true
-(eo::requires x 0 true)                 == (eo::requires x 0 true)  ; x and 0 are not syntactically equal
-(eo::requires x x y)                    == y
-(eo::requires x x Int)                  == Int
-(eo::ite false x y)                     == y
-(eo::ite true Bool Int)                 == Bool
-(eo::ite a x x)                         == (eo::ite a x x)  ; a is not a value
+(eo::is_ok 0)                        == true
+(eo::is_ok (eo::neg "abc"))          == false
+(eo::eq 0 1)                         == false
+(eo::eq x y)                         == false
+(eo::eq x x)                         == true
+(eo::requires x 0 true)              == (eo::requires x 0 true)  ; x and 0 are not syntactically equal
+(eo::requires x x y)                 == y
+(eo::requires x x Int)               == Int
+(eo::ite false x y)                  == y
+(eo::ite true Bool Int)              == Bool
+(eo::ite a x x)                      == (eo::ite a x x)  ; a is not a value
 
-(eo::is_eq 2 (eo::add 1 1))             == true
-(eo::is_eq x (eo::requires x 0 x))      == false
-(eo::ite (eo::is_eq x 1) x y)           == y
+(eo::is_eq x x)                         == true
+(eo::is_eq (eo::neg "a") x)             == false
+(eo::is_eq (eo::neg "a") (eo::neg "a")) == false
+
+(eo::eq 2 (eo::add 1 1))             == true
+(eo::eq x (eo::requires x 0 x))      == false
+(eo::ite (eo::eq x 1) x y)           == y
 ```
 
 In the above, it is important to note that `eo::is_eq` is a check for syntactic equality after evaluation.
@@ -1353,7 +1360,7 @@ The selectors of a constructor (which are never ambiguous) are returned independ
 The generic syntax for a `declare-rule` command accepted by `ethos` is:
 
 ```smt
-(declare-rule <symbol> :ethos (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term> <attr>*)
+(declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term> <attr>*)
 where
 <assumption>   ::= :assumption <term>
 <premises>     ::= :premises (<term>*) | :premise-list <term> <term>
