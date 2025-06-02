@@ -658,6 +658,7 @@ We remark on the semantics in the following.
 Apart from `eo::ite`, the evaluation of all operators assume that their arguments are fully reduced.
 In other words, apart from `eo::ite`, all evaluation proceeds bottom-up,
 where their arguments are evaluated before the builtin operator is evaluated.
+For `eo::ite`, we assume that its condition is fully reduced but its branches are not evaluated until its condition is resolved.
 
 In the following, we say a term is _ground_ if it contains no parameters as subterms.
 We say a term is a _value_ if it is ground and has no occurrences of builtin operators or programs that failed to evaluate.
@@ -677,7 +678,7 @@ Note, however, that the evaluation of these operators is handled by more efficie
   - If `t` is ground, this returns true if `t` is a value, and false otherwise. If `t` is not ground, it does not evaluate.
 
 - `(eo::ite t1 t2 t3)`
-  - Returns `t2` if `t1` evaluates to `true`, `t3` if `t1` evaluates to `false`, and is not evaluated otherwise. Note that the branches of this term are only evaluated if they are the return term.
+  - Returns `t2` if `t1` is `true`, `t3` if `t1` is `false`, and is not evaluated otherwise. Note that the branches of this term are only evaluated if they are the return term.
 
 - `(eo::eq t1 t2)`
   - If `t1` and `t2` are ground values, this returns `true` if `t1` is (syntactically) equal to `t2` and false otherwise. Otherwise, if either `t1` or `t2` is non-ground, it does not evaluate.
