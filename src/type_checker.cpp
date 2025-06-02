@@ -1535,6 +1535,11 @@ Expr TypeChecker::evaluateLiteralOpInternal(
           // head is not in list form
           return d_null;
         }
+        // if second arg is nil, no need to reconstruct the first arg
+        if (ret==nil)
+        {
+          return Expr(args[headIndex]);
+        }
       }
       return prependNAryChildren(op, ret, hargs, isLeft);
     }
