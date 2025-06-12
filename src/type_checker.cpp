@@ -1536,7 +1536,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
           return d_null;
         }
         // if second arg is nil, no need to reconstruct the first arg
-        if (ret==nil)
+        if (ret == nil)
         {
           return Expr(args[headIndex]);
         }
@@ -1571,7 +1571,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       size_t i = index.toUnsignedInt();
       // extract all children, to ensure a list
       ExprValue* a = getNAryChildren(args[1], op, nil, hargs, isLeft);
-      if (a==nullptr || i>=hargs.size())
+      if (a == nullptr || i >= hargs.size())
       {
         return d_null;
       }
