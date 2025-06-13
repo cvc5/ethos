@@ -1108,17 +1108,13 @@ bool isNAryList(ExprValue* e, ExprValue* op, ExprValue* checkNil, bool isLeft)
     ExprValue* cop = (*e)[0];
     if (cop->getKind() != Kind::APPLY || (*cop)[0] != op)
     {
-      return false;
+      break;
     }
     // traverse to tail
     e = isLeft ? (*cop)[1] : (*e)[1];
   }
   // must be equal to the nil term
-  if (e != checkNil)
-  {
-    return false;
-  }
-  return true;
+  return e == checkNil;
 }
 
 /**
