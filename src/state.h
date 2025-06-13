@@ -226,6 +226,8 @@ class State
   bool markIncluded(const Filepath& s);
   /** mark deleted */
   void markDeleted(ExprValue* e);
+  /** Make (<APPLY> children) based on attribute. */
+  Expr mkApplyAttr(AppInfo* ai, const std::vector<ExprValue*>& vchildren, const Expr& consTerm);
   /** Make (<APPLY> children), curried. */
   ExprValue* mkApplyInternal(const std::vector<ExprValue*>& children);
   /**
