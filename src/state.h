@@ -226,7 +226,16 @@ class State
   bool markIncluded(const Filepath& s);
   /** mark deleted */
   void markDeleted(ExprValue* e);
-  /** Make (<APPLY> children) based on attribute. */
+  /**
+   * Make (<APPLY> children) based on attribute. Returns the null term if the
+   * attribute does not impact how to build the application.
+   * @param ai The attribute of the head.
+   * @param vchildren The children, including the head term.
+   * @param consTerm The computed constructor term correspond to the
+   * application.
+   * @return The application of vchildren based on ai, or the null term if
+   * the default construction should be used to construct the application.
+   */
   Expr mkApplyAttr(AppInfo* ai,
                    const std::vector<ExprValue*>& vchildren,
                    const Expr& consTerm);
