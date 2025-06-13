@@ -828,12 +828,14 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         Trace("overload") << "...overloaded" << std::endl;
         std::vector<Expr>& ov = d_overloads[ai->d_overloadName];
         Assert (ov.size()>=2);
-        reto = getOverloadInternal(ov, dummyChildren, ftype.second.getValue(), false);
+        reto = getOverloadInternal(
+            ov, dummyChildren, ftype.second.getValue(), false);
       }
       else
       {
         Trace("overload") << "...not overloaded" << std::endl;
-        reto = getOverloadInternal({children[0]}, dummyChildren, ftype.second.getValue(), false);
+        reto = getOverloadInternal(
+            {children[0]}, dummyChildren, ftype.second.getValue(), false);
       }
       if (!reto.isNull())
       {
@@ -961,10 +963,13 @@ ExprValue* State::mkLiteralInternal(Literal& l)
   return ev;
 }
 
-Expr State::mkApplyAttr(AppInfo* ai, const std::vector<ExprValue*>& vchildren, const Expr& consTerm)
+Expr State::mkApplyAttr(AppInfo* ai,
+                        const std::vector<ExprValue*>& vchildren,
+                        const Expr& consTerm)
 {
   ExprValue* hd = vchildren[0];
-  Trace("state-debug") << "Process category " << ai->d_attrCons << " for " << Expr(vchildren[0]) << std::endl;
+  Trace("state-debug") << "Process category " << ai->d_attrCons << " for "
+                       << Expr(vchildren[0]) << std::endl;
   size_t nchild = vchildren.size();
   Trace("state-debug") << "...updated " << consTerm << std::endl;
   // if it has a constructor attribute
@@ -979,12 +984,12 @@ Expr State::mkApplyAttr(AppInfo* ai, const std::vector<ExprValue*>& vchildren, c
       // right-assoc-nil operators are used in side condition bodies.
       // note that nchild>=2 treats e.g. (or a) as (or a false).
       // checking nchild>2 treats (or a) as a function Bool -> Bool.
-      if (nchild>=2)
+      if (nchild >= 2)
       {
-        bool isLeft = (ai->d_attrCons==Attr::LEFT_ASSOC ||
-                        ai->d_attrCons==Attr::LEFT_ASSOC_NIL);
-        bool isNil = (ai->d_attrCons==Attr::RIGHT_ASSOC_NIL ||
-                      ai->d_attrCons==Attr::LEFT_ASSOC_NIL);
+        bool isLeft = (ai->d_attrCons == Attr::LEFT_ASSOC
+                       || ai->d_attrCons == Attr::LEFT_ASSOC_NIL);
+        bool isNil = (ai->d_attrCons == Attr::RIGHT_ASSOC_NIL
+                      || ai->d_attrCons == Attr::LEFT_ASSOC_NIL);
         size_t i = 1;
         ExprValue* curr = vchildren[isLeft ? i : nchild - i];
         std::vector<ExprValue*> cc{hd, nullptr, nullptr};
@@ -996,7 +1001,8 @@ Expr State::mkApplyAttr(AppInfo* ai, const std::vector<ExprValue*>& vchildren, c
           {
             // if the last term is not marked as a list variable and
             // we have a null terminator, then we insert the null terminator
-            Trace("state-debug") << "...insert nil terminator " << consTerm << std::endl;
+            Trace("state-debug")
+                << "...insert nil terminator " << consTerm << std::endl;
             if (consTerm.isNull())
             {
               // if we failed to infer a nil terminator (likely due to
@@ -1004,8 +1010,10 @@ Expr State::mkApplyAttr(AppInfo* ai, const std::vector<ExprValue*>& vchildren, c
               // (eo::nil f (eo::typeof t1)), which if t1 is non-ground
               // will evaluate to the proper nil terminator when
               // instantiated.
-              Expr typ = Expr(mkExprInternal(Kind::EVAL_TYPE_OF, {vchildren[1]}));
-              curr = mkExprInternal(Kind::EVAL_NIL, {vchildren[0], typ.getValue()});
+              Expr typ =
+                  Expr(mkExprInternal(Kind::EVAL_TYPE_OF, {vchildren[1]}));
+              curr = mkExprInternal(Kind::EVAL_NIL,
+                                    {vchildren[0], typ.getValue()});
             }
             else
             {
@@ -1016,11 +1024,12 @@ Expr State::mkApplyAttr(AppInfo* ai, const std::vector<ExprValue*>& vchildren, c
         }
         // now, add the remaining children
         i++;
-        while (i<nchild)
+        while (i < nchild)
         {
           cc[prevIndex] = curr;
           cc[nextIndex] = vchildren[isLeft ? i : nchild - i];
-          // if the "head" child is marked as list, we construct Kind::EVAL_LIST_CONCAT
+          // if the "head" child is marked as list, we construct
+          // Kind::EVAL_LIST_CONCAT
           if (isNil && getConstructorKind(cc[nextIndex]) == Attr::LIST)
           {
             curr = mkExprInternal(Kind::EVAL_LIST_CONCAT, cc);
@@ -1031,12 +1040,13 @@ Expr State::mkApplyAttr(AppInfo* ai, const std::vector<ExprValue*>& vchildren, c
           }
           i++;
         }
-        Trace("type_checker") << "...return for " << Expr(vchildren[0]) << std::endl;
+        Trace("type_checker")
+            << "...return for " << Expr(vchildren[0]) << std::endl;
         return Expr(curr);
       }
       else
       {
-        // Otherwise we are applying the operator to zero arguments. This 
+        // Otherwise we are applying the operator to zero arguments. This
         // can never occur in standard parsing since it is not possible
         // to apply a function to zero arguments. However, this case may
         // arise if e.g. a pairwise or chainable operator is applied to
@@ -1044,20 +1054,20 @@ Expr State::mkApplyAttr(AppInfo* ai, const std::vector<ExprValue*>& vchildren, c
         return consTerm;
       }
     }
-      break;
+    break;
     case Attr::CHAINABLE:
     {
       std::vector<Expr> cchildren;
       Assert(!consTerm.isNull());
       cchildren.push_back(consTerm);
       std::vector<ExprValue*> cc{hd, nullptr, nullptr};
-      for (size_t i=1, nchild = vchildren.size()-1; i<nchild; i++)
+      for (size_t i = 1, nchild = vchildren.size() - 1; i < nchild; i++)
       {
         cc[1] = vchildren[i];
         cc[2] = vchildren[i + 1];
         cchildren.emplace_back(mkApplyInternal(cc));
       }
-      if (cchildren.size()==2)
+      if (cchildren.size() == 2)
       {
         // no need to chain
         return cchildren[1];
@@ -1065,23 +1075,23 @@ Expr State::mkApplyAttr(AppInfo* ai, const std::vector<ExprValue*>& vchildren, c
       // note this could loop
       return mkExpr(Kind::APPLY, cchildren);
     }
-      break;
+    break;
     case Attr::PAIRWISE:
     {
       std::vector<Expr> cchildren;
       Assert(!consTerm.isNull());
       cchildren.push_back(consTerm);
       std::vector<ExprValue*> cc{hd, nullptr, nullptr};
-      for (size_t i=1, nchild = vchildren.size(); i<nchild-1; i++)
+      for (size_t i = 1, nchild = vchildren.size(); i < nchild - 1; i++)
       {
-        for (size_t j=i+1; j<nchild; j++)
+        for (size_t j = i + 1; j < nchild; j++)
         {
           cc[1] = vchildren[i];
           cc[2] = vchildren[j];
           cchildren.emplace_back(mkApplyInternal(cc));
         }
       }
-      if (cchildren.size()==2)
+      if (cchildren.size() == 2)
       {
         // no need to chain
         return cchildren[1];
@@ -1089,24 +1099,26 @@ Expr State::mkApplyAttr(AppInfo* ai, const std::vector<ExprValue*>& vchildren, c
       // note this could loop
       return mkExpr(Kind::APPLY, cchildren);
     }
-      break;
+    break;
     case Attr::OPAQUE:
     {
       // determine how many opaque children
       Expr hdt = Expr(hd);
       const Expr& t = d_tc.getType(hdt);
-      Assert (t.getKind()==Kind::FUNCTION_TYPE);
-      size_t nargs = t.getNumChildren()-1;
-      if (nargs>=vchildren.size())
+      Assert(t.getKind() == Kind::FUNCTION_TYPE);
+      size_t nargs = t.getNumChildren() - 1;
+      if (nargs >= vchildren.size())
       {
-        Warning() << "Too few arguments when applying opaque symbol " << hdt << std::endl;
+        Warning() << "Too few arguments when applying opaque symbol " << hdt
+                  << std::endl;
       }
       else
       {
-        std::vector<Expr> ochildren(vchildren.begin(), vchildren.begin()+1+nargs);
+        std::vector<Expr> ochildren(vchildren.begin(),
+                                    vchildren.begin() + 1 + nargs);
         Expr op = mkExpr(Kind::APPLY_OPAQUE, ochildren);
         Trace("opaque") << "Construct opaque operator " << op << std::endl;
-        if (nargs+1==vchildren.size())
+        if (nargs + 1 == vchildren.size())
         {
           Trace("opaque") << "...return operator" << std::endl;
           return op;
@@ -1114,17 +1126,18 @@ Expr State::mkApplyAttr(AppInfo* ai, const std::vector<ExprValue*>& vchildren, c
         // higher order
         std::vector<ExprValue*> rchildren;
         rchildren.push_back(op.getValue());
-        rchildren.insert(rchildren.end(), vchildren.begin()+1+nargs, vchildren.end());
-        Trace("opaque") << "...return operator applied to children" << std::endl;
+        rchildren.insert(
+            rchildren.end(), vchildren.begin() + 1 + nargs, vchildren.end());
+        Trace("opaque") << "...return operator applied to children"
+                        << std::endl;
         return Expr(mkExprInternal(Kind::APPLY, rchildren));
       }
     }
-    default:
-      break;
+    default: break;
   }
   return d_null;
 }
-      
+
 ExprValue* State::mkApplyInternal(const std::vector<ExprValue*>& children)
 {
   Assert(children.size() > 2);
@@ -1572,7 +1585,7 @@ Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
     Trace("overload") << "Try " << d_tc.getType(hde) << std::endl;
     AppInfo* ai = getAppInfo(hd);
     Expr x;
-    if (ai!=nullptr)
+    if (ai != nullptr)
     {
       Trace("overload") << "...has property " << ai->d_attrCons << std::endl;
       Expr consTerm = d_tc.computeConstructorTermInternal(ai, children);
@@ -1580,10 +1593,11 @@ Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
     }
     if (x.isNull())
     {
-      x = Expr(vchildren.size()>2 ? mkApplyInternal(vchildren) : mkExprInternal(Kind::APPLY, vchildren));
+      x = Expr(vchildren.size() > 2 ? mkApplyInternal(vchildren)
+                                    : mkExprInternal(Kind::APPLY, vchildren));
     }
     Expr t = d_tc.getType(x);
-    
+
     Trace("overload") << "type of " << x << " is " << t << std::endl;
     // if term is well-formed, and matches the return type if it exists
     if (!t.isNull() && (retType==nullptr || retType==t.getValue()))
