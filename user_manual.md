@@ -874,14 +874,16 @@ Note the following examples of core operators for the given signature
 (eo::is_ok 0)                        == true
 (eo::is_ok (eo::neg "abc"))          == false
 
-(eo::eq 0 1)                         == false
 (eo::eq x x)                         == true
+(eo::eq 0 1)                         == false
+(eo::eq x y)                         == false
 (eo::eq (eo::neg "a") x)             == (eo::eq (eo::neg "a") x)              ; since the first argument fails to evaluate
 (eo::eq (eo::neg "a") (eo::neg "a")) == (eo::eq (eo::neg "a") (eo::neg "a"))  ; since both arguments fail to evaluate
 (eo::eq 2 (eo::add 1 1))             == true
 
-(eo::is_eq 0 1)                         == false
 (eo::is_eq x x)                         == true
+(eo::is_eq 0 1)                         == false
+(eo::is_eq x y)                         == false
 (eo::is_eq (eo::neg "a") x)             == false
 (eo::is_eq (eo::neg "a") (eo::neg "a")) == false
 (eo::is_eq 2 (eo::add 1 1))             == true
@@ -896,8 +898,8 @@ Note the following examples of core operators for the given signature
 (eo::requires x x Int)               == Int
 ```
 
-In the above, it is important to note that `eo::is_eq` is a check for syntactic equality after evaluation.
-It does not require that its arguments denote values, so for example `(eo::is_eq x y)` returns `false`.
+In the above, it is important to note that `eo::eq` and `eo::is_eq` are checks for syntactic equality, which is different from saying the terms are semantically distinct in all models.
+For example `(eo::eq x y)` returns `false`.
 
 <a name="list-computation"></a>
 
