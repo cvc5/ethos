@@ -250,13 +250,17 @@ class State
    * construct. This includes a head operator.
    * @param retType If non-null, this is required return type of the
    * application.
+   * @param retApply If true, we return the application of the
+   * appropriate overloaded constructor to children; otherwise we return the
+   * overloaded constructor itself.
    * @return If possible, one of the elements of overloads that meets
    * the above requirements. If multiple are possible, we return the
    * first only. If none are possible, we return the null expression.
    */
   Expr getOverloadInternal(const std::vector<Expr>& overloads,
                            const std::vector<Expr>& children,
-                           const ExprValue* retType = nullptr);
+                           const ExprValue* retType = nullptr,
+                           bool retApply = false);
   /** Get the internal data for expression e. */
   AppInfo* getAppInfo(const ExprValue* e);
   const AppInfo* getAppInfo(const ExprValue* e) const;

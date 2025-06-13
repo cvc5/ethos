@@ -693,12 +693,11 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         Trace("overload") << "Use overload when constructing " << k << " " << children << std::endl;
         std::vector<Expr>& ov = d_overloads[ai->d_overloadName];
         Assert (ov.size()>=2);
-        Expr ret = getOverloadInternal(ov, children);
+        Expr ret = getOverloadInternal(ov, children, nullptr, true);
         if (!ret.isNull())
         {
-          vchildren[0] = ret.getValue();
           Trace("overload") << "...found overload " << ret << std::endl;
-          return vchildren.size()<=2 ? Expr(mkExprInternal(k, vchildren)) : Expr(mkApplyInternal(vchildren));
+          return ret;
         }
         Warning() << "No overload found when constructing application "
                   << children << std::endl;
@@ -829,12 +828,12 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         Trace("overload") << "...overloaded" << std::endl;
         std::vector<Expr>& ov = d_overloads[ai->d_overloadName];
         Assert (ov.size()>=2);
-        reto = getOverloadInternal(ov, dummyChildren, ftype.second.getValue());
+        reto = getOverloadInternal(ov, dummyChildren, ftype.second.getValue(), false);
       }
       else
       {
         Trace("overload") << "...not overloaded" << std::endl;
-        reto = getOverloadInternal({children[0]}, dummyChildren, ftype.second.getValue());
+        reto = getOverloadInternal({children[0]}, dummyChildren, ftype.second.getValue(), false);
       }
       if (!reto.isNull())
       {
@@ -1552,7 +1551,8 @@ bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
 
 Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
                                 const std::vector<Expr>& children,
-                                const ExprValue* retType)
+                                const ExprValue* retType,
+                                bool retApply)
 {
   Assert (!overloads.empty());
   Trace("overload") << "Get overload" << std::endl;
@@ -1566,25 +1566,31 @@ Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
   {
     // search in reverse order, i.e. the last bound symbol takes precendence
     size_t ii = (noverloads-1)-i;
-    vchildren[0] = overloads[ii].getValue();
     ExprValue* hd = overloads[ii].getValue();
+    vchildren[0] = hd;
+    Expr hde(hd);
+    Trace("overload") << "Try " << d_tc.getType(hde) << std::endl;
     AppInfo* ai = getAppInfo(hd);
     Expr x;
     if (ai!=nullptr)
     {
+      Trace("overload") << "...has property " << ai->d_attrCons << std::endl;
       Expr consTerm = d_tc.computeConstructorTermInternal(ai, children);
-      x= mkApplyAttr(ai, vchildren, consTerm);
+      x = mkApplyAttr(ai, vchildren, consTerm);
     }
-    else
+    if (x.isNull())
     {
       x = Expr(vchildren.size()>2 ? mkApplyInternal(vchildren) : mkExprInternal(Kind::APPLY, vchildren));
     }
     Expr t = d_tc.getType(x);
+    
+    Trace("overload") << "type of " << x << " is " << t << std::endl;
     // if term is well-formed, and matches the return type if it exists
     if (!t.isNull() && (retType==nullptr || retType==t.getValue()))
     {
+      Trace("overload") << "...return success" << std::endl;
       // return the operator, do not check the remainder
-      return overloads[ii];
+      return retApply ? x : overloads[ii];
     }
   }
   // otherwise, none found, return null
