@@ -156,6 +156,7 @@ set(ethos_test_file_list
     list-param-immediate.eo
     eo-definitions-test.eo
     nground-nil-ex.eo
+    list-nth-non-list.eo
 )
 
 if(ENABLE_ORACLES)

@@ -1,0 +1,6 @@
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+(declare-const a Bool)
+
+(define bin_op ((f (-> Bool Bool Bool)) (x Bool) (y Bool)) (f x y))
+; (bin_op or a a) constructs a non or-list, eo::list_nth should fail to evaluate
+(declare-const test (eo::requires (eo::is_ok (eo::list_nth or (bin_op or a a) 0)) false Bool))
