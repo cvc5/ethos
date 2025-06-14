@@ -1817,105 +1817,29 @@ For example, the above program could be generalized to concatentate an arbitrary
 (define foo2 () (repeat_term a 7) :type (BitVec 35))
 ```
 
-### Match statements
-
-Ethos supports an operator `eo::match` for performing pattern matching on a target term. The syntax of this term is:
-
-```smt
-(eo::match (<typed-param>*) <term> ((<term> <term>)*))
-```
-
-The term `(eo::match (...) t ((s1 r1) ... (sn rn)))` finds the first term `si` in the list `s1 ... sn` that `t` can be matched with under some substitution and returns the result of applying that substitution to `ri`.
-
-> __Note:__  Match terms require the free parameters of `ri` are a subset of the provided parameter list.
-In other words, all patterns must only involve parameters that are locally bound as the first argument of the match term.
-Also, similar to programs, the free parameters of `ri` that occur in the parameter list must be a subset of `si`, or else an error is thrown.
-
-> __Note:__ Like programs, match terms are not statically type checked.
-
-### Examples of legal and illegal match terms
-
-```smt
-(declare-type Int ())
-(declare-const F Bool)
-(declare-const a Int)
-(declare-const P (-> Int Bool))
-(declare-const f (-> Int Int))
-; Legal match terms:
-(define test1 ((x Int))
-    (f (eo::match ((y Int)) x 
-            (
-                (a a) 
-                (b b) 
-                ((f (f a)) a)   ; can use arbitrary nesting in pattern terms
-                ((f (f y)) b)
-                (y a)           ; note that using a parameter as a pattern acts as a default case
-            )
-        )))
-(define test2 ((F Bool) (y Int)) 
-    (eo::match ((x Int)) F 
-        (
-            ((P x) y)           ; ok since y is bound at a higher scope and x is bound locally
-        )
-    ))
-
-; Illegal match terms:
-(define test3 ((F Bool) (y Int)) 
-    (eo::match ((x Int)) F 
-        (
-            ((P y) a)       ; since y is not locally bound
-        )
-    ))
-(define test4 ((F Bool) (y Int)) 
-    (eo::match ((x Int)) F 
-        (
-            ((P a) x)       ; since x does not occur in (P a)
-        )))  
-```
-
 ### Example: Proof rule for symmetry of (dis)equality
 
 ```smt
 (declare-type Int ())
 (declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 (declare-const not (-> Bool Bool))
+
+(program mk_symm ((T Type) (t1 T) (t2 T))
+  :signature (Bool) Bool
+  (
+    ((mk_symm (= t1 t2))       (= t2 t1))
+    ((mk_symm (not (= t1 t2))) (not (= t2 t1)))
+  )
+)
+
 (declare-rule symm ((F Bool))
     :premises (F)
-    :conclusion
-        (eo::match ((t1 Int) (t2 Int)) F
-            (
-                ((= t1 t2)       (= t2 t1))
-                ((not (= t1 t2)) (not (= t2 t1)))
-            )
-        )
+    :conclusion (mk_symm F)
 )
 ```
 
 The above rule performs symmetry on equality or disequality.
 It matches the given premise `F` with either `(= t1 t2)` or `(not (= t1 t2))` and flips the terms on the sides of the (dis)equality.
-
-Internally, the semantics of `eo::match` can be seen as an (inlined) program applied to its head, such that the above example is equivalent to:
-
-```smt
-(declare-type Int ())
-(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
-(declare-const not (-> Bool Bool))
-(program matchF ((t1 Int) (t2 Int))
-    :signature (Bool) Bool
-    (
-      ((matchF (= t1 t2))       (= t2 t1))
-      ((matchF (not (= t1 t2))) (not (= t2 t1)))
-    )
-)
-(declare-rule symm ((F Bool))
-    :premises (F)
-    :args ()
-    :conclusion (matchF F)
-)
-```
-
-> __Note:__ The Ethos checker automatically performs the above transformation on match terms for consistency.
-In more general cases, if the body of the match term contains free variables, these are added to the argument list of the internally generated program.
 
 ### Example: Proof rule for transitivity of equality with a premise list
 
@@ -1932,13 +1856,9 @@ In more general cases, if the body of the match term contains free variables, th
     )
 )
 
-(declare-rule trans (E Bool))
-    :premise-list E and
-    :conclusion
-        (eo::match ((t1 Int) (t2 Int) (tail Bool :list)) E
-        (
-            ((and (= t1 t2) tail) (mk_trans t1 t2 tail))
-        ))
+(declare-rule trans ((t1 Int) (t2 Int) (tail Bool :list))
+    :premise-list (and (= t1 t2) tail) and
+    :conclusion (mk_trans t1 t2 tail)
 )
 ```
 
@@ -2148,7 +2068,7 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
 ;;;
 <keyword>       ::= :<symbol>
 <attr>          ::= <keyword> <term>?
-<term>          ::= <symbol> | (<symbol> <term>+) | (! <term> <attr>+) | (eo::match (<typed-param>*) <term> ((<term> <term>)*))
+<term>          ::= <symbol> | (<symbol> <term>+) | (! <term> <attr>+)
 <type>          ::= <term>
 <typed-param>   ::= (<symbol> <type> <attr>*)
 <sort-dec>      ::= (<symbol> <numeral>)
