@@ -156,6 +156,9 @@ set(ethos_test_file_list
     double-list.eo
     list-param-immediate.eo
     nground-nil-ex.eo
+    list-nth-non-list.eo
+    eo-list-ops.eo
+    eo-list-ops-napply.eo
 )
 
 if(ENABLE_ORACLES)
