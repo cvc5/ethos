@@ -207,7 +207,8 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_LIST_ERASE_ALL:
     case Kind::EVAL_LIST_NTH:
     case Kind::EVAL_LIST_MINCLUDE:
-    case Kind::EVAL_LIST_MEQ: ret = (nargs == 3); break;
+    case Kind::EVAL_LIST_MEQ:
+    case Kind::EVAL_LIST_DIFF: ret = (nargs == 3); break;
     case Kind::EVAL_EXTRACT:
       ret = (nargs==3 || nargs==2);
       break;
@@ -1607,6 +1608,8 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_LIST_MINCLUDE:
     case Kind::EVAL_LIST_MEQ:
       return evaluateListMPredInternal(k, op, nil, isLeft, args);
+    case Kind::EVAL_LIST_DIFF:
+      return evaluateListDiffInternal(op, nil, isLeft, args);
     default:
       break;
   }
@@ -1756,6 +1759,61 @@ Expr TypeChecker::evaluateListMPredInternal(Kind k,
   return d_state.mkTrue();
 }
 
+Expr TypeChecker::evaluateListDiffInternal(ExprValue* op,
+                                           ExprValue* nil,
+                                           bool isLeft,
+                                           const std::vector<ExprValue*>& args)
+{
+  std::vector<ExprValue*> hargs, hargs2;
+  if (getNAryChildren(args[1], op, nil, hargs, isLeft) == nullptr
+      || getNAryChildren(args[2], op, nil, hargs2, isLeft) == nullptr)
+  {
+    return d_null;
+  }
+  // optimization: reflexive is nill
+  if (args[1] == args[2])
+  {
+    return Expr(nil);
+  }
+  std::unordered_map<const ExprValue*, uint32_t> count2;
+  for (const ExprValue* elem : hargs2)
+  {
+    ++count2[elem];
+  }
+  size_t changeIndex = 0;
+  size_t changeSize = 0;
+  std::vector<ExprValue*> result;
+  std::unordered_map<const ExprValue*, uint32_t>::iterator itc;
+  for (size_t i = 0, nargs = hargs.size(); i < nargs; i++)
+  {
+    itc = count2.find(hargs[i]);
+    if (itc != count2.end())
+    {
+      changeIndex = i + 1;
+      changeSize = result.size();
+      itc->second--;
+      if (itc->second==0)
+      {
+        count2.erase(hargs[i]);
+      }
+      continue;
+    }
+    result.emplace_back(hargs[i]);
+  }
+  if (changeIndex == 0)
+  {
+    return Expr(args[0]);
+  }
+  // We resize to the size of the vector at the place it was last modified,
+  // and take the changeIndex^th tail of args[1]. This is an important
+  // optimization to avoid reconstructing the remainder of the list past
+  // the point it was changed.
+  result.resize(changeSize);
+  ExprValue* ret = getNAryNthTail(args[0], isLeft, changeIndex);
+  return prependNAryChildren(op, ret, result, isLeft);
+
+}
+
 Expr TypeChecker::getLiteralOpType(Kind k,
                                    std::vector<ExprValue*>& children,
                                    std::vector<ExprValue*>& childTypes,
@@ -1795,7 +1853,8 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_LIST_ERASE:
     case Kind::EVAL_LIST_ERASE_ALL:
     case Kind::EVAL_LIST_REV:
-    case Kind::EVAL_LIST_SETOF: return Expr(childTypes[1]);
+    case Kind::EVAL_LIST_SETOF:
+    case Kind::EVAL_LIST_DIFF: return Expr(childTypes[1]);
     case Kind::EVAL_CONCAT:
     case Kind::EVAL_EXTRACT:
       // type is the first child
