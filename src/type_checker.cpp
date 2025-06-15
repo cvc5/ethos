@@ -1139,17 +1139,23 @@ Expr TypeChecker::prependNAryChildren(ExprValue* op,
                                       bool isLeft)
 {
   // note we take the tail verbatim
-  std::vector<ExprValue*> cc;
-  cc.push_back(op);
-  cc.push_back(nullptr);
-  cc.push_back(nullptr);
-  size_t tailIndex = (isLeft ? 1 : 2);
-  size_t headIndex = (isLeft ? 2 : 1);
-  for (size_t i = 0, nargs = hargs.size(); i < nargs; i++)
+  if (isLeft)
   {
-    cc[tailIndex] = ret;
-    cc[headIndex] = hargs[isLeft ? i : (nargs - 1 - i)];
-    ret = d_state.mkApplyInternal(cc);
+    ExprValue* c1;
+    for (auto it = hargs.begin(); it != hargs.end(); ++it)
+    {
+      c1 = d_state.mkExprInternal(Kind::APPLY, {op, ret});
+      ret = d_state.mkExprInternal(Kind::APPLY, {c1, *it});
+    }
+  }
+  else
+  {
+    ExprValue* c1;
+    for (auto rit = hargs.rbegin(); rit != hargs.rend(); ++rit)
+    {
+      c1 = d_state.mkExprInternal(Kind::APPLY, {op, *rit});
+      ret = d_state.mkExprInternal(Kind::APPLY, {c1, ret});
+    }
   }
   return Expr(ret);
 }
