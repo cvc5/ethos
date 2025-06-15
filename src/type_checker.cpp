@@ -1808,14 +1808,14 @@ Expr TypeChecker::evaluateListDiffInternal(ExprValue* op,
   }
   if (changeIndex == 0)
   {
-    return Expr(args[0]);
+    return Expr(args[1]);
   }
   // We resize to the size of the vector at the place it was last modified,
   // and take the changeIndex^th tail of args[1]. This is an important
   // optimization to avoid reconstructing the remainder of the list past
   // the point it was changed.
   result.resize(changeSize);
-  ExprValue* ret = getNAryNthTail(args[0], isLeft, changeIndex);
+  ExprValue* ret = getNAryNthTail(args[1], isLeft, changeIndex);
   return prependNAryChildren(op, ret, result, isLeft);
 
 }

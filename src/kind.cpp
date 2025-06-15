@@ -323,7 +323,8 @@ bool isListLiteralOp(Kind k)
     case Kind::EVAL_LIST_REV:
     case Kind::EVAL_LIST_SETOF:
     case Kind::EVAL_LIST_MINCLUDE:
-    case Kind::EVAL_LIST_MEQ: return true;
+    case Kind::EVAL_LIST_MEQ:
+    case Kind::EVAL_LIST_DIFF: return true;
     default:
       break;
   }
