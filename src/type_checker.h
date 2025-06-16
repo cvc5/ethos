@@ -154,17 +154,19 @@ class TypeChecker
                                  ExprValue* nil,
                                  bool isLeft,
                                  const std::vector<ExprValue*>& args);
-  /** Evaluate list diff internal
+  /** Evaluate list diff/intersection internal
+   * @param k The kind of application (DIFF or INTER).
    * @param op The n-ary operator.
    * @param nil The nil terminator for the operator.
    * @param isLeft Whether we are :left-assoc-nil (or :right-assoc-nil).
    * @param args The arguments to the application.
    * @return The result of the evaluation.
    */
-  Expr evaluateListDiffInternal(ExprValue* op,
-                                ExprValue* nil,
-                                bool isLeft,
-                                const std::vector<ExprValue*>& args);
+  Expr evaluateListDiffInterInternal(Kind k,
+                                     ExprValue* op,
+                                     ExprValue* nil,
+                                     bool isLeft,
+                                     const std::vector<ExprValue*>& args);
   /**
    * Helper for above, starting with ret, append children in hargs to ret,
    * using n-ary operator op, which is :right-assoc-nil or :left-assoc-nil

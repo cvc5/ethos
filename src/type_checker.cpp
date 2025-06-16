@@ -208,7 +208,8 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_LIST_NTH:
     case Kind::EVAL_LIST_MINCLUDE:
     case Kind::EVAL_LIST_MEQ:
-    case Kind::EVAL_LIST_DIFF: ret = (nargs == 3); break;
+    case Kind::EVAL_LIST_DIFF:
+    case Kind::EVAL_LIST_INTER: ret = (nargs == 3); break;
     case Kind::EVAL_EXTRACT:
       ret = (nargs==3 || nargs==2);
       break;
@@ -1615,7 +1616,8 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_LIST_MEQ:
       return evaluateListMPredInternal(k, op, nil, isLeft, args);
     case Kind::EVAL_LIST_DIFF:
-      return evaluateListDiffInternal(op, nil, isLeft, args);
+    case Kind::EVAL_LIST_INTER:
+      return evaluateListDiffInterInternal(k, op, nil, isLeft, args);
     default:
       break;
   }
@@ -1765,10 +1767,11 @@ Expr TypeChecker::evaluateListMPredInternal(Kind k,
   return d_state.mkTrue();
 }
 
-Expr TypeChecker::evaluateListDiffInternal(ExprValue* op,
-                                           ExprValue* nil,
-                                           bool isLeft,
-                                           const std::vector<ExprValue*>& args)
+Expr TypeChecker::evaluateListDiffInterInternal(Kind k,
+                                                ExprValue* op,
+                                                ExprValue* nil,
+                                                bool isLeft,
+                                                const std::vector<ExprValue*>& args)
 {
   std::vector<ExprValue*> hargs, hargs2;
   if (getNAryChildren(args[1], op, nil, hargs, isLeft) == nullptr
@@ -1786,6 +1789,7 @@ Expr TypeChecker::evaluateListDiffInternal(ExprValue* op,
   {
     ++count2[elem];
   }
+  bool isDiff = (k==Kind::EVAL_LIST_DIFF);
   size_t changeIndex = 0;
   size_t changeSize = 0;
   std::vector<ExprValue*> result;
@@ -1793,15 +1797,19 @@ Expr TypeChecker::evaluateListDiffInternal(ExprValue* op,
   for (size_t i = 0, nargs = hargs.size(); i < nargs; i++)
   {
     itc = count2.find(hargs[i]);
-    if (itc != count2.end())
+    bool found = (itc != count2.end());
+    if (found)
     {
-      changeIndex = i + 1;
-      changeSize = result.size();
       itc->second--;
       if (itc->second==0)
       {
         count2.erase(hargs[i]);
       }
+    }
+    if (found==isDiff)
+    {
+      changeIndex = i + 1;
+      changeSize = result.size();
       continue;
     }
     result.emplace_back(hargs[i]);
@@ -1860,7 +1868,8 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_LIST_ERASE_ALL:
     case Kind::EVAL_LIST_REV:
     case Kind::EVAL_LIST_SETOF:
-    case Kind::EVAL_LIST_DIFF: return Expr(childTypes[1]);
+    case Kind::EVAL_LIST_DIFF:
+    case Kind::EVAL_LIST_INTER: return Expr(childTypes[1]);
     case Kind::EVAL_CONCAT:
     case Kind::EVAL_EXTRACT:
       // type is the first child
