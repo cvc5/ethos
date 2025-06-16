@@ -1779,17 +1779,17 @@ Expr TypeChecker::evaluateListDiffInterInternal(Kind k,
   {
     return d_null;
   }
-  // optimization: reflexive is nill
+  bool isDiff = (k==Kind::EVAL_LIST_DIFF);
+  // optimization: reflexive is nil or self
   if (args[1] == args[2])
   {
-    return Expr(nil);
+    return isDiff ? Expr(nil) : Expr(args[1]);
   }
   std::unordered_map<const ExprValue*, uint32_t> count2;
   for (const ExprValue* elem : hargs2)
   {
     ++count2[elem];
   }
-  bool isDiff = (k==Kind::EVAL_LIST_DIFF);
   size_t changeIndex = 0;
   size_t changeSize = 0;
   std::vector<ExprValue*> result;
