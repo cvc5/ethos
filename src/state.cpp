@@ -127,6 +127,8 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("list_setof", Kind::EVAL_LIST_SETOF);
   bindBuiltinEval("list_minclude", Kind::EVAL_LIST_MINCLUDE);
   bindBuiltinEval("list_meq", Kind::EVAL_LIST_MEQ);
+  bindBuiltinEval("list_diff", Kind::EVAL_LIST_DIFF);
+  bindBuiltinEval("list_inter", Kind::EVAL_LIST_INTER);
   // boolean
   bindBuiltinEval("not", Kind::EVAL_NOT);
   bindBuiltinEval("and", Kind::EVAL_AND);
