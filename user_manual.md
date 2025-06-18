@@ -669,7 +669,7 @@ Binary values are considered to be in little endian form.
 
 Some of the following operators can be defined in terms of the other operators.
 For these operators, we provide the equivalent formulation.
-A signature defining these files can be found in [non-core-eval](#non-core-eval).
+A signature defining these files can be found in [derived-ops](#derived-ops).
 Note, however, that the evaluation of these operators is handled by more efficient methods internally in Ethos, that is, they are not treated as syntax sugar internally.
 
 ### Core operators
@@ -681,7 +681,7 @@ Note, however, that the evaluation of these operators is handled by more efficie
   - Returns `t2` if `t1` is `true`, `t3` if `t1` is `false`, and is not evaluated otherwise. Note that the branches of this term are only evaluated if they are the return term.
 
 - `(eo::eq t1 t2)`
-  - If `t1` and `t2` are ground values, this returns `true` if `t1` is (syntactically) equal to `t2` and false otherwise. Otherwise, if either `t1` or `t2` is non-ground, it does not evaluate.
+  - If `t1` and `t2` are ground values, this returns `true` if `t1` is (syntactically) equal to `t2` and false otherwise. Otherwise, if either `t1` or `t2` is non-ground, it does not evaluate. Note this can be expressed as an ordinary Eunoia program as we describe in [derived-ops](#derived-ops).
 
 - `(eo::is_eq t1 t2)`
   - Equivalent to `(eo::ite (eo::and (eo::is_ok t) (eo::is_ok s)) (eo::eq s t) false)`.
@@ -908,6 +908,9 @@ For example `(eo::eq x y)` returns `false`.
 Below, we assume that `f` is right associative operator with nil terminator `nil` and `t1, t2` are values. Otherwise, the following operators do not evaluate.
 We describe the evaluation for right associative operators; left associative evaluation is defined analogously.
 We say that a term is an `f`-list with children `t1 ... tn` if it is of the form `(f t1 ... tn)` where `n>0` or `nil` if `n=0`.
+
+Note that all of the list operators here (with the exception of `eo::nil`) have a semantics that can be described as an ordinary Eunoia program.
+We provide a signature of these definitions in [derived-list-ops](#derived-list-ops).
 
 ### List operators
 
@@ -1247,8 +1250,9 @@ In detail, for the purposes of representing the return value of these operators,
 ```smt
 (declare-type eo::List ())
 (declare-const eo::List::nil eo::List)
-(declare-const eo::List::cons ((T Type :implicit)) (-> T eo::List eo::List)
-               :right-assoc-nil eo::List::nil)
+(declare-parameterized-const eo::List::cons ((T Type :implicit))
+  (-> T eo::List eo::List)
+  :right-assoc-nil eo::List::nil)
 ```
 
 > __Note:__ `eo::List` is not itself a datatype type.
@@ -2086,47 +2090,437 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
 
 ```
 
- <a name="non-core-eval"></a>
+### Derived Definitions of Evaluation Operators
+<a name="derived-ops"></a>
 
-### Definitions of Non-Core Evaluation Operators
+The following signature can be used to give an alternative definition
+of certain builtin operators that can be expressed as standard Eunoia programs,
+or based on other operators.
+We provide this as a parsable Eunoia file, which is also part of our
+regressions (see <https://github.com/cvc5/ethos/tree/main/tests/eo-definitions.eo>).
 
-The following signature can be used to define operators that are not required to be supported as core evaluation operators.
+We use the convention that each `eo::X` definition is given a corresponding
+definition `$eo_X` in the following signature.
+Including this signature and modifying a Eunoia
+file to use `$eo_` instead of `eo::` should
+have no impact on behavior (apart from performance), unless otherwise noted.
 
 ```smt
+
+;;; $eo_eq
+
+; program: $eo_eq
+; implements: eo::eq
+(program $eo_eq ((T Type) (S Type) (t T) (s S))
+  :signature (T S) Bool
+  (
+  (($eo_eq t t) true)
+  (($eo_eq t s) false)
+  )
+)
+
+;;; $eo_is_eq
+
+; Returns true if t and s are equivalent values (ground and fully evaluated).
+; define: $eo_is_eq
+; implements: eo::is_eq
+(define $eo_is_eq ((T Type :implicit) (S Type :implicit) (t T) (s S))
+  (eo::ite (eo::and (eo::is_ok t) (eo::is_ok s)) ($eo_eq s t) false))
+
+;;; $eo_is_z
+
 ; Returns true if x is a numeral literal.
-(define eo::is_z ((T Type :implicit) (x T))
-  (eo::is_eq (eo::to_z x) x))
+; define: $eo_is_eq
+; implements: eo::is_eq
+(define $eo_is_z ((T Type :implicit) (x T))
+  ($eo_is_eq (eo::to_z x) x))
+
+;;; $eo_is_q
 
 ; Returns true if x is a rational literal.
-(define eo::is_q ((T Type :implicit) (x T))
-  (eo::is_eq (eo::to_q x) x))
+; define: $eo_is_q
+; implements: eo::is_q
+(define $eo_is_q ((T Type :implicit) (x T))
+  ($eo_is_eq (eo::to_q x) x))
+
+;;; $eo_is_bin
 
 ; Returns true if x is a binary literal.
-(define eo::is_bin ((T Type :implicit) (x T))
-  (eo::is_eq (eo::to_bin (eo::len x) x) x))
+; define: $eo_is_bin
+; implements: eo::is_bin
+(define $eo_is_bin ((T Type :implicit) (x T))
+  ($eo_is_eq (eo::to_bin (eo::len x) x) x))
+
+;;; $eo_is_str
 
 ; Returns true if x is a string literal.
-(define eo::is_str ((T Type :implicit) (x T))
-  (eo::is_eq (eo::to_str x) x))
+; define: $eo_is_str
+; implements: eo::is_str
+(define $eo_is_str ((T Type :implicit) (x T))
+  ($eo_is_eq (eo::to_str x) x))
+
+;;; $eo_is_bool
 
 ; Returns true if x is a Boolean literal.
-(define eo::is_bool ((T Type :implicit) (x T))
-  (eo::ite (eo::is_eq x true) true (eo::is_eq x false)))
+; define: $eo_is_bool
+; implements: eo::is_bool
+(define $eo_is_bool ((T Type :implicit) (x T))
+  (eo::ite ($eo_is_eq x true) true ($eo_is_eq x false)))
+
+;;; $eo_is_var
 
 ; Returns true if x is a variable.
-(define eo::is_var ((T Type :implicit) (x T))
-  (eo::is_eq (eo::var (eo::nameof x) (eo::typeof x)) x))
+; define: $eo_is_var
+; implements: eo::is_var
+(define $eo_is_var ((T Type :implicit) (x T))
+  ($eo_is_eq (eo::var (eo::nameof x) (eo::typeof x)) x))
+
+;;; $eo_gt
 
 ; Compare arithmetic greater than. Assumes x and y are values.
 ; Returns true if x > y.
-(define eo::gt ((T Type :implicit) (x T) (y T))
+; define: $eo_gt
+; implements: eo::gt
+(define $eo_gt ((T Type :implicit) (x T) (y T))
   (eo::is_neg (eo::add (eo::neg x) y)))
+
+;;; $eo_cmp
 
 ; An arbitrary deterministic comparison of terms. Returns true if a > b based
 ; on this ordering.
-(define eo::cmp ((T Type :implicit) (U Type :implicit) (a T) (b U))
+; define: $eo_cmp
+; implements: eo::cmp
+(define $eo_cmp ((T Type :implicit) (U Type :implicit) (a T) (b U))
   (eo::is_neg (eo::add (eo::hash b) (eo::neg (eo::hash a)))))
 
+```
+### Derived Definitions of List Evaluation Operators
+<a name="derived-list-ops"></a>
+
+We now provide definitions of Eunoia list operators in terms
+of standard Eunoia programs.
+It is possible to define programs for *all* list operators with the exception
+of `eo::nil`.
+In particular, the behavior of `eo::nil` is dynamically modified based on the
+declared constants. We provide instructions
+for how to construct the definition of `$eo_nil` for a fixed signature.
+
+First, we redefine the builtin Eunoia list operator `eo::List` as
+the type `eo_List` and its constructors `eo::List::X` as `eo_List_X`.
+
+```
+;;; The builtin list definition.
+
+(declare-type eo_List ())
+(declare-const eo_List_nil $eo_List)
+(declare-const eo_List_cons ((T Type :implicit)) (-> T eo_List eo_List)
+               :right-assoc-nil $eo_List_nil)
+```
+
+Now, we assume the definition of `$eo_nil` has the following form:
+
+```
+; program: $eo_nil
+; implements: eo::nil
+(program $eo_nil ((T Type) (U Type) (V Type) (W Type))
+  :signature ((-> T U V) (eo::quote W)) W
+  (
+  ; ... Cases for each associative-nil operator, see description below.
+  )
+)
+```
+
+For each declare-const or declare-parameterized-const `f` whose return type is `T`
+declared in the signature that is marked `:right-assoc-nil nil` or `:left-assoc-nil nil`,
+we add the case`(($eo_nil f T) nil)` to the definition of `$eo_nil` above.
+For example, given:
+```
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+```
+We add the case `(($eo_nil or Bool) false)` to `$eo_nil` above.
+
+> __Note:__ In our formulation, we assume that the case `(($eo_nil eo_List_cons eo_List) eo_List_nil)`
+for our (redefinition) of the builtin Eunoia list is included.
+
+In the definition of `$eo_nil`, notice that
+it is necessary to include the type as part of the case to support functions with
+non-ground nil terminators, which requiring instantiating the free parameters
+of `T`. For example, given:
+```
+(declare-parameterized-const bvor ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) (BitVec m)) :right-assoc-nil (eo::to_bin 0 m))
+```
+We add the case `(($eo_nil bvor (BitVec m))  (eo::to_bin 0 m))` to `$eo_nil` above.
+Providing a concrete type, e.g. `(BitVec 4)` will ensure `m` is bound to `4`
+and hence `($eo_nil bvor (BitVec 4))` evaluates to `(eo::to_bin 0 4)`, which is
+`#b0000`.
+
+All other list operators can be defined as ordinary Eunoia programs.
+
+```
+; We assume that $eo_nil is defined prior to parsing this file based on the
+; given signature.
+
+;;; $eo_is_list
+
+; Note: a helper for $eo_is_list.
+(program $eo_is_list_rec
+  ((T Type) (U Type) (V Type) (W Type) (X Type)
+   (f (-> T U V)) (x T) (y U) (nil W) (z X))
+  :signature ((-> T U V) W X) Bool
+  (
+  (($eo_is_list_rec f nil (f x y)) ($eo_is_list_rec f nil y))
+  (($eo_is_list_rec f nil z)       (eo::eq nil z))
+  )
+)
+
+; Note: >
+;   This does not correspond to a builtin operator. It is used as a helper
+;   to define the preconditions for most of the operators below.
+(define $eo_is_list
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
+   (f (-> T U V)) (x W))
+  ($eo_is_list_rec f ($eo_nil f (eo::typeof x)) x))
+
+;;; $eo_get_elements
+
+; Note: a helper for $eo_get_elements.
+(program $eo_get_elements_rec
+  ((T Type) (U Type) (V Type) (W Type) (W1 Type) (W2 Type) (X Type)
+   (f (-> T U V)) (x W1) (y W2) (z X) (nil W))
+  :signature ((-> T U V) W X) eo_List
+  (
+  (($eo_get_elements_rec f nil (f x y)) (eo::cons eo_List_cons x ($eo_get_elements_rec f nil y)))
+  (($eo_get_elements_rec f nil nil)     eo_List_nil)
+  )
+)
+
+; Note: >
+;   This does not correspond to a builtin operator. It is used as a helper
+;   to define eo_list_minclude below.
+(define $eo_get_elements
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
+   (f (-> T U V)) (a W))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_get_elements_rec f ($eo_nil f (eo::typeof a)) a)))
+
+;;; $eo_cons
+
+; define: $eo_cons
+; implements: eo::cons
+(define $eo_cons
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit)
+   (W1 Type :implicit) (W2 Type :implicit)
+   (f (-> T U V)) (e W1) (a W2))
+  (eo::requires ($eo_is_list f a) true (f e a)))
+
+;;; $eo_list_len
+
+; Note: a helper for $eo_list_len.
+(program $eo_list_len_rec
+  ((T Type) (U Type) (V Type) (W Type) (f (-> T U V)) (x T) (y U) (nil W))
+  :signature ((-> T U V) W) Int
+  (
+  (($eo_list_len_rec f (f x y))  (eo::add 1 ($eo_list_len_rec f y)))
+  (($eo_list_len_rec f nil)      0)
+  )
+)
+
+; define: $eo_list_len
+; implements: eo::list_len
+(define $eo_list_len
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
+   (f (-> T U V)) (a W))
+  (eo::requires ($eo_is_list f a) true ($eo_list_len_rec f a)))
+
+;;; $eo_list_concat
+
+; Note: a helper for $eo_list_concat.
+(program $eo_list_concat_rec
+  ((T Type) (U Type) (V Type) (W Type) (f (-> T V V)) (x W) (y U) (z U) (nil U))
+  :signature ((-> T V V) U U) U
+  (
+  (($eo_list_concat_rec f (f x y) z)  (f x ($eo_list_concat_rec f y z)))
+  (($eo_list_concat_rec f nil z)      z)
+  )
+)
+
+; define: $eo_list_concat
+; implements: eo::list_concat
+(define $eo_list_concat
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit)
+   (f (-> T V V)) (a U) (b U))
+  (eo::requires ($eo_is_list f a) true
+  (eo::requires ($eo_is_list f b) true
+    ($eo_list_concat_rec f a b))))
+
+;;; $eo_list_nth
+
+; Note: a helper for $eo_list_nth.
+(program $eo_list_nth_rec
+  ((T Type) (U Type) (f (-> T T T)) (x U) (y U) (n Int))
+  :signature ((-> T T T) U Int) U
+  (
+  (($eo_list_nth_rec f (f x y) 0)  x)
+  (($eo_list_nth_rec f (f x y) n)  ($eo_list_nth_rec f y (eo::add n -1)))
+  )
+)
+
+; define: $eo_list_nth
+; implements: eo::list_nth
+(define $eo_list_nth
+  ((T Type :implicit) (U Type :implicit)
+   (f (-> T T T)) (a U) (n Int))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_nth_rec f a n)))
+
+;;; $eo_list_find
+
+; Note: a helper for $eo_list_find.
+(program $eo_list_find_rec
+  ((T Type) (U Type) (V Type) (W Type) (X Type)
+   (f (-> T U V)) (x W) (z W) (y U) (z X) (nil W) (n Int))
+  :signature ((-> T U V) W X Int) Int
+  (
+  (($eo_list_find_rec f (f x y) z n)  (eo::ite ($eo_eq x z) n
+                                        ($eo_list_find_rec f y z (eo::add n 1))))
+  (($eo_list_find_rec f nil z n)      -1)
+  )
+)
+
+; define: $eo_list_find
+; implements: eo::list_find
+(define $eo_list_find
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit)
+   (W1 Type :implicit) (W2 Type :implicit)
+   (f (-> T U V)) (a W1) (e W2))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_find_rec f a e 0)))
+
+;;; $eo_list_rev
+
+; Note: a helper for $eo_list_rev.
+(program $eo_list_rev_rec
+  ((T Type) (U Type) (V Type) (W Type)
+   (f (-> T V V)) (x W) (y U) (nil U) (acc U))
+  :signature ((-> T V V) U U) U
+  (
+    (($eo_list_rev_rec f (f x y) acc) ($eo_list_rev_rec f y (f x acc)))
+    (($eo_list_rev_rec f nil acc)      acc)
+  )
+)
+
+; define: $eo_list_rev
+; implements: eo::list_rev
+(define $eo_list_rev
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit)
+   (f (-> T V V)) (a U))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_rev_rec f a ($eo_nil f (eo::typeof a)))))
+
+;;; $eo_list_erase
+
+; Note: a helper for $eo_list_erase.
+(program $eo_list_erase_rec
+  ((T Type) (U Type) (V Type) (W Type) (X Type)
+   (f (-> T V V)) (x W) (y U) (z X) (nil U))
+  :signature ((-> T V V) U X) U
+  (
+  (($eo_list_erase_rec f (f x y) z)   (eo::ite ($eo_eq z x) y
+                                        (f x ($eo_list_erase_rec f y z))))
+  (($eo_list_erase_rec f nil z)       nil)
+  )
+)
+
+; define: $eo_list_erase
+; implements: eo::list_erase
+(define $eo_list_erase
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
+   (f (-> T V V)) (a U) (e W))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_erase_rec f a e)))
+
+;;; $eo_list_erase_all
+
+; Note: a helper for $eo_list_erase_all.
+(program $eo_list_erase_all_rec
+  ((T Type) (U Type) (V Type) (W Type) (X Type)
+   (f (-> T V V)) (x W) (y U) (z X) (nil W))
+  :signature ((-> T V V) U X) U
+  (
+  (($eo_list_erase_all_rec f (f x y) z)   (eo::define ((res ($eo_list_erase_all_rec f y z)))
+                                            (eo::ite ($eo_eq z x) res (f x res))))
+  (($eo_list_erase_all_rec f nil z)       nil)
+  )
+)
+
+; define: $eo_list_erase_all
+; implements: eo::list_erase_all
+(define $eo_list_erase_all
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
+   (f (-> T V V)) (a U) (e W))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_erase_all_rec f a e)))
+
+;;; $eo_list_setof
+
+; Note: a helper for $eo_list_setof.
+(program $eo_list_setof_rec
+  ((T Type) (U Type) (V Type) (W Type)
+   (f (-> T V V)) (x W) (y U) (nil U))
+  :signature ((-> T V V) U) U
+  (
+  (($eo_list_setof_rec f (f x y))  (f x ($eo_list_setof_rec f ($eo_list_erase_all f y x))))
+  (($eo_list_setof_rec f nil)      nil)
+  )
+)
+
+; define: $eo_list_setof
+; implements: eo::list_setof
+(define $eo_list_setof
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (f (-> T V V)) (a U))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_setof_rec f a)))
+
+;;; $eo_list_minclude
+
+; Note: a helper for $eo_list_minclude.
+(program $eo_list_minclude_rec
+  ((T Type) (x T) (y eo_List :list) (z eo_List))
+  :signature (eo_List eo_List) Bool
+  (
+  (($eo_list_minclude_rec (eo_List_cons x y) z)  (eo::define ((res ($eo_list_erase eo_List_cons z x)))
+                                                   (eo::ite ($eo_eq res z)
+                                                     false   ; must have successfully removed occurrence of x from z
+                                                     ($eo_list_minclude_rec y res))))
+  (($eo_list_minclude_rec eo_List_nil z)          true)
+  )
+)
+
+; define: $eo_list_minclude
+; implements: eo::list_minclude
+; Note: >
+;   Since $eo_list_erase is a key submethod for defining $eo_list_minclude,
+;   and $eo_list_erase requires functions (-> T V V), we convert the elements
+;   of both lists to builtin lists eo_List using the auxiliary method
+;   $eo_get_elements in this definition.
+(define $eo_list_minclude
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit)
+   (W1 Type :implicit) (W2 Type :implicit)
+   (f (-> T U V)) (a W1) (b W2))
+  (eo::requires ($eo_is_list f a) true
+  (eo::requires ($eo_is_list f b) true
+    ($eo_list_minclude_rec ($eo_get_elements f a) ($eo_get_elements f b)))))
+
+;;; $eo_list_meq
+
+; define: $eo_list_meq
+; implements: eo::list_meq
+(define $eo_list_meq
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit)
+   (W1 Type :implicit) (W2 Type :implicit)
+   (f (-> T U V)) (a W1) (b W2))
+  (eo::and ($eo_list_minclude f a b) ($eo_list_minclude f b a)))
 ```
 
 ### Proofs as terms
