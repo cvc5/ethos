@@ -143,6 +143,8 @@ class Expr
   bool operator==(const Expr& e) const;
   /** Returns true if this expression is not equal to e*/
   bool operator!=(const Expr& e) const;
+  /** */
+  bool operator<(const Expr& e) const;
   /** is null */
   bool isNull() const;
   /** get the kind of this expression */
@@ -161,9 +163,6 @@ class Expr
   std::pair<std::vector<Expr>, Expr> getFunctionType() const;
   /** Get arity, where this is a function type. Used for overloading. */
   size_t getFunctionArity() const;
- private:
-  /** The underlying value */
-  ExprValue* d_value;
   /** */
   static std::map<const ExprValue*, size_t> computeLetBinding(
       const Expr& e, std::vector<Expr>& ll);
@@ -171,6 +170,9 @@ class Expr
   static void printDebugInternal(const Expr& e,
                                  std::ostream& os,
                                  std::map<const ExprValue*, size_t>& lbind);
+ private:
+  /** The underlying value */
+  ExprValue* d_value;
 };
 
 /**

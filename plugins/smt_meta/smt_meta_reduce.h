@@ -56,11 +56,19 @@ public:
   std::string toString();
 private:
   State& d_state;
+  /** the type checker */
+  TypeChecker& d_tc;
   /** Number of current scopes. Bindings at scope>0 are not remembered */
   size_t d_nscopes;
   std::stringstream d_termDecl;
   std::stringstream d_termDeclEnd;
   std::stringstream d_defs;
+
+  std::stringstream d_eoNil;
+  std::stringstream d_eoTypeof;
+  std::stringstream d_eoDtSelectors;
+  std::stringstream d_eoDtConstructors;
+
 };
 
 }  // namespace ethos
