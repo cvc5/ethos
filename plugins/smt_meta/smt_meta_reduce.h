@@ -55,9 +55,16 @@ public:
   /** To string, which returns the smt2 formalization of the meta-level correctness of the signature */
   std::string toString();
 private:
+  bool printAtomicTerm(const Expr& c, std::ostream& os);
   State& d_state;
   /** the type checker */
   TypeChecker& d_tc;
+  /** Declares processed */
+  std::set<Expr> d_declProcessed;
+  /** Common constants */
+  Expr d_listNil;
+  Expr d_listCons;
+  Expr d_listType;
   /** Number of current scopes. Bindings at scope>0 are not remembered */
   size_t d_nscopes;
   std::stringstream d_termDecl;

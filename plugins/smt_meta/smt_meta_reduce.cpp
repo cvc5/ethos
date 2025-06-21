@@ -14,7 +14,9 @@
 namespace ethos {
 
 SmtMetaReduce::SmtMetaReduce(State& s) : d_state(s), d_tc(s.getTypeChecker()) {
-
+  d_listNil = s.mkListNil();
+  d_listCons = s.mkListCons();
+  d_listType = s.mkListType();
 }
 
 SmtMetaReduce::~SmtMetaReduce() {}
@@ -29,14 +31,40 @@ void SmtMetaReduce::includeFile(const Filepath& s, bool isReference, const Expr&
 
 void SmtMetaReduce::setLiteralTypeRule(Kind k, const Expr& t) {}
 
-void SmtMetaReduce::bind(const std::string& name, const Expr& e) {}
+void SmtMetaReduce::bind(const std::string& name, const Expr& e) {
+  Kind k = e.getKind();
+  if (k!=Kind::CONST || d_declProcessed.find(e)!=d_declProcessed.end())
+  {
+    return;
+  }
+  d_declProcessed.insert(e);
+  std::cout << "; declare " << name << std::endl;
+  Expr c = e;
+  Expr ct = d_tc.getType(c);
+  std::cout << "; type is " << ct << std::endl;
+}
 
 void SmtMetaReduce::markConstructorKind(const Expr& v, Attr a, const Expr& cons) {}
 
 void SmtMetaReduce::markOracleCmd(const Expr& v, const std::string& ocmd) {}
 
-bool printAtomicTerm(const Expr& c, std::ostream& os)
+bool SmtMetaReduce::printAtomicTerm(const Expr& c, std::ostream& os)
 {
+  if (c==d_listCons)
+  {
+    os << "sm.List.cons";
+    return true;
+  }
+  if (c==d_listNil)
+  {
+    os << "sm.List.nil";
+    return true;
+  }
+  if (c==d_listType)
+  {
+    os << "sm.ListType";
+    return true;
+  }
   Kind k = c.getKind();
   if (k==Kind::CONST)
   {
@@ -78,11 +106,18 @@ bool printAtomicTerm(const Expr& c, std::ostream& os)
     os << "(sm.Rational " << c << ")";
     return true;
   }
-  else if (k==Kind::BINARY)
+  else if (k==Kind::DECIMAL)
+  {
+    os << "(sm.Decimal " << c << ")";
+    return true;
+  }
+  else if (k==Kind::BINARY || k==Kind::HEXADECIMAL)
   {
     const BitVector& bv = l->d_bv;
     const Integer& bvi = bv.getValue();
-    os << "(sm.Binary " << bv.getSize() << " " << bvi.toString() << ")";
+    os << "(sm.";
+    os << (k==Kind::BINARY ? "Binary " : "Hexadecimal ");
+    os  << bv.getSize() << " " << bvi.toString() << ")";
     return true;
   }
   else if (k==Kind::STRING)
@@ -94,10 +129,10 @@ bool printAtomicTerm(const Expr& c, std::ostream& os)
 }
 
 void SmtMetaReduce::defineProgram(const Expr& v, const Expr& prog) {
-  std::cout << "; program " << v << std::endl;
+  d_defs << "; program " << v << std::endl;
   Expr vv = v;
   Expr vt = d_tc.getType(vv);
-  std::cout << "(declare-const " << v << " (-> ";
+  d_defs << "(declare-const " << v << " (-> ";
   std::stringstream varList;
   Assert (vt.getKind()==Kind::PROGRAM_TYPE);
   size_t nargs = vt.getNumChildren();
@@ -107,7 +142,7 @@ void SmtMetaReduce::defineProgram(const Expr& v, const Expr& prog) {
   appTerm << "(" << v;
   for (size_t i=1; i<nargs; i++)
   {
-    std::cout << "sm.Term ";
+    d_defs << "sm.Term ";
     if (i>1)
     {
       varList << " ";
@@ -119,8 +154,8 @@ void SmtMetaReduce::defineProgram(const Expr& v, const Expr& prog) {
     varList << "(" << ssArg.str() << " sm.Term)";
   }
   appTerm << ")";
-  std::cout << "sm.Term)";
-  std::cout << ")" << std::endl;
+  d_defs << "sm.Term)";
+  d_defs << ")" << std::endl;
   // compile the pattern matching
   std::stringstream cases;
   std::stringstream casesEnd;
@@ -162,6 +197,13 @@ void SmtMetaReduce::defineProgram(const Expr& v, const Expr& prog) {
           cname << "sm." << cur.first[0];
           printArgStart = 1;
           printArgs = true;
+        }
+        else if (ck==Kind::VARIABLE)
+        {
+          cname << "sm.Var";
+          printArgs = true;
+          // TODO: string and type
+          EO_FATAL() << "Unhandled variable in pattern";
         }
         if (printArgs)
         {
@@ -342,16 +384,20 @@ void SmtMetaReduce::defineProgram(const Expr& v, const Expr& prog) {
     casesEnd << ")";
   }
   // axiom
-  std::cout << "(assert (forall (" << varList.str() << ")" << std::endl;
-  std::cout << cases.str();
-  std::cout << "    true";
-  std::cout << casesEnd.str() << std::endl;
-  std::cout << "))" << std::endl;
-  std::cout << std::endl;
+  d_defs << "(assert (forall (" << varList.str() << ")" << std::endl;
+  d_defs << cases.str();
+  d_defs << "    true";
+  d_defs << casesEnd.str() << std::endl;
+  d_defs << "))" << std::endl;
+  d_defs << std::endl;
 
 }
 
-void SmtMetaReduce::finalize() {}
+void SmtMetaReduce::finalize() {
+  std::cout << ";;; definitions" << std::endl;
+  std::cout << d_defs.str();
+
+}
 
 std::string toString() {
   std::stringstream ss;
