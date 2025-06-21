@@ -15,6 +15,7 @@
 #include "base/output.h"
 #include "parser.h"
 #include "state.h"
+#include "../plugins/smt_meta/smt_meta_reduce.h"
 
 using namespace ethos;
 
@@ -145,7 +146,13 @@ int main( int argc, char* argv[] )
   // options are finalized, now initialize the state and run the includes
   Stats stats;
   State s(opts, stats);
-  Plugin* plugin = nullptr;
+  SmtMetaReduce smr(s);
+  Plugin* plugin = &smr;
+  // NOTE: initialization of plugin goes here
+  if (plugin!=nullptr)
+  {
+    s.setPlugin(plugin);
+  }
   for (size_t i=0, nincludes=includes.size(); i<nincludes; i++)
   {
     std::string file = includes[i].first;
@@ -156,11 +163,6 @@ int main( int argc, char* argv[] )
     {
       EO_FATAL() << "Error: cannot include file " << file;
     }
-  }
-  // NOTE: initialization of plugin goes here
-  if (plugin!=nullptr)
-  {
-    s.setPlugin(plugin);
   }
   if (!readFile)
   {

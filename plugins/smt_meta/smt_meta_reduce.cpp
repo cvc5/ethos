@@ -34,7 +34,7 @@ void SmtMetaReduce::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
 void SmtMetaReduce::markOracleCmd(const Expr& v, const std::string& ocmd) {}
 
 void SmtMetaReduce::defineProgram(const Expr& v, const Expr& prog) {
-
+  std::cout << "Define program " << v << std::endl;
 }
 
 void SmtMetaReduce::finalize() {}
