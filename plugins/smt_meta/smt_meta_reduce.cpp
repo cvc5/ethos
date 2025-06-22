@@ -20,9 +20,23 @@ SmtMetaReduce::SmtMetaReduce(State& s) : d_state(s), d_tc(s.getTypeChecker()) {
   d_listNil = s.mkListNil();
   d_listCons = s.mkListCons();
   d_listType = s.mkListType();
+  d_inInitialize = false;
 }
 
 SmtMetaReduce::~SmtMetaReduce() {}
+
+void SmtMetaReduce::initialize()
+{
+  // initially include bootstrapping definitions
+  d_inInitialize = true;
+  d_state.includeFile("/home/andrew/ethos/plugins/smt_meta/eo_core.eo", true);
+  d_eoTmpInt = d_state.getVar("eo_tmp_Int");
+  Assert (!d_eoTmpInt.isNull());
+  d_eoTmpNil = d_state.getVar("eo_tmp_nil");
+  Assert (!d_eoTmpNil.isNull());
+  //std::cout << "Forward declares: " << d_eoTmpInt << " " << d_eoTmpNil << std::endl;
+  d_inInitialize = false;
+}
 
 void SmtMetaReduce::reset() {}
 
@@ -35,6 +49,18 @@ void SmtMetaReduce::includeFile(const Filepath& s, bool isReference, const Expr&
 void SmtMetaReduce::setLiteralTypeRule(Kind k, const Expr& t) {}
 
 void SmtMetaReduce::bind(const std::string& name, const Expr& e) {
+  if (d_inInitialize)
+  {
+    if (name.compare(0, 4, "$eo_") == 0 && e.getKind()==Kind::LAMBDA)
+    {
+      Expr p = e;
+      // dummy type
+      Expr pt = d_state.mkBuiltinType(Kind::LAMBDA);
+      Expr tmp = d_state.mkSymbol(Kind::CONST, name, pt);
+      d_progSeen.emplace_back(tmp, p);
+      return;
+    }
+  }
   Kind k = e.getKind();
   if (k==Kind::CONST)
   {
@@ -73,6 +99,17 @@ void SmtMetaReduce::printConjunction(size_t n, const std::string& conj, std::ost
 
 bool SmtMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
 {
+  if (c==d_eoTmpInt)
+  {
+    // FIXME (hack)
+    os << "Int";
+    return true;
+  }
+  if (c==d_eoTmpNil)
+  {
+    os << "$eo_nil";
+    return true;
+  }
   if (c==d_listCons)
   {
     os << "sm.List.cons";
@@ -116,6 +153,7 @@ bool SmtMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
   else if (k==Kind::PROGRAM_CONST)
   {
     os << c;
+    //std::cout << "program const: " << c << " " << d_eoTmpNil << " " << (c==d_eoTmpNil) << std::endl;
     return true;
   }
   else if (k==Kind::TYPE)
@@ -325,6 +363,14 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body, std::ostream& os, const std::
           visit.emplace_back(cur.first[0], 0);
           continue;
         }
+        if (ck==Kind::PARAMETERIZED)
+        {
+          Assert (cur.first.getNumChildren()==2);
+          // ignored
+          visit.pop_back();
+          visit.emplace_back(cur.first[1], 0);
+          continue;
+        }
         if (ck==Kind::VARIABLE)
         {
           visit.back().second++;
@@ -403,6 +449,44 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body, std::ostream& os, const std::
 }
 
 void SmtMetaReduce::defineProgram(const Expr& v, const Expr& prog) {
+  d_progSeen.emplace_back(v, prog);
+}
+
+void SmtMetaReduce::finalizePrograms()
+{
+  for (const std::pair<Expr, Expr>& p : d_progSeen)
+  {
+    if (p.second.getKind()==Kind::LAMBDA)
+    {
+      // prints as a define-fun
+      d_defs << "; define " << p.first << std::endl;
+      d_defs << "(define-fun " << p.first << " (";
+      Expr e = p.second;
+      Assert (e[0].getKind()==Kind::TUPLE);
+      std::map<Expr, std::string> ctx;
+      for (size_t i=0, nvars=e[0].getNumChildren(); i<nvars; i++)
+      {
+        Expr v = e[0][i];
+        if (i>0)
+        {
+          d_defs << " ";
+        }
+        std::stringstream vname;
+        vname << v;
+        ctx[v] = vname.str();
+        d_defs << "(" << vname.str() << " sm.Term)";
+      }
+      d_defs << ") sm.Term ";
+      printEmbTerm(e[1], d_defs, ctx);
+      d_defs << ")" << std::endl << std::endl;
+      continue;
+    }
+    finalizeProgram(p.first, p.second);
+  }
+  d_progSeen.clear();
+}
+
+void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog){
   d_defs << "; program " << v << std::endl;
   Expr vv = v;
   Expr vt = d_tc.getType(vv);
@@ -486,6 +570,10 @@ void SmtMetaReduce::finalizeDeclarations() {
   std::map<Expr, std::pair<Attr, Expr>>::iterator it;
   for (const Expr& e : d_declSeen)
   {
+    if (e==d_eoTmpInt || e==d_eoTmpNil)
+    {
+      continue;
+    }
     if (e==d_listType || e==d_listCons || e==d_listNil)
     {
       continue;
@@ -526,30 +614,22 @@ void SmtMetaReduce::finalizeDeclarations() {
       Assert (ct.getKind()==Kind::FUNCTION_TYPE);
       Assert (!attrCons.isNull());
       std::map<Expr, std::string> nilCtx;
-      d_eoNil << "  (ite ((_ is " << cname.str() << ") x1)" << std::endl;
-      d_eoNil << "    (= ($eo_nil x1 ";
-      if (attrCons.isGround())
+      std::stringstream ncase;
+      std::stringstream nret;
+      ncase << "((_ is " << cname.str() << ") x1)";
+      size_t nconj = 1;
+      // only matters if nil is non-ground
+      if (!attrCons.isGround())
       {
-        // doesn't matter if ground, for simplicity just use x2
-        d_eoNil << "x2";
+        printEmbPatternMatch(ct[0], "x2", ncase, nilCtx, nconj);
       }
-      else
-      {
-        std::vector<Expr> fv = Expr::getVariables(ct[0]);
-        size_t count = 0;
-        for (const Expr& v : fv)
-        {
-          count++;
-          std::stringstream ssv;
-          ssv << "x." << cname.str() << "." << count;
-          nilCtx[v] = ssv.str();
-          d_eoNilVarList << "(" << ssv.str() << " sm.Term) ";
-        }
-        printEmbTerm(ct[0], d_eoNil, nilCtx);
-      }
-      d_eoNil << ") ";
+      d_eoNil << "  (ite ";
+      printConjunction(nconj, ncase.str(), d_eoNil);
+      d_eoNil << std::endl;
+      d_eoNil << "    (= ($eo_nil x1 x2) ";
       printEmbTerm(attrCons, d_eoNil, nilCtx);
       d_eoNil << ")" << std::endl;
+      d_eoNilEnd << ")";
     }
     // if its type is
     if (ct.isGround())
@@ -561,6 +641,7 @@ void SmtMetaReduce::finalizeDeclarations() {
       d_eoTypeofEnd << ")";
     }
   }
+  d_declSeen.clear();
 }
 
 void SmtMetaReduce::finalizeRules()
@@ -685,11 +766,14 @@ void SmtMetaReduce::finalizeRules()
     d_rules << ruleEnd.str() << ")))" << std::endl;
     d_rules << std::endl;
   }
+  d_ruleSeen.clear();
 }
 
 void SmtMetaReduce::finalize() {
+  finalizePrograms();
   finalizeDeclarations();
   finalizeRules();
+  // debugging
   std::cout << ";;; Term declaration" << std::endl;
   std::cout << d_termDecl.str();
   std::cout << ";;; definitions" << std::endl;
@@ -722,6 +806,8 @@ void SmtMetaReduce::finalize() {
   replace(finalSm, "$TYPEOF_LITERALS$", d_eoTypeofLit.str());
   replace(finalSm, "$TYPEOF$", d_eoTypeof.str());
   replace(finalSm, "$TYPEOF_END$", d_eoTypeofEnd.str());
+  replace(finalSm, "$NIL$", d_eoNil.str());
+  replace(finalSm, "$NIL_END$", d_eoNilEnd.str());
   replace(finalSm, "$DEFS$", d_defs.str());
   replace(finalSm, "$RULES$", d_rules.str());
 

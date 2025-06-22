@@ -3,6 +3,13 @@
 ; definition $eo_X. Modifying a Eunoia file to use $eo_ instead of eo:: should
 ; have no impact on behavior (apart from performance), unless otherwise noted.
 
+;;; forward declarations, will be discarded
+
+(declare-type eo_tmp_Int ())
+
+; forward declaration, will be discarded
+(program eo_tmp_nil ((T Type) (U Type)) :signature (T (eo::quote U)) U)
+
 ;;; $eo_eq
 
 ; program: $eo_eq
@@ -91,16 +98,16 @@
 
 ;;;;;; List operators
 
-;;; $eo_nil
+;;; eo_tmp_nil
 
 ; Note that the behavior of eo::nil is dynamically modified based on the
 ; declared constants, as described below. This means we cannot provide a static
-; definition of $eo_nil in this signature. Instead, we assume that $eo_nil is
+; definition of eo_tmp_nil in this signature. Instead, we assume that eo_tmp_nil is
 ; defined prior to parsing this file, and describe how to manually construct
 ; such a definition for a given signature.
 
-; The internal definition of $eo_nil has the following form.
-;(program $eo_nil ((T Type) (U Type) (V Type) (W Type))
+; The internal definition of eo_tmp_nil has the following form.
+;(program eo_tmp_nil ((T Type) (U Type) (V Type) (W Type))
 ;  :signature ((-> T U V) (eo::quote W)) W
 ;  (
 ;  ; ... Cases for each operator, see description below.
@@ -109,20 +116,20 @@
 
 ; For each declare-const or declare-parameterized-const f whose return type is T
 ; declared in the signature that is marked :right-assoc-nil nil, we add the
-; case to $eo_nil:
-;   (($eo_nil f T) nil)
+; case to eo_tmp_nil:
+;   ((eo_tmp_nil f T) nil)
 ; For example, given:
 ;   (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
-; We add this case to $eo_nil above:
-;   (($eo_nil or Bool)          false)
+; We add this case to eo_tmp_nil above:
+;   ((eo_tmp_nil or Bool)          false)
 
 ; Note that we include the type as part of the case to support functions with
 ; non-ground nil terminators, which requiring instantiating the free parameters
 ; of T. For example, given:
-;   (declare-parameterized-const bvor ((m Int :implicit))
+;   (declare-parameterized-const bvor ((m eo_tmp_Int :implicit))
 ;     (-> (BitVec m) (BitVec m) (BitVec m)) :right-assoc-nil (eo::to_bin 0 m))
-; We add this case to $eo_nil above:
-;   (($eo_nil bvor (BitVec m))  (eo::to_bin 0 m))
+; We add this case to eo_tmp_nil above:
+;   ((eo_tmp_nil bvor (BitVec m))  (eo::to_bin 0 m))
 ; Providing a concrete type, e.g. (BitVec 4) will ensure m is bound to 4.
 
 
@@ -145,29 +152,7 @@
 (define $eo_is_list
   ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
    (f (-> T U V)) (x W))
-  ($eo_is_list_rec f ($eo_nil f (eo::typeof x)) x))
-
-;;; $eo_get_elements
-
-; Note: a helper for $eo_get_elements.
-(program $eo_get_elements_rec
-  ((T Type) (U Type) (V Type) (W Type) (W1 Type) (W2 Type) (X Type)
-   (f (-> T U V)) (x W1) (y W2) (z X) (nil W))
-  :signature ((-> T U V) W X) eo_List
-  (
-  (($eo_get_elements_rec f nil (f x y)) (eo::cons eo_List_cons x ($eo_get_elements_rec f nil y)))
-  (($eo_get_elements_rec f nil nil)     eo_List_nil)
-  )
-)
-
-; Note: >
-;   This does not correspond to a builtin operator. It is used as a helper
-;   to define eo_list_minclude below.
-(define $eo_get_elements
-  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
-   (f (-> T U V)) (a W))
-  (eo::requires ($eo_is_list f a) true
-    ($eo_get_elements_rec f ($eo_nil f (eo::typeof a)) a)))
+  ($eo_is_list_rec f (eo_tmp_nil f (eo::typeof x)) x))
 
 ;;; $eo_cons
 
@@ -179,12 +164,34 @@
    (f (-> T U V)) (e W1) (a W2))
   (eo::requires ($eo_is_list f a) true (f e a)))
 
+;;; $eo_get_elements
+
+; Note: a helper for $eo_get_elements.
+(program $eo_get_elements_rec
+  ((T Type) (U Type) (V Type) (W Type) (W1 Type) (W2 Type) (X Type)
+   (f (-> T U V)) (x W1) (y W2) (z X) (nil W))
+  :signature ((-> T U V) W X) eo::List
+  (
+  (($eo_get_elements_rec f nil (f x y)) (eo::cons eo::List::cons x ($eo_get_elements_rec f nil y)))
+  (($eo_get_elements_rec f nil nil)     eo::List::nil)
+  )
+)
+
+; Note: >
+;   This does not correspond to a builtin operator. It is used as a helper
+;   to define eo_list_minclude below.
+(define $eo_get_elements
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
+   (f (-> T U V)) (a W))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_get_elements_rec f (eo_tmp_nil f (eo::typeof a)) a)))
+
 ;;; $eo_list_len
 
 ; Note: a helper for $eo_list_len.
 (program $eo_list_len_rec
   ((T Type) (U Type) (V Type) (W Type) (f (-> T U V)) (x T) (y U) (nil W))
-  :signature ((-> T U V) W) Int
+  :signature ((-> T U V) W) eo_tmp_Int
   (
   (($eo_list_len_rec f (f x y))  (eo::add 1 ($eo_list_len_rec f y)))
   (($eo_list_len_rec f nil)      0)
@@ -223,8 +230,8 @@
 
 ; Note: a helper for $eo_list_nth.
 (program $eo_list_nth_rec
-  ((T Type) (U Type) (f (-> T T T)) (x U) (y U) (n Int))
-  :signature ((-> T T T) U Int) U
+  ((T Type) (U Type) (f (-> T T T)) (x U) (y U) (n eo_tmp_Int))
+  :signature ((-> T T T) U eo_tmp_Int) U
   (
   (($eo_list_nth_rec f (f x y) 0)  x)
   (($eo_list_nth_rec f (f x y) n)  ($eo_list_nth_rec f y (eo::add n -1)))
@@ -235,7 +242,7 @@
 ; implements: eo::list_nth
 (define $eo_list_nth
   ((T Type :implicit) (U Type :implicit)
-   (f (-> T T T)) (a U) (n Int))
+   (f (-> T T T)) (a U) (n eo_tmp_Int))
   (eo::requires ($eo_is_list f a) true
     ($eo_list_nth_rec f a n)))
 
@@ -244,8 +251,8 @@
 ; Note: a helper for $eo_list_find.
 (program $eo_list_find_rec
   ((T Type) (U Type) (V Type) (W Type) (X Type)
-   (f (-> T U V)) (x W) (z W) (y U) (z X) (nil W) (n Int))
-  :signature ((-> T U V) W X Int) Int
+   (f (-> T U V)) (x W) (z W) (y U) (z X) (nil W) (n eo_tmp_Int))
+  :signature ((-> T U V) W X eo_tmp_Int) eo_tmp_Int
   (
   (($eo_list_find_rec f (f x y) z n)  (eo::ite ($eo_eq x z) n
                                         ($eo_list_find_rec f y z (eo::add n 1))))
@@ -281,7 +288,7 @@
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)
    (f (-> T V V)) (a U))
   (eo::requires ($eo_is_list f a) true
-    ($eo_list_rev_rec f a ($eo_nil f (eo::typeof a)))))
+    ($eo_list_rev_rec f a (eo_tmp_nil f (eo::typeof a)))))
 
 ;;; $eo_list_erase
 
@@ -351,14 +358,14 @@
 
 ; Note: a helper for $eo_list_minclude.
 (program $eo_list_minclude_rec
-  ((T Type) (x T) (y eo_List :list) (z eo_List))
-  (eo_List eo_List) Bool
+  ((T Type) (x T) (y eo::List :list) (z eo::List))
+  (eo::List eo::List) Bool
   (
-  (($eo_list_minclude_rec (eo_List_cons x y) z)  (eo::define ((res ($eo_list_erase eo_List_cons z x)))
+  (($eo_list_minclude_rec (eo::List::cons x y) z)  (eo::define ((res ($eo_list_erase eo::List::cons z x)))
                                                    (eo::ite ($eo_eq res z)
                                                      false   ; must have successfully removed occurrence of x from z
                                                      ($eo_list_minclude_rec y res))))
-  (($eo_list_minclude_rec eo_List_nil z)          true)
+  (($eo_list_minclude_rec eo::List::nil z)          true)
   )
 )
 
@@ -367,7 +374,7 @@
 ; Note: >
 ;   Since $eo_list_erase is a key submethod for defining $eo_list_minclude,
 ;   and $eo_list_erase requires functions (-> T V V), we convert the elements
-;   of both lists to builtin lists eo_List using the auxiliary method
+;   of both lists to builtin lists eo::List using the auxiliary method
 ;   $eo_get_elements in this definition.
 (define $eo_list_minclude
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)

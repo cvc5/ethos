@@ -32,6 +32,8 @@ class SmtMetaReduce : public Plugin
 public:
   SmtMetaReduce(State& s);
   ~SmtMetaReduce();
+  /** Intialize */
+  void initialize() override;
   /** Reset */
   void reset() override;
   /** Push scope */
@@ -59,21 +61,28 @@ private:
   bool printEmbPatternMatch(const Expr& c, const std::string& initCtx, std::ostream& os, std::map<Expr, std::string>& ctx, size_t& nconj);
   bool printEmbAtomicTerm(const Expr& c, std::ostream& os);
   bool printEmbTerm(const Expr& c, std::ostream& os, const std::map<Expr, std::string>& ctx, bool ignorePf = false);
+  void finalizePrograms();
+  void finalizeProgram(const Expr& v, const Expr& prog);
   void finalizeDeclarations();
   void finalizeRules();
   State& d_state;
   /** the type checker */
   TypeChecker& d_tc;
-  /** Declares processed */
+  /** Declares seen */
   std::set<Expr> d_declSeen;
-  /** Rules processed */
+  /** Rules seen */
   std::set<Expr> d_ruleSeen;
+  /** Programs seen */
+  std::vector<std::pair<Expr, Expr>> d_progSeen;
   /** Attributes marked */
   std::map<Expr, std::pair<Attr, Expr>> d_attrDecl;
   /** Handles overloading */
   std::map<std::string, size_t> d_overloadCount;
   /** */
   std::map<Expr, size_t> d_overloadId;
+  /** */
+  Expr d_eoTmpInt;
+  Expr d_eoTmpNil;
   /** Common constants */
   Expr d_listNil;
   Expr d_listCons;
@@ -88,12 +97,15 @@ private:
 
   std::stringstream d_eoNilVarList;
   std::stringstream d_eoNil;
+  std::stringstream d_eoNilEnd;
   std::stringstream d_eoTypeof;
   std::stringstream d_eoTypeofLit;
   std::stringstream d_eoTypeofEnd;
   std::stringstream d_eoDtSelectors;
   std::stringstream d_eoDtConstructors;
   std::stringstream d_hasProofList;
+
+  bool d_inInitialize;
 };
 
 }  // namespace ethos

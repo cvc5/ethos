@@ -11,8 +11,8 @@
   (sm.Stuck)
   ; Booleans
   (sm.BoolType)
-  (sm.true)
-  (sm.false)
+  (sm.True)
+  (sm.False)
   ; Lists
   (sm.ListType)
   (sm.List.cons)
@@ -30,14 +30,15 @@ $TERM_DECL$
 )
 
 ; program: $eo_is_ok
-(define-fun $eo_is_ok ((x1 sm.Term)) sm.Term (ite (= x1 sm.Stuck) sm.false sm.true))
+(define-fun $eo_is_ok ((x1 sm.Term)) sm.Term
+  (ite (= x1 sm.Stuck) sm.False sm.True))
 
 ; program: $eo_ite
 (declare-const $eo_ite (-> sm.Term sm.Term sm.Term sm.Term))
 (assert (forall ((x1 sm.Term) (x2 sm.Term) (x3 sm.Term))
-  (ite (= x1 sm.true)
+  (ite (= x1 sm.True)
     (= ($eo_ite x1 x2 x3) x2)
-  (ite (= x1 sm.false)
+  (ite (= x1 sm.False)
     (= ($eo_ite x1 x2 x3) x3)
     true))
 ))
@@ -45,12 +46,13 @@ $TERM_DECL$
 ; program: $eo_requires
 (declare-const $eo_requires (-> sm.Term sm.Term sm.Term sm.Term))
 (assert (forall ((x1 sm.Term) (x2 sm.Term) (x3 sm.Term))
-  (ite (= x1 x2)
+  (ite (and (not (= x1 sm.Stuck)) (not (= x2 sm.Stuck)) (= x1 x2))
     (= ($eo_requires x1 x2 x3) x3)
     (= ($eo_requires x1 x2 x3) sm.Stuck))
 ))
 
 ; program: $eo_hash
+; note: This is defined axiomatically.
 (declare-const $eo_hash (-> sm.Term sm.Term))
 (assert (forall ((x sm.Term))
   (=> (not (= x sm.Stuck))
@@ -59,21 +61,51 @@ $TERM_DECL$
   (=> (and (not (= x sm.Stuck)) (not (= y sm.Stuck))
     (= ($eo_hash x) ($eo_hash y))) (= x y))))
 
+; program: $eo_nameof
+(declare-const $eo_nameof (-> sm.Term sm.Term))
+; TODO
+
+; program: $eo_to_z
+(declare-const $eo_to_z (-> sm.Term sm.Term))
+; TODO
+
+; program: $eo_to_bin
+(declare-const $eo_to_bin (-> sm.Term sm.Term sm.Term))
+; TODO
+
+; program: $eo_not
+(declare-const $eo_not (-> sm.Term sm.Term))
+; TODO
+
 ; program: $eo_add
 (declare-const $eo_add (-> sm.Term sm.Term sm.Term))
 (assert (forall ((x1 sm.Term) (x2 sm.Term))
+  (ite (or (= x1 sm.Stuck) (= x2 sm.Stuck))
+    (= ($eo_add x1 x2) sm.Stuck)
   (ite (and ((_ is sm.Numeral) x1) ((_ is sm.Numeral) x2))
     (= ($eo_add x1 x2) (sm.Numeral (+ (sm.Numeral.val x1) (sm.Numeral.val x1))))
-    (= ($eo_add x1 x2) sm.Stuck))
+    (= ($eo_add x1 x2) sm.Stuck)))
 ))
 
 ; program: $eo_typeof_apply
 (declare-const $eo_typeof_apply (-> sm.Term sm.Term sm.Term))
 ; TODO
 
-; program: $eo_typeof
+; declare: $eo_typeof
 (declare-const $eo_typeof (-> sm.Term sm.Term))
+
+; declare: $eo_nil
+(declare-const $eo_nil (-> sm.Term sm.Term sm.Term))
+
+
+; user defined symbols
+$DEFS$
+
+; program: $eo_typeof
+; note: This is forward declared.
 (assert (forall ((x1 sm.Term))
+  (ite (= x1 sm.Stuck)
+    (= ($eo_typeof x1) sm.Stuck)
   ; Core
   (ite (= x1 sm.Type)
     (= ($eo_typeof x1) sm.Type)
@@ -89,9 +121,9 @@ $TERM_DECL$
   ; Booleans
   (ite (= x1 sm.BoolType)
     (= ($eo_typeof x1) sm.Type)
-  (ite (= x1 sm.true)
+  (ite (= x1 sm.True)
     (= ($eo_typeof x1) sm.BoolType)
-  (ite (= x1 sm.false)
+  (ite (= x1 sm.False)
     (= ($eo_typeof x1) sm.BoolType)
   ; lists
   (ite (= x1 sm.ListType)
@@ -104,14 +136,20 @@ $TYPEOF_LITERALS$
   ; user declarations
 $TYPEOF$
     (= ($eo_typeof x1) sm.Stuck)
-))))))))))
+)))))))))))
 $TYPEOF_END$
 ))
 
-
-; user defined symbols
-$DEFS$
-
+; program: $eo_nil
+; note: This is forward declared above.
+(assert (forall ((x1 sm.Term) (x2 sm.Term))
+  (ite (or (= x1 sm.Stuck) (= x2 sm.Stuck))
+    (= ($eo_nil x1 x2) sm.Stuck)
+$NIL$
+    (= ($eo_nil x1 x2) sm.Stuck)
+)
+$NIL_END$
+))
 
 ; Predicate for terms for which we have a proof.
 (declare-const sm.hasProof (-> sm.Term Bool))
