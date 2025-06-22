@@ -246,6 +246,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body, std::ostream& os, const std::
   std::stringstream osEnd;
   std::vector<Expr> ll;
   std::map<const ExprValue*, size_t> lbind = Expr::computeLetBinding(body, ll);
+  // TODO: print the context in the let list?
   std::map<const ExprValue*, size_t>::iterator itl;
   for (size_t i=0, nll=ll.size(); i<=nll; i++)
   {
@@ -288,6 +289,13 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body, std::ostream& os, const std::
           Assert (it!=ctx.end()) << "Cannot find " << cur.first;
           os << it->second;
           visit.pop_back();
+          continue;
+        }
+        if (ck==Kind::ANNOT_PARAM)
+        {
+          // ignored
+          visit.pop_back();
+          visit.emplace_back(cur.first[0], 0);
           continue;
         }
         if (ck==Kind::VARIABLE)
@@ -544,7 +552,7 @@ void SmtMetaReduce::finalizeRules()
     d_rules << "; attribute is " << attr << std::endl;
     Expr r = e;
     Expr rt = d_tc.getType(r);
-    //d_rules << "; type is " << rt << std::endl;
+    d_rules << "; type is " << rt << std::endl;
     std::stringstream typeVarList;
     std::stringstream argList;
     std::stringstream appTerm;
@@ -585,7 +593,17 @@ void SmtMetaReduce::finalizeRules()
             proofPred << " ";
           }
           nproofPredConj++;
-          proofPred << "(sm.hasProof " << ssArg.str() << ")";
+          if (attr==Attr::PREMISE_LIST)
+          {
+            proofPred << "(sm.hasProofList ";
+            Assert (!attrCons.isNull());
+            printEmbAtomicTerm(attrCons, proofPred);
+            proofPred  << " " << ssArg.str() << ")";
+          }
+          else
+          {
+            proofPred << "(sm.hasProof " << ssArg.str() << ")";
+          }
         }
         else
         {

@@ -87,7 +87,7 @@ private:
   std::stringstream d_eoTypeof;
   std::stringstream d_eoDtSelectors;
   std::stringstream d_eoDtConstructors;
-
+  std::stringstream d_hasProofList;
 };
 
 }  // namespace ethos
