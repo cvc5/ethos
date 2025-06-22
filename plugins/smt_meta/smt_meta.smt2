@@ -29,11 +29,17 @@ $TERM_DECL$
   )
 )
 
+;;; Utilities
+
+; define: $sm_Boolean
+(define-fun $sm_Boolean ((x Bool)) sm.Term
+  (ite x sm.True sm.False))
+
 ;;; Core operators
 
 ; program: $eo_is_ok
 (define-fun $eo_is_ok ((x1 sm.Term)) sm.Term
-  (ite (= x1 sm.Stuck) sm.False sm.True))
+  ($sm_Boolean (not (= x1 sm.Stuck))))
 
 ; program: $eo_ite
 (declare-const $eo_ite (-> sm.Term sm.Term sm.Term sm.Term))
@@ -112,6 +118,8 @@ $TERM_DECL$
     (= ($eo_mul x1 x2) sm.Stuck)
   (ite (and ((_ is sm.Numeral) x1) ((_ is sm.Numeral) x2))
     (= ($eo_mul x1 x2) (sm.Numeral (* (sm.Numeral.val x1) (sm.Numeral.val x2))))
+  ;(ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))
+  ;  (= ($eo_mul x1 x2) (sm.Binary (sm.Binary.width x1) ( (* (sm.Numeral.val x1) (sm.Numeral.val x2))))))
     (= ($eo_mul x1 x2) sm.Stuck)))
 ))
 
@@ -129,7 +137,13 @@ $TERM_DECL$
 
 ; program: $eo_is_neg
 (declare-const $eo_is_neg (-> sm.Term sm.Term))
-; TODO
+(assert (forall ((x1 sm.Term))
+  (ite (= x1 sm.Stuck)
+    (= ($eo_is_neg x1) sm.Stuck)
+  (ite ((_ is sm.Numeral) x1)
+    (= ($eo_is_neg x1) ($sm_Boolean (< (sm.Numeral.val x1) 0)))
+    (= ($eo_is_neg x1) sm.Stuck)))
+))
 
 ; program: $eo_neg
 (declare-const $eo_neg (-> sm.Term sm.Term))
@@ -145,7 +159,17 @@ $TERM_DECL$
 
 ; program: $eo_len
 (declare-const $eo_len (-> sm.Term sm.Term))
-; TODO
+(assert (forall ((x1 sm.Term))
+  (ite (= x1 sm.Stuck)
+    (= ($eo_len x1) sm.Stuck)
+  (ite ((_ is sm.Binary) x1)
+    (= ($eo_len x1) (sm.Numeral (sm.Binary.width x1)))
+  (ite ((_ is sm.Hexadecimal) x1)
+    (= ($eo_len x1) (sm.Numeral (sm.Hexadecimal.width x1)))
+  (ite ((_ is sm.String) x1)
+    (= ($eo_len x1) (sm.Numeral (str.len (sm.String.val x1))))
+    (= ($eo_len x1) sm.Stuck)))))
+))
 
 ; program: $eo_concat
 (declare-const $eo_concat (-> sm.Term sm.Term sm.Term))

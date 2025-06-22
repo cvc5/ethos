@@ -660,7 +660,7 @@ void SmtMetaReduce::finalizeDeclarations() {
     }
     d_termDecl << ")" << std::endl;
 
-    if (attr==Attr::RIGHT_ASSOC_NIL)
+    if (attr==Attr::RIGHT_ASSOC_NIL || attr==Attr::LEFT_ASSOC_NIL)
     {
       Assert (ct.getKind()==Kind::FUNCTION_TYPE);
       Assert (!attrCons.isNull());
