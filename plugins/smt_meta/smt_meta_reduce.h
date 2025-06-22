@@ -55,12 +55,18 @@ public:
   /** To string, which returns the smt2 formalization of the meta-level correctness of the signature */
   std::string toString();
 private:
-  bool printAtomicTerm(const Expr& c, std::ostream& os);
+  bool printEmbAtomicTerm(const Expr& c, std::ostream& os);
+  bool printEmbTerm(const Expr& c, std::ostream& os, const std::map<Expr, std::string>& ctx);
+  void finalizeDeclarations();
   State& d_state;
   /** the type checker */
   TypeChecker& d_tc;
   /** Declares processed */
-  std::set<Expr> d_declProcessed;
+  std::set<Expr> d_declSeen;
+  /** Rules processed */
+  std::set<Expr> d_ruleSeen;
+  /** Attributes marked */
+  std::map<Expr, std::pair<Attr, Expr>> d_attrDecl;
   /** Common constants */
   Expr d_listNil;
   Expr d_listCons;
@@ -70,7 +76,9 @@ private:
   std::stringstream d_termDecl;
   std::stringstream d_termDeclEnd;
   std::stringstream d_defs;
+  std::stringstream d_eval;
 
+  std::stringstream d_eoNilVarList;
   std::stringstream d_eoNil;
   std::stringstream d_eoTypeof;
   std::stringstream d_eoDtSelectors;

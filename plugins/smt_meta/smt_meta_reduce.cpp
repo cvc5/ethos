@@ -33,22 +33,24 @@ void SmtMetaReduce::setLiteralTypeRule(Kind k, const Expr& t) {}
 
 void SmtMetaReduce::bind(const std::string& name, const Expr& e) {
   Kind k = e.getKind();
-  if (k!=Kind::CONST || d_declProcessed.find(e)!=d_declProcessed.end())
+  if (k==Kind::CONST)
   {
-    return;
+    d_declSeen.insert(e);
   }
-  d_declProcessed.insert(e);
-  std::cout << "; declare " << name << std::endl;
-  Expr c = e;
-  Expr ct = d_tc.getType(c);
-  std::cout << "; type is " << ct << std::endl;
+  if (k==Kind::PROOF_RULE)
+  {
+    d_ruleSeen.insert(e);
+  }
 }
 
-void SmtMetaReduce::markConstructorKind(const Expr& v, Attr a, const Expr& cons) {}
+void SmtMetaReduce::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
+{
+  d_attrDecl[v] = std::pair<Attr, Expr>(a, cons);
+}
 
 void SmtMetaReduce::markOracleCmd(const Expr& v, const std::string& ocmd) {}
 
-bool SmtMetaReduce::printAtomicTerm(const Expr& c, std::ostream& os)
+bool SmtMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
 {
   if (c==d_listCons)
   {
@@ -126,6 +128,127 @@ bool SmtMetaReduce::printAtomicTerm(const Expr& c, std::ostream& os)
     return true;
   }
   return false;
+}
+
+bool SmtMetaReduce::printEmbTerm(const Expr& body, std::ostream& os, const std::map<Expr, std::string>& ctx)
+{
+  std::map<Expr, std::string>::const_iterator it;
+  std::stringstream osEnd;
+  std::vector<Expr> ll;
+  std::map<const ExprValue*, size_t> lbind = Expr::computeLetBinding(body, ll);
+  std::map<const ExprValue*, size_t>::iterator itl;
+  for (size_t i=0, nll=ll.size(); i<=nll; i++)
+  {
+    if (i>0)
+    {
+      os << " ";
+    }
+    if (i<nll)
+    {
+      os << "(let ((y" << i << " ";
+      osEnd << ")";
+    }
+    Expr t = i<nll ? ll[i] : body;
+    std::map<Expr, size_t>::iterator itv;
+    std::vector<std::pair<Expr, size_t>> visit;
+    std::pair<Expr, size_t> cur;
+    visit.emplace_back(t, 0);
+    do
+    {
+      cur = visit.back();
+      if (cur.second==0)
+      {
+        itl = lbind.find(cur.first.getValue());
+        if (itl!=lbind.end() && itl->second!=i)
+        {
+          os << "y" << itl->second;
+          visit.pop_back();
+          continue;
+        }
+        Kind ck = cur.first.getKind();
+        if (ck==Kind::PARAM)
+        {
+          it = ctx.find(cur.first);
+          Assert (it!=ctx.end());
+          os << it->second;
+          visit.pop_back();
+          continue;
+        }
+        if (ck==Kind::VARIABLE)
+        {
+          visit.back().second++;
+          os << "(sm.Var \"";
+          os << cur.first;
+          os << "\" ";
+          Expr vt = d_tc.getType(cur.first);
+          visit.emplace_back(vt, 0);
+          continue;
+        }
+        else if (cur.first.getNumChildren() == 0)
+        {
+          if (!printEmbAtomicTerm(cur.first, os))
+          {
+            EO_FATAL() << "Unknown atomic term in return " << ck << std::endl;
+          }
+          visit.pop_back();
+          continue;
+        }
+        else
+        {
+          os << "(";
+          if (ck==Kind::APPLY)
+          {
+            if (cur.first[0].getKind()!=Kind::PROGRAM_CONST)
+            {
+              Assert (cur.first.getNumChildren()==2);
+              os << "sm.Apply ";
+            }
+          }
+          else if (ck==Kind::FUNCTION_TYPE)
+          {
+            Assert (cur.first.getNumChildren()==2);
+            os << "sm.FunType ";
+          }
+          else if (isLiteralOp(ck))
+          {
+            std::string kstr = kindToTerm(ck);
+            if (kstr.compare(0, 4, "eo::") == 0)
+            {
+              os << "$eo_" << kstr.substr(4) << " ";
+            }
+            else
+            {
+              EO_FATAL() << "Bad name for literal kind " << ck << std::endl;
+            }
+          }
+          else
+          {
+          }
+          visit.back().second++;
+          visit.emplace_back(cur.first[0], 0);
+        }
+      }
+      else if (cur.second >= cur.first.getNumChildren())
+      {
+        os << ")";
+        visit.pop_back();
+      }
+      else
+      {
+        Assert (cur.second<cur.first.getNumChildren());
+        os << " ";
+        visit.back().second++;
+        visit.emplace_back(cur.first[cur.second], 0);
+      }
+    }
+    while (!visit.empty());
+    if (i<nll)
+    {
+      os << "))";
+    }
+  }
+  os << osEnd.str();
+  return true;
 }
 
 void SmtMetaReduce::defineProgram(const Expr& v, const Expr& prog) {
@@ -233,7 +356,7 @@ void SmtMetaReduce::defineProgram(const Expr& v, const Expr& prog) {
         else
         {
           std::stringstream atomTerm;
-          if (printAtomicTerm(cur.first, atomTerm))
+          if (printEmbAtomicTerm(cur.first, atomTerm))
           {
             currCase << (nconj>0 ? " " : "") << "(= " << cur.second << " " << atomTerm.str() << ")";
             nconj++;
@@ -248,121 +371,7 @@ void SmtMetaReduce::defineProgram(const Expr& v, const Expr& prog) {
     }
     // compile the return for this case
     std::stringstream currRet;
-    std::stringstream currRetEnd;
-    std::vector<Expr> ll;
-    std::map<const ExprValue*, size_t> lbind = Expr::computeLetBinding(body, ll);
-    std::map<const ExprValue*, size_t>::iterator itl;
-    for (size_t i=0, nll=ll.size(); i<=nll; i++)
-    {
-      if (i>0)
-      {
-        currRet << " ";
-      }
-      if (i<nll)
-      {
-        currRet << "(let ((y" << i << " ";
-        currRetEnd << ")";
-      }
-      Expr t = i<nll ? ll[i] : body;
-      std::map<Expr, size_t>::iterator itv;
-      std::vector<std::pair<Expr, size_t>> visit;
-      std::pair<Expr, size_t> cur;
-      visit.emplace_back(t, 0);
-      do
-      {
-        cur = visit.back();
-        if (cur.second==0)
-        {
-          itl = lbind.find(cur.first.getValue());
-          if (itl!=lbind.end() && itl->second!=i)
-          {
-            currRet << "y" << itl->second;
-            visit.pop_back();
-            continue;
-          }
-          Kind ck = cur.first.getKind();
-          if (ck==Kind::PARAM)
-          {
-            it = paramToSelector.find(cur.first);
-            Assert (it!=paramToSelector.end());
-            currRet << it->second;
-            visit.pop_back();
-            continue;
-          }
-          if (ck==Kind::VARIABLE)
-          {
-            visit.back().second++;
-            currRet << "(sm.Var \"";
-            currRet << cur.first;
-            currRet << "\" ";
-            Expr vt = d_tc.getType(cur.first);
-            visit.emplace_back(vt, 0);
-            continue;
-          }
-          else if (cur.first.getNumChildren() == 0)
-          {
-            if (!printAtomicTerm(cur.first, currRet))
-            {
-              EO_FATAL() << "Unknown atomic term in return " << ck << std::endl;
-            }
-            visit.pop_back();
-            continue;
-          }
-          else
-          {
-            currRet << "(";
-            if (ck==Kind::APPLY)
-            {
-              if (cur.first[0].getKind()!=Kind::PROGRAM_CONST)
-              {
-                Assert (cur.first.getNumChildren()==2);
-                currRet << "sm.Apply ";
-              }
-            }
-            else if (ck==Kind::FUNCTION_TYPE)
-            {
-              Assert (cur.first.getNumChildren()==2);
-              currRet << "sm.FunType ";
-            }
-            else if (isLiteralOp(ck))
-            {
-              std::string kstr = kindToTerm(ck);
-              if (kstr.compare(0, 4, "eo::") == 0)
-              {
-                currRet << "$eo_" << kstr.substr(4) << " ";
-              }
-              else
-              {
-                EO_FATAL() << "Bad name for literal kind " << ck << std::endl;
-              }
-            }
-            else
-            {
-            }
-            visit.back().second++;
-            visit.emplace_back(cur.first[0], 0);
-          }
-        }
-        else if (cur.second >= cur.first.getNumChildren())
-        {
-          currRet << ")";
-          visit.pop_back();
-        }
-        else
-        {
-          Assert (cur.second<cur.first.getNumChildren());
-          currRet << " ";
-          visit.back().second++;
-          visit.emplace_back(cur.first[cur.second], 0);
-        }
-      }
-      while (!visit.empty());
-      if (i<nll)
-      {
-        currRet << "))";
-      }
-    }
-    currRet << currRetEnd.str();
+    printEmbTerm(body, currRet, paramToSelector);
     // now print the case/return
     cases << "  (ite ";
     if (nconj==0)
@@ -393,9 +402,93 @@ void SmtMetaReduce::defineProgram(const Expr& v, const Expr& prog) {
 
 }
 
+void SmtMetaReduce::finalizeDeclarations() {
+  std::map<Expr, std::pair<Attr, Expr>>::iterator it;
+  for (const Expr& e : d_declSeen)
+  {
+    if (e==d_listType || e==d_listCons || e==d_listNil)
+    {
+      continue;
+    }
+    d_termDecl << "  ; declare " << e << std::endl;
+    Expr c = e;
+    Expr ct = d_tc.getType(c);
+    //d_termDecl << "  ; type is " << ct << std::endl;
+    Attr attr = Attr::NONE;
+    Expr attrCons;
+    std::map<Expr, std::pair<Attr, Expr>>::iterator it = d_attrDecl.find(e);
+    if (it!=d_attrDecl.end())
+    {
+      attr = it->second.first;
+      attrCons = it->second.second;
+    }
+    //d_termDecl << "  ; attr is " << attr << std::endl;
+    d_termDecl << "  (sm." << c;
+    std::map<Expr, std::string> typeofCtx;
+    if (attr==Attr::OPAQUE)
+    {
+      // opaque symbols are non-nullary constructors
+      Assert(ct.getKind() == Kind::FUNCTION_TYPE);
+      size_t nargs = ct.getNumChildren() - 1;
+      for (size_t i=0; i<nargs; i++)
+      {
+        d_termDecl << " (sm." << c << ".arg" << (i+1) << " sm.Term)";
+      }
+    }
+    d_termDecl << ")" << std::endl;
+
+    if (attr==Attr::RIGHT_ASSOC_NIL)
+    {
+      Assert (ct.getKind()==Kind::FUNCTION_TYPE);
+      Assert (!attrCons.isNull());
+      std::map<Expr, std::string> nilCtx;
+      d_eoNil << "  (ite ((_ is sm." << c << ") x1)" << std::endl;
+      d_eoNil << "    (= ($eo_nil x1 ";
+      if (attrCons.isGround())
+      {
+        // doesn't matter if ground, for simplicity just use x2
+        d_eoNil << "x2";
+      }
+      else
+      {
+        std::vector<Expr> fv = Expr::getVariables(ct[0]);
+        size_t count = 0;
+        for (const Expr& v : fv)
+        {
+          count++;
+          std::stringstream ssv;
+          ssv << "x." << c << "." << count;
+          nilCtx[v] = ssv.str();
+          d_eoNilVarList << "(" << ssv.str() << " sm.Term) ";
+        }
+        printEmbTerm(ct[0], d_eoNil, nilCtx);
+      }
+      d_eoNil << ") ";
+      printEmbTerm(attrCons, d_eoNil, nilCtx);
+      d_eoNil << ")" << std::endl;
+    }
+    // if its type is
+    if (ct.isGround())
+    {
+      d_eoTypeof << "  (ite ((_ is " << c << ") x1)" << std::endl;
+      d_eoTypeof << "    (= ($eo_typeof x1) ";
+      printEmbTerm(ct, d_eoTypeof, typeofCtx);
+      d_eoTypeof << ")" << std::endl;
+    }
+  }
+}
+
 void SmtMetaReduce::finalize() {
-  std::cout << ";;; definitions" << std::endl;
-  std::cout << d_defs.str();
+  finalizeDeclarations();
+  std::cout << ";;; Term declaration" << std::endl;
+  std::cout << d_termDecl.str();
+  //std::cout << ";;; definitions" << std::endl;
+  //std::cout << d_defs.str();
+  std::cout << ";;; $eo_nil definition" << std::endl;
+  std::cout << "var list: " << d_eoNilVarList.str() << std::endl;
+  std::cout << d_eoNil.str();
+  std::cout << ";;; $eo_typeof definition" << std::endl;
+  std::cout << d_eoTypeof.str();
 
 }
 
