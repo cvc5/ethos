@@ -50,6 +50,24 @@ void SmtMetaReduce::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
 
 void SmtMetaReduce::markOracleCmd(const Expr& v, const std::string& ocmd) {}
 
+void SmtMetaReduce::printConjunction(size_t n, const std::string& conj, std::ostream& os)
+{
+  if (n==0)
+  {
+    os << "true";
+  }
+  else if (n>1)
+  {
+    os << "(and ";
+    os << conj;
+    os << ")";
+  }
+  else
+  {
+    os << conj;
+  }
+}
+
 bool SmtMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
 {
   if (c==d_listCons)
@@ -130,7 +148,99 @@ bool SmtMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
   return false;
 }
 
-bool SmtMetaReduce::printEmbTerm(const Expr& body, std::ostream& os, const std::map<Expr, std::string>& ctx)
+bool SmtMetaReduce::printEmbPatternMatch(const Expr& c, const std::string& initCtx, std::ostream& os, std::map<Expr, std::string>& ctx, size_t& nconj)
+{
+  std::map<Expr, std::string>::iterator it;
+  std::vector<std::pair<Expr, std::string>> visit;
+  std::pair<Expr, std::string> cur;
+  visit.emplace_back(c, initCtx);
+  do
+  {
+    cur = visit.back();
+    visit.pop_back();
+    Kind ck = cur.first.getKind();
+    std::stringstream cname;
+    bool printArgs = false;
+    size_t printArgStart = 0;
+    if (ck==Kind::APPLY)
+    {
+      cname << "sm.Apply";
+      printArgs = true;
+    }
+    else if (ck==Kind::FUNCTION_TYPE)
+    {
+      cname << "sm.FunType";
+      printArgs = true;
+    }
+    else if (ck==Kind::APPLY_OPAQUE)
+    {
+      cname << "sm." << cur.first[0];
+      printArgStart = 1;
+      printArgs = true;
+    }
+    else if (ck==Kind::VARIABLE)
+    {
+      cname << "sm.Var";
+      printArgs = true;
+      // TODO: string and type
+      EO_FATAL() << "Unhandled variable in pattern";
+    }
+    if (printArgs)
+    {
+      // argument must be an apply
+      os << (nconj>0 ? " " : "") << "((_ is " << cname.str() << ") " << cur.second << ")";
+      nconj++;
+      for (size_t i=printArgStart, nchild = cur.first.getNumChildren(); i<nchild; i++)
+      {
+        std::stringstream ssNext;
+        ssNext << "(" << cname.str() << ".arg" << (i+1) << " " << cur.second << ")";
+        visit.emplace_back(cur.first[i], ssNext.str());
+      }
+    }
+    else if (ck==Kind::ANNOT_PARAM)
+    {
+      visit.emplace_back(cur.first[0], cur.second);
+      // its type must match the second argument
+      std::stringstream ssty;
+      ssty << "($eo_typeof " << cur.second << ")";
+      visit.emplace_back(cur.first[1], cur.second);
+    }
+    else if (ck==Kind::PARAM)
+    {
+      it = ctx.find(cur.first);
+      if (it==ctx.end())
+      {
+        // find time seeing this parameter, it is bound to the selector chain
+        ctx[cur.first] = cur.second;
+      }
+      else
+      {
+        os << (nconj>0 ? " " : "") << "(= " << cur.second << " " << it->second << ")";
+        nconj++;
+      }
+    }
+    else
+    {
+      std::stringstream atomTerm;
+      if (printEmbAtomicTerm(cur.first, atomTerm))
+      {
+        os << (nconj>0 ? " " : "") << "(= " << cur.second << " " << atomTerm.str() << ")";
+        nconj++;
+      }
+      else
+      {
+        // TODO: is this correct???
+        os << "(= " << cur.second;
+        printEmbTerm(cur.first, os, ctx);
+        os << ")";
+      }
+    }
+  }
+  while (!visit.empty());
+  return true;
+}
+
+bool SmtMetaReduce::printEmbTerm(const Expr& body, std::ostream& os, const std::map<Expr, std::string>& ctx, bool ignorePf)
 {
   std::map<Expr, std::string>::const_iterator it;
   std::stringstream osEnd;
@@ -166,10 +276,16 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body, std::ostream& os, const std::
           continue;
         }
         Kind ck = cur.first.getKind();
+        if (ck==Kind::PROOF_TYPE && ignorePf)
+        {
+          visit.pop_back();
+          visit.emplace_back(cur.first[0], 0);
+          continue;
+        }
         if (ck==Kind::PARAM)
         {
           it = ctx.find(cur.first);
-          Assert (it!=ctx.end());
+          Assert (it!=ctx.end()) << "Cannot find " << cur.first;
           os << it->second;
           visit.pop_back();
           continue;
@@ -307,100 +423,15 @@ void SmtMetaReduce::defineProgram(const Expr& v, const Expr& prog) {
     size_t nconj = 0;
     for (size_t j=1, nhdchild=hd.getNumChildren(); j<nhdchild; j++)
     {
-      std::vector<std::pair<Expr, std::string>> visit;
-      std::pair<Expr, std::string> cur;
-      visit.emplace_back(hd[j], args[j-1]);
-      do
-      {
-        cur = visit.back();
-        visit.pop_back();
-        Kind ck = cur.first.getKind();
-        std::stringstream cname;
-        bool printArgs = false;
-        size_t printArgStart = 0;
-        if (ck==Kind::APPLY)
-        {
-          cname << "sm.Apply";
-          printArgs = true;
-        }
-        else if (ck==Kind::FUNCTION_TYPE)
-        {
-          cname << "sm.FunType";
-          printArgs = true;
-        }
-        else if (ck==Kind::APPLY_OPAQUE)
-        {
-          cname << "sm." << cur.first[0];
-          printArgStart = 1;
-          printArgs = true;
-        }
-        else if (ck==Kind::VARIABLE)
-        {
-          cname << "sm.Var";
-          printArgs = true;
-          // TODO: string and type
-          EO_FATAL() << "Unhandled variable in pattern";
-        }
-        if (printArgs)
-        {
-          // argument must be an apply
-          currCase << (nconj>0 ? " " : "") << "((_ is " << cname.str() << ") " << cur.second << ")";
-          nconj++;
-          for (size_t i=printArgStart, nchild = cur.first.getNumChildren(); i<nchild; i++)
-          {
-            std::stringstream ssNext;
-            ssNext << "(" << cname.str() << ".arg" << (i+1) << " " << cur.second << ")";
-            visit.emplace_back(cur.first[i], ssNext.str());
-          }
-        }
-        else if (ck==Kind::PARAM)
-        {
-          it = paramToSelector.find(cur.first);
-          if (it==paramToSelector.end())
-          {
-            paramToSelector[cur.first] = cur.second;
-          }
-          else
-          {
-            currCase << (nconj>0 ? " " : "") << "(= " << cur.second << " " << it->second << ")";
-            nconj++;
-          }
-        }
-        else
-        {
-          std::stringstream atomTerm;
-          if (printEmbAtomicTerm(cur.first, atomTerm))
-          {
-            currCase << (nconj>0 ? " " : "") << "(= " << cur.second << " " << atomTerm.str() << ")";
-            nconj++;
-          }
-          else
-          {
-            EO_FATAL() << "Unknown kind in case " << ck << std::endl;
-          }
-        }
-      }
-      while (!visit.empty());
+      // print the pattern matching predicate for this argument, all concatenated together
+      printEmbPatternMatch(hd[j], args[j-1], currCase, paramToSelector, nconj);
     }
     // compile the return for this case
     std::stringstream currRet;
     printEmbTerm(body, currRet, paramToSelector);
     // now print the case/return
     cases << "  (ite ";
-    if (nconj==0)
-    {
-      cases << "true";
-    }
-    else if (nconj>1)
-    {
-      cases << "(and ";
-      cases << currCase.str();
-      cases << ")";
-    }
-    else
-    {
-      cases << currCase.str();
-    }
+    printConjunction(nconj, currCase.str(), cases);
     cases << std::endl;
     cases << "    (= " << appTerm.str() << " " << currRet.str() << ")" << std::endl;
     casesEnd << ")";
@@ -429,7 +460,7 @@ void SmtMetaReduce::finalizeDeclarations() {
     //d_termDecl << "  ; type is " << ct << std::endl;
     Attr attr = Attr::NONE;
     Expr attrCons;
-    std::map<Expr, std::pair<Attr, Expr>>::iterator it = d_attrDecl.find(e);
+    it = d_attrDecl.find(e);
     if (it!=d_attrDecl.end())
     {
       attr = it->second.first;
@@ -491,8 +522,123 @@ void SmtMetaReduce::finalizeDeclarations() {
   }
 }
 
+void SmtMetaReduce::finalizeRules()
+{
+  std::map<Expr, std::pair<Attr, Expr>>::iterator it;
+  for (const Expr& e : d_ruleSeen)
+  {
+    // ignore those with :sorry
+    if (d_state.isProofRuleSorry(e.getValue()))
+    {
+      continue;
+    }
+    d_rules << "; proof rule " << e << std::endl;
+    Attr attr = Attr::NONE;
+    Expr attrCons;
+    it = d_attrDecl.find(e);
+    if (it!=d_attrDecl.end())
+    {
+      attr = it->second.first;
+      attrCons = it->second.second;
+    }
+    d_rules << "; attribute is " << attr << std::endl;
+    Expr r = e;
+    Expr rt = d_tc.getType(r);
+    //d_rules << "; type is " << rt << std::endl;
+    std::stringstream typeVarList;
+    std::stringstream argList;
+    std::stringstream appTerm;
+    std::stringstream proofPred;
+    size_t nproofPredConj = 0;
+    std::map<Expr, std::string> ctx;
+    std::stringstream rcase;
+    size_t nconj = 0;
+    d_rules << "(declare-const " << r;
+    Expr retType;
+    if (rt.getKind()==Kind::FUNCTION_TYPE)
+    {
+      appTerm << "(" << r;
+      d_rules << " (->";
+      // uses flat function type
+      for (size_t i=1, nargs = rt.getNumChildren(); i<nargs; i++)
+      {
+        d_rules << " sm.Term";
+        std::stringstream ssArg;
+        ssArg << "x" << i;
+        if (i>1)
+        {
+          typeVarList << " ";
+        }
+        typeVarList << "(" << ssArg.str() << " sm.Term)";
+        Expr argType = rt[i-1];
+        Kind ak = argType.getKind();
+        Expr toMatch;
+        if (ak==Kind::QUOTE_TYPE)
+        {
+          toMatch = argType[0];
+        }
+        else if (ak==Kind::PROOF_TYPE)
+        {
+          toMatch = argType[0];
+          if (nproofPredConj>0)
+          {
+            proofPred << " ";
+          }
+          nproofPredConj++;
+          proofPred << "(sm.hasProof " << ssArg.str() << ")";
+        }
+        else
+        {
+          EO_FATAL() << "Unknown type to rule " << ak << std::endl;
+        }
+        // print the pattern matching
+        printEmbPatternMatch(toMatch, ssArg.str(), rcase, ctx, nconj);
+      }
+      appTerm << ")";
+      d_rules << " sm.Term)";
+      retType = rt[rt.getNumChildren()-1];
+    }
+    else
+    {
+      appTerm << r;
+      d_rules << " sm.Term";
+      retType = rt;
+    }
+    d_rules << ")" << std::endl;
+    // print the conclusion term
+    std::stringstream rret;
+    printEmbTerm(retType, rret, ctx, true);
+
+    std::stringstream ruleEnd;
+    d_rules << "(assert (forall (" << typeVarList.str() << ")" << std::endl;
+    d_rules << "  (let ((conc " << rret.str() << "))" << std::endl;
+    // premises
+    if (nproofPredConj>0)
+    {
+      d_rules << "  (=> ";
+      printConjunction(nproofPredConj, proofPred.str(), d_rules);
+      d_rules << std::endl;
+      ruleEnd << ")";
+    }
+    // pattern matching
+    if (nconj>0)
+    {
+      d_rules << "  (=> ";
+      printConjunction(nconj, rcase.str(), d_rules);
+      d_rules << std::endl;
+      ruleEnd << ")";
+    }
+    // type check the conclusion to Bool
+    d_rules << "  (=> (= ($eo_typeof conc) sm.BoolType)" << std::endl;
+    d_rules << "  (sm.hasProof conc))" << std::endl;
+    d_rules << ruleEnd.str() << ")))" << std::endl;
+    d_rules << std::endl;
+  }
+}
+
 void SmtMetaReduce::finalize() {
   finalizeDeclarations();
+  finalizeRules();
   std::cout << ";;; Term declaration" << std::endl;
   std::cout << d_termDecl.str();
   std::cout << ";;; definitions" << std::endl;
@@ -502,6 +648,8 @@ void SmtMetaReduce::finalize() {
   std::cout << d_eoNil.str();
   std::cout << ";;; $eo_typeof definition" << std::endl;
   std::cout << d_eoTypeof.str();
+  std::cout << ";;; proof rules" << std::endl;
+  std::cout << d_rules.str();
 
 }
 

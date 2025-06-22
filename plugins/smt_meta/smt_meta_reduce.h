@@ -55,9 +55,12 @@ public:
   /** To string, which returns the smt2 formalization of the meta-level correctness of the signature */
   std::string toString();
 private:
+  void printConjunction(size_t n, const std::string& conj, std::ostream& os);
+  bool printEmbPatternMatch(const Expr& c, const std::string& initCtx, std::ostream& os, std::map<Expr, std::string>& ctx, size_t& nconj);
   bool printEmbAtomicTerm(const Expr& c, std::ostream& os);
-  bool printEmbTerm(const Expr& c, std::ostream& os, const std::map<Expr, std::string>& ctx);
+  bool printEmbTerm(const Expr& c, std::ostream& os, const std::map<Expr, std::string>& ctx, bool ignorePf = false);
   void finalizeDeclarations();
+  void finalizeRules();
   State& d_state;
   /** the type checker */
   TypeChecker& d_tc;
@@ -76,6 +79,7 @@ private:
   std::stringstream d_termDecl;
   std::stringstream d_termDeclEnd;
   std::stringstream d_defs;
+  std::stringstream d_rules;
   std::stringstream d_eval;
 
   std::stringstream d_eoNilVarList;

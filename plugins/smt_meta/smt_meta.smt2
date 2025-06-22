@@ -29,6 +29,9 @@
 )
 
 
+; program: $eo_is_ok
+(define-fun $eo_is_ok ((x1 sm.Term)) sm.Term (ite (= x1 sm.Stuck) sm.false sm.true))
+
 ; program: $eo_ite
 (declare-const $eo_ite (-> sm.Term sm.Term sm.Term sm.Term))
 (assert (forall ((x1 sm.Term) (x2 sm.Term) (x3 sm.Term))
@@ -102,6 +105,18 @@
     true))))))))))
 ))
 
-; MORE here
+; GENERATE here
 
 
+; Predicate for terms for which we have a proof.
+(declare-const sm.hasProof (-> sm.Term Bool))
+
+; first argument is an n-ary operator
+; second argument is a formula that is an application
+(declare-const sm.hasProofList (-> sm.Term sm.Term Bool))
+(assert (forall ((x1 sm.Term) (x2 sm.Term))
+  (ite (= x2 ($eo_nil x1 ($eo_typeof x2)))
+    (= (sm.hasProofList x1 x2) true)
+  ; GENERATE more here
+    (= (sm.hasProofList x1 x2) false))
+))
