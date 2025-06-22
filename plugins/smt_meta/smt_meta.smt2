@@ -206,7 +206,7 @@ $DEFS$
 (assert (forall ((x1 sm.Term))
   (ite (= x1 sm.Stuck)
     (= ($eo_typeof x1) sm.Stuck)
-  ; Core
+  ;; Core
   (ite (= x1 sm.Type)
     (= ($eo_typeof x1) sm.Type)
   (ite ((_ is sm.FunType) x1)
@@ -218,22 +218,22 @@ $DEFS$
     (= ($eo_typeof x1) (sm.Var.Type x1))
   (ite ((_ is sm.Const) x1)
     (= ($eo_typeof x1) (sm.Const.Type x1))
-  ; Booleans
+  ;; Booleans
   (ite (= x1 sm.BoolType)
     (= ($eo_typeof x1) sm.Type)
   (ite (= x1 sm.True)
     (= ($eo_typeof x1) sm.BoolType)
   (ite (= x1 sm.False)
     (= ($eo_typeof x1) sm.BoolType)
-  ; lists
+  ;; lists
   (ite (= x1 sm.ListType)
     (= ($eo_typeof x1) sm.Type)
-  ;;; sm.List.cons has non-ground type, hence omitted
+  ; note: sm.List.cons has non-ground type, hence omitted
   (ite ((_ is sm.List.nil) x1)
     (= ($eo_typeof x1) sm.ListType)
-  ; literal type rules
+  ;; literal type rules
 $TYPEOF_LITERALS$
-  ; user declarations
+  ;; user declarations
 $TYPEOF$
     (= ($eo_typeof x1) sm.Stuck)
 )))))))))))

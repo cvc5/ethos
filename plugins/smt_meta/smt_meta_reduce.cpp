@@ -46,8 +46,30 @@ void SmtMetaReduce::popScope() {}
 
 void SmtMetaReduce::includeFile(const Filepath& s, bool isReference, const Expr& referenceNf) {}
 
-void SmtMetaReduce::setLiteralTypeRule(Kind k, const Expr& t) {
+void SmtMetaReduce::setLiteralTypeRule(Kind k, const Expr& t)
+{
   // TODO
+  d_eoTypeofLit << "  (ite ((_ is sm.";
+  switch (k)
+  {
+    case Kind::NUMERAL: d_eoTypeofLit << "Numeral"; break;
+    case Kind::RATIONAL: d_eoTypeofLit << "Rational"; break;
+    case Kind::BINARY: d_eoTypeofLit << "Binary"; break;
+    case Kind::STRING: d_eoTypeofLit << "String"; break;
+    case Kind::DECIMAL: d_eoTypeofLit << "Decimal"; break;
+    case Kind::HEXADECIMAL: d_eoTypeofLit << "Hexadecimal"; break;
+    default:
+      EO_FATAL() << "Unknown literal type rule" << k << std::endl;
+      break;
+  }
+  d_eoTypeofLit << ") x1)" << std::endl;
+  d_eoTypeofEnd << ")";
+  Expr self = d_state.mkSelf();
+  std::map<Expr, std::string> ctx;
+  ctx[self] = "x1";
+  d_eoTypeofLit << "    (= ($eo_typeof x1) ";
+  printEmbTerm(t, d_eoTypeofLit, ctx);
+  d_eoTypeofLit << ")" << std::endl;
 }
 
 void SmtMetaReduce::bind(const std::string& name, const Expr& e) {
@@ -774,7 +796,7 @@ void SmtMetaReduce::finalizeRules()
     d_rules << "(assert";
     if (!typeVarList.str().empty())
     {
-      d_rules << "(forall (" << typeVarList.str() << ")" << std::endl;
+      d_rules << " (forall (" << typeVarList.str() << ")" << std::endl;
       ruleEnd << ")";
     }
     d_rules << "  (let ((conc " << rret.str() << "))" << std::endl;
