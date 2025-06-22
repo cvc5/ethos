@@ -24,6 +24,17 @@ namespace ethos {
 class State;
 class TypeChecker;
 
+class SelectorCtx
+{
+public:
+  SelectorCtx() : d_counter(0) {}
+  //void push(const std::string& next);
+  std::map<Expr, std::string> d_ctx;
+  std::stringstream d_letBegin;
+  std::stringstream d_letEnd;
+  size_t d_counter;
+};
+
 /**
  */
 class SmtMetaReduce : public Plugin
