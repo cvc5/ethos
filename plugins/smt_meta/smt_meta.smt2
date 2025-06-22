@@ -108,6 +108,7 @@ $TERM_DECL$
     (= ($eo_add x1 x2) sm.Stuck)
   (ite (and ((_ is sm.Numeral) x1) ((_ is sm.Numeral) x2))
     (= ($eo_add x1 x2) (sm.Numeral (+ (sm.Numeral.val x1) (sm.Numeral.val x2))))
+  ; TODO
     (= ($eo_add x1 x2) sm.Stuck)))
 ))
 
@@ -118,6 +119,7 @@ $TERM_DECL$
     (= ($eo_mul x1 x2) sm.Stuck)
   (ite (and ((_ is sm.Numeral) x1) ((_ is sm.Numeral) x2))
     (= ($eo_mul x1 x2) (sm.Numeral (* (sm.Numeral.val x1) (sm.Numeral.val x2))))
+  ; TODO
   ;(ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))
   ;  (= ($eo_mul x1 x2) (sm.Binary (sm.Binary.width x1) ( (* (sm.Numeral.val x1) (sm.Numeral.val x2))))))
     (= ($eo_mul x1 x2) sm.Stuck)))
@@ -142,7 +144,11 @@ $TERM_DECL$
     (= ($eo_is_neg x1) sm.Stuck)
   (ite ((_ is sm.Numeral) x1)
     (= ($eo_is_neg x1) ($sm_Boolean (< (sm.Numeral.val x1) 0)))
-    (= ($eo_is_neg x1) sm.Stuck)))
+  (ite ((_ is sm.Rational) x1)
+    (= ($eo_is_neg x1) ($sm_Boolean (< (sm.Rational.val x1) 0.0)))
+  (ite ((_ is sm.Decimal) x1)
+    (= ($eo_is_neg x1) ($sm_Boolean (< (sm.Decimal.val x1) 0.0)))
+    (= ($eo_is_neg x1) sm.Stuck)))))
 ))
 
 ; program: $eo_neg
@@ -152,7 +158,12 @@ $TERM_DECL$
     (= ($eo_neg x1) sm.Stuck)
   (ite ((_ is sm.Numeral) x1)
     (= ($eo_neg x1) (sm.Numeral (- (sm.Numeral.val x1))))
-    (= ($eo_neg x1) sm.Stuck)))
+  (ite ((_ is sm.Rational) x1)
+    (= ($eo_is_neg x1) (sm.Rational (- (sm.Rational.val x1))))
+  (ite ((_ is sm.Decimal) x1)
+    (= ($eo_is_neg x1) (sm.Decimal (- (sm.Decimal.val x1))))
+  ; TODO
+    (= ($eo_neg x1) sm.Stuck)))))
 ))
 
 ;;; String operators
@@ -173,7 +184,14 @@ $TERM_DECL$
 
 ; program: $eo_concat
 (declare-const $eo_concat (-> sm.Term sm.Term sm.Term))
-; TODO
+(assert (forall ((x1 sm.Term) (x2 sm.Term))
+  (ite (or (= x1 sm.Stuck) (= x2 sm.Stuck))
+    (= ($eo_concat x1 x2) sm.Stuck)
+  (ite (and ((_ is sm.String) x1) ((_ is sm.String) x2))
+    (= ($eo_concat x1 x2) (sm.String (str.++ (sm.String.val x1) (sm.String.val x2))))
+  ; TODO
+    (= ($eo_concat x1 x2) sm.Stuck)))
+))
 
 ; program: $eo_extract
 (declare-const $eo_extract (-> sm.Term sm.Term sm.Term sm.Term))
