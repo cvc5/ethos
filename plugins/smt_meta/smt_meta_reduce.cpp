@@ -263,6 +263,11 @@ void SmtMetaReduce::defineProgram(const Expr& v, const Expr& prog) {
   std::vector<std::string> args;
   std::stringstream appTerm;
   appTerm << "(" << v;
+  std::stringstream stuckCond;
+  if (nargs>2)
+  {
+    stuckCond << "(or";
+  }
   for (size_t i=1; i<nargs; i++)
   {
     d_defs << "sm.Term ";
@@ -275,6 +280,11 @@ void SmtMetaReduce::defineProgram(const Expr& v, const Expr& prog) {
     appTerm << " " << ssArg.str();
     args.emplace_back(ssArg.str());
     varList << "(" << ssArg.str() << " sm.Term)";
+    stuckCond << " (= " << ssArg.str() << " sm.Stuck)";
+  }
+  if (nargs>2)
+  {
+    stuckCond << ")";
   }
   appTerm << ")";
   d_defs << "sm.Term)";
@@ -282,6 +292,9 @@ void SmtMetaReduce::defineProgram(const Expr& v, const Expr& prog) {
   // compile the pattern matching
   std::stringstream cases;
   std::stringstream casesEnd;
+  // start with stuck case
+  cases << "  (ite " << stuckCond.str() << std::endl;
+  cases << "    (= " << appTerm.str() << " sm.Stuck)" << std::endl;
   size_t ncases = prog.getNumChildren();
   for (size_t i=0; i<ncases; i++)
   {
@@ -395,7 +408,7 @@ void SmtMetaReduce::defineProgram(const Expr& v, const Expr& prog) {
   // axiom
   d_defs << "(assert (forall (" << varList.str() << ")" << std::endl;
   d_defs << cases.str();
-  d_defs << "    true";
+  d_defs << "    (= " << appTerm.str() << " sm.Stuck)";
   d_defs << casesEnd.str() << std::endl;
   d_defs << "))" << std::endl;
   d_defs << std::endl;
@@ -482,8 +495,8 @@ void SmtMetaReduce::finalize() {
   finalizeDeclarations();
   std::cout << ";;; Term declaration" << std::endl;
   std::cout << d_termDecl.str();
-  //std::cout << ";;; definitions" << std::endl;
-  //std::cout << d_defs.str();
+  std::cout << ";;; definitions" << std::endl;
+  std::cout << d_defs.str();
   std::cout << ";;; $eo_nil definition" << std::endl;
   std::cout << "var list: " << d_eoNilVarList.str() << std::endl;
   std::cout << d_eoNil.str();
