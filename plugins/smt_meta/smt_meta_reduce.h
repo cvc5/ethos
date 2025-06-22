@@ -72,6 +72,8 @@ private:
   std::set<Expr> d_declSeen;
   /** Rules seen */
   std::set<Expr> d_ruleSeen;
+  /** Program declarations processed */
+  std::set<Expr> d_progDeclProcessed;
   /** Programs seen */
   std::vector<std::pair<Expr, Expr>> d_progSeen;
   /** Attributes marked */

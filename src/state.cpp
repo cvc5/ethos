@@ -1525,7 +1525,11 @@ void State::bindBuiltinEval(const std::string& name, Kind k, Attr ac)
 
 void State::defineProgram(const Expr& v, const Expr& prog)
 {
-  markConstructorKind(v, Attr::PROGRAM, prog);
+  if (!prog.isNull())
+  {
+    markConstructorKind(v, Attr::PROGRAM, prog);
+  }
+  // call even if null
   if (d_plugin!=nullptr)
   {
     d_plugin->defineProgram(v, prog);

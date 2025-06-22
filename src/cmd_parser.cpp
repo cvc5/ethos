@@ -821,10 +821,8 @@ bool CmdParser::parseNextCommand()
         program = d_state.mkExpr(Kind::PROGRAM, pchildren);
       }
       d_state.popScope();
-      if (!program.isNull())
-      {
-        d_state.defineProgram(pvar, program);
-      }
+      // call even if null
+      d_state.defineProgram(pvar, program);
       if (pprev.isNull())
       {
         // rebind the program, if new

@@ -247,7 +247,6 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c, const std::string& initC
     }
     else if (ck==Kind::APPLY_OPAQUE)
     {
-      cname << "sm.";
       printEmbAtomicTerm(cur.first[0], cname);
       printArgStart = 1;
       printArgs = true;
@@ -499,11 +498,13 @@ void SmtMetaReduce::finalizePrograms()
   d_progSeen.clear();
 }
 
-void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog){
-  d_defs << "; program " << v << std::endl;
+void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
+{
+  std::stringstream decl;
+  decl << "; program " << v << std::endl;
   Expr vv = v;
   Expr vt = d_tc.getType(vv);
-  d_defs << "(declare-const " << v << " (-> ";
+  decl << "(declare-const " << v << " (-> ";
   std::stringstream varList;
   Assert (vt.getKind()==Kind::PROGRAM_TYPE);
   size_t nargs = vt.getNumChildren();
@@ -518,7 +519,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog){
   }
   for (size_t i=1; i<nargs; i++)
   {
-    d_defs << "sm.Term ";
+    decl << "sm.Term ";
     if (i>1)
     {
       varList << " ";
@@ -535,8 +536,18 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog){
     stuckCond << ")";
   }
   appTerm << ")";
-  d_defs << "sm.Term)";
-  d_defs << ")" << std::endl;
+  decl << "sm.Term)";
+  decl << ")" << std::endl;
+  if (d_progDeclProcessed.find(v)==d_progDeclProcessed.end())
+  {
+    d_progDeclProcessed.insert(v);
+    d_defs << decl.str();
+  }
+  // if forward declared, we are done for now
+  if (prog.isNull())
+  {
+    return;
+  }
   // compile the pattern matching
   std::stringstream cases;
   std::stringstream casesEnd;
@@ -667,7 +678,7 @@ void SmtMetaReduce::finalizeRules()
     {
       continue;
     }
-    d_rules << "; proof rule " << e << std::endl;
+    d_rules << "; rule: " << e << std::endl;
     Attr attr = Attr::NONE;
     Expr attrCons;
     it = d_attrDecl.find(e);
@@ -676,10 +687,10 @@ void SmtMetaReduce::finalizeRules()
       attr = it->second.first;
       attrCons = it->second.second;
     }
-    d_rules << "; attribute is " << attr << std::endl;
+    //d_rules << "; attribute is " << attr << std::endl;
     Expr r = e;
     Expr rt = d_tc.getType(r);
-    d_rules << "; type is " << rt << std::endl;
+    //d_rules << "; type is " << rt << std::endl;
     std::stringstream typeVarList;
     std::stringstream argList;
     std::stringstream appTerm;
@@ -688,16 +699,16 @@ void SmtMetaReduce::finalizeRules()
     std::map<Expr, std::string> ctx;
     std::stringstream rcase;
     size_t nconj = 0;
-    d_rules << "(declare-const " << r;
+    //d_rules << "(declare-const " << r;
     Expr retType;
     if (rt.getKind()==Kind::FUNCTION_TYPE)
     {
       appTerm << "(" << r;
-      d_rules << " (->";
+      //d_rules << " (->";
       // uses flat function type
       for (size_t i=1, nargs = rt.getNumChildren(); i<nargs; i++)
       {
-        d_rules << " sm.Term";
+        //d_rules << " sm.Term";
         std::stringstream ssArg;
         ssArg << "x" << i;
         if (i>1)
@@ -740,16 +751,16 @@ void SmtMetaReduce::finalizeRules()
         printEmbPatternMatch(toMatch, ssArg.str(), rcase, ctx, nconj);
       }
       appTerm << ")";
-      d_rules << " sm.Term)";
+      //d_rules << " sm.Term)";
       retType = rt[rt.getNumChildren()-1];
     }
     else
     {
       appTerm << r;
-      d_rules << " sm.Term";
+      //d_rules << " sm.Term";
       retType = rt;
     }
-    d_rules << ")" << std::endl;
+    //d_rules << ")" << std::endl;
     // print the conclusion term
     std::stringstream rret;
     printEmbTerm(retType, rret, ctx, true);
