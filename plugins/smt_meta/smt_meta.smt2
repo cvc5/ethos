@@ -35,6 +35,10 @@ $TERM_DECL$
 (define-fun $sm_Boolean ((x Bool)) sm.Term
   (ite x sm.True sm.False))
 
+; define: $sm_is_Boolean
+(define-fun $sm_is_Boolean ((x sm.Term)) Bool
+  (or (= x sm.True) (= x sm.False)))
+
 ;;; Core operators
 
 ; program: $eo_is_ok
@@ -81,23 +85,56 @@ $TERM_DECL$
 ; note: This is a forward declaration
 (declare-const $eo_typeof (-> sm.Term sm.Term))
 
+; declare: $eo_typeof_apply
+; note: This is a forward declaration
+(declare-const $eo_typeof_apply (-> sm.Term sm.Term sm.Term))
+
 ;;; Boolean operators
 
 ; program: $eo_and
 (declare-const $eo_and (-> sm.Term sm.Term sm.Term))
-; TODO
+(assert (forall ((x1 sm.Term) (x2 sm.Term))
+  (ite (or (= x1 sm.Stuck) (= x2 sm.Stuck))
+    (= ($eo_and x1 x2) sm.Stuck)
+  (ite (and ($sm_is_Boolean x1) ($sm_is_Boolean x2))
+    (= ($eo_and x1 x2) ($sm_Boolean (and (= x1 sm.True) (= x2 sm.True))))
+  ; TODO
+    (= ($eo_and x1 x2) sm.Stuck)))
+))
 
 ; program: $eo_or
 (declare-const $eo_or (-> sm.Term sm.Term sm.Term))
-; TODO
+(assert (forall ((x1 sm.Term) (x2 sm.Term))
+  (ite (or (= x1 sm.Stuck) (= x2 sm.Stuck))
+    (= ($eo_or x1 x2) sm.Stuck)
+  (ite (and ($sm_is_Boolean x1) ($sm_is_Boolean x2))
+    (= ($eo_or x1 x2) ($sm_Boolean (or (= x1 sm.True) (= x2 sm.True))))
+  ; TODO
+    (= ($eo_or x1 x2) sm.Stuck)))
+))
+
 
 ; program: $eo_xor
 (declare-const $eo_xor (-> sm.Term sm.Term sm.Term))
-; TODO
+(assert (forall ((x1 sm.Term) (x2 sm.Term))
+  (ite (or (= x1 sm.Stuck) (= x2 sm.Stuck))
+    (= ($eo_xor x1 x2) sm.Stuck)
+  (ite (and ($sm_is_Boolean x1) ($sm_is_Boolean x2))
+    (= ($eo_xor x1 x2) ($sm_Boolean (xor (= x1 sm.True) (= x2 sm.True))))
+  ; TODO
+    (= ($eo_xor x1 x2) sm.Stuck)))
+))
 
 ; program: $eo_not
 (declare-const $eo_not (-> sm.Term sm.Term))
-; TODO
+(assert (forall ((x1 sm.Term))
+  (ite (= x1 sm.Stuck)
+    (= ($eo_not x1) sm.Stuck)
+  (ite ($sm_is_Boolean x1)
+    (= ($eo_not x1) ($sm_Boolean (= x1 sm.False)))
+  ; TODO
+    (= ($eo_not x1) sm.Stuck)))
+))
 
 ;;; Arithmetic operators
 
@@ -219,10 +256,6 @@ $TERM_DECL$
 (declare-const $eo_to_str (-> sm.Term sm.Term))
 ; TODO
 
-; program: $eo_typeof_apply
-(declare-const $eo_typeof_apply (-> sm.Term sm.Term sm.Term))
-; TODO
-
 ;;; List operators
 
 ; declare: $eo_nil
@@ -281,6 +314,9 @@ $TYPEOF$
 )))))))))))
 $TYPEOF_END$
 ))
+
+; program: $eo_typeof_apply
+; TODO
 
 ; program: $eo_nil
 ; note: This is forward declared above.
