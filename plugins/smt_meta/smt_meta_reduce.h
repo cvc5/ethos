@@ -28,7 +28,15 @@ class SelectorCtx
 {
 public:
   SelectorCtx() : d_counter(0) {}
-  //void push(const std::string& next);
+  std::string push(const std::string& next)
+  {
+    d_counter++;
+    std::stringstream ss;
+    ss << "z" << d_counter;
+    d_letBegin << "(let ((z" << d_counter << " " << next << ")) ";
+    d_letEnd << ")";
+    return ss.str();
+  }
   std::map<Expr, std::string> d_ctx;
   std::stringstream d_letBegin;
   std::stringstream d_letEnd;
@@ -69,9 +77,9 @@ public:
   std::string toString();
 private:
   void printConjunction(size_t n, const std::string& conj, std::ostream& os);
-  bool printEmbPatternMatch(const Expr& c, const std::string& initCtx, std::ostream& os, std::map<Expr, std::string>& ctx, size_t& nconj);
+  bool printEmbPatternMatch(const Expr& c, const std::string& initCtx, std::ostream& os, SelectorCtx& ctx, size_t& nconj);
   bool printEmbAtomicTerm(const Expr& c, std::ostream& os);
-  bool printEmbTerm(const Expr& c, std::ostream& os, const std::map<Expr, std::string>& ctx, bool ignorePf = false);
+  bool printEmbTerm(const Expr& c, std::ostream& os, const SelectorCtx& ctx, bool ignorePf = false);
   void finalizePrograms();
   void finalizeProgram(const Expr& v, const Expr& prog);
   void finalizeDeclarations();

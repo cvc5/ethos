@@ -65,8 +65,8 @@ void SmtMetaReduce::setLiteralTypeRule(Kind k, const Expr& t)
   d_eoTypeofLit << ") x1)" << std::endl;
   d_eoTypeofEnd << ")";
   Expr self = d_state.mkSelf();
-  std::map<Expr, std::string> ctx;
-  ctx[self] = "x1";
+  SelectorCtx ctx;
+  ctx.d_ctx[self] = "x1";
   d_eoTypeofLit << "    (= ($eo_typeof x1) ";
   printEmbTerm(t, d_eoTypeofLit, ctx);
   d_eoTypeofLit << ")" << std::endl;
@@ -243,7 +243,7 @@ bool SmtMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
   return false;
 }
 
-bool SmtMetaReduce::printEmbPatternMatch(const Expr& c, const std::string& initCtx, std::ostream& os, std::map<Expr, std::string>& ctx, size_t& nconj)
+bool SmtMetaReduce::printEmbPatternMatch(const Expr& c, const std::string& initCtx, std::ostream& os, SelectorCtx& ctx, size_t& nconj)
 {
   std::map<Expr, std::string>::iterator it;
   std::vector<std::pair<Expr, std::string>> visit;
@@ -289,7 +289,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c, const std::string& initC
       {
         std::stringstream ssNext;
         ssNext << "(" << cname.str() << ".arg" << (i+1-printArgStart) << " " << cur.second << ")";
-        visit.emplace_back(cur.first[i], ssNext.str());
+        visit.emplace_back(cur.first[i], ctx.push(ssNext.str()));
       }
     }
     else if (ck==Kind::ANNOT_PARAM)
@@ -302,11 +302,11 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c, const std::string& initC
     }
     else if (ck==Kind::PARAM)
     {
-      it = ctx.find(cur.first);
-      if (it==ctx.end())
+      it = ctx.d_ctx.find(cur.first);
+      if (it==ctx.d_ctx.end())
       {
         // find time seeing this parameter, it is bound to the selector chain
-        ctx[cur.first] = cur.second;
+        ctx.d_ctx[cur.first] = cur.second;
       }
       else
       {
@@ -339,8 +339,9 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c, const std::string& initC
   return true;
 }
 
-bool SmtMetaReduce::printEmbTerm(const Expr& body, std::ostream& os, const std::map<Expr, std::string>& ctx, bool ignorePf)
+bool SmtMetaReduce::printEmbTerm(const Expr& body, std::ostream& os, const SelectorCtx& ctx, bool ignorePf)
 {
+  os << ctx.d_letBegin.str();
   std::map<Expr, std::string>::const_iterator it;
   std::stringstream osEnd;
   std::vector<Expr> ll;
@@ -384,8 +385,8 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body, std::ostream& os, const std::
         }
         if (ck==Kind::PARAM)
         {
-          it = ctx.find(cur.first);
-          Assert (it!=ctx.end()) << "Cannot find " << cur.first;
+          it = ctx.d_ctx.find(cur.first);
+          Assert (it!=ctx.d_ctx.end()) << "Cannot find " << cur.first;
           os << it->second;
           visit.pop_back();
           continue;
@@ -479,6 +480,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body, std::ostream& os, const std::
     }
   }
   os << osEnd.str();
+  os << ctx.d_letEnd.str();
   return true;
 }
 
@@ -497,7 +499,7 @@ void SmtMetaReduce::finalizePrograms()
       d_defs << "(define-fun " << p.first << " (";
       Expr e = p.second;
       Assert (e[0].getKind()==Kind::TUPLE);
-      std::map<Expr, std::string> ctx;
+      SelectorCtx ctx;
       for (size_t i=0, nvars=e[0].getNumChildren(); i<nvars; i++)
       {
         Expr v = e[0][i];
@@ -507,7 +509,7 @@ void SmtMetaReduce::finalizePrograms()
         }
         std::stringstream vname;
         vname << v;
-        ctx[v] = vname.str();
+        ctx.d_ctx[v] = vname.str();
         d_defs << "(" << vname.str() << " sm.Term)";
       }
       d_defs << ") sm.Term ";
@@ -583,21 +585,22 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     const Expr& c = prog[i];
     const Expr& hd = c[0];
     const Expr& body = c[1];
-    std::map<Expr, std::string> paramToSelector;
-    std::map<Expr, std::string>::iterator it;
+    SelectorCtx ctx;
     std::stringstream currCase;
     size_t nconj = 0;
     for (size_t j=1, nhdchild=hd.getNumChildren(); j<nhdchild; j++)
     {
       // print the pattern matching predicate for this argument, all concatenated together
-      printEmbPatternMatch(hd[j], args[j-1], currCase, paramToSelector, nconj);
+      printEmbPatternMatch(hd[j], args[j-1], currCase, ctx, nconj);
     }
     // compile the return for this case
     std::stringstream currRet;
-    printEmbTerm(body, currRet, paramToSelector);
+    printEmbTerm(body, currRet, ctx);
     // now print the case/return
     cases << "  (ite ";
+    cases << ctx.d_letBegin.str();
     printConjunction(nconj, currCase.str(), cases);
+    cases << ctx.d_letEnd.str();
     cases << std::endl;
     cases << "    (= " << appTerm.str() << " " << currRet.str() << ")" << std::endl;
     casesEnd << ")";
@@ -641,7 +644,6 @@ void SmtMetaReduce::finalizeDeclarations() {
     std::stringstream cname;
     printEmbAtomicTerm(c, cname);
     d_termDecl << cname.str();
-    std::map<Expr, std::string> typeofCtx;
     size_t nopqArgs = 0;
     if (attr==Attr::OPAQUE)
     {
@@ -664,7 +666,7 @@ void SmtMetaReduce::finalizeDeclarations() {
     {
       Assert (ct.getKind()==Kind::FUNCTION_TYPE);
       Assert (!attrCons.isNull());
-      std::map<Expr, std::string> nilCtx;
+      SelectorCtx nilCtx;
       std::stringstream ncase;
       std::stringstream nret;
       ncase << "((_ is " << cname.str() << ") x1)";
@@ -675,7 +677,9 @@ void SmtMetaReduce::finalizeDeclarations() {
         printEmbPatternMatch(ct[0], "x2", ncase, nilCtx, nconj);
       }
       d_eoNil << "  (ite ";
+      d_eoNil << nilCtx.d_letBegin.str();
       printConjunction(nconj, ncase.str(), d_eoNil);
+      d_eoNil << nilCtx.d_letEnd.str();
       d_eoNil << std::endl;
       d_eoNil << "    (= ($eo_nil x1 x2) ";
       printEmbTerm(attrCons, d_eoNil, nilCtx);
@@ -687,6 +691,7 @@ void SmtMetaReduce::finalizeDeclarations() {
     {
       d_eoTypeof << "  (ite ((_ is " << cname.str() << ") x1)" << std::endl;
       d_eoTypeof << "    (= ($eo_typeof x1) ";
+      SelectorCtx typeofCtx;
       printEmbTerm(ct, d_eoTypeof, typeofCtx);
       d_eoTypeof << ")" << std::endl;
       d_eoTypeofEnd << ")";
@@ -723,7 +728,7 @@ void SmtMetaReduce::finalizeRules()
     std::stringstream appTerm;
     std::stringstream proofPred;
     size_t nproofPredConj = 0;
-    std::map<Expr, std::string> ctx;
+    SelectorCtx ctx;
     std::stringstream rcase;
     size_t nconj = 0;
     //d_rules << "(declare-const " << r;
@@ -812,7 +817,9 @@ void SmtMetaReduce::finalizeRules()
     if (nconj>0)
     {
       d_rules << "  (=> ";
+      d_rules << ctx.d_letBegin.str();
       printConjunction(nconj, rcase.str(), d_rules);
+      d_rules << ctx.d_letEnd.str();
       d_rules << std::endl;
       ruleEnd << ")";
     }
