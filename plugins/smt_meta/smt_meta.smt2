@@ -24,7 +24,7 @@
   (sm.String (sm.String.val String))
   (sm.Binary (sm.Binary.width Int) (sm.Binary.val Int))
   (sm.Hexadecimal (sm.Hexadecimal.width Int) (sm.Hexadecimal.val Int))
-  ; MORE here
+  ; GENERATE user declarations
   )
 )
 
@@ -64,8 +64,6 @@
     (= ($eo_add x1 x2) sm.Stuck))
 ))
 
-
-
 ; program: $eo_typeof_apply
 (declare-const $eo_typeof_apply (-> sm.Term sm.Term sm.Term))
 ; TODO
@@ -99,7 +97,8 @@
   (ite ((_ is sm.List.nil) x1)
     (= ($eo_typeof x1) sm.ListType)
 
-  ; MORE
+  ; GENERATE literal type rules
+  ; GENERATE user declarations
     true))))))))))
 ))
 
