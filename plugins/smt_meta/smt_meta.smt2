@@ -71,6 +71,10 @@ $TERM_DECL$
 (declare-const $eo_var (-> sm.Term sm.Term sm.Term))
 ; TODO
 
+; declare: $eo_typeof
+; note: This is a forward declaration
+(declare-const $eo_typeof (-> sm.Term sm.Term))
+
 ;;; Boolean operators
 
 ; program: $eo_and
@@ -177,15 +181,25 @@ $TERM_DECL$
 (declare-const $eo_typeof_apply (-> sm.Term sm.Term sm.Term))
 ; TODO
 
-; declare: $eo_typeof
-(declare-const $eo_typeof (-> sm.Term sm.Term))
+;;; List operators
 
 ; declare: $eo_nil
+; node: this is a forward declaration
 (declare-const $eo_nil (-> sm.Term sm.Term sm.Term))
 
+;;; Datatype operators
 
-; user defined symbols
+; declare: $eo_dt_selectors
+(declare-const $eo_dt_selectors (-> sm.Term sm.Term))
+
+; declare: $eo_dt_constructors
+(declare-const $eo_dt_constructors (-> sm.Term sm.Term))
+
+;;; User defined symbols
+
 $DEFS$
+
+;;; Meta symbols
 
 ; program: $eo_typeof
 ; note: This is forward declared.
@@ -237,6 +251,8 @@ $NIL$
 $NIL_END$
 ))
 
+;;; Proof definitions
+
 ; Predicate for terms for which we have a proof.
 (declare-const sm.hasProof (-> sm.Term Bool))
 
@@ -249,5 +265,7 @@ $NIL_END$
 $HAS_PROOF_LIST$
     (= (sm.hasProofList x1 x2) false))
 ))
+
+;;; User defined proof rules
 
 $RULES$
