@@ -177,7 +177,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
       ret = (nargs>=2);
       break;
     case Kind::EVAL_LIST_CONCAT:
-      ret = (nargs>=3);
+      ret = (nargs==3);
       break;
     case Kind::PROOF_TYPE:
     case Kind::EVAL_IS_OK:

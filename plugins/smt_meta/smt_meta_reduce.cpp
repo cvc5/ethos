@@ -46,7 +46,9 @@ void SmtMetaReduce::popScope() {}
 
 void SmtMetaReduce::includeFile(const Filepath& s, bool isReference, const Expr& referenceNf) {}
 
-void SmtMetaReduce::setLiteralTypeRule(Kind k, const Expr& t) {}
+void SmtMetaReduce::setLiteralTypeRule(Kind k, const Expr& t) {
+  // TODO
+}
 
 void SmtMetaReduce::bind(const std::string& name, const Expr& e) {
   if (d_inInitialize)
@@ -178,7 +180,18 @@ bool SmtMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
   }
   else if (k==Kind::NUMERAL)
   {
-    os << "(sm.Numeral " << c << ")";
+    os << "(sm.Numeral ";
+    const Integer& ci = l->d_int;
+    if (ci.sgn()==-1)
+    {
+      const Integer& cin = -ci;
+      os << "(- " << cin.toString() << ")";
+    }
+    else
+    {
+      os << ci.toString();
+    }
+    os << ")";
     return true;
   }
   else if (k==Kind::RATIONAL)

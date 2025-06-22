@@ -29,6 +29,8 @@ $TERM_DECL$
   )
 )
 
+;;; Core operators
+
 ; program: $eo_is_ok
 (define-fun $eo_is_ok ((x1 sm.Term)) sm.Term
   (ite (= x1 sm.Stuck) sm.False sm.True))
@@ -65,17 +67,29 @@ $TERM_DECL$
 (declare-const $eo_nameof (-> sm.Term sm.Term))
 ; TODO
 
-; program: $eo_to_z
-(declare-const $eo_to_z (-> sm.Term sm.Term))
+; program: $eo_var
+(declare-const $eo_var (-> sm.Term sm.Term sm.Term))
 ; TODO
 
-; program: $eo_to_bin
-(declare-const $eo_to_bin (-> sm.Term sm.Term sm.Term))
+;;; Boolean operators
+
+; program: $eo_and
+(declare-const $eo_and (-> sm.Term sm.Term sm.Term))
+; TODO
+
+; program: $eo_or
+(declare-const $eo_or (-> sm.Term sm.Term sm.Term))
+; TODO
+
+; program: $eo_xor
+(declare-const $eo_xor (-> sm.Term sm.Term sm.Term))
 ; TODO
 
 ; program: $eo_not
 (declare-const $eo_not (-> sm.Term sm.Term))
 ; TODO
+
+;;; Arithmetic operators
 
 ; program: $eo_add
 (declare-const $eo_add (-> sm.Term sm.Term sm.Term))
@@ -83,9 +97,81 @@ $TERM_DECL$
   (ite (or (= x1 sm.Stuck) (= x2 sm.Stuck))
     (= ($eo_add x1 x2) sm.Stuck)
   (ite (and ((_ is sm.Numeral) x1) ((_ is sm.Numeral) x2))
-    (= ($eo_add x1 x2) (sm.Numeral (+ (sm.Numeral.val x1) (sm.Numeral.val x1))))
+    (= ($eo_add x1 x2) (sm.Numeral (+ (sm.Numeral.val x1) (sm.Numeral.val x2))))
     (= ($eo_add x1 x2) sm.Stuck)))
 ))
+
+; program: $eo_mul
+(declare-const $eo_mul (-> sm.Term sm.Term sm.Term))
+(assert (forall ((x1 sm.Term) (x2 sm.Term))
+  (ite (or (= x1 sm.Stuck) (= x2 sm.Stuck))
+    (= ($eo_mul x1 x2) sm.Stuck)
+  (ite (and ((_ is sm.Numeral) x1) ((_ is sm.Numeral) x2))
+    (= ($eo_mul x1 x2) (sm.Numeral (* (sm.Numeral.val x1) (sm.Numeral.val x2))))
+    (= ($eo_mul x1 x2) sm.Stuck)))
+))
+
+; program: $eo_qdiv
+(declare-const $eo_qdiv (-> sm.Term sm.Term sm.Term))
+; TODO
+
+; program: $eo_zdiv
+(declare-const $eo_zdiv (-> sm.Term sm.Term sm.Term))
+; TODO
+
+; program: $eo_zmod
+(declare-const $eo_zmod (-> sm.Term sm.Term sm.Term))
+; TODO
+
+; program: $eo_is_neg
+(declare-const $eo_is_neg (-> sm.Term sm.Term))
+; TODO
+
+; program: $eo_neg
+(declare-const $eo_neg (-> sm.Term sm.Term))
+(assert (forall ((x1 sm.Term))
+  (ite (= x1 sm.Stuck)
+    (= ($eo_neg x1) sm.Stuck)
+  (ite ((_ is sm.Numeral) x1)
+    (= ($eo_neg x1) (sm.Numeral (- (sm.Numeral.val x1))))
+    (= ($eo_neg x1) sm.Stuck)))
+))
+
+;;; String operators
+
+; program: $eo_len
+(declare-const $eo_len (-> sm.Term sm.Term))
+; TODO
+
+; program: $eo_concat
+(declare-const $eo_concat (-> sm.Term sm.Term sm.Term))
+; TODO
+
+; program: $eo_extract
+(declare-const $eo_extract (-> sm.Term sm.Term sm.Term sm.Term))
+; TODO
+
+; program: $eo_find
+(declare-const $eo_find (-> sm.Term sm.Term sm.Term))
+; TODO
+
+;;; Conversion operators
+
+; program: $eo_to_z
+(declare-const $eo_to_z (-> sm.Term sm.Term))
+; TODO
+
+; program: $eo_to_q
+(declare-const $eo_to_q (-> sm.Term sm.Term))
+; TODO
+
+; program: $eo_to_bin
+(declare-const $eo_to_bin (-> sm.Term sm.Term sm.Term))
+; TODO
+
+; program: $eo_to_str
+(declare-const $eo_to_str (-> sm.Term sm.Term))
+; TODO
 
 ; program: $eo_typeof_apply
 (declare-const $eo_typeof_apply (-> sm.Term sm.Term sm.Term))

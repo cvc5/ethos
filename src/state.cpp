@@ -779,6 +779,20 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
   }
   else if (isLiteralOp(k))
   {
+    if (isNaryLiteralOp(k) && vchildren.size()>2)
+    {
+      std::vector<ExprValue*> cc{nullptr, nullptr};
+      cc[0] = vchildren[0];
+      cc[1] = vchildren[1];
+      ExprValue* curr = mkExprInternal(k, cc);
+      for (size_t i=2, nargs = vchildren.size(); i<nargs; i++)
+      {
+        cc[0] = curr;
+        cc[0] = vchildren[i];
+        curr = mkExprInternal(k, cc);
+      }
+      return Expr(curr);
+    }
     // only if correct arity, else we will catch the type error
     bool isArityOk = TypeChecker::checkArity(k, vchildren.size());
     if (isArityOk)
@@ -789,7 +803,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     else
     {
       Warning() << "Wrong number of arguments when applying literal op " << k
-                << ", " << children.size() << " arguments" << std::endl;
+                << ", " << children.size() << " arguments " << children[0] << " " << children[1] << std::endl;
     }
   }
   else if (k == Kind::AS_RETURN)

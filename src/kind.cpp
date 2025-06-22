@@ -305,6 +305,24 @@ bool isLiteralOp(Kind k)
   }
   return false;
 }
+
+bool isNaryLiteralOp(Kind k)
+{
+  switch (k)
+  {
+    case Kind::EVAL_ADD:
+    case Kind::EVAL_MUL:
+    case Kind::EVAL_AND:
+    case Kind::EVAL_OR:
+    case Kind::EVAL_XOR:
+    case Kind::EVAL_CONCAT:
+      return true;
+    default:
+      break;
+  }
+  return false;
+}
+
 bool isListLiteralOp(Kind k)
 {
   switch (k)
