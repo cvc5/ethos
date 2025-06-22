@@ -10,6 +10,9 @@
 #include "smt_meta_reduce.h"
 
 #include "state.h"
+#include <fstream>
+#include <sstream>
+#include <string>
 
 namespace ethos {
 
@@ -88,7 +91,26 @@ bool SmtMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
   Kind k = c.getKind();
   if (k==Kind::CONST)
   {
+    std::map<Expr, size_t>::iterator it = d_overloadId.find(c);
+    size_t oid;
+    if (it==d_overloadId.end())
+    {
+      std::stringstream ss;
+      ss << c;
+      std::string s = ss.str();
+      oid = d_overloadCount[s];
+      d_overloadId[c] = oid;
+      d_overloadCount[s]++;
+    }
+    else
+    {
+      oid = it->second;
+    }
     os << "sm." << c;
+    if (oid>0)
+    {
+      os << "." << (oid+1);
+    }
     return true;
   }
   else if (k==Kind::PROGRAM_CONST)
@@ -174,7 +196,8 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c, const std::string& initC
     }
     else if (ck==Kind::APPLY_OPAQUE)
     {
-      cname << "sm." << cur.first[0];
+      cname << "sm.";
+      printEmbAtomicTerm(cur.first[0], cname);
       printArgStart = 1;
       printArgs = true;
     }
@@ -230,6 +253,10 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c, const std::string& initC
       else
       {
         // TODO: is this correct???
+        // This handles cases where it is expected that matching at this point
+        // evaluates e.g. based on other arguments. This is used heavily in
+        // RARE rules where an argument causes a premise term to evaluate e.g.
+        // via eo::list_concat.
         os << "(= " << cur.second;
         printEmbTerm(cur.first, os, ctx);
         os << ")";
@@ -390,7 +417,7 @@ void SmtMetaReduce::defineProgram(const Expr& v, const Expr& prog) {
   std::stringstream stuckCond;
   if (nargs>2)
   {
-    stuckCond << "(or";
+    stuckCond << " (or";
   }
   for (size_t i=1; i<nargs; i++)
   {
@@ -417,8 +444,9 @@ void SmtMetaReduce::defineProgram(const Expr& v, const Expr& prog) {
   std::stringstream cases;
   std::stringstream casesEnd;
   // start with stuck case
-  cases << "  (ite " << stuckCond.str() << std::endl;
+  cases << "  (ite" << stuckCond.str() << std::endl;
   cases << "    (= " << appTerm.str() << " sm.Stuck)" << std::endl;
+  casesEnd << ")";
   size_t ncases = prog.getNumChildren();
   for (size_t i=0; i<ncases; i++)
   {
@@ -475,7 +503,10 @@ void SmtMetaReduce::finalizeDeclarations() {
       attrCons = it->second.second;
     }
     //d_termDecl << "  ; attr is " << attr << std::endl;
-    d_termDecl << "  (sm." << c;
+    d_termDecl << "  (";
+    std::stringstream cname;
+    printEmbAtomicTerm(c, cname);
+    d_termDecl << cname.str();
     std::map<Expr, std::string> typeofCtx;
     if (attr==Attr::OPAQUE)
     {
@@ -484,7 +515,8 @@ void SmtMetaReduce::finalizeDeclarations() {
       size_t nargs = ct.getNumChildren() - 1;
       for (size_t i=0; i<nargs; i++)
       {
-        d_termDecl << " (sm." << c << ".arg" << (i+1) << " sm.Term)";
+        d_termDecl << " (" << cname.str();
+        d_termDecl << ".arg" << (i+1) << " sm.Term)";
       }
     }
     d_termDecl << ")" << std::endl;
@@ -494,7 +526,7 @@ void SmtMetaReduce::finalizeDeclarations() {
       Assert (ct.getKind()==Kind::FUNCTION_TYPE);
       Assert (!attrCons.isNull());
       std::map<Expr, std::string> nilCtx;
-      d_eoNil << "  (ite ((_ is sm." << c << ") x1)" << std::endl;
+      d_eoNil << "  (ite ((_ is " << cname.str() << ") x1)" << std::endl;
       d_eoNil << "    (= ($eo_nil x1 ";
       if (attrCons.isGround())
       {
@@ -509,7 +541,7 @@ void SmtMetaReduce::finalizeDeclarations() {
         {
           count++;
           std::stringstream ssv;
-          ssv << "x." << c << "." << count;
+          ssv << "x." << cname.str() << "." << count;
           nilCtx[v] = ssv.str();
           d_eoNilVarList << "(" << ssv.str() << " sm.Term) ";
         }
@@ -522,10 +554,11 @@ void SmtMetaReduce::finalizeDeclarations() {
     // if its type is
     if (ct.isGround())
     {
-      d_eoTypeof << "  (ite ((_ is " << c << ") x1)" << std::endl;
+      d_eoTypeof << "  (ite ((_ is " << cname.str() << ") x1)" << std::endl;
       d_eoTypeof << "    (= ($eo_typeof x1) ";
       printEmbTerm(ct, d_eoTypeof, typeofCtx);
       d_eoTypeof << ")" << std::endl;
+      d_eoTypeofEnd << ")";
     }
   }
 }
@@ -664,11 +697,39 @@ void SmtMetaReduce::finalize() {
   std::cout << ";;; $eo_nil definition" << std::endl;
   std::cout << "var list: " << d_eoNilVarList.str() << std::endl;
   std::cout << d_eoNil.str();
+  std::cout << ";;; $eo_typeof literal definition" << std::endl;
+  std::cout << d_eoTypeofLit.str();
   std::cout << ";;; $eo_typeof definition" << std::endl;
   std::cout << d_eoTypeof.str();
   std::cout << ";;; proof rules" << std::endl;
   std::cout << d_rules.str();
 
+  std::ifstream in("/home/andrew/ethos/plugins/smt_meta/smt_meta.smt2");
+  std::ostringstream ss;
+  ss << in.rdbuf();
+  std::string finalSm = ss.str();
+
+  auto replace = [](std::string& txt,
+                  const std::string& tag,
+                  const std::string& replacement) {
+    auto pos = txt.find(tag);
+    if (pos != std::string::npos)
+    {
+      txt.replace(pos, tag.length(), replacement);
+    }
+  };
+  replace(finalSm, "$TERM_DECL$", d_termDecl.str());
+  replace(finalSm, "$TYPEOF_LITERALS$", d_eoTypeofLit.str());
+  replace(finalSm, "$TYPEOF$", d_eoTypeof.str());
+  replace(finalSm, "$TYPEOF_END$", d_eoTypeofEnd.str());
+  replace(finalSm, "$DEFS$", d_defs.str());
+  replace(finalSm, "$RULES$", d_rules.str());
+
+  std::cout << ";;; Final: " << std::endl;
+  std::cout << finalSm << std::endl;
+
+  std::ofstream out("/home/andrew/ethos/plugins/smt_meta/smt_meta_gen.smt2");
+  out << finalSm;
 }
 
 std::string toString() {

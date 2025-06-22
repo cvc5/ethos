@@ -70,6 +70,10 @@ private:
   std::set<Expr> d_ruleSeen;
   /** Attributes marked */
   std::map<Expr, std::pair<Attr, Expr>> d_attrDecl;
+  /** Handles overloading */
+  std::map<std::string, size_t> d_overloadCount;
+  /** */
+  std::map<Expr, size_t> d_overloadId;
   /** Common constants */
   Expr d_listNil;
   Expr d_listCons;
@@ -85,6 +89,8 @@ private:
   std::stringstream d_eoNilVarList;
   std::stringstream d_eoNil;
   std::stringstream d_eoTypeof;
+  std::stringstream d_eoTypeofLit;
+  std::stringstream d_eoTypeofEnd;
   std::stringstream d_eoDtSelectors;
   std::stringstream d_eoDtConstructors;
   std::stringstream d_hasProofList;
