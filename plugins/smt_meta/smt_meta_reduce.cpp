@@ -289,7 +289,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c, const std::string& initC
       {
         std::stringstream ssNext;
         ssNext << "(" << cname.str() << ".arg" << (i+1-printArgStart) << " " << cur.second << ")";
-        visit.emplace_back(cur.first[i], ctx.push(ssNext.str()));
+        visit.emplace_back(cur.first[i], ssNext.str());
       }
     }
     else if (ck==Kind::ANNOT_PARAM)
@@ -686,7 +686,7 @@ void SmtMetaReduce::finalizeDeclarations() {
       d_eoNil << ")" << std::endl;
       d_eoNilEnd << ")";
     }
-    // if its type is
+    // if its type is ground, the type is taken into account for typeof
     if (ct.isGround())
     {
       d_eoTypeof << "  (ite ((_ is " << cname.str() << ") x1)" << std::endl;

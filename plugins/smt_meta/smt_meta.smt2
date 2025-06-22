@@ -39,6 +39,22 @@ $TERM_DECL$
 (define-fun $sm_is_Boolean ((x sm.Term)) Bool
   (or (= x sm.True) (= x sm.False)))
 
+; Stuckness propagates through non-nullary constructors
+(define-fun $sm_FunType ((x sm.Term) (y sm.Term)) sm.Term
+  (ite (or (= x sm.Stuck) (= y sm.Stuck))
+    sm.Stuck
+    (sm.FunType x y)))
+
+(define-fun $sm_Apply ((x sm.Term) (y sm.Term)) sm.Term
+  (ite (or (= x sm.Stuck) (= y sm.Stuck))
+    sm.Stuck
+    (sm.Apply x y)))
+
+(define-fun $sm_Var ((x String) (y sm.Term)) sm.Term
+  (ite (= y sm.Stuck)
+    sm.Stuck
+    (sm.Var x y)))
+
 ;;; Core operators
 
 ; program: $eo_is_ok
@@ -46,22 +62,18 @@ $TERM_DECL$
   ($sm_Boolean (not (= x1 sm.Stuck))))
 
 ; program: $eo_ite
-(declare-const $eo_ite (-> sm.Term sm.Term sm.Term sm.Term))
-(assert (forall ((x1 sm.Term) (x2 sm.Term) (x3 sm.Term))
+(define-fun $eo_ite ((x1 sm.Term) (x2 sm.Term) (x3 sm.Term)) sm.Term
   (ite (= x1 sm.True)
-    (= ($eo_ite x1 x2 x3) x2)
+    x2
   (ite (= x1 sm.False)
-    (= ($eo_ite x1 x2 x3) x3)
-    true))
-))
+    x3
+    sm.Stuck)))
 
 ; program: $eo_requires
-(declare-const $eo_requires (-> sm.Term sm.Term sm.Term sm.Term))
-(assert (forall ((x1 sm.Term) (x2 sm.Term) (x3 sm.Term))
+(define-fun $eo_requires ((x1 sm.Term) (x2 sm.Term) (x3 sm.Term)) sm.Term
   (ite (and (not (= x1 sm.Stuck)) (not (= x2 sm.Stuck)) (= x1 x2))
-    (= ($eo_requires x1 x2 x3) x3)
-    (= ($eo_requires x1 x2 x3) sm.Stuck))
-))
+    x3
+    sm.Stuck))
 
 ; program: $eo_hash
 ; note: This is defined axiomatically.
@@ -74,8 +86,10 @@ $TERM_DECL$
     (= ($eo_hash x) ($eo_hash y))) (= x y))))
 
 ; program: $eo_nameof
-(declare-const $eo_nameof (-> sm.Term sm.Term))
-; TODO
+(define-fun $eo_nameof ((x1 sm.Term)) sm.Term
+  (ite ((_ is sm.Var) x1)
+    (sm.String (sm.Var.name x1))
+    sm.Stuck))
 
 ; program: $eo_var
 (declare-const $eo_var (-> sm.Term sm.Term sm.Term))
@@ -92,74 +106,70 @@ $TERM_DECL$
 ;;; Boolean operators
 
 ; program: $eo_and
-(declare-const $eo_and (-> sm.Term sm.Term sm.Term))
-(assert (forall ((x1 sm.Term) (x2 sm.Term))
+(define-fun $eo_and ((x1 sm.Term) (x2 sm.Term)) sm.Term
   (ite (or (= x1 sm.Stuck) (= x2 sm.Stuck))
-    (= ($eo_and x1 x2) sm.Stuck)
+     sm.Stuck
   (ite (and ($sm_is_Boolean x1) ($sm_is_Boolean x2))
-    (= ($eo_and x1 x2) ($sm_Boolean (and (= x1 sm.True) (= x2 sm.True))))
+    ($sm_Boolean (and (= x1 sm.True) (= x2 sm.True)))
   ; TODO
-    (= ($eo_and x1 x2) sm.Stuck)))
-))
+    sm.Stuck)))
 
 ; program: $eo_or
-(declare-const $eo_or (-> sm.Term sm.Term sm.Term))
-(assert (forall ((x1 sm.Term) (x2 sm.Term))
+(define-fun $eo_or ((x1 sm.Term) (x2 sm.Term)) sm.Term
   (ite (or (= x1 sm.Stuck) (= x2 sm.Stuck))
-    (= ($eo_or x1 x2) sm.Stuck)
+    sm.Stuck
   (ite (and ($sm_is_Boolean x1) ($sm_is_Boolean x2))
-    (= ($eo_or x1 x2) ($sm_Boolean (or (= x1 sm.True) (= x2 sm.True))))
+    ($sm_Boolean (or (= x1 sm.True) (= x2 sm.True)))
   ; TODO
-    (= ($eo_or x1 x2) sm.Stuck)))
-))
+    sm.Stuck)))
 
 ; program: $eo_xor
-(declare-const $eo_xor (-> sm.Term sm.Term sm.Term))
-(assert (forall ((x1 sm.Term) (x2 sm.Term))
+(define-fun $eo_xor ((x1 sm.Term) (x2 sm.Term)) sm.Term
   (ite (or (= x1 sm.Stuck) (= x2 sm.Stuck))
-    (= ($eo_xor x1 x2) sm.Stuck)
+    sm.Stuck
   (ite (and ($sm_is_Boolean x1) ($sm_is_Boolean x2))
-    (= ($eo_xor x1 x2) ($sm_Boolean (xor (= x1 sm.True) (= x2 sm.True))))
+    ($sm_Boolean (xor (= x1 sm.True) (= x2 sm.True)))
   ; TODO
-    (= ($eo_xor x1 x2) sm.Stuck)))
-))
+    sm.Stuck)))
 
 ; program: $eo_not
-(declare-const $eo_not (-> sm.Term sm.Term))
-(assert (forall ((x1 sm.Term))
+(define-fun $eo_not ((x1 sm.Term)) sm.Term
   (ite (= x1 sm.Stuck)
-    (= ($eo_not x1) sm.Stuck)
+    sm.Stuck
   (ite ($sm_is_Boolean x1)
-    (= ($eo_not x1) ($sm_Boolean (= x1 sm.False)))
+    ($sm_Boolean (= x1 sm.False))
   ; TODO
-    (= ($eo_not x1) sm.Stuck)))
-))
+    sm.Stuck)))
 
 ;;; Arithmetic operators
 
 ; program: $eo_add
-(declare-const $eo_add (-> sm.Term sm.Term sm.Term))
-(assert (forall ((x1 sm.Term) (x2 sm.Term))
+(define-fun $eo_add ((x1 sm.Term) (x2 sm.Term)) sm.Term
   (ite (or (= x1 sm.Stuck) (= x2 sm.Stuck))
-    (= ($eo_add x1 x2) sm.Stuck)
+    sm.Stuck
   (ite (and ((_ is sm.Numeral) x1) ((_ is sm.Numeral) x2))
-    (= ($eo_add x1 x2) (sm.Numeral (+ (sm.Numeral.val x1) (sm.Numeral.val x2))))
+    (sm.Numeral (+ (sm.Numeral.val x1) (sm.Numeral.val x2)))
+  (ite (and ((_ is sm.Rational) x1) ((_ is sm.Rational) x2))
+    (sm.Rational (+ (sm.Rational.val x1) (sm.Rational.val x2)))
+  (ite (and ((_ is sm.Decimal) x1) ((_ is sm.Decimal) x2))
+    (sm.Decimal (+ (sm.Decimal.val x1) (sm.Decimal.val x2)))
   ; TODO
-    (= ($eo_add x1 x2) sm.Stuck)))
-))
+    sm.Stuck)))))
 
 ; program: $eo_mul
-(declare-const $eo_mul (-> sm.Term sm.Term sm.Term))
-(assert (forall ((x1 sm.Term) (x2 sm.Term))
+(define-fun $eo_mul ((x1 sm.Term) (x2 sm.Term)) sm.Term
   (ite (or (= x1 sm.Stuck) (= x2 sm.Stuck))
-    (= ($eo_mul x1 x2) sm.Stuck)
+    sm.Stuck
   (ite (and ((_ is sm.Numeral) x1) ((_ is sm.Numeral) x2))
-    (= ($eo_mul x1 x2) (sm.Numeral (* (sm.Numeral.val x1) (sm.Numeral.val x2))))
+    (sm.Numeral (* (sm.Numeral.val x1) (sm.Numeral.val x2)))
+  (ite (and ((_ is sm.Rational) x1) ((_ is sm.Rational) x2))
+    (sm.Rational (* (sm.Rational.val x1) (sm.Rational.val x2)))
+  (ite (and ((_ is sm.Decimal) x1) ((_ is sm.Decimal) x2))
+    (sm.Decimal (* (sm.Decimal.val x1) (sm.Decimal.val x2)))
   ; TODO
   ;(ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))
-  ;  (= ($eo_mul x1 x2) (sm.Binary (sm.Binary.width x1) ( (* (sm.Numeral.val x1) (sm.Numeral.val x2))))))
-    (= ($eo_mul x1 x2) sm.Stuck)))
-))
+  ;  (sm.Binary (sm.Binary.width x1) ( (* (sm.Numeral.val x1) (sm.Numeral.val x2)))))
+    sm.Stuck)))))
 
 ; program: $eo_qdiv
 (declare-const $eo_qdiv (-> sm.Term sm.Term sm.Term))
@@ -174,60 +184,52 @@ $TERM_DECL$
 ; TODO
 
 ; program: $eo_is_neg
-(declare-const $eo_is_neg (-> sm.Term sm.Term))
-(assert (forall ((x1 sm.Term))
+(define-fun $eo_is_neg ((x1 sm.Term)) sm.Term
   (ite (= x1 sm.Stuck)
-    (= ($eo_is_neg x1) sm.Stuck)
+    sm.Stuck
   (ite ((_ is sm.Numeral) x1)
-    (= ($eo_is_neg x1) ($sm_Boolean (< (sm.Numeral.val x1) 0)))
+    ($sm_Boolean (< (sm.Numeral.val x1) 0))
   (ite ((_ is sm.Rational) x1)
-    (= ($eo_is_neg x1) ($sm_Boolean (< (sm.Rational.val x1) 0.0)))
+    ($sm_Boolean (< (sm.Rational.val x1) 0.0))
   (ite ((_ is sm.Decimal) x1)
-    (= ($eo_is_neg x1) ($sm_Boolean (< (sm.Decimal.val x1) 0.0)))
-    (= ($eo_is_neg x1) sm.Stuck)))))
-))
+    ($sm_Boolean (< (sm.Decimal.val x1) 0.0))
+    sm.Stuck)))))
 
 ; program: $eo_neg
-(declare-const $eo_neg (-> sm.Term sm.Term))
-(assert (forall ((x1 sm.Term))
+(define-fun $eo_neg ((x1 sm.Term)) sm.Term
   (ite (= x1 sm.Stuck)
-    (= ($eo_neg x1) sm.Stuck)
+    sm.Stuck
   (ite ((_ is sm.Numeral) x1)
-    (= ($eo_neg x1) (sm.Numeral (- (sm.Numeral.val x1))))
+    (sm.Numeral (- (sm.Numeral.val x1)))
   (ite ((_ is sm.Rational) x1)
-    (= ($eo_is_neg x1) (sm.Rational (- (sm.Rational.val x1))))
+    (sm.Rational (- (sm.Rational.val x1)))
   (ite ((_ is sm.Decimal) x1)
-    (= ($eo_is_neg x1) (sm.Decimal (- (sm.Decimal.val x1))))
+    (sm.Decimal (- (sm.Decimal.val x1)))
   ; TODO
-    (= ($eo_neg x1) sm.Stuck)))))
-))
+    sm.Stuck)))))
 
 ;;; String operators
 
 ; program: $eo_len
-(declare-const $eo_len (-> sm.Term sm.Term))
-(assert (forall ((x1 sm.Term))
+(define-fun $eo_len ((x1 sm.Term)) sm.Term
   (ite (= x1 sm.Stuck)
-    (= ($eo_len x1) sm.Stuck)
+    sm.Stuck
   (ite ((_ is sm.Binary) x1)
-    (= ($eo_len x1) (sm.Numeral (sm.Binary.width x1)))
+    (sm.Numeral (sm.Binary.width x1))
   (ite ((_ is sm.Hexadecimal) x1)
-    (= ($eo_len x1) (sm.Numeral (sm.Hexadecimal.width x1)))
+    (sm.Numeral (sm.Hexadecimal.width x1))
   (ite ((_ is sm.String) x1)
-    (= ($eo_len x1) (sm.Numeral (str.len (sm.String.val x1))))
-    (= ($eo_len x1) sm.Stuck)))))
-))
+    (sm.Numeral (str.len (sm.String.val x1)))
+    sm.Stuck)))))
 
 ; program: $eo_concat
-(declare-const $eo_concat (-> sm.Term sm.Term sm.Term))
-(assert (forall ((x1 sm.Term) (x2 sm.Term))
+(define-fun $eo_concat ((x1 sm.Term) (x2 sm.Term)) sm.Term
   (ite (or (= x1 sm.Stuck) (= x2 sm.Stuck))
-    (= ($eo_concat x1 x2) sm.Stuck)
+    sm.Stuck
   (ite (and ((_ is sm.String) x1) ((_ is sm.String) x2))
-    (= ($eo_concat x1 x2) (sm.String (str.++ (sm.String.val x1) (sm.String.val x2))))
+    (sm.String (str.++ (sm.String.val x1) (sm.String.val x2)))
   ; TODO
-    (= ($eo_concat x1 x2) sm.Stuck)))
-))
+    sm.Stuck)))
 
 ; program: $eo_extract
 (declare-const $eo_extract (-> sm.Term sm.Term sm.Term sm.Term))
@@ -240,38 +242,34 @@ $TERM_DECL$
 ;;; Conversion operators
 
 ; program: $eo_to_z
-(declare-const $eo_to_z (-> sm.Term sm.Term))
-(assert (forall ((x1 sm.Term))
+(define-fun $eo_to_z ((x1 sm.Term)) sm.Term
   (ite (= x1 sm.Stuck)
-    (= ($eo_to_z x1) sm.Stuck)
+    sm.Stuck
   (ite ((_ is sm.Numeral) x1)
-    (= ($eo_to_z x1) x1)
+    x1
   (ite ((_ is sm.Rational) x1)
-    (= ($eo_to_z x1) (sm.Numeral (to_int (sm.Rational.val x1))))
+    (sm.Numeral (to_int (sm.Rational.val x1)))
   (ite ((_ is sm.Decimal) x1)
-    (= ($eo_to_z x1) (sm.Numeral (to_int (sm.Decimal.val x1))))
+    (sm.Numeral (to_int (sm.Decimal.val x1)))
   (ite ((_ is sm.Binary) x1)
-    (= ($eo_to_z x1) (sm.Numeral (sm.Binary.val x1)))
+    (sm.Numeral (sm.Binary.val x1))
   (ite ((_ is sm.Hexadecimal) x1)
-    (= ($eo_to_z x1) (sm.Numeral (sm.Hexadecimal.val x1)))
+    (sm.Numeral (sm.Hexadecimal.val x1))
   (ite (and ((_ is sm.String) x1) (= (str.len (sm.String.val x1)) 1))
-    (= ($eo_to_z x1) (sm.Numeral (str.to_code (sm.String.val x1))))
-    (= ($eo_to_z x1) sm.Stuck))))))))
-))
+    (sm.Numeral (str.to_code (sm.String.val x1)))
+    sm.Stuck))))))))
 
 ; program: $eo_to_q
-(declare-const $eo_to_q (-> sm.Term sm.Term))
-(assert (forall ((x1 sm.Term))
+(define-fun $eo_to_q ((x1 sm.Term)) sm.Term
   (ite (= x1 sm.Stuck)
-    (= ($eo_to_q x1) sm.Stuck)
+    sm.Stuck
   (ite ((_ is sm.Numeral) x1)
-    (= ($eo_to_q x1) (sm.Rational (to_real (sm.Numeral.val x1))))
+    (sm.Rational (to_real (sm.Numeral.val x1)))
   (ite ((_ is sm.Rational) x1)
-    (= ($eo_to_z x1) x1)
+    x1
   (ite ((_ is sm.Decimal) x1)
-    (= ($eo_to_z x1) (sm.Rational (sm.Decimal.val x1)))
-    (= ($eo_to_z x1) sm.Stuck)))))
-))
+    (sm.Rational (sm.Decimal.val x1))
+    sm.Stuck)))))
 
 ; program: $eo_to_bin
 (declare-const $eo_to_bin (-> sm.Term sm.Term sm.Term))
