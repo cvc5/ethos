@@ -235,7 +235,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c, const std::string& initC
     std::stringstream cname;
     bool printArgs = false;
     size_t printArgStart = 0;
-    if (ck==Kind::APPLY)
+    if (ck==Kind::APPLY && cur.first[0].getKind()!=Kind::PROGRAM_CONST)
     {
       cname << "sm.Apply";
       printArgs = true;
@@ -266,7 +266,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c, const std::string& initC
       for (size_t i=printArgStart, nchild = cur.first.getNumChildren(); i<nchild; i++)
       {
         std::stringstream ssNext;
-        ssNext << "(" << cname.str() << ".arg" << (i+1) << " " << cur.second << ")";
+        ssNext << "(" << cname.str() << ".arg" << (i+1-printArgStart) << " " << cur.second << ")";
         visit.emplace_back(cur.first[i], ssNext.str());
       }
     }
@@ -620,16 +620,21 @@ void SmtMetaReduce::finalizeDeclarations() {
     printEmbAtomicTerm(c, cname);
     d_termDecl << cname.str();
     std::map<Expr, std::string> typeofCtx;
+    size_t nopqArgs = 0;
     if (attr==Attr::OPAQUE)
     {
       // opaque symbols are non-nullary constructors
       Assert(ct.getKind() == Kind::FUNCTION_TYPE);
-      size_t nargs = ct.getNumChildren() - 1;
-      for (size_t i=0; i<nargs; i++)
-      {
-        d_termDecl << " (" << cname.str();
-        d_termDecl << ".arg" << (i+1) << " sm.Term)";
-      }
+      nopqArgs = ct.getNumChildren() - 1;
+    }
+    else if (attr==Attr::AMB || attr==Attr::DATATYPE_CONSTRUCTOR)
+    {
+      nopqArgs = 1;
+    }
+    for (size_t i=0; i<nopqArgs; i++)
+    {
+      d_termDecl << " (" << cname.str();
+      d_termDecl << ".arg" << (i+1) << " sm.Term)";
     }
     d_termDecl << ")" << std::endl;
 
@@ -766,7 +771,12 @@ void SmtMetaReduce::finalizeRules()
     printEmbTerm(retType, rret, ctx, true);
 
     std::stringstream ruleEnd;
-    d_rules << "(assert (forall (" << typeVarList.str() << ")" << std::endl;
+    d_rules << "(assert";
+    if (!typeVarList.str().empty())
+    {
+      d_rules << "(forall (" << typeVarList.str() << ")" << std::endl;
+      ruleEnd << ")";
+    }
     d_rules << "  (let ((conc " << rret.str() << "))" << std::endl;
     // premises
     if (nproofPredConj>0)
@@ -787,7 +797,7 @@ void SmtMetaReduce::finalizeRules()
     // type check the conclusion to Bool
     d_rules << "  (=> (= ($eo_typeof conc) sm.BoolType)" << std::endl;
     d_rules << "  (sm.hasProof conc))" << std::endl;
-    d_rules << ruleEnd.str() << ")))" << std::endl;
+    d_rules << ruleEnd.str() << "))" << std::endl;
     d_rules << std::endl;
   }
   d_ruleSeen.clear();
@@ -834,6 +844,7 @@ void SmtMetaReduce::finalize() {
   replace(finalSm, "$NIL_END$", d_eoNilEnd.str());
   replace(finalSm, "$DEFS$", d_defs.str());
   replace(finalSm, "$RULES$", d_rules.str());
+  replace(finalSm, "$HAS_PROOF_LIST$", d_hasProofList.str());
 
   std::cout << ";;; Final: " << std::endl;
   std::cout << finalSm << std::endl;
