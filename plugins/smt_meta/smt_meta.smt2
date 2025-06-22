@@ -113,7 +113,6 @@ $TERM_DECL$
     (= ($eo_or x1 x2) sm.Stuck)))
 ))
 
-
 ; program: $eo_xor
 (declare-const $eo_xor (-> sm.Term sm.Term sm.Term))
 (assert (forall ((x1 sm.Term) (x2 sm.Term))
@@ -242,11 +241,37 @@ $TERM_DECL$
 
 ; program: $eo_to_z
 (declare-const $eo_to_z (-> sm.Term sm.Term))
-; TODO
+(assert (forall ((x1 sm.Term))
+  (ite (= x1 sm.Stuck)
+    (= ($eo_to_z x1) sm.Stuck)
+  (ite ((_ is sm.Numeral) x1)
+    (= ($eo_to_z x1) x1)
+  (ite ((_ is sm.Rational) x1)
+    (= ($eo_to_z x1) (sm.Numeral (to_int (sm.Rational.val x1))))
+  (ite ((_ is sm.Decimal) x1)
+    (= ($eo_to_z x1) (sm.Numeral (to_int (sm.Decimal.val x1))))
+  (ite ((_ is sm.Binary) x1)
+    (= ($eo_to_z x1) (sm.Numeral (sm.Binary.val x1)))
+  (ite ((_ is sm.Hexadecimal) x1)
+    (= ($eo_to_z x1) (sm.Numeral (sm.Hexadecimal.val x1)))
+  (ite (and ((_ is sm.String) x1) (= (str.len (sm.String.val x1)) 1))
+    (= ($eo_to_z x1) (sm.Numeral (str.to_code (sm.String.val x1))))
+    (= ($eo_to_z x1) sm.Stuck))))))))
+))
 
 ; program: $eo_to_q
 (declare-const $eo_to_q (-> sm.Term sm.Term))
-; TODO
+(assert (forall ((x1 sm.Term))
+  (ite (= x1 sm.Stuck)
+    (= ($eo_to_q x1) sm.Stuck)
+  (ite ((_ is sm.Numeral) x1)
+    (= ($eo_to_q x1) (sm.Rational (to_real (sm.Numeral.val x1))))
+  (ite ((_ is sm.Rational) x1)
+    (= ($eo_to_z x1) x1)
+  (ite ((_ is sm.Decimal) x1)
+    (= ($eo_to_z x1) (sm.Rational (sm.Decimal.val x1)))
+    (= ($eo_to_z x1) sm.Stuck)))))
+))
 
 ; program: $eo_to_bin
 (declare-const $eo_to_bin (-> sm.Term sm.Term sm.Term))
@@ -266,9 +291,11 @@ $TERM_DECL$
 
 ; declare: $eo_dt_selectors
 (declare-const $eo_dt_selectors (-> sm.Term sm.Term))
+; TODO
 
 ; declare: $eo_dt_constructors
 (declare-const $eo_dt_constructors (-> sm.Term sm.Term))
+; TODO
 
 ;;; User defined symbols
 
