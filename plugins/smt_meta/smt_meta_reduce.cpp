@@ -1026,14 +1026,7 @@ void SmtMetaReduce::finalize() {
   std::cout << ";;; proof rules" << std::endl;
   std::cout << d_rules.str();
   */
-
-  std::stringstream ssi;
-  ssi << s_path << "plugins/smt_meta/smt_meta.smt2";
-  std::ifstream in(ssi.str());
-  std::ostringstream ss;
-  ss << in.rdbuf();
-  std::string finalSm = ss.str();
-
+  
   auto replace = [](std::string& txt,
                   const std::string& tag,
                   const std::string& replacement) {
@@ -1043,23 +1036,8 @@ void SmtMetaReduce::finalize() {
       txt.replace(pos, tag.length(), replacement);
     }
   };
-  replace(finalSm, "$TERM_DECL$", d_termDecl.str());
-  replace(finalSm, "$TYPEOF_LITERALS$", d_eoTypeofLit.str());
-  replace(finalSm, "$TYPEOF$", d_eoTypeof.str());
-  replace(finalSm, "$TYPEOF_END$", d_eoTypeofEnd.str());
-  replace(finalSm, "$NIL$", d_eoNil.str());
-  replace(finalSm, "$NIL_END$", d_eoNilEnd.str());
-  replace(finalSm, "$DEFS$", d_defs.str());
-  replace(finalSm, "$RULES$", d_rules.str());
-
-  //std::cout << ";;; Final: " << std::endl;
-  //std::cout << finalSm << std::endl;
-
-  std::stringstream sso;
-  sso << s_path << "plugins/smt_meta/smt_meta_gen.smt2";
-  std::ofstream out(sso.str());
-  out << finalSm;
   
+  // now, go back and compile *.eo for the proof rules
   std::stringstream ssie;
   ssie << s_path << "plugins/smt_meta/eo_model.eo";
   std::ifstream ine(ssie.str());
@@ -1073,6 +1051,31 @@ void SmtMetaReduce::finalize() {
   ssoe << s_path << "plugins/smt_meta/eo_model_gen.eo";
   std::ofstream oute(ssoe.str());
   oute << finalEo;
+  
+  // make the final SMT-LIB encoding
+  std::stringstream ssi;
+  ssi << s_path << "plugins/smt_meta/smt_meta.smt2";
+  std::ifstream in(ssi.str());
+  std::ostringstream ss;
+  ss << in.rdbuf();
+  std::string finalSm = ss.str();
+
+  replace(finalSm, "$TERM_DECL$", d_termDecl.str());
+  replace(finalSm, "$TYPEOF_LITERALS$", d_eoTypeofLit.str());
+  replace(finalSm, "$TYPEOF$", d_eoTypeof.str());
+  replace(finalSm, "$TYPEOF_END$", d_eoTypeofEnd.str());
+  replace(finalSm, "$NIL$", d_eoNil.str());
+  replace(finalSm, "$NIL_END$", d_eoNilEnd.str());
+  replace(finalSm, "$DEFS$", d_defs.str());
+  //replace(finalSm, "$RULES$", d_rules.str());
+
+  //std::cout << ";;; Final: " << std::endl;
+  //std::cout << finalSm << std::endl;
+
+  std::stringstream sso;
+  sso << s_path << "plugins/smt_meta/smt_meta_gen.smt2";
+  std::ofstream out(sso.str());
+  out << finalSm;
 }
 
 std::string toString() {
