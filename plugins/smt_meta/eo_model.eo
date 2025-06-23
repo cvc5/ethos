@@ -1,14 +1,35 @@
-(include "../../../cvc5-pr-ajr/proofs/eo/cpc/Cpc.eo")
+(include "../../../cvc5-ajr/proofs/eo/cpc/Cpc.eo")
 
-(program $eo_model_evaluate ((T Type) (x T) (y T))
+; This file is expected to define:
+; (1) A function $eo_model_lookup, which defines an arbitrary function corresponding to a model.
+; (2) A function $eo_is_sat_model, which defines whether a (Boolean) term is satisfied by a model.
+
+; Conceptually, returns the model value for constant with identifier id and type T.
+(declare-const $eo_model_lookup (-> Int T T))
+
+; An evaluator for all terms that we can reason about models.
+(program $eo_model_evaluate ((T Type) (U Type) (V Type) (x T) (f (-> U T)) (y V) (z V))
   :signature (T) T
   (
-  ; more
-  ;(($eo_model_evaluate (@const n T))
-  ; use the run_evaluate side condition for all operators returning an atomic value.
-  (($eo_model_evaluate x)             ($run_evaluate x))
+  ; @const is the CPC syntax for constants
+  (($eo_model_evaluate (@const n T))    ($eo_model_lookup n T))
+  ; For equality, we use $are_distinct_terms which is more general than $run_evaluate.
+  ; This is part of the trusted core.
+  (($eo_model_evaluate (= y z))         (eo::define ((fmy ($eo_model_evaluate y)))
+                                        (eo::define ((fmz ($eo_model_evaluate z)))
+                                          (eo::ite (eo::eq fmy fmz)
+                                            true
+                                            (eo::requires ($are_distinct_terms fmy fmz) true false)))))
+  ; Use the CPC run_evaluate side condition for all operators returning an atomic value.
+  ; This is part of the trusted core.
+  (($eo_model_evaluate (f y))           (eo::define ((fme ($eo_model_evaluate f)))
+                                        (eo::define ((fmy ($eo_model_evaluate y)))
+                                          ($run_evaluate (_ fme fmy)))))
   )
 )
 
-(define $eo_has_model ((T Type :implicit) (x T))
-  (eo::eq ($eo_model_evaluate x) true))
+; Call the above function, returns true iff F evaluates to true.
+(define $eo_is_sat_model ((F Bool)) ($eo_model_evaluate F))
+
+
+$EO_RULES$

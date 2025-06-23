@@ -16,6 +16,8 @@
 
 namespace ethos {
 
+std::string s_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
+
 SmtMetaReduce::SmtMetaReduce(State& s) : d_state(s), d_tc(s.getTypeChecker()) {
   d_listNil = s.mkListNil();
   d_listCons = s.mkListCons();
@@ -29,7 +31,9 @@ void SmtMetaReduce::initialize()
 {
   // initially include bootstrapping definitions
   d_inInitialize = true;
-  d_state.includeFile("/home/andrew/ethos/plugins/smt_meta/eo_core.eo", true);
+  std::stringstream ss;
+  ss << s_path << "plugins/smt_meta/eo_core.eo";
+  d_state.includeFile(ss.str(), true);
   d_eoTmpInt = d_state.getVar("$eo_tmp_Int");
   Assert (!d_eoTmpInt.isNull());
   d_eoTmpNil = d_state.getVar("$eo_tmp_nil");
@@ -792,20 +796,80 @@ void SmtMetaReduce::finalizeRule(const Expr& e)
   Expr r = e;
   Expr rt = d_tc.getType(r);
 
-
-  // compile to Eunoia program???
+  // compile to Eunoia program
   std::vector<Expr> vars = Expr::getVariables(rt);
-  std::stringstream eoDecl;
-  std::stringstream eoDeclEnd;
-  eoDecl << "(program $sm_" << e << " (";
-  std::visited<Expr> visited;
+  std::stringstream paramList;
+  bool firstParam = true;
+  std::map<Expr, bool> visited;
+  std::map<Expr, bool>::iterator itv;
   std::vector<Expr> toVisit(vars.begin(), vars.end());
-  do
+  Expr cur;
+  while (!toVisit.empty())
   {
+    cur = toVisit.back();
+    itv = visited.find(cur);
+    if (itv!=visited.end() && itv->second)
+    {
+      toVisit.pop_back();
+      continue;
+    }
+    Expr tcur = d_tc.getType(cur);
+    if (itv==visited.end())
+    {
+      visited[cur] = false;
+      // ensure its type has been printed
+      Assert (!tcur.isNull());
+      std::vector<Expr> tvars = Expr::getVariables(tcur);
+      toVisit.insert(toVisit.end(), tvars.begin(), tvars.end());
+      continue;
+    }
+    else if (!itv->second)
+    {
+      Assert (!itv->second);
+      visited[cur] = true;
+      if (firstParam)
+      {
+        firstParam = false;
+      }
+      else
+      {
+        paramList << " ";
+      }
+      paramList << "(" << cur << " " << tcur << ")";
+      toVisit.pop_back();
+    }
   }
-  while (!toVisit.empty());
-  eoDecl << ")" << std::endl;
-  eoDecl << ")";
+  if (rt.getKind()==Kind::FUNCTION_TYPE)
+  {
+    std::stringstream typeList;
+    std::stringstream argList;
+    for (size_t i=1, nargs = rt.getNumChildren(); i<nargs; i++)
+    {
+      if (i>1)
+      {
+        typeList << " ";
+      }
+      Expr argType = rt[i-1];
+      Kind ak = argType.getKind();
+      if (ak==Kind::QUOTE_TYPE || ak==Kind::PROOF_TYPE)
+      {
+        // handled the same: argument is first child
+        Expr aa = argType[0];
+        Expr ta = d_tc.getType(aa);
+        typeList << ta;
+        argList << " " << argType[0];
+      }
+    }
+    Expr rrt = rt[rt.getNumChildren()-1];
+    d_eoRules << "(program $sm_" << e << " (" << paramList.str() << ")" << std::endl;
+    d_eoRules << "  :signature (" << typeList.str() << ")";
+    d_eoRules << " Bool" << std::endl;
+    d_eoRules << "  (" << std::endl;
+    d_eoRules << "  (($sm_" << e << argList.str() << ") " << rrt << ")" << std::endl;
+    d_eoRules << "  )" << std::endl;
+    d_eoRules << ")" << std::endl;
+    d_eoRules << std::endl;
+  }
 
 
 
@@ -925,6 +989,7 @@ void SmtMetaReduce::finalize() {
   finalizeDeclarations();
   finalizeRules();
   // debugging
+  /*
   std::cout << ";;; Term declaration" << std::endl;
   std::cout << d_termDecl.str();
   std::cout << ";;; definitions" << std::endl;
@@ -938,8 +1003,11 @@ void SmtMetaReduce::finalize() {
   std::cout << d_eoTypeof.str();
   std::cout << ";;; proof rules" << std::endl;
   std::cout << d_rules.str();
+  */
 
-  std::ifstream in("/home/andrew/ethos/plugins/smt_meta/smt_meta.smt2");
+  std::stringstream ssi;
+  ssi << s_path << "plugins/smt_meta/smt_meta.smt2";
+  std::ifstream in(ssi.str());
   std::ostringstream ss;
   ss << in.rdbuf();
   std::string finalSm = ss.str();
@@ -962,11 +1030,27 @@ void SmtMetaReduce::finalize() {
   replace(finalSm, "$DEFS$", d_defs.str());
   replace(finalSm, "$RULES$", d_rules.str());
 
-  std::cout << ";;; Final: " << std::endl;
-  std::cout << finalSm << std::endl;
+  //std::cout << ";;; Final: " << std::endl;
+  //std::cout << finalSm << std::endl;
 
-  std::ofstream out("/home/andrew/ethos/plugins/smt_meta/smt_meta_gen.smt2");
+  std::stringstream sso;
+  sso << s_path << "plugins/smt_meta/smt_meta_gen.smt2";
+  std::ofstream out(sso.str());
   out << finalSm;
+  
+  std::stringstream ssie;
+  ssie << s_path << "plugins/smt_meta/eo_model.eo";
+  std::ifstream ine(ssie.str());
+  std::ostringstream sse;
+  sse << ine.rdbuf();
+  std::string finalEo = sse.str();
+  
+  replace(finalEo, "$EO_RULES$", d_eoRules.str());
+  
+  std::stringstream ssoe;
+  ssoe << s_path << "plugins/smt_meta/eo_model_gen.eo";
+  std::ofstream oute(ssoe.str());
+  oute << finalEo;
 }
 
 std::string toString() {

@@ -128,6 +128,7 @@ private:
   std::stringstream d_eoDtSelectors;
   std::stringstream d_eoDtConstructors;
 
+  std::stringstream d_eoRules;
   bool d_inInitialize;
 };
 
