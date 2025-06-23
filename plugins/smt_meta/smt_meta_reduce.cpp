@@ -30,9 +30,9 @@ void SmtMetaReduce::initialize()
   // initially include bootstrapping definitions
   d_inInitialize = true;
   d_state.includeFile("/home/andrew/ethos/plugins/smt_meta/eo_core.eo", true);
-  d_eoTmpInt = d_state.getVar("eo_tmp_Int");
+  d_eoTmpInt = d_state.getVar("$eo_tmp_Int");
   Assert (!d_eoTmpInt.isNull());
-  d_eoTmpNil = d_state.getVar("eo_tmp_nil");
+  d_eoTmpNil = d_state.getVar("$eo_tmp_nil");
   Assert (!d_eoTmpNil.isNull());
   //std::cout << "Forward declares: " << d_eoTmpInt << " " << d_eoTmpNil << std::endl;
   d_inInitialize = false;
@@ -137,17 +137,17 @@ bool SmtMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
   }
   if (c==d_listCons)
   {
-    os << "sm.List.cons";
+    os << "sm.$eo_List_cons";
     return true;
   }
   if (c==d_listNil)
   {
-    os << "sm.List.nil";
+    os << "sm.$eo_List_nil";
     return true;
   }
   if (c==d_listType)
   {
-    os << "sm.ListType";
+    os << "sm.$eo_List";
     return true;
   }
   Kind k = c.getKind();
@@ -729,18 +729,16 @@ void SmtMetaReduce::finalizeDeclarations() {
         for (size_t i=1; i<nargs; i++)
         {
           Expr cta = ct[i-1];
-          Expr arg, argt;
+          Expr arg;
           if (cta.getKind()==Kind::QUOTE_TYPE)
           {
             arg = cta[0];
-            argt = d_tc.getType(arg);
           }
           else
           {
             arg = d_state.mkSymbol(Kind::PARAM, "tmp", cta);
-            argt = cta;
+            arg = d_state.mkExpr(Kind::ANNOT_PARAM, {arg, cta});
           }
-          arg = d_state.mkExpr(Kind::ANNOT_PARAM, {arg, argt});
           args.push_back(arg);
           argTypes.push_back(cta);
         }
@@ -760,7 +758,7 @@ void SmtMetaReduce::finalizeDeclarations() {
       // we now write the pattern matching for the derived pattern.
     }
     printEmbPatternMatch(pattern, "x1", typeOfCond, typeofCtx, nTypeOfCond);
-    d_eoTypeof << "  ; type-check: " << e << std::endl;
+    d_eoTypeof << "  ; type-rule: " << e << std::endl;
     d_eoTypeof << "  (ite ";
     printConjunction(nTypeOfCond, typeOfCond.str(), d_eoTypeof, typeofCtx);
     d_eoTypeof << std::endl;

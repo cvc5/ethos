@@ -13,10 +13,6 @@
   (sm.BoolType)
   (sm.True)
   (sm.False)
-  ; Lists
-  (sm.ListType)
-  (sm.List.cons)
-  (sm.List.nil)
   ; builtin literal types
   (sm.Numeral (sm.Numeral.val Int))
   (sm.Rational (sm.Rational.val Real))
@@ -54,6 +50,15 @@ $TERM_DECL$
   (ite (= y sm.Stuck)
     sm.Stuck
     (sm.Var x y)))
+
+; TODO: can be improved
+(define-fun $sm_mod_pow_2 ((d Int) (n Int)) Int
+  (mod d (^ 2 n)))
+
+(define-fun $sm_Binary ((x Int) (y Int)) sm.Term
+  (ite (and (<= 0 x) (< x 4294967296))
+    (sm.Binary x ($sm_mod_pow_2 y x))
+    sm.Stuck))
 
 ;;; Core operators
 
@@ -149,8 +154,9 @@ $TERM_DECL$
     (sm.Rational (+ (sm.Rational.val x1) (sm.Rational.val x2)))
   (ite (and ((_ is sm.Decimal) x1) ((_ is sm.Decimal) x2))
     (sm.Decimal (+ (sm.Decimal.val x1) (sm.Decimal.val x2)))
-  ; TODO
-    sm.Stuck)))))
+  (ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))
+    ($sm_Binary (sm.Binary.width x1) (+ (sm.Numeral.val x1) (sm.Numeral.val x2)))
+    sm.Stuck))))))
 
 ; program: $eo_mul
 (define-fun $eo_mul ((x1 sm.Term) (x2 sm.Term)) sm.Term
@@ -162,14 +168,21 @@ $TERM_DECL$
     (sm.Rational (* (sm.Rational.val x1) (sm.Rational.val x2)))
   (ite (and ((_ is sm.Decimal) x1) ((_ is sm.Decimal) x2))
     (sm.Decimal (* (sm.Decimal.val x1) (sm.Decimal.val x2)))
-  ; TODO
-  ;(ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))
-  ;  (sm.Binary (sm.Binary.width x1) ( (* (sm.Numeral.val x1) (sm.Numeral.val x2)))))
-    sm.Stuck)))))
+  (ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))
+    ($sm_Binary (sm.Binary.width x1) (* (sm.Numeral.val x1) (sm.Numeral.val x2)))
+    sm.Stuck))))))
 
 ; program: $eo_qdiv
-(declare-const $eo_qdiv (-> sm.Term sm.Term sm.Term))
-; TODO
+(define-fun $eo_qdiv ((x1 sm.Term) (x2 sm.Term)) sm.Term
+  (ite (or (= x1 sm.Stuck) (= x2 sm.Stuck))
+    sm.Stuck
+  (ite (and ((_ is sm.Numeral) x1) ((_ is sm.Numeral) x2) (not (= (sm.Numeral.val x2) 0)))
+    (sm.Numeral (/ (to_real (sm.Numeral.val x1)) (to_real (sm.Numeral.val x2))))
+  (ite (and ((_ is sm.Rational) x1) ((_ is sm.Rational) x2) (not (= (sm.Rational.val x2) 0.0)))
+    (sm.Rational (/ (sm.Rational.val x1) (sm.Rational.val x2)))
+  (ite (and ((_ is sm.Decimal) x1) ((_ is sm.Decimal) x2) (not (= (sm.Decimal.val x2) 0.0)))
+    (sm.Decimal (/ (sm.Decimal.val x1) (sm.Decimal.val x2)))
+    sm.Stuck)))))
 
 ; program: $eo_zdiv
 (declare-const $eo_zdiv (-> sm.Term sm.Term sm.Term))
@@ -321,12 +334,6 @@ $DEFS$
     sm.BoolType
   (ite (= x1 sm.False)
     sm.BoolType
-  ;; lists
-  (ite (= x1 sm.ListType)
-    sm.Type
-  ; note: sm.List.cons has non-ground type, hence omitted
-  (ite ((_ is sm.List.nil) x1)
-    sm.ListType
   ;; literal type rules
 $TYPEOF_LITERALS$
   ;; user declarations
@@ -338,7 +345,7 @@ $TYPEOF$
     (ite (and ((_ is sm.FunType) ta1) (= (sm.FunType.arg1 ta1) ta2))
       (sm.FunType.arg2 ta1)
       sm.Stuck)))
-    sm.Stuck))))))))))))
+    sm.Stuck))))))))))
 $TYPEOF_END$
 ))
 
