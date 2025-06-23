@@ -235,7 +235,7 @@ std::string quoteSymbol(const std::string& s)
 }
 
 std::map<const ExprValue*, size_t> Expr::computeLetBinding(
-    const Expr& e, std::vector<Expr>& ll)
+    const Expr& e, std::vector<Expr>& ll, bool letifyParam)
 {
   std::map<const ExprValue*, size_t> lcount;
   std::unordered_set<const ExprValue*> visited;
@@ -246,7 +246,7 @@ std::map<const ExprValue*, size_t> Expr::computeLetBinding(
   do
   {
     cur = visit.back();
-    if (cur.getNumChildren() == 0)
+    if (cur.getNumChildren() == 0 && (!letifyParam || cur.getKind()!=Kind::PARAM))
     {
       visit.pop_back();
       continue;

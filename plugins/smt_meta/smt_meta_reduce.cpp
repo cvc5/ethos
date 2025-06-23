@@ -48,7 +48,6 @@ void SmtMetaReduce::includeFile(const Filepath& s, bool isReference, const Expr&
 
 void SmtMetaReduce::setLiteralTypeRule(Kind k, const Expr& t)
 {
-  // TODO
   d_eoTypeofLit << "  (ite ((_ is sm.";
   switch (k)
   {
@@ -273,13 +272,6 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c, const std::string& initC
       printArgStart = 1;
       printArgs = true;
     }
-    else if (ck==Kind::VARIABLE)
-    {
-      cname << "sm.Var";
-      printArgs = true;
-      // TODO: string and type
-      EO_FATAL() << "Unhandled variable in pattern";
-    }
     if (printArgs)
     {
       // argument must be an apply
@@ -345,7 +337,8 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body, std::ostream& os, const Selec
   std::map<Expr, std::string>::const_iterator it;
   std::stringstream osEnd;
   std::vector<Expr> ll;
-  std::map<const ExprValue*, size_t> lbind = Expr::computeLetBinding(body, ll);
+  // letify parameters for efficiency?
+  std::map<const ExprValue*, size_t> lbind = Expr::computeLetBinding(body, ll, true);
   // TODO: print the context in the let list?
   std::map<const ExprValue*, size_t>::iterator itl;
   for (size_t i=0, nll=ll.size(); i<=nll; i++)
@@ -708,20 +701,53 @@ void SmtMetaReduce::finalizeDeclarations() {
       d_eoNilEnd << ")";
     }
     // if its type is ground, the type is taken into account for typeof
-    if (ct.isGround())
+    Expr pattern = e;
+    if (!ct.isGround())
     {
-      d_eoTypeof << "  (ite ((_ is " << cname.str() << ") x1)" << std::endl;
-      d_eoTypeof << "    ";
-      SelectorCtx typeofCtx;
-      printEmbTerm(ct, d_eoTypeof, typeofCtx);
-      d_eoTypeof << std::endl;
-      d_eoTypeofEnd << ")";
-    }
-    else
-    {
+      continue;
+      // FIXME
       Assert(ct.getKind() == Kind::FUNCTION_TYPE);
+      // We traverse to a position where the type of a partial application
+      // of this operator has ground type.
       std::vector<Expr> argTypes;
+      while (ct.getKind()==Kind::FUNCTION_TYPE)
+      {
+        Assert (ct.getNumChildren()==2) << "Bad type for " << e;
+        std::vector<Expr> args;
+        args.push_back(pattern);
+        size_t nargs = ct.getNumChildren();
+        // ethos ctx
+        Ctx tcctx;
+        for (size_t i=1; i<nargs; i++)
+        {
+          Expr cta = ct[i-1];
+          Expr dummy = d_state.mkSymbol(Kind::PARAM, "tmp", cta);
+          args.push_back(dummy);
+          argTypes.push_back(cta);
+        }
+        Kind ak = (attr==Attr::OPAQUE && pattern==e) ? Kind::APPLY_OPAQUE : Kind::APPLY;
+        pattern = d_state.mkExpr(ak, args);
+        ct = ct[nargs-1];
+        // maybe we are now fully bound?
+        if (ct.getKind()==Kind::EVAL_REQUIRES)
+        {
+
+        }
+      }
+      // we now write the pattern matching for
+      continue;
     }
+    std::stringstream typeOfCond;
+    size_t nTypeOfCond = 0;
+    SelectorCtx typeofCtx;
+    printEmbPatternMatch(pattern, "x1", typeOfCond, typeofCtx, nTypeOfCond);
+    d_eoTypeof << "  (ite ";
+    printConjunction(nTypeOfCond, typeOfCond.str(), d_eoTypeof);
+    d_eoTypeof << std::endl;
+    d_eoTypeof << "    ";
+    printEmbTerm(ct, d_eoTypeof, typeofCtx);
+    d_eoTypeof << std::endl;
+    d_eoTypeofEnd << ")";
   }
   d_declSeen.clear();
 }

@@ -99,10 +99,6 @@ $TERM_DECL$
 ; note: This is a forward declaration
 (declare-const $eo_typeof (-> sm.Term sm.Term))
 
-; declare: $eo_typeof_apply
-; note: This is a forward declaration
-(declare-const $eo_typeof_apply (-> sm.Term sm.Term sm.Term))
-
 ;;; Boolean operators
 
 ; program: $eo_and
@@ -344,9 +340,6 @@ $TYPEOF$
     sm.Stuck))))))))))))
 $TYPEOF_END$
 ))
-
-; program: $eo_typeof_apply
-; TODO
 
 ; program: $eo_nil
 ; note: This is forward declared above.
