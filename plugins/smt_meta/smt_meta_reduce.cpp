@@ -697,9 +697,9 @@ void SmtMetaReduce::finalizeDeclarations() {
       d_eoNil << "  (ite ";
       printConjunction(nconj, ncase.str(), d_eoNil, nilCtx);
       d_eoNil << std::endl;
-      d_eoNil << "    (= ($eo_nil x1 x2) ";
+      d_eoNil << "    ";
       printEmbTerm(attrCons, d_eoNil, nilCtx);
-      d_eoNil << ")" << std::endl;
+      d_eoNil << std::endl;
       d_eoNilEnd << ")";
     }
     // if its type is ground, the type is taken into account for typeof
@@ -791,8 +791,6 @@ void SmtMetaReduce::finalizeRules()
 
 void SmtMetaReduce::finalizeRule(const Expr& e)
 {
-  d_rules << "; rule: " << e << std::endl;
-  //d_rules << "; attribute is " << attr << std::endl;
   Expr r = e;
   Expr rt = d_tc.getType(r);
 
@@ -883,8 +881,10 @@ void SmtMetaReduce::finalizeRule(const Expr& e)
   }
 
 
-
+  /*
+  d_rules << "; rule: " << e << std::endl;
   //d_rules << "; type is " << rt << std::endl;
+  //d_rules << "; attribute is " << attr << std::endl;
   std::stringstream typeVarList;
   std::stringstream argList;
   std::stringstream appTerm;
@@ -981,6 +981,7 @@ void SmtMetaReduce::finalizeRule(const Expr& e)
   d_rules << "  (sm.hasModel conc))" << std::endl;
   d_rules << ruleEnd.str() << "))" << std::endl;
   d_rules << std::endl;
+  */
 
   // semantic soundness??
   /*

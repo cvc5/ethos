@@ -376,11 +376,11 @@ $TYPEOF_END$
 ; program: $eo_nil
 ; note: This is forward declared above.
 (assert (forall ((x1 sm.Term) (x2 sm.Term))
+  (= ($eo_nil x1 x2)
   (ite (or (= x1 sm.Stuck) (= x2 sm.Stuck))
-    (= ($eo_nil x1 x2) sm.Stuck)
+    sm.Stuck
 $NIL$
-    (= ($eo_nil x1 x2) sm.Stuck)
-)
+    sm.Stuck))
 $NIL_END$
 ))
 
