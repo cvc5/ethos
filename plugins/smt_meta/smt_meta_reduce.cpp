@@ -802,6 +802,14 @@ void SmtMetaReduce::finalizeRule(const Expr& e)
   std::map<Expr, bool>::iterator itv;
   std::vector<Expr> toVisit(vars.begin(), vars.end());
   Expr cur;
+  std::stringstream tcrSig;
+  std::stringstream tcrBody;
+  std::stringstream tcrCall;
+  tcrCall << "($sm.type_check_" << e;
+  // ethos ctx
+  std::vector<Expr> keep;
+  Ctx ectx;
+  bool firstTc = true;
   while (!toVisit.empty())
   {
     cur = toVisit.back();
@@ -833,11 +841,36 @@ void SmtMetaReduce::finalizeRule(const Expr& e)
       {
         paramList << " ";
       }
-      paramList << "(" << cur << " " << tcur << ")";
+      std::stringstream cname;
+      cname << cur;
+      paramList << "(" << cname.str() << " " << tcur << ")";
       toVisit.pop_back();
+      // if an original variable
+      if (std::find(vars.begin(), vars.end(), cur)!=vars.end())
+      {
+        // its type must match
+        if (firstTc)
+        {
+          firstTc = false;
+        }
+        else
+        {
+          tcrSig << " ";
+        }
+        tcrSig << "Type";
+        tcrBody << " " << tcur;
+        tcrCall << " (eo::typeof " << cur << ")";
+        // will instantiate it to strip off "(eo::param ...)"
+        Expr dummy = d_state.mkSymbol(Kind::CONST, cname.str(), tcur);
+        d_tc.getType(dummy);
+        keep.push_back(dummy);
+        //ectx[cur.getValue()] = dummy.getValue();
+      }
     }
   }
+  tcrCall << ")";
   std::vector<bool> argIsProof;
+  d_eoRules << "; rule: " << e << std::endl;
   if (rt.getKind()==Kind::FUNCTION_TYPE)
   {
     std::stringstream typeList;
@@ -858,13 +891,16 @@ void SmtMetaReduce::finalizeRule(const Expr& e)
         bool isProof = (ak==Kind::PROOF_TYPE);
         if (isProof)
         {
-          typeList << "(! " << ta << " :premise)";
+          //typeList << "(! " << ta << " :premise)";
+          typeList << ta;
         }
         else
         {
           typeList << ta;
         }
-        argList << " " << argType[0];
+        // instantiate it, which strips off "(eo::param ...)"
+        Expr atev = d_tc.evaluate(argType[0].getValue(), ectx);
+        argList << " " << atev;
         argIsProof.push_back(isProof);
       }
     }
@@ -879,15 +915,30 @@ void SmtMetaReduce::finalizeRule(const Expr& e)
     Assert (rrt.getKind()==Kind::PROOF_TYPE);
     rrt = rrt[0];
     rrt = d_state.mkRequires(reqs, rrt);
-    d_eoRules << "; rule: " << e << std::endl;
+    // just use the same parameter list
+    d_eoRules << "(program $sm.type_check_" << e << " (" << paramList.str() << ")" << std::endl;
+    d_eoRules << "  :signature (" << tcrSig.str() << ") Bool" << std::endl;
+    d_eoRules << "  (" << std::endl;
+    d_eoRules << "  (($sm.type_check_" << e << tcrBody.str() << ") true)" << std::endl;
+    d_eoRules << "  )" << std::endl;
+    d_eoRules << ")" << std::endl;
     d_eoRules << "(program $sm_" << e << " (" << paramList.str() << ")" << std::endl;
     d_eoRules << "  :signature (" << typeList.str() << ")";
     d_eoRules << " Bool" << std::endl;
     d_eoRules << "  (" << std::endl;
-    d_eoRules << "  (($sm_" << e << argList.str() << ") " << rrt << ")" << std::endl;
+    d_eoRules << "  (($sm_" << e << argList.str() << ")";
+    d_eoRules << " (eo::requires " << tcrCall.str() << " true" << std::endl;
+    d_eoRules << "      " << rrt << "))" << std::endl;
     d_eoRules << "  )" << std::endl;
     d_eoRules << ")" << std::endl;
     d_eoRules << std::endl;
+  }
+  else
+  {
+    // ground rule is just a formula definition
+    Assert (rt.getKind()==Kind::PROOF_TYPE);
+    Expr rrt = rt[0];
+    d_eoRules << "(define $sm_" << e << " () " << rrt << ")" << std::endl << std::endl;
   }
 
 

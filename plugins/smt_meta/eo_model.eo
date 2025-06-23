@@ -7,6 +7,12 @@
 ; Conceptually, returns the model value for constant with identifier id and type T.
 (declare-parameterized-const $eo_model_lookup ((id Int) (T Type)) T)
 
+
+; TODO: specification for forall is a (non-computable) function
+;(declare-parameterized-const $eo_model_var_to_id ((T Type)) (-> T Int))
+;(declare-parameterized-const $eo_model_value_enum ((T Type)) (-> Int T))
+;(program $eo_model_evaluate_forall ((xs @List)
+
 ; An evaluator for all terms that we can reason about models.
 (program $eo_model_evaluate ((T Type) (U Type) (V Type) (x T) (f (-> U T)) (y V) (z V) (n Int))
   :signature (T) T
@@ -20,6 +26,7 @@
                                           (eo::ite (eo::eq fmy fmz)
                                             true
                                             (eo::requires ($are_distinct_terms fmy fmz) true false)))))
+  ; TODO: other operators go here
   ; Use the CPC run_evaluate side condition for all operators returning an atomic value.
   ; This side condition is part of the trusted core.
   (($eo_model_evaluate (f y))           (eo::define ((fme ($eo_model_evaluate f)))
