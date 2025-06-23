@@ -343,7 +343,7 @@ void Expr::printDebugInternal(const Expr& e,
       else
       {
         os << "(";
-        if (k!=Kind::APPLY && k!=Kind::TUPLE)
+        if (k!=Kind::APPLY || (*cur.first)[0]->getNumChildren()>0)
         {
           os << kindToTerm(k) << " ";
         }

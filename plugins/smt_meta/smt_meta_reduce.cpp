@@ -860,7 +860,18 @@ void SmtMetaReduce::finalizeRule(const Expr& e)
         argList << " " << argType[0];
       }
     }
+    // strip off the "(Proof ...)", which may be beneath requires
     Expr rrt = rt[rt.getNumChildren()-1];
+    std::vector<Expr> reqs;
+    while (rrt.getKind()==Kind::EVAL_REQUIRES)
+    {
+      reqs.push_back(d_state.mkPair(rrt[0], rrt[1]));
+      rrt = rrt[2];
+    }
+    Assert (rrt.getKind()==Kind::PROOF_TYPE);
+    rrt = rrt[0];
+    rrt = d_state.mkRequires(reqs, rrt);
+    d_eoRules << "; rule: " << e << std::endl;
     d_eoRules << "(program $sm_" << e << " (" << paramList.str() << ")" << std::endl;
     d_eoRules << "  :signature (" << typeList.str() << ")";
     d_eoRules << " Bool" << std::endl;

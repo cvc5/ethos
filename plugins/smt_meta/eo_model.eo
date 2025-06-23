@@ -14,14 +14,14 @@
   ; @const is the CPC syntax for constants
   (($eo_model_evaluate (@const n T))    ($eo_model_lookup n T))
   ; For equality, we use $are_distinct_terms which is more general than $run_evaluate.
-  ; This is part of the trusted core.
+  ; This side condition is part of the trusted core.
   (($eo_model_evaluate (= y z))         (eo::define ((fmy ($eo_model_evaluate y)))
                                         (eo::define ((fmz ($eo_model_evaluate z)))
                                           (eo::ite (eo::eq fmy fmz)
                                             true
                                             (eo::requires ($are_distinct_terms fmy fmz) true false)))))
   ; Use the CPC run_evaluate side condition for all operators returning an atomic value.
-  ; This is part of the trusted core.
+  ; This side condition is part of the trusted core.
   (($eo_model_evaluate (f y))           (eo::define ((fme ($eo_model_evaluate f)))
                                         (eo::define ((fmy ($eo_model_evaluate y)))
                                           ($run_evaluate (_ fme fmy)))))
@@ -32,4 +32,5 @@
 (define $eo_is_sat_model ((F Bool)) ($eo_model_evaluate F))
 
 
+;;; User defined rules.
 $EO_RULES$
