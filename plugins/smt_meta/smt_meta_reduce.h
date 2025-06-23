@@ -83,6 +83,7 @@ private:
   void finalizePrograms();
   void finalizeProgram(const Expr& v, const Expr& prog);
   void finalizeDeclarations();
+  void finalizeRule(const Expr& v);
   void finalizeRules();
   /** Does t have subterm s? */
   static bool hasSubterm(const Expr& t, const Expr& s);
@@ -126,7 +127,6 @@ private:
   std::stringstream d_eoTypeofEnd;
   std::stringstream d_eoDtSelectors;
   std::stringstream d_eoDtConstructors;
-  std::stringstream d_hasProofList;
 
   bool d_inInitialize;
 };

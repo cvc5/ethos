@@ -281,8 +281,13 @@ $TERM_DECL$
     sm.Stuck)))
 
 ; program: $eo_to_str
-(declare-fun $eo_to_str (sm.Term) sm.Term)
-; TODO
+(define-fun $eo_to_str ((x1 sm.Term)) sm.Term
+  (ite ((_ is sm.Numeral) x1)
+    (sm.String (str.from_code (sm.Numeral.val x1)))
+  (ite ((_ is sm.String) x1)
+    x1
+  ; TODO
+    sm.Stuck)))
 
 ;;; List operators
 
@@ -359,17 +364,7 @@ $NIL_END$
 ;;; Proof definitions
 
 ; Predicate for terms for which we have a proof.
-(declare-fun sm.hasProof (sm.Term) Bool)
-
-; first argument is an n-ary operator
-; second argument is a formula that is an application
-(declare-fun sm.hasProofList (sm.Term sm.Term) Bool)
-(assert (forall ((x1 sm.Term) (x2 sm.Term))
-  (ite (= x2 ($eo_nil x1 ($eo_typeof x2)))
-    (= (sm.hasProofList x1 x2) true)
-$HAS_PROOF_LIST$
-    (= (sm.hasProofList x1 x2) false))
-))
+(declare-fun sm.hasModel (sm.Term) Bool)
 
 ;;; User defined proof rules
 

@@ -1,0 +1,14 @@
+(include "../../../cvc5-pr-ajr/proofs/eo/cpc/Cpc.eo")
+
+(program $eo_model_evaluate ((T Type) (x T) (y T))
+  :signature (T) T
+  (
+  ; more
+  ;(($eo_model_evaluate (@const n T))
+  ; use the run_evaluate side condition for all operators returning an atomic value.
+  (($eo_model_evaluate x)             ($run_evaluate x))
+  )
+)
+
+(define $eo_has_model ((T Type :implicit) (x T))
+  (eo::eq ($eo_model_evaluate x) true))

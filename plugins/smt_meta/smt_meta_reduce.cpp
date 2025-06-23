@@ -780,125 +780,125 @@ void SmtMetaReduce::finalizeRules()
     {
       continue;
     }
-    d_rules << "; rule: " << e << std::endl;
-    Attr attr = Attr::NONE;
-    Expr attrCons;
-    it = d_attrDecl.find(e);
-    if (it!=d_attrDecl.end())
-    {
-      attr = it->second.first;
-      attrCons = it->second.second;
-    }
-    //d_rules << "; attribute is " << attr << std::endl;
-    Expr r = e;
-    Expr rt = d_tc.getType(r);
-    //d_rules << "; type is " << rt << std::endl;
-    std::stringstream typeVarList;
-    std::stringstream argList;
-    std::stringstream appTerm;
-    std::stringstream proofPred;
-    size_t nproofPredConj = 0;
-    SelectorCtx ctx;
-    std::stringstream rcase;
-    size_t nconj = 0;
-    //d_rules << "(declare-const " << r;
-    Expr retType;
-    if (rt.getKind()==Kind::FUNCTION_TYPE)
-    {
-      appTerm << "(" << r;
-      //d_rules << " (->";
-      // uses flat function type
-      for (size_t i=1, nargs = rt.getNumChildren(); i<nargs; i++)
-      {
-        //d_rules << " sm.Term";
-        std::stringstream ssArg;
-        ssArg << "x" << i;
-        if (i>1)
-        {
-          typeVarList << " ";
-        }
-        typeVarList << "(" << ssArg.str() << " sm.Term)";
-        Expr argType = rt[i-1];
-        Kind ak = argType.getKind();
-        Expr toMatch;
-        if (ak==Kind::QUOTE_TYPE)
-        {
-          toMatch = argType[0];
-        }
-        else if (ak==Kind::PROOF_TYPE)
-        {
-          toMatch = argType[0];
-          if (nproofPredConj>0)
-          {
-            proofPred << " ";
-          }
-          nproofPredConj++;
-          if (attr==Attr::PREMISE_LIST)
-          {
-            proofPred << "(sm.hasProofList ";
-            Assert (!attrCons.isNull());
-            printEmbAtomicTerm(attrCons, proofPred);
-            proofPred  << " " << ssArg.str() << ")";
-          }
-          else
-          {
-            proofPred << "(sm.hasProof " << ssArg.str() << ")";
-          }
-        }
-        else
-        {
-          EO_FATAL() << "Unknown type to rule " << ak << std::endl;
-        }
-        // print the pattern matching
-        printEmbPatternMatch(toMatch, ssArg.str(), rcase, ctx, nconj);
-      }
-      appTerm << ")";
-      //d_rules << " sm.Term)";
-      retType = rt[rt.getNumChildren()-1];
-    }
-    else
-    {
-      appTerm << r;
-      //d_rules << " sm.Term";
-      retType = rt;
-    }
-    //d_rules << ")" << std::endl;
-    // print the conclusion term
-    std::stringstream rret;
-    printEmbTerm(retType, rret, ctx, true);
-
-    std::stringstream ruleEnd;
-    d_rules << "(assert";
-    if (!typeVarList.str().empty())
-    {
-      d_rules << " (forall (" << typeVarList.str() << ")" << std::endl;
-      ruleEnd << ")";
-    }
-    d_rules << "  (let ((conc " << rret.str() << "))" << std::endl;
-    // premises
-    if (nproofPredConj>0)
-    {
-      d_rules << "  (=> ";
-      SelectorCtx emp;
-      printConjunction(nproofPredConj, proofPred.str(), d_rules, emp);
-      d_rules << std::endl;
-      ruleEnd << ")";
-    }
-    // pattern matching
-    if (nconj>0)
-    {
-      d_rules << "  (=> ";
-      printConjunction(nconj, rcase.str(), d_rules, ctx);
-      d_rules << std::endl;
-      ruleEnd << ")";
-    }
-    // type check the conclusion to Bool
-    d_rules << "  (=> (= ($eo_typeof conc) sm.BoolType)" << std::endl;
-    d_rules << "  (sm.hasProof conc))" << std::endl;
-    d_rules << ruleEnd.str() << "))" << std::endl;
-    d_rules << std::endl;
+    finalizeRule(e);
   }
   d_ruleSeen.clear();
+}
+
+void SmtMetaReduce::finalizeRule(const Expr& e)
+{
+  d_rules << "; rule: " << e << std::endl;
+  //d_rules << "; attribute is " << attr << std::endl;
+  Expr r = e;
+  Expr rt = d_tc.getType(r);
+  //d_rules << "; type is " << rt << std::endl;
+  std::stringstream typeVarList;
+  std::stringstream argList;
+  std::stringstream appTerm;
+  std::stringstream proofPred;
+  size_t nproofPredConj = 0;
+  SelectorCtx ctx;
+  std::stringstream rcase;
+  size_t nconj = 0;
+  //d_rules << "(declare-const " << r;
+  Expr retType;
+  if (rt.getKind()==Kind::FUNCTION_TYPE)
+  {
+    appTerm << "(" << r;
+    //d_rules << " (->";
+    // uses flat function type
+    for (size_t i=1, nargs = rt.getNumChildren(); i<nargs; i++)
+    {
+      //d_rules << " sm.Term";
+      std::stringstream ssArg;
+      ssArg << "x" << i;
+      if (i>1)
+      {
+        typeVarList << " ";
+      }
+      typeVarList << "(" << ssArg.str() << " sm.Term)";
+      Expr argType = rt[i-1];
+      Kind ak = argType.getKind();
+      Expr toMatch;
+      if (ak==Kind::QUOTE_TYPE)
+      {
+        toMatch = argType[0];
+      }
+      else if (ak==Kind::PROOF_TYPE)
+      {
+        toMatch = argType[0];
+        if (nproofPredConj>0)
+        {
+          proofPred << " ";
+        }
+        nproofPredConj++;
+        // Note this assumes that :premise-list is only used with "and".
+        // This assumes that an implicit AND_INTRO step is sound.
+        proofPred << "(sm.hasModel " << ssArg.str() << ")";
+      }
+      else
+      {
+        EO_FATAL() << "Unknown type to rule " << ak << std::endl;
+      }
+      // print the pattern matching
+      printEmbPatternMatch(toMatch, ssArg.str(), rcase, ctx, nconj);
+    }
+    appTerm << ")";
+    //d_rules << " sm.Term)";
+    retType = rt[rt.getNumChildren()-1];
+  }
+  else
+  {
+    appTerm << r;
+    //d_rules << " sm.Term";
+    retType = rt;
+  }
+  //d_rules << ")" << std::endl;
+  // print the conclusion term
+  std::stringstream rret;
+  printEmbTerm(retType, rret, ctx, true);
+
+  std::stringstream ruleEnd;
+  d_rules << "(assert";
+  if (!typeVarList.str().empty())
+  {
+    d_rules << " (forall (" << typeVarList.str() << ")" << std::endl;
+    ruleEnd << ")";
+  }
+  d_rules << "  (let ((conc " << rret.str() << "))" << std::endl;
+  // premises
+  if (nproofPredConj>0)
+  {
+    d_rules << "  (=> ";
+    SelectorCtx emp;
+    printConjunction(nproofPredConj, proofPred.str(), d_rules, emp);
+    d_rules << std::endl;
+    ruleEnd << ")";
+  }
+  // pattern matching
+  if (nconj>0)
+  {
+    d_rules << "  (=> ";
+    printConjunction(nconj, rcase.str(), d_rules, ctx);
+    d_rules << std::endl;
+    ruleEnd << ")";
+  }
+  // type check the conclusion to Bool
+  d_rules << "  (=> (= ($eo_typeof conc) sm.BoolType)" << std::endl;
+  d_rules << "  (sm.hasModel conc))" << std::endl;
+  d_rules << ruleEnd.str() << "))" << std::endl;
+  d_rules << std::endl;
+
+  // semantic soundness??
+  std::vector<Expr> vars = Expr::getVariables(rt);
+  SelectorCtx ctx;
+  size_t varCounter = 0;
+  for (const Expr& v : vars)
+  {
+    varCounter++;
+    std::stringstream ssv;
+    ctx[v] =
+  }
 }
 
 void SmtMetaReduce::finalize() {
@@ -942,7 +942,6 @@ void SmtMetaReduce::finalize() {
   replace(finalSm, "$NIL_END$", d_eoNilEnd.str());
   replace(finalSm, "$DEFS$", d_defs.str());
   replace(finalSm, "$RULES$", d_rules.str());
-  replace(finalSm, "$HAS_PROOF_LIST$", d_hasProofList.str());
 
   std::cout << ";;; Final: " << std::endl;
   std::cout << finalSm << std::endl;
