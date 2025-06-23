@@ -890,15 +890,16 @@ void SmtMetaReduce::finalizeRule(const Expr& e)
   d_rules << std::endl;
 
   // semantic soundness??
+  /*
   std::vector<Expr> vars = Expr::getVariables(rt);
-  SelectorCtx ctx;
+  SelectorCtx sctx;
   size_t varCounter = 0;
   for (const Expr& v : vars)
   {
     varCounter++;
     std::stringstream ssv;
-    ctx[v] =
   }
+  */
 }
 
 void SmtMetaReduce::finalize() {
