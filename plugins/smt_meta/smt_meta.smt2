@@ -62,6 +62,10 @@ $TERM_DECL$
 
 ;;; Core operators
 
+; declare: $eo_typeof
+; note: This is a forward declaration
+(declare-const $eo_typeof (-> sm.Term sm.Term))
+
 ; program: $eo_is_ok
 (define-fun $eo_is_ok ((x1 sm.Term)) sm.Term
   ($sm_Boolean (not (= x1 sm.Stuck))))
@@ -97,12 +101,10 @@ $TERM_DECL$
     sm.Stuck))
 
 ; program: $eo_var
-(declare-const $eo_var (-> sm.Term sm.Term sm.Term))
-; TODO
-
-; declare: $eo_typeof
-; note: This is a forward declaration
-(declare-const $eo_typeof (-> sm.Term sm.Term))
+(define-fun $eo_var ((x1 sm.Term) (x2 sm.Term)) sm.Term
+  (ite (and ((_ is sm.String) x1) (= ($eo_typeof x2) sm.Type))
+    (sm.Var (sm.String.val x1) x2)
+    sm.Stuck))
 
 ;;; Boolean operators
 
@@ -177,11 +179,11 @@ $TERM_DECL$
   (ite (or (= x1 sm.Stuck) (= x2 sm.Stuck))
     sm.Stuck
   (ite (and ((_ is sm.Numeral) x1) ((_ is sm.Numeral) x2) (not (= (sm.Numeral.val x2) 0)))
-    (sm.Numeral (/ (to_real (sm.Numeral.val x1)) (to_real (sm.Numeral.val x2))))
+    (sm.Rational (/ (to_real (sm.Numeral.val x1)) (to_real (sm.Numeral.val x2))))
   (ite (and ((_ is sm.Rational) x1) ((_ is sm.Rational) x2) (not (= (sm.Rational.val x2) 0.0)))
     (sm.Rational (/ (sm.Rational.val x1) (sm.Rational.val x2)))
   (ite (and ((_ is sm.Decimal) x1) ((_ is sm.Decimal) x2) (not (= (sm.Decimal.val x2) 0.0)))
-    (sm.Decimal (/ (sm.Decimal.val x1) (sm.Decimal.val x2)))
+    (sm.Rational (/ (sm.Decimal.val x1) (sm.Decimal.val x2)))
     sm.Stuck)))))
 
 ; program: $eo_zdiv
@@ -214,8 +216,9 @@ $TERM_DECL$
     (sm.Rational (- (sm.Rational.val x1)))
   (ite ((_ is sm.Decimal) x1)
     (sm.Decimal (- (sm.Decimal.val x1)))
-  ; TODO
-    sm.Stuck)))))
+  (ite ((_ is sm.Binary) x1)
+    ($sm_Binary (sm.Binary.width x1) (- (sm.Binary.val x1)))
+    sm.Stuck))))))
 
 ;;; String operators
 
