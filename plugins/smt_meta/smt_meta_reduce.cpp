@@ -527,7 +527,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   std::stringstream decl;
   Expr vv = v;
   Expr vt = d_tc.getType(vv);
-  decl << "(declare-const " << v << " (-> ";
+  decl << "(declare-fun " << v << " (";
   std::stringstream varList;
   Assert (vt.getKind()==Kind::PROGRAM_TYPE);
   size_t nargs = vt.getNumChildren();
@@ -542,11 +542,12 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   }
   for (size_t i=1; i<nargs; i++)
   {
-    decl << "sm.Term ";
     if (i>1)
     {
+      decl << " ";
       varList << " ";
     }
+    decl << "sm.Term";
     std::stringstream ssArg;
     ssArg << "x" << i;
     appTerm << " " << ssArg.str();
@@ -559,8 +560,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     stuckCond << ")";
   }
   appTerm << ")";
-  decl << "sm.Term)";
-  decl << ")" << std::endl;
+  decl << ") sm.Term)" << std::endl;
   // if forward declared, we are done for now
   if (prog.isNull())
   {

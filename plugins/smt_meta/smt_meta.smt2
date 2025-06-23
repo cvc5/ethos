@@ -1,4 +1,4 @@
-(set-logic HO_ALL)
+(set-logic UFDTSLIRA)
 
 (declare-datatype sm.Term
   (
@@ -64,7 +64,7 @@ $TERM_DECL$
 
 ; declare: $eo_typeof
 ; note: This is a forward declaration
-(declare-const $eo_typeof (-> sm.Term sm.Term))
+(declare-fun $eo_typeof (sm.Term) sm.Term)
 
 ; program: $eo_is_ok
 (define-fun $eo_is_ok ((x1 sm.Term)) sm.Term
@@ -86,7 +86,7 @@ $TERM_DECL$
 
 ; program: $eo_hash
 ; note: This is defined axiomatically.
-(declare-const $eo_hash (-> sm.Term sm.Term))
+(declare-fun $eo_hash (sm.Term) sm.Term)
 (assert (forall ((x sm.Term))
   (=> (not (= x sm.Stuck))
     ((_ is sm.Numeral) ($eo_hash x)))))
@@ -147,7 +147,7 @@ $TERM_DECL$
   (ite (and ((_ is sm.Decimal) x1) ((_ is sm.Decimal) x2))
     (sm.Decimal (+ (sm.Decimal.val x1) (sm.Decimal.val x2)))
   (ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))
-    ($sm_Binary (sm.Binary.width x1) (+ (sm.Numeral.val x1) (sm.Numeral.val x2)))
+    ($sm_Binary (sm.Binary.width x1) (+ (sm.Binary.val x1) (sm.Binary.val x2)))
     sm.Stuck)))))
 
 ; program: $eo_mul
@@ -159,7 +159,7 @@ $TERM_DECL$
   (ite (and ((_ is sm.Decimal) x1) ((_ is sm.Decimal) x2))
     (sm.Decimal (* (sm.Decimal.val x1) (sm.Decimal.val x2)))
   (ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))
-    ($sm_Binary (sm.Binary.width x1) (* (sm.Numeral.val x1) (sm.Numeral.val x2)))
+    ($sm_Binary (sm.Binary.width x1) (* (sm.Binary.val x1) (sm.Binary.val x2)))
     sm.Stuck)))))
 
 ; program: $eo_qdiv
@@ -173,12 +173,20 @@ $TERM_DECL$
     sm.Stuck))))
 
 ; program: $eo_zdiv
-(declare-const $eo_zdiv (-> sm.Term sm.Term sm.Term))
-; TODO
+(define-fun $eo_zdiv ((x1 sm.Term) (x2 sm.Term)) sm.Term
+  (ite (and ((_ is sm.Numeral) x1) ((_ is sm.Numeral) x2) (not (= (sm.Numeral.val x2) 0)))
+    (sm.Numeral (div (sm.Numeral.val x1) (sm.Numeral.val x2)))
+  (ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2)) (not (= (sm.Binary.val x2) 0)))
+    ($sm_Binary (sm.Binary.width x1) (div (sm.Binary.val x1) (sm.Binary.val x2)))
+    sm.Stuck)))
 
 ; program: $eo_zmod
-(declare-const $eo_zmod (-> sm.Term sm.Term sm.Term))
-; TODO
+(define-fun $eo_zmod ((x1 sm.Term) (x2 sm.Term)) sm.Term
+  (ite (and ((_ is sm.Numeral) x1) ((_ is sm.Numeral) x2) (not (= (sm.Numeral.val x2) 0)))
+    (sm.Numeral (mod (sm.Numeral.val x1) (sm.Numeral.val x2)))
+  (ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2)) (not (= (sm.Binary.val x2) 0)))
+    ($sm_Binary (sm.Binary.width x1) (mod (sm.Binary.val x1) (sm.Binary.val x2)))
+    sm.Stuck)))
 
 ; program: $eo_is_neg
 (define-fun $eo_is_neg ((x1 sm.Term)) sm.Term
@@ -222,12 +230,14 @@ $TERM_DECL$
     sm.Stuck))
 
 ; program: $eo_extract
-(declare-const $eo_extract (-> sm.Term sm.Term sm.Term sm.Term))
+(declare-fun $eo_extract (sm.Term sm.Term sm.Term) sm.Term)
 ; TODO
 
 ; program: $eo_find
-(declare-const $eo_find (-> sm.Term sm.Term sm.Term))
-; TODO
+(define-fun $eo_find ((x1 sm.Term) (x2 sm.Term)) sm.Term
+  (ite (and ((_ is sm.String) x1) ((_ is sm.String) x2))
+    (sm.Numeral (str.indexof (sm.String.val x1) (sm.String.val x2) 0))
+    sm.Stuck))
 
 ;;; Conversion operators
 
@@ -266,23 +276,23 @@ $TERM_DECL$
     sm.Stuck)))
 
 ; program: $eo_to_str
-(declare-const $eo_to_str (-> sm.Term sm.Term))
+(declare-fun $eo_to_str (sm.Term) sm.Term)
 ; TODO
 
 ;;; List operators
 
 ; declare: $eo_nil
 ; node: this is a forward declaration
-(declare-const $eo_nil (-> sm.Term sm.Term sm.Term))
+(declare-fun $eo_nil (sm.Term sm.Term) sm.Term)
 
 ;;; Datatype operators
 
 ; declare: $eo_dt_selectors
-(declare-const $eo_dt_selectors (-> sm.Term sm.Term))
+(declare-fun $eo_dt_selectors (sm.Term) sm.Term)
 ; TODO
 
 ; declare: $eo_dt_constructors
-(declare-const $eo_dt_constructors (-> sm.Term sm.Term))
+(declare-fun $eo_dt_constructors (sm.Term) sm.Term)
 ; TODO
 
 ;;; User defined symbols
@@ -344,11 +354,11 @@ $NIL_END$
 ;;; Proof definitions
 
 ; Predicate for terms for which we have a proof.
-(declare-const sm.hasProof (-> sm.Term Bool))
+(declare-fun sm.hasProof (sm.Term) Bool)
 
 ; first argument is an n-ary operator
 ; second argument is a formula that is an application
-(declare-const sm.hasProofList (-> sm.Term sm.Term Bool))
+(declare-fun sm.hasProofList (sm.Term sm.Term) Bool)
 (assert (forall ((x1 sm.Term) (x2 sm.Term))
   (ite (= x2 ($eo_nil x1 ($eo_typeof x2)))
     (= (sm.hasProofList x1 x2) true)
