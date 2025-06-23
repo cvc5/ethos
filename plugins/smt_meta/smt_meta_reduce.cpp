@@ -791,6 +791,24 @@ void SmtMetaReduce::finalizeRule(const Expr& e)
   //d_rules << "; attribute is " << attr << std::endl;
   Expr r = e;
   Expr rt = d_tc.getType(r);
+
+
+  // compile to Eunoia program???
+  std::vector<Expr> vars = Expr::getVariables(rt);
+  std::stringstream eoDecl;
+  std::stringstream eoDeclEnd;
+  eoDecl << "(program $sm_" << e << " (";
+  std::visited<Expr> visited;
+  std::vector<Expr> toVisit(vars.begin(), vars.end());
+  do
+  {
+  }
+  while (!toVisit.empty());
+  eoDecl << ")" << std::endl;
+  eoDecl << ")";
+
+
+
   //d_rules << "; type is " << rt << std::endl;
   std::stringstream typeVarList;
   std::stringstream argList;
