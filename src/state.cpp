@@ -779,6 +779,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
   }
   else if (isLiteralOp(k))
   {
+    // this transforms e.g. (eo::add t1 t2 t3) into (eo::add (eo::add t1 t2) t3).
     if (isNaryLiteralOp(k) && vchildren.size()>2)
     {
       std::vector<ExprValue*> cc{nullptr, nullptr};

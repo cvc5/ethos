@@ -168,14 +168,6 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_NIL:
       ret = (nargs==2);
       break;
-    case Kind::EVAL_ADD:
-    case Kind::EVAL_MUL:
-    case Kind::EVAL_AND:
-    case Kind::EVAL_OR:
-    case Kind::EVAL_XOR:
-    case Kind::EVAL_CONCAT:
-      ret = (nargs>=2);
-      break;
     case Kind::EVAL_LIST_CONCAT:
       ret = (nargs==3);
       break;
@@ -212,7 +204,11 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
       ret = (nargs==3 || nargs==2);
       break;
     default:
-      if (out)
+      if (isNaryLiteralOp(k))
+      {
+        ret = (nargs==2);
+      }
+      else if (out)
       {
         (*out) << "Unknown arity for " << k;
       }
