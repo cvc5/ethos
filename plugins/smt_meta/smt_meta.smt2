@@ -383,12 +383,3 @@ $NIL$
     sm.Stuck))
 $NIL_END$
 ))
-
-;;; Proof definitions
-
-; Predicate for terms for which we have a proof.
-(declare-fun sm.hasModel (sm.Term) Bool)
-
-;;; User defined proof rules
-
-$RULES$

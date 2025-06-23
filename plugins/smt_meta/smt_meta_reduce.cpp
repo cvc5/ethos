@@ -837,6 +837,7 @@ void SmtMetaReduce::finalizeRule(const Expr& e)
       toVisit.pop_back();
     }
   }
+  std::vector<bool> argIsProof;
   if (rt.getKind()==Kind::FUNCTION_TYPE)
   {
     std::stringstream typeList;
@@ -854,8 +855,17 @@ void SmtMetaReduce::finalizeRule(const Expr& e)
         // handled the same: argument is first child
         Expr aa = argType[0];
         Expr ta = d_tc.getType(aa);
-        typeList << ta;
+        bool isProof = (ak==Kind::PROOF_TYPE);
+        if (isProof)
+        {
+          typeList << "(! " << ta << " :premise)";
+        }
+        else
+        {
+          typeList << ta;
+        }
         argList << " " << argType[0];
+        argIsProof.push_back(isProof);
       }
     }
     // strip off the "(Proof ...)", which may be beneath requires

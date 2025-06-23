@@ -5,10 +5,10 @@
 ; (2) A function $eo_is_sat_model, which defines whether a (Boolean) term is satisfied by a model.
 
 ; Conceptually, returns the model value for constant with identifier id and type T.
-(declare-const $eo_model_lookup (-> Int T T))
+(declare-parameterized-const $eo_model_lookup ((T Type)) (-> Int T T))
 
 ; An evaluator for all terms that we can reason about models.
-(program $eo_model_evaluate ((T Type) (U Type) (V Type) (x T) (f (-> U T)) (y V) (z V))
+(program $eo_model_evaluate ((T Type) (U Type) (V Type) (x T) (f (-> U T)) (y V) (z V) (n Int))
   :signature (T) T
   (
   ; @const is the CPC syntax for constants
@@ -25,12 +25,13 @@
   (($eo_model_evaluate (f y))           (eo::define ((fme ($eo_model_evaluate f)))
                                         (eo::define ((fmy ($eo_model_evaluate y)))
                                           ($run_evaluate (_ fme fmy)))))
+  (($eo_model_evaluate x)               ($run_evaluate x))
   )
 )
 
 ; Call the above function, returns true iff F evaluates to true.
 (define $eo_is_sat_model ((F Bool)) ($eo_model_evaluate F))
 
-
 ;;; User defined rules.
+
 $EO_RULES$
