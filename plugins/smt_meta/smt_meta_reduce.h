@@ -84,6 +84,8 @@ private:
   void finalizeProgram(const Expr& v, const Expr& prog);
   void finalizeDeclarations();
   void finalizeRules();
+  /** Does t have subterm s? */
+  static bool hasSubterm(const Expr& t, const Expr& s);
   State& d_state;
   /** the type checker */
   TypeChecker& d_tc;

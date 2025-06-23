@@ -67,9 +67,9 @@ void SmtMetaReduce::setLiteralTypeRule(Kind k, const Expr& t)
   Expr self = d_state.mkSelf();
   SelectorCtx ctx;
   ctx.d_ctx[self] = "x1";
-  d_eoTypeofLit << "    (= ($eo_typeof x1) ";
+  d_eoTypeofLit << "    ";
   printEmbTerm(t, d_eoTypeofLit, ctx);
-  d_eoTypeofLit << ")" << std::endl;
+  d_eoTypeofLit << std::endl;
 }
 
 void SmtMetaReduce::bind(const std::string& name, const Expr& e) {
@@ -524,8 +524,12 @@ void SmtMetaReduce::finalizePrograms()
 
 void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
 {
+  if (v==d_eoTmpNil)
+  {
+    return;
+  }
+  d_defs << "; " << (prog.isNull() ? "fwd-decl: " : "program: ") << v << std::endl;
   std::stringstream decl;
-  decl << "; program " << v << std::endl;
   Expr vv = v;
   Expr vt = d_tc.getType(vv);
   decl << "(declare-const " << v << " (-> ";
@@ -562,22 +566,20 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   appTerm << ")";
   decl << "sm.Term)";
   decl << ")" << std::endl;
-  if (d_progDeclProcessed.find(v)==d_progDeclProcessed.end())
-  {
-    d_progDeclProcessed.insert(v);
-    d_defs << decl.str();
-  }
   // if forward declared, we are done for now
   if (prog.isNull())
   {
+    d_progDeclProcessed.insert(v);
+    d_defs << decl.str() << std::endl;
     return;
   }
+  bool reqAxiom = (d_progDeclProcessed.find(v)!=d_progDeclProcessed.end());
   // compile the pattern matching
   std::stringstream cases;
   std::stringstream casesEnd;
   // start with stuck case
   cases << "  (ite" << stuckCond.str() << std::endl;
-  cases << "    (= " << appTerm.str() << " sm.Stuck)" << std::endl;
+  cases << "    sm.Stuck" << std::endl;
   casesEnd << ")";
   size_t ncases = prog.getNumChildren();
   for (size_t i=0; i<ncases; i++)
@@ -585,6 +587,11 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     const Expr& c = prog[i];
     const Expr& hd = c[0];
     const Expr& body = c[1];
+    // if recursive, needs axiom
+    if (!reqAxiom && hasSubterm(body, v))
+    {
+      reqAxiom = true;
+    }
     SelectorCtx ctx;
     std::stringstream currCase;
     size_t nconj = 0;
@@ -602,15 +609,29 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     printConjunction(nconj, currCase.str(), cases);
     cases << ctx.d_letEnd.str();
     cases << std::endl;
-    cases << "    (= " << appTerm.str() << " " << currRet.str() << ")" << std::endl;
+    cases << "    " << currRet.str() << std::endl;
     casesEnd << ")";
   }
   // axiom
-  d_defs << "(assert (forall (" << varList.str() << ")" << std::endl;
+  if (reqAxiom)
+  {
+    // declare now if not already forward declared
+    if (d_progDeclProcessed.find(v)==d_progDeclProcessed.end())
+    {
+      d_defs << decl.str();
+    }
+    d_defs << "(assert (forall (" << varList.str() << ")" << std::endl;
+    d_defs << "  (= " << appTerm.str() << std::endl;
+    casesEnd << "))";
+  }
+  else
+  {
+    d_defs << "(define-fun " << v << " (" << varList.str() << ") sm.Term" << std::endl;
+  }
   d_defs << cases.str();
-  d_defs << "    (= " << appTerm.str() << " sm.Stuck)";
+  d_defs << "    sm.Stuck";
   d_defs << casesEnd.str() << std::endl;
-  d_defs << "))" << std::endl;
+  d_defs << ")" << std::endl;
   d_defs << std::endl;
 
 }
@@ -690,11 +711,16 @@ void SmtMetaReduce::finalizeDeclarations() {
     if (ct.isGround())
     {
       d_eoTypeof << "  (ite ((_ is " << cname.str() << ") x1)" << std::endl;
-      d_eoTypeof << "    (= ($eo_typeof x1) ";
+      d_eoTypeof << "    ";
       SelectorCtx typeofCtx;
       printEmbTerm(ct, d_eoTypeof, typeofCtx);
-      d_eoTypeof << ")" << std::endl;
+      d_eoTypeof << std::endl;
       d_eoTypeofEnd << ")";
+    }
+    else
+    {
+      Assert(ct.getKind() == Kind::FUNCTION_TYPE);
+      std::vector<Expr> argTypes;
     }
   }
   d_declSeen.clear();
@@ -885,6 +911,35 @@ void SmtMetaReduce::finalize() {
 std::string toString() {
   std::stringstream ss;
   return ss.str();
+}
+
+bool SmtMetaReduce::hasSubterm(const Expr& t, const Expr& s)
+{
+  std::vector<Expr> ret;
+  std::unordered_set<const ExprValue*> visited;
+  std::vector<Expr> toVisit;
+  toVisit.push_back(t);
+  Expr cur;
+  while (!toVisit.empty())
+  {
+    cur = toVisit.back();
+    toVisit.pop_back();
+    const ExprValue* cv = cur.getValue();
+    if (visited.find(cv) != visited.end())
+    {
+      continue;
+    }
+    visited.insert(cv);
+    if (cur==s)
+    {
+      return true;
+    }
+    for (size_t i = 0, nchildren = cur.getNumChildren(); i < nchildren; i++)
+    {
+      toVisit.push_back(cur[i]);
+    }
+  }
+  return false;
 }
 
 }  // namespace ethos

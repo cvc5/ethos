@@ -1,8 +1,3 @@
-; This file gives definitions of builtin eo::X operators.
-; We use the convention that each eo::X definition is given a corresponding
-; definition $eo_X. Modifying a Eunoia file to use $eo_ instead of eo:: should
-; have no impact on behavior (apart from performance), unless otherwise noted.
-
 ;;; forward declarations, will be discarded
 
 (declare-type eo_tmp_Int ())
@@ -97,41 +92,6 @@
   (eo::is_neg (eo::add (eo::hash b) (eo::neg (eo::hash a)))))
 
 ;;;;;; List operators
-
-;;; eo_tmp_nil
-
-; Note that the behavior of eo::nil is dynamically modified based on the
-; declared constants, as described below. This means we cannot provide a static
-; definition of eo_tmp_nil in this signature. Instead, we assume that eo_tmp_nil is
-; defined prior to parsing this file, and describe how to manually construct
-; such a definition for a given signature.
-
-; The internal definition of eo_tmp_nil has the following form.
-;(program eo_tmp_nil ((T Type) (U Type) (V Type) (W Type))
-;  :signature ((-> T U V) (eo::quote W)) W
-;  (
-;  ; ... Cases for each operator, see description below.
-;  )
-;)
-
-; For each declare-const or declare-parameterized-const f whose return type is T
-; declared in the signature that is marked :right-assoc-nil nil, we add the
-; case to eo_tmp_nil:
-;   ((eo_tmp_nil f T) nil)
-; For example, given:
-;   (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
-; We add this case to eo_tmp_nil above:
-;   ((eo_tmp_nil or Bool)          false)
-
-; Note that we include the type as part of the case to support functions with
-; non-ground nil terminators, which requiring instantiating the free parameters
-; of T. For example, given:
-;   (declare-parameterized-const bvor ((m eo_tmp_Int :implicit))
-;     (-> (BitVec m) (BitVec m) (BitVec m)) :right-assoc-nil (eo::to_bin 0 m))
-; We add this case to eo_tmp_nil above:
-;   ((eo_tmp_nil bvor (BitVec m))  (eo::to_bin 0 m))
-; Providing a concrete type, e.g. (BitVec 4) will ensure m is bound to 4.
-
 
 ;;; $eo_is_list
 

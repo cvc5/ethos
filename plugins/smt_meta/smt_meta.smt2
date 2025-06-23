@@ -304,39 +304,44 @@ $DEFS$
 ; program: $eo_typeof
 ; note: This is forward declared.
 (assert (forall ((x1 sm.Term))
+  (= ($eo_typeof x1)
   (ite (= x1 sm.Stuck)
-    (= ($eo_typeof x1) sm.Stuck)
+    sm.Stuck
   ;; Core
   (ite (= x1 sm.Type)
-    (= ($eo_typeof x1) sm.Type)
+    sm.Type
   (ite ((_ is sm.FunType) x1)
     ; (eo::requires (eo::typeof x1) Type (eo::requires (eo::typeof x2) Type Type))
-    (= ($eo_typeof x1) ($eo_requires ($eo_typeof (sm.FunType.arg1 x1)) sm.Type ($eo_requires ($eo_typeof (sm.FunType.arg2 x1)) sm.Type sm.Type)))
-  (ite ((_ is sm.Apply) x1)
-    (= ($eo_typeof x1) ($eo_typeof_apply (sm.Apply.arg1 x1) (sm.Apply.arg2 x1)))
+    ($eo_requires ($eo_typeof (sm.FunType.arg1 x1)) sm.Type ($eo_requires ($eo_typeof (sm.FunType.arg2 x1)) sm.Type sm.Type))
   (ite ((_ is sm.Var) x1)
-    (= ($eo_typeof x1) (sm.Var.Type x1))
+    (sm.Var.Type x1)
   (ite ((_ is sm.Const) x1)
-    (= ($eo_typeof x1) (sm.Const.Type x1))
+    (sm.Const.Type x1)
   ;; Booleans
   (ite (= x1 sm.BoolType)
-    (= ($eo_typeof x1) sm.Type)
+    sm.Type
   (ite (= x1 sm.True)
-    (= ($eo_typeof x1) sm.BoolType)
+    sm.BoolType
   (ite (= x1 sm.False)
-    (= ($eo_typeof x1) sm.BoolType)
+    sm.BoolType
   ;; lists
   (ite (= x1 sm.ListType)
-    (= ($eo_typeof x1) sm.Type)
+    sm.Type
   ; note: sm.List.cons has non-ground type, hence omitted
   (ite ((_ is sm.List.nil) x1)
-    (= ($eo_typeof x1) sm.ListType)
+    sm.ListType
   ;; literal type rules
 $TYPEOF_LITERALS$
   ;; user declarations
 $TYPEOF$
-    (= ($eo_typeof x1) sm.Stuck)
-)))))))))))
+  ; fallthrough: generic apply
+  (ite ((_ is sm.Apply) x1)
+    (let ((ta1 ($eo_typeof (sm.Apply.arg1 x1))))
+    (let ((ta2 ($eo_typeof (sm.Apply.arg2 x1))))
+    (ite (and ((_ is sm.FunType) ta1) (= (sm.FunType.arg1 ta1) ta2))
+      (sm.FunType.arg2 ta1)
+      sm.Stuck)))
+    sm.Stuck))))))))))))
 $TYPEOF_END$
 ))
 
