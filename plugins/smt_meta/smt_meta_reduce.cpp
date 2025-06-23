@@ -102,8 +102,9 @@ void SmtMetaReduce::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
 
 void SmtMetaReduce::markOracleCmd(const Expr& v, const std::string& ocmd) {}
 
-void SmtMetaReduce::printConjunction(size_t n, const std::string& conj, std::ostream& os)
+void SmtMetaReduce::printConjunction(size_t n, const std::string& conj, std::ostream& os, const SelectorCtx& ctx)
 {
+  os << ctx.d_letBegin.str();
   if (n==0)
   {
     os << "true";
@@ -118,6 +119,7 @@ void SmtMetaReduce::printConjunction(size_t n, const std::string& conj, std::ost
   {
     os << conj;
   }
+  os << ctx.d_letEnd.str();
 }
 
 bool SmtMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
@@ -290,7 +292,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c, const std::string& initC
       // its type must match the second argument
       std::stringstream ssty;
       ssty << "($eo_typeof " << cur.second << ")";
-      visit.emplace_back(cur.first[1], cur.second);
+      visit.emplace_back(cur.first[1], ssty.str());
     }
     else if (ck==Kind::PARAM)
     {
@@ -338,7 +340,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body, std::ostream& os, const Selec
   std::stringstream osEnd;
   std::vector<Expr> ll;
   // letify parameters for efficiency?
-  std::map<const ExprValue*, size_t> lbind = Expr::computeLetBinding(body, ll, true);
+  std::map<const ExprValue*, size_t> lbind = Expr::computeLetBinding(body, ll);
   // TODO: print the context in the let list?
   std::map<const ExprValue*, size_t>::iterator itl;
   for (size_t i=0, nll=ll.size(); i<=nll; i++)
@@ -598,9 +600,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     printEmbTerm(body, currRet, ctx);
     // now print the case/return
     cases << "  (ite ";
-    cases << ctx.d_letBegin.str();
-    printConjunction(nconj, currCase.str(), cases);
-    cases << ctx.d_letEnd.str();
+    printConjunction(nconj, currCase.str(), cases, ctx);
     cases << std::endl;
     cases << "    " << currRet.str() << std::endl;
     casesEnd << ")";
@@ -691,9 +691,7 @@ void SmtMetaReduce::finalizeDeclarations() {
         printEmbPatternMatch(ct[0], "x2", ncase, nilCtx, nconj);
       }
       d_eoNil << "  (ite ";
-      d_eoNil << nilCtx.d_letBegin.str();
-      printConjunction(nconj, ncase.str(), d_eoNil);
-      d_eoNil << nilCtx.d_letEnd.str();
+      printConjunction(nconj, ncase.str(), d_eoNil, nilCtx);
       d_eoNil << std::endl;
       d_eoNil << "    (= ($eo_nil x1 x2) ";
       printEmbTerm(attrCons, d_eoNil, nilCtx);
@@ -702,47 +700,69 @@ void SmtMetaReduce::finalizeDeclarations() {
     }
     // if its type is ground, the type is taken into account for typeof
     Expr pattern = e;
-    if (!ct.isGround())
-    {
-      continue;
-      // FIXME
-      Assert(ct.getKind() == Kind::FUNCTION_TYPE);
-      // We traverse to a position where the type of a partial application
-      // of this operator has ground type.
-      std::vector<Expr> argTypes;
-      while (ct.getKind()==Kind::FUNCTION_TYPE)
-      {
-        Assert (ct.getNumChildren()==2) << "Bad type for " << e;
-        std::vector<Expr> args;
-        args.push_back(pattern);
-        size_t nargs = ct.getNumChildren();
-        // ethos ctx
-        Ctx tcctx;
-        for (size_t i=1; i<nargs; i++)
-        {
-          Expr cta = ct[i-1];
-          Expr dummy = d_state.mkSymbol(Kind::PARAM, "tmp", cta);
-          args.push_back(dummy);
-          argTypes.push_back(cta);
-        }
-        Kind ak = (attr==Attr::OPAQUE && pattern==e) ? Kind::APPLY_OPAQUE : Kind::APPLY;
-        pattern = d_state.mkExpr(ak, args);
-        ct = ct[nargs-1];
-        // maybe we are now fully bound?
-        if (ct.getKind()==Kind::EVAL_REQUIRES)
-        {
-
-        }
-      }
-      // we now write the pattern matching for
-      continue;
-    }
     std::stringstream typeOfCond;
     size_t nTypeOfCond = 0;
     SelectorCtx typeofCtx;
+    if (!ct.isGround())
+    {
+      // ethos ctx
+      Ctx ectx;
+      if (nopqArgs==0 && attr!=Attr::NONE)
+      {
+        // make the operator a pattern to avoid desugaring below
+        Expr dummy = d_state.mkSymbol(Kind::PARAM, "tmpf", ct);
+        ectx[dummy.getValue()] = pattern.getValue();
+        pattern = dummy;
+      }
+      Assert(ct.getKind() == Kind::FUNCTION_TYPE);
+      std::cout << "Non-ground function type: " << e << " : " << ct << std::endl;
+      std::cout << "Attribute is " << attr << std::endl;
+      // We traverse to a position where the type of a partial application
+      // of this operator has ground type.
+      std::vector<Expr> argTypes;
+      std::vector<Expr> allVars = Expr::getVariables(ct);
+      while (ct.getKind()==Kind::FUNCTION_TYPE)
+      {
+        std::vector<Expr> args;
+        args.push_back(pattern);
+        size_t nargs = ct.getNumChildren();
+        for (size_t i=1; i<nargs; i++)
+        {
+          Expr cta = ct[i-1];
+          Expr arg, argt;
+          if (cta.getKind()==Kind::QUOTE_TYPE)
+          {
+            arg = cta[0];
+            argt = d_tc.getType(arg);
+          }
+          else
+          {
+            arg = d_state.mkSymbol(Kind::PARAM, "tmp", cta);
+            argt = cta;
+          }
+          arg = d_state.mkExpr(Kind::ANNOT_PARAM, {arg, argt});
+          args.push_back(arg);
+          argTypes.push_back(cta);
+        }
+        Kind ak = (nopqArgs>0 && pattern==e) ? Kind::APPLY_OPAQUE : Kind::APPLY;
+        pattern = d_state.mkExpr(ak, args);
+        std::cout << "...pattern is now " << pattern << " from " << args << std::endl;
+        ct = ct[nargs-1];
+        // maybe we are now fully bound?
+        std::vector<Expr> vars = Expr::getVariables(argTypes);
+        if (allVars.size()==vars.size())
+        {
+          break;
+        }
+      }
+      pattern = d_tc.evaluate(pattern.getValue(), ectx);
+      std::cout << "Partial app that has ground type: " << pattern << std::endl;
+      // we now write the pattern matching for the derived pattern.
+    }
     printEmbPatternMatch(pattern, "x1", typeOfCond, typeofCtx, nTypeOfCond);
+    d_eoTypeof << "  ; type-check: " << e << std::endl;
     d_eoTypeof << "  (ite ";
-    printConjunction(nTypeOfCond, typeOfCond.str(), d_eoTypeof);
+    printConjunction(nTypeOfCond, typeOfCond.str(), d_eoTypeof, typeofCtx);
     d_eoTypeof << std::endl;
     d_eoTypeof << "    ";
     printEmbTerm(ct, d_eoTypeof, typeofCtx);
@@ -861,7 +881,8 @@ void SmtMetaReduce::finalizeRules()
     if (nproofPredConj>0)
     {
       d_rules << "  (=> ";
-      printConjunction(nproofPredConj, proofPred.str(), d_rules);
+      SelectorCtx emp;
+      printConjunction(nproofPredConj, proofPred.str(), d_rules, emp);
       d_rules << std::endl;
       ruleEnd << ")";
     }
@@ -869,9 +890,7 @@ void SmtMetaReduce::finalizeRules()
     if (nconj>0)
     {
       d_rules << "  (=> ";
-      d_rules << ctx.d_letBegin.str();
-      printConjunction(nconj, rcase.str(), d_rules);
-      d_rules << ctx.d_letEnd.str();
+      printConjunction(nconj, rcase.str(), d_rules, ctx);
       d_rules << std::endl;
       ruleEnd << ")";
     }

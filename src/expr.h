@@ -165,14 +165,14 @@ class Expr
   size_t getFunctionArity() const;
   /** */
   static std::map<const ExprValue*, size_t> computeLetBinding(
-      const Expr& e, std::vector<Expr>& ll, bool letifyParam = false);
+      const Expr& e, std::vector<Expr>& ll);
+ private:
+  /** The underlying value */
+  ExprValue* d_value;
   /** */
   static void printDebugInternal(const Expr& e,
                                  std::ostream& os,
                                  std::map<const ExprValue*, size_t>& lbind);
- private:
-  /** The underlying value */
-  ExprValue* d_value;
 };
 
 /**

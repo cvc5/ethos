@@ -76,7 +76,7 @@ public:
   /** To string, which returns the smt2 formalization of the meta-level correctness of the signature */
   std::string toString();
 private:
-  void printConjunction(size_t n, const std::string& conj, std::ostream& os);
+  void printConjunction(size_t n, const std::string& conj, std::ostream& os, const SelectorCtx& ctx);
   bool printEmbPatternMatch(const Expr& c, const std::string& initCtx, std::ostream& os, SelectorCtx& ctx, size_t& nconj);
   bool printEmbAtomicTerm(const Expr& c, std::ostream& os);
   bool printEmbTerm(const Expr& c, std::ostream& os, const SelectorCtx& ctx, bool ignorePf = false);
