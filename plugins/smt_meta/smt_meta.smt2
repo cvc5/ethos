@@ -230,8 +230,13 @@ $TERM_DECL$
     sm.Stuck))
 
 ; program: $eo_extract
-(declare-fun $eo_extract (sm.Term sm.Term sm.Term) sm.Term)
-; TODO
+(define-fun $eo_extract ((x1 sm.Term) (x2 sm.Term) (x3 sm.Term)) sm.Term
+  (ite (and ((_ is sm.String) x1) ((_ is sm.Numeral) x2) ((_ is sm.Numeral) x3))
+    (let ((n2 (sm.Numeral.val x2)))
+    (let ((n3 (sm.Numeral.val x3)))
+    (sm.String (str.substr (sm.String.val x1) n2 (+ (- n3 n2) 1)))))
+  ; TODO
+    sm.Stuck))
 
 ; program: $eo_find
 (define-fun $eo_find ((x1 sm.Term) (x2 sm.Term)) sm.Term
