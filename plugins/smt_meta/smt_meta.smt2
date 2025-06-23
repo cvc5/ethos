@@ -307,8 +307,9 @@ $DEFS$
   (ite (= x1 sm.Type)
     sm.Type
   (ite ((_ is sm.FunType) x1)
-    ; (eo::requires (eo::typeof x1) Type (eo::requires (eo::typeof x2) Type Type))
-    ($eo_requires ($eo_typeof (sm.FunType.arg1 x1)) sm.Type ($eo_requires ($eo_typeof (sm.FunType.arg2 x1)) sm.Type sm.Type))
+    (ite (and (= ($eo_typeof (sm.FunType.arg1 x1)) sm.Type) (= ($eo_typeof (sm.FunType.arg2 x1)) sm.Type))
+      sm.Type
+      sm.Stuck)
   (ite ((_ is sm.Var) x1)
     (sm.Var.Type x1)
   (ite ((_ is sm.Const) x1)
