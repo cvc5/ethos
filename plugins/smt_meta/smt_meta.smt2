@@ -51,14 +51,31 @@ $TERM_DECL$
     sm.Stuck
     (sm.Const x y)))
 
-; TODO: can be improved
-(define-fun $sm_mod_pow_2 ((d Int) (n Int)) Int
-  (mod d (^ 2 n)))
+(define-fun $sm_mod_pow_2 ((x Int) (w Int)) Int
+  (mod x (^ 2 w)))  ; TODO: improve?
 
-(define-fun $sm_Binary ((x Int) (y Int)) sm.Term
-  (ite (and (<= 0 x) (< x 4294967296))
-    (sm.Binary x ($sm_mod_pow_2 y x))
+(define-fun $sm_Binary ((w Int) (x Int)) sm.Term
+  (ite (and (<= 0 w) (< w 4294967296))
+    (sm.Binary w ($sm_mod_pow_2 x w))
     sm.Stuck))
+
+(define-fun $sm_Binary_and ((w Int) (x1 Int) (x2 Int)) sm.Term
+    sm.Stuck) ; TODO
+
+(define-fun $sm_Binary_or ((w Int) (x1 Int) (x2 Int)) sm.Term
+    sm.Stuck) ; TODO
+
+(define-fun $sm_Binary_xor ((w Int) (x1 Int) (x2 Int)) sm.Term
+    sm.Stuck) ; TODO
+
+(define-fun $sm_Binary_not ((w Int) (x1 Int)) sm.Term
+    sm.Stuck) ; TODO
+
+(define-fun $sm_Binary_concat ((w1 Int) (x1 Int) (w2 Int) (x2 Int)) sm.Term
+    sm.Stuck) ; TODO
+
+(define-fun $sm_Binary_extract ((w Int) (x Int) (x1 Int) (x2 Int)) sm.Term
+    sm.Stuck) ; TODO
 
 ;;; Core operators
 
@@ -112,29 +129,33 @@ $TERM_DECL$
 (define-fun $eo_and ((x1 sm.Term) (x2 sm.Term)) sm.Term
   (ite (and ($sm_is_Boolean x1) ($sm_is_Boolean x2))
     ($sm_Boolean (and (= x1 sm.True) (= x2 sm.True)))
-  ; TODO
-    sm.Stuck))
+  (ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))
+    ($sm_Binary_and (sm.Binary.width x1) (sm.Binary.val x1) (sm.Binary.val x2))
+    sm.Stuck)))
 
 ; program: $eo_or
 (define-fun $eo_or ((x1 sm.Term) (x2 sm.Term)) sm.Term
   (ite (and ($sm_is_Boolean x1) ($sm_is_Boolean x2))
     ($sm_Boolean (or (= x1 sm.True) (= x2 sm.True)))
-  ; TODO
-    sm.Stuck))
+  (ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))
+    ($sm_Binary_or (sm.Binary.width x1) (sm.Binary.val x1) (sm.Binary.val x2))
+    sm.Stuck)))
 
 ; program: $eo_xor
 (define-fun $eo_xor ((x1 sm.Term) (x2 sm.Term)) sm.Term
   (ite (and ($sm_is_Boolean x1) ($sm_is_Boolean x2))
     ($sm_Boolean (xor (= x1 sm.True) (= x2 sm.True)))
-  ; TODO
-    sm.Stuck))
+  (ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))
+    ($sm_Binary_xor (sm.Binary.width x1) (sm.Binary.val x1) (sm.Binary.val x2))
+    sm.Stuck)))
 
 ; program: $eo_not
 (define-fun $eo_not ((x1 sm.Term)) sm.Term
   (ite ($sm_is_Boolean x1)
     ($sm_Boolean (= x1 sm.False))
-  ; TODO
-    sm.Stuck))
+  (ite ((_ is sm.Binary) x1)
+    ($sm_Binary_not (sm.Binary.width x1) (sm.Binary.val x1))
+    sm.Stuck)))
 
 ;;; Arithmetic operators
 
@@ -226,8 +247,9 @@ $TERM_DECL$
 (define-fun $eo_concat ((x1 sm.Term) (x2 sm.Term)) sm.Term
   (ite (and ((_ is sm.String) x1) ((_ is sm.String) x2))
     (sm.String (str.++ (sm.String.val x1) (sm.String.val x2)))
-  ; TODO
-    sm.Stuck))
+  (ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2))
+    ($sm_Binary_concat (sm.Binary.width x1) (sm.Binary.val x1) (sm.Binary.width x2) (sm.Binary.val x2))
+    sm.Stuck)))
 
 ; program: $eo_extract
 (define-fun $eo_extract ((x1 sm.Term) (x2 sm.Term) (x3 sm.Term)) sm.Term
@@ -235,8 +257,9 @@ $TERM_DECL$
     (let ((n2 (sm.Numeral.val x2)))
     (let ((n3 (sm.Numeral.val x3)))
     (sm.String (str.substr (sm.String.val x1) n2 (+ (- n3 n2) 1)))))
-  ; TODO
-    sm.Stuck))
+  (ite (and ((_ is sm.Binary) x1) ((_ is sm.Numeral) x2) ((_ is sm.Numeral) x3))
+    ($sm_Binary_extract (sm.Binary.width x1) (sm.Binary.val x1) (sm.Binary.val x2) (sm.Binary.val x3))
+    sm.Stuck)))
 
 ; program: $eo_find
 (define-fun $eo_find ((x1 sm.Term) (x2 sm.Term)) sm.Term
@@ -286,7 +309,7 @@ $TERM_DECL$
     (sm.String (str.from_code (sm.Numeral.val x1)))
   (ite ((_ is sm.String) x1)
     x1
-  ; TODO
+  ; TODO?
     sm.Stuck)))
 
 ;;; List operators
