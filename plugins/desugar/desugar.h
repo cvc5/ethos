@@ -98,8 +98,8 @@ class Desugar : public Plugin
   Expr d_listNil;
   Expr d_listCons;
   Expr d_listType;
-  /** Number of current scopes. Bindings at scope>0 are not remembered */
-  size_t d_nscopes;
+  /** Are we generating programs that are VC targets */
+  bool d_genVcs;
 
   std::stringstream d_numDecl;
   std::stringstream d_num;

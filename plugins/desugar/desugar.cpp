@@ -24,6 +24,11 @@ Desugar::Desugar(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {
   d_any = d_state.mkSymbol(Kind::PARAM, "Any", d_state.mkType());
   d_typeOfVarCount = 0;
+  d_genVcs = d_state.getOptions().d_pluginDesugarGenVc;
+  if (d_genVcs)
+  {
+    d_eoRules << ";; proof rule specifications" << std::endl << std::endl;
+  }
 }
 
 Desugar::~Desugar() {}
@@ -34,6 +39,8 @@ void Desugar::setLiteralTypeRule(Kind k, const Expr& t)
   if (k == Kind::NUMERAL)
   {
     // we will process the integer type separately
+    // this is necessary since builtin operators have type rules that
+    // reference the numeral type.
     d_declProcessed.insert(t);
   }
 }
@@ -726,6 +733,7 @@ void Desugar::finalizeRule(const Expr& e)
 
 void Desugar::finalizeDatatype(const Expr& e)
 {
+  /*
   Expr d = e;
   Attr dattr = Attr::NONE;
   Expr dattrCons;
@@ -742,6 +750,7 @@ void Desugar::finalizeDatatype(const Expr& e)
   d_defs << ")" << std::endl;
   // TODO
   d_defs << ")" << std::endl;
+  */
 }
 
 void Desugar::finalize()
@@ -775,17 +784,20 @@ void Desugar::finalize()
     }
     else if (k == Kind::PROOF_RULE)
     {
-      finalizeRule(e);
+      if (d_genVcs)
+      {
+        finalizeRule(e);
+      }
     }
     else if (k == Kind::PROGRAM_CONST)
     {
       Assert(e.getNumChildren() == 2);
       finalizeProgram(e[0], e[1]);
     }
-    else if (k == Kind::TYPE)
-    {
-      finalizeDatatype(e);
-    }
+    //else if (k == Kind::TYPE)
+    //{
+      //finalizeDatatype(e);
+    //}
     else
     {
       EO_FATAL() << "Unknown kind: " << k;

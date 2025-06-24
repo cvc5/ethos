@@ -4,8 +4,10 @@
 ; (1) A function $eo_model_lookup, which defines an arbitrary function corresponding to a model.
 ; (2) A function $eo_is_sat_model, which defines whether a (Boolean) term is satisfied by a model.
 
+; fwd-decl: $eo_model_lookup
 ; Conceptually, returns the model value for constant with identifier id and type T.
-(declare-parameterized-const $eo_model_lookup ((id Int) (T Type)) T)
+(program $eo_model_lookup ((T Type))
+  :signature (Int T) T)
 
 
 ; TODO: specification for forall is a (non-computable) function
@@ -37,6 +39,8 @@
   )
 )
 
+; program: $eo_model_sat
+; note: Evaluates to true if F is satisfied by the model.
 (program $eo_model_sat ((F Bool))
   :signature (Bool) Bool
   (

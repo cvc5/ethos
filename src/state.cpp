@@ -29,6 +29,7 @@ Options::Options()
   d_normalizeHexadecimal = true;
   d_normalizeNumeral = false;
   d_pluginDesugar = false;
+  d_pluginDesugarGenVc = false;
   d_pluginSmtMeta = false;
 }
 
@@ -77,6 +78,11 @@ bool Options::setOption(const std::string& key, bool val)
   else if (key == "plugin.desugar")
   {
     d_pluginDesugar = true;
+  }
+  else if (key == "plugin.desugar-vc")
+  {
+    d_pluginDesugar = true;
+    d_pluginDesugarGenVc = true;
   }
   else if (key == "plugin.smt-meta")
   {
