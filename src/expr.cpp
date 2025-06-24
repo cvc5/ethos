@@ -319,7 +319,16 @@ void Expr::printDebugInternal(const Expr& e,
           switch (k)
           {
             case Kind::HEXADECIMAL:os << "#x" << l->toString();break;
-            case Kind::BINARY:os << "#b" << l->toString();break;
+            case Kind::BINARY:
+              if (l->d_bv.getSize()==0)
+              {
+                os << "(eo::to_bin 0 0)";
+              }
+              else
+              {
+                os << "#b" << l->toString();
+              }
+              break;
             case Kind::STRING:os << "\"" << l->toString() << "\"";break;
             case Kind::DECIMAL:
               // currently don't have a way to print decimals natively, just

@@ -40,6 +40,11 @@ void Desugar::includeFile(const Filepath& s, bool isReference, const Expr& refer
 void Desugar::setLiteralTypeRule(Kind k, const Expr& t)
 {
   d_declSeen.emplace_back(t, k);
+  if (k==Kind::NUMERAL)
+  {
+    // we will process the integer type separately
+    d_declProcessed.insert(t);
+  }
 }
 
 void Desugar::finalizeSetLiteralTypeRule(Kind k, const Expr& t)
@@ -64,7 +69,6 @@ void Desugar::finalizeSetLiteralTypeRule(Kind k, const Expr& t)
   {
     Assert (t.getKind()==Kind::CONST);
     d_numDecl << "(declare-const " << t << " Type)" << std::endl;
-    d_declProcessed.insert(t);
     d_numDecl << "; type-rules: " << k << std::endl;
     d_numDecl << ss.str();
     d_num << t;
@@ -210,14 +214,8 @@ void Desugar::finalizeDeclaration(const Expr& e)
   if (!vars.empty())
   {
     d_defs << "parameterized-const " << e << " (" << opaqueArgs.str();
-    size_t argTypeStart = 0;
-    if (cattr==Attr::AMB)
-    {
-      // skip the first type
-      argTypeStart = 1;
-    }
     size_t pcount = 0;
-    for (size_t i=argTypeStart, nargs=argTypes.size(); i<nargs; i++)
+    for (size_t i=0, nargs=argTypes.size(); i<nargs; i++)
     {
       Expr at = argTypes[i];
       Kind ak = at.getKind();
@@ -232,6 +230,13 @@ void Desugar::finalizeDeclaration(const Expr& e)
         {
           std::vector<Expr> vars;
           vars.push_back(v);
+          printParamList(vars, d_defs, params, true, visited, firstParam);
+        }
+        else if (cattr==Attr::AMB && i==0)
+        {
+          // print the parameters; these will lead to a definition that is
+          // ambiguous again.
+          std::vector<Expr> avars = Expr::getVariables(v);
           printParamList(vars, d_defs, params, true, visited, firstParam);
         }
         else
@@ -525,16 +530,18 @@ void Desugar::finalize()
   {
     Kind k = d.second;
     Expr e = d.first;
-    if (d_declProcessed.find(e)!=d_declProcessed.end())
-    {
-      continue;
-    }
     if (k==Kind::NUMERAL || k==Kind::RATIONAL || k==Kind::BINARY || k==Kind::STRING || k==Kind::DECIMAL || k==Kind::HEXADECIMAL)
     {
       // defines
       finalizeSetLiteralTypeRule(k, e);
+      continue;
     }
-    else if (k==Kind::LAMBDA)
+    if (d_declProcessed.find(e)!=d_declProcessed.end())
+    {
+      // handles the case where declaration is handled separately e.g. Int
+      continue;
+    }
+    if (k==Kind::LAMBDA)
     {
       Assert (e.getNumChildren()==2);
       std::stringstream ss;
