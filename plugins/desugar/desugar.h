@@ -57,6 +57,7 @@ public:
   /** To string, which returns the smt2 formalization of the meta-level correctness of the signature */
   std::string toString();
 private:
+  void printName(const Expr& e, std::ostream& os);
   void printTerm(const Expr& e, std::ostream& os);
   void printParamList(const std::vector<Expr>& vars, std::ostream& os, std::vector<Expr>& params, bool useImplicit);
   void printParamList(const std::vector<Expr>& vars, std::ostream& os, std::vector<Expr>& params, bool useImplicit, std::map<Expr, bool>& visited, bool& firstParam, bool isOpaque=false);
@@ -69,7 +70,7 @@ private:
   /** Does t have subterm s? */
   static bool hasSubterm(const Expr& t, const Expr& s);
   /** */
-  Expr mkSanitize(const Expr& t, std::vector<Expr>& vars);
+  Expr mkSanitize(const Expr& t, std::map<Expr, Expr>& smap, bool inPatMatch = false);
   /** the state */
   State& d_state;
   /** the type checker */
@@ -80,37 +81,36 @@ private:
   std::map<Expr, std::pair<Attr, Expr>> d_attrDecl;
   /** Declares processed */
   std::set<Expr> d_declProcessed;
+  /** Handles overloading */
+  std::map<std::string, size_t> d_overloadCount;
   /** */
-  Expr d_eoTmpInt;
-  Expr d_eoTmpNil;
+  std::map<Expr, size_t> d_overloadId;
   /** Common constants */
+  Expr d_any;
   Expr d_null;
   Expr d_listNil;
   Expr d_listCons;
   Expr d_listType;
   /** Number of current scopes. Bindings at scope>0 are not remembered */
   size_t d_nscopes;
-  
-  class ProgramOut
-  {
-  public:
-    ProgramOut() : d_firstParam(true) {}
-    bool d_firstParam;
-    std::map<Expr, bool> d_visited;
-    std::stringstream d_out;
-    std::stringstream d_param;
-    std::vector<Expr> d_params;
-  };
 
   std::stringstream d_numDecl;
   std::stringstream d_num;
   std::stringstream d_defs;
   std::stringstream d_eoNilNground;
   std::stringstream d_eoNil;
-  ProgramOut d_eoTypeof;
-  ProgramOut d_eoDtCons;
-  ProgramOut d_eoDtSel;
+  std::stringstream d_eoTypeofParam;
+  std::stringstream d_eoTypeof;
+  std::stringstream d_eoTypeofNGround;
+  std::stringstream d_eoDtNGround;
+  std::stringstream d_eoDtCons;
+  std::stringstream d_eoDtSel;
   std::stringstream d_eoRules;
+  
+  /** term we have pattern matched on for typeof */
+  std::vector<Expr> d_typeOfVars;
+  /** variable counter for typeof */
+  size_t d_typeOfVarCount;
 };
 
 }  // namespace ethos

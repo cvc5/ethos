@@ -12,4 +12,4 @@ make -j4
 echo "**** Run ethos + desugar"
 ./src/ethos ~/cvc5-ajr/proofs/eo/cpc/Cpc.eo
 echo "**** Run ethos"
-get_backtrace ethos ../plugins/desugar/eo_desugar_gen.eo
+ethos ../plugins/desugar/eo_desugar_gen.eo

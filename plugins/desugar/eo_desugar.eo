@@ -10,6 +10,9 @@
 $EO_NUMERAL_DECL$
 (define $eo_Numeral () $EO_NUMERAL$)
 
+; fail
+(define $eo_fail () (eo::requires true false true))
+
 ; core definitions
 
 ;;; $eo_eq
@@ -35,8 +38,8 @@ $EO_NUMERAL_DECL$
 ;;; $eo_is_z
 
 ; Returns true if x is a numeral literal.
-; define: $eo_is_eq
-; implements: eo::is_eq
+; define: $eo_is_z
+; implements: eo::is_z
 (define $eo_is_z ((T Type :implicit) (x T))
   ($eo_is_eq (eo::to_z x) x))
 
@@ -388,10 +391,14 @@ $EO_DEFS$
 ; This is custom defined by the verification backend.
 (declare-parameterized-const $eo_typeof_builtin ((T Type :implicit) (t T)) Type)
 
+; non-ground type defintions
+
+$EO_TYPEOF_NGROUND_DEFS$
+
 ; program: $eo_typeof
 ; implements: eo::typeof
 (program $eo_typeof
-  ((T Type) (U Type) (V Type) (W Type) (f (-> T U V)) (x T)
+  ((T Type) (U Type) (V Type) (W Type) (f (-> U V T)) (x U) (t T)
    $EO_TYPEOF_PARAM$)
   :signature (T) Type
   (
@@ -408,11 +415,13 @@ $EO_TYPEOF_CASES$
   )
 )
 
+; non-ground dt defintions
+
+$EO_NGROUND_DT_DEFS$
+
 ; program: $eo_dt_constructors
 ; implements: eo::dt_constructors
-(program $eo_dt_constructors
-  ((T Type)
-   $EO_DT_CONSTRUCTORS_PARAM$)
+(program $eo_dt_constructors ((T Type))
   :signature (Type) $eo_List
   (
 $EO_DT_CONSTRUCTORS_CASES$
@@ -422,12 +431,10 @@ $EO_DT_CONSTRUCTORS_CASES$
 
 ; program: $eo_dt_selectors
 ; implements: eo::dt_selectors
-(program $eo_dt_selectors
-  ((T Type) (t T)
-   $EO_DT_SELECTORS_PARAM$)
+(program $eo_dt_selectors ((T Type) (t T))
   :signature (T) $eo_List
   (
-  $EO_DT_SELECTORS_CASES$
+$EO_DT_SELECTORS_CASES$
   (($eo_dt_selectors t) $eo_fail)
   )
 )
@@ -443,7 +450,7 @@ $EO_NIL_NGROUND_DEFS$
   :signature ((-> T U V) (eo::quote W)) W
   (
 $EO_NIL_CASES$
-  (($eo_nil f T) ($eo_fail))
+  (($eo_nil f T) $eo_fail)
   )
 )
 
