@@ -27,18 +27,6 @@ Desugar::Desugar(State& s) : d_state(s), d_tc(s.getTypeChecker())
 
 Desugar::~Desugar() {}
 
-void Desugar::initialize()
-{
-}
-
-void Desugar::reset() {}
-
-void Desugar::pushScope() {}
-
-void Desugar::popScope() {}
-
-void Desugar::includeFile(const Filepath& s, bool isReference, const Expr& referenceNf) {}
-
 void Desugar::setLiteralTypeRule(Kind k, const Expr& t)
 {
   d_declSeen.emplace_back(t, k);
@@ -106,9 +94,6 @@ void Desugar::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
    d_declSeen.emplace_back(v, Kind::TYPE);
  }
 }
-
-void Desugar::markOracleCmd(const Expr& v, const std::string& ocmd) {}
-
 void Desugar::defineProgram(const Expr& v, const Expr& prog)
 {
   Expr pair = d_state.mkPair(v, prog);

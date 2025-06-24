@@ -27,18 +27,6 @@ SmtMetaReduce::SmtMetaReduce(State& s) : d_state(s), d_tc(s.getTypeChecker()) {
 
 SmtMetaReduce::~SmtMetaReduce() {}
 
-void SmtMetaReduce::initialize()
-{
-}
-
-void SmtMetaReduce::reset() {}
-
-void SmtMetaReduce::pushScope() {}
-
-void SmtMetaReduce::popScope() {}
-
-void SmtMetaReduce::includeFile(const Filepath& s, bool isReference, const Expr& referenceNf) {}
-
 void SmtMetaReduce::setLiteralTypeRule(Kind k, const Expr& t)
 {
   d_eoTypeofLit << "  (ite ((_ is sm.";
@@ -89,8 +77,6 @@ void SmtMetaReduce::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
   d_attrDecl[v] = std::pair<Attr, Expr>(a, cons);
 }
 
-void SmtMetaReduce::markOracleCmd(const Expr& v, const std::string& ocmd) {}
-
 void SmtMetaReduce::printConjunction(size_t n, const std::string& conj, std::ostream& os, const SelectorCtx& ctx)
 {
   os << ctx.d_letBegin.str();
@@ -113,17 +99,6 @@ void SmtMetaReduce::printConjunction(size_t n, const std::string& conj, std::ost
 
 bool SmtMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
 {
-  if (c==d_eoTmpInt)
-  {
-    // FIXME (hack)
-    os << "Int";
-    return true;
-  }
-  if (c==d_eoTmpNil)
-  {
-    os << "$eo_nil";
-    return true;
-  }
   if (c==d_listCons)
   {
     os << "sm.$eo_List_cons";
@@ -307,14 +282,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c, const std::string& initC
       }
       else
       {
-        // TODO: is this correct???
-        // This handles cases where it is expected that matching at this point
-        // evaluates e.g. based on other arguments. This is used heavily in
-        // RARE rules where an argument causes a premise term to evaluate e.g.
-        // via eo::list_concat.
-        os << "(= " << cur.second;
-        printEmbTerm(cur.first, os, ctx);
-        os << ")";
+        EO_FATAL() << "Cannot pattern match evaluatable term";
       }
     }
   }
@@ -330,7 +298,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body, std::ostream& os, const Selec
   std::vector<Expr> ll;
   // letify parameters for efficiency?
   std::map<const ExprValue*, size_t> lbind = Expr::computeLetBinding(body, ll);
-  // TODO: print the context in the let list?
+  // NOTE: could print the context in the let list?
   std::map<const ExprValue*, size_t>::iterator itl;
   for (size_t i=0, nll=ll.size(); i<=nll; i++)
   {
@@ -508,10 +476,6 @@ void SmtMetaReduce::finalizePrograms()
 
 void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
 {
-  if (v==d_eoTmpNil)
-  {
-    return;
-  }
   d_defs << "; " << (prog.isNull() ? "fwd-decl: " : "program: ") << v << std::endl;
   std::stringstream decl;
   Expr vv = v;
@@ -622,10 +586,6 @@ void SmtMetaReduce::finalizeDeclarations() {
   std::map<Expr, std::pair<Attr, Expr>>::iterator it;
   for (const Expr& e : d_declSeen)
   {
-    if (e==d_eoTmpInt || e==d_eoTmpNil)
-    {
-      continue;
-    }
     if (e==d_listType || e==d_listCons || e==d_listNil)
     {
       continue;
@@ -719,11 +679,6 @@ void SmtMetaReduce::finalize() {
   sso << s_path << "plugins/smt_meta/smt_meta_gen.smt2";
   std::ofstream out(sso.str());
   out << finalSm;
-}
-
-std::string toString() {
-  std::stringstream ss;
-  return ss.str();
 }
 
 bool SmtMetaReduce::hasSubterm(const Expr& t, const Expr& s)

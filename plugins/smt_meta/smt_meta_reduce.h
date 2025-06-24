@@ -51,24 +51,12 @@ class SmtMetaReduce : public Plugin
 public:
   SmtMetaReduce(State& s);
   ~SmtMetaReduce();
-  /** Intialize */
-  void initialize() override;
-  /** Reset */
-  void reset() override;
-  /** Push scope */
-  void pushScope() override;
-  /** Pop scope */
-  void popScope() override;
-  /** include file, if not already done */
-  void includeFile(const Filepath& s, bool isReference, const Expr& referenceNf) override;
   /** Set type rule for literal kind k to t */
   void setLiteralTypeRule(Kind k, const Expr& t) override;
   /** */
   void bind(const std::string& name, const Expr& e) override;
   /** Mark attributes */
   void markConstructorKind(const Expr& v, Attr a, const Expr& cons) override;
-  /** Mark oracle command */
-  void markOracleCmd(const Expr& v, const std::string& ocmd) override;
   /** Define program */
   void defineProgram(const Expr& v, const Expr& prog) override;
   /** Finalize */
