@@ -6,8 +6,8 @@
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
  ******************************************************************************/
-#ifndef SMT_META_REDUCE_H
-#define SMT_META_REDUCE_H
+#ifndef DESUGAR_H
+#define DESUGAR_H
 
 #include <map>
 #include <set>
@@ -57,19 +57,15 @@ public:
   /** To string, which returns the smt2 formalization of the meta-level correctness of the signature */
   std::string toString();
 private:
-  void printConjunction(size_t n, const std::string& conj, std::ostream& os, const SelectorCtx& ctx);
-  bool printEmbPatternMatch(const Expr& c, const std::string& initCtx, std::ostream& os, SelectorCtx& ctx, size_t& nconj);
-  bool printEmbAtomicTerm(const Expr& c, std::ostream& os);
-  bool printEmbTerm(const Expr& c, std::ostream& os, const SelectorCtx& ctx, bool ignorePf = false);
-  void finalizePrograms();
+  void printParamList(const std::vector<Expr>& vars, std::ostream& os, std::vector<Expr>& params, bool useImplicit);
+  void printParamList(const std::vector<Expr>& vars, std::ostream& os, std::vector<Expr>& params, bool useImplicit, std::map<Expr, bool>& visited, bool& firstParam, bool isOpaque=false);
+  void finalizeSetLiteralTypeRule(Kind k, const Expr& t);
   void finalizeProgram(const Expr& v, const Expr& prog);
-  void finalizeDeclarations();
+  void finalizeDefinition(const std::string& name, const Expr& t);
+  void finalizeDeclaration(const Expr& t);
   void finalizeRule(const Expr& v);
-  void finalizeRules();
   /** Does t have subterm s? */
   static bool hasSubterm(const Expr& t, const Expr& s);
-  /** Terms with kind */
-  //static std::vector<Expr> getSubtermsWithKind(const Expr& t, Kind k);
   /** */
   Expr mkRemoveAnnotParam(const Expr& t, std::vector<Expr>& vars);
   /** the state */
@@ -78,22 +74,10 @@ private:
   TypeChecker& d_tc;
   /** Declares seen */
   std::vector<std::pair<Expr, Kind>> d_declSeen;
-  /** Declares processed */
-  std::set<Expr> d_declProcessed;
-  /** Rules seen */
-  std::set<Expr> d_ruleSeen;
-  /** Program declarations processed */
-  std::set<Expr> d_progDeclProcessed;
-  /** Programs seen */
-  std::vector<std::pair<Expr, Expr>> d_progSeen;
   /** Attributes marked */
   std::map<Expr, std::pair<Attr, Expr>> d_attrDecl;
-  /** Handles overloading */
-  std::map<std::string, size_t> d_overloadCount;
-  /** */
-  std::map<Expr, size_t> d_overloadId;
-  /** Mapping expressions to strings */
-  std::map<Expr, std::string> d_embMapAtomic;
+  /** Declares processed */
+  std::set<Expr> d_declProcessed;
   /** */
   Expr d_eoTmpInt;
   Expr d_eoTmpNil;
@@ -104,19 +88,27 @@ private:
   Expr d_listType;
   /** Number of current scopes. Bindings at scope>0 are not remembered */
   size_t d_nscopes;
+  
+  class ProgramOut
+  {
+  public:
+    ProgramOut() : d_firstParam(true) {}
+    bool d_firstParam;
+    std::map<Expr, bool> d_visited;
+    std::stringstream d_out;
+    std::stringstream d_param;
+    std::vector<Expr> d_params;
+  };
 
   std::stringstream d_numDecl;
   std::stringstream d_num;
   std::stringstream d_defs;
+  std::stringstream d_eoNilNground;
   std::stringstream d_eoNil;
-  std::stringstream d_eoNilParam;
-  std::stringstream d_eoTypeof;
-  std::stringstream d_eoTypeofParam;
-  std::stringstream d_eoDtCons;
-  std::stringstream d_eoDtConsParam;
-  std::stringstream d_eoDtSel;
-  std::stringstream d_eoDtSelParam;
-  bool d_inInitialize;
+  ProgramOut d_eoTypeof;
+  ProgramOut d_eoDtCons;
+  ProgramOut d_eoDtSel;
+  std::stringstream d_eoRules;
 };
 
 }  // namespace ethos

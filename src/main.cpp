@@ -16,6 +16,7 @@
 #include "parser.h"
 #include "state.h"
 #include "../plugins/smt_meta/smt_meta_reduce.h"
+#include "../plugins/desugar/desugar.h"
 
 using namespace ethos;
 
@@ -146,8 +147,9 @@ int main( int argc, char* argv[] )
   // options are finalized, now initialize the state and run the includes
   Stats stats;
   State s(opts, stats);
-  SmtMetaReduce smr(s);
-  Plugin* plugin = &smr;
+  //SmtMetaReduce pluginSmr(s);
+  Desugar pluginDs(s);
+  Plugin* plugin = &pluginDs;
   // NOTE: initialization of plugin goes here
   if (plugin!=nullptr)
   {

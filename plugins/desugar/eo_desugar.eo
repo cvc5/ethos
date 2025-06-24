@@ -402,7 +402,7 @@ $EO_DEFS$
   (($eo_typeof Bool)      Type)
   (($eo_typeof true)      Bool)
   (($eo_typeof false)     Bool)
-  $EO_TYPEOF_CASES$
+$EO_TYPEOF_CASES$
   (($eo_typeof (f x))     ($eo_typeof_apply ($eo_typeof f) ($eo_typeof x)))
   (($eo_typeof t)         ($eo_typeof_builtin t))
   )
@@ -415,7 +415,7 @@ $EO_DEFS$
    $EO_DT_CONSTRUCTORS_PARAM$)
   :signature (Type) $eo_List
   (
-  $EO_DT_CONSTRUCTORS_CASES$
+$EO_DT_CONSTRUCTORS_CASES$
   (($eo_dt_constructors T) $eo_fail)
   )
 )
@@ -432,14 +432,21 @@ $EO_DEFS$
   )
 )
 
+; non-ground nil defintions
+
+$EO_NIL_NGROUND_DEFS$
+
 ; program: $eo_nil
 ; implements: eo::nil
 (program $eo_nil
-  ((T Type) (U Type) (V Type) (W Type) (f (-> T U V))
-   $EO_NIL_PARAM$)
+  ((T Type) (U Type) (V Type) (W Type) (f (-> T U V)))
   :signature ((-> T U V) (eo::quote W)) W
   (
-  $EO_NIL_CASES$
-  (($eo_nil f T) $eo_fail)
+$EO_NIL_CASES$
+  (($eo_nil f T) ($eo_fail))
   )
 )
+
+;; proof rule specifications
+
+$EO_RULES$

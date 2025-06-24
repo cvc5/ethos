@@ -41,6 +41,7 @@ TypeChecker::~TypeChecker()
 
 void TypeChecker::setLiteralTypeRule(Kind k, const Expr& t)
 {
+  Trace("type_checker") << "**** setLiteralTypeRule " << k << " to " << t << std::endl;
   std::map<Kind, Expr>::iterator it = d_literalTypeRules.find(k);
   if (it==d_literalTypeRules.end())
   {

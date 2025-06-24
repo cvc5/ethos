@@ -122,7 +122,7 @@ std::string kindToTerm(Kind k)
     case Kind::PROGRAM_TYPE: ss << "eo::arrow"; break;
     case Kind::PROOF_TYPE: ss << "Proof"; break;
     case Kind::BOOL_TYPE: ss << "Bool"; break;
-    case Kind::QUOTE_TYPE: ss << "Quote"; break;
+    case Kind::QUOTE_TYPE: ss << "eo::quote"; break;
     case Kind::TUPLE: ss << "eo::tuple"; break;
     // terms
     case Kind::APPLY: ss << "_"; break;
