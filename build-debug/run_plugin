@@ -3,9 +3,9 @@ echo "**** Compile ethos"
 make -j4
 
 echo "**** Run ethos + desugar"
-./src/ethos --plugin.desugar ~/cvc5-ajr/proofs/eo/cpc/Cpc.eo
+./src/ethos --plugin.desugar-vc ~/cvc5-ajr/proofs/eo/cpc/Cpc.eo
 echo "**** Verify that it parses"
-./src/ethos ../plugins/desugar/eo_desugar_gen.eo
+./src/ethos ../plugins/desugar/eo_desugar_vcs.eo
 
 echo "**** Generate SMT2"
 ./src/ethos --plugin.smt-meta ../plugins/smt_meta/eo_model.eo

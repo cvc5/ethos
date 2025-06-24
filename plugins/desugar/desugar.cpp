@@ -585,6 +585,7 @@ void Desugar::finalizeDefinition(const std::string& name, const Expr& t)
 
 void Desugar::finalizeRule(const Expr& e)
 {
+  std::cout << "Finalize rule " << e << std::endl;
   Expr r = e;
   Expr rto = d_tc.getType(r);
   // std::cout << "Finalize " << r << std::endl;
@@ -784,10 +785,7 @@ void Desugar::finalize()
     }
     else if (k == Kind::PROOF_RULE)
     {
-      if (d_genVcs)
-      {
-        finalizeRule(e);
-      }
+      finalizeRule(e);
     }
     else if (k == Kind::PROGRAM_CONST)
     {
@@ -836,12 +834,22 @@ void Desugar::finalize()
   replace(finalEo, "$EO_DT_CONSTRUCTORS_CASES$", d_eoDtCons.str());
   replace(finalEo, "$EO_DT_SELECTORS_CASES$", d_eoDtSel.str());
   replace(finalEo, "$EO_NGROUND_DT_DEFS$", d_eoDtNGround.str());
-  replace(finalEo, "$EO_RULES$", d_eoRules.str());
 
   std::stringstream ssoe;
   ssoe << s_ds_path << "plugins/desugar/eo_desugar_gen.eo";
   std::ofstream oute(ssoe.str());
   oute << finalEo;
+    
+  if (d_genVcs)
+  {
+    std::stringstream ssov;
+    ssov << s_ds_path << "plugins/desugar/eo_desugar_vcs.eo";
+    std::cout << "Generate VCs to " << ssov.str() << std::endl;
+    std::ofstream outv(ssov.str());
+    outv << "(include \"eo_desugar_gen.eo\")" << std::endl << std::endl;
+    outv << d_eoRules.str();
+    outv << std::endl;
+  }
 }
 
 bool Desugar::hasSubterm(const Expr& t, const Expr& s)

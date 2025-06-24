@@ -461,5 +461,3 @@ $EO_NIL_CASES$
   (($eo_nil f T) $eo_fail)
   )
 )
-
-$EO_RULES$
