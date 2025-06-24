@@ -122,21 +122,10 @@ private:
   /** Number of current scopes. Bindings at scope>0 are not remembered */
   size_t d_nscopes;
   std::stringstream d_termDecl;
-  std::stringstream d_termDeclEnd;
   std::stringstream d_defs;
   std::stringstream d_rules;
-  std::stringstream d_eval;
-
-  std::stringstream d_eoNilVarList;
-  std::stringstream d_eoNil;
-  std::stringstream d_eoNilEnd;
-  std::stringstream d_eoTypeof;
   std::stringstream d_eoTypeofLit;
   std::stringstream d_eoTypeofEnd;
-  std::stringstream d_eoDtSelectors;
-  std::stringstream d_eoDtConstructors;
-
-  std::stringstream d_eoRules;
   bool d_inInitialize;
 };
 

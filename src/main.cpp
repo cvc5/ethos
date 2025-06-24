@@ -147,9 +147,17 @@ int main( int argc, char* argv[] )
   // options are finalized, now initialize the state and run the includes
   Stats stats;
   State s(opts, stats);
-  //SmtMetaReduce pluginSmr(s);
+  SmtMetaReduce pluginSmr(s);
   Desugar pluginDs(s);
-  Plugin* plugin = &pluginDs;
+  Plugin* plugin = nullptr;
+  if (opts.d_pluginDesugar)
+  {
+    plugin = &pluginDs;
+  }
+  else
+  {
+    plugin = &pluginSmr;
+  }
   // NOTE: initialization of plugin goes here
   if (plugin!=nullptr)
   {

@@ -79,10 +79,6 @@ $TERM_DECL$
 
 ;;; Core operators
 
-; declare: $eo_typeof
-; note: This is a forward declaration
-(declare-fun $eo_typeof (sm.Term) sm.Term)
-
 ; program: $eo_is_ok
 (define-fun $eo_is_ok ((x1 sm.Term)) sm.Term
   ($sm_Boolean (not (= x1 sm.Stuck))))
@@ -312,76 +308,22 @@ $TERM_DECL$
   ; TODO?
     sm.Stuck)))
 
-;;; List operators
-
-; declare: $eo_nil
-; node: this is a forward declaration
-(declare-fun $eo_nil (sm.Term sm.Term) sm.Term)
-
-;;; Datatype operators
-
-; declare: $eo_dt_selectors
-(declare-fun $eo_dt_selectors (sm.Term) sm.Term)
-; TODO
-
-; declare: $eo_dt_constructors
-(declare-fun $eo_dt_constructors (sm.Term) sm.Term)
-; TODO
-
 ;;; User defined symbols
 
 $DEFS$
 
 ;;; Meta symbols
 
-; program: $eo_typeof
-; note: This is forward declared.
+; program: $eo_typeof_builtin
+; note: This is forward in the signature.
 (assert (forall ((x1 sm.Term))
-  (= ($eo_typeof x1)
+  (= ($eo_typeof_builtin x1)
   (ite (= x1 sm.Stuck)
     sm.Stuck
-  ;; Core
-  (ite (= x1 sm.Type)
-    sm.Type
-  (ite ((_ is sm.FunType) x1)
-    (ite (and (= ($eo_typeof (sm.FunType.arg1 x1)) sm.Type) (= ($eo_typeof (sm.FunType.arg2 x1)) sm.Type))
-      sm.Type
-      sm.Stuck)
-  (ite ((_ is sm.Var) x1)
-    (sm.Var.Type x1)
-  (ite ((_ is sm.Const) x1)
-    (sm.Const.Type x1)
-  ;; Booleans
-  (ite (= x1 sm.BoolType)
-    sm.Type
-  (ite (= x1 sm.True)
-    sm.BoolType
-  (ite (= x1 sm.False)
-    sm.BoolType
   ;; literal type rules
 $TYPEOF_LITERALS$
-  ;; user declarations
-$TYPEOF$
-  ; fallthrough: generic apply
-  (ite ((_ is sm.Apply) x1)
-    (let ((ta1 ($eo_typeof (sm.Apply.arg1 x1))))
-    (let ((ta2 ($eo_typeof (sm.Apply.arg2 x1))))
-    (ite (and ((_ is sm.FunType) ta1) (= (sm.FunType.arg1 ta1) ta2))
-      (sm.FunType.arg2 ta1)
-      sm.Stuck)))
     sm.Stuck))))))))))
 $TYPEOF_END$
-))
-
-; program: $eo_nil
-; note: This is forward declared above.
-(assert (forall ((x1 sm.Term) (x2 sm.Term))
-  (= ($eo_nil x1 x2)
-  (ite (or (= x1 sm.Stuck) (= x2 sm.Stuck))
-    sm.Stuck
-$NIL$
-    sm.Stuck))
-$NIL_END$
 ))
 
 (check-sat)

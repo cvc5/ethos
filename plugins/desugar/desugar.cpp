@@ -568,11 +568,11 @@ void Desugar::finalizeRule(const Expr& e)
 {
   Expr r = e;
   Expr rto = d_tc.getType(r);
-  std::cout << "Finalize " << r << std::endl;
-  std::cout << "Type is " << rto << std::endl;
+  //std::cout << "Finalize " << r << std::endl;
+  //std::cout << "Type is " << rto << std::endl;
   // compile to Eunoia program
   Expr rt = mkSanitize(rto);
-  std::cout << "...santized to " << rt << std::endl;
+  //std::cout << "...santized to " << rt << std::endl;
   
   d_eoRules << "; rule: " << e << std::endl;
   if (rt.getKind()!=Kind::FUNCTION_TYPE)

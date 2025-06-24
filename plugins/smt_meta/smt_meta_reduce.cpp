@@ -16,32 +16,19 @@
 
 namespace ethos {
 
-//std::string s_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
-std::string s_path = "/home/andrew/ethos/";
+std::string s_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
+//std::string s_path = "/home/andrew/ethos/";
 
 SmtMetaReduce::SmtMetaReduce(State& s) : d_state(s), d_tc(s.getTypeChecker()) {
   d_listNil = s.mkListNil();
   d_listCons = s.mkListCons();
   d_listType = s.mkListType();
-  d_inInitialize = false;
 }
 
 SmtMetaReduce::~SmtMetaReduce() {}
 
 void SmtMetaReduce::initialize()
 {
-  // initially include bootstrapping definitions
-  d_inInitialize = true;
-  std::stringstream ss;
-  ss << s_path << "plugins/smt_meta/eo_core.eo";
-  d_state.includeFile(ss.str(), true);
-  d_eoTmpInt = d_state.getVar("$eo_tmp_Int");
-  Assert (!d_eoTmpInt.isNull());
-  d_eoTmpNil = d_state.getVar("$eo_tmp_nil");
-  Assert (!d_eoTmpNil.isNull());
-
-  //std::cout << "Forward declares: " << d_eoTmpInt << " " << d_eoTmpNil << std::endl;
-  d_inInitialize = false;
 }
 
 void SmtMetaReduce::reset() {}
@@ -94,10 +81,6 @@ void SmtMetaReduce::bind(const std::string& name, const Expr& e) {
   if (k==Kind::CONST)
   {
     d_declSeen.insert(e);
-  }
-  if (k==Kind::PROOF_RULE)
-  {
-    d_ruleSeen.insert(e);
   }
 }
 
@@ -681,377 +664,13 @@ void SmtMetaReduce::finalizeDeclarations() {
       d_termDecl << ".arg" << (i+1) << " sm.Term)";
     }
     d_termDecl << ")" << std::endl;
-
-    if (attr==Attr::RIGHT_ASSOC_NIL || attr==Attr::LEFT_ASSOC_NIL)
-    {
-      Assert (ct.getKind()==Kind::FUNCTION_TYPE);
-      Assert (!attrCons.isNull());
-      SelectorCtx nilCtx;
-      std::stringstream ncase;
-      std::stringstream nret;
-      ncase << "((_ is " << cname.str() << ") x1)";
-      size_t nconj = 1;
-      // only matters if nil is non-ground
-      if (!attrCons.isGround())
-      {
-        printEmbPatternMatch(ct[0], "x2", ncase, nilCtx, nconj);
-      }
-      d_eoNil << "  (ite ";
-      printConjunction(nconj, ncase.str(), d_eoNil, nilCtx);
-      d_eoNil << std::endl;
-      d_eoNil << "    ";
-      printEmbTerm(attrCons, d_eoNil, nilCtx);
-      d_eoNil << std::endl;
-      d_eoNilEnd << ")";
-    }
-    // if its type is ground, the type is taken into account for typeof
-    Expr pattern = e;
-    std::stringstream typeOfCond;
-    size_t nTypeOfCond = 0;
-    SelectorCtx typeofCtx;
-    if (!ct.isGround())
-    {
-      Assert(ct.getKind() == Kind::FUNCTION_TYPE);
-      //std::cout << "Non-ground function type: " << e << " : " << ct << std::endl;
-      //std::cout << "Attribute is " << attr << std::endl;
-      // We traverse to a position where the type of a partial application
-      // of this operator has ground type.
-      std::vector<Expr> argTypes;
-      std::vector<Expr> allVars = Expr::getVariables(ct);
-      while (ct.getKind()==Kind::FUNCTION_TYPE)
-      {
-        std::vector<Expr> args;
-        args.push_back(pattern);
-        size_t nargs = ct.getNumChildren();
-        for (size_t i=1; i<nargs; i++)
-        {
-          Expr cta = ct[i-1];
-          Expr arg;
-          if (cta.getKind()==Kind::QUOTE_TYPE)
-          {
-            arg = cta[0];
-          }
-          else
-          {
-            arg = d_state.mkSymbol(Kind::PARAM, "tmp", cta);
-            arg = d_state.mkExpr(Kind::ANNOT_PARAM, {arg, cta});
-          }
-          args.push_back(arg);
-          argTypes.push_back(cta);
-        }
-        Kind ak = (nopqArgs>0 && pattern==e) ? Kind::APPLY_OPAQUE : Kind::APPLY;
-        pattern = d_state.mkExprSimple(ak, args);
-        //std::cout << "...pattern is now " << pattern << " from " << args << std::endl;
-        ct = ct[nargs-1];
-        // maybe we are now fully bound?
-        std::vector<Expr> vars = Expr::getVariables(argTypes);
-        if (allVars.size()==vars.size())
-        {
-          break;
-        }
-      }
-      //std::cout << "Partial app that has ground type: " << pattern << std::endl;
-      // we now write the pattern matching for the derived pattern.
-    }
-    printEmbPatternMatch(pattern, "x1", typeOfCond, typeofCtx, nTypeOfCond);
-    d_eoTypeof << "  ; type-rule: " << e << std::endl;
-    d_eoTypeof << "  (ite ";
-    printConjunction(nTypeOfCond, typeOfCond.str(), d_eoTypeof, typeofCtx);
-    d_eoTypeof << std::endl;
-    d_eoTypeof << "    ";
-    printEmbTerm(ct, d_eoTypeof, typeofCtx);
-    d_eoTypeof << std::endl;
-    d_eoTypeofEnd << ")";
   }
   d_declSeen.clear();
-}
-
-void SmtMetaReduce::finalizeRules()
-{
-  std::map<Expr, std::pair<Attr, Expr>>::iterator it;
-  for (const Expr& e : d_ruleSeen)
-  {
-    // ignore those with :sorry
-    if (d_state.isProofRuleSorry(e.getValue()))
-    {
-      continue;
-    }
-    finalizeRule(e);
-  }
-  d_ruleSeen.clear();
-}
-
-void SmtMetaReduce::finalizeRule(const Expr& e)
-{
-  Expr r = e;
-  Expr rto = d_tc.getType(r);
-
-  // compile to Eunoia program
-  std::vector<Expr> avars;
-  Expr rt = mkRemoveAnnotParam(rto, avars);
-  std::vector<Expr> vars = Expr::getVariables(rt);
-  std::stringstream paramList;
-  bool firstParam = true;
-  std::map<Expr, bool> visited;
-  std::map<Expr, bool>::iterator itv;
-  std::vector<Expr> toVisit(vars.begin(), vars.end());
-  Expr cur;
-  std::stringstream tcrSig;
-  std::stringstream tcrBody;
-  std::stringstream tcrCall;
-  // ethos ctx
-  std::vector<Expr> keep;
-  Ctx ectx;
-  bool firstTc = true;
-  std::vector<Expr> params;
-  while (!toVisit.empty())
-  {
-    cur = toVisit.back();
-    itv = visited.find(cur);
-    if (itv!=visited.end() && itv->second)
-    {
-      toVisit.pop_back();
-      continue;
-    }
-    Expr tcur = d_tc.getType(cur);
-    if (itv==visited.end())
-    {
-      visited[cur] = false;
-      // ensure its type has been printed
-      Assert (!tcur.isNull());
-      std::vector<Expr> tvars = Expr::getVariables(tcur);
-      toVisit.insert(toVisit.end(), tvars.begin(), tvars.end());
-      continue;
-    }
-    else if (!itv->second)
-    {
-      Assert (!itv->second);
-      visited[cur] = true;
-      if (firstParam)
-      {
-        firstParam = false;
-      }
-      else
-      {
-        paramList << " ";
-      }
-      std::stringstream cname;
-      cname << cur;
-      paramList << "(" << cname.str() << " " << tcur << ")";
-      toVisit.pop_back();
-      params.push_back(cur);
-      // if an original variable
-      if (std::find(vars.begin(), vars.end(), cur)!=vars.end())
-      {
-        // its type must match
-        if (firstTc)
-        {
-          firstTc = false;
-        }
-        else
-        {
-          tcrSig << " ";
-        }
-        tcrSig << tcur << " Type";
-        tcrBody << " " << cur << " " << tcur;
-        tcrCall << " " << cur << " (eo::typeof " << cur << ")";
-        // will instantiate it to strip off "(eo::param ...)"
-        Expr dummy = d_state.mkSymbol(Kind::PARAM, cname.str(), tcur);
-        keep.push_back(dummy);
-        ectx[cur.getValue()] = dummy.getValue();
-      }
-    }
-  }
-  std::vector<bool> argIsProof;
-  d_eoRules << "; rule: " << e << std::endl;
-  if (rt.getKind()==Kind::FUNCTION_TYPE)
-  {
-    std::stringstream typeList;
-    std::stringstream argList;
-    for (size_t i=1, nargs = rt.getNumChildren(); i<nargs; i++)
-    {
-      if (i>1)
-      {
-        typeList << " ";
-      }
-      Expr argType = rt[i-1];
-      Kind ak = argType.getKind();
-      if (ak==Kind::QUOTE_TYPE || ak==Kind::PROOF_TYPE)
-      {
-        // handled the same: argument is first child
-        Expr aa = argType[0];
-        Expr ta = d_tc.getType(aa);
-        bool isProof = (ak==Kind::PROOF_TYPE);
-        if (isProof)
-        {
-          //typeList << "(! " << ta << " :premise)";
-          typeList << ta;
-        }
-        else
-        {
-          typeList << ta;
-        }
-        // instantiate it, which strips off "(eo::param ...)"
-        Expr atev = d_tc.evaluate(argType[0].getValue(), ectx);
-        argList << " " << atev;
-        argIsProof.push_back(isProof);
-      }
-    }
-    // strip off the "(Proof ...)", which may be beneath requires
-    Expr rrt = rt[rt.getNumChildren()-1];
-    std::vector<Expr> reqs;
-    while (rrt.getKind()==Kind::EVAL_REQUIRES)
-    {
-      reqs.push_back(d_state.mkPair(rrt[0], rrt[1]));
-      rrt = rrt[2];
-    }
-    Assert (rrt.getKind()==Kind::PROOF_TYPE);
-    rrt = rrt[0];
-    rrt = d_state.mkRequires(reqs, rrt);
-    // just use the same parameter list
-    d_eoRules << "(program $sm.exec_" << e << " (" << paramList.str() << ")" << std::endl;
-    d_eoRules << "  :signature (" << tcrSig.str() << ") Bool" << std::endl;
-    d_eoRules << "  (" << std::endl;
-    d_eoRules << "  (($sm.exec_" << e << tcrBody.str() << ") " << rrt << ")" << std::endl;
-    d_eoRules << "  )" << std::endl;
-    d_eoRules << ")" << std::endl;
-    d_eoRules << "(program $sm_" << e << " (" << paramList.str() << ")" << std::endl;
-    d_eoRules << "  :signature (" << typeList.str() << ")";
-    d_eoRules << " Bool" << std::endl;
-    d_eoRules << "  (" << std::endl;
-    d_eoRules << "  (($sm_" << e << argList.str() << ") ($sm.exec_" << e << tcrCall.str() << "))" << std::endl;
-    d_eoRules << "  )" << std::endl;
-    d_eoRules << ")" << std::endl;
-    d_eoRules << std::endl;
-  }
-  else
-  {
-    // ground rule is just a formula definition
-    Assert (rt.getKind()==Kind::PROOF_TYPE);
-    Expr rrt = rt[0];
-    d_eoRules << "(define $sm_" << e << " () " << rrt << ")" << std::endl << std::endl;
-  }
-
-
-  /*
-  d_rules << "; rule: " << e << std::endl;
-  //d_rules << "; type is " << rt << std::endl;
-  //d_rules << "; attribute is " << attr << std::endl;
-  std::stringstream typeVarList;
-  std::stringstream argList;
-  std::stringstream appTerm;
-  std::stringstream proofPred;
-  size_t nproofPredConj = 0;
-  SelectorCtx ctx;
-  std::stringstream rcase;
-  size_t nconj = 0;
-  //d_rules << "(declare-const " << r;
-  Expr retType;
-  if (rt.getKind()==Kind::FUNCTION_TYPE)
-  {
-    appTerm << "(" << r;
-    //d_rules << " (->";
-    // uses flat function type
-    for (size_t i=1, nargs = rt.getNumChildren(); i<nargs; i++)
-    {
-      //d_rules << " sm.Term";
-      std::stringstream ssArg;
-      ssArg << "x" << i;
-      if (i>1)
-      {
-        typeVarList << " ";
-      }
-      typeVarList << "(" << ssArg.str() << " sm.Term)";
-      Expr argType = rt[i-1];
-      Kind ak = argType.getKind();
-      Expr toMatch;
-      if (ak==Kind::QUOTE_TYPE)
-      {
-        toMatch = argType[0];
-      }
-      else if (ak==Kind::PROOF_TYPE)
-      {
-        toMatch = argType[0];
-        if (nproofPredConj>0)
-        {
-          proofPred << " ";
-        }
-        nproofPredConj++;
-        // Note this assumes that :premise-list is only used with "and".
-        // This assumes that an implicit AND_INTRO step is sound.
-        proofPred << "(sm.hasModel " << ssArg.str() << ")";
-      }
-      else
-      {
-        EO_FATAL() << "Unknown type to rule " << ak << std::endl;
-      }
-      // print the pattern matching
-      printEmbPatternMatch(toMatch, ssArg.str(), rcase, ctx, nconj);
-    }
-    appTerm << ")";
-    //d_rules << " sm.Term)";
-    retType = rt[rt.getNumChildren()-1];
-  }
-  else
-  {
-    appTerm << r;
-    //d_rules << " sm.Term";
-    retType = rt;
-  }
-  //d_rules << ")" << std::endl;
-  // print the conclusion term
-  std::stringstream rret;
-  printEmbTerm(retType, rret, ctx, true);
-
-  std::stringstream ruleEnd;
-  d_rules << "(assert";
-  if (!typeVarList.str().empty())
-  {
-    d_rules << " (forall (" << typeVarList.str() << ")" << std::endl;
-    ruleEnd << ")";
-  }
-  d_rules << "  (let ((conc " << rret.str() << "))" << std::endl;
-  // premises
-  if (nproofPredConj>0)
-  {
-    d_rules << "  (=> ";
-    SelectorCtx emp;
-    printConjunction(nproofPredConj, proofPred.str(), d_rules, emp);
-    d_rules << std::endl;
-    ruleEnd << ")";
-  }
-  // pattern matching
-  if (nconj>0)
-  {
-    d_rules << "  (=> ";
-    printConjunction(nconj, rcase.str(), d_rules, ctx);
-    d_rules << std::endl;
-    ruleEnd << ")";
-  }
-  // type check the conclusion to Bool
-  d_rules << "  (=> (= ($eo_typeof conc) sm.BoolType)" << std::endl;
-  d_rules << "  (sm.hasModel conc))" << std::endl;
-  d_rules << ruleEnd.str() << "))" << std::endl;
-  d_rules << std::endl;
-  */
-
-  // semantic soundness??
-  /*
-  std::vector<Expr> vars = Expr::getVariables(rt);
-  SelectorCtx sctx;
-  size_t varCounter = 0;
-  for (const Expr& v : vars)
-  {
-    varCounter++;
-    std::stringstream ssv;
-  }
-  */
 }
 
 void SmtMetaReduce::finalize() {
   finalizePrograms();
   finalizeDeclarations();
-  finalizeRules();
   // debugging
   /*
   std::cout << ";;; Term declaration" << std::endl;
@@ -1079,21 +698,6 @@ void SmtMetaReduce::finalize() {
     }
   };
   
-  // now, go back and compile *.eo for the proof rules
-  std::stringstream ssie;
-  ssie << s_path << "plugins/smt_meta/eo_model.eo";
-  std::ifstream ine(ssie.str());
-  std::ostringstream sse;
-  sse << ine.rdbuf();
-  std::string finalEo = sse.str();
-  
-  replace(finalEo, "$EO_RULES$", d_eoRules.str());
-  
-  std::stringstream ssoe;
-  ssoe << s_path << "plugins/smt_meta/eo_model_gen.eo";
-  std::ofstream oute(ssoe.str());
-  oute << finalEo;
-  
   // make the final SMT-LIB encoding
   std::stringstream ssi;
   ssi << s_path << "plugins/smt_meta/smt_meta.smt2";
@@ -1104,10 +708,7 @@ void SmtMetaReduce::finalize() {
 
   replace(finalSm, "$TERM_DECL$", d_termDecl.str());
   replace(finalSm, "$TYPEOF_LITERALS$", d_eoTypeofLit.str());
-  replace(finalSm, "$TYPEOF$", d_eoTypeof.str());
   replace(finalSm, "$TYPEOF_END$", d_eoTypeofEnd.str());
-  replace(finalSm, "$NIL$", d_eoNil.str());
-  replace(finalSm, "$NIL_END$", d_eoNilEnd.str());
   replace(finalSm, "$DEFS$", d_defs.str());
   //replace(finalSm, "$RULES$", d_rules.str());
 
@@ -1151,92 +752,6 @@ bool SmtMetaReduce::hasSubterm(const Expr& t, const Expr& s)
     }
   }
   return false;
-}
-
-/*
-std::vector<Expr> SmtMetaReduce::getSubtermsWithKind(const Expr& t, Kind k)
-{
-  std::vector<Expr> ret;
-  std::unordered_set<const ExprValue*> visited;
-  std::vector<Expr> toVisit;
-  toVisit.push_back(t);
-  Expr cur;
-  while (!toVisit.empty())
-  {
-    cur = toVisit.back();
-    toVisit.pop_back();
-    const ExprValue* cv = cur.getValue();
-    if (visited.find(cv) != visited.end())
-    {
-      continue;
-    }
-    visited.insert(cv);
-    if (cur.getKind()==k)
-    {
-      ret.emplace_back(cur);
-      continue;
-    }
-    for (size_t i = 0, nchildren = cur.getNumChildren(); i < nchildren; i++)
-    {
-      toVisit.push_back(cur[i]);
-    }
-  }
-  return ret;
-}
-*/
-
-Expr SmtMetaReduce::mkRemoveAnnotParam(const Expr& t, std::vector<Expr>& vars)
-{
-  std::unordered_map<const ExprValue*, Expr> visited;
-  std::unordered_map<const ExprValue*, Expr>::iterator it;
-  std::vector<Expr> visit;
-  Expr cur;
-  visit.push_back(t);
-  do
-  {
-    cur = visit.back();
-    it = visited.find(cur.getValue());
-    if (it == visited.end())
-    {
-      visited[cur.getValue()] = d_null;
-      for (size_t i=0, nchild=cur.getNumChildren(); i<nchild; i++)
-      {
-        visit.push_back(cur[i]);
-      }
-      continue;
-    }
-    visit.pop_back();
-    if (it->second.isNull())
-    {
-      Expr ret = cur;
-      bool childChanged = false;
-      std::vector<Expr> children;
-      for (size_t i=0, nchild=cur.getNumChildren(); i<nchild; i++)
-      {
-        Expr cn = cur[i];
-        it = visited.find(cn.getValue());
-        Assert(it != visited.end());
-        Assert(!it->second.isNull());
-        childChanged = childChanged || cn != it->second;
-        children.push_back(it->second);
-      }
-      Kind k = cur.getKind();
-      if (k==Kind::ANNOT_PARAM)
-      {
-        // strip off the "(eo::param ...)"
-        vars.push_back(cur);
-        ret = cur[0];
-      }
-      else if (childChanged)
-      {
-        ret = Expr(d_state.mkExprSimple(k, children));
-      }
-      visited[cur.getValue()] = ret;
-    }
-  } while (!visit.empty());
-  Assert(visited.find(t.getValue()) != visited.end());
-  Assert(!visited.find(t.getValue())->second.isNull());
-  return visited[t.getValue()];
 }
 
 }  // namespace ethos

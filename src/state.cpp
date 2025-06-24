@@ -28,6 +28,8 @@ Options::Options()
   d_normalizeDecimal = true;
   d_normalizeHexadecimal = true;
   d_normalizeNumeral = false;
+  d_pluginDesugar = false;
+  d_pluginSmtMeta = false;
 }
 
 bool Options::setOption(const std::string& key, bool val)
@@ -71,6 +73,14 @@ bool Options::setOption(const std::string& key, bool val)
   else if (key == "normalize-hex")
   {
     d_normalizeHexadecimal = val;
+  }
+  else if (key == "plugin.desugar")
+  {
+    d_pluginDesugar = true;
+  }
+  else if (key == "plugin.smt-meta")
+  {
+    d_pluginSmtMeta = true;
   }
   else
   {

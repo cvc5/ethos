@@ -2,14 +2,12 @@
 echo "**** Compile"
 make -j4
 
-#echo "**** Run ethos + smt_meta"
-#./src/ethos ~/cvc5-ajr/proofs/eo/cpc/Cpc.eo
-#echo "**** Run cvc5"
-#ajr-cvc5 ../plugins/smt_meta/smt_meta_gen.smt2
-#echo "**** Run ethos"
-#ethos ../plugins/smt_meta/eo_model_gen.eo
-
 echo "**** Run ethos + desugar"
-./src/ethos ~/cvc5-ajr/proofs/eo/cpc/Cpc.eo
-echo "**** Run ethos"
-ethos ../plugins/desugar/eo_desugar_gen.eo
+./src/ethos --plugin.desugar ~/cvc5-ajr/proofs/eo/cpc/Cpc.eo
+echo "**** Verify that it parses"
+./src/ethos ../plugins/desugar/eo_desugar_gen.eo
+
+echo "**** Generate SMT2"
+./src/ethos --plugin.smt-meta ../plugins/smt_meta/eo_model.eo
+echo "**** Verify that it parses"
+ajr-cvc5 ../plugins/smt_meta/smt_meta_gen.smt2

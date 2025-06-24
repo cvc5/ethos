@@ -45,6 +45,9 @@ class Options
   bool d_normalizeHexadecimal;
   /** Treat numerals as rational literals */
   bool d_normalizeNumeral;
+  /** plugins */
+  bool d_pluginDesugar;
+  bool d_pluginSmtMeta;
 };
 
 /**
