@@ -41,7 +41,8 @@ TypeChecker::~TypeChecker()
 
 void TypeChecker::setLiteralTypeRule(Kind k, const Expr& t)
 {
-  Trace("type_checker") << "**** setLiteralTypeRule " << k << " to " << t << std::endl;
+  Trace("type_checker") << "**** setLiteralTypeRule " << k << " to " << t
+                        << std::endl;
   std::map<Kind, Expr>::iterator it = d_literalTypeRules.find(k);
   if (it==d_literalTypeRules.end())
   {
@@ -169,9 +170,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_NIL:
       ret = (nargs==2);
       break;
-    case Kind::EVAL_LIST_CONCAT:
-      ret = (nargs==3);
-      break;
+    case Kind::EVAL_LIST_CONCAT: ret = (nargs == 3); break;
     case Kind::PROOF_TYPE:
     case Kind::EVAL_IS_OK:
     case Kind::EVAL_TYPE_OF:
@@ -207,7 +206,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     default:
       if (isNaryLiteralOp(k))
       {
-        ret = (nargs==2);
+        ret = (nargs == 2);
       }
       else if (out)
       {

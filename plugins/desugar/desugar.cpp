@@ -9,15 +9,16 @@
 
 #include "desugar.h"
 
-#include "state.h"
 #include <fstream>
 #include <sstream>
 #include <string>
 
+#include "state.h"
+
 namespace ethos {
 
 std::string s_ds_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
-//std::string s_ds_path = "/home/andrew/ethos/";
+// std::string s_ds_path = "/home/andrew/ethos/";
 
 Desugar::Desugar(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {
@@ -30,7 +31,7 @@ Desugar::~Desugar() {}
 void Desugar::setLiteralTypeRule(Kind k, const Expr& t)
 {
   d_declSeen.emplace_back(t, k);
-  if (k==Kind::NUMERAL)
+  if (k == Kind::NUMERAL)
   {
     // we will process the integer type separately
     d_declProcessed.insert(t);
@@ -49,15 +50,13 @@ void Desugar::finalizeSetLiteralTypeRule(Kind k, const Expr& t)
     case Kind::STRING: ss << "<string>"; break;
     case Kind::DECIMAL: ss << "<decimal>"; break;
     case Kind::HEXADECIMAL: ss << "<hexadecimal>"; break;
-    default:
-      EO_FATAL() << "Unknown literal type rule" << k << std::endl;
-      break;
+    default: EO_FATAL() << "Unknown literal type rule" << k << std::endl; break;
   }
   ss << " " << t << ")" << std::endl;
   // numeral is declared at the top
-  if (k==Kind::NUMERAL)
+  if (k == Kind::NUMERAL)
   {
-    Assert (t.getKind()==Kind::CONST);
+    Assert(t.getKind() == Kind::CONST);
     d_numDecl << "(declare-const " << t << " Type)" << std::endl;
     d_numDecl << "; type-rules: " << k << std::endl;
     d_numDecl << ss.str();
@@ -73,14 +72,14 @@ void Desugar::finalizeSetLiteralTypeRule(Kind k, const Expr& t)
 void Desugar::bind(const std::string& name, const Expr& e)
 {
   Kind k = e.getKind();
-  if (k==Kind::LAMBDA)
+  if (k == Kind::LAMBDA)
   {
     // remember the name
     Expr tmp = d_state.mkSymbol(Kind::CONST, name, d_state.mkAny());
     Expr p = d_state.mkPair(tmp, e);
     d_declSeen.emplace_back(p, Kind::LAMBDA);
   }
-  else if (k==Kind::CONST || k==Kind::PROOF_RULE)
+  else if (k == Kind::CONST || k == Kind::PROOF_RULE)
   {
     d_declSeen.emplace_back(e, k);
   }
@@ -88,11 +87,11 @@ void Desugar::bind(const std::string& name, const Expr& e)
 
 void Desugar::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
 {
- d_attrDecl[v] = std::pair<Attr, Expr>(a, cons);
- if (a==Attr::DATATYPE)
- {
-   d_declSeen.emplace_back(v, Kind::TYPE);
- }
+  d_attrDecl[v] = std::pair<Attr, Expr>(a, cons);
+  if (a == Attr::DATATYPE)
+  {
+    d_declSeen.emplace_back(v, Kind::TYPE);
+  }
 }
 void Desugar::defineProgram(const Expr& v, const Expr& prog)
 {
@@ -106,18 +105,19 @@ void Desugar::finalizeProgram(const Expr& e, const Expr& prog)
   Expr pt = d_tc.getType(p);
   std::vector<Expr> pandt{pt, prog};
   std::vector<Expr> vars = Expr::getVariables(pandt);
-  d_defs << "; " << (prog.isNull() ? "fwd-decl: " : "program: ") << e << std::endl;
+  d_defs << "; " << (prog.isNull() ? "fwd-decl: " : "program: ") << e
+         << std::endl;
   d_defs << "(program " << e << " (";
   std::vector<Expr> params;
   printParamList(vars, d_defs, params, false);
   d_defs << ")" << std::endl;
-  Assert (pt.getKind()==Kind::PROGRAM_TYPE);
-  Assert (pt.getNumChildren()>1);
+  Assert(pt.getKind() == Kind::PROGRAM_TYPE);
+  Assert(pt.getNumChildren() > 1);
   d_defs << "  :signature (";
-  size_t pargs = pt.getNumChildren()-1;
-  for (size_t i=0; i<pargs; i++)
+  size_t pargs = pt.getNumChildren() - 1;
+  for (size_t i = 0; i < pargs; i++)
   {
-    if (i>0)
+    if (i > 0)
     {
       d_defs << " ";
     }
@@ -129,7 +129,7 @@ void Desugar::finalizeProgram(const Expr& e, const Expr& prog)
   if (!prog.isNull())
   {
     d_defs << "  (" << std::endl;
-    for (size_t i=0, ncases = prog.getNumChildren(); i<ncases; i++)
+    for (size_t i = 0, ncases = prog.getNumChildren(); i < ncases; i++)
     {
       const Expr& c = prog[i];
       d_defs << "  (";
@@ -150,12 +150,13 @@ void Desugar::finalizeDeclaration(const Expr& e)
   Expr cattrCons;
   std::map<Expr, std::pair<Attr, Expr>>::iterator it;
   it = d_attrDecl.find(e);
-  if (it!=d_attrDecl.end())
+  if (it != d_attrDecl.end())
   {
     cattr = it->second.first;
     cattrCons = it->second.second;
   }
-  if (cattr==Attr::DATATYPE || cattr==Attr::DATATYPE_CONSTRUCTOR || cattr==Attr::AMB_DATATYPE_CONSTRUCTOR)
+  if (cattr == Attr::DATATYPE || cattr == Attr::DATATYPE_CONSTRUCTOR
+      || cattr == Attr::AMB_DATATYPE_CONSTRUCTOR)
   {
     // handled as part of datatype
     return;
@@ -176,23 +177,26 @@ void Desugar::finalizeDeclaration(const Expr& e)
   bool firstParam = true;
   std::vector<Expr> params;
   std::stringstream opaqueArgs;
-  if (ct.getKind()==Kind::FUNCTION_TYPE)
+  if (ct.getKind() == Kind::FUNCTION_TYPE)
   {
-    if (cattr==Attr::OPAQUE)
+    if (cattr == Attr::OPAQUE)
     {
-      size_t novars = ct.getNumChildren()-1;
-      for (size_t i=0; i<novars; i++)
+      size_t novars = ct.getNumChildren() - 1;
+      for (size_t i = 0; i < novars; i++)
       {
-        Assert (ct[i].getKind()==Kind::QUOTE_TYPE) << "Bad opaque function type " << ct << " for " << c;
+        Assert(ct[i].getKind() == Kind::QUOTE_TYPE)
+            << "Bad opaque function type " << ct << " for " << c;
         Expr v = ct[i][0];
-        if (v.getKind()==Kind::ANNOT_PARAM)
+        if (v.getKind() == Kind::ANNOT_PARAM)
         {
           v = v[0];
         }
-        Assert (v.getKind()==Kind::PARAM) << "Bad opaque function variable " << ct << " for " << c;
+        Assert(v.getKind() == Kind::PARAM)
+            << "Bad opaque function variable " << ct << " for " << c;
         std::vector<Expr> vars;
         vars.push_back(v);
-        printParamList(vars, opaqueArgs, params, true, visited, firstParam, true);
+        printParamList(
+            vars, opaqueArgs, params, true, visited, firstParam, true);
       }
       ct = ct[novars];
     }
@@ -211,24 +215,24 @@ void Desugar::finalizeDeclaration(const Expr& e)
   {
     d_defs << "parameterized-const " << e << " (" << opaqueArgs.str();
     size_t pcount = 0;
-    for (size_t i=0, nargs=argTypes.size(); i<nargs; i++)
+    for (size_t i = 0, nargs = argTypes.size(); i < nargs; i++)
     {
       Expr at = argTypes[i];
       Kind ak = at.getKind();
-      if (ak==Kind::QUOTE_TYPE)
+      if (ak == Kind::QUOTE_TYPE)
       {
         Expr v = at[0];
-        if (v.getKind()==Kind::ANNOT_PARAM)
+        if (v.getKind() == Kind::ANNOT_PARAM)
         {
           v = v[0];
         }
-        if (v.getKind()==Kind::PARAM)
+        if (v.getKind() == Kind::PARAM)
         {
           std::vector<Expr> vars;
           vars.push_back(v);
           printParamList(vars, d_defs, params, true, visited, firstParam);
         }
-        else if (cattr==Attr::AMB && i==0)
+        else if (cattr == Attr::AMB && i == 0)
         {
           // print the parameters; these will lead to a definition that is
           // ambiguous again.
@@ -237,7 +241,7 @@ void Desugar::finalizeDeclaration(const Expr& e)
         }
         else
         {
-          Assert (false) << "Non-param quote " << ct << " for " << c;
+          Assert(false) << "Non-param quote " << ct << " for " << c;
         }
       }
       else
@@ -260,7 +264,7 @@ void Desugar::finalizeDeclaration(const Expr& e)
   }
   d_declProcessed.insert(e);
   // handle eo_nil
-  if (cattr==Attr::RIGHT_ASSOC_NIL || cattr==Attr::LEFT_ASSOC_NIL)
+  if (cattr == Attr::RIGHT_ASSOC_NIL || cattr == Attr::LEFT_ASSOC_NIL)
   {
     d_eoNil << "  (($eo_nil " << e << " T) ";
     std::vector<Expr> nvars = Expr::getVariables(cattrCons);
@@ -268,7 +272,7 @@ void Desugar::finalizeDeclaration(const Expr& e)
     if (!nvars.empty())
     {
       Assert(ct.getKind() == Kind::FUNCTION_TYPE);
-      Assert (cattrCons.getKind() == Kind::PARAMETERIZED);
+      Assert(cattrCons.getKind() == Kind::PARAMETERIZED);
       cattrCons = cattrCons[1];
       // ensure the parameters in the type have been printed, which should
       // be a superset of those in cattrCons
@@ -301,15 +305,16 @@ void Desugar::finalizeDeclaration(const Expr& e)
   // handle eo_typeof
   ct = cto;
   d_eoTypeof << "  ; type-rule: " << e << std::endl;
-  
+
   d_eoTypeof << "  ; type is " << ct << std::endl;
   if (!ct.isGround())
   {
-    Assert(ct.getKind() == Kind::FUNCTION_TYPE) << "Not function type " << ct << " for " << e;
-    //std::cout << "Non-ground function type: " << e << " : " << ct << std::endl;
-    //std::cout << "Attribute is " << attr << std::endl;
-    // We traverse to a position where the type of a partial application
-    // of this operator has ground type.    
+    Assert(ct.getKind() == Kind::FUNCTION_TYPE)
+        << "Not function type " << ct << " for " << e;
+    // std::cout << "Non-ground function type: " << e << " : " << ct <<
+    // std::endl; std::cout << "Attribute is " << attr << std::endl;
+    //  We traverse to a position where the type of a partial application
+    //  of this operator has ground type.
     Expr pattern = e;
     std::vector<Expr> argTypes;
     std::vector<Expr> allVars = Expr::getVariables(ct);
@@ -320,22 +325,22 @@ void Desugar::finalizeDeclaration(const Expr& e)
     std::stringstream ssngpat;
     std::stringstream ngSig;
     std::vector<Expr> ngscope;
-    while (ct.getKind()==Kind::FUNCTION_TYPE)
+    while (ct.getKind() == Kind::FUNCTION_TYPE)
     {
       std::vector<Expr> args;
       args.push_back(pattern);
       size_t nargs = ct.getNumChildren();
-      for (size_t i=1; i<nargs; i++)
+      for (size_t i = 1; i < nargs; i++)
       {
-        Expr cta = ct[i-1];
+        Expr cta = ct[i - 1];
         d_typeOfVarCount++;
         std::stringstream ssx;
         ssx << "$eo_x" << d_typeOfVarCount;
         Expr arg;
-        if (cta.getKind()==Kind::QUOTE_TYPE)
+        if (cta.getKind() == Kind::QUOTE_TYPE)
         {
           cta = cta[0];
-          if (cta.getKind()==Kind::ANNOT_PARAM)
+          if (cta.getKind() == Kind::ANNOT_PARAM)
           {
             if (!ngscope.empty())
             {
@@ -349,7 +354,7 @@ void Desugar::finalizeDeclaration(const Expr& e)
           }
           Expr tcta = d_tc.getType(cta);
           arg = d_state.mkSymbol(Kind::PARAM, ssx.str(), tcta);
-          if (cta.getKind()==Kind::PARAM)
+          if (cta.getKind() == Kind::PARAM)
           {
             sslc << "(eo::define ((" << cta << " " << arg << ")) ";
             sslcEnd << ")";
@@ -364,7 +369,7 @@ void Desugar::finalizeDeclaration(const Expr& e)
             sslc << "(eo::requires ($eo_typeof " << arg << ") " << cta << " ";
             sslcEnd << ")";
           }
-          else if (cta.getKind()==Kind::PARAM)
+          else if (cta.getKind() == Kind::PARAM)
           {
             sslc << "(eo::define ((" << cta << " ($eo_typeof " << arg << "))) ";
             sslcEnd << ")";
@@ -383,25 +388,28 @@ void Desugar::finalizeDeclaration(const Expr& e)
         args.push_back(arg);
         argTypes.push_back(cta);
       }
-      Kind ak = (cattr==Attr::OPAQUE && pattern==e) ? Kind::APPLY_OPAQUE : Kind::APPLY;
+      Kind ak = (cattr == Attr::OPAQUE && pattern == e) ? Kind::APPLY_OPAQUE
+                                                        : Kind::APPLY;
       pattern = d_state.mkExprSimple(ak, args);
-      //std::cout << "...pattern is now " << pattern << " from " << args << std::endl;
-      ct = ct[nargs-1];
+      // std::cout << "...pattern is now " << pattern << " from " << args <<
+      // std::endl;
+      ct = ct[nargs - 1];
       // maybe we are now fully bound?
       std::vector<Expr> vars = Expr::getVariables(argTypes);
-      if (allVars.size()==vars.size())
+      if (allVars.size() == vars.size())
       {
         break;
       }
     }
     // should be implied
-    //ngscope.push_back(ct);
-    //std::cout << "Partial app that has ground type: " << pattern << std::endl;
+    // ngscope.push_back(ct);
+    // std::cout << "Partial app that has ground type: " << pattern <<
+    // std::endl;
     // we now write the pattern matching for the derived pattern.
     d_eoTypeof << "  (($eo_typeof_main ";
     printTerm(pattern, d_eoTypeof);
     d_eoTypeof << ") ";
-    if (ngArgs>0)
+    if (ngArgs > 0)
     {
       std::stringstream ssng;
       ssng << "$eo_typeof_";
@@ -412,7 +420,8 @@ void Desugar::finalizeDeclaration(const Expr& e)
       std::vector<Expr> ngps;
       printParamList(ngvs, d_eoTypeofNGround, ngps, false);
       d_eoTypeofNGround << ")" << std::endl;
-      d_eoTypeofNGround << "  :signature (" << ngSig.str() << ") Type" << std::endl;
+      d_eoTypeofNGround << "  :signature (" << ngSig.str() << ") Type"
+                        << std::endl;
       d_eoTypeofNGround << "  (" << std::endl;
       d_eoTypeofNGround << "  ((" << pname << ssngpat.str() << ") ";
       printTerm(ct, d_eoTypeofNGround);
@@ -441,7 +450,7 @@ void Desugar::printName(const Expr& e, std::ostream& os)
 {
   std::map<Expr, size_t>::iterator it = d_overloadId.find(e);
   size_t oid;
-  if (it==d_overloadId.end())
+  if (it == d_overloadId.end())
   {
     std::stringstream ss;
     ss << e;
@@ -449,10 +458,10 @@ void Desugar::printName(const Expr& e, std::ostream& os)
     oid = d_overloadCount[s];
     d_overloadId[e] = oid;
     d_overloadCount[s]++;
-    if (oid>0)
+    if (oid > 0)
     {
       std::stringstream ss;
-      ss << e << "." << (oid+1);
+      ss << e << "." << (oid + 1);
       Expr c = e;
       Expr ct = d_tc.getType(c);
       Expr ctov = d_state.mkSymbol(e.getKind(), ss.str(), e);
@@ -464,9 +473,9 @@ void Desugar::printName(const Expr& e, std::ostream& os)
     oid = it->second;
   }
   os << e;
-  if (oid>0)
+  if (oid > 0)
   {
-    os << "." << (oid+1);
+    os << "." << (oid + 1);
   }
 }
 
@@ -475,15 +484,24 @@ void Desugar::printTerm(const Expr& e, std::ostream& os)
   Expr es = mkSanitize(e);
   os << es;
 }
-  
-void Desugar::printParamList(const std::vector<Expr>& vars, std::ostream& os, std::vector<Expr>& params, bool useImplicit)
+
+void Desugar::printParamList(const std::vector<Expr>& vars,
+                             std::ostream& os,
+                             std::vector<Expr>& params,
+                             bool useImplicit)
 {
   std::map<Expr, bool> visited;
   bool firstParam = true;
   printParamList(vars, os, params, useImplicit, visited, firstParam);
 }
 
-void Desugar::printParamList(const std::vector<Expr>& vars, std::ostream& os, std::vector<Expr>& params, bool useImplicit, std::map<Expr, bool>& visited, bool& firstParam, bool isOpaque)
+void Desugar::printParamList(const std::vector<Expr>& vars,
+                             std::ostream& os,
+                             std::vector<Expr>& params,
+                             bool useImplicit,
+                             std::map<Expr, bool>& visited,
+                             bool& firstParam,
+                             bool isOpaque)
 {
   std::map<Expr, bool>::iterator itv;
   std::vector<Expr> toVisit(vars.begin(), vars.end());
@@ -491,26 +509,26 @@ void Desugar::printParamList(const std::vector<Expr>& vars, std::ostream& os, st
   while (!toVisit.empty())
   {
     cur = toVisit.back();
-    Assert (cur.getKind()==Kind::PARAM);
+    Assert(cur.getKind() == Kind::PARAM);
     itv = visited.find(cur);
-    if (itv!=visited.end() && itv->second)
+    if (itv != visited.end() && itv->second)
     {
       toVisit.pop_back();
       continue;
     }
     Expr tcur = d_tc.getType(cur);
-    if (itv==visited.end())
+    if (itv == visited.end())
     {
       visited[cur] = false;
       // ensure its type has been printed
-      Assert (!tcur.isNull());
+      Assert(!tcur.isNull());
       std::vector<Expr> tvars = Expr::getVariables(tcur);
       toVisit.insert(toVisit.end(), tvars.begin(), tvars.end());
       continue;
     }
     else if (!itv->second)
     {
-      Assert (!itv->second);
+      Assert(!itv->second);
       visited[cur] = true;
       if (firstParam)
       {
@@ -522,7 +540,7 @@ void Desugar::printParamList(const std::vector<Expr>& vars, std::ostream& os, st
       }
       os << "(" << cur << " ";
       printTerm(tcur, os);
-      if (std::find(vars.begin(), vars.end(), cur)==vars.end())
+      if (std::find(vars.begin(), vars.end(), cur) == vars.end())
       {
         if (useImplicit)
         {
@@ -539,14 +557,14 @@ void Desugar::printParamList(const std::vector<Expr>& vars, std::ostream& os, st
     }
   }
 }
-  
+
 void Desugar::finalizeDefinition(const std::string& name, const Expr& t)
 {
-  Assert (t.getKind()==Kind::LAMBDA);
+  Assert(t.getKind() == Kind::LAMBDA);
   d_defs << "; define: " << name << std::endl;
   d_defs << "(define " << name << " (";
   std::vector<Expr> vars;
-  for (size_t i=0, nvars=t[0].getNumChildren(); i<nvars; i++)
+  for (size_t i = 0, nvars = t[0].getNumChildren(); i < nvars; i++)
   {
     vars.push_back(t[0][i]);
   }
@@ -562,41 +580,42 @@ void Desugar::finalizeRule(const Expr& e)
 {
   Expr r = e;
   Expr rto = d_tc.getType(r);
-  //std::cout << "Finalize " << r << std::endl;
-  //std::cout << "Type is " << rto << std::endl;
-  // compile to Eunoia program
+  // std::cout << "Finalize " << r << std::endl;
+  // std::cout << "Type is " << rto << std::endl;
+  //  compile to Eunoia program
   Expr rt = mkSanitize(rto);
-  //std::cout << "...santized to " << rt << std::endl;
-  
+  // std::cout << "...santized to " << rt << std::endl;
+
   d_eoRules << "; rule: " << e << std::endl;
-  if (rt.getKind()!=Kind::FUNCTION_TYPE)
+  if (rt.getKind() != Kind::FUNCTION_TYPE)
   {
     // ground rule is just a formula definition
-    Assert (rt.getKind()==Kind::PROOF_TYPE);
+    Assert(rt.getKind() == Kind::PROOF_TYPE);
     Expr rrt = rt[0];
-    d_eoRules << "(define $eor_" << e << " () " << rrt << ")" << std::endl << std::endl;
+    d_eoRules << "(define $eor_" << e << " () " << rrt << ")" << std::endl
+              << std::endl;
     return;
   }
-  
+
   std::vector<Expr> vars = Expr::getVariables(rt);
   std::stringstream plout;
   std::vector<Expr> params;
   std::map<Expr, bool> pvisited;
   bool pfirstParam = true;
   printParamList(vars, plout, params, false, pvisited, pfirstParam);
-  
+
   std::stringstream tcrSig;
   std::stringstream tcrBody;
   std::stringstream tcrCall;
-  for (size_t i=0, nparams=params.size(); i<nparams; i++)
+  for (size_t i = 0, nparams = params.size(); i < nparams; i++)
   {
     Expr v = params[i];
-    if (std::find(vars.begin(), vars.end(), v)==vars.end())
+    if (std::find(vars.begin(), vars.end(), v) == vars.end())
     {
       continue;
     }
-    Expr tv = d_tc.getType(v);     
-    if (i>0)
+    Expr tv = d_tc.getType(v);
+    if (i > 0)
     {
       tcrSig << " ";
     }
@@ -604,37 +623,37 @@ void Desugar::finalizeRule(const Expr& e)
     tcrBody << " " << v << " " << tv;
     tcrCall << " " << v << " (eo::typeof " << v << ")";
   }
-  
+
   std::map<Expr, Expr> evMap;
   size_t eVarCount = 0;
   std::vector<std::pair<Expr, Expr>> newVars;
   std::vector<bool> argIsProof;
   std::vector<Expr> finalArgs;
-  Assert (rt.getKind()==Kind::FUNCTION_TYPE);
+  Assert(rt.getKind() == Kind::FUNCTION_TYPE);
   std::stringstream typeList;
   std::stringstream argList;
   std::vector<Expr> finalVars;
-  for (size_t i=1, nargs = rt.getNumChildren(); i<nargs; i++)
+  for (size_t i = 1, nargs = rt.getNumChildren(); i < nargs; i++)
   {
-    if (i>1)
+    if (i > 1)
     {
       typeList << " ";
     }
-    Expr argTypeo = rt[i-1];
+    Expr argTypeo = rt[i - 1];
     Expr argType = mkSanitize(argTypeo, evMap, eVarCount, true, newVars);
     Kind ak = argType.getKind();
-    if (ak==Kind::QUOTE_TYPE || ak==Kind::PROOF_TYPE)
+    if (ak == Kind::QUOTE_TYPE || ak == Kind::PROOF_TYPE)
     {
       // handled the same: argument is first child
       Expr aa = argType[0];
       Expr ta = d_tc.getType(aa);
       if (ta.isNull())
       {
-        //EO_FATAL() << "Could not get type of " << aa << std::endl;
+        // EO_FATAL() << "Could not get type of " << aa << std::endl;
         ta = d_any;
         finalVars.push_back(ta);
       }
-      bool isProof = (ak==Kind::PROOF_TYPE);
+      bool isProof = (ak == Kind::PROOF_TYPE);
       typeList << ta;
       argList << " " << argType[0];
       argIsProof.push_back(isProof);
@@ -648,49 +667,55 @@ void Desugar::finalizeRule(const Expr& e)
   }
   printParamList(finalVars, plout, params, false, pvisited, pfirstParam);
   // strip off the "(Proof ...)", which may be beneath requires
-  Expr rrt = rt[rt.getNumChildren()-1];
+  Expr rrt = rt[rt.getNumChildren() - 1];
   std::vector<Expr> reqs;
-  while (rrt.getKind()==Kind::EVAL_REQUIRES)
+  while (rrt.getKind() == Kind::EVAL_REQUIRES)
   {
     reqs.push_back(d_state.mkPair(rrt[0], rrt[1]));
     rrt = rrt[2];
   }
-  Assert (rrt.getKind()==Kind::PROOF_TYPE);
+  Assert(rrt.getKind() == Kind::PROOF_TYPE);
   rrt = rrt[0];
   rrt = d_state.mkRequires(reqs, rrt);
   // just use the same parameter list
-  d_eoRules << "(program $eor.exec_" << e << " (" << plout.str() << ")" << std::endl;
+  d_eoRules << "(program $eor.exec_" << e << " (" << plout.str() << ")"
+            << std::endl;
   d_eoRules << "  :signature (" << tcrSig.str() << ") Bool" << std::endl;
   d_eoRules << "  (" << std::endl;
-  d_eoRules << "  (($eor.exec_" << e << tcrBody.str() << ") " << rrt << ")" << std::endl;
+  d_eoRules << "  (($eor.exec_" << e << tcrBody.str() << ") " << rrt << ")"
+            << std::endl;
   d_eoRules << "  )" << std::endl;
   d_eoRules << ")" << std::endl;
   d_eoRules << "(program $eor_" << e << " (" << plout.str() << ")" << std::endl;
   d_eoRules << "  :signature (" << typeList.str() << ")";
   d_eoRules << " Bool" << std::endl;
   d_eoRules << "  (" << std::endl;
-  d_eoRules << "  (($eor_" << e << argList.str() << ") ($eor.exec_" << e << tcrCall.str() << "))" << std::endl;
+  d_eoRules << "  (($eor_" << e << argList.str() << ") ($eor.exec_" << e
+            << tcrCall.str() << "))" << std::endl;
   d_eoRules << "  )" << std::endl;
   d_eoRules << ")" << std::endl;
   // compile the verification condition for the soundness of this rule
   if (!d_state.isProofRuleSorry(e.getValue()))
   {
     d_eoRules << "; verification: " << e << std::endl;
-    d_eoRules << "(program $eovc_" << e << " (" << plout.str() << ")" << std::endl;
+    d_eoRules << "(program $eovc_" << e << " (" << plout.str() << ")"
+              << std::endl;
     d_eoRules << "  :signature (" << typeList.str() << ")";
     d_eoRules << " Bool" << std::endl;
     d_eoRules << "  (" << std::endl;
     d_eoRules << "  (($eovc_" << e << argList.str() << ")" << std::endl;
     std::stringstream ssvce;
-    for (size_t i=0, nargs=finalArgs.size(); i<nargs; i++)
+    for (size_t i = 0, nargs = finalArgs.size(); i < nargs; i++)
     {
       if (argIsProof[i])
       {
-        d_eoRules << "     (eo::requires ($eo_model_sat " << finalArgs[i] << ") true" << std::endl;
+        d_eoRules << "     (eo::requires ($eo_model_sat " << finalArgs[i]
+                  << ") true" << std::endl;
         ssvce << ")";
       }
     }
-    d_eoRules << "     (eo::requires ($eo_model_sat ($eor_" << e << argList.str() << ")) false" << std::endl;
+    d_eoRules << "     (eo::requires ($eo_model_sat ($eor_" << e
+              << argList.str() << ")) false" << std::endl;
     d_eoRules << "       true))" << ssvce.str() << std::endl;
     d_eoRules << "  )" << std::endl;
     d_eoRules << ")" << std::endl;
@@ -706,12 +731,12 @@ void Desugar::finalizeDatatype(const Expr& e)
   Expr dattrCons;
   std::map<Expr, std::pair<Attr, Expr>>::iterator it;
   it = d_attrDecl.find(e);
-  if (it!=d_attrDecl.end())
+  if (it != d_attrDecl.end())
   {
     dattr = it->second.first;
     dattrCons = it->second.second;
   }
-  Assert (dattr==Attr::DATATYPE);
+  Assert(dattr == Attr::DATATYPE);
   d_defs << "; datatype: " << e << std::endl;
   d_defs << "(declare-datatypes (";
   d_defs << ")" << std::endl;
@@ -725,38 +750,39 @@ void Desugar::finalize()
   {
     Kind k = d.second;
     Expr e = d.first;
-    if (k==Kind::NUMERAL || k==Kind::RATIONAL || k==Kind::BINARY || k==Kind::STRING || k==Kind::DECIMAL || k==Kind::HEXADECIMAL)
+    if (k == Kind::NUMERAL || k == Kind::RATIONAL || k == Kind::BINARY
+        || k == Kind::STRING || k == Kind::DECIMAL || k == Kind::HEXADECIMAL)
     {
       // defines
       finalizeSetLiteralTypeRule(k, e);
       continue;
     }
-    if (d_declProcessed.find(e)!=d_declProcessed.end())
+    if (d_declProcessed.find(e) != d_declProcessed.end())
     {
       // handles the case where declaration is handled separately e.g. Int
       continue;
     }
-    if (k==Kind::LAMBDA)
+    if (k == Kind::LAMBDA)
     {
-      Assert (e.getNumChildren()==2);
+      Assert(e.getNumChildren() == 2);
       std::stringstream ss;
       ss << e[0];
       finalizeDefinition(ss.str(), e[1]);
     }
-    else if (k==Kind::CONST)
+    else if (k == Kind::CONST)
     {
       finalizeDeclaration(e);
     }
-    else if (k==Kind::PROOF_RULE)
+    else if (k == Kind::PROOF_RULE)
     {
       finalizeRule(e);
     }
-    else if (k==Kind::PROGRAM_CONST)
+    else if (k == Kind::PROGRAM_CONST)
     {
-      Assert (e.getNumChildren()==2);
+      Assert(e.getNumChildren() == 2);
       finalizeProgram(e[0], e[1]);
     }
-    else if (k==Kind::TYPE)
+    else if (k == Kind::TYPE)
     {
       finalizeDatatype(e);
     }
@@ -768,17 +794,17 @@ void Desugar::finalize()
   // now we can finish the definition of typeof
   std::vector<Expr> toParams;
   printParamList(d_typeOfVars, d_eoTypeofParam, toParams, false);
-  
+
   auto replace = [](std::string& txt,
-                  const std::string& tag,
-                  const std::string& replacement) {
+                    const std::string& tag,
+                    const std::string& replacement) {
     auto pos = txt.find(tag);
     if (pos != std::string::npos)
     {
       txt.replace(pos, tag.length(), replacement);
     }
   };
-  
+
   // now, go back and compile *.eo for the proof rules
   std::stringstream ssie;
   ssie << s_ds_path << "plugins/desugar/eo_desugar.eo";
@@ -786,7 +812,7 @@ void Desugar::finalize()
   std::ostringstream sse;
   sse << ine.rdbuf();
   std::string finalEo = sse.str();
-  
+
   replace(finalEo, "$EO_NUMERAL_DECL$", d_numDecl.str());
   replace(finalEo, "$EO_NUMERAL$", d_num.str());
   replace(finalEo, "$EO_DEFS$", d_defs.str());
@@ -799,13 +825,12 @@ void Desugar::finalize()
   replace(finalEo, "$EO_DT_SELECTORS_CASES$", d_eoDtSel.str());
   replace(finalEo, "$EO_NGROUND_DT_DEFS$", d_eoDtNGround.str());
   replace(finalEo, "$EO_RULES$", d_eoRules.str());
-  
+
   std::stringstream ssoe;
   ssoe << s_ds_path << "plugins/desugar/eo_desugar_gen.eo";
   std::ofstream oute(ssoe.str());
   oute << finalEo;
 }
-
 
 bool Desugar::hasSubterm(const Expr& t, const Expr& s)
 {
@@ -823,7 +848,7 @@ bool Desugar::hasSubterm(const Expr& t, const Expr& s)
       continue;
     }
     visited.insert(cv);
-    if (cur==s)
+    if (cur == s)
     {
       return true;
     }
@@ -842,8 +867,11 @@ Expr Desugar::mkSanitize(const Expr& t)
   return mkSanitize(t, visited, varCount, false, newVars);
 }
 
-Expr Desugar::mkSanitize(const Expr& t, std::map<Expr, Expr>& visited, size_t& varCount, bool inPatMatch, 
-                  std::vector<std::pair<Expr, Expr>>& newVars)
+Expr Desugar::mkSanitize(const Expr& t,
+                         std::map<Expr, Expr>& visited,
+                         size_t& varCount,
+                         bool inPatMatch,
+                         std::vector<std::pair<Expr, Expr>>& newVars)
 {
   std::map<Expr, Expr>::iterator it;
   std::vector<Expr> visit;
@@ -855,9 +883,9 @@ Expr Desugar::mkSanitize(const Expr& t, std::map<Expr, Expr>& visited, size_t& v
     it = visited.find(cur);
     Kind k = cur.getKind();
     if (it == visited.end())
-    {   
+    {
       visited[cur] = d_null;
-      for (size_t i=0, nchild=cur.getNumChildren(); i<nchild; i++)
+      for (size_t i = 0, nchild = cur.getNumChildren(); i < nchild; i++)
       {
         visit.push_back(cur[i]);
       }
@@ -869,7 +897,7 @@ Expr Desugar::mkSanitize(const Expr& t, std::map<Expr, Expr>& visited, size_t& v
       Expr ret = cur;
       bool childChanged = false;
       std::vector<Expr> children;
-      for (size_t i=0, nchild=cur.getNumChildren(); i<nchild; i++)
+      for (size_t i = 0, nchild = cur.getNumChildren(); i < nchild; i++)
       {
         Expr cn = cur[i];
         it = visited.find(cn);
@@ -879,16 +907,16 @@ Expr Desugar::mkSanitize(const Expr& t, std::map<Expr, Expr>& visited, size_t& v
         children.push_back(it->second);
       }
       // must introduce new parameter if matching a literal op kind
-      if (k==Kind::ANNOT_PARAM)
+      if (k == Kind::ANNOT_PARAM)
       {
         // strip off the "(eo::param ...)"
         ret = cur[0];
       }
-      else if (k==Kind::VARIABLE)
+      else if (k == Kind::VARIABLE)
       {
         Expr tt = d_tc.getType(cur);
         const Literal* l = cur.getValue()->asLiteral();
-        Assert (l!=nullptr);
+        Assert(l != nullptr);
         std::vector<Expr> vargs;
         vargs.push_back(d_state.mkLiteral(Kind::STRING, l->toString()));
         vargs.push_back(tt);
@@ -897,8 +925,8 @@ Expr Desugar::mkSanitize(const Expr& t, std::map<Expr, Expr>& visited, size_t& v
       else if (childChanged)
       {
         ret = Expr(d_state.mkExprSimple(k, children));
-      }      
-      if (inPatMatch && ret.getNumChildren()>0 && ret.isEvaluatable())
+      }
+      if (inPatMatch && ret.getNumChildren() > 0 && ret.isEvaluatable())
       {
         varCount++;
         std::stringstream ssv;

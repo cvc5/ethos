@@ -14,9 +14,9 @@
 #include <sstream>
 #include <string>
 
-#include "plugin.h"
 #include "expr_info.h"
 #include "expr_trie.h"
+#include "plugin.h"
 #include "type_checker.h"
 
 namespace ethos {
@@ -29,7 +29,8 @@ class TypeChecker;
 class Desugar : public Plugin
 {
   friend class TypeChecker;
-public:
+
+ public:
   Desugar(State& s);
   ~Desugar();
   /** Set type rule for literal kind k to t */
@@ -42,13 +43,24 @@ public:
   void defineProgram(const Expr& v, const Expr& prog) override;
   /** Finalize */
   void finalize() override;
-  /** To string, which returns the smt2 formalization of the meta-level correctness of the signature */
+  /** To string, which returns the smt2 formalization of the meta-level
+   * correctness of the signature */
   std::string toString();
-private:
+
+ private:
   void printName(const Expr& e, std::ostream& os);
   void printTerm(const Expr& e, std::ostream& os);
-  void printParamList(const std::vector<Expr>& vars, std::ostream& os, std::vector<Expr>& params, bool useImplicit);
-  void printParamList(const std::vector<Expr>& vars, std::ostream& os, std::vector<Expr>& params, bool useImplicit, std::map<Expr, bool>& visited, bool& firstParam, bool isOpaque=false);
+  void printParamList(const std::vector<Expr>& vars,
+                      std::ostream& os,
+                      std::vector<Expr>& params,
+                      bool useImplicit);
+  void printParamList(const std::vector<Expr>& vars,
+                      std::ostream& os,
+                      std::vector<Expr>& params,
+                      bool useImplicit,
+                      std::map<Expr, bool>& visited,
+                      bool& firstParam,
+                      bool isOpaque = false);
   void finalizeSetLiteralTypeRule(Kind k, const Expr& t);
   void finalizeProgram(const Expr& v, const Expr& prog);
   void finalizeDefinition(const std::string& name, const Expr& t);
@@ -59,10 +71,10 @@ private:
   static bool hasSubterm(const Expr& t, const Expr& s);
   /** */
   Expr mkSanitize(const Expr& t);
-  Expr mkSanitize(const Expr& t, 
-                  std::map<Expr, Expr>& visited, 
-                  size_t& varCount, 
-                  bool inPatMatch, 
+  Expr mkSanitize(const Expr& t,
+                  std::map<Expr, Expr>& visited,
+                  size_t& varCount,
+                  bool inPatMatch,
                   std::vector<std::pair<Expr, Expr>>& newVars);
   /** the state */
   State& d_state;
@@ -101,7 +113,7 @@ private:
   std::stringstream d_eoDtCons;
   std::stringstream d_eoDtSel;
   std::stringstream d_eoRules;
-  
+
   /** term we have pattern matched on for typeof */
   std::vector<Expr> d_typeOfVars;
   /** variable counter for typeof */

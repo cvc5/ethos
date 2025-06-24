@@ -789,14 +789,15 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
   }
   else if (isLiteralOp(k))
   {
-    // this transforms e.g. (eo::add t1 t2 t3) into (eo::add (eo::add t1 t2) t3).
-    if (isNaryLiteralOp(k) && vchildren.size()>2)
+    // this transforms e.g. (eo::add t1 t2 t3) into (eo::add (eo::add t1 t2)
+    // t3).
+    if (isNaryLiteralOp(k) && vchildren.size() > 2)
     {
       std::vector<ExprValue*> cc{nullptr, nullptr};
       cc[0] = vchildren[0];
       cc[1] = vchildren[1];
       ExprValue* curr = mkExprInternal(k, cc);
-      for (size_t i=2, nargs = vchildren.size(); i<nargs; i++)
+      for (size_t i = 2, nargs = vchildren.size(); i < nargs; i++)
       {
         cc[0] = curr;
         cc[0] = vchildren[i];

@@ -764,7 +764,7 @@ bool CmdParser::parseNextCommand()
           d_lex.parseError("Cannot define program more than once");
         }
         // it should be a program with the same type
-        //d_eparser.typeCheck(pprev, progType);
+        // d_eparser.typeCheck(pprev, progType);
         pvar = pprev;
       }
       else

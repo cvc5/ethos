@@ -166,6 +166,7 @@ class Expr
   /** */
   static std::map<const ExprValue*, size_t> computeLetBinding(
       const Expr& e, std::vector<Expr>& ll);
+
  private:
   /** The underlying value */
   ExprValue* d_value;

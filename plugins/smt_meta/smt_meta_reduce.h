@@ -14,9 +14,9 @@
 #include <sstream>
 #include <string>
 
-#include "plugin.h"
 #include "expr_info.h"
 #include "expr_trie.h"
+#include "plugin.h"
 #include "type_checker.h"
 
 namespace ethos {
@@ -26,7 +26,7 @@ class TypeChecker;
 
 class SelectorCtx
 {
-public:
+ public:
   SelectorCtx() : d_counter(0) {}
   std::string push(const std::string& next)
   {
@@ -48,7 +48,8 @@ public:
 class SmtMetaReduce : public Plugin
 {
   friend class TypeChecker;
-public:
+
+ public:
   SmtMetaReduce(State& s);
   ~SmtMetaReduce();
   /** Set type rule for literal kind k to t */
@@ -61,13 +62,25 @@ public:
   void defineProgram(const Expr& v, const Expr& prog) override;
   /** Finalize */
   void finalize() override;
-  /** To string, which returns the smt2 formalization of the meta-level correctness of the signature */
+  /** To string, which returns the smt2 formalization of the meta-level
+   * correctness of the signature */
   std::string toString();
-private:
-  void printConjunction(size_t n, const std::string& conj, std::ostream& os, const SelectorCtx& ctx);
-  bool printEmbPatternMatch(const Expr& c, const std::string& initCtx, std::ostream& os, SelectorCtx& ctx, size_t& nconj);
+
+ private:
+  void printConjunction(size_t n,
+                        const std::string& conj,
+                        std::ostream& os,
+                        const SelectorCtx& ctx);
+  bool printEmbPatternMatch(const Expr& c,
+                            const std::string& initCtx,
+                            std::ostream& os,
+                            SelectorCtx& ctx,
+                            size_t& nconj);
   bool printEmbAtomicTerm(const Expr& c, std::ostream& os);
-  bool printEmbTerm(const Expr& c, std::ostream& os, const SelectorCtx& ctx, bool ignorePf = false);
+  bool printEmbTerm(const Expr& c,
+                    std::ostream& os,
+                    const SelectorCtx& ctx,
+                    bool ignorePf = false);
   void finalizePrograms();
   void finalizeProgram(const Expr& v, const Expr& prog);
   void finalizeDeclarations();
@@ -76,7 +89,7 @@ private:
   /** Does t have subterm s? */
   static bool hasSubterm(const Expr& t, const Expr& s);
   /** Terms with kind */
-  //static std::vector<Expr> getSubtermsWithKind(const Expr& t, Kind k);
+  // static std::vector<Expr> getSubtermsWithKind(const Expr& t, Kind k);
   /** */
   Expr mkRemoveAnnotParam(const Expr& t, std::vector<Expr>& vars);
   /** the state */

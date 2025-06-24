@@ -320,7 +320,7 @@ void Expr::printDebugInternal(const Expr& e,
           {
             case Kind::HEXADECIMAL:os << "#x" << l->toString();break;
             case Kind::BINARY:
-              if (l->d_bv.getSize()==0)
+              if (l->d_bv.getSize() == 0)
               {
                 os << "(eo::to_bin 0 0)";
               }
@@ -357,7 +357,7 @@ void Expr::printDebugInternal(const Expr& e,
       else
       {
         os << "(";
-        if (k!=Kind::APPLY || (*cur.first)[0]->getNumChildren()>0)
+        if (k != Kind::APPLY || (*cur.first)[0]->getNumChildren() > 0)
         {
           os << kindToTerm(k) << " ";
         }
@@ -470,7 +470,7 @@ Expr& Expr::operator=(const Expr& e)
 bool Expr::operator==(const Expr& e) const { return d_value == e.d_value; }
 bool Expr::operator!=(const Expr& e) const { return d_value != e.d_value; }
 Kind Expr::getKind() const { return d_value->getKind(); }
-bool Expr::operator<(const Expr& e) const { return d_value<e.d_value; }
+bool Expr::operator<(const Expr& e) const { return d_value < e.d_value; }
 
 bool Expr::hasVariable(const Expr& e,
                        const std::unordered_set<const ExprValue*>& vars)

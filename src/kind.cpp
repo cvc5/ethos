@@ -315,10 +315,8 @@ bool isNaryLiteralOp(Kind k)
     case Kind::EVAL_AND:
     case Kind::EVAL_OR:
     case Kind::EVAL_XOR:
-    case Kind::EVAL_CONCAT:
-      return true;
-    default:
-      break;
+    case Kind::EVAL_CONCAT: return true;
+    default: break;
   }
   return false;
 }

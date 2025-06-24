@@ -8,15 +8,16 @@
  ******************************************************************************/
 
 #include <unistd.h>
+
 #include <iomanip>
 #include <iostream>
 
+#include "../plugins/desugar/desugar.h"
+#include "../plugins/smt_meta/smt_meta_reduce.h"
 #include "base/check.h"
 #include "base/output.h"
 #include "parser.h"
 #include "state.h"
-#include "../plugins/smt_meta/smt_meta_reduce.h"
-#include "../plugins/desugar/desugar.h"
 
 using namespace ethos;
 
@@ -159,7 +160,7 @@ int main( int argc, char* argv[] )
     plugin = &pluginSmr;
   }
   // NOTE: initialization of plugin goes here
-  if (plugin!=nullptr)
+  if (plugin != nullptr)
   {
     s.setPlugin(plugin);
   }
