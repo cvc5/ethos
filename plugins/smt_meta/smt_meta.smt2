@@ -51,16 +51,27 @@ $TERM_DECL$
     sm.Stuck
     (sm.Const x y)))
 
-(define-fun $sm_mod_pow_2 ((x Int) (w Int)) Int
+(define-fun $sm_mod_pow_2_eval ((x Int) (w Int)) Int
   (mod x (^ 2 w)))  ; TODO: improve?
 
 (define-fun $sm_Binary ((w Int) (x Int)) sm.Term
   (ite (and (<= 0 w) (< w 4294967296))
-    (sm.Binary w ($sm_mod_pow_2 x w))
+    (sm.Binary w ($sm_mod_pow_2_eval x w))
     sm.Stuck))
 
+(define-fun $sm_bit ((x Int) (i Int)) Bool
+  (= (mod (div x (^ 2 i)) 2) 1))
+
+(declare-fun $sm_Binary_and_eval (Int Int Int) Int)
+(assert (forall ((w Int) (x1 Int) (x2 Int))
+  (= ($sm_Binary_and_eval w x1 x2)
+    (ite (= w 0) 0
+    (ite (= w 1) (ite (and (= x1 1) (= x2 1)) 1 0)
+      (+ ($sm_Binary_and_eval (- w 1) x1 x2) (* (^ 2 w)
+         (ite (and ($sm_bit x1 w) ($sm_bit x2 w)) 1 0))))))))
+
 (define-fun $sm_Binary_and ((w Int) (x1 Int) (x2 Int)) sm.Term
-    sm.Stuck) ; TODO
+  ($sm_Binary w ($sm_Binary_and_eval w x1 x2)))
 
 (define-fun $sm_Binary_or ((w Int) (x1 Int) (x2 Int)) sm.Term
     sm.Stuck) ; TODO
