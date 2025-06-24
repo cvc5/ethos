@@ -31,8 +31,9 @@
   ; This side condition is part of the trusted core.
   (($eo_model_evaluate (f y))           (eo::define ((fme ($eo_model_evaluate f)))
                                         (eo::define ((fmy ($eo_model_evaluate y)))
-                                          ($run_evaluate (_ fme fmy)))))
-  (($eo_model_evaluate x)               ($run_evaluate x))
+                                        (eo::define ((ev ($run_evaluate (_ fme fmy))))
+                                          ev)))) ; TODO: sequence and set operators can go here
+  (($eo_model_evaluate x)               x)
   )
 )
 
