@@ -87,6 +87,11 @@ private:
   void finalizeRules();
   /** Does t have subterm s? */
   static bool hasSubterm(const Expr& t, const Expr& s);
+  /** Terms with kind */
+  //static std::vector<Expr> getSubtermsWithKind(const Expr& t, Kind k);
+  /** */
+  Expr mkRemoveAnnotParam(const Expr& t, std::vector<Expr>& vars);
+  /** the state */
   State& d_state;
   /** the type checker */
   TypeChecker& d_tc;
@@ -104,10 +109,13 @@ private:
   std::map<std::string, size_t> d_overloadCount;
   /** */
   std::map<Expr, size_t> d_overloadId;
+  /** Mapping expressions to strings */
+  std::map<Expr, std::string> d_embMapAtomic;
   /** */
   Expr d_eoTmpInt;
   Expr d_eoTmpNil;
   /** Common constants */
+  Expr d_null;
   Expr d_listNil;
   Expr d_listCons;
   Expr d_listType;

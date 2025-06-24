@@ -16,7 +16,8 @@
 
 namespace ethos {
 
-std::string s_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
+//std::string s_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
+std::string s_path = "/home/andrew/ethos/";
 
 SmtMetaReduce::SmtMetaReduce(State& s) : d_state(s), d_tc(s.getTypeChecker()) {
   d_listNil = s.mkListNil();
@@ -38,6 +39,7 @@ void SmtMetaReduce::initialize()
   Assert (!d_eoTmpInt.isNull());
   d_eoTmpNil = d_state.getVar("$eo_tmp_nil");
   Assert (!d_eoTmpNil.isNull());
+
   //std::cout << "Forward declares: " << d_eoTmpInt << " " << d_eoTmpNil << std::endl;
   d_inInitialize = false;
 }
@@ -709,18 +711,9 @@ void SmtMetaReduce::finalizeDeclarations() {
     SelectorCtx typeofCtx;
     if (!ct.isGround())
     {
-      // ethos ctx
-      Ctx ectx;
-      if (nopqArgs==0 && attr!=Attr::NONE)
-      {
-        // make the operator a pattern to avoid desugaring below
-        Expr dummy = d_state.mkSymbol(Kind::PARAM, "tmpf", ct);
-        ectx[dummy.getValue()] = pattern.getValue();
-        pattern = dummy;
-      }
       Assert(ct.getKind() == Kind::FUNCTION_TYPE);
-      std::cout << "Non-ground function type: " << e << " : " << ct << std::endl;
-      std::cout << "Attribute is " << attr << std::endl;
+      //std::cout << "Non-ground function type: " << e << " : " << ct << std::endl;
+      //std::cout << "Attribute is " << attr << std::endl;
       // We traverse to a position where the type of a partial application
       // of this operator has ground type.
       std::vector<Expr> argTypes;
@@ -747,8 +740,8 @@ void SmtMetaReduce::finalizeDeclarations() {
           argTypes.push_back(cta);
         }
         Kind ak = (nopqArgs>0 && pattern==e) ? Kind::APPLY_OPAQUE : Kind::APPLY;
-        pattern = d_state.mkExpr(ak, args);
-        std::cout << "...pattern is now " << pattern << " from " << args << std::endl;
+        pattern = d_state.mkExprSimple(ak, args);
+        //std::cout << "...pattern is now " << pattern << " from " << args << std::endl;
         ct = ct[nargs-1];
         // maybe we are now fully bound?
         std::vector<Expr> vars = Expr::getVariables(argTypes);
@@ -757,8 +750,7 @@ void SmtMetaReduce::finalizeDeclarations() {
           break;
         }
       }
-      pattern = d_tc.evaluate(pattern.getValue(), ectx);
-      std::cout << "Partial app that has ground type: " << pattern << std::endl;
+      //std::cout << "Partial app that has ground type: " << pattern << std::endl;
       // we now write the pattern matching for the derived pattern.
     }
     printEmbPatternMatch(pattern, "x1", typeOfCond, typeofCtx, nTypeOfCond);
@@ -792,9 +784,11 @@ void SmtMetaReduce::finalizeRules()
 void SmtMetaReduce::finalizeRule(const Expr& e)
 {
   Expr r = e;
-  Expr rt = d_tc.getType(r);
+  Expr rto = d_tc.getType(r);
 
   // compile to Eunoia program
+  std::vector<Expr> avars;
+  Expr rt = mkRemoveAnnotParam(rto, avars);
   std::vector<Expr> vars = Expr::getVariables(rt);
   std::stringstream paramList;
   bool firstParam = true;
@@ -805,11 +799,11 @@ void SmtMetaReduce::finalizeRule(const Expr& e)
   std::stringstream tcrSig;
   std::stringstream tcrBody;
   std::stringstream tcrCall;
-  tcrCall << "($sm.type_check_" << e;
   // ethos ctx
   std::vector<Expr> keep;
   Ctx ectx;
   bool firstTc = true;
+  std::vector<Expr> params;
   while (!toVisit.empty())
   {
     cur = toVisit.back();
@@ -845,6 +839,7 @@ void SmtMetaReduce::finalizeRule(const Expr& e)
       cname << cur;
       paramList << "(" << cname.str() << " " << tcur << ")";
       toVisit.pop_back();
+      params.push_back(cur);
       // if an original variable
       if (std::find(vars.begin(), vars.end(), cur)!=vars.end())
       {
@@ -857,18 +852,16 @@ void SmtMetaReduce::finalizeRule(const Expr& e)
         {
           tcrSig << " ";
         }
-        tcrSig << "Type";
-        tcrBody << " " << tcur;
-        tcrCall << " (eo::typeof " << cur << ")";
+        tcrSig << tcur << " Type";
+        tcrBody << " " << cur << " " << tcur;
+        tcrCall << " " << cur << " (eo::typeof " << cur << ")";
         // will instantiate it to strip off "(eo::param ...)"
-        Expr dummy = d_state.mkSymbol(Kind::CONST, cname.str(), tcur);
-        d_tc.getType(dummy);
+        Expr dummy = d_state.mkSymbol(Kind::PARAM, cname.str(), tcur);
         keep.push_back(dummy);
-        //ectx[cur.getValue()] = dummy.getValue();
+        ectx[cur.getValue()] = dummy.getValue();
       }
     }
   }
-  tcrCall << ")";
   std::vector<bool> argIsProof;
   d_eoRules << "; rule: " << e << std::endl;
   if (rt.getKind()==Kind::FUNCTION_TYPE)
@@ -916,19 +909,17 @@ void SmtMetaReduce::finalizeRule(const Expr& e)
     rrt = rrt[0];
     rrt = d_state.mkRequires(reqs, rrt);
     // just use the same parameter list
-    d_eoRules << "(program $sm.type_check_" << e << " (" << paramList.str() << ")" << std::endl;
+    d_eoRules << "(program $sm.exec_" << e << " (" << paramList.str() << ")" << std::endl;
     d_eoRules << "  :signature (" << tcrSig.str() << ") Bool" << std::endl;
     d_eoRules << "  (" << std::endl;
-    d_eoRules << "  (($sm.type_check_" << e << tcrBody.str() << ") true)" << std::endl;
+    d_eoRules << "  (($sm.exec_" << e << tcrBody.str() << ") " << rrt << ")" << std::endl;
     d_eoRules << "  )" << std::endl;
     d_eoRules << ")" << std::endl;
     d_eoRules << "(program $sm_" << e << " (" << paramList.str() << ")" << std::endl;
     d_eoRules << "  :signature (" << typeList.str() << ")";
     d_eoRules << " Bool" << std::endl;
     d_eoRules << "  (" << std::endl;
-    d_eoRules << "  (($sm_" << e << argList.str() << ")";
-    d_eoRules << " (eo::requires " << tcrCall.str() << " true" << std::endl;
-    d_eoRules << "      " << rrt << "))" << std::endl;
+    d_eoRules << "  (($sm_" << e << argList.str() << ") ($sm.exec_" << e << tcrCall.str() << "))" << std::endl;
     d_eoRules << "  )" << std::endl;
     d_eoRules << ")" << std::endl;
     d_eoRules << std::endl;
@@ -1136,7 +1127,6 @@ std::string toString() {
 
 bool SmtMetaReduce::hasSubterm(const Expr& t, const Expr& s)
 {
-  std::vector<Expr> ret;
   std::unordered_set<const ExprValue*> visited;
   std::vector<Expr> toVisit;
   toVisit.push_back(t);
@@ -1161,6 +1151,92 @@ bool SmtMetaReduce::hasSubterm(const Expr& t, const Expr& s)
     }
   }
   return false;
+}
+
+/*
+std::vector<Expr> SmtMetaReduce::getSubtermsWithKind(const Expr& t, Kind k)
+{
+  std::vector<Expr> ret;
+  std::unordered_set<const ExprValue*> visited;
+  std::vector<Expr> toVisit;
+  toVisit.push_back(t);
+  Expr cur;
+  while (!toVisit.empty())
+  {
+    cur = toVisit.back();
+    toVisit.pop_back();
+    const ExprValue* cv = cur.getValue();
+    if (visited.find(cv) != visited.end())
+    {
+      continue;
+    }
+    visited.insert(cv);
+    if (cur.getKind()==k)
+    {
+      ret.emplace_back(cur);
+      continue;
+    }
+    for (size_t i = 0, nchildren = cur.getNumChildren(); i < nchildren; i++)
+    {
+      toVisit.push_back(cur[i]);
+    }
+  }
+  return ret;
+}
+*/
+
+Expr SmtMetaReduce::mkRemoveAnnotParam(const Expr& t, std::vector<Expr>& vars)
+{
+  std::unordered_map<const ExprValue*, Expr> visited;
+  std::unordered_map<const ExprValue*, Expr>::iterator it;
+  std::vector<Expr> visit;
+  Expr cur;
+  visit.push_back(t);
+  do
+  {
+    cur = visit.back();
+    it = visited.find(cur.getValue());
+    if (it == visited.end())
+    {
+      visited[cur.getValue()] = d_null;
+      for (size_t i=0, nchild=cur.getNumChildren(); i<nchild; i++)
+      {
+        visit.push_back(cur[i]);
+      }
+      continue;
+    }
+    visit.pop_back();
+    if (it->second.isNull())
+    {
+      Expr ret = cur;
+      bool childChanged = false;
+      std::vector<Expr> children;
+      for (size_t i=0, nchild=cur.getNumChildren(); i<nchild; i++)
+      {
+        Expr cn = cur[i];
+        it = visited.find(cn.getValue());
+        Assert(it != visited.end());
+        Assert(!it->second.isNull());
+        childChanged = childChanged || cn != it->second;
+        children.push_back(it->second);
+      }
+      Kind k = cur.getKind();
+      if (k==Kind::ANNOT_PARAM)
+      {
+        // strip off the "(eo::param ...)"
+        vars.push_back(cur);
+        ret = cur[0];
+      }
+      else if (childChanged)
+      {
+        ret = Expr(d_state.mkExprSimple(k, children));
+      }
+      visited[cur.getValue()] = ret;
+    }
+  } while (!visit.empty());
+  Assert(visited.find(t.getValue()) != visited.end());
+  Assert(!visited.find(t.getValue())->second.isNull());
+  return visited[t.getValue()];
 }
 
 }  // namespace ethos

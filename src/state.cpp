@@ -169,16 +169,16 @@ State::State(Options& opts, Stats& stats)
   bind("false", d_false);
 
   // builtin lists
-  d_listType = Expr(mkSymbolInternal(Kind::CONST, "$eo_List", d_type));
+  d_listType = Expr(mkSymbolInternal(Kind::CONST, "eo::List", d_type));
   bind("eo::List", d_listType);
-  d_listNil = Expr(mkSymbolInternal(Kind::CONST, "$eo_List_nil", d_listType));
+  d_listNil = Expr(mkSymbolInternal(Kind::CONST, "eo::List::nil", d_listType));
   bind("eo::List::nil", d_listNil);
   Expr t = Expr(mkSymbolInternal(Kind::PARAM, "T", d_type));
   std::vector<Expr> argTypes;
   argTypes.push_back(t);
   argTypes.push_back(d_listType);
   Expr consType = mkFunctionType(argTypes, d_listType);
-  d_listCons = Expr(mkSymbolInternal(Kind::CONST, "$eo_List_cons", consType));
+  d_listCons = Expr(mkSymbolInternal(Kind::CONST, "eo::List::cons", consType));
   bind("eo::List::cons", d_listCons);
   markConstructorKind(d_listCons, Attr::RIGHT_ASSOC_NIL, d_listNil);
 
@@ -858,6 +858,16 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         return reto;
       }
     }
+  }
+  return Expr(mkExprInternal(k, vchildren));
+}
+
+Expr State::mkExprSimple(Kind k, const std::vector<Expr>& children)
+{
+  std::vector<ExprValue*> vchildren;
+  for (const Expr& c : children)
+  {
+    vchildren.push_back(c.getValue());
   }
   return Expr(mkExprInternal(k, vchildren));
 }

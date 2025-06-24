@@ -54,6 +54,7 @@ class State
 {
   friend class TypeChecker;
   friend class ExprValue;
+  friend class Plugin;
 
  public:
   State(Options& opts, Stats& stats);
@@ -128,6 +129,8 @@ class State
   Expr mkPair(const Expr& t1, const Expr& t2);
   /** */
   Expr mkExpr(Kind k, const std::vector<Expr>& children);
+  /** Same as above, without desugaring */
+  Expr mkExprSimple(Kind k, const std::vector<Expr>& children);
   /** make true */
   Expr mkTrue() const;
   /** make false */

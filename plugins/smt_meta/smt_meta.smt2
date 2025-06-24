@@ -383,3 +383,5 @@ $NIL$
     sm.Stuck))
 $NIL_END$
 ))
+
+(check-sat)

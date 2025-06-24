@@ -1,0 +1,7 @@
+#!/bin/bash
+echo "**** Run ethos + smt_meta"
+./src/ethos ~/cvc5-ajr/proofs/eo/cpc/Cpc.eo
+echo "**** Run cvc5"
+ajr-cvc5 ../plugins/smt_meta/smt_meta_gen.smt2
+echo "**** Run ethos"
+ethos ../plugins/smt_meta/eo_model_gen.eo

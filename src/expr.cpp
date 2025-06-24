@@ -207,6 +207,11 @@ std::string quoteSymbol(const std::string& s)
   {
     return "||";
   }
+  // special case: if an "eo::" symbol, it is not quoted
+  if (s.compare(0, 4, "eo::") == 0)
+  {
+    return s;
+  }
 
   // this is the set of SMT-LIBv2 permitted characters in "simple" (non-quoted)
   // symbols
