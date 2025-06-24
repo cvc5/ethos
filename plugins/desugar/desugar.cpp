@@ -585,7 +585,7 @@ void Desugar::finalizeDefinition(const std::string& name, const Expr& t)
 
 void Desugar::finalizeRule(const Expr& e)
 {
-  std::cout << "Finalize rule " << e << std::endl;
+  //std::cout << "Finalize rule " << e << std::endl;
   Expr r = e;
   Expr rto = d_tc.getType(r);
   // std::cout << "Finalize " << r << std::endl;
@@ -686,11 +686,11 @@ void Desugar::finalizeRule(const Expr& e)
   rrt = rrt[0];
   rrt = d_state.mkRequires(reqs, rrt);
   // just use the same parameter list
-  d_eoRules << "(program $eor.exec_" << e << " (" << plout.str() << ")"
+  d_eoRules << "(program $eorx_" << e << " (" << plout.str() << ")"
             << std::endl;
   d_eoRules << "  :signature (" << tcrSig.str() << ") Bool" << std::endl;
   d_eoRules << "  (" << std::endl;
-  d_eoRules << "  (($eor.exec_" << e << tcrBody.str() << ") " << rrt << ")"
+  d_eoRules << "  (($eorx_" << e << tcrBody.str() << ") " << rrt << ")"
             << std::endl;
   d_eoRules << "  )" << std::endl;
   d_eoRules << ")" << std::endl;
@@ -698,7 +698,7 @@ void Desugar::finalizeRule(const Expr& e)
   d_eoRules << "  :signature (" << typeList.str() << ")";
   d_eoRules << " Bool" << std::endl;
   d_eoRules << "  (" << std::endl;
-  d_eoRules << "  (($eor_" << e << argList.str() << ") ($eor.exec_" << e
+  d_eoRules << "  (($eor_" << e << argList.str() << ") ($eorx_" << e
             << tcrCall.str() << "))" << std::endl;
   d_eoRules << "  )" << std::endl;
   d_eoRules << ")" << std::endl;
@@ -837,6 +837,7 @@ void Desugar::finalize()
 
   std::stringstream ssoe;
   ssoe << s_ds_path << "plugins/desugar/eo_desugar_gen.eo";
+  std::cout << "Write core-defs     " << ssoe.str() << std::endl;
   std::ofstream oute(ssoe.str());
   oute << finalEo;
     
@@ -844,7 +845,7 @@ void Desugar::finalize()
   {
     std::stringstream ssov;
     ssov << s_ds_path << "plugins/desugar/eo_desugar_vcs.eo";
-    std::cout << "Generate VCs to " << ssov.str() << std::endl;
+    std::cout << "Write verify-conds " << ssov.str() << std::endl;
     std::ofstream outv(ssov.str());
     outv << "(include \"eo_desugar_gen.eo\")" << std::endl << std::endl;
     outv << d_eoRules.str();

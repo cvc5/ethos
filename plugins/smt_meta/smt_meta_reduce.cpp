@@ -698,6 +698,7 @@ void SmtMetaReduce::finalize()
 
   std::stringstream sso;
   sso << s_path << "plugins/smt_meta/smt_meta_gen.smt2";
+  std::cout << "Write smt2-defs " << sso.str() << std::endl;
   std::ofstream out(sso.str());
   out << finalSm;
 }
