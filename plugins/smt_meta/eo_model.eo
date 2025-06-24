@@ -37,6 +37,13 @@
   )
 )
 
+(program $eo_model_sat ((F Bool))
+  :signature (Bool) Bool
+  (
+  (($eo_model_sat F) ($eo_model_evaluate F))
+  )
+)
+
 
 ;;; the verification condition
 

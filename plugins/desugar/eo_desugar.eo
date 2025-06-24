@@ -14,7 +14,7 @@ $EO_NUMERAL_DECL$
 (define $eo_fail () (eo::requires true false true))
 
 ; forward declaration for test
-(program $eo_model_evaluate ((T Type)) :signature (T) T)
+(program $eo_model_sat () :signature (Bool) Bool)
 
 ; core definitions
 

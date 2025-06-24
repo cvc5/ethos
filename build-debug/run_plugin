@@ -1,5 +1,5 @@
 #!/bin/bash
-echo "**** Compile"
+echo "**** Compile ethos"
 make -j4
 
 echo "**** Run ethos + desugar"

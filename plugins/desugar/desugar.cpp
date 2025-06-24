@@ -615,6 +615,7 @@ void Desugar::finalizeRule(const Expr& e)
   size_t eVarCount = 0;
   std::vector<std::pair<Expr, Expr>> newVars;
   std::vector<bool> argIsProof;
+  std::vector<Expr> finalArgs;
   Assert (rt.getKind()==Kind::FUNCTION_TYPE);
   std::stringstream typeList;
   std::stringstream argList;
@@ -640,17 +641,10 @@ void Desugar::finalizeRule(const Expr& e)
         finalVars.push_back(ta);
       }
       bool isProof = (ak==Kind::PROOF_TYPE);
-      if (isProof)
-      {
-        //typeList << "(! " << ta << " :premise)";
-        typeList << ta;
-      }
-      else
-      {
-        typeList << ta;
-      }
+      typeList << ta;
       argList << " " << argType[0];
       argIsProof.push_back(isProof);
+      finalArgs.push_back(argType[0]);
     }
   }
   // print all final variables
@@ -684,6 +678,30 @@ void Desugar::finalizeRule(const Expr& e)
   d_eoRules << "  (($eor_" << e << argList.str() << ") ($eor.exec_" << e << tcrCall.str() << "))" << std::endl;
   d_eoRules << "  )" << std::endl;
   d_eoRules << ")" << std::endl;
+  // compile the verification condition for the soundness of this rule
+  if (!d_state.isProofRuleSorry(e.getValue()))
+  {
+    d_eoRules << "; verification: " << e << std::endl;
+    d_eoRules << "(program $eovc_" << e << " (" << plout.str() << ")" << std::endl;
+    d_eoRules << "  :signature (" << typeList.str() << ")";
+    d_eoRules << " Bool" << std::endl;
+    d_eoRules << "  (" << std::endl;
+    d_eoRules << "  (($eovc_" << e << argList.str() << ")" << std::endl;
+    std::stringstream ssvce;
+    for (size_t i=0, nargs=finalArgs.size(); i<nargs; i++)
+    {
+      if (argIsProof[i])
+      {
+        d_eoRules << "     (eo::requires ($eo_model_sat " << finalArgs[i] << ") true" << std::endl;
+        ssvce << ")";
+      }
+    }
+    d_eoRules << "     (eo::requires ($eo_model_sat ($eor_" << e << argList.str() << ")) false" << std::endl;
+    d_eoRules << "       true))" << ssvce.str() << std::endl;
+    d_eoRules << "  )" << std::endl;
+    d_eoRules << ")" << std::endl;
+    d_eoRules << std::endl;
+  }
   d_eoRules << std::endl;
 }
 
