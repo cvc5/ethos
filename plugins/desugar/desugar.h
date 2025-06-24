@@ -57,6 +57,7 @@ public:
   /** To string, which returns the smt2 formalization of the meta-level correctness of the signature */
   std::string toString();
 private:
+  void printTerm(const Expr& e, std::ostream& os);
   void printParamList(const std::vector<Expr>& vars, std::ostream& os, std::vector<Expr>& params, bool useImplicit);
   void printParamList(const std::vector<Expr>& vars, std::ostream& os, std::vector<Expr>& params, bool useImplicit, std::map<Expr, bool>& visited, bool& firstParam, bool isOpaque=false);
   void finalizeSetLiteralTypeRule(Kind k, const Expr& t);
@@ -64,10 +65,11 @@ private:
   void finalizeDefinition(const std::string& name, const Expr& t);
   void finalizeDeclaration(const Expr& t);
   void finalizeRule(const Expr& v);
+  void finalizeDatatype(const Expr& d);
   /** Does t have subterm s? */
   static bool hasSubterm(const Expr& t, const Expr& s);
   /** */
-  Expr mkRemoveAnnotParam(const Expr& t, std::vector<Expr>& vars);
+  Expr mkSanitize(const Expr& t, std::vector<Expr>& vars);
   /** the state */
   State& d_state;
   /** the type checker */

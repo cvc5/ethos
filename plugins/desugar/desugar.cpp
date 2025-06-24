@@ -99,6 +99,10 @@ void Desugar::bind(const std::string& name, const Expr& e)
 void Desugar::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
 {
  d_attrDecl[v] = std::pair<Attr, Expr>(a, cons);
+ if (a==Attr::DATATYPE)
+ {
+   d_declSeen.emplace_back(v, Kind::TYPE);
+ }
 }
 
 void Desugar::markOracleCmd(const Expr& v, const std::string& ocmd) {}
@@ -141,7 +145,11 @@ void Desugar::finalizeProgram(const Expr& e, const Expr& prog)
     for (size_t i=0, ncases = prog.getNumChildren(); i<ncases; i++)
     {
       const Expr& c = prog[i];
-      d_defs << "  (" << c[0] << " " << c[1] << ")" << std::endl;
+      d_defs << "  (";
+      printTerm(c[0], d_defs);
+      d_defs << " ";
+      printTerm(c[1], d_defs);
+      d_defs << ")" << std::endl;
     }
     d_defs << "  )" << std::endl;
   }
@@ -262,6 +270,7 @@ void Desugar::finalizeDeclaration(const Expr& e)
   {
     d_defs << "const " << e << " " << ct << ")" << std::endl;
   }
+  d_declProcessed.insert(e);
   if (cattr==Attr::RIGHT_ASSOC_NIL || cattr==Attr::LEFT_ASSOC_NIL)
   {
     d_eoNil << "  (($eo_nil " << e << " T) ";
@@ -284,7 +293,11 @@ void Desugar::finalizeDeclaration(const Expr& e)
       d_eoNilNground << ")" << std::endl;
       d_eoNilNground << "  :signature ((eo::quote $eo_T)) $eo_T" << std::endl;
       d_eoNilNground << "  (" << std::endl;
-      d_eoNilNground << "  ((" << pname << " " << ct[0] << ") " << cattrCons << ")" << std::endl;
+      d_eoNilNground << "  ((" << pname << " ";
+      printTerm(ct[0], d_eoNilNground);
+      d_eoNilNground << ") ";
+      printTerm(cattrCons, d_eoNilNground);
+      d_eoNilNground << ")" << std::endl;
       d_eoNilNground << "  )" << std::endl;
       d_eoNilNground << ")" << std::endl;
       d_eoNil << "(" << pname << " T)";
@@ -297,6 +310,13 @@ void Desugar::finalizeDeclaration(const Expr& e)
   }
 }
 
+void Desugar::printTerm(const Expr& e, std::ostream& os)
+{
+  std::vector<Expr> vars;
+  Expr es = mkSanitize(e, vars);
+  os << es;
+}
+  
 void Desugar::printParamList(const std::vector<Expr>& vars, std::ostream& os, std::vector<Expr>& params, bool useImplicit)
 {
   std::map<Expr, bool> visited;
@@ -341,7 +361,8 @@ void Desugar::printParamList(const std::vector<Expr>& vars, std::ostream& os, st
       {
         os << " ";
       }
-      os << "(" << cur << " " << tcur;
+      os << "(" << cur << " ";
+      printTerm(tcur, os);
       if (std::find(vars.begin(), vars.end(), cur)==vars.end())
       {
         if (useImplicit)
@@ -374,7 +395,8 @@ void Desugar::finalizeDefinition(const std::string& name, const Expr& t)
   printParamList(vars, d_defs, params, true);
   d_defs << ")" << std::endl;
   d_defs << "  ";
-  d_defs << t[1] << ")" << std::endl;
+  printTerm(t[1], d_defs);
+  d_defs << ")" << std::endl;
 }
 
 void Desugar::finalizeRule(const Expr& e)
@@ -384,7 +406,7 @@ void Desugar::finalizeRule(const Expr& e)
 
   // compile to Eunoia program
   std::vector<Expr> avars;
-  Expr rt = mkRemoveAnnotParam(rto, avars);
+  Expr rt = mkSanitize(rto, avars);
   std::vector<Expr> vars = Expr::getVariables(rt);
   std::stringstream paramList;
   bool firstParam = true;
@@ -524,6 +546,26 @@ void Desugar::finalizeRule(const Expr& e)
 
 }
 
+void Desugar::finalizeDatatype(const Expr& e)
+{
+  Expr d = e;
+  Attr dattr = Attr::NONE;
+  Expr dattrCons;
+  std::map<Expr, std::pair<Attr, Expr>>::iterator it;
+  it = d_attrDecl.find(e);
+  if (it!=d_attrDecl.end())
+  {
+    dattr = it->second.first;
+    dattrCons = it->second.second;
+  }
+  Assert (dattr==Attr::DATATYPE);
+  d_defs << "; datatype: " << e << std::endl;
+  d_defs << "(declare-datatypes (";
+  d_defs << ")" << std::endl;
+  // TODO
+  d_defs << ")" << std::endl;
+}
+
 void Desugar::finalize()
 {
   for (std::pair<Expr, Kind>& d : d_declSeen)
@@ -560,6 +602,10 @@ void Desugar::finalize()
     {
       Assert (e.getNumChildren()==2);
       finalizeProgram(e[0], e[1]);
+    }
+    else if (k==Kind::TYPE)
+    {
+      finalizeDatatype(e);
     }
     else
     {
@@ -633,7 +679,7 @@ bool Desugar::hasSubterm(const Expr& t, const Expr& s)
   return false;
 }
 
-Expr Desugar::mkRemoveAnnotParam(const Expr& t, std::vector<Expr>& vars)
+Expr Desugar::mkSanitize(const Expr& t, std::vector<Expr>& vars)
 {
   std::unordered_map<const ExprValue*, Expr> visited;
   std::unordered_map<const ExprValue*, Expr>::iterator it;
@@ -674,6 +720,16 @@ Expr Desugar::mkRemoveAnnotParam(const Expr& t, std::vector<Expr>& vars)
         // strip off the "(eo::param ...)"
         vars.push_back(cur);
         ret = cur[0];
+      }
+      else if (k==Kind::VARIABLE)
+      {
+        Expr tt = d_tc.getType(cur);
+        const Literal* l = cur.getValue()->asLiteral();
+        Assert (l!=nullptr);
+        std::vector<Expr> vargs;
+        vargs.push_back(d_state.mkLiteral(Kind::STRING, l->toString()));
+        vargs.push_back(tt);
+        ret = d_state.mkExprSimple(Kind::EVAL_VAR, vargs);
       }
       else if (childChanged)
       {
