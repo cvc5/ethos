@@ -170,7 +170,8 @@ void Desugar::finalizeDeclaration(const Expr& e)
   }
   // check for eo::List
   std::stringstream cnss;
-  cnss << c;
+  printName(c, cnss);
+  // check for eo::List
   std::string cname = cnss.str();
   if (cname.compare(0, 4, "eo::") == 0)
   {
@@ -220,7 +221,7 @@ void Desugar::finalizeDeclaration(const Expr& e)
   std::vector<Expr> vars = Expr::getVariables(ct);
   if (!vars.empty())
   {
-    d_defs << "parameterized-const " << e << " (" << opaqueArgs.str();
+    d_defs << "parameterized-const " << cname << " (" << opaqueArgs.str();
     size_t pcount = 0;
     for (size_t i = 0, nargs = argTypes.size(); i < nargs; i++)
     {
@@ -468,7 +469,7 @@ void Desugar::printName(const Expr& e, std::ostream& os)
     if (oid > 0)
     {
       std::stringstream ss;
-      ss << e << "." << (oid + 1);
+      ss << "$eoo_" << e << "." << (oid + 1);
       Expr c = e;
       Expr ct = d_tc.getType(c);
       Expr ctov = d_state.mkSymbol(e.getKind(), ss.str(), e);
@@ -479,10 +480,13 @@ void Desugar::printName(const Expr& e, std::ostream& os)
   {
     oid = it->second;
   }
-  os << e;
   if (oid > 0)
   {
-    os << "." << (oid + 1);
+    os << "$eoo_" << e << "." << (oid + 1);
+  }
+  else
+  {
+    os << e;
   }
 }
 
@@ -632,7 +636,7 @@ void Desugar::finalizeRule(const Expr& e)
     tcrCall << " " << v << " (eo::typeof " << v << ")";
   }
 
-  std::map<Expr, Expr> evMap;
+  std::map<Expr, Expr> evMap = d_overloadSanVisited;
   size_t eVarCount = 0;
   std::vector<std::pair<Expr, Expr>> newVars;
   std::vector<bool> argIsProof;
@@ -837,7 +841,7 @@ void Desugar::finalize()
 
   std::stringstream ssoe;
   ssoe << s_ds_path << "plugins/desugar/eo_desugar_gen.eo";
-  std::cout << "Write core-defs     " << ssoe.str() << std::endl;
+  std::cout << "Write core-defs    " << ssoe.str() << std::endl;
   std::ofstream oute(ssoe.str());
   oute << finalEo;
     
@@ -882,7 +886,8 @@ bool Desugar::hasSubterm(const Expr& t, const Expr& s)
 }
 Expr Desugar::mkSanitize(const Expr& t)
 {
-  std::map<Expr, Expr> visited;
+  // take overloads into account
+  std::map<Expr, Expr> visited = d_overloadSanVisited;
   size_t varCount = 0;
   std::vector<std::pair<Expr, Expr>> newVars;
   return mkSanitize(t, visited, varCount, false, newVars);
