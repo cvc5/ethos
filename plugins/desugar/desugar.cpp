@@ -107,14 +107,15 @@ void Desugar::defineProgram(const Expr& v, const Expr& prog)
 
 void Desugar::finalizeProgram(const Expr& e, const Expr& prog)
 {
-  std::vector<Expr> vars = Expr::getVariables(prog);
+  Expr p = e;
+  Expr pt = d_tc.getType(p);
+  std::vector<Expr> pandt{pt, prog};
+  std::vector<Expr> vars = Expr::getVariables(pandt);
   d_defs << "; " << (prog.isNull() ? "fwd-decl: " : "program: ") << e << std::endl;
   d_defs << "(program " << e << " (";
   std::vector<Expr> params;
   printParamList(vars, d_defs, params, false);
   d_defs << ")" << std::endl;
-  Expr p = e;
-  Expr pt = d_tc.getType(p);
   Assert (pt.getKind()==Kind::PROGRAM_TYPE);
   Assert (pt.getNumChildren()>1);
   d_defs << "  :signature (";
@@ -191,7 +192,7 @@ void Desugar::finalizeDeclaration(const Expr& e)
         Assert (v.getKind()==Kind::PARAM) << "Bad opaque function variable " << ct << " for " << c;
         std::vector<Expr> vars;
         vars.push_back(v);
-        printParamList(vars, d_defs, params, true, visited, firstParam, true);
+        printParamList(vars, opaqueArgs, params, true, visited, firstParam, true);
       }
       ct = ct[novars];
     }
@@ -215,11 +216,14 @@ void Desugar::finalizeDeclaration(const Expr& e)
       // skip the first type
       argTypeStart = 1;
     }
+    size_t pcount = 0;
     for (size_t i=argTypeStart, nargs=argTypes.size(); i<nargs; i++)
     {
-      if (argTypes[i].getKind()==Kind::QUOTE_TYPE)
+      Expr at = argTypes[i];
+      Kind ak = at.getKind();
+      if (ak==Kind::QUOTE_TYPE)
       {
-        Expr v = argTypes[i][0];
+        Expr v = at[0];
         if (v.getKind()==Kind::ANNOT_PARAM)
         {
           v = v[0];
@@ -237,7 +241,14 @@ void Desugar::finalizeDeclaration(const Expr& e)
       }
       else
       {
-        
+        // otherwise ordinary type
+        pcount++;
+        std::stringstream ssp;
+        ssp << "$eo_x_" << pcount;
+        Expr v = d_state.mkSymbol(Kind::PARAM, ssp.str(), at);
+        std::vector<Expr> vars;
+        vars.push_back(v);
+        printParamList(vars, d_defs, params, true, visited, firstParam);
       }
     }
     d_defs << ") " << retType << ")" << std::endl;
