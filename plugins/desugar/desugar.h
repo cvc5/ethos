@@ -70,7 +70,12 @@ private:
   /** Does t have subterm s? */
   static bool hasSubterm(const Expr& t, const Expr& s);
   /** */
-  Expr mkSanitize(const Expr& t, std::map<Expr, Expr>& smap, bool inPatMatch = false);
+  Expr mkSanitize(const Expr& t);
+  Expr mkSanitize(const Expr& t, 
+                  std::map<Expr, Expr>& visited, 
+                  size_t& varCount, 
+                  bool inPatMatch, 
+                  std::vector<std::pair<Expr, Expr>>& newVars);
   /** the state */
   State& d_state;
   /** the type checker */

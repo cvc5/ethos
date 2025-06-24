@@ -478,9 +478,7 @@ void Desugar::printName(const Expr& e, std::ostream& os)
 
 void Desugar::printTerm(const Expr& e, std::ostream& os)
 {
-  std::map<Expr, Expr> smap;
-  Expr es = mkSanitize(e, smap);
-  Assert (smap.empty());
+  Expr es = mkSanitize(e);
   os << es;
 }
   
@@ -570,10 +568,22 @@ void Desugar::finalizeRule(const Expr& e)
 {
   Expr r = e;
   Expr rto = d_tc.getType(r);
-
+  std::cout << "Finalize " << r << std::endl;
+  std::cout << "Type is " << rto << std::endl;
   // compile to Eunoia program
-  std::map<Expr, Expr> smap;
-  Expr rt = mkSanitize(rto, smap);
+  Expr rt = mkSanitize(rto);
+  std::cout << "...santized to " << rt << std::endl;
+  
+  d_eoRules << "; rule: " << e << std::endl;
+  if (rt.getKind()!=Kind::FUNCTION_TYPE)
+  {
+    // ground rule is just a formula definition
+    Assert (rt.getKind()==Kind::PROOF_TYPE);
+    Expr rrt = rt[0];
+    d_eoRules << "(define $eor_" << e << " () " << rrt << ")" << std::endl << std::endl;
+    return;
+  }
+  
   std::vector<Expr> vars = Expr::getVariables(rt);
   std::stringstream plout;
   std::vector<Expr> params;
@@ -601,80 +611,80 @@ void Desugar::finalizeRule(const Expr& e)
     tcrCall << " " << v << " (eo::typeof " << v << ")";
   }
   
+  std::map<Expr, Expr> evMap;
+  size_t eVarCount = 0;
+  std::vector<std::pair<Expr, Expr>> newVars;
   std::vector<bool> argIsProof;
-  d_eoRules << "; rule: " << e << std::endl;
-  if (rt.getKind()==Kind::FUNCTION_TYPE)
+  Assert (rt.getKind()==Kind::FUNCTION_TYPE);
+  std::stringstream typeList;
+  std::stringstream argList;
+  std::vector<Expr> finalVars;
+  for (size_t i=1, nargs = rt.getNumChildren(); i<nargs; i++)
   {
-    std::stringstream typeList;
-    std::stringstream argList;
-    for (size_t i=1, nargs = rt.getNumChildren(); i<nargs; i++)
+    if (i>1)
     {
-      if (i>1)
-      {
-        typeList << " ";
-      }
-      Expr argType = rt[i-1];
-      Kind ak = argType.getKind();
-      if (ak==Kind::QUOTE_TYPE || ak==Kind::PROOF_TYPE)
-      {
-        // handled the same: argument is first child
-        Expr aa = argType[0];
-        Expr ta = d_tc.getType(aa);
-        if (ta.isNull())
-        {
-          //EO_FATAL() << "Could not get type of " << aa << std::endl;
-          ta = d_any;
-          printParamList({ta}, plout, params, false, pvisited, pfirstParam);
-        }
-        bool isProof = (ak==Kind::PROOF_TYPE);
-        if (isProof)
-        {
-          //typeList << "(! " << ta << " :premise)";
-          typeList << ta;
-        }
-        else
-        {
-          typeList << ta;
-        }
-        argList << " " << argType[0];
-        argIsProof.push_back(isProof);
-      }
+      typeList << " ";
     }
-    // strip off the "(Proof ...)", which may be beneath requires
-    Expr rrt = rt[rt.getNumChildren()-1];
-    std::vector<Expr> reqs;
-    while (rrt.getKind()==Kind::EVAL_REQUIRES)
+    Expr argTypeo = rt[i-1];
+    Expr argType = mkSanitize(argTypeo, evMap, eVarCount, true, newVars);
+    Kind ak = argType.getKind();
+    if (ak==Kind::QUOTE_TYPE || ak==Kind::PROOF_TYPE)
     {
-      reqs.push_back(d_state.mkPair(rrt[0], rrt[1]));
-      rrt = rrt[2];
+      // handled the same: argument is first child
+      Expr aa = argType[0];
+      Expr ta = d_tc.getType(aa);
+      if (ta.isNull())
+      {
+        //EO_FATAL() << "Could not get type of " << aa << std::endl;
+        ta = d_any;
+        finalVars.push_back(ta);
+      }
+      bool isProof = (ak==Kind::PROOF_TYPE);
+      if (isProof)
+      {
+        //typeList << "(! " << ta << " :premise)";
+        typeList << ta;
+      }
+      else
+      {
+        typeList << ta;
+      }
+      argList << " " << argType[0];
+      argIsProof.push_back(isProof);
     }
-    Assert (rrt.getKind()==Kind::PROOF_TYPE);
-    rrt = rrt[0];
-    rrt = d_state.mkRequires(reqs, rrt);
-    // just use the same parameter list
-    d_eoRules << "(program $eor.exec_" << e << " (" << plout.str() << ")" << std::endl;
-    d_eoRules << "  :signature (" << tcrSig.str() << ") Bool" << std::endl;
-    d_eoRules << "  (" << std::endl;
-    d_eoRules << "  (($eor.exec_" << e << tcrBody.str() << ") " << rrt << ")" << std::endl;
-    d_eoRules << "  )" << std::endl;
-    d_eoRules << ")" << std::endl;
-    d_eoRules << "(program $eor_" << e << " (" << plout.str() << ")" << std::endl;
-    d_eoRules << "  :signature (" << typeList.str() << ")";
-    d_eoRules << " Bool" << std::endl;
-    d_eoRules << "  (" << std::endl;
-    d_eoRules << "  (($eor_" << e << argList.str() << ") ($eor.exec_" << e << tcrCall.str() << "))" << std::endl;
-    d_eoRules << "  )" << std::endl;
-    d_eoRules << ")" << std::endl;
-    d_eoRules << std::endl;
   }
-  else
+  // print all final variables
+  for (std::pair<Expr, Expr>& p : newVars)
   {
-    // ground rule is just a formula definition
-    Assert (rt.getKind()==Kind::PROOF_TYPE);
-    Expr rrt = rt[0];
-    d_eoRules << "(define $eor_" << e << " () " << rrt << ")" << std::endl << std::endl;
+    finalVars.push_back(p.first);
   }
-
+  printParamList(finalVars, plout, params, false, pvisited, pfirstParam);
+  // strip off the "(Proof ...)", which may be beneath requires
+  Expr rrt = rt[rt.getNumChildren()-1];
+  std::vector<Expr> reqs;
+  while (rrt.getKind()==Kind::EVAL_REQUIRES)
+  {
+    reqs.push_back(d_state.mkPair(rrt[0], rrt[1]));
+    rrt = rrt[2];
+  }
+  Assert (rrt.getKind()==Kind::PROOF_TYPE);
+  rrt = rrt[0];
+  rrt = d_state.mkRequires(reqs, rrt);
+  // just use the same parameter list
+  d_eoRules << "(program $eor.exec_" << e << " (" << plout.str() << ")" << std::endl;
+  d_eoRules << "  :signature (" << tcrSig.str() << ") Bool" << std::endl;
+  d_eoRules << "  (" << std::endl;
+  d_eoRules << "  (($eor.exec_" << e << tcrBody.str() << ") " << rrt << ")" << std::endl;
+  d_eoRules << "  )" << std::endl;
+  d_eoRules << ")" << std::endl;
+  d_eoRules << "(program $eor_" << e << " (" << plout.str() << ")" << std::endl;
+  d_eoRules << "  :signature (" << typeList.str() << ")";
+  d_eoRules << " Bool" << std::endl;
+  d_eoRules << "  (" << std::endl;
+  d_eoRules << "  (($eor_" << e << argList.str() << ") ($eor.exec_" << e << tcrCall.str() << "))" << std::endl;
+  d_eoRules << "  )" << std::endl;
+  d_eoRules << ")" << std::endl;
+  d_eoRules << std::endl;
 }
 
 void Desugar::finalizeDatatype(const Expr& e)
@@ -812,21 +822,29 @@ bool Desugar::hasSubterm(const Expr& t, const Expr& s)
   }
   return false;
 }
-
-Expr Desugar::mkSanitize(const Expr& t, std::map<Expr, Expr>& smap, bool inPatMatch)
+Expr Desugar::mkSanitize(const Expr& t)
 {
-  std::unordered_map<const ExprValue*, Expr> visited;
-  std::unordered_map<const ExprValue*, Expr>::iterator it;
+  std::map<Expr, Expr> visited;
+  size_t varCount = 0;
+  std::vector<std::pair<Expr, Expr>> newVars;
+  return mkSanitize(t, visited, varCount, false, newVars);
+}
+
+Expr Desugar::mkSanitize(const Expr& t, std::map<Expr, Expr>& visited, size_t& varCount, bool inPatMatch, 
+                  std::vector<std::pair<Expr, Expr>>& newVars)
+{
+  std::map<Expr, Expr>::iterator it;
   std::vector<Expr> visit;
   Expr cur;
   visit.push_back(t);
   do
   {
     cur = visit.back();
-    it = visited.find(cur.getValue());
+    it = visited.find(cur);
+    Kind k = cur.getKind();
     if (it == visited.end())
-    {
-      visited[cur.getValue()] = d_null;
+    {   
+      visited[cur] = d_null;
       for (size_t i=0, nchild=cur.getNumChildren(); i<nchild; i++)
       {
         visit.push_back(cur[i]);
@@ -842,17 +860,13 @@ Expr Desugar::mkSanitize(const Expr& t, std::map<Expr, Expr>& smap, bool inPatMa
       for (size_t i=0, nchild=cur.getNumChildren(); i<nchild; i++)
       {
         Expr cn = cur[i];
-        it = visited.find(cn.getValue());
+        it = visited.find(cn);
         Assert(it != visited.end());
         Assert(!it->second.isNull());
         childChanged = childChanged || cn != it->second;
         children.push_back(it->second);
       }
-      Kind k = cur.getKind();
       // must introduce new parameter if matching a literal op kind
-      // if (inPatMatch && isLiteralOp(k))
-      //{
-      //}
       if (k==Kind::ANNOT_PARAM)
       {
         // strip off the "(eo::param ...)"
@@ -871,13 +885,22 @@ Expr Desugar::mkSanitize(const Expr& t, std::map<Expr, Expr>& smap, bool inPatMa
       else if (childChanged)
       {
         ret = Expr(d_state.mkExprSimple(k, children));
+      }      
+      if (inPatMatch && ret.getNumChildren()>0 && ret.isEvaluatable())
+      {
+        varCount++;
+        std::stringstream ssv;
+        ssv << "$ex_" << varCount;
+        Expr v = d_state.mkSymbol(Kind::PARAM, ssv.str(), d_any);
+        newVars.emplace_back(v, ret);
+        ret = v;
       }
-      visited[cur.getValue()] = ret;
+      visited[cur] = ret;
     }
   } while (!visit.empty());
-  Assert(visited.find(t.getValue()) != visited.end());
-  Assert(!visited.find(t.getValue())->second.isNull());
-  return visited[t.getValue()];
+  Assert(visited.find(t) != visited.end());
+  Assert(!visited.find(t)->second.isNull());
+  return visited[t];
 }
 
 }  // namespace ethos
