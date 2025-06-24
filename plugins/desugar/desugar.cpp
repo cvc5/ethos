@@ -413,7 +413,7 @@ void Desugar::finalizeDeclaration(const Expr& e)
     //ngscope.push_back(ct);
     //std::cout << "Partial app that has ground type: " << pattern << std::endl;
     // we now write the pattern matching for the derived pattern.
-    d_eoTypeof << "  (($eo_typeof ";
+    d_eoTypeof << "  (($eo_typeof_main ";
     printTerm(pattern, d_eoTypeof);
     d_eoTypeof << ") ";
     if (ngArgs>0)
@@ -446,7 +446,7 @@ void Desugar::finalizeDeclaration(const Expr& e)
   }
   else
   {
-    d_eoTypeof << "  (($eo_typeof " << e << ") ";
+    d_eoTypeof << "  (($eo_typeof_main " << e << ") ";
     printTerm(ct, d_eoTypeof);
     d_eoTypeof << ")" << std::endl;
   }
@@ -464,6 +464,15 @@ void Desugar::printName(const Expr& e, std::ostream& os)
     oid = d_overloadCount[s];
     d_overloadId[e] = oid;
     d_overloadCount[s]++;
+    if (oid>0)
+    {
+      std::stringstream ss;
+      ss << e << "." << (oid+1);
+      Expr c = e;
+      Expr ct = d_tc.getType(c);
+      Expr ctov = d_state.mkSymbol(e.getKind(), ss.str(), e);
+      d_overloadSanVisited[e] = ctov;
+    }
   }
   else
   {

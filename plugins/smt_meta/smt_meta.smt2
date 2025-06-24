@@ -113,11 +113,10 @@ $TERM_DECL$
     (sm.String (sm.Var.name x1))
     sm.Stuck))
 
-; program: $eo_var
-(define-fun $eo_var ((x1 sm.Term) (x2 sm.Term)) sm.Term
-  (ite (and ((_ is sm.String) x1) (= ($eo_typeof x2) sm.Type))
-    (sm.Var (sm.String.val x1) x2)
-    sm.Stuck))
+; fwd-decl: $eo_var
+; note: this method is not recursive but relies on $eo_typeof, which
+;       is part of the desugaring step.
+(declare-fun $eo_var (sm.Term sm.Term) sm.Term)
 
 ;;; Boolean operators
 
@@ -314,15 +313,22 @@ $DEFS$
 
 ;;; Meta symbols
 
-; program: $eo_typeof_builtin
+; program: $eo_var
+(assert (forall ((x1 sm.Term) (x2 sm.Term))
+  (= ($eo_var x1 x2)
+  (ite (and ((_ is sm.String) x1) (= ($eo_typeof x2) sm.Type))
+    (sm.Var (sm.String.val x1) x2)
+    sm.Stuck))))
+    
+; program: $eo_typeof
 ; note: This is forward in the signature.
 (assert (forall ((x1 sm.Term))
-  (= ($eo_typeof_builtin x1)
+  (= ($eo_typeof x1)
   (ite (= x1 sm.Stuck)
     sm.Stuck
   ;; literal type rules
 $TYPEOF_LITERALS$
-    sm.Stuck))))))))))
+    ($eo_typeof_main x1)))
 $TYPEOF_END$
 ))
 

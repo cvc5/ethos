@@ -16,6 +16,23 @@ $EO_NUMERAL_DECL$
 ; forward declaration for test
 (program $eo_model_sat () :signature (Bool) Bool)
 
+;;; $eo_List
+
+; The builtin Eunoia list.
+(declare-type $eo_List ())
+(declare-const $eo_List_nil $eo_List)
+(declare-parameterized-const $eo_List_cons ((T Type :implicit))
+  (-> T $eo_List $eo_List)
+  :right-assoc-nil $eo_List_nil)
+  
+; fwd-decl: $eo_dt_constructors
+(program $eo_dt_constructors ((T Type))
+  :signature (Type) $eo_List)
+
+; fwd-decl: $eo_dt_selectors
+(program $eo_dt_selectors ((T Type) (t T))
+  :signature (T) $eo_List)
+
 ; core definitions
 
 ;;; $eo_eq
@@ -105,15 +122,6 @@ $EO_NUMERAL_DECL$
   (eo::is_neg (eo::add (eo::hash b) (eo::neg (eo::hash a)))))
 
 ;;;;;; List operators
-
-;;; $eo_List
-
-; The builtin Eunoia list.
-(declare-type $eo_List ())
-(declare-const $eo_List_nil $eo_List)
-(declare-parameterized-const $eo_List_cons ((T Type :implicit))
-  (-> T $eo_List $eo_List)
-  :right-assoc-nil $eo_List_nil)
 
 ;;; $eo_is_list
 
@@ -390,31 +398,28 @@ $EO_DEFS$
   )
 )
 
-; program: $eo_typeof_builtin
-; This is custom defined by the verification backend.
-(declare-parameterized-const $eo_typeof_builtin ((T Type :implicit) (t T)) Type)
+; type checking
 
 ; non-ground type defintions
 
 $EO_TYPEOF_NGROUND_DEFS$
 
-; program: $eo_typeof
-; implements: eo::typeof
-(program $eo_typeof
+; program: $eo_typeof_main
+; This implements type rules for non-builtin terms.
+(program $eo_typeof_main
   ((T Type) (U Type) (V Type) (W Type) (f (-> U V T)) (x U) (t T)
    $EO_TYPEOF_PARAM$)
   :signature (T) Type
   (
-  (($eo_typeof Type)      Type)
-  (($eo_typeof (-> T U))  (eo::requires ($eo_typeof T) Type
-                          (eo::requires ($eo_typeof U) Type
-                            Type)))
-  (($eo_typeof Bool)      Type)
-  (($eo_typeof true)      Bool)
-  (($eo_typeof false)     Bool)
+  (($eo_typeof_main Type)      Type)
+  (($eo_typeof_main (-> T U))  (eo::requires ($eo_typeof T) Type
+                               (eo::requires ($eo_typeof U) Type
+                                 Type)))
+  (($eo_typeof_main Bool)      Type)
+  (($eo_typeof_main true)      Bool)
+  (($eo_typeof_main false)     Bool)
 $EO_TYPEOF_CASES$
-  (($eo_typeof (f x))     ($eo_typeof_apply ($eo_typeof f) ($eo_typeof x)))
-  (($eo_typeof t)         ($eo_typeof_builtin t))
+  (($eo_typeof_main (f x))     ($eo_typeof_apply ($eo_typeof f) ($eo_typeof x)))
   )
 )
 

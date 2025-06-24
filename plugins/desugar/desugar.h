@@ -90,6 +90,8 @@ private:
   std::map<std::string, size_t> d_overloadCount;
   /** */
   std::map<Expr, size_t> d_overloadId;
+  /** */
+  std::map<Expr, Expr> d_overloadSanVisited;
   /** Common constants */
   Expr d_any;
   Expr d_null;
