@@ -1182,7 +1182,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
         // by construction, args[0] should have type args[1], this is
         // an assertion that is not checked in production.
         Expr ret(args[0]);
-        Assert(getType(ret).getValue() == args[1]) << "Failed " << ret << " " << getType(ret) << " " << Expr(args[1]);
+        Assert(getType(ret).getValue() == args[1]);
         return Expr(ret);
       }
     }

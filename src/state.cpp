@@ -185,7 +185,7 @@ State::State(Options& opts, Stats& stats)
   // any is used internally but is not avaiable to the user
   d_any = Expr(mkExpr(Kind::ANY, {}));
   // self is a distinguished parameter
-  d_self = Expr(mkSymbolInternal(Kind::PARAM, "$eo_self", d_any));
+  d_self = Expr(mkSymbolInternal(Kind::PARAM, "eo::self", d_any));
   bind("eo::self", d_self);
   d_conclusion =
       Expr(mkSymbolInternal(Kind::PARAM, "eo::conclusion", d_boolType));
@@ -804,7 +804,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     else
     {
       Warning() << "Wrong number of arguments when applying literal op " << k
-                << ", " << children.size() << " arguments " << children[0] << " " << children[1] << std::endl;
+                << ", " << children.size() << std::endl;
     }
   }
   else if (k == Kind::AS_RETURN)
