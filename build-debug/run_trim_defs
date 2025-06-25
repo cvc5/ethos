@@ -16,13 +16,13 @@ TARGET=$2
 cat << EOF > $TMP_FILE
 ; include this directory
 (include "$INPUT")
-(echo \"$TARGET\")
+(echo "trim-defs $TARGET")
 EOF
 
 echo "**** Run ethos + trim-defs on $TMP_FILE"
 echo "Write trim to ../plugins/trim_defs/trim.eo"
 ./src/ethos --plugin.trim-defs $TMP_FILE > $OUT_FILE
-# remove "correct"
+# remove "correct" and echo
 sed -i '1d' "$OUT_FILE"
 
 echo "**** Verify it parses"

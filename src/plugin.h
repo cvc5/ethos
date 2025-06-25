@@ -134,6 +134,10 @@ public:
   virtual Expr evaluateProgram(ExprValue* prog,
                                const std::vector<ExprValue*>& args,
                                Ctx& newCtx) { return Expr(); }
+                               /**
+                                * Return true if the echo should be processed
+                                */
+                               virtual bool echo(const std::string& msg) { return true;}
   //--------- finalize
   /**
    * Finalize. Called once when the proof checker has finished parsing all input.

@@ -105,7 +105,10 @@ Command parseCommand(const std::string& s_expr_text)
   cmd.d_fullText = s_expr_text;
 
   std::istringstream in(s_expr_text);
-  Assert(nextToken(in) == "(");
+  if (nextToken(in) != "(")
+  {
+    Assert (false);
+  }
 
   cmd.d_cmdName = nextToken(in);
   cmd.d_symbolName = nextToken(in);
@@ -136,12 +139,7 @@ Command parseCommand(const std::string& s_expr_text)
 // Main parser from istream
 void TrimDefs::parseCommands(std::istream& in)
 {
-  size_t idCounter = 0;
-  std::map<std::string, size_t> symToId;
   std::map<std::string, size_t>::iterator its;
-  std::vector<std::string> commands;
-  std::map<size_t, std::unordered_set<size_t>> symCommands;
-  std::map<size_t, std::unordered_set<size_t>> cmdSyms;
   while (in)
   {
     std::string tok = nextToken(in);
@@ -154,37 +152,52 @@ void TrimDefs::parseCommands(std::istream& in)
       {
         continue;
       }
-      std::cout << "Command: " << cmd.d_cmdName << " " << cmd.d_symbolName
-                << std::endl;
-      its = symToId.find(cmd.d_symbolName);
+      //std::cout << "Command: " << cmd.d_cmdName << " " << cmd.d_symbolName
+      //          << std::endl;
+      its = d_symToId.find(cmd.d_symbolName);
       size_t id;
-      if (its == symToId.end())
+      if (its == d_symToId.end())
       {
-        ++idCounter;
-        symToId[cmd.d_symbolName] = idCounter;
-        id = idCounter;
+        ++d_idCounter;
+        d_symToId[cmd.d_symbolName] = d_idCounter;
+        id = d_idCounter;
       }
       else
       {
         id = its->second;
       }
-      size_t cid = commands.size();
-      symCommands[id].insert(cid);
-      commands.push_back(cmd.d_fullText);
-      std::unordered_set<size_t>& csyms = cmdSyms[cid];
+      size_t cid = d_commands.size();
+      d_symCommands[id].insert(cid);
+      // declare-consts must always be visited
+      if (cmd.d_cmdName=="declare-consts")
+      {
+        d_toVisit.push_back(id);
+      }
+      //std::cout << "*** command " << cmd.d_fullText << std::endl;
+      d_commands.push_back(cmd.d_fullText);
+      std::unordered_set<size_t>& csyms = d_cmdSyms[cid];
       for (const std::string& s : cmd.d_bodySyms)
       {
-        its = symToId.find(s);
-        if (its != symToId.end() && its->second != id)  // no self
+        its = d_symToId.find(s);
+        if (its != d_symToId.end() && its->second != id)  // no self
         {
+          //std::cout << "...*** sym " << s << std::endl;
           csyms.insert(its->second);
+        }
+        else
+        {
+          //std::cout << "...non-sym " << s << std::endl;
         }
       }
     }
   }
 }
 
-TrimDefs::TrimDefs(State& s) : d_state(s) { d_setDefTarget = false; }
+TrimDefs::TrimDefs(State& s) : d_state(s)
+{
+  d_setDefTarget = false;
+  d_idCounter = 0;
+}
 
 TrimDefs::~TrimDefs() {}
 
@@ -197,10 +210,73 @@ void TrimDefs::finalizeIncludeFile(const Filepath& s,
   {
     return;
   }
-  std::cout << "Trim defs: " << s.getRawPath() << std::endl;
+  //std::cout << "Trim defs: " << s.getRawPath() << std::endl;
   std::unique_ptr<Input> i = Input::mkFileInput(s.getRawPath());
   std::istream* is = i->getStream();
   parseCommands(*is);
+}
+
+bool TrimDefs::echo(const std::string& msg)
+{
+  //std::cout << "Echos " << msg << " \"" << msg.substr(10) << "\"" << std::endl;
+  if (msg.compare(0, 10, "trim-defs ")==0)
+  {
+    d_setDefTarget = true;
+    d_defTarget = msg.substr(10);
+    //std::cout << "...set target" << std::endl;
+    return false;
+  }
+  return true;
+}
+
+void TrimDefs::finalize()
+{
+  if (!d_setDefTarget)
+  {
+    EO_FATAL() << "Must set target with (echo \"trim-defs <symbol>\"), where <symbol> is the name of the "
+                  "symbol to trim with respect to."
+               << std::endl;
+  }
+  std::map<std::string, size_t>::iterator it = d_symToId.find(d_defTarget);
+  if (it == d_symToId.end())
+  {
+    EO_FATAL() << "Could not find target definition \"" << d_defTarget << "\""
+               << std::endl;
+  }
+  std::unordered_set<size_t> cdeps;
+  std::unordered_set<size_t> visited;
+  d_toVisit.push_back(it->second);
+  do
+  {
+    size_t cur = d_toVisit.back();
+    d_toVisit.pop_back();
+    if (visited.find(cur)!=visited.end())
+    {
+      continue;
+    }
+    visited.insert(cur);
+    std::unordered_set<size_t>& sc = d_symCommands[cur];
+    Assert (!sc.empty());
+    for (size_t cid : sc)
+    {
+      if (cdeps.find(cid)==cdeps.end())
+      {
+        cdeps.insert(cid);
+        std::unordered_set<size_t>& csyms = d_cmdSyms[cid];
+        d_toVisit.insert(d_toVisit.end(), csyms.begin(), csyms.end());
+      }
+    }
+  }
+  while (!d_toVisit.empty());
+  std::cout << "; trim-defs: " << d_defTarget << std::endl;
+  std::cout << "; #trim-defs: " << cdeps.size() << std::endl;
+  std::vector<size_t> allCmd(cdeps.begin(), cdeps.end());
+  std::sort(allCmd.begin(), allCmd.end());
+  for (size_t i : allCmd)
+  {
+    std::cout << d_commands[i];
+    std::cout << std::endl;
+  }
 }
 
 }  // namespace ethos

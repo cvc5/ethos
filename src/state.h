@@ -96,6 +96,8 @@ class State
   bool markConstructorKind(const Expr& v, Attr a, const Expr& cons);
   /** Define program, where v is PROGRAM_CONST and prog is PROGRAM. */
   void defineProgram(const Expr& v, const Expr& prog);
+  /** Echo */
+  void echo(const std::string& msg);
   //--------------------------------------
   /** Type */
   Expr mkType();

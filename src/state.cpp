@@ -1575,6 +1575,19 @@ void State::defineProgram(const Expr& v, const Expr& prog)
   }
 }
 
+void State::echo(const std::string& msg)
+{
+  if (d_plugin!=nullptr)
+  {
+    if (!d_plugin->echo(msg))
+    {
+      // the plugin processed the echo
+      return;
+    }
+  }
+  std::cout << msg << std::endl;
+}
+
 bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
 {
   // If marking an annotated parameter, we mark the parameter it annotates.

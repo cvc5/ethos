@@ -660,11 +660,11 @@ bool CmdParser::parseNextCommand()
       if (tok == Token::STRING_LITERAL)
       {
         std::string msg = d_eparser.parseStr(true);
-        std::cout << msg << std::endl;
+        d_state.echo(msg);
       }
       else
       {
-        std::cout << std::endl;
+        d_state.echo("");
       }
     }
     break;

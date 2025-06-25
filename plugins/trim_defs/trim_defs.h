@@ -34,13 +34,24 @@ class TrimDefs : public Plugin
   void finalizeIncludeFile(const Filepath& s,
                            bool isSignature,
                            bool isReference,
-                           const Expr& referenceNf);
+                           const Expr& referenceNf) override;
 
+                               /**
+                                */
+                              bool echo(const std::string& msg) override;
+  /** Finalize */
+  void finalize() override;
  private:
   /** the state */
   State& d_state;
   std::string d_defTarget;
   bool d_setDefTarget;
+  size_t d_idCounter = 0;
+  std::map<std::string, size_t> d_symToId;
+  std::vector<std::string> d_commands;
+  std::map<size_t, std::unordered_set<size_t>> d_symCommands;
+  std::map<size_t, std::unordered_set<size_t>> d_cmdSyms;
+  std::vector<size_t> d_toVisit;
   void parseCommands(std::istream& in);
 };
 
