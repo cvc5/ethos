@@ -17,8 +17,8 @@
 
 namespace ethos {
 
-std::string s_ds_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
-// std::string s_ds_path = "/home/andrew/ethos/";
+//std::string s_ds_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
+std::string s_ds_path = "/home/andrew/ethos/";
 
 Desugar::Desugar(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {
@@ -162,12 +162,14 @@ void Desugar::finalizeDeclaration(const Expr& e)
     cattr = it->second.first;
     cattrCons = it->second.second;
   }
+  /*
   if (cattr == Attr::DATATYPE || cattr == Attr::DATATYPE_CONSTRUCTOR
       || cattr == Attr::AMB_DATATYPE_CONSTRUCTOR)
   {
     // handled as part of datatype
     return;
   }
+  */
   // check for eo::List
   std::stringstream cnss;
   printName(c, cnss);
@@ -240,7 +242,7 @@ void Desugar::finalizeDeclaration(const Expr& e)
           vars.push_back(v);
           printParamList(vars, d_defs, params, true, visited, firstParam);
         }
-        else if (cattr == Attr::AMB && i == 0)
+        else if ((cattr == Attr::AMB || cattr == Attr::AMB_DATATYPE_CONSTRUCTOR) && i == 0)
         {
           // print the parameters; these will lead to a definition that is
           // ambiguous again.
@@ -738,8 +740,11 @@ void Desugar::finalizeRule(const Expr& e)
 
 void Desugar::finalizeDatatype(const Expr& e)
 {
+  // for now, just handle as ordinary declaration
+  finalizeDeclaration(e);
   /*
   Expr d = e;
+  Expr dt = d_tc.getType(d);
   Attr dattr = Attr::NONE;
   Expr dattrCons;
   std::map<Expr, std::pair<Attr, Expr>>::iterator it;
@@ -750,7 +755,7 @@ void Desugar::finalizeDatatype(const Expr& e)
     dattrCons = it->second.second;
   }
   Assert(dattr == Attr::DATATYPE);
-  d_defs << "; datatype: " << e << std::endl;
+  d_defs << "; datatype: " << e << " " << dattrCons << std::endl;
   d_defs << "(declare-datatypes (";
   d_defs << ")" << std::endl;
   // TODO
@@ -796,10 +801,10 @@ void Desugar::finalize()
       Assert(e.getNumChildren() == 2);
       finalizeProgram(e[0], e[1]);
     }
-    //else if (k == Kind::TYPE)
-    //{
-      //finalizeDatatype(e);
-    //}
+    else if (k == Kind::TYPE)
+    {
+      finalizeDatatype(e);
+    }
     else
     {
       EO_FATAL() << "Unknown kind: " << k;

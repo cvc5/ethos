@@ -6,35 +6,88 @@
 
 ; fwd-decl: $eo_model_lookup
 ; Conceptually, returns the model value for constant with identifier id and type T.
+; This is intentionally undefined in this signature.
 (program $eo_model_lookup ((T Type))
   :signature (Int T) T)
 
+; represents an unknown value
+(declare-parameterized-const @unknown_value ((T Type) (i Int)) T)
 
-; TODO: specification for forall is a (non-computable) function
-;(declare-parameterized-const $eo_model_var_to_id ((T Type)) (-> T Int))
-;(declare-parameterized-const $eo_model_value_enum ((T Type)) (-> Int T))
-;(program $eo_model_evaluate_forall ((xs @List)
+(program $eo_model_enum ((T Type) (i Int) (w Int))
+  :signature ((eo::quote T) Int) T
+  (
+  (($eo_model_enum Int i)         (eo::define ((v (eo::zdiv i 2)))
+                                    (eo::ite (eo::eq (eo::zmod i 2) 0) v (eo::neg v))))
+  ;(($eo_model_enum Real i)
+  (($eo_model_enum (BitVec w) i)  (eo::define ((v (eo::to_bin w i)))
+                                    (eo::requires (eo::to_z v) i v)))   ; must not overflow
+  (($eo_model_enum (Seq Char) i)  (eo::ite (eo::eq i 0)
+                                    ""
+                                    (eo::concat (eo::to_str (eo::zmod i 196608)) ($eo_model_enum (Seq Char) (eo::zdiv i 196608)))))
+  (($eo_model_enum T i)           (@unknown_value T i))   ; note since this always succeeds, this assumes that unhandled types have infinite type
+  )
+)
+
+; conceptual
+(program $eo_model_lookup ((T Type))
+  :signature (Int T) T)
+
+; fwd-decl: $eo_model_evaluate
+(program $eo_model_evaluate ((T Type))
+  :signature (T) T)
+
+; specification for forall is a (non-computable) function
+(program $eo_model_evaluate_forall ((T Type) (x T) (xs $eo_List :list) (F Bool) (i Int))
+  :signature (Bool Int) Bool
+  (
+  (($eo_model_evaluate_forall (forall $eo_List_nil F) i)     ($eo_model_evaluate F))
+  (($eo_model_evaluate_forall (forall ($eo_List_cons x xs) F) i)
+    (eo::define ((next ($eo_model_enum (eo::typeof x) i)))
+    (eo::ite (eo::is_ok next)
+      (eo::ite ($eo_model_evaluate ($substitute x next F))
+        ($eo_model_evaluate (forall ($eo_List_cons x xs) F) (eo::add i 1))
+        false)
+      true))) ; out of values
+  )
+)
 
 ; An evaluator for all terms that we can reason about models.
-(program $eo_model_evaluate ((T Type) (U Type) (V Type) (x T) (f (-> U T)) (y V) (z V) (n Int))
+(program $eo_model_evaluate
+  ((T Type) (U Type) (V Type) (x T) (f (-> U T)) (y V) (z V) (n Int) (F Bool) (xs $eo_List)
+   (a1 (Array U V)) (a2 (Array U V))
+   (s (Seq Char)) (R RegLan))
   :signature (T) T
   (
   ; @const is the CPC syntax for constants
-  (($eo_model_evaluate (@const n T))        ($eo_model_lookup n T))
+  (($eo_model_evaluate (@const n T))              ($eo_model_lookup n T))
   ; For equality, we use $are_distinct_terms which is more general than $run_evaluate.
   ; This side condition is part of the trusted core.
-  (($eo_model_evaluate (_ (= y) z))         (eo::define ((fmy ($eo_model_evaluate y)))
-                                            (eo::define ((fmz ($eo_model_evaluate z)))
-                                            (eo::ite (eo::eq fmy fmz)
-                                              true
-                                              (eo::requires ($are_distinct_terms fmy fmz) true false)))))
+  (($eo_model_evaluate (_ (= y) z))               (eo::define ((fmy ($eo_model_evaluate y)))
+                                                  (eo::define ((fmz ($eo_model_evaluate z)))
+                                                  (eo::ite (eo::eq fmy fmz)
+                                                    true
+                                                    (eo::requires ($are_distinct_terms fmy fmz) true false)))))
+
   ; TODO: other operators go here
+  (($eo_model_evaluate (forall xs F))            ($eo_model_evaluate_forall (forall xs F) 0))
+  (($eo_model_evaluate (exists xs F))            ($eo_model_evaluate (not (forall xs (not F)))))
+  (($eo_model_evaluate (str.in_re s R))          ($str_eval_str_in_re ($eo_model_evaluate s) ($eo_model_evaluate R)))
+  ; skolems
+  (($eo_model_evaluate (@purify x))              ($eo_model_evaluate x))
+  ;(($eo_model_evaluate (@array_deq_diff a1 a2))
+
   ; Use the CPC run_evaluate side condition for all operators returning an atomic value.
   ; This side condition is part of the trusted core.
   (($eo_model_evaluate (f y))           (eo::define ((fme ($eo_model_evaluate f)))
-                                        (eo::define ((fmy ($eo_model_evaluate y)))
-                                        (eo::define ((ev ($run_evaluate (_ fme fmy))))
-                                          ev)))) ; TODO: sequence and set operators can go here
+                                        (eo::define ((yme ($eo_model_evaluate y)))
+                                        (eo::define ((tme (_ fme yme)))
+                                        (eo::define ((ev ($run_evaluate tme)))
+                                        (eo::define ((evs ($seq_eval tme)))
+                                        (eo::ite (eo::is_ok ev)
+                                          ev
+                                          (eo::ite (eo::is_ok evs)
+                                            evs
+                                            tme)))))))) ; TODO: sequence and set operators can go here
   (($eo_model_evaluate x)               x)
   )
 )
