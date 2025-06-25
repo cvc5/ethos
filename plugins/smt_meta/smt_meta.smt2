@@ -55,12 +55,9 @@ $TERM_DECL$
 (assert (forall ((i Int))
   (= ($sm_pow2_eval i) (ite (= i 0) 1 (* 2 ($sm_pow2_eval (- i 1)))))))
 
-(define-fun $sm_mod_pow_2_eval ((x Int) (w Int)) Int
-  (mod x ($sm_pow2_eval w)))  ; TODO: improve?
-
 (define-fun $sm_Binary ((w Int) (x Int)) sm.Term
   (ite (and (<= 0 w) (< w 4294967296))
-    (sm.Binary w ($sm_mod_pow_2_eval x w))
+    (sm.Binary w (mod x ($sm_pow2_eval w)))
     sm.Stuck))
 
 (define-fun $sm_bit ((x Int) (i Int)) Bool
@@ -135,6 +132,14 @@ $TERM_DECL$
 
 ;;; Boolean operators
 
+; program: $eo_not
+(define-fun $eo_not ((x1 sm.Term)) sm.Term
+  (ite ($sm_is_Boolean x1)
+    ($sm_Boolean (= x1 sm.False))
+  (ite ((_ is sm.Binary) x1)
+    ($sm_Binary_not (sm.Binary.width x1) (sm.Binary.val x1))
+    sm.Stuck)))
+
 ; program: $eo_and
 (define-fun $eo_and ((x1 sm.Term) (x2 sm.Term)) sm.Term
   (ite (and ($sm_is_Boolean x1) ($sm_is_Boolean x2))
@@ -157,14 +162,6 @@ $TERM_DECL$
     ($sm_Boolean (xor (= x1 sm.True) (= x2 sm.True)))
   (ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))
     ($sm_Binary_xor (sm.Binary.width x1) (sm.Binary.val x1) (sm.Binary.val x2))
-    sm.Stuck)))
-
-; program: $eo_not
-(define-fun $eo_not ((x1 sm.Term)) sm.Term
-  (ite ($sm_is_Boolean x1)
-    ($sm_Boolean (= x1 sm.False))
-  (ite ((_ is sm.Binary) x1)
-    ($sm_Binary_not (sm.Binary.width x1) (sm.Binary.val x1))
     sm.Stuck)))
 
 ;;; Arithmetic operators
