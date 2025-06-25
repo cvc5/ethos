@@ -27,12 +27,14 @@ class TypeChecker;
 class TrimList
 {
 public:
-  TrimList(State& s);
-  std::vector<std::pair<Expr, Expr>> getTrimList(const Expr& e);
-  std::vector<std::pair<Expr, Expr>> getTrimList(const Expr& e, std::map<Expr, bool>& visited);
+  TrimList(State& s, const std::map<Expr, std::pair<Attr, Expr>>& attrDecl);
+  std::vector<std::pair<Expr, Expr>> getTrimList(const std::vector<Expr>& es);
+  std::vector<std::pair<Expr, Expr>> getTrimList(const std::vector<Expr>& es, std::map<Expr, bool>& visited);
 private:
   Expr d_null;
   State& d_state;
+  /** Attributes marked */
+  const std::map<Expr, std::pair<Attr, Expr>>& d_attrDecl;
 };
 
 /**
@@ -54,10 +56,6 @@ class TrimDefs : public Plugin
   void defineProgram(const Expr& v, const Expr& prog) override;
   /** Finalize */
   void finalize() override;
-  /**
-   * Used to mark the definition we are trimming.
-   */
-  void markOracleCmd(const Expr& v, const std::string& ocmd) override;
 
  private:
   void printTerm(const Expr& t, std::ostream& os);
@@ -78,11 +76,8 @@ class TrimDefs : public Plugin
   void printDeclaration(const Expr& t);
   void printRule(const Expr& v);
   void printDatatype(const Expr& d);
-  /** timestamps for when things happened */
-  size_t d_timeStamp;
-  std::map<Expr, size_t> d_declTimestamp;
-  std::map<size_t, Kind> d_litTypeTimestamp;
   std::map<Kind, Expr> d_litTypeRule;
+  std::vector<Kind> d_litTypeRuleList;
   /** Attributes marked */
   std::map<Expr, std::pair<Attr, Expr>> d_attrDecl;
   Expr d_null;

@@ -17,28 +17,31 @@
 
 namespace ethos {
 
-TrimList::TrimList(State& s) : d_state(s)
+TrimList::TrimList(State& s, const std::map<Expr, std::pair<Attr, Expr>>& attrDecl) : d_state(s), d_attrDecl(attrDecl)
 {
 }
 
-std::vector<std::pair<Expr, Expr>> TrimList::getTrimList(const Expr& e)
+std::vector<std::pair<Expr, Expr>> TrimList::getTrimList(const std::vector<Expr>& es)
 {
   std::map<Expr, bool> visited;
-  return getTrimList(e, visited);
+  return getTrimList(es, visited);
 }
 
-std::vector<std::pair<Expr, Expr>> TrimList::getTrimList(const Expr& e, std::map<Expr, bool>& visited)
+std::vector<std::pair<Expr, Expr>> TrimList::getTrimList(const std::vector<Expr>& es, std::map<Expr, bool>& visited)
 {
+  //std::cout << "get trim list " << es << std::endl;
   std::vector<std::pair<Expr, Expr>> tlist;
+  std::map<Expr, std::pair<Attr, Expr>>::const_iterator ita;
   std::set<Expr> fwdDecl;
   TypeChecker& tcheck = d_state.getTypeChecker();
   std::map<Expr, bool>::iterator it;
   std::vector<Expr> toVisit;
-  toVisit.push_back(e);
+  toVisit.insert(toVisit.end(), es.begin(), es.end());
   Expr cur;
   do
   {
     cur = toVisit.back();
+    //std::cout << "process " << cur << " " << cur.getKind() << std::endl;
     it = visited.find(cur);
     if (it == visited.end())
     {
@@ -73,6 +76,16 @@ std::vector<std::pair<Expr, Expr>> TrimList::getTrimList(const Expr& e, std::map
             }
           }
         }
+        else
+        {
+          // it also may have an attribute, which needs to be printed as well
+          // this is intentionally handled seperately from programs
+          ita = d_attrDecl.find(cur);
+          if (ita != d_attrDecl.end() && !ita->second.second.isNull())
+          {
+            toVisit.push_back(ita->second.second);
+          }
+        }
       }
       else
       {
@@ -101,7 +114,7 @@ std::vector<std::pair<Expr, Expr>> TrimList::getTrimList(const Expr& e, std::map
       tlist.emplace_back(cur, cval);
     }
   }
-  while (toVisit.empty());
+  while (!toVisit.empty());
   return tlist;
 }
 
@@ -110,7 +123,6 @@ std::string s_td_path = "/home/andrew/ethos/";
 
 TrimDefs::TrimDefs(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {
-  d_timeStamp = 0;
   d_setDefTarget = false;
 }
 
@@ -118,45 +130,36 @@ TrimDefs::~TrimDefs() {}
 
 void TrimDefs::setLiteralTypeRule(Kind k, const Expr& t)
 {
-  d_litTypeTimestamp[d_timeStamp] = k;
   d_litTypeRule[k] = t;
-  ++d_timeStamp;
+  d_litTypeRuleList.push_back(k);
 }
 
 void TrimDefs::bind(const std::string& name, const Expr& e)
 {
-  Kind k = e.getKind();
-  if (k == Kind::CONST || k == Kind::PROOF_RULE)
-  {
-    d_declTimestamp[e] = d_timeStamp;
-    ++d_timeStamp;
-  }
 }
 
 void TrimDefs::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
 {
+  if (a==Attr::ORACLE)
+  {
+    std::stringstream ss;
+    ss << v;
+    std::string vname = ss.str();
+    if (vname=="$trim_defs_target")
+    {
+      Assert (cons.getKind()==Kind::STRING);
+      const Literal* l = cons.getValue()->asLiteral();
+      d_defTarget = l->toString();
+      d_setDefTarget = true;
+    }
+    
+    return;
+  }
   d_attrDecl[v] = std::pair<Attr, Expr>(a, cons);
 }
 
 void TrimDefs::defineProgram(const Expr& v, const Expr& prog)
 {
-  if (d_declTimestamp.find(v)!=d_declTimestamp.end())
-  {
-    d_declTimestamp[v] = d_timeStamp;
-    ++d_timeStamp;
-  }
-}
-
-void TrimDefs::markOracleCmd(const Expr& v, const std::string& ocmd)
-{
-  std::stringstream ss;
-  ss << v;
-  std::string vname = ss.str();
-  if (vname=="$trim_defs_target")
-  {
-    d_defTarget = ocmd;
-    d_setDefTarget = true;
-  }
 }
 
 void TrimDefs::printTerm(const Expr& t, std::ostream& os)
@@ -178,7 +181,7 @@ void TrimDefs::printSetLiteralTypeRule(Kind k, const Expr& t)
     case Kind::HEXADECIMAL: ss << "<hexadecimal>"; break;
     default: EO_FATAL() << "Unknown literal type rule" << k << std::endl; break;
   }
-  d_defs << "; type-rules " << ss.str() << std::endl;
+  d_defs << "; type-rules: " << ss.str() << std::endl;
   d_defs << "(declare-consts ";
   d_defs << ss.str() << " " << t << ")" << std::endl;
 }
@@ -349,7 +352,6 @@ void TrimDefs::printDeclaration(const Expr& e)
     }
     d_defs << ") ";
     printTerm(retType, d_defs);
-    d_defs << ")" << std::endl;
   }
   else
   {
@@ -360,7 +362,7 @@ void TrimDefs::printDeclaration(const Expr& e)
   {
     d_defs << std::endl;
     d_defs << "  :" << cattr;
-    if (cattrCons.isNull())
+    if (!cattrCons.isNull())
     {
       d_defs << " " << cattrCons;
     }
@@ -463,10 +465,13 @@ void TrimDefs::printRule(const Expr& e)
 {
   //std::cout << "Finalize rule " << e << std::endl;
   Expr r = e;
-  Expr rto = d_tc.getType(r);
+  Expr rt = d_tc.getType(r);
 
   d_defs << "; rule: " << e << std::endl;
-  d_defs << "(declare-rule " << e << "(";
+  d_defs << "(declare-rule " << e << " (";
+  std::vector<Expr> vars = Expr::getVariables(rt);
+  std::vector<Expr> params;
+  printParamList(vars, d_defs, params, false);
   d_defs << ")" << std::endl;
 
   Attr rattr = Attr::NONE;
@@ -483,7 +488,6 @@ void TrimDefs::printRule(const Expr& e)
     // handle :assumption, :conclusion-explicit here.
   }
 
-  Expr rt = d_tc.getType(r);
   Expr conct = rt;
   std::stringstream paramList;
   std::stringstream ssArgs;
@@ -531,11 +535,11 @@ void TrimDefs::printRule(const Expr& e)
   {
     d_defs << "  :premises (" << ssPremises.str() << ")" << std::endl;
   }
-  if (rt.getKind()==Kind::EVAL_REQUIRES)
+  if (conct.getKind()==Kind::EVAL_REQUIRES)
   {
     d_defs << "  :requires (";
     bool firstRequires = true;
-    while (rt.getKind()==Kind::EVAL_REQUIRES)
+    while (conct.getKind()==Kind::EVAL_REQUIRES)
     {
       if (firstRequires)
       {
@@ -545,12 +549,16 @@ void TrimDefs::printRule(const Expr& e)
       {
         d_defs << " ";
       }
-      d_defs << "(" << rt[0] << " " << rt[1] << ")";
-      rt = rt[2];
+      d_defs << "(" << conct[0] << " " << conct[1] << ")";
+      conct = conct[2];
     }
-    while (rt.getKind()==Kind::EVAL_REQUIRES);
+    while (conct.getKind()==Kind::EVAL_REQUIRES);
   }
-  d_defs << "  :conclusion " << rt << std::endl;
+  if (conct.getKind()!=Kind::PROOF_TYPE)
+  {
+    EO_FATAL() << "Expected proof type for conclusion of " << e << ", got " << conct;
+  }
+  d_defs << "  :conclusion " << conct[0] << std::endl;
   if (d_state.isProofRuleSorry(e.getValue()))
   {
     d_defs << "  :sorry" << std::endl;
@@ -585,7 +593,7 @@ void TrimDefs::finalize()
 {
   if (!d_setDefTarget)
   {
-    EO_FATAL() << "Must set target with (declare-oracle-fun $trim_def_target <type> <definition to trim>)" << std::endl;
+    EO_FATAL() << "Must set target with (declare-oracle-fun $trim_defs_target <signature> <symbol>), where <symbol> is the name of the symbol to trim with respect to." << std::endl;
   }
   // proof rules and other definitions are stored separately.
   Expr v = d_state.getProofRule(d_defTarget);
@@ -597,60 +605,85 @@ void TrimDefs::finalize()
   {
     EO_FATAL() << "Could not find target definition \"" << d_defTarget << "\"" << std::endl;
   }
-  TrimList tlist(d_state);
-  std::vector<std::pair<Expr, Expr>> tl = tlist.getTrimList(v);
-
-  // the timestamps where literal types were declared
-  std::vector<size_t> tsLits;
-  for (std::pair<size_t, Kind> lt : d_litTypeTimestamp)
+  // get the list of literal type terms, these will be declared first.
+  std::vector<Expr> litTypeDeps;
+  for (std::pair<Kind, Expr> lt : d_litTypeRule)
   {
-    tsLits.push_back(lt.first);
+    litTypeDeps.push_back(lt.second);
   }
-  // standard sort
-  std::sort(tsLits.begin(), tsLits.end());
-  size_t tsLitsIndex = 0;
-
-  for (size_t i=0, ntl=tl.size(); i<ntl; i++)
+  std::map<Expr, bool> trimVisited;
+  TrimList tlist(d_state, d_attrDecl);
+  std::cout << "; trim-target: \"" << v << "\"" << std::endl;
+  std::stringstream cmdTgt;
+  for (size_t r=0; r<2; r++)
   {
-    Expr c = tl[i].first;
-    Expr cval = tl[i].second;
-    Assert (d_declTimestamp.find(c)!=d_declTimestamp.end());
-    size_t tsc = d_declTimestamp[c];
-    // see if we need to print a literal type rule at this point
-    while (tsLitsIndex<tsLits.size() && tsLits[tsLitsIndex]<tsc)
+    std::vector<std::pair<Expr, Expr>> tl = r==0 ? tlist.getTrimList(litTypeDeps, trimVisited) : tlist.getTrimList({v}, trimVisited);
+    std::cout << "; #trim-definitions" << (r==0 ? "-lit-types" : "") << ": " << tl.size() << std::endl;
+    for (size_t i=0, ntl=tl.size(); i<ntl; i++)
     {
-      size_t il = tsLits[tsLitsIndex];
-      Assert (d_litTypeTimestamp.find(il)!=d_litTypeTimestamp.end());
-      Kind k = d_litTypeTimestamp[il];
-      Assert (d_litTypeRule.find(k)!=d_litTypeRule.end());
-      Expr kt = d_litTypeRule[k];
-      printSetLiteralTypeRule(k, kt);
-      tsLitsIndex++;
+      Expr c = tl[i].first;
+      Expr cval = tl[i].second;
+      Kind k = c.getKind();
+      if (k==Kind::PROGRAM_CONST)
+      {
+        //printProgram(c, cval);
+        if (cval.isNull())
+        {
+          cmdTgt << "$$EO_fwd_decl " << c << "$$" << std::endl;
+        }
+        else
+        {
+          cmdTgt << "$$EO_program " << c << "$$" << std::endl;
+        }
+      }
+      else if (k==Kind::PROOF_RULE)
+      {
+        //printRule(c);
+        //cmdTgt << "$$EO_RULE_" << c << "$$" << std::endl;
+        cmdTgt << "$$EO_declare-rule " << c << "$$" << std::endl;
+      }
+      else if (k==Kind::CONST)
+      {
+        //printDeclaration(c);
+        cmdTgt << "$$EO_declare-const " << c << "$$" << std::endl;
+      }
+      else
+      {
+        EO_FATAL() << "Unknown kind: " << k;
+      }
     }
-    Kind k = c.getKind();
-    if (k==Kind::PROGRAM_CONST)
+    if (r==0)
     {
-      printProgram(c, cval);
-    }
-    else if (k==Kind::PROOF_RULE)
-    {
-      printRule(c);
-    }
-    else if (k==Kind::CONST)
-    {
-      printDeclaration(c);
-    }
-    else
-    {
-      EO_FATAL() << "Unknown kind: " << k;
+      // now print the literal type rules
+      for (Kind k : d_litTypeRuleList)
+      {
+        Assert (d_litTypeRule.find(k)!=d_litTypeRule.end());
+        Expr kt = d_litTypeRule[k];
+        printSetLiteralTypeRule(k, kt);
+        std::stringstream ss;
+        switch (k)
+        {
+          case Kind::NUMERAL: ss << "<numeral>"; break;
+          case Kind::RATIONAL: ss << "<rational>"; break;
+          case Kind::BINARY: ss << "<binary>"; break;
+          case Kind::STRING: ss << "<string>"; break;
+          case Kind::DECIMAL: ss << "<decimal>"; break;
+          case Kind::HEXADECIMAL: ss << "<hexadecimal>"; break;
+          default: EO_FATAL() << "Unknown literal type rule" << k << std::endl; break;
+        }
+        cmdTgt << "$$EO_declare-consts " << ss.str() << "$$" << std::endl;
+      }
     }
   }
-
+  std::cout << std::endl;
+  std::cout << cmdTgt.str();
+/*
   std::stringstream ssoe;
   ssoe << s_td_path << "plugins/desugar/trim_defs_gen.eo";
   std::cout << "Write trim-defs    " << ssoe.str() << std::endl;
   std::ofstream oute(ssoe.str());
   oute << d_defs.str();
+  */
 }
 
 
