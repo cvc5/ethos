@@ -31,6 +31,7 @@ Options::Options()
   d_pluginDesugar = false;
   d_pluginDesugarGenVc = false;
   d_pluginSmtMeta = false;
+  d_pluginTrimDefs = false;
 }
 
 bool Options::setOption(const std::string& key, bool val)
@@ -87,6 +88,10 @@ bool Options::setOption(const std::string& key, bool val)
   else if (key == "plugin.smt-meta")
   {
     d_pluginSmtMeta = true;
+  }
+  else if (key == "plugin.trim-defs")
+  {
+    d_pluginTrimDefs = true;
   }
   else
   {

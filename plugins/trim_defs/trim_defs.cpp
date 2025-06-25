@@ -645,6 +645,12 @@ void TrimDefs::finalize()
       EO_FATAL() << "Unknown kind: " << k;
     }
   }
+
+  std::stringstream ssoe;
+  ssoe << s_td_path << "plugins/desugar/trim_defs_gen.eo";
+  std::cout << "Write trim-defs    " << ssoe.str() << std::endl;
+  std::ofstream oute(ssoe.str());
+  oute << d_defs.str();
 }
 
 

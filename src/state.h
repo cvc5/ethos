@@ -49,6 +49,7 @@ class Options
   bool d_pluginDesugar;
   bool d_pluginDesugarGenVc;
   bool d_pluginSmtMeta;
+  bool d_pluginTrimDefs;
 };
 
 /**

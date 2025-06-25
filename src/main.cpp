@@ -14,6 +14,7 @@
 
 #include "../plugins/desugar/desugar.h"
 #include "../plugins/smt_meta/smt_meta_reduce.h"
+#include "../plugins/trim_defs/trim_defs.h"
 #include "base/check.h"
 #include "base/output.h"
 #include "parser.h"
@@ -150,6 +151,7 @@ int main( int argc, char* argv[] )
   State s(opts, stats);
   SmtMetaReduce pluginSmr(s);
   Desugar pluginDs(s);
+  TrimDefs pluginTds(s);
   Plugin* plugin = nullptr;
   if (opts.d_pluginDesugar)
   {
@@ -158,6 +160,10 @@ int main( int argc, char* argv[] )
   else if (opts.d_pluginSmtMeta)
   {
     plugin = &pluginSmr;
+  }
+  else if (opts.d_pluginTrimDefs)
+  {
+    plugin = &pluginTds;
   }
   // NOTE: initialization of plugin goes here
   if (plugin != nullptr)

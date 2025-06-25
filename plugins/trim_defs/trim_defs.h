@@ -87,7 +87,6 @@ class TrimDefs : public Plugin
   std::map<Expr, std::pair<Attr, Expr>> d_attrDecl;
   Expr d_null;
   std::stringstream d_defs;
-  std::stringstream d_eoRules;
   std::string d_defTarget;
   bool d_setDefTarget;
   /** the state */
