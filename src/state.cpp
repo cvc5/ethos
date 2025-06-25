@@ -356,6 +356,11 @@ bool State::includeFile(const std::string& s, bool isSignature, bool isReference
                   "assumption was "
                << d_decls[d_declsSizeCtx.back()] << ".";
   }
+  if (d_plugin!=nullptr)
+  {
+    Assert (!isReference);
+    d_plugin->finalizeIncludeFile(inputPath, isSignature, isReference, referenceNf);
+  }
   return true;
 }
 

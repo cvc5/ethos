@@ -23,7 +23,7 @@ struct Command
 {
   std::string d_cmdName;
   std::string d_symbolName;
-  std::unordered_set<std::string> body_symbols;
+  std::unordered_set<std::string> d_bodySyms;
   std::string full_text;
 };
 
@@ -52,7 +52,7 @@ std::string next_token(std::istream& in) {
 }
 
 // Read one full top-level s-expression from '(' to matching ')'
-std::string read_full_command(std::istream& in) {
+std::string readFullCommand(std::istream& in) {
   std::string result;
   int depth = 0;
   bool started = false;
@@ -80,7 +80,7 @@ std::string read_full_command(std::istream& in) {
 }
 
 // Parse the command name, symbol, and collect body symbols
-Command parse_command(const std::string& s_expr_text) {
+Command parseCommand(const std::string& s_expr_text) {
   Command cmd;
   cmd.full_text = s_expr_text;
 
@@ -100,7 +100,7 @@ Command parse_command(const std::string& s_expr_text) {
       if (depth == 0) break;
       --depth;
     } else {
-      cmd.body_symbols.insert(tok);
+      cmd.d_bodySyms.insert(tok);
     }
   }
 
@@ -110,16 +110,49 @@ Command parse_command(const std::string& s_expr_text) {
 // Main parser from istream
 void TrimDefs::parseCommands(std::istream& in)
 {
-  std::vector<Command> commands;
+  size_t idCounter = 0;
+  std::map<std::string, size_t> symToId;
+  std::map<std::string, size_t>::iterator its;
+  std::vector<std::string> commands;
+  std::map<size_t, std::unordered_set<size_t>> symCommands;
+  std::map<size_t, std::unordered_set<size_t>> cmdSyms;
   while (in)
   {
     std::string tok = next_token(in);
-    if (tok == "(") {
+    if (tok == "(")
+    {
       in.putback('(');
-      std::string full = read_full_command(in);
-      Command cmd = parse_command(full);
+      std::string full = readFullCommand(in);
+      Command cmd = parseCommand(full);
+      if (cmd.d_cmdName=="include")
+      {
+        continue;
+      }
       std::cout << "Command: " << cmd.d_cmdName << " " << cmd.d_symbolName << std::endl;
-      commands.push_back(std::move(cmd));
+      its = symToId.find(cmd.d_symbolName);
+      size_t id;
+      if (its==symToId.end())
+      {
+        ++idCounter;
+        symToId[cmd.d_symbolName] = idCounter;
+        id = idCounter;
+      }
+      else
+      {
+        id = its->second;
+      }
+      size_t cid = commands.size();
+      symCommands[id].insert(cid);
+      commands.push_back(cmd.full_text);
+      std::unordered_set<size_t>& csyms = cmdSyms[cid];
+      for (const std::string& s : cmd.d_bodySyms)
+      {
+        its = symToId.find(s);
+        if (its!=symToId.end() && its->second!=id) // no self
+        {
+          csyms.insert(its->second);
+        }
+      }
     }
   }
 }
@@ -133,7 +166,7 @@ TrimDefs::TrimDefs(State& s) : d_state(s)
 TrimDefs::~TrimDefs() {}
 
 
-void TrimDefs::includeFile(const Filepath& s, bool isSignature, bool isReference, const Expr& referenceNf)
+void TrimDefs::finalizeIncludeFile(const Filepath& s, bool isSignature, bool isReference, const Expr& referenceNf)
 {
   if (!isSignature)
   {

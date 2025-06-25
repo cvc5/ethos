@@ -31,7 +31,7 @@ class TrimDefs : public Plugin
   /**
    * Include file, if not already done so.
    */
-  void includeFile(const Filepath& s, bool isSignature, bool isReference, const Expr& referenceNf);
+  void finalizeIncludeFile(const Filepath& s, bool isSignature, bool isReference, const Expr& referenceNf);
 private:
   /** the state */
   State& d_state;

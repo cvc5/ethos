@@ -57,6 +57,7 @@ public:
    * @param referenceNf The method for normalizing the reference file, if one exists.
    */
   virtual void includeFile(const Filepath& s, bool isSignature, bool isReference, const Expr& referenceNf) {}
+  virtual void finalizeIncludeFile(const Filepath& s, bool isSignature, bool isReference, const Expr& referenceNf) {}
   /**
    * Set type rule for literal kind k to t. This is called when the
    * command declare-consts is executed.
