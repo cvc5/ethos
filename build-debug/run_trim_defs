@@ -1,17 +1,17 @@
 #!/bin/bash
 
 TMP_FILE=temp_trim.eo
-TEMPLATE_FILE=../plugins/trim_defs/trim_template.eo
-OUT_FILE=../plugins/trim_defs/trim.eo
 
-echo "**** Compile ethos"
-make -j4
+#echo "**** Compile ethos"
+#make -j4
 
 echo "**** Write EO to $TMP_FILE"
 # the name of a EO signature
 INPUT=$1
 # should be the name of a constant or proof rule in $INPUT
 TARGET=$2
+# output file
+OUT_FILE=../plugins/trim_defs/trim.eo
 
 cat << EOF > $TMP_FILE
 ; include this directory
@@ -25,5 +25,7 @@ echo "Write trim to ../plugins/trim_defs/trim.eo"
 # remove "correct" and echo
 sed -i '1d' "$OUT_FILE"
 
-echo "**** Verify it parses"
-./src/ethos $OUT_FILE
+cat $OUT_FILE
+
+#echo "**** Verify it parses"
+#./src/ethos $OUT_FILE

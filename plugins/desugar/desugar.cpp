@@ -39,7 +39,7 @@ Desugar::Desugar(State& s) : d_state(s), d_tc(s.getTypeChecker())
   d_genVcs = d_state.getOptions().d_pluginDesugarGenVc;
   if (d_genVcs)
   {
-    d_eoRules << ";; proof rule specifications" << std::endl << std::endl;
+    d_eoRules << ";; verification conditions" << std::endl << std::endl;
   }
 }
 
@@ -876,23 +876,21 @@ void Desugar::finalize()
   replace(finalEo, "$EO_DT_CONSTRUCTORS_CASES$", d_eoDtCons.str());
   replace(finalEo, "$EO_DT_SELECTORS_CASES$", d_eoDtSel.str());
   replace(finalEo, "$EO_NGROUND_DT_DEFS$", d_eoDtNGround.str());
-
+  if (d_genVcs)
+  {
+    replace(finalEo, "$EO_VC$", d_eoRules.str());
+  }
+  else
+  {
+    replace(finalEo, "$EO_VC$", "");
+  }
   std::stringstream ssoe;
   ssoe << s_ds_path << "plugins/desugar/eo_desugar_gen.eo";
   std::cout << "Write core-defs    " << ssoe.str() << std::endl;
   std::ofstream oute(ssoe.str());
   oute << finalEo;
 
-  if (d_genVcs)
-  {
-    std::stringstream ssov;
-    ssov << s_ds_path << "plugins/desugar/eo_desugar_vcs.eo";
-    std::cout << "Write verify-conds " << ssov.str() << std::endl;
-    std::ofstream outv(ssov.str());
-    outv << "(include \"eo_desugar_gen.eo\")" << std::endl << std::endl;
-    outv << d_eoRules.str();
-    outv << std::endl;
-  }
+
 }
 
 Expr Desugar::mkSanitize(const Expr& t)
