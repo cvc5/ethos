@@ -5,7 +5,7 @@ TMP_FILE=temp_trim.eo
 #echo "**** Compile ethos"
 #make -j4
 
-echo "**** Write EO to $TMP_FILE"
+echo "**** run_trim_defs: Write EO to $TMP_FILE"
 # the name of a EO signature
 INPUT=$1
 # should be the name of a constant or proof rule in $INPUT
@@ -19,7 +19,7 @@ cat << EOF > $TMP_FILE
 (echo "trim-defs $TARGET")
 EOF
 
-echo "**** Run ethos + trim-defs on $TMP_FILE"
+echo "**** run_trim_defs: Run ethos + trim-defs on $TMP_FILE"
 echo "Write trim to ../plugins/trim_defs/trim.eo"
 ./src/ethos --plugin.trim-defs $TMP_FILE > $OUT_FILE
 # remove "correct" and echo
@@ -29,3 +29,5 @@ cat $OUT_FILE
 
 #echo "**** Verify it parses"
 #./src/ethos $OUT_FILE
+
+#rm -f $TMP_FILE

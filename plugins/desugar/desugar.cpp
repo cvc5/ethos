@@ -39,7 +39,7 @@ Desugar::Desugar(State& s) : d_state(s), d_tc(s.getTypeChecker())
   d_genVcs = d_state.getOptions().d_pluginDesugarGenVc;
   if (d_genVcs)
   {
-    d_eoRules << ";; verification conditions" << std::endl << std::endl;
+    d_eoVc << ";; verification conditions" << std::endl << std::endl;
   }
 }
 
@@ -624,21 +624,21 @@ void Desugar::finalizeRule(const Expr& e)
   Expr rt = mkSanitize(rto);
   // std::cout << "...santized to " << rt << std::endl;
 
-  d_eoRules << "; rule: " << e << std::endl;
+  d_eoVc << "; rule: " << e << std::endl;
   if (rt.getKind() != Kind::FUNCTION_TYPE)
   {
     // ground rule is just a formula definition
     Assert(rt.getKind() == Kind::PROOF_TYPE);
     Expr rrt = rt[0];
-    d_eoRules << "(define $eor_" << e << " () " << rrt << ")" << std::endl
+    d_eoVc << "(define $eor_" << e << " () " << rrt << ")" << std::endl
               << std::endl;
     if (!d_state.isProofRuleSorry(e.getValue()))
     {
-      d_eoRules << "; verification: " << e << std::endl;
-      d_eoRules << "(define $eovc_" << e;
-      d_eoRules << " () (eo::requires ($eo_model_sat $eor_" << e
+      d_eoVc << "; verification: " << e << std::endl;
+      d_eoVc << "(define $eovc_" << e;
+      d_eoVc << " () (eo::requires ($eo_model_sat $eor_" << e
                 << ") false true))" << std::endl;
-      d_eoRules << std::endl;
+      d_eoVc << std::endl;
     }
     return;
   }
@@ -727,50 +727,50 @@ void Desugar::finalizeRule(const Expr& e)
   rrt = rrt[0];
   rrt = d_state.mkRequires(reqs, rrt);
   // just use the same parameter list
-  d_eoRules << "(program $eorx_" << e << " (" << plout.str() << ")"
+  d_eoVc << "(program $eorx_" << e << " (" << plout.str() << ")"
             << std::endl;
-  d_eoRules << "  :signature (" << tcrSig.str() << ") Bool" << std::endl;
-  d_eoRules << "  (" << std::endl;
-  d_eoRules << "  (($eorx_" << e << tcrBody.str() << ") " << rrt << ")"
+  d_eoVc << "  :signature (" << tcrSig.str() << ") Bool" << std::endl;
+  d_eoVc << "  (" << std::endl;
+  d_eoVc << "  (($eorx_" << e << tcrBody.str() << ") " << rrt << ")"
             << std::endl;
-  d_eoRules << "  )" << std::endl;
-  d_eoRules << ")" << std::endl;
-  d_eoRules << "(program $eor_" << e << " (" << plout.str() << ")" << std::endl;
-  d_eoRules << "  :signature (" << typeList.str() << ")";
-  d_eoRules << " Bool" << std::endl;
-  d_eoRules << "  (" << std::endl;
-  d_eoRules << "  (($eor_" << e << argList.str() << ") ($eorx_" << e
+  d_eoVc << "  )" << std::endl;
+  d_eoVc << ")" << std::endl;
+  d_eoVc << "(program $eor_" << e << " (" << plout.str() << ")" << std::endl;
+  d_eoVc << "  :signature (" << typeList.str() << ")";
+  d_eoVc << " Bool" << std::endl;
+  d_eoVc << "  (" << std::endl;
+  d_eoVc << "  (($eor_" << e << argList.str() << ") ($eorx_" << e
             << tcrCall.str() << "))" << std::endl;
-  d_eoRules << "  )" << std::endl;
-  d_eoRules << ")" << std::endl;
+  d_eoVc << "  )" << std::endl;
+  d_eoVc << ")" << std::endl;
   // compile the verification condition for the soundness of this rule
   if (!d_state.isProofRuleSorry(e.getValue()))
   {
-    d_eoRules << "; verification: " << e << std::endl;
-    d_eoRules << "(program $eovc_" << e << " (" << plout.str() << ")"
+    d_eoVc << "; verification: " << e << std::endl;
+    d_eoVc << "(program $eovc_" << e << " (" << plout.str() << ")"
               << std::endl;
-    d_eoRules << "  :signature (" << typeList.str() << ")";
-    d_eoRules << " Bool" << std::endl;
-    d_eoRules << "  (" << std::endl;
-    d_eoRules << "  (($eovc_" << e << argList.str() << ")" << std::endl;
+    d_eoVc << "  :signature (" << typeList.str() << ")";
+    d_eoVc << " Bool" << std::endl;
+    d_eoVc << "  (" << std::endl;
+    d_eoVc << "  (($eovc_" << e << argList.str() << ")" << std::endl;
     std::stringstream ssvce;
     for (size_t i = 0, nargs = finalArgs.size(); i < nargs; i++)
     {
       if (argIsProof[i])
       {
-        d_eoRules << "     (eo::requires ($eo_model_sat " << finalArgs[i]
+        d_eoVc << "     (eo::requires ($eo_model_sat " << finalArgs[i]
                   << ") true" << std::endl;
         ssvce << ")";
       }
     }
-    d_eoRules << "     (eo::requires ($eo_model_sat ($eor_" << e
+    d_eoVc << "     (eo::requires ($eo_model_sat ($eor_" << e
               << argList.str() << ")) false" << std::endl;
-    d_eoRules << "       true))" << ssvce.str() << std::endl;
-    d_eoRules << "  )" << std::endl;
-    d_eoRules << ")" << std::endl;
-    d_eoRules << std::endl;
+    d_eoVc << "       true))" << ssvce.str() << std::endl;
+    d_eoVc << "  )" << std::endl;
+    d_eoVc << ")" << std::endl;
+    d_eoVc << std::endl;
   }
-  d_eoRules << std::endl;
+  d_eoVc << std::endl;
 }
 
 void Desugar::finalizeDatatype(const Expr& e)
@@ -798,6 +798,20 @@ void Desugar::finalizeDatatype(const Expr& e)
 
 void Desugar::finalize()
 {
+  if (d_genVcs)
+  {
+    /*
+    std::stringstream ssi;
+    ssi << s_ds_path << "plugins/desugar/eo_model.eo";
+    std::ifstream in(ssi.str());
+    std::ostringstream ss;
+    ss << in.rdbuf();
+    std::string finalModel = ss.str();
+    d_eoVc << "; SMT-LIB model specification" << std::endl;
+    d_eoVc << std::endl;
+    d_eoVc << finalModel;
+    */
+  }
   for (std::pair<Expr, Kind>& d : d_declSeen)
   {
     Kind k = d.second;
@@ -878,7 +892,7 @@ void Desugar::finalize()
   replace(finalEo, "$EO_NGROUND_DT_DEFS$", d_eoDtNGround.str());
   if (d_genVcs)
   {
-    replace(finalEo, "$EO_VC$", d_eoRules.str());
+    replace(finalEo, "$EO_VC$", d_eoVc.str());
   }
   else
   {

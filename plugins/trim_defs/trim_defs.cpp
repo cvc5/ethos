@@ -169,7 +169,8 @@ void TrimDefs::parseCommands(std::istream& in)
       size_t cid = d_commands.size();
       d_symCommands[id].insert(cid);
       // declare-consts must always be visited
-      if (cmd.d_cmdName=="declare-consts")
+      // $eo_test is a builtin way to ensure tests are included
+      if (cmd.d_cmdName=="declare-consts" || cmd.d_symbolName=="$eo_test")
       {
         d_toVisit.push_back(id);
       }

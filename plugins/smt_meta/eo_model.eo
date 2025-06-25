@@ -1,4 +1,3 @@
-(include "../../plugins/desugar/eo_desugar_gen.eo")
 
 ; This file is expected to define function $eo_model_sat, which defines whether a (Boolean) term is satisfied by a model.
 
@@ -114,7 +113,5 @@
   )
 )
 
-
-;;; the verification condition
-
-
+; used to ensure dependencies are set
+(define $eo_test ((F Bool)) ($eo_model_sat F))

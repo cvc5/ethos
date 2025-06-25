@@ -61,6 +61,9 @@ class SmtMetaReduce : public Plugin
   /** Finalize */
   void finalize() override;
 
+                            /**
+                              */
+                            bool echo(const std::string& msg) override;
  private:
   void printConjunction(size_t n,
                         const std::string& conj,
@@ -122,6 +125,7 @@ class SmtMetaReduce : public Plugin
   std::stringstream d_rules;
   std::stringstream d_eoTypeofLit;
   std::stringstream d_eoTypeofEnd;
+  std::stringstream d_smtVc;
   bool d_inInitialize;
 };
 

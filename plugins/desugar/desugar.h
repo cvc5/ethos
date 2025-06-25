@@ -105,7 +105,7 @@ class Desugar : public Plugin
   std::stringstream d_eoDtNGround;
   std::stringstream d_eoDtCons;
   std::stringstream d_eoDtSel;
-  std::stringstream d_eoRules;
+  std::stringstream d_eoVc;
 
   /** term we have pattern matched on for typeof */
   std::vector<Expr> d_typeOfVars;

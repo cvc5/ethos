@@ -694,6 +694,7 @@ void SmtMetaReduce::finalize()
   replace(finalSm, "$TYPEOF_LITERALS$", d_eoTypeofLit.str());
   replace(finalSm, "$TYPEOF_END$", d_eoTypeofEnd.str());
   replace(finalSm, "$DEFS$", d_defs.str());
+  replace(finalSm, "$SMT_VC$", d_smtVc.str());
   // replace(finalSm, "$RULES$", d_rules.str());
 
   // std::cout << ";;; Final: " << std::endl;
@@ -732,6 +733,19 @@ bool SmtMetaReduce::hasSubterm(const Expr& t, const Expr& s)
     }
   }
   return false;
+}
+
+bool SmtMetaReduce::echo(const std::string& msg)
+{
+  if (msg.compare(0, 9, "smt-meta ")==0)
+  {
+    std::string eosc = msg.substr(9);
+    d_smtVc << ";;;; final verification condition for " << eosc << std::endl;
+    //d_smtVc << "(assert (= " << eosc
+    //std::cout << "...set target" << std::endl;
+    return false;
+  }
+  return true;
 }
 
 }  // namespace ethos

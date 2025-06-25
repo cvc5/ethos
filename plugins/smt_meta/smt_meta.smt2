@@ -344,4 +344,7 @@ $TYPEOF_LITERALS$
 $TYPEOF_END$
 ))
 
+
+$SMT_VC$
+
 (check-sat)
