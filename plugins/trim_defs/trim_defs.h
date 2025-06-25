@@ -48,6 +48,8 @@ class TrimDefs : public Plugin
  public:
   TrimDefs(State& s);
   ~TrimDefs();
+  void pushScope() override;
+  void popScope() override;
   /** Set type rule for literal kind k to t */
   void setLiteralTypeRule(Kind k, const Expr& t) override;
   /** */
@@ -80,12 +82,14 @@ class TrimDefs : public Plugin
   void printDatatype(const Expr& d);
   std::map<Kind, Expr> d_litTypeRule;
   std::vector<Kind> d_litTypeRuleList;
+  std::set<Expr> d_macroPlaceholders;
   /** Attributes marked */
   std::map<Expr, std::pair<Attr, Expr>> d_attrDecl;
   Expr d_null;
   std::stringstream d_defs;
   std::string d_defTarget;
   bool d_setDefTarget;
+  size_t d_nscopes;
   /** the state */
   State& d_state;
   /** the type checker */

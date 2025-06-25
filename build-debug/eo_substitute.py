@@ -2,6 +2,35 @@ import re
 import os
 import sys
 
+def trim_program_to_signature(expr):
+    """
+    Trim a (program X ...) s-expression to only include the signature.
+    Assumes the entire expression is well-parenthesized.
+    """
+    lines = expr.strip().splitlines()
+    result_lines = []
+    in_body = False
+    paren_depth = 0
+
+    for line in lines:
+        stripped = line.strip()
+        if not in_body:
+            result_lines.append(line)
+            if ":signature" in line:
+                # start counting parens after :signature
+                paren_depth += line.count('(') - line.count(')')
+                in_body = True if paren_depth > 0 else False
+        elif in_body:
+            paren_depth += line.count('(') - line.count(')')
+            result_lines.append(line)
+            if paren_depth <= 0:
+                break
+
+    # Close with a single ")"
+    if not result_lines[-1].strip().endswith(")"):
+        result_lines.append(")")
+    return "\n".join(result_lines)
+
 def read_eunoia_file(path, seen=None):
     if seen is None:
         seen = set()
@@ -50,25 +79,35 @@ def read_eunoia_file(path, seen=None):
 def find_matching_expr(exprs, command_template):
     print(f"🔍 Looking for match for: $$EO_{command_template}$$")
 
-    # Handle: declare-const X (matches both const and type variants)
+    # Handle: fwd-decl X → strip the body
+    if command_template.startswith("fwd_decl "):
+        name = re.escape(command_template[len("fwd_decl "):])
+        pat = re.compile(r'^\(\s*program\s+' + name + r'(\s|\))', re.DOTALL)
+        for expr in exprs:
+            if pat.match(expr) and ":signature" in expr:
+                return trim_program_to_signature(expr)
+        return None
+
+    # Handle: program X → full s-expression
+    if command_template.startswith("program "):
+        name = re.escape(command_template[len("program "):])
+        pat = re.compile(r'^\(\s*program\s+' + name + r'(\s|\))', re.DOTALL)
+        for expr in exprs:
+            if pat.match(expr):
+                return expr
+        return None
+
+    # Existing: declare-const / declare-type
     if command_template.startswith("declare-const "):
         name = re.escape(command_template[len("declare-const "):])
         patterns = [
             re.compile(r'^\(\s*declare-const\s+' + name + r'(\s|\))'),
             re.compile(r'^\(\s*declare-parameterized-const\s+' + name + r'(\s|\))'),
             re.compile(r'^\(\s*declare-type\s+' + name + r'(\s|\))'),
+            re.compile(r'^\(\s*declare-parameterized-type\s+' + name + r'(\s|\))'),
         ]
         for expr in exprs:
             if any(pat.match(expr) for pat in patterns):
-                return expr
-        return None
-
-    # Handle: fwd-decl X
-    if command_template.startswith("fwd-decl "):
-        name = re.escape(command_template[len("fwd-decl "):])
-        pat = re.compile(r'^\(\s*program\s+' + name + r'(\s|\)).*:signature', re.DOTALL)
-        for expr in exprs:
-            if pat.search(expr):
                 return expr
         return None
 

@@ -33,7 +33,7 @@ std::vector<std::pair<Expr, Expr>> TrimList::getTrimList(
 std::vector<std::pair<Expr, Expr>> TrimList::getTrimList(
     const std::vector<Expr>& es, std::map<Expr, bool>& visited)
 {
-  // std::cout << "get trim list " << es << std::endl;
+  //std::cout << "get trim list " << es << std::endl;
   std::vector<std::pair<Expr, Expr>> tlist;
   std::map<Expr, std::pair<Attr, Expr>>::const_iterator ita;
   std::set<Expr> fwdDecl;
@@ -45,64 +45,49 @@ std::vector<std::pair<Expr, Expr>> TrimList::getTrimList(
   do
   {
     cur = toVisit.back();
-    // std::cout << "process " << cur << " " << cur.getKind() << std::endl;
+    //std::cout << "process " << cur << " " << cur.getKind() << std::endl;
     it = visited.find(cur);
     if (it == visited.end())
     {
       Kind k = cur.getKind();
+      bool traversing = true;
       if (k == Kind::CONST || k == Kind::PROGRAM_CONST || k == Kind::PROOF_RULE)
       {
-        visited[cur] = false;
         // we track the definitions in its type
         Expr tc = tcheck.getType(cur);
         toVisit.push_back(tc);
-        if (k == Kind::PROGRAM_CONST)
+      }
+      else if (k!=Kind::PROGRAM)
+      {
+        traversing = false;
+      }
+      // it also may have an attribute, which needs to be printed as well
+      // this is intentionally handled seperately from programs
+      ita = d_attrDecl.find(cur);
+      if (ita != d_attrDecl.end() && !ita->second.second.isNull())
+      {
+        if (ita->second.first==Attr::NONE)
         {
-          Expr pc = d_state.getProgram(cur.getValue());
-          if (!pc.isNull())
-          {
-            it = visited.find(pc);
-            if (it != visited.end() && !it->second)
-            {
-              // if we are already visiting this program, it must be a forward
-              // declaration
-              toVisit.pop_back();
-              // avoid forward declaring more than once with the fwdDecl set
-              if (fwdDecl.find(cur) == fwdDecl.end())
-              {
-                fwdDecl.insert(cur);
-                tlist.emplace_back(cur, d_null);
-              }
-            }
-            else
-            {
-              // otherwise, we track the definitions in its body
-              toVisit.push_back(pc);
-            }
-          }
+          // insert the definition before this on the stack
+          toVisit.pop_back();
+          toVisit.push_back(ita->second.second);
+          toVisit.push_back(cur);
         }
         else
         {
-          // it also may have an attribute, which needs to be printed as well
-          // this is intentionally handled seperately from programs
-          ita = d_attrDecl.find(cur);
-          if (ita != d_attrDecl.end() && !ita->second.second.isNull())
-          {
-            toVisit.push_back(ita->second.second);
-          }
+          toVisit.push_back(ita->second.second);
         }
       }
-      else
+      // an ordinary application, we are done with this node
+      visited[cur] = !traversing;
+      if (!traversing)
       {
-        // an ordinary application
-        // we are done with this node
-        visited[cur] = true;
         toVisit.pop_back();
-        // visit the children
-        for (size_t i = 0, nc = cur.getNumChildren(); i < nc; i++)
-        {
-          toVisit.push_back(cur[i]);
-        }
+      }
+      // visit the children
+      for (size_t i = 0, nc = cur.getNumChildren(); i < nc; i++)
+      {
+        toVisit.push_back(cur[i]);
       }
       continue;
     }
@@ -112,10 +97,31 @@ std::vector<std::pair<Expr, Expr>> TrimList::getTrimList(
       visited[cur] = true;
       // store that this is the official definition
       Expr cval;
-      if (cur.getKind() == Kind::PROGRAM_CONST)
+      Kind ck = cur.getKind();
+      if (ck == Kind::PROGRAM)
+      {
+        continue;
+      }
+      if (ck == Kind::PROGRAM_CONST)
       {
         cval = d_state.getProgram(cur.getValue());
+        if (!cval.isNull())
+        {
+          it = visited.find(cval);
+          if (it != visited.end() && !it->second)
+          {
+            // avoid forward declaring more than once with the fwdDecl set
+            if (fwdDecl.find(cur) == fwdDecl.end())
+            {
+              fwdDecl.insert(cur);
+              tlist.emplace_back(cur, d_null);
+              //std::cout << "*** add to tlist (fwd): " << cur << " " << cval << std::endl;
+              continue;
+            }
+          }
+        }
       }
+      //std::cout << "*** add to tlist: " << cur << " " << cval << std::endl;
       tlist.emplace_back(cur, cval);
     }
   } while (!toVisit.empty());
@@ -128,6 +134,7 @@ std::string s_td_path = "/home/andrew/ethos/";
 TrimDefs::TrimDefs(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {
   d_setDefTarget = false;
+  d_nscopes = 0;
 }
 
 TrimDefs::~TrimDefs() {}
@@ -138,7 +145,26 @@ void TrimDefs::setLiteralTypeRule(Kind k, const Expr& t)
   d_litTypeRuleList.push_back(k);
 }
 
-void TrimDefs::bind(const std::string& name, const Expr& e) {}
+void TrimDefs::pushScope()
+{
+  d_nscopes++;
+}
+void TrimDefs::popScope()
+{
+  Assert (d_nscopes>0);
+  d_nscopes--;
+}
+void TrimDefs::bind(const std::string& name, const Expr& e)
+{
+  if (d_nscopes==0 && e.getNumChildren()>0 && e.isGround())
+  {
+    //std::cout << "0-ary macro: " << name << " " << e << std::endl;
+    // a macro lambda: remember its name
+    Expr tmp = d_state.mkSymbol(Kind::CONST, name, d_state.mkAny());
+    d_macroPlaceholders.insert(tmp);
+    d_attrDecl[e[1]] = std::pair<Attr, Expr>(Attr::NONE, tmp);
+  }
+}
 
 void TrimDefs::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
 {
@@ -654,7 +680,14 @@ void TrimDefs::finalize()
       else if (k == Kind::CONST)
       {
         // printDeclaration(c);
-        cmdTgt << "$$EO_declare-const " << c << "$$" << std::endl;
+        if (d_macroPlaceholders.find(c)!=d_macroPlaceholders.end())
+        {
+          cmdTgt << "$$EO_define " << c << "$$" << std::endl;
+        }
+        else
+        {
+          cmdTgt << "$$EO_declare-const " << c << "$$" << std::endl;
+        }
       }
       else
       {
