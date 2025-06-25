@@ -287,7 +287,7 @@ bool CmdParser::parseNextCommand()
     case Token::DECLARE_DATATYPE:
     case Token::DECLARE_DATATYPES:
     {
-      bool isMulti = (tok==Token::DECLARE_DATATYPES);
+      bool isMulti = (tok == Token::DECLARE_DATATYPES);
       std::vector<std::string> dnames;
       std::vector<size_t> arities;
       std::map<const ExprValue*, std::vector<Expr>> dts;

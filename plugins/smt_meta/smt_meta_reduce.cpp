@@ -17,7 +17,7 @@
 
 namespace ethos {
 
-//std::string s_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
+// std::string s_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
 std::string s_path = "/home/andrew/ethos/";
 
 SmtMetaReduce::SmtMetaReduce(State& s) : d_state(s), d_tc(s.getTypeChecker())
@@ -425,7 +425,8 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           }
           else
           {
-            EO_FATAL() << "Unhandled kind " << ck << " " <<  cur.first << std::endl;
+            EO_FATAL() << "Unhandled kind " << ck << " " << cur.first
+                       << std::endl;
           }
           visit.back().second++;
           visit.emplace_back(cur.first[0], 0);

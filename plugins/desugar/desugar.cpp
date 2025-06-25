@@ -17,7 +17,7 @@
 
 namespace ethos {
 
-//std::string s_ds_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
+// std::string s_ds_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
 std::string s_ds_path = "/home/andrew/ethos/";
 
 Desugar::Desugar(State& s) : d_state(s), d_tc(s.getTypeChecker())
@@ -25,13 +25,16 @@ Desugar::Desugar(State& s) : d_state(s), d_tc(s.getTypeChecker())
   d_any = d_state.mkSymbol(Kind::PARAM, "Any", d_state.mkType());
   d_listNil = s.mkListNil();
   Expr lnt = d_tc.getType(d_listNil);
-  d_overloadSanVisited[d_listNil] = d_state.mkSymbol(Kind::CONST, "$eo_List_nil", lnt);
+  d_overloadSanVisited[d_listNil] =
+      d_state.mkSymbol(Kind::CONST, "$eo_List_nil", lnt);
   d_listCons = s.mkListCons();
   Expr lct = d_tc.getType(d_listCons);
-  d_overloadSanVisited[d_listCons] = d_state.mkSymbol(Kind::CONST, "$eo_List_cons", lct);
+  d_overloadSanVisited[d_listCons] =
+      d_state.mkSymbol(Kind::CONST, "$eo_List_cons", lct);
   d_listType = s.mkListType();
   Expr lt = d_tc.getType(d_listType);
-  d_overloadSanVisited[d_listType] = d_state.mkSymbol(Kind::CONST, "$eo_List", lt);
+  d_overloadSanVisited[d_listType] =
+      d_state.mkSymbol(Kind::CONST, "$eo_List", lt);
   d_typeOfVarCount = 0;
   d_genVcs = d_state.getOptions().d_pluginDesugarGenVc;
   if (d_genVcs)
@@ -255,7 +258,8 @@ void Desugar::finalizeDeclaration(const Expr& e)
           vars.push_back(v);
           printParamList(vars, d_defs, params, true, visited, firstParam);
         }
-        else if ((cattr == Attr::AMB || cattr == Attr::AMB_DATATYPE_CONSTRUCTOR) && i == 0)
+        else if ((cattr == Attr::AMB || cattr == Attr::AMB_DATATYPE_CONSTRUCTOR)
+                 && i == 0)
         {
           // print the parameters; these will lead to a definition that is
           // ambiguous again.
@@ -333,7 +337,7 @@ void Desugar::finalizeDeclaration(const Expr& e)
   ct = cto;
   d_eoTypeof << "  ; type-rule: " << e << std::endl;
   // good for debugging
-  //d_eoTypeof << "  ; type is " << ct << std::endl;
+  // d_eoTypeof << "  ; type is " << ct << std::endl;
   if (!ct.isGround())
   {
     Assert(ct.getKind() == Kind::FUNCTION_TYPE)
@@ -611,7 +615,7 @@ void Desugar::finalizeDefinition(const std::string& name, const Expr& t)
 
 void Desugar::finalizeRule(const Expr& e)
 {
-  //std::cout << "Finalize rule " << e << std::endl;
+  // std::cout << "Finalize rule " << e << std::endl;
   Expr r = e;
   Expr rto = d_tc.getType(r);
   // std::cout << "Finalize " << r << std::endl;
@@ -632,7 +636,8 @@ void Desugar::finalizeRule(const Expr& e)
     {
       d_eoRules << "; verification: " << e << std::endl;
       d_eoRules << "(define $eovc_" << e;
-      d_eoRules << " () (eo::requires ($eo_model_sat $eor_" << e << ") false true))" << std::endl;
+      d_eoRules << " () (eo::requires ($eo_model_sat $eor_" << e
+                << ") false true))" << std::endl;
       d_eoRules << std::endl;
     }
     return;
@@ -877,7 +882,7 @@ void Desugar::finalize()
   std::cout << "Write core-defs    " << ssoe.str() << std::endl;
   std::ofstream oute(ssoe.str());
   oute << finalEo;
-    
+
   if (d_genVcs)
   {
     std::stringstream ssov;

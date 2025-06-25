@@ -26,11 +26,13 @@ class TypeChecker;
 
 class TrimList
 {
-public:
+ public:
   TrimList(State& s, const std::map<Expr, std::pair<Attr, Expr>>& attrDecl);
   std::vector<std::pair<Expr, Expr>> getTrimList(const std::vector<Expr>& es);
-  std::vector<std::pair<Expr, Expr>> getTrimList(const std::vector<Expr>& es, std::map<Expr, bool>& visited);
-private:
+  std::vector<std::pair<Expr, Expr>> getTrimList(const std::vector<Expr>& es,
+                                                 std::map<Expr, bool>& visited);
+
+ private:
   Expr d_null;
   State& d_state;
   /** Attributes marked */
