@@ -9,12 +9,13 @@
 
 #include "trim_defs.h"
 
+#include <cctype>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <unordered_set>
 #include <vector>
-#include <cctype>
+
 #include "input.h"
 
 namespace ethos {
@@ -28,23 +29,34 @@ struct Command
 };
 
 // Read one token, skipping whitespace
-std::string nextToken(std::istream& in) {
+std::string nextToken(std::istream& in)
+{
   std::string tok;
   char c;
-  while (in.get(c)) {
-    if (c == ';') {
+  while (in.get(c))
+  {
+    if (c == ';')
+    {
       // Skip to end of line
-      while (in.get(c) && c != '\n');
+      while (in.get(c) && c != '\n')
+        ;
       continue;
     }
-    if (std::isspace(c)) {
+    if (std::isspace(c))
+    {
       if (!tok.empty()) break;
       continue;
-    } else if (c == '(' || c == ')') {
-      if (tok.empty()) tok += c;
-      else in.putback(c);
+    }
+    else if (c == '(' || c == ')')
+    {
+      if (tok.empty())
+        tok += c;
+      else
+        in.putback(c);
       break;
-    } else {
+    }
+    else
+    {
       tok += c;
     }
   }
@@ -52,54 +64,68 @@ std::string nextToken(std::istream& in) {
 }
 
 // Read one full top-level s-expression from '(' to matching ')'
-std::string readFullCommand(std::istream& in) {
+std::string readFullCommand(std::istream& in)
+{
   std::string result;
   int depth = 0;
   bool started = false;
   char c;
 
-  while (in.get(c)) {
-    if (c == ';') {
+  while (in.get(c))
+  {
+    if (c == ';')
+    {
       // skip comment to newline
-      while (in.get(c) && c != '\n') ;
+      while (in.get(c) && c != '\n')
+        ;
       result += '\n';
       continue;
     }
     result += c;
-    if (c == '(') {
+    if (c == '(')
+    {
       depth++;
       started = true;
-    } else if (c == ')') {
+    }
+    else if (c == ')')
+    {
       depth--;
       if (depth == 0 && started) break;
     }
   }
 
-  Assert (depth == 0);
+  Assert(depth == 0);
   return result;
 }
 
 // Parse the command name, symbol, and collect body symbols
-Command parseCommand(const std::string& s_expr_text) {
+Command parseCommand(const std::string& s_expr_text)
+{
   Command cmd;
   cmd.d_fullText = s_expr_text;
 
   std::istringstream in(s_expr_text);
-  Assert (nextToken(in) == "(");
+  Assert(nextToken(in) == "(");
 
   cmd.d_cmdName = nextToken(in);
   cmd.d_symbolName = nextToken(in);
 
   int depth = 0;
-  while (true) {
+  while (true)
+  {
     std::string tok = nextToken(in);
     if (tok.empty()) break;
-    if (tok == "(") {
+    if (tok == "(")
+    {
       ++depth;
-    } else if (tok == ")") {
+    }
+    else if (tok == ")")
+    {
       if (depth == 0) break;
       --depth;
-    } else {
+    }
+    else
+    {
       cmd.d_bodySyms.insert(tok);
     }
   }
@@ -124,14 +150,15 @@ void TrimDefs::parseCommands(std::istream& in)
       in.putback('(');
       std::string full = readFullCommand(in);
       Command cmd = parseCommand(full);
-      if (cmd.d_cmdName=="include")
+      if (cmd.d_cmdName == "include")
       {
         continue;
       }
-      std::cout << "Command: " << cmd.d_cmdName << " " << cmd.d_symbolName << std::endl;
+      std::cout << "Command: " << cmd.d_cmdName << " " << cmd.d_symbolName
+                << std::endl;
       its = symToId.find(cmd.d_symbolName);
       size_t id;
-      if (its==symToId.end())
+      if (its == symToId.end())
       {
         ++idCounter;
         symToId[cmd.d_symbolName] = idCounter;
@@ -148,7 +175,7 @@ void TrimDefs::parseCommands(std::istream& in)
       for (const std::string& s : cmd.d_bodySyms)
       {
         its = symToId.find(s);
-        if (its!=symToId.end() && its->second!=id) // no self
+        if (its != symToId.end() && its->second != id)  // no self
         {
           csyms.insert(its->second);
         }
@@ -157,16 +184,14 @@ void TrimDefs::parseCommands(std::istream& in)
   }
 }
 
-
-TrimDefs::TrimDefs(State& s) : d_state(s)
-{
-  d_setDefTarget = false;
-}
+TrimDefs::TrimDefs(State& s) : d_state(s) { d_setDefTarget = false; }
 
 TrimDefs::~TrimDefs() {}
 
-
-void TrimDefs::finalizeIncludeFile(const Filepath& s, bool isSignature, bool isReference, const Expr& referenceNf)
+void TrimDefs::finalizeIncludeFile(const Filepath& s,
+                                   bool isSignature,
+                                   bool isReference,
+                                   const Expr& referenceNf)
 {
   if (!isSignature)
   {
