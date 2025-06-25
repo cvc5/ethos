@@ -8,16 +8,18 @@ TMP_FILE=temp_trim.eo
 echo "**** run_trim_defs: Write EO to $TMP_FILE"
 # the name of a EO signature
 INPUT=$1
-# should be the name of a constant or proof rule in $INPUT
-TARGET=$2
+shift
 # output file
 OUT_FILE=../plugins/trim_defs/trim.eo
 
-cat << EOF > $TMP_FILE
-; include this directory
-(include "$INPUT")
-(echo "trim-defs $TARGET")
-EOF
+echo "(include \"$INPUT\")" > $TMP_FILE
+
+# add commands for each argument
+while [[ $# -gt 0 ]]; do
+  TARGET="$1"
+  echo "(echo \"trim-defs $TARGET\")" >> $TMP_FILE
+  shift
+done
 
 echo "**** run_trim_defs: Run ethos + trim-defs on $TMP_FILE"
 echo "Write trim to ../plugins/trim_defs/trim.eo"

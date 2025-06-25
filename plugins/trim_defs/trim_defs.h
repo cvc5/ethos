@@ -44,9 +44,8 @@ class TrimDefs : public Plugin
  private:
   /** the state */
   State& d_state;
-  std::string d_defTarget;
-  bool d_setDefTarget;
-  size_t d_idCounter = 0;
+  std::vector<std::string> d_defTargets;
+  size_t d_idCounter;
   std::map<std::string, size_t> d_symToId;
   std::vector<std::string> d_commands;
   std::map<size_t, std::unordered_set<size_t>> d_symCommands;

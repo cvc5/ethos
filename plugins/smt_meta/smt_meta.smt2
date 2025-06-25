@@ -52,8 +52,9 @@ $TERM_DECL$
     (sm.Const x y)))
 
 (declare-fun $sm_pow2_eval (Int) Int)
+; note: should never be called on negative numbers
 (assert (forall ((i Int))
-  (= ($sm_pow2_eval i) (ite (= i 0) 1 (* 2 ($sm_pow2_eval (- i 1)))))))
+  (= ($sm_pow2_eval i) (ite (<= i 0) 1 (* 2 ($sm_pow2_eval (- i 1)))))))
 
 (define-fun $sm_Binary ((w Int) (x Int)) sm.Term
   (ite (and (<= 0 w) (< w 4294967296))
@@ -68,7 +69,7 @@ $TERM_DECL$
   (= ($sm_Binary_and_eval w x1 x2)
     (ite (= w 0) 0
     (ite (= w 1) (ite (and (= x1 1) (= x2 1)) 1 0)
-      (+ ($sm_Binary_and_eval (- w 1) x1 x2) (* (^ 2 w)
+      (+ ($sm_Binary_and_eval (- w 1) x1 x2) (* ($sm_pow2_eval w)
          (ite (and ($sm_bit x1 w) ($sm_bit x2 w)) 1 0))))))))
 
 (define-fun $sm_Binary_and ((w Int) (x1 Int) (x2 Int)) sm.Term

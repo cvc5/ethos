@@ -114,4 +114,4 @@
 )
 
 ; used to ensure dependencies are set
-(define $eo_test ((F Bool)) ($eo_model_sat F))
+;(program $eo_test ((F Bool)) ($eo_model_sat F))

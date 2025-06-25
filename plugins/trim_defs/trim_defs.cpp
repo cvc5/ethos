@@ -170,7 +170,7 @@ void TrimDefs::parseCommands(std::istream& in)
       d_symCommands[id].insert(cid);
       // declare-consts must always be visited
       // $eo_test is a builtin way to ensure tests are included
-      if (cmd.d_cmdName=="declare-consts" || cmd.d_symbolName=="$eo_test")
+      if (cmd.d_cmdName=="declare-consts")
       {
         d_toVisit.push_back(id);
       }
@@ -179,7 +179,15 @@ void TrimDefs::parseCommands(std::istream& in)
       std::unordered_set<size_t>& csyms = d_cmdSyms[cid];
       for (const std::string& s : cmd.d_bodySyms)
       {
-        its = d_symToId.find(s);
+        // replace eo:: by $eo_
+        std::string su = s;
+        if (su.compare(0, 4, "eo::") == 0)
+        {
+          std::stringstream ssn;
+          ssn << "$eo_" << su.substr(4);
+          su = ssn.str();
+        }
+        its = d_symToId.find(su);
         if (its != d_symToId.end() && its->second != id)  // no self
         {
           //std::cout << "...*** sym " << s << std::endl;
@@ -196,7 +204,6 @@ void TrimDefs::parseCommands(std::istream& in)
 
 TrimDefs::TrimDefs(State& s) : d_state(s)
 {
-  d_setDefTarget = false;
   d_idCounter = 0;
 }
 
@@ -222,8 +229,7 @@ bool TrimDefs::echo(const std::string& msg)
   //std::cout << "Echos " << msg << " \"" << msg.substr(10) << "\"" << std::endl;
   if (msg.compare(0, 10, "trim-defs ")==0)
   {
-    d_setDefTarget = true;
-    d_defTarget = msg.substr(10);
+    d_defTargets.push_back(msg.substr(10));
     //std::cout << "...set target" << std::endl;
     return false;
   }
@@ -232,21 +238,23 @@ bool TrimDefs::echo(const std::string& msg)
 
 void TrimDefs::finalize()
 {
-  if (!d_setDefTarget)
+  if (d_defTargets.empty())
   {
     EO_FATAL() << "Must set target with (echo \"trim-defs <symbol>\"), where <symbol> is the name of the "
                   "symbol to trim with respect to."
                << std::endl;
   }
-  std::map<std::string, size_t>::iterator it = d_symToId.find(d_defTarget);
-  if (it == d_symToId.end())
+  for (const std::string& dt : d_defTargets)
   {
-    EO_FATAL() << "Could not find target definition \"" << d_defTarget << "\""
-               << std::endl;
+    std::map<std::string, size_t>::iterator it = d_symToId.find(dt);
+    if (it == d_symToId.end())
+    {
+      EO_FATAL() << "Could not find target definition \"" << dt << "\"";
+    }
+    d_toVisit.push_back(it->second);
   }
   std::unordered_set<size_t> cdeps;
   std::unordered_set<size_t> visited;
-  d_toVisit.push_back(it->second);
   do
   {
     size_t cur = d_toVisit.back();
@@ -269,7 +277,12 @@ void TrimDefs::finalize()
     }
   }
   while (!d_toVisit.empty());
-  std::cout << "; trim-defs: " << d_defTarget << std::endl;
+  std::cout << "; trim-defs:";
+  for (const std::string& dt : d_defTargets)
+  {
+    std::cout << " " << dt;
+  }
+  std::cout << std::endl;
   std::cout << "; #trim-defs: " << cdeps.size() << std::endl;
   std::vector<size_t> allCmd(cdeps.begin(), cdeps.end());
   std::sort(allCmd.begin(), allCmd.end());
