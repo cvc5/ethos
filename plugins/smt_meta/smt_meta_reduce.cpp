@@ -54,17 +54,14 @@ void SmtMetaReduce::setLiteralTypeRule(Kind k, const Expr& t)
 
 void SmtMetaReduce::bind(const std::string& name, const Expr& e)
 {
-  if (d_inInitialize)
+  if (name.compare(0, 4, "$eo_") == 0 && e.getKind() == Kind::LAMBDA)
   {
-    if (name.compare(0, 4, "$eo_") == 0 && e.getKind() == Kind::LAMBDA)
-    {
-      Expr p = e;
-      // dummy type
-      Expr pt = d_state.mkBuiltinType(Kind::LAMBDA);
-      Expr tmp = d_state.mkSymbol(Kind::CONST, name, pt);
-      d_progSeen.emplace_back(tmp, p);
-      return;
-    }
+    Expr p = e;
+    // dummy type
+    Expr pt = d_state.mkBuiltinType(Kind::LAMBDA);
+    Expr tmp = d_state.mkSymbol(Kind::CONST, name, pt);
+    d_progSeen.emplace_back(tmp, p);
+    return;
   }
   Kind k = e.getKind();
   if (k == Kind::CONST)
@@ -405,12 +402,16 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
               os << "sm.Apply ";
             }
           }
+          else if (ck == Kind::APPLY_OPAQUE)
+          {
+            // kind is ignored, prints as a multi argument function
+          }
           else if (ck == Kind::FUNCTION_TYPE)
           {
             Assert(cur.first.getNumChildren() == 2);
             os << "sm.FunType ";
           }
-          else if (isLiteralOp(ck) && ck != Kind::EVAL_CONS)
+          else if (isLiteralOp(ck))
           {
             std::string kstr = kindToTerm(ck);
             if (kstr.compare(0, 4, "eo::") == 0)
@@ -424,7 +425,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           }
           else
           {
-              EO_FATAL() << "Unhandled kind " << ck << std::endl;
+            EO_FATAL() << "Unhandled kind " << ck << " " <<  cur.first << std::endl;
           }
           visit.back().second++;
           visit.emplace_back(cur.first[0], 0);

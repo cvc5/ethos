@@ -28,10 +28,6 @@
   )
 )
 
-; conceptual
-(program $eo_model_lookup ((T Type))
-  :signature (Int T) T)
-
 ; fwd-decl: $eo_model_evaluate
 (program $eo_model_evaluate ((T Type))
   :signature (T) T)
@@ -45,7 +41,7 @@
     (eo::define ((next ($eo_model_enum (eo::typeof x) i)))
     (eo::ite (eo::is_ok next)
       (eo::ite ($eo_model_evaluate ($substitute x next F))
-        ($eo_model_evaluate (forall ($eo_List_cons x xs) F) (eo::add i 1))
+        ($eo_model_evaluate_forall (forall ($eo_List_cons x xs) F) (eo::add i 1))
         false)
       true))) ; out of values
   )

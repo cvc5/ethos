@@ -155,7 +155,7 @@ int main( int argc, char* argv[] )
   {
     plugin = &pluginDs;
   }
-  else
+  else if (opts.d_pluginSmtMeta)
   {
     plugin = &pluginSmr;
   }
