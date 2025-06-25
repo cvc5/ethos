@@ -23,6 +23,15 @@ std::string s_ds_path = "/home/andrew/ethos/";
 Desugar::Desugar(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {
   d_any = d_state.mkSymbol(Kind::PARAM, "Any", d_state.mkType());
+  d_listNil = s.mkListNil();
+  Expr lnt = d_tc.getType(d_listNil);
+  d_overloadSanVisited[d_listNil] = d_state.mkSymbol(Kind::CONST, "$eo_List_nil", lnt);
+  d_listCons = s.mkListCons();
+  Expr lct = d_tc.getType(d_listCons);
+  d_overloadSanVisited[d_listCons] = d_state.mkSymbol(Kind::CONST, "$eo_List_cons", lct);
+  d_listType = s.mkListType();
+  Expr lt = d_tc.getType(d_listType);
+  d_overloadSanVisited[d_listType] = d_state.mkSymbol(Kind::CONST, "$eo_List", lt);
   d_typeOfVarCount = 0;
   d_genVcs = d_state.getOptions().d_pluginDesugarGenVc;
   if (d_genVcs)
@@ -128,10 +137,10 @@ void Desugar::finalizeProgram(const Expr& e, const Expr& prog)
     {
       d_defs << " ";
     }
-    d_defs << pt[i];
+    printTerm(pt[i], d_defs);
   }
   d_defs << ") ";
-  d_defs << pt[pargs];
+  printTerm(pt[pargs], d_defs);
   d_defs << std::endl;
   if (!prog.isNull())
   {
@@ -173,7 +182,6 @@ void Desugar::finalizeDeclaration(const Expr& e)
   // check for eo::List
   std::stringstream cnss;
   printName(c, cnss);
-  // check for eo::List
   std::string cname = cnss.str();
   if (cname.compare(0, 4, "eo::") == 0)
   {
@@ -266,11 +274,15 @@ void Desugar::finalizeDeclaration(const Expr& e)
         printParamList(vars, d_defs, params, true, visited, firstParam);
       }
     }
-    d_defs << ") " << retType << ")" << std::endl;
+    d_defs << ") ";
+    printTerm(retType, d_defs);
+    d_defs << ")" << std::endl;
   }
   else
   {
-    d_defs << "const " << e << " " << ct << ")" << std::endl;
+    d_defs << "const " << cname << " ";
+    printTerm(ct, d_defs);
+    d_defs << ")" << std::endl;
   }
   d_declProcessed.insert(e);
   // handle eo_nil
@@ -315,8 +327,8 @@ void Desugar::finalizeDeclaration(const Expr& e)
   // handle eo_typeof
   ct = cto;
   d_eoTypeof << "  ; type-rule: " << e << std::endl;
-
-  d_eoTypeof << "  ; type is " << ct << std::endl;
+  // good for debugging
+  //d_eoTypeof << "  ; type is " << ct << std::endl;
   if (!ct.isGround())
   {
     Assert(ct.getKind() == Kind::FUNCTION_TYPE)
@@ -376,7 +388,9 @@ void Desugar::finalizeDeclaration(const Expr& e)
           arg = d_state.mkSymbol(Kind::PARAM, ssx.str(), cta);
           if (cta.isGround())
           {
-            sslc << "(eo::requires ($eo_typeof " << arg << ") " << cta << " ";
+            sslc << "(eo::requires ($eo_typeof " << arg << ") ";
+            printTerm(cta, sslc);
+            sslc << " ";
             sslcEnd << ")";
           }
           else if (cta.getKind() == Kind::PARAM)
@@ -386,7 +400,8 @@ void Desugar::finalizeDeclaration(const Expr& e)
           }
           ssngarg << " ($eo_typeof " << arg << ")";
         }
-        ssngpat << " " << cta;
+        ssngpat << " ";
+        printTerm(cta, ssngpat);
         if (!ngscope.empty())
         {
           ngSig << " ";
@@ -633,8 +648,10 @@ void Desugar::finalizeRule(const Expr& e)
     {
       tcrSig << " ";
     }
-    tcrSig << tv << " Type";
-    tcrBody << " " << v << " " << tv;
+    printTerm(tv, tcrSig);
+    tcrSig << " Type";
+    tcrBody << " " << v << " ";
+    printTerm(tv, tcrBody);
     tcrCall << " " << v << " (eo::typeof " << v << ")";
   }
 
@@ -668,8 +685,9 @@ void Desugar::finalizeRule(const Expr& e)
         finalVars.push_back(ta);
       }
       bool isProof = (ak == Kind::PROOF_TYPE);
-      typeList << ta;
-      argList << " " << argType[0];
+      printTerm(ta, typeList);
+      argList << " ";
+      printTerm(argType[0], argList);
       argIsProof.push_back(isProof);
       finalArgs.push_back(argType[0]);
     }

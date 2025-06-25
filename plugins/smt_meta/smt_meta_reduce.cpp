@@ -410,7 +410,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
             Assert(cur.first.getNumChildren() == 2);
             os << "sm.FunType ";
           }
-          else if (isLiteralOp(ck))
+          else if (isLiteralOp(ck) && ck != Kind::EVAL_CONS)
           {
             std::string kstr = kindToTerm(ck);
             if (kstr.compare(0, 4, "eo::") == 0)
@@ -424,6 +424,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           }
           else
           {
+              EO_FATAL() << "Unhandled kind " << ck << std::endl;
           }
           visit.back().second++;
           visit.emplace_back(cur.first[0], 0);
