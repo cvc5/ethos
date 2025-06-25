@@ -334,7 +334,7 @@ bool State::includeFile(const std::string& s, bool isSignature, bool isReference
   if (d_plugin!=nullptr)
   {
     Assert (!isReference);
-    d_plugin->includeFile(inputPath, isReference, referenceNf);
+    d_plugin->includeFile(inputPath, isSignature, isReference, referenceNf);
   }
   Trace("state") << "Include " << inputPath << std::endl;
   Assert (getAssumptionLevel()==0);

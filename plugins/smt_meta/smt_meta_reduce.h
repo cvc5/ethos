@@ -47,8 +47,6 @@ class SelectorCtx
  */
 class SmtMetaReduce : public Plugin
 {
-  friend class TypeChecker;
-
  public:
   SmtMetaReduce(State& s);
   ~SmtMetaReduce();

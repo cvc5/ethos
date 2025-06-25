@@ -28,8 +28,6 @@ class TypeChecker;
  */
 class Desugar : public Plugin
 {
-  friend class TypeChecker;
-
  public:
   Desugar(State& s);
   ~Desugar();
