@@ -62,9 +62,6 @@ class SmtMetaReduce : public Plugin
   void defineProgram(const Expr& v, const Expr& prog) override;
   /** Finalize */
   void finalize() override;
-  /** To string, which returns the smt2 formalization of the meta-level
-   * correctness of the signature */
-  std::string toString();
 
  private:
   void printConjunction(size_t n,

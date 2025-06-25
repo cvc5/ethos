@@ -6,8 +6,8 @@
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
  ******************************************************************************/
-#ifndef DESUGAR_H
-#define DESUGAR_H
+#ifndef TRIM_DEFS_H
+#define TRIM_DEFS_H
 
 #include <map>
 #include <set>
@@ -24,15 +24,26 @@ namespace ethos {
 class State;
 class TypeChecker;
 
+class TrimList
+{
+public:
+  TrimList(State& s);
+  std::vector<std::pair<Expr, Expr>> getTrimList(const Expr& e);
+  std::vector<std::pair<Expr, Expr>> getTrimList(const Expr& e, std::map<Expr, bool>& visited);
+private:
+  Expr d_null;
+  State& d_state;
+};
+
 /**
  */
-class Desugar : public Plugin
+class TrimDefs : public Plugin
 {
   friend class TypeChecker;
 
  public:
-  Desugar(State& s);
-  ~Desugar();
+  TrimDefs(State& s);
+  ~TrimDefs();
   /** Set type rule for literal kind k to t */
   void setLiteralTypeRule(Kind k, const Expr& t) override;
   /** */
@@ -43,10 +54,13 @@ class Desugar : public Plugin
   void defineProgram(const Expr& v, const Expr& prog) override;
   /** Finalize */
   void finalize() override;
+  /**
+   * Used to mark the definition we are trimming.
+   */
+  void markOracleCmd(const Expr& v, const std::string& ocmd) override;
 
  private:
-  void printName(const Expr& e, std::ostream& os);
-  void printTerm(const Expr& e, std::ostream& os);
+  void printTerm(const Expr& t, std::ostream& os);
   void printParamList(const std::vector<Expr>& vars,
                       std::ostream& os,
                       std::vector<Expr>& params,
@@ -58,61 +72,28 @@ class Desugar : public Plugin
                       std::map<Expr, bool>& visited,
                       bool& firstParam,
                       bool isOpaque = false);
-  void finalizeSetLiteralTypeRule(Kind k, const Expr& t);
-  void finalizeProgram(const Expr& v, const Expr& prog);
-  void finalizeDefinition(const std::string& name, const Expr& t);
-  void finalizeDeclaration(const Expr& t);
-  void finalizeRule(const Expr& v);
-  void finalizeDatatype(const Expr& d);
-  /** */
-  Expr mkSanitize(const Expr& t);
-  Expr mkSanitize(const Expr& t,
-                  std::map<Expr, Expr>& visited,
-                  size_t& varCount,
-                  bool inPatMatch,
-                  std::vector<std::pair<Expr, Expr>>& newVars);
+  void printSetLiteralTypeRule(Kind k, const Expr& t);
+  void printProgram(const Expr& v, const Expr& prog);
+  void printDefinition(const std::string& name, const Expr& t);
+  void printDeclaration(const Expr& t);
+  void printRule(const Expr& v);
+  void printDatatype(const Expr& d);
+  /** timestamps for when things happened */
+  size_t d_timeStamp;
+  std::map<Expr, size_t> d_declTimestamp;
+  std::map<size_t, Kind> d_litTypeTimestamp;
+  std::map<Kind, Expr> d_litTypeRule;
+  /** Attributes marked */
+  std::map<Expr, std::pair<Attr, Expr>> d_attrDecl;
+  Expr d_null;
+  std::stringstream d_defs;
+  std::stringstream d_eoRules;
+  std::string d_defTarget;
+  bool d_setDefTarget;
   /** the state */
   State& d_state;
   /** the type checker */
   TypeChecker& d_tc;
-  /** Declares seen */
-  std::vector<std::pair<Expr, Kind>> d_declSeen;
-  /** Attributes marked */
-  std::map<Expr, std::pair<Attr, Expr>> d_attrDecl;
-  /** Declares processed */
-  std::set<Expr> d_declProcessed;
-  /** Handles overloading */
-  std::map<std::string, size_t> d_overloadCount;
-  /** */
-  std::map<Expr, size_t> d_overloadId;
-  /** */
-  std::map<Expr, Expr> d_overloadSanVisited;
-  /** Common constants */
-  Expr d_any;
-  Expr d_null;
-  Expr d_listNil;
-  Expr d_listCons;
-  Expr d_listType;
-  /** Are we generating programs that are VC targets */
-  bool d_genVcs;
-
-  std::stringstream d_numDecl;
-  std::stringstream d_num;
-  std::stringstream d_defs;
-  std::stringstream d_eoNilNground;
-  std::stringstream d_eoNil;
-  std::stringstream d_eoTypeofParam;
-  std::stringstream d_eoTypeof;
-  std::stringstream d_eoTypeofNGround;
-  std::stringstream d_eoDtNGround;
-  std::stringstream d_eoDtCons;
-  std::stringstream d_eoDtSel;
-  std::stringstream d_eoRules;
-
-  /** term we have pattern matched on for typeof */
-  std::vector<Expr> d_typeOfVars;
-  /** variable counter for typeof */
-  size_t d_typeOfVarCount;
 };
 
 }  // namespace ethos

@@ -172,6 +172,11 @@ void Desugar::finalizeDeclaration(const Expr& e)
     cattrCons = it->second.second;
   }
   /*
+  if (cattr == Attr::DATATYPE)
+  {
+    finalizeDatatype(e);
+    return;
+  }
   if (cattr == Attr::DATATYPE || cattr == Attr::DATATYPE_CONSTRUCTOR
       || cattr == Attr::AMB_DATATYPE_CONSTRUCTOR)
   {
@@ -623,6 +628,13 @@ void Desugar::finalizeRule(const Expr& e)
     Expr rrt = rt[0];
     d_eoRules << "(define $eor_" << e << " () " << rrt << ")" << std::endl
               << std::endl;
+    if (!d_state.isProofRuleSorry(e.getValue()))
+    {
+      d_eoRules << "; verification: " << e << std::endl;
+      d_eoRules << "(define $eovc_" << e;
+      d_eoRules << " () (eo::requires ($eo_model_sat $eor_" << e << ") false true))" << std::endl;
+      d_eoRules << std::endl;
+    }
     return;
   }
 
@@ -758,8 +770,6 @@ void Desugar::finalizeRule(const Expr& e)
 
 void Desugar::finalizeDatatype(const Expr& e)
 {
-  // for now, just handle as ordinary declaration
-  finalizeDeclaration(e);
   /*
   Expr d = e;
   Expr dt = d_tc.getType(d);
@@ -880,33 +890,6 @@ void Desugar::finalize()
   }
 }
 
-bool Desugar::hasSubterm(const Expr& t, const Expr& s)
-{
-  std::unordered_set<const ExprValue*> visited;
-  std::vector<Expr> toVisit;
-  toVisit.push_back(t);
-  Expr cur;
-  while (!toVisit.empty())
-  {
-    cur = toVisit.back();
-    toVisit.pop_back();
-    const ExprValue* cv = cur.getValue();
-    if (visited.find(cv) != visited.end())
-    {
-      continue;
-    }
-    visited.insert(cv);
-    if (cur == s)
-    {
-      return true;
-    }
-    for (size_t i = 0, nchildren = cur.getNumChildren(); i < nchildren; i++)
-    {
-      toVisit.push_back(cur[i]);
-    }
-  }
-  return false;
-}
 Expr Desugar::mkSanitize(const Expr& t)
 {
   // take overloads into account

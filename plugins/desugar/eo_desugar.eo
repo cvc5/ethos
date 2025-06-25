@@ -1,3 +1,5 @@
+; This file is used for bootstrapping the semantics of Eunoia.
+
 ; forward declaration
 (program $eo_typeof ((T Type))
   :signature (T) Type)
