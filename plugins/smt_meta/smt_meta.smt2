@@ -1,4 +1,4 @@
-(set-logic UFDTSLIRA)
+(set-logic UFDTSNIRA)
 
 (declare-datatype sm.Term
   (
@@ -51,8 +51,12 @@ $TERM_DECL$
     sm.Stuck
     (sm.Const x y)))
 
+(declare-fun $sm_pow2_eval (Int) Int)
+(assert (forall ((i Int))
+  (= ($sm_pow2_eval i) (ite (= i 0) 1 (* 2 ($sm_pow2_eval (- i 1)))))))
+
 (define-fun $sm_mod_pow_2_eval ((x Int) (w Int)) Int
-  (mod x (^ 2 w)))  ; TODO: improve?
+  (mod x ($sm_pow2_eval w)))  ; TODO: improve?
 
 (define-fun $sm_Binary ((w Int) (x Int)) sm.Term
   (ite (and (<= 0 w) (< w 4294967296))
@@ -60,7 +64,7 @@ $TERM_DECL$
     sm.Stuck))
 
 (define-fun $sm_bit ((x Int) (i Int)) Bool
-  (= (mod (div x (^ 2 i)) 2) 1))
+  (= (mod (div x ($sm_pow2_eval i)) 2) 1))
 
 (declare-fun $sm_Binary_and_eval (Int Int Int) Int)
 (assert (forall ((w Int) (x1 Int) (x2 Int))
