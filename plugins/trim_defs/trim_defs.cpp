@@ -24,11 +24,11 @@ struct Command
   std::string d_cmdName;
   std::string d_symbolName;
   std::unordered_set<std::string> d_bodySyms;
-  std::string full_text;
+  std::string d_fullText;
 };
 
 // Read one token, skipping whitespace
-std::string next_token(std::istream& in) {
+std::string nextToken(std::istream& in) {
   std::string tok;
   char c;
   while (in.get(c)) {
@@ -82,17 +82,17 @@ std::string readFullCommand(std::istream& in) {
 // Parse the command name, symbol, and collect body symbols
 Command parseCommand(const std::string& s_expr_text) {
   Command cmd;
-  cmd.full_text = s_expr_text;
+  cmd.d_fullText = s_expr_text;
 
   std::istringstream in(s_expr_text);
-  Assert (next_token(in) == "(");
+  Assert (nextToken(in) == "(");
 
-  cmd.d_cmdName = next_token(in);
-  cmd.d_symbolName = next_token(in);
+  cmd.d_cmdName = nextToken(in);
+  cmd.d_symbolName = nextToken(in);
 
   int depth = 0;
   while (true) {
-    std::string tok = next_token(in);
+    std::string tok = nextToken(in);
     if (tok.empty()) break;
     if (tok == "(") {
       ++depth;
@@ -118,7 +118,7 @@ void TrimDefs::parseCommands(std::istream& in)
   std::map<size_t, std::unordered_set<size_t>> cmdSyms;
   while (in)
   {
-    std::string tok = next_token(in);
+    std::string tok = nextToken(in);
     if (tok == "(")
     {
       in.putback('(');
@@ -143,7 +143,7 @@ void TrimDefs::parseCommands(std::istream& in)
       }
       size_t cid = commands.size();
       symCommands[id].insert(cid);
-      commands.push_back(cmd.full_text);
+      commands.push_back(cmd.d_fullText);
       std::unordered_set<size_t>& csyms = cmdSyms[cid];
       for (const std::string& s : cmd.d_bodySyms)
       {
