@@ -17,8 +17,8 @@
 
 namespace ethos {
 
-std::string s_smodel_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
-// std::string s_smodel_path = "/home/andrew/ethos/";
+//std::string s_smodel_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
+std::string s_smodel_path = "/home/andrew/ethos/";
 
 ModelSmt::ModelSmt(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {

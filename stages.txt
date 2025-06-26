@@ -12,6 +12,10 @@ The final encoding uses a deep embedding where:
 Note that if a Eunoia program is forward declared but not defined, then it is
 a free uninterpreted function in the final encoding.
 
+The entire pipeline relies on:
+- Bash scripting,
+- Ethos for parsing.
+
 === cvc5 parsing
 
 Relies on:
@@ -52,8 +56,9 @@ Eunoia program $eovc_X which:
 This side condition is the target for verification in the Smt_Meta step below.
 
 Relies on:
-- eo_desugar.eo template.
-- desugar.cpp (ethos plugin)
+- eo_desugar.eo template, 285 LOC EO
+- desugar.cpp (ethos plugin), 998 LOC C++
+- trim_defs.cpp (ethos plugin), 258 LOC C++
 
 Things handled at this stage:
 - Non-essential Eunoia commands (declare-type/define-type).
@@ -85,8 +90,9 @@ Compiles *.eo to *.eo.
 Includes a definition of $eo_model_sat, which defines SMT-LIB model semantics.
 
 Relies on:
-- model_smt.eo template.
-- model_smt.cpp (ethos plugin)
+- model_smt.eo template, 83 LOC EO
+- model_smt.cpp (ethos plugin), 227 LOC C++
+- trim_defs.cpp (ethos plugin), also used above
 
 Things handled at this stage:
 - SMT-LIB semantics (Eunoia program $eo_model_sat).
@@ -97,6 +103,7 @@ Things handled at this stage:
   - Builtin operator semantics
     - Defines a deep embedding of SMT-LIB terms into Eunoia via $smt_Term / $smt_apply_N
     - Defines conversions from Eunoia literals to SMT-LIB values via $smt_to_eo_X/$eo_to_smt_X.
+- TODO: overloading arithmetic.
 - TODO: skolem semantics.
 - TODO: can handle a majority of Eunoia builtins here.
 
@@ -110,8 +117,8 @@ This means we are searching over the *syntactic space* of Eunoia terms
 to find terms that witness the semantic unsoundness of the rule.
 
 Relies on:
-- smt_meta.smt2 template.
-- smt_meta_reduce.cpp (ethos plugin)
+- smt_meta.smt2 template, 215 LOC SMT2
+- smt_meta_reduce.cpp (ethos plugin), 783 LOC C++
 
 Things handled at this stage:
 - Remaining define commands inlined.
@@ -132,3 +139,13 @@ Not handled:
 - Modelling of assume-push/step-pop.
 - TODO: modelling of :conclusion-explicit, :assumption.
 - TODO: datatypes
+
+===
+
+Future research:
+- Lean_Meta plugin.
+- Parametric bitvectors in cvc5 to prove VCs.
+- Logos: reimplementation of ethos whose native language is desugared *.eo. It should be formally verified to incorporate some stages of the above pipeline.
+- Telos: an SMT solver API to run cvc5 -> proof API -> ethos/logos.
+- Alethe to Eunoia.
+- Agda_Meta, Deduckti_Meta?
