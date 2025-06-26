@@ -349,11 +349,15 @@ bool CmdParser::parseNextCommand()
     // (declare-consts <symbol> <sort>)
     case Token::DECLARE_CONSTS:
     {
+      d_state.pushScope();
+      Expr self = d_state.mkSelf();
+      d_eparser.bind("eo::self", self);
       Kind k = d_eparser.parseLiteralKind();
       Expr t = d_eparser.parseType();
       // maybe requires?
       // set the type rule
       d_state.setLiteralTypeRule(k, t);
+      d_state.popScope();
     }
     break;
     // (declare-rule ...)

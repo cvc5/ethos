@@ -1,5 +1,8 @@
 ; This file is used for bootstrapping the semantics of Eunoia.
 
+; fail
+(define $eo_fail () (eo::requires true false true))
+
 ; forward declaration
 (program $eo_typeof ((T Type))
   :signature (T) Type)
@@ -19,16 +22,13 @@ $EO_LITERAL_TYPE_DECL$
 (define $eo_Binary () $EO_BINARY$)
 ; note: decimal and hexadecimal omitted for now.
 
-; fail
-(define $eo_fail () (eo::requires true false true))
-
 ; forward declaration for test
 (program $eo_model_sat () :signature (Bool) Bool)
 
 ;;; $eo_List
 
 ; The builtin Eunoia list.
-(declare-type $eo_List ())
+(declare-const $eo_List Type)
 (declare-const $eo_List_nil $eo_List)
 (declare-parameterized-const $eo_List_cons ((T Type :implicit))
   (-> T $eo_List $eo_List)

@@ -92,7 +92,25 @@ void Desugar::finalizeSetLiteralTypeRule(Kind k, const Expr& t)
     }
     d_litTypeDecl << "; type-rules: " << k << std::endl;
     d_litTypeDecl << ss.str();
-    (*os) << t;
+    // it is only possible to define e.g. $eo_Binary
+    // if t is ground. This avoids having eo::self as a free parameter.
+    if (t.isGround())
+    {
+      (*os) << t;
+    }
+    else
+    {
+      // since $eo_Numeral is used to define the type rules for builtin
+      // operators, it must have a simple type.
+      // Note that we could introduce a $eo_Builtin_Numeral but this would
+      // complicate further type checking, i.e. the user expects
+      // the result of eo::len to be an Int.
+      if (k==Kind::NUMERAL)
+      {
+        EO_FATAL() << "Must have a ground type for <numeral>.";
+      }
+      (*os) << "$eo_fail";
+    }
   }
   else
   {
