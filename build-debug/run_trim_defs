@@ -27,4 +27,4 @@ echo "**** run_trim_defs: Run ethos + trim-defs on $TMP_FILE"
 #echo "**** Verify it parses"
 #./src/ethos $OUT_FILE
 
-#rm -f $TMP_FILE
+rm -f $TMP_FILE

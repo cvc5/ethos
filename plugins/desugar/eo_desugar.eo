@@ -5,10 +5,6 @@
 ; (A) Those that are desugared in later steps, e.g. eo::add, eo::requires, eo::is_ok.
 ; (B) Those that were part of user definitions that can be safely replaced by their $eo_ versions.
 
-; The one method that has special status after this step is
-; $eo_typeof_main, which is used in part to define the final
-; semantics of $eo_typeof.
-
 ; fail
 (define $eo_fail () (eo::requires true false true))
 
@@ -483,9 +479,7 @@ $EO_NIL_CASES$
   )
 )
 
-; other things that can be compiled away in this step
-
-; note $eo_typeof is already foward declared.
+; Finalize things that can be compiled away in this step.
 
 ; Used to model eo::var
 (declare-parameterized-const $eo_Var ((s $eo_String) (T Type)) T)
