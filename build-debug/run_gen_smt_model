@@ -12,7 +12,7 @@ echo "**** run_gen_model: Run ethos + desugar on $1 to generate $STD_SMODEL_OUT"
 cp $STD_SMODEL_OUT $TMP_OUT
 cp $1 $STD_SMODEL_OUT
 cat $TMP_OUT >> $STD_SMODEL_OUT
-rm -rf $TMP_OUT
+rm -f $TMP_OUT
 
-echo "**** run_gen_model: Verify it parses"
-./src/ethos $STD_SMODEL_OUT
+#echo "**** run_gen_model: Verify it parses"
+#./src/ethos $STD_SMODEL_OUT

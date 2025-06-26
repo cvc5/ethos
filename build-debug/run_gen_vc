@@ -16,6 +16,7 @@ INIT_TRIM=trim-cpc-$TARGET.eo
 INIT_DESUGAR=trim-d-cpc-$TARGET.eo
 VC_DEF_DESUGAR=vc-def-cpc-$TARGET.eo
 VCM_DEF_DESUGAR=vcm-def-cpc-$TARGET.eo
+VCMT_DEF_DESUGAR=vcmt-def-cpc-$TARGET.eo
 VC_OUT=final-cpc-$TARGET.smt2
 
 echo "**** run_gen_vc: Run ethos + trim-defs on $INPUT and $TARGET to $INIT_TRIM"
@@ -35,10 +36,16 @@ echo "**** run_gen_vc: Run ethos + model-smt on $VC_DEF_DESUGAR to generate $VCM
 ./run_gen_smt_model $VC_DEF_DESUGAR
 cp $STD_SMODEL_OUT $VCM_DEF_DESUGAR
 
-#echo "**** run_gen_vc: Verify it parses"
-./src/ethos $VCM_DEF_DESUGAR
+# trim again
+echo "**** run_gen_vc: Run ethos + trim-deps on $VCM_DEF_DESUGAR to generate $VCMT_DEF_DESUGAR"
+./run_trim_defs $VCM_DEF_DESUGAR "\$eovc_$TARGET"
+cp $STD_TRIM_OUT $VCMT_DEF_DESUGAR
 
-#echo "(echo \"smt-meta \$eovc_$TARGET\")" >> $VC_DEF_DESUGAR
+echo "**** run_gen_vc: Verify it parses"
+./src/ethos $VCMT_DEF_DESUGAR
+
+
+#echo "(echo \"smt-meta \$eovc_$TARGET\")" >> $VCM_DEF_DESUGAR
 
 #echo "**** Generate SMT2 to $VC_OUT"
 #./src/ethos --plugin.smt-meta $VC_DEF_DESUGAR
