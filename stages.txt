@@ -1,0 +1,118 @@
+At a high-level, the correctness of a Eunoia proof rule can be compiled to
+a *.smt2 file, which if unsat, is evidence that the proof rule is sound.
+The final encoding uses a deep embedding where:
+- A single sm.Term datatype is declared, which several builtin constructors.
+- All constants in the Eunoia signature are constructors of this datatype.
+- Eunoia programs are uninterpreted functions.
+- Definitions of Eunoia programs are quantified axioms.
+Note that if a Eunoia program is forward declared but not defined, then it is
+a free uninterpreted function in the final encoding.
+
+=== cvc5 parsing
+
+Relies on:
+- cvc5 parser source code
+
+Things handled at this stage:
+
+- Numeral as Decimal in logics without Integers.
+- :named.
+
+=== cvc5 API 
+
+Relies on:
+- cvc5 API code
+
+Things handled at this stage:
+- Desugaring of :chainable, :left-assoc, :right-assoc operators.
+
+=== cvc5 internals -> CPC proof 
+
+Relies on:
+- cvc5 source code
+
+Things handled at this stage:
+- define-fun-rec
+- match
+
+=== Desugar
+
+Compiles *.eo to *.eo.
+The resulting *.eo is desugared to define non-essential Eunoia features as Eunoia programs.
+Includes a forward declaration of a side condtion $eo_model_sat.
+Optionally, a proof rule can be compiled to a Eunoia program $eor_X which
+operates over *formulas* not proofs. Additionally, we may generate a 
+Eunoia program $eovc_X which:
+- Calls $eo_model_sat and $eor_X.
+- Evaluates successfully iff the proof rule is unsound.
+This side condition is the target for verification in the Smt_Meta step below.
+
+Relies on:
+- eo_desugar.eo template.
+- desugar.cpp (ethos plugin)
+
+Things handled at this stage:
+- Operator overloading.
+- Operator properties.
+  - :right-assoc-nil, :right-assoc, :left-assoc-nil, :left-assoc, :chainable, :binder, :let-binder
+- declare-rule
+  - Proof type handled as part of the VC pro
+  -
+- eo::eq, eo::is_eq
+- eo::is_z, eo::is_q, eo::is_bin, eo::is_str, eo::is_bool, eo::is_var
+- eo::gt, eo::cmp
+- eo::cons
+- eo::list_len, eo::list_concat, eo::list_nth, eo::list_find, eo::list_rev, eo::list_erase, eo::list_erase_all, eo::list_setof, eo::list_minclude, eo::list_meq
+- eo::dt_constructors, eo::dt_selectors
+- eo::var, eo::nameof
+- eo::nil
+  - Includes an auto-generation of cases for each :right-assoc-nil, :left-assoc-nil operator.
+- eo::typeof
+  - Includes an auto-generation of cases for all user symbols.
+
+=== Model_smt
+
+Compiles *.eo to *.eo.
+Includes a definition of $eo_model_sat, which defines SMT-LIB model semantics.
+
+Relies on:
+- model_smt.eo template.
+- model_smt.cpp (ethos plugin)
+
+Things handled at this stage:
+- SMT-LIB semantics (Eunoia program $eo_model_sat).
+  - Valueness ($smt_is_value)
+  - Type enumeration ($smt_type_enum)
+  - Existential semantics ($smt_model_eval_exists)
+  - Free constant semantics ($smt_model_lookup)
+- TODO: skolem semantics.
+- TODO: can handle a majority of Eunoia builtins here.
+
+=== Smt_Meta
+
+Compiles *.eo to *.smt2.
+Optimizes for non-recursive programs using define-fun.
+Generates a conjecture for a Eunoia program under test (e.g. $eovc_X)
+which states the $eovc_X does not get stuck.
+
+Relies on:
+- smt_meta.smt2 template.
+- smt_meta_reduce.cpp (ethos plugin)
+
+Things handled at this stage:
+- Eunoia semantics of "stuckness".
+- :opaque.
+- Ambiguously typed functions.
+- eo::is_ok, eo::ite, eo::requires, eo::hash
+- eo::not, eo::and, eo::or, eo::xor
+- eo::add, eo::mul, eo::qdiv, eo::zdiv, eo::zmod, eo::is_neg, eo::neg
+- eo::len, eo::concat, eo::extract, eo::find
+- eo::to_z, eo::to_q, eo::to_bin, eo::to_str
+- Semantics of parametric bitvector operations.
+
+===
+
+Not handled:
+- Well foundedness of all Eunoia programs. This can lead to spurious unsoundess in the Smt_Meta step.
+- Modelling of assume-push/step-pop.
+- TODO: modelling of :conclusion-explicit, :assumption.
