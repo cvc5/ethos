@@ -310,6 +310,9 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
   std::map<Expr, std::string>::const_iterator it;
   std::stringstream osEnd;
   std::vector<Expr> ll;
+  // maps smt apply terms to the tuple that they actually are
+  std::map<Expr, Expr> smtAppToTuple;
+  std::map<Expr, Expr>::iterator itsa;
   // letify parameters for efficiency?
   std::map<const ExprValue*, size_t> lbind = Expr::computeLetBinding(body, ll);
   // NOTE: could print the context in the let list?
@@ -329,10 +332,18 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     std::map<Expr, size_t>::iterator itv;
     std::vector<std::pair<Expr, size_t>> visit;
     std::pair<Expr, size_t> cur;
+    Expr recTerm;
     visit.emplace_back(t, 0);
     do
     {
       cur = visit.back();
+      recTerm = cur.first;
+      itsa = smtAppToTuple.find(recTerm);
+      if (itsa!=smtAppToTuple.end())
+      {
+        recTerm = itsa->second;
+      }
+      // if we are printing the head of the term
       if (cur.second == 0)
       {
         itl = lbind.find(cur.first.getValue());
@@ -396,10 +407,25 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           os << "(";
           if (ck == Kind::APPLY)
           {
-            if (cur.first[0].getKind() != Kind::PROGRAM_CONST)
+            // maybe its an SMT-apply
+            std::string smtAppName;
+            std::vector<Expr> smtArgs;
+            //std::cout << "Check if apply term " << cur.first << std::endl;
+            if (isSmtApplyTerm(cur.first, smtAppName, smtArgs))
             {
-              Assert(cur.first.getNumChildren() == 2);
-              os << "sm.Apply ";
+              //std::cout << "...returns true!!!! name is \"" << smtAppName << "\"" << std::endl;
+              os << smtAppName << " ";
+              // we recurse on the compiled SMT arguments
+              recTerm =  d_state.mkExprSimple(Kind::TUPLE, smtArgs);
+              smtAppToTuple[cur.first] = recTerm;
+            }
+            else
+            {
+              if (cur.first[0].getKind() != Kind::PROGRAM_CONST)
+              {
+                Assert(cur.first.getNumChildren() == 2);
+                os << "sm.Apply ";
+              }
             }
           }
           else if (ck == Kind::APPLY_OPAQUE)
@@ -429,20 +455,20 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
                        << std::endl;
           }
           visit.back().second++;
-          visit.emplace_back(cur.first[0], 0);
+          visit.emplace_back(recTerm[0], 0);
         }
       }
-      else if (cur.second >= cur.first.getNumChildren())
+      else if (cur.second >= recTerm.getNumChildren())
       {
         os << ")";
         visit.pop_back();
       }
       else
       {
-        Assert(cur.second < cur.first.getNumChildren());
+        Assert(cur.second < recTerm.getNumChildren());
         os << " ";
         visit.back().second++;
-        visit.emplace_back(cur.first[cur.second], 0);
+        visit.emplace_back(recTerm[cur.second], 0);
       }
     } while (!visit.empty());
     if (i < nll)
@@ -610,6 +636,12 @@ void SmtMetaReduce::finalizeDeclarations()
   for (const Expr& e : d_declSeen)
   {
     if (e == d_listType || e == d_listCons || e == d_listNil)
+    {
+      continue;
+    }
+    // ignore deep embeddings of smt terms
+    std::string smtAppName;
+    if (isSmtApply(e)!=0)
     {
       continue;
     }
@@ -797,16 +829,26 @@ bool SmtMetaReduce::isSmtApplyTerm(const Expr& t, std::string& name, std::vector
     args.push_back(cur[1]);
     cur = cur[0];
   }
-  size_t arity = isSmtApply(t, name);
+  size_t arity = isSmtApply(cur);
   if (arity>0)
   {
+    Assert (!args.empty());
+    Expr sname = args.back();
+    args.pop_back();
+    std::reverse(args.begin(), args.end());
+    if (sname.getKind()!=Kind::STRING)
+    {
+      EO_FATAL() << "Expected string for SMT-LIB app name, got " << sname;
+    }
+    const Literal* l = sname.getValue()->asLiteral();
+    name = l->d_str.toString();
     return true;
   }
   args.clear();
   return false;
 }
 
-size_t SmtMetaReduce::isSmtApply(const Expr& t, std::string& name)
+size_t SmtMetaReduce::isSmtApply(const Expr& t)
 {
   if (t.getKind()==Kind::CONST)
   {

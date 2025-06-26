@@ -89,7 +89,7 @@ class SmtMetaReduce : public Plugin
   /** is smt apply term */
   bool isSmtApplyTerm(const Expr& t, std::string& name, std::vector<Expr>& args);
   /** is smt apply, return the arity */
-  size_t isSmtApply(const Expr& t, std::string& name);
+  size_t isSmtApply(const Expr& t);
   /** the state */
   State& d_state;
   /** the type checker */
