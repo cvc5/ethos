@@ -18,7 +18,7 @@
 namespace ethos {
 
 std::string s_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
-//std::string s_path = "/home/andrew/ethos/";
+// std::string s_path = "/home/andrew/ethos/";
 
 SmtMetaReduce::SmtMetaReduce(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {
@@ -59,7 +59,7 @@ void SmtMetaReduce::printConjunction(size_t n,
                                      std::ostream& os,
                                      const SelectorCtx& ctx)
 {
-  //os << ctx.d_letBegin.str();
+  // os << ctx.d_letBegin.str();
   if (n == 0)
   {
     os << "true";
@@ -74,7 +74,7 @@ void SmtMetaReduce::printConjunction(size_t n,
   {
     os << conj;
   }
-  //os << ctx.d_letEnd.str();
+  // os << ctx.d_letEnd.str();
 }
 
 bool SmtMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
@@ -257,7 +257,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
                                  std::ostream& os,
                                  const SelectorCtx& ctx)
 {
-  //os << ctx.d_letBegin.str();
+  // os << ctx.d_letBegin.str();
   std::map<Expr, std::string>::const_iterator it;
   std::stringstream osEnd;
   std::vector<Expr> ll;
@@ -289,7 +289,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       cur = visit.back();
       recTerm = cur.first;
       itsa = smtAppToTuple.find(recTerm);
-      if (itsa!=smtAppToTuple.end())
+      if (itsa != smtAppToTuple.end())
       {
         recTerm = itsa->second;
       }
@@ -341,17 +341,18 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
             // maybe its an SMT-apply
             std::string smtAppName;
             std::vector<Expr> smtArgs;
-            //std::cout << "Check if apply term " << cur.first << std::endl;
+            // std::cout << "Check if apply term " << cur.first << std::endl;
             if (isEoToSmt(cur.first[0]) || isSmtToEo(cur.first[0]))
             {
               // do not write sm.Apply
             }
             else if (isSmtApplyTerm(cur.first, smtAppName, smtArgs))
             {
-              //std::cout << "...returns true!!!! name is \"" << smtAppName << "\"" << std::endl;
+              // std::cout << "...returns true!!!! name is \"" << smtAppName <<
+              // "\"" << std::endl;
               os << smtAppName << " ";
               // we recurse on the compiled SMT arguments
-              recTerm =  d_state.mkExprSimple(Kind::TUPLE, smtArgs);
+              recTerm = d_state.mkExprSimple(Kind::TUPLE, smtArgs);
               smtAppToTuple[cur.first] = recTerm;
             }
             else
@@ -414,7 +415,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     }
   }
   os << osEnd.str();
-  //os << ctx.d_letEnd.str();
+  // os << ctx.d_letEnd.str();
   return true;
 }
 
@@ -574,7 +575,7 @@ void SmtMetaReduce::finalizeDeclarations()
   {
     // ignore deep embeddings of smt terms
     std::string smtAppName;
-    if (isSmtApply(e)!=0 || isSmtToEo(e) || isEoToSmt(e) || isSmtTermType(e))
+    if (isSmtApply(e) != 0 || isSmtToEo(e) || isEoToSmt(e) || isSmtTermType(e))
     {
       continue;
     }
@@ -618,8 +619,6 @@ void SmtMetaReduce::finalizeDeclarations()
     std::string name = ss.str();
   }
   d_declSeen.clear();
-
-
 }
 
 void SmtMetaReduce::finalize()
@@ -686,13 +685,15 @@ bool SmtMetaReduce::hasSubterm(const Expr& t, const Expr& s)
 
 bool SmtMetaReduce::echo(const std::string& msg)
 {
-  if (msg.compare(0, 9, "smt-meta ")==0)
+  if (msg.compare(0, 9, "smt-meta ") == 0)
   {
     std::string eosc = msg.substr(9);
     Expr vv = d_state.getVar(eosc);
     if (vv.isNull())
     {
-      EO_FATAL() << "When making verification condition, could not find program " << eosc;
+      EO_FATAL()
+          << "When making verification condition, could not find program "
+          << eosc;
     }
     d_smtVc << ";;;; final verification condition for " << eosc << std::endl;
     Expr vt = d_tc.getType(vv);
@@ -702,9 +703,9 @@ bool SmtMetaReduce::echo(const std::string& msg)
       d_smtVc << "(assert (exists (";
       std::stringstream call;
       size_t nargs = vt.getNumChildren();
-      for (size_t i=1; i<nargs; i++)
+      for (size_t i = 1; i < nargs; i++)
       {
-        if (i>1)
+        if (i > 1)
         {
           d_smtVc << " ";
         }
@@ -719,28 +720,30 @@ bool SmtMetaReduce::echo(const std::string& msg)
       d_smtVc << "(= " << eosc << " sm.True)";
     }
     d_smtVc << ")" << std::endl;
-    //std::cout << "...set target" << std::endl;
+    // std::cout << "...set target" << std::endl;
     return false;
   }
   return true;
 }
 
-bool SmtMetaReduce::isSmtApplyTerm(const Expr& t, std::string& name, std::vector<Expr>& args)
+bool SmtMetaReduce::isSmtApplyTerm(const Expr& t,
+                                   std::string& name,
+                                   std::vector<Expr>& args)
 {
   Expr cur = t;
-  while (cur.getKind()==Kind::APPLY)
+  while (cur.getKind() == Kind::APPLY)
   {
     args.push_back(cur[1]);
     cur = cur[0];
   }
   size_t arity = isSmtApply(cur);
-  if (arity>0)
+  if (arity > 0)
   {
-    Assert (!args.empty());
+    Assert(!args.empty());
     Expr sname = args.back();
     args.pop_back();
     std::reverse(args.begin(), args.end());
-    if (sname.getKind()!=Kind::STRING)
+    if (sname.getKind() != Kind::STRING)
     {
       EO_FATAL() << "Expected string for SMT-LIB app name, got " << sname;
     }
@@ -754,7 +757,7 @@ bool SmtMetaReduce::isSmtApplyTerm(const Expr& t, std::string& name, std::vector
 
 size_t SmtMetaReduce::isSmtApply(const Expr& t)
 {
-  if (t.getKind()==Kind::CONST)
+  if (t.getKind() == Kind::CONST)
   {
     std::stringstream ss;
     ss << t;
@@ -763,7 +766,7 @@ size_t SmtMetaReduce::isSmtApply(const Expr& t)
     {
       std::string sarity = sname.substr(11);
       // always add one
-      return std::stoi(sarity)+1;
+      return std::stoi(sarity) + 1;
     }
   }
   return 0;
@@ -772,7 +775,7 @@ size_t SmtMetaReduce::isSmtApply(const Expr& t)
 Kind SmtMetaReduce::getKindForSuffix(const std::string& suf) const
 {
   std::map<std::string, Kind>::const_iterator it = d_sufToKind.find(suf);
-  if (it!=d_sufToKind.end())
+  if (it != d_sufToKind.end())
   {
     return it->second;
   }
@@ -784,11 +787,11 @@ bool SmtMetaReduce::isSmtTermType(const Expr& t)
   std::stringstream ss;
   ss << t;
   std::string sname = ss.str();
-  return sname=="$smt_Term";
+  return sname == "$smt_Term";
 }
 bool SmtMetaReduce::isSmtToEo(const Expr& t)
 {
-  if (t.getKind()==Kind::CONST)
+  if (t.getKind() == Kind::CONST)
   {
     std::stringstream ss;
     ss << t;
@@ -796,14 +799,14 @@ bool SmtMetaReduce::isSmtToEo(const Expr& t)
     if (sname.compare(0, 11, "$smt_to_eo_") == 0)
     {
       Kind k = getKindForSuffix(sname.substr(11));
-      return k!=Kind::NONE;
+      return k != Kind::NONE;
     }
   }
   return false;
 }
 bool SmtMetaReduce::isEoToSmt(const Expr& t)
 {
-  if (t.getKind()==Kind::CONST)
+  if (t.getKind() == Kind::CONST)
   {
     std::stringstream ss;
     ss << t;
@@ -811,11 +814,10 @@ bool SmtMetaReduce::isEoToSmt(const Expr& t)
     if (sname.compare(0, 11, "$eo_to_smt_") == 0)
     {
       Kind k = getKindForSuffix(sname.substr(11));
-      return k!=Kind::NONE;
+      return k != Kind::NONE;
     }
   }
   return false;
-  
 }
 
 }  // namespace ethos

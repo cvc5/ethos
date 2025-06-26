@@ -42,7 +42,9 @@ class ModelSmt : public Plugin
   State& d_state;
   /** the type checker */
   TypeChecker& d_tc;
-  void addSmtLibSym(const std::string& sym, const std::vector<Kind>& args, Kind ret);
+  void addSmtLibSym(const std::string& sym,
+                    const std::vector<Kind>& args,
+                    Kind ret);
   void printSmtType(const std::string& name, std::vector<Kind>& args);
   void printSmtTerm(const std::string& name, std::vector<Kind>& args, Kind ret);
   std::map<Kind, Expr> d_kindToType;

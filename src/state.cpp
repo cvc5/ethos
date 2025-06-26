@@ -1581,7 +1581,7 @@ void State::defineProgram(const Expr& v, const Expr& prog)
 
 void State::echo(const std::string& msg)
 {
-  if (d_plugin!=nullptr)
+  if (d_plugin != nullptr)
   {
     if (!d_plugin->echo(msg))
     {

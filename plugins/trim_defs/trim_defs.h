@@ -36,11 +36,12 @@ class TrimDefs : public Plugin
                            bool isReference,
                            const Expr& referenceNf) override;
 
-                               /**
-                                */
-                              bool echo(const std::string& msg) override;
+  /**
+   */
+  bool echo(const std::string& msg) override;
   /** Finalize */
   void finalize() override;
+
  private:
   /** the state */
   State& d_state;

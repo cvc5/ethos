@@ -18,14 +18,16 @@
 namespace ethos {
 
 std::string s_smodel_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
-//std::string s_smodel_path = "/home/andrew/ethos/";
+// std::string s_smodel_path = "/home/andrew/ethos/";
 
 ModelSmt::ModelSmt(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {
   Expr typ = d_state.mkType();
   d_kindToType[Kind::BOOLEAN] = d_state.mkBoolType();
-  d_kindToType[Kind::NUMERAL] = d_state.mkSymbol(Kind::CONST, "$eo_Numeral", typ);
-  d_kindToType[Kind::RATIONAL] = d_state.mkSymbol(Kind::CONST, "$eo_Rational", typ);
+  d_kindToType[Kind::NUMERAL] =
+      d_state.mkSymbol(Kind::CONST, "$eo_Numeral", typ);
+  d_kindToType[Kind::RATIONAL] =
+      d_state.mkSymbol(Kind::CONST, "$eo_Rational", typ);
   d_kindToType[Kind::STRING] = d_state.mkSymbol(Kind::CONST, "$eo_String", typ);
   d_kindToType[Kind::BINARY] = d_state.mkSymbol(Kind::CONST, "$eo_BINARY", typ);
   d_kindToType[Kind::ANY] = d_state.mkSymbol(Kind::CONST, "Any", typ);
@@ -72,9 +74,12 @@ ModelSmt::ModelSmt(State& s) : d_state(s), d_tc(s.getTypeChecker())
   // strings
   addSmtLibSym("String", {}, Kind::TYPE);
   addSmtLibSym("str.++", {Kind::STRING, Kind::STRING}, Kind::STRING);
-  addSmtLibSym("str.substr", {Kind::STRING, Kind::NUMERAL, Kind::NUMERAL}, Kind::STRING);
+  addSmtLibSym(
+      "str.substr", {Kind::STRING, Kind::NUMERAL, Kind::NUMERAL}, Kind::STRING);
   addSmtLibSym("str.substr", {Kind::STRING}, Kind::NUMERAL);
-  addSmtLibSym("str.indexof", {Kind::STRING, Kind::STRING, Kind::NUMERAL}, Kind::NUMERAL);
+  addSmtLibSym("str.indexof",
+               {Kind::STRING, Kind::STRING, Kind::NUMERAL},
+               Kind::NUMERAL);
   addSmtLibSym("str.to_lower", {Kind::STRING}, Kind::STRING);
   addSmtLibSym("str.to_upper", {Kind::STRING}, Kind::STRING);
   addSmtLibSym("str.from_code", {Kind::NUMERAL}, Kind::STRING);
@@ -89,8 +94,9 @@ ModelSmt::ModelSmt(State& s) : d_state(s), d_tc(s.getTypeChecker())
 
 ModelSmt::~ModelSmt() {}
 
-
-void ModelSmt::addSmtLibSym(const std::string& sym, const std::vector<Kind>& args, Kind ret)
+void ModelSmt::addSmtLibSym(const std::string& sym,
+                            const std::vector<Kind>& args,
+                            Kind ret)
 {
   d_smtLibSyms[sym] = std::pair<std::vector<Kind>, Kind>(args, ret);
 }
@@ -101,14 +107,15 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
   {
     return;
   }
-  std::map<std::string, std::pair<std::vector<Kind>, Kind>>::iterator it = d_smtLibSyms.find(name);
-  if (it==d_smtLibSyms.end())
+  std::map<std::string, std::pair<std::vector<Kind>, Kind>>::iterator it =
+      d_smtLibSyms.find(name);
+  if (it == d_smtLibSyms.end())
   {
     return;
   }
   std::vector<Kind>& args = it->second.first;
   Kind ret = it->second.second;
-  if (ret==Kind::TYPE)
+  if (ret == Kind::TYPE)
   {
     printSmtType(name, args);
   }
@@ -118,21 +125,22 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
   }
 }
 
-void ModelSmt::printSmtType(const std::string& name, std::vector<Kind>& args)
-{
-}
+void ModelSmt::printSmtType(const std::string& name, std::vector<Kind>& args) {}
 
-void ModelSmt::printSmtTerm(const std::string& name, std::vector<Kind>& args, Kind kret)
+void ModelSmt::printSmtTerm(const std::string& name,
+                            std::vector<Kind>& args,
+                            Kind kret)
 {
   d_eval << "  (($smt_model_eval (" << name;
   // special cases
-  if (name=="ite")
+  if (name == "ite")
   {
     d_eval << " x1 x2 x3)) ";
-    d_eval << "(eo::ite ($smt_model_eval x1) ($smt_model_eval x2) ($smt_model_eval x3)))";
+    d_eval << "(eo::ite ($smt_model_eval x1) ($smt_model_eval x2) "
+              "($smt_model_eval x3)))";
     d_eval << std::endl;
   }
-  else if (name=="=")
+  else if (name == "=")
   {
     d_eval << " x1 x2)) ";
     d_eval << "(eo::define ((e1 ($smt_model_eval x1))) ";
@@ -142,16 +150,16 @@ void ModelSmt::printSmtTerm(const std::string& name, std::vector<Kind>& args, Ki
     d_eval << "(eo::eq e1 e2))))))";
     d_eval << std::endl;
   }
-  else if (name=="forall")
+  else if (name == "forall")
   {
     // TODO???
-    //d_eval << " x1 x2)) ($eo_not ($smt_model_exists x1 x2 0)))";
+    // d_eval << " x1 x2)) ($eo_not ($smt_model_exists x1 x2 0)))";
   }
-  else if (name=="exists")
+  else if (name == "exists")
   {
     d_eval << " x1 x2)) ($smt_model_exists x1 x2 0))";
   }
-  else if (kret==Kind::PARAM)
+  else if (kret == Kind::PARAM)
   {
     // TODO: combined / mixed arithmetic?
   }
@@ -161,16 +169,17 @@ void ModelSmt::printSmtTerm(const std::string& name, std::vector<Kind>& args, Ki
     appArgs << " \"" << name << "\"";
     std::stringstream preApp;
     std::stringstream preAppEnd;
-    for (size_t i=1, nargs=args.size(); i<=nargs; i++)
+    for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
     {
       d_eval << " x" << i;
       preApp << "(eo::define ((e" << i << " ($smt_model_eval x" << i << "))) ";
-      preApp << "(eo::requires ($smt_is_value (eo::typeof x" << i << ") e" << i << ") true ";
+      preApp << "(eo::requires ($smt_is_value (eo::typeof x" << i << ") e" << i
+             << ") true ";
       preAppEnd << "))";
-      Kind ka = args[i-1];
+      Kind ka = args[i - 1];
       // use guarded version
       appArgs << " ($eo_to_smt_";
-      if (d_kindToEoPrefix.find(ka)!=d_kindToEoPrefix.end())
+      if (d_kindToEoPrefix.find(ka) != d_kindToEoPrefix.end())
       {
         appArgs << d_kindToEoPrefix[ka];
       }
@@ -181,12 +190,12 @@ void ModelSmt::printSmtTerm(const std::string& name, std::vector<Kind>& args, Ki
       appArgs << " e" << i << ")";
     }
     std::stringstream ssretBase;
-    if (args.empty() || args.size()>3)
+    if (args.empty() || args.size() > 3)
     {
       EO_FATAL() << "Unhandled arity " << args.size() << " for " << name;
     }
     d_eval << ")) " << preApp.str() << "($smt_to_eo_";
-    if (d_kindToEoPrefix.find(kret)!=d_kindToEoPrefix.end())
+    if (d_kindToEoPrefix.find(kret) != d_kindToEoPrefix.end())
     {
       d_eval << d_kindToEoPrefix[kret];
     }
@@ -194,7 +203,8 @@ void ModelSmt::printSmtTerm(const std::string& name, std::vector<Kind>& args, Ki
     {
       EO_FATAL() << "Unknown return kind: " << kret;
     }
-    d_eval << " ($smt_apply_" << args.size() << appArgs.str() << ")))" << preAppEnd.str() << std::endl;
+    d_eval << " ($smt_apply_" << args.size() << appArgs.str() << ")))"
+           << preAppEnd.str() << std::endl;
   }
 }
 
@@ -227,8 +237,6 @@ void ModelSmt::finalize()
   std::cout << "Write smt-model    " << ssoe.str() << std::endl;
   std::ofstream oute(ssoe.str());
   oute << finalEo;
-
-
 }
 
 }  // namespace ethos

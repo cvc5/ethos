@@ -9,8 +9,8 @@
 
 #include "trim_defs.h"
 
-#include <fstream>
 #include <cctype>
+#include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -22,7 +22,7 @@
 namespace ethos {
 
 std::string st_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
-//std::string st_path = "/home/andrew/ethos/";
+// std::string st_path = "/home/andrew/ethos/";
 
 struct Command
 {
@@ -42,8 +42,7 @@ std::string nextToken(std::istream& in)
     if (c == ';')
     {
       // Skip to end of line
-      while (in.get(c) && c != '\n')
-        ;
+      while (in.get(c) && c != '\n');
       continue;
     }
     if (std::isspace(c))
@@ -80,8 +79,7 @@ std::string readFullCommand(std::istream& in)
     if (c == ';')
     {
       // skip comment to newline
-      while (in.get(c) && c != '\n')
-        ;
+      while (in.get(c) && c != '\n');
       result += '\n';
       continue;
     }
@@ -111,7 +109,7 @@ Command parseCommand(const std::string& s_expr_text)
   std::istringstream in(s_expr_text);
   if (nextToken(in) != "(")
   {
-    Assert (false);
+    Assert(false);
   }
 
   cmd.d_cmdName = nextToken(in);
@@ -156,8 +154,8 @@ void TrimDefs::parseCommands(std::istream& in)
       {
         continue;
       }
-      //std::cout << "Command: " << cmd.d_cmdName << " " << cmd.d_symbolName
-      //          << std::endl;
+      // std::cout << "Command: " << cmd.d_cmdName << " " << cmd.d_symbolName
+      //           << std::endl;
       its = d_symToId.find(cmd.d_symbolName);
       size_t id;
       if (its == d_symToId.end())
@@ -174,11 +172,11 @@ void TrimDefs::parseCommands(std::istream& in)
       d_symCommands[id].insert(cid);
       // declare-consts must always be visited
       // $eo_test is a builtin way to ensure tests are included
-      if (cmd.d_cmdName=="declare-consts")
+      if (cmd.d_cmdName == "declare-consts")
       {
         d_toVisit.push_back(id);
       }
-      //std::cout << "*** command " << cmd.d_fullText << std::endl;
+      // std::cout << "*** command " << cmd.d_fullText << std::endl;
       d_commands.push_back(cmd.d_fullText);
       std::unordered_set<size_t>& csyms = d_cmdSyms[cid];
       for (const std::string& s : cmd.d_bodySyms)
@@ -194,22 +192,19 @@ void TrimDefs::parseCommands(std::istream& in)
         its = d_symToId.find(su);
         if (its != d_symToId.end() && its->second != id)  // no self
         {
-          //std::cout << "...*** sym " << s << std::endl;
+          // std::cout << "...*** sym " << s << std::endl;
           csyms.insert(its->second);
         }
         else
         {
-          //std::cout << "...non-sym " << s << std::endl;
+          // std::cout << "...non-sym " << s << std::endl;
         }
       }
     }
   }
 }
 
-TrimDefs::TrimDefs(State& s) : d_state(s)
-{
-  d_idCounter = 0;
-}
+TrimDefs::TrimDefs(State& s) : d_state(s) { d_idCounter = 0; }
 
 TrimDefs::~TrimDefs() {}
 
@@ -222,7 +217,7 @@ void TrimDefs::finalizeIncludeFile(const Filepath& s,
   {
     return;
   }
-  //std::cout << "Trim defs: " << s.getRawPath() << std::endl;
+  // std::cout << "Trim defs: " << s.getRawPath() << std::endl;
   std::unique_ptr<Input> i = Input::mkFileInput(s.getRawPath());
   std::istream* is = i->getStream();
   parseCommands(*is);
@@ -230,11 +225,12 @@ void TrimDefs::finalizeIncludeFile(const Filepath& s,
 
 bool TrimDefs::echo(const std::string& msg)
 {
-  //std::cout << "Echos " << msg << " \"" << msg.substr(10) << "\"" << std::endl;
-  if (msg.compare(0, 10, "trim-defs ")==0)
+  // std::cout << "Echos " << msg << " \"" << msg.substr(10) << "\"" <<
+  // std::endl;
+  if (msg.compare(0, 10, "trim-defs ") == 0)
   {
     d_defTargets.push_back(msg.substr(10));
-    //std::cout << "...set target" << std::endl;
+    // std::cout << "...set target" << std::endl;
     return false;
   }
   return true;
@@ -244,7 +240,8 @@ void TrimDefs::finalize()
 {
   if (d_defTargets.empty())
   {
-    EO_FATAL() << "Must set target with (echo \"trim-defs <symbol>\"), where <symbol> is the name of the "
+    EO_FATAL() << "Must set target with (echo \"trim-defs <symbol>\"), where "
+                  "<symbol> is the name of the "
                   "symbol to trim with respect to."
                << std::endl;
   }
@@ -263,25 +260,24 @@ void TrimDefs::finalize()
   {
     size_t cur = d_toVisit.back();
     d_toVisit.pop_back();
-    if (visited.find(cur)!=visited.end())
+    if (visited.find(cur) != visited.end())
     {
       continue;
     }
     visited.insert(cur);
     std::unordered_set<size_t>& sc = d_symCommands[cur];
-    Assert (!sc.empty());
+    Assert(!sc.empty());
     for (size_t cid : sc)
     {
-      if (cdeps.find(cid)==cdeps.end())
+      if (cdeps.find(cid) == cdeps.end())
       {
         cdeps.insert(cid);
         std::unordered_set<size_t>& csyms = d_cmdSyms[cid];
         d_toVisit.insert(d_toVisit.end(), csyms.begin(), csyms.end());
       }
     }
-  }
-  while (!d_toVisit.empty());
-  
+  } while (!d_toVisit.empty());
+
   std::stringstream ss;
   ss << "; trim-defs:";
   for (const std::string& dt : d_defTargets)
@@ -297,7 +293,7 @@ void TrimDefs::finalize()
     ss << d_commands[i];
     ss << std::endl;
   }
-  
+
   // write the trimmed to file
   std::stringstream sso;
   sso << st_path << "plugins/trim_defs/trim_gen.eo";

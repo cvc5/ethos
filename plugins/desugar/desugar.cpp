@@ -18,7 +18,7 @@
 namespace ethos {
 
 std::string s_ds_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
-//std::string s_ds_path = "/home/andrew/ethos/";
+// std::string s_ds_path = "/home/andrew/ethos/";
 
 Desugar::Desugar(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {
@@ -71,22 +71,29 @@ void Desugar::finalizeSetLiteralTypeRule(Kind k, const Expr& t)
   std::ostream* os;
   switch (k)
   {
-    case Kind::NUMERAL: ss << "<numeral>";
-    os = &d_ltNum;
-    break;
-    case Kind::RATIONAL: ss << "<rational>";
-    os = &d_ltRational; break;
-    case Kind::BINARY: ss << "<binary>";
-    os = &d_ltBinary;  break;
-    case Kind::STRING: ss << "<string>";
-    os = &d_ltString;  break;
+    case Kind::NUMERAL:
+      ss << "<numeral>";
+      os = &d_ltNum;
+      break;
+    case Kind::RATIONAL:
+      ss << "<rational>";
+      os = &d_ltRational;
+      break;
+    case Kind::BINARY:
+      ss << "<binary>";
+      os = &d_ltBinary;
+      break;
+    case Kind::STRING:
+      ss << "<string>";
+      os = &d_ltString;
+      break;
     case Kind::DECIMAL: ss << "<decimal>"; break;
     case Kind::HEXADECIMAL: ss << "<hexadecimal>"; break;
     default: EO_FATAL() << "Unknown literal type rule" << k << std::endl; break;
   }
   ss << " " << t << ")" << std::endl;
   // declared at the top
-  if (os!= nullptr)
+  if (os != nullptr)
   {
     // get the symbols and declare them in the preamble
     std::vector<Expr> syms = getSubtermsKind(Kind::CONST, t);
@@ -110,7 +117,7 @@ void Desugar::finalizeSetLiteralTypeRule(Kind k, const Expr& t)
       // Note that we could introduce a $eo_Builtin_Numeral but this would
       // complicate further type checking, i.e. the user expects
       // the result of eo::len to be an Int.
-      if (k==Kind::NUMERAL)
+      if (k == Kind::NUMERAL)
       {
         EO_FATAL() << "Must have a ground type for <numeral>.";
       }
@@ -673,13 +680,13 @@ void Desugar::finalizeRule(const Expr& e)
     Assert(rt.getKind() == Kind::PROOF_TYPE);
     Expr rrt = rt[0];
     d_eoVc << "(define $eor_" << e << " () " << rrt << ")" << std::endl
-              << std::endl;
+           << std::endl;
     if (!d_state.isProofRuleSorry(e.getValue()))
     {
       d_eoVc << "; verification: " << e << std::endl;
       d_eoVc << "(define $eovc_" << e;
       d_eoVc << " () (eo::requires ($eo_model_sat $eor_" << e
-                << ") false true))" << std::endl;
+             << ") false true))" << std::endl;
       d_eoVc << std::endl;
     }
     return;
@@ -769,12 +776,11 @@ void Desugar::finalizeRule(const Expr& e)
   rrt = rrt[0];
   rrt = d_state.mkRequires(reqs, rrt);
   // just use the same parameter list
-  d_eoVc << "(program $eorx_" << e << " (" << plout.str() << ")"
-            << std::endl;
+  d_eoVc << "(program $eorx_" << e << " (" << plout.str() << ")" << std::endl;
   d_eoVc << "  :signature (" << tcrSig.str() << ") Bool" << std::endl;
   d_eoVc << "  (" << std::endl;
   d_eoVc << "  (($eorx_" << e << tcrBody.str() << ") " << rrt << ")"
-            << std::endl;
+         << std::endl;
   d_eoVc << "  )" << std::endl;
   d_eoVc << ")" << std::endl;
   d_eoVc << "(program $eor_" << e << " (" << plout.str() << ")" << std::endl;
@@ -782,15 +788,14 @@ void Desugar::finalizeRule(const Expr& e)
   d_eoVc << " Bool" << std::endl;
   d_eoVc << "  (" << std::endl;
   d_eoVc << "  (($eor_" << e << argList.str() << ") ($eorx_" << e
-            << tcrCall.str() << "))" << std::endl;
+         << tcrCall.str() << "))" << std::endl;
   d_eoVc << "  )" << std::endl;
   d_eoVc << ")" << std::endl;
   // compile the verification condition for the soundness of this rule
   if (!d_state.isProofRuleSorry(e.getValue()))
   {
     d_eoVc << "; verification: " << e << std::endl;
-    d_eoVc << "(program $eovc_" << e << " (" << plout.str() << ")"
-              << std::endl;
+    d_eoVc << "(program $eovc_" << e << " (" << plout.str() << ")" << std::endl;
     d_eoVc << "  :signature (" << typeList.str() << ")";
     d_eoVc << " Bool" << std::endl;
     d_eoVc << "  (" << std::endl;
@@ -801,12 +806,12 @@ void Desugar::finalizeRule(const Expr& e)
       if (argIsProof[i])
       {
         d_eoVc << "     (eo::requires ($eo_model_sat " << finalArgs[i]
-                  << ") true" << std::endl;
+               << ") true" << std::endl;
         ssvce << ")";
       }
     }
-    d_eoVc << "     (eo::requires ($eo_model_sat ($eor_" << e
-              << argList.str() << ")) false" << std::endl;
+    d_eoVc << "     (eo::requires ($eo_model_sat ($eor_" << e << argList.str()
+           << ")) false" << std::endl;
     d_eoVc << "       true))" << ssvce.str() << std::endl;
     d_eoVc << "  )" << std::endl;
     d_eoVc << ")" << std::endl;
@@ -943,8 +948,6 @@ void Desugar::finalize()
   std::cout << "Write core-defs    " << ssoe.str() << std::endl;
   std::ofstream oute(ssoe.str());
   oute << finalEo;
-
-
 }
 
 Expr Desugar::mkSanitize(const Expr& t)
@@ -1043,20 +1046,20 @@ std::vector<Expr> Desugar::getSubtermsKind(Kind k, const Expr& t)
   {
     cur = toVisit.back();
     toVisit.pop_back();
-    if (visited.find(cur)!=visited.end())
+    if (visited.find(cur) != visited.end())
     {
       continue;
     }
     visited.insert(cur);
-    if (cur.getKind()==k)
+    if (cur.getKind() == k)
     {
       ret.push_back(cur);
     }
-    for (size_t i=0, nchild=cur.getNumChildren(); i<nchild; i++)
+    for (size_t i = 0, nchild = cur.getNumChildren(); i < nchild; i++)
     {
       toVisit.push_back(cur[i]);
     }
-  }while (!toVisit.empty());
+  } while (!toVisit.empty());
   return ret;
 }
 

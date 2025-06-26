@@ -41,9 +41,9 @@ class SelectorCtx
   }
   */
   std::map<Expr, std::string> d_ctx;
-  //std::stringstream d_letBegin;
-  //std::stringstream d_letEnd;
-  //size_t d_counter;
+  // std::stringstream d_letBegin;
+  // std::stringstream d_letEnd;
+  // size_t d_counter;
 };
 
 /**
@@ -62,9 +62,10 @@ class SmtMetaReduce : public Plugin
   /** Finalize */
   void finalize() override;
 
-                            /**
-                              */
-                            bool echo(const std::string& msg) override;
+  /**
+   */
+  bool echo(const std::string& msg) override;
+
  private:
   void printConjunction(size_t n,
                         const std::string& conj,
@@ -76,16 +77,16 @@ class SmtMetaReduce : public Plugin
                             SelectorCtx& ctx,
                             size_t& nconj);
   bool printEmbAtomicTerm(const Expr& c, std::ostream& os);
-  bool printEmbTerm(const Expr& c,
-                    std::ostream& os,
-                    const SelectorCtx& ctx);
+  bool printEmbTerm(const Expr& c, std::ostream& os, const SelectorCtx& ctx);
   void finalizePrograms();
   void finalizeProgram(const Expr& v, const Expr& prog);
   void finalizeDeclarations();
   /** Does t have subterm s? */
   static bool hasSubterm(const Expr& t, const Expr& s);
   /** is smt apply term */
-  bool isSmtApplyTerm(const Expr& t, std::string& name, std::vector<Expr>& args);
+  bool isSmtApplyTerm(const Expr& t,
+                      std::string& name,
+                      std::vector<Expr>& args);
   /** is smt apply, return the arity */
   size_t isSmtApply(const Expr& t);
   /** is smt term type */
