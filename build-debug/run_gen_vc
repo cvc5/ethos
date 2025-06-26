@@ -44,7 +44,6 @@ cp $STD_TRIM_OUT $VCMT_DEF_DESUGAR
 echo "**** run_gen_vc: Verify it parses"
 ./src/ethos $VCMT_DEF_DESUGAR
 
-
 echo "(echo \"smt-meta \$eovc_$TARGET\")" >> $VCM_DEF_DESUGAR
 
 echo "**** Generate SMT2 from $VCM_DEF_DESUGAR to $VC_OUT"

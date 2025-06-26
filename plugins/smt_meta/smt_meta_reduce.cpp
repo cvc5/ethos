@@ -22,9 +22,6 @@ std::string s_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
 
 SmtMetaReduce::SmtMetaReduce(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {
-  d_listNil = s.mkListNil();
-  d_listCons = s.mkListCons();
-  d_listType = s.mkListType();
   d_sufToKind["bool"] = Kind::BOOLEAN;
   d_sufToKind["z"] = Kind::NUMERAL;
   d_sufToKind["q"] = Kind::RATIONAL;
@@ -33,29 +30,6 @@ SmtMetaReduce::SmtMetaReduce(State& s) : d_state(s), d_tc(s.getTypeChecker())
 }
 
 SmtMetaReduce::~SmtMetaReduce() {}
-
-void SmtMetaReduce::setLiteralTypeRule(Kind k, const Expr& t)
-{
-  d_eoTypeofLit << "  (ite ((_ is sm.";
-  switch (k)
-  {
-    case Kind::NUMERAL: d_eoTypeofLit << "Numeral"; break;
-    case Kind::RATIONAL: d_eoTypeofLit << "Rational"; break;
-    case Kind::BINARY: d_eoTypeofLit << "Binary"; break;
-    case Kind::STRING: d_eoTypeofLit << "String"; break;
-    case Kind::DECIMAL: d_eoTypeofLit << "Decimal"; break;
-    case Kind::HEXADECIMAL: d_eoTypeofLit << "Hexadecimal"; break;
-    default: EO_FATAL() << "Unknown literal type rule" << k << std::endl; break;
-  }
-  d_eoTypeofLit << ") x1)" << std::endl;
-  d_eoTypeofEnd << ")";
-  Expr self = d_state.mkSelf();
-  SelectorCtx ctx;
-  ctx.d_ctx[self] = "x1";
-  d_eoTypeofLit << "    ";
-  printEmbTerm(t, d_eoTypeofLit, ctx);
-  d_eoTypeofLit << std::endl;
-}
 
 void SmtMetaReduce::bind(const std::string& name, const Expr& e)
 {
@@ -85,7 +59,7 @@ void SmtMetaReduce::printConjunction(size_t n,
                                      std::ostream& os,
                                      const SelectorCtx& ctx)
 {
-  os << ctx.d_letBegin.str();
+  //os << ctx.d_letBegin.str();
   if (n == 0)
   {
     os << "true";
@@ -100,26 +74,11 @@ void SmtMetaReduce::printConjunction(size_t n,
   {
     os << conj;
   }
-  os << ctx.d_letEnd.str();
+  //os << ctx.d_letEnd.str();
 }
 
 bool SmtMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
 {
-  if (c == d_listCons)
-  {
-    os << "sm.$eo_List_cons";
-    return true;
-  }
-  if (c == d_listNil)
-  {
-    os << "sm.$eo_List_nil";
-    return true;
-  }
-  if (c == d_listType)
-  {
-    os << "sm.$eo_List";
-    return true;
-  }
   Kind k = c.getKind();
   if (k == Kind::CONST)
   {
@@ -129,26 +88,7 @@ bool SmtMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
     }
     else
     {
-      std::map<Expr, size_t>::iterator it = d_overloadId.find(c);
-      size_t oid;
-      if (it == d_overloadId.end())
-      {
-        std::stringstream ss;
-        ss << c;
-        std::string s = ss.str();
-        oid = d_overloadCount[s];
-        d_overloadId[c] = oid;
-        d_overloadCount[s]++;
-      }
-      else
-      {
-        oid = it->second;
-      }
       os << "sm." << c;
-      if (oid > 0)
-      {
-        os << "." << (oid + 1);
-      }
     }
     return true;
   }
@@ -318,7 +258,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
                                  const SelectorCtx& ctx,
                                  bool ignorePf)
 {
-  os << ctx.d_letBegin.str();
+  //os << ctx.d_letBegin.str();
   std::map<Expr, std::string>::const_iterator it;
   std::stringstream osEnd;
   std::vector<Expr> ll;
@@ -327,7 +267,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
   std::map<Expr, Expr>::iterator itsa;
   // letify parameters for efficiency?
   std::map<const ExprValue*, size_t> lbind = Expr::computeLetBinding(body, ll);
-  // NOTE: could print the context in the let list?
   std::map<const ExprValue*, size_t>::iterator itl;
   for (size_t i = 0, nll = ll.size(); i <= nll; i++)
   {
@@ -380,21 +319,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           visit.pop_back();
           continue;
         }
-        if (ck == Kind::ANNOT_PARAM)
-        {
-          // ignored
-          visit.pop_back();
-          visit.emplace_back(cur.first[0], 0);
-          continue;
-        }
-        if (ck == Kind::PARAMETERIZED)
-        {
-          Assert(cur.first.getNumChildren() == 2);
-          // ignored
-          visit.pop_back();
-          visit.emplace_back(cur.first[1], 0);
-          continue;
-        }
         if (ck == Kind::VARIABLE)
         {
           visit.back().second++;
@@ -423,17 +347,9 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
             std::string smtAppName;
             std::vector<Expr> smtArgs;
             //std::cout << "Check if apply term " << cur.first << std::endl;
-            if (isEoToSmt(cur.first[0]))
+            if (isEoToSmt(cur.first[0]) || isSmtToEo(cur.first[0]))
             {
-              //visit.back().second++;
-              // print without "sm."
-              //os << cur.first[0] << " ";
-            }
-            else if (isSmtToEo(cur.first[0]))
-            {
-              //visit.back().second++;
-              // print without "sm."
-              //os << cur.first[0] << " ";
+              // do not write sm.Apply
             }
             else if (isSmtApplyTerm(cur.first, smtAppName, smtArgs))
             {
@@ -501,7 +417,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     }
   }
   os << osEnd.str();
-  os << ctx.d_letEnd.str();
+  //os << ctx.d_letEnd.str();
   return true;
 }
 
@@ -659,10 +575,6 @@ void SmtMetaReduce::finalizeDeclarations()
   std::map<Expr, std::pair<Attr, Expr>>::iterator it;
   for (const Expr& e : d_declSeen)
   {
-    if (e == d_listType || e == d_listCons || e == d_listNil)
-    {
-      continue;
-    }
     // ignore deep embeddings of smt terms
     std::string smtAppName;
     if (isSmtApply(e)!=0 || isSmtToEo(e) || isEoToSmt(e))
@@ -707,13 +619,6 @@ void SmtMetaReduce::finalizeDeclarations()
     std::stringstream ss;
     ss << e;
     std::string name = ss.str();
-    // handle overloading??
-    /*
-    if (name.compare(0, 5, "$eoo_")==0)
-    {
-      name = name.substr(5);
-    }
-    */
   }
   d_declSeen.clear();
 
@@ -724,22 +629,6 @@ void SmtMetaReduce::finalize()
 {
   finalizePrograms();
   finalizeDeclarations();
-  // debugging
-  /*
-  std::cout << ";;; Term declaration" << std::endl;
-  std::cout << d_termDecl.str();
-  std::cout << ";;; definitions" << std::endl;
-  std::cout << d_defs.str();
-  std::cout << ";;; $eo_nil definition" << std::endl;
-  std::cout << "var list: " << d_eoNilVarList.str() << std::endl;
-  std::cout << d_eoNil.str();
-  std::cout << ";;; $eo_typeof literal definition" << std::endl;
-  std::cout << d_eoTypeofLit.str();
-  std::cout << ";;; $eo_typeof definition" << std::endl;
-  std::cout << d_eoTypeof.str();
-  std::cout << ";;; proof rules" << std::endl;
-  std::cout << d_rules.str();
-  */
 
   auto replace = [](std::string& txt,
                     const std::string& tag,
@@ -759,15 +648,9 @@ void SmtMetaReduce::finalize()
   ss << in.rdbuf();
   std::string finalSm = ss.str();
 
-  replace(finalSm, "$TERM_DECL$", d_termDecl.str());
-  replace(finalSm, "$TYPEOF_LITERALS$", d_eoTypeofLit.str());
-  replace(finalSm, "$TYPEOF_END$", d_eoTypeofEnd.str());
-  replace(finalSm, "$DEFS$", d_defs.str());
+  replace(finalSm, "$SM_TERM_DECL$", d_termDecl.str());
+  replace(finalSm, "$SM_DEFS$", d_defs.str());
   replace(finalSm, "$SMT_VC$", d_smtVc.str());
-  // replace(finalSm, "$RULES$", d_rules.str());
-
-  // std::cout << ";;; Final: " << std::endl;
-  // std::cout << finalSm << std::endl;
 
   std::stringstream sso;
   sso << s_path << "plugins/smt_meta/smt_meta_gen.smt2";
@@ -901,8 +784,10 @@ Kind SmtMetaReduce::getKindForSuffix(const std::string& suf) const
 
 bool SmtMetaReduce::isSmtTermType(const Expr& t)
 {
-  // TODO: check name
-  return false;
+  std::stringstream ss;
+  ss << t;
+  std::string sname = ss.str();
+  return sname=="$smt_Term";
 }
 bool SmtMetaReduce::isSmtToEo(const Expr& t)
 {

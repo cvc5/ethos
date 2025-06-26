@@ -47,17 +47,9 @@
 ; Convert smt2 term to a Eunoia binary.
 (declare-const $smt_to_eo_bin (-> $smt_Term $eo_Binary))
 
-; guarded versions of the eo_to_smt operators
-;(define $guarded_eo_to_smt_bool ((T Type :implicit) (x T))
-;  (eo::requires (eo::is_bool x) true ($eo_to_smt_bool x)))
-;(define $guarded_eo_to_smt_z ((T Type :implicit) (x T))
-;  (eo::requires (eo::is_z x) true ($eo_to_smt_z x)))
-;(define $guarded_eo_to_smt_q ((T Type :implicit) (x T))
-;  (eo::requires (eo::is_q x) true ($eo_to_smt_q x)))
-;(define $guarded_eo_to_smt_str ((T Type :implicit) (x T))
-;  (eo::requires (eo::is_str x) true ($eo_to_smt_str x)))
-;(define $guarded_eo_to_smt_bin ((T Type :implicit) (x T))
-;  (eo::requires (eo::is_bin x) true ($eo_to_smt_bin x)))
+;;; Things that can be desugared at this layer
+
+;(program $eo_typeof ((T Type)) :signature (T) Type)
 
 ;;; definitions of Types
 
@@ -109,16 +101,16 @@ $SMT_TYPE_ENUM_CASES$
 )
 
 ; specification for exists is a (non-computable) function
-(program $smt_model_exists ((T Type) (x T) (xs $eo_List) (F Bool) (i $eo_Numeral))
+(program $smt_model_eval_exists ((T Type) (x T) (xs $eo_List) (F Bool) (i $eo_Numeral))
   :signature ($eo_List Bool $eo_Numeral) Bool
   (
-  (($smt_model_exists $eo_List_nil F i)     ($smt_model_eval F))
-  (($smt_model_exists ($eo_List_cons x xs) F i)
+  (($smt_model_eval_exists $eo_List_nil F i)     ($smt_model_eval F))
+  (($smt_model_eval_exists ($eo_List_cons x xs) F i)
     (eo::define ((next ($smt_type_enum (eo::typeof x) i)))
     (eo::ite (eo::is_ok next)
       (eo::ite ($smt_model_eval ($smt_substitute x next F))
         true
-        ($smt_model_exists ($eo_List_cons x xs) F (eo::add i 1)))
+        ($smt_model_eval_exists ($eo_List_cons x xs) F (eo::add i 1)))
       false))) ; out of values
   )
 )
@@ -154,5 +146,43 @@ $SMT_EVAL_CASES$
   :signature (Bool) Bool
   (
   (($eo_model_sat F) ($smt_model_eval F))
+  )
+)
+
+; other things that can be compiled away in this step
+
+; note $eo_typeof is already foward declared.
+
+; Used to model eo::var
+(declare-parameterized-const $eo_Var ((s $eo_String) (T Type)) T)
+
+; program: $eo_var
+; implements: eo::var
+(define $eo_var ((s $eo_String) (T Type))
+  (eo::requires ($eo_is_str s) true
+  (eo::requires ($eo_typeof T) Type
+    ($eo_Var s T))))
+
+; program: $eo_nameof
+; implements: eo::nameof
+(program $eo_nameof ((s $eo_String) (T Type))
+  :signature (T) $eo_String
+  (
+  (($eo_nameof ($eo_Var s T)) s)
+  )
+)
+
+; program: $eo_typeof
+(program $eo_typeof ((T Type) (t T) (s $eo_String))
+  :signature (T) Type
+  (
+  (($eo_typeof ($eo_Var s T)) T)
+  (($eo_typeof t)
+      (eo::ite ($eo_is_bool t) Bool
+      (eo::ite ($eo_is_z t) $eo_Numeral
+      (eo::ite ($eo_is_q t) $eo_Rational
+      (eo::ite ($eo_is_str t) $eo_String
+      (eo::ite ($eo_is_bin t) $eo_Binary
+        ($eo_typeof_main t)))))))
   )
 )
