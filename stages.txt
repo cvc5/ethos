@@ -1,3 +1,7 @@
+Run:
+
+./build-debug/run_gen_bv <proof-rule>
+
 At a high-level, the correctness of a Eunoia proof rule can be compiled to
 a *.smt2 file, which if unsat, is evidence that the proof rule is sound.
 The final encoding uses a deep embedding where:
