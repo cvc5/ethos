@@ -49,15 +49,6 @@
     sm.Stuck)))
 
 
-
-
-
-
-
-
-
-
-
 (program $sm_Binary_+ ((T Type)) :signature (T T) T)
 
 (define $eo_add ((T Type :implicit) (x1 T) (x2 T))

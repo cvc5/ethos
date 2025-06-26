@@ -255,8 +255,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
 
 bool SmtMetaReduce::printEmbTerm(const Expr& body,
                                  std::ostream& os,
-                                 const SelectorCtx& ctx,
-                                 bool ignorePf)
+                                 const SelectorCtx& ctx)
 {
   //os << ctx.d_letBegin.str();
   std::map<Expr, std::string>::const_iterator it;
@@ -305,12 +304,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           continue;
         }
         Kind ck = cur.first.getKind();
-        if (ck == Kind::PROOF_TYPE && ignorePf)
-        {
-          visit.pop_back();
-          visit.emplace_back(cur.first[0], 0);
-          continue;
-        }
         if (ck == Kind::PARAM)
         {
           it = ctx.d_ctx.find(cur.first);
@@ -319,6 +312,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           visit.pop_back();
           continue;
         }
+        /*
         if (ck == Kind::VARIABLE)
         {
           visit.back().second++;
@@ -329,6 +323,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           visit.emplace_back(vt, 0);
           continue;
         }
+        */
         else if (cur.first.getNumChildren() == 0)
         {
           if (!printEmbAtomicTerm(cur.first, os))
@@ -364,7 +359,8 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
               if (cur.first[0].getKind() != Kind::PROGRAM_CONST)
               {
                 Assert(cur.first.getNumChildren() == 2);
-                os << "sm.Apply ";
+                // must use macro to ensure "Stuck" propagates
+                os << "$sm_Apply ";
               }
             }
           }
@@ -375,7 +371,8 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           else if (ck == Kind::FUNCTION_TYPE)
           {
             Assert(cur.first.getNumChildren() == 2);
-            os << "sm.FunType ";
+            // must use macro to ensure "Stuck" propagates
+            os << "$sm_FunType ";
           }
           else if (isLiteralOp(ck))
           {
@@ -577,7 +574,7 @@ void SmtMetaReduce::finalizeDeclarations()
   {
     // ignore deep embeddings of smt terms
     std::string smtAppName;
-    if (isSmtApply(e)!=0 || isSmtToEo(e) || isEoToSmt(e))
+    if (isSmtApply(e)!=0 || isSmtToEo(e) || isEoToSmt(e) || isSmtTermType(e))
     {
       continue;
     }
@@ -605,7 +602,7 @@ void SmtMetaReduce::finalizeDeclarations()
       Assert(ct.getKind() == Kind::FUNCTION_TYPE);
       nopqArgs = ct.getNumChildren() - 1;
     }
-    else if (attr == Attr::AMB || attr == Attr::DATATYPE_CONSTRUCTOR)
+    else if (attr == Attr::AMB || attr == Attr::AMB_DATATYPE_CONSTRUCTOR)
     {
       nopqArgs = 1;
     }

@@ -98,7 +98,7 @@ void Desugar::finalizeSetLiteralTypeRule(Kind k, const Expr& t)
     d_litTypeDecl << ss.str();
     // it is only possible to define e.g. $eo_Binary
     // if t is ground. This avoids having eo::self as a free parameter.
-    // We use $eo_defined_type otherwise.
+    // We use $eo_undef_type otherwise.
     if (t.isGround())
     {
       (*os) << t;
@@ -114,7 +114,7 @@ void Desugar::finalizeSetLiteralTypeRule(Kind k, const Expr& t)
       {
         EO_FATAL() << "Must have a ground type for <numeral>.";
       }
-      (*os) << "$eo_defined_type";
+      (*os) << "$eo_undef_type";
     }
   }
   else

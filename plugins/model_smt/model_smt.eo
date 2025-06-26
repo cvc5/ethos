@@ -65,7 +65,7 @@
   :signature ((eo::quote T) T) Bool
   (
   ; if the literal type is not defined, this is false
-  (($smt_is_value $eo_defined_type t) false)
+  (($smt_is_value $eo_undef_type t) false)
   ; standard atomic types
   (($smt_is_value $eo_Numeral t)      ($eo_is_z t))
   (($smt_is_value $eo_Rational t)     ($eo_is_q t))
@@ -173,16 +173,17 @@ $SMT_EVAL_CASES$
 )
 
 ; program: $eo_typeof
+; implements: eo::typeof
 (program $eo_typeof ((T Type) (t T) (s $eo_String))
   :signature (T) Type
   (
   (($eo_typeof ($eo_Var s T)) T)
-  (($eo_typeof t)
-      (eo::ite ($eo_is_bool t) Bool
-      (eo::ite ($eo_is_z t) $eo_Numeral
-      (eo::ite ($eo_is_q t) $eo_Rational
-      (eo::ite ($eo_is_str t) $eo_String
-      (eo::ite ($eo_is_bin t) $eo_Binary
-        ($eo_typeof_main t)))))))
+  (($eo_typeof t) (eo::ite ($eo_is_bool t) Bool
+                  (eo::ite ($eo_is_z t) $eo_Numeral
+                  (eo::ite ($eo_is_q t) $eo_Rational
+                  (eo::ite ($eo_is_str t) $eo_String
+                  (eo::ite ($eo_is_bin t) $eo_Binary
+                    ($eo_typeof_main t)))))))
   )
 )
+

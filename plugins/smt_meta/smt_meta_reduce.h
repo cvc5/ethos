@@ -78,8 +78,7 @@ class SmtMetaReduce : public Plugin
   bool printEmbAtomicTerm(const Expr& c, std::ostream& os);
   bool printEmbTerm(const Expr& c,
                     std::ostream& os,
-                    const SelectorCtx& ctx,
-                    bool ignorePf = false);
+                    const SelectorCtx& ctx);
   void finalizePrograms();
   void finalizeProgram(const Expr& v, const Expr& prog);
   void finalizeDeclarations();
