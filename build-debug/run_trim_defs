@@ -10,7 +10,7 @@ echo "**** run_trim_defs: Write EO to $TMP_FILE"
 INPUT=$1
 shift
 # output file
-OUT_FILE=../plugins/trim_defs/trim.eo
+STD_TRIM_OUT=../plugins/trim_defs/trim.eo
 
 echo "(include \"$INPUT\")" > $TMP_FILE
 
@@ -23,11 +23,10 @@ done
 
 echo "**** run_trim_defs: Run ethos + trim-defs on $TMP_FILE"
 echo "Write trim to ../plugins/trim_defs/trim.eo"
-./src/ethos --plugin.trim-defs $TMP_FILE > $OUT_FILE
-# remove "correct" and echo
-sed -i '1d' "$OUT_FILE"
-
-cat $OUT_FILE
+./src/ethos --plugin.trim-defs $TMP_FILE > $STD_TRIM_OUT
+# TODO: make consistent with other plugins?
+# remove "correct"
+sed -i '1d' "$STD_TRIM_OUT"
 
 #echo "**** Verify it parses"
 #./src/ethos $OUT_FILE

@@ -12,37 +12,37 @@ INPUT="../../cvc5-ajr/proofs/eo/cpc/Cpc.eo"
 # should be the name of a constant or proof rule in $INPUT
 TARGET=$1
 # trim out
-RAW_INPUT=raw-cpc.eo
 INIT_TRIM=trim-cpc-$TARGET.eo
 INIT_DESUGAR=trim-d-cpc-$TARGET.eo
-VC_DEF_DESUGAR=final-cpc-$TARGET.eo
+VC_DEF_DESUGAR=vc-def-cpc-$TARGET.eo
+VCM_DEF_DESUGAR=vcm-def-cpc-$TARGET.eo
 VC_OUT=final-cpc-$TARGET.smt2
 
-echo "(include \"$INPUT\")" > $RAW_INPUT
-
-echo "**** run_gen_vc: Run ethos + trim-defs on $RAW_INPUT and $TARGET to $INIT_TRIM"
-#./run_trim_defs $RAW_INPUT $TARGET "\$eo_model_sat" >/dev/null
-./run_trim_defs $RAW_INPUT $TARGET >/dev/null
+echo "**** run_gen_vc: Run ethos + trim-defs on $INPUT and $TARGET to $INIT_TRIM"
+#./run_trim_defs $INPUT $TARGET "\$eo_model_sat" >/dev/null
+./run_trim_defs $INPUT $TARGET
 cp $STD_TRIM_OUT $INIT_TRIM
 
 echo "**** run_gen_vc: Run ethos + desugar on $INIT_TRIM to generate $INIT_DESUGAR"
-./src/ethos --plugin.desugar-vc $INIT_TRIM >/dev/null
+./src/ethos --plugin.desugar-vc $INIT_TRIM
 cp $STD_DESUGAR_OUT $INIT_DESUGAR
 
 echo "**** run_gen_vc: Run ethos + trim-deps on $INIT_DESUGAR to generate $VC_DEF_DESUGAR"
-./run_trim_defs $INIT_DESUGAR "\$eovc_$TARGET" "\$eo_typeof_main" >/dev/null
+./run_trim_defs $INIT_DESUGAR "\$eovc_$TARGET" "\$eo_typeof_main" "\$eo_String" "\$eo_Numeral" "\$eo_Rational" "\$eo_Binary" "\$eo_List" "\$eo_List_nil" "\$eo_List_cons"
 cp $STD_TRIM_OUT $VC_DEF_DESUGAR
 
-# TODO: add SMT modelling here
+echo "**** run_gen_vc: Run ethos + model-smt on $VC_DEF_DESUGAR to generate $VCM_DEF_DESUGAR"
+./run_gen_smt_model $VC_DEF_DESUGAR
+cp $STD_SMODEL_OUT $VCM_DEF_DESUGAR
 
-echo "**** run_gen_vc: Verify it parses"
-./src/ethos $VC_DEF_DESUGAR
+#echo "**** run_gen_vc: Verify it parses"
+./src/ethos $VCM_DEF_DESUGAR
 
-echo "(echo \"smt-meta \$eovc_$TARGET\")" >> $VC_DEF_DESUGAR
+#echo "(echo \"smt-meta \$eovc_$TARGET\")" >> $VC_DEF_DESUGAR
 
-echo "**** Generate SMT2 to $VC_OUT"
-./src/ethos --plugin.smt-meta $VC_DEF_DESUGAR
-cp $STD_VC_OUT $VC_OUT
+#echo "**** Generate SMT2 to $VC_OUT"
+#./src/ethos --plugin.smt-meta $VC_DEF_DESUGAR
+#cp $STD_VC_OUT $VC_OUT
 
-echo "**** Try to solve"
-ajr-cvc5 $VC_OUT
+#echo "**** Try to solve"
+#ajr-cvc5 $VC_OUT

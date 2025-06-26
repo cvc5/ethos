@@ -39,6 +39,8 @@ ModelSmt::ModelSmt(State& s) : d_state(s), d_tc(s.getTypeChecker())
   // Similar for the other literals.
   // Note that we model *SMT-LIB* not *CPC* here.
   // builtin
+  addSmtLibSym("forall", {Kind::ANY, Kind::BOOLEAN}, Kind::BOOLEAN);
+  addSmtLibSym("exists", {Kind::ANY, Kind::BOOLEAN}, Kind::BOOLEAN);
   addSmtLibSym("=", {Kind::ANY, Kind::ANY}, Kind::BOOLEAN);
   addSmtLibSym("ite", {Kind::BOOLEAN, Kind::ANY, Kind::ANY}, Kind::ANY);
   // Booleans
@@ -140,6 +142,15 @@ void ModelSmt::printSmtTerm(const std::string& name, std::vector<Kind>& args, Ki
     d_eval << "(eo::eq e1 e2))))))";
     d_eval << std::endl;
   }
+  else if (name=="forall")
+  {
+    // TODO???
+    //d_eval << " x1 x2)) ($eo_not ($smt_model_exists x1 x2 0)))";
+  }
+  else if (name=="exists")
+  {
+    d_eval << " x1 x2)) ($smt_model_exists x1 x2 0))";
+  }
   else if (kret==Kind::PARAM)
   {
     // TODO: combined / mixed arithmetic?
@@ -178,84 +189,6 @@ void ModelSmt::printSmtTerm(const std::string& name, std::vector<Kind>& args, Ki
       EO_FATAL() << "Unknown return kind: " << kret;
     }
     d_eval << " ($smt_apply_" << args.size() << appArgs.str() << ")))" << std::endl;
-  }
-}
-
-void ModelSmt::printTerm(const Expr& e, std::ostream& os)
-{
-  os << e;
-}
-
-void ModelSmt::printParamList(const std::vector<Expr>& vars,
-                             std::ostream& os,
-                             std::vector<Expr>& params,
-                             bool useImplicit)
-{
-  std::map<Expr, bool> visited;
-  bool firstParam = true;
-  printParamList(vars, os, params, useImplicit, visited, firstParam);
-}
-
-void ModelSmt::printParamList(const std::vector<Expr>& vars,
-                             std::ostream& os,
-                             std::vector<Expr>& params,
-                             bool useImplicit,
-                             std::map<Expr, bool>& visited,
-                             bool& firstParam,
-                             bool isOpaque)
-{
-  std::map<Expr, bool>::iterator itv;
-  std::vector<Expr> toVisit(vars.begin(), vars.end());
-  Expr cur;
-  while (!toVisit.empty())
-  {
-    cur = toVisit.back();
-    Assert(cur.getKind() == Kind::PARAM);
-    itv = visited.find(cur);
-    if (itv != visited.end() && itv->second)
-    {
-      toVisit.pop_back();
-      continue;
-    }
-    Expr tcur = d_tc.getType(cur);
-    if (itv == visited.end())
-    {
-      visited[cur] = false;
-      // ensure its type has been printed
-      Assert(!tcur.isNull());
-      std::vector<Expr> tvars = Expr::getVariables(tcur);
-      toVisit.insert(toVisit.end(), tvars.begin(), tvars.end());
-      continue;
-    }
-    else if (!itv->second)
-    {
-      Assert(!itv->second);
-      visited[cur] = true;
-      if (firstParam)
-      {
-        firstParam = false;
-      }
-      else
-      {
-        os << " ";
-      }
-      os << "(" << cur << " ";
-      printTerm(tcur, os);
-      if (std::find(vars.begin(), vars.end(), cur) == vars.end())
-      {
-        if (useImplicit)
-        {
-          os << " :implicit";
-        }
-      }
-      else if (isOpaque)
-      {
-        os << " :opaque";
-      }
-      os << ")";
-      toVisit.pop_back();
-      params.push_back(cur);
-    }
   }
 }
 

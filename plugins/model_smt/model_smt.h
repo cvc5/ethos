@@ -38,25 +38,6 @@ class ModelSmt : public Plugin
   void finalize() override;
 
  private:
-  void printName(const Expr& e, std::ostream& os);
-  void printTerm(const Expr& e, std::ostream& os);
-  void printParamList(const std::vector<Expr>& vars,
-                      std::ostream& os,
-                      std::vector<Expr>& params,
-                      bool useImplicit);
-  void printParamList(const std::vector<Expr>& vars,
-                      std::ostream& os,
-                      std::vector<Expr>& params,
-                      bool useImplicit,
-                      std::map<Expr, bool>& visited,
-                      bool& firstParam,
-                      bool isOpaque = false);
-  void finalizeSetLiteralTypeRule(Kind k, const Expr& t);
-  void finalizeProgram(const Expr& v, const Expr& prog);
-  void finalizeDefinition(const std::string& name, const Expr& t);
-  void finalizeDeclaration(const Expr& t, std::ostream& os);
-  void finalizeRule(const Expr& v);
-  void finalizeDatatype(const Expr& d);
   /** the state */
   State& d_state;
   /** the type checker */

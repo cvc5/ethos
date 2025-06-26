@@ -1,15 +1,18 @@
 #!/bin/bash
-echo "**** Compile ethos"
-make -j4
+
+#echo "**** Compile ethos"
+#make -j4
 
 STD_SMODEL_OUT=../plugins/model_smt/model_smt_gen.eo
 
-SMODEL_OUT=model-$1
+TMP_OUT=model-$1
 
-echo "**** run_gen_vc: Run ethos + desugar on $1 to generate $SMODEL_OUT"
-./src/ethos --plugin.model-smt $1 >/dev/null
-cp $1 $SMODEL_OUT
-cat $STD_SMODEL_OUT >> $SMODEL_OUT
+echo "**** run_gen_model: Run ethos + desugar on $1 to generate $STD_SMODEL_OUT"
+./src/ethos --plugin.model-smt $1
+cp $STD_SMODEL_OUT $TMP_OUT
+cp $1 $STD_SMODEL_OUT
+cat $TMP_OUT >> $STD_SMODEL_OUT
+rm -rf $TMP_OUT
 
-echo "**** run_gen_vc: Verify it parses"
-./src/ethos $SMODEL_OUT
+echo "**** run_gen_model: Verify it parses"
+./src/ethos $STD_SMODEL_OUT

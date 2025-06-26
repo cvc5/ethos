@@ -1,8 +1,13 @@
 
-; This file is expected to define function $smt_model_eval, which can be used to define
-; whether a (Boolean) term is satisfied by a model.
+; This file is a formalization of the SMT-LIB semantics in Eunoia.
+; It uses a deep embedding of SMT-LIB terms .
+; This file is expected to define function $eo_model_sat, which can be used 
+; to define whether a (Boolean) term is satisfied by a model.
+; It generates symbols $smt_Term, $sym_apply_*, $eo_*_to_smt, and $smt_to_*,
+; which have further meaning in the compilation pipeline.
 
-; forward declaration
+; Forward declaration of the main method defined by this signature.
+; We use this to define $eo_model_sat.
 (program $smt_model_eval ((T Type)) :signature (T) T)
 
 ; These functions will be handled by smt_meta.
@@ -86,7 +91,7 @@ $SMT_TYPE_ENUM_CASES$
 
 ; specification for exists is a (non-computable) function
 (program $smt_model_exists ((T Type) (x T) (xs $eo_List) (F Bool) (i $eo_Numeral))
-  :signature (Bool $eo_List $eo_Numeral) Bool
+  :signature ($eo_List Bool $eo_Numeral) Bool
   (
   (($smt_model_exists $eo_List_nil F i)     ($smt_model_eval F))
   (($smt_model_exists ($eo_List_cons x xs) F i)
@@ -125,7 +130,7 @@ $SMT_EVAL_CASES$
 )
 
 ; program: $eo_model_sat
-; note: Evaluates to true if F is satisfied by the model.
+; note: Satisfied by the model if F evaluates to true.
 (program $eo_model_sat ((F Bool))
   :signature (Bool) Bool
   (
