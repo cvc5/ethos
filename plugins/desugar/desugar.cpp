@@ -47,6 +47,8 @@ Desugar::~Desugar() {}
 
 void Desugar::setLiteralTypeRule(Kind k, const Expr& t)
 {
+  finalizeSetLiteralTypeRule(k, t);
+  /*
   d_declSeen.emplace_back(t, k);
   if (k == Kind::NUMERAL)
   {
@@ -55,36 +57,47 @@ void Desugar::setLiteralTypeRule(Kind k, const Expr& t)
     // reference the numeral type.
     d_declProcessed.insert(t);
   }
+  */
 }
 
 void Desugar::finalizeSetLiteralTypeRule(Kind k, const Expr& t)
 {
   std::stringstream ss;
   ss << "(declare-consts ";
+  std::ostream* os;
   switch (k)
   {
-    case Kind::NUMERAL: ss << "<numeral>"; break;
-    case Kind::RATIONAL: ss << "<rational>"; break;
-    case Kind::BINARY: ss << "<binary>"; break;
-    case Kind::STRING: ss << "<string>"; break;
+    case Kind::NUMERAL: ss << "<numeral>";
+    os = &d_ltNum;
+    break;
+    case Kind::RATIONAL: ss << "<rational>";
+    os = &d_ltRational; break;
+    case Kind::BINARY: ss << "<binary>";
+    os = &d_ltBinary;  break;
+    case Kind::STRING: ss << "<string>";
+    os = &d_ltString;  break;
     case Kind::DECIMAL: ss << "<decimal>"; break;
     case Kind::HEXADECIMAL: ss << "<hexadecimal>"; break;
     default: EO_FATAL() << "Unknown literal type rule" << k << std::endl; break;
   }
   ss << " " << t << ")" << std::endl;
-  // numeral is declared at the top
-  if (k == Kind::NUMERAL)
+  // declared at the top
+  if (os!= nullptr)
   {
-    Assert(t.getKind() == Kind::CONST);
-    d_numDecl << "(declare-const " << t << " Type)" << std::endl;
-    d_numDecl << "; type-rules: " << k << std::endl;
-    d_numDecl << ss.str();
-    d_num << t;
+    // get the symbols and declare them in the preamble
+    std::vector<Expr> syms = getSubtermsKind(Kind::CONST, t);
+    for (const Expr& s : syms)
+    {
+      finalizeDeclaration(s, d_litTypeDecl);
+    }
+    d_litTypeDecl << "; type-rules: " << k << std::endl;
+    d_litTypeDecl << ss.str();
+    (*os) << t;
   }
   else
   {
-    d_defs << "; type-rules: " << k << std::endl;
-    d_defs << ss.str();
+    d_litTypeDecl << "; type-rules: " << k << std::endl;
+    d_litTypeDecl << ss.str();
   }
 }
 
@@ -162,8 +175,14 @@ void Desugar::finalizeProgram(const Expr& e, const Expr& prog)
   d_defs << ")" << std::endl;
 }
 
-void Desugar::finalizeDeclaration(const Expr& e)
+void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
 {
+  if (d_declProcessed.find(e) != d_declProcessed.end())
+  {
+    // handles the case where declaration is handled separately e.g. Int
+    return;
+  }
+  d_declProcessed.insert(e);
   Expr c = e;
   Attr cattr = Attr::NONE;
   Expr cattrCons;
@@ -234,12 +253,12 @@ void Desugar::finalizeDeclaration(const Expr& e)
   {
     retType = ct;
   }
-  d_defs << "; declare: " << e << std::endl;
-  d_defs << "(declare-";
+  os << "; declare: " << e << std::endl;
+  os << "(declare-";
   std::vector<Expr> vars = Expr::getVariables(ct);
   if (!vars.empty())
   {
-    d_defs << "parameterized-const " << cname << " (" << opaqueArgs.str();
+    os << "parameterized-const " << cname << " (" << opaqueArgs.str();
     size_t pcount = 0;
     for (size_t i = 0, nargs = argTypes.size(); i < nargs; i++)
     {
@@ -256,7 +275,7 @@ void Desugar::finalizeDeclaration(const Expr& e)
         {
           std::vector<Expr> vars;
           vars.push_back(v);
-          printParamList(vars, d_defs, params, true, visited, firstParam);
+          printParamList(vars, os, params, true, visited, firstParam);
         }
         else if ((cattr == Attr::AMB || cattr == Attr::AMB_DATATYPE_CONSTRUCTOR)
                  && i == 0)
@@ -264,7 +283,7 @@ void Desugar::finalizeDeclaration(const Expr& e)
           // print the parameters; these will lead to a definition that is
           // ambiguous again.
           std::vector<Expr> avars = Expr::getVariables(v);
-          printParamList(vars, d_defs, params, true, visited, firstParam);
+          printParamList(vars, os, params, true, visited, firstParam);
         }
         else
         {
@@ -280,18 +299,18 @@ void Desugar::finalizeDeclaration(const Expr& e)
         Expr v = d_state.mkSymbol(Kind::PARAM, ssp.str(), at);
         std::vector<Expr> vars;
         vars.push_back(v);
-        printParamList(vars, d_defs, params, true, visited, firstParam);
+        printParamList(vars, os, params, true, visited, firstParam);
       }
     }
-    d_defs << ") ";
-    printTerm(retType, d_defs);
-    d_defs << ")" << std::endl;
+    os << ") ";
+    printTerm(retType, os);
+    os << ")" << std::endl;
   }
   else
   {
-    d_defs << "const " << cname << " ";
-    printTerm(ct, d_defs);
-    d_defs << ")" << std::endl;
+    os << "const " << cname << " ";
+    printTerm(ct, os);
+    os << ")" << std::endl;
   }
   d_declProcessed.insert(e);
   // handle eo_nil
@@ -823,11 +842,6 @@ void Desugar::finalize()
       finalizeSetLiteralTypeRule(k, e);
       continue;
     }
-    if (d_declProcessed.find(e) != d_declProcessed.end())
-    {
-      // handles the case where declaration is handled separately e.g. Int
-      continue;
-    }
     if (k == Kind::LAMBDA)
     {
       Assert(e.getNumChildren() == 2);
@@ -837,7 +851,7 @@ void Desugar::finalize()
     }
     else if (k == Kind::CONST)
     {
-      finalizeDeclaration(e);
+      finalizeDeclaration(e, d_defs);
     }
     else if (k == Kind::PROOF_RULE)
     {
@@ -879,8 +893,11 @@ void Desugar::finalize()
   sse << ine.rdbuf();
   std::string finalEo = sse.str();
 
-  replace(finalEo, "$EO_NUMERAL_DECL$", d_numDecl.str());
-  replace(finalEo, "$EO_NUMERAL$", d_num.str());
+  replace(finalEo, "$EO_LITERAL_TYPE_DECL$", d_litTypeDecl.str());
+  replace(finalEo, "$EO_NUMERAL$", d_ltNum.str());
+  replace(finalEo, "$EO_RATIONAL$", d_ltRational.str());
+  replace(finalEo, "$EO_STRING$", d_ltString.str());
+  replace(finalEo, "$EO_BINARY$", d_ltBinary.str());
   replace(finalEo, "$EO_DEFS$", d_defs.str());
   replace(finalEo, "$EO_NIL_CASES$", d_eoNil.str());
   replace(finalEo, "$EO_NIL_NGROUND_DEFS$", d_eoNilNground.str());
@@ -990,6 +1007,34 @@ Expr Desugar::mkSanitize(const Expr& t,
   Assert(visited.find(t) != visited.end());
   Assert(!visited.find(t)->second.isNull());
   return visited[t];
+}
+
+std::vector<Expr> Desugar::getSubtermsKind(Kind k, const Expr& t)
+{
+  std::vector<Expr> ret;
+  std::set<Expr> visited;
+  std::vector<Expr> toVisit;
+  toVisit.push_back(t);
+  Expr cur;
+  do
+  {
+    cur = toVisit.back();
+    toVisit.pop_back();
+    if (visited.find(cur)!=visited.end())
+    {
+      continue;
+    }
+    visited.insert(cur);
+    if (cur.getKind()==k)
+    {
+      ret.push_back(cur);
+    }
+    for (size_t i=0, nchild=cur.getNumChildren(); i<nchild; i++)
+    {
+      toVisit.push_back(cur[i]);
+    }
+  }while (!toVisit.empty());
+  return ret;
 }
 
 }  // namespace ethos

@@ -59,9 +59,10 @@ class Desugar : public Plugin
   void finalizeSetLiteralTypeRule(Kind k, const Expr& t);
   void finalizeProgram(const Expr& v, const Expr& prog);
   void finalizeDefinition(const std::string& name, const Expr& t);
-  void finalizeDeclaration(const Expr& t);
+  void finalizeDeclaration(const Expr& t, std::ostream& os);
   void finalizeRule(const Expr& v);
   void finalizeDatatype(const Expr& d);
+  std::vector<Expr> getSubtermsKind(Kind k, const Expr& t);
   /** */
   Expr mkSanitize(const Expr& t);
   Expr mkSanitize(const Expr& t,
@@ -94,8 +95,11 @@ class Desugar : public Plugin
   /** Are we generating programs that are VC targets */
   bool d_genVcs;
 
-  std::stringstream d_numDecl;
-  std::stringstream d_num;
+  std::stringstream d_litTypeDecl;
+  std::stringstream d_ltNum;
+  std::stringstream d_ltRational;
+  std::stringstream d_ltString;
+  std::stringstream d_ltBinary;
   std::stringstream d_defs;
   std::stringstream d_eoNilNground;
   std::stringstream d_eoNil;

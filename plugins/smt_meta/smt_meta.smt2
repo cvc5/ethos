@@ -335,6 +335,7 @@ $DEFS$
     
 ; program: $eo_typeof
 ; note: This is forward in the signature.
+;       It assumes $eo_typeof_main is defined.
 (assert (forall ((x1 sm.Term))
   (= ($eo_typeof x1)
   (ite (= x1 sm.Stuck)
@@ -345,6 +346,17 @@ $TYPEOF_LITERALS$
 $TYPEOF_END$
 ))
 
+; program: $eo_model_evaluate_builtin
+; note: This is forward in the signature.
+;       It assumes $eo_model_evaluate is defined.
+;(assert (forall ((x1 sm.Term))
+;  (= ($eo_model_evaluate_builtin x1)
+;  (ite (= x1 sm.Stuck)
+;    sm.Stuck
+;$EO_MODEL_EVALUATE$
+;    sm.Stuck))
+;$EO_MODEL_EVALUATE_END$
+;))
 
 $SMT_VC$
 

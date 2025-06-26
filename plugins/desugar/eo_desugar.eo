@@ -8,9 +8,16 @@
 (program $eo_nil ((T Type) (U Type) (V Type) (W Type))
   :signature ((-> T U V) (eo::quote W)) W)
 
-; the numeral type, which must have a simple definition
-$EO_NUMERAL_DECL$
+; declarations to define literal types
+
+$EO_LITERAL_TYPE_DECL$
+
+; Macros for the literal types. These are used to define model evaluation.
 (define $eo_Numeral () $EO_NUMERAL$)
+(define $eo_Rational () $EO_RATIONAL$)
+(define $eo_String () $EO_STRING$)
+(define $eo_Binary () $EO_BINARY$)
+; note: decimal and hexadecimal omitted for now.
 
 ; fail
 (define $eo_fail () (eo::requires true false true))
