@@ -1,7 +1,7 @@
 At a high-level, the correctness of a Eunoia proof rule can be compiled to
 a *.smt2 file, which if unsat, is evidence that the proof rule is sound.
 The final encoding uses a deep embedding where:
-- A single sm.Term datatype is declared, which several builtin constructors.
+- A single datatype "sm.Term" is declared, which several builtin constructors.
 - All constants in the Eunoia signature are constructors of this datatype.
 - Eunoia programs are uninterpreted functions.
 - Definitions of Eunoia programs are quantified axioms.
@@ -56,19 +56,23 @@ Things handled at this stage:
 - Operator properties.
   - :right-assoc-nil, :right-assoc, :left-assoc-nil, :left-assoc, :chainable, :binder, :let-binder
 - declare-rule
-  - Proof type handled as part of the VC pro
-  -
+  - Proof type handled as part of the VC generation function ($eovc_X).
+- declare-consts
+  - $eo_Numeral, $eo_Rational, $eo_String, $eo_Binary as references to builtin types.
 - eo::eq, eo::is_eq
 - eo::is_z, eo::is_q, eo::is_bin, eo::is_str, eo::is_bool, eo::is_var
 - eo::gt, eo::cmp
 - eo::cons
 - eo::list_len, eo::list_concat, eo::list_nth, eo::list_find, eo::list_rev, eo::list_erase, eo::list_erase_all, eo::list_setof, eo::list_minclude, eo::list_meq
-- eo::dt_constructors, eo::dt_selectors
 - eo::var, eo::nameof
+  - Represents variables as constant $eo_Var.
 - eo::nil
   - Includes an auto-generation of cases for each :right-assoc-nil, :left-assoc-nil operator.
 - eo::typeof
   - Includes an auto-generation of cases for all user symbols.
+  - Includes definitions of literal types, and type of variables ($eo_Var).
+- Defines $eo_fail as a stuck term.
+- TODO: eo::dt_constructors, eo::dt_selectors
 
 === Model_smt
 
@@ -85,6 +89,9 @@ Things handled at this stage:
   - Type enumeration ($smt_type_enum)
   - Existential semantics ($smt_model_eval_exists)
   - Free constant semantics ($smt_model_lookup)
+  - Builtin operator semantics
+    - Defines a deep embedding of SMT-LIB terms into Eunoia via $smt_Term / $smt_apply_N
+    - Defines conversions from Eunoia literals to SMT-LIB values via $smt_to_eo_X/$eo_to_smt_X.
 - TODO: skolem semantics.
 - TODO: can handle a majority of Eunoia builtins here.
 
@@ -93,7 +100,9 @@ Things handled at this stage:
 Compiles *.eo to *.smt2.
 Optimizes for non-recursive programs using define-fun.
 Generates a conjecture for a Eunoia program under test (e.g. $eovc_X)
-which states the $eovc_X does not get stuck.
+which states the $eovc_X program does not get stuck for some input.
+This means we are searching over the *syntactic space* of Eunoia terms
+to find terms that witness the semantic unsoundness of the rule.
 
 Relies on:
 - smt_meta.smt2 template.
@@ -116,3 +125,4 @@ Not handled:
 - Well foundedness of all Eunoia programs. This can lead to spurious unsoundess in the Smt_Meta step.
 - Modelling of assume-push/step-pop.
 - TODO: modelling of :conclusion-explicit, :assumption.
+- TODO: datatypes

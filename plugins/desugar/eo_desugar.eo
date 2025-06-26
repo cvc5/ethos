@@ -401,6 +401,25 @@ $EO_LITERAL_TYPE_DECL$
    (f (-> T U V)) (a W1) (b W2))
   (eo::and ($eo_list_minclude f a b) ($eo_list_minclude f b a)))
 
+; Used to model eo::var
+(declare-parameterized-const $eo_Var ((s $eo_String) (T Type)) T)
+
+; program: $eo_var
+; implements: eo::var
+(define $eo_var ((s $eo_String) (T Type))
+  (eo::requires ($eo_is_str s) true
+  (eo::requires ($eo_typeof T) Type
+    ($eo_Var s T))))
+
+; program: $eo_nameof
+; implements: eo::nameof
+(program $eo_nameof ((s $eo_String) (T Type))
+  :signature (T) $eo_String
+  (
+  (($eo_nameof ($eo_Var s T)) s)
+  )
+)
+
 ; all further definitions
 
 $EO_DEFS$
@@ -480,25 +499,6 @@ $EO_NIL_CASES$
 )
 
 ; Finalize things that can be compiled away in this step.
-
-; Used to model eo::var
-(declare-parameterized-const $eo_Var ((s $eo_String) (T Type)) T)
-
-; program: $eo_var
-; implements: eo::var
-(define $eo_var ((s $eo_String) (T Type))
-  (eo::requires ($eo_is_str s) true
-  (eo::requires ($eo_typeof T) Type
-    ($eo_Var s T))))
-
-; program: $eo_nameof
-; implements: eo::nameof
-(program $eo_nameof ((s $eo_String) (T Type))
-  :signature (T) $eo_String
-  (
-  (($eo_nameof ($eo_Var s T)) s)
-  )
-)
 
 ; program: $eo_typeof
 ; implements: eo::typeof
