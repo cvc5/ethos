@@ -159,11 +159,17 @@ void ModelSmt::printSmtTerm(const std::string& name, std::vector<Kind>& args, Ki
   {
     std::stringstream appArgs;
     appArgs << " \"" << name << "\"";
+    std::stringstream preApp;
+    std::stringstream preAppEnd;
     for (size_t i=1, nargs=args.size(); i<=nargs; i++)
     {
       d_eval << " x" << i;
+      preApp << "(eo::define ((e" << i << " ($smt_model_eval x" << i << "))) ";
+      preApp << "(eo::requires ($smt_is_value (eo::typeof x" << i << ") e" << i << ") true ";
+      preAppEnd << "))";
       Kind ka = args[i-1];
-      appArgs << " ($eo_";
+      // use guarded version
+      appArgs << " ($eo_to_smt_";
       if (d_kindToEoPrefix.find(ka)!=d_kindToEoPrefix.end())
       {
         appArgs << d_kindToEoPrefix[ka];
@@ -172,14 +178,14 @@ void ModelSmt::printSmtTerm(const std::string& name, std::vector<Kind>& args, Ki
       {
         EO_FATAL() << "Unknown argument kind: " << ka;
       }
-      appArgs << "_to_smt x" << i << ")";
+      appArgs << " e" << i << ")";
     }
     std::stringstream ssretBase;
     if (args.empty() || args.size()>3)
     {
       EO_FATAL() << "Unhandled arity " << args.size() << " for " << name;
     }
-    d_eval << ")) ($smt_to_";
+    d_eval << ")) " << preApp.str() << "($smt_to_eo_";
     if (d_kindToEoPrefix.find(kret)!=d_kindToEoPrefix.end())
     {
       d_eval << d_kindToEoPrefix[kret];
@@ -188,7 +194,7 @@ void ModelSmt::printSmtTerm(const std::string& name, std::vector<Kind>& args, Ki
     {
       EO_FATAL() << "Unknown return kind: " << kret;
     }
-    d_eval << " ($smt_apply_" << args.size() << appArgs.str() << ")))" << std::endl;
+    d_eval << " ($smt_apply_" << args.size() << appArgs.str() << ")))" << preAppEnd.str() << std::endl;
   }
 }
 

@@ -90,6 +90,14 @@ class SmtMetaReduce : public Plugin
   bool isSmtApplyTerm(const Expr& t, std::string& name, std::vector<Expr>& args);
   /** is smt apply, return the arity */
   size_t isSmtApply(const Expr& t);
+  /** is smt term type */
+  bool isSmtTermType(const Expr& t);
+  /** is smt to eo */
+  bool isSmtToEo(const Expr& t);
+  /** is smt to eo */
+  bool isEoToSmt(const Expr& t);
+  /** get kind for suffix */
+  Kind getKindForSuffix(const std::string& suf) const;
   /** the state */
   State& d_state;
   /** the type checker */
@@ -126,6 +134,7 @@ class SmtMetaReduce : public Plugin
   std::stringstream d_eoTypeofLit;
   std::stringstream d_eoTypeofEnd;
   std::stringstream d_smtVc;
+  std::map<std::string, Kind> d_sufToKind;
   // SMT-LIB symbols
   bool d_inInitialize;
 };

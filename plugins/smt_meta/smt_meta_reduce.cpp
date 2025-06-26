@@ -25,6 +25,11 @@ SmtMetaReduce::SmtMetaReduce(State& s) : d_state(s), d_tc(s.getTypeChecker())
   d_listNil = s.mkListNil();
   d_listCons = s.mkListCons();
   d_listType = s.mkListType();
+  d_sufToKind["bool"] = Kind::BOOLEAN;
+  d_sufToKind["z"] = Kind::NUMERAL;
+  d_sufToKind["q"] = Kind::RATIONAL;
+  d_sufToKind["str"] = Kind::STRING;
+  d_sufToKind["bin"] = Kind::BINARY;
 }
 
 SmtMetaReduce::~SmtMetaReduce() {}
@@ -118,25 +123,32 @@ bool SmtMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
   Kind k = c.getKind();
   if (k == Kind::CONST)
   {
-    std::map<Expr, size_t>::iterator it = d_overloadId.find(c);
-    size_t oid;
-    if (it == d_overloadId.end())
+    if (isEoToSmt(c) || isSmtToEo(c))
     {
-      std::stringstream ss;
-      ss << c;
-      std::string s = ss.str();
-      oid = d_overloadCount[s];
-      d_overloadId[c] = oid;
-      d_overloadCount[s]++;
+      os << c;
     }
     else
     {
-      oid = it->second;
-    }
-    os << "sm." << c;
-    if (oid > 0)
-    {
-      os << "." << (oid + 1);
+      std::map<Expr, size_t>::iterator it = d_overloadId.find(c);
+      size_t oid;
+      if (it == d_overloadId.end())
+      {
+        std::stringstream ss;
+        ss << c;
+        std::string s = ss.str();
+        oid = d_overloadCount[s];
+        d_overloadId[c] = oid;
+        d_overloadCount[s]++;
+      }
+      else
+      {
+        oid = it->second;
+      }
+      os << "sm." << c;
+      if (oid > 0)
+      {
+        os << "." << (oid + 1);
+      }
     }
     return true;
   }
@@ -411,7 +423,19 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
             std::string smtAppName;
             std::vector<Expr> smtArgs;
             //std::cout << "Check if apply term " << cur.first << std::endl;
-            if (isSmtApplyTerm(cur.first, smtAppName, smtArgs))
+            if (isEoToSmt(cur.first[0]))
+            {
+              //visit.back().second++;
+              // print without "sm."
+              //os << cur.first[0] << " ";
+            }
+            else if (isSmtToEo(cur.first[0]))
+            {
+              //visit.back().second++;
+              // print without "sm."
+              //os << cur.first[0] << " ";
+            }
+            else if (isSmtApplyTerm(cur.first, smtAppName, smtArgs))
             {
               //std::cout << "...returns true!!!! name is \"" << smtAppName << "\"" << std::endl;
               os << smtAppName << " ";
@@ -641,7 +665,7 @@ void SmtMetaReduce::finalizeDeclarations()
     }
     // ignore deep embeddings of smt terms
     std::string smtAppName;
-    if (isSmtApply(e)!=0)
+    if (isSmtApply(e)!=0 || isSmtToEo(e) || isEoToSmt(e))
     {
       continue;
     }
@@ -863,6 +887,53 @@ size_t SmtMetaReduce::isSmtApply(const Expr& t)
     }
   }
   return 0;
+}
+
+Kind SmtMetaReduce::getKindForSuffix(const std::string& suf) const
+{
+  std::map<std::string, Kind>::const_iterator it = d_sufToKind.find(suf);
+  if (it!=d_sufToKind.end())
+  {
+    return it->second;
+  }
+  return Kind::NONE;
+}
+
+bool SmtMetaReduce::isSmtTermType(const Expr& t)
+{
+  // TODO: check name
+  return false;
+}
+bool SmtMetaReduce::isSmtToEo(const Expr& t)
+{
+  if (t.getKind()==Kind::CONST)
+  {
+    std::stringstream ss;
+    ss << t;
+    std::string sname = ss.str();
+    if (sname.compare(0, 11, "$smt_to_eo_") == 0)
+    {
+      Kind k = getKindForSuffix(sname.substr(11));
+      return k!=Kind::NONE;
+    }
+  }
+  return false;
+}
+bool SmtMetaReduce::isEoToSmt(const Expr& t)
+{
+  if (t.getKind()==Kind::CONST)
+  {
+    std::stringstream ss;
+    ss << t;
+    std::string sname = ss.str();
+    if (sname.compare(0, 11, "$eo_to_smt_") == 0)
+    {
+      Kind k = getKindForSuffix(sname.substr(11));
+      return k!=Kind::NONE;
+    }
+  }
+  return false;
+  
 }
 
 }  // namespace ethos

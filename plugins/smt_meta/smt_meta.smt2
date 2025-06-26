@@ -27,13 +27,22 @@ $TERM_DECL$
 
 ;;; Utilities
 
-; define: $sm_Boolean
-(define-fun $sm_Boolean ((x Bool)) sm.Term
+; literal types
+
+; define: $smt_to_eo_bool
+(define-fun $smt_to_eo_bool ((x Bool)) sm.Term
   (ite x sm.True sm.False))
+  
+; define: $eo_to_smt_bool
+(define-fun $eo_to_smt_bool ((x sm.Term)) Bool
+  (= x sm.True))
 
 ; define: $sm_is_Boolean
 (define-fun $sm_is_Boolean ((x sm.Term)) Bool
   (or (= x sm.True) (= x sm.False)))
+  
+  
+  
 
 ; Stuckness propagates through non-nullary constructors
 (define-fun $sm_FunType ((x sm.Term) (y sm.Term)) sm.Term
@@ -94,7 +103,7 @@ $TERM_DECL$
 
 ; program: $eo_is_ok
 (define-fun $eo_is_ok ((x1 sm.Term)) sm.Term
-  ($sm_Boolean (not (= x1 sm.Stuck))))
+  ($smt_to_eo_bool (not (= x1 sm.Stuck))))
 
 ; program: $eo_ite
 (define-fun $eo_ite ((x1 sm.Term) (x2 sm.Term) (x3 sm.Term)) sm.Term
@@ -136,7 +145,7 @@ $TERM_DECL$
 ; program: $eo_not
 (define-fun $eo_not ((x1 sm.Term)) sm.Term
   (ite ($sm_is_Boolean x1)
-    ($sm_Boolean (= x1 sm.False))
+    ($smt_to_eo_bool (= x1 sm.False))
   (ite ((_ is sm.Binary) x1)
     ($sm_Binary_not (sm.Binary.width x1) (sm.Binary.val x1))
     sm.Stuck)))
@@ -144,7 +153,7 @@ $TERM_DECL$
 ; program: $eo_and
 (define-fun $eo_and ((x1 sm.Term) (x2 sm.Term)) sm.Term
   (ite (and ($sm_is_Boolean x1) ($sm_is_Boolean x2))
-    ($sm_Boolean (and (= x1 sm.True) (= x2 sm.True)))
+    ($smt_to_eo_bool (and (= x1 sm.True) (= x2 sm.True)))
   (ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))
     ($sm_Binary_and (sm.Binary.width x1) (sm.Binary.val x1) (sm.Binary.val x2))
     sm.Stuck)))
@@ -152,7 +161,7 @@ $TERM_DECL$
 ; program: $eo_or
 (define-fun $eo_or ((x1 sm.Term) (x2 sm.Term)) sm.Term
   (ite (and ($sm_is_Boolean x1) ($sm_is_Boolean x2))
-    ($sm_Boolean (or (= x1 sm.True) (= x2 sm.True)))
+    ($smt_to_eo_bool (or (= x1 sm.True) (= x2 sm.True)))
   (ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))
     ($sm_Binary_or (sm.Binary.width x1) (sm.Binary.val x1) (sm.Binary.val x2))
     sm.Stuck)))
@@ -160,7 +169,7 @@ $TERM_DECL$
 ; program: $eo_xor
 (define-fun $eo_xor ((x1 sm.Term) (x2 sm.Term)) sm.Term
   (ite (and ($sm_is_Boolean x1) ($sm_is_Boolean x2))
-    ($sm_Boolean (xor (= x1 sm.True) (= x2 sm.True)))
+    ($smt_to_eo_bool (xor (= x1 sm.True) (= x2 sm.True)))
   (ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))
     ($sm_Binary_xor (sm.Binary.width x1) (sm.Binary.val x1) (sm.Binary.val x2))
     sm.Stuck)))
@@ -220,11 +229,11 @@ $TERM_DECL$
 ; program: $eo_is_neg
 (define-fun $eo_is_neg ((x1 sm.Term)) sm.Term
   (ite ((_ is sm.Numeral) x1)
-    ($sm_Boolean (< (sm.Numeral.val x1) 0))
+    ($smt_to_eo_bool (< (sm.Numeral.val x1) 0))
   (ite ((_ is sm.Rational) x1)
-    ($sm_Boolean (< (sm.Rational.val x1) 0.0))
+    ($smt_to_eo_bool (< (sm.Rational.val x1) 0.0))
   (ite ((_ is sm.Decimal) x1)
-    ($sm_Boolean (< (sm.Decimal.val x1) 0.0))
+    ($smt_to_eo_bool (< (sm.Decimal.val x1) 0.0))
     sm.Stuck))))
 
 ; program: $eo_neg
@@ -345,18 +354,6 @@ $TYPEOF_LITERALS$
     ($eo_typeof_main x1)))
 $TYPEOF_END$
 ))
-
-; program: $eo_model_evaluate_builtin
-; note: This is forward in the signature.
-;       It assumes $eo_model_evaluate is defined.
-;(assert (forall ((x1 sm.Term))
-;  (= ($eo_model_evaluate_builtin x1)
-;  (ite (= x1 sm.Stuck)
-;    sm.Stuck
-;$EO_MODEL_EVALUATE$
-;    sm.Stuck))
-;$EO_MODEL_EVALUATE_END$
-;))
 
 $SMT_VC$
 
