@@ -1,7 +1,20 @@
 ; This file is used for bootstrapping the semantics of Eunoia.
 
+; After instantiation, certain eo:: operators may be used in this file.
+; These are either:
+; (A) Those that are desugared in later steps, e.g. eo::add, eo::requires, eo::is_ok.
+; (B) Those that were part of user definitions that can be safely replaced by their $eo_ versions.
+; NOTE: can eliminate (B).
+
+; The one method that has special status after this step is
+; $eo_typeof_main, which is used in part to define the final
+; semantics of $eo_typeof.
+
 ; fail
 (define $eo_fail () (eo::requires true false true))
+
+; undefined type, used if a literal type uses eo::self, which can't be modelled.
+(declare-const $eo_defined_type Type)
 
 ; forward declaration
 (program $eo_typeof ((T Type))

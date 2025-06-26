@@ -1,0 +1,48 @@
+#!/bin/bash
+echo "**** Compile ethos"
+make -j4
+
+
+STD_TRIM_OUT=../plugins/trim_defs/trim.eo
+STD_DESUGAR_OUT=../plugins/desugar/eo_desugar_gen.eo
+STD_SMODEL_OUT=../plugins/model_smt/model_smt_gen.eo
+STD_VC_OUT=../plugins/smt_meta/smt_meta_gen.smt2
+# the name of a EO signature
+INPUT="../../cvc5-ajr/proofs/eo/cpc/Cpc.eo"
+# should be the name of a constant or proof rule in $INPUT
+TARGET=$1
+# trim out
+RAW_INPUT=raw-cpc.eo
+INIT_TRIM=trim-cpc-$TARGET.eo
+INIT_DESUGAR=trim-d-cpc-$TARGET.eo
+VC_DEF_DESUGAR=final-cpc-$TARGET.eo
+VC_OUT=final-cpc-$TARGET.smt2
+
+echo "(include \"$INPUT\")" > $RAW_INPUT
+
+echo "**** run_gen_vc: Run ethos + trim-deps on $RAW_INPUT and $TARGET to $INIT_TRIM"
+#./run_trim_defs $RAW_INPUT $TARGET "\$eo_model_sat" >/dev/null
+./run_trim_defs $RAW_INPUT $TARGET >/dev/null
+cp $STD_TRIM_OUT $INIT_TRIM
+
+echo "**** run_gen_vc: Run ethos + desugar on $INIT_TRIM to generate $INIT_DESUGAR"
+./src/ethos --plugin.desugar-vc $INIT_TRIM >/dev/null
+cp $STD_DESUGAR_OUT $INIT_DESUGAR
+
+# TODO: add SMT modelling here
+
+echo "**** run_gen_vc: Run ethos + trim-deps on $INIT_DESUGAR to generate $VC_DEF_DESUGAR"
+./run_trim_defs $INIT_DESUGAR "\$eovc_$TARGET" "\$eo_typeof_main" >/dev/null
+cp $STD_TRIM_OUT $VC_DEF_DESUGAR
+
+echo "**** run_gen_vc: Verify it parses"
+./src/ethos $VC_DEF_DESUGAR
+
+echo "(echo \"smt-meta \$eovc_$TARGET\")" >> $VC_DEF_DESUGAR
+
+echo "**** Generate SMT2 to $VC_OUT"
+./src/ethos --plugin.smt-meta $VC_DEF_DESUGAR
+cp $STD_VC_OUT $VC_OUT
+
+echo "**** Try to solve"
+ajr-cvc5 $VC_OUT

@@ -25,54 +25,6 @@ SmtMetaReduce::SmtMetaReduce(State& s) : d_state(s), d_tc(s.getTypeChecker())
   d_listNil = s.mkListNil();
   d_listCons = s.mkListCons();
   d_listType = s.mkListType();
-  // All SMT-LIB symbols that have monomorphic return go here.
-  // We have a NUMERAL category that we assume can be associated to Int,
-  // Similar for the other literals.
-  // Note that we model *SMT-LIB* not *CPC* here.
-  // builtin
-  // use ANY to stand for any literal type
-  addSmtLibSym("=", {Kind::ANY, Kind::ANY}, Kind::BOOLEAN);
-  // Booleans
-  addSmtLibSym("and", {Kind::BOOLEAN, Kind::BOOLEAN}, Kind::BOOLEAN);
-  addSmtLibSym("or", {Kind::BOOLEAN, Kind::BOOLEAN}, Kind::BOOLEAN);
-  addSmtLibSym("xor", {Kind::BOOLEAN, Kind::BOOLEAN}, Kind::BOOLEAN);
-  addSmtLibSym("not", {Kind::BOOLEAN}, Kind::BOOLEAN);
-  // arithmetic
-  // use Kind::PARAM to stand for either Int or Real arithmetic (not mixed)
-  addSmtLibSym("+", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
-  addSmtLibSym("-", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
-  addSmtLibSym("*", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
-  addSmtLibSym("abs", {Kind::PARAM}, Kind::PARAM);
-  addSmtLibSym(">=", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
-  addSmtLibSym("<=", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
-  addSmtLibSym(">", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
-  addSmtLibSym("<", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
-  addSmtLibSym("is_int", {Kind::RATIONAL}, Kind::BOOLEAN);
-  addSmtLibSym("divisible", {Kind::NUMERAL, Kind::NUMERAL}, Kind::BOOLEAN);
-  addSmtLibSym("/", {Kind::RATIONAL, Kind::RATIONAL}, Kind::RATIONAL);
-  addSmtLibSym("div", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
-  addSmtLibSym("mod", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
-  addSmtLibSym("to_int", {Kind::RATIONAL}, Kind::NUMERAL);
-  addSmtLibSym("to_real", {Kind::NUMERAL}, Kind::RATIONAL);
-  // strings
-  addSmtLibSym("str.++", {Kind::STRING, Kind::STRING}, Kind::STRING);
-  addSmtLibSym("str.substr", {Kind::STRING, Kind::NUMERAL, Kind::NUMERAL}, Kind::STRING);
-  addSmtLibSym("str.substr", {Kind::STRING}, Kind::NUMERAL);
-  addSmtLibSym("str.indexof", {Kind::STRING, Kind::STRING, Kind::NUMERAL}, Kind::NUMERAL);
-  addSmtLibSym("str.to_lower", {Kind::STRING}, Kind::STRING);
-  addSmtLibSym("str.to_upper", {Kind::STRING}, Kind::STRING);
-  addSmtLibSym("str.from_code", {Kind::NUMERAL}, Kind::STRING);
-  addSmtLibSym("str.to_code", {Kind::STRING}, Kind::NUMERAL);
-  // BV
-  // arith/BV conversions
-  addSmtLibSym("int_to_bv", {Kind::NUMERAL, Kind::NUMERAL}, Kind::BINARY);
-  addSmtLibSym("ubv_to_int", {Kind::BINARY}, Kind::NUMERAL);
-  addSmtLibSym("sbv_to_int", {Kind::BINARY}, Kind::NUMERAL);
-}
-
-void SmtMetaReduce::addSmtLibSym(const std::string& sym, const std::vector<Kind>& args, Kind ret)
-{
-  d_smtLibSyms[sym] = std::pair<std::vector<Kind>, Kind>(args, ret);
 }
 
 SmtMetaReduce::~SmtMetaReduce() {}

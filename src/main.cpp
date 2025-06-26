@@ -13,6 +13,7 @@
 #include <iostream>
 
 #include "../plugins/desugar/desugar.h"
+#include "../plugins/model_smt/model_smt.h"
 #include "../plugins/smt_meta/smt_meta_reduce.h"
 #include "../plugins/trim_defs/trim_defs.h"
 #include "base/check.h"
@@ -147,9 +148,11 @@ int main( int argc, char* argv[] )
     }
   }
   // options are finalized, now initialize the state and run the includes
+  // TODO: use unique_ptr
   Stats stats;
   State s(opts, stats);
   SmtMetaReduce pluginSmr(s);
+  ModelSmt pluginMsmt(s);
   Desugar pluginDs(s);
   TrimDefs pluginTds(s);
   Plugin* plugin = nullptr;
@@ -164,6 +167,10 @@ int main( int argc, char* argv[] )
   else if (opts.d_pluginTrimDefs)
   {
     plugin = &pluginTds;
+  }
+  else if (opts.d_pluginModelSmt)
+  {
+    plugin = &pluginMsmt;
   }
   // NOTE: initialization of plugin goes here
   if (plugin != nullptr)

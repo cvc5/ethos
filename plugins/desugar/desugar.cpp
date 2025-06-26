@@ -62,6 +62,10 @@ void Desugar::setLiteralTypeRule(Kind k, const Expr& t)
 
 void Desugar::finalizeSetLiteralTypeRule(Kind k, const Expr& t)
 {
+  // NOTE: literal definitions cannot use any builtin operators
+  // that are desugared in the initial step, e.g. eo::list_*.
+  // They can use core eo operators that are desugared later
+  // e.g. eo::len.
   std::stringstream ss;
   ss << "(declare-consts ";
   std::ostream* os;
@@ -94,6 +98,7 @@ void Desugar::finalizeSetLiteralTypeRule(Kind k, const Expr& t)
     d_litTypeDecl << ss.str();
     // it is only possible to define e.g. $eo_Binary
     // if t is ground. This avoids having eo::self as a free parameter.
+    // We use $eo_defined_type otherwise.
     if (t.isGround())
     {
       (*os) << t;
@@ -109,7 +114,7 @@ void Desugar::finalizeSetLiteralTypeRule(Kind k, const Expr& t)
       {
         EO_FATAL() << "Must have a ground type for <numeral>.";
       }
-      (*os) << "$eo_fail";
+      (*os) << "$eo_defined_type";
     }
   }
   else

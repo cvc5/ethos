@@ -32,6 +32,7 @@ Options::Options()
   d_pluginDesugarGenVc = false;
   d_pluginSmtMeta = false;
   d_pluginTrimDefs = false;
+  d_pluginModelSmt = false;
 }
 
 bool Options::setOption(const std::string& key, bool val)
@@ -92,6 +93,10 @@ bool Options::setOption(const std::string& key, bool val)
   else if (key == "plugin.trim-defs")
   {
     d_pluginTrimDefs = true;
+  }
+  else if (key == "plugin.model-smt")
+  {
+    d_pluginModelSmt = true;
   }
   else
   {

@@ -84,7 +84,6 @@ class SmtMetaReduce : public Plugin
   void finalizeDeclarations();
   void finalizeRule(const Expr& v);
   void finalizeRules();
-  void addSmtLibSym(const std::string& sym, const std::vector<Kind>& args, Kind ret);
   /** Does t have subterm s? */
   static bool hasSubterm(const Expr& t, const Expr& s);
   /** */
@@ -126,7 +125,6 @@ class SmtMetaReduce : public Plugin
   std::stringstream d_eoTypeofEnd;
   std::stringstream d_smtVc;
   // SMT-LIB symbols
-  std::map<std::string, std::pair<std::vector<Kind>, Kind>> d_smtLibSyms;
   bool d_inInitialize;
 };
 
