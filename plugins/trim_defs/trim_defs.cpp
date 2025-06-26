@@ -9,6 +9,7 @@
 
 #include "trim_defs.h"
 
+#include <fstream>
 #include <cctype>
 #include <iostream>
 #include <sstream>
@@ -19,6 +20,9 @@
 #include "input.h"
 
 namespace ethos {
+
+std::string st_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
+//std::string st_path = "/home/andrew/ethos/";
 
 struct Command
 {
@@ -277,20 +281,29 @@ void TrimDefs::finalize()
     }
   }
   while (!d_toVisit.empty());
-  std::cout << "; trim-defs:";
+  
+  std::stringstream ss;
+  ss << "; trim-defs:";
   for (const std::string& dt : d_defTargets)
   {
-    std::cout << " " << dt;
+    ss << " " << dt;
   }
-  std::cout << std::endl;
-  std::cout << "; #trim-defs: " << cdeps.size() << std::endl;
+  ss << std::endl;
+  ss << "; #trim-defs: " << cdeps.size() << std::endl;
   std::vector<size_t> allCmd(cdeps.begin(), cdeps.end());
   std::sort(allCmd.begin(), allCmd.end());
   for (size_t i : allCmd)
   {
-    std::cout << d_commands[i];
-    std::cout << std::endl;
+    ss << d_commands[i];
+    ss << std::endl;
   }
+  
+  // write the trimmed to file
+  std::stringstream sso;
+  sso << st_path << "plugins/trim_defs/trim_gen.eo";
+  std::cout << "Write trim-defs " << sso.str() << std::endl;
+  std::ofstream out(sso.str());
+  out << ss.str();
 }
 
 }  // namespace ethos

@@ -483,6 +483,44 @@ $EO_NIL_CASES$
   )
 )
 
+; other things that can be compiled away in this step
+
+; note $eo_typeof is already foward declared.
+
+; Used to model eo::var
+(declare-parameterized-const $eo_Var ((s $eo_String) (T Type)) T)
+
+; program: $eo_var
+; implements: eo::var
+(define $eo_var ((s $eo_String) (T Type))
+  (eo::requires ($eo_is_str s) true
+  (eo::requires ($eo_typeof T) Type
+    ($eo_Var s T))))
+
+; program: $eo_nameof
+; implements: eo::nameof
+(program $eo_nameof ((s $eo_String) (T Type))
+  :signature (T) $eo_String
+  (
+  (($eo_nameof ($eo_Var s T)) s)
+  )
+)
+
+; program: $eo_typeof
+; implements: eo::typeof
+(program $eo_typeof ((T Type) (t T) (s $eo_String))
+  :signature (T) Type
+  (
+  (($eo_typeof ($eo_Var s T)) T)
+  (($eo_typeof t) (eo::ite ($eo_is_bool t) Bool
+                  (eo::ite ($eo_is_z t) $eo_Numeral
+                  (eo::ite ($eo_is_q t) $eo_Rational
+                  (eo::ite ($eo_is_str t) $eo_String
+                  (eo::ite ($eo_is_bin t) $eo_Binary
+                    ($eo_typeof_main t)))))))
+  )
+)
+
 ; the verification condition
 
 $EO_VC$

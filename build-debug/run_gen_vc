@@ -3,7 +3,7 @@ echo "**** Compile ethos"
 make -j4
 
 
-STD_TRIM_OUT=../plugins/trim_defs/trim.eo
+STD_TRIM_OUT=../plugins/trim_defs/trim_gen.eo
 STD_DESUGAR_OUT=../plugins/desugar/eo_desugar_gen.eo
 STD_SMODEL_OUT=../plugins/model_smt/model_smt_gen.eo
 STD_VC_OUT=../plugins/smt_meta/smt_meta_gen.smt2
