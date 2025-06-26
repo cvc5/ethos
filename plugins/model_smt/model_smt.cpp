@@ -22,13 +22,25 @@ std::string s_smodel_path = "/home/andrew/ethos/";
 
 ModelSmt::ModelSmt(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {
+  Expr typ = d_state.mkType();
+  d_kindToType[Kind::BOOLEAN] = d_state.mkBoolType();
+  d_kindToType[Kind::NUMERAL] = d_state.mkSymbol(Kind::CONST, "$eo_Numeral", typ);
+  d_kindToType[Kind::RATIONAL] = d_state.mkSymbol(Kind::CONST, "$eo_Rational", typ);
+  d_kindToType[Kind::STRING] = d_state.mkSymbol(Kind::CONST, "$eo_String", typ);
+  d_kindToType[Kind::BINARY] = d_state.mkSymbol(Kind::CONST, "$eo_BINARY", typ);
+  d_kindToType[Kind::ANY] = d_state.mkSymbol(Kind::CONST, "Any", typ);
+  d_kindToEoPrefix[Kind::BOOLEAN] = "bool";
+  d_kindToEoPrefix[Kind::NUMERAL] = "z";
+  d_kindToEoPrefix[Kind::RATIONAL] = "q";
+  d_kindToEoPrefix[Kind::STRING] = "str";
+  d_kindToEoPrefix[Kind::BINARY] = "bin";
   // All SMT-LIB symbols that have monomorphic return go here.
   // We have a NUMERAL category that we assume can be associated to Int,
   // Similar for the other literals.
   // Note that we model *SMT-LIB* not *CPC* here.
   // builtin
-  // use ANY to stand for any literal type
   addSmtLibSym("=", {Kind::ANY, Kind::ANY}, Kind::BOOLEAN);
+  addSmtLibSym("ite", {Kind::BOOLEAN, Kind::ANY, Kind::ANY}, Kind::ANY);
   // Booleans
   addSmtLibSym("and", {Kind::BOOLEAN, Kind::BOOLEAN}, Kind::BOOLEAN);
   addSmtLibSym("or", {Kind::BOOLEAN, Kind::BOOLEAN}, Kind::BOOLEAN);
@@ -106,8 +118,55 @@ void ModelSmt::printSmtType(const std::string& name, std::vector<Kind>& args)
 {
 }
 
-void ModelSmt::printSmtTerm(const std::string& name, std::vector<Kind>& args, Kind ret)
+void ModelSmt::printSmtTerm(const std::string& name, std::vector<Kind>& args, Kind kret)
 {
+  d_eval << "  (($smt_model_eval (" << name;
+  std::stringstream ssret;
+  std::stringstream ssretEnd;
+  std::stringstream appArgs;
+  appArgs << " \"" << name << "\"";
+  for (size_t i=1, nargs=args.size(); i<=nargs; i++)
+  {
+    d_eval << " x" << i;
+    //Kind ka = args[i-1];
+    appArgs << " e" << i;
+    ssret << " (eo::define ((e" << i << " ($smt_model_eval x" << i << ")))";
+    ssret << " (eo::requires ($smt_is_value";
+    ssret << " e" << i << ") true";
+    ssretEnd << "))";
+  }
+  std::stringstream ssretBase;
+  if (args.empty() || args.size()>3)
+  {
+    EO_FATAL() << "Unhandled arity " << args.size() << " for " << name;
+  }
+  ssretBase << "($smt_apply_" << args.size() << appArgs.str() << ")";
+  // special cases
+  if (name=="ite")
+  {
+    ssret << "(eo::ite e1 e2 e3)";
+  }
+  if (kret==Kind::PARAM)
+  {
+    ssret << "(eo::define ((er " << ssretBase.str() << ")) ";
+    ssret << "(eo::ite (eo::is_z e1) ($smt_to_z er) ($smt_to_q er)))";
+  }
+  else
+  {
+    ssret << "($smt_to_";
+    if (d_kindToEoPrefix.find(kret)!=d_kindToEoPrefix.end())
+    {
+      ssret << d_kindToEoPrefix[kret];
+    }
+    else
+    {
+      EO_FATAL() << "Unknown return kind: " << kret;
+    }
+    ssret << " " << ssretBase.str();
+    ssretEnd << ")";
+  }
+  ssret << ssretEnd.str();
+  d_eval << ") " << ssret.str() << ")" << std::endl;
 }
 
 void ModelSmt::printTerm(const Expr& e, std::ostream& os)
@@ -190,11 +249,6 @@ void ModelSmt::printParamList(const std::vector<Expr>& vars,
 
 void ModelSmt::finalize()
 {
-  // now we can finish the definitions
-  std::vector<Expr> paramsTmp;
-  printParamList(d_evalParams, d_evalParam, paramsTmp, false);
-  printParamList(d_typeEnumParams, d_evalParam, paramsTmp, false);
-
   auto replace = [](std::string& txt,
                     const std::string& tag,
                     const std::string& replacement) {
@@ -213,12 +267,9 @@ void ModelSmt::finalize()
   sse << ine.rdbuf();
   std::string finalEo = sse.str();
 
-  replace(finalEo, "$SMT_EVAL_PARAM$", d_evalParam.str());
-  replace(finalEo, "$SMT_EVAL_NGROUND_DEFS$", d_evalNGround.str());
   replace(finalEo, "$SMT_EVAL_CASES$", d_eval.str());
-  replace(finalEo, "$SMT_TYPE_ENUM_PARAM$", d_typeEnumParam.str());
-  replace(finalEo, "$SMT_TYPE_ENUM_NGROUND_DEFS$", d_typeEnumNGround.str());
   replace(finalEo, "$SMT_TYPE_ENUM_CASES$", d_typeEnum.str());
+  replace(finalEo, "$SMT_IS_VALUE_CASES$", d_isValue.str());
 
   std::stringstream ssoe;
   ssoe << s_smodel_path << "plugins/model_smt/model_smt_gen.eo";

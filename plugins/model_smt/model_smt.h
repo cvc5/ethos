@@ -61,17 +61,14 @@ class ModelSmt : public Plugin
   State& d_state;
   /** the type checker */
   TypeChecker& d_tc;
-  std::vector<Expr> d_evalParams;
-  std::vector<Expr> d_typeEnumParams;
   void addSmtLibSym(const std::string& sym, const std::vector<Kind>& args, Kind ret);
   void printSmtType(const std::string& name, std::vector<Kind>& args);
   void printSmtTerm(const std::string& name, std::vector<Kind>& args, Kind ret);
-  std::stringstream d_evalParam;
-  std::stringstream d_evalNGround;
+  std::map<Kind, Expr> d_kindToType;
+  std::map<Kind, std::string> d_kindToEoPrefix;
   std::stringstream d_eval;
-  std::stringstream d_typeEnumParam;
-  std::stringstream d_typeEnumNGround;
   std::stringstream d_typeEnum;
+  std::stringstream d_isValue;
   // SMT-LIB symbols
   std::map<std::string, std::pair<std::vector<Kind>, Kind>> d_smtLibSyms;
 };
