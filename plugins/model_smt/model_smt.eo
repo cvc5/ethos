@@ -2,6 +2,11 @@
 ; This file is expected to define function $smt_model_eval, which can be used to define
 ; whether a (Boolean) term is satisfied by a model.
 
+; forward declaration
+(program $smt_model_eval ((T Type)) :signature (T) T)
+
+; These functions will be handled by smt_meta.
+
 ; An SMT-LIB term.
 (declare-const $smt_Term Type)
 
@@ -13,6 +18,12 @@
 (declare-parameterized-const $smt_apply_3
   ((T Type :implicit) (U Type :implicit) (V Type :implicit) (op $eo_String) (x1 T) (x2 U) (x3 V)) $smt_Term)
 
+; Convert from Eunoia to an SMT value
+(declare-const $eo_bool_to_smt (-> Bool $smt_Term))
+(declare-const $eo_z_to_smt (-> $eo_Numeral $smt_Term))
+(declare-const $eo_q_to_smt (-> $eo_Rational $smt_Term))
+(declare-const $eo_str_to_smt (-> $eo_String $smt_Term))
+(declare-const $eo_bin_to_smt (-> $eo_Binary $smt_Term))
 ; Convert smt2 term to a Eunoia Boolean.
 (declare-const $smt_to_bool (-> $smt_Term Bool))
 ; Convert smt2 term to a Eunoia numeral.
@@ -37,10 +48,13 @@
    (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3))
   :signature ((eo::quote T) T) Bool
   (
-  (($smt_is_value $eo_Numeral t)  (eo::is_z t))
-  (($smt_is_value $eo_Rational t) (eo::is_q t))
-  (($smt_is_value $eo_String t)   (eo::is_str t))
-  (($smt_is_value $eo_Binary t)   (eo::is_bin t))
+  ; if the literal type is not defined, this is false
+  (($smt_is_value $eo_defined_type t) false)
+  ; standard atomic types
+  (($smt_is_value $eo_Numeral t)      (eo::is_z t))
+  (($smt_is_value $eo_Rational t)     (eo::is_q t))
+  (($smt_is_value $eo_String t)       (eo::is_str t))
+  (($smt_is_value $eo_Binary t)       (eo::is_bin t))
 $SMT_IS_VALUE_CASES$
   (($smt_is_value T t) false)
   )
@@ -58,6 +72,32 @@ $SMT_TYPE_ENUM_CASES$
 )
 
 ; definitions of operators
+
+
+(program $smt_substitute
+  ((T Type) (U Type) (S Type) (x S) (y S) (f (-> T U)) (a T) (z U))
+  :signature (S S U) U
+  (
+  (($smt_substitute x y (f a))         (_ ($smt_substitute x y f) ($smt_substitute x y a)))
+  (($smt_substitute x y x)             y)
+  (($smt_substitute x y z)             z)
+  )
+)
+
+; specification for exists is a (non-computable) function
+(program $smt_model_exists ((T Type) (x T) (xs $eo_List) (F Bool) (i $eo_Numeral))
+  :signature (Bool $eo_List $eo_Numeral) Bool
+  (
+  (($smt_model_exists $eo_List_nil F i)     ($smt_model_eval F))
+  (($smt_model_exists ($eo_List_cons x xs) F i)
+    (eo::define ((next ($smt_type_enum (eo::typeof x) i)))
+    (eo::ite (eo::is_ok next)
+      (eo::ite ($smt_model_eval ($smt_substitute x next F))
+        true
+        ($smt_model_exists ($eo_List_cons x xs) F (eo::add i 1)))
+      false))) ; out of values
+  )
+)
 
 ; fwd-decl: $smt_model_lookup
 ; Conceptually, returns the model value for constant with identifier id and type T.
@@ -79,7 +119,16 @@ $SMT_EVAL_CASES$
   (($smt_model_eval (f y))          (eo::define ((fme ($smt_model_eval f)))
                                     (eo::define ((yme ($smt_model_eval y)))
                                     (eo::define ((tme (_ fme yme)))
-                                      (eo::requires ($smt_is_value tme) true tme)))))
-  (($smt_model_eval z)              (eo::requires ($smt_is_value z) true z))
+                                      (eo::requires ($smt_is_value (eo::typeof (f y)) tme) true tme)))))
+  (($smt_model_eval z)              (eo::requires ($smt_is_value (eo::typeof z) z) true z))
+  )
+)
+
+; program: $eo_model_sat
+; note: Evaluates to true if F is satisfied by the model.
+(program $eo_model_sat ((F Bool))
+  :signature (Bool) Bool
+  (
+  (($eo_model_sat F) ($smt_model_eval F))
   )
 )

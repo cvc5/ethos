@@ -17,8 +17,8 @@
 
 namespace ethos {
 
-// std::string s_ds_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
-std::string s_smodel_path = "/home/andrew/ethos/";
+std::string s_smodel_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
+//std::string s_smodel_path = "/home/andrew/ethos/";
 
 ModelSmt::ModelSmt(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {
@@ -50,6 +50,7 @@ ModelSmt::ModelSmt(State& s) : d_state(s), d_tc(s.getTypeChecker())
   // use Kind::PARAM to stand for either Int or Real arithmetic (not mixed)
   addSmtLibSym("Int", {}, Kind::TYPE);
   addSmtLibSym("Real", {}, Kind::TYPE);
+  /*
   addSmtLibSym("+", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
   addSmtLibSym("-", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
   addSmtLibSym("*", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
@@ -58,6 +59,7 @@ ModelSmt::ModelSmt(State& s) : d_state(s), d_tc(s.getTypeChecker())
   addSmtLibSym("<=", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
   addSmtLibSym(">", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
   addSmtLibSym("<", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
+  */
   addSmtLibSym("is_int", {Kind::RATIONAL}, Kind::BOOLEAN);
   addSmtLibSym("divisible", {Kind::NUMERAL, Kind::NUMERAL}, Kind::BOOLEAN);
   addSmtLibSym("/", {Kind::RATIONAL, Kind::RATIONAL}, Kind::RATIONAL);
@@ -121,52 +123,62 @@ void ModelSmt::printSmtType(const std::string& name, std::vector<Kind>& args)
 void ModelSmt::printSmtTerm(const std::string& name, std::vector<Kind>& args, Kind kret)
 {
   d_eval << "  (($smt_model_eval (" << name;
-  std::stringstream ssret;
-  std::stringstream ssretEnd;
-  std::stringstream appArgs;
-  appArgs << " \"" << name << "\"";
-  for (size_t i=1, nargs=args.size(); i<=nargs; i++)
-  {
-    d_eval << " x" << i;
-    //Kind ka = args[i-1];
-    appArgs << " e" << i;
-    ssret << " (eo::define ((e" << i << " ($smt_model_eval x" << i << ")))";
-    ssret << " (eo::requires ($smt_is_value";
-    ssret << " e" << i << ") true";
-    ssretEnd << "))";
-  }
-  std::stringstream ssretBase;
-  if (args.empty() || args.size()>3)
-  {
-    EO_FATAL() << "Unhandled arity " << args.size() << " for " << name;
-  }
-  ssretBase << "($smt_apply_" << args.size() << appArgs.str() << ")";
   // special cases
   if (name=="ite")
   {
-    ssret << "(eo::ite e1 e2 e3)";
+    d_eval << " x1 x2 x3)) ";
+    d_eval << "(eo::ite ($smt_model_eval x1) ($smt_model_eval x2) ($smt_model_eval x3)))";
+    d_eval << std::endl;
   }
-  if (kret==Kind::PARAM)
+  else if (name=="=")
   {
-    ssret << "(eo::define ((er " << ssretBase.str() << ")) ";
-    ssret << "(eo::ite (eo::is_z e1) ($smt_to_z er) ($smt_to_q er)))";
+    d_eval << " x1 x2)) ";
+    d_eval << "(eo::define ((e1 ($smt_model_eval x1))) ";
+    d_eval << "(eo::define ((e2 ($smt_model_eval x2))) ";
+    d_eval << "(eo::requires ($smt_is_value (eo::typeof x1) e1) true ";
+    d_eval << "(eo::requires ($smt_is_value (eo::typeof x2) e2) true ";
+    d_eval << "(eo::eq e1 e2))))))";
+    d_eval << std::endl;
+  }
+  else if (kret==Kind::PARAM)
+  {
+    // TODO: combined / mixed arithmetic?
   }
   else
   {
-    ssret << "($smt_to_";
+    std::stringstream appArgs;
+    appArgs << " \"" << name << "\"";
+    for (size_t i=1, nargs=args.size(); i<=nargs; i++)
+    {
+      d_eval << " x" << i;
+      Kind ka = args[i-1];
+      appArgs << " ($eo_";
+      if (d_kindToEoPrefix.find(ka)!=d_kindToEoPrefix.end())
+      {
+        appArgs << d_kindToEoPrefix[ka];
+      }
+      else
+      {
+        EO_FATAL() << "Unknown argument kind: " << ka;
+      }
+      appArgs << "_to_smt x" << i << ")";
+    }
+    std::stringstream ssretBase;
+    if (args.empty() || args.size()>3)
+    {
+      EO_FATAL() << "Unhandled arity " << args.size() << " for " << name;
+    }
+    d_eval << ")) ($smt_to_";
     if (d_kindToEoPrefix.find(kret)!=d_kindToEoPrefix.end())
     {
-      ssret << d_kindToEoPrefix[kret];
+      d_eval << d_kindToEoPrefix[kret];
     }
     else
     {
       EO_FATAL() << "Unknown return kind: " << kret;
     }
-    ssret << " " << ssretBase.str();
-    ssretEnd << ")";
+    d_eval << " ($smt_apply_" << args.size() << appArgs.str() << ")))" << std::endl;
   }
-  ssret << ssretEnd.str();
-  d_eval << ") " << ssret.str() << ")" << std::endl;
 }
 
 void ModelSmt::printTerm(const Expr& e, std::ostream& os)

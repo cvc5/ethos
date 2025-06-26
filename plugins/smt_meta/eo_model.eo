@@ -35,6 +35,16 @@
 ; fwd-decl: $eo_model_evaluate
 (program $eo_model_evaluate ((T Type))
   :signature (T) T)
+  
+(program $smt_substitute
+  ((T Type) (U Type) (S Type) (x S) (y S) (f (-> T U)) (a T) (z U))
+  :signature (S S U) U
+  (
+  (($smt_substitute x y (f a))         (_ ($smt_substitute x y f) ($smt_substitute x y a)))
+  (($smt_substitute x y x)             y)
+  (($smt_substitute x y z)             z)
+  )
+)
 
 ; specification for forall is a (non-computable) function
 (program $eo_model_evaluate_forall ((T Type) (x T) (xs $eo_List :list) (F Bool) (i Int))
@@ -44,10 +54,10 @@
   (($eo_model_evaluate_forall (forall ($eo_List_cons x xs) F) i)
     (eo::define ((next ($eo_model_enum (eo::typeof x) i)))
     (eo::ite (eo::is_ok next)
-      (eo::ite ($eo_model_evaluate ($substitute x next F))
-        ($eo_model_evaluate_forall (forall ($eo_List_cons x xs) F) (eo::add i 1))
-        false)
-      true))) ; out of values
+      (eo::ite ($eo_model_evaluate ($smt_substitute x next F))
+        true
+        ($eo_model_evaluate_forall ($eo_List_cons x xs) F (eo::add i 1)))
+      false))) ; out of values
   )
 )
 
@@ -113,5 +123,3 @@
   )
 )
 
-; used to ensure dependencies are set
-;(program $eo_test ((F Bool)) ($eo_model_sat F))
