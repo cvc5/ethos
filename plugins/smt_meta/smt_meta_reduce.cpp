@@ -789,4 +789,38 @@ bool SmtMetaReduce::echo(const std::string& msg)
   return true;
 }
 
+bool SmtMetaReduce::isSmtApplyTerm(const Expr& t, std::string& name, std::vector<Expr>& args)
+{
+  Expr cur = t;
+  while (cur.getKind()==Kind::APPLY)
+  {
+    args.push_back(cur[1]);
+    cur = cur[0];
+  }
+  size_t arity = isSmtApply(t, name);
+  if (arity>0)
+  {
+    return true;
+  }
+  args.clear();
+  return false;
+}
+
+size_t SmtMetaReduce::isSmtApply(const Expr& t, std::string& name)
+{
+  if (t.getKind()==Kind::CONST)
+  {
+    std::stringstream ss;
+    ss << t;
+    std::string sname = ss.str();
+    if (sname.compare(0, 11, "$smt_apply_") == 0)
+    {
+      std::string sarity = sname.substr(11);
+      // always add one
+      return std::stoi(sarity)+1;
+    }
+  }
+  return 0;
+}
+
 }  // namespace ethos

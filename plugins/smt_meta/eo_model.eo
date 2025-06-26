@@ -1,125 +1,71 @@
 
-; This file is expected to define function $eo_model_sat, which defines whether a (Boolean) term is satisfied by a model.
+(declare-const Stuck Type)
 
-; Note that it must be written in desugared Eunoia. This means
-; that we do not rely on e.g. :right-assoc-nil or :list.
-; It also means that certain definitions are pre-expanded,
-; for example, String must be written (Seq Char).
+; these will be custom defined in the smt2
+(program $sm_is_Boolean () :signature ($eo_Numeral) Bool)
+(program $sm_is_Numeral () :signature ($eo_Numeral) Bool)
+(program $sm_is_Rational () :signature ($eo_Rational) Bool)
+(program $sm_is_String () :signature ($eo_String) Bool)
+(program $sm_is_String () :signature ($eo_Binary) Bool)
 
-; fwd-decl: $eo_model_lookup
-; Conceptually, returns the model value for constant with identifier id and type T.
-; This is intentionally undefined in this signature.
-(program $eo_model_lookup ((T Type))
-  :signature (T) T)
+;;; Boolean operators
 
-; represents an unknown value
-(declare-parameterized-const @unknown_value ((T Type) (i Int)) T)
+; these will be custom defined in the smt2
+(program $sm_Binary_not ((T Type)) :signature (T) T)
+(program $sm_Binary_and ((T Type)) :signature (T T) T)
+(program $sm_Binary_or ((T Type)) :signature (T T) T)
+(program $sm_Binary_xor ((T Type)) :signature (T T) T)
 
-(program $eo_model_enum ((T Type) (i Int) (w Int))
-  :signature ((eo::quote T) Int) T
-  (
-  (($eo_model_enum Int i)         (eo::define ((v (eo::zdiv i 2)))
-                                    (eo::ite (eo::eq (eo::zmod i 2) 0) v (eo::neg v))))
-  ;(($eo_model_enum Real i)
-  (($eo_model_enum (BitVec w) i)  (eo::define ((v (eo::to_bin w i)))
-                                    (eo::requires (eo::to_z v) i v)))   ; must not overflow
-  (($eo_model_enum (Seq Char) i)  (eo::ite (eo::eq i 0)
-                                    ""
-                                    (eo::concat (eo::to_str (eo::zmod i 196608)) ($eo_model_enum (Seq Char) (eo::zdiv i 196608)))))
-  (($eo_model_enum UnitTuple i)   (eo::requires i 0 tuple.unit))
-  ; Array, Set, (Seq T), Tuple
-  (($eo_model_enum T i)           (@unknown_value T i))   ; note since this always succeeds, this assumes that unhandled types have infinite type
-  )
-)
+; program: $eo_not
+(define-fun $eo_not ((x1 sm.Term)) sm.Term
+  (ite ($sm_is_Bool x1)
+    ($sm_Boolean ($smt_apply_1 "not" x1))
+  (ite ($sm_is_Binary x1)
+    ($sm_Binary_not x1)
+    sm.Stuck)))
 
-; fwd-decl: $eo_model_evaluate
-(program $eo_model_evaluate ((T Type))
-  :signature (T) T)
-  
-(program $smt_substitute
-  ((T Type) (U Type) (S Type) (x S) (y S) (f (-> T U)) (a T) (z U))
-  :signature (S S U) U
-  (
-  (($smt_substitute x y (f a))         (_ ($smt_substitute x y f) ($smt_substitute x y a)))
-  (($smt_substitute x y x)             y)
-  (($smt_substitute x y z)             z)
-  )
-)
+; program: $eo_and
+(define-fun $eo_and ((x1 sm.Term) (x2 sm.Term)) sm.Term
+  (ite (and ($sm_is_Boolean x1) ($sm_is_Boolean x2))
+    ($sm_Boolean ($smt_apply_2 "and" (= x1 sm.True) (= x2 sm.True)))
+  (ite (and ($sm_is_Binary x1) ($sm_is_Binary x2))
+    ($sm_Binary_and x1 x2)
+    sm.Stuck)))
 
-; specification for forall is a (non-computable) function
-(program $eo_model_evaluate_forall ((T Type) (x T) (xs $eo_List :list) (F Bool) (i Int))
-  :signature (Bool Int) Bool
-  (
-  (($eo_model_evaluate_forall (forall $eo_List_nil F) i)     ($eo_model_evaluate F))
-  (($eo_model_evaluate_forall (forall ($eo_List_cons x xs) F) i)
-    (eo::define ((next ($eo_model_enum (eo::typeof x) i)))
-    (eo::ite (eo::is_ok next)
-      (eo::ite ($eo_model_evaluate ($smt_substitute x next F))
-        true
-        ($eo_model_evaluate_forall ($eo_List_cons x xs) F (eo::add i 1)))
-      false))) ; out of values
-  )
-)
+; program: $eo_or
+(define-fun $eo_or ((x1 sm.Term) (x2 sm.Term)) sm.Term
+  (ite (and ($sm_is_Boolean x1) ($sm_is_Boolean x2))
+    ($sm_Boolean ($smt_apply_2 "or" (= x1 sm.True) (= x2 sm.True)))
+  (ite (and ($sm_is_Binary x1) ($sm_is_Binary x2)
+    ($sm_Binary_or x1 x2)
+    sm.Stuck)))
 
-; simple atomic types can have better evaluators
-; in the smt2, these take a Term that can be constant folded, and constant fold them using the SMT-LIB operator
-(program $eo_model_evaluate_int ((T Type)) :signature (T) Int)
-(program $eo_model_evaluate_real ((T Type)) :signature (T) Real)
-(program $eo_model_evaluate_strings ((T Type)) :signature (T) (Seq Char))
+; program: $eo_xor
+(define-fun $eo_xor ((x1 sm.Term) (x2 sm.Term)) sm.Term
+  (ite (and ($sm_is_Boolean x1) ($sm_is_Boolean x2))
+    ($sm_Boolean (xor (= x1 sm.True) (= x2 sm.True)))
+  (ite (and ($sm_is_Binary x1) ($sm_is_Binary x2))
+    ($sm_Binary_xor x1 x2)
+    sm.Stuck)))
 
-; An evaluator for all terms that we can reason about models.
-(program $eo_model_evaluate
-  ((T Type) (U Type) (V Type) (x T) (f (-> U T)) (y V) (z V) (u U) (n Int) (F Bool) (xs $eo_List)
-   (a1 (Array U V)) (a2 (Array U V))
-   (s (Seq Char)) (R RegLan))
-  :signature (T) T
-  (
-  ; @const is the CPC syntax for constants
-  (($eo_model_evaluate (@const n T))              ($eo_model_lookup (@const n T)))
-  ; For equality, we use $are_distinct_terms which is more general than $run_evaluate.
-  ; This side condition is part of the trusted core.
-  (($eo_model_evaluate (_ (= y) z))               (eo::define ((fmy ($eo_model_evaluate y)))
-                                                  (eo::define ((fmz ($eo_model_evaluate z)))
-                                                  (eo::ite (eo::eq fmy fmz)
-                                                    true
-                                                    (eo::requires ($are_distinct_terms fmy fmz) true false)))))
-  ; partial operators
-  (($eo_model_evaluate (/ y 0))                   ($eo_model_evaluate (@div_by_zero y)))
-  (($eo_model_evaluate (div y 0))                 ($eo_model_evaluate (@int_div_by_zero y)))
-  (($eo_model_evaluate (mod y 0))                 ($eo_model_evaluate (@mod_by_zero y)))
-  ; other operators go here
-  ;(($eo_model_evaluate (select a1 u))
-  (($eo_model_evaluate (forall xs F))             ($eo_model_evaluate_forall (forall xs F) 0))
-  (($eo_model_evaluate (exists xs F))             ($eo_model_evaluate (not (forall xs (not F)))))
-  (($eo_model_evaluate (str.in_re s R))           ($str_eval_str_in_re ($eo_model_evaluate s) ($eo_model_evaluate R)))
-  ; TODO: arrays, sets, datatypes
-  ; skolems
-  (($eo_model_evaluate (@purify x))               ($eo_model_evaluate x))
-  (($eo_model_evaluate (@array_deq_diff a1 a2))   (eo::define ((m ($eo_model_lookup (@array_deq_diff a1 a2))))
-                                                  (eo::requires ($eo_model_evaluate (= (select a1 m) (select a1 m))) false
-                                                     m)))
-  ; Use the CPC run_evaluate side condition for all operators returning an atomic value.
-  ; This side condition is part of the trusted core.
-  (($eo_model_evaluate (f y))           (eo::define ((fme ($eo_model_evaluate f)))
-                                        (eo::define ((yme ($eo_model_evaluate y)))
-                                        (eo::define ((tme (_ fme yme)))
-                                        (eo::define ((ev ($run_evaluate tme)))
-                                        (eo::define ((evs ($seq_eval tme)))
-                                        (eo::ite (eo::is_ok ev)
-                                          ev
-                                          (eo::ite (eo::is_ok evs)
-                                            evs
-                                            tme))))))))
-  (($eo_model_evaluate x)               x)
-  )
-)
 
-; program: $eo_model_sat
-; note: Evaluates to true if F is satisfied by the model.
-(program $eo_model_sat ((F Bool))
-  :signature (Bool) Bool
-  (
-  (($eo_model_sat F) ($eo_model_evaluate F))
-  )
-)
 
+
+
+
+
+
+
+
+
+(program $sm_Binary_+ ((T Type)) :signature (T T) T)
+
+(define $eo_add ((T Type :implicit) (x1 T) (x2 T))
+  (eo::ite (and ($eo_is_ok x1) ($eo_is_ok x2))
+    (eo::ite (and ($sm_is_Numeral x1) ($sm_is_Numeral x2))
+      ($smt_to_z ($smt_apply_2 "+" ($eo_z_to_smt x1) ($eo_z_to_smt x2)))
+    (eo::ite (and ($sm_is_Rational x1) ($sm_is_Rational x2))
+      ($smt_to_q ($smt_apply_2 "+" ($eo_q_to_smt x1) ($eo_q_to_smt x2)))
+    (eo::ite (and ($sm_is_Binary x1) ($sm_is_Binary x2))
+      ($sm_Binary_+ ($eo_bin_to_smt x1) ($eo_bin_to_smt x2))
+      Stuck)))))

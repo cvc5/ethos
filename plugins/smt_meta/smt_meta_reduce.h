@@ -86,8 +86,10 @@ class SmtMetaReduce : public Plugin
   void finalizeRules();
   /** Does t have subterm s? */
   static bool hasSubterm(const Expr& t, const Expr& s);
-  /** */
-  Expr mkRemoveAnnotParam(const Expr& t, std::vector<Expr>& vars);
+  /** is smt apply term */
+  bool isSmtApplyTerm(const Expr& t, std::string& name, std::vector<Expr>& args);
+  /** is smt apply, return the arity */
+  size_t isSmtApply(const Expr& t, std::string& name);
   /** the state */
   State& d_state;
   /** the type checker */

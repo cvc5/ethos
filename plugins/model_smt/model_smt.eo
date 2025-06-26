@@ -56,10 +56,10 @@
   ; if the literal type is not defined, this is false
   (($smt_is_value $eo_defined_type t) false)
   ; standard atomic types
-  (($smt_is_value $eo_Numeral t)      (eo::is_z t))
-  (($smt_is_value $eo_Rational t)     (eo::is_q t))
-  (($smt_is_value $eo_String t)       (eo::is_str t))
-  (($smt_is_value $eo_Binary t)       (eo::is_bin t))
+  (($smt_is_value $eo_Numeral t)      ($eo_is_z t))
+  (($smt_is_value $eo_Rational t)     ($eo_is_q t))
+  (($smt_is_value $eo_String t)       ($eo_is_str t))
+  (($smt_is_value $eo_Binary t)       ($eo_is_bin t))
 $SMT_IS_VALUE_CASES$
   (($smt_is_value T t) false)
   )

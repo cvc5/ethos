@@ -29,7 +29,7 @@ echo "**** run_gen_vc: Run ethos + desugar on $INIT_TRIM to generate $INIT_DESUG
 cp $STD_DESUGAR_OUT $INIT_DESUGAR
 
 echo "**** run_gen_vc: Run ethos + trim-deps on $INIT_DESUGAR to generate $VC_DEF_DESUGAR"
-./run_trim_defs $INIT_DESUGAR "\$eovc_$TARGET" "\$eo_typeof_main" "\$eo_String" "\$eo_Numeral" "\$eo_Rational" "\$eo_Binary" "\$eo_List" "\$eo_List_nil" "\$eo_List_cons"
+./run_trim_defs $INIT_DESUGAR "\$eovc_$TARGET" "\$eo_typeof_main" "\$eo_String" "\$eo_Numeral" "\$eo_Rational" "\$eo_Binary" "\$eo_List" "\$eo_List_nil" "\$eo_List_cons" "\$eo_is_z" "\$eo_is_q" "\$eo_is_str" "\$eo_is_bin"
 cp $STD_TRIM_OUT $VC_DEF_DESUGAR
 
 echo "**** run_gen_vc: Run ethos + model-smt on $VC_DEF_DESUGAR to generate $VCM_DEF_DESUGAR"
@@ -45,11 +45,11 @@ echo "**** run_gen_vc: Verify it parses"
 ./src/ethos $VCMT_DEF_DESUGAR
 
 
-#echo "(echo \"smt-meta \$eovc_$TARGET\")" >> $VCM_DEF_DESUGAR
+echo "(echo \"smt-meta \$eovc_$TARGET\")" >> $VCM_DEF_DESUGAR
 
-#echo "**** Generate SMT2 to $VC_OUT"
-#./src/ethos --plugin.smt-meta $VC_DEF_DESUGAR
-#cp $STD_VC_OUT $VC_OUT
+echo "**** Generate SMT2 from $VCM_DEF_DESUGAR to $VC_OUT"
+./src/ethos --plugin.smt-meta $VCM_DEF_DESUGAR
+cp $STD_VC_OUT $VC_OUT
 
-#echo "**** Try to solve"
-#ajr-cvc5 $VC_OUT
+echo "**** Try to solve"
+ajr-cvc5 $VC_OUT
