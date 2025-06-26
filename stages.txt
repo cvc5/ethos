@@ -52,6 +52,7 @@ Relies on:
 - desugar.cpp (ethos plugin)
 
 Things handled at this stage:
+- Non-essential Eunoia commands (declare-type/define-type).
 - Operator overloading.
 - Operator properties.
   - :right-assoc-nil, :right-assoc, :left-assoc-nil, :left-assoc, :chainable, :binder, :let-binder
@@ -109,15 +110,16 @@ Relies on:
 - smt_meta_reduce.cpp (ethos plugin)
 
 Things handled at this stage:
-- Eunoia semantics of "stuckness".
-- :opaque.
-- Ambiguously typed functions.
+- Remaining define commands inlined.
+- Eunoia semantics of "stuckness"
+- :opaque
+- Ambiguously typed functions
 - eo::is_ok, eo::ite, eo::requires, eo::hash
 - eo::not, eo::and, eo::or, eo::xor
 - eo::add, eo::mul, eo::qdiv, eo::zdiv, eo::zmod, eo::is_neg, eo::neg
 - eo::len, eo::concat, eo::extract, eo::find
 - eo::to_z, eo::to_q, eo::to_bin, eo::to_str
-- Semantics of parametric bitvector operations.
+- Semantics of parametric bitvector operations
 
 ===
 
