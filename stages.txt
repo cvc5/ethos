@@ -32,7 +32,7 @@ Relies on:
 - cvc5 API code
 
 Things handled at this stage:
-- Desugaring of :chainable, :left-assoc, :right-assoc operators.
+- Desugaring of :chainable, some of the :left-assoc, :right-assoc operators.
 
 === cvc5 internals -> CPC proof 
 
@@ -40,8 +40,10 @@ Relies on:
 - cvc5 source code
 
 Things handled at this stage:
-- define-fun-rec
-- match
+- define-fun-rec, desugared to declare-fun + assert forall.
+- match, desugared to ITE
+- some FP operators renamed
+- Currying of ProofRule::SCOPE.
 
 === Desugar
 
@@ -58,7 +60,9 @@ This side condition is the target for verification in the Smt_Meta step below.
 Relies on:
 - eo_desugar.eo template, 285 LOC EO
 - desugar.cpp (ethos plugin), 998 LOC C++
-- trim_defs.cpp (ethos plugin), 258 LOC C++
+- (Optional) trim_defs.cpp (ethos plugin), 258 LOC C++
+  - Slices the signature, preserves S-expression.
+  - Needed to make the VCs more manageable.
 
 Things handled at this stage:
 - Non-essential Eunoia commands (declare-type/define-type).
@@ -79,10 +83,11 @@ Things handled at this stage:
 - eo::nil
   - Includes an auto-generation of cases for each :right-assoc-nil, :left-assoc-nil operator.
 - eo::typeof
-  - Includes an auto-generation of cases for all user symbols.
+  - *Approximates* the internal type system of Eunoia (monomorphizes
+  - Includes an auto-generation of cases for all user symbols ($eo_typeof_main).
   - Includes definitions of literal types, and type of variables ($eo_Var).
+- eo::dt_constructors, eo::dt_selectors
 - Defines $eo_fail as a stuck term.
-- TODO: eo::dt_constructors, eo::dt_selectors
 
 === Model_smt
 
@@ -107,8 +112,8 @@ Things handled at this stage:
   - Builtin operator semantics
     - Defines a deep embedding of SMT-LIB terms into Eunoia via $smt_Term / $smt_apply_N
     - Defines conversions from Eunoia literals to SMT-LIB values via $smt_to_eo_X/$eo_to_smt_X.
+- overloading arithmetic
 - TODO: arrays?
-- TODO: overloading arithmetic.
 - TODO: skolem semantics.
 - TODO: can handle a majority of Eunoia builtins here.
 
