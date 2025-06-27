@@ -252,7 +252,7 @@ $SMT_IS_VALUE_CASES$
 ; An evaluator for all terms that we can reason about models.
 ; This is a recursive call.
 (program $smt_model_eval
-  ((T Type) (U Type) (V Type) (a1 T) (a2 T) (c Bool) (f (-> U T)) (y U) (z T) (id $eo_Numeral) (F Bool)
+  ((T Type) (U Type) (V Type) (a1 T) (a2 T) (c Bool) (f (-> U T)) (y U) (z T) (k $eo_Numeral) (i $eo_Numeral) (F Bool)
    ; generic parameters that may appear in terms to pattern match
    (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3))
   :signature (T) T
@@ -264,10 +264,10 @@ $SMT_EVAL_CASES$
   ; We then check if their property F is satisfied. If so, then they are
   ; interpreted to be this value. Otherwise, they are unevaluated.
   ; FIXME: must apply substitution to F.
-  (($smt_model_eval ($eo_model_Const id T F)) (eo::define ((val ($smt_model_lookup id T)))
-                                              (eo::ite ($smt_model_eval F)
+  (($smt_model_eval ($eo_model_Const k i T))  (eo::define ((val ($smt_model_lookup i T)))
+                                              (eo::ite ($smt_model_eval ($eo_model_Const_pred k i T))
                                                 val
-                                                ($eo_model_Const id T F))))
+                                                ($eo_model_Const k i T))))
   ; generic apply and base case.
   ; these do not insist that the term is a value.
   (($smt_model_eval (f y))                (eo::define ((fme ($smt_model_eval f)))
