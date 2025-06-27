@@ -182,7 +182,7 @@ $SMT_TYPE_ENUM_CASES$
   (
   (($smt_model_eval_quant $eo_List_nil F i isExists)
     ; base case: we have processed all variables, recurse, negate if isExists is false.
-    (eo::eq ($smt_model_eval F) isExists))
+    (eo::eq ($smt_model_eval F) isExists))  ; FIXME
   (($smt_model_eval_quant ($eo_List_cons x xs) F i isExists)
     ; get the next value in the type enumeration
     (eo::define ((next ($smt_type_enum (eo::typeof x) i)))
