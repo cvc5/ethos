@@ -67,6 +67,7 @@ Relies on:
 Things handled at this stage:
 - Non-essential Eunoia commands (declare-type/define-type).
 - Operator overloading.
+  - Introduces "$eoo_X.N" as a convention for overloaded symbols.
 - Operator properties.
   - :right-assoc-nil, :right-assoc, :left-assoc-nil, :left-assoc, :chainable, :binder, :let-binder
 - declare-rule
@@ -112,7 +113,8 @@ Things handled at this stage:
   - Builtin operator semantics
     - Defines a deep embedding of SMT-LIB terms into Eunoia via $smt_Term / $smt_apply_N
     - Defines conversions from Eunoia literals to SMT-LIB values via $smt_to_eo_X/$eo_to_smt_X.
-- overloading arithmetic
+  - overloading arithmetic
+  - Reverts operator overload, recognizes "$eoo_-.2" as SMT-LIB "-".
 - TODO: arrays?
 - TODO: skolem semantics.
 - TODO: can handle a majority of Eunoia builtins here.
@@ -131,8 +133,11 @@ Relies on:
 - smt_meta_reduce.cpp (ethos plugin), 783 LOC C++
 
 Things handled at this stage:
+- Symbols introduced for deep embedding in Model_Smt $smt_Term, $smt_apply_N, $smt_to_eo_X, $eo_to_smt_X.
+  - TODO: Indexed SMT-LIB operators are handled as special case?? Maybe Opaque??
 - Remaining define commands inlined.
 - Eunoia semantics of "stuckness"
+- Eunoia semantics of pattern matching based on datatype selectors/testers.
 - :opaque
 - Ambiguously typed functions
 - eo::is_ok, eo::ite, eo::requires, eo::hash
@@ -146,12 +151,18 @@ Things handled at this stage:
 
 Not handled:
 - Well foundedness of all Eunoia programs. This can lead to spurious unsoundess in the Smt_Meta step.
+  - TODO: well foundedness as a Eunoia program
 - Modelling of assume-push/step-pop.
 - TODO: modelling of :conclusion-explicit, :assumption.
+
+
+- TODO: remove type checking from proof rule semantics?
+- TODO: type checking as a separate property: type preservation for proof rules.
 
 ===
 
 Future research:
+- Fuzz Ethos to make sure it is syncronized with desugaring semantics.
 - Lean_Meta plugin.
 - Parametric bitvectors in cvc5 to prove VCs.
 - Logos: reimplementation of ethos whose native language is desugared *.eo. It should be formally verified to incorporate some stages of the above pipeline.

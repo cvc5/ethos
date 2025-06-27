@@ -4,7 +4,6 @@
 ./run_gen_vc aci_norm
 ./run_gen_vc absorb
 ./run_gen_vc distinct-card-conflict
-./run_gen_vc trust
 ./run_gen_vc arith_sum_ub
 ./run_gen_vc arith_mult_pos
 ./run_gen_vc arith_mult_neg

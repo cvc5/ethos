@@ -50,6 +50,8 @@ class ModelSmt : public Plugin
   std::map<Kind, Expr> d_kindToType;
   std::map<Kind, std::string> d_kindToEoPrefix;
   std::map<std::string, std::string> d_overloadRevert;
+  /** SMT-LIB indexed operators */
+  std::map<std::string, size_t> d_indexedOperators;
   std::stringstream d_eval;
   std::stringstream d_typeEnum;
   std::stringstream d_isValue;

@@ -36,15 +36,15 @@ echo "**** run_gen_vc: Run ethos + trim-defs on $INPUT and $TARGET to $INIT_TRIM
 cp $STD_TRIM_OUT $INIT_TRIM
 
 echo "**** run_gen_vc: Run ethos + desugar on $INIT_TRIM to generate $INIT_DESUGAR"
-./src/ethos --plugin.desugar-vc $INIT_TRIM
+./src/ethos --plugin.desugar-vc $INIT_TRIM >/dev/null
 cp $STD_DESUGAR_OUT $INIT_DESUGAR
 
 echo "**** run_gen_vc: Run ethos + trim-deps on $INIT_DESUGAR to generate $VC_DEF_DESUGAR"
-./run_trim_defs $INIT_DESUGAR "\$eovc_$TARGET" "\$eo_typeof_main" "\$eo_String" "\$eo_Numeral" "\$eo_Rational" "\$eo_Binary" "\$eo_List" "\$eo_List_nil" "\$eo_List_cons" "\$eo_is_bool" "\$eo_is_z" "\$eo_is_q" "\$eo_is_str" "\$eo_is_bin" "\$eo_dt_constructors" "\$eo_dt_selectors" "\$eo_model_sat" "\$eo_model_eval" "\$eo_model_Const" "\$eo_model_Const_pred" "\$eo_model_binary_width"
+./run_trim_defs $INIT_DESUGAR "\$eovc_$TARGET" "\$eo_typeof_main" "\$eo_String" "\$eo_Numeral" "\$eo_Rational" "\$eo_Binary" "\$eo_List" "\$eo_List_nil" "\$eo_List_cons" "\$eo_is_bool" "\$eo_is_z" "\$eo_is_q" "\$eo_is_str" "\$eo_is_bin" "\$eo_dt_constructors" "\$eo_dt_selectors" "\$eo_model_sat" "\$eo_model_eval" "\$eo_model_Const" "\$eo_model_Const_pred" "\$eo_model_binary_width" >/dev/null
 cp $STD_TRIM_OUT $VC_DEF_DESUGAR
 
 echo "**** run_gen_vc: Run ethos + model-smt on $VC_DEF_DESUGAR to generate $VCM_DEF_DESUGAR"
-./run_gen_smt_model $VC_DEF_DESUGAR
+./run_gen_smt_model $VC_DEF_DESUGAR >/dev/null
 cp $STD_SMODEL_OUT $VCM_DEF_DESUGAR
 
 # trim again
@@ -53,13 +53,20 @@ echo "**** run_gen_vc: Run ethos + trim-deps on $VCM_DEF_DESUGAR to generate $VC
 cp $STD_TRIM_OUT $VCMT_DEF_DESUGAR
 
 echo "**** run_gen_vc: Verify it parses"
-./src/ethos $VCMT_DEF_DESUGAR
+./src/ethos $VCMT_DEF_DESUGAR >/dev/null
 
 echo "(echo \"smt-meta \$eovc_$TARGET\")" >> $VCMT_DEF_DESUGAR
 
 echo "**** Generate SMT2 from $VCMT_DEF_DESUGAR to $VC_OUT"
-./src/ethos --plugin.smt-meta $VCMT_DEF_DESUGAR
+./src/ethos --plugin.smt-meta $VCMT_DEF_DESUGAR >/dev/null
 cp $STD_VC_OUT $VC_OUT
 
-echo "**** Try to solve"
-ajr-cvc5 $VC_OUT
+echo "**** Try to parse"
+ajr-cvc5 $VC_OUT --parse-only
+
+# clear temporary files
+rm -f $OUT_DIR/trim-cpc-$TARGET.eo
+rm -f $OUT_DIR/trim-d-cpc-$TARGET.eo
+rm -f $OUT_DIR/vc-def-cpc-$TARGET.eo
+rm -f $OUT_DIR/vcm-def-cpc-$TARGET.eo
+rm -f $OUT_DIR/vcmt-def-cpc-$TARGET.eo

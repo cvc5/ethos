@@ -68,6 +68,8 @@ ModelSmt::ModelSmt(State& s) : d_state(s), d_tc(s.getTypeChecker())
   addSmtLibSym("<", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
   addSmtLibSym("is_int", {Kind::RATIONAL}, Kind::BOOLEAN);
   addSmtLibSym("divisible", {Kind::NUMERAL, Kind::NUMERAL}, Kind::BOOLEAN);
+  // TODO: use this???
+  d_indexedOperators["divisible"] = 1;
   addSmtLibSym("/", {Kind::RATIONAL, Kind::RATIONAL}, Kind::RATIONAL);
   addSmtLibSym("div", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
   addSmtLibSym("mod", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);

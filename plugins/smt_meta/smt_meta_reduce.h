@@ -123,6 +123,8 @@ class SmtMetaReduce : public Plugin
   std::stringstream d_rules;
   std::stringstream d_smtVc;
   std::map<std::string, Kind> d_sufToKind;
+  /** SMT-LIB indexed operators */
+  std::map<std::string, size_t> d_indexedOperators;
   // SMT-LIB symbols
   bool d_inInitialize;
 };
