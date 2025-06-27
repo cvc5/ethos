@@ -97,7 +97,7 @@
      (eo::define ((r1 (@smt_ratPair (eo::add n d) d)))
      (eo::define ((r2 (@smt_ratPair n (eo::add n d))))
       ($smt_rat_enum_rec (eo::add i -1)
-        ($eo_List_concat $eo_List rs ($eo_List_cons r1 ($eo_List_cons r2 $eo_List_nil)))))))
+        ($eo_List_concat rs ($eo_List_cons r1 ($eo_List_cons r2 $eo_List_nil)))))))
   )
 )
 
