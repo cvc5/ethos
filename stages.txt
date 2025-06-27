@@ -143,7 +143,6 @@ Not handled:
 - Well foundedness of all Eunoia programs. This can lead to spurious unsoundess in the Smt_Meta step.
 - Modelling of assume-push/step-pop.
 - TODO: modelling of :conclusion-explicit, :assumption.
-- TODO: datatypes
 
 ===
 

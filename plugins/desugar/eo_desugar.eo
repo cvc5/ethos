@@ -30,8 +30,21 @@ $EO_LITERAL_TYPE_DECL$
 (define $eo_Binary () $EO_BINARY$)
 ; note: decimal and hexadecimal omitted for now.
 
-; forward declaration for test
+;;; Model test infrastructure
+
+; A placeholder for asking whether a formula is satisfied by a model.
+; This is used to defined verification conditions.
 (program $eo_model_sat () :signature (Bool) Bool)
+
+; A free constant.
+; This is a free constant that can be assumed to have property F
+; if F is satisfied by the model, and is unconstrained otherwise.
+; Note that if F is true, then this is an ordinary free constant,
+; i.e. one declared by the user.
+; Note this constant must be preserved to ensure the semantics of
+; SMT-LIB is accurate. In particular, this ensures that terms can
+; be constructed out of free constant symbols.
+(declare-parameterized-const $eo_model_Const ((id $eo_Numeral) (T Type) (F Bool)) T)
 
 ;;; $eo_List
 
