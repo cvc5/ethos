@@ -166,13 +166,17 @@ void ModelSmt::printSmtTerm(const std::string& name,
     if (args.size()==2)
     {
       Assert (args[0]==Kind::PARAM && args[1]==Kind::PARAM);
-      // case split on the integer type
-      d_eval << " x1 x2)) ($smt_eval_mixed_arith";
+      d_eval << " x1 x2)) ($smt_eval_o_arith";
       if (kret==Kind::BOOLEAN)
       {
         d_eval << "_pred";
       }
       d_eval << " \"" << name << "\" x1 x2))" << std::endl;
+    }
+    else if (args.size()==1)
+    {
+      d_eval << " x1)) ($smt_eval_o_arith_unary ";
+      d_eval << " \"" << name << "\" x1))" << std::endl;
     }
     else
     {

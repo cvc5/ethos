@@ -115,23 +115,26 @@ $SMT_IS_VALUE_CASES$
 
 ;;; definitions of Type enumeration
 
+; note: The methods in this section are only included (based on trim-defs) if
+; the verification condition is reasoning about quantified formuls.
+
 (declare-const @smt_RatPair Type)
 (declare-const @smt_ratPair (-> $eo_Numeral $eo_Numeral @smt_RatPair))
 
 ; Based on Calkin–Wilf tree.
-(program $smt_rat_enum_rec () :signature ($eo_Numeral $eo_List) @smt_RatPair)
-;(program $smt_rat_enum_rec
-;  ((i $eo_Numeral) (n $eo_Numeral) (d $eo_Numeral) (r @smt_RatPair) (rs $eo_List))
-;  :signature ($eo_Numeral $eo_List) @smt_RatPair
-;  (
-;  (($smt_rat_enum_rec 0 ($eo_List_cons r rs)) r)
-;  (($smt_rat_enum_rec i ($eo_List_cons (@smt_ratPair n d) rs))
-;     (eo::define ((r1 (@smt_ratPair (eo::add n d) d)))
-;     (eo::define ((r2 (@smt_ratPair n (eo::add n d))))
-;      ($smt_rat_enum_rec (eo::add i -1)
-;        ($eo_List_concat rs ($eo_List_cons r1 ($eo_List_cons r2 $eo_List_nil)))))))
-;  )
-;)
+;(program $smt_rat_enum_rec () :signature ($eo_Numeral $eo_List) @smt_RatPair)
+(program $smt_rat_enum_rec
+  ((i $eo_Numeral) (n $eo_Numeral) (d $eo_Numeral) (r @smt_RatPair) (rs $eo_List))
+  :signature ($eo_Numeral $eo_List) @smt_RatPair
+  (
+  (($smt_rat_enum_rec 0 ($eo_List_cons r rs)) r)
+  (($smt_rat_enum_rec i ($eo_List_cons (@smt_ratPair n d) rs))
+     (eo::define ((r1 (@smt_ratPair (eo::add n d) d)))
+     (eo::define ((r2 (@smt_ratPair n (eo::add n d))))
+      ($smt_rat_enum_rec (eo::add i -1)
+        ($eo_list_concat $eo_List rs ($eo_List_cons r1 ($eo_List_cons r2 $eo_List_nil)))))))
+  )
+)
 
 (define $smt_rat_enum ((i $eo_Numeral))
   ($smt_rat_enum_rec i ($eo_List_cons (@smt_ratPair 1 1) $eo_List_nil)))
@@ -142,6 +145,11 @@ $SMT_IS_VALUE_CASES$
   (($smt_rat_to_num (@smt_ratPair n d)) (eo::qdiv n d))
   )
 )
+
+; we have no incorporate of irrational values, which can be soundly approximated using
+; $smt_unknown_type_enum.
+(define $smt_irrat_enum ((i $eo_Numeral))
+ ($smt_unknown_type_enum $eo_Rational i))
 
 (program $smt_type_enum ((T Type) (i $eo_Numeral)
    ; generic parameters that may appear in terms to pattern match
@@ -154,9 +162,12 @@ $SMT_IS_VALUE_CASES$
   (($smt_type_enum $eo_String i)    (eo::ite (eo::eq i 0)
                                       ""
                                       (eo::concat (eo::to_str (eo::zmod i 196608)) ($smt_type_enum $eo_String (eo::zdiv i 196608)))))
-  (($smt_type_enum $eo_Rational i)  (eo::define ((i (eo::zdiv i 2)))
-                                    (eo::define ((v ($smt_rat_to_num ($smt_rat_enum i))))
-                                      (eo::ite (eo::eq (eo::zmod i 2) 0) v (eo::neg v)))))
+  ; rationals are treated as Real, meaning we interleave rational/irrational.
+  (($smt_type_enum $eo_Rational i)  (eo::define ((ir (eo::zdiv i 2)))
+                                    (eo::define ((isRat (eo::eq (eo::zmod ir 2) 0)))
+                                    (eo::define ((i (eo::zdiv ir 2)))
+                                    (eo::define ((v (eo::ite isRat ($smt_rat_to_num ($smt_rat_enum i)) ($smt_irrat_enum i))))
+                                      (eo::ite (eo::eq (eo::zmod i 2) 0) v (eo::neg v)))))))
 
   ; Cannot define Bit-vectors here as this requires a parameteric type to know "w".
   ;(($smt_type_enum $eo_Binary i)   (eo::define ((v (eo::to_bin w i)))
@@ -165,8 +176,6 @@ $SMT_TYPE_ENUM_CASES$
   (($smt_type_enum T i) ($smt_unknown_type_enum T i))   ; note since this always succeeds, this assumes that unhandled types have infinite type
   )
 )
-
-; definitions of operators
 
 ; program: $smt_substitute
 ; Used to define $smt_model_eval_quant.
@@ -203,13 +212,23 @@ $SMT_TYPE_ENUM_CASES$
   )
 )
 
+;;; Core definition of $smt_model_eval
+
 ; fwd-decl: $smt_model_lookup
 ; Conceptually, returns the model value for constant with identifier id and type T.
 ; This is intentionally undefined in this signature.
 (program $smt_model_lookup ((T Type))
   :signature ($eo_Numeral T) T)
 
-(define $smt_eval_mixed_arith
+(define $smt_eval_o_arith_unary
+  ((W1 Type :implicit) (W2 Type :implicit) (op $eo_String) (x1 W1))
+  (eo::ite ($eo_is_z x1)
+    ($smt_to_eo_z ($smt_apply_1 op ($eo_to_smt_z x1)))
+  (eo::ite ($eo_is_q x1)
+    ($smt_to_eo_q ($smt_apply_1 op ($eo_to_smt_q x1)))
+    $eo_fail)))
+
+(define $smt_eval_o_arith
   ((W1 Type :implicit) (W2 Type :implicit) (op $eo_String) (x1 W1) (x2 W2))
   (eo::ite (eo::and ($eo_is_z x1) ($eo_is_z x2))
     ($smt_to_eo_z ($smt_apply_2 op ($eo_to_smt_z x1) ($eo_to_smt_z x2)))
@@ -217,7 +236,7 @@ $SMT_TYPE_ENUM_CASES$
     ($smt_to_eo_q ($smt_apply_2 op ($eo_to_smt_q x1) ($eo_to_smt_q x2)))
     $eo_fail)))
 
-(define $smt_eval_mixed_arith_pred
+(define $smt_eval_o_arith_pred
   ((W1 Type :implicit) (W2 Type :implicit) (op $eo_String) (x1 W1) (x2 W2))
   (eo::ite (eo::and ($eo_is_z x1) ($eo_is_z x2))
     ($smt_to_eo_bool ($smt_apply_2 op ($eo_to_smt_z x1) ($eo_to_smt_z x2)))
