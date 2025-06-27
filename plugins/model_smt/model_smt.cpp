@@ -76,7 +76,7 @@ ModelSmt::ModelSmt(State& s) : d_state(s), d_tc(s.getTypeChecker())
   addSmtLibSym("str.++", {Kind::STRING, Kind::STRING}, Kind::STRING);
   addSmtLibSym(
       "str.substr", {Kind::STRING, Kind::NUMERAL, Kind::NUMERAL}, Kind::STRING);
-  addSmtLibSym("str.substr", {Kind::STRING}, Kind::NUMERAL);
+  addSmtLibSym("str.substr", {Kind::STRING, Kind::NUMERAL, Kind::NUMERAL}, Kind::STRING);
   addSmtLibSym("str.indexof",
                {Kind::STRING, Kind::STRING, Kind::NUMERAL},
                Kind::NUMERAL);
@@ -86,10 +86,10 @@ ModelSmt::ModelSmt(State& s) : d_state(s), d_tc(s.getTypeChecker())
   addSmtLibSym("str.to_code", {Kind::STRING}, Kind::NUMERAL);
   // BV
   // arith/BV conversions
-  addSmtLibSym("BitVec", {Kind::NUMERAL}, Kind::TYPE);
-  addSmtLibSym("int_to_bv", {Kind::NUMERAL, Kind::NUMERAL}, Kind::BINARY);
-  addSmtLibSym("ubv_to_int", {Kind::BINARY}, Kind::NUMERAL);
-  addSmtLibSym("sbv_to_int", {Kind::BINARY}, Kind::NUMERAL);
+  //addSmtLibSym("BitVec", {Kind::NUMERAL}, Kind::TYPE);
+  //addSmtLibSym("int_to_bv", {Kind::NUMERAL, Kind::NUMERAL}, Kind::BINARY);
+  //addSmtLibSym("ubv_to_int", {Kind::BINARY}, Kind::NUMERAL);
+  //addSmtLibSym("sbv_to_int", {Kind::BINARY}, Kind::NUMERAL);
 }
 
 ModelSmt::~ModelSmt() {}

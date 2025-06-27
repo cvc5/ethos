@@ -312,18 +312,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           visit.pop_back();
           continue;
         }
-        /*
-        if (ck == Kind::VARIABLE)
-        {
-          visit.back().second++;
-          os << "(sm.Var \"";
-          os << cur.first;
-          os << "\" ";
-          Expr vt = d_tc.getType(cur.first);
-          visit.emplace_back(vt, 0);
-          continue;
-        }
-        */
         else if (cur.first.getNumChildren() == 0)
         {
           if (!printEmbAtomicTerm(cur.first, os))
@@ -353,6 +341,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
               os << smtAppName << " ";
               // we recurse on the compiled SMT arguments
               recTerm = d_state.mkExprSimple(Kind::TUPLE, smtArgs);
+              //std::cout << cur.first << " is " << smtAppName << " / " << recTerm << std::endl;
               smtAppToTuple[cur.first] = recTerm;
             }
             else
@@ -574,6 +563,7 @@ void SmtMetaReduce::finalizeDeclarations()
   for (const Expr& e : d_declSeen)
   {
     // ignore deep embeddings of smt terms
+    // all symbols beginning with @ are not part of term definition
     std::string smtAppName;
     if (isSmtApply(e) != 0 || isSmtToEo(e) || isEoToSmt(e) || isSmtTermType(e))
     {
@@ -818,6 +808,14 @@ bool SmtMetaReduce::isEoToSmt(const Expr& t)
     }
   }
   return false;
+}
+
+bool SmtMetaReduce::isInternalSymbol(const Expr& t)
+{
+  std::stringstream ss;
+  ss << t;
+  std::string sname = ss.str();
+  return sname.compare(0,1,"@")==0;
 }
 
 }  // namespace ethos

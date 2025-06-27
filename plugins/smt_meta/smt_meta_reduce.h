@@ -95,6 +95,8 @@ class SmtMetaReduce : public Plugin
   bool isSmtToEo(const Expr& t);
   /** is smt to eo */
   bool isEoToSmt(const Expr& t);
+  /** is internal symbol? */
+  bool isInternalSymbol(const Expr& t);
   /** get kind for suffix */
   Kind getKindForSuffix(const std::string& suf) const;
   /** the state */

@@ -65,7 +65,7 @@
 
 ; represents an unknown value
 ; NOTE: could be a program??
-(declare-parameterized-const @smt_unknown_type_enum ((T Type) (i $eo_Numeral)) T)
+(declare-parameterized-const $smt_unknown_type_enum ((T Type) (i $eo_Numeral)) T)
 
 ; definitions of Values
 
@@ -162,7 +162,7 @@ $SMT_IS_VALUE_CASES$
   ;(($smt_type_enum $eo_Binary i)   (eo::define ((v (eo::to_bin w i)))
   ;                                    (eo::requires (eo::to_z v) i v)))
 $SMT_TYPE_ENUM_CASES$
-  (($smt_type_enum T i) (@smt_unknown_type_enum T i))   ; note since this always succeeds, this assumes that unhandled types have infinite type
+  (($smt_type_enum T i) ($smt_unknown_type_enum T i))   ; note since this always succeeds, this assumes that unhandled types have infinite type
   )
 )
 
