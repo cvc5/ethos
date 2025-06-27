@@ -36,16 +36,20 @@ $EO_LITERAL_TYPE_DECL$
 ; This is used to defined verification conditions.
 (program $eo_model_sat () :signature (Bool) Bool)
 
+; A callback to define.
+(program $eo_model_eval ((T Type)) :signature (T) T)
+
 ; A free constant.
 ; Constants are identified by:
 ; (1) Their kind (numeral k),
 ; (2) Their identifier (numeral i),
-; This is a free constant that can be assumed to have property F
-; if F is satisfied by the model, and is unconstrained otherwise.
-; Note that if F is true, then this is an ordinary free constant,
-; i.e. one declared by the user.
+; (3) Their type.
+; Free constants can be associated with predicates, which defines their
+; semantics (essentially, this means they are all "choice" terms, despite
+; choice not being modelled in the term object syntax).
 ; The property is obtained by calling $eo_model_Const_pred below.
-; Note this constant must be preserved to ensure the semantics of
+; Kind 0 is reserved for truly free constants, i.e. (choice ((x T)) true).
+; Note this declaration must be preserved to ensure the semantics of
 ; SMT-LIB is accurate. In particular, this ensures that terms can
 ; be constructed out of free constant symbols.
 (declare-parameterized-const $eo_model_Const ((k $eo_Numeral) (id $eo_Numeral) (T Type)) T)
@@ -537,7 +541,7 @@ $EO_NIL_CASES$
   )
 )
 
-; Utilities for models
+; Utilities for model test infrastructure
 
 ; This indicates the properties of skolem functions.
 (program $eo_model_Const_pred ((k $eo_Numeral) (i $eo_Numeral) (T Type))
@@ -545,8 +549,16 @@ $EO_NIL_CASES$
   (
   ; 0 is reserved for truly free constants
   (($eo_model_Const_pred 0 i T) true)
-$EO_MODEL_CONST_PRED$
+$EO_MODEL_CONST_PRED_CASES$
   (($eo_model_Const_pred k i T) $eo_fail)
+  )
+)
+
+(program $eo_model_eval ((T Type) (t T))
+  :signature (T) T
+  (
+$EO_MODEL_EVAL_CASES$
+  (($eo_model_eval t) $eo_fail)
   )
 )
 

@@ -63,6 +63,17 @@
 ; NOTE: could be a program??
 (declare-parameterized-const $smt_unknown_type_enum ((T Type) (i $eo_Numeral)) T)
 
+; re-bootstrap version of list operators, monomorphized for $eo_List.
+
+(program $eo_List_concat
+  ((T Type) (x T) (y $eo_List) (z $eo_List))
+  :signature ($eo_List $eo_List) $eo_List
+  (
+  (($eo_List_concat ($eo_List_cons x y) z)  ($eo_List_cons x ($eo_List_concat y z)))
+  (($eo_List_concat $eo_List_nil z)         z)
+  )
+)
+
 ;;; definitions of Type enumeration
 
 ; note: The methods in this section are only included (based on trim-defs) if
@@ -82,7 +93,7 @@
      (eo::define ((r1 (@smt_ratPair (eo::add n d) d)))
      (eo::define ((r2 (@smt_ratPair n (eo::add n d))))
       ($smt_rat_enum_rec (eo::add i -1)
-        ($eo_list_concat $eo_List rs ($eo_List_cons r1 ($eo_List_cons r2 $eo_List_nil)))))))
+        ($eo_List_concat rs ($eo_List_cons r1 ($eo_List_cons r2 $eo_List_nil)))))))
   )
 )
 
@@ -129,6 +140,26 @@ $SMT_TYPE_ENUM_CASES$
                                         ($smt_unknown_type_enum T i)))))
   )
 )
+
+; Type enumeration contains
+
+(program $smt_type_enum_contains_rec ((T Type) (t T) (i $eo_Numeral))
+  :signature ((eo::quote T) T $eo_Numeral) Bool
+  (
+  (($smt_type_enum_contains_rec T t i)  (eo::define ((v ($smt_type_enum T i)))
+                                        (eo::ite (eo::is_ok v)
+                                          (eo::ite (eo::eq v t)
+                                            true
+                                            ($smt_type_enum_contains_rec T i (eo::add i 1)))
+                                          false)))
+  )
+)
+
+; Can be use as a default implementation for valueness.
+; This is not included by default in $smt_is_value below to ensure
+; dependencies are clean.
+(define $smt_type_enum_contains ((T Type :implicit) (x T))
+  ($smt_type_enum_contains_rec ($eo_typeof x) x 0))
 
 ; program: $smt_substitute
 ; Used to define $smt_model_eval_quant.
@@ -264,10 +295,11 @@ $SMT_EVAL_CASES$
                                                 ($eo_model_Const k i T))))
   ; generic apply and base case.
   ; these do not insist that the term is a value.
+  ; They call the user callback $eo_model_eval.
   (($smt_model_eval (f y))                (eo::define ((fme ($smt_model_eval f)))
                                           (eo::define ((yme ($smt_model_eval y)))
-                                            (_ fme yme))))
-  (($smt_model_eval z)                    z)
+                                            ($eo_model_eval (_ fme yme)))))
+  (($smt_model_eval z)                    ($eo_model_eval z))
   )
 )
 
