@@ -1,0 +1,26 @@
+; trim-defs: symm
+; #trim-defs: 15
+(declare-const not (-> Bool Bool))
+(declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
+(declare-parameterized-const = ((A Type :implicit)) (-> A A Bool) :chainable and)
+(declare-const Int Type)
+(declare-const Real Type)
+(declare-consts <numeral> Int)
+(declare-consts <rational> Real)
+(program $mk_symm ((T Type) (t1 T) (t2 T))
+  :signature (Bool) Bool
+  (
+    (($mk_symm (= t1 t2))       (= t2 t1))
+    (($mk_symm (not (= t1 t2))) (not (= t2 t1)))
+  )
+)
+(declare-rule symm ((F Bool))
+    :premises (F)
+    :conclusion ($mk_symm F)
+)
+(declare-const BitVec (-> Int Type))
+(declare-consts <binary> (BitVec (eo::len eo::self)))
+(declare-const Seq (-> Type Type))
+(declare-const Char Type)
+(define String () (Seq Char))
+(declare-consts <string> String)

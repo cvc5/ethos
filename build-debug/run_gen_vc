@@ -65,8 +65,8 @@ echo "**** Try to parse"
 ajr-cvc5 $VC_OUT --parse-only
 
 # clear temporary files
-rm -f $OUT_DIR/trim-cpc-$TARGET.eo
-rm -f $OUT_DIR/trim-d-cpc-$TARGET.eo
-rm -f $OUT_DIR/vc-def-cpc-$TARGET.eo
-rm -f $OUT_DIR/vcm-def-cpc-$TARGET.eo
-rm -f $OUT_DIR/vcmt-def-cpc-$TARGET.eo
+#rm -f $OUT_DIR/trim-cpc-$TARGET.eo
+#rm -f $OUT_DIR/trim-d-cpc-$TARGET.eo
+#rm -f $OUT_DIR/vc-def-cpc-$TARGET.eo
+#rm -f $OUT_DIR/vcm-def-cpc-$TARGET.eo
+#rm -f $OUT_DIR/vcmt-def-cpc-$TARGET.eo

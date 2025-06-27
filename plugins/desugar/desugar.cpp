@@ -659,14 +659,14 @@ void Desugar::finalizeRule(const Expr& e)
     // ground rule is just a formula definition
     Assert(rt.getKind() == Kind::PROOF_TYPE);
     Expr rrt = rt[0];
-    d_eoVc << "(define $eor_" << e << " () " << rrt << ")" << std::endl
+    d_eoVc << "(program $eor_" << e << " ((dummy Bool)) :signature (Bool) Bool " << rrt << ")" << std::endl
            << std::endl;
     if (!d_state.isProofRuleSorry(e.getValue()))
     {
       d_eoVc << "; verification: " << e << std::endl;
       d_eoVc << "(define $eovc_" << e;
-      d_eoVc << " () (eo::requires ($eo_model_sat $eor_" << e
-             << ") false true))" << std::endl;
+      d_eoVc << " () (eo::requires ($eo_model_sat ($eor_" << e
+             << " dummy)) false true))" << std::endl;
       d_eoVc << std::endl;
     }
     return;

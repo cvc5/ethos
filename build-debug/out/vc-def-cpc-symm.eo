@@ -1,0 +1,171 @@
+; trim-defs: $eovc_symm $eo_typeof_main $eo_String $eo_Numeral $eo_Rational $eo_Binary $eo_List $eo_List_nil $eo_List_cons $eo_is_bool $eo_is_z $eo_is_q $eo_is_str $eo_is_bin $eo_dt_constructors $eo_dt_selectors $eo_model_sat $eo_model_eval $eo_model_Const $eo_model_Const_pred $eo_model_binary_width
+; #trim-defs: 48
+(define $eo_fail () (eo::requires true false true))
+(declare-const $eo_undef_type Type)
+(program $eo_typeof ((T Type))
+  :signature (T) Type)
+(declare-const Int Type)
+(declare-consts <numeral> Int)
+(declare-const Real Type)
+(declare-consts <rational> Real)
+(declare-const BitVec (-> Int Type))
+(declare-consts <binary> (BitVec (eo::len eo::self)))
+(declare-const Char Type)
+(declare-const Seq (-> Type Type))
+(declare-consts <string> (Seq Char))
+(define $eo_Numeral () Int)
+(define $eo_Rational () Real)
+(define $eo_String () (Seq Char))
+(define $eo_Binary () $eo_undef_type)
+(program $eo_model_sat () :signature (Bool) Bool)
+(program $eo_model_eval ((T Type)) :signature (T) T)
+(declare-parameterized-const $eo_model_Const ((k $eo_Numeral) (id $eo_Numeral) (T Type)) T)
+(define $eo_model_binary_width ((T Type))
+  $eo_fail)
+(declare-const $eo_List Type)
+(declare-const $eo_List_nil $eo_List)
+(declare-parameterized-const $eo_List_cons ((T Type :implicit))
+  (-> T $eo_List $eo_List)
+  :right-assoc-nil $eo_List_nil)
+(program $eo_dt_constructors ((T Type))
+  :signature (Type) $eo_List)
+(program $eo_dt_selectors ((T Type) (t T))
+  :signature (T) $eo_List)
+(program $eo_eq ((T Type) (S Type) (t T) (s S))
+  :signature (T S) Bool
+  (
+  (($eo_eq t t) true)
+  (($eo_eq t s) false)
+  )
+)
+(define $eo_is_eq ((T Type :implicit) (S Type :implicit) (t T) (s S))
+  (eo::ite (eo::and (eo::is_ok t) (eo::is_ok s)) ($eo_eq s t) false))
+(define $eo_is_z ((T Type :implicit) (x T))
+  ($eo_is_eq (eo::to_z x) x))
+(define $eo_is_q ((T Type :implicit) (x T))
+  ($eo_is_eq (eo::to_q x) x))
+(define $eo_is_bin ((T Type :implicit) (x T))
+  ($eo_is_eq (eo::to_bin (eo::len x) x) x))
+(define $eo_is_str ((T Type :implicit) (x T))
+  ($eo_is_eq (eo::to_str x) x))
+(define $eo_is_bool ((T Type :implicit) (x T))
+  (eo::ite ($eo_is_eq x true) true ($eo_is_eq x false)))
+(declare-parameterized-const $eo_Var ((s $eo_String) (T Type)) T)
+(declare-const not (-> Bool Bool))
+(declare-const and (-> Bool (-> Bool Bool)))
+(declare-parameterized-const = ((A Type :implicit) ($eo_x_1 A) ($eo_x_2 A)) Bool)
+(program $mk_symm ((T Type) (t2 T) (t1 T))
+  :signature (Bool) Bool
+  (
+  (($mk_symm (_ (= t1) t2)) (_ (= t2) t1))
+  (($mk_symm (not (_ (= t1) t2))) (not (_ (= t2) t1)))
+  )
+)
+(program $eo_typeof_apply ((T Type) (U Type) (V Type))
+  :signature (Type Type) Type
+  (
+  (($eo_typeof_apply (-> T U) T) U)
+  )
+)
+(program $eo_typeof_= (($eo_T Type) (A Type))
+  :signature ($eo_T) Type
+  (
+  (($eo_typeof_= A) (-> A Bool))
+  )
+)
+(program $eo_typeof_main
+  ((T Type) (U Type) (V Type) (W Type) (f (-> U V T)) (x U) (t T)
+   (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3)) 
+  :signature (T) Type
+  (
+  (($eo_typeof_main Type)      Type)
+  (($eo_typeof_main (-> T U))  (eo::requires ($eo_typeof T) Type
+                               (eo::requires ($eo_typeof U) Type
+                                 Type)))
+  (($eo_typeof_main Bool)      Type)
+  (($eo_typeof_main true)      Bool)
+  (($eo_typeof_main false)     Bool)
+  
+  (($eo_typeof_main Int) Type)
+  
+  (($eo_typeof_main Real) Type)
+  
+  (($eo_typeof_main BitVec) (-> Int Type))
+  
+  (($eo_typeof_main Char) Type)
+  
+  (($eo_typeof_main Seq) (-> Type Type))
+  
+  (($eo_typeof_main not) (-> Bool Bool))
+  
+  (($eo_typeof_main and) (-> Bool (-> Bool Bool)))
+  
+  (($eo_typeof_main (= x1)) ($eo_typeof_= ($eo_typeof x1)))
+
+  (($eo_typeof_main (f x))     ($eo_typeof_apply ($eo_typeof f) ($eo_typeof x)))
+  )
+)
+(program $eo_dt_constructors
+  ((T Type))
+  :signature (Type) $eo_List
+  (
+
+  (($eo_dt_constructors T) $eo_fail)
+  )
+)
+(program $eo_dt_selectors ((T Type) (t T))
+  :signature (T) $eo_List
+  (
+
+  (($eo_dt_selectors t) $eo_fail)
+  )
+)
+(program $eo_typeof ((T Type) (t T) (s $eo_String))
+  :signature (T) Type
+  (
+  (($eo_typeof ($eo_Var s T)) T)
+  (($eo_typeof t) (eo::ite ($eo_is_bool t) Bool
+                  (eo::ite ($eo_is_z t) $eo_Numeral
+                  (eo::ite ($eo_is_q t) $eo_Rational
+                  (eo::ite ($eo_is_str t) $eo_String
+                  (eo::ite ($eo_is_bin t) $eo_Binary
+                    ($eo_typeof_main t)))))))
+  )
+)
+(program $eo_model_Const_pred ((k $eo_Numeral) (i $eo_Numeral) (T Type))
+  :signature ($eo_Numeral $eo_Numeral (eo::quote T)) T
+  (
+  
+  (($eo_model_Const_pred 0 i T) true)
+
+  (($eo_model_Const_pred k i T) $eo_fail)
+  )
+)
+(program $eo_model_eval ((T Type) (t T))
+  :signature (T) T
+  (
+
+  (($eo_model_eval t) $eo_fail)
+  )
+)
+(program $eorx_symm ((F Bool))
+  :signature (Bool Type) Bool
+  (
+  (($eorx_symm F Bool) ($mk_symm F))
+  )
+)
+(program $eor_symm ((F Bool))
+  :signature (Bool) Bool
+  (
+  (($eor_symm F) ($eorx_symm F (eo::typeof F)))
+  )
+)
+(program $eovc_symm ((F Bool))
+  :signature (Bool) Bool
+  (
+  (($eovc_symm F)
+     (eo::requires ($eo_model_sat F) true
+     (eo::requires ($eo_model_sat ($eor_symm F)) false
+       true)))
+  )
+)
