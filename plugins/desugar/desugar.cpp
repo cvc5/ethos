@@ -930,7 +930,8 @@ void Desugar::finalize()
   replace(finalEo, "$EO_DT_SELECTORS_CASES$", d_eoDtSel.str());
   // for model semantics
 
-  replace(finalEo, "$EO_MODEL_CONST_PRED$", d_eoModelConstPred.str());
+  replace(finalEo, "$EO_MODEL_CONST_PRED_CASES$", d_eoModelConstPred.str());
+  replace(finalEo, "$EO_MODEL_EVAL_CASES$", d_eoModelEval.str());
   replace(finalEo, "$EO_BINARY_WIDTH$", d_eoBinaryWidth.str());
   if (d_genVcs)
   {

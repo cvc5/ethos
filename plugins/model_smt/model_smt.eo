@@ -159,7 +159,9 @@ $SMT_TYPE_ENUM_CASES$
   )
 )
 
-; Can be use as a default implementation for valueness
+; Can be use as a default implementation for valueness.
+; This is not included by default in $smt_is_value below to ensure
+; dependencies are clean.
 (define $smt_type_enum_contains ((T Type :implicit) (x T))
   ($smt_type_enum_contains_rec ($eo_typeof x) x 0))
 
@@ -297,10 +299,11 @@ $SMT_EVAL_CASES$
                                                 ($eo_model_Const k i T))))
   ; generic apply and base case.
   ; these do not insist that the term is a value.
+  ; They call the user callback $eo_model_eval.
   (($smt_model_eval (f y))                (eo::define ((fme ($smt_model_eval f)))
                                           (eo::define ((yme ($smt_model_eval y)))
-                                            (_ fme yme))))
-  (($smt_model_eval z)                    z)
+                                            ($eo_model_eval (_ fme yme)))))
+  (($smt_model_eval z)                    ($eo_model_eval z))
   )
 )
 

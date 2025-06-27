@@ -36,6 +36,9 @@ $EO_LITERAL_TYPE_DECL$
 ; This is used to defined verification conditions.
 (program $eo_model_sat () :signature (Bool) Bool)
 
+; A callback to define.
+(program $eo_model_eval ((T Type)) :signature (T) T)
+
 ; A free constant.
 ; Constants are identified by:
 ; (1) Their kind (numeral k),
@@ -546,8 +549,16 @@ $EO_NIL_CASES$
   (
   ; 0 is reserved for truly free constants
   (($eo_model_Const_pred 0 i T) true)
-$EO_MODEL_CONST_PRED$
+$EO_MODEL_CONST_PRED_CASES$
   (($eo_model_Const_pred k i T) $eo_fail)
+  )
+)
+
+(program $eo_model_eval ((T Type) (t T))
+  :signature (T) T
+  (
+$EO_MODEL_EVAL_CASES$
+  (($eo_model_eval t) $eo_fail)
   )
 )
 
