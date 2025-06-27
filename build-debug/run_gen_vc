@@ -28,7 +28,7 @@ INIT_DESUGAR=$OUT_DIR/trim-d-cpc-$TARGET.eo
 VC_DEF_DESUGAR=$OUT_DIR/vc-def-cpc-$TARGET.eo
 VCM_DEF_DESUGAR=$OUT_DIR/vcm-def-cpc-$TARGET.eo
 VCMT_DEF_DESUGAR=$OUT_DIR/vcmt-def-cpc-$TARGET.eo
-VC_OUT=final-cpc-$TARGET.smt2
+VC_OUT=$OUT_DIR/vc/final-cpc-$TARGET.smt2
 
 echo "**** run_gen_vc: Run ethos + trim-defs on $INPUT and $TARGET to $INIT_TRIM"
 #./run_trim_defs $INPUT $TARGET "\$eo_model_sat" >/dev/null
