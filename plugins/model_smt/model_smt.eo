@@ -15,13 +15,23 @@
 ; An SMT-LIB term.
 (declare-const $smt_Term Type)
 
-; Apply the SMT operator named "op" to x1 and x2.
+; Apply the SMT operator named "op" to x1, x2, and so on.
+; Assumes arity of SMT-LIB operators are at most 5.
 (declare-parameterized-const $smt_apply_1
-  ((T Type :implicit) (op $eo_String) (x1 T)) $smt_Term)
+  ((W1 Type :implicit))
+  (-> $eo_String W1 $smt_Term))
 (declare-parameterized-const $smt_apply_2
-  ((T Type :implicit) (U Type :implicit) (op $eo_String) (x1 T) (x2 U)) $smt_Term)
+  ((W1 Type :implicit) (W2 Type :implicit))
+  (-> $eo_String W1 W2 $smt_Term))
 (declare-parameterized-const $smt_apply_3
-  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (op $eo_String) (x1 T) (x2 U) (x3 V)) $smt_Term)
+  ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit))
+  (-> $eo_String W1 W2 W3 $smt_Term))
+(declare-parameterized-const $smt_apply_4
+  ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit) (W4 Type :implicit))
+  (-> $eo_String W1 W2 W3 W4 $smt_Term))
+(declare-parameterized-const $smt_apply_5
+  ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit) (W4 Type :implicit) (W5 Type :implicit))
+  (-> $eo_String W1 W2 W3 W4 W5 $smt_Term))
 
 ; Convert from Eunoia to an SMT value
 ; These assume the Eunoia term is a literal of the correct type.
@@ -59,6 +69,32 @@
 
 ; definitions of Values
 
+; forward declaration
+(program $smt_is_value ((T Type)) :signature ((eo::quote T) T) Bool)
+
+; define: $smt_dt_is_cons
+; returns: true if t is a datatpe (i.e. it has constructors).
+(define $smt_is_dt ((T Type :implicit) (t T))
+  (eo::is_ok ($eo_dt_constructors t)))
+
+; define: $smt_is_dt_cons
+; returns: true if t is a constructor (i.e. it has selectors).
+(define $smt_is_dt_cons ((T Type :implicit) (t T))
+  (eo::is_ok ($eo_dt_selectors t)))
+
+; program: $smt_dt_is_value
+; Returns true if its argument is a datatype value.
+(program $smt_dt_is_value
+  ((U Type) (T Type) (f (-> T U)) (a T) (c U))
+  :signature (U) Bool
+  (
+  (($smt_dt_is_value (f a))  (eo::ite ($smt_is_value a) ($smt_dt_is_value f) false))
+  (($smt_dt_is_value c)      ($smt_is_dt_cons c))
+  )
+)
+
+; program: $smt_dt_is_value
+; Returns true if its argument is an SMT value.
 (program $smt_is_value ((T Type) (t T)
    ; generic parameters that may appear in terms to pattern match
    (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3))
@@ -71,6 +107,7 @@
   (($smt_is_value $eo_Rational t)     ($eo_is_q t))
   (($smt_is_value $eo_String t)       ($eo_is_str t))
   (($smt_is_value $eo_Binary t)       ($eo_is_bin t))
+  ; TODO: Arrays? Sets? Seq?
 $SMT_IS_VALUE_CASES$
   (($smt_is_value T t) false)
   )
@@ -78,10 +115,19 @@ $SMT_IS_VALUE_CASES$
 
 (program $smt_type_enum ((T Type) (i $eo_Numeral)
    ; generic parameters that may appear in terms to pattern match
-   (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3))
+   (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3) (W4 Type) (x4 W4) (W5 Type) (x5 W5))
   :signature ((eo::quote T) $eo_Numeral) T
   (
   ; enumeration of standard SMT types
+  (($smt_type_enum $eo_Numeral i)   (eo::define ((v (eo::zdiv i 2)))
+                                      (eo::ite (eo::eq (eo::zmod i 2) 0) v (eo::neg v))))
+  (($smt_type_enum $eo_String i)  (eo::ite (eo::eq i 0)
+                                    ""
+                                    (eo::concat (eo::to_str (eo::zmod i 196608)) ($smt_type_enum $eo_String (eo::zdiv i 196608)))))
+  ;(($smt_type_enum $eo_Rational i)  ; TODO: Calkin–Wilf tree?
+  ; Cannot define Bit-vectors here as this requires a parameteric type to know "w".
+  ;(($smt_type_enum $eo_Binary i)  (eo::define ((v (eo::to_bin w i)))
+  ;                                  (eo::requires (eo::to_z v) i v)))
 $SMT_TYPE_ENUM_CASES$
   (($smt_type_enum T i) (@smt_unknown_type_enum T i))   ; note since this always succeeds, this assumes that unhandled types have infinite type
   )
@@ -89,7 +135,8 @@ $SMT_TYPE_ENUM_CASES$
 
 ; definitions of operators
 
-
+; program: $smt_substitute
+; Used to define $smt_model_eval_exists.
 (program $smt_substitute
   ((T Type) (U Type) (S Type) (x S) (y S) (f (-> T U)) (a T) (z U))
   :signature (S S U) U
@@ -100,6 +147,7 @@ $SMT_TYPE_ENUM_CASES$
   )
 )
 
+; program: $smt_model_eval_exists
 ; specification for exists is a (non-computable) function
 (program $smt_model_eval_exists ((T Type) (x T) (xs $eo_List) (F Bool) (i $eo_Numeral))
   :signature ($eo_List Bool $eo_Numeral) Bool
@@ -131,12 +179,12 @@ $SMT_TYPE_ENUM_CASES$
   (
   ; evaluation of standard SMT symbols
 $SMT_EVAL_CASES$
-  ; generic apply
-  (($smt_model_eval (f y))          (eo::define ((fme ($smt_model_eval f)))
-                                    (eo::define ((yme ($smt_model_eval y)))
-                                    (eo::define ((tme (_ fme yme)))
-                                      (eo::requires ($smt_is_value (eo::typeof (f y)) tme) true tme)))))
-  (($smt_model_eval z)              (eo::requires ($smt_is_value (eo::typeof z) z) true z))
+  ; generic apply and base case.
+  ; these do not insist that the term is a value.
+  (($smt_model_eval (f y))  (eo::define ((fme ($smt_model_eval f)))
+                            (eo::define ((yme ($smt_model_eval y)))
+                              (_ fme yme))))
+  (($smt_model_eval z)      z)
   )
 )
 

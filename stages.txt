@@ -97,12 +97,17 @@ Relies on:
 Things handled at this stage:
 - SMT-LIB semantics (Eunoia program $eo_model_sat).
   - Valueness ($smt_is_value)
+    - Builtin atomics.
+    - Datatypes.
   - Type enumeration ($smt_type_enum)
+    - Builtin atomics (Int, String).
+    - TODO: datatypes
   - Existential semantics ($smt_model_eval_exists)
   - Free constant semantics ($smt_model_lookup)
   - Builtin operator semantics
     - Defines a deep embedding of SMT-LIB terms into Eunoia via $smt_Term / $smt_apply_N
     - Defines conversions from Eunoia literals to SMT-LIB values via $smt_to_eo_X/$eo_to_smt_X.
+- TODO: arrays?
 - TODO: overloading arithmetic.
 - TODO: skolem semantics.
 - TODO: can handle a majority of Eunoia builtins here.

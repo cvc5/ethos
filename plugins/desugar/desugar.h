@@ -56,12 +56,14 @@ class Desugar : public Plugin
                       std::map<Expr, bool>& visited,
                       bool& firstParam,
                       bool isOpaque = false);
-  void finalizeSetLiteralTypeRule(Kind k, const Expr& t);
   void finalizeProgram(const Expr& v, const Expr& prog);
   void finalizeDefinition(const std::string& name, const Expr& t);
   void finalizeDeclaration(const Expr& t, std::ostream& os);
   void finalizeRule(const Expr& v);
-  void finalizeDatatype(const Expr& d);
+  /**
+   * Finalize datatype or datatype constructor.
+   */
+  void finalizeDatatype(const Expr& d, Attr a, const Expr& attrCons);
   std::vector<Expr> getSubtermsKind(Kind k, const Expr& t);
   /** */
   Expr mkSanitize(const Expr& t);
@@ -70,6 +72,7 @@ class Desugar : public Plugin
                   size_t& varCount,
                   bool inPatMatch,
                   std::vector<std::pair<Expr, Expr>>& newVars);
+  Attr getAttribute(const Expr& e);
   /** the state */
   State& d_state;
   /** the type checker */
@@ -103,18 +106,14 @@ class Desugar : public Plugin
   std::stringstream d_defs;
   std::stringstream d_eoNilNground;
   std::stringstream d_eoNil;
-  std::stringstream d_eoTypeofParam;
   std::stringstream d_eoTypeof;
   std::stringstream d_eoTypeofNGround;
-  std::stringstream d_eoDtNGround;
+  std::stringstream d_eoDtConsParam;
   std::stringstream d_eoDtCons;
   std::stringstream d_eoDtSel;
   std::stringstream d_eoVc;
 
-  /** term we have pattern matched on for typeof */
-  std::vector<Expr> d_typeOfVars;
-  /** variable counter for typeof */
-  size_t d_typeOfVarCount;
+  size_t d_eoDtConsParamCount;
 };
 
 }  // namespace ethos

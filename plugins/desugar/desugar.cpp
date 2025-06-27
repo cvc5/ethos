@@ -17,12 +17,13 @@
 
 namespace ethos {
 
-std::string s_ds_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
-// std::string s_ds_path = "/home/andrew/ethos/";
+//std::string s_ds_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
+std::string s_ds_path = "/home/andrew/ethos/";
 
 Desugar::Desugar(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {
   d_any = d_state.mkSymbol(Kind::PARAM, "Any", d_state.mkType());
+  // we require santization of the eo::List at this stage
   d_listNil = s.mkListNil();
   Expr lnt = d_tc.getType(d_listNil);
   d_overloadSanVisited[d_listNil] =
@@ -35,32 +36,17 @@ Desugar::Desugar(State& s) : d_state(s), d_tc(s.getTypeChecker())
   Expr lt = d_tc.getType(d_listType);
   d_overloadSanVisited[d_listType] =
       d_state.mkSymbol(Kind::CONST, "$eo_List", lt);
-  d_typeOfVarCount = 0;
   d_genVcs = d_state.getOptions().d_pluginDesugarGenVc;
   if (d_genVcs)
   {
     d_eoVc << ";; verification conditions" << std::endl << std::endl;
   }
+  d_eoDtConsParamCount = 0;
 }
 
 Desugar::~Desugar() {}
 
 void Desugar::setLiteralTypeRule(Kind k, const Expr& t)
-{
-  finalizeSetLiteralTypeRule(k, t);
-  /*
-  d_declSeen.emplace_back(t, k);
-  if (k == Kind::NUMERAL)
-  {
-    // we will process the integer type separately
-    // this is necessary since builtin operators have type rules that
-    // reference the numeral type.
-    d_declProcessed.insert(t);
-  }
-  */
-}
-
-void Desugar::finalizeSetLiteralTypeRule(Kind k, const Expr& t)
 {
   // NOTE: literal definitions cannot use any builtin operators
   // that are desugared in the initial step, e.g. eo::list_*.
@@ -136,6 +122,7 @@ void Desugar::bind(const std::string& name, const Expr& e)
   Kind k = e.getKind();
   if (k == Kind::LAMBDA)
   {
+    // We preserve macros in this stage
     // remember the name
     Expr tmp = d_state.mkSymbol(Kind::CONST, name, d_state.mkAny());
     Expr p = d_state.mkPair(tmp, e);
@@ -150,10 +137,6 @@ void Desugar::bind(const std::string& name, const Expr& e)
 void Desugar::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
 {
   d_attrDecl[v] = std::pair<Attr, Expr>(a, cons);
-  if (a == Attr::DATATYPE)
-  {
-    d_declSeen.emplace_back(v, Kind::TYPE);
-  }
 }
 void Desugar::defineProgram(const Expr& v, const Expr& prog)
 {
@@ -223,19 +206,12 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
     cattr = it->second.first;
     cattrCons = it->second.second;
   }
-  /*
-  if (cattr == Attr::DATATYPE)
-  {
-    finalizeDatatype(e);
-    return;
-  }
   if (cattr == Attr::DATATYPE || cattr == Attr::DATATYPE_CONSTRUCTOR
       || cattr == Attr::AMB_DATATYPE_CONSTRUCTOR)
   {
-    // handled as part of datatype
-    return;
+    finalizeDatatype(e, cattr, cattrCons);
+    // also handle it as a normal declaration below
   }
-  */
   // check for eo::List
   std::stringstream cnss;
   printName(c, cnss);
@@ -413,9 +389,8 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
       for (size_t i = 1; i < nargs; i++)
       {
         Expr cta = ct[i - 1];
-        d_typeOfVarCount++;
         std::stringstream ssx;
-        ssx << "$eo_x" << d_typeOfVarCount;
+        ssx << "x" << i;
         Expr arg;
         if (cta.getKind() == Kind::QUOTE_TYPE)
         {
@@ -467,7 +442,6 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
         ngSig << "$eo_T";
         ngscope.push_back(cta);
         ngArgs++;
-        d_typeOfVars.push_back(arg);
         args.push_back(arg);
         argTypes.push_back(cta);
       }
@@ -820,56 +794,78 @@ void Desugar::finalizeRule(const Expr& e)
   d_eoVc << std::endl;
 }
 
-void Desugar::finalizeDatatype(const Expr& e)
+void Desugar::finalizeDatatype(const Expr& e, Attr a, const Expr& attrCons)
 {
-  /*
+  Assert (!attrCons.isNull());
   Expr d = e;
-  Expr dt = d_tc.getType(d);
-  Attr dattr = Attr::NONE;
-  Expr dattrCons;
-  std::map<Expr, std::pair<Attr, Expr>>::iterator it;
-  it = d_attrDecl.find(e);
-  if (it != d_attrDecl.end())
+  Expr td = d_tc.getType(d);
+  std::stringstream& os = a==Attr::DATATYPE ? d_eoDtCons : d_eoDtSel;
+  std::string name = a==Attr::DATATYPE ? "constructors" : "selectors";
+  os << "  (($eo_dt_" << name << " ";
+  if (a==Attr::DATATYPE && td.getKind()==Kind::FUNCTION_TYPE)
   {
-    dattr = it->second.first;
-    dattrCons = it->second.second;
+    os << "(";
+    // parametric datatypes
+    os << e;
+    size_t i=1;
+    std::stringstream argList;
+    while (td.getKind()==Kind::FUNCTION_TYPE)
+    {
+      if (i>d_eoDtConsParamCount)
+      {
+        d_eoDtConsParam << " (W" << i << " Type)";
+        d_eoDtConsParamCount++;
+      }
+      Assert (td.getNumChildren()==2);
+      argList << " W" << i;
+      td = td[1];
+      i++;
+    }
+    os << argList.str() << "))";
+    // its constructor list must take into account AMB_DATATYPE_CONSTRUCTOR.
+    Expr ac = attrCons;
+    // should always have at least one constructor
+    Assert (ac.getKind()==Kind::APPLY);
+    std::stringstream osEnd;
+    while (ac.getKind()==Kind::APPLY)
+    {
+      os << " (_ ($eo_List_cons ";
+      Assert (ac[0].getKind()==Kind::APPLY);
+      Expr cc = ac[0][1];
+      // should be a constructor
+      Attr cca = getAttribute(cc);
+      if (cca==Attr::AMB_DATATYPE_CONSTRUCTOR)
+      {
+        os << "(" << cc << argList.str() << ")";
+      }
+      else
+      {
+        Assert (cca==Attr::DATATYPE_CONSTRUCTOR);
+        os << cc;
+      }
+      os << ")";
+      osEnd << ")";
+      ac = ac[1];
+    }
+    os << osEnd.str() << ")" << std::endl;
+    return;
   }
-  Assert(dattr == Attr::DATATYPE);
-  d_defs << "; datatype: " << e << " " << dattrCons << std::endl;
-  d_defs << "(declare-datatypes (";
-  d_defs << ")" << std::endl;
-  // TODO
-  d_defs << ")" << std::endl;
-  */
+  else
+  {
+    // note that AMB_DATATYPE_CONSTRUCTOR does not impact this.
+    os << e;
+  }
+  os << ") ";
+  printTerm(attrCons, os);
+  os << ")" << std::endl;
 }
 
 void Desugar::finalize()
 {
-  if (d_genVcs)
-  {
-    /*
-    std::stringstream ssi;
-    ssi << s_ds_path << "plugins/desugar/eo_model.eo";
-    std::ifstream in(ssi.str());
-    std::ostringstream ss;
-    ss << in.rdbuf();
-    std::string finalModel = ss.str();
-    d_eoVc << "; SMT-LIB model specification" << std::endl;
-    d_eoVc << std::endl;
-    d_eoVc << finalModel;
-    */
-  }
   for (std::pair<Expr, Kind>& d : d_declSeen)
   {
     Kind k = d.second;
     Expr e = d.first;
-    if (k == Kind::NUMERAL || k == Kind::RATIONAL || k == Kind::BINARY
-        || k == Kind::STRING || k == Kind::DECIMAL || k == Kind::HEXADECIMAL)
-    {
-      // defines
-      finalizeSetLiteralTypeRule(k, e);
-      continue;
-    }
     if (k == Kind::LAMBDA)
     {
       Assert(e.getNumChildren() == 2);
@@ -890,19 +886,11 @@ void Desugar::finalize()
       Assert(e.getNumChildren() == 2);
       finalizeProgram(e[0], e[1]);
     }
-    else if (k == Kind::TYPE)
-    {
-      finalizeDatatype(e);
-    }
     else
     {
       EO_FATAL() << "Unknown kind: " << k;
     }
   }
-  // now we can finish the definition of typeof
-  std::vector<Expr> toParams;
-  printParamList(d_typeOfVars, d_eoTypeofParam, toParams, false);
-
   auto replace = [](std::string& txt,
                     const std::string& tag,
                     const std::string& replacement) {
@@ -930,11 +918,10 @@ void Desugar::finalize()
   replace(finalEo, "$EO_NIL_CASES$", d_eoNil.str());
   replace(finalEo, "$EO_NIL_NGROUND_DEFS$", d_eoNilNground.str());
   replace(finalEo, "$EO_TYPEOF_CASES$", d_eoTypeof.str());
-  replace(finalEo, "$EO_TYPEOF_PARAM$", d_eoTypeofParam.str());
   replace(finalEo, "$EO_TYPEOF_NGROUND_DEFS$", d_eoTypeofNGround.str());
+  replace(finalEo, "$EO_DT_CONSTRUCTORS_PARAM$", d_eoDtConsParam.str());
   replace(finalEo, "$EO_DT_CONSTRUCTORS_CASES$", d_eoDtCons.str());
   replace(finalEo, "$EO_DT_SELECTORS_CASES$", d_eoDtSel.str());
-  replace(finalEo, "$EO_NGROUND_DT_DEFS$", d_eoDtNGround.str());
   if (d_genVcs)
   {
     replace(finalEo, "$EO_VC$", d_eoVc.str());
@@ -1033,6 +1020,16 @@ Expr Desugar::mkSanitize(const Expr& t,
   Assert(visited.find(t) != visited.end());
   Assert(!visited.find(t)->second.isNull());
   return visited[t];
+}
+
+Attr Desugar::getAttribute(const Expr& e)
+{
+  std::map<Expr, std::pair<Attr, Expr>>::iterator it = d_attrDecl.find(e);
+  if (it!=d_attrDecl.end())
+  {
+    return it->second.first;
+  }
+  return Attr::NONE;
 }
 
 std::vector<Expr> Desugar::getSubtermsKind(Kind k, const Expr& t)

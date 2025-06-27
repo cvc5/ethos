@@ -444,7 +444,7 @@ $EO_TYPEOF_NGROUND_DEFS$
 ; This implements type rules for non-builtin terms.
 (program $eo_typeof_main
   ((T Type) (U Type) (V Type) (W Type) (f (-> U V T)) (x U) (t T)
-   $EO_TYPEOF_PARAM$)
+   (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3)) ; assumes functions can be monomorphized with at most 3 arguments
   :signature (T) Type
   (
   (($eo_typeof_main Type)      Type)
@@ -461,11 +461,10 @@ $EO_TYPEOF_CASES$
 
 ; non-ground dt defintions
 
-$EO_NGROUND_DT_DEFS$
-
 ; program: $eo_dt_constructors
 ; implements: eo::dt_constructors
-(program $eo_dt_constructors ((T Type))
+(program $eo_dt_constructors
+  ((T Type)$EO_DT_CONSTRUCTORS_PARAM$)
   :signature (Type) $eo_List
   (
 $EO_DT_CONSTRUCTORS_CASES$
