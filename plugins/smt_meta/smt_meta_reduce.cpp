@@ -265,7 +265,25 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
   std::map<Expr, Expr> smtAppToTuple;
   std::map<Expr, Expr>::iterator itsa;
   // letify parameters for efficiency?
-  std::map<const ExprValue*, size_t> lbind = Expr::computeLetBinding(body, ll);
+  std::map<const ExprValue*, size_t> lbind;
+  /*
+  lbind = Expr::computeLetBinding(body, ll);
+  std::vector<const ExprValue*> toErase;
+  // do not letify terms that are SMT apply terms
+  for (std::pair<const ExprValue* const, size_t>& lbs : lbind)
+  {
+    Expr t(lbs.first);
+    if (isSmtApplyTerm(t))
+    {
+      toErase.push_back(lbs.first);
+    }
+  }
+  for (const ExprValue * e : toErase)
+  {
+    lbind.erase(e);
+    std::
+  }
+  */
   std::map<const ExprValue*, size_t>::iterator itl;
   for (size_t i = 0, nll = ll.size(); i <= nll; i++)
   {
@@ -714,6 +732,13 @@ bool SmtMetaReduce::echo(const std::string& msg)
     return false;
   }
   return true;
+}
+
+bool SmtMetaReduce::isSmtApplyTerm(const Expr& t)
+{
+  std::string name;
+  std::vector<Expr> args;
+  return isSmtApplyTerm(t, name, args);
 }
 
 bool SmtMetaReduce::isSmtApplyTerm(const Expr& t,
