@@ -707,7 +707,7 @@ bool SmtMetaReduce::echo(const std::string& msg)
     d_smtVc << ";;;; final verification condition for " << eosc << std::endl;
     Expr vt = d_tc.getType(vv);
     std::stringstream varList;
-    d_smtVc << "(assert 
+    d_smtVc << "(assert ";
     if (vt.getKind() == Kind::PROGRAM_TYPE)
     {
       d_smtVc << "(exists (";
