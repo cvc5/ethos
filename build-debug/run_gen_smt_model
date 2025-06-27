@@ -5,7 +5,7 @@
 
 STD_SMODEL_OUT=../plugins/model_smt/model_smt_gen.eo
 
-TMP_OUT=model-$1
+TMP_OUT=$1-model.eo
 
 echo "**** run_gen_model: Run ethos + desugar on $1 to generate $STD_SMODEL_OUT"
 ./src/ethos --plugin.model-smt $1

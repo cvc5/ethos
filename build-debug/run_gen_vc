@@ -12,6 +12,8 @@
 echo "**** Compile ethos"
 make -j4
 
+OUT_DIR=./out
+
 STD_TRIM_OUT=../plugins/trim_defs/trim_gen.eo
 STD_DESUGAR_OUT=../plugins/desugar/eo_desugar_gen.eo
 STD_SMODEL_OUT=../plugins/model_smt/model_smt_gen.eo
@@ -21,11 +23,11 @@ INPUT="../../cvc5-ajr/proofs/eo/cpc/Cpc.eo"
 # should be the name of a constant or proof rule in $INPUT
 TARGET=$1
 # trim out
-INIT_TRIM=trim-cpc-$TARGET.eo
-INIT_DESUGAR=trim-d-cpc-$TARGET.eo
-VC_DEF_DESUGAR=vc-def-cpc-$TARGET.eo
-VCM_DEF_DESUGAR=vcm-def-cpc-$TARGET.eo
-VCMT_DEF_DESUGAR=vcmt-def-cpc-$TARGET.eo
+INIT_TRIM=$OUT_DIR/trim-cpc-$TARGET.eo
+INIT_DESUGAR=$OUT_DIR/trim-d-cpc-$TARGET.eo
+VC_DEF_DESUGAR=$OUT_DIR/vc-def-cpc-$TARGET.eo
+VCM_DEF_DESUGAR=$OUT_DIR/vcm-def-cpc-$TARGET.eo
+VCMT_DEF_DESUGAR=$OUT_DIR/vcmt-def-cpc-$TARGET.eo
 VC_OUT=final-cpc-$TARGET.smt2
 
 echo "**** run_gen_vc: Run ethos + trim-defs on $INPUT and $TARGET to $INIT_TRIM"
