@@ -11,8 +11,13 @@
 (declare-parameterized-const seq.empty ((T Type)) (-> T))
 
 ; Make empty string of the given string-like sort U.
-(define mk_emptystr ((U Type)) 
-  (eo::ite (eo::eq U String) "" (seq.empty (Seq U))))
+(program mk_emptystr ((U Type))
+  ((eo::quote U)) U
+  (
+  ((mk_emptystr String)   "")
+  ((mk_emptystr (Seq U))  (seq.empty (Seq U)))
+  )
+)
 
 ; core
 (declare-parameterized-const str.len ((T Type :implicit)) (-> (Seq T) Int))

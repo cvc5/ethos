@@ -34,16 +34,17 @@
   )
 )
 
+(program mk_skolemize ((F Bool) (T Type) (x @List) (G Bool))
+  :signature (Bool) Bool
+  (
+  ((mk_skolemize (exists x G))       (substitute_list x (mk_skolems x (exists x G)) G))
+  ((mk_skolemize (not (forall x G))) (substitute_list x (mk_skolems x (exists x (not G))) (not G)))
+  )
+)
+
 (declare-rule skolemize ((F Bool))
   :premises (F)
-  :conclusion
-    (eo::match ((T Type) (x @List) (G Bool))
-        F
-        (
-          ((exists x G)       (substitute_list x (mk_skolems x F) G))
-          ((not (forall x G)) (substitute_list x (mk_skolems x (exists x (not G))) (not G)))
-        )
-    )
+  :conclusion (mk_skolemize F)
 )
 
 (declare-rule skolem_intro ((T Type) (t T))
