@@ -18,7 +18,7 @@
 namespace ethos {
 
 std::string s_smodel_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
-//std::string s_smodel_path = "/home/andrew/ethos/";
+// std::string s_smodel_path = "/home/andrew/ethos/";
 
 ModelSmt::ModelSmt(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {
@@ -57,10 +57,11 @@ ModelSmt::ModelSmt(State& s) : d_state(s), d_tc(s.getTypeChecker())
   addSmtLibSym("+", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
   addSmtLibSym("-", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
   addSmtLibSym("*", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
-  // we expect "-" to be overloaded, we look for its desugared name and map it back
-  //addSmtLibSym("$eoo_-.2", {Kind::PARAM}, Kind::PARAM);
-  //d_overloadRevert["$eoo_-.2"] = "-";
-  //addSmtLibSym("abs", {Kind::PARAM}, Kind::PARAM);
+  // we expect "-" to be overloaded, we look for its desugared name and map it
+  // back
+  // addSmtLibSym("$eoo_-.2", {Kind::PARAM}, Kind::PARAM);
+  // d_overloadRevert["$eoo_-.2"] = "-";
+  // addSmtLibSym("abs", {Kind::PARAM}, Kind::PARAM);
   addSmtLibSym(">=", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
   addSmtLibSym("<=", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
   addSmtLibSym(">", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
@@ -77,7 +78,8 @@ ModelSmt::ModelSmt(State& s) : d_state(s), d_tc(s.getTypeChecker())
   addSmtLibSym("str.++", {Kind::STRING, Kind::STRING}, Kind::STRING);
   addSmtLibSym(
       "str.substr", {Kind::STRING, Kind::NUMERAL, Kind::NUMERAL}, Kind::STRING);
-  addSmtLibSym("str.substr", {Kind::STRING, Kind::NUMERAL, Kind::NUMERAL}, Kind::STRING);
+  addSmtLibSym(
+      "str.substr", {Kind::STRING, Kind::NUMERAL, Kind::NUMERAL}, Kind::STRING);
   addSmtLibSym("str.indexof",
                {Kind::STRING, Kind::STRING, Kind::NUMERAL},
                Kind::NUMERAL);
@@ -88,10 +90,10 @@ ModelSmt::ModelSmt(State& s) : d_state(s), d_tc(s.getTypeChecker())
   // TODO: more
   // BV
   // arith/BV conversions
-  //addSmtLibSym("BitVec", {Kind::NUMERAL}, Kind::TYPE);
-  //addSmtLibSym("int_to_bv", {Kind::NUMERAL, Kind::NUMERAL}, Kind::BINARY);
-  //addSmtLibSym("ubv_to_int", {Kind::BINARY}, Kind::NUMERAL);
-  //addSmtLibSym("sbv_to_int", {Kind::BINARY}, Kind::NUMERAL);
+  // addSmtLibSym("BitVec", {Kind::NUMERAL}, Kind::TYPE);
+  // addSmtLibSym("int_to_bv", {Kind::NUMERAL, Kind::NUMERAL}, Kind::BINARY);
+  // addSmtLibSym("ubv_to_int", {Kind::BINARY}, Kind::NUMERAL);
+  // addSmtLibSym("sbv_to_int", {Kind::BINARY}, Kind::NUMERAL);
 }
 
 ModelSmt::~ModelSmt() {}
@@ -143,14 +145,14 @@ void ModelSmt::printSmtTerm(const std::string& name,
     d_eval << std::endl;
     return;
   }
-  bool isOverloadArith = (args.size()>0 && args[0]==Kind::PARAM);
+  bool isOverloadArith = (args.size() > 0 && args[0] == Kind::PARAM);
   std::stringstream preApp;
   std::stringstream preAppEnd;
   for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
   {
     preApp << "(eo::define ((e" << i << " ($smt_model_eval x" << i << "))) ";
     preApp << "(eo::requires ($smt_is_value (eo::typeof x" << i << ") e" << i
-            << ") true ";
+           << ") true ";
     preAppEnd << "))";
   }
   if (name == "=")
@@ -161,23 +163,23 @@ void ModelSmt::printSmtTerm(const std::string& name,
   }
   else if (name == "forall" || name == "exists")
   {
-    bool isExists = (name=="exists");
+    bool isExists = (name == "exists");
     d_eval << " x1 x2)) ($smt_model_eval_quant x1 x2 0 " << isExists << "))";
   }
   else if (isOverloadArith)
   {
     // overloaded arithmetic
-    if (args.size()==2)
+    if (args.size() == 2)
     {
-      Assert (args[0]==Kind::PARAM && args[1]==Kind::PARAM);
+      Assert(args[0] == Kind::PARAM && args[1] == Kind::PARAM);
       d_eval << " x1 x2)) ($smt_eval_o_arith";
-      if (kret==Kind::BOOLEAN)
+      if (kret == Kind::BOOLEAN)
       {
         d_eval << "_pred";
       }
       d_eval << " \"" << name << "\" x1 x2))" << std::endl;
     }
-    else if (args.size()==1)
+    else if (args.size() == 1)
     {
       d_eval << " x1)) ($smt_eval_o_arith_unary ";
       d_eval << " \"" << name << "\" x1))" << std::endl;

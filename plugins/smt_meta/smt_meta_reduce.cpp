@@ -18,7 +18,7 @@
 namespace ethos {
 
 std::string s_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
-//std::string s_path = "/home/andrew/ethos/";
+// std::string s_path = "/home/andrew/ethos/";
 
 SmtMetaReduce::SmtMetaReduce(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {
@@ -359,7 +359,8 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
               os << smtAppName << " ";
               // we recurse on the compiled SMT arguments
               recTerm = d_state.mkExprSimple(Kind::TUPLE, smtArgs);
-              //std::cout << cur.first << " is " << smtAppName << " / " << recTerm << std::endl;
+              // std::cout << cur.first << " is " << smtAppName << " / " <<
+              // recTerm << std::endl;
               smtAppToTuple[cur.first] = recTerm;
             }
             else
@@ -840,7 +841,7 @@ bool SmtMetaReduce::isInternalSymbol(const Expr& t)
   std::stringstream ss;
   ss << t;
   std::string sname = ss.str();
-  return sname.compare(0,1,"@")==0;
+  return sname.compare(0, 1, "@") == 0;
 }
 
 }  // namespace ethos

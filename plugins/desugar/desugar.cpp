@@ -18,7 +18,7 @@
 namespace ethos {
 
 std::string s_ds_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
-//std::string s_ds_path = "/home/andrew/ethos/";
+// std::string s_ds_path = "/home/andrew/ethos/";
 
 Desugar::Desugar(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {
@@ -802,27 +802,27 @@ void Desugar::finalizeRule(const Expr& e)
 
 void Desugar::finalizeDatatype(const Expr& e, Attr a, const Expr& attrCons)
 {
-  Assert (!attrCons.isNull());
+  Assert(!attrCons.isNull());
   Expr d = e;
   Expr td = d_tc.getType(d);
-  std::stringstream& os = a==Attr::DATATYPE ? d_eoDtCons : d_eoDtSel;
-  std::string name = a==Attr::DATATYPE ? "constructors" : "selectors";
+  std::stringstream& os = a == Attr::DATATYPE ? d_eoDtCons : d_eoDtSel;
+  std::string name = a == Attr::DATATYPE ? "constructors" : "selectors";
   os << "  (($eo_dt_" << name << " ";
-  if (a==Attr::DATATYPE && td.getKind()==Kind::FUNCTION_TYPE)
+  if (a == Attr::DATATYPE && td.getKind() == Kind::FUNCTION_TYPE)
   {
     os << "(";
     // parametric datatypes
     os << e;
-    size_t i=1;
+    size_t i = 1;
     std::stringstream argList;
-    while (td.getKind()==Kind::FUNCTION_TYPE)
+    while (td.getKind() == Kind::FUNCTION_TYPE)
     {
-      if (i>d_eoDtConsParamCount)
+      if (i > d_eoDtConsParamCount)
       {
         d_eoDtConsParam << " (W" << i << " Type)";
         d_eoDtConsParamCount++;
       }
-      Assert (td.getNumChildren()==2);
+      Assert(td.getNumChildren() == 2);
       argList << " W" << i;
       td = td[1];
       i++;
@@ -831,22 +831,22 @@ void Desugar::finalizeDatatype(const Expr& e, Attr a, const Expr& attrCons)
     // its constructor list must take into account AMB_DATATYPE_CONSTRUCTOR.
     Expr ac = attrCons;
     // should always have at least one constructor
-    Assert (ac.getKind()==Kind::APPLY);
+    Assert(ac.getKind() == Kind::APPLY);
     std::stringstream osEnd;
-    while (ac.getKind()==Kind::APPLY)
+    while (ac.getKind() == Kind::APPLY)
     {
       os << " (_ ($eo_List_cons ";
-      Assert (ac[0].getKind()==Kind::APPLY);
+      Assert(ac[0].getKind() == Kind::APPLY);
       Expr cc = ac[0][1];
       // should be a constructor
       Attr cca = getAttribute(cc);
-      if (cca==Attr::AMB_DATATYPE_CONSTRUCTOR)
+      if (cca == Attr::AMB_DATATYPE_CONSTRUCTOR)
       {
         os << "(" << cc << argList.str() << ")";
       }
       else
       {
-        Assert (cca==Attr::DATATYPE_CONSTRUCTOR);
+        Assert(cca == Attr::DATATYPE_CONSTRUCTOR);
         os << cc;
       }
       os << ")";
@@ -976,7 +976,7 @@ void Desugar::finalizeWellFounded()
 
 bool Desugar::echo(const std::string& msg)
 {
-  if (msg=="desugar-wf")
+  if (msg == "desugar-wf")
   {
     d_genWfCond = true;
     return false;
@@ -1072,7 +1072,7 @@ Expr Desugar::mkSanitize(const Expr& t,
 Attr Desugar::getAttribute(const Expr& e)
 {
   std::map<Expr, std::pair<Attr, Expr>>::iterator it = d_attrDecl.find(e);
-  if (it!=d_attrDecl.end())
+  if (it != d_attrDecl.end())
   {
     return it->second.first;
   }
