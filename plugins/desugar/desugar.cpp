@@ -381,6 +381,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
     std::stringstream ssngpat;
     std::stringstream ngSig;
     std::vector<Expr> ngscope;
+    size_t argCount = 0;
     while (ct.getKind() == Kind::FUNCTION_TYPE)
     {
       std::vector<Expr> args;
@@ -390,7 +391,8 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
       {
         Expr cta = ct[i - 1];
         std::stringstream ssx;
-        ssx << "x" << i;
+        argCount++;
+        ssx << "x" << argCount;
         Expr arg;
         if (cta.getKind() == Kind::QUOTE_TYPE)
         {

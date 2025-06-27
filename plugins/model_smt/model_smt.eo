@@ -209,6 +209,22 @@ $SMT_TYPE_ENUM_CASES$
 (program $smt_model_lookup ((T Type))
   :signature ($eo_Numeral T) T)
 
+(define $smt_eval_mixed_arith
+  ((W1 Type :implicit) (W2 Type :implicit) (op $eo_String) (x1 W1) (x2 W2))
+  (eo::ite (eo::and ($eo_is_z x1) ($eo_is_z x2))
+    ($smt_to_eo_z ($smt_apply_2 op ($eo_to_smt_z x1) ($eo_to_smt_z x2)))
+  (eo::ite (eo::and ($eo_is_q x1) ($eo_is_q x2))
+    ($smt_to_eo_q ($smt_apply_2 op ($eo_to_smt_q x1) ($eo_to_smt_q x2)))
+    $eo_fail)))
+
+(define $smt_eval_mixed_arith_pred
+  ((W1 Type :implicit) (W2 Type :implicit) (op $eo_String) (x1 W1) (x2 W2))
+  (eo::ite (eo::and ($eo_is_z x1) ($eo_is_z x2))
+    ($smt_to_eo_bool ($smt_apply_2 op ($eo_to_smt_z x1) ($eo_to_smt_z x2)))
+  (eo::ite (eo::and ($eo_is_q x1) ($eo_is_q x2))
+    ($smt_to_eo_bool ($smt_apply_2 op ($eo_to_smt_q x1) ($eo_to_smt_q x2)))
+    $eo_fail)))
+
 ; An evaluator for all terms that we can reason about models.
 ; This is a recursive call.
 (program $smt_model_eval

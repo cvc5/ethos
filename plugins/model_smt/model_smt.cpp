@@ -54,16 +54,14 @@ ModelSmt::ModelSmt(State& s) : d_state(s), d_tc(s.getTypeChecker())
   // use Kind::PARAM to stand for either Int or Real arithmetic (not mixed)
   addSmtLibSym("Int", {}, Kind::TYPE);
   addSmtLibSym("Real", {}, Kind::TYPE);
-  /*
   addSmtLibSym("+", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
   addSmtLibSym("-", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
   addSmtLibSym("*", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
-  addSmtLibSym("abs", {Kind::PARAM}, Kind::PARAM);
+  //addSmtLibSym("abs", {Kind::PARAM}, Kind::PARAM);
   addSmtLibSym(">=", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
   addSmtLibSym("<=", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
   addSmtLibSym(">", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
   addSmtLibSym("<", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
-  */
   addSmtLibSym("is_int", {Kind::RATIONAL}, Kind::BOOLEAN);
   addSmtLibSym("divisible", {Kind::NUMERAL, Kind::NUMERAL}, Kind::BOOLEAN);
   addSmtLibSym("/", {Kind::RATIONAL, Kind::RATIONAL}, Kind::RATIONAL);
@@ -139,39 +137,57 @@ void ModelSmt::printSmtTerm(const std::string& name,
     d_eval << "(eo::ite ($smt_model_eval x1) ($smt_model_eval x2) "
               "($smt_model_eval x3)))";
     d_eval << std::endl;
+    return;
   }
-  else if (name == "=")
+  bool isOverloadArith = (args.size()>0 && args[0]==Kind::PARAM);
+  std::stringstream preApp;
+  std::stringstream preAppEnd;
+  for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
+  {
+    preApp << "(eo::define ((e" << i << " ($smt_model_eval x" << i << "))) ";
+    preApp << "(eo::requires ($smt_is_value (eo::typeof x" << i << ") e" << i
+            << ") true ";
+    preAppEnd << "))";
+  }
+  if (name == "=")
   {
     d_eval << " x1 x2)) ";
-    d_eval << "(eo::define ((e1 ($smt_model_eval x1))) ";
-    d_eval << "(eo::define ((e2 ($smt_model_eval x2))) ";
-    d_eval << "(eo::requires ($smt_is_value (eo::typeof x1) e1) true ";
-    d_eval << "(eo::requires ($smt_is_value (eo::typeof x2) e2) true ";
-    d_eval << "(eo::eq e1 e2))))))";
+    d_eval << preApp.str() << "(eo::eq e1 e2)" << preAppEnd.str() << ")";
     d_eval << std::endl;
   }
   else if (name == "forall" || name == "exists")
   {
     bool isExists = (name=="exists");
-    d_eval << " x1 x2)) ($smt_model_exists x1 x2 0 " << isExists << "))";
+    d_eval << " x1 x2)) ($smt_model_eval_quant x1 x2 0 " << isExists << "))";
   }
-  else if (kret == Kind::PARAM)
+  else if (isOverloadArith)
   {
-    // TODO: combined / mixed arithmetic?
+    // overloaded arithmetic
+    if (args.size()==2)
+    {
+      Assert (args[0]==Kind::PARAM && args[1]==Kind::PARAM);
+      // case split on the integer type
+      d_eval << " x1 x2)) ($smt_eval_mixed_arith";
+      if (kret==Kind::BOOLEAN)
+      {
+        d_eval << "_pred";
+      }
+      d_eval << " \"" << name << "\" x1 x2))" << std::endl;
+    }
+    else
+    {
+      // otherwise not handled
+      EO_FATAL() << "Cannot handle given overloaded arith type schema";
+    }
+    return;
   }
   else
   {
     std::stringstream appArgs;
     appArgs << " \"" << name << "\"";
-    std::stringstream preApp;
-    std::stringstream preAppEnd;
     for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
     {
       d_eval << " x" << i;
-      preApp << "(eo::define ((e" << i << " ($smt_model_eval x" << i << "))) ";
-      preApp << "(eo::requires ($smt_is_value (eo::typeof x" << i << ") e" << i
-             << ") true ";
-      preAppEnd << "))";
       Kind ka = args[i - 1];
       // use guarded version
       appArgs << " ($eo_to_smt_";
