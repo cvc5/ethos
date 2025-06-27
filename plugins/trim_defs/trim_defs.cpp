@@ -21,8 +21,8 @@
 
 namespace ethos {
 
-//std::string st_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
-std::string st_path = "/home/andrew/ethos/";
+std::string st_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
+//std::string st_path = "/home/andrew/ethos/";
 
 struct Command
 {
