@@ -57,17 +57,14 @@
 ; Convert smt2 term to a Eunoia binary.
 (declare-const $smt_to_eo_bin (-> $smt_Term $eo_Binary))
 
-;;; Things that can be desugared at this layer
-
-;(program $eo_typeof ((T Type)) :signature (T) Type)
-
 ;;; definitions of Valueness
 
 ; represents an unknown value
-; NOTE: could be a program??
+; This must be a constructor in the final sm.Term.
 (declare-parameterized-const $smt_unknown_type_enum ((T Type) (i $eo_Numeral)) T)
 
 ; re-bootstrap version of list operators, monomorphized for $eo_List.
+; We only define what is necessary.
 
 (program $eo_List_concat
   ((T Type) (x T) (y $eo_List) (z $eo_List))
