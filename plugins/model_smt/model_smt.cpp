@@ -150,14 +150,10 @@ void ModelSmt::printSmtTerm(const std::string& name,
     d_eval << "(eo::eq e1 e2))))))";
     d_eval << std::endl;
   }
-  else if (name == "forall")
+  else if (name == "forall" || name == "exists")
   {
-    // TODO???
-    // d_eval << " x1 x2)) ($eo_not ($smt_model_exists x1 x2 0)))";
-  }
-  else if (name == "exists")
-  {
-    d_eval << " x1 x2)) ($smt_model_exists x1 x2 0))";
+    bool isExists = (name=="exists");
+    d_eval << " x1 x2)) ($smt_model_exists x1 x2 0 " << isExists << "))";
   }
   else if (kret == Kind::PARAM)
   {

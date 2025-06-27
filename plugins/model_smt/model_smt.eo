@@ -169,7 +169,7 @@ $SMT_TYPE_ENUM_CASES$
 ; definitions of operators
 
 ; program: $smt_substitute
-; Used to define $smt_model_eval_exists.
+; Used to define $smt_model_eval_quant.
 (program $smt_substitute
   ((T Type) (U Type) (S Type) (x S) (y S) (f (-> T U)) (a T) (z U))
   :signature (S S U) U
@@ -180,19 +180,26 @@ $SMT_TYPE_ENUM_CASES$
   )
 )
 
-; program: $smt_model_eval_exists
+; program: $smt_model_eval_quant
 ; specification for exists is a (non-computable) function
-(program $smt_model_eval_exists ((T Type) (x T) (xs $eo_List) (F Bool) (i $eo_Numeral))
-  :signature ($eo_List Bool $eo_Numeral) Bool
+; The last argument is whether we are check exists (resp. forall).
+(program $smt_model_eval_quant ((T Type) (x T) (xs $eo_List) (F Bool) (i $eo_Numeral) (isExists Bool))
+  :signature ($eo_List Bool $eo_Numeral Bool) Bool
   (
-  (($smt_model_eval_exists $eo_List_nil F i)     ($smt_model_eval F))
-  (($smt_model_eval_exists ($eo_List_cons x xs) F i)
+  (($smt_model_eval_quant $eo_List_nil F i isExists)
+    ; base case: we have processed all variables, recurse, negate if isExists is false.
+    (eo::eq ($smt_model_eval F) isExists))
+  (($smt_model_eval_quant ($eo_List_cons x xs) F i isExists)
+    ; get the next value in the type enumeration
     (eo::define ((next ($smt_type_enum (eo::typeof x) i)))
+    ; if it exists
     (eo::ite (eo::is_ok next)
-      (eo::ite ($smt_model_eval ($smt_substitute x next F))
-        true
-        ($smt_model_eval_exists ($eo_List_cons x xs) F (eo::add i 1)))
-      false))) ; out of values
+      ; evaluate the body for this value. if this is a forcing value, return it
+      (eo::ite (eo::eq ($smt_model_eval ($smt_substitute x next F)) isExists)
+        isExists
+        ; otherwise recurse for the next value in the type enumeration for the current variable
+        ($smt_model_eval_quant ($eo_List_cons x xs) F (eo::add i 1) isExists))
+      (eo::not isExists)))) ; out of values,
   )
 )
 
@@ -220,7 +227,7 @@ $SMT_EVAL_CASES$
   (($smt_model_eval ($eo_model_Const id T F)) (eo::define ((val ($smt_model_lookup id T)))
                                               (eo::ite ($smt_model_eval F)
                                                 val
-                                                ($eo_model_Const id F))))
+                                                ($eo_model_Const id T F))))
   ; generic apply and base case.
   ; these do not insist that the term is a value.
   (($smt_model_eval (f y))                (eo::define ((fme ($smt_model_eval f)))
