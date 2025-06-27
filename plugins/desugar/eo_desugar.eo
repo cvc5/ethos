@@ -46,6 +46,10 @@ $EO_LITERAL_TYPE_DECL$
 ; be constructed out of free constant symbols.
 (declare-parameterized-const $eo_model_Const ((id $eo_Numeral) (T Type) (F Bool)) T)
 
+; The width of the Binary type, which is used to define the semantics
+; of SMT-LIB bit-vectors.
+(declare-const $eo_model_binary_width (-> Type $eo_Numeral))
+
 ;;; $eo_List
 
 ; The builtin Eunoia list.

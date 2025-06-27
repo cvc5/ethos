@@ -49,6 +49,7 @@ class ModelSmt : public Plugin
   void printSmtTerm(const std::string& name, std::vector<Kind>& args, Kind ret);
   std::map<Kind, Expr> d_kindToType;
   std::map<Kind, std::string> d_kindToEoPrefix;
+  std::map<std::string, std::string> d_overloadRevert;
   std::stringstream d_eval;
   std::stringstream d_typeEnum;
   std::stringstream d_isValue;

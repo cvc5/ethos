@@ -41,6 +41,9 @@ class Desugar : public Plugin
   void defineProgram(const Expr& v, const Expr& prog) override;
   /** Finalize */
   void finalize() override;
+  /**
+   */
+  bool echo(const std::string& msg) override;
 
  private:
   void printName(const Expr& e, std::ostream& os);
@@ -64,6 +67,7 @@ class Desugar : public Plugin
    * Finalize datatype or datatype constructor.
    */
   void finalizeDatatype(const Expr& d, Attr a, const Expr& attrCons);
+  void finalizeWellFounded();
   std::vector<Expr> getSubtermsKind(Kind k, const Expr& t);
   /** */
   Expr mkSanitize(const Expr& t);
@@ -112,8 +116,10 @@ class Desugar : public Plugin
   std::stringstream d_eoDtCons;
   std::stringstream d_eoDtSel;
   std::stringstream d_eoVc;
+  std::stringstream d_eoVcWf;
 
   size_t d_eoDtConsParamCount;
+  bool d_genWfCond;
 };
 
 }  // namespace ethos

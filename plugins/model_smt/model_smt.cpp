@@ -57,6 +57,9 @@ ModelSmt::ModelSmt(State& s) : d_state(s), d_tc(s.getTypeChecker())
   addSmtLibSym("+", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
   addSmtLibSym("-", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
   addSmtLibSym("*", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
+  // we expect "-" to be overloaded, we look for its desugared name and map it back
+  //addSmtLibSym("$eoo_-.2", {Kind::PARAM}, Kind::PARAM);
+  //d_overloadRevert["$eoo_-.2"] = "-";
   //addSmtLibSym("abs", {Kind::PARAM}, Kind::PARAM);
   addSmtLibSym(">=", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
   addSmtLibSym("<=", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
@@ -82,6 +85,7 @@ ModelSmt::ModelSmt(State& s) : d_state(s), d_tc(s.getTypeChecker())
   addSmtLibSym("str.to_upper", {Kind::STRING}, Kind::STRING);
   addSmtLibSym("str.from_code", {Kind::NUMERAL}, Kind::STRING);
   addSmtLibSym("str.to_code", {Kind::STRING}, Kind::NUMERAL);
+  // TODO: more
   // BV
   // arith/BV conversions
   //addSmtLibSym("BitVec", {Kind::NUMERAL}, Kind::TYPE);

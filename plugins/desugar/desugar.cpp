@@ -42,6 +42,7 @@ Desugar::Desugar(State& s) : d_state(s), d_tc(s.getTypeChecker())
     d_eoVc << ";; verification conditions" << std::endl << std::endl;
   }
   d_eoDtConsParamCount = 0;
+  d_genWfCond = false;
 }
 
 Desugar::~Desugar() {}
@@ -926,7 +927,17 @@ void Desugar::finalize()
   replace(finalEo, "$EO_DT_SELECTORS_CASES$", d_eoDtSel.str());
   if (d_genVcs)
   {
-    replace(finalEo, "$EO_VC$", d_eoVc.str());
+    if (d_genWfCond)
+    {
+      finalizeWellFounded();
+      replace(finalEo, "$EO_VC$", d_eoVcWf.str());
+    }
+    else
+    {
+      // Verification conditions for *all* proof rules are ready now
+      // TODO: make this manual?
+      replace(finalEo, "$EO_VC$", d_eoVc.str());
+    }
   }
   else
   {
@@ -937,6 +948,32 @@ void Desugar::finalize()
   std::cout << "Write core-defs    " << ssoe.str() << std::endl;
   std::ofstream oute(ssoe.str());
   oute << finalEo;
+}
+
+void Desugar::finalizeWellFounded()
+{
+  // TODO
+  std::stringstream wfDefs;
+  // generate well-foundedness method
+  size_t pcIdCount = 0;
+  std::map<Expr, size_t> pcId;
+  std::stringstream os;
+  os << "(declare-const @pcall (-> $eo_Numeral $eo_List Type))" << std::endl;
+  os << "(program $eovcwf_rec ((pc $eo_Numeral))" << std::endl;
+  os << "  :signature ($eo_Numeral $eo_List $eo_List) Bool" << std::endl;
+  os << "  (" << std::endl;
+  os << "  )" << std::endl;
+  os << ")" << std::endl;
+}
+
+bool Desugar::echo(const std::string& msg)
+{
+  if (msg=="desugar-wf")
+  {
+    d_genWfCond = true;
+    return false;
+  }
+  return true;
 }
 
 Expr Desugar::mkSanitize(const Expr& t)
