@@ -67,51 +67,7 @@
 ; NOTE: could be a program??
 (declare-parameterized-const $smt_unknown_type_enum ((T Type) (i $eo_Numeral)) T)
 
-; definitions of Values
 
-; forward declaration
-(program $smt_is_value ((T Type)) :signature ((eo::quote T) T) Bool)
-
-; define: $smt_dt_is_cons
-; returns: true if t is a datatpe (i.e. it has constructors).
-(define $smt_is_dt ((T Type :implicit) (t T))
-  (eo::is_ok ($eo_dt_constructors t)))
-
-; define: $smt_is_dt_cons
-; returns: true if t is a constructor (i.e. it has selectors).
-(define $smt_is_dt_cons ((T Type :implicit) (t T))
-  (eo::is_ok ($eo_dt_selectors t)))
-
-; program: $smt_dt_is_value
-; Returns true if its argument is a datatype value.
-(program $smt_dt_is_value
-  ((U Type) (T Type) (f (-> T U)) (a T) (c U))
-  :signature (U) Bool
-  (
-  (($smt_dt_is_value (f a))  (eo::ite ($smt_is_value a) ($smt_dt_is_value f) false))
-  (($smt_dt_is_value c)      ($smt_is_dt_cons c))
-  )
-)
-
-; program: $smt_dt_is_value
-; Returns true if its argument is an SMT value.
-(program $smt_is_value ((T Type) (t T)
-   ; generic parameters that may appear in terms to pattern match
-   (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3))
-  :signature ((eo::quote T) T) Bool
-  (
-  ; if the literal type is not defined, this is false
-  (($smt_is_value $eo_undef_type t) false)
-  ; standard atomic types
-  (($smt_is_value $eo_Numeral t)      ($eo_is_z t))
-  (($smt_is_value $eo_Rational t)     ($eo_is_q t))
-  (($smt_is_value $eo_String t)       ($eo_is_str t))
-  (($smt_is_value $eo_Binary t)       ($eo_is_bin t))
-  ; TODO: Arrays? Sets? Seq?
-$SMT_IS_VALUE_CASES$
-  (($smt_is_value T t) false)
-  )
-)
 
 ;;; definitions of Type enumeration
 
@@ -168,12 +124,15 @@ $SMT_IS_VALUE_CASES$
                                     (eo::define ((i (eo::zdiv ir 2)))
                                     (eo::define ((v (eo::ite isRat ($smt_rat_to_num ($smt_rat_enum i)) ($smt_irrat_enum i))))
                                       (eo::ite (eo::eq (eo::zmod i 2) 0) v (eo::neg v)))))))
-
-  ; Cannot define Bit-vectors here as this requires a parameteric type to know "w".
-  ;(($smt_type_enum $eo_Binary i)   (eo::define ((v (eo::to_bin w i)))
-  ;                                    (eo::requires (eo::to_z v) i v)))
 $SMT_TYPE_ENUM_CASES$
-  (($smt_type_enum T i) ($smt_unknown_type_enum T i))   ; note since this always succeeds, this assumes that unhandled types have infinite type
+  ; NOTE: this assumes that (BitVec _) is a parmetric type, thus we look for it with $eo_model_binary_width.
+  (($smt_type_enum T i)             (eo::define ((w ($eo_model_binary_width T)))
+                                    (eo::define ((v (eo::to_bin w i)))
+                                      (eo::ite (eo::is_ok w)
+                                        (eo::requires (eo::to_z v) i v)
+                                        ; otherwise, uninterpreted constant
+                                        ; note since this always succeeds, this assumes that unhandled types have infinite type
+                                        ($smt_unknown_type_enum T i)))))
   )
 )
 
@@ -209,6 +168,52 @@ $SMT_TYPE_ENUM_CASES$
         ; otherwise recurse for the next value in the type enumeration for the current variable
         ($smt_model_eval_quant ($eo_List_cons x xs) F (eo::add i 1) isExists))
       (eo::not isExists)))) ; out of values,
+  )
+)
+
+; definitions of Values
+
+; forward declaration
+(program $smt_is_value ((T Type)) :signature ((eo::quote T) T) Bool)
+
+; define: $smt_dt_is_cons
+; returns: true if t is a datatpe (i.e. it has constructors).
+(define $smt_is_dt ((T Type :implicit) (t T))
+  (eo::is_ok ($eo_dt_constructors t)))
+
+; define: $smt_is_dt_cons
+; returns: true if t is a constructor (i.e. it has selectors).
+(define $smt_is_dt_cons ((T Type :implicit) (t T))
+  (eo::is_ok ($eo_dt_selectors t)))
+
+; program: $smt_dt_is_value
+; Returns true if its argument is a datatype value.
+(program $smt_dt_is_value
+  ((U Type) (T Type) (f (-> T U)) (a T) (c U))
+  :signature (U) Bool
+  (
+  (($smt_dt_is_value (f a))  (eo::ite ($smt_is_value a) ($smt_dt_is_value f) false))
+  (($smt_dt_is_value c)      ($smt_is_dt_cons c))
+  )
+)
+
+; program: $smt_dt_is_value
+; Returns true if its argument is an SMT value.
+(program $smt_is_value ((T Type) (t T)
+   ; generic parameters that may appear in terms to pattern match
+   (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3))
+  :signature ((eo::quote T) T) Bool
+  (
+  ; if the literal type is not defined, this is false
+  (($smt_is_value $eo_undef_type t) false)
+  ; standard atomic types
+  (($smt_is_value $eo_Numeral t)      ($eo_is_z t))
+  (($smt_is_value $eo_Rational t)     ($eo_is_q t))
+  (($smt_is_value $eo_String t)       ($eo_is_str t))
+  (($smt_is_value $eo_Binary t)       ($eo_is_bin t))
+  ; TODO: Arrays? Sets? Seq?
+$SMT_IS_VALUE_CASES$
+  (($smt_is_value T t) false)
   )
 )
 

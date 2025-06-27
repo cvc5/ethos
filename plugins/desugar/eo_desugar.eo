@@ -41,14 +41,17 @@ $EO_LITERAL_TYPE_DECL$
 ; if F is satisfied by the model, and is unconstrained otherwise.
 ; Note that if F is true, then this is an ordinary free constant,
 ; i.e. one declared by the user.
+; The property is obtained by calling $eo_model_Const_pred below.
 ; Note this constant must be preserved to ensure the semantics of
 ; SMT-LIB is accurate. In particular, this ensures that terms can
 ; be constructed out of free constant symbols.
-(declare-parameterized-const $eo_model_Const ((id $eo_Numeral) (T Type) (F Bool)) T)
+(declare-parameterized-const $eo_model_Const ((id $eo_Numeral) (T Type)) T)
 
 ; The width of the Binary type, which is used to define the semantics
 ; of SMT-LIB bit-vectors.
-(declare-const $eo_model_binary_width (-> Type $eo_Numeral))
+; This depends on the signature.
+(define $eo_model_binary_width ((T Type))
+  $EO_BINARY_WIDTH$)
 
 ;;; $eo_List
 
@@ -528,6 +531,17 @@ $EO_NIL_CASES$
                   (eo::ite ($eo_is_str t) $eo_String
                   (eo::ite ($eo_is_bin t) $eo_Binary
                     ($eo_typeof_main t)))))))
+  )
+)
+
+; Utilities for models
+
+; This indicates the properties of skolem functions.
+(program $eo_model_Const_pred ((i $eo_Numeral) (T Type))
+  :signature ($eo_Numeral (eo::quote T)) T
+  (
+$EO_MODEL_CONST_PRED$
+  (($eo_model_Const_pred i T) $eo_fail)
   )
 )
 

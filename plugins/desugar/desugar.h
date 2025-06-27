@@ -117,6 +117,9 @@ class Desugar : public Plugin
   std::stringstream d_eoDtSel;
   std::stringstream d_eoVc;
   std::stringstream d_eoVcWf;
+  // for model semantics
+  std::stringstream d_eoModelConstPred;
+  std::stringstream d_eoBinaryWidth;
 
   size_t d_eoDtConsParamCount;
   bool d_genWfCond;
