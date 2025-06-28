@@ -733,7 +733,7 @@ bool SmtMetaReduce::echo(const std::string& msg)
     {
       d_smtVc << "(= " << eosc << " sm.True)";
     }
-    d_smtVc << " :named sm.conjecture)";
+    d_smtVc << " :named sm.conjecture." << vv << ")";
     d_smtVc << ")" << std::endl;
     // std::cout << "...set target" << std::endl;
     return false;

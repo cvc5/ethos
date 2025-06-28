@@ -74,8 +74,8 @@ $SM_TERM_DECL$
 
 (declare-fun $sm_pow2_eval (Int) Int)
 ; note: should never be called on negative numbers
-(assert (forall ((i Int))
-  (= ($sm_pow2_eval i) (ite (<= i 0) 1 (* 2 ($sm_pow2_eval (- i 1)))))))
+(assert (! (forall ((i Int))
+  (= ($sm_pow2_eval i) (ite (<= i 0) 1 (* 2 ($sm_pow2_eval (- i 1)))))) :named sm.eval_pow2))
 
 (define-fun $sm_Binary ((w Int) (x Int)) sm.Term
   (ite (and (<= 0 w) (< w 4294967296))
@@ -86,12 +86,12 @@ $SM_TERM_DECL$
   (= (mod (div x ($sm_pow2_eval i)) 2) 1))
 
 (declare-fun $sm_Binary_and_eval (Int Int Int) Int)
-(assert (forall ((w Int) (x1 Int) (x2 Int))
+(assert (! (forall ((w Int) (x1 Int) (x2 Int))
   (= ($sm_Binary_and_eval w x1 x2)
     (ite (= w 0) 0
     (ite (= w 1) (ite (and (= x1 1) (= x2 1)) 1 0)
       (+ ($sm_Binary_and_eval (- w 1) x1 x2) (* ($sm_pow2_eval w)
-         (ite (and ($sm_bit x1 w) ($sm_bit x2 w)) 1 0))))))))
+         (ite (and ($sm_bit x1 w) ($sm_bit x2 w)) 1 0))))))) :named sm.eval_bin_and))
 
 (define-fun $sm_Binary_and ((w Int) (x1 Int) (x2 Int)) sm.Term
   ($sm_Binary w ($sm_Binary_and_eval w x1 x2)))
@@ -134,12 +134,12 @@ $SM_TERM_DECL$
 ; axiom: $eo_hash
 ; note: This is defined axiomatically.
 (declare-fun $eo_hash (sm.Term) sm.Term)
-(assert (forall ((x sm.Term))
+(assert (! (forall ((x sm.Term))
   (=> (not (= x sm.Stuck))
-    ((_ is sm.Numeral) ($eo_hash x)))))
-(assert (forall ((x sm.Term) (y sm.Term))
+    ((_ is sm.Numeral) ($eo_hash x)))) :named sm.hash_numeral))
+(assert (! (forall ((x sm.Term) (y sm.Term))
   (=> (and (not (= x sm.Stuck)) (not (= y sm.Stuck))
-    (= ($eo_hash x) ($eo_hash y))) (= x y))))
+    (= ($eo_hash x) ($eo_hash y))) (= x y))) :named sm.hash_inj))
 
 ;;; Boolean operators
 
