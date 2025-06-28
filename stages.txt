@@ -96,18 +96,28 @@ Compiles *.eo to *.eo.
 Includes a definition of $eo_model_sat, which defines SMT-LIB model semantics.
 
 Relies on:
-- model_smt.eo template, 83 LOC EO
-- model_smt.cpp (ethos plugin), 227 LOC C++
+- model_smt_preamble.eo, 248 LOC EO
+- model_eo.eo template, 32 LOC EO
+- model_smt.eo, 206 LOC EO
+- model_smt.cpp (ethos plugin), 228 LOC C++
 - trim_defs.cpp (ethos plugin), also used above
 
 Things handled at this stage:
-- SMT-LIB semantics (Eunoia program $eo_model_sat).
+- Model preamble reduces many Eunoia builtins to SMT-LIB literal semantics (model_smt_preamble.eo)
+  - eo::not, eo::and, eo::or, eo::xor
+  - eo::add, eo::mul, eo::qdiv, eo::zdiv, eo::zmod, eo::is_neg, eo::neg
+  - eo::len, eo::concat, eo::extract, eo::find
+  - eo::to_z, eo::to_q, eo::to_bin, eo::to_str
+- Custom extensions to SMT-LIB template (model_eo.eo).
+  - TODO: Skolem semantics ($eo_const_predicate).
+- SMT-LIB semantics (model_smt.eo).
   - Valueness ($smt_is_value)
     - Builtin atomics.
     - Datatypes.
   - Type enumeration ($smt_type_enum)
     - Builtin atomics (Int, String).
     - TODO: datatypes
+    - TODO: arrays, functions
   - Existential semantics ($smt_model_eval_exists)
   - Free constant semantics ($smt_model_lookup)
   - Builtin operator semantics
@@ -115,9 +125,7 @@ Things handled at this stage:
     - Defines conversions from Eunoia literals to SMT-LIB values via $smt_to_eo_X/$eo_to_smt_X.
   - overloading arithmetic
   - Reverts operator overload, recognizes "$eoo_-.2" as SMT-LIB "-".
-- TODO: arrays?
-- TODO: skolem semantics.
-- TODO: can handle a majority of Eunoia builtins here.
+  - TODO: arrays, functions
 
 === Smt_Meta
 
@@ -133,18 +141,15 @@ Relies on:
 - smt_meta_reduce.cpp (ethos plugin), 783 LOC C++
 
 Things handled at this stage:
+- Distinction between Eunoia terms and SMT-LIB terms.
+- Eunoia semantics of "stuckness" (eo.Stuck)
+- Eunoia semantics of pattern matching based on datatype selectors/testers.
 - Symbols introduced for deep embedding in Model_Smt $smt_Term, $smt_apply_N, $smt_to_eo_X, $eo_to_smt_X.
   - TODO: Indexed SMT-LIB operators are handled as special case?? Maybe Opaque??
-- Remaining define commands inlined.
-- Eunoia semantics of "stuckness"
-- Eunoia semantics of pattern matching based on datatype selectors/testers.
+- Remaining eo::define and define commands inlined.
 - :opaque
 - Ambiguously typed functions
 - eo::is_ok, eo::ite, eo::requires, eo::hash
-- eo::not, eo::and, eo::or, eo::xor
-- eo::add, eo::mul, eo::qdiv, eo::zdiv, eo::zmod, eo::is_neg, eo::neg
-- eo::len, eo::concat, eo::extract, eo::find
-- eo::to_z, eo::to_q, eo::to_bin, eo::to_str
 - Semantics of parametric bitvector operations
 
 ===
