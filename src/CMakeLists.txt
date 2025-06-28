@@ -4,6 +4,7 @@ add_executable(ethos ${ethos_SRC}
 ../plugins/smt_meta/smt_meta_reduce.cpp
 ../plugins/desugar/desugar.cpp
 ../plugins/trim_defs/trim_defs.cpp
-../plugins/model_smt/model_smt.cpp)
+../plugins/model_smt/model_smt.cpp
+../plugins/std_plugin.cpp)
 
 target_link_libraries(ethos ${LIBRARIES})

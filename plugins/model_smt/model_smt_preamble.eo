@@ -18,6 +18,24 @@
 (declare-const $smt_Binary Type)
 (declare-consts <binary> $smt_Binary)
 
+;;; declarations to define literal types
+
+; undefined type, used if a literal type uses eo::self, which can't be modelled.
+(declare-const $eo_undef_type Type)
+
+$SMT_LITERAL_TYPE_DECL$
+
+; Macros for the literal types. These are used to define model evaluation.
+(define $smt_Numeral () $SMT_NUMERAL$)
+(define $smt_Rational () $SMT_RATIONAL$)
+(define $smt_String () $SMT_STRING$)
+; Bit-vectors
+(declare-parameterized-const $smt_BitVec ((n $eo_Numeral :opaque)) Type)
+(define $smt_Binary () Type)
+
+; note: decimal and hexadecimal omitted for now.
+
+
 ; An SMT-LIB term.
 (declare-const $smt_Term Type)
 
