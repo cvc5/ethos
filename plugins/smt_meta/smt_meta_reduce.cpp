@@ -487,6 +487,7 @@ void SmtMetaReduce::finalizePrograms()
         d_defs << "(" << vname.str() << " eo.Term)";
       }
       d_defs << ") eo.Term ";
+      // TODO: check if a Eunoia term here???
       printEmbTerm(e[1], d_defs, ctx);
       d_defs << ")" << std::endl << std::endl;
       continue;
@@ -557,7 +558,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   std::stringstream casesEnd;
   // start with stuck case
   cases << "  (ite" << stuckCond.str() << std::endl;
-  cases << "    sm.Stuck" << std::endl;
+  cases << "    eo.Stuck" << std::endl;
   casesEnd << ")";
   size_t ncases = prog.getNumChildren();
   for (size_t i = 0; i < ncases; i++)
@@ -919,6 +920,15 @@ bool SmtMetaReduce::isEunoiaSymbol(const Expr& t)
     return true;
   }
   if (sname=="$eo_Var")
+  {
+    return true;
+  }
+  return false;
+}
+
+bool SmtMetaReduce::isEunoiaTerm(const Expr& t)
+{
+  if (isEunoiaSymbol(t))
   {
     return true;
   }

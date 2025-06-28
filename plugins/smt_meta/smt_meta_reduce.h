@@ -100,6 +100,7 @@ class SmtMetaReduce : public Plugin
   bool isInternalSymbol(const Expr& t);
   /** is Eunoia symbol? These need to be part of eo.Term. */
   bool isEunoiaSymbol(const Expr& t);
+  bool isEunoiaTerm(const Expr& t);
   /** get kind for suffix */
   Kind getKindForSuffix(const std::string& suf) const;
   /** the state */

@@ -82,12 +82,23 @@
 ; These rely on "is sm.Numeral" referring to the SMT-LIB operator (_ is sm.Numeral)
 ; in the final encoding.
 ; Boolean relies on the $sm_is_Boolean define-fun in the SMT meta signature.
-(define $smt_is_bool ((T Type :implicit) (t T)) ($smt_apply_1 "$sm_is_Boolean" t))
-; TODO: these need to guard that t is an eo.SmtTerm
-(define $smt_is_z ((T Type :implicit) (t T)) ($smt_apply_1 "is sm.Numeral" (eo.to_smt t)))
-(define $smt_is_q ((T Type :implicit) (t T)) ($smt_apply_1 "is sm.Rational" (eo.to_smt t)))
-(define $smt_is_str ((T Type :implicit) (t T)) ($smt_apply_1 "is sm.String" (eo.to_smt t)))
-(define $smt_is_bin ((T Type :implicit) (t T)) ($smt_apply_1 "is sm.Binary" (eo.to_smt t)))
+(define $smt_is_bool ((T Type :implicit) (t T)) ($smt_apply_1 "$eo_is_Boolean" t))
+(define $smt_is_z ((T Type :implicit) (t T))
+  ($smt_apply_2 "and"
+    ($smt_apply_1 "is eo.SmtTerm" t)
+    ($smt_apply_1 "is sm.Numeral" (eo.to_smt t))))
+(define $smt_is_q ((T Type :implicit) (t T))
+  ($smt_apply_2 "and"
+    ($smt_apply_1 "is eo.SmtTerm" t)
+    ($smt_apply_1 "is sm.Rational" (eo.to_smt t))))
+(define $smt_is_str ((T Type :implicit) (t T))
+  ($smt_apply_2 "and"
+    ($smt_apply_1 "is eo.SmtTerm" t)
+    ($smt_apply_1 "is sm.String" (eo.to_smt t))))
+(define $smt_is_bin ((T Type :implicit) (t T))
+  ($smt_apply_2 "and"
+    ($smt_apply_1 "is eo.SmtTerm" t)
+    ($smt_apply_1 "is sm.Binary" (eo.to_smt t))))
 ; decomposing binaries
 (define $smt_bin_width ((T Type :implicit) (t T)) ($smt_apply_1 "sm.Binary.width" (eo.to_smt t)))
 (define $smt_bin_val ((T Type :implicit) (t T)) ($smt_apply_1 "sm.Binary.val" (eo.to_smt t)))
@@ -141,7 +152,7 @@
   ($smt_apply_3 "and"
     ($smt_is_z x1)
     ($smt_is_z x2)
-    ($smt_apply_1 "not" ($smt_apply_2 "=" ($smt_from_eo_z x2) ($smt_from_eo_z ($sm_Numeral 0))))))
+    ($smt_apply_1 "not" ($smt_apply_2 "=" x2 ($smt_apply_1 "eo.SmtTerm" 0)))))
 
 ; An SMT-LIB formula corresponding to Eunoia terms being a real division operation.
 ; Return the SMT-LIB Boolean.
@@ -149,7 +160,7 @@
   ($smt_apply_3 "and"
     ($smt_is_q x1)
     ($smt_is_q x2)
-    ($smt_apply_1 "not" ($smt_apply_2 "=" ($smt_from_eo_q x2) ($smt_from_eo_q ($sm_Rational 0/1))))))
+    ($smt_apply_1 "not" ($smt_apply_2 "=" x2 ($smt_apply_1 "eo.SmtTerm" 0/1)))))
 
 ; An SMT-LIB formula corresponding to Eunoia terms being the binaries of the same width.
 ; Return the SMT-LIB Boolean.
@@ -330,7 +341,7 @@
 ; axiom: $eo_find
 (define $eo_find ((T Type :implicit) (x1 T) (x2 T))
   ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_str x1) ($smt_is_str x2))
-    ($smt_to_eo_z ($smt_apply_3 "str.indexof" ($smt_from_eo_str x1) ($smt_from_eo_str x2) ($smt_from_eo_z ($sm_Numeral 0))))
+    ($smt_to_eo_z ($smt_apply_3 "str.indexof" ($smt_from_eo_str x1) ($smt_from_eo_str x2) ($smt_from_eo_z ($smt_apply_1 "eo.SmtTerm" 0))))
     eo.Stuck))
 
 ;;; Conversion operators
@@ -343,7 +354,7 @@
     ($smt_to_eo_z ($smt_apply_2 "to_int" ($smt_from_eo_q x1)))
   ($smt_apply_3 "ite" ($smt_is_bin x1)
     ($smt_to_eo_z ($smt_bin_val x1))
-  ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_str x1) ($smt_apply_2 "=" ($smt_apply_1 "str.len" ($smt_from_eo_str x1)) ($smt_from_eo_z 1)))
+  ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_str x1) ($smt_apply_2 "=" ($smt_apply_1 "str.len" ($smt_from_eo_str x1)) ($smt_from_eo_z ($smt_apply_1 "eo.SmtTerm" 1))))
     ($smt_to_eo_z ($smt_apply_1 "str.to_code" ($smt_from_eo_str x1)))
     eo.Stuck)))))
 

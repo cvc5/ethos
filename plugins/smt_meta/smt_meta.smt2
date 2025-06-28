@@ -57,7 +57,7 @@ $SM_EO_TERM_DECL$
   (= (eo.to_smt x) sm.True))
 
 ; smt-define: $sm_is_Boolean
-(define-fun $sm_is_Boolean ((x eo.Term)) Bool
+(define-fun $eo_is_Boolean ((x eo.Term)) Bool
   ; key that this uses smt.to_eo, not eo.to_smt
   (or (= x (smt.to_eo sm.True)) (= x (smt.to_eo sm.False))))
 
