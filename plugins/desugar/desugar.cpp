@@ -43,9 +43,6 @@ Desugar::Desugar(State& s) : d_state(s), d_tc(s.getTypeChecker())
   }
   d_eoDtConsParamCount = 0;
   d_genWfCond = false;
-
-  // TODO: make this instantiation eo::self??
-  d_eoBinaryWidth << "$eo_fail";
 }
 
 Desugar::~Desugar() {}
@@ -936,11 +933,6 @@ void Desugar::finalize()
   replace(finalEo, "$EO_DT_CONSTRUCTORS_PARAM$", d_eoDtConsParam.str());
   replace(finalEo, "$EO_DT_CONSTRUCTORS_CASES$", d_eoDtCons.str());
   replace(finalEo, "$EO_DT_SELECTORS_CASES$", d_eoDtSel.str());
-  // for model semantics
-
-  replace(finalEo, "$EO_MODEL_CONST_PRED_CASES$", d_eoModelConstPred.str());
-  replace(finalEo, "$EO_MODEL_EVAL_CASES$", d_eoModelEval.str());
-  replace(finalEo, "$EO_BINARY_WIDTH$", d_eoBinaryWidth.str());
   if (d_genVcs)
   {
     if (d_genWfCond)

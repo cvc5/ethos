@@ -841,7 +841,7 @@ bool SmtMetaReduce::isEoToSmt(const Expr& t)
     std::stringstream ss;
     ss << t;
     std::string sname = ss.str();
-    if (sname.compare(0, 11, "$eo_to_smt_") == 0)
+    if (sname.compare(0, 11, "$smt_from_eo_") == 0)
     {
       Kind k = getKindForSuffix(sname.substr(11));
       return k != Kind::NONE;

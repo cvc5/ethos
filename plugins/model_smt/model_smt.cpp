@@ -168,7 +168,7 @@ void ModelSmt::printSmtTerm(const std::string& name,
   {
     // does not "pre-rewrite" the body
     bool isExists = (name == "exists");
-    d_eval << " x1 x2)) ($smt_model_eval_quant x1 x2 0 " << isExists << "))";
+    d_eval << " x1 x2)) ($smt_eval_quant x1 x2 0 " << isExists << "))";
   }
   else if (isOverloadArith)
   {
@@ -204,7 +204,7 @@ void ModelSmt::printSmtTerm(const std::string& name,
       d_eval << " x" << i;
       Kind ka = args[i - 1];
       // use guarded version
-      appArgs << " ($eo_to_smt_";
+      appArgs << " ($smt_from_eo_";
       if (d_kindToEoPrefix.find(ka) != d_kindToEoPrefix.end())
       {
         appArgs << d_kindToEoPrefix[ka];
@@ -220,7 +220,7 @@ void ModelSmt::printSmtTerm(const std::string& name,
     {
       EO_FATAL() << "Unhandled arity " << args.size() << " for " << name;
     }
-    d_eval << ")) " << preApp.str() << "($smt_to_eo_";
+    d_eval << ")) " << preApp.str() << "      ($smt_to_eo_";
     if (d_kindToEoPrefix.find(kret) != d_kindToEoPrefix.end())
     {
       d_eval << d_kindToEoPrefix[kret];
@@ -245,24 +245,32 @@ void ModelSmt::finalize()
       txt.replace(pos, tag.length(), replacement);
     }
   };
-
-  // now, go back and compile *.eo for the proof rules
   std::stringstream ssie;
-  ssie << s_smodel_path << "plugins/model_smt/model_smt.eo";
+  ssie << s_smodel_path << "plugins/model_smt/model_eo.eo";
   std::ifstream ine(ssie.str());
   std::ostringstream sse;
   sse << ine.rdbuf();
   std::string finalEo = sse.str();
+  replace(finalEo, "$EO_IS_TYPE_CASES$", d_typeEnum.str());
+  replace(finalEo, "$EO_TYPE_ENUM_CASES$", d_isValue.str());
+  replace(finalEo, "$EO_CONST_PREDICATE_CASES$", d_constPred.str());
+  replace(finalEo, "$EO_EVAL_CASES$", d_customEval.str());
 
-  replace(finalEo, "$SMT_EVAL_CASES$", d_eval.str());
-  replace(finalEo, "$SMT_TYPE_ENUM_CASES$", d_typeEnum.str());
-  replace(finalEo, "$SMT_IS_VALUE_CASES$", d_isValue.str());
+  // now, go back and compile *.eo for the proof rules
+  std::stringstream ssis;
+  ssis << s_smodel_path << "plugins/model_smt/model_smt.eo";
+  std::ifstream ins(ssis.str());
+  std::ostringstream sss;
+  sss << ins.rdbuf();
+  std::string finalSmt = sss.str();
+  replace(finalSmt, "$SMT_EVAL_CASES$", d_eval.str());
 
   std::stringstream ssoe;
   ssoe << s_smodel_path << "plugins/model_smt/model_smt_gen.eo";
-  std::cout << "Write smt-model    " << ssoe.str() << std::endl;
+  //std::cout << "Write smt-model    " << finalSmt.str() << std::endl;
   std::ofstream oute(ssoe.str());
-  oute << finalEo;
+  oute << finalEo; // the final user defined signature, as a preamble
+  oute << finalSmt;
 }
 
 }  // namespace ethos

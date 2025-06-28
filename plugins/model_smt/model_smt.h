@@ -50,9 +50,12 @@ class ModelSmt : public Plugin
   std::map<Kind, Expr> d_kindToType;
   std::map<Kind, std::string> d_kindToEoPrefix;
   std::map<std::string, std::string> d_overloadRevert;
-  std::stringstream d_eval;
-  std::stringstream d_typeEnum;
+  std::stringstream d_customEval;
   std::stringstream d_isValue;
+  std::stringstream d_typeEnum;
+  std::stringstream d_constPred;
+  // SMT-LIB standard evaluation
+  std::stringstream d_eval;
   // SMT-LIB symbols
   std::map<std::string, std::pair<std::vector<Kind>, Kind>> d_smtLibSyms;
 };
