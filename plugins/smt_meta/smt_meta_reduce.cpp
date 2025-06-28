@@ -82,7 +82,7 @@ bool SmtMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
   Kind k = c.getKind();
   if (k == Kind::CONST)
   {
-    if (isEoToSmt(c) || isSmtToEo(c))
+    if (isInternalSymbol(c))
     {
       os << c;
     }
@@ -597,7 +597,7 @@ void SmtMetaReduce::finalizeDeclarations()
   {
     // ignore deep embeddings of smt terms
     // all symbols beginning with @ are not part of term definition
-    if (isSmtApply(e) != 0 || isSmtToEo(e) || isEoToSmt(e) || isSmtTermType(e))
+    if (isInternalSymbol(e))
     {
       continue;
     }
@@ -667,6 +667,7 @@ void SmtMetaReduce::finalize()
   std::string finalSm = ss.str();
 
   replace(finalSm, "$SM_TERM_DECL$", d_termDecl.str());
+  replace(finalSm, "$SM_EO_TERM_DECL$", d_eoTermDecl.str());
   replace(finalSm, "$SM_DEFS$", d_defs.str());
   replace(finalSm, "$SMT_VC$", d_smtVc.str());
 
@@ -865,6 +866,18 @@ bool SmtMetaReduce::isInternalSymbol(const Expr& t)
     return true;
   }
   if (sname.compare(0, 11, "$smt_to_eo_") == 0)
+  {
+    return true;
+  }
+  if (sname.compare(0, 11, "$smt_apply_") == 0)
+  {
+    return true;
+  }
+  //if (sname.compare(0,8, "$eo_List")==0)
+  //{
+  //  return true;
+  //}
+  if (sname=="$smt_Term")
   {
     return true;
   }

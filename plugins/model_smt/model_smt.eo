@@ -99,12 +99,12 @@
 ;;; Builtin parametric types
 
 ; Maps, which model values for functions.
-(declare-parameterized-const $smt_Map ((T Type) (U Type)) Type)
-(declare-parameterized-const $smt_Map_nil
-  ((T Type) (U Type) (default U)) ($smt_Map T U))
-(declare-parameterized-const $smt_Map_cons
-  ((T Type) (U Type) (index T) (element U) (tail ($smt_Map T U)))
-  ($smt_Map T U))
+(declare-parameterized-const @Map ((T Type) (U Type)) Type)
+(declare-parameterized-const @Map_nil
+  ((T Type) (U Type) (default U)) (@Map T U))
+(declare-parameterized-const @Map_cons
+  ((T Type) (U Type) (index T) (element U) (tail (@Map T U)))
+  (@Map T U))
 
 ; Bit-vectors
 (declare-const $smt_BitVec (-> $eo_Numeral Type))
@@ -115,12 +115,10 @@
 ; This must be a constructor in the final sm.Term.
 (declare-parameterized-const $smt_unknown_type_enum ((T Type) (i $eo_Numeral)) T)
 
-; function types
-; TODO: pair of lists denotes a value
-
 ; note: The methods in this section are only included (based on trim-defs) if
 ; the verification condition is reasoning about quantified formuls.
 
+; Use "@" to indicate that this is not an SMT-LIB term.
 (declare-const @smt_RatPair Type)
 (declare-const @smt_ratPair (-> $eo_Numeral $eo_Numeral @smt_RatPair))
 
@@ -204,12 +202,12 @@
 
 ; functions and array values.
 
-(program $smt_map_is_value ((T Type) (U Type) (t T) (u U) (tail ($smt_Map T U)))
-  :signature (($smt_Map T U)) Bool
+(program $smt_map_is_value ((T Type) (U Type) (t T) (u U) (tail (@Map T U)))
+  :signature ((@Map T U)) Bool
   (
   ; TODO
-  (($smt_map_is_value ($smt_Map_nil T U u)) ($smt_is_value U u))
-  ;(($smt_map_is_value ($smt_Map_cons T U t u tail)) ($smt_is_value u))
+  (($smt_map_is_value (@Map_nil T U u)) ($smt_is_value U u))
+  ;(($smt_map_is_value (@Map_cons T U t u tail)) ($smt_is_value u))
   )
 )
 
@@ -253,7 +251,7 @@
   (($smt_is_value $eo_Rational t)   ($smt_is_q t))
   (($smt_is_value $eo_String t)     ($smt_is_str t))
   (($smt_is_value $eo_Binary t)     ($smt_is_bin t))
-  (($smt_is_value ($smt_Map T U) t) ($smt_map_is_value t))
+  (($smt_is_value (@Map T U) t) ($smt_map_is_value t))
   ; by default, a value is a term that appears in the type enumeration
   (($smt_is_value T t)            (eo::ite ($smt_is_dt T)
                                     ($smt_dt_is_value t)
@@ -438,4 +436,3 @@ $SMT_EVAL_CASES$
   (($eo_model_sat F) ($smt_model_eval F))
   )
 )
-

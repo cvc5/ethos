@@ -119,6 +119,7 @@ class SmtMetaReduce : public Plugin
   /** Number of current scopes. Bindings at scope>0 are not remembered */
   size_t d_nscopes;
   std::stringstream d_termDecl;
+  std::stringstream d_eoTermDecl;
   std::stringstream d_defs;
   std::stringstream d_rules;
   std::stringstream d_smtVc;
