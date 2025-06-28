@@ -86,6 +86,10 @@ bool SmtMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
     {
       os << c;
     }
+    else if (isEunoiaSymbol(c))
+    {
+      os << "(sm.EoTerm eo." << c << ")";
+    }
     else
     {
       os << "sm." << c;
@@ -601,10 +605,12 @@ void SmtMetaReduce::finalizeDeclarations()
     {
       continue;
     }
-    d_termDecl << "  ; declare " << e << std::endl;
+    bool isEunoia = isEunoiaSymbol(e);
+    std::stringstream* out = isEunoia ? &d_eoTermDecl : &d_termDecl;
+    (*out) << "  ; declare " << e << std::endl;
     Expr c = e;
     Expr ct = d_tc.getType(c);
-    // d_termDecl << "  ; type is " << ct << std::endl;
+    // (*out) << "  ; type is " << ct << std::endl;
     Attr attr = Attr::NONE;
     Expr attrCons;
     it = d_attrDecl.find(e);
@@ -613,11 +619,11 @@ void SmtMetaReduce::finalizeDeclarations()
       attr = it->second.first;
       attrCons = it->second.second;
     }
-    // d_termDecl << "  ; attr is " << attr << std::endl;
-    d_termDecl << "  (";
+    // (*out) << "  ; attr is " << attr << std::endl;
+    (*out) << "  (";
     std::stringstream cname;
-    printEmbAtomicTerm(c, cname);
-    d_termDecl << cname.str();
+    cname << (isEunoia ? "eo." : "sm.") << c;
+    (*out) << cname.str();
     size_t nopqArgs = 0;
     if (attr == Attr::OPAQUE)
     {
@@ -631,10 +637,10 @@ void SmtMetaReduce::finalizeDeclarations()
     }
     for (size_t i = 0; i < nopqArgs; i++)
     {
-      d_termDecl << " (" << cname.str();
-      d_termDecl << ".arg" << (i + 1) << " sm.Term)";
+      (*out) << " (" << cname.str();
+      (*out) << ".arg" << (i + 1) << " sm.Term)";
     }
-    d_termDecl << ")" << std::endl;
+    (*out) << ")" << std::endl;
     // is it an SMT-LIB symbol????
     std::stringstream ss;
     ss << e;
@@ -857,10 +863,6 @@ bool SmtMetaReduce::isInternalSymbol(const Expr& t)
   std::stringstream ss;
   ss << t;
   std::string sname = ss.str();
-  if (sname.compare(0, 1, "@") == 0)
-  {
-    return true;
-  }
   if (sname.compare(0, 13, "$smt_from_eo_") == 0)
   {
     return true;
@@ -873,11 +875,22 @@ bool SmtMetaReduce::isInternalSymbol(const Expr& t)
   {
     return true;
   }
-  //if (sname.compare(0,8, "$eo_List")==0)
-  //{
-  //  return true;
-  //}
   if (sname=="$smt_Term")
+  {
+    return true;
+  }
+  return false;
+}
+bool SmtMetaReduce::isEunoiaSymbol(const Expr& t)
+{
+  std::stringstream ss;
+  ss << t;
+  std::string sname = ss.str();
+  if (sname.compare(0, 1, "@") == 0)
+  {
+    return true;
+  }
+  if (sname.compare(0,8, "$eo_List")==0)
   {
     return true;
   }

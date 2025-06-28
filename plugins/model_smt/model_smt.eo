@@ -416,7 +416,7 @@ $SMT_EVAL_CASES$
   ; TODO: val can be assumed such that $smt_is_value is true.
   (($smt_model_eval ($smt_Const k i T))   (eo::define ((val ($smt_model_lookup k i T)))
                                           (eo::define ((mpred ($smt_model_eval ($smt_const_predicate k i T))))
-                                          ; note that mpred can never be stuck and should be a Bool at this point.
+                                            ; note that mpred can never be stuck and should be a Bool at this point.
                                             (eo::ite mpred val ($smt_Const k i T)))))
   ; generic apply and base case.
   ; these do not insist that the term is a value.
@@ -436,3 +436,5 @@ $SMT_EVAL_CASES$
   (($eo_model_sat F) ($smt_model_eval F))
   )
 )
+
+; TODO: many of the remaining Eunoia builtins can be modelled here
