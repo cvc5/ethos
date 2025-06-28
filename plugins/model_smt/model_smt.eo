@@ -93,6 +93,14 @@
 ;;; Modelling free constants
 
 ; declare: $smt_Const
+; A free constant. Constants are identified by:
+; (1) Their kind (numeral k),
+; (2) Their identifier (numeral i),
+; (3) Their type.
+; The kind 0 is reserved for standard SMT-LIB symbols introduced
+; by the user by declare-const. The other kinds of free symbols
+; can be custom defined based on the Eunoia signature (see method
+; $eo_const_predicate in model_eo.eo).
 (declare-parameterized-const $smt_Const ((k $eo_Numeral) (id $eo_Numeral) (T Type)) T)
 
 ; fwd-decl: $smt_model_lookup
