@@ -33,7 +33,7 @@
 (declare-const $smt_Term Type)
 
 ; A placeholder for a failed evaluation
-(declare-const $smt_fail $smt_Term)
+(declare-const eo.Stuck $smt_Term)
 
 ; Apply the SMT operator named "op" to x1, x2, and so on.
 ; Assumes arity of SMT-LIB operators are at most 5.
@@ -100,7 +100,8 @@
 
 ; Defining parametric bitvector operators
 
-(program $sm_Binary () :signature ($smt_Numeral $smt_Numeral) $smt_Numeral)
+; This operator computes the Eunoia representation of an SMT-LIB binary.
+(program $sm_Binary () :signature ($smt_Numeral $smt_Numeral) $smt_Binary)
 
 (program $sm_Binary_and ()
   :signature ($smt_Numeral $smt_Numeral $smt_Numeral) $smt_Numeral)
@@ -197,7 +198,7 @@
   ($smt_apply_3 "ite" ($smt_is_bin x1)
     (eo::define ((w ($smt_bin_width x1)))
       ($sm_Binary ($sm_Binary_not w ($smt_bin_val x1)) w))
-    $smt_fail)))
+    eo.Stuck)))
 
 ; axiom: $eo_and
 (define $eo_and ((T Type :implicit) (x1 T) (x2 T))
@@ -206,7 +207,7 @@
   ($smt_apply_3 "ite" ($smt_eo_is_bin_same_width x1 x2)
     (eo::define ((w ($smt_bin_width x1)))
       ($sm_Binary ($sm_Binary_and w ($smt_bin_val x1) ($smt_bin_val x2)) w))
-    $smt_fail)))
+    eo.Stuck)))
 
 ; axiom: $eo_or
 (define $eo_or ((T Type :implicit) (x1 T) (x2 T))
@@ -215,7 +216,7 @@
   ($smt_apply_3 "ite" ($smt_eo_is_bin_same_width x1 x2)
     (eo::define ((w ($smt_bin_width x1)))
       ($sm_Binary ($sm_Binary_or w ($smt_bin_val x1) ($smt_bin_val x2)) w))
-    $smt_fail)))
+    eo.Stuck)))
 
 ; axiom: $eo_xor
 (define $eo_or ((T Type :implicit) (x1 T) (x2 T))
@@ -224,7 +225,7 @@
   ($smt_apply_3 "ite" ($smt_eo_is_bin_same_width x1 x2)
     (eo::define ((w ($smt_bin_width x1)))
       ($sm_Binary ($sm_Binary_xor w ($smt_bin_val x1) ($smt_bin_val x2)) w))
-    $smt_fail)))
+    eo.Stuck)))
 
 ;;; Arithmetic operators
 

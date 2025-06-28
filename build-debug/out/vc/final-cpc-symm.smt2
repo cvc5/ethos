@@ -35,8 +35,6 @@
   (sm.$smt_unknown_type)
   ; declare $smt_BitVec
   (sm.$smt_BitVec (sm.$smt_BitVec.arg1 sm.Term))
-  ; declare $smt_fail
-  (sm.$smt_fail)
   ; declare not
   (sm.not)
   ; declare and
@@ -92,42 +90,44 @@
 (define-fun smt.to_eo ((x sm.Term)) eo.Term (eo.SmtTerm x))
 
 ;;; Literal conversions
+; All these methods should only be used for sm.Term
 
 ; smt-define: $smt_to_eo_bool
-(define-fun $smt_to_eo_bool ((x Bool)) sm.Term
-  (ite x sm.True sm.False))
+(define-fun $smt_to_eo_bool ((x Bool)) eo.Term
+  (smt.to_eo (ite x sm.True sm.False)))
   
 ; smt-define: $smt_from_eo_bool
-(define-fun $smt_from_eo_bool ((x sm.Term)) Bool
-  (= x sm.True))
+(define-fun $smt_from_eo_bool ((x eo.Term)) Bool
+  (= (eo.to_smt x) sm.True))
 
 ; smt-define: $sm_is_Boolean
-(define-fun $sm_is_Boolean ((x sm.Term)) Bool
-  (or (= x sm.True) (= x sm.False)))
-  
+(define-fun $sm_is_Boolean ((x eo.Term)) Bool
+  ; key that this uses smt.to_eo, not eo.to_smt
+  (or (= x (smt.to_eo sm.True)) (= x (smt.to_eo sm.False))))
+
 ; smt-define: $smt_to_eo_z
-(define-fun $smt_to_eo_z ((x Int)) sm.Term
-  (sm.Numeral x))
+(define-fun $smt_to_eo_z ((x Int)) eo.Term
+  (smt.to_eo (sm.Numeral x)))
   
 ; smt-define: $smt_from_eo_z
-(define-fun $smt_from_eo_z ((x sm.Term)) Int
-  (sm.Numeral.val x))
+(define-fun $smt_from_eo_z ((x eo.Term)) Int
+  (sm.Numeral.val (eo.to_smt x)))
 
 ; smt-define: $smt_to_eo_q
-(define-fun $smt_to_eo_q ((x Real)) sm.Term
-  (sm.Rational x))
+(define-fun $smt_to_eo_q ((x Real)) eo.Term
+  (smt.to_eo (sm.Rational x)))
   
 ; smt-define: $smt_from_eo_q
-(define-fun $smt_from_eo_q ((x sm.Term)) Real
-  (sm.Rational.val x))
+(define-fun $smt_from_eo_q ((x eo.Term)) Real
+  (sm.Rational.val (eo.to_smt x)))
 
 ; smt-define: $smt_to_eo_str
-(define-fun $smt_to_eo_str ((x String)) sm.Term
-  (sm.String x))
+(define-fun $smt_to_eo_str ((x String)) eo.Term
+  (smt.to_eo (sm.String x)))
   
 ; smt-define: $smt_from_eo_str
-(define-fun $smt_from_eo_str ((x sm.Term)) String
-  (sm.String.val x))
+(define-fun $smt_from_eo_str ((x eo.Term)) String
+  (sm.String.val (eo.to_smt x)))
 
 ;;; Utilities
 
@@ -187,7 +187,7 @@
 
 ; axiom: $eo_is_ok
 (define-fun $eo_is_ok ((x1 eo.Term)) eo.Term
-  (smt.to_eo ($smt_to_eo_bool (not (= x1 eo.Stuck)))))
+  ($smt_to_eo_bool (not (= x1 eo.Stuck))))
 
 ; axiom: $eo_ite
 (define-fun $eo_ite ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
@@ -233,7 +233,7 @@
 (declare-fun $sm_Binary_concat (sm.Term sm.Term sm.Term sm.Term) sm.Term)
 
 ; define $eo_and
-(define-fun $eo_and ((x1 sm.Term) (x2 sm.Term)) sm.Term (ite (and ($sm_is_Boolean x1) ($sm_is_Boolean x2)) ($smt_to_eo_bool (and ($smt_from_eo_bool x1) ($smt_from_eo_bool x2))) (ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2))) ($sm_Binary ($sm_Binary_and (sm.Binary.width x1) (sm.Binary.val x1) (sm.Binary.val x2)) (sm.Binary.width x1)) sm.$smt_fail)))
+(define-fun $eo_and ((x1 sm.Term) (x2 sm.Term)) sm.Term (ite (and ($sm_is_Boolean x1) ($sm_is_Boolean x2)) ($smt_to_eo_bool (and ($smt_from_eo_bool x1) ($smt_from_eo_bool x2))) (ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2))) ($sm_Binary ($sm_Binary_and (sm.Binary.width x1) (sm.Binary.val x1) (sm.Binary.val x2)) (sm.Binary.width x1)) eo.Stuck)))
 
 ; define $eo_add
 (define-fun $eo_add ((x1 sm.Term) (x2 sm.Term)) sm.Term (ite (and ((_ is sm.Numeral) x1) ((_ is sm.Numeral) x2)) ($smt_to_eo_z (+ ($smt_from_eo_z x1) ($smt_from_eo_z x2))) (ite (and ((_ is sm.Rational) x1) ((_ is sm.Rational) x2)) ($smt_to_eo_q (+ ($smt_from_eo_q x1) ($smt_from_eo_q x2))) (ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2))) ($sm_Binary (+ (sm.Binary.val x1) (sm.Binary.val x2)) (sm.Binary.width x1)) ($eo_requires sm.True sm.False sm.True)))))

@@ -863,6 +863,7 @@ bool SmtMetaReduce::isInternalSymbol(const Expr& t)
   std::stringstream ss;
   ss << t;
   std::string sname = ss.str();
+  // these terms totally disappear
   if (sname.compare(0, 13, "$smt_from_eo_") == 0)
   {
     return true;
@@ -875,7 +876,7 @@ bool SmtMetaReduce::isInternalSymbol(const Expr& t)
   {
     return true;
   }
-  if (sname=="$smt_Term")
+  if (sname=="$smt_Term" || sname=="eo.Stuck")
   {
     return true;
   }
