@@ -57,6 +57,14 @@
 ; Convert smt2 term to a Eunoia binary.
 (declare-const $smt_to_eo_bin (-> $smt_Term $eo_Binary))
 
+; Testers that use lower level sm.Term datatype
+; These rely on "is sm.Numeral" referring to the SMT-LIB operator (_ is sm.Numeral)
+; in the final encoding.
+(define $smt_is_z ((T Type :implicit) (t T)) ($smt_to_eo_bool ($smt_apply_1 "is sm.Numeral" t)))
+(define $smt_is_q ((T Type :implicit) (t T)) ($smt_to_eo_bool ($smt_apply_1 "is sm.Rational" t)))
+(define $smt_is_str ((T Type :implicit) (t T)) ($smt_to_eo_bool ($smt_apply_1 "is sm.String" t)))
+(define $smt_is_bin ((T Type :implicit) (t T)) ($smt_to_eo_bool ($smt_apply_1 "is sm.Binary" t)))
+
 ;;; definitions of Valueness
 
 ; represents an unknown value
@@ -237,10 +245,10 @@ $SMT_TYPE_ENUM_CASES$
   ; if the literal type is not defined, this is false
   (($smt_is_value $eo_undef_type t) false)
   ; standard atomic types
-  (($smt_is_value $eo_Numeral t)      ($smt_to_eo_bool ($smt_apply_1 "is sm.Numeral" t)))
-  (($smt_is_value $eo_Rational t)     ($smt_to_eo_bool ($smt_apply_1 "is sm.Rational" t)))
-  (($smt_is_value $eo_String t)       ($smt_to_eo_bool ($smt_apply_1 "is sm.String" t)))
-  (($smt_is_value $eo_Binary t)       ($smt_to_eo_bool ($smt_apply_1 "is sm.Binary" t)))
+  (($smt_is_value $eo_Numeral t)      ($smt_is_z t))
+  (($smt_is_value $eo_Rational t)     ($smt_is_q t))
+  (($smt_is_value $eo_String t)       ($smt_is_str t))
+  (($smt_is_value $eo_Binary t)       ($smt_is_bin t))
   ; TODO: Arrays? Sets? Seq?
 $SMT_IS_VALUE_CASES$
   (($smt_is_value T t) false)
@@ -257,25 +265,25 @@ $SMT_IS_VALUE_CASES$
 
 (define $smt_eval_o_arith_unary
   ((W1 Type :implicit) (W2 Type :implicit) (op $eo_String) (x1 W1))
-  (eo::ite ($eo_is_z x1)
+  (eo::ite ($smt_is_z x1)
     ($smt_to_eo_z ($smt_apply_1 op ($eo_to_smt_z x1)))
-  (eo::ite ($eo_is_q x1)
+  (eo::ite ($smt_is_q x1)
     ($smt_to_eo_q ($smt_apply_1 op ($eo_to_smt_q x1)))
     $eo_fail)))
 
 (define $smt_eval_o_arith
   ((W1 Type :implicit) (W2 Type :implicit) (op $eo_String) (x1 W1) (x2 W2))
-  (eo::ite (eo::and ($eo_is_z x1) ($eo_is_z x2))
+  (eo::ite (eo::and ($smt_is_z x1) ($smt_is_z x2))
     ($smt_to_eo_z ($smt_apply_2 op ($eo_to_smt_z x1) ($eo_to_smt_z x2)))
-  (eo::ite (eo::and ($eo_is_q x1) ($eo_is_q x2))
+  (eo::ite (eo::and ($smt_is_q x1) ($smt_is_q x2))
     ($smt_to_eo_q ($smt_apply_2 op ($eo_to_smt_q x1) ($eo_to_smt_q x2)))
     $eo_fail)))
 
 (define $smt_eval_o_arith_pred
   ((W1 Type :implicit) (W2 Type :implicit) (op $eo_String) (x1 W1) (x2 W2))
-  (eo::ite (eo::and ($eo_is_z x1) ($eo_is_z x2))
+  (eo::ite (eo::and ($smt_is_z x1) ($smt_is_z x2))
     ($smt_to_eo_bool ($smt_apply_2 op ($eo_to_smt_z x1) ($eo_to_smt_z x2)))
-  (eo::ite (eo::and ($eo_is_q x1) ($eo_is_q x2))
+  (eo::ite (eo::and ($smt_is_q x1) ($smt_is_q x2))
     ($smt_to_eo_bool ($smt_apply_2 op ($eo_to_smt_q x1) ($eo_to_smt_q x2)))
     $eo_fail)))
 
