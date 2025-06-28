@@ -408,8 +408,12 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
             }
             else if (!inSmtTerm && !isEunoiaSymbol(recTerm[0]))
             {
-              os << "(smt.to_eo ";
-              inSmtTerm = true;
+              os << "sm.Apply ";
+              // our children are now each SMT terms.
+              std::get<1>(visit.back())++;
+              visit.emplace_back(recTerm[1], 0, true);
+              visit.emplace_back(recTerm[0], 0, true);
+              continue;
             }
             else
             {
@@ -418,7 +422,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
                 Assert(recTerm.getNumChildren() == 2);
                 // could use macro to ensure "Stuck" propagates
                 // NOTE: if we have the invariant that we pattern matched, we don't need to check
-                os << "sm.Apply ";
+                os << "$eo_Apply ";
               }
             }
           }
@@ -456,10 +460,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       else if (childIndex >= recTerm.getNumChildren())
       {
         os << ")";
-        if (!inSmtTerm && !isEunoiaSymbol(recTerm[0]))
-        {
-          os << ")";
-        }
         visit.pop_back();
       }
       else
