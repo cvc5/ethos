@@ -450,6 +450,73 @@ $SMT_EVAL_CASES$
 
 ; TODO: many of the remaining Eunoia builtins can be modelled here
 
+
+;;; Boolean operators
+
+; Apply SMT-LIB operator Boolean connective "op" to Eunoia terms x1 and x2.
+(define $sm_eo_apply_bool_op_2 ((op $eo_String) (x1 Bool) (x2 Bool))
+  ($smt_to_eo_bool ($smt_apply_2 op
+    ($smt_from_eo_bool x1)
+    ($smt_from_eo_bool x2))))
+
+; An SMT-LIB formula corresponding to Eunoia terms being the binaries of the same width.
+(define $smt_eo_is_bin_same_width ((x1 $eo_Binary) (x2 $eo_Binary))
+  ($smt_to_eo_bool ($smt_apply_3 "and"
+    ($smt_apply_1 "is sm.Binary" x1)
+    ($smt_apply_1 "is sm.Binary" x2)
+    ($smt_apply_2 "=" ($smt_apply_1 "sm.Binary.width" x1) ($smt_apply_1 "sm.Binary.width" x2)))))
+
+; Apply SMT-meta operator "op" of arity 1, e.g. "$sm_Binary_not".
+(define $sm_eo_apply_bin_op_1 ((op $eo_String) (x1 $eo_Binary))
+  (eo::define ((w ($smt_apply_1 "sm.Binary.width" x1)))
+  ($smt_apply_2 "$sm_Binary"
+    ($smt_apply_2 op
+      w
+      ($smt_apply_1 "sm.Binary.val" x1))
+    w)))
+
+; Apply SMT-meta operator "op" of arity 2, e.g. "$sm_Binary_and".
+(define $sm_eo_apply_bin_op_2 ((op $eo_String) (x1 $eo_Binary) (x2 $eo_Binary))
+  (eo::define ((w ($smt_apply_1 "sm.Binary.width" x1)))
+  ($smt_apply_2 "$sm_Binary"
+    ($smt_apply_3 op
+      w
+      ($smt_apply_1 "sm.Binary.val" x1)
+      ($smt_apply_1 "sm.Binary.val" x2))
+    w)))
+
+; axiom: $eo_not
+(define $eo_not ((T Type :implicit) (x1 T))
+  (eo::ite ($smt_is_bool x1)
+    ($smt_to_eo_bool ($smt_apply_1 "not" ($smt_from_eo_bool x1)))
+  (eo::ite ($smt_apply_1 "is sm.Binary" x1)
+    ($sm_eo_apply_bin_op_1 "$sm_Binary_not" x1)
+    $eo_fail)))
+
+; axiom: $eo_and
+(define $eo_and ((T Type :implicit) (x1 T) (x2 T))
+  (eo::ite ($smt_apply_2 "and" ($smt_is_bool x1) ($smt_is_bool x2))
+    ($sm_eo_apply_bool_op_2 "and" x1 x2)
+  (eo::ite ($smt_eo_is_bin_same_width x1 x2)
+    ($sm_eo_apply_bin_op_2 "$sm_Binary_and" x1 x2)
+    $eo_fail)))
+
+; axiom: $eo_or
+(define $eo_or ((T Type :implicit) (x1 T) (x2 T))
+  (eo::ite ($smt_apply_2 "and" ($smt_is_bool x1) ($smt_is_bool x2))
+    ($sm_eo_apply_bool_op_2 "or" x1 x2)
+  (eo::ite ($smt_eo_is_bin_same_width x1 x2)
+    ($sm_eo_apply_bin_op_2 "$sm_Binary_or" x1 x2)
+    $eo_fail)))
+
+; axiom: $eo_xor
+(define $eo_or ((T Type :implicit) (x1 T) (x2 T))
+  (eo::ite ($smt_apply_2 "and" ($smt_is_bool x1) ($smt_is_bool x2))
+    ($sm_eo_apply_bool_op_2 "xor" x1 x2)
+  (eo::ite ($smt_eo_is_bin_same_width x1 x2)
+    ($sm_eo_apply_bin_op_2 "$sm_Binary_xor" x1 x2)
+    $eo_fail)))
+
 ; The SMT typeof function, which incorporates builtin SMT terms
 
 
