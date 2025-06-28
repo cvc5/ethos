@@ -17,7 +17,7 @@
 
 namespace ethos {
 
-//std::string s_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
+// std::string s_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
 std::string s_path = "/home/andrew/ethos/";
 
 SmtMetaReduce::SmtMetaReduce(State& s) : d_state(s), d_tc(s.getTypeChecker())
@@ -191,8 +191,8 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       // SMT term
       if (!isEunoiaSymbol(cur.first[0]))
       {
-        os << (nconj > 0 ? " " : "") << "((_ is eo.SmtTerm) "
-          << currTerm << ")";
+        os << (nconj > 0 ? " " : "") << "((_ is eo.SmtTerm) " << currTerm
+           << ")";
         std::stringstream sssn;
         sssn << "(eo.to_smt " << currTerm << ")";
         currTerm = sssn.str();
@@ -377,13 +377,14 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
             else if (isSmtApplyTerm(cur.first, smtAppName, smtArgs))
             {
               // testers introduced in model_smt layer handled specially
-              if (smtAppName.compare(0,3, "is ")==0)
+              if (smtAppName.compare(0, 3, "is ") == 0)
               {
                 os << "(_ is " << smtAppName.substr(3) << ") ";
               }
               else
               {
-                // std::cout << "...returns true!!!! name is \"" << smtAppName <<
+                // std::cout << "...returns true!!!! name is \"" << smtAppName
+                // <<
                 // "\"" << std::endl;
                 os << smtAppName << " ";
               }
@@ -502,7 +503,8 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   std::stringstream ssp;
   ssp << v;
   std::string pname = ssp.str();
-  if (pname=="eo.to_smt" || pname=="$sm_Numeral" || pname=="$sm_Rational" || pname=="$sm_String" || pname=="$sm_Binary")
+  if (pname == "eo.to_smt" || pname == "$sm_Numeral" || pname == "$sm_Rational"
+      || pname == "$sm_String" || pname == "$sm_Binary")
   {
     return;
   }
@@ -662,7 +664,8 @@ void SmtMetaReduce::finalizeDeclarations()
     for (size_t i = 0; i < nopqArgs; i++)
     {
       (*out) << " (" << cname.str();
-      (*out) << ".arg" << (i + 1) << " " << (isEunoia ? "eo." : "sm.") << "Term)";
+      (*out) << ".arg" << (i + 1) << " " << (isEunoia ? "eo." : "sm.")
+             << "Term)";
     }
     (*out) << ")" << std::endl;
     // is it an SMT-LIB symbol????
@@ -900,7 +903,7 @@ bool SmtMetaReduce::isInternalSymbol(const Expr& t)
   {
     return true;
   }
-  if (sname=="$smt_Term" || sname=="eo.Stuck")
+  if (sname == "$smt_Term" || sname == "eo.Stuck")
   {
     return true;
   }
@@ -915,11 +918,11 @@ bool SmtMetaReduce::isEunoiaSymbol(const Expr& t)
   {
     return true;
   }
-  if (sname.compare(0,8, "$eo_List")==0)
+  if (sname.compare(0, 8, "$eo_List") == 0)
   {
     return true;
   }
-  if (sname=="$eo_Var")
+  if (sname == "$eo_Var")
   {
     return true;
   }

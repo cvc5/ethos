@@ -22,8 +22,8 @@ class State;
 class TypeChecker;
 
 /**
- * The purpose of this plugin is to do things that are common to multiple plugins.
- * For example, tracking the dependencies for literal types.
+ * The purpose of this plugin is to do things that are common to multiple
+ * plugins. For example, tracking the dependencies for literal types.
  */
 class StdPlugin : public Plugin
 {

@@ -17,15 +17,11 @@
 
 namespace ethos {
 
-StdPlugin::StdPlugin(State& s) : d_state(s), d_tc(s.getTypeChecker())
-{
-}
+StdPlugin::StdPlugin(State& s) : d_state(s), d_tc(s.getTypeChecker()) {}
 
 StdPlugin::~StdPlugin() {}
 
-void StdPlugin::finalizeDeclaration(const Expr& t, std::ostream& os)
-{
-}
+void StdPlugin::finalizeDeclaration(const Expr& t, std::ostream& os) {}
 void StdPlugin::setLiteralTypeRule(Kind k, const Expr& t)
 {
   // NOTE: literal definitions cannot use any builtin operators
@@ -70,7 +66,7 @@ void StdPlugin::setLiteralTypeRule(Kind k, const Expr& t)
       std::vector<Expr> syms = getSubtermsKind(Kind::CONST, t);
       for (const Expr& s : syms)
       {
-        if (d_ltDeclProcessed.find(s)!=d_ltDeclProcessed.end())
+        if (d_ltDeclProcessed.find(s) != d_ltDeclProcessed.end())
         {
           continue;
         }

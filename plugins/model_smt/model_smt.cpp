@@ -17,7 +17,7 @@
 
 namespace ethos {
 
-//std::string s_smodel_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
+// std::string s_smodel_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
 std::string s_smodel_path = "/home/andrew/ethos/";
 
 ModelSmt::ModelSmt(State& s) : StdPlugin(s)
@@ -69,7 +69,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addSmtLibSym("is_int", {Kind::RATIONAL}, Kind::BOOLEAN);
   // NOTE: cannot handle indexed operators currently, as their value
   // cannot be dynamic in the encoding.
-  //addSmtLibSym("divisible", {Kind::NUMERAL, Kind::NUMERAL}, Kind::BOOLEAN);
+  // addSmtLibSym("divisible", {Kind::NUMERAL, Kind::NUMERAL}, Kind::BOOLEAN);
   addSmtLibSym("/", {Kind::RATIONAL, Kind::RATIONAL}, Kind::RATIONAL);
   addSmtLibSym("div", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
   addSmtLibSym("mod", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
@@ -152,7 +152,8 @@ void ModelSmt::printSmtTerm(const std::string& name,
   std::stringstream preAppEnd;
   for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
   {
-    preApp << "    (eo::define ((e" << i << " ($smt_model_eval x" << i << ")))" << std::endl;
+    preApp << "    (eo::define ((e" << i << " ($smt_model_eval x" << i << ")))"
+           << std::endl;
     preAppEnd << ")";
   }
   if (name == "=")
@@ -161,7 +162,8 @@ void ModelSmt::printSmtTerm(const std::string& name,
     // We rely on SMT-LIB equality, guarding by an $smt_is_value predicate.
     d_eval << " x1 x2))" << std::endl;
     d_eval << preApp.str();
-    d_eval << "      ($smt_eval_= ($smt_typeof x1) e1 e2 (= x1 x2))" << preAppEnd.str() << ")";
+    d_eval << "      ($smt_eval_= ($smt_typeof x1) e1 e2 (= x1 x2))"
+           << preAppEnd.str() << ")";
     d_eval << std::endl;
   }
   else if (name == "forall" || name == "exists")
@@ -181,7 +183,8 @@ void ModelSmt::printSmtTerm(const std::string& name,
       {
         d_eval << "_pred";
       }
-      d_eval << " \"" << name << "\" x1 x2 (" << name << " x1 x2)))" << std::endl;
+      d_eval << " \"" << name << "\" x1 x2 (" << name << " x1 x2)))"
+             << std::endl;
     }
     else if (args.size() == 1)
     {
@@ -275,7 +278,7 @@ void ModelSmt::finalize()
 
   std::stringstream ssoe;
   ssoe << s_smodel_path << "plugins/model_smt/model_smt_gen.eo";
-  //std::cout << "Write smt-model    " << finalSmt.str() << std::endl;
+  // std::cout << "Write smt-model    " << finalSmt.str() << std::endl;
   std::ofstream oute(ssoe.str());
   // the final user defined signature, as a preamble
   oute << finalEo;

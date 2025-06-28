@@ -17,7 +17,7 @@
 
 namespace ethos {
 
-//std::string s_ds_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
+// std::string s_ds_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
 std::string s_ds_path = "/home/andrew/ethos/";
 
 Desugar::Desugar(State& s) : StdPlugin(s)
@@ -597,7 +597,8 @@ void Desugar::finalizeRule(const Expr& e)
       d_eoVc << "(program $eovc_" << e << " (($eo_x Bool))" << std::endl;
       d_eoVc << "  :signature (Bool) Bool" << std::endl;
       d_eoVc << "  (" << std::endl;
-      d_eoVc << "  (($eovc_" << e << " $eo_x) (eo::requires ($eo_model_sat ($eor_" << e;
+      d_eoVc << "  (($eovc_" << e
+             << " $eo_x) (eo::requires ($eo_model_sat ($eor_" << e;
       d_eoVc << " $eo_x)) false true))" << std::endl;
       d_eoVc << "  )" << std::endl;
       d_eoVc << ")" << std::endl;
@@ -1007,6 +1008,5 @@ Attr Desugar::getAttribute(const Expr& e)
   }
   return Attr::NONE;
 }
-
 
 }  // namespace ethos
