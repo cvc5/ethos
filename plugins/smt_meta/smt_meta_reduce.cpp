@@ -212,6 +212,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
         visit.emplace_back(cur.first[i], ssNext.str());
       }
     }
+    /*
     else if (ck == Kind::ANNOT_PARAM)
     {
       visit.emplace_back(cur.first[0], cur.second);
@@ -220,6 +221,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       ssty << "($eo_typeof " << cur.second << ")";
       visit.emplace_back(cur.first[1], ssty.str());
     }
+    */
     else if (ck == Kind::PARAM)
     {
       it = ctx.d_ctx.find(cur.first);
@@ -595,7 +597,6 @@ void SmtMetaReduce::finalizeDeclarations()
   {
     // ignore deep embeddings of smt terms
     // all symbols beginning with @ are not part of term definition
-    std::string smtAppName;
     if (isSmtApply(e) != 0 || isSmtToEo(e) || isEoToSmt(e) || isSmtTermType(e))
     {
       continue;
@@ -841,9 +842,9 @@ bool SmtMetaReduce::isEoToSmt(const Expr& t)
     std::stringstream ss;
     ss << t;
     std::string sname = ss.str();
-    if (sname.compare(0, 11, "$smt_from_eo_") == 0)
+    if (sname.compare(0, 13, "$smt_from_eo_") == 0)
     {
-      Kind k = getKindForSuffix(sname.substr(11));
+      Kind k = getKindForSuffix(sname.substr(13));
       return k != Kind::NONE;
     }
   }
@@ -855,7 +856,19 @@ bool SmtMetaReduce::isInternalSymbol(const Expr& t)
   std::stringstream ss;
   ss << t;
   std::string sname = ss.str();
-  return sname.compare(0, 1, "@") == 0;
+  if (sname.compare(0, 1, "@") == 0)
+  {
+    return true;
+  }
+  if (sname.compare(0, 13, "$smt_from_eo_") == 0)
+  {
+    return true;
+  }
+  if (sname.compare(0, 11, "$smt_to_eo_") == 0)
+  {
+    return true;
+  }
+  return false;
 }
 
 }  // namespace ethos
