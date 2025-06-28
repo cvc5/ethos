@@ -16,7 +16,7 @@
 ;(declare-const $smt_Numeral Type)
 ;(declare-const $smt_Rational Type)
 ;(declare-const $smt_String Type)
-;(declare-const $eo_fail Type)
+;(declare-const eo.Stuck Type)
 ;;; TEMPORARY
 
 (declare-const $smt_unknown_type Type)
@@ -32,8 +32,9 @@
 ; An SMT-LIB term.
 (declare-const $smt_Term Type)
 
-; A placeholder for a failed evaluation
+; Placeholders
 (declare-const eo.Stuck $smt_Term)
+(program eo.to_smt ((T Type)) :signature (T) $smt_Term)
 
 ; Apply the SMT operator named "op" to x1, x2, and so on.
 ; Assumes arity of SMT-LIB operators are at most 5.
@@ -82,13 +83,14 @@
 ; in the final encoding.
 ; Boolean relies on the $sm_is_Boolean define-fun in the SMT meta signature.
 (define $smt_is_bool ((T Type :implicit) (t T)) ($smt_apply_1 "$sm_is_Boolean" t))
-(define $smt_is_z ((T Type :implicit) (t T)) ($smt_apply_1 "is sm.Numeral" t))
-(define $smt_is_q ((T Type :implicit) (t T)) ($smt_apply_1 "is sm.Rational" t))
-(define $smt_is_str ((T Type :implicit) (t T)) ($smt_apply_1 "is sm.String" t))
-(define $smt_is_bin ((T Type :implicit) (t T)) ($smt_apply_1 "is sm.Binary" t))
+; TODO: these need to guard that t is an eo.SmtTerm
+(define $smt_is_z ((T Type :implicit) (t T)) ($smt_apply_1 "is sm.Numeral" (eo.to_smt t)))
+(define $smt_is_q ((T Type :implicit) (t T)) ($smt_apply_1 "is sm.Rational" (eo.to_smt t)))
+(define $smt_is_str ((T Type :implicit) (t T)) ($smt_apply_1 "is sm.String" (eo.to_smt t)))
+(define $smt_is_bin ((T Type :implicit) (t T)) ($smt_apply_1 "is sm.Binary" (eo.to_smt t)))
 ; decomposing binaries
-(define $smt_bin_width ((T Type :implicit) (t T)) ($smt_apply_1 "sm.Binary.width" t))
-(define $smt_bin_val ((T Type :implicit) (t T)) ($smt_apply_1 "sm.Binary.val" t))
+(define $smt_bin_width ((T Type :implicit) (t T)) ($smt_apply_1 "sm.Binary.width" (eo.to_smt t)))
+(define $smt_bin_val ((T Type :implicit) (t T)) ($smt_apply_1 "sm.Binary.val" (eo.to_smt t)))
 ;
 (define $smt_eo_is_bool ((T Type :implicit) (t T)) ($smt_to_eo_bool ($smt_is_bool t)))
 (define $smt_eo_is_z ((T Type :implicit) (t T)) ($smt_to_eo_bool ($smt_is_z t)))
@@ -101,7 +103,15 @@
 ; Defining parametric bitvector operators
 
 ; This operator computes the Eunoia representation of an SMT-LIB binary.
-(program $sm_Binary () :signature ($smt_Numeral $smt_Numeral) $smt_Binary)
+; TODO: types are not right
+(program $sm_Numeral ((x $smt_Numeral)) :signature ($smt_Numeral) $smt_Numeral
+  ((($sm_Numeral x) x)))
+(program $sm_Rational ((x $smt_Rational)) :signature ($smt_Rational) $smt_Rational
+  ((($sm_Rational x) x)))
+(program $sm_String ((x $smt_String)) :signature ($smt_String) $smt_String
+  ((($sm_String x) x)))
+(program $sm_Binary ((x1 $smt_Numeral) (x2 $smt_Numeral)) :signature ($smt_Numeral $smt_Numeral) $smt_Binary
+  ((($sm_Binary x1 x2) x1)))
 
 (program $sm_Binary_and ()
   :signature ($smt_Numeral $smt_Numeral $smt_Numeral) $smt_Numeral)
@@ -131,7 +141,7 @@
   ($smt_apply_3 "and"
     ($smt_is_z x1)
     ($smt_is_z x2)
-    ($smt_apply_1 "not" ($smt_apply_2 "=" ($smt_from_eo_z x2) ($smt_from_eo_z 0)))))
+    ($smt_apply_1 "not" ($smt_apply_2 "=" ($smt_from_eo_z x2) ($smt_from_eo_z ($sm_Numeral 0))))))
 
 ; An SMT-LIB formula corresponding to Eunoia terms being a real division operation.
 ; Return the SMT-LIB Boolean.
@@ -139,7 +149,7 @@
   ($smt_apply_3 "and"
     ($smt_is_q x1)
     ($smt_is_q x2)
-    ($smt_apply_1 "not" ($smt_apply_2 "=" ($smt_from_eo_q x2) ($smt_from_eo_q 0/1)))))
+    ($smt_apply_1 "not" ($smt_apply_2 "=" ($smt_from_eo_q x2) ($smt_from_eo_q ($sm_Rational 0/1))))))
 
 ; An SMT-LIB formula corresponding to Eunoia terms being the binaries of the same width.
 ; Return the SMT-LIB Boolean.
@@ -236,7 +246,7 @@
   ; if that fails, try binary
   ($smt_apply_3 "ite" ($smt_eo_is_bin_same_width x1 x2)
     ($sm_Binary ($smt_apply_2 "+" ($smt_bin_val x1) ($smt_bin_val x2)) ($smt_bin_width x1))
-    $eo_fail)))
+    eo.Stuck)))
 
 ; axiom: $eo_mul
 (define $eo_mul ((T Type :implicit) (x1 T) (x2 T))
@@ -245,7 +255,7 @@
   ; if that fails, try binary
   ($smt_apply_3 "ite" ($smt_eo_is_bin_same_width x1 x2)
     ($sm_Binary ($smt_apply_2 "*" ($smt_bin_val x1) ($smt_bin_val x2)) ($smt_bin_width x1))
-    $eo_fail)))
+    eo.Stuck)))
 
 ; axiom: $eo_qdiv
 (define $eo_qdiv ((T Type :implicit) (x1 T) (x2 T))
@@ -253,7 +263,7 @@
     ($smt_to_eo_q ($smt_apply_2 "/" ($smt_apply_1 "to_real" ($smt_from_eo_z x1)) ($smt_apply_1 "to_real" ($smt_from_eo_z x2))))
   ($smt_apply_3 "ite" ($smt_eo_is_q_div_op x1 x2)
     ($sm_eo_apply_q_op_2 "/" x1 x2)
-    $eo_fail)))
+    eo.Stuck)))
 
 ; axiom: $eo_zdiv
 (define $eo_zdiv ((T Type :implicit) (x1 T) (x2 T))
@@ -261,7 +271,7 @@
     ($sm_eo_apply_z_op_2 "div" x1 x2)
   ($smt_apply_3 "ite" ($smt_eo_is_bin_same_width x1 x2)
     ($sm_Binary ($smt_apply_2 "div" ($smt_bin_val x1) ($smt_bin_val x2)) ($smt_bin_width x1))
-    $eo_fail)))
+    eo.Stuck)))
 
 ; axiom: $eo_zmod
 (define $eo_zmod ((T Type :implicit) (x1 T) (x2 T))
@@ -269,19 +279,19 @@
     ($sm_eo_apply_z_op_2 "mod" x1 x2)
   ($smt_apply_3 "ite" ($smt_eo_is_bin_same_width x1 x2)
     ($sm_Binary ($smt_apply_2 "mod" ($smt_bin_val x1) ($smt_bin_val x2)) ($smt_bin_width x1))
-    $eo_fail)))
+    eo.Stuck)))
 
 ; axiom: $eo_is_neg
 (define $eo_is_neg ((T Type :implicit) (x1 T))
   ($smt_apply_3 "ite" ($smt_is_z x1)
-    ($smt_to_eo_bool ($smt_apply_2 "<" ($smt_from_eo_z x1) 0))
+    ($smt_to_eo_bool ($smt_apply_2 "<" ($smt_from_eo_z x1) ($smt_from_eo_z ($sm_Numeral 0))))
   ($smt_apply_3 "ite" ($smt_is_q x1)
-    ($smt_to_eo_bool ($smt_apply_2 "<" ($smt_from_eo_q x1) 0.0))
-    $eo_fail)))
+    ($smt_to_eo_bool ($smt_apply_2 "<" ($smt_from_eo_q x1) ($smt_from_eo_q ($sm_Rational 0/1))))
+    eo.Stuck)))
 
 ; axiom: $eo_neg
 (define $eo_neg ((T Type :implicit) (x1 T))
-  ($smt_try_eval_o_arith_unary "-" x1 $eo_fail))
+  ($smt_try_eval_o_arith_unary "-" x1 eo.Stuck))
 
 ;;; String operators
 
@@ -291,7 +301,7 @@
     ($smt_to_eo_z ($smt_bin_width x1))
   ($smt_apply_3 "ite" ($smt_is_str x1)
     ($smt_to_eo_z ($smt_apply_1 "str.len" ($smt_from_eo_str x1)))
-    $eo_fail)))
+    eo.Stuck)))
 
 ; axiom: $eo_concat
 (define $eo_concat ((T Type :implicit) (x1 T) (x2 T))
@@ -303,7 +313,7 @@
       ($sm_Binary
         ($sm_Binary_concat w1 ($smt_bin_val x1) w2 ($smt_bin_val x2))
         ($smt_apply_2 "+" w1 w2))))
-    $eo_fail)))
+    eo.Stuck)))
 
 ; axiom: $eo_extract
 (define $eo_extract ((T Type :implicit) (x1 T) (x2 $smt_Numeral) (x3 $smt_Numeral))
@@ -314,14 +324,14 @@
       ($smt_to_eo_str ($smt_apply_3 "str.substr" ($smt_from_eo_str x1) n2 ($smt_apply_2 "+" ($smt_apply_2 "-" n3 n2) 1)))))
     ($smt_apply_3 "ite" ($smt_is_bin x1)
       ($sm_Binary_extract ($smt_bin_width x1) ($smt_bin_val x1) ($smt_bin_val x2) ($smt_bin_val x3))
-      $eo_fail))
-    $eo_fail))
+      eo.Stuck))
+    eo.Stuck))
 
 ; axiom: $eo_find
 (define $eo_find ((T Type :implicit) (x1 T) (x2 T))
   ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_str x1) ($smt_is_str x2))
-    ($smt_to_eo_z ($smt_apply_3 "str.indexof" ($smt_from_eo_str x1) ($smt_from_eo_str x2) 0))
-    $eo_fail))
+    ($smt_to_eo_z ($smt_apply_3 "str.indexof" ($smt_from_eo_str x1) ($smt_from_eo_str x2) ($smt_from_eo_z ($sm_Numeral 0))))
+    eo.Stuck))
 
 ;;; Conversion operators
 
@@ -335,7 +345,7 @@
     ($smt_to_eo_z ($smt_bin_val x1))
   ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_str x1) ($smt_apply_2 "=" ($smt_apply_1 "str.len" ($smt_from_eo_str x1)) ($smt_from_eo_z 1)))
     ($smt_to_eo_z ($smt_apply_1 "str.to_code" ($smt_from_eo_str x1)))
-    $eo_fail)))))
+    eo.Stuck)))))
 
 ; axiom: $eo_to_q
 (define $eo_to_q ((T Type :implicit) (x1 T))
@@ -343,7 +353,7 @@
     ($smt_to_eo_q ($smt_apply_1 "to_real" ($smt_from_eo_z x1)))
   ($smt_apply_3 "ite" ($smt_is_q x1)
     x1
-    $eo_fail)))
+    eo.Stuck)))
 
 ; axiom: $eo_to_bin
 (define $eo_to_bin ((T Type :implicit) (x1 T) (x2 T))
@@ -351,7 +361,7 @@
     ($sm_Binary ($smt_from_eo_z x1) ($smt_from_eo_z x2))
   ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_z x1) ($smt_is_z x2))
     ($sm_Binary ($smt_from_eo_z x1) ($smt_bin_val x2))
-    $eo_fail)))
+    eo.Stuck)))
 
 ; axiom: $eo_to_str
 (define $eo_to_str ((T Type :implicit) (x1 T))
@@ -360,4 +370,4 @@
   ($smt_apply_3 "ite" ($smt_is_str x1)
     x1
   ; TODO?
-    $eo_fail)))
+    eo.Stuck)))

@@ -106,6 +106,16 @@ $SM_EO_TERM_DECL$
 (assert (! (forall ((i Int))
   (= ($sm_pow2_eval i) (ite (<= i 0) 1 (* 2 ($sm_pow2_eval (- i 1)))))) :named sm.eval_pow2))
 
+
+(define-fun $sm_Numeral ((x Int)) eo.Term
+  (smt.to_eo (sm.Numeral x)))
+
+(define-fun $sm_Rational ((x Real)) eo.Term
+  (smt.to_eo (sm.Rational x)))
+
+(define-fun $sm_String ((x String)) eo.Term
+  (smt.to_eo (sm.String x)))
+
 ; program: $sm_Binary
 ; Forward declaration in model_smt_preamble.eo
 (define-fun $sm_Binary ((w Int) (x Int)) eo.Term

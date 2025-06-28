@@ -184,14 +184,30 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     std::stringstream cname;
     bool printArgs = false;
     size_t printArgStart = 0;
+    std::string currTerm = cur.second;
     if (ck == Kind::APPLY && cur.first[0].getKind() != Kind::PROGRAM_CONST)
     {
-      cname << "sm.Apply";
+      // Determine if this is a Eunoia internal term, or an
+      // SMT term
+      if (!isEunoiaSymbol(cur.first[0]))
+      {
+        os << (nconj > 0 ? " " : "") << "((_ is eo.SmtTerm) "
+          << currTerm << ")";
+        std::stringstream sssn;
+        sssn << "(eo.to_smt " << currTerm << ")";
+        currTerm = sssn.str();
+      }
+      else
+      {
+        cname << "eo.Apply";
+      }
       printArgs = true;
     }
     else if (ck == Kind::FUNCTION_TYPE)
     {
-      cname << "sm.FunType";
+      // TODO: can this occur?
+      // maybe if reasoning about function as first class argument?
+      cname << "eo.FunType";
       printArgs = true;
     }
     else if (ck == Kind::APPLY_OPAQUE)
@@ -204,7 +220,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     {
       // argument must be an apply
       os << (nconj > 0 ? " " : "") << "((_ is " << cname.str() << ") "
-         << cur.second << ")";
+         << currTerm << ")";
       nconj++;
       for (size_t i = printArgStart, nchild = cur.first.getNumChildren();
            i < nchild;
@@ -212,7 +228,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       {
         std::stringstream ssNext;
         ssNext << "(" << cname.str() << ".arg" << (i + 1 - printArgStart) << " "
-               << cur.second << ")";
+               << currTerm << ")";
         visit.emplace_back(cur.first[i], ssNext.str());
       }
     }
@@ -468,9 +484,9 @@ void SmtMetaReduce::finalizePrograms()
         std::stringstream vname;
         vname << v;
         ctx.d_ctx[v] = vname.str();
-        d_defs << "(" << vname.str() << " sm.Term)";
+        d_defs << "(" << vname.str() << " eo.Term)";
       }
-      d_defs << ") sm.Term ";
+      d_defs << ") eo.Term ";
       printEmbTerm(e[1], d_defs, ctx);
       d_defs << ")" << std::endl << std::endl;
       continue;
@@ -482,6 +498,13 @@ void SmtMetaReduce::finalizePrograms()
 
 void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
 {
+  std::stringstream ssp;
+  ssp << v;
+  std::string pname = ssp.str();
+  if (pname=="eo.to_smt" || pname=="$sm_Numeral" || pname=="$sm_Rational" || pname=="$sm_String" || pname=="$sm_Binary")
+  {
+    return;
+  }
   d_defs << "; " << (prog.isNull() ? "fwd-decl: " : "program: ") << v
          << std::endl;
   std::stringstream decl;
@@ -507,20 +530,20 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
       decl << " ";
       varList << " ";
     }
-    decl << "sm.Term";
+    decl << "eo.Term";
     std::stringstream ssArg;
     ssArg << "x" << i;
     appTerm << " " << ssArg.str();
     args.emplace_back(ssArg.str());
-    varList << "(" << ssArg.str() << " sm.Term)";
-    stuckCond << " (= " << ssArg.str() << " sm.Stuck)";
+    varList << "(" << ssArg.str() << " eo.Term)";
+    stuckCond << " (= " << ssArg.str() << " eo.Stuck)";
   }
   if (nargs > 2)
   {
     stuckCond << ")";
   }
   appTerm << ")";
-  decl << ") sm.Term)" << std::endl;
+  decl << ") eo.Term)" << std::endl;
   // if forward declared, we are done for now
   if (prog.isNull())
   {
@@ -580,11 +603,11 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   }
   else
   {
-    d_defs << "(define-fun " << v << " (" << varList.str() << ") sm.Term"
+    d_defs << "(define-fun " << v << " (" << varList.str() << ") eo.Term"
            << std::endl;
   }
   d_defs << cases.str();
-  d_defs << "    sm.Stuck";
+  d_defs << "    eo.Stuck";
   d_defs << casesEnd.str() << std::endl;
   if (reqAxiom)
   {
@@ -638,7 +661,7 @@ void SmtMetaReduce::finalizeDeclarations()
     for (size_t i = 0; i < nopqArgs; i++)
     {
       (*out) << " (" << cname.str();
-      (*out) << ".arg" << (i + 1) << " sm.Term)";
+      (*out) << ".arg" << (i + 1) << " " << (isEunoia ? "eo." : "sm.") << "Term)";
     }
     (*out) << ")" << std::endl;
     // is it an SMT-LIB symbol????
