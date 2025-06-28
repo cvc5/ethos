@@ -79,6 +79,16 @@
 (define $smt_typeof ((T Type :implicit) (t T))
   ($smt_try ($eo_typeof t) $smt_unknown_type))
 
+; re-bootstrap version of list operators, monomorphized for $eo_List.
+; We only define what is necessary.
+(program $smt_list_concat ((T Type) (x T) (y $eo_List) (z $eo_List))
+  :signature ($eo_List $eo_List) $eo_List
+  (
+  (($smt_list_concat ($eo_List_cons x y) z)  ($eo_List_cons x ($smt_list_concat y z)))
+  (($smt_list_concat $eo_List_nil z)         z)
+  )
+)
+
 ;;; Definition of legal types
 
 ; Is T a type that can be assigned to free constants?
@@ -86,60 +96,24 @@
 (define $smt_is_type ((T Type))
   ($smt_try ($eo_is_type T) false))
 
-;;; Bit-vectors
+;;; Builtin parametric types
 
+; Maps, which model values for functions.
+(declare-parameterized-const $smt_Map ((T Type) (U Type)) Type)
+(declare-parameterized-const $smt_Map_nil
+  ((T Type) (U Type) (default U)) ($smt_Map T U))
+(declare-parameterized-const $smt_Map_cons
+  ((T Type) (U Type) (index T) (element U) (tail ($smt_Map T U)))
+  ($smt_Map T U))
+
+; Bit-vectors
 (declare-const $smt_BitVec (-> $eo_Numeral Type))
 
-;;; Modelling free constants
-
-; declare: $smt_Const
-; A free constant. Constants are identified by:
-; (1) Their kind (numeral k),
-; (2) Their identifier (numeral i),
-; (3) Their type.
-; The kind 0 is reserved for standard SMT-LIB symbols introduced
-; by the user by declare-const. The other kinds of free symbols
-; can be custom defined based on the Eunoia signature (see method
-; $eo_const_predicate in model_eo.eo).
-(declare-parameterized-const $smt_Const ((k $eo_Numeral) (id $eo_Numeral) (T Type)) T)
-
-; fwd-decl: $smt_model_lookup
-; Conceptually, returns the model value for constant with kind k, identifier id and type T.
-; This is intentionally undefined in this signature.
-(program $smt_model_lookup ((T Type))
-  :signature ($eo_Numeral $eo_Numeral T) T)
-
-; Lookup the predicate the constant can be assumed to have.
-; If the kind is 0, it is an SMT-LIB input constant, we return true.
-; Otherwise, we lookup the predicate for the skolem, which may be
-; user-defined. Note this need not be a valid formula due to the
-; definition of $smt_model_eval, which checks whether the predicate
-; is satisfied in the model.
-; If this is undefined, we return true.
-(define $smt_const_predicate ((k $eo_Numeral) (id $eo_Numeral) (T Type))
-  (eo::ite (eo::eq k 0) ; Kind 0 is reserved for uninterpreted constants.
-    true
-    ($smt_try ($eo_const_predicate k id T) true)))
-
-;;; definitions of Valueness
+;;; Definitions of Type enumeration
 
 ; represents an unknown value
 ; This must be a constructor in the final sm.Term.
 (declare-parameterized-const $smt_unknown_type_enum ((T Type) (i $eo_Numeral)) T)
-
-; re-bootstrap version of list operators, monomorphized for $eo_List.
-; We only define what is necessary.
-
-(program $smt_List_concat
-  ((T Type) (x T) (y $eo_List) (z $eo_List))
-  :signature ($eo_List $eo_List) $eo_List
-  (
-  (($smt_List_concat ($eo_List_cons x y) z)  ($eo_List_cons x ($smt_List_concat y z)))
-  (($smt_List_concat $eo_List_nil z)         z)
-  )
-)
-
-;;; definitions of Type enumeration
 
 ; function types
 ; TODO: pair of lists denotes a value
@@ -163,7 +137,7 @@
      (eo::define ((r1 (@smt_ratPair (eo::add n d) d)))
      (eo::define ((r2 (@smt_ratPair n (eo::add n d))))
       ($smt_rat_enum_rec (eo::add i -1)
-        ($smt_List_concat rs ($eo_List_cons r1 ($eo_List_cons r2 $eo_List_nil)))))))
+        ($smt_list_concat rs ($eo_List_cons r1 ($eo_List_cons r2 $eo_List_nil)))))))
   )
 )
 
@@ -201,6 +175,7 @@
   ; Note this method gets stuck if i > 2^w, indicating we have run out of values.
   (($smt_type_enum ($smt_BitVec w) i) (eo::define ((v (eo::to_bin w i)))
                                         (eo::requires (eo::to_z v) i v)))
+  ; TODO: functions, datatypes
   ; Try to enumerate the type, if we fail, we return $smt_unknown_type_enum.
   ; Note that this essentially assumes that unhandled types are uninterpreted
   ; and have infinite cardinality (since this does not get stuck).
@@ -208,9 +183,7 @@
   )
 )
 
-; Type enumeration contains
-
-; ($smt_type_enum_contains_rec T t i)
+; program: ($smt_type_enum_contains_rec T t i)
 ; Returns true if t is contained in the type enumeration of T, starting from i.
 (program $smt_type_enum_contains_rec ((T Type) (t T) (i $eo_Numeral))
   :signature ((eo::quote T) T $eo_Numeral) Bool
@@ -223,6 +196,103 @@
                                           false)))
   )
 )
+
+;;; definitions of Values
+
+; forward declaration
+(program $smt_is_value ((T Type)) :signature ((eo::quote T) T) Bool)
+
+; functions and array values.
+
+(program $smt_map_is_value ((T Type) (U Type) (t T) (u U) (tail ($smt_Map T U)))
+  :signature (($smt_Map T U)) Bool
+  (
+  ; TODO
+  (($smt_map_is_value ($smt_Map_nil T U u)) ($smt_is_value U u))
+  ;(($smt_map_is_value ($smt_Map_cons T U t u tail)) ($smt_is_value u))
+  )
+)
+
+; datatypes.
+
+; define: $smt_is_dt
+; returns: true if t is a datatpe (i.e. it has constructors).
+(define $smt_is_dt ((T Type :implicit) (t T))
+  (eo::is_ok ($eo_dt_constructors t)))
+
+; define: $smt_is_dt_cons
+; returns: true if t is a constructor (i.e. it has selectors).
+(define $smt_is_dt_cons ((T Type :implicit) (t T))
+  (eo::is_ok ($eo_dt_selectors t)))
+
+; program: $smt_dt_is_value
+; Returns true if its argument is a datatype value.
+(program $smt_dt_is_value
+  ((U Type) (T Type) (f (-> T U)) (a T) (c U))
+  :signature (U) Bool
+  (
+  (($smt_dt_is_value (f a))  (eo::ite ($smt_is_value ($smt_typeof a) a)
+                               ($smt_dt_is_value f)
+                               false))
+  (($smt_dt_is_value c)      ($smt_is_dt_cons c))
+  )
+)
+
+; program: $smt_dt_is_value
+; Returns true if its argument is an SMT value.
+; This function is expected to never get stuck.
+(program $smt_is_value ((T Type) (U Type) (t T)
+   ; generic parameters that may appear in terms to pattern match
+   (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3))
+  :signature ((eo::quote T) T) Bool
+  (
+  ; if the literal type is not defined, this is false
+  (($smt_is_value $smt_unknown_type t)  false)
+  ; standard atomic types
+  (($smt_is_value $eo_Numeral t)    ($smt_is_z t))
+  (($smt_is_value $eo_Rational t)   ($smt_is_q t))
+  (($smt_is_value $eo_String t)     ($smt_is_str t))
+  (($smt_is_value $eo_Binary t)     ($smt_is_bin t))
+  (($smt_is_value ($smt_Map T U) t) ($smt_map_is_value t))
+  ; by default, a value is a term that appears in the type enumeration
+  (($smt_is_value T t)            (eo::ite ($smt_is_dt T)
+                                    ($smt_dt_is_value t)
+                                    ($smt_type_enum_contains_rec T t 0)))
+  )
+)
+
+;;; Model semantics
+
+; free constants
+
+; declare: $smt_Const
+; A free constant. Constants are identified by:
+; (1) Their kind (numeral k),
+; (2) Their identifier (numeral i),
+; (3) Their type.
+; The kind 0 is reserved for standard SMT-LIB symbols introduced
+; by the user by declare-const. The other kinds of free symbols
+; can be custom defined based on the Eunoia signature (see method
+; $eo_const_predicate in model_eo.eo).
+(declare-parameterized-const $smt_Const ((k $eo_Numeral) (id $eo_Numeral) (T Type)) T)
+
+; fwd-decl: $smt_model_lookup
+; Conceptually, returns the model value for constant with kind k, identifier id and type T.
+; This is intentionally undefined in this signature.
+(program $smt_model_lookup ((T Type))
+  :signature ($eo_Numeral $eo_Numeral T) T)
+
+; Lookup the predicate the constant can be assumed to have.
+; If the kind is 0, it is an SMT-LIB input constant, we return true.
+; Otherwise, we lookup the predicate for the skolem, which may be
+; user-defined. Note this need not be a valid formula due to the
+; definition of $smt_model_eval, which checks whether the predicate
+; is satisfied in the model.
+; If this is undefined, we return true.
+(define $smt_const_predicate ((k $eo_Numeral) (id $eo_Numeral) (T Type))
+  (eo::ite (eo::eq k 0) ; Kind 0 is reserved for uninterpreted constants.
+    true
+    ($smt_try ($eo_const_predicate k id T) true)))
 
 ; program: $smt_substitute
 ; Used to define $smt_eval_quant.
@@ -256,52 +326,6 @@
         ; otherwise recurse for the next value in the type enumeration for the current variable
         ($smt_eval_quant ($eo_List_cons x xs) F (eo::add i 1) isExists))
       (eo::not isExists)))) ; out of values.
-  )
-)
-
-; definitions of Values
-
-; forward declaration
-(program $smt_is_value ((T Type)) :signature ((eo::quote T) T) Bool)
-
-; define: $smt_dt_is_cons
-; returns: true if t is a datatpe (i.e. it has constructors).
-(define $smt_is_dt ((T Type :implicit) (t T))
-  (eo::is_ok ($eo_dt_constructors t)))
-
-; define: $smt_is_dt_cons
-; returns: true if t is a constructor (i.e. it has selectors).
-(define $smt_is_dt_cons ((T Type :implicit) (t T))
-  (eo::is_ok ($eo_dt_selectors t)))
-
-; program: $smt_dt_is_value
-; Returns true if its argument is a datatype value.
-(program $smt_dt_is_value
-  ((U Type) (T Type) (f (-> T U)) (a T) (c U))
-  :signature (U) Bool
-  (
-  (($smt_dt_is_value (f a))  (eo::ite ($smt_is_value a) ($smt_dt_is_value f) false))
-  (($smt_dt_is_value c)      ($smt_is_dt_cons c))
-  )
-)
-
-; program: $smt_dt_is_value
-; Returns true if its argument is an SMT value.
-; This function is expected to never get stuck.
-(program $smt_is_value ((T Type) (t T)
-   ; generic parameters that may appear in terms to pattern match
-   (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3))
-  :signature ((eo::quote T) T) Bool
-  (
-  ; if the literal type is not defined, this is false
-  (($smt_is_value $smt_unknown_type t)  false)
-  ; standard atomic types
-  (($smt_is_value $eo_Numeral t)  ($smt_is_z t))
-  (($smt_is_value $eo_Rational t) ($smt_is_q t))
-  (($smt_is_value $eo_String t)   ($smt_is_str t))
-  (($smt_is_value $eo_Binary t)   ($smt_is_bin t))
-  ; by default, a value is a term that appears in the type enumeration
-  (($smt_is_value T t)            ($smt_type_enum_contains_rec T t 0))
   )
 )
 
