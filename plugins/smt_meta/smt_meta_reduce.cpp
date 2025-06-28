@@ -894,6 +894,10 @@ bool SmtMetaReduce::isEunoiaSymbol(const Expr& t)
   {
     return true;
   }
+  if (sname=="$eo_Var")
+  {
+    return true;
+  }
   return false;
 }
 

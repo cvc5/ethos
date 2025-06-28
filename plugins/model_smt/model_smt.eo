@@ -41,6 +41,8 @@
 
 ;;; Builtin parametric types
 
+(declare-parameterized-const $smt_FunType ((T1 $smt_Term :opaque) (T2 $smt_Term :opaque)) $smt_Term)
+
 ; Maps, which model values for functions.
 (declare-parameterized-const @Map ((T Type) (U Type)) Type)
 (declare-parameterized-const @Map_nil
@@ -367,9 +369,12 @@ $SMT_EVAL_CASES$
 
 ; The SMT typeof function, which incorporates builtin SMT terms
 
-(program $smt_typeof ((T Type) (t T) (k $smt_Numeral) (id $smt_Numeral))
+(program $smt_typeof ((T Type) (t T) (T1 $smt_Term) (T2 $smt_Term) (k $smt_Numeral) (id $smt_Numeral))
   :signature (T) Type
   (
+  (($smt_typeof ($smt_FunType T1 T2)) (eo::requires ($smt_typeof T1) Type
+                                      (eo::requires ($smt_typeof T2) Type
+                                        Type)))
   (($smt_typeof $smt_unknown_type)    Type)
   (($smt_typeof ($smt_Const k id T))  T)
   ; for all other user defined terms, we totalize
