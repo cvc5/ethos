@@ -14,10 +14,7 @@
 #include <sstream>
 #include <string>
 
-#include "expr_info.h"
-#include "expr_trie.h"
-#include "plugin.h"
-#include "type_checker.h"
+#include "../std_plugin.h"
 
 namespace ethos {
 
@@ -26,13 +23,11 @@ class TypeChecker;
 
 /**
  */
-class Desugar : public Plugin
+class Desugar : public StdPlugin
 {
  public:
   Desugar(State& s);
   ~Desugar();
-  /** Set type rule for literal kind k to t */
-  void setLiteralTypeRule(Kind k, const Expr& t) override;
   /** */
   void bind(const std::string& name, const Expr& e) override;
   /** Mark attributes */
@@ -61,14 +56,13 @@ class Desugar : public Plugin
                       bool isOpaque = false);
   void finalizeProgram(const Expr& v, const Expr& prog);
   void finalizeDefinition(const std::string& name, const Expr& t);
-  void finalizeDeclaration(const Expr& t, std::ostream& os);
+  void finalizeDeclaration(const Expr& t, std::ostream& os) override;
   void finalizeRule(const Expr& v);
   /**
    * Finalize datatype or datatype constructor.
    */
   void finalizeDatatype(const Expr& d, Attr a, const Expr& attrCons);
   void finalizeWellFounded();
-  std::vector<Expr> getSubtermsKind(Kind k, const Expr& t);
   /** */
   Expr mkSanitize(const Expr& t);
   Expr mkSanitize(const Expr& t,
@@ -77,10 +71,6 @@ class Desugar : public Plugin
                   bool inPatMatch,
                   std::vector<std::pair<Expr, Expr>>& newVars);
   Attr getAttribute(const Expr& e);
-  /** the state */
-  State& d_state;
-  /** the type checker */
-  TypeChecker& d_tc;
   /** Declares seen */
   std::vector<std::pair<Expr, Kind>> d_declSeen;
   /** Attributes marked */
@@ -102,11 +92,6 @@ class Desugar : public Plugin
   /** Are we generating programs that are VC targets */
   bool d_genVcs;
 
-  std::stringstream d_litTypeDecl;
-  std::stringstream d_ltNum;
-  std::stringstream d_ltRational;
-  std::stringstream d_ltString;
-  std::stringstream d_ltBinary;
   std::stringstream d_defs;
   std::stringstream d_eoNilNground;
   std::stringstream d_eoNil;
