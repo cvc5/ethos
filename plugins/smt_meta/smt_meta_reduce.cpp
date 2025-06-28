@@ -293,8 +293,9 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
   std::map<Expr, Expr> smtAppToTuple;
   std::map<Expr, Expr>::iterator itsa;
   // letify parameters for efficiency?
-  std::map<const ExprValue*, size_t> lbind;
   /*
+  // TODO: this is probably impossible without a sanitize step.
+  std::map<const ExprValue*, size_t> lbind;
   lbind = Expr::computeLetBinding(body, ll);
   std::vector<const ExprValue*> toErase;
   // do not letify terms that are SMT apply terms
@@ -309,10 +310,10 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
   for (const ExprValue * e : toErase)
   {
     lbind.erase(e);
-    std::
+    std::erase(ll.begin(), ll.end()
   }
-  */
   std::map<const ExprValue*, size_t>::iterator itl;
+  */
   for (size_t i = 0, nll = ll.size(); i <= nll; i++)
   {
     if (i > 0)
@@ -326,22 +327,25 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     }
     Expr t = i < nll ? ll[i] : body;
     std::map<Expr, size_t>::iterator itv;
-    std::vector<std::pair<Expr, size_t>> visit;
-    std::pair<Expr, size_t> cur;
+    std::vector<std::tuple<Expr, size_t, bool>> visit;
+    std::tuple<Expr, size_t, bool> cur;
     Expr recTerm;
-    visit.emplace_back(t, 0);
+    visit.emplace_back(t, 0, false);
     do
     {
       cur = visit.back();
-      recTerm = cur.first;
+      recTerm = std::get<0>(cur);
+      size_t childIndex = std::get<1>(cur);
+      bool inSmtTerm = std::get<2>(cur);
       itsa = smtAppToTuple.find(recTerm);
       if (itsa != smtAppToTuple.end())
       {
         recTerm = itsa->second;
       }
       // if we are printing the head of the term
-      if (cur.second == 0)
+      if (childIndex == 0)
       {
+        /*
         itl = lbind.find(cur.first.getValue());
         if (itl != lbind.end() && itl->second != i)
         {
@@ -349,18 +353,19 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           visit.pop_back();
           continue;
         }
-        Kind ck = cur.first.getKind();
+        */
+        Kind ck = recTerm.getKind();
         if (ck == Kind::PARAM)
         {
-          it = ctx.d_ctx.find(cur.first);
-          Assert(it != ctx.d_ctx.end()) << "Cannot find " << cur.first;
+          it = ctx.d_ctx.find(recTerm);
+          Assert(it != ctx.d_ctx.end()) << "Cannot find " << recTerm;
           os << it->second;
           visit.pop_back();
           continue;
         }
-        else if (cur.first.getNumChildren() == 0)
+        else if (recTerm.getNumChildren() == 0)
         {
-          if (!printEmbAtomicTerm(cur.first, os))
+          if (!printEmbAtomicTerm(recTerm, os))
           {
             EO_FATAL() << "Unknown atomic term in return " << ck << std::endl;
           }
@@ -375,12 +380,13 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
             // maybe its an SMT-apply
             std::string smtAppName;
             std::vector<Expr> smtArgs;
-            // std::cout << "Check if apply term " << cur.first << std::endl;
-            if (isEoToSmt(cur.first[0]) || isSmtToEo(cur.first[0]))
+            // std::cout << "Check if apply term " << recTerm << std::endl;
+            Assert (smtAppToTuple.find(recTerm)==smtAppToTuple.end());
+            if (isEoToSmt(recTerm[0]) || isSmtToEo(recTerm[0]))
             {
               // do not write sm.Apply
             }
-            else if (isSmtApplyTerm(cur.first, smtAppName, smtArgs))
+            else if (isSmtApplyTerm(recTerm, smtAppName, smtArgs))
             {
               // testers introduced in model_smt layer handled specially
               if (smtAppName.compare(0, 3, "is ") == 0)
@@ -396,15 +402,20 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
               }
               // we recurse on the compiled SMT arguments
               recTerm = d_state.mkExprSimple(Kind::TUPLE, smtArgs);
-              // std::cout << cur.first << " is " << smtAppName << " / " <<
+              // std::cout << recTerm << " is " << smtAppName << " / " <<
               // recTerm << std::endl;
-              smtAppToTuple[cur.first] = recTerm;
+              smtAppToTuple[recTerm] = recTerm;
+            }
+            else if (!inSmtTerm && !isEunoiaSymbol(recTerm[0]))
+            {
+              os << "(smt.to_eo ";
+              inSmtTerm = true;
             }
             else
             {
-              if (cur.first[0].getKind() != Kind::PROGRAM_CONST)
+              if (recTerm[0].getKind() != Kind::PROGRAM_CONST)
               {
-                Assert(cur.first.getNumChildren() == 2);
+                Assert(recTerm.getNumChildren() == 2);
                 // could use macro to ensure "Stuck" propagates
                 // NOTE: if we have the invariant that we pattern matched, we don't need to check
                 os << "sm.Apply ";
@@ -417,7 +428,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           }
           else if (ck == Kind::FUNCTION_TYPE)
           {
-            Assert(cur.first.getNumChildren() == 2);
+            Assert(recTerm.getNumChildren() == 2);
             // must use macro to ensure "Stuck" propagates
             os << "$sm_FunType ";
           }
@@ -435,24 +446,29 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           }
           else
           {
-            EO_FATAL() << "Unhandled kind " << ck << " " << cur.first
+            EO_FATAL() << "Unhandled kind " << ck << " " << recTerm
                        << std::endl;
           }
-          visit.back().second++;
-          visit.emplace_back(recTerm[0], 0);
+          std::get<1>(visit.back())++;
+          visit.emplace_back(recTerm[0], 0, inSmtTerm);
         }
       }
-      else if (cur.second >= recTerm.getNumChildren())
+      else if (childIndex >= recTerm.getNumChildren())
       {
         os << ")";
+        if (!inSmtTerm && !isEunoiaSymbol(recTerm[0]))
+        {
+          os << ")";
+        }
         visit.pop_back();
       }
       else
       {
-        Assert(cur.second < recTerm.getNumChildren());
+        // another argument
+        Assert(childIndex < recTerm.getNumChildren());
         os << " ";
-        visit.back().second++;
-        visit.emplace_back(recTerm[cur.second], 0);
+        std::get<1>(visit.back())++;
+        visit.emplace_back(recTerm[childIndex], 0, inSmtTerm);
       }
     } while (!visit.empty());
     if (i < nll)
