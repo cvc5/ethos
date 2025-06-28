@@ -363,7 +363,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
               // testers introduced in model_smt layer handled specially
               if (smtAppName.compare(0,3, "is ")==0)
               {
-                os << "(_ is " << smtAppName.substr(3) << ")";
+                os << "(_ is " << smtAppName.substr(3) << ") ";
               }
               else
               {

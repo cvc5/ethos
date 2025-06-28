@@ -133,6 +133,12 @@ $SM_TERM_DECL$
 ; ((w Int) (x1 Int))
 (declare-fun $sm_Binary_not (Int Int) Int) ; TODO
 
+; ((x1 Int) (l Int) (h Int))
+(declare-fun $sm_Binary_extract (Int Int Int) Int) ; TODO
+
+; ((w Int) (x Int) (x1 Int) (x2 Int))
+(declare-fun $sm_Binary_concat (Int Int Int Int) Int) ; TODO
+
 ;;; Core operators
 
 ; axiom: $eo_is_ok
