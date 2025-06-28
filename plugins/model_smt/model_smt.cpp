@@ -245,6 +245,14 @@ void ModelSmt::finalize()
       txt.replace(pos, tag.length(), replacement);
     }
   };
+  // read the preamble
+  std::stringstream ssiep;
+  ssiep << s_smodel_path << "plugins/model_smt/model_eo_preamble.eo";
+  std::ifstream inep(ssiep.str());
+  std::ostringstream ssep;
+  ssep << inep.rdbuf();
+  std::string finalEoPremable = ssep.str();
+
   std::stringstream ssie;
   ssie << s_smodel_path << "plugins/model_smt/model_eo.eo";
   std::ifstream ine(ssie.str());

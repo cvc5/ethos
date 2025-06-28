@@ -5,21 +5,10 @@
 ; (A) Those that are desugared in later steps, e.g. eo::add, eo::requires, eo::is_ok.
 ; (B) Those that were part of user definitions that can be safely replaced by their $eo_ versions.
 
-; fail
-(define $eo_fail () (eo::requires true false true))
+;;; declarations to define literal types
 
 ; undefined type, used if a literal type uses eo::self, which can't be modelled.
 (declare-const $eo_undef_type Type)
-
-; forward declaration
-(program $eo_typeof ((T Type))
-  :signature (T) Type)
-
-; forward declaration
-(program $eo_nil ((T Type) (U Type) (V Type) (W Type))
-  :signature ((-> T U V) (eo::quote W)) W)
-
-; declarations to define literal types
 
 $EO_LITERAL_TYPE_DECL$
 
@@ -29,6 +18,19 @@ $EO_LITERAL_TYPE_DECL$
 (define $eo_String () $EO_STRING$)
 (define $eo_Binary () $EO_BINARY$)
 ; note: decimal and hexadecimal omitted for now.
+
+;;; core utilities
+
+; fail
+(define $eo_fail () (eo::requires true false true))
+
+; forward declaration
+(program $eo_typeof ((T Type))
+  :signature (T) Type)
+
+; forward declaration
+(program $eo_nil ((T Type) (U Type) (V Type) (W Type))
+  :signature ((-> T U V) (eo::quote W)) W)
 
 ;;; Model test infrastructure
 

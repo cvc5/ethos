@@ -16,7 +16,9 @@ else
 fi
 
 cp $STD_SMODEL_OUT $TMP_OUT
+# the user definitions come first
 cp $1 $STD_SMODEL_OUT
+# then append the filled in template
 cat $TMP_OUT >> $STD_SMODEL_OUT
 rm -f $TMP_OUT
 
