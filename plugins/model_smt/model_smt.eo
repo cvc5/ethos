@@ -76,8 +76,8 @@
 
 ; Used to totalize $eo_typeof.
 (declare-const $smt_unknown_type Type)
-(define $smt_typeof ((T Type :implicit) (t T))
-  ($smt_try ($eo_typeof t) $smt_unknown_type))
+(program $smt_typeof ((T Type) (t T))
+  :signature (T) Type)
 
 ; re-bootstrap version of list operators, monomorphized for $eo_List.
 ; We only define what is necessary.
@@ -113,7 +113,8 @@
 
 ; represents an unknown value
 ; This must be a constructor in the final sm.Term.
-(declare-parameterized-const $smt_unknown_type_enum ((T Type) (i $eo_Numeral)) T)
+(declare-parameterized-const $smt_unknown_type_enum
+  ((T Type :opaque) (i $eo_Numeral :opaque)) T)
 
 ; note: The methods in this section are only included (based on trim-defs) if
 ; the verification condition is reasoning about quantified formuls.
@@ -247,11 +248,11 @@
   ; if the literal type is not defined, this is false
   (($smt_is_value $smt_unknown_type t)  false)
   ; standard atomic types
-  (($smt_is_value $eo_Numeral t)    ($smt_is_z t))
-  (($smt_is_value $eo_Rational t)   ($smt_is_q t))
-  (($smt_is_value $eo_String t)     ($smt_is_str t))
-  (($smt_is_value $eo_Binary t)     ($smt_is_bin t))
-  (($smt_is_value (@Map T U) t) ($smt_map_is_value t))
+  (($smt_is_value $eo_Numeral t)  ($smt_is_z t))
+  (($smt_is_value $eo_Rational t) ($smt_is_q t))
+  (($smt_is_value $eo_String t)   ($smt_is_str t))
+  (($smt_is_value $eo_Binary t)   ($smt_is_bin t))
+  (($smt_is_value (@Map T U) t)   ($smt_map_is_value t))
   ; by default, a value is a term that appears in the type enumeration
   (($smt_is_value T t)            (eo::ite ($smt_is_dt T)
                                     ($smt_dt_is_value t)
@@ -272,7 +273,9 @@
 ; by the user by declare-const. The other kinds of free symbols
 ; can be custom defined based on the Eunoia signature (see method
 ; $eo_const_predicate in model_eo.eo).
-(declare-parameterized-const $smt_Const ((k $eo_Numeral) (id $eo_Numeral) (T Type)) T)
+(declare-parameterized-const $smt_Const
+  ((k $eo_Numeral :opaque) (id $eo_Numeral :opaque) (T Type :opaque))
+  T)
 
 ; fwd-decl: $smt_model_lookup
 ; Conceptually, returns the model value for constant with kind k, identifier id and type T.
@@ -438,3 +441,15 @@ $SMT_EVAL_CASES$
 )
 
 ; TODO: many of the remaining Eunoia builtins can be modelled here
+
+; The SMT typeof function, which incorporates builtin SMT terms
+
+
+(program $smt_typeof ((T Type) (t T) (k $eo_Numeral) (id $eo_Numeral))
+  :signature (T) Type
+  (
+  (($smt_typeof $smt_unknown_type)    Type)
+  (($smt_typeof ($smt_Const k id T))  T)
+  (($smt_typeof t)                    ($smt_try ($eo_typeof t) $smt_unknown_type))
+  )
+)
