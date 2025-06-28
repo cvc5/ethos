@@ -558,7 +558,7 @@ $EO_MODEL_CONST_PRED_CASES$
   :signature (T) T
   (
 $EO_MODEL_EVAL_CASES$
-  (($eo_model_eval t) $eo_fail)
+  (($eo_model_eval t) t)
   )
 )
 

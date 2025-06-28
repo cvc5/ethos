@@ -77,6 +77,9 @@
 
 ;;; definitions of Type enumeration
 
+; function types
+; TODO: pair of lists denotes a value
+
 ; note: The methods in this section are only included (based on trim-defs) if
 ; the verification condition is reasoning about quantified formuls.
 
@@ -225,6 +228,7 @@ $SMT_TYPE_ENUM_CASES$
 
 ; program: $smt_dt_is_value
 ; Returns true if its argument is an SMT value.
+; This function is expected to never get stuck.
 (program $smt_is_value ((T Type) (t T)
    ; generic parameters that may appear in terms to pattern match
    (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3))
@@ -233,10 +237,10 @@ $SMT_TYPE_ENUM_CASES$
   ; if the literal type is not defined, this is false
   (($smt_is_value $eo_undef_type t) false)
   ; standard atomic types
-  (($smt_is_value $eo_Numeral t)      ($eo_is_z t))
-  (($smt_is_value $eo_Rational t)     ($eo_is_q t))
-  (($smt_is_value $eo_String t)       ($eo_is_str t))
-  (($smt_is_value $eo_Binary t)       ($eo_is_bin t))
+  (($smt_is_value $eo_Numeral t)      ($smt_to_eo_bool ($smt_apply_1 "is sm.Numeral" t)))
+  (($smt_is_value $eo_Rational t)     ($smt_to_eo_bool ($smt_apply_1 "is sm.Rational" t)))
+  (($smt_is_value $eo_String t)       ($smt_to_eo_bool ($smt_apply_1 "is sm.String" t)))
+  (($smt_is_value $eo_Binary t)       ($smt_to_eo_bool ($smt_apply_1 "is sm.Binary" t)))
   ; TODO: Arrays? Sets? Seq?
 $SMT_IS_VALUE_CASES$
   (($smt_is_value T t) false)

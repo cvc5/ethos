@@ -354,9 +354,17 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
             }
             else if (isSmtApplyTerm(cur.first, smtAppName, smtArgs))
             {
-              // std::cout << "...returns true!!!! name is \"" << smtAppName <<
-              // "\"" << std::endl;
-              os << smtAppName << " ";
+              // testers introduced in model_smt layer handled specially
+              if (smtAppName.compare(0,3, "is ")==0)
+              {
+                os << "(_ is " << smtAppName.substr(3) << ")";
+              }
+              else
+              {
+                // std::cout << "...returns true!!!! name is \"" << smtAppName <<
+                // "\"" << std::endl;
+                os << smtAppName << " ";
+              }
               // we recurse on the compiled SMT arguments
               recTerm = d_state.mkExprSimple(Kind::TUPLE, smtArgs);
               // std::cout << cur.first << " is " << smtAppName << " / " <<

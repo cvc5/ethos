@@ -153,7 +153,7 @@ void ModelSmt::printSmtTerm(const std::string& name,
   for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
   {
     preApp << "(eo::define ((e" << i << " ($smt_model_eval x" << i << "))) ";
-    preApp << "(eo::requires ($smt_is_value (eo::typeof x" << i << ") e" << i
+    preApp << "(eo::requires ($smt_is_value ($eo_typeof x" << i << ") e" << i
            << ") true ";
     preAppEnd << "))";
   }
