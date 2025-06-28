@@ -27,4 +27,12 @@ echo "**** run_trim_defs: Run ethos + trim-defs on $TMP_FILE"
 #echo "**** Verify it parses"
 #./src/ethos $OUT_FILE
 
+status=$?
+
 rm -f $TMP_FILE
+
+if [[ $status -eq 0 ]]; then
+  echo "success"
+else
+  exit $status
+fi

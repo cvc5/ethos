@@ -9,6 +9,12 @@ TMP_OUT=$1-model.eo
 
 echo "**** run_gen_model: Run ethos + desugar on $1 to generate $STD_SMODEL_OUT"
 ./src/ethos --plugin.model-smt $1
+if [[ $status -eq 0 ]]; then
+  echo "success"
+else
+  exit $status
+fi
+
 cp $STD_SMODEL_OUT $TMP_OUT
 cp $1 $STD_SMODEL_OUT
 cat $TMP_OUT >> $STD_SMODEL_OUT

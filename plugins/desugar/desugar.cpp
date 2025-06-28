@@ -17,8 +17,8 @@
 
 namespace ethos {
 
-std::string s_ds_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
-// std::string s_ds_path = "/home/andrew/ethos/";
+//std::string s_ds_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
+std::string s_ds_path = "/home/andrew/ethos/";
 
 Desugar::Desugar(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {
@@ -659,14 +659,22 @@ void Desugar::finalizeRule(const Expr& e)
     // ground rule is just a formula definition
     Assert(rt.getKind() == Kind::PROOF_TYPE);
     Expr rrt = rt[0];
-    d_eoVc << "(program $eor_" << e << " ((dummy Bool)) :signature (Bool) Bool " << rrt << ")" << std::endl
-           << std::endl;
+    d_eoVc << "(program $eor_" << e << " (($eo_x Bool))" << std::endl;
+    d_eoVc << "  :signature (Bool) Bool" << std::endl;
+    d_eoVc << "  (" << std::endl;
+    d_eoVc << "  (($eor_" << e << " $eo_x) " << rrt << ")" << std::endl;
+    d_eoVc << "  )" << std::endl;
+    d_eoVc << ")" << std::endl;
     if (!d_state.isProofRuleSorry(e.getValue()))
     {
       d_eoVc << "; verification: " << e << std::endl;
-      d_eoVc << "(define $eovc_" << e;
-      d_eoVc << " () (eo::requires ($eo_model_sat ($eor_" << e
-             << " dummy)) false true))" << std::endl;
+      d_eoVc << "(program $eovc_" << e << " (($eo_x Bool))" << std::endl;
+      d_eoVc << "  :signature (Bool) Bool" << std::endl;
+      d_eoVc << "  (" << std::endl;
+      d_eoVc << "  (($eovc_" << e << " $eo_x) (eo::requires ($eo_model_sat ($eor_" << e;
+      d_eoVc << " $eo_x)) false true))" << std::endl;
+      d_eoVc << "  )" << std::endl;
+      d_eoVc << ")" << std::endl;
       d_eoVc << std::endl;
     }
     return;

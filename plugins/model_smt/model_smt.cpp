@@ -17,8 +17,8 @@
 
 namespace ethos {
 
-std::string s_smodel_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
-// std::string s_smodel_path = "/home/andrew/ethos/";
+//std::string s_smodel_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
+std::string s_smodel_path = "/home/andrew/ethos/";
 
 ModelSmt::ModelSmt(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {
@@ -67,9 +67,9 @@ ModelSmt::ModelSmt(State& s) : d_state(s), d_tc(s.getTypeChecker())
   addSmtLibSym(">", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
   addSmtLibSym("<", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
   addSmtLibSym("is_int", {Kind::RATIONAL}, Kind::BOOLEAN);
-  addSmtLibSym("divisible", {Kind::NUMERAL, Kind::NUMERAL}, Kind::BOOLEAN);
-  // TODO: use this???
-  d_indexedOperators["divisible"] = 1;
+  // NOTE: cannot handle indexed operators currently, as their value
+  // cannot be dynamic in the encoding.
+  //addSmtLibSym("divisible", {Kind::NUMERAL, Kind::NUMERAL}, Kind::BOOLEAN);
   addSmtLibSym("/", {Kind::RATIONAL, Kind::RATIONAL}, Kind::RATIONAL);
   addSmtLibSym("div", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
   addSmtLibSym("mod", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);

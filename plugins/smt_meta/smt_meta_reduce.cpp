@@ -17,8 +17,8 @@
 
 namespace ethos {
 
-std::string s_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
-// std::string s_path = "/home/andrew/ethos/";
+//std::string s_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
+std::string s_path = "/home/andrew/ethos/";
 
 SmtMetaReduce::SmtMetaReduce(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {
@@ -560,7 +560,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     {
       d_defs << decl.str();
     }
-    d_defs << "(assert (forall (" << varList.str() << ")" << std::endl;
+    d_defs << "(assert (! (forall (" << varList.str() << ")" << std::endl;
     d_defs << "  (= " << appTerm.str() << std::endl;
     casesEnd << "))";
   }
@@ -572,6 +572,10 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   d_defs << cases.str();
   d_defs << "    sm.Stuck";
   d_defs << casesEnd.str() << std::endl;
+  if (reqAxiom)
+  {
+    d_defs << " :named sm.axiom." << v << ")";
+  }
   d_defs << ")" << std::endl;
   d_defs << std::endl;
 }
@@ -707,7 +711,7 @@ bool SmtMetaReduce::echo(const std::string& msg)
     d_smtVc << ";;;; final verification condition for " << eosc << std::endl;
     Expr vt = d_tc.getType(vv);
     std::stringstream varList;
-    d_smtVc << "(assert ";
+    d_smtVc << "(assert (! ";
     if (vt.getKind() == Kind::PROGRAM_TYPE)
     {
       d_smtVc << "(exists (";
@@ -729,6 +733,7 @@ bool SmtMetaReduce::echo(const std::string& msg)
     {
       d_smtVc << "(= " << eosc << " sm.True)";
     }
+    d_smtVc << " :named sm.conjecture)";
     d_smtVc << ")" << std::endl;
     // std::cout << "...set target" << std::endl;
     return false;
