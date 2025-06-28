@@ -152,19 +152,21 @@ void ModelSmt::printSmtTerm(const std::string& name,
   std::stringstream preAppEnd;
   for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
   {
-    preApp << "(eo::define ((e" << i << " ($smt_model_eval x" << i << "))) ";
-    preApp << "(eo::requires ($smt_is_value ($eo_typeof x" << i << ") e" << i
-           << ") true ";
-    preAppEnd << "))";
+    preApp << "    (eo::define ((e" << i << " ($smt_model_eval x" << i << ")))" << std::endl;
+    preAppEnd << ")";
   }
   if (name == "=")
   {
-    d_eval << " x1 x2)) ";
-    d_eval << preApp.str() << "(eo::eq e1 e2)" << preAppEnd.str() << ")";
+    // Note that we do not insist on converting to SMT-LIB literals here
+    // We rely on SMT-LIB equality, guarding by an $smt_is_value predicate.
+    d_eval << " x1 x2))" << std::endl;
+    d_eval << preApp.str();
+    d_eval << "      ($smt_eval_= ($smt_typeof x1) e1 e2 (= x1 x2))" << preAppEnd.str() << ")";
     d_eval << std::endl;
   }
   else if (name == "forall" || name == "exists")
   {
+    // does not "pre-rewrite" the body
     bool isExists = (name == "exists");
     d_eval << " x1 x2)) ($smt_model_eval_quant x1 x2 0 " << isExists << "))";
   }
@@ -179,12 +181,12 @@ void ModelSmt::printSmtTerm(const std::string& name,
       {
         d_eval << "_pred";
       }
-      d_eval << " \"" << name << "\" x1 x2))" << std::endl;
+      d_eval << " \"" << name << "\" x1 x2 (" << name << " x1 x2)))" << std::endl;
     }
     else if (args.size() == 1)
     {
       d_eval << " x1)) ($smt_eval_o_arith_unary ";
-      d_eval << " \"" << name << "\" x1))" << std::endl;
+      d_eval << " \"" << name << "\" x1 (" << name << " x1)))" << std::endl;
     }
     else
     {

@@ -10,6 +10,8 @@
 ; We use this to define $eo_model_sat.
 (program $smt_model_eval ((T Type)) :signature (T) T)
 
+; Invariant: all programs in this signature should be well-founded.
+
 ; These functions will be handled by smt_meta.
 
 ; An SMT-LIB term.
@@ -65,6 +67,17 @@
 (define $smt_is_str ((T Type :implicit) (t T)) ($smt_to_eo_bool ($smt_apply_1 "is sm.String" t)))
 (define $smt_is_bin ((T Type :implicit) (t T)) ($smt_to_eo_bool ($smt_apply_1 "is sm.Binary" t)))
 
+;;; utilities
+
+(define $smt_try ((T Type :implicit) (t T) (u T))
+  (eo::ite (eo::is_ok t) t u))
+
+; Used to totalize $eo_typeof.
+(declare-const $smt_unknown_type Type)
+
+(define $smt_typeof ((T Type :implicit) (t T))
+  ($smt_try ($eo_typeof t) $smt_unknown_type))
+
 ;;; definitions of Valueness
 
 ; represents an unknown value
@@ -95,7 +108,9 @@
 (declare-const @smt_ratPair (-> $eo_Numeral $eo_Numeral @smt_RatPair))
 
 ; Based on Calkin–Wilf tree.
-;(program $smt_rat_enum_rec () :signature ($eo_Numeral $eo_List) @smt_RatPair)
+; NOTE: this method is only necessary if reasoning about the enumeration of Reals,
+; this is only necessary if we are proving soundness of a proof rule that involves
+; quantified reals.
 (program $smt_rat_enum_rec
   ((i $eo_Numeral) (n $eo_Numeral) (d $eo_Numeral) (r @smt_RatPair) (rs $eo_List))
   :signature ($eo_Numeral $eo_List) @smt_RatPair
@@ -171,7 +186,7 @@ $SMT_TYPE_ENUM_CASES$
 ; This is not included by default in $smt_is_value below to ensure
 ; dependencies are clean.
 (define $smt_type_enum_contains ((T Type :implicit) (x T))
-  ($smt_type_enum_contains_rec ($eo_typeof x) x 0))
+  ($smt_type_enum_contains_rec ($smt_typeof x) x 0))
 
 ; program: $smt_substitute
 ; Used to define $smt_model_eval_quant.
@@ -193,10 +208,10 @@ $SMT_TYPE_ENUM_CASES$
   (
   (($smt_model_eval_quant $eo_List_nil F i isExists)
     ; base case: we have processed all variables, recurse, negate if isExists is false.
-    (eo::eq ($smt_model_eval F) isExists))  ; FIXME
+    (eo::eq ($smt_model_eval F) isExists))  ; we are now fully instantiated, look at the body
   (($smt_model_eval_quant ($eo_List_cons x xs) F i isExists)
     ; get the next value in the type enumeration
-    (eo::define ((next ($smt_type_enum (eo::typeof x) i)))
+    (eo::define ((next ($smt_type_enum ($smt_typeof x) i)))
     ; if it exists
     (eo::ite (eo::is_ok next)
       ; evaluate the body for this value. if this is a forcing value, return it
@@ -263,29 +278,70 @@ $SMT_IS_VALUE_CASES$
 (program $smt_model_lookup ((T Type))
   :signature ($eo_Numeral T) T)
 
+; For example:
+; ($smt_eval_= Int ($eo_to_smt_z x1) ($eo_to_smt_z x2) (= x1 x2)).
+(define $smt_eval_=
+  ((B Type :implicit) (W Type) (x1 W) (x2 W) (u B))
+  (eo::ite (eo::and ($smt_is_value W x1) ($smt_is_value W x2))
+    ($smt_to_eo_bool ($smt_apply_2 "=" x1 x2))
+    u))
+
+; For example:
+; ($smt_eval_apply_2
+;   "and"
+;   ($eo_to_smt_bool x1) $smt_is_bool
+;   ($eo_to_smt_bool x2) $smt_is_bool
+;   $smt_to_eo_bool (and x1 x2))
+; Is the call to evaluate the SMT-LIB and from Eunoia.
+; The last term is what is returned if the call is unevaluated.
+(define $smt_eval_apply_1
+  ((W1 Type :implicit) (R Type :implicit) (op $eo_String)
+  (x1 W1) (d1 (-> W1 Bool))
+  (r (-> $smt_Term R)) (u R))
+  (eo::ite (d1 x1)
+    (r ($smt_apply_1 op x1))
+    u))
+(define $smt_eval_apply_2
+  ((W1 Type :implicit) (W2 Type :implicit) (R Type :implicit) (op $eo_String)
+  (x1 W1) (d1 (-> W1 Bool))
+  (x2 W2) (d2 (-> W2 Bool))
+  (r (-> $smt_Term R)) (u R))
+  (eo::ite (eo::and (d1 x1) (d2 x2))
+    (r ($smt_apply_2 op x1 x2))
+    u))
+(define $smt_eval_apply_3
+  ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit) (R Type :implicit) (op $eo_String)
+  (x1 W1) (d1 (-> W1 Bool))
+  (x2 W2) (d2 (-> W2 Bool))
+  (x3 W3) (d2 (-> W3 Bool))
+  (r (-> $smt_Term R)) (u R))
+  (eo::ite (eo::and (d1 x1) (d2 x2))
+    (r ($smt_apply_3 op x1 x2 x3))
+    u))
+
 (define $smt_eval_o_arith_unary
-  ((W1 Type :implicit) (W2 Type :implicit) (op $eo_String) (x1 W1))
+  ((W1 Type :implicit) (U Type :implicit) (op $eo_String) (x1 W1) (u U))
   (eo::ite ($smt_is_z x1)
     ($smt_to_eo_z ($smt_apply_1 op ($eo_to_smt_z x1)))
   (eo::ite ($smt_is_q x1)
     ($smt_to_eo_q ($smt_apply_1 op ($eo_to_smt_q x1)))
-    $eo_fail)))
+    u)))
 
 (define $smt_eval_o_arith
-  ((W1 Type :implicit) (W2 Type :implicit) (op $eo_String) (x1 W1) (x2 W2))
+  ((W1 Type :implicit) (W2 Type :implicit) (U Type :implicit) (op $eo_String) (x1 W1) (x2 W2) (u U))
   (eo::ite (eo::and ($smt_is_z x1) ($smt_is_z x2))
     ($smt_to_eo_z ($smt_apply_2 op ($eo_to_smt_z x1) ($eo_to_smt_z x2)))
   (eo::ite (eo::and ($smt_is_q x1) ($smt_is_q x2))
     ($smt_to_eo_q ($smt_apply_2 op ($eo_to_smt_q x1) ($eo_to_smt_q x2)))
-    $eo_fail)))
+    u)))
 
 (define $smt_eval_o_arith_pred
-  ((W1 Type :implicit) (W2 Type :implicit) (op $eo_String) (x1 W1) (x2 W2))
+  ((W1 Type :implicit) (W2 Type :implicit) (U Type :implicit) (op $eo_String) (x1 W1) (x2 W2) (u U))
   (eo::ite (eo::and ($smt_is_z x1) ($smt_is_z x2))
     ($smt_to_eo_bool ($smt_apply_2 op ($eo_to_smt_z x1) ($eo_to_smt_z x2)))
   (eo::ite (eo::and ($smt_is_q x1) ($smt_is_q x2))
     ($smt_to_eo_bool ($smt_apply_2 op ($eo_to_smt_q x1) ($eo_to_smt_q x2)))
-    $eo_fail)))
+    u)))
 
 ; An evaluator for all terms that we can reason about models.
 ; This is a recursive call.
@@ -311,8 +367,8 @@ $SMT_EVAL_CASES$
   ; They call the user callback $eo_model_eval.
   (($smt_model_eval (f y))                (eo::define ((fme ($smt_model_eval f)))
                                           (eo::define ((yme ($smt_model_eval y)))
-                                            ($eo_model_eval (_ fme yme)))))
-  (($smt_model_eval z)                    ($eo_model_eval z))
+                                            ($smt_try ($eo_model_eval (_ fme yme)) (_ fme yme)))))
+  (($smt_model_eval z)                    ($smt_try ($eo_model_eval z) z))
   )
 )
 
