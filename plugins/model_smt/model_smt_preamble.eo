@@ -12,11 +12,20 @@
 (define $smt_Rational () $eo_Rational)
 (define $smt_String () $eo_String)
 
+;;; TEMPORARY to make this file self contained
+;(declare-const $smt_Numeral Type)
+;(declare-const $smt_Rational Type)
+;(declare-const $smt_String Type)
+;(declare-const $eo_fail Type)
+;;; TEMPORARY
+
+(declare-const $smt_unknown_type Type)
+
 ; Bit-vectors
 ; NOTE: we currently define $smt_BitVec
-(declare-parameterized-const $smt_BitVec ((n $eo_Numeral :opaque)) Type)
+(declare-parameterized-const $smt_BitVec ((n $smt_Numeral :opaque)) Type)
 ; $smt_Binary remains undefined
-(define $smt_Binary () $eo_undef_type)
+(define $smt_Binary () $smt_unknown_type)
 
 ; note: decimal and hexadecimal omitted for now.
 
@@ -206,9 +215,9 @@
 (define $smt_try_eval_o_arith
   ((W1 Type :implicit) (W2 Type :implicit) (U Type :implicit) (op $smt_String) (x1 W1) (x2 W2) (u U))
   (eo::ite ($smt_apply_2 "and" ($smt_eo_is_z x1) ($smt_eo_is_z x2))
-    ($sm_eo_apply_z_op_2 x1 x2)
+    ($sm_eo_apply_z_op_2 op x1 x2)
   (eo::ite ($smt_apply_2 "and" ($smt_eo_is_q x1) ($smt_eo_is_q x2))
-    ($sm_eo_apply_q_op_2 x1 x2)
+    ($sm_eo_apply_q_op_2 op x1 x2)
     u)))
 
 (define $smt_try_eval_o_arith_pred
@@ -278,9 +287,9 @@
 ; axiom: $eo_qdiv
 (define $eo_qdiv ((T Type :implicit) (x1 T) (x2 T))
   (eo::ite ($smt_eo_is_z_div_op x1 x2)
-    ($smt_to_eo_q (smt_apply_2 "/" (smt_apply_1 "to_real" ($smt_from_eo_z x1)) (smt_apply_1 "to_real" ($smt_from_eo_z x2))))
+    ($smt_to_eo_q ($smt_apply_2 "/" ($smt_apply_1 "to_real" ($smt_from_eo_z x1)) ($smt_apply_1 "to_real" ($smt_from_eo_z x2))))
   (eo::ite ($smt_eo_is_q_div_op x1 x2)
-    ($sm_eo_apply_q_op_2 x1 x2)
+    ($sm_eo_apply_q_op_2 "/" x1 x2)
     $eo_fail)))
 
 ; axiom: $eo_zdiv
@@ -335,10 +344,11 @@
     (eo::ite ($smt_is_str x1)
       (eo::define ((n2 ($smt_from_eo_z x2)))
       (eo::define ((n3 ($smt_from_eo_z x3)))
-      ($smt_to_eo_str ($smt_apply_3 "str.substr" ($smt_from_eo_str x1) n2 (+ (- n3 n2) 1)))))
+      ($smt_to_eo_str ($smt_apply_3 "str.substr" ($smt_from_eo_str x1) n2 ($smt_apply_2 "+" ($smt_apply_2 "-" n3 n2) 1)))))
     (eo::ite ($smt_is_bin x1)
       ($sm_Binary_extract ($smt_bin_width x1) ($smt_bin_val x1) ($smt_bin_val x2) ($smt_bin_val x3))
-      $eo_fail))))
+      $eo_fail))
+    $eo_fail))
 
 ; axiom: $eo_find
 (define $eo_find ((T Type :implicit) (x1 T) (x2 T))
@@ -363,7 +373,7 @@
 ; axiom: $eo_to_q
 (define $eo_to_q ((T Type :implicit) (x1 T))
   (eo::ite ($smt_is_z x1)
-    ($smt_to_eo_q (to_real ($smt_from_eo_z x1)))
+    ($smt_to_eo_q ($smt_apply_1 "to_real" ($smt_from_eo_z x1)))
   (eo::ite ($smt_is_q x1)
     x1
     $eo_fail)))

@@ -35,7 +35,6 @@ class ModelSmt : public StdPlugin
   void finalize() override;
 
  private:
-  void finalizeDeclaration(const Expr& t, std::ostream& os) override;
   void addSmtLibSym(const std::string& sym,
                     const std::vector<Kind>& args,
                     Kind ret);

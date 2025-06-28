@@ -7,6 +7,13 @@ STD_SMODEL_OUT=../plugins/model_smt/model_smt_gen.eo
 
 TMP_OUT=$1-model.eo
 
+cp $1 $TMP_OUT
+# replace the command "(define $eo_smt_preamble () true)" with the premble as defined in Eunoia
+sed -i "/(define \$eo_smt_preamble () true)/{
+    r ../plugins/model_smt/model_smt_preamble.eo
+    d
+}" $TMP_OUT
+
 echo "**** run_gen_model: Run ethos + desugar on $1 to generate $STD_SMODEL_OUT"
 ./src/ethos --plugin.model-smt $1
 if [[ $status -eq 0 ]]; then
@@ -15,11 +22,11 @@ else
   exit $status
 fi
 
-cp $STD_SMODEL_OUT $TMP_OUT
+mv $STD_SMODEL_OUT $STD_SMODEL_OUT.tmp
 # the user definitions come first
-cp $1 $STD_SMODEL_OUT
+cp $TMP_OUT $STD_SMODEL_OUT
 # then append the filled in template
-cat $TMP_OUT >> $STD_SMODEL_OUT
+cat $STD_SMODEL_OUT.tmp >> $STD_SMODEL_OUT
 rm -f $TMP_OUT
 
 #echo "**** run_gen_model: Verify it parses"

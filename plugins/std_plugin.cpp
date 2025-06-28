@@ -23,6 +23,9 @@ StdPlugin::StdPlugin(State& s) : d_state(s), d_tc(s.getTypeChecker())
 
 StdPlugin::~StdPlugin() {}
 
+void StdPlugin::finalizeDeclaration(const Expr& t, std::ostream& os)
+{
+}
 void StdPlugin::setLiteralTypeRule(Kind k, const Expr& t)
 {
   // NOTE: literal definitions cannot use any builtin operators

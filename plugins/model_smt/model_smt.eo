@@ -12,67 +12,6 @@
 
 ; These functions will be handled by smt_meta.
 
-; An SMT-LIB term.
-(declare-const $smt_Term Type)
-
-; Apply the SMT operator named "op" to x1, x2, and so on.
-; Assumes arity of SMT-LIB operators are at most 5.
-(declare-parameterized-const $smt_apply_1
-  ((W1 Type :implicit))
-  (-> $eo_String W1 $smt_Term))
-(declare-parameterized-const $smt_apply_2
-  ((W1 Type :implicit) (W2 Type :implicit))
-  (-> $eo_String W1 W2 $smt_Term))
-(declare-parameterized-const $smt_apply_3
-  ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit))
-  (-> $eo_String W1 W2 W3 $smt_Term))
-(declare-parameterized-const $smt_apply_4
-  ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit) (W4 Type :implicit))
-  (-> $eo_String W1 W2 W3 W4 $smt_Term))
-(declare-parameterized-const $smt_apply_5
-  ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit) (W4 Type :implicit) (W5 Type :implicit))
-  (-> $eo_String W1 W2 W3 W4 W5 $smt_Term))
-
-; Convert from Eunoia to an SMT value
-; These assume the Eunoia term is a literal of the correct type.
-; All uses of the $smt_from_eo_* methods must ensure this is the case
-; Convert Eunoia Boolean to an smt Boolean.
-(declare-const $smt_from_eo_bool (-> Bool $smt_Term))
-; Convert Eunoia Numeral to an smt Integer.
-(declare-const $smt_from_eo_z (-> $eo_Numeral $smt_Term))
-; Convert Eunoia Rational to an smt Real.
-(declare-const $smt_from_eo_q (-> $eo_Rational $smt_Term))
-; Convert Eunoia String to an smt String.
-(declare-const $smt_from_eo_str (-> $eo_String $smt_Term))
-; Convert Eunoia Binary to an smt-meta representation of Binary.
-(declare-const $smt_from_eo_bin (-> $eo_Binary $smt_Term))
-; Convert smt2 term to a Eunoia Boolean.
-(declare-const $smt_to_eo_bool (-> $smt_Term Bool))
-; Convert smt2 term to a Eunoia numeral.
-(declare-const $smt_to_eo_z (-> $smt_Term $eo_Numeral))
-; Convert smt2 term to a Eunoia rational.
-(declare-const $smt_to_eo_q (-> $smt_Term $eo_Rational))
-; Convert smt2 term to a Eunoia string.
-(declare-const $smt_to_eo_str (-> $smt_Term $eo_String))
-; Convert smt2 term to a Eunoia binary.
-(declare-const $smt_to_eo_bin (-> $smt_Term $eo_Binary))
-
-; Testers that use lower level sm.Term datatype, both for simplicity and efficiency.
-; These rely on "is sm.Numeral" referring to the SMT-LIB operator (_ is sm.Numeral)
-; in the final encoding.
-; Boolean relies on the $sm_is_Boolean define-fun in the SMT meta signature.
-(define $smt_is_bool ((T Type :implicit) (t T)) ($smt_apply_1 "$sm_is_Boolean" t))
-(define $smt_is_z ((T Type :implicit) (t T)) ($smt_apply_1 "is sm.Numeral" t))
-(define $smt_is_q ((T Type :implicit) (t T)) ($smt_apply_1 "is sm.Rational" t))
-(define $smt_is_str ((T Type :implicit) (t T)) ($smt_apply_1 "is sm.String" t))
-(define $smt_is_bin ((T Type :implicit) (t T)) ($smt_apply_1 "is sm.Binary" t))
-;
-(define $smt_eo_is_bool ((T Type :implicit) (t T)) ($smt_to_eo_bool ($smt_is_bool t)))
-(define $smt_eo_is_z ((T Type :implicit) (t T)) ($smt_to_eo_bool ($smt_is_z t)))
-(define $smt_eo_is_q ((T Type :implicit) (t T)) ($smt_to_eo_bool ($smt_is_q t)))
-(define $smt_eo_is_str ((T Type :implicit) (t T)) ($smt_to_eo_bool ($smt_is_str t)))
-(define $smt_eo_is_bin ((T Type :implicit) (t T)) ($smt_to_eo_bool ($smt_is_bin t)))
-
 ;;; utilities
 
 ; A utility to ensure that programs are total.
@@ -80,7 +19,6 @@
   (eo::ite (eo::is_ok t) t u))
 
 ; Used to totalize $eo_typeof.
-(declare-const $smt_unknown_type Type)
 (program $smt_typeof ((T Type) (t T))
   :signature (T) Type)
 
@@ -112,29 +50,29 @@
   (@Map T U))
 
 ; Bit-vectors
-(declare-parameterized-const $smt_BitVec ((n $eo_Numeral :opaque)) Type)
+(declare-parameterized-const $smt_BitVec ((n $smt_Numeral :opaque)) Type)
 
 ;;; Definitions of Type enumeration
 
 ; represents an unknown value
 ; This must be a constructor in the final sm.Term.
 (declare-parameterized-const $smt_unknown_type_enum
-  ((T Type :opaque) (i $eo_Numeral :opaque)) T)
+  ((T Type :opaque) (i $smt_Numeral :opaque)) T)
 
 ; note: The methods in this section are only included (based on trim-defs) if
 ; the verification condition is reasoning about quantified formuls.
 
 ; Use "@" to indicate that this is not an SMT-LIB term.
 (declare-const @smt_RatPair Type)
-(declare-const @smt_ratPair (-> $eo_Numeral $eo_Numeral @smt_RatPair))
+(declare-const @smt_ratPair (-> $smt_Numeral $smt_Numeral @smt_RatPair))
 
 ; Based on Calkin–Wilf tree.
 ; NOTE: this method is only necessary if reasoning about the enumeration of Reals,
 ; this is only necessary if we are proving soundness of a proof rule that involves
 ; quantified reals.
 (program $smt_rat_enum_rec
-  ((i $eo_Numeral) (n $eo_Numeral) (d $eo_Numeral) (r @smt_RatPair) (rs $eo_List))
-  :signature ($eo_Numeral $eo_List) @smt_RatPair
+  ((i $smt_Numeral) (n $smt_Numeral) (d $smt_Numeral) (r @smt_RatPair) (rs $eo_List))
+  :signature ($smt_Numeral $eo_List) @smt_RatPair
   (
   (($smt_rat_enum_rec 0 ($eo_List_cons r rs)) r)
   (($smt_rat_enum_rec i ($eo_List_cons (@smt_ratPair n d) rs))
@@ -145,11 +83,11 @@
   )
 )
 
-(define $smt_rat_enum ((i $eo_Numeral))
+(define $smt_rat_enum ((i $smt_Numeral))
   ($smt_rat_enum_rec i ($eo_List_cons (@smt_ratPair 1 1) $eo_List_nil)))
 
-(program $smt_rat_to_num ((n $eo_Numeral) (d $eo_Numeral))
-  :signature ($eo_Numeral) $eo_Rational
+(program $smt_rat_to_num ((n $smt_Numeral) (d $smt_Numeral))
+  :signature ($smt_Numeral) $smt_Rational
   (
   (($smt_rat_to_num (@smt_ratPair n d)) (eo::qdiv n d))
   )
@@ -157,20 +95,20 @@
 
 ; we have no incorporate of irrational values, which can be soundly approximated using
 ; $smt_unknown_type_enum.
-(define $smt_irrat_enum ((i $eo_Numeral))
- ($smt_unknown_type_enum $eo_Rational i))
+(define $smt_irrat_enum ((i $smt_Numeral))
+ ($smt_unknown_type_enum $smt_Rational i))
 
-(program $smt_type_enum ((T Type) (i $eo_Numeral) (w $eo_Numeral))
-  :signature ((eo::quote T) $eo_Numeral) T
+(program $smt_type_enum ((T Type) (i $smt_Numeral) (w $smt_Numeral))
+  :signature ((eo::quote T) $smt_Numeral) T
   (
   ; enumeration of standard SMT types
-  (($smt_type_enum $eo_Numeral i)     (eo::define ((v (eo::zdiv i 2)))
+  (($smt_type_enum $smt_Numeral i)     (eo::define ((v (eo::zdiv i 2)))
                                         (eo::ite (eo::eq (eo::zmod i 2) 0) v (eo::neg v))))
-  (($smt_type_enum $eo_String i)      (eo::ite (eo::eq i 0)
+  (($smt_type_enum $smt_String i)      (eo::ite (eo::eq i 0)
                                         ""
-                                        (eo::concat (eo::to_str (eo::zmod i 196608)) ($smt_type_enum $eo_String (eo::zdiv i 196608)))))
+                                        (eo::concat (eo::to_str (eo::zmod i 196608)) ($smt_type_enum $smt_String (eo::zdiv i 196608)))))
   ; rationals are treated as Real, meaning we interleave rational/irrational.
-  (($smt_type_enum $eo_Rational i)    (eo::define ((ir (eo::zdiv i 2)))
+  (($smt_type_enum $smt_Rational i)    (eo::define ((ir (eo::zdiv i 2)))
                                       (eo::define ((isRat (eo::eq (eo::zmod ir 2) 0)))
                                       (eo::define ((i (eo::zdiv ir 2)))
                                       (eo::define ((v (eo::ite isRat ($smt_rat_to_num ($smt_rat_enum i)) ($smt_irrat_enum i))))
@@ -189,8 +127,8 @@
 
 ; program: ($smt_type_enum_contains_rec T t i)
 ; Returns true if t is contained in the type enumeration of T, starting from i.
-(program $smt_type_enum_contains_rec ((T Type) (t T) (i $eo_Numeral))
-  :signature ((eo::quote T) T $eo_Numeral) Bool
+(program $smt_type_enum_contains_rec ((T Type) (t T) (i $smt_Numeral))
+  :signature ((eo::quote T) T $smt_Numeral) Bool
   (
   (($smt_type_enum_contains_rec T t i)  (eo::define ((v ($smt_type_enum T i)))
                                         (eo::ite (eo::is_ok v)
@@ -253,10 +191,12 @@
   ; if the literal type is not defined, this is false
   (($smt_is_value $smt_unknown_type t)  false)
   ; standard atomic types
-  (($smt_is_value $eo_Numeral t)  ($smt_eo_is_z t))
-  (($smt_is_value $eo_Rational t) ($smt_eo_is_q t))
-  (($smt_is_value $eo_String t)   ($smt_eo_is_str t))
-  (($smt_is_value $eo_Binary t)   ($smt_eo_is_bin t))
+  (($smt_is_value Bool true)       true)
+  (($smt_is_value Bool false)      true)
+  (($smt_is_value $smt_Numeral t)  ($smt_eo_is_z t))
+  (($smt_is_value $smt_Rational t) ($smt_eo_is_q t))
+  (($smt_is_value $smt_String t)   ($smt_eo_is_str t))
+  ;(($smt_is_value $eo_Binary t)   ($smt_eo_is_bin t))
   (($smt_is_value (@Map T U) t)   ($smt_map_is_value t))
   ; by default, a value is a term that appears in the type enumeration
   (($smt_is_value T t)            (eo::ite ($smt_is_dt T)
@@ -283,14 +223,14 @@
 ; can be custom defined based on the Eunoia signature (see method
 ; $eo_const_predicate in model_eo.eo).
 (declare-parameterized-const $smt_Const
-  ((k $eo_Numeral :opaque) (id $eo_Numeral :opaque) (T Type :opaque))
+  ((k $smt_Numeral :opaque) (id $smt_Numeral :opaque) (T Type :opaque))
   T)
 
 ; fwd-decl: $smt_model_lookup
 ; Conceptually, returns the model value for constant with kind k, identifier id and type T.
 ; This is intentionally undefined in this signature.
 (program $smt_model_lookup ((T Type))
-  :signature ($eo_Numeral $eo_Numeral T) T)
+  :signature ($smt_Numeral $smt_Numeral T) T)
 
 ; Lookup the predicate the constant can be assumed to have.
 ; If the kind is 0, it is an SMT-LIB input constant, we return true.
@@ -299,7 +239,7 @@
 ; definition of $smt_model_eval, which checks whether the predicate
 ; is satisfied in the model.
 ; If this is undefined, we return true.
-(define $smt_const_predicate ((k $eo_Numeral) (id $eo_Numeral) (T Type))
+(define $smt_const_predicate ((k $smt_Numeral) (id $smt_Numeral) (T Type))
   (eo::ite (eo::eq k 0) ; Kind 0 is reserved for uninterpreted constants.
     true
     ($smt_try ($eo_const_predicate k id T) true)))
@@ -319,8 +259,8 @@
 ; program: $smt_eval_quant
 ; specification for exists is a (non-computable) function
 ; The last argument is whether we are check exists (resp. forall).
-(program $smt_eval_quant ((T Type) (x T) (xs $eo_List) (F Bool) (i $eo_Numeral) (isExists Bool))
-  :signature ($eo_List Bool $eo_Numeral Bool) Bool
+(program $smt_eval_quant ((T Type) (x T) (xs $eo_List) (F Bool) (i $smt_Numeral) (isExists Bool))
+  :signature ($eo_List Bool $smt_Numeral Bool) Bool
   (
   (($smt_eval_quant $eo_List_nil F i isExists)
     ; base case: we have processed all variables, recurse, negate if isExists is false.
@@ -358,14 +298,14 @@
 ; Is the call to evaluate the SMT-LIB and from Eunoia.
 ; The last term is what is returned if the call is unevaluated.
 (define $smt_eval_apply_1
-  ((W1 Type :implicit) (R Type :implicit) (op $eo_String)
+  ((W1 Type :implicit) (R Type :implicit) (op $smt_String)
   (x1 W1) (d1 (-> W1 Bool))
   (r (-> $smt_Term R)) (u R))
   (eo::ite (d1 x1)
     (r ($smt_apply_1 op x1))
     u))
 (define $smt_eval_apply_2
-  ((W1 Type :implicit) (W2 Type :implicit) (R Type :implicit) (op $eo_String)
+  ((W1 Type :implicit) (W2 Type :implicit) (R Type :implicit) (op $smt_String)
   (x1 W1) (d1 (-> W1 Bool))
   (x2 W2) (d2 (-> W2 Bool))
   (r (-> $smt_Term R)) (u R))
@@ -373,7 +313,7 @@
     (r ($smt_apply_2 op x1 x2))
     u))
 (define $smt_eval_apply_3
-  ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit) (R Type :implicit) (op $eo_String)
+  ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit) (R Type :implicit) (op $smt_String)
   (x1 W1) (d1 (-> W1 Bool))
   (x2 W2) (d2 (-> W2 Bool))
   (x3 W3) (d2 (-> W3 Bool))
@@ -383,7 +323,7 @@
     u))
 
 (define $smt_eval_o_arith_unary
-  ((W1 Type :implicit) (U Type :implicit) (op $eo_String) (x1 W1) (u U))
+  ((W1 Type :implicit) (U Type :implicit) (op $smt_String) (x1 W1) (u U))
   (eo::ite ($smt_eo_is_z x1)
     ($smt_to_eo_z ($smt_apply_1 op ($smt_from_eo_z x1)))
   (eo::ite ($smt_eo_is_q x1)
@@ -391,7 +331,7 @@
     u)))
 
 (define $smt_eval_o_arith
-  ((W1 Type :implicit) (W2 Type :implicit) (U Type :implicit) (op $eo_String) (x1 W1) (x2 W2) (u U))
+  ((W1 Type :implicit) (W2 Type :implicit) (U Type :implicit) (op $smt_String) (x1 W1) (x2 W2) (u U))
   (eo::ite (eo::and ($smt_eo_is_z x1) ($smt_eo_is_z x2))
     ($smt_to_eo_z ($smt_apply_2 op ($smt_from_eo_z x1) ($smt_from_eo_z x2)))
   (eo::ite (eo::and ($smt_eo_is_q x1) ($smt_eo_is_q x2))
@@ -399,7 +339,7 @@
     u)))
 
 (define $smt_eval_o_arith_pred
-  ((W1 Type :implicit) (W2 Type :implicit) (U Type :implicit) (op $eo_String) (x1 W1) (x2 W2) (u U))
+  ((W1 Type :implicit) (W2 Type :implicit) (U Type :implicit) (op $smt_String) (x1 W1) (x2 W2) (u U))
   (eo::ite (eo::and ($smt_eo_is_z x1) ($smt_eo_is_z x2))
     ($smt_to_eo_bool ($smt_apply_2 op ($smt_from_eo_z x1) ($smt_from_eo_z x2)))
   (eo::ite (eo::and ($smt_eo_is_q x1) ($smt_eo_is_q x2))
@@ -410,7 +350,7 @@
 ; An evaluator for all terms that we can reason about models.
 ; This is a recursive call.
 (program $smt_model_eval
-  ((T Type) (U Type) (V Type) (a1 T) (a2 T) (c Bool) (f (-> U T)) (y U) (z T) (k $eo_Numeral) (i $eo_Numeral) (F Bool)
+  ((T Type) (U Type) (V Type) (a1 T) (a2 T) (c Bool) (f (-> U T)) (y U) (z T) (k $smt_Numeral) (i $smt_Numeral) (F Bool)
    ; generic parameters that may appear in terms to pattern match
    (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3))
   :signature (T) T
@@ -455,7 +395,7 @@ $SMT_EVAL_CASES$
 
 ; The SMT typeof function, which incorporates builtin SMT terms
 
-(program $smt_typeof ((T Type) (t T) (k $eo_Numeral) (id $eo_Numeral))
+(program $smt_typeof ((T Type) (t T) (k $smt_Numeral) (id $smt_Numeral))
   :signature (T) Type
   (
   (($smt_typeof $smt_unknown_type)    Type)

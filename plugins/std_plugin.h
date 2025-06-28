@@ -38,7 +38,7 @@ class StdPlugin : public Plugin
    * Finalize a declaration that was made to define a literal type.
    * We can assume that t is ground.
    */
-  virtual void finalizeDeclaration(const Expr& t, std::ostream& os) = 0;
+  virtual void finalizeDeclaration(const Expr& t, std::ostream& os);
   /** Get the subterms of a kind */
   std::vector<Expr> getSubtermsKind(Kind k, const Expr& t);
   /** the state */

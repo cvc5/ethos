@@ -100,14 +100,6 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
 
 ModelSmt::~ModelSmt() {}
 
-void ModelSmt::finalizeDeclaration(const Expr& t, std::ostream& os)
-{
-  Expr lt = t;
-  Expr tlt = d_tc.getType(lt);
-  Assert (tlt.isGround());
-  d_litTypeDecl << "(declare-const " << t << " () " << tlt << ")" << std::endl;
-}
-
 void ModelSmt::addSmtLibSym(const std::string& sym,
                             const std::vector<Kind>& args,
                             Kind ret)
@@ -260,12 +252,6 @@ void ModelSmt::finalize()
   std::ostringstream ssep;
   ssep << inep.rdbuf();
   std::string finalEoPremable = ssep.str();
-
-  replace(finalEoPremable, "$SMT_LITERAL_TYPE_DECL$", d_litTypeDecl.str());
-  replace(finalEoPremable, "$SMT_NUMERAL$", d_ltNum.str());
-  replace(finalEoPremable, "$SMT_RATIONAL$", d_ltRational.str());
-  replace(finalEoPremable, "$SMT_STRING$", d_ltString.str());
-  replace(finalEoPremable, "$SMT_BINARY$", d_ltBinary.str());
 
   std::stringstream ssie;
   ssie << s_smodel_path << "plugins/model_smt/model_eo.eo";
