@@ -104,29 +104,29 @@ $SM_TERM_DECL$
 (define-fun $sm_bit ((x Int) (i Int)) Bool
   (= (mod (div x ($sm_pow2_eval i)) 2) 1))
 
-(declare-fun $sm_Binary_and_eval (Int Int Int) Int)
+(declare-fun $sm_Binary_and (Int Int Int) Int)
 (assert (! (forall ((w Int) (x1 Int) (x2 Int))
-  (= ($sm_Binary_and_eval w x1 x2)
+  (= ($sm_Binary_and w x1 x2)
     (ite (= w 0) 0
     (ite (= w 1) (ite (and (= x1 1) (= x2 1)) 1 0)
-      (+ ($sm_Binary_and_eval (- w 1) x1 x2) (* ($sm_pow2_eval w)
+      (+ ($sm_Binary_and (- w 1) x1 x2) (* ($sm_pow2_eval w)
          (ite (and ($sm_bit x1 w) ($sm_bit x2 w)) 1 0))))))) :named sm.eval_bin_and))
 
-(define-fun $sm_Binary_and ((w Int) (x1 Int) (x2 Int)) sm.Term
-  ($sm_Binary w ($sm_Binary_and_eval w x1 x2)))
 
-(define-fun $sm_Binary_or ((w Int) (x1 Int) (x2 Int)) sm.Term
-    sm.Stuck) ; TODO
+; ((w Int) (x1 Int) (x2 Int))
+(declare-fun $sm_Binary_or (Int Int Int) Int) ; TODO
 
-(define-fun $sm_Binary_xor ((w Int) (x1 Int) (x2 Int)) sm.Term
-    sm.Stuck) ; TODO
+; ((w Int) (x1 Int) (x2 Int))
+(declare-fun $sm_Binary_xor (Int Int Int) Int) ; TODO
 
-(define-fun $sm_Binary_not ((w Int) (x1 Int)) sm.Term
-    sm.Stuck) ; TODO
+; ((w Int) (x1 Int))
+(declare-fun $sm_Binary_not (Int Int) Int) ; TODO
 
+; ((w1 Int) (x1 Int) (w2 Int) (x2 Int))
 (define-fun $sm_Binary_concat ((w1 Int) (x1 Int) (w2 Int) (x2 Int)) sm.Term
     sm.Stuck) ; TODO
 
+; ((w Int) (x Int) (x1 Int) (x2 Int))
 (define-fun $sm_Binary_extract ((w Int) (x Int) (x1 Int) (x2 Int)) sm.Term
     sm.Stuck) ; TODO
 
@@ -167,7 +167,8 @@ $SM_TERM_DECL$
   (ite ($sm_is_Boolean x1)
     ($smt_to_eo_bool (= x1 sm.False))
   (ite ((_ is sm.Binary) x1)
-    ($sm_Binary_not (sm.Binary.width x1) (sm.Binary.val x1))
+    (let ((w (sm.Binary.width x1)))
+      ($sm_Binary w ($sm_Binary_not w (sm.Binary.val x1))))
     sm.Stuck)))
 
 ; axiom: $eo_and
@@ -175,7 +176,9 @@ $SM_TERM_DECL$
   (ite (and ($sm_is_Boolean x1) ($sm_is_Boolean x2))
     ($smt_to_eo_bool (and (= x1 sm.True) (= x2 sm.True)))
   (ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))
-    ($sm_Binary_and (sm.Binary.width x1) (sm.Binary.val x1) (sm.Binary.val x2))
+    (let ((w (sm.Binary.width x1)))
+      ($sm_Binary w
+      ($sm_Binary_and w (sm.Binary.val x1) (sm.Binary.val x2))))
     sm.Stuck)))
 
 ; axiom: $eo_or
@@ -183,7 +186,9 @@ $SM_TERM_DECL$
   (ite (and ($sm_is_Boolean x1) ($sm_is_Boolean x2))
     ($smt_to_eo_bool (or (= x1 sm.True) (= x2 sm.True)))
   (ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))
-    ($sm_Binary_or (sm.Binary.width x1) (sm.Binary.val x1) (sm.Binary.val x2))
+    (let ((w (sm.Binary.width x1)))
+      ($sm_Binary w
+      ($sm_Binary_or w (sm.Binary.val x1) (sm.Binary.val x2))))
     sm.Stuck)))
 
 ; axiom: $eo_xor
@@ -191,7 +196,9 @@ $SM_TERM_DECL$
   (ite (and ($sm_is_Boolean x1) ($sm_is_Boolean x2))
     ($smt_to_eo_bool (xor (= x1 sm.True) (= x2 sm.True)))
   (ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))
-    ($sm_Binary_xor (sm.Binary.width x1) (sm.Binary.val x1) (sm.Binary.val x2))
+    (let ((w (sm.Binary.width x1)))
+      ($sm_Binary w
+      ($sm_Binary_xor w (sm.Binary.val x1) (sm.Binary.val x2))))
     sm.Stuck)))
 
 ;;; Arithmetic operators
