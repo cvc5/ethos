@@ -63,10 +63,18 @@
 ; Testers that use lower level sm.Term datatype, both for simplicity and efficiency.
 ; These rely on "is sm.Numeral" referring to the SMT-LIB operator (_ is sm.Numeral)
 ; in the final encoding.
-(define $smt_is_z ((T Type :implicit) (t T)) ($smt_to_eo_bool ($smt_apply_1 "is sm.Numeral" t)))
-(define $smt_is_q ((T Type :implicit) (t T)) ($smt_to_eo_bool ($smt_apply_1 "is sm.Rational" t)))
-(define $smt_is_str ((T Type :implicit) (t T)) ($smt_to_eo_bool ($smt_apply_1 "is sm.String" t)))
-(define $smt_is_bin ((T Type :implicit) (t T)) ($smt_to_eo_bool ($smt_apply_1 "is sm.Binary" t)))
+; Boolean relies on the $sm_is_Boolean define-fun in the SMT meta signature.
+(define $smt_is_bool ((T Type :implicit) (t T)) ($smt_apply_1 "$sm_is_Boolean" t))
+(define $smt_is_z ((T Type :implicit) (t T)) ($smt_apply_1 "is sm.Numeral" t))
+(define $smt_is_q ((T Type :implicit) (t T)) ($smt_apply_1 "is sm.Rational" t))
+(define $smt_is_str ((T Type :implicit) (t T)) ($smt_apply_1 "is sm.String" t))
+(define $smt_is_bin ((T Type :implicit) (t T)) ($smt_apply_1 "is sm.Binary" t))
+;
+(define $smt_eo_is_bool ((T Type :implicit) (t T)) ($smt_to_eo_bool ($smt_is_bool t)))
+(define $smt_eo_is_z ((T Type :implicit) (t T)) ($smt_to_eo_bool ($smt_is_z t)))
+(define $smt_eo_is_q ((T Type :implicit) (t T)) ($smt_to_eo_bool ($smt_is_q t)))
+(define $smt_eo_is_str ((T Type :implicit) (t T)) ($smt_to_eo_bool ($smt_is_str t)))
+(define $smt_eo_is_bin ((T Type :implicit) (t T)) ($smt_to_eo_bool ($smt_is_bin t)))
 
 ;;; utilities
 
@@ -248,10 +256,10 @@
   ; if the literal type is not defined, this is false
   (($smt_is_value $smt_unknown_type t)  false)
   ; standard atomic types
-  (($smt_is_value $eo_Numeral t)  ($smt_is_z t))
-  (($smt_is_value $eo_Rational t) ($smt_is_q t))
-  (($smt_is_value $eo_String t)   ($smt_is_str t))
-  (($smt_is_value $eo_Binary t)   ($smt_is_bin t))
+  (($smt_is_value $eo_Numeral t)  ($smt_eo_is_z t))
+  (($smt_is_value $eo_Rational t) ($smt_eo_is_q t))
+  (($smt_is_value $eo_String t)   ($smt_eo_is_str t))
+  (($smt_is_value $eo_Binary t)   ($smt_eo_is_bin t))
   (($smt_is_value (@Map T U) t)   ($smt_map_is_value t))
   ; by default, a value is a term that appears in the type enumeration
   (($smt_is_value T t)            (eo::ite ($smt_is_dt T)
@@ -375,25 +383,25 @@
 
 (define $smt_eval_o_arith_unary
   ((W1 Type :implicit) (U Type :implicit) (op $eo_String) (x1 W1) (u U))
-  (eo::ite ($smt_is_z x1)
+  (eo::ite ($smt_eo_is_z x1)
     ($smt_to_eo_z ($smt_apply_1 op ($smt_from_eo_z x1)))
-  (eo::ite ($smt_is_q x1)
+  (eo::ite ($smt_eo_is_q x1)
     ($smt_to_eo_q ($smt_apply_1 op ($smt_from_eo_q x1)))
     u)))
 
 (define $smt_eval_o_arith
   ((W1 Type :implicit) (W2 Type :implicit) (U Type :implicit) (op $eo_String) (x1 W1) (x2 W2) (u U))
-  (eo::ite (eo::and ($smt_is_z x1) ($smt_is_z x2))
+  (eo::ite (eo::and ($smt_eo_is_z x1) ($smt_eo_is_z x2))
     ($smt_to_eo_z ($smt_apply_2 op ($smt_from_eo_z x1) ($smt_from_eo_z x2)))
-  (eo::ite (eo::and ($smt_is_q x1) ($smt_is_q x2))
+  (eo::ite (eo::and ($smt_eo_is_q x1) ($smt_eo_is_q x2))
     ($smt_to_eo_q ($smt_apply_2 op ($smt_from_eo_q x1) ($smt_from_eo_q x2)))
     u)))
 
 (define $smt_eval_o_arith_pred
   ((W1 Type :implicit) (W2 Type :implicit) (U Type :implicit) (op $eo_String) (x1 W1) (x2 W2) (u U))
-  (eo::ite (eo::and ($smt_is_z x1) ($smt_is_z x2))
+  (eo::ite (eo::and ($smt_eo_is_z x1) ($smt_eo_is_z x2))
     ($smt_to_eo_bool ($smt_apply_2 op ($smt_from_eo_z x1) ($smt_from_eo_z x2)))
-  (eo::ite (eo::and ($smt_is_q x1) ($smt_is_q x2))
+  (eo::ite (eo::and ($smt_eo_is_q x1) ($smt_eo_is_q x2))
     ($smt_to_eo_bool ($smt_apply_2 op ($smt_from_eo_q x1) ($smt_from_eo_q x2)))
     u)))
 
