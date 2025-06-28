@@ -20,7 +20,7 @@ namespace ethos {
 //std::string s_smodel_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
 std::string s_smodel_path = "/home/andrew/ethos/";
 
-ModelSmt::ModelSmt(State& s) : d_state(s), d_tc(s.getTypeChecker())
+ModelSmt::ModelSmt(State& s) : StdPlugin(s)
 {
   Expr typ = d_state.mkType();
   d_kindToType[Kind::BOOLEAN] = d_state.mkBoolType();
@@ -99,6 +99,14 @@ ModelSmt::ModelSmt(State& s) : d_state(s), d_tc(s.getTypeChecker())
 }
 
 ModelSmt::~ModelSmt() {}
+
+void ModelSmt::finalizeDeclaration(const Expr& t, std::ostream& os)
+{
+  Expr lt = t;
+  Expr tlt = d_tc.getType(lt);
+  Assert (tlt.isGround());
+  d_litTypeDecl << "(declare-const " << t << " () " << tlt << ")" << std::endl;
+}
 
 void ModelSmt::addSmtLibSym(const std::string& sym,
                             const std::vector<Kind>& args,
@@ -253,6 +261,12 @@ void ModelSmt::finalize()
   ssep << inep.rdbuf();
   std::string finalEoPremable = ssep.str();
 
+  replace(finalEoPremable, "$SMT_LITERAL_TYPE_DECL$", d_litTypeDecl.str());
+  replace(finalEoPremable, "$SMT_NUMERAL$", d_ltNum.str());
+  replace(finalEoPremable, "$SMT_RATIONAL$", d_ltRational.str());
+  replace(finalEoPremable, "$SMT_STRING$", d_ltString.str());
+  replace(finalEoPremable, "$SMT_BINARY$", d_ltBinary.str());
+
   std::stringstream ssie;
   ssie << s_smodel_path << "plugins/model_smt/model_eo.eo";
   std::ifstream ine(ssie.str());
@@ -277,7 +291,8 @@ void ModelSmt::finalize()
   ssoe << s_smodel_path << "plugins/model_smt/model_smt_gen.eo";
   //std::cout << "Write smt-model    " << finalSmt.str() << std::endl;
   std::ofstream oute(ssoe.str());
-  oute << finalEo; // the final user defined signature, as a preamble
+  // the final user defined signature, as a preamble
+  oute << finalEo;
   oute << finalSmt;
 }
 

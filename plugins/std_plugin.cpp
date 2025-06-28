@@ -58,33 +58,30 @@ void StdPlugin::setLiteralTypeRule(Kind k, const Expr& t)
   // declared at the top
   if (os != nullptr)
   {
-    // get the symbols and declare them in the preamble
-    std::vector<Expr> syms = getSubtermsKind(Kind::CONST, t);
-    for (const Expr& s : syms)
-    {
-      if (d_ltDeclProcessed.find(s)!=d_ltDeclProcessed.end())
-      {
-        continue;
-      }
-      d_ltDeclProcessed.insert(s);
-      finalizeDeclaration(s, d_litTypeDecl);
-    }
-    d_litTypeDecl << "; type-rules: " << k << std::endl;
-    d_litTypeDecl << ss.str();
     // it is only possible to define e.g. $eo_Binary
     // if t is ground. This avoids having eo::self as a free parameter.
     // We use $eo_undef_type otherwise.
     if (t.isGround())
     {
+      // get the symbols and declare them in the preamble
+      std::vector<Expr> syms = getSubtermsKind(Kind::CONST, t);
+      for (const Expr& s : syms)
+      {
+        if (d_ltDeclProcessed.find(s)!=d_ltDeclProcessed.end())
+        {
+          continue;
+        }
+        d_ltDeclProcessed.insert(s);
+        finalizeDeclaration(s, d_litTypeDecl);
+      }
+      d_litTypeDecl << "; type-rules: " << k << std::endl;
+      d_litTypeDecl << ss.str();
       (*os) << t;
     }
     else
     {
       // since $eo_Numeral is used to define the type rules for builtin
-      // operators, it must have a simple type.
-      // Note that we could introduce a $eo_Builtin_Numeral but this would
-      // complicate further type checking, i.e. the user expects
-      // the result of eo::len to be an Int.
+      // operators, it must have a ground type.
       if (k == Kind::NUMERAL)
       {
         EO_FATAL() << "Must have a ground type for <numeral>.";

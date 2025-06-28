@@ -14,10 +14,7 @@
 #include <sstream>
 #include <string>
 
-#include "expr_info.h"
-#include "expr_trie.h"
-#include "plugin.h"
-#include "type_checker.h"
+#include "../std_plugin.h"
 
 namespace ethos {
 
@@ -27,7 +24,7 @@ class TypeChecker;
 /**
  * Used to generate a *.eo file that defines SMT-LIB model semantics.
  */
-class ModelSmt : public Plugin
+class ModelSmt : public StdPlugin
 {
  public:
   ModelSmt(State& s);
@@ -38,10 +35,7 @@ class ModelSmt : public Plugin
   void finalize() override;
 
  private:
-  /** the state */
-  State& d_state;
-  /** the type checker */
-  TypeChecker& d_tc;
+  void finalizeDeclaration(const Expr& t, std::ostream& os) override;
   void addSmtLibSym(const std::string& sym,
                     const std::vector<Kind>& args,
                     Kind ret);
