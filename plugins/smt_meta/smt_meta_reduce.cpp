@@ -120,7 +120,7 @@ bool SmtMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
   }
   if (k == Kind::BOOLEAN)
   {
-    os << "sm." << (l->d_bool ? "True" : "False");
+    os << "(eo.SmtTerm sm." << (l->d_bool ? "True" : "False") << ")";
     return true;
   }
   else if (k == Kind::NUMERAL)
@@ -172,34 +172,40 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
                                          SelectorCtx& ctx,
                                          size_t& nconj)
 {
+  // third tuple is whether we are in an SMT term
   std::map<Expr, std::string>::iterator it;
-  std::vector<std::pair<Expr, std::string>> visit;
-  std::pair<Expr, std::string> cur;
-  visit.emplace_back(c, initCtx);
+  std::vector<std::tuple<Expr, std::string, bool>> visit;
+  std::tuple<Expr, std::string, bool> cur;
+  visit.emplace_back(c, initCtx, false);
   do
   {
     cur = visit.back();
     visit.pop_back();
-    Kind ck = cur.first.getKind();
+    Expr tcur = std::get<0>(cur);
+    std::string currTerm = std::get<1>(cur);
+    bool inSmtTerm = std::get<2>(cur);
+    Kind ck = tcur.getKind();
     std::stringstream cname;
     bool printArgs = false;
     size_t printArgStart = 0;
-    std::string currTerm = cur.second;
-    if (ck == Kind::APPLY && cur.first[0].getKind() != Kind::PROGRAM_CONST)
+    if (ck == Kind::APPLY && tcur[0].getKind() != Kind::PROGRAM_CONST)
     {
       // Determine if this is a Eunoia internal term, or an
       // SMT term
-      if (!isEunoiaSymbol(cur.first[0]))
+      if (!inSmtTerm && !isEunoiaSymbol(tcur[0]))
       {
         os << (nconj > 0 ? " " : "") << "((_ is eo.SmtTerm) " << currTerm
            << ")";
+        nconj++;
         std::stringstream sssn;
         sssn << "(eo.to_smt " << currTerm << ")";
         currTerm = sssn.str();
+        cname << "sm.Apply";
+        inSmtTerm = true;
       }
       else
       {
-        cname << "eo.Apply";
+        cname << (inSmtTerm ? "sm" : "eo") << ".Apply";
       }
       printArgs = true;
     }
@@ -212,7 +218,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     }
     else if (ck == Kind::APPLY_OPAQUE)
     {
-      printEmbAtomicTerm(cur.first[0], cname);
+      printEmbAtomicTerm(tcur[0], cname);
       printArgStart = 1;
       printArgs = true;
     }
@@ -222,14 +228,14 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       os << (nconj > 0 ? " " : "") << "((_ is " << cname.str() << ") "
          << currTerm << ")";
       nconj++;
-      for (size_t i = printArgStart, nchild = cur.first.getNumChildren();
+      for (size_t i = printArgStart, nchild = tcur.getNumChildren();
            i < nchild;
            i++)
       {
         std::stringstream ssNext;
         ssNext << "(" << cname.str() << ".arg" << (i + 1 - printArgStart) << " "
                << currTerm << ")";
-        visit.emplace_back(cur.first[i], ssNext.str());
+        visit.emplace_back(tcur[i], ssNext.str(), inSmtTerm);
       }
     }
     /*
@@ -244,15 +250,15 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     */
     else if (ck == Kind::PARAM)
     {
-      it = ctx.d_ctx.find(cur.first);
+      it = ctx.d_ctx.find(tcur);
       if (it == ctx.d_ctx.end())
       {
         // find time seeing this parameter, it is bound to the selector chain
-        ctx.d_ctx[cur.first] = cur.second;
+        ctx.d_ctx[tcur] = currTerm;
       }
       else
       {
-        os << (nconj > 0 ? " " : "") << "(= " << cur.second << " " << it->second
+        os << (nconj > 0 ? " " : "") << "(= " << currTerm << " " << it->second
            << ")";
         nconj++;
       }
@@ -260,9 +266,9 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     else
     {
       std::stringstream atomTerm;
-      if (printEmbAtomicTerm(cur.first, atomTerm))
+      if (printEmbAtomicTerm(tcur, atomTerm))
       {
-        os << (nconj > 0 ? " " : "") << "(= " << cur.second << " "
+        os << (nconj > 0 ? " " : "") << "(= " << currTerm << " "
            << atomTerm.str() << ")";
         nconj++;
       }
@@ -399,8 +405,9 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
               if (cur.first[0].getKind() != Kind::PROGRAM_CONST)
               {
                 Assert(cur.first.getNumChildren() == 2);
-                // must use macro to ensure "Stuck" propagates
-                os << "$sm_Apply ";
+                // could use macro to ensure "Stuck" propagates
+                // NOTE: if we have the invariant that we pattern matched, we don't need to check
+                os << "sm.Apply ";
               }
             }
           }
@@ -752,6 +759,9 @@ bool SmtMetaReduce::echo(const std::string& msg)
           << eosc;
     }
     d_smtVc << ";;;; final verification condition for " << eosc << std::endl;
+    // NOTE: this is intentionally quantifying on sm.Term, not eo.Term.
+    // In other words, this conjectures that there is an sm.Term, that
+    // when embedded into Eunoia witnesses the unsoundness.
     Expr vt = d_tc.getType(vv);
     std::stringstream varList;
     d_smtVc << "(assert (! ";
@@ -767,7 +777,7 @@ bool SmtMetaReduce::echo(const std::string& msg)
           d_smtVc << " ";
         }
         d_smtVc << "(x" << i << " sm.Term)";
-        call << " x" << i;
+        call << " (eo.SmtTerm x" << i << ")";
       }
       d_smtVc << ")" << std::endl;
       d_smtVc << "  (= (" << eosc << call.str() << ") sm.True))";
