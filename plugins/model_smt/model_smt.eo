@@ -107,7 +107,7 @@
   (@Map T U))
 
 ; Bit-vectors
-(declare-const $smt_BitVec (-> $eo_Numeral Type))
+(declare-parameterized-const $smt_BitVec ((n $eo_Numeral :opaque)) Type)
 
 ;;; Definitions of Type enumeration
 

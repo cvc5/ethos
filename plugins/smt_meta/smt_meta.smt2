@@ -43,8 +43,8 @@ $SM_TERM_DECL$
 (define-fun $smt_to_eo_bool ((x Bool)) sm.Term
   (ite x sm.True sm.False))
   
-; smt-define: $eo_to_smt_bool
-(define-fun $eo_to_smt_bool ((x sm.Term)) Bool
+; smt-define: $smt_from_eo_bool
+(define-fun $smt_from_eo_bool ((x sm.Term)) Bool
   (= x sm.True))
 
 ; smt-define: $sm_is_Boolean
@@ -55,24 +55,24 @@ $SM_TERM_DECL$
 (define-fun $smt_to_eo_z ((x Int)) sm.Term
   (sm.Numeral x))
   
-; smt-define: $eo_to_smt_z
-(define-fun $eo_to_smt_z ((x sm.Term)) Int
+; smt-define: $smt_from_eo_z
+(define-fun $smt_from_eo_z ((x sm.Term)) Int
   (sm.Numeral.val x))
 
 ; smt-define: $smt_to_eo_q
 (define-fun $smt_to_eo_q ((x Real)) sm.Term
   (sm.Rational x))
   
-; smt-define: $eo_to_smt_q
-(define-fun $eo_to_smt_q ((x sm.Term)) Real
+; smt-define: $smt_from_eo_q
+(define-fun $smt_from_eo_q ((x sm.Term)) Real
   (sm.Rational.val x))
 
 ; smt-define: $smt_to_eo_str
 (define-fun $smt_to_eo_str ((x String)) sm.Term
   (sm.String x))
   
-; smt-define: $eo_to_smt_str
-(define-fun $eo_to_smt_str ((x sm.Term)) String
+; smt-define: $smt_from_eo_str
+(define-fun $smt_from_eo_str ((x sm.Term)) String
   (sm.String.val x))
 
 ;;; Utilities
