@@ -176,7 +176,7 @@ void ModelSmt::printSmtTerm(const std::string& name,
     if (args.size() == 2)
     {
       Assert(args[0] == Kind::PARAM && args[1] == Kind::PARAM);
-      d_eval << " x1 x2)) ($smt_eval_o_arith";
+      d_eval << " x1 x2)) ($smt_try_eval_o_arith";
       if (kret == Kind::BOOLEAN)
       {
         d_eval << "_pred";
@@ -185,7 +185,7 @@ void ModelSmt::printSmtTerm(const std::string& name,
     }
     else if (args.size() == 1)
     {
-      d_eval << " x1)) ($smt_eval_o_arith_unary ";
+      d_eval << " x1)) ($smt_try_eval_o_arith_unary ";
       d_eval << " \"" << name << "\" x1 (" << name << " x1)))" << std::endl;
     }
     else

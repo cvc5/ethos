@@ -49,9 +49,6 @@
   ((T Type) (U Type) (index T) (element U) (tail (@Map T U)))
   (@Map T U))
 
-; Bit-vectors
-(declare-parameterized-const $smt_BitVec ((n $smt_Numeral :opaque)) Type)
-
 ;;; Definitions of Type enumeration
 
 ; represents an unknown value
@@ -321,31 +318,6 @@
   (eo::ite (eo::and (d1 x1) (d2 x2))
     (r ($smt_apply_3 op x1 x2 x3))
     u))
-
-(define $smt_eval_o_arith_unary
-  ((W1 Type :implicit) (U Type :implicit) (op $smt_String) (x1 W1) (u U))
-  (eo::ite ($smt_eo_is_z x1)
-    ($smt_to_eo_z ($smt_apply_1 op ($smt_from_eo_z x1)))
-  (eo::ite ($smt_eo_is_q x1)
-    ($smt_to_eo_q ($smt_apply_1 op ($smt_from_eo_q x1)))
-    u)))
-
-(define $smt_eval_o_arith
-  ((W1 Type :implicit) (W2 Type :implicit) (U Type :implicit) (op $smt_String) (x1 W1) (x2 W2) (u U))
-  (eo::ite (eo::and ($smt_eo_is_z x1) ($smt_eo_is_z x2))
-    ($smt_to_eo_z ($smt_apply_2 op ($smt_from_eo_z x1) ($smt_from_eo_z x2)))
-  (eo::ite (eo::and ($smt_eo_is_q x1) ($smt_eo_is_q x2))
-    ($smt_to_eo_q ($smt_apply_2 op ($smt_from_eo_q x1) ($smt_from_eo_q x2)))
-    u)))
-
-(define $smt_eval_o_arith_pred
-  ((W1 Type :implicit) (W2 Type :implicit) (U Type :implicit) (op $smt_String) (x1 W1) (x2 W2) (u U))
-  (eo::ite (eo::and ($smt_eo_is_z x1) ($smt_eo_is_z x2))
-    ($smt_to_eo_bool ($smt_apply_2 op ($smt_from_eo_z x1) ($smt_from_eo_z x2)))
-  (eo::ite (eo::and ($smt_eo_is_q x1) ($smt_eo_is_q x2))
-    ($smt_to_eo_bool ($smt_apply_2 op ($smt_from_eo_q x1) ($smt_from_eo_q x2)))
-    u)))
-
 
 ; An evaluator for all terms that we can reason about models.
 ; This is a recursive call.

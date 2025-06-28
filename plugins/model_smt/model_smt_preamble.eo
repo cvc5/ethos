@@ -150,46 +150,6 @@
     ($smt_is_bin x2)
     ($smt_apply_2 "=" ($smt_bin_width x1) ($smt_bin_width x2)))))
 
-; Apply SMT-meta operator "op" of arity 1, e.g. "$sm_Binary_not".
-; Return the Eunoia term.
-(program $sm_apply_bin_op_1 ((op $smt_String) (w $smt_Numeral) (x1 $smt_Binary))
-  :signature ($smt_String $smt_Numeral $smt_Binary) $smt_Binary
-  (
-  (($sm_apply_bin_op_1 "bvnot" w x1) ($sm_Binary_not w x1))
-  )
-)
-(define $sm_eo_apply_bin_op_1 ((op $smt_String) (x1 $smt_Binary))
-  (eo::define ((w ($smt_bin_width x1)))
-  ($sm_Binary
-    ($smt_apply_2 op
-      w
-      ($smt_bin_val x1))
-    w)))
-
-; Apply SMT-meta operator "op" of arity 2, e.g. "$sm_Binary_and".
-; Return the Eunoia term.
-(program $sm_apply_bin_op_2 ((op $smt_String) (w $smt_Numeral) (x1 $smt_Binary) (x2 $smt_Binary))
-  :signature ($smt_String $smt_Numeral $smt_Binary $smt_Binary) $smt_Binary
-  (
-  (($sm_apply_bin_op_2 "bvand" w x1 x2) ($sm_Binary_and w x1 x2))
-  (($sm_apply_bin_op_2 "bvor" w x1 x2) ($sm_Binary_or w x1 x2))
-  (($sm_apply_bin_op_2 "bvxor" w x1 x2) ($sm_Binary_xor w x1 x2))
-  ; the width of operators already handled in wrapper $sm_eo_apply_bin_op_2 below
-  (($sm_apply_bin_op_2 "bvadd" w x1 x2) ($smt_apply_2 "+" x1 x2))
-  (($sm_apply_bin_op_2 "bvmul" w x1 x2) ($smt_apply_2 "*" x1 x2))
-  (($sm_apply_bin_op_2 "bvudiv" w x1 x2) ($smt_apply_2 "div" x1 x2))
-  (($sm_apply_bin_op_2 "bvurem" w x1 x2) ($smt_apply_2 "mod" x1 x2))
-  )
-)
-(define $sm_eo_apply_bin_op_2 ((op $smt_String) (x1 $smt_Binary) (x2 $smt_Binary))
-  (eo::define ((w ($smt_bin_width x1)))
-  ($sm_Binary
-    ($sm_apply_bin_op_2 op
-      w
-      ($smt_bin_val x1)
-      ($smt_bin_val x2))
-    w)))
-
 ; Apply SMT-LIB operator (-> Int Int Int) "op" to Eunoia terms x1 and x2.
 ; Return the Eunoia term.
 (define $sm_eo_apply_z_op_2 ((op $smt_String) (x1 Bool) (x2 Bool))
@@ -237,7 +197,8 @@
   (eo::ite ($smt_is_bool x1)
     ($smt_to_eo_bool ($smt_apply_1 "not" ($smt_from_eo_bool x1)))
   (eo::ite ($smt_is_bin x1)
-    ($sm_eo_apply_bin_op_1 "bvnot" x1)
+    (eo::define ((w ($smt_bin_width x1)))
+      ($sm_Binary ($sm_Binary_not w ($smt_bin_val x1)) w))
     $smt_fail)))
 
 ; axiom: $eo_and
@@ -245,7 +206,8 @@
   (eo::ite ($smt_apply_2 "and" ($smt_is_bool x1) ($smt_is_bool x2))
     ($sm_eo_apply_bool_op_2 "and" x1 x2)
   (eo::ite ($smt_eo_is_bin_same_width x1 x2)
-    ($sm_eo_apply_bin_op_2 "bvand" x1 x2)
+    (eo::define ((w ($smt_bin_width x1)))
+      ($sm_Binary ($sm_Binary_and w ($smt_bin_val x1) ($smt_bin_val x2)) w))
     $smt_fail)))
 
 ; axiom: $eo_or
@@ -253,7 +215,8 @@
   (eo::ite ($smt_apply_2 "and" ($smt_is_bool x1) ($smt_is_bool x2))
     ($sm_eo_apply_bool_op_2 "or" x1 x2)
   (eo::ite ($smt_eo_is_bin_same_width x1 x2)
-    ($sm_eo_apply_bin_op_2 "bvor" x1 x2)
+    (eo::define ((w ($smt_bin_width x1)))
+      ($sm_Binary ($sm_Binary_or w ($smt_bin_val x1) ($smt_bin_val x2)) w))
     $smt_fail)))
 
 ; axiom: $eo_xor
@@ -261,7 +224,8 @@
   (eo::ite ($smt_apply_2 "and" ($smt_is_bool x1) ($smt_is_bool x2))
     ($sm_eo_apply_bool_op_2 "xor" x1 x2)
   (eo::ite ($smt_eo_is_bin_same_width x1 x2)
-    ($sm_eo_apply_bin_op_2 "bvxor" x1 x2)
+    (eo::define ((w ($smt_bin_width x1)))
+      ($sm_Binary ($sm_Binary_xor w ($smt_bin_val x1) ($smt_bin_val x2)) w))
     $smt_fail)))
 
 ;;; Arithmetic operators
@@ -272,7 +236,7 @@
   ($smt_try_eval_o_arith "+" x1 x2
   ; if that fails, try binary
   (eo::ite ($smt_eo_is_bin_same_width x1 x2)
-    ($sm_eo_apply_bin_op_2 "bvadd" x1 x2)
+    ($sm_Binary ($smt_apply_2 "+" ($smt_bin_val x1) ($smt_bin_val x2)) ($smt_bin_width x1))
     $eo_fail)))
 
 ; axiom: $eo_mul
@@ -281,7 +245,7 @@
   ($smt_try_eval_o_arith "*" x1 x2
   ; if that fails, try binary
   (eo::ite ($smt_eo_is_bin_same_width x1 x2)
-    ($sm_eo_apply_bin_op_2 "bvmul" x1 x2)
+    ($sm_Binary ($smt_apply_2 "*" ($smt_bin_val x1) ($smt_bin_val x2)) ($smt_bin_width x1))
     $eo_fail)))
 
 ; axiom: $eo_qdiv
@@ -297,7 +261,7 @@
   (eo::ite ($smt_eo_is_z_div_op x1 x2)
     ($sm_eo_apply_z_op_2 "div" x1 x2)
   (eo::ite ($smt_eo_is_bin_same_width x1 x2)
-    ($sm_eo_apply_bin_op_2 "bvudiv" x1 x2)
+    ($sm_Binary ($smt_apply_2 "div" ($smt_bin_val x1) ($smt_bin_val x2)) ($smt_bin_width x1))
     $eo_fail)))
 
 ; axiom: $eo_zmod
@@ -305,7 +269,7 @@
   (eo::ite ($smt_eo_is_z_div_op x1 x2)
     ($sm_eo_apply_z_op_2 "mod" x1 x2)
   (eo::ite ($smt_eo_is_bin_same_width x1 x2)
-    ($sm_eo_apply_bin_op_2 "bvurem" x1 x2)
+    ($sm_Binary ($smt_apply_2 "mod" ($smt_bin_val x1) ($smt_bin_val x2)) ($smt_bin_width x1))
     $eo_fail)))
 
 ; axiom: $eo_is_neg

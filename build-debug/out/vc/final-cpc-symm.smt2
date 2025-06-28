@@ -18,10 +18,10 @@
   (eo.$eo_List_cons)
   ; declare @Map
   (eo.@Map)
-  ; declare @Map_nil
-  (eo.@Map_nil)
   ; declare @smt_RatPair
   (eo.@smt_RatPair)
+  ; declare @Map_nil
+  (eo.@Map_nil)
   ; declare @smt_ratPair
   (eo.@smt_ratPair)
 
@@ -83,8 +83,6 @@
   (sm.=)
   ; declare BitVec
   (sm.BitVec)
-  ; declare $smt_BitVec
-  (sm.$smt_BitVec (sm.$smt_BitVec.arg1 sm.Term))
   ; declare $smt_unknown_type_enum
   (sm.$smt_unknown_type_enum (sm.$smt_unknown_type_enum.arg1 sm.Term) (sm.$smt_unknown_type_enum.arg2 sm.Term))
   ; declare $smt_Const
@@ -144,11 +142,16 @@
     sm.Stuck
     (sm.Apply x y)))
 
-(declare-fun $sm_pow2_eval (Int) Int)
+
+;;; Definitions of forward declared programs in SMT preamble
+
 ; note: should never be called on negative numbers
+(declare-fun $sm_pow2_eval (Int) Int)
 (assert (! (forall ((i Int))
   (= ($sm_pow2_eval i) (ite (<= i 0) 1 (* 2 ($sm_pow2_eval (- i 1)))))) :named sm.eval_pow2))
 
+; program: $sm_Binary
+; Forward declaration in model_smt_preamble.eo
 (define-fun $sm_Binary ((w Int) (x Int)) sm.Term
   (ite (and (<= 0 w) (< w 4294967296))
     (sm.Binary w (mod x ($sm_pow2_eval w)))
@@ -165,7 +168,6 @@
       (+ ($sm_Binary_and (- w 1) x1 x2) (* ($sm_pow2_eval w)
          (ite (and ($sm_bit x1 w) ($sm_bit x2 w)) 1 0))))))) :named sm.eval_bin_and))
 
-
 ; ((w Int) (x1 Int) (x2 Int))
 (declare-fun $sm_Binary_or (Int Int Int) Int) ; TODO
 
@@ -174,14 +176,6 @@
 
 ; ((w Int) (x1 Int))
 (declare-fun $sm_Binary_not (Int Int) Int) ; TODO
-
-; ((w1 Int) (x1 Int) (w2 Int) (x2 Int))
-(define-fun $sm_Binary_concat ((w1 Int) (x1 Int) (w2 Int) (x2 Int)) sm.Term
-    sm.Stuck) ; TODO
-
-; ((w Int) (x Int) (x1 Int) (x2 Int))
-(define-fun $sm_Binary_extract ((w Int) (x Int) (x1 Int) (x2 Int)) sm.Term
-    sm.Stuck) ; TODO
 
 ;;; Core operators
 
@@ -213,182 +207,6 @@
   (=> (and (not (= x sm.Stuck)) (not (= y sm.Stuck))
     (= ($eo_hash x) ($eo_hash y))) (= x y))) :named sm.hash_inj))
 
-;;; Boolean operators
-
-; axiom: $eo_not
-(define-fun $eo_not ((x1 sm.Term)) sm.Term
-  (ite ($sm_is_Boolean x1)
-    ($smt_to_eo_bool (= x1 sm.False))
-  (ite ((_ is sm.Binary) x1)
-    (let ((w (sm.Binary.width x1)))
-      ($sm_Binary w ($sm_Binary_not w (sm.Binary.val x1))))
-    sm.Stuck)))
-
-; axiom: $eo_and
-(define-fun $eo_and ((x1 sm.Term) (x2 sm.Term)) sm.Term
-  (ite (and ($sm_is_Boolean x1) ($sm_is_Boolean x2))
-    ($smt_to_eo_bool (and (= x1 sm.True) (= x2 sm.True)))
-  (ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))
-    (let ((w (sm.Binary.width x1)))
-      ($sm_Binary w
-      ($sm_Binary_and w (sm.Binary.val x1) (sm.Binary.val x2))))
-    sm.Stuck)))
-
-; axiom: $eo_or
-(define-fun $eo_or ((x1 sm.Term) (x2 sm.Term)) sm.Term
-  (ite (and ($sm_is_Boolean x1) ($sm_is_Boolean x2))
-    ($smt_to_eo_bool (or (= x1 sm.True) (= x2 sm.True)))
-  (ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))
-    (let ((w (sm.Binary.width x1)))
-      ($sm_Binary w
-      ($sm_Binary_or w (sm.Binary.val x1) (sm.Binary.val x2))))
-    sm.Stuck)))
-
-; axiom: $eo_xor
-(define-fun $eo_xor ((x1 sm.Term) (x2 sm.Term)) sm.Term
-  (ite (and ($sm_is_Boolean x1) ($sm_is_Boolean x2))
-    ($smt_to_eo_bool (xor (= x1 sm.True) (= x2 sm.True)))
-  (ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))
-    (let ((w (sm.Binary.width x1)))
-      ($sm_Binary w
-      ($sm_Binary_xor w (sm.Binary.val x1) (sm.Binary.val x2))))
-    sm.Stuck)))
-
-;;; Arithmetic operators
-
-; axiom: $eo_add
-(define-fun $eo_add ((x1 sm.Term) (x2 sm.Term)) sm.Term
-  (ite (and ((_ is sm.Numeral) x1) ((_ is sm.Numeral) x2))
-    (sm.Numeral (+ (sm.Numeral.val x1) (sm.Numeral.val x2)))
-  (ite (and ((_ is sm.Rational) x1) ((_ is sm.Rational) x2))
-    (sm.Rational (+ (sm.Rational.val x1) (sm.Rational.val x2)))
-  (ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))
-    ($sm_Binary (sm.Binary.width x1) (+ (sm.Binary.val x1) (sm.Binary.val x2)))
-    sm.Stuck))))
-
-; axiom: $eo_mul
-(define-fun $eo_mul ((x1 sm.Term) (x2 sm.Term)) sm.Term
-  (ite (and ((_ is sm.Numeral) x1) ((_ is sm.Numeral) x2))
-    (sm.Numeral (* (sm.Numeral.val x1) (sm.Numeral.val x2)))
-  (ite (and ((_ is sm.Rational) x1) ((_ is sm.Rational) x2))
-    (sm.Rational (* (sm.Rational.val x1) (sm.Rational.val x2)))
-  (ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))
-    ($sm_Binary (sm.Binary.width x1) (* (sm.Binary.val x1) (sm.Binary.val x2)))
-    sm.Stuck))))
-
-; axiom: $eo_qdiv
-(define-fun $eo_qdiv ((x1 sm.Term) (x2 sm.Term)) sm.Term
-  (ite (and ((_ is sm.Numeral) x1) ((_ is sm.Numeral) x2) (not (= (sm.Numeral.val x2) 0)))
-    (sm.Rational (/ (to_real (sm.Numeral.val x1)) (to_real (sm.Numeral.val x2))))
-  (ite (and ((_ is sm.Rational) x1) ((_ is sm.Rational) x2) (not (= (sm.Rational.val x2) 0.0)))
-    (sm.Rational (/ (sm.Rational.val x1) (sm.Rational.val x2)))
-    sm.Stuck)))
-
-; axiom: $eo_zdiv
-(define-fun $eo_zdiv ((x1 sm.Term) (x2 sm.Term)) sm.Term
-  (ite (and ((_ is sm.Numeral) x1) ((_ is sm.Numeral) x2) (not (= (sm.Numeral.val x2) 0)))
-    (sm.Numeral (div (sm.Numeral.val x1) (sm.Numeral.val x2)))
-  (ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2)) (not (= (sm.Binary.val x2) 0)))
-    ($sm_Binary (sm.Binary.width x1) (div (sm.Binary.val x1) (sm.Binary.val x2)))
-    sm.Stuck)))
-
-; axiom: $eo_zmod
-(define-fun $eo_zmod ((x1 sm.Term) (x2 sm.Term)) sm.Term
-  (ite (and ((_ is sm.Numeral) x1) ((_ is sm.Numeral) x2) (not (= (sm.Numeral.val x2) 0)))
-    (sm.Numeral (mod (sm.Numeral.val x1) (sm.Numeral.val x2)))
-  (ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2) (= (sm.Binary.width x1) (sm.Binary.width x2)) (not (= (sm.Binary.val x2) 0)))
-    ($sm_Binary (sm.Binary.width x1) (mod (sm.Binary.val x1) (sm.Binary.val x2)))
-    sm.Stuck)))
-
-; axiom: $eo_is_neg
-(define-fun $eo_is_neg ((x1 sm.Term)) sm.Term
-  (ite ((_ is sm.Numeral) x1)
-    ($smt_to_eo_bool (< (sm.Numeral.val x1) 0))
-  (ite ((_ is sm.Rational) x1)
-    ($smt_to_eo_bool (< (sm.Rational.val x1) 0.0))
-    sm.Stuck)))
-
-; axiom: $eo_neg
-(define-fun $eo_neg ((x1 sm.Term)) sm.Term
-  (ite ((_ is sm.Numeral) x1)
-    (sm.Numeral (- (sm.Numeral.val x1)))
-  (ite ((_ is sm.Rational) x1)
-    (sm.Rational (- (sm.Rational.val x1)))
-    sm.Stuck)))
-
-;;; String operators
-
-; axiom: $eo_len
-(define-fun $eo_len ((x1 sm.Term)) sm.Term
-  (ite ((_ is sm.Binary) x1)
-    (sm.Numeral (sm.Binary.width x1))
-  (ite ((_ is sm.String) x1)
-    (sm.Numeral (str.len (sm.String.val x1)))
-    sm.Stuck)))
-
-; axiom: $eo_concat
-(define-fun $eo_concat ((x1 sm.Term) (x2 sm.Term)) sm.Term
-  (ite (and ((_ is sm.String) x1) ((_ is sm.String) x2))
-    (sm.String (str.++ (sm.String.val x1) (sm.String.val x2)))
-  (ite (and ((_ is sm.Binary) x1) ((_ is sm.Binary) x2))
-    ($sm_Binary_concat (sm.Binary.width x1) (sm.Binary.val x1) (sm.Binary.width x2) (sm.Binary.val x2))
-    sm.Stuck)))
-
-; axiom: $eo_extract
-(define-fun $eo_extract ((x1 sm.Term) (x2 sm.Term) (x3 sm.Term)) sm.Term
-  (ite (and ((_ is sm.String) x1) ((_ is sm.Numeral) x2) ((_ is sm.Numeral) x3))
-    (let ((n2 (sm.Numeral.val x2)))
-    (let ((n3 (sm.Numeral.val x3)))
-    (sm.String (str.substr (sm.String.val x1) n2 (+ (- n3 n2) 1)))))
-  (ite (and ((_ is sm.Binary) x1) ((_ is sm.Numeral) x2) ((_ is sm.Numeral) x3))
-    ($sm_Binary_extract (sm.Binary.width x1) (sm.Binary.val x1) (sm.Binary.val x2) (sm.Binary.val x3))
-    sm.Stuck)))
-
-; axiom: $eo_find
-(define-fun $eo_find ((x1 sm.Term) (x2 sm.Term)) sm.Term
-  (ite (and ((_ is sm.String) x1) ((_ is sm.String) x2))
-    (sm.Numeral (str.indexof (sm.String.val x1) (sm.String.val x2) 0))
-    sm.Stuck))
-
-;;; Conversion operators
-
-; axiom: $eo_to_z
-(define-fun $eo_to_z ((x1 sm.Term)) sm.Term
-  (ite ((_ is sm.Numeral) x1)
-    x1
-  (ite ((_ is sm.Rational) x1)
-    (sm.Numeral (to_int (sm.Rational.val x1)))
-  (ite ((_ is sm.Binary) x1)
-    (sm.Numeral (sm.Binary.val x1))
-  (ite (and ((_ is sm.String) x1) (= (str.len (sm.String.val x1)) 1))
-    (sm.Numeral (str.to_code (sm.String.val x1)))
-    sm.Stuck)))))
-
-; axiom: $eo_to_q
-(define-fun $eo_to_q ((x1 sm.Term)) sm.Term
-  (ite ((_ is sm.Numeral) x1)
-    (sm.Rational (to_real (sm.Numeral.val x1)))
-  (ite ((_ is sm.Rational) x1)
-    x1
-    sm.Stuck)))
-
-; axiom: $eo_to_bin
-(define-fun $eo_to_bin ((x1 sm.Term) (x2 sm.Term)) sm.Term
-  (ite (and ((_ is sm.Numeral) x1) ((_ is sm.Numeral) x2))
-    ($sm_Binary (sm.Numeral.val x1) (sm.Numeral.val x2))
-  (ite (and ((_ is sm.Numeral) x1) ((_ is sm.Binary) x2))
-    ($sm_Binary (sm.Numeral.val x1) (sm.Binary.val x2))
-    sm.Stuck)))
-
-; axiom: $eo_to_str
-(define-fun $eo_to_str ((x1 sm.Term)) sm.Term
-  (ite ((_ is sm.Numeral) x1)
-    (sm.String (str.from_code (sm.Numeral.val x1)))
-  (ite ((_ is sm.String) x1)
-    x1
-  ; TODO?
-    sm.Stuck)))
-
 ;;; User defined symbols
 
 ; fwd-decl: $eo_typeof
@@ -403,50 +221,23 @@
 ; fwd-decl: $sm_Binary_and
 (declare-fun $sm_Binary_and (sm.Term sm.Term sm.Term) sm.Term)
 
-; fwd-decl: $sm_Binary_or
-(declare-fun $sm_Binary_or (sm.Term sm.Term sm.Term) sm.Term)
-
-; fwd-decl: $sm_Binary_xor
-(declare-fun $sm_Binary_xor (sm.Term sm.Term sm.Term) sm.Term)
-
 ; fwd-decl: $sm_Binary_concat
 (declare-fun $sm_Binary_concat (sm.Term sm.Term sm.Term sm.Term) sm.Term)
 
-; program: $sm_apply_bin_op_2
-(define-fun $sm_apply_bin_op_2 ((x1 sm.Term) (x2 sm.Term) (x3 sm.Term) (x4 sm.Term)) sm.Term
-  (ite (or (= x1 sm.Stuck) (= x2 sm.Stuck) (= x3 sm.Stuck) (= x4 sm.Stuck))
-    sm.Stuck
-  (ite (= x1 (sm.String "bvand"))
-    ($sm_Binary_and x2 x3 x4)
-  (ite (= x1 (sm.String "bvor"))
-    ($sm_Binary_or x2 x3 x4)
-  (ite (= x1 (sm.String "bvxor"))
-    ($sm_Binary_xor x2 x3 x4)
-  (ite (= x1 (sm.String "bvadd"))
-    (+ x3 x4)
-  (ite (= x1 (sm.String "bvmul"))
-    (* x3 x4)
-  (ite (= x1 (sm.String "bvudiv"))
-    (div x3 x4)
-  (ite (= x1 (sm.String "bvurem"))
-    (mod x3 x4)
-    sm.Stuck))))))))
-)
-
 ; define $eo_and
-(define-fun $eo_and ((x1 sm.Term) (x2 sm.Term)) sm.Term ($eo_ite (and ($sm_is_Boolean x1) ($sm_is_Boolean x2)) ($smt_to_eo_bool (and ($smt_from_eo_bool x1) ($smt_from_eo_bool x2))) ($eo_ite ($smt_to_eo_bool (and ((_ is sm.Binary)x1) ((_ is sm.Binary)x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))) ($sm_Binary ($sm_apply_bin_op_2 (sm.String "bvand") (sm.Binary.width x1) (sm.Binary.val x1) (sm.Binary.val x2)) (sm.Binary.width x1)) sm.$smt_fail)))
+(define-fun $eo_and ((x1 sm.Term) (x2 sm.Term)) sm.Term ($eo_ite (and ($sm_is_Boolean x1) ($sm_is_Boolean x2)) ($smt_to_eo_bool (and ($smt_from_eo_bool x1) ($smt_from_eo_bool x2))) ($eo_ite ($smt_to_eo_bool (and ((_ is sm.Binary)x1) ((_ is sm.Binary)x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))) ($sm_Binary ($sm_Binary_and (sm.Binary.width x1) (sm.Binary.val x1) (sm.Binary.val x2)) (sm.Binary.width x1)) sm.$smt_fail)))
 
 ; define $eo_add
-(define-fun $eo_add ((x1 sm.Term) (x2 sm.Term)) sm.Term ($eo_ite (and ($smt_to_eo_bool ((_ is sm.Numeral)x1)) ($smt_to_eo_bool ((_ is sm.Numeral)x2))) ($smt_to_eo_z (+ ($smt_from_eo_z x1) ($smt_from_eo_z x2))) ($eo_ite (and ($smt_to_eo_bool ((_ is sm.Rational)x1)) ($smt_to_eo_bool ((_ is sm.Rational)x2))) ($smt_to_eo_q (+ ($smt_from_eo_q x1) ($smt_from_eo_q x2))) ($eo_ite ($smt_to_eo_bool (and ((_ is sm.Binary)x1) ((_ is sm.Binary)x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))) ($sm_Binary ($sm_apply_bin_op_2 (sm.String "bvadd") (sm.Binary.width x1) (sm.Binary.val x1) (sm.Binary.val x2)) (sm.Binary.width x1)) ($eo_requires sm.True sm.False sm.True)))))
+(define-fun $eo_add ((x1 sm.Term) (x2 sm.Term)) sm.Term ($eo_ite (and ($smt_to_eo_bool ((_ is sm.Numeral)x1)) ($smt_to_eo_bool ((_ is sm.Numeral)x2))) ($smt_to_eo_z (+ ($smt_from_eo_z x1) ($smt_from_eo_z x2))) ($eo_ite (and ($smt_to_eo_bool ((_ is sm.Rational)x1)) ($smt_to_eo_bool ((_ is sm.Rational)x2))) ($smt_to_eo_q (+ ($smt_from_eo_q x1) ($smt_from_eo_q x2))) ($eo_ite ($smt_to_eo_bool (and ((_ is sm.Binary)x1) ((_ is sm.Binary)x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))) ($sm_Binary (+ (sm.Binary.val x1) (sm.Binary.val x2)) (sm.Binary.width x1)) ($eo_requires sm.True sm.False sm.True)))))
 
 ; define $eo_qdiv
 (define-fun $eo_qdiv ((x1 sm.Term) (x2 sm.Term)) sm.Term ($eo_ite ($smt_to_eo_bool (and ((_ is sm.Numeral)x1) ((_ is sm.Numeral)x2) (not (= ($smt_from_eo_z x2) (sm.Numeral 0))))) ($smt_to_eo_q (/ (to_real ($smt_from_eo_z x1)) (to_real ($smt_from_eo_z x2)))) ($eo_ite ($smt_to_eo_bool (and ((_ is sm.Rational)x1) ((_ is sm.Rational)x2) (not (= ($smt_from_eo_q x2) (sm.Rational 0/1))))) ($smt_to_eo_q (/ ($smt_from_eo_q x1) ($smt_from_eo_q x2))) ($eo_requires sm.True sm.False sm.True))))
 
 ; define $eo_zdiv
-(define-fun $eo_zdiv ((x1 sm.Term) (x2 sm.Term)) sm.Term ($eo_ite ($smt_to_eo_bool (and ((_ is sm.Numeral)x1) ((_ is sm.Numeral)x2) (not (= ($smt_from_eo_z x2) (sm.Numeral 0))))) ($smt_to_eo_z (div ($smt_from_eo_z x1) ($smt_from_eo_z x2))) ($eo_ite ($smt_to_eo_bool (and ((_ is sm.Binary)x1) ((_ is sm.Binary)x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))) ($sm_Binary ($sm_apply_bin_op_2 (sm.String "bvudiv") (sm.Binary.width x1) (sm.Binary.val x1) (sm.Binary.val x2)) (sm.Binary.width x1)) ($eo_requires sm.True sm.False sm.True))))
+(define-fun $eo_zdiv ((x1 sm.Term) (x2 sm.Term)) sm.Term ($eo_ite ($smt_to_eo_bool (and ((_ is sm.Numeral)x1) ((_ is sm.Numeral)x2) (not (= ($smt_from_eo_z x2) (sm.Numeral 0))))) ($smt_to_eo_z (div ($smt_from_eo_z x1) ($smt_from_eo_z x2))) ($eo_ite ($smt_to_eo_bool (and ((_ is sm.Binary)x1) ((_ is sm.Binary)x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))) ($sm_Binary (div (sm.Binary.val x1) (sm.Binary.val x2)) (sm.Binary.width x1)) ($eo_requires sm.True sm.False sm.True))))
 
 ; define $eo_zmod
-(define-fun $eo_zmod ((x1 sm.Term) (x2 sm.Term)) sm.Term ($eo_ite ($smt_to_eo_bool (and ((_ is sm.Numeral)x1) ((_ is sm.Numeral)x2) (not (= ($smt_from_eo_z x2) (sm.Numeral 0))))) ($smt_to_eo_z (mod ($smt_from_eo_z x1) ($smt_from_eo_z x2))) ($eo_ite ($smt_to_eo_bool (and ((_ is sm.Binary)x1) ((_ is sm.Binary)x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))) ($sm_Binary ($sm_apply_bin_op_2 (sm.String "bvurem") (sm.Binary.width x1) (sm.Binary.val x1) (sm.Binary.val x2)) (sm.Binary.width x1)) ($eo_requires sm.True sm.False sm.True))))
+(define-fun $eo_zmod ((x1 sm.Term) (x2 sm.Term)) sm.Term ($eo_ite ($smt_to_eo_bool (and ((_ is sm.Numeral)x1) ((_ is sm.Numeral)x2) (not (= ($smt_from_eo_z x2) (sm.Numeral 0))))) ($smt_to_eo_z (mod ($smt_from_eo_z x1) ($smt_from_eo_z x2))) ($eo_ite ($smt_to_eo_bool (and ((_ is sm.Binary)x1) ((_ is sm.Binary)x2) (= (sm.Binary.width x1) (sm.Binary.width x2)))) ($sm_Binary (mod (sm.Binary.val x1) (sm.Binary.val x2)) (sm.Binary.width x1)) ($eo_requires sm.True sm.False sm.True))))
 
 ; define $eo_neg
 (define-fun $eo_neg ((x1 sm.Term)) sm.Term ($eo_ite ($smt_to_eo_bool ((_ is sm.Numeral)x1)) ($smt_to_eo_z (- ($smt_from_eo_z x1))) ($eo_ite ($smt_to_eo_bool ((_ is sm.Rational)x1)) ($smt_to_eo_q (- ($smt_from_eo_q x1))) ($eo_requires sm.True sm.False sm.True))))
