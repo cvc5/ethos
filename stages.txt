@@ -58,10 +58,10 @@ Eunoia program $eovc_X which:
 This side condition is the target for verification in the Smt_Meta step below.
 
 Relies on:
-- eo_desugar.eo template, 285 LOC EO
-- desugar.cpp (ethos plugin), 998 LOC C++
+- eo_desugar.eo template, 286 LOC EO
+- desugar.cpp (ethos plugin), 918 LOC C++
 - (Optional) trim_defs.cpp (ethos plugin), 258 LOC C++
-  - Slices the signature, preserves S-expression.
+  - Slices the signature, preserves S-expressions.
   - Needed to make the VCs more manageable.
 
 Things handled at this stage:
@@ -89,6 +89,7 @@ Things handled at this stage:
   - Includes definitions of literal types, and type of variables ($eo_Var).
 - eo::dt_constructors, eo::dt_selectors
 - Defines $eo_fail as a stuck term.
+- Defines $eo_model_preamble as a placeholder for inserting more definitions of $eo_.
 
 === Model_smt
 
@@ -137,8 +138,8 @@ This means we are searching over the *syntactic space* of Eunoia terms
 to find terms that witness the semantic unsoundness of the rule.
 
 Relies on:
-- smt_meta.smt2 template, 215 LOC SMT2
-- smt_meta_reduce.cpp (ethos plugin), 783 LOC C++
+- smt_meta.smt2 template, 99 LOC SMT2
+- smt_meta_reduce.cpp (ethos plugin), 903 LOC C++
 
 Things handled at this stage:
 - Distinction between Eunoia terms and SMT-LIB terms.
