@@ -223,7 +223,7 @@ void ModelSmt::printSmtTerm(const std::string& name,
     {
       EO_FATAL() << "Unhandled arity " << args.size() << " for " << name;
     }
-    d_eval << ")) " << preApp.str() << "      ($smt_to_eo_";
+    d_eval << ")) " << preApp.str() << "      ($eo_mk_";
     if (d_kindToEoPrefix.find(kret) != d_kindToEoPrefix.end())
     {
       d_eval << d_kindToEoPrefix[kret];

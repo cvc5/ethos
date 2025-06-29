@@ -466,7 +466,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
               os << smtAppName << " ";
             }
             // we recurse on the compiled SMT arguments
-            // tuple is not
+            // tuple is pushed to the stack, and will print *inlined*
             Expr tupleArgs = d_state.mkExprSimple(Kind::TUPLE, smtArgs);
             std::cout << key.first << " is " << smtAppName << " / " << tupleArgs
                       << std::endl;

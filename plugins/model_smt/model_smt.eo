@@ -190,9 +190,8 @@
 ; program: $smt_dt_is_value
 ; Returns true if its argument is an SMT value.
 ; This function is expected to never get stuck.
-(program $smt_is_value ((T Type) (U Type) (t T)
-   ; generic parameters that may appear in terms to pattern match
-   (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3))
+(program $smt_is_value
+  ((T Type) (U Type) (t T) (n1 $smt_Numeral) (r1 $smt_Rational) (s1 $smt_String))
   :signature ((eo::quote T) T) Bool
   (
   ; if the literal type is not defined, this is false
@@ -200,10 +199,10 @@
   ; standard atomic types
   (($smt_is_value Bool true)       true)
   (($smt_is_value Bool false)      true)
-  (($smt_is_value $smt_Numeral t)  ($smt_eo_is_z t))
-  (($smt_is_value $smt_Rational t) ($smt_eo_is_q t))
-  (($smt_is_value $smt_String t)   ($smt_eo_is_str t))
-  ;(($smt_is_value $eo_Binary t)   ($smt_eo_is_bin t))
+  (($smt_is_value $smt_Numeral ($smd_eo.SmtTerm ($smd_sm.Numeral n1)))  true)
+  (($smt_is_value $smt_Rational ($smd_eo.SmtTerm ($smd_sm.Rational r1)))  true)
+  (($smt_is_value $smt_String ($smd_eo.SmtTerm ($smd_sm.String s1)))  true)
+  ;(($smt_is_value $eo_Binary t)
   (($smt_is_value (@Map T U) t)   ($smt_map_is_value t))
   ; by default, a value is a term that appears in the type enumeration
   (($smt_is_value T t)            (eo::ite ($smt_is_dt T)
@@ -293,7 +292,7 @@
 (define $smt_eval_=
   ((B Type :implicit) (W Type) (x1 W) (x2 W) (u B))
   (eo::ite (eo::and ($smt_is_value W x1) ($smt_is_value W x2))
-    ($smt_to_eo_bool ($smt_apply_2 "=" x1 x2))
+    ($eo_mk_bool ($smt_apply_2 "=" x1 x2))
     u))
 
 ; For example:
@@ -301,7 +300,7 @@
 ;   "and"
 ;   ($smt_from_eo_bool x1) $smt_is_bool
 ;   ($smt_from_eo_bool x2) $smt_is_bool
-;   $smt_to_eo_bool (and x1 x2))
+;   ($eo_mk_bool (and x1 x2))
 ; Is the call to evaluate the SMT-LIB and from Eunoia.
 ; The last term is what is returned if the call is unevaluated.
 (define $smt_eval_apply_1

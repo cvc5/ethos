@@ -64,34 +64,8 @@
   ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit) (W4 Type :implicit) (W5 Type :implicit))
   (-> $smt_String W1 W2 W3 W4 W5 $smt_Term))
 
-; Convert from Eunoia to an SMT value
-; These assume the Eunoia term is a literal of the correct type.
-; All uses of the $smt_from_eo_* methods must ensure this is the case
-; Convert Eunoia Boolean to an smt Boolean.
-(declare-const $smt_from_eo_bool (-> Bool $smt_Term))
-; Convert Eunoia Numeral to an smt Integer.
-(declare-const $smt_from_eo_z (-> $smt_Numeral $smt_Term))
-; Convert Eunoia Rational to an smt Real.
-(declare-const $smt_from_eo_q (-> $smt_Rational $smt_Term))
-; Convert Eunoia String to an smt String.
-(declare-const $smt_from_eo_str (-> $smt_String $smt_Term))
-; Convert Eunoia Binary to an smt-meta representation of Binary.
-(declare-const $smt_from_eo_bin (-> $smt_Binary $smt_Term))
-; Convert smt2 term to a Eunoia Boolean.
-(declare-const $smt_to_eo_bool (-> $smt_Term Bool))
-; Convert smt2 term to a Eunoia numeral.
-(declare-const $smt_to_eo_z (-> $smt_Term $smt_Numeral))
-; Convert smt2 term to a Eunoia rational.
-(declare-const $smt_to_eo_q (-> $smt_Term $smt_Rational))
-; Convert smt2 term to a Eunoia string.
-(declare-const $smt_to_eo_str (-> $smt_Term $smt_String))
-; Convert smt2 term to a Eunoia binary.
-(declare-const $smt_to_eo_bin (-> $smt_Term $smt_Binary))
-
-; Testers that use lower level sm.Term datatype, both for simplicity and efficiency.
-; These rely on "is sm.Numeral" referring to the SMT-LIB operator (_ is sm.Numeral)
-; in the final encoding.
 ; Boolean relies on the $sm_is_Boolean define-fun in the SMT meta signature.
+; This is an optimization to avoid Booleans in the final datatype.
 (define $smt_is_bool ((T Type :implicit) (t T))
   ($smt_apply_2 "or"
     ; treat "= sm.True" as a unary function, ditto for "= sm.False"
@@ -99,31 +73,6 @@
     ($smt_apply_1 "= sm.False" ($smt_apply_1 "eo.to_smt" t))))
 (define $smt_get_bool ((T Type :implicit) (t T))
   ($smt_apply_1 "= sm.True" ($smt_apply_1 "eo.to_smt" t)))
-(define $smt_is_z ((T Type :implicit) (t T))
-  ($smt_apply_2 "and"
-    ($smt_apply_1 "is eo.SmtTerm" t)
-    ($smt_apply_1 "is sm.Numeral" ($smt_apply_1 "eo.to_smt" t))))
-(define $smt_is_q ((T Type :implicit) (t T))
-  ($smt_apply_2 "and"
-    ($smt_apply_1 "is eo.SmtTerm" t)
-    ($smt_apply_1 "is sm.Rational" ($smt_apply_1 "eo.to_smt" t))))
-(define $smt_is_str ((T Type :implicit) (t T))
-  ($smt_apply_2 "and"
-    ($smt_apply_1 "is eo.SmtTerm" t)
-    ($smt_apply_1 "is sm.String" ($smt_apply_1 "eo.to_smt" t))))
-(define $smt_is_bin ((T Type :implicit) (t T))
-  ($smt_apply_2 "and"
-    ($smt_apply_1 "is eo.SmtTerm" t)
-    ($smt_apply_1 "is sm.Binary" ($smt_apply_1 "eo.to_smt" t))))
-; decomposing binaries
-(define $smt_bin_width ((T Type :implicit) (t T)) ($smt_apply_1 "sm.Binary.width" ($smt_apply_1 "eo.to_smt" t)))
-(define $smt_bin_val ((T Type :implicit) (t T)) ($smt_apply_1 "sm.Binary.val" ($smt_apply_1 "eo.to_smt" t)))
-;
-(define $smt_eo_is_bool ((T Type :implicit) (t T)) ($smt_to_eo_bool ($smt_is_bool t)))
-(define $smt_eo_is_z ((T Type :implicit) (t T)) ($smt_to_eo_bool ($smt_is_z t)))
-(define $smt_eo_is_q ((T Type :implicit) (t T)) ($smt_to_eo_bool ($smt_is_q t)))
-(define $smt_eo_is_str ((T Type :implicit) (t T)) ($smt_to_eo_bool ($smt_is_str t)))
-(define $smt_eo_is_bin ((T Type :implicit) (t T)) ($smt_to_eo_bool ($smt_is_bin t)))
 
 ;;;
 
@@ -195,80 +144,17 @@
                            ($smt_apply_2 "mod" n ($sm_mk_pow2 w))))))
   )
 )
+; Convert Eunoia Boolean to an smt Boolean.
+(declare-const $smt_from_eo_bool (-> Bool $smt_Term))
+; Convert Eunoia Numeral to an smt Integer.
+(declare-const $smt_from_eo_z (-> $smt_Numeral $smt_Term))
+; Convert Eunoia Rational to an smt Real.
+(declare-const $smt_from_eo_q (-> $smt_Rational $smt_Term))
+; Convert Eunoia String to an smt String.
+(declare-const $smt_from_eo_str (-> $smt_String $smt_Term))
+
+
 ;;; Utilities
-
-; Apply SMT-LIB operator Boolean connective "op" to Eunoia terms x1 and x2.
-; Return the Eunoia term.
-(define $sm_eo_apply_bool_op_2 ((op $smt_String) (x1 Bool) (x2 Bool))
-  ($smt_to_eo_bool ($smt_apply_2 op
-    ($smt_from_eo_bool x1)
-    ($smt_from_eo_bool x2))))
-
-; An SMT-LIB formula corresponding to Eunoia terms being an integer division operation.
-; Return the SMT-LIB Boolean.
-(define $smt_eo_is_z_div_op ((x1 $smt_Numeral) (x2 $smt_Numeral))
-  ($smt_apply_3 "and"
-    ($smt_is_z x1)
-    ($smt_is_z x2)
-    ($smt_apply_1 "not" ($smt_apply_2 "=" x2 ($smt_apply_1 "eo.SmtTerm" 0)))))
-
-; An SMT-LIB formula corresponding to Eunoia terms being a real division operation.
-; Return the SMT-LIB Boolean.
-(define $smt_eo_is_q_div_op ((x1 $smt_Rational) (x2 $smt_Rational))
-  ($smt_apply_3 "and"
-    ($smt_is_q x1)
-    ($smt_is_q x2)
-    ($smt_apply_1 "not" ($smt_apply_2 "=" x2 ($smt_apply_1 "eo.SmtTerm" 0/1)))))
-
-; An SMT-LIB formula corresponding to Eunoia terms being the binaries of the same width.
-; Return the SMT-LIB Boolean.
-(define $smt_eo_is_bin_same_width ((x1 $smt_Binary) (x2 $smt_Binary))
-  ($smt_apply_3 "and"
-    ($smt_is_bin x1)
-    ($smt_is_bin x2)
-    ($smt_apply_2 "=" ($smt_bin_width x1) ($smt_bin_width x2))))
-
-; Apply SMT-LIB operator (-> Int Int Int) "op" to Eunoia terms x1 and x2.
-; Return the Eunoia term.
-(define $sm_eo_apply_z_op_2 ((op $smt_String) (x1 Bool) (x2 Bool))
-  ($smt_to_eo_z ($smt_apply_2 op
-    ($smt_from_eo_z x1)
-    ($smt_from_eo_z x2))))
-
-; Apply SMT-LIB operator (-> Real Real Real) "op" to Eunoia terms x1 and x2.
-; Return the Eunoia term.
-(define $sm_eo_apply_q_op_2 ((op $smt_String) (x1 Bool) (x2 Bool))
-  ($smt_to_eo_q ($smt_apply_2 op
-    ($smt_from_eo_q x1)
-    ($smt_from_eo_q x2))))
-
-(define $smt_try_eval_o_arith_unary
-  ((W1 Type :implicit) (U Type :implicit) (op $smt_String) (x1 W1) (u U))
-  ($smt_apply_3 "ite" ($smt_is_z x1)
-    ($smt_to_eo_z ($smt_apply_1 op ($smt_from_eo_z x1)))
-  ($smt_apply_3 "ite" ($smt_is_q x1)
-    ($smt_to_eo_q ($smt_apply_1 op ($smt_from_eo_q x1)))
-    u)))
-
-(define $smt_try_eval_o_arith
-  ((W1 Type :implicit) (W2 Type :implicit) (U Type :implicit) (op $smt_String) (x1 W1) (x2 W2) (u U))
-  ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_z x1) ($smt_is_z x2))
-    ($sm_eo_apply_z_op_2 op x1 x2)
-  ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_q x1) ($smt_is_q x2))
-    ($sm_eo_apply_q_op_2 op x1 x2)
-    u)))
-
-(define $smt_try_eval_o_arith_pred
-  ((W1 Type :implicit) (W2 Type :implicit) (U Type :implicit) (op $smt_String) (x1 W1) (x2 W2) (u U))
-  ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_z x1) ($smt_is_z x2))
-    ($smt_to_eo_bool ($smt_apply_2 op ($smt_from_eo_z x1) ($smt_from_eo_z x2)))
-  ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_q x1) ($smt_is_q x2))
-    ($smt_to_eo_bool ($smt_apply_2 op ($smt_from_eo_q x1) ($smt_from_eo_q x2)))
-    u)))
-
-; optimized check for if a term is Boolean?
-(define $eo_check_bool ((x $eo_Term))
-  ($smt_apply_2 "or" ($smt_apply_1 "= sm.True" x) ($smt_apply_1 "= sm.False" x)))
 
 ; We are now ready to define the builtins of Eunoia
 
