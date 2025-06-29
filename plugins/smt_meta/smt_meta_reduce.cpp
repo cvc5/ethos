@@ -168,7 +168,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     }
     if (k == Kind::BOOLEAN)
     {
-      os << "(eo.SmtTerm sm." << (l->d_bool ? "True" : "False") << ")";
+      os << "sm." << (l->d_bool ? "True" : "False");
     }
     else if (k == Kind::NUMERAL)
     {
@@ -280,7 +280,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       printArgs = true;
       TermKind atk = getTermKind(tcur[0]);
       std::cout << "  atk-o: " << tcur[0] << " is " << termKindToString(atk) << std::endl;
-      if (tkctx == TermKind::EUNOIA_TERM && atk==TermKind::EUNOIA_SMT_TERM_CONS)
+      if (tkctx == TermKind::EUNOIA_TERM && atk==TermKind::EUNOIA_DT_CONS)
       {
         tkctx = TermKind::SMT_TERM;
       }
@@ -775,7 +775,7 @@ void SmtMetaReduce::finalizeDeclarations()
     if (tk == TermKind::INTERNAL || tk == TermKind::SMT_TERM_TYPE
         || tk == TermKind::EUNOIA_TERM_TYPE
         || tk == TermKind::SMT_PROGRAM || tk == TermKind::EUNOIA_PROGRAM
-        || tk == TermKind::PROGRAM)
+        || tk == TermKind::PROGRAM || tk == TermKind::SMT_BUILTIN_APPLY || tk==TermKind::EUNOIA_DT_CONS)
     {
       continue;
     }
@@ -1139,16 +1139,12 @@ TermKind SmtMetaReduce::getTermKind(const Expr& e, std::string& name)
   if (sname.compare(0, 8, "$smd_eo.") == 0)
   {
     name = sname.substr(8);
-    if (name == "SmtTerm")
-    {
-      return TermKind::EUNOIA_SMT_TERM_CONS;
-    }
     return TermKind::EUNOIA_DT_CONS;
   }
   else if (sname.compare(0, 8, "$smd_sm.") == 0)
   {
     name = sname.substr(8);
-    return TermKind::SMT_DT_CONS;
+    return TermKind::SMT_BUILTIN_APPLY;
   }
   if (sname.compare(0, 1, "@") == 0 || sname.compare(0, 8, "$eo_List") == 0)
   {
