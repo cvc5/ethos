@@ -49,8 +49,6 @@ class SelectorCtx
 // TODO?
 enum class TermKind
 {
-  // An apply term
-  APPLY,
   //
   PROGRAM,
   // Builtin datatype introduced in model_smt step, for eo.Term
@@ -111,7 +109,7 @@ class SmtMetaReduce : public Plugin
                             std::ostream& os,
                             SelectorCtx& ctx,
                             size_t& nconj);
-  bool printEmbAtomicTerm(const Expr& c,
+  void printEmbAtomicTerm(const Expr& c,
                           std::ostream& os,
                           TermKind tctx = TermKind::NONE);
   bool printEmbTerm(const Expr& c, std::ostream& os, const SelectorCtx& ctx);

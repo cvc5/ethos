@@ -35,18 +35,11 @@
 ;;; Definition of legal types
 
 ; Is T a type that can be assigned to free constants?
+; Alternatively, is T a type that can be put in an equality?
 ; Note if $eo_is_type gets stuck, we assume the type is not legal.
 (define $smt_is_type ((T Type))
   ($smt_try ($eo_is_type T) false))
 
-; Is T a type that can appear in an equality?
-; Is this just the same as above??
-(program $smt_model_is_first_class_type ((T Type))
-  :signature (T) Bool
-  (
-  (($smt_model_is_first_class_type T) true) ; FIXME
-  )
-)
 ;;; Builtin parametric types
 
 (declare-parameterized-const $smt_FunType ((T1 $smt_Term :opaque) (T2 $smt_Term :opaque)) $smt_Term)
