@@ -385,7 +385,13 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     itsa = smtAppToTuple.find(key);
     if (itsa != smtAppToTuple.end())
     {
-      recTerm = itsa->second;
+      if (childIndex==1)
+      {
+        // actually printing as a tuple
+        os << ")";
+        visit.pop_back();
+        continue;
+      }
     }
     // maybe its children have a different context?
     itt = tctxChildren.find(key);
@@ -425,14 +431,18 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       }
       else
       {
-        os << "(";
+        // tuples are "inlined"
+        if (ck!=Kind::TUPLE)
+        {
+          os << "(";
+        }
         if (ck == Kind::APPLY)
         {
           // should not have compute the tuple
-          Assert (tctxChildren.find(key)==tctxChildren.end());
-          Assert (smtAppToTuple.find(key)==smtAppToTuple.end());
+          Assert (key.first==recTerm) << "Bad term: " << recTerm << " " << key.first;
           // maybe its an SMT-apply
           TermKind atk = getTermKind(recTerm[0]);
+          std::cout << "tk: " << key.first << " = " << termKindToString(atk) << std::endl;
           // std::cout << "Check if apply term " << recTerm << std::endl;
           if (atk==TermKind::SMT_BUILTIN_APPLY)
           {
@@ -454,10 +464,13 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
               os << smtAppName << " ";
             }
             // we recurse on the compiled SMT arguments
-            recTerm = d_state.mkExprSimple(Kind::TUPLE, smtArgs);
-            std::cout << key.first << " is " << smtAppName << " / " << recTerm << std::endl;
-            smtAppToTuple[key] = recTerm;
-            // the arguments will now be SMT terms
+            // tuple is not
+            Expr tupleArgs = d_state.mkExprSimple(Kind::TUPLE, smtArgs);
+            std::cout << key.first << " is " << smtAppName << " / " << tupleArgs << std::endl;
+            std::get<1>(visit.back())++;
+            smtAppToTuple[key] = tupleArgs;
+            visit.emplace_back(tupleArgs, 0, tkctx);
+            continue;
           }
           else if (atk==TermKind::SMT_PROGRAM)
           {
@@ -494,9 +507,10 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
             EO_FATAL() << "Unhandled term kind for " << recTerm << " " << termKindToString(atk) << ", in context " << termKindToString(tkctx);
           }
         }
-        else if (ck == Kind::APPLY_OPAQUE)
+        else if (ck == Kind::APPLY_OPAQUE || ck==Kind::TUPLE)
         {
           // kind is ignored, prints as a multi argument function
+          // context preserves
         }
         else if (ck == Kind::FUNCTION_TYPE)
         {
@@ -521,6 +535,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           EO_FATAL() << "Unhandled kind in print term " << ck << " " << recTerm
                       << " / " << termKindToString(tkctx) << std::endl;
         }
+        Assert (recTerm[childIndex].getKind()!=Kind::TUPLE);
         std::get<1>(visit.back())++;
         visit.emplace_back(recTerm[childIndex], 0, tkctx);
       }
@@ -528,7 +543,11 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     else if (childIndex >= recTerm.getNumChildren())
     {
       // done with arguments, close
-      os << ")";
+      // tuples are "inlined"
+      if (recTerm.getKind()!=Kind::TUPLE)
+      {
+        os << ")";
+      }
       visit.pop_back();
     }
     else

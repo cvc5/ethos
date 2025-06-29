@@ -39,6 +39,14 @@
 (define $smt_is_type ((T Type))
   ($smt_try ($eo_is_type T) false))
 
+; Is T a type that can appear in an equality?
+; Is this just the same as above??
+(program $smt_model_is_first_class_type ((T Type))
+  :signature (T) Bool
+  (
+  (($smt_model_is_first_class_type T) true) ; FIXME
+  )
+)
 ;;; Builtin parametric types
 
 (declare-parameterized-const $smt_FunType ((T1 $smt_Term :opaque) (T2 $smt_Term :opaque)) $smt_Term)
@@ -329,6 +337,10 @@
    (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3))
   :signature (T) T
   (
+  ; builtins
+  (($smt_model_eval true) true)
+  (($smt_model_eval false) false)
+  ; TODO: equality, ite
   ; evaluation of standard SMT symbols
   ; These calls may only call one of the above macros:
   ; - $smt_eval_quant
