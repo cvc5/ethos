@@ -505,6 +505,8 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
                       << std::endl;
             std::get<1>(visit.back())++;
             smtAppToTuple[key] = tupleArgs;
+            tkctx = TermContextKind::SMT_BUILTIN;
+            tctxChildren[key] = tkctx;
             visit.emplace_back(tupleArgs, 0, tkctx);
             continue;
           }
@@ -810,7 +812,7 @@ void SmtMetaReduce::finalizeDeclarations()
     if (tk == TermKind::INTERNAL || tk == TermKind::SMT_TERM_TYPE
         || tk == TermKind::EUNOIA_TERM_TYPE
         || tk == TermKind::SMT_PROGRAM || tk == TermKind::EUNOIA_PROGRAM
-        || tk == TermKind::PROGRAM || tk == TermKind::SMT_BUILTIN_APPLY || tk==TermKind::EUNOIA_DT_CONS)
+        || tk == TermKind::PROGRAM || tk == TermKind::SMT_BUILTIN_APPLY || tk==TermKind::EUNOIA_DT_CONS || tk==TermKind::SMT_DT_CONS)
     {
       continue;
     }
@@ -1179,7 +1181,7 @@ TermKind SmtMetaReduce::getTermKind(const Expr& e, std::string& name)
   else if (sname.compare(0, 8, "$smd_sm.") == 0)
   {
     name = sname.substr(8);
-    return TermKind::SMT_BUILTIN_APPLY;
+    return TermKind::SMT_DT_CONS;
   }
   if (sname.compare(0, 1, "@") == 0 || sname.compare(0, 8, "$eo_List") == 0)
   {

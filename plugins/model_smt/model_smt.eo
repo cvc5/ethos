@@ -108,11 +108,11 @@
                                         ""
                                         (eo::concat (eo::to_str (eo::zmod i 196608)) ($smt_type_enum $smt_String (eo::zdiv i 196608)))))
   ; rationals are treated as Real, meaning we interleave rational/irrational.
-  (($smt_type_enum $smt_Rational i)    (eo::define ((ir (eo::zdiv i 2)))
-                                      (eo::define ((isRat (eo::eq (eo::zmod ir 2) 0)))
-                                      (eo::define ((i (eo::zdiv ir 2)))
-                                      (eo::define ((v (eo::ite isRat ($smt_rat_to_num ($smt_rat_enum i)) ($smt_irrat_enum i))))
-                                        (eo::ite (eo::eq (eo::zmod i 2) 0) v (eo::neg v)))))))
+  ;(($smt_type_enum $smt_Rational i)    (eo::define ((ir (eo::zdiv i 2)))
+  ;                                    (eo::define ((isRat (eo::eq (eo::zmod ir 2) 0)))
+  ;                                    (eo::define ((i (eo::zdiv ir 2)))
+  ;                                    (eo::define ((v (eo::ite isRat ($smt_rat_to_num ($smt_rat_enum i)) ($smt_irrat_enum i))))
+  ;                                      (eo::ite (eo::eq (eo::zmod i 2) 0) v (eo::neg v)))))))
   ; Note that $smt_BitVec must be mapped to the user's definition of binaries.
   ; Note this method gets stuck if i > 2^w, indicating we have run out of values.
   ;(($smt_type_enum ($smt_BitVec w) i) (eo::define ((v (eo::to_bin w i)))
