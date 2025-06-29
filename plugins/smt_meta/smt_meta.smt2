@@ -71,6 +71,10 @@ $SM_EO_TERM_DECL$
 ; ((w Int) (x1 Int))
 (declare-fun $sm_mk_binary_not (Int Int) Int) ; TODO
 
+; ((w Int))
+(define-fun $sm_mk_binary_max ((w Int)) Int
+  (- ($sm_mk_pow2 w) 1))
+
 ; ((x1 Int) (l Int) (h Int))
 (declare-fun $sm_mk_binary_extract (Int Int Int) Int) ; TODO
 

@@ -145,6 +145,10 @@
 ; ((w Int) (x1 Int))
 (declare-fun $sm_mk_binary_not (Int Int) Int) ; TODO
 
+; ((w Int))
+(define-fun $sm_mk_binary_max ((w Int)) Int
+  (- ($sm_mk_pow2 w) 1))
+
 ; ((x1 Int) (l Int) (h Int))
 (declare-fun $sm_mk_binary_extract (Int Int Int) Int) ; TODO
 
@@ -255,17 +259,49 @@
     eo.Stuck))))
 )
 
-; define $eo_qdiv
-(define-fun $eo_qdiv ((x1 eo.Term) (x2 eo.Term)) eo.Term (ite (and (and ((_ is eo.SmtTerm) x1) ((_ is sm.Numeral) (eo.to_smt x1))) (and ((_ is eo.SmtTerm) x2) ((_ is sm.Numeral) (eo.to_smt x2))) (not (= x2 (eo.SmtTerm (sm.Numeral 0))))) (sm.Apply sm.$smt_to_eo_q (/ (to_real (sm.Apply sm.$smt_from_eo_z x1)) (to_real (sm.Apply sm.$smt_from_eo_z x2)))) (ite (and (and ((_ is eo.SmtTerm) x1) ((_ is sm.Rational) (eo.to_smt x1))) (and ((_ is eo.SmtTerm) x2) ((_ is sm.Rational) (eo.to_smt x2))) (not (= x2 (eo.SmtTerm (sm.Rational 0/1))))) (sm.Apply sm.$smt_to_eo_q (/ (sm.Apply sm.$smt_from_eo_q x1) (sm.Apply sm.$smt_from_eo_q x2))) eo.Stuck)))
+; program: $eo_qdiv
+(define-fun $eo_qdiv ((x1 eo.Term) (x2 eo.Term)) eo.Term
+  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
+    eo.Stuck
+  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Numeral) (eo.SmtTerm.arg1 x1)) ((_ is eo.SmtTerm) x2) ((_ is sm.Numeral) (eo.SmtTerm.arg1 x2)))
+    (ite (= 0 (sm.Numeral.arg1 (eo.SmtTerm.arg1 x2))) eo.Stuck ($eo_mk_rational (/ (to_real (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1))) (to_real (sm.Numeral.arg1 (eo.SmtTerm.arg1 x2))))))
+  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Rational) (eo.SmtTerm.arg1 x1)) ((_ is eo.SmtTerm) x2) ((_ is sm.Rational) (eo.SmtTerm.arg1 x2)))
+    (ite (= 0/1 (sm.Rational.arg1 (eo.SmtTerm.arg1 x2))) eo.Stuck ($eo_mk_rational (/ (sm.Rational.arg1 (eo.SmtTerm.arg1 x1)) (sm.Rational.arg1 (eo.SmtTerm.arg1 x2)))))
+    eo.Stuck)))
+)
 
-; define $eo_zdiv
-(define-fun $eo_zdiv ((x1 eo.Term) (x2 eo.Term)) eo.Term (ite (and (and ((_ is eo.SmtTerm) x1) ((_ is sm.Numeral) (eo.to_smt x1))) (and ((_ is eo.SmtTerm) x2) ((_ is sm.Numeral) (eo.to_smt x2))) (not (= x2 (eo.SmtTerm (sm.Numeral 0))))) (sm.Apply sm.$smt_to_eo_z (div (sm.Apply sm.$smt_from_eo_z x1) (sm.Apply sm.$smt_from_eo_z x2))) (ite (and (and ((_ is eo.SmtTerm) x1) ((_ is sm.Binary) (eo.to_smt x1))) (and ((_ is eo.SmtTerm) x2) ((_ is sm.Binary) (eo.to_smt x2))) (= (sm.Binary.width (eo.to_smt x1)) (sm.Binary.width (eo.to_smt x2)))) ($eo_mk_binary (div (sm.Binary.val (eo.to_smt x1)) (sm.Binary.val (eo.to_smt x2))) (sm.Binary.width (eo.to_smt x1))) eo.Stuck)))
+; program: $eo_zdiv
+(define-fun $eo_zdiv ((x1 eo.Term) (x2 eo.Term)) eo.Term
+  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
+    eo.Stuck
+  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Numeral) (eo.SmtTerm.arg1 x1)) ((_ is eo.SmtTerm) x2) ((_ is sm.Numeral) (eo.SmtTerm.arg1 x2)))
+    (ite (= 0 (sm.Numeral.arg1 (eo.SmtTerm.arg1 x2))) eo.Stuck ($eo_mk_numeral (div (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1)) (sm.Numeral.arg1 (eo.SmtTerm.arg1 x2)))))
+  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Binary) (eo.SmtTerm.arg1 x1)) ((_ is eo.SmtTerm) x2) ((_ is sm.Binary) (eo.SmtTerm.arg1 x2)) (= (sm.Binary.arg1 (eo.SmtTerm.arg1 x2)) (sm.Binary.arg1 (eo.SmtTerm.arg1 x1))))
+    (ite (= 0 (sm.Binary.arg2 (eo.SmtTerm.arg1 x2))) ($eo_mk_binary ($sm_mk_binary_max (sm.Binary.arg1 (eo.SmtTerm.arg1 x1))) (sm.Binary.arg1 (eo.SmtTerm.arg1 x1))) ($eo_mk_binary (div (sm.Binary.arg2 (eo.SmtTerm.arg1 x1)) (sm.Binary.arg2 (eo.SmtTerm.arg1 x2))) (sm.Binary.arg1 (eo.SmtTerm.arg1 x1))))
+    eo.Stuck)))
+)
 
-; define $eo_zmod
-(define-fun $eo_zmod ((x1 eo.Term) (x2 eo.Term)) eo.Term (ite (and (and ((_ is eo.SmtTerm) x1) ((_ is sm.Numeral) (eo.to_smt x1))) (and ((_ is eo.SmtTerm) x2) ((_ is sm.Numeral) (eo.to_smt x2))) (not (= x2 (eo.SmtTerm (sm.Numeral 0))))) (sm.Apply sm.$smt_to_eo_z (mod (sm.Apply sm.$smt_from_eo_z x1) (sm.Apply sm.$smt_from_eo_z x2))) (ite (and (and ((_ is eo.SmtTerm) x1) ((_ is sm.Binary) (eo.to_smt x1))) (and ((_ is eo.SmtTerm) x2) ((_ is sm.Binary) (eo.to_smt x2))) (= (sm.Binary.width (eo.to_smt x1)) (sm.Binary.width (eo.to_smt x2)))) ($eo_mk_binary (mod (sm.Binary.val (eo.to_smt x1)) (sm.Binary.val (eo.to_smt x2))) (sm.Binary.width (eo.to_smt x1))) eo.Stuck)))
+; program: $eo_zmod
+(define-fun $eo_zmod ((x1 eo.Term) (x2 eo.Term)) eo.Term
+  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
+    eo.Stuck
+  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Numeral) (eo.SmtTerm.arg1 x1)) ((_ is eo.SmtTerm) x2) ((_ is sm.Numeral) (eo.SmtTerm.arg1 x2)))
+    (ite (= 0 (sm.Numeral.arg1 (eo.SmtTerm.arg1 x2))) eo.Stuck ($eo_mk_numeral (mod (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1)) (sm.Numeral.arg1 (eo.SmtTerm.arg1 x2)))))
+  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Binary) (eo.SmtTerm.arg1 x1)) ((_ is eo.SmtTerm) x2) ((_ is sm.Binary) (eo.SmtTerm.arg1 x2)) (= (sm.Binary.arg1 (eo.SmtTerm.arg1 x2)) (sm.Binary.arg1 (eo.SmtTerm.arg1 x1))))
+    (ite (= 0 (sm.Binary.arg2 (eo.SmtTerm.arg1 x2))) (eo.SmtTerm (sm.Binary (sm.Binary.arg1 (eo.SmtTerm.arg1 x1)) (sm.Binary.arg2 (eo.SmtTerm.arg1 x1)))) ($eo_mk_binary (mod (sm.Binary.arg2 (eo.SmtTerm.arg1 x1)) (sm.Binary.arg2 (eo.SmtTerm.arg1 x2))) (sm.Binary.arg1 (eo.SmtTerm.arg1 x1))))
+    eo.Stuck)))
+)
 
-; define $eo_neg
-(define-fun $eo_neg ((x1 eo.Term)) eo.Term (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Numeral) (eo.to_smt x1))) (sm.Apply sm.$smt_to_eo_z (- (sm.Apply sm.$smt_from_eo_z x1))) (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Rational) (eo.to_smt x1))) (sm.Apply sm.$smt_to_eo_q (- (sm.Apply sm.$smt_from_eo_q x1))) eo.Stuck)))
+; program: $eo_neg
+(define-fun $eo_neg ((x1 eo.Term)) eo.Term
+  (ite (= x1 eo.Stuck)
+    eo.Stuck
+  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Numeral) (eo.SmtTerm.arg1 x1)))
+    ($eo_mk_numeral (-  (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1))))
+  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Rational) (eo.SmtTerm.arg1 x1)))
+    ($eo_mk_rational (- (sm.Rational.arg1 (eo.SmtTerm.arg1 x1))))
+    eo.Stuck)))
+)
 
 ; define $eo_len
 (define-fun $eo_len ((x1 eo.Term)) eo.Term (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Binary) (eo.to_smt x1))) (sm.Apply sm.$smt_to_eo_z (sm.Binary.width (eo.to_smt x1))) (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.String) (eo.to_smt x1))) (sm.Apply sm.$smt_to_eo_z (str.len (sm.Apply sm.$smt_from_eo_str x1))) eo.Stuck)))
