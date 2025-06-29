@@ -46,8 +46,7 @@
 (declare-parameterized-const $smd_sm.String ((s $eo_String :opaque)) $smt_Term)
 (declare-parameterized-const $smd_sm.Binary ((w $eo_Numeral :opaque) (v $eo_Numeral :opaque)) $smt_Term)
 
-; Placeholders
-(program eo.to_smt ((T Type)) :signature (T) $smt_Term)
+(declare-const $smd_eo_to_sm (-> $smt_Term $eo_Term))
 
 ; Apply the SMT operator named "op" to x1, x2, and so on.
 ; Assumes arity of SMT-LIB operators are at most 5.
@@ -98,29 +97,29 @@
 (define $smt_is_bool ((T Type :implicit) (t T))
   ($smt_apply_2 "or"
     ; treat "= sm.True" as a unary function, ditto for "= sm.False"
-    ($smt_apply_1 "= sm.True" (eo.to_smt t))
-    ($smt_apply_1 "= sm.False" (eo.to_smt t))))
+    ($smt_apply_1 "= sm.True" ($smd_eo_to_sm t))
+    ($smt_apply_1 "= sm.False" ($smd_eo_to_sm t))))
 (define $smt_get_bool ((T Type :implicit) (t T))
-  ($smt_apply_1 "= sm.True" (eo.to_smt t)))
+  ($smt_apply_1 "= sm.True" ($smd_eo_to_sm t)))
 (define $smt_is_z ((T Type :implicit) (t T))
   ($smt_apply_2 "and"
     ($smt_apply_1 "is eo.SmtTerm" t)
-    ($smt_apply_1 "is sm.Numeral" (eo.to_smt t))))
+    ($smt_apply_1 "is sm.Numeral" ($smd_eo_to_sm t))))
 (define $smt_is_q ((T Type :implicit) (t T))
   ($smt_apply_2 "and"
     ($smt_apply_1 "is eo.SmtTerm" t)
-    ($smt_apply_1 "is sm.Rational" (eo.to_smt t))))
+    ($smt_apply_1 "is sm.Rational" ($smd_eo_to_sm t))))
 (define $smt_is_str ((T Type :implicit) (t T))
   ($smt_apply_2 "and"
     ($smt_apply_1 "is eo.SmtTerm" t)
-    ($smt_apply_1 "is sm.String" (eo.to_smt t))))
+    ($smt_apply_1 "is sm.String" ($smd_eo_to_sm t))))
 (define $smt_is_bin ((T Type :implicit) (t T))
   ($smt_apply_2 "and"
     ($smt_apply_1 "is eo.SmtTerm" t)
-    ($smt_apply_1 "is sm.Binary" (eo.to_smt t))))
+    ($smt_apply_1 "is sm.Binary" ($smd_eo_to_sm t))))
 ; decomposing binaries
-(define $smt_bin_width ((T Type :implicit) (t T)) ($smt_apply_1 "sm.Binary.width" (eo.to_smt t)))
-(define $smt_bin_val ((T Type :implicit) (t T)) ($smt_apply_1 "sm.Binary.val" (eo.to_smt t)))
+(define $smt_bin_width ((T Type :implicit) (t T)) ($smt_apply_1 "sm.Binary.width" ($smd_eo_to_sm t)))
+(define $smt_bin_val ((T Type :implicit) (t T)) ($smt_apply_1 "sm.Binary.val" ($smd_eo_to_sm t)))
 ;
 (define $smt_eo_is_bool ((T Type :implicit) (t T)) ($smt_to_eo_bool ($smt_is_bool t)))
 (define $smt_eo_is_z ((T Type :implicit) (t T)) ($smt_to_eo_bool ($smt_is_z t)))

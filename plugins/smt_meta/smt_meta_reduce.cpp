@@ -180,7 +180,8 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
                                          SelectorCtx& ctx,
                                          size_t& nconj)
 {
-  // third tuple is whether we are in an SMT term
+  // third tuple is a context which indicates the final SMT
+  // type we are printing (eo.Term vs. sm.Term)
   std::map<Expr, std::string>::iterator it;
   std::vector<std::tuple<Expr, std::string, TermKind>> visit;
   std::tuple<Expr, std::string, TermKind> cur;
@@ -202,6 +203,8 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       // SMT term
       std::string smConsName;
       TermKind atk = getTermKind(tcur[0]);
+      // if the Eunoia term is an SMT term, change the context
+      // and use the eo.SmtTerm selector
       if (tkctx==TermKind::EUNOIA_TERM && atk==TermKind::SMT_TERM)
       {
         os << (nconj > 0 ? " " : "") << "((_ is eo.SmtTerm) " << currTerm
@@ -215,6 +218,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       }
       else
       {
+        // If we are an SMT apply, use sm. else eo.
         cname << (tkctx==TermKind::SMT_TERM ? "sm" : "eo") << ".Apply";
       }
       printArgs = true;
@@ -223,11 +227,12 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     {
       // TODO: can this occur?
       // maybe if reasoning about function as first class argument?
-      cname << "eo.FunType";
+      cname << (tkctx==TermKind::SMT_TERM ? "sm" : "eo") << ".FunType";
       printArgs = true;
     }
     else if (ck == Kind::APPLY_OPAQUE)
     {
+      // will use a tester
       printEmbAtomicTerm(tcur[0], cname, tkctx);
       printArgStart = 1;
       printArgs = true;
@@ -276,7 +281,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     else
     {
       std::stringstream atomTerm;
-      if (printEmbAtomicTerm(tcur, atomTerm))
+      if (printEmbAtomicTerm(tcur, atomTerm, tkctx))
       {
         os << (nconj > 0 ? " " : "") << "(= " << currTerm << " "
            << atomTerm.str() << ")";
@@ -352,6 +357,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     if (itsa != smtAppToTuple.end())
     {
       recTerm = itsa->second;
+      tkctx = TermKind::SMT_TERM;
     }
     // if we are printing the head of the term
     if (childIndex == 0)
@@ -376,7 +382,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       }
       else if (recTerm.getNumChildren() == 0)
       {
-        if (!printEmbAtomicTerm(recTerm, os))
+        if (!printEmbAtomicTerm(recTerm, os, tkctx))
         {
           EO_FATAL() << "Unknown atomic term in return " << ck << std::endl;
         }
@@ -388,17 +394,14 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
         os << "(";
         if (ck == Kind::APPLY)
         {
+          // should not have compute the tuple
+          Assert (smtAppToTuple.find(recTerm)==smtAppToTuple.end());
           // maybe its an SMT-apply
           std::string smtAppName;
           std::vector<Expr> smtArgs;
           TermKind atk = getTermKind(recTerm[0]);
           // std::cout << "Check if apply term " << recTerm << std::endl;
-          Assert (smtAppToTuple.find(recTerm)==smtAppToTuple.end());
-          if (isEoToSmt(recTerm[0]) || isSmtToEo(recTerm[0]))
-          {
-            // do not write sm.Apply
-          }
-          else if (isSmtApplyTerm(recTerm, smtAppName, smtArgs))
+          if (isSmtApplyTerm(recTerm, smtAppName, smtArgs))
           {
             // testers introduced in model_smt layer handled specially
             if (smtAppName.compare(0, 3, "is ") == 0)
@@ -418,15 +421,19 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
             // recTerm << std::endl;
             smtAppToTuple[recTerm] = recTerm;
           }
+          else if (atk==TermKind::SMT_PROGRAM)
+          {
+            tkctx = atk;
+          }
+          else if (atk==TermKind::EUNOIA_TO_SMT)
+          {
+          }
           else if (tkctx==TermKind::EUNOIA_TERM && atk==TermKind::SMT_TERM)
           {
             os << "sm.Apply ";
             // our children are now each SMT terms.
-            std::get<1>(visit.back())++;
-            std::get<1>(visit.back())++;
-            visit.emplace_back(recTerm[1], 0, TermKind::SMT_TERM);
-            visit.emplace_back(recTerm[0], 0, TermKind::SMT_TERM);
-            continue;
+            Assert (recTerm.getNumChildren()==2) << "Not 2 child apply SMT term: " << recTerm << " " << recTerm.getNumChildren();
+            recTerm = d_state.mkExprSimple(Kind::TUPLE, {recTerm[0], recTerm[1]});
           }
           else if (!isProgram(recTerm[0]))
           {
@@ -435,10 +442,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
             // NOTE: if we have the invariant that we pattern matched, we don't need to check
             os << "$eo_Apply ";
             tkctx = TermKind::EUNOIA_TERM;
-          }
-          else if (atk==TermKind::SMT_PROGRAM)
-          {
-            tkctx = atk;
           }
         }
         else if (ck == Kind::APPLY_OPAQUE)
@@ -540,14 +543,9 @@ void SmtMetaReduce::finalizePrograms()
 
 void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
 {
-  std::string pname;
-  TermKind tk = getTermKind(v, pname);
-  if (pname == "eo.to_smt")
-  {
-    return;
-  }
+  TermKind tk = getTermKind(v);
   // things that are manually axiomatized
-  if (tk==TermKind::SMT_PROGRAM || tk==TermKind::EUNOIA_PROGRAM)
+  if (tk==TermKind::SMT_PROGRAM || tk==TermKind::INTERNAL)
   {
     return;
   }
@@ -969,7 +967,7 @@ bool SmtMetaReduce::isInternalSymbol(const Expr& t)
   {
     return true;
   }
-  if (sname == "$smt_Term" || sname == "eo.Stuck")
+  if (sname.compare(0,7,"$eo_mk_")==0 || sname.compare(0,7,"$sm_mk_")==0)
   {
     return true;
   }
@@ -991,6 +989,11 @@ TermKind SmtMetaReduce::getTermKind(const Expr& e, std::string& name)
   if (isInternalSymbol(e))
   {
     return TermKind::INTERNAL;
+  }
+  Kind k = e.getKind();
+  if (k==Kind::PROGRAM_CONST)
+  {
+    return TermKind::EUNOIA_PROGRAM;
   }
   std::stringstream ss;
   ss << e;
@@ -1024,10 +1027,10 @@ TermKind SmtMetaReduce::getTermKind(const Expr& e, std::string& name)
     name = sname;
     return TermKind::SMT_PROGRAM;
   }
-  if (sname.compare(0,7,"$eo_mk_")==0)
+  if (sname=="$smd_eo_to_sm")
   {
     name = sname;
-    return TermKind::EUNOIA_PROGRAM;
+    return TermKind::EUNOIA_TO_SMT;
   }
   name = sname;
   return TermKind::SMT_TERM;
