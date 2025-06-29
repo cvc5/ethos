@@ -82,7 +82,7 @@ void SmtMetaReduce::printConjunction(size_t n,
   // os << ctx.d_letEnd.str();
 }
 
-bool SmtMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os, bool inSmtTerm)
+bool SmtMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os, TermKind tctx)
 {
   // TODO: take inSmtTerm into account??
   std::string cname;
@@ -182,16 +182,16 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
 {
   // third tuple is whether we are in an SMT term
   std::map<Expr, std::string>::iterator it;
-  std::vector<std::tuple<Expr, std::string, bool>> visit;
-  std::tuple<Expr, std::string, bool> cur;
-  visit.emplace_back(c, initCtx, false);
+  std::vector<std::tuple<Expr, std::string, TermKind>> visit;
+  std::tuple<Expr, std::string, TermKind> cur;
+  visit.emplace_back(c, initCtx, TermKind::EUNOIA_TERM);
   do
   {
     cur = visit.back();
     visit.pop_back();
     Expr tcur = std::get<0>(cur);
     std::string currTerm = std::get<1>(cur);
-    bool inSmtTerm = std::get<2>(cur);
+    TermKind tkctx = std::get<2>(cur);
     Kind ck = tcur.getKind();
     std::stringstream cname;
     bool printArgs = false;
@@ -201,7 +201,8 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       // Determine if this is a Eunoia internal term, or an
       // SMT term
       std::string smConsName;
-      if (!inSmtTerm && !isEunoiaSymbol(tcur[0], smConsName))
+      TermKind atk = getTermKind(tcur[0]);
+      if (tkctx==TermKind::EUNOIA_TERM && atk==TermKind::SMT_TERM)
       {
         os << (nconj > 0 ? " " : "") << "((_ is eo.SmtTerm) " << currTerm
            << ")";
@@ -210,11 +211,11 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
         sssn << "(eo.to_smt " << currTerm << ")";
         currTerm = sssn.str();
         cname << "sm.Apply";
-        inSmtTerm = true;
+        tkctx = TermKind::SMT_TERM;
       }
       else
       {
-        cname << (inSmtTerm ? "sm" : "eo") << ".Apply";
+        cname << (tkctx==TermKind::SMT_TERM ? "sm" : "eo") << ".Apply";
       }
       printArgs = true;
     }
@@ -227,7 +228,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     }
     else if (ck == Kind::APPLY_OPAQUE)
     {
-      printEmbAtomicTerm(tcur[0], cname);
+      printEmbAtomicTerm(tcur[0], cname, tkctx);
       printArgStart = 1;
       printArgs = true;
     }
@@ -244,7 +245,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
         std::stringstream ssNext;
         ssNext << "(" << cname.str() << ".arg" << (i + 1 - printArgStart) << " "
                << currTerm << ")";
-        visit.emplace_back(tcur[i], ssNext.str(), inSmtTerm);
+        visit.emplace_back(tcur[i], ssNext.str(), tkctx);
       }
     }
     /*
@@ -322,7 +323,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     std::erase(ll.begin(), ll.end()
   }
   std::map<const ExprValue*, size_t>::iterator itl;
-  */
   for (size_t i = 0, nll = ll.size(); i <= nll; i++)
   {
     if (i > 0)
@@ -335,155 +335,165 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       osEnd << ")";
     }
     Expr t = i < nll ? ll[i] : body;
-    std::map<Expr, size_t>::iterator itv;
-    std::vector<std::tuple<Expr, size_t, bool>> visit;
-    std::tuple<Expr, size_t, bool> cur;
-    Expr recTerm;
-    visit.emplace_back(t, 0, false);
-    do
+  */
+  Expr t = body;
+  std::map<Expr, size_t>::iterator itv;
+  std::vector<std::tuple<Expr, size_t, TermKind>> visit;
+  std::tuple<Expr, size_t, TermKind> cur;
+  Expr recTerm;
+  visit.emplace_back(t, 0, TermKind::EUNOIA_TERM);
+  do
+  {
+    cur = visit.back();
+    recTerm = std::get<0>(cur);
+    size_t childIndex = std::get<1>(cur);
+    TermKind tkctx = std::get<2>(cur);
+    itsa = smtAppToTuple.find(recTerm);
+    if (itsa != smtAppToTuple.end())
     {
-      cur = visit.back();
-      recTerm = std::get<0>(cur);
-      size_t childIndex = std::get<1>(cur);
-      bool inSmtTerm = std::get<2>(cur);
-      itsa = smtAppToTuple.find(recTerm);
-      if (itsa != smtAppToTuple.end())
+      recTerm = itsa->second;
+    }
+    // if we are printing the head of the term
+    if (childIndex == 0)
+    {
+      /*
+      itl = lbind.find(cur.first.getValue());
+      if (itl != lbind.end() && itl->second != i)
       {
-        recTerm = itsa->second;
-      }
-      // if we are printing the head of the term
-      if (childIndex == 0)
-      {
-        /*
-        itl = lbind.find(cur.first.getValue());
-        if (itl != lbind.end() && itl->second != i)
-        {
-          os << "y" << itl->second;
-          visit.pop_back();
-          continue;
-        }
-        */
-        Kind ck = recTerm.getKind();
-        if (ck == Kind::PARAM)
-        {
-          it = ctx.d_ctx.find(recTerm);
-          Assert(it != ctx.d_ctx.end()) << "Cannot find " << recTerm;
-          os << it->second;
-          visit.pop_back();
-          continue;
-        }
-        else if (recTerm.getNumChildren() == 0)
-        {
-          if (!printEmbAtomicTerm(recTerm, os))
-          {
-            EO_FATAL() << "Unknown atomic term in return " << ck << std::endl;
-          }
-          visit.pop_back();
-          continue;
-        }
-        else
-        {
-          os << "(";
-          if (ck == Kind::APPLY)
-          {
-            // maybe its an SMT-apply
-            std::string smtAppName;
-            std::vector<Expr> smtArgs;
-            // std::cout << "Check if apply term " << recTerm << std::endl;
-            Assert (smtAppToTuple.find(recTerm)==smtAppToTuple.end());
-            if (isEoToSmt(recTerm[0]) || isSmtToEo(recTerm[0]))
-            {
-              // do not write sm.Apply
-            }
-            else if (isSmtApplyTerm(recTerm, smtAppName, smtArgs))
-            {
-              // testers introduced in model_smt layer handled specially
-              if (smtAppName.compare(0, 3, "is ") == 0)
-              {
-                os << "(_ is " << smtAppName.substr(3) << ") ";
-              }
-              else
-              {
-                // std::cout << "...returns true!!!! name is \"" << smtAppName
-                // <<
-                // "\"" << std::endl;
-                os << smtAppName << " ";
-              }
-              // we recurse on the compiled SMT arguments
-              recTerm = d_state.mkExprSimple(Kind::TUPLE, smtArgs);
-              // std::cout << recTerm << " is " << smtAppName << " / " <<
-              // recTerm << std::endl;
-              smtAppToTuple[recTerm] = recTerm;
-            }
-            else if (!inSmtTerm && !isEunoiaTerm(recTerm[0]) && !isProgram(recTerm[0]))
-            {
-              os << "sm.Apply ";
-              // our children are now each SMT terms.
-              std::get<1>(visit.back())++;
-              std::get<1>(visit.back())++;
-              visit.emplace_back(recTerm[1], 0, true);
-              visit.emplace_back(recTerm[0], 0, true);
-              continue;
-            }
-            else if (!isProgram(recTerm[0]))
-            {
-              Assert(recTerm.getNumChildren() == 2);
-              // could use macro to ensure "Stuck" propagates
-              // NOTE: if we have the invariant that we pattern matched, we don't need to check
-              os << "$eo_Apply ";
-            }
-          }
-          else if (ck == Kind::APPLY_OPAQUE)
-          {
-            // kind is ignored, prints as a multi argument function
-          }
-          else if (ck == Kind::FUNCTION_TYPE)
-          {
-            Assert(recTerm.getNumChildren() == 2);
-            // must use macro to ensure "Stuck" propagates
-            os << "$sm_FunType ";
-          }
-          else if (isLiteralOp(ck))
-          {
-            std::string kstr = kindToTerm(ck);
-            if (kstr.compare(0, 4, "eo::") == 0)
-            {
-              os << "$eo_" << kstr.substr(4) << " ";
-            }
-            else
-            {
-              EO_FATAL() << "Bad name for literal kind " << ck << std::endl;
-            }
-          }
-          else
-          {
-            EO_FATAL() << "Unhandled kind " << ck << " " << recTerm
-                       << std::endl;
-          }
-          std::get<1>(visit.back())++;
-          visit.emplace_back(recTerm[0], 0, inSmtTerm);
-        }
-      }
-      else if (childIndex >= recTerm.getNumChildren())
-      {
-        os << ")";
+        os << "y" << itl->second;
         visit.pop_back();
+        continue;
+      }
+      */
+      Kind ck = recTerm.getKind();
+      if (ck == Kind::PARAM)
+      {
+        it = ctx.d_ctx.find(recTerm);
+        Assert(it != ctx.d_ctx.end()) << "Cannot find " << recTerm;
+        os << it->second;
+        visit.pop_back();
+        continue;
+      }
+      else if (recTerm.getNumChildren() == 0)
+      {
+        if (!printEmbAtomicTerm(recTerm, os))
+        {
+          EO_FATAL() << "Unknown atomic term in return " << ck << std::endl;
+        }
+        visit.pop_back();
+        continue;
       }
       else
       {
-        // another argument
-        Assert(childIndex < recTerm.getNumChildren());
-        os << " ";
+        os << "(";
+        if (ck == Kind::APPLY)
+        {
+          // maybe its an SMT-apply
+          std::string smtAppName;
+          std::vector<Expr> smtArgs;
+          TermKind atk = getTermKind(recTerm[0]);
+          // std::cout << "Check if apply term " << recTerm << std::endl;
+          Assert (smtAppToTuple.find(recTerm)==smtAppToTuple.end());
+          if (isEoToSmt(recTerm[0]) || isSmtToEo(recTerm[0]))
+          {
+            // do not write sm.Apply
+          }
+          else if (isSmtApplyTerm(recTerm, smtAppName, smtArgs))
+          {
+            // testers introduced in model_smt layer handled specially
+            if (smtAppName.compare(0, 3, "is ") == 0)
+            {
+              os << "(_ is " << smtAppName.substr(3) << ") ";
+            }
+            else
+            {
+              // std::cout << "...returns true!!!! name is \"" << smtAppName
+              // <<
+              // "\"" << std::endl;
+              os << smtAppName << " ";
+            }
+            // we recurse on the compiled SMT arguments
+            recTerm = d_state.mkExprSimple(Kind::TUPLE, smtArgs);
+            // std::cout << recTerm << " is " << smtAppName << " / " <<
+            // recTerm << std::endl;
+            smtAppToTuple[recTerm] = recTerm;
+          }
+          else if (tkctx==TermKind::EUNOIA_TERM && atk==TermKind::SMT_TERM)
+          {
+            os << "sm.Apply ";
+            // our children are now each SMT terms.
+            std::get<1>(visit.back())++;
+            std::get<1>(visit.back())++;
+            visit.emplace_back(recTerm[1], 0, TermKind::SMT_TERM);
+            visit.emplace_back(recTerm[0], 0, TermKind::SMT_TERM);
+            continue;
+          }
+          else if (!isProgram(recTerm[0]))
+          {
+            Assert(recTerm.getNumChildren() == 2);
+            // could use macro to ensure "Stuck" propagates
+            // NOTE: if we have the invariant that we pattern matched, we don't need to check
+            os << "$eo_Apply ";
+            tkctx = TermKind::EUNOIA_TERM;
+          }
+          else if (atk==TermKind::SMT_PROGRAM)
+          {
+            tkctx = atk;
+          }
+        }
+        else if (ck == Kind::APPLY_OPAQUE)
+        {
+          // kind is ignored, prints as a multi argument function
+        }
+        else if (ck == Kind::FUNCTION_TYPE)
+        {
+          Assert(recTerm.getNumChildren() == 2);
+          // must use macro to ensure "Stuck" propagates
+          os << "$sm_FunType ";
+        }
+        else if (isLiteralOp(ck))
+        {
+          std::string kstr = kindToTerm(ck);
+          if (kstr.compare(0, 4, "eo::") == 0)
+          {
+            os << "$eo_" << kstr.substr(4) << " ";
+          }
+          else
+          {
+            EO_FATAL() << "Bad name for literal kind " << ck << std::endl;
+          }
+        }
+        else
+        {
+          EO_FATAL() << "Unhandled kind " << ck << " " << recTerm
+                      << std::endl;
+        }
         std::get<1>(visit.back())++;
-        visit.emplace_back(recTerm[childIndex], 0, inSmtTerm);
+        visit.emplace_back(recTerm[0], 0, tkctx);
       }
-    } while (!visit.empty());
+    }
+    else if (childIndex >= recTerm.getNumChildren())
+    {
+      os << ")";
+      visit.pop_back();
+    }
+    else
+    {
+      // another argument
+      Assert(childIndex < recTerm.getNumChildren());
+      os << " ";
+      std::get<1>(visit.back())++;
+      visit.emplace_back(recTerm[childIndex], 0, tkctx);
+    }
+  } while (!visit.empty());
+  /*
     if (i < nll)
     {
       os << "))";
     }
   }
   os << osEnd.str();
+  */
   // os << ctx.d_letEnd.str();
   return true;
 }
@@ -971,6 +981,11 @@ bool SmtMetaReduce::isEunoiaSymbol(const Expr& t, std::string& name)
   return isEunoiaKind(tk);
 }
 
+TermKind SmtMetaReduce::getTermKind(const Expr& e)
+{
+  std::string name;
+  return getTermKind(e, name);
+}
 TermKind SmtMetaReduce::getTermKind(const Expr& e, std::string& name)
 {
   if (isInternalSymbol(e))
@@ -1040,8 +1055,7 @@ bool SmtMetaReduce::isProgram(const Expr& t)
   {
     return true;
   }
-  std::string name;
-  TermKind tk = getTermKind(t, name);
+  TermKind tk = getTermKind(t);
   return tk==TermKind::SMT_PROGRAM || tk==TermKind::EUNOIA_PROGRAM;
 }
 

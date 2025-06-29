@@ -66,7 +66,8 @@ enum class TermKind
   // An operator that operates on native SMT-LIB terms, e.g. $sm_mk_pow2
   SMT_PROGRAM,
   // A term that was internal to model_smt step, should be removed
-  INTERNAL
+  INTERNAL,
+  NONE
 };
 bool isEunoiaKind(TermKind tk);
 
@@ -100,7 +101,7 @@ class SmtMetaReduce : public Plugin
                             std::ostream& os,
                             SelectorCtx& ctx,
                             size_t& nconj);
-  bool printEmbAtomicTerm(const Expr& c, std::ostream& os, bool inSmtTerm=true);
+  bool printEmbAtomicTerm(const Expr& c, std::ostream& os, TermKind tctx=TermKind::NONE);
   bool printEmbTerm(const Expr& c, std::ostream& os, const SelectorCtx& ctx);
   void finalizePrograms();
   void finalizeProgram(const Expr& v, const Expr& prog);
@@ -130,6 +131,7 @@ class SmtMetaReduce : public Plugin
   Kind getKindForSuffix(const std::string& suf) const;
   /** get term kind */
   TermKind getTermKind(const Expr& e, std::string& name);
+  TermKind getTermKind(const Expr& e);
   /** the state */
   State& d_state;
   /** the type checker */

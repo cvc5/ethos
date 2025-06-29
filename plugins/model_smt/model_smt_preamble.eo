@@ -96,12 +96,12 @@
 ; in the final encoding.
 ; Boolean relies on the $sm_is_Boolean define-fun in the SMT meta signature.
 (define $smt_is_bool ((T Type :implicit) (t T))
-  ($smt_apply_2 "and"
-    ($smt_apply_1 "is eo.SmtTerm" t)
-    ($smt_apply_2 "or"
-      ; treat "= sm.True" as a unary function, ditto for "= sm.False"
-      ($smt_apply_1 "= sm.True" (eo.to_smt t))
-      ($smt_apply_1 "= sm.False" (eo.to_smt t)))))
+  ($smt_apply_2 "or"
+    ; treat "= sm.True" as a unary function, ditto for "= sm.False"
+    ($smt_apply_1 "= sm.True" (eo.to_smt t))
+    ($smt_apply_1 "= sm.False" (eo.to_smt t))))
+(define $smt_get_bool ((T Type :implicit) (t T))
+  ($smt_apply_1 "= sm.True" (eo.to_smt t)))
 (define $smt_is_z ((T Type :implicit) (t T))
   ($smt_apply_2 "and"
     ($smt_apply_1 "is eo.SmtTerm" t)
@@ -133,6 +133,7 @@
 ; Defining parametric bitvector operators
 
 ; This operator computes the Eunoia representation of an SMT-LIB literal.
+; TODO: does this actually need to be defined here???
 (program $sm_mk_pow2 ((i $smt_Numeral))
   :signature ($smt_Numeral) $smt_Numeral
   (
@@ -158,6 +159,13 @@
 
 ;;; Utilities
 
+; TODO: do these need to be defined??
+(program $eo_mk_bool ((x Bool))
+  :signature (Bool) $eo_Term
+  (
+  (($eo_mk_bool x) ($smd_eo.SmtTerm ($smt_apply_3 "ite" x $smd_sm.True $smd_sm.False)))
+  )
+)
 (program $eo_mk_numeral ((x $smt_Numeral))
   :signature ($smt_Numeral) $eo_Term
   (
@@ -259,6 +267,10 @@
     ($smt_to_eo_bool ($smt_apply_2 op ($smt_from_eo_q x1) ($smt_from_eo_q x2)))
     u)))
 
+; optimized check for if a term is Boolean?
+(define $eo_check_bool ((x $eo_Term))
+  ($smt_apply_2 "or" ($smt_apply_1 "= sm.True" x) ($smt_apply_1 "= sm.False" x)))
+
 ; We are now ready to define the builtins of Eunoia
 
 ;;; Boolean operators
@@ -281,31 +293,44 @@
 ;    $smd_eo.Stuck)))
 
 ; axiom: $eo_and
-(define $eo_and ((T Type :implicit) (x1 T) (x2 T))
-  ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_bool x1) ($smt_is_bool x2))
-    ($sm_eo_apply_bool_op_2 "and" x1 x2)
-  ($smt_apply_3 "ite" ($smt_eo_is_bin_same_width x1 x2)
-    (eo::define ((w ($smt_bin_width x1)))
-      ($eo_mk_binary ($sm_mk_binary_and w ($smt_bin_val x1) ($smt_bin_val x2)) w))
-    $smd_eo.Stuck)))
+(program $eo_and ((b1 $eo_Term) (b2 $eo_Term) (w $eo_Numeral) (n1 $eo_Numeral) (n2 $eo_Numeral))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_and ($smd_eo.SmtTerm ($smd_sm.Binary w n1)) ($smd_eo.SmtTerm ($smd_sm.Binary w n2)))
+     ($eo_mk_binary ($sm_mk_binary_and w n1 n2) w))
+  (($eo_and b1 b2)
+     ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_bool b1) ($smt_is_bool b2))
+       ($eo_mk_bool ($smt_apply_2 "and" ($smt_get_bool b1) ($smt_get_bool b2)))
+       $smd_eo.Stuck))
+  )
+)
 
 ; axiom: $eo_or
-(define $eo_or ((T Type :implicit) (x1 T) (x2 T))
-  ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_bool x1) ($smt_is_bool x2))
-    ($sm_eo_apply_bool_op_2 "or" x1 x2)
-  ($smt_apply_3 "ite" ($smt_eo_is_bin_same_width x1 x2)
-    (eo::define ((w ($smt_bin_width x1)))
-      ($eo_mk_binary ($sm_mk_binary_or w ($smt_bin_val x1) ($smt_bin_val x2)) w))
-    $smd_eo.Stuck)))
+(program $eo_or ((b1 $eo_Term) (b2 $eo_Term) (w $eo_Numeral) (n1 $eo_Numeral) (n2 $eo_Numeral))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_or ($smd_eo.SmtTerm ($smd_sm.Binary w n1)) ($smd_eo.SmtTerm ($smd_sm.Binary w n2)))
+     ($eo_mk_binary ($sm_mk_binary_or w n1 n2) w))
+  (($eo_or b1 b2)
+     (eo::ite ($smt_apply_2 "and" ($smt_is_bool b1) ($smt_is_bool b2))
+       ($eo_mk_bool ($smt_apply_2 "or" ($smt_get_bool b1) ($smt_get_bool b2)))
+       $smd_eo.Stuck))
+  )
+)
 
 ; axiom: $eo_xor
-(define $eo_or ((T Type :implicit) (x1 T) (x2 T))
-  ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_bool x1) ($smt_is_bool x2))
-    ($sm_eo_apply_bool_op_2 "xor" x1 x2)
-  ($smt_apply_3 "ite" ($smt_eo_is_bin_same_width x1 x2)
-    (eo::define ((w ($smt_bin_width x1)))
-      ($eo_mk_binary ($sm_mk_binary_xor w ($smt_bin_val x1) ($smt_bin_val x2)) w))
-    $smd_eo.Stuck)))
+(program $eo_xor ((b1 $eo_Term) (b2 $eo_Term) (w $eo_Numeral) (n1 $eo_Numeral) (n2 $eo_Numeral))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_xor ($smd_eo.SmtTerm ($smd_sm.Binary w n1)) ($smd_eo.SmtTerm ($smd_sm.Binary w n2)))
+     ($eo_mk_binary ($sm_mk_binary_or w n1 n2) w))
+  (($eo_xor b1 b2)
+     (eo::ite ($smt_apply_2 "and" ($smt_is_bool b1) ($smt_is_bool b2))
+       ($eo_mk_bool ($smt_apply_2 "xor" ($smt_get_bool b1) ($smt_get_bool b2)))
+       $smd_eo.Stuck))
+  )
+)
+
 
 ;;; Arithmetic operators
 

@@ -82,18 +82,9 @@ $SM_EO_TERM_DECL$
 ;;; Literal conversions
 ; All these methods should only be used for sm.Term
 
-; smt-define: $smt_to_eo_bool
-(define-fun $smt_to_eo_bool ((x Bool)) eo.Term
+; smt-define: $eo_mk_bool
+(define-fun $eo_mk_bool ((x Bool)) eo.Term
   (smt.to_eo (ite x sm.True sm.False)))
-
-; smt-define: $smt_from_eo_bool
-(define-fun $smt_from_eo_bool ((x eo.Term)) Bool
-  (= (eo.to_smt x) sm.True))
-
-; smt-define: $sm_is_Boolean
-(define-fun $eo_is_Boolean ((x eo.Term)) Bool
-  ; key that this uses smt.to_eo, not eo.to_smt
-  (or (= x (smt.to_eo sm.True)) (= x (smt.to_eo sm.False))))
 
 ; program: $eo_mk_numeral
 (define-fun $eo_mk_numeral ((n Int)) eo.Term
@@ -117,7 +108,7 @@ $SM_EO_TERM_DECL$
 
 ; axiom: $eo_is_ok
 (define-fun $eo_is_ok ((x1 eo.Term)) eo.Term
-  ($smt_to_eo_bool (not (= x1 eo.Stuck))))
+  ($eo_mk_bool (not (= x1 eo.Stuck))))
 
 ; axiom: $eo_ite
 (define-fun $eo_ite ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
