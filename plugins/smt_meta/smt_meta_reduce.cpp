@@ -785,7 +785,12 @@ void SmtMetaReduce::finalizeDeclarations()
       }
       (*out) << ".arg" << (i + 1) << " ";
       // if we are an SMT-LIB literal constructor, we take the opaque types
-      if (tk == TermKind::SMT_DT_CONS)
+      if (consName=="String")
+      {
+        // HACK: seq char is not forward declared
+        (*out) << "String";
+      }
+      else if (tk == TermKind::SMT_DT_CONS)
       {
         Assert (ct[i].getKind()==Kind::QUOTE_TYPE);
         Expr targ = ct[i][0];

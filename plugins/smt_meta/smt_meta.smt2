@@ -98,8 +98,8 @@ $SM_EO_TERM_DECL$
   (smt.to_eo (sm.Rational r)))
 
 ; program: $eo_mk_string
-;(define-fun $eo_mk_string ((s String)) eo.Term
-;  (smt.to_eo (sm.String s)))
+(define-fun $eo_mk_string ((s String)) eo.Term
+  (smt.to_eo (sm.String s)))
 
 ; program: $eo_mk_binary
 (define-fun $eo_mk_binary ((w Int) (n Int)) eo.Term

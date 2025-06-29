@@ -426,25 +426,26 @@
 
 ;;; String operators
 
-; axiom: $eo_len
-(define $eo_len ((T Type :implicit) (x1 T))
-  ($smt_apply_3 "ite" ($smt_is_bin x1)
-    ($smt_to_eo_z ($smt_bin_width x1))
-  ($smt_apply_3 "ite" ($smt_is_str x1)
-    ($smt_to_eo_z ($smt_apply_1 "str.len" ($smt_from_eo_str x1)))
-    $smd_eo.Stuck)))
+(program $eo_len ((s1 $eo_String) (w $eo_Numeral) (n1 $eo_Numeral))
+  :signature ($eo_Term) $eo_Term
+  (
+  (($eo_len ($smd_eo.SmtTerm ($smd_sm.String s1)))
+    ($eo_mk_numeral ($smt_apply_1 "str.len" s1)))
+  (($eo_len ($smd_eo.SmtTerm ($smd_sm.Binary w n1)))
+    ($eo_mk_numeral w))
+  )
+)
 
-; axiom: $eo_concat
-(define $eo_concat ((T Type :implicit) (x1 T) (x2 T))
-  ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_str x1) ($smt_is_str x2))
-    ($smt_to_eo_str ($smt_apply_2 "str.++" ($smt_from_eo_str x1) ($smt_from_eo_str x2)))
-  ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_bin x1) ($smt_is_bin x2))
-    (eo::define ((w1 ($smt_bin_width x1)))
-    (eo::define ((w2 ($smt_bin_width x2)))
-      ($eo_mk_binary
-        ($sm_mk_binary_concat w1 ($smt_bin_val x1) w2 ($smt_bin_val x2))
-        ($smt_apply_2 "+" w1 w2))))
-    $smd_eo.Stuck)))
+(program $eo_concat
+  ((w1 $eo_Numeral) (n1 $eo_Numeral) (w2 $eo_Numeral) (n2 $eo_Numeral) (s1 $eo_String) (s2 $eo_String))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_concat ($smd_eo.SmtTerm ($smd_sm.String s1)) ($smd_eo.SmtTerm ($smd_sm.String s2)))
+     ($eo_mk_string ($smt_apply_2 "str.++" s1 s2)))
+  (($eo_concat ($smd_eo.SmtTerm ($smd_sm.Binary w1 n1)) ($smd_eo.SmtTerm ($smd_sm.Binary w2 n2)))
+     ($eo_mk_binary ($sm_mk_binary_concat w1 n1 w2 n2) ($smt_apply_2 "+" w1 w2)))
+  )
+)
 
 ; axiom: $eo_extract
 (define $eo_extract ((T Type :implicit) (x1 T) (x2 $smt_Numeral) (x3 $smt_Numeral))
