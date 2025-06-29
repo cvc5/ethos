@@ -69,13 +69,13 @@ enum class TermKind
   EUNOIA_PROGRAM,
   // An operator that operates on native SMT-LIB terms, e.g. $sm_mk_pow2
   SMT_PROGRAM,
-  // $smd_eo_to_sm
-  EUNOIA_TO_SMT,
   // A term that was internal to model_smt step, should be removed
   INTERNAL,
   NONE
 };
 bool isEunoiaKind(TermKind tk);
+
+std::string termKindToString(TermKind k);
 
 /**
  */
