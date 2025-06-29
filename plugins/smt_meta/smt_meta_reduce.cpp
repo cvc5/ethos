@@ -19,40 +19,39 @@ namespace ethos {
 
 bool isEunoiaKind(TermKind tk)
 {
-  return tk==TermKind::EUNOIA_DT_CONS || tk==TermKind::EUNOIA_TERM || tk==TermKind::EUNOIA_SMT_TERM_CONS;
+  return tk == TermKind::EUNOIA_DT_CONS || tk == TermKind::EUNOIA_TERM
+         || tk == TermKind::EUNOIA_SMT_TERM_CONS;
 }
 std::string termKindToString(TermKind k)
 {
-
   std::stringstream ss;
   switch (k)
   {
-  // An apply term
-  case TermKind::APPLY: ss << "APPLY";break;
-  // An apply term
-  case TermKind::PROGRAM: ss << "PROGRAM";break;
-  // Builtin datatype introduced in model_smt step, for eo.Term
-  case TermKind::EUNOIA_DT_CONS: ss << "EUNOIA_DT_CONS";break;
-  // An internal-only symbol defined by the user
-  case TermKind::EUNOIA_TERM: ss << "EUNOIA_TERM";break;
-  // The SMT-LIB term constructor for Eunoia
-  case TermKind::EUNOIA_SMT_TERM_CONS: ss << "EUNOIA_SMT_TERM_CONS";break;
-  // SMT apply
-  case TermKind::SMT_BUILTIN_APPLY: ss << "SMT_BUILTIN_APPLY";break;
-  // Builtin datatype introduced in model_smt step, for sm.Term
-  case TermKind::SMT_DT_CONS: ss << "SMT_DT_CONS";break;
-  // An SMT term defined by the user (possibly non-SMT-LIB standard)
-  case TermKind::SMT_TERM: ss << "SMT_TERM";break;
-  // The type of SMT lib terms
-  case TermKind::SMT_TERM_TYPE: ss << "SMT_TERM_TYPE";break;
-  // An operator that operates on native SMT-LIB terms, e.g. $eo_mk_binary
-  case TermKind::EUNOIA_PROGRAM: ss << "EUNOIA_PROGRAM";break;
-  // An operator that operates on native SMT-LIB terms, e.g. $sm_mk_pow2
-  case TermKind::SMT_PROGRAM: ss << "SMT_PROGRAM";break;
-  // A term that was internal to model_smt step, should be removed
-  case TermKind::INTERNAL: ss << "INTERNAL";break;
-  default:
-    ss << "?TermKind"; break;
+    // An apply term
+    case TermKind::APPLY: ss << "APPLY"; break;
+    // An apply term
+    case TermKind::PROGRAM: ss << "PROGRAM"; break;
+    // Builtin datatype introduced in model_smt step, for eo.Term
+    case TermKind::EUNOIA_DT_CONS: ss << "EUNOIA_DT_CONS"; break;
+    // An internal-only symbol defined by the user
+    case TermKind::EUNOIA_TERM: ss << "EUNOIA_TERM"; break;
+    // The SMT-LIB term constructor for Eunoia
+    case TermKind::EUNOIA_SMT_TERM_CONS: ss << "EUNOIA_SMT_TERM_CONS"; break;
+    // SMT apply
+    case TermKind::SMT_BUILTIN_APPLY: ss << "SMT_BUILTIN_APPLY"; break;
+    // Builtin datatype introduced in model_smt step, for sm.Term
+    case TermKind::SMT_DT_CONS: ss << "SMT_DT_CONS"; break;
+    // An SMT term defined by the user (possibly non-SMT-LIB standard)
+    case TermKind::SMT_TERM: ss << "SMT_TERM"; break;
+    // The type of SMT lib terms
+    case TermKind::SMT_TERM_TYPE: ss << "SMT_TERM_TYPE"; break;
+    // An operator that operates on native SMT-LIB terms, e.g. $eo_mk_binary
+    case TermKind::EUNOIA_PROGRAM: ss << "EUNOIA_PROGRAM"; break;
+    // An operator that operates on native SMT-LIB terms, e.g. $sm_mk_pow2
+    case TermKind::SMT_PROGRAM: ss << "SMT_PROGRAM"; break;
+    // A term that was internal to model_smt step, should be removed
+    case TermKind::INTERNAL: ss << "INTERNAL"; break;
+    default: ss << "?TermKind"; break;
   }
   return ss.str();
 }
@@ -117,7 +116,9 @@ void SmtMetaReduce::printConjunction(size_t n,
   // os << ctx.d_letEnd.str();
 }
 
-bool SmtMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os, TermKind tctx)
+bool SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
+                                       std::ostream& os,
+                                       TermKind tctx)
 {
   // TODO: take inSmtTerm into account??
   std::string cname;
@@ -132,7 +133,7 @@ bool SmtMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os, TermKind
   }
   if (k == Kind::CONST)
   {
-    if (tk==TermKind::INTERNAL)
+    if (tk == TermKind::INTERNAL)
     {
       os << cname;
     }
@@ -240,7 +241,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       TermKind atk = getTermKind(tcur[0]);
       // if the Eunoia term is an SMT term, change the context
       // and use the eo.SmtTerm selector
-      if (tkctx==TermKind::EUNOIA_TERM && atk==TermKind::SMT_TERM)
+      if (tkctx == TermKind::EUNOIA_TERM && atk == TermKind::SMT_TERM)
       {
         os << (nconj > 0 ? " " : "") << "((_ is eo.SmtTerm) " << currTerm
            << ")";
@@ -254,7 +255,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       else
       {
         // If we are an SMT apply, use sm. else eo.
-        cname << (tkctx==TermKind::SMT_TERM ? "sm" : "eo") << ".Apply";
+        cname << (tkctx == TermKind::SMT_TERM ? "sm" : "eo") << ".Apply";
       }
       printArgs = true;
     }
@@ -262,7 +263,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     {
       // TODO: can this occur?
       // maybe if reasoning about function as first class argument?
-      cname << (tkctx==TermKind::SMT_TERM ? "sm" : "eo") << ".FunType";
+      cname << (tkctx == TermKind::SMT_TERM ? "sm" : "eo") << ".FunType";
       printArgs = true;
     }
     else if (ck == Kind::APPLY_OPAQUE)
@@ -278,8 +279,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       os << (nconj > 0 ? " " : "") << "((_ is " << cname.str() << ") "
          << currTerm << ")";
       nconj++;
-      for (size_t i = printArgStart, nchild = tcur.getNumChildren();
-           i < nchild;
+      for (size_t i = printArgStart, nchild = tcur.getNumChildren(); i < nchild;
            i++)
       {
         std::stringstream ssNext;
@@ -385,7 +385,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     itsa = smtAppToTuple.find(key);
     if (itsa != smtAppToTuple.end())
     {
-      if (childIndex==1)
+      if (childIndex == 1)
       {
         // actually printing as a tuple
         os << ")";
@@ -395,7 +395,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     }
     // maybe its children have a different context?
     itt = tctxChildren.find(key);
-    if (itt!=tctxChildren.end())
+    if (itt != tctxChildren.end())
     {
       tkctx = itt->second;
     }
@@ -432,25 +432,27 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       else
       {
         // tuples are "inlined"
-        if (ck!=Kind::TUPLE)
+        if (ck != Kind::TUPLE)
         {
           os << "(";
         }
         if (ck == Kind::APPLY)
         {
           // should not have compute the tuple
-          Assert (key.first==recTerm) << "Bad term: " << recTerm << " " << key.first;
+          Assert(key.first == recTerm)
+              << "Bad term: " << recTerm << " " << key.first;
           // maybe its an SMT-apply
           TermKind atk = getTermKind(recTerm[0]);
-          std::cout << "tk: " << key.first << " = " << termKindToString(atk) << std::endl;
+          std::cout << "tk: " << key.first << " = " << termKindToString(atk)
+                    << std::endl;
           // std::cout << "Check if apply term " << recTerm << std::endl;
-          if (atk==TermKind::SMT_BUILTIN_APPLY)
+          if (atk == TermKind::SMT_BUILTIN_APPLY)
           {
             // go back and get its arguments
             std::string smtAppName;
             std::vector<Expr> smtArgs;
             isSmtApplyTerm(recTerm, smtAppName, smtArgs);
-            if (smtAppName=="eo.to_smt")
+            if (smtAppName == "eo.to_smt")
             {
               os << "eo.to_smt ";
             }
@@ -466,48 +468,56 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
             // we recurse on the compiled SMT arguments
             // tuple is not
             Expr tupleArgs = d_state.mkExprSimple(Kind::TUPLE, smtArgs);
-            std::cout << key.first << " is " << smtAppName << " / " << tupleArgs << std::endl;
+            std::cout << key.first << " is " << smtAppName << " / " << tupleArgs
+                      << std::endl;
             std::get<1>(visit.back())++;
             smtAppToTuple[key] = tupleArgs;
             visit.emplace_back(tupleArgs, 0, tkctx);
             continue;
           }
-          else if (atk==TermKind::SMT_PROGRAM)
+          else if (atk == TermKind::SMT_PROGRAM)
           {
             // TODO: SMT builtin???
             tkctx = TermKind::EUNOIA_TERM;
             tctxChildren[key] = tkctx;
           }
-          else if (atk==TermKind::EUNOIA_PROGRAM)
+          else if (atk == TermKind::EUNOIA_PROGRAM)
           {
             tkctx = TermKind::SMT_TERM;
             tctxChildren[key] = tkctx;
           }
-          else if (atk==TermKind::PROGRAM)
+          else if (atk == TermKind::PROGRAM)
           {
             // do not print apply
           }
-          else if (atk==TermKind::SMT_TERM && tkctx==TermKind::EUNOIA_TERM)
+          else if (atk == TermKind::SMT_TERM && tkctx == TermKind::EUNOIA_TERM)
           {
             os << "sm.Apply ";
             // our children are now each SMT terms.
-            Assert (recTerm.getNumChildren()==2) << "Not 2 child apply SMT term: " << recTerm << " " << recTerm.getNumChildren();
-            recTerm = d_state.mkExprSimple(Kind::TUPLE, {recTerm[0], recTerm[1]});
+            Assert(recTerm.getNumChildren() == 2)
+                << "Not 2 child apply SMT term: " << recTerm << " "
+                << recTerm.getNumChildren();
+            recTerm =
+                d_state.mkExprSimple(Kind::TUPLE, {recTerm[0], recTerm[1]});
           }
-          else if (atk==TermKind::EUNOIA_TERM ||atk==TermKind::SMT_TERM || atk==TermKind::APPLY)
+          else if (atk == TermKind::EUNOIA_TERM || atk == TermKind::SMT_TERM
+                   || atk == TermKind::APPLY)
           {
             Assert(recTerm.getNumChildren() == 2);
             // could use macro to ensure "Stuck" propagates
-            // NOTE: if we have the invariant that we pattern matched, we don't need to check
-            os << (tkctx==TermKind::EUNOIA_TERM ? "$eo_Apply " : "$sm_Apply");
+            // NOTE: if we have the invariant that we pattern matched, we don't
+            // need to check
+            os << (tkctx == TermKind::EUNOIA_TERM ? "$eo_Apply " : "$sm_Apply");
             // term context does not change
           }
           else
           {
-            EO_FATAL() << "Unhandled term kind for " << recTerm << " " << termKindToString(atk) << ", in context " << termKindToString(tkctx);
+            EO_FATAL() << "Unhandled term kind for " << recTerm << " "
+                       << termKindToString(atk) << ", in context "
+                       << termKindToString(tkctx);
           }
         }
-        else if (ck == Kind::APPLY_OPAQUE || ck==Kind::TUPLE)
+        else if (ck == Kind::APPLY_OPAQUE || ck == Kind::TUPLE)
         {
           // kind is ignored, prints as a multi argument function
           // context preserves
@@ -533,9 +543,9 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
         else
         {
           EO_FATAL() << "Unhandled kind in print term " << ck << " " << recTerm
-                      << " / " << termKindToString(tkctx) << std::endl;
+                     << " / " << termKindToString(tkctx) << std::endl;
         }
-        Assert (recTerm[childIndex].getKind()!=Kind::TUPLE);
+        Assert(recTerm[childIndex].getKind() != Kind::TUPLE);
         std::get<1>(visit.back())++;
         visit.emplace_back(recTerm[childIndex], 0, tkctx);
       }
@@ -544,7 +554,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     {
       // done with arguments, close
       // tuples are "inlined"
-      if (recTerm.getKind()!=Kind::TUPLE)
+      if (recTerm.getKind() != Kind::TUPLE)
       {
         os << ")";
       }
@@ -615,7 +625,8 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
 {
   TermKind tk = getTermKind(v);
   // things that are manually axiomatized
-  if (tk==TermKind::SMT_PROGRAM || tk==TermKind::EUNOIA_PROGRAM || tk==TermKind::INTERNAL)
+  if (tk == TermKind::SMT_PROGRAM || tk == TermKind::EUNOIA_PROGRAM
+      || tk == TermKind::INTERNAL)
   {
     return;
   }
@@ -740,13 +751,16 @@ void SmtMetaReduce::finalizeDeclarations()
     TermKind tk = getTermKind(e, consName);
     // ignore deep embeddings of smt terms
     // all symbols beginning with @ are not part of term definition
-    if (tk==TermKind::INTERNAL || tk==TermKind::SMT_TERM_TYPE || tk==TermKind::SMT_PROGRAM || tk==TermKind::EUNOIA_PROGRAM || tk==TermKind::PROGRAM)
+    if (tk == TermKind::INTERNAL || tk == TermKind::SMT_TERM_TYPE
+        || tk == TermKind::SMT_PROGRAM || tk == TermKind::EUNOIA_PROGRAM
+        || tk == TermKind::PROGRAM)
     {
       continue;
     }
     bool isEunoia = isEunoiaKind(tk);
     std::stringstream* out = isEunoia ? &d_eoTermDecl : &d_termDecl;
-    (*out) << "  ; declare " << consName << " " << termKindToString(tk) << std::endl;
+    (*out) << "  ; declare " << consName << " " << termKindToString(tk)
+           << std::endl;
     Expr c = e;
     Expr ct = d_tc.getType(c);
     // (*out) << "  ; type is " << ct << std::endl;
@@ -785,14 +799,14 @@ void SmtMetaReduce::finalizeDeclarations()
       }
       (*out) << ".arg" << (i + 1) << " ";
       // if we are an SMT-LIB literal constructor, we take the opaque types
-      if (consName=="String")
+      if (consName == "String")
       {
         // HACK: seq char is not forward declared
         (*out) << "String";
       }
       else if (tk == TermKind::SMT_DT_CONS)
       {
-        Assert (ct[i].getKind()==Kind::QUOTE_TYPE);
+        Assert(ct[i].getKind() == Kind::QUOTE_TYPE);
         Expr targ = ct[i][0];
         Expr ttarg = d_tc.getType(targ);
         (*out) << ttarg;
@@ -805,9 +819,9 @@ void SmtMetaReduce::finalizeDeclarations()
     }
     (*out) << ")" << std::endl;
     // is it an SMT-LIB symbol????
-    //std::stringstream ss;
-    //ss << e;
-    //std::string name = ss.str();
+    // std::stringstream ss;
+    // ss << e;
+    // std::string name = ss.str();
   }
   d_declSeen.clear();
 }
@@ -1042,7 +1056,8 @@ bool SmtMetaReduce::isInternalSymbol(const Expr& t)
   {
     return true;
   }
-  if (sname.compare(0,7,"$eo_mk_")==0 || sname.compare(0,7,"$sm_mk_")==0)
+  if (sname.compare(0, 7, "$eo_mk_") == 0
+      || sname.compare(0, 7, "$sm_mk_") == 0)
   {
     return true;
   }
@@ -1062,7 +1077,7 @@ TermKind SmtMetaReduce::getTermKind(const Expr& e)
 TermKind SmtMetaReduce::getTermKind(const Expr& e, std::string& name)
 {
   Kind k = e.getKind();
-  if (k==Kind::APPLY)
+  if (k == Kind::APPLY)
   {
     std::string name;
     std::vector<Expr> args;
@@ -1075,21 +1090,21 @@ TermKind SmtMetaReduce::getTermKind(const Expr& e, std::string& name)
   std::stringstream ss;
   ss << e;
   std::string sname = ss.str();
-  if (k==Kind::PROGRAM_CONST)
+  if (k == Kind::PROGRAM_CONST)
   {
-    if (sname.compare(0,7, "$sm_mk_")==0)
+    if (sname.compare(0, 7, "$sm_mk_") == 0)
     {
       name = sname;
       return TermKind::SMT_PROGRAM;
     }
-    if (sname.compare(0,7, "$eo_mk_")==0)
+    if (sname.compare(0, 7, "$eo_mk_") == 0)
     {
       name = sname;
       return TermKind::EUNOIA_PROGRAM;
     }
     return TermKind::PROGRAM;
   }
-  else if (k!=Kind::CONST)
+  else if (k != Kind::CONST)
   {
     return TermKind::NONE;
   }
@@ -1103,16 +1118,16 @@ TermKind SmtMetaReduce::getTermKind(const Expr& e, std::string& name)
     name = sname;
     return TermKind::SMT_TERM_TYPE;
   }
-  if (sname.compare(0, 8, "$smd_eo.")==0)
+  if (sname.compare(0, 8, "$smd_eo.") == 0)
   {
     name = sname.substr(8);
-    if (name=="SmtTerm")
+    if (name == "SmtTerm")
     {
       return TermKind::EUNOIA_SMT_TERM_CONS;
     }
     return TermKind::EUNOIA_DT_CONS;
   }
-  else if (sname.compare(0, 8, "$smd_sm.")==0)
+  else if (sname.compare(0, 8, "$smd_sm.") == 0)
   {
     name = sname.substr(8);
     return TermKind::SMT_DT_CONS;
@@ -1129,7 +1144,7 @@ TermKind SmtMetaReduce::getTermKind(const Expr& e, std::string& name)
 bool SmtMetaReduce::isEunoiaTerm(const Expr& t)
 {
   Expr tcur = t;
-  while (tcur.getKind()==Kind::APPLY)
+  while (tcur.getKind() == Kind::APPLY)
   {
     // TODO: is this right???
     if (isSmtToEo(tcur[0]))
@@ -1144,12 +1159,13 @@ bool SmtMetaReduce::isEunoiaTerm(const Expr& t)
 
 bool SmtMetaReduce::isProgram(const Expr& t)
 {
-  if (t.getKind()==Kind::PROGRAM_CONST)
+  if (t.getKind() == Kind::PROGRAM_CONST)
   {
     return true;
   }
   TermKind tk = getTermKind(t);
-  return tk==TermKind::SMT_PROGRAM || tk==TermKind::EUNOIA_PROGRAM || tk==TermKind::PROGRAM;
+  return tk == TermKind::SMT_PROGRAM || tk == TermKind::EUNOIA_PROGRAM
+         || tk == TermKind::PROGRAM;
 }
 
 }  // namespace ethos
