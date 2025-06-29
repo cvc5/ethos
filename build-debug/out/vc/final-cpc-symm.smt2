@@ -25,8 +25,6 @@
   (sm.Seq)
   ; declare $smt_unknown_type SMT_TERM
   (sm.$smt_unknown_type)
-  ; declare $eo_Term SMT_TERM
-  (sm.$eo_Term)
   ; declare True SMT_DT_CONS
   (sm.True)
   ; declare False SMT_DT_CONS
@@ -39,8 +37,6 @@
   (sm.String (sm.String.arg1 String))
   ; declare Binary SMT_DT_CONS
   (sm.Binary (sm.Binary.arg1 Int) (sm.Binary.arg2 Int))
-  ; declare $smt_from_eo_bool SMT_TERM
-  (sm.$smt_from_eo_bool)
   ; declare not SMT_TERM
   (sm.not)
   ; declare and SMT_TERM
@@ -209,6 +205,9 @@
 
 ; fwd-decl: $eo_model_sat
 (declare-fun $eo_model_sat (eo.Term) eo.Term)
+
+; fwd-decl: $smt_from_eo_bool
+(declare-fun $smt_from_eo_bool (eo.Term) eo.Term)
 
 ; program: $eo_not
 (define-fun $eo_not ((x1 eo.Term)) eo.Term
@@ -677,9 +676,9 @@
   (ite (= x1 (eo.SmtTerm sm.False))
     (eo.SmtTerm sm.False)
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Apply) (eo.to_smt x1)) (= (sm.Apply.arg1 (eo.to_smt x1)) sm.not))
-    ($eo_mk_bool (not ($sm_Applysm.$smt_from_eo_bool ($smt_model_eval (sm.Apply.arg2 (eo.to_smt x1))))))
+    ($eo_mk_bool (not ($smt_from_eo_bool ($smt_model_eval (sm.Apply.arg2 (eo.to_smt x1))))))
   (ite (and ((_ is eo.Apply) x1) ((_ is eo.SmtTerm) (eo.Apply.arg1 x1)) ((_ is sm.Apply) (eo.to_smt (eo.Apply.arg1 x1))) (= (sm.Apply.arg1 (eo.to_smt (eo.Apply.arg1 x1))) sm.and))
-    ($eo_mk_bool (and ($sm_Applysm.$smt_from_eo_bool ($smt_model_eval (sm.Apply.arg2 (eo.to_smt (eo.Apply.arg1 x1))))) ($sm_Applysm.$smt_from_eo_bool ($smt_model_eval (eo.Apply.arg2 x1)))))
+    ($eo_mk_bool (and ($smt_from_eo_bool ($smt_model_eval (sm.Apply.arg2 (eo.to_smt (eo.Apply.arg1 x1))))) ($smt_from_eo_bool ($smt_model_eval (eo.Apply.arg2 x1)))))
   (ite (and ((_ is eo.Apply) x1) ((_ is eo.SmtTerm) (eo.Apply.arg1 x1)) ((_ is sm.Apply) (eo.to_smt (eo.Apply.arg1 x1))) (= (sm.Apply.arg1 (eo.to_smt (eo.Apply.arg1 x1))) sm.=))
     ($eo_ite ($eo_and ($smt_is_value ($smt_typeof (sm.Apply.arg2 (eo.to_smt (eo.Apply.arg1 x1)))) ($smt_model_eval (sm.Apply.arg2 (eo.to_smt (eo.Apply.arg1 x1))))) ($smt_is_value ($smt_typeof (sm.Apply.arg2 (eo.to_smt (eo.Apply.arg1 x1)))) ($smt_model_eval (eo.Apply.arg2 x1)))) ($eo_mk_bool (= ($smt_model_eval (sm.Apply.arg2 (eo.to_smt (eo.Apply.arg1 x1)))) ($smt_model_eval (eo.Apply.arg2 x1)))) ($eo_Apply (sm.Apply sm.= (sm.Apply.arg2 (eo.to_smt (eo.Apply.arg1 x1)))) (eo.Apply.arg2 x1)))
   (ite ((_ is sm.$smt_Const) x1)

@@ -752,6 +752,7 @@ void SmtMetaReduce::finalizeDeclarations()
     // ignore deep embeddings of smt terms
     // all symbols beginning with @ are not part of term definition
     if (tk == TermKind::INTERNAL || tk == TermKind::SMT_TERM_TYPE
+        || tk == TermKind::EUNOIA_TERM_TYPE
         || tk == TermKind::SMT_PROGRAM || tk == TermKind::EUNOIA_PROGRAM
         || tk == TermKind::PROGRAM)
     {
@@ -1117,6 +1118,11 @@ TermKind SmtMetaReduce::getTermKind(const Expr& e, std::string& name)
   {
     name = sname;
     return TermKind::SMT_TERM_TYPE;
+  }
+  if (sname == "$eo_Term")
+  {
+    name = sname;
+    return TermKind::EUNOIA_TERM_TYPE;
   }
   if (sname.compare(0, 8, "$smd_eo.") == 0)
   {

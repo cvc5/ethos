@@ -67,6 +67,8 @@ enum class TermKind
   SMT_TERM,
   // The type of SMT lib terms
   SMT_TERM_TYPE,
+  // ?
+  EUNOIA_TERM_TYPE,
   // An operator that operates on native SMT-LIB terms, e.g. $eo_mk_binary
   EUNOIA_PROGRAM,
   // An operator that operates on native SMT-LIB terms, e.g. $sm_mk_pow2

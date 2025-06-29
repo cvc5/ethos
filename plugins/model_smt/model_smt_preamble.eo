@@ -145,13 +145,13 @@
   )
 )
 ; Convert Eunoia Boolean to an smt Boolean.
-(declare-const $smt_from_eo_bool (-> Bool $smt_Term))
+(program $smt_from_eo_bool () :signature (Bool) $smt_Term)
 ; Convert Eunoia Numeral to an smt Integer.
-(declare-const $smt_from_eo_z (-> $smt_Numeral $smt_Term))
+(program $smt_from_eo_z () :signature ($smt_Numeral) $smt_Term)
 ; Convert Eunoia Rational to an smt Real.
-(declare-const $smt_from_eo_q (-> $smt_Rational $smt_Term))
+(program $smt_from_eo_q () :signature ($smt_Rational) $smt_Term)
 ; Convert Eunoia String to an smt String.
-(declare-const $smt_from_eo_str (-> $smt_String $smt_Term))
+(program $smt_from_eo_str () :signature ($smt_String) $smt_Term)
 
 
 ;;; Utilities
