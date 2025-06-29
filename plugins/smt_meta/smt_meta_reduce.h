@@ -120,11 +120,6 @@ class SmtMetaReduce : public Plugin
   void finalizeDeclarations();
   /** Does t have subterm s? */
   static bool hasSubterm(const Expr& t, const Expr& s);
-  /** is smt apply term */
-  bool isSmtApplyTerm(const Expr& t,
-                      std::string& name,
-                      std::vector<Expr>& args);
-  bool isSmtApplyTerm(const Expr& t);
   /** is smt apply, return the arity */
   size_t isSmtApply(const Expr& t);
   /** is smt term type */
@@ -142,6 +137,9 @@ class SmtMetaReduce : public Plugin
   /** get kind for suffix */
   Kind getKindForSuffix(const std::string& suf) const;
   /** get term kind */
+  TermKind getTermKindApply(const Expr& t,
+                      std::string& name,
+                      std::vector<Expr>& args);
   TermKind getTermKind(const Expr& e, std::string& name);
   TermKind getTermKind(const Expr& e);
   /** the state */

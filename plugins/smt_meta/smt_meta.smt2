@@ -39,6 +39,11 @@ $SM_EO_TERM_DECL$
 ;    sm.Stuck
 ;    (sm.FunType x y)))
 
+;(define-fun $sm_Apply ((x eo.Term) (y eo.Term)) eo.Term
+;  (ite (or (= x eo.Stuck) (= y eo.Stuck))
+;    eo.Stuck
+;    (eo.Apply x y)))
+
 (define-fun $eo_Apply ((x eo.Term) (y eo.Term)) eo.Term
   (ite (or (= x eo.Stuck) (= y eo.Stuck))
     eo.Stuck

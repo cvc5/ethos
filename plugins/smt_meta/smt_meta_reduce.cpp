@@ -451,7 +451,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
             // go back and get its arguments
             std::string smtAppName;
             std::vector<Expr> smtArgs;
-            isSmtApplyTerm(recTerm, smtAppName, smtArgs);
+            getTermKindApply(recTerm, smtAppName, smtArgs);
             if (smtAppName == "eo.to_smt")
             {
               os << "eo.to_smt ";
@@ -507,7 +507,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
             // could use macro to ensure "Stuck" propagates
             // NOTE: if we have the invariant that we pattern matched, we don't
             // need to check
-            os << (tkctx == TermKind::EUNOIA_TERM ? "$eo_Apply " : "$sm_Apply ");
+            os << (tkctx == TermKind::EUNOIA_TERM ? "$eo_Apply " : "sm.Apply ");
             // term context does not change
           }
           else
@@ -938,17 +938,11 @@ bool SmtMetaReduce::echo(const std::string& msg)
   return true;
 }
 
-bool SmtMetaReduce::isSmtApplyTerm(const Expr& t)
-{
-  std::string name;
-  std::vector<Expr> args;
-  return isSmtApplyTerm(t, name, args);
-}
-
-bool SmtMetaReduce::isSmtApplyTerm(const Expr& t,
+TermKind SmtMetaReduce::getTermKindApply(const Expr& t,
                                    std::string& name,
                                    std::vector<Expr>& args)
 {
+  Assert (t.getKind()==Kind::APPLY);
   Expr cur = t;
   while (cur.getKind() == Kind::APPLY)
   {
@@ -968,10 +962,11 @@ bool SmtMetaReduce::isSmtApplyTerm(const Expr& t,
     }
     const Literal* l = sname.getValue()->asLiteral();
     name = l->d_str.toString();
-    return true;
+    return TermKind::SMT_BUILTIN_APPLY;
   }
   args.clear();
-  return false;
+  // recurse back, should be limited
+  return getTermKind(cur);
 }
 
 size_t SmtMetaReduce::isSmtApply(const Expr& t)
@@ -1082,11 +1077,7 @@ TermKind SmtMetaReduce::getTermKind(const Expr& e, std::string& name)
   {
     std::string name;
     std::vector<Expr> args;
-    if (isSmtApplyTerm(e))
-    {
-      return TermKind::SMT_BUILTIN_APPLY;
-    }
-    return TermKind::APPLY;
+    return getTermKindApply(e, name, args);
   }
   std::stringstream ss;
   ss << e;
