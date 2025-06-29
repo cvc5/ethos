@@ -51,6 +51,8 @@ enum class TermKind
 {
   // An apply term
   APPLY,
+  //
+  PROGRAM,
   // Builtin datatype introduced in model_smt step, for eo.Term
   EUNOIA_DT_CONS,
   // An internal-only symbol defined by the user

@@ -26,8 +26,11 @@ std::string termKindToString(TermKind k)
 
   std::stringstream ss;
   switch (k)
-  {// An apply term
-    case TermKind::APPLY: ss << "APPLY";break;
+  {
+  // An apply term
+  case TermKind::APPLY: ss << "APPLY";break;
+  // An apply term
+  case TermKind::PROGRAM: ss << "PROGRAM";break;
   // Builtin datatype introduced in model_smt step, for eo.Term
   case TermKind::EUNOIA_DT_CONS: ss << "EUNOIA_DT_CONS";break;
   // An internal-only symbol defined by the user
@@ -327,8 +330,10 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
   std::stringstream osEnd;
   std::vector<Expr> ll;
   // maps smt apply terms to the tuple that they actually are
-  std::map<Expr, Expr> smtAppToTuple;
-  std::map<Expr, Expr>::iterator itsa;
+  std::map<std::pair<Expr, TermKind>, Expr> smtAppToTuple;
+  std::map<std::pair<Expr, TermKind>, Expr>::iterator itsa;
+  std::map<std::pair<Expr, TermKind>, TermKind> tctxChildren;
+  std::map<std::pair<Expr, TermKind>, TermKind>::iterator itt;
   // letify parameters for efficiency?
   /*
   // TODO: this is probably impossible without a sanitize step.
@@ -375,11 +380,18 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     recTerm = std::get<0>(cur);
     size_t childIndex = std::get<1>(cur);
     TermKind tkctx = std::get<2>(cur);
-    itsa = smtAppToTuple.find(recTerm);
+    std::pair<Expr, TermKind> key(recTerm, tkctx);
+    // maybe we have modified the arguments
+    itsa = smtAppToTuple.find(key);
     if (itsa != smtAppToTuple.end())
     {
       recTerm = itsa->second;
-      tkctx = TermKind::SMT_TERM;
+    }
+    // maybe its children have a different context?
+    itt = tctxChildren.find(key);
+    if (itt!=tctxChildren.end())
+    {
+      tkctx = itt->second;
     }
     // if we are printing the head of the term
     if (childIndex == 0)
@@ -417,7 +429,8 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
         if (ck == Kind::APPLY)
         {
           // should not have compute the tuple
-          Assert (smtAppToTuple.find(recTerm)==smtAppToTuple.end());
+          Assert (tctxChildren.find(key)==tctxChildren.end());
+          Assert (smtAppToTuple.find(key)==smtAppToTuple.end());
           // maybe its an SMT-apply
           TermKind atk = getTermKind(recTerm[0]);
           // std::cout << "Check if apply term " << recTerm << std::endl;
@@ -427,28 +440,39 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
             std::string smtAppName;
             std::vector<Expr> smtArgs;
             isSmtApplyTerm(recTerm, smtAppName, smtArgs);
+            if (smtAppName=="eo.to_smt")
+            {
+              os << "eo.to_smt ";
+            }
             // testers introduced in model_smt layer handled specially
-            if (smtAppName.compare(0, 3, "is ") == 0)
+            else if (smtAppName.compare(0, 3, "is ") == 0)
             {
               os << "(_ is " << smtAppName.substr(3) << ") ";
             }
             else
             {
-              // std::cout << "...returns true!!!! name is \"" << smtAppName
-              // <<
-              // "\"" << std::endl;
               os << smtAppName << " ";
             }
             // we recurse on the compiled SMT arguments
             recTerm = d_state.mkExprSimple(Kind::TUPLE, smtArgs);
-            // std::cout << recTerm << " is " << smtAppName << " / " <<
-            // recTerm << std::endl;
-            smtAppToTuple[recTerm] = recTerm;
+            std::cout << key.first << " is " << smtAppName << " / " << recTerm << std::endl;
+            smtAppToTuple[key] = recTerm;
             // the arguments will now be SMT terms
           }
           else if (atk==TermKind::SMT_PROGRAM)
           {
-            tkctx = atk;
+            // TODO: SMT builtin???
+            tkctx = TermKind::EUNOIA_TERM;
+            tctxChildren[key] = tkctx;
+          }
+          else if (atk==TermKind::EUNOIA_PROGRAM)
+          {
+            tkctx = TermKind::SMT_TERM;
+            tctxChildren[key] = tkctx;
+          }
+          else if (atk==TermKind::PROGRAM)
+          {
+            // do not print apply
           }
           else if (atk==TermKind::SMT_TERM && tkctx==TermKind::EUNOIA_TERM)
           {
@@ -457,7 +481,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
             Assert (recTerm.getNumChildren()==2) << "Not 2 child apply SMT term: " << recTerm << " " << recTerm.getNumChildren();
             recTerm = d_state.mkExprSimple(Kind::TUPLE, {recTerm[0], recTerm[1]});
           }
-          else if (atk==TermKind::SMT_TERM || atk==TermKind::APPLY)
+          else if (atk==TermKind::EUNOIA_TERM ||atk==TermKind::SMT_TERM || atk==TermKind::APPLY)
           {
             Assert(recTerm.getNumChildren() == 2);
             // could use macro to ensure "Stuck" propagates
@@ -494,8 +518,8 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
         }
         else
         {
-          EO_FATAL() << "Unhandled kind " << ck << " " << recTerm
-                      << std::endl;
+          EO_FATAL() << "Unhandled kind in print term " << ck << " " << recTerm
+                      << " / " << termKindToString(tkctx) << std::endl;
         }
         std::get<1>(visit.back())++;
         visit.emplace_back(recTerm[childIndex], 0, tkctx);
@@ -503,6 +527,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     }
     else if (childIndex >= recTerm.getNumChildren())
     {
+      // done with arguments, close
       os << ")";
       visit.pop_back();
     }
@@ -571,7 +596,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
 {
   TermKind tk = getTermKind(v);
   // things that are manually axiomatized
-  if (tk==TermKind::SMT_PROGRAM || tk==TermKind::INTERNAL)
+  if (tk==TermKind::SMT_PROGRAM || tk==TermKind::EUNOIA_PROGRAM || tk==TermKind::INTERNAL)
   {
     return;
   }
@@ -696,13 +721,13 @@ void SmtMetaReduce::finalizeDeclarations()
     TermKind tk = getTermKind(e, consName);
     // ignore deep embeddings of smt terms
     // all symbols beginning with @ are not part of term definition
-    if (tk==TermKind::INTERNAL || tk==TermKind::SMT_TERM_TYPE)
+    if (tk==TermKind::INTERNAL || tk==TermKind::SMT_TERM_TYPE || tk==TermKind::SMT_PROGRAM || tk==TermKind::EUNOIA_PROGRAM || tk==TermKind::PROGRAM)
     {
       continue;
     }
     bool isEunoia = isEunoiaKind(tk);
     std::stringstream* out = isEunoia ? &d_eoTermDecl : &d_termDecl;
-    (*out) << "  ; declare " << consName << std::endl;
+    (*out) << "  ; declare " << consName << " " << termKindToString(tk) << std::endl;
     Expr c = e;
     Expr ct = d_tc.getType(c);
     // (*out) << "  ; type is " << ct << std::endl;
@@ -1033,11 +1058,21 @@ TermKind SmtMetaReduce::getTermKind(const Expr& e, std::string& name)
       name = sname;
       return TermKind::SMT_PROGRAM;
     }
-    return TermKind::EUNOIA_PROGRAM;
+    if (sname.compare(0,7, "$eo_mk_")==0)
+    {
+      name = sname;
+      return TermKind::EUNOIA_PROGRAM;
+    }
+    return TermKind::PROGRAM;
   }
   else if (k!=Kind::CONST)
   {
     return TermKind::NONE;
+  }
+  if (sname.compare(0, 11, "$smt_apply_") == 0)
+  {
+    name = sname;
+    return TermKind::INTERNAL;
   }
   if (sname == "$smt_Term")
   {
@@ -1090,7 +1125,7 @@ bool SmtMetaReduce::isProgram(const Expr& t)
     return true;
   }
   TermKind tk = getTermKind(t);
-  return tk==TermKind::SMT_PROGRAM || tk==TermKind::EUNOIA_PROGRAM;
+  return tk==TermKind::SMT_PROGRAM || tk==TermKind::EUNOIA_PROGRAM || tk==TermKind::PROGRAM;
 }
 
 }  // namespace ethos
