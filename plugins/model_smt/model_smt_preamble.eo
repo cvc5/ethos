@@ -309,7 +309,7 @@
   (($eo_or ($smd_eo.SmtTerm ($smd_sm.Binary w n1)) ($smd_eo.SmtTerm ($smd_sm.Binary w n2)))
      ($eo_mk_binary ($sm_mk_binary_or w n1 n2) w))
   (($eo_or b1 b2)
-     (eo::ite ($smt_apply_2 "and" ($smt_is_bool b1) ($smt_is_bool b2))
+     ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_bool b1) ($smt_is_bool b2))
        ($eo_mk_bool ($smt_apply_2 "or" ($smt_get_bool b1) ($smt_get_bool b2)))
        $smd_eo.Stuck))
   )
@@ -322,7 +322,7 @@
   (($eo_xor ($smd_eo.SmtTerm ($smd_sm.Binary w n1)) ($smd_eo.SmtTerm ($smd_sm.Binary w n2)))
      ($eo_mk_binary ($sm_mk_binary_or w n1 n2) w))
   (($eo_xor b1 b2)
-     (eo::ite ($smt_apply_2 "and" ($smt_is_bool b1) ($smt_is_bool b2))
+     ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_bool b1) ($smt_is_bool b2))
        ($eo_mk_bool ($smt_apply_2 "xor" ($smt_get_bool b1) ($smt_get_bool b2)))
        $smd_eo.Stuck))
   )
@@ -331,23 +331,29 @@
 
 ;;; Arithmetic operators
 
-; axiom: $eo_add
-(define $eo_add ((T Type :implicit) (x1 T) (x2 T))
-  ; first try (overloaded) arithmetic
-  ($smt_try_eval_o_arith "+" x1 x2
-  ; if that fails, try binary
-  ($smt_apply_3 "ite" ($smt_eo_is_bin_same_width x1 x2)
-    ($eo_mk_binary ($smt_apply_2 "+" ($smt_bin_val x1) ($smt_bin_val x2)) ($smt_bin_width x1))
-    $smd_eo.Stuck)))
+(program $eo_add ((w $eo_Numeral) (n1 $eo_Numeral) (n2 $eo_Numeral) (r1 $eo_Rational) (r2 $eo_Rational))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_add ($smd_eo.SmtTerm ($smd_sm.Numeral n1)) ($smd_eo.SmtTerm ($smd_sm.Numeral n2)))
+    ($eo_mk_numeral ($smt_apply_2 "+" n1 n2)))
+  (($eo_add ($smd_eo.SmtTerm ($smd_sm.Rational r1)) ($smd_eo.SmtTerm ($smd_sm.Rational r2)))
+    ($eo_mk_rational ($smt_apply_2 "+" r1 r2)))
+  (($eo_add ($smd_eo.SmtTerm ($smd_sm.Binary w n1)) ($smd_eo.SmtTerm ($smd_sm.Binary w n2)))
+    ($eo_mk_binary ($smt_apply_2 "+" n1 n2) w))
+  )
+)
 
-; axiom: $eo_mul
-(define $eo_mul ((T Type :implicit) (x1 T) (x2 T))
-  ; first try (overloaded) arithmetic
-  ($smt_try_eval_o_arith "*" x1 x2
-  ; if that fails, try binary
-  ($smt_apply_3 "ite" ($smt_eo_is_bin_same_width x1 x2)
-    ($eo_mk_binary ($smt_apply_2 "*" ($smt_bin_val x1) ($smt_bin_val x2)) ($smt_bin_width x1))
-    $smd_eo.Stuck)))
+(program $eo_mul ((w $eo_Numeral) (n1 $eo_Numeral) (n2 $eo_Numeral) (r1 $eo_Rational) (r2 $eo_Rational))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_mul ($smd_eo.SmtTerm ($smd_sm.Numeral n1)) ($smd_eo.SmtTerm ($smd_sm.Numeral n2)))
+    ($eo_mk_numeral ($smt_apply_2 "*" n1 n2)))
+  (($eo_mul ($smd_eo.SmtTerm ($smd_sm.Rational r1)) ($smd_eo.SmtTerm ($smd_sm.Rational r2)))
+    ($eo_mk_rational ($smt_apply_2 "*" r1 r2)))
+  (($eo_mul ($smd_eo.SmtTerm ($smd_sm.Binary w n1)) ($smd_eo.SmtTerm ($smd_sm.Binary w n2)))
+    ($eo_mk_binary ($smt_apply_2 "*" n1 n2) w))
+  )
+)
 
 ; axiom: $eo_qdiv
 (define $eo_qdiv ((T Type :implicit) (x1 T) (x2 T))

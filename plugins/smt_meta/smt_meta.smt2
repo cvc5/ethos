@@ -90,8 +90,8 @@ $SM_EO_TERM_DECL$
   (smt.to_eo (sm.Numeral n)))
 
 ; program: $eo_mk_rational
-;(define-fun $eo_mk_rational ((r Real)) eo.Term
-;  (smt.to_eo (sm.Rational r)))
+(define-fun $eo_mk_rational ((r Real)) eo.Term
+  (smt.to_eo (sm.Rational r)))
 
 ; program: $eo_mk_string
 ;(define-fun $eo_mk_string ((s String)) eo.Term
