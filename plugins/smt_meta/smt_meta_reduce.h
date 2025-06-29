@@ -46,6 +46,30 @@ class SelectorCtx
   // size_t d_counter;
 };
 
+// TODO?
+enum class TermKind
+{
+  // Builtin datatype introduced in model_smt step, for eo.Term
+  EUNOIA_DT_CONS,
+  // An internal-only symbol defined by the user
+  EUNOIA_TERM,
+  // The SMT-LIB term constructor for Eunoia
+  EUNOIA_SMT_TERM_CONS,
+  // Builtin datatype introduced in model_smt step, for sm.Term
+  SMT_DT_CONS,
+  // An SMT term defined by the user (possibly non-SMT-LIB standard)
+  SMT_TERM,
+  // The type of SMT lib terms
+  SMT_TERM_TYPE,
+  // An operator that operates on native SMT-LIB terms, e.g. $eo_mk_binary
+  EUNOIA_PROGRAM,
+  // An operator that operates on native SMT-LIB terms, e.g. $sm_mk_pow2
+  SMT_PROGRAM,
+  // A term that was internal to model_smt step, should be removed
+  INTERNAL
+};
+bool isEunoiaKind(TermKind tk);
+
 /**
  */
 class SmtMetaReduce : public Plugin
@@ -76,7 +100,7 @@ class SmtMetaReduce : public Plugin
                             std::ostream& os,
                             SelectorCtx& ctx,
                             size_t& nconj);
-  bool printEmbAtomicTerm(const Expr& c, std::ostream& os);
+  bool printEmbAtomicTerm(const Expr& c, std::ostream& os, bool inSmtTerm=true);
   bool printEmbTerm(const Expr& c, std::ostream& os, const SelectorCtx& ctx);
   void finalizePrograms();
   void finalizeProgram(const Expr& v, const Expr& prog);
@@ -99,10 +123,13 @@ class SmtMetaReduce : public Plugin
   /** is internal symbol? These dissappear in this step. */
   bool isInternalSymbol(const Expr& t);
   /** is Eunoia symbol? These need to be part of eo.Term. */
-  bool isEunoiaSymbol(const Expr& t);
+  bool isEunoiaSymbol(const Expr& t, std::string& name);
+  bool isProgram(const Expr& t);
   bool isEunoiaTerm(const Expr& t);
   /** get kind for suffix */
   Kind getKindForSuffix(const std::string& suf) const;
+  /** get term kind */
+  TermKind getTermKind(const Expr& e, std::string& name);
   /** the state */
   State& d_state;
   /** the type checker */

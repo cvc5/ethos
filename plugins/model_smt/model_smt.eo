@@ -114,8 +114,8 @@
                                         (eo::ite (eo::eq (eo::zmod i 2) 0) v (eo::neg v)))))))
   ; Note that $smt_BitVec must be mapped to the user's definition of binaries.
   ; Note this method gets stuck if i > 2^w, indicating we have run out of values.
-  (($smt_type_enum ($smt_BitVec w) i) (eo::define ((v (eo::to_bin w i)))
-                                        (eo::requires (eo::to_z v) i v)))
+  ;(($smt_type_enum ($smt_BitVec w) i) (eo::define ((v (eo::to_bin w i)))
+  ;                                      (eo::requires (eo::to_z v) i v)))
   ; TODO: functions, datatypes
   ; Try to enumerate the type, if we fail, we return $smt_unknown_type_enum.
   ; Note that this essentially assumes that unhandled types are uninterpreted

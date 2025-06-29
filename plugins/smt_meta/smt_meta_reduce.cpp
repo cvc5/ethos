@@ -17,6 +17,11 @@
 
 namespace ethos {
 
+bool isEunoiaKind(TermKind tk)
+{
+  return tk==TermKind::EUNOIA_DT_CONS || tk==TermKind::EUNOIA_TERM || tk==TermKind::EUNOIA_SMT_TERM_CONS;
+}
+
 // std::string s_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
 std::string s_path = "/home/andrew/ethos/";
 
@@ -77,30 +82,33 @@ void SmtMetaReduce::printConjunction(size_t n,
   // os << ctx.d_letEnd.str();
 }
 
-bool SmtMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
+bool SmtMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os, bool inSmtTerm)
 {
+  // TODO: take inSmtTerm into account??
+  std::string cname;
+  TermKind tk = getTermKind(c, cname);
   Kind k = c.getKind();
-  if (k == Kind::CONST)
-  {
-    if (isInternalSymbol(c))
-    {
-      os << c;
-    }
-    else if (isEunoiaSymbol(c))
-    {
-      os << "(sm.EoTerm eo." << c << ")";
-    }
-    else
-    {
-      os << "sm." << c;
-    }
-    return true;
-  }
-  else if (k == Kind::PROGRAM_CONST)
+  if (isProgram(c))
   {
     os << c;
     // std::cout << "program const: " << c << " " << d_eoTmpNil << " " <<
     // (c==d_eoTmpNil) << std::endl;
+    return true;
+  }
+  if (k == Kind::CONST)
+  {
+    if (tk==TermKind::INTERNAL)
+    {
+      os << cname;
+    }
+    else if (isEunoiaKind(tk))
+    {
+      os << "eo." << cname;
+    }
+    else
+    {
+      os << "sm." << cname;
+    }
     return true;
   }
   else if (k == Kind::TYPE)
@@ -188,11 +196,12 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     std::stringstream cname;
     bool printArgs = false;
     size_t printArgStart = 0;
-    if (ck == Kind::APPLY && tcur[0].getKind() != Kind::PROGRAM_CONST)
+    if (ck == Kind::APPLY && !isProgram(tcur[0]))
     {
       // Determine if this is a Eunoia internal term, or an
       // SMT term
-      if (!inSmtTerm && !isEunoiaSymbol(tcur[0]))
+      std::string smConsName;
+      if (!inSmtTerm && !isEunoiaSymbol(tcur[0], smConsName))
       {
         os << (nconj > 0 ? " " : "") << "((_ is eo.SmtTerm) " << currTerm
            << ")";
@@ -406,24 +415,22 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
               // recTerm << std::endl;
               smtAppToTuple[recTerm] = recTerm;
             }
-            else if (!inSmtTerm && !isEunoiaSymbol(recTerm[0]))
+            else if (!inSmtTerm && !isEunoiaTerm(recTerm[0]) && !isProgram(recTerm[0]))
             {
               os << "sm.Apply ";
               // our children are now each SMT terms.
+              std::get<1>(visit.back())++;
               std::get<1>(visit.back())++;
               visit.emplace_back(recTerm[1], 0, true);
               visit.emplace_back(recTerm[0], 0, true);
               continue;
             }
-            else
+            else if (!isProgram(recTerm[0]))
             {
-              if (recTerm[0].getKind() != Kind::PROGRAM_CONST)
-              {
-                Assert(recTerm.getNumChildren() == 2);
-                // could use macro to ensure "Stuck" propagates
-                // NOTE: if we have the invariant that we pattern matched, we don't need to check
-                os << "$eo_Apply ";
-              }
+              Assert(recTerm.getNumChildren() == 2);
+              // could use macro to ensure "Stuck" propagates
+              // NOTE: if we have the invariant that we pattern matched, we don't need to check
+              os << "$eo_Apply ";
             }
           }
           else if (ck == Kind::APPLY_OPAQUE)
@@ -523,11 +530,14 @@ void SmtMetaReduce::finalizePrograms()
 
 void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
 {
-  std::stringstream ssp;
-  ssp << v;
-  std::string pname = ssp.str();
-  if (pname == "eo.to_smt" || pname == "$sm_Numeral" || pname == "$sm_Rational"
-      || pname == "$sm_String" || pname == "$sm_Binary")
+  std::string pname;
+  TermKind tk = getTermKind(v, pname);
+  if (pname == "eo.to_smt")
+  {
+    return;
+  }
+  // things that are manually axiomatized
+  if (tk==TermKind::SMT_PROGRAM || tk==TermKind::EUNOIA_PROGRAM)
   {
     return;
   }
@@ -648,15 +658,17 @@ void SmtMetaReduce::finalizeDeclarations()
   std::map<Expr, std::pair<Attr, Expr>>::iterator it;
   for (const Expr& e : d_declSeen)
   {
+    std::string consName;
+    TermKind tk = getTermKind(e, consName);
     // ignore deep embeddings of smt terms
     // all symbols beginning with @ are not part of term definition
-    if (isInternalSymbol(e))
+    if (tk==TermKind::INTERNAL || tk==TermKind::SMT_TERM_TYPE)
     {
       continue;
     }
-    bool isEunoia = isEunoiaSymbol(e);
+    bool isEunoia = isEunoiaKind(tk);
     std::stringstream* out = isEunoia ? &d_eoTermDecl : &d_termDecl;
-    (*out) << "  ; declare " << e << std::endl;
+    (*out) << "  ; declare " << consName << std::endl;
     Expr c = e;
     Expr ct = d_tc.getType(c);
     // (*out) << "  ; type is " << ct << std::endl;
@@ -671,7 +683,7 @@ void SmtMetaReduce::finalizeDeclarations()
     // (*out) << "  ; attr is " << attr << std::endl;
     (*out) << "  (";
     std::stringstream cname;
-    cname << (isEunoia ? "eo." : "sm.") << c;
+    cname << (isEunoia ? "eo." : "sm.") << consName;
     (*out) << cname.str();
     size_t nopqArgs = 0;
     if (attr == Attr::OPAQUE)
@@ -687,14 +699,32 @@ void SmtMetaReduce::finalizeDeclarations()
     for (size_t i = 0; i < nopqArgs; i++)
     {
       (*out) << " (" << cname.str();
-      (*out) << ".arg" << (i + 1) << " " << (isEunoia ? "eo." : "sm.")
-             << "Term)";
+      bool isEunoiaArg = isEunoia;
+      // corner case: if this is the SMT term constructor, is it an SMT term
+      if (tk == TermKind::EUNOIA_SMT_TERM_CONS)
+      {
+        isEunoiaArg = false;
+      }
+      (*out) << ".arg" << (i + 1) << " ";
+      // if we are an SMT-LIB literal constructor, we take the opaque types
+      if (tk == TermKind::SMT_DT_CONS)
+      {
+        Assert (ct[i].getKind()==Kind::QUOTE_TYPE);
+        Expr targ = ct[i][0];
+        Expr ttarg = d_tc.getType(targ);
+        (*out) << ttarg;
+      }
+      else
+      {
+        (*out) << (isEunoiaArg ? "eo." : "sm.") << "Term";
+      }
+      (*out) << ")";
     }
     (*out) << ")" << std::endl;
     // is it an SMT-LIB symbol????
-    std::stringstream ss;
-    ss << e;
-    std::string name = ss.str();
+    //std::stringstream ss;
+    //ss << e;
+    //std::string name = ss.str();
   }
   d_declSeen.clear();
 }
@@ -935,33 +965,84 @@ bool SmtMetaReduce::isInternalSymbol(const Expr& t)
   }
   return false;
 }
-bool SmtMetaReduce::isEunoiaSymbol(const Expr& t)
+bool SmtMetaReduce::isEunoiaSymbol(const Expr& t, std::string& name)
 {
+  TermKind tk = getTermKind(t, name);
+  return isEunoiaKind(tk);
+}
+
+TermKind SmtMetaReduce::getTermKind(const Expr& e, std::string& name)
+{
+  if (isInternalSymbol(e))
+  {
+    return TermKind::INTERNAL;
+  }
   std::stringstream ss;
-  ss << t;
+  ss << e;
   std::string sname = ss.str();
-  if (sname.compare(0, 1, "@") == 0)
+  if (sname == "$smt_Term")
   {
-    return true;
+    name = sname;
+    return TermKind::SMT_TERM_TYPE;
   }
-  if (sname.compare(0, 8, "$eo_List") == 0)
+  if (sname.compare(0, 8, "$smd_eo.")==0)
   {
-    return true;
+    name = sname.substr(8);
+    if (name=="SmtTerm")
+    {
+      return TermKind::EUNOIA_SMT_TERM_CONS;
+    }
+    return TermKind::EUNOIA_DT_CONS;
   }
-  if (sname == "$eo_Var")
+  else if (sname.compare(0, 8, "$smd_sm.")==0)
   {
-    return true;
+    name = sname.substr(8);
+    return TermKind::SMT_DT_CONS;
   }
-  return false;
+  if (sname.compare(0, 1, "@") == 0 || sname.compare(0, 8, "$eo_List") == 0)
+  {
+    name = sname;
+    return TermKind::EUNOIA_TERM;
+  }
+  if (sname.compare(0,7, "$sm_mk_")==0)
+  {
+    name = sname;
+    return TermKind::SMT_PROGRAM;
+  }
+  if (sname.compare(0,7,"$eo_mk_")==0)
+  {
+    name = sname;
+    return TermKind::EUNOIA_PROGRAM;
+  }
+  name = sname;
+  return TermKind::SMT_TERM;
 }
 
 bool SmtMetaReduce::isEunoiaTerm(const Expr& t)
 {
-  if (isEunoiaSymbol(t))
+  Expr tcur = t;
+  while (tcur.getKind()==Kind::APPLY)
+  {
+    // TODO: is this right???
+    if (isSmtToEo(tcur[0]))
+    {
+      return false;
+    }
+    tcur = tcur[0];
+  }
+  std::string name;
+  return isEunoiaSymbol(tcur, name);
+}
+
+bool SmtMetaReduce::isProgram(const Expr& t)
+{
+  if (t.getKind()==Kind::PROGRAM_CONST)
   {
     return true;
   }
-  return false;
+  std::string name;
+  TermKind tk = getTermKind(t, name);
+  return tk==TermKind::SMT_PROGRAM || tk==TermKind::EUNOIA_PROGRAM;
 }
 
 }  // namespace ethos
