@@ -402,7 +402,7 @@
   (ite (and ((_ is eo.Apply) x1) ((_ is eo.SmtTerm) (eo.Apply.arg1 x1)) ((_ is sm.Apply) (eo.to_smt (eo.Apply.arg1 x1))) (= (sm.Apply.arg1 (eo.to_smt (eo.Apply.arg1 x1))) sm.=))
     ($eo_Apply (sm.Apply sm.= (eo.Apply.arg2 x1)) (sm.Apply.arg2 (eo.to_smt (eo.Apply.arg1 x1))))
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Apply) (eo.to_smt x1)) ((_ is sm.Apply) (sm.Apply.arg2 (eo.to_smt x1))) ((_ is sm.Apply) (sm.Apply.arg1 (sm.Apply.arg2 (eo.to_smt x1)))) (= (sm.Apply.arg1 (sm.Apply.arg1 (sm.Apply.arg2 (eo.to_smt x1)))) sm.=) (= (sm.Apply.arg1 (eo.to_smt x1)) sm.not))
-    (sm.Apply sm.not ($eo_Apply (sm.Apply sm.= (sm.Apply.arg2 (sm.Apply.arg2 (eo.to_smt x1)))) (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg2 (eo.to_smt x1))))))
+    (sm.Apply sm.not ($sm_Apply($sm_Applysm.= (sm.Apply.arg2 (sm.Apply.arg2 (eo.to_smt x1)))) (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg2 (eo.to_smt x1))))))
     eo.Stuck)))
 )
 

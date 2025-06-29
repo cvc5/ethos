@@ -497,8 +497,8 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
             Assert(recTerm.getNumChildren() == 2)
                 << "Not 2 child apply SMT term: " << recTerm << " "
                 << recTerm.getNumChildren();
-            recTerm =
-                d_state.mkExprSimple(Kind::TUPLE, {recTerm[0], recTerm[1]});
+            tkctx = TermKind::SMT_TERM;
+            tctxChildren[key] = tkctx;
           }
           else if (atk == TermKind::EUNOIA_TERM || atk == TermKind::SMT_TERM
                    || atk == TermKind::APPLY)
@@ -507,7 +507,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
             // could use macro to ensure "Stuck" propagates
             // NOTE: if we have the invariant that we pattern matched, we don't
             // need to check
-            os << (tkctx == TermKind::EUNOIA_TERM ? "$eo_Apply " : "$sm_Apply");
+            os << (tkctx == TermKind::EUNOIA_TERM ? "$eo_Apply " : "$sm_Apply ");
             // term context does not change
           }
           else
