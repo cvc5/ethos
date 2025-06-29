@@ -214,9 +214,9 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite (and ((_ is eo.SmtTerm) x1) (= (eo.SmtTerm.arg1 x1) sm.True))
-    (eo.SmtTerm (eo.SmtTerm sm.False))
+    (eo.SmtTerm sm.False)
   (ite (and ((_ is eo.SmtTerm) x1) (= (eo.SmtTerm.arg1 x1) sm.False))
-    (eo.SmtTerm (eo.SmtTerm sm.True))
+    (eo.SmtTerm sm.True)
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Binary) (eo.SmtTerm.arg1 x1)))
     ($eo_mk_binary (sm.Binary.arg1 (eo.SmtTerm.arg1 x1)) ($sm_mk_binary_not (sm.Binary.arg1 (eo.SmtTerm.arg1 x1)) (sm.Binary.arg2 (eo.SmtTerm.arg1 x1))))
     eo.Stuck))))
@@ -251,9 +251,9 @@
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
     eo.Stuck
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Numeral) (eo.SmtTerm.arg1 x1)) ((_ is eo.SmtTerm) x2) ((_ is sm.Numeral) (eo.SmtTerm.arg1 x2)))
-    (ite (= 0 (sm.Numeral.arg1 (eo.SmtTerm.arg1 x2))) eo.Stuck ($eo_mk_rational (/ (to_real (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1))) (to_real (sm.Numeral.arg1 (eo.SmtTerm.arg1 x2))))))
+    (ite (= 0 (eo.SmtTerm (sm.Numeral.arg1 (eo.SmtTerm.arg1 x2)))) eo.Stuck ($eo_mk_rational (/ (to_real (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1))) (to_real (sm.Numeral.arg1 (eo.SmtTerm.arg1 x2))))))
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Rational) (eo.SmtTerm.arg1 x1)) ((_ is eo.SmtTerm) x2) ((_ is sm.Rational) (eo.SmtTerm.arg1 x2)))
-    (ite (= 0/1 (sm.Rational.arg1 (eo.SmtTerm.arg1 x2))) eo.Stuck ($eo_mk_rational (/ (sm.Rational.arg1 (eo.SmtTerm.arg1 x1)) (sm.Rational.arg1 (eo.SmtTerm.arg1 x2)))))
+    (ite (= 0/1 (eo.SmtTerm (sm.Rational.arg1 (eo.SmtTerm.arg1 x2)))) eo.Stuck ($eo_mk_rational (/ (sm.Rational.arg1 (eo.SmtTerm.arg1 x1)) (sm.Rational.arg1 (eo.SmtTerm.arg1 x2)))))
     eo.Stuck)))
 )
 
@@ -262,9 +262,9 @@
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
     eo.Stuck
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Numeral) (eo.SmtTerm.arg1 x1)) ((_ is eo.SmtTerm) x2) ((_ is sm.Numeral) (eo.SmtTerm.arg1 x2)))
-    (ite (= 0 (sm.Numeral.arg1 (eo.SmtTerm.arg1 x2))) eo.Stuck ($eo_mk_numeral (div (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1)) (sm.Numeral.arg1 (eo.SmtTerm.arg1 x2)))))
+    (ite (= 0 (eo.SmtTerm (sm.Numeral.arg1 (eo.SmtTerm.arg1 x2)))) eo.Stuck ($eo_mk_numeral (div (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1)) (sm.Numeral.arg1 (eo.SmtTerm.arg1 x2)))))
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Binary) (eo.SmtTerm.arg1 x1)) ((_ is eo.SmtTerm) x2) ((_ is sm.Binary) (eo.SmtTerm.arg1 x2)) (= (sm.Binary.arg1 (eo.SmtTerm.arg1 x2)) (sm.Binary.arg1 (eo.SmtTerm.arg1 x1))))
-    (ite (= 0 (sm.Binary.arg2 (eo.SmtTerm.arg1 x2))) ($eo_mk_binary (sm.Binary.arg1 (eo.SmtTerm.arg1 x1)) ($sm_mk_binary_max (sm.Binary.arg1 (eo.SmtTerm.arg1 x1)))) ($eo_mk_binary (sm.Binary.arg1 (eo.SmtTerm.arg1 x1)) (div (sm.Binary.arg2 (eo.SmtTerm.arg1 x1)) (sm.Binary.arg2 (eo.SmtTerm.arg1 x2)))))
+    (ite (= 0 (eo.SmtTerm (sm.Binary.arg2 (eo.SmtTerm.arg1 x2)))) ($eo_mk_binary (sm.Binary.arg1 (eo.SmtTerm.arg1 x1)) ($sm_mk_binary_max (sm.Binary.arg1 (eo.SmtTerm.arg1 x1)))) ($eo_mk_binary (sm.Binary.arg1 (eo.SmtTerm.arg1 x1)) (div (sm.Binary.arg2 (eo.SmtTerm.arg1 x1)) (sm.Binary.arg2 (eo.SmtTerm.arg1 x2)))))
     eo.Stuck)))
 )
 
@@ -273,9 +273,9 @@
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
     eo.Stuck
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Numeral) (eo.SmtTerm.arg1 x1)) ((_ is eo.SmtTerm) x2) ((_ is sm.Numeral) (eo.SmtTerm.arg1 x2)))
-    (ite (= 0 (sm.Numeral.arg1 (eo.SmtTerm.arg1 x2))) eo.Stuck ($eo_mk_numeral (mod (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1)) (sm.Numeral.arg1 (eo.SmtTerm.arg1 x2)))))
+    (ite (= 0 (eo.SmtTerm (sm.Numeral.arg1 (eo.SmtTerm.arg1 x2)))) eo.Stuck ($eo_mk_numeral (mod (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1)) (sm.Numeral.arg1 (eo.SmtTerm.arg1 x2)))))
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Binary) (eo.SmtTerm.arg1 x1)) ((_ is eo.SmtTerm) x2) ((_ is sm.Binary) (eo.SmtTerm.arg1 x2)) (= (sm.Binary.arg1 (eo.SmtTerm.arg1 x2)) (sm.Binary.arg1 (eo.SmtTerm.arg1 x1))))
-    (ite (= 0 (sm.Binary.arg2 (eo.SmtTerm.arg1 x2))) (eo.SmtTerm ((eo.SmtTerm sm.Binary) (sm.Binary.arg1 (eo.SmtTerm.arg1 x1)) (sm.Binary.arg2 (eo.SmtTerm.arg1 x1)))) ($eo_mk_binary (sm.Binary.arg1 (eo.SmtTerm.arg1 x1)) (mod (sm.Binary.arg2 (eo.SmtTerm.arg1 x1)) (sm.Binary.arg2 (eo.SmtTerm.arg1 x2)))))
+    (ite (= 0 (eo.SmtTerm (sm.Binary.arg2 (eo.SmtTerm.arg1 x2)))) (eo.SmtTerm (sm.Binary (sm.Binary.arg1 (eo.SmtTerm.arg1 x1)) (sm.Binary.arg2 (eo.SmtTerm.arg1 x1)))) ($eo_mk_binary (sm.Binary.arg1 (eo.SmtTerm.arg1 x1)) (mod (sm.Binary.arg2 (eo.SmtTerm.arg1 x1)) (sm.Binary.arg2 (eo.SmtTerm.arg1 x2)))))
     eo.Stuck)))
 )
 
@@ -321,7 +321,7 @@
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Rational) (eo.SmtTerm.arg1 x1)))
     ($eo_mk_numeral (to_int (sm.Rational.arg1 (eo.SmtTerm.arg1 x1))))
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.String) (eo.SmtTerm.arg1 x1)))
-    (ite (= 1 (str.len (sm.String.arg1 (eo.SmtTerm.arg1 x1)))) ($eo_mk_numeral (str.to_code (sm.String.arg1 (eo.SmtTerm.arg1 x1)))) eo.Stuck)
+    (ite (= 1 (str.len (eo.SmtTerm (sm.String.arg1 (eo.SmtTerm.arg1 x1))))) ($eo_mk_numeral (str.to_code (sm.String.arg1 (eo.SmtTerm.arg1 x1)))) eo.Stuck)
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Binary) (eo.SmtTerm.arg1 x1)))
     ($eo_mk_numeral (sm.Binary.arg2 (eo.SmtTerm.arg1 x1)))
     eo.Stuck)))))
@@ -354,7 +354,7 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Numeral) (eo.SmtTerm.arg1 x1)))
-    (ite (and (<= 0 (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1))) (> 196608 (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1)))) ($eo_mk_string (str.from_code (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1)))) eo.Stuck)
+    (ite (and (<= 0 (eo.SmtTerm (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1)))) (> 196608 (eo.SmtTerm (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1))))) ($eo_mk_string (str.from_code (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1)))) eo.Stuck)
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.String) (eo.SmtTerm.arg1 x1)))
     ($eo_mk_string (sm.String.arg1 (eo.SmtTerm.arg1 x1)))
     eo.Stuck)))
@@ -451,7 +451,7 @@
   (ite (= x1 (eo.SmtTerm sm.and))
     ($eo_FunType (eo.SmtTerm sm.BoolType) ($eo_FunType (eo.SmtTerm sm.BoolType) (eo.SmtTerm sm.BoolType)))
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Apply) (eo.SmtTerm.arg1 x1)) (= (sm.Apply.arg1 (eo.SmtTerm.arg1 x1)) sm.=))
-    ($eo_typeof_= ($eo_typeof (sm.Apply.arg2 (eo.SmtTerm.arg1 x1))))
+    ($eo_typeof_= ($eo_typeof (eo.SmtTerm (sm.Apply.arg2 (eo.SmtTerm.arg1 x1)))))
   (ite (= x1 (eo.SmtTerm sm.BitVec))
     ($eo_FunType (eo.SmtTerm sm.Int) (eo.SmtTerm sm.Type))
   (ite ((_ is eo.Apply) x1)
@@ -485,7 +485,7 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Apply) (eo.SmtTerm.arg1 x1)) ((_ is sm.Apply) (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))) (= (sm.Apply.arg1 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))) sm.$eo_Var))
-    (sm.Apply.arg2 (eo.SmtTerm.arg1 x1))
+    (eo.SmtTerm (sm.Apply.arg2 (eo.SmtTerm.arg1 x1)))
   (ite true
     ($eo_ite ($eo_ite ($eo_ite ($eo_and ($eo_is_ok x1) (eo.SmtTerm sm.True)) ($eo_eq (eo.SmtTerm sm.True) x1) (eo.SmtTerm sm.False)) (eo.SmtTerm sm.True) ($eo_ite ($eo_and ($eo_is_ok x1) (eo.SmtTerm sm.True)) ($eo_eq (eo.SmtTerm sm.False) x1) (eo.SmtTerm sm.False))) (eo.SmtTerm sm.BoolType) ($eo_ite ($eo_ite ($eo_and ($eo_is_ok ($eo_to_z x1)) ($eo_is_ok x1)) ($eo_eq x1 ($eo_to_z x1)) (eo.SmtTerm sm.False)) (eo.SmtTerm sm.Int) ($eo_ite ($eo_ite ($eo_and ($eo_is_ok ($eo_to_q x1)) ($eo_is_ok x1)) ($eo_eq x1 ($eo_to_q x1)) (eo.SmtTerm sm.False)) (eo.SmtTerm sm.Real) ($eo_ite ($eo_ite ($eo_and ($eo_is_ok ($eo_to_str x1)) ($eo_is_ok x1)) ($eo_eq x1 ($eo_to_str x1)) (eo.SmtTerm sm.False)) (eo.SmtTerm (sm.Apply sm.Seq sm.Char)) ($eo_ite ($eo_ite ($eo_and ($eo_is_ok ($eo_to_bin ($eo_len x1) x1)) ($eo_is_ok x1)) ($eo_eq x1 ($eo_to_bin ($eo_len x1) x1)) (eo.SmtTerm sm.False)) (eo.SmtTerm sm.$eo_undef_type) ($eo_typeof_main x1))))))
     eo.Stuck)))))
@@ -676,11 +676,11 @@
   (ite (= x1 (eo.SmtTerm sm.False))
     (eo.SmtTerm sm.False)
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Apply) (eo.SmtTerm.arg1 x1)) (= (sm.Apply.arg1 (eo.SmtTerm.arg1 x1)) sm.not))
-    ($eo_mk_bool (not ($smt_from_eo_bool ($smt_model_eval (sm.Apply.arg2 (eo.SmtTerm.arg1 x1))))))
+    ($eo_mk_bool (not ($smt_from_eo_bool ($smt_model_eval (eo.SmtTerm (sm.Apply.arg2 (eo.SmtTerm.arg1 x1)))))))
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Apply) (eo.SmtTerm.arg1 x1)) ((_ is sm.Apply) (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))) (= (sm.Apply.arg1 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))) sm.and))
-    ($eo_mk_bool (and ($smt_from_eo_bool ($smt_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))))) ($smt_from_eo_bool ($smt_model_eval (sm.Apply.arg2 (eo.SmtTerm.arg1 x1))))))
+    ($eo_mk_bool (and ($smt_from_eo_bool ($smt_model_eval (eo.SmtTerm (sm.Apply.arg2 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1)))))) ($smt_from_eo_bool ($smt_model_eval (eo.SmtTerm (sm.Apply.arg2 (eo.SmtTerm.arg1 x1)))))))
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Apply) (eo.SmtTerm.arg1 x1)) ((_ is sm.Apply) (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))) (= (sm.Apply.arg1 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))) sm.=))
-    ($eo_ite ($eo_and ($smt_is_value ($smt_typeof (sm.Apply.arg2 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1)))) ($smt_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))))) ($smt_is_value ($smt_typeof (sm.Apply.arg2 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1)))) ($smt_model_eval (sm.Apply.arg2 (eo.SmtTerm.arg1 x1))))) ($eo_mk_bool (= ($smt_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1)))) ($smt_model_eval (sm.Apply.arg2 (eo.SmtTerm.arg1 x1))))) (eo.SmtTerm (sm.Apply (sm.Apply sm.= (sm.Apply.arg2 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1)))) (sm.Apply.arg2 (eo.SmtTerm.arg1 x1)))))
+    ($eo_ite ($eo_and ($smt_is_value ($smt_typeof (eo.SmtTerm (sm.Apply.arg2 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))))) ($smt_model_eval (eo.SmtTerm (sm.Apply.arg2 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1)))))) ($smt_is_value ($smt_typeof (eo.SmtTerm (sm.Apply.arg2 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))))) ($smt_model_eval (eo.SmtTerm (sm.Apply.arg2 (eo.SmtTerm.arg1 x1)))))) ($eo_mk_bool (= ($smt_model_eval (eo.SmtTerm (sm.Apply.arg2 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))))) ($smt_model_eval (eo.SmtTerm (sm.Apply.arg2 (eo.SmtTerm.arg1 x1)))))) (eo.SmtTerm (sm.Apply (sm.Apply sm.= (sm.Apply.arg2 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1)))) (sm.Apply.arg2 (eo.SmtTerm.arg1 x1)))))
   (ite ((_ is (eo.SmtTerm sm.$smt_Const)) x1)
     ($eo_ite ($smt_model_eval ($eo_ite ($eo_eq ((eo.SmtTerm sm.$smt_Const).arg1 x1) (eo.SmtTerm (sm.Numeral 0))) (eo.SmtTerm sm.True) ($eo_ite ($eo_is_ok ($eo_const_predicate ((eo.SmtTerm sm.$smt_Const).arg1 x1) ((eo.SmtTerm sm.$smt_Const).arg2 x1) ((eo.SmtTerm sm.$smt_Const).arg3 x1))) ($eo_const_predicate ((eo.SmtTerm sm.$smt_Const).arg1 x1) ((eo.SmtTerm sm.$smt_Const).arg2 x1) ((eo.SmtTerm sm.$smt_Const).arg3 x1)) (eo.SmtTerm sm.True)))) ($smt_model_lookup ((eo.SmtTerm sm.$smt_Const).arg1 x1) ((eo.SmtTerm sm.$smt_Const).arg2 x1) ((eo.SmtTerm sm.$smt_Const).arg3 x1)) ((eo.SmtTerm sm.$smt_Const) ((eo.SmtTerm sm.$smt_Const).arg1 x1) ((eo.SmtTerm sm.$smt_Const).arg2 x1) ((eo.SmtTerm sm.$smt_Const).arg3 x1)))
   (ite ((_ is eo.Apply) x1)

@@ -24,27 +24,15 @@ namespace ethos {
 class State;
 class TypeChecker;
 
-class SelectorCtx
+
+enum class TermContextKind
 {
- public:
-  SelectorCtx() {}
-  /*
-  SelectorCtx() : d_counter(0) {}
-  std::string push(const std::string& next)
-  {
-    d_counter++;
-    std::stringstream ss;
-    ss << "z" << d_counter;
-    d_letBegin << "(let ((z" << d_counter << " " << next << ")) ";
-    d_letEnd << ")";
-    return ss.str();
-  }
-  */
-  std::map<Expr, std::string> d_ctx;
-  // std::stringstream d_letBegin;
-  // std::stringstream d_letEnd;
-  // size_t d_counter;
+  EUNOIA,
+  SMT,
+  SMT_BUILTIN,
+  NONE
 };
+std::string termContextKindToString(TermContextKind k);
 
 // TODO?
 enum class TermKind
@@ -79,6 +67,30 @@ bool isEunoiaKind(TermKind tk);
 
 std::string termKindToString(TermKind k);
 
+class SelectorCtx
+{
+ public:
+  SelectorCtx() {}
+  /*
+  SelectorCtx() : d_counter(0) {}
+  std::string push(const std::string& next)
+  {
+    d_counter++;
+    std::stringstream ss;
+    ss << "z" << d_counter;
+    d_letBegin << "(let ((z" << d_counter << " " << next << ")) ";
+    d_letEnd << ")";
+    return ss.str();
+  }
+  */
+  std::map<Expr, std::string> d_ctx;
+  /** The context it was matched in */
+  std::map<Expr, TermContextKind> d_tctx;
+  // std::stringstream d_letBegin;
+  // std::stringstream d_letEnd;
+  // size_t d_counter;
+};
+
 /**
  */
 class SmtMetaReduce : public Plugin
@@ -111,7 +123,7 @@ class SmtMetaReduce : public Plugin
                             size_t& nconj);
   void printEmbAtomicTerm(const Expr& c,
                           std::ostream& os,
-                          TermKind tctx = TermKind::NONE);
+                          TermContextKind tctx = TermContextKind::NONE);
   bool printEmbTerm(const Expr& c, std::ostream& os, const SelectorCtx& ctx);
   void finalizePrograms();
   void finalizeProgram(const Expr& v, const Expr& prog);
