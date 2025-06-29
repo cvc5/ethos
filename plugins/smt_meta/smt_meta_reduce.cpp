@@ -88,6 +88,11 @@ bool SmtMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os, TermKind
   std::string cname;
   TermKind tk = getTermKind(c, cname);
   Kind k = c.getKind();
+  if (tk==TermKind::EUNOIA_TO_SMT)
+  {
+    os << "eo.to_smt";
+    return true;
+  }
   if (isProgram(c))
   {
     os << c;
@@ -397,12 +402,14 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           // should not have compute the tuple
           Assert (smtAppToTuple.find(recTerm)==smtAppToTuple.end());
           // maybe its an SMT-apply
-          std::string smtAppName;
-          std::vector<Expr> smtArgs;
           TermKind atk = getTermKind(recTerm[0]);
           // std::cout << "Check if apply term " << recTerm << std::endl;
-          if (isSmtApplyTerm(recTerm, smtAppName, smtArgs))
+          if (atk==TermKind::SMT_BUILTIN_APPLY)
           {
+            // go back and get its arguments
+            std::string smtAppName;
+            std::vector<Expr> smtArgs;
+            isSmtApplyTerm(recTerm, smtAppName, smtArgs);
             // testers introduced in model_smt layer handled specially
             if (smtAppName.compare(0, 3, "is ") == 0)
             {
@@ -427,6 +434,9 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           }
           else if (atk==TermKind::EUNOIA_TO_SMT)
           {
+            os << "eo.to_smt ";
+            std::get<1>(visit.back())++;
+            childIndex++;
           }
           else if (tkctx==TermKind::EUNOIA_TERM && atk==TermKind::SMT_TERM)
           {
@@ -472,7 +482,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
                       << std::endl;
         }
         std::get<1>(visit.back())++;
-        visit.emplace_back(recTerm[0], 0, tkctx);
+        visit.emplace_back(recTerm[childIndex], 0, tkctx);
       }
     }
     else if (childIndex >= recTerm.getNumChildren())
@@ -994,6 +1004,20 @@ TermKind SmtMetaReduce::getTermKind(const Expr& e, std::string& name)
   if (k==Kind::PROGRAM_CONST)
   {
     return TermKind::EUNOIA_PROGRAM;
+  }
+  else if (k==Kind::APPLY)
+  {
+    std::string name;
+    std::vector<Expr> args;
+    if (isSmtApplyTerm(e))
+    {
+      return TermKind::SMT_BUILTIN_APPLY;
+    }
+    return TermKind::APPLY;
+  }
+  else if (k!=Kind::CONST)
+  {
+    return TermKind::NONE;
   }
   std::stringstream ss;
   ss << e;

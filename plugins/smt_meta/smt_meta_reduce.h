@@ -49,12 +49,16 @@ class SelectorCtx
 // TODO?
 enum class TermKind
 {
+  // An apply term
+  APPLY,
   // Builtin datatype introduced in model_smt step, for eo.Term
   EUNOIA_DT_CONS,
   // An internal-only symbol defined by the user
   EUNOIA_TERM,
   // The SMT-LIB term constructor for Eunoia
   EUNOIA_SMT_TERM_CONS,
+  // SMT apply
+  SMT_BUILTIN_APPLY,
   // Builtin datatype introduced in model_smt step, for sm.Term
   SMT_DT_CONS,
   // An SMT term defined by the user (possibly non-SMT-LIB standard)
