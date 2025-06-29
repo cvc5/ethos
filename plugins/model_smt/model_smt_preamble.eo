@@ -280,23 +280,16 @@
   (
   (($eo_not ($smd_eo.SmtTerm $smd_sm.True))         ($smd_eo.SmtTerm $smd_sm.False))
   (($eo_not ($smd_eo.SmtTerm $smd_sm.False))        ($smd_eo.SmtTerm $smd_sm.True))
-  (($eo_not ($smd_eo.SmtTerm ($smd_sm.Binary w n))) ($eo_mk_binary ($sm_mk_binary_not w n) w))
+  (($eo_not ($smd_eo.SmtTerm ($smd_sm.Binary w n))) ($eo_mk_binary w ($sm_mk_binary_not w n)))
   )
 )
-;(define $eo_not ((T Type :implicit) (x1 T))
-;  ($smt_apply_3 "ite" ($smt_is_bool x1)
-;    ($smt_to_eo_bool ($smt_apply_1 "not" ($smt_from_eo_bool x1)))
-;  ($smt_apply_3 "ite" ($smt_is_bin x1)
-;    (eo::define ((w ($smt_bin_width x1)))
-;      ($eo_mk_binary ($sm_mk_binary_not w ($smt_bin_val x1)) w))
-;    $smd_eo.Stuck)))
 
 ; axiom: $eo_and
 (program $eo_and ((b1 $eo_Term) (b2 $eo_Term) (w $eo_Numeral) (n1 $eo_Numeral) (n2 $eo_Numeral))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
   (($eo_and ($smd_eo.SmtTerm ($smd_sm.Binary w n1)) ($smd_eo.SmtTerm ($smd_sm.Binary w n2)))
-     ($eo_mk_binary ($sm_mk_binary_and w n1 n2) w))
+     ($eo_mk_binary w ($sm_mk_binary_and w n1 n2)))
   (($eo_and b1 b2)
      ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_bool b1) ($smt_is_bool b2))
        ($eo_mk_bool ($smt_apply_2 "and" ($smt_get_bool b1) ($smt_get_bool b2)))
@@ -309,7 +302,7 @@
   :signature ($eo_Term $eo_Term) $eo_Term
   (
   (($eo_or ($smd_eo.SmtTerm ($smd_sm.Binary w n1)) ($smd_eo.SmtTerm ($smd_sm.Binary w n2)))
-     ($eo_mk_binary ($sm_mk_binary_or w n1 n2) w))
+     ($eo_mk_binary w ($sm_mk_binary_or w n1 n2)))
   (($eo_or b1 b2)
      ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_bool b1) ($smt_is_bool b2))
        ($eo_mk_bool ($smt_apply_2 "or" ($smt_get_bool b1) ($smt_get_bool b2)))
@@ -322,7 +315,7 @@
   :signature ($eo_Term $eo_Term) $eo_Term
   (
   (($eo_xor ($smd_eo.SmtTerm ($smd_sm.Binary w n1)) ($smd_eo.SmtTerm ($smd_sm.Binary w n2)))
-     ($eo_mk_binary ($sm_mk_binary_or w n1 n2) w))
+     ($eo_mk_binary w ($sm_mk_binary_or w n1 n2)))
   (($eo_xor b1 b2)
      ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_bool b1) ($smt_is_bool b2))
        ($eo_mk_bool ($smt_apply_2 "xor" ($smt_get_bool b1) ($smt_get_bool b2)))
@@ -341,7 +334,7 @@
   (($eo_add ($smd_eo.SmtTerm ($smd_sm.Rational r1)) ($smd_eo.SmtTerm ($smd_sm.Rational r2)))
     ($eo_mk_rational ($smt_apply_2 "+" r1 r2)))
   (($eo_add ($smd_eo.SmtTerm ($smd_sm.Binary w n1)) ($smd_eo.SmtTerm ($smd_sm.Binary w n2)))
-    ($eo_mk_binary ($smt_apply_2 "+" n1 n2) w))
+    ($eo_mk_binary w ($smt_apply_2 "+" n1 n2)))
   )
 )
 
@@ -353,7 +346,7 @@
   (($eo_mul ($smd_eo.SmtTerm ($smd_sm.Rational r1)) ($smd_eo.SmtTerm ($smd_sm.Rational r2)))
     ($eo_mk_rational ($smt_apply_2 "*" r1 r2)))
   (($eo_mul ($smd_eo.SmtTerm ($smd_sm.Binary w n1)) ($smd_eo.SmtTerm ($smd_sm.Binary w n2)))
-    ($eo_mk_binary ($smt_apply_2 "*" n1 n2) w))
+    ($eo_mk_binary w ($smt_apply_2 "*" n1 n2)))
   )
 )
 
@@ -383,8 +376,8 @@
       ($eo_mk_numeral ($smt_apply_2 "div" n1 n2))))
   (($eo_zdiv ($smd_eo.SmtTerm ($smd_sm.Binary w n1)) ($smd_eo.SmtTerm ($smd_sm.Binary w n2)))
     ($smt_apply_3 "ite" ($smt_apply_1 "= 0" n2)
-      ($eo_mk_binary ($sm_mk_binary_max w) w)
-      ($eo_mk_binary ($smt_apply_2 "div" n1 n2) w)))
+      ($eo_mk_binary w ($sm_mk_binary_max w))
+      ($eo_mk_binary w ($smt_apply_2 "div" n1 n2))))
   )
 )
 
@@ -398,7 +391,7 @@
   (($eo_zmod ($smd_eo.SmtTerm ($smd_sm.Binary w n1)) ($smd_eo.SmtTerm ($smd_sm.Binary w n2)))
     ($smt_apply_3 "ite" ($smt_apply_1 "= 0" n2)
       ($smd_eo.SmtTerm ($smd_sm.Binary w n1))
-      ($eo_mk_binary ($smt_apply_2 "mod" n1 n2) w)))
+      ($eo_mk_binary w ($smt_apply_2 "mod" n1 n2))))
   )
 )
 
@@ -443,63 +436,83 @@
   (($eo_concat ($smd_eo.SmtTerm ($smd_sm.String s1)) ($smd_eo.SmtTerm ($smd_sm.String s2)))
      ($eo_mk_string ($smt_apply_2 "str.++" s1 s2)))
   (($eo_concat ($smd_eo.SmtTerm ($smd_sm.Binary w1 n1)) ($smd_eo.SmtTerm ($smd_sm.Binary w2 n2)))
-     ($eo_mk_binary ($sm_mk_binary_concat w1 n1 w2 n2) ($smt_apply_2 "+" w1 w2)))
+     ($eo_mk_binary ($smt_apply_2 "+" w1 w2) ($sm_mk_binary_concat w1 n1 w2 n2)))
   )
 )
 
-; axiom: $eo_extract
-(define $eo_extract ((T Type :implicit) (x1 T) (x2 $smt_Numeral) (x3 $smt_Numeral))
-  ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_z x2) ($smt_is_z x3))
-    ($smt_apply_3 "ite" ($smt_is_str x1)
-      (eo::define ((n2 ($smt_from_eo_z x2)))
-      (eo::define ((n3 ($smt_from_eo_z x3)))
-      ($smt_to_eo_str ($smt_apply_3 "str.substr" ($smt_from_eo_str x1) n2 ($smt_apply_2 "+" ($smt_apply_2 "-" n3 n2) 1)))))
-    ($smt_apply_3 "ite" ($smt_is_bin x1)
-      ($sm_mk_binary_extract ($smt_bin_width x1) ($smt_bin_val x1) ($smt_bin_val x2) ($smt_bin_val x3))
-      $smd_eo.Stuck))
-    $smd_eo.Stuck))
+(program $eo_extract
+  ((s1 $eo_String) (w1 $eo_Numeral) (n1 $eo_Numeral) (n2 $eo_Numeral) (n3 $eo_Numeral))
+  :signature ($eo_Term $eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_extract ($smd_eo.SmtTerm ($smd_sm.String s1)) ($smd_eo.SmtTerm ($smd_sm.Numeral n2)) ($smd_eo.SmtTerm ($smd_sm.Numeral n3)))
+     ($eo_mk_string ($smt_apply_3 "str.substr" s1 n2 ($smt_apply_2 "+ 1" ($smt_apply_2 "-" n3 n2)))))
+  (($eo_extract ($smd_eo.SmtTerm ($smd_sm.Binary w1 n1)) ($smd_eo.SmtTerm ($smd_sm.Numeral n2)) ($smd_eo.SmtTerm ($smd_sm.Numeral n3)))
+     ($eo_mk_binary ($smt_apply_1 "+ 1" ($smt_apply_2 "-" n3 n2)) ($sm_mk_binary_extract w1 n1 n2 n3)))
+  )
+)
+
+(program $eo_find((s1 $eo_String) (s2 $eo_String))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_find ($smd_eo.SmtTerm ($smd_sm.String s1)) ($smd_eo.SmtTerm ($smd_sm.String s2)))
+     ($eo_mk_string ($smt_apply_3 "str.indexof" s1 s2 0)))  ; TODO: is this right??
+  )
+)
+
 
 ; axiom: $eo_find
-(define $eo_find ((T Type :implicit) (x1 T) (x2 T))
-  ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_str x1) ($smt_is_str x2))
-    ($smt_to_eo_z ($smt_apply_3 "str.indexof" ($smt_from_eo_str x1) ($smt_from_eo_str x2) ($smt_from_eo_z ($smt_apply_1 "eo.SmtTerm" 0))))
-    $smd_eo.Stuck))
+;(define $eo_find ((T Type :implicit) (x1 T) (x2 T))
+;  ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_str x1) ($smt_is_str x2))
+;    ($smt_to_eo_z ($smt_apply_3 "str.indexof" ($smt_from_eo_str x1) ($smt_from_eo_str x2) ($smt_from_eo_z ($smt_apply_1 "eo.SmtTerm" 0))))
+;    $smd_eo.Stuck))
 
 ;;; Conversion operators
 
-; axiom: $eo_to_z
-(define $eo_to_z ((T Type :implicit) (x1 T))
-  ($smt_apply_3 "ite" ($smt_is_z x1)
-    x1
-  ($smt_apply_3 "ite" ($smt_is_q x1)
-    ($smt_to_eo_z ($smt_apply_2 "to_int" ($smt_from_eo_q x1)))
-  ($smt_apply_3 "ite" ($smt_is_bin x1)
-    ($smt_to_eo_z ($smt_bin_val x1))
-  ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_str x1) ($smt_apply_2 "=" ($smt_apply_1 "str.len" ($smt_from_eo_str x1)) ($smt_from_eo_z ($smt_apply_1 "eo.SmtTerm" 1))))
-    ($smt_to_eo_z ($smt_apply_1 "str.to_code" ($smt_from_eo_str x1)))
-    $smd_eo.Stuck)))))
+(program $eo_to_z ((n1 $eo_Numeral) (r1 $eo_Rational) (s1 $eo_String) (w $eo_Numeral))
+  :signature ($eo_Term) $eo_Term
+  (
+  (($eo_to_z ($smd_eo.SmtTerm ($smd_sm.Numeral n1)))
+    ($eo_mk_numeral n1))
+  (($eo_to_z ($smd_eo.SmtTerm ($smd_sm.Rational r1)))
+    ($eo_mk_numeral ($smt_apply_2 "to_int" r1)))
+  (($eo_to_z ($smd_eo.SmtTerm ($smd_sm.String s1)))
+    ($smt_apply_3 "ite" ($smt_apply_1 "= 1" ($smt_apply_1 "str.len" s1))
+      ($eo_mk_numeral ($smt_apply_1 "str.to_code" s1))
+      $smd_eo.Stuck))
+  (($eo_to_z ($smd_eo.SmtTerm ($smd_sm.Binary w n1)))
+    ($eo_mk_numeral n1))
+  )
+)
 
-; axiom: $eo_to_q
-(define $eo_to_q ((T Type :implicit) (x1 T))
-  ($smt_apply_3 "ite" ($smt_is_z x1)
-    ($smt_to_eo_q ($smt_apply_1 "to_real" ($smt_from_eo_z x1)))
-  ($smt_apply_3 "ite" ($smt_is_q x1)
-    x1
-    $smd_eo.Stuck)))
+(program $eo_to_q ((n1 $eo_Numeral) (r1 $eo_Rational) (s1 $eo_String) (w $eo_Numeral))
+  :signature ($eo_Term) $eo_Term
+  (
+  (($eo_to_q ($smd_eo.SmtTerm ($smd_sm.Numeral n1)))
+    ($eo_mk_rational ($smt_apply_1 "to_real" n1)))
+  (($eo_to_q ($smd_eo.SmtTerm ($smd_sm.Rational r1)))
+    ($eo_mk_rational r1))
+  )
+)
 
-; axiom: $eo_to_bin
-(define $eo_to_bin ((T Type :implicit) (x1 T) (x2 T))
-  ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_z x1) ($smt_is_z x2))
-    ($eo_mk_binary ($smt_from_eo_z x1) ($smt_from_eo_z x2))
-  ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_z x1) ($smt_is_z x2))
-    ($eo_mk_binary ($smt_from_eo_z x1) ($smt_bin_val x2))
-    $smd_eo.Stuck)))
+(program $eo_to_bin ((w $eo_Numeral) (w1 $eo_Numeral) (n1 $eo_Numeral))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_to_bin ($smd_eo.SmtTerm ($smd_sm.Numeral w)) ($smd_eo.SmtTerm ($smd_sm.Numeral n1)))
+    ($eo_mk_binary w n1))
+  (($eo_to_bin ($smd_eo.SmtTerm ($smd_sm.Numeral w)) ($smd_eo.SmtTerm ($smd_sm.Binary w1 n1)))
+    ($eo_mk_binary w n1))
+  )
+)
 
-; axiom: $eo_to_str
-(define $eo_to_str ((T Type :implicit) (x1 T))
-  ($smt_apply_3 "ite" ($smt_is_z x1)
-    ($smt_to_eo_str ($smt_apply_1 "str.from_code" ($smt_from_eo_z x1)))
-  ($smt_apply_3 "ite" ($smt_is_str x1)
-    x1
-  ; TODO?
-    $smd_eo.Stuck)))
+(program $eo_to_str ((n1 $eo_Numeral) (s1 $eo_String))
+  :signature ($eo_Term) $eo_Term
+  (
+  (($eo_to_str ($smd_eo.SmtTerm ($smd_sm.Numeral n1)))
+    ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_apply_1 "<= 0" n1) ($smt_apply_1 "> 196608" n1))
+      ($eo_mk_string ($smt_apply_1 "str.from_code" n1))
+      $smd_eo.Stuck))
+  (($eo_to_str ($smd_eo.SmtTerm ($smd_sm.String s1)))
+    ($eo_mk_string s1))
+  ; TODO: technically others here
+  )
+)
