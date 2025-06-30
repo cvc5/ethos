@@ -26,6 +26,8 @@ $SM_TERM_DECL$
 ; A Eunoia internal term
 (declare-datatype eo.Term
   (
+  ; The type of types in Eunoia
+  (eo.Type)
   ; The Eunoia function type.
   (eo.FunType (eo.FunType.arg1 eo.Term) (eo.FunType.arg2 eo.Term))
   ; Application of a Eunoia term

@@ -45,8 +45,10 @@ enum class TermKind
   EUNOIA_TERM,
   // The SMT-LIB term constructor for Eunoia
   EUNOIA_SMT_TERM_CONS,
+  EUNOIA_TYPE_TYPE,
   // SMT apply
   SMT_BUILTIN_APPLY,
+  SMT_BUILTIN_TYPE,
   // Builtin datatype introduced in model_smt step, for sm.Term
   SMT_DT_CONS,
   // An SMT term defined by the user (possibly non-SMT-LIB standard)
@@ -58,6 +60,7 @@ enum class TermKind
   SMT_TYPE_DT_CONS,
   // ?
   EUNOIA_TERM_TYPE,
+  EUNOIA_BOOL,
   // An operator that operates on native SMT-LIB terms, e.g. $eo_mk_binary
   SMT_TO_EO_PROGRAM,
   SMT_PROGRAM,
@@ -128,7 +131,7 @@ class SmtMetaReduce : public Plugin
   void printEmbAtomicTerm(const Expr& c,
                           std::ostream& os,
                           TermContextKind tctx = TermContextKind::NONE);
-  TermContextKind printEmbType(const Expr& c,
+  TermKind printEmbType(const Expr& c,
                                std::ostream& os,
                                TermContextKind tctx = TermContextKind::NONE);
   bool printEmbTerm(const Expr& c,
@@ -141,16 +144,17 @@ class SmtMetaReduce : public Plugin
   /** Does t have subterm s? */
   static bool hasSubterm(const Expr& t, const Expr& s);
   /** is smt apply, return the arity */
-  size_t isSmtApply(const Expr& t, bool& isType);
+  TermKind isSmtApply(const Expr& t);
+  bool isProgramKind(TermKind tk);
   bool isProgram(const Expr& t);
   /** get term kind */
   TermKind getTermKindApply(const Expr& t,
                             std::string& name,
-                            std::vector<Expr>& args,
-                            bool& isType);
+                            std::vector<Expr>& args);
   TermKind getTermKindAtomic(const Expr& e, std::string& name);
   TermKind getTermKind(const Expr& e, std::string& name);
   TermKind getTermKind(const Expr& e);
+  TermContextKind termKindToContext(TermKind tk);
   /** the state */
   State& d_state;
   /** the type checker */
@@ -177,7 +181,7 @@ class SmtMetaReduce : public Plugin
   std::stringstream d_smtVc;
   std::map<std::string, Kind> d_sufToKind;
   /** SMT-LIB indexed operators */
-  std::map<Expr, std::vector<TermContextKind>> d_metaType;
+  std::map<Expr, std::vector<TermKind>> d_metaType;
   // SMT-LIB symbols
   bool d_inInitialize;
 };
