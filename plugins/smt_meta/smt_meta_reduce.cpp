@@ -257,7 +257,8 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
   os << osEnd.str();
 }
 
-TermContextKind SmtMetaReduce::printEmbType(const Expr& c, std::ostream& os)
+TermContextKind SmtMetaReduce::printEmbType(const Expr& c, std::ostream& os,
+                          TermContextKind tctx)
 {
   std::string name;
   std::vector<Expr> args;
@@ -932,7 +933,7 @@ void SmtMetaReduce::finalizeDeclarations()
     if (tk == TermKind::INTERNAL || tk == TermKind::SMT_TERM_TYPE || tk==TermKind::SMT_TYPE_TYPE
         || tk == TermKind::EUNOIA_TERM_TYPE
         || tk == TermKind::SMT_BUILTIN_PROGRAM || tk == TermKind::SMT_TO_EO_PROGRAM
-        || tk == TermKind::PROGRAM || tk == TermKind::SMT_BUILTIN_APPLY || tk==TermKind::EUNOIA_DT_CONS || tk==TermKind::SMT_DT_CONS)
+        || tk == TermKind::PROGRAM || tk == TermKind::SMT_BUILTIN_APPLY || tk==TermKind::EUNOIA_DT_CONS)
     {
       continue;
     }
@@ -952,6 +953,11 @@ void SmtMetaReduce::finalizeDeclarations()
     }
     else
     {
+      // defined manually
+      if (consName=="Const")
+      {
+        continue;
+      }
       prefix << "sm.";
       out = &d_termDecl;
     }
@@ -991,7 +997,6 @@ void SmtMetaReduce::finalizeDeclarations()
     for (size_t i = 0; i < nopqArgs; i++)
     {
       (*out) << " (" << cname.str();
-      bool isEunoiaArg = isEunoia;
       (*out) << ".arg" << (i + 1) << " ";
       // print its type using the utility,
       // which takes into account what the type is in the final embedding

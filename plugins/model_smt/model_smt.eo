@@ -44,6 +44,18 @@
   ((T Type) (U Type) (index T) (element U) (tail (@map T U)))
   (@map T U))
 
+; an uninterpreted sort value
+; TODO: could insist that T is $smt_Type?
+(declare-parameterized-const @usort_value ((n ($smt_type_0 "Int")) (T Type)) T)
+
+(program $is_usort_value  ((n ($smt_type_0 "Int")) (T $smt_Type) (t $smt_Term))
+  :signature ($smt_Term) Bool
+  (
+  (($is_usort_value (@usort_value n T)) true)
+  (($is_usort_value t)                  false)
+  )
+)
+
 ;;; Definition of legal types
 
 ; Is T a type that can be assigned to free constants?
@@ -179,14 +191,15 @@
 ; Returns true if its argument is an SMT value.
 ; This function is expected to never get stuck.
 (program $smt_is_value
-  ((T Type) (U Type) (t T) (n1 $smt_Numeral) (r1 $smt_Rational) (s1 $smt_String))
-  :signature ((eo::quote T) T) Bool
+  ((T Type) (U Type) (t $smt_Term) (n1 ($smt_type_0 "Int")) (r1 $smt_Rational) (s1 $smt_String))
+  :signature ((eo::quote T) $smt_Term) Bool
   (
   ; if the literal type is not defined, this is false
-  ;(($smt_is_value $smt_unknown_type t)  false)
+  (($smt_is_value ($smd_tsm.UnknownSort n1) t)    false)
+  (($smt_is_value ($smd_tsm.USort n1) t)          ($is_usort_value t))
   ; standard atomic types
-  (($smt_is_value Bool true)       true)
-  (($smt_is_value Bool false)      true)
+  (($smt_is_value $smd_sm.BoolType true)       true)
+  (($smt_is_value $smd_sm.BoolType false)      true)
   (($smt_is_value $smt_Numeral ($smd_eo.SmtTerm ($smd_sm.Numeral n1)))  true)
   (($smt_is_value $smt_Rational ($smd_eo.SmtTerm ($smd_sm.Rational r1)))  true)
   (($smt_is_value $smt_String ($smd_eo.SmtTerm ($smd_sm.String s1)))  true)

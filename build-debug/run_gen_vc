@@ -64,7 +64,7 @@ cp $STD_SMODEL_OUT $VCM_DEF_DESUGAR
 
 # trim again
 echo "**** run_gen_vc: Run ethos + trim-deps on $VCM_DEF_DESUGAR to generate $VCMT_DEF_DESUGAR"
-./run_trim_defs $VCM_DEF_DESUGAR "\$eovc_$TARGET" "\$eo_not"  >/dev/null
+./run_trim_defs $VCM_DEF_DESUGAR "\$eovc_$TARGET" "\$smd_sm.Apply"  >/dev/null
 check_status
 cp $STD_TRIM_OUT $VCMT_DEF_DESUGAR
 
