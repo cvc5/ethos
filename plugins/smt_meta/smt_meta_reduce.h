@@ -152,18 +152,14 @@ class SmtMetaReduce : public StdPlugin
   std::map<Expr, std::string> d_embMapAtomic;
   /** Common constants */
   Expr d_null;
-  /** Number of current scopes. Bindings at scope>0 are not remembered */
-  size_t d_nscopes;
   std::stringstream d_termDecl;
   std::stringstream d_typeDecl;
   std::stringstream d_eoTermDecl;
   std::stringstream d_defs;
   std::stringstream d_rules;
   std::stringstream d_smtVc;
-  /** SMT-LIB indexed operators */
+  // TODO: maybe not necessary?
   std::map<Expr, std::vector<TermKind>> d_metaType;
-  // SMT-LIB symbols
-  bool d_inInitialize;
 };
 
 }  // namespace ethos

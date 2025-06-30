@@ -898,6 +898,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   appTerm << "(" << v;
   std::stringstream stuckCases;
   size_t nstuckCond = 0;
+  std::vector<TermKind> termKindsForTypeArgs;
   for (size_t i = 1; i < nargs; i++)
   {
     if (i > 1)
@@ -925,6 +926,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
       nstuckCond++;
       stuckCases << "(= " << ssArg.str() << " eo.Stuck)";
     }
+    termKindsForTypeArgs.push_back(tka);
   }
   std::stringstream stuckCond;
   if (nstuckCond > 1)
@@ -965,11 +967,13 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     cases << "    eo.Stuck" << std::endl;
     casesEnd << ")";
   }
+  /*
   TermContextKind ctxPatMatch = TermContextKind::EUNOIA;
   if (tk==TermKind::SMT_PROGRAM)
   {
     ctxPatMatch = TermContextKind::SMT;
   }
+  */
   size_t ncases = prog.getNumChildren();
   for (size_t i = 0; i < ncases; i++)
   {
@@ -984,11 +988,14 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     SelectorCtx ctx;
     std::stringstream currCase;
     size_t nconj = 0;
+    Assert (hd.getNumChildren()==nargs);
     for (size_t j = 1, nhdchild = hd.getNumChildren(); j < nhdchild; j++)
     {
       // print the pattern matching predicate for this argument, all
       // concatenated together
       std::cout << "Print pat matching for " << hd[j] << std::endl;
+      // context depends on the kind of the argument
+      TermContextKind ctxPatMatch = termKindToContext(termKindsForTypeArgs[j-1]);
       printEmbPatternMatch(hd[j], args[j - 1], currCase, ctx, nconj, ctxPatMatch);
       std::cout << "...returns " << currCase.str() << std::endl;
     }
