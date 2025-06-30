@@ -291,7 +291,7 @@ TermKind SmtMetaReduce::printEmbType(const Expr& c,
   }
   else if (tk == TermKind::SMT_TYPE_TYPE)
   {
-    os << "sm.Type";
+    os << "tsm.Type";
   }
   else if (tk == TermKind::EUNOIA_TERM_TYPE || tk == TermKind::EUNOIA_TERM
            || tk == TermKind::EUNOIA_TYPE_TYPE || tk == TermKind::EUNOIA_BOOL)
@@ -909,7 +909,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
       varList << " ";
     }
     std::stringstream argType;
-    //TermKind tka;
+    //TermKind tka =
     printEmbType(vt[i - 1], argType);
     //d_defs << "; defs: " << vt[i - 1] << " is " << termKindToString(tka) << std::endl;
     decl << argType.str();

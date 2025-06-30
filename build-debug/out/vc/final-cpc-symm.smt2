@@ -470,14 +470,14 @@
 )
 
 ; program: $smtx_enum_type_contains_rec
-(declare-fun $smtx_enum_type_contains_rec (sm.Type sm.Term Int) eo.Term)
-(assert (! (forall ((x1 sm.Type) (x2 sm.Term) (x3 Int))
+(declare-fun $smtx_enum_type_contains_rec (tsm.Type sm.Term Int) eo.Term)
+(assert (! (forall ((x1 tsm.Type) (x2 sm.Term) (x3 Int))
   (= ($smtx_enum_type_contains_rec x1 x2 x3)
     ($eo_ite ($eo_is_ok ($smtx_enum_type x1 x3)) ($eo_ite ($eo_eq ($smtx_enum_type x1 x3) (eo.SmtTerm x2)) (eo.SmtTerm sm.True) ($smtx_enum_type_contains_rec x1 x3 ($eo_add x3 (sm.Numeral 1)))) (eo.SmtTerm sm.False))
 )) :named sm.axiom.$smtx_enum_type_contains_rec))
 
 ; fwd-decl: $smtx_is_value
-(declare-fun $smtx_is_value (sm.Type sm.Term) eo.Term)
+(declare-fun $smtx_is_value (tsm.Type sm.Term) eo.Term)
 
 ; program: $smtx_map_is_value
 (define-fun $smtx_map_is_value ((x1 sm.Term)) eo.Term
@@ -494,7 +494,7 @@
 ))) :named sm.axiom.$smtx_dt_is_value))
 
 ; program: $smtx_is_value
-(assert (! (forall ((x1 sm.Type) (x2 sm.Term))
+(assert (! (forall ((x1 tsm.Type) (x2 sm.Term))
   (= ($smtx_is_value x1 x2)
   (ite ((_ is sm.UnknownSort) x1)
     (eo.SmtTerm sm.False)
@@ -519,7 +519,7 @@
 (declare-fun $smtx_model_eval (eo.Term) eo.Term)
 
 ; fwd-decl: $smtx_model_lookup
-(declare-fun $smtx_model_lookup (Int Int sm.Type) sm.Term)
+(declare-fun $smtx_model_lookup (Int Int tsm.Type) sm.Term)
 
 ; program: $smtx_eval_apply
 (declare-fun $smtx_eval_apply (sm.Term sm.Term) sm.Term)

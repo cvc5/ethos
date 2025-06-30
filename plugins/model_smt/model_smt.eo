@@ -103,8 +103,8 @@
 (define $smt_irrat_enum ((i $smt_Numeral))
  ($smd_sm.usort_value $smt_Rational i))
 
-(program $smtx_enum_type ((T ($smt_type_0 "tsm.Type")) (i ($smt_type_0 "Int")))
-  :signature (($smt_type_0 "tsm.Type") ($smt_type_0 "Int")) $smt_Term
+(program $smtx_enum_type ((T $smt_Type) (i ($smt_type_0 "Int")))
+  :signature ($smt_Type ($smt_type_0 "Int")) $smt_Term
   (
   ; enumeration of standard SMT types
   ;(($smtx_enum_type $smt_Numeral i)     (eo::define ((v (eo::zdiv i 2)))
