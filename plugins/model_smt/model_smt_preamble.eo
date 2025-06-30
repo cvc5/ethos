@@ -1,6 +1,6 @@
 ; This file defines a deep embedding of SMT-LIB into Eunoia.
 ; It is used for two purposes:
-; 1. To give an SMT-LIB specific bootstrapping of the SMT-LIB inspired builtin Eunoia functions, e.g. eo::add.
+; 1. To give an SMT-LIB specific bootstrapping of the SMT-LIB inspired builtin Eunoia functions, e.g. $eo_add.
 ; 2. It is used as a tool for defining the model semantics of SMT-LIB.
 
 
@@ -8,26 +8,23 @@
 
 ;;; declarations to define literal types
 
+(declare-const $smt_unknown_type Type)
+
 (define $smt_Numeral () $eo_Numeral)
 (define $smt_Rational () $eo_Rational)
 (define $smt_String () $eo_String)
+; $smt_Binary remains undefined
+(define $smt_Binary () $smt_unknown_type)
 
 ;;; TEMPORARY to make this file self contained
 ;(declare-const $smt_Numeral Type)
 ;(declare-const $smt_Rational Type)
 ;(declare-const $smt_String Type)
-;(declare-const $smd_eo.Stuck Type)
 ;;; TEMPORARY
 
-(declare-const $smt_unknown_type Type)
-
-; Bit-vectors
-; NOTE: we currently define $smt_BitVec
-;(declare-parameterized-const $smt_BitVec ((n $smt_Numeral :opaque)) Type)
-; $smt_Binary remains undefined
-(define $smt_Binary () $smt_unknown_type)
-
 ; note: decimal and hexadecimal omitted for now.
+
+;;; Deep embedding of SMT-LIB operator applications into Eunoia
 
 ; A Eunoia term
 (declare-const $eo_Term Type)
@@ -35,19 +32,11 @@
 ; An SMT-LIB term.
 (declare-const $smt_Term Type)
 
-(declare-parameterized-const $smd_eo.SmtTerm ((t $smt_Term :opaque)) $eo_Term)
-(declare-const $smd_eo.Stuck $eo_Term)
-; Note the Bool type is "inlined" into the final signature
-(declare-const $smd_sm.BoolType $smt_Term)
-(declare-const $smd_sm.True $smt_Term)
-(declare-const $smd_sm.False $smt_Term)
-(declare-parameterized-const $smd_sm.Numeral ((n $eo_Numeral :opaque)) $smt_Term)
-(declare-parameterized-const $smd_sm.Rational ((r $eo_Rational :opaque)) $smt_Term)
-(declare-parameterized-const $smd_sm.String ((s $eo_String :opaque)) $smt_Term)
-(declare-parameterized-const $smd_sm.Binary ((w $eo_Numeral :opaque) (v $eo_Numeral :opaque)) $smt_Term)
-
 ; Apply the SMT operator named "op" to x1, x2, and so on.
 ; Assumes arity of SMT-LIB operators are at most 5.
+(declare-const $smt_type_0 (-> $smt_String Type)) ; TODO: use?
+(declare-const $smt_type_1 (-> $smt_String Type Type)) ; TODO: use?
+(declare-const $smt_apply_0 (-> $smt_String $smt_Term)) ; TODO: use?
 (declare-parameterized-const $smt_apply_1
   ((W1 Type :implicit))
   (-> $smt_String W1 $smt_Term))
@@ -63,6 +52,36 @@
 (declare-parameterized-const $smt_apply_5
   ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit) (W4 Type :implicit) (W5 Type :implicit))
   (-> $smt_String W1 W2 W3 W4 W5 $smt_Term))
+
+;;; References to the final deep embedding of Eunoia and SMT-LIB terms
+
+; In this signature, we heavily use references to the Datatypes corresponding
+; to the final deep embeddings of Eunoia terms (eo.Term) and SMT-LIB terms
+; (sm.Term), where the latter is a subfield type of the former.
+; Opaque arguments of a symbol X will be an argument of the constructor eo.X
+; (respectively sm.X). Symbols with no
+
+; We introduce datatype constructors for these datatypes ($smd_eo.X and $smd_sm.X)
+; respectively. It is important that we mark their arguments as :opaque, as this
+; correctly models the pattern matching in the smt-meta later.
+
+; Note that these datatypes will be renamed and replaced by their definitions
+; which is hardcoded into smt_meta.smt2.
+; We could also have these auto-generated, but leads to complications when it
+; comes to printing the argument types, as e.g. the argument to sm.Numeral is
+; an SMT-LIB numeral, not a symbolic SMT term.
+
+(declare-parameterized-const $smd_eo.SmtTerm ((t $smt_Term :opaque)) $eo_Term)
+(declare-const $smd_eo.Stuck $eo_Term)
+; Note the Bool type is "inlined" into the final signature
+(declare-const $smd_sm.BoolType $smt_Term)
+(declare-const $smd_sm.True $smt_Term)
+(declare-const $smd_sm.False $smt_Term)
+(declare-parameterized-const $smd_sm.Numeral ((n $eo_Numeral :opaque)) $smt_Term)
+(declare-parameterized-const $smd_sm.Rational ((r $eo_Rational :opaque)) $smt_Term)
+(declare-parameterized-const $smd_sm.String ((s $eo_String :opaque)) $smt_Term)
+(declare-parameterized-const $smd_sm.Binary ((w $eo_Numeral :opaque) (v $eo_Numeral :opaque)) $smt_Term)
+
 
 ; Boolean relies on the $sm_is_Boolean define-fun in the SMT meta signature.
 ; This is an optimization to avoid Booleans in the final datatype.
@@ -108,32 +127,32 @@
 ;;; Utilities
 
 ; TODO: do these need to be defined??
-(program $eo_mk_bool ((x Bool))
-  :signature (Bool) $eo_Term
+(program $eo_mk_bool ((x ($smt_type_0 "Bool")))
+  :signature (($smt_type_0 "Bool")) $eo_Term
   (
   (($eo_mk_bool x) ($smd_eo.SmtTerm ($smt_apply_3 "ite" x $smd_sm.True $smd_sm.False)))
   )
 )
-(program $eo_mk_numeral ((x $smt_Numeral))
-  :signature ($smt_Numeral) $eo_Term
+(program $eo_mk_numeral ((x ($smt_type_0 "Int")))
+  :signature (($smt_type_0 "Int")) $eo_Term
   (
   (($eo_mk_numeral x) ($smd_eo.SmtTerm ($smd_sm.Numeral x)))
   )
 )
-(program $eo_mk_rational ((x $smt_Rational))
-  :signature ($smt_Rational) $eo_Term
+(program $eo_mk_rational ((x ($smt_type_0 "Real")))
+  :signature (($smt_type_0 "Real")) $eo_Term
   (
   (($eo_mk_rational x) ($smd_eo.SmtTerm ($smd_sm.Rational x)))
   )
 )
-(program $eo_mk_string ((x $smt_String))
-  :signature ($smt_String) $eo_Term
+(program $eo_mk_string ((x ($smt_type_0 "String")))
+  :signature (($smt_type_0 "String")) $eo_Term
   (
   (($eo_mk_string x) ($smd_eo.SmtTerm ($smd_sm.String x)))
   )
 )
 (program $eo_mk_binary ((w $eo_Numeral) (n $eo_Numeral))
-  :signature ($eo_Numeral $eo_Numeral) $eo_Term
+  :signature (($smt_type_0 "Int") ($smt_type_0 "Int")) $eo_Term
   (
   (($eo_mk_binary w n) (eo::requires
                          ($smt_apply_2 "and"
@@ -341,16 +360,9 @@
   :signature ($eo_Term $eo_Term) $eo_Term
   (
   (($eo_find ($smd_eo.SmtTerm ($smd_sm.String s1)) ($smd_eo.SmtTerm ($smd_sm.String s2)))
-     ($eo_mk_string ($smt_apply_3 "str.indexof" s1 s2 0)))  ; TODO: is this right??
+     ($eo_mk_string ($smt_apply_3 "str.indexof" s1 s2 0)))    ; TODO: 0 should technically be ($smt_apply_0 "0").
   )
 )
-
-
-; axiom: $eo_find
-;(define $eo_find ((T Type :implicit) (x1 T) (x2 T))
-;  ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_str x1) ($smt_is_str x2))
-;    ($smt_to_eo_z ($smt_apply_3 "str.indexof" ($smt_from_eo_str x1) ($smt_from_eo_str x2) ($smt_from_eo_z ($smt_apply_1 "eo.SmtTerm" 0))))
-;    $smd_eo.Stuck))
 
 ;;; Conversion operators
 

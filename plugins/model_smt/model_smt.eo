@@ -52,11 +52,15 @@
   ((T Type) (U Type) (index T) (element U) (tail (@Map T U)))
   (@Map T U))
 
+; Bit-vectors
+(declare-parameterized-const $smt_BitVec ((n ($smt_type_0 "Int"))) Type)
+
+
 ;;; Definitions of Type enumeration
 
 ; represents an unknown value
 ; This must be a constructor in the final sm.Term.
-(declare-parameterized-const $smt_unknown_type_enum
+(declare-parameterized-const $smd_sm.unknown_type_enum
   ((T Type :opaque) (i $smt_Numeral :opaque)) T)
 
 ; note: The methods in this section are only included (based on trim-defs) if
@@ -94,9 +98,9 @@
 )
 
 ; we have no incorporate of irrational values, which can be soundly approximated using
-; $smt_unknown_type_enum.
+; $smd_sm.unknown_type_enum.
 (define $smt_irrat_enum ((i $smt_Numeral))
- ($smt_unknown_type_enum $smt_Rational i))
+ ($smd_sm.unknown_type_enum $smt_Rational i))
 
 (program $smt_type_enum ((T Type) (i $smt_Numeral) (w $smt_Numeral))
   :signature ((eo::quote T) $smt_Numeral) T
@@ -118,10 +122,10 @@
   ;(($smt_type_enum ($smt_BitVec w) i) (eo::define ((v (eo::to_bin w i)))
   ;                                      (eo::requires (eo::to_z v) i v)))
   ; TODO: functions, datatypes
-  ; Try to enumerate the type, if we fail, we return $smt_unknown_type_enum.
+  ; Try to enumerate the type, if we fail, we return $smd_sm.unknown_type_enum.
   ; Note that this essentially assumes that unhandled types are uninterpreted
   ; and have infinite cardinality (since this does not get stuck).
-  (($smt_type_enum T i)               ($smt_try ($eo_type_enum T i) ($smt_unknown_type_enum T i)))
+  (($smt_type_enum T i)               ($smt_try ($eo_type_enum T i) ($smd_sm.unknown_type_enum T i)))
   )
 )
 

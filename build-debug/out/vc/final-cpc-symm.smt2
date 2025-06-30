@@ -34,6 +34,8 @@
   (sm.Seq)
   ; declare $smt_unknown_type SMT_TERM
   (sm.$smt_unknown_type)
+  ; declare $smt_type_0 SMT_TERM
+  (sm.$smt_type_0)
   ; declare not SMT_TERM
   (sm.not)
   ; declare and SMT_TERM
@@ -46,8 +48,6 @@
   (sm.BitVec)
   ; declare $smt_FunType SMT_TERM
   (sm.$smt_FunType (sm.$smt_FunType.arg1 sm.Term) (sm.$smt_FunType.arg2 sm.Term))
-  ; declare $smt_unknown_type_enum SMT_TERM
-  (sm.$smt_unknown_type_enum (sm.$smt_unknown_type_enum.arg1 sm.Term) (sm.$smt_unknown_type_enum.arg2 sm.Term))
   ; declare $smt_Const SMT_TERM
   (sm.$smt_Const (sm.$smt_Const.arg1 sm.Term) (sm.$smt_Const.arg2 sm.Term) (sm.$smt_Const.arg3 sm.Term))
 
@@ -540,7 +540,7 @@
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Apply) (eo.SmtTerm.arg1 x1)) (= (sm.Apply.arg2 (eo.SmtTerm.arg1 x1)) sm.Char) (= (sm.Apply.arg1 (eo.SmtTerm.arg1 x1)) sm.Seq))
     ($eo_ite ($eo_eq x2 (eo.SmtTerm (sm.Numeral 0))) (eo.SmtTerm (sm.String "")) ($eo_concat ($eo_to_str ($eo_zmod x2 (eo.SmtTerm (sm.Numeral 196608)))) ($smt_type_enum (eo.SmtTerm (sm.Apply sm.Seq sm.Char)) ($eo_zdiv x2 (eo.SmtTerm (sm.Numeral 196608))))))
   (ite true
-    ($eo_ite ($eo_is_ok ($eo_type_enum x1 x2)) ($eo_type_enum x1 x2) ((eo.SmtTerm sm.$smt_unknown_type_enum) x1 x2))
+    ($eo_ite ($eo_is_ok ($eo_type_enum x1 x2)) ($eo_type_enum x1 x2) ((eo.SmtTerm sm.unknown_type_enum) x1 x2))
     eo.Stuck))))))
  :named sm.axiom.$smt_type_enum))
 

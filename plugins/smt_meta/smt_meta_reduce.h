@@ -131,25 +131,16 @@ class SmtMetaReduce : public Plugin
   /** Does t have subterm s? */
   static bool hasSubterm(const Expr& t, const Expr& s);
   /** is smt apply, return the arity */
-  size_t isSmtApply(const Expr& t);
-  /** is smt term type */
-  bool isSmtTermType(const Expr& t);
-  /** is smt to eo */
-  bool isSmtToEo(const Expr& t);
-  /** is smt to eo */
-  bool isEoToSmt(const Expr& t);
+  size_t isSmtApply(const Expr& t,
+                            bool& isType);
   /** is internal symbol? These dissappear in this step. */
   bool isInternalSymbol(const Expr& t);
-  /** is Eunoia symbol? These need to be part of eo.Term. */
-  bool isEunoiaSymbol(const Expr& t, std::string& name);
   bool isProgram(const Expr& t);
-  bool isEunoiaTerm(const Expr& t);
-  /** get kind for suffix */
-  Kind getKindForSuffix(const std::string& suf) const;
   /** get term kind */
   TermKind getTermKindApply(const Expr& t,
                       std::string& name,
-                      std::vector<Expr>& args);
+                      std::vector<Expr>& args,
+                            bool& isType);
   TermKind getTermKind(const Expr& e, std::string& name);
   TermKind getTermKind(const Expr& e);
   /** the state */
