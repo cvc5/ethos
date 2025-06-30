@@ -140,7 +140,6 @@
 
 ; axiom: $eo_hash
 ; note: This is defined axiomatically.
-; TODO: break dependence on sm.Numeral??
 (declare-fun $eo_hash (eo.Term) eo.Term)
 (assert (! (forall ((x eo.Term))
   (=> (not (= x eo.Stuck))
@@ -149,7 +148,7 @@
       ((_ is sm.Numeral) (eo.SmtTerm.arg1 ($eo_hash x)))))) :named sm.hash_numeral))
 (assert (! (forall ((x eo.Term) (y eo.Term))
   (=> (and (not (= x eo.Stuck)) (not (= y eo.Stuck))
-    (= ($eo_hash x) ($eo_hash y))) (= x y))) :named sm.hash_inj))
+    (= ($eo_hash x) ($eo_hash y))) (= x y))) :named sm.hash_injective))
 
 ;;; User defined symbols
 
@@ -394,24 +393,24 @@
 (define-fun $eo_typeof_main ((x1 eo.Term)) eo.Term
   (ite (= x1 eo.Stuck)
     eo.Stuck
-  (ite (= x1 (eo.SmtTerm tsm.Type))
-    (eo.SmtTerm tsm.Type)
+  (ite (= x1 eo.Type)
+    eo.Type
   (ite ((_ is eo.FunType) x1)
-    ($eo_requires ($eo_typeof (eo.FunType.arg1 x1)) (eo.SmtTerm tsm.Type) ($eo_requires ($eo_typeof (eo.FunType.arg2 x1)) (eo.SmtTerm tsm.Type) (eo.SmtTerm tsm.Type)))
+    ($eo_requires ($eo_typeof (eo.FunType.arg1 x1)) eo.Type ($eo_requires ($eo_typeof (eo.FunType.arg2 x1)) eo.Type eo.Type))
   (ite (= x1 (eo.SmtTerm sm.BoolType))
-    (eo.SmtTerm tsm.Type)
+    eo.Type
   (ite (= x1 (eo.SmtTerm sm.True))
     (eo.SmtTerm sm.BoolType)
   (ite (= x1 (eo.SmtTerm sm.False))
     (eo.SmtTerm sm.BoolType)
   (ite (= x1 (eo.SmtTerm sm.Int))
-    (eo.SmtTerm tsm.Type)
+    eo.Type
   (ite (= x1 (eo.SmtTerm sm.Real))
-    (eo.SmtTerm tsm.Type)
+    eo.Type
   (ite (= x1 (eo.SmtTerm sm.Char))
-    (eo.SmtTerm tsm.Type)
+    eo.Type
   (ite (= x1 (eo.SmtTerm sm.Seq))
-    ($eo_FunType (eo.SmtTerm tsm.Type) (eo.SmtTerm tsm.Type))
+    ($eo_FunType eo.Type eo.Type)
   (ite (= x1 (eo.SmtTerm sm.not))
     ($eo_FunType (eo.SmtTerm sm.BoolType) (eo.SmtTerm sm.BoolType))
   (ite (= x1 (eo.SmtTerm sm.and))
@@ -419,7 +418,7 @@
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Apply) (eo.SmtTerm.arg1 x1)) (= (sm.Apply.arg1 (eo.SmtTerm.arg1 x1)) sm.=))
     ($eo_typeof_= ($eo_typeof (eo.SmtTerm (sm.Apply.arg2 (eo.SmtTerm.arg1 x1)))))
   (ite (= x1 (eo.SmtTerm sm.BitVec))
-    ($eo_FunType (eo.SmtTerm sm.Int) (eo.SmtTerm tsm.Type))
+    ($eo_FunType (eo.SmtTerm sm.Int) eo.Type)
   (ite ((_ is eo.Apply) x1)
     ($eo_typeof_apply ($eo_typeof (eo.Apply.arg1 x1)) ($eo_typeof (eo.Apply.arg2 x1)))
     eo.Stuck))))))))))))))))

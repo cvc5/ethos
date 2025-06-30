@@ -88,7 +88,6 @@ $SM_EO_TERM_DECL$
 
 ; axiom: $eo_hash
 ; note: This is defined axiomatically.
-; TODO: break dependence on sm.Numeral??
 (declare-fun $eo_hash (eo.Term) eo.Term)
 (assert (! (forall ((x eo.Term))
   (=> (not (= x eo.Stuck))
@@ -97,7 +96,7 @@ $SM_EO_TERM_DECL$
       ((_ is sm.Numeral) (eo.SmtTerm.arg1 ($eo_hash x)))))) :named sm.hash_numeral))
 (assert (! (forall ((x eo.Term) (y eo.Term))
   (=> (and (not (= x eo.Stuck)) (not (= y eo.Stuck))
-    (= ($eo_hash x) ($eo_hash y))) (= x y))) :named sm.hash_inj))
+    (= ($eo_hash x) ($eo_hash y))) (= x y))) :named sm.hash_injective))
 
 ;;; User defined symbols
 

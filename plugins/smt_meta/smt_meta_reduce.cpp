@@ -140,6 +140,11 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
   std::string cname;
   TermKind tk = getTermKind(c, cname);
   Kind k = c.getKind();
+  if (k == Kind::TYPE)
+  {
+    os << "eo.Type";
+    return;
+  }
   std::stringstream osEnd;
   if (isProgramKind(tk))
   {
@@ -169,10 +174,6 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     {
       os << "sm." << cname;
     }
-  }
-  else if (k == Kind::TYPE)
-  {
-    os << "tsm.Type";
   }
   else if (k == Kind::BOOL_TYPE)
   {
