@@ -125,6 +125,9 @@ $SM_EO_TERM_DECL$
 
 ;;; Core operators
 
+; Note that these cannot be lifted further since their semantics wrt
+; stuckness is non-standard.
+
 ; axiom: $eo_is_ok
 (define-fun $eo_is_ok ((x1 eo.Term)) eo.Term
   ($eo_mk_bool (not (= x1 eo.Stuck))))

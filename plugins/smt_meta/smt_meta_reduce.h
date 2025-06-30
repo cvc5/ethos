@@ -141,6 +141,7 @@ class SmtMetaReduce : public Plugin
                       std::string& name,
                       std::vector<Expr>& args,
                             bool& isType);
+  TermKind getTermKindAtomic(const Expr& e, std::string& name);
   TermKind getTermKind(const Expr& e, std::string& name);
   TermKind getTermKind(const Expr& e);
   /** the state */

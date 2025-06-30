@@ -58,6 +58,7 @@ std::string termKindToString(TermKind k)
     case TermKind::SMT_PROGRAM: ss << "SMT_PROGRAM"; break;
     // A term that was internal to model_smt step, should be removed
     case TermKind::INTERNAL: ss << "INTERNAL"; break;
+    case TermKind::NONE: ss << "NONE"; break;
     default: ss << "?TermKind"; break;
   }
   return ss.str();
@@ -226,6 +227,21 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
 
 TermContextKind SmtMetaReduce::printEmbType(const Expr& c, std::ostream& os)
 {
+  std::string name;
+  std::vector<Expr> args;
+  bool isType;
+  TermKind tk = getTermKindApply(c, name, args, isType);
+  if (tk==TermKind::SMT_BUILTIN_APPLY)
+  {
+    // NOTE: could allow ground terms as arguments here
+    // this would be necessary if model_smt.eo had concrete
+    // instances of bitvectors.
+    if (args.empty() && isType)
+    {
+      os << name;
+      return TermContextKind::SMT_BUILTIN;
+    }
+  }
   os << "eo.Term";
   return TermContextKind::EUNOIA;
 }
@@ -1051,8 +1067,9 @@ TermKind SmtMetaReduce::getTermKindApply(const Expr& t,
     return TermKind::SMT_BUILTIN_APPLY;
   }
   args.clear();
-  // recurse back, should be limited
-  return getTermKind(cur);
+  isType = false;
+  // otherwise proceed to atomic case
+  return getTermKindAtomic(cur, name);
 }
 
 size_t SmtMetaReduce::isSmtApply(const Expr& t,
@@ -1088,14 +1105,19 @@ TermKind SmtMetaReduce::getTermKind(const Expr& e)
 }
 TermKind SmtMetaReduce::getTermKind(const Expr& e, std::string& name)
 {
-  Kind k = e.getKind();
-  if (k == Kind::APPLY)
+  if (e.getKind() == Kind::APPLY)
   {
     std::string name;
     std::vector<Expr> args;
     bool isType;
     return getTermKindApply(e, name, args, isType);
   }
+  return getTermKindAtomic(e, name);
+}
+
+TermKind SmtMetaReduce::getTermKindAtomic(const Expr& e, std::string& name)
+{
+  Kind k = e.getKind();
   std::stringstream ss;
   ss << e;
   std::string sname = ss.str();
