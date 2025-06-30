@@ -227,16 +227,16 @@
   )
 )
 
-(program $smtx_eval_apply
-  ((T Type) (U Type) (i T) (j T) (e U) (tail (@map T U)))
-  :signature ($smt_Term $smt_Term) $smt_Term
-  (
-  ; NOTE: the cases here are exhaustive, meaning we can soundly ignore the "is nil" else condition
-  (($smtx_eval_apply (@map_cons T U i e tail) i)  e)
-  (($smtx_eval_apply (@map_cons T U j e tail) i)  ($smtx_eval_apply tail i))
-  (($smtx_eval_apply (@map_nil T U e) i)          e)
-  )
-)
+;(program $smtx_eval_apply
+;  ((T Type) (U Type) (i T) (j T) (e U) (tail (@map T U)))
+;  :signature ($smt_Term $smt_Term) $smt_Term
+;  (
+;  ; NOTE: the cases here are exhaustive, meaning we can soundly ignore the "is nil" else condition
+;  (($smtx_eval_apply (@map_cons T U i e tail) i)  e)
+;  (($smtx_eval_apply (@map_cons T U j e tail) i)  ($smtx_eval_apply tail i))
+;  (($smtx_eval_apply (@map_nil T U e) i)          e)
+;  )
+;)
 
 ;;; Core definition of $smtx_model_eval
 
@@ -300,18 +300,18 @@
   ; - $smt_eval_apply_*
 $SMT_EVAL_CASES$
   ; Apply case
-  (($smtx_model_eval ($smd_sm.Apply f y))   (eo::define ((fme ($smtx_model_eval f)))
-                                            (eo::define ((yme ($smtx_model_eval y)))
-                                              ($smtx_eval_apply fme yme))))
-  ; free constants
+  ;(($smtx_model_eval ($smd_sm.Apply f y))   (eo::define ((fme ($smtx_model_eval f)))
+  ;                                          (eo::define ((yme ($smtx_model_eval y)))
+  ;                                            ($smtx_eval_apply fme yme))))
+  ;; free constants
   ; These are given an arbitrary value by the model ($smtx_model_lookup).
   ; We then check if their property F is satisfied. If so, then they are
   ; interpreted to be this value. Otherwise, they are unevaluated.
   ; TODO: val can be assumed such that $smtx_is_value is true.
-  (($smtx_model_eval ($smd_sm.Const k i T))  (eo::define ((val ($smtx_model_lookup k i T)))
-                                            (eo::define ((mpred ($smtx_model_eval ($smt_const_predicate k i T))))
-                                              ; note that mpred can never be stuck and should be a Bool at this point.
-                                              ($smt_apply_3 "ite" mpred val ($smd_sm.Const k i T)))))
+  ;(($smtx_model_eval ($smd_sm.Const k i T))  (eo::define ((val ($smtx_model_lookup k i T)))
+  ;                                          (eo::define ((mpred ($smtx_model_eval ($smt_const_predicate k i T))))
+  ;                                            ; note that mpred can never be stuck and should be a Bool at this point.
+  ;                                            ($smt_apply_3 "ite" mpred val ($smd_sm.Const k i T)))))
   ; generic apply and base case.
   ; these do not insist that the term is a value.
   ; They call the user callback $eo_model_eval.
