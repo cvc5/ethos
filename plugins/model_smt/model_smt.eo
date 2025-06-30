@@ -49,10 +49,10 @@
 (declare-parameterized-const @usort_value ((n ($smt_type_0 "Int")) (T Type)) T)
 
 (program $is_usort_value  ((n ($smt_type_0 "Int")) (T $smt_Type) (t $smt_Term))
-  :signature ($smt_Term) Bool
+  :signature ($smt_Term) ($smt_type_0 "Bool")
   (
-  (($is_usort_value (@usort_value n T)) true)
-  (($is_usort_value t)                  false)
+  (($is_usort_value (@usort_value n T)) ($smt_apply_0 "true"))
+  (($is_usort_value t)                  ($smt_apply_0 "false"))
   )
 )
 

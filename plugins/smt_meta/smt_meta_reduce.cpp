@@ -58,6 +58,8 @@ std::string termKindToString(TermKind k)
     // An operator that operates on native SMT-LIB terms, e.g. $eo_mk_binary
     case TermKind::SMT_TO_EO_PROGRAM: ss << "SMT_TO_EO_PROGRAM"; break;
     // An operator that operates on native SMT-LIB terms, e.g. $sm_mk_pow2
+    case TermKind::SMT_PROGRAM: ss << "SMT_PROGRAM"; break;
+    // An operator that operates on native SMT-LIB terms, e.g. $sm_mk_pow2
     case TermKind::SMT_BUILTIN_PROGRAM: ss << "SMT_BUILTIN_PROGRAM"; break;
     // A term that was internal to model_smt step, should be removed
     case TermKind::INTERNAL: ss << "INTERNAL"; break;
@@ -952,11 +954,9 @@ void SmtMetaReduce::finalizeDeclarations()
       continue;
     }
     std::stringstream* out = nullptr;
-    bool isEunoia = false;
     std::stringstream prefix;
     if (tk == TermKind::EUNOIA_TERM)  // tk == TermKind::EUNOIA_DT_CONS ||
     {
-      isEunoia = true;
       prefix << "eo.";
       out = &d_eoTermDecl;
     }
@@ -1008,6 +1008,7 @@ void SmtMetaReduce::finalizeDeclarations()
     {
       nopqArgs = 1;
     }
+    std::vector<TermContextKind>& mts = d_metaType[e];
     for (size_t i = 0; i < nopqArgs; i++)
     {
       (*out) << " (" << cname.str();
@@ -1020,7 +1021,7 @@ void SmtMetaReduce::finalizeDeclarations()
         Expr targ = ct[i][0];
         typ = d_tc.getType(targ);
       }
-      printEmbType(typ, *out);
+      mts.push_back(printEmbType(typ, *out));
       (*out) << ")";
     }
     (*out) << ")" << std::endl;
