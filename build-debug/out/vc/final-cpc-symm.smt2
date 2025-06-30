@@ -37,10 +37,10 @@
   (sm.$smt_unknown_type)
   ; declare BoolType SMT_DT_CONS
   (sm.BoolType)
-  ; declare True SMT_DT_CONS
-  (sm.True)
   ; declare False SMT_DT_CONS
   (sm.False)
+  ; declare True SMT_DT_CONS
+  (sm.True)
   ; declare Numeral SMT_DT_CONS
   (sm.Numeral (sm.Numeral.arg1 Int))
   ; declare Rational SMT_DT_CONS
@@ -68,6 +68,8 @@
 ; A Eunoia internal term
 (declare-datatype eo.Term
   (
+  ; The type of types in Eunoia
+  (eo.Type)
   ; The Eunoia function type.
   (eo.FunType (eo.FunType.arg1 eo.Term) (eo.FunType.arg2 eo.Term))
   ; Application of a Eunoia term
@@ -204,7 +206,7 @@
 
 ; program: $eo_mk_binary
 (define-fun $eo_mk_binary ((x1 Int) (x2 Int)) eo.Term
-  (ite (and (<= 0 x1) (<= x1 4294967296)) (eo.SmtTerm (sm.Binary x1 (mod x2 ($sm_mk_pow2 x1)))) eo.Stuck)
+  (ite (and (<= 0 x1) (>= 4294967296 x1)) (eo.SmtTerm (sm.Binary x1 (mod x2 ($sm_mk_pow2 x1)))) eo.Stuck)
 )
 
 ; fwd-decl: $smt_from_eo_bool
@@ -474,11 +476,11 @@
     eo.Stuck)))
 
 ; program: $eo_const_predicate
-(define-fun $eo_const_predicate ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
+(define-fun $eo_const_predicate ((x1 Int) (x2 Int) (x3 sm.Type)) eo.Term
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck) (= x3 eo.Stuck))
     eo.Stuck
   (ite true
-    ($eo_requires (eo.SmtTerm sm.True) (eo.SmtTerm sm.False) (eo.SmtTerm sm.True))
+    eo.Stuck
     eo.Stuck)))
 
 ; program: $eo_model_eval
@@ -486,46 +488,46 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    ($eo_requires (eo.SmtTerm sm.True) (eo.SmtTerm sm.False) (eo.SmtTerm sm.True))
+    eo.Stuck
     eo.Stuck)))
 
 ; fwd-decl: $smt_typeof
 (declare-fun $smt_typeof (sm.Term) eo.Term)
 
 ; program: $is_usort_value
-(define-fun $is_usort_value ((x1 sm.Term)) eo.Term
+(define-fun $is_usort_value ((x1 sm.Term)) Bool
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg1 x1)) (= (eo.Apply.arg1 (eo.Apply.arg1 x1)) eo.@usort_value))
-    (eo.SmtTerm sm.True)
+    (true)
   (ite true
-    (eo.SmtTerm sm.False)
+    (false)
     eo.Stuck))))
 
-; program: $smt_type_enum
-(declare-fun $smt_type_enum (sm.Term Int) sm.Term)
-(assert (! (forall ((x1 sm.Term) (x2 Int))
-  (= ($smt_type_enum x1 x2)
+; program: $smt_enum_type
+(declare-fun $smt_enum_type (sm.Type Int) sm.Term)
+(assert (! (forall ((x1 sm.Type) (x2 Int))
+  (= ($smt_enum_type x1 x2)
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
     eo.Stuck
   (ite (= x1 (eo.SmtTerm sm.Int))
     ($eo_ite ($eo_eq ($eo_zmod x2 (sm.Numeral 2)) (sm.Numeral 0)) ($eo_zdiv x2 (sm.Numeral 2)) ($eo_neg ($eo_zdiv x2 (sm.Numeral 2))))
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Apply) (eo.SmtTerm.arg1 x1)) (= (sm.Apply.arg2 (eo.SmtTerm.arg1 x1)) sm.Char) (= (sm.Apply.arg1 (eo.SmtTerm.arg1 x1)) sm.Seq))
-    ($eo_ite ($eo_eq x2 (sm.Numeral 0)) (sm.String "") ($eo_concat ($eo_to_str ($eo_zmod x2 (sm.Numeral 196608))) ($smt_type_enum (eo.SmtTerm (sm.Apply sm.Seq sm.Char)) ($eo_zdiv x2 (eo.SmtTerm 196608)))))
-    eo.Stuck))))) :named sm.axiom.$smt_type_enum))
+    ($eo_ite ($eo_eq x2 (sm.Numeral 0)) (sm.String "") ($eo_concat ($eo_to_str ($eo_zmod x2 (sm.Numeral 196608))) ($smt_enum_type (eo.SmtTerm (sm.Apply sm.Seq sm.Char)) ($eo_zdiv x2 (eo.SmtTerm 196608)))))
+    eo.Stuck))))) :named sm.axiom.$smt_enum_type))
 
-; program: $smt_type_enum_contains_rec
-(declare-fun $smt_type_enum_contains_rec (eo.Term eo.Term eo.Term) eo.Term)
-(assert (! (forall ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term))
-  (= ($smt_type_enum_contains_rec x1 x2 x3)
+; program: $smt_enum_type_contains_rec
+(declare-fun $smt_enum_type_contains_rec (sm.Type sm.Term Int) eo.Term)
+(assert (! (forall ((x1 sm.Type) (x2 sm.Term) (x3 Int))
+  (= ($smt_enum_type_contains_rec x1 x2 x3)
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck) (= x3 eo.Stuck))
     eo.Stuck
   (ite true
-    ($eo_ite ($eo_is_ok ($smt_type_enum x1 x3)) ($eo_ite ($eo_eq ($smt_type_enum x1 x3) x2) (eo.SmtTerm sm.True) ($smt_type_enum_contains_rec x1 x3 ($eo_add x3 (eo.SmtTerm 1)))) (eo.SmtTerm sm.False))
-    eo.Stuck)))) :named sm.axiom.$smt_type_enum_contains_rec))
+    ($eo_ite ($eo_is_ok ($smt_enum_type x1 x3)) ($eo_ite ($eo_eq ($smt_enum_type x1 x3) x2) (eo.SmtTerm sm.True) ($smt_enum_type_contains_rec x1 x3 ($eo_add x3 (eo.SmtTerm 1)))) (eo.SmtTerm sm.False))
+    eo.Stuck)))) :named sm.axiom.$smt_enum_type_contains_rec))
 
 ; fwd-decl: $smt_is_value
-(declare-fun $smt_is_value (eo.Term eo.Term) eo.Term)
+(declare-fun $smt_is_value (sm.Type sm.Term) eo.Term)
 
 ; program: $smt_map_is_value
 (define-fun $smt_map_is_value ((x1 eo.Term)) eo.Term
@@ -548,7 +550,7 @@
     eo.Stuck))))) :named sm.axiom.$smt_dt_is_value))
 
 ; program: $smt_is_value
-(assert (! (forall ((x1 eo.Term) (x2 eo.Term))
+(assert (! (forall ((x1 sm.Type) (x2 sm.Term))
   (= ($smt_is_value x1 x2)
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
     eo.Stuck
@@ -569,14 +571,14 @@
   (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg1 x1)) (= (eo.Apply.arg1 (eo.Apply.arg1 x1)) eo.@map))
     ($smt_map_is_value x2)
   (ite true
-    ($eo_ite ($eo_is_ok ($eo_dt_constructors x1)) ($smt_dt_is_value x2) ($smt_type_enum_contains_rec x1 x2 (eo.SmtTerm 0)))
+    ($eo_ite ($eo_is_ok ($eo_dt_constructors x1)) ($smt_dt_is_value x2) ($smt_enum_type_contains_rec x1 x2 (eo.SmtTerm 0)))
     eo.Stuck)))))))))))) :named sm.axiom.$smt_is_value))
 
 ; fwd-decl: $smt_model_eval
 (declare-fun $smt_model_eval (eo.Term) eo.Term)
 
 ; fwd-decl: $smt_model_lookup
-(declare-fun $smt_model_lookup (eo.Term eo.Term sm.Term) sm.Term)
+(declare-fun $smt_model_lookup (Int Int sm.Type) sm.Term)
 
 ; program: $smt_model_eval
 (assert (! (forall ((x1 eo.Term))

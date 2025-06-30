@@ -34,6 +34,7 @@ std::string termContextKindToString(TermContextKind k)
   }
   return ss.str();
 }
+// TODO: clean traces and kinds
 std::string termKindToString(TermKind k)
 {
   std::stringstream ss;
@@ -265,12 +266,13 @@ TermKind SmtMetaReduce::printEmbType(const Expr& c,
                                             std::ostream& os,
                                             TermContextKind tctx)
 {
+  Assert (!c.isNull());
   std::string name;
   std::vector<Expr> args;
-  TermKind tk = getTermKindApply(c, name, args);
+  TermKind tk = getTermKind(c, name);
   if (tk == TermKind::SMT_BUILTIN_TYPE)
   {
-    if (args.empty())
+    if (c.getNumChildren()==2)
     {
       os << name;
     }
@@ -290,18 +292,9 @@ TermKind SmtMetaReduce::printEmbType(const Expr& c,
   {
     os << "sm.Type";
   }
-  else if (tk == TermKind::EUNOIA_TERM_TYPE || tk == TermKind::EUNOIA_TERM)
+  else if (tk == TermKind::EUNOIA_TERM_TYPE || tk == TermKind::EUNOIA_TERM || tk == TermKind::EUNOIA_TYPE_TYPE || tk == TermKind::EUNOIA_BOOL)
   {
     os << "eo.Term";
-  }
-  else if (tk == TermKind::EUNOIA_TYPE_TYPE)
-  {
-    os << "eo.Type";
-  }
-  else if (tk == TermKind::EUNOIA_BOOL)
-  {
-    os << "; from EUNOIA_BOOL" << std::endl;
-    os << "Bool";
   }
   else
   {
@@ -553,12 +546,16 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       TermContextKind newCtx = TermContextKind::NONE;
       if (ck == Kind::APPLY)
       {
+        TermKind atk = getTermKind(recTerm[0]);
+        std::cout << "tk: head of apply " << key.first << " : " << termKindToString(atk)
+                  << " in ctx " << termContextKindToString(tkctx) << std::endl;
+        /*
         // should not have compute the tuple
         Assert(key.first == recTerm)
             << "Bad term: " << recTerm << " " << key.first;
         // maybe its an SMT-apply
         TermKind atk = getTermKind(recTerm[0]);
-        std::cout << "tk: " << key.first << " = " << termKindToString(atk)
+        std::cout << "tk: " << key.first << " : " << termKindToString(atk)
                   << " in ctx " << termContextKindToString(tkctx) << std::endl;
         // std::cout << "Check if apply term " << recTerm << std::endl;
         if (atk == TermKind::SMT_BUILTIN_APPLY)
@@ -619,6 +616,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           }
           continue;
         }
+        */
         // all other operators always print as applications
         os << "(";
         cparen[key] = 1;
@@ -671,7 +669,10 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
         if (ck == Kind::APPLY_OPAQUE)
         {
           // this is always printed in the original context first??
-          TermKind atk = getTermKind(recTerm[0]);
+          std::string sname;
+          TermKind atk = getTermKind(recTerm, sname);
+          std::cout << "tk: apply opaque " << recTerm<< " : " << termKindToString(atk)
+                  << " in ctx " << termContextKindToString(tkctx) << std::endl;
           if (tkctx == TermContextKind::EUNOIA
               && atk == TermKind::EUNOIA_DT_CONS)
           {
@@ -684,6 +685,24 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
             // the opaque arguments of SMT-LIB literal constructors are builtin
             // SMT terms
             newCtx = TermContextKind::SMT_BUILTIN;
+          }
+          else if (atk == TermKind::SMT_BUILTIN_APPLY || atk == TermKind::SMT_BUILTIN_TYPE)
+          {
+            if (atk == TermKind::SMT_BUILTIN_APPLY)
+            {
+              newCtx = TermContextKind::SMT_BUILTIN;
+            }
+            else
+            {
+              // The kind of subterms to appear in types (beneath $smt_type_*)
+              newCtx = TermContextKind::SMT_TYPE;
+            }
+            // the first argument is the opaque operator,
+            // the second argument is taken as a name
+            std::get<1>(visit.back())++;
+            std::get<1>(visit.back())++;
+            os << sname;
+            continue;
           }
         }
         else if (ck == Kind::FUNCTION_TYPE)
@@ -779,6 +798,7 @@ void SmtMetaReduce::finalizePrograms()
         ctx.d_ctx[v] = vname.str();
         d_defs << "(" << vname.str() << " ";
         Expr argType = d_tc.getType(v);
+        Assert (!argType.isNull());
         printEmbType(argType, d_defs);
         d_defs << ")";
       }
@@ -787,8 +807,19 @@ void SmtMetaReduce::finalizePrograms()
       Expr retType = d_tc.getType(body);
       // determine the intial context for printing the term here
       // this ensures the body is printed as the appropriate type.
-      TermKind tk = printEmbType(retType, d_defs);
-      TermContextKind ctxInit = termKindToContext(tk);
+      TermContextKind ctxInit;
+      if (retType.isNull())
+      {
+        // some programs don't technically type check??? introduced in desugaring
+        d_defs << "eo.Term";
+        ctxInit = TermContextKind::NONE;
+      }
+      else
+      {
+        Assert (!retType.isNull()) << "Program " << p.first << " doesnt type check, in finalizeProgram";
+        TermKind tk = printEmbType(retType, d_defs);
+        ctxInit = termKindToContext(tk);
+      }
       d_defs << " ";
       printEmbTerm(e[1], d_defs, ctx, ctxInit);
       d_defs << ")" << std::endl << std::endl;
@@ -812,6 +843,7 @@ TermContextKind SmtMetaReduce::termKindToContext(TermKind tk)
     case TermKind::EUNOIA_TERM_TYPE:
     case TermKind::EUNOIA_TYPE_TYPE:
     case TermKind::EUNOIA_BOOL:
+    case TermKind::EUNOIA_TERM:
       return TermContextKind::EUNOIA;
     default:
       EO_FATAL() << "unknown type " <<  termKindToString(tk);
@@ -819,7 +851,17 @@ TermContextKind SmtMetaReduce::termKindToContext(TermKind tk)
   }
   return TermContextKind::NONE;
 }
-
+void SmtMetaReduce::printOpName(const Expr& s, std::ostream& os)
+{
+  /*
+  if (s.getKind() != Kind::STRING)
+  {
+    EO_FATAL() << "Expected string for SMT-LIB app name, got " << sname;
+  }
+  const Literal* l = s.getValue()->asLiteral();
+  os << l->d_str.toString();
+  */
+}
 void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
 {
   TermKind tk = getTermKind(v);
@@ -984,6 +1026,7 @@ void SmtMetaReduce::finalizeDeclarations()
   std::map<Expr, std::pair<Attr, Expr>>::iterator it;
   for (const Expr& e : d_declSeen)
   {
+    std::cout << "BEGIN FINALIZE " << e << std::endl;
     std::string consName;
     TermKind tk = getTermKind(e, consName);
     // ignore deep embeddings of smt terms
@@ -992,10 +1035,12 @@ void SmtMetaReduce::finalizeDeclarations()
         || tk == TermKind::SMT_TYPE_TYPE || tk == TermKind::EUNOIA_TERM_TYPE
         || tk == TermKind::SMT_BUILTIN_PROGRAM
         || tk == TermKind::SMT_TO_EO_PROGRAM || tk == TermKind::PROGRAM
-        || tk == TermKind::SMT_BUILTIN_APPLY || tk == TermKind::EUNOIA_DT_CONS)
+        || tk == TermKind::SMT_BUILTIN_APPLY ||
+        tk == TermKind::SMT_BUILTIN_TYPE || tk == TermKind::EUNOIA_DT_CONS)
     {
       continue;
     }
+    std::cout << "FINALIZE " << e << " " << termKindToString(tk) << std::endl;
     std::stringstream* out = nullptr;
     std::stringstream prefix;
     if (tk == TermKind::EUNOIA_TERM)  // tk == TermKind::EUNOIA_DT_CONS ||
@@ -1064,7 +1109,11 @@ void SmtMetaReduce::finalizeDeclarations()
         Expr targ = ct[i][0];
         typ = d_tc.getType(targ);
       }
-      mts.push_back(printEmbType(typ, *out));
+      std::stringstream sst;
+      TermKind tk = printEmbType(typ, sst);
+      //(*out) << "; Printing datatype argument type " << typ << " gives \"" << sst.str() << "\" " << termKindToString(tk) << std::endl;
+      (*out) << sst.str();
+      mts.push_back(tk);
       (*out) << ")";
     }
     (*out) << ")" << std::endl;
@@ -1246,13 +1295,63 @@ TermKind SmtMetaReduce::getTermKind(const Expr& e)
 }
 TermKind SmtMetaReduce::getTermKind(const Expr& e, std::string& name)
 {
-  if (e.getKind() == Kind::APPLY)
+  std::cout << "Get term kind " << e << " " << e.getKind() << std::endl;
+  Expr cur = e;
+  if (cur.getKind() == Kind::APPLY_OPAQUE)
   {
-    std::string name;
-    std::vector<Expr> args;
-    return getTermKindApply(e, name, args);
+    // look at the operator
+    std::stringstream ss;
+    ss << cur[0];
+    std::string sname = ss.str();
+    TermKind tk;
+    if (sname.compare(0, 11, "$smt_apply_") == 0)
+    {
+      tk = TermKind::SMT_BUILTIN_APPLY;
+    }
+    else if (sname.compare(0, 10, "$smt_type_") == 0)
+    {
+      tk = TermKind::SMT_BUILTIN_TYPE;
+    }
+    else if (sname.compare(0, 8, "$smd_eo.") == 0)
+    {
+      name = sname.substr(8);
+      return TermKind::EUNOIA_DT_CONS;
+    }
+    else if (sname.compare(0, 8, "$smd_sm.") == 0)
+    {
+      name = sname.substr(8);
+      return TermKind::SMT_DT_CONS;
+    }
+    else if (sname.compare(0, 9, "$smd_tsm.") == 0)
+    {
+      name = sname.substr(9);
+      return TermKind::SMT_TYPE_DT_CONS;
+    }
+    if (tk!=TermKind::NONE)
+    {
+      if (cur.getNumChildren()<=1)
+      {
+        EO_FATAL() << "Unexpected arity for opaque operator " << cur;
+      }
+      if (cur[1].getKind() != Kind::STRING)
+      {
+        EO_FATAL() << "Expected string for SMT-LIB app name, got " << sname;
+      }
+      const Literal* l = cur[1].getValue()->asLiteral();
+      name = l->d_str.toString();
+      return tk;
+    }
+    // otherwise look at its head
+    cur = e[0];
   }
-  return getTermKindAtomic(e, name);
+  else
+  {
+    while (cur.getKind() == Kind::APPLY)
+    {
+      cur = cur[0];
+    }
+  }
+  return getTermKindAtomic(cur, name);
 }
 
 TermKind SmtMetaReduce::getTermKindAtomic(const Expr& e, std::string& name)
@@ -1295,7 +1394,8 @@ TermKind SmtMetaReduce::getTermKindAtomic(const Expr& e, std::string& name)
   }
   else if (k != Kind::CONST)
   {
-    EO_FATAL() << "Unhandled kind " << k << " in getTermKindAtomic";
+    Assert (!e.isNull());
+    EO_FATAL() << "Unhandled kind " << k << " in getTermKindAtomic " << e;
     return TermKind::NONE;
   }
   // TODO: SMT_TERM_TYPE and EUNOIA_TERM_TYPE

@@ -155,6 +155,7 @@ class SmtMetaReduce : public Plugin
   TermKind getTermKind(const Expr& e, std::string& name);
   TermKind getTermKind(const Expr& e);
   TermContextKind termKindToContext(TermKind tk);
+  void printOpName(const Expr& s, std::ostream& os);
   /** the state */
   State& d_state;
   /** the type checker */

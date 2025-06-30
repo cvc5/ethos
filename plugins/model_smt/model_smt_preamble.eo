@@ -28,25 +28,30 @@
 
 ; Apply the SMT operator named "op" to x1, x2, and so on.
 ; Assumes arity of SMT-LIB operators are at most 5.
-; TODO: these would be easily handled if their arguments were opaque
-(declare-const $smt_type_0 (-> $smt_String Type))
-(declare-const $smt_type_1 (-> $smt_String Type Type))
-(declare-const $smt_apply_0 (-> $smt_String $smt_unknown_type))
+(declare-parameterized-const $smt_type_0
+  ((op $smt_String :opaque))
+  Type)
+(declare-parameterized-const $smt_type_1
+  ((W1 Type :implicit) (op $smt_String :opaque) (x1 W1 :opaque))
+  Type)
+(declare-parameterized-const $smt_apply_0
+  ((op $smt_String :opaque))
+  $smt_unknown_type)
 (declare-parameterized-const $smt_apply_1
-  ((W1 Type :implicit))
-  (-> $smt_String W1 $smt_unknown_type))
+  ((W1 Type :implicit)
+   (op $smt_String :opaque) (x1 W1 :opaque)) $smt_unknown_type)
 (declare-parameterized-const $smt_apply_2
-  ((W1 Type :implicit) (W2 Type :implicit))
-  (-> $smt_String W1 W2 $smt_unknown_type))
+  ((W1 Type :implicit) (W2 Type :implicit)
+   (op $smt_String :opaque) (x1 W1 :opaque) (x2 W2 :opaque)) $smt_unknown_type)
 (declare-parameterized-const $smt_apply_3
-  ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit))
-  (-> $smt_String W1 W2 W3 $smt_unknown_type))
+  ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit)
+   (op $smt_String :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque)) $smt_unknown_type)
 (declare-parameterized-const $smt_apply_4
-  ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit) (W4 Type :implicit))
-  (-> $smt_String W1 W2 W3 W4 $smt_unknown_type))
+  ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit) (W4 Type :implicit)
+   (op $smt_String :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque) (x4 W4 :opaque)) $smt_unknown_type)
 (declare-parameterized-const $smt_apply_5
-  ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit) (W4 Type :implicit) (W5 Type :implicit))
-  (-> $smt_String W1 W2 W3 W4 W5 $smt_unknown_type))
+  ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit) (W4 Type :implicit) (W5 Type :implicit)
+   (op $smt_String :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque) (x4 W4 :opaque) (x5 W5 :opaque)) $smt_unknown_type)
 
 
 ; In this signature, we heavily use references to the Datatypes corresponding
@@ -232,7 +237,7 @@
   :signature (($smt_type_0 "Int") ($smt_type_0 "Int")) $eo_Term
   (
   (($eo_mk_binary w n)
-    ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_apply_2 "<=" 0 w) ($smt_apply_2 "<=" w 4294967296))
+    ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_apply_1 "<= 0" w) ($smt_apply_1 ">= 4294967296" w))
       ($smd_eo.SmtTerm ($smd_sm.Binary w ($smt_apply_2 "mod" n ($sm_mk_pow2 w))))
       $smd_eo.Stuck))
   )
@@ -451,7 +456,7 @@
   :signature ($eo_Term $eo_Term $eo_Term) $eo_Term
   (
   (($eo_extract ($smd_eo.SmtTerm ($smd_sm.String s1)) ($smd_eo.SmtTerm ($smd_sm.Numeral n2)) ($smd_eo.SmtTerm ($smd_sm.Numeral n3)))
-     ($eo_mk_string ($smt_apply_3 "str.substr" s1 n2 ($smt_apply_2 "+ 1" ($smt_apply_2 "-" n3 n2)))))
+     ($eo_mk_string ($smt_apply_3 "str.substr" s1 n2 ($smt_apply_1 "+ 1" ($smt_apply_2 "-" n3 n2)))))
   (($eo_extract ($smd_eo.SmtTerm ($smd_sm.Binary w1 n1)) ($smd_eo.SmtTerm ($smd_sm.Numeral n2)) ($smd_eo.SmtTerm ($smd_sm.Numeral n3)))
      ($eo_mk_binary ($smt_apply_1 "+ 1" ($smt_apply_2 "-" n3 n2)) ($sm_mk_binary_extract w1 n1 n2 n3)))
   )
@@ -473,7 +478,7 @@
   (($eo_to_z ($smd_eo.SmtTerm ($smd_sm.Numeral n1)))
     ($eo_mk_numeral n1))
   (($eo_to_z ($smd_eo.SmtTerm ($smd_sm.Rational r1)))
-    ($eo_mk_numeral ($smt_apply_2 "to_int" r1)))
+    ($eo_mk_numeral ($smt_apply_1 "to_int" r1)))
   (($eo_to_z ($smd_eo.SmtTerm ($smd_sm.String s1)))
     ($smt_apply_3 "ite" ($smt_apply_1 "= 1" ($smt_apply_1 "str.len" s1))
       ($eo_mk_numeral ($smt_apply_1 "str.to_code" s1))
