@@ -52,8 +52,8 @@
 ; - $eo_type_enum for CPC types that are either polymorphic or not SMT-LIB standard.
 
 ; Returns true if T is a type that a term may take.
-(program $eo_is_type ((T Type))
-  :signature (Type) Bool
+(program $eo_is_type ((T $eo_Term))
+  :signature ($eo_Term) Bool
   (
 $EO_IS_TYPE_CASES$
   ; We do not handle this type.
@@ -67,10 +67,10 @@ $EO_IS_TYPE_CASES$
 )
 
 ; Returns the type enumeration of a type.
-(program $eo_type_enum ((T Type) (i $eo_Numeral)
+(program $eo_type_enum ((T Type) (i ($smt_type_0 "Int"))
    ; generic parameters that may appear in terms to pattern match
    (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3) (W4 Type) (x4 W4) (W5 Type) (x5 W5))
-  :signature ((eo::quote T) $eo_Numeral) T
+  :signature ($eo_Term ($smt_type_0 "Int")) $eo_Term
   (
 $EO_TYPE_ENUM_CASES$
   ; return stuckness, this will be handled upstream
@@ -81,8 +81,8 @@ $EO_TYPE_ENUM_CASES$
 ; Returns a predicate describing the properties of symbols
 ; that cannot be assigned a total semantics. For example,
 ; this is what defines skolem symbols.
-(program $eo_const_predicate ((k $eo_Numeral) (i $eo_Numeral) (T Type))
-  :signature ($eo_Numeral $eo_Numeral Type) $eo_Term
+(program $eo_const_predicate ((k ($smt_type_0 "Int")) (i ($smt_type_0 "Int")) (T $eo_Term))
+  :signature (($smt_type_0 "Int") ($smt_type_0 "Int") $eo_Term) $eo_Term
   (
 $EO_CONST_PREDICATE_CASES$
   ; return stuckness, this will be handled upstream

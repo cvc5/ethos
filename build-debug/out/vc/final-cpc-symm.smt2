@@ -431,7 +431,7 @@
     eo.Stuck)))
 
 ; program: $eo_type_enum
-(define-fun $eo_type_enum ((x1 eo.Term) (x2 eo.Term)) eo.Term
+(define-fun $eo_type_enum ((x1 eo.Term) (x2 Int)) eo.Term
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
     eo.Stuck
   (ite true
@@ -439,7 +439,7 @@
     eo.Stuck)))
 
 ; program: $eo_const_predicate
-(define-fun $eo_const_predicate ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
+(define-fun $eo_const_predicate ((x1 Int) (x2 Int) (x3 eo.Term)) eo.Term
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck) (= x3 eo.Stuck))
     eo.Stuck
   (ite true
