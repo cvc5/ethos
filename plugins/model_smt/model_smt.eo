@@ -16,7 +16,7 @@
 
 ; A utility to ensure that programs are total.
 (define $smt_try ((T Type :implicit) (t T) (u T))
-  (eo::ite (eo::is_ok t) t u))
+  ($smt_apply_3 "ite" ($smt_apply_2 "=" t $smd_eo.Stuck) u t))
 
 ; Used to totalize $eo_typeof.
 (program $smt_typeof ((T Type) (t T))
@@ -61,7 +61,7 @@
 ; represents an unknown value
 ; This must be a constructor in the final sm.Term.
 (declare-parameterized-const $smd_sm.unknown_type_enum
-  ((T Type :opaque) (i $smt_Numeral :opaque)) T)
+  ((T $smt_Term :opaque) (i ($smt_type_0 "Int") :opaque)) $smt_Term)
 
 ; note: The methods in this section are only included (based on trim-defs) if
 ; the verification condition is reasoning about quantified formuls.
@@ -102,8 +102,8 @@
 (define $smt_irrat_enum ((i $smt_Numeral))
  ($smd_sm.unknown_type_enum $smt_Rational i))
 
-(program $smt_type_enum ((T Type) (i $smt_Numeral) (w $smt_Numeral))
-  :signature ((eo::quote T) $smt_Numeral) T
+(program $smt_type_enum ((T $smt_Term) (i $smt_Numeral) (w $smt_Numeral))
+  :signature ($smt_Term $smt_Numeral) $smt_Term
   (
   ; enumeration of standard SMT types
   (($smt_type_enum $smt_Numeral i)     (eo::define ((v (eo::zdiv i 2)))

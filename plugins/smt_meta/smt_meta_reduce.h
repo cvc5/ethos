@@ -135,8 +135,6 @@ class SmtMetaReduce : public Plugin
   /** is smt apply, return the arity */
   size_t isSmtApply(const Expr& t,
                             bool& isType);
-  /** is internal symbol? These dissappear in this step. */
-  bool isInternalSymbol(const Expr& t);
   bool isProgram(const Expr& t);
   /** get term kind */
   TermKind getTermKindApply(const Expr& t,

@@ -79,6 +79,7 @@ SmtMetaReduce::~SmtMetaReduce() {}
 
 void SmtMetaReduce::bind(const std::string& name, const Expr& e)
 {
+  // TODO: this case can probably be dropped??
   if (name.compare(0, 4, "$eo_") == 0 && e.getKind() == Kind::LAMBDA)
   {
     Expr p = e;
@@ -141,6 +142,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
   }
   if (tctx==TermContextKind::EUNOIA && !isEunoiaKind(tk))
   {
+    //os << "; due to non-eunoia kind " << termKindToString(tk) << " for " << cname << std::endl;
     os << "(eo.SmtTerm ";
     osEnd << ")";
   }
@@ -408,6 +410,13 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
   {
     cur = visit.back();
     recTerm = std::get<0>(cur);
+    // we use "null" for a space
+    if (recTerm.isNull())
+    {
+      os << " ";
+      visit.pop_back();
+      continue;
+    }
     size_t childIndex = std::get<1>(cur);
     TermContextKind tkctx = std::get<2>(cur);
     std::pair<Expr, TermContextKind> key(recTerm, tkctx);
@@ -509,16 +518,30 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
               continue;
             }
             os << " ";
-            // we recurse on the compiled SMT arguments
-            // tuple is pushed to the stack, and will print *inlined*
-            Expr tupleArgs = d_state.mkExprSimple(Kind::TUPLE, smtArgs);
-            std::cout << key.first << " is " << smtAppName << " / " << tupleArgs
+            std::cout << key.first << " is " << smtAppName << " / " << smtArgs
                       << std::endl;
-            std::get<1>(visit.back())++;
-            smtAppToTuple[key] = tupleArgs;
-            tkctx = TermContextKind::SMT_BUILTIN;
-            tctxChildren[key] = tkctx;
-            visit.emplace_back(tupleArgs, 0, tkctx);
+            // we recurse on the compiled SMT arguments
+            bool isIte = (smtAppName=="ite");
+            // reverse them, to print left to right
+            std::reverse(smtArgs.begin(), smtArgs.end());
+            // we will be done printing this after pushing its children
+            std::get<1>(visit.back()) = recTerm.getNumChildren();
+            for (size_t j=0, nargs=smtArgs.size(); j<nargs; j++)
+            {
+              // the new context is SMT_BUILTIN
+              TermContextKind newCtx = TermContextKind::SMT_BUILTIN;
+              // as an exception, ITE branches preserve their context
+              if (isIte && j<2)
+              {
+                newCtx = tkctx;
+              }
+              if (j>0)
+              {
+                // print a space
+                visit.emplace_back(d_null, 0, TermContextKind::NONE);
+              }
+              visit.emplace_back(smtArgs[j], 0, newCtx);
+            }
             continue;
           }
           // all other operators always print as applications
@@ -526,7 +549,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           cparen[key] = 1;
           if (atk == TermKind::PROGRAM)
           {
-            // TODO: SMT_PROGRAM goes to SMT builtin???
             tkctx = TermContextKind::EUNOIA;
             tctxChildren[key] = tkctx;
           }
@@ -1077,32 +1099,6 @@ size_t SmtMetaReduce::isSmtApply(const Expr& t,
   return 0;
 }
 
-bool SmtMetaReduce::isInternalSymbol(const Expr& t)
-{
-  std::stringstream ss;
-  ss << t;
-  std::string sname = ss.str();
-  // these terms totally disappear
-  if (sname.compare(0, 13, "$smt_from_eo_") == 0)
-  {
-    return true;
-  }
-  if (sname.compare(0, 11, "$smt_to_eo_") == 0)
-  {
-    return true;
-  }
-  if (sname.compare(0, 11, "$smt_apply_") == 0)
-  {
-    return true;
-  }
-  if (sname.compare(0, 7, "$eo_mk_") == 0
-      || sname.compare(0, 7, "$sm_mk_") == 0)
-  {
-    return true;
-  }
-  return false;
-}
-
 TermKind SmtMetaReduce::getTermKind(const Expr& e)
 {
   std::string name;
@@ -1139,7 +1135,9 @@ TermKind SmtMetaReduce::getTermKind(const Expr& e, std::string& name)
   {
     return TermKind::NONE;
   }
-  if (sname.compare(0, 11, "$smt_apply_") == 0)
+  // TODO: SMT_TERM_TYPE and EUNOIA_TERM_TYPE
+  // can probably be "INTERNAL".
+  if (sname.compare(0, 11, "$smt_apply_") == 0 || sname.compare(0, 10, "$smt_type_") == 0)
   {
     name = sname;
     return TermKind::INTERNAL;

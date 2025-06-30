@@ -36,22 +36,22 @@
 ; Assumes arity of SMT-LIB operators are at most 5.
 (declare-const $smt_type_0 (-> $smt_String Type)) ; TODO: use?
 (declare-const $smt_type_1 (-> $smt_String Type Type)) ; TODO: use?
-(declare-const $smt_apply_0 (-> $smt_String $smt_Term)) ; TODO: use?
+(declare-const $smt_apply_0 (-> $smt_String $smt_unknown_type)) ; TODO: use?
 (declare-parameterized-const $smt_apply_1
   ((W1 Type :implicit))
-  (-> $smt_String W1 $smt_Term))
+  (-> $smt_String W1 $smt_unknown_type))
 (declare-parameterized-const $smt_apply_2
   ((W1 Type :implicit) (W2 Type :implicit))
-  (-> $smt_String W1 W2 $smt_Term))
+  (-> $smt_String W1 W2 $smt_unknown_type))
 (declare-parameterized-const $smt_apply_3
   ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit))
-  (-> $smt_String W1 W2 W3 $smt_Term))
+  (-> $smt_String W1 W2 W3 $smt_unknown_type))
 (declare-parameterized-const $smt_apply_4
   ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit) (W4 Type :implicit))
-  (-> $smt_String W1 W2 W3 W4 $smt_Term))
+  (-> $smt_String W1 W2 W3 W4 $smt_unknown_type))
 (declare-parameterized-const $smt_apply_5
   ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit) (W4 Type :implicit) (W5 Type :implicit))
-  (-> $smt_String W1 W2 W3 W4 W5 $smt_Term))
+  (-> $smt_String W1 W2 W3 W4 W5 $smt_unknown_type))
 
 ;;; References to the final deep embedding of Eunoia and SMT-LIB terms
 
@@ -77,10 +77,10 @@
 (declare-const $smd_sm.BoolType $smt_Term)
 (declare-const $smd_sm.True $smt_Term)
 (declare-const $smd_sm.False $smt_Term)
-(declare-parameterized-const $smd_sm.Numeral ((n $eo_Numeral :opaque)) $smt_Term)
-(declare-parameterized-const $smd_sm.Rational ((r $eo_Rational :opaque)) $smt_Term)
-(declare-parameterized-const $smd_sm.String ((s $eo_String :opaque)) $smt_Term)
-(declare-parameterized-const $smd_sm.Binary ((w $eo_Numeral :opaque) (v $eo_Numeral :opaque)) $smt_Term)
+(declare-parameterized-const $smd_sm.Numeral ((n ($smt_type_0 "Int") :opaque)) $smt_Term)
+(declare-parameterized-const $smd_sm.Rational ((r ($smt_type_0 "Real") :opaque)) $smt_Term)
+(declare-parameterized-const $smd_sm.String ((s ($smt_type_0 "String") :opaque)) $smt_Term)
+(declare-parameterized-const $smd_sm.Binary ((w ($smt_type_0 "Int") :opaque) (v ($smt_type_0 "Int") :opaque)) $smt_Term)
 
 
 ; Boolean relies on the $sm_is_Boolean define-fun in the SMT meta signature.
