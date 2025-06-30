@@ -443,7 +443,7 @@
     eo.Stuck)))
 
 ; fwd-decl: $smtx_typeof
-(declare-fun $smtx_typeof (sm.Term) eo.Term)
+(declare-fun $smtx_typeof (sm.Term) tsm.Type)
 
 ; program: $smtx_is_usort_value
 (define-fun $smtx_is_usort_value ((x1 sm.Term)) Bool
@@ -453,45 +453,36 @@
 ))
 
 ; fwd-decl: $smtx_is_value
-(declare-fun $smtx_is_value (tsm.Type sm.Term) eo.Term)
-
-; program: $smtx_map_is_value
-(define-fun $smtx_map_is_value ((x1 sm.Term)) eo.Term
-  (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) ((_ is sm.Apply) (sm.Apply.arg1 (sm.Apply.arg1 x1))) (= (sm.Apply.arg1 (sm.Apply.arg1 (sm.Apply.arg1 x1))) eo.@map_nil))
-    ($smtx_is_value (sm.Apply.arg2 (sm.Apply.arg1 x1)) (sm.Apply.arg2 x1))
-    ($smtx_is_value (sm.Apply.arg2 (sm.Apply.arg1 x1)))
-))
+(declare-fun $smtx_is_value (tsm.Type sm.Term) Bool)
 
 ; program: $smtx_dt_is_value
-(declare-fun $smtx_dt_is_value (sm.Term) eo.Term)
+(declare-fun $smtx_dt_is_value (sm.Term) Bool)
 (assert (! (forall ((x1 sm.Term))
   (= ($smtx_dt_is_value x1)
   (ite ((_ is sm.Apply) x1)
-    (ite ($smtx_is_value ($smtx_typeof (sm.Apply.arg2 x1)) (sm.Apply.arg2 x1)) ($smtx_dt_is_value (sm.Apply.arg1 x1)) (eo.SmtTerm sm.False))
-    ($eo_is_ok ($eo_dt_selectors (eo.SmtTerm x1)))
+    (ite ($smtx_is_value ($smtx_typeof (sm.Apply.arg2 x1)) (sm.Apply.arg2 x1)) ($smtx_dt_is_value (sm.Apply.arg1 x1)) false)
+    ($smt_from_eo_bool ($eo_is_ok ($eo_dt_selectors (eo.SmtTerm x1))))
 ))) :named sm.axiom.$smtx_dt_is_value))
 
 ; program: $smtx_is_value
 (assert (! (forall ((x1 tsm.Type) (x2 sm.Term))
   (= ($smtx_is_value x1 x2)
   (ite ((_ is sm.UnknownSort) x1)
-    (eo.SmtTerm sm.False)
+    false
   (ite ((_ is sm.USort) x1)
     ($smtx_is_usort_value x2)
   (ite (and (= x1 sm.BoolType) (= x2 sm.True))
-    (eo.SmtTerm sm.True)
+    true
   (ite (and (= x1 sm.BoolType) (= x2 sm.False))
-    (eo.SmtTerm sm.True)
+    true
   (ite (and (= x1 sm.Int) ((_ is eo.SmtTerm) x2) ((_ is sm.Numeral) (eo.SmtTerm.arg1 x2)))
-    (eo.SmtTerm sm.True)
+    true
   (ite (and (= x1 sm.Real) ((_ is eo.SmtTerm) x2) ((_ is sm.Rational) (eo.SmtTerm.arg1 x2)))
-    (eo.SmtTerm sm.True)
+    true
   (ite (and ((_ is eo.Apply) x1) (= (eo.Apply.arg2 x1) sm.Char) (= (eo.Apply.arg1 x1) sm.Seq) ((_ is eo.SmtTerm) x2) ((_ is sm.String) (eo.SmtTerm.arg1 x2)))
-    (eo.SmtTerm sm.True)
-  (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg1 x1)) (= (eo.Apply.arg1 (eo.Apply.arg1 x1)) eo.@map))
-    ($smtx_map_is_value x2)
-    (ite ($eo_is_ok ($eo_dt_constructors x1)) ($smtx_dt_is_value x2) (ite ((_ is eo.SmtTerm) ($eo_is_value x1 (eo.SmtTerm x2))) (eo.SmtTerm.arg1 ($eo_is_value x1 (eo.SmtTerm x2))) (eo.SmtTerm sm.False)))
-)))))))))) :named sm.axiom.$smtx_is_value))
+    true
+    (ite ($smt_from_eo_bool ($eo_is_ok ($eo_dt_constructors x1))) ($smtx_dt_is_value x2) (ite ((_ is eo.SmtTerm) ($eo_is_value x1 (eo.SmtTerm x2))) (eo.SmtTerm.arg1 ($eo_is_value x1 (eo.SmtTerm x2))) false))
+))))))))) :named sm.axiom.$smtx_is_value))
 
 ; fwd-decl: $smtx_model_eval
 (declare-fun $smtx_model_eval (eo.Term) eo.Term)
@@ -544,7 +535,7 @@
   (= ($smtx_typeof x1)
   (ite ((_ is sm.Const) x1)
     (sm.Const.arg3 x1)
-    (ite ((_ is eo.SmtTerm) ($eo_typeof (eo.SmtTerm x1))) (eo.SmtTerm.arg1 ($eo_typeof (eo.SmtTerm x1))) ((eo.SmtTerm sm.UnknownSort) ($eo_hash (eo.SmtTerm x1))))
+    (ite ((_ is eo.SmtTerm) ($eo_typeof (eo.SmtTerm x1))) (eo.SmtTerm.arg1 ($eo_typeof (eo.SmtTerm x1))) (sm.UnknownSort ($eo_hash x1)))
 ))) :named sm.axiom.$smtx_typeof))
 
 

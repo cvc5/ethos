@@ -22,7 +22,7 @@
 
 ; Used to totalize $eo_typeof.
 (program $smtx_typeof ()
-  :signature ($smt_Term) Type)
+  :signature ($smt_Term) $smt_Type)
 
 (declare-const @sterm_list Type)
 (declare-const @sterm_list_nil @sterm_list)
@@ -95,13 +95,13 @@
 
 ; forward declaration
 (program $smtx_is_value ()
-  :signature ($smt_Type $smt_Term) Bool)
+  :signature ($smt_Type $smt_Term) ($smt_type_0 "Bool"))
 
 ; functions and array values.
 
 (program $smtx_map_is_value
   ((T $smt_Type) (U $smt_Type) (t $smt_Term) (u $smt_Term) (tail (@map T U)))
-  :signature ($smt_Term) Bool
+  :signature ($smt_Term) ($smt_type_0 "Bool")
   (
   ; TODO: ordering constraint, recursive
   (($smtx_map_is_value (@map_nil T U u))          ($smtx_is_value U u))
@@ -114,22 +114,24 @@
 ; define: $smt_is_dt
 ; returns: true if t is a datatpe (i.e. it has constructors).
 (define $smt_is_dt ((T Type :implicit) (t T))
-  (eo::is_ok ($eo_dt_constructors t)))
+  ; eo::is_ok is total, doesn't need to wrap in smt_try_eo
+  ($smt_from_eo_bool (eo::is_ok ($eo_dt_constructors t))))
 
 ; define: $smt_is_dt_cons
 ; returns: true if t is a constructor (i.e. it has selectors).
 (define $smt_is_dt_cons ((T Type :implicit) (t T))
-  (eo::is_ok ($eo_dt_selectors t)))
+  ; eo::is_ok is total, doesn't need to wrap in smt_try_eo
+  ($smt_from_eo_bool (eo::is_ok ($eo_dt_selectors t))))
 
 ; program: $smtx_dt_is_value
 ; Returns true if its argument is a datatype value.
 (program $smtx_dt_is_value
   ((U Type) (T Type) (f (-> T U)) (a T) (c U))
-  :signature ($smt_Term) Bool
+  :signature ($smt_Term) ($smt_type_0 "Bool")
   (
   (($smtx_dt_is_value (f a))  ($smt_apply_3 "ite" ($smtx_is_value ($smtx_typeof a) a)
                                ($smtx_dt_is_value f)
-                               false))
+                               ($smt_type_0 "false")))
   (($smtx_dt_is_value c)      ($smt_is_dt_cons c))
   )
 )
@@ -139,11 +141,11 @@
 ; This function is expected to never get stuck.
 (program $smtx_is_value
   ((T $smt_Type) (U $smt_Type) (t $smt_Term) (n1 ($smt_type_0 "Int")) (r1 ($smt_type_0 "Real")) (s1 ($smt_type_0 "String")))
-  :signature ($smt_Type $smt_Term) Bool
+  :signature ($smt_Type $smt_Term) ($smt_type_0 "Bool")
   (
   ; if the literal type is not defined, this is false
-  (($smtx_is_value ($smd_tsm.UnknownSort n1) t)    false)
-  (($smtx_is_value ($smd_tsm.USort n1) t)          ($smtx_is_usort_value t))
+  (($smtx_is_value ($smd_tsm.UnknownSort n1) t)                            false)
+  (($smtx_is_value ($smd_tsm.USort n1) t)                                  ($smtx_is_usort_value t))
   ; standard atomic types
   (($smtx_is_value $smd_sm.BoolType $smd_sm.True)                          true)
   (($smtx_is_value $smd_sm.BoolType $smd_sm.False)                         true)
@@ -151,7 +153,7 @@
   (($smtx_is_value $smt_Rational ($smd_eo.SmtTerm ($smd_sm.Rational r1)))  true)
   (($smtx_is_value $smt_String ($smd_eo.SmtTerm ($smd_sm.String s1)))      true)
   ;(($smtx_is_value $eo_Binary t)
-  (($smtx_is_value (@map T U) t)   ($smtx_map_is_value t))
+  ;(($smtx_is_value (@map T U) t)   ($smtx_map_is_value t))
   ; by default, a value is a term that appears in the type enumeration
   (($smtx_is_value T t)            ($smt_apply_3 "ite" ($smt_is_dt T)
                                      ($smtx_dt_is_value t)
