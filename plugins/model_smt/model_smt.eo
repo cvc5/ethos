@@ -113,13 +113,13 @@
 
 ; define: $smt_is_dt
 ; returns: true if t is a datatpe (i.e. it has constructors).
-(define $smt_is_dt ((T Type :implicit) (t T))
+(define $smt_is_dt ((t $smt_Type))
   ; eo::is_ok is total, doesn't need to wrap in smt_try_eo
   ($smt_from_eo_bool (eo::is_ok ($eo_dt_constructors t))))
 
 ; define: $smt_is_dt_cons
 ; returns: true if t is a constructor (i.e. it has selectors).
-(define $smt_is_dt_cons ((T Type :implicit) (t T))
+(define $smt_is_dt_cons ((t $smt_Term))
   ; eo::is_ok is total, doesn't need to wrap in smt_try_eo
   ($smt_from_eo_bool (eo::is_ok ($eo_dt_selectors t))))
 
@@ -147,11 +147,11 @@
   (($smtx_is_value ($smd_tsm.UnknownSort n1) t)                            false)
   (($smtx_is_value ($smd_tsm.USort n1) t)                                  ($smtx_is_usort_value t))
   ; standard atomic types
-  (($smtx_is_value $smd_sm.BoolType $smd_sm.True)                          true)
-  (($smtx_is_value $smd_sm.BoolType $smd_sm.False)                         true)
-  (($smtx_is_value $smt_Numeral ($smd_eo.SmtTerm ($smd_sm.Numeral n1)))    true)
-  (($smtx_is_value $smt_Rational ($smd_eo.SmtTerm ($smd_sm.Rational r1)))  true)
-  (($smtx_is_value $smt_String ($smd_eo.SmtTerm ($smd_sm.String s1)))      true)
+  (($smtx_is_value $smd_tsm.BoolType $smd_sm.True)                         true)
+  (($smtx_is_value $smd_tsm.BoolType $smd_sm.False)                        true)
+  ;(($smtx_is_value $smt_Numeral ($smd_eo.SmtTerm ($smd_sm.Numeral n1)))    true)
+  ;(($smtx_is_value $smt_Rational ($smd_eo.SmtTerm ($smd_sm.Rational r1)))  true)
+  ;(($smtx_is_value $smt_String ($smd_eo.SmtTerm ($smd_sm.String s1)))      true)
   ;(($smtx_is_value $eo_Binary t)
   ;(($smtx_is_value (@map T U) t)   ($smtx_map_is_value t))
   ; by default, a value is a term that appears in the type enumeration

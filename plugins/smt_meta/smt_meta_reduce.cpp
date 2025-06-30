@@ -151,7 +151,15 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
   {
     // os << "; due to non-eunoia kind " << termKindToString(tk) << " for " <<
     // cname << std::endl;
-    os << "(eo.SmtTerm ";
+    if (k == Kind::BOOL_TYPE)
+    {
+      // Builtin Eunoia types that are made into SMT-LIB types go here.
+      os << "(eo.SmtType ";
+    }
+    else
+    {
+      os << "(eo.SmtTerm ";
+    }
     osEnd << ")";
   }
   if (k == Kind::CONST)
@@ -175,7 +183,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
   }
   else if (k == Kind::BOOL_TYPE)
   {
-    os << "sm.BoolType";
+    os << "tsm.BoolType";
   }
   else
   {

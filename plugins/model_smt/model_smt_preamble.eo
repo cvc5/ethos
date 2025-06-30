@@ -81,7 +81,6 @@
 (declare-const $smt_Type Type)
 
 ; Note the Bool type is "inlined" into the final signature
-(declare-const $smd_sm.BoolType $smt_Term)
 (declare-const $smd_sm.True $smt_Term)
 (declare-const $smd_sm.False $smt_Term)
 (declare-parameterized-const $smd_sm.Numeral ((n ($smt_type_0 "Int") :opaque)) $smt_Term)
@@ -111,6 +110,9 @@
   ((t1 $smt_Term :opaque) (t $smt_Term :opaque)) $smt_Term)
 
 ;;; Deep embedding of SMT-LIB types
+
+; The Boolean type
+(declare-const $smd_tsm.BoolType $smt_Type)
 
 ; Function types
 (declare-parameterized-const $smd_tsm.FunType
