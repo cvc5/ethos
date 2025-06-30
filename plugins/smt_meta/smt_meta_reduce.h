@@ -14,10 +14,7 @@
 #include <sstream>
 #include <string>
 
-#include "expr_info.h"
-#include "expr_trie.h"
-#include "plugin.h"
-#include "type_checker.h"
+#include "../std_plugin.h"
 
 namespace ethos {
 
@@ -87,7 +84,7 @@ class SelectorCtx
 
 /**
  */
-class SmtMetaReduce : public Plugin
+class SmtMetaReduce : public StdPlugin
 {
  public:
   SmtMetaReduce(State& s);
@@ -143,10 +140,6 @@ class SmtMetaReduce : public Plugin
   TermKind getTermKind(const Expr& e, std::string& name);
   TermKind getTermKind(const Expr& e);
   TermContextKind termKindToContext(TermKind tk);
-  /** the state */
-  State& d_state;
-  /** the type checker */
-  TypeChecker& d_tc;
   /** Declares seen */
   std::set<Expr> d_declSeen;
   /** Program declarations processed */

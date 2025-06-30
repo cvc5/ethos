@@ -10,16 +10,12 @@
 #define SMT_MODEL_H
 
 #include <map>
-#include <set>
 #include <sstream>
 #include <string>
 
 #include "../std_plugin.h"
 
 namespace ethos {
-
-class State;
-class TypeChecker;
 
 /**
  * Used to generate a *.eo file that defines SMT-LIB model semantics.

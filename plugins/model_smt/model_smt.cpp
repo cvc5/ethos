@@ -17,9 +17,6 @@
 
 namespace ethos {
 
-// std::string s_smodel_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
-std::string s_smodel_path = "/home/andrew/ethos/";
-
 ModelSmt::ModelSmt(State& s) : StdPlugin(s)
 {
   Expr typ = d_state.mkType();
@@ -252,14 +249,14 @@ void ModelSmt::finalize()
   };
   // read the preamble
   std::stringstream ssiep;
-  ssiep << s_smodel_path << "plugins/model_smt/model_eo_preamble.eo";
+  ssiep << s_plugin_path << "plugins/model_smt/model_eo_preamble.eo";
   std::ifstream inep(ssiep.str());
   std::ostringstream ssep;
   ssep << inep.rdbuf();
   std::string finalEoPremable = ssep.str();
 
   std::stringstream ssie;
-  ssie << s_smodel_path << "plugins/model_smt/model_eo.eo";
+  ssie << s_plugin_path << "plugins/model_smt/model_eo.eo";
   std::ifstream ine(ssie.str());
   std::ostringstream sse;
   sse << ine.rdbuf();
@@ -271,7 +268,7 @@ void ModelSmt::finalize()
 
   // now, go back and compile *.eo for the proof rules
   std::stringstream ssis;
-  ssis << s_smodel_path << "plugins/model_smt/model_smt.eo";
+  ssis << s_plugin_path << "plugins/model_smt/model_smt.eo";
   std::ifstream ins(ssis.str());
   std::ostringstream sss;
   sss << ins.rdbuf();
@@ -279,7 +276,7 @@ void ModelSmt::finalize()
   replace(finalSmt, "$SMT_EVAL_CASES$", d_eval.str());
 
   std::stringstream ssoe;
-  ssoe << s_smodel_path << "plugins/model_smt/model_smt_gen.eo";
+  ssoe << s_plugin_path << "plugins/model_smt/model_smt_gen.eo";
   // std::cout << "Write smt-model    " << finalSmt.str() << std::endl;
   std::ofstream oute(ssoe.str());
   // the final user defined signature, as a preamble

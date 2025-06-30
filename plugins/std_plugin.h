@@ -15,6 +15,8 @@
 #include <string>
 
 #include "plugin.h"
+#include "state.h"
+#include "type_checker.h"
 
 namespace ethos {
 
@@ -53,6 +55,7 @@ class StdPlugin : public Plugin
   std::stringstream d_ltRational;
   std::stringstream d_ltString;
   std::stringstream d_ltBinary;
+  static std::string s_plugin_path;
 };
 
 }  // namespace ethos

@@ -10,20 +10,14 @@
 #define TRIM_DEFS_H
 
 #include <map>
-#include <set>
-#include <sstream>
 #include <string>
 
-#include "expr_info.h"
-#include "expr_trie.h"
-#include "plugin.h"
-#include "state.h"
-
+#include "../std_plugin.h"
 namespace ethos {
 
 /**
  */
-class TrimDefs : public Plugin
+class TrimDefs : public StdPlugin
 {
  public:
   TrimDefs(State& s);
@@ -43,8 +37,6 @@ class TrimDefs : public Plugin
   void finalize() override;
 
  private:
-  /** the state */
-  State& d_state;
   std::vector<std::string> d_defTargets;
   size_t d_idCounter;
   std::map<std::string, size_t> d_symToId;

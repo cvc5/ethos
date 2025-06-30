@@ -37,10 +37,10 @@
   (sm.$smt_unknown_type)
   ; declare BoolType SMT_DT_CONS
   (sm.BoolType)
-  ; declare False SMT_DT_CONS
-  (sm.False)
   ; declare True SMT_DT_CONS
   (sm.True)
+  ; declare False SMT_DT_CONS
+  (sm.False)
   ; declare Numeral SMT_DT_CONS
   (sm.Numeral (sm.Numeral.arg1 Int))
   ; declare Rational SMT_DT_CONS

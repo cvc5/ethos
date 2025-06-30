@@ -17,9 +17,6 @@
 
 namespace ethos {
 
-// std::string s_ds_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
-std::string s_ds_path = "/home/andrew/ethos/";
-
 Desugar::Desugar(State& s) : StdPlugin(s)
 {
   d_any = d_state.mkSymbol(Kind::PARAM, "Any", d_state.mkType());
@@ -844,7 +841,7 @@ void Desugar::finalize()
 
   // now, go back and compile *.eo for the proof rules
   std::stringstream ssie;
-  ssie << s_ds_path << "plugins/desugar/eo_desugar.eo";
+  ssie << s_plugin_path << "plugins/desugar/eo_desugar.eo";
   std::ifstream ine(ssie.str());
   std::ostringstream sse;
   sse << ine.rdbuf();
@@ -882,7 +879,7 @@ void Desugar::finalize()
     replace(finalEo, "$EO_VC$", "");
   }
   std::stringstream ssoe;
-  ssoe << s_ds_path << "plugins/desugar/eo_desugar_gen.eo";
+  ssoe << s_plugin_path << "plugins/desugar/eo_desugar_gen.eo";
   std::cout << "Write core-defs    " << ssoe.str() << std::endl;
   std::ofstream oute(ssoe.str());
   oute << finalEo;
@@ -893,8 +890,8 @@ void Desugar::finalizeWellFounded()
   // TODO
   std::stringstream wfDefs;
   // generate well-foundedness method
-  size_t pcIdCount = 0;
-  std::map<Expr, size_t> pcId;
+  //size_t pcIdCount = 0;
+  //std::map<Expr, size_t> pcId;
   std::stringstream os;
   os << "(declare-const @pcall (-> $eo_Numeral $eo_List Type))" << std::endl;
   os << "(program $eovcwf_rec ((pc $eo_Numeral))" << std::endl;

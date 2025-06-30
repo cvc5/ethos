@@ -21,8 +21,6 @@
 
 namespace ethos {
 
-// std::string st_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
-std::string st_path = "/home/andrew/ethos/";
 
 struct Command
 {
@@ -206,7 +204,7 @@ void TrimDefs::parseCommands(std::istream& in)
   }
 }
 
-TrimDefs::TrimDefs(State& s) : d_state(s) { d_idCounter = 0; }
+TrimDefs::TrimDefs(State& s) : StdPlugin(s) { d_idCounter = 0; }
 
 TrimDefs::~TrimDefs() {}
 
@@ -298,7 +296,7 @@ void TrimDefs::finalize()
 
   // write the trimmed to file
   std::stringstream sso;
-  sso << st_path << "plugins/trim_defs/trim_gen.eo";
+  sso << s_plugin_path << "plugins/trim_defs/trim_gen.eo";
   std::cout << "Write trim-defs " << sso.str() << std::endl;
   std::ofstream out(sso.str());
   out << ss.str();

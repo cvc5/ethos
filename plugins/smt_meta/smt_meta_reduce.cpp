@@ -17,6 +17,17 @@
 
 namespace ethos {
 
+SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s)
+{
+  d_sufToKind["bool"] = Kind::BOOLEAN;
+  d_sufToKind["z"] = Kind::NUMERAL;
+  d_sufToKind["q"] = Kind::RATIONAL;
+  d_sufToKind["str"] = Kind::STRING;
+  d_sufToKind["bin"] = Kind::BINARY;
+}
+
+SmtMetaReduce::~SmtMetaReduce() {}
+
 bool isEunoiaKind(TermKind tk)
 {
   return tk == TermKind::EUNOIA_DT_CONS || tk == TermKind::EUNOIA_TERM;
@@ -71,20 +82,6 @@ std::string termKindToString(TermKind k)
   }
   return ss.str();
 }
-
-// std::string s_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
-std::string s_path = "/home/andrew/ethos/";
-
-SmtMetaReduce::SmtMetaReduce(State& s) : d_state(s), d_tc(s.getTypeChecker())
-{
-  d_sufToKind["bool"] = Kind::BOOLEAN;
-  d_sufToKind["z"] = Kind::NUMERAL;
-  d_sufToKind["q"] = Kind::RATIONAL;
-  d_sufToKind["str"] = Kind::STRING;
-  d_sufToKind["bin"] = Kind::BINARY;
-}
-
-SmtMetaReduce::~SmtMetaReduce() {}
 
 void SmtMetaReduce::bind(const std::string& name, const Expr& e)
 {
@@ -1176,7 +1173,7 @@ void SmtMetaReduce::finalize()
 
   // make the final SMT-LIB encoding
   std::stringstream ssi;
-  ssi << s_path << "plugins/smt_meta/smt_meta.smt2";
+  ssi << s_plugin_path << "plugins/smt_meta/smt_meta.smt2";
   std::ifstream in(ssi.str());
   std::ostringstream ss;
   ss << in.rdbuf();
@@ -1189,7 +1186,7 @@ void SmtMetaReduce::finalize()
   replace(finalSm, "$SMT_VC$", d_smtVc.str());
 
   std::stringstream sso;
-  sso << s_path << "plugins/smt_meta/smt_meta_gen.smt2";
+  sso << s_plugin_path << "plugins/smt_meta/smt_meta_gen.smt2";
   std::cout << "Write smt2-defs " << sso.str() << std::endl;
   std::ofstream out(sso.str());
   out << finalSm;
