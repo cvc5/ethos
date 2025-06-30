@@ -1,0 +1,102 @@
+; This file gives a template for defining the model semantics of
+; a Eunoia signature. The signature model_smt.eo uses this signature
+; to define (a user extension of) the standard SMT-LIB semantics.
+;
+; In the end we define:
+; <user signature>
+; <this file, instantiated based on the above signature>
+; <model_smt.eo>
+;
+; Note that for efficiency, we allow model_smt.eo to be instantiated
+; based on a controlled template, namely which standard SMT-LIB operators
+; are present in the user signature, where *names* are taken literally.
+; That is, if the user declares "+", then it may appear in the model
+; evaluation function in the instantiated version of model_smt.eo.
+
+; A free constant.
+; Constants are identified by:
+; (1) Their kind (numeral k),
+; (2) Their identifier (numeral i),
+; (3) Their type.
+; Free constants can be associated with predicates, which defines their
+; semantics (essentially, this means they are all "choice" terms, despite
+; choice not being modelled in the term object syntax).
+; The property is obtained by calling $eo_model_Const_pred below.
+; Kind 0 is reserved for truly free constants, i.e. (choice ((x T)) true).
+; Note this declaration must be preserved to ensure the semantics of
+; SMT-LIB is accurate. In particular, this ensures that terms can
+; be constructed out of free constant symbols.
+(declare-parameterized-const $eo_Const ((id $eo_Numeral) (T Type)) T)
+; This indicates the properties of skolem functions.
+;(program $eo_model_Const_pred ((k $eo_Numeral) (i $eo_Numeral) (T Type))
+;  :signature ($eo_Numeral $eo_Numeral (eo::quote T)) T
+;  (
+;  ; 0 is reserved for truly free constants
+;  (($eo_model_Const_pred 0 i T) true)
+;$EO_MODEL_CONST_PRED_CASES$
+;  (($eo_model_Const_pred k i T) $smd_eo.Stuck)
+;  )
+;)
+
+;(program $eo_model_eval ((T Type) (t T))
+;  :signature (T) T
+;  (
+;$EO_MODEL_EVAL_CASES$
+;  (($eo_model_eval t) t)
+;  )
+;)
+
+
+; Requires:
+; - $eo_is_type to return true for all CPC types that are either polymorphic or not SMT-LIB standard.
+; - $eo_type_enum for CPC types that are either polymorphic or not SMT-LIB standard.
+
+; Returns true if T is a type that a term may take.
+(program $eo_is_type ((T Type))
+  :signature (Type) Bool
+  (
+$EO_IS_TYPE_CASES$
+  ; We do not handle this type.
+  ; This statement rejects any type that is not in our signature.
+  ; In other words, this limits the scope of which syntactic terms
+  ; we are testing in our verification conditions. It is thus important
+  ; that this method is complete (which in turn ensures the verification
+  ; pipeline is sound).
+  (($eo_is_type T) false)
+  )
+)
+
+; Returns the type enumeration of a type.
+(program $eo_type_enum ((T Type) (i $eo_Numeral)
+   ; generic parameters that may appear in terms to pattern match
+   (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3) (W4 Type) (x4 W4) (W5 Type) (x5 W5))
+  :signature ((eo::quote T) $eo_Numeral) T
+  (
+$EO_TYPE_ENUM_CASES$
+  ; return stuckness, this will be handled upstream
+  (($eo_type_enum T i) $smd_eo.Stuck)
+  )
+)
+
+; Returns a predicate describing the properties of symbols
+; that cannot be assigned a total semantics. For example,
+; this is what defines skolem symbols.
+(program $eo_const_predicate ((k $eo_Numeral) (i $eo_Numeral) (T Type))
+  :signature ($eo_Numeral $eo_Numeral Type) $eo_Term
+  (
+$EO_CONST_PREDICATE_CASES$
+  ; return stuckness, this will be handled upstream
+  (($eo_const_predicate k i T) $smd_eo.Stuck)
+  )
+)
+
+; This method can be used to define evaluation functions
+; that cannot be described in terms of SMT-LIB conventions.
+(program $eo_model_eval ((t $eo_Term))
+  :signature ($eo_Term) $eo_Term
+  (
+$EO_EVAL_CASES$
+  ; return stuckness, this will be handled upstream
+  (($eo_model_eval t) $smd_eo.Stuck)
+  )
+)
