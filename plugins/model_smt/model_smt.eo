@@ -183,7 +183,7 @@
   :signature ((eo::quote T) T) Bool
   (
   ; if the literal type is not defined, this is false
-  (($smt_is_value $smt_unknown_type t)  false)
+  ;(($smt_is_value $smt_unknown_type t)  false)
   ; standard atomic types
   (($smt_is_value Bool true)       true)
   (($smt_is_value Bool false)      true)
@@ -345,6 +345,7 @@ $SMT_EVAL_CASES$
 (program $eo_model_sat ((F $smt_Term))
   :signature ($smt_Term) Bool
   (
+  ; TODO: may need to convert this
   (($eo_model_sat F) ($smt_model_eval F))
   )
 )
@@ -356,7 +357,8 @@ $SMT_EVAL_CASES$
   :signature ($smt_Term) $smt_Type
   (
   (($smt_typeof ($smd_sm.Const k id T))  T)
-  ; for all other user defined terms, we totalize
-  (($smt_typeof t)                      ($smt_try ($eo_typeof t) $smt_unknown_type))
+  ; for all other user defined terms, we totalize using unknown sorts
+  ; we use the hash so that all terms that do not type check have a new unknown sort.
+  (($smt_typeof t)                      ($smt_try ($eo_typeof t) ($smd_tsm.UnknownSort (eo::hash t))))
   )
 )

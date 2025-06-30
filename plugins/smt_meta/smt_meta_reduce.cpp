@@ -938,17 +938,21 @@ void SmtMetaReduce::finalizeDeclarations()
     }
     std::stringstream* out = nullptr;
     bool isEunoia = false;
+    std::stringstream prefix;
     if (tk == TermKind::EUNOIA_TERM)  // tk == TermKind::EUNOIA_DT_CONS ||
     {
       isEunoia = true;
+      prefix << "eo.";
       out = &d_eoTermDecl;
     }
     else if (tk==TermKind::SMT_TYPE_DT_CONS)
     {
+      prefix << "tsm.";
       out = &d_typeDecl;
     }
     else
     {
+      prefix << "sm.";
       out = &d_termDecl;
     }
     if (out==nullptr)
@@ -971,7 +975,7 @@ void SmtMetaReduce::finalizeDeclarations()
     // (*out) << "  ; attr is " << attr << std::endl;
     (*out) << "  (";
     std::stringstream cname;
-    cname << (isEunoia ? "eo." : "sm.") << consName;
+    cname << prefix.str() << consName;
     (*out) << cname.str();
     size_t nopqArgs = 0;
     if (attr == Attr::OPAQUE)
@@ -989,19 +993,15 @@ void SmtMetaReduce::finalizeDeclarations()
       (*out) << " (" << cname.str();
       bool isEunoiaArg = isEunoia;
       (*out) << ".arg" << (i + 1) << " ";
-      // if we are an SMT-LIB literal constructor, we take the opaque types
-      // TODO: use printEmbType
-      if (tk == TermKind::SMT_DT_CONS)
+      // print its type using the utility,
+      // which takes into account what the type is in the final embedding
+      Expr typ = ct[i];
+      if (ct[i].getKind()==Kind::QUOTE_TYPE)
       {
-        Assert(ct[i].getKind() == Kind::QUOTE_TYPE);
         Expr targ = ct[i][0];
-        Expr ttarg = d_tc.getType(targ);
-        (*out) << ttarg;
+        typ = d_tc.getType(targ);
       }
-      else
-      {
-        (*out) << (isEunoiaArg ? "eo." : "sm.") << "Term";
-      }
+      printEmbType(typ, *out);
       (*out) << ")";
     }
     (*out) << ")" << std::endl;

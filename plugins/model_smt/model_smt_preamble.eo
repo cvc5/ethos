@@ -67,6 +67,8 @@
 
 ;;; Deep embedding of SMT-LIB terms
 
+; TODO: move up to own signature
+
 ; An SMT-LIB term.
 (declare-const $smt_Term Type)
 
@@ -111,6 +113,10 @@
 
 ; Uninterpreted sorts
 (declare-parameterized-const $smd_tsm.USort
+  ((id ($smt_type_0 "Int") :opaque)) $smt_Type)
+
+; Uninterpreted sorts
+(declare-parameterized-const $smd_tsm.UnknownSort
   ((id ($smt_type_0 "Int") :opaque)) $smt_Type)
 
 ;;; Deep embedding of Eunoia terms
