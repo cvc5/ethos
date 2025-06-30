@@ -24,7 +24,6 @@ namespace ethos {
 class State;
 class TypeChecker;
 
-
 enum class TermContextKind
 {
   EUNOIA,
@@ -128,23 +127,25 @@ class SmtMetaReduce : public Plugin
   void printEmbAtomicTerm(const Expr& c,
                           std::ostream& os,
                           TermContextKind tctx = TermContextKind::NONE);
-  TermContextKind printEmbType(const Expr& c, std::ostream& os,
-                          TermContextKind tctx = TermContextKind::NONE);
-  bool printEmbTerm(const Expr& c, std::ostream& os, const SelectorCtx& ctx,
-                          TermContextKind tinit = TermContextKind::NONE);
+  TermContextKind printEmbType(const Expr& c,
+                               std::ostream& os,
+                               TermContextKind tctx = TermContextKind::NONE);
+  bool printEmbTerm(const Expr& c,
+                    std::ostream& os,
+                    const SelectorCtx& ctx,
+                    TermContextKind tinit = TermContextKind::NONE);
   void finalizePrograms();
   void finalizeProgram(const Expr& v, const Expr& prog);
   void finalizeDeclarations();
   /** Does t have subterm s? */
   static bool hasSubterm(const Expr& t, const Expr& s);
   /** is smt apply, return the arity */
-  size_t isSmtApply(const Expr& t,
-                            bool& isType);
+  size_t isSmtApply(const Expr& t, bool& isType);
   bool isProgram(const Expr& t);
   /** get term kind */
   TermKind getTermKindApply(const Expr& t,
-                      std::string& name,
-                      std::vector<Expr>& args,
+                            std::string& name,
+                            std::vector<Expr>& args,
                             bool& isType);
   TermKind getTermKindAtomic(const Expr& e, std::string& name);
   TermKind getTermKind(const Expr& e, std::string& name);
