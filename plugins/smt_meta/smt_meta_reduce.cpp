@@ -164,6 +164,10 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     {
       os << "eo." << cname;
     }
+    else if (tk==TermKind::SMT_TYPE_DT_CONS)
+    {
+      os << "tsm." << cname;
+    }
     else
     {
       os << "sm." << cname;
@@ -391,9 +395,10 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
         // the type of the Eunoia SMT-LIB constructor is SMT terms
         tkctx = TermContextKind::SMT;
       }
-      if (tkctx == TermContextKind::SMT && atk == TermKind::SMT_DT_CONS)
+      if (tkctx == TermContextKind::SMT && (atk == TermKind::SMT_DT_CONS || atk==TermKind::SMT_TYPE_DT_CONS))
       {
         // the opaque arguments of SMT-LIB literal terms are builtin SMT terms
+        // the opaque arguments of SMT-LIB types (e.g. uninterpreted sorts) are also builtins
         tkctx = TermContextKind::SMT_BUILTIN;
       }
     }
@@ -1356,7 +1361,7 @@ TermKind SmtMetaReduce::getTermKind(const Expr& e, std::string& name)
     std::stringstream ss;
     ss << cur[0];
     std::string sname = ss.str();
-    TermKind tk;
+    TermKind tk = TermKind::NONE;
     if (sname.compare(0, 11, "$smt_apply_") == 0)
     {
       tk = TermKind::SMT_BUILTIN_APPLY;

@@ -467,9 +467,9 @@
 ; program: $smtx_is_value
 (assert (! (forall ((x1 tsm.Type) (x2 sm.Term))
   (= ($smtx_is_value x1 x2)
-  (ite ((_ is sm.UnknownSort) x1)
+  (ite ((_ is tsm.UnknownSort) x1)
     false
-  (ite ((_ is sm.USort) x1)
+  (ite ((_ is tsm.USort) x1)
     ($smtx_is_usort_value x2)
   (ite (and (= x1 sm.BoolType) (= x2 sm.True))
     true
@@ -535,7 +535,7 @@
   (= ($smtx_typeof x1)
   (ite ((_ is sm.Const) x1)
     (sm.Const.arg3 x1)
-    (ite ((_ is eo.SmtTerm) ($eo_typeof (eo.SmtTerm x1))) (eo.SmtTerm.arg1 ($eo_typeof (eo.SmtTerm x1))) (sm.UnknownSort ($eo_hash x1)))
+    (ite ((_ is eo.SmtTerm) ($eo_typeof (eo.SmtTerm x1))) (eo.SmtTerm.arg1 ($eo_typeof (eo.SmtTerm x1))) (tsm.UnknownSort ($eo_hash x1)))
 ))) :named sm.axiom.$smtx_typeof))
 
 
