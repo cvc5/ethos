@@ -172,7 +172,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
   }
   else if (k == Kind::TYPE)
   {
-    os << "sm.Type";
+    os << "tsm.Type";
   }
   else if (k == Kind::BOOL_TYPE)
   {
@@ -316,14 +316,16 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
                                          const std::string& initCtx,
                                          std::ostream& os,
                                          SelectorCtx& ctx,
-                                         size_t& nconj)
+                                         size_t& nconj,
+                    TermContextKind tinit)
 {
+  tinit = tinit == TermContextKind::NONE ? TermContextKind::EUNOIA : tinit;
   // third tuple is a context which indicates the final SMT
   // type we are printing (eo.Term vs. sm.Term)
   std::map<Expr, std::string>::iterator it;
   std::vector<std::tuple<Expr, std::string, TermContextKind>> visit;
   std::tuple<Expr, std::string, TermContextKind> cur;
-  visit.emplace_back(c, initCtx, TermContextKind::EUNOIA);
+  visit.emplace_back(c, initCtx, tinit);
   do
   {
     cur = visit.back();
@@ -936,6 +938,11 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     cases << "    eo.Stuck" << std::endl;
     casesEnd << ")";
   }
+  TermContextKind ctxPatMatch = TermContextKind::EUNOIA;
+  if (tk==TermKind::SMT_PROGRAM)
+  {
+    ctxPatMatch = TermContextKind::SMT;
+  }
   size_t ncases = prog.getNumChildren();
   for (size_t i = 0; i < ncases; i++)
   {
@@ -955,7 +962,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
       // print the pattern matching predicate for this argument, all
       // concatenated together
       std::cout << "Print pat matching for " << hd[j] << std::endl;
-      printEmbPatternMatch(hd[j], args[j - 1], currCase, ctx, nconj);
+      printEmbPatternMatch(hd[j], args[j - 1], currCase, ctx, nconj, ctxPatMatch);
       std::cout << "...returns " << currCase.str() << std::endl;
     }
     // compile the return for this case

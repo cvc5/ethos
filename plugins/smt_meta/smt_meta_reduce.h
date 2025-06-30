@@ -113,7 +113,8 @@ class SmtMetaReduce : public Plugin
                             const std::string& initCtx,
                             std::ostream& os,
                             SelectorCtx& ctx,
-                            size_t& nconj);
+                            size_t& nconj,
+                    TermContextKind tinit = TermContextKind::NONE);
   void printEmbAtomicTerm(const Expr& c,
                           std::ostream& os,
                           TermContextKind tctx = TermContextKind::NONE);

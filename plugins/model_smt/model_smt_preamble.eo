@@ -103,7 +103,7 @@
 
 ; represents an uninterpreted value
 ; This must be a constructor in the final sm.Term.
-(declare-parameterized-const $smd_sm.unknown_type_enum
+(declare-parameterized-const $smd_sm.usort_value
   ((T $smt_Type :opaque) (i ($smt_type_0 "Int") :opaque)) $smt_Term)
 
 ; The Eunoia representation of an SMT-LIB term.
