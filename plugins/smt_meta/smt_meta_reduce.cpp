@@ -19,11 +19,6 @@ namespace ethos {
 
 SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s)
 {
-  d_sufToKind["bool"] = Kind::BOOLEAN;
-  d_sufToKind["z"] = Kind::NUMERAL;
-  d_sufToKind["q"] = Kind::RATIONAL;
-  d_sufToKind["str"] = Kind::STRING;
-  d_sufToKind["bin"] = Kind::BINARY;
 }
 
 SmtMetaReduce::~SmtMetaReduce() {}
@@ -70,6 +65,7 @@ std::string termKindToString(TermKind k)
     case TermKind::SMT_TERM_TYPE: ss << "SMT_TERM_TYPE"; break;
     case TermKind::SMT_TYPE_TYPE: ss << "SMT_TYPE_TYPE"; break;
     case TermKind::SMT_TYPE_DT_CONS: ss << "SMT_TYPE_DT_CONS"; break;
+    case TermKind::SMT_BUILTIN_TYPE: ss << "SMT_BUILTIN_TYPE"; break;
     case TermKind::EUNOIA_TERM_TYPE: ss << "EUNOIA_TERM_TYPE"; break;
     // An operator that operates on native SMT-LIB terms, e.g. $eo_mk_binary
     case TermKind::SMT_TO_EO_PROGRAM: ss << "SMT_TO_EO_PROGRAM"; break;
@@ -826,12 +822,12 @@ void SmtMetaReduce::finalizePrograms()
         }
         std::stringstream vname;
         vname << v;
-        ctx.d_ctx[v] = vname.str();
         d_defs << "(" << vname.str() << " ";
         Expr argType = d_tc.getType(v);
         Assert(!argType.isNull());
         printEmbType(argType, d_defs);
         d_defs << ")";
+        ctx.d_ctx[v] = vname.str();
       }
       d_defs << ") ";
       Expr body = e[1];
@@ -913,7 +909,9 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
       varList << " ";
     }
     std::stringstream argType;
+    //TermKind tka;
     printEmbType(vt[i - 1], argType);
+    //d_defs << "; defs: " << vt[i - 1] << " is " << termKindToString(tka) << std::endl;
     decl << argType.str();
     std::stringstream ssArg;
     ssArg << "x" << i;

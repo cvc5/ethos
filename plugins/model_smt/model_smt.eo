@@ -45,6 +45,7 @@
   ((T Type) (U Type) (index T) (element U) (tail (@map T U)))
   (@map T U))
 
+; NOTE: this is equivalent to a datatype tester ((_ is sm.usort_value) t).
 (program $smtx_is_usort_value  ((n ($smt_type_0 "Int")) (T $smt_Type) (t $smt_Term))
   :signature ($smt_Term) ($smt_type_0 "Bool")
   (
@@ -135,8 +136,8 @@
 (program $smtx_enum_type_contains_rec ((T $smt_Type) (t $smt_Term) (i ($smt_type_0 "Int")))
   :signature ($smt_Type $smt_Term ($smt_type_0 "Int")) Bool
   (
-  (($smtx_enum_type_contains_rec T t i)  (eo::define ((v ($smtx_enum_type T i)))
-                                        (eo::ite (eo::is_ok v)
+  (($smtx_enum_type_contains_rec T t i)   (eo::define ((v ($smtx_enum_type T i)))
+                                          (eo::ite (eo::is_ok v)
                                           (eo::ite (eo::eq v t)
                                             true
                                             ($smtx_enum_type_contains_rec T i (eo::add i 1)))
