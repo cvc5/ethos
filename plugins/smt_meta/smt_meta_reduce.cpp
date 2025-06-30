@@ -53,7 +53,7 @@ std::string termKindToString(TermKind k)
     // The type of SMT lib terms
     case TermKind::SMT_TERM_TYPE: ss << "SMT_TERM_TYPE"; break;
     // An operator that operates on native SMT-LIB terms, e.g. $eo_mk_binary
-    case TermKind::EUNOIA_PROGRAM: ss << "EUNOIA_PROGRAM"; break;
+    case TermKind::SMT_TO_EO_PROGRAM: ss << "SMT_TO_EO_PROGRAM"; break;
     // An operator that operates on native SMT-LIB terms, e.g. $sm_mk_pow2
     case TermKind::SMT_BUILTIN_PROGRAM: ss << "SMT_BUILTIN_PROGRAM"; break;
     // A term that was internal to model_smt step, should be removed
@@ -588,7 +588,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
         {
           newCtx = TermContextKind::EUNOIA;
         }
-        else if (atk == TermKind::EUNOIA_PROGRAM)
+        else if (atk == TermKind::SMT_TO_EO_PROGRAM)
         {
           newCtx = TermContextKind::SMT;
         }
@@ -761,8 +761,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
 {
   TermKind tk = getTermKind(v);
   // things that are manually axiomatized
-  if (tk == TermKind::EUNOIA_PROGRAM
-      || tk == TermKind::INTERNAL)
+  if (tk == TermKind::INTERNAL)
   {
     return;
   }
@@ -822,7 +821,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   std::stringstream cases;
   std::stringstream casesEnd;
   // start with stuck case, if not a SMT program
-  bool isEoProg = (tk != TermKind::SMT_BUILTIN_PROGRAM);
+  bool isEoProg = (tk != TermKind::SMT_BUILTIN_PROGRAM && tk!= TermKind::SMT_TO_EO_PROGRAM);
   if (isEoProg)
   {
     cases << "  (ite" << stuckCond.str() << std::endl;
@@ -901,10 +900,10 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   {
     d_defs << "    eo.Stuck";
   }
-  d_defs << casesEnd.str() << std::endl;
+  d_defs << casesEnd.str();
   if (reqAxiom)
   {
-    d_defs << ":named sm.axiom." << v << ")";
+    d_defs << " :named sm.axiom." << v << ")";
   }
   d_defs << ")" << std::endl;
   d_defs << std::endl;
@@ -921,7 +920,7 @@ void SmtMetaReduce::finalizeDeclarations()
     // all symbols beginning with @ are not part of term definition
     if (tk == TermKind::INTERNAL || tk == TermKind::SMT_TERM_TYPE
         || tk == TermKind::EUNOIA_TERM_TYPE
-        || tk == TermKind::SMT_BUILTIN_PROGRAM || tk == TermKind::EUNOIA_PROGRAM
+        || tk == TermKind::SMT_BUILTIN_PROGRAM || tk == TermKind::SMT_TO_EO_PROGRAM
         || tk == TermKind::PROGRAM || tk == TermKind::SMT_BUILTIN_APPLY || tk==TermKind::EUNOIA_DT_CONS || tk==TermKind::SMT_DT_CONS)
     {
       continue;
@@ -1187,7 +1186,7 @@ TermKind SmtMetaReduce::getTermKindAtomic(const Expr& e, std::string& name)
     if (sname.compare(0, 7, "$eo_mk_") == 0)
     {
       name = sname;
-      return TermKind::EUNOIA_PROGRAM;
+      return TermKind::SMT_TO_EO_PROGRAM;
     }
     return TermKind::PROGRAM;
   }
@@ -1239,7 +1238,7 @@ bool SmtMetaReduce::isProgram(const Expr& t)
     return true;
   }
   TermKind tk = getTermKind(t);
-  return tk == TermKind::SMT_BUILTIN_PROGRAM || tk == TermKind::EUNOIA_PROGRAM
+  return tk == TermKind::SMT_BUILTIN_PROGRAM || tk == TermKind::SMT_TO_EO_PROGRAM
          || tk == TermKind::PROGRAM;
 }
 

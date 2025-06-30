@@ -60,69 +60,6 @@ $SM_EO_TERM_DECL$
     eo.Stuck
     (eo.Apply x y)))
 
-;;; Definitions of forward declared programs in SMT preamble
-
-; note: should never be called on negative numbers
-(declare-fun $sm_mk_pow2 (Int) Int)
-(assert (! (forall ((i Int))
-  (= ($sm_mk_pow2 i) (ite (<= i 0) 1 (* 2 ($sm_mk_pow2 (- i 1)))))) :named sm.mk_pow2))
-
-(define-fun $sm_mk_bit ((x Int) (i Int)) Bool
-  (= (mod (div x ($sm_mk_pow2 i)) 2) 1))
-
-(declare-fun $sm_mk_binary_and (Int Int Int) Int)
-(assert (! (forall ((w Int) (x1 Int) (x2 Int))
-  (= ($sm_mk_binary_and w x1 x2)
-    (ite (= w 0) 0
-    (ite (= w 1) (ite (and (= x1 1) (= x2 1)) 1 0)
-      (+ ($sm_mk_binary_and (- w 1) x1 x2) (* ($sm_mk_pow2 w)
-         (ite (and ($sm_mk_bit x1 w) ($sm_mk_bit x2 w)) 1 0))))))) :named sm.mk_bin_and))
-
-; ((w Int) (x1 Int) (x2 Int))
-(declare-fun $sm_mk_binary_or (Int Int Int) Int) ; TODO
-
-; ((w Int) (x1 Int) (x2 Int))
-(declare-fun $sm_mk_binary_xor (Int Int Int) Int) ; TODO
-
-; ((w Int) (x1 Int))
-(declare-fun $sm_mk_binary_not (Int Int) Int) ; TODO
-
-; ((w Int))
-(define-fun $sm_mk_binary_max ((w Int)) Int
-  (- ($sm_mk_pow2 w) 1))
-
-; ((x1 Int) (l Int) (h Int))
-(declare-fun $sm_mk_binary_extract (Int Int Int) Int) ; TODO
-
-; ((w Int) (x Int) (x1 Int) (x2 Int))
-(declare-fun $sm_mk_binary_concat (Int Int Int Int) Int) ; TODO
-
-
-;;; Literal conversions
-; All these methods should only be used for sm.Term
-
-; smt-define: $eo_mk_bool
-(define-fun $eo_mk_bool ((x Bool)) eo.Term
-  (smt.to_eo (ite x sm.True sm.False)))
-
-; program: $eo_mk_numeral
-(define-fun $eo_mk_numeral ((n Int)) eo.Term
-  (smt.to_eo (sm.Numeral n)))
-
-; program: $eo_mk_rational
-(define-fun $eo_mk_rational ((r Real)) eo.Term
-  (smt.to_eo (sm.Rational r)))
-
-; program: $eo_mk_string
-(define-fun $eo_mk_string ((s String)) eo.Term
-  (smt.to_eo (sm.String s)))
-
-; program: $eo_mk_binary
-(define-fun $eo_mk_binary ((w Int) (n Int)) eo.Term
-  (ite (and (<= 0 w) (< w 4294967296))
-    (smt.to_eo (sm.Binary w (mod n ($sm_mk_pow2 w))))
-    eo.Stuck))
-
 ;;; Core operators
 
 ; Note that these cannot be lifted further since their semantics wrt
@@ -130,7 +67,9 @@ $SM_EO_TERM_DECL$
 
 ; axiom: $eo_is_ok
 (define-fun $eo_is_ok ((x1 eo.Term)) eo.Term
-  ($eo_mk_bool (not (= x1 eo.Stuck))))
+  (ite (= x1 eo.Stuck)
+    (eo.SmtTerm sm.False)
+    (eo.SmtTerm sm.True)))
 
 ; axiom: $eo_ite
 (define-fun $eo_ite ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term

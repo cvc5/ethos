@@ -134,7 +134,7 @@
   :signature (($smt_type_0 "Int") ($smt_type_0 "Int")) ($smt_type_0 "Bool")
   (
   ; (= (mod (div x ($sm_mk_pow2 i)) 2) 1)
-  (($sm_mk_bit x i) ($smt_apply_1 "= 1" ($smt_apply_2 "mod" ($smt_apply_2 "div" x $sm_mk_pow2) 2)))
+  (($sm_mk_bit x i) ($smt_apply_1 "= 1" ($smt_apply_2 "mod" ($smt_apply_2 "div" x ($sm_mk_pow2 i)) 2)))
   )
 )
 (program $sm_mk_binary_and ((w ($smt_type_0 "Int")) (n1 ($smt_type_0 "Int")) (n2 ($smt_type_0 "Int")))
@@ -181,7 +181,6 @@
 
 ;;; Utilities
 
-; TODO: do these need to be defined??
 (program $eo_mk_bool ((x ($smt_type_0 "Bool")))
   :signature (($smt_type_0 "Bool")) $eo_Term
   (
@@ -209,13 +208,10 @@
 (program $eo_mk_binary ((w $eo_Numeral) (n $eo_Numeral))
   :signature (($smt_type_0 "Int") ($smt_type_0 "Int")) $eo_Term
   (
-  (($eo_mk_binary w n) (eo::requires
-                         ($smt_apply_2 "and"
-                           ($smt_apply_2 "<=" ($eo_mk_numeral 0) w)
-                           ($smt_apply_2 "<=" w ($eo_mk_numeral 4294967296)))
-                         true
-                         ($smd_eo.SmtTerm ($smd_sm.Binary w
-                           ($smt_apply_2 "mod" n ($sm_mk_pow2 w))))))
+  (($eo_mk_binary w n)
+    ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_apply_2 "<=" 0 w) ($smt_apply_2 "<=" w 4294967296))
+      ($smd_eo.SmtTerm ($smd_sm.Binary w ($smt_apply_2 "mod" n ($sm_mk_pow2 w))))
+      $smd_eo.Stuck))
   )
 )
 ; Convert Eunoia Boolean to an smt Boolean.
