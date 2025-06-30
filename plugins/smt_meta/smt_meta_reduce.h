@@ -78,24 +78,10 @@ class SelectorCtx
 {
  public:
   SelectorCtx() {}
-  /*
-  SelectorCtx() : d_counter(0) {}
-  std::string push(const std::string& next)
-  {
-    d_counter++;
-    std::stringstream ss;
-    ss << "z" << d_counter;
-    d_letBegin << "(let ((z" << d_counter << " " << next << ")) ";
-    d_letEnd << ")";
-    return ss.str();
-  }
-  */
+  /** */
   std::map<Expr, std::string> d_ctx;
   /** The context it was matched in */
   std::map<Expr, TermContextKind> d_tctx;
-  // std::stringstream d_letBegin;
-  // std::stringstream d_letEnd;
-  // size_t d_counter;
 };
 
 /**
@@ -155,7 +141,6 @@ class SmtMetaReduce : public Plugin
   TermKind getTermKind(const Expr& e, std::string& name);
   TermKind getTermKind(const Expr& e);
   TermContextKind termKindToContext(TermKind tk);
-  void printOpName(const Expr& s, std::ostream& os);
   /** the state */
   State& d_state;
   /** the type checker */

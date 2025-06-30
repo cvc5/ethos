@@ -137,13 +137,15 @@ void ModelSmt::printSmtTerm(const std::string& name,
                             std::vector<Kind>& args,
                             Kind kret)
 {
-  d_eval << "  (($smt_model_eval (" << name;
+  // This needs to be here, this is the user include of a standard
+  // template
+  d_eval << "  (($smtx_model_eval (" << name;
   // special cases
   if (name == "ite")
   {
     d_eval << " x1 x2 x3)) ";
-    d_eval << "(eo::ite ($smt_model_eval x1) ($smt_model_eval x2) "
-              "($smt_model_eval x3)))";
+    d_eval << "(eo::ite ($smtx_model_eval x1) ($smtx_model_eval x2) "
+              "($smtx_model_eval x3)))";
     d_eval << std::endl;
     return;
   }
@@ -152,7 +154,7 @@ void ModelSmt::printSmtTerm(const std::string& name,
   std::stringstream preAppEnd;
   for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
   {
-    preApp << "    (eo::define ((e" << i << " ($smt_model_eval x" << i << ")))"
+    preApp << "    (eo::define ((e" << i << " ($smtx_model_eval x" << i << ")))"
            << std::endl;
     preAppEnd << ")";
   }
@@ -162,7 +164,7 @@ void ModelSmt::printSmtTerm(const std::string& name,
     // We rely on SMT-LIB equality, guarding by an $smt_is_value predicate.
     d_eval << " x1 x2))" << std::endl;
     d_eval << preApp.str();
-    d_eval << "      ($smt_eval_= ($smt_typeof x1) e1 e2 (= x1 x2))"
+    d_eval << "      ($smt_eval_= ($smtx_typeof x1) e1 e2 (= x1 x2))"
            << preAppEnd.str() << ")";
     d_eval << std::endl;
   }
@@ -170,7 +172,7 @@ void ModelSmt::printSmtTerm(const std::string& name,
   {
     // does not "pre-rewrite" the body
     bool isExists = (name == "exists");
-    d_eval << " x1 x2)) ($smt_eval_quant x1 x2 0 " << isExists << "))";
+    d_eval << " x1 x2)) ($smtx_eval_quant x1 x2 0 " << isExists << "))";
   }
   else if (isOverloadArith)
   {
@@ -188,7 +190,7 @@ void ModelSmt::printSmtTerm(const std::string& name,
     }
     else if (args.size() == 1)
     {
-      d_eval << " x1)) ($smt_try_eval_o_arith_unary ";
+      d_eval << " x1)) ($smtx_try_eval_o_arith_unary ";
       d_eval << " \"" << name << "\" x1 (" << name << " x1)))" << std::endl;
     }
     else

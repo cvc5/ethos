@@ -297,6 +297,11 @@ TermKind SmtMetaReduce::printEmbType(const Expr& c,
   {
     os << "eo.Term";
   }
+  else if (tk==TermKind::SMT_TERM)
+  {
+    // a user provided specification of a type???
+    os << "eo.Term";
+  }
   else
   {
     // TODO: check for bad types
@@ -851,17 +856,6 @@ TermContextKind SmtMetaReduce::termKindToContext(TermKind tk)
     default: EO_FATAL() << "unknown type " << termKindToString(tk); break;
   }
   return TermContextKind::NONE;
-}
-void SmtMetaReduce::printOpName(const Expr& s, std::ostream& os)
-{
-  /*
-  if (s.getKind() != Kind::STRING)
-  {
-    EO_FATAL() << "Expected string for SMT-LIB app name, got " << sname;
-  }
-  const Literal* l = s.getValue()->asLiteral();
-  os << l->d_str.toString();
-  */
 }
 void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
 {
