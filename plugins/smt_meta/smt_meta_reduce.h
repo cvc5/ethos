@@ -124,8 +124,9 @@ class SmtMetaReduce : public Plugin
   void printEmbAtomicTerm(const Expr& c,
                           std::ostream& os,
                           TermContextKind tctx = TermContextKind::NONE);
-  void printEmbType(const Expr& c, std::ostream& os);
-  bool printEmbTerm(const Expr& c, std::ostream& os, const SelectorCtx& ctx);
+  TermContextKind printEmbType(const Expr& c, std::ostream& os);
+  bool printEmbTerm(const Expr& c, std::ostream& os, const SelectorCtx& ctx,
+                          TermContextKind tinit = TermContextKind::NONE);
   void finalizePrograms();
   void finalizeProgram(const Expr& v, const Expr& prog);
   void finalizeDeclarations();

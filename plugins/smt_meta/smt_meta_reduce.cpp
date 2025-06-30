@@ -222,9 +222,10 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
   os << osEnd.str();
 }
 
-void SmtMetaReduce::printEmbType(const Expr& c, std::ostream& os)
+TermContextKind SmtMetaReduce::printEmbType(const Expr& c, std::ostream& os)
 {
   os << "eo.Term";
+  return TermContextKind::EUNOIA;
 }
 
 bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
@@ -348,7 +349,8 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
 
 bool SmtMetaReduce::printEmbTerm(const Expr& body,
                                  std::ostream& os,
-                                 const SelectorCtx& ctx)
+                                 const SelectorCtx& ctx,
+                          TermContextKind tinit)
 {
   // os << ctx.d_letBegin.str();
   std::map<Expr, std::string>::const_iterator it;
@@ -400,7 +402,8 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
   std::vector<std::tuple<Expr, size_t, TermContextKind>> visit;
   std::tuple<Expr, size_t, TermContextKind> cur;
   Expr recTerm;
-  visit.emplace_back(t, 0, TermContextKind::EUNOIA);
+  tinit = tinit==TermContextKind::NONE ? TermContextKind::EUNOIA : tinit;
+  visit.emplace_back(t, 0, tinit);
   do
   {
     cur = visit.back();
@@ -687,10 +690,11 @@ void SmtMetaReduce::finalizePrograms()
       d_defs << ") ";
       Expr body = e[1];
       Expr retType = d_tc.getType(body);
-      printEmbType(retType, d_defs);
+      // determine the intial context for printing the term here
+      // this ensures the body is printed as the appropriate type.
+      TermContextKind ctxInit = printEmbType(retType, d_defs);
       d_defs << " ";
-      // TODO: check if a Eunoia term here???
-      printEmbTerm(e[1], d_defs, ctx);
+      printEmbTerm(e[1], d_defs, ctx, ctxInit);
       d_defs << ")" << std::endl << std::endl;
       continue;
     }
@@ -750,7 +754,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   }
   appTerm << ")";
   std::stringstream retType;
-  printEmbType(vt[nargs-1], retType);
+  TermContextKind bodyInitCtx = printEmbType(vt[nargs-1], retType);
   decl << ") "<< retType.str() << ")" << std::endl;
   // if forward declared, we are done for now
   if (prog.isNull())
@@ -792,7 +796,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     // compile the return for this case
     std::stringstream currRet;
     std::cout << "...print " << body << std::endl;
-    printEmbTerm(body, currRet, ctx);
+    printEmbTerm(body, currRet, ctx, bodyInitCtx);
     std::cout << "...finished" << std::endl;
     std::cout << "...result is " << currRet.str() << std::endl;
     // now print the case/return
