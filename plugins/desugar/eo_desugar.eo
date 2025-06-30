@@ -34,7 +34,7 @@ $EO_LITERAL_TYPE_DECL$
 
 ;;; Model test infrastructure
 
-; A Eunoia term
+; A Eunoia term, used by $eo_model_sat.
 (declare-const $eo_Term Type)
 
 ; A placeholder for asking whether a formula is satisfied by a model.

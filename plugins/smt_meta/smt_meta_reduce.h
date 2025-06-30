@@ -30,6 +30,7 @@ enum class TermContextKind
   EUNOIA,
   SMT,
   SMT_BUILTIN,
+  SMT_TYPE,
   NONE
 };
 std::string termContextKindToString(TermContextKind k);
@@ -53,6 +54,9 @@ enum class TermKind
   SMT_TERM,
   // The type of SMT lib terms
   SMT_TERM_TYPE,
+  // The type of SMT lib types
+  SMT_TYPE_TYPE,
+  SMT_TYPE_DT_CONS,
   // ?
   EUNOIA_TERM_TYPE,
   // An operator that operates on native SMT-LIB terms, e.g. $eo_mk_binary
@@ -163,6 +167,7 @@ class SmtMetaReduce : public Plugin
   /** Number of current scopes. Bindings at scope>0 are not remembered */
   size_t d_nscopes;
   std::stringstream d_termDecl;
+  std::stringstream d_typeDecl;
   std::stringstream d_eoTermDecl;
   std::stringstream d_defs;
   std::stringstream d_rules;

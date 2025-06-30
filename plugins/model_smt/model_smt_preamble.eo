@@ -70,6 +70,9 @@
 ; An SMT-LIB term.
 (declare-const $smt_Term Type)
 
+; An SMT-LIB type.
+(declare-const $smt_Type Type)
+
 ; Note the Bool type is "inlined" into the final signature
 (declare-const $smd_sm.BoolType $smt_Term)
 (declare-const $smd_sm.True $smt_Term)
@@ -88,13 +91,27 @@
 ; can be custom defined based on the Eunoia signature (see method
 ; $eo_const_predicate in model_eo.eo).
 (declare-parameterized-const $smd_sm.Const
-  ((k ($smt_type_0 "Int") :opaque) (id ($smt_type_0 "Int") :opaque) (T $smt_Term :opaque))
+  ((k ($smt_type_0 "Int") :opaque) (id ($smt_type_0 "Int") :opaque) (T $smt_Type :opaque))
   $smt_Term)
 
-; represents an unknown value
+; represents an uninterpreted value
 ; This must be a constructor in the final sm.Term.
 (declare-parameterized-const $smd_sm.unknown_type_enum
-  ((T $smt_Term :opaque) (i ($smt_type_0 "Int") :opaque)) $smt_Term)
+  ((T $smt_Type :opaque) (i ($smt_type_0 "Int") :opaque)) $smt_Term)
+
+; The Eunoia representation of an SMT-LIB term.
+(declare-parameterized-const $smd_sm.Apply
+  ((t1 $smt_Term :opaque) (t $smt_Term :opaque)) $smt_Term)
+
+;;; Deep embedding of SMT-LIB types
+
+; Function types
+(declare-parameterized-const $smd_tsm.FunType
+  ((T1 $smt_Type :opaque) (T2 $smt_Type :opaque)) $smt_Type)
+
+; Uninterpreted sorts
+(declare-parameterized-const $smd_tsm.USort
+  ((id ($smt_type_0 "Int") :opaque)) $smt_Type)
 
 ;;; Deep embedding of Eunoia terms
 

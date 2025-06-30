@@ -29,6 +29,7 @@ std::string termContextKindToString(TermContextKind k)
     case TermContextKind::EUNOIA: ss << "EUNOIA"; break;
     case TermContextKind::SMT: ss << "SMT"; break;
     case TermContextKind::SMT_BUILTIN: ss << "SMT_BUILTIN"; break;
+    case TermContextKind::SMT_TYPE: ss << "SMT_TYPE"; break;
     default: ss << "?TermContextKind"; break;
   }
   return ss.str();
@@ -52,6 +53,8 @@ std::string termKindToString(TermKind k)
     case TermKind::SMT_TERM: ss << "SMT_TERM"; break;
     // The type of SMT lib terms
     case TermKind::SMT_TERM_TYPE: ss << "SMT_TERM_TYPE"; break;
+    case TermKind::SMT_TYPE_TYPE: ss << "SMT_TYPE_TYPE"; break;
+    case TermKind::SMT_TYPE_DT_CONS: ss << "SMT_TYPE_DT_CONS"; break;
     // An operator that operates on native SMT-LIB terms, e.g. $eo_mk_binary
     case TermKind::SMT_TO_EO_PROGRAM: ss << "SMT_TO_EO_PROGRAM"; break;
     // An operator that operates on native SMT-LIB terms, e.g. $sm_mk_pow2
@@ -276,6 +279,11 @@ TermContextKind SmtMetaReduce::printEmbType(const Expr& c, std::ostream& os)
     os << "sm.Term";
     return TermContextKind::SMT;
   }
+  else if (tk==TermKind::SMT_TYPE_TYPE)
+  {
+    os << "sm.Type";
+    return TermContextKind::SMT_TYPE;
+  }
   os << "eo.Term";
   return TermContextKind::EUNOIA;
 }
@@ -349,10 +357,12 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       std::cout << "  atk-o: " << tcur[0] << " is " << termKindToString(atk) << std::endl;
       if (tkctx == TermContextKind::EUNOIA && atk==TermKind::EUNOIA_DT_CONS)
       {
+        // the type of the Eunoia SMT-LIB constructor is SMT terms
         tkctx = TermContextKind::SMT;
       }
       if (tkctx == TermContextKind::SMT && atk==TermKind::SMT_DT_CONS)
       {
+        // the opaque arguments of SMT-LIB literal terms are builtin SMT terms
         tkctx = TermContextKind::SMT_BUILTIN;
       }
     }
@@ -633,14 +643,15 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
         if (ck == Kind::APPLY_OPAQUE)
         {
           // this is always printed in the original context first??
-          //printEmbAtomicTerm(recTerm, os, tkctx);
           TermKind atk = getTermKind(recTerm[0]);
           if (tkctx == TermContextKind::EUNOIA && atk==TermKind::EUNOIA_DT_CONS)
           {
+            // the arugment of eo.SmtTerm is an SMT term
             newCtx = TermContextKind::SMT;
           }
           else if (tkctx == TermContextKind::SMT && atk==TermKind::SMT_DT_CONS)
           {
+            // the opaque arguments of SMT-LIB literal constructors are builtin SMT terms
             newCtx = TermContextKind::SMT_BUILTIN;
           }
         }
@@ -918,15 +929,32 @@ void SmtMetaReduce::finalizeDeclarations()
     TermKind tk = getTermKind(e, consName);
     // ignore deep embeddings of smt terms
     // all symbols beginning with @ are not part of term definition
-    if (tk == TermKind::INTERNAL || tk == TermKind::SMT_TERM_TYPE
+    if (tk == TermKind::INTERNAL || tk == TermKind::SMT_TERM_TYPE || tk==TermKind::SMT_TYPE_TYPE
         || tk == TermKind::EUNOIA_TERM_TYPE
         || tk == TermKind::SMT_BUILTIN_PROGRAM || tk == TermKind::SMT_TO_EO_PROGRAM
         || tk == TermKind::PROGRAM || tk == TermKind::SMT_BUILTIN_APPLY || tk==TermKind::EUNOIA_DT_CONS || tk==TermKind::SMT_DT_CONS)
     {
       continue;
     }
-    bool isEunoia = isEunoiaKind(tk);
-    std::stringstream* out = isEunoia ? &d_eoTermDecl : &d_termDecl;
+    std::stringstream* out = nullptr;
+    bool isEunoia = false;
+    if (tk == TermKind::EUNOIA_TERM)  // tk == TermKind::EUNOIA_DT_CONS ||
+    {
+      isEunoia = true;
+      out = &d_eoTermDecl;
+    }
+    else if (tk==TermKind::SMT_TYPE_DT_CONS)
+    {
+      out = &d_typeDecl;
+    }
+    else
+    {
+      out = &d_termDecl;
+    }
+    if (out==nullptr)
+    {
+      continue;
+    }
     (*out) << "  ; declare " << consName << " " << termKindToString(tk)
            << std::endl;
     Expr c = e;
@@ -962,6 +990,7 @@ void SmtMetaReduce::finalizeDeclarations()
       bool isEunoiaArg = isEunoia;
       (*out) << ".arg" << (i + 1) << " ";
       // if we are an SMT-LIB literal constructor, we take the opaque types
+      // TODO: use printEmbType
       if (tk == TermKind::SMT_DT_CONS)
       {
         Assert(ct[i].getKind() == Kind::QUOTE_TYPE);
@@ -1008,6 +1037,7 @@ void SmtMetaReduce::finalize()
   std::string finalSm = ss.str();
 
   replace(finalSm, "$SM_TERM_DECL$", d_termDecl.str());
+  replace(finalSm, "$SM_TYPE_DECL$", d_typeDecl.str());
   replace(finalSm, "$SM_EO_TERM_DECL$", d_eoTermDecl.str());
   replace(finalSm, "$SM_DEFS$", d_defs.str());
   replace(finalSm, "$SMT_VC$", d_smtVc.str());
@@ -1206,6 +1236,11 @@ TermKind SmtMetaReduce::getTermKindAtomic(const Expr& e, std::string& name)
     name = sname;
     return TermKind::SMT_TERM_TYPE;
   }
+  if (sname == "$smt_Type")
+  {
+    name = sname;
+    return TermKind::SMT_TYPE_TYPE;
+  }
   if (sname == "$eo_Term")
   {
     name = sname;
@@ -1220,6 +1255,11 @@ TermKind SmtMetaReduce::getTermKindAtomic(const Expr& e, std::string& name)
   {
     name = sname.substr(8);
     return TermKind::SMT_DT_CONS;
+  }
+  else if (sname.compare(0, 9, "$smd_tsm.") == 0)
+  {
+    name = sname.substr(9);
+    return TermKind::SMT_TYPE_DT_CONS;
   }
   if (sname.compare(0, 1, "@") == 0 || sname.compare(0, 8, "$eo_List") == 0)
   {
