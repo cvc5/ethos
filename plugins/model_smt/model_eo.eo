@@ -46,6 +46,15 @@
 ;  )
 ;)
 
+; Returns true if its argument is an SMT value.
+; This function is expected to never get stuck.
+(program $eo_is_value ((T $eo_Term) (t $eo_Term))
+  :signature ($eo_Term $eo_Term) Bool
+  (
+  
+  (($eo_is_value T t) false)
+  )
+)
 
 ; Requires:
 ; - $eo_is_type to return true for all CPC types that are either polymorphic or not SMT-LIB standard.
@@ -66,17 +75,89 @@ $EO_IS_TYPE_CASES$
   )
 )
 
-; Returns the type enumeration of a type.
-(program $eo_type_enum ((T Type) (i ($smt_type_0 "Int"))
-   ; generic parameters that may appear in terms to pattern match
-   (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3) (W4 Type) (x4 W4) (W5 Type) (x5 W5))
+
+; type enumeration
+
+; note: The methods in this section are only included (based on trim-defs) if
+; the verification condition is reasoning about quantified formuls.
+
+; Use "@" to indicate that this is not an SMT-LIB term.
+;(declare-const @smt_RatPair Type)
+;(declare-const @smt_ratPair (-> $smt_Numeral $smt_Numeral @smt_RatPair))
+
+; Based on Calkin–Wilf tree.
+; NOTE: this method is only necessary if reasoning about the enumeration of Reals,
+; this is only necessary if we are proving soundness of a proof rule that involves
+; quantified reals.
+;(program $eo_rat_enum_rec
+;  ((i $smt_Numeral) (n $smt_Numeral) (d $smt_Numeral) (r @smt_RatPair) (rs @sterm_list))
+;  :signature ($smt_Numeral @sterm_list) @smt_RatPair
+;  (
+;  (($eo_rat_enum_rec 0 (@sterm_list_cons r rs)) r)
+;  (($eo_rat_enum_rec i (@sterm_list_cons (@smt_ratPair n d) rs))
+;     (eo::define ((r1 (@smt_ratPair (eo::add n d) d)))
+;     (eo::define ((r2 (@smt_ratPair n (eo::add n d))))
+;      ($eo_rat_enum_rec (eo::add i -1)
+;        ($eo_list_concat rs (@sterm_list_cons r1 (@sterm_list_cons r2 @sterm_list_nil)))))))
+;  )
+;)
+
+;(define $smt_rat_enum ((i $smt_Numeral))
+;  ($eo_rat_enum_rec i (@sterm_list_cons (@smt_ratPair 1 1) @sterm_list_nil)))
+
+;(program $eo_rat_to_num ((n $smt_Numeral) (d $smt_Numeral))
+;  :signature ($smt_Numeral) $smt_Rational
+;  (
+;  (($eo_rat_to_num (@smt_ratPair n d)) ($eo_qdiv n d))
+;  )
+;)
+
+; we have no incorporate of irrational values, which can be soundly approximated using
+; $smd_sm.usort_value.
+;(define $smt_irrat_enum ((i $smt_Numeral))
+;  ($smd_sm.usort_value $smt_Rational i))
+
+; NOTE this is an exception to the rule that eo_ must never get stuck!!!!!!!
+(program $eo_enum_type ((T $eo_Term) (i ($smt_type_0 "Int")))
   :signature ($eo_Term ($smt_type_0 "Int")) $eo_Term
   (
-$EO_TYPE_ENUM_CASES$
-  ; return stuckness, this will be handled upstream
-  (($eo_type_enum T i) $smd_eo.Stuck)
+  ; enumeration of standard SMT types
+  ;(($eo_enum_type $smt_Numeral i)     (eo::define ((v (eo::zdiv i 2)))
+  ;                                      ($smt_apply_3 "ite" ($smt_apply_2 "=" (eo::zmod i 2) 0) v (eo::neg v))))
+  ;(($eo_enum_type $smt_String i)      ($smt_apply_3 "ite" ($smt_apply_2 "=" i 0)
+  ;                                      ""
+  ;                                      (eo::concat (eo::to_str (eo::zmod i 196608)) ($eo_enum_type $smt_String (eo::zdiv i 196608)))))
+  ; rationals are treated as Real, meaning we interleave rational/irrational.
+  ;(($eo_enum_type $smt_Rational i)    (eo::define ((ir (eo::zdiv i 2)))
+  ;                                    (eo::define ((isRat ($smt_apply_2 "=" (eo::zmod ir 2) 0)))
+  ;                                    (eo::define ((i (eo::zdiv ir 2)))
+  ;                                    (eo::define ((v ($smt_apply_3 "ite" isRat ($eo_rat_to_num ($smt_rat_enum i)) ($smt_irrat_enum i))))
+  ;                                      ($smt_apply_3 "ite" ($smt_apply_2 "=" (eo::zmod i 2) 0) v (eo::neg v)))))))
+  ; Note that $smt_BitVec must be mapped to the user's definition of binaries.
+  ; Note this method gets stuck if i > 2^w, indicating we have run out of values.
+  ;(($eo_enum_type ($smt_BitVec w) i) (eo::define ((v (eo::to_bin w i)))
+  ;                                      (eo::requires (eo::to_z v) i v)))
+  ; TODO: functions, datatypes
+  ; Try to enumerate the type, if we fail, we return $smd_sm.usort_value.
+  ; Note that this essentially assumes that unhandled types are uninterpreted
+  ; and have infinite cardinality (since this does not get stuck).
+  (($eo_enum_type T i)                ($smd_sm.usort_value T i))
   )
 )
+
+; program: ($smtx_enum_type_contains_rec T t i)
+; Returns true if t is contained in the type enumeration of T, starting from i.
+;(program $eo_enum_type_contains_rec ((T $smt_Type) (t $smt_Term) (i ($smt_type_0 "Int")))
+;  :signature ($smt_Type $smt_Term ($smt_type_0 "Int")) Bool
+;  (
+;  (($smtx_enum_type_contains_rec T t i)   (eo::define ((v ($smtx_enum_type T i)))
+;                                          ($smt_apply_3 "ite" ($smt_apply_1 "$eo_is_ok" v)
+;                                          ($smt_apply_3 "ite" ($smt_apply_2 "=" v t)
+;                                            true
+;                                            ($smtx_enum_type_contains_rec T i ($smt_apply_2 "+" i 1)))
+;                                          false)))
+;  )
+;)
 
 ; Returns a predicate describing the properties of symbols
 ; that cannot be assigned a total semantics. For example,
