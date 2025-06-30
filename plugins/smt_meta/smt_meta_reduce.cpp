@@ -679,9 +679,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       }
       else
       {
-        // all other operators print as applications
-        os << "(";
-        cparen[key] = 1;
         if (ck == Kind::APPLY_OPAQUE)
         {
           // this is always printed in the original context first??
@@ -715,6 +712,13 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
               // The kind of subterms to appear in types (beneath $smt_type_*)
               newCtx = TermContextKind::SMT_TYPE;
             }
+            // this handles the corner case that ($smt_apply_0 "true") should
+            // print as "true" not "(true)".
+            if (recTerm.getNumChildren()>2)
+            {
+              os << "(";
+              cparen[key] = 1;
+            }
             // the first argument is the opaque operator,
             // the second argument is taken as a name
             std::get<1>(visit.back())++;
@@ -722,19 +726,24 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
             os << sname;
             continue;
           }
+          // all other operators print as applications
+          os << "(";
+          cparen[key] = 1;
         }
         else if (ck == Kind::FUNCTION_TYPE)
         {
           Assert(recTerm.getNumChildren() == 2);
           // must use macro to ensure "Stuck" propagates
-          os << "$eo_FunType ";
+          os << "($eo_FunType ";
+          cparen[key] = 1;
         }
         else if (isLiteralOp(ck))
         {
           std::string kstr = kindToTerm(ck);
           if (kstr.compare(0, 4, "eo::") == 0)
           {
-            os << "$eo_" << kstr.substr(4) << " ";
+            os << "($eo_" << kstr.substr(4) << " ";
+            cparen[key] = 1;
           }
           else
           {

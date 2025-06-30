@@ -498,8 +498,8 @@
 ; program: $smtx_is_usort_value
 (define-fun $smtx_is_usort_value ((x1 sm.Term)) Bool
   (ite ((_ is sm.usort_value) x1)
-    (true)
-    (false)
+    true
+    false
 ))
 
 ; program: $smtx_enum_type
