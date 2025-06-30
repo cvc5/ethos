@@ -32,8 +32,10 @@ $SM_TERM_DECL$
   (eo.FunType (eo.FunType.arg1 eo.Term) (eo.FunType.arg2 eo.Term))
   ; Application of a Eunoia term
   (eo.Apply (eo.Apply.arg1 eo.Term) (eo.Apply.arg2 eo.Term))
-  ; The SMT-LIB embedding of a Eunoia term
+  ; The Eunoia representation of an SMT-LIB term
   (eo.SmtTerm (eo.SmtTerm.arg1 sm.Term))
+  ; The Eunoia representation of an SMT-LIB type
+  (eo.SmtType (eo.SmtType.arg1 tsm.Type))
   ; Defines "stuckness"
   (eo.Stuck)
 

@@ -102,15 +102,15 @@
 (define $smt_irrat_enum ((i $smt_Numeral))
  ($smd_sm.usort_value $smt_Rational i))
 
-(program $smtx_enum_type ((T $smt_Type) (i ($smt_type_0 "Int")))
-  :signature ($smt_Type ($smt_type_0 "Int")) $smt_Term
+(program $smtx_enum_type ((T ($smt_type_0 "tsm.Type")) (i ($smt_type_0 "Int")))
+  :signature (($smt_type_0 "tsm.Type") ($smt_type_0 "Int")) $smt_Term
   (
   ; enumeration of standard SMT types
-  (($smtx_enum_type $smt_Numeral i)     (eo::define ((v (eo::zdiv i 2)))
-                                        (eo::ite (eo::eq (eo::zmod i 2) 0) v (eo::neg v))))
-  (($smtx_enum_type $smt_String i)      (eo::ite (eo::eq i 0)
-                                        ""
-                                        (eo::concat (eo::to_str (eo::zmod i 196608)) ($smtx_enum_type $smt_String (eo::zdiv i 196608)))))
+  ;(($smtx_enum_type $smt_Numeral i)     (eo::define ((v (eo::zdiv i 2)))
+  ;                                      (eo::ite (eo::eq (eo::zmod i 2) 0) v (eo::neg v))))
+  ;(($smtx_enum_type $smt_String i)      (eo::ite (eo::eq i 0)
+  ;                                      ""
+  ;                                      (eo::concat (eo::to_str (eo::zmod i 196608)) ($smtx_enum_type $smt_String (eo::zdiv i 196608)))))
   ; rationals are treated as Real, meaning we interleave rational/irrational.
   ;(($smtx_enum_type $smt_Rational i)    (eo::define ((ir (eo::zdiv i 2)))
   ;                                    (eo::define ((isRat (eo::eq (eo::zmod ir 2) 0)))
@@ -125,8 +125,8 @@
   ; Try to enumerate the type, if we fail, we return $smd_sm.usort_value.
   ; Note that this essentially assumes that unhandled types are uninterpreted
   ; and have infinite cardinality (since this does not get stuck).
-  ;(($smtx_enum_type T i)               ($smt_try ($eo_type_enum T i)
-  ;                                       ($smd_sm.usort_value T i)))
+  (($smtx_enum_type T i)               ($smt_try ($eo_type_enum ($smd_eo.SmtType T) i)
+                                         ($smd_sm.usort_value T i)))
   )
 )
 

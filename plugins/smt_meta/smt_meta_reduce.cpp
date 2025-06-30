@@ -48,6 +48,7 @@ std::string termKindToString(TermKind k)
     case TermKind::EUNOIA_TERM: ss << "EUNOIA_TERM"; break;
     case TermKind::EUNOIA_BOOL: ss << "EUNOIA_BOOL"; break;
     case TermKind::EUNOIA_TYPE_TYPE: ss << "EUNOIA_TYPE_TYPE"; break;
+    case TermKind::EUNOIA_QUOTE_TYPE: ss << "EUNOIA_QUOTE_TYPE"; break;
     // SMT apply
     case TermKind::SMT_BUILTIN_APPLY: ss << "SMT_BUILTIN_APPLY"; break;
     // Builtin datatype introduced in model_smt step, for sm.Term
@@ -268,12 +269,18 @@ TermKind SmtMetaReduce::printEmbType(const Expr& c,
                                      TermContextKind tctx)
 {
   Assert(!c.isNull());
+  Expr t = c;
+  if (c.getKind()==Kind::QUOTE_TYPE)
+  {
+    Expr qt = t[0];
+    t = d_tc.getType(qt);
+  }
   std::string name;
   std::vector<Expr> args;
-  TermKind tk = getTermKind(c, name);
+  TermKind tk = getTermKind(t, name);
   if (tk == TermKind::SMT_BUILTIN_TYPE)
   {
-    if (c.getNumChildren() == 2)
+    if (t.getNumChildren() == 2)
     {
       os << name;
     }
@@ -307,7 +314,7 @@ TermKind SmtMetaReduce::printEmbType(const Expr& c,
   {
     // TODO: check for bad types
     // os << "eo.Term";
-    EO_FATAL() << "Unexpected printEmbType in " << c << ", kind is "
+    EO_FATAL() << "Unexpected printEmbType in " << t << ", kind is "
                << termKindToString(tk);
   }
   return tk;
@@ -1419,6 +1426,10 @@ TermKind SmtMetaReduce::getTermKindAtomic(const Expr& e, std::string& name)
   else if (k == Kind::BOOL_TYPE)
   {
     return TermKind::EUNOIA_BOOL;
+  }
+  else if (k == Kind::QUOTE_TYPE)
+  {
+    return TermKind::EUNOIA_QUOTE_TYPE;
   }
   else if (isLiteral(k))
   {

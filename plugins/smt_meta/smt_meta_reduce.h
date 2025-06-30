@@ -46,6 +46,7 @@ enum class TermKind
   // The SMT-LIB term constructor for Eunoia
   EUNOIA_SMT_TERM_CONS,
   EUNOIA_TYPE_TYPE,
+  EUNOIA_QUOTE_TYPE,
   // SMT apply
   SMT_BUILTIN_APPLY,
   SMT_BUILTIN_TYPE,

@@ -131,6 +131,7 @@
 
 ; The Eunoia representation of an SMT-LIB term.
 (declare-parameterized-const $smd_eo.SmtTerm ((t $smt_Term :opaque)) $eo_Term)
+(declare-parameterized-const $smd_eo.SmtType ((t $smt_Type :opaque)) $eo_Term)
 ; The Eunoia representation of "stuckness".
 (declare-const $smd_eo.Stuck $eo_Term)
 
