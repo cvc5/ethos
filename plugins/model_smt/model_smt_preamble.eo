@@ -99,8 +99,8 @@
 
 ; This operator computes the Eunoia representation of an SMT-LIB literal.
 ; TODO: does this actually need to be defined here???
-(program $sm_mk_pow2 ((i $smt_Numeral))
-  :signature ($smt_Numeral) $smt_Numeral
+(program $sm_mk_pow2 ((i ($smt_type_0 "Int")))
+  :signature (($smt_type_0 "Int")) ($smt_type_0 "Int")
   (
   (($sm_mk_pow2 i) ($smt_apply_3 "ite"
                      ($smt_apply_2 "<=" i 0)
@@ -110,19 +110,19 @@
 )
 
 (program $sm_mk_binary_and ()
-  :signature ($smt_Numeral $smt_Numeral $smt_Numeral) $smt_Numeral)
+  :signature (($smt_type_0 "Int") ($smt_type_0 "Int") ($smt_type_0 "Int")) ($smt_type_0 "Int"))
 (program $sm_mk_binary_or ()
-  :signature ($smt_Numeral $smt_Numeral $smt_Numeral) $smt_Numeral)
+  :signature (($smt_type_0 "Int") ($smt_type_0 "Int") ($smt_type_0 "Int")) ($smt_type_0 "Int"))
 (program $sm_mk_binary_xor ()
-  :signature ($smt_Numeral $smt_Numeral $smt_Numeral) $smt_Numeral)
+  :signature (($smt_type_0 "Int") ($smt_type_0 "Int") ($smt_type_0 "Int")) ($smt_type_0 "Int"))
 (program $sm_mk_binary_not ()
-  :signature ($smt_Numeral $smt_Numeral) $smt_Numeral)
+  :signature (($smt_type_0 "Int") ($smt_type_0 "Int")) ($smt_type_0 "Int"))
 (program $sm_mk_binary_max ()
-  :signature ($smt_Numeral) $smt_Numeral)
+  :signature (($smt_type_0 "Int")) ($smt_type_0 "Int"))
 (program $sm_mk_binary_concat ()
-  :signature ($smt_Numeral $smt_Numeral $smt_Numeral $smt_Numeral) $smt_Numeral)
+  :signature (($smt_type_0 "Int") ($smt_type_0 "Int") ($smt_type_0 "Int") ($smt_type_0 "Int")) ($smt_type_0 "Int"))
 (program $sm_mk_binary_extract ()
-  :signature ($smt_Numeral $smt_Numeral $smt_Numeral $smt_Numeral) $smt_Numeral)
+  :signature (($smt_type_0 "Int") ($smt_type_0 "Int") ($smt_type_0 "Int") ($smt_type_0 "Int")) ($smt_type_0 "Int"))
 
 ;;; Utilities
 
@@ -180,7 +180,7 @@
 ;;; Boolean operators
 
 ; axiom: $eo_not
-(program $eo_not ((w $eo_Numeral) (n $eo_Numeral))
+(program $eo_not ((w ($smt_type_0 "Int")) (n ($smt_type_0 "Int")))
   :signature ($eo_Term) $eo_Term
   (
   (($eo_not ($smd_eo.SmtTerm $smd_sm.True))         ($smd_eo.SmtTerm $smd_sm.False))
@@ -190,7 +190,8 @@
 )
 
 ; axiom: $eo_and
-(program $eo_and ((b1 $eo_Term) (b2 $eo_Term) (w $eo_Numeral) (n1 $eo_Numeral) (n2 $eo_Numeral))
+(program $eo_and
+  ((b1 $eo_Term) (b2 $eo_Term) (w ($smt_type_0 "Int")) (n1 ($smt_type_0 "Int")) (n2 ($smt_type_0 "Int")))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
   (($eo_and ($smd_eo.SmtTerm ($smd_sm.Binary w n1)) ($smd_eo.SmtTerm ($smd_sm.Binary w n2)))
@@ -203,7 +204,8 @@
 )
 
 ; axiom: $eo_or
-(program $eo_or ((b1 $eo_Term) (b2 $eo_Term) (w $eo_Numeral) (n1 $eo_Numeral) (n2 $eo_Numeral))
+(program $eo_or
+  ((b1 $eo_Term) (b2 $eo_Term) (w ($smt_type_0 "Int")) (n1 ($smt_type_0 "Int")) (n2 ($smt_type_0 "Int")))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
   (($eo_or ($smd_eo.SmtTerm ($smd_sm.Binary w n1)) ($smd_eo.SmtTerm ($smd_sm.Binary w n2)))

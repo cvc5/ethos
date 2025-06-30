@@ -360,8 +360,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
   std::stringstream osEnd;
   std::vector<Expr> ll;
   // maps smt apply terms to the tuple that they actually are
-  std::map<std::pair<Expr, TermContextKind>, Expr> smtAppToTuple;
-  std::map<std::pair<Expr, TermContextKind>, Expr>::iterator itsa;
   std::map<std::pair<Expr, TermContextKind>, TermContextKind> tctxChildren;
   std::map<std::pair<Expr, TermContextKind>, size_t> cparen;
   std::map<std::pair<Expr, TermContextKind>, TermContextKind>::iterator itt;
@@ -420,18 +418,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     size_t childIndex = std::get<1>(cur);
     TermContextKind tkctx = std::get<2>(cur);
     std::pair<Expr, TermContextKind> key(recTerm, tkctx);
-    // maybe we have modified the arguments
-    itsa = smtAppToTuple.find(key);
-    if (itsa != smtAppToTuple.end())
-    {
-      if (childIndex == 1)
-      {
-        // actually printing as a tuple
-        os << ")";
-        visit.pop_back();
-        continue;
-      }
-    }
     // maybe its children have a different context?
     itt = tctxChildren.find(key);
     if (itt != tctxChildren.end())
@@ -531,6 +517,8 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
               // the new context is SMT_BUILTIN
               TermContextKind newCtx = TermContextKind::SMT_BUILTIN;
               // as an exception, ITE branches preserve their context
+              // Note that this means that SMT-LIB ITE can be used to
+              // case split on Eunoia terms.
               if (isIte && j<2)
               {
                 newCtx = tkctx;
@@ -547,20 +535,18 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           // all other operators always print as applications
           os << "(";
           cparen[key] = 1;
+          TermContextKind newCtx = TermContextKind::NONE;
           if (atk == TermKind::PROGRAM)
           {
-            tkctx = TermContextKind::EUNOIA;
-            tctxChildren[key] = tkctx;
+            newCtx = TermContextKind::EUNOIA;
           }
           else if (atk == TermKind::EUNOIA_PROGRAM)
           {
-            tkctx = TermContextKind::SMT;
-            tctxChildren[key] = tkctx;
+            newCtx = TermContextKind::SMT;
           }
           else if (atk == TermKind::SMT_PROGRAM)
           {
-            tkctx = TermContextKind::SMT_BUILTIN;
-            tctxChildren[key] = tkctx;
+            newCtx = TermContextKind::SMT_BUILTIN;
             // do not print apply
           }
           else if (atk == TermKind::SMT_TERM && tkctx == TermContextKind::EUNOIA)
@@ -589,6 +575,12 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
             EO_FATAL() << "Unhandled term kind for " << recTerm << " "
                        << termKindToString(atk) << ", in context "
                        << termContextKindToString(tkctx);
+          }
+          if (newCtx!=TermContextKind::NONE)
+          {
+            // TODO: improve??
+            tkctx = newCtx;
+            tctxChildren[key] = newCtx;
           }
         }
         else if (ck == Kind::TUPLE)
