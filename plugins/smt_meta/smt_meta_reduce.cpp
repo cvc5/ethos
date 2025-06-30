@@ -807,6 +807,8 @@ void SmtMetaReduce::finalizePrograms()
   {
     if (p.second.getKind() == Kind::LAMBDA)
     {
+      std::cout << "WARNING: lambda " << p.first << std::endl;
+      // TODO: reduce to program immediately
       // prints as a define-fun
       d_defs << "; define " << p.first << std::endl;
       d_defs << "(define-fun " << p.first << " (";

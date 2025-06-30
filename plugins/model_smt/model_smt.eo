@@ -99,12 +99,13 @@
 
 ; functions and array values.
 
-(program $smtx_map_is_value ((T Type) (U Type) (t T) (u U) (tail (@map T U)))
+(program $smtx_map_is_value
+  ((T $smt_Type) (U $smt_Type) (t $smt_Term) (u $smt_Term) (tail (@map T U)))
   :signature ($smt_Term) Bool
   (
-  ; TODO
-  (($smtx_map_is_value (@map_nil T U u)) ($smtx_is_value U u))
-  ;(($smtx_map_is_value (@map_cons T U t u tail)) ($smtx_is_value u))
+  ; TODO: ordering constraint, recursive
+  (($smtx_map_is_value (@map_nil T U u))          ($smtx_is_value U u))
+  (($smtx_map_is_value (@map_cons T U t u tail))  ($smtx_is_value u))
   )
 )
 

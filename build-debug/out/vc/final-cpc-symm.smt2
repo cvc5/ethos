@@ -457,8 +457,10 @@
 
 ; program: $smtx_map_is_value
 (define-fun $smtx_map_is_value ((x1 sm.Term)) eo.Term
+  (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) ((_ is sm.Apply) (sm.Apply.arg1 (sm.Apply.arg1 x1))) (= (sm.Apply.arg1 (sm.Apply.arg1 (sm.Apply.arg1 x1))) eo.@map_nil))
     ($smtx_is_value (sm.Apply.arg2 (sm.Apply.arg1 x1)) (sm.Apply.arg2 x1))
-)
+    ($smtx_is_value (sm.Apply.arg2 (sm.Apply.arg1 x1)))
+))
 
 ; program: $smtx_dt_is_value
 (declare-fun $smtx_dt_is_value (sm.Term) eo.Term)
