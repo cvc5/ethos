@@ -896,11 +896,8 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   std::vector<std::string> args;
   std::stringstream appTerm;
   appTerm << "(" << v;
-  std::stringstream stuckCond;
-  if (nargs > 2)
-  {
-    stuckCond << " (or";
-  }
+  std::stringstream stuckCases;
+  size_t nstuckCond = 0;
   for (size_t i = 1; i < nargs; i++)
   {
     if (i > 1)
@@ -909,8 +906,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
       varList << " ";
     }
     std::stringstream argType;
-    //TermKind tka =
-    printEmbType(vt[i - 1], argType);
+    TermKind tka = printEmbType(vt[i - 1], argType);
     //d_defs << "; defs: " << vt[i - 1] << " is " << termKindToString(tka) << std::endl;
     decl << argType.str();
     std::stringstream ssArg;
@@ -918,11 +914,30 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     appTerm << " " << ssArg.str();
     args.emplace_back(ssArg.str());
     varList << "(" << ssArg.str() << " " << argType.str() << ")";
-    stuckCond << " (= " << ssArg.str() << " eo.Stuck)";
+    // don't have to check stuckness if type is not Eunoia
+    if (tka==TermKind::EUNOIA_TYPE_TYPE || tka==TermKind::EUNOIA_TERM_TYPE ||
+        tka==TermKind::EUNOIA_BOOL || tka==TermKind::EUNOIA_TYPE_TYPE)
+    {
+      if (nstuckCond>0)
+      {
+        stuckCases << " ";
+      }
+      nstuckCond++;
+      stuckCases << "(= " << ssArg.str() << " eo.Stuck)";
+    }
   }
-  if (nargs > 2)
+  std::stringstream stuckCond;
+  if (nstuckCond > 1)
   {
-    stuckCond << ")";
+    stuckCond << "(or " << stuckCases.str() << ")";
+  }
+  else if (nstuckCond==0)
+  {
+    stuckCond << "false";
+  }
+  else
+  {
+    stuckCond << stuckCases.str();
   }
   appTerm << ")";
   std::stringstream retType;
@@ -946,7 +961,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
                    && tk != TermKind::SMT_PROGRAM);
   if (isEoProg)
   {
-    cases << "  (ite" << stuckCond.str() << std::endl;
+    cases << "  (ite " << stuckCond.str() << std::endl;
     cases << "    eo.Stuck" << std::endl;
     casesEnd << ")";
   }
