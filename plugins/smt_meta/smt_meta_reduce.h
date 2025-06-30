@@ -58,7 +58,7 @@ enum class TermKind
   // An operator that operates on native SMT-LIB terms, e.g. $eo_mk_binary
   EUNOIA_PROGRAM,
   // An operator that operates on native SMT-LIB terms, e.g. $sm_mk_pow2
-  SMT_PROGRAM,
+  SMT_BUILTIN_PROGRAM,
   // A term that was internal to model_smt step, should be removed
   INTERNAL,
   NONE

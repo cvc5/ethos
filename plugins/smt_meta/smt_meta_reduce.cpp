@@ -55,7 +55,7 @@ std::string termKindToString(TermKind k)
     // An operator that operates on native SMT-LIB terms, e.g. $eo_mk_binary
     case TermKind::EUNOIA_PROGRAM: ss << "EUNOIA_PROGRAM"; break;
     // An operator that operates on native SMT-LIB terms, e.g. $sm_mk_pow2
-    case TermKind::SMT_PROGRAM: ss << "SMT_PROGRAM"; break;
+    case TermKind::SMT_BUILTIN_PROGRAM: ss << "SMT_BUILTIN_PROGRAM"; break;
     // A term that was internal to model_smt step, should be removed
     case TermKind::INTERNAL: ss << "INTERNAL"; break;
     case TermKind::NONE: ss << "NONE"; break;
@@ -180,11 +180,22 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     }
     if (k == Kind::BOOLEAN)
     {
-      os << "sm." << (l->d_bool ? "True" : "False");
+      if (tctx==TermContextKind::SMT_BUILTIN)
+      {
+        os << (l->d_bool ? "true" : "false");
+      }
+      else
+      {
+        os << "sm." << (l->d_bool ? "True" : "False");
+      }
     }
     else if (k == Kind::NUMERAL)
     {
-      os << "(sm.Numeral ";
+      if (tctx==TermContextKind::SMT)
+      {
+        os << "(sm.Numeral ";
+        osEnd << ")";
+      }
       const Integer& ci = l->d_int;
       if (ci.sgn() == -1)
       {
@@ -195,27 +206,45 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
       {
         os << ci.toString();
       }
-      os << ")";
     }
     else if (k == Kind::RATIONAL)
     {
-      os << "(sm.Rational " << c << ")";
+      if (tctx==TermContextKind::SMT)
+      {
+        os << "(sm.Rational ";
+        osEnd << ")";
+      }
+      os << c;
     }
     else if (k == Kind::DECIMAL)
     {
-      os << "(sm.Decimal " << c << ")";
+      if (tctx==TermContextKind::SMT)
+      {
+        os << "(sm.Decimal ";
+        osEnd << ")";
+      }
+      os << c;
     }
     else if (k == Kind::BINARY || k == Kind::HEXADECIMAL)
     {
+      if (tctx==TermContextKind::SMT)
+      {
+        os << "(sm.";
+        os << (k == Kind::BINARY ? "Binary " : "Hexadecimal ");
+        osEnd << ")";
+      }
       const BitVector& bv = l->d_bv;
       const Integer& bvi = bv.getValue();
-      os << "(sm.";
-      os << (k == Kind::BINARY ? "Binary " : "Hexadecimal ");
-      os << bv.getSize() << " " << bvi.toString() << ")";
+      os << bv.getSize() << " " << bvi.toString();
     }
     else if (k == Kind::STRING)
     {
-      os << "(sm.String " << c << ")";
+      if (tctx==TermContextKind::SMT)
+      {
+        os << "(sm.String ";
+        osEnd << ")";
+      }
+      os << c;
     }
     else
     {
@@ -563,7 +592,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
         {
           newCtx = TermContextKind::SMT;
         }
-        else if (atk == TermKind::SMT_PROGRAM)
+        else if (atk == TermKind::SMT_BUILTIN_PROGRAM)
         {
           newCtx = TermContextKind::SMT_BUILTIN;
           // do not print apply
@@ -732,7 +761,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
 {
   TermKind tk = getTermKind(v);
   // things that are manually axiomatized
-  if (tk == TermKind::SMT_PROGRAM || tk == TermKind::EUNOIA_PROGRAM
+  if (tk == TermKind::EUNOIA_PROGRAM
       || tk == TermKind::INTERNAL)
   {
     return;
@@ -792,10 +821,14 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   // compile the pattern matching
   std::stringstream cases;
   std::stringstream casesEnd;
-  // start with stuck case
-  cases << "  (ite" << stuckCond.str() << std::endl;
-  cases << "    eo.Stuck" << std::endl;
-  casesEnd << ")";
+  // start with stuck case, if not a SMT program
+  bool isEoProg = (tk != TermKind::SMT_BUILTIN_PROGRAM);
+  if (isEoProg)
+  {
+    cases << "  (ite" << stuckCond.str() << std::endl;
+    cases << "    eo.Stuck" << std::endl;
+    casesEnd << ")";
+  }
   size_t ncases = prog.getNumChildren();
   for (size_t i = 0; i < ncases; i++)
   {
@@ -824,12 +857,27 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     printEmbTerm(body, currRet, ctx, bodyInitCtx);
     std::cout << "...finished" << std::endl;
     std::cout << "...result is " << currRet.str() << std::endl;
-    // now print the case/return
-    cases << "  (ite ";
-    printConjunction(nconj, currCase.str(), cases, ctx);
-    cases << std::endl;
-    cases << "    " << currRet.str() << std::endl;
-    casesEnd << ")";
+    if (isEoProg)
+    {
+      // now print the case/return
+      cases << "  (ite ";
+      printConjunction(nconj, currCase.str(), cases, ctx);
+      cases << std::endl;
+      cases << "    " << currRet.str() << std::endl;
+      casesEnd << ")";
+    }
+    else
+    {
+      if (i>0)
+      {
+        EO_FATAL() << "Program " << v << " is not a Eunoia program and thus cannot have multiple cases";
+      }
+      if (nconj>0)
+      {
+        EO_FATAL() << "Program " << v << " is not a Eunoia program and thus cannot rely on pattern matching";
+      }
+      cases << "  " << currRet.str() << std::endl;
+    }
   }
   // axiom
   if (reqAxiom)
@@ -849,11 +897,14 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
            << std::endl;
   }
   d_defs << cases.str();
-  d_defs << "    eo.Stuck";
+  if (isEoProg)
+  {
+    d_defs << "    eo.Stuck";
+  }
   d_defs << casesEnd.str() << std::endl;
   if (reqAxiom)
   {
-    d_defs << " :named sm.axiom." << v << ")";
+    d_defs << ":named sm.axiom." << v << ")";
   }
   d_defs << ")" << std::endl;
   d_defs << std::endl;
@@ -870,7 +921,7 @@ void SmtMetaReduce::finalizeDeclarations()
     // all symbols beginning with @ are not part of term definition
     if (tk == TermKind::INTERNAL || tk == TermKind::SMT_TERM_TYPE
         || tk == TermKind::EUNOIA_TERM_TYPE
-        || tk == TermKind::SMT_PROGRAM || tk == TermKind::EUNOIA_PROGRAM
+        || tk == TermKind::SMT_BUILTIN_PROGRAM || tk == TermKind::EUNOIA_PROGRAM
         || tk == TermKind::PROGRAM || tk == TermKind::SMT_BUILTIN_APPLY || tk==TermKind::EUNOIA_DT_CONS || tk==TermKind::SMT_DT_CONS)
     {
       continue;
@@ -1131,7 +1182,7 @@ TermKind SmtMetaReduce::getTermKindAtomic(const Expr& e, std::string& name)
     if (sname.compare(0, 7, "$sm_mk_") == 0)
     {
       name = sname;
-      return TermKind::SMT_PROGRAM;
+      return TermKind::SMT_BUILTIN_PROGRAM;
     }
     if (sname.compare(0, 7, "$eo_mk_") == 0)
     {
@@ -1188,7 +1239,7 @@ bool SmtMetaReduce::isProgram(const Expr& t)
     return true;
   }
   TermKind tk = getTermKind(t);
-  return tk == TermKind::SMT_PROGRAM || tk == TermKind::EUNOIA_PROGRAM
+  return tk == TermKind::SMT_BUILTIN_PROGRAM || tk == TermKind::EUNOIA_PROGRAM
          || tk == TermKind::PROGRAM;
 }
 

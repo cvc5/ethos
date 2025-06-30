@@ -28,9 +28,10 @@
 
 ; Apply the SMT operator named "op" to x1, x2, and so on.
 ; Assumes arity of SMT-LIB operators are at most 5.
-(declare-const $smt_type_0 (-> $smt_String Type)) ; TODO: use?
-(declare-const $smt_type_1 (-> $smt_String Type Type)) ; TODO: use?
-(declare-const $smt_apply_0 (-> $smt_String $smt_unknown_type)) ; TODO: use?
+; TODO: these would be easily handled if their arguments were opaque
+(declare-const $smt_type_0 (-> $smt_String Type))
+(declare-const $smt_type_1 (-> $smt_String Type Type))
+(declare-const $smt_apply_0 (-> $smt_String $smt_unknown_type))
 (declare-parameterized-const $smt_apply_1
   ((W1 Type :implicit))
   (-> $smt_String W1 $smt_unknown_type))
@@ -116,36 +117,67 @@
 (define $smt_get_bool ((T Type :implicit) (t T))
   ($smt_apply_1 "= sm.True" ($smt_apply_1 "eo.to_smt" t)))
 
-;;;
+;;; Defining parametric bitvector operators
 
-; Defining parametric bitvector operators
+; The operators in this section are needed to reason about the parametric
+; operations on the Eunoia binary literal type.
 
-; This operator computes the Eunoia representation of an SMT-LIB literal.
-; TODO: does this actually need to be defined here???
 (program $sm_mk_pow2 ((i ($smt_type_0 "Int")))
   :signature (($smt_type_0 "Int")) ($smt_type_0 "Int")
   (
-  (($sm_mk_pow2 i) ($smt_apply_3 "ite"
-                     ($smt_apply_2 "<=" i 0)
+  (($sm_mk_pow2 i)  ($smt_apply_3 "ite" ($smt_apply_2 "<=" i 0)
                       1
                       ($smt_apply_2 "*" 2 ($sm_mk_pow2 ($smt_apply_2 "-" i 1)))))
   )
 )
-
-(program $sm_mk_binary_and ()
-  :signature (($smt_type_0 "Int") ($smt_type_0 "Int") ($smt_type_0 "Int")) ($smt_type_0 "Int"))
-(program $sm_mk_binary_or ()
-  :signature (($smt_type_0 "Int") ($smt_type_0 "Int") ($smt_type_0 "Int")) ($smt_type_0 "Int"))
-(program $sm_mk_binary_xor ()
-  :signature (($smt_type_0 "Int") ($smt_type_0 "Int") ($smt_type_0 "Int")) ($smt_type_0 "Int"))
-(program $sm_mk_binary_not ()
-  :signature (($smt_type_0 "Int") ($smt_type_0 "Int")) ($smt_type_0 "Int"))
-(program $sm_mk_binary_max ()
-  :signature (($smt_type_0 "Int")) ($smt_type_0 "Int"))
-(program $sm_mk_binary_concat ()
-  :signature (($smt_type_0 "Int") ($smt_type_0 "Int") ($smt_type_0 "Int") ($smt_type_0 "Int")) ($smt_type_0 "Int"))
-(program $sm_mk_binary_extract ()
-  :signature (($smt_type_0 "Int") ($smt_type_0 "Int") ($smt_type_0 "Int") ($smt_type_0 "Int")) ($smt_type_0 "Int"))
+(program $sm_mk_bit ((x ($smt_type_0 "Int")) (i ($smt_type_0 "Int")))
+  :signature (($smt_type_0 "Int") ($smt_type_0 "Int")) ($smt_type_0 "Bool")
+  (
+  ; (= (mod (div x ($sm_mk_pow2 i)) 2) 1)
+  (($sm_mk_bit x i) ($smt_apply_1 "= 1" ($smt_apply_2 "mod" ($smt_apply_2 "div" x $sm_mk_pow2) 2)))
+  )
+)
+(program $sm_mk_binary_and ((w ($smt_type_0 "Int")) (n1 ($smt_type_0 "Int")) (n2 ($smt_type_0 "Int")))
+  :signature (($smt_type_0 "Int") ($smt_type_0 "Int") ($smt_type_0 "Int")) ($smt_type_0 "Int")
+  (
+  (($sm_mk_binary_and w n1 n2)
+     ($smt_apply_3 "ite" ($smt_apply_2 "=" w 0) 0
+     ($smt_apply_3 "ite" ($smt_apply_2 "=" w 1)
+       ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_apply_2 "=" n1 1) ($smt_apply_2 "=" n2 1)) 1 0)
+       ($smt_apply_2 "+"
+         ($sm_mk_binary_and ($smt_apply_2 "-" w 1) n1 n2)
+         ($smt_apply_2 "*" ($sm_mk_pow2 w)
+            ($smt_apply_3 "ite" ($smt_apply_2 "and" ($sm_mk_bit n1 w) ($sm_mk_bit n2 w)) 1 0))))))
+  )
+)
+(program $sm_mk_binary_or ((w ($smt_type_0 "Int")) (n1 ($smt_type_0 "Int")) (n2 ($smt_type_0 "Int")))
+  :signature (($smt_type_0 "Int") ($smt_type_0 "Int") ($smt_type_0 "Int")) ($smt_type_0 "Int")
+  ; TODO
+)
+(program $sm_mk_binary_xor ((w ($smt_type_0 "Int")) (n1 ($smt_type_0 "Int")) (n2 ($smt_type_0 "Int")))
+  :signature (($smt_type_0 "Int") ($smt_type_0 "Int") ($smt_type_0 "Int")) ($smt_type_0 "Int")
+  ; TODO
+)
+(program $sm_mk_binary_not ((w ($smt_type_0 "Int")) (n ($smt_type_0 "Int")))
+  :signature (($smt_type_0 "Int") ($smt_type_0 "Int")) ($smt_type_0 "Int")
+  ; TODO
+)
+(program $sm_mk_binary_max ((w ($smt_type_0 "Int")))
+  :signature (($smt_type_0 "Int")) ($smt_type_0 "Int")
+  (
+  (($sm_mk_binary_max w) ($smt_apply_1 "- 1" ($sm_mk_pow2 w)))
+  )
+)
+(program $sm_mk_binary_concat
+  ((w1 ($smt_type_0 "Int")) (n1 ($smt_type_0 "Int")) (w2 ($smt_type_0 "Int")) (n2 ($smt_type_0 "Int")))
+  :signature (($smt_type_0 "Int") ($smt_type_0 "Int") ($smt_type_0 "Int") ($smt_type_0 "Int")) ($smt_type_0 "Int")
+  ; TODO
+)
+(program $sm_mk_binary_extract
+  ((w ($smt_type_0 "Int")) (n1 ($smt_type_0 "Int")) (x1 ($smt_type_0 "Int")) (x2 ($smt_type_0 "Int")))
+  :signature (($smt_type_0 "Int") ($smt_type_0 "Int") ($smt_type_0 "Int") ($smt_type_0 "Int")) ($smt_type_0 "Int")
+  ; TODO
+)
 
 ;;; Utilities
 
