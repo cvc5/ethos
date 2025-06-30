@@ -345,7 +345,7 @@
   ; - $smt_eval_apply_*
 $SMT_EVAL_CASES$
   ; Apply case
-  (($smtx_model_eval ($smd_sm.Apply f a))   (eo::define ((fme ($smtx_model_eval f)))
+  (($smtx_model_eval ($smd_sm.Apply f y))   (eo::define ((fme ($smtx_model_eval f)))
                                             (eo::define ((yme ($smtx_model_eval y)))
                                               ($smtx_eval_apply fme yme))))
   ; free constants
