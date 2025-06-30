@@ -170,7 +170,7 @@
 
 ; Forward declaration of the main method defined by this signature.
 ; We use this to define $eo_model_sat.
-(program $smtx_model_eval ((T Type)) :signature (T) T)
+(program $smtx_model_eval () :signature ($smt_Term) $smt_Term)
 
 ; free constants
 
@@ -244,8 +244,8 @@
 ; ($smt_eval_= Int ($smt_from_eo_z x1) ($smt_from_eo_z x2) (= x1 x2)).
 (define $smt_eval_=
   ((B Type :implicit) (W Type) (x1 W) (x2 W) (u B))
-  ($smt_apply_3 "ite" (eo::and ($smtx_is_value W x1) ($smtx_is_value W x2))
-    ($eo_mk_bool ($smt_apply_2 "=" x1 x2))
+  ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smtx_is_value W x1) ($smtx_is_value W x2))
+    ($sm_mk_bool ($smt_apply_2 "=" x1 x2))
     u))
 
 ; For example:
@@ -298,7 +298,7 @@
   ; - $smtx_eval_quant
   ; - $smt_eval_o_arith_*,
   ; - $smt_eval_apply_*
-$SMT_EVAL_CASES$
+;$SMT_EVAL_CASES_TEMP_REMOVE$
   ; Apply case
   ;(($smtx_model_eval ($smd_sm.Apply f y))   (eo::define ((fme ($smtx_model_eval f)))
   ;                                          (eo::define ((yme ($smtx_model_eval y)))
@@ -320,17 +320,22 @@ $SMT_EVAL_CASES$
   ;                                            ($smt_try_eo ($eo_model_eval (_ fme yme))
   ;
   ;                                            ))))
-  (($smtx_model_eval z)                    ($smt_try_eo ($eo_model_eval z) z))
+  (($smtx_model_eval z)                      ($smt_try_eo ($eo_model_eval z) ($smd_eo.SmtTerm z)))
   )
 )
 
+(program $eo_model_sat_internal ((F $smt_Term))
+  :signature ($eo_Term) Bool
+  (
+  (($eo_model_sat_internal $smd_sm.True) true)
+  )
+)
 ; program: $eo_model_sat
 ; note: Satisfied by the model if F evaluates to true.
 (program $eo_model_sat ((F $smt_Term))
-  :signature ($smt_Term) Bool
+  :signature ($eo_Term) Bool
   (
-  ; TODO: may need to convert this
-  (($eo_model_sat F) ($smtx_model_eval F))
+  (($eo_model_sat ($smd_eo.SmtTerm F)) ($eo_model_sat_internal ($smtx_model_eval F)))
   )
 )
 

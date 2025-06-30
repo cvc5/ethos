@@ -147,6 +147,9 @@
     ($smt_apply_1 "= sm.False" ($smt_apply_1 "eo.to_smt" t))))
 (define $smt_get_bool ((T Type :implicit) (t T))
   ($smt_apply_1 "= sm.True" ($smt_apply_1 "eo.to_smt" t)))
+  
+(define $sm_mk_bool ((c Bool))
+  ($smt_apply_3 "ite" c $smd_sm.True $smd_sm.False))
 
 ;;; Defining parametric bitvector operators
 
