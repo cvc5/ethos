@@ -263,24 +263,24 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
 }
 
 TermKind SmtMetaReduce::printEmbType(const Expr& c,
-                                            std::ostream& os,
-                                            TermContextKind tctx)
+                                     std::ostream& os,
+                                     TermContextKind tctx)
 {
-  Assert (!c.isNull());
+  Assert(!c.isNull());
   std::string name;
   std::vector<Expr> args;
   TermKind tk = getTermKind(c, name);
   if (tk == TermKind::SMT_BUILTIN_TYPE)
   {
-    if (c.getNumChildren()==2)
+    if (c.getNumChildren() == 2)
     {
       os << name;
     }
     else
     {
-    // NOTE: could allow ground terms as arguments here
-    // this would be necessary if model_smt.eo had concrete
-    // instances of bitvectors.
+      // NOTE: could allow ground terms as arguments here
+      // this would be necessary if model_smt.eo had concrete
+      // instances of bitvectors.
       EO_FATAL() << "Cannot handle parametric builtin type " << c;
     }
   }
@@ -292,15 +292,17 @@ TermKind SmtMetaReduce::printEmbType(const Expr& c,
   {
     os << "sm.Type";
   }
-  else if (tk == TermKind::EUNOIA_TERM_TYPE || tk == TermKind::EUNOIA_TERM || tk == TermKind::EUNOIA_TYPE_TYPE || tk == TermKind::EUNOIA_BOOL)
+  else if (tk == TermKind::EUNOIA_TERM_TYPE || tk == TermKind::EUNOIA_TERM
+           || tk == TermKind::EUNOIA_TYPE_TYPE || tk == TermKind::EUNOIA_BOOL)
   {
     os << "eo.Term";
   }
   else
   {
     // TODO: check for bad types
-    //os << "eo.Term";
-    EO_FATAL() << "Unexpected printEmbType in " << c << ", kind is " << termKindToString(tk);
+    // os << "eo.Term";
+    EO_FATAL() << "Unexpected printEmbType in " << c << ", kind is "
+               << termKindToString(tk);
   }
   return tk;
 }
@@ -547,8 +549,9 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       if (ck == Kind::APPLY)
       {
         TermKind atk = getTermKind(recTerm[0]);
-        std::cout << "tk: head of apply " << key.first << " : " << termKindToString(atk)
-                  << " in ctx " << termContextKindToString(tkctx) << std::endl;
+        std::cout << "tk: head of apply " << key.first << " : "
+                  << termKindToString(atk) << " in ctx "
+                  << termContextKindToString(tkctx) << std::endl;
         /*
         // should not have compute the tuple
         Assert(key.first == recTerm)
@@ -671,8 +674,9 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           // this is always printed in the original context first??
           std::string sname;
           TermKind atk = getTermKind(recTerm, sname);
-          std::cout << "tk: apply opaque " << recTerm<< " : " << termKindToString(atk)
-                  << " in ctx " << termContextKindToString(tkctx) << std::endl;
+          std::cout << "tk: apply opaque " << recTerm << " : "
+                    << termKindToString(atk) << " in ctx "
+                    << termContextKindToString(tkctx) << std::endl;
           if (tkctx == TermContextKind::EUNOIA
               && atk == TermKind::EUNOIA_DT_CONS)
           {
@@ -686,7 +690,8 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
             // SMT terms
             newCtx = TermContextKind::SMT_BUILTIN;
           }
-          else if (atk == TermKind::SMT_BUILTIN_APPLY || atk == TermKind::SMT_BUILTIN_TYPE)
+          else if (atk == TermKind::SMT_BUILTIN_APPLY
+                   || atk == TermKind::SMT_BUILTIN_TYPE)
           {
             if (atk == TermKind::SMT_BUILTIN_APPLY)
             {
@@ -798,7 +803,7 @@ void SmtMetaReduce::finalizePrograms()
         ctx.d_ctx[v] = vname.str();
         d_defs << "(" << vname.str() << " ";
         Expr argType = d_tc.getType(v);
-        Assert (!argType.isNull());
+        Assert(!argType.isNull());
         printEmbType(argType, d_defs);
         d_defs << ")";
       }
@@ -810,13 +815,15 @@ void SmtMetaReduce::finalizePrograms()
       TermContextKind ctxInit;
       if (retType.isNull())
       {
-        // some programs don't technically type check??? introduced in desugaring
+        // some programs don't technically type check??? introduced in
+        // desugaring
         d_defs << "eo.Term";
         ctxInit = TermContextKind::NONE;
       }
       else
       {
-        Assert (!retType.isNull()) << "Program " << p.first << " doesnt type check, in finalizeProgram";
+        Assert(!retType.isNull()) << "Program " << p.first
+                                  << " doesnt type check, in finalizeProgram";
         TermKind tk = printEmbType(retType, d_defs);
         ctxInit = termKindToContext(tk);
       }
@@ -834,20 +841,14 @@ TermContextKind SmtMetaReduce::termKindToContext(TermKind tk)
 {
   switch (tk)
   {
-    case TermKind::SMT_BUILTIN_TYPE:
-      return TermContextKind::SMT_BUILTIN;
-    case TermKind::SMT_TERM_TYPE:
-      return TermContextKind::SMT;
-    case TermKind::SMT_TYPE_TYPE:
-      return TermContextKind::SMT_TYPE;
+    case TermKind::SMT_BUILTIN_TYPE: return TermContextKind::SMT_BUILTIN;
+    case TermKind::SMT_TERM_TYPE: return TermContextKind::SMT;
+    case TermKind::SMT_TYPE_TYPE: return TermContextKind::SMT_TYPE;
     case TermKind::EUNOIA_TERM_TYPE:
     case TermKind::EUNOIA_TYPE_TYPE:
     case TermKind::EUNOIA_BOOL:
-    case TermKind::EUNOIA_TERM:
-      return TermContextKind::EUNOIA;
-    default:
-      EO_FATAL() << "unknown type " <<  termKindToString(tk);
-      break;
+    case TermKind::EUNOIA_TERM: return TermContextKind::EUNOIA;
+    default: EO_FATAL() << "unknown type " << termKindToString(tk); break;
   }
   return TermContextKind::NONE;
 }
@@ -960,7 +961,8 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     // compile the return for this case
     std::stringstream currRet;
     TermContextKind bodyInitCtx = termKindToContext(retTypeCtx);
-    std::cout << "...print " << body << " in context " << termContextKindToString(bodyInitCtx) << std::endl;
+    std::cout << "...print " << body << " in context "
+              << termContextKindToString(bodyInitCtx) << std::endl;
     printEmbTerm(body, currRet, ctx, bodyInitCtx);
     std::cout << "...finished" << std::endl;
     std::cout << "...result is " << currRet.str() << std::endl;
@@ -1035,8 +1037,8 @@ void SmtMetaReduce::finalizeDeclarations()
         || tk == TermKind::SMT_TYPE_TYPE || tk == TermKind::EUNOIA_TERM_TYPE
         || tk == TermKind::SMT_BUILTIN_PROGRAM
         || tk == TermKind::SMT_TO_EO_PROGRAM || tk == TermKind::PROGRAM
-        || tk == TermKind::SMT_BUILTIN_APPLY ||
-        tk == TermKind::SMT_BUILTIN_TYPE || tk == TermKind::EUNOIA_DT_CONS)
+        || tk == TermKind::SMT_BUILTIN_APPLY || tk == TermKind::SMT_BUILTIN_TYPE
+        || tk == TermKind::EUNOIA_DT_CONS)
     {
       continue;
     }
@@ -1111,7 +1113,8 @@ void SmtMetaReduce::finalizeDeclarations()
       }
       std::stringstream sst;
       TermKind tk = printEmbType(typ, sst);
-      //(*out) << "; Printing datatype argument type " << typ << " gives \"" << sst.str() << "\" " << termKindToString(tk) << std::endl;
+      //(*out) << "; Printing datatype argument type " << typ << " gives \"" <<
+      //sst.str() << "\" " << termKindToString(tk) << std::endl;
       (*out) << sst.str();
       mts.push_back(tk);
       (*out) << ")";
@@ -1248,7 +1251,7 @@ TermKind SmtMetaReduce::getTermKindApply(const Expr& t,
     cur = cur[0];
   }
   TermKind tk = isSmtApply(cur);
-  if (tk !=TermKind::NONE)
+  if (tk != TermKind::NONE)
   {
     Assert(!args.empty());
     Expr sname = args.back();
@@ -1327,9 +1330,9 @@ TermKind SmtMetaReduce::getTermKind(const Expr& e, std::string& name)
       name = sname.substr(9);
       return TermKind::SMT_TYPE_DT_CONS;
     }
-    if (tk!=TermKind::NONE)
+    if (tk != TermKind::NONE)
     {
-      if (cur.getNumChildren()<=1)
+      if (cur.getNumChildren() <= 1)
       {
         EO_FATAL() << "Unexpected arity for opaque operator " << cur;
       }
@@ -1394,7 +1397,7 @@ TermKind SmtMetaReduce::getTermKindAtomic(const Expr& e, std::string& name)
   }
   else if (k != Kind::CONST)
   {
-    Assert (!e.isNull());
+    Assert(!e.isNull());
     EO_FATAL() << "Unhandled kind " << k << " in getTermKindAtomic " << e;
     return TermKind::NONE;
   }

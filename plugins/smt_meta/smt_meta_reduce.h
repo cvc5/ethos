@@ -132,8 +132,8 @@ class SmtMetaReduce : public Plugin
                           std::ostream& os,
                           TermContextKind tctx = TermContextKind::NONE);
   TermKind printEmbType(const Expr& c,
-                               std::ostream& os,
-                               TermContextKind tctx = TermContextKind::NONE);
+                        std::ostream& os,
+                        TermContextKind tctx = TermContextKind::NONE);
   bool printEmbTerm(const Expr& c,
                     std::ostream& os,
                     const SelectorCtx& ctx,
