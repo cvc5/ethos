@@ -242,6 +242,11 @@ TermContextKind SmtMetaReduce::printEmbType(const Expr& c, std::ostream& os)
       return TermContextKind::SMT_BUILTIN;
     }
   }
+  else if (tk==TermKind::SMT_TERM_TYPE)
+  {
+    os << "sm.Term";
+    return TermContextKind::SMT;
+  }
   os << "eo.Term";
   return TermContextKind::EUNOIA;
 }

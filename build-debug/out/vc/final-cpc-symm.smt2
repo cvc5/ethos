@@ -46,8 +46,6 @@
   (sm.BitVec)
   ; declare $smt_FunType SMT_TERM
   (sm.$smt_FunType (sm.$smt_FunType.arg1 sm.Term) (sm.$smt_FunType.arg2 sm.Term))
-  ; declare $smt_Const SMT_TERM
-  (sm.$smt_Const (sm.$smt_Const.arg1 sm.Term) (sm.$smt_Const.arg2 sm.Term) (sm.$smt_Const.arg3 sm.Term))
 
   )
 )
@@ -200,7 +198,7 @@
 (declare-fun $eo_model_sat (eo.Term) eo.Term)
 
 ; fwd-decl: $smt_from_eo_bool
-(declare-fun $smt_from_eo_bool (eo.Term) eo.Term)
+(declare-fun $smt_from_eo_bool (eo.Term) Bool)
 
 ; program: $eo_not
 (define-fun $eo_not ((x1 eo.Term)) eo.Term
@@ -500,15 +498,6 @@
     eo.Stuck))
 )
 
-; program: $eo_type_enum
-(define-fun $eo_type_enum ((x1 eo.Term) (x2 eo.Term)) eo.Term
-  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
-    eo.Stuck
-  (ite true
-    ($eo_requires (eo.SmtTerm sm.True) (eo.SmtTerm sm.False) (eo.SmtTerm sm.True))
-    eo.Stuck))
-)
-
 ; program: $eo_const_predicate
 (define-fun $eo_const_predicate ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck) (= x3 eo.Stuck))
@@ -531,18 +520,16 @@
 (declare-fun $smt_typeof (eo.Term) eo.Term)
 
 ; program: $smt_type_enum
-(declare-fun $smt_type_enum (eo.Term eo.Term) eo.Term)
-(assert (! (forall ((x1 eo.Term) (x2 eo.Term))
+(declare-fun $smt_type_enum (sm.Term eo.Term) sm.Term)
+(assert (! (forall ((x1 sm.Term) (x2 eo.Term))
   (= ($smt_type_enum x1 x2)
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
     eo.Stuck
   (ite (= x1 (eo.SmtTerm sm.Int))
-    ($eo_ite ($eo_eq ($eo_zmod x2 (eo.SmtTerm (sm.Numeral 2))) (eo.SmtTerm (sm.Numeral 0))) ($eo_zdiv x2 (eo.SmtTerm (sm.Numeral 2))) ($eo_neg ($eo_zdiv x2 (eo.SmtTerm (sm.Numeral 2)))))
+    ($eo_ite ($eo_eq ($eo_zmod x2 (sm.Numeral 2)) (sm.Numeral 0)) ($eo_zdiv x2 (sm.Numeral 2)) ($eo_neg ($eo_zdiv x2 (sm.Numeral 2))))
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Apply) (eo.SmtTerm.arg1 x1)) (= (sm.Apply.arg2 (eo.SmtTerm.arg1 x1)) sm.Char) (= (sm.Apply.arg1 (eo.SmtTerm.arg1 x1)) sm.Seq))
-    ($eo_ite ($eo_eq x2 (eo.SmtTerm (sm.Numeral 0))) (eo.SmtTerm (sm.String "")) ($eo_concat ($eo_to_str ($eo_zmod x2 (eo.SmtTerm (sm.Numeral 196608)))) ($smt_type_enum (eo.SmtTerm (sm.Apply sm.Seq sm.Char)) ($eo_zdiv x2 (eo.SmtTerm (sm.Numeral 196608))))))
-  (ite true
-    (ite (= ($eo_type_enum x1 x2) eo.Stuck) ((eo.SmtTerm sm.unknown_type_enum) x1 x2) ($eo_type_enum x1 x2))
-    eo.Stuck))))))
+    ($eo_ite ($eo_eq x2 (sm.Numeral 0)) (sm.String "") ($eo_concat ($eo_to_str ($eo_zmod x2 (sm.Numeral 196608))) ($smt_type_enum (eo.SmtTerm (sm.Apply sm.Seq sm.Char)) ($eo_zdiv x2 (eo.SmtTerm (sm.Numeral 196608))))))
+    eo.Stuck)))))
  :named sm.axiom.$smt_type_enum))
 
 ; program: $smt_type_enum_contains_rec
@@ -626,8 +613,8 @@
     ($eo_mk_bool (and ($smt_from_eo_bool ($smt_model_eval (eo.SmtTerm (sm.Apply.arg2 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1)))))) ($smt_from_eo_bool ($smt_model_eval (eo.SmtTerm (sm.Apply.arg2 (eo.SmtTerm.arg1 x1)))))))
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Apply) (eo.SmtTerm.arg1 x1)) ((_ is sm.Apply) (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))) (= (sm.Apply.arg1 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))) sm.=))
     ($eo_ite ($eo_and ($smt_is_value ($smt_typeof (eo.SmtTerm (sm.Apply.arg2 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))))) ($smt_model_eval (eo.SmtTerm (sm.Apply.arg2 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1)))))) ($smt_is_value ($smt_typeof (eo.SmtTerm (sm.Apply.arg2 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))))) ($smt_model_eval (eo.SmtTerm (sm.Apply.arg2 (eo.SmtTerm.arg1 x1)))))) ($eo_mk_bool (= ($smt_model_eval (eo.SmtTerm (sm.Apply.arg2 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))))) ($smt_model_eval (eo.SmtTerm (sm.Apply.arg2 (eo.SmtTerm.arg1 x1)))))) (eo.SmtTerm (sm.Apply (sm.Apply sm.= (sm.Apply.arg2 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1)))) (sm.Apply.arg2 (eo.SmtTerm.arg1 x1)))))
-  (ite ((_ is (eo.SmtTerm sm.$smt_Const)) x1)
-    ($eo_ite ($smt_model_eval ($eo_ite ($eo_eq ((eo.SmtTerm sm.$smt_Const).arg1 x1) (eo.SmtTerm (sm.Numeral 0))) (eo.SmtTerm sm.True) (ite (= ($eo_const_predicate ((eo.SmtTerm sm.$smt_Const).arg1 x1) ((eo.SmtTerm sm.$smt_Const).arg2 x1) ((eo.SmtTerm sm.$smt_Const).arg3 x1)) eo.Stuck) (eo.SmtTerm sm.True) ($eo_const_predicate ((eo.SmtTerm sm.$smt_Const).arg1 x1) ((eo.SmtTerm sm.$smt_Const).arg2 x1) ((eo.SmtTerm sm.$smt_Const).arg3 x1))))) ($smt_model_lookup ((eo.SmtTerm sm.$smt_Const).arg1 x1) ((eo.SmtTerm sm.$smt_Const).arg2 x1) ((eo.SmtTerm sm.$smt_Const).arg3 x1)) ((eo.SmtTerm sm.$smt_Const) ((eo.SmtTerm sm.$smt_Const).arg1 x1) ((eo.SmtTerm sm.$smt_Const).arg2 x1) ((eo.SmtTerm sm.$smt_Const).arg3 x1)))
+  (ite ((_ is (eo.SmtTerm sm.Const)) x1)
+    ($eo_ite ($smt_model_eval ($eo_ite ($eo_eq ((eo.SmtTerm sm.Const).arg1 x1) (eo.SmtTerm (sm.Numeral 0))) (eo.SmtTerm sm.True) (ite (= ($eo_const_predicate ((eo.SmtTerm sm.Const).arg1 x1) ((eo.SmtTerm sm.Const).arg2 x1) ((eo.SmtTerm sm.Const).arg3 x1)) eo.Stuck) (eo.SmtTerm sm.True) ($eo_const_predicate ((eo.SmtTerm sm.Const).arg1 x1) ((eo.SmtTerm sm.Const).arg2 x1) ((eo.SmtTerm sm.Const).arg3 x1))))) ($smt_model_lookup ((eo.SmtTerm sm.Const).arg1 x1) ((eo.SmtTerm sm.Const).arg2 x1) ((eo.SmtTerm sm.Const).arg3 x1)) ((eo.SmtTerm sm.Const) ((eo.SmtTerm sm.Const).arg1 x1) ((eo.SmtTerm sm.Const).arg2 x1) ((eo.SmtTerm sm.Const).arg3 x1)))
   (ite ((_ is eo.Apply) x1)
     (ite (= ($eo_model_eval (($smt_model_eval (eo.Apply.arg1 x1)) ($smt_model_eval (eo.Apply.arg2 x1)))) eo.Stuck) (($smt_model_eval (eo.Apply.arg1 x1)) ($smt_model_eval (eo.Apply.arg2 x1))) ($eo_model_eval (($smt_model_eval (eo.Apply.arg1 x1)) ($smt_model_eval (eo.Apply.arg2 x1)))))
   (ite true
@@ -654,8 +641,8 @@
     ($eo_requires ($smt_typeof ((eo.SmtTerm sm.$smt_FunType).arg1 x1)) (eo.SmtTerm sm.Type) ($eo_requires ($smt_typeof ((eo.SmtTerm sm.$smt_FunType).arg2 x1)) (eo.SmtTerm sm.Type) (eo.SmtTerm sm.Type)))
   (ite (= x1 (eo.SmtTerm sm.$smt_unknown_type))
     (eo.SmtTerm sm.Type)
-  (ite ((_ is (eo.SmtTerm sm.$smt_Const)) x1)
-    ((eo.SmtTerm sm.$smt_Const).arg3 x1)
+  (ite ((_ is (eo.SmtTerm sm.Const)) x1)
+    ((eo.SmtTerm sm.Const).arg3 x1)
   (ite true
     (ite (= ($eo_typeof x1) eo.Stuck) (eo.SmtTerm sm.$smt_unknown_type) ($eo_typeof x1))
     eo.Stuck)))))))

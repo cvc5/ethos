@@ -34,9 +34,12 @@ $EO_LITERAL_TYPE_DECL$
 
 ;;; Model test infrastructure
 
+; A Eunoia term
+(declare-const $eo_Term Type)
+
 ; A placeholder for asking whether a formula is satisfied by a model.
 ; This is used to defined verification conditions.
-(program $eo_model_sat () :signature (Bool) Bool)
+(program $eo_model_sat () :signature ($eo_Term) Bool)
 
 ; A dummy command to fill in
 ; This will contain the definitions of eo::add, etc.

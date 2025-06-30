@@ -58,11 +58,6 @@
 
 ;;; Definitions of Type enumeration
 
-; represents an unknown value
-; This must be a constructor in the final sm.Term.
-(declare-parameterized-const $smd_sm.unknown_type_enum
-  ((T $smt_Term :opaque) (i ($smt_type_0 "Int") :opaque)) $smt_Term)
-
 ; note: The methods in this section are only included (based on trim-defs) if
 ; the verification condition is reasoning about quantified formuls.
 
@@ -125,7 +120,7 @@
   ; Try to enumerate the type, if we fail, we return $smd_sm.unknown_type_enum.
   ; Note that this essentially assumes that unhandled types are uninterpreted
   ; and have infinite cardinality (since this does not get stuck).
-  (($smt_type_enum T i)               ($smt_try ($eo_type_enum T i) ($smd_sm.unknown_type_enum T i)))
+  ;(($smt_type_enum T i)               ($smt_try ($eo_type_enum T i) ($smd_sm.unknown_type_enum T i)))
   )
 )
 
@@ -215,19 +210,6 @@
 (program $smt_model_eval ((T Type)) :signature (T) T)
 
 ; free constants
-
-; declare: $smt_Const
-; A free constant. Constants are identified by:
-; (1) Their kind (numeral k),
-; (2) Their identifier (numeral i),
-; (3) Their type.
-; The kind 0 is reserved for standard SMT-LIB symbols introduced
-; by the user by declare-const. The other kinds of free symbols
-; can be custom defined based on the Eunoia signature (see method
-; $eo_const_predicate in model_eo.eo).
-(declare-parameterized-const $smt_Const
-  ((k $smt_Numeral :opaque) (id $smt_Numeral :opaque) (T Type :opaque))
-  T)
 
 ; fwd-decl: $smt_model_lookup
 ; Conceptually, returns the model value for constant with kind k, identifier id and type T.
@@ -331,11 +313,11 @@
   ((T Type) (U Type) (V Type) (a1 T) (a2 T) (c Bool) (f (-> U T)) (y U) (z T) (k $smt_Numeral) (i $smt_Numeral) (F Bool)
    ; generic parameters that may appear in terms to pattern match
    (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3))
-  :signature (T) T
+  :signature (T) $smt_Term
   (
   ; builtins
-  (($smt_model_eval true) true)
-  (($smt_model_eval false) false)
+  (($smt_model_eval $smd_sm.True)   $smd_sm.True)
+  (($smt_model_eval $smd_sm.False)  $smd_sm.False)
   ; TODO: equality, ite
   ; evaluation of standard SMT symbols
   ; These calls may only call one of the above macros:
@@ -348,10 +330,10 @@ $SMT_EVAL_CASES$
   ; We then check if their property F is satisfied. If so, then they are
   ; interpreted to be this value. Otherwise, they are unevaluated.
   ; TODO: val can be assumed such that $smt_is_value is true.
-  (($smt_model_eval ($smt_Const k i T))   (eo::define ((val ($smt_model_lookup k i T)))
-                                          (eo::define ((mpred ($smt_model_eval ($smt_const_predicate k i T))))
-                                            ; note that mpred can never be stuck and should be a Bool at this point.
-                                            (eo::ite mpred val ($smt_Const k i T)))))
+  (($smt_model_eval ($smd_sm.Const k i T))  (eo::define ((val ($smt_model_lookup k i T)))
+                                            (eo::define ((mpred ($smt_model_eval ($smt_const_predicate k i T))))
+                                              ; note that mpred can never be stuck and should be a Bool at this point.
+                                              (eo::ite mpred val ($smd_sm.Const k i T)))))
   ; generic apply and base case.
   ; these do not insist that the term is a value.
   ; They call the user callback $eo_model_eval.
@@ -364,8 +346,8 @@ $SMT_EVAL_CASES$
 
 ; program: $eo_model_sat
 ; note: Satisfied by the model if F evaluates to true.
-(program $eo_model_sat ((F Bool))
-  :signature (Bool) Bool
+(program $eo_model_sat ((F $smt_Term))
+  :signature ($smt_Term) Bool
   (
   (($eo_model_sat F) ($smt_model_eval F))
   )
@@ -384,7 +366,7 @@ $SMT_EVAL_CASES$
                                       (eo::requires ($smt_typeof T2) Type
                                         Type)))
   (($smt_typeof $smt_unknown_type)    Type)
-  (($smt_typeof ($smt_Const k id T))  T)
+  (($smt_typeof ($smd_sm.Const k id T))  T)
   ; for all other user defined terms, we totalize
   (($smt_typeof t)                    ($smt_try ($eo_typeof t) $smt_unknown_type))
   )
