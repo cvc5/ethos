@@ -222,6 +222,11 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
   os << osEnd.str();
 }
 
+void SmtMetaReduce::printEmbType(const Expr& c, std::ostream& os)
+{
+  os << "eo.Term";
+}
+
 bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
                                          const std::string& initCtx,
                                          std::ostream& os,
@@ -619,8 +624,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     }
     else if (childIndex >= recTerm.getNumChildren())
     {
-      // done with arguments, close
-      // tuples are "inlined"
+      // done with arguments, close the appropriate number of parentheses
       for (size_t i=0, ncparen=cparen[key]; i<ncparen; i++)
       {
         os << ")";
@@ -675,9 +679,16 @@ void SmtMetaReduce::finalizePrograms()
         std::stringstream vname;
         vname << v;
         ctx.d_ctx[v] = vname.str();
-        d_defs << "(" << vname.str() << " eo.Term)";
+        d_defs << "(" << vname.str() << " ";
+        Expr argType = d_tc.getType(v);
+        printEmbType(argType, d_defs);
+        d_defs << ")";
       }
-      d_defs << ") eo.Term ";
+      d_defs << ") ";
+      Expr body = e[1];
+      Expr retType = d_tc.getType(body);
+      printEmbType(retType, d_defs);
+      d_defs << " ";
       // TODO: check if a Eunoia term here???
       printEmbTerm(e[1], d_defs, ctx);
       d_defs << ")" << std::endl << std::endl;
@@ -723,12 +734,14 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
       decl << " ";
       varList << " ";
     }
-    decl << "eo.Term";
+    std::stringstream argType;
+    printEmbType(vt[i-1], argType);
+    decl << argType.str();
     std::stringstream ssArg;
     ssArg << "x" << i;
     appTerm << " " << ssArg.str();
     args.emplace_back(ssArg.str());
-    varList << "(" << ssArg.str() << " eo.Term)";
+    varList << "(" << ssArg.str() << " " << argType.str() << ")";
     stuckCond << " (= " << ssArg.str() << " eo.Stuck)";
   }
   if (nargs > 2)
@@ -736,7 +749,9 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     stuckCond << ")";
   }
   appTerm << ")";
-  decl << ") eo.Term)" << std::endl;
+  std::stringstream retType;
+  printEmbType(vt[nargs-1], retType);
+  decl << ") "<< retType.str() << ")" << std::endl;
   // if forward declared, we are done for now
   if (prog.isNull())
   {
@@ -801,7 +816,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   }
   else
   {
-    d_defs << "(define-fun " << v << " (" << varList.str() << ") eo.Term"
+    d_defs << "(define-fun " << v << " (" << varList.str() << ") " << retType.str()
            << std::endl;
   }
   d_defs << cases.str();
