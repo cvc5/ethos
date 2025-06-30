@@ -1,3 +1,7 @@
+; INVARIANT: 
+; All methods in this signature that take at least one $eo_Term as argument
+; must return $eo_Term as the result.
+
 ; This file gives a template for defining the model semantics of
 ; a Eunoia signature. The signature model_smt.eo uses this signature
 ; to define (a user extension of) the standard SMT-LIB semantics.
@@ -28,31 +32,16 @@
 ; be constructed out of free constant symbols.
 (declare-parameterized-const $eo_Const ((id $eo_Numeral) (T Type)) T)
 ; This indicates the properties of skolem functions.
-;(program $eo_model_Const_pred ((k $eo_Numeral) (i $eo_Numeral) (T Type))
-;  :signature ($eo_Numeral $eo_Numeral (eo::quote T)) T
-;  (
-;  ; 0 is reserved for truly free constants
-;  (($eo_model_Const_pred 0 i T) true)
-;$EO_MODEL_CONST_PRED_CASES$
-;  (($eo_model_Const_pred k i T) $smd_eo.Stuck)
-;  )
-;)
 
-;(program $eo_model_eval ((T Type) (t T))
-;  :signature (T) T
-;  (
-;$EO_MODEL_EVAL_CASES$
-;  (($eo_model_eval t) t)
-;  )
-;)
 
 ; Returns true if its argument is an SMT value.
 ; This function is expected to never get stuck.
+; NOTE: THIS HAS TO BE A $eo_Term return.
 (program $eo_is_value ((T $eo_Term) (t $eo_Term))
-  :signature ($eo_Term $eo_Term) Bool
+  :signature ($eo_Term $eo_Term) $eo_Term
   (
   
-  (($eo_is_value T t) false)
+  (($eo_is_value T t) $smd_eo.Stuck)
   )
 )
 
@@ -62,7 +51,7 @@
 
 ; Returns true if T is a type that a term may take.
 (program $eo_is_type ((T $eo_Term))
-  :signature ($eo_Term) Bool
+  :signature ($eo_Term) $eo_Term
   (
 $EO_IS_TYPE_CASES$
   ; We do not handle this type.
@@ -71,7 +60,7 @@ $EO_IS_TYPE_CASES$
   ; we are testing in our verification conditions. It is thus important
   ; that this method is complete (which in turn ensures the verification
   ; pipeline is sound).
-  (($eo_is_type T) false)
+  (($eo_is_type T) $smd_eo.Stuck)
   )
 )
 
@@ -117,7 +106,9 @@ $EO_IS_TYPE_CASES$
 ;(define $smt_irrat_enum ((i $smt_Numeral))
 ;  ($smd_sm.usort_value $smt_Rational i))
 
-; NOTE this is an exception to the rule that eo_ must never get stuck!!!!!!!
+; NOTE: the "stuckness" of this method defines cardinality for types!!!!!!!
+; Thus it is different from the other methods in this signature, which use
+; stuckness as a no-op in a callback.
 (program $eo_enum_type ((T $eo_Term) (i ($smt_type_0 "Int")))
   :signature ($eo_Term ($smt_type_0 "Int")) $eo_Term
   (

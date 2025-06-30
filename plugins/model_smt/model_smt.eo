@@ -15,10 +15,12 @@
 ;;; utilities
 
 ; A utility to ensure that programs are total.
-(define $smt_try_eo ((T Type :implicit) (t T) (elseTerm T))
-  ($smt_apply_3 "ite" ($smt_apply_1 "(_ is eo.SmtTerm)" t)
-    ($smt_apply_1 "eo.SmtTerm.arg1" t)
-    elseTerm))
+; Takes two $eo_Term, returns a $smt_Term.
+(define $smt_try_eo ((t $eo_Term) (elseTerm $eo_Term))
+  ($smt_apply_1 "eo.SmtTerm.arg1" 
+    ($smt_apply_3 "ite" ($smt_apply_1 "(_ is eo.SmtTerm)" t)
+      t
+      elseTerm)))
 
 ; Used to totalize $eo_typeof.
 (program $smtx_typeof ()
@@ -115,7 +117,7 @@
 ; returns: true if t is a datatpe (i.e. it has constructors).
 (define $smt_is_dt ((t $smt_Type))
   ; eo::is_ok is total, doesn't need to wrap in smt_try_eo
-  ($smt_from_eo_bool (eo::is_ok ($eo_dt_constructors t))))
+  ($smt_from_eo_bool (eo::is_ok ($eo_dt_constructors ($smt_apply_1 "eo.SmtType" t)))))
 
 ; define: $smt_is_dt_cons
 ; returns: true if t is a constructor (i.e. it has selectors).
@@ -155,9 +157,12 @@
   ;(($smtx_is_value $eo_Binary t)
   ;(($smtx_is_value (@map T U) t)   ($smtx_map_is_value t))
   ; by default, a value is a term that appears in the type enumeration
-  (($smtx_is_value T t)            ($smt_apply_3 "ite" ($smt_is_dt T)
-                                     ($smtx_dt_is_value t)
-                                     ($smt_try_eo ($eo_is_value T t) false)))
+  (($smtx_is_value T t)             ($smt_apply_3 "ite" ($smt_is_dt T)
+                                      ($smtx_dt_is_value t)
+                                      ($smt_apply_1 "= sm.True"
+                                        ($smt_try_eo 
+                                         ($eo_is_value ($smt_apply_1 "eo.SmtType" T) t) 
+                                         ($smd_eo.SmtTerm $smd_sm.False)))))
   )
 )
 
