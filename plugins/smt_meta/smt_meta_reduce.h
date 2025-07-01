@@ -98,6 +98,10 @@ class SelectorCtx
   std::map<Expr, std::string> d_ctx;
   /** The context it was matched in */
   std::map<Expr, TermContextKind> d_tctx;
+  /** 
+   * The term it was matched to
+   */
+  std::map<Expr, Expr> d_typeMatch;
 };
 
 /**

@@ -369,9 +369,11 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
   // third tuple is a context which indicates the final SMT
   // type we are printing (eo.Term vs. sm.Term)
   std::map<Expr, std::string>::iterator it;
-  std::vector<std::tuple<Expr, std::string, TermContextKind>> visit;
-  std::tuple<Expr, std::string, TermContextKind> cur;
-  visit.emplace_back(c, initCtx, tinit);
+  std::vector<std::tuple<Expr, std::string, TermContextKind, Expr>> visit;
+  std::tuple<Expr, std::string, TermContextKind, Expr> cur;
+  Expr ctmp = c;
+  Expr tc = d_tc.getType(ctmp);
+  visit.emplace_back(c, initCtx, tinit, tc);
   do
   {
     cur = visit.back();
@@ -379,14 +381,21 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     Expr tcur = std::get<0>(cur);
     std::string currTerm = std::get<1>(cur);
     TermContextKind tkctx = std::get<2>(cur);
+    Expr curType = std::get<3>(cur);
     Kind ck = tcur.getKind();
     std::stringstream cname;
     bool printArgs = false;
     size_t printArgStart = 0;
     std::cout << "  pm: " << tcur << " / " << currTerm << " / "
               << termContextKindToString(tkctx) << std::endl;
-    if (ck == Kind::APPLY && !isProgram(tcur[0]))
+    Expr nextType = curType;
+    if (ck == Kind::APPLY && isProgram(tcur[0]))
     {
+      EO_FATAL() << "Cannot match on program " << tcur[0];
+    }
+    if (ck == Kind::APPLY)
+    {
+      Assert (tcur.getNumChildren()==2);
       // Determine if this is a Eunoia internal term, or an
       // SMT term
       std::string smConsName;
@@ -455,7 +464,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
         std::stringstream ssNext;
         ssNext << "(" << cname.str() << ".arg" << (i + 1 - printArgStart) << " "
                << currTerm << ")";
-        visit.emplace_back(tcur[i], ssNext.str(), tkctx);
+        visit.emplace_back(tcur[i], ssNext.str(), tkctx, nextType);
       }
     }
     else if (ck == Kind::PARAM)
