@@ -483,6 +483,11 @@
 ; fwd-decl: $smtx_model_lookup
 (declare-fun $smtx_model_lookup (Int Int tsm.Type) sm.Term)
 
+; program: $smtx_const_predicate
+(define-fun $smtx_const_predicate ((x1 Int) (x2 Int) (x3 tsm.Type) (x4 sm.Term)) sm.Term
+    (eo.SmtTerm.arg1 (ite ((_ is eo.SmtTerm) ($eo_const_predicate x1 x2 (eo.SmtType x3) (eo.SmtTerm x4))) ($eo_const_predicate x1 x2 (eo.SmtType x3) (eo.SmtTerm x4)) (eo.SmtTerm sm.True)))
+)
+
 ; program: $smtx_model_eval
 (assert (! (forall ((x1 sm.Term))
   (= ($smtx_model_eval x1)
@@ -499,7 +504,7 @@
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) (= (sm.Apply.arg1 (sm.Apply.arg1 x1)) sm.and))
     (ite (and (or (= ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) sm.True) (= ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) sm.False)) (or (= ($smtx_model_eval (sm.Apply.arg2 x1)) sm.True) (= ($smtx_model_eval (sm.Apply.arg2 x1)) sm.False))) (ite (and (= sm.True ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1)))) (= sm.True ($smtx_model_eval (sm.Apply.arg2 x1)))) sm.True sm.False) (sm.Apply (sm.Apply sm.and (sm.Apply.arg2 (sm.Apply.arg1 x1))) (sm.Apply.arg2 x1)))
   (ite ((_ is sm.Const) x1)
-    (ite (= ($smtx_model_eval (ite (= (sm.Const.arg1 x1) 0) sm.True (eo.SmtTerm.arg1 (ite ((_ is eo.SmtTerm) ($eo_const_predicate (sm.Const.arg1 x1) (sm.Const.arg2 x1) (eo.SmtType (sm.Const.arg3 x1)) (eo.SmtTerm ($smtx_model_lookup (sm.Const.arg1 x1) (sm.Const.arg2 x1) (sm.Const.arg3 x1))))) ($eo_const_predicate (sm.Const.arg1 x1) (sm.Const.arg2 x1) (eo.SmtType (sm.Const.arg3 x1)) (eo.SmtTerm ($smtx_model_lookup (sm.Const.arg1 x1) (sm.Const.arg2 x1) (sm.Const.arg3 x1)))) (eo.SmtTerm sm.True))))) sm.True) ($smtx_model_lookup (sm.Const.arg1 x1) (sm.Const.arg2 x1) (sm.Const.arg3 x1)) (sm.Const (sm.Const.arg1 x1) (sm.Const.arg2 x1) (sm.Const.arg3 x1)))
+    ($smtx_model_lookup (sm.Const.arg1 x1) (sm.Const.arg2 x1) (sm.Const.arg3 x1))
     (eo.SmtTerm.arg1 (ite ((_ is eo.SmtTerm) ($eo_model_eval (eo.SmtTerm x1))) ($eo_model_eval (eo.SmtTerm x1)) (eo.SmtTerm x1)))
 ))))))))) :named sm.axiom.$smtx_model_eval))
 
@@ -529,6 +534,15 @@
 )) :named sm.axiom.$smtx_typeof))
 
 
+
+;;; Meta-level properties of models
+
+; If the constant predicate for a constant is satisfied,
+; then we may assume that the model value for that constant is a value.
+(assert (! (forall ((k Int) (i Int) (T tsm.Type))
+  (=> (= ($smtx_model_eval ($smtx_const_predicate k i T ($smtx_model_lookup k i T))) sm.True)
+      ($smtx_is_value T ($smtx_model_lookup k i T))))
+ :named sm.model_is_value))
 
 ;;; The verification condition
 

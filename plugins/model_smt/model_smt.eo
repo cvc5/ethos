@@ -198,11 +198,14 @@
 ; definition of $smtx_model_eval, which checks whether the predicate
 ; is satisfied in the model.
 ; If this is undefined, we return true.
-(define $smt_const_predicate ((k $smt_builtin_Int) (id $smt_builtin_Int) (T $smt_Type) (val $smt_Term))
-  ($smt_apply_3 "ite" ($smt_apply_2 "=" k ($smt_apply_0 "0")) ; Kind 0 is reserved for uninterpreted constants.
-    $sm_mk_true
-    ($smt_try_eo ($eo_const_predicate k id ($smd_eo.SmtType T) ($smd_eo.SmtTerm val)) ($eo_smt_term $sm_mk_true))))
-
+(program $smtx_const_predicate
+  ((k $smt_builtin_Int) (id $smt_builtin_Int) (T $smt_Type) (val $smt_Term))
+  :signature ($smt_builtin_Int $smt_builtin_Int $smt_Type $smt_Term) $smt_Term
+  (
+  (($smtx_const_predicate k id T val)
+    ($smt_try_eo ($eo_const_predicate k id ($smd_eo.SmtType T) ($smd_eo.SmtTerm val)) ($eo_smt_term $sm_mk_true)))
+  )
+)
 ; program: $smtx_substitute
 ; Used to define $smtx_eval_quant.
 (program $smtx_substitute
@@ -286,15 +289,10 @@ $SMT_EVAL_CASES$
   ;                                          (eo::define ((yme ($smtx_model_eval y)))
   ;                                            ($smtx_eval_apply fme yme))))
   ;; free constants and partial functions
-  ; These are given an arbitrary value by the model ($smtx_model_lookup).
-  ; We then check if their property ($smt_const_predicate) is satisfied. If so, then
-  ; they are interpreted to be this value. Otherwise, they are unevaluated.
-  (($smtx_model_eval ($smd_sm.Const k i T))   (eo::define ((val ($smtx_model_lookup k i T)))
-                                              (eo::define ((mpred ($smtx_model_eval ($smt_const_predicate k i T val))))
-                                                ; note that mpred can never be stuck and should be a Bool at this point.
-                                                ($smt_apply_3 "ite" ($smt_apply_2 "=" mpred $sm_mk_true)
-                                                  val
-                                                  ($smd_sm.Const k i T)))))
+  ; These are given an arbitrary value by the model ($smtx_model_lookup),
+  ; which is an uninterpreted function. The properties of this value are
+  ; axiomatized in the final SMT2.
+  (($smtx_model_eval ($smd_sm.Const k i T))   ($smtx_model_lookup k i T))
   ; generic apply and base case.
   ; these do not insist that the term is a value.
   ; They call the user callback $eo_model_eval.

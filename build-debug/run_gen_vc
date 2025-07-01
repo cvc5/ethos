@@ -54,7 +54,7 @@ check_status
 cp $STD_DESUGAR_OUT $INIT_DESUGAR
 
 echo "**** run_gen_vc: Run ethos + trim-deps on $INIT_DESUGAR to generate $VC_DEF_DESUGAR"
-./run_trim_defs $INIT_DESUGAR "\$eovc_$TARGET" "\$eo_typeof_main" "\$eo_String" "\$eo_Numeral" "\$eo_Rational" "\$eo_Binary" "\$eo_List" "\$eo_List_nil" "\$eo_List_cons" "\$eo_is_bool" "\$eo_is_z" "\$eo_is_q" "\$eo_is_str" "\$eo_is_bin" "\$eo_dt_constructors" "\$eo_dt_selectors" "\$eo_model_sat" "\$eo_smt_preamble" "\$eo_fail" "ite" "="  >/dev/null
+./run_trim_defs $INIT_DESUGAR "\$eovc_$TARGET" "\$eo_typeof_main" "\$eo_String" "\$eo_Numeral" "\$eo_Rational" "\$eo_Binary" "\$eo_List" "\$eo_List_nil" "\$eo_List_cons" "\$eo_is_bool" "\$eo_is_z" "\$eo_is_q" "\$eo_is_str" "\$eo_is_bin" "\$eo_dt_constructors" "\$eo_dt_selectors" "\$eo_model_sat" "\$eo_smt_preamble" "\$eo_fail" "ite" "=" >/dev/null
 check_status
 cp $STD_TRIM_OUT $VC_DEF_DESUGAR
 
@@ -65,7 +65,7 @@ cp $STD_SMODEL_OUT $VCM_DEF_DESUGAR
 
 # trim again
 echo "**** run_gen_vc: Run ethos + trim-deps on $VCM_DEF_DESUGAR to generate $VCMT_DEF_DESUGAR"
-./run_trim_defs $VCM_DEF_DESUGAR "\$eovc_$TARGET" "\$smd_sm.Apply" "\$smd_tsm.BoolType"  >/dev/null
+./run_trim_defs $VCM_DEF_DESUGAR "\$eovc_$TARGET" "\$smd_sm.Apply" "\$smd_tsm.BoolType" "\$smtx_const_predicate"  >/dev/null
 check_status
 cp $STD_TRIM_OUT $VCMT_DEF_DESUGAR
 
