@@ -192,6 +192,8 @@ Not handled:
 - TODO: remove type checking from proof rule semantics?
 - TODO: type checking as a separate property: type preservation for proof rules.
 
+- TODO: erase types earlier???
+
 ===
 
 Future research:

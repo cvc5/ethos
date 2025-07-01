@@ -46,6 +46,16 @@ std::string termKindToString(TermKind k)
   std::stringstream ss;
   switch (k)
   {
+    case TermKind::FINAL_EUNOIA_TERM: ss << "FINAL_EUNOIA_TERM"; break;
+    case TermKind::FINAL_SMT_TERM: ss << "FINAL_SMT_TERM"; break;
+    case TermKind::FINAL_SMT_TYPE: ss << "FINAL_SMT_TYPE"; break;
+    case TermKind::FINAL_SMT_VALUE: ss << "FINAL_SMT_VALUE"; break;
+    case TermKind::FINAL_VALUE_MAP: ss << "FINAL_VALUE_MAP"; break;
+    case TermKind::FINAL_VALUE_STERM_LIST: ss << "FINAL_VALUE_STERM_LIST"; break;
+    case TermKind::FINAL_VALUE_RAT_PAIR: ss << "FINAL_VALUE_RAT_PAIR"; break;
+    case TermKind::FINAL_BUILTIN_APPLY: ss << "FINAL_BUILTIN_APPLY"; break;
+    case TermKind::FINAL_BUILTIN_TYPE: ss << "FINAL_BUILTIN_TYPE"; break;
+    
     // An apply term
     case TermKind::PROGRAM: ss << "PROGRAM"; break;
     // Builtin datatype introduced in model_smt step, for eo.Term
@@ -868,8 +878,6 @@ void SmtMetaReduce::finalizePrograms()
       std::cout << "...finished lambda program" << std::endl;
       return;
 #endif
-
-
       // TODO: reduce to program immediately
       // prints as a define-fun
       d_defs << "; define " << p.first << std::endl;
@@ -888,6 +896,7 @@ void SmtMetaReduce::finalizePrograms()
         d_defs << "(" << vname.str() << " ";
         Expr argType = d_tc.getType(v);
         Assert(!argType.isNull());
+        // 
         printEmbType(argType, d_defs);
         d_defs << ")";
         ctx.d_ctx[v] = vname.str();
@@ -914,6 +923,7 @@ void SmtMetaReduce::finalizePrograms()
       }
       d_defs << " ";
       printEmbTerm(e[1], d_defs, ctx, ctxInit);
+      // we now know the types of terms, take that into account
       d_defs << ")" << std::endl << std::endl;
       continue;
     }
@@ -1031,13 +1041,6 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     cases << "    eo.Stuck" << std::endl;
     casesEnd << ")";
   }
-  /*
-  TermContextKind ctxPatMatch = TermContextKind::EUNOIA;
-  if (tk==TermKind::SMT_PROGRAM)
-  {
-    ctxPatMatch = TermContextKind::SMT;
-  }
-  */
   size_t ncases = prog.getNumChildren();
   for (size_t i = 0; i < ncases; i++)
   {
@@ -1103,6 +1106,24 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
       }
       cases << "  " << currRet.str() << std::endl;
     }
+  }
+  // TODO:
+  // now go back and print the variable list, now that we know the types
+  // of the variables
+  std::stringstream varListSafe, declSafe;
+  for (size_t i = 1; i < nargs; i++)
+  {
+    if (i > 1)
+    {
+      declSafe << " ";
+      varListSafe << " ";
+    }
+    std::stringstream argType;
+    printEmbType(vt[i - 1], argType);
+    declSafe << argType.str();
+    std::stringstream ssArg;
+    ssArg << "x" << i;
+    varListSafe << "(" << ssArg.str() << " " << argType.str() << ")";
   }
   // axiom
   if (reqAxiom)
@@ -1404,6 +1425,13 @@ TermKind SmtMetaReduce::isSmtApply(const Expr& t)
   return TermKind::NONE;
 }
 
+TermKind SmtMetaReduce::getSafeTermKind(const Expr& e)
+{
+  Expr etmp = e;
+  Expr typeE = d_tc.getType(etmp);
+  std::cout << "TYPE " << typeE << std::endl;
+  return TermKind::NONE;
+}
 TermKind SmtMetaReduce::getTermKind(const Expr& e)
 {
   std::string name;

@@ -103,25 +103,25 @@
   :signature ($smt_Type $smt_Term) $smt_builtin_Bool)
   
 ; The final embedding of SMT-LIB values that are relevant to the VC.
-(declare-datatypes ((vcm.Value 0) (@Map 0))
+(declare-datatypes ((vsm.Value 0) (@Map 0))
   ((
   ; map with an index type
   ; valueness: $smtx_map_is_value
-  (vcm.Map (vcm.Map.arg1 @Map) (vcm.Map.arg2 $smt_Type))
+  (vsm.Map (vsm.Map.arg1 @Map) (vsm.Map.arg2 $smt_Type))
   ; uninterpreted constants 
   ; valueness: $smtx_usort_is_value
-  (vcm.UConst (vcm.UConst.arg1 $smt_Type) (i $smt_builtin_Int))
+  (vsm.UConst (vsm.UConst.arg1 $smt_Type) (i $smt_builtin_Int))
   ; an SMT value represented by an SMT-LIB term, e.g. Int/Real/String.
   ; valueness: $smtx_is_value
-  (vcm.Term (vcm.Term.arg1 $smt_Term))
+  (vsm.Term (vsm.Term.arg1 $smt_Term))
   ; A non-value
-  (vcm.NotValue)
+  (vsm.NotValue)
   )
   (
   ; (@Map_cons i e M) maps i -> e, as well as mappings in M
-  (@Map_cons (@Map_cons.arg1 vcm.Value) (@Map_cons.arg2 vcm.Value) (@Map_cons.arg3 @Map))
+  (@Map_cons (@Map_cons.arg1 vsm.Value) (@Map_cons.arg2 vsm.Value) (@Map_cons.arg3 @Map))
   ; (@Map_default e) maps all remaining elements in the sort to e
-  (@Map_default (@Map_default.arg1 vcm.Value))
+  (@Map_default (@Map_default.arg1 vsm.Value))
   ))
 )
 
@@ -136,7 +136,7 @@
   )
 )
 
-; (vcm.UConst T i) is a value for all T, i.
+; (vsm.UConst T i) is a value for all T, i.
 (define $smtx_usort_is_value ((T $smt_Type) (i $smt_builtin_Int))
   $smt_builtin_true)
 
@@ -146,7 +146,7 @@
 
 ; Get the default for the map
 (program $smtx_map_default
-  ((i vcm.Value) (j vcm.Value) (e vcm.Value) (M @Map))
+  ((i vsm.Value) (j vsm.Value) (e vsm.Value) (M @Map))
   :signature (@Map) $smt_Term
   (
   (($smtx_map_default (@Map_cons j e M))  ($smtx_map_default M))
@@ -157,7 +157,7 @@
 ; This program looks up the value of a term in a map.
 ; This is used for function evaluation.
 (program $smtx_map_lookup
-  ((i vcm.Value) (j vcm.Value) (e vcm.Value) (M @Map))
+  ((i vsm.Value) (j vsm.Value) (e vsm.Value) (M @Map))
   :signature (@Map $smt_Term) $smt_Term
   (
   ; NOTE: the cases here are exhaustive, meaning we can soundly ignore the "is nil" else condition
@@ -188,13 +188,13 @@
 
 ;;; Try to make a value
 
-; Returns a term of type vcm.Value, embeds the term
+; Returns a term of type vsm.Value, embeds the term
 ; if indeed it is a value, or returns not a value otherwise.
 (define $smt_mk_value_term ((t $smt_Term))
   ($smt_apply_3 "ite"
     ($smtx_is_value t)
-    (vcm.Term t)
-    (vcm.NotValue)))
+    (vsm.Term t)
+    (vsm.NotValue)))
     
 ;;; utilities
 
@@ -242,7 +242,7 @@
   :signature ($smt_Type $smt_builtin_Int) $smt_Value
   (
   ; TODO
-  (($smtx_enum_type_final T i)               (vcm.UConst T i))
+  (($smtx_enum_type_final T i)               (vsm.UConst T i))
   )
 )
 

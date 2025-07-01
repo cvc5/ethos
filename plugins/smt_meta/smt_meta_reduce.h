@@ -34,6 +34,22 @@ std::string termContextKindToString(TermContextKind k);
 // TODO?
 enum class TermKind
 {
+  FINAL_EUNOIA_TERM,
+  FINAL_SMT_TERM,
+  FINAL_SMT_TYPE,
+  FINAL_SMT_VALUE,
+  // these are required for native datatypes that define the semantics of SMT-LIB
+  FINAL_VALUE_MAP,
+  FINAL_VALUE_STERM_LIST,
+  FINAL_VALUE_RAT_PAIR,
+  // a builtin application of an SMT-LIB operator
+  // this is the kind of types of the form ($smt_apply_N ...)
+  FINAL_BUILTIN_APPLY,
+  // a builtin application of an SMT-LIB type operator
+  // this is the kind of types of the form ($smt_type_N ...)
+  FINAL_BUILTIN_TYPE,
+  
+  
   //
   PROGRAM,
   // Builtin datatype introduced in model_smt step, for eo.Term
@@ -141,6 +157,7 @@ class SmtMetaReduce : public StdPlugin
   TermKind getTermKindAtomic(const Expr& e, std::string& name);
   TermKind getTermKind(const Expr& e, std::string& name);
   TermKind getTermKind(const Expr& e);
+  TermKind getSafeTermKind(const Expr& e);
   TermContextKind termKindToContext(TermKind tk);
   /** Declares seen */
   std::set<Expr> d_declSeen;
