@@ -10,8 +10,69 @@
 ; Invariant: all programs in this signature should be well-founded and never
 ; never get stuck unless otherwise stated.
 
-; These functions will be handled by smt_meta.
+; Utilities
 
+(declare-datatype @STermList
+  (
+  (@STermList_cons (@STermList_cons.arg1 $smt_Term) (@STermList_cons.arg2 @STermList))
+  (@STermList_nil)
+  )
+)
+
+(program $smtx_list_concat ((x $smt_Term) (y @STermList) (z @STermList))
+  :signature (@STermList @STermList) @STermList
+  (
+  (($smtx_list_concat (@STermList_cons x y) z)  (@STermList_cons x ($smtx_list_concat y z)))
+  (($smtx_list_concat @STermList_nil z)         z)
+  )
+)
+
+; Use "@" to indicate that this is not an SMT-LIB term.
+;(declare-const @smt_RatPair Type)
+;(declare-const @smt_ratPair (-> $smt_Numeral $smt_Numeral @smt_RatPair))
+
+; SMT values
+  
+; The final embedding of SMT-LIB values that are relevant to the VC.
+(declare-datatypes ((vcm.Value 0) (@Map 0))
+  ((
+  ; map with an index type
+  (vcm.Map (vcm.Map.arg1 @Map) (vcm.Map.arg2 $smt_Type))
+  ; uninterpreted constants 
+  (vcm.UConst (vcm.UConst.arg1 $smt_Type) (i $smt_builtin_Int))
+  ; an SMT value represented by an SMT-LIB term, e.g. Int/Real/String.
+  (vcm.Term (vcm.Term.arg1 $smt_Term))
+  )
+  (
+  ; (@Map_cons i e M) maps i -> e, as well as mappings in M
+  (@Map_cons (@Map_cons.arg1 vcm.Value) (@Map_cons.arg2 vcm.Value) (@Map_cons.arg3 @Map))
+  ; (@Map_default e) maps all remaining elements in the sort to e
+  (@Map_default (@Map_default.arg1 vcm.Value))
+  ))
+)
+
+; functions and array values.
+
+; forward declaration
+(program $smtx_is_value ()
+  :signature ($smt_Type $smt_Term) $smt_builtin_Bool)
+
+(program $smtx_map_is_value
+  ((T $smt_Type) (U $smt_Type) (t $smt_Term) (u $smt_Term) (tail @Map))
+  :signature (@Map $smt_Type) $smt_builtin_Bool
+  (
+  (($smtx_map_is_value (@Map_default u) U)      ($smtx_is_value U u))
+  ; TODO: ordering constraint, recursive
+  (($smtx_map_is_value (@Map_cons t u tail) U)  ($smtx_is_value U u))
+  )
+)
+
+; TODO
+;(define $smt_mk_value ((t $smt_Term))
+;  ($smt_apply_3 "ite"
+;    ($smtx_is_value t)
+;    (
+    
 ;;; utilities
 
 ; A utility to ensure that programs are total.
@@ -34,27 +95,6 @@
 ; Used to totalize $eo_typeof.
 (program $smtx_typeof ()
   :signature ($smt_Term) $smt_Type)
-
-(declare-const @sterm_list Type)
-(declare-const @sterm_list_nil @sterm_list)
-(declare-const @sterm_list_cons (-> $smt_Term @sterm_list @sterm_list))
-
-(program $smtx_list_concat ((x $smt_Term) (y @sterm_list) (z @sterm_list))
-  :signature (@sterm_list @sterm_list) @sterm_list
-  (
-  (($smtx_list_concat (@sterm_list_cons x y) z)  (@sterm_list_cons x ($smtx_list_concat y z)))
-  (($smtx_list_concat @sterm_list_nil z)         z)
-  )
-)
-
-; Maps, which model values for functions.
-; TODO: namespace
-(declare-parameterized-const @map ((T Type) (U Type)) Type)
-(declare-parameterized-const @map_nil
-  ((T Type) (U Type) (default U)) (@map T U))
-(declare-parameterized-const @map_cons
-  ((T Type) (U Type) (index T) (element U) (tail (@map T U)))
-  (@map T U))
 
 ; NOTE: this is equivalent to a datatype tester ((_ is sm.usort_value) t).
 (program $smtx_is_usort_value  ((n $smt_builtin_Int) (T $smt_Type) (t $smt_Term))
@@ -106,22 +146,6 @@
 
 ;;; definitions of Values
 
-; forward declaration
-(program $smtx_is_value ()
-  :signature ($smt_Type $smt_Term) $smt_builtin_Bool)
-
-; functions and array values.
-
-(program $smtx_map_is_value
-  ((T $smt_Type) (U $smt_Type) (t $smt_Term) (u $smt_Term) (tail (@map T U)))
-  :signature ($smt_Term) $smt_builtin_Bool
-  (
-  ; TODO: ordering constraint, recursive
-  (($smtx_map_is_value (@map_nil T U u))          ($smtx_is_value U u))
-  (($smtx_map_is_value (@map_cons T U t u tail))  ($smtx_is_value u))
-  )
-)
-
 ; datatypes.
 
 ; define: $smt_is_dt
@@ -166,7 +190,7 @@
   ;(($smtx_is_value $smt_Rational ($eo_smt_term ($smd_sm.Rational r1)))   true)
   ;(($smtx_is_value $smt_String ($eo_smt_term ($smd_sm.String s1)))       true)
   ;(($smtx_is_value $eo_Binary t)
-  ;(($smtx_is_value (@map T U) t)   ($smtx_map_is_value t))
+  ;(($smtx_is_value @Map t)   ($smtx_map_is_value t))
   ; by default, a value is a term that appears in the type enumeration
   (($smtx_is_value T t)             ($smt_apply_3 "ite" ($smt_is_dt T)
                                       ($smtx_dt_is_value t)
@@ -221,13 +245,14 @@
 ; program: $smtx_eval_quant
 ; specification for exists is a (non-computable) function
 ; The last argument is whether we are check exists (resp. forall).
-(program $smtx_eval_quant ((T Type) (x T) (xs @sterm_list) (F $smt_Term) (i $smt_builtin_Int) (isExists Bool))
-  :signature (@sterm_list $smt_Term $smt_builtin_Int Bool) Bool
+(program $smtx_eval_quant 
+  ((T Type) (x T) (xs @STermList) (F $smt_Term) (i $smt_builtin_Int) (isExists $smt_builtin_Bool))
+  :signature (@STermList $smt_Term $smt_builtin_Int $smt_builtin_Bool) $smt_builtin_Bool
   (
-  (($smtx_eval_quant @sterm_list_nil F i isExists)
+  (($smtx_eval_quant @STermList_nil F i isExists)
     ; base case: we have processed all variables, recurse, negate if isExists is false.
     ($smt_apply_2 "=" ($smtx_model_eval F) isExists))  ; we are now fully instantiated, look at the body
-  (($smtx_eval_quant (@sterm_list_cons x xs) F i isExists)
+  (($smtx_eval_quant (@STermList_cons x xs) F i isExists)
     ; get the next value in the type enumeration
     (eo::define ((next ($smtx_enum_type ($smtx_typeof x) i)))
     ; if it exists
@@ -236,13 +261,13 @@
       ($smt_apply_3 "ite" ($smt_apply_2 "=" ($smtx_model_eval ($smtx_substitute x next F)) isExists)
         isExists
         ; otherwise recurse for the next value in the type enumeration for the current variable
-        ($smtx_eval_quant (@sterm_list_cons x xs) F (eo::add i 1) isExists))
-      (eo::not isExists)))) ; out of values.
+        ($smtx_eval_quant (@STermList_cons x xs) F ($smt_apply_1 "+ 1" i) isExists))
+      ($smt_apply_1 "not" isExists)))) ; out of values.
   )
 )
 
 ;(program $smtx_eval_apply
-;  ((T Type) (U Type) (i T) (j T) (e U) (tail (@map T U)))
+;  ((T Type) (U Type) (i T) (j T) (e U) (tail @Map))
 ;  :signature ($smt_Term $smt_Term) $smt_Term
 ;  (
 ;  ; NOTE: the cases here are exhaustive, meaning we can soundly ignore the "is nil" else condition

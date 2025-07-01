@@ -54,9 +54,6 @@ $EO_IS_TYPE_CASES$
 ; note: The methods in this section are only included (based on trim-defs) if
 ; the verification condition is reasoning about quantified formuls.
 
-; Use "@" to indicate that this is not an SMT-LIB term.
-;(declare-const @smt_RatPair Type)
-;(declare-const @smt_ratPair (-> $smt_Numeral $smt_Numeral @smt_RatPair))
 
 ; Based on Calkin–Wilf tree.
 ; NOTE: this method is only necessary if reasoning about the enumeration of Reals,
