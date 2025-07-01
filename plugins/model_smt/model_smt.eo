@@ -12,6 +12,10 @@
 
 ;;;;;; Utilities
 
+; eo::is_ok is total, doesn't need to wrap in smt_try_eo
+(define $smt_try_eo_ok ((T Type :implicit) (t T))
+  ($smt_apply_2 "= " (eo::is_ok t) $eo_true))
+
 ; Utilities to ensure that programs are total.
 ; Takes
 ; - A $eo_Term t where we are not sure if it gets stuck.
@@ -173,9 +177,7 @@
 ;;; utilities
 
 ; Used to totalize $eo_typeof.
-(program $smtx_typeof ()
-  :signature ($smt_Term) $smt_Type)
-
+(program $smtx_typeof () :signature ($smt_Term) $smt_Type)
 
 ;;; Definition of legal types
 
@@ -215,22 +217,27 @@
   (($smtx_enum_type T i)               ($smd_sm.usort_value T i))
   )
 )
+(program $smtx_enum_type_final ((T $smt_Type) (i $smt_builtin_Int))
+  :signature ($smt_Type $smt_builtin_Int) $smt_Value
+  (
+  ; TODO
+  (($smtx_enum_type_final T i)               (vcm.UConst T i))
+  )
+)
 
 ;;; definitions of Values
 
 ; datatypes.
 
+
 ; define: $smt_is_dt
 ; returns: true if t is a datatpe (i.e. it has constructors).
 (define $smt_is_dt ((t $smt_Type))
-  ; eo::is_ok is total, doesn't need to wrap in smt_try_eo
-  ($smt_apply_1 "= (eo.SmtTerm sm.True)" (eo::is_ok ($eo_dt_constructors ($smt_apply_1 "eo.SmtType" t)))))
+  ($smt_try_eo_ok ($eo_dt_constructors ($smt_apply_1 "eo.SmtType" t))))
 
 ; define: $smt_is_dt_cons
 ; returns: true if t is a constructor (i.e. it has selectors).
-(define $smt_is_dt_cons ((t $smt_Term))
-  ; eo::is_ok is total, doesn't need to wrap in smt_try_eo
-  ($smt_apply_1 "= (eo.SmtTerm sm.True)" (eo::is_ok ($eo_dt_selectors t))))
+(define $smt_is_dt_cons ((t $smt_Term)) ($smt_try_eo_ok ($eo_dt_selectors t)))
 
 ; program: $smtx_dt_is_value
 ; Returns true if its argument is a datatype value.

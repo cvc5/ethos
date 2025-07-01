@@ -52,7 +52,7 @@ $EO_IS_TYPE_CASES$
 ; type enumeration
 
 ; note: The methods in this section are only included (based on trim-defs) if
-; the verification condition is reasoning about quantified formuls.
+; the verification condition is reasoning about quantified formulas
 
 ; we have no incorporate of irrational values, which can be soundly approximated using
 ; $smd_sm.usort_value.

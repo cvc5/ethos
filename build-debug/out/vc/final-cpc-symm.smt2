@@ -467,7 +467,7 @@
   (= ($smtx_dt_is_value x1)
   (ite ((_ is sm.Apply) x1)
     (ite ($smtx_is_value ($smtx_typeof (sm.Apply.arg2 x1)) (sm.Apply.arg2 x1)) ($smtx_dt_is_value (sm.Apply.arg1 x1)) false)
-    (= (eo.SmtTerm sm.True) ($eo_is_ok ($eo_dt_selectors (eo.SmtTerm x1))))
+    (=  ($eo_is_ok ($eo_dt_selectors (eo.SmtTerm x1))) (eo.SmtTerm sm.True))
 ))) :named sm.axiom.$smtx_dt_is_value))
 
 ; program: $smtx_is_value
@@ -481,7 +481,7 @@
     true
   (ite (and (= x1 tsm.BoolType) (= x2 sm.False))
     true
-    (ite (= (eo.SmtTerm sm.True) ($eo_is_ok ($eo_dt_constructors (eo.SmtType x1)))) ($smtx_dt_is_value x2) (= sm.True (eo.SmtTerm.arg1 (ite ((_ is eo.SmtTerm) ($eo_is_value (eo.SmtType x1) (eo.SmtTerm x2))) ($eo_is_value (eo.SmtType x1) (eo.SmtTerm x2)) (eo.SmtTerm sm.False)))))
+    (ite (=  ($eo_is_ok ($eo_dt_constructors (eo.SmtType x1))) (eo.SmtTerm sm.True)) ($smtx_dt_is_value x2) (= sm.True (eo.SmtTerm.arg1 (ite ((_ is eo.SmtTerm) ($eo_is_value (eo.SmtType x1) (eo.SmtTerm x2))) ($eo_is_value (eo.SmtType x1) (eo.SmtTerm x2)) (eo.SmtTerm sm.False)))))
 )))))) :named sm.axiom.$smtx_is_value))
 
 ; fwd-decl: $smtx_model_eval
