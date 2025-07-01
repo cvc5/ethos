@@ -10,8 +10,8 @@
 ; TODO: remove this and use $smt_Term instead???
 ; The type of $smt_apply_* terms
 (declare-const $smt_unknown_type Type)
+
 ; The operator of $smt_apply_* terms
-;(declare-const $smt_id Type)
 (define $smt_id () $eo_String)
 
 ; note: decimal and hexadecimal omitted for now.
@@ -175,7 +175,7 @@
 
 ;;; Deep embedding of Eunoia terms
 
-; $eo_Term is forward declared in eo_desugar.eo
+; $eo_Term is declared in eo_desugar.eo
 
 ; The Eunoia representation of an SMT-LIB term.
 (declare-parameterized-const $smd_eo.SmtTerm ((t $smt_Term :opaque)) $eo_Term)
