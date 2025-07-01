@@ -80,10 +80,6 @@
   )
 )
 
-; convert to SMT
-(define-fun eo.to_smt ((x eo.Term)) sm.Term (eo.SmtTerm.arg1 x))
-(define-fun smt.to_eo ((x sm.Term)) eo.Term (eo.SmtTerm x))
-
 ;;; Utilities
 
 ; Stuckness propagates through non-nullary constructors
@@ -194,7 +190,7 @@
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Binary) (eo.SmtTerm.arg1 x1)) ((_ is eo.SmtTerm) x2) ((_ is sm.Binary) (eo.SmtTerm.arg1 x2)) (= (sm.Binary.arg1 (eo.SmtTerm.arg1 x2)) (sm.Binary.arg1 (eo.SmtTerm.arg1 x1))))
     ($eo_mk_binary (sm.Binary.arg1 (eo.SmtTerm.arg1 x1)) ($sm_mk_binary_and (sm.Binary.arg1 (eo.SmtTerm.arg1 x1)) (sm.Binary.arg2 (eo.SmtTerm.arg1 x1)) (sm.Binary.arg2 (eo.SmtTerm.arg1 x2))))
   (ite true
-    (ite (and (or (= sm.True (eo.to_smt x1)) (= sm.False (eo.to_smt x1))) (or (= sm.True (eo.to_smt x2)) (= sm.False (eo.to_smt x2)))) ($eo_mk_bool (and (= sm.True (eo.to_smt x1)) (= sm.True (eo.to_smt x2)))) eo.Stuck)
+    (ite (and (or (= (eo.SmtTerm sm.True) x1) (= (eo.SmtTerm sm.False) x1)) (or (= (eo.SmtTerm sm.True) x2) (= (eo.SmtTerm sm.False) x2))) ($eo_mk_bool (and (= (eo.SmtTerm sm.True) x1) (= (eo.SmtTerm sm.True) x2))) eo.Stuck)
     eo.Stuck))))
 
 ; program: $eo_len

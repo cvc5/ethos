@@ -153,10 +153,10 @@
 (define $smt_is_bool ((T Type :implicit) (t T))
   ($smt_apply_2 "or"
     ; treat "= sm.True" as a unary function, ditto for "= sm.False"
-    ($smt_apply_1 "= sm.True" ($smt_apply_1 "eo.to_smt" t))
-    ($smt_apply_1 "= sm.False" ($smt_apply_1 "eo.to_smt" t))))
+    ($smt_apply_1 "= (eo.SmtTerm sm.True)" t)
+    ($smt_apply_1 "= (eo.SmtTerm sm.False)" t)))
 (define $smt_get_bool ((T Type :implicit) (t T))
-  ($smt_apply_1 "= sm.True" ($smt_apply_1 "eo.to_smt" t)))
+  ($smt_apply_1 "= (eo.SmtTerm sm.True)" t))
   
 (define $sm_mk_bool ((c Bool))
   ($smt_apply_3 "ite" c $smd_sm.True $smd_sm.False))

@@ -42,10 +42,6 @@ $SM_EO_TERM_DECL$
   )
 )
 
-; convert to SMT
-(define-fun eo.to_smt ((x eo.Term)) sm.Term (eo.SmtTerm.arg1 x))
-(define-fun smt.to_eo ((x sm.Term)) eo.Term (eo.SmtTerm x))
-
 ;;; Utilities
 
 ; Stuckness propagates through non-nullary constructors
