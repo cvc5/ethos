@@ -279,7 +279,7 @@ void ModelSmt::finalizeDeclaration(const Expr& e)
   }
   // FIXME: remove
   prefix << "new.";
-  (*out) << "  ; declare " << e << std::endl;
+  (*out) << "  ; user-decl: " << e << std::endl;
   Expr c = e;
   Expr ct = d_tc.getType(c);
   // (*out) << "  ; type is " << ct << std::endl;
@@ -383,6 +383,7 @@ void ModelSmt::finalize()
   std::ostringstream sss;
   sss << ins.rdbuf();
   std::string finalSmt = sss.str();
+  // plug in the evaluation cases handled by this plugin
   replace(finalSmt, "$SMT_EVAL_CASES$", d_eval.str());
 
   std::stringstream ssoe;
