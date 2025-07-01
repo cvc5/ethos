@@ -44,10 +44,8 @@ $EO_LITERAL_TYPE_DECL$
 ; We use a "lazy" include style that allows this file to
 ; be parsable without including the file.
 
-; This sets up initial
-(echo "include eo_smt_preamble")
-
 ; This will contain the definitions of eo::add, etc.
+; It is (for now) specific to a deep embedding into SMT.
 (echo "include eo_builtin_smt")
 
 ;;; $eo_List

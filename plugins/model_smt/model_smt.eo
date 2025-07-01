@@ -9,7 +9,29 @@
 
 ; Invariant: all programs in this signature should be well-founded and never
 ; never get stuck unless otherwise stated.
-      
+
+; eo::is_ok is total, doesn't need to wrap in smt_try_eo
+(define $smt_try_eo_ok ((T Type :implicit) (t T))
+  ($smt_apply_2 "= " (eo::is_ok t) $eo_true))
+
+; Utilities to ensure that programs are total.
+; Takes
+; - A $eo_Term t where we are not sure if it gets stuck.
+; - A $eo_Term elseTerm where we are sure it does not get stuck.
+; Returns the SMT term corresponding to the evaluation of t, if possible,
+; or elseTerm otherwise. This always successfully evaluates.
+(define $smt_try_eo ((t $eo_Term) (elseTerm $eo_Term))
+  ($smt_apply_1 "eo.SmtTerm.arg1"
+    ($smt_apply_3 "ite" ($smt_apply_1 "(_ is eo.SmtTerm)" t)
+      t
+      elseTerm)))
+; Same as above, for SMT types.
+(define $smt_try_eo_type ((t $eo_Term) (elseTerm $eo_Term))
+  ($smt_apply_1 "eo.SmtType.arg1"
+    ($smt_apply_3 "ite" ($smt_apply_1 "(_ is eo.SmtType)" t)
+      t
+      elseTerm)))
+
 ;;; SMT term list
 
 ; A list of SMT terms, defined as a datatype for convienience in this signature.
