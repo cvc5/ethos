@@ -207,8 +207,7 @@
 ; Alternatively, is T a type that can be put in an equality?
 ; Note if $eo_is_type gets stuck, we assume the type is not legal.
 ; TODO: this may be unecessary
-(define $smt_is_type ((T Type))
-  ($smt_try_eo ($eo_is_type T) false))
+(define $smt_is_type ((T Type)) ($smt_try_eo ($eo_is_type T) false))
 
 ;;; Definitions of Type enumeration
 
@@ -249,8 +248,7 @@
 
 ;;; definitions of Values
 
-; datatypes.
-
+; Datatypes are not embedded.
 
 ; define: $smt_is_dt
 ; returns: true if t is a datatpe (i.e. it has constructors).
@@ -334,6 +332,7 @@
     ($sm_is_true ($smt_try_eo ($eo_const_predicate k id ($eo_smt_type T) ($eo_smt_term val)) ($eo_smt_term $sm_mk_true))))
   )
 )
+
 ; program: $smtx_substitute
 ; Used to define $smtx_eval_quant.
 (program $smtx_substitute
@@ -414,10 +413,7 @@ $SMT_EVAL_CASES$
   (($smtx_model_eval ($smd_sm.Skolem k i T)) ($smtx_model_lookup k i T))
   ; generic apply and base case.
   ; these do not insist that the term is a value.
-  ; They call the user callback $eo_model_eval.
-  ;(($smtx_model_eval (f y))                 (eo::define ((fme ($smtx_model_eval f)))
-  ;                                          (eo::define ((yme ($smtx_model_eval y)))
-  ;                                            ($smt_try_eo ($eo_model_eval (_ fme yme))))))
+  
   ; Otherwise, try to evaluate based on the user callback
   (($smtx_model_eval z)                      ($smt_try_eo ($eo_model_eval z) ($eo_smt_term z)))
   )
