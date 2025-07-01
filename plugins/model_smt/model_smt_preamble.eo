@@ -90,10 +90,10 @@
 ; Note the Bool type is "inlined" into the final signature
 (declare-const $smd_sm.True $smt_Term)
 (declare-const $smd_sm.False $smt_Term)
-(declare-parameterized-const $smd_sm.Numeral ((n ($smt_type_0 "Int") :opaque)) $smt_Term)
-(declare-parameterized-const $smd_sm.Rational ((r ($smt_type_0 "Real") :opaque)) $smt_Term)
+(declare-parameterized-const $smd_sm.Numeral ((n $smt_builtin_Int :opaque)) $smt_Term)
+(declare-parameterized-const $smd_sm.Rational ((r $smt_builtin_Real :opaque)) $smt_Term)
 (declare-parameterized-const $smd_sm.String ((s ($smt_type_0 "String") :opaque)) $smt_Term)
-(declare-parameterized-const $smd_sm.Binary ((w ($smt_type_0 "Int") :opaque) (v ($smt_type_0 "Int") :opaque)) $smt_Term)
+(declare-parameterized-const $smd_sm.Binary ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Term)
 
 ; A free constant. Constants are identified by:
 ; (1) Their kind (numeral k),
@@ -104,13 +104,13 @@
 ; can be custom defined based on the Eunoia signature (see method
 ; $eo_const_predicate in model_eo.eo).
 (declare-parameterized-const $smd_sm.Const
-  ((k ($smt_type_0 "Int") :opaque) (id ($smt_type_0 "Int") :opaque) (T $smt_Type :opaque))
+  ((k $smt_builtin_Int :opaque) (id $smt_builtin_Int :opaque) (T $smt_Type :opaque))
   $smt_Term)
 
 ; represents an uninterpreted value
 ; This must be a constructor in the final sm.Term.
 (declare-parameterized-const $smd_sm.usort_value
-  ((T $smt_Type :opaque) (i ($smt_type_0 "Int") :opaque)) $smt_Term)
+  ((T $smt_Type :opaque) (i $smt_builtin_Int :opaque)) $smt_Term)
 
 ; The Eunoia representation of an SMT-LIB term.
 (declare-parameterized-const $smd_sm.Apply
@@ -127,11 +127,11 @@
 
 ; Uninterpreted sorts
 (declare-parameterized-const $smd_tsm.USort
-  ((id ($smt_type_0 "Int") :opaque)) $smt_Type)
+  ((id $smt_builtin_Int :opaque)) $smt_Type)
 
 ; Uninterpreted sorts
 (declare-parameterized-const $smd_tsm.UnknownSort
-  ((id ($smt_type_0 "Int") :opaque)) $smt_Type)
+  ((id $smt_builtin_Int :opaque)) $smt_Type)
 
 ;;; Deep embedding of Eunoia terms
 
@@ -150,28 +150,31 @@
 (define $sm_mk_bool ((c $smt_builtin_Bool))
   ($smt_apply_3 "ite" c $sm_mk_true $sm_mk_false))
 
+  ;;;;;;;;;;;;;;;;; no smd_ below here?
+
+
 ;;; Defining parametric bitvector operators
 
 ; The operators in this section are needed to reason about the parametric
 ; operations on the Eunoia binary literal type.
 
-(program $sm_mk_pow2 ((i ($smt_type_0 "Int")))
-  :signature (($smt_type_0 "Int")) ($smt_type_0 "Int")
+(program $sm_mk_pow2 ((i $smt_builtin_Int))
+  :signature ($smt_builtin_Int) $smt_builtin_Int
   (
   (($sm_mk_pow2 i)  ($smt_apply_3 "ite" ($smt_apply_2 "<=" i 0)
                       1
                       ($smt_apply_2 "*" 2 ($sm_mk_pow2 ($smt_apply_2 "-" i 1)))))
   )
 )
-(program $sm_mk_bit ((x ($smt_type_0 "Int")) (i ($smt_type_0 "Int")))
-  :signature (($smt_type_0 "Int") ($smt_type_0 "Int")) ($smt_type_0 "Bool")
+(program $sm_mk_bit ((x $smt_builtin_Int) (i $smt_builtin_Int))
+  :signature ($smt_builtin_Int $smt_builtin_Int) ($smt_type_0 "Bool")
   (
   ; (= (mod (div x ($sm_mk_pow2 i)) 2) 1)
   (($sm_mk_bit x i) ($smt_apply_1 "= 1" ($smt_apply_2 "mod" ($smt_apply_2 "div" x ($sm_mk_pow2 i)) 2)))
   )
 )
-(program $sm_mk_binary_and ((w ($smt_type_0 "Int")) (n1 ($smt_type_0 "Int")) (n2 ($smt_type_0 "Int")))
-  :signature (($smt_type_0 "Int") ($smt_type_0 "Int") ($smt_type_0 "Int")) ($smt_type_0 "Int")
+(program $sm_mk_binary_and ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+  :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
   (($sm_mk_binary_and w n1 n2)
      ($smt_apply_3 "ite" ($smt_apply_2 "=" w 0) 0
@@ -183,32 +186,32 @@
             ($smt_apply_3 "ite" ($smt_apply_2 "and" ($sm_mk_bit n1 w) ($sm_mk_bit n2 w)) 1 0))))))
   )
 )
-(program $sm_mk_binary_or ((w ($smt_type_0 "Int")) (n1 ($smt_type_0 "Int")) (n2 ($smt_type_0 "Int")))
-  :signature (($smt_type_0 "Int") ($smt_type_0 "Int") ($smt_type_0 "Int")) ($smt_type_0 "Int")
+(program $sm_mk_binary_or ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+  :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   ; TODO
 )
-(program $sm_mk_binary_xor ((w ($smt_type_0 "Int")) (n1 ($smt_type_0 "Int")) (n2 ($smt_type_0 "Int")))
-  :signature (($smt_type_0 "Int") ($smt_type_0 "Int") ($smt_type_0 "Int")) ($smt_type_0 "Int")
+(program $sm_mk_binary_xor ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+  :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   ; TODO
 )
-(program $sm_mk_binary_not ((w ($smt_type_0 "Int")) (n ($smt_type_0 "Int")))
-  :signature (($smt_type_0 "Int") ($smt_type_0 "Int")) ($smt_type_0 "Int")
+(program $sm_mk_binary_not ((w $smt_builtin_Int) (n $smt_builtin_Int))
+  :signature ($smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   ; TODO
 )
-(program $sm_mk_binary_max ((w ($smt_type_0 "Int")))
-  :signature (($smt_type_0 "Int")) ($smt_type_0 "Int")
+(program $sm_mk_binary_max ((w $smt_builtin_Int))
+  :signature ($smt_builtin_Int) $smt_builtin_Int
   (
   (($sm_mk_binary_max w) ($smt_apply_1 "- 1" ($sm_mk_pow2 w)))
   )
 )
 (program $sm_mk_binary_concat
-  ((w1 ($smt_type_0 "Int")) (n1 ($smt_type_0 "Int")) (w2 ($smt_type_0 "Int")) (n2 ($smt_type_0 "Int")))
-  :signature (($smt_type_0 "Int") ($smt_type_0 "Int") ($smt_type_0 "Int") ($smt_type_0 "Int")) ($smt_type_0 "Int")
+  ((w1 $smt_builtin_Int) (n1 $smt_builtin_Int) (w2 $smt_builtin_Int) (n2 $smt_builtin_Int))
+  :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   ; TODO
 )
 (program $sm_mk_binary_extract
-  ((w ($smt_type_0 "Int")) (n1 ($smt_type_0 "Int")) (x1 ($smt_type_0 "Int")) (x2 ($smt_type_0 "Int")))
-  :signature (($smt_type_0 "Int") ($smt_type_0 "Int") ($smt_type_0 "Int") ($smt_type_0 "Int")) ($smt_type_0 "Int")
+  ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
+  :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   ; TODO
 )
 
@@ -216,8 +219,8 @@
 
 (define $eo_mk_bool ((x ($smt_type_0 "Bool")))
   ($smd_eo.SmtTerm ($sm_mk_bool x)))
-(program $eo_mk_numeral ((x ($smt_type_0 "Int")))
-  :signature (($smt_type_0 "Int")) $eo_Term
+(program $eo_mk_numeral ((x $smt_builtin_Int))
+  :signature ($smt_builtin_Int) $eo_Term
   (
   (($eo_mk_numeral x) ($smd_eo.SmtTerm ($smd_sm.Numeral x)))
   )
@@ -235,7 +238,7 @@
   )
 )
 (program $eo_mk_binary ((w $eo_Numeral) (n $eo_Numeral))
-  :signature (($smt_type_0 "Int") ($smt_type_0 "Int")) $eo_Term
+  :signature ($smt_builtin_Int $smt_builtin_Int) $eo_Term
   (
   (($eo_mk_binary w n)
     ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_apply_1 "<= 0" w) ($smt_apply_1 ">= 4294967296" w))
@@ -248,13 +251,13 @@
   :signature ($eo_Term) ($smt_type_0 "Bool")
   ; Definition:
   ; (
-  ; (($smt_from_eo_bool ($smd_eo.SmtTerm $smd_sm.True)) (strue)
-  ; (($smt_from_eo_bool ($smd_eo.SmtTerm $smd_sm.False)) false)
+  ; (($smt_from_eo_bool ($smd_eo.SmtTerm $sm_mk_true)) (strue)
+  ; (($smt_from_eo_bool ($smd_eo.SmtTerm $sm_mk_false)) false)
   ; )
 )
 ; Convert Eunoia Numeral to an smt Integer.
-(program $smt_from_eo_z ((n ($smt_type_0 "Int")))
-  :signature ($eo_Term) ($smt_type_0 "Int")
+(program $smt_from_eo_z ((n $smt_builtin_Int))
+  :signature ($eo_Term) $smt_builtin_Int
   ; Definition:
   ; (
   ; (($smt_from_eo_z ($smd_eo.SmtTerm ($smd_sm.Numeral n))) n)
@@ -303,40 +306,40 @@
 ;;; Boolean operators
 
 ; axiom: $eo_not
-(program $eo_not ((w ($smt_type_0 "Int")) (n ($smt_type_0 "Int")))
+(program $eo_not ((w $smt_builtin_Int) (n $smt_builtin_Int))
   :signature ($eo_Term) $eo_Term
   (
-  (($eo_not ($smd_eo.SmtTerm $smd_sm.True))         ($smd_eo.SmtTerm $smd_sm.False))
-  (($eo_not ($smd_eo.SmtTerm $smd_sm.False))        ($smd_eo.SmtTerm $smd_sm.True))
+  (($eo_not ($smd_eo.SmtTerm $sm_mk_true))         ($smd_eo.SmtTerm $sm_mk_false))
+  (($eo_not ($smd_eo.SmtTerm $sm_mk_false))        ($smd_eo.SmtTerm $sm_mk_true))
   (($eo_not ($smd_eo.SmtTerm ($smd_sm.Binary w n))) ($eo_mk_binary w ($sm_mk_binary_not w n)))
   )
 )
 
 ; axiom: $eo_and
 (program $eo_and
-  ((b1 $eo_Term) (b2 $eo_Term) (w ($smt_type_0 "Int")) (n1 ($smt_type_0 "Int")) (n2 ($smt_type_0 "Int")))
+  ((b1 $eo_Term) (b2 $eo_Term) (w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
   (($eo_and ($smd_eo.SmtTerm ($smd_sm.Binary w n1)) ($smd_eo.SmtTerm ($smd_sm.Binary w n2)))
      ($eo_mk_binary w ($sm_mk_binary_and w n1 n2)))
-  (($eo_and $smd_sm.True $smd_sm.True)   ($eo_mk_bool ($smt_apply_0 "true")))
-  (($eo_and $smd_sm.True $smd_sm.False)  ($eo_mk_bool ($smt_apply_0 "false")))
-  (($eo_and $smd_sm.False $smd_sm.True)  ($eo_mk_bool ($smt_apply_0 "false")))
-  (($eo_and $smd_sm.False $smd_sm.False) ($eo_mk_bool ($smt_apply_0 "false")))
+  (($eo_and $sm_mk_true $sm_mk_true)   ($eo_mk_bool ($smt_apply_0 "true")))
+  (($eo_and $sm_mk_true $sm_mk_false)  ($eo_mk_bool ($smt_apply_0 "false")))
+  (($eo_and $sm_mk_false $sm_mk_true)  ($eo_mk_bool ($smt_apply_0 "false")))
+  (($eo_and $sm_mk_false $sm_mk_false) ($eo_mk_bool ($smt_apply_0 "false")))
   )
 )
 
 ; axiom: $eo_or
 (program $eo_or
-  ((b1 $eo_Term) (b2 $eo_Term) (w ($smt_type_0 "Int")) (n1 ($smt_type_0 "Int")) (n2 ($smt_type_0 "Int")))
+  ((b1 $eo_Term) (b2 $eo_Term) (w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
   (($eo_or ($smd_eo.SmtTerm ($smd_sm.Binary w n1)) ($smd_eo.SmtTerm ($smd_sm.Binary w n2)))
      ($eo_mk_binary w ($sm_mk_binary_or w n1 n2)))
-  (($eo_or $smd_sm.True $smd_sm.True)   ($eo_mk_bool ($smt_apply_0 "true")))
-  (($eo_or $smd_sm.True $smd_sm.False)  ($eo_mk_bool ($smt_apply_0 "true")))
-  (($eo_or $smd_sm.False $smd_sm.True)  ($eo_mk_bool ($smt_apply_0 "true")))
-  (($eo_or $smd_sm.False $smd_sm.False) ($eo_mk_bool ($smt_apply_0 "false")))
+  (($eo_or $sm_mk_true $sm_mk_true)   ($eo_mk_bool ($smt_apply_0 "true")))
+  (($eo_or $sm_mk_true $sm_mk_false)  ($eo_mk_bool ($smt_apply_0 "true")))
+  (($eo_or $sm_mk_false $sm_mk_true)  ($eo_mk_bool ($smt_apply_0 "true")))
+  (($eo_or $sm_mk_false $sm_mk_false) ($eo_mk_bool ($smt_apply_0 "false")))
   )
 )
 
@@ -346,10 +349,10 @@
   (
   (($eo_xor ($smd_eo.SmtTerm ($smd_sm.Binary w n1)) ($smd_eo.SmtTerm ($smd_sm.Binary w n2)))
      ($eo_mk_binary w ($sm_mk_binary_or w n1 n2)))
-  (($eo_xor $smd_sm.True $smd_sm.True)   ($eo_mk_bool ($smt_apply_0 "false")))
-  (($eo_xor $smd_sm.True $smd_sm.False)  ($eo_mk_bool ($smt_apply_0 "true")))
-  (($eo_xor $smd_sm.False $smd_sm.True)  ($eo_mk_bool ($smt_apply_0 "true")))
-  (($eo_xor $smd_sm.False $smd_sm.False) ($eo_mk_bool ($smt_apply_0 "false")))
+  (($eo_xor $sm_mk_true $sm_mk_true)   ($eo_mk_bool ($smt_apply_0 "false")))
+  (($eo_xor $sm_mk_true $sm_mk_false)  ($eo_mk_bool ($smt_apply_0 "true")))
+  (($eo_xor $sm_mk_false $sm_mk_true)  ($eo_mk_bool ($smt_apply_0 "true")))
+  (($eo_xor $sm_mk_false $sm_mk_false) ($eo_mk_bool ($smt_apply_0 "false")))
   )
 )
 
