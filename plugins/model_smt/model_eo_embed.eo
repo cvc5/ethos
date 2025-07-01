@@ -55,39 +55,49 @@ $SM_EO_TERM_DECL$
 
 ; TODO: convert to Eunoia
 
+(define $eo_is_stuck ((x eo.Term))
+  ($smt_apply_2 "=" x eo.Stuck))
+
 ; Stuckness propagates through non-nullary constructors
-(define-fun $eo_FunType ((x eo.Term) (y eo.Term)) eo.Term
-  (ite (or (= x eo.Stuck) (= y eo.Stuck))
+(define $eo_FunType ((x eo.Term) (y eo.Term))
+  ($smt_apply_3 "ite"
+    ($smt_builtin_or ($eo_is_stuck x) ($eo_is_stuck y))
     eo.Stuck
     (eo.FunType x y)))
 
-(define-fun $eo_Apply ((x eo.Term) (y eo.Term)) eo.Term
-  (ite (or (= x eo.Stuck) (= y eo.Stuck))
+(define $eo_Apply ((x eo.Term) (y eo.Term))
+  ($smt_apply_3 "ite"
+    ($smt_builtin_or ($eo_is_stuck x) ($eo_is_stuck y))
     eo.Stuck
     (eo.Apply x y)))
 
 ;;; Core operators
 
 ; Note that these cannot be lifted further since their semantics wrt
-; stuckness is non-standard.
-; TODO: maybe better if these are lifted and made a special case?
+; stuckness is based on the deep embedding of Eunoia terms into SMT-LIB
+; datatypes
 
 ; axiom: $eo_is_ok
-(define-fun $eo_is_ok ((x1 eo.Term)) eo.Term
-  (ite (= x1 eo.Stuck)
+(define $eo_is_ok ((x1 eo.Term)) eo.Term
+  ($smt_apply_3 "ite" ($eo_is_stuck x1)
     (eo.SmtTerm sm.False)
     (eo.SmtTerm sm.True)))
 
 ; axiom: $eo_ite
 (define-fun $eo_ite ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
-  (ite (= x1 (eo.SmtTerm sm.True))
+  ($smt_apply_3 "ite" ($smt_apply_2 "=" x1 (eo.SmtTerm sm.True))
     x2
-  (ite (= x1 (eo.SmtTerm sm.False))
+  ($smt_apply_3 "ite" ($smt_apply_2 "=" x1 (eo.SmtTerm sm.False))
     x3
     eo.Stuck)))
 
 ; axiom: $eo_requires
 (define-fun $eo_requires ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
-  (ite (and (not (= x1 eo.Stuck)) (not (= x2 eo.Stuck)) (= x1 x2))
+  ($smt_apply_3 "ite"
+    ($smt_apply_2 "and"
+      ($smt_builtin_not ($eo_is_stuck x1))
+      ($smt_apply_2 "and"
+        ($smt_builtin_not ($eo_is_stuck x2))
+        ($smt_apply_2 "=" x1 x2)))
     x3
     eo.Stuck))

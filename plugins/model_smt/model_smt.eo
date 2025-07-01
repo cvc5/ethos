@@ -146,7 +146,7 @@
 ; Returns true if its argument is an SMT value.
 ; This function is expected to never get stuck.
 (program $smtx_is_value
-  ((T $smt_Type) (U $smt_Type) (t $smt_Term) (n1 $smt_builtin_Int) (r1 ($smt_type_0 "Real")) (s1 ($smt_type_0 "String")))
+  ((T $smt_Type) (U $smt_Type) (t $smt_Term) (n1 $smt_builtin_Int) (r1 $smt_builtin_Real) (s1 $smt_builtin_String))
   :signature ($smt_Type $smt_Term) $smt_builtin_Bool
   (
   ; if the literal type is not defined, this is false
