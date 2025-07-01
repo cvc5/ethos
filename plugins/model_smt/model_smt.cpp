@@ -45,8 +45,6 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // builtin
   addSmtLibSym("forall", {Kind::ANY, Kind::BOOLEAN}, Kind::BOOLEAN);
   addSmtLibSym("exists", {Kind::ANY, Kind::BOOLEAN}, Kind::BOOLEAN);
-  addSmtLibSym("=", {Kind::ANY, Kind::ANY}, Kind::BOOLEAN);
-  addSmtLibSym("ite", {Kind::BOOLEAN, Kind::ANY, Kind::ANY}, Kind::ANY);
   // Booleans
   addSmtLibSym("and", {Kind::BOOLEAN, Kind::BOOLEAN}, Kind::BOOLEAN);
   addSmtLibSym("or", {Kind::BOOLEAN, Kind::BOOLEAN}, Kind::BOOLEAN);
@@ -149,14 +147,6 @@ void ModelSmt::printSmtTerm(const std::string& name,
   // This needs to be here, this is the user include of a standard
   // template
   d_eval << "  (($smtx_model_eval " << callApp.str() << ")";
-  // special cases
-  if (name == "ite")
-  {
-    d_eval << "($smt_apply_3 \"ite\" ($smtx_model_eval x1) ($smtx_model_eval x2) "
-              "($smtx_model_eval x3)))";
-    d_eval << std::endl;
-    return;
-  }
   bool isOverloadArith = (args.size() > 0 && args[0] == Kind::PARAM);
   std::stringstream preAppEnd;
   for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
@@ -164,15 +154,7 @@ void ModelSmt::printSmtTerm(const std::string& name,
     d_eval << std::endl << "    (eo::define ((e" << i << " ($smtx_model_eval x" << i << ")))";
     preAppEnd << ")";
   }
-  if (name == "=")
-  {
-    // Note that we do not insist on converting to SMT-LIB literals here
-    // We rely on SMT-LIB equality, guarding by an $smt_is_value predicate.
-    d_eval << std::endl << "      ($smt_eval_= ($smtx_typeof x1) e1 e2 (= x1 x2))"
-           << preAppEnd.str() << ")" << std::endl;
-    return;
-  }
-  else if (name == "forall" || name == "exists")
+  if (name == "forall" || name == "exists")
   {
     // does not "pre-rewrite" the body
     bool isExists = (name == "exists");

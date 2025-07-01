@@ -249,14 +249,6 @@
 
 ;;; Core definition of $smtx_model_eval
 
-; For example:
-; ($smt_eval_= Int ($smt_from_eo_z x1) ($smt_from_eo_z x2) (= x1 x2)).
-(define $smt_eval_=
-  ((W Type) (x1 W) (x2 W) (u $smt_Term))
-  ($smt_apply_3 "ite" ($smt_builtin_and ($smtx_is_value W x1) ($smtx_is_value W x2))
-    ($sm_mk_bool ($smt_apply_2 "=" x1 x2))
-    u))
-
 ; An evaluator for all terms that we can reason about models.
 ; This is a recursive call.
 ; NOTE: for the sake of soundness, this must be a total function!!!!!!!
@@ -269,7 +261,18 @@
   ; builtins
   (($smtx_model_eval $sm_mk_true)             $sm_mk_true)
   (($smtx_model_eval $smd_sm.False)           $smd_sm.False)
-  ; TODO: equality, ite
+  (($smtx_model_eval (ite x1 x2 x3))
+    ($smt_apply_3 "ite" ($smt_apply_2 "=" ($smtx_model_eval x1) $sm_mk_true)
+      ($smtx_model_eval x2)
+      ($smtx_model_eval x3)))
+  (($smtx_model_eval (= x1 x2))
+    (eo::define ((e1 ($smtx_model_eval x1)))
+    (eo::define ((e2 ($smtx_model_eval x2)))
+    (eo::define ((T ($smtx_typeof x1)))
+    ($smt_apply_3 "ite" ($smt_builtin_and ($smtx_is_value T x1) ($smtx_is_value T x2))
+      ; use datatype equality
+      ($sm_mk_bool ($smt_apply_2 "=" x1 x2))
+      (= x1 x2))))))
   ; evaluation of standard SMT symbols
   ; These calls may only call one of the above macros:
   ; - $smtx_eval_quant
@@ -280,11 +283,10 @@ $SMT_EVAL_CASES$
   ;(($smtx_model_eval ($smd_sm.Apply f y))   (eo::define ((fme ($smtx_model_eval f)))
   ;                                          (eo::define ((yme ($smtx_model_eval y)))
   ;                                            ($smtx_eval_apply fme yme))))
-  ;; free constants
+  ;; free constants and partial functions
   ; These are given an arbitrary value by the model ($smtx_model_lookup).
-  ; We then check if their property F is satisfied. If so, then they are
-  ; interpreted to be this value. Otherwise, they are unevaluated.
-  ; TODO: val can be assumed such that $smtx_is_value is true.
+  ; We then check if their property ($smt_const_predicate) is satisfied. If so, then
+  ; they are interpreted to be this value. Otherwise, they are unevaluated.
   (($smtx_model_eval ($smd_sm.Const k i T))   (eo::define ((val ($smtx_model_lookup k i T)))
                                               (eo::define ((mpred ($smtx_model_eval ($smt_const_predicate k i T val))))
                                                 ; note that mpred can never be stuck and should be a Bool at this point.
@@ -296,10 +298,7 @@ $SMT_EVAL_CASES$
   ; They call the user callback $eo_model_eval.
   ;(($smtx_model_eval (f y))                 (eo::define ((fme ($smtx_model_eval f)))
   ;                                          (eo::define ((yme ($smtx_model_eval y)))
-  ;                                            ($smt_try_eo ($eo_model_eval (_ fme yme))
-  ;
-  ;                                            ))))
-  
+  ;                                            ($smt_try_eo ($eo_model_eval (_ fme yme))))))
   ; Otherwise, try to evaluate based on the user callback
   (($smtx_model_eval z)                      ($smt_try_eo ($eo_model_eval z) ($smd_eo.SmtTerm z)))
   )
