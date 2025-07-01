@@ -14,7 +14,8 @@ a free uninterpreted function in the final encoding.
 
 The entire pipeline relies on:
 - Bash scripting,
-- Ethos for parsing.
+- Ethos (~10k LOC C++), and depends on GMP
+  - The majority of its parser is used in the compilation.
 - A standard Ethos plugin infrastructure, 133 LOC C++
 
 Below summarizes where certain corner cases are handled when using
@@ -37,6 +38,7 @@ Relies on:
 
 Things handled at this stage:
 - Desugaring of :chainable, some of the :left-assoc, :right-assoc operators.
+  This desugaring is mirror in the CPC signature/Ethos parser.
 
 === cvc5 internals -> CPC proof 
 
@@ -137,10 +139,6 @@ Things handled at this stage:
   - TODO: arrays, functions
   - Semantics of parametric bitvector operations
 
-TODO:
-- Eunoia semantics of "stuckness" (eo.Stuck)
-- Distinction between Eunoia terms ($eo_Term becomes eo.Term) and SMT-LIB terms ($smt_Term becomes sm.Term).
-- eo::is_ok, eo::ite, eo::requires, eo::hash
 
 === Smt_Meta
 
@@ -156,14 +154,32 @@ Relies on:
 - smt_meta_reduce.cpp (ethos plugin), 1282 LOC C++ ; will shrink significantly
 
 Things handled at this stage:
+- The final deep embedding
+  - Eunoia Terms (eo.Term)
+    - Embeddings for all 3 SMT-LIB constructs below.
+  - SMT-LIB Terms (sm.Term)
+  - SMT-LIB Types (sm.Type)
+  - SMT-LIB Values (sm.Value)
+    - Note that values are disjoint from terms. Terms can be embedded into
+      values
 - Eunoia semantics of pattern matching based on datatype selectors/testers.
-- Symbols introduced for deep embedding in Model_Smt $smt_Term, $smt_apply_N, $smt_to_eo_X, $eo_to_smt_X.
-  - TODO: Indexed SMT-LIB operators are handled as special case?? Maybe Opaque??
+- Symbols introduced for deep embedding in Model_Smt $smt_apply_N, $smt_type_N.
 - Remaining eo::define and define commands inlined.
-- TODO: partial function semantics
-
-The following things remain modelled faithfully in the final encoding:
-- :opaque
+- More Eunoia builtins covered: (TODO: lift these to the previous stage)
+  - Eunoia semantics of "stuckness" (eo.Stuck)
+  - Distinction between Eunoia terms ($eo_Term becomes eo.Term) and SMT-LIB terms ($smt_Term becomes sm.Term).
+  - eo::is_ok, eo::ite, eo::requires
+- Axiom for eo::hash
+- Axiom for partial function semantics
+- :opaque on user symbols becomes part of the deep embedding.
+  - For example a constructor like:
+      (declare-parameterized-const const ((id Int :opaque) (T Type :opaque)) T)
+    becomes the datatype constructor with arity 2:
+      (sm.@const (sm.@const.arg1 Int) (sm.@const.arg2 sm.Term))
+    whereas:
+      (declare-parameterized-const and (-> Bool Bool Bool))
+    becomes the nullary constructor:
+      (sm.And)
 
 ===
 
@@ -172,7 +188,6 @@ Not handled:
   - TODO: well foundedness as a Eunoia program
 - Modelling of assume-push/step-pop.
 - TODO: modelling of :conclusion-explicit, :assumption.
-
 
 - TODO: remove type checking from proof rule semantics?
 - TODO: type checking as a separate property: type preservation for proof rules.

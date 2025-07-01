@@ -1561,6 +1561,7 @@ TermKind SmtMetaReduce::getTermKindAtomic(const Expr& e, std::string& name)
     name = sname.substr(9);
     return TermKind::SMT_TYPE_DT_CONS;
   }
+  // symbols that begin with @ are treated as Eunoia terms.
   if (sname.compare(0, 1, "@") == 0 || sname.compare(0, 8, "$eo_List") == 0)
   {
     name = sname;

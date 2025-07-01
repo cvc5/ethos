@@ -9,83 +9,10 @@
 # rule. If the generated *.smt2 is unsat, then the proof rule is shown to be
 # sound by this toolchain.
 
-OUT_DIR=./out
-
-STD_TRIM_OUT=../plugins/trim_defs/trim_gen.eo
-STD_DESUGAR_OUT=../plugins/desugar/eo_desugar_gen.eo
-STD_SMODEL_OUT=../plugins/model_smt/model_smt_gen.eo
-STD_SMODEL_EMBED_OUT=../plugins/model_smt/model_eo_embed_gen.eo
-STD_VC_OUT=../plugins/smt_meta/smt_meta_gen.smt2
-# the name of a EO signature
+# The name of a EO signature
 INPUT="../../cvc5-ajr/proofs/eo/cpc/Cpc.eo"
 # should be the name of a constant or proof rule in $INPUT
 TARGET=$1
-# trim out
-INIT_TRIM=$OUT_DIR/trim-cpc.eo
-INIT_DESUGAR=$OUT_DIR/trim-d-cpc.eo
-VC_DEF_DESUGAR=$OUT_DIR/vc-def-cpc.eo
-VCM_DEF_DESUGAR=$OUT_DIR/vcm-def-cpc.eo
-VCMT_DEF_DESUGAR=$OUT_DIR/vcmt-def-cpc.eo
-VC_OUT=$OUT_DIR/vc/final-cpc-$TARGET.smt2
 
-function check_status()
-{
-status=$?
-if [[ $status -eq 0 ]]; then
-  echo "success"
-else
-  exit $status
-fi
-}
+./run_gen_vc_single $INPUT $TARGET
 
-echo "**** Compile ethos"
-make -j4
-check_status
-
-echo "**** run_gen_vc: Run ethos + trim-defs on $INPUT and $TARGET to $INIT_TRIM"
-#./run_trim_defs $INPUT $TARGET "\$eo_model_sat" >/dev/null
-./run_trim_defs $INPUT $TARGET  "ite" "=" >/dev/null
-check_status
-cp $STD_TRIM_OUT $INIT_TRIM
-
-echo "**** run_gen_vc: Run ethos + desugar on $INIT_TRIM to generate $INIT_DESUGAR"
-./src/ethos --plugin.desugar-vc $INIT_TRIM >/dev/null
-check_status
-cp $STD_DESUGAR_OUT $INIT_DESUGAR
-
-echo "**** run_gen_vc: Run ethos + trim-deps on $INIT_DESUGAR to generate $VC_DEF_DESUGAR"
-./run_trim_defs $INIT_DESUGAR "\$eovc_$TARGET" "\$eo_typeof_main" "\$eo_String" "\$eo_Numeral" "\$eo_Rational" "\$eo_Binary" "\$eo_List" "\$eo_List_nil" "\$eo_List_cons" "\$eo_is_bool" "\$eo_is_z" "\$eo_is_q" "\$eo_is_str" "\$eo_is_bin" "\$eo_dt_constructors" "\$eo_dt_selectors" "\$eo_model_sat" "\$eo_smt_preamble" "\$eo_fail" "ite" "=" >/dev/null
-check_status
-cp $STD_TRIM_OUT $VC_DEF_DESUGAR
-
-echo "**** run_gen_vc: Run ethos + model-smt on $VC_DEF_DESUGAR to generate $VCM_DEF_DESUGAR"
-./run_gen_smt_model $VC_DEF_DESUGAR >/dev/null
-check_status
-cp $STD_SMODEL_OUT $VCM_DEF_DESUGAR
-
-# trim again
-echo "**** run_gen_vc: Run ethos + trim-deps on $VCM_DEF_DESUGAR to generate $VCMT_DEF_DESUGAR"
-./run_trim_defs $VCM_DEF_DESUGAR "\$eovc_$TARGET" "\$smd_sm.Apply" "\$smd_tsm.BoolType" "\$smtx_const_predicate"  >/dev/null
-check_status
-cp $STD_TRIM_OUT $VCMT_DEF_DESUGAR
-
-echo "**** run_gen_vc: Verify it parses"
-./src/ethos $VCMT_DEF_DESUGAR >/dev/null
-
-echo "(echo \"smt-meta \$eovc_$TARGET\")" >> $VCMT_DEF_DESUGAR
-
-echo "**** Generate SMT2 from $VCMT_DEF_DESUGAR to $VC_OUT"
-./src/ethos --plugin.smt-meta $VCMT_DEF_DESUGAR >/dev/null
-check_status
-cp $STD_VC_OUT $VC_OUT
-
-echo "**** Try to parse"
-ajr-cvc5 $VC_OUT --dump-unsat-cores #--parse-only
-check_status
-
-# clear temporary files
-#rm -f $INIT_TRIM
-#rm -f $INIT_DESUGAR
-#rm -f $VC_DEF_DESUGAR
-#rm -f $VCM_DEF_DESUGAR
-#rm -f $VCMT_DEF_DESUGAR

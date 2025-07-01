@@ -1,581 +1,584 @@
-#!/bin/bash 
-./run_gen_vc evaluate
-./run_gen_vc distinct_values
-./run_gen_vc aci_norm
-./run_gen_vc absorb
-./run_gen_vc distinct-card-conflict
-./run_gen_vc arith_sum_ub
-./run_gen_vc arith_mult_pos
-./run_gen_vc arith_mult_neg
-./run_gen_vc arith_trichotomy
-./run_gen_vc int_tight_ub
-./run_gen_vc int_tight_lb
-./run_gen_vc arith_mult_tangent
-./run_gen_vc arith_mult_sign
-./run_gen_vc arith_mult_abs_comparison
-./run_gen_vc arith_reduction
-./run_gen_vc arith_poly_norm
-./run_gen_vc arith_poly_norm_rel
-./run_gen_vc arith-pow-elim
-./run_gen_vc arrays_read_over_write
-./run_gen_vc arrays_read_over_write_contra
-./run_gen_vc arrays_read_over_write_1
-./run_gen_vc arrays_ext
-./run_gen_vc bv-repeat-elim
-./run_gen_vc bv-smulo-elim
-./run_gen_vc bv-umulo-elim
-./run_gen_vc bv-bitwise-slicing
-./run_gen_vc bv_bitblast_step
-./run_gen_vc bv_poly_norm
-./run_gen_vc bv_poly_norm_eq
-./run_gen_vc split
-./run_gen_vc resolution
-./run_gen_vc chain_resolution
-./run_gen_vc factoring
-./run_gen_vc reordering
-./run_gen_vc eq_resolve
-./run_gen_vc modus_ponens
-./run_gen_vc not_not_elim
-./run_gen_vc contra
-./run_gen_vc and_elim
-./run_gen_vc and_intro
-./run_gen_vc not_or_elim
-./run_gen_vc implies_elim
-./run_gen_vc not_implies_elim1
-./run_gen_vc not_implies_elim2
-./run_gen_vc equiv_elim1
-./run_gen_vc equiv_elim2
-./run_gen_vc not_equiv_elim1
-./run_gen_vc not_equiv_elim2
-./run_gen_vc xor_elim1
-./run_gen_vc xor_elim2
-./run_gen_vc not_xor_elim1
-./run_gen_vc not_xor_elim2
-./run_gen_vc ite_elim1
-./run_gen_vc ite_elim2
-./run_gen_vc not_ite_elim1
-./run_gen_vc not_ite_elim2
-./run_gen_vc not_and
-./run_gen_vc cnf_and_pos
-./run_gen_vc cnf_and_neg
-./run_gen_vc cnf_or_pos
-./run_gen_vc cnf_or_neg
-./run_gen_vc cnf_implies_pos
-./run_gen_vc cnf_implies_neg1
-./run_gen_vc cnf_implies_neg2
-./run_gen_vc cnf_equiv_pos1
-./run_gen_vc cnf_equiv_pos2
-./run_gen_vc cnf_equiv_neg1
-./run_gen_vc cnf_equiv_neg2
-./run_gen_vc cnf_xor_pos1
-./run_gen_vc cnf_xor_pos2
-./run_gen_vc cnf_xor_neg1
-./run_gen_vc cnf_xor_neg2
-./run_gen_vc cnf_ite_pos1
-./run_gen_vc cnf_ite_pos2
-./run_gen_vc cnf_ite_pos3
-./run_gen_vc cnf_ite_neg1
-./run_gen_vc cnf_ite_neg2
-./run_gen_vc cnf_ite_neg3
-./run_gen_vc scope
-./run_gen_vc process_scope
-./run_gen_vc ite_eq
-./run_gen_vc instantiate
-./run_gen_vc skolemize
-./run_gen_vc skolem_intro
-./run_gen_vc alpha_equiv
-./run_gen_vc beta-reduce
-./run_gen_vc quant_var_reordering
-./run_gen_vc exists-elim
-./run_gen_vc quant-unused-vars
-./run_gen_vc quant-merge-prenex
-./run_gen_vc quant-miniscope-and
-./run_gen_vc quant-miniscope-or
-./run_gen_vc quant-miniscope-ite
-./run_gen_vc quant-var-elim-eq
-./run_gen_vc quant-dt-split
-./run_gen_vc exists_inv_condition
-./run_gen_vc sets_singleton_inj
-./run_gen_vc sets_ext
-./run_gen_vc sets-eval-op
-./run_gen_vc sets-insert-elim
-./run_gen_vc string_length_pos
-./run_gen_vc string_length_non_empty
-./run_gen_vc concat_eq
-./run_gen_vc concat_unify
-./run_gen_vc concat_csplit
-./run_gen_vc concat_split
-./run_gen_vc concat_lprop
-./run_gen_vc concat_cprop
-./run_gen_vc string_decompose
-./run_gen_vc exists_string_length
-./run_gen_vc string_code_inj
-./run_gen_vc string_seq_unit_inj
-./run_gen_vc re_inter
-./run_gen_vc re_concat
-./run_gen_vc re_unfold_pos
-./run_gen_vc re_unfold_neg_concat_fixed
-./run_gen_vc re_unfold_neg
-./run_gen_vc string_ext
-./run_gen_vc string_reduction
-./run_gen_vc string_eager_reduction
-./run_gen_vc arith-string-pred-entail
-./run_gen_vc arith-string-pred-safe-approx
-./run_gen_vc str-in-re-eval
-./run_gen_vc str-in-re-consume
-./run_gen_vc re-loop-elim
-./run_gen_vc re-inter-inclusion
-./run_gen_vc re-union-inclusion
-./run_gen_vc str-in-re-concat-star-char
-./run_gen_vc str-in-re-sigma
-./run_gen_vc str-in-re-sigma-star
-./run_gen_vc str-ctn-multiset-subset
-./run_gen_vc str-overlap-split-ctn
-./run_gen_vc str-overlap-endpoints-ctn
-./run_gen_vc str-overlap-endpoints-indexof
-./run_gen_vc str-overlap-endpoints-replace
-./run_gen_vc str-indexof-re-eval
-./run_gen_vc str-replace-re-eval
-./run_gen_vc str-replace-re-all-eval
-./run_gen_vc seq-eval-op
-./run_gen_vc ubv-to-int-elim
-./run_gen_vc int-to-bv-elim
-./run_gen_vc refl
-./run_gen_vc symm
-./run_gen_vc trans
-./run_gen_vc cong
-./run_gen_vc nary_cong
-./run_gen_vc true_intro
-./run_gen_vc true_elim
-./run_gen_vc false_intro
-./run_gen_vc false_elim
-./run_gen_vc ho_cong
-./run_gen_vc distinct-elim
-./run_gen_vc lambda-elim
-./run_gen_vc dt_split
-./run_gen_vc dt-inst
-./run_gen_vc dt-collapse-selector
-./run_gen_vc dt-collapse-tester
-./run_gen_vc dt-collapse-tester-singleton
-./run_gen_vc dt-cons-eq
-./run_gen_vc dt-cons-eq-clash
-./run_gen_vc dt-cycle
-./run_gen_vc dt-collapse-updater
-./run_gen_vc dt-updater-elim
-./run_gen_vc arith-div-total-zero-real
-./run_gen_vc arith-div-total-zero-int
-./run_gen_vc arith-int-div-total
-./run_gen_vc arith-int-div-total-one
-./run_gen_vc arith-int-div-total-zero
-./run_gen_vc arith-int-div-total-neg
-./run_gen_vc arith-int-mod-total
-./run_gen_vc arith-int-mod-total-one
-./run_gen_vc arith-int-mod-total-zero
-./run_gen_vc arith-int-mod-total-neg
-./run_gen_vc arith-elim-gt
-./run_gen_vc arith-elim-lt
-./run_gen_vc arith-elim-int-gt
-./run_gen_vc arith-elim-int-lt
-./run_gen_vc arith-elim-leq
-./run_gen_vc arith-leq-norm
-./run_gen_vc arith-geq-tighten
-./run_gen_vc arith-geq-norm1-int
-./run_gen_vc arith-geq-norm1-real
-./run_gen_vc arith-eq-elim-real
-./run_gen_vc arith-eq-elim-int
-./run_gen_vc arith-to-int-elim
-./run_gen_vc arith-to-int-elim-to-real
-./run_gen_vc arith-div-elim-to-real1
-./run_gen_vc arith-div-elim-to-real2
-./run_gen_vc arith-mod-over-mod
-./run_gen_vc arith-int-eq-conflict
-./run_gen_vc arith-int-geq-tighten
-./run_gen_vc arith-divisible-elim
-./run_gen_vc arith-abs-eq
-./run_gen_vc arith-abs-int-gt
-./run_gen_vc arith-abs-real-gt
-./run_gen_vc arith-geq-ite-lift
-./run_gen_vc arith-leq-ite-lift
-./run_gen_vc arith-min-lt1
-./run_gen_vc arith-min-lt2
-./run_gen_vc arith-max-geq1
-./run_gen_vc arith-max-geq2
-./run_gen_vc array-read-over-write
-./run_gen_vc array-read-over-write2
-./run_gen_vc array-store-overwrite
-./run_gen_vc array-store-self
-./run_gen_vc array-read-over-write-split
-./run_gen_vc array-store-swap
-./run_gen_vc bool-double-not-elim
-./run_gen_vc bool-not-true
-./run_gen_vc bool-not-false
-./run_gen_vc bool-eq-true
-./run_gen_vc bool-eq-false
-./run_gen_vc bool-eq-nrefl
-./run_gen_vc bool-impl-false1
-./run_gen_vc bool-impl-false2
-./run_gen_vc bool-impl-true1
-./run_gen_vc bool-impl-true2
-./run_gen_vc bool-impl-elim
-./run_gen_vc bool-dual-impl-eq
-./run_gen_vc bool-and-conf
-./run_gen_vc bool-and-conf2
-./run_gen_vc bool-or-taut
-./run_gen_vc bool-or-taut2
-./run_gen_vc bool-or-de-morgan
-./run_gen_vc bool-implies-de-morgan
-./run_gen_vc bool-and-de-morgan
-./run_gen_vc bool-or-and-distrib
-./run_gen_vc bool-implies-or-distrib
-./run_gen_vc bool-xor-refl
-./run_gen_vc bool-xor-nrefl
-./run_gen_vc bool-xor-false
-./run_gen_vc bool-xor-true
-./run_gen_vc bool-xor-comm
-./run_gen_vc bool-xor-elim
-./run_gen_vc bool-not-xor-elim
-./run_gen_vc bool-not-eq-elim1
-./run_gen_vc bool-not-eq-elim2
-./run_gen_vc ite-neg-branch
-./run_gen_vc ite-then-true
-./run_gen_vc ite-else-false
-./run_gen_vc ite-then-false
-./run_gen_vc ite-else-true
-./run_gen_vc ite-then-lookahead-self
-./run_gen_vc ite-else-lookahead-self
-./run_gen_vc ite-then-lookahead-not-self
-./run_gen_vc ite-else-lookahead-not-self
-./run_gen_vc ite-expand
-./run_gen_vc bool-not-ite-elim
-./run_gen_vc ite-true-cond
-./run_gen_vc ite-false-cond
-./run_gen_vc ite-not-cond
-./run_gen_vc ite-eq-branch
-./run_gen_vc ite-then-lookahead
-./run_gen_vc ite-else-lookahead
-./run_gen_vc ite-then-neg-lookahead
-./run_gen_vc ite-else-neg-lookahead
-./run_gen_vc bv-concat-extract-merge
-./run_gen_vc bv-extract-extract
-./run_gen_vc bv-extract-whole
-./run_gen_vc bv-extract-concat-1
-./run_gen_vc bv-extract-concat-2
-./run_gen_vc bv-extract-concat-3
-./run_gen_vc bv-extract-concat-4
-./run_gen_vc bv-eq-extract-elim1
-./run_gen_vc bv-eq-extract-elim2
-./run_gen_vc bv-eq-extract-elim3
-./run_gen_vc bv-extract-not
-./run_gen_vc bv-extract-sign-extend-1
-./run_gen_vc bv-extract-sign-extend-2
-./run_gen_vc bv-extract-sign-extend-3
-./run_gen_vc bv-not-xor
-./run_gen_vc bv-and-simplify-1
-./run_gen_vc bv-and-simplify-2
-./run_gen_vc bv-or-simplify-1
-./run_gen_vc bv-or-simplify-2
-./run_gen_vc bv-xor-simplify-1
-./run_gen_vc bv-xor-simplify-2
-./run_gen_vc bv-xor-simplify-3
-./run_gen_vc bv-ult-add-one
-./run_gen_vc bv-mult-slt-mult-1
-./run_gen_vc bv-mult-slt-mult-2
-./run_gen_vc bv-commutative-xor
-./run_gen_vc bv-commutative-comp
-./run_gen_vc bv-zero-extend-eliminate-0
-./run_gen_vc bv-sign-extend-eliminate-0
-./run_gen_vc bv-not-neq
-./run_gen_vc bv-ult-ones
-./run_gen_vc bv-concat-merge-const
-./run_gen_vc bv-commutative-add
-./run_gen_vc bv-sub-eliminate
-./run_gen_vc bv-ite-width-one
-./run_gen_vc bv-ite-width-one-not
-./run_gen_vc bv-eq-xor-solve
-./run_gen_vc bv-eq-not-solve
-./run_gen_vc bv-ugt-eliminate
-./run_gen_vc bv-uge-eliminate
-./run_gen_vc bv-sgt-eliminate
-./run_gen_vc bv-sge-eliminate
-./run_gen_vc bv-sle-eliminate
-./run_gen_vc bv-redor-eliminate
-./run_gen_vc bv-redand-eliminate
-./run_gen_vc bv-ule-eliminate
-./run_gen_vc bv-comp-eliminate
-./run_gen_vc bv-rotate-left-eliminate-1
-./run_gen_vc bv-rotate-left-eliminate-2
-./run_gen_vc bv-rotate-right-eliminate-1
-./run_gen_vc bv-rotate-right-eliminate-2
-./run_gen_vc bv-nand-eliminate
-./run_gen_vc bv-nor-eliminate
-./run_gen_vc bv-xnor-eliminate
-./run_gen_vc bv-sdiv-eliminate
-./run_gen_vc bv-zero-extend-eliminate
-./run_gen_vc bv-uaddo-eliminate
-./run_gen_vc bv-saddo-eliminate
-./run_gen_vc bv-sdivo-eliminate
-./run_gen_vc bv-smod-eliminate
-./run_gen_vc bv-srem-eliminate
-./run_gen_vc bv-usubo-eliminate
-./run_gen_vc bv-ssubo-eliminate
-./run_gen_vc bv-nego-eliminate
-./run_gen_vc bv-ite-equal-children
-./run_gen_vc bv-ite-const-children-1
-./run_gen_vc bv-ite-const-children-2
-./run_gen_vc bv-ite-equal-cond-1
-./run_gen_vc bv-ite-equal-cond-2
-./run_gen_vc bv-ite-equal-cond-3
-./run_gen_vc bv-ite-merge-then-if
-./run_gen_vc bv-ite-merge-else-if
-./run_gen_vc bv-ite-merge-then-else
-./run_gen_vc bv-ite-merge-else-else
-./run_gen_vc bv-shl-by-const-0
-./run_gen_vc bv-shl-by-const-1
-./run_gen_vc bv-shl-by-const-2
-./run_gen_vc bv-lshr-by-const-0
-./run_gen_vc bv-lshr-by-const-1
-./run_gen_vc bv-lshr-by-const-2
-./run_gen_vc bv-ashr-by-const-0
-./run_gen_vc bv-ashr-by-const-1
-./run_gen_vc bv-ashr-by-const-2
-./run_gen_vc bv-and-concat-pullup
-./run_gen_vc bv-or-concat-pullup
-./run_gen_vc bv-xor-concat-pullup
-./run_gen_vc bv-and-concat-pullup2
-./run_gen_vc bv-or-concat-pullup2
-./run_gen_vc bv-xor-concat-pullup2
-./run_gen_vc bv-and-concat-pullup3
-./run_gen_vc bv-or-concat-pullup3
-./run_gen_vc bv-xor-concat-pullup3
-./run_gen_vc bv-xor-duplicate
-./run_gen_vc bv-xor-ones
-./run_gen_vc bv-xor-not
-./run_gen_vc bv-not-idemp
-./run_gen_vc bv-ult-zero-1
-./run_gen_vc bv-ult-zero-2
-./run_gen_vc bv-ult-self
-./run_gen_vc bv-lt-self
-./run_gen_vc bv-ule-self
-./run_gen_vc bv-ule-zero
-./run_gen_vc bv-zero-ule
-./run_gen_vc bv-sle-self
-./run_gen_vc bv-ule-max
-./run_gen_vc bv-not-ult
-./run_gen_vc bv-mult-pow2-1
-./run_gen_vc bv-mult-pow2-2
-./run_gen_vc bv-mult-pow2-2b
-./run_gen_vc bv-extract-mult-leading-bit
-./run_gen_vc bv-udiv-pow2-not-one
-./run_gen_vc bv-udiv-zero
-./run_gen_vc bv-udiv-one
-./run_gen_vc bv-urem-pow2-not-one
-./run_gen_vc bv-urem-one
-./run_gen_vc bv-urem-self
-./run_gen_vc bv-shl-zero
-./run_gen_vc bv-lshr-zero
-./run_gen_vc bv-ashr-zero
-./run_gen_vc bv-ugt-urem
-./run_gen_vc bv-ult-one
-./run_gen_vc bv-merge-sign-extend-1
-./run_gen_vc bv-merge-sign-extend-2
-./run_gen_vc bv-sign-extend-eq-const-1
-./run_gen_vc bv-sign-extend-eq-const-2
-./run_gen_vc bv-zero-extend-eq-const-1
-./run_gen_vc bv-zero-extend-eq-const-2
-./run_gen_vc bv-zero-extend-ult-const-1
-./run_gen_vc bv-zero-extend-ult-const-2
-./run_gen_vc bv-sign-extend-ult-const-1
-./run_gen_vc bv-sign-extend-ult-const-2
-./run_gen_vc bv-sign-extend-ult-const-3
-./run_gen_vc bv-sign-extend-ult-const-4
-./run_gen_vc sets-eq-singleton-emp
-./run_gen_vc sets-member-singleton
-./run_gen_vc sets-member-emp
-./run_gen_vc sets-subset-elim
-./run_gen_vc sets-union-comm
-./run_gen_vc sets-inter-comm
-./run_gen_vc sets-inter-emp1
-./run_gen_vc sets-inter-emp2
-./run_gen_vc sets-minus-emp1
-./run_gen_vc sets-minus-emp2
-./run_gen_vc sets-union-emp1
-./run_gen_vc sets-union-emp2
-./run_gen_vc sets-inter-member
-./run_gen_vc sets-minus-member
-./run_gen_vc sets-union-member
-./run_gen_vc sets-choose-singleton
-./run_gen_vc sets-minus-self
-./run_gen_vc sets-is-empty-elim
-./run_gen_vc sets-is-singleton-elim
-./run_gen_vc str-eq-ctn-false
-./run_gen_vc str-eq-ctn-full-false1
-./run_gen_vc str-eq-ctn-full-false2
-./run_gen_vc str-eq-len-false
-./run_gen_vc str-substr-empty-str
-./run_gen_vc str-substr-empty-range
-./run_gen_vc str-substr-empty-start
-./run_gen_vc str-substr-empty-start-neg
-./run_gen_vc str-substr-substr-start-geq-len
-./run_gen_vc str-substr-eq-empty
-./run_gen_vc str-substr-z-eq-empty-leq
-./run_gen_vc str-substr-eq-empty-leq-len
-./run_gen_vc str-len-replace-inv
-./run_gen_vc str-len-replace-all-inv
-./run_gen_vc str-len-update-inv
-./run_gen_vc str-update-in-first-concat
-./run_gen_vc str-len-substr-in-range
-./run_gen_vc str-concat-clash
-./run_gen_vc str-concat-clash-rev
-./run_gen_vc str-concat-clash2
-./run_gen_vc str-concat-clash2-rev
-./run_gen_vc str-concat-unify
-./run_gen_vc str-concat-unify-rev
-./run_gen_vc str-concat-unify-base
-./run_gen_vc str-concat-unify-base-rev
-./run_gen_vc str-prefixof-elim
-./run_gen_vc str-suffixof-elim
-./run_gen_vc str-prefixof-eq
-./run_gen_vc str-suffixof-eq
-./run_gen_vc str-prefixof-one
-./run_gen_vc str-suffixof-one
-./run_gen_vc str-substr-combine1
-./run_gen_vc str-substr-combine2
-./run_gen_vc str-substr-combine3
-./run_gen_vc str-substr-combine4
-./run_gen_vc str-substr-concat1
-./run_gen_vc str-substr-concat2
-./run_gen_vc str-substr-replace
-./run_gen_vc str-substr-full
-./run_gen_vc str-substr-full-eq
-./run_gen_vc str-contains-refl
-./run_gen_vc str-contains-concat-find
-./run_gen_vc str-contains-concat-find-contra
-./run_gen_vc str-contains-split-char
-./run_gen_vc str-contains-leq-len-eq
-./run_gen_vc str-contains-emp
-./run_gen_vc str-contains-char
-./run_gen_vc str-at-elim
-./run_gen_vc str-replace-self
-./run_gen_vc str-replace-id
-./run_gen_vc str-replace-prefix
-./run_gen_vc str-replace-no-contains
-./run_gen_vc str-replace-find-base
-./run_gen_vc str-replace-find-first-concat
-./run_gen_vc str-replace-empty
-./run_gen_vc str-replace-one-pre
-./run_gen_vc str-replace-find-pre
-./run_gen_vc str-replace-all-no-contains
-./run_gen_vc str-replace-re-none
-./run_gen_vc str-replace-re-all-none
-./run_gen_vc str-len-concat-rec
-./run_gen_vc str-len-eq-zero-concat-rec
-./run_gen_vc str-len-eq-zero-base
-./run_gen_vc str-indexof-self
-./run_gen_vc str-indexof-no-contains
-./run_gen_vc str-indexof-oob
-./run_gen_vc str-indexof-oob2
-./run_gen_vc str-indexof-contains-pre
-./run_gen_vc str-indexof-find-emp
-./run_gen_vc str-indexof-eq-irr
-./run_gen_vc str-indexof-re-none
-./run_gen_vc str-indexof-re-emp-re
-./run_gen_vc str-to-lower-concat
-./run_gen_vc str-to-upper-concat
-./run_gen_vc str-to-lower-upper
-./run_gen_vc str-to-upper-lower
-./run_gen_vc str-to-lower-len
-./run_gen_vc str-to-upper-len
-./run_gen_vc str-to-lower-from-int
-./run_gen_vc str-to-upper-from-int
-./run_gen_vc str-to-int-concat-neg-one
-./run_gen_vc str-leq-empty
-./run_gen_vc str-leq-empty-eq
-./run_gen_vc str-leq-concat-false
-./run_gen_vc str-leq-concat-true
-./run_gen_vc str-leq-concat-base-1
-./run_gen_vc str-leq-concat-base-2
-./run_gen_vc str-lt-elim
-./run_gen_vc str-from-int-no-ctn-nondigit
-./run_gen_vc str-substr-ctn-contra
-./run_gen_vc str-substr-ctn
-./run_gen_vc str-replace-dual-ctn
-./run_gen_vc str-replace-dual-ctn-false
-./run_gen_vc str-replace-self-ctn-simp
-./run_gen_vc str-replace-emp-ctn-src
-./run_gen_vc str-substr-char-start-eq-len
-./run_gen_vc str-contains-repl-char
-./run_gen_vc str-contains-repl-self-tgt-char
-./run_gen_vc str-contains-repl-self
-./run_gen_vc str-contains-repl-tgt
-./run_gen_vc str-repl-repl-len-id
-./run_gen_vc str-repl-repl-src-tgt-no-ctn
-./run_gen_vc str-repl-repl-tgt-self
-./run_gen_vc str-repl-repl-tgt-no-ctn
-./run_gen_vc str-repl-repl-src-self
-./run_gen_vc str-repl-repl-src-inv-no-ctn1
-./run_gen_vc str-repl-repl-src-inv-no-ctn2
-./run_gen_vc str-repl-repl-src-inv-no-ctn3
-./run_gen_vc str-repl-repl-dual-self
-./run_gen_vc str-repl-repl-dual-ite1
-./run_gen_vc str-repl-repl-dual-ite2
-./run_gen_vc str-repl-repl-lookahead-id-simp
-./run_gen_vc re-all-elim
-./run_gen_vc re-opt-elim
-./run_gen_vc re-diff-elim
-./run_gen_vc re-plus-elim
-./run_gen_vc re-concat-star-swap
-./run_gen_vc re-concat-star-repeat
-./run_gen_vc re-concat-star-subsume1
-./run_gen_vc re-concat-star-subsume2
-./run_gen_vc re-concat-merge
-./run_gen_vc re-union-all
-./run_gen_vc re-union-const-elim
-./run_gen_vc re-inter-all
-./run_gen_vc re-star-none
-./run_gen_vc re-star-emp
-./run_gen_vc re-star-star
-./run_gen_vc re-star-union-drop-emp
-./run_gen_vc re-loop-neg
-./run_gen_vc re-inter-cstring
-./run_gen_vc re-inter-cstring-neg
-./run_gen_vc str-substr-len-include
-./run_gen_vc str-substr-len-include-pre
-./run_gen_vc str-substr-len-norm
-./run_gen_vc seq-len-rev
-./run_gen_vc seq-rev-rev
-./run_gen_vc seq-rev-concat
-./run_gen_vc str-eq-repl-self-emp
-./run_gen_vc str-eq-repl-no-change
-./run_gen_vc str-eq-repl-tgt-eq-len
-./run_gen_vc str-eq-repl-len-one-emp-prefix
-./run_gen_vc str-eq-repl-emp-tgt-nemp
-./run_gen_vc str-eq-repl-nemp-src-emp
-./run_gen_vc str-eq-repl-self-src
-./run_gen_vc seq-len-unit
-./run_gen_vc seq-nth-unit
-./run_gen_vc seq-rev-unit
-./run_gen_vc seq-len-empty
-./run_gen_vc re-in-empty
-./run_gen_vc re-in-sigma
-./run_gen_vc re-in-sigma-star
-./run_gen_vc re-in-cstring
-./run_gen_vc re-in-comp
-./run_gen_vc str-in-re-union-elim
-./run_gen_vc str-in-re-inter-elim
-./run_gen_vc str-in-re-range-elim
-./run_gen_vc str-in-re-contains
-./run_gen_vc str-in-re-from-int-nemp-dig-range
-./run_gen_vc str-in-re-from-int-dig-range
-./run_gen_vc eq-refl
-./run_gen_vc eq-symm
-./run_gen_vc eq-cond-deq
-./run_gen_vc eq-ite-lift
-./run_gen_vc distinct-binary-elim
-./run_gen_vc uf-bv2nat-int2bv
-./run_gen_vc uf-bv2nat-int2bv-extend
-./run_gen_vc uf-bv2nat-int2bv-extract
-./run_gen_vc uf-int2bv-bv2nat
-./run_gen_vc uf-bv2nat-geq-elim
-./run_gen_vc uf-int2bv-bvult-equiv
-./run_gen_vc uf-int2bv-bvule-equiv
-./run_gen_vc uf-sbv-to-int-elim
+#!/bin/bash
+# The name of a EO signature
+INPUT="../../cvc5-ajr/proofs/eo/cpc/Cpc.eo"
+
+./run_gen_vc_single $INPUT evaluate
+./run_gen_vc_single $INPUT distinct_values
+./run_gen_vc_single $INPUT aci_norm
+./run_gen_vc_single $INPUT absorb
+./run_gen_vc_single $INPUT distinct-card-conflict
+./run_gen_vc_single $INPUT arith_sum_ub
+./run_gen_vc_single $INPUT arith_mult_pos
+./run_gen_vc_single $INPUT arith_mult_neg
+./run_gen_vc_single $INPUT arith_trichotomy
+./run_gen_vc_single $INPUT int_tight_ub
+./run_gen_vc_single $INPUT int_tight_lb
+./run_gen_vc_single $INPUT arith_mult_tangent
+./run_gen_vc_single $INPUT arith_mult_sign
+./run_gen_vc_single $INPUT arith_mult_abs_comparison
+./run_gen_vc_single $INPUT arith_reduction
+./run_gen_vc_single $INPUT arith_poly_norm
+./run_gen_vc_single $INPUT arith_poly_norm_rel
+./run_gen_vc_single $INPUT arith-pow-elim
+./run_gen_vc_single $INPUT arrays_read_over_write
+./run_gen_vc_single $INPUT arrays_read_over_write_contra
+./run_gen_vc_single $INPUT arrays_read_over_write_1
+./run_gen_vc_single $INPUT arrays_ext
+./run_gen_vc_single $INPUT bv-repeat-elim
+./run_gen_vc_single $INPUT bv-smulo-elim
+./run_gen_vc_single $INPUT bv-umulo-elim
+./run_gen_vc_single $INPUT bv-bitwise-slicing
+./run_gen_vc_single $INPUT bv_bitblast_step
+./run_gen_vc_single $INPUT bv_poly_norm
+./run_gen_vc_single $INPUT bv_poly_norm_eq
+./run_gen_vc_single $INPUT split
+./run_gen_vc_single $INPUT resolution
+./run_gen_vc_single $INPUT chain_resolution
+./run_gen_vc_single $INPUT factoring
+./run_gen_vc_single $INPUT reordering
+./run_gen_vc_single $INPUT eq_resolve
+./run_gen_vc_single $INPUT modus_ponens
+./run_gen_vc_single $INPUT not_not_elim
+./run_gen_vc_single $INPUT contra
+./run_gen_vc_single $INPUT and_elim
+./run_gen_vc_single $INPUT and_intro
+./run_gen_vc_single $INPUT not_or_elim
+./run_gen_vc_single $INPUT implies_elim
+./run_gen_vc_single $INPUT not_implies_elim1
+./run_gen_vc_single $INPUT not_implies_elim2
+./run_gen_vc_single $INPUT equiv_elim1
+./run_gen_vc_single $INPUT equiv_elim2
+./run_gen_vc_single $INPUT not_equiv_elim1
+./run_gen_vc_single $INPUT not_equiv_elim2
+./run_gen_vc_single $INPUT xor_elim1
+./run_gen_vc_single $INPUT xor_elim2
+./run_gen_vc_single $INPUT not_xor_elim1
+./run_gen_vc_single $INPUT not_xor_elim2
+./run_gen_vc_single $INPUT ite_elim1
+./run_gen_vc_single $INPUT ite_elim2
+./run_gen_vc_single $INPUT not_ite_elim1
+./run_gen_vc_single $INPUT not_ite_elim2
+./run_gen_vc_single $INPUT not_and
+./run_gen_vc_single $INPUT cnf_and_pos
+./run_gen_vc_single $INPUT cnf_and_neg
+./run_gen_vc_single $INPUT cnf_or_pos
+./run_gen_vc_single $INPUT cnf_or_neg
+./run_gen_vc_single $INPUT cnf_implies_pos
+./run_gen_vc_single $INPUT cnf_implies_neg1
+./run_gen_vc_single $INPUT cnf_implies_neg2
+./run_gen_vc_single $INPUT cnf_equiv_pos1
+./run_gen_vc_single $INPUT cnf_equiv_pos2
+./run_gen_vc_single $INPUT cnf_equiv_neg1
+./run_gen_vc_single $INPUT cnf_equiv_neg2
+./run_gen_vc_single $INPUT cnf_xor_pos1
+./run_gen_vc_single $INPUT cnf_xor_pos2
+./run_gen_vc_single $INPUT cnf_xor_neg1
+./run_gen_vc_single $INPUT cnf_xor_neg2
+./run_gen_vc_single $INPUT cnf_ite_pos1
+./run_gen_vc_single $INPUT cnf_ite_pos2
+./run_gen_vc_single $INPUT cnf_ite_pos3
+./run_gen_vc_single $INPUT cnf_ite_neg1
+./run_gen_vc_single $INPUT cnf_ite_neg2
+./run_gen_vc_single $INPUT cnf_ite_neg3
+./run_gen_vc_single $INPUT scope
+./run_gen_vc_single $INPUT process_scope
+./run_gen_vc_single $INPUT ite_eq
+./run_gen_vc_single $INPUT instantiate
+./run_gen_vc_single $INPUT skolemize
+./run_gen_vc_single $INPUT skolem_intro
+./run_gen_vc_single $INPUT alpha_equiv
+./run_gen_vc_single $INPUT beta-reduce
+./run_gen_vc_single $INPUT quant_var_reordering
+./run_gen_vc_single $INPUT exists-elim
+./run_gen_vc_single $INPUT quant-unused-vars
+./run_gen_vc_single $INPUT quant-merge-prenex
+./run_gen_vc_single $INPUT quant-miniscope-and
+./run_gen_vc_single $INPUT quant-miniscope-or
+./run_gen_vc_single $INPUT quant-miniscope-ite
+./run_gen_vc_single $INPUT quant-var-elim-eq
+./run_gen_vc_single $INPUT quant-dt-split
+./run_gen_vc_single $INPUT exists_inv_condition
+./run_gen_vc_single $INPUT sets_singleton_inj
+./run_gen_vc_single $INPUT sets_ext
+./run_gen_vc_single $INPUT sets-eval-op
+./run_gen_vc_single $INPUT sets-insert-elim
+./run_gen_vc_single $INPUT string_length_pos
+./run_gen_vc_single $INPUT string_length_non_empty
+./run_gen_vc_single $INPUT concat_eq
+./run_gen_vc_single $INPUT concat_unify
+./run_gen_vc_single $INPUT concat_csplit
+./run_gen_vc_single $INPUT concat_split
+./run_gen_vc_single $INPUT concat_lprop
+./run_gen_vc_single $INPUT concat_cprop
+./run_gen_vc_single $INPUT string_decompose
+./run_gen_vc_single $INPUT exists_string_length
+./run_gen_vc_single $INPUT string_code_inj
+./run_gen_vc_single $INPUT string_seq_unit_inj
+./run_gen_vc_single $INPUT re_inter
+./run_gen_vc_single $INPUT re_concat
+./run_gen_vc_single $INPUT re_unfold_pos
+./run_gen_vc_single $INPUT re_unfold_neg_concat_fixed
+./run_gen_vc_single $INPUT re_unfold_neg
+./run_gen_vc_single $INPUT string_ext
+./run_gen_vc_single $INPUT string_reduction
+./run_gen_vc_single $INPUT string_eager_reduction
+./run_gen_vc_single $INPUT arith-string-pred-entail
+./run_gen_vc_single $INPUT arith-string-pred-safe-approx
+./run_gen_vc_single $INPUT str-in-re-eval
+./run_gen_vc_single $INPUT str-in-re-consume
+./run_gen_vc_single $INPUT re-loop-elim
+./run_gen_vc_single $INPUT re-inter-inclusion
+./run_gen_vc_single $INPUT re-union-inclusion
+./run_gen_vc_single $INPUT str-in-re-concat-star-char
+./run_gen_vc_single $INPUT str-in-re-sigma
+./run_gen_vc_single $INPUT str-in-re-sigma-star
+./run_gen_vc_single $INPUT str-ctn-multiset-subset
+./run_gen_vc_single $INPUT str-overlap-split-ctn
+./run_gen_vc_single $INPUT str-overlap-endpoints-ctn
+./run_gen_vc_single $INPUT str-overlap-endpoints-indexof
+./run_gen_vc_single $INPUT str-overlap-endpoints-replace
+./run_gen_vc_single $INPUT str-indexof-re-eval
+./run_gen_vc_single $INPUT str-replace-re-eval
+./run_gen_vc_single $INPUT str-replace-re-all-eval
+./run_gen_vc_single $INPUT seq-eval-op
+./run_gen_vc_single $INPUT ubv-to-int-elim
+./run_gen_vc_single $INPUT int-to-bv-elim
+./run_gen_vc_single $INPUT refl
+./run_gen_vc_single $INPUT symm
+./run_gen_vc_single $INPUT trans
+./run_gen_vc_single $INPUT cong
+./run_gen_vc_single $INPUT nary_cong
+./run_gen_vc_single $INPUT true_intro
+./run_gen_vc_single $INPUT true_elim
+./run_gen_vc_single $INPUT false_intro
+./run_gen_vc_single $INPUT false_elim
+./run_gen_vc_single $INPUT ho_cong
+./run_gen_vc_single $INPUT distinct-elim
+./run_gen_vc_single $INPUT lambda-elim
+./run_gen_vc_single $INPUT dt_split
+./run_gen_vc_single $INPUT dt-inst
+./run_gen_vc_single $INPUT dt-collapse-selector
+./run_gen_vc_single $INPUT dt-collapse-tester
+./run_gen_vc_single $INPUT dt-collapse-tester-singleton
+./run_gen_vc_single $INPUT dt-cons-eq
+./run_gen_vc_single $INPUT dt-cons-eq-clash
+./run_gen_vc_single $INPUT dt-cycle
+./run_gen_vc_single $INPUT dt-collapse-updater
+./run_gen_vc_single $INPUT dt-updater-elim
+./run_gen_vc_single $INPUT arith-div-total-zero-real
+./run_gen_vc_single $INPUT arith-div-total-zero-int
+./run_gen_vc_single $INPUT arith-int-div-total
+./run_gen_vc_single $INPUT arith-int-div-total-one
+./run_gen_vc_single $INPUT arith-int-div-total-zero
+./run_gen_vc_single $INPUT arith-int-div-total-neg
+./run_gen_vc_single $INPUT arith-int-mod-total
+./run_gen_vc_single $INPUT arith-int-mod-total-one
+./run_gen_vc_single $INPUT arith-int-mod-total-zero
+./run_gen_vc_single $INPUT arith-int-mod-total-neg
+./run_gen_vc_single $INPUT arith-elim-gt
+./run_gen_vc_single $INPUT arith-elim-lt
+./run_gen_vc_single $INPUT arith-elim-int-gt
+./run_gen_vc_single $INPUT arith-elim-int-lt
+./run_gen_vc_single $INPUT arith-elim-leq
+./run_gen_vc_single $INPUT arith-leq-norm
+./run_gen_vc_single $INPUT arith-geq-tighten
+./run_gen_vc_single $INPUT arith-geq-norm1-int
+./run_gen_vc_single $INPUT arith-geq-norm1-real
+./run_gen_vc_single $INPUT arith-eq-elim-real
+./run_gen_vc_single $INPUT arith-eq-elim-int
+./run_gen_vc_single $INPUT arith-to-int-elim
+./run_gen_vc_single $INPUT arith-to-int-elim-to-real
+./run_gen_vc_single $INPUT arith-div-elim-to-real1
+./run_gen_vc_single $INPUT arith-div-elim-to-real2
+./run_gen_vc_single $INPUT arith-mod-over-mod
+./run_gen_vc_single $INPUT arith-int-eq-conflict
+./run_gen_vc_single $INPUT arith-int-geq-tighten
+./run_gen_vc_single $INPUT arith-divisible-elim
+./run_gen_vc_single $INPUT arith-abs-eq
+./run_gen_vc_single $INPUT arith-abs-int-gt
+./run_gen_vc_single $INPUT arith-abs-real-gt
+./run_gen_vc_single $INPUT arith-geq-ite-lift
+./run_gen_vc_single $INPUT arith-leq-ite-lift
+./run_gen_vc_single $INPUT arith-min-lt1
+./run_gen_vc_single $INPUT arith-min-lt2
+./run_gen_vc_single $INPUT arith-max-geq1
+./run_gen_vc_single $INPUT arith-max-geq2
+./run_gen_vc_single $INPUT array-read-over-write
+./run_gen_vc_single $INPUT array-read-over-write2
+./run_gen_vc_single $INPUT array-store-overwrite
+./run_gen_vc_single $INPUT array-store-self
+./run_gen_vc_single $INPUT array-read-over-write-split
+./run_gen_vc_single $INPUT array-store-swap
+./run_gen_vc_single $INPUT bool-double-not-elim
+./run_gen_vc_single $INPUT bool-not-true
+./run_gen_vc_single $INPUT bool-not-false
+./run_gen_vc_single $INPUT bool-eq-true
+./run_gen_vc_single $INPUT bool-eq-false
+./run_gen_vc_single $INPUT bool-eq-nrefl
+./run_gen_vc_single $INPUT bool-impl-false1
+./run_gen_vc_single $INPUT bool-impl-false2
+./run_gen_vc_single $INPUT bool-impl-true1
+./run_gen_vc_single $INPUT bool-impl-true2
+./run_gen_vc_single $INPUT bool-impl-elim
+./run_gen_vc_single $INPUT bool-dual-impl-eq
+./run_gen_vc_single $INPUT bool-and-conf
+./run_gen_vc_single $INPUT bool-and-conf2
+./run_gen_vc_single $INPUT bool-or-taut
+./run_gen_vc_single $INPUT bool-or-taut2
+./run_gen_vc_single $INPUT bool-or-de-morgan
+./run_gen_vc_single $INPUT bool-implies-de-morgan
+./run_gen_vc_single $INPUT bool-and-de-morgan
+./run_gen_vc_single $INPUT bool-or-and-distrib
+./run_gen_vc_single $INPUT bool-implies-or-distrib
+./run_gen_vc_single $INPUT bool-xor-refl
+./run_gen_vc_single $INPUT bool-xor-nrefl
+./run_gen_vc_single $INPUT bool-xor-false
+./run_gen_vc_single $INPUT bool-xor-true
+./run_gen_vc_single $INPUT bool-xor-comm
+./run_gen_vc_single $INPUT bool-xor-elim
+./run_gen_vc_single $INPUT bool-not-xor-elim
+./run_gen_vc_single $INPUT bool-not-eq-elim1
+./run_gen_vc_single $INPUT bool-not-eq-elim2
+./run_gen_vc_single $INPUT ite-neg-branch
+./run_gen_vc_single $INPUT ite-then-true
+./run_gen_vc_single $INPUT ite-else-false
+./run_gen_vc_single $INPUT ite-then-false
+./run_gen_vc_single $INPUT ite-else-true
+./run_gen_vc_single $INPUT ite-then-lookahead-self
+./run_gen_vc_single $INPUT ite-else-lookahead-self
+./run_gen_vc_single $INPUT ite-then-lookahead-not-self
+./run_gen_vc_single $INPUT ite-else-lookahead-not-self
+./run_gen_vc_single $INPUT ite-expand
+./run_gen_vc_single $INPUT bool-not-ite-elim
+./run_gen_vc_single $INPUT ite-true-cond
+./run_gen_vc_single $INPUT ite-false-cond
+./run_gen_vc_single $INPUT ite-not-cond
+./run_gen_vc_single $INPUT ite-eq-branch
+./run_gen_vc_single $INPUT ite-then-lookahead
+./run_gen_vc_single $INPUT ite-else-lookahead
+./run_gen_vc_single $INPUT ite-then-neg-lookahead
+./run_gen_vc_single $INPUT ite-else-neg-lookahead
+./run_gen_vc_single $INPUT bv-concat-extract-merge
+./run_gen_vc_single $INPUT bv-extract-extract
+./run_gen_vc_single $INPUT bv-extract-whole
+./run_gen_vc_single $INPUT bv-extract-concat-1
+./run_gen_vc_single $INPUT bv-extract-concat-2
+./run_gen_vc_single $INPUT bv-extract-concat-3
+./run_gen_vc_single $INPUT bv-extract-concat-4
+./run_gen_vc_single $INPUT bv-eq-extract-elim1
+./run_gen_vc_single $INPUT bv-eq-extract-elim2
+./run_gen_vc_single $INPUT bv-eq-extract-elim3
+./run_gen_vc_single $INPUT bv-extract-not
+./run_gen_vc_single $INPUT bv-extract-sign-extend-1
+./run_gen_vc_single $INPUT bv-extract-sign-extend-2
+./run_gen_vc_single $INPUT bv-extract-sign-extend-3
+./run_gen_vc_single $INPUT bv-not-xor
+./run_gen_vc_single $INPUT bv-and-simplify-1
+./run_gen_vc_single $INPUT bv-and-simplify-2
+./run_gen_vc_single $INPUT bv-or-simplify-1
+./run_gen_vc_single $INPUT bv-or-simplify-2
+./run_gen_vc_single $INPUT bv-xor-simplify-1
+./run_gen_vc_single $INPUT bv-xor-simplify-2
+./run_gen_vc_single $INPUT bv-xor-simplify-3
+./run_gen_vc_single $INPUT bv-ult-add-one
+./run_gen_vc_single $INPUT bv-mult-slt-mult-1
+./run_gen_vc_single $INPUT bv-mult-slt-mult-2
+./run_gen_vc_single $INPUT bv-commutative-xor
+./run_gen_vc_single $INPUT bv-commutative-comp
+./run_gen_vc_single $INPUT bv-zero-extend-eliminate-0
+./run_gen_vc_single $INPUT bv-sign-extend-eliminate-0
+./run_gen_vc_single $INPUT bv-not-neq
+./run_gen_vc_single $INPUT bv-ult-ones
+./run_gen_vc_single $INPUT bv-concat-merge-const
+./run_gen_vc_single $INPUT bv-commutative-add
+./run_gen_vc_single $INPUT bv-sub-eliminate
+./run_gen_vc_single $INPUT bv-ite-width-one
+./run_gen_vc_single $INPUT bv-ite-width-one-not
+./run_gen_vc_single $INPUT bv-eq-xor-solve
+./run_gen_vc_single $INPUT bv-eq-not-solve
+./run_gen_vc_single $INPUT bv-ugt-eliminate
+./run_gen_vc_single $INPUT bv-uge-eliminate
+./run_gen_vc_single $INPUT bv-sgt-eliminate
+./run_gen_vc_single $INPUT bv-sge-eliminate
+./run_gen_vc_single $INPUT bv-sle-eliminate
+./run_gen_vc_single $INPUT bv-redor-eliminate
+./run_gen_vc_single $INPUT bv-redand-eliminate
+./run_gen_vc_single $INPUT bv-ule-eliminate
+./run_gen_vc_single $INPUT bv-comp-eliminate
+./run_gen_vc_single $INPUT bv-rotate-left-eliminate-1
+./run_gen_vc_single $INPUT bv-rotate-left-eliminate-2
+./run_gen_vc_single $INPUT bv-rotate-right-eliminate-1
+./run_gen_vc_single $INPUT bv-rotate-right-eliminate-2
+./run_gen_vc_single $INPUT bv-nand-eliminate
+./run_gen_vc_single $INPUT bv-nor-eliminate
+./run_gen_vc_single $INPUT bv-xnor-eliminate
+./run_gen_vc_single $INPUT bv-sdiv-eliminate
+./run_gen_vc_single $INPUT bv-zero-extend-eliminate
+./run_gen_vc_single $INPUT bv-uaddo-eliminate
+./run_gen_vc_single $INPUT bv-saddo-eliminate
+./run_gen_vc_single $INPUT bv-sdivo-eliminate
+./run_gen_vc_single $INPUT bv-smod-eliminate
+./run_gen_vc_single $INPUT bv-srem-eliminate
+./run_gen_vc_single $INPUT bv-usubo-eliminate
+./run_gen_vc_single $INPUT bv-ssubo-eliminate
+./run_gen_vc_single $INPUT bv-nego-eliminate
+./run_gen_vc_single $INPUT bv-ite-equal-children
+./run_gen_vc_single $INPUT bv-ite-const-children-1
+./run_gen_vc_single $INPUT bv-ite-const-children-2
+./run_gen_vc_single $INPUT bv-ite-equal-cond-1
+./run_gen_vc_single $INPUT bv-ite-equal-cond-2
+./run_gen_vc_single $INPUT bv-ite-equal-cond-3
+./run_gen_vc_single $INPUT bv-ite-merge-then-if
+./run_gen_vc_single $INPUT bv-ite-merge-else-if
+./run_gen_vc_single $INPUT bv-ite-merge-then-else
+./run_gen_vc_single $INPUT bv-ite-merge-else-else
+./run_gen_vc_single $INPUT bv-shl-by-const-0
+./run_gen_vc_single $INPUT bv-shl-by-const-1
+./run_gen_vc_single $INPUT bv-shl-by-const-2
+./run_gen_vc_single $INPUT bv-lshr-by-const-0
+./run_gen_vc_single $INPUT bv-lshr-by-const-1
+./run_gen_vc_single $INPUT bv-lshr-by-const-2
+./run_gen_vc_single $INPUT bv-ashr-by-const-0
+./run_gen_vc_single $INPUT bv-ashr-by-const-1
+./run_gen_vc_single $INPUT bv-ashr-by-const-2
+./run_gen_vc_single $INPUT bv-and-concat-pullup
+./run_gen_vc_single $INPUT bv-or-concat-pullup
+./run_gen_vc_single $INPUT bv-xor-concat-pullup
+./run_gen_vc_single $INPUT bv-and-concat-pullup2
+./run_gen_vc_single $INPUT bv-or-concat-pullup2
+./run_gen_vc_single $INPUT bv-xor-concat-pullup2
+./run_gen_vc_single $INPUT bv-and-concat-pullup3
+./run_gen_vc_single $INPUT bv-or-concat-pullup3
+./run_gen_vc_single $INPUT bv-xor-concat-pullup3
+./run_gen_vc_single $INPUT bv-xor-duplicate
+./run_gen_vc_single $INPUT bv-xor-ones
+./run_gen_vc_single $INPUT bv-xor-not
+./run_gen_vc_single $INPUT bv-not-idemp
+./run_gen_vc_single $INPUT bv-ult-zero-1
+./run_gen_vc_single $INPUT bv-ult-zero-2
+./run_gen_vc_single $INPUT bv-ult-self
+./run_gen_vc_single $INPUT bv-lt-self
+./run_gen_vc_single $INPUT bv-ule-self
+./run_gen_vc_single $INPUT bv-ule-zero
+./run_gen_vc_single $INPUT bv-zero-ule
+./run_gen_vc_single $INPUT bv-sle-self
+./run_gen_vc_single $INPUT bv-ule-max
+./run_gen_vc_single $INPUT bv-not-ult
+./run_gen_vc_single $INPUT bv-mult-pow2-1
+./run_gen_vc_single $INPUT bv-mult-pow2-2
+./run_gen_vc_single $INPUT bv-mult-pow2-2b
+./run_gen_vc_single $INPUT bv-extract-mult-leading-bit
+./run_gen_vc_single $INPUT bv-udiv-pow2-not-one
+./run_gen_vc_single $INPUT bv-udiv-zero
+./run_gen_vc_single $INPUT bv-udiv-one
+./run_gen_vc_single $INPUT bv-urem-pow2-not-one
+./run_gen_vc_single $INPUT bv-urem-one
+./run_gen_vc_single $INPUT bv-urem-self
+./run_gen_vc_single $INPUT bv-shl-zero
+./run_gen_vc_single $INPUT bv-lshr-zero
+./run_gen_vc_single $INPUT bv-ashr-zero
+./run_gen_vc_single $INPUT bv-ugt-urem
+./run_gen_vc_single $INPUT bv-ult-one
+./run_gen_vc_single $INPUT bv-merge-sign-extend-1
+./run_gen_vc_single $INPUT bv-merge-sign-extend-2
+./run_gen_vc_single $INPUT bv-sign-extend-eq-const-1
+./run_gen_vc_single $INPUT bv-sign-extend-eq-const-2
+./run_gen_vc_single $INPUT bv-zero-extend-eq-const-1
+./run_gen_vc_single $INPUT bv-zero-extend-eq-const-2
+./run_gen_vc_single $INPUT bv-zero-extend-ult-const-1
+./run_gen_vc_single $INPUT bv-zero-extend-ult-const-2
+./run_gen_vc_single $INPUT bv-sign-extend-ult-const-1
+./run_gen_vc_single $INPUT bv-sign-extend-ult-const-2
+./run_gen_vc_single $INPUT bv-sign-extend-ult-const-3
+./run_gen_vc_single $INPUT bv-sign-extend-ult-const-4
+./run_gen_vc_single $INPUT sets-eq-singleton-emp
+./run_gen_vc_single $INPUT sets-member-singleton
+./run_gen_vc_single $INPUT sets-member-emp
+./run_gen_vc_single $INPUT sets-subset-elim
+./run_gen_vc_single $INPUT sets-union-comm
+./run_gen_vc_single $INPUT sets-inter-comm
+./run_gen_vc_single $INPUT sets-inter-emp1
+./run_gen_vc_single $INPUT sets-inter-emp2
+./run_gen_vc_single $INPUT sets-minus-emp1
+./run_gen_vc_single $INPUT sets-minus-emp2
+./run_gen_vc_single $INPUT sets-union-emp1
+./run_gen_vc_single $INPUT sets-union-emp2
+./run_gen_vc_single $INPUT sets-inter-member
+./run_gen_vc_single $INPUT sets-minus-member
+./run_gen_vc_single $INPUT sets-union-member
+./run_gen_vc_single $INPUT sets-choose-singleton
+./run_gen_vc_single $INPUT sets-minus-self
+./run_gen_vc_single $INPUT sets-is-empty-elim
+./run_gen_vc_single $INPUT sets-is-singleton-elim
+./run_gen_vc_single $INPUT str-eq-ctn-false
+./run_gen_vc_single $INPUT str-eq-ctn-full-false1
+./run_gen_vc_single $INPUT str-eq-ctn-full-false2
+./run_gen_vc_single $INPUT str-eq-len-false
+./run_gen_vc_single $INPUT str-substr-empty-str
+./run_gen_vc_single $INPUT str-substr-empty-range
+./run_gen_vc_single $INPUT str-substr-empty-start
+./run_gen_vc_single $INPUT str-substr-empty-start-neg
+./run_gen_vc_single $INPUT str-substr-substr-start-geq-len
+./run_gen_vc_single $INPUT str-substr-eq-empty
+./run_gen_vc_single $INPUT str-substr-z-eq-empty-leq
+./run_gen_vc_single $INPUT str-substr-eq-empty-leq-len
+./run_gen_vc_single $INPUT str-len-replace-inv
+./run_gen_vc_single $INPUT str-len-replace-all-inv
+./run_gen_vc_single $INPUT str-len-update-inv
+./run_gen_vc_single $INPUT str-update-in-first-concat
+./run_gen_vc_single $INPUT str-len-substr-in-range
+./run_gen_vc_single $INPUT str-concat-clash
+./run_gen_vc_single $INPUT str-concat-clash-rev
+./run_gen_vc_single $INPUT str-concat-clash2
+./run_gen_vc_single $INPUT str-concat-clash2-rev
+./run_gen_vc_single $INPUT str-concat-unify
+./run_gen_vc_single $INPUT str-concat-unify-rev
+./run_gen_vc_single $INPUT str-concat-unify-base
+./run_gen_vc_single $INPUT str-concat-unify-base-rev
+./run_gen_vc_single $INPUT str-prefixof-elim
+./run_gen_vc_single $INPUT str-suffixof-elim
+./run_gen_vc_single $INPUT str-prefixof-eq
+./run_gen_vc_single $INPUT str-suffixof-eq
+./run_gen_vc_single $INPUT str-prefixof-one
+./run_gen_vc_single $INPUT str-suffixof-one
+./run_gen_vc_single $INPUT str-substr-combine1
+./run_gen_vc_single $INPUT str-substr-combine2
+./run_gen_vc_single $INPUT str-substr-combine3
+./run_gen_vc_single $INPUT str-substr-combine4
+./run_gen_vc_single $INPUT str-substr-concat1
+./run_gen_vc_single $INPUT str-substr-concat2
+./run_gen_vc_single $INPUT str-substr-replace
+./run_gen_vc_single $INPUT str-substr-full
+./run_gen_vc_single $INPUT str-substr-full-eq
+./run_gen_vc_single $INPUT str-contains-refl
+./run_gen_vc_single $INPUT str-contains-concat-find
+./run_gen_vc_single $INPUT str-contains-concat-find-contra
+./run_gen_vc_single $INPUT str-contains-split-char
+./run_gen_vc_single $INPUT str-contains-leq-len-eq
+./run_gen_vc_single $INPUT str-contains-emp
+./run_gen_vc_single $INPUT str-contains-char
+./run_gen_vc_single $INPUT str-at-elim
+./run_gen_vc_single $INPUT str-replace-self
+./run_gen_vc_single $INPUT str-replace-id
+./run_gen_vc_single $INPUT str-replace-prefix
+./run_gen_vc_single $INPUT str-replace-no-contains
+./run_gen_vc_single $INPUT str-replace-find-base
+./run_gen_vc_single $INPUT str-replace-find-first-concat
+./run_gen_vc_single $INPUT str-replace-empty
+./run_gen_vc_single $INPUT str-replace-one-pre
+./run_gen_vc_single $INPUT str-replace-find-pre
+./run_gen_vc_single $INPUT str-replace-all-no-contains
+./run_gen_vc_single $INPUT str-replace-re-none
+./run_gen_vc_single $INPUT str-replace-re-all-none
+./run_gen_vc_single $INPUT str-len-concat-rec
+./run_gen_vc_single $INPUT str-len-eq-zero-concat-rec
+./run_gen_vc_single $INPUT str-len-eq-zero-base
+./run_gen_vc_single $INPUT str-indexof-self
+./run_gen_vc_single $INPUT str-indexof-no-contains
+./run_gen_vc_single $INPUT str-indexof-oob
+./run_gen_vc_single $INPUT str-indexof-oob2
+./run_gen_vc_single $INPUT str-indexof-contains-pre
+./run_gen_vc_single $INPUT str-indexof-find-emp
+./run_gen_vc_single $INPUT str-indexof-eq-irr
+./run_gen_vc_single $INPUT str-indexof-re-none
+./run_gen_vc_single $INPUT str-indexof-re-emp-re
+./run_gen_vc_single $INPUT str-to-lower-concat
+./run_gen_vc_single $INPUT str-to-upper-concat
+./run_gen_vc_single $INPUT str-to-lower-upper
+./run_gen_vc_single $INPUT str-to-upper-lower
+./run_gen_vc_single $INPUT str-to-lower-len
+./run_gen_vc_single $INPUT str-to-upper-len
+./run_gen_vc_single $INPUT str-to-lower-from-int
+./run_gen_vc_single $INPUT str-to-upper-from-int
+./run_gen_vc_single $INPUT str-to-int-concat-neg-one
+./run_gen_vc_single $INPUT str-leq-empty
+./run_gen_vc_single $INPUT str-leq-empty-eq
+./run_gen_vc_single $INPUT str-leq-concat-false
+./run_gen_vc_single $INPUT str-leq-concat-true
+./run_gen_vc_single $INPUT str-leq-concat-base-1
+./run_gen_vc_single $INPUT str-leq-concat-base-2
+./run_gen_vc_single $INPUT str-lt-elim
+./run_gen_vc_single $INPUT str-from-int-no-ctn-nondigit
+./run_gen_vc_single $INPUT str-substr-ctn-contra
+./run_gen_vc_single $INPUT str-substr-ctn
+./run_gen_vc_single $INPUT str-replace-dual-ctn
+./run_gen_vc_single $INPUT str-replace-dual-ctn-false
+./run_gen_vc_single $INPUT str-replace-self-ctn-simp
+./run_gen_vc_single $INPUT str-replace-emp-ctn-src
+./run_gen_vc_single $INPUT str-substr-char-start-eq-len
+./run_gen_vc_single $INPUT str-contains-repl-char
+./run_gen_vc_single $INPUT str-contains-repl-self-tgt-char
+./run_gen_vc_single $INPUT str-contains-repl-self
+./run_gen_vc_single $INPUT str-contains-repl-tgt
+./run_gen_vc_single $INPUT str-repl-repl-len-id
+./run_gen_vc_single $INPUT str-repl-repl-src-tgt-no-ctn
+./run_gen_vc_single $INPUT str-repl-repl-tgt-self
+./run_gen_vc_single $INPUT str-repl-repl-tgt-no-ctn
+./run_gen_vc_single $INPUT str-repl-repl-src-self
+./run_gen_vc_single $INPUT str-repl-repl-src-inv-no-ctn1
+./run_gen_vc_single $INPUT str-repl-repl-src-inv-no-ctn2
+./run_gen_vc_single $INPUT str-repl-repl-src-inv-no-ctn3
+./run_gen_vc_single $INPUT str-repl-repl-dual-self
+./run_gen_vc_single $INPUT str-repl-repl-dual-ite1
+./run_gen_vc_single $INPUT str-repl-repl-dual-ite2
+./run_gen_vc_single $INPUT str-repl-repl-lookahead-id-simp
+./run_gen_vc_single $INPUT re-all-elim
+./run_gen_vc_single $INPUT re-opt-elim
+./run_gen_vc_single $INPUT re-diff-elim
+./run_gen_vc_single $INPUT re-plus-elim
+./run_gen_vc_single $INPUT re-concat-star-swap
+./run_gen_vc_single $INPUT re-concat-star-repeat
+./run_gen_vc_single $INPUT re-concat-star-subsume1
+./run_gen_vc_single $INPUT re-concat-star-subsume2
+./run_gen_vc_single $INPUT re-concat-merge
+./run_gen_vc_single $INPUT re-union-all
+./run_gen_vc_single $INPUT re-union-const-elim
+./run_gen_vc_single $INPUT re-inter-all
+./run_gen_vc_single $INPUT re-star-none
+./run_gen_vc_single $INPUT re-star-emp
+./run_gen_vc_single $INPUT re-star-star
+./run_gen_vc_single $INPUT re-star-union-drop-emp
+./run_gen_vc_single $INPUT re-loop-neg
+./run_gen_vc_single $INPUT re-inter-cstring
+./run_gen_vc_single $INPUT re-inter-cstring-neg
+./run_gen_vc_single $INPUT str-substr-len-include
+./run_gen_vc_single $INPUT str-substr-len-include-pre
+./run_gen_vc_single $INPUT str-substr-len-norm
+./run_gen_vc_single $INPUT seq-len-rev
+./run_gen_vc_single $INPUT seq-rev-rev
+./run_gen_vc_single $INPUT seq-rev-concat
+./run_gen_vc_single $INPUT str-eq-repl-self-emp
+./run_gen_vc_single $INPUT str-eq-repl-no-change
+./run_gen_vc_single $INPUT str-eq-repl-tgt-eq-len
+./run_gen_vc_single $INPUT str-eq-repl-len-one-emp-prefix
+./run_gen_vc_single $INPUT str-eq-repl-emp-tgt-nemp
+./run_gen_vc_single $INPUT str-eq-repl-nemp-src-emp
+./run_gen_vc_single $INPUT str-eq-repl-self-src
+./run_gen_vc_single $INPUT seq-len-unit
+./run_gen_vc_single $INPUT seq-nth-unit
+./run_gen_vc_single $INPUT seq-rev-unit
+./run_gen_vc_single $INPUT seq-len-empty
+./run_gen_vc_single $INPUT re-in-empty
+./run_gen_vc_single $INPUT re-in-sigma
+./run_gen_vc_single $INPUT re-in-sigma-star
+./run_gen_vc_single $INPUT re-in-cstring
+./run_gen_vc_single $INPUT re-in-comp
+./run_gen_vc_single $INPUT str-in-re-union-elim
+./run_gen_vc_single $INPUT str-in-re-inter-elim
+./run_gen_vc_single $INPUT str-in-re-range-elim
+./run_gen_vc_single $INPUT str-in-re-contains
+./run_gen_vc_single $INPUT str-in-re-from-int-nemp-dig-range
+./run_gen_vc_single $INPUT str-in-re-from-int-dig-range
+./run_gen_vc_single $INPUT eq-refl
+./run_gen_vc_single $INPUT eq-symm
+./run_gen_vc_single $INPUT eq-cond-deq
+./run_gen_vc_single $INPUT eq-ite-lift
+./run_gen_vc_single $INPUT distinct-binary-elim
+./run_gen_vc_single $INPUT uf-bv2nat-int2bv
+./run_gen_vc_single $INPUT uf-bv2nat-int2bv-extend
+./run_gen_vc_single $INPUT uf-bv2nat-int2bv-extract
+./run_gen_vc_single $INPUT uf-int2bv-bv2nat
+./run_gen_vc_single $INPUT uf-bv2nat-geq-elim
+./run_gen_vc_single $INPUT uf-int2bv-bvult-equiv
+./run_gen_vc_single $INPUT uf-int2bv-bvule-equiv
+./run_gen_vc_single $INPUT uf-sbv-to-int-elim

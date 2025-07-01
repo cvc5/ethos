@@ -72,8 +72,6 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addSmtLibSym("str.++", {Kind::STRING, Kind::STRING}, Kind::STRING);
   addSmtLibSym(
       "str.substr", {Kind::STRING, Kind::NUMERAL, Kind::NUMERAL}, Kind::STRING);
-  addSmtLibSym(
-      "str.substr", {Kind::STRING, Kind::NUMERAL, Kind::NUMERAL}, Kind::STRING);
   addSmtLibSym("str.indexof",
                {Kind::STRING, Kind::STRING, Kind::NUMERAL},
                Kind::NUMERAL);
