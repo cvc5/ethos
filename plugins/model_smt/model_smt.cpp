@@ -117,6 +117,7 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
   {
     return;
   }
+  d_declSeen.insert(e);
   std::map<std::string, std::pair<std::vector<Kind>, Kind>>::iterator it =
       d_smtLibSyms.find(name);
   if (it == d_smtLibSyms.end())
@@ -133,7 +134,6 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
   {
     printSmtTerm(name, args, ret);
   }
-  d_declSeen.insert(e);
 }
 
 void ModelSmt::printSmtType(const std::string& name, std::vector<Kind>& args) {}
@@ -254,13 +254,13 @@ void ModelSmt::finalizeDeclaration(const Expr& e)
   std::stringstream prefix;
   std::stringstream metaType;
   metaType << "(($eo_get_meta_type " << e << ") ";
-  if (sname.compare(0, 1, "@") == 0 || sname.compare(0, 8, "$eo_List") == 0)
+  if (sname.compare(0, 1, "@") == 0 || sname.compare(0, 8, "$eo_List") == 0 || sname=="$eo_Var")
   {
     prefix << "eo.";
     out = &d_embedEoTermDt;
     metaType << "eo.Term)";
   }
-  else
+  else if (sname.compare(0, 4, "$eo_") != 0)
   {
     Expr c = e;
     Expr tc = d_tc.getType(c);
