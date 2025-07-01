@@ -46,7 +46,6 @@
   ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit) (W4 Type :implicit) (W5 Type :implicit)
    (op $smt_String :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque) (x4 W4 :opaque) (x5 W5 :opaque)) $smt_unknown_type)
 
-; TODO:
 (define $smt_builtin_Bool () ($smt_type_0 "Bool"))
 (define $smt_builtin_Int () ($smt_type_0 "Int"))
 (define $smt_builtin_Real () ($smt_type_0 "Real"))
@@ -60,6 +59,7 @@
 (define $smt_builtin_and ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "and" b1 b2))
 (define $smt_builtin_or ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "or" b1 b2))
 
+; TODO: =, ite
 
 ; In this signature, we heavily use references to the Datatypes corresponding
 ; to the final deep embeddings of Eunoia terms (eo.Term) and SMT-LIB terms
@@ -154,8 +154,11 @@
 (define $sm_is_bool ((T Type :implicit) (t T))
   ($smt_builtin_or
     ; treat "= sm.True" as a unary function, ditto for "= sm.False"
-    ($smt_apply_1 "= sm.True" t)
-    ($smt_apply_1 "= sm.False" t)))
+    ($smt_apply_2 "=" t $sm_mk_true)
+    ($smt_apply_2 "=" t $sm_mk_false)))
+
+;(define $sm_mk_binary ((w $smt_builtin_Int) (n $smt_builtin_Int))
+
 
 (define $eo_smt_term ((t $smt_Term)) ($smd_eo.SmtTerm t))
 (define $eo_smt_type ((T $smt_Type)) ($smd_eo.SmtType T))
