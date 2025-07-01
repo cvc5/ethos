@@ -91,6 +91,7 @@ $SM_EO_TERM_DECL$
   :signature (T) Type
   (
 $SM_META_TYPE_DECL$
+  ; otherwise, assume $eo_Term
   (($eo_get_meta_type t) $eo_Term)
   )
 )
