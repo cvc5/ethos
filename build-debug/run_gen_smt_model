@@ -9,7 +9,7 @@ TMP_OUT=$1-model.eo
 
 cp $1 $TMP_OUT
 # replace the command "(define $eo_smt_preamble () true)" with the premble as defined in Eunoia
-sed -i "/(define \$eo_smt_preamble () true)/{
+sed -i "/(echo \"include eo_smt_preamble\")/{
     r ../plugins/model_smt/model_smt_preamble.eo
     d
 }" $TMP_OUT

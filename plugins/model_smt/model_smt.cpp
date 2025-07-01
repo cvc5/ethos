@@ -355,14 +355,7 @@ void ModelSmt::finalize()
   ssoee << s_plugin_path << "plugins/model_smt/model_eo_embed_gen.eo";
   std::ofstream outee(ssoee.str());
   outee << finalEoEmbed;
-  
-  // read the preamble
-  std::stringstream ssiep;
-  ssiep << s_plugin_path << "plugins/model_smt/model_eo_preamble.eo";
-  std::ifstream inep(ssiep.str());
-  std::ostringstream ssep;
-  ssep << inep.rdbuf();
-  std::string finalEoPremable = ssep.str();
+
 
   std::stringstream ssie;
   ssie << s_plugin_path << "plugins/model_smt/model_eo.eo";

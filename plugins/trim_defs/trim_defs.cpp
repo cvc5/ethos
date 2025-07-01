@@ -171,8 +171,8 @@ void TrimDefs::parseCommands(std::istream& in)
       size_t cid = d_commands.size();
       d_symCommands[id].insert(cid);
       // declare-consts must always be visited
-      // $eo_test is a builtin way to ensure tests are included
-      if (cmd.d_cmdName == "declare-consts")
+      // echo is also always preserved
+      if (cmd.d_cmdName == "declare-consts" || cmd.d_cmdName=="echo")
       {
         d_toVisit.push_back(id);
       }
@@ -290,6 +290,11 @@ void TrimDefs::finalize()
   std::sort(allCmd.begin(), allCmd.end());
   for (size_t i : allCmd)
   {
+    // do not include the commands we processed
+    if (d_commands[i].compare(0,16, "(echo \"trim-defs")==0)
+    {
+      continue;
+    }
     ss << d_commands[i];
     ss << std::endl;
   }
