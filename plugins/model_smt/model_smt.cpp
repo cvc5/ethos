@@ -261,8 +261,9 @@ void ModelSmt::finalize()
   std::ostringstream sse;
   sse << ine.rdbuf();
   std::string finalEo = sse.str();
-  replace(finalEo, "$EO_IS_TYPE_CASES$", d_typeEnum.str());
-  replace(finalEo, "$EO_TYPE_ENUM_CASES$", d_isValue.str());
+  replace(finalEo, "$EO_TYPE_ENUM_CASES$", d_typeEnum.str());
+  replace(finalEo, "$EO_IS_VALUE_CASES$", d_isValue.str());
+  replace(finalEo, "$EO_IS_TYPE_CASES$", d_isType.str());
   replace(finalEo, "$EO_CONST_PREDICATE_CASES$", d_constPred.str());
   replace(finalEo, "$EO_EVAL_CASES$", d_customEval.str());
 

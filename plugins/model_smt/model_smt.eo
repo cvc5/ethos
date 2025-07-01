@@ -153,7 +153,7 @@
   (($smtx_is_value ($smd_tsm.UnknownSort n1) t)                            false)
   (($smtx_is_value ($smd_tsm.USort n1) t)                                  ($smtx_is_usort_value t))
   ; standard atomic types
-  (($smtx_is_value $smd_tsm.BoolType $smd_sm.True)                         true)
+  (($smtx_is_value $smd_tsm.BoolType $sm_mk_true)                         true)
   (($smtx_is_value $smd_tsm.BoolType $smd_sm.False)                        true)
   ;(($smtx_is_value $smt_Numeral ($smd_eo.SmtTerm ($smd_sm.Numeral n1)))    true)
   ;(($smtx_is_value $smt_Rational ($smd_eo.SmtTerm ($smd_sm.Rational r1)))  true)
@@ -287,6 +287,7 @@
 
 ; An evaluator for all terms that we can reason about models.
 ; This is a recursive call.
+; NOTE: this is a total function!!!!!!!
 (program $smtx_model_eval
   ((T Type) (U Type) (V Type) (a1 T) (a2 T) (c Bool) (f $smt_Term) (y U) (z T) (k $smt_Numeral) (i $smt_Numeral) (F Bool)
    ; generic parameters that may appear in terms to pattern match
@@ -294,7 +295,7 @@
   :signature ($smt_Term) $smt_Term
   (
   ; builtins
-  (($smtx_model_eval $smd_sm.True)   $smd_sm.True)
+  (($smtx_model_eval $sm_mk_true)   $sm_mk_true)
   (($smtx_model_eval $smd_sm.False)  $smd_sm.False)
   ; TODO: equality, ite
   ; evaluation of standard SMT symbols
@@ -324,6 +325,8 @@
   ;                                            ($smt_try_eo ($eo_model_eval (_ fme yme))
   ;
   ;                                            ))))
+  
+  ; Otherwise, try to evaluate based on the user callback
   (($smtx_model_eval z)                      ($smt_try_eo ($eo_model_eval z) ($smd_eo.SmtTerm z)))
   )
 )
@@ -331,7 +334,7 @@
 (program $eo_model_sat_internal ((b $smt_Term))
   :signature ($smt_Term) Bool
   (
-  (($eo_model_sat_internal $smd_sm.True) true)
+  (($eo_model_sat_internal $sm_mk_true) true)
   (($eo_model_sat_internal b)            false)
   )
 )

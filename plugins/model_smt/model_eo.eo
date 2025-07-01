@@ -33,6 +33,7 @@
 (declare-parameterized-const $eo_Const ((id $eo_Numeral) (T Type)) T)
 ; This indicates the properties of skolem functions.
 
+(define $eo_mk_stuck () $smd_eo.Stuck)
 
 ; Returns true if its argument is an SMT value.
 ; This function is expected to never get stuck.
@@ -40,8 +41,8 @@
 (program $eo_is_value ((T $eo_Term) (t $eo_Term))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
-  
-  (($eo_is_value T t) $smd_eo.Stuck)
+$EO_IS_VALUE_CASES$
+  (($eo_is_value T t) $eo_mk_stuck)
   )
 )
 
@@ -60,7 +61,7 @@ $EO_IS_TYPE_CASES$
   ; we are testing in our verification conditions. It is thus important
   ; that this method is complete (which in turn ensures the verification
   ; pipeline is sound).
-  (($eo_is_type T) $smd_eo.Stuck)
+  (($eo_is_type T) $eo_mk_stuck)
   )
 )
 
@@ -158,7 +159,7 @@ $EO_IS_TYPE_CASES$
   (
 $EO_CONST_PREDICATE_CASES$
   ; return stuckness, this will be handled upstream
-  (($eo_const_predicate k i T) $smd_eo.Stuck)
+  (($eo_const_predicate k i T) $eo_mk_stuck)
   )
 )
 
@@ -169,6 +170,6 @@ $EO_CONST_PREDICATE_CASES$
   (
 $EO_EVAL_CASES$
   ; return stuckness, this will be handled upstream
-  (($eo_model_eval t) $smd_eo.Stuck)
+  (($eo_model_eval t) $eo_mk_stuck)
   )
 )
