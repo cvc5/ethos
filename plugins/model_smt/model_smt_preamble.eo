@@ -182,11 +182,11 @@
   (($sm_mk_binary_and w n1 n2)
      ($smt_apply_3 "ite" ($smt_apply_2 "=" w 0) 0
      ($smt_apply_3 "ite" ($smt_apply_2 "=" w 1)
-       ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_apply_2 "=" n1 1) ($smt_apply_2 "=" n2 1)) 1 0)
+       ($smt_apply_3 "ite" ($smt_builtin_and ($smt_apply_2 "=" n1 1) ($smt_apply_2 "=" n2 1)) 1 0)
        ($smt_apply_2 "+"
          ($sm_mk_binary_and ($smt_apply_2 "-" w 1) n1 n2)
          ($smt_apply_2 "*" ($sm_mk_pow2 w)
-            ($smt_apply_3 "ite" ($smt_apply_2 "and" ($sm_mk_bit n1 w) ($sm_mk_bit n2 w)) 1 0))))))
+            ($smt_apply_3 "ite" ($smt_builtin_and ($sm_mk_bit n1 w) ($sm_mk_bit n2 w)) 1 0))))))
   )
 )
 (program $sm_mk_binary_or ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
@@ -244,7 +244,7 @@
   :signature ($smt_builtin_Int $smt_builtin_Int) $eo_Term
   (
   (($eo_mk_binary w n)
-    ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_apply_1 "<= 0" w) ($smt_apply_1 ">= 4294967296" w))
+    ($smt_apply_3 "ite" ($smt_builtin_and ($smt_apply_1 "<= 0" w) ($smt_apply_1 ">= 4294967296" w))
       ($eo_smt_term ($smd_sm.Binary w ($smt_apply_2 "mod" n ($sm_mk_pow2 w))))
       $smd_eo.Stuck))
   )
@@ -286,7 +286,7 @@
 
 ; Assumes that t is a Boolean term
 (define $sm_is_bool ((T Type :implicit) (t T))
-  ($smt_apply_2 "or"
+  ($smt_builtin_or
     ; treat "= sm.True" as a unary function, ditto for "= sm.False"
     ($smt_apply_1 "= sm.True" t)
     ($smt_apply_1 "= sm.False" t)))
@@ -294,7 +294,7 @@
 ; Boolean relies on the $sm_is_Boolean define-fun in the SMT meta signature.
 ; This is an optimization to avoid Booleans in the final datatype.
 ;(define $eo_is_bool ((t $eo_Term))
-;    ($smt_apply_2 "or"
+;    ($smt_builtin_or
 ;      ; treat "= sm.True" as a unary function, ditto for "= sm.False"
 ;      ($smt_apply_1 "= (eo.SmtTerm sm.True)" t)
 ;      ($smt_apply_1 "= (eo.SmtTerm sm.False)" t)))
@@ -537,7 +537,7 @@
   :signature ($eo_Term) $eo_Term
   (
   (($eo_to_str ($eo_smt_term ($smd_sm.Numeral n1)))
-    ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_apply_1 "<= 0" n1) ($smt_apply_1 "> 196608" n1))
+    ($smt_apply_3 "ite" ($smt_builtin_and ($smt_apply_1 "<= 0" n1) ($smt_apply_1 "> 196608" n1))
       ($eo_mk_string ($smt_apply_1 "str.from_code" n1))
       $smd_eo.Stuck))
   (($eo_to_str ($eo_smt_term ($smd_sm.String s1)))
