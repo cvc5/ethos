@@ -55,8 +55,8 @@
 (program $smtx_is_usort_value  ((n $smt_builtin_Int) (T $smt_Type) (t $smt_Term))
   :signature ($smt_Term) $smt_builtin_Bool
   (
-  (($smtx_is_usort_value ($smd_sm.usort_value n T)) ($smt_apply_0 "true"))
-  (($smtx_is_usort_value t)                         ($smt_apply_0 "false"))
+  (($smtx_is_usort_value ($smd_sm.usort_value n T)) $smt_builtin_true)
+  (($smtx_is_usort_value t)                         $smt_builtin_false)
   )
 )
 
@@ -247,47 +247,14 @@
 ; For example:
 ; ($smt_eval_= Int ($smt_from_eo_z x1) ($smt_from_eo_z x2) (= x1 x2)).
 (define $smt_eval_=
-  ((B Type :implicit) (W Type) (x1 W) (x2 W) (u B))
-  ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smtx_is_value W x1) ($smtx_is_value W x2))
+  ((W Type) (x1 W) (x2 W) (u $smt_Term))
+  ($smt_apply_3 "ite" ($smt_builtin_and ($smtx_is_value W x1) ($smtx_is_value W x2))
     ($sm_mk_bool ($smt_apply_2 "=" x1 x2))
-    u))
-
-; For example:
-; ($smt_eval_apply_2
-;   "and"
-;   ($smt_from_eo_bool x1) $smt_is_bool
-;   ($smt_from_eo_bool x2) $smt_is_bool
-;   ($eo_mk_bool (and x1 x2))
-; Is the call to evaluate the SMT-LIB and from Eunoia.
-; The last term is what is returned if the call is unevaluated.
-(define $smt_eval_apply_1
-  ((W1 Type :implicit) (R Type :implicit) (op $smt_String)
-  (x1 W1) (d1 (-> W1 Bool))
-  (r (-> $smt_Term R)) (u R))
-  ($smt_apply_3 "ite" (d1 x1)
-    (r ($smt_apply_1 op x1))
-    u))
-(define $smt_eval_apply_2
-  ((W1 Type :implicit) (W2 Type :implicit) (R Type :implicit) (op $smt_String)
-  (x1 W1) (d1 (-> W1 Bool))
-  (x2 W2) (d2 (-> W2 Bool))
-  (r (-> $smt_Term R)) (u R))
-  ($smt_apply_3 "ite" (eo::and (d1 x1) (d2 x2))
-    (r ($smt_apply_2 op x1 x2))
-    u))
-(define $smt_eval_apply_3
-  ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit) (R Type :implicit) (op $smt_String)
-  (x1 W1) (d1 (-> W1 Bool))
-  (x2 W2) (d2 (-> W2 Bool))
-  (x3 W3) (d2 (-> W3 Bool))
-  (r (-> $smt_Term R)) (u R))
-  ($smt_apply_3 "ite" (eo::and (d1 x1) (d2 x2))
-    (r ($smt_apply_3 op x1 x2 x3))
     u))
 
 ; An evaluator for all terms that we can reason about models.
 ; This is a recursive call.
-; NOTE: this is a total function!!!!!!!
+; NOTE: for the sake of soundness, this must be a total function!!!!!!!
 (program $smtx_model_eval
   ((T Type) (U Type) (V Type) (a1 T) (a2 T) (c Bool) (f $smt_Term) (y U) (z T) (k $smt_builtin_Int) (i $smt_builtin_Int) (F Bool)
    ; generic parameters that may appear in terms to pattern match
@@ -303,7 +270,7 @@
   ; - $smtx_eval_quant
   ; - $smt_eval_o_arith_*,
   ; - $smt_eval_apply_*
-;$SMT_EVAL_CASES_TEMP_REMOVE$
+$SMT_EVAL_CASES$
   ; Apply case
   ;(($smtx_model_eval ($smd_sm.Apply f y))   (eo::define ((fme ($smtx_model_eval f)))
   ;                                          (eo::define ((yme ($smtx_model_eval y)))

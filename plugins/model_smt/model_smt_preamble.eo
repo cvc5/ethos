@@ -8,6 +8,7 @@
 
 ;;; declarations to define literal types
 
+; TODO: remove this and use $smt_Term instead???
 ; The type of $smt_apply_* terms
 (declare-const $smt_unknown_type Type)
 ; The operator of $smt_apply_* terms

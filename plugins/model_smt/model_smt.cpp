@@ -134,45 +134,49 @@ void ModelSmt::printSmtTerm(const std::string& name,
                             std::vector<Kind>& args,
                             Kind kret)
 {
+  // FIXME
+  return;
+  std::stringstream callApp;
+  callApp << "(" << name;
+  for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
+  {
+    callApp << " x" << i;
+  }
+  callApp << ")";
   // This needs to be here, this is the user include of a standard
   // template
-  d_eval << "  (($smtx_model_eval (" << name;
+  d_eval << "  (($smtx_model_eval " << callApp.str() << ")";
   // special cases
   if (name == "ite")
   {
-    d_eval << " x1 x2 x3)) ";
-    d_eval << "(eo::ite ($smtx_model_eval x1) ($smtx_model_eval x2) "
+    d_eval << "($smt_apply_3 \"ite\" ($smtx_model_eval x1) ($smtx_model_eval x2) "
               "($smtx_model_eval x3)))";
     d_eval << std::endl;
     return;
   }
   bool isOverloadArith = (args.size() > 0 && args[0] == Kind::PARAM);
-  std::stringstream preApp;
   std::stringstream preAppEnd;
   for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
   {
-    preApp << "    (eo::define ((e" << i << " ($smtx_model_eval x" << i << ")))"
-           << std::endl;
+    d_eval << std::endl << "    (eo::define ((e" << i << " ($smtx_model_eval x" << i << ")))";
     preAppEnd << ")";
   }
   if (name == "=")
   {
     // Note that we do not insist on converting to SMT-LIB literals here
     // We rely on SMT-LIB equality, guarding by an $smt_is_value predicate.
-    d_eval << " x1 x2))" << std::endl;
-    d_eval << preApp.str();
-    d_eval << "      ($smt_eval_= ($smtx_typeof x1) e1 e2 (= x1 x2))"
-           << preAppEnd.str() << ")";
-    d_eval << std::endl;
+    d_eval << std::endl << "      ($smt_eval_= ($smtx_typeof x1) e1 e2 (= x1 x2))"
+           << preAppEnd.str() << ")" << std::endl;
   }
   else if (name == "forall" || name == "exists")
   {
     // does not "pre-rewrite" the body
     bool isExists = (name == "exists");
-    d_eval << " x1 x2)) ($smtx_eval_quant x1 x2 0 " << isExists << "))";
+    d_eval << "($smtx_eval_quant x1 x2 0 " << isExists << "))";
   }
   else if (isOverloadArith)
   {
+    EO_FATAL() << "FIX";
     // overloaded arithmetic
     if (args.size() == 2)
     {
@@ -199,30 +203,41 @@ void ModelSmt::printSmtTerm(const std::string& name,
   }
   else
   {
+    std::stringstream appConds;
+    std::stringstream appCondsEnd;
+    if (args.size()>2)
+    {
+      appConds << "(and ";
+      appCondsEnd << ")";
+    }
     std::stringstream appArgs;
     appArgs << " \"" << name << "\"";
     for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
     {
-      d_eval << " x" << i;
       Kind ka = args[i - 1];
       // use guarded version
-      appArgs << " ($smt_from_eo_";
+      appArgs << " e" << i;
+      if (i>1)
+      {
+        appConds << " ";
+      }
+      appConds << "($smt_is_";
       if (d_kindToEoPrefix.find(ka) != d_kindToEoPrefix.end())
       {
-        appArgs << d_kindToEoPrefix[ka];
+        appConds << d_kindToEoPrefix[ka];
       }
       else
       {
         EO_FATAL() << "Unknown argument kind: " << ka;
       }
-      appArgs << " e" << i << ")";
+      appConds << " e" << i << ")";
     }
-    std::stringstream ssretBase;
+    d_eval << std::endl << "    ($smt_apply_3 \"ite\" " << appConds.str() << appCondsEnd.str();
     if (args.empty() || args.size() > 3)
     {
       EO_FATAL() << "Unhandled arity " << args.size() << " for " << name;
     }
-    d_eval << ")) " << preApp.str() << "      ($sm_mk_";
+    d_eval << std::endl << "      ($sm_mk_";
     if (d_kindToEoPrefix.find(kret) != d_kindToEoPrefix.end())
     {
       d_eval << d_kindToEoPrefix[kret];
@@ -231,11 +246,21 @@ void ModelSmt::printSmtTerm(const std::string& name,
     {
       EO_FATAL() << "Unknown return kind: " << kret;
     }
-    d_eval << " ($smt_apply_" << args.size() << appArgs.str() << ")))"
-           << preAppEnd.str() << std::endl;
+    d_eval << " ($smt_apply_" << args.size() << appArgs.str() << "))";
+    d_eval << std::endl << "      " << callApp.str() << "))" << preAppEnd.str() << std::endl;
   }
 }
 
+/*
+ *
+; For example:
+; ($smt_eval_apply_2
+;   "and"
+;   x1 $smt_is_bool
+;   x2 $smt_is_bool
+;   (and x1 x2))
+; Is the call to evaluate the SMT-LIB and from Eunoia.
+*/
 void ModelSmt::finalize()
 {
   auto replace = [](std::string& txt,
