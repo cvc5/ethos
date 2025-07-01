@@ -65,6 +65,7 @@ std::string termKindToString(TermKind k)
     case TermKind::SMT_TERM_TYPE: ss << "SMT_TERM_TYPE"; break;
     case TermKind::SMT_TYPE_TYPE: ss << "SMT_TYPE_TYPE"; break;
     case TermKind::SMT_TYPE_DT_CONS: ss << "SMT_TYPE_DT_CONS"; break;
+    case TermKind::SMT_STD_TYPE: ss << "SMT_STD_TYPE"; break;
     case TermKind::SMT_BUILTIN_TYPE: ss << "SMT_BUILTIN_TYPE"; break;
     case TermKind::EUNOIA_TERM_TYPE: ss << "EUNOIA_TERM_TYPE"; break;
     // An operator that operates on native SMT-LIB terms, e.g. $eo_mk_binary
@@ -736,16 +737,23 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
             newCtx = TermContextKind::SMT_BUILTIN;
           }
           else if (atk == TermKind::SMT_BUILTIN_APPLY
-                   || atk == TermKind::SMT_BUILTIN_TYPE)
+                   || atk == TermKind::SMT_BUILTIN_TYPE
+                   || atk == TermKind::SMT_STD_TYPE)
           {
             if (atk == TermKind::SMT_BUILTIN_APPLY)
             {
-              newCtx = TermContextKind::SMT_BUILTIN;
+              tctxChildren[key] = TermContextKind::SMT_BUILTIN;
+            }
+            else if (atk == TermKind::SMT_BUILTIN_TYPE)
+            {
+              // The kind of subterms to appear in types (beneath $smt_type_*)
+              tctxChildren[key] = TermContextKind::SMT_TYPE;
             }
             else
             {
-              // The kind of subterms to appear in types (beneath $smt_type_*)
-              newCtx = TermContextKind::SMT_TYPE;
+              os << "tsm.";
+              tctxChildren[key] = TermContextKind::SMT_BUILTIN;
+              continue;
             }
             // this handles the corner case that ($smt_apply_0 "true") should
             // print as "true" not "(true)".
@@ -1386,6 +1394,12 @@ TermKind SmtMetaReduce::isSmtApply(const Expr& t)
     std::string sarity = sname.substr(10);
     // always add one
     return TermKind::SMT_BUILTIN_TYPE;
+  }
+  if (sname.compare(0, 14, "$smt_std_type_") == 0)
+  {
+    std::string sarity = sname.substr(14);
+    // always add one
+    return TermKind::SMT_STD_TYPE;
   }
   return TermKind::NONE;
 }

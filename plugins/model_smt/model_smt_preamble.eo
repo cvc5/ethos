@@ -49,8 +49,10 @@
 (declare-parameterized-const $smt_builtin_type_0
   ((op $smt_id :opaque))
   Type)
+; NOTE: the fact that x1 is not opaque indicates that
+; bitvectors print as (_ BitVec w) not (BitVec w).
 (declare-parameterized-const $smt_builtin_type_1
-  ((W1 Type :implicit) (op $smt_id :opaque) (x1 W1 :opaque))
+  ((W1 Type :implicit) (op $smt_id :opaque) (x1 W1))
   Type)
 
 (define $smt_builtin_Bool () ($smt_type_0 "Bool"))

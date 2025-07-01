@@ -56,6 +56,8 @@ enum class TermKind
   // The type of SMT lib types
   SMT_TYPE_TYPE,
   SMT_TYPE_DT_CONS,
+  // An SMT-LIB standard type that is associated with a literal Kind
+  SMT_STD_TYPE,
   // ?
   EUNOIA_TERM_TYPE,
   EUNOIA_BOOL,
