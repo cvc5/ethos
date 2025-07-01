@@ -14,6 +14,7 @@ OUT_DIR=./out
 STD_TRIM_OUT=../plugins/trim_defs/trim_gen.eo
 STD_DESUGAR_OUT=../plugins/desugar/eo_desugar_gen.eo
 STD_SMODEL_OUT=../plugins/model_smt/model_smt_gen.eo
+STD_SMODEL_EMBED_OUT=../plugins/model_smt/model_eo_embed_gen.eo
 STD_VC_OUT=../plugins/smt_meta/smt_meta_gen.smt2
 # the name of a EO signature
 INPUT="../../cvc5-ajr/proofs/eo/cpc/Cpc.eo"

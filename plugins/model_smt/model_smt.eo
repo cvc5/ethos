@@ -77,7 +77,7 @@
   :signature ($smt_Type $smt_builtin_Int) $smt_Term
   (
   ; enumeration of standard SMT types
-  ;(($smtx_enum_type $smt_Numeral i)     (eo::define ((v (eo::zdiv i 2)))
+  ;(($smtx_enum_type $smt_builtin_Int i)     (eo::define ((v (eo::zdiv i 2)))
   ;                                      ($smt_apply_3 "ite" ($smt_apply_2 "=" (eo::zmod i 2) 0) v (eo::neg v))))
   ;(($smtx_enum_type $smt_String i)      ($smt_apply_3 "ite" ($smt_apply_2 "=" i 0)
   ;                                      ""
@@ -155,7 +155,7 @@
   ; standard atomic types
   (($smtx_is_value $smd_tsm.BoolType $sm_mk_true)                         true)
   (($smtx_is_value $smd_tsm.BoolType $smd_sm.False)                        true)
-  ;(($smtx_is_value $smt_Numeral ($smd_eo.SmtTerm ($smd_sm.Numeral n1)))    true)
+  ;(($smtx_is_value $smt_builtin_Int ($smd_eo.SmtTerm ($smd_sm.Numeral n1)))    true)
   ;(($smtx_is_value $smt_Rational ($smd_eo.SmtTerm ($smd_sm.Rational r1)))  true)
   ;(($smtx_is_value $smt_String ($smd_eo.SmtTerm ($smd_sm.String s1)))      true)
   ;(($smtx_is_value $eo_Binary t)
@@ -289,7 +289,7 @@
 ; This is a recursive call.
 ; NOTE: this is a total function!!!!!!!
 (program $smtx_model_eval
-  ((T Type) (U Type) (V Type) (a1 T) (a2 T) (c Bool) (f $smt_Term) (y U) (z T) (k $smt_Numeral) (i $smt_Numeral) (F Bool)
+  ((T Type) (U Type) (V Type) (a1 T) (a2 T) (c Bool) (f $smt_Term) (y U) (z T) (k $smt_builtin_Int) (i $smt_builtin_Int) (F Bool)
    ; generic parameters that may appear in terms to pattern match
    (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3))
   :signature ($smt_Term) $smt_Term
@@ -350,7 +350,7 @@
 ; The SMT typeof function, which incorporates builtin SMT terms
 
 (program $smtx_typeof
-  ((T $smt_Type) (t $smt_Term) (k $smt_Numeral) (id $smt_Numeral))
+  ((T $smt_Type) (t $smt_Term) (k $smt_builtin_Int) (id $smt_builtin_Int))
   :signature ($smt_Term) $smt_Type
   (
   (($smtx_typeof ($smd_sm.Const k id T))  T)

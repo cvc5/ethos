@@ -8,19 +8,11 @@
 
 ;;; declarations to define literal types
 
+; The type of $smt_apply_* terms
 (declare-const $smt_unknown_type Type)
-
-(define $smt_Numeral () $eo_Numeral)
-(define $smt_Rational () $eo_Rational)
-(define $smt_String () $eo_String)
-; $smt_Binary remains undefined
-(define $smt_Binary () $smt_unknown_type)
-
-;;; TEMPORARY to make this file self contained
-;(declare-const $smt_Numeral Type)
-;(declare-const $smt_Rational Type)
+; The operator of $smt_apply_* terms
 ;(declare-const $smt_String Type)
-;;; TEMPORARY
+(define $smt_String () $eo_String)
 
 ; note: decimal and hexadecimal omitted for now.
 
