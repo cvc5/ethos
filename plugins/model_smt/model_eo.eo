@@ -109,8 +109,8 @@ $EO_IS_TYPE_CASES$
 ; NOTE: the "stuckness" of this method defines cardinality for types!!!!!!!
 ; Thus it is different from the other methods in this signature, which use
 ; stuckness as a no-op in a callback.
-(program $eo_enum_type ((T $eo_Term) (i ($smt_type_0 "Int")))
-  :signature ($eo_Term ($smt_type_0 "Int")) $eo_Term
+(program $eo_enum_type ((T $eo_Term) (i $smt_builtin_Int))
+  :signature ($eo_Term $smt_builtin_Int) $eo_Term
   (
   ; enumeration of standard SMT types
   ;(($eo_enum_type $smt_Numeral i)     (eo::define ((v (eo::zdiv i 2)))
@@ -138,8 +138,8 @@ $EO_IS_TYPE_CASES$
 
 ; program: ($smtx_enum_type_contains_rec T t i)
 ; Returns true if t is contained in the type enumeration of T, starting from i.
-;(program $eo_enum_type_contains_rec ((T $smt_Type) (t $smt_Term) (i ($smt_type_0 "Int")))
-;  :signature ($smt_Type $smt_Term ($smt_type_0 "Int")) Bool
+;(program $eo_enum_type_contains_rec ((T $smt_Type) (t $smt_Term) (i $smt_builtin_Int))
+;  :signature ($smt_Type $smt_Term $smt_builtin_Int) Bool
 ;  (
 ;  (($smtx_enum_type_contains_rec T t i)   (eo::define ((v ($smtx_enum_type T i)))
 ;                                          ($smt_apply_3 "ite" ($smt_apply_1 "$eo_is_ok" v)
@@ -153,8 +153,8 @@ $EO_IS_TYPE_CASES$
 ; Returns a predicate describing the properties of symbols
 ; that cannot be assigned a total semantics. For example,
 ; this is what defines skolem symbols.
-(program $eo_const_predicate ((k ($smt_type_0 "Int")) (i ($smt_type_0 "Int")) (T $eo_Term))
-  :signature (($smt_type_0 "Int") ($smt_type_0 "Int") $eo_Term) $eo_Term
+(program $eo_const_predicate ((k $smt_builtin_Int) (i $smt_builtin_Int) (T $eo_Term))
+  :signature ($smt_builtin_Int $smt_builtin_Int $eo_Term) $eo_Term
   (
 $EO_CONST_PREDICATE_CASES$
   ; return stuckness, this will be handled upstream

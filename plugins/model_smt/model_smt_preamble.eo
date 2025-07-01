@@ -54,14 +54,17 @@
    (op $smt_String :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque) (x4 W4 :opaque) (x5 W5 :opaque)) $smt_unknown_type)
 
 ; TODO:
-; (define $smt_builtin_Int () ($smt_type_0 "Int"))
-; (define $smt_builtin_Real () ($smt_type_0 "Real"))
-; (define $smt_builtin_String () ($smt_type_0 "String"))
-; (define $smt_builtin_true () ($smt_apply_1 "true"))
-; (define $smt_builtin_false () ($smt_apply_1 "false"))
-; (define $smt_builtin_= () ($smt_apply_2 "="))
-; (define $smt_builtin_ite () ($smt_apply_3 "ite"))
-; (define $smt_builtin_+ () ($smt_apply_2 "+"))
+(define $smt_builtin_Bool () ($smt_type_0 "Bool"))
+(define $smt_builtin_Int () ($smt_type_0 "Int"))
+(define $smt_builtin_Real () ($smt_type_0 "Real"))
+(define $smt_builtin_String () ($smt_type_0 "String"))
+(define $smt_builtin_true () ($smt_apply_0 "true"))
+(define $smt_builtin_false () ($smt_apply_0 "false"))
+(define $smt_builtin_= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "=" x1 x2))
+(define $smt_builtin_ite ((W Type :implicit) (b $smt_builtin_Bool) (x1 W) (x2 W)) ($smt_apply_3 "ite" b x1 x2))
+(define $smt_builtin_+ ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "+" x1 x2))
+(define $smt_builtin_and ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "and" b1 b2))
+(define $smt_builtin_or ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "or"))
 
 
 ; In this signature, we heavily use references to the Datatypes corresponding
@@ -158,8 +161,10 @@
 (define $smt_get_bool ((T Type :implicit) (t T))
   ($smt_apply_1 "= (eo.SmtTerm sm.True)" t))
   
-(define $sm_mk_bool ((c Bool))
-  ($smt_apply_3 "ite" c $smd_sm.True $smd_sm.False))
+(define $sm_mk_true () $smd_sm.True)
+(define $sm_mk_false () $smd_sm.False)
+(define $sm_mk_bool ((c $smt_builtin_Bool))
+  ($smt_apply_3 "ite" c $sm_mk_true $sm_mk_false))
 
 ;;; Defining parametric bitvector operators
 
@@ -225,12 +230,8 @@
 
 ;;; Utilities
 
-(program $eo_mk_bool ((x ($smt_type_0 "Bool")))
-  :signature (($smt_type_0 "Bool")) $eo_Term
-  (
-  (($eo_mk_bool x) ($smd_eo.SmtTerm ($smt_apply_3 "ite" x $smd_sm.True $smd_sm.False)))
-  )
-)
+(define $eo_mk_bool ((x ($smt_type_0 "Bool")))
+  ($smd_eo.SmtTerm ($sm_mk_bool x)))
 (program $eo_mk_numeral ((x ($smt_type_0 "Int")))
   :signature (($smt_type_0 "Int")) $eo_Term
   (
@@ -291,7 +292,6 @@
   ; (($smt_from_eo_str ($smd_eo.SmtTerm ($smd_sm.String s))) s)
   ; )
 )
-
 
 ;;; Utilities
 

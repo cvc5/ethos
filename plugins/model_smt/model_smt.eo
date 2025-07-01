@@ -15,7 +15,11 @@
 ;;; utilities
 
 ; A utility to ensure that programs are total.
-; Takes two $eo_Term, returns a $smt_Term.
+; Takes
+; - A $eo_Term t where we are not sure if it gets stuck.
+; - A $eo_Term elseTerm where we are sure it does not get stuck.
+; Returns the SMT term corresponding to the evaluation of t, if possible,
+; or elseTerm otherwise. This always successfully evaluates.
 (define $smt_try_eo ((t $eo_Term) (elseTerm $eo_Term))
   ($smt_apply_1 "eo.SmtTerm.arg1" 
     ($smt_apply_3 "ite" ($smt_apply_1 "(_ is eo.SmtTerm)" t)
@@ -48,8 +52,8 @@
   (@map T U))
 
 ; NOTE: this is equivalent to a datatype tester ((_ is sm.usort_value) t).
-(program $smtx_is_usort_value  ((n ($smt_type_0 "Int")) (T $smt_Type) (t $smt_Term))
-  :signature ($smt_Term) ($smt_type_0 "Bool")
+(program $smtx_is_usort_value  ((n $smt_builtin_Int) (T $smt_Type) (t $smt_Term))
+  :signature ($smt_Term) $smt_builtin_Bool
   (
   (($smtx_is_usort_value ($smd_sm.usort_value n T)) ($smt_apply_0 "true"))
   (($smtx_is_usort_value t)                         ($smt_apply_0 "false"))
@@ -69,8 +73,8 @@
 
 ; Since $smtx_methods never get stuck, all finite types must be defined in
 ; $eo_enum_type.
-(program $smtx_enum_type ((T $smt_Type) (i ($smt_type_0 "Int")))
-  :signature ($smt_Type ($smt_type_0 "Int")) $smt_Term
+(program $smtx_enum_type ((T $smt_Type) (i $smt_builtin_Int))
+  :signature ($smt_Type $smt_builtin_Int) $smt_Term
   (
   ; enumeration of standard SMT types
   ;(($smtx_enum_type $smt_Numeral i)     (eo::define ((v (eo::zdiv i 2)))
@@ -97,13 +101,13 @@
 
 ; forward declaration
 (program $smtx_is_value ()
-  :signature ($smt_Type $smt_Term) ($smt_type_0 "Bool"))
+  :signature ($smt_Type $smt_Term) $smt_builtin_Bool)
 
 ; functions and array values.
 
 (program $smtx_map_is_value
   ((T $smt_Type) (U $smt_Type) (t $smt_Term) (u $smt_Term) (tail (@map T U)))
-  :signature ($smt_Term) ($smt_type_0 "Bool")
+  :signature ($smt_Term) $smt_builtin_Bool
   (
   ; TODO: ordering constraint, recursive
   (($smtx_map_is_value (@map_nil T U u))          ($smtx_is_value U u))
@@ -129,7 +133,7 @@
 ; Returns true if its argument is a datatype value.
 (program $smtx_dt_is_value
   ((U Type) (T Type) (f (-> T U)) (a T) (c U))
-  :signature ($smt_Term) ($smt_type_0 "Bool")
+  :signature ($smt_Term) $smt_builtin_Bool
   (
   (($smtx_dt_is_value (f a))  ($smt_apply_3 "ite" ($smtx_is_value ($smtx_typeof a) a)
                                ($smtx_dt_is_value f)
@@ -142,8 +146,8 @@
 ; Returns true if its argument is an SMT value.
 ; This function is expected to never get stuck.
 (program $smtx_is_value
-  ((T $smt_Type) (U $smt_Type) (t $smt_Term) (n1 ($smt_type_0 "Int")) (r1 ($smt_type_0 "Real")) (s1 ($smt_type_0 "String")))
-  :signature ($smt_Type $smt_Term) ($smt_type_0 "Bool")
+  ((T $smt_Type) (U $smt_Type) (t $smt_Term) (n1 $smt_builtin_Int) (r1 ($smt_type_0 "Real")) (s1 ($smt_type_0 "String")))
+  :signature ($smt_Type $smt_Term) $smt_builtin_Bool
   (
   ; if the literal type is not defined, this is false
   (($smtx_is_value ($smd_tsm.UnknownSort n1) t)                            false)
@@ -178,7 +182,7 @@
 ; Conceptually, returns the model value for constant with kind k, identifier id and type T.
 ; This is intentionally undefined in this signature.
 (program $smtx_model_lookup ()
-  :signature (($smt_type_0 "Int") ($smt_type_0 "Int") $smt_Type) $smt_Term)
+  :signature ($smt_builtin_Int $smt_builtin_Int $smt_Type) $smt_Term)
 
 ; Lookup the predicate the constant can be assumed to have.
 ; If the kind is 0, it is an SMT-LIB input constant, we return true.
@@ -187,7 +191,7 @@
 ; definition of $smtx_model_eval, which checks whether the predicate
 ; is satisfied in the model.
 ; If this is undefined, we return true.
-(define $smt_const_predicate ((k ($smt_type_0 "Int")) (id ($smt_type_0 "Int")) (T $smt_Type))
+(define $smt_const_predicate ((k $smt_builtin_Int) (id $smt_builtin_Int) (T $smt_Type))
   ($smt_apply_3 "ite" ($smt_apply_2 "=" k 0) ; Kind 0 is reserved for uninterpreted constants.
     true
     ($smt_try_eo ($eo_const_predicate k id ($smd_eo.SmtTerm T)) true)))
@@ -207,8 +211,8 @@
 ; program: $smtx_eval_quant
 ; specification for exists is a (non-computable) function
 ; The last argument is whether we are check exists (resp. forall).
-(program $smtx_eval_quant ((T Type) (x T) (xs @sterm_list) (F $smt_Term) (i ($smt_type_0 "Int")) (isExists Bool))
-  :signature (@sterm_list $smt_Term ($smt_type_0 "Int") Bool) Bool
+(program $smtx_eval_quant ((T Type) (x T) (xs @sterm_list) (F $smt_Term) (i $smt_builtin_Int) (isExists Bool))
+  :signature (@sterm_list $smt_Term $smt_builtin_Int Bool) Bool
   (
   (($smtx_eval_quant @sterm_list_nil F i isExists)
     ; base case: we have processed all variables, recurse, negate if isExists is false.
