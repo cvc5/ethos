@@ -126,13 +126,13 @@
 ; returns: true if t is a datatpe (i.e. it has constructors).
 (define $smt_is_dt ((t $smt_Type))
   ; eo::is_ok is total, doesn't need to wrap in smt_try_eo
-  ($smt_from_eo_bool (eo::is_ok ($eo_dt_constructors ($smt_apply_1 "eo.SmtType" t)))))
+  ($smt_apply_1 "= (eo.SmtTerm sm.True)" (eo::is_ok ($eo_dt_constructors ($smt_apply_1 "eo.SmtType" t)))))
 
 ; define: $smt_is_dt_cons
 ; returns: true if t is a constructor (i.e. it has selectors).
 (define $smt_is_dt_cons ((t $smt_Term))
   ; eo::is_ok is total, doesn't need to wrap in smt_try_eo
-  ($smt_from_eo_bool (eo::is_ok ($eo_dt_selectors t))))
+  ($smt_apply_1 "= (eo.SmtTerm sm.True)" (eo::is_ok ($eo_dt_selectors t))))
 
 ; program: $smtx_dt_is_value
 ; Returns true if its argument is a datatype value.

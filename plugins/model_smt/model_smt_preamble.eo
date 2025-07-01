@@ -153,8 +153,6 @@
 (define $eo_smt_term ((t $smt_Term)) ($smd_eo.SmtTerm t))
 (define $eo_smt_type ((T $smt_Type)) ($smd_eo.SmtType T))
 
-  ;;;;;;;;;;;;;;;;; no smd_ below here?
-
 
 ;;; Defining parametric bitvector operators
 
@@ -228,8 +226,8 @@
   (($eo_mk_numeral x) ($eo_smt_term ($smd_sm.Numeral x)))
   )
 )
-(program $eo_mk_rational ((x ($smt_type_0 "Real")))
-  :signature (($smt_type_0 "Real")) $eo_Term
+(program $eo_mk_rational ((x $smt_builtin_Real))
+  :signature ($smt_builtin_Real) $eo_Term
   (
   (($eo_mk_rational x) ($eo_smt_term ($smd_sm.Rational x)))
   )
@@ -249,39 +247,7 @@
       $smd_eo.Stuck))
   )
 )
-; Convert Eunoia Boolean to an smt Boolean.
-(program $smt_from_eo_bool ()
-  :signature ($eo_Term) ($smt_type_0 "Bool")
-  ; Definition:
-  ; (
-  ; (($smt_from_eo_bool ($eo_smt_term $sm_mk_true)) (strue)
-  ; (($smt_from_eo_bool ($eo_smt_term $sm_mk_false)) false)
-  ; )
-)
-; Convert Eunoia Numeral to an smt Integer.
-(program $smt_from_eo_z ((n $smt_builtin_Int))
-  :signature ($eo_Term) $smt_builtin_Int
-  ; Definition:
-  ; (
-  ; (($smt_from_eo_z ($eo_smt_term ($smd_sm.Numeral n))) n)
-  ; )
-)
-; Convert Eunoia Rational to an smt Real.
-(program $smt_from_eo_q ((r ($smt_type_0 "Real")))
-  :signature ($eo_Term) ($smt_type_0 "Real")
-  ; Definition:
-  ; (
-  ; (($smt_from_eo_q ($eo_smt_term ($smd_sm.Rational r))) r)
-  ; )
-)
-; Convert Eunoia String to an smt String.
-(program $smt_from_eo_str ((s ($smt_type_0 "String")))
-  :signature ($eo_Term) ($smt_type_0 "String")
-  ; Definition:
-  ; (
-  ; (($smt_from_eo_str ($eo_smt_term ($smd_sm.String s))) s)
-  ; )
-)
+  ;;;;;;;;;;;;;;;;; no smd_ below here?
 
 
 ; Assumes that t is a Boolean term
