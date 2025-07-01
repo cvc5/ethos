@@ -436,7 +436,7 @@ $EO_LITERAL_TYPE_DECL$
 
 $EO_DEFS$
 
-; custom definitions
+;;; type checking
 
 ; program: $eo_typeof_apply
 (program $eo_typeof_apply ((T Type) (U Type) (V Type))
@@ -445,8 +445,6 @@ $EO_DEFS$
   (($eo_typeof_apply (-> T U) T) U)
   )
 )
-
-; type checking
 
 ; non-ground type defintions
 
@@ -471,7 +469,22 @@ $EO_TYPEOF_CASES$
   )
 )
 
-; non-ground dt defintions
+; program: $eo_typeof
+; implements: eo::typeof
+(program $eo_typeof ((T Type) (t T) (s $eo_String))
+  :signature (T) Type
+  (
+  (($eo_typeof ($eo_Var s T)) T)
+  (($eo_typeof t) (eo::ite ($eo_is_bool t) Bool
+                  (eo::ite ($eo_is_z t) $eo_Numeral
+                  (eo::ite ($eo_is_q t) $eo_Rational
+                  (eo::ite ($eo_is_str t) $eo_String
+                  (eo::ite ($eo_is_bin t) $eo_Binary
+                    ($eo_typeof_main t)))))))
+  )
+)
+
+;;; datatype constructors
 
 ; program: $eo_dt_constructors
 ; implements: eo::dt_constructors
@@ -494,7 +507,7 @@ $EO_DT_SELECTORS_CASES$
   )
 )
 
-; non-ground nil defintions
+;;; eo::nil definitions
 
 $EO_NIL_NGROUND_DEFS$
 
@@ -509,22 +522,6 @@ $EO_NIL_CASES$
   )
 )
 
-; Finalize things that can be compiled away in this step.
-
-; program: $eo_typeof
-; implements: eo::typeof
-(program $eo_typeof ((T Type) (t T) (s $eo_String))
-  :signature (T) Type
-  (
-  (($eo_typeof ($eo_Var s T)) T)
-  (($eo_typeof t) (eo::ite ($eo_is_bool t) Bool
-                  (eo::ite ($eo_is_z t) $eo_Numeral
-                  (eo::ite ($eo_is_q t) $eo_Rational
-                  (eo::ite ($eo_is_str t) $eo_String
-                  (eo::ite ($eo_is_bin t) $eo_Binary
-                    ($eo_typeof_main t)))))))
-  )
-)
 
 ; the verification condition
 
