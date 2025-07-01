@@ -82,8 +82,10 @@
   :signature ($smt_Type $smt_builtin_Int) $smt_Term
   (
   ; enumeration of standard SMT types
-  ;(($smtx_enum_type $smt_builtin_Int i)     (eo::define ((v (eo::zdiv i 2)))
-  ;                                      ($smt_apply_3 "ite" ($smt_apply_2 "=" (eo::zmod i 2) 0) v (eo::neg v))))
+  (($smtx_enum_type $smt_builtin_Int i) (eo::define ((v ($smt_builtin_div i 2)))
+                                          ($smt_apply_3 "ite" ($smt_apply_2 "=" ($smt_builtin_mod i 2) 0)
+                                            v
+                                            ($smt_builtin_- v))))
   ;(($smtx_enum_type $smt_String i)      ($smt_apply_3 "ite" ($smt_apply_2 "=" i 0)
   ;                                      ""
   ;                                      (eo::concat (eo::to_str (eo::zmod i 196608)) ($smtx_enum_type $smt_String (eo::zdiv i 196608)))))

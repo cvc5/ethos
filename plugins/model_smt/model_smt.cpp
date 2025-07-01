@@ -20,20 +20,12 @@ namespace ethos {
 ModelSmt::ModelSmt(State& s) : StdPlugin(s)
 {
   Expr typ = d_state.mkType();
-  d_kindToType[Kind::BOOLEAN] = d_state.mkBoolType();
-  d_kindToType[Kind::NUMERAL] =
-      d_state.mkSymbol(Kind::CONST, "$eo_Numeral", typ);
-  d_kindToType[Kind::RATIONAL] =
-      d_state.mkSymbol(Kind::CONST, "$eo_Rational", typ);
-  d_kindToType[Kind::STRING] = d_state.mkSymbol(Kind::CONST, "$eo_String", typ);
-  d_kindToType[Kind::BINARY] = d_state.mkSymbol(Kind::CONST, "$eo_BINARY", typ);
-  d_kindToType[Kind::ANY] = d_state.mkSymbol(Kind::CONST, "Any", typ);
   d_kindToEoPrefix[Kind::BOOLEAN] = "bool";
   d_kindToEoPrefix[Kind::NUMERAL] = "z";
   d_kindToEoPrefix[Kind::RATIONAL] = "q";
   d_kindToEoPrefix[Kind::STRING] = "str";
   d_kindToEoPrefix[Kind::BINARY] = "bin";
-  d_kindToEoCons[Kind::BOOLEAN] = "Boolean";
+  // note BOOLEAN does not have a constructor as Bool is inlined
   d_kindToEoCons[Kind::NUMERAL] = "Numeral";
   d_kindToEoCons[Kind::RATIONAL] = "Rational";
   d_kindToEoCons[Kind::STRING] = "String";
