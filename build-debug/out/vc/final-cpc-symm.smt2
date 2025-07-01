@@ -172,20 +172,14 @@
 ; define $eo_mk_bool
 (define-fun $eo_mk_bool ((x Bool)) eo.Term (eo.SmtTerm (ite x sm.True sm.False)))
 
-; program: $eo_mk_numeral
-(define-fun $eo_mk_numeral ((x1 Int)) eo.Term
-  (eo.SmtTerm (sm.Numeral x1))
-)
+; define $eo_mk_numeral
+(define-fun $eo_mk_numeral ((x Int)) eo.Term (eo.SmtTerm (sm.Numeral x)))
 
-; program: $eo_mk_rational
-(define-fun $eo_mk_rational ((x1 Real)) eo.Term
-  (eo.SmtTerm (sm.Rational x1))
-)
+; define $eo_mk_rational
+(define-fun $eo_mk_rational ((x Real)) eo.Term (eo.SmtTerm (sm.Rational x)))
 
-; program: $eo_mk_string
-(define-fun $eo_mk_string ((x1 String)) eo.Term
-  (eo.SmtTerm (sm.String x1))
-)
+; define $eo_mk_string
+(define-fun $eo_mk_string ((x String)) eo.Term (eo.SmtTerm (sm.String x)))
 
 ; program: $eo_mk_binary
 (define-fun $eo_mk_binary ((x1 Int) (x2 Int)) eo.Term
@@ -196,8 +190,6 @@
 (define-fun $eo_and ((x1 eo.Term) (x2 eo.Term)) eo.Term
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
     eo.Stuck
-  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Binary) (eo.SmtTerm.arg1 x1)) ((_ is eo.SmtTerm) x2) ((_ is sm.Binary) (eo.SmtTerm.arg1 x2)) (= (sm.Binary.arg1 (eo.SmtTerm.arg1 x2)) (sm.Binary.arg1 (eo.SmtTerm.arg1 x1))))
-    ($eo_mk_binary (sm.Binary.arg1 (eo.SmtTerm.arg1 x1)) ($sm_mk_binary_and (sm.Binary.arg1 (eo.SmtTerm.arg1 x1)) (sm.Binary.arg2 (eo.SmtTerm.arg1 x1)) (sm.Binary.arg2 (eo.SmtTerm.arg1 x2))))
   (ite (and (= x1 (eo.SmtTerm sm.True)) (= x2 (eo.SmtTerm sm.True)))
     (eo.SmtTerm (ite true sm.True sm.False))
   (ite (and (= x1 (eo.SmtTerm sm.True)) (= x2 (eo.SmtTerm sm.False)))
@@ -206,6 +198,8 @@
     (eo.SmtTerm (ite false sm.True sm.False))
   (ite (and (= x1 (eo.SmtTerm sm.False)) (= x2 (eo.SmtTerm sm.False)))
     (eo.SmtTerm (ite false sm.True sm.False))
+  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Binary) (eo.SmtTerm.arg1 x1)) ((_ is eo.SmtTerm) x2) ((_ is sm.Binary) (eo.SmtTerm.arg1 x2)) (= (sm.Binary.arg1 (eo.SmtTerm.arg1 x2)) (sm.Binary.arg1 (eo.SmtTerm.arg1 x1))))
+    ($eo_mk_binary (sm.Binary.arg1 (eo.SmtTerm.arg1 x1)) ($sm_mk_binary_and (sm.Binary.arg1 (eo.SmtTerm.arg1 x1)) (sm.Binary.arg2 (eo.SmtTerm.arg1 x1)) (sm.Binary.arg2 (eo.SmtTerm.arg1 x2))))
     eo.Stuck)))))))
 
 ; program: $eo_len
@@ -213,9 +207,9 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.String) (eo.SmtTerm.arg1 x1)))
-    ($eo_mk_numeral (str.len (sm.String.arg1 (eo.SmtTerm.arg1 x1))))
+    (eo.SmtTerm (sm.Numeral (str.len (sm.String.arg1 (eo.SmtTerm.arg1 x1)))))
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Binary) (eo.SmtTerm.arg1 x1)))
-    ($eo_mk_numeral (sm.Binary.arg1 (eo.SmtTerm.arg1 x1)))
+    (eo.SmtTerm (sm.Numeral (sm.Binary.arg1 (eo.SmtTerm.arg1 x1))))
     eo.Stuck))))
 
 ; program: $eo_to_z
@@ -223,13 +217,13 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Numeral) (eo.SmtTerm.arg1 x1)))
-    ($eo_mk_numeral (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1)))
+    (eo.SmtTerm (sm.Numeral (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1))))
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Rational) (eo.SmtTerm.arg1 x1)))
-    ($eo_mk_numeral (to_int (sm.Rational.arg1 (eo.SmtTerm.arg1 x1))))
+    (eo.SmtTerm (sm.Numeral (to_int (sm.Rational.arg1 (eo.SmtTerm.arg1 x1)))))
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.String) (eo.SmtTerm.arg1 x1)))
-    (ite (= 1 (str.len (sm.String.arg1 (eo.SmtTerm.arg1 x1)))) ($eo_mk_numeral (str.to_code (sm.String.arg1 (eo.SmtTerm.arg1 x1)))) eo.Stuck)
+    (ite (= 1 (str.len (sm.String.arg1 (eo.SmtTerm.arg1 x1)))) (eo.SmtTerm (sm.Numeral (str.to_code (sm.String.arg1 (eo.SmtTerm.arg1 x1))))) eo.Stuck)
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Binary) (eo.SmtTerm.arg1 x1)))
-    ($eo_mk_numeral (sm.Binary.arg2 (eo.SmtTerm.arg1 x1)))
+    (eo.SmtTerm (sm.Numeral (sm.Binary.arg2 (eo.SmtTerm.arg1 x1))))
     eo.Stuck))))))
 
 ; program: $eo_to_q
@@ -237,9 +231,9 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Numeral) (eo.SmtTerm.arg1 x1)))
-    ($eo_mk_rational (to_real (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1))))
+    (eo.SmtTerm (sm.Rational (to_real (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1)))))
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Rational) (eo.SmtTerm.arg1 x1)))
-    ($eo_mk_rational (sm.Rational.arg1 (eo.SmtTerm.arg1 x1)))
+    (eo.SmtTerm (sm.Rational (sm.Rational.arg1 (eo.SmtTerm.arg1 x1))))
     eo.Stuck))))
 
 ; program: $eo_to_bin
@@ -257,9 +251,9 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Numeral) (eo.SmtTerm.arg1 x1)))
-    (ite (and (<= 0 (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1))) (> 196608 (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1)))) ($eo_mk_string (str.from_code (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1)))) eo.Stuck)
+    (ite (and (<= 0 (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1))) (> 196608 (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1)))) (eo.SmtTerm (sm.String (str.from_code (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1))))) eo.Stuck)
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.String) (eo.SmtTerm.arg1 x1)))
-    ($eo_mk_string (sm.String.arg1 (eo.SmtTerm.arg1 x1)))
+    (eo.SmtTerm (sm.String (sm.String.arg1 (eo.SmtTerm.arg1 x1))))
     eo.Stuck))))
 
 ; fwd-decl: $eo_dt_constructors
