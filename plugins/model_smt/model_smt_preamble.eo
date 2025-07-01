@@ -81,6 +81,8 @@
 ; comes to printing the argument types, as e.g. the argument to sm.Numeral is
 ; an SMT-LIB numeral, not a symbolic SMT term.
 
+;;;;;;;;;;;;;;;; datatype begin
+
 ;;; Deep embedding of SMT-LIB terms
 
 ; TODO: move up to own signature
@@ -99,10 +101,7 @@
 (declare-parameterized-const $smd_sm.String ((s ($smt_type_0 "String") :opaque)) $smt_Term)
 (declare-parameterized-const $smd_sm.Binary ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Term)
 
-; A skolem.
-; (1) Their kind (numeral k),
-; (2) Their identifier (numeral i),
-; (3) Their type.
+; A skolem, identified by kind, identifier and Type.
 ; The kind 0 is reserved for standard SMT-LIB symbols introduced
 ; by the user by declare-const. The other kinds of free symbols
 ; can be custom defined based on the Eunoia signature (see method
@@ -152,6 +151,8 @@
 ; The Eunoia representation of "stuckness".
 (declare-const $smd_eo.Stuck $eo_Term)
 
+;;;;;;;;;;;;;;;; datatype end
+
 ;;; Utilities
   
 (define $sm_mk_true () $smd_sm.True)
@@ -165,7 +166,6 @@
 (define $sm_mk_str ((s $smt_builtin_String))
   ($smt_apply_1 "sm.String" s))
 
-
 ; Assumes that t is a Boolean term
 (define $sm_is_bool ((T Type :implicit) (t T))
   ($smt_builtin_or
@@ -177,9 +177,6 @@
   ($smt_apply_1 "(_ is sm.Rational)" t))
 (define $sm_is_str ((T Type :implicit) (t T))
   ($smt_apply_1 "(_ is sm.String)" t))
-
-;(define $sm_mk_binary ((w $smt_builtin_Int) (n $smt_builtin_Int))
-
 
 (define $eo_smt_term ((t $smt_Term)) ($smd_eo.SmtTerm t))
 (define $eo_smt_type ((T $smt_Type)) ($smd_eo.SmtType T))
@@ -267,8 +264,6 @@
       $eo_mk_stuck))
   )
 )
-  ;;;;;;;;;;;;;;;;; no smd_ below here?
-
 
 ;;; Utilities
 
@@ -280,9 +275,9 @@
 (program $eo_not ((w $smt_builtin_Int) (n $smt_builtin_Int))
   :signature ($eo_Term) $eo_Term
   (
-  (($eo_not ($eo_smt_term $sm_mk_true))         ($eo_smt_term $sm_mk_false))
-  (($eo_not ($eo_smt_term $sm_mk_false))        ($eo_smt_term $sm_mk_true))
-  (($eo_not ($eo_smt_term ($smd_sm.Binary w n))) ($eo_mk_binary w ($sm_mk_binary_not w n)))
+  (($eo_not ($eo_smt_term $sm_mk_true))           ($eo_smt_term $sm_mk_false))
+  (($eo_not ($eo_smt_term $sm_mk_false))          ($eo_smt_term $sm_mk_true))
+  (($eo_not ($eo_smt_term ($smd_sm.Binary w n)))  ($eo_mk_binary w ($sm_mk_binary_not w n)))
   )
 )
 
@@ -360,11 +355,11 @@
     (eo::define ((r1 ($smt_apply_1 "to_real" n1)))
     (eo::define ((r2 ($smt_apply_1 "to_real" n2)))
     ($smt_apply_3 "ite" ($smt_apply_1 "= 0" n2)
-      $smd_eo.Stuck
+      $eo_mk_stuck
       ($eo_mk_rational ($smt_apply_2 "/" r1 r2))))))
   (($eo_qdiv ($eo_smt_term ($smd_sm.Rational r1)) ($eo_smt_term ($smd_sm.Rational r2)))
     ($smt_apply_3 "ite" ($smt_apply_1 "= 0/1" r2)
-      $smd_eo.Stuck
+      $eo_mk_stuck
       ($eo_mk_rational ($smt_apply_2 "/" r1 r2))))
   )
 )
@@ -375,7 +370,7 @@
   (
   (($eo_zdiv ($eo_smt_term ($smd_sm.Numeral n1)) ($eo_smt_term ($smd_sm.Numeral n2)))
     ($smt_apply_3 "ite" ($smt_apply_1 "= 0" n2)
-      $smd_eo.Stuck
+      $eo_mk_stuck
       ($eo_mk_numeral ($smt_apply_2 "div" n1 n2))))
   (($eo_zdiv ($eo_smt_term ($smd_sm.Binary w n1)) ($eo_smt_term ($smd_sm.Binary w n2)))
     ($smt_apply_3 "ite" ($smt_apply_1 "= 0" n2)
@@ -389,7 +384,7 @@
   (
   (($eo_zmod ($eo_smt_term ($smd_sm.Numeral n1)) ($eo_smt_term ($smd_sm.Numeral n2)))
     ($smt_apply_3 "ite" ($smt_apply_1 "= 0" n2)
-      $smd_eo.Stuck
+      $eo_mk_stuck
       ($eo_mk_numeral ($smt_apply_2 "mod" n1 n2))))
   (($eo_zmod ($eo_smt_term ($smd_sm.Binary w n1)) ($eo_smt_term ($smd_sm.Binary w n2)))
     ($smt_apply_3 "ite" ($smt_apply_1 "= 0" n2)
@@ -474,7 +469,7 @@
   (($eo_to_z ($eo_smt_term ($smd_sm.String s1)))
     ($smt_apply_3 "ite" ($smt_apply_1 "= 1" ($smt_apply_1 "str.len" s1))
       ($eo_mk_numeral ($smt_apply_1 "str.to_code" s1))
-      $smd_eo.Stuck))
+      $eo_mk_stuck))
   (($eo_to_z ($eo_smt_term ($smd_sm.Binary w n1)))
     ($eo_mk_numeral n1))
   )
@@ -506,7 +501,7 @@
   (($eo_to_str ($eo_smt_term ($smd_sm.Numeral n1)))
     ($smt_apply_3 "ite" ($smt_builtin_and ($smt_apply_1 "<= 0" n1) ($smt_apply_1 "> 196608" n1))
       ($eo_mk_string ($smt_apply_1 "str.from_code" n1))
-      $smd_eo.Stuck))
+      $eo_mk_stuck))
   (($eo_to_str ($eo_smt_term ($smd_sm.String s1)))
     ($eo_mk_string s1))
   ; TODO: technically others here

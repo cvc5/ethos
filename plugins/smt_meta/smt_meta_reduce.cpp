@@ -1161,11 +1161,6 @@ void SmtMetaReduce::finalizeDeclarations()
     }
     else
     {
-      // defined manually
-      if (consName == "Const")
-      {
-        continue;
-      }
       prefix << "sm.";
       out = &d_termDecl;
     }

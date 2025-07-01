@@ -1,7 +1,3 @@
-; INVARIANT: 
-; All methods in this signature that take at least one $eo_Term as argument
-; must return $eo_Term as the result.
-
 ; This file gives a template for defining the model semantics of
 ; a Eunoia signature. The signature model_smt.eo uses this signature
 ; to define (a user extension of) the standard SMT-LIB semantics.
@@ -11,26 +7,15 @@
 ; <this file, instantiated based on the above signature>
 ; <model_smt.eo>
 ;
-; Note that for efficiency, we allow model_smt.eo to be instantiated
+; Note that we instantiate model_smt.eo directly (SMT_EVAL_CASES)
 ; based on a controlled template, namely which standard SMT-LIB operators
 ; are present in the user signature, where *names* are taken literally.
 ; That is, if the user declares "+", then it may appear in the model
 ; evaluation function in the instantiated version of model_smt.eo.
 
-; A free constant.
-; Constants are identified by:
-; (1) Their kind (numeral k),
-; (2) Their identifier (numeral i),
-; (3) Their type.
-; Free constants can be associated with predicates, which defines their
-; semantics (essentially, this means they are all "choice" terms, despite
-; choice not being modelled in the term object syntax).
-; The property is obtained by calling $eo_model_Const_pred below.
-; Kind 0 is reserved for truly free constants, i.e. (choice ((x T)) true).
-; Note this declaration must be preserved to ensure the semantics of
-; SMT-LIB is accurate. In particular, this ensures that terms can
-; be constructed out of free constant symbols.
-; This indicates the properties of skolem functions.
+; INVARIANT:
+; All methods in this signature that take at least one $eo_Term as argument
+; must return $eo_Term as the result.
 
 (define $eo_mk_stuck () $smd_eo.Stuck)
 
@@ -63,7 +48,6 @@ $EO_IS_TYPE_CASES$
   (($eo_is_type T) $eo_mk_stuck)
   )
 )
-
 
 ; type enumeration
 
