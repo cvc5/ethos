@@ -17,6 +17,13 @@
 
 namespace ethos {
 
+SelectorCtx::SelectorCtx() {}
+void SelectorCtx::clear(){
+  d_ctx.clear();
+  d_tctx.clear();
+  d_typeMatch.clear();
+}
+  
 SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s)
 {
 }
@@ -405,6 +412,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
                 << std::endl;
       // if the Eunoia term is an SMT term, change the context
       // and use the eo.SmtTerm selector
+      // FIXME: context switch for SMT_TYPE
       if (tkctx == TermContextKind::EUNOIA && atk == TermKind::SMT_TERM)
       {
         // changes context
@@ -464,18 +472,9 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
         std::stringstream ssNext;
         ssNext << "(" << cname.str() << ".arg" << (i + 1 - printArgStart) << " "
                << currTerm << ")";
-        Expr nextType;
-        if (ck == Kind::APPLY)
-        {
-          //Assert (i<curType.getNumChildren()) << "Index out of bounds, matching " << tcur << ", index " << i << ", type is " << curType;
-          //nextType = curType[i];
-        }
-        else
-        {
-          // the next type is "reset"
-          //Expr tcc = tcur[i];
-          //nextType = d_tc.getType(tcc);
-        }
+        // the next type is "reset"
+        Expr tcc = tcur[i];
+        Expr nextType = d_tc.getType(tcc);
         visit.emplace_back(tcur[i], ssNext.str(), tkctx, nextType);
       }
     }
@@ -487,6 +486,8 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
         // find time seeing this parameter, it is bound to the selector chain
         ctx.d_ctx[tcur] = currTerm;
         ctx.d_tctx[tcur] = tkctx;
+        // remember the type
+        ctx.d_typeMatch[tcur] = curType;
       }
       else
       {
@@ -1063,6 +1064,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     casesEnd << ")";
   }
   size_t ncases = prog.getNumChildren();
+  SelectorCtx ctx;
   for (size_t i = 0; i < ncases; i++)
   {
     const Expr& c = prog[i];
@@ -1073,7 +1075,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     {
       reqAxiom = true;
     }
-    SelectorCtx ctx;
+    ctx.clear();
     std::stringstream currCase;
     size_t nconj = 0;
     Assert (hd.getNumChildren()==nargs);
@@ -1132,19 +1134,31 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   // now go back and print the variable list, now that we know the types
   // of the variables
   std::stringstream varListSafe, declSafe;
-  for (size_t i = 1; i < nargs; i++)
+  // if there is only one case, we can do type inference
+  if (ncases==1)
   {
-    if (i > 1)
+    //d_defs << std::endl << "; examine: " << v << std::endl;
+    std::map<Expr, TermContextKind>::iterator itm;
+    for (size_t i = 1; i < nargs; i++)
     {
-      declSafe << " ";
-      varListSafe << " ";
+      if (i > 1)
+      {
+        declSafe << " ";
+        varListSafe << " ";
+      }
+      itm = ctx.d_tctx.find(vt[i-1]);
+      if (itm!=ctx.d_tctx.end())
+      {
+        //d_defs << "; x" << i << " matched with " << itm->second << std::endl;
+        //d_defs << "; x" << i << " matched in context " << termContextKindToString(itm->second) << std::endl;
+      }
+      std::stringstream argType;
+      printEmbType(vt[i - 1], argType);
+      declSafe << argType.str();
+      std::stringstream ssArg;
+      ssArg << "x" << i;
+      varListSafe << "(" << ssArg.str() << " " << argType.str() << ")";
     }
-    std::stringstream argType;
-    printEmbType(vt[i - 1], argType);
-    declSafe << argType.str();
-    std::stringstream ssArg;
-    ssArg << "x" << i;
-    varListSafe << "(" << ssArg.str() << " " << argType.str() << ")";
   }
   // axiom
   if (reqAxiom)

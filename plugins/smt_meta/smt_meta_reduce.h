@@ -93,7 +93,8 @@ std::string termKindToString(TermKind k);
 class SelectorCtx
 {
  public:
-  SelectorCtx() {}
+  SelectorCtx();
+  void clear();
   /** */
   std::map<Expr, std::string> d_ctx;
   /** The context it was matched in */
