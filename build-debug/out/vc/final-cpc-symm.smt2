@@ -147,6 +147,9 @@
 ; fwd-decl: $eo_model_sat
 (declare-fun $eo_model_sat (eo.Term) eo.Term)
 
+; define $eo_smt_term
+(define-fun $eo_smt_term ((t sm.Term)) eo.Term (eo.SmtTerm t))
+
 ; program: $sm_mk_pow2
 (declare-fun $sm_mk_pow2 (Int) Int)
 (assert (! (forall ((x1 Int))
