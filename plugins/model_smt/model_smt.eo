@@ -10,8 +10,29 @@
 ; Invariant: all programs in this signature should be well-founded and never
 ; never get stuck unless otherwise stated.
 
-; Utilities
+;;;;;; Utilities
 
+; Utilities to ensure that programs are total.
+; Takes
+; - A $eo_Term t where we are not sure if it gets stuck.
+; - A $eo_Term elseTerm where we are sure it does not get stuck.
+; Returns the SMT term corresponding to the evaluation of t, if possible,
+; or elseTerm otherwise. This always successfully evaluates.
+(define $smt_try_eo ((t $eo_Term) (elseTerm $eo_Term))
+  ($smt_apply_1 "eo.SmtTerm.arg1" 
+    ($smt_apply_3 "ite" ($smt_apply_1 "(_ is eo.SmtTerm)" t)
+      t
+      elseTerm)))
+; Same as above, for SMT types.
+(define $smt_try_eo_type ((t $eo_Term) (elseTerm $eo_Term))
+  ($smt_apply_1 "eo.SmtType.arg1"
+    ($smt_apply_3 "ite" ($smt_apply_1 "(_ is eo.SmtType)" t)
+      t
+      elseTerm)))
+      
+;;; SMT term list
+
+; A list of SMT terms, defined as a datatype for convienience in this signature.
 (declare-datatype @STermList
   (
   (@STermList_cons (@STermList_cons.arg1 $smt_Term) (@STermList_cons.arg2 @STermList))
@@ -19,6 +40,7 @@
   )
 )
 
+; Concatenate lists of SMT terms.
 (program $smtx_list_concat ((x $smt_Term) (y @STermList) (z @STermList))
   :signature (@STermList @STermList) @STermList
   (
@@ -27,18 +49,52 @@
   )
 )
 
-; Use "@" to indicate that this is not an SMT-LIB term.
-;(declare-const @smt_RatPair Type)
-;(declare-const @smt_ratPair (-> $smt_Numeral $smt_Numeral @smt_RatPair))
+;;; Rational pair
 
-; SMT values
+; A rational pair, used for enumerating reals
+(declare-datatype @RatPair
+  (
+  (@RatPair_mk (@RatPair_mk.arg1 $smt_builtin_Int) (@RatPair_mk.arg2 $smt_builtin_Int))
+  )
+)
+
+; Based on Calkin–Wilf tree.
+; NOTE: this method is only necessary if reasoning about the enumeration of Reals,
+; this is only necessary if we are proving soundness of a proof rule that involves
+; quantified reals.
+;(program $eo_rat_enum_rec
+;  ((i $smt_Numeral) (n $smt_Numeral) (d $smt_Numeral) (r @smt_RatPair) (rs @sterm_list))
+;  :signature ($smt_Numeral @sterm_list) @smt_RatPair
+;  (
+;  (($eo_rat_enum_rec 0 (@sterm_list_cons r rs)) r)
+;  (($eo_rat_enum_rec i (@sterm_list_cons (@smt_ratPair n d) rs))
+;     (eo::define ((r1 (@smt_ratPair (eo::add n d) d)))
+;     (eo::define ((r2 (@smt_ratPair n (eo::add n d))))
+;      ($eo_rat_enum_rec (eo::add i -1)
+;        ($eo_list_concat rs (@sterm_list_cons r1 (@sterm_list_cons r2 @sterm_list_nil)))))))
+;  )
+;)
+
+;(define $smt_rat_enum ((i $smt_Numeral))
+;  ($eo_rat_enum_rec i (@sterm_list_cons (@smt_ratPair 1 1) @sterm_list_nil)))
+
+;(program $eo_rat_to_num ((n $smt_Numeral) (d $smt_Numeral))
+;  :signature ($smt_Numeral) $smt_Rational
+;  (
+;  (($eo_rat_to_num (@smt_ratPair n d)) ($eo_qdiv n d))
+;  )
+;)
+
+;;;;;; SMT values
   
 ; The final embedding of SMT-LIB values that are relevant to the VC.
 (declare-datatypes ((vcm.Value 0) (@Map 0))
   ((
   ; map with an index type
+  ; valueness: $smtx_map_is_value
   (vcm.Map (vcm.Map.arg1 @Map) (vcm.Map.arg2 $smt_Type))
   ; uninterpreted constants 
+  ; valueness: 
   (vcm.UConst (vcm.UConst.arg1 $smt_Type) (i $smt_builtin_Int))
   ; an SMT value represented by an SMT-LIB term, e.g. Int/Real/String.
   (vcm.Term (vcm.Term.arg1 $smt_Term))
@@ -74,23 +130,6 @@
 ;    (
     
 ;;; utilities
-
-; A utility to ensure that programs are total.
-; Takes
-; - A $eo_Term t where we are not sure if it gets stuck.
-; - A $eo_Term elseTerm where we are sure it does not get stuck.
-; Returns the SMT term corresponding to the evaluation of t, if possible,
-; or elseTerm otherwise. This always successfully evaluates.
-(define $smt_try_eo ((t $eo_Term) (elseTerm $eo_Term))
-  ($smt_apply_1 "eo.SmtTerm.arg1" 
-    ($smt_apply_3 "ite" ($smt_apply_1 "(_ is eo.SmtTerm)" t)
-      t
-      elseTerm)))
-(define $smt_try_eo_type ((t $eo_Term) (elseTerm $eo_Term))
-  ($smt_apply_1 "eo.SmtType.arg1"
-    ($smt_apply_3 "ite" ($smt_apply_1 "(_ is eo.SmtType)" t)
-      t
-      elseTerm)))
 
 ; Used to totalize $eo_typeof.
 (program $smtx_typeof ()

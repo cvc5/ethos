@@ -54,34 +54,6 @@ $EO_IS_TYPE_CASES$
 ; note: The methods in this section are only included (based on trim-defs) if
 ; the verification condition is reasoning about quantified formuls.
 
-
-; Based on Calkin–Wilf tree.
-; NOTE: this method is only necessary if reasoning about the enumeration of Reals,
-; this is only necessary if we are proving soundness of a proof rule that involves
-; quantified reals.
-;(program $eo_rat_enum_rec
-;  ((i $smt_Numeral) (n $smt_Numeral) (d $smt_Numeral) (r @smt_RatPair) (rs @sterm_list))
-;  :signature ($smt_Numeral @sterm_list) @smt_RatPair
-;  (
-;  (($eo_rat_enum_rec 0 (@sterm_list_cons r rs)) r)
-;  (($eo_rat_enum_rec i (@sterm_list_cons (@smt_ratPair n d) rs))
-;     (eo::define ((r1 (@smt_ratPair (eo::add n d) d)))
-;     (eo::define ((r2 (@smt_ratPair n (eo::add n d))))
-;      ($eo_rat_enum_rec (eo::add i -1)
-;        ($eo_list_concat rs (@sterm_list_cons r1 (@sterm_list_cons r2 @sterm_list_nil)))))))
-;  )
-;)
-
-;(define $smt_rat_enum ((i $smt_Numeral))
-;  ($eo_rat_enum_rec i (@sterm_list_cons (@smt_ratPair 1 1) @sterm_list_nil)))
-
-;(program $eo_rat_to_num ((n $smt_Numeral) (d $smt_Numeral))
-;  :signature ($smt_Numeral) $smt_Rational
-;  (
-;  (($eo_rat_to_num (@smt_ratPair n d)) ($eo_qdiv n d))
-;  )
-;)
-
 ; we have no incorporate of irrational values, which can be soundly approximated using
 ; $smd_sm.usort_value.
 ;(define $smt_irrat_enum ((i $smt_Numeral))
