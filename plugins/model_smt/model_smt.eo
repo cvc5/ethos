@@ -144,24 +144,45 @@
 
 ; @Map is recursive and thus defined above.
 
-(program $smtx_map_is_value_rec
-  ((T $smt_Type) (U $smt_Type) (t $smt_Term) (u $smt_Term) (tail @Map))
-  :signature (@Map $smt_Type) $smt_builtin_Bool
+; Get the default for the map
+(program $smtx_map_default
+  ((i vcm.Value) (j vcm.Value) (e vcm.Value) (M @Map))
+  :signature (@Map) $smt_Term
   (
-  (($smtx_map_is_value_rec (@Map_default u) U)      ($smtx_is_value U u))
-  ; TODO: ordering constraint, recursive
-  (($smtx_map_is_value_rec (@Map_cons t u tail) U)  ($smtx_is_value U u))
+  (($smtx_map_default (@Map_cons j e M))  ($smtx_map_default M))
+  (($smtx_map_default (@Map_default e))   e)
   )
 )
 
-(program $smtx_eval_lookup
-  ((i vcm.Value) (j vcm.Value) (e vcm.Value) (tail @Map))
+; This program looks up the value of a term in a map.
+; This is used for function evaluation.
+(program $smtx_map_lookup
+  ((i vcm.Value) (j vcm.Value) (e vcm.Value) (M @Map))
   :signature (@Map $smt_Term) $smt_Term
   (
   ; NOTE: the cases here are exhaustive, meaning we can soundly ignore the "is nil" else condition
-  (($smtx_eval_lookup (@Map_cons i e tail) i)  e)
-  (($smtx_eval_lookup (@Map_cons j e tail) i)  ($smtx_eval_lookup tail i))
-  (($smtx_eval_lookup (@Map_default e) i)      e)
+  (($smtx_map_lookup (@Map_cons i e M) i)  e)
+  (($smtx_map_lookup (@Map_cons j e M) i)  ($smtx_map_lookup M i))
+  (($smtx_map_lookup (@Map_default e) i)   e)
+  )
+)
+
+; This program determines whether the map value is canonical
+; This program is only necessary if we are doing equality between arrays
+; (or functions).
+(program $smtx_map_is_redundant
+  ((T $smt_Type) (U $smt_Type) (t $smt_Term) (u $smt_Term) (M @Map))
+  :signature (@Map $smt_Type) $smt_builtin_Bool
+  (
+  (($smtx_map_is_redundant (@Map_default u) U)     false)
+  (($smtx_map_is_redundant (@Map_cons t u M) U)
+    ; lookup value on tail
+    (eo::define ((ru ($smtx_map_lookup t M)))
+    ; if it is the same, this index is redundant and thus we are not a value
+    ($smt_apply_3 "ite"
+      ($smt_apply_2 "=" ru u)
+      $smt_builtin_false
+      ($smtx_map_is_redundant M))))
   )
 )
 
