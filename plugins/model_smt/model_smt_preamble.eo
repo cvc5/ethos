@@ -54,6 +54,7 @@
 (define $smt_builtin_false () ($smt_apply_0 "false"))
 (define $smt_builtin_= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "=" x1 x2))
 (define $smt_builtin_ite ((W Type :implicit) (b $smt_builtin_Bool) (x1 W) (x2 W)) ($smt_apply_3 "ite" b x1 x2))
+(define $smt_builtin_z_zero () ($smt_apply_0 "0"))
 (define $smt_builtin_+ ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "+" x1 x2))
 (define $smt_builtin_- ((W Type :implicit) (x1 W)) ($smt_apply_1 "-" x1))
 (define $smt_builtin_div ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "div" x1 x2))
@@ -98,7 +99,7 @@
 (declare-parameterized-const $smd_sm.String ((s ($smt_type_0 "String") :opaque)) $smt_Term)
 (declare-parameterized-const $smd_sm.Binary ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Term)
 
-; A free constant. Constants are identified by:
+; A skolem.
 ; (1) Their kind (numeral k),
 ; (2) Their identifier (numeral i),
 ; (3) Their type.
@@ -106,8 +107,13 @@
 ; by the user by declare-const. The other kinds of free symbols
 ; can be custom defined based on the Eunoia signature (see method
 ; $eo_const_predicate in model_eo.eo).
-(declare-parameterized-const $smd_sm.Const
+(declare-parameterized-const $smd_sm.Skolem
   ((k $smt_builtin_Int :opaque) (id $smt_builtin_Int :opaque) (T $smt_Type :opaque))
+  $smt_Term)
+
+; A free constant
+(declare-parameterized-const $smd_sm.Const
+  ((id $smt_builtin_Int :opaque) (T $smt_Type :opaque))
   $smt_Term)
 
 ; represents an uninterpreted value
@@ -242,6 +248,7 @@
 
 ;;; Utilities
 
+(define $eo_mk_stuck () $smd_eo.Stuck)
 (define $eo_mk_bool ((x $smt_builtin_Bool))
   ($eo_smt_term ($sm_mk_bool x)))
 (define $eo_mk_numeral ((x $smt_builtin_Int))
@@ -257,7 +264,7 @@
   (($eo_mk_binary w n)
     ($smt_apply_3 "ite" ($smt_builtin_and ($smt_apply_1 "<= 0" w) ($smt_apply_1 ">= 4294967296" w))
       ($eo_smt_term ($smd_sm.Binary w ($smt_apply_2 "mod" n ($sm_mk_pow2 w))))
-      $smd_eo.Stuck))
+      $eo_mk_stuck))
   )
 )
   ;;;;;;;;;;;;;;;;; no smd_ below here?

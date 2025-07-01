@@ -30,7 +30,6 @@
 ; Note this declaration must be preserved to ensure the semantics of
 ; SMT-LIB is accurate. In particular, this ensures that terms can
 ; be constructed out of free constant symbols.
-(declare-parameterized-const $eo_Const ((id $eo_Numeral) (T Type)) T)
 ; This indicates the properties of skolem functions.
 
 (define $eo_mk_stuck () $smd_eo.Stuck)
