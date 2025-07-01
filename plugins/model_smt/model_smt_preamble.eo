@@ -137,7 +137,8 @@
 
 ; The Eunoia representation of an SMT-LIB term.
 (declare-parameterized-const $smd_sm.Apply
-  ((t1 $smt_Term :opaque) (t $smt_Term :opaque)) $smt_Term)
+  ((t1 $smt_Term :opaque) (t2 $smt_Term :opaque)) $smt_Term)
+(define $sm_apply_term ((t1 $smt_Term) (t2 $smt_Term)) ($smd_sm.Apply t1 t2))
 
 ;;; Deep embedding of SMT-LIB types
 
