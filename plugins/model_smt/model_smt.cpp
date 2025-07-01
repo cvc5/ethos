@@ -252,10 +252,13 @@ void ModelSmt::finalizeDeclaration(const Expr& e)
   std::string sname = ss.str();
   std::stringstream* out = nullptr;
   std::stringstream prefix;
+  std::stringstream metaType;
+  metaType << "(($get_meta_type " << e << ") ";
   if (sname.compare(0, 1, "@") == 0 || sname.compare(0, 8, "$eo_List") == 0)
   {
     prefix << "eo.";
     out = &d_embedEoTermDt;
+    metaType << "eo.Term)";
   }
   else
   {
@@ -265,18 +268,22 @@ void ModelSmt::finalizeDeclaration(const Expr& e)
     {
       prefix << "tsm.";
       out = &d_embedTypeDt;
+      metaType << "sm.Type)";
     }
     else
     {
       // otherwise assume an SMT term
       prefix << "sm.";
       out = &d_embedTermDt;
+      metaType << "sm.Term)";
     }
   }
   if (out == nullptr)
   {
     return;
   }
+  d_metaType << "  ; meta-type: " << e << std::endl;
+  d_metaType << "  " << metaType.str() << std::endl;
   // FIXME: remove
   prefix << "new.";
   (*out) << "  ; user-decl: " << e << std::endl;
@@ -350,6 +357,7 @@ void ModelSmt::finalize()
   replace(finalEoEmbed, "$SM_TERM_DECL$", d_embedTermDt.str());
   replace(finalEoEmbed, "$SM_EO_TERM_DECL$", d_embedEoTermDt.str());
   replace(finalEoEmbed, "$SM_LITERAL_TYPE_DECL$", d_embedLitType.str());
+  replace(finalEoEmbed, "$SM_META_TYPE_DECL$", d_metaType.str());
   // write it back out, will be saved for meta reduce
   std::stringstream ssoee;
   ssoee << s_plugin_path << "plugins/model_smt/model_eo_embed_gen.eo";

@@ -86,9 +86,11 @@ $SM_EO_TERM_DECL$
   ))
 )
 
+; For each relevant term, return the datatype above that it belongs to.
 (program $get_meta_type ((T Type) (t T))
   :signature (T) Type
   (
+$SM_META_TYPE_DECL$
   (($get_meta_type t) $eo_Term)
   )
 )
