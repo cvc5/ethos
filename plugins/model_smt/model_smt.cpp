@@ -17,6 +17,20 @@
 
 namespace ethos {
 
+std::string dtKindToString(DtKind k)
+{
+  std::stringstream ss;
+  switch (k)
+  {
+    case DtKind::EUNOIA_TERM: ss << "EUNOIA_TERM"; break;
+    case DtKind::SMT_TERM: ss << "SMT_TERM"; break;
+    case DtKind::SMT_TYPE: ss << "SMT_TYPE"; break;
+    case DtKind::SMT_VALUE: ss << "SMT_VALUE"; break;
+    default: ss << "?DtKind"; break;
+  }
+  return ss.str();
+}
+
 ModelSmt::ModelSmt(State& s) : StdPlugin(s)
 {
   Expr typ = d_state.mkType();
@@ -119,6 +133,7 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
   {
     printSmtTerm(name, args, ret);
   }
+  d_declSeen.insert(e);
 }
 
 void ModelSmt::printSmtType(const std::string& name, std::vector<Kind>& args) {}
@@ -224,8 +239,95 @@ void ModelSmt::printSmtTerm(const std::string& name,
   d_eval << std::endl << "      " << callApp.str() << ")" << preAppEnd.str() << std::endl;
 }
 
+void ModelSmt::printEmbType(const Expr& e, std::ostream& os)
+{
+  os << e;
+}
+
+void ModelSmt::finalizeDeclaration(const Expr& e)
+{
+  // first, determine which datatype (if any) this belongs to
+  std::stringstream ss;
+  ss << e;
+  std::string sname = ss.str();
+  std::stringstream* out = nullptr;
+  std::stringstream prefix;
+  if (sname.compare(0, 1, "@") == 0 || sname.compare(0, 8, "$eo_List") == 0)
+  {
+    prefix << "eo.";
+    out = &d_embedEoTermDt;
+  }
+  else
+  {
+    Expr c = e;
+    Expr tc = d_tc.getType(c);
+    if (tc.getKind()==Kind::TYPE)
+    {
+      prefix << "tsm.";
+      out = &d_embedTypeDt;
+    }
+    else
+    {
+      // otherwise assume an SMT term
+      prefix << "sm.";
+      out = &d_embedTermDt;
+    }
+  }
+  if (out == nullptr)
+  {
+    return;
+  }
+  (*out) << "  ; declare " << e << std::endl;
+  Expr c = e;
+  Expr ct = d_tc.getType(c);
+  // (*out) << "  ; type is " << ct << std::endl;
+  Attr attr = d_state.getConstructorKind(e.getValue());
+  // (*out) << "  ; attr is " << attr << std::endl;
+  (*out) << "  (";
+  std::stringstream cname;
+  cname << prefix.str() << e;
+  (*out) << cname.str();
+  size_t nopqArgs = 0;
+  if (attr == Attr::OPAQUE)
+  {
+    // opaque symbols are non-nullary constructors
+    Assert(ct.getKind() == Kind::FUNCTION_TYPE);
+    nopqArgs = ct.getNumChildren() - 1;
+  }
+  else if (attr == Attr::AMB || attr == Attr::AMB_DATATYPE_CONSTRUCTOR)
+  {
+    nopqArgs = 1;
+  }
+  for (size_t i = 0; i < nopqArgs; i++)
+  {
+    (*out) << " (" << cname.str();
+    (*out) << ".arg" << (i + 1) << " ";
+    // print its type using the utility,
+    // which takes into account what the type is in the final embedding
+    Expr typ = ct[i];
+    if (ct[i].getKind() == Kind::QUOTE_TYPE)
+    {
+      Expr targ = ct[i][0];
+      typ = d_tc.getType(targ);
+    }
+    std::stringstream sst;
+    printEmbType(typ, sst);
+    //(*out) << "; Printing datatype argument type " << typ << " gives \"" <<
+    //sst.str() << "\" " << termKindToString(tk) << std::endl;
+    (*out) << sst.str();
+    (*out) << ")";
+  }
+  (*out) << ")" << std::endl;
+
+}
+
 void ModelSmt::finalize()
 {
+  // finalize the declarations
+  for (const Expr& e : d_declSeen)
+  {
+    finalizeDeclaration(e);
+  }
   auto replace = [](std::string& txt,
                     const std::string& tag,
                     const std::string& replacement) {
@@ -245,7 +347,7 @@ void ModelSmt::finalize()
   replace(finalEoEmbed, "$SM_TYPE_DECL$", d_embedTypeDt.str());
   replace(finalEoEmbed, "$SM_TERM_DECL$", d_embedTermDt.str());
   replace(finalEoEmbed, "$SM_EO_TERM_DECL$", d_embedEoTermDt.str());
-  
+  replace(finalEoEmbed, "$SM_LITERAL_TYPE_DECL$", d_embedLitType.str());
   // write it back out, will be saved for meta reduce
   std::stringstream ssoee;
   ssoee << s_plugin_path << "plugins/model_smt/model_eo_embed_gen.eo";
