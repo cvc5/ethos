@@ -58,6 +58,7 @@
   )
 )
 
+; TODO: lift
 ; Based on Calkin–Wilf tree.
 ; NOTE: this method is only necessary if reasoning about the enumeration of Reals,
 ; this is only necessary if we are proving soundness of a proof rule that involves
@@ -87,6 +88,16 @@
 
 ;;;;;; SMT values
   
+; forward declaration
+; This method classifies SMT terms as being values.
+; The invariant of this method is that if
+;   ($smt_Type t1) and ($smt_Type t2)
+; return true where t1 and t2 have the same type ($smtx_typeof), then
+;   (not (= t1 t2))
+; is valid.
+(program $smtx_is_value ()
+  :signature ($smt_Type $smt_Term) $smt_builtin_Bool)
+  
 ; The final embedding of SMT-LIB values that are relevant to the VC.
 (declare-datatypes ((vcm.Value 0) (@Map 0))
   ((
@@ -94,10 +105,13 @@
   ; valueness: $smtx_map_is_value
   (vcm.Map (vcm.Map.arg1 @Map) (vcm.Map.arg2 $smt_Type))
   ; uninterpreted constants 
-  ; valueness: 
+  ; valueness: $smtx_usort_is_value
   (vcm.UConst (vcm.UConst.arg1 $smt_Type) (i $smt_builtin_Int))
   ; an SMT value represented by an SMT-LIB term, e.g. Int/Real/String.
+  ; valueness: $smtx_is_value
   (vcm.Term (vcm.Term.arg1 $smt_Term))
+  ; A non-value
+  (vcm.NotValue)
   )
   (
   ; (@Map_cons i e M) maps i -> e, as well as mappings in M
@@ -107,33 +121,7 @@
   ))
 )
 
-; functions and array values.
-
-; forward declaration
-(program $smtx_is_value ()
-  :signature ($smt_Type $smt_Term) $smt_builtin_Bool)
-
-(program $smtx_map_is_value
-  ((T $smt_Type) (U $smt_Type) (t $smt_Term) (u $smt_Term) (tail @Map))
-  :signature (@Map $smt_Type) $smt_builtin_Bool
-  (
-  (($smtx_map_is_value (@Map_default u) U)      ($smtx_is_value U u))
-  ; TODO: ordering constraint, recursive
-  (($smtx_map_is_value (@Map_cons t u tail) U)  ($smtx_is_value U u))
-  )
-)
-
-; TODO
-;(define $smt_mk_value ((t $smt_Term))
-;  ($smt_apply_3 "ite"
-;    ($smtx_is_value t)
-;    (
-    
-;;; utilities
-
-; Used to totalize $eo_typeof.
-(program $smtx_typeof ()
-  :signature ($smt_Term) $smt_Type)
+;;; Uninterpreted sort values.
 
 ; NOTE: this is equivalent to a datatype tester ((_ is sm.usort_value) t).
 (program $smtx_is_usort_value  ((n $smt_builtin_Int) (T $smt_Type) (t $smt_Term))
@@ -143,6 +131,51 @@
   (($smtx_is_usort_value t)                         $smt_builtin_false)
   )
 )
+
+; (vcm.UConst T i) is a value for all T, i.
+(define $smtx_usort_is_value () $smt_builtin_true)
+
+;;; Functions and array values.
+
+; @Map is recursive and thus defined above.
+
+(program $smtx_map_is_value_rec
+  ((T $smt_Type) (U $smt_Type) (t $smt_Term) (u $smt_Term) (tail @Map))
+  :signature (@Map $smt_Type) $smt_builtin_Bool
+  (
+  (($smtx_map_is_value_rec (@Map_default u) U)      ($smtx_is_value U u))
+  ; TODO: ordering constraint, recursive
+  (($smtx_map_is_value_rec (@Map_cons t u tail) U)  ($smtx_is_value U u))
+  )
+)
+
+(program $smtx_eval_lookup
+  ((i vcm.Value) (j vcm.Value) (e vcm.Value) (tail @Map))
+  :signature (@Map $smt_Term) $smt_Term
+  (
+  ; NOTE: the cases here are exhaustive, meaning we can soundly ignore the "is nil" else condition
+  (($smtx_eval_lookup (@Map_cons i e tail) i)  e)
+  (($smtx_eval_lookup (@Map_cons j e tail) i)  ($smtx_eval_lookup tail i))
+  (($smtx_eval_lookup (@Map_default e) i)      e)
+  )
+)
+
+;;; Try to make a value
+
+; Returns a term of type vcm.Value, embeds the term
+; if indeed it is a value, or returns not a value otherwise.
+(define $smt_mk_value_term ((t $smt_Term))
+  ($smt_apply_3 "ite"
+    ($smtx_is_value t)
+    (vcm.Term t)
+    (vcm.NotValue)))
+    
+;;; utilities
+
+; Used to totalize $eo_typeof.
+(program $smtx_typeof ()
+  :signature ($smt_Term) $smt_Type)
+
 
 ;;; Definition of legal types
 
@@ -161,10 +194,10 @@
   :signature ($smt_Type $smt_builtin_Int) $smt_Term
   (
   ; enumeration of standard SMT types
-  (($smtx_enum_type $smt_builtin_Int i) (eo::define ((v ($smt_builtin_div i 2)))
-                                          ($smt_apply_3 "ite" ($smt_apply_2 "=" ($smt_builtin_mod i 2) 0)
-                                            v
-                                            ($smt_builtin_- v))))
+  ;(($smtx_enum_type $smt_builtin_Int i) (eo::define ((v ($smt_builtin_div i 2)))
+  ;                                        ($smt_apply_3 "ite" ($smt_apply_2 "=" ($smt_builtin_mod i 2) 0)
+  ;                                          v
+  ;                                          ($smt_builtin_- v))))
   ;(($smtx_enum_type $smt_String i)      ($smt_apply_3 "ite" ($smt_apply_2 "=" i 0)
   ;                                      ""
   ;                                      (eo::concat (eo::to_str (eo::zmod i 196608)) ($smtx_enum_type $smt_String (eo::zdiv i 196608)))))
@@ -212,7 +245,7 @@
   )
 )
 
-; program: $smtx_dt_is_value
+; program: $smtx_is_value
 ; Returns true if its argument is an SMT value.
 ; This function is expected to never get stuck.
 (program $smtx_is_value
@@ -304,17 +337,6 @@
       ($smt_apply_1 "not" isExists)))) ; out of values.
   )
 )
-
-;(program $smtx_eval_apply
-;  ((T Type) (U Type) (i T) (j T) (e U) (tail @Map))
-;  :signature ($smt_Term $smt_Term) $smt_Term
-;  (
-;  ; NOTE: the cases here are exhaustive, meaning we can soundly ignore the "is nil" else condition
-;  (($smtx_eval_apply (@map_cons T U i e tail) i)  e)
-;  (($smtx_eval_apply (@map_cons T U j e tail) i)  ($smtx_eval_apply tail i))
-;  (($smtx_eval_apply (@map_nil T U e) i)          e)
-;  )
-;)
 
 ;;; Core definition of $smtx_model_eval
 

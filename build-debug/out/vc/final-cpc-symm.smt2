@@ -451,15 +451,15 @@
 ; fwd-decl: $smtx_is_value
 (declare-fun $smtx_is_value (tsm.Type sm.Term) Bool)
 
-; fwd-decl: $smtx_typeof
-(declare-fun $smtx_typeof (sm.Term) tsm.Type)
-
 ; program: $smtx_is_usort_value
 (define-fun $smtx_is_usort_value ((x1 sm.Term)) Bool
   (ite ((_ is sm.usort_value) x1)
     true
     false
 ))
+
+; fwd-decl: $smtx_typeof
+(declare-fun $smtx_typeof (sm.Term) tsm.Type)
 
 ; program: $smtx_dt_is_value
 (declare-fun $smtx_dt_is_value (sm.Term) Bool)

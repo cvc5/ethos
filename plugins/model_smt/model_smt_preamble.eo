@@ -97,10 +97,16 @@
 ; TODO: move up to own signature
 
 ; An SMT-LIB term.
+; This will be replaced by the datatype sm.Term in the final encoding.
 (declare-const $smt_Term Type)
 
 ; An SMT-LIB type.
+; This will be replaced by the datatype tsm.Type in the final encoding.
 (declare-const $smt_Type Type)
+
+; An SMT-LIB value.
+; This will be replaced by the datatype vsm.Value in the final encoding.
+(declare-const $smt_Value Type)
 
 ; Note the Bool type is "inlined" into the final signature
 (declare-const $smd_sm.True $smt_Term)
@@ -141,6 +147,7 @@
 ; Function types
 (declare-parameterized-const $smd_tsm.FunType
   ((T1 $smt_Type :opaque) (T2 $smt_Type :opaque)) $smt_Type)
+(define $smt_fun_type ((T1 $smt_Type) (T2 $smt_Type)) ($smd_tsm.FunType T1 T2))
 
 ; Uninterpreted sorts
 (declare-parameterized-const $smd_tsm.USort
