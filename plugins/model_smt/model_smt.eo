@@ -226,7 +226,7 @@
   ;                                      ($smt_apply_3 "ite" ($smt_apply_2 "=" (eo::zmod i 2) 0) v (eo::neg v)))))))
   
   ; TODO: functions, datatypes
-  ; Try to enumerate the type, if we fail, we return $smd_sm.usort_value.
+  ; Try to enumerate the type, if we fail, we return an Uninterpreted sort value.
   ; Note that this essentially assumes that unhandled types are uninterpreted
   ; and have infinite cardinality (since this does not get stuck).
   (($smtx_enum_type T i)               ($smd_sm.usort_value T i))
@@ -278,14 +278,11 @@
   (
   ; if the literal type is not defined, this is false
   (($smtx_is_value ($smt_NullSort n1) t)                                   $smt_builtin_false)
-  (($smtx_is_value ($smd_tsm.USort n1) t)                                 ($smtx_is_usort_value t))
+  (($smtx_is_value ($smt_USort n1) t)                                 ($smtx_is_usort_value t))
   ; standard atomic types
-  (($smtx_is_value $smd_tsm.BoolType $sm_mk_true)                         $smt_builtin_true)
-  (($smtx_is_value $smd_tsm.BoolType $sm_mk_false)                        $smt_builtin_true)
-  ;(($smtx_is_value $smt_builtin_Int ($eo_smt_term ($smd_sm.Numeral n1))) $smt_builtin_true)
-  ;(($smtx_is_value $smt_Rational ($eo_smt_term ($smd_sm.Rational r1)))   $smt_builtin_true)
-  ;(($smtx_is_value $smt_String ($eo_smt_term ($smd_sm.String s1)))       $smt_builtin_true)
-  ;(($smtx_is_value $eo_Binary t)
+  (($smtx_is_value $smt_BoolType $sm_mk_true)                         $smt_builtin_true)
+  (($smtx_is_value $smt_BoolType $sm_mk_false)                        $smt_builtin_true)
+  ; TODO: numeral, rational, string, (binary?)
   ;(($smtx_is_value @Map t)   ($smtx_map_is_value t))
   ; by default, a value is a term that appears in the type enumeration
   (($smtx_is_value T t)             ($smt_apply_3 "ite" ($smt_is_dt T)
@@ -323,7 +320,10 @@
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_Type $smt_Term) $smt_builtin_Bool
   (
   (($smtx_const_predicate k id T val)
-    ($sm_is_true ($smt_try_eo ($eo_const_predicate k id ($eo_smt_type T) ($eo_smt_term val)) ($eo_smt_term $sm_mk_true))))
+    ($sm_is_true
+      ($smt_try_eo
+        ($eo_const_predicate k id ($eo_smt_type T) ($eo_smt_term val))
+        ($eo_smt_term $sm_mk_true))))
   )
 )
 
@@ -396,7 +396,7 @@
   ; - $smt_eval_apply_*
 $SMT_EVAL_CASES$
   ; Apply case
-  ;(($smtx_model_eval ($smd_sm.Apply f y))   (eo::define ((fme ($smtx_model_eval f)))
+  ;(($smtx_model_eval ($sm_apply_term f y))   (eo::define ((fme ($smtx_model_eval f)))
   ;                                          (eo::define ((yme ($smtx_model_eval y)))
   ;                                            ($smtx_eval_apply fme yme))))
   ;; free constants and partial functions

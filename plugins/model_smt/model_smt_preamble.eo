@@ -124,31 +124,43 @@
 (declare-parameterized-const $smd_sm.Skolem
   ((k $smt_builtin_Int :opaque) (id $smt_builtin_Int :opaque) (T $smt_Type :opaque))
   $smt_Term)
+(define $sm_Const
+  ((k $smt_builtin_Int :opaque) (id $smt_builtin_Int :opaque) (T $smt_Type :opaque))
+  ($smd_sm.Skolem k id T))
 
 ; A free constant
 (declare-parameterized-const $smd_sm.Const
   ((id $smt_builtin_Int :opaque) (T $smt_Type :opaque))
   $smt_Term)
+(define $sm_Const
+  ((id $smt_builtin_Int :opaque) (T $smt_Type :opaque))
+  ($smd_sm.Const id T))
 
 ; represents an uninterpreted value
 ; This must be a constructor in the final sm.Term.
 (declare-parameterized-const $smd_sm.usort_value
   ((T $smt_Type :opaque) (i $smt_builtin_Int :opaque)) $smt_Term)
+(define $sm_usort_value
+  ((id $smt_builtin_Int :opaque) (T $smt_Type :opaque))
+  ($smd_sm.usort_value id T))
 
 ; The Eunoia representation of an SMT-LIB term.
 (declare-parameterized-const $smd_sm.Apply
   ((t1 $smt_Term :opaque) (t2 $smt_Term :opaque)) $smt_Term)
-(define $sm_apply_term ((t1 $smt_Term) (t2 $smt_Term)) ($smd_sm.Apply t1 t2))
+(define $sm_apply_term ((t1 $smt_Term) (t2 $smt_Term))
+  ($smd_sm.Apply t1 t2))
 
 ;;; Deep embedding of SMT-LIB types
 
 ; The Boolean type
 (declare-const $smd_tsm.BoolType $smt_Type)
+(define $smt_BoolType () $smd_tsm.BoolType)
 
 ; Function types
 (declare-parameterized-const $smd_tsm.FunType
   ((T1 $smt_Type :opaque) (T2 $smt_Type :opaque)) $smt_Type)
-(define $smt_fun_type ((T1 $smt_Type) (T2 $smt_Type)) ($smd_tsm.FunType T1 T2))
+(define $smt_fun_type ((T1 $smt_Type) (T2 $smt_Type))
+  ($smd_tsm.FunType T1 T2))
 
 ; Uninterpreted sorts
 (declare-parameterized-const $smd_tsm.USort
