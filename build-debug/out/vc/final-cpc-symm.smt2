@@ -183,6 +183,9 @@
 ; define $eo_mk_string
 (define-fun $eo_mk_string ((x String)) eo.Term (eo.SmtTerm (sm.String x)))
 
+; define $eo_binary
+(define-fun $eo_binary ((x1 Int) (x2 Int)) eo.Term (eo.SmtTerm (sm.Binary x1 x2)))
+
 ; program: $eo_mk_binary
 (define-fun $eo_mk_binary ((x1 Int) (x2 Int)) eo.Term
   (ite (and (<= 0 x1) (>= 4294967296 x1)) (eo.SmtTerm (sm.Binary x1 (mod x2 ($sm_mk_pow2 x1)))) eo.Stuck)
