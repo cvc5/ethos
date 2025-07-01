@@ -157,14 +157,14 @@
   :signature ($smt_Type $smt_Term) $smt_builtin_Bool
   (
   ; if the literal type is not defined, this is false
-  (($smtx_is_value ($smd_tsm.UnknownSort n1) t)                            false)
-  (($smtx_is_value ($smd_tsm.USort n1) t)                                  ($smtx_is_usort_value t))
+  (($smtx_is_value ($smd_tsm.NullSort n1) t)                              false)
+  (($smtx_is_value ($smd_tsm.USort n1) t)                                 ($smtx_is_usort_value t))
   ; standard atomic types
   (($smtx_is_value $smd_tsm.BoolType $sm_mk_true)                         true)
-  (($smtx_is_value $smd_tsm.BoolType $smd_sm.False)                        true)
-  ;(($smtx_is_value $smt_builtin_Int ($eo_smt_term ($smd_sm.Numeral n1)))    true)
-  ;(($smtx_is_value $smt_Rational ($eo_smt_term ($smd_sm.Rational r1)))  true)
-  ;(($smtx_is_value $smt_String ($eo_smt_term ($smd_sm.String s1)))      true)
+  (($smtx_is_value $smd_tsm.BoolType $sm_mk_false)                        true)
+  ;(($smtx_is_value $smt_builtin_Int ($eo_smt_term ($smd_sm.Numeral n1))) true)
+  ;(($smtx_is_value $smt_Rational ($eo_smt_term ($smd_sm.Rational r1)))   true)
+  ;(($smtx_is_value $smt_String ($eo_smt_term ($smd_sm.String s1)))       true)
   ;(($smtx_is_value $eo_Binary t)
   ;(($smtx_is_value (@map T U) t)   ($smtx_map_is_value t))
   ; by default, a value is a term that appears in the type enumeration
@@ -173,7 +173,7 @@
                                       ($smt_apply_1 "= sm.True"
                                         ($smt_try_eo 
                                          ($eo_is_value ($smt_apply_1 "eo.SmtType" T) t) 
-                                         ($eo_smt_term $smd_sm.False)))))
+                                         ($eo_smt_term $sm_mk_false)))))
   )
 )
 
@@ -265,9 +265,9 @@
   (
   ; builtins
   (($smtx_model_eval $sm_mk_true)             $sm_mk_true)
-  (($smtx_model_eval $smd_sm.False)           $smd_sm.False)
+  (($smtx_model_eval $sm_mk_false)            $sm_mk_false)
   (($smtx_model_eval (ite x1 x2 x3))
-    ($smt_apply_3 "ite" ($smt_apply_2 "=" ($smtx_model_eval x1) $sm_mk_true)
+    ($smt_apply_3 "ite" ($sm_is_true ($smtx_model_eval x1))
       ($smtx_model_eval x2)
       ($smtx_model_eval x3)))
   (($smtx_model_eval (= x1 x2))
@@ -331,6 +331,6 @@ $SMT_EVAL_CASES$
   ;(($smtx_typeof ($smd_sm.Skolem k id T))  T)
   ; for all other user defined terms, we totalize using unknown sorts
   ; we use the hash so that all terms that do not type check have a new unknown sort.
-  (($smtx_typeof t)                      ($smt_try_eo_type ($eo_typeof t) ($eo_smt_type ($smd_tsm.UnknownSort 0))))
+  (($smtx_typeof t)                      ($smt_try_eo_type ($eo_typeof t) ($eo_smt_type ($smd_tsm.NullSort 0))))
   )
 )

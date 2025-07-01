@@ -9,8 +9,8 @@
   (tsm.BoolType)
   ; declare USort SMT_TYPE_DT_CONS
   (tsm.USort (tsm.USort.arg1 Int))
-  ; declare UnknownSort SMT_TYPE_DT_CONS
-  (tsm.UnknownSort (tsm.UnknownSort.arg1 Int))
+  ; declare NullSort SMT_TYPE_DT_CONS
+  (tsm.NullSort (tsm.NullSort.arg1 Int))
 
   )
 )
@@ -470,7 +470,7 @@
 ; program: $smtx_is_value
 (assert (! (forall ((x1 tsm.Type) (x2 sm.Term))
   (= ($smtx_is_value x1 x2)
-  (ite ((_ is tsm.UnknownSort) x1)
+  (ite ((_ is tsm.NullSort) x1)
     false
   (ite ((_ is tsm.USort) x1)
     ($smtx_is_usort_value x2)
@@ -536,7 +536,7 @@
 ; program: $smtx_typeof
 (assert (! (forall ((x1 sm.Term))
   (= ($smtx_typeof x1)
-    (eo.SmtType.arg1 (ite ((_ is eo.SmtType) ($eo_typeof (eo.SmtTerm x1))) ($eo_typeof (eo.SmtTerm x1)) (eo.SmtType (tsm.UnknownSort 0))))
+    (eo.SmtType.arg1 (ite ((_ is eo.SmtType) ($eo_typeof (eo.SmtTerm x1))) ($eo_typeof (eo.SmtTerm x1)) (eo.SmtType (tsm.NullSort 0))))
 )) :named sm.axiom.$smtx_typeof))
 
 

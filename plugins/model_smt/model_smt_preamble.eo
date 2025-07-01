@@ -11,8 +11,8 @@
 ; The type of $smt_apply_* terms
 (declare-const $smt_unknown_type Type)
 ; The operator of $smt_apply_* terms
-;(declare-const $smt_String Type)
-(define $smt_String () $eo_String)
+;(declare-const $smt_id Type)
+(define $smt_id () $eo_String)
 
 ; note: decimal and hexadecimal omitted for now.
 
@@ -21,29 +21,37 @@
 ; Apply the SMT operator named "op" to x1, x2, and so on.
 ; Assumes arity of SMT-LIB operators are at most 5.
 (declare-parameterized-const $smt_type_0
-  ((op $smt_String :opaque))
+  ((op $smt_id :opaque))
   Type)
 (declare-parameterized-const $smt_type_1
-  ((W1 Type :implicit) (op $smt_String :opaque) (x1 W1 :opaque))
+  ((W1 Type :implicit) (op $smt_id :opaque) (x1 W1 :opaque))
   Type)
 (declare-parameterized-const $smt_apply_0
-  ((op $smt_String :opaque))
+  ((op $smt_id :opaque))
   $smt_unknown_type)
 (declare-parameterized-const $smt_apply_1
   ((W1 Type :implicit)
-   (op $smt_String :opaque) (x1 W1 :opaque)) $smt_unknown_type)
+   (op $smt_id :opaque) (x1 W1 :opaque)) $smt_unknown_type)
 (declare-parameterized-const $smt_apply_2
   ((W1 Type :implicit) (W2 Type :implicit)
-   (op $smt_String :opaque) (x1 W1 :opaque) (x2 W2 :opaque)) $smt_unknown_type)
+   (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque)) $smt_unknown_type)
 (declare-parameterized-const $smt_apply_3
   ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit)
-   (op $smt_String :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque)) $smt_unknown_type)
+   (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque)) $smt_unknown_type)
 (declare-parameterized-const $smt_apply_4
   ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit) (W4 Type :implicit)
-   (op $smt_String :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque) (x4 W4 :opaque)) $smt_unknown_type)
+   (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque) (x4 W4 :opaque)) $smt_unknown_type)
 (declare-parameterized-const $smt_apply_5
   ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit) (W4 Type :implicit) (W5 Type :implicit)
-   (op $smt_String :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque) (x4 W4 :opaque) (x5 W5 :opaque)) $smt_unknown_type)
+   (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque) (x4 W4 :opaque) (x5 W5 :opaque)) $smt_unknown_type)
+
+; builtin types, which print as e.g. "sm.Int".
+(declare-parameterized-const $smt_builtin_type_0
+  ((op $smt_id :opaque))
+  Type)
+(declare-parameterized-const $smt_builtin_type_1
+  ((W1 Type :implicit) (op $smt_id :opaque) (x1 W1 :opaque))
+  Type)
 
 (define $smt_builtin_Bool () ($smt_type_0 "Bool"))
 (define $smt_builtin_Int () ($smt_type_0 "Int"))
@@ -136,8 +144,9 @@
 (declare-parameterized-const $smd_tsm.USort
   ((id $smt_builtin_Int :opaque)) $smt_Type)
 
-; Uninterpreted sorts
-(declare-parameterized-const $smd_tsm.UnknownSort
+; The sort of a term that doesn't have an SMT-LIB type.
+; This is used as an error condition
+(declare-parameterized-const $smd_tsm.NullSort
   ((id $smt_builtin_Int :opaque)) $smt_Type)
 
 ;;; Deep embedding of Eunoia terms
@@ -146,13 +155,19 @@
 
 ; The Eunoia representation of an SMT-LIB term.
 (declare-parameterized-const $smd_eo.SmtTerm ((t $smt_Term :opaque)) $eo_Term)
+(define $eo_smt_term ((t $smt_Term)) ($smd_eo.SmtTerm t))
+
+; The Eunoia representation of an SMT-LIB type.
 (declare-parameterized-const $smd_eo.SmtType ((t $smt_Type :opaque)) $eo_Term)
+(define $eo_smt_type ((T $smt_Type)) ($smd_eo.SmtType T))
+
 ; The Eunoia representation of "stuckness".
 (declare-const $smd_eo.Stuck $eo_Term)
+(define $eo_mk_stuck () $smd_eo.Stuck)
 
 ;;;;;;;;;;;;;;;; datatype end
 
-;;; Utilities
+;;; External datatype access
   
 (define $sm_mk_true () $smd_sm.True)
 (define $sm_mk_false () $smd_sm.False)
@@ -165,6 +180,12 @@
 (define $sm_mk_str ((s $smt_builtin_String))
   ($smt_apply_1 "sm.String" s))
 
+;(define $smt_Int () ($smt_builtin_type_0 "Int"))
+;(define $smt_Real () ($smt_builtin_type_0 "Real"))
+;(define $smt_BitVec ((w $smt_builtin_Int)) (_ ($smt_builtin_type_1 "BitVec") w))
+;(define $smt_String () ($smt_builtin_type_0 "String"))
+
+; NOTE: we compile to equality directly, although we could use (_ sm.True) here.
 (define $sm_is_true ((b $smt_Term)) ($smt_apply_2 "=" b $sm_mk_true))
 (define $sm_is_false ((b $smt_Term)) ($smt_apply_2 "=" b $sm_mk_false))
 ; Assumes that t is a Boolean term
@@ -176,9 +197,6 @@
   ($smt_apply_1 "(_ is sm.Rational)" t))
 (define $sm_is_str ((T Type :implicit) (t T))
   ($smt_apply_1 "(_ is sm.String)" t))
-
-(define $eo_smt_term ((t $smt_Term)) ($smd_eo.SmtTerm t))
-(define $eo_smt_type ((T $smt_Type)) ($smd_eo.SmtType T))
 
 ;;; Defining parametric bitvector operators
 
@@ -244,7 +262,6 @@
 
 ;;; Utilities
 
-(define $eo_mk_stuck () $smd_eo.Stuck)
 (define $eo_true () ($eo_smt_term $sm_mk_true))
 (define $eo_false () ($eo_smt_term $sm_mk_false))
 (define $eo_mk_bool ((x $smt_builtin_Bool))
@@ -268,9 +285,11 @@
   )
 )
 
-;;; Utilities
+;;;;;; Eunoia builtin
 
-; We are now ready to define the builtins of Eunoia
+; We are now ready to define the builtins of Eunoia.
+; We define all the Eunoia builtins here that are best to
+; define in terms of SMT-LIB operators.
 
 ;;; Boolean operators
 
@@ -278,8 +297,8 @@
 (program $eo_not ((w $smt_builtin_Int) (n $smt_builtin_Int))
   :signature ($eo_Term) $eo_Term
   (
-  (($eo_not $eo_true)           $eo_false)
-  (($eo_not $eo_false)          $eo_true)
+  (($eo_not $eo_true)          $eo_false)
+  (($eo_not $eo_false)         $eo_true)
   (($eo_not ($eo_binary w n))  ($eo_mk_binary w ($sm_mk_binary_not w n)))
   )
 )
