@@ -95,6 +95,7 @@ $SM_DEFS$
 
 ;;; Meta-level properties of models
 
+; Handles free constants, skolems, and TODO: partial functions.
 ; If the constant predicate for a constant is satisfied,
 ; then we may assume that the model value for that constant is a value.
 (assert (! (forall ((k Int) (i Int) (T tsm.Type))
@@ -102,7 +103,7 @@ $SM_DEFS$
         ; free constants always can be assumed to be a value
         (= i 0)
         ; skolems can be assumed to be a value if their predicate is satisfied
-        (= ($smtx_model_eval ($smtx_const_predicate k i T ($smtx_model_lookup k i T))) sm.True))
+        ($smtx_const_predicate k i T ($smtx_model_lookup k i T)))
       ($smtx_is_value T ($smtx_model_lookup k i T))))
  :named sm.model_is_value))
 

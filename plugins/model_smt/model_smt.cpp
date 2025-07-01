@@ -226,16 +226,6 @@ void ModelSmt::printSmtTerm(const std::string& name,
   d_eval << std::endl << "      " << callApp.str() << ")" << preAppEnd.str() << std::endl;
 }
 
-/*
- *
-; For example:
-; ($smt_eval_apply_2
-;   "and"
-;   x1 $smt_is_bool
-;   x2 $smt_is_bool
-;   (and x1 x2))
-; Is the call to evaluate the SMT-LIB and from Eunoia.
-*/
 void ModelSmt::finalize()
 {
   auto replace = [](std::string& txt,

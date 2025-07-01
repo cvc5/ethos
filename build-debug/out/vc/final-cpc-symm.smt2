@@ -152,6 +152,9 @@
 ; define $eo_smt_term
 (define-fun $eo_smt_term ((t sm.Term)) eo.Term (eo.SmtTerm t))
 
+; define $eo_smt_type
+(define-fun $eo_smt_type ((T tsm.Type)) eo.Term (eo.SmtType T))
+
 ; program: $sm_mk_pow2
 (declare-fun $sm_mk_pow2 (Int) Int)
 (assert (! (forall ((x1 Int))
@@ -485,8 +488,8 @@
 (declare-fun $smtx_model_lookup (Int Int tsm.Type) sm.Term)
 
 ; program: $smtx_const_predicate
-(define-fun $smtx_const_predicate ((x1 Int) (x2 Int) (x3 tsm.Type) (x4 sm.Term)) sm.Term
-    (eo.SmtTerm.arg1 (ite ((_ is eo.SmtTerm) ($eo_const_predicate x1 x2 (eo.SmtType x3) (eo.SmtTerm x4))) ($eo_const_predicate x1 x2 (eo.SmtType x3) (eo.SmtTerm x4)) (eo.SmtTerm sm.True)))
+(define-fun $smtx_const_predicate ((x1 Int) (x2 Int) (x3 tsm.Type) (x4 sm.Term)) Bool
+    (= (eo.SmtTerm.arg1 (ite ((_ is eo.SmtTerm) ($eo_const_predicate x1 x2 (eo.SmtType x3) (eo.SmtTerm x4))) ($eo_const_predicate x1 x2 (eo.SmtType x3) (eo.SmtTerm x4)) (eo.SmtTerm sm.True))) sm.True)
 )
 
 ; program: $smtx_model_eval
@@ -540,6 +543,7 @@
 
 ;;; Meta-level properties of models
 
+; Handles free constants, skolems, and TODO: partial functions.
 ; If the constant predicate for a constant is satisfied,
 ; then we may assume that the model value for that constant is a value.
 (assert (! (forall ((k Int) (i Int) (T tsm.Type))
@@ -547,7 +551,7 @@
         ; free constants always can be assumed to be a value
         (= i 0)
         ; skolems can be assumed to be a value if their predicate is satisfied
-        (= ($smtx_model_eval ($smtx_const_predicate k i T ($smtx_model_lookup k i T))) sm.True))
+        ($smtx_const_predicate k i T ($smtx_model_lookup k i T)))
       ($smtx_is_value T ($smtx_model_lookup k i T))))
  :named sm.model_is_value))
 

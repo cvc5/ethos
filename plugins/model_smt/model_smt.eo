@@ -162,9 +162,9 @@
   ; standard atomic types
   (($smtx_is_value $smd_tsm.BoolType $sm_mk_true)                         true)
   (($smtx_is_value $smd_tsm.BoolType $smd_sm.False)                        true)
-  ;(($smtx_is_value $smt_builtin_Int ($smd_eo.SmtTerm ($smd_sm.Numeral n1)))    true)
-  ;(($smtx_is_value $smt_Rational ($smd_eo.SmtTerm ($smd_sm.Rational r1)))  true)
-  ;(($smtx_is_value $smt_String ($smd_eo.SmtTerm ($smd_sm.String s1)))      true)
+  ;(($smtx_is_value $smt_builtin_Int ($eo_smt_term ($smd_sm.Numeral n1)))    true)
+  ;(($smtx_is_value $smt_Rational ($eo_smt_term ($smd_sm.Rational r1)))  true)
+  ;(($smtx_is_value $smt_String ($eo_smt_term ($smd_sm.String s1)))      true)
   ;(($smtx_is_value $eo_Binary t)
   ;(($smtx_is_value (@map T U) t)   ($smtx_map_is_value t))
   ; by default, a value is a term that appears in the type enumeration
@@ -173,7 +173,7 @@
                                       ($smt_apply_1 "= sm.True"
                                         ($smt_try_eo 
                                          ($eo_is_value ($smt_apply_1 "eo.SmtType" T) t) 
-                                         ($smd_eo.SmtTerm $smd_sm.False)))))
+                                         ($eo_smt_term $smd_sm.False)))))
   )
 )
 
@@ -200,10 +200,10 @@
 ; If this is undefined, we return true.
 (program $smtx_const_predicate
   ((k $smt_builtin_Int) (id $smt_builtin_Int) (T $smt_Type) (val $smt_Term))
-  :signature ($smt_builtin_Int $smt_builtin_Int $smt_Type $smt_Term) $smt_Term
+  :signature ($smt_builtin_Int $smt_builtin_Int $smt_Type $smt_Term) $smt_builtin_Bool
   (
   (($smtx_const_predicate k id T val)
-    ($smt_try_eo ($eo_const_predicate k id ($smd_eo.SmtType T) ($smd_eo.SmtTerm val)) ($eo_smt_term $sm_mk_true)))
+    ($sm_is_true ($smt_try_eo ($eo_const_predicate k id ($eo_smt_type T) ($eo_smt_term val)) ($eo_smt_term $sm_mk_true))))
   )
 )
 ; program: $smtx_substitute
@@ -301,7 +301,7 @@ $SMT_EVAL_CASES$
   ;                                          (eo::define ((yme ($smtx_model_eval y)))
   ;                                            ($smt_try_eo ($eo_model_eval (_ fme yme))))))
   ; Otherwise, try to evaluate based on the user callback
-  (($smtx_model_eval z)                      ($smt_try_eo ($eo_model_eval z) ($smd_eo.SmtTerm z)))
+  (($smtx_model_eval z)                      ($smt_try_eo ($eo_model_eval z) ($eo_smt_term z)))
   )
 )
 
@@ -317,7 +317,7 @@ $SMT_EVAL_CASES$
 (program $eo_model_sat ((F $smt_Term))
   :signature ($eo_Term) Bool
   (
-  (($eo_model_sat ($smd_eo.SmtTerm F)) ($eo_model_sat_internal ($smtx_model_eval F)))
+  (($eo_model_sat ($eo_smt_term F)) ($eo_model_sat_internal ($smtx_model_eval F)))
   )
 )
 
@@ -331,6 +331,6 @@ $SMT_EVAL_CASES$
   ;(($smtx_typeof ($smd_sm.Skolem k id T))  T)
   ; for all other user defined terms, we totalize using unknown sorts
   ; we use the hash so that all terms that do not type check have a new unknown sort.
-  (($smtx_typeof t)                      ($smt_try_eo_type ($eo_typeof t) ($smd_eo.SmtType ($smd_tsm.UnknownSort 0))))
+  (($smtx_typeof t)                      ($smt_try_eo_type ($eo_typeof t) ($eo_smt_type ($smd_tsm.UnknownSort 0))))
   )
 )

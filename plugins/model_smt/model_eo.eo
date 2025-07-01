@@ -148,6 +148,7 @@ $EO_CONST_PREDICATE_CASES$
 
 ; This method can be used to define evaluation functions
 ; that cannot be described in terms of SMT-LIB conventions.
+; TODO: not necessary for CPC?
 (program $eo_model_eval ((t $eo_Term))
   :signature ($eo_Term) $eo_Term
   (
