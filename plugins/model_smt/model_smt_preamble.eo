@@ -149,6 +149,13 @@
 (define $sm_mk_false () $smd_sm.False)
 (define $sm_mk_bool ((c $smt_builtin_Bool))
   ($smt_apply_3 "ite" c $sm_mk_true $sm_mk_false))
+(define $sm_mk_z ((n $smt_builtin_Int))
+  ($smt_apply_1 "sm.Numeral" n))
+(define $sm_mk_q ((r $smt_builtin_Real))
+  ($smt_apply_1 "sm.Rational" r))
+(define $sm_mk_str ((s $smt_builtin_String))
+  ($smt_apply_1 "sm.String" s))
+
 
 ; Assumes that t is a Boolean term
 (define $sm_is_bool ((T Type :implicit) (t T))
@@ -156,6 +163,12 @@
     ; treat "= sm.True" as a unary function, ditto for "= sm.False"
     ($smt_apply_2 "=" t $sm_mk_true)
     ($smt_apply_2 "=" t $sm_mk_false)))
+(define $sm_is_z ((T Type :implicit) (t T))
+  ($smt_apply_1 "(_ is sm.Numeral)" t))
+(define $sm_is_q ((T Type :implicit) (t T))
+  ($smt_apply_1 "(_ is sm.Rational)" t))
+(define $sm_is_str ((T Type :implicit) (t T))
+  ($smt_apply_1 "(_ is sm.String)" t))
 
 ;(define $sm_mk_binary ((w $smt_builtin_Int) (n $smt_builtin_Int))
 

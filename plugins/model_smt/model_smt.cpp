@@ -170,41 +170,27 @@ void ModelSmt::printSmtTerm(const std::string& name,
     // We rely on SMT-LIB equality, guarding by an $smt_is_value predicate.
     d_eval << std::endl << "      ($smt_eval_= ($smtx_typeof x1) e1 e2 (= x1 x2))"
            << preAppEnd.str() << ")" << std::endl;
+    return;
   }
   else if (name == "forall" || name == "exists")
   {
     // does not "pre-rewrite" the body
     bool isExists = (name == "exists");
     d_eval << "($smtx_eval_quant x1 x2 0 " << isExists << "))";
-  }
-  else if (isOverloadArith)
-  {
-    EO_FATAL() << "FIX";
-    // overloaded arithmetic
-    if (args.size() == 2)
-    {
-      Assert(args[0] == Kind::PARAM && args[1] == Kind::PARAM);
-      d_eval << " x1 x2)) ($smt_try_eval_o_arith";
-      if (kret == Kind::BOOLEAN)
-      {
-        d_eval << "_pred";
-      }
-      d_eval << " \"" << name << "\" x1 x2 (" << name << " x1 x2)))"
-             << std::endl;
-    }
-    else if (args.size() == 1)
-    {
-      d_eval << " x1)) ($smtx_try_eval_o_arith_unary ";
-      d_eval << " \"" << name << "\" x1 (" << name << " x1)))" << std::endl;
-    }
-    else
-    {
-      // otherwise not handled
-      EO_FATAL() << "Cannot handle given overloaded arith type schema";
-    }
     return;
   }
+  std::vector<Kind> argSchemas;
+  if (isOverloadArith)
+  {
+    // will print conditions in two ways
+    argSchemas.push_back(Kind::NUMERAL);
+    argSchemas.push_back(Kind::RATIONAL);
+  }
   else
+  {
+    argSchemas.push_back(Kind::NONE);
+  }
+  for (Kind kas : argSchemas)
   {
     std::stringstream appConds;
     std::stringstream appCondsEnd;
@@ -223,6 +209,11 @@ void ModelSmt::printSmtTerm(const std::string& name,
       {
         appConds << " ";
       }
+      if (ka==Kind::PARAM)
+      {
+        Assert (kas!=Kind::NONE);
+        ka = kas;
+      }
       if (ka==Kind::BOOLEAN)
       {
         appArgs << " ($smt_apply_1 \"= sm.True\" ";
@@ -232,11 +223,11 @@ void ModelSmt::printSmtTerm(const std::string& name,
         // use the selector directly.
         // this is guarded by the ITE
         appArgs << " ($smt_apply_1 \"sm.";
-        Assert (d_kindToEoCons.find(ka)!=d_kindToEoCons.end());
+        Assert (d_kindToEoCons.find(ka)!=d_kindToEoCons.end()) << "Could not find " << ka;
         appArgs << d_kindToEoCons[ka] << ".arg1\"";
       }
       appConds << "($sm_is_";
-      Assert (d_kindToEoPrefix.find(ka) != d_kindToEoPrefix.end());
+      Assert (d_kindToEoPrefix.find(ka) != d_kindToEoPrefix.end()) << "Could not find kind arg " << ka;
       appConds << d_kindToEoPrefix[ka];
       appConds << " e" << i << ")";
       appArgs << " e" << i << ")";
@@ -247,17 +238,18 @@ void ModelSmt::printSmtTerm(const std::string& name,
       EO_FATAL() << "Unhandled arity " << args.size() << " for " << name;
     }
     d_eval << std::endl << "      ($sm_mk_";
-    if (d_kindToEoPrefix.find(kret) != d_kindToEoPrefix.end())
+    Kind kr = kret;
+    if (kr==Kind::PARAM)
     {
-      d_eval << d_kindToEoPrefix[kret];
+      Assert (kas!=Kind::NONE);
+      kr = kas;
     }
-    else
-    {
-      EO_FATAL() << "Unknown return kind: " << kret;
-    }
+    Assert (d_kindToEoPrefix.find(kr) != d_kindToEoPrefix.end()) << "Could not find kind ret " << kr;
+    d_eval << d_kindToEoPrefix[kr];
     d_eval << " ($smt_apply_" << args.size() << appArgs.str() << "))";
-    d_eval << std::endl << "      " << callApp.str() << "))" << preAppEnd.str() << std::endl;
+    preAppEnd << ")";
   }
+  d_eval << std::endl << "      " << callApp.str() << ")" << preAppEnd.str() << std::endl;
 }
 
 /*
