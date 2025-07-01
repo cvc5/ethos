@@ -38,6 +38,7 @@ class ModelSmt : public StdPlugin
   void printSmtTerm(const std::string& name, std::vector<Kind>& args, Kind ret);
   std::map<Kind, Expr> d_kindToType;
   std::map<Kind, std::string> d_kindToEoPrefix;
+  std::map<Kind, std::string> d_kindToEoCons;
   std::map<std::string, std::string> d_overloadRevert;
   std::stringstream d_customEval;
   std::stringstream d_isValue;

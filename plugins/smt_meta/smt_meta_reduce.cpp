@@ -86,8 +86,30 @@ void SmtMetaReduce::bind(const std::string& name, const Expr& e)
   {
     Expr p = e;
     // dummy type
+#if 0
+    std::vector<Expr> argTypes;
+    Assert (e[0].getKind()==Kind::TUPLE);
+    if (e[0].getNumChildren()==0)
+    {
+      // TODO: define here??
+      EO_FATAL() << "Cannot handle 0-arg define";
+      return;
+    }
+    for (size_t i=0, nargs=e[0].getNumChildren(); i<nargs; i++)
+    {
+      Expr aa = e[0][i];
+      argTypes.push_back(d_tc.getType(aa));
+    }
+    Expr body = e[1];
+    Expr retType = d_tc.getType(body);
+    Expr pt = d_state.mkProgramType(argTypes, retType);
+    std::cout << "....make program " << name << " for define, prog type is " << pt << std::endl;
+    // Expr pt = d_state.mkBuiltinType(Kind::LAMBDA);
+    Expr tmp = d_state.mkSymbol(Kind::PROGRAM_CONST, name, pt);
+#else
     Expr pt = d_state.mkBuiltinType(Kind::LAMBDA);
     Expr tmp = d_state.mkSymbol(Kind::CONST, name, pt);
+#endif
     d_progSeen.emplace_back(tmp, p);
     return;
   }
@@ -821,11 +843,29 @@ void SmtMetaReduce::finalizePrograms()
     if (p.second.getKind() == Kind::LAMBDA)
     {
       std::cout << "WARNING: lambda " << p.first << std::endl;
+      Expr e = p.second;
+#if 0
+      Assert(e[0].getKind() == Kind::TUPLE);
+      std::vector<Expr> appChildren;
+      appChildren.push_back(p.first);
+      for (size_t i=0, nargs=e[0].getNumChildren(); i<nargs; i++)
+      {
+        appChildren.push_back(e[0][i]);
+      }
+      Expr progApp = d_state.mkExprSimple(Kind::APPLY, appChildren);
+      Expr pcase = d_state.mkPair(progApp, e[1]);
+      Expr prog = d_state.mkExprSimple(Kind::PROGRAM, {pcase});
+      std::cout << "...do program " << p.first << " / " << prog << " instead" << std::endl;
+      finalizeProgram(p.first, prog);
+      std::cout << "...finished lambda program" << std::endl;
+      return;
+#endif
+
+
       // TODO: reduce to program immediately
       // prints as a define-fun
       d_defs << "; define " << p.first << std::endl;
       d_defs << "(define-fun " << p.first << " (";
-      Expr e = p.second;
       Assert(e[0].getKind() == Kind::TUPLE);
       SelectorCtx ctx;
       for (size_t i = 0, nvars = e[0].getNumChildren(); i < nvars; i++)
@@ -879,6 +919,7 @@ TermContextKind SmtMetaReduce::termKindToContext(TermKind tk)
   switch (tk)
   {
     case TermKind::SMT_BUILTIN_TYPE: return TermContextKind::SMT_BUILTIN;
+    case TermKind::SMT_TERM:
     case TermKind::SMT_TERM_TYPE: return TermContextKind::SMT;
     case TermKind::SMT_TYPE_TYPE: return TermContextKind::SMT_TYPE;
     case TermKind::EUNOIA_TERM_TYPE:
@@ -905,7 +946,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   Expr vt = d_tc.getType(vv);
   decl << "(declare-fun " << v << " (";
   std::stringstream varList;
-  Assert(vt.getKind() == Kind::PROGRAM_TYPE);
+  Assert(vt.getKind() == Kind::PROGRAM_TYPE) << "bad type " << vt << " for " << v;
   size_t nargs = vt.getNumChildren();
   Assert(nargs > 1);
   std::vector<std::string> args;

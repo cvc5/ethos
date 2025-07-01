@@ -144,16 +144,6 @@
 (declare-const $smd_eo.Stuck $eo_Term)
 
 ;;; Utilities
-
-; Boolean relies on the $sm_is_Boolean define-fun in the SMT meta signature.
-; This is an optimization to avoid Booleans in the final datatype.
-(define $smt_is_bool ((T Type :implicit) (t T))
-  ($smt_apply_2 "or"
-    ; treat "= sm.True" as a unary function, ditto for "= sm.False"
-    ($smt_apply_1 "= (eo.SmtTerm sm.True)" t)
-    ($smt_apply_1 "= (eo.SmtTerm sm.False)" t)))
-(define $smt_get_bool ((T Type :implicit) (t T))
-  ($smt_apply_1 "= (eo.SmtTerm sm.True)" t))
   
 (define $sm_mk_true () $smd_sm.True)
 (define $sm_mk_false () $smd_sm.False)
@@ -287,6 +277,25 @@
   ; )
 )
 
+
+; Assumes that t is a Boolean term
+(define $sm_is_bool ((T Type :implicit) (t T))
+  ($smt_apply_2 "or"
+    ; treat "= sm.True" as a unary function, ditto for "= sm.False"
+    ($smt_apply_1 "= sm.True" t)
+    ($smt_apply_1 "= sm.False" t)))
+
+; Boolean relies on the $sm_is_Boolean define-fun in the SMT meta signature.
+; This is an optimization to avoid Booleans in the final datatype.
+;(define $eo_is_bool ((t $eo_Term))
+;    ($smt_apply_2 "or"
+;      ; treat "= sm.True" as a unary function, ditto for "= sm.False"
+;      ($smt_apply_1 "= (eo.SmtTerm sm.True)" t)
+;      ($smt_apply_1 "= (eo.SmtTerm sm.False)" t)))
+;; Assumes that t is a Boolean term
+;(define $eo_get_bool ((t $eo_Term))
+;  ($smt_apply_1 "= (eo.SmtTerm sm.True)" t))
+
 ;;; Utilities
 
 ; We are now ready to define the builtins of Eunoia
@@ -310,10 +319,10 @@
   (
   (($eo_and ($smd_eo.SmtTerm ($smd_sm.Binary w n1)) ($smd_eo.SmtTerm ($smd_sm.Binary w n2)))
      ($eo_mk_binary w ($sm_mk_binary_and w n1 n2)))
-  (($eo_and b1 b2)
-     ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_bool b1) ($smt_is_bool b2))
-       ($eo_mk_bool ($smt_apply_2 "and" ($smt_get_bool b1) ($smt_get_bool b2)))
-       $smd_eo.Stuck))
+  (($eo_and $smd_sm.True $smd_sm.True)   ($eo_mk_bool ($smt_apply_0 "true")))
+  (($eo_and $smd_sm.True $smd_sm.False)  ($eo_mk_bool ($smt_apply_0 "false")))
+  (($eo_and $smd_sm.False $smd_sm.True)  ($eo_mk_bool ($smt_apply_0 "false")))
+  (($eo_and $smd_sm.False $smd_sm.False) ($eo_mk_bool ($smt_apply_0 "false")))
   )
 )
 
@@ -324,10 +333,10 @@
   (
   (($eo_or ($smd_eo.SmtTerm ($smd_sm.Binary w n1)) ($smd_eo.SmtTerm ($smd_sm.Binary w n2)))
      ($eo_mk_binary w ($sm_mk_binary_or w n1 n2)))
-  (($eo_or b1 b2)
-     ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_bool b1) ($smt_is_bool b2))
-       ($eo_mk_bool ($smt_apply_2 "or" ($smt_get_bool b1) ($smt_get_bool b2)))
-       $smd_eo.Stuck))
+  (($eo_or $smd_sm.True $smd_sm.True)   ($eo_mk_bool ($smt_apply_0 "true")))
+  (($eo_or $smd_sm.True $smd_sm.False)  ($eo_mk_bool ($smt_apply_0 "true")))
+  (($eo_or $smd_sm.False $smd_sm.True)  ($eo_mk_bool ($smt_apply_0 "true")))
+  (($eo_or $smd_sm.False $smd_sm.False) ($eo_mk_bool ($smt_apply_0 "false")))
   )
 )
 
@@ -337,10 +346,10 @@
   (
   (($eo_xor ($smd_eo.SmtTerm ($smd_sm.Binary w n1)) ($smd_eo.SmtTerm ($smd_sm.Binary w n2)))
      ($eo_mk_binary w ($sm_mk_binary_or w n1 n2)))
-  (($eo_xor b1 b2)
-     ($smt_apply_3 "ite" ($smt_apply_2 "and" ($smt_is_bool b1) ($smt_is_bool b2))
-       ($eo_mk_bool ($smt_apply_2 "xor" ($smt_get_bool b1) ($smt_get_bool b2)))
-       $smd_eo.Stuck))
+  (($eo_xor $smd_sm.True $smd_sm.True)   ($eo_mk_bool ($smt_apply_0 "false")))
+  (($eo_xor $smd_sm.True $smd_sm.False)  ($eo_mk_bool ($smt_apply_0 "true")))
+  (($eo_xor $smd_sm.False $smd_sm.True)  ($eo_mk_bool ($smt_apply_0 "true")))
+  (($eo_xor $smd_sm.False $smd_sm.False) ($eo_mk_bool ($smt_apply_0 "false")))
   )
 )
 

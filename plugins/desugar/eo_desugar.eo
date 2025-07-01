@@ -517,12 +517,12 @@ $EO_NIL_CASES$
   :signature (T) Type
   (
   (($eo_typeof ($eo_Var s T)) T)
-  (($eo_typeof t) (eo::ite ($eo_is_bool t) Bool
+  (($eo_typeof t) ;(eo::ite ($eo_is_bool t) Bool
                   (eo::ite ($eo_is_z t) $eo_Numeral
                   (eo::ite ($eo_is_q t) $eo_Rational
                   (eo::ite ($eo_is_str t) $eo_String
                   (eo::ite ($eo_is_bin t) $eo_Binary
-                    ($eo_typeof_main t)))))))
+                    ($eo_typeof_main t))))));)
   )
 )
 

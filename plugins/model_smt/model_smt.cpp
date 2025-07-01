@@ -33,6 +33,11 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   d_kindToEoPrefix[Kind::RATIONAL] = "q";
   d_kindToEoPrefix[Kind::STRING] = "str";
   d_kindToEoPrefix[Kind::BINARY] = "bin";
+  d_kindToEoCons[Kind::BOOLEAN] = "Boolean";
+  d_kindToEoCons[Kind::NUMERAL] = "Numeral";
+  d_kindToEoCons[Kind::RATIONAL] = "Rational";
+  d_kindToEoCons[Kind::STRING] = "String";
+  d_kindToEoCons[Kind::BINARY] = "Binary";
   // All SMT-LIB symbols that have monomorphic return go here.
   // We have a NUMERAL category that we assume can be associated to Int,
   // Similar for the other literals.
@@ -134,8 +139,6 @@ void ModelSmt::printSmtTerm(const std::string& name,
                             std::vector<Kind>& args,
                             Kind kret)
 {
-  // FIXME
-  return;
   std::stringstream callApp;
   callApp << "(" << name;
   for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
@@ -205,9 +208,9 @@ void ModelSmt::printSmtTerm(const std::string& name,
   {
     std::stringstream appConds;
     std::stringstream appCondsEnd;
-    if (args.size()>2)
+    if (args.size()>=2)
     {
-      appConds << "(and ";
+      appConds << "($smt_apply_2 \"and\" ";
       appCondsEnd << ")";
     }
     std::stringstream appArgs;
@@ -216,21 +219,27 @@ void ModelSmt::printSmtTerm(const std::string& name,
     {
       Kind ka = args[i - 1];
       // use guarded version
-      appArgs << " e" << i;
       if (i>1)
       {
         appConds << " ";
       }
-      appConds << "($smt_is_";
-      if (d_kindToEoPrefix.find(ka) != d_kindToEoPrefix.end())
+      if (ka==Kind::BOOLEAN)
       {
-        appConds << d_kindToEoPrefix[ka];
+        appArgs << " ($smt_apply_1 \"= sm.True\" ";
       }
       else
       {
-        EO_FATAL() << "Unknown argument kind: " << ka;
+        // use the selector directly.
+        // this is guarded by the ITE
+        appArgs << " ($smt_apply_1 \"sm.";
+        Assert (d_kindToEoCons.find(ka)!=d_kindToEoCons.end());
+        appArgs << d_kindToEoCons[ka] << ".arg1\"";
       }
+      appConds << "($sm_is_";
+      Assert (d_kindToEoPrefix.find(ka) != d_kindToEoPrefix.end());
+      appConds << d_kindToEoPrefix[ka];
       appConds << " e" << i << ")";
+      appArgs << " e" << i << ")";
     }
     d_eval << std::endl << "    ($smt_apply_3 \"ite\" " << appConds.str() << appCondsEnd.str();
     if (args.empty() || args.size() > 3)

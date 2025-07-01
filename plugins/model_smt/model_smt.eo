@@ -25,6 +25,11 @@
     ($smt_apply_3 "ite" ($smt_apply_1 "(_ is eo.SmtTerm)" t)
       t
       elseTerm)))
+(define $smt_try_eo_type ((t $eo_Term) (elseTerm $eo_Term))
+  ($smt_apply_1 "eo.SmtType.arg1"
+    ($smt_apply_3 "ite" ($smt_apply_1 "(_ is eo.SmtType)" t)
+      t
+      elseTerm)))
 
 ; Used to totalize $eo_typeof.
 (program $smtx_typeof ()
@@ -262,8 +267,8 @@
   :signature ($smt_Term) $smt_Term
   (
   ; builtins
-  (($smtx_model_eval $sm_mk_true)   $sm_mk_true)
-  (($smtx_model_eval $smd_sm.False)  $smd_sm.False)
+  (($smtx_model_eval $sm_mk_true)             $sm_mk_true)
+  (($smtx_model_eval $smd_sm.False)           $smd_sm.False)
   ; TODO: equality, ite
   ; evaluation of standard SMT symbols
   ; These calls may only call one of the above macros:
@@ -320,9 +325,9 @@ $SMT_EVAL_CASES$
   ((T $smt_Type) (t $smt_Term) (k $smt_builtin_Int) (id $smt_builtin_Int))
   :signature ($smt_Term) $smt_Type
   (
-  (($smtx_typeof ($smd_sm.Const k id T))  T)
+  ;(($smtx_typeof ($smd_sm.Const k id T))  T)
   ; for all other user defined terms, we totalize using unknown sorts
   ; we use the hash so that all terms that do not type check have a new unknown sort.
-  (($smtx_typeof t)                      ($smt_try_eo ($eo_typeof t) ($smd_tsm.UnknownSort (eo::hash t))))
+  (($smtx_typeof t)                      ($smt_try_eo_type ($eo_typeof t) ($smd_eo.SmtType ($smd_tsm.UnknownSort 0))))
   )
 )
