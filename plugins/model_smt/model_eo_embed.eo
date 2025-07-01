@@ -1,4 +1,4 @@
-
+; The final embedding of SMT-LIB types that are relevant to the VC.
 (declare-datatype tsm.Type
   (
   ; the Boolean type
@@ -9,6 +9,7 @@ $SM_TYPE_DECL$
   )
 )
 
+; The final embedding of SMT-LIB terms that are relevant to the VC.
 (declare-datatype sm.Term
   (
   ; the apply
@@ -29,7 +30,8 @@ $SM_TERM_DECL$
   )
 )
 
-; A Eunoia internal term
+; The final embedding of Eunoia terms that are relevant to the VC.
+; SMT-LIB terms and types are embedded in this datatype.
 (declare-datatype eo.Term
   (
   ; The type of types in Eunoia

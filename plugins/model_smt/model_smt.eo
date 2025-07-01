@@ -196,10 +196,10 @@
 ; definition of $smtx_model_eval, which checks whether the predicate
 ; is satisfied in the model.
 ; If this is undefined, we return true.
-(define $smt_const_predicate ((k $smt_builtin_Int) (id $smt_builtin_Int) (T $smt_Type))
-  ($smt_apply_3 "ite" ($smt_apply_2 "=" k 0) ; Kind 0 is reserved for uninterpreted constants.
-    true
-    ($smt_try_eo ($eo_const_predicate k id ($smd_eo.SmtTerm T)) true)))
+(define $smt_const_predicate ((k $smt_builtin_Int) (id $smt_builtin_Int) (T $smt_Type) (val $smt_Term))
+  ($smt_apply_3 "ite" ($smt_apply_2 "=" k ($smt_apply_0 "0")) ; Kind 0 is reserved for uninterpreted constants.
+    $sm_mk_true
+    ($smt_try_eo ($eo_const_predicate k id ($smd_eo.SmtType T) ($smd_eo.SmtTerm val)) ($eo_smt_term $sm_mk_true))))
 
 ; program: $smtx_substitute
 ; Used to define $smtx_eval_quant.
@@ -285,10 +285,12 @@ $SMT_EVAL_CASES$
   ; We then check if their property F is satisfied. If so, then they are
   ; interpreted to be this value. Otherwise, they are unevaluated.
   ; TODO: val can be assumed such that $smtx_is_value is true.
-  ;(($smtx_model_eval ($smd_sm.Const k i T))  (eo::define ((val ($smtx_model_lookup k i T)))
-  ;                                          (eo::define ((mpred ($smtx_model_eval ($smt_const_predicate k i T))))
-  ;                                            ; note that mpred can never be stuck and should be a Bool at this point.
-  ;                                            ($smt_apply_3 "ite" mpred val ($smd_sm.Const k i T)))))
+  (($smtx_model_eval ($smd_sm.Const k i T))   (eo::define ((val ($smtx_model_lookup k i T)))
+                                              (eo::define ((mpred ($smtx_model_eval ($smt_const_predicate k i T val))))
+                                                ; note that mpred can never be stuck and should be a Bool at this point.
+                                                ($smt_apply_3 "ite" ($smt_apply_2 "=" mpred $sm_mk_true)
+                                                  val
+                                                  ($smd_sm.Const k i T)))))
   ; generic apply and base case.
   ; these do not insist that the term is a value.
   ; They call the user callback $eo_model_eval.

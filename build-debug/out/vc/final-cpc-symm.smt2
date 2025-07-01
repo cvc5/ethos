@@ -1,6 +1,6 @@
 (set-logic UFDTSNIRA)
 
-; TODO: types vs terms
+; The final embedding of SMT-LIB types that are relevant to the VC.
 (declare-datatype tsm.Type
   (
 
@@ -15,6 +15,7 @@
   (tsm.None)
   )
 )
+; The final embedding of SMT-LIB terms that are relevant to the VC.
 (declare-datatype sm.Term
   (
   ; TODO: auto-generate this??
@@ -64,7 +65,8 @@
   )
 )
 
-; A Eunoia internal term
+; The final embedding of Eunoia terms that are relevant to the VC.
+; SMT-LIB terms and types are embedded in this datatype.
 (declare-datatype eo.Term
   (
   ; The type of types in Eunoia
@@ -411,6 +413,14 @@
     eo.Stuck
     eo.Stuck)))
 
+; program: $eo_const_predicate
+(define-fun $eo_const_predicate ((x1 Int) (x2 Int) (x3 eo.Term) (x4 eo.Term)) eo.Term
+  (ite (or (= x3 eo.Stuck) (= x4 eo.Stuck))
+    eo.Stuck
+  (ite true
+    eo.Stuck
+    eo.Stuck)))
+
 ; program: $eo_model_eval
 (define-fun $eo_model_eval ((x1 eo.Term)) eo.Term
   (ite (= x1 eo.Stuck)
@@ -458,6 +468,9 @@
 ; fwd-decl: $smtx_model_eval
 (declare-fun $smtx_model_eval (sm.Term) sm.Term)
 
+; fwd-decl: $smtx_model_lookup
+(declare-fun $smtx_model_lookup (Int Int tsm.Type) sm.Term)
+
 ; program: $smtx_model_eval
 (assert (! (forall ((x1 sm.Term))
   (= ($smtx_model_eval x1)
@@ -471,8 +484,10 @@
     (ite (and (or (= ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) sm.True) (= ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) sm.False)) (or (= ($smtx_model_eval (sm.Apply.arg2 x1)) sm.True) (= ($smtx_model_eval (sm.Apply.arg2 x1)) sm.False))) (ite (and (= sm.True ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1)))) (= sm.True ($smtx_model_eval (sm.Apply.arg2 x1)))) sm.True sm.False) (sm.Apply (sm.Apply sm.and (sm.Apply.arg2 (sm.Apply.arg1 x1))) (sm.Apply.arg2 x1)))
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) (= (sm.Apply.arg1 (sm.Apply.arg1 x1)) sm.=))
     (ite (and ($smtx_is_value ($smtx_typeof (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1)))) ($smtx_is_value ($smtx_typeof (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_model_eval (sm.Apply.arg2 x1)))) (ite (= ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_model_eval (sm.Apply.arg2 x1))) sm.True sm.False) (sm.Apply (sm.Apply sm.= (sm.Apply.arg2 (sm.Apply.arg1 x1))) (sm.Apply.arg2 x1)))
+  (ite ((_ is sm.Const) x1)
+    (ite (= ($smtx_model_eval (ite (= (sm.Const.arg1 x1) 0) sm.True (eo.SmtTerm.arg1 (ite ((_ is eo.SmtTerm) ($eo_const_predicate (sm.Const.arg1 x1) (sm.Const.arg2 x1) (eo.SmtType (sm.Const.arg3 x1)) (eo.SmtTerm ($smtx_model_lookup (sm.Const.arg1 x1) (sm.Const.arg2 x1) (sm.Const.arg3 x1))))) ($eo_const_predicate (sm.Const.arg1 x1) (sm.Const.arg2 x1) (eo.SmtType (sm.Const.arg3 x1)) (eo.SmtTerm ($smtx_model_lookup (sm.Const.arg1 x1) (sm.Const.arg2 x1) (sm.Const.arg3 x1)))) (eo.SmtTerm sm.True))))) sm.True) ($smtx_model_lookup (sm.Const.arg1 x1) (sm.Const.arg2 x1) (sm.Const.arg3 x1)) (sm.Const (sm.Const.arg1 x1) (sm.Const.arg2 x1) (sm.Const.arg3 x1)))
     (eo.SmtTerm.arg1 (ite ((_ is eo.SmtTerm) ($eo_model_eval (eo.SmtTerm x1))) ($eo_model_eval (eo.SmtTerm x1)) (eo.SmtTerm x1)))
-))))))) :named sm.axiom.$smtx_model_eval))
+)))))))) :named sm.axiom.$smtx_model_eval))
 
 ; program: $eo_model_sat_internal
 (define-fun $eo_model_sat_internal ((x1 sm.Term)) eo.Term

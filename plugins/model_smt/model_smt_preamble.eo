@@ -160,7 +160,6 @@
 ; Assumes that t is a Boolean term
 (define $sm_is_bool ((T Type :implicit) (t T))
   ($smt_builtin_or
-    ; treat "= sm.True" as a unary function, ditto for "= sm.False"
     ($smt_apply_2 "=" t $sm_mk_true)
     ($smt_apply_2 "=" t $sm_mk_false)))
 (define $sm_is_z ((T Type :implicit) (t T))

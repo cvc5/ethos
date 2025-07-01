@@ -37,7 +37,7 @@
 
 ; Returns true if its argument is an SMT value.
 ; This function is expected to never get stuck.
-; NOTE: THIS HAS TO BE A $eo_Term return.
+; NOTE: this has to return an $eo_Term since the arugments are $eo_Term.
 (program $eo_is_value ((T $eo_Term) (t $eo_Term))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
@@ -154,12 +154,12 @@ $EO_IS_TYPE_CASES$
 ; Returns a predicate describing the properties of symbols
 ; that cannot be assigned a total semantics. For example,
 ; this is what defines skolem symbols.
-(program $eo_const_predicate ((k $smt_builtin_Int) (i $smt_builtin_Int) (T $eo_Term))
-  :signature ($smt_builtin_Int $smt_builtin_Int $eo_Term) $eo_Term
+(program $eo_const_predicate ((k $smt_builtin_Int) (i $smt_builtin_Int) (T $eo_Term) (x $eo_Term))
+  :signature ($smt_builtin_Int $smt_builtin_Int $eo_Term $eo_Term) $eo_Term
   (
 $EO_CONST_PREDICATE_CASES$
   ; return stuckness, this will be handled upstream
-  (($eo_const_predicate k i T) $eo_mk_stuck)
+  (($eo_const_predicate k i T x) $eo_mk_stuck)
   )
 )
 
