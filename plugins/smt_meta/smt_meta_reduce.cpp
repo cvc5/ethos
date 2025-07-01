@@ -464,6 +464,18 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
         std::stringstream ssNext;
         ssNext << "(" << cname.str() << ".arg" << (i + 1 - printArgStart) << " "
                << currTerm << ")";
+        Expr nextType;
+        if (ck == Kind::APPLY)
+        {
+          //Assert (i<curType.getNumChildren()) << "Index out of bounds, matching " << tcur << ", index " << i << ", type is " << curType;
+          //nextType = curType[i];
+        }
+        else
+        {
+          // the next type is "reset"
+          //Expr tcc = tcur[i];
+          //nextType = d_tc.getType(tcc);
+        }
         visit.emplace_back(tcur[i], ssNext.str(), tkctx, nextType);
       }
     }
