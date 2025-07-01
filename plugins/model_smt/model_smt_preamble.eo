@@ -153,11 +153,13 @@
 ; Uninterpreted sorts
 (declare-parameterized-const $smd_tsm.USort
   ((id $smt_builtin_Int :opaque)) $smt_Type)
+(define $smt_USort ((id $smt_builtin_Int)) ($smd_tsm.USort id))
 
 ; The sort of a term that doesn't have an SMT-LIB type.
 ; This is used as an error condition
 (declare-parameterized-const $smd_tsm.NullSort
   ((id $smt_builtin_Int :opaque)) $smt_Type)
+(define $smt_NullSort ((id $smt_builtin_Int)) ($smd_tsm.NullSort id))
 
 ;;; Deep embedding of Eunoia terms
 

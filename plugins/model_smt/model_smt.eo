@@ -128,13 +128,7 @@
 ;;; Uninterpreted sort values.
 
 ; NOTE: this is equivalent to a datatype tester ((_ is sm.usort_value) t).
-(program $smtx_is_usort_value  ((n $smt_builtin_Int) (T $smt_Type) (t $smt_Term))
-  :signature ($smt_Term) $smt_builtin_Bool
-  (
-  (($smtx_is_usort_value ($smd_sm.usort_value n T)) $smt_builtin_true)
-  (($smtx_is_usort_value t)                         $smt_builtin_false)
-  )
-)
+(define $smtx_is_usort_value ((x $smt_Term)) $smt_builtin_true)
 
 ; (vsm.UConst T i) is a value for all T, i.
 (define $smtx_usort_is_value ((T $smt_Type) (i $smt_builtin_Int))
@@ -283,7 +277,7 @@
   :signature ($smt_Type $smt_Term) $smt_builtin_Bool
   (
   ; if the literal type is not defined, this is false
-  (($smtx_is_value ($smd_tsm.NullSort n1) t)                              $smt_builtin_false)
+  (($smtx_is_value ($smt_NullSort n1) t)                                   $smt_builtin_false)
   (($smtx_is_value ($smd_tsm.USort n1) t)                                 ($smtx_is_usort_value t))
   ; standard atomic types
   (($smtx_is_value $smd_tsm.BoolType $sm_mk_true)                         $smt_builtin_true)

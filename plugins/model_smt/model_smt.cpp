@@ -277,6 +277,8 @@ void ModelSmt::finalizeDeclaration(const Expr& e)
   {
     return;
   }
+  // FIXME: remove
+  prefix << "new.";
   (*out) << "  ; declare " << e << std::endl;
   Expr c = e;
   Expr ct = d_tc.getType(c);

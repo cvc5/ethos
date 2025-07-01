@@ -47,8 +47,6 @@
   (sm.Skolem (sm.Skolem.arg1 Int) (sm.Skolem.arg2 Int) (sm.Skolem.arg3 tsm.Type))
   ; declare Const SMT_DT_CONS
   (sm.Const (sm.Const.arg1 Int) (sm.Const.arg2 tsm.Type))
-  ; declare usort_value SMT_DT_CONS
-  (sm.usort_value (sm.usort_value.arg1 tsm.Type) (sm.usort_value.arg2 Int))
   ; declare Apply SMT_DT_CONS
   (sm.Apply (sm.Apply.arg1 sm.Term) (sm.Apply.arg2 sm.Term))
   ; declare not SMT_TERM
@@ -451,13 +449,6 @@
 ; fwd-decl: $smtx_is_value
 (declare-fun $smtx_is_value (tsm.Type sm.Term) Bool)
 
-; program: $smtx_is_usort_value
-(define-fun $smtx_is_usort_value ((x1 sm.Term)) Bool
-  (ite ((_ is sm.usort_value) x1)
-    true
-    false
-))
-
 ; fwd-decl: $smtx_typeof
 (declare-fun $smtx_typeof (sm.Term) tsm.Type)
 
@@ -476,7 +467,7 @@
   (ite ((_ is tsm.NullSort) x1)
     false
   (ite ((_ is tsm.USort) x1)
-    ($smtx_is_usort_value x2)
+    true
   (ite (and (= x1 tsm.BoolType) (= x2 sm.True))
     true
   (ite (and (= x1 tsm.BoolType) (= x2 sm.False))
