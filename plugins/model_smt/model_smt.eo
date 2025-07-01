@@ -9,7 +9,6 @@
 
 ; Invariant: all programs in this signature should be well-founded and never
 ; never get stuck unless otherwise stated.
-
       
 ;;; SMT term list
 

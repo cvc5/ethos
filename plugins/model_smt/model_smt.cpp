@@ -264,7 +264,7 @@ void ModelSmt::finalizeDeclaration(const Expr& e)
   {
     Expr c = e;
     Expr tc = d_tc.getType(c);
-    if (tc.getKind()==Kind::TYPE)
+    if (tc.getKind()==Kind::TYPE || (tc.getKind()==Kind::FUNCTION_TYPE && tc[tc.getNumChildren()-1].getKind()==Kind::TYPE))
     {
       prefix << "tsm.";
       out = &d_embedTypeDt;

@@ -87,6 +87,8 @@ $SM_EO_TERM_DECL$
 )
 
 ; For each relevant user term, return the datatype above that it belongs to.
+; This program will be used in the smt_meta_reduce compilation step, and
+; will dissappear in the final signature.
 (program $eo_get_meta_type ((T Type) (t T))
   :signature (T) Type
   (
