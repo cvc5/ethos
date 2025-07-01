@@ -324,10 +324,11 @@
   )
 )
 
-(program $eo_model_sat_internal ((F $smt_Term))
-  :signature ($eo_Term) Bool
+(program $eo_model_sat_internal ((b $smt_Term))
+  :signature ($smt_Term) Bool
   (
   (($eo_model_sat_internal $smd_sm.True) true)
+  (($eo_model_sat_internal b)            false)
   )
 )
 ; program: $eo_model_sat

@@ -11,9 +11,6 @@ $SM_TYPE_DECL$
 )
 (declare-datatype sm.Term
   (
-  ; TODO: not necessary?
-  (sm.Type)
-
   ; TODO: auto-generate this??
   ; declare Const SMT_DT_CONS
   (sm.Const (sm.Const.arg1 Int) (sm.Const.arg2 Int) (sm.Const.arg3 tsm.Type))

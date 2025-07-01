@@ -13,9 +13,6 @@
 )
 (declare-datatype sm.Term
   (
-  ; TODO: not necessary?
-  (sm.Type)
-
   ; TODO: auto-generate this??
   ; declare Const SMT_DT_CONS
   (sm.Const (sm.Const.arg1 Int) (sm.Const.arg2 Int) (sm.Const.arg3 tsm.Type))
@@ -399,12 +396,14 @@
 )))) :named sm.axiom.$smtx_model_eval))
 
 ; program: $eo_model_sat_internal
-(define-fun $eo_model_sat_internal ((x1 eo.Term)) eo.Term
-  (ite (= x1 eo.Stuck)
+(define-fun $eo_model_sat_internal ((x1 sm.Term)) eo.Term
+  (ite false
     eo.Stuck
-  (ite (= x1 (eo.SmtTerm sm.True))
+  (ite (= x1 sm.True)
     (eo.SmtTerm sm.True)
-    eo.Stuck)))
+  (ite true
+    (eo.SmtTerm sm.False)
+    eo.Stuck))))
 
 ; program: $eo_model_sat
 (assert (! (forall ((x1 eo.Term))
@@ -421,7 +420,7 @@
 
 ;;;; final verification condition for $eovc_symm
 (assert (! (exists ((x1 sm.Term))
-  (= ($eovc_symm (eo.SmtTerm x1)) sm.True)) :named sm.conjecture.$eovc_symm))
+  (= ($eovc_symm (eo.SmtTerm x1)) (eo.SmtTerm sm.True))) :named sm.conjecture.$eovc_symm))
 
 
 (check-sat)

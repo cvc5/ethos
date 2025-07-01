@@ -1289,11 +1289,11 @@ bool SmtMetaReduce::echo(const std::string& msg)
         call << " (eo.SmtTerm x" << i << ")";
       }
       d_smtVc << ")" << std::endl;
-      d_smtVc << "  (= (" << eosc << call.str() << ") sm.True))";
+      d_smtVc << "  (= (" << eosc << call.str() << ") (eo.SmtTerm sm.True)))";
     }
     else
     {
-      d_smtVc << "(= " << eosc << " sm.True)";
+      d_smtVc << "(= " << eosc << " (eo.SmtTerm sm.True))";
     }
     d_smtVc << " :named sm.conjecture." << vv << ")";
     d_smtVc << ")" << std::endl;
