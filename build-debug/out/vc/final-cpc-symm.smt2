@@ -1,7 +1,119 @@
 (set-logic UFDTSNIRA)
 
 ;;; will be replaced by final datatype
-(echo "include model_smt_embed")
+;;;; TEMPORARY
+;(declare-const Int Type)
+;(declare-const Real Type)
+;(declare-const String Type)
+;;;; TEMPORARY
+
+; The final embedding of SMT-LIB types that are relevant to the VC.
+(declare-datatype tsm.new.Type
+  (
+  ; the Boolean type
+  (tsm.new.BoolType)
+  ; uninterpreted sorts
+  (tsm.new.USort (tsm.new.USort.arg1 Int))
+  ; error sort
+  (tsm.new.NullSort)
+  ; user-decl: Int
+  (tsm.new.Int)
+  ; user-decl: Real
+  (tsm.new.Real)
+  ; user-decl: Char
+  (tsm.new.Char)
+  ; user-decl: Seq
+  (tsm.new.Seq)
+  ; user-decl: BitVec
+  (tsm.new.BitVec)
+
+  )
+)
+
+; carrying the literal types?
+
+
+; The final embedding of SMT-LIB terms that are relevant to the VC.
+(declare-datatype sm.new.Term
+  (
+  ; the apply
+  (sm.new.Apply (sm.new.Apply.arg1 sm.new.Term) (sm.new.Apply.arg2 sm.new.Term))
+  ; Booleans
+  ; NOTE: these are inlined for efficiency and to ensure there are no Boolean subterms
+  (sm.new.True)
+  (sm.new.False)
+  ; builtin literals
+  (sm.new.Numeral (sm.new.Numeral.arg1 Int))
+  (sm.new.Rational (sm.new.Rational.arg1 Real))
+  (sm.new.String (sm.new.String.arg1 String))
+  (sm.new.Binary (sm.new.Binary.arg1 Int) (sm.new.Binary.arg2 Int))
+  ; free constants
+  (sm.new.Const (sm.new.Const.arg1 Int) (sm.new.Const.arg2 Int) (sm.new.Const.arg3 tsm.new.Type))
+  ; skolems
+  (sm.new.Skolem (sm.new.Skolem.arg1 Int) (sm.new.Skolem.arg2 Int) (sm.new.Skolem.arg3 tsm.new.Type))
+  ; user-decl: not
+  (sm.new.not)
+  ; user-decl: and
+  (sm.new.and)
+  ; user-decl: ite
+  (sm.new.ite)
+  ; user-decl: =
+  (sm.new.=)
+
+  )
+)
+
+; The final embedding of Eunoia terms that are relevant to the VC.
+; SMT-LIB terms, types and values are embedded in this datatype.
+; We require a mutually recursive datatype, since these are
+; inter-dependent.
+(declare-datatypes ((eo.new.Term 0) (vsm.new.Value 0) (@Map 0))
+  (
+  (
+  ; The type of types in Eunoia
+  (eo.new.Type)
+  ; The Eunoia function type.
+  (eo.new.FunType (eo.new.FunType.arg1 eo.new.Term) (eo.new.FunType.arg2 eo.new.Term))
+  ; Application of a Eunoia term
+  (eo.new.Apply (eo.new.Apply.arg1 eo.new.Term) (eo.new.Apply.arg2 eo.new.Term))
+  ; The Eunoia representation of an SMT-LIB term
+  (eo.new.SmtTerm (eo.new.SmtTerm.arg1 sm.new.Term))
+  ; The Eunoia representation of an SMT-LIB type
+  (eo.new.SmtType (eo.new.SmtType.arg1 tsm.new.Type))
+  ; The Eunoia representation of an SMT-LIB value
+  ;(eo.new.SmtValue (eo.new.SmtValue.arg1 vsm.new.Value))
+  ; "stuckness"
+  (eo.new.Stuck)
+  ; user-decl: $eo_List
+  (eo.new.$eo_List)
+  ; user-decl: $eo_List_nil
+  (eo.new.$eo_List_nil)
+  ; user-decl: $eo_List_cons
+  (eo.new.$eo_List_cons)
+  ; user-decl: $eo_Var
+  (eo.new.$eo_Var)
+
+  )
+  (
+  ; map with an index type
+  ; valueness: $smtx_map_is_value
+  (vsm.new.Map (vsm.new.Map.arg1 @Map) (vsm.new.Map.arg2 tsm.new.Type))
+  ; uninterpreted constants
+  ; valueness: $smtx_usort_is_value
+  (vsm.new.UConst (vsm.new.UConst.arg1 tsm.new.Type) (i Int))
+  ; an SMT value represented by an SMT-LIB term, e.g. Int/Real/String.
+  ; valueness: $smtx_is_value
+  (vsm.new.Term (vsm.new.Term.arg1 sm.new.Term))
+  ; A non-value
+  (vsm.new.NotValue)
+  )
+  (
+  ; (@Map_cons i e M) maps i -> e, as well as mappings in M
+  (@Map_cons (@Map_cons.arg1 vsm.new.Value) (@Map_cons.arg2 vsm.new.Value) (@Map_cons.arg3 @Map))
+  ; (@Map_default e) maps all remaining elements in the sort to e
+  (@Map_default (@Map_default.arg1 vsm.new.Value))
+  ))
+)
 
 ; The final embedding of SMT-LIB types that are relevant to the VC.
 ; This should always be non-empty because of Bool.
