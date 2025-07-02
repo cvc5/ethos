@@ -57,7 +57,7 @@ class ModelSmt : public StdPlugin
   void printSmtType(const std::string& name, std::vector<Kind>& args);
   void printSmtTerm(const std::string& name, std::vector<Kind>& args, Kind ret);
   void printEmbType(const Expr& e, std::ostream& os);
-  void finalizeDeclaration(const Expr& e);
+  void finalizeDecl(const Expr& e);
   /** get the datatype e belongs to */
   DtKind getDtKind(const Expr& e);
   std::map<Kind, std::string> d_kindToEoPrefix;

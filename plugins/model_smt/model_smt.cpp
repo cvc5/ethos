@@ -244,7 +244,7 @@ void ModelSmt::printEmbType(const Expr& e, std::ostream& os)
   os << e;
 }
 
-void ModelSmt::finalizeDeclaration(const Expr& e)
+void ModelSmt::finalizeDecl(const Expr& e)
 {
   // first, determine which datatype (if any) this belongs to
   std::stringstream ss;
@@ -335,7 +335,7 @@ void ModelSmt::finalize()
   // finalize the declarations
   for (const Expr& e : d_declSeen)
   {
-    finalizeDeclaration(e);
+    finalizeDecl(e);
   }
   auto replace = [](std::string& txt,
                     const std::string& tag,
