@@ -17,15 +17,15 @@
 
 namespace ethos {
 
-//std::string  StdPlugin::s_plugin_path = "/home/andrew/ethos/";
-std::string StdPlugin::s_plugin_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
+// std::string  StdPlugin::s_plugin_path = "/home/andrew/ethos/";
+std::string StdPlugin::s_plugin_path =
+    "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
 
 StdPlugin::StdPlugin(State& s) : d_state(s), d_tc(s.getTypeChecker()) {}
 
 StdPlugin::~StdPlugin() {}
 
-Expr
-StdPlugin::lookupVar(const std::string& name)
+Expr StdPlugin::lookupVar(const std::string& name)
 {
   Expr e = d_state.getVar(name);
   if (e.isNull())

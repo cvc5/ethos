@@ -23,17 +23,18 @@ enum class DtKind
   SMT_TERM,
   SMT_TYPE,
   SMT_VALUE,
-  // these are required for native datatypes that define the semantics of SMT-LIB
+  // these are required for native datatypes that define the semantics of
+  // SMT-LIB
   VALUE_MAP,
   VALUE_STERM_LIST,
   VALUE_RAT_PAIR,
   NONE
   // a builtin application of an SMT-LIB operator
   // this is the kind of types of the form ($smt_apply_N ...)
-  //BUILTIN_APPLY,
+  // BUILTIN_APPLY,
   // a builtin application of an SMT-LIB type operator
   // this is the kind of types of the form ($smt_type_N ...)
-  //BUILTIN_TYPE
+  // BUILTIN_TYPE
 };
 std::string dtKindToString(DtKind k);
 

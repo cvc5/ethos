@@ -894,8 +894,8 @@ void Desugar::finalizeWellFounded()
   // TODO
   std::stringstream wfDefs;
   // generate well-foundedness method
-  //size_t pcIdCount = 0;
-  //std::map<Expr, size_t> pcId;
+  // size_t pcIdCount = 0;
+  // std::map<Expr, size_t> pcId;
   std::stringstream os;
   os << "(declare-const @pcall (-> $eo_Numeral $eo_List Type))" << std::endl;
   os << "(program $eovcwf_rec ((pc $eo_Numeral))" << std::endl;

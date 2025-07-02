@@ -21,7 +21,6 @@
 
 namespace ethos {
 
-
 struct Command
 {
   std::string d_cmdName;
@@ -40,8 +39,7 @@ std::string nextToken(std::istream& in)
     if (c == ';')
     {
       // Skip to end of line
-      while (in.get(c) && c != '\n')
-        ;
+      while (in.get(c) && c != '\n');
       continue;
     }
     if (std::isspace(c))
@@ -78,8 +76,7 @@ std::string readFullCommand(std::istream& in)
     if (c == ';')
     {
       // skip comment to newline
-      while (in.get(c) && c != '\n')
-        ;
+      while (in.get(c) && c != '\n');
       result += '\n';
       continue;
     }
@@ -172,7 +169,7 @@ void TrimDefs::parseCommands(std::istream& in)
       d_symCommands[id].insert(cid);
       // declare-consts must always be visited
       // echo is also always preserved
-      if (cmd.d_cmdName == "declare-consts" || cmd.d_cmdName=="echo")
+      if (cmd.d_cmdName == "declare-consts" || cmd.d_cmdName == "echo")
       {
         d_toVisit.push_back(id);
       }
@@ -291,7 +288,7 @@ void TrimDefs::finalize()
   for (size_t i : allCmd)
   {
     // do not include the commands we processed
-    if (d_commands[i].compare(0,16, "(echo \"trim-defs")==0)
+    if (d_commands[i].compare(0, 16, "(echo \"trim-defs") == 0)
     {
       continue;
     }

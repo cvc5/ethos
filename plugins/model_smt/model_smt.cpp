@@ -156,7 +156,9 @@ void ModelSmt::printSmtTerm(const std::string& name,
   std::stringstream preAppEnd;
   for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
   {
-    d_eval << std::endl << "    (eo::define ((e" << i << " ($smtx_model_eval x" << i << ")))";
+    d_eval << std::endl
+           << "    (eo::define ((e" << i << " ($smtx_model_eval x" << i
+           << ")))";
     preAppEnd << ")";
   }
   if (name == "forall" || name == "exists")
@@ -181,7 +183,7 @@ void ModelSmt::printSmtTerm(const std::string& name,
   {
     std::stringstream appConds;
     std::stringstream appCondsEnd;
-    if (args.size()>=2)
+    if (args.size() >= 2)
     {
       appConds << "($smt_apply_2 \"and\" ";
       appCondsEnd << ")";
@@ -192,16 +194,16 @@ void ModelSmt::printSmtTerm(const std::string& name,
     {
       Kind ka = args[i - 1];
       // use guarded version
-      if (i>1)
+      if (i > 1)
       {
         appConds << " ";
       }
-      if (ka==Kind::PARAM)
+      if (ka == Kind::PARAM)
       {
-        Assert (kas!=Kind::NONE);
+        Assert(kas != Kind::NONE);
         ka = kas;
       }
-      if (ka==Kind::BOOLEAN)
+      if (ka == Kind::BOOLEAN)
       {
         appArgs << " ($smt_apply_1 \"= sm.True\" ";
       }
@@ -210,39 +212,42 @@ void ModelSmt::printSmtTerm(const std::string& name,
         // use the selector directly.
         // this is guarded by the ITE
         appArgs << " ($smt_apply_1 \"sm.";
-        Assert (d_kindToEoCons.find(ka)!=d_kindToEoCons.end()) << "Could not find " << ka;
+        Assert(d_kindToEoCons.find(ka) != d_kindToEoCons.end())
+            << "Could not find " << ka;
         appArgs << d_kindToEoCons[ka] << ".arg1\"";
       }
       appConds << "($sm_is_";
-      Assert (d_kindToEoPrefix.find(ka) != d_kindToEoPrefix.end()) << "Could not find kind arg " << ka;
+      Assert(d_kindToEoPrefix.find(ka) != d_kindToEoPrefix.end())
+          << "Could not find kind arg " << ka;
       appConds << d_kindToEoPrefix[ka];
       appConds << " e" << i << ")";
       appArgs << " e" << i << ")";
     }
-    d_eval << std::endl << "    ($smt_apply_3 \"ite\" " << appConds.str() << appCondsEnd.str();
+    d_eval << std::endl
+           << "    ($smt_apply_3 \"ite\" " << appConds.str()
+           << appCondsEnd.str();
     if (args.empty() || args.size() > 3)
     {
       EO_FATAL() << "Unhandled arity " << args.size() << " for " << name;
     }
     d_eval << std::endl << "      ($sm_mk_";
     Kind kr = kret;
-    if (kr==Kind::PARAM)
+    if (kr == Kind::PARAM)
     {
-      Assert (kas!=Kind::NONE);
+      Assert(kas != Kind::NONE);
       kr = kas;
     }
-    Assert (d_kindToEoPrefix.find(kr) != d_kindToEoPrefix.end()) << "Could not find kind ret " << kr;
+    Assert(d_kindToEoPrefix.find(kr) != d_kindToEoPrefix.end())
+        << "Could not find kind ret " << kr;
     d_eval << d_kindToEoPrefix[kr];
     d_eval << " ($smt_apply_" << args.size() << appArgs.str() << "))";
     preAppEnd << ")";
   }
-  d_eval << std::endl << "      " << callApp.str() << ")" << preAppEnd.str() << std::endl;
+  d_eval << std::endl
+         << "      " << callApp.str() << ")" << preAppEnd.str() << std::endl;
 }
 
-void ModelSmt::printEmbType(const Expr& e, std::ostream& os)
-{
-  os << e;
-}
+void ModelSmt::printEmbType(const Expr& e, std::ostream& os) { os << e; }
 
 void ModelSmt::finalizeDecl(const Expr& e)
 {
@@ -254,7 +259,8 @@ void ModelSmt::finalizeDecl(const Expr& e)
   std::stringstream prefix;
   std::stringstream metaType;
   metaType << "(($eo_get_meta_type " << e << ") ";
-  if (sname.compare(0, 1, "@") == 0 || sname.compare(0, 8, "$eo_List") == 0 || sname=="$eo_Var")
+  if (sname.compare(0, 1, "@") == 0 || sname.compare(0, 8, "$eo_List") == 0
+      || sname == "$eo_Var")
   {
     prefix << "eo.";
     out = &d_embedEoTermDt;
@@ -264,7 +270,9 @@ void ModelSmt::finalizeDecl(const Expr& e)
   {
     Expr c = e;
     Expr tc = d_tc.getType(c);
-    if (tc.getKind()==Kind::TYPE || (tc.getKind()==Kind::FUNCTION_TYPE && tc[tc.getNumChildren()-1].getKind()==Kind::TYPE))
+    if (tc.getKind() == Kind::TYPE
+        || (tc.getKind() == Kind::FUNCTION_TYPE
+            && tc[tc.getNumChildren() - 1].getKind() == Kind::TYPE))
     {
       prefix << "tsm.";
       out = &d_embedTypeDt;
@@ -322,12 +330,11 @@ void ModelSmt::finalizeDecl(const Expr& e)
     std::stringstream sst;
     printEmbType(typ, sst);
     //(*out) << "; Printing datatype argument type " << typ << " gives \"" <<
-    //sst.str() << "\" " << termKindToString(tk) << std::endl;
+    // sst.str() << "\" " << termKindToString(tk) << std::endl;
     (*out) << sst.str();
     (*out) << ")";
   }
   (*out) << ")" << std::endl;
-
 }
 
 void ModelSmt::finalize()

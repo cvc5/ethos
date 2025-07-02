@@ -45,7 +45,8 @@ enum class TermKind
   FINAL_SMT_TERM,
   FINAL_SMT_TYPE,
   FINAL_SMT_VALUE,
-  // these are required for native datatypes that define the semantics of SMT-LIB
+  // these are required for native datatypes that define the semantics of
+  // SMT-LIB
   FINAL_VALUE_MAP,
   FINAL_VALUE_STERM_LIST,
   FINAL_VALUE_RAT_PAIR,
@@ -55,8 +56,7 @@ enum class TermKind
   // a builtin application of an SMT-LIB type operator
   // this is the kind of types of the form ($smt_type_N ...)
   FINAL_BUILTIN_TYPE,
-  
-  
+
   //
   PROGRAM,
   // Builtin datatype introduced in model_smt step, for eo.Term
@@ -106,7 +106,7 @@ class SelectorCtx
   std::map<Expr, std::string> d_ctx;
   /** The context it was matched in */
   std::map<Expr, TermContextKind> d_tctx;
-  /** 
+  /**
    * The term it was matched to
    */
   std::map<Expr, Expr> d_typeMatch;
@@ -142,11 +142,11 @@ class SmtMetaReduce : public StdPlugin
                             std::ostream& os,
                             SelectorCtx& ctx,
                             size_t& nconj,
-                    TermContextKind tinit = TermContextKind::NONE);
+                            TermContextKind tinit = TermContextKind::NONE);
   void printEmbAtomic(const std::string& c,
-                          std::ostream& os,
-                          TermContextKind parent,
-                          TermContextKind child);
+                      std::ostream& os,
+                      TermContextKind parent,
+                      TermContextKind child);
   void printEmbAtomicTerm(const Expr& c,
                           std::ostream& os,
                           TermContextKind tctx = TermContextKind::NONE);
