@@ -175,6 +175,7 @@ class SmtMetaReduce : public StdPlugin
   TermKind getTermKind(const Expr& e);
   TermKind getSafeTermKind(const Expr& e);
   TermContextKind termKindToContext(TermKind tk);
+  TermContextKind getEmbTypeContext(const Expr& type);
   /** Declares seen */
   std::set<Expr> d_declSeen;
   /** Program declarations processed */
