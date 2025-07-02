@@ -285,7 +285,16 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
   std::stringstream ssEnd;
   if (k == Kind::CONST)
   {
-    ss << termContextKindToPrefix(child) << c;
+    std::string cname = getName(c);
+    // if it is an explicit embedding of a datatype, take the suffix
+    if (cname.compare(0, 5, "$smd_") == 0)
+    {
+      ss << cname.substr(5);
+    }
+    else
+    {
+      ss << termContextKindToPrefix(child) << cname;
+    }
   }
   else if (k == Kind::BOOL_TYPE)
   {
@@ -903,24 +912,31 @@ std::vector<TermContextKind> SmtMetaReduce::getContextArguments(const Expr& e, T
   std::cout << "PushContextArg: " << e << std::endl;
   bool isSmtApp = false;
   bool isSmtType = false;
+  bool isIte = false;
+  bool isEq = false;
+  bool isEoDt = false;
+  bool isSmtDt = false;
+  bool isSmtTypeDt = false;
   bool isOpaque = (e.getKind()==Kind::APPLY_OPAQUE);
   if (isOpaque)
   {
     std::string sname = getName(e[0]);
     isSmtApp = (sname.compare(0, 11, "$smt_apply_") == 0);
     isSmtType = (sname.compare(0, 10, "$smt_type_") == 0);
+    // FIXME: use something else??
+    if (isSmtApp)
+    {
+      std::string esname = getEmbedName(e);
+      isIte = (esname=="ite");
+      isEq = (esname=="=");
+    }
+    isEoDt = (sname.compare(0, 8, "$smd_eo.") == 0);
+    isSmtDt = (sname.compare(0, 8, "$smd_sm.") == 0);
+    isSmtTypeDt = (sname.compare(0, 9, "$smd_tsm.") == 0);
   }
   for (size_t i=0, nchild=e.getNumChildren(); i<nchild; i++)
   {
-    if (isSmtApp)
-    {
-      ret.push_back(TermContextKind::SMT_BUILTIN);
-    }
-    else if (isSmtType)
-    {
-      ret.push_back(TermContextKind::SMT_TYPE);
-    }
-    else if (isOpaque)
+    if (isOpaque || isEq)
     {
       Expr cc = e[i];
       Expr cct = d_tc.getType(cc);
@@ -928,6 +944,22 @@ std::vector<TermContextKind> SmtMetaReduce::getContextArguments(const Expr& e, T
       std::cout << "  PushContextArg: " << termContextKindToString(child) << " for " << e << "[" << i << "]" << " (from " << cct << ")" << std::endl;
       Assert (child!=TermContextKind::NONE) << "Unknown context for " << cc << " within " << e;
       ret.push_back(child);
+    }
+    else if (isSmtApp)
+    {
+      // ITE is special case which preserves for the branches
+      if (isIte && i>=3)
+      {
+        ret.push_back(parent);
+      }
+      else
+      {
+        ret.push_back(TermContextKind::SMT_BUILTIN);
+      }
+    }
+    else if (isSmtType)
+    {
+      ret.push_back(TermContextKind::SMT_TYPE);
     }
     else if (isLiteralOp(k))
     {
@@ -1082,7 +1114,8 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       {
         Assert(false) << "Unhandled term kind for " << recTerm << " "
         << ", in context "
-        << termContextKindToString(parent) << " / " << termContextKindToString(child);
+        << termContextKindToString(parent) << " / " << termContextKindToString(child)
+        << " within term " << body;
       }
     }
     else if (ck == Kind::APPLY_OPAQUE)
@@ -1684,7 +1717,9 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
       std::cout << "Print pat matching for " << hd[j] << std::endl;
       // context depends on the kind of the argument
 #ifdef NEW_DEF
-      TermContextKind ctxPatMatch = TermContextKind::NONE;
+      Expr hdj = hd[j];
+      Expr hdjt = d_tc.getType(hdj);
+      TermContextKind ctxPatMatch = getEmbTypeContext(hdjt);
 #else
       TermContextKind ctxPatMatch =
           termKindToContext(termKindsForTypeArgs[j - 1]);
