@@ -19,22 +19,32 @@ namespace ethos {
 
 //#define NEW_DEF
 
-class ConjPrint
+ConjPrint::ConjPrint() : d_npush(0) {}
+void ConjPrint::push(const std::string& str)
 {
- public:
-  ConjPrint() : d_npush(0) {}
-  void push(const std::string& str)
+  if (d_npush > 0)
   {
-    if (d_npush > 0)
-    {
-      d_ss << " ";
-    }
-    d_ss << str;
-    d_npush++;
+    d_ss << " ";
   }
-  std::stringstream d_ss;
-  size_t d_npush;
-};
+  d_ss << str;
+  d_npush++;
+}
+
+void ConjPrint::printConjunction(std::ostream& os)
+{
+  if (d_npush == 0)
+  {
+    os << "true";
+  }
+  else if (d_npush > 1)
+  {
+    os << "(and " << d_ss.str() << ")";
+  }
+  else
+  {
+    os << d_ss.str();
+  }
+}
 
 SelectorCtx::SelectorCtx() {}
 void SelectorCtx::clear()
@@ -622,6 +632,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
                                          const std::string& initCtx,
                                          std::ostream& os,
                                          SelectorCtx& ctx,
+                                         ConjPrint& print,
                                          size_t& nconj,
                                          TermContextKind tinit)
 {
@@ -634,7 +645,6 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
   std::tuple<Expr, std::string, TermContextKind> cur;
   Expr ctmp = c;
   visit.emplace_back(c, initCtx, tinit);
-  ConjPrint print;
   do
   {
     cur = visit.back();
@@ -744,7 +754,6 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       print.push(eq.str());
     }
   } while (!visit.empty());
-  os << print.d_ss.str();
   return true;
 #else
   tinit = tinit == TermContextKind::NONE ? TermContextKind::EUNOIA : tinit;
@@ -1665,6 +1674,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     ctx.clear();
     std::stringstream currCase;
     size_t nconj = 0;
+    ConjPrint print;
     Assert(hd.getNumChildren() == nargs);
     for (size_t j = 1, nhdchild = hd.getNumChildren(); j < nhdchild; j++)
     {
@@ -1679,7 +1689,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
           termKindToContext(termKindsForTypeArgs[j - 1]);
 #endif
       printEmbPatternMatch(
-          hd[j], args[j - 1], currCase, ctx, nconj, ctxPatMatch);
+          hd[j], args[j - 1], currCase, ctx, print, nconj, ctxPatMatch);
       std::cout << "...returns " << currCase.str() << std::endl;
     }
     // compile the return for this case
@@ -1704,7 +1714,11 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
       if (i + 1 < ncases || tk != TermKind::SMT_PROGRAM)
       {
         cases << "  (ite ";
+#ifdef NEW_DEF
+        print.printConjunction(cases);
+#else
         printConjunction(nconj, currCase.str(), cases, ctx);
+#endif
         cases << std::endl;
         casesEnd << ")";
       }

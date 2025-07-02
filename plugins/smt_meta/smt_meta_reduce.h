@@ -21,6 +21,18 @@ namespace ethos {
 class State;
 class TypeChecker;
 
+
+class ConjPrint
+{
+ public:
+  ConjPrint();
+  void push(const std::string& str);
+  void printConjunction(std::ostream& os);
+  std::stringstream d_ss;
+  size_t d_npush;
+};
+
+
 /**
  * The datatype we are at.
  */
@@ -141,6 +153,7 @@ class SmtMetaReduce : public StdPlugin
                             const std::string& initCtx,
                             std::ostream& os,
                             SelectorCtx& ctx,
+                                         ConjPrint& print,
                             size_t& nconj,
                             TermContextKind tinit = TermContextKind::NONE);
   void printEmbAtomic(const std::string& c,
