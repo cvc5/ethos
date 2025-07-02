@@ -619,8 +619,8 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     std::stringstream cname;
     bool printArgs = false;
     size_t printArgStart = 0;
-    std::cout << "  pm: " << tcur << " / " << currTerm << " / "
-              << termContextKindToString(tkctx) << std::endl;
+    std::cout << "  patMatch: " << tcur << " / " << currTerm << " / "
+              << termContextKindToString(tkctx) << " / kind " << ck << std::endl;
     if (ck == Kind::APPLY && isProgram(tcur[0]))
     {
       EO_FATAL() << "Cannot match on program " << tcur[0];
@@ -640,7 +640,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       if (tkctx == TermContextKind::EUNOIA && atk != TermContextKind::EUNOIA)
       {
         Assert(atk == TermContextKind::SMT || atk == TermContextKind::SMT_TYPE
-               || atk == TermContextKind::SMT_VALUE);
+               || atk == TermContextKind::SMT_VALUE) << "Bad kind: " << termContextKindToString(atk);
         std::string cons = termContextKindToCons(atk);
         std::stringstream tester;
         tester << "((_ is eo." << cons << ") " << currTerm << ")";
@@ -920,7 +920,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     size_t childIndex = std::get<1>(cur);
     TermContextKind tkctx = std::get<2>(cur);
     std::pair<Expr, TermContextKind> key(recTerm, tkctx);
-    std::cout << "print at: " << recTerm << " / " <<childIndex << " / " <<termContextKindToString(tkctx) << std::endl;
+    std::cout << "print: " << recTerm << " / " <<childIndex << " / " <<termContextKindToString(tkctx) << std::endl;
     // if we are printing the head of the term
     if (childIndex == 0)
     {
@@ -946,6 +946,8 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       }
       if (ck == Kind::APPLY)
       {
+        os << "(";
+        cparen[key]++;
         TermContextKind child = getMetaKind(recTerm[0]);
         bool processed = false;
         if (child==TermContextKind::PROGRAM)
@@ -1013,25 +1015,21 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           // print as "true" not "(true)".
           if (recTerm.getNumChildren() > 2)
           {
-            os << "(";
+            os << "(" << embName;
             cparen[key]++;
           }
-          // the first argument is the opaque operator,
-          // the second argument is taken as a name
-          std::get<1>(visit.back())++;
-          //std::get<1>(visit.back())++;
-          os << embName;
+          else
+          {
+            os << embName;
+            visit.pop_back();
+            continue;
+          }
         }
-        std::get<1>(visit.back())++;
-        std::vector<TermContextKind> targs = getContextArguments(recTerm, tkctx);
-        // all other operators print as applications
-        os << "(";
-        cparen[key]++;
-        // otherwise, the new context depends on the types of the children
-        for (size_t i=std::get<1>(visit.back()), nchild=recTerm.getNumChildren(); i<nchild; i++)
+        else
         {
-          size_t ii = (nchild-i)-1;
-          visit.emplace_back(recTerm[ii], 0, targs[ii]);
+          // all other operators print as applications
+          os << "(";
+          cparen[key]++;
         }
       }
       else if (ck == Kind::FUNCTION_TYPE)
@@ -1060,8 +1058,17 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
         EO_FATAL() << "Unhandled kind in print term " << ck << " " << recTerm
                     << " / " << termContextKindToString(tkctx) << std::endl;
       }
-      std::get<1>(visit.back())++;
-      visit.emplace_back(recTerm[0], 0, tkctx);
+      // push *all* children based on context.
+      // we will finish when they are done, so we set to getNumChildren here.
+      std::get<1>(visit.back()) = recTerm.getNumChildren();
+      // otherwise, the new context depends on the types of the children
+      std::vector<TermContextKind> targs = getContextArguments(recTerm, tkctx);
+      // push in reverse order
+      for (size_t i=std::get<1>(visit.back()), nchild=recTerm.getNumChildren(); i<nchild; i++)
+      {
+        size_t ii = (nchild-i)-1;
+        visit.emplace_back(recTerm[ii], 0, targs[ii]);
+      }
     }
     else if (childIndex >= recTerm.getNumChildren())
     {
@@ -2221,6 +2228,12 @@ TermContextKind SmtMetaReduce::getMetaKind(const Expr& e)
     else if (mm == d_metaSmtType)
     {
       tk = TermContextKind::SMT_TYPE;
+    }
+    else
+    {
+      // otherwise assume SMT term
+      // FIXME: is this right?
+      tk = TermContextKind::SMT;
     }
   }
   d_metaKind[e] = tk;
