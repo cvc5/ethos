@@ -1,6 +1,4 @@
 (set-logic UFDTSNIRA)
-
-;;; will be replaced by final datatype
 ;;;; TEMPORARY
 ;(declare-const Int Type)
 ;(declare-const Real Type)

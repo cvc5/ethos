@@ -1,7 +1,3 @@
-(set-logic UFDTSNIRA)
-
-;;; will be replaced by final datatype
-(echo "include model_smt_embed")
 
 ; The final embedding of SMT-LIB types that are relevant to the VC.
 ; This should always be non-empty because of Bool.

@@ -69,15 +69,14 @@ echo "**** smt_meta: Generate SMT2 from $VCMT_DEF_DESUGAR to $VC_OUT"
 ./src/ethos --plugin.smt-meta $VCMT_DEF_DESUGAR >/dev/null
 check_status
 
-# include the final datatype
-sed -i "/(echo \"include model_smt_embed\")/{
-    r ../plugins/model_smt/model_eo_embed_gen.eo
-    d
-}" $STD_VC_OUT
+# the logic
+echo "(set-logic UFDTSNIRA)" > $VC_OUT
+# start with the final datatype
+cat $STD_SMODEL_EMBED_OUT >> $VC_OUT
 # replace all occurrences of $smt_builtin_
-sed -i 's/$smt_builtin_//g' $STD_VC_OUT
-
-cp $STD_VC_OUT $VC_OUT
+sed -i 's/$smt_builtin_//g' $VC_OUT
+# concatenate the VC computed above
+cat $STD_VC_OUT >> $VC_OUT
 
 echo "**** smt_meta: Run the final verification condition with unsat cores"
 ajr-cvc5 $VC_OUT --dump-unsat-cores #--parse-only
