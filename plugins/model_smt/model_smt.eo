@@ -1,8 +1,46 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_eo_embed
 
+;;; Eunoia datatype constructors
+
+; $eo_smt_term declared in eo_builtin_smt.eo
+
+; The Eunoia representation of an SMT-LIB type.
+(declare-parameterized-const $smd_eo.SmtType ((t $smt_Type :opaque)) $eo_Term)
+(define $eo_smt_type ((T $smt_Type)) ($smd_eo.SmtType T))
+
+; The Eunoia representation of an SMT-LIB value.
+(declare-parameterized-const $smd_eo.SmtValue ((t $smt_Type :opaque)) $eo_Term)
+(define $eo_smt_value ((T $smt_Type)) ($smd_eo.SmtValue T))
+
 ;;; SMT term datatype constructors
 
+; An application of SMT-LIB terms.
+(declare-parameterized-const $smd_sm.Apply
+  ((t1 $smt_Term :opaque) (t2 $smt_Term :opaque)) $smt_Term)
+(define $sm_apply_term ((t1 $smt_Term) (t2 $smt_Term))
+  ($smd_sm.Apply t1 t2))
+  
+; A skolem, identified by kind, identifier and Type.
+; The kind 0 is reserved for standard SMT-LIB symbols introduced
+; by the user by declare-const. The other kinds of free symbols
+; can be custom defined based on the Eunoia signature (see method
+; $eo_const_predicate in model_eo.eo).
+; A skolem is identified by a type, a term and a kind.
+(declare-parameterized-const $smd_sm.Skolem
+  ((T $smt_Type :opaque) (k $smt_Term :opaque) (id $smt_builtin_Int :opaque))
+  $smt_Term)
+(define $sm_skolem
+  ((k $smt_builtin_Int) (id $smt_builtin_Int) (T $smt_Type))
+  ($smd_sm.Skolem k id T))
+
+; A free constant
+(declare-parameterized-const $smd_sm.Const
+  ((T $smt_Type :opaque) (id $smt_builtin_Int :opaque))
+  $smt_Term)
+(define $sm_const ((T $smt_Type) (id $smt_builtin_Int))
+  ($smd_sm.Const T id))
+  
 ;;; SMT type datatype constructors
 
 ; The Boolean type
@@ -27,6 +65,14 @@
 
 ;;; SMT value datatype constructors
 
+; represents an uninterpreted value
+; This must be a constructor in the final sm.Term.
+(declare-parameterized-const $smd_vsm.UValue
+  ((T $smt_Type :opaque) (i $smt_builtin_Int :opaque)) $smt_Term)
+(define $vsm_UValue
+  ((id $smt_builtin_Int :opaque) (T $smt_Type :opaque))
+  ($smd_vsm.UValue id T))
+  
 
 ; TODO: use?
 (declare-const $smt_builtin_tsm.new.Type Type)
@@ -34,44 +80,8 @@
 (declare-const $smt_builtin_vsm.new.Value Type)
 (declare-const $smt_builtin_eo.new.Term Type)
 
-;;; Deep embedding of SMT-LIB types
+;;; Deep embedding of SMT-LIB terms
 
-
-; A skolem, identified by kind, identifier and Type.
-; The kind 0 is reserved for standard SMT-LIB symbols introduced
-; by the user by declare-const. The other kinds of free symbols
-; can be custom defined based on the Eunoia signature (see method
-; $eo_const_predicate in model_eo.eo).
-(declare-parameterized-const $smd_sm.Skolem
-  ((T $smt_Type :opaque) (k $smt_builtin_Int :opaque) (id $smt_builtin_Int :opaque))
-  $smt_Term)
-
-; A free constant
-(declare-parameterized-const $smd_sm.Const
-  ((T $smt_Type :opaque) (id $smt_builtin_Int :opaque))
-  $smt_Term)
-
-; represents an uninterpreted value
-; This must be a constructor in the final sm.Term.
-(declare-parameterized-const $smd_sm.usort_value
-  ((T $smt_Type :opaque) (i $smt_builtin_Int :opaque)) $smt_Term)
-
-; The Eunoia representation of an SMT-LIB term.
-(declare-parameterized-const $smd_sm.Apply
-  ((t1 $smt_Term :opaque) (t2 $smt_Term :opaque)) $smt_Term)
-  
-
-
-(define $sm_apply_term ((t1 $smt_Term) (t2 $smt_Term))
-  ($smd_sm.Apply t1 t2))
-(define $sm_const ((T $smt_Type) (id $smt_builtin_Int))
-  ($smd_sm.Const T id))
-(define $sm_usort_value
-  ((id $smt_builtin_Int :opaque) (T $smt_Type :opaque))
-  ($smd_sm.usort_value id T))
-(define $sm_skolem
-  ((k $smt_builtin_Int) (id $smt_builtin_Int) (T $smt_Type))
-  ($smd_sm.Skolem k id T))
 
 
 
@@ -148,9 +158,9 @@ $EO_IS_TYPE_CASES$
 ; the verification condition is reasoning about quantified formulas
 
 ; we have no incorporate of irrational values, which can be soundly approximated using
-; $smd_sm.usort_value.
+; $vsm_UValue.
 ;(define $smt_irrat_enum ((i $smt_Numeral))
-;  ($smd_sm.usort_value $smt_Rational i))
+;  ($vsm_UValue $smt_Rational i))
 
 ; NOTE: the "stuckness" of this method defines cardinality for types!!!!!!!
 ; Thus it is different from the other methods in this signature, which use
@@ -175,7 +185,7 @@ $EO_IS_TYPE_CASES$
   ;(($eo_enum_type ($smt_BitVec w) i) (eo::define ((v (eo::to_bin w i)))
   ;                                      (eo::requires (eo::to_z v) i v)))
   ; TODO: functions, datatypes
-  ; Try to enumerate the type, if we fail, we return $smd_sm.usort_value.
+  ; Try to enumerate the type, if we fail, we return $vsm_UValue.
   ; Note that this essentially assumes that unhandled types are uninterpreted
   ; and have infinite cardinality (since this does not get stuck).
   ;(($eo_enum_type T i)                ($smt_builtin_eo.SmtValue ($smt_builtin_vsm.new.UConst T i)))
@@ -451,7 +461,7 @@ $EO_EVAL_CASES$
   ; Try to enumerate the type, if we fail, we return an Uninterpreted sort value.
   ; Note that this essentially assumes that unhandled types are uninterpreted
   ; and have infinite cardinality (since this does not get stuck).
-  ; (($smtx_enum_type T i)               ($smd_sm.usort_value T i))
+  ; (($smtx_enum_type T i)               ($vsm_UValue T i))
   ; FIXME!!!
   (($smtx_enum_type T i) T)
   )
@@ -531,6 +541,7 @@ $EO_EVAL_CASES$
 ; This is intentionally undefined in this signature.
 (program $smtx_model_lookup ()
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_Type) $smt_Term)
+  
 
 ; Lookup the predicate the constant can be assumed to have.
 ; If the kind is 0, it is an SMT-LIB input constant, we return true.
@@ -553,6 +564,7 @@ $EO_EVAL_CASES$
 
 ; program: $smtx_substitute
 ; Used to define $smtx_eval_quant.
+; TODO: debruijn
 (program $smtx_substitute
   ((x $smt_Term) (y $smt_Term) (f $smt_Term) (a $smt_Term) (z $smt_Term))
   :signature ($smt_Term $smt_Term $smt_Term) $smt_Term
@@ -560,6 +572,16 @@ $EO_EVAL_CASES$
   (($smtx_substitute x y (f a))         (_ ($smtx_substitute x y f) ($smtx_substitute x y a)))
   (($smtx_substitute x y x)             y)
   (($smtx_substitute x y z)             z)
+  )
+)
+
+(program $smtx_model_lookup_predicate 
+  ((T $smt_Type) (k $smt_builtin_Int) (id $smt_builtin_Int) (F $smt_Term) (t $smt_Term))
+  :signature ($smt_Term) $smt_Value
+  (
+  (($smtx_model_lookup_predicate ($sm_const T id))   $smt_builtin_true)
+  (($smtx_model_lookup_predicate ($sm_skolem T F k)) $smt_builtin_true) ; FIXME
+  (($smtx_model_lookup_predicate t)                  $smt_builtin_false)
   )
 )
 
@@ -660,7 +682,7 @@ $SMT_EVAL_CASES$
   :signature ($smt_Term) $smt_Type
   (
   (($smtx_typeof ($sm_const T id))     T)
-  ;(($smtx_typeof ($sm_Skolem id F T))  T)
+  (($smtx_typeof ($sm_skolem T F id))  T)
   ; for all other user defined terms, we totalize using unknown sorts
   ; we use the hash so that all terms that do not type check have a new unknown sort.
   (($smtx_typeof t)                      ($smt_try_eo_type ($eo_typeof t) ($eo_smt_type $tsm_NullSort)))

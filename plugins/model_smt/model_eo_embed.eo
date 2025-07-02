@@ -33,7 +33,7 @@ $SM_LITERAL_TYPE_DECL$
   ; free constants
   (sm.new.Const (sm.new.Const.arg1 tsm.new.Type) (sm.new.Const.arg2 Int))
   ; skolems
-  (sm.new.Skolem (sm.new.Skolem.arg1 tsm.new.Type) (sm.new.Skolem.arg2 sm.new.Term))
+  (sm.new.Skolem (sm.new.Skolem.arg1 tsm.new.Type) (sm.new.Skolem.arg2 sm.new.Term) (sm.new.Skolem.arg3 Int))
 $SM_TERM_DECL$
   )
 )
@@ -67,7 +67,7 @@ $SM_EO_TERM_DECL$
   (vsm.new.Map (vsm.new.Map.arg1 @Map) (vsm.new.Map.arg2 tsm.new.Type))
   ; uninterpreted constants
   ; valueness: $smtx_usort_is_value
-  (vsm.new.UConst (vsm.new.UConst.arg1 tsm.new.Type) (i Int))
+  (vsm.new.UValue (vsm.new.UValue.arg1 tsm.new.Type) (i Int))
   ; an SMT value represented by an SMT-LIB term, e.g. Int/Real/String.
   ; valueness: $smtx_is_value
   (vsm.new.Term (vsm.new.Term.arg1 sm.new.Term))
