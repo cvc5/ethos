@@ -9,8 +9,8 @@
   (tsm.new.Bool)
   ; uninterpreted sorts
   (tsm.new.USort (tsm.new.USort.arg1 Int))
-  ; error sort
-  (tsm.new.NullSort)
+  ; The application of SMT-LIB types
+  (tsm.new.Apply (tsm.new.Apply.arg1 tsm.new.Type) (tsm.new.Apply.arg2 tsm.new.Type))
   ; user-decl: Int
   (tsm.new.Int)
   ; user-decl: Real
@@ -22,6 +22,8 @@
   ; user-decl: BitVec
   (tsm.new.BitVec)
 
+  ; error sort
+  (tsm.new.NullSort)
   )
 )
 
@@ -31,7 +33,7 @@
 ; The final embedding of SMT-LIB terms that are relevant to the VC.
 (declare-datatype sm.new.Term
   (
-  ; the apply
+  ; The application of SMT-LIB terms
   (sm.new.Apply (sm.new.Apply.arg1 sm.new.Term) (sm.new.Apply.arg2 sm.new.Term))
   ; Booleans
   ; NOTE: these are inlined for efficiency and to ensure there are no Boolean subterms

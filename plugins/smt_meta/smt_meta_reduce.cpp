@@ -1066,53 +1066,70 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       continue;
     }
     std::cout << "print: " << recTerm << " / " <<termContextKindToString(parent) << std::endl;
+    TermContextKind child = getMetaKind(recTerm);
+    if (parent!=child)
+    {
+      bool processed = false;
+      if (parent==TermContextKind::EUNOIA)
+      {
+        if (child==TermContextKind::SMT)
+        {
+          // going from a Eunoia term to an SMT term
+          os << "(eo.SmtTerm ";
+          cparen[key]++;
+          processed = true;
+        }
+        else if (child==TermContextKind::SMT_TYPE)
+        {
+          // going from a Eunoia term to an SMT type
+          os << "(eo.SmtType ";
+          cparen[key]++;
+          processed = true;
+        }
+      }
+      else if (parent==TermContextKind::SMT_BUILTIN)
+      {
+        // e.g. equality or ITE with Eunoia/SMT terms or types
+        // no conversion necessary
+        processed = true;
+      }
+      if (child==TermContextKind::PROGRAM)
+      {
+        // a program as a child
+        // TODO: this likely depends on the return type
+        processed = true;
+      }
+      Assert(processed) << "Unhandled term kind for " << recTerm << " "
+      << ", in context "
+      << termContextKindToString(parent) << " / " << termContextKindToString(child)
+      << " within term " << body;
+    }
     // we always push all children at once
     size_t cstart = 0;
     if (ck == Kind::APPLY)
     {
       os << "(";
       cparen[key]++;
-      TermContextKind child = getMetaKind(recTerm[0]);
-      bool processed = false;
       if (child==TermContextKind::PROGRAM)
       {
-        processed = true;
+        // prints as itself
       }
-      // TODO: move this to where arguments go
-      if (parent!=child)
+      else if (child==TermContextKind::EUNOIA)
       {
-        if (parent==TermContextKind::EUNOIA)
-        {
-          if (child==TermContextKind::SMT)
-          {
-            os << "eo.SmtTerm (sm.Apply ";
-            cparen[key]++;
-            processed = true;
-          }
-          else if (child==TermContextKind::SMT_TYPE)
-          {
-            os << "eo.SmtType (tsm.Apply ";
-            cparen[key]++;
-            processed = true;
-          }
-        }
-      }
-      else if (parent==TermContextKind::EUNOIA)
-      {
-        // could use macro to ensure "Stuck" propagates
-        // NOTE: if we have the invariant that we pattern matched, we don't
-        // need to check
+        // use macro to ensure "Stuck" propagates
         os << "$eo_Apply ";
-        processed = true;
       }
-      else if (parent==TermContextKind::SMT)
+      else if (child==TermContextKind::SMT)
       {
         os << "sm.Apply ";
-        processed = true;
       }
-      if (!processed)
+      else if (child==TermContextKind::SMT_TYPE)
       {
-        Assert(false) << "Unhandled term kind for " << recTerm << " "
+        os << "tsm.Apply ";
+      }
+      else
+      {
+        Assert(false) << "Unhandled apply kind for " << recTerm << " "
         << ", in context "
         << termContextKindToString(parent) << " / " << termContextKindToString(child)
         << " within term " << body;
