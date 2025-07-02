@@ -124,7 +124,8 @@
 (declare-parameterized-const $smd_sm.Skolem
   ((k $smt_builtin_Int :opaque) (id $smt_builtin_Int :opaque) (T $smt_Type :opaque))
   $smt_Term)
-(define $sm_Skolem ((k $smt_builtin_Int) (id $smt_builtin_Int) (T $smt_Type))
+(define $sm_Skolem
+  ((k $smt_builtin_Int) (id $smt_builtin_Int) (T $smt_Type))
   ($smd_sm.Skolem k id T))
 
 ; A free constant

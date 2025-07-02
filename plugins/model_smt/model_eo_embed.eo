@@ -85,29 +85,3 @@ $SM_EO_TERM_DECL$
   (@Map_default (@Map_default.arg1 vsm.new.Value))
   ))
 )
-
-; For each relevant user term, return the datatype above that it belongs to.
-; This program will be used in the smt_meta_reduce compilation step, and
-; will dissappear in the final signature.
-(program $eo_get_meta_type ((T Type) (t T))
-  :signature (T) Type
-  (
-$SM_META_TYPE_DECL$
-  ; otherwise, assume $eo_Term
-  (($eo_get_meta_type t) $eo_Term)
-  )
-)
-
-; This will be replaced by the datatype sm.Term in the final encoding.
-(declare-const $smt_Term Type)
-
-; An SMT-LIB type.
-; This will be replaced by the datatype tsm.Type in the final encoding.
-(declare-const $smt_Type Type)
-
-; An SMT-LIB value.
-; This will be replaced by the datatype vsm.Value in the final encoding.
-(declare-const $smt_Value Type)
-
-
-

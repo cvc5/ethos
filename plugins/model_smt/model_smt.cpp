@@ -357,7 +357,6 @@ void ModelSmt::finalize()
   replace(finalEoEmbed, "$SM_TERM_DECL$", d_embedTermDt.str());
   replace(finalEoEmbed, "$SM_EO_TERM_DECL$", d_embedEoTermDt.str());
   replace(finalEoEmbed, "$SM_LITERAL_TYPE_DECL$", d_embedLitType.str());
-  replace(finalEoEmbed, "$SM_META_TYPE_DECL$", d_metaType.str());
   // write it back out, will be saved for meta reduce
   std::stringstream ssoee;
   ssoee << s_plugin_path << "plugins/model_smt/model_eo_embed_gen.eo";
@@ -372,6 +371,7 @@ void ModelSmt::finalize()
   sss << ins.rdbuf();
   std::string finalSmt = sss.str();
   replace(finalSmt, "$SMT_EMBED$", finalEoEmbed);
+  replace(finalSmt, "$SM_META_TYPE_DECL$", d_metaType.str());
   replace(finalSmt, "$EO_TYPE_ENUM_CASES$", d_typeEnum.str());
   replace(finalSmt, "$EO_IS_VALUE_CASES$", d_isValue.str());
   replace(finalSmt, "$EO_IS_TYPE_CASES$", d_isType.str());
