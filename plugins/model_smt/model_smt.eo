@@ -433,8 +433,8 @@ $SMT_EVAL_CASES$
   ((T $smt_Type) (t $smt_Term) (k $smt_builtin_Int) (id $smt_builtin_Int))
   :signature ($smt_Term) $smt_Type
   (
-  ;(($smtx_typeof ($smd_sm.Const id T))     T)
-  ;(($smtx_typeof ($smd_sm.Skolem k id T))  T)
+  (($smtx_typeof ($sm_Const id T))     T)
+  (($smtx_typeof ($sm_Skolem k id T))  T)
   ; for all other user defined terms, we totalize using unknown sorts
   ; we use the hash so that all terms that do not type check have a new unknown sort.
   (($smtx_typeof t)                      ($smt_try_eo_type ($eo_typeof t) ($eo_smt_type ($smd_tsm.NullSort 0))))

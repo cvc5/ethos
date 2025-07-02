@@ -505,8 +505,12 @@
 ; program: $smtx_typeof
 (assert (! (forall ((x1 sm.Term))
   (= ($smtx_typeof x1)
+  (ite ((_ is sm.Const) x1)
+    (sm.Const.arg2 x1)
+  (ite ((_ is sm.Skolem) x1)
+    (sm.Skolem.arg3 x1)
     (eo.SmtType.arg1 (ite ((_ is eo.SmtType) ($eo_typeof (eo.SmtTerm x1))) ($eo_typeof (eo.SmtTerm x1)) (eo.SmtType (tsm.NullSort 0))))
-)) :named sm.axiom.$smtx_typeof))
+)))) :named sm.axiom.$smtx_typeof))
 
 ; program: $eorx_symm
 (define-fun $eorx_symm ((x1 eo.Term) (x2 eo.Term)) eo.Term

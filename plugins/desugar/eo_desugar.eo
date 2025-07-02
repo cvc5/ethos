@@ -413,6 +413,7 @@ $EO_LITERAL_TYPE_DECL$
   (eo::and ($eo_list_minclude f a b) ($eo_list_minclude f b a)))
 
 ; Used to model eo::var
+; TODO: :opaque?
 (declare-parameterized-const $eo_Var ((s $eo_String) (T Type)) T)
 
 ; program: $eo_var

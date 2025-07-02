@@ -106,11 +106,13 @@ Compiles *.eo to *.eo.
 Includes a definition of $eo_model_sat, which defines SMT-LIB model semantics.
 
 Relies on:
-- model_smt_preamble.eo, 372 LOC EO
+- eo_builtin_smt.eo, 379 LOC EO
+  - Defines the SMT-like builtins of Eunoia
 - model_eo.eo template, 36 LOC EO
-- model_smt.eo, 165 LOC EO
+  - TODO: move to model_smt.eo
+- model_smt.eo, 208 LOC EO
 - model_eo_embed.eo template, 62 LOC, not used yet
-- model_smt.cpp (ethos plugin), 268 LOC C++
+- model_smt.cpp (ethos plugin), 376 LOC C++
 - trim_defs.cpp (ethos plugin), also used above
 
 Things handled at this stage:
