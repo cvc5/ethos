@@ -1,10 +1,11 @@
-; includes model_smt_preamble.eo
 
-(echo "include model_eo_embed_gen")
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_eo_embed
+
+$SMT_EMBED$
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_eo
 
-; This file gives a template for defining the model semantics of
+; This portion gives a template for defining the model semantics of
 ; a Eunoia signature. The signature model_smt.eo uses this signature
 ; to define (a user extension of) the standard SMT-LIB semantics.
 ;

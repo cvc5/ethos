@@ -258,7 +258,7 @@ void ModelSmt::finalizeDeclaration(const Expr& e)
   {
     prefix << "eo.";
     out = &d_embedEoTermDt;
-    metaType << "eo.Term)";
+    metaType << "eo.new.Term)";
   }
   else if (sname.compare(0, 4, "$eo_") != 0)
   {
@@ -268,14 +268,14 @@ void ModelSmt::finalizeDeclaration(const Expr& e)
     {
       prefix << "tsm.";
       out = &d_embedTypeDt;
-      metaType << "sm.Type)";
+      metaType << "tsm.new.Type)";
     }
     else
     {
       // otherwise assume an SMT term
       prefix << "sm.";
       out = &d_embedTermDt;
-      metaType << "sm.Term)";
+      metaType << "sm.new.Term)";
     }
   }
   if (out == nullptr)
@@ -371,6 +371,7 @@ void ModelSmt::finalize()
   std::ostringstream sss;
   sss << ins.rdbuf();
   std::string finalSmt = sss.str();
+  replace(finalSmt, "$SMT_EMBED$", finalEoEmbed);
   replace(finalSmt, "$EO_TYPE_ENUM_CASES$", d_typeEnum.str());
   replace(finalSmt, "$EO_IS_VALUE_CASES$", d_isValue.str());
   replace(finalSmt, "$EO_IS_TYPE_CASES$", d_isType.str());
