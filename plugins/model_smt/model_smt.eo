@@ -65,19 +65,35 @@
 
 ;;; SMT value datatype constructors
 
-; represents an uninterpreted value
-; This must be a constructor in the final sm.Term.
-(declare-parameterized-const $smd_vsm.UValue
-  ((T $smt_Type :opaque) (i $smt_builtin_Int :opaque)) $smt_Term)
-(define $vsm_UValue
-  ((id $smt_builtin_Int :opaque) (T $smt_Type :opaque))
-  ($smd_vsm.UValue id T))
+; Datatype for values.
+; - The datatype @Value will be replaced by vsm.new.Value.
+(declare-datatypes ((@Value 0) (@Map 0))
+  ((
+  ; map with an index type
+  ; valueness: $smtx_map_is_value
+  (@Value.Map (@Value.Map.arg1 @Map) (@Value.Map.arg2 $smt_Type))
+  ; uninterpreted constants 
+  ; valueness: $smtx_usort_is_value
+  (@Value.UConst (@Value.UConst.arg1 $smt_Type) (i $smt_builtin_Int))
+  ; an SMT value represented by an SMT-LIB term, e.g. Int/Real/String.
+  ; valueness: $smtx_is_value
+  (@Value.Term (@Value.Term.arg1 $smt_Term))
+  ; A non-value
+  (@Value.NotValue)
+  )
+  (
+  ; (@Map.cons i e M) maps i -> e, as well as mappings in M
+  (@Map.cons (@Map.cons.arg1 @Value) (@Map.cons.arg2 @Value) (@Map.cons.arg3 @Map))
+  ; (@Map.default e) maps all remaining elements in the sort to e
+  (@Map.default (@Map.default.arg1 @Value))
+  ))
+)
   
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; TODO: use?
 (declare-const $smt_builtin_tsm.new.Type Type)
 (declare-const $smt_builtin_sm.new.Term Type)
-(declare-const $smt_builtin_vsm.new.Value Type)
 (declare-const $smt_builtin_eo.new.Term Type)
 
 ;;; Deep embedding of SMT-LIB terms
@@ -86,7 +102,7 @@
 
 
 ; represents an uninterpreted value
-(declare-parameterized-const $smt_builtin_vsm.UConst
+(declare-parameterized-const $smt_builtin_@Value.UConst
   ((T $smt_Type :opaque) (i $smt_builtin_Int :opaque)) $smt_Value)
 
 
@@ -188,7 +204,7 @@ $EO_IS_TYPE_CASES$
   ; Try to enumerate the type, if we fail, we return $vsm_UValue.
   ; Note that this essentially assumes that unhandled types are uninterpreted
   ; and have infinite cardinality (since this does not get stuck).
-  ;(($eo_enum_type T i)                ($smt_builtin_eo.SmtValue ($smt_builtin_vsm.new.UConst T i)))
+  ;(($eo_enum_type T i)                ($smt_builtin_eo.SmtValue ($smt_builtin_@Value.new.UConst T i)))
   ; FIXME
   (($eo_enum_type T i) T)
   )
@@ -333,36 +349,13 @@ $EO_EVAL_CASES$
 ; is valid.
 (program $smtx_is_value ()
   :signature ($smt_Type $smt_Term) $smt_builtin_Bool)
-  
-; A datatype. This will appear verbatim in the final embedding.
-(declare-datatypes ((vsm.Value 0) (@Map 0))
-  ((
-  ; map with an index type
-  ; valueness: $smtx_map_is_value
-  (vsm.Map (vsm.Map.arg1 @Map) (vsm.Map.arg2 $smt_Type))
-  ; uninterpreted constants 
-  ; valueness: $smtx_usort_is_value
-  (vsm.UConst (vsm.UConst.arg1 $smt_Type) (i $smt_builtin_Int))
-  ; an SMT value represented by an SMT-LIB term, e.g. Int/Real/String.
-  ; valueness: $smtx_is_value
-  (vsm.Term (vsm.Term.arg1 $smt_Term))
-  ; A non-value
-  (vsm.NotValue)
-  )
-  (
-  ; (@Map_cons i e M) maps i -> e, as well as mappings in M
-  (@Map_cons (@Map_cons.arg1 vsm.Value) (@Map_cons.arg2 vsm.Value) (@Map_cons.arg3 @Map))
-  ; (@Map_default e) maps all remaining elements in the sort to e
-  (@Map_default (@Map_default.arg1 vsm.Value))
-  ))
-)
 
 ;;; Uninterpreted sort values.
 
 ; NOTE: this is equivalent to a datatype tester ((_ is sm.usort_value) t).
 (define $smtx_is_usort_value ((x $smt_Term)) $smt_builtin_true)
 
-; (vsm.UConst T i) is a value for all T, i.
+; (@Value.UConst T i) is a value for all T, i.
 (define $smtx_usort_is_value ((T $smt_Type) (i $smt_builtin_Int))
   $smt_builtin_true)
 
@@ -372,24 +365,24 @@ $EO_EVAL_CASES$
 
 ; Get the default for the map
 (program $smtx_map_default
-  ((i vsm.Value) (j vsm.Value) (e vsm.Value) (M @Map))
+  ((i @Value) (j @Value) (e @Value) (M @Map))
   :signature (@Map) $smt_Term
   (
-  (($smtx_map_default (@Map_cons j e M))  ($smtx_map_default M))
-  (($smtx_map_default (@Map_default e))   e)
+  (($smtx_map_default (@Map.cons j e M))  ($smtx_map_default M))
+  (($smtx_map_default (@Map.default e))   e)
   )
 )
 
 ; This program looks up the value of a term in a map.
 ; This is used for function evaluation.
 (program $smtx_map_lookup
-  ((i vsm.Value) (j vsm.Value) (e vsm.Value) (M @Map))
+  ((i @Value) (j @Value) (e @Value) (M @Map))
   :signature (@Map $smt_Term) $smt_Term
   (
   ; NOTE: the cases here are exhaustive, meaning we can soundly ignore the "is nil" else condition
-  (($smtx_map_lookup (@Map_cons i e M) i)  e)
-  (($smtx_map_lookup (@Map_cons j e M) i)  ($smtx_map_lookup M i))
-  (($smtx_map_lookup (@Map_default e) i)   e)
+  (($smtx_map_lookup (@Map.cons i e M) i)  e)
+  (($smtx_map_lookup (@Map.cons j e M) i)  ($smtx_map_lookup M i))
+  (($smtx_map_lookup (@Map.default e) i)   e)
   )
 )
 
@@ -400,8 +393,8 @@ $EO_EVAL_CASES$
   ((T $smt_Type) (U $smt_Type) (t $smt_Term) (u $smt_Term) (M @Map))
   :signature (@Map $smt_Type) $smt_builtin_Bool
   (
-  (($smtx_map_is_redundant (@Map_default u) U)     false)
-  (($smtx_map_is_redundant (@Map_cons t u M) U)
+  (($smtx_map_is_redundant (@Map.default u) U)     false)
+  (($smtx_map_is_redundant (@Map.cons t u M) U)
     ; lookup value on tail
     (eo::define ((ru ($smtx_map_lookup t M)))
     ; if it is the same, this index is redundant and thus we are not a value
@@ -414,13 +407,13 @@ $EO_EVAL_CASES$
 
 ;;; Try to make a value
 
-; Returns a term of type vsm.Value, embeds the term
+; Returns a term of type @Value, embeds the term
 ; if indeed it is a value, or returns not a value otherwise.
 (define $smt_mk_value_term ((t $smt_Term))
   ($smt_apply_3 "ite"
     ($smtx_is_value t)
-    (vsm.Term t)
-    (vsm.NotValue)))
+    (@Value.Term t)
+    (@Value.NotValue)))
     
 ;;; utilities
 
@@ -470,7 +463,7 @@ $EO_EVAL_CASES$
   :signature ($smt_Type $smt_builtin_Int) $smt_Value
   (
   ; TODO
-  (($smtx_enum_type_final T i)               (vsm.UConst T i))
+  (($smtx_enum_type_final T i)               (@Value.UConst T i))
   )
 )
 

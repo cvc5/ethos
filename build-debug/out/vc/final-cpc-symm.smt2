@@ -1,5 +1,6 @@
 (set-logic UFDTSNIRA)
-; TODO: maybe this should be *.smt2?
+; This is both a valid *.smt2 and *.eo file after filling in the templates.
+; For consistency we name it *.eo.
 
 ; The final embedding of SMT-LIB types that are relevant to the VC.
 (declare-datatype tsm.new.Type
@@ -98,13 +99,14 @@
   (vsm.new.NotValue)
   )
   (
-  ; (@Map_cons i e M) maps i -> e, as well as mappings in M
-  (@Map_cons (@Map_cons.arg1 vsm.new.Value) (@Map_cons.arg2 vsm.new.Value) (@Map_cons.arg3 @Map))
-  ; (@Map_default e) maps all remaining elements in the sort to e
-  (@Map_default (@Map_default.arg1 vsm.new.Value))
+  ; (@Map.cons i e M) maps i -> e, as well as mappings in M
+  (@Map.cons (@Map.cons.arg1 vsm.new.Value) (@Map.cons.arg2 vsm.new.Value) (@Map.cons.arg3 @Map))
+  ; (@Map.default e) maps all remaining elements in the sort to e
+  (@Map.default (@Map.default.arg1 vsm.new.Value))
   ))
 )
 
+; TODO: remove these in favor of the datatype in model_eo_embed.
 ; The final embedding of SMT-LIB types that are relevant to the VC.
 ; This should always be non-empty because of Bool.
 (declare-datatype tsm.Type
