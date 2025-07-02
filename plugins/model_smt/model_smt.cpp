@@ -253,7 +253,7 @@ void ModelSmt::finalizeDeclaration(const Expr& e)
   std::stringstream* out = nullptr;
   std::stringstream prefix;
   std::stringstream metaType;
-  metaType << "(($eo_get_meta_type " << e << ") ";
+  metaType << "(($eo_get_meta_type " << e << ") $smt_builtin_";
   if (sname.compare(0, 1, "@") == 0 || sname.compare(0, 8, "$eo_List") == 0 || sname=="$eo_Var")
   {
     prefix << "eo.";
@@ -310,7 +310,7 @@ void ModelSmt::finalizeDeclaration(const Expr& e)
   for (size_t i = 0; i < nopqArgs; i++)
   {
     (*out) << " (" << cname.str();
-    (*out) << ".arg" << (i + 1) << " ";
+    (*out) << ".arg" << (i + 1) << " $smt_builtin_";
     // print its type using the utility,
     // which takes into account what the type is in the final embedding
     Expr typ = ct[i];
@@ -363,6 +363,9 @@ void ModelSmt::finalize()
   std::ofstream outee(ssoee.str());
   outee << finalEoEmbed;
 
+  // note that the deep embedding is *not* re-incorporated into
+  // the final input to smt-meta.
+
   // now, go back and compile *.eo for the proof rules
   std::stringstream ssis;
   ssis << s_plugin_path << "plugins/model_smt/model_smt.eo";
@@ -370,7 +373,6 @@ void ModelSmt::finalize()
   std::ostringstream sss;
   sss << ins.rdbuf();
   std::string finalSmt = sss.str();
-  replace(finalSmt, "$SMT_EMBED$", finalEoEmbed);
   replace(finalSmt, "$SMT_EMBED_META_TYPE_DECL$", d_metaType.str());
   replace(finalSmt, "$EO_TYPE_ENUM_CASES$", d_typeEnum.str());
   replace(finalSmt, "$EO_IS_VALUE_CASES$", d_isValue.str());

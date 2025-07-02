@@ -46,7 +46,7 @@
   (sm.new.String (sm.new.String.arg1 String))
   (sm.new.Binary (sm.new.Binary.arg1 Int) (sm.new.Binary.arg2 Int))
   ; free constants
-  (sm.new.Const (sm.new.Const.arg1 Int) (sm.new.Const.arg2 Int) (sm.new.Const.arg3 tsm.new.Type))
+  (sm.new.Const (sm.new.Const.arg1 Int) (sm.new.Const.arg3 tsm.new.Type))
   ; skolems
   (sm.new.Skolem (sm.new.Skolem.arg1 Int) (sm.new.Skolem.arg2 Int) (sm.new.Skolem.arg3 tsm.new.Type))
   ; user-decl: not

@@ -17,6 +17,8 @@
 
 namespace ethos {
 
+//#define NEW_DEF
+
 SelectorCtx::SelectorCtx() {}
 void SelectorCtx::clear(){
   d_ctx.clear();
@@ -170,6 +172,8 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
                                        std::ostream& os,
                                        TermContextKind tctx)
 {
+#ifdef NEW_DEF
+#else
   // TODO: take inSmtTerm into account??
   std::string cname;
   TermKind tk = getTermKind(c, cname);
@@ -307,6 +311,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     }
   }
   os << osEnd.str();
+#endif
 }
 
 TermKind SmtMetaReduce::printEmbType(const Expr& c,
@@ -372,6 +377,136 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
                                          size_t& nconj,
                     TermContextKind tinit)
 {
+#ifdef NEW_DEF
+  tinit = tinit == TermContextKind::NONE ? TermContextKind::EUNOIA : tinit;
+  // third tuple is a context which indicates the final SMT
+  // type we are printing (eo.Term vs. sm.Term)
+  std::map<Expr, std::string>::iterator it;
+  std::vector<std::tuple<Expr, std::string, TermContextKind>> visit;
+  std::tuple<Expr, std::string, TermContextKind> cur;
+  Expr ctmp = c;
+  visit.emplace_back(c, initCtx, tinit);
+  do
+  {
+    cur = visit.back();
+    visit.pop_back();
+    Expr tcur = std::get<0>(cur);
+    std::string currTerm = std::get<1>(cur);
+    TermContextKind tkctx = std::get<2>(cur);
+    Kind ck = tcur.getKind();
+    std::stringstream cname;
+    bool printArgs = false;
+    size_t printArgStart = 0;
+    std::cout << "  pm: " << tcur << " / " << currTerm << " / "
+              << termContextKindToString(tkctx) << std::endl;
+    if (ck == Kind::APPLY && isProgram(tcur[0]))
+    {
+      EO_FATAL() << "Cannot match on program " << tcur[0];
+    }
+    if (ck == Kind::APPLY)
+    {
+      Assert (tcur.getNumChildren()==2);
+      // Determine if this is a Eunoia internal term, or an
+      // SMT term
+      std::string smConsName;
+      std::cout << "  atk: " << tcur[0] << std::endl;
+      TermKind atk = getTermKind(tcur[0]);
+      std::cout << "  atk: " << tcur[0] << " is " << termKindToString(atk)
+                << std::endl;
+      TermContextKind
+      // if the Eunoia term is an SMT term, change the context
+      // and use the eo.SmtTerm selector
+      // FIXME: context switch for SMT_TYPE
+      if (tkctx == TermContextKind::EUNOIA && atk == TermKind::SMT_TERM)
+      {
+        // changes context
+        os << (nconj > 0 ? " " : "") << "((_ is eo.SmtTerm) " << currTerm
+           << ")";
+        nconj++;
+        std::stringstream sssn;
+        sssn << "(eo.SmtTerm.arg1 " << currTerm << ")";
+        currTerm = sssn.str();
+        cname << "sm.Apply";
+        tkctx = TermContextKind::SMT;
+      }
+      else
+      {
+        // If we are an SMT apply, use sm. else eo.
+        cname << (tkctx == TermContextKind::SMT ? "sm" : "eo") << ".Apply";
+      }
+      printArgs = true;
+    }
+    else if (ck == Kind::FUNCTION_TYPE)
+    {
+      // TODO: can this occur?
+      // maybe if reasoning about function as first class argument?
+      cname << (tkctx == TermContextKind::SMT ? "sm" : "eo") << ".FunType";
+      printArgs = true;
+    }
+    else if (ck == Kind::APPLY_OPAQUE)
+    {
+      // will use a tester
+      printEmbAtomicTerm(tcur[0], cname, tkctx);
+      printArgStart = 1;
+      printArgs = true;
+      TermKind atk = getTermKind(tcur[0]);
+      std::cout << "  atk-o: " << tcur[0] << " is " << termKindToString(atk)
+                << std::endl;
+      if (tkctx == TermContextKind::EUNOIA && atk == TermKind::EUNOIA_DT_CONS)
+      {
+        // the type of the Eunoia SMT-LIB constructor is SMT terms
+        tkctx = TermContextKind::SMT;
+      }
+      if (tkctx == TermContextKind::SMT && (atk == TermKind::SMT_DT_CONS || atk==TermKind::SMT_TYPE_DT_CONS))
+      {
+        // the opaque arguments of SMT-LIB literal terms are builtin SMT terms
+        // the opaque arguments of SMT-LIB types (e.g. uninterpreted sorts) are also builtins
+        tkctx = TermContextKind::SMT_BUILTIN;
+      }
+    }
+    if (printArgs)
+    {
+      // argument must be an apply
+      os << (nconj > 0 ? " " : "") << "((_ is " << cname.str() << ") "
+         << currTerm << ")";
+      nconj++;
+      for (size_t i = printArgStart, nchild = tcur.getNumChildren(); i < nchild;
+           i++)
+      {
+        std::stringstream ssNext;
+        ssNext << "(" << cname.str() << ".arg" << (i + 1 - printArgStart) << " "
+               << currTerm << ")";
+        // the next type is "reset"
+        visit.emplace_back(tcur[i], ssNext.str(), tkctx);
+      }
+    }
+    else if (ck == Kind::PARAM)
+    {
+      it = ctx.d_ctx.find(tcur);
+      if (it == ctx.d_ctx.end())
+      {
+        // find time seeing this parameter, it is bound to the selector chain
+        ctx.d_ctx[tcur] = currTerm;
+        ctx.d_tctx[tcur] = tkctx;
+      }
+      else
+      {
+        os << (nconj > 0 ? " " : "") << "(= " << currTerm << " " << it->second
+           << ")";
+        nconj++;
+      }
+    }
+    else
+    {
+      std::stringstream atomTerm;
+      printEmbAtomicTerm(tcur, atomTerm, tkctx);
+      os << (nconj > 0 ? " " : "") << "(= " << currTerm << " " << atomTerm.str()
+         << ")";
+      nconj++;
+    }
+  } while (!visit.empty());
+  return true;
+#else
   tinit = tinit == TermContextKind::NONE ? TermContextKind::EUNOIA : tinit;
   // third tuple is a context which indicates the final SMT
   // type we are printing (eo.Term vs. sm.Term)
@@ -506,6 +641,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     }
   } while (!visit.empty());
   return true;
+#endif
 }
 
 bool SmtMetaReduce::printEmbTerm(const Expr& body,
@@ -1589,7 +1725,10 @@ TermKind SmtMetaReduce::getTermKindAtomic(const Expr& e, std::string& name)
   // TODO: SMT_TERM_TYPE and EUNOIA_TERM_TYPE
   // can probably be "INTERNAL".
   if (sname.compare(0, 11, "$smt_apply_") == 0
-      || sname.compare(0, 10, "$smt_type_") == 0)
+      || sname.compare(0, 10, "$smt_type_") == 0
+      || sname.compare(0, 6, "eo.new") == 0
+      || sname.compare(0, 6, "sm.new") == 0
+      || sname.compare(0, 7, "tsm.new") == 0)
   {
     name = sname;
     return TermKind::INTERNAL;
@@ -1663,26 +1802,39 @@ TermContextKind SmtMetaReduce::getMetaKind(const Expr& e)
   if (d_eoGetMetaKind.isNull())
   {
     d_eoGetMetaKind = lookupVar("$eo_get_meta_type");
-    d_metaEoTerm = lookupVar("eo.new.Term");
-    d_metaSmtTerm = lookupVar("sm.new.Term");
-    d_metaSmtType = lookupVar("tsm.new.Type");
+    d_metaEoTerm = lookupVar("$smt_builtin_eo.new.Term");
+    d_metaSmtTerm = lookupVar("$smt_builtin_sm.new.Term");
+    d_metaSmtType = lookupVar("$smt_builtin_tsm.new.Type");
+    // also initialize the exception cases
+    // this is necessary for any custom definitions of non-nullary constructors
+    // in model_eo_embed.eo.
+
+    //d_metaKindArg[std::pair<size_t, Expr>(1,
   }
-  Expr mapp = d_state.mkExprSimple(Kind::APPLY, {d_eoGetMetaKind, e});
+  Expr hd = e;
+  // if an apply, we look for the head, this will determine eo.Apply vs. sm.Apply
+  while (hd.getKind()==Kind::APPLY)
+  {
+    hd = hd[0];
+  }
+  Expr mapp = d_state.mkExprSimple(Kind::APPLY, {d_eoGetMetaKind,hd});
   Ctx ectx;
   Expr mm = d_tc.evaluate(mapp.getValue(), ectx);
+  TermContextKind tk = TermContextKind::NONE;
   if (mm==d_metaEoTerm)
   {
-    return TermContextKind::EUNOIA;
+    tk = TermContextKind::EUNOIA;
   }
   else if (mm==d_metaSmtTerm)
   {
-    return TermContextKind::SMT;
+    tk = TermContextKind::SMT;
   }
   else if (mm==d_metaSmtType)
   {
-    return TermContextKind::SMT_TYPE;
+    tk = TermContextKind::SMT_TYPE;
   }
-  return TermContextKind::NONE;
+  d_metaKind[e] = tk;
+  return tk;
 }
 
 }  // namespace ethos

@@ -62,9 +62,12 @@ echo "**** smt_meta: Run ethos + model-smt on $VC_DEF_DESUGAR to generate $VCM_D
 check_status
 cp $STD_SMODEL_OUT $VCM_DEF_DESUGAR
 
-# trim again
+# trim again, where we require keeping the following:
+# - the verification condition
+# - getting the meta type of terms, which is used in the final step below
+# - symbols that may appear in custom axioms (e.g. $smtx_const_predicate).
 echo "**** smt_meta: Run ethos + trim-deps on $VCM_DEF_DESUGAR to generate $VCMT_DEF_DESUGAR"
-./run_trim_defs $VCM_DEF_DESUGAR "\$eovc_$TARGET" "\$smd_sm.Apply" "\$smd_tsm.BoolType" "\$smtx_const_predicate"  >/dev/null
+./run_trim_defs $VCM_DEF_DESUGAR "\$eovc_$TARGET" "\$smtx_const_predicate"  >/dev/null
 check_status
 cp $STD_TRIM_OUT $VCMT_DEF_DESUGAR
 
@@ -81,6 +84,7 @@ echo "(set-logic UFDTSNIRA)" > $VC_OUT
 cat $STD_SMODEL_EMBED_OUT >> $VC_OUT
 # replace all occurrences of $smt_builtin_
 sed -i 's/$smt_builtin_//g' $VC_OUT
+#sed -i 's/\.new//g' $VC_OUT
 # concatenate the VC computed above
 cat $STD_VC_OUT >> $VC_OUT
 

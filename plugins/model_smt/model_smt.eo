@@ -1,7 +1,11 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_eo_embed
 
-$SMT_EMBED$
+(declare-const $smt_builtin_tsm.new.Type Type)
+(declare-const $smt_builtin_sm.new.Term Type)
+(declare-const $smt_builtin_vsm.new.Value Type)
+(declare-const $smt_builtin_eo.new.Term Type)
+(declare-const $smt_builtin_@Map Type)
 
 ; For each relevant user term, return the datatype above that it belongs to.
 ; This program will be used in the smt_meta_reduce compilation step, and
@@ -10,8 +14,8 @@ $SMT_EMBED$
   :signature (T) Type
   (
 $SMT_EMBED_META_TYPE_DECL$
-  ; otherwise, assume $eo_Term
-  (($eo_get_meta_type t) $eo_Term)
+  ; otherwise, assume eo.new.Term
+  (($eo_get_meta_type t) $smt_builtin_eo.new.Term)
   )
 )
 

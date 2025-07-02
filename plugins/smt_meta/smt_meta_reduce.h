@@ -194,6 +194,7 @@ class SmtMetaReduce : public StdPlugin
   Expr d_metaSmtType;
   /** */
   std::map<Expr, TermContextKind> d_metaKind;
+  std::map<std::pair<Expr, size_t>, TermContextKind> d_metaKindArg;
   /** */
   TermContextKind getMetaKind(const Expr& e);
 };
