@@ -601,6 +601,8 @@ void Desugar::finalizeRule(const Expr& e)
       d_eoVc << ")" << std::endl;
       d_eoVc << std::endl;
     }
+    // write a command to indicate that we should process the above vc
+    d_eoVc << "(echo \"smt-meta $eovc_" << e << "\")" << std::endl;
     return;
   }
 
@@ -730,6 +732,8 @@ void Desugar::finalizeRule(const Expr& e)
     d_eoVc << std::endl;
   }
   d_eoVc << std::endl;
+  // write a command to indicate that we should process the above vc
+  d_eoVc << "(echo \"smt-meta $eovc_" << e << "\")" << std::endl;
 }
 
 void Desugar::finalizeDatatype(const Expr& e, Attr a, const Expr& attrCons)

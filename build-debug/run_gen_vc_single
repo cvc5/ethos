@@ -65,8 +65,6 @@ cp $STD_TRIM_OUT $VCMT_DEF_DESUGAR
 echo "**** smt_meta: Verify it parses"
 ./src/ethos $VCMT_DEF_DESUGAR
 
-echo "(echo \"smt-meta \$eovc_$TARGET\")" >> $VCMT_DEF_DESUGAR
-
 echo "**** smt_meta: Generate SMT2 from $VCMT_DEF_DESUGAR to $VC_OUT"
 ./src/ethos --plugin.smt-meta $VCMT_DEF_DESUGAR >/dev/null
 check_status
