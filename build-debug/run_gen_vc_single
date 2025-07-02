@@ -46,10 +46,16 @@ echo "**** smt_meta: Run ethos + desugar on $INIT_TRIM to generate $INIT_DESUGAR
 check_status
 cp $STD_DESUGAR_OUT $INIT_DESUGAR
 
+# note that all symbols that are used downstream must be manually kept
+# in particular this means that we keep the following:
+# - the verification condition
+# - the builtin literals
+# - the type rules
 echo "**** smt_meta: Run ethos + trim-deps on $INIT_DESUGAR to generate $VC_DEF_DESUGAR"
-./run_trim_defs $INIT_DESUGAR "\$eovc_$TARGET" "\$eo_typeof_main" "\$eo_String" "\$eo_Numeral" "\$eo_Rational" "\$eo_Binary" "\$eo_List" "\$eo_List_nil" "\$eo_List_cons" "\$eo_is_bool" "\$eo_is_z" "\$eo_is_q" "\$eo_is_str" "\$eo_is_bin" "\$eo_dt_constructors" "\$eo_dt_selectors" "\$eo_fail" "ite" "=" >/dev/null
+./run_trim_defs $INIT_DESUGAR "\$eovc_$TARGET" "\$eo_typeof" "\$eo_String" "\$eo_Numeral" "\$eo_Rational" "\$eo_Binary" "\$eo_is_bool" "\$eo_is_z" "\$eo_is_q" "\$eo_is_str" "\$eo_is_bin" "\$eo_dt_constructors" "\$eo_dt_selectors" >/dev/null
 check_status
 cp $STD_TRIM_OUT $VC_DEF_DESUGAR
+# "\$eo_List" "\$eo_List_nil" "\$eo_List_cons" "\$eo_fail" "ite" "="
 
 echo "**** smt_meta: Run ethos + model-smt on $VC_DEF_DESUGAR to generate $VCM_DEF_DESUGAR"
 ./run_gen_model_smt $VC_DEF_DESUGAR >/dev/null
@@ -68,7 +74,7 @@ echo "**** smt_meta: Verify it parses"
 echo "**** smt_meta: Generate SMT2 from $VCMT_DEF_DESUGAR to $VC_OUT"
 ./src/ethos --plugin.smt-meta $VCMT_DEF_DESUGAR >/dev/null
 check_status
-
+# set up the verification condition
 # the logic
 echo "(set-logic UFDTSNIRA)" > $VC_OUT
 # start with the final datatype

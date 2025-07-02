@@ -84,10 +84,6 @@
   (eo.new.Stuck)
   ; user-decl: $eo_List
   (eo.new.$eo_List)
-  ; user-decl: $eo_List_nil
-  (eo.new.$eo_List_nil)
-  ; user-decl: $eo_List_cons
-  (eo.new.$eo_List_cons)
   ; user-decl: $eo_Var
   (eo.new.$eo_Var)
 

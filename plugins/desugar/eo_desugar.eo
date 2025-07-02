@@ -528,10 +528,11 @@ $EO_NIL_CASES$
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_smt
 
 ; A placeholder for asking whether a formula is satisfied by a model.
-; This is used to defined verification conditions.
+; This is used to define the verification condition we will write below.
 (program $eo_model_sat () :signature ($eo_Term) Bool)
 
-(echo "include model_smt_gen")
+; We will include the definition of $eo_model_sat here.
+(echo "include eo_model_sat")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; vc
 
