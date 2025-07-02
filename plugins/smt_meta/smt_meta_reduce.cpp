@@ -63,6 +63,7 @@ std::string termContextKindToString(TermContextKind k)
     case TermContextKind::SMT_TYPE: ss << "SMT_TYPE"; break;
     case TermContextKind::SMT_VALUE: ss << "SMT_VALUE"; break;
     case TermContextKind::PROGRAM: ss << "PROGRAM"; break;
+    case TermContextKind::NONE: ss << "NONE"; break;
     default: ss << "?TermContextKind"; break;
   }
   return ss.str();
@@ -239,7 +240,7 @@ void SmtMetaReduce::printEmbAtomic(const std::string& str,
     }
     else
     {
-      EO_FATAL() << "Unknown target kind " << termContextKindToString(child);
+      Assert(false) << "Unknown target kind " << termContextKindToString(child) << ", term was " << str;
     }
     // TODO: more error checking??
     os << str << osEnd.str();
@@ -519,10 +520,10 @@ TermKind SmtMetaReduce::printEmbType(const Expr& c,
   {
     os << "sm.Type";
   }
-  else if (c == d_metaSmtValue)
-  {
+  //else if (c == d_metaSmtValue)
+  //{
     // os << "sm.Type";
-  }
+  //}
   return TermKind::NONE;
 #else
   std::string name;
@@ -676,22 +677,15 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       std::stringstream tester;
       tester << "((_ is " << cname.str() << ") " << currTerm << ")";
       print.push(tester.str());
+      std::vector<TermContextKind> targs = getContextArguments(tcur, tkctx);
       for (size_t i = printArgStart, nchild = tcur.getNumChildren(); i < nchild;
            i++)
       {
-        TermContextKind tcc = tkctx;
-        if (tcc == TermContextKind::NONE)
-        {
-          // must compute it from the child
-          Expr cc = tcur[i];
-          Expr ccType = d_tc.getType(cc);
-          tcc = getEmbTypeContext(ccType);
-        }
         std::stringstream ssNext;
         ssNext << "(" << cname.str() << ".arg" << (i + 1 - printArgStart) << " "
                << currTerm << ")";
         // the next type is "reset"
-        visit.emplace_back(tcur[i], ssNext.str(), tkctx);
+        visit.emplace_back(tcur[i], ssNext.str(), targs[i]);
       }
     }
     else if (ck == Kind::PARAM)
@@ -864,6 +858,34 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
 #endif
 }
 
+std::vector<TermContextKind> SmtMetaReduce::getContextArguments(const Expr& e, TermContextKind parent)
+{
+  std::vector<TermContextKind> ret;
+  Kind k = e.getKind();
+  for (size_t i=0, nchild=e.getNumChildren(); i<nchild; i++)
+  {
+    if (e.getKind()==Kind::APPLY_OPAQUE)
+    {
+      Expr cc = e[i];
+      Expr cct = d_tc.getType(cc);
+      TermContextKind child = getEmbTypeContext(cct);
+      std::cout << "PushContextArg: " << termContextKindToString(child) << " for " << e << "[" << i << "]" << " (from " << cct << ")" << std::endl;
+      Assert (child!=TermContextKind::NONE) << "Unknown context for " << cc << " within " << e;
+      ret.push_back(child);
+    }
+    else if (isLiteralOp(k))
+    {
+      ret.push_back(TermContextKind::EUNOIA);
+    }
+    else
+    {
+      // otherwise no change
+      ret.push_back(parent);
+    }
+  }
+  return ret;
+}
+
 bool SmtMetaReduce::printEmbTerm(const Expr& body,
                                  std::ostream& os,
                                  const SelectorCtx& ctx,
@@ -898,6 +920,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     size_t childIndex = std::get<1>(cur);
     TermContextKind tkctx = std::get<2>(cur);
     std::pair<Expr, TermContextKind> key(recTerm, tkctx);
+    std::cout << "print at: " << recTerm << " / " <<childIndex << " / " <<termContextKindToString(tkctx) << std::endl;
     // if we are printing the head of the term
     if (childIndex == 0)
     {
@@ -907,8 +930,10 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
         it = ctx.d_ctx.find(recTerm);
         ittc = ctx.d_tctx.find(recTerm);
         Assert(it != ctx.d_ctx.end()) << "Cannot find " << recTerm;
+        Assert(ittc != ctx.d_tctx.end()) << "Cannot find context " << recTerm;
         // if it was matched in an SMT context, and this is a Eunoia context,
         // wrap it
+        Assert (ittc->second!=TermContextKind::NONE) << "Unknown context for parameter matching " << it->second;
         printEmbAtomic(it->second, os, tkctx, ittc->second);
         visit.pop_back();
         continue;
@@ -994,22 +1019,19 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           // the first argument is the opaque operator,
           // the second argument is taken as a name
           std::get<1>(visit.back())++;
-          std::get<1>(visit.back())++;
+          //std::get<1>(visit.back())++;
           os << embName;
-          continue;
         }
         std::get<1>(visit.back())++;
+        std::vector<TermContextKind> targs = getContextArguments(recTerm, tkctx);
         // all other operators print as applications
         os << "(";
         cparen[key]++;
         // otherwise, the new context depends on the types of the children
-        for (size_t i=0, nchild=recTerm.getNumChildren(); i<nchild; i++)
+        for (size_t i=std::get<1>(visit.back()), nchild=recTerm.getNumChildren(); i<nchild; i++)
         {
           size_t ii = (nchild-i)-1;
-          Expr cc = recTerm[ii];
-          Expr cct = d_tc.getType(cc);
-          TermContextKind child = getEmbTypeContext(cct);
-          visit.emplace_back(cc, 0, child);
+          visit.emplace_back(recTerm[ii], 0, targs[ii]);
         }
       }
       else if (ck == Kind::FUNCTION_TYPE)
@@ -1356,13 +1378,14 @@ void SmtMetaReduce::finalizePrograms()
     {
       std::cout << "WARNING: lambda " << p.first << std::endl;
       Expr e = p.second;
-      TermKind tk = getTermKind(p.first);
-      // things that are manually axiomatized
-      if (tk == TermKind::INTERNAL)
+#ifdef NEW_DEF
+      // FIXME
+      continue;
+      TermKind tk = isSmtApply(p.first);
+      if (tk != TermKind::NONE)
       {
         continue;
       }
-#if 0
       Assert(e[0].getKind() == Kind::TUPLE);
       std::vector<Expr> appChildren;
       appChildren.push_back(p.first);
@@ -1376,8 +1399,14 @@ void SmtMetaReduce::finalizePrograms()
       std::cout << "...do program " << p.first << " / " << prog << " instead" << std::endl;
       finalizeProgram(p.first, prog);
       std::cout << "...finished lambda program" << std::endl;
-      return;
-#endif
+      continue;
+#else
+      TermKind tk = getTermKind(p.first);
+      // things that are manually axiomatized
+      if (tk == TermKind::INTERNAL)
+      {
+        continue;
+      }
       // TODO: reduce to program immediately
       // prints as a define-fun
       d_defs << "; define " << p.first << std::endl;
@@ -1426,6 +1455,7 @@ void SmtMetaReduce::finalizePrograms()
       // we now know the types of terms, take that into account
       d_defs << ")" << std::endl << std::endl;
       continue;
+#endif
     }
     finalizeProgram(p.first, p.second);
   }
@@ -1444,7 +1474,7 @@ TermContextKind SmtMetaReduce::termKindToContext(TermKind tk)
     case TermKind::EUNOIA_TYPE_TYPE:
     case TermKind::EUNOIA_BOOL:
     case TermKind::EUNOIA_TERM: return TermContextKind::EUNOIA;
-    default: EO_FATAL() << "unknown type " << termKindToString(tk); break;
+    default: Assert(false) << "unknown type " << termKindToString(tk); break;
   }
   return TermContextKind::NONE;
 }
@@ -1456,6 +1486,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   {
     return;
   }
+  std::cout << "FINALIZE " << v << std::endl;
   std::cout << "Finalize program " << v << std::endl;
   d_defs << "; " << (prog.isNull() ? "fwd-decl: " : "program: ") << v
          << std::endl;
@@ -1519,7 +1550,10 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   }
   appTerm << ")";
   std::stringstream retType;
+#ifdef NEW_DEF
+#else
   TermKind retTypeCtx = printEmbType(vt[nargs - 1], retType);
+#endif
   decl << ") " << retType.str() << ")" << std::endl;
   std::cout << "DECLARE " << decl.str() << std::endl;
   // if forward declared, we are done for now
@@ -1565,15 +1599,23 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
       // concatenated together
       std::cout << "Print pat matching for " << hd[j] << std::endl;
       // context depends on the kind of the argument
+#ifdef NEW_DEF
+      TermContextKind ctxPatMatch = TermContextKind::NONE;
+#else
       TermContextKind ctxPatMatch =
           termKindToContext(termKindsForTypeArgs[j - 1]);
+#endif
       printEmbPatternMatch(
           hd[j], args[j - 1], currCase, ctx, nconj, ctxPatMatch);
       std::cout << "...returns " << currCase.str() << std::endl;
     }
     // compile the return for this case
     std::stringstream currRet;
+#ifdef NEW_DEF
+    TermContextKind bodyInitCtx = TermContextKind::NONE;
+#else
     TermContextKind bodyInitCtx = termKindToContext(retTypeCtx);
+#endif
     std::cout << "...print " << body << " in context "
               << termContextKindToString(bodyInitCtx) << std::endl;
     printEmbTerm(body, currRet, ctx, bodyInitCtx);
@@ -1951,13 +1993,6 @@ TermKind SmtMetaReduce::isSmtApply(const Expr& t)
   return TermKind::NONE;
 }
 
-TermKind SmtMetaReduce::getSafeTermKind(const Expr& e)
-{
-  Expr etmp = e;
-  Expr typeE = d_tc.getType(etmp);
-  std::cout << "TYPE " << typeE << std::endl;
-  return TermKind::NONE;
-}
 TermKind SmtMetaReduce::getTermKind(const Expr& e)
 {
   std::string name;
@@ -2135,8 +2170,12 @@ bool SmtMetaReduce::isProgram(const Expr& t)
   {
     return true;
   }
+#ifdef NEW_DEF
+  return false;
+#else
   TermKind tk = getTermKind(t);
   return isProgramKind(tk);
+#endif
 }
 bool SmtMetaReduce::isProgramKind(TermKind tk)
 {

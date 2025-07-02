@@ -32,6 +32,9 @@ enum class TermContextKind
   SMT_TYPE,
   SMT_VALUE,
   PROGRAM,
+  NUMERAL,
+  RATIONAL,
+  STRING,
   NONE
 };
 std::string termContextKindToString(TermContextKind k);
@@ -173,7 +176,7 @@ class SmtMetaReduce : public StdPlugin
   TermKind getTermKindAtomic(const Expr& e, std::string& name);
   TermKind getTermKind(const Expr& e, std::string& name);
   TermKind getTermKind(const Expr& e);
-  TermKind getSafeTermKind(const Expr& e);
+  std::vector<TermContextKind> getContextArguments(const Expr& e, TermContextKind parent);
   TermContextKind termKindToContext(TermKind tk);
   TermContextKind getEmbTypeContext(const Expr& type);
   /** Declares seen */
