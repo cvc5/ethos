@@ -1,31 +1,41 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_eo_embed
 
-(declare-const $smt_builtin_tsm.new.Type Type)
-(declare-const $smt_builtin_sm.new.Term Type)
-(declare-const $smt_builtin_vsm.new.Value Type)
-(declare-const $smt_builtin_eo.new.Term Type)
-(declare-const $smt_builtin_@Map Type)
+;;; SMT term datatype constructors
 
-;;; Deep embedding of SMT-LIB types
+;;; SMT type datatype constructors
 
 ; The Boolean type
 (declare-const $smd_tsm.Bool $smt_Type)
+(define $tsm_Bool () $smd_tsm.Bool)
 
 ; Function types
 (declare-parameterized-const $smd_tsm.FunType
   ((T1 $smt_Type :opaque) (T2 $smt_Type :opaque)) $smt_Type)
-(define $smt_fun_type ((T1 $smt_Type) (T2 $smt_Type))
+(define $tsm_fun_type ((T1 $smt_Type) (T2 $smt_Type))
   ($smd_tsm.FunType T1 T2))
-
+  
 ; Uninterpreted sorts
 (declare-parameterized-const $smd_tsm.USort
   ((id $smt_builtin_Int :opaque)) $smt_Type)
-(define $smt_USort ((id $smt_builtin_Int)) ($smd_tsm.USort id))
-
+(define $tsm_USort ((id $smt_builtin_Int)) ($smd_tsm.USort id))
+  
 ; The sort of a term that doesn't have an SMT-LIB type.
 ; This is used as an error condition
 (declare-const $smd_tsm.NullSort $smt_Type)
+(define $tsm_NullSort () $smd_tsm.NullSort)
+
+;;; SMT value datatype constructors
+
+
+; TODO: use?
+(declare-const $smt_builtin_tsm.new.Type Type)
+(declare-const $smt_builtin_sm.new.Term Type)
+(declare-const $smt_builtin_vsm.new.Value Type)
+(declare-const $smt_builtin_eo.new.Term Type)
+
+;;; Deep embedding of SMT-LIB types
+
 
 ; A skolem, identified by kind, identifier and Type.
 ; The kind 0 is reserved for standard SMT-LIB symbols introduced
@@ -50,6 +60,26 @@
 (declare-parameterized-const $smd_sm.Apply
   ((t1 $smt_Term :opaque) (t2 $smt_Term :opaque)) $smt_Term)
   
+
+
+(define $sm_apply_term ((t1 $smt_Term) (t2 $smt_Term))
+  ($smd_sm.Apply t1 t2))
+(define $sm_const ((T $smt_Type) (id $smt_builtin_Int))
+  ($smd_sm.Const T id))
+(define $sm_usort_value
+  ((id $smt_builtin_Int :opaque) (T $smt_Type :opaque))
+  ($smd_sm.usort_value id T))
+(define $sm_skolem
+  ((k $smt_builtin_Int) (id $smt_builtin_Int) (T $smt_Type))
+  ($smd_sm.Skolem k id T))
+
+
+
+; represents an uninterpreted value
+(declare-parameterized-const $smt_builtin_vsm.UConst
+  ((T $smt_Type :opaque) (i $smt_builtin_Int :opaque)) $smt_Value)
+
+
 ; For each relevant user term, return the datatype above that it belongs to.
 ; This program will be used in the smt_meta_reduce compilation step, and
 ; will dissappear in the final signature.
@@ -61,36 +91,6 @@ $SMT_EMBED_META_TYPE_DECL$
   (($eo_get_meta_type t) $smt_builtin_eo.new.Term)
   )
 )
-
-(define $sm_const ((T $smt_Type) (id $smt_builtin_Int))
-  ($smd_sm.Const T id))
-(define $sm_usort_value
-  ((id $smt_builtin_Int :opaque) (T $smt_Type :opaque))
-  ($smd_sm.usort_value id T))
-(define $sm_skolem
-  ((k $smt_builtin_Int) (id $smt_builtin_Int) (T $smt_Type))
-  ($smd_sm.Skolem k id T))
-
-(define $sm_apply_term ((t1 $smt_Term) (t2 $smt_Term))
-  ($smd_sm.Apply t1 t2))
-;(define $sm_const ((T $smt_Type) (id $smt_builtin_Int))
-;  ($smd_sm.Const T id))
-;(define $sm_skolem ((T $smt_Type) (F $smt_Term))
-;  ($smd_sm.Skolem T F))
-
-(define $tsm_Bool () $smd_tsm.Bool)
-;(define $tsm_Bool () $smt_builtin_tsm.Bool)
-(define $tsm_USort ((id $smt_builtin_Int)) ($smd_tsm.USort id))
-;(define $tsm_USort ((id $smt_builtin_Int)) ($smt_builtin_tsm.USort id))
-(define $tsm_NullSort () $smd_tsm.NullSort)
-;(define $tsm_NullSort () $smt_builtin_tsm.NullSort)
-
-
-
-; represents an uninterpreted value
-(declare-parameterized-const $smt_builtin_vsm.UConst
-  ((T $smt_Type :opaque) (i $smt_builtin_Int :opaque)) $smt_Value)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_eo
 
 ; This portion gives a template for defining the model semantics of
