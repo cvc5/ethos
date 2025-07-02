@@ -146,9 +146,6 @@
 ; fwd-decl: $eo_typeof
 (declare-fun $eo_typeof (eo.Term) eo.Term)
 
-; fwd-decl: $eo_model_sat
-(declare-fun $eo_model_sat (eo.Term) eo.Term)
-
 ; define $eo_smt_term
 (define-fun $eo_smt_term ((t sm.Term)) eo.Term (eo.SmtTerm t))
 
@@ -397,29 +394,8 @@
     ($eo_requires (eo.SmtTerm sm.True) (eo.SmtTerm sm.False) (eo.SmtTerm sm.True))
     eo.Stuck)))) :named sm.axiom.$eo_dt_selectors))
 
-; program: $eorx_symm
-(define-fun $eorx_symm ((x1 eo.Term) (x2 eo.Term)) eo.Term
-  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
-    eo.Stuck
-  (ite (= x2 (eo.SmtType tsm.BoolType))
-    ($mk_symm x1)
-    eo.Stuck)))
-
-; program: $eor_symm
-(define-fun $eor_symm ((x1 eo.Term)) eo.Term
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite true
-    ($eorx_symm x1 ($eo_typeof x1))
-    eo.Stuck)))
-
-; program: $eovc_symm
-(define-fun $eovc_symm ((x1 eo.Term)) eo.Term
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite true
-    ($eo_requires ($eo_model_sat x1) (eo.SmtTerm sm.True) ($eo_requires ($eo_model_sat ($eor_symm x1)) (eo.SmtTerm sm.False) (eo.SmtTerm sm.True)))
-    eo.Stuck)))
+; fwd-decl: $eo_model_sat
+(declare-fun $eo_model_sat (eo.Term) eo.Term)
 
 ; program: $eo_is_value
 (define-fun $eo_is_value ((x1 eo.Term) (x2 eo.Term)) eo.Term
@@ -531,6 +507,30 @@
   (= ($smtx_typeof x1)
     (eo.SmtType.arg1 (ite ((_ is eo.SmtType) ($eo_typeof (eo.SmtTerm x1))) ($eo_typeof (eo.SmtTerm x1)) (eo.SmtType (tsm.NullSort 0))))
 )) :named sm.axiom.$smtx_typeof))
+
+; program: $eorx_symm
+(define-fun $eorx_symm ((x1 eo.Term) (x2 eo.Term)) eo.Term
+  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
+    eo.Stuck
+  (ite (= x2 (eo.SmtType tsm.BoolType))
+    ($mk_symm x1)
+    eo.Stuck)))
+
+; program: $eor_symm
+(define-fun $eor_symm ((x1 eo.Term)) eo.Term
+  (ite (= x1 eo.Stuck)
+    eo.Stuck
+  (ite true
+    ($eorx_symm x1 ($eo_typeof x1))
+    eo.Stuck)))
+
+; program: $eovc_symm
+(define-fun $eovc_symm ((x1 eo.Term)) eo.Term
+  (ite (= x1 eo.Stuck)
+    eo.Stuck
+  (ite true
+    ($eo_requires ($eo_model_sat x1) (eo.SmtTerm sm.True) ($eo_requires ($eo_model_sat ($eor_symm x1)) (eo.SmtTerm sm.False) (eo.SmtTerm sm.True)))
+    eo.Stuck)))
 
 
 

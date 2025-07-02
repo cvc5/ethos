@@ -32,14 +32,10 @@ $EO_LITERAL_TYPE_DECL$
 (program $eo_nil ((T Type) (U Type) (V Type) (W Type))
   :signature ((-> T U V) (eo::quote W)) W)
 
-;;; Model test infrastructure
+;;; Core SMT-like builtins
 
 ; A Eunoia term, used by $eo_model_sat.
 (declare-const $eo_Term Type)
-
-; A placeholder for asking whether a formula is satisfied by a model.
-; This is used to defined verification conditions.
-(program $eo_model_sat () :signature ($eo_Term) Bool)
 
 ; We use a "lazy" include style that allows this file to
 ; be parsable without including the file.
@@ -525,7 +521,14 @@ $EO_NIL_CASES$
   )
 )
 
+;;; Definition of SMT-LIB semantics
 
-; the verification condition
+; A placeholder for asking whether a formula is satisfied by a model.
+; This is used to defined verification conditions.
+(program $eo_model_sat () :signature ($eo_Term) Bool)
+
+(echo "include model_smt")
+
+;;; the verification condition
 
 $EO_VC$
