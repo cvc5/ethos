@@ -24,6 +24,12 @@ else
   exit $status
 fi
 
+# include the deep embedding, which was generated above
+#sed -i "/(echo \"include model_smt_gen\")/{
+#    r ../plugins/model_smt/model_eo_embed_gen.eo
+#    d
+#}" $TMP_OUT
+
 # include the model semantics, which was generated above
 sed -i "/(echo \"include model_smt_gen\")/{
     r ../plugins/model_smt/model_smt_gen.eo

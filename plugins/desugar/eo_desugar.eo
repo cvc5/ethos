@@ -5,7 +5,7 @@
 ; (A) Those that are desugared in later steps, e.g. eo::add, eo::requires, eo::is_ok.
 ; (B) Those that were part of user definitions that can be safely replaced by their $eo_ versions.
 
-;;; declarations to define literal types
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; literal types
 
 ; undefined type, used if a literal type uses eo::self, which can't be modelled.
 (declare-const $eo_undef_type Type)
@@ -40,10 +40,13 @@ $EO_LITERAL_TYPE_DECL$
 ; We use a "lazy" include style that allows this file to
 ; be parsable without including the file.
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; eo_builtin_smt
+
 ; This will contain the definitions of eo::add, etc.
 ; It is (for now) specific to a deep embedding into SMT.
 (echo "include eo_builtin_smt")
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; desugar core
 ;;; $eo_List
 
 ; The builtin Eunoia list.
@@ -522,7 +525,7 @@ $EO_NIL_CASES$
   )
 )
 
-;;; Definition of SMT-LIB semantics
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_smt
 
 ; A placeholder for asking whether a formula is satisfied by a model.
 ; This is used to defined verification conditions.
@@ -530,6 +533,6 @@ $EO_NIL_CASES$
 
 (echo "include model_smt_gen")
 
-;;; the verification condition
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; vc
 
 $EO_VC$

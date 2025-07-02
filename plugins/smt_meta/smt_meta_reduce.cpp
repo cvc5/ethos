@@ -1649,4 +1649,40 @@ bool SmtMetaReduce::isProgramKind(TermKind tk)
          || tk == TermKind::SMT_TO_EO_PROGRAM || tk == TermKind::PROGRAM || tk == TermKind::SMT_PROGRAM;
 }
 
+TermContextKind SmtMetaReduce::getMetaKind(const Expr& e)
+{
+  std::map<Expr, TermContextKind>::iterator it = d_metaKind.find(e);
+  if (it != d_metaKind.end())
+  {
+    return it->second;
+  }
+  // Here, we expect $eo_get_meta_type to be defined as a function in the
+  // signature, which is an oracle for saying which datatype a term belongs
+  // to in the deep embedding. We expect this program to be defined as well
+  // as the names of the types.
+  if (d_eoGetMetaKind.isNull())
+  {
+    d_eoGetMetaKind = lookupVar("$eo_get_meta_type");
+    d_metaEoTerm = lookupVar("eo.new.Term");
+    d_metaSmtTerm = lookupVar("sm.new.Term");
+    d_metaSmtType = lookupVar("tsm.new.Type");
+  }
+  Expr mapp = d_state.mkExprSimple(Kind::APPLY, {d_eoGetMetaKind, e});
+  Ctx ectx;
+  Expr mm = d_tc.evaluate(mapp.getValue(), ectx);
+  if (mm==d_metaEoTerm)
+  {
+    return TermContextKind::EUNOIA;
+  }
+  else if (mm==d_metaSmtTerm)
+  {
+    return TermContextKind::SMT;
+  }
+  else if (mm==d_metaSmtType)
+  {
+    return TermContextKind::SMT_TYPE;
+  }
+  return TermContextKind::NONE;
+}
+
 }  // namespace ethos

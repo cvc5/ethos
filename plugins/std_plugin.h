@@ -36,6 +36,7 @@ class StdPlugin : public Plugin
   void setLiteralTypeRule(Kind k, const Expr& t) override;
 
  protected:
+  Expr lookupVar(const std::string& name);
   /**
    * Finalize a declaration that was made to define a literal type.
    * We can assume that t is ground.

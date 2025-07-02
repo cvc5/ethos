@@ -21,6 +21,9 @@ namespace ethos {
 class State;
 class TypeChecker;
 
+/**
+ * The datatype we are at.
+ */
 enum class TermContextKind
 {
   EUNOIA,
@@ -184,6 +187,15 @@ class SmtMetaReduce : public StdPlugin
   std::stringstream d_smtVc;
   // TODO: maybe not necessary?
   std::map<Expr, std::vector<TermKind>> d_metaType;
+  /** The Eunoia program that returns the meta-kind of terms */
+  Expr d_eoGetMetaKind;
+  Expr d_metaEoTerm;
+  Expr d_metaSmtTerm;
+  Expr d_metaSmtType;
+  /** */
+  std::map<Expr, TermContextKind> d_metaKind;
+  /** */
+  TermContextKind getMetaKind(const Expr& e);
 };
 
 }  // namespace ethos

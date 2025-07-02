@@ -1,8 +1,4 @@
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_eo_embed
-
-$SMT_EMBED$
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_eo
 
 ; This portion gives a template for defining the model semantics of
@@ -134,7 +130,7 @@ $EO_EVAL_CASES$
   )
 )
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_smt
 
 ; This file is a formalization of the SMT-LIB semantics in Eunoia.
 ; It uses a deep embedding of SMT-LIB terms .
@@ -576,3 +572,5 @@ $SMT_EVAL_CASES$
   (($smtx_typeof t)                      ($smt_try_eo_type ($eo_typeof t) ($eo_smt_type ($smd_tsm.NullSort 0))))
   )
 )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_end
