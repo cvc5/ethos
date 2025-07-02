@@ -179,6 +179,8 @@ class SmtMetaReduce : public StdPlugin
   std::vector<TermContextKind> getContextArguments(const Expr& e, TermContextKind parent);
   TermContextKind termKindToContext(TermKind tk);
   TermContextKind getEmbTypeContext(const Expr& type);
+  std::string getName(const Expr& e);
+  std::string getEmbedName(const Expr& oApp);
   /** Declares seen */
   std::set<Expr> d_declSeen;
   /** Program declarations processed */

@@ -508,7 +508,8 @@ TermKind SmtMetaReduce::printEmbType(const Expr& c,
     t = d_tc.getType(qt);
   }
 #ifdef NEW_DEF
-  if (c == d_metaEoTerm)
+  Kind k = c.getKind();
+  if (c == d_metaEoTerm || k==Kind::PARAM || k==Kind::TYPE || k==Kind::BOOL_TYPE)
   {
     os << "eo.Term";
   }
@@ -518,7 +519,33 @@ TermKind SmtMetaReduce::printEmbType(const Expr& c,
   }
   else if (c == d_metaSmtType)
   {
-    os << "sm.Type";
+    os << "tsm.Type";
+  }
+  else if (k==Kind::APPLY_OPAQUE)
+  {
+    std::stringstream ss;
+    ss << c[0];
+    std::string sname = ss.str();
+    if (sname.compare(0, 10, "$smt_type_") == 0)
+    {
+      os << getEmbedName(c);
+    }
+    else
+    {
+      Assert(false) << "Unknown apply opaque type: " << c;
+    }
+  }
+  else
+  {
+    std::string sname = getName(c);
+    if (sname.compare(0, 8, "$eo_List") == 0)
+    {
+      os << "eo.Term";
+    }
+    else
+    {
+      Assert(false) << "Unknown type: " << c << " " << c.getKind();
+    }
   }
   //else if (c == d_metaSmtValue)
   //{
@@ -886,6 +913,30 @@ std::vector<TermContextKind> SmtMetaReduce::getContextArguments(const Expr& e, T
   return ret;
 }
 
+std::string SmtMetaReduce::getName(const Expr& e)
+{
+  std::stringstream ss;
+  if (e.getNumChildren()==0)
+  {
+    ss << e;
+  }
+  return ss.str();
+}
+std::string SmtMetaReduce::getEmbedName(const Expr& oApp)
+{
+  Assert (oApp.getKind()==Kind::APPLY_OPAQUE);
+  if (oApp.getNumChildren() <= 1)
+  {
+    EO_FATAL() << "Unexpected arity for opaque operator " << oApp;
+  }
+  if (oApp[1].getKind() != Kind::STRING)
+  {
+    EO_FATAL() << "Expected string for SMT-LIB app name as first argument, got " << oApp;
+  }
+  const Literal* l = oApp[1].getValue()->asLiteral();
+  return l->d_str.toString();
+}
+
 bool SmtMetaReduce::printEmbTerm(const Expr& body,
                                  std::ostream& os,
                                  const SelectorCtx& ctx,
@@ -1001,16 +1052,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
         // `($smt_apply_3 "ite"` becomes `(ite`
         if (sname.compare(0, 11, "$smt_apply_") == 0 || sname.compare(0, 10, "$smt_type_") == 0)
         {
-          if (recTerm.getNumChildren() <= 1)
-          {
-            EO_FATAL() << "Unexpected arity for opaque operator " << recTerm;
-          }
-          if (recTerm[1].getKind() != Kind::STRING)
-          {
-            EO_FATAL() << "Expected string for SMT-LIB app name, got " << sname;
-          }
-          const Literal* l = recTerm[1].getValue()->asLiteral();
-          std::string embName = l->d_str.toString();
+          std::string embName = getEmbedName(recTerm);
           // this handles the corner case that ($smt_apply_0 "true") should
           // print as "true" not "(true)".
           if (recTerm.getNumChildren() > 2)
@@ -1558,6 +1600,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   appTerm << ")";
   std::stringstream retType;
 #ifdef NEW_DEF
+  printEmbType(vt[nargs - 1], retType);
 #else
   TermKind retTypeCtx = printEmbType(vt[nargs - 1], retType);
 #endif
