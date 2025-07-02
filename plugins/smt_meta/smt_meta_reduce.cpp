@@ -976,6 +976,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
   std::map<Expr, std::string>::const_iterator it;
   std::map<Expr, TermContextKind>::const_iterator ittc;
   std::map<std::pair<Expr, TermContextKind>, size_t> cparen;
+  std::map<std::pair<Expr, TermContextKind>, size_t>::iterator itc;
   std::stringstream osEnd;
   std::vector<Expr> ll;
   // maps smt apply terms to the tuple that they actually are
@@ -999,19 +1000,17 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     }
     TermContextKind tkctx = cur.second;
     std::pair<Expr, TermContextKind> key(recTerm, tkctx);
-    if (tkctx==TermContextKind::NONE)
+    itc = cparen.find(key);
+    if (itc != cparen.end())
     {
       // NONE context means done with arguments, close the pending parens
-      for (size_t i = 0, ncparen = cparen[key]; i < ncparen; i++)
+      for (size_t i = 0; i < itc->second; i++)
       {
         os << ")";
       }
       visit.pop_back();
       continue;
     }
-    // we always push all children at once
-    visit.back().second = TermContextKind::NONE;
-    std::cout << "print: " << recTerm << " / " <<termContextKindToString(tkctx) << std::endl;
     // if we are printing the head of the term
     Kind ck = recTerm.getKind();
     if (ck == Kind::PARAM)
@@ -1034,6 +1033,8 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       visit.pop_back();
       continue;
     }
+    std::cout << "print: " << recTerm << " / " <<termContextKindToString(tkctx) << std::endl;
+    // we always push all children at once
     size_t cstart = 0;
     if (ck == Kind::APPLY)
     {
