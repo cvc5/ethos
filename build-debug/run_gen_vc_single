@@ -83,6 +83,7 @@ echo "(set-logic UFDTSNIRA)" > $VC_OUT
 # start with the final datatype
 cat $STD_SMODEL_EMBED_OUT >> $VC_OUT
 # replace all occurrences of $smt_builtin_
+# TODO: $smt_apply_ and $smt_type_ as well???
 sed -i 's/$smt_builtin_//g' $VC_OUT
 #sed -i 's/\.new//g' $VC_OUT
 # concatenate the VC computed above

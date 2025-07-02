@@ -19,6 +19,23 @@ namespace ethos {
 
 //#define NEW_DEF
 
+class ConjPrint
+{
+public:
+  ConjPrint() : d_npush(0) {}
+  void push(const std::string& str)
+  {
+    if (d_npush>0)
+    {
+      d_ss << " ";
+    }
+    d_ss << str;
+    d_npush++;
+  }
+  std::stringstream d_ss;
+  size_t d_npush;
+};
+
 SelectorCtx::SelectorCtx() {}
 void SelectorCtx::clear(){
   d_ctx.clear();
@@ -45,10 +62,38 @@ std::string termContextKindToString(TermContextKind k)
     case TermContextKind::SMT: ss << "SMT"; break;
     case TermContextKind::SMT_BUILTIN: ss << "SMT_BUILTIN"; break;
     case TermContextKind::SMT_TYPE: ss << "SMT_TYPE"; break;
+    case TermContextKind::SMT_VALUE: ss << "SMT_VALUE"; break;
+    case TermContextKind::PROGRAM: ss << "PROGRAM"; break;
     default: ss << "?TermContextKind"; break;
   }
   return ss.str();
 }
+std::string termContextKindToPrefix(TermContextKind k)
+{
+  std::stringstream ss;
+  switch (k)
+  {
+    case TermContextKind::EUNOIA: ss << "eo."; break;
+    case TermContextKind::SMT: ss << "sm."; break;
+    case TermContextKind::SMT_TYPE: ss << "tsm."; break;
+    case TermContextKind::SMT_VALUE: ss << "vsm."; break;
+    default: ss << "?TermContextKindPrefix"; break;
+  }
+  return ss.str();
+}
+std::string termContextKindToCons(TermContextKind k)
+{
+  std::stringstream ss;
+  switch (k)
+  {
+    case TermContextKind::SMT: ss << "SmtTerm"; break;
+    case TermContextKind::SMT_TYPE: ss << "SmtType"; break;
+    case TermContextKind::SMT_VALUE: ss << "SmtValue"; break;
+    default: ss << "?TermContextKindCons"; break;
+  }
+  return ss.str();
+}
+
 // TODO: clean traces and kinds
 std::string termKindToString(TermKind k)
 {
@@ -173,6 +218,124 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
                                        TermContextKind tctx)
 {
 #ifdef NEW_DEF
+  Assert (tctx!=TermContextKind::NONE);
+  Kind k = c.getKind();
+  if (k == Kind::TYPE)
+  {
+    os << "eo.Type";
+    return;
+  }
+  std::string name;
+  TermContextKind tc = getMetaKind(c);
+  if (tc==TermContextKind::PROGRAM)
+  {
+    // programs print verbatim
+    os << c;
+    return;
+  }
+  std::stringstream osEnd;
+  if (tctx==TermContextKind::EUNOIA && tc!=TermContextKind::EUNOIA)
+  {
+    if (tc==TermContextKind::SMT)
+    {
+      os << "(eo.SmtTerm ";
+      osEnd << ")";
+      tctx = TermContextKind::SMT;
+    }
+    else if (tc==TermContextKind::SMT_TYPE)
+    {
+      os << "(eo.SmtType ";
+      osEnd << ")";
+      tctx = TermContextKind::SMT_TYPE;
+    }
+    else if (tc==TermContextKind::SMT_VALUE)
+    {
+      os << "(eo.SmtValue ";
+      osEnd << ")";
+      tctx = TermContextKind::SMT_VALUE;
+    }
+    else
+    {
+      EO_FATAL() << "Unknown target kind " << termContextKindToString(tc);
+    }
+  }
+  if (k == Kind::CONST)
+  {
+    os << termContextKindToPrefix(tc) << c;
+  }
+  else if (k == Kind::BOOL_TYPE)
+  {
+    os << "tsm.BoolType";
+  }
+  else
+  {
+    const Literal* l = c.getValue()->asLiteral();
+    if (l == nullptr)
+    {
+      EO_FATAL() << "Unknown atomic term kind " << k;
+      return;
+    }
+    if (k == Kind::BOOLEAN)
+    {
+      if (tctx == TermContextKind::SMT)
+      {
+        os << "sm.";
+      }
+      os << (l->d_bool ? "True" : "False");
+    }
+    else if (k == Kind::NUMERAL)
+    {
+      if (tctx == TermContextKind::SMT)
+      {
+        os << "(sm.Numeral ";
+        osEnd << ")";
+      }
+      const Integer& ci = l->d_int;
+      if (ci.sgn() == -1)
+      {
+        const Integer& cin = -ci;
+        os << "(- " << cin.toString() << ")";
+      }
+      else
+      {
+        os << ci.toString();
+      }
+    }
+    else if (k == Kind::RATIONAL)
+    {
+      if (tctx == TermContextKind::SMT)
+      {
+        os << "(sm.Rational ";
+        osEnd << ")";
+      }
+      os << c;
+    }
+    else if (k == Kind::BINARY)
+    {
+      if (tctx == TermContextKind::SMT)
+      {
+        os << "(sm.Binary";
+        osEnd << ")";
+      }
+      const BitVector& bv = l->d_bv;
+      const Integer& bvi = bv.getValue();
+      os << bv.getSize() << " " << bvi.toString();
+    }
+    else if (k == Kind::STRING)
+    {
+      if (tctx == TermContextKind::SMT)
+      {
+        os << "(sm.String ";
+        osEnd << ")";
+      }
+      os << c;
+    }
+    else
+    {
+      EO_FATAL() << "Unknown atomic term literal kind " << k;
+    }
+  }
+  os << osEnd.str();
 #else
   // TODO: take inSmtTerm into account??
   std::string cname;
@@ -386,6 +549,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
   std::tuple<Expr, std::string, TermContextKind> cur;
   Expr ctmp = c;
   visit.emplace_back(c, initCtx, tinit);
+  ConjPrint print;
   do
   {
     cur = visit.back();
@@ -410,37 +574,33 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       // SMT term
       std::string smConsName;
       std::cout << "  atk: " << tcur[0] << std::endl;
-      TermKind atk = getTermKind(tcur[0]);
-      std::cout << "  atk: " << tcur[0] << " is " << termKindToString(atk)
+      TermContextKind atk = getMetaKind(tcur);
+      std::cout << "  atk: " << tcur[0] << " is " << termContextKindToString(atk)
                 << std::endl;
-      TermContextKind
       // if the Eunoia term is an SMT term, change the context
       // and use the eo.SmtTerm selector
-      // FIXME: context switch for SMT_TYPE
-      if (tkctx == TermContextKind::EUNOIA && atk == TermKind::SMT_TERM)
+      if (tkctx == TermContextKind::EUNOIA && atk!=TermContextKind::EUNOIA)
       {
-        // changes context
-        os << (nconj > 0 ? " " : "") << "((_ is eo.SmtTerm) " << currTerm
-           << ")";
-        nconj++;
+        Assert (atk==TermContextKind::SMT || atk==TermContextKind::SMT_TYPE || atk==TermContextKind::SMT_VALUE);
+        std::string cons = termContextKindToCons(atk);
+        std::stringstream tester;
+        tester << "((_ is eo." << cons << ") " << currTerm << ")";
+        print.push(tester.str());
         std::stringstream sssn;
-        sssn << "(eo.SmtTerm.arg1 " << currTerm << ")";
+        sssn << "(eo." << cons << ".arg1 " << currTerm << ")";
         currTerm = sssn.str();
-        cname << "sm.Apply";
-        tkctx = TermContextKind::SMT;
+        // our context is now updated
+        tkctx = atk;
       }
-      else
-      {
-        // If we are an SMT apply, use sm. else eo.
-        cname << (tkctx == TermContextKind::SMT ? "sm" : "eo") << ".Apply";
-      }
+      // Use the appropriate prefix
+      cname << termContextKindToPrefix(tkctx) << "Apply";
       printArgs = true;
     }
     else if (ck == Kind::FUNCTION_TYPE)
     {
       // TODO: can this occur?
       // maybe if reasoning about function as first class argument?
-      cname << (tkctx == TermContextKind::SMT ? "sm" : "eo") << ".FunType";
+      cname << termContextKindToPrefix(tkctx) << "FunType";
       printArgs = true;
     }
     else if (ck == Kind::APPLY_OPAQUE)
@@ -449,9 +609,12 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       printEmbAtomicTerm(tcur[0], cname, tkctx);
       printArgStart = 1;
       printArgs = true;
-      TermKind atk = getTermKind(tcur[0]);
-      std::cout << "  atk-o: " << tcur[0] << " is " << termKindToString(atk)
+      TermContextKind atk = getMetaKind(tcur[0]);
+      std::cout << "  atk-o: " << tcur[0] << " is " << termContextKindToString(atk)
                 << std::endl;
+      // In this case we are matching on an opaque term.
+      // In most cases we preserve the context
+      // FIXME
       if (tkctx == TermContextKind::EUNOIA && atk == TermKind::EUNOIA_DT_CONS)
       {
         // the type of the Eunoia SMT-LIB constructor is SMT terms
@@ -467,9 +630,9 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     if (printArgs)
     {
       // argument must be an apply
-      os << (nconj > 0 ? " " : "") << "((_ is " << cname.str() << ") "
-         << currTerm << ")";
-      nconj++;
+      std::stringstream tester;
+      tester << "((_ is " << cname.str() << ") " << currTerm << ")";
+      print.push(tester.str());
       for (size_t i = printArgStart, nchild = tcur.getNumChildren(); i < nchild;
            i++)
       {
@@ -491,18 +654,21 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       }
       else
       {
-        os << (nconj > 0 ? " " : "") << "(= " << currTerm << " " << it->second
-           << ")";
-        nconj++;
+        // two occurrences of the same variable in a pattern
+        // turns into an equality
+        std::stringstream eq;
+        eq << "(= " << currTerm << " " << it->second << ")";
+        print.push(eq.str());
       }
     }
     else
     {
+      // base case, use equality
       std::stringstream atomTerm;
       printEmbAtomicTerm(tcur, atomTerm, tkctx);
-      os << (nconj > 0 ? " " : "") << "(= " << currTerm << " " << atomTerm.str()
-         << ")";
-      nconj++;
+      std::stringstream eq;
+      eq <<  "(= " << currTerm << " " << atomTerm.str() << ")";
+      print.push(eq.str());
     }
   } while (!visit.empty());
   return true;
@@ -1725,10 +1891,7 @@ TermKind SmtMetaReduce::getTermKindAtomic(const Expr& e, std::string& name)
   // TODO: SMT_TERM_TYPE and EUNOIA_TERM_TYPE
   // can probably be "INTERNAL".
   if (sname.compare(0, 11, "$smt_apply_") == 0
-      || sname.compare(0, 10, "$smt_type_") == 0
-      || sname.compare(0, 6, "eo.new") == 0
-      || sname.compare(0, 6, "sm.new") == 0
-      || sname.compare(0, 7, "tsm.new") == 0)
+      || sname.compare(0, 10, "$smt_type_") == 0)
   {
     name = sname;
     return TermKind::INTERNAL;
@@ -1817,21 +1980,29 @@ TermContextKind SmtMetaReduce::getMetaKind(const Expr& e)
   {
     hd = hd[0];
   }
-  Expr mapp = d_state.mkExprSimple(Kind::APPLY, {d_eoGetMetaKind,hd});
-  Ctx ectx;
-  Expr mm = d_tc.evaluate(mapp.getValue(), ectx);
+  // check for programs
   TermContextKind tk = TermContextKind::NONE;
-  if (mm==d_metaEoTerm)
+  if (hd.getKind() == Kind::PROGRAM_CONST)
   {
-    tk = TermContextKind::EUNOIA;
+    tk = TermContextKind::PROGRAM;
   }
-  else if (mm==d_metaSmtTerm)
+  else
   {
-    tk = TermContextKind::SMT;
-  }
-  else if (mm==d_metaSmtType)
-  {
-    tk = TermContextKind::SMT_TYPE;
+    Expr mapp = d_state.mkExprSimple(Kind::APPLY, {d_eoGetMetaKind,hd});
+    Ctx ectx;
+    Expr mm = d_tc.evaluate(mapp.getValue(), ectx);
+    if (mm==d_metaEoTerm)
+    {
+      tk = TermContextKind::EUNOIA;
+    }
+    else if (mm==d_metaSmtTerm)
+    {
+      tk = TermContextKind::SMT;
+    }
+    else if (mm==d_metaSmtType)
+    {
+      tk = TermContextKind::SMT_TYPE;
+    }
   }
   d_metaKind[e] = tk;
   return tk;

@@ -30,9 +30,13 @@ enum class TermContextKind
   SMT,
   SMT_BUILTIN,
   SMT_TYPE,
+  SMT_VALUE,
+  PROGRAM,
   NONE
 };
 std::string termContextKindToString(TermContextKind k);
+std::string termContextKindToPrefix(TermContextKind k);
+std::string termContextKindToCons(TermContextKind k);
 
 // TODO?
 enum class TermKind
