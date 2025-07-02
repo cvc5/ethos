@@ -7,6 +7,49 @@
 (declare-const $smt_builtin_eo.new.Term Type)
 (declare-const $smt_builtin_@Map Type)
 
+;;; Deep embedding of SMT-LIB types
+
+; The Boolean type
+(declare-const $smd_tsm.Bool $smt_Type)
+
+; Function types
+(declare-parameterized-const $smd_tsm.FunType
+  ((T1 $smt_Type :opaque) (T2 $smt_Type :opaque)) $smt_Type)
+(define $smt_fun_type ((T1 $smt_Type) (T2 $smt_Type))
+  ($smd_tsm.FunType T1 T2))
+
+; Uninterpreted sorts
+(declare-parameterized-const $smd_tsm.USort
+  ((id $smt_builtin_Int :opaque)) $smt_Type)
+(define $smt_USort ((id $smt_builtin_Int)) ($smd_tsm.USort id))
+
+; The sort of a term that doesn't have an SMT-LIB type.
+; This is used as an error condition
+(declare-const $smd_tsm.NullSort $smt_Type)
+
+; A skolem, identified by kind, identifier and Type.
+; The kind 0 is reserved for standard SMT-LIB symbols introduced
+; by the user by declare-const. The other kinds of free symbols
+; can be custom defined based on the Eunoia signature (see method
+; $eo_const_predicate in model_eo.eo).
+(declare-parameterized-const $smd_sm.Skolem
+  ((T $smt_Type :opaque) (k $smt_builtin_Int :opaque) (id $smt_builtin_Int :opaque))
+  $smt_Term)
+
+; A free constant
+(declare-parameterized-const $smd_sm.Const
+  ((T $smt_Type :opaque) (id $smt_builtin_Int :opaque))
+  $smt_Term)
+
+; represents an uninterpreted value
+; This must be a constructor in the final sm.Term.
+(declare-parameterized-const $smd_sm.usort_value
+  ((T $smt_Type :opaque) (i $smt_builtin_Int :opaque)) $smt_Term)
+
+; The Eunoia representation of an SMT-LIB term.
+(declare-parameterized-const $smd_sm.Apply
+  ((t1 $smt_Term :opaque) (t2 $smt_Term :opaque)) $smt_Term)
+  
 ; For each relevant user term, return the datatype above that it belongs to.
 ; This program will be used in the smt_meta_reduce compilation step, and
 ; will dissappear in the final signature.
@@ -281,7 +324,7 @@ $EO_EVAL_CASES$
 (program $smtx_is_value ()
   :signature ($smt_Type $smt_Term) $smt_builtin_Bool)
   
-; The final embedding of SMT-LIB values that are relevant to the VC.
+; A datatype. This will appear verbatim in the final embedding.
 (declare-datatypes ((vsm.Value 0) (@Map 0))
   ((
   ; map with an index type

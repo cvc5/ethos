@@ -90,11 +90,12 @@
 ; comes to printing the argument types, as e.g. the argument to sm.Numeral is
 ; an SMT-LIB numeral, not a symbolic SMT term.
 
-;;;;;;;;;;;;;;;; datatype begin
+;;; Final deep embedding datatypes
 
-;;; Deep embedding of SMT-LIB terms
-
-; TODO: move up to own signature
+; Now, we introduce placeholders for the final deep embedding.
+; - $smt_Term, $smt_Type, $smt_Value are introduced as placeholders for the final datatypes in the deep embedding.
+; - The SMT-like literals are declared for $smt_Term.
+; - 
 
 ; An SMT-LIB term.
 ; This will be replaced by the datatype sm.Term in the final encoding.
@@ -108,6 +109,8 @@
 ; This will be replaced by the datatype vsm.Value in the final encoding.
 (declare-const $smt_Value Type)
 
+;;; SMT term datatype constructors
+
 ; Note the Bool type is "inlined" into the final signature
 (declare-const $smd_sm.True $smt_Term)
 (declare-const $smd_sm.False $smt_Term)
@@ -116,53 +119,7 @@
 (declare-parameterized-const $smd_sm.String ((s ($smt_type_0 "String") :opaque)) $smt_Term)
 (declare-parameterized-const $smd_sm.Binary ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Term)
 
-; A skolem, identified by kind, identifier and Type.
-; The kind 0 is reserved for standard SMT-LIB symbols introduced
-; by the user by declare-const. The other kinds of free symbols
-; can be custom defined based on the Eunoia signature (see method
-; $eo_const_predicate in model_eo.eo).
-(declare-parameterized-const $smd_sm.Skolem
-  ((T $smt_Type :opaque) (k $smt_builtin_Int :opaque) (id $smt_builtin_Int :opaque))
-  $smt_Term)
-(define $sm_Skolem
-  ((T $smt_Type) (k $smt_builtin_Int) (id $smt_builtin_Int))
-  ($smd_sm.Skolem T k id))
-
-; A free constant
-(declare-parameterized-const $smd_sm.Const
-  ((T $smt_Type :opaque) (id $smt_builtin_Int :opaque))
-  $smt_Term)
-
-; represents an uninterpreted value
-; This must be a constructor in the final sm.Term.
-(declare-parameterized-const $smd_sm.usort_value
-  ((T $smt_Type :opaque) (i $smt_builtin_Int :opaque)) $smt_Term)
-
-; The Eunoia representation of an SMT-LIB term.
-(declare-parameterized-const $smd_sm.Apply
-  ((t1 $smt_Term :opaque) (t2 $smt_Term :opaque)) $smt_Term)
-
-;;; Deep embedding of SMT-LIB types
-
-; The Boolean type
-(declare-const $smd_tsm.Bool $smt_Type)
-
-; Function types
-(declare-parameterized-const $smd_tsm.FunType
-  ((T1 $smt_Type :opaque) (T2 $smt_Type :opaque)) $smt_Type)
-(define $smt_fun_type ((T1 $smt_Type) (T2 $smt_Type))
-  ($smd_tsm.FunType T1 T2))
-
-; Uninterpreted sorts
-(declare-parameterized-const $smd_tsm.USort
-  ((id $smt_builtin_Int :opaque)) $smt_Type)
-(define $smt_USort ((id $smt_builtin_Int)) ($smd_tsm.USort id))
-
-; The sort of a term that doesn't have an SMT-LIB type.
-; This is used as an error condition
-(declare-const $smd_tsm.NullSort $smt_Type)
-
-;;; Deep embedding of Eunoia terms
+;;; Eunoia datatype constructors
 
 ; $eo_Term is declared in eo_desugar.eo
 
@@ -180,9 +137,6 @@
 
 ; The Eunoia representation of "stuckness".
 (declare-const $smd_eo.Stuck $eo_Term)
-(define $eo_stuck () $smd_eo.Stuck)
-
-;;;;;;;;;;;;;;;; datatype end
 
 ;;; External datatype access
 
@@ -202,7 +156,7 @@
 ;(define $smt_BitVec ((w $smt_builtin_Int)) (_ ($smt_builtin_type_1 "BitVec") w))
 ;(define $smt_String () ($smt_builtin_type_0 "String"))
 
-; NOTE: we compile to equality directly, although we could use (_ sm.True) here.
+; NOTE: we use equality directly, although we could use (_ sm.True) here.
 (define $sm_is_true ((b $smt_Term)) ($smt_apply_2 "=" b $sm_mk_true))
 (define $sm_is_false ((b $smt_Term)) ($smt_apply_2 "=" b $sm_mk_false))
 ; Assumes that t is a Boolean term
@@ -279,6 +233,7 @@
 
 ;;; Utilities
 
+(define $eo_stuck () $smd_eo.Stuck)
 (define $eo_true () ($eo_smt_term $sm_mk_true))
 (define $eo_false () ($eo_smt_term $sm_mk_false))
 (define $eo_mk_bool ((x $smt_builtin_Bool))

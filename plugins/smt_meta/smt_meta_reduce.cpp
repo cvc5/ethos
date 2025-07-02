@@ -218,7 +218,6 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
                                        TermContextKind tctx)
 {
 #ifdef NEW_DEF
-  Assert (tctx!=TermContextKind::NONE);
   Kind k = c.getKind();
   if (k == Kind::TYPE)
   {
@@ -606,15 +605,16 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     else if (ck == Kind::APPLY_OPAQUE)
     {
       // will use a tester
-      printEmbAtomicTerm(tcur[0], cname, tkctx);
+      printEmbAtomicTerm(tcur[0], cname, TermContextKind::NONE);
       printArgStart = 1;
       printArgs = true;
+      // FIXME: we are pattern matching on an opaque term
+      /*
       TermContextKind atk = getMetaKind(tcur[0]);
       std::cout << "  atk-o: " << tcur[0] << " is " << termContextKindToString(atk)
                 << std::endl;
       // In this case we are matching on an opaque term.
       // In most cases we preserve the context
-      // FIXME
       if (tkctx == TermContextKind::EUNOIA && atk == TermKind::EUNOIA_DT_CONS)
       {
         // the type of the Eunoia SMT-LIB constructor is SMT terms
@@ -626,6 +626,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
         // the opaque arguments of SMT-LIB types (e.g. uninterpreted sorts) are also builtins
         tkctx = TermContextKind::SMT_BUILTIN;
       }
+      */
     }
     if (printArgs)
     {
@@ -815,7 +816,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
                                  const SelectorCtx& ctx,
                                  TermContextKind tinit)
 {
-  // os << ctx.d_letBegin.str();
+#ifdef NEW_DEF  // os << ctx.d_letBegin.str();
   std::map<Expr, std::string>::const_iterator it;
   std::map<Expr, TermContextKind>::const_iterator ittc;
   std::stringstream osEnd;
@@ -930,74 +931,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
         std::cout << "tk: head of apply " << key.first << " : "
                   << termKindToString(atk) << " in ctx "
                   << termContextKindToString(tkctx) << std::endl;
-        /*
-        // should not have compute the tuple
-        Assert(key.first == recTerm)
-            << "Bad term: " << recTerm << " " << key.first;
-        // maybe its an SMT-apply
-        TermKind atk = getTermKind(recTerm[0]);
-        std::cout << "tk: " << key.first << " : " << termKindToString(atk)
-                  << " in ctx " << termContextKindToString(tkctx) << std::endl;
-        // std::cout << "Check if apply term " << recTerm << std::endl;
-        if (atk == TermKind::SMT_BUILTIN_APPLY)
-        {
-          // go back and get its arguments
-          std::string smtAppName;
-          std::vector<Expr> smtArgs;
-          getTermKindApply(recTerm, smtAppName, smtArgs);
-          if (!smtArgs.empty())
-          {
-            os << "(";
-            cparen[key] = 1;
-          }
-          if (smtAppName == "eo.to_smt")
-          {
-            os << "eo.to_smt";
-          }
-          // testers introduced in model_smt layer handled specially
-          else if (smtAppName.compare(0, 3, "is ") == 0)
-          {
-            os << "(_ is " << smtAppName.substr(3) << ")";
-          }
-          else
-          {
-            os << smtAppName;
-          }
-          if (smtArgs.empty())
-          {
-            visit.pop_back();
-            continue;
-          }
-          os << " ";
-          std::cout << key.first << " is " << smtAppName << " / " << smtArgs
-                    << std::endl;
-          // we recurse on the compiled SMT arguments
-          bool isIte = (smtAppName == "ite");
-          // reverse them, to print left to right
-          std::reverse(smtArgs.begin(), smtArgs.end());
-          // we will be done printing this after pushing its children
-          std::get<1>(visit.back()) = recTerm.getNumChildren();
-          for (size_t j = 0, nargs = smtArgs.size(); j < nargs; j++)
-          {
-            // the new context is SMT_BUILTIN
-            TermContextKind newCtx = TermContextKind::SMT_BUILTIN;
-            // as an exception, ITE branches preserve their context
-            // Note that this means that SMT-LIB ITE can be used to
-            // case split on Eunoia terms.
-            if (isIte && j < 2)
-            {
-              newCtx = tkctx;
-            }
-            if (j > 0)
-            {
-              // print a space
-              visit.emplace_back(d_null, 0, TermContextKind::NONE);
-            }
-            visit.emplace_back(smtArgs[j], 0, newCtx);
-          }
-          continue;
-        }
-        */
         // all other operators always print as applications
         os << "(";
         cparen[key] = 1;
@@ -1161,16 +1094,288 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       visit.emplace_back(recTerm[childIndex], 0, tkctx);
     }
   } while (!visit.empty());
+  return true;
+#else
+  // os << ctx.d_letBegin.str();
+  std::map<Expr, std::string>::const_iterator it;
+  std::map<Expr, TermContextKind>::const_iterator ittc;
+  std::stringstream osEnd;
+  std::vector<Expr> ll;
+  // maps smt apply terms to the tuple that they actually are
+  std::map<std::pair<Expr, TermContextKind>, TermContextKind> tctxChildren;
+  std::map<std::pair<Expr, TermContextKind>, size_t> cparen;
+  std::map<std::pair<Expr, TermContextKind>, TermContextKind>::iterator itt;
+  // letify parameters for efficiency?
   /*
-    if (i < nll)
+  // TODO: this is probably impossible without a sanitize step.
+  std::map<const ExprValue*, size_t> lbind;
+  lbind = Expr::computeLetBinding(body, ll);
+  std::vector<const ExprValue*> toErase;
+  // do not letify terms that are SMT apply terms
+  for (std::pair<const ExprValue* const, size_t>& lbs : lbind)
+  {
+    Expr t(lbs.first);
+    if (isSmtApplyTerm(t))
     {
-      os << "))";
+      toErase.push_back(lbs.first);
     }
   }
-  os << osEnd.str();
+  for (const ExprValue * e : toErase)
+  {
+    lbind.erase(e);
+    std::erase(ll.begin(), ll.end()
+  }
+  std::map<const ExprValue*, size_t>::iterator itl;
+  for (size_t i = 0, nll = ll.size(); i <= nll; i++)
+  {
+    if (i > 0)
+    {
+      os << " ";
+    }
+    if (i < nll)
+    {
+      os << "(let ((y" << i << " ";
+      osEnd << ")";
+    }
+    Expr t = i < nll ? ll[i] : body;
   */
-  // os << ctx.d_letEnd.str();
+  Expr t = body;
+  std::map<Expr, size_t>::iterator itv;
+  std::vector<std::tuple<Expr, size_t, TermContextKind>> visit;
+  std::tuple<Expr, size_t, TermContextKind> cur;
+  Expr recTerm;
+  tinit = tinit == TermContextKind::NONE ? TermContextKind::EUNOIA : tinit;
+  visit.emplace_back(t, 0, tinit);
+  do
+  {
+    cur = visit.back();
+    recTerm = std::get<0>(cur);
+    // we use "null" for a space
+    if (recTerm.isNull())
+    {
+      os << " ";
+      visit.pop_back();
+      continue;
+    }
+    size_t childIndex = std::get<1>(cur);
+    TermContextKind tkctx = std::get<2>(cur);
+    std::pair<Expr, TermContextKind> key(recTerm, tkctx);
+    // maybe its children have a different context?
+    itt = tctxChildren.find(key);
+    if (itt != tctxChildren.end())
+    {
+      tkctx = itt->second;
+    }
+    // if we are printing the head of the term
+    if (childIndex == 0)
+    {
+      /*
+      itl = lbind.find(cur.first.getValue());
+      if (itl != lbind.end() && itl->second != i)
+      {
+        os << "y" << itl->second;
+        visit.pop_back();
+        continue;
+      }
+      */
+      Kind ck = recTerm.getKind();
+      if (ck == Kind::PARAM)
+      {
+        it = ctx.d_ctx.find(recTerm);
+        ittc = ctx.d_tctx.find(recTerm);
+        Assert(it != ctx.d_ctx.end()) << "Cannot find " << recTerm;
+        // if it was matched in an SMT context, and this is a Eunoia context,
+        // wrap it
+        if (tkctx == TermContextKind::EUNOIA
+            && ittc->second == TermContextKind::SMT)
+        {
+          os << "(eo.SmtTerm " << it->second << ")";
+        }
+        else
+        {
+          os << it->second;
+        }
+        visit.pop_back();
+        continue;
+      }
+      else if (recTerm.getNumChildren() == 0)
+      {
+        printEmbAtomicTerm(recTerm, os, tkctx);
+        visit.pop_back();
+        continue;
+      }
+      TermContextKind newCtx = TermContextKind::NONE;
+      if (ck == Kind::APPLY)
+      {
+        TermKind atk = getTermKind(recTerm[0]);
+        std::cout << "tk: head of apply " << key.first << " : "
+                  << termKindToString(atk) << " in ctx "
+                  << termContextKindToString(tkctx) << std::endl;
+        // all other operators always print as applications
+        os << "(";
+        cparen[key] = 1;
+        if (atk == TermKind::PROGRAM)
+        {
+          newCtx = TermContextKind::EUNOIA;
+        }
+        else if (atk == TermKind::SMT_TO_EO_PROGRAM)
+        {
+          newCtx = TermContextKind::SMT;
+        }
+        else if (atk == TermKind::SMT_BUILTIN_PROGRAM)
+        {
+          newCtx = TermContextKind::SMT_BUILTIN;
+          // do not print apply
+        }
+        else if (atk == TermKind::SMT_PROGRAM)
+        {
+          // TODO: meta kind here
+          newCtx = TermContextKind::SMT;
+        }
+        else if (atk == TermKind::SMT_TERM && tkctx == TermContextKind::EUNOIA)
+        {
+          std::cout << "...change context to SMT_TERM" << std::endl;
+          os << "eo.SmtTerm (sm.Apply ";
+          // our children are now each SMT terms.
+          Assert(recTerm.getNumChildren() == 2)
+              << "Not 2 child apply SMT term: " << recTerm << " "
+              << recTerm.getNumChildren();
+          tkctx = TermContextKind::SMT;
+          tctxChildren[key] = tkctx;
+          cparen[key]++;
+        }
+        else if (atk == TermKind::EUNOIA_TERM || atk == TermKind::SMT_TERM)
+        {
+          Assert(recTerm.getNumChildren() == 2);
+          // could use macro to ensure "Stuck" propagates
+          // NOTE: if we have the invariant that we pattern matched, we don't
+          // need to check
+          os << (tkctx == TermContextKind::EUNOIA ? "$eo_Apply " : "sm.Apply ");
+          // term context does not change
+        }
+        else
+        {
+          EO_FATAL() << "Unhandled term kind for " << recTerm << " "
+                     << termKindToString(atk) << ", in context "
+                     << termContextKindToString(tkctx);
+        }
+      }
+      else
+      {
+        if (ck == Kind::APPLY_OPAQUE)
+        {
+          // this is always printed in the original context first??
+          std::string sname;
+          TermKind atk = getTermKind(recTerm, sname);
+          std::cout << "tk: apply opaque " << recTerm << " : "
+                    << termKindToString(atk) << " in ctx "
+                    << termContextKindToString(tkctx) << std::endl;
+          if (tkctx == TermContextKind::EUNOIA
+              && atk == TermKind::EUNOIA_DT_CONS)
+          {
+            // the arugment of eo.SmtTerm is an SMT term
+            newCtx = TermContextKind::SMT;
+          }
+          else if (tkctx == TermContextKind::SMT
+                   && atk == TermKind::SMT_DT_CONS)
+          {
+            // the opaque arguments of SMT-LIB literal constructors are builtin
+            // SMT terms
+            newCtx = TermContextKind::SMT_BUILTIN;
+          }
+          else if (atk == TermKind::SMT_BUILTIN_APPLY
+                   || atk == TermKind::SMT_BUILTIN_TYPE
+                   || atk == TermKind::SMT_STD_TYPE)
+          {
+            if (atk == TermKind::SMT_BUILTIN_APPLY)
+            {
+              tctxChildren[key] = TermContextKind::SMT_BUILTIN;
+            }
+            else if (atk == TermKind::SMT_BUILTIN_TYPE)
+            {
+              // The kind of subterms to appear in types (beneath $smt_type_*)
+              tctxChildren[key] = TermContextKind::SMT_TYPE;
+            }
+            else
+            {
+              os << "tsm.";
+              tctxChildren[key] = TermContextKind::SMT_BUILTIN;
+              continue;
+            }
+            // this handles the corner case that ($smt_apply_0 "true") should
+            // print as "true" not "(true)".
+            if (recTerm.getNumChildren()>2)
+            {
+              os << "(";
+              cparen[key] = 1;
+            }
+            // the first argument is the opaque operator,
+            // the second argument is taken as a name
+            std::get<1>(visit.back())++;
+            std::get<1>(visit.back())++;
+            os << sname;
+            continue;
+          }
+          // all other operators print as applications
+          os << "(";
+          cparen[key] = 1;
+        }
+        else if (ck == Kind::FUNCTION_TYPE)
+        {
+          Assert(recTerm.getNumChildren() == 2);
+          // must use macro to ensure "Stuck" propagates
+          os << "($eo_FunType ";
+          cparen[key] = 1;
+        }
+        else if (isLiteralOp(ck))
+        {
+          std::string kstr = kindToTerm(ck);
+          if (kstr.compare(0, 4, "eo::") == 0)
+          {
+            os << "($eo_" << kstr.substr(4) << " ";
+            cparen[key] = 1;
+          }
+          else
+          {
+            EO_FATAL() << "Bad name for literal kind " << ck << std::endl;
+          }
+        }
+        else
+        {
+          EO_FATAL() << "Unhandled kind in print term " << ck << " " << recTerm
+                     << " / " << termContextKindToString(tkctx) << std::endl;
+        }
+      }
+      if (newCtx != TermContextKind::NONE)
+      {
+        // TODO: improve??
+        tkctx = newCtx;
+        tctxChildren[key] = newCtx;
+      }
+      Assert(recTerm[childIndex].getKind() != Kind::TUPLE);
+      std::get<1>(visit.back())++;
+      visit.emplace_back(recTerm[childIndex], 0, tkctx);
+    }
+    else if (childIndex >= recTerm.getNumChildren())
+    {
+      // done with arguments, close the appropriate number of parentheses
+      for (size_t i = 0, ncparen = cparen[key]; i < ncparen; i++)
+      {
+        os << ")";
+      }
+      visit.pop_back();
+    }
+    else
+    {
+      // another argument
+      Assert(childIndex < recTerm.getNumChildren());
+      os << " ";
+      std::get<1>(visit.back())++;
+      visit.emplace_back(recTerm[childIndex], 0, tkctx);
+    }
+  } while (!visit.empty());
   return true;
+#endif
 }
 
 void SmtMetaReduce::defineProgram(const Expr& v, const Expr& prog)
