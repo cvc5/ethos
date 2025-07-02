@@ -67,7 +67,7 @@ cp $STD_SMODEL_OUT $VCM_DEF_DESUGAR
 # - getting the meta type of terms, which is used in the final step below
 # - symbols that may appear in custom axioms (e.g. $smtx_const_predicate).
 echo "**** smt_meta: Run ethos + trim-deps on $VCM_DEF_DESUGAR to generate $VCMT_DEF_DESUGAR"
-./run_trim_defs $VCM_DEF_DESUGAR "\$eovc_$TARGET" "\$smtx_const_predicate"  >/dev/null
+./run_trim_defs $VCM_DEF_DESUGAR "\$eovc_$TARGET" "\$smtx_const_predicate" "\$eo_get_meta_type"  >/dev/null
 check_status
 cp $STD_TRIM_OUT $VCMT_DEF_DESUGAR
 
@@ -88,6 +88,8 @@ sed -i 's/\$smt_builtin_//g' $VC_OUT
 #sed -i 's/\.new//g' $VC_OUT
 # concatenate the VC computed above
 cat $STD_VC_OUT >> $VC_OUT
+
+# TODO: trim-defs again, on smt2
 
 echo "**** smt_meta: Run the final verification condition with unsat cores"
 ajr-cvc5 $VC_OUT --dump-unsat-cores #--parse-only

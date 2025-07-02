@@ -3,7 +3,9 @@
 
 ;;; Eunoia datatype constructors
 
-; $eo_smt_term declared in eo_builtin_smt.eo
+; The Eunoia representation of an SMT-LIB term.
+; $eo_smt_term 
+; - already declared in eo_builtin_smt.eo
 
 ; The Eunoia representation of an SMT-LIB type.
 (declare-parameterized-const $smd_eo.SmtType ((t $smt_Type :opaque)) $eo_Term)
@@ -91,10 +93,7 @@
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; TODO: use?
-(declare-const $smt_builtin_tsm.new.Type Type)
 (declare-const $smt_builtin_sm.new.Term Type)
-(declare-const $smt_builtin_eo.new.Term Type)
 
 ;;; Deep embedding of SMT-LIB terms
 
@@ -114,7 +113,7 @@
   (
 $SMT_EMBED_META_TYPE_DECL$
   ; otherwise, assume eo.new.Term
-  (($eo_get_meta_type t) $smt_builtin_eo.new.Term)
+  (($eo_get_meta_type t) $eo_Term)
   )
 )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_eo

@@ -253,12 +253,12 @@ void ModelSmt::finalizeDecl(const Expr& e)
   std::stringstream* out = nullptr;
   std::stringstream prefix;
   std::stringstream metaType;
-  metaType << "(($eo_get_meta_type " << e << ") $smt_builtin_";
+  metaType << "(($eo_get_meta_type " << e << ") ";
   if (sname.compare(0, 1, "@") == 0 || sname.compare(0, 8, "$eo_List") == 0 || sname=="$eo_Var")
   {
     prefix << "eo.";
     out = &d_embedEoTermDt;
-    metaType << "eo.new.Term)";
+    metaType << "$eo_Term)";
   }
   else if (sname.compare(0, 4, "$eo_") != 0)
   {
@@ -268,14 +268,14 @@ void ModelSmt::finalizeDecl(const Expr& e)
     {
       prefix << "tsm.";
       out = &d_embedTypeDt;
-      metaType << "tsm.new.Type)";
+      metaType << "$smt_Type)";
     }
     else
     {
       // otherwise assume an SMT term
       prefix << "sm.";
       out = &d_embedTermDt;
-      metaType << "sm.new.Term)";
+      metaType << "$smt_Term)";
     }
   }
   if (out == nullptr)
@@ -310,7 +310,7 @@ void ModelSmt::finalizeDecl(const Expr& e)
   for (size_t i = 0; i < nopqArgs; i++)
   {
     (*out) << " (" << cname.str();
-    (*out) << ".arg" << (i + 1) << " $smt_builtin_";
+    (*out) << ".arg" << (i + 1);
     // print its type using the utility,
     // which takes into account what the type is in the final embedding
     Expr typ = ct[i];

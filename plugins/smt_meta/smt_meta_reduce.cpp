@@ -1391,6 +1391,12 @@ void SmtMetaReduce::finalizePrograms()
     {
       std::cout << "WARNING: lambda " << p.first << std::endl;
       Expr e = p.second;
+      TermKind tk = getTermKind(p.first);
+      // things that are manually axiomatized
+      if (tk == TermKind::INTERNAL)
+      {
+        continue;
+      }
 #if 0
       Assert(e[0].getKind() == Kind::TUPLE);
       std::vector<Expr> appChildren;
@@ -1799,7 +1805,14 @@ void SmtMetaReduce::finalizeDeclarations()
 }
 
 void SmtMetaReduce::finalize()
-{
+{  // Here, we expect $eo_get_meta_type to be defined as a function in the
+  // signature, which is an oracle for saying which datatype a term belongs
+  // to in the deep embedding. We expect this program to be defined as well
+  // as the names of the types.
+  d_eoGetMetaKind = lookupVar("$eo_get_meta_type");
+  d_metaEoTerm = lookupVar("$eo_Term");
+  d_metaSmtTerm = lookupVar("$smt_Term");
+  d_metaSmtType = lookupVar("$smt_Type");
   finalizePrograms();
   finalizeDeclarations();
 
@@ -2042,6 +2055,10 @@ TermKind SmtMetaReduce::getTermKind(const Expr& e, std::string& name)
 
 TermKind SmtMetaReduce::getTermKindAtomic(const Expr& e, std::string& name)
 {
+  if (e==d_eoGetMetaKind)
+  {
+    return TermKind::INTERNAL;
+  }
   Kind k = e.getKind();
   std::stringstream ss;
   ss << e;
@@ -2163,22 +2180,7 @@ TermContextKind SmtMetaReduce::getMetaKind(const Expr& e)
   {
     return it->second;
   }
-  // Here, we expect $eo_get_meta_type to be defined as a function in the
-  // signature, which is an oracle for saying which datatype a term belongs
-  // to in the deep embedding. We expect this program to be defined as well
-  // as the names of the types.
-  if (d_eoGetMetaKind.isNull())
-  {
-    d_eoGetMetaKind = lookupVar("$eo_get_meta_type");
-    d_metaEoTerm = lookupVar("$smt_builtin_eo.new.Term");
-    d_metaSmtTerm = lookupVar("$smt_builtin_sm.new.Term");
-    d_metaSmtType = lookupVar("$smt_builtin_tsm.new.Type");
-    // also initialize the exception cases
-    // this is necessary for any custom definitions of non-nullary constructors
-    // in model_eo_embed.eo.
 
-    //d_metaKindArg[std::pair<size_t, Expr>(1,
-  }
   Expr hd = e;
   // if an apply, we look for the head, this will determine eo.Apply vs. sm.Apply
   while (hd.getKind()==Kind::APPLY)
