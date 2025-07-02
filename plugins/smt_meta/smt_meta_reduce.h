@@ -32,9 +32,6 @@ enum class TermContextKind
   SMT_TYPE,
   SMT_VALUE,
   PROGRAM,
-  NUMERAL,
-  RATIONAL,
-  STRING,
   NONE
 };
 std::string termContextKindToString(TermContextKind k);
