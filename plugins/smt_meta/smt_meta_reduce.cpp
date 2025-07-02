@@ -1087,15 +1087,15 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
         std::string embName = getEmbedName(recTerm);
         if (recTerm.getNumChildren() > 2)
         {
-          os << "(" << embName;
+          os << "(" << embName << " ";
           cparen[key]++;
-          cstart++;
+          cstart = 2;
         }
         else
         {
           // this handles the corner case that ($smt_apply_0 "true") should
           // print as "true" not "(true)".
-          os << embName;
+          os << embName << " ";
           visit.pop_back();
           continue;
         }
@@ -1105,6 +1105,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
         // all other operators print as applications
         os << "(";
         cparen[key]++;
+        cstart = 1;
       }
     }
     else if (ck == Kind::FUNCTION_TYPE)
@@ -1138,8 +1139,11 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     // push in reverse order
     for (size_t i=cstart, nchild=recTerm.getNumChildren(); i<nchild; i++)
     {
-      // add a space first
-      visit.emplace_back(d_null, TermContextKind::NONE);
+      if (i!=cstart)
+      {
+        // add a space after the argument, unless the last (first) argument
+        visit.emplace_back(d_null, TermContextKind::NONE);
+      }
       size_t ii = cstart+(nchild-i)-1;
       visit.emplace_back(recTerm[ii], targs[ii]);
     }
@@ -1514,7 +1518,12 @@ void SmtMetaReduce::finalizePrograms()
         ctxInit = termKindToContext(tk);
       }
       d_defs << " ";
-      printEmbTerm(e[1], d_defs, ctx, ctxInit);
+      std::cout << "PRINTING " << e[1] << std::endl;
+      std::stringstream ssb;
+      printEmbTerm(e[1], ssb, ctx, ctxInit);
+      d_defs << ssb.str();
+      std::cout << "...GOT " << ssb.str() << std::endl;
+      
       // we now know the types of terms, take that into account
       d_defs << ")" << std::endl << std::endl;
       continue;
@@ -1680,11 +1689,11 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
 #else
     TermContextKind bodyInitCtx = termKindToContext(retTypeCtx);
 #endif
-    std::cout << "...print " << body << " in context "
+    std::cout << "PRINTING " << body << " in context "
               << termContextKindToString(bodyInitCtx) << std::endl;
     printEmbTerm(body, currRet, ctx, bodyInitCtx);
     std::cout << "...finished" << std::endl;
-    std::cout << "...result is " << currRet.str() << std::endl;
+    std::cout << "...RESULT is " << currRet.str() << std::endl;
     if (isEoProg || tk == TermKind::SMT_PROGRAM)
     {
       // we permit SMT_PROGRAM and Eunoia programs to have pattern matching
