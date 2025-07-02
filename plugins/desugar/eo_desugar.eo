@@ -528,7 +528,7 @@ $EO_NIL_CASES$
 ; This is used to defined verification conditions.
 (program $eo_model_sat () :signature ($eo_Term) Bool)
 
-(echo "include model_smt")
+(echo "include model_smt_gen")
 
 ;;; the verification condition
 

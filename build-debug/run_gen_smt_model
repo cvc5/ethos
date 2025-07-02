@@ -25,18 +25,13 @@ else
 fi
 
 # include the model semantics, which was generated above
-sed -i "/(echo \"include model_smt\")/{
+sed -i "/(echo \"include model_smt_gen\")/{
     r ../plugins/model_smt/model_smt_gen.eo
     d
 }" $TMP_OUT
 
+# Now put the final Eunoia file at the target location
 cp $TMP_OUT $STD_SMODEL_OUT
-#mv $STD_SMODEL_OUT $STD_SMODEL_OUT.tmp
-## the user definitions come first
-#cp $TMP_OUT $STD_SMODEL_OUT
-## then append the filled in template
-#cat $STD_SMODEL_OUT.tmp >> $STD_SMODEL_OUT
-rm -f $TMP_OUT
 
 #echo "**** run_gen_model: Verify it parses"
 #./src/ethos $STD_SMODEL_OUT

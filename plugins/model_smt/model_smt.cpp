@@ -364,19 +364,6 @@ void ModelSmt::finalize()
   std::ofstream outee(ssoee.str());
   outee << finalEoEmbed;
 
-
-  std::stringstream ssie;
-  ssie << s_plugin_path << "plugins/model_smt/model_eo.eo";
-  std::ifstream ine(ssie.str());
-  std::ostringstream sse;
-  sse << ine.rdbuf();
-  std::string finalEo = sse.str();
-  replace(finalEo, "$EO_TYPE_ENUM_CASES$", d_typeEnum.str());
-  replace(finalEo, "$EO_IS_VALUE_CASES$", d_isValue.str());
-  replace(finalEo, "$EO_IS_TYPE_CASES$", d_isType.str());
-  replace(finalEo, "$EO_CONST_PREDICATE_CASES$", d_constPred.str());
-  replace(finalEo, "$EO_EVAL_CASES$", d_customEval.str());
-
   // now, go back and compile *.eo for the proof rules
   std::stringstream ssis;
   ssis << s_plugin_path << "plugins/model_smt/model_smt.eo";
@@ -384,6 +371,11 @@ void ModelSmt::finalize()
   std::ostringstream sss;
   sss << ins.rdbuf();
   std::string finalSmt = sss.str();
+  replace(finalSmt, "$EO_TYPE_ENUM_CASES$", d_typeEnum.str());
+  replace(finalSmt, "$EO_IS_VALUE_CASES$", d_isValue.str());
+  replace(finalSmt, "$EO_IS_TYPE_CASES$", d_isType.str());
+  replace(finalSmt, "$EO_CONST_PREDICATE_CASES$", d_constPred.str());
+  replace(finalSmt, "$EO_EVAL_CASES$", d_customEval.str());
   // plug in the evaluation cases handled by this plugin
   replace(finalSmt, "$SMT_EVAL_CASES$", d_eval.str());
 
@@ -391,8 +383,6 @@ void ModelSmt::finalize()
   ssoe << s_plugin_path << "plugins/model_smt/model_smt_gen.eo";
   // std::cout << "Write smt-model    " << finalSmt.str() << std::endl;
   std::ofstream oute(ssoe.str());
-  // the final user defined signature, as a preamble
-  oute << finalEo;
   oute << finalSmt;
 }
 

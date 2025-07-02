@@ -1,5 +1,140 @@
 ; includes model_smt_preamble.eo
 
+(echo "include model_eo_embed_gen")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_eo
+
+; This file gives a template for defining the model semantics of
+; a Eunoia signature. The signature model_smt.eo uses this signature
+; to define (a user extension of) the standard SMT-LIB semantics.
+;
+; In the end we define:
+; <user signature>
+; <this file, instantiated based on the above signature>
+; <model_smt.eo>
+;
+; Note that we instantiate model_smt.eo directly (SMT_EVAL_CASES)
+; based on a controlled template, namely which standard SMT-LIB operators
+; are present in the user signature, where *names* are taken literally.
+; That is, if the user declares "+", then it may appear in the model
+; evaluation function in the instantiated version of model_smt.eo.
+
+; INVARIANT:
+; All methods in this signature that take at least one $eo_Term as argument
+; must return $eo_Term as the result.
+
+(define $eo_mk_stuck () $smd_eo.Stuck)
+
+; Returns true if its argument is an SMT value.
+; This function is expected to never get stuck.
+; NOTE: this has to return an $eo_Term since the arugments are $eo_Term.
+(program $eo_is_value ((T $eo_Term) (t $eo_Term))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+$EO_IS_VALUE_CASES$
+  (($eo_is_value T t) $eo_mk_stuck)
+  )
+)
+
+; Requires:
+; - $eo_is_type to return true for all CPC types that are either polymorphic or not SMT-LIB standard.
+; - $eo_type_enum for CPC types that are either polymorphic or not SMT-LIB standard.
+
+; Returns true if T is a type that a term may take.
+(program $eo_is_type ((T $eo_Term))
+  :signature ($eo_Term) $eo_Term
+  (
+$EO_IS_TYPE_CASES$
+  ; We do not handle this type.
+  ; This statement rejects any type that is not in our signature.
+  ; In other words, this limits the scope of which syntactic terms
+  ; we are testing in our verification conditions. It is thus important
+  ; that this method is complete (which in turn ensures the verification
+  ; pipeline is sound).
+  (($eo_is_type T) $eo_mk_stuck)
+  )
+)
+
+; type enumeration
+
+; note: The methods in this section are only included (based on trim-defs) if
+; the verification condition is reasoning about quantified formulas
+
+; we have no incorporate of irrational values, which can be soundly approximated using
+; $smd_sm.usort_value.
+;(define $smt_irrat_enum ((i $smt_Numeral))
+;  ($smd_sm.usort_value $smt_Rational i))
+
+; NOTE: the "stuckness" of this method defines cardinality for types!!!!!!!
+; Thus it is different from the other methods in this signature, which use
+; stuckness as a no-op in a callback.
+(program $eo_enum_type ((T $eo_Term) (i $smt_builtin_Int))
+  :signature ($eo_Term $smt_builtin_Int) $eo_Term
+  (
+  ; enumeration of standard SMT types
+  ;(($eo_enum_type $smt_Numeral i)     (eo::define ((v (eo::zdiv i 2)))
+  ;                                      ($smt_apply_3 "ite" ($smt_apply_2 "=" (eo::zmod i 2) 0) v (eo::neg v))))
+  ;(($eo_enum_type $smt_String i)      ($smt_apply_3 "ite" ($smt_apply_2 "=" i 0)
+  ;                                      ""
+  ;                                      (eo::concat (eo::to_str (eo::zmod i 196608)) ($eo_enum_type $smt_String (eo::zdiv i 196608)))))
+  ; rationals are treated as Real, meaning we interleave rational/irrational.
+  ;(($eo_enum_type $smt_Rational i)    (eo::define ((ir (eo::zdiv i 2)))
+  ;                                    (eo::define ((isRat ($smt_apply_2 "=" (eo::zmod ir 2) 0)))
+  ;                                    (eo::define ((i (eo::zdiv ir 2)))
+  ;                                    (eo::define ((v ($smt_apply_3 "ite" isRat ($eo_rat_to_num ($smt_rat_enum i)) ($smt_irrat_enum i))))
+  ;                                      ($smt_apply_3 "ite" ($smt_apply_2 "=" (eo::zmod i 2) 0) v (eo::neg v)))))))
+  ; Note that $smt_BitVec must be mapped to the user's definition of binaries.
+  ; Note this method gets stuck if i > 2^w, indicating we have run out of values.
+  ;(($eo_enum_type ($smt_BitVec w) i) (eo::define ((v (eo::to_bin w i)))
+  ;                                      (eo::requires (eo::to_z v) i v)))
+  ; TODO: functions, datatypes
+  ; Try to enumerate the type, if we fail, we return $smd_sm.usort_value.
+  ; Note that this essentially assumes that unhandled types are uninterpreted
+  ; and have infinite cardinality (since this does not get stuck).
+  (($eo_enum_type T i)                ($smd_sm.usort_value T i))
+  )
+)
+
+; program: ($smtx_enum_type_contains_rec T t i)
+; Returns true if t is contained in the type enumeration of T, starting from i.
+;(program $eo_enum_type_contains_rec ((T $smt_Type) (t $smt_Term) (i $smt_builtin_Int))
+;  :signature ($smt_Type $smt_Term $smt_builtin_Int) Bool
+;  (
+;  (($smtx_enum_type_contains_rec T t i)   (eo::define ((v ($smtx_enum_type T i)))
+;                                          ($smt_apply_3 "ite" ($smt_apply_1 "$eo_is_ok" v)
+;                                          ($smt_apply_3 "ite" ($smt_apply_2 "=" v t)
+;                                            true
+;                                            ($smtx_enum_type_contains_rec T i ($smt_apply_2 "+" i 1)))
+;                                          false)))
+;  )
+;)
+
+; Returns a predicate describing the properties of symbols
+; that cannot be assigned a total semantics. For example,
+; this is what defines skolem symbols.
+(program $eo_const_predicate ((k $smt_builtin_Int) (i $smt_builtin_Int) (T $eo_Term) (x $eo_Term))
+  :signature ($smt_builtin_Int $smt_builtin_Int $eo_Term $eo_Term) $eo_Term
+  (
+$EO_CONST_PREDICATE_CASES$
+  ; return stuckness, this will be handled upstream
+  (($eo_const_predicate k i T x) $eo_mk_stuck)
+  )
+)
+
+; This method can be used to define evaluation functions
+; that cannot be described in terms of SMT-LIB conventions.
+; TODO: not necessary for CPC?
+(program $eo_model_eval ((t $eo_Term))
+  :signature ($eo_Term) $eo_Term
+  (
+$EO_EVAL_CASES$
+  ; return stuckness, this will be handled upstream
+  (($eo_model_eval t) $eo_mk_stuck)
+  )
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ; This file is a formalization of the SMT-LIB semantics in Eunoia.
 ; It uses a deep embedding of SMT-LIB terms .
 ; This file is expected to define function $eo_model_sat, which can be used 
