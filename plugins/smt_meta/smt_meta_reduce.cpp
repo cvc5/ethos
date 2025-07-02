@@ -651,13 +651,13 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     visit.pop_back();
     Expr tcur = std::get<0>(cur);
     std::string currTerm = std::get<1>(cur);
-    TermContextKind tkctx = std::get<2>(cur);
+    TermContextKind parent = std::get<2>(cur);
     Kind ck = tcur.getKind();
     std::stringstream cname;
     bool printArgs = false;
     size_t printArgStart = 0;
     std::cout << "  patMatch: " << tcur << " / " << currTerm << " / "
-              << termContextKindToString(tkctx) << " / kind " << ck << std::endl;
+              << termContextKindToString(parent) << " / kind " << ck << std::endl;
     if (ck == Kind::APPLY && isProgram(tcur[0]))
     {
       EO_FATAL() << "Cannot match on program " << tcur[0];
@@ -674,7 +674,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
                 << termContextKindToString(atk) << std::endl;
       // if the Eunoia term is an SMT term, change the context
       // and use the eo.SmtTerm selector
-      if (tkctx == TermContextKind::EUNOIA && atk != TermContextKind::EUNOIA)
+      if (parent == TermContextKind::EUNOIA && atk != TermContextKind::EUNOIA)
       {
         Assert(atk == TermContextKind::SMT || atk == TermContextKind::SMT_TYPE
                || atk == TermContextKind::SMT_VALUE) << "Bad kind: " << termContextKindToString(atk);
@@ -686,17 +686,17 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
         sssn << "(eo." << cons << ".arg1 " << currTerm << ")";
         currTerm = sssn.str();
         // our context is now updated
-        tkctx = atk;
+        parent = atk;
       }
       // Use the appropriate prefix
-      cname << termContextKindToPrefix(tkctx) << "Apply";
+      cname << termContextKindToPrefix(parent) << "Apply";
       printArgs = true;
     }
     else if (ck == Kind::FUNCTION_TYPE)
     {
       // TODO: can this occur?
       // maybe if reasoning about function as first class argument?
-      cname << termContextKindToPrefix(tkctx) << "FunType";
+      cname << termContextKindToPrefix(parent) << "FunType";
       printArgs = true;
     }
     else if (ck == Kind::APPLY_OPAQUE)
@@ -706,7 +706,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       printArgStart = 1;
       printArgs = true;
       // we don't know the context of children, we compute per child below
-      tkctx = TermContextKind::NONE;
+      parent = TermContextKind::NONE;
     }
     if (printArgs)
     {
@@ -714,7 +714,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       std::stringstream tester;
       tester << "((_ is " << cname.str() << ") " << currTerm << ")";
       print.push(tester.str());
-      std::vector<TermContextKind> targs = getContextArguments(tcur, tkctx);
+      std::vector<TermContextKind> targs = getContextArguments(tcur, parent);
       for (size_t i = printArgStart, nchild = tcur.getNumChildren(); i < nchild;
            i++)
       {
@@ -732,8 +732,8 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       {
         // find time seeing this parameter, it is bound to the selector chain
         ctx.d_ctx[tcur] = currTerm;
-        ctx.d_tctx[tcur] = tkctx;
-        std::cout << "PAT-MATCH: " << currTerm << " was matched in term context " << termContextKindToString(tkctx) << std::endl;
+        ctx.d_tctx[tcur] = parent;
+        std::cout << "PAT-MATCH: " << currTerm << " was matched in term context " << termContextKindToString(parent) << std::endl;
       }
       else
       {
@@ -748,7 +748,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     {
       // base case, use equality
       std::stringstream atomTerm;
-      printEmbAtomicTerm(tcur, atomTerm, tkctx);
+      printEmbAtomicTerm(tcur, atomTerm, parent);
       std::stringstream eq;
       eq << "(= " << currTerm << " " << atomTerm.str() << ")";
       print.push(eq.str());
@@ -771,14 +771,14 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     visit.pop_back();
     Expr tcur = std::get<0>(cur);
     std::string currTerm = std::get<1>(cur);
-    TermContextKind tkctx = std::get<2>(cur);
+    TermContextKind parent = std::get<2>(cur);
     Expr curType = std::get<3>(cur);
     Kind ck = tcur.getKind();
     std::stringstream cname;
     bool printArgs = false;
     size_t printArgStart = 0;
     std::cout << "  pm: " << tcur << " / " << currTerm << " / "
-              << termContextKindToString(tkctx) << std::endl;
+              << termContextKindToString(parent) << std::endl;
     Expr nextType = curType;
     if (ck == Kind::APPLY && isProgram(tcur[0]))
     {
@@ -797,7 +797,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       // if the Eunoia term is an SMT term, change the context
       // and use the eo.SmtTerm selector
       // FIXME: context switch for SMT_TYPE
-      if (tkctx == TermContextKind::EUNOIA && atk == TermKind::SMT_TERM)
+      if (parent == TermContextKind::EUNOIA && atk == TermKind::SMT_TERM)
       {
         // changes context
         os << (nconj > 0 ? " " : "") << "((_ is eo.SmtTerm) " << currTerm
@@ -807,12 +807,12 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
         sssn << "(eo.SmtTerm.arg1 " << currTerm << ")";
         currTerm = sssn.str();
         cname << "sm.Apply";
-        tkctx = TermContextKind::SMT;
+        parent = TermContextKind::SMT;
       }
       else
       {
         // If we are an SMT apply, use sm. else eo.
-        cname << (tkctx == TermContextKind::SMT ? "sm" : "eo") << ".Apply";
+        cname << (parent == TermContextKind::SMT ? "sm" : "eo") << ".Apply";
       }
       printArgs = true;
     }
@@ -820,31 +820,31 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     {
       // TODO: can this occur?
       // maybe if reasoning about function as first class argument?
-      cname << (tkctx == TermContextKind::SMT ? "sm" : "eo") << ".FunType";
+      cname << (parent == TermContextKind::SMT ? "sm" : "eo") << ".FunType";
       printArgs = true;
     }
     else if (ck == Kind::APPLY_OPAQUE)
     {
       // will use a tester
-      printEmbAtomicTerm(tcur[0], cname, tkctx);
+      printEmbAtomicTerm(tcur[0], cname, parent);
       printArgStart = 1;
       printArgs = true;
       TermKind atk = getTermKind(tcur[0]);
       std::cout << "  atk-o: " << tcur[0] << " is " << termKindToString(atk)
                 << std::endl;
-      if (tkctx == TermContextKind::EUNOIA && atk == TermKind::EUNOIA_DT_CONS)
+      if (parent == TermContextKind::EUNOIA && atk == TermKind::EUNOIA_DT_CONS)
       {
         // the type of the Eunoia SMT-LIB constructor is SMT terms
-        tkctx = TermContextKind::SMT;
+        parent = TermContextKind::SMT;
       }
-      if (tkctx == TermContextKind::SMT
+      if (parent == TermContextKind::SMT
           && (atk == TermKind::SMT_DT_CONS
               || atk == TermKind::SMT_TYPE_DT_CONS))
       {
         // the opaque arguments of SMT-LIB literal terms are builtin SMT terms
         // the opaque arguments of SMT-LIB types (e.g. uninterpreted sorts) are
         // also builtins
-        tkctx = TermContextKind::SMT_BUILTIN;
+        parent = TermContextKind::SMT_BUILTIN;
       }
     }
     if (printArgs)
@@ -862,7 +862,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
         // the next type is "reset"
         Expr tcc = tcur[i];
         Expr nextType = d_tc.getType(tcc);
-        visit.emplace_back(tcur[i], ssNext.str(), tkctx, nextType);
+        visit.emplace_back(tcur[i], ssNext.str(), parent, nextType);
       }
     }
     else if (ck == Kind::PARAM)
@@ -872,7 +872,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       {
         // find time seeing this parameter, it is bound to the selector chain
         ctx.d_ctx[tcur] = currTerm;
-        ctx.d_tctx[tcur] = tkctx;
+        ctx.d_tctx[tcur] = parent;
         // remember the type
         ctx.d_typeMatch[tcur] = curType;
       }
@@ -886,7 +886,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     else
     {
       std::stringstream atomTerm;
-      printEmbAtomicTerm(tcur, atomTerm, tkctx);
+      printEmbAtomicTerm(tcur, atomTerm, parent);
       os << (nconj > 0 ? " " : "") << "(= " << currTerm << " " << atomTerm.str()
          << ")";
       nconj++;
@@ -914,7 +914,7 @@ std::vector<TermContextKind> SmtMetaReduce::getContextArguments(const Expr& e, T
   {
     if (isSmtApp)
     {
-      ret.push_back(TermContextKind::SMT);
+      ret.push_back(TermContextKind::SMT_BUILTIN);
     }
     else if (isSmtType)
     {
@@ -998,8 +998,8 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       visit.pop_back();
       continue;
     }
-    TermContextKind tkctx = cur.second;
-    std::pair<Expr, TermContextKind> key(recTerm, tkctx);
+    TermContextKind parent = cur.second;
+    std::pair<Expr, TermContextKind> key(recTerm, parent);
     itc = cparen.find(key);
     if (itc != cparen.end())
     {
@@ -1029,11 +1029,11 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     }
     else if (recTerm.getNumChildren() == 0)
     {
-      printEmbAtomicTerm(recTerm, os, tkctx);
+      printEmbAtomicTerm(recTerm, os, parent);
       visit.pop_back();
       continue;
     }
-    std::cout << "print: " << recTerm << " / " <<termContextKindToString(tkctx) << std::endl;
+    std::cout << "print: " << recTerm << " / " <<termContextKindToString(parent) << std::endl;
     // we always push all children at once
     size_t cstart = 0;
     if (ck == Kind::APPLY)
@@ -1047,9 +1047,9 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
         processed = true;
       }
       // TODO: move this to where arguments go
-      if (tkctx!=child)
+      if (parent!=child)
       {
-        if (tkctx==TermContextKind::EUNOIA)
+        if (parent==TermContextKind::EUNOIA)
         {
           if (child==TermContextKind::SMT)
           {
@@ -1065,7 +1065,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           }
         }
       }
-      else if (tkctx==TermContextKind::EUNOIA)
+      else if (parent==TermContextKind::EUNOIA)
       {
         // could use macro to ensure "Stuck" propagates
         // NOTE: if we have the invariant that we pattern matched, we don't
@@ -1073,7 +1073,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
         os << "$eo_Apply ";
         processed = true;
       }
-      else if (tkctx==TermContextKind::SMT)
+      else if (parent==TermContextKind::SMT)
       {
         os << "sm.Apply ";
         processed = true;
@@ -1082,7 +1082,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       {
         Assert(false) << "Unhandled term kind for " << recTerm << " "
         << ", in context "
-        << termContextKindToString(tkctx);
+        << termContextKindToString(parent) << " / " << termContextKindToString(child);
       }
     }
     else if (ck == Kind::APPLY_OPAQUE)
@@ -1142,10 +1142,10 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     else
     {
       EO_FATAL() << "Unhandled kind in print term " << ck << " " << recTerm
-                  << " / " << termContextKindToString(tkctx) << std::endl;
+                  << " / " << termContextKindToString(parent) << std::endl;
     }
     // otherwise, the new context depends on the types of the children
-    std::vector<TermContextKind> targs = getContextArguments(recTerm, tkctx);
+    std::vector<TermContextKind> targs = getContextArguments(recTerm, parent);
     // push in reverse order
     for (size_t i=cstart, nchild=recTerm.getNumChildren(); i<nchild; i++)
     {
@@ -1222,13 +1222,13 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       continue;
     }
     size_t childIndex = std::get<1>(cur);
-    TermContextKind tkctx = std::get<2>(cur);
-    std::pair<Expr, TermContextKind> key(recTerm, tkctx);
+    TermContextKind parent = std::get<2>(cur);
+    std::pair<Expr, TermContextKind> key(recTerm, parent);
     // maybe its children have a different context?
     itt = tctxChildren.find(key);
     if (itt != tctxChildren.end())
     {
-      tkctx = itt->second;
+      parent = itt->second;
     }
     // if we are printing the head of the term
     if (childIndex == 0)
@@ -1250,7 +1250,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
         Assert(it != ctx.d_ctx.end()) << "Cannot find " << recTerm;
         // if it was matched in an SMT context, and this is a Eunoia context,
         // wrap it
-        if (tkctx == TermContextKind::EUNOIA
+        if (parent == TermContextKind::EUNOIA
             && ittc->second == TermContextKind::SMT)
         {
           os << "(eo.SmtTerm " << it->second << ")";
@@ -1264,7 +1264,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       }
       else if (recTerm.getNumChildren() == 0)
       {
-        printEmbAtomicTerm(recTerm, os, tkctx);
+        printEmbAtomicTerm(recTerm, os, parent);
         visit.pop_back();
         continue;
       }
@@ -1274,7 +1274,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
         TermKind atk = getTermKind(recTerm[0]);
         std::cout << "tk: head of apply " << key.first << " : "
                   << termKindToString(atk) << " in ctx "
-                  << termContextKindToString(tkctx) << std::endl;
+                  << termContextKindToString(parent) << std::endl;
         // all other operators always print as applications
         os << "(";
         cparen[key] = 1;
@@ -1296,7 +1296,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           // TODO: meta kind here
           newCtx = TermContextKind::SMT;
         }
-        else if (atk == TermKind::SMT_TERM && tkctx == TermContextKind::EUNOIA)
+        else if (atk == TermKind::SMT_TERM && parent == TermContextKind::EUNOIA)
         {
           std::cout << "...change context to SMT_TERM" << std::endl;
           os << "eo.SmtTerm (sm.Apply ";
@@ -1304,8 +1304,8 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           Assert(recTerm.getNumChildren() == 2)
               << "Not 2 child apply SMT term: " << recTerm << " "
               << recTerm.getNumChildren();
-          tkctx = TermContextKind::SMT;
-          tctxChildren[key] = tkctx;
+          parent = TermContextKind::SMT;
+          tctxChildren[key] = parent;
           cparen[key]++;
         }
         else if (atk == TermKind::EUNOIA_TERM || atk == TermKind::SMT_TERM)
@@ -1314,14 +1314,14 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           // could use macro to ensure "Stuck" propagates
           // NOTE: if we have the invariant that we pattern matched, we don't
           // need to check
-          os << (tkctx == TermContextKind::EUNOIA ? "$eo_Apply " : "sm.Apply ");
+          os << (parent == TermContextKind::EUNOIA ? "$eo_Apply " : "sm.Apply ");
           // term context does not change
         }
         else
         {
           EO_FATAL() << "Unhandled term kind for " << recTerm << " "
                      << termKindToString(atk) << ", in context "
-                     << termContextKindToString(tkctx);
+                     << termContextKindToString(parent);
         }
       }
       else
@@ -1333,14 +1333,14 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           TermKind atk = getTermKind(recTerm, sname);
           std::cout << "tk: apply opaque " << recTerm << " : "
                     << termKindToString(atk) << " in ctx "
-                    << termContextKindToString(tkctx) << std::endl;
-          if (tkctx == TermContextKind::EUNOIA
+                    << termContextKindToString(parent) << std::endl;
+          if (parent == TermContextKind::EUNOIA
               && atk == TermKind::EUNOIA_DT_CONS)
           {
             // the arugment of eo.SmtTerm is an SMT term
             newCtx = TermContextKind::SMT;
           }
-          else if (tkctx == TermContextKind::SMT
+          else if (parent == TermContextKind::SMT
                    && atk == TermKind::SMT_DT_CONS)
           {
             // the opaque arguments of SMT-LIB literal constructors are builtin
@@ -1407,18 +1407,18 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
         else
         {
           EO_FATAL() << "Unhandled kind in print term " << ck << " " << recTerm
-                     << " / " << termContextKindToString(tkctx) << std::endl;
+                     << " / " << termContextKindToString(parent) << std::endl;
         }
       }
       if (newCtx != TermContextKind::NONE)
       {
         // TODO: improve??
-        tkctx = newCtx;
+        parent = newCtx;
         tctxChildren[key] = newCtx;
       }
       Assert(recTerm[childIndex].getKind() != Kind::TUPLE);
       std::get<1>(visit.back())++;
-      visit.emplace_back(recTerm[childIndex], 0, tkctx);
+      visit.emplace_back(recTerm[childIndex], 0, parent);
     }
     else if (childIndex >= recTerm.getNumChildren())
     {
@@ -1435,7 +1435,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       Assert(childIndex < recTerm.getNumChildren());
       os << " ";
       std::get<1>(visit.back())++;
-      visit.emplace_back(recTerm[childIndex], 0, tkctx);
+      visit.emplace_back(recTerm[childIndex], 0, parent);
     }
   } while (!visit.empty());
   return true;
@@ -1697,6 +1697,11 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     std::stringstream currRet;
 #ifdef NEW_DEF
     TermContextKind bodyInitCtx = TermContextKind::NONE;
+    std::string progName = getName(v);
+    if (progName.compare(0, 7, "$sm_mk_") == 0)
+    {
+      bodyInitCtx = TermContextKind::SMT_BUILTIN;
+    }
 #else
     TermContextKind bodyInitCtx = termKindToContext(retTypeCtx);
 #endif
