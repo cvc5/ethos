@@ -8,7 +8,7 @@
 (declare-datatype $smt_builtin_tsm.new.Type
   (
   ; the Boolean type
-  (tsm.new.BoolType)
+  (tsm.new.Bool)
   ; uninterpreted sorts
   (tsm.new.USort (tsm.new.USort.arg1 $smt_builtin_Int))
   ; error sort
@@ -35,9 +35,9 @@ $SM_LITERAL_TYPE_DECL$
   (sm.new.String (sm.new.String.arg1 $smt_builtin_String))
   (sm.new.Binary (sm.new.Binary.arg1 $smt_builtin_Int) (sm.new.Binary.arg2 $smt_builtin_Int))
   ; free constants
-  (sm.new.Const (sm.new.Const.arg1 $smt_builtin_Int) (sm.new.Const.arg3 $smt_builtin_tsm.new.Type))
+  (sm.new.Const (sm.new.Const.arg1 $smt_builtin_tsm.new.Type) (sm.new.Const.arg2 $smt_builtin_Int))
   ; skolems
-  (sm.new.Skolem (sm.new.Skolem.arg1 $smt_builtin_Int) (sm.new.Skolem.arg2 $smt_builtin_Int) (sm.new.Skolem.arg3 $smt_builtin_tsm.new.Type))
+  (sm.new.Skolem (sm.new.Skolem.arg1 $smt_builtin_tsm.new.Type) (sm.new.Skolem.arg2 $smt_builtin_sm.new.Term))
 $SM_TERM_DECL$
   )
 )

@@ -19,6 +19,35 @@ $SMT_EMBED_META_TYPE_DECL$
   )
 )
 
+(define $sm_const ((T $smt_Type) (id $smt_builtin_Int))
+  ($smd_sm.Const T id))
+(define $sm_usort_value
+  ((id $smt_builtin_Int :opaque) (T $smt_Type :opaque))
+  ($smd_sm.usort_value id T))
+(define $sm_skolem
+  ((k $smt_builtin_Int) (id $smt_builtin_Int) (T $smt_Type))
+  ($smd_sm.Skolem k id T))
+
+(define $sm_apply_term ((t1 $smt_Term) (t2 $smt_Term))
+  ($smd_sm.Apply t1 t2))
+;(define $sm_const ((T $smt_Type) (id $smt_builtin_Int))
+;  ($smd_sm.Const T id))
+;(define $sm_skolem ((T $smt_Type) (F $smt_Term))
+;  ($smd_sm.Skolem T F))
+
+(define $tsm_Bool () $smd_tsm.Bool)
+;(define $tsm_Bool () $smt_builtin_tsm.Bool)
+(define $tsm_USort ((id $smt_builtin_Int)) ($smd_tsm.USort id))
+;(define $tsm_USort ((id $smt_builtin_Int)) ($smt_builtin_tsm.USort id))
+(define $tsm_NullSort () $smd_tsm.NullSort)
+;(define $tsm_NullSort () $smt_builtin_tsm.NullSort)
+
+
+
+; represents an uninterpreted value
+(declare-parameterized-const $smt_builtin_vsm.UConst
+  ((T $smt_Type :opaque) (i $smt_builtin_Int :opaque)) $smt_Value)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_eo
 
 ; This portion gives a template for defining the model semantics of
@@ -40,8 +69,6 @@ $SMT_EMBED_META_TYPE_DECL$
 ; All methods in this signature that take at least one $eo_Term as argument
 ; must return $eo_Term as the result.
 
-(define $eo_mk_stuck () $smd_eo.Stuck)
-
 ; Returns true if its argument is an SMT value.
 ; This function is expected to never get stuck.
 ; NOTE: this has to return an $eo_Term since the arugments are $eo_Term.
@@ -49,7 +76,7 @@ $SMT_EMBED_META_TYPE_DECL$
   :signature ($eo_Term $eo_Term) $eo_Term
   (
 $EO_IS_VALUE_CASES$
-  (($eo_is_value T t) $eo_mk_stuck)
+  (($eo_is_value T t) $eo_stuck)
   )
 )
 
@@ -68,7 +95,7 @@ $EO_IS_TYPE_CASES$
   ; we are testing in our verification conditions. It is thus important
   ; that this method is complete (which in turn ensures the verification
   ; pipeline is sound).
-  (($eo_is_type T) $eo_mk_stuck)
+  (($eo_is_type T) $eo_stuck)
   )
 )
 
@@ -108,7 +135,9 @@ $EO_IS_TYPE_CASES$
   ; Try to enumerate the type, if we fail, we return $smd_sm.usort_value.
   ; Note that this essentially assumes that unhandled types are uninterpreted
   ; and have infinite cardinality (since this does not get stuck).
-  (($eo_enum_type T i)                ($smd_sm.usort_value T i))
+  ;(($eo_enum_type T i)                ($smt_builtin_eo.SmtValue ($smt_builtin_vsm.new.UConst T i)))
+  ; FIXME
+  (($eo_enum_type T i) T)
   )
 )
 
@@ -134,7 +163,7 @@ $EO_IS_TYPE_CASES$
   (
 $EO_CONST_PREDICATE_CASES$
   ; return stuckness, this will be handled upstream
-  (($eo_const_predicate k i T x) $eo_mk_stuck)
+  (($eo_const_predicate k i T x) $eo_stuck)
   )
 )
 
@@ -146,7 +175,7 @@ $EO_CONST_PREDICATE_CASES$
   (
 $EO_EVAL_CASES$
   ; return stuckness, this will be handled upstream
-  (($eo_model_eval t) $eo_mk_stuck)
+  (($eo_model_eval t) $eo_stuck)
   )
 )
 
@@ -379,7 +408,9 @@ $EO_EVAL_CASES$
   ; Try to enumerate the type, if we fail, we return an Uninterpreted sort value.
   ; Note that this essentially assumes that unhandled types are uninterpreted
   ; and have infinite cardinality (since this does not get stuck).
-  (($smtx_enum_type T i)               ($smd_sm.usort_value T i))
+  ; (($smtx_enum_type T i)               ($smd_sm.usort_value T i))
+  ; FIXME!!!
+  (($smtx_enum_type T i) T)
   )
 )
 (program $smtx_enum_type_final ((T $smt_Type) (i $smt_builtin_Int))
@@ -427,11 +458,11 @@ $EO_EVAL_CASES$
   :signature ($smt_Type $smt_Term) $smt_builtin_Bool
   (
   ; if the literal type is not defined, this is false
-  (($smtx_is_value ($smt_NullSort n1) t)                                   $smt_builtin_false)
-  (($smtx_is_value ($smt_USort n1) t)                                 ($smtx_is_usort_value t))
+  (($smtx_is_value $tsm_NullSort t)                                   $smt_builtin_false)
+  (($smtx_is_value ($tsm_USort n1) t)                                 ($smtx_is_usort_value t))
   ; standard atomic types
-  (($smtx_is_value $smt_BoolType $sm_mk_true)                         $smt_builtin_true)
-  (($smtx_is_value $smt_BoolType $sm_mk_false)                        $smt_builtin_true)
+  (($smtx_is_value $tsm_Bool $sm_mk_true)                         $smt_builtin_true)
+  (($smtx_is_value $tsm_Bool $sm_mk_false)                        $smt_builtin_true)
   ; TODO: numeral, rational, string, (binary?)
   ;(($smtx_is_value @Map t)   ($smtx_map_is_value t))
   ; by default, a value is a term that appears in the type enumeration
@@ -519,7 +550,7 @@ $EO_EVAL_CASES$
 ; This is a recursive call.
 ; NOTE: for the sake of soundness, this must be a total function!!!!!!!
 (program $smtx_model_eval
-  ((T Type) (U Type) (V Type) (a1 T) (a2 T) (c Bool) (f $smt_Term) (y U) (z T) (k $smt_builtin_Int) (i $smt_builtin_Int) (F Bool)
+  ((T Type) (U Type) (V Type) (a1 T) (a2 T) (c Bool) (f $smt_Term) (y U) (z T) (k $smt_builtin_Int) (id $smt_builtin_Int) (F Bool)
    ; generic parameters that may appear in terms to pattern match
    (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3))
   :signature ($smt_Term) $smt_Term
@@ -553,8 +584,8 @@ $SMT_EVAL_CASES$
   ; These are given an arbitrary value by the model ($smtx_model_lookup),
   ; which is an uninterpreted function. The properties of this value are
   ; axiomatized in the final SMT2.
-  (($smtx_model_eval ($smd_sm.Const i T))    ($smtx_model_lookup $smt_builtin_z_zero i T))
-  (($smtx_model_eval ($smd_sm.Skolem k i T)) ($smtx_model_lookup k i T))
+  (($smtx_model_eval ($sm_const T id))    ($smtx_model_lookup $smt_builtin_z_zero id T))
+  ;(($smtx_model_eval ($sm_kkolem T F))    ($smtx_model_lookup i i T))   ; FIXME
   ; generic apply and base case.
   ; these do not insist that the term is a value.
   
@@ -582,14 +613,14 @@ $SMT_EVAL_CASES$
 ; The SMT typeof function, which incorporates builtin SMT terms
 
 (program $smtx_typeof
-  ((T $smt_Type) (t $smt_Term) (k $smt_builtin_Int) (id $smt_builtin_Int))
+  ((T $smt_Type) (t $smt_Term) (F $smt_Term) (k $smt_builtin_Int) (id $smt_builtin_Int))
   :signature ($smt_Term) $smt_Type
   (
-  (($smtx_typeof ($sm_Const id T))     T)
-  (($smtx_typeof ($sm_Skolem k id T))  T)
+  (($smtx_typeof ($sm_const T id))     T)
+  ;(($smtx_typeof ($sm_Skolem id F T))  T)
   ; for all other user defined terms, we totalize using unknown sorts
   ; we use the hash so that all terms that do not type check have a new unknown sort.
-  (($smtx_typeof t)                      ($smt_try_eo_type ($eo_typeof t) ($eo_smt_type ($smd_tsm.NullSort 0))))
+  (($smtx_typeof t)                      ($smt_try_eo_type ($eo_typeof t) ($eo_smt_type $tsm_NullSort)))
   )
 )
 

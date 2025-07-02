@@ -265,7 +265,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
   }
   else if (k == Kind::BOOL_TYPE)
   {
-    os << "tsm.BoolType";
+    os << "tsm.Bool";
   }
   else
   {
@@ -390,7 +390,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
   }
   else if (k == Kind::BOOL_TYPE)
   {
-    os << "tsm.BoolType";
+    os << "tsm.Bool";
   }
   else
   {

@@ -122,38 +122,30 @@
 ; can be custom defined based on the Eunoia signature (see method
 ; $eo_const_predicate in model_eo.eo).
 (declare-parameterized-const $smd_sm.Skolem
-  ((k $smt_builtin_Int :opaque) (id $smt_builtin_Int :opaque) (T $smt_Type :opaque))
+  ((T $smt_Type :opaque) (k $smt_builtin_Int :opaque) (id $smt_builtin_Int :opaque))
   $smt_Term)
 (define $sm_Skolem
-  ((k $smt_builtin_Int) (id $smt_builtin_Int) (T $smt_Type))
-  ($smd_sm.Skolem k id T))
+  ((T $smt_Type) (k $smt_builtin_Int) (id $smt_builtin_Int))
+  ($smd_sm.Skolem T k id))
 
 ; A free constant
 (declare-parameterized-const $smd_sm.Const
-  ((id $smt_builtin_Int :opaque) (T $smt_Type :opaque))
+  ((T $smt_Type :opaque) (id $smt_builtin_Int :opaque))
   $smt_Term)
-(define $sm_Const ((id $smt_builtin_Int) (T $smt_Type))
-  ($smd_sm.Const id T))
 
 ; represents an uninterpreted value
 ; This must be a constructor in the final sm.Term.
 (declare-parameterized-const $smd_sm.usort_value
   ((T $smt_Type :opaque) (i $smt_builtin_Int :opaque)) $smt_Term)
-(define $sm_usort_value
-  ((id $smt_builtin_Int :opaque) (T $smt_Type :opaque))
-  ($smd_sm.usort_value id T))
 
 ; The Eunoia representation of an SMT-LIB term.
 (declare-parameterized-const $smd_sm.Apply
   ((t1 $smt_Term :opaque) (t2 $smt_Term :opaque)) $smt_Term)
-(define $sm_apply_term ((t1 $smt_Term) (t2 $smt_Term))
-  ($smd_sm.Apply t1 t2))
 
 ;;; Deep embedding of SMT-LIB types
 
 ; The Boolean type
-(declare-const $smd_tsm.BoolType $smt_Type)
-(define $smt_BoolType () $smd_tsm.BoolType)
+(declare-const $smd_tsm.Bool $smt_Type)
 
 ; Function types
 (declare-parameterized-const $smd_tsm.FunType
@@ -168,9 +160,7 @@
 
 ; The sort of a term that doesn't have an SMT-LIB type.
 ; This is used as an error condition
-(declare-parameterized-const $smd_tsm.NullSort
-  ((id $smt_builtin_Int :opaque)) $smt_Type)
-(define $smt_NullSort ((id $smt_builtin_Int)) ($smd_tsm.NullSort id))
+(declare-const $smd_tsm.NullSort $smt_Type)
 
 ;;; Deep embedding of Eunoia terms
 
@@ -190,7 +180,7 @@
 
 ; The Eunoia representation of "stuckness".
 (declare-const $smd_eo.Stuck $eo_Term)
-(define $eo_mk_stuck () $smd_eo.Stuck)
+(define $eo_stuck () $smd_eo.Stuck)
 
 ;;;;;;;;;;;;;;;; datatype end
 
@@ -308,7 +298,7 @@
   (($eo_mk_binary w n)
     ($smt_apply_3 "ite" ($smt_builtin_and ($smt_apply_1 "<= 0" w) ($smt_apply_1 ">= 4294967296" w))
       ($eo_binary w ($smt_apply_2 "mod" n ($sm_mk_pow2 w)))
-      $eo_mk_stuck))
+      $eo_stuck))
   )
 )
 
@@ -404,11 +394,11 @@
     (eo::define ((r1 ($smt_apply_1 "to_real" n1)))
     (eo::define ((r2 ($smt_apply_1 "to_real" n2)))
     ($smt_apply_3 "ite" ($smt_apply_1 "= 0" n2)
-      $eo_mk_stuck
+      $eo_stuck
       ($eo_mk_rational ($smt_apply_2 "/" r1 r2))))))
   (($eo_qdiv ($eo_mk_rational r1) ($eo_mk_rational r2))
     ($smt_apply_3 "ite" ($smt_apply_1 "= 0/1" r2)
-      $eo_mk_stuck
+      $eo_stuck
       ($eo_mk_rational ($smt_apply_2 "/" r1 r2))))
   )
 )
@@ -419,7 +409,7 @@
   (
   (($eo_zdiv ($eo_mk_numeral n1) ($eo_mk_numeral n2))
     ($smt_apply_3 "ite" ($smt_apply_1 "= 0" n2)
-      $eo_mk_stuck
+      $eo_stuck
       ($eo_mk_numeral ($smt_builtin_div n1 n2))))
   (($eo_zdiv ($eo_binary w n1) ($eo_binary w n2))
     ($smt_apply_3 "ite" ($smt_apply_1 "= 0" n2)
@@ -433,7 +423,7 @@
   (
   (($eo_zmod ($eo_mk_numeral n1) ($eo_mk_numeral n2))
     ($smt_apply_3 "ite" ($smt_apply_1 "= 0" n2)
-      $eo_mk_stuck
+      $eo_stuck
       ($eo_mk_numeral ($smt_apply_2 "mod" n1 n2))))
   (($eo_zmod ($eo_binary w n1) ($eo_binary w n2))
     ($smt_apply_3 "ite" ($smt_apply_1 "= 0" n2)
@@ -521,7 +511,7 @@
     ($smt_apply_3 "ite"
       ($smt_apply_1 "= 1" ($smt_apply_1 "str.len" s1))
       ($eo_mk_numeral ($smt_apply_1 "str.to_code" s1))
-      $eo_mk_stuck))
+      $eo_stuck))
   (($eo_to_z ($eo_binary w n1))
     ($eo_mk_numeral n1))
   )
@@ -554,7 +544,7 @@
     ($smt_apply_3 "ite"
       ($smt_builtin_and ($smt_apply_1 "<= 0" n1) ($smt_apply_1 "> 196608" n1))
       ($eo_mk_string ($smt_apply_1 "str.from_code" n1))
-      $eo_mk_stuck))
+      $eo_stuck))
   (($eo_to_str ($eo_mk_string s1))
     ($eo_mk_string s1))
   ; TODO: technically others here
