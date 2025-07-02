@@ -143,6 +143,10 @@ class SmtMetaReduce : public StdPlugin
                             SelectorCtx& ctx,
                             size_t& nconj,
                     TermContextKind tinit = TermContextKind::NONE);
+  void printEmbAtomic(const std::string& c,
+                          std::ostream& os,
+                          TermContextKind parent,
+                          TermContextKind child);
   void printEmbAtomicTerm(const Expr& c,
                           std::ostream& os,
                           TermContextKind tctx = TermContextKind::NONE);
@@ -196,6 +200,7 @@ class SmtMetaReduce : public StdPlugin
   Expr d_metaEoTerm;
   Expr d_metaSmtTerm;
   Expr d_metaSmtType;
+  Expr d_metaSmtValue;
   /** */
   std::map<Expr, TermContextKind> d_metaKind;
   std::map<std::pair<Expr, size_t>, TermContextKind> d_metaKindArg;

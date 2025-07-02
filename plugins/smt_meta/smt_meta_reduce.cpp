@@ -213,9 +213,45 @@ void SmtMetaReduce::printConjunction(size_t n,
   // os << ctx.d_letEnd.str();
 }
 
+void SmtMetaReduce::printEmbAtomic(const std::string& str,
+                        std::ostream& os,
+                        TermContextKind parent,
+                        TermContextKind child)
+{
+  if (parent==TermContextKind::EUNOIA && child!=TermContextKind::EUNOIA)
+  {
+    std::stringstream osEnd;
+    if (child==TermContextKind::SMT)
+    {
+      os << "(eo.SmtTerm ";
+      osEnd << ")";
+    }
+    else if (child==TermContextKind::SMT_TYPE)
+    {
+      os << "(eo.SmtType ";
+      osEnd << ")";
+    }
+    else if (child==TermContextKind::SMT_VALUE)
+    {
+      os << "(eo.SmtValue ";
+      osEnd << ")";
+    }
+    else
+    {
+      EO_FATAL() << "Unknown target kind " << termContextKindToString(child);
+    }
+    // TODO: more error checking??
+    os << str << osEnd.str();
+  }
+  else
+  {
+    os << str;
+  }
+}
+  
 void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
                                        std::ostream& os,
-                                       TermContextKind tctx)
+                                       TermContextKind parent)
 {
 #ifdef NEW_DEF
   Kind k = c.getKind();
@@ -225,46 +261,23 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     return;
   }
   std::string name;
-  TermContextKind tc = getMetaKind(c);
-  if (tc==TermContextKind::PROGRAM)
+  TermContextKind child = getMetaKind(c);
+  if (child==TermContextKind::PROGRAM)
   {
-    // programs print verbatim
+    // programs always print verbatim
     os << c;
     return;
   }
-  std::stringstream osEnd;
-  if (tctx==TermContextKind::EUNOIA && tc!=TermContextKind::EUNOIA)
-  {
-    if (tc==TermContextKind::SMT)
-    {
-      os << "(eo.SmtTerm ";
-      osEnd << ")";
-      tctx = TermContextKind::SMT;
-    }
-    else if (tc==TermContextKind::SMT_TYPE)
-    {
-      os << "(eo.SmtType ";
-      osEnd << ")";
-      tctx = TermContextKind::SMT_TYPE;
-    }
-    else if (tc==TermContextKind::SMT_VALUE)
-    {
-      os << "(eo.SmtValue ";
-      osEnd << ")";
-      tctx = TermContextKind::SMT_VALUE;
-    }
-    else
-    {
-      EO_FATAL() << "Unknown target kind " << termContextKindToString(tc);
-    }
-  }
+  bool isSmtBuiltin = (parent==TermContextKind::SMT_BUILTIN);
+  std::stringstream ss;
+  std::stringstream ssEnd;
   if (k == Kind::CONST)
   {
-    os << termContextKindToPrefix(tc) << c;
+    ss << termContextKindToPrefix(child) << c;
   }
   else if (k == Kind::BOOL_TYPE)
   {
-    os << "tsm.Bool";
+    ss << "tsm.Bool";
   }
   else
   {
@@ -276,65 +289,70 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     }
     if (k == Kind::BOOLEAN)
     {
-      if (tctx == TermContextKind::SMT)
+      if (!isSmtBuiltin)
       {
-        os << "sm.";
+        ss << "sm.";
+        ss << (l->d_bool ? "True" : "False");
       }
-      os << (l->d_bool ? "True" : "False");
+      else
+      {
+        ss << (l->d_bool ? "true" : "false");
+      }
     }
     else if (k == Kind::NUMERAL)
     {
-      if (tctx == TermContextKind::SMT)
+      if (!isSmtBuiltin)
       {
-        os << "(sm.Numeral ";
-        osEnd << ")";
+        ss << "(sm.Numeral ";
+        ssEnd << ")";
       }
       const Integer& ci = l->d_int;
       if (ci.sgn() == -1)
       {
         const Integer& cin = -ci;
-        os << "(- " << cin.toString() << ")";
+        ss << "(- " << cin.toString() << ")";
       }
       else
       {
-        os << ci.toString();
+        ss << ci.toString();
       }
     }
     else if (k == Kind::RATIONAL)
     {
-      if (tctx == TermContextKind::SMT)
+      if (!isSmtBuiltin)
       {
-        os << "(sm.Rational ";
-        osEnd << ")";
+        ss << "(sm.Rational ";
+        ssEnd << ")";
       }
-      os << c;
+      ss << c;
     }
     else if (k == Kind::BINARY)
     {
-      if (tctx == TermContextKind::SMT)
+      if (!isSmtBuiltin)
       {
-        os << "(sm.Binary";
-        osEnd << ")";
+        ss << "(sm.Binary";
+        ssEnd << ")";
       }
       const BitVector& bv = l->d_bv;
       const Integer& bvi = bv.getValue();
-      os << bv.getSize() << " " << bvi.toString();
+      ss << bv.getSize() << " " << bvi.toString();
     }
     else if (k == Kind::STRING)
     {
-      if (tctx == TermContextKind::SMT)
+      if (!isSmtBuiltin)
       {
-        os << "(sm.String ";
-        osEnd << ")";
+        ss << "(sm.String ";
+        ssEnd << ")";
       }
-      os << c;
+      ss << c;
     }
     else
     {
       EO_FATAL() << "Unknown atomic term literal kind " << k;
     }
   }
-  os << osEnd.str();
+  ss << ssEnd.str();
+  printEmbAtomic(ss.str(), os, parent, child);
 #else
   // TODO: take inSmtTerm into account??
   std::string cname;
@@ -353,7 +371,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     // (c==d_eoTmpNil) << std::endl;
     return;
   }
-  if (tctx == TermContextKind::EUNOIA && !isEunoiaKind(tk))
+  if (parent == TermContextKind::EUNOIA && !isEunoiaKind(tk))
   {
     // os << "; due to non-eunoia kind " << termKindToString(tk) << " for " <<
     // cname << std::endl;
@@ -401,7 +419,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     }
     if (k == Kind::BOOLEAN)
     {
-      if (tctx == TermContextKind::SMT_BUILTIN)
+      if (parent == TermContextKind::SMT_BUILTIN)
       {
         os << (l->d_bool ? "true" : "false");
       }
@@ -412,7 +430,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     }
     else if (k == Kind::NUMERAL)
     {
-      if (tctx == TermContextKind::SMT)
+      if (parent == TermContextKind::SMT)
       {
         os << "(sm.Numeral ";
         osEnd << ")";
@@ -430,7 +448,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     }
     else if (k == Kind::RATIONAL)
     {
-      if (tctx == TermContextKind::SMT)
+      if (parent == TermContextKind::SMT)
       {
         os << "(sm.Rational ";
         osEnd << ")";
@@ -439,7 +457,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     }
     else if (k == Kind::DECIMAL)
     {
-      if (tctx == TermContextKind::SMT)
+      if (parent == TermContextKind::SMT)
       {
         os << "(sm.Decimal ";
         osEnd << ")";
@@ -448,7 +466,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     }
     else if (k == Kind::BINARY || k == Kind::HEXADECIMAL)
     {
-      if (tctx == TermContextKind::SMT)
+      if (parent == TermContextKind::SMT)
       {
         os << "(sm.";
         os << (k == Kind::BINARY ? "Binary " : "Hexadecimal ");
@@ -460,7 +478,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     }
     else if (k == Kind::STRING)
     {
-      if (tctx == TermContextKind::SMT)
+      if (parent == TermContextKind::SMT)
       {
         os << "(sm.String ";
         osEnd << ")";
@@ -487,6 +505,25 @@ TermKind SmtMetaReduce::printEmbType(const Expr& c,
     Expr qt = t[0];
     t = d_tc.getType(qt);
   }
+#ifdef NEW_DEF
+  if (c==d_metaEoTerm)
+  {
+    os << "eo.Term";
+  }
+  else if (c==d_metaSmtTerm)
+  {
+    os << "sm.Term";
+  }
+  else if (c==d_metaSmtType)
+  {
+    os << "sm.Type";
+  }
+  else if (c==d_metaSmtValue)
+  {
+    //os << "sm.Type";
+  }
+  return TermKind::NONE;
+#else
   std::string name;
   std::vector<Expr> args;
   TermKind tk = getTermKind(t, name);
@@ -530,6 +567,7 @@ TermKind SmtMetaReduce::printEmbType(const Expr& c,
                << termKindToString(tk);
   }
   return tk;
+#endif
 }
 
 bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
@@ -570,7 +608,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     {
       Assert (tcur.getNumChildren()==2);
       // Determine if this is a Eunoia internal term, or an
-      // SMT term
+      // SMT term eagerly here
       std::string smConsName;
       std::cout << "  atk: " << tcur[0] << std::endl;
       TermContextKind atk = getMetaKind(tcur);
@@ -608,25 +646,8 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       printEmbAtomicTerm(tcur[0], cname, TermContextKind::NONE);
       printArgStart = 1;
       printArgs = true;
-      // FIXME: we are pattern matching on an opaque term
-      /*
-      TermContextKind atk = getMetaKind(tcur[0]);
-      std::cout << "  atk-o: " << tcur[0] << " is " << termContextKindToString(atk)
-                << std::endl;
-      // In this case we are matching on an opaque term.
-      // In most cases we preserve the context
-      if (tkctx == TermContextKind::EUNOIA && atk == TermKind::EUNOIA_DT_CONS)
-      {
-        // the type of the Eunoia SMT-LIB constructor is SMT terms
-        tkctx = TermContextKind::SMT;
-      }
-      if (tkctx == TermContextKind::SMT && (atk == TermKind::SMT_DT_CONS || atk==TermKind::SMT_TYPE_DT_CONS))
-      {
-        // the opaque arguments of SMT-LIB literal terms are builtin SMT terms
-        // the opaque arguments of SMT-LIB types (e.g. uninterpreted sorts) are also builtins
-        tkctx = TermContextKind::SMT_BUILTIN;
-      }
-      */
+      // we don't know the context of children, we compute per child below
+      tkctx = TermContextKind::NONE;
     }
     if (printArgs)
     {
@@ -637,6 +658,30 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       for (size_t i = printArgStart, nchild = tcur.getNumChildren(); i < nchild;
            i++)
       {
+        TermContextKind tcc = tkctx;
+        if (tcc==TermContextKind::NONE)
+        {
+          // must compute it from the child
+          Expr cc = tcur[i];
+          Expr ccType = d_tc.getType(cc);
+          if (ccType==d_metaEoTerm)
+          {
+            tcc = TermContextKind::EUNOIA;
+          }
+          else if (ccType==d_metaSmtTerm)
+          {
+            tcc = TermContextKind::SMT;
+          }
+          else if (ccType==d_metaSmtType)
+          {
+            tcc = TermContextKind::SMT_TYPE;
+          }
+          else
+          {
+            // otherwise assume builtin
+            tcc = TermContextKind::SMT_BUILTIN;
+          }
+        }
         std::stringstream ssNext;
         ssNext << "(" << cname.str() << ".arg" << (i + 1 - printArgStart) << " "
                << currTerm << ")";
@@ -816,7 +861,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
                                  const SelectorCtx& ctx,
                                  TermContextKind tinit)
 {
-#ifdef NEW_DEF  // os << ctx.d_letBegin.str();
+#ifdef NEW_DEF 
   std::map<Expr, std::string>::const_iterator it;
   std::map<Expr, TermContextKind>::const_iterator ittc;
   std::stringstream osEnd;
@@ -825,40 +870,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
   std::map<std::pair<Expr, TermContextKind>, TermContextKind> tctxChildren;
   std::map<std::pair<Expr, TermContextKind>, size_t> cparen;
   std::map<std::pair<Expr, TermContextKind>, TermContextKind>::iterator itt;
-  // letify parameters for efficiency?
-  /*
-  // TODO: this is probably impossible without a sanitize step.
-  std::map<const ExprValue*, size_t> lbind;
-  lbind = Expr::computeLetBinding(body, ll);
-  std::vector<const ExprValue*> toErase;
-  // do not letify terms that are SMT apply terms
-  for (std::pair<const ExprValue* const, size_t>& lbs : lbind)
-  {
-    Expr t(lbs.first);
-    if (isSmtApplyTerm(t))
-    {
-      toErase.push_back(lbs.first);
-    }
-  }
-  for (const ExprValue * e : toErase)
-  {
-    lbind.erase(e);
-    std::erase(ll.begin(), ll.end()
-  }
-  std::map<const ExprValue*, size_t>::iterator itl;
-  for (size_t i = 0, nll = ll.size(); i <= nll; i++)
-  {
-    if (i > 0)
-    {
-      os << " ";
-    }
-    if (i < nll)
-    {
-      os << "(let ((y" << i << " ";
-      osEnd << ")";
-    }
-    Expr t = i < nll ? ll[i] : body;
-  */
   Expr t = body;
   std::map<Expr, size_t>::iterator itv;
   std::vector<std::tuple<Expr, size_t, TermContextKind>> visit;
@@ -1068,7 +1079,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       }
       if (newCtx != TermContextKind::NONE)
       {
-        // TODO: improve??
         tkctx = newCtx;
         tctxChildren[key] = newCtx;
       }
@@ -1813,6 +1823,7 @@ void SmtMetaReduce::finalize()
   d_metaEoTerm = lookupVar("$eo_Term");
   d_metaSmtTerm = lookupVar("$smt_Term");
   d_metaSmtType = lookupVar("$smt_Type");
+  d_metaSmtValue = lookupVar("$smt_Value");
   finalizePrograms();
   finalizeDeclarations();
 

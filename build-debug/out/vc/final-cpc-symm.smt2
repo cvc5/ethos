@@ -138,6 +138,8 @@
   (sm.Seq)
   ; declare $smt_unknown_type SMT_TERM
   (sm.$smt_unknown_type)
+  ; declare $smt_Value SMT_TERM
+  (sm.$smt_Value)
   ; declare True SMT_DT_CONS
   (sm.True)
   ; declare False SMT_DT_CONS

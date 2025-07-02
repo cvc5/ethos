@@ -30,7 +30,7 @@ StdPlugin::lookupVar(const std::string& name)
   Expr e = d_state.getVar(name);
   if (e.isNull())
   {
-    EO_FATAL() << "Symbol " << name << " must be defined";
+    EO_FATAL() << "StdPlugin::lookupVar: Symbol " << name << " must be defined";
   }
   return e;
 }
