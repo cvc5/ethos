@@ -52,7 +52,7 @@ check_status
 cp $STD_TRIM_OUT $VC_DEF_DESUGAR
 
 echo "**** smt_meta: Run ethos + model-smt on $VC_DEF_DESUGAR to generate $VCM_DEF_DESUGAR"
-./run_gen_smt_model $VC_DEF_DESUGAR >/dev/null
+./run_gen_model_smt $VC_DEF_DESUGAR >/dev/null
 check_status
 cp $STD_SMODEL_OUT $VCM_DEF_DESUGAR
 

@@ -5,7 +5,15 @@
 
 STD_SMODEL_OUT=../plugins/model_smt/model_smt_gen.eo
 
-TMP_OUT=$1-model.eo
+echo "**** run_gen_model_smt: Run ethos + model-smt on $1 to generate $STD_SMODEL_OUT"
+./src/ethos --plugin.model-smt $1
+if [[ $status -eq 0 ]]; then
+  echo "success"
+else
+  exit $status
+fi
+
+TMP_OUT=tmp.eo
 
 cp $1 $TMP_OUT
 
@@ -16,20 +24,6 @@ sed -i "/(echo \"include eo_builtin_smt\")/{
     d
 }" $TMP_OUT
 
-echo "**** run_gen_model: Run ethos + desugar on $1 to generate $STD_SMODEL_OUT"
-./src/ethos --plugin.model-smt $1
-if [[ $status -eq 0 ]]; then
-  echo "success"
-else
-  exit $status
-fi
-
-# include the deep embedding, which was generated above
-#sed -i "/(echo \"include model_smt_gen\")/{
-#    r ../plugins/model_smt/model_eo_embed_gen.eo
-#    d
-#}" $TMP_OUT
-
 # include the model semantics, which was generated above
 sed -i "/(echo \"include model_smt_gen\")/{
     r ../plugins/model_smt/model_smt_gen.eo
@@ -37,7 +31,7 @@ sed -i "/(echo \"include model_smt_gen\")/{
 }" $TMP_OUT
 
 # Now put the final Eunoia file at the target location
-cp $TMP_OUT $STD_SMODEL_OUT
+mv $TMP_OUT $STD_SMODEL_OUT
 
 #echo "**** run_gen_model: Verify it parses"
 #./src/ethos $STD_SMODEL_OUT

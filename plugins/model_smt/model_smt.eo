@@ -9,7 +9,7 @@ $SMT_EMBED$
 (program $eo_get_meta_type ((T Type) (t T))
   :signature (T) Type
   (
-$SM_META_TYPE_DECL$
+$SMT_EMBED_META_TYPE_DECL$
   ; otherwise, assume $eo_Term
   (($eo_get_meta_type t) $eo_Term)
   )
