@@ -192,8 +192,6 @@ class SmtMetaReduce : public StdPlugin
   TermKind getTermKind(const Expr& e);
 
   /** */
-  std::vector<TermContextKind> getContextArguments(const Expr& e, TermContextKind parent);
-  /** */
   TermContextKind getMetaKind(const Expr& e);
 
   TermContextKind termKindToContext(TermKind tk);
@@ -231,8 +229,20 @@ class SmtMetaReduce : public StdPlugin
   std::map<Expr, TermContextKind> d_metaKind;
   std::map<std::pair<Expr, size_t>, TermContextKind> d_metaKindArg;
 
+  /**
+   * This returns the expected meta-kind for the i^th child of
+   * parent. It should not depend on parent[i] at all.
+   */
   TermContextKind getMetaKindArg(const Expr& parent, size_t i);
+  /**
+   * Returns the result of calling the above method for all
+   * children i of parent.
+   */
   std::vector<TermContextKind> getMetaKindArgs(const Expr& parent);
+  /**
+   * Get the meta-kind returned by a child.
+   */
+  TermContextKind getMetaKindReturn(const Expr& child);
 };
 
 }  // namespace ethos

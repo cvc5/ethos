@@ -927,77 +927,6 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
 #endif
 }
 
-std::vector<TermContextKind> SmtMetaReduce::getContextArguments(const Expr& e, TermContextKind parent)
-{
-  std::vector<TermContextKind> ret;
-  Kind k = e.getKind();
-  std::cout << "PushContextArg: " << e << std::endl;
-  bool isSmtApp = false;
-  bool isSmtType = false;
-  bool isIte = false;
-  bool isEq = false;
-  bool isEoDt = false;
-  bool isSmtDt = false;
-  bool isSmtTypeDt = false;
-  bool isOpaque = (e.getKind()==Kind::APPLY_OPAQUE);
-  if (isOpaque)
-  {
-    std::string sname = getName(e[0]);
-    isSmtApp = (sname.compare(0, 11, "$smt_apply_") == 0);
-    isSmtType = (sname.compare(0, 10, "$smt_type_") == 0);
-    // FIXME: use something else??
-    if (isSmtApp)
-    {
-      std::string esname = getEmbedName(e);
-      isIte = (esname=="ite");
-      isEq = (esname=="=");
-    }
-    isEoDt = (sname.compare(0, 8, "$smd_eo.") == 0);
-    isSmtDt = (sname.compare(0, 8, "$smd_sm.") == 0);
-    isSmtTypeDt = (sname.compare(0, 9, "$smd_tsm.") == 0);
-  }
-  for (size_t i=0, nchild=e.getNumChildren(); i<nchild; i++)
-  {
-    if (isOpaque || isEq)
-    {
-      Expr cc = e[i];
-      TermContextKind child = getMetaKind(cc);
-      //Expr cct = d_tc.getType(cc);
-      //TermContextKind child = getEmbTypeContext(cct);
-      std::cout << "  PushContextArg: " << termContextKindToString(child) << " for " << cc << std::endl;
-      Assert (child!=TermContextKind::NONE) << "Unknown context for " << cc << " within " << e;
-      ret.push_back(child);
-    }
-    else if (isSmtApp)
-    {
-      // ITE is special case which preserves for the branches
-      if (isIte && i>=3)
-      {
-        ret.push_back(parent);
-      }
-      else
-      {
-        ret.push_back(TermContextKind::SMT_BUILTIN);
-      }
-    }
-    else if (isSmtType)
-    {
-      ret.push_back(TermContextKind::SMT_TYPE);
-    }
-    else if (isLiteralOp(k))
-    {
-      ret.push_back(TermContextKind::EUNOIA);
-    }
-    else
-    {
-      // otherwise no change
-      ret.push_back(parent);
-    }
-  }
-  std::cout << "PushContextArg: end" << std::endl;
-  return ret;
-}
-
 std::string SmtMetaReduce::getName(const Expr& e)
 {
   std::stringstream ss;
@@ -1089,9 +1018,9 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       visit.pop_back();
       continue;
     }
-    TermContextKind child = getMetaKind(recTerm);
+    TermContextKind child = getMetaKindReturn(recTerm);
     std::cout << "print: " << recTerm << ", " << termContextKindToString(parent) << " / " << termContextKindToString(child) << std::endl;
-    if (parent!=child)
+    if (parent!=TermContextKind::NONE && parent!=child)
     {
       bool processed = false;
       if (parent==TermContextKind::EUNOIA)
@@ -1229,7 +1158,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
                   << " / " << termContextKindToString(parent) << std::endl;
     }
     // otherwise, the new context depends on the types of the children
-    std::vector<TermContextKind> targs = getContextArguments(recTerm, parent);
+    std::vector<TermContextKind> targs = getMetaKindArgs(recTerm);
     // push in reverse order
     for (size_t i=cstart, nchild=recTerm.getNumChildren(); i<nchild; i++)
     {
@@ -2449,49 +2378,16 @@ TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent, size_t i)
   }
   else if (k==Kind::APPLY)
   {
-    Expr hd = parent;
-    // if an apply, we look for the head, this will determine eo.Apply vs.
-    // sm.Apply
-    while (hd.getKind() == Kind::APPLY)
-    {
-      hd = hd[0];
-    }
-    // check for programs
-    if (hd.getKind() == Kind::PROGRAM_CONST)
-    {
-      tk = TermContextKind::PROGRAM;
-    }
-    else
-    {
-      Expr mapp = d_state.mkExprSimple(Kind::APPLY, {d_eoGetMetaKind, hd});
-      Ctx ectx;
-      Expr mm = d_tc.evaluate(mapp.getValue(), ectx);
-      if (mm == d_metaEoTerm)
-      {
-        tk = TermContextKind::EUNOIA;
-      }
-      else if (mm == d_metaSmtTerm)
-      {
-        tk = TermContextKind::SMT;
-      }
-      else if (mm == d_metaSmtType)
-      {
-        tk = TermContextKind::SMT_TYPE;
-      }
-      else if (mm == d_metaSmtBuiltinType)
-      {
-        tk = TermContextKind::SMT_BUILTIN;
-      }
-      else
-      {
-        // otherwise assume SMT term
-        // FIXME: is this right?
-        tk = TermContextKind::SMT;
-      }
-    }
+    // the application case depends on the meta-kind of the head term
+    tk = getMetaKindReturn(parent);
   }
   else if (k==Kind::FUNCTION_TYPE)
   {
+    tk = TermContextKind::EUNOIA;
+  }
+  else if (k==Kind::EVAL_IF_THEN_ELSE || k == Kind::EVAL_IS_OK || k==Kind::EVAL_REQUIRES)
+  {
+    // all remaining builtins assume Eunoia arguments
     tk = TermContextKind::EUNOIA;
   }
   else
@@ -2501,14 +2397,64 @@ TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent, size_t i)
   return tk;
 }
 
+TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child)
+{
+  TermContextKind tk = TermContextKind::NONE;
+  Expr hd = child;
+  // if an apply, we look for the head, this will determine eo.Apply vs.
+  // sm.Apply
+  while (hd.getKind() == Kind::APPLY)
+  {
+    hd = hd[0];
+  }
+  Kind k = hd.getKind();
+  // check for programs
+  if (k == Kind::PROGRAM_CONST)
+  {
+    tk = TermContextKind::PROGRAM;
+  }
+  else
+  {
+    Expr mapp = d_state.mkExprSimple(Kind::APPLY, {d_eoGetMetaKind, hd});
+    Ctx ectx;
+    Expr mm = d_tc.evaluate(mapp.getValue(), ectx);
+    if (mm == d_metaEoTerm)
+    {
+      tk = TermContextKind::EUNOIA;
+    }
+    else if (mm == d_metaSmtTerm)
+    {
+      tk = TermContextKind::SMT;
+    }
+    else if (mm == d_metaSmtType)
+    {
+      tk = TermContextKind::SMT_TYPE;
+    }
+    else if (mm == d_metaSmtBuiltinType)
+    {
+      tk = TermContextKind::SMT_BUILTIN;
+    }
+    else
+    {
+      // otherwise assume SMT term
+      // FIXME: is this right?
+      tk = TermContextKind::SMT;
+    }
+  }
+  return tk;
+}
+
 std::vector<TermContextKind> SmtMetaReduce::getMetaKindArgs(const Expr& parent)
 {
   std::vector<TermContextKind> args;
+  std::cout << "MetaArg: " << parent << std::endl;
   for (size_t i=0, nchild=parent.getNumChildren(); i<nchild; i++)
   {
     TermContextKind ctx = getMetaKindArg(parent, i);
+    std::cout << "  MetaArgChild: " << termContextKindToString(ctx) << " for " << parent[i] << std::endl;
     args.push_back(ctx);
   }
+  std::cout << "MetaArg: end" << std::endl;
   return args;
 }
 

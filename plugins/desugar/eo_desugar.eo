@@ -64,6 +64,10 @@ $EO_LITERAL_TYPE_DECL$
 (program $eo_dt_selectors ((T Type) (t T))
   :signature (T) $eo_List)
 
+; Ensures this signature does not rely on and
+(define $eo_if_both ((b1 Bool) (b2 Bool))
+  (eo::ite b1 (eo::ite b2 true false) false))
+
 ; core definitions
 
 ;;; $eo_eq
@@ -84,7 +88,7 @@ $EO_LITERAL_TYPE_DECL$
 ; define: $eo_is_eq
 ; implements: eo::is_eq
 (define $eo_is_eq ((T Type :implicit) (S Type :implicit) (t T) (s S))
-  (eo::ite (eo::and (eo::is_ok t) (eo::is_ok s)) ($eo_eq s t) false))
+  (eo::ite ($eo_if_both (eo::is_ok t) (eo::is_ok s)) ($eo_eq s t) false))
 
 ;;; $eo_is_z
 
@@ -413,7 +417,7 @@ $EO_LITERAL_TYPE_DECL$
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)
    (W1 Type :implicit) (W2 Type :implicit)
    (f (-> T U V)) (a W1) (b W2))
-  (eo::and ($eo_list_minclude f a b) ($eo_list_minclude f b a)))
+  ($eo_if_both ($eo_list_minclude f a b) ($eo_list_minclude f b a)))
 
 ; Used to model eo::var
 ; TODO: :opaque?
