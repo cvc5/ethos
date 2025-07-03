@@ -133,6 +133,7 @@ std::string termKindToString(TermKind k)
     case TermKind::EUNOIA_QUOTE_TYPE: ss << "EUNOIA_QUOTE_TYPE"; break;
     // SMT apply
     case TermKind::SMT_BUILTIN_APPLY: ss << "SMT_BUILTIN_APPLY"; break;
+    case TermKind::SMT_BUILTIN_APPLY_EQ: ss << "SMT_BUILTIN_APPLY_EQ"; break;
     // Builtin datatype introduced in model_smt step, for sm.Term
     case TermKind::SMT_DT_CONS: ss << "SMT_DT_CONS"; break;
     // An SMT term defined by the user (possibly non-SMT-LIB standard)
@@ -902,6 +903,11 @@ std::string SmtMetaReduce::getName(const Expr& e)
 std::string SmtMetaReduce::getEmbedName(const Expr& oApp)
 {
   Assert (oApp.getKind()==Kind::APPLY_OPAQUE);
+  std::string aname = getName(oApp[0]);
+  if (aname=="$smt_apply_=")
+  {
+    return "=";
+  }
   if (oApp.getNumChildren() <= 1)
   {
     EO_FATAL() << "Unexpected arity for opaque operator " << oApp;
@@ -976,7 +982,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     }
 #endif
     Assert (child!=TermContextKind::NONE) << "Failed to get child context for " << recTerm;
-    std::cout << "print: " << recTerm << ", " << termContextKindToString(parent) << " / " << termContextKindToString(child) << std::endl;
+    std::cout << "print: " << recTerm << " (" << ck << "), " << termContextKindToString(parent) << " / " << termContextKindToString(child) << std::endl;
     if (parent!=TermContextKind::NONE && parent!=child)
     {
       if (parent==TermContextKind::EUNOIA)
@@ -1343,6 +1349,16 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
             // SMT terms
             newCtx = TermContextKind::SMT_BUILTIN;
           }
+          else if (atk==TermKind::SMT_BUILTIN_APPLY_EQ)
+          {
+            os << "(=";
+            cparen[key] = 1;
+            // the first argument is the opaque operator,
+            // the second argument is taken as a name
+            std::get<1>(visit.back())++;
+            tctxChildren[key] = TermContextKind::SMT_BUILTIN;
+            continue;
+          }
           else if (atk == TermKind::SMT_BUILTIN_APPLY
                    || atk == TermKind::SMT_BUILTIN_TYPE
                    || atk == TermKind::SMT_STD_TYPE)
@@ -1447,10 +1463,19 @@ void SmtMetaReduce::finalizePrograms()
 {
   for (const std::pair<Expr, Expr>& p : d_progSeen)
   {
+    // We reduce defines to a program e.g.
+    // (define foo ((x T)) (bar x))
+    //   becomes
+    // (program foo ((x T))
+    //   :signature (T) (eo::typeof (bar x))
+    //   (
+    //   ((foo x) (bar x))
+    //   )
+    // )
     if (p.second.getKind() == Kind::LAMBDA)
     {
       Expr e = p.second;
-      // convert to program
+      // TODO: is this necessary???
       TermKind tk = isSmtApply(p.first);
       if (tk != TermKind::NONE)
       {
@@ -2012,20 +2037,14 @@ TermKind SmtMetaReduce::isSmtApply(const Expr& t)
   std::string sname = ss.str();
   if (sname.compare(0, 11, "$smt_apply_") == 0)
   {
-    std::string sarity = sname.substr(11);
-    // always add one
     return TermKind::SMT_BUILTIN_APPLY;
   }
   if (sname.compare(0, 10, "$smt_type_") == 0)
   {
-    std::string sarity = sname.substr(10);
-    // always add one
     return TermKind::SMT_BUILTIN_TYPE;
   }
   if (sname.compare(0, 14, "$smt_std_type_") == 0)
   {
-    std::string sarity = sname.substr(14);
-    // always add one
     return TermKind::SMT_STD_TYPE;
   }
   return TermKind::NONE;
@@ -2047,7 +2066,11 @@ TermKind SmtMetaReduce::getTermKind(const Expr& e, std::string& name)
     ss << cur[0];
     std::string sname = ss.str();
     TermKind tk = TermKind::NONE;
-    if (sname.compare(0, 11, "$smt_apply_") == 0)
+    if (sname=="$smt_apply_=")
+    {
+      tk = TermKind::SMT_BUILTIN_APPLY_EQ;
+    }
+    else if (sname.compare(0, 11, "$smt_apply_") == 0)
     {
       tk = TermKind::SMT_BUILTIN_APPLY;
     }
@@ -2072,16 +2095,23 @@ TermKind SmtMetaReduce::getTermKind(const Expr& e, std::string& name)
     }
     if (tk != TermKind::NONE)
     {
-      if (cur.getNumChildren() <= 1)
+      if (tk==TermKind::SMT_BUILTIN_APPLY_EQ)
       {
-        EO_FATAL() << "Unexpected arity for opaque operator " << cur;
+        name = "=";
       }
-      if (cur[1].getKind() != Kind::STRING)
+      else
       {
-        EO_FATAL() << "Expected string for SMT-LIB app name, got " << sname;
+        if (cur.getNumChildren() <= 1)
+        {
+          EO_FATAL() << "Unexpected arity for opaque operator " << cur;
+        }
+        if (cur[1].getKind() != Kind::STRING)
+        {
+          EO_FATAL() << "Expected string for SMT-LIB app name, got " << sname;
+        }
+        const Literal* l = cur[1].getValue()->asLiteral();
+        name = l->d_str.toString();
       }
-      const Literal* l = cur[1].getValue()->asLiteral();
-      name = l->d_str.toString();
       return tk;
     }
     // otherwise look at its head
@@ -2354,21 +2384,33 @@ TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent, size_t i)
       std::string sname = getName(parent[0]);
       if (sname.compare(0, 11, "$smt_apply_") == 0)
       {
-        std::string esname = getEmbedName(parent);
-        if (esname=="ite")
+        std::string suffix = sname.substr(11);
+        if (suffix=="=")
         {
-          // the condition is stored at position 2, after op and deep embedding
-          // the branches have no context
-          tk = i==2 ? TermContextKind::SMT_BUILTIN : TermContextKind::NONE;
-        }
-        else if (esname=="=")
-        {
-          // both sides have no context
+          // both sides have no context.
+          // this allows SMT-LIB equality to operate on Eunoia terms.
           tk = TermContextKind::NONE;
         }
         else
         {
-          tk = TermContextKind::SMT_BUILTIN;
+          std::string esname = getEmbedName(parent);
+          if (esname=="ite")
+          {
+            // the condition is stored at position 2, after op and deep embedding
+            // the branches have no context
+            // TODO: maybe they should have SMT context???
+            tk = i==2 ? TermContextKind::SMT_BUILTIN : TermContextKind::NONE;
+          }
+          else if (esname=="=")
+          {
+            // both sides have no context.
+            // this allows SMT-LIB equality to operate on Eunoia terms.
+            tk = TermContextKind::NONE;
+          }
+          else
+          {
+            tk = TermContextKind::SMT_BUILTIN;
+          }
         }
       }
       if (sname.compare(0, 10, "$smt_type_") == 0)
@@ -2443,8 +2485,10 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child)
   Expr hd = child;
   // if an apply, we look for the head, this will determine eo.Apply vs.
   // sm.Apply
+  std::vector<Expr> appArgs;
   while (hd.getKind() == Kind::APPLY && !isProgramApp(hd))
   {
+    appArgs.push_back(hd[1]);
     hd = hd[0];
   }
   Kind k = hd.getKind();
@@ -2464,21 +2508,30 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child)
     std::string sname = getName(child[0]);
     if (sname.compare(0, 11, "$smt_apply_") == 0)
     {
-      std::string esname = getEmbedName(child);
-      if (esname=="ite")
+      std::string suffix = sname.substr(11);
+      if (suffix=="=")
       {
-        Assert (child.getNumChildren()==5);
-        tk = getMetaKindReturn(child[3]);
-        Assert (tk==getMetaKindReturn(child[4])) << "ITE branches have different meta types " << child;
-      }
-      else if (esname=="=")
-      {
-        Assert (getMetaKindReturn(child[3])==getMetaKindReturn(child[4])) << "Equal sides have different meta types " << child;
+        // builtin equality returns an SMT-LIB builtin
         tk = TermContextKind::SMT_BUILTIN;
       }
       else
       {
-        tk = TermContextKind::SMT_BUILTIN;
+        std::string esname = getEmbedName(child);
+        if (esname=="ite")
+        {
+          Assert (child.getNumChildren()==5);
+          tk = getMetaKindReturn(child[3]);
+          Assert (tk==getMetaKindReturn(child[4])) << "ITE branches have different meta types " << child;
+        }
+        else if (esname=="=")
+        {
+          Assert (getMetaKindReturn(child[3])==getMetaKindReturn(child[4])) << "Equal sides have different meta types " << child;
+          tk = TermContextKind::SMT_BUILTIN;
+        }
+        else
+        {
+          tk = TermContextKind::SMT_BUILTIN;
+        }
       }
     }
     if (sname.compare(0, 10, "$smt_type_") == 0)
@@ -2514,11 +2567,12 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child)
   {
     Expr htype = d_tc.getType(hd);
     tk = getTypeMetaKind(htype);
-    std::cout << "Type for atomic term " << hd << " is " << htype << ", thus context is " << termContextKindToString(tk);
+    std::cout << "Type for atomic term " << hd << " (" << k << ") is " << htype << ", thus context is " << termContextKindToString(tk) << std::endl;
     // if it is a Eunoia constant, it depends on the mapping to
     // datatypes, accessible via the $eo_get_meta_type method.
     if (k==Kind::CONST && tk==TermContextKind::EUNOIA)
     {
+      std::cout << "...consult meta-kind side condition" << std::endl;
       // constants are managed by the Eunoia side condition
       Expr mapp = d_state.mkExprSimple(Kind::APPLY, {d_eoGetMetaKind, hd});
       Ctx ectx;
@@ -2541,10 +2595,9 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child)
       }
       else
       {
-        // depends on its type
-        Expr htype = d_tc.getType(hd);
-        tk = getTypeMetaKind(htype);
+        // otherwise trust its type
       }
+      std::cout << "...evaluate meta-kind side condition returns " << mm << ", which is " << termContextKindToString(tk) << std::endl;
     }
   }
   else

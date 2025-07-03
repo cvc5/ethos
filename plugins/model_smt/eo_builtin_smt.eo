@@ -45,6 +45,11 @@
   ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit) (W4 Type :implicit) (W5 Type :implicit)
    (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque) (x4 W4 :opaque) (x5 W5 :opaque)) $smt_BuiltinType)
 
+; Handles the corner case of SMT-LIB equality, which we use for Eunoia terms as well.
+(declare-parameterized-const $smt_apply_=
+  ((W Type :implicit) (x1 W :opaque) (x2 W :opaque))
+  $smt_BuiltinType)
+
 ; builtin types, which print as e.g. "sm.Int".
 (declare-parameterized-const $smt_builtin_type_0
   ((op $smt_id :opaque))
@@ -517,7 +522,7 @@
 (define $eo_is_eq ((t $eo_Term) (s $eo_Term))
   (eo::ite (eo::is_ok t)
     (eo::ite (eo::is_ok s)
-      ($eo_mk_bool ($smt_apply_2 "=" s t))  ; Note it is sound to use SMT-LIB equality, since we are guarding stuckness
+      ($eo_mk_bool ($smt_apply_= s t))  ; Note it is sound to use SMT-LIB equality, since we are guarding stuckness
       $eo_false)
     $eo_false))
 

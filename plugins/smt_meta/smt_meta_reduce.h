@@ -81,6 +81,7 @@ enum class TermKind
   EUNOIA_QUOTE_TYPE,
   // SMT apply
   SMT_BUILTIN_APPLY,
+  SMT_BUILTIN_APPLY_EQ,
   SMT_BUILTIN_TYPE,
   // Builtin datatype introduced in model_smt step, for sm.Term
   SMT_DT_CONS,
