@@ -946,6 +946,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
         os << ")";
       }
       visit.pop_back();
+      cparen.erase(key);
       continue;
     }
     // otherwise, we check for a change of context and insert a cast if
@@ -1110,6 +1111,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
         {
           // this handles the corner case that ($smt_apply_0 "true") should
           // print as "true" not "(true)".
+          //Assert (!embName.empty()) << "empty embed name, from " << recTerm;
           os << embName;
           visit.pop_back();
           continue;
