@@ -223,32 +223,6 @@ void SmtMetaReduce::printConjunction(size_t n,
   // os << ctx.d_letEnd.str();
 }
 
-void SmtMetaReduce::printConversion(std::ostream& os,
-                      TermContextKind parent,
-                      TermContextKind child,
-                      size_t& nparens)
-{
-  if (parent == TermContextKind::EUNOIA && child != TermContextKind::EUNOIA)
-  {
-    std::stringstream osEnd;
-    if (child == TermContextKind::SMT)
-    {
-      os << "(eo.SmtTerm ";
-      nparens++;
-    }
-    else if (child == TermContextKind::SMT_TYPE)
-    {
-      os << "(eo.SmtType ";
-      nparens++;
-    }
-    else if (child == TermContextKind::SMT_VALUE)
-    {
-      os << "(eo.SmtValue ";
-      nparens++;
-    }
-  }
-}
-
 void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
                                        std::ostream& os,
                                        TermContextKind parent)
@@ -2429,13 +2403,17 @@ TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent, size_t i)
       {
         tk = TermContextKind::SMT_TYPE;
       }
-      if (sname.compare(0, 8, "$smd_eo.") == 0)
+      if (sname=="$smd_eo.SmtTerm")
       {
-        tk = TermContextKind::EUNOIA;
+        tk = TermContextKind::SMT;
+      }
+      if (sname=="$smd_eo.SmtType")
+      {
+        tk = TermContextKind::SMT_TYPE;
       }
       if (sname.compare(0, 8, "$smd_sm.") == 0)
       {
-        tk = TermContextKind::SMT;
+        tk = TermContextKind::SMT_BUILTIN;
       }
       if (sname.compare(0, 9, "$smd_tsm.") == 0)
       {

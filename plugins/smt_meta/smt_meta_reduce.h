@@ -146,10 +146,6 @@ class SmtMetaReduce : public StdPlugin
   bool echo(const std::string& msg) override;
 
  private:
-  void printConversion(std::ostream& os,
-                       TermContextKind parent,
-                       TermContextKind child,
-                       size_t& nparens);
   void printConjunction(size_t n,
                         const std::string& conj,
                         std::ostream& os,
