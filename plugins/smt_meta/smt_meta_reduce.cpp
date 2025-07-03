@@ -2288,7 +2288,12 @@ TermContextKind SmtMetaReduce::getMetaKind(const Expr& e)
     }
     if (sname.compare(0, 8, "$smd_sm.") == 0)
     {
-      return TermContextKind::SMT;
+      if (sname.substr(8)=="Apply")
+      {
+        return TermContextKind::SMT;
+      }
+      // literal kind
+      return TermContextKind::SMT_BUILTIN;
     }
     if (sname.compare(0, 9, "$smd_tsm.") == 0)
     {
@@ -2389,6 +2394,11 @@ TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent, size_t i)
         {
           // both sides have no context.
           // this allows SMT-LIB equality to operate on Eunoia terms.
+          tk = TermContextKind::NONE;
+        }
+        else if (i==1)
+        {
+          // SMT-LIB identifier, ignore
           tk = TermContextKind::NONE;
         }
         else
