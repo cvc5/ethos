@@ -1033,6 +1033,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       visit.pop_back();
       continue;
     }
+    // TODO: uncurry SMT-LIB apply terms
     // we always push all children at once
     size_t cstart = 0;
     if (ck == Kind::APPLY)
