@@ -145,6 +145,10 @@ class SmtMetaReduce : public StdPlugin
   bool echo(const std::string& msg) override;
 
  private:
+  void printConversion(std::ostream& os,
+                       TermContextKind parent,
+                       TermContextKind child,
+                       size_t& nparens);
   void printConjunction(size_t n,
                         const std::string& conj,
                         std::ostream& os,
@@ -186,7 +190,12 @@ class SmtMetaReduce : public StdPlugin
   TermKind getTermKindAtomic(const Expr& e, std::string& name);
   TermKind getTermKind(const Expr& e, std::string& name);
   TermKind getTermKind(const Expr& e);
+
+  /** */
   std::vector<TermContextKind> getContextArguments(const Expr& e, TermContextKind parent);
+  /** */
+  TermContextKind getMetaKind(const Expr& e);
+
   TermContextKind termKindToContext(TermKind tk);
   TermContextKind getEmbTypeContext(const Expr& type);
   std::string getName(const Expr& e);
@@ -220,8 +229,6 @@ class SmtMetaReduce : public StdPlugin
   /** */
   std::map<Expr, TermContextKind> d_metaKind;
   std::map<std::pair<Expr, size_t>, TermContextKind> d_metaKindArg;
-  /** */
-  TermContextKind getMetaKind(const Expr& e);
 };
 
 }  // namespace ethos

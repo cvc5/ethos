@@ -225,6 +225,32 @@ void SmtMetaReduce::printConjunction(size_t n,
   // os << ctx.d_letEnd.str();
 }
 
+void SmtMetaReduce::printConversion(std::ostream& os,
+                      TermContextKind parent,
+                      TermContextKind child,
+                      size_t& nparens)
+{
+  if (parent == TermContextKind::EUNOIA && child != TermContextKind::EUNOIA)
+  {
+    std::stringstream osEnd;
+    if (child == TermContextKind::SMT)
+    {
+      os << "(eo.SmtTerm ";
+      nparens++;
+    }
+    else if (child == TermContextKind::SMT_TYPE)
+    {
+      os << "(eo.SmtType ";
+      nparens++;
+    }
+    else if (child == TermContextKind::SMT_VALUE)
+    {
+      os << "(eo.SmtValue ";
+      nparens++;
+    }
+  }
+}
+
 void SmtMetaReduce::printEmbAtomic(const std::string& str,
                                    std::ostream& os,
                                    TermContextKind parent,
@@ -621,7 +647,7 @@ TermKind SmtMetaReduce::printEmbType(const Expr& c,
 TermContextKind SmtMetaReduce::getEmbTypeContext(const Expr& type)
 {
   // must compute it from the child
-  if (type == d_metaEoTerm)
+  if (type == d_metaEoTerm || type.getKind()==Kind::PARAM)
   {
     return TermContextKind::EUNOIA;
   }
@@ -1670,7 +1696,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
 #ifdef NEW_DEF
     TermContextKind tck = getEmbTypeContext(vt[i - 1]);
     checkStuck = (tck==TermContextKind::EUNOIA);
-    decl << std::endl << "; check stuck " << checkStuck << " for " << vt[i-1] << std::endl;
+    //varList << std::endl << "; check stuck " << checkStuck << " for " << vt[i-1] << std::endl;
 #else
     checkStuck = (tka == TermKind::EUNOIA_TYPE_TYPE || tka == TermKind::EUNOIA_TERM_TYPE
         || tka == TermKind::EUNOIA_BOOL || tka == TermKind::EUNOIA_TYPE_TYPE);
