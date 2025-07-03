@@ -2495,11 +2495,6 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child)
       tk = TermContextKind::SMT_TYPE;
     }
   }
-  else if (k == Kind::PROGRAM_CONST)
-  {
-    // TODO: depends on the program???
-    tk = TermContextKind::EUNOIA;
-  }
   else if (k==Kind::CONST)
   {
     // constants are managed by the Eunoia side condition
@@ -2524,6 +2519,9 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child)
     }
     else
     {
+      // depends on its type
+      Expr ptype = d_tc.getType(hd);
+
       // otherwise assume SMT term
       // FIXME: is this right?
       tk = TermContextKind::SMT;

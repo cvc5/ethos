@@ -275,7 +275,7 @@
 
 ; axiom: $eo_and
 (program $eo_and
-  ((b1 $eo_Term) (b2 $eo_Term) (w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+  ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
   (($eo_and $eo_mk_true $eo_mk_true)   $eo_mk_true)
@@ -289,7 +289,7 @@
 
 ; axiom: $eo_or
 (program $eo_or
-  ((b1 $eo_Term) (b2 $eo_Term) (w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+  ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
   (($eo_or $eo_mk_true $eo_mk_true)   $eo_mk_true)
@@ -302,7 +302,7 @@
 )
 
 ; axiom: $eo_xor
-(program $eo_xor ((b1 $eo_Term) (b2 $eo_Term) (w $eo_Numeral) (n1 $eo_Numeral) (n2 $eo_Numeral))
+(program $eo_xor ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
   (($eo_xor $eo_mk_true $eo_mk_true)   $eo_mk_false)
@@ -316,7 +316,8 @@
 
 ;;; Arithmetic operators
 
-(program $eo_add ((w $eo_Numeral) (n1 $eo_Numeral) (n2 $eo_Numeral) (r1 $eo_Rational) (r2 $eo_Rational))
+(program $eo_add
+  ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int) (r1 $smt_builtin_Real) (r2 $smt_builtin_Real))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
   (($eo_add ($eo_mk_numeral n1) ($eo_mk_numeral n2))
@@ -328,7 +329,8 @@
   )
 )
 
-(program $eo_mul ((w $eo_Numeral) (n1 $eo_Numeral) (n2 $eo_Numeral) (r1 $eo_Rational) (r2 $eo_Rational))
+(program $eo_mul
+  ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int) (r1 $smt_builtin_Real) (r2 $smt_builtin_Real))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
   (($eo_mul ($eo_mk_numeral n1) ($eo_mk_numeral n2))
@@ -340,7 +342,7 @@
   )
 )
 
-(program $eo_qdiv ((w $eo_Numeral) (n1 $eo_Numeral) (n2 $eo_Numeral) (r1 $eo_Rational) (r2 $eo_Rational))
+(program $eo_qdiv ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int) (r1 $smt_builtin_Real) (r2 $smt_builtin_Real))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
   (($eo_qdiv ($eo_mk_numeral n1) ($eo_mk_numeral n2))
@@ -357,7 +359,7 @@
 )
 
 
-(program $eo_zdiv ((w $eo_Numeral) (n1 $eo_Numeral) (n2 $eo_Numeral))
+(program $eo_zdiv ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
   (($eo_zdiv ($eo_mk_numeral n1) ($eo_mk_numeral n2))
@@ -371,7 +373,7 @@
   )
 )
 
-(program $eo_zmod ((w $eo_Numeral) (n1 $eo_Numeral) (n2 $eo_Numeral))
+(program $eo_zmod ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
   (($eo_zmod ($eo_mk_numeral n1) ($eo_mk_numeral n2))
@@ -385,7 +387,7 @@
   )
 )
 
-(program $eo_is_neg ((n1 $eo_Numeral) (r1 $eo_Rational))
+(program $eo_is_neg ((n1 $smt_builtin_Int) (r1 $smt_builtin_Real))
   :signature ($eo_Term) $eo_Term
   (
   (($eo_is_neg ($eo_mk_numeral n1))
@@ -396,7 +398,7 @@
 )
 
 ; axiom: $eo_neg
-(program $eo_neg ((n1 $eo_Numeral) (r1 $eo_Rational))
+(program $eo_neg ((n1 $smt_builtin_Int) (r1 $smt_builtin_Real))
   :signature ($eo_Term) $eo_Term
   (
   (($eo_neg ($eo_mk_numeral n1))
@@ -409,7 +411,7 @@
 
 ;;; String operators
 
-(program $eo_len ((s1 $eo_String) (w $eo_Numeral) (n1 $eo_Numeral))
+(program $eo_len ((s1 $smt_builtin_String) (w $smt_builtin_Int) (n1 $smt_builtin_Int))
   :signature ($eo_Term) $eo_Term
   (
   (($eo_len ($eo_mk_string s1))
@@ -420,7 +422,8 @@
 )
 
 (program $eo_concat
-  ((w1 $eo_Numeral) (n1 $eo_Numeral) (w2 $eo_Numeral) (n2 $eo_Numeral) (s1 $eo_String) (s2 $eo_String))
+  ((w1 $smt_builtin_Int) (n1 $smt_builtin_Int) (w2 $smt_builtin_Int) (n2 $smt_builtin_Int)
+   (s1 $smt_builtin_String) (s2 $smt_builtin_String))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
   (($eo_concat ($eo_mk_string s1) ($eo_mk_string s2))
@@ -431,7 +434,7 @@
 )
 
 (program $eo_extract
-  ((s1 $eo_String) (w1 $eo_Numeral) (n1 $eo_Numeral) (n2 $eo_Numeral) (n3 $eo_Numeral))
+  ((s1 $smt_builtin_String) (w1 $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int) (n3 $smt_builtin_Int))
   :signature ($eo_Term $eo_Term $eo_Term) $eo_Term
   (
   (($eo_extract ($eo_mk_string s1) ($eo_mk_numeral n2) ($eo_mk_numeral n3))
@@ -443,7 +446,7 @@
   )
 )
 
-(program $eo_find ((s1 $eo_String) (s2 $eo_String))
+(program $eo_find ((s1 $smt_builtin_String) (s2 $smt_builtin_String))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
   (($eo_find ($eo_mk_string s1) ($eo_mk_string s2))
@@ -453,7 +456,7 @@
 
 ;;; Conversion operators
 
-(program $eo_to_z ((n1 $eo_Numeral) (r1 $eo_Rational) (s1 $eo_String) (w $eo_Numeral))
+(program $eo_to_z ((n1 $smt_builtin_Int) (r1 $eo_Rational) (s1 $smt_builtin_String) (w $smt_builtin_Int))
   :signature ($eo_Term) $eo_Term
   (
   (($eo_to_z ($eo_mk_numeral n1))
@@ -470,7 +473,7 @@
   )
 )
 
-(program $eo_to_q ((n1 $eo_Numeral) (r1 $eo_Rational) (s1 $eo_String) (w $eo_Numeral))
+(program $eo_to_q ((n1 $smt_builtin_Int) (r1 $eo_Rational) (s1 $smt_builtin_String) (w $smt_builtin_Int))
   :signature ($eo_Term) $eo_Term
   (
   (($eo_to_q ($eo_mk_numeral n1))
@@ -480,7 +483,7 @@
   )
 )
 
-(program $eo_to_bin ((w $eo_Numeral) (w1 $eo_Numeral) (n1 $eo_Numeral))
+(program $eo_to_bin ((w $smt_builtin_Int) (w1 $smt_builtin_Int) (n1 $smt_builtin_Int))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
   (($eo_to_bin ($eo_mk_numeral w) ($eo_mk_numeral n1))
@@ -490,7 +493,7 @@
   )
 )
 
-(program $eo_to_str ((n1 $eo_Numeral) (s1 $eo_String))
+(program $eo_to_str ((n1 $smt_builtin_Int) (s1 $smt_builtin_String))
   :signature ($eo_Term) $eo_Term
   (
   (($eo_to_str ($eo_mk_numeral n1))
