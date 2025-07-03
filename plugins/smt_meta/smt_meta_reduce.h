@@ -195,6 +195,7 @@ class SmtMetaReduce : public StdPlugin
   std::vector<TermContextKind> getContextArguments(const Expr& e, TermContextKind parent);
   /** */
   TermContextKind getMetaKind(const Expr& e);
+  TermContextKind getMetaKindArg(const Expr& parent, size_t i);
 
   TermContextKind termKindToContext(TermKind tk);
   TermContextKind getEmbTypeContext(const Expr& type);
@@ -225,6 +226,7 @@ class SmtMetaReduce : public StdPlugin
   Expr d_metaEoTerm;
   Expr d_metaSmtTerm;
   Expr d_metaSmtType;
+  Expr d_metaSmtBuiltinType;
   Expr d_metaSmtValue;
   /** */
   std::map<Expr, TermContextKind> d_metaKind;

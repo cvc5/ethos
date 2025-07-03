@@ -108,10 +108,12 @@
 ; For each relevant user term, return the datatype above that it belongs to.
 ; This program will be used in the smt_meta_reduce compilation step, and
 ; will dissappear in the final signature.
-(program $eo_get_meta_type ((T Type) (t T))
+; TODO: fill in this function????
+(program $eo_get_meta_type ((T Type) (U Type) (t T) (f (-> U T)) (a U))
   :signature (T) Type
   (
 $SMT_EMBED_META_TYPE_DECL$
+  ;(($eo_get_meta_type (f a)) ($eo_get_meta_type f))
   ; otherwise, assume eo.new.Term
   (($eo_get_meta_type t) $eo_Term)
   )

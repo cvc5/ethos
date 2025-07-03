@@ -1950,6 +1950,7 @@ void SmtMetaReduce::finalize()
   d_metaEoTerm = lookupVar("$eo_Term");
   d_metaSmtTerm = lookupVar("$smt_Term");
   d_metaSmtType = lookupVar("$smt_Type");
+  d_metaSmtBuiltinType = lookupVar("$smt_BuiltinType");
   d_metaSmtValue = lookupVar("$smt_Value");
   finalizePrograms();
   finalizeDeclarations();
@@ -2381,6 +2382,10 @@ TermContextKind SmtMetaReduce::getMetaKind(const Expr& e)
     {
       tk = TermContextKind::SMT_TYPE;
     }
+    else if (mm == d_metaSmtBuiltinType)
+    {
+      tk = TermContextKind::SMT_BUILTIN;
+    }
     else
     {
       // otherwise assume SMT term
@@ -2390,6 +2395,12 @@ TermContextKind SmtMetaReduce::getMetaKind(const Expr& e)
   }
   d_metaKind[e] = tk;
   return tk;
+}
+
+TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent, size_t i)
+{
+
+  return TermContextKind::NONE;
 }
 
 }  // namespace ethos
