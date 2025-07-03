@@ -87,6 +87,7 @@ std::string termContextKindToPrefix(TermContextKind k)
     case TermContextKind::SMT: ss << "sm."; break;
     case TermContextKind::SMT_TYPE: ss << "tsm."; break;
     case TermContextKind::SMT_VALUE: ss << "vsm."; break;
+    case TermContextKind::SMT_BUILTIN: break;
     default:
       ss << "?TermContextKindPrefix_" << termContextKindToString(k);
       break;
@@ -1019,7 +1020,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           parent = TermContextKind::SMT_BUILTIN;
         }
       }
-#if 1
+#if 0
       Assert(parent == child)
           << "Unhandled context switch for " << recTerm << " "
           << recTerm.getKind() << std::endl
@@ -1051,33 +1052,35 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     // TODO: uncurry SMT-LIB apply terms
     // we always push all children at once
     size_t cstart = 0;
+    bool isCurriedApply = false;
     if (ck == Kind::APPLY)
     {
       os << "(";
       cparen[key]++;
-      if (isProgramApp(recTerm))
+      // programs print as themselves
+      if (!isProgramApp(recTerm))
       {
-        // prints as itself
-      }
-      else if (child == TermContextKind::EUNOIA)
-      {
-        // use macro to ensure "Stuck" propagates
-        os << "$eo_Apply ";
-      }
-      else if (child == TermContextKind::SMT)
-      {
-        os << "sm.Apply ";
-      }
-      else if (child == TermContextKind::SMT_TYPE)
-      {
-        os << "tsm.Apply ";
-      }
-      else
-      {
-        Assert(false) << "Unhandled apply kind for " << recTerm << " "
-                      << ", in context " << termContextKindToString(parent)
-                      << " / " << termContextKindToString(child)
-                      << " within term " << body;
+        isCurriedApply = true;
+        if (child == TermContextKind::EUNOIA)
+        {
+          // use macro to ensure "Stuck" propagates
+          os << "$eo_Apply ";
+        }
+        else if (child == TermContextKind::SMT)
+        {
+          os << "sm.Apply ";
+        }
+        else if (child == TermContextKind::SMT_TYPE)
+        {
+          os << "tsm.Apply ";
+        }
+        else
+        {
+          Assert(false) << "Unhandled apply kind for " << recTerm << " "
+                        << ", in context " << termContextKindToString(parent)
+                        << " / " << termContextKindToString(child)
+                        << " within term " << body;
+        }
       }
     }
     else if (ck == Kind::APPLY_OPAQUE)
@@ -1145,10 +1148,13 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       EO_FATAL() << "Unhandled kind in print term " << ck << " " << recTerm
                  << " / " << termContextKindToString(parent) << std::endl;
     }
+    // FIXME: assume not, for now.
+    isCurriedApply = false;
     // otherwise, the new context depends on the types of the children
     std::vector<TermContextKind> targs = getMetaKindArgs(recTerm, parent);
     // push in reverse order
-    for (size_t i = cstart, nchild = recTerm.getNumChildren(); i < nchild; i++)
+    size_t nchild = (isCurriedApply ? rtermArgs.size() : recTerm.getNumChildren());
+    for (size_t i = cstart; i < nchild; i++)
     {
       if (i != cstart)
       {
@@ -1156,7 +1162,9 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
         visit.emplace_back(d_null, TermContextKind::NONE);
       }
       size_t ii = cstart + (nchild - i) - 1;
-      visit.emplace_back(recTerm[ii], targs[ii]);
+      Expr rc = (isCurriedApply ? rtermArgs[ii] : recTerm[ii]);
+      TermContextKind ctxRec = (isCurriedApply ? child : targs[ii]);
+      visit.emplace_back(rc, ctxRec);
     }
   } while (!visit.empty());
   return true;

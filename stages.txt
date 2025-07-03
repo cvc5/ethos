@@ -145,6 +145,8 @@ Things handled at this stage:
 === Smt_Meta
 
 Compiles *.eo to *.smt2.
+Implements a simple type system which distinguishes Eunoia terms,
+SMT terms, SMT types and SMT values.
 Optimizes for non-recursive programs using define-fun.
 Generates a conjecture for a Eunoia program under test (e.g. $eovc_X)
 which states the $eovc_X program does not get stuck for some input.
