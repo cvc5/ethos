@@ -266,7 +266,7 @@ void ModelSmt::finalizeDecl(const Expr& e)
     out = &d_embedEoTermDt;
     metaType << "$eo_Term)";
   }
-  else if (sname.compare(0, 4, "$eo_") != 0 && sname!="$smt_BuiltinType")
+  else if (sname.compare(0, 4, "$eo_") != 0 && sname != "$smt_BuiltinType")
   {
     Expr c = e;
     Expr tc = d_tc.getType(c);

@@ -21,7 +21,6 @@ namespace ethos {
 class State;
 class TypeChecker;
 
-
 class ConjPrint
 {
  public:
@@ -31,7 +30,6 @@ class ConjPrint
   std::stringstream d_ss;
   size_t d_npush;
 };
-
 
 /**
  * The datatype we are at.
@@ -154,7 +152,7 @@ class SmtMetaReduce : public StdPlugin
                             const std::string& initCtx,
                             std::ostream& os,
                             SelectorCtx& ctx,
-                                         ConjPrint& print,
+                            ConjPrint& print,
                             size_t& nconj,
                             TermContextKind tinit = TermContextKind::NONE);
   void printEmbAtomicTerm(const Expr& c,
@@ -245,7 +243,7 @@ class SmtMetaReduce : public StdPlugin
    * Same as above, but collects (flattens) the arguments of APPLY
    */
   TermContextKind getMetaKindReturn(const Expr& child,
-  std::vector<Expr>& appArgs);
+                                    std::vector<Expr>& appArgs);
 };
 
 }  // namespace ethos
