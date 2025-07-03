@@ -229,14 +229,15 @@ class SmtMetaReduce : public StdPlugin
    * This returns the expected meta-kind for the i^th child of
    * parent. It should not depend on parent[i] at all.
    */
-  TermContextKind getMetaKindArg(const Expr& parent, size_t i,
-                                    TermContextKind parentCtx);
+  TermContextKind getMetaKindArg(const Expr& parent,
+                                 size_t i,
+                                 TermContextKind parentCtx);
   /**
    * Returns the result of calling the above method for all
    * children i of parent.
    */
   std::vector<TermContextKind> getMetaKindArgs(const Expr& parent,
-                                    TermContextKind parentCtx);
+                                               TermContextKind parentCtx);
   /**
    * Get the meta-kind returned by a child.
    */
