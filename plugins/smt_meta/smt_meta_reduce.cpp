@@ -598,6 +598,10 @@ TermContextKind SmtMetaReduce::getEmbTypeContext(const Expr& type)
   {
     return TermContextKind::SMT_TYPE;
   }
+  else
+  {
+    //Assert (false) << "Unknown type for getEmbTypeContext " << type;
+  }
   // otherwise assume builtin
   return TermContextKind::SMT_BUILTIN;
 }
@@ -1577,8 +1581,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
 #ifdef NEW_DEF
     TermContextKind tck = getEmbTypeContext(vt[i - 1]);
     checkStuck = (tck == TermContextKind::EUNOIA);
-    // varList << std::endl << "; check stuck " << checkStuck << " for " <<
-    // vt[i-1] << std::endl;
+    //varList << std::endl << "; check stuck " << checkStuck << " for " << vt[i-1] << std::endl;
 #else
     checkStuck =
         (tka == TermKind::EUNOIA_TYPE_TYPE || tka == TermKind::EUNOIA_TERM_TYPE
@@ -2239,7 +2242,7 @@ TermKind SmtMetaReduce::getTermKindAtomic(const Expr& e, std::string& name)
     return TermKind::SMT_TYPE_DT_CONS;
   }
   // symbols that begin with @ are treated as Eunoia terms.
-  if (sname.compare(0, 1, "@") == 0 || sname.compare(0, 8, "$eo_List") == 0)
+  if (sname.compare(0, 1, "@") == 0 || sname.compare(0, 8, "$eo_List") == 0 || sname=="$eo_Var")
   {
     name = sname;
     return TermKind::EUNOIA_TERM;
