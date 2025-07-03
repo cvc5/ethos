@@ -261,7 +261,7 @@ $EO_EVAL_CASES$
 
 ; eo::is_ok is total, doesn't need to wrap in smt_try_eo
 (define $smt_try_eo_ok ((T Type :implicit) (t T))
-  ($smt_apply_2 "= " (eo::is_ok t) $eo_true))
+  ($smt_apply_2 "=" (eo::is_ok t) $eo_true))
 
 ; Utilities to ensure that programs are total.
 ; Takes
