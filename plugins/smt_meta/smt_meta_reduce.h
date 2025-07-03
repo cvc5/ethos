@@ -160,10 +160,6 @@ class SmtMetaReduce : public StdPlugin
                                          ConjPrint& print,
                             size_t& nconj,
                             TermContextKind tinit = TermContextKind::NONE);
-  void printEmbAtomic(const std::string& c,
-                      std::ostream& os,
-                      TermContextKind parent,
-                      TermContextKind child);
   void printEmbAtomicTerm(const Expr& c,
                           std::ostream& os,
                           TermContextKind tctx = TermContextKind::NONE);
