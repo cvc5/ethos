@@ -83,8 +83,6 @@
   (eo.new.Stuck)
   ; user-decl: $eo_List
   (eo.new.$eo_List)
-  ; user-decl: $eo_Var
-  (eo.new.$eo_Var)
 
   )
   (
@@ -154,10 +152,10 @@
   (sm.String (sm.String.arg1 String))
   ; declare Binary SMT_DT_CONS
   (sm.Binary (sm.Binary.arg1 Int) (sm.Binary.arg2 Int))
-  ; declare not SMT_TERM
-  (sm.not)
   ; declare $eo_Var SMT_TERM
   (sm.$eo_Var)
+  ; declare not SMT_TERM
+  (sm.not)
   ; declare and SMT_TERM
   (sm.and)
   ; declare ite SMT_TERM
@@ -402,6 +400,20 @@
 ; fwd-decl: $eo_hash
 (declare-fun $eo_hash (eo.Term) eo.Term)
 
+; fwd-decl: $eo_typeof_main
+(declare-fun $eo_typeof_main (eo.Term) eo.Term)
+
+; program: $eo_typeof
+(assert (! (forall ((x1 eo.Term))
+  (= ($eo_typeof x1)
+  (ite (= x1 eo.Stuck)
+    eo.Stuck
+  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Apply) (eo.SmtTerm.arg1 x1)) ((_ is sm.Apply) (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))) (= (sm.Apply.arg1 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))) sm.$eo_Var))
+    (eo.SmtTerm (sm.Apply.arg2 (eo.SmtTerm.arg1 x1)))
+  (ite true
+    ($eo_ite ($eo_is_bool x1) (eo.SmtType tsm.Bool) ($eo_ite ($eo_ite ($eo_is_ok ($eo_to_z x1)) ($eo_ite ($eo_is_ok x1) (eo.SmtTerm (ite (= x1 ($eo_to_z x1)) sm.True sm.False)) (eo.SmtTerm sm.False)) (eo.SmtTerm sm.False)) (eo.SmtTerm sm.Int) ($eo_ite ($eo_ite ($eo_is_ok ($eo_to_q x1)) ($eo_ite ($eo_is_ok x1) (eo.SmtTerm (ite (= x1 ($eo_to_q x1)) sm.True sm.False)) (eo.SmtTerm sm.False)) (eo.SmtTerm sm.False)) (eo.SmtTerm sm.Real) ($eo_ite ($eo_ite ($eo_is_ok ($eo_to_str x1)) ($eo_ite ($eo_is_ok x1) (eo.SmtTerm (ite (= x1 ($eo_to_str x1)) sm.True sm.False)) (eo.SmtTerm sm.False)) (eo.SmtTerm sm.False)) (eo.SmtTerm (sm.Apply sm.Seq sm.Char)) ($eo_ite ($eo_ite ($eo_is_ok ($eo_to_bin ($eo_len x1) x1)) ($eo_ite ($eo_is_ok x1) (eo.SmtTerm (ite (= x1 ($eo_to_bin ($eo_len x1) x1)) sm.True sm.False)) (eo.SmtTerm sm.False)) (eo.SmtTerm sm.False)) (eo.SmtTerm sm.$eo_undef_type) ($eo_typeof_main x1))))))
+    eo.Stuck))))) :named sm.axiom.$eo_typeof))
+
 ; fwd-decl: $eo_dt_constructors
 (declare-fun $eo_dt_constructors (eo.Term) eo.Term)
 
@@ -443,7 +455,8 @@
     eo.Stuck)))
 
 ; program: $eo_typeof_main
-(define-fun $eo_typeof_main ((x1 eo.Term)) eo.Term
+(assert (! (forall ((x1 eo.Term))
+  (= ($eo_typeof_main x1)
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite (= x1 eo.Type)
@@ -476,18 +489,7 @@
     ($eo_FunType (eo.SmtTerm sm.Int) eo.Type)
   (ite ((_ is eo.Apply) x1)
     ($eo_typeof_apply ($eo_typeof (eo.Apply.arg1 x1)) ($eo_typeof (eo.Apply.arg2 x1)))
-    eo.Stuck)))))))))))))))))
-
-; program: $eo_typeof
-(assert (! (forall ((x1 eo.Term))
-  (= ($eo_typeof x1)
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Apply) (eo.SmtTerm.arg1 x1)) ((_ is sm.Apply) (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))) (= (sm.Apply.arg1 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))) sm.$eo_Var))
-    (eo.SmtTerm (sm.Apply.arg2 (eo.SmtTerm.arg1 x1)))
-  (ite true
-    ($eo_ite ($eo_is_bool x1) (eo.SmtType tsm.Bool) ($eo_ite ($eo_is_z x1) (eo.SmtTerm sm.Int) ($eo_ite ($eo_is_q x1) (eo.SmtTerm sm.Real) ($eo_ite ($eo_is_str x1) (eo.SmtTerm (sm.Apply sm.Seq sm.Char)) ($eo_ite ($eo_is_bin x1) (eo.SmtTerm sm.$eo_undef_type) ($eo_typeof_main x1))))))
-    eo.Stuck))))) :named sm.axiom.$eo_typeof))
+    eo.Stuck)))))))))))))))))) :named sm.axiom.$eo_typeof_main))
 
 ; program: $eo_dt_constructors
 (assert (! (forall ((x1 eo.Term))

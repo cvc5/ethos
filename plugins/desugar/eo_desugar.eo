@@ -369,27 +369,6 @@ $EO_LITERAL_TYPE_DECL$
    (f (-> T U V)) (a W1) (b W2))
   ($eo_if_both ($eo_list_minclude f a b) ($eo_list_minclude f b a)))
 
-; Used to model eo::var
-; TODO: :opaque?
-(declare-parameterized-const $eo_Var ((s $eo_String) (T Type)) T)
-
-; program: $eo_var
-; implements: eo::var
-(define $eo_var ((s $eo_String) (T Type))
-  ; FIXME
-  ;(eo::requires ($eo_is_str s) true
-  (eo::requires ($eo_typeof T) Type
-    ($eo_Var s T)));)
-
-; program: $eo_nameof
-; implements: eo::nameof
-(program $eo_nameof ((s $eo_String) (T Type))
-  :signature (T) $eo_String
-  (
-  (($eo_nameof ($eo_Var s T)) s)
-  )
-)
-
 ; all further definitions
 
 $EO_DEFS$
@@ -424,22 +403,6 @@ $EO_TYPEOF_NGROUND_DEFS$
   (($eo_typeof_main false)     Bool)
 $EO_TYPEOF_CASES$
   (($eo_typeof_main (f x))     ($eo_typeof_apply ($eo_typeof f) ($eo_typeof x)))
-  )
-)
-
-; program: $eo_typeof
-; implements: eo::typeof
-(program $eo_typeof ((T Type) (t T) (s $eo_String))
-  :signature (T) Type
-  (
-  (($eo_typeof ($eo_Var s T)) T)
-  ; FIXME: break dependencies
-  (($eo_typeof t) (eo::ite (eo::is_bool t) Bool
-                  (eo::ite (eo::is_z t) $eo_Numeral
-                  (eo::ite (eo::is_q t) $eo_Rational
-                  (eo::ite (eo::is_str t) $eo_String
-                  (eo::ite (eo::is_bin t) $eo_Binary
-                    ($eo_typeof_main t)))))))
   )
 )
 
@@ -482,6 +445,9 @@ $EO_NIL_CASES$
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_smt
+
+; TODO: A placeholder for the type of SMT-LIB terms.
+(declare-const $eo_SmtType Type)
 
 ; A placeholder for asking whether a formula is satisfied by a model.
 ; This is used to define the verification condition we will write below.

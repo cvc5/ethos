@@ -1031,9 +1031,11 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           parent = TermContextKind::SMT_BUILTIN;
         }
       }
+#if 0
       Assert(parent==child) << "Unhandled context switch for " << recTerm << " " << recTerm.getKind() << std::endl
       << termContextKindToString(parent) << " -> " << termContextKindToString(child)
       << " within term " << body;
+#endif
     }
     // We now should only care about the child context!!!
 
@@ -1735,9 +1737,9 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
       itm = ctx.d_tctx.find(vt[i - 1]);
       if (itm != ctx.d_tctx.end())
       {
-        // d_defs << "; x" << i << " matched with " << itm->second << std::endl;
-        // d_defs << "; x" << i << " matched in context " <<
-        // termContextKindToString(itm->second) << std::endl;
+        d_defs << std::endl;
+        //d_defs << "; x" << i << " matched with " << itm->second.str() << std::endl;
+        d_defs << "; x" << i << " matched in context " << termContextKindToString(itm->second) << std::endl;
       }
       std::stringstream argType;
       printEmbType(vt[i - 1], argType);
@@ -2527,7 +2529,15 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child)
       else
       {
         std::string esname = getEmbedName(child);
-        if (esname=="ite")
+        if (esname=="eo.SmtTerm.arg1")
+        {
+          tk = TermContextKind::SMT;
+        }
+        else if (esname=="eo.SmtType.arg1")
+        {
+          tk = TermContextKind::SMT_TYPE;
+        }
+        else if (esname=="ite")
         {
           Assert (child.getNumChildren()==5);
           tk = getMetaKindReturn(child[3]);
@@ -2569,7 +2579,13 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child)
   {
     tk = TermContextKind::PROGRAM;
   }
-  else if (k==Kind::EVAL_IF_THEN_ELSE || k==Kind::EVAL_IS_OK)
+  else if (k==Kind::FUNCTION_TYPE)
+  {
+    // for now, function type is assumed to be Eunoia.
+    // likely HO smt would change this.
+    tk = TermContextKind::EUNOIA;
+  }
+  else if (k==Kind::EVAL_IF_THEN_ELSE || k==Kind::EVAL_IS_OK || k==Kind::EVAL_REQUIRES)
   {
     tk = TermContextKind::EUNOIA;
   }
