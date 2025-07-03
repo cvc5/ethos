@@ -64,6 +64,8 @@
 (define $smt_builtin_= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "=" x1 x2))
 (define $smt_builtin_ite ((W Type :implicit) (b $smt_builtin_Bool) (x1 W) (x2 W)) ($smt_apply_3 "ite" b x1 x2))
 (define $smt_builtin_z_zero () ($smt_apply_0 "0"))
+(define $smt_builtin_z_one () ($smt_apply_0 "1"))
+(define $smt_builtin_z_two () ($smt_apply_0 "2"))
 (define $smt_builtin_+ ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "+" x1 x2))
 (define $smt_builtin_- ((W Type :implicit) (x1 W)) ($smt_apply_1 "-" x1))
 (define $smt_builtin_div ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "div" x1 x2))
@@ -167,29 +169,33 @@
 (program $sm_mk_pow2 ((i $smt_builtin_Int))
   :signature ($smt_builtin_Int) $smt_builtin_Int
   (
-  (($sm_mk_pow2 i)  ($smt_apply_3 "ite" ($smt_apply_2 "<=" i 0)
-                      1
-                      ($smt_apply_2 "*" 2 ($sm_mk_pow2 ($smt_apply_2 "-" i 1)))))
+  (($sm_mk_pow2 i)  ($smt_apply_3 "ite" ($smt_apply_2 "<=" i $smt_builtin_z_zero)
+                      $smt_builtin_z_one
+                      ($smt_apply_2 "*" $smt_builtin_z_two ($sm_mk_pow2 ($smt_apply_2 "-" i $smt_builtin_z_one)))))
   )
 )
 (program $sm_mk_bit ((x $smt_builtin_Int) (i $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int) $smt_builtin_Bool
   (
   ; (= (mod (div x ($sm_mk_pow2 i)) 2) 1)
-  (($sm_mk_bit x i) ($smt_apply_1 "= 1" ($smt_apply_2 "mod" ($smt_builtin_div x ($sm_mk_pow2 i)) 2)))
+  (($sm_mk_bit x i) ($smt_apply_1 "= 1" ($smt_apply_2 "mod" ($smt_builtin_div x ($sm_mk_pow2 i)) $smt_builtin_z_two)))
   )
 )
 (program $sm_mk_binary_and ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
   (($sm_mk_binary_and w n1 n2)
-     ($smt_apply_3 "ite" ($smt_apply_2 "=" w 0) 0
+     ($smt_apply_3 "ite" ($smt_apply_2 "=" w $smt_builtin_z_zero) $smt_builtin_z_zero
      ($smt_apply_3 "ite" ($smt_apply_2 "=" w 1)
-       ($smt_apply_3 "ite" ($smt_builtin_and ($smt_apply_2 "=" n1 1) ($smt_apply_2 "=" n2 1)) 1 0)
+       ($smt_apply_3 "ite"
+        ($smt_builtin_and
+          ($smt_apply_2 "=" n1 $smt_builtin_z_one)
+          ($smt_apply_2 "=" n2 $smt_builtin_z_one))
+        $smt_builtin_z_one $smt_builtin_z_zero)
        ($smt_apply_2 "+"
-         ($sm_mk_binary_and ($smt_apply_2 "-" w 1) n1 n2)
+         ($sm_mk_binary_and ($smt_apply_2 "-" w $smt_builtin_z_one) n1 n2)
          ($smt_apply_2 "*" ($sm_mk_pow2 w)
-            ($smt_apply_3 "ite" ($smt_builtin_and ($sm_mk_bit n1 w) ($sm_mk_bit n2 w)) 1 0))))))
+            ($smt_apply_3 "ite" ($smt_builtin_and ($sm_mk_bit n1 w) ($sm_mk_bit n2 w)) $smt_builtin_z_one $smt_builtin_z_zero))))))
   )
 )
 (program $sm_mk_binary_or ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))

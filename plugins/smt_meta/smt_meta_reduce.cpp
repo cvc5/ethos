@@ -1167,7 +1167,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
         {
           // this handles the corner case that ($smt_apply_0 "true") should
           // print as "true" not "(true)".
-          os << embName << " ";
+          os << embName;
           visit.pop_back();
           continue;
         }
@@ -2352,7 +2352,8 @@ TermContextKind SmtMetaReduce::getMetaKind(const Expr& e)
   Kind k = hd.getKind();
   if (isLiteral(k))
   {
-    return TermContextKind::SMT_BUILTIN;
+    // literals are treated as Eunoia, their wrapping is SMT_BUILTIN
+    return TermContextKind::EUNOIA;
   }
   if (hd.getKind()==Kind::APPLY_OPAQUE)
   {
