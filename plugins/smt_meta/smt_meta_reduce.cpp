@@ -976,7 +976,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     std::cout << "print: " << recTerm << ", " << termContextKindToString(parent) << " / " << termContextKindToString(child) << std::endl;
     if (parent!=TermContextKind::NONE && parent!=child)
     {
-      bool processed = false;
       if (parent==TermContextKind::EUNOIA)
       {
         if (child==TermContextKind::SMT || child==TermContextKind::SMT_BUILTIN)
@@ -984,35 +983,46 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           // going from a Eunoia term to an SMT term
           os << "(eo.SmtTerm ";
           cparen[key]++;
-          processed = true;
           // literals will be processed in printEmbAtomicTerm.
+          parent = TermContextKind::SMT;
         }
         else if (child==TermContextKind::SMT_TYPE)
         {
           // going from a Eunoia term to an SMT type
           os << "(eo.SmtType ";
           cparen[key]++;
-          processed = true;
+          parent = TermContextKind::SMT_TYPE;
         }
       }
-      else if (parent==TermContextKind::SMT_BUILTIN)
+      if (parent==TermContextKind::SMT)
       {
-        // e.g. equality or ITE with Eunoia/SMT terms or types
-        // no conversion necessary
-        processed = true;
+        if (child==TermContextKind::SMT_BUILTIN)
+        {
+          // wrap the literal types
+          if (ck == Kind::NUMERAL)
+          {
+            os << "(sm.Numeral ";
+            cparen[key]++;
+          }
+          else if (ck == Kind::RATIONAL)
+          {
+            os << "(sm.Rational ";
+            cparen[key]++;
+          }
+          else if (ck == Kind::BINARY)
+          {
+            os << "(sm.Binary";
+            cparen[key]++;
+          }
+          else if (ck == Kind::STRING)
+          {
+            os << "(sm.String ";
+            cparen[key]++;
+          }
+          parent = TermContextKind::SMT_BUILTIN;
+        }
       }
-      else if (parent==TermContextKind::PROGRAM)
-      {
-        // trust the argument to the program
-        processed = true;
-      }
-      if (child==TermContextKind::PROGRAM)
-      {
-        // a program as a child
-        // TODO: this likely depends on the return type
-        processed = true;
-      }
-      Assert(processed) << "Unhandled context switch for " << recTerm << std::endl
+      Assert(parent==child) << "Unhandled context switch for " << recTerm << std::endl
       << termContextKindToString(parent) << " -> " << termContextKindToString(child)
       << " within term " << body;
     }
@@ -2298,6 +2308,33 @@ TermContextKind SmtMetaReduce::getMetaKind(const Expr& e)
 
 /////////////////////////////////////
 
+TermContextKind SmtMetaReduce::getTypeMetaKind(const Expr& typ)
+{
+  Kind k = typ.getKind();
+  if (k==Kind::APPLY_OPAQUE)
+  {
+    std::string sname = getName(typ[0]);
+    if (sname.compare(0, 10, "$smt_type_") == 0)
+    {
+      return TermContextKind::SMT_BUILTIN;
+    }
+  }
+  if (typ == d_metaEoTerm || k==Kind::PARAM)
+  {
+    return TermContextKind::EUNOIA;
+  }
+  else if (typ == d_metaSmtTerm)
+  {
+    return TermContextKind::SMT;
+  }
+  else if (typ == d_metaSmtType)
+  {
+    return TermContextKind::SMT_TYPE;
+  }
+  Assert(false) << "Unknown type meta-kind " << typ << " " << typ.getKind();
+  return TermContextKind::NONE;
+}
+
 TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent, size_t i)
 {
   // This method should rely on the parent only!!!
@@ -2351,8 +2388,21 @@ TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent, size_t i)
   }
   else if (k==Kind::APPLY)
   {
-    // the application case depends on the meta-kind of the head term
-    tk = getMetaKindReturn(parent);
+    if (isProgramApp(parent))
+    {
+      // if program app, depends on the type of the program
+      Expr p = parent[0];
+      Expr ptype = d_tc.getType(p);
+      Assert (ptype.getKind()==Kind::PROGRAM_TYPE);
+      // convert the type to a metakind
+      Assert (i+1<ptype.getNumChildren());
+      tk = getTypeMetaKind(ptype[i]);
+    }
+    else
+    {
+      // the application case depends on the meta-kind of the head term
+      tk = getMetaKindReturn(parent);
+    }
   }
   else if (k==Kind::FUNCTION_TYPE)
   {
@@ -2370,21 +2420,40 @@ TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent, size_t i)
   return tk;
 }
 
+bool SmtMetaReduce::isProgramApp(const Expr& app)
+{
+  if (app.getKind()==Kind::APPLY && app[0].getKind()==Kind::PROGRAM_CONST)
+  {
+    return true;
+  }
+  return false;
+}
+
 TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child)
 {
   TermContextKind tk = TermContextKind::NONE;
   Expr hd = child;
   // if an apply, we look for the head, this will determine eo.Apply vs.
   // sm.Apply
-  while (hd.getKind() == Kind::APPLY)
+  while (hd.getKind() == Kind::APPLY && !isProgramApp(hd))
   {
     hd = hd[0];
   }
   Kind k = hd.getKind();
   // check for programs
-  if (k==Kind::APPLY_OPAQUE)
+  if (k==Kind::APPLY)
   {
-    std::string sname = getName(child);
+    Assert(isProgramApp(hd));
+    // if program app, depends on the type of the program
+    Expr p = hd[0];
+    Expr ptype = d_tc.getType(p);
+    Assert (ptype.getKind()==Kind::PROGRAM_TYPE);
+    // convert the type to a metakind
+    tk = getTypeMetaKind(ptype[ptype.getNumChildren()-1]);
+  }
+  else if (k==Kind::APPLY_OPAQUE)
+  {
+    std::string sname = getName(child[0]);
     if (sname.compare(0, 11, "$smt_apply_") == 0)
     {
       std::string esname = getEmbedName(child);

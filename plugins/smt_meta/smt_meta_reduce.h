@@ -224,7 +224,12 @@ class SmtMetaReduce : public StdPlugin
   /** */
   std::map<Expr, TermContextKind> d_metaKind;
   std::map<std::pair<Expr, size_t>, TermContextKind> d_metaKindArg;
-
+  /**
+   */
+  TermContextKind getTypeMetaKind(const Expr& typ);
+  /**
+   */
+  bool isProgramApp(const Expr& app);
   /**
    * This returns the expected meta-kind for the i^th child of
    * parent. It should not depend on parent[i] at all.
