@@ -279,9 +279,6 @@
   (ite (= x1 0) 0 (ite (= x1 1) (ite (and (= x2 1) (= x3 1)) 1 0) (+ ($sm_mk_binary_and (- x1 1) x2 x3) (* ($sm_mk_pow2 x1) (ite (and ($sm_mk_bit x2 x1) ($sm_mk_bit x3 x1)) 1 0)))))
 )) :named sm.axiom.$sm_mk_binary_and))
 
-; define $eo_mk_bool
-(define-fun $eo_mk_bool ((x Bool)) eo.Term (eo.SmtTerm (ite x sm.True sm.False)))
-
 ; define $eo_mk_numeral
 (define-fun $eo_mk_numeral ((x Int)) eo.Term (eo.SmtTerm (sm.Numeral x)))
 
@@ -303,14 +300,14 @@
 (define-fun $eo_and ((x1 eo.Term) (x2 eo.Term)) eo.Term
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
     eo.Stuck
-  (ite (and (= x1 (eo.SmtTerm sm.True)) (= x2 (eo.SmtTerm sm.True)))
-    (eo.SmtTerm (ite true sm.True sm.False))
-  (ite (and (= x1 (eo.SmtTerm sm.True)) (= x2 (eo.SmtTerm sm.False)))
-    (eo.SmtTerm (ite false sm.True sm.False))
-  (ite (and (= x1 (eo.SmtTerm sm.False)) (= x2 (eo.SmtTerm sm.True)))
-    (eo.SmtTerm (ite false sm.True sm.False))
-  (ite (and (= x1 (eo.SmtTerm sm.False)) (= x2 (eo.SmtTerm sm.False)))
-    (eo.SmtTerm (ite false sm.True sm.False))
+  (ite (and ((_ is eo.SmtTerm) x1) (= (eo.SmtTerm.arg1 x1) sm.True) ((_ is eo.SmtTerm) x2) (= (eo.SmtTerm.arg1 x2) sm.True))
+    (eo.SmtTerm sm.True)
+  (ite (and ((_ is eo.SmtTerm) x1) (= (eo.SmtTerm.arg1 x1) sm.True) ((_ is eo.SmtTerm) x2) (= (eo.SmtTerm.arg1 x2) sm.False))
+    (eo.SmtTerm sm.False)
+  (ite (and ((_ is eo.SmtTerm) x1) (= (eo.SmtTerm.arg1 x1) sm.False) ((_ is eo.SmtTerm) x2) (= (eo.SmtTerm.arg1 x2) sm.True))
+    (eo.SmtTerm sm.False)
+  (ite (and ((_ is eo.SmtTerm) x1) (= (eo.SmtTerm.arg1 x1) sm.False) ((_ is eo.SmtTerm) x2) (= (eo.SmtTerm.arg1 x2) sm.False))
+    (eo.SmtTerm sm.False)
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Binary) (eo.SmtTerm.arg1 x1)) ((_ is eo.SmtTerm) x2) ((_ is sm.Binary) (eo.SmtTerm.arg1 x2)) (= (sm.Binary.arg1 (eo.SmtTerm.arg1 x2)) (sm.Binary.arg1 (eo.SmtTerm.arg1 x1))))
     ($eo_mk_binary (sm.Binary.arg1 (eo.SmtTerm.arg1 x1)) ($sm_mk_binary_and (sm.Binary.arg1 (eo.SmtTerm.arg1 x1)) (sm.Binary.arg2 (eo.SmtTerm.arg1 x1)) (sm.Binary.arg2 (eo.SmtTerm.arg1 x2))))
     eo.Stuck)))))))

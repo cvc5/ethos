@@ -234,6 +234,8 @@
 (define $eo_false () ($eo_smt_term $sm_mk_false))
 (define $eo_mk_bool ((x $smt_builtin_Bool))
   ($eo_smt_term ($sm_mk_bool x)))
+(define $eo_mk_true () ($eo_smt_term $sm_mk_true))
+(define $eo_mk_false () ($eo_smt_term $sm_mk_false))
 (define $eo_mk_numeral ((x $smt_builtin_Int))
   ($eo_smt_term ($smd_sm.Numeral x)))
 (define $eo_mk_rational ((x $smt_builtin_Real))
@@ -276,10 +278,10 @@
   ((b1 $eo_Term) (b2 $eo_Term) (w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
-  (($eo_and $sm_mk_true $sm_mk_true)   ($eo_mk_bool $smt_builtin_true))
-  (($eo_and $sm_mk_true $sm_mk_false)  ($eo_mk_bool $smt_builtin_false))
-  (($eo_and $sm_mk_false $sm_mk_true)  ($eo_mk_bool $smt_builtin_false))
-  (($eo_and $sm_mk_false $sm_mk_false) ($eo_mk_bool $smt_builtin_false))
+  (($eo_and $eo_mk_true $eo_mk_true)   $eo_mk_true)
+  (($eo_and $eo_mk_true $eo_mk_false)  $eo_mk_false)
+  (($eo_and $eo_mk_false $eo_mk_true)  $eo_mk_false)
+  (($eo_and $eo_mk_false $eo_mk_false) $eo_mk_false)
   (($eo_and ($eo_binary w n1) ($eo_binary w n2))
      ($eo_mk_binary w ($sm_mk_binary_and w n1 n2)))
   )
@@ -290,10 +292,10 @@
   ((b1 $eo_Term) (b2 $eo_Term) (w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
-  (($eo_or $sm_mk_true $sm_mk_true)   ($eo_mk_bool $smt_builtin_true))
-  (($eo_or $sm_mk_true $sm_mk_false)  ($eo_mk_bool $smt_builtin_true))
-  (($eo_or $sm_mk_false $sm_mk_true)  ($eo_mk_bool $smt_builtin_true))
-  (($eo_or $sm_mk_false $sm_mk_false) ($eo_mk_bool $smt_builtin_false))
+  (($eo_or $eo_mk_true $eo_mk_true)   $eo_mk_true)
+  (($eo_or $eo_mk_true $eo_mk_false)  $eo_mk_true)
+  (($eo_or $eo_mk_false $eo_mk_true)  $eo_mk_true)
+  (($eo_or $eo_mk_false $eo_mk_false) $eo_mk_false)
   (($eo_or ($eo_binary w n1) ($eo_binary w n2))
      ($eo_mk_binary w ($sm_mk_binary_or w n1 n2)))
   )
@@ -303,10 +305,10 @@
 (program $eo_xor ((b1 $eo_Term) (b2 $eo_Term) (w $eo_Numeral) (n1 $eo_Numeral) (n2 $eo_Numeral))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
-  (($eo_xor $sm_mk_true $sm_mk_true)   ($eo_mk_bool $smt_builtin_false))
-  (($eo_xor $sm_mk_true $sm_mk_false)  ($eo_mk_bool $smt_builtin_true))
-  (($eo_xor $sm_mk_false $sm_mk_true)  ($eo_mk_bool $smt_builtin_true))
-  (($eo_xor $sm_mk_false $sm_mk_false) ($eo_mk_bool $smt_builtin_false))
+  (($eo_xor $eo_mk_true $eo_mk_true)   $eo_mk_false)
+  (($eo_xor $eo_mk_true $eo_mk_false)  $eo_mk_true)
+  (($eo_xor $eo_mk_false $eo_mk_true)  $eo_mk_true)
+  (($eo_xor $eo_mk_false $eo_mk_false) $eo_mk_false)
   (($eo_xor ($eo_binary w n1) ($eo_binary w n2))
      ($eo_mk_binary w ($sm_mk_binary_or w n1 n2)))
   )

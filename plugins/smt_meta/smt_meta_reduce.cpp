@@ -1743,7 +1743,6 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     {
       // print the pattern matching predicate for this argument, all
       // concatenated together
-      std::cout << "Print pat matching for " << hd[j] << std::endl;
       // context depends on the kind of the argument
 #ifdef NEW_DEF
       Expr hdj = hd[j];
@@ -1753,6 +1752,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
       TermContextKind ctxPatMatch =
           termKindToContext(termKindsForTypeArgs[j - 1]);
 #endif
+      std::cout << "Print pat matching for " << hd[j] << " in context " << termContextKindToString(ctxPatMatch) << std::endl;
       printEmbPatternMatch(
           hd[j], args[j - 1], currCase, ctx, print, nconj, ctxPatMatch);
       std::cout << "...returns " << currCase.str() << std::endl;
