@@ -1054,7 +1054,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     {
       os << "(";
       cparen[key]++;
-      if (child==TermContextKind::PROGRAM)
+      if (isProgramApp(recTerm))
       {
         // prints as itself
       }
@@ -2390,13 +2390,18 @@ TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent, size_t i)
   {
     if (isProgramApp(parent))
     {
+      if (i==0)
+      {
+        // the program head has no context
+        return TermContextKind::NONE;
+      }
       // if program app, depends on the type of the program
       Expr p = parent[0];
       Expr ptype = d_tc.getType(p);
       Assert (ptype.getKind()==Kind::PROGRAM_TYPE);
       // convert the type to a metakind
-      Assert (i+1<ptype.getNumChildren());
-      tk = getTypeMetaKind(ptype[i]);
+      Assert (i<ptype.getNumChildren()) << "Asking for child " << i << " of " << parent << ", not enough types " << ptype;
+      tk = getTypeMetaKind(ptype[i-1]);
     }
     else
     {
