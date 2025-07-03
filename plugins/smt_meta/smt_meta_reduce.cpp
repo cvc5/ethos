@@ -959,8 +959,9 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     }
     // otherwise, we check for a change of context and insert a cast if necessary
     // compute the child context
-    TermContextKind child;
     Kind ck = recTerm.getKind();
+    TermContextKind child = getMetaKindReturn(recTerm);
+#if 0
     if (ck==Kind::PARAM)
     {
       // if a parameter, it depends on the context in which it was matched
@@ -972,6 +973,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     {
       child = getMetaKindReturn(recTerm);
     }
+#endif
     Assert (child!=TermContextKind::NONE) << "Failed to get child context for " << recTerm;
     std::cout << "print: " << recTerm << ", " << termContextKindToString(parent) << " / " << termContextKindToString(child) << std::endl;
     if (parent!=TermContextKind::NONE && parent!=child)
@@ -1022,7 +1024,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           parent = TermContextKind::SMT_BUILTIN;
         }
       }
-      Assert(parent==child) << "Unhandled context switch for " << recTerm << std::endl
+      Assert(parent==child) << "Unhandled context switch for " << recTerm << " " << recTerm.getKind() << std::endl
       << termContextKindToString(parent) << " -> " << termContextKindToString(child)
       << " within term " << body;
     }
@@ -2319,7 +2321,7 @@ TermContextKind SmtMetaReduce::getTypeMetaKind(const Expr& typ)
       return TermContextKind::SMT_BUILTIN;
     }
   }
-  if (typ == d_metaEoTerm || k==Kind::PARAM)
+  if (typ == d_metaEoTerm)
   {
     return TermContextKind::EUNOIA;
   }
@@ -2331,8 +2333,8 @@ TermContextKind SmtMetaReduce::getTypeMetaKind(const Expr& typ)
   {
     return TermContextKind::SMT_TYPE;
   }
-  Assert(false) << "Unknown type meta-kind " << typ << " " << typ.getKind();
-  return TermContextKind::NONE;
+  //Assert(false) << "Unknown type meta-kind " << typ << " " << typ.getKind();
+  return TermContextKind::EUNOIA;
 }
 
 TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent, size_t i)
@@ -2495,41 +2497,54 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child)
       tk = TermContextKind::SMT_TYPE;
     }
   }
-  else if (k==Kind::CONST)
-  {
-    // constants are managed by the Eunoia side condition
-    Expr mapp = d_state.mkExprSimple(Kind::APPLY, {d_eoGetMetaKind, hd});
-    Ctx ectx;
-    Expr mm = d_tc.evaluate(mapp.getValue(), ectx);
-    if (mm == d_metaEoTerm)
-    {
-      tk = TermContextKind::EUNOIA;
-    }
-    else if (mm == d_metaSmtTerm)
-    {
-      tk = TermContextKind::SMT;
-    }
-    else if (mm == d_metaSmtType)
-    {
-      tk = TermContextKind::SMT_TYPE;
-    }
-    else if (mm == d_metaSmtBuiltinType)
-    {
-      tk = TermContextKind::SMT_BUILTIN;
-    }
-    else
-    {
-      // depends on its type
-      Expr ptype = d_tc.getType(hd);
-
-      // otherwise assume SMT term
-      // FIXME: is this right?
-      tk = TermContextKind::SMT;
-    }
-  }
   else if (isLiteral(k))
   {
     tk = TermContextKind::EUNOIA;
+  }
+  else if (k==Kind::PROGRAM_CONST)
+  {
+    tk = TermContextKind::PROGRAM;
+  }
+  else if (k==Kind::EVAL_IF_THEN_ELSE || k==Kind::EVAL_IS_OK)
+  {
+    tk = TermContextKind::EUNOIA;
+  }
+  else if (hd.getNumChildren()==0)
+  {
+    Expr htype = d_tc.getType(hd);
+    tk = getTypeMetaKind(htype);
+    std::cout << "Type for atomic term " << hd << " is " << htype << ", thus context is " << termContextKindToString(tk);
+    // if it is a Eunoia constant, it depends on the mapping to
+    // datatypes, accessible via the $eo_get_meta_type method.
+    if (k==Kind::CONST && tk==TermContextKind::EUNOIA)
+    {
+      // constants are managed by the Eunoia side condition
+      Expr mapp = d_state.mkExprSimple(Kind::APPLY, {d_eoGetMetaKind, hd});
+      Ctx ectx;
+      Expr mm = d_tc.evaluate(mapp.getValue(), ectx);
+      if (mm == d_metaEoTerm)
+      {
+        tk = TermContextKind::EUNOIA;
+      }
+      else if (mm == d_metaSmtTerm)
+      {
+        tk = TermContextKind::SMT;
+      }
+      else if (mm == d_metaSmtType)
+      {
+        tk = TermContextKind::SMT_TYPE;
+      }
+      else if (mm == d_metaSmtBuiltinType)
+      {
+        tk = TermContextKind::SMT_BUILTIN;
+      }
+      else
+      {
+        // depends on its type
+        Expr htype = d_tc.getType(hd);
+        tk = getTypeMetaKind(htype);
+      }
+    }
   }
   else
   {
