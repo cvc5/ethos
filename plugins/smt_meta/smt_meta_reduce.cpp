@@ -689,7 +689,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       std::stringstream tester;
       tester << "((_ is " << cname.str() << ") " << currTerm << ")";
       print.push(tester.str());
-      std::vector<TermContextKind> targs = getMetaKindArgs(tcur);
+      std::vector<TermContextKind> targs = getMetaKindArgs(tcur, parent);
       for (size_t i = printArgStart, nchild = tcur.getNumChildren(); i < nchild;
            i++)
       {
@@ -950,7 +950,8 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     // otherwise, we check for a change of context and insert a cast if
     // necessary compute the child context
     Kind ck = recTerm.getKind();
-    TermContextKind child = getMetaKindReturn(recTerm);
+    std::vector<Expr> rtermArgs;
+    TermContextKind child = getMetaKindReturn(recTerm, rtermArgs, parent);
 #if 0
     if (ck==Kind::PARAM)
     {
@@ -1018,7 +1019,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           parent = TermContextKind::SMT_BUILTIN;
         }
       }
-#if 0
+#if 1
       Assert(parent==child) << "Unhandled context switch for " << recTerm << " " << recTerm.getKind() << std::endl
       << termContextKindToString(parent) << " -> " << termContextKindToString(child)
       << " within term " << body;
@@ -1143,7 +1144,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
                  << " / " << termContextKindToString(parent) << std::endl;
     }
     // otherwise, the new context depends on the types of the children
-    std::vector<TermContextKind> targs = getMetaKindArgs(recTerm);
+    std::vector<TermContextKind> targs = getMetaKindArgs(recTerm, parent);
     // push in reverse order
     for (size_t i = cstart, nchild = recTerm.getNumChildren(); i < nchild; i++)
     {
@@ -2376,7 +2377,8 @@ TermContextKind SmtMetaReduce::getTypeMetaKind(const Expr& typ)
   return TermContextKind::EUNOIA;
 }
 
-TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent, size_t i)
+TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent, size_t i,
+                                    TermContextKind parentCtx)
 {
   // This method should rely on the parent only!!!
   TermContextKind tk = TermContextKind::NONE;
@@ -2470,7 +2472,7 @@ TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent, size_t i)
     else
     {
       // the application case depends on the meta-kind of the head term
-      tk = getMetaKindReturn(parent);
+      tk = getMetaKindReturn(parent, parentCtx);
     }
   }
   else if (k == Kind::FUNCTION_TYPE)
@@ -2499,14 +2501,16 @@ bool SmtMetaReduce::isProgramApp(const Expr& app)
   return false;
 }
 
-TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child)
+TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
+                                    TermContextKind parentCtx)
 {
   std::vector<Expr> appArgs;
-  return getMetaKindReturn(child, appArgs);
+  return getMetaKindReturn(child, appArgs, parentCtx);
 }
 
 TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
-                                                 std::vector<Expr>& appArgs)
+                                                 std::vector<Expr>& appArgs,
+                                                 TermContextKind parentCtx)
 {
   Assert(!child.isNull()) << "null term for meta kind";
   TermContextKind tk = TermContextKind::NONE;
@@ -2559,13 +2563,13 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
         else if (esname == "ite")
         {
           Assert(child.getNumChildren() == 5);
-          tk = getMetaKindReturn(child[3]);
-          Assert(tk == getMetaKindReturn(child[4]))
+          tk = getMetaKindReturn(child[3], parentCtx);
+          Assert(tk == getMetaKindReturn(child[4], parentCtx))
               << "ITE branches have different meta types " << child;
         }
         else if (esname == "=")
         {
-          Assert(getMetaKindReturn(child[2]) == getMetaKindReturn(child[3]))
+          Assert(getMetaKindReturn(child[2], parentCtx) == getMetaKindReturn(child[3], parentCtx))
               << "Equal sides have different meta types " << child;
           tk = TermContextKind::SMT_BUILTIN;
         }
@@ -2622,7 +2626,7 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
               << std::endl;
     // if it is a Eunoia constant, it depends on the mapping to
     // datatypes, accessible via the $eo_get_meta_type method.
-    if (k == Kind::CONST && tk == TermContextKind::EUNOIA)
+    if (tk == TermContextKind::EUNOIA)
     {
       std::cout << "...consult meta-kind side condition" << std::endl;
       // constants are managed by the Eunoia side condition
@@ -2647,7 +2651,11 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
       }
       else
       {
-        // otherwise trust its type
+        // otherwise just use the parent type????
+        if (parentCtx!=TermContextKind::NONE)
+        {
+          //tk = parentCtx;
+        }
       }
       std::cout << "...evaluate meta-kind side condition returns " << mm
                 << ", which is " << termContextKindToString(tk) << std::endl;
@@ -2660,13 +2668,14 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
   return tk;
 }
 
-std::vector<TermContextKind> SmtMetaReduce::getMetaKindArgs(const Expr& parent)
+std::vector<TermContextKind> SmtMetaReduce::getMetaKindArgs(const Expr& parent,
+                                    TermContextKind parentCtx)
 {
   std::vector<TermContextKind> args;
   std::cout << "MetaArg: " << parent << std::endl;
   for (size_t i = 0, nchild = parent.getNumChildren(); i < nchild; i++)
   {
-    TermContextKind ctx = getMetaKindArg(parent, i);
+    TermContextKind ctx = getMetaKindArg(parent, i, parentCtx);
     std::cout << "  MetaArgChild: " << termContextKindToString(ctx) << " for "
               << parent[i] << std::endl;
     args.push_back(ctx);
