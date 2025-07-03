@@ -1074,7 +1074,13 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       if (sname.compare(0, 11, "$smt_apply_") == 0 || sname.compare(0, 10, "$smt_type_") == 0)
       {
         std::string embName = getEmbedName(recTerm);
-        if (recTerm.getNumChildren() > 2)
+        if (embName=="=")
+        {
+          os << "(= ";
+          cparen[key]++;
+          cstart = 1;
+        }
+        else if (recTerm.getNumChildren() > 2)
         {
           os << "(" << embName << " ";
           cparen[key]++;
