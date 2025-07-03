@@ -2493,6 +2493,7 @@ bool SmtMetaReduce::isProgramApp(const Expr& app)
 
 TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child)
 {
+Assert (!child.isNull()) << "null term for meta kind";
   TermContextKind tk = TermContextKind::NONE;
   Expr hd = child;
   // if an apply, we look for the head, this will determine eo.Apply vs.
@@ -2531,10 +2532,14 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child)
         std::string esname = getEmbedName(child);
         if (esname=="eo.SmtTerm.arg1")
         {
+          // Corner case: the selector for SMT terms.
+          // This is used in one place in the SMT model signature.
           tk = TermContextKind::SMT;
         }
         else if (esname=="eo.SmtType.arg1")
         {
+          // Corner case: the selector for SMT types.
+          // This is used in one place in the SMT model signature.
           tk = TermContextKind::SMT_TYPE;
         }
         else if (esname=="ite")
@@ -2545,7 +2550,7 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child)
         }
         else if (esname=="=")
         {
-          Assert (getMetaKindReturn(child[3])==getMetaKindReturn(child[4])) << "Equal sides have different meta types " << child;
+          Assert (getMetaKindReturn(child[2])==getMetaKindReturn(child[3])) << "Equal sides have different meta types " << child;
           tk = TermContextKind::SMT_BUILTIN;
         }
         else
@@ -2591,7 +2596,9 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child)
   }
   else if (hd.getNumChildren()==0)
   {
+    Assert (!hd.isNull()) << "Null head term??";
     Expr htype = d_tc.getType(hd);
+    Assert (!htype.isNull()) << "Failed to type check " << hd;
     tk = getTypeMetaKind(htype);
     std::cout << "Type for atomic term " << hd << " (" << k << ") is " << htype << ", thus context is " << termContextKindToString(tk) << std::endl;
     // if it is a Eunoia constant, it depends on the mapping to
