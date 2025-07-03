@@ -5,6 +5,9 @@
 ; (A) Those that are desugared in later steps, e.g. eo::add, eo::requires, eo::is_ok.
 ; (B) Those that were part of user definitions that can be safely replaced by their $eo_ versions.
 
+;; INVARIANT: the methods in this file only use the following builtin operators:
+;  eo::ite, eo::requires, eo::is_ok
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; literal types
 
 ; undefined type, used if a literal type uses eo::self, which can't be modelled.
@@ -90,71 +93,14 @@ $EO_LITERAL_TYPE_DECL$
 (define $eo_is_eq ((T Type :implicit) (S Type :implicit) (t T) (s S))
   (eo::ite ($eo_if_both (eo::is_ok t) (eo::is_ok s)) ($eo_eq s t) false))
 
-;;; $eo_is_z
-
-; Returns true if x is a numeral literal.
-; define: $eo_is_z
-; implements: eo::is_z
-(define $eo_is_z ((T Type :implicit) (x T))
-  ($eo_is_eq (eo::to_z x) x))
-
-;;; $eo_is_q
-
-; Returns true if x is a rational literal.
-; define: $eo_is_q
-; implements: eo::is_q
-(define $eo_is_q ((T Type :implicit) (x T))
-  ($eo_is_eq (eo::to_q x) x))
-
-;;; $eo_is_bin
-
-; Returns true if x is a binary literal.
-; define: $eo_is_bin
-; implements: eo::is_bin
-(define $eo_is_bin ((T Type :implicit) (x T))
-  ($eo_is_eq (eo::to_bin (eo::len x) x) x))
-
-;;; $eo_is_str
-
-; Returns true if x is a string literal.
-; define: $eo_is_str
-; implements: eo::is_str
-(define $eo_is_str ((T Type :implicit) (x T))
-  ($eo_is_eq (eo::to_str x) x))
-
-;;; $eo_is_bool
-
-; Returns true if x is a Boolean literal.
-; define: $eo_is_bool
-; implements: eo::is_bool
-(define $eo_is_bool ((T Type :implicit) (x T))
-  (eo::ite ($eo_is_eq x true) true ($eo_is_eq x false)))
-
 ;;; $eo_is_var
 
 ; Returns true if x is a variable.
 ; define: $eo_is_var
 ; implements: eo::is_var
+; TODO: move down
 (define $eo_is_var ((T Type :implicit) (x T))
-  ($eo_is_eq (eo::var (eo::nameof x) (eo::typeof x)) x))
-
-;;; $eo_gt
-
-; Compare arithmetic greater than. Assumes x and y are values.
-; Returns true if x > y.
-; define: $eo_gt
-; implements: eo::gt
-(define $eo_gt ((T Type :implicit) (x T) (y T))
-  (eo::is_neg (eo::add (eo::neg x) y)))
-
-;;; $eo_cmp
-
-; An arbitrary deterministic comparison of terms. Returns true if a > b based
-; on this ordering.
-; define: $eo_cmp
-; implements: eo::cmp
-(define $eo_cmp ((T Type :implicit) (U Type :implicit) (a T) (b U))
-  (eo::is_neg (eo::add (eo::hash b) (eo::neg (eo::hash a)))))
+  ($eo_is_eq (eo::var (eo::nameof x) ($eo_typeof x)) x))
 
 ;;;;;; List operators
 
@@ -167,7 +113,8 @@ $EO_LITERAL_TYPE_DECL$
   :signature ((-> T U V) W X) Bool
   (
   (($eo_is_list_rec f nil (f x y)) ($eo_is_list_rec f nil y))
-  (($eo_is_list_rec f nil z)       ($eo_eq nil z))
+  (($eo_is_list_rec f nil nil)     true)
+  (($eo_is_list_rec f nil z)       false)
   )
 )
 
@@ -177,7 +124,7 @@ $EO_LITERAL_TYPE_DECL$
 (define $eo_is_list
   ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
    (f (-> T U V)) (x W))
-  ($eo_is_list_rec f ($eo_nil f (eo::typeof x)) x))
+  ($eo_is_list_rec f ($eo_nil f ($eo_typeof x)) x))
 
 ;;; $eo_cons
 
@@ -209,11 +156,12 @@ $EO_LITERAL_TYPE_DECL$
   ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
    (f (-> T U V)) (a W))
   (eo::requires ($eo_is_list f a) true
-    ($eo_get_elements_rec f ($eo_nil f (eo::typeof a)) a)))
+    ($eo_get_elements_rec f ($eo_nil f ($eo_typeof a)) a)))
 
 ;;; $eo_list_len
 
 ; Note: a helper for $eo_list_len.
+; TODO: uses eo::add
 (program $eo_list_len_rec
   ((T Type) (U Type) (V Type) (W Type) (f (-> T U V)) (x T) (y U) (nil W))
   :signature ((-> T U V) W) $eo_Numeral
@@ -254,6 +202,7 @@ $EO_LITERAL_TYPE_DECL$
 ;;; $eo_list_nth
 
 ; Note: a helper for $eo_list_nth.
+; TODO: uses eo::add
 (program $eo_list_nth_rec
   ((T Type) (U Type) (f (-> T T T)) (x U) (y U) (n $eo_Numeral))
   :signature ((-> T T T) U $eo_Numeral) U
@@ -274,13 +223,14 @@ $EO_LITERAL_TYPE_DECL$
 ;;; $eo_list_find
 
 ; Note: a helper for $eo_list_find.
+; TODO: uses add
 (program $eo_list_find_rec
   ((T Type) (U Type) (V Type) (W Type) (X Type)
    (f (-> T U V)) (x W) (z W) (y U) (z X) (nil W) (n $eo_Numeral))
   :signature ((-> T U V) W X $eo_Numeral) $eo_Numeral
   (
-  (($eo_list_find_rec f (f x y) z n)  (eo::ite ($eo_eq x z) n
-                                        ($eo_list_find_rec f y z (eo::add n 1))))
+  (($eo_list_find_rec f (f x y) x n)  n)
+  (($eo_list_find_rec f (f x y) z n)  ($eo_list_find_rec f y z (eo::add n 1)))
   (($eo_list_find_rec f nil z n)      -1)
   )
 )
@@ -313,7 +263,7 @@ $EO_LITERAL_TYPE_DECL$
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)
    (f (-> T V V)) (a U))
   (eo::requires ($eo_is_list f a) true
-    ($eo_list_rev_rec f a ($eo_nil f (eo::typeof a)))))
+    ($eo_list_rev_rec f a ($eo_nil f ($eo_typeof a)))))
 
 ;;; $eo_list_erase
 
@@ -323,8 +273,8 @@ $EO_LITERAL_TYPE_DECL$
    (f (-> T V V)) (x W) (y U) (z X) (nil U))
   ((-> T V V) U X) U
   (
-  (($eo_list_erase_rec f (f x y) z)   (eo::ite ($eo_eq z x) y
-                                        (f x ($eo_list_erase_rec f y z))))
+  (($eo_list_erase_rec f (f x y) x)   y)
+  (($eo_list_erase_rec f (f x y) z)   (f x ($eo_list_erase_rec f y z)))
   (($eo_list_erase_rec f nil z)       nil)
   )
 )
@@ -426,9 +376,10 @@ $EO_LITERAL_TYPE_DECL$
 ; program: $eo_var
 ; implements: eo::var
 (define $eo_var ((s $eo_String) (T Type))
-  (eo::requires ($eo_is_str s) true
+  ; FIXME
+  ;(eo::requires ($eo_is_str s) true
   (eo::requires ($eo_typeof T) Type
-    ($eo_Var s T))))
+    ($eo_Var s T)));)
 
 ; program: $eo_nameof
 ; implements: eo::nameof
@@ -482,11 +433,12 @@ $EO_TYPEOF_CASES$
   :signature (T) Type
   (
   (($eo_typeof ($eo_Var s T)) T)
-  (($eo_typeof t) (eo::ite ($eo_is_bool t) Bool
-                  (eo::ite ($eo_is_z t) $eo_Numeral
-                  (eo::ite ($eo_is_q t) $eo_Rational
-                  (eo::ite ($eo_is_str t) $eo_String
-                  (eo::ite ($eo_is_bin t) $eo_Binary
+  ; FIXME: break dependencies
+  (($eo_typeof t) (eo::ite (eo::is_bool t) Bool
+                  (eo::ite (eo::is_z t) $eo_Numeral
+                  (eo::ite (eo::is_q t) $eo_Rational
+                  (eo::ite (eo::is_str t) $eo_String
+                  (eo::ite (eo::is_bin t) $eo_Binary
                     ($eo_typeof_main t)))))))
   )
 )

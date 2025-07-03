@@ -79,9 +79,14 @@ $SM_EO_TERM_DECL$
     x3
     eo.Stuck))
 
+;;; User defined symbols
+
+$SM_DEFS$
+
+;;; Meta-level properties of models
+
 ; axiom: $eo_hash
 ; note: This is defined axiomatically.
-(declare-fun $eo_hash (eo.Term) eo.Term)
 (assert (! (forall ((x eo.Term))
   (=> (not (= x eo.Stuck))
     (and
@@ -90,12 +95,6 @@ $SM_EO_TERM_DECL$
 (assert (! (forall ((x eo.Term) (y eo.Term))
   (=> (and (not (= x eo.Stuck)) (not (= y eo.Stuck))
     (= ($eo_hash x) ($eo_hash y))) (= x y))) :named sm.hash_injective))
-
-;;; User defined symbols
-
-$SM_DEFS$
-
-;;; Meta-level properties of models
 
 ; Handles free constants, skolems, and TODO: partial functions.
 ; If the constant predicate for a constant is satisfied,

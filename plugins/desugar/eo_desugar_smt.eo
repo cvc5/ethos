@@ -1,0 +1,97 @@
+; The operators in this file can be desugared, but
+; are chosen not in the SMT-LIB compilation.
+; This file can be appended to the result of desugaring.
+
+;;; $eo_eq
+
+; program: $eo_eq
+; implements: eo::eq
+(program $eo_eq ((T Type) (S Type) (t T) (s S))
+  :signature (T S) Bool
+  (
+  (($eo_eq t t) true)
+  (($eo_eq t s) false)
+  )
+)
+
+;;; $eo_is_eq
+
+; Returns true if t and s are equivalent values (ground and fully evaluated).
+; define: $eo_is_eq
+; implements: eo::is_eq
+(define $eo_is_eq ((T Type :implicit) (S Type :implicit) (t T) (s S))
+  (eo::ite ($eo_if_both (eo::is_ok t) (eo::is_ok s)) ($eo_eq s t) false))
+
+;;; $eo_is_bool
+
+; Returns true if x is a Boolean literal.
+; define: $eo_is_bool
+; implements: eo::is_bool
+(define $eo_is_bool ((T Type :implicit) (x T))
+  (eo::ite ($eo_is_eq x true) true ($eo_is_eq x false)))
+
+;;; $eo_is_z
+
+; Returns true if x is a numeral literal.
+; define: $eo_is_z
+; implements: eo::is_z
+(define $eo_is_z ((T Type :implicit) (x T))
+  ($eo_is_eq (eo::to_z x) x))
+
+;;; $eo_is_q
+
+; Returns true if x is a rational literal.
+; define: $eo_is_q
+; implements: eo::is_q
+(define $eo_is_q ((T Type :implicit) (x T))
+  ($eo_is_eq (eo::to_q x) x))
+
+;;; $eo_is_bin
+
+; Returns true if x is a binary literal.
+; define: $eo_is_bin
+; implements: eo::is_bin
+(define $eo_is_bin ((T Type :implicit) (x T))
+  ($eo_is_eq (eo::to_bin (eo::len x) x) x))
+
+;;; $eo_is_str
+
+; Returns true if x is a string literal.
+; define: $eo_is_str
+; implements: eo::is_str
+(define $eo_is_str ((T Type :implicit) (x T))
+  ($eo_is_eq (eo::to_str x) x))
+
+;;; $eo_is_bool
+
+; Returns true if x is a Boolean literal.
+; define: $eo_is_bool
+; implements: eo::is_bool
+(define $eo_is_bool ((T Type :implicit) (x T))
+  (eo::ite ($eo_is_eq x true) true ($eo_is_eq x false)))
+
+;;; $eo_is_var
+
+; Returns true if x is a variable.
+; define: $eo_is_var
+; implements: eo::is_var
+(define $eo_is_var ((T Type :implicit) (x T))
+  ($eo_is_eq (eo::var (eo::nameof x) (eo::typeof x)) x))
+
+;;; $eo_gt
+
+; Compare arithmetic greater than. Assumes x and y are values.
+; Returns true if x > y.
+; define: $eo_gt
+; implements: eo::gt
+(define $eo_gt ((T Type :implicit) (x T) (y T))
+  (eo::is_neg (eo::add (eo::neg x) y)))
+
+;;; $eo_cmp
+
+; An arbitrary deterministic comparison of terms. Returns true if a > b based
+; on this ordering.
+; define: $eo_cmp
+; implements: eo::cmp
+(define $eo_cmp ((T Type :implicit) (U Type :implicit) (a T) (b U))
+  (eo::is_neg (eo::add (eo::hash b) (eo::neg (eo::hash a)))))

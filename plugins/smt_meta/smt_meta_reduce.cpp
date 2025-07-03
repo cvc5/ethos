@@ -178,6 +178,7 @@ void SmtMetaReduce::bind(const std::string& name, const Expr& e)
     }
     Expr body = e[1];
     Expr retType = d_tc.getType(body);
+    std::cout << "Look at define " << name << std::endl;
     Assert (!retType.isNull()) << "Cannot type check " << body;
     Expr pt = d_state.mkProgramType(argTypes, retType);
     std::cout << "....make program " << name << " for define, prog type is " << pt << std::endl;
