@@ -28,6 +28,8 @@ Relies on:
 
 Things handled at this stage:
 
+- let
+- global variable semantics?
 - Numeral as Decimal in logics without Integers.
 - :named.
 
@@ -97,8 +99,6 @@ Things handled at this stage:
 - eo::dt_constructors, eo::dt_selectors
 - Defines $eo_fail as a stuck term.
 - Defines $eo_model_preamble as a placeholder for inserting more definitions of $eo_.
-
-; TODO: ambiguously typed functions here?
 
 === Model_smt
 
@@ -173,6 +173,7 @@ Things handled at this stage:
   - eo::is_ok, eo::ite, eo::requires
 - Axiom for eo::hash
 - Axiom for partial function semantics
+- Ambiguously typed functions retain their "opaque" semantics, which is handled at this step.
 - :opaque on user symbols becomes part of the deep embedding.
   - For example a constructor like:
       (declare-parameterized-const const ((id Int :opaque) (T Type :opaque)) T)
@@ -182,6 +183,9 @@ Things handled at this stage:
       (declare-parameterized-const and (-> Bool Bool Bool))
     becomes the nullary constructor:
       (sm.And)
+
+
+- TODO: curried apply -> SMT-LIB apply.
 
 ===
 
