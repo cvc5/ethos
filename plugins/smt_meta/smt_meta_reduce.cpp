@@ -2478,12 +2478,18 @@ bool SmtMetaReduce::isProgramApp(const Expr& app)
 
 TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child)
 {
+  std::vector<Expr> appArgs;
+  return getMetaKindReturn(child, appArgs);
+}
+
+TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
+  std::vector<Expr>& appArgs)
+{
 Assert (!child.isNull()) << "null term for meta kind";
   TermContextKind tk = TermContextKind::NONE;
   Expr hd = child;
   // if an apply, we look for the head, this will determine eo.Apply vs.
   // sm.Apply
-  std::vector<Expr> appArgs;
   while (hd.getKind() == Kind::APPLY && !isProgramApp(hd))
   {
     appArgs.push_back(hd[1]);
