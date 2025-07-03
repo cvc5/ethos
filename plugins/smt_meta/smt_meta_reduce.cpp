@@ -1666,9 +1666,17 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     appTerm << " " << ssArg.str();
     args.emplace_back(ssArg.str());
     varList << "(" << ssArg.str() << " " << argType.str() << ")";
+    bool checkStuck;
+#ifdef NEW_DEF
+    TermContextKind tck = getEmbTypeContext(vt[i - 1]);
+    checkStuck = (tck==TermContextKind::EUNOIA);
+    decl << std::endl << "; check stuck " << checkStuck << " for " << vt[i-1] << std::endl;
+#else
+    checkStuck = (tka == TermKind::EUNOIA_TYPE_TYPE || tka == TermKind::EUNOIA_TERM_TYPE
+        || tka == TermKind::EUNOIA_BOOL || tka == TermKind::EUNOIA_TYPE_TYPE);
+#endif
     // don't have to check stuckness if type is not Eunoia
-    if (tka == TermKind::EUNOIA_TYPE_TYPE || tka == TermKind::EUNOIA_TERM_TYPE
-        || tka == TermKind::EUNOIA_BOOL || tka == TermKind::EUNOIA_TYPE_TYPE)
+    if (checkStuck)
     {
       if (nstuckCond > 0)
       {
@@ -1677,6 +1685,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
       nstuckCond++;
       stuckCases << "(= " << ssArg.str() << " eo.Stuck)";
     }
+
     termKindsForTypeArgs.push_back(tka);
   }
   std::stringstream stuckCond;
