@@ -1062,12 +1062,13 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     }
     else if (recTerm.getNumChildren() == 0)
     {
+      std::cout << "print emb atomic term " << recTerm << ", context " << termContextKindToString(parent) << std::endl;
       printEmbAtomicTerm(recTerm, os, parent);
       visit.pop_back();
       continue;
     }
-    std::cout << "print: " << recTerm << " / " << termContextKindToString(parent) << std::endl;
     TermContextKind child = getMetaKind(recTerm);
+    std::cout << "print: " << recTerm << ", " << termContextKindToString(parent) << " / " << termContextKindToString(child) << std::endl;
     if (parent!=child)
     {
       bool processed = false;
@@ -1177,7 +1178,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
         // all other operators print as applications
         os << "(";
         cparen[key]++;
-        cstart = 1;
       }
     }
     else if (ck == Kind::FUNCTION_TYPE)

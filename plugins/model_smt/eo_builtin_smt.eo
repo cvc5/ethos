@@ -186,7 +186,7 @@
   (
   (($sm_mk_binary_and w n1 n2)
      ($smt_apply_3 "ite" ($smt_apply_2 "=" w $smt_builtin_z_zero) $smt_builtin_z_zero
-     ($smt_apply_3 "ite" ($smt_apply_2 "=" w 1)
+     ($smt_apply_3 "ite" ($smt_apply_2 "=" w $smt_builtin_z_one)
        ($smt_apply_3 "ite"
         ($smt_builtin_and
           ($smt_apply_2 "=" n1 $smt_builtin_z_one)
