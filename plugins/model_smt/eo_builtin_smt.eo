@@ -612,7 +612,7 @@
 
 ; Used to model eo::var
 ; TODO: :opaque?
-(declare-parameterized-const $eo_Var ((s $eo_String) (T Type)) T)
+(declare-parameterized-const $eo_Var ((s $eo_String :opaque) (T Type :opaque)) T)
 
 ; program: $eo_var
 ; implements: eo::var

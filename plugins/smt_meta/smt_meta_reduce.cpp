@@ -519,6 +519,12 @@ TermKind SmtMetaReduce::printEmbType(const Expr& c,
       Assert(false) << "Unknown apply opaque type: " << c;
     }
   }
+  else if (k == Kind::APPLY)
+  {
+    // types print the same as terms
+    SelectorCtx ctxNull;
+    printEmbTerm(c, os, ctxNull, TermContextKind::SMT_TYPE);
+  }
   else
   {
     std::string sname = getName(c);

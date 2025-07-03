@@ -192,7 +192,7 @@
   ; Defines "stuckness"
   (eo.Stuck)
   ; declare $eo_Var EUNOIA_TERM
-  (eo.$eo_Var)
+  (eo.$eo_Var (eo.$eo_Var.arg1 eo.Term) (eo.$eo_Var.arg2 eo.Term))
   ; declare $eo_List EUNOIA_TERM
   (eo.$eo_List)
 
@@ -408,8 +408,8 @@
   (= ($eo_typeof x1)
   (ite (= x1 eo.Stuck)
     eo.Stuck
-  (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg1 x1)) (= (eo.Apply.arg1 (eo.Apply.arg1 x1)) eo.$eo_Var))
-    (eo.Apply.arg2 x1)
+  (ite ((_ is eo.$eo_Var) x1)
+    (eo.$eo_Var.arg2 x1)
   (ite true
     ($eo_ite ($eo_is_bool x1) (eo.SmtType tsm.Bool) ($eo_ite ($eo_ite ($eo_is_ok ($eo_to_z x1)) ($eo_ite ($eo_is_ok x1) (eo.SmtTerm (ite (= x1 ($eo_to_z x1)) sm.True sm.False)) (eo.SmtTerm sm.False)) (eo.SmtTerm sm.False)) (eo.SmtTerm sm.Int) ($eo_ite ($eo_ite ($eo_is_ok ($eo_to_q x1)) ($eo_ite ($eo_is_ok x1) (eo.SmtTerm (ite (= x1 ($eo_to_q x1)) sm.True sm.False)) (eo.SmtTerm sm.False)) (eo.SmtTerm sm.False)) (eo.SmtTerm sm.Real) ($eo_ite ($eo_ite ($eo_is_ok ($eo_to_str x1)) ($eo_ite ($eo_is_ok x1) (eo.SmtTerm (ite (= x1 ($eo_to_str x1)) sm.True sm.False)) (eo.SmtTerm sm.False)) (eo.SmtTerm sm.False)) (eo.SmtTerm (sm.Apply sm.Seq sm.Char)) ($eo_ite ($eo_ite ($eo_is_ok ($eo_to_bin ($eo_len x1) x1)) ($eo_ite ($eo_is_ok x1) (eo.SmtTerm (ite (= x1 ($eo_to_bin ($eo_len x1) x1)) sm.True sm.False)) (eo.SmtTerm sm.False)) (eo.SmtTerm sm.False)) (eo.SmtTerm sm.$eo_undef_type) ($eo_typeof_main x1))))))
     eo.Stuck))))) :named sm.axiom.$eo_typeof))
