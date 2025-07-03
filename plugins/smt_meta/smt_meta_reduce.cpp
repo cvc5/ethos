@@ -163,7 +163,6 @@ void SmtMetaReduce::bind(const std::string& name, const Expr& e)
   {
     Expr p = e;
     // dummy type
-#if 0
     std::vector<Expr> argTypes;
     Assert (e[0].getKind()==Kind::TUPLE);
     if (e[0].getNumChildren()==0)
@@ -179,14 +178,11 @@ void SmtMetaReduce::bind(const std::string& name, const Expr& e)
     }
     Expr body = e[1];
     Expr retType = d_tc.getType(body);
+    Assert (!retType.isNull()) << "Cannot type check " << body;
     Expr pt = d_state.mkProgramType(argTypes, retType);
     std::cout << "....make program " << name << " for define, prog type is " << pt << std::endl;
     // Expr pt = d_state.mkBuiltinType(Kind::LAMBDA);
     Expr tmp = d_state.mkSymbol(Kind::PROGRAM_CONST, name, pt);
-#else
-    Expr pt = d_state.mkBuiltinType(Kind::LAMBDA);
-    Expr tmp = d_state.mkSymbol(Kind::CONST, name, pt);
-#endif
     d_progSeen.emplace_back(tmp, p);
     return;
   }
@@ -1541,11 +1537,8 @@ void SmtMetaReduce::finalizePrograms()
   {
     if (p.second.getKind() == Kind::LAMBDA)
     {
-      std::cout << "WARNING: lambda " << p.first << std::endl;
       Expr e = p.second;
-#ifdef NEW_DEF
-      // FIXME
-      continue;
+      // convert to program
       TermKind tk = isSmtApply(p.first);
       if (tk != TermKind::NONE)
       {
@@ -1565,67 +1558,6 @@ void SmtMetaReduce::finalizePrograms()
       finalizeProgram(p.first, prog);
       std::cout << "...finished lambda program" << std::endl;
       continue;
-#else
-      TermKind tk = getTermKind(p.first);
-      // things that are manually axiomatized
-      if (tk == TermKind::INTERNAL)
-      {
-        continue;
-      }
-      // TODO: reduce to program immediately
-      // prints as a define-fun
-      d_defs << "; define " << p.first << std::endl;
-      d_defs << "(define-fun " << p.first << " (";
-      Assert(e[0].getKind() == Kind::TUPLE);
-      SelectorCtx ctx;
-      for (size_t i = 0, nvars = e[0].getNumChildren(); i < nvars; i++)
-      {
-        Expr v = e[0][i];
-        if (i > 0)
-        {
-          d_defs << " ";
-        }
-        std::stringstream vname;
-        vname << v;
-        d_defs << "(" << vname.str() << " ";
-        Expr argType = d_tc.getType(v);
-        Assert(!argType.isNull());
-        //
-        printEmbType(argType, d_defs);
-        d_defs << ")";
-        ctx.d_ctx[v] = vname.str();
-      }
-      d_defs << ") ";
-      Expr body = e[1];
-      Expr retType = d_tc.getType(body);
-      // determine the intial context for printing the term here
-      // this ensures the body is printed as the appropriate type.
-      TermContextKind ctxInit;
-      if (retType.isNull())
-      {
-        // some programs don't technically type check??? introduced in
-        // desugaring
-        d_defs << "eo.Term";
-        ctxInit = TermContextKind::NONE;
-      }
-      else
-      {
-        Assert(!retType.isNull()) << "Program " << p.first
-                                  << " doesnt type check, in finalizeProgram";
-        TermKind tk = printEmbType(retType, d_defs);
-        ctxInit = termKindToContext(tk);
-      }
-      d_defs << " ";
-      std::cout << "PRINTING " << e[1] << std::endl;
-      std::stringstream ssb;
-      printEmbTerm(e[1], ssb, ctx, ctxInit);
-      d_defs << ssb.str();
-      std::cout << "...GOT " << ssb.str() << std::endl;
-      
-      // we now know the types of terms, take that into account
-      d_defs << ")" << std::endl << std::endl;
-      continue;
-#endif
     }
     finalizeProgram(p.first, p.second);
   }
@@ -1663,6 +1595,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   std::stringstream decl;
   Expr vv = v;
   Expr vt = d_tc.getType(vv);
+  std::cout << "Type is " << vt << std::endl;
   decl << "(declare-fun " << v << " (";
   std::stringstream varList;
   Assert(vt.getKind() == Kind::PROGRAM_TYPE)

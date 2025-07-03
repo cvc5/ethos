@@ -1796,6 +1796,7 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_EXTRACT:
       // type is the first child
       return Expr(childTypes[0]);
+    case Kind::EVAL_IS_OK:
     case Kind::EVAL_IS_EQ:
     case Kind::EVAL_EQ:
     case Kind::EVAL_IS_NEG:
