@@ -195,7 +195,6 @@ class SmtMetaReduce : public StdPlugin
   std::vector<TermContextKind> getContextArguments(const Expr& e, TermContextKind parent);
   /** */
   TermContextKind getMetaKind(const Expr& e);
-  TermContextKind getMetaKindArg(const Expr& parent, size_t i);
 
   TermContextKind termKindToContext(TermKind tk);
   TermContextKind getEmbTypeContext(const Expr& type);
@@ -231,6 +230,9 @@ class SmtMetaReduce : public StdPlugin
   /** */
   std::map<Expr, TermContextKind> d_metaKind;
   std::map<std::pair<Expr, size_t>, TermContextKind> d_metaKindArg;
+
+  TermContextKind getMetaKindArg(const Expr& parent, size_t i);
+  std::vector<TermContextKind> getMetaKindArgs(const Expr& parent);
 };
 
 }  // namespace ethos

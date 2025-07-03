@@ -745,7 +745,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       std::stringstream tester;
       tester << "((_ is " << cname.str() << ") " << currTerm << ")";
       print.push(tester.str());
-      std::vector<TermContextKind> targs = getContextArguments(tcur, parent);
+      std::vector<TermContextKind> targs = getMetaKindArgs(tcur);
       for (size_t i = printArgStart, nchild = tcur.getNumChildren(); i < nchild;
            i++)
       {
@@ -2397,10 +2397,119 @@ TermContextKind SmtMetaReduce::getMetaKind(const Expr& e)
   return tk;
 }
 
+/////////////////////////////////////
+
 TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent, size_t i)
 {
+  // This method should rely on the parent only!!!
+  TermContextKind tk = TermContextKind::NONE;
+  Kind k = parent.getKind();
+  if (k==Kind::APPLY_OPAQUE)
+  {
+    if (i==0)
+    {
+      tk = TermContextKind::NONE;
+    }
+    else
+    {
+      std::string sname = getName(parent[0]);
+      if (sname.compare(0, 11, "$smt_apply_") == 0)
+      {
+        std::string esname = getEmbedName(parent);
+        if (esname=="ite")
+        {
+          tk = i==0 ? TermContextKind::SMT_BUILTIN : TermContextKind::NONE;
+        }
+        else if (esname=="=")
+        {
+          tk = TermContextKind::NONE;
+        }
+        else
+        {
+          tk = TermContextKind::SMT_BUILTIN;
+        }
+      }
+      if (sname.compare(0, 10, "$smt_type_") == 0)
+      {
+        tk = TermContextKind::SMT_TYPE;
+      }
+      if (sname.compare(0, 8, "$smd_eo.") == 0)
+      {
+        tk = TermContextKind::EUNOIA;
+      }
+      if (sname.compare(0, 8, "$smd_sm.") == 0)
+      {
+        tk = TermContextKind::SMT;
+      }
+      if (sname.compare(0, 9, "$smd_tsm.") == 0)
+      {
+        tk = TermContextKind::SMT_TYPE;
+      }
+    }
+  }
+  else if (k==Kind::APPLY)
+  {
+    Expr hd = parent;
+    // if an apply, we look for the head, this will determine eo.Apply vs.
+    // sm.Apply
+    while (hd.getKind() == Kind::APPLY)
+    {
+      hd = hd[0];
+    }
+    // check for programs
+    if (hd.getKind() == Kind::PROGRAM_CONST)
+    {
+      tk = TermContextKind::PROGRAM;
+    }
+    else
+    {
+      Expr mapp = d_state.mkExprSimple(Kind::APPLY, {d_eoGetMetaKind, hd});
+      Ctx ectx;
+      Expr mm = d_tc.evaluate(mapp.getValue(), ectx);
+      if (mm == d_metaEoTerm)
+      {
+        tk = TermContextKind::EUNOIA;
+      }
+      else if (mm == d_metaSmtTerm)
+      {
+        tk = TermContextKind::SMT;
+      }
+      else if (mm == d_metaSmtType)
+      {
+        tk = TermContextKind::SMT_TYPE;
+      }
+      else if (mm == d_metaSmtBuiltinType)
+      {
+        tk = TermContextKind::SMT_BUILTIN;
+      }
+      else
+      {
+        // otherwise assume SMT term
+        // FIXME: is this right?
+        tk = TermContextKind::SMT;
+      }
+    }
+  }
+  else if (k==Kind::FUNCTION_TYPE)
+  {
+    tk = TermContextKind::EUNOIA;
+  }
+  else
+  {
+    Assert (false) << "Unknown apply term kind for getMetaKindArg: " << k;
+  }
+  return tk;
+}
 
-  return TermContextKind::NONE;
+std::vector<TermContextKind> SmtMetaReduce::getMetaKindArgs(const Expr& parent)
+{
+  std::vector<TermContextKind> args;
+  for (size_t i=0, nchild=parent.getNumChildren(); i<nchild; i++)
+  {
+    TermContextKind ctx = getMetaKindArg(parent, i);
+    args.push_back(ctx);
+  }
+  return args;
 }
 
 }  // namespace ethos
