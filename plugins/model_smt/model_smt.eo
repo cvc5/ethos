@@ -290,15 +290,6 @@ $EO_EVAL_CASES$
       t
       elseTerm)))
 
-; program: $eo_requires
-;(define $eo_requires ((x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term))
-;  ($smt_apply_3 "ite"
-;    ($smt_builtin_and
-;      ($smt_builtin_not ($smt_apply_= x1 $eo_stuck))
-;      ($smt_apply_= x1 x2))   ; note the optimization that we don't have to check x2 for stuck.
-;    x3
-;    $eo_stuck))
-
 ;;; SMT term list
 
 ; A list of SMT terms, defined as a datatype for convienience in this signature.

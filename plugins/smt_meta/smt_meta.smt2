@@ -12,18 +12,6 @@
     eo.Stuck
     (eo.Apply x y)))
 
-;;; Core operators
-
-; Note that these cannot be lifted further since their semantics wrt
-; stuckness is non-standard.
-; TODO: maybe better if these are lifted and made a special case?
-
-; axiom: $eo_requires
-(define-fun $eo_requires ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
-  (ite (and (not (= x1 eo.Stuck)) (not (= x2 eo.Stuck)) (= x1 x2))
-    x3
-    eo.Stuck))
-
 ;;; User defined symbols
 
 $SM_DEFS$

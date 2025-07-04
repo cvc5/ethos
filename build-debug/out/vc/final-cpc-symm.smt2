@@ -121,18 +121,6 @@
     eo.Stuck
     (eo.Apply x y)))
 
-;;; Core operators
-
-; Note that these cannot be lifted further since their semantics wrt
-; stuckness is non-standard.
-; TODO: maybe better if these are lifted and made a special case?
-
-; axiom: $eo_requires
-(define-fun $eo_requires ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
-  (ite (and (not (= x1 eo.Stuck)) (not (= x2 eo.Stuck)) (= x1 x2))
-    x3
-    eo.Stuck))
-
 ;;; User defined symbols
 
 ; fwd-decl: $eo_typeof
@@ -184,6 +172,14 @@
     eo.Stuck
   (ite true
     (eo.SmtTerm (sm.Binary x1 x2))
+    eo.Stuck)))
+
+; program: $eo_requires
+(define-fun $eo_requires ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
+  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck) (= x3 eo.Stuck))
+    eo.Stuck
+  (ite true
+    (ite (and (not (= x1 eo.Stuck)) (= x1 x2)) x3 eo.Stuck)
     eo.Stuck)))
 
 ; fwd-decl: $eo_hash
