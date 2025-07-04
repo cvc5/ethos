@@ -1133,39 +1133,6 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
       cases << "  " << currRet.str() << std::endl;
     }
   }
-  // TODO:
-  // now go back and print the variable list, now that we know the types
-  // of the variables
-  std::stringstream varListSafe, declSafe;
-  // if there is only one case, we can do type inference
-  if (ncases == 1)
-  {
-    // d_defs << std::endl << "; examine: " << v << std::endl;
-    std::map<Expr, TermContextKind>::iterator itm;
-    for (size_t i = 1; i < nargs; i++)
-    {
-      if (i > 1)
-      {
-        declSafe << " ";
-        varListSafe << " ";
-      }
-      itm = ctx.d_tctx.find(vt[i - 1]);
-      if (itm != ctx.d_tctx.end())
-      {
-        d_defs << std::endl;
-        // d_defs << "; x" << i << " matched with " << itm->second.str() <<
-        // std::endl;
-        d_defs << "; x" << i << " matched in context "
-               << termContextKindToString(itm->second) << std::endl;
-      }
-      std::stringstream argType;
-      printEmbType(vt[i - 1], argType);
-      declSafe << argType.str();
-      std::stringstream ssArg;
-      ssArg << "x" << i;
-      varListSafe << "(" << ssArg.str() << " " << argType.str() << ")";
-    }
-  }
   // axiom
   if (reqAxiom)
   {
@@ -1318,50 +1285,6 @@ TermKind SmtMetaReduce::getTermKindApply(const Expr& t,
                                          std::string& name,
                                          std::vector<Expr>& args)
 {
-  Expr cur = t;
-  while (cur.getKind() == Kind::APPLY)
-  {
-    args.push_back(cur[1]);
-    cur = cur[0];
-  }
-  TermKind tk = isSmtApply(cur);
-  if (tk != TermKind::NONE)
-  {
-    Assert(!args.empty());
-    Expr sname = args.back();
-    args.pop_back();
-    std::reverse(args.begin(), args.end());
-    if (sname.getKind() != Kind::STRING)
-    {
-      EO_FATAL() << "Expected string for SMT-LIB app name, got " << sname;
-    }
-    const Literal* l = sname.getValue()->asLiteral();
-    name = l->d_str.toString();
-    return tk;
-  }
-  std::cout << cur << " is not smt apply" << std::endl;
-  args.clear();
-  // otherwise proceed to atomic case
-  return getTermKindAtomic(cur, name);
-}
-
-TermKind SmtMetaReduce::isSmtApply(const Expr& t)
-{
-  std::stringstream ss;
-  ss << t;
-  std::string sname = ss.str();
-  if (sname.compare(0, 11, "$smt_apply_") == 0)
-  {
-    return TermKind::SMT_BUILTIN_APPLY;
-  }
-  if (sname.compare(0, 10, "$smt_type_") == 0)
-  {
-    return TermKind::SMT_BUILTIN_TYPE;
-  }
-  if (sname.compare(0, 14, "$smt_std_type_") == 0)
-  {
-    return TermKind::SMT_STD_TYPE;
-  }
   return TermKind::NONE;
 }
 
@@ -1624,14 +1547,24 @@ TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
             // TODO: maybe they should have SMT context???
             tk = i == 2 ? TermContextKind::SMT_BUILTIN : TermContextKind::NONE;
           }
-          else if (esname == "=")
+          else if (esname == "eo.SmtTerm.arg1")
           {
-            // both sides have no context.
-            // this allows SMT-LIB equality to operate on Eunoia terms.
-            tk = TermContextKind::NONE;
+            // corner case: the selector of terms is SMT
+            tk = TermContextKind::SMT;
+          }
+          else if (esname == "eo.SmtType.arg1")
+          {
+            // corner case: the selector of terms is SMT
+            tk = TermContextKind::SMT_TYPE;
+          }
+          else if (esname == "eo.SmtValue.arg1")
+          {
+            // corner case: the selector of terms is SMT
+            tk = TermContextKind::SMT_VALUE;
           }
           else
           {
+            Assert (esname!="=") << "Use smt_apply_= instead";
             tk = TermContextKind::SMT_BUILTIN;
           }
         }
