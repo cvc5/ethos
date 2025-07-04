@@ -121,6 +121,18 @@ Things handled at this stage:
   - eo::add, eo::mul, eo::qdiv, eo::zdiv, eo::zmod, eo::is_neg, eo::neg
   - eo::len, eo::concat, eo::extract, eo::find
   - eo::to_z, eo::to_q, eo::to_bin, eo::to_str
+- Core Eunoia builtins defined.
+  - eo::is_ok, eo::ite, eo::requires
+  - $eo_is_ok reasons about the *deep embedding* of the SMT-LIB datatype we are defining.
+    In particular, $eo_is_ok asks whether the deep embedding of the term under test
+    in the datatype constructor eo.Stuck.
+  - $eo_ite now can leverage the SMT-LIB encoding of "ite". The Eunoia semantics
+    of if-then-else is essentially the same as the SMT-LIB one, that is, after a
+    reduction from programs to constraints, if-then-else in the Eunoia program semantics
+    is equivalent to the SMT-LIB constraint over ite.
+- Stuckness propagates through Eunoia terms.
+  - We use macros $eo_apply and $eo_fun_type to ensure that no Eunoia datatype terms
+    have eo.Stuck as a strict subterm.
 - Custom extensions to SMT-LIB template (model_eo.eo).
   - TODO: Skolem semantics ($eo_const_predicate).
 - SMT-LIB semantics (model_smt.eo).
@@ -166,13 +178,14 @@ Things handled at this stage:
   - SMT-LIB Values (vsm.Value)
     - Note that values are disjoint from terms. Terms can be embedded into
       values, guarded by a value-ness predicate.
+- Exception handling based on *datatype selector semantics*.
+  - Part of the trusted core is that the model_smt layer may use three distinguished
+    selectors (eo.SmtTerm.arg1, eo.SmtType.arg1, eo.SmtValue.arg1) *only* on Eunoia
+    terms that we are sure successfully evaluate. This is managed by a try/catch
+    pattern in model_smt.eo ($smt_try_X).
 - Eunoia semantics of pattern matching based on datatype selectors/testers.
 - Symbols introduced for deep embedding in Model_Smt $smt_apply_N, $smt_type_N.
 - Remaining eo::define and define commands inlined.
-- More Eunoia builtins covered: (TODO: lift these to the previous stage)
-  - Eunoia semantics of "stuckness" (eo.Stuck)
-  - Distinction between Eunoia terms ($eo_Term becomes eo.Term) and SMT-LIB terms ($smt_Term becomes sm.Term).
-  - eo::is_ok, eo::ite, eo::requires
 - Axiom for eo::hash
 - Axiom for partial function semantics
 - Ambiguously typed functions retain their "opaque" semantics, which is handled at this step.
@@ -187,7 +200,7 @@ Things handled at this stage:
       (sm.And)
 
 
-- TODO: curried apply -> SMT-LIB apply.
+- TODO: curried apply -> SMT-LIB apply?
 
 ===
 
