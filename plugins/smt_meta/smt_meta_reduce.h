@@ -26,7 +26,7 @@ class ConjPrint
  public:
   ConjPrint();
   void push(const std::string& str);
-  void printConjunction(std::ostream& os, bool isDisj=false);
+  void printConjunction(std::ostream& os, bool isDisj = false);
   std::stringstream d_ss;
   size_t d_npush;
 };
@@ -95,8 +95,8 @@ class SmtMetaReduce : public StdPlugin
                           std::ostream& os,
                           TermContextKind tctx = TermContextKind::NONE);
   void printEmbType(const Expr& c,
-                        std::ostream& os,
-                        TermContextKind tctx = TermContextKind::NONE);
+                    std::ostream& os,
+                    TermContextKind tctx = TermContextKind::NONE);
   bool printEmbTerm(const Expr& c,
                     std::ostream& os,
                     const SelectorCtx& ctx,
