@@ -205,7 +205,7 @@ $EO_IS_TYPE_CASES$
 ;  :signature ($smt_Type $smt_Term $smt_builtin_Int) Bool
 ;  (
 ;  (($smtx_enum_type_contains_rec T t i)   (eo::define ((v ($smtx_enum_type T i)))
-;                                          ($smt_apply_3 "ite" ($smt_apply_1 "$eo_is_ok" v)
+;                                          ($smt_apply_3 "ite" ($eo_is_ok v)
 ;                                          ($smt_apply_3 "ite" ($smt_apply_= v t)
 ;                                            true
 ;                                            ($smtx_enum_type_contains_rec T i ($smt_apply_2 "+" i 1)))
@@ -249,9 +249,16 @@ $EO_EVAL_CASES$
 ; Invariant: all programs in this signature should be well-founded and never
 ; never get stuck unless otherwise stated.
 
-; eo::is_ok is total, doesn't need to wrap in smt_try_eo
-(define $smt_try_eo_ok ((T Type :implicit) (t T))
-  ($smt_apply_= (eo::is_ok t) $eo_true))
+; program: $eo_is_ok
+; implements: eo::is_ok
+(define $eo_is_ok ((x $eo_Term))
+  ($smt_apply_3 "ite" ($smt_apply_= x $eo_stuck)
+    $eo_mk_false
+    $eo_mk_true))
+(define $smt_builtin_is_ok ((x $eo_Term))
+  ($smt_apply_3 "ite" ($smt_apply_= x $eo_stuck)
+    $smt_builtin_false
+    $smt_builtin_true))
 
 ; Utilities to ensure that programs are total.
 ; Takes
@@ -469,11 +476,12 @@ $EO_EVAL_CASES$
 ; define: $smt_is_dt
 ; returns: true if t is a datatpe (i.e. it has constructors).
 (define $smt_is_dt ((t $smt_Type))
-  ($smt_try_eo_ok ($eo_dt_constructors t)))
+  ($smt_builtin_is_ok ($eo_dt_constructors t)))
 
 ; define: $smt_is_dt_cons
 ; returns: true if t is a constructor (i.e. it has selectors).
-(define $smt_is_dt_cons ((t $smt_Term)) ($smt_try_eo_ok ($eo_dt_selectors t)))
+(define $smt_is_dt_cons ((t $smt_Term))
+  ($smt_builtin_is_ok ($eo_dt_selectors t)))
 
 ; program: $smtx_dt_is_value
 ; Returns true if its argument is a datatype value.
@@ -586,7 +594,7 @@ $EO_EVAL_CASES$
     ; get the next value in the type enumeration
     (eo::define ((next ($smtx_enum_type ($smtx_typeof x) i)))
     ; if it exists
-    ($smt_apply_3 "ite" (eo::is_ok next)
+    ($smt_apply_3 "ite" ($eo_is_ok next)
       ; evaluate the body for this value. if this is a forcing value, return it
       ($smt_apply_3 "ite" ($smt_apply_= ($smtx_model_eval ($smtx_substitute x next F)) isExists)
         isExists
