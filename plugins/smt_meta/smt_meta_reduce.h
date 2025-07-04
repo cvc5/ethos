@@ -48,63 +48,6 @@ std::string termContextKindToString(TermContextKind k);
 std::string termContextKindToPrefix(TermContextKind k);
 std::string termContextKindToCons(TermContextKind k);
 
-// TODO?
-enum class TermKind
-{
-  FINAL_EUNOIA_TERM,
-  FINAL_SMT_TERM,
-  FINAL_SMT_TYPE,
-  FINAL_SMT_VALUE,
-  // these are required for native datatypes that define the semantics of
-  // SMT-LIB
-  FINAL_VALUE_MAP,
-  FINAL_VALUE_STERM_LIST,
-  FINAL_VALUE_RAT_PAIR,
-  // a builtin application of an SMT-LIB operator
-  // this is the kind of types of the form ($smt_apply_N ...)
-  FINAL_BUILTIN_APPLY,
-  // a builtin application of an SMT-LIB type operator
-  // this is the kind of types of the form ($smt_type_N ...)
-  FINAL_BUILTIN_TYPE,
-
-  //
-  PROGRAM,
-  // Builtin datatype introduced in model_smt step, for eo.Term
-  EUNOIA_DT_CONS,
-  // An internal-only symbol defined by the user
-  EUNOIA_TERM,
-  // The SMT-LIB term constructor for Eunoia
-  EUNOIA_SMT_TERM_CONS,
-  EUNOIA_TYPE_TYPE,
-  EUNOIA_QUOTE_TYPE,
-  // SMT apply
-  SMT_BUILTIN_APPLY,
-  SMT_BUILTIN_APPLY_EQ,
-  SMT_BUILTIN_TYPE,
-  // Builtin datatype introduced in model_smt step, for sm.Term
-  SMT_DT_CONS,
-  // An SMT term defined by the user (possibly non-SMT-LIB standard)
-  SMT_TERM,
-  // The type of SMT lib terms
-  SMT_TERM_TYPE,
-  // The type of SMT lib types
-  SMT_TYPE_TYPE,
-  SMT_TYPE_DT_CONS,
-  // An SMT-LIB standard type that is associated with a literal Kind
-  SMT_STD_TYPE,
-  // ?
-  EUNOIA_TERM_TYPE,
-  EUNOIA_BOOL,
-  // An operator that operates on native SMT-LIB terms, e.g. $eo_mk_binary
-  SMT_TO_EO_PROGRAM,
-  SMT_PROGRAM,
-  // An operator that operates on native SMT-LIB terms, e.g. $sm_mk_pow2
-  SMT_BUILTIN_PROGRAM,
-  // A term that was internal to model_smt step, should be removed
-  INTERNAL,
-  NONE
-};
-
 class SelectorCtx
 {
  public:
@@ -162,17 +105,8 @@ class SmtMetaReduce : public StdPlugin
   void finalizeProgram(const Expr& v, const Expr& prog);
   /** Does t have subterm s? */
   static bool hasSubterm(const Expr& t, const Expr& s);
-  /** is smt apply, return the arity */
-  TermKind isSmtApply(const Expr& t);
-  bool isProgramKind(TermKind tk);
   bool isProgram(const Expr& t);
   /** get term kind */
-  TermKind getTermKindApply(const Expr& t,
-                            std::string& name,
-                            std::vector<Expr>& args);
-  TermKind getTermKindAtomic(const Expr& e, std::string& name);
-  TermKind getTermKind(const Expr& e, std::string& name);
-  TermKind getTermKind(const Expr& e);
   TermContextKind getEmbTypeContext(const Expr& type);
   std::string getName(const Expr& e);
   std::string getEmbedName(const Expr& oApp);
