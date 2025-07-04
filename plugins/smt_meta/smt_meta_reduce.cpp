@@ -28,15 +28,15 @@ void ConjPrint::push(const std::string& str)
   d_npush++;
 }
 
-void ConjPrint::printConjunction(std::ostream& os)
+void ConjPrint::printConjunction(std::ostream& os, bool isDisj)
 {
   if (d_npush == 0)
   {
-    os << "true";
+    os << (isDisj ? "false" : "true");
   }
   else if (d_npush > 1)
   {
-    os << "(and " << d_ss.str() << ")";
+    os << "(" << (isDisj ? "or" : "and") << " " << d_ss.str() << ")";
   }
   else
   {
@@ -195,11 +195,6 @@ void SmtMetaReduce::bind(const std::string& name, const Expr& e)
   {
     d_declSeen.insert(e);
   }
-}
-
-void SmtMetaReduce::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
-{
-  d_attrDecl[v] = std::pair<Attr, Expr>(a, cons);
 }
 
 void SmtMetaReduce::printConjunction(size_t n,
@@ -444,7 +439,6 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
                                          std::ostream& os,
                                          SelectorCtx& ctx,
                                          ConjPrint& print,
-                                         size_t& nconj,
                                          TermContextKind tinit)
 {
   tinit = tinit == TermContextKind::NONE ? TermContextKind::EUNOIA : tinit;
@@ -923,12 +917,6 @@ void SmtMetaReduce::finalizePrograms()
     if (p.second.getKind() == Kind::LAMBDA)
     {
       Expr e = p.second;
-      // TODO: is this necessary???
-      TermKind tk = isSmtApply(p.first);
-      if (tk != TermKind::NONE)
-      {
-        continue;
-      }
       Assert(e[0].getKind() == Kind::TUPLE);
       std::vector<Expr> appChildren;
       appChildren.push_back(p.first);
@@ -971,6 +959,13 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   TermKind tk = getTermKind(v);
   // things that are manually axiomatized
   if (tk == TermKind::INTERNAL)
+  {
+    return;
+  }
+  std::string vname = getName(v);
+  // ignore programs used for defining this compilation itself
+  // TODO: can remove if we are better at trim-def
+  if (vname=="$eo_get_meta_type")
   {
     return;
   }
@@ -1082,7 +1077,6 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     }
     ctx.clear();
     std::stringstream currCase;
-    size_t nconj = 0;
     ConjPrint print;
     Assert(hd.getNumChildren() == nargs);
     for (size_t j = 1, nhdchild = hd.getNumChildren(); j < nhdchild; j++)
@@ -1094,21 +1088,13 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
       std::cout << std::endl << "; Print pat matching for " << hd[j] << " in context "
                 << termContextKindToString(ctxPatMatch) << std::endl;
       printEmbPatternMatch(
-          hd[j], args[j - 1], currCase, ctx, print, nconj, ctxPatMatch);
+          hd[j], args[j - 1], currCase, ctx, print, ctxPatMatch);
       std::cout << "...returns " << currCase.str() << std::endl;
     }
     // compile the return for this case
     std::stringstream currRet;
-    TermContextKind bodyInitCtx = TermContextKind::NONE;
-    std::string progName = getName(v);
-    /*
-    if (progName.compare(0, 7, "$sm_mk_") == 0)
-    {
-      bodyInitCtx = TermContextKind::SMT_BUILTIN;
-    }
-    */
-    // The type of the function determins the initial context of return terms we print
-    bodyInitCtx = getTypeMetaKind(vt[nargs - 1]);
+    // The type of the function determines the initial context of return terms we print
+    TermContextKind bodyInitCtx = getTypeMetaKind(vt[nargs - 1]);
     std::cout << std::endl << "; PRINTING " << body << " in context "
               << termContextKindToString(bodyInitCtx) << std::endl;
     printEmbTerm(body, currRet, ctx, bodyInitCtx);
@@ -1138,7 +1124,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
             << "Program " << v
             << " is not a Eunoia program and thus cannot have multiple cases";
       }
-      if (nconj > 0)
+      if (print.d_npush > 0)
       {
         EO_FATAL() << "Program " << v
                    << " is not a Eunoia program and thus cannot rely on "

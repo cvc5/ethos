@@ -26,7 +26,7 @@ class ConjPrint
  public:
   ConjPrint();
   void push(const std::string& str);
-  void printConjunction(std::ostream& os);
+  void printConjunction(std::ostream& os, bool isDisj=false);
   std::stringstream d_ss;
   size_t d_npush;
 };
@@ -132,13 +132,10 @@ class SmtMetaReduce : public StdPlugin
   ~SmtMetaReduce();
   /** */
   void bind(const std::string& name, const Expr& e) override;
-  /** Mark attributes */
-  void markConstructorKind(const Expr& v, Attr a, const Expr& cons) override;
   /** Define program */
   void defineProgram(const Expr& v, const Expr& prog) override;
   /** Finalize */
   void finalize() override;
-
   /**
    */
   bool echo(const std::string& msg) override;
@@ -153,7 +150,6 @@ class SmtMetaReduce : public StdPlugin
                             std::ostream& os,
                             SelectorCtx& ctx,
                             ConjPrint& print,
-                            size_t& nconj,
                             TermContextKind tinit = TermContextKind::NONE);
   void printEmbAtomicTerm(const Expr& c,
                           std::ostream& os,
@@ -193,15 +189,11 @@ class SmtMetaReduce : public StdPlugin
   std::vector<std::pair<Expr, Expr>> d_progSeen;
   /** Attributes marked */
   std::map<Expr, std::pair<Attr, Expr>> d_attrDecl;
-  /** Mapping expressions to strings */
-  std::map<Expr, std::string> d_embMapAtomic;
   /** Common constants */
   Expr d_null;
   std::stringstream d_defs;
   std::stringstream d_rules;
   std::stringstream d_smtVc;
-  // TODO: maybe not necessary?
-  std::map<Expr, std::vector<TermKind>> d_metaType;
   /** The Eunoia program that returns the meta-kind of terms */
   Expr d_eoGetMetaKind;
   Expr d_metaEoTerm;
@@ -210,7 +202,6 @@ class SmtMetaReduce : public StdPlugin
   Expr d_metaSmtBuiltinType;
   Expr d_metaSmtValue;
   /** */
-  std::map<Expr, TermContextKind> d_metaKind;
   std::map<std::pair<Expr, size_t>, TermContextKind> d_metaKindArg;
   /**
    */
