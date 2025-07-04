@@ -79,7 +79,7 @@
   (eo.new.SmtType (eo.new.SmtType.arg1 tsm.new.Type))
   ; The Eunoia representation of an SMT-LIB value
   ;(eo.new.SmtValue (eo.new.SmtValue.arg1 vsm.new.Value))
-  (eo.new.$eo_Var (eo.new.$eo_Var.arg1 String) (eo.new.$eo_Var.arg2 tsm.new.Type))
+  (eo.new.$eo_Var (eo.new.$eo_Var.arg1 String) (eo.new.$eo_Var.arg2 eo.new.Term))
   ; "stuckness"
   (eo.new.Stuck)
   ; user-decl: $eo_List
@@ -250,18 +250,6 @@
     (eo.SmtTerm x1)
     eo.Stuck)))
 
-; program: $sm_mk_pow2
-(declare-fun $sm_mk_pow2 (Int) Int)
-(assert (! (forall ((x1 Int))
-  (= ($sm_mk_pow2 x1)
-  (ite (<= x1 0) 1 (* 2 ($sm_mk_pow2 (- x1 1))))
-)) :named sm.axiom.$sm_mk_pow2))
-
-; program: $eo_mk_bool
-(define-fun $eo_mk_bool ((x1 Bool)) eo.Term
-  (eo.SmtTerm (ite x1 sm.True sm.False))
-)
-
 ; program: $eo_mk_numeral
 (define-fun $eo_mk_numeral ((x1 Int)) eo.Term
   (eo.SmtTerm (sm.Numeral x1))
@@ -285,117 +273,6 @@
     (eo.SmtTerm (sm.Binary x1 x2))
     eo.Stuck)))
 
-; program: $eo_mk_binary
-(define-fun $eo_mk_binary ((x1 Int) (x2 Int)) eo.Term
-  (ite (and (<= 0 x1) (>= 4294967296 x1)) (eo.SmtTerm (sm.Binary x1 (mod x2 ($sm_mk_pow2 x1)))) eo.Stuck)
-)
-
-; program: $eo_len
-(define-fun $eo_len ((x1 eo.Term)) eo.Term
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.String) (eo.SmtTerm.arg1 x1)))
-    (eo.SmtTerm (sm.Numeral (str.len (sm.String.arg1 (eo.SmtTerm.arg1 x1)))))
-  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Binary) (eo.SmtTerm.arg1 x1)))
-    (eo.SmtTerm (sm.Numeral (sm.Binary.arg1 (eo.SmtTerm.arg1 x1))))
-    eo.Stuck))))
-
-; program: $eo_to_z
-(define-fun $eo_to_z ((x1 eo.Term)) eo.Term
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Numeral) (eo.SmtTerm.arg1 x1)))
-    (eo.SmtTerm (sm.Numeral (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1))))
-  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Rational) (eo.SmtTerm.arg1 x1)))
-    (eo.SmtTerm (sm.Numeral (to_int (sm.Rational.arg1 (eo.SmtTerm.arg1 x1)))))
-  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.String) (eo.SmtTerm.arg1 x1)))
-    (ite (= 1 (str.len (sm.String.arg1 (eo.SmtTerm.arg1 x1)))) (eo.SmtTerm (sm.Numeral (str.to_code (sm.String.arg1 (eo.SmtTerm.arg1 x1))))) eo.Stuck)
-  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Binary) (eo.SmtTerm.arg1 x1)))
-    (eo.SmtTerm (sm.Numeral (sm.Binary.arg2 (eo.SmtTerm.arg1 x1))))
-    eo.Stuck))))))
-
-; program: $eo_to_q
-(define-fun $eo_to_q ((x1 eo.Term)) eo.Term
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Numeral) (eo.SmtTerm.arg1 x1)))
-    (eo.SmtTerm (sm.Rational (to_real (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1)))))
-  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Rational) (eo.SmtTerm.arg1 x1)))
-    (eo.SmtTerm (sm.Rational (sm.Rational.arg1 (eo.SmtTerm.arg1 x1))))
-    eo.Stuck))))
-
-; program: $eo_to_bin
-(define-fun $eo_to_bin ((x1 eo.Term) (x2 eo.Term)) eo.Term
-  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
-    eo.Stuck
-  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Numeral) (eo.SmtTerm.arg1 x1)) ((_ is eo.SmtTerm) x2) ((_ is sm.Numeral) (eo.SmtTerm.arg1 x2)))
-    ($eo_mk_binary (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1)) (sm.Numeral.arg1 (eo.SmtTerm.arg1 x2)))
-  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Numeral) (eo.SmtTerm.arg1 x1)) ((_ is eo.SmtTerm) x2) ((_ is sm.Binary) (eo.SmtTerm.arg1 x2)))
-    ($eo_mk_binary (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1)) (sm.Binary.arg2 (eo.SmtTerm.arg1 x2)))
-    eo.Stuck))))
-
-; program: $eo_to_str
-(define-fun $eo_to_str ((x1 eo.Term)) eo.Term
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Numeral) (eo.SmtTerm.arg1 x1)))
-    (ite (and (<= 0 (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1))) (> 196608 (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1)))) (eo.SmtTerm (sm.String (str.from_code (sm.Numeral.arg1 (eo.SmtTerm.arg1 x1))))) eo.Stuck)
-  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.String) (eo.SmtTerm.arg1 x1)))
-    (eo.SmtTerm (sm.String (sm.String.arg1 (eo.SmtTerm.arg1 x1))))
-    eo.Stuck))))
-
-; program: $eo_is_eq
-(define-fun $eo_is_eq ((x1 eo.Term) (x2 eo.Term)) eo.Term
-  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
-    eo.Stuck
-  (ite true
-    ($eo_ite ($eo_is_ok x1) ($eo_ite ($eo_is_ok x2) (eo.SmtTerm (ite (= x2 x1) sm.True sm.False)) (eo.SmtTerm sm.False)) (eo.SmtTerm sm.False))
-    eo.Stuck)))
-
-; program: $eo_is_bool
-(define-fun $eo_is_bool ((x1 eo.Term)) eo.Term
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite (and ((_ is eo.SmtTerm) x1) (= (eo.SmtTerm.arg1 x1) sm.True))
-    (eo.SmtTerm sm.True)
-  (ite (and ((_ is eo.SmtTerm) x1) (= (eo.SmtTerm.arg1 x1) sm.False))
-    (eo.SmtTerm sm.True)
-  (ite true
-    (eo.SmtTerm sm.False)
-    eo.Stuck)))))
-
-; program: $eo_is_z
-(define-fun $eo_is_z ((x1 eo.Term)) eo.Term
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite true
-    ($eo_ite ($eo_is_ok ($eo_to_z x1)) ($eo_ite ($eo_is_ok x1) (eo.SmtTerm (ite (= x1 ($eo_to_z x1)) sm.True sm.False)) (eo.SmtTerm sm.False)) (eo.SmtTerm sm.False))
-    eo.Stuck)))
-
-; program: $eo_is_q
-(define-fun $eo_is_q ((x1 eo.Term)) eo.Term
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite true
-    ($eo_ite ($eo_is_ok ($eo_to_q x1)) ($eo_ite ($eo_is_ok x1) (eo.SmtTerm (ite (= x1 ($eo_to_q x1)) sm.True sm.False)) (eo.SmtTerm sm.False)) (eo.SmtTerm sm.False))
-    eo.Stuck)))
-
-; program: $eo_is_bin
-(define-fun $eo_is_bin ((x1 eo.Term)) eo.Term
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite true
-    ($eo_ite ($eo_is_ok ($eo_to_bin ($eo_len x1) x1)) ($eo_ite ($eo_is_ok x1) (eo.SmtTerm (ite (= x1 ($eo_to_bin ($eo_len x1) x1)) sm.True sm.False)) (eo.SmtTerm sm.False)) (eo.SmtTerm sm.False))
-    eo.Stuck)))
-
-; program: $eo_is_str
-(define-fun $eo_is_str ((x1 eo.Term)) eo.Term
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite true
-    ($eo_ite ($eo_is_ok ($eo_to_str x1)) ($eo_ite ($eo_is_ok x1) (eo.SmtTerm (ite (= x1 ($eo_to_str x1)) sm.True sm.False)) (eo.SmtTerm sm.False)) (eo.SmtTerm sm.False))
-    eo.Stuck)))
-
 ; fwd-decl: $eo_hash
 (declare-fun $eo_hash (eo.Term) eo.Term)
 
@@ -407,11 +284,23 @@
   (= ($eo_typeof x1)
   (ite (= x1 eo.Stuck)
     eo.Stuck
+  (ite (and ((_ is eo.SmtTerm) x1) (= (eo.SmtTerm.arg1 x1) sm.True))
+    (eo.SmtType tsm.Bool)
+  (ite (and ((_ is eo.SmtTerm) x1) (= (eo.SmtTerm.arg1 x1) sm.False))
+    (eo.SmtType tsm.Bool)
+  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Numeral) (eo.SmtTerm.arg1 x1)))
+    (eo.SmtTerm sm.Int)
+  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Rational) (eo.SmtTerm.arg1 x1)))
+    (eo.SmtTerm sm.Real)
+  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.String) (eo.SmtTerm.arg1 x1)))
+    (eo.SmtTerm (sm.Apply sm.Seq sm.Char))
+  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Binary) (eo.SmtTerm.arg1 x1)))
+    eo.Type
   (ite ((_ is eo.$eo_Var) x1)
     (eo.$eo_Var.arg2 x1)
   (ite true
-    ($eo_ite ($eo_is_bool x1) (eo.SmtType tsm.Bool) ($eo_ite ($eo_ite ($eo_is_ok ($eo_to_z x1)) ($eo_ite ($eo_is_ok x1) (eo.SmtTerm (ite (= x1 ($eo_to_z x1)) sm.True sm.False)) (eo.SmtTerm sm.False)) (eo.SmtTerm sm.False)) (eo.SmtTerm sm.Int) ($eo_ite ($eo_ite ($eo_is_ok ($eo_to_q x1)) ($eo_ite ($eo_is_ok x1) (eo.SmtTerm (ite (= x1 ($eo_to_q x1)) sm.True sm.False)) (eo.SmtTerm sm.False)) (eo.SmtTerm sm.False)) (eo.SmtTerm sm.Real) ($eo_ite ($eo_ite ($eo_is_ok ($eo_to_str x1)) ($eo_ite ($eo_is_ok x1) (eo.SmtTerm (ite (= x1 ($eo_to_str x1)) sm.True sm.False)) (eo.SmtTerm sm.False)) (eo.SmtTerm sm.False)) (eo.SmtTerm (sm.Apply sm.Seq sm.Char)) ($eo_ite ($eo_ite ($eo_is_ok ($eo_to_bin ($eo_len x1) x1)) ($eo_ite ($eo_is_ok x1) (eo.SmtTerm (ite (= x1 ($eo_to_bin ($eo_len x1) x1)) sm.True sm.False)) (eo.SmtTerm sm.False)) (eo.SmtTerm sm.False)) eo.Type ($eo_typeof_main x1))))))
-    eo.Stuck))))) :named sm.axiom.$eo_typeof))
+    ($eo_typeof_main x1)
+    eo.Stuck))))))))))) :named sm.axiom.$eo_typeof))
 
 ; fwd-decl: $eo_dt_constructors
 (declare-fun $eo_dt_constructors (eo.Term) eo.Term)

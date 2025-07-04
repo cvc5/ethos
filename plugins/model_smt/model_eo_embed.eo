@@ -60,7 +60,7 @@ $SM_TERM_DECL$
   (eo.new.SmtType (eo.new.SmtType.arg1 tsm.new.Type))
   ; The Eunoia representation of an SMT-LIB value
   ;(eo.new.SmtValue (eo.new.SmtValue.arg1 vsm.new.Value))
-  (eo.new.$eo_Var (eo.new.$eo_Var.arg1 String) (eo.new.$eo_Var.arg2 tsm.new.Type))
+  (eo.new.$eo_Var (eo.new.$eo_Var.arg1 String) (eo.new.$eo_Var.arg2 eo.new.Term))
   ; "stuckness"
   (eo.new.Stuck)
 $SM_EO_TERM_DECL$

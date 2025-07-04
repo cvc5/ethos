@@ -540,15 +540,6 @@
   )
 )
 
-;;; $eo_is_var
-
-; Returns true if x is a variable.
-; define: $eo_is_var
-; implements: eo::is_var
-; TODO: move down
-(define $eo_is_var ((x $eo_Term))
-  ($eo_is_eq (eo::var (eo::nameof x) ($eo_typeof x)) x))
-
 ;;; Conversion operators
 
 ;;; $eo_is_z
@@ -633,21 +624,28 @@
   )
 )
 
+; Returns true if x is a variable.
+; define: $eo_is_var
+; implements: eo::is_var
+(define $eo_is_var ((x $eo_Term))
+  ($eo_is_eq ($eo_var ($eo_nameof x) ($eo_typeof x)) x))
+
 ; fwd-decl: $eo_typeof_main
-(program $eo_typeof_main ((T Type)) :signature (T) Type)
+(program $eo_typeof_main () :signature ($eo_Term) Type)
 
 ; program: $eo_typeof
 ; implements: eo::typeof
-(program $eo_typeof ((T Type) (t T) (s $eo_String))
-  :signature (T) Type
+(program $eo_typeof
+  ((t $eo_Term) (T $eo_Term) (n $smt_builtin_Int) (r $smt_builtin_Real) (s $eo_String) (w $smt_builtin_Int))
+  :signature ($eo_Term) $eo_Term
   (
-  (($eo_typeof ($eo_Var s T)) T)
-  ; FIXME: break dependencies
-  (($eo_typeof t) (eo::ite ($eo_is_bool t) Bool
-                  (eo::ite ($eo_is_z t) $eo_Numeral
-                  (eo::ite ($eo_is_q t) $eo_Rational
-                  (eo::ite ($eo_is_str t) $eo_String
-                  (eo::ite ($eo_is_bin t) $eo_Binary
-                    ($eo_typeof_main t)))))))
+  (($eo_typeof $eo_true)             Bool)
+  (($eo_typeof $eo_false)            Bool)
+  (($eo_typeof ($eo_mk_numeral n))   $eo_Numeral)
+  (($eo_typeof ($eo_mk_rational r))  $eo_Rational)
+  (($eo_typeof ($eo_mk_string s))    $eo_String)
+  (($eo_typeof ($eo_binary w n))     $eo_Binary)
+  (($eo_typeof ($eo_Var s T))        T)
+  (($eo_typeof t)                    ($eo_typeof_main t))
   )
 )
