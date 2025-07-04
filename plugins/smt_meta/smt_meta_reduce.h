@@ -182,9 +182,6 @@ class SmtMetaReduce : public StdPlugin
   TermKind getTermKind(const Expr& e, std::string& name);
   TermKind getTermKind(const Expr& e);
 
-  /** */
-  TermContextKind getMetaKind(const Expr& e);
-
   TermContextKind termKindToContext(TermKind tk);
   TermContextKind getEmbTypeContext(const Expr& type);
   std::string getName(const Expr& e);

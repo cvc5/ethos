@@ -232,6 +232,8 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
                                        TermContextKind parent)
 {
 #ifdef NEW_DEF
+  // TODO: remove parent???
+  parent = parent==TermContextKind::NONE ? TermContextKind::EUNOIA : parent;
   Kind k = c.getKind();
   if (k == Kind::TYPE)
   {
@@ -263,6 +265,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
   }
   else if (k == Kind::BOOL_TYPE)
   {
+    // Bool is embedded as an SMT type, we have to wrap it explicitly here.
     if (parent==TermContextKind::EUNOIA)
     {
       os << "(eo.SmtType ";
@@ -761,7 +764,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       // base case, use equality
       // note that we have to use the full printEmbTerm method
       std::stringstream atomTerm;
-      printEmbTerm(tcur, atomTerm, ctx, parent);
+      printEmbAtomicTerm(tcur, atomTerm, parent);
       std::stringstream eq;
       eq << "(= " << currTerm << " " << atomTerm.str() << ")";
       print.push(eq.str());
@@ -2308,98 +2311,6 @@ bool SmtMetaReduce::isProgramKind(TermKind tk)
   return tk == TermKind::SMT_BUILTIN_PROGRAM
          || tk == TermKind::SMT_TO_EO_PROGRAM || tk == TermKind::PROGRAM
          || tk == TermKind::SMT_PROGRAM;
-}
-
-TermContextKind SmtMetaReduce::getMetaKind(const Expr& e)
-{
-  std::map<Expr, TermContextKind>::iterator it = d_metaKind.find(e);
-  if (it != d_metaKind.end())
-  {
-    return it->second;
-  }
-  Expr hd = e;
-  Kind k = hd.getKind();
-  if (isLiteral(k))
-  {
-    // literals are treated as Eunoia, their wrapping is SMT_BUILTIN
-    return TermContextKind::EUNOIA;
-  }
-  if (hd.getKind() == Kind::APPLY_OPAQUE)
-  {
-    std::string sname = getName(hd[0]);
-    if (sname.compare(0, 11, "$smt_apply_") == 0)
-    {
-      std::string esname = getEmbedName(hd);
-      if (esname != "ite")
-      {
-        return TermContextKind::SMT_BUILTIN;
-      }
-      hd = hd[1];
-    }
-    else if (sname.compare(0, 10, "$smt_type_") == 0)
-    {
-      return TermContextKind::SMT_TYPE;
-    }
-    if (sname.compare(0, 8, "$smd_eo.") == 0)
-    {
-      return TermContextKind::EUNOIA;
-    }
-    if (sname.compare(0, 8, "$smd_sm.") == 0)
-    {
-      if (sname.substr(8) == "Apply")
-      {
-        return TermContextKind::SMT;
-      }
-      // literal kind
-      return TermContextKind::SMT_BUILTIN;
-    }
-    if (sname.compare(0, 9, "$smd_tsm.") == 0)
-    {
-      return TermContextKind::SMT_TYPE;
-    }
-  }
-  // if an apply, we look for the head, this will determine eo.Apply vs.
-  // sm.Apply
-  while (hd.getKind() == Kind::APPLY)
-  {
-    hd = hd[0];
-  }
-  // check for programs
-  TermContextKind tk = TermContextKind::NONE;
-  if (hd.getKind() == Kind::PROGRAM_CONST)
-  {
-    tk = TermContextKind::PROGRAM;
-  }
-  else
-  {
-    Expr mapp = d_state.mkExprSimple(Kind::APPLY, {d_eoGetMetaKind, hd});
-    Ctx ectx;
-    Expr mm = d_tc.evaluate(mapp.getValue(), ectx);
-    if (mm == d_metaEoTerm)
-    {
-      tk = TermContextKind::EUNOIA;
-    }
-    else if (mm == d_metaSmtTerm)
-    {
-      tk = TermContextKind::SMT;
-    }
-    else if (mm == d_metaSmtType)
-    {
-      tk = TermContextKind::SMT_TYPE;
-    }
-    else if (mm == d_metaSmtBuiltinType)
-    {
-      tk = TermContextKind::SMT_BUILTIN;
-    }
-    else
-    {
-      // otherwise assume SMT term
-      // FIXME: is this right?
-      tk = TermContextKind::SMT;
-    }
-  }
-  d_metaKind[e] = tk;
-  return tk;
 }
 
 /////////////////////////////////////

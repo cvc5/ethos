@@ -294,8 +294,6 @@ void ModelSmt::finalizeDecl(const Expr& e)
   std::cout << "Include " << e << std::endl;
   d_metaType << "  ; meta-type: " << e << std::endl;
   d_metaType << "  " << metaType.str() << std::endl;
-  // FIXME: remove
-  prefix << "new.";
   (*out) << "  ; user-decl: " << e << std::endl;
   Expr c = e;
   Expr ct = d_tc.getType(c);
