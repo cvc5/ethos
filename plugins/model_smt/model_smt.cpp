@@ -288,8 +288,10 @@ void ModelSmt::finalizeDecl(const Expr& e)
   }
   if (out == nullptr)
   {
+    std::cout << "Do not include " << e << std::endl;
     return;
   }
+  std::cout << "Include " << e << std::endl;
   d_metaType << "  ; meta-type: " << e << std::endl;
   d_metaType << "  " << metaType.str() << std::endl;
   // FIXME: remove

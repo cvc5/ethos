@@ -1057,7 +1057,11 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       // We handle SMT vs SMT_BUILTIN within that method
       std::cout << "print emb atomic term " << recTerm << std::endl;
       printEmbAtomicTerm(recTerm, os);
-      visit.pop_back();
+      // dont pop back if we need to close parens
+      if (cparen.find(key)==cparen.end())
+      {
+        visit.pop_back();
+      }
       continue;
     }
     // TODO: uncurry SMT-LIB apply terms
@@ -1123,7 +1127,11 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           // print as "true" not "(true)".
           //Assert (!embName.empty()) << "empty embed name, from " << recTerm;
           os << embName;
-          visit.pop_back();
+          // don't pop as we may need to process closing parens if casted
+          if (cparen.find(key)==cparen.end())
+          {
+            visit.pop_back();
+          }
           continue;
         }
       }

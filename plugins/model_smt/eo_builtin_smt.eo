@@ -611,20 +611,23 @@
 ;;; since eo_typeof depends on literal predicates, typeof is only now ready.
 
 ; Used to model eo::var
-; TODO: :opaque?
-(declare-parameterized-const $eo_Var ((s $eo_String :opaque) (T Type :opaque)) T)
+(declare-parameterized-const $eo_Var ((s $eo_String :opaque) (T $eo_Term :opaque)) $eo_Term)
 
 ; program: $eo_var
 ; implements: eo::var
-(define $eo_var ((s $eo_String) (T Type))
-  (eo::requires ($eo_is_str s) true
-  (eo::requires ($eo_typeof T) Type
-    ($eo_Var s T))))
+(program $eo_var ((s $smt_builtin_String) (T $eo_Term))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_var ($eo_mk_string s) T)
+      (eo::requires ($eo_typeof T) Type
+        ($eo_Var s T)))
+  )
+)
 
 ; program: $eo_nameof
 ; implements: eo::nameof
-(program $eo_nameof ((s $eo_String) (T Type))
-  :signature (T) $eo_String
+(program $eo_nameof ((s $eo_Term) (T $eo_Term))
+  :signature ($eo_Term) $eo_Term
   (
   (($eo_nameof ($eo_Var s T)) s)
   )

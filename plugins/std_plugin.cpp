@@ -98,7 +98,7 @@ void StdPlugin::setLiteralTypeRule(Kind k, const Expr& t)
       {
         EO_FATAL() << "Must have a ground type for <numeral>.";
       }
-      (*os) << "$eo_undef_type";
+      (*os) << "Type";
     }
   }
   else

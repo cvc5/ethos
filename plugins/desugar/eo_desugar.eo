@@ -10,9 +10,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; literal types
 
-; undefined type, used if a literal type uses eo::self, which can't be modelled.
-(declare-const $eo_undef_type Type)
-
 $EO_LITERAL_TYPE_DECL$
 
 ; Macros for the literal types. These are used to define model evaluation.
