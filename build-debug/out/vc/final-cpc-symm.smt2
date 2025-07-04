@@ -31,6 +31,7 @@
 
 
 ; The final embedding of SMT-LIB terms that are relevant to the VC.
+; In other words, this defines the Herbrand universe.
 (declare-datatype sm.Term
   (
   ; The application of SMT-LIB terms

@@ -20,6 +20,7 @@ $SM_TYPE_DECL$
 $SM_LITERAL_TYPE_DECL$
 
 ; The final embedding of SMT-LIB terms that are relevant to the VC.
+; In other words, this defines the Herbrand universe.
 (declare-datatype sm.Term
   (
   ; The application of SMT-LIB terms

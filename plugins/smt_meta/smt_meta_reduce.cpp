@@ -616,13 +616,20 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           // stuckness and thus may assume totality here.
           isTotal = true;
         }
+        else if (isGuardedArgSmtExpression(parent))
+        {
+          // We are using a datatype selector to extract and SMT-LIB
+          // expression from a Eunoia term. Moreover, we are using
+          // the selector in a way that is guarded.
+          isTotal = true;
+        }
         if (isSmtLibExpression(parent) && isTotal)
         {
           os << "(eo." << termContextKindToCons(parent) << ".arg1 ";
           cparen[key]++;
         }
       }
-      if (parent == TermContextKind::SMT)
+      if (parent == TermContextKind::SMT )
       {
         if (child == TermContextKind::SMT_BUILTIN)
         {
@@ -1164,7 +1171,12 @@ bool SmtMetaReduce::isProgram(const Expr& t)
 
 bool SmtMetaReduce::isSmtLibExpression(TermContextKind ctx)
 {
-  return ctx==TermContextKind::SMT || ctx==TermContextKind::SMT_TYPE || ctx==TermContextKind::SMT_VALUE;
+  return ctx==TermContextKind::SMT || ctx==TermContextKind::SMT_TYPE || ctx==TermContextKind::SMT_VALUE || isGuardedArgSmtExpression(ctx);
+}
+
+bool SmtMetaReduce::isGuardedArgSmtExpression(TermContextKind ctx)
+{
+  return ctx==TermContextKind::SMT_GUARDED || ctx==TermContextKind::SMT_TYPE_GUARDED || ctx==TermContextKind::SMT_VALUE_GUARDED;
 }
 
 TermContextKind SmtMetaReduce::getTypeMetaKind(const Expr& typ, TermContextKind elseKind)
