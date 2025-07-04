@@ -64,6 +64,9 @@ std::string termContextKindToString(TermContextKind k)
     case TermContextKind::SMT: ss << "SMT"; break;
     case TermContextKind::SMT_BUILTIN: ss << "SMT_BUILTIN"; break;
     case TermContextKind::SMT_TYPE: ss << "SMT_TYPE"; break;
+    case TermContextKind::SMT_GUARDED: ss << "SMT_GUARDED"; break;
+    case TermContextKind::SMT_TYPE_GUARDED: ss << "SMT_TYPE_GUARDED"; break;
+    case TermContextKind::SMT_VALUE_GUARDED: ss << "SMT_VALUE_GUARDED"; break;
     case TermContextKind::SMT_VALUE: ss << "SMT_VALUE"; break;
     case TermContextKind::PROGRAM: ss << "PROGRAM"; break;
     case TermContextKind::NONE: ss << "NONE"; break;

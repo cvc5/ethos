@@ -12,8 +12,8 @@
 ; - already declared in eo_builtin_smt.eo
 
 ; The Eunoia representation of an SMT-LIB value.
-(declare-parameterized-const $smd_eo.SmtValue ((t $smt_Type :opaque)) $eo_Term)
-(define $eo_smt_value ((T $smt_Type)) ($smd_eo.SmtValue T))
+; declare $eo_smt_value
+; - already declared in eo_builtin_smt.eo
 
 ;;; SMT term datatype constructors
 
@@ -92,18 +92,6 @@
 )
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(declare-const $smt_builtin_sm.new.Term Type)
-
-;;; Deep embedding of SMT-LIB terms
-
-
-
-
-; represents an uninterpreted value
-(declare-parameterized-const $smt_builtin_@Value.UConst
-  ((T $smt_Type :opaque) (i $smt_builtin_Int :opaque)) $smt_Value)
-
 
 ; For each relevant user term, return the datatype above that it belongs to.
 ; This program will be used in the smt_meta_reduce compilation step, and
@@ -280,6 +268,12 @@ $EO_EVAL_CASES$
 (define $smt_try_eo_type ((t $eo_Term) (elseTerm $eo_Term))
   ($smt_apply_1 "eo.SmtType.arg1"
     ($smt_apply_3 "ite" ($smt_apply_1 "(_ is eo.SmtType)" t)
+      t
+      elseTerm)))
+; Same as above, for SMT values.
+(define $smt_try_eo_value ((t $eo_Term) (elseTerm $eo_Term))
+  ($smt_apply_1 "eo.SmtValue.arg1"
+    ($smt_apply_3 "ite" ($smt_apply_1 "(_ is eo.SmtValue)" t)
       t
       elseTerm)))
 

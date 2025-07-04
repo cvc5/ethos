@@ -36,12 +36,38 @@ class ConjPrint
  */
 enum class TermContextKind
 {
+  /** A context in which the deep embedding of the term is a Eunoia term */
   EUNOIA,
+  /** A context in which the deep embedding of the term is an SMT-LIB term */
   SMT,
-  SMT_BUILTIN,
+  /** A context in which the deep embedding of the term is an SMT-LIB type */
   SMT_TYPE,
+  /** A context in which the deep embedding of the term is an SMT-LIB value */
   SMT_VALUE,
+  /**
+   * These are variants of the above, used for exception handling on the
+   * model_smt layer. In particular, the use of an eo.Term datatype selector
+   * must ensure that it is properly applied. Otherwise we are introducing
+   * *incomplete* behavior in the final SMT encoding, which leads to
+   * unsoundness at the meta-level.
+   *
+   * We assign a "_GUARDED" kind for the datatype selectors for the types
+   * corresponding to extracting the an SMT-LIB expression from a deep
+   * embedding of a Eunoia term. It is critical for soundness that these are
+   * *only* used when exception handling is done soundly, namely by guarding
+   * with eo::is_ok.
+   *
+   * This form of exception handling is all done in a *single* place in
+   * model_smt.eo, for each type. See the methods $smt_try_X.
+   */
+  SMT_GUARDED,
+  SMT_TYPE_GUARDED,
+  SMT_VALUE_GUARDED,
+  /** A builtin SMT-LIB term context */
+  SMT_BUILTIN,
+  /** A program */
   PROGRAM,
+  /** No context */
   NONE
 };
 std::string termContextKindToString(TermContextKind k);

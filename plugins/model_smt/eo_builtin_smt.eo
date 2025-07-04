@@ -136,6 +136,10 @@
 (declare-parameterized-const $smd_eo.SmtType ((t $smt_Type :opaque)) $eo_Term)
 (define $eo_smt_type ((T $smt_Type)) ($smd_eo.SmtType T))
 
+; The Eunoia representation of an SMT-LIB value.
+(declare-parameterized-const $smd_eo.SmtValue ((t $smt_Type :opaque)) $eo_Term)
+(define $eo_smt_value ((T $smt_Type)) ($smd_eo.SmtValue T))
+
 ; The Eunoia representation of "stuckness".
 (declare-const $smd_eo.Stuck $eo_Term)
 
