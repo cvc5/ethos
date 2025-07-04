@@ -250,6 +250,14 @@
     (eo.SmtTerm x1)
     eo.Stuck)))
 
+; program: $eo_smt_type
+(define-fun $eo_smt_type ((x1 tsm.Type)) eo.Term
+  (ite false
+    eo.Stuck
+  (ite true
+    (eo.SmtType x1)
+    eo.Stuck)))
+
 ; program: $eo_mk_numeral
 (define-fun $eo_mk_numeral ((x1 Int)) eo.Term
   (eo.SmtTerm (sm.Numeral x1))
@@ -399,14 +407,6 @@
 
 ; fwd-decl: $eo_model_sat
 (declare-fun $eo_model_sat (eo.Term) eo.Term)
-
-; program: $eo_smt_type
-(define-fun $eo_smt_type ((x1 tsm.Type)) eo.Term
-  (ite false
-    eo.Stuck
-  (ite true
-    (eo.SmtType x1)
-    eo.Stuck)))
 
 ; program: $eo_is_value
 (define-fun $eo_is_value ((x1 eo.Term) (x2 eo.Term)) eo.Term

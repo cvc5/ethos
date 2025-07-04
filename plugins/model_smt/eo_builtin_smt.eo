@@ -132,6 +132,10 @@
 (declare-parameterized-const $smd_eo.SmtTerm ((t $smt_Term :opaque)) $eo_Term)
 (define $eo_smt_term ((t $smt_Term)) ($smd_eo.SmtTerm t))
 
+; The Eunoia representation of an SMT-LIB type.
+(declare-parameterized-const $smd_eo.SmtType ((t $smt_Type :opaque)) $eo_Term)
+(define $eo_smt_type ((T $smt_Type)) ($smd_eo.SmtType T))
+
 ; The Eunoia representation of "stuckness".
 (declare-const $smd_eo.Stuck $eo_Term)
 
@@ -639,8 +643,8 @@
   ((t $eo_Term) (T $eo_Term) (n $smt_builtin_Int) (r $smt_builtin_Real) (s $eo_String) (w $smt_builtin_Int))
   :signature ($eo_Term) $eo_Term
   (
-  (($eo_typeof $eo_true)             Bool)
-  (($eo_typeof $eo_false)            Bool)
+  (($eo_typeof $eo_true)             ($eo_smt_type Bool))
+  (($eo_typeof $eo_false)            ($eo_smt_type Bool))
   (($eo_typeof ($eo_mk_numeral n))   $eo_Numeral)
   (($eo_typeof ($eo_mk_rational r))  $eo_Rational)
   (($eo_typeof ($eo_mk_string s))    $eo_String)
