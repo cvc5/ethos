@@ -17,7 +17,7 @@
 
 namespace ethos {
 
-//#define NEW_DEF
+#define NEW_DEF
 
 ConjPrint::ConjPrint() : d_npush(0) {}
 void ConjPrint::push(const std::string& str)
@@ -1615,6 +1615,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   std::stringstream stuckCases;
   size_t nstuckCond = 0;
   std::vector<TermKind> termKindsForTypeArgs;
+  // TODO: combine this loop with the one for pattern matching!!
   for (size_t i = 1; i < nargs; i++)
   {
     if (i > 1)
@@ -1634,7 +1635,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     varList << "(" << ssArg.str() << " " << argType.str() << ")";
     bool checkStuck;
 #ifdef NEW_DEF
-    TermContextKind tck = getEmbTypeContext(vt[i - 1]);
+    TermContextKind tck = getTypeMetaKind(vt[i - 1]);
     checkStuck = (tck == TermContextKind::EUNOIA);
     //d_defs << std::endl << "; check stuck " << checkStuck << " for " << vt[i-1] << " " << termContextKindToString(tck) << std::endl;
 #else
@@ -1721,9 +1722,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
       // concatenated together
       // context depends on the kind of the argument
 #ifdef NEW_DEF
-      Expr hdj = hd[j];
-      Expr hdjt = d_tc.getType(hdj);
-      TermContextKind ctxPatMatch = getTypeMetaKind(hdjt);
+      TermContextKind ctxPatMatch = getTypeMetaKind(vt[j - 1]);
 #else
       TermContextKind ctxPatMatch =
           termKindToContext(termKindsForTypeArgs[j - 1]);

@@ -475,7 +475,7 @@ $EO_EVAL_CASES$
 ; define: $smt_is_dt
 ; returns: true if t is a datatpe (i.e. it has constructors).
 (define $smt_is_dt ((t $smt_Type))
-  ($smt_try_eo_ok ($eo_dt_constructors ($smt_apply_1 "eo.SmtType" t))))
+  ($smt_try_eo_ok ($eo_dt_constructors t)))
 
 ; define: $smt_is_dt_cons
 ; returns: true if t is a constructor (i.e. it has selectors).
@@ -516,7 +516,7 @@ $EO_EVAL_CASES$
                                       ($smtx_dt_is_value t)
                                       ($smt_apply_= $sm_mk_true
                                         ($smt_try_eo 
-                                         ($eo_is_value ($smt_apply_1 "eo.SmtType" T) t) 
+                                         ($eo_is_value T t)
                                          ($eo_smt_term $sm_mk_false)))))
   )
 )
