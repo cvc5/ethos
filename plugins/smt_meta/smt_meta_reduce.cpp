@@ -596,6 +596,22 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           parent = TermContextKind::SMT_TYPE;
         }
       }
+      if (child == TermContextKind::EUNOIA)
+      {
+        // A Eunoia term embedded in an SMT context.
+        // If we are *not* evaluatable, then it is sound
+        // to use a selector here
+        bool isTotal = false;
+        if (recTerm.isGround() && !recTerm.isEvaluatable())
+        {
+          isTotal = true;
+        }
+        if (isSmtLibExpression(parent) && isTotal)
+        {
+          os << "(eo." << termContextKindToCons(parent) << ".arg1 ";
+          cparen[key]++;
+        }
+      }
       if (parent == TermContextKind::SMT)
       {
         if (child == TermContextKind::SMT_BUILTIN)
@@ -1136,6 +1152,12 @@ bool SmtMetaReduce::echo(const std::string& msg)
 bool SmtMetaReduce::isProgram(const Expr& t)
 {
   return (t.getKind() == Kind::PROGRAM_CONST);
+}
+
+
+bool SmtMetaReduce::isSmtLibExpression(TermContextKind ctx)
+{
+  return ctx==TermContextKind::SMT || ctx==TermContextKind::SMT_TYPE || ctx==TermContextKind::SMT_VALUE;
 }
 
 TermContextKind SmtMetaReduce::getTypeMetaKind(const Expr& typ, TermContextKind elseKind)

@@ -125,6 +125,8 @@ class SmtMetaReduce : public StdPlugin
   Expr d_metaSmtValue;
   /** */
   std::map<std::pair<Expr, size_t>, TermContextKind> d_metaKindArg;
+  /** */
+  bool isSmtLibExpression(TermContextKind ctx);
   /**
    */
   TermContextKind getTypeMetaKind(const Expr& typ, TermContextKind elseKind=TermContextKind::EUNOIA);
