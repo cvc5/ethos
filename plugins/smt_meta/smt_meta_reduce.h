@@ -153,7 +153,8 @@ class SmtMetaReduce : public StdPlugin
   TermContextKind unguard(TermContextKind ctx);
   /**
    */
-  TermContextKind getTypeMetaKind(const Expr& typ, TermContextKind elseKind=TermContextKind::EUNOIA);
+  TermContextKind getTypeMetaKind(
+      const Expr& typ, TermContextKind elseKind = TermContextKind::EUNOIA);
   /**
    */
   bool isProgramApp(const Expr& app);

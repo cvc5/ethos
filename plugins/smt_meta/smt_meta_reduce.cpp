@@ -81,9 +81,11 @@ std::string termContextKindToPrefix(TermContextKind k)
   {
     case TermContextKind::EUNOIA: ss << "eo."; break;
     case TermContextKind::SMT:
-       case TermContextKind::SMT_GUARDED:ss << "sm."; break;
-    case TermContextKind::SMT_TYPE: case TermContextKind::SMT_TYPE_GUARDED: ss << "tsm."; break;
-    case TermContextKind::SMT_VALUE: case TermContextKind::SMT_VALUE_GUARDED: ss << "vsm."; break;
+    case TermContextKind::SMT_GUARDED: ss << "sm."; break;
+    case TermContextKind::SMT_TYPE:
+    case TermContextKind::SMT_TYPE_GUARDED: ss << "tsm."; break;
+    case TermContextKind::SMT_VALUE:
+    case TermContextKind::SMT_VALUE_GUARDED: ss << "vsm."; break;
     case TermContextKind::SMT_BUILTIN: ss << "?"; break;
     default:
       ss << "?TermContextKindPrefix_" << termContextKindToString(k);
@@ -97,9 +99,11 @@ std::string termContextKindToCons(TermContextKind k)
   switch (k)
   {
     case TermContextKind::SMT:
-       case TermContextKind::SMT_GUARDED:ss << "SmtTerm"; break;
-    case TermContextKind::SMT_TYPE: case TermContextKind::SMT_TYPE_GUARDED: ss << "SmtType"; break;
-    case TermContextKind::SMT_VALUE: case TermContextKind::SMT_VALUE_GUARDED: ss << "SmtValue"; break;
+    case TermContextKind::SMT_GUARDED: ss << "SmtTerm"; break;
+    case TermContextKind::SMT_TYPE:
+    case TermContextKind::SMT_TYPE_GUARDED: ss << "SmtType"; break;
+    case TermContextKind::SMT_VALUE:
+    case TermContextKind::SMT_VALUE_GUARDED: ss << "SmtValue"; break;
     default: ss << "?TermContextKindCons"; break;
   }
   return ss.str();
@@ -118,7 +122,7 @@ void SmtMetaReduce::bind(const std::string& name, const Expr& e)
     // dummy type
     std::vector<Expr> argTypes;
     Assert(e[0].getKind() == Kind::TUPLE);
-    Assert (e[0].getNumChildren() != 0);
+    Assert(e[0].getNumChildren() != 0);
     for (size_t i = 0, nargs = e[0].getNumChildren(); i < nargs; i++)
     {
       Expr aa = e[0][i];
@@ -279,7 +283,7 @@ void SmtMetaReduce::printEmbType(const Expr& c,
   // if it is a reference to the deep embedding datatype,
   // then we print it.
   TermContextKind tk = getTypeMetaKind(c, TermContextKind::NONE);
-  if (tk!=TermContextKind::NONE)
+  if (tk != TermContextKind::NONE)
   {
     switch (tk)
     {
@@ -287,11 +291,8 @@ void SmtMetaReduce::printEmbType(const Expr& c,
       case TermContextKind::SMT: os << "sm.Term"; break;
       case TermContextKind::SMT_TYPE: os << "tsm.Type"; break;
       case TermContextKind::SMT_VALUE: os << "vsm.Value"; break;
-      case TermContextKind::SMT_BUILTIN:
-        os << getEmbedName(c);
-        break;
-      default:
-        break;
+      case TermContextKind::SMT_BUILTIN: os << getEmbedName(c); break;
+      default: break;
     }
     return;
   }
@@ -349,15 +350,15 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     std::stringstream cname;
     bool printArgs = false;
     size_t printArgStart = 0;
-    //std::cout << "  patMatch: " << tcur << " / " << currTerm << " / "
-    //          << termContextKindToString(parent) << " / kind " << ck
-    //          << std::endl;
-    //std::cout << "  atk: " << tcur << std::endl;
+    // std::cout << "  patMatch: " << tcur << " / " << currTerm << " / "
+    //           << termContextKindToString(parent) << " / kind " << ck
+    //           << std::endl;
+    // std::cout << "  atk: " << tcur << std::endl;
     TermContextKind atk = getMetaKindReturn(tcur, parent);
-    //std::cout << "  atk: " << tcur << " is " << termContextKindToString(atk)
-    //          << std::endl;
-    // if the Eunoia term is an SMT term, change the context
-    // and use the eo.SmtTerm selector
+    // std::cout << "  atk: " << tcur << " is " << termContextKindToString(atk)
+    //           << std::endl;
+    //  if the Eunoia term is an SMT term, change the context
+    //  and use the eo.SmtTerm selector
     if (parent != atk)
     {
       std::vector<TermContextKind> ctxChange;
@@ -453,9 +454,9 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
         // find time seeing this parameter, it is bound to the selector chain
         ctx.d_ctx[tcur] = currTerm;
         ctx.d_tctx[tcur] = parent;
-        //std::cout << "PAT-MATCH: " << currTerm
-        //          << " was matched in term context "
-        //          << termContextKindToString(parent) << std::endl;
+        // std::cout << "PAT-MATCH: " << currTerm
+        //           << " was matched in term context "
+        //           << termContextKindToString(parent) << std::endl;
       }
       else
       {
@@ -574,9 +575,9 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     }
     Assert(child != TermContextKind::NONE)
         << "Failed to get child context for " << recTerm;
-    //std::cout << "print: " << recTerm << " (" << ck << "), "
-    //          << termContextKindToString(parent) << " / "
-    //          << termContextKindToString(child) << std::endl;
+    // std::cout << "print: " << recTerm << " (" << ck << "), "
+    //           << termContextKindToString(parent) << " / "
+    //           << termContextKindToString(child) << std::endl;
     if (parent != TermContextKind::NONE && parent != child)
     {
       if (parent == TermContextKind::EUNOIA)
@@ -611,7 +612,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           // operators, we are clearly total.
           isTotal = true;
         }
-        else if (ck==Kind::PARAM)
+        else if (ck == Kind::PARAM)
         {
           // If we are a parameter, then based on the conditions in
           // the preamble of the function, we have guarded against
@@ -623,7 +624,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           // We are using a datatype selector to extract and SMT-LIB
           // expression from a Eunoia term. Moreover, we are using
           // the selector in a way that is guarded.
-          //isTotal = true;
+          // isTotal = true;
         }
         if (isSmtLibExpression(parent) && isTotal)
         {
@@ -633,7 +634,8 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           parent = TermContextKind::EUNOIA;
         }
       }
-      if (parent == TermContextKind::SMT || parent==TermContextKind::SMT_GUARDED)
+      if (parent == TermContextKind::SMT
+          || parent == TermContextKind::SMT_GUARDED)
       {
         if (child == TermContextKind::SMT_BUILTIN)
         {
@@ -689,7 +691,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     {
       // atomic terms print here
       // We handle SMT vs SMT_BUILTIN within that method
-      //std::cout << "print emb atomic term: " << recTerm << std::endl;
+      // std::cout << "print emb atomic term: " << recTerm << std::endl;
       printEmbAtomicTerm(recTerm, os);
       // dont pop back if we need to close parens
       if (cparen.find(key) == cparen.end())
@@ -890,7 +892,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   {
     vctxArgs.push_back(getTypeMetaKind(vt[j]));
   }
-  //std::cout << "Type is " << vt << std::endl;
+  // std::cout << "Type is " << vt << std::endl;
   decl << "(declare-fun " << v << " (";
   std::stringstream varList;
   Assert(vt.getKind() == Kind::PROGRAM_TYPE)
@@ -927,8 +929,8 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   std::stringstream retType;
   printEmbType(vt[nargs - 1], retType);
   decl << ") " << retType.str() << ")" << std::endl;
-  //std::cout << "DECLARE " << decl.str() << std::endl;
-  // if forward declared, we are done for now
+  // std::cout << "DECLARE " << decl.str() << std::endl;
+  //  if forward declared, we are done for now
   if (prog.isNull())
   {
     d_progDeclProcessed.insert(v);
@@ -970,26 +972,27 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     {
       // Print the pattern matching predicate for this argument, all
       // concatenated together.
-      // Initial context depends on the kind of the argument type of the program.
+      // Initial context depends on the kind of the argument type of the
+      // program.
       TermContextKind ctxPatMatch = vctxArgs[j - 1];
-      //std::cout << std::endl
-      //          << "; Print pat matching for " << hd[j] << " in context "
-      //          << termContextKindToString(ctxPatMatch) << std::endl;
+      // std::cout << std::endl
+      //           << "; Print pat matching for " << hd[j] << " in context "
+      //           << termContextKindToString(ctxPatMatch) << std::endl;
       printEmbPatternMatch(
           hd[j], args[j - 1], currCase, ctx, print, ctxPatMatch);
-      //std::cout << "...returns " << currCase.str() << std::endl;
+      // std::cout << "...returns " << currCase.str() << std::endl;
     }
     // compile the return for this case
     std::stringstream currRet;
     // The type of the function determines the initial context of return terms
     // we print
     TermContextKind bodyInitCtx = vctxArgs[nargs - 1];
-    //std::cout << std::endl
-    //          << "; PRINTING " << body << " in context "
-    //          << termContextKindToString(bodyInitCtx) << std::endl;
+    // std::cout << std::endl
+    //           << "; PRINTING " << body << " in context "
+    //           << termContextKindToString(bodyInitCtx) << std::endl;
     printEmbTerm(body, currRet, ctx, bodyInitCtx);
-    //std::cout << "...finished" << std::endl;
-    //std::cout << "...RESULT is " << currRet.str() << std::endl;
+    // std::cout << "...finished" << std::endl;
+    // std::cout << "...RESULT is " << currRet.str() << std::endl;
     if (isEoProg || isSmtProgram)
     {
       // we permit SMT_PROGRAM and Eunoia programs to have pattern matching
@@ -1172,15 +1175,17 @@ bool SmtMetaReduce::isProgram(const Expr& t)
   return (t.getKind() == Kind::PROGRAM_CONST);
 }
 
-
 bool SmtMetaReduce::isSmtLibExpression(TermContextKind ctx)
 {
-  return ctx==TermContextKind::SMT || ctx==TermContextKind::SMT_TYPE || ctx==TermContextKind::SMT_VALUE || isGuardedArgSmtExpression(ctx);
+  return ctx == TermContextKind::SMT || ctx == TermContextKind::SMT_TYPE
+         || ctx == TermContextKind::SMT_VALUE || isGuardedArgSmtExpression(ctx);
 }
 
 bool SmtMetaReduce::isGuardedArgSmtExpression(TermContextKind ctx)
 {
-  return ctx==TermContextKind::SMT_GUARDED || ctx==TermContextKind::SMT_TYPE_GUARDED || ctx==TermContextKind::SMT_VALUE_GUARDED;
+  return ctx == TermContextKind::SMT_GUARDED
+         || ctx == TermContextKind::SMT_TYPE_GUARDED
+         || ctx == TermContextKind::SMT_VALUE_GUARDED;
 }
 
 TermContextKind SmtMetaReduce::guard(TermContextKind ctx)
@@ -1190,7 +1195,7 @@ TermContextKind SmtMetaReduce::guard(TermContextKind ctx)
     case TermContextKind::SMT: return TermContextKind::SMT_GUARDED;
     case TermContextKind::SMT_TYPE: return TermContextKind::SMT_TYPE_GUARDED;
     case TermContextKind::SMT_VALUE: return TermContextKind::SMT_VALUE_GUARDED;
-    default:break;
+    default: break;
   }
   return ctx;
 }
@@ -1202,12 +1207,13 @@ TermContextKind SmtMetaReduce::unguard(TermContextKind ctx)
     case TermContextKind::SMT_GUARDED: return TermContextKind::SMT;
     case TermContextKind::SMT_TYPE_GUARDED: return TermContextKind::SMT_TYPE;
     case TermContextKind::SMT_VALUE_GUARDED: return TermContextKind::SMT_VALUE;
-    default:break;
+    default: break;
   }
   return ctx;
 }
 
-TermContextKind SmtMetaReduce::getTypeMetaKind(const Expr& typ, TermContextKind elseKind)
+TermContextKind SmtMetaReduce::getTypeMetaKind(const Expr& typ,
+                                               TermContextKind elseKind)
 {
   Kind k = typ.getKind();
   if (k == Kind::APPLY_OPAQUE)
@@ -1524,26 +1530,28 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
       Expr htype = d_tc.getType(hd);
       Assert(!htype.isNull()) << "Failed to type check " << hd;
       tk = getTypeMetaKind(htype);
-      //std::cout << "Type for atomic term " << hd << " (" << k << ") is "
-      //          << htype << ", thus context is " << termContextKindToString(tk)
-      //          << std::endl;
-      // if it is a Eunoia constant, it depends on the mapping to
-      // datatypes, accessible via the $eo_get_meta_type method.
+      // std::cout << "Type for atomic term " << hd << " (" << k << ") is "
+      //           << htype << ", thus context is " <<
+      //           termContextKindToString(tk)
+      //           << std::endl;
+      //  if it is a Eunoia constant, it depends on the mapping to
+      //  datatypes, accessible via the $eo_get_meta_type method.
       if (k == Kind::CONST && tk == TermContextKind::EUNOIA)
       {
-        //std::cout << "...consult meta-kind side condition" << std::endl;
-        // constants are managed by the Eunoia side condition
+        // std::cout << "...consult meta-kind side condition" << std::endl;
+        //  constants are managed by the Eunoia side condition
         Expr mapp = d_state.mkExprSimple(Kind::APPLY, {d_eoGetMetaKind, hd});
         Ctx ectx;
         Expr mm = d_tc.evaluate(mapp.getValue(), ectx);
         tk = getTypeMetaKind(mm);
-        if (tk==TermContextKind::NONE && parentCtx != TermContextKind::NONE)
+        if (tk == TermContextKind::NONE && parentCtx != TermContextKind::NONE)
         {
           // otherwise just use the parent type????
           tk = parentCtx;
         }
-        //std::cout << "...evaluate meta-kind side condition returns " << mm
-        //          << ", which is " << termContextKindToString(tk) << std::endl;
+        // std::cout << "...evaluate meta-kind side condition returns " << mm
+        //           << ", which is " << termContextKindToString(tk) <<
+        //           std::endl;
       }
       else if (parentCtx != TermContextKind::NONE)
       {
