@@ -632,7 +632,6 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
   std::map<Expr, std::string>::iterator it;
   std::vector<std::tuple<Expr, std::string, TermContextKind>> visit;
   std::tuple<Expr, std::string, TermContextKind> cur;
-  Expr ctmp = c;
   visit.emplace_back(c, initCtx, tinit);
   do
   {
@@ -648,37 +647,56 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     std::cout << "  patMatch: " << tcur << " / " << currTerm << " / "
               << termContextKindToString(parent) << " / kind " << ck
               << std::endl;
-    if (ck == Kind::APPLY && isProgram(tcur[0]))
+    std::cout << "  atk: " << tcur << std::endl;
+    TermContextKind atk = getMetaKindReturn(tcur, parent);
+    std::cout << "  atk: " << tcur << " is "
+              << termContextKindToString(atk) << std::endl;
+    // if the Eunoia term is an SMT term, change the context
+    // and use the eo.SmtTerm selector
+    if (parent != atk)
     {
-      EO_FATAL() << "Cannot match on program " << tcur[0];
+      std::vector<TermContextKind> ctxChange;
+      /*
+      if (atk==TermContextKind::SMT_BUILTIN)
+      {
+        if (parent!=TermContextKind::SMT)
+        {
+          ctxChange.push_back(TermContextKind::SMT);
+        }
+      }
+      */
+      ctxChange.push_back(atk);
+      for (size_t i=0, nchange = ctxChange.size(); i<nchange; i++)
+      {
+        TermContextKind next = ctxChange[i];
+        if (parent==TermContextKind::EUNOIA && (next == TermContextKind::SMT || next == TermContextKind::SMT_TYPE
+                || next == TermContextKind::SMT_VALUE))
+        {
+          std::string cons = termContextKindToCons(next);
+          std::stringstream tester;
+          tester << "((_ is eo." << cons << ") " << currTerm << ")";
+          print.push(tester.str());
+          std::stringstream sssn;
+          sssn << "(eo." << cons << ".arg1 " << currTerm << ")";
+          currTerm = sssn.str();
+          // our context is now updated
+          parent = next;
+        }
+        else
+        {
+          EO_FATAL() << "Unhandled context change " << termContextKindToString(parent) << " / " << termContextKindToString(next) << " in " << tcur << " within " << c;
+        }
+      }
     }
     if (ck == Kind::APPLY)
     {
+      if (isProgram(tcur[0]))
+      {
+        EO_FATAL() << "Cannot match on program " << tcur[0];
+      }
       Assert(tcur.getNumChildren() == 2);
       // Determine if this is a Eunoia internal term, or an
       // SMT term eagerly here
-      std::string smConsName;
-      std::cout << "  atk: " << tcur[0] << std::endl;
-      TermContextKind atk = getMetaKindReturn(tcur, parent);
-      std::cout << "  atk: " << tcur[0] << " is "
-                << termContextKindToString(atk) << std::endl;
-      // if the Eunoia term is an SMT term, change the context
-      // and use the eo.SmtTerm selector
-      if (parent == TermContextKind::EUNOIA && atk != TermContextKind::EUNOIA)
-      {
-        Assert(atk == TermContextKind::SMT || atk == TermContextKind::SMT_TYPE
-               || atk == TermContextKind::SMT_VALUE)
-            << "Bad kind: " << termContextKindToString(atk);
-        std::string cons = termContextKindToCons(atk);
-        std::stringstream tester;
-        tester << "((_ is eo." << cons << ") " << currTerm << ")";
-        print.push(tester.str());
-        std::stringstream sssn;
-        sssn << "(eo." << cons << ".arg1 " << currTerm << ")";
-        currTerm = sssn.str();
-        // our context is now updated
-        parent = atk;
-      }
       // Use the appropriate prefix
       cname << termContextKindToPrefix(parent) << "Apply";
       printArgs = true;
@@ -1688,13 +1706,13 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
 #ifdef NEW_DEF
       Expr hdj = hd[j];
       Expr hdjt = d_tc.getType(hdj);
-      TermContextKind ctxPatMatch = TermContextKind::NONE;//getEmbTypeContext(hdjt);
+      TermContextKind ctxPatMatch = getTypeMetaKind(hdjt);
 #else
       TermContextKind ctxPatMatch =
           termKindToContext(termKindsForTypeArgs[j - 1]);
 #endif
-      //d_defs << std::endl << "; Print pat matching for " << hd[j] << " in context "
-      //          << termContextKindToString(ctxPatMatch) << std::endl;
+      std::cout << std::endl << "; Print pat matching for " << hd[j] << " in context "
+                << termContextKindToString(ctxPatMatch) << std::endl;
       printEmbPatternMatch(
           hd[j], args[j - 1], currCase, ctx, print, nconj, ctxPatMatch);
       std::cout << "...returns " << currCase.str() << std::endl;
@@ -2421,11 +2439,8 @@ TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
   Kind k = parent.getKind();
   if (k == Kind::APPLY_OPAQUE)
   {
-    if (i == 0)
-    {
-      tk = TermContextKind::NONE;
-    }
-    else
+    // the head of the opaque is NONE
+    if (i != 0)
     {
       std::string sname = getName(parent[0]);
       if (sname.compare(0, 11, "$smt_apply_") == 0)
@@ -2464,25 +2479,29 @@ TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
           }
         }
       }
-      if (sname.compare(0, 10, "$smt_type_") == 0)
+      else if (sname.compare(0, 10, "$smt_type_") == 0)
       {
         tk = TermContextKind::SMT_TYPE;
       }
-      if (sname == "$smd_eo.SmtTerm")
+      else if (sname == "$smd_eo.SmtTerm")
       {
         tk = TermContextKind::SMT;
       }
-      if (sname == "$smd_eo.SmtType")
+      else if (sname == "$smd_eo.SmtType")
       {
         tk = TermContextKind::SMT_TYPE;
       }
-      if (sname.compare(0, 8, "$smd_sm.") == 0)
+      else if (sname.compare(0, 8, "$smd_sm.") == 0)
       {
         tk = TermContextKind::SMT_BUILTIN;
       }
-      if (sname.compare(0, 9, "$smd_tsm.") == 0)
+      else if (sname.compare(0, 9, "$smd_tsm.") == 0)
       {
         tk = TermContextKind::SMT_TYPE;
+      }
+      else if (sname=="$eo_Var")
+      {
+        tk = i==1 ? TermContextKind::SMT_BUILTIN : TermContextKind::EUNOIA;
       }
     }
   }
@@ -2616,21 +2635,25 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
         }
       }
     }
-    if (sname.compare(0, 10, "$smt_type_") == 0)
+    else if (sname.compare(0, 10, "$smt_type_") == 0)
     {
       tk = TermContextKind::SMT_TYPE;
     }
-    if (sname.compare(0, 8, "$smd_eo.") == 0)
+    else if (sname.compare(0, 8, "$smd_eo.") == 0 || sname=="$eo_Var")
     {
       tk = TermContextKind::EUNOIA;
     }
-    if (sname.compare(0, 8, "$smd_sm.") == 0)
+    else if (sname.compare(0, 8, "$smd_sm.") == 0)
     {
       tk = TermContextKind::SMT;
     }
-    if (sname.compare(0, 9, "$smd_tsm.") == 0)
+    else if (sname.compare(0, 9, "$smd_tsm.") == 0)
     {
       tk = TermContextKind::SMT_TYPE;
+    }
+    else
+    {
+      Assert(false) << "Unknown opaque app " << sname << " in get meta kind return " << child;
     }
   }
   else if (k==Kind::BOOL_TYPE)
