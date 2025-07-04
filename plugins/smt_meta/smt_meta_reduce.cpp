@@ -102,19 +102,18 @@ std::string termContextKindToCons(TermContextKind k)
 
 void SmtMetaReduce::bind(const std::string& name, const Expr& e)
 {
-  // TODO: this case can probably be dropped??
+  // NOTE: the code here ensures that (if needed) we can preserve
+  // definitions for the final vc, if it is necessary for debugging.
+  // Currently however these definitions are already inlined by the
+  // Ethos parser. We would need a --preserve-defs option to Ethos
+  // to allow this form of debugging.
   if (name.compare(0, 4, "$eo_") == 0 && e.getKind() == Kind::LAMBDA)
   {
     Expr p = e;
     // dummy type
     std::vector<Expr> argTypes;
     Assert(e[0].getKind() == Kind::TUPLE);
-    if (e[0].getNumChildren() == 0)
-    {
-      // TODO: define here??
-      EO_FATAL() << "Cannot handle 0-arg define";
-      return;
-    }
+    Assert (e[0].getNumChildren() != 0);
     for (size_t i = 0, nargs = e[0].getNumChildren(); i < nargs; i++)
     {
       Expr aa = e[0][i];
@@ -598,12 +597,22 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       }
       if (child == TermContextKind::EUNOIA)
       {
-        // A Eunoia term embedded in an SMT context.
-        // If we are *not* evaluatable, then it is sound
-        // to use a selector here
+        // A Eunoia term embedded in an SMT context. For
+        // soundness, we must ensure that the Eunoia term has definitely
+        // evaluated successfully. If so then we may use an SMT-LIB
+        // selector that will have a total semantics.
         bool isTotal = false;
         if (recTerm.isGround() && !recTerm.isEvaluatable())
         {
+          // The term is ground and has no occurrences of evaluatable
+          // operators, we are clearly total.
+          isTotal = true;
+        }
+        else if (ck==Kind::PARAM)
+        {
+          // If we are a parameter, then based on the conditions in
+          // the preamble of the function, we have guarded against
+          // stuckness and thus may assume totality here.
           isTotal = true;
         }
         if (isSmtLibExpression(parent) && isTotal)
@@ -806,6 +815,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
 
 void SmtMetaReduce::defineProgram(const Expr& v, const Expr& prog)
 {
+  // have to wait, due to dependence on $eo_get_meta_type being defined.
   d_progSeen.emplace_back(v, prog);
 }
 
@@ -813,6 +823,8 @@ void SmtMetaReduce::finalizePrograms()
 {
   for (const std::pair<Expr, Expr>& p : d_progSeen)
   {
+    // This is only necessary if we want to preserve definitions
+    // in the final VC (see ::bind).
     // We reduce defines to a program e.g.
     // (define foo ((x T)) (bar x))
     //   becomes
@@ -843,7 +855,6 @@ void SmtMetaReduce::finalizePrograms()
     }
     finalizeProgram(p.first, p.second);
   }
-  d_progSeen.clear();
 }
 
 void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)

@@ -154,18 +154,18 @@ This means we are searching over the *syntactic space* of Eunoia terms
 to find terms that witness the semantic unsoundness of the rule.
 
 Relies on:
-- smt_meta.smt2 template, 62 LOC SMT2
-- smt_meta_reduce.cpp (ethos plugin), 1464 LOC C++
+- smt_meta.smt2 template, 39 LOC SMT2
+- smt_meta_reduce.cpp (ethos plugin), 1418 LOC C++
 
 Things handled at this stage:
 - The final deep embedding
   - Eunoia Terms (eo.Term)
     - Embeddings for all 3 SMT-LIB constructs below.
   - SMT-LIB Terms (sm.Term)
-  - SMT-LIB Types (sm.Type)
-  - SMT-LIB Values (sm.Value)
+  - SMT-LIB Types (tsm.Type)
+  - SMT-LIB Values (vsm.Value)
     - Note that values are disjoint from terms. Terms can be embedded into
-      values
+      values, guarded by a value-ness predicate.
 - Eunoia semantics of pattern matching based on datatype selectors/testers.
 - Symbols introduced for deep embedding in Model_Smt $smt_apply_N, $smt_type_N.
 - Remaining eo::define and define commands inlined.
