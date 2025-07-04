@@ -155,7 +155,7 @@ to find terms that witness the semantic unsoundness of the rule.
 
 Relies on:
 - smt_meta.smt2 template, 62 LOC SMT2
-- smt_meta_reduce.cpp (ethos plugin), 1282 LOC C++ ; will shrink significantly
+- smt_meta_reduce.cpp (ethos plugin), 1464 LOC C++
 
 Things handled at this stage:
 - The final deep embedding

@@ -167,7 +167,6 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
                                        std::ostream& os,
                                        TermContextKind parent)
 {
-  // TODO: remove parent???
   parent = parent==TermContextKind::NONE ? TermContextKind::EUNOIA : parent;
   Kind k = c.getKind();
   if (k == Kind::TYPE)
@@ -888,9 +887,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   std::vector<std::string> args;
   std::stringstream appTerm;
   appTerm << "(" << v;
-  std::stringstream stuckCases;
-  size_t nstuckCond = 0;
-  // TODO: combine this loop with the one for pattern matching!!
+  ConjPrint printStuck;
   for (size_t i = 1; i < nargs; i++)
   {
     if (i > 1)
@@ -909,26 +906,10 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     // don't have to check stuckness if type is not Eunoia
     if (vctxArgs[i-1]==TermContextKind::EUNOIA)
     {
-      if (nstuckCond > 0)
-      {
-        stuckCases << " ";
-      }
-      nstuckCond++;
-      stuckCases << "(= " << ssArg.str() << " eo.Stuck)";
+      std::stringstream ssCurr;
+      ssCurr << "(= " << ssArg.str() << " eo.Stuck)";
+      printStuck.push(ssCurr.str());
     }
-  }
-  std::stringstream stuckCond;
-  if (nstuckCond > 1)
-  {
-    stuckCond << "(or " << stuckCases.str() << ")";
-  }
-  else if (nstuckCond == 0)
-  {
-    stuckCond << "false";
-  }
-  else
-  {
-    stuckCond << stuckCases.str();
   }
   appTerm << ")";
   std::stringstream retType;
@@ -952,11 +933,11 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   bool isEoProg = !isSmtProgram;
   if (isEoProg)
   {
-    cases << "  (ite " << stuckCond.str() << std::endl;
-    cases << "    eo.Stuck" << std::endl;
+    cases << "  (ite ";
+    printStuck.printConjunction(cases, true);
+    cases << std::endl << "    eo.Stuck" << std::endl;
     casesEnd << ")";
   }
-  ConjPrint printStuck;
   size_t ncases = prog.getNumChildren();
   SelectorCtx ctx;
   for (size_t i = 0; i < ncases; i++)
