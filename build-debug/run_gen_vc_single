@@ -98,7 +98,7 @@ ajr-cvc5 $VC_OUT --dump-unsat-cores #--parse-only
 check_status
 
 echo "**** smt_meta: Run the final verification condition with proofs"
-ajr-cvc5 $VC_OUT --check-proofs-complete --stats-internal |& grep finalProof::ruleCount
+ajr-cvc5 $VC_OUT --check-proofs-complete --stats-internal |& grep -P '(^unknown$|^unsat$|^sat$|finalProof::ruleCount)'
 check_status
 
 # clear temporary files

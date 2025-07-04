@@ -275,6 +275,8 @@
 ; We define all the Eunoia builtins here that are best to
 ; define in terms of SMT-LIB operators.
 
+;;; If then else
+
 ; axiom: $eo_ite
 (define $eo_ite ((x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term))
   ($smt_apply_3 "ite" ($smt_apply_= x1 $eo_mk_true)
@@ -282,6 +284,11 @@
   ($smt_apply_3 "ite" ($smt_apply_= x1 $eo_mk_false)
     x3
     $eo_stuck)))
+
+; TODO: we could define a total version here, which
+; can be used if we are sure the condition is not
+; stuck. Alternatively this could be automated in
+; the compiler.
 
 ;;; Boolean operators
 
