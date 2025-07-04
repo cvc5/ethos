@@ -1033,16 +1033,12 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
 }
 
 void SmtMetaReduce::finalize()
-{  // Here, we expect $eo_get_meta_type to be defined as a function in the
+{
+  // Here, we expect $eo_get_meta_type to be defined as a function in the
   // signature, which is an oracle for saying which datatype a term belongs
   // to in the deep embedding. We expect this program to be defined as well
   // as the names of the types.
   d_eoGetMetaKind = lookupVar("$eo_get_meta_type");
-  d_metaEoTerm = lookupVar("$eo_Term");
-  d_metaSmtTerm = lookupVar("$smt_Term");
-  d_metaSmtType = lookupVar("$smt_Type");
-  d_metaSmtBuiltinType = lookupVar("$smt_BuiltinType");
-  d_metaSmtValue = lookupVar("$smt_Value");
   finalizePrograms();
 
   auto replace = [](std::string& txt,
@@ -1486,23 +1482,8 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
         Expr mapp = d_state.mkExprSimple(Kind::APPLY, {d_eoGetMetaKind, hd});
         Ctx ectx;
         Expr mm = d_tc.evaluate(mapp.getValue(), ectx);
-        if (mm == d_metaEoTerm)
-        {
-          tk = TermContextKind::EUNOIA;
-        }
-        else if (mm == d_metaSmtTerm)
-        {
-          tk = TermContextKind::SMT;
-        }
-        else if (mm == d_metaSmtType)
-        {
-          tk = TermContextKind::SMT_TYPE;
-        }
-        else if (mm == d_metaSmtBuiltinType)
-        {
-          tk = TermContextKind::SMT_BUILTIN;
-        }
-        else if (parentCtx != TermContextKind::NONE)
+        tk = getTypeMetaKind(mm);
+        if (tk==TermContextKind::NONE && parentCtx != TermContextKind::NONE)
         {
           // otherwise just use the parent type????
           tk = parentCtx;
