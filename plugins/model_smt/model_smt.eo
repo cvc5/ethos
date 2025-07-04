@@ -188,7 +188,7 @@ $EO_IS_TYPE_CASES$
   ; Note that $smt_BitVec must be mapped to the user's definition of binaries.
   ; Note this method gets stuck if i > 2^w, indicating we have run out of values.
   ;(($eo_enum_type ($smt_BitVec w) i) (eo::define ((v (eo::to_bin w i)))
-  ;                                      (eo::requires (eo::to_z v) i v)))
+  ;                                      ($eo_requires (eo::to_z v) i v)))
   ; TODO: functions, datatypes
   ; Try to enumerate the type, if we fail, we return $vsm_UValue.
   ; Note that this essentially assumes that unhandled types are uninterpreted
@@ -266,6 +266,12 @@ $EO_EVAL_CASES$
 ; - A $eo_Term elseTerm where we are sure it does not get stuck.
 ; Returns the SMT term corresponding to the evaluation of t, if possible,
 ; or elseTerm otherwise. This always successfully evaluates.
+; Note that these definitions are slightly more complex than they need
+; to be, as they could rely on is_ok above. However:
+; - Using the raw tester/selector is more efficient in the end
+;   encoding.
+; - It is easier to recognize the pattern (eo.SmtTerm.arg1 *)
+;   than (ite (eo.is_ok *) * elseTerm).
 (define $smt_try_eo ((t $eo_Term) (elseTerm $eo_Term))
   ($smt_apply_1 "eo.SmtTerm.arg1"
     ($smt_apply_3 "ite" ($smt_apply_1 "(_ is eo.SmtTerm)" t)
@@ -283,6 +289,15 @@ $EO_EVAL_CASES$
     ($smt_apply_3 "ite" ($smt_apply_1 "(_ is eo.SmtValue)" t)
       t
       elseTerm)))
+
+; program: $eo_requires
+;(define $eo_requires ((x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term))
+;  ($smt_apply_3 "ite"
+;    ($smt_builtin_and
+;      ($smt_builtin_not ($smt_apply_= x1 $eo_stuck))
+;      ($smt_apply_= x1 x2))   ; note the optimization that we don't have to check x2 for stuck.
+;    x3
+;    $eo_stuck))
 
 ;;; SMT term list
 

@@ -7,8 +7,9 @@
 
 ;;; declarations to define literal types
 
-; TODO: remove this and use $smt_Term instead???
-; The type of $smt_apply_* terms
+; The type of $smt_apply_* terms.
+; If a term has this type, we know it is an SMT-LIB type,
+; but we don't know which one from ordinary type checking.
 (declare-const $smt_BuiltinType Type)
 
 ; The operator of $smt_apply_* terms
