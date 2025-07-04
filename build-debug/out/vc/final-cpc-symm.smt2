@@ -169,18 +169,27 @@
 
 ; program: $eo_mk_numeral
 (define-fun $eo_mk_numeral ((x1 Int)) eo.Term
-  (eo.SmtTerm (sm.Numeral x1))
-)
+  (ite false
+    eo.Stuck
+  (ite true
+    (eo.SmtTerm (sm.Numeral x1))
+    eo.Stuck)))
 
 ; program: $eo_mk_rational
 (define-fun $eo_mk_rational ((x1 Real)) eo.Term
-  (eo.SmtTerm (sm.Rational x1))
-)
+  (ite false
+    eo.Stuck
+  (ite true
+    (eo.SmtTerm (sm.Rational x1))
+    eo.Stuck)))
 
 ; program: $eo_mk_string
 (define-fun $eo_mk_string ((x1 String)) eo.Term
-  (eo.SmtTerm (sm.String x1))
-)
+  (ite false
+    eo.Stuck
+  (ite true
+    (eo.SmtTerm (sm.String x1))
+    eo.Stuck)))
 
 ; program: $eo_binary
 (define-fun $eo_binary ((x1 Int) (x2 Int)) eo.Term

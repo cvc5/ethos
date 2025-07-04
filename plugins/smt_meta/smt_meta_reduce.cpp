@@ -56,10 +56,6 @@ SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s) {}
 
 SmtMetaReduce::~SmtMetaReduce() {}
 
-bool isEunoiaKind(TermKind tk)
-{
-  return tk == TermKind::EUNOIA_DT_CONS || tk == TermKind::EUNOIA_TERM;
-}
 std::string termContextKindToString(TermContextKind k)
 {
   std::stringstream ss;
@@ -101,59 +97,6 @@ std::string termContextKindToCons(TermContextKind k)
     case TermContextKind::SMT_TYPE: ss << "SmtType"; break;
     case TermContextKind::SMT_VALUE: ss << "SmtValue"; break;
     default: ss << "?TermContextKindCons"; break;
-  }
-  return ss.str();
-}
-
-// TODO: clean traces and kinds
-std::string termKindToString(TermKind k)
-{
-  std::stringstream ss;
-  switch (k)
-  {
-    case TermKind::FINAL_EUNOIA_TERM: ss << "FINAL_EUNOIA_TERM"; break;
-    case TermKind::FINAL_SMT_TERM: ss << "FINAL_SMT_TERM"; break;
-    case TermKind::FINAL_SMT_TYPE: ss << "FINAL_SMT_TYPE"; break;
-    case TermKind::FINAL_SMT_VALUE: ss << "FINAL_SMT_VALUE"; break;
-    case TermKind::FINAL_VALUE_MAP: ss << "FINAL_VALUE_MAP"; break;
-    case TermKind::FINAL_VALUE_STERM_LIST:
-      ss << "FINAL_VALUE_STERM_LIST";
-      break;
-    case TermKind::FINAL_VALUE_RAT_PAIR: ss << "FINAL_VALUE_RAT_PAIR"; break;
-    case TermKind::FINAL_BUILTIN_APPLY: ss << "FINAL_BUILTIN_APPLY"; break;
-    case TermKind::FINAL_BUILTIN_TYPE: ss << "FINAL_BUILTIN_TYPE"; break;
-
-    // An apply term
-    case TermKind::PROGRAM: ss << "PROGRAM"; break;
-    // Builtin datatype introduced in model_smt step, for eo.Term
-    case TermKind::EUNOIA_DT_CONS: ss << "EUNOIA_DT_CONS"; break;
-    // An internal-only symbol defined by the user
-    case TermKind::EUNOIA_TERM: ss << "EUNOIA_TERM"; break;
-    case TermKind::EUNOIA_BOOL: ss << "EUNOIA_BOOL"; break;
-    case TermKind::EUNOIA_TYPE_TYPE: ss << "EUNOIA_TYPE_TYPE"; break;
-    case TermKind::EUNOIA_QUOTE_TYPE: ss << "EUNOIA_QUOTE_TYPE"; break;
-    // SMT apply
-    case TermKind::SMT_BUILTIN_APPLY: ss << "SMT_BUILTIN_APPLY"; break;
-    case TermKind::SMT_BUILTIN_APPLY_EQ: ss << "SMT_BUILTIN_APPLY_EQ"; break;
-    // Builtin datatype introduced in model_smt step, for sm.Term
-    case TermKind::SMT_DT_CONS: ss << "SMT_DT_CONS"; break;
-    // An SMT term defined by the user (possibly non-SMT-LIB standard)
-    case TermKind::SMT_TERM: ss << "SMT_TERM"; break;
-    // The type of SMT lib terms
-    case TermKind::SMT_TERM_TYPE: ss << "SMT_TERM_TYPE"; break;
-    case TermKind::SMT_TYPE_TYPE: ss << "SMT_TYPE_TYPE"; break;
-    case TermKind::SMT_TYPE_DT_CONS: ss << "SMT_TYPE_DT_CONS"; break;
-    case TermKind::SMT_STD_TYPE: ss << "SMT_STD_TYPE"; break;
-    case TermKind::SMT_BUILTIN_TYPE: ss << "SMT_BUILTIN_TYPE"; break;
-    case TermKind::EUNOIA_TERM_TYPE: ss << "EUNOIA_TERM_TYPE"; break;
-    // An operator that operates on native SMT-LIB terms, e.g. $eo_mk_binary
-    case TermKind::SMT_TO_EO_PROGRAM: ss << "SMT_TO_EO_PROGRAM"; break;
-    // An operator that operates on native SMT-LIB terms, e.g. $sm_mk_pow2
-    case TermKind::SMT_PROGRAM: ss << "SMT_PROGRAM"; break;
-    case TermKind::SMT_BUILTIN_PROGRAM: ss << "SMT_BUILTIN_PROGRAM"; break;
-    case TermKind::INTERNAL: ss << "INTERNAL"; break;
-    case TermKind::NONE: ss << "NONE"; break;
-    default: ss << "?TermKind"; break;
   }
   return ss.str();
 }
@@ -346,7 +289,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
   os << osEnd.str();
 }
 
-TermKind SmtMetaReduce::printEmbType(const Expr& c,
+void SmtMetaReduce::printEmbType(const Expr& c,
                                      std::ostream& os,
                                      TermContextKind tctx)
 {
@@ -408,7 +351,6 @@ TermKind SmtMetaReduce::printEmbType(const Expr& c,
   //{
   //  os << "sm.Type";
   //}
-  return TermKind::NONE;
 }
 
 TermContextKind SmtMetaReduce::getEmbTypeContext(const Expr& type)
@@ -938,30 +880,8 @@ void SmtMetaReduce::finalizePrograms()
   d_progSeen.clear();
 }
 
-TermContextKind SmtMetaReduce::termKindToContext(TermKind tk)
-{
-  switch (tk)
-  {
-    case TermKind::SMT_BUILTIN_TYPE: return TermContextKind::SMT_BUILTIN;
-    case TermKind::SMT_TERM:
-    case TermKind::SMT_TERM_TYPE: return TermContextKind::SMT;
-    case TermKind::SMT_TYPE_TYPE: return TermContextKind::SMT_TYPE;
-    case TermKind::EUNOIA_TERM_TYPE:
-    case TermKind::EUNOIA_TYPE_TYPE:
-    case TermKind::EUNOIA_BOOL:
-    case TermKind::EUNOIA_TERM: return TermContextKind::EUNOIA;
-    default: Assert(false) << "unknown type " << termKindToString(tk); break;
-  }
-  return TermContextKind::NONE;
-}
 void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
 {
-  TermKind tk = getTermKind(v);
-  // things that are manually axiomatized
-  if (tk == TermKind::INTERNAL)
-  {
-    return;
-  }
   std::string vname = getName(v);
   // ignore programs used for defining this compilation itself
   // TODO: can remove if we are better at trim-def
@@ -976,19 +896,23 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   std::stringstream decl;
   Expr vv = v;
   Expr vt = d_tc.getType(vv);
+  std::vector<TermContextKind> vctxArgs;
+  size_t nargs = vt.getNumChildren();
+  for (size_t j=0; j<nargs; j++)
+  {
+    vctxArgs.push_back(getTypeMetaKind(vt[j]));
+  }
   std::cout << "Type is " << vt << std::endl;
   decl << "(declare-fun " << v << " (";
   std::stringstream varList;
   Assert(vt.getKind() == Kind::PROGRAM_TYPE)
       << "bad type " << vt << " for " << v;
-  size_t nargs = vt.getNumChildren();
   Assert(nargs > 1);
   std::vector<std::string> args;
   std::stringstream appTerm;
   appTerm << "(" << v;
   std::stringstream stuckCases;
   size_t nstuckCond = 0;
-  std::vector<TermKind> termKindsForTypeArgs;
   // TODO: combine this loop with the one for pattern matching!!
   for (size_t i = 1; i < nargs; i++)
   {
@@ -998,21 +922,15 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
       varList << " ";
     }
     std::stringstream argType;
-    TermKind tka = printEmbType(vt[i - 1], argType);
-    // d_defs << "; defs: " << vt[i - 1] << " is " << termKindToString(tka) <<
-    // std::endl;
+    printEmbType(vt[i - 1], argType);
     decl << argType.str();
     std::stringstream ssArg;
     ssArg << "x" << i;
     appTerm << " " << ssArg.str();
     args.emplace_back(ssArg.str());
     varList << "(" << ssArg.str() << " " << argType.str() << ")";
-    bool checkStuck;
-    TermContextKind tck = getTypeMetaKind(vt[i - 1]);
-    checkStuck = (tck == TermContextKind::EUNOIA);
-    //d_defs << std::endl << "; check stuck " << checkStuck << " for " << vt[i-1] << " " << termContextKindToString(tck) << std::endl;
     // don't have to check stuckness if type is not Eunoia
-    if (checkStuck)
+    if (vctxArgs[i-1]==TermContextKind::EUNOIA)
     {
       if (nstuckCond > 0)
       {
@@ -1021,8 +939,6 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
       nstuckCond++;
       stuckCases << "(= " << ssArg.str() << " eo.Stuck)";
     }
-
-    termKindsForTypeArgs.push_back(tka);
   }
   std::stringstream stuckCond;
   if (nstuckCond > 1)
@@ -1054,15 +970,16 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   std::stringstream cases;
   std::stringstream casesEnd;
   // start with stuck case, if not a SMT program
-  bool isEoProg =
-      (tk != TermKind::SMT_BUILTIN_PROGRAM && tk != TermKind::SMT_TO_EO_PROGRAM
-       && tk != TermKind::SMT_PROGRAM);
+  // TODO: make more robust by looking at types???
+  bool isSmtProgram = (vname.compare(0, 6, "$smtx_") == 0);
+  bool isEoProg = !isSmtProgram;
   if (isEoProg)
   {
     cases << "  (ite " << stuckCond.str() << std::endl;
     cases << "    eo.Stuck" << std::endl;
     casesEnd << ")";
   }
+  ConjPrint printStuck;
   size_t ncases = prog.getNumChildren();
   SelectorCtx ctx;
   for (size_t i = 0; i < ncases; i++)
@@ -1084,7 +1001,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
       // print the pattern matching predicate for this argument, all
       // concatenated together
       // context depends on the kind of the argument
-      TermContextKind ctxPatMatch = getTypeMetaKind(vt[j - 1]);
+      TermContextKind ctxPatMatch = vctxArgs[j - 1];
       std::cout << std::endl << "; Print pat matching for " << hd[j] << " in context "
                 << termContextKindToString(ctxPatMatch) << std::endl;
       printEmbPatternMatch(
@@ -1094,20 +1011,20 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     // compile the return for this case
     std::stringstream currRet;
     // The type of the function determines the initial context of return terms we print
-    TermContextKind bodyInitCtx = getTypeMetaKind(vt[nargs - 1]);
+    TermContextKind bodyInitCtx = vctxArgs[nargs - 1];
     std::cout << std::endl << "; PRINTING " << body << " in context "
               << termContextKindToString(bodyInitCtx) << std::endl;
     printEmbTerm(body, currRet, ctx, bodyInitCtx);
     std::cout << "...finished" << std::endl;
     std::cout << "...RESULT is " << currRet.str() << std::endl;
-    if (isEoProg || tk == TermKind::SMT_PROGRAM)
+    if (isEoProg || isSmtProgram)
     {
       // we permit SMT_PROGRAM and Eunoia programs to have pattern matching
       // now print the case/return
       // for SMT_PROGRAM, the last case is assumed to be total
       // this is part of the trusted core: to ensure all programs in
       // model_smt.eo are total.
-      if (i + 1 < ncases || tk != TermKind::SMT_PROGRAM)
+      if (i + 1 < ncases || !isSmtProgram)
       {
         cases << "  (ite ";
         print.printConjunction(cases);
@@ -1118,7 +1035,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     }
     else
     {
-      if (i > 0 && tk != TermKind::SMT_PROGRAM)
+      if (i > 0 && !isSmtProgram)
       {
         EO_FATAL()
             << "Program " << v
@@ -1481,8 +1398,6 @@ bool SmtMetaReduce::isProgramKind(TermKind tk)
          || tk == TermKind::SMT_PROGRAM;
 }
 
-/////////////////////////////////////
-
 TermContextKind SmtMetaReduce::getTypeMetaKind(const Expr& typ)
 {
   Kind k = typ.getKind();
@@ -1639,11 +1554,7 @@ TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
 
 bool SmtMetaReduce::isProgramApp(const Expr& app)
 {
-  if (app.getKind() == Kind::APPLY && app[0].getKind() == Kind::PROGRAM_CONST)
-  {
-    return true;
-  }
-  return false;
+  return (app.getKind() == Kind::APPLY && app[0].getKind() == Kind::PROGRAM_CONST);
 }
 
 TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,

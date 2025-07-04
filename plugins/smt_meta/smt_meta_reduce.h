@@ -104,9 +104,6 @@ enum class TermKind
   INTERNAL,
   NONE
 };
-bool isEunoiaKind(TermKind tk);
-
-std::string termKindToString(TermKind k);
 
 class SelectorCtx
 {
@@ -154,7 +151,7 @@ class SmtMetaReduce : public StdPlugin
   void printEmbAtomicTerm(const Expr& c,
                           std::ostream& os,
                           TermContextKind tctx = TermContextKind::NONE);
-  TermKind printEmbType(const Expr& c,
+  void printEmbType(const Expr& c,
                         std::ostream& os,
                         TermContextKind tctx = TermContextKind::NONE);
   bool printEmbTerm(const Expr& c,
@@ -176,8 +173,6 @@ class SmtMetaReduce : public StdPlugin
   TermKind getTermKindAtomic(const Expr& e, std::string& name);
   TermKind getTermKind(const Expr& e, std::string& name);
   TermKind getTermKind(const Expr& e);
-
-  TermContextKind termKindToContext(TermKind tk);
   TermContextKind getEmbTypeContext(const Expr& type);
   std::string getName(const Expr& e);
   std::string getEmbedName(const Expr& oApp);
