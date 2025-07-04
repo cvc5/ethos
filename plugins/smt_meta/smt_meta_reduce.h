@@ -110,8 +110,6 @@ class SmtMetaReduce : public StdPlugin
   TermContextKind getEmbTypeContext(const Expr& type);
   std::string getName(const Expr& e);
   std::string getEmbedName(const Expr& oApp);
-  /** Declares seen */
-  std::set<Expr> d_declSeen;
   /** Program declarations processed */
   std::set<Expr> d_progDeclProcessed;
   /** Programs seen */

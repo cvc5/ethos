@@ -133,11 +133,6 @@ void SmtMetaReduce::bind(const std::string& name, const Expr& e)
     d_progSeen.emplace_back(tmp, p);
     return;
   }
-  Kind k = e.getKind();
-  if (k == Kind::CONST)
-  {
-    d_declSeen.insert(e);
-  }
 }
 
 void SmtMetaReduce::printConjunction(size_t n,
@@ -300,19 +295,24 @@ void SmtMetaReduce::printEmbType(const Expr& c,
     t = d_tc.getType(qt);
   }
   Kind k = c.getKind();
-  if (c == d_metaEoTerm || k == Kind::PARAM || k == Kind::TYPE
+  std::string cname = getName(c);
+  if (cname=="$eo_Term" || k == Kind::PARAM || k == Kind::TYPE
       || k == Kind::BOOL_TYPE)
   {
     // Bool refers to (eo.SmtType tsm.Bool), which is a Eunoia term
     os << "eo.Term";
   }
-  else if (c == d_metaSmtTerm)
+  else if (cname=="$smt_Term")
   {
     os << "sm.Term";
   }
-  else if (c == d_metaSmtType)
+  else if (cname=="$smt_Type")
   {
     os << "tsm.Type";
+  }
+  else if (cname=="$smt_Value")
+  {
+    os << "vsm.Value";
   }
   else if (k == Kind::APPLY_OPAQUE)
   {
@@ -1172,17 +1172,22 @@ TermContextKind SmtMetaReduce::getTypeMetaKind(const Expr& typ)
       return TermContextKind::SMT_BUILTIN;
     }
   }
-  if (typ == d_metaEoTerm)
+  std::string sname = getName(typ);
+  if (sname == "$eo_Term")
   {
     return TermContextKind::EUNOIA;
   }
-  else if (typ == d_metaSmtTerm)
+  else if (sname == "$smt_Term")
   {
     return TermContextKind::SMT;
   }
-  else if (typ == d_metaSmtType)
+  else if (sname == "$smt_Type")
   {
     return TermContextKind::SMT_TYPE;
+  }
+  else if (sname == "$smt_Value")
+  {
+    return TermContextKind::SMT_VALUE;
   }
   // Assert(false) << "Unknown type meta-kind " << typ << " " << typ.getKind();
   return TermContextKind::EUNOIA;
