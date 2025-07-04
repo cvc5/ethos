@@ -249,12 +249,6 @@ $EO_EVAL_CASES$
 ; Invariant: all programs in this signature should be well-founded and never
 ; never get stuck unless otherwise stated.
 
-; program: $eo_is_ok
-; implements: eo::is_ok
-(define $eo_is_ok ((x $eo_Term))
-  ($smt_apply_3 "ite" ($smt_apply_= x $eo_stuck)
-    $eo_mk_false
-    $eo_mk_true))
 (define $smt_builtin_is_ok ((x $eo_Term))
   ($smt_apply_3 "ite" ($smt_apply_= x $eo_stuck)
     $smt_builtin_false

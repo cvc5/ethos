@@ -275,9 +275,10 @@
 ; We define all the Eunoia builtins here that are best to
 ; define in terms of SMT-LIB operators.
 
-;;; If then else
+;;; If then else, is ok, requires
 
 ; program: $eo_ite
+; implements: eo::ite
 (define $eo_ite ((x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term))
   ($smt_apply_3 "ite" ($smt_apply_= x1 $eo_mk_true)
     x2
@@ -290,7 +291,15 @@
 ; stuck. Alternatively this could be automated in
 ; the compiler.
 
+; program: $eo_is_ok
+; implements: eo::is_ok
+(define $eo_is_ok ((x $eo_Term))
+  ($smt_apply_3 "ite" ($smt_apply_= x $eo_stuck)
+    $eo_mk_false
+    $eo_mk_true))
+
 ; program: $eo_requires
+; implements: eo::requires
 ; NOTE: this must be defined as a program to ensure proper typing
 ; in the smt_meta_reduce compilation step.
 (program $eo_requires ((x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term))
