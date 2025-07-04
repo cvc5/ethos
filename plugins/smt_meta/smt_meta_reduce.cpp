@@ -80,9 +80,10 @@ std::string termContextKindToPrefix(TermContextKind k)
   switch (k)
   {
     case TermContextKind::EUNOIA: ss << "eo."; break;
-    case TermContextKind::SMT: ss << "sm."; break;
-    case TermContextKind::SMT_TYPE: ss << "tsm."; break;
-    case TermContextKind::SMT_VALUE: ss << "vsm."; break;
+    case TermContextKind::SMT:
+       case TermContextKind::SMT_GUARDED:ss << "sm."; break;
+    case TermContextKind::SMT_TYPE: case TermContextKind::SMT_TYPE_GUARDED: ss << "tsm."; break;
+    case TermContextKind::SMT_VALUE: case TermContextKind::SMT_VALUE_GUARDED: ss << "vsm."; break;
     case TermContextKind::SMT_BUILTIN: ss << "?"; break;
     default:
       ss << "?TermContextKindPrefix_" << termContextKindToString(k);
@@ -95,9 +96,10 @@ std::string termContextKindToCons(TermContextKind k)
   std::stringstream ss;
   switch (k)
   {
-    case TermContextKind::SMT: ss << "SmtTerm"; break;
-    case TermContextKind::SMT_TYPE: ss << "SmtType"; break;
-    case TermContextKind::SMT_VALUE: ss << "SmtValue"; break;
+    case TermContextKind::SMT:
+       case TermContextKind::SMT_GUARDED:ss << "SmtTerm"; break;
+    case TermContextKind::SMT_TYPE: case TermContextKind::SMT_TYPE_GUARDED: ss << "SmtType"; break;
+    case TermContextKind::SMT_VALUE: case TermContextKind::SMT_VALUE_GUARDED: ss << "SmtValue"; break;
     default: ss << "?TermContextKindCons"; break;
   }
   return ss.str();
@@ -621,15 +623,17 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           // We are using a datatype selector to extract and SMT-LIB
           // expression from a Eunoia term. Moreover, we are using
           // the selector in a way that is guarded.
-          isTotal = true;
+          //isTotal = true;
         }
         if (isSmtLibExpression(parent) && isTotal)
         {
           os << "(eo." << termContextKindToCons(parent) << ".arg1 ";
           cparen[key]++;
+          // we now can consider the child to be an (unguarded) Eunoia term
+          parent = TermContextKind::EUNOIA;
         }
       }
-      if (parent == TermContextKind::SMT )
+      if (parent == TermContextKind::SMT || parent==TermContextKind::SMT_GUARDED)
       {
         if (child == TermContextKind::SMT_BUILTIN)
         {
@@ -1179,6 +1183,30 @@ bool SmtMetaReduce::isGuardedArgSmtExpression(TermContextKind ctx)
   return ctx==TermContextKind::SMT_GUARDED || ctx==TermContextKind::SMT_TYPE_GUARDED || ctx==TermContextKind::SMT_VALUE_GUARDED;
 }
 
+TermContextKind SmtMetaReduce::guard(TermContextKind ctx)
+{
+  switch (ctx)
+  {
+    case TermContextKind::SMT: return TermContextKind::SMT_GUARDED;
+    case TermContextKind::SMT_TYPE: return TermContextKind::SMT_TYPE_GUARDED;
+    case TermContextKind::SMT_VALUE: return TermContextKind::SMT_VALUE_GUARDED;
+    default:break;
+  }
+  return ctx;
+}
+
+TermContextKind SmtMetaReduce::unguard(TermContextKind ctx)
+{
+  switch (ctx)
+  {
+    case TermContextKind::SMT_GUARDED: return TermContextKind::SMT;
+    case TermContextKind::SMT_TYPE_GUARDED: return TermContextKind::SMT_TYPE;
+    case TermContextKind::SMT_VALUE_GUARDED: return TermContextKind::SMT_VALUE;
+    default:break;
+  }
+  return ctx;
+}
+
 TermContextKind SmtMetaReduce::getTypeMetaKind(const Expr& typ, TermContextKind elseKind)
 {
   Kind k = typ.getKind();
@@ -1250,17 +1278,17 @@ TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
           else if (esname == "eo.SmtTerm.arg1")
           {
             // corner case: the selector of terms is SMT
-            tk = TermContextKind::SMT;
+            tk = TermContextKind::SMT_GUARDED;
           }
           else if (esname == "eo.SmtType.arg1")
           {
             // corner case: the selector of terms is SMT
-            tk = TermContextKind::SMT_TYPE;
+            tk = TermContextKind::SMT_TYPE_GUARDED;
           }
           else if (esname == "eo.SmtValue.arg1")
           {
             // corner case: the selector of terms is SMT
-            tk = TermContextKind::SMT_VALUE;
+            tk = TermContextKind::SMT_VALUE_GUARDED;
           }
           else
           {
@@ -1394,14 +1422,17 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
         if (esname == "eo.SmtTerm.arg1")
         {
           // Corner case: the selector for SMT terms.
-          // This is used in one place in the SMT model signature.
           tk = TermContextKind::SMT;
         }
         else if (esname == "eo.SmtType.arg1")
         {
           // Corner case: the selector for SMT types.
-          // This is used in one place in the SMT model signature.
           tk = TermContextKind::SMT_TYPE;
+        }
+        else if (esname == "eo.SmtValue.arg1")
+        {
+          // Corner case: the selector for SMT values.
+          tk = TermContextKind::SMT_VALUE;
         }
         else if (esname == "ite")
         {
