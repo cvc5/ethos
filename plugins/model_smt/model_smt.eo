@@ -4,7 +4,11 @@
 ;;; Eunoia datatype constructors
 
 ; The Eunoia representation of an SMT-LIB term.
-; $eo_smt_term 
+; declare $eo_smt_term
+; - already declared in eo_builtin_smt.eo
+
+; The Eunoia representation of an SMT-LIB type.
+; declare $eo_smt_type
 ; - already declared in eo_builtin_smt.eo
 
 ; The Eunoia representation of an SMT-LIB value.
@@ -545,7 +549,7 @@ $EO_EVAL_CASES$
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_Type $smt_Term) $smt_builtin_Bool
   (
   (($smtx_const_predicate k id T val)
-    ($sm_is_true
+    ($sm_is_true ; wrong
       ($smt_try_eo
         ($eo_const_predicate k id ($eo_smt_type T) ($eo_smt_term val))
         ($eo_smt_term $sm_mk_true))))

@@ -656,6 +656,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     if (parent != atk)
     {
       std::vector<TermContextKind> ctxChange;
+      // NOTE: could do this, but it is making the Eunoia code too permissive???
       /*
       if (atk==TermContextKind::SMT_BUILTIN)
       {
@@ -2624,9 +2625,10 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
         }
         else if (esname == "=")
         {
-          Assert(getMetaKindReturn(child[2], parentCtx)
-                 == getMetaKindReturn(child[3], parentCtx))
-              << "Equal sides have different meta types " << child;
+          TermContextKind k1 = getMetaKindReturn(child[2], parentCtx);
+          TermContextKind k2 = getMetaKindReturn(child[3], parentCtx);
+          Assert(k1 == k2)
+              << "Equal sides have different meta types " << child << " " << termContextKindToString(k1)  << " " << termContextKindToString(k2);
           tk = TermContextKind::SMT_BUILTIN;
         }
         else
@@ -2682,48 +2684,66 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
   }
   else if (hd.getNumChildren() == 0)
   {
-    Assert(!hd.isNull()) << "Null head term??";
-    Expr htype = d_tc.getType(hd);
-    Assert(!htype.isNull()) << "Failed to type check " << hd;
-    tk = getTypeMetaKind(htype);
-    std::cout << "Type for atomic term " << hd << " (" << k << ") is " << htype
-              << ", thus context is " << termContextKindToString(tk)
-              << std::endl;
-    // if it is a Eunoia constant, it depends on the mapping to
-    // datatypes, accessible via the $eo_get_meta_type method.
-    if (tk == TermContextKind::EUNOIA)
+    std::string sname = getName(hd);
+    // Nullary deep embedding constructors
+    if (sname.compare(0, 8, "$smd_eo.") == 0 || sname=="$eo_Var")
     {
-      std::cout << "...consult meta-kind side condition" << std::endl;
-      // constants are managed by the Eunoia side condition
-      Expr mapp = d_state.mkExprSimple(Kind::APPLY, {d_eoGetMetaKind, hd});
-      Ctx ectx;
-      Expr mm = d_tc.evaluate(mapp.getValue(), ectx);
-      if (mm == d_metaEoTerm)
+      tk = TermContextKind::EUNOIA;
+    }
+    else if (sname.compare(0, 8, "$smd_sm.") == 0)
+    {
+      tk = TermContextKind::SMT;
+    }
+    else if (sname.compare(0, 9, "$smd_tsm.") == 0)
+    {
+      tk = TermContextKind::SMT_TYPE;
+    }
+    else
+    {
+      Expr htype = d_tc.getType(hd);
+      Assert(!htype.isNull()) << "Failed to type check " << hd;
+      tk = getTypeMetaKind(htype);
+      std::cout << "Type for atomic term " << hd << " (" << k << ") is " << htype
+                << ", thus context is " << termContextKindToString(tk)
+                << std::endl;
+      // if it is a Eunoia constant, it depends on the mapping to
+      // datatypes, accessible via the $eo_get_meta_type method.
+      if (k==Kind::CONST && tk == TermContextKind::EUNOIA)
       {
-        tk = TermContextKind::EUNOIA;
-      }
-      else if (mm == d_metaSmtTerm)
-      {
-        tk = TermContextKind::SMT;
-      }
-      else if (mm == d_metaSmtType)
-      {
-        tk = TermContextKind::SMT_TYPE;
-      }
-      else if (mm == d_metaSmtBuiltinType)
-      {
-        tk = TermContextKind::SMT_BUILTIN;
-      }
-      else
-      {
-        // otherwise just use the parent type????
-        if (parentCtx != TermContextKind::NONE)
+        std::cout << "...consult meta-kind side condition" << std::endl;
+        // constants are managed by the Eunoia side condition
+        Expr mapp = d_state.mkExprSimple(Kind::APPLY, {d_eoGetMetaKind, hd});
+        Ctx ectx;
+        Expr mm = d_tc.evaluate(mapp.getValue(), ectx);
+        if (mm == d_metaEoTerm)
         {
-          // tk = parentCtx;
+          tk = TermContextKind::EUNOIA;
         }
+        else if (mm == d_metaSmtTerm)
+        {
+          tk = TermContextKind::SMT;
+        }
+        else if (mm == d_metaSmtType)
+        {
+          tk = TermContextKind::SMT_TYPE;
+        }
+        else if (mm == d_metaSmtBuiltinType)
+        {
+          tk = TermContextKind::SMT_BUILTIN;
+        }
+        else if (parentCtx != TermContextKind::NONE)
+        {
+          // otherwise just use the parent type????
+          tk = parentCtx;
+        }
+        std::cout << "...evaluate meta-kind side condition returns " << mm
+                  << ", which is " << termContextKindToString(tk) << std::endl;
       }
-      std::cout << "...evaluate meta-kind side condition returns " << mm
-                << ", which is " << termContextKindToString(tk) << std::endl;
+      else if (parentCtx != TermContextKind::NONE)
+      {
+        // otherwise trust the parent kind???
+        tk = parentCtx;
+      }
     }
   }
   else
@@ -2737,7 +2757,7 @@ std::vector<TermContextKind> SmtMetaReduce::getMetaKindArgs(
     const Expr& parent, TermContextKind parentCtx)
 {
   std::vector<TermContextKind> args;
-  std::cout << "MetaArg: " << parent << std::endl;
+  std::cout << "MetaArg: " << parent << " / " << termContextKindToString(parentCtx) << std::endl;
   for (size_t i = 0, nchild = parent.getNumChildren(); i < nchild; i++)
   {
     TermContextKind ctx = getMetaKindArg(parent, i, parentCtx);
