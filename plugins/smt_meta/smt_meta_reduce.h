@@ -167,7 +167,6 @@ class SmtMetaReduce : public StdPlugin
                     TermContextKind tinit = TermContextKind::NONE);
   void finalizePrograms();
   void finalizeProgram(const Expr& v, const Expr& prog);
-  void finalizeDeclarations();
   /** Does t have subterm s? */
   static bool hasSubterm(const Expr& t, const Expr& s);
   /** is smt apply, return the arity */
@@ -198,9 +197,6 @@ class SmtMetaReduce : public StdPlugin
   std::map<Expr, std::string> d_embMapAtomic;
   /** Common constants */
   Expr d_null;
-  std::stringstream d_termDecl;
-  std::stringstream d_typeDecl;
-  std::stringstream d_eoTermDecl;
   std::stringstream d_defs;
   std::stringstream d_rules;
   std::stringstream d_smtVc;

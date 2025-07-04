@@ -1211,106 +1211,6 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   d_defs << std::endl;
 }
 
-void SmtMetaReduce::finalizeDeclarations()
-{
-  std::map<Expr, std::pair<Attr, Expr>>::iterator it;
-  for (const Expr& e : d_declSeen)
-  {
-    std::cout << "BEGIN FINALIZE " << e << std::endl;
-    std::string consName;
-    TermKind tk = getTermKind(e, consName);
-    // ignore deep embeddings of smt terms
-    // all symbols beginning with @ are not part of term definition
-    if (tk == TermKind::INTERNAL || tk == TermKind::SMT_TERM_TYPE
-        || tk == TermKind::SMT_TYPE_TYPE || tk == TermKind::EUNOIA_TERM_TYPE
-        || tk == TermKind::SMT_BUILTIN_PROGRAM || tk == TermKind::SMT_PROGRAM
-        || tk == TermKind::SMT_TO_EO_PROGRAM || tk == TermKind::PROGRAM
-        || tk == TermKind::SMT_BUILTIN_APPLY || tk == TermKind::SMT_BUILTIN_TYPE
-        || tk == TermKind::EUNOIA_DT_CONS)
-    {
-      continue;
-    }
-    std::cout << "FINALIZE " << e << " " << termKindToString(tk) << std::endl;
-    std::stringstream* out = nullptr;
-    std::stringstream prefix;
-    if (tk == TermKind::EUNOIA_TERM)  // tk == TermKind::EUNOIA_DT_CONS ||
-    {
-      prefix << "eo.";
-      out = &d_eoTermDecl;
-    }
-    else if (tk == TermKind::SMT_TYPE_DT_CONS)
-    {
-      prefix << "tsm.";
-      out = &d_typeDecl;
-    }
-    else
-    {
-      prefix << "sm.";
-      out = &d_termDecl;
-    }
-    if (out == nullptr)
-    {
-      continue;
-    }
-    (*out) << "  ; declare " << consName << " " << termKindToString(tk)
-           << std::endl;
-    Expr c = e;
-    Expr ct = d_tc.getType(c);
-    // (*out) << "  ; type is " << ct << std::endl;
-    Attr attr = Attr::NONE;
-    Expr attrCons;
-    it = d_attrDecl.find(e);
-    if (it != d_attrDecl.end())
-    {
-      attr = it->second.first;
-      attrCons = it->second.second;
-    }
-    // (*out) << "  ; attr is " << attr << std::endl;
-    (*out) << "  (";
-    std::stringstream cname;
-    cname << prefix.str() << consName;
-    (*out) << cname.str();
-    size_t nopqArgs = 0;
-    if (attr == Attr::OPAQUE)
-    {
-      // opaque symbols are non-nullary constructors
-      Assert(ct.getKind() == Kind::FUNCTION_TYPE);
-      nopqArgs = ct.getNumChildren() - 1;
-    }
-    else if (attr == Attr::AMB || attr == Attr::AMB_DATATYPE_CONSTRUCTOR)
-    {
-      nopqArgs = 1;
-    }
-    std::vector<TermKind>& mts = d_metaType[e];
-    for (size_t i = 0; i < nopqArgs; i++)
-    {
-      (*out) << " (" << cname.str();
-      (*out) << ".arg" << (i + 1) << " ";
-      // print its type using the utility,
-      // which takes into account what the type is in the final embedding
-      Expr typ = ct[i];
-      if (ct[i].getKind() == Kind::QUOTE_TYPE)
-      {
-        Expr targ = ct[i][0];
-        typ = d_tc.getType(targ);
-      }
-      std::stringstream sst;
-      TermKind tk = printEmbType(typ, sst);
-      //(*out) << "; Printing datatype argument type " << typ << " gives \"" <<
-      // sst.str() << "\" " << termKindToString(tk) << std::endl;
-      (*out) << sst.str();
-      mts.push_back(tk);
-      (*out) << ")";
-    }
-    (*out) << ")" << std::endl;
-    // is it an SMT-LIB symbol????
-    // std::stringstream ss;
-    // ss << e;
-    // std::string name = ss.str();
-  }
-  d_declSeen.clear();
-}
-
 void SmtMetaReduce::finalize()
 {  // Here, we expect $eo_get_meta_type to be defined as a function in the
   // signature, which is an oracle for saying which datatype a term belongs
@@ -1323,7 +1223,6 @@ void SmtMetaReduce::finalize()
   d_metaSmtBuiltinType = lookupVar("$smt_BuiltinType");
   d_metaSmtValue = lookupVar("$smt_Value");
   finalizePrograms();
-  finalizeDeclarations();
 
   auto replace = [](std::string& txt,
                     const std::string& tag,
@@ -1343,9 +1242,6 @@ void SmtMetaReduce::finalize()
   ss << in.rdbuf();
   std::string finalSm = ss.str();
 
-  replace(finalSm, "$SM_TERM_DECL$", d_termDecl.str());
-  replace(finalSm, "$SM_TYPE_DECL$", d_typeDecl.str());
-  replace(finalSm, "$SM_EO_TERM_DECL$", d_eoTermDecl.str());
   replace(finalSm, "$SM_DEFS$", d_defs.str());
   replace(finalSm, "$SMT_VC$", d_smtVc.str());
 
