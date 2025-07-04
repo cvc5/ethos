@@ -127,14 +127,6 @@
 ; stuckness is non-standard.
 ; TODO: maybe better if these are lifted and made a special case?
 
-; axiom: $eo_ite
-(define-fun $eo_ite ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
-  (ite (= x1 (eo.SmtTerm sm.True))
-    x2
-  (ite (= x1 (eo.SmtTerm sm.False))
-    x3
-    eo.Stuck)))
-
 ; axiom: $eo_requires
 (define-fun $eo_requires ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
   (ite (and (not (= x1 eo.Stuck)) (not (= x2 eo.Stuck)) (= x1 x2))

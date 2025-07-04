@@ -275,6 +275,14 @@
 ; We define all the Eunoia builtins here that are best to
 ; define in terms of SMT-LIB operators.
 
+; axiom: $eo_ite
+(define $eo_ite ((x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term))
+  ($smt_apply_3 "ite" ($smt_apply_= x1 $eo_mk_true)
+    x2
+  ($smt_apply_3 "ite" ($smt_apply_= x1 $eo_mk_false)
+    x3
+    $eo_stuck)))
+
 ;;; Boolean operators
 
 ; axiom: $eo_not
