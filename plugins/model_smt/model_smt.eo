@@ -187,16 +187,16 @@ $EO_IS_TYPE_CASES$
   (
   ; enumeration of standard SMT types
   ;(($eo_enum_type $smt_Numeral i)     (eo::define ((v (eo::zdiv i 2)))
-  ;                                      ($smt_apply_3 "ite" ($smt_apply_2 "=" (eo::zmod i 2) 0) v (eo::neg v))))
-  ;(($eo_enum_type $smt_String i)      ($smt_apply_3 "ite" ($smt_apply_2 "=" i 0)
+  ;                                      ($smt_apply_3 "ite" ($smt_apply_= (eo::zmod i 2) 0) v (eo::neg v))))
+  ;(($eo_enum_type $smt_String i)      ($smt_apply_3 "ite" ($smt_apply_= i 0)
   ;                                      ""
   ;                                      (eo::concat (eo::to_str (eo::zmod i 196608)) ($eo_enum_type $smt_String (eo::zdiv i 196608)))))
   ; rationals are treated as Real, meaning we interleave rational/irrational.
   ;(($eo_enum_type $smt_Rational i)    (eo::define ((ir (eo::zdiv i 2)))
-  ;                                    (eo::define ((isRat ($smt_apply_2 "=" (eo::zmod ir 2) 0)))
+  ;                                    (eo::define ((isRat ($smt_apply_= (eo::zmod ir 2) 0)))
   ;                                    (eo::define ((i (eo::zdiv ir 2)))
   ;                                    (eo::define ((v ($smt_apply_3 "ite" isRat ($eo_rat_to_num ($smt_rat_enum i)) ($smt_irrat_enum i))))
-  ;                                      ($smt_apply_3 "ite" ($smt_apply_2 "=" (eo::zmod i 2) 0) v (eo::neg v)))))))
+  ;                                      ($smt_apply_3 "ite" ($smt_apply_= (eo::zmod i 2) 0) v (eo::neg v)))))))
   ; Note that $smt_BitVec must be mapped to the user's definition of binaries.
   ; Note this method gets stuck if i > 2^w, indicating we have run out of values.
   ;(($eo_enum_type ($smt_BitVec w) i) (eo::define ((v (eo::to_bin w i)))
@@ -218,7 +218,7 @@ $EO_IS_TYPE_CASES$
 ;  (
 ;  (($smtx_enum_type_contains_rec T t i)   (eo::define ((v ($smtx_enum_type T i)))
 ;                                          ($smt_apply_3 "ite" ($smt_apply_1 "$eo_is_ok" v)
-;                                          ($smt_apply_3 "ite" ($smt_apply_2 "=" v t)
+;                                          ($smt_apply_3 "ite" ($smt_apply_= v t)
 ;                                            true
 ;                                            ($smtx_enum_type_contains_rec T i ($smt_apply_2 "+" i 1)))
 ;                                          false)))
@@ -263,7 +263,7 @@ $EO_EVAL_CASES$
 
 ; eo::is_ok is total, doesn't need to wrap in smt_try_eo
 (define $smt_try_eo_ok ((T Type :implicit) (t T))
-  ($smt_apply_2 "=" (eo::is_ok t) $eo_true))
+  ($smt_apply_= (eo::is_ok t) $eo_true))
 
 ; Utilities to ensure that programs are total.
 ; Takes
@@ -400,7 +400,7 @@ $EO_EVAL_CASES$
     (eo::define ((ru ($smtx_map_lookup t M)))
     ; if it is the same, this index is redundant and thus we are not a value
     ($smt_apply_3 "ite"
-      ($smt_apply_2 "=" ru u)
+      ($smt_apply_= ru u)
       $smt_builtin_false
       ($smtx_map_is_redundant M))))
   )
@@ -438,18 +438,18 @@ $EO_EVAL_CASES$
   (
   ; enumeration of standard SMT types
   ;(($smtx_enum_type $smt_builtin_Int i) (eo::define ((v ($smt_builtin_div i 2)))
-  ;                                        ($smt_apply_3 "ite" ($smt_apply_2 "=" ($smt_builtin_mod i 2) 0)
+  ;                                        ($smt_apply_3 "ite" ($smt_apply_= ($smt_builtin_mod i 2) 0)
   ;                                          v
   ;                                          ($smt_builtin_- v))))
-  ;(($smtx_enum_type $smt_String i)      ($smt_apply_3 "ite" ($smt_apply_2 "=" i 0)
+  ;(($smtx_enum_type $smt_String i)      ($smt_apply_3 "ite" ($smt_apply_= i 0)
   ;                                      ""
   ;                                      (eo::concat (eo::to_str (eo::zmod i 196608)) ($smtx_enum_type $smt_String (eo::zdiv i 196608)))))
   ; rationals are treated as Real, meaning we interleave rational/irrational.
   ;(($smtx_enum_type $smt_Rational i)    (eo::define ((ir (eo::zdiv i 2)))
-  ;                                    (eo::define ((isRat ($smt_apply_2 "=" (eo::zmod ir 2) 0)))
+  ;                                    (eo::define ((isRat ($smt_apply_= (eo::zmod ir 2) 0)))
   ;                                    (eo::define ((i (eo::zdiv ir 2)))
   ;                                    (eo::define ((v ($smt_apply_3 "ite" isRat ($smtx_rat_to_num ($smt_rat_enum i)) ($smt_irrat_enum i))))
-  ;                                      ($smt_apply_3 "ite" ($smt_apply_2 "=" (eo::zmod i 2) 0) v (eo::neg v)))))))
+  ;                                      ($smt_apply_3 "ite" ($smt_apply_= (eo::zmod i 2) 0) v (eo::neg v)))))))
   
   ; TODO: functions, datatypes
   ; Try to enumerate the type, if we fail, we return an Uninterpreted sort value.
@@ -485,8 +485,7 @@ $EO_EVAL_CASES$
 ; Returns true if its argument is a datatype value.
 ; This checks that the term is constructed solely based on values and values of
 ; (possibly other) types.
-(program $smtx_dt_is_value
-  ((U Type) (T Type) (f (-> T U)) (a T) (c U))
+(program $smtx_dt_is_value ((f $smt_Term) (a $smt_Term) (c $smt_Term))
   :signature ($smt_Term) $smt_builtin_Bool
   (
   (($smtx_dt_is_value ($sm_apply_term f a)) ($smt_apply_3 "ite" 
@@ -501,7 +500,7 @@ $EO_EVAL_CASES$
 ; Returns true if its argument is an SMT value.
 ; This function is expected to never get stuck.
 (program $smtx_is_value
-  ((T $smt_Type) (U $smt_Type) (t $smt_Term) (n1 $smt_builtin_Int) (r1 $smt_builtin_Real) (s1 $smt_builtin_String))
+  ((T $smt_Type) (t $smt_Term) (n1 $smt_builtin_Int) (r1 $smt_builtin_Real) (s1 $smt_builtin_String))
   :signature ($smt_Type $smt_Term) $smt_builtin_Bool
   (
   ; if the literal type is not defined, this is false
@@ -515,7 +514,7 @@ $EO_EVAL_CASES$
   ; by default, a value is a term that appears in the type enumeration
   (($smtx_is_value T t)             ($smt_apply_3 "ite" ($smt_is_dt T)
                                       ($smtx_dt_is_value t)
-                                      ($smt_apply_1 "= sm.True"
+                                      ($smt_apply_= $sm_mk_true
                                         ($smt_try_eo 
                                          ($eo_is_value ($smt_apply_1 "eo.SmtType" T) t) 
                                          ($eo_smt_term $sm_mk_false)))))
@@ -588,14 +587,14 @@ $EO_EVAL_CASES$
   (
   (($smtx_eval_quant @STermList_nil F i isExists)
     ; base case: we have processed all variables, recurse, negate if isExists is false.
-    ($smt_apply_2 "=" ($smtx_model_eval F) isExists))  ; we are now fully instantiated, look at the body
+    ($smt_apply_= ($smtx_model_eval F) isExists))  ; we are now fully instantiated, look at the body
   (($smtx_eval_quant (@STermList_cons x xs) F i isExists)
     ; get the next value in the type enumeration
     (eo::define ((next ($smtx_enum_type ($smtx_typeof x) i)))
     ; if it exists
     ($smt_apply_3 "ite" (eo::is_ok next)
       ; evaluate the body for this value. if this is a forcing value, return it
-      ($smt_apply_3 "ite" ($smt_apply_2 "=" ($smtx_model_eval ($smtx_substitute x next F)) isExists)
+      ($smt_apply_3 "ite" ($smt_apply_= ($smtx_model_eval ($smtx_substitute x next F)) isExists)
         isExists
         ; otherwise recurse for the next value in the type enumeration for the current variable
         ($smtx_eval_quant (@STermList_cons x xs) F ($smt_apply_1 "+ 1" i) isExists))
@@ -627,7 +626,7 @@ $EO_EVAL_CASES$
     (eo::define ((T ($smtx_typeof x1)))
     ($smt_apply_3 "ite" ($smt_builtin_and ($smtx_is_value T x1) ($smtx_is_value T x2))
       ; use datatype equality
-      ($sm_mk_bool ($smt_apply_2 "=" x1 x2))
+      ($sm_mk_bool ($smt_apply_= x1 x2))
       (= x1 x2))))))
   ; evaluation of standard SMT symbols
   ; These calls may only call one of the above macros:

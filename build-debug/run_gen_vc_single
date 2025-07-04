@@ -82,6 +82,7 @@ check_status
 # the logic
 echo "(set-logic UFDTSNIRA)" > $VC_OUT
 # start with the final datatype
+# FIXME: keep this line
 #cat $STD_SMODEL_EMBED_OUT >> $VC_OUT
 # replace all occurrences of $smt_builtin_
 # TODO: $smt_apply_ and $smt_type_ as well???

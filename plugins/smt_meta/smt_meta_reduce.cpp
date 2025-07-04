@@ -283,6 +283,12 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     }
     if (k == Kind::BOOLEAN)
     {
+      // Boolean constants are embedded as an SMT type, we have to wrap it explicitly here.
+      if (parent==TermContextKind::EUNOIA)
+      {
+        os << "(eo.SmtTerm ";
+        osEnd << ")";
+      }
       if (!isSmtBuiltin)
       {
         os << "sm.";
@@ -503,6 +509,7 @@ TermKind SmtMetaReduce::printEmbType(const Expr& c,
   if (c == d_metaEoTerm || k == Kind::PARAM || k == Kind::TYPE
       || k == Kind::BOOL_TYPE)
   {
+    // Bool refers to (eo.SmtType tsm.Bool), which is a Eunoia term
     os << "eo.Term";
   }
   else if (c == d_metaSmtTerm)
@@ -991,8 +998,8 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     // necessary compute the child context
     Kind ck = recTerm.getKind();
     std::vector<Expr> rtermArgs;
-    TermContextKind child = getMetaKindReturn(recTerm, rtermArgs, parent);
-#if 0
+    TermContextKind child;
+#if 1
     if (ck==Kind::PARAM)
     {
       // if a parameter, it depends on the context in which it was matched
@@ -1002,8 +1009,10 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     }
     else
     {
-      child = getMetaKindReturn(recTerm);
+      child = getMetaKindReturn(recTerm, rtermArgs, parent);
     }
+#else
+    child = getMetaKindReturn(recTerm, rtermArgs, parent);
 #endif
     Assert(child != TermContextKind::NONE)
         << "Failed to get child context for " << recTerm;
@@ -1076,7 +1085,11 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       it = ctx.d_ctx.find(recTerm);
       Assert(it != ctx.d_ctx.end()) << "Cannot find " << recTerm;
       os << it->second;
-      visit.pop_back();
+      // dont pop back if we need to close parens
+      if (cparen.find(key)==cparen.end())
+      {
+        visit.pop_back();
+      }
       continue;
     }
     else if (recTerm.getNumChildren() == 0)
@@ -1726,15 +1739,19 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
 #ifdef NEW_DEF
     TermContextKind bodyInitCtx = TermContextKind::NONE;
     std::string progName = getName(v);
+    /*
     if (progName.compare(0, 7, "$sm_mk_") == 0)
     {
       bodyInitCtx = TermContextKind::SMT_BUILTIN;
     }
+    */
+    // The type of the function determins the initial context of return terms we print
+    bodyInitCtx = getTypeMetaKind(vt[nargs - 1]);
 #else
     TermContextKind bodyInitCtx = termKindToContext(retTypeCtx);
 #endif
-    //d_defs << std::endl << "; PRINTING " << body << " in context "
-    //          << termContextKindToString(bodyInitCtx) << std::endl;
+    std::cout << std::endl << "; PRINTING " << body << " in context "
+              << termContextKindToString(bodyInitCtx) << std::endl;
     printEmbTerm(body, currRet, ctx, bodyInitCtx);
     std::cout << "...finished" << std::endl;
     std::cout << "...RESULT is " << currRet.str() << std::endl;

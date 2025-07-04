@@ -66,7 +66,7 @@
 (define $smt_builtin_String () ($smt_type_0 "String"))
 (define $smt_builtin_true () ($smt_apply_0 "true"))
 (define $smt_builtin_false () ($smt_apply_0 "false"))
-(define $smt_builtin_= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "=" x1 x2))
+(define $smt_builtin_= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_= x1 x2))
 (define $smt_builtin_ite ((W Type :implicit) (b $smt_builtin_Bool) (x1 W) (x2 W)) ($smt_apply_3 "ite" b x1 x2))
 (define $smt_builtin_z_zero () ($smt_apply_0 "0"))
 (define $smt_builtin_z_one () ($smt_apply_0 "1"))
@@ -158,8 +158,8 @@
 ;(define $smt_String () ($smt_builtin_type_0 "String"))
 
 ; NOTE: we use equality directly, although we could use (_ sm.True) here.
-(define $sm_is_true ((b $smt_Term)) ($smt_apply_2 "=" b $sm_mk_true))
-(define $sm_is_false ((b $smt_Term)) ($smt_apply_2 "=" b $sm_mk_false))
+(define $sm_is_true ((b $smt_Term)) ($smt_apply_= b $sm_mk_true))
+(define $sm_is_false ((b $smt_Term)) ($smt_apply_= b $sm_mk_false))
 ; Assumes that t is a Boolean term
 (define $sm_is_bool ((T Type :implicit) (t T))
   ($smt_builtin_or ($sm_is_true t) ($sm_is_false t)))
@@ -643,8 +643,8 @@
   ((t $eo_Term) (T $eo_Term) (n $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String) (w $smt_builtin_Int))
   :signature ($eo_Term) $eo_Term
   (
-  (($eo_typeof $eo_true)             ($eo_smt_type Bool))
-  (($eo_typeof $eo_false)            ($eo_smt_type Bool))
+  (($eo_typeof $eo_true)             Bool)
+  (($eo_typeof $eo_false)            Bool)
   (($eo_typeof ($eo_mk_numeral n))   $eo_Numeral)
   (($eo_typeof ($eo_mk_rational r))  $eo_Rational)
   (($eo_typeof ($eo_mk_string s))    $eo_String)
