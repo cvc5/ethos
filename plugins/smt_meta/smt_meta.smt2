@@ -1,17 +1,4 @@
 
-;;; Utilities
-
-; Stuckness propagates through non-nullary constructors
-(define-fun $eo_FunType ((x eo.Term) (y eo.Term)) eo.Term
-  (ite (or (= x eo.Stuck) (= y eo.Stuck))
-    eo.Stuck
-    (eo.FunType x y)))
-
-(define-fun $eo_Apply ((x eo.Term) (y eo.Term)) eo.Term
-  (ite (or (= x eo.Stuck) (= y eo.Stuck))
-    eo.Stuck
-    (eo.Apply x y)))
-
 ;;; User defined symbols
 
 $SM_DEFS$

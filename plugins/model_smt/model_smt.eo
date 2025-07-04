@@ -106,6 +106,7 @@ $SMT_EMBED_META_TYPE_DECL$
   (($eo_get_meta_type t) $eo_Term)
   )
 )
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_eo
 
 ; This portion gives a template for defining the model semantics of

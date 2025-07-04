@@ -129,6 +129,48 @@
 
 ;;; Eunoia datatype constructors
 
+; The Eunoia representation of "stuckness".
+(declare-const $smd_eo.Stuck $eo_Term)
+(define $eo_stuck () $smd_eo.Stuck)
+
+; An application of a Eunoia term
+(declare-parameterized-const $smd_eo.Apply
+  ((f $eo_Term :opaque) (a $eo_Term :opaque))
+  $eo_Term)
+; "stuckness" propagates through Eunoia applications.
+; NOTE: this has to be a program for now since its body cannot be typed.
+(program $eo_apply ((x $eo_Term) (y $eo_Term))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_apply x y)
+    ($smt_apply_3 "ite"
+      ($smt_builtin_or
+        ($smt_apply_= x $eo_stuck)
+        ($smt_apply_= y $eo_stuck))
+      $eo_stuck
+      ($smd_eo.Apply x y)))
+  )
+)
+
+; The Eunoia function type
+(declare-parameterized-const $smd_eo.FunType
+  ((t1 $eo_Term :opaque) (t2 $eo_Term :opaque))
+  $eo_Term)
+; "stuckness" propagates through Eunoia function types
+; NOTE: this has to be a program for now since its body cannot be typed.
+(program $eo_fun_type ((t1 $eo_Term) (t2 $eo_Term))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_fun_type t1 t2)
+      ($smt_apply_3 "ite"
+        ($smt_builtin_or
+          ($smt_apply_= t1 $eo_stuck)
+          ($smt_apply_= t2 $eo_stuck))
+        $eo_stuck
+        ($smd_eo.FunType t1 t2)))
+  )
+)
+
 ; The Eunoia representation of an SMT-LIB term.
 (declare-parameterized-const $smd_eo.SmtTerm ((t $smt_Term :opaque)) $eo_Term)
 (define $eo_smt_term ((t $smt_Term)) ($smd_eo.SmtTerm t))
@@ -140,9 +182,6 @@
 ; The Eunoia representation of an SMT-LIB value.
 (declare-parameterized-const $smd_eo.SmtValue ((t $smt_Type :opaque)) $eo_Term)
 (define $eo_smt_value ((T $smt_Type)) ($smd_eo.SmtValue T))
-
-; The Eunoia representation of "stuckness".
-(declare-const $smd_eo.Stuck $eo_Term)
 
 ;;; External datatype access
 
@@ -243,7 +282,6 @@
 
 ;;; Utilities
 
-(define $eo_stuck () $smd_eo.Stuck)
 (define $eo_true () ($eo_smt_term $sm_mk_true))
 (define $eo_false () ($eo_smt_term $sm_mk_false))
 (define $eo_mk_bool ((x $smt_builtin_Bool))

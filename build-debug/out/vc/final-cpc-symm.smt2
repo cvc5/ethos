@@ -108,23 +108,26 @@
   ))
 )
 
-;;; Utilities
-
-; Stuckness propagates through non-nullary constructors
-(define-fun $eo_FunType ((x eo.Term) (y eo.Term)) eo.Term
-  (ite (or (= x eo.Stuck) (= y eo.Stuck))
-    eo.Stuck
-    (eo.FunType x y)))
-
-(define-fun $eo_Apply ((x eo.Term) (y eo.Term)) eo.Term
-  (ite (or (= x eo.Stuck) (= y eo.Stuck))
-    eo.Stuck
-    (eo.Apply x y)))
-
 ;;; User defined symbols
 
 ; fwd-decl: $eo_typeof
 (declare-fun $eo_typeof (eo.Term) eo.Term)
+
+; program: $eo_apply
+(define-fun $eo_apply ((x1 eo.Term) (x2 eo.Term)) eo.Term
+  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
+    eo.Stuck
+  (ite true
+    (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck)) eo.Stuck (eo.Apply x1 x2))
+    eo.Stuck)))
+
+; program: $eo_fun_type
+(define-fun $eo_fun_type ((x1 eo.Term) (x2 eo.Term)) eo.Term
+  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
+    eo.Stuck
+  (ite true
+    (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck)) eo.Stuck (eo.FunType x1 x2))
+    eo.Stuck)))
 
 ; program: $eo_smt_term
 (define-fun $eo_smt_term ((x1 sm.Term)) eo.Term
@@ -240,7 +243,7 @@
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
     eo.Stuck
   (ite (= x1 (eo.SmtType tsm.Bool))
-    ($eo_FunType x2 x2)
+    ($eo_fun_type x2 x2)
     eo.Stuck)))
 
 ; program: $eo_typeof_=
@@ -248,7 +251,7 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    ($eo_FunType x1 (eo.SmtType tsm.Bool))
+    ($eo_fun_type x1 (eo.SmtType tsm.Bool))
     eo.Stuck)))
 
 ; program: $eo_typeof_main
@@ -273,17 +276,17 @@
   (ite (and ((_ is eo.SmtType) x1) (= (eo.SmtType.arg1 x1) tsm.Char))
     eo.Type
   (ite (and ((_ is eo.SmtType) x1) (= (eo.SmtType.arg1 x1) tsm.Seq))
-    ($eo_FunType eo.Type eo.Type)
+    ($eo_fun_type eo.Type eo.Type)
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Apply) (eo.SmtTerm.arg1 x1)) ((_ is sm.Apply) (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))) (= (sm.Apply.arg1 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))) sm.ite))
     ($eo_typeof_ite ($eo_typeof (eo.SmtTerm (sm.Apply.arg2 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))))) ($eo_typeof (eo.SmtTerm (sm.Apply.arg2 (eo.SmtTerm.arg1 x1)))))
   (ite (and ((_ is eo.SmtTerm) x1) (= (eo.SmtTerm.arg1 x1) sm.not))
-    ($eo_FunType (eo.SmtType tsm.Bool) (eo.SmtType tsm.Bool))
+    ($eo_fun_type (eo.SmtType tsm.Bool) (eo.SmtType tsm.Bool))
   (ite (and ((_ is eo.SmtTerm) x1) (= (eo.SmtTerm.arg1 x1) sm.and))
-    ($eo_FunType (eo.SmtType tsm.Bool) ($eo_FunType (eo.SmtType tsm.Bool) (eo.SmtType tsm.Bool)))
+    ($eo_fun_type (eo.SmtType tsm.Bool) ($eo_fun_type (eo.SmtType tsm.Bool) (eo.SmtType tsm.Bool)))
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Apply) (eo.SmtTerm.arg1 x1)) (= (sm.Apply.arg1 (eo.SmtTerm.arg1 x1)) sm.=))
     ($eo_typeof_= ($eo_typeof (eo.SmtTerm (sm.Apply.arg2 (eo.SmtTerm.arg1 x1)))))
   (ite (and ((_ is eo.SmtType) x1) (= (eo.SmtType.arg1 x1) tsm.BitVec))
-    ($eo_FunType (eo.SmtType tsm.Int) eo.Type)
+    ($eo_fun_type (eo.SmtType tsm.Int) eo.Type)
   (ite ((_ is eo.Apply) x1)
     ($eo_typeof_apply ($eo_typeof (eo.Apply.arg1 x1)) ($eo_typeof (eo.Apply.arg2 x1)))
     eo.Stuck)))))))))))))))))) :named sm.axiom.$eo_typeof_main))

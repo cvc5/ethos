@@ -715,7 +715,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
         if (child == TermContextKind::EUNOIA)
         {
           // use macro to ensure "Stuck" propagates
-          os << "$eo_Apply ";
+          os << "$eo_apply ";
         }
         else if (child == TermContextKind::SMT)
         {
@@ -782,7 +782,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     {
       Assert(recTerm.getNumChildren() == 2);
       // must use macro to ensure "Stuck" propagates
-      os << "($eo_FunType ";
+      os << "($eo_fun_type ";
       cparen[key]++;
     }
     else if (isLiteralOp(ck))
