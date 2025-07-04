@@ -49,7 +49,6 @@ void SelectorCtx::clear()
 {
   d_ctx.clear();
   d_tctx.clear();
-  d_typeMatch.clear();
 }
 
 SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s) {}
@@ -133,29 +132,6 @@ void SmtMetaReduce::bind(const std::string& name, const Expr& e)
     d_progSeen.emplace_back(tmp, p);
     return;
   }
-}
-
-void SmtMetaReduce::printConjunction(size_t n,
-                                     const std::string& conj,
-                                     std::ostream& os,
-                                     const SelectorCtx& ctx)
-{
-  // os << ctx.d_letBegin.str();
-  if (n == 0)
-  {
-    os << "true";
-  }
-  else if (n > 1)
-  {
-    os << "(and ";
-    os << conj;
-    os << ")";
-  }
-  else
-  {
-    os << conj;
-  }
-  // os << ctx.d_letEnd.str();
 }
 
 void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
@@ -296,38 +272,29 @@ void SmtMetaReduce::printEmbType(const Expr& c,
     t = d_tc.getType(qt);
   }
   Kind k = c.getKind();
-  std::string cname = getName(c);
-  if (cname == "$eo_Term" || k == Kind::PARAM || k == Kind::TYPE
-      || k == Kind::BOOL_TYPE)
+  // if it is a reference to the deep embedding datatype,
+  // then we print it.
+  TermContextKind tk = getTypeMetaKind(c, TermContextKind::NONE);
+  if (tk!=TermContextKind::NONE)
+  {
+    switch (tk)
+    {
+      case TermContextKind::EUNOIA: os << "eo.Term"; break;
+      case TermContextKind::SMT: os << "sm.Term"; break;
+      case TermContextKind::SMT_TYPE: os << "tsm.Type"; break;
+      case TermContextKind::SMT_VALUE: os << "vsm.Value"; break;
+      case TermContextKind::SMT_BUILTIN:
+        os << getEmbedName(c);
+        break;
+      default:
+        break;
+    }
+    return;
+  }
+  if (k == Kind::PARAM || k == Kind::TYPE || k == Kind::BOOL_TYPE)
   {
     // Bool refers to (eo.SmtType tsm.Bool), which is a Eunoia term
     os << "eo.Term";
-  }
-  else if (cname == "$smt_Term")
-  {
-    os << "sm.Term";
-  }
-  else if (cname == "$smt_Type")
-  {
-    os << "tsm.Type";
-  }
-  else if (cname == "$smt_Value")
-  {
-    os << "vsm.Value";
-  }
-  else if (k == Kind::APPLY_OPAQUE)
-  {
-    std::stringstream ss;
-    ss << c[0];
-    std::string sname = ss.str();
-    if (sname.compare(0, 10, "$smt_type_") == 0)
-    {
-      os << getEmbedName(c);
-    }
-    else
-    {
-      Assert(false) << "Unknown apply opaque type: " << c;
-    }
   }
   else if (k == Kind::APPLY)
   {
@@ -1171,7 +1138,7 @@ bool SmtMetaReduce::isProgram(const Expr& t)
   return (t.getKind() == Kind::PROGRAM_CONST);
 }
 
-TermContextKind SmtMetaReduce::getTypeMetaKind(const Expr& typ)
+TermContextKind SmtMetaReduce::getTypeMetaKind(const Expr& typ, TermContextKind elseKind)
 {
   Kind k = typ.getKind();
   if (k == Kind::APPLY_OPAQUE)
@@ -1199,8 +1166,7 @@ TermContextKind SmtMetaReduce::getTypeMetaKind(const Expr& typ)
   {
     return TermContextKind::SMT_VALUE;
   }
-  // Assert(false) << "Unknown type meta-kind " << typ << " " << typ.getKind();
-  return TermContextKind::EUNOIA;
+  return elseKind;
 }
 
 TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
@@ -1305,6 +1271,7 @@ TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
       Assert(i < ptype.getNumChildren())
           << "Asking for child " << i << " of " << parent
           << ", not enough types " << ptype;
+      // assume Eunoia if the type is not one of the expected corner cases
       tk = getTypeMetaKind(ptype[i - 1]);
     }
     else

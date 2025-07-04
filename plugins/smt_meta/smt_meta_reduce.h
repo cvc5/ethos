@@ -53,14 +53,15 @@ class SelectorCtx
  public:
   SelectorCtx();
   void clear();
-  /** */
+  /**
+   * Maps parameters to a string representation of what
+   * that parameter was mapped to. This is a chain of
+   * datatype selectors, where we do not model the AST
+   * of this chain.
+   */
   std::map<Expr, std::string> d_ctx;
   /** The context it was matched in */
   std::map<Expr, TermContextKind> d_tctx;
-  /**
-   * The term it was matched to
-   */
-  std::map<Expr, Expr> d_typeMatch;
 };
 
 /**
@@ -81,10 +82,6 @@ class SmtMetaReduce : public StdPlugin
   bool echo(const std::string& msg) override;
 
  private:
-  void printConjunction(size_t n,
-                        const std::string& conj,
-                        std::ostream& os,
-                        const SelectorCtx& ctx);
   bool printEmbPatternMatch(const Expr& c,
                             const std::string& initCtx,
                             std::ostream& os,
@@ -106,8 +103,6 @@ class SmtMetaReduce : public StdPlugin
   /** Does t have subterm s? */
   static bool hasSubterm(const Expr& t, const Expr& s);
   bool isProgram(const Expr& t);
-  /** get term kind */
-  TermContextKind getEmbTypeContext(const Expr& type);
   std::string getName(const Expr& e);
   std::string getEmbedName(const Expr& oApp);
   /** Program declarations processed */
@@ -132,7 +127,7 @@ class SmtMetaReduce : public StdPlugin
   std::map<std::pair<Expr, size_t>, TermContextKind> d_metaKindArg;
   /**
    */
-  TermContextKind getTypeMetaKind(const Expr& typ);
+  TermContextKind getTypeMetaKind(const Expr& typ, TermContextKind elseKind=TermContextKind::EUNOIA);
   /**
    */
   bool isProgramApp(const Expr& app);
