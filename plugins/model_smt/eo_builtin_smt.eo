@@ -139,6 +139,7 @@
   $eo_Term)
 ; "stuckness" propagates through Eunoia applications.
 ; NOTE: this has to be a program for now since its body cannot be typed.
+; TODO: remove this in favor of eager nested evaluation elimination.
 (program $eo_apply ((x $eo_Term) (y $eo_Term))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
@@ -158,6 +159,7 @@
   $eo_Term)
 ; "stuckness" propagates through Eunoia function types
 ; NOTE: this has to be a program for now since its body cannot be typed.
+; TODO: remove this in favor of eager nested evaluation elimination.
 (program $eo_fun_type ((t1 $eo_Term) (t2 $eo_Term))
   :signature ($eo_Term $eo_Term) $eo_Term
   (

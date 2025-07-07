@@ -367,7 +367,7 @@
 
 ; program: $smtx_const_predicate
 (define-fun $smtx_const_predicate ((x1 Int) (x2 Int) (x3 tsm.Type) (x4 sm.Term)) Bool
-    (= (eo.SmtTerm.arg1 (ite ((_ is eo.SmtTerm) ($eo_const_predicate x1 x2 (eo.SmtType x3) (eo.SmtTerm x4))) ($eo_const_predicate x1 x2 (eo.SmtType x3) (eo.SmtTerm x4)) (eo.SmtTerm sm.True))) sm.True)
+    (= (ite ((_ is eo.SmtTerm) ($eo_const_predicate x1 x2 (eo.SmtType x3) (eo.SmtTerm x4))) (eo.SmtTerm.arg1 ($eo_const_predicate x1 x2 (eo.SmtType x3) (eo.SmtTerm x4))) sm.True) sm.True)
 )
 
 ; program: $smtx_model_eval
@@ -387,7 +387,7 @@
     (ite (and (or (= ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) sm.True) (= ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) sm.False)) (or (= ($smtx_model_eval (sm.Apply.arg2 x1)) sm.True) (= ($smtx_model_eval (sm.Apply.arg2 x1)) sm.False))) (ite (and (= sm.True ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1)))) (= sm.True ($smtx_model_eval (sm.Apply.arg2 x1)))) sm.True sm.False) (sm.Apply (sm.Apply sm.and (sm.Apply.arg2 (sm.Apply.arg1 x1))) (sm.Apply.arg2 x1)))
   (ite ((_ is sm.Const) x1)
     ($smtx_model_lookup 0 (sm.Const.arg2 x1) (sm.Const.arg1 x1))
-    (eo.SmtTerm.arg1 (ite ((_ is eo.SmtTerm) ($eo_model_eval (eo.SmtTerm x1))) ($eo_model_eval (eo.SmtTerm x1)) (eo.SmtTerm x1)))
+    (ite ((_ is eo.SmtTerm) ($eo_model_eval (eo.SmtTerm x1))) (eo.SmtTerm.arg1 ($eo_model_eval (eo.SmtTerm x1))) x1)
 ))))))))) :named sm.axiom.$smtx_model_eval))
 
 ; program: $eo_model_sat_internal
@@ -416,7 +416,7 @@
     (sm.Const.arg1 x1)
   (ite ((_ is sm.Skolem) x1)
     (sm.Skolem.arg1 x1)
-    (eo.SmtType.arg1 (ite ((_ is eo.SmtType) ($eo_typeof (eo.SmtTerm x1))) ($eo_typeof (eo.SmtTerm x1)) (eo.SmtType tsm.NullSort)))
+    (ite ((_ is eo.SmtType) ($eo_typeof (eo.SmtTerm x1))) (eo.SmtType.arg1 ($eo_typeof (eo.SmtTerm x1))) tsm.NullSort)
 )))) :named sm.axiom.$smtx_typeof))
 
 ; program: $eorx_symm
