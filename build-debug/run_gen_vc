@@ -14,5 +14,21 @@ INPUT="../../cvc5-ajr/proofs/eo/cpc/Cpc.eo"
 # should be the name of a constant or proof rule in $INPUT
 TARGET=$1
 
+function check_status()
+{
+status=$?
+if [[ $status -eq 0 ]]; then
+  echo "success"
+else
+  exit $status
+fi
+}
+
+echo "********* Verifying the correctness of $TARGET *********"
+
+echo "**** Compile ethos"
+make -j4
+check_status
+
 ./run_gen_vc_single $INPUT $TARGET
 

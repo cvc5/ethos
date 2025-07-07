@@ -161,7 +161,7 @@ void ModelSmt::printSmtTerm(const std::string& name,
            << std::endl;
     d_eval << "    ($smt_apply_3 \"ite\" ($vsm_is_value e" << i << ")"
            << std::endl;
-    preAppEnd << "    $vsm_not_value))" << std::endl;
+    preAppEnd << std::endl << "    $vsm_not_value))";
   }
   if (name == "forall" || name == "exists")
   {
@@ -224,8 +224,7 @@ void ModelSmt::printSmtTerm(const std::string& name,
     Assert(d_kindToEoPrefix.find(kr) != d_kindToEoPrefix.end())
         << "Could not find kind ret " << kr;
     d_eval << d_kindToEoPrefix[kr];
-    d_eval << " ($smt_apply_" << args.size() << appArgs.str() << ")))"
-           << std::endl;
+    d_eval << " ($smt_apply_" << args.size() << appArgs.str() << ")))";
     preAppEnd << ")";
   }
   d_eval << preAppEnd.str() << std::endl;

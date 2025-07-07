@@ -29,12 +29,6 @@ else
 fi
 }
 
-echo "********* Verifying the correctness of $TARGET *********"
-
-echo "**** Compile ethos"
-make -j4
-check_status
-
 echo "**** smt_meta: Run ethos + trim-defs on $INPUT and $TARGET to $INIT_TRIM"
 #./run_trim_defs $INPUT $TARGET "\$eo_model_sat" >/dev/null
 ./run_trim_defs $INPUT $TARGET  "ite" "=" >/dev/null
