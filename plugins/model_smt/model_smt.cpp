@@ -214,7 +214,7 @@ void ModelSmt::printSmtTerm(const std::string& name,
     {
       EO_FATAL() << "Unhandled arity " << args.size() << " for " << name;
     }
-    d_eval << std::endl << "      ($vsm_term ($sm_mk_";
+    d_eval << "      ($vsm_term ($sm_mk_";
     Kind kr = kret;
     if (kr == Kind::PARAM)
     {
