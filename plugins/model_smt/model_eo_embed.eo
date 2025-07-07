@@ -12,7 +12,7 @@
   (tsm.Apply (tsm.Apply.arg1 tsm.Type) (tsm.Apply.arg2 tsm.Type))
 $SM_TYPE_DECL$
   ; error sort
-  (tsm.NullSort)
+  (tsm.NullSort (tsm.NullSort.arg1 Int))
   )
 )
 

@@ -23,7 +23,7 @@
   (tsm.BitVec)
 
   ; error sort
-  (tsm.NullSort)
+  (tsm.NullSort (tsm.NullSort.arg1 Int))
   )
 )
 
@@ -416,7 +416,7 @@
     (sm.Const.arg1 x1)
   (ite ((_ is sm.Skolem) x1)
     (sm.Skolem.arg1 x1)
-    (ite ((_ is eo.SmtType) ($eo_typeof (eo.SmtTerm x1))) (eo.SmtType.arg1 ($eo_typeof (eo.SmtTerm x1))) tsm.NullSort)
+    (ite ((_ is eo.SmtType) ($eo_typeof (eo.SmtTerm x1))) (eo.SmtType.arg1 ($eo_typeof (eo.SmtTerm x1))) (tsm.NullSort 0))
 )))) :named sm.axiom.$smtx_typeof))
 
 ; program: $eorx_symm
