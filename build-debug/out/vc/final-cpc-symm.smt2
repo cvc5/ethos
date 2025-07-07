@@ -214,12 +214,6 @@
     ($eo_typeof_main x1)
     eo.Stuck))))))))))) :named sm.axiom.$eo_typeof))
 
-; fwd-decl: $eo_dt_constructors
-(declare-fun $eo_dt_constructors (eo.Term) eo.Term)
-
-; fwd-decl: $eo_dt_selectors
-(declare-fun $eo_dt_selectors (eo.Term) eo.Term)
-
 ; program: $mk_symm
 (define-fun $mk_symm ((x1 eo.Term)) eo.Term
   (ite (= x1 eo.Stuck)
@@ -291,24 +285,6 @@
     ($eo_typeof_apply ($eo_typeof (eo.Apply.arg1 x1)) ($eo_typeof (eo.Apply.arg2 x1)))
     eo.Stuck)))))))))))))))))) :named sm.axiom.$eo_typeof_main))
 
-; program: $eo_dt_constructors
-(assert (! (forall ((x1 eo.Term))
-  (= ($eo_dt_constructors x1)
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite true
-    ($eo_requires (eo.SmtTerm sm.True) (eo.SmtTerm sm.False) (eo.SmtTerm sm.True))
-    eo.Stuck)))) :named sm.axiom.$eo_dt_constructors))
-
-; program: $eo_dt_selectors
-(assert (! (forall ((x1 eo.Term))
-  (= ($eo_dt_selectors x1)
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite true
-    ($eo_requires (eo.SmtTerm sm.True) (eo.SmtTerm sm.False) (eo.SmtTerm sm.True))
-    eo.Stuck)))) :named sm.axiom.$eo_dt_selectors))
-
 ; fwd-decl: $eo_model_sat
 (declare-fun $eo_model_sat (eo.Term) eo.Term)
 
@@ -331,18 +307,6 @@
 ; fwd-decl: $smtx_term_is_value
 (declare-fun $smtx_term_is_value (sm.Term) Bool)
 
-; fwd-decl: $smtx_typeof
-(declare-fun $smtx_typeof (sm.Term) tsm.Type)
-
-; program: $smtx_dt_is_value
-(declare-fun $smtx_dt_is_value (sm.Term) Bool)
-(assert (! (forall ((x1 sm.Term))
-  (= ($smtx_dt_is_value x1)
-  (ite ((_ is sm.Apply) x1)
-    (ite ($smtx_term_is_value (sm.Apply.arg2 x1)) ($smtx_dt_is_value (sm.Apply.arg1 x1)) false)
-    (ite (= ($eo_dt_selectors (eo.SmtTerm x1)) eo.Stuck) false true)
-))) :named sm.axiom.$smtx_dt_is_value))
-
 ; program: $smtx_term_is_value
 (assert (! (forall ((x1 sm.Term))
   (= ($smtx_term_is_value x1)
@@ -356,7 +320,7 @@
     true
   (ite ((_ is sm.String) x1)
     true
-    (ite (ite (= ($eo_dt_constructors (eo.SmtType ($smtx_typeof x1))) eo.Stuck) false true) ($smtx_dt_is_value x1) false)
+    false
 ))))))) :named sm.axiom.$smtx_term_is_value))
 
 ; fwd-decl: $smtx_model_eval
@@ -408,16 +372,6 @@
   (ite ((_ is eo.SmtTerm) x1)
     ($eo_model_sat_internal ($smtx_model_eval (eo.SmtTerm.arg1 x1)))
     eo.Stuck)))) :named sm.axiom.$eo_model_sat))
-
-; program: $smtx_typeof
-(assert (! (forall ((x1 sm.Term))
-  (= ($smtx_typeof x1)
-  (ite ((_ is sm.Const) x1)
-    (sm.Const.arg1 x1)
-  (ite ((_ is sm.Skolem) x1)
-    (sm.Skolem.arg1 x1)
-    (ite ((_ is eo.SmtType) ($eo_typeof (eo.SmtTerm x1))) (eo.SmtType.arg1 ($eo_typeof (eo.SmtTerm x1))) (tsm.NullSort 0))
-)))) :named sm.axiom.$smtx_typeof))
 
 ; program: $eorx_symm
 (define-fun $eorx_symm ((x1 eo.Term) (x2 eo.Term)) eo.Term
