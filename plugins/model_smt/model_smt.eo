@@ -58,12 +58,12 @@
 ; Uninterpreted sorts
 (declare-parameterized-const $smd_tsm.USort
   ((id $smt_builtin_Int :opaque)) $smt_Type)
-(define $tsm_USort ((id $smt_builtin_Int)) ($smd_tsm.USort id))
+(define $tsm_USort ((id $smt_builtin_Int :opaque)) ($smd_tsm.USort id))
   
 ; The sort of a term that doesn't have an SMT-LIB type.
 ; This is used as an error condition
 (declare-const $smd_tsm.NullSort $smt_Type)
-(define $tsm_NullSort () $smd_tsm.NullSort)
+(define $tsm_NullSort ((id $smt_builtin_Int :opaque)) $smd_tsm.NullSort)
 
 ;;; SMT value datatype constructors
 
@@ -658,11 +658,11 @@ $SMT_EVAL_CASES$
   (
   (($smtx_typeof ($sm_const T id))        T)
   (($smtx_typeof ($sm_skolem T F id))     T)
-  ; for all other user defined terms, we totalize using unknown sorts
+  ; for all other user defined terms, we totalize using the null sorts
   ; we use the hash so that all terms that do not type check have a new unknown sort.
   (($smtx_typeof t)                       ($smt_try_eo_type
                                             ($eo_typeof t)
-                                            $tsm_NullSort))
+                                            ($tsm_NullSort ($eo_hash t))))
   )
 )
 
