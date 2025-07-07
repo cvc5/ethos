@@ -83,9 +83,7 @@ Things handled at this stage:
   - Proof type handled as part of the VC generation function ($eovc_X).
 - declare-consts
   - $eo_Numeral, $eo_Rational, $eo_String, $eo_Binary as references to builtin types.
-- eo::eq, eo::is_eq
-- eo::is_z, eo::is_q, eo::is_bin, eo::is_str, eo::is_bool, eo::is_var
-- eo::gt, eo::cmp
+- eo::eq
 - eo::cons
 - eo::list_len, eo::list_concat, eo::list_nth, eo::list_find, eo::list_rev, eo::list_erase, eo::list_erase_all, eo::list_setof, eo::list_minclude, eo::list_meq
 - eo::var, eo::nameof
@@ -123,6 +121,10 @@ Things handled at this stage:
   - eo::add, eo::mul, eo::qdiv, eo::zdiv, eo::zmod, eo::is_neg, eo::neg
   - eo::len, eo::concat, eo::extract, eo::find
   - eo::to_z, eo::to_q, eo::to_bin, eo::to_str
+- Macros that could be defined in terms of those above, we do them here to not
+  introduce forward references (i.e. desugaring that calls eo::):
+  - eo::is_eq, eo::is_z, eo::is_q, eo::is_bin, eo::is_str, eo::is_bool, eo::is_var
+  - eo::gt, eo::cmp
 - eo::typeof completed
   - Includes definitions of literal types, and type of variables ($eo_Var).'
   - Reference to previously defined $eo_typeof_main.

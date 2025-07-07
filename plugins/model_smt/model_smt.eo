@@ -151,17 +151,17 @@ $SMT_EMBED_META_TYPE_DECL$
 ;   encoding.
 ; - It is easier to recognize the pattern (eo.SmtTerm.arg1 *)
 ;   than (ite (eo.is_ok *) * elseTerm).
-(define $smt_try_eo ((t $eo_Term) (elseTerm $smt_Term))
+(define $smt_try_eo ((t $eo_Term) (elseTerm $eo_Term))
   ($smt_apply_3 "ite" ($smt_apply_1 "(_ is eo.SmtTerm)" t)
     ($smt_apply_1 "eo.SmtTerm.arg1" t)
     elseTerm))
 ; Same as above, for SMT types.
-(define $smt_try_eo_type ((t $eo_Term) (elseTerm $smt_Type))
+(define $smt_try_eo_type ((t $eo_Term) (elseTerm $eo_Term))
   ($smt_apply_3 "ite" ($smt_apply_1 "(_ is eo.SmtType)" t)
     ($smt_apply_1 "eo.SmtType.arg1" t)
     elseTerm))
 ; Same as above, for SMT values.
-(define $smt_try_eo_value ((t $eo_Term) (elseTerm $smt_Value))
+(define $smt_try_eo_value ((t $eo_Term) (elseTerm $eo_Term))
   ($smt_apply_3 "ite" ($smt_apply_1 "(_ is eo.SmtValue)" t)
     ($smt_apply_1 "eo.SmtValue.arg1" t)
     elseTerm))
