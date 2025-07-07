@@ -312,14 +312,6 @@
 ; fwd-decl: $eo_model_sat
 (declare-fun $eo_model_sat (eo.Term) eo.Term)
 
-; program: $eo_is_value
-(define-fun $eo_is_value ((x1 eo.Term) (x2 eo.Term)) eo.Term
-  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
-    eo.Stuck
-  (ite true
-    eo.Stuck
-    eo.Stuck)))
-
 ; program: $eo_const_predicate
 (define-fun $eo_const_predicate ((x1 Int) (x2 Int) (x3 eo.Term) (x4 eo.Term)) eo.Term
   (ite (or (= x3 eo.Stuck) (= x4 eo.Stuck))
@@ -337,7 +329,7 @@
     eo.Stuck)))
 
 ; fwd-decl: $smtx_is_value
-(declare-fun $smtx_is_value (tsm.Type sm.Term) Bool)
+(declare-fun $smtx_is_value (sm.Term) Bool)
 
 ; fwd-decl: $smtx_typeof
 (declare-fun $smtx_typeof (sm.Term) tsm.Type)
@@ -347,23 +339,25 @@
 (assert (! (forall ((x1 sm.Term))
   (= ($smtx_dt_is_value x1)
   (ite ((_ is sm.Apply) x1)
-    (ite ($smtx_is_value ($smtx_typeof (sm.Apply.arg2 x1)) (sm.Apply.arg2 x1)) ($smtx_dt_is_value (sm.Apply.arg1 x1)) false)
+    (ite ($smtx_is_value (sm.Apply.arg2 x1)) ($smtx_dt_is_value (sm.Apply.arg1 x1)) false)
     (ite (= ($eo_dt_selectors (eo.SmtTerm x1)) eo.Stuck) false true)
 ))) :named sm.axiom.$smtx_dt_is_value))
 
 ; program: $smtx_is_value
-(assert (! (forall ((x1 tsm.Type) (x2 sm.Term))
-  (= ($smtx_is_value x1 x2)
-  (ite (= x1 tsm.NullSort)
-    false
-  (ite ((_ is tsm.USort) x1)
+(assert (! (forall ((x1 sm.Term))
+  (= ($smtx_is_value x1)
+  (ite (= x1 sm.True)
     true
-  (ite (and (= x1 tsm.Bool) (= x2 sm.True))
+  (ite (= x1 sm.False)
     true
-  (ite (and (= x1 tsm.Bool) (= x2 sm.False))
+  (ite ((_ is sm.Numeral) x1)
     true
-    (ite (ite (= ($eo_dt_constructors (eo.SmtType x1)) eo.Stuck) false true) ($smtx_dt_is_value x2) (= sm.True (eo.SmtTerm.arg1 (ite ((_ is eo.SmtTerm) ($eo_is_value (eo.SmtType x1) (eo.SmtTerm x2))) ($eo_is_value (eo.SmtType x1) (eo.SmtTerm x2)) (eo.SmtTerm sm.False)))))
-)))))) :named sm.axiom.$smtx_is_value))
+  (ite ((_ is sm.Rational) x1)
+    true
+  (ite ((_ is sm.String) x1)
+    true
+    (ite (ite (= ($eo_dt_constructors (eo.SmtType ($smtx_typeof x1))) eo.Stuck) false true) ($smtx_dt_is_value x1) false)
+))))))) :named sm.axiom.$smtx_is_value))
 
 ; fwd-decl: $smtx_model_eval
 (declare-fun $smtx_model_eval (sm.Term) sm.Term)
@@ -386,7 +380,7 @@
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) ((_ is sm.Apply) (sm.Apply.arg1 (sm.Apply.arg1 x1))) (= (sm.Apply.arg1 (sm.Apply.arg1 (sm.Apply.arg1 x1))) sm.ite))
     (ite (= ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1)))) sm.True) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_model_eval (sm.Apply.arg2 x1)))
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) (= (sm.Apply.arg1 (sm.Apply.arg1 x1)) sm.=))
-    (ite (and ($smtx_is_value ($smtx_typeof (sm.Apply.arg2 (sm.Apply.arg1 x1))) (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_is_value ($smtx_typeof (sm.Apply.arg2 (sm.Apply.arg1 x1))) (sm.Apply.arg2 x1))) (ite (= (sm.Apply.arg2 (sm.Apply.arg1 x1)) (sm.Apply.arg2 x1)) sm.True sm.False) (sm.Apply (sm.Apply sm.= (sm.Apply.arg2 (sm.Apply.arg1 x1))) (sm.Apply.arg2 x1)))
+    (ite (and ($smtx_is_value (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_is_value (sm.Apply.arg2 x1))) (ite (= (sm.Apply.arg2 (sm.Apply.arg1 x1)) (sm.Apply.arg2 x1)) sm.True sm.False) (sm.Apply (sm.Apply sm.= (sm.Apply.arg2 (sm.Apply.arg1 x1))) (sm.Apply.arg2 x1)))
   (ite (and ((_ is sm.Apply) x1) (= (sm.Apply.arg1 x1) sm.not))
     (ite (or (= ($smtx_model_eval (sm.Apply.arg2 x1)) sm.True) (= ($smtx_model_eval (sm.Apply.arg2 x1)) sm.False)) (ite (not (= sm.True ($smtx_model_eval (sm.Apply.arg2 x1)))) sm.True sm.False) (sm.Apply sm.not (sm.Apply.arg2 x1)))
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) (= (sm.Apply.arg1 (sm.Apply.arg1 x1)) sm.and))
@@ -473,7 +467,7 @@
         (= i 0)
         ; skolems can be assumed to be a value if their predicate is satisfied
         ($smtx_const_predicate k i T ($smtx_model_lookup k i T)))
-      ($smtx_is_value T ($smtx_model_lookup k i T))))
+      ($smtx_is_value ($smtx_model_lookup k i T))))
  :named sm.model_is_value))
 
 ;;; The verification condition
