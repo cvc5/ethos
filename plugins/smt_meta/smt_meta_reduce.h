@@ -44,6 +44,8 @@ enum class TermContextKind
   SMT_TYPE,
   /** A context in which the deep embedding of the term is an SMT-LIB value */
   SMT_VALUE,
+  /** A context in which the deep embedding of the term is an SMT-LIB map value */
+  SMT_MAP,
   /**
    * These are variants of the above, used for exception handling on the
    * model_smt layer. In particular, the use of an eo.Term datatype selector

@@ -65,7 +65,7 @@
 ; SMT-LIB terms, types and values are embedded in this datatype.
 ; We require a mutually recursive datatype, since these are
 ; inter-dependent.
-(declare-datatypes ((eo.Term 0) (vsm.Value 0) (@Map 0))
+(declare-datatypes ((eo.Term 0) (vsm.Value 0) (msm.Map 0))
   (
   (
   ; The type of types in Eunoia
@@ -90,10 +90,10 @@
   (
   ; map with an index type
   ; valueness: $smtx_map_is_value
-  (vsm.Map (vsm.Map.arg1 @Map) (vsm.Map.arg2 tsm.Type))
+  (vsm.Map (vsm.Map.arg1 tsm.Type) (vsm.Map.arg2 msm.Map))
   ; uninterpreted constants
   ; valueness: $smtx_usort_is_value
-  (vsm.UValue (vsm.UValue.arg1 tsm.Type) (i Int))
+  (vsm.UValue (vsm.UValue.arg1 tsm.Type) (vsm.UValue.arg2 Int))
   ; an SMT value represented by an SMT-LIB term, e.g. Int/Real/String.
   ; valueness: $smtx_is_value
   (vsm.Term (vsm.Term.arg1 sm.Term))
@@ -101,10 +101,10 @@
   (vsm.NotValue)
   )
   (
-  ; (@Map.cons i e M) maps i -> e, as well as mappings in M
-  (@Map.cons (@Map.cons.arg1 vsm.Value) (@Map.cons.arg2 vsm.Value) (@Map.cons.arg3 @Map))
-  ; (@Map.default e) maps all remaining elements in the sort to e
-  (@Map.default (@Map.default.arg1 vsm.Value))
+  ; (msm.Map.cons i e M) maps i -> e, as well as mappings in M
+  (msm.Map.cons (msm.Map.cons.arg1 vsm.Value) (msm.Map.cons.arg2 vsm.Value) (msm.Map.cons.arg3 msm.Map))
+  ; (msm.Map.default e) maps all remaining elements in the sort to e
+  (msm.Map.default (msm.Map.default.arg1 vsm.Value))
   ))
 )
 
@@ -280,33 +280,14 @@
 ; fwd-decl: $eo_model_sat
 (declare-fun $eo_model_sat (eo.Term) eo.Term)
 
-; fwd-decl: $smtx_term_is_value
-(declare-fun $smtx_term_is_value (sm.Term) Bool)
-
-; program: $smtx_term_is_value
-(assert (! (forall ((x1 sm.Term))
-  (= ($smtx_term_is_value x1)
-  (ite (= x1 sm.True)
-    true
-  (ite (= x1 sm.False)
-    true
-  (ite ((_ is sm.Numeral) x1)
-    true
-  (ite ((_ is sm.Rational) x1)
-    true
-  (ite ((_ is sm.String) x1)
-    true
-    false
-))))))) :named sm.axiom.$smtx_term_is_value))
-
 ; fwd-decl: $smtx_model_eval
-(declare-fun $smtx_model_eval (sm.Term) sm.Term)
+(declare-fun $smtx_model_eval (sm.Term) vsm.Value)
 
 ; fwd-decl: $smtx_model_lookup
-(declare-fun $smtx_model_lookup (Int Int tsm.Type) sm.Term)
+(declare-fun $smtx_model_lookup (Int Int tsm.Type) vsm.Value)
 
 ; program: $smtx_const_predicate
-(define-fun $smtx_const_predicate ((x1 Int) (x2 Int) (x3 tsm.Type) (x4 sm.Term)) Bool
+(define-fun $smtx_const_predicate ((x1 Int) (x2 Int) (x3 tsm.Type) (x4 vsm.Value)) Bool
     true
 )
 
@@ -314,31 +295,28 @@
 (assert (! (forall ((x1 sm.Term))
   (= ($smtx_model_eval x1)
   (ite (= x1 sm.True)
-    sm.True
+    (vsm.Term sm.True)
   (ite (= x1 sm.False)
-    sm.False
+    (vsm.Term sm.False)
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) ((_ is sm.Apply) (sm.Apply.arg1 (sm.Apply.arg1 x1))) (= (sm.Apply.arg1 (sm.Apply.arg1 (sm.Apply.arg1 x1))) sm.ite))
-    (ite (= ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1)))) sm.True) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_model_eval (sm.Apply.arg2 x1)))
+    (ite (not ((_ is vsm.NotValue) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1)))))) (ite (and ((_ is vsm.Term) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1))))) (= (vsm.Term.arg1 ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1))))) sm.True)) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_model_eval (sm.Apply.arg2 x1))) vsm.NotValue)
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) (= (sm.Apply.arg1 (sm.Apply.arg1 x1)) sm.=))
-    (ite (and ($smtx_term_is_value ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1)))) ($smtx_term_is_value ($smtx_model_eval (sm.Apply.arg2 x1)))) (ite (= ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_model_eval (sm.Apply.arg2 x1))) sm.True sm.False) (sm.Apply (sm.Apply sm.= (sm.Apply.arg2 (sm.Apply.arg1 x1))) (sm.Apply.arg2 x1)))
+    (ite (and (not ((_ is vsm.NotValue) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))))) (not ((_ is vsm.NotValue) ($smtx_model_eval (sm.Apply.arg2 x1))))) (vsm.Term (ite (= ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_model_eval (sm.Apply.arg2 x1))) sm.True sm.False)) vsm.NotValue)
   (ite (and ((_ is sm.Apply) x1) (= (sm.Apply.arg1 x1) sm.not))
-    (ite (or (= ($smtx_model_eval (sm.Apply.arg2 x1)) sm.True) (= ($smtx_model_eval (sm.Apply.arg2 x1)) sm.False)) (ite (not (= sm.True ($smtx_model_eval (sm.Apply.arg2 x1)))) sm.True sm.False) (sm.Apply sm.not (sm.Apply.arg2 x1)))
+    (ite (not ((_ is vsm.NotValue) ($smtx_model_eval (sm.Apply.arg2 x1)))) (vsm.Term (ite (not (= sm.True (vsm.Term.arg1 ($smtx_model_eval (sm.Apply.arg2 x1))))) sm.True sm.False)) vsm.NotValue)
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) (= (sm.Apply.arg1 (sm.Apply.arg1 x1)) sm.and))
-    (ite (and (or (= ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) sm.True) (= ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) sm.False)) (or (= ($smtx_model_eval (sm.Apply.arg2 x1)) sm.True) (= ($smtx_model_eval (sm.Apply.arg2 x1)) sm.False))) (ite (and (= sm.True ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1)))) (= sm.True ($smtx_model_eval (sm.Apply.arg2 x1)))) sm.True sm.False) (sm.Apply (sm.Apply sm.and (sm.Apply.arg2 (sm.Apply.arg1 x1))) (sm.Apply.arg2 x1)))
+    (ite (not ((_ is vsm.NotValue) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))))) (ite (not ((_ is vsm.NotValue) ($smtx_model_eval (sm.Apply.arg2 x1)))) (vsm.Term (ite (and (= sm.True (vsm.Term.arg1 ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))))) (= sm.True (vsm.Term.arg1 ($smtx_model_eval (sm.Apply.arg2 x1))))) sm.True sm.False)) vsm.NotValue) vsm.NotValue)
   (ite ((_ is sm.Const) x1)
     ($smtx_model_lookup 0 (sm.Const.arg2 x1) (sm.Const.arg1 x1))
-    x1
+    vsm.NotValue
 ))))))))) :named sm.axiom.$smtx_model_eval))
 
-; program: $eo_model_sat_internal
-(define-fun $eo_model_sat_internal ((x1 sm.Term)) eo.Term
-  (ite false
-    eo.Stuck
-  (ite (= x1 sm.True)
+; program: $smtx_model_sat
+(define-fun $smtx_model_sat ((x1 vsm.Value)) eo.Term
+  (ite (and ((_ is vsm.Term) x1) (= (vsm.Term.arg1 x1) sm.True))
     (eo.SmtTerm sm.True)
-  (ite true
     (eo.SmtTerm sm.False)
-    eo.Stuck))))
+))
 
 ; program: $eo_model_sat
 (assert (! (forall ((x1 eo.Term))
@@ -346,7 +324,7 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite ((_ is eo.SmtTerm) x1)
-    ($eo_model_sat_internal ($smtx_model_eval (eo.SmtTerm.arg1 x1)))
+    ($smtx_model_sat ($smtx_model_eval (eo.SmtTerm.arg1 x1)))
     eo.Stuck)))) :named sm.axiom.$eo_model_sat))
 
 ; program: $eorx_symm
@@ -397,7 +375,7 @@
         (= i 0)
         ; skolems can be assumed to be a value if their predicate is satisfied
         ($smtx_const_predicate k i T ($smtx_model_lookup k i T)))
-      ($smtx_term_is_value ($smtx_model_lookup k i T))))
+      (not ((_ is vsm.NotValue) ($smtx_model_lookup k i T)))))
  :named sm.model_is_value))
 
 ;;; The verification condition

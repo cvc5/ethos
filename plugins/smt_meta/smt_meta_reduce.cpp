@@ -68,6 +68,7 @@ std::string termContextKindToString(TermContextKind k)
     case TermContextKind::SMT_TYPE_GUARDED: ss << "SMT_TYPE_GUARDED"; break;
     case TermContextKind::SMT_VALUE_GUARDED: ss << "SMT_VALUE_GUARDED"; break;
     case TermContextKind::SMT_VALUE: ss << "SMT_VALUE"; break;
+    case TermContextKind::SMT_MAP: ss << "SMT_MAP"; break;
     case TermContextKind::PROGRAM: ss << "PROGRAM"; break;
     case TermContextKind::NONE: ss << "NONE"; break;
     default: ss << "?TermContextKind"; break;
@@ -880,7 +881,6 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   {
     return;
   }
-  std::cout << "*** FINALIZE " << v << std::endl;
   d_defs << "; " << (prog.isNull() ? "fwd-decl: " : "program: ") << v
          << std::endl;
   std::stringstream decl;
@@ -937,6 +937,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     d_defs << decl.str() << std::endl;
     return;
   }
+  std::cout << "*** FINALIZE " << v << std::endl;
   bool reqAxiom = (d_progDeclProcessed.find(v) != d_progDeclProcessed.end());
   // compile the pattern matching
   std::stringstream cases;
@@ -975,24 +976,23 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
       // Initial context depends on the kind of the argument type of the
       // program.
       TermContextKind ctxPatMatch = vctxArgs[j - 1];
-      // std::cout << std::endl
-      //           << "; Print pat matching for " << hd[j] << " in context "
-      //           << termContextKindToString(ctxPatMatch) << std::endl;
+       std::cout << std::endl
+                 << "; Print pat matching for " << hd[j] << " in context "
+                 << termContextKindToString(ctxPatMatch) << std::endl;
       printEmbPatternMatch(
           hd[j], args[j - 1], currCase, ctx, print, ctxPatMatch);
-      // std::cout << "...returns " << currCase.str() << std::endl;
+       std::cout << "...returns " << currCase.str() << std::endl;
     }
     // compile the return for this case
     std::stringstream currRet;
     // The type of the function determines the initial context of return terms
     // we print
     TermContextKind bodyInitCtx = vctxArgs[nargs - 1];
-    // std::cout << std::endl
-    //           << "; PRINTING " << body << " in context "
-    //           << termContextKindToString(bodyInitCtx) << std::endl;
+     std::cout << std::endl
+               << "; Print body " << body << " in context "
+               << termContextKindToString(bodyInitCtx) << std::endl;
     printEmbTerm(body, currRet, ctx, bodyInitCtx);
-    // std::cout << "...finished" << std::endl;
-    // std::cout << "...RESULT is " << currRet.str() << std::endl;
+     std::cout << "...returns " << currRet.str() << std::endl;
     if (isEoProg || isSmtProgram)
     {
       // we permit SMT_PROGRAM and Eunoia programs to have pattern matching
@@ -1323,6 +1323,17 @@ TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
       {
         tk = TermContextKind::SMT_TYPE;
       }
+      else if (sname.compare(0, 9, "$smd_vsm.") == 0)
+      {
+        if (sname=="$smd_vsm.Term")
+        {
+          tk = TermContextKind::SMT;
+        }
+        else if (sname=="$smd_vsm.Map")
+        {
+          tk = i==0 ? TermContextKind::SMT_TYPE : TermContextKind::SMT_MAP;
+        }
+      }
       else if (sname == "$eo_Var")
       {
         tk = i == 1 ? TermContextKind::SMT_BUILTIN : TermContextKind::EUNOIA;
@@ -1440,6 +1451,11 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
           // Corner case: the selector for SMT values.
           tk = TermContextKind::SMT_VALUE;
         }
+        else if (esname == "vsm.Term.arg1")
+        {
+          // Corner case: the selector for terms in SMT values.
+          tk = TermContextKind::SMT;
+        }
         else if (esname == "ite")
         {
           Assert(child.getNumChildren() == 5);
@@ -1477,6 +1493,10 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
     else if (sname.compare(0, 9, "$smd_tsm.") == 0)
     {
       tk = TermContextKind::SMT_TYPE;
+    }
+    else if (sname.compare(0, 9, "$smd_vsm.") == 0)
+    {
+      tk = TermContextKind::SMT_VALUE;
     }
     else
     {
@@ -1524,6 +1544,10 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
     else if (sname.compare(0, 9, "$smd_tsm.") == 0)
     {
       tk = TermContextKind::SMT_TYPE;
+    }
+    else if (sname.compare(0, 9, "$smd_vsm.") == 0)
+    {
+      tk = TermContextKind::SMT_VALUE;
     }
     else
     {

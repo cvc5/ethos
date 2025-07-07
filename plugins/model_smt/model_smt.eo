@@ -71,10 +71,10 @@
 (declare-const $smt_Map Type)
 
 (declare-parameterized-const $smd_vsm.Map
-  ((m $smt_Map :opaque) (T $smt_Type :opaque))
+  ((T $smt_Type :opaque) (m $smt_Map :opaque))
   $smt_Value)
-(define $vsm_map ((m $smt_Map) (T $smt_Type))
-  ($smd_vsm.Map m T))
+(define $vsm_map ((T $smt_Type) (m $smt_Map))
+  ($smd_vsm.Map T m))
 
 (declare-parameterized-const $smd_vsm.UConst
   ((T $smt_Type :opaque) (id $smt_builtin_Int :opaque))
@@ -166,6 +166,11 @@ $SMT_EMBED_META_TYPE_DECL$
     ($smt_apply_1 "eo.SmtValue.arg1" t)
     elseTerm))
 
+; Only call when we are sure that t is a value
+; TODO: guard this properly
+(define $smt_term_from_value ((t $smt_Term))
+  ($smt_apply_1 "vsm.Term.arg1" t))
+
 ;;;;;; SMT values
 
 ; forward declaration
@@ -226,7 +231,7 @@ $SMT_EMBED_META_TYPE_DECL$
 
 ; TODO:
 (program $smtx_map_is_value ()
-  :signature ($smt_Map $smt_Type) $smt_builtin_Bool)
+  :signature ($smt_Type $smt_Map) $smt_builtin_Bool)
 
 ;;; Datatype values
 
@@ -292,22 +297,28 @@ $SMT_EMBED_META_TYPE_DECL$
 
 (define $smt_mk_value_map ((m $smt_Map) (T $smt_Type))
   ($smt_apply_3 "ite"
-    ($smtx_map_is_value m T)
-    ($vsm_map m T)
+    ($smtx_map_is_value T m)
+    ($vsm_map T m)
     $vsm_not_value))
     
 ;(define $smt_mk_value_uconst ((m $smt_Map) (T $smt_Type))
 ;  ($smt_apply_3 "ite"
-;    ($smtx_map_is_value m T)
-;    ($vsm_map m T)
+;    ($smtx_map_is_value T m)
+;    ($vsm_map T m)
 ;    $vsm_not_value))
 
 ;;; utilities
 
+(define $vsm_is_value ((t $smt_Value))
+  ($smt_apply_1 "not" ($smt_apply_1 "(_ is vsm.NotValue)" t)))
+
+(define $vsm_is_true ((t $smt_Value))
+  ($smt_builtin_and
+    ($smt_apply_1 "(_ is vsm.Term)" t)
+    ($sm_is_true ($smt_apply_1 "vsm.Term.arg1" t))))
+
 ; Used to totalize $eo_typeof.
 (program $smtx_typeof () :signature ($smt_Term) $smt_Type)
-
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -315,7 +326,7 @@ $SMT_EMBED_META_TYPE_DECL$
 
 ; Forward declaration of the main method defined by this signature.
 ; We use this to define $eo_model_sat.
-(program $smtx_model_eval () :signature ($smt_Term) $smt_Term)
+(program $smtx_model_eval () :signature ($smt_Term) $smt_Value)
 
 ; free constants
 
@@ -323,7 +334,7 @@ $SMT_EMBED_META_TYPE_DECL$
 ; Conceptually, returns the model value for constant with kind k, identifier id and type T.
 ; This is intentionally undefined in this signature.
 (program $smtx_model_lookup ()
-  :signature ($smt_builtin_Int $smt_builtin_Int $smt_Type) $smt_Term)
+  :signature ($smt_builtin_Int $smt_builtin_Int $smt_Type) $smt_Value)
   
 
 ; Lookup the predicate the constant can be assumed to have.
@@ -334,8 +345,8 @@ $SMT_EMBED_META_TYPE_DECL$
 ; is satisfied in the model.
 ; If this is undefined, we return true.
 (program $smtx_const_predicate
-  ((k $smt_builtin_Int) (id $smt_builtin_Int) (T $smt_Type) (val $smt_Term))
-  :signature ($smt_builtin_Int $smt_builtin_Int $smt_Type $smt_Term) $smt_builtin_Bool
+  ((k $smt_builtin_Int) (id $smt_builtin_Int) (T $smt_Type) (val $smt_Value))
+  :signature ($smt_builtin_Int $smt_builtin_Int $smt_Type $smt_Value) $smt_builtin_Bool
   (
   ; TODO
   (($smtx_const_predicate k id T val) $smt_builtin_true)
@@ -357,14 +368,13 @@ $SMT_EMBED_META_TYPE_DECL$
 
 (program $smtx_model_lookup_predicate 
   ((T $smt_Type) (k $smt_builtin_Int) (id $smt_builtin_Int) (F $smt_Term) (t $smt_Term))
-  :signature ($smt_Term) $smt_Value
+  :signature ($smt_Term) $smt_builtin_Bool
   (
   (($smtx_model_lookup_predicate ($sm_const T id))   $smt_builtin_true)
-  (($smtx_model_lookup_predicate ($sm_skolem T F k)) $smt_builtin_true) ; FIXME
+  (($smtx_model_lookup_predicate ($sm_skolem T F k)) $smt_builtin_true)
   (($smtx_model_lookup_predicate t)                  $smt_builtin_false)
   )
 )
-
 
 ;;; Core definition of $smtx_model_eval
 
@@ -372,19 +382,22 @@ $SMT_EMBED_META_TYPE_DECL$
 ; This is a recursive call.
 ; NOTE: for the sake of soundness, this must be a total function!!!!!!!
 (program $smtx_model_eval
-  ((T Type) (U Type) (V Type) (a1 T) (a2 T) (c Bool) (f $smt_Term) (y U) (z T) (k $smt_builtin_Int) (id $smt_builtin_Int) (F Bool)
+  ((T Type) (U Type) (V Type) (a1 T) (a2 T) (c Bool) (f $smt_Term) (y U) (z $smt_Term) (k $smt_builtin_Int) (id $smt_builtin_Int) (F Bool)
    ; generic parameters that may appear in terms to pattern match
    (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3))
-  :signature ($smt_Term) $smt_Term
+  :signature ($smt_Term) $smt_Value
   (
   ; Booleans are their own values.
-  (($smtx_model_eval $sm_mk_true)             $sm_mk_true)
-  (($smtx_model_eval $sm_mk_false)            $sm_mk_false)
+  (($smtx_model_eval $sm_mk_true)             ($vsm_term $sm_mk_true))
+  (($smtx_model_eval $sm_mk_false)            ($vsm_term $sm_mk_false))
   ; ITE branches to the appropriate child.
   (($smtx_model_eval (ite x1 x2 x3))
-    ($smt_apply_3 "ite" ($sm_is_true ($smtx_model_eval x1))
-      ($smtx_model_eval x2)
-      ($smtx_model_eval x3)))
+    (eo::define ((e1 ($smtx_model_eval x1)))
+    ($smt_apply_3 "ite" ($vsm_is_value e1)
+      ($smt_apply_3 "ite" ($vsm_is_true e1)
+        ($smtx_model_eval x2)
+        ($smtx_model_eval x3))
+      $vsm_not_value)))
   ; Equality insists on valueness and then reduces to an equality over datatypes
   ; in the deep embedding (vsm.Value), meaning it works for all types, including
   ; functions and uninterpreted sorts where values are not represented by terms.
@@ -396,10 +409,10 @@ $SMT_EMBED_META_TYPE_DECL$
   (($smtx_model_eval (= x1 x2))
     (eo::define ((e1 ($smtx_model_eval x1)))
     (eo::define ((e2 ($smtx_model_eval x2)))
-    ($smt_apply_3 "ite" ($smt_builtin_and ($smtx_term_is_value e1) ($smtx_term_is_value e2))
-      ; use datatype equality
-      ($sm_mk_bool ($smt_apply_= e1 e2))
-      (= x1 x2)))))
+    ($smt_apply_3 "ite" ($smt_builtin_and ($vsm_is_value e1) ($vsm_is_value e2))
+      ; use datatype equality over $smt_Value
+      ($vsm_term ($sm_mk_bool ($smt_apply_= e1 e2)))
+      $vsm_not_value))))
   ; evaluation of standard SMT symbols
   ; These calls may only call one of the above macros:
   ; - $smtx_eval_quant
@@ -414,30 +427,31 @@ $SMT_EVAL_CASES$
   ; These are given an arbitrary value by the model ($smtx_model_lookup),
   ; which is an uninterpreted function. The properties of this value are
   ; axiomatized in the final SMT2.
-  (($smtx_model_eval ($sm_const T id))    ($smtx_model_lookup $smt_builtin_z_zero id T))
-  ;(($smtx_model_eval ($sm_skolem T F))    ($smtx_model_lookup i i T))   ; FIXME
+  (($smtx_model_eval ($sm_const T id))        ($smtx_model_lookup $smt_builtin_z_zero id T))
+  ;(($smtx_model_eval ($sm_skolem T F))       ($smtx_model_lookup i i T))   ; FIXME
   ; generic apply and base case.
   ; these do not insist that the term is a value.
   
   ; Otherwise, try to evaluate based on the user callback
   ;(($smtx_model_eval z)                      ($smt_try_eo ($eo_model_eval z) z))
-  (($smtx_model_eval z)                      z) ; FIXME
+  (($smtx_model_eval z)                      $vsm_not_value)
   )
 )
 
-(program $eo_model_sat_internal ((b $smt_Term))
-  :signature ($smt_Term) Bool
+(program $smtx_model_sat ((b $smt_Value))
+  :signature ($smt_Value) Bool
   (
-  (($eo_model_sat_internal $sm_mk_true) true)
-  (($eo_model_sat_internal b)            false)
+  (($smtx_model_sat ($vsm_term $sm_mk_true))  true)
+  (($smtx_model_sat b)                        false)
   )
 )
 ; program: $eo_model_sat
 ; note: Satisfied by the model if F evaluates to true.
-(program $eo_model_sat ((F $smt_Term))
+; We expect that the input to this method is an SMT term.
+(program $eo_model_sat ((F $eo_Term))
   :signature ($eo_Term) Bool
   (
-  (($eo_model_sat ($eo_smt_term F)) ($eo_model_sat_internal ($smtx_model_eval F)))
+  (($eo_model_sat ($eo_smt_term F)) ($smtx_model_sat ($smtx_model_eval F)))
   )
 )
 

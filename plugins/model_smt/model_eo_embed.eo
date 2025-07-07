@@ -46,7 +46,7 @@ $SM_TERM_DECL$
 ; SMT-LIB terms, types and values are embedded in this datatype.
 ; We require a mutually recursive datatype, since these are
 ; inter-dependent.
-(declare-datatypes ((eo.Term 0) (vsm.Value 0) (@Map 0))
+(declare-datatypes ((eo.Term 0) (vsm.Value 0) (msm.Map 0))
   (
   (
   ; The type of types in Eunoia
@@ -69,10 +69,10 @@ $SM_EO_TERM_DECL$
   (
   ; map with an index type
   ; valueness: $smtx_map_is_value
-  (vsm.Map (vsm.Map.arg1 @Map) (vsm.Map.arg2 tsm.Type))
+  (vsm.Map (vsm.Map.arg1 tsm.Type) (vsm.Map.arg2 msm.Map))
   ; uninterpreted constants
   ; valueness: $smtx_usort_is_value
-  (vsm.UValue (vsm.UValue.arg1 tsm.Type) (i Int))
+  (vsm.UValue (vsm.UValue.arg1 tsm.Type) (vsm.UValue.arg2 Int))
   ; an SMT value represented by an SMT-LIB term, e.g. Int/Real/String.
   ; valueness: $smtx_is_value
   (vsm.Term (vsm.Term.arg1 sm.Term))
@@ -80,9 +80,9 @@ $SM_EO_TERM_DECL$
   (vsm.NotValue)
   )
   (
-  ; (@Map.cons i e M) maps i -> e, as well as mappings in M
-  (@Map.cons (@Map.cons.arg1 vsm.Value) (@Map.cons.arg2 vsm.Value) (@Map.cons.arg3 @Map))
-  ; (@Map.default e) maps all remaining elements in the sort to e
-  (@Map.default (@Map.default.arg1 vsm.Value))
+  ; (msm.Map.cons i e M) maps i -> e, as well as mappings in M
+  (msm.Map.cons (msm.Map.cons.arg1 vsm.Value) (msm.Map.cons.arg2 vsm.Value) (msm.Map.cons.arg3 msm.Map))
+  ; (msm.Map.default e) maps all remaining elements in the sort to e
+  (msm.Map.default (msm.Map.default.arg1 vsm.Value))
   ))
 )

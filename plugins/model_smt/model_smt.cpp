@@ -154,12 +154,13 @@ void ModelSmt::printSmtTerm(const std::string& name,
   d_eval << "  (($smtx_model_eval " << callApp.str() << ")";
   bool isOverloadArith = (args.size() > 0 && args[0] == Kind::PARAM);
   std::stringstream preAppEnd;
+  d_eval << std::endl;
   for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
   {
-    d_eval << std::endl
-           << "    (eo::define ((e" << i << " ($smtx_model_eval x" << i
-           << ")))";
-    preAppEnd << ")";
+    d_eval << "    (eo::define ((e" << i << " ($smtx_model_eval x" << i
+           << ")))" << std::endl;
+    d_eval << "    ($smt_apply_3 \"ite\" ($vsm_is_value e" << i << ")" << std::endl;
+    preAppEnd << "    $vsm_not_value))" << std::endl;
   }
   if (name == "forall" || name == "exists")
   {
@@ -181,25 +182,13 @@ void ModelSmt::printSmtTerm(const std::string& name,
   }
   for (Kind kas : argSchemas)
   {
-    std::stringstream appConds;
-    std::stringstream appCondsEnd;
-    if (args.size() >= 2)
-    {
-      appConds << "($smt_apply_2 \"and\" ";
-      appCondsEnd << ")";
-    }
     std::stringstream appArgs;
     appArgs << " \"" << name << "\"";
     for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
     {
       Kind ka = args[i - 1];
-      // use guarded version
-      if (i > 1)
-      {
-        appConds << " ";
-      }
       std::stringstream ssmt;
-      ssmt << "($smd_tsm.Value.Term.arg1 e" << i << ")";
+      ssmt << "($smt_term_from_value e" << i << ")";
       if (ka == Kind::PARAM)
       {
         Assert(kas != Kind::NONE);
@@ -218,21 +207,13 @@ void ModelSmt::printSmtTerm(const std::string& name,
             << "Could not find " << ka;
         appArgs << d_kindToEoCons[ka] << ".arg1\"";
       }
-      appConds << "($sm_is_";
-      Assert(d_kindToEoPrefix.find(ka) != d_kindToEoPrefix.end())
-          << "Could not find kind arg " << ka;
-      appConds << d_kindToEoPrefix[ka];
-      appConds << " e" << i << ")";
-      appArgs << " e" << i << ")";
+      appArgs << ssmt.str() << ")";
     }
-    d_eval << std::endl
-           << "    ($smt_apply_3 \"ite\" " << appConds.str()
-           << appCondsEnd.str();
     if (args.empty() || args.size() > 3)
     {
       EO_FATAL() << "Unhandled arity " << args.size() << " for " << name;
     }
-    d_eval << std::endl << "      ($sm_mk_";
+    d_eval << std::endl << "      ($vsm_term ($sm_mk_";
     Kind kr = kret;
     if (kr == Kind::PARAM)
     {
@@ -242,11 +223,10 @@ void ModelSmt::printSmtTerm(const std::string& name,
     Assert(d_kindToEoPrefix.find(kr) != d_kindToEoPrefix.end())
         << "Could not find kind ret " << kr;
     d_eval << d_kindToEoPrefix[kr];
-    d_eval << " ($smt_apply_" << args.size() << appArgs.str() << "))";
+    d_eval << " ($smt_apply_" << args.size() << appArgs.str() << ")))" << std::endl;
     preAppEnd << ")";
   }
-  d_eval << std::endl
-         << "      " << callApp.str() << ")" << preAppEnd.str() << std::endl;
+  d_eval << preAppEnd.str() << std::endl;
 }
 
 void ModelSmt::printEmbType(const Expr& e, std::ostream& os) { os << e; }
