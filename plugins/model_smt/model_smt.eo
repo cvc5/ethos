@@ -380,6 +380,11 @@ $SMT_EMBED_META_TYPE_DECL$
 
 ;;; Core definition of $smtx_model_eval
 
+; program: $smtx_model_eval_apply
+; We call ($smtx_model_eval_apply value_f value_i) when
+; evaluating (f i) whose values are value_f and value_i
+; respectively. If value_f is a map value, then we extract
+; the map and call the map lookup routine.
 (program $smtx_model_eval_apply
   ((T $smt_Type) (m $smt_Map) (i $smt_Value) (v $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
@@ -388,6 +393,7 @@ $SMT_EMBED_META_TYPE_DECL$
   (($smtx_model_eval_apply v i)               $vsm_not_value)
   )
 )
+
 ; An evaluator for all terms that we can reason about models.
 ; This is a recursive call.
 ; NOTE: for the sake of soundness, this must be a total function!!!!!!!

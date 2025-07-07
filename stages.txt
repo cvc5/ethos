@@ -19,7 +19,7 @@ The entire pipeline relies on:
 - A standard Ethos plugin infrastructure, 133 LOC C++
 
 Below summarizes where certain corner cases are handled when using
-cvc5 -> CPC -> desugared CPC -> model-smt CPC -> smt2.
+cvc5 -> Cpc.eo -> desugared *.eo -> model-smt *.eo -> smt2.
 
 === cvc5 parsing
 
@@ -28,8 +28,9 @@ Relies on:
 
 Things handled at this stage:
 
-- let
-- global variable semantics?
+- let as a parsing construct, not a binder.
+- global variable semantics, i.e. variables are unique up to their name and
+  type (different from SMT-LIB?)
 - Numeral as Decimal in logics without Integers.
 - :named.
 
@@ -91,14 +92,15 @@ Things handled at this stage:
   - Represents variables as constant $eo_Var.
 - eo::nil
   - Includes an auto-generation of cases for each :right-assoc-nil, :left-assoc-nil operator.
-- eo::typeof
+- (All user-defined symbol cases of) eo::typeof
   - *Approximates* the internal type system of Eunoia (monomorphizes partial applications).
     - For example, we give a type rule for (= x), not =.
   - Includes an auto-generation of cases for all user symbols ($eo_typeof_main).
-  - Includes definitions of literal types, and type of variables ($eo_Var).
 - eo::dt_constructors, eo::dt_selectors
 - Defines $eo_fail as a stuck term.
 - Defines $eo_model_preamble as a placeholder for inserting more definitions of $eo_.
+
+- TODO: ite, requires should be handled here, using "nested-eval-elim" plugin.
 
 === Model_smt
 
@@ -121,6 +123,9 @@ Things handled at this stage:
   - eo::add, eo::mul, eo::qdiv, eo::zdiv, eo::zmod, eo::is_neg, eo::neg
   - eo::len, eo::concat, eo::extract, eo::find
   - eo::to_z, eo::to_q, eo::to_bin, eo::to_str
+- eo::typeof completed
+  - Includes definitions of literal types, and type of variables ($eo_Var).'
+  - Reference to previously defined $eo_typeof_main.
 - Core Eunoia builtins defined.
   - eo::is_ok, eo::ite, eo::requires
   - $eo_is_ok reasons about the *deep embedding* of the SMT-LIB datatype we are defining.
@@ -213,7 +218,8 @@ Not handled:
 - TODO: remove type checking from proof rule semantics?
 - TODO: type checking as a separate property: type preservation for proof rules.
 
-- TODO: erase types earlier???
+- TODO: we could construct another intermediate *.eo where all types are
+  replaced by those in the deep embedding.
 
 ===
 

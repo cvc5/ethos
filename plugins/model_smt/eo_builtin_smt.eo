@@ -735,6 +735,7 @@
   (($eo_typeof ($eo_mk_string s))    $eo_String)
   (($eo_typeof ($eo_binary w n))     $eo_Binary)
   (($eo_typeof ($eo_Var s T))        T)
+  ; otherwise, invoke the routine for builtin types from the signature.
   (($eo_typeof t)                    ($eo_typeof_main t))
   )
 )

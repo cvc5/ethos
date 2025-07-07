@@ -240,6 +240,14 @@
     ($eo_fun_type x1 (eo.SmtType tsm.Bool))
     eo.Stuck)))
 
+; program: $eo_typeof_fun_type
+(define-fun $eo_typeof_fun_type ((x1 eo.Term) (x2 eo.Term)) eo.Term
+  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
+    eo.Stuck
+  (ite (and (= x1 eo.Type) (= x2 eo.Type))
+    eo.Type
+    eo.Stuck)))
+
 ; program: $eo_typeof_main
 (assert (! (forall ((x1 eo.Term))
   (= ($eo_typeof_main x1)
@@ -248,7 +256,7 @@
   (ite (= x1 eo.Type)
     eo.Type
   (ite ((_ is eo.FunType) x1)
-    ($eo_requires ($eo_typeof (eo.FunType.arg1 x1)) eo.Type ($eo_requires ($eo_typeof (eo.FunType.arg2 x1)) eo.Type eo.Type))
+    ($eo_typeof_fun_type ($eo_typeof (eo.FunType.arg1 x1)) ($eo_typeof (eo.FunType.arg2 x1)))
   (ite (= x1 (eo.SmtType tsm.Bool))
     eo.Type
   (ite (= x1 (eo.SmtTerm sm.True))

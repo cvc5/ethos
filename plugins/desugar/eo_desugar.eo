@@ -2,7 +2,7 @@
 
 ; After instantiation, certain eo:: operators may be used in this file.
 ; These are either:
-; (A) Those that are desugared in later steps, e.g. eo::add, eo::requires, eo::is_ok.
+; (A) Those that are desugared in later steps, e.g. eo::add, eo::is_ok.
 ; (B) Those that were part of user definitions that can be safely replaced by their $eo_ versions.
 
 ;; INVARIANT: the methods in this file only use the following builtin operators:
@@ -123,6 +123,14 @@ $EO_LITERAL_TYPE_DECL$
    (f (-> T U V)) (x W))
   ($eo_is_list_rec f ($eo_nil f ($eo_typeof x)) x))
 
+; Requires true
+(program $eo_requires_true ((T Type) (t T))
+  :signature (Bool T) T
+  (
+  (($eo_requires_true true t) t)
+  )
+)
+
 ;;; $eo_cons
 
 ; define: $eo_cons
@@ -131,7 +139,7 @@ $EO_LITERAL_TYPE_DECL$
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)
    (W1 Type :implicit) (W2 Type :implicit)
    (f (-> T U V)) (e W1) (a W2))
-  (eo::requires ($eo_is_list f a) true (f e a)))
+  ($eo_requires_true ($eo_is_list f a) (f e a)))
 
 ;;; $eo_get_elements
 
@@ -152,7 +160,7 @@ $EO_LITERAL_TYPE_DECL$
 (define $eo_get_elements
   ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
    (f (-> T U V)) (a W))
-  (eo::requires ($eo_is_list f a) true
+  ($eo_requires_true ($eo_is_list f a)
     ($eo_get_elements_rec f ($eo_nil f ($eo_typeof a)) a)))
 
 ;;; $eo_list_len
@@ -173,7 +181,7 @@ $EO_LITERAL_TYPE_DECL$
 (define $eo_list_len
   ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
    (f (-> T U V)) (a W))
-  (eo::requires ($eo_is_list f a) true ($eo_list_len_rec f a)))
+  ($eo_requires_true ($eo_is_list f a) ($eo_list_len_rec f a)))
 
 ;;; $eo_list_concat
 
@@ -192,8 +200,8 @@ $EO_LITERAL_TYPE_DECL$
 (define $eo_list_concat
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)
    (f (-> T V V)) (a U) (b U))
-  (eo::requires ($eo_is_list f a) true
-  (eo::requires ($eo_is_list f b) true
+  ($eo_requires_true ($eo_is_list f a)
+  ($eo_requires_true ($eo_is_list f b)
     ($eo_list_concat_rec f a b))))
 
 ;;; $eo_list_nth
@@ -214,7 +222,7 @@ $EO_LITERAL_TYPE_DECL$
 (define $eo_list_nth
   ((T Type :implicit) (U Type :implicit)
    (f (-> T T T)) (a U) (n $eo_Numeral))
-  (eo::requires ($eo_is_list f a) true
+  ($eo_requires_true ($eo_is_list f a)
     ($eo_list_nth_rec f a n)))
 
 ;;; $eo_list_find
@@ -238,7 +246,7 @@ $EO_LITERAL_TYPE_DECL$
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)
    (W1 Type :implicit) (W2 Type :implicit)
    (f (-> T U V)) (a W1) (e W2))
-  (eo::requires ($eo_is_list f a) true
+  ($eo_requires_true ($eo_is_list f a)
     ($eo_list_find_rec f a e 0)))
 
 ;;; $eo_list_rev
@@ -259,7 +267,7 @@ $EO_LITERAL_TYPE_DECL$
 (define $eo_list_rev
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)
    (f (-> T V V)) (a U))
-  (eo::requires ($eo_is_list f a) true
+  ($eo_requires_true ($eo_is_list f a)
     ($eo_list_rev_rec f a ($eo_nil f ($eo_typeof a)))))
 
 ;;; $eo_list_erase
@@ -281,7 +289,7 @@ $EO_LITERAL_TYPE_DECL$
 (define $eo_list_erase
   ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
    (f (-> T V V)) (a U) (e W))
-  (eo::requires ($eo_is_list f a) true
+  ($eo_requires_true ($eo_is_list f a)
     ($eo_list_erase_rec f a e)))
 
 ;;; $eo_list_erase_all
@@ -303,7 +311,7 @@ $EO_LITERAL_TYPE_DECL$
 (define $eo_list_erase_all
   ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
    (f (-> T V V)) (a U) (e W))
-  (eo::requires ($eo_is_list f a) true
+  ($eo_requires_true ($eo_is_list f a)
     ($eo_list_erase_all_rec f a e)))
 
 ;;; $eo_list_setof
@@ -323,7 +331,7 @@ $EO_LITERAL_TYPE_DECL$
 ; implements: eo::list_setof
 (define $eo_list_setof
   ((T Type :implicit) (U Type :implicit) (V Type :implicit) (f (-> T V V)) (a U))
-  (eo::requires ($eo_is_list f a) true
+  ($eo_requires_true ($eo_is_list f a)
     ($eo_list_setof_rec f a)))
 
 ;;; $eo_list_minclude
@@ -352,8 +360,8 @@ $EO_LITERAL_TYPE_DECL$
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)
    (W1 Type :implicit) (W2 Type :implicit)
    (f (-> T U V)) (a W1) (b W2))
-  (eo::requires ($eo_is_list f a) true
-  (eo::requires ($eo_is_list f b) true
+  ($eo_requires_true ($eo_is_list f a)
+  ($eo_requires_true ($eo_is_list f b)
     ($eo_list_minclude_rec ($eo_get_elements f a) ($eo_get_elements f b)))))
 
 ;;; $eo_list_meq
@@ -384,17 +392,26 @@ $EO_DEFS$
 
 $EO_TYPEOF_NGROUND_DEFS$
 
+; program: $eo_typeof_fun_type
+; Calling ($eo_typeof_fun_type Ut Tt) returns the type of (-> U T), 
+; given that U has type Ut and T has type Tt. 
+(program $eo_typeof_fun_type ()
+  :signature (Type Type) Type
+  (
+  (($eo_typeof_fun_type Type Type) Type)
+  )
+)
+
 ; program: $eo_typeof_main
-; This implements type rules for non-builtin terms.
+; This implements type rules for non-builtin terms. It is used as a subroutine
+; of the final $eo_typeof routine, defined in $eo_builtin_smt.eo.
 (program $eo_typeof_main
   ((T Type) (U Type) (V Type) (W Type) (f (-> U V T)) (x U) (t T)
    (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3)) ; assumes functions can be monomorphized with at most 3 arguments
   :signature (T) Type
   (
   (($eo_typeof_main Type)      Type)
-  (($eo_typeof_main (-> T U))  (eo::requires ($eo_typeof T) Type
-                               (eo::requires ($eo_typeof U) Type
-                                 Type)))
+  (($eo_typeof_main (-> T U))  ($eo_typeof_fun_type ($eo_typeof T) ($eo_typeof U))) ; requires both children are types
   (($eo_typeof_main Bool)      Type)
   (($eo_typeof_main true)      Bool)
   (($eo_typeof_main false)     Bool)
