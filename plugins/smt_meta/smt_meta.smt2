@@ -20,11 +20,7 @@ $SM_DEFS$
 ; If the constant predicate for a constant is satisfied,
 ; then we may assume that the model value for that constant is a value.
 (assert (! (forall ((k Int) (i Int) (T tsm.Type))
-  (=> (or
-        ; free constants always can be assumed to be a value
-        (= i 0)
-        ; skolems can be assumed to be a value if their predicate is satisfied
-        ($smtx_const_predicate k i T ($smtx_model_lookup k i T)))
+  (=> ($smtx_const_predicate k i T ($smtx_model_lookup k i T))
       (not ((_ is vsm.NotValue) ($smtx_model_lookup k i T)))))
  :named sm.model_is_value))
 

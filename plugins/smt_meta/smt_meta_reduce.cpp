@@ -355,50 +355,34 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     //           << termContextKindToString(parent) << " / kind " << ck
     //           << std::endl;
     // std::cout << "  atk: " << tcur << std::endl;
-    TermContextKind atk = getMetaKindReturn(tcur, parent);
+    TermContextKind child = getMetaKindReturn(tcur, parent);
     // std::cout << "  atk: " << tcur << " is " << termContextKindToString(atk)
     //           << std::endl;
     //  if the Eunoia term is an SMT term, change the context
     //  and use the eo.SmtTerm selector
-    if (parent != atk)
+    if (parent != child)
     {
-      std::vector<TermContextKind> ctxChange;
-      // NOTE: could do this, but it is making the Eunoia code too permissive???
-      /*
-      if (atk==TermContextKind::SMT_BUILTIN)
+      if (parent == TermContextKind::EUNOIA
+          && (child == TermContextKind::SMT
+              || child == TermContextKind::SMT_TYPE
+              || child == TermContextKind::SMT_VALUE))
       {
-        if (parent!=TermContextKind::SMT)
-        {
-          ctxChange.push_back(TermContextKind::SMT);
-        }
+        std::string cons = termContextKindToCons(child);
+        std::stringstream tester;
+        tester << "((_ is eo." << cons << ") " << currTerm << ")";
+        print.push(tester.str());
+        std::stringstream sssn;
+        sssn << "(eo." << cons << ".arg1 " << currTerm << ")";
+        currTerm = sssn.str();
+        // our context is now updated
+        parent = child;
       }
-      */
-      ctxChange.push_back(atk);
-      for (size_t i = 0, nchange = ctxChange.size(); i < nchange; i++)
+      else
       {
-        TermContextKind next = ctxChange[i];
-        if (parent == TermContextKind::EUNOIA
-            && (next == TermContextKind::SMT
-                || next == TermContextKind::SMT_TYPE
-                || next == TermContextKind::SMT_VALUE))
-        {
-          std::string cons = termContextKindToCons(next);
-          std::stringstream tester;
-          tester << "((_ is eo." << cons << ") " << currTerm << ")";
-          print.push(tester.str());
-          std::stringstream sssn;
-          sssn << "(eo." << cons << ".arg1 " << currTerm << ")";
-          currTerm = sssn.str();
-          // our context is now updated
-          parent = next;
-        }
-        else
-        {
-          EO_FATAL() << "Unhandled context change "
-                     << termContextKindToString(parent) << " / "
-                     << termContextKindToString(next) << " in " << tcur
-                     << " within " << c;
-        }
+        EO_FATAL() << "Unhandled context change "
+                    << termContextKindToString(parent) << " / "
+                    << termContextKindToString(child) << " in " << tcur
+                    << " within " << c;
       }
     }
     if (ck == Kind::APPLY)
@@ -1268,7 +1252,7 @@ TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
         }
         else if (i == 1)
         {
-          // SMT-LIB identifier, ignore
+          // SMT-LIB identifier
           tk = TermContextKind::NONE;
         }
         else
