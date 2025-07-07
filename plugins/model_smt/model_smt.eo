@@ -68,45 +68,38 @@
 
 ;;; SMT value datatype constructors
 
-; Datatype for values.
-; - The datatype @Value will be replaced by vsm.Value.
-(declare-datatypes ((@Value 0) (@Map 0))
-  ((
-  ; map with an index type
-  ; valueness: $smtx_map_is_value
-  (@Value.Map (@Value.Map.arg1 @Map) (@Value.Map.arg2 $smt_Type))
-  ; uninterpreted constants
-  ; valueness: $smtx_usort_is_value
-  (@Value.UConst (@Value.UConst.arg1 $smt_Type) (i $smt_builtin_Int))
-  ; an SMT value represented by an SMT-LIB term, e.g. Int/Real/String.
-  ; valueness: $smtx_term_is_value
-  (@Value.Term (@Value.Term.arg1 $smt_Term))
-  ; A non-value
-  (@Value.NotValue)
-  )
-  (
-  ; (@Map.cons i e M) maps i -> e, as well as mappings in M
-  (@Map.cons (@Map.cons.arg1 @Value) (@Map.cons.arg2 @Value) (@Map.cons.arg3 @Map))
-  ; (@Map.default e) maps all remaining elements in the sort to e
-  (@Map.default (@Map.default.arg1 @Value))
-  ))
-)
-
 (declare-const $smt_Map Type)
 
-(declare-parameterized-const $smd_vsm.Map.cons
+(declare-parameterized-const $smd_vsm.Map
+  ((m $smt_Map :opaque) (T $smt_Type :opaque))
+  $smt_Value)
+(define $vsm_map ((m $smt_Map) (T $smt_Type))
+  ($smd_vsm.Map m T))
+
+(declare-parameterized-const $smd_vsm.UConst
+  ((T $smt_Type :opaque) (id $smt_builtin_Int :opaque))
+  $smt_Value)
+(define $vsm_uconst ((T $smt_Type) (id $smt_builtin_Int))
+  ($smd_vsm.UConst T id))
+
+(declare-parameterized-const $smd_vsm.Term
+  ((t $smt_Term :opaque))
+  $smt_Value)
+(define $vsm_term ((t $smt_Term)) ($smd_vsm.Term t))
+
+(declare-const $smd_vsm.NotValue $smt_Value)
+(define $vsm_not_value () $smd_vsm.NotValue)
+
+(declare-parameterized-const $smd_msm.Map.cons
   ((i $smt_Value :opaque) (e $smt_Value :opaque) (m $smt_Map))
   $smt_Map)
-(define $map_cons
-  ((i $smt_Value :opaque) (e $smt_Value :opaque) (m $smt_Map))
-  ($smd_vsm.Map.cons i e m))
+(define $map_cons ((i $smt_Value) (e $smt_Value) (m $smt_Map))
+  ($smd_msm.Map.cons i e m))
   
-(declare-parameterized-const $smd_vsm.Map.default
+(declare-parameterized-const $smd_msm.Map.default
   ((e $smt_Value :opaque))
   $smt_Map)
-(define $map_cons
-  ((e $smt_Value :opaque))
-  ($smd_vsm.Map.default e))
+(define $map_default ((e $smt_Value)) ($smd_msm.Map.default e))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -198,7 +191,7 @@ $EO_IS_VALUE_CASES$
   ; Try to enumerate the type, if we fail, we return $vsm_UValue.
   ; Note that this essentially assumes that unhandled types are uninterpreted
   ; and have infinite cardinality (since this does not get stuck).
-  ;(($eo_enum_type T i)                ($smt_builtin_eo.SmtValue ($smt_builtin_@Value.new.UConst T i)))
+  ;(($eo_enum_type T i)                ($eo_smt_value ($vsm_uconst T i)))
   ; FIXME
   (($eo_enum_type T i) T)
   )
@@ -355,39 +348,30 @@ $EO_EVAL_CASES$
 (program $smtx_term_is_value ()
   :signature ($smt_Term) $smt_builtin_Bool)
 
-;;; Uninterpreted sort values.
-
-; NOTE: this is equivalent to a datatype tester ((_ is sm.usort_value) t).
-(define $smtx_is_usort_value ((x $smt_Term)) $smt_builtin_true)
-
-; (@Value.UConst T i) is a value for all T, i.
-(define $smtx_usort_is_value ((T $smt_Type) (i $smt_builtin_Int))
-  $smt_builtin_true)
-
 ;;; Functions and array values.
 
-; @Map is recursive and thus defined above.
+; $smt_Map is recursive and thus defined above.
 
 ; Get the default for the map
 (program $smtx_map_default
-  ((i @Value) (j @Value) (e @Value) (M @Map))
-  :signature (@Map) $smt_Term
+  ((i $smt_Value) (j $smt_Value) (e $smt_Value) (M $smt_Map))
+  :signature ($smt_Map) $smt_Term
   (
-  (($smtx_map_default (@Map.cons j e M))  ($smtx_map_default M))
-  (($smtx_map_default (@Map.default e))   e)
+  (($smtx_map_default ($map_cons j e M))  ($smtx_map_default M))
+  (($smtx_map_default ($map_default e))   e)
   )
 )
 
 ; This program looks up the value of a term in a map.
 ; This is used for function evaluation.
 (program $smtx_map_lookup
-  ((i @Value) (j @Value) (e @Value) (M @Map))
-  :signature (@Map $smt_Term) $smt_Term
+  ((i $smt_Value) (j $smt_Value) (e $smt_Value) (M $smt_Map))
+  :signature ($smt_Map $smt_Term) $smt_Term
   (
   ; NOTE: the cases here are exhaustive, meaning we can soundly ignore the "is nil" else condition
-  (($smtx_map_lookup (@Map.cons i e M) i)  e)
-  (($smtx_map_lookup (@Map.cons j e M) i)  ($smtx_map_lookup M i))
-  (($smtx_map_lookup (@Map.default e) i)   e)
+  (($smtx_map_lookup ($map_cons i e M) i)  e)
+  (($smtx_map_lookup ($map_cons j e M) i)  ($smtx_map_lookup M i))
+  (($smtx_map_lookup ($map_default e) i)   e)
   )
 )
 
@@ -395,11 +379,11 @@ $EO_EVAL_CASES$
 ; This program is only necessary if we are doing equality between arrays
 ; (or functions).
 (program $smtx_map_is_redundant
-  ((T $smt_Type) (U $smt_Type) (t $smt_Term) (u $smt_Term) (M @Map))
-  :signature (@Map $smt_Type) $smt_builtin_Bool
+  ((T $smt_Type) (U $smt_Type) (t $smt_Term) (u $smt_Term) (M $smt_Map))
+  :signature ($smt_Map $smt_Type) $smt_builtin_Bool
   (
-  (($smtx_map_is_redundant (@Map.default u) U)     false)
-  (($smtx_map_is_redundant (@Map.cons t u M) U)
+  (($smtx_map_is_redundant ($map_default u) U)     false)
+  (($smtx_map_is_redundant ($map_cons t u M) U)
     ; lookup value on tail
     (eo::define ((ru ($smtx_map_lookup t M)))
     ; if it is the same, this index is redundant and thus we are not a value
@@ -417,8 +401,8 @@ $EO_EVAL_CASES$
 (define $smt_mk_value_term ((t $smt_Term))
   ($smt_apply_3 "ite"
     ($smtx_term_is_value t)
-    (@Value.Term t)
-    (@Value.NotValue)))
+    ($vsm_term t)
+    $vsm_not_value))
     
 ;;; utilities
 
@@ -460,7 +444,7 @@ $EO_EVAL_CASES$
   :signature ($smt_Type $smt_builtin_Int) $smt_Value
   (
   ; TODO
-  (($smtx_enum_type_final T i)               (@Value.UConst T i))
+  (($smtx_enum_type_final T i)               ($vsm_uconst T i))
   )
 )
 
@@ -506,7 +490,7 @@ $EO_EVAL_CASES$
   (($smtx_term_is_value ($smd_sm.Numeral n))                 $smt_builtin_true)
   (($smtx_term_is_value ($smd_sm.Rational r))                $smt_builtin_true)
   (($smtx_term_is_value ($smd_sm.String s))                  $smt_builtin_true)
-  ;(($smtx_term_is_value @Map t)   ($smtx_map_is_value t))
+  ;(($smtx_term_is_value $smt_Map t)   ($smtx_map_is_value t))
   ; by default, a value is a term that appears in the type enumeration
   (($smtx_term_is_value t)                 ($smt_apply_3 "ite" ($smt_is_dt ($smtx_typeof t))
                                         ($smtx_dt_is_value t)
