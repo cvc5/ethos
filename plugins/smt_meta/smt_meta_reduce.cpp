@@ -293,6 +293,7 @@ void SmtMetaReduce::printEmbType(const Expr& c,
       case TermContextKind::SMT_TYPE: os << "tsm.Type"; break;
       case TermContextKind::SMT_VALUE: os << "vsm.Value"; break;
       case TermContextKind::SMT_BUILTIN: os << getEmbedName(c); break;
+      case TermContextKind::SMT_MAP: os << "msm.Map"; break;
       default: break;
     }
     return;
@@ -317,7 +318,7 @@ void SmtMetaReduce::printEmbType(const Expr& c,
     }
     else
     {
-      Assert(false) << "Unknown type: " << c << " " << c.getKind();
+      Assert(false) << "printEmbType: Unknown type: " << c << " " << c.getKind();
     }
   }
   // else if (c == d_metaSmtValue)
@@ -1242,6 +1243,10 @@ TermContextKind SmtMetaReduce::getTypeMetaKind(const Expr& typ,
   {
     return TermContextKind::SMT_VALUE;
   }
+  else if (sname == "$smt_Map")
+  {
+    return TermContextKind::SMT_MAP;
+  }
   return elseKind;
 }
 
@@ -1278,7 +1283,7 @@ TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
           if (esname == "ite")
           {
             // the condition is stored at position 2, after op and deep
-            // embedding the branches have no context
+            // embedding the branches have no context.
             // TODO: maybe they should have SMT context???
             tk = i == 2 ? TermContextKind::SMT_BUILTIN : TermContextKind::NONE;
           }
@@ -1332,8 +1337,12 @@ TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
         }
         else if (sname == "$smd_vsm.Map")
         {
-          tk = i == 0 ? TermContextKind::SMT_TYPE : TermContextKind::SMT_MAP;
+          tk = i == 1 ? TermContextKind::SMT_TYPE : TermContextKind::SMT_MAP;
         }
+      }
+      else if (sname.compare(0, 9, "$smd_msm.") == 0)
+      {
+        tk = i == 3 && sname=="$smd_msm.Map.cons" ? TermContextKind::SMT_MAP : TermContextKind::SMT_VALUE;
       }
       else if (sname == "$eo_Var")
       {
@@ -1454,7 +1463,7 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
         }
         else if (esname == "vsm.Term.arg1")
         {
-          // Corner case: the selector for terms in SMT values.
+          // For terms inside of SMT values
           tk = TermContextKind::SMT;
         }
         else if (esname == "ite")
@@ -1498,6 +1507,10 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
     else if (sname.compare(0, 9, "$smd_vsm.") == 0)
     {
       tk = TermContextKind::SMT_VALUE;
+    }
+    else if (sname.compare(0, 9, "$smd_msm.") == 0)
+    {
+      tk = TermContextKind::SMT_MAP;
     }
     else
     {
@@ -1549,6 +1562,10 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
     else if (sname.compare(0, 9, "$smd_vsm.") == 0)
     {
       tk = TermContextKind::SMT_VALUE;
+    }
+    else if (sname.compare(0, 9, "$smd_msm.") == 0)
+    {
+      tk = TermContextKind::SMT_MAP;
     }
     else
     {

@@ -93,7 +93,7 @@
 ;;; SMT map value datatype constructors
 
 (declare-parameterized-const $smd_msm.Map.cons
-  ((i $smt_Value :opaque) (e $smt_Value :opaque) (m $smt_Map))
+  ((i $smt_Value :opaque) (e $smt_Value :opaque) (m $smt_Map :opaque))
   $smt_Map)
 (define $map_cons ((i $smt_Value) (e $smt_Value) (m $smt_Map))
   ($smd_msm.Map.cons i e m))
@@ -190,7 +190,7 @@ $SMT_EMBED_META_TYPE_DECL$
 ; Get the default for the map
 (program $smtx_map_default
   ((i $smt_Value) (j $smt_Value) (e $smt_Value) (M $smt_Map))
-  :signature ($smt_Map) $smt_Term
+  :signature ($smt_Map) $smt_Value
   (
   (($smtx_map_default ($map_cons j e M))  ($smtx_map_default M))
   (($smtx_map_default ($map_default e))   e)
@@ -201,7 +201,7 @@ $SMT_EMBED_META_TYPE_DECL$
 ; This is used for function evaluation.
 (program $smtx_map_lookup
   ((i $smt_Value) (j $smt_Value) (e $smt_Value) (M $smt_Map))
-  :signature ($smt_Map $smt_Term) $smt_Term
+  :signature ($smt_Map $smt_Value) $smt_Value
   (
   ; NOTE: the cases here are exhaustive, meaning we can soundly ignore the "is nil" else condition
   (($smtx_map_lookup ($map_cons i e M) i)  e)
@@ -214,7 +214,7 @@ $SMT_EMBED_META_TYPE_DECL$
 ; This program is only necessary if we are doing equality between arrays
 ; (or functions).
 (program $smtx_map_is_redundant
-  ((T $smt_Type) (U $smt_Type) (t $smt_Term) (u $smt_Term) (M $smt_Map))
+  ((T $smt_Type) (U $smt_Type) (t $smt_Value) (u $smt_Value) (M $smt_Map))
   :signature ($smt_Map $smt_Type) $smt_builtin_Bool
   (
   (($smtx_map_is_redundant ($map_default u) U)     false)
@@ -380,6 +380,14 @@ $SMT_EMBED_META_TYPE_DECL$
 
 ;;; Core definition of $smtx_model_eval
 
+(program $smtx_model_eval_apply
+  ((T $smt_Type) (m $smt_Map) (i $smt_Value) (v $smt_Value))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_apply ($vsm_map T m) i)  ($smtx_map_lookup m i))
+  (($smtx_model_eval_apply v i)               $vsm_not_value)
+  )
+)
 ; An evaluator for all terms that we can reason about models.
 ; This is a recursive call.
 ; NOTE: for the sake of soundness, this must be a total function!!!!!!!
@@ -422,9 +430,9 @@ $SMT_EMBED_META_TYPE_DECL$
   ; - $smt_eval_apply_*
 $SMT_EVAL_CASES$
   ; Apply case.
-  ;(($smtx_model_eval ($sm_apply_term f y))    (eo::define ((fme ($smtx_model_eval f)))
-  ;                                            (eo::define ((yme ($smtx_model_eval y)))
-  ;                                              ($smtx_eval_apply fme yme))))
+  (($smtx_model_eval ($sm_apply_term f y))    (eo::define ((fme ($smtx_model_eval f)))
+                                              (eo::define ((yme ($smtx_model_eval y)))
+                                                ($smtx_model_eval_apply fme yme))))
   ;; free constants and partial functions
   ; These are given an arbitrary value by the model ($smtx_model_lookup),
   ; which is an uninterpreted function. The properties of this value are
