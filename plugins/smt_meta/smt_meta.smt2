@@ -25,7 +25,7 @@ $SM_DEFS$
         (= i 0)
         ; skolems can be assumed to be a value if their predicate is satisfied
         ($smtx_const_predicate k i T ($smtx_model_lookup k i T)))
-      ($smtx_is_value ($smtx_model_lookup k i T))))
+      ($smtx_term_is_value ($smtx_model_lookup k i T))))
  :named sm.model_is_value))
 
 ;;; The verification condition

@@ -78,7 +78,7 @@
   ; valueness: $smtx_usort_is_value
   (@Value.UConst (@Value.UConst.arg1 $smt_Type) (i $smt_builtin_Int))
   ; an SMT value represented by an SMT-LIB term, e.g. Int/Real/String.
-  ; valueness: $smtx_is_value
+  ; valueness: $smtx_term_is_value
   (@Value.Term (@Value.Term.arg1 $smt_Term))
   ; A non-value
   (@Value.NotValue)
@@ -335,7 +335,7 @@ $EO_EVAL_CASES$
 ; return true where t1 and t2 have the same type ($smtx_typeof), then
 ;   (not (= t1 t2))
 ; is valid.
-(program $smtx_is_value ()
+(program $smtx_term_is_value ()
   :signature ($smt_Term) $smt_builtin_Bool)
 
 ;;; Uninterpreted sort values.
@@ -399,7 +399,7 @@ $EO_EVAL_CASES$
 ; if indeed it is a value, or returns not a value otherwise.
 (define $smt_mk_value_term ((t $smt_Term))
   ($smt_apply_3 "ite"
-    ($smtx_is_value t)
+    ($smtx_term_is_value t)
     (@Value.Term t)
     (@Value.NotValue)))
     
@@ -469,29 +469,29 @@ $EO_EVAL_CASES$
   :signature ($smt_Term) $smt_builtin_Bool
   (
   (($smtx_dt_is_value ($sm_apply_term f a)) ($smt_apply_3 "ite" 
-                                              ($smtx_is_value a)
+                                              ($smtx_term_is_value a)
                                               ($smtx_dt_is_value f)
                                               $smt_builtin_false))
   (($smtx_dt_is_value c)                    ($smt_is_dt_cons c))
   )
 )
 
-; program: $smtx_is_value
+; program: $smtx_term_is_value
 ; Returns true if its argument is an SMT value.
 ; This function is expected to never get stuck.
-(program $smtx_is_value
+(program $smtx_term_is_value
   ((T $smt_Type) (t $smt_Term) (n $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String))
   :signature ($smt_Term) $smt_builtin_Bool
   (
   ; standard atomic types
-  (($smtx_is_value $sm_mk_true)                         $smt_builtin_true)
-  (($smtx_is_value $sm_mk_false)                        $smt_builtin_true)
-  (($smtx_is_value ($smd_sm.Numeral n))                 $smt_builtin_true)
-  (($smtx_is_value ($smd_sm.Rational r))                $smt_builtin_true)
-  (($smtx_is_value ($smd_sm.String s))                  $smt_builtin_true)
-  ;(($smtx_is_value @Map t)   ($smtx_map_is_value t))
+  (($smtx_term_is_value $sm_mk_true)                         $smt_builtin_true)
+  (($smtx_term_is_value $sm_mk_false)                        $smt_builtin_true)
+  (($smtx_term_is_value ($smd_sm.Numeral n))                 $smt_builtin_true)
+  (($smtx_term_is_value ($smd_sm.Rational r))                $smt_builtin_true)
+  (($smtx_term_is_value ($smd_sm.String s))                  $smt_builtin_true)
+  ;(($smtx_term_is_value @Map t)   ($smtx_map_is_value t))
   ; by default, a value is a term that appears in the type enumeration
-  (($smtx_is_value t)                 ($smt_apply_3 "ite" ($smt_is_dt ($smtx_typeof t))
+  (($smtx_term_is_value t)                 ($smt_apply_3 "ite" ($smt_is_dt ($smtx_typeof t))
                                         ($smtx_dt_is_value t)
                                         $smt_builtin_false))
   )
@@ -598,17 +598,19 @@ $EO_EVAL_CASES$
       ($smtx_model_eval x2)
       ($smtx_model_eval x3)))
   ; Equality insists on valueness and then reduces to an equality over datatypes
-  ; in the deep embedding, meaning it works for all type. Note that the valueness
-  ; predicate ensures this is sound. Moreover note that we do not invoke the type
-  ; checker here. This means that if an ill-typed equality was given as input to
-  ; this method, it would always evaluate to false. The caller of this method is
-  ; responsible for ensuring that this behavior is either avoided or admissible.
+  ; in the deep embedding (vsm.Value), meaning it works for all types, including
+  ; functions and uninterpreted sorts where values are not represented by terms.
+  ; Note that the valueness predicate ensures this is sound. Moreover note that
+  ; we do not invoke the type checker here. This means that if an ill-typed
+  ; equality was given as input to this method, it would always evaluate to false.
+  ; The caller of this method is responsible for ensuring that this behavior is
+  ; either avoided or admissible.
   (($smtx_model_eval (= x1 x2))
     (eo::define ((e1 ($smtx_model_eval x1)))
     (eo::define ((e2 ($smtx_model_eval x2)))
-    ($smt_apply_3 "ite" ($smt_builtin_and ($smtx_is_value x1) ($smtx_is_value x2))
+    ($smt_apply_3 "ite" ($smt_builtin_and ($smtx_term_is_value e1) ($smtx_term_is_value e2))
       ; use datatype equality
-      ($sm_mk_bool ($smt_apply_= x1 x2))
+      ($sm_mk_bool ($smt_apply_= e1 e2))
       (= x1 x2)))))
   ; evaluation of standard SMT symbols
   ; These calls may only call one of the above macros:

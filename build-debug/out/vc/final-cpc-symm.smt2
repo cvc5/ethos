@@ -328,8 +328,8 @@
     eo.Stuck
     eo.Stuck)))
 
-; fwd-decl: $smtx_is_value
-(declare-fun $smtx_is_value (sm.Term) Bool)
+; fwd-decl: $smtx_term_is_value
+(declare-fun $smtx_term_is_value (sm.Term) Bool)
 
 ; fwd-decl: $smtx_typeof
 (declare-fun $smtx_typeof (sm.Term) tsm.Type)
@@ -339,13 +339,13 @@
 (assert (! (forall ((x1 sm.Term))
   (= ($smtx_dt_is_value x1)
   (ite ((_ is sm.Apply) x1)
-    (ite ($smtx_is_value (sm.Apply.arg2 x1)) ($smtx_dt_is_value (sm.Apply.arg1 x1)) false)
+    (ite ($smtx_term_is_value (sm.Apply.arg2 x1)) ($smtx_dt_is_value (sm.Apply.arg1 x1)) false)
     (ite (= ($eo_dt_selectors (eo.SmtTerm x1)) eo.Stuck) false true)
 ))) :named sm.axiom.$smtx_dt_is_value))
 
-; program: $smtx_is_value
+; program: $smtx_term_is_value
 (assert (! (forall ((x1 sm.Term))
-  (= ($smtx_is_value x1)
+  (= ($smtx_term_is_value x1)
   (ite (= x1 sm.True)
     true
   (ite (= x1 sm.False)
@@ -357,7 +357,7 @@
   (ite ((_ is sm.String) x1)
     true
     (ite (ite (= ($eo_dt_constructors (eo.SmtType ($smtx_typeof x1))) eo.Stuck) false true) ($smtx_dt_is_value x1) false)
-))))))) :named sm.axiom.$smtx_is_value))
+))))))) :named sm.axiom.$smtx_term_is_value))
 
 ; fwd-decl: $smtx_model_eval
 (declare-fun $smtx_model_eval (sm.Term) sm.Term)
@@ -380,7 +380,7 @@
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) ((_ is sm.Apply) (sm.Apply.arg1 (sm.Apply.arg1 x1))) (= (sm.Apply.arg1 (sm.Apply.arg1 (sm.Apply.arg1 x1))) sm.ite))
     (ite (= ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1)))) sm.True) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_model_eval (sm.Apply.arg2 x1)))
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) (= (sm.Apply.arg1 (sm.Apply.arg1 x1)) sm.=))
-    (ite (and ($smtx_is_value (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_is_value (sm.Apply.arg2 x1))) (ite (= (sm.Apply.arg2 (sm.Apply.arg1 x1)) (sm.Apply.arg2 x1)) sm.True sm.False) (sm.Apply (sm.Apply sm.= (sm.Apply.arg2 (sm.Apply.arg1 x1))) (sm.Apply.arg2 x1)))
+    (ite (and ($smtx_term_is_value ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1)))) ($smtx_term_is_value ($smtx_model_eval (sm.Apply.arg2 x1)))) (ite (= ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_model_eval (sm.Apply.arg2 x1))) sm.True sm.False) (sm.Apply (sm.Apply sm.= (sm.Apply.arg2 (sm.Apply.arg1 x1))) (sm.Apply.arg2 x1)))
   (ite (and ((_ is sm.Apply) x1) (= (sm.Apply.arg1 x1) sm.not))
     (ite (or (= ($smtx_model_eval (sm.Apply.arg2 x1)) sm.True) (= ($smtx_model_eval (sm.Apply.arg2 x1)) sm.False)) (ite (not (= sm.True ($smtx_model_eval (sm.Apply.arg2 x1)))) sm.True sm.False) (sm.Apply sm.not (sm.Apply.arg2 x1)))
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) (= (sm.Apply.arg1 (sm.Apply.arg1 x1)) sm.and))
@@ -467,7 +467,7 @@
         (= i 0)
         ; skolems can be assumed to be a value if their predicate is satisfied
         ($smtx_const_predicate k i T ($smtx_model_lookup k i T)))
-      ($smtx_is_value ($smtx_model_lookup k i T))))
+      ($smtx_term_is_value ($smtx_model_lookup k i T))))
  :named sm.model_is_value))
 
 ;;; The verification condition

@@ -198,6 +198,8 @@ void ModelSmt::printSmtTerm(const std::string& name,
       {
         appConds << " ";
       }
+      std::stringstream ssmt;
+      ssmt << "($smd_tsm.Value.Term.arg1 e" << i << ")";
       if (ka == Kind::PARAM)
       {
         Assert(kas != Kind::NONE);
