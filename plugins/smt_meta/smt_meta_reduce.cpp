@@ -976,23 +976,23 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
       // Initial context depends on the kind of the argument type of the
       // program.
       TermContextKind ctxPatMatch = vctxArgs[j - 1];
-       std::cout << std::endl
-                 << "; Print pat matching for " << hd[j] << " in context "
-                 << termContextKindToString(ctxPatMatch) << std::endl;
+      std::cout << std::endl
+                << "; Print pat matching for " << hd[j] << " in context "
+                << termContextKindToString(ctxPatMatch) << std::endl;
       printEmbPatternMatch(
           hd[j], args[j - 1], currCase, ctx, print, ctxPatMatch);
-       std::cout << "...returns " << currCase.str() << std::endl;
+      std::cout << "...returns " << currCase.str() << std::endl;
     }
     // compile the return for this case
     std::stringstream currRet;
     // The type of the function determines the initial context of return terms
     // we print
     TermContextKind bodyInitCtx = vctxArgs[nargs - 1];
-     std::cout << std::endl
-               << "; Print body " << body << " in context "
-               << termContextKindToString(bodyInitCtx) << std::endl;
+    std::cout << std::endl
+              << "; Print body " << body << " in context "
+              << termContextKindToString(bodyInitCtx) << std::endl;
     printEmbTerm(body, currRet, ctx, bodyInitCtx);
-     std::cout << "...returns " << currRet.str() << std::endl;
+    std::cout << "...returns " << currRet.str() << std::endl;
     if (isEoProg || isSmtProgram)
     {
       // we permit SMT_PROGRAM and Eunoia programs to have pattern matching
@@ -1325,13 +1325,13 @@ TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
       }
       else if (sname.compare(0, 9, "$smd_vsm.") == 0)
       {
-        if (sname=="$smd_vsm.Term")
+        if (sname == "$smd_vsm.Term")
         {
           tk = TermContextKind::SMT;
         }
-        else if (sname=="$smd_vsm.Map")
+        else if (sname == "$smd_vsm.Map")
         {
-          tk = i==0 ? TermContextKind::SMT_TYPE : TermContextKind::SMT_MAP;
+          tk = i == 0 ? TermContextKind::SMT_TYPE : TermContextKind::SMT_MAP;
         }
       }
       else if (sname == "$eo_Var")
