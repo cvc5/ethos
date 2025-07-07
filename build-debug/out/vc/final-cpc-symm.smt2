@@ -137,14 +137,6 @@
     (eo.SmtTerm x1)
     eo.Stuck)))
 
-; program: $eo_smt_type
-(define-fun $eo_smt_type ((x1 tsm.Type)) eo.Term
-  (ite false
-    eo.Stuck
-  (ite true
-    (eo.SmtType x1)
-    eo.Stuck)))
-
 ; program: $eo_mk_numeral
 (define-fun $eo_mk_numeral ((x1 Int)) eo.Term
   (ite false
@@ -288,22 +280,6 @@
 ; fwd-decl: $eo_model_sat
 (declare-fun $eo_model_sat (eo.Term) eo.Term)
 
-; program: $eo_const_predicate
-(define-fun $eo_const_predicate ((x1 Int) (x2 Int) (x3 eo.Term) (x4 eo.Term)) eo.Term
-  (ite (or (= x3 eo.Stuck) (= x4 eo.Stuck))
-    eo.Stuck
-  (ite true
-    eo.Stuck
-    eo.Stuck)))
-
-; program: $eo_model_eval
-(define-fun $eo_model_eval ((x1 eo.Term)) eo.Term
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite true
-    eo.Stuck
-    eo.Stuck)))
-
 ; fwd-decl: $smtx_term_is_value
 (declare-fun $smtx_term_is_value (sm.Term) Bool)
 
@@ -331,7 +307,7 @@
 
 ; program: $smtx_const_predicate
 (define-fun $smtx_const_predicate ((x1 Int) (x2 Int) (x3 tsm.Type) (x4 sm.Term)) Bool
-    (= (ite ((_ is eo.SmtTerm) ($eo_const_predicate x1 x2 (eo.SmtType x3) (eo.SmtTerm x4))) (eo.SmtTerm.arg1 ($eo_const_predicate x1 x2 (eo.SmtType x3) (eo.SmtTerm x4))) sm.True) sm.True)
+    true
 )
 
 ; program: $smtx_model_eval
@@ -351,7 +327,7 @@
     (ite (and (or (= ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) sm.True) (= ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) sm.False)) (or (= ($smtx_model_eval (sm.Apply.arg2 x1)) sm.True) (= ($smtx_model_eval (sm.Apply.arg2 x1)) sm.False))) (ite (and (= sm.True ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1)))) (= sm.True ($smtx_model_eval (sm.Apply.arg2 x1)))) sm.True sm.False) (sm.Apply (sm.Apply sm.and (sm.Apply.arg2 (sm.Apply.arg1 x1))) (sm.Apply.arg2 x1)))
   (ite ((_ is sm.Const) x1)
     ($smtx_model_lookup 0 (sm.Const.arg2 x1) (sm.Const.arg1 x1))
-    (ite ((_ is eo.SmtTerm) ($eo_model_eval (eo.SmtTerm x1))) (eo.SmtTerm.arg1 ($eo_model_eval (eo.SmtTerm x1))) x1)
+    x1
 ))))))))) :named sm.axiom.$smtx_model_eval))
 
 ; program: $eo_model_sat_internal
