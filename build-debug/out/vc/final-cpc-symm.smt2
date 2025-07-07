@@ -288,8 +288,10 @@
 
 ; program: $smtx_const_predicate
 (define-fun $smtx_const_predicate ((x1 Int) (x2 Int) (x3 tsm.Type) (x4 vsm.Value)) Bool
+  (ite (= x1 0)
+    true
     false
-)
+))
 
 ; program: $smtx_model_eval
 (assert (! (forall ((x1 sm.Term))

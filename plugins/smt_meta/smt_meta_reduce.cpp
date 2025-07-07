@@ -410,6 +410,16 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       // will use a tester
       printEmbAtomicTerm(tcur[0], cname, TermContextKind::NONE);
       printArgStart = 1;
+      if (isSmtApplyApp(tcur))
+      {
+        Assert (tcur[1].getKind()==Kind::STRING);
+        // e.g. ($smt_apply_0 "0") in a pattern.
+        const Literal* l = tcur[1].getValue()->asLiteral();
+        std::stringstream eq;
+        eq << "(= " << currTerm << " " << l->d_str.toString() << ")";
+        print.push(eq.str());
+        continue;
+      }
       printArgs = true;
       // we don't know the context of children, we compute per child below
       parent = TermContextKind::NONE;
@@ -475,6 +485,18 @@ std::string SmtMetaReduce::getName(const Expr& e)
   }
   return ss.str();
 }
+
+bool SmtMetaReduce::isSmtApplyApp(const Expr& oApp)
+{
+  if (oApp.getKind()!=Kind::APPLY_OPAQUE || oApp.getNumChildren() <= 1 || oApp[1].getKind() != Kind::STRING)
+  {
+    return false;
+  }
+  std::string sname = getName(oApp[0]);
+  return (sname.compare(0, 11, "$smt_apply_") == 0
+          || sname.compare(0, 10, "$smt_type_") == 0);
+}
+
 std::string SmtMetaReduce::getEmbedName(const Expr& oApp)
 {
   Assert(oApp.getKind() == Kind::APPLY_OPAQUE);
@@ -483,14 +505,9 @@ std::string SmtMetaReduce::getEmbedName(const Expr& oApp)
   {
     return "=";
   }
-  if (oApp.getNumChildren() <= 1)
+  if (!isSmtApplyApp(oApp))
   {
-    EO_FATAL() << "Unexpected arity for opaque operator " << oApp;
-  }
-  if (oApp[1].getKind() != Kind::STRING)
-  {
-    EO_FATAL() << "Expected string for SMT-LIB app name as first argument, got "
-               << oApp;
+    EO_FATAL() << "Expected smt apply app when asking for embed name " << oApp;
   }
   const Literal* l = oApp[1].getValue()->asLiteral();
   return l->d_str.toString();

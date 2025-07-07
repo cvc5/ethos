@@ -132,6 +132,7 @@ class SmtMetaReduce : public StdPlugin
   /** Does t have subterm s? */
   static bool hasSubterm(const Expr& t, const Expr& s);
   bool isProgram(const Expr& t);
+  bool isSmtApplyApp(const Expr& oApp);
   std::string getName(const Expr& e);
   std::string getEmbedName(const Expr& oApp);
   /** Program declarations processed */
