@@ -691,6 +691,7 @@
 ;;; since eo_typeof depends on literal predicates, typeof is only now ready.
 
 ; Used to model eo::var
+; TODO: rename to $smd_eo.Var
 (declare-parameterized-const $eo_Var ((s $eo_String :opaque) (T $eo_Term :opaque)) $eo_Term)
 
 ; program: $eo_var

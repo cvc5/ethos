@@ -1247,6 +1247,10 @@ TermContextKind SmtMetaReduce::getTypeMetaKind(const Expr& typ,
   {
     return TermContextKind::SMT_MAP;
   }
+  else if (sname == "$smt_BuiltinType")
+  {
+    return TermContextKind::SMT_BUILTIN;
+  }
   return elseKind;
 }
 
@@ -1260,94 +1264,85 @@ TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
   if (k == Kind::APPLY_OPAQUE)
   {
     // the head of the opaque is NONE
-    if (i != 0)
+    if (i == 0)
     {
-      std::string sname = getName(parent[0]);
-      if (sname.compare(0, 11, "$smt_apply_") == 0)
+      return tk;
+    }
+    std::string sname = getName(parent[0]);
+    TermContextKind tknew;
+    if (sname.compare(0, 5, "$smd_")==0)
+    {
+      // any operator introduced by $smd_ should have accurate type.
+      Expr op = parent[0];
+      Expr tpop = d_tc.getType(op);
+      Assert (tpop.getKind()==Kind::FUNCTION_TYPE) << "Not function " << parent;
+      std::pair<std::vector<Expr>, Expr> ftype = tpop.getFunctionType();
+      Assert (i<=ftype.first.size()) << "Bad index " << (i-1) << " / " << tpop << " from " << parent;
+      std::cout << "Get type meta kind for " << ftype.first[i-1] << std::endl;
+      Expr atype = ftype.first[i-1];
+      if (atype.getKind()==Kind::QUOTE_TYPE)
       {
-        std::string suffix = sname.substr(11);
-        if (suffix == "=")
+        Expr qt = atype[0];
+        atype = d_tc.getType(qt);
+      }
+      std::cout << "...process to " << atype << std::endl;
+      tknew = getTypeMetaKind(atype);
+      Assert (tknew!=TermContextKind::NONE);
+      return tknew;
+    }
+    if (sname.compare(0, 11, "$smt_apply_") == 0)
+    {
+      std::string suffix = sname.substr(11);
+      if (suffix == "=")
+      {
+        // both sides have no context.
+        // this allows SMT-LIB equality to operate on Eunoia terms.
+        tk = TermContextKind::NONE;
+      }
+      else if (i == 1)
+      {
+        // SMT-LIB identifier
+        tk = TermContextKind::NONE;
+      }
+      else
+      {
+        std::string esname = getEmbedName(parent);
+        if (esname == "ite")
         {
-          // both sides have no context.
-          // this allows SMT-LIB equality to operate on Eunoia terms.
-          tk = TermContextKind::NONE;
+          // the condition is stored at position 2, after op and deep
+          // embedding the branches have no context.
+          // TODO: maybe they should have SMT context???
+          tk = i == 2 ? TermContextKind::SMT_BUILTIN : TermContextKind::NONE;
         }
-        else if (i == 1)
+        else if (esname == "eo.SmtTerm.arg1")
         {
-          // SMT-LIB identifier
-          tk = TermContextKind::NONE;
+          // corner case: the selector of terms is SMT
+          tk = TermContextKind::SMT_GUARDED;
+        }
+        else if (esname == "eo.SmtType.arg1")
+        {
+          // corner case: the selector of terms is SMT
+          tk = TermContextKind::SMT_TYPE_GUARDED;
+        }
+        else if (esname == "eo.SmtValue.arg1")
+        {
+          // corner case: the selector of terms is SMT
+          tk = TermContextKind::SMT_VALUE_GUARDED;
         }
         else
         {
-          std::string esname = getEmbedName(parent);
-          if (esname == "ite")
-          {
-            // the condition is stored at position 2, after op and deep
-            // embedding the branches have no context.
-            // TODO: maybe they should have SMT context???
-            tk = i == 2 ? TermContextKind::SMT_BUILTIN : TermContextKind::NONE;
-          }
-          else if (esname == "eo.SmtTerm.arg1")
-          {
-            // corner case: the selector of terms is SMT
-            tk = TermContextKind::SMT_GUARDED;
-          }
-          else if (esname == "eo.SmtType.arg1")
-          {
-            // corner case: the selector of terms is SMT
-            tk = TermContextKind::SMT_TYPE_GUARDED;
-          }
-          else if (esname == "eo.SmtValue.arg1")
-          {
-            // corner case: the selector of terms is SMT
-            tk = TermContextKind::SMT_VALUE_GUARDED;
-          }
-          else
-          {
-            Assert(esname != "=") << "Use smt_apply_= instead";
-            tk = TermContextKind::SMT_BUILTIN;
-          }
+          Assert(esname != "=") << "Use smt_apply_= instead";
+          tk = TermContextKind::SMT_BUILTIN;
         }
       }
-      else if (sname.compare(0, 10, "$smt_type_") == 0)
-      {
-        tk = TermContextKind::SMT_TYPE;
-      }
-      else if (sname == "$smd_eo.SmtTerm")
-      {
-        tk = TermContextKind::SMT;
-      }
-      else if (sname == "$smd_eo.SmtType")
-      {
-        tk = TermContextKind::SMT_TYPE;
-      }
-      else if (sname.compare(0, 8, "$smd_sm.") == 0)
-      {
-        tk = TermContextKind::SMT_BUILTIN;
-      }
-      else if (sname.compare(0, 9, "$smd_tsm.") == 0)
-      {
-        tk = TermContextKind::SMT_TYPE;
-      }
-      else if (sname.compare(0, 9, "$smd_vsm.") == 0)
-      {
-        if (sname == "$smd_vsm.Term")
-        {
-          tk = TermContextKind::SMT;
-        }
-        else if (sname == "$smd_vsm.Map")
-        {
-          tk = i == 1 ? TermContextKind::SMT_TYPE : TermContextKind::SMT_MAP;
-        }
-      }
-      else if (sname.compare(0, 9, "$smd_msm.") == 0)
-      {
-        tk = i == 3 && sname=="$smd_msm.Map.cons" ? TermContextKind::SMT_MAP : TermContextKind::SMT_VALUE;
-      }
-      else if (sname == "$eo_Var")
-      {
-        tk = i == 1 ? TermContextKind::SMT_BUILTIN : TermContextKind::EUNOIA;
-      }
+    }
+    else if (sname.compare(0, 10, "$smt_type_") == 0)
+    {
+      tk = TermContextKind::SMT_TYPE;
+    }
+    else if (sname == "$eo_Var")
+    {
+      tk = i == 1 ? TermContextKind::SMT_BUILTIN : TermContextKind::EUNOIA;
     }
   }
   else if (k == Kind::APPLY)
