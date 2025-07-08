@@ -1767,11 +1767,12 @@ Expr TypeChecker::evaluateListMPredInternal(Kind k,
   return d_state.mkTrue();
 }
 
-Expr TypeChecker::evaluateListDiffInterInternal(Kind k,
-                                                ExprValue* op,
-                                                ExprValue* nil,
-                                                bool isLeft,
-                                                const std::vector<ExprValue*>& args)
+Expr TypeChecker::evaluateListDiffInterInternal(
+    Kind k,
+    ExprValue* op,
+    ExprValue* nil,
+    bool isLeft,
+    const std::vector<ExprValue*>& args)
 {
   std::vector<ExprValue*> hargs, hargs2;
   if (getNAryChildren(args[1], op, nil, hargs, isLeft) == nullptr
@@ -1779,7 +1780,7 @@ Expr TypeChecker::evaluateListDiffInterInternal(Kind k,
   {
     return d_null;
   }
-  bool isDiff = (k==Kind::EVAL_LIST_DIFF);
+  bool isDiff = (k == Kind::EVAL_LIST_DIFF);
   // optimization: reflexive is nil or self
   if (args[1] == args[2])
   {
@@ -1801,12 +1802,12 @@ Expr TypeChecker::evaluateListDiffInterInternal(Kind k,
     if (found)
     {
       itc->second--;
-      if (itc->second==0)
+      if (itc->second == 0)
       {
         count2.erase(hargs[i]);
       }
     }
-    if (found==isDiff)
+    if (found == isDiff)
     {
       changeIndex = i + 1;
       changeSize = result.size();
@@ -1825,7 +1826,6 @@ Expr TypeChecker::evaluateListDiffInterInternal(Kind k,
   result.resize(changeSize);
   ExprValue* ret = getNAryNthTail(args[1], isLeft, changeIndex);
   return prependNAryChildren(op, ret, result, isLeft);
-
 }
 
 Expr TypeChecker::getLiteralOpType(Kind k,
