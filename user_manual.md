@@ -2595,6 +2595,54 @@ All other list operators can be defined as ordinary Eunoia programs.
    (W1 Type :implicit) (W2 Type :implicit)
    (f (-> T U V)) (a W1) (b W2))
   (eo::and ($eo_list_minclude f a b) ($eo_list_minclude f b a)))
+
+;;; $eo_list_diff
+
+; Note: a helper for $eo_list_diff.
+(program $eo_list_diff_rec
+  ((T Type) (V Type) (x T) (y V) (f (-> T V V)) (nil V) (z V))
+  :signature ((-> T V V) V V) V
+  (
+  (($eo_list_diff_rec f (f x y) z)  (eo::define ((res ($eo_list_erase f z x)))
+                                    (eo::ite ($eo_eq res z)
+                                      (f x ($eo_list_diff_rec y res))
+                                      ($eo_list_diff_rec y res))))
+  (($eo_list_diff_rec f nil z)      nil)
+  )
+)
+
+; define: $eo_list_diff
+; implements: eo::list_diff
+(define $eo_list_diff
+  ((T Type :implicit) (V Type :implicit)
+   (f (-> T V V)) (a V) (b V))
+  (eo::requires ($eo_is_list f a) true
+  (eo::requires ($eo_is_list f b) true
+    ($eo_list_diff_rec f a b))))
+
+;;; $eo_list_inter
+
+; Note: a helper for $eo_list_inter
+(program $eo_list_inter_rec
+  ((T Type) (V Type) (x T) (y V) (f (-> T V V)) (nil V) (z V))
+  :signature ((-> T V V) V V) V
+  (
+  (($eo_list_inter_rec f (f x y) z) (eo::define ((res ($eo_list_erase f z x)))
+                                    (eo::ite ($eo_eq res z)
+                                      ($eo_list_inter_rec y res)
+                                      (f x ($eo_list_inter_rec y res)))))
+  (($eo_list_inter_rec f nil z)     nil)
+  )
+)
+
+; define: $eo_list_inter
+; implements: eo::list_inter
+(define $eo_list_inter
+  ((T Type :implicit) (V Type :implicit)
+   (f (-> T V V)) (a V) (b V))
+  (eo::requires ($eo_is_list f a) true
+  (eo::requires ($eo_is_list f b) true
+    ($eo_list_inter_rec f a b))))
 ```
 
 ### Proofs as terms
