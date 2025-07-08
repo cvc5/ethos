@@ -1,5 +1,11 @@
 This file contains a summary of important user-visible changes.
 
+
+ethos 0.2.1 pre-release
+=======================
+
+- Adds builtin list operators `eo::list_diff` (difference) and `eo::list_inter` (intersection)
+
 ethos 0.2.0
 ===========
 
