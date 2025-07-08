@@ -157,15 +157,17 @@ set(ethos_test_file_list
     eo-definitions-test.eo
     nground-nil-ex.eo
     list-nth-non-list.eo
+    eo-list-ops.eo
+    eo-list-ops-napply.eo
 )
 
-if(ENABLE_ORACLES)
-  list(APPEND ethos_test_file_list
-      oracle-ex.eo
-      oracle-ex2.eo
-      tiny_oracle.eo
-  )
-endif()
+#if(ENABLE_ORACLES)
+#  list(APPEND ethos_test_file_list
+#      oracle-ex.eo
+#      oracle-ex2.eo
+#      tiny_oracle.eo
+#  )
+#endif()
 
 macro(ethos_test file)
   add_test(

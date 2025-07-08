@@ -226,6 +226,19 @@ class State
   bool markIncluded(const Filepath& s);
   /** mark deleted */
   void markDeleted(ExprValue* e);
+  /**
+   * Make (<APPLY> children) based on attribute. Returns the null term if the
+   * attribute does not impact how to build the application.
+   * @param ai The attribute of the head.
+   * @param vchildren The children, including the head term.
+   * @param consTerm The computed constructor term correspond to the
+   * application.
+   * @return The application of vchildren based on ai, or the null term if
+   * the default construction should be used to construct the application.
+   */
+  Expr mkApplyAttr(AppInfo* ai,
+                   const std::vector<ExprValue*>& vchildren,
+                   const Expr& consTerm);
   /** Make (<APPLY> children), curried. */
   ExprValue* mkApplyInternal(const std::vector<ExprValue*>& children);
   /**
@@ -248,13 +261,17 @@ class State
    * construct. This includes a head operator.
    * @param retType If non-null, this is required return type of the
    * application.
+   * @param retApply If true, we return the application of the
+   * appropriate overloaded constructor to children; otherwise we return the
+   * overloaded constructor itself.
    * @return If possible, one of the elements of overloads that meets
    * the above requirements. If multiple are possible, we return the
    * first only. If none are possible, we return the null expression.
    */
   Expr getOverloadInternal(const std::vector<Expr>& overloads,
                            const std::vector<Expr>& children,
-                           const ExprValue* retType = nullptr);
+                           const ExprValue* retType = nullptr,
+                           bool retApply = false);
   /** Get the internal data for expression e. */
   AppInfo* getAppInfo(const ExprValue* e);
   const AppInfo* getAppInfo(const ExprValue* e) const;

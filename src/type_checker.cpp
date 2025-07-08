@@ -207,7 +207,9 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_LIST_ERASE_ALL:
     case Kind::EVAL_LIST_NTH:
     case Kind::EVAL_LIST_MINCLUDE:
-    case Kind::EVAL_LIST_MEQ: ret = (nargs == 3); break;
+    case Kind::EVAL_LIST_MEQ:
+    case Kind::EVAL_LIST_DIFF:
+    case Kind::EVAL_LIST_INTER: ret = (nargs == 3); break;
     case Kind::EVAL_EXTRACT:
       ret = (nargs==3 || nargs==2);
       break;
@@ -1108,17 +1110,13 @@ bool isNAryList(ExprValue* e, ExprValue* op, ExprValue* checkNil, bool isLeft)
     ExprValue* cop = (*e)[0];
     if (cop->getKind() != Kind::APPLY || (*cop)[0] != op)
     {
-      return false;
+      break;
     }
     // traverse to tail
     e = isLeft ? (*cop)[1] : (*e)[1];
   }
   // must be equal to the nil term
-  if (e != checkNil)
-  {
-    return false;
-  }
-  return true;
+  return e == checkNil;
 }
 
 /**
@@ -1142,17 +1140,23 @@ Expr TypeChecker::prependNAryChildren(ExprValue* op,
                                       bool isLeft)
 {
   // note we take the tail verbatim
-  std::vector<ExprValue*> cc;
-  cc.push_back(op);
-  cc.push_back(nullptr);
-  cc.push_back(nullptr);
-  size_t tailIndex = (isLeft ? 1 : 2);
-  size_t headIndex = (isLeft ? 2 : 1);
-  for (size_t i = 0, nargs = hargs.size(); i < nargs; i++)
+  if (isLeft)
   {
-    cc[tailIndex] = ret;
-    cc[headIndex] = hargs[isLeft ? i : (nargs - 1 - i)];
-    ret = d_state.mkApplyInternal(cc);
+    ExprValue* c1;
+    for (auto it = hargs.begin(); it != hargs.end(); ++it)
+    {
+      c1 = d_state.mkExprInternal(Kind::APPLY, {op, ret});
+      ret = d_state.mkExprInternal(Kind::APPLY, {c1, *it});
+    }
+  }
+  else
+  {
+    ExprValue* c1;
+    for (auto rit = hargs.rbegin(); rit != hargs.rend(); ++rit)
+    {
+      c1 = d_state.mkExprInternal(Kind::APPLY, {op, *rit});
+      ret = d_state.mkExprInternal(Kind::APPLY, {c1, ret});
+    }
   }
   return Expr(ret);
 }
@@ -1611,6 +1615,9 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_LIST_MINCLUDE:
     case Kind::EVAL_LIST_MEQ:
       return evaluateListMPredInternal(k, op, nil, isLeft, args);
+    case Kind::EVAL_LIST_DIFF:
+    case Kind::EVAL_LIST_INTER:
+      return evaluateListDiffInterInternal(k, op, nil, isLeft, args);
     default:
       break;
   }
@@ -1760,6 +1767,67 @@ Expr TypeChecker::evaluateListMPredInternal(Kind k,
   return d_state.mkTrue();
 }
 
+Expr TypeChecker::evaluateListDiffInterInternal(
+    Kind k,
+    ExprValue* op,
+    ExprValue* nil,
+    bool isLeft,
+    const std::vector<ExprValue*>& args)
+{
+  std::vector<ExprValue*> hargs, hargs2;
+  if (getNAryChildren(args[1], op, nil, hargs, isLeft) == nullptr
+      || getNAryChildren(args[2], op, nil, hargs2, isLeft) == nullptr)
+  {
+    return d_null;
+  }
+  bool isDiff = (k == Kind::EVAL_LIST_DIFF);
+  // optimization: reflexive is nil or self
+  if (args[1] == args[2])
+  {
+    return isDiff ? Expr(nil) : Expr(args[1]);
+  }
+  std::unordered_map<const ExprValue*, uint32_t> count2;
+  for (const ExprValue* elem : hargs2)
+  {
+    ++count2[elem];
+  }
+  size_t changeIndex = 0;
+  size_t changeSize = 0;
+  std::vector<ExprValue*> result;
+  std::unordered_map<const ExprValue*, uint32_t>::iterator itc;
+  for (size_t i = 0, nargs = hargs.size(); i < nargs; i++)
+  {
+    itc = count2.find(hargs[i]);
+    bool found = (itc != count2.end());
+    if (found)
+    {
+      itc->second--;
+      if (itc->second == 0)
+      {
+        count2.erase(hargs[i]);
+      }
+    }
+    if (found == isDiff)
+    {
+      changeIndex = i + 1;
+      changeSize = result.size();
+      continue;
+    }
+    result.emplace_back(hargs[i]);
+  }
+  if (changeIndex == 0)
+  {
+    return Expr(args[1]);
+  }
+  // We resize to the size of the vector at the place it was last modified,
+  // and take the changeIndex^th tail of args[1]. This is an important
+  // optimization to avoid reconstructing the remainder of the list past
+  // the point it was changed.
+  result.resize(changeSize);
+  ExprValue* ret = getNAryNthTail(args[1], isLeft, changeIndex);
+  return prependNAryChildren(op, ret, result, isLeft);
+}
+
 Expr TypeChecker::getLiteralOpType(Kind k,
                                    std::vector<ExprValue*>& children,
                                    std::vector<ExprValue*>& childTypes,
@@ -1799,7 +1867,9 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_LIST_ERASE:
     case Kind::EVAL_LIST_ERASE_ALL:
     case Kind::EVAL_LIST_REV:
-    case Kind::EVAL_LIST_SETOF: return Expr(childTypes[1]);
+    case Kind::EVAL_LIST_SETOF:
+    case Kind::EVAL_LIST_DIFF:
+    case Kind::EVAL_LIST_INTER: return Expr(childTypes[1]);
     case Kind::EVAL_CONCAT:
     case Kind::EVAL_EXTRACT:
       // type is the first child
