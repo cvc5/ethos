@@ -22,6 +22,14 @@
 (define $eo_is_eq ((T Type :implicit) (S Type :implicit) (t T) (s S))
   (eo::ite ($eo_if_both (eo::is_ok t) (eo::is_ok s)) ($eo_eq s t) false))
 
+;;; $eo_is_var
+
+; Returns true if x is a variable.
+; define: $eo_is_var
+; implements: eo::is_var
+(define $eo_is_var ((T Type :implicit) (x T))
+  ($eo_is_eq (eo::var (eo::nameof x) ($eo_typeof x)) x))
+
 ;;; $eo_is_bool
 
 ; Returns true if x is a Boolean literal.
