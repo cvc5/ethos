@@ -870,30 +870,36 @@ Note the following examples of core operators for the given signature
 (declare-const x Int)
 (declare-const y Int)
 (declare-const a Bool)
-;;
+
 (eo::is_ok 0)                        == true
 (eo::is_ok (eo::neg "abc"))          == false
+
+(eo::eq x x)                         == true
 (eo::eq 0 1)                         == false
 (eo::eq x y)                         == false
-(eo::eq x x)                         == true
-(eo::requires x 0 true)              == (eo::requires x 0 true)  ; x and 0 are not syntactically equal
-(eo::requires x x y)                 == y
-(eo::requires x x Int)               == Int
+(eo::eq (eo::neg "a") x)             == (eo::eq (eo::neg "a") x)              ; since the first argument fails to evaluate
+(eo::eq (eo::neg "a") (eo::neg "a")) == (eo::eq (eo::neg "a") (eo::neg "a"))  ; since both arguments fail to evaluate
+(eo::eq 2 (eo::add 1 1))             == true
+
+(eo::is_eq x x)                         == true
+(eo::is_eq 0 1)                         == false
+(eo::is_eq x y)                         == false
+(eo::is_eq (eo::neg "a") x)             == false
+(eo::is_eq (eo::neg "a") (eo::neg "a")) == false
+(eo::is_eq 2 (eo::add 1 1))             == true
+
 (eo::ite false x y)                  == y
 (eo::ite true Bool Int)              == Bool
 (eo::ite a x x)                      == (eo::ite a x x)  ; a is not a value
-
-(eo::is_eq x x)                         == true
-(eo::is_eq (eo::neg "a") x)             == false
-(eo::is_eq (eo::neg "a") (eo::neg "a")) == false
-
-(eo::eq 2 (eo::add 1 1))             == true
-(eo::eq x (eo::requires x 0 x))      == false
 (eo::ite (eo::eq x 1) x y)           == y
+
+(eo::requires x 0 true)              == (eo::requires x 0 true)  ; x and 0 are not syntactically equal
+(eo::requires x x y)                 == y
+(eo::requires x x Int)               == Int
 ```
 
-In the above, it is important to note that `eo::is_eq` is a check for syntactic equality after evaluation.
-It does not require that its arguments denote values, so for example `(eo::is_eq x y)` returns `false`.
+In the above, it is important to note that `eo::eq` and `eo::is_eq` are checks for syntactic equality, which is different from saying the terms are semantically distinct in all models.
+For example `(eo::eq x y)` returns `false`.
 
 <a name="list-computation"></a>
 
@@ -929,6 +935,10 @@ We say that a term is an `f`-list with children `t1 ... tn` if it is of the form
   - (Multiset inclusion) If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, then this returns true if each unique element in `t11 ... t1n` occurs with the greater than or equal multiplicity in `t21 ... t2m`. Note that order of the elements does not matter.
 - `(eo::list_meq f t1 t2)`
   - (Multiset equal) Equivalent to `(eo::and (eo::list_minclude f t1 t2) (eo::list_minclude t2 t1))`.
+- `(eo::list_diff f t1 t2)`
+  - (Difference) If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, this returns the result of erasing elements of `t11 ... t1n` that occur in `t21 ... t2m` where multiplicity is considered. In detail, for each `i = 1, ..., n`, if `t1i` occurs in `t21 ... t2m`, we remove one copy of it from that list. Otherwise if `t1i` does not occur in `t21 ... t2m`, we append it to the final result.
+- `(eo::list_inter f t1 t2)`
+  - (Intersection) If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, this returns the result of erasing elements of `t11 ... t1n` that do not occur in `t21 ... t2m` where multiplicity is considered. In detail, for each `i = 1, ..., n`, if `t1i` occurs in `t21 ... t2m`, we erase one copy of it from that list and append it to the final result.
 
 ### List Computation Examples
 
@@ -1007,6 +1017,16 @@ The terms on both sides of the given evaluation are written in their form prior 
 (eo::list_meq or (or a b c b) (or b a c b)) == true
 (eo::list_meq or (or a b b) (or a a b))     == false
 (eo::list_meq or false false)               == true
+
+(eo::list_diff or (or a b) (or a a b))      == false
+(eo::list_diff or (or a a b) (or a b))      == (or a)
+(eo::list_diff or (or a b c b a) (or c b))  == (or a b a)
+(eo::list_diff or (or a b a c a) (or a a))  == (or b c a)
+
+(eo::list_inter or (or a b) (or a a b))     == (or a b)
+(eo::list_inter or (or a a b) (or a b))     == (or a b)
+(eo::list_inter or (or a b c b a) (or c b)) == (or b c)
+(eo::list_inter or (or a b a c a) (or a a)) == (or a a)
 ```
 
 ### Parametric Nil terminators

@@ -1,7 +1,15 @@
 This file contains a summary of important user-visible changes.
 
-ethos 0.1.2 prerelease
-======================
+
+ethos 0.2.1 pre-release
+=======================
+
+- Adds builtin list operators `eo::list_diff` (difference) and `eo::list_inter` (intersection)
+
+ethos 0.2.0
+===========
+
+This release of Ethos is associated with the 1.3.0 release of the SMT solver cvc5.
 
 - Drops support for `:var`, `:implicit`, `:requires` and `:opaque` as *term* attributes. The recommended way of introducing function symbols with named arguments is via the command `declare-parameterized-const`, which now permits the latter three as parameter annotations. The parameters of a parameterized constants are no longer assumed to be implicit, and are explicit by default.
 - Change the execution semantics when a program takes an unevalated term as an argument. In particular, we do not call user provided programs and oracles when at least argument could not be evaluated. This change was made to make errors more intuitive. Note this changes the semantics of programs that previously relied on being called on unevaluated terms.
@@ -18,7 +26,7 @@ ethos 0.1.2 prerelease
 
 - Adds support for dependent types for programs. The argument types of programs can now use `eo::quote` to specify an input parameter to that program.
 
-- Adds builtin primitives `eo::eq` and `eo::is_ok`.
+- Adds builtin operators `eo::eq` and `eo::is_ok`.
 - Adds builtin list operators `eo::list_rev`, `eo::list_erase`, `eo::list_erase_all`, `eo::list_setof` (returns the unique elements of the list), `eo::list_minclude` (multiset inclusion) and `eo::list_meq` (multiset equality).
 - Added the option `--stats-all` to track the number of times side conditions are invoked.
 - The option `--print-let` has been renamed to `--print-dag` and is now enabled by default. The printer is changed to use `eo::define` instead of `let`.
