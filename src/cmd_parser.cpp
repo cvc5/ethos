@@ -479,20 +479,16 @@ bool CmdParser::parseNextCommand()
       d_eparser.bind(name, rule);
       if (!assume.isNull() || concExplicit || !plCons.isNull())
       {
-        Attr ra = Attr::RULE_PREMISE_LIST;
-        if (!assume.isNull())
-        {
-          ra = concExplicit ? Attr::RULE_ASSUMPTION_CE : Attr::RULE_ASSUMPTION;
-        }
-        else if (concExplicit)
-        {
-          ra = Attr::RULE_CONC_EXPLICIT;
-        }
+        std::vector<Expr> tupleChildren;
+        tupleChildren.push_back(plCons.isNull() ? d_state.mkAny() : plCons);
+        tupleChildren.push_back(d_state.mkBool(!assume.isNull()));
+        tupleChildren.push_back(d_state.mkBool(concExplicit));
+        Expr attrVal = d_state.mkExpr(Kind::TUPLE, tupleChildren);
         // we always carry plCons, in case the rule was marked
         // :premise-list as well as :assumption or :conclusion-explicit
         // simulataneously. We will handle all 3 special cases at once in
         // State::getProofRuleArguments when the rule is applied.
-        d_state.markConstructorKind(rule, ra, plCons);
+        d_state.markConstructorKind(rule, Attr::PROOF_RULE, attrVal);
       }
       AttrMap attrs;
       d_eparser.parseAttributeList(Kind::PROOF_RULE, rule, attrs);

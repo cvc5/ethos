@@ -39,11 +39,12 @@ enum class Attr
   SYNTAX,
   RESTRICT,
 
-  // indicate how to construct proof rule steps
-  RULE_PREMISE_LIST,
-  RULE_CONC_EXPLICIT,  // note this may also have a cons for a premise list
-  RULE_ASSUMPTION,     // similarly, may also have a cons for a premise list
-  RULE_ASSUMPTION_CE,  // both :assumption and :conclusion-explicit
+  // indicate how to construct proof rule steps.
+  // A proof rule R maps to a tuple (P, A, C), where
+  // - P is an n-ary operator set by :premise-list (default State::mkAny()),
+  // - A indicates if R has been marked :assumption (default false),
+  // - C indicates if R has been marked :conclusion-explicit (default false).
+  PROOF_RULE,
 
   // indicate how to construct apps of function symbols
   RIGHT_ASSOC,

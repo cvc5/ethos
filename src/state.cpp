@@ -1318,7 +1318,17 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
   if (ainfo != nullptr)
   {
     Attr a = ainfo->d_attrCons;
-    if (a == Attr::RULE_CONC_EXPLICIT || a == Attr::RULE_ASSUMPTION_CE)
+    Assert (a==Attr::PROOF_RULE);
+    Expr tupleVal = ainfo->d_attrConsTerm;
+    Assert (tupleVal.getNumChildren()==3);
+    Expr plCons;
+    if (tupleVal[0]!=d_any)
+    {
+      plCons = tupleVal[0];
+    }
+    bool isAssume = tupleVal[1]==d_true;
+    bool isConcExplicit = tupleVal[2]==d_true;
+    if (isConcExplicit)
     {
       if (proven.isNull())
       {
@@ -1327,7 +1337,7 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
       }
       children.push_back(proven);
     }
-    if (isPop == (a == Attr::RULE_ASSUMPTION || a == Attr::RULE_ASSUMPTION_CE))
+    if (isPop == isAssume)
     {
       if (isPop)
       {
@@ -1346,7 +1356,6 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
       // not requiring an assumption.
       return false;
     }
-    Expr plCons = ainfo->d_attrConsTerm;
     if (!plCons.isNull())
     {
       std::vector<Expr> achildren;
