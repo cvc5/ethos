@@ -585,7 +585,9 @@ void Desugar::finalizeRule(const Expr& e)
     d_eoVc << "(program $eor_" << e << " (($eo_x Bool))" << std::endl;
     d_eoVc << "  :signature (Bool) Bool" << std::endl;
     d_eoVc << "  (" << std::endl;
-    d_eoVc << "  (($eor_" << e << " $eo_x) " << rrt << ")" << std::endl;
+    d_eoVc << "  (($eor_" << e << " $eo_x) ";
+    printTerm(rrt, d_eoVc);
+    d_eoVc << ")" << std::endl;
     d_eoVc << "  )" << std::endl;
     d_eoVc << ")" << std::endl;
     if (!d_state.isProofRuleSorry(e.getValue()))
@@ -693,8 +695,9 @@ void Desugar::finalizeRule(const Expr& e)
   d_eoVc << "(program $eorx_" << e << " (" << plout.str() << ")" << std::endl;
   d_eoVc << "  :signature (" << tcrSig.str() << ") Bool" << std::endl;
   d_eoVc << "  (" << std::endl;
-  d_eoVc << "  (($eorx_" << e << tcrBody.str() << ") " << rrt << ")"
-         << std::endl;
+  d_eoVc << "  (($eorx_" << e << tcrBody.str() << ") ";
+  printTerm(rrt, d_eoVc);
+  d_eoVc << ")" << std::endl;
   d_eoVc << "  )" << std::endl;
   d_eoVc << ")" << std::endl;
   d_eoVc << "(program $eor_" << e << " (" << plout.str() << ")" << std::endl;

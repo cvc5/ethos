@@ -72,8 +72,9 @@
 (define $smt_builtin_z_zero () ($smt_apply_0 "0"))
 (define $smt_builtin_z_one () ($smt_apply_0 "1"))
 (define $smt_builtin_z_two () ($smt_apply_0 "2"))
-(define $smt_builtin_+ ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "+" x1 x2))
-(define $smt_builtin_- ((W Type :implicit) (x1 W)) ($smt_apply_1 "-" x1))
+(define $smt_builtin_add ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "+" x1 x2))
+(define $smt_builtin_mul ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "*" x1 x2))
+(define $smt_builtin_neg ((W Type :implicit) (x1 W)) ($smt_apply_1 "-" x1))
 (define $smt_builtin_div ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "div" x1 x2))
 (define $smt_builtin_mod ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "mod" x1 x2))
 (define $smt_builtin_not ((b $smt_builtin_Bool)) ($smt_apply_1 "not" b))
@@ -226,7 +227,7 @@
   (
   (($sm_mk_pow2 i)  ($smt_apply_3 "ite" ($smt_apply_2 "<=" i $smt_builtin_z_zero)
                       $smt_builtin_z_one
-                      ($smt_apply_2 "*" $smt_builtin_z_two ($sm_mk_pow2 ($smt_apply_2 "-" i $smt_builtin_z_one)))))
+                      ($smt_builtin_mul $smt_builtin_z_two ($sm_mk_pow2 ($smt_apply_2 "-" i $smt_builtin_z_one)))))
   )
 )
 (program $sm_mk_bit ((x $smt_builtin_Int) (i $smt_builtin_Int))
@@ -247,23 +248,33 @@
           ($smt_apply_2 "=" n1 $smt_builtin_z_one)
           ($smt_apply_2 "=" n2 $smt_builtin_z_one))
         $smt_builtin_z_one $smt_builtin_z_zero)
-       ($smt_apply_2 "+"
+       ($smt_builtin_add
          ($sm_mk_binary_and ($smt_apply_2 "-" w $smt_builtin_z_one) n1 n2)
-         ($smt_apply_2 "*" ($sm_mk_pow2 w)
+         ($smt_builtin_mul ($sm_mk_pow2 w)
             ($smt_apply_3 "ite" ($smt_builtin_and ($sm_mk_bit n1 w) ($sm_mk_bit n2 w)) $smt_builtin_z_one $smt_builtin_z_zero))))))
   )
 )
+
 (program $sm_mk_binary_or ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
-  ; TODO
+  (
+  (($sm_mk_binary_or w n1 n2)
+    ($smt_apply_3 "+" n1 n2 ($smt_builtin_neg ($sm_mk_binary_and w n1 n2))))
+  )
 )
 (program $sm_mk_binary_xor ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
-  ; TODO
+  (
+  (($sm_mk_binary_xor w n1 n2)
+    ($smt_apply_3 "+" n1 n2 ($smt_builtin_neg ($smt_apply_1 "* 2" ($sm_mk_binary_and w n1 n2)))))
+  )
 )
 (program $sm_mk_binary_not ((w $smt_builtin_Int) (n $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
-  ; TODO
+  (
+  (($sm_mk_binary_not w n)
+    ($smt_apply_2 "-" ($sm_mk_pow2 w) ($smt_apply_1 "+ 1" ($smt_builtin_mod n ($sm_mk_pow2 w)))))
+  )
 )
 (program $sm_mk_binary_max ((w $smt_builtin_Int))
   :signature ($smt_builtin_Int) $smt_builtin_Int
@@ -274,12 +285,23 @@
 (program $sm_mk_binary_concat
   ((w1 $smt_builtin_Int) (n1 $smt_builtin_Int) (w2 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
-  ; TODO
+  (
+  (($sm_mk_binary_concat w1 n1 w2 n2)
+    ($smt_builtin_add
+      ($smt_builtin_mul ($smt_builtin_mod n1 ($sm_mk_pow2 w1)) ($sm_mk_pow2 w2))
+      ($smt_builtin_mod n2 ($sm_mk_pow2 w2))))
+  )
 )
+
+;(define-fun $sm_Binary_extract ((w Int) (i Int) (j Int) (x Int)) sm.Term
+;    (ite (>= i j 0) (mod (div (mod x ($sm_mk_pow2 w)) ($sm_pow2_eval j)) ($sm_pow2_eval (+ (- i j) 1))) (sm.Stuck)))
+
 (program $sm_mk_binary_extract
-  ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
+  ((w $smt_builtin_Int) (n $smt_builtin_Int) (x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
-  ; TODO
+  ;(
+  ;(($sm_mk_binary_extract w n x1 x2)
+  ;)
 )
 
 ;;; Utilities
@@ -415,11 +437,11 @@
   :signature ($eo_Term $eo_Term) $eo_Term
   (
   (($eo_add ($eo_mk_numeral n1) ($eo_mk_numeral n2))
-    ($eo_mk_numeral ($smt_apply_2 "+" n1 n2)))
+    ($eo_mk_numeral ($smt_builtin_add n1 n2)))
   (($eo_add ($eo_mk_rational r1) ($eo_mk_rational r2))
-    ($eo_mk_rational ($smt_apply_2 "+" r1 r2)))
+    ($eo_mk_rational ($smt_builtin_add r1 r2)))
   (($eo_add ($eo_binary w n1) ($eo_binary w n2))
-    ($eo_mk_binary w ($smt_apply_2 "+" n1 n2)))
+    ($eo_mk_binary w ($smt_builtin_add n1 n2)))
   )
 )
 
@@ -428,11 +450,11 @@
   :signature ($eo_Term $eo_Term) $eo_Term
   (
   (($eo_mul ($eo_mk_numeral n1) ($eo_mk_numeral n2))
-    ($eo_mk_numeral ($smt_apply_2 "*" n1 n2)))
+    ($eo_mk_numeral ($smt_builtin_mul n1 n2)))
   (($eo_mul ($eo_mk_rational r1) ($eo_mk_rational r2))
-    ($eo_mk_rational ($smt_apply_2 "*" r1 r2)))
+    ($eo_mk_rational ($smt_builtin_mul r1 r2)))
   (($eo_mul ($eo_binary w n1) ($eo_binary w n2))
-    ($eo_mk_binary w ($smt_apply_2 "*" n1 n2)))
+    ($eo_mk_binary w ($smt_builtin_mul n1 n2)))
   )
 )
 
@@ -496,9 +518,9 @@
   :signature ($eo_Term) $eo_Term
   (
   (($eo_neg ($eo_mk_numeral n1))
-    ($eo_mk_numeral ($smt_apply_1 "-" n1)))
+    ($eo_mk_numeral ($smt_builtin_neg n1)))
   (($eo_neg ($eo_mk_rational r1))
-    ($eo_mk_rational ($smt_apply_1 "-" r1)))
+    ($eo_mk_rational ($smt_builtin_neg r1)))
   )
 )
 
@@ -523,7 +545,7 @@
   (($eo_concat ($eo_mk_string s1) ($eo_mk_string s2))
      ($eo_mk_string ($smt_apply_2 "str.++" s1 s2)))
   (($eo_concat ($eo_binary w1 n1) ($eo_binary w2 n2))
-     ($eo_mk_binary ($smt_apply_2 "+" w1 w2) ($sm_mk_binary_concat w1 n1 w2 n2)))
+     ($eo_mk_binary ($smt_builtin_add w1 w2) ($sm_mk_binary_concat w1 n1 w2 n2)))
   )
 )
 
