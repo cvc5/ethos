@@ -124,7 +124,7 @@ std::string kindToTerm(Kind k)
     case Kind::PROGRAM_TYPE: ss << "eo::arrow"; break;
     case Kind::PROOF_TYPE: ss << "Proof"; break;
     case Kind::BOOL_TYPE: ss << "Bool"; break;
-    case Kind::QUOTE_TYPE: ss << "Quote"; break;
+    case Kind::QUOTE_TYPE: ss << "eo::quote"; break;
     case Kind::TUPLE: ss << "eo::tuple"; break;
     // terms
     case Kind::APPLY: ss << "_"; break;
@@ -311,6 +311,22 @@ bool isLiteralOp(Kind k)
   }
   return false;
 }
+
+bool isNaryLiteralOp(Kind k)
+{
+  switch (k)
+  {
+    case Kind::EVAL_ADD:
+    case Kind::EVAL_MUL:
+    case Kind::EVAL_AND:
+    case Kind::EVAL_OR:
+    case Kind::EVAL_XOR:
+    case Kind::EVAL_CONCAT: return true;
+    default: break;
+  }
+  return false;
+}
+
 bool isListLiteralOp(Kind k)
 {
   switch (k)
