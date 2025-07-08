@@ -5,6 +5,7 @@ ethos 0.2.1 pre-release
 =======================
 
 - Adds builtin list operators `eo::list_diff` (difference) and `eo::list_inter` (intersection)
+- Adds support for explicit conclusions to proof rules via `:conclusion-explicit`.
 
 ethos 0.2.0
 ===========
