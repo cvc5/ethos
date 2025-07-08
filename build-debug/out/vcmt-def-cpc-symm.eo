@@ -1,45 +1,146 @@
-; trim-defs: $eovc_symm
-; #trim-defs: 51
-(define $eo_fail () (eo::requires true false true))
-(declare-const $eo_undef_type Type)
-(program $eo_typeof ((T Type))
-  :signature (T) Type)
+; trim-defs: $eovc_symm $smtx_const_predicate $eo_get_meta_type $vsm_is_value $eo_typeof $smt_Value $eo_hash $eo_requires $eo_apply $eo_fun_type
+; #trim-defs: 118
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
 (declare-consts <rational> Real)
-(declare-const BitVec (-> Int Type))
-(declare-consts <binary> (BitVec (eo::len eo::self)))
 (declare-const Char Type)
 (declare-const Seq (-> Type Type))
 (declare-consts <string> (Seq Char))
 (define $eo_Numeral () Int)
 (define $eo_Rational () Real)
 (define $eo_String () (Seq Char))
-(define $eo_Binary () $eo_undef_type)
-(program $eo_model_sat () :signature (Bool) Bool)
-(program $eo_model_eval ((T Type)) :signature (T) T)
-(declare-parameterized-const $eo_model_Const ((k $eo_Numeral) (id $eo_Numeral) (T Type)) T)
-(program $eo_eq ((T Type) (S Type) (t T) (s S))
-  :signature (T S) Bool
+(define $eo_Binary () Type)
+(declare-const $eo_Term Type)
+(program $eo_typeof ((T Type))
+  :signature (T) Type)
+(declare-const $smt_BuiltinType Type)
+(define $smt_id () $eo_String)
+(declare-parameterized-const $smt_type_0
+  ((op $smt_id :opaque))
+  Type)
+(declare-parameterized-const $smt_apply_0
+  ((op $smt_id :opaque))
+  $smt_BuiltinType)
+(declare-parameterized-const $smt_apply_1
+  ((W1 Type :implicit)
+   (op $smt_id :opaque) (x1 W1 :opaque)) $smt_BuiltinType)
+(declare-parameterized-const $smt_apply_2
+  ((W1 Type :implicit) (W2 Type :implicit)
+   (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque)) $smt_BuiltinType)
+(declare-parameterized-const $smt_apply_3
+  ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit)
+   (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque)) $smt_BuiltinType)
+(declare-parameterized-const $smt_apply_=
+  ((W Type :implicit) (x1 W :opaque) (x2 W :opaque))
+  $smt_BuiltinType)
+(define $smt_builtin_Bool () ($smt_type_0 "Bool"))
+(define $smt_builtin_Int () ($smt_type_0 "Int"))
+(define $smt_builtin_Real () ($smt_type_0 "Real"))
+(define $smt_builtin_String () ($smt_type_0 "String"))
+(define $smt_builtin_true () ($smt_apply_0 "true"))
+(define $smt_builtin_false () ($smt_apply_0 "false"))
+(define $smt_builtin_z_zero () ($smt_apply_0 "0"))
+(define $smt_builtin_not ((b $smt_builtin_Bool)) ($smt_apply_1 "not" b))
+(define $smt_builtin_and ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "and" b1 b2))
+(define $smt_builtin_or ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "or" b1 b2))
+(declare-const $smt_Term Type)
+(declare-const $smt_Type Type)
+(declare-const $smt_Value Type)
+(declare-const $smd_sm.True $smt_Term)
+(declare-const $smd_sm.False $smt_Term)
+(declare-parameterized-const $smd_sm.Numeral
+  ((n $smt_builtin_Int :opaque)) $smt_Term)
+(declare-parameterized-const $smd_sm.Rational
+  ((r $smt_builtin_Real :opaque)) $smt_Term)
+(declare-parameterized-const $smd_sm.String
+  ((s ($smt_type_0 "String") :opaque)) $smt_Term)
+(declare-parameterized-const $smd_sm.Binary
+  ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Term)
+(declare-const $smd_eo.Stuck $eo_Term)
+(define $eo_stuck () $smd_eo.Stuck)
+(declare-parameterized-const $smd_eo.Apply
+  ((f $eo_Term :opaque) (a $eo_Term :opaque))
+  $eo_Term)
+(program $eo_apply ((x $eo_Term) (y $eo_Term))
+  :signature ($eo_Term $eo_Term) $eo_Term
   (
-  (($eo_eq t t) true)
-  (($eo_eq t s) false)
+  (($eo_apply x y)
+    ($smt_apply_3 "ite"
+      ($smt_builtin_or
+        ($smt_apply_= x $eo_stuck)
+        ($smt_apply_= y $eo_stuck))
+      $eo_stuck
+      ($smd_eo.Apply x y)))
   )
 )
-(define $eo_is_eq ((T Type :implicit) (S Type :implicit) (t T) (s S))
-  (eo::ite (eo::and (eo::is_ok t) (eo::is_ok s)) ($eo_eq s t) false))
-(define $eo_is_z ((T Type :implicit) (x T))
-  ($eo_is_eq (eo::to_z x) x))
-(define $eo_is_q ((T Type :implicit) (x T))
-  ($eo_is_eq (eo::to_q x) x))
-(define $eo_is_bin ((T Type :implicit) (x T))
-  ($eo_is_eq (eo::to_bin (eo::len x) x) x))
-(define $eo_is_str ((T Type :implicit) (x T))
-  ($eo_is_eq (eo::to_str x) x))
-(define $eo_is_bool ((T Type :implicit) (x T))
-  (eo::ite ($eo_is_eq x true) true ($eo_is_eq x false)))
-(declare-parameterized-const $eo_Var ((s $eo_String) (T Type)) T)
+(declare-parameterized-const $smd_eo.FunType
+  ((t1 $eo_Term :opaque) (t2 $eo_Term :opaque))
+  $eo_Term)
+(program $eo_fun_type ((t1 $eo_Term) (t2 $eo_Term))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_fun_type t1 t2)
+      ($smt_apply_3 "ite"
+        ($smt_builtin_or
+          ($smt_apply_= t1 $eo_stuck)
+          ($smt_apply_= t2 $eo_stuck))
+        $eo_stuck
+        ($smd_eo.FunType t1 t2)))
+  )
+)
+(declare-parameterized-const $smd_eo.SmtTerm ((t $smt_Term :opaque)) $eo_Term)
+(define $eo_smt_term ((t $smt_Term)) ($smd_eo.SmtTerm t))
+(define $sm_mk_true () $smd_sm.True)
+(define $sm_mk_false () $smd_sm.False)
+(define $sm_mk_bool ((c $smt_builtin_Bool))
+  ($smt_apply_3 "ite" c $sm_mk_true $sm_mk_false))
+(define $sm_is_true ((b $smt_Term)) ($smt_apply_= b $sm_mk_true))
+(define $eo_true () ($eo_smt_term $sm_mk_true))
+(define $eo_false () ($eo_smt_term $sm_mk_false))
+(define $eo_mk_numeral ((x $smt_builtin_Int))
+  ($eo_smt_term ($smd_sm.Numeral x)))
+(define $eo_mk_rational ((x $smt_builtin_Real))
+  ($eo_smt_term ($smd_sm.Rational x)))
+(define $eo_mk_string ((x $smt_builtin_String))
+  ($eo_smt_term ($smd_sm.String x)))
+(define $eo_binary ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
+  ($eo_smt_term ($smd_sm.Binary x1 x2)))
+(program $eo_requires ((x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term))
+  :signature ($eo_Term $eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_requires x1 x2 x3)
+    ($smt_apply_3 "ite"
+      ($smt_builtin_and
+        ($smt_builtin_not ($smt_apply_= x1 $eo_stuck))
+        ($smt_apply_= x1 x2))   
+      x3
+      $eo_stuck))
+  )
+)
+(program $eo_hash () :signature ($eo_Term) $eo_Term)
+(declare-parameterized-const $smd_eo.Var 
+  ((s $smt_builtin_String :opaque) (T $eo_Term :opaque))
+  $eo_Term)
+(define $eo_Var ((s $smt_builtin_String) (T $eo_Term)) ($smd_eo.Var s T))
+(program $eo_typeof_main () :signature ($eo_Term) Type)
+(program $eo_typeof
+  ((t $eo_Term) (T $eo_Term) (n $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String) (w $smt_builtin_Int))
+  :signature ($eo_Term) $eo_Term
+  (
+  (($eo_typeof $eo_true)             Bool)
+  (($eo_typeof $eo_false)            Bool)
+  (($eo_typeof ($eo_mk_numeral n))   $eo_Numeral)
+  (($eo_typeof ($eo_mk_rational r))  $eo_Rational)
+  (($eo_typeof ($eo_mk_string s))    $eo_String)
+  (($eo_typeof ($eo_binary w n))     $eo_Binary)
+  (($eo_typeof ($eo_Var s T))        T)
+  
+  (($eo_typeof t)                    ($eo_typeof_main t))
+  )
+)
+(declare-const $eo_List Type)
+(declare-parameterized-const ite (($eo_x_1 Bool) (A Type :implicit) ($eo_x_2 A) ($eo_x_3 A)) A)
 (declare-const not (-> Bool Bool))
 (declare-const and (-> Bool (-> Bool Bool)))
 (declare-parameterized-const = ((A Type :implicit) ($eo_x_1 A) ($eo_x_2 A)) Bool)
@@ -50,10 +151,17 @@
   (($mk_symm (not (_ (= t1) t2))) (not (_ (= t2) t1)))
   )
 )
+(declare-const BitVec (-> Int Type))
 (program $eo_typeof_apply ((T Type) (U Type) (V Type))
   :signature (Type Type) Type
   (
   (($eo_typeof_apply (-> T U) T) U)
+  )
+)
+(program $eo_typeof_ite (($eo_T Type) (A Type))
+  :signature ($eo_T $eo_T) Type
+  (
+  (($eo_typeof_ite Bool A) (-> A A))
   )
 )
 (program $eo_typeof_= (($eo_T Type) (A Type))
@@ -62,15 +170,19 @@
   (($eo_typeof_= A) (-> A Bool))
   )
 )
+(program $eo_typeof_fun_type ()
+  :signature (Type Type) Type
+  (
+  (($eo_typeof_fun_type Type Type) Type)
+  )
+)
 (program $eo_typeof_main
   ((T Type) (U Type) (V Type) (W Type) (f (-> U V T)) (x U) (t T)
    (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3)) 
   :signature (T) Type
   (
   (($eo_typeof_main Type)      Type)
-  (($eo_typeof_main (-> T U))  (eo::requires ($eo_typeof T) Type
-                               (eo::requires ($eo_typeof U) Type
-                                 Type)))
+  (($eo_typeof_main (-> T U))  ($eo_typeof_fun_type ($eo_typeof T) ($eo_typeof U))) 
   (($eo_typeof_main Bool)      Type)
   (($eo_typeof_main true)      Bool)
   (($eo_typeof_main false)     Bool)
@@ -79,47 +191,202 @@
   
   (($eo_typeof_main Real) Type)
   
-  (($eo_typeof_main BitVec) (-> Int Type))
-  
   (($eo_typeof_main Char) Type)
   
   (($eo_typeof_main Seq) (-> Type Type))
+  
+  (($eo_typeof_main (_ (ite x1) x2)) ($eo_typeof_ite ($eo_typeof x1) ($eo_typeof x2)))
   
   (($eo_typeof_main not) (-> Bool Bool))
   
   (($eo_typeof_main and) (-> Bool (-> Bool Bool)))
   
   (($eo_typeof_main (= x1)) ($eo_typeof_= ($eo_typeof x1)))
+  
+  (($eo_typeof_main BitVec) (-> Int Type))
 
   (($eo_typeof_main (f x))     ($eo_typeof_apply ($eo_typeof f) ($eo_typeof x)))
   )
 )
-(program $eo_typeof ((T Type) (t T) (s $eo_String))
+(program $eo_model_sat () :signature ($eo_Term) Bool)
+(declare-parameterized-const $smd_sm.Apply
+  ((t1 $smt_Term :opaque) (t2 $smt_Term :opaque)) $smt_Term)
+(define $sm_apply_term ((t1 $smt_Term) (t2 $smt_Term))
+  ($smd_sm.Apply t1 t2))
+(declare-parameterized-const $smd_sm.Const
+  ((T $smt_Type :opaque) (id $smt_builtin_Int :opaque))
+  $smt_Term)
+(define $sm_const ((T $smt_Type) (id $smt_builtin_Int))
+  ($smd_sm.Const T id))
+(declare-const $smt_Map Type)
+(declare-parameterized-const $smd_vsm.Map
+  ((T $smt_Type :opaque) (m $smt_Map :opaque))
+  $smt_Value)
+(define $vsm_map ((T $smt_Type) (m $smt_Map))
+  ($smd_vsm.Map T m))
+(declare-parameterized-const $smd_vsm.Term
+  ((t $smt_Term :opaque))
+  $smt_Value)
+(define $vsm_term ((t $smt_Term)) ($smd_vsm.Term t))
+(declare-const $smd_vsm.NotValue $smt_Value)
+(define $vsm_not_value () $smd_vsm.NotValue)
+(declare-parameterized-const $smd_msm.Map.cons
+  ((i $smt_Value :opaque) (e $smt_Value :opaque) (m $smt_Map :opaque))
+  $smt_Map)
+(define $map_cons ((i $smt_Value) (e $smt_Value) (m $smt_Map))
+  ($smd_msm.Map.cons i e m))
+(declare-parameterized-const $smd_msm.Map.default
+  ((e $smt_Value :opaque))
+  $smt_Map)
+(define $map_default ((e $smt_Value)) ($smd_msm.Map.default e))
+(program $eo_get_meta_type ((T Type) (U Type) (t T) (f (-> U T)) (a U))
   :signature (T) Type
   (
-  (($eo_typeof ($eo_Var s T)) T)
-  (($eo_typeof t) (eo::ite ($eo_is_bool t) Bool
-                  (eo::ite ($eo_is_z t) $eo_Numeral
-                  (eo::ite ($eo_is_q t) $eo_Rational
-                  (eo::ite ($eo_is_str t) $eo_String
-                  (eo::ite ($eo_is_bin t) $eo_Binary
-                    ($eo_typeof_main t)))))))
+  
+  (($eo_get_meta_type Int) $smt_Type)
+  
+  (($eo_get_meta_type Real) $smt_Type)
+  
+  (($eo_get_meta_type Char) $smt_Type)
+  
+  (($eo_get_meta_type Seq) $smt_Type)
+  
+  (($eo_get_meta_type $eo_List) $eo_Term)
+  
+  (($eo_get_meta_type not) $smt_Term)
+  
+  (($eo_get_meta_type and) $smt_Term)
+  
+  (($eo_get_meta_type ite) $smt_Term)
+  
+  (($eo_get_meta_type =) $smt_Term)
+  
+  (($eo_get_meta_type BitVec) $smt_Type)
+
+  
+  
+  (($eo_get_meta_type t) $eo_Term)
   )
 )
-(program $eo_model_Const_pred ((k $eo_Numeral) (i $eo_Numeral) (T Type))
-  :signature ($eo_Numeral $eo_Numeral (eo::quote T)) T
+(define $smt_term_from_value ((t $smt_Term))
+  ($smt_apply_1 "vsm.Term.arg1" t))
+(program $smtx_map_lookup
+  ((i $smt_Value) (j $smt_Value) (e $smt_Value) (M $smt_Map))
+  :signature ($smt_Map $smt_Value) $smt_Value
   (
   
-  (($eo_model_Const_pred 0 i T) true)
-
-  (($eo_model_Const_pred k i T) $eo_fail)
+  (($smtx_map_lookup ($map_cons i e M) i)  e)
+  (($smtx_map_lookup ($map_cons j e M) i)  ($smtx_map_lookup M i))
+  (($smtx_map_lookup ($map_default e) i)   e)
   )
 )
-(program $eo_model_eval ((T Type) (t T))
-  :signature (T) T
+(define $vsm_is_value ((t $smt_Value))
+  ($smt_apply_1 "not" ($smt_apply_1 "(_ is vsm.NotValue)" t)))
+(define $vsm_is_true ((t $smt_Value))
+  ($smt_builtin_and
+    ($smt_apply_1 "(_ is vsm.Term)" t)
+    ($sm_is_true ($smt_apply_1 "vsm.Term.arg1" t))))
+(program $smtx_model_eval () :signature ($smt_Term) $smt_Value)
+(program $smtx_model_lookup ()
+  :signature ($smt_builtin_Int $smt_builtin_Int $smt_Type) $smt_Value)
+(program $smtx_const_predicate
+  ((k $smt_builtin_Int) (id $smt_builtin_Int) (T $smt_Type) (val $smt_Value))
+  :signature ($smt_builtin_Int $smt_builtin_Int $smt_Type $smt_Value) $smt_builtin_Bool
   (
+  
+  (($smtx_const_predicate $smt_builtin_z_zero id T val) $smt_builtin_true)
+  
+  (($smtx_const_predicate k id T val) $smt_builtin_false)
+  )
+)
+(program $smtx_model_eval_apply
+  ((T $smt_Type) (m $smt_Map) (i $smt_Value) (v $smt_Value))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_apply ($vsm_map T m) i)  ($smtx_map_lookup m i))
+  (($smtx_model_eval_apply v i)               $vsm_not_value)
+  )
+)
+(program $smtx_model_eval
+  ((T Type) (U Type) (V Type) (a1 T) (a2 T) (c Bool) (f $smt_Term) (y U) (z $smt_Term) (k $smt_builtin_Int) (id $smt_builtin_Int) (F Bool)
+   
+   (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3))
+  :signature ($smt_Term) $smt_Value
+  (
+  
+  (($smtx_model_eval $sm_mk_true)             ($vsm_term $sm_mk_true))
+  (($smtx_model_eval $sm_mk_false)            ($vsm_term $sm_mk_false))
+  
+  (($smtx_model_eval (ite x1 x2 x3))
+    (eo::define ((e1 ($smtx_model_eval x1)))
+    ($smt_apply_3 "ite" ($vsm_is_value e1)
+      ($smt_apply_3 "ite" ($vsm_is_true e1)
+        ($smtx_model_eval x2)
+        ($smtx_model_eval x3))
+      $vsm_not_value)))
+  
+  
+  
+  
+  
+  
+  
+  
+  (($smtx_model_eval (= x1 x2))
+    (eo::define ((e1 ($smtx_model_eval x1)))
+    (eo::define ((e2 ($smtx_model_eval x2)))
+    ($smt_apply_3 "ite" ($smt_builtin_and ($vsm_is_value e1) ($vsm_is_value e2))
+      
+      ($vsm_term ($sm_mk_bool ($smt_apply_= e1 e2)))
+      $vsm_not_value))))
+  
+  
+  
+  
+  
+  (($smtx_model_eval (not x1))
+    (eo::define ((e1 ($smtx_model_eval x1)))
+    ($smt_apply_3 "ite" ($vsm_is_value e1)
+      ($vsm_term ($sm_mk_bool ($smt_apply_1 "not" ($smt_apply_1 "= sm.True" ($smt_term_from_value e1)))))
+    $vsm_not_value)))
+  (($smtx_model_eval (and x1 x2))
+    (eo::define ((e1 ($smtx_model_eval x1)))
+    ($smt_apply_3 "ite" ($vsm_is_value e1)
+    (eo::define ((e2 ($smtx_model_eval x2)))
+    ($smt_apply_3 "ite" ($vsm_is_value e2)
+      ($vsm_term ($sm_mk_bool ($smt_apply_2 "and" ($smt_apply_1 "= sm.True" ($smt_term_from_value e1)) ($smt_apply_1 "= sm.True" ($smt_term_from_value e2)))))
+    $vsm_not_value))
+    $vsm_not_value)))
 
-  (($eo_model_eval t) $eo_fail)
+  
+  (($smtx_model_eval ($sm_apply_term f y))    (eo::define ((fme ($smtx_model_eval f)))
+                                              (eo::define ((yme ($smtx_model_eval y)))
+                                                ($smtx_model_eval_apply fme yme))))
+  
+  
+  
+  
+  (($smtx_model_eval ($sm_const T id))        ($smtx_model_lookup $smt_builtin_z_zero id T))
+  
+  
+  
+  
+  
+  
+  (($smtx_model_eval z)                      $vsm_not_value)
+  )
+)
+(program $smtx_model_sat ((b $smt_Value))
+  :signature ($smt_Value) Bool
+  (
+  (($smtx_model_sat ($vsm_term $sm_mk_true))  true)
+  (($smtx_model_sat b)                        false)
+  )
+)
+(program $eo_model_sat ((F $smt_Term))
+  :signature ($eo_Term) Bool
+  (
+  (($eo_model_sat ($eo_smt_term F)) ($smtx_model_sat ($smtx_model_eval F)))
   )
 )
 (program $eorx_symm ((F Bool))
@@ -131,7 +398,7 @@
 (program $eor_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eor_symm F) ($eorx_symm F (eo::typeof F)))
+  (($eor_symm F) ($eorx_symm F ($eo_typeof F)))
   )
 )
 (program $eovc_symm ((F Bool))
@@ -141,71 +408,6 @@
      (eo::requires ($eo_model_sat F) true
      (eo::requires ($eo_model_sat ($eor_symm F)) false
        true)))
-  )
-)
-(program $smt_model_eval ((T Type)) :signature (T) T)
-(declare-const $smt_Term Type)
-(declare-parameterized-const $smt_apply_1
-  ((W1 Type :implicit))
-  (-> $eo_String W1 $smt_Term))
-(declare-parameterized-const $smt_apply_2
-  ((W1 Type :implicit) (W2 Type :implicit))
-  (-> $eo_String W1 W2 $smt_Term))
-(declare-const $eo_to_smt_bool (-> Bool $smt_Term))
-(declare-const $smt_to_eo_bool (-> $smt_Term Bool))
-(program $smt_is_value ((T Type)) :signature ((eo::quote T) T) Bool)
-(program $smt_is_value ((T Type) (t T)
-   
-   (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3))
-  :signature ((eo::quote T) T) Bool
-  (
-  
-  (($smt_is_value $eo_undef_type t) false)
-  
-  (($smt_is_value $eo_Numeral t)      ($eo_is_z t))
-  (($smt_is_value $eo_Rational t)     ($eo_is_q t))
-  (($smt_is_value $eo_String t)       ($eo_is_str t))
-  (($smt_is_value $eo_Binary t)       ($eo_is_bin t))
-  
-
-  (($smt_is_value T t) false)
-  )
-)
-(program $smt_model_lookup ((T Type))
-  :signature ($eo_Numeral T) T)
-(program $smt_model_eval
-  ((T Type) (U Type) (V Type) (a1 T) (a2 T) (c Bool) (f (-> U T)) (y U) (z T) (k $eo_Numeral) (i $eo_Numeral) (F Bool)
-   
-   (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3))
-  :signature (T) T
-  (
-  
-  (($smt_model_eval (not x1)) (eo::define ((e1 ($smt_model_eval x1))) (eo::requires ($smt_is_value (eo::typeof x1) e1) true ($smt_to_eo_bool ($smt_apply_1 "not" ($eo_to_smt_bool e1))))))
-  (($smt_model_eval (and x1 x2)) (eo::define ((e1 ($smt_model_eval x1))) (eo::requires ($smt_is_value (eo::typeof x1) e1) true (eo::define ((e2 ($smt_model_eval x2))) (eo::requires ($smt_is_value (eo::typeof x2) e2) true ($smt_to_eo_bool ($smt_apply_2 "and" ($eo_to_smt_bool e1) ($eo_to_smt_bool e2))))))))
-  (($smt_model_eval (= x1 x2)) (eo::define ((e1 ($smt_model_eval x1))) (eo::requires ($smt_is_value (eo::typeof x1) e1) true (eo::define ((e2 ($smt_model_eval x2))) (eo::requires ($smt_is_value (eo::typeof x2) e2) true (eo::eq e1 e2))))))
-
-  
-  
-  
-  
-  
-  (($smt_model_eval ($eo_model_Const k i T))  (eo::define ((val ($smt_model_lookup i T)))
-                                              (eo::ite ($smt_model_eval ($eo_model_Const_pred k i T))
-                                                val
-                                                ($eo_model_Const k i T))))
-  
-  
-  
-  (($smt_model_eval (f y))                (eo::define ((fme ($smt_model_eval f)))
-                                          (eo::define ((yme ($smt_model_eval y)))
-                                            ($eo_model_eval (_ fme yme)))))
-  (($smt_model_eval z)                    ($eo_model_eval z))
-  )
-)
-(program $eo_model_sat ((F Bool))
-  :signature (Bool) Bool
-  (
-  (($eo_model_sat F) ($smt_model_eval F))
   )
 )
 (echo "smt-meta $eovc_symm")
