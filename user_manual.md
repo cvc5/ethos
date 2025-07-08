@@ -936,9 +936,9 @@ We say that a term is an `f`-list with children `t1 ... tn` if it is of the form
 - `(eo::list_meq f t1 t2)`
   - (Multiset equal) Equivalent to `(eo::and (eo::list_minclude f t1 t2) (eo::list_minclude t2 t1))`.
 - `(eo::list_diff f t1 t2)`
-  - (Difference) If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, this returns the result of erasing elements of `t11 ... t1n` that occur in `t21 ... t2m` where multiplicity is considered. In detail, for each `i = 1, ..., n`, if `t1i` occurs in `t21 ... t2m`, we remove one copy of it from this list. Otherwise if `t1i` does not occur in `t21 ... t2m`, we append it to the final result.
+  - (Difference) If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, this returns the result of erasing elements of `t11 ... t1n` that occur in `t21 ... t2m` where multiplicity is considered. In detail, for each `i = 1, ..., n`, if `t1i` occurs in `t21 ... t2m`, we remove one copy of it from that list. Otherwise if `t1i` does not occur in `t21 ... t2m`, we append it to the final result.
 - `(eo::list_inter f t1 t2)`
-  - (Intersection) If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, this returns the result of erasing elements of `t11 ... t1n` that do not occur in `t21 ... t2m` where multiplicity is considered. In detail, for each `i = 1, ..., n`, if `t1i` occurs in `t21 ... t2m`, we erase one copy of it from this list and append it to the final result.
+  - (Intersection) If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, this returns the result of erasing elements of `t11 ... t1n` that do not occur in `t21 ... t2m` where multiplicity is considered. In detail, for each `i = 1, ..., n`, if `t1i` occurs in `t21 ... t2m`, we erase one copy of it from that list and append it to the final result.
 
 ### List Computation Examples
 
