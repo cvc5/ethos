@@ -136,7 +136,10 @@ bool isSymbol(Kind k);
 bool isLiteral(Kind k);
 /** */
 bool isLiteralOp(Kind k);
-/** */
+/**
+ * Is k a n-ary literal op? In other words, can k be applied to 2+ children
+ * in the front-end language. True for eo::add, eo::concat, eo::and, etc.
+ */
 bool isNaryLiteralOp(Kind k);
 /** Is k a list literal operator? */
 bool isListLiteralOp(Kind k);
