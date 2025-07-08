@@ -68,7 +68,7 @@ void ExprValue::computeFlags()
     if (children.empty())
     {
       bool isEval =
-          (ck == Kind::PROGRAM_CONST || ck == Kind::ORACLE || ck == Kind::ANY);
+          (ck == Kind::PROGRAM_CONST || ck == Kind::ANY);
       bool isNonGround = (ck == Kind::PARAM || ck == Kind::ANY);
       cur->setFlag(Flag::IS_EVAL, isEval);
       cur->setFlag(Flag::IS_NON_GROUND, isNonGround);

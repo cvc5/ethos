@@ -739,7 +739,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         Warning() << "Wrong number of arguments when applying " << Expr(hd) << std::endl;
       }
     }
-    else if (hk==Kind::PROGRAM_CONST || hk==Kind::ORACLE)
+    else if (hk==Kind::PROGRAM_CONST)
     {
       // have to check whether we have marked the constructor kind, which is
       // not the case i.e. if we are constructing applications corresponding to
@@ -772,7 +772,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     // The exceptions to this are operators whose types are not flattened (programs and proof rules).
     if (children.size()>2)
     {
-      if (hk!=Kind::PROGRAM_CONST && hk!=Kind::PROOF_RULE && hk!=Kind::ORACLE)
+      if (hk!=Kind::PROGRAM_CONST && hk!=Kind::PROOF_RULE)
       {
         // return the curried version
         return Expr(mkApplyInternal(vchildren));
@@ -1372,18 +1372,6 @@ Expr State::getProgram(const ExprValue* ev)
   }
   return d_null;
 }
-bool State::getOracleCmd(const ExprValue* oracle, std::string& ocmd)
-{
-  AppInfo* ainfo = getAppInfo(oracle);
-  if (ainfo!=nullptr && ainfo->d_attrCons==Attr::ORACLE)
-  {
-    Expr oexpr = ainfo->d_attrConsTerm;
-    Assert(!oexpr.isNull());
-    ocmd = oexpr.getSymbol();
-    return true;
-  }
-  return false;
-}
 
 size_t State::getAssumptionLevel() const
 {
@@ -1528,24 +1516,6 @@ bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
     return markConstructorKind(v[0], a, cons);
   }
   Expr acons = cons;
-  if (a==Attr::ORACLE)
-  {
-    // use full path
-    std::string ocmd = cons.getSymbol();
-
-    Filepath inputPath = d_inputFile.parentPath();
-    inputPath.append(Filepath(ocmd));
-    inputPath.makeCanonical();
-
-    if (!inputPath.exists())
-    {
-      Warning() << "State:: could not include \"" + ocmd
-                       + "\" for oracle definition"
-                << std::endl;
-      return false;
-    }
-    acons = mkLiteral(Kind::STRING, inputPath.getRawPath());
-  }
   Assert (isSymbol(v.getKind()));
   AppInfo& ai = d_appData[v.getValue()];
   if (ai.d_attrCons != Attr::NONE)

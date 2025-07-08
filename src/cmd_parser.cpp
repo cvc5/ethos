@@ -61,7 +61,6 @@ CmdParser::CmdParser(Lexer& lex,
     d_table["assume"] = Token::ASSUME;
     d_table["assume-push"] = Token::ASSUME_PUSH;
     d_table["declare-consts"] = Token::DECLARE_CONSTS;
-    d_table["declare-oracle-fun"] = Token::DECLARE_ORACLE_FUN;
     d_table["declare-parameterized-const"] = Token::DECLARE_PARAMETERIZED_CONST;
     d_table["declare-rule"] = Token::DECLARE_RULE;
     d_table["declare-type"] = Token::DECLARE_TYPE;
@@ -129,13 +128,11 @@ bool CmdParser::parseNextCommand()
     }
     break;
     // (declare-fun <symbol> (<sort>∗) <sort>)
-    // (declare-oracle-fun <symbol> (<sort>∗) <sort>)
     // (declare-const <symbol> <sort>)
     // (declare-parameterized-const (<sorted_var>*) <symbol> <sort>)
     case Token::DECLARE_CONST:
     case Token::DECLARE_FUN:
     case Token::DECLARE_PARAMETERIZED_CONST:
-    case Token::DECLARE_ORACLE_FUN:
     {
       std::string name = d_eparser.parseSymbol();
       //d_state.checkUserSymbol(name);
@@ -159,19 +156,7 @@ bool CmdParser::parseNextCommand()
       Kind sk;
       Expr t;
       sk = Kind::CONST;
-      if (tok==Token::DECLARE_ORACLE_FUN)
-      {
-        if (sorts.empty())
-        {
-          d_lex.parseError("Oracle functions must have at least one argument");
-        }
-        ck = Attr::ORACLE;
-        sk = Kind::ORACLE;
-        std::string oname = d_eparser.parseSymbol();
-        cons = d_state.mkLiteral(Kind::STRING, oname);
-        // don't permit attributes for oracle functions
-      }
-      else if (tok==Token::DECLARE_CONST || tok==Token::DECLARE_PARAMETERIZED_CONST)
+      if (tok==Token::DECLARE_CONST || tok==Token::DECLARE_PARAMETERIZED_CONST)
       {
         // possible attribute list
         AttrMap attrs;

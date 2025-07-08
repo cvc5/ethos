@@ -14,9 +14,6 @@
 
 #include "base/check.h"
 #include "base/output.h"
-#ifdef EO_ORACLES
-#include "base/run.h"
-#endif /* EO_ORACLES */
 #include "expr.h"
 #include "literal.h"
 #include "parser.h"
@@ -749,7 +746,7 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
                 << "evaluated args " << cchildren << std::endl;
             // if a program and all arguments are ground, run it
             Kind cck = cchildren[0]->getKind();
-            if (cck==Kind::PROGRAM_CONST || cck==Kind::ORACLE)
+            if (cck==Kind::PROGRAM_CONST)
             {
               // maybe the evaluation is already cached
               // ensure things in the evalTrie are ref counted
@@ -961,96 +958,54 @@ Expr TypeChecker::evaluateProgramInternal(
     }
   }
   ExprValue* hd = children[0];
-  Kind hk = hd->getKind();
-  if (hk==Kind::PROGRAM_CONST)
+  Assert (hd->getKind()==Kind::PROGRAM_CONST);
+  if (d_plugin && d_plugin->hasEvaluation(hd))
   {
-    if (d_plugin && d_plugin->hasEvaluation(hd))
+    Trace("type_checker") << "RUN program " << children << std::endl;
+    return d_plugin->evaluateProgram(hd, children, newCtx);
+  }
+  Expr prog = d_state.getProgram(hd);
+  if (d_statsEnabled)
+  {
+    RuleStat * ps = &d_sts.d_pstats[hd];
+    ps->d_count++;
+  }
+  Assert (!prog.isNull());
+  if (!prog.isNull())
+  {
+    Trace("type_checker") << "INTERPRET program " << children << std::endl;
+    // otherwise, evaluate
+    for (size_t i = 0, nchildren = prog.getNumChildren(); i < nchildren;
+          i++)
     {
-      Trace("type_checker") << "RUN program " << children << std::endl;
-      return d_plugin->evaluateProgram(hd, children, newCtx);
-    }
-    Expr prog = d_state.getProgram(hd);
-    if (d_statsEnabled)
-    {
-      RuleStat * ps = &d_sts.d_pstats[hd];
-      ps->d_count++;
-    }
-    Assert (!prog.isNull());
-    if (!prog.isNull())
-    {
-      Trace("type_checker") << "INTERPRET program " << children << std::endl;
-      // otherwise, evaluate
-      for (size_t i = 0, nchildren = prog.getNumChildren(); i < nchildren;
-           i++)
+      const Expr& c = prog[i];
+      newCtx.clear();
+      ExprValue* hd = c[0].getValue();
+      std::vector<ExprValue*>& hchildren = hd->d_children;
+      if (nargs != hchildren.size())
       {
-        const Expr& c = prog[i];
-        newCtx.clear();
-        ExprValue* hd = c[0].getValue();
-        std::vector<ExprValue*>& hchildren = hd->d_children;
-        if (nargs != hchildren.size())
+        // TODO: catch this during weak type checking of program bodies
+        Warning() << "*** Bad number of arguments provided in function call to " << Expr(hd) << std::endl;
+        Warning() << "  Arguments: " << children << std::endl;
+        return d_null;
+      }
+      bool matchSuccess = true;
+      for (size_t j = 1; j<nargs; j++)
+      {
+        if (!match(hchildren[j], children[j], newCtx))
         {
-          // TODO: catch this during weak type checking of program bodies
-          Warning() << "*** Bad number of arguments provided in function call to " << Expr(hd) << std::endl;
-          Warning() << "  Arguments: " << children << std::endl;
-          return d_null;
-        }
-        bool matchSuccess = true;
-        for (size_t j = 1; j<nargs; j++)
-        {
-          if (!match(hchildren[j], children[j], newCtx))
-          {
-            matchSuccess = false;
-            break;
-          }
-        }
-        if (matchSuccess)
-        {
-          Trace("type_checker")
-              << "...matches " << Expr(hd) << ", ctx = " << newCtx << std::endl;
-          return c[1];
+          matchSuccess = false;
+          break;
         }
       }
-      Trace("type_checker") << "...failed to match." << std::endl;
+      if (matchSuccess)
+      {
+        Trace("type_checker")
+            << "...matches " << Expr(hd) << ", ctx = " << newCtx << std::endl;
+        return c[1];
+      }
     }
-  }
-  else if (hk==Kind::ORACLE)
-  {
-#ifdef EO_ORACLES
-    // get the command
-    std::string ocmd;
-    if (!d_state.getOracleCmd(hd, ocmd))
-    {
-      return d_null;
-    }
-    int retVal;
-    std::stringstream call_content;
-    call_content << "(" << std::endl;
-    for (size_t i = 1; i < nargs; i++)
-    {
-      call_content << Expr(children[i]) << std::endl;
-    }
-    call_content << ")" << std::endl;
-    Trace("oracles") << "Call oracle " << ocmd << " with content:" << std::endl;
-    Trace("oracles") << "```" << std::endl;
-    Trace("oracles") << call_content.str() << std::endl;
-    Trace("oracles") << "```" << std::endl;
-    std::stringstream response;
-    retVal = run(ocmd, call_content.str(), response);
-    if (retVal!=0)
-    {
-      Trace("oracles") << "...failed to run" << std::endl;
-      return d_null;
-    }
-    Trace("oracles") << "...got response \"" << response.str() << "\"" << std::endl;
-    Parser poracle(d_state);
-    poracle.setStringInput(response.str());
-    Expr ret = poracle.parseNextExpr();
-    Trace("oracles") << "returns " << ret << std::endl;
-    return ret;
-#else /* EO_ORACLES */
-    Trace("oracles") << "...not supported in this build" << std::endl;
-    return d_null;
-#endif /* EO_ORACLES */
+    Trace("type_checker") << "...failed to match." << std::endl;
   }
   // just return nullptr, which should be interpreted as a failed evaluation
   return d_null;
