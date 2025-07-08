@@ -36,6 +36,14 @@
 )
 (define check_length_one ((s String)) (check_true (eo::is_eq (eo::len s) 1)))
 
+(program string_collect_acc_match ((t String) (s1 String) (s2 String))
+  :signature (String (Pair String String)) (Pair String String)
+  (
+  ((string_collect_acc_match t (pair "" s2)) (pair t s2))
+  ((string_collect_acc_match t (pair s1 s2)) (pair (eo::concat t s1) s2))
+  )
+)
+
 (program string_collect_acc ((t String) (tail String :list))
   :signature (String) (Pair String String)
   (
@@ -43,27 +51,22 @@
     ; Check if t is a word constant
     ((string_collect_acc (str.++ t tail))
       (eo::ite (check_length_one t)
-        (eo::match ((s1 String) (s2 String)) 
-          (string_collect_acc tail)
-          (
-            ((pair "" s2) (pair t s2))
-            ((pair s1 s2) (pair (eo::concat t s1) s2))
-          )
-        )
+        (string_collect_acc_match t (string_collect_acc tail))
         (pair "" (str.++ t tail))))
   )
 )
 
+(program mk_collect_acc ((s String) (s1 String) (s2 String :list))
+  :signature (String (Pair String String)) Bool
+  (
+  ((mk_collect_acc s (pair "" s2))  (= s s2))
+  ((mk_collect_acc s (pair s1 s2))  (= s (str.++ s1 s2)))
+  )
+)
 
 (declare-rule collect_acc ((s String))
   :args (s)
-  :conclusion (eo::match ((s1 String) (s2 String :list)) 
-                (string_collect_acc s) 
-                (
-                  ((pair "" s2)  (= s s2))
-                  ((pair s1 s2)       (= s (str.++ s1 s2)))
-                )
-              )
+  :conclusion (mk_collect_acc s (string_collect_acc s))
 )
 
 (declare-const x String)

@@ -658,6 +658,7 @@ We remark on the semantics in the following.
 Apart from `eo::ite`, the evaluation of all operators assume that their arguments are fully reduced.
 In other words, apart from `eo::ite`, all evaluation proceeds bottom-up,
 where their arguments are evaluated before the builtin operator is evaluated.
+For `eo::ite`, we assume that its condition is fully reduced but its branches are not evaluated until its condition is resolved.
 
 In the following, we say a term is _ground_ if it contains no parameters as subterms.
 We say a term is a _value_ if it is ground and has no occurrences of builtin operators or programs that failed to evaluate.
@@ -677,7 +678,7 @@ Note, however, that the evaluation of these operators is handled by more efficie
   - If `t` is ground, this returns true if `t` is a value, and false otherwise. If `t` is not ground, it does not evaluate.
 
 - `(eo::ite t1 t2 t3)`
-  - Returns `t2` if `t1` evaluates to `true`, `t3` if `t1` evaluates to `false`, and is not evaluated otherwise. Note that the branches of this term are only evaluated if they are the return term.
+  - Returns `t2` if `t1` is `true`, `t3` if `t1` is `false`, and is not evaluated otherwise. Note that the branches of this term are only evaluated if they are the return term.
 
 - `(eo::eq t1 t2)`
   - If `t1` and `t2` are ground values, this returns `true` if `t1` is (syntactically) equal to `t2` and false otherwise. Otherwise, if either `t1` or `t2` is non-ground, it does not evaluate.
@@ -869,24 +870,36 @@ Note the following examples of core operators for the given signature
 (declare-const x Int)
 (declare-const y Int)
 (declare-const a Bool)
-;;
+
+(eo::is_ok 0)                        == true
+(eo::is_ok (eo::neg "abc"))          == false
+
+(eo::eq x x)                         == true
+(eo::eq 0 1)                         == false
+(eo::eq x y)                         == false
+(eo::eq (eo::neg "a") x)             == (eo::eq (eo::neg "a") x)              ; since the first argument fails to evaluate
+(eo::eq (eo::neg "a") (eo::neg "a")) == (eo::eq (eo::neg "a") (eo::neg "a"))  ; since both arguments fail to evaluate
+(eo::eq 2 (eo::add 1 1))             == true
+
+(eo::is_eq x x)                         == true
 (eo::is_eq 0 1)                         == false
 (eo::is_eq x y)                         == false
-(eo::is_eq x x)                         == true
-(eo::requires x 0 true)                 == (eo::requires x 0 true)  ; x and 0 are not syntactically equal
-(eo::requires x x y)                    == y
-(eo::requires x x Int)                  == Int
-(eo::ite false x y)                     == y
-(eo::ite true Bool Int)                 == Bool
-(eo::ite a x x)                         == (eo::ite a x x)  ; a is not a value
-
+(eo::is_eq (eo::neg "a") x)             == false
+(eo::is_eq (eo::neg "a") (eo::neg "a")) == false
 (eo::is_eq 2 (eo::add 1 1))             == true
-(eo::is_eq x (eo::requires x 0 x))      == false
-(eo::ite (eo::is_eq x 1) x y)           == y
+
+(eo::ite false x y)                  == y
+(eo::ite true Bool Int)              == Bool
+(eo::ite a x x)                      == (eo::ite a x x)  ; a is not a value
+(eo::ite (eo::eq x 1) x y)           == y
+
+(eo::requires x 0 true)              == (eo::requires x 0 true)  ; x and 0 are not syntactically equal
+(eo::requires x x y)                 == y
+(eo::requires x x Int)               == Int
 ```
 
-In the above, it is important to note that `eo::is_eq` is a check for syntactic equality after evaluation.
-It does not require that its arguments denote values, so for example `(eo::is_eq x y)` returns `false`.
+In the above, it is important to note that `eo::eq` and `eo::is_eq` are checks for syntactic equality, which is different from saying the terms are semantically distinct in all models.
+For example `(eo::eq x y)` returns `false`.
 
 <a name="list-computation"></a>
 
@@ -922,6 +935,10 @@ We say that a term is an `f`-list with children `t1 ... tn` if it is of the form
   - (Multiset inclusion) If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, then this returns true if each unique element in `t11 ... t1n` occurs with the greater than or equal multiplicity in `t21 ... t2m`. Note that order of the elements does not matter.
 - `(eo::list_meq f t1 t2)`
   - (Multiset equal) Equivalent to `(eo::and (eo::list_minclude f t1 t2) (eo::list_minclude t2 t1))`.
+- `(eo::list_diff f t1 t2)`
+  - (Difference) If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, this returns the result of erasing elements of `t11 ... t1n` that occur in `t21 ... t2m` where multiplicity is considered. In detail, for each `i = 1, ..., n`, if `t1i` occurs in `t21 ... t2m`, we remove one copy of it from that list. Otherwise if `t1i` does not occur in `t21 ... t2m`, we append it to the final result.
+- `(eo::list_inter f t1 t2)`
+  - (Intersection) If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, this returns the result of erasing elements of `t11 ... t1n` that do not occur in `t21 ... t2m` where multiplicity is considered. In detail, for each `i = 1, ..., n`, if `t1i` occurs in `t21 ... t2m`, we erase one copy of it from that list and append it to the final result.
 
 ### List Computation Examples
 
@@ -1000,6 +1017,16 @@ The terms on both sides of the given evaluation are written in their form prior 
 (eo::list_meq or (or a b c b) (or b a c b)) == true
 (eo::list_meq or (or a b b) (or a a b))     == false
 (eo::list_meq or false false)               == true
+
+(eo::list_diff or (or a b) (or a a b))      == false
+(eo::list_diff or (or a a b) (or a b))      == (or a)
+(eo::list_diff or (or a b c b a) (or c b))  == (or a b a)
+(eo::list_diff or (or a b a c a) (or a a))  == (or b c a)
+
+(eo::list_inter or (or a b) (or a a b))     == (or a b)
+(eo::list_inter or (or a a b) (or a b))     == (or a b)
+(eo::list_inter or (or a b c b a) (or c b)) == (or b c)
+(eo::list_inter or (or a b a c a) (or a a)) == (or a a)
 ```
 
 ### Parametric Nil terminators
@@ -1353,7 +1380,7 @@ The selectors of a constructor (which are never ambiguous) are returned independ
 The generic syntax for a `declare-rule` command accepted by `ethos` is:
 
 ```smt
-(declare-rule <symbol> :ethos (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? <conclusion> <attr>*)
+(declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? <conclusion> <attr>*)
 where
 <assumption>   ::= :assumption <term>
 <premises>     ::= :premises (<term>*) | :premise-list <term> <term>
@@ -1827,105 +1854,29 @@ For example, the above program could be generalized to concatentate an arbitrary
 (define foo2 () (repeat_term a 7) :type (BitVec 35))
 ```
 
-### Match statements
-
-Ethos supports an operator `eo::match` for performing pattern matching on a target term. The syntax of this term is:
-
-```smt
-(eo::match (<typed-param>*) <term> ((<term> <term>)*))
-```
-
-The term `(eo::match (...) t ((s1 r1) ... (sn rn)))` finds the first term `si` in the list `s1 ... sn` that `t` can be matched with under some substitution and returns the result of applying that substitution to `ri`.
-
-> __Note:__  Match terms require the free parameters of `ri` are a subset of the provided parameter list.
-In other words, all patterns must only involve parameters that are locally bound as the first argument of the match term.
-Also, similar to programs, the free parameters of `ri` that occur in the parameter list must be a subset of `si`, or else an error is thrown.
-
-> __Note:__ Like programs, match terms are not statically type checked.
-
-### Examples of legal and illegal match terms
-
-```smt
-(declare-type Int ())
-(declare-const F Bool)
-(declare-const a Int)
-(declare-const P (-> Int Bool))
-(declare-const f (-> Int Int))
-; Legal match terms:
-(define test1 ((x Int))
-    (f (eo::match ((y Int)) x 
-            (
-                (a a) 
-                (b b) 
-                ((f (f a)) a)   ; can use arbitrary nesting in pattern terms
-                ((f (f y)) b)
-                (y a)           ; note that using a parameter as a pattern acts as a default case
-            )
-        )))
-(define test2 ((F Bool) (y Int)) 
-    (eo::match ((x Int)) F 
-        (
-            ((P x) y)           ; ok since y is bound at a higher scope and x is bound locally
-        )
-    ))
-
-; Illegal match terms:
-(define test3 ((F Bool) (y Int)) 
-    (eo::match ((x Int)) F 
-        (
-            ((P y) a)       ; since y is not locally bound
-        )
-    ))
-(define test4 ((F Bool) (y Int)) 
-    (eo::match ((x Int)) F 
-        (
-            ((P a) x)       ; since x does not occur in (P a)
-        )))  
-```
-
 ### Example: Proof rule for symmetry of (dis)equality
 
 ```smt
 (declare-type Int ())
 (declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 (declare-const not (-> Bool Bool))
+
+(program mk_symm ((T Type) (t1 T) (t2 T))
+  :signature (Bool) Bool
+  (
+    ((mk_symm (= t1 t2))       (= t2 t1))
+    ((mk_symm (not (= t1 t2))) (not (= t2 t1)))
+  )
+)
+
 (declare-rule symm ((F Bool))
     :premises (F)
-    :conclusion
-        (eo::match ((t1 Int) (t2 Int)) F
-            (
-                ((= t1 t2)       (= t2 t1))
-                ((not (= t1 t2)) (not (= t2 t1)))
-            )
-        )
+    :conclusion (mk_symm F)
 )
 ```
 
 The above rule performs symmetry on equality or disequality.
 It matches the given premise `F` with either `(= t1 t2)` or `(not (= t1 t2))` and flips the terms on the sides of the (dis)equality.
-
-Internally, the semantics of `eo::match` can be seen as an (inlined) program applied to its head, such that the above example is equivalent to:
-
-```smt
-(declare-type Int ())
-(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
-(declare-const not (-> Bool Bool))
-(program matchF ((t1 Int) (t2 Int))
-    :signature (Bool) Bool
-    (
-      ((matchF (= t1 t2))       (= t2 t1))
-      ((matchF (not (= t1 t2))) (not (= t2 t1)))
-    )
-)
-(declare-rule symm ((F Bool))
-    :premises (F)
-    :args ()
-    :conclusion (matchF F)
-)
-```
-
-> __Note:__ The Ethos checker automatically performs the above transformation on match terms for consistency.
-In more general cases, if the body of the match term contains free variables, these are added to the argument list of the internally generated program.
 
 ### Example: Proof rule for transitivity of equality with a premise list
 
@@ -1942,13 +1893,9 @@ In more general cases, if the body of the match term contains free variables, th
     )
 )
 
-(declare-rule trans (E Bool))
-    :premise-list E and
-    :conclusion
-        (eo::match ((t1 Int) (t2 Int) (tail Bool :list)) E
-        (
-            ((and (= t1 t2) tail) (mk_trans t1 t2 tail))
-        ))
+(declare-rule trans ((t1 Int) (t2 Int) (tail Bool :list))
+    :premise-list (and (= t1 t2) tail) and
+    :conclusion (mk_trans t1 t2 tail)
 )
 ```
 
@@ -2158,7 +2105,7 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
 ;;;
 <keyword>       ::= :<symbol>
 <attr>          ::= <keyword> <term>?
-<term>          ::= <symbol> | (<symbol> <term>+) | (! <term> <attr>+) | (eo::match (<typed-param>*) <term> ((<term> <term>)*))
+<term>          ::= <symbol> | (<symbol> <term>+) | (! <term> <attr>+)
 <type>          ::= <term>
 <typed-param>   ::= (<symbol> <type> <attr>*)
 <sort-dec>      ::= (<symbol> <numeral>)

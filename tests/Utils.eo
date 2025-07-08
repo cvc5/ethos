@@ -2,6 +2,27 @@
 (declare-type @Pair (Type Type))
 (declare-parameterized-const @pair ((U Type :implicit) (T Type :implicit)) (-> U T (@Pair U T)))
 
+; program: $pair_first
+; args:
+; - t (@Pair T S)
+; return: The first element in the pair
+(program $pair_first ((T Type) (S Type) (t T) (s S))
+  :signature ((@Pair T S)) T
+  (
+  (($pair_first (@pair t s)) t)
+  )
+)
+
+; program: $pair_second
+; args:
+; - t (@Pair T S)
+; return: The second element in the pair
+(program $pair_second ((T Type) (S Type) (t T) (s S))
+  :signature ((@Pair T S)) S
+  (
+  (($pair_second (@pair t s)) s)
+  )
+)
 
 ; `check_true b`
 ; returns true if b is true, returns false otherwise

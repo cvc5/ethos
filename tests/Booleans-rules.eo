@@ -74,13 +74,10 @@
 ; `Cs` is a conjunction or the premise clauses.
 ; `args` is a conjunction where the alternating conjuncts are polarity and
 ;        pivot literal.
-(declare-rule chain_resolution ((Cs Bool) (args Bool))
-    :premise-list Cs and
+(declare-rule chain_resolution ((C1 Bool) (C2 Bool :list) (args Bool))
+    :premise-list (and C1 C2) and
     :args (args)
-    :conclusion
-        (eo::match ((C1 Bool) (C2 Bool :list))
-            Cs
-            (((and C1 C2) (chainResolveRec (to_clause C1) C2 args))))
+    :conclusion (chainResolveRec (to_clause C1) C2 args)
 )
 
 ; FACTORING
