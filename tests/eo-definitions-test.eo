@@ -94,3 +94,13 @@
 (declare-const test16 (eo::requires ($eo_list_meq or (or a b c b) (or b a c b)) true Bool))
 (declare-const test17 (eo::requires ($eo_list_meq or (or a b b) (or a a b)) false Bool))
 (declare-const test18 (eo::requires ($eo_list_meq or false false) true Bool))
+
+(declare-const test19 (eo::requires (eo::list_diff or (or a b) (or a a b)) false Bool))
+(declare-const test20 (eo::requires (eo::list_diff or (or a a b) (or a b)) (or a) Bool))
+(declare-const test21 (eo::requires (eo::list_diff or (or a b c b a) (or c b)) (or a b a) Bool))
+(declare-const test22 (eo::requires (eo::list_diff or (or a b a c a) (or a a)) (or b c a) Bool))
+
+(declare-const test23 (eo::requires (eo::list_inter or (or a b) (or a a b)) (or a b) Bool))
+(declare-const test24 (eo::requires (eo::list_inter or (or a a b) (or a b)) (or a b) Bool))
+(declare-const test25 (eo::requires (eo::list_inter or (or a b c b a) (or c b)) (or b c) Bool))
+(declare-const test26 (eo::requires (eo::list_inter or (or a b a c a) (or a a)) (or a a) Bool))
