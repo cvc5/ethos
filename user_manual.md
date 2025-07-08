@@ -935,6 +935,10 @@ We say that a term is an `f`-list with children `t1 ... tn` if it is of the form
   - (Multiset inclusion) If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, then this returns true if each unique element in `t11 ... t1n` occurs with the greater than or equal multiplicity in `t21 ... t2m`. Note that order of the elements does not matter.
 - `(eo::list_meq f t1 t2)`
   - (Multiset equal) Equivalent to `(eo::and (eo::list_minclude f t1 t2) (eo::list_minclude t2 t1))`.
+- `(eo::list_diff f t1 t2)`
+  - (Difference) If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, this returns the result of erasing elements of `t11 ... t1n` that occur in `t21 ... t2m` where multiplicity is considered. In detail, for each `i = 1, ..., n`, if `t1i` occurs in `t21 ... t2m`, we remove one copy of it from that list. Otherwise if `t1i` does not occur in `t21 ... t2m`, we append it to the final result.
+- `(eo::list_inter f t1 t2)`
+  - (Intersection) If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, this returns the result of erasing elements of `t11 ... t1n` that do not occur in `t21 ... t2m` where multiplicity is considered. In detail, for each `i = 1, ..., n`, if `t1i` occurs in `t21 ... t2m`, we erase one copy of it from that list and append it to the final result.
 
 ### List Computation Examples
 
@@ -1013,6 +1017,16 @@ The terms on both sides of the given evaluation are written in their form prior 
 (eo::list_meq or (or a b c b) (or b a c b)) == true
 (eo::list_meq or (or a b b) (or a a b))     == false
 (eo::list_meq or false false)               == true
+
+(eo::list_diff or (or a b) (or a a b))      == false
+(eo::list_diff or (or a a b) (or a b))      == (or a)
+(eo::list_diff or (or a b c b a) (or c b))  == (or a b a)
+(eo::list_diff or (or a b a c a) (or a a))  == (or b c a)
+
+(eo::list_inter or (or a b) (or a a b))     == (or a b)
+(eo::list_inter or (or a a b) (or a b))     == (or a b)
+(eo::list_inter or (or a b c b a) (or c b)) == (or b c)
+(eo::list_inter or (or a b a c a) (or a a)) == (or a a)
 ```
 
 ### Parametric Nil terminators

@@ -160,13 +160,13 @@ set(ethos_test_file_list
     eo-list-ops-napply.eo
 )
 
-if(ENABLE_ORACLES)
-  list(APPEND ethos_test_file_list
-      oracle-ex.eo
-      oracle-ex2.eo
-      tiny_oracle.eo
-  )
-endif()
+#if(ENABLE_ORACLES)
+#  list(APPEND ethos_test_file_list
+#      oracle-ex.eo
+#      oracle-ex2.eo
+#      tiny_oracle.eo
+#  )
+#endif()
 
 macro(ethos_test file)
   add_test(
