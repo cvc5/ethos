@@ -129,46 +129,6 @@
     (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck)) eo.Stuck (eo.FunType x1 x2))
     eo.Stuck)))
 
-; program: $eo_smt_term
-(define-fun $eo_smt_term ((x1 sm.Term)) eo.Term
-  (ite false
-    eo.Stuck
-  (ite true
-    (eo.SmtTerm x1)
-    eo.Stuck)))
-
-; program: $eo_mk_numeral
-(define-fun $eo_mk_numeral ((x1 Int)) eo.Term
-  (ite false
-    eo.Stuck
-  (ite true
-    (eo.SmtTerm (sm.Numeral x1))
-    eo.Stuck)))
-
-; program: $eo_mk_rational
-(define-fun $eo_mk_rational ((x1 Real)) eo.Term
-  (ite false
-    eo.Stuck
-  (ite true
-    (eo.SmtTerm (sm.Rational x1))
-    eo.Stuck)))
-
-; program: $eo_mk_string
-(define-fun $eo_mk_string ((x1 String)) eo.Term
-  (ite false
-    eo.Stuck
-  (ite true
-    (eo.SmtTerm (sm.String x1))
-    eo.Stuck)))
-
-; program: $eo_binary
-(define-fun $eo_binary ((x1 Int) (x2 Int)) eo.Term
-  (ite false
-    eo.Stuck
-  (ite true
-    (eo.SmtTerm (sm.Binary x1 x2))
-    eo.Stuck)))
-
 ; program: $eo_requires
 (define-fun $eo_requires ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck) (= x3 eo.Stuck))
@@ -179,14 +139,6 @@
 
 ; fwd-decl: $eo_hash
 (declare-fun $eo_hash (eo.Term) eo.Term)
-
-; program: $eo_Var
-(define-fun $eo_Var ((x1 String) (x2 eo.Term)) eo.Term
-  (ite (= x2 eo.Stuck)
-    eo.Stuck
-  (ite true
-    (eo.Var x1 x2)
-    eo.Stuck)))
 
 ; fwd-decl: $eo_typeof_main
 (declare-fun $eo_typeof_main (eo.Term) eo.Term)

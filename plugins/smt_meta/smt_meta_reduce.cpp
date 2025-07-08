@@ -17,6 +17,8 @@
 
 namespace ethos {
 
+//#define PRESERVE_DEFS
+
 ConjPrint::ConjPrint() : d_npush(0) {}
 void ConjPrint::push(const std::string& str)
 {
@@ -117,6 +119,7 @@ void SmtMetaReduce::bind(const std::string& name, const Expr& e)
   // Currently however these definitions are already inlined by the
   // Ethos parser. We would need a --preserve-defs option to Ethos
   // to allow this form of debugging.
+#ifdef PRESERVE_DEFS
   if (name.compare(0, 4, "$eo_") == 0 && e.getKind() == Kind::LAMBDA)
   {
     Expr p = e;
@@ -139,8 +142,8 @@ void SmtMetaReduce::bind(const std::string& name, const Expr& e)
     // Expr pt = d_state.mkBuiltinType(Kind::LAMBDA);
     Expr tmp = d_state.mkSymbol(Kind::PROGRAM_CONST, name, pt);
     d_progSeen.emplace_back(tmp, p);
-    return;
   }
+#endif
 }
 
 void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
@@ -280,7 +283,7 @@ void SmtMetaReduce::printEmbType(const Expr& c,
     Expr qt = t[0];
     t = d_tc.getType(qt);
   }
-  Kind k = c.getKind();
+  Kind k = t.getKind();
   // if it is a reference to the deep embedding datatype,
   // then we print it.
   TermContextKind tk = getTypeMetaKind(c, TermContextKind::NONE);
@@ -303,7 +306,7 @@ void SmtMetaReduce::printEmbType(const Expr& c,
     // Bool refers to (eo.SmtType tsm.Bool), which is a Eunoia term
     os << "eo.Term";
   }
-  else if (k == Kind::APPLY)
+  else if (k == Kind::APPLY || k==Kind::FUNCTION_TYPE)
   {
     // types print the same as terms
     SelectorCtx ctxNull;
@@ -311,15 +314,7 @@ void SmtMetaReduce::printEmbType(const Expr& c,
   }
   else
   {
-    std::string sname = getName(c);
-    if (sname.compare(0, 8, "$eo_List") == 0)
-    {
-      os << "eo.Term";
-    }
-    else
-    {
-      Assert(false) << "printEmbType: Unknown type: " << c << " " << c.getKind();
-    }
+    Assert(false) << "printEmbType: Unknown type: " << c << " " << c.getKind();
   }
   // else if (c == d_metaSmtValue)
   //{
@@ -569,8 +564,11 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       // which was stored as part of the selector context.
       // TODO: maybe it is just call getMetaKindReturn here??
       ittc = ctx.d_tctx.find(recTerm);
-      Assert(ittc != ctx.d_tctx.end()) << "Cannot find context " << recTerm;
-      child = ittc->second;
+      //Assert(ittc != ctx.d_tctx.end()) << "Cannot find context " << recTerm;
+      if (ittc != ctx.d_tctx.end())
+      {
+        child = ittc->second;
+      }
     }
     else
     {
@@ -681,8 +679,15 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     {
       // parameters print as the string that gives the term they were matched to
       it = ctx.d_ctx.find(recTerm);
-      Assert(it != ctx.d_ctx.end()) << "Cannot find " << recTerm;
-      os << it->second;
+      //Assert(it != ctx.d_ctx.end()) << "Cannot find " << recTerm;
+      if (it != ctx.d_ctx.end())
+      {
+        os << it->second;
+      }
+      else
+      {
+        os << recTerm;
+      }
       // dont pop back if we need to close parens
       if (cparen.find(key) == cparen.end())
       {
@@ -718,6 +723,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
         if (child == TermContextKind::EUNOIA)
         {
           // use macro to ensure "Stuck" propagates
+          // FIXME: remove in favor of flattening
           os << "$eo_apply ";
         }
         else if (child == TermContextKind::SMT)
@@ -840,6 +846,7 @@ void SmtMetaReduce::finalizePrograms()
 {
   for (const std::pair<Expr, Expr>& p : d_progSeen)
   {
+#ifdef PRESERVE_DEFS
     // This is only necessary if we want to preserve definitions
     // in the final VC (see ::bind).
     // We reduce defines to a program e.g.
@@ -870,6 +877,7 @@ void SmtMetaReduce::finalizePrograms()
       std::cout << "...finished lambda program" << std::endl;
       continue;
     }
+#endif
     finalizeProgram(p.first, p.second);
   }
 }
@@ -883,6 +891,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   {
     return;
   }
+  std::cout << "*** Setting up program " << v << " / " << !prog.isNull() << std::endl;
   d_defs << "; " << (prog.isNull() ? "fwd-decl: " : "program: ") << v
          << std::endl;
   std::stringstream decl;
