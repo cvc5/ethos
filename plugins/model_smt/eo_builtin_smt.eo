@@ -222,21 +222,35 @@
 ; The operators in this section are needed to reason about the parametric
 ; operations on the Eunoia binary literal type.
 
+; program: $sm_mk_pow2
+; return: >
+;   The integer value of 2 raised to the i^th power.
+; note: We expect i to be non-negative.
 (program $sm_mk_pow2 ((i $smt_builtin_Int))
   :signature ($smt_builtin_Int) $smt_builtin_Int
   (
-  (($sm_mk_pow2 i)  ($smt_apply_3 "ite" ($smt_apply_2 "<=" i $smt_builtin_z_zero)
-                      $smt_builtin_z_one
-                      ($smt_builtin_mul $smt_builtin_z_two ($sm_mk_pow2 ($smt_apply_2 "-" i $smt_builtin_z_one)))))
+  (($sm_mk_pow2 i)  
+    ($smt_apply_3 "ite" ($smt_apply_2 "<=" i $smt_builtin_z_zero)
+      $smt_builtin_z_one
+      ($smt_builtin_mul $smt_builtin_z_two ($sm_mk_pow2 ($smt_apply_2 "-" i $smt_builtin_z_one)))))
   )
 )
+
+; program: $sm_mk_binary_or
+; return: >
+;   true iff the i^th bit of a binary with integer value x is set. Note this
+;   method is agnostic to bitwidth. 
 (program $sm_mk_bit ((x $smt_builtin_Int) (i $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int) $smt_builtin_Bool
   (
-  ; (= (mod (div x ($sm_mk_pow2 i)) 2) 1)
   (($sm_mk_bit x i) ($smt_apply_1 "= 1" ($smt_apply_2 "mod" ($smt_builtin_div x ($sm_mk_pow2 i)) $smt_builtin_z_two)))
   )
 )
+
+; program: $sm_mk_binary_or
+; return: >
+;   The integer value of the binary value obtained by taking the bitwise and of
+;   binary literals ($eo_binary w n1) and ($eo_binary w n2).
 (program $sm_mk_binary_and ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
@@ -255,6 +269,10 @@
   )
 )
 
+; program: $sm_mk_binary_or
+; return: >
+;   The integer value of the binary value obtained by taking the bitwise or of
+;   binary literals ($eo_binary w n1) and ($eo_binary w n2).
 (program $sm_mk_binary_or ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
@@ -262,6 +280,11 @@
     ($smt_apply_3 "+" n1 n2 ($smt_builtin_neg ($sm_mk_binary_and w n1 n2))))
   )
 )
+
+; program: $sm_mk_binary_xor
+; return: >
+;   The integer value of the binary value obtained by taking the bitwise xor of
+;   binary literals ($eo_binary w n1) and ($eo_binary w n2).
 (program $sm_mk_binary_xor ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
@@ -269,6 +292,11 @@
     ($smt_apply_3 "+" n1 n2 ($smt_builtin_neg ($smt_apply_1 "* 2" ($sm_mk_binary_and w n1 n2)))))
   )
 )
+
+; program: $sm_mk_binary_concat
+; return: >
+;   The integer value of the binary value obtained by taking bitwise not of
+;   the binary literal ($eo_binary w n).
 (program $sm_mk_binary_not ((w $smt_builtin_Int) (n $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
@@ -276,12 +304,21 @@
     ($smt_apply_2 "-" ($sm_mk_pow2 w) ($smt_apply_1 "+ 1" ($smt_builtin_mod n ($sm_mk_pow2 w)))))
   )
 )
+
+; program: $sm_mk_binary_max
+; return: >
+;   The integer value of the maximum unsigned binary value of width w.
 (program $sm_mk_binary_max ((w $smt_builtin_Int))
   :signature ($smt_builtin_Int) $smt_builtin_Int
   (
   (($sm_mk_binary_max w) ($smt_apply_1 "- 1" ($sm_mk_pow2 w)))
   )
 )
+
+; program: $sm_mk_binary_concat
+; return: >
+;   The integer value of the binary value obtained by concatenating binary
+;   literals ($eo_binary w1 n1) and ($eo_binary w2 n2).
 (program $sm_mk_binary_concat
   ((w1 $smt_builtin_Int) (n1 $smt_builtin_Int) (w2 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
@@ -301,6 +338,10 @@
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   ;(
   ;(($sm_mk_binary_extract w n x1 x2)
+  ;  (eo::define ((nw ($smt_apply_2 "-" n3 n2)))
+  ;    ($smt_builtin_mod 
+  ;      ($smt_builtin_mod 
+  ;      ($sm_mk_pow2 
   ;)
 )
 
@@ -379,7 +420,8 @@
 
 ;;; Boolean operators
 
-; axiom: $eo_not
+; program: $eo_not
+; implements: eo::not
 (program $eo_not ((w $smt_builtin_Int) (n $smt_builtin_Int))
   :signature ($eo_Term) $eo_Term
   (
@@ -389,7 +431,8 @@
   )
 )
 
-; axiom: $eo_and
+; program: $eo_and
+; implements: eo::and
 (program $eo_and
   ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($eo_Term $eo_Term) $eo_Term
@@ -403,7 +446,8 @@
   )
 )
 
-; axiom: $eo_or
+; program: $eo_or
+; implements: eo::or
 (program $eo_or
   ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($eo_Term $eo_Term) $eo_Term
@@ -417,7 +461,8 @@
   )
 )
 
-; axiom: $eo_xor
+; program: $eo_xor
+; implements: eo::xor
 (program $eo_xor ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
@@ -432,6 +477,8 @@
 
 ;;; Arithmetic operators
 
+; program: $eo_add
+; implements: eo::add
 (program $eo_add
   ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int) (r1 $smt_builtin_Real) (r2 $smt_builtin_Real))
   :signature ($eo_Term $eo_Term) $eo_Term
@@ -513,7 +560,8 @@
   )
 )
 
-; axiom: $eo_neg
+; program: $eo_neg
+; implements: eo::neg
 (program $eo_neg ((n1 $smt_builtin_Int) (r1 $smt_builtin_Real))
   :signature ($eo_Term) $eo_Term
   (
@@ -527,6 +575,8 @@
 
 ;;; String operators
 
+; program: $eo_len
+; implements: eo::len
 (program $eo_len ((s1 $smt_builtin_String) (w $smt_builtin_Int) (n1 $smt_builtin_Int))
   :signature ($eo_Term) $eo_Term
   (
@@ -537,6 +587,8 @@
   )
 )
 
+; program: $eo_concat
+; implements: eo::concat
 (program $eo_concat
   ((w1 $smt_builtin_Int) (n1 $smt_builtin_Int) (w2 $smt_builtin_Int) (n2 $smt_builtin_Int)
    (s1 $smt_builtin_String) (s2 $smt_builtin_String))
@@ -549,19 +601,26 @@
   )
 )
 
+; program: $eo_extract
+; implements: eo::extract
 (program $eo_extract
-  ((s1 $smt_builtin_String) (w1 $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int) (n3 $smt_builtin_Int))
+  ((s1 $smt_builtin_String) (w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int) (n3 $smt_builtin_Int))
   :signature ($eo_Term $eo_Term $eo_Term) $eo_Term
   (
   (($eo_extract ($eo_mk_string s1) ($eo_mk_numeral n2) ($eo_mk_numeral n3))
      ($eo_mk_string ($smt_apply_3 "str.substr" s1 n2 ($smt_apply_1 "+ 1" ($smt_apply_2 "-" n3 n2)))))
-  (($eo_extract ($eo_binary w1 n1) ($eo_mk_numeral n2) ($eo_mk_numeral n3))
-     ($eo_mk_binary
-       ($smt_apply_1 "+ 1" ($smt_apply_2 "-" n3 n2))
-       ($sm_mk_binary_extract w1 n1 n2 n3)))
+  (($eo_extract ($eo_binary w n1) ($eo_mk_numeral n2) ($eo_mk_numeral n3))
+    (eo::define ((nw ($smt_apply_2 "-" n3 n2)))
+    ;($smt_apply_3 "ite" ($smt_builtin_or ($eo_is_neg n2) ($eo_is_neg nw))
+      ;($eo_mk_binary 0 0)
+      ($eo_mk_binary
+        ($smt_apply_1 "+ 1" nw)
+        ($sm_mk_binary_extract w n1 n2 n3))));)
   )
 )
 
+; program: $eo_find
+; implements: eo::find
 (program $eo_find ((s1 $smt_builtin_String) (s2 $smt_builtin_String))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
@@ -572,6 +631,8 @@
 
 ;;; Conversion operators
 
+; program: $eo_to_z
+; implements: eo::to_z
 (program $eo_to_z ((n1 $smt_builtin_Int) (r1 $smt_builtin_Real) (s1 $smt_builtin_String) (w $smt_builtin_Int))
   :signature ($eo_Term) $eo_Term
   (
@@ -589,6 +650,8 @@
   )
 )
 
+; program: $eo_to_q
+; implements: eo::to_q
 (program $eo_to_q ((n1 $smt_builtin_Int) (r1 $smt_builtin_Real) (s1 $smt_builtin_String) (w $smt_builtin_Int))
   :signature ($eo_Term) $eo_Term
   (
@@ -599,6 +662,8 @@
   )
 )
 
+; program: $eo_to_bin
+; implements: eo::to_bin
 (program $eo_to_bin ((w $smt_builtin_Int) (w1 $smt_builtin_Int) (n1 $smt_builtin_Int))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
@@ -609,6 +674,8 @@
   )
 )
 
+; program: $eo_to_str
+; implements: eo::to_str
 (program $eo_to_str ((n1 $smt_builtin_Int) (s1 $smt_builtin_String))
   :signature ($eo_Term) $eo_Term
   (
@@ -622,8 +689,6 @@
   ; TODO: technically others here
   )
 )
-
-; TODO: make the operators below untyped???
 
 ;;; $eo_is_eq
 
@@ -687,8 +752,8 @@
 
 ;;; Derived arithmetic
 
-; Goes directly to SMT-LIB Int???
-; Forward declaration
+; fwd-decl: $eo_hash
+; Note: eo::hash is defined axiomatically in the final smt2 encoding.
 (program $eo_hash () :signature ($eo_Term) $eo_Term)
 
 ;;; $eo_gt
@@ -712,9 +777,10 @@
 
 ;;; since eo_typeof depends on literal predicates, typeof is only now ready.
 
-; Used to model eo::var
-; TODO: rename to $smd_eo.Var
-(declare-parameterized-const $smd_eo.Var ((s $smt_builtin_String :opaque) (T $eo_Term :opaque)) $eo_Term)
+; Represents a Eunoia variable in the final deep embedding.
+(declare-parameterized-const $smd_eo.Var 
+  ((s $smt_builtin_String :opaque) (T $eo_Term :opaque))
+  $eo_Term)
 (define $eo_Var ((s $smt_builtin_String) (T $eo_Term)) ($smd_eo.Var s T))
 
 
@@ -745,6 +811,7 @@
   ($eo_is_eq ($eo_var ($eo_nameof x) ($eo_typeof x)) x))
 
 ; fwd-decl: $eo_typeof_main
+; Note: This method returns the type for all user defined terms.
 (program $eo_typeof_main () :signature ($eo_Term) Type)
 
 ; program: $eo_typeof
