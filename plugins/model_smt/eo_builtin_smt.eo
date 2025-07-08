@@ -387,6 +387,10 @@
 (define $eo_binary ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
   ($eo_smt_term ($smd_sm.Binary x1 x2)))
 
+; define: $eo_empty_binary
+(define $eo_empty_binary ()
+  ($eo_binary 0 0))
+
 ; program: $eo_mk_binary
 ; return: >
 ;   A "legal" binary value ($eo_mk_binary w n1), where 0 <= n1 < 2^w, n1 is
@@ -644,11 +648,11 @@
      ($eo_mk_string ($smt_apply_3 "str.substr" s1 n2 ($smt_apply_1 "+ 1" ($smt_apply_2 "-" n3 n2)))))
   (($eo_extract ($eo_binary w n1) ($eo_mk_numeral n2) ($eo_mk_numeral n3))
     (eo::define ((nw ($smt_apply_2 "-" n3 n2)))
-    ;($smt_apply_3 "ite" ($smt_builtin_or ($eo_is_neg n2) ($eo_is_neg nw))
-      ;($eo_mk_binary 0 0)
+    ($smt_apply_3 "ite" ($smt_builtin_or ($eo_is_neg n2) ($eo_is_neg nw))
+      $eo_empty_binary
       ($eo_mk_binary
         ($smt_apply_1 "+ 1" nw)
-        ($sm_mk_binary_extract w n1 n2 n3))));)
+        ($sm_mk_binary_extract w n1 n2 n3)))))
   )
 )
 
