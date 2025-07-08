@@ -123,10 +123,14 @@
 ; Note the Bool type is "inlined" into the final signature
 (declare-const $smd_sm.True $smt_Term)
 (declare-const $smd_sm.False $smt_Term)
-(declare-parameterized-const $smd_sm.Numeral ((n $smt_builtin_Int :opaque)) $smt_Term)
-(declare-parameterized-const $smd_sm.Rational ((r $smt_builtin_Real :opaque)) $smt_Term)
-(declare-parameterized-const $smd_sm.String ((s ($smt_type_0 "String") :opaque)) $smt_Term)
-(declare-parameterized-const $smd_sm.Binary ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Term)
+(declare-parameterized-const $smd_sm.Numeral
+  ((n $smt_builtin_Int :opaque)) $smt_Term)
+(declare-parameterized-const $smd_sm.Rational
+  ((r $smt_builtin_Real :opaque)) $smt_Term)
+(declare-parameterized-const $smd_sm.String
+  ((s ($smt_type_0 "String") :opaque)) $smt_Term)
+(declare-parameterized-const $smd_sm.Binary
+  ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Term)
 
 ;;; Eunoia datatype constructors
 
@@ -232,18 +236,19 @@
   (($sm_mk_pow2 i)  
     ($smt_apply_3 "ite" ($smt_apply_2 "<=" i $smt_builtin_z_zero)
       $smt_builtin_z_one
-      ($smt_builtin_mul $smt_builtin_z_two ($sm_mk_pow2 ($smt_apply_2 "-" i $smt_builtin_z_one)))))
+      ($smt_builtin_mul $smt_builtin_z_two
+        ($sm_mk_pow2 ($smt_apply_2 "-" i $smt_builtin_z_one)))))
   )
 )
 
-; program: $sm_mk_binary_or
+; program: $sm_mk_bit
 ; return: >
 ;   true iff the i^th bit of a binary with integer value x is set. Note this
 ;   method is agnostic to bitwidth. 
 (program $sm_mk_bit ((x $smt_builtin_Int) (i $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int) $smt_builtin_Bool
   (
-  (($sm_mk_bit x i) ($smt_apply_1 "= 1" ($smt_apply_2 "mod" ($smt_builtin_div x ($sm_mk_pow2 i)) $smt_builtin_z_two)))
+  (($sm_mk_bit x i) ($smt_apply_1 "= 1" ($smt_builtin_mod ($smt_builtin_div x ($sm_mk_pow2 i)) $smt_builtin_z_two)))
   )
 )
 
@@ -251,6 +256,8 @@
 ; return: >
 ;   The integer value of the binary value obtained by taking the bitwise and of
 ;   binary literals ($eo_binary w n1) and ($eo_binary w n2).
+; note: >
+;   Assumes that 0 <= n1 < 2^w, 0 <= n2 < 2^w.
 (program $sm_mk_binary_and ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
@@ -273,6 +280,8 @@
 ; return: >
 ;   The integer value of the binary value obtained by taking the bitwise or of
 ;   binary literals ($eo_binary w n1) and ($eo_binary w n2).
+; note: >
+;   Assumes that 0 <= n1 < 2^w, 0 <= n2 < 2^w.
 (program $sm_mk_binary_or ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
@@ -285,6 +294,8 @@
 ; return: >
 ;   The integer value of the binary value obtained by taking the bitwise xor of
 ;   binary literals ($eo_binary w n1) and ($eo_binary w n2).
+; note: >
+;   Assumes that 0 <= n1 < 2^w, 0 <= n2 < 2^w.
 (program $sm_mk_binary_xor ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
@@ -293,15 +304,17 @@
   )
 )
 
-; program: $sm_mk_binary_concat
+; program: $sm_mk_binary_not
 ; return: >
 ;   The integer value of the binary value obtained by taking bitwise not of
 ;   the binary literal ($eo_binary w n).
+; note: >
+;   Assumes that 0 <= n < 2^w.
 (program $sm_mk_binary_not ((w $smt_builtin_Int) (n $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
   (($sm_mk_binary_not w n)
-    ($smt_apply_2 "-" ($sm_mk_pow2 w) ($smt_apply_1 "+ 1" ($smt_builtin_mod n ($sm_mk_pow2 w)))))
+    ($smt_apply_2 "-" ($sm_mk_pow2 w) ($smt_apply_1 "+ 1" n)))
   )
 )
 
@@ -319,20 +332,26 @@
 ; return: >
 ;   The integer value of the binary value obtained by concatenating binary
 ;   literals ($eo_binary w1 n1) and ($eo_binary w2 n2).
+; note: >
+;   Assumes that 0 <= n1 < 2^w1, 0 <= n2 < 2^w2.
 (program $sm_mk_binary_concat
   ((w1 $smt_builtin_Int) (n1 $smt_builtin_Int) (w2 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
   (($sm_mk_binary_concat w1 n1 w2 n2)
-    ($smt_builtin_add
-      ($smt_builtin_mul ($smt_builtin_mod n1 ($sm_mk_pow2 w1)) ($sm_mk_pow2 w2))
-      ($smt_builtin_mod n2 ($sm_mk_pow2 w2))))
+    ($smt_builtin_add ($smt_builtin_mul n1 ($sm_mk_pow2 w2)) n2))
   )
 )
 
 ;(define-fun $sm_Binary_extract ((w Int) (i Int) (j Int) (x Int)) sm.Term
 ;    (ite (>= i j 0) (mod (div (mod x ($sm_mk_pow2 w)) ($sm_pow2_eval j)) ($sm_pow2_eval (+ (- i j) 1))) (sm.Stuck)))
 
+; program: $sm_mk_binary_extract
+; return: >
+;   The integer value of the binary value obtained by extracting bits x1
+;   through x2 (inclusive) of binary literal ($eo_binary w n).
+; note: >
+;   Assumes that 0 <= n < 2^w.
 (program $sm_mk_binary_extract
   ((w $smt_builtin_Int) (n $smt_builtin_Int) (x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
@@ -359,15 +378,27 @@
   ($eo_smt_term ($smd_sm.Rational x)))
 (define $eo_mk_string ((x $smt_builtin_String))
   ($eo_smt_term ($smd_sm.String x)))
+
+; define: $eo_binary
+; note: >
+;   This should be used in pattern matching only, where it is assume that
+;   it will match "legal" binary values only.
 (define $eo_binary ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
   ($eo_smt_term ($smd_sm.Binary x1 x2)))
-; different from above, this may get stuck
+
+; program: $eo_mk_binary
+; return: >
+;   A "legal" binary value ($eo_mk_binary w n1), where 0 <= n1 < 2^w, n1 is
+;   congruent mod 2^w to n if w is a 32-bit numeral value, or stuck otherwise.
+; note: >
+;   All binaries considered by Eunoia should run through this method to ensure
+;   they are legal.
 (program $eo_mk_binary ((w $smt_builtin_Int) (n $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int) $eo_Term
   (
   (($eo_mk_binary w n)
     ($smt_apply_3 "ite" ($smt_builtin_and ($smt_apply_1 "<= 0" w) ($smt_apply_1 ">= 4294967296" w))
-      ($eo_binary w ($smt_apply_2 "mod" n ($sm_mk_pow2 w)))
+      ($eo_binary w ($smt_builtin_mod n ($sm_mk_pow2 w)))
       $eo_stuck))
   )
 )
@@ -542,11 +573,11 @@
   (($eo_zmod ($eo_mk_numeral n1) ($eo_mk_numeral n2))
     ($smt_apply_3 "ite" ($smt_apply_1 "= 0" n2)
       $eo_stuck
-      ($eo_mk_numeral ($smt_apply_2 "mod" n1 n2))))
+      ($eo_mk_numeral ($smt_builtin_mod n1 n2))))
   (($eo_zmod ($eo_binary w n1) ($eo_binary w n2))
     ($smt_apply_3 "ite" ($smt_apply_1 "= 0" n2)
       ($eo_binary w n1)
-      ($eo_mk_binary w ($smt_apply_2 "mod" n1 n2))))
+      ($eo_mk_binary w ($smt_builtin_mod n1 n2))))
   )
 )
 
