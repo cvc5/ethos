@@ -156,7 +156,8 @@ bool CmdParser::parseNextCommand()
       Kind sk;
       Expr t;
       sk = Kind::CONST;
-      if (tok==Token::DECLARE_CONST || tok==Token::DECLARE_PARAMETERIZED_CONST)
+      if (tok == Token::DECLARE_CONST
+          || tok == Token::DECLARE_PARAMETERIZED_CONST)
       {
         // possible attribute list
         AttrMap attrs;

@@ -746,7 +746,7 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
                 << "evaluated args " << cchildren << std::endl;
             // if a program and all arguments are ground, run it
             Kind cck = cchildren[0]->getKind();
-            if (cck==Kind::PROGRAM_CONST)
+            if (cck == Kind::PROGRAM_CONST)
             {
               // maybe the evaluation is already cached
               // ensure things in the evalTrie are ref counted
@@ -958,7 +958,7 @@ Expr TypeChecker::evaluateProgramInternal(
     }
   }
   ExprValue* hd = children[0];
-  Assert (hd->getKind()==Kind::PROGRAM_CONST);
+  Assert(hd->getKind() == Kind::PROGRAM_CONST);
   if (d_plugin && d_plugin->hasEvaluation(hd))
   {
     Trace("type_checker") << "RUN program " << children << std::endl;
@@ -967,16 +967,15 @@ Expr TypeChecker::evaluateProgramInternal(
   Expr prog = d_state.getProgram(hd);
   if (d_statsEnabled)
   {
-    RuleStat * ps = &d_sts.d_pstats[hd];
+    RuleStat* ps = &d_sts.d_pstats[hd];
     ps->d_count++;
   }
-  Assert (!prog.isNull());
+  Assert(!prog.isNull());
   if (!prog.isNull())
   {
     Trace("type_checker") << "INTERPRET program " << children << std::endl;
     // otherwise, evaluate
-    for (size_t i = 0, nchildren = prog.getNumChildren(); i < nchildren;
-          i++)
+    for (size_t i = 0, nchildren = prog.getNumChildren(); i < nchildren; i++)
     {
       const Expr& c = prog[i];
       newCtx.clear();
@@ -985,12 +984,13 @@ Expr TypeChecker::evaluateProgramInternal(
       if (nargs != hchildren.size())
       {
         // TODO: catch this during weak type checking of program bodies
-        Warning() << "*** Bad number of arguments provided in function call to " << Expr(hd) << std::endl;
+        Warning() << "*** Bad number of arguments provided in function call to "
+                  << Expr(hd) << std::endl;
         Warning() << "  Arguments: " << children << std::endl;
         return d_null;
       }
       bool matchSuccess = true;
-      for (size_t j = 1; j<nargs; j++)
+      for (size_t j = 1; j < nargs; j++)
       {
         if (!match(hchildren[j], children[j], newCtx))
         {

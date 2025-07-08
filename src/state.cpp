@@ -739,7 +739,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         Warning() << "Wrong number of arguments when applying " << Expr(hd) << std::endl;
       }
     }
-    else if (hk==Kind::PROGRAM_CONST)
+    else if (hk == Kind::PROGRAM_CONST)
     {
       // have to check whether we have marked the constructor kind, which is
       // not the case i.e. if we are constructing applications corresponding to
@@ -772,7 +772,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     // The exceptions to this are operators whose types are not flattened (programs and proof rules).
     if (children.size()>2)
     {
-      if (hk!=Kind::PROGRAM_CONST && hk!=Kind::PROOF_RULE)
+      if (hk != Kind::PROGRAM_CONST && hk != Kind::PROOF_RULE)
       {
         // return the curried version
         return Expr(mkApplyInternal(vchildren));
