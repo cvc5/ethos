@@ -1487,25 +1487,18 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
     {
       tk = TermContextKind::SMT_TYPE;
     }
-    else if (sname.compare(0, 8, "$smd_eo.") == 0 || sname == "$eo_Var")
+    else if (sname.compare(0, 5, "$smd_")==0)
+    {
+      Expr op = child[0];
+      Expr tpop = d_tc.getType(op);
+      std::pair<std::vector<Expr>, Expr> ftype = tpop.getFunctionType();
+      TermContextKind tknew = getTypeMetaKind(ftype.second);
+      Assert (tknew!=TermContextKind::NONE);
+      return tknew;
+    }
+    else if (sname == "$eo_Var")
     {
       tk = TermContextKind::EUNOIA;
-    }
-    else if (sname.compare(0, 8, "$smd_sm.") == 0)
-    {
-      tk = TermContextKind::SMT;
-    }
-    else if (sname.compare(0, 9, "$smd_tsm.") == 0)
-    {
-      tk = TermContextKind::SMT_TYPE;
-    }
-    else if (sname.compare(0, 9, "$smd_vsm.") == 0)
-    {
-      tk = TermContextKind::SMT_VALUE;
-    }
-    else if (sname.compare(0, 9, "$smd_msm.") == 0)
-    {
-      tk = TermContextKind::SMT_MAP;
     }
     else
     {
