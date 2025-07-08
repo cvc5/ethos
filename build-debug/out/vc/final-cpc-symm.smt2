@@ -80,7 +80,7 @@
   (eo.SmtType (eo.SmtType.arg1 tsm.Type))
   ; The Eunoia representation of an SMT-LIB value
   ;(eo.SmtValue (eo.SmtValue.arg1 vsm.Value))
-  (eo.$eo_Var (eo.$eo_Var.arg1 String) (eo.$eo_Var.arg2 eo.Term))
+  (eo.Var (eo.Var.arg1 String) (eo.Var.arg2 eo.Term))
   ; "stuckness"
   (eo.Stuck)
   ; user-decl: $eo_List
@@ -180,6 +180,14 @@
 ; fwd-decl: $eo_hash
 (declare-fun $eo_hash (eo.Term) eo.Term)
 
+; program: $eo_Var
+(define-fun $eo_Var ((x1 String) (x2 eo.Term)) eo.Term
+  (ite (= x2 eo.Stuck)
+    eo.Stuck
+  (ite true
+    (eo.Var x1 x2)
+    eo.Stuck)))
+
 ; fwd-decl: $eo_typeof_main
 (declare-fun $eo_typeof_main (eo.Term) eo.Term)
 
@@ -200,8 +208,8 @@
     (eo.SmtType (tsm.Apply tsm.Seq tsm.Char))
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Binary) (eo.SmtTerm.arg1 x1)))
     eo.Type
-  (ite ((_ is eo.$eo_Var) x1)
-    (eo.$eo_Var.arg2 x1)
+  (ite ((_ is eo.Var) x1)
+    (eo.Var.arg2 x1)
   (ite true
     ($eo_typeof_main x1)
     eo.Stuck))))))))))) :named sm.axiom.$eo_typeof))

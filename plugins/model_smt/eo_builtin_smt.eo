@@ -692,7 +692,9 @@
 
 ; Used to model eo::var
 ; TODO: rename to $smd_eo.Var
-(declare-parameterized-const $eo_Var ((s $eo_String :opaque) (T $eo_Term :opaque)) $eo_Term)
+(declare-parameterized-const $smd_eo.Var ((s $smt_builtin_String :opaque) (T $eo_Term :opaque)) $eo_Term)
+(define $eo_Var ((s $smt_builtin_String) (T $eo_Term)) ($smd_eo.Var s T))
+
 
 ; program: $eo_var
 ; implements: eo::var

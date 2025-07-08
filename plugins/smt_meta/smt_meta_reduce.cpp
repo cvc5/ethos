@@ -1340,10 +1340,6 @@ TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
     {
       tk = TermContextKind::SMT_TYPE;
     }
-    else if (sname == "$eo_Var")
-    {
-      tk = i == 1 ? TermContextKind::SMT_BUILTIN : TermContextKind::EUNOIA;
-    }
   }
   else if (k == Kind::APPLY)
   {
@@ -1536,48 +1532,41 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
     std::string sname = getName(hd);
     Expr htype = d_tc.getType(hd);
     Assert(!htype.isNull()) << "Failed to type check " << hd;
+    // Nullary deep embedding constructors
     if (sname.compare(0, 5, "$smd_")==0)
     {
       TermContextKind tknew = getTypeMetaKind(htype);
       Assert (tknew!=TermContextKind::NONE);
       return tknew;
     }
-    // Nullary deep embedding constructors
-    if (sname == "$eo_Var")
+    tk = getTypeMetaKind(htype);
+    // std::cout << "Type for atomic term " << hd << " (" << k << ") is "
+    //           << htype << ", thus context is " <<
+    //           termContextKindToString(tk)
+    //           << std::endl;
+    //  if it is a Eunoia constant, it depends on the mapping to
+    //  datatypes, accessible via the $eo_get_meta_type method.
+    if (k == Kind::CONST && tk == TermContextKind::EUNOIA)
     {
-      tk = TermContextKind::EUNOIA;
-    }
-    else
-    {
-      tk = getTypeMetaKind(htype);
-      // std::cout << "Type for atomic term " << hd << " (" << k << ") is "
-      //           << htype << ", thus context is " <<
-      //           termContextKindToString(tk)
-      //           << std::endl;
-      //  if it is a Eunoia constant, it depends on the mapping to
-      //  datatypes, accessible via the $eo_get_meta_type method.
-      if (k == Kind::CONST && tk == TermContextKind::EUNOIA)
+      // std::cout << "...consult meta-kind side condition" << std::endl;
+      //  constants are managed by the Eunoia side condition
+      Expr mapp = d_state.mkExprSimple(Kind::APPLY, {d_eoGetMetaKind, hd});
+      Ctx ectx;
+      Expr mm = d_tc.evaluate(mapp.getValue(), ectx);
+      tk = getTypeMetaKind(mm);
+      if (tk == TermContextKind::NONE && parentCtx != TermContextKind::NONE)
       {
-        // std::cout << "...consult meta-kind side condition" << std::endl;
-        //  constants are managed by the Eunoia side condition
-        Expr mapp = d_state.mkExprSimple(Kind::APPLY, {d_eoGetMetaKind, hd});
-        Ctx ectx;
-        Expr mm = d_tc.evaluate(mapp.getValue(), ectx);
-        tk = getTypeMetaKind(mm);
-        if (tk == TermContextKind::NONE && parentCtx != TermContextKind::NONE)
-        {
-          // otherwise just use the parent type????
-          tk = parentCtx;
-        }
-        // std::cout << "...evaluate meta-kind side condition returns " << mm
-        //           << ", which is " << termContextKindToString(tk) <<
-        //           std::endl;
-      }
-      else if (parentCtx != TermContextKind::NONE)
-      {
-        // otherwise trust the parent kind???
+        // otherwise just use the parent type????
         tk = parentCtx;
       }
+      // std::cout << "...evaluate meta-kind side condition returns " << mm
+      //           << ", which is " << termContextKindToString(tk) <<
+      //           std::endl;
+    }
+    else if (parentCtx != TermContextKind::NONE)
+    {
+      // otherwise trust the parent kind???
+      tk = parentCtx;
     }
   }
   else
