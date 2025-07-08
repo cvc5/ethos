@@ -141,6 +141,8 @@ class SmtMetaReduce : public StdPlugin
   std::vector<std::pair<Expr, Expr>> d_progSeen;
   /** Attributes marked */
   std::map<Expr, std::pair<Attr, Expr>> d_attrDecl;
+  /** */
+  std::map<std::string, TermContextKind> d_prefixToMetaKind;
   /** Common constants */
   Expr d_null;
   std::stringstream d_defs;

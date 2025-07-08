@@ -53,7 +53,13 @@ void SelectorCtx::clear()
   d_tctx.clear();
 }
 
-SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s) {}
+SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s) 
+{
+  d_prefixToMetaKind["sm"] = TermContextKind::SMT;
+  d_prefixToMetaKind["tsm"] = TermContextKind::SMT_TYPE;
+  d_prefixToMetaKind["vsm"] = TermContextKind::SMT_VALUE;
+  d_prefixToMetaKind["msm"] = TermContextKind::SMT_MAP;
+}
 
 SmtMetaReduce::~SmtMetaReduce() {}
 
@@ -1293,6 +1299,14 @@ TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
           // TODO: maybe they should have SMT context???
           tk = i == 2 ? TermContextKind::SMT_BUILTIN : TermContextKind::NONE;
         }
+        /*
+        else if (esname.compare(0,6,"(_ is ")==0)
+        {
+          size_t firstDot = esname.find('.');
+          Assert (firstDot != std::string::npos && firstDot>6);
+          std::string prefix = esname.substr(6, firstDot);
+        }
+        */
         else if (esname == "eo.SmtTerm.arg1")
         {
           // corner case: the selector of terms is SMT

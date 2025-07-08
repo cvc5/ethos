@@ -398,9 +398,9 @@ $SMT_EMBED_META_TYPE_DECL$
 ; This is a recursive call.
 ; NOTE: for the sake of soundness, this must be a total function!!!!!!!
 (program $smtx_model_eval
-  ((T Type) (U Type) (V Type) (a1 T) (a2 T) (c Bool) (f $smt_Term) (y U) (z $smt_Term) (k $smt_builtin_Int) (id $smt_builtin_Int) (F Bool)
+  ((T $smt_Type) (f $smt_Term) (y $smt_Term) (z $smt_Term) (k $smt_builtin_Int) (id $smt_builtin_Int) (F Bool)
    ; generic parameters that may appear in terms to pattern match
-   (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3))
+   (x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term) (x4 $smt_Term) (x5 $smt_Term))
   :signature ($smt_Term) $smt_Value
   (
   ; Booleans are their own values.
