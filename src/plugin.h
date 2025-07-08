@@ -79,12 +79,6 @@ public:
    */
   virtual void markConstructorKind(const Expr& v, Attr a, const Expr& cons) {}
   /**
-   * Mark oracle command. Called when declare-oracle-fun is executed.
-   * @param v The variable corresponding to the oracle function.
-   * @param ocmd The command specified as the command to run the oracle.
-   */
-  virtual void markOracleCmd(const Expr& v, const std::string& ocmd) {}
-  /**
    * Define program. Called when a program is declared via program.
    * @param v The variable corresponding to the program.
    * @param prog Its definition, which is a term of kind PROGRAM.

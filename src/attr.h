@@ -30,7 +30,6 @@ enum class Attr
   //------------------ below here is mutually exclusive?
   LIST,
   PROGRAM,
-  ORACLE,
   BINDER,
   LET_BINDER,
   OPAQUE,

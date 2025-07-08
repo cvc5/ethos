@@ -50,7 +50,6 @@ enum class Kind
   PROGRAM_CONST,
   PROOF_RULE,
   VARIABLE,
-  ORACLE,
 
   // literals
   BOOLEAN,
