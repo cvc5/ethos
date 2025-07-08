@@ -153,8 +153,6 @@ class SmtMetaReduce : public StdPlugin
   /** */
   bool isSmtLibExpression(TermContextKind ctx);
   bool isGuardedArgSmtExpression(TermContextKind ctx);
-  TermContextKind guard(TermContextKind ctx);
-  TermContextKind unguard(TermContextKind ctx);
   /**
    */
   TermContextKind getTypeMetaKind(

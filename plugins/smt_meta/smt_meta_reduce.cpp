@@ -1190,30 +1190,6 @@ bool SmtMetaReduce::isGuardedArgSmtExpression(TermContextKind ctx)
          || ctx == TermContextKind::SMT_VALUE_GUARDED;
 }
 
-TermContextKind SmtMetaReduce::guard(TermContextKind ctx)
-{
-  switch (ctx)
-  {
-    case TermContextKind::SMT: return TermContextKind::SMT_GUARDED;
-    case TermContextKind::SMT_TYPE: return TermContextKind::SMT_TYPE_GUARDED;
-    case TermContextKind::SMT_VALUE: return TermContextKind::SMT_VALUE_GUARDED;
-    default: break;
-  }
-  return ctx;
-}
-
-TermContextKind SmtMetaReduce::unguard(TermContextKind ctx)
-{
-  switch (ctx)
-  {
-    case TermContextKind::SMT_GUARDED: return TermContextKind::SMT;
-    case TermContextKind::SMT_TYPE_GUARDED: return TermContextKind::SMT_TYPE;
-    case TermContextKind::SMT_VALUE_GUARDED: return TermContextKind::SMT_VALUE;
-    default: break;
-  }
-  return ctx;
-}
-
 TermContextKind SmtMetaReduce::getTypeMetaKind(const Expr& typ,
                                                TermContextKind elseKind)
 {
