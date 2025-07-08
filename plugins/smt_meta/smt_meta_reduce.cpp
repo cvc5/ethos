@@ -708,10 +708,8 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       }
       continue;
     }
-    // TODO: uncurry SMT-LIB apply terms
     // we always push all children at once
     size_t cstart = 0;
-    bool isCurriedApply = false;
     if (ck == Kind::APPLY)
     {
       os << "(";
@@ -719,7 +717,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       // programs print as themselves
       if (!isProgramApp(recTerm))
       {
-        isCurriedApply = true;
         if (child == TermContextKind::EUNOIA)
         {
           // use macro to ensure "Stuck" propagates
@@ -813,13 +810,10 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       EO_FATAL() << "Unhandled kind in print term " << ck << " " << recTerm
                  << " / " << termContextKindToString(parent) << std::endl;
     }
-    // FIXME: assume not, for now.
-    isCurriedApply = false;
     // otherwise, the new context depends on the types of the children
     std::vector<TermContextKind> targs = getMetaKindArgs(recTerm, parent);
     // push in reverse order
-    size_t nchild =
-        (isCurriedApply ? rtermArgs.size() : recTerm.getNumChildren());
+    size_t nchild = recTerm.getNumChildren();
     for (size_t i = cstart; i < nchild; i++)
     {
       if (i != cstart)
@@ -828,8 +822,8 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
         visit.emplace_back(d_null, TermContextKind::NONE);
       }
       size_t ii = cstart + (nchild - i) - 1;
-      Expr rc = (isCurriedApply ? rtermArgs[ii] : recTerm[ii]);
-      TermContextKind ctxRec = (isCurriedApply ? child : targs[ii]);
+      Expr rc = recTerm[ii];
+      TermContextKind ctxRec = targs[ii];
       visit.emplace_back(rc, ctxRec);
     }
   } while (!visit.empty());
