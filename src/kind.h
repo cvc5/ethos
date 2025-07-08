@@ -136,6 +136,8 @@ bool isSymbol(Kind k);
 bool isLiteral(Kind k);
 /** */
 bool isLiteralOp(Kind k);
+/** */
+bool isNaryLiteralOp(Kind k);
 /** Is k a list literal operator? */
 bool isListLiteralOp(Kind k);
 
