@@ -47,8 +47,8 @@
   ((T $smt_Type :opaque) (k $smt_Term :opaque) (id $smt_builtin_Int :opaque))
   $smt_Term)
 (define $sm_skolem
-  ((k $smt_builtin_Int) (id $smt_builtin_Int) (T $smt_Type))
-  ($smd_sm.Skolem k id T))
+  ((T $smt_Type) (k $smt_Term) (id $smt_builtin_Int))
+  ($smd_sm.Skolem T k id))
 
 ; A free constant
 (declare-parameterized-const $smd_sm.Const
@@ -359,27 +359,45 @@ $SMT_EMBED_META_TYPE_DECL$
 ; Conceptually, returns the model value for constant with kind k, identifier id and type T.
 ; This is intentionally undefined in this signature.
 (program $smtx_model_lookup ()
-  :signature ($smt_builtin_Int $smt_builtin_Int $smt_Type) $smt_Value)
-  
+  :signature ($smt_Type $smt_builtin_Int $smt_builtin_Int) $smt_Value)
 
-; Lookup the predicate the constant can be assumed to have.
-; If the kind is 0, it is an SMT-LIB input constant, we return true.
-; Otherwise, we lookup the predicate for the skolem, which may be
-; user-defined. Note this need not be a valid formula due to the
-; definition of $smtx_model_eval, which checks whether the predicate
-; is satisfied in the model.
-; If this is undefined, we return true.
-(program $smtx_const_predicate
-  ((k $smt_builtin_Int) (id $smt_builtin_Int) (T $smt_Type) (val $smt_Value))
-  :signature ($smt_builtin_Int $smt_builtin_Int $smt_Type $smt_Value) $smt_builtin_Bool
-  (
-  ; User constants (with kind 0) are always interpreted
-  (($smtx_const_predicate $smt_builtin_z_zero id T val) $smt_builtin_true)
+; Returns the builtin integer corresponding to the kind of the
+; skolem term ($sm_skolem T k id).
+(program $smtx_get_skolem_kind ((k $smt_Term))
+  :signature ($smt_Type $smt_Term $smt_builtin_Int) $smt_builtin_Int
   ; TODO
-  (($smtx_const_predicate k id T val) $smt_builtin_false)
+)
+
+(program $smtx_model_skolem_lookup ((T $smt_Type) (k $smt_Term) (id $smt_builtin_Int))
+  :signature ($smt_Type $smt_Term $smt_builtin_Int) $smt_Value
+  (
+  (($smtx_model_skolem_lookup T k id) ($smtx_model_lookup T ($smtx_get_skolem_kind T k id) id))
   )
 )
 
+; Lookup the predicate the constant can be assumed to have.
+; Otherwise, we lookup the predicate for the skolem, which may be
+; user-defined. This must correspond a valid formula, i.e. one where
+;   (exists val. ($smtx_const_predicate k id T val))
+; is a valid formula.
+; If the  is undefined, we return true.
+(program $smtx_const_predicate_internal
+  ((T $smt_Type) (k $smt_Term) (id $smt_builtin_Int) (val $smt_Value))
+  :signature ($smt_Type $smt_Term $smt_builtin_Int $smt_Value) $smt_builtin_Bool
+  (
+  ; User defined constant predicates.
+$EO_CONST_PREDICATE_CASES$
+  (($smtx_const_predicate_internal T k id val) $smt_builtin_true)
+  )
+)
+
+(program $smtx_const_predicate ((T $smt_Type) (k $smt_Term) (id $smt_builtin_Int))
+  :signature ($smt_Type $smt_Term $smt_builtin_Int) $smt_builtin_Bool
+  (
+  (($smtx_const_predicate T k id)
+      ($smtx_const_predicate_internal T k id ($smtx_model_skolem_lookup T k id)))
+  )
+)
 ; program: $smtx_substitute
 ; Used to define $smtx_eval_quant.
 ; TODO: debruijn
@@ -390,16 +408,6 @@ $SMT_EMBED_META_TYPE_DECL$
   (($smtx_substitute x y (f a))         (_ ($smtx_substitute x y f) ($smtx_substitute x y a)))
   (($smtx_substitute x y x)             y)
   (($smtx_substitute x y z)             z)
-  )
-)
-
-(program $smtx_model_lookup_predicate 
-  ((T $smt_Type) (k $smt_builtin_Int) (id $smt_builtin_Int) (F $smt_Term) (t $smt_Term))
-  :signature ($smt_Term) $smt_builtin_Bool
-  (
-  (($smtx_model_lookup_predicate ($sm_const T id))   $smt_builtin_true)
-  (($smtx_model_lookup_predicate ($sm_skolem T F k)) $smt_builtin_true)
-  (($smtx_model_lookup_predicate t)                  $smt_builtin_false)
   )
 )
 
@@ -414,7 +422,9 @@ $SMT_EMBED_META_TYPE_DECL$
   ((T $smt_Type) (m $smt_Map) (i $smt_Value) (v $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
+  ; The function evaluated to a map value, call the map lookup.
   (($smtx_model_eval_apply ($vsm_map T m) i)  ($smtx_map_lookup m i))
+  ; The function did not evaluate to a map value, we fail.
   (($smtx_model_eval_apply v i)               $vsm_not_value)
   )
 )
@@ -423,7 +433,7 @@ $SMT_EMBED_META_TYPE_DECL$
 ; This is a recursive call.
 ; NOTE: for the sake of soundness, this must be a total function!!!!!!!
 (program $smtx_model_eval
-  ((T $smt_Type) (f $smt_Term) (y $smt_Term) (z $smt_Term) (k $smt_builtin_Int) (id $smt_builtin_Int) (F Bool)
+  ((T $smt_Type) (f $smt_Term) (y $smt_Term) (z $smt_Term) (k $smt_Term) (id $smt_builtin_Int) (F Bool)
    ; generic parameters that may appear in terms to pattern match
    (x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term) (x4 $smt_Term) (x5 $smt_Term))
   :signature ($smt_Term) $smt_Value
@@ -468,13 +478,13 @@ $SMT_EVAL_CASES$
   ; These are given an arbitrary value by the model ($smtx_model_lookup),
   ; which is an uninterpreted function. The properties of this value are
   ; axiomatized in the final SMT2.
-  ; FIXME: incorporate partial functions and skolems here.
-  (($smtx_model_eval ($sm_const T id))        ($smtx_model_lookup $smt_builtin_z_zero id T))
+  (($smtx_model_eval ($sm_const T id))        ($smtx_model_lookup T $smt_builtin_z_zero id))
+  (($smtx_model_eval ($sm_skolem T k id))     ($smtx_model_skolem_lookup T k id))
   
   ; Otherwise, it may be a term value (e.g. if z is a Boolean or numeral constant).
   ; We call the utility method which will either generate an SMT-LIB term value or
   ; a SMT-LIB non-value error term.
-  (($smtx_model_eval z)                      ($smt_mk_value_term z))
+  (($smtx_model_eval z)                       ($smt_mk_value_term z))
   )
 )
 

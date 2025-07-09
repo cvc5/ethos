@@ -66,7 +66,7 @@ cp $STD_SMODEL_OUT $VCM_DEF_DESUGAR
 # - getting the meta type of terms, which is used in the final step below
 # - symbols that may appear in custom axioms (e.g. $smtx_const_predicate).
 echo "**** smt_meta: Run ethos + trim-deps on $VCM_DEF_DESUGAR to generate $VCMT_DEF_DESUGAR"
-./run_trim_defs $VCM_DEF_DESUGAR "\$eovc_$TARGET" "\$smtx_const_predicate" "\$eo_get_meta_type" "\$vsm_is_value" "\$eo_typeof" "\$smt_Value" "\$eo_hash" "\$eo_requires" "\$eo_apply" "\$eo_fun_type">/dev/null
+./run_trim_defs $VCM_DEF_DESUGAR "\$eovc_$TARGET" "\$smtx_const_predicate" "\$eo_get_meta_type" "\$vsm_is_value" "\$eo_typeof" "\$smt_Value" "\$eo_hash" "\$eo_requires" "\$eo_apply" "\$eo_fun_type" >/dev/null
 check_status
 cp $STD_TRIM_OUT $VCMT_DEF_DESUGAR
 

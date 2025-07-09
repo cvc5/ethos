@@ -282,14 +282,25 @@
 (declare-fun $smtx_model_eval (sm.Term) vsm.Value)
 
 ; fwd-decl: $smtx_model_lookup
-(declare-fun $smtx_model_lookup (Int Int tsm.Type) vsm.Value)
+(declare-fun $smtx_model_lookup (tsm.Type Int Int) vsm.Value)
+
+; fwd-decl: $smtx_get_skolem_kind
+(declare-fun $smtx_get_skolem_kind (tsm.Type sm.Term Int) Int)
+
+; program: $smtx_model_skolem_lookup
+(define-fun $smtx_model_skolem_lookup ((x1 tsm.Type) (x2 sm.Term) (x3 Int)) vsm.Value
+    ($smtx_model_lookup x1 ($smtx_get_skolem_kind x1 x2 x3) x3)
+)
+
+; program: $smtx_const_predicate_internal
+(define-fun $smtx_const_predicate_internal ((x1 tsm.Type) (x2 sm.Term) (x3 Int) (x4 vsm.Value)) Bool
+    true
+)
 
 ; program: $smtx_const_predicate
-(define-fun $smtx_const_predicate ((x1 Int) (x2 Int) (x3 tsm.Type) (x4 vsm.Value)) Bool
-  (ite (= x1 0)
-    true
-    false
-))
+(define-fun $smtx_const_predicate ((x1 tsm.Type) (x2 sm.Term) (x3 Int)) Bool
+    ($smtx_const_predicate_internal x1 x2 x3 ($smtx_model_skolem_lookup x1 x2 x3))
+)
 
 ; program: $smtx_model_eval_apply
 (define-fun $smtx_model_eval_apply ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
@@ -312,9 +323,11 @@
   (ite ((_ is sm.Apply) x1)
     ($smtx_model_eval_apply ($smtx_model_eval (sm.Apply.arg1 x1)) ($smtx_model_eval (sm.Apply.arg2 x1)))
   (ite ((_ is sm.Const) x1)
-    ($smtx_model_lookup 0 (sm.Const.arg2 x1) (sm.Const.arg1 x1))
+    ($smtx_model_lookup (sm.Const.arg1 x1) 0 (sm.Const.arg2 x1))
+  (ite ((_ is sm.Skolem) x1)
+    ($smtx_model_skolem_lookup (sm.Skolem.arg1 x1) (sm.Skolem.arg2 x1) (sm.Skolem.arg3 x1))
     (ite ($smtx_term_is_value x1) (vsm.Term x1) vsm.NotValue)
-)))))))) :named sm.axiom.$smtx_model_eval))
+))))))))) :named sm.axiom.$smtx_model_eval))
 
 ; program: $eo_model_sat
 (assert (! (forall ((x1 eo.Term))
@@ -364,12 +377,9 @@
   (=> (and (not (= x eo.Stuck)) (not (= y eo.Stuck))
     (= ($eo_hash x) ($eo_hash y))) (= x y))) :named sm.hash_injective))
 
-; Handles free constants, skolems, and TODO: partial functions.
-; If the constant predicate for a constant is satisfied,
-; then we may assume that the model value for that constant is a value.
-(assert (! (forall ((k Int) (i Int) (T tsm.Type))
-  (=> ($smtx_const_predicate k i T ($smtx_model_lookup k i T))
-      (not ((_ is vsm.NotValue) ($smtx_model_lookup k i T)))))
+; The constant predicate holds for the model value of a constant.
+(assert (! (forall ((T tsm.Type) (k sm.Term) (i Int))
+  ($smtx_const_predicate T k i))
  :named sm.model_is_value))
 
 ;;; The verification condition
