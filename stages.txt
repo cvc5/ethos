@@ -98,9 +98,9 @@ Things handled at this stage:
   - Includes an auto-generation of cases for all user symbols ($eo_typeof_main).
 - eo::dt_constructors, eo::dt_selectors
 - Defines $eo_fail as a stuck term.
-- Defines $eo_model_preamble as a placeholder for inserting more definitions of $eo_.
+- Defines a placeholder "include eo_builtin_smt" for inserting more definitions of $eo_.
 
-- TODO: ite, requires should be handled here, using "nested-eval-elim" plugin.
+- TODO: ite, requires should be handled here, using "flatten-eval" plugin.
 
 === Model_smt
 
@@ -224,16 +224,3 @@ Not handled:
 
 - TODO: we could construct another intermediate *.eo where all types are
   replaced by those in the deep embedding.
-
-===
-
-Future research:
-- Fuzz Ethos to make sure it is syncronized with desugaring semantics.
-- Lean_Meta plugin, either:
-  - A reimplementation of the above meta-prover in Lean.
-  - Use cvc5 to prove meta-theorems and replay them for each proof rule.
-- Parametric bitvectors in cvc5 to prove VCs.
-- Logos: reimplementation of ethos whose native language is desugared *.eo. It should be formally verified to incorporate some stages of the above pipeline.
-- Telos: an SMT solver API to run cvc5 -> proof API -> ethos/logos.
-- Alethe to Eunoia.
-- Agda_Meta, Deduckti_Meta?
