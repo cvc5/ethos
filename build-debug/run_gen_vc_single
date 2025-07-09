@@ -1,0 +1,107 @@
+#!/bin/bash
+
+OUT_DIR=./out
+
+STD_TRIM_OUT=../plugins/trim_defs/trim_gen.eo
+STD_DESUGAR_OUT=../plugins/desugar/eo_desugar_gen.eo
+STD_SMODEL_OUT=../plugins/model_smt/model_smt_gen.eo
+STD_SMODEL_EMBED_OUT=../plugins/model_smt/model_eo_embed_gen.eo
+STD_VC_OUT=../plugins/smt_meta/smt_meta_gen.smt2
+# the name of a EO signature
+INPUT=$1
+# should be the name of a constant or proof rule in $INPUT
+TARGET=$2
+# trim out
+INIT_TRIM=$OUT_DIR/trim-cpc.eo
+INIT_DESUGAR=$OUT_DIR/trim-d-cpc.eo
+VC_DEF_DESUGAR=$OUT_DIR/vc-def-cpc.eo
+VCM_DEF_DESUGAR=$OUT_DIR/vcm-def-cpc.eo
+VCMT_DEF_DESUGAR=$OUT_DIR/vcmt-def-cpc.eo
+VC_OUT=$OUT_DIR/vc/final-cpc-$TARGET.smt2
+
+function check_status()
+{
+status=$?
+if [[ $status -eq 0 ]]; then
+  echo "success"
+else
+  exit $status
+fi
+}
+
+echo "**** smt_meta: Run ethos + trim-defs on $INPUT and $TARGET to $INIT_TRIM"
+#./run_trim_defs $INPUT $TARGET "\$eo_model_sat" >/dev/null
+./run_trim_defs $INPUT $TARGET  "ite" "=" >/dev/null
+check_status
+cp $STD_TRIM_OUT $INIT_TRIM
+
+echo "**** smt_meta: Run ethos + desugar on $INIT_TRIM to generate $INIT_DESUGAR"
+./src/ethos --plugin.desugar-vc $INIT_TRIM >/dev/null
+check_status
+cp $STD_DESUGAR_OUT $INIT_DESUGAR
+
+# TODO: revisit dependencies in trim defs steps
+# note that all symbols that are used downstream must be manually kept
+# in particular this means that we keep the following:
+# - the verification condition
+# - the builtin literals
+# - the type rules
+echo "**** smt_meta: Run ethos + trim-deps on $INIT_DESUGAR to generate $VC_DEF_DESUGAR"
+#  "\$eo_is_bool" "\$eo_is_z" "\$eo_is_q" "\$eo_is_str" "\$eo_is_bin"
+./run_trim_defs $INIT_DESUGAR "\$eovc_$TARGET" "\$eo_typeof_main" "\$eo_eq" "\$eo_String" "\$eo_Numeral" "\$eo_Rational" "\$eo_Binary" "\$eo_dt_constructors" "\$eo_dt_selectors" >/dev/null
+check_status
+cp $STD_TRIM_OUT $VC_DEF_DESUGAR
+# "\$eo_List" "\$eo_List_nil" "\$eo_List_cons" "\$eo_fail" "ite" "="
+
+# eliminate these operators here, as desugar doesn't do this currently
+sed -i -e 's/eo::list/\$eo_list/g' -e 's/eo::eq /\$eo_eq /g' $VC_DEF_DESUGAR
+
+echo "**** smt_meta: Run ethos + model-smt on $VC_DEF_DESUGAR to generate $VCM_DEF_DESUGAR"
+./run_gen_model_smt $VC_DEF_DESUGAR >/dev/null
+check_status
+cp $STD_SMODEL_OUT $VCM_DEF_DESUGAR
+
+# trim again, where we require keeping the following:
+# - the verification condition
+# - getting the meta type of terms, which is used in the final step below
+# - symbols that may appear in custom axioms (e.g. $smtx_const_predicate).
+echo "**** smt_meta: Run ethos + trim-deps on $VCM_DEF_DESUGAR to generate $VCMT_DEF_DESUGAR"
+./run_trim_defs $VCM_DEF_DESUGAR "\$eovc_$TARGET" "\$smtx_const_predicate" "\$eo_get_meta_type" "\$vsm_is_value" "\$eo_typeof" "\$smt_Value" "\$eo_hash" "\$eo_requires" "\$eo_apply" "\$eo_fun_type">/dev/null
+check_status
+cp $STD_TRIM_OUT $VCMT_DEF_DESUGAR
+
+echo "**** smt_meta: Verify it parses"
+./src/ethos $VCMT_DEF_DESUGAR
+
+echo "**** smt_meta: Generate SMT2 from $VCMT_DEF_DESUGAR to $VC_OUT"
+./src/ethos --plugin.smt-meta $VCMT_DEF_DESUGAR >/dev/null
+check_status
+# set up the verification condition
+# the logic
+echo "(set-logic UFDTSNIRA)" > $VC_OUT
+# start with the final datatype
+# FIXME: keep this line
+cat $STD_SMODEL_EMBED_OUT >> $VC_OUT
+# replace all occurrences of $smt_builtin_
+# TODO: $smt_apply_ and $smt_type_ as well???
+sed -i 's/\$smt_builtin_//g' $VC_OUT
+#sed -i 's/\.new//g' $VC_OUT
+# concatenate the VC computed above
+cat $STD_VC_OUT >> $VC_OUT
+
+# TODO: trim-defs again, on smt2
+
+echo "**** smt_meta: Run the final verification condition with unsat cores"
+ajr-cvc5 $VC_OUT --dump-unsat-cores #--parse-only
+check_status
+
+echo "**** smt_meta: Run the final verification condition with proofs"
+ajr-cvc5 $VC_OUT --check-proofs-complete --stats-internal |& grep -P '(^unknown$|^unsat$|^sat$|finalProof::ruleCount)'
+check_status
+
+# clear temporary files
+#rm -f $INIT_TRIM
+#rm -f $INIT_DESUGAR
+#rm -f $VC_DEF_DESUGAR
+#rm -f $VCM_DEF_DESUGAR
+#rm -f $VCMT_DEF_DESUGAR

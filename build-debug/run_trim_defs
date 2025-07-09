@@ -1,0 +1,38 @@
+#!/bin/bash
+
+TMP_FILE=temp_trim.eo
+
+#echo "**** Compile ethos"
+#make -j4
+
+echo "**** run_trim_defs: Write EO to $TMP_FILE"
+# the name of a EO signature
+INPUT=$1
+shift
+# output file
+STD_TRIM_OUT=../plugins/trim_defs/trim_gen.eo
+
+echo "(include \"$INPUT\")" > $TMP_FILE
+
+# add commands for each argument
+while [[ $# -gt 0 ]]; do
+  TARGET="$1"
+  echo "(echo \"trim-defs $TARGET\")" >> $TMP_FILE
+  shift
+done
+
+echo "**** run_trim_defs: Run ethos + trim-defs on $TMP_FILE"
+./src/ethos --plugin.trim-defs $TMP_FILE
+
+#echo "**** Verify it parses"
+#./src/ethos $OUT_FILE
+
+status=$?
+
+rm -f $TMP_FILE
+
+if [[ $status -eq 0 ]]; then
+  echo "success"
+else
+  exit $status
+fi
