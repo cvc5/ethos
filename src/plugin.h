@@ -52,10 +52,23 @@ public:
   /**
    * Include file, if not already done so.
    * @param s Specifies the path and name of the file to include.
+   * @param isReference Whether the given file was marked as a signature file.
    * @param isReference Whether the given file was marked as a reference file.
-   * @param referenceNf The method for normalizing the reference file, if one exists.
+   * @param referenceNf The method for normalizing the reference file, if one
+   * exists.
    */
-  virtual void includeFile(const Filepath& s, bool isReference, const Expr& referenceNf) {}
+  virtual void includeFile(const Filepath& s,
+                           bool isSignature,
+                           bool isReference,
+                           const Expr& referenceNf)
+  {
+  }
+  virtual void finalizeIncludeFile(const Filepath& s,
+                                   bool isSignature,
+                                   bool isReference,
+                                   const Expr& referenceNf)
+  {
+  }
   /**
    * Set type rule for literal kind k to t. This is called when the
    * command declare-consts is executed.
@@ -78,12 +91,6 @@ public:
    * Attr::RIGHT_ASSOC_NIL, then cons is the nil terminator for v.
    */
   virtual void markConstructorKind(const Expr& v, Attr a, const Expr& cons) {}
-  /**
-   * Mark oracle command. Called when declare-oracle-fun is executed.
-   * @param v The variable corresponding to the oracle function.
-   * @param ocmd The command specified as the command to run the oracle.
-   */
-  virtual void markOracleCmd(const Expr& v, const std::string& ocmd) {}
   /**
    * Define program. Called when a program is declared via program.
    * @param v The variable corresponding to the program.
@@ -127,6 +134,10 @@ public:
   virtual Expr evaluateProgram(ExprValue* prog,
                                const std::vector<ExprValue*>& args,
                                Ctx& newCtx) { return Expr(); }
+  /**
+   * Return true if the echo should be processed
+   */
+  virtual bool echo(const std::string& msg) { return true; }
   //--------- finalize
   /**
    * Finalize. Called once when the proof checker has finished parsing all input.

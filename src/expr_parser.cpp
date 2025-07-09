@@ -76,7 +76,6 @@ enum class ParseCtx
 ExprParser::ExprParser(Lexer& lex, State& state, bool isSignature)
     : d_lex(lex), d_state(state), d_isSignature(isSignature)
 {
-  d_strToAttr[":var"] = Attr::VAR;
   d_strToAttr[":implicit"] = Attr::IMPLICIT;
   d_strToAttr[":type"] = Attr::TYPE;
   d_strToAttr[":list"] = Attr::LIST;

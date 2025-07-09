@@ -207,6 +207,11 @@ std::string quoteSymbol(const std::string& s)
   {
     return "||";
   }
+  // special case: if an "eo::" symbol, it is not quoted
+  if (s.compare(0, 4, "eo::") == 0)
+  {
+    return s;
+  }
 
   // this is the set of SMT-LIBv2 permitted characters in "simple" (non-quoted)
   // symbols
@@ -314,7 +319,16 @@ void Expr::printDebugInternal(const Expr& e,
           switch (k)
           {
             case Kind::HEXADECIMAL:os << "#x" << l->toString();break;
-            case Kind::BINARY:os << "#b" << l->toString();break;
+            case Kind::BINARY:
+              if (l->d_bv.getSize() == 0)
+              {
+                os << "(eo::to_bin 0 0)";
+              }
+              else
+              {
+                os << "#b" << l->toString();
+              }
+              break;
             case Kind::STRING:os << "\"" << l->toString() << "\"";break;
             case Kind::DECIMAL:
               // currently don't have a way to print decimals natively, just
@@ -343,7 +357,7 @@ void Expr::printDebugInternal(const Expr& e,
       else
       {
         os << "(";
-        if (k!=Kind::APPLY && k!=Kind::TUPLE)
+        if (k != Kind::APPLY || (*cur.first)[0]->getNumChildren() > 0)
         {
           os << kindToTerm(k) << " ";
         }
@@ -456,6 +470,7 @@ Expr& Expr::operator=(const Expr& e)
 bool Expr::operator==(const Expr& e) const { return d_value == e.d_value; }
 bool Expr::operator!=(const Expr& e) const { return d_value != e.d_value; }
 Kind Expr::getKind() const { return d_value->getKind(); }
+bool Expr::operator<(const Expr& e) const { return d_value < e.d_value; }
 
 bool Expr::hasVariable(const Expr& e,
                        const std::unordered_set<const ExprValue*>& vars)

@@ -8,9 +8,14 @@
  ******************************************************************************/
 
 #include <unistd.h>
+
 #include <iomanip>
 #include <iostream>
 
+#include "../plugins/desugar/desugar.h"
+#include "../plugins/model_smt/model_smt.h"
+#include "../plugins/smt_meta/smt_meta_reduce.h"
+#include "../plugins/trim_defs/trim_defs.h"
 #include "base/check.h"
 #include "base/output.h"
 #include "parser.h"
@@ -143,9 +148,35 @@ int main( int argc, char* argv[] )
     }
   }
   // options are finalized, now initialize the state and run the includes
+  // TODO: use unique_ptr
   Stats stats;
   State s(opts, stats);
+  SmtMetaReduce pluginSmr(s);
+  ModelSmt pluginMsmt(s);
+  Desugar pluginDs(s);
+  TrimDefs pluginTds(s);
   Plugin* plugin = nullptr;
+  if (opts.d_pluginDesugar)
+  {
+    plugin = &pluginDs;
+  }
+  else if (opts.d_pluginSmtMeta)
+  {
+    plugin = &pluginSmr;
+  }
+  else if (opts.d_pluginTrimDefs)
+  {
+    plugin = &pluginTds;
+  }
+  else if (opts.d_pluginModelSmt)
+  {
+    plugin = &pluginMsmt;
+  }
+  // NOTE: initialization of plugin goes here
+  if (plugin != nullptr)
+  {
+    s.setPlugin(plugin);
+  }
   for (size_t i=0, nincludes=includes.size(); i<nincludes; i++)
   {
     std::string file = includes[i].first;
@@ -156,11 +187,6 @@ int main( int argc, char* argv[] )
     {
       EO_FATAL() << "Error: cannot include file " << file;
     }
-  }
-  // NOTE: initialization of plugin goes here
-  if (plugin!=nullptr)
-  {
-    s.setPlugin(plugin);
   }
   if (!readFile)
   {
