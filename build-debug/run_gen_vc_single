@@ -54,7 +54,7 @@ cp $STD_TRIM_OUT $VC_DEF_DESUGAR
 # "\$eo_List" "\$eo_List_nil" "\$eo_List_cons" "\$eo_fail" "ite" "="
 
 # eliminate these operators here, as desugar doesn't do this currently
-sed -i '' -e 's/eo::list/\$eo_list/g' -e 's/eo::eq /\$eo_eq /g' $VC_DEF_DESUGAR
+sed -i -e 's/eo::list/\$eo_list/g' -e 's/eo::eq /\$eo_eq /g' $VC_DEF_DESUGAR
 
 echo "**** smt_meta: Run ethos + model-smt on $VC_DEF_DESUGAR to generate $VCM_DEF_DESUGAR"
 ./run_gen_model_smt $VC_DEF_DESUGAR >/dev/null
@@ -105,3 +105,8 @@ check_status
 #rm -f $VC_DEF_DESUGAR
 #rm -f $VCM_DEF_DESUGAR
 #rm -f $VCMT_DEF_DESUGAR
+rm -f $STD_TRIM_OUT
+rm -f $STD_DESUGAR_OUT
+rm -f $STD_SMODEL_OUT
+rm -f $STD_SMODEL_EMBED_OUT
+rm -f $STD_VC_OUT

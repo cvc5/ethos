@@ -81,8 +81,6 @@ class SmtMetaReduce : public StdPlugin
  public:
   SmtMetaReduce(State& s);
   ~SmtMetaReduce();
-  /** */
-  void bind(const std::string& name, const Expr& e) override;
   /** Define program */
   void defineProgram(const Expr& v, const Expr& prog) override;
   /** Finalize */
