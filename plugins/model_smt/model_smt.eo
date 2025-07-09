@@ -473,9 +473,10 @@ $SMT_EVAL_CASES$
   ; generic apply and base case.
   ; these do not insist that the term is a value.
   
-  ; Otherwise, try to evaluate based on the user callback
-  ;(($smtx_model_eval z)                      ($smt_try_eo ($eo_model_eval z) z))
-  (($smtx_model_eval z)                      $vsm_not_value)
+  ; Otherwise, it may be a term value (e.g. if z is a numeral). We call the
+  ; utility method which will either generate an SMT-LIB term value or
+  ; a SMT-LIB non-value error term.
+  (($smtx_model_eval z)                      ($smt_mk_value_term z))
   )
 )
 
