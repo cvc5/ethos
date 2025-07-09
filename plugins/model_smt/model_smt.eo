@@ -478,20 +478,15 @@ $SMT_EVAL_CASES$
   )
 )
 
-(program $smtx_model_sat ((b $smt_Value))
-  :signature ($smt_Value) Bool
-  (
-  (($smtx_model_sat ($vsm_term $sm_mk_true))  true)
-  (($smtx_model_sat b)                        false)
-  )
-)
 ; program: $eo_model_sat
-; note: Satisfied by the model if F evaluates to true.
-; We expect that the input to this method is an SMT term.
+; note: F is satisfied by the model if F evaluates to the SMT-LIB value denoting true.
+; We expect the input to this method to be a Eunoia term denoting an SMT-LIB formula
+; (term of Boolean type).
 (program $eo_model_sat ((F $smt_Term))
   :signature ($eo_Term) Bool
   (
-  (($eo_model_sat ($eo_smt_term F)) ($smtx_model_sat ($smtx_model_eval F)))
+  (($eo_model_sat ($eo_smt_term F))
+      ($smt_apply_3 "ite" ($vsm_is_true ($smtx_model_eval F)) true false))
   )
 )
 
