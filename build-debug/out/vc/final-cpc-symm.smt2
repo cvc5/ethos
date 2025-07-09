@@ -301,10 +301,6 @@
 ; program: $smtx_model_eval
 (assert (! (forall ((x1 sm.Term))
   (= ($smtx_model_eval x1)
-  (ite (= x1 sm.True)
-    (vsm.Term sm.True)
-  (ite (= x1 sm.False)
-    (vsm.Term sm.False)
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) ((_ is sm.Apply) (sm.Apply.arg1 (sm.Apply.arg1 x1))) (= (sm.Apply.arg1 (sm.Apply.arg1 (sm.Apply.arg1 x1))) sm.ite))
     (ite (not ((_ is vsm.NotValue) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1)))))) (ite (and ((_ is vsm.Term) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1))))) (= (vsm.Term.arg1 ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1))))) sm.True)) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_model_eval (sm.Apply.arg2 x1))) vsm.NotValue)
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) (= (sm.Apply.arg1 (sm.Apply.arg1 x1)) sm.=))
@@ -318,7 +314,7 @@
   (ite ((_ is sm.Const) x1)
     ($smtx_model_lookup 0 (sm.Const.arg2 x1) (sm.Const.arg1 x1))
     (ite ($smtx_term_is_value x1) (vsm.Term x1) vsm.NotValue)
-)))))))))) :named sm.axiom.$smtx_model_eval))
+)))))))) :named sm.axiom.$smtx_model_eval))
 
 ; program: $smtx_model_sat
 (define-fun $smtx_model_sat ((x1 vsm.Value)) eo.Term

@@ -428,9 +428,6 @@ $SMT_EMBED_META_TYPE_DECL$
    (x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term) (x4 $smt_Term) (x5 $smt_Term))
   :signature ($smt_Term) $smt_Value
   (
-  ; Booleans are their own values.
-  (($smtx_model_eval $sm_mk_true)             ($vsm_term $sm_mk_true))
-  (($smtx_model_eval $sm_mk_false)            ($vsm_term $sm_mk_false))
   ; ITE branches to the appropriate child.
   (($smtx_model_eval (ite x1 x2 x3))
     (eo::define ((e1 ($smtx_model_eval x1)))
@@ -460,7 +457,10 @@ $SMT_EMBED_META_TYPE_DECL$
   ; - $smt_eval_o_arith_*,
   ; - $smt_eval_apply_*
 $SMT_EVAL_CASES$
-  ; Apply case.
+  ; Apply case. We evaluate f and y separately and then call the
+  ; $smtx_model_eval_apply above. We expect f to be an uninterpreted
+  ; function whose model evaluation is an SMT-LIB map in this case.
+  ; All interpreted f should be handled in the evaluation cases above.
   (($smtx_model_eval ($sm_apply_term f y))    (eo::define ((fme ($smtx_model_eval f)))
                                               (eo::define ((yme ($smtx_model_eval y)))
                                                 ($smtx_model_eval_apply fme yme))))
@@ -468,13 +468,11 @@ $SMT_EVAL_CASES$
   ; These are given an arbitrary value by the model ($smtx_model_lookup),
   ; which is an uninterpreted function. The properties of this value are
   ; axiomatized in the final SMT2.
+  ; FIXME: incorporate partial functions and skolems here.
   (($smtx_model_eval ($sm_const T id))        ($smtx_model_lookup $smt_builtin_z_zero id T))
-  ;(($smtx_model_eval ($sm_skolem T F))       ($smtx_model_lookup i i T))   ; FIXME
-  ; generic apply and base case.
-  ; these do not insist that the term is a value.
   
-  ; Otherwise, it may be a term value (e.g. if z is a numeral). We call the
-  ; utility method which will either generate an SMT-LIB term value or
+  ; Otherwise, it may be a term value (e.g. if z is a Boolean or numeral constant).
+  ; We call the utility method which will either generate an SMT-LIB term value or
   ; a SMT-LIB non-value error term.
   (($smtx_model_eval z)                      ($smt_mk_value_term z))
   )
