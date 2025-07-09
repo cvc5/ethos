@@ -28,6 +28,11 @@ Options::Options()
   d_normalizeDecimal = true;
   d_normalizeHexadecimal = true;
   d_normalizeNumeral = false;
+  d_pluginDesugar = false;
+  d_pluginDesugarGenVc = false;
+  d_pluginSmtMeta = false;
+  d_pluginTrimDefs = false;
+  d_pluginModelSmt = false;
 }
 
 bool Options::setOption(const std::string& key, bool val)
@@ -71,6 +76,27 @@ bool Options::setOption(const std::string& key, bool val)
   else if (key == "normalize-hex")
   {
     d_normalizeHexadecimal = val;
+  }
+  else if (key == "plugin.desugar")
+  {
+    d_pluginDesugar = true;
+  }
+  else if (key == "plugin.desugar-vc")
+  {
+    d_pluginDesugar = true;
+    d_pluginDesugarGenVc = true;
+  }
+  else if (key == "plugin.smt-meta")
+  {
+    d_pluginSmtMeta = true;
+  }
+  else if (key == "plugin.trim-defs")
+  {
+    d_pluginTrimDefs = true;
+  }
+  else if (key == "plugin.model-smt")
+  {
+    d_pluginModelSmt = true;
   }
   else
   {
@@ -188,7 +214,6 @@ State::State(Options& opts, Stats& stats)
   d_any = Expr(mkExpr(Kind::ANY, {}));
   // self is a distinguished parameter
   d_self = Expr(mkSymbolInternal(Kind::PARAM, "eo::self", d_any));
-  bind("eo::self", d_self);
   d_conclusion =
       Expr(mkSymbolInternal(Kind::PARAM, "eo::conclusion", d_boolType));
   // eo::conclusion is not globally bound, since it can only appear
@@ -315,7 +340,7 @@ bool State::includeFile(const std::string& s, bool isSignature, bool isReference
   if (d_plugin!=nullptr)
   {
     Assert (!isReference);
-    d_plugin->includeFile(inputPath, isReference, referenceNf);
+    d_plugin->includeFile(inputPath, isSignature, isReference, referenceNf);
   }
   Trace("state") << "Include " << inputPath << std::endl;
   Assert (getAssumptionLevel()==0);
@@ -336,6 +361,12 @@ bool State::includeFile(const std::string& s, bool isSignature, bool isReference
                << " did not preserve assumption scope. The most recent open "
                   "assumption was "
                << d_decls[d_declsSizeCtx.back()] << ".";
+  }
+  if (d_plugin != nullptr)
+  {
+    Assert(!isReference);
+    d_plugin->finalizeIncludeFile(
+        inputPath, isSignature, isReference, referenceNf);
   }
   return true;
 }
@@ -781,6 +812,22 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
   }
   else if (isLiteralOp(k))
   {
+    // this transforms e.g. (eo::add t1 t2 t3) into (eo::add (eo::add t1 t2)
+    // t3).
+    if (isNaryLiteralOp(k) && vchildren.size() > 2)
+    {
+      std::vector<ExprValue*> cc{nullptr, nullptr};
+      cc[0] = vchildren[0];
+      cc[1] = vchildren[1];
+      ExprValue* curr = mkExprInternal(k, cc);
+      for (size_t i = 2, nargs = vchildren.size(); i < nargs; i++)
+      {
+        cc[0] = curr;
+        cc[0] = vchildren[i];
+        curr = mkExprInternal(k, cc);
+      }
+      return Expr(curr);
+    }
     // only if correct arity, else we will catch the type error
     bool isArityOk = TypeChecker::checkArity(k, vchildren.size());
     if (isArityOk)
@@ -791,7 +838,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     else
     {
       Warning() << "Wrong number of arguments when applying literal op " << k
-                << ", " << children.size() << " arguments" << std::endl;
+                << ", " << children.size() << std::endl;
     }
   }
   else if (k == Kind::AS_RETURN)
@@ -845,6 +892,16 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         return reto;
       }
     }
+  }
+  return Expr(mkExprInternal(k, vchildren));
+}
+
+Expr State::mkExprSimple(Kind k, const std::vector<Expr>& children)
+{
+  std::vector<ExprValue*> vchildren;
+  for (const Expr& c : children)
+  {
+    vchildren.push_back(c.getValue());
   }
   return Expr(mkExprInternal(k, vchildren));
 }
@@ -1513,11 +1570,28 @@ void State::bindBuiltinEval(const std::string& name, Kind k, Attr ac)
 
 void State::defineProgram(const Expr& v, const Expr& prog)
 {
-  markConstructorKind(v, Attr::PROGRAM, prog);
+  if (!prog.isNull())
+  {
+    markConstructorKind(v, Attr::PROGRAM, prog);
+  }
+  // call even if null
   if (d_plugin!=nullptr)
   {
     d_plugin->defineProgram(v, prog);
   }
+}
+
+void State::echo(const std::string& msg)
+{
+  if (d_plugin != nullptr)
+  {
+    if (!d_plugin->echo(msg))
+    {
+      // the plugin processed the echo
+      return;
+    }
+  }
+  std::cout << msg << std::endl;
 }
 
 bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)

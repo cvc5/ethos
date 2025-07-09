@@ -26,8 +26,6 @@ std::ostream& operator<<(std::ostream& o, Token t)
     case Token::CHECK_SAT: o << "CHECK_SAT"; break;
     case Token::CHECK_SAT_ASSUMING: o << "CHECK_SAT_ASSUMING"; break;
     case Token::DECIMAL_LITERAL: o << "DECIMAL_LITERAL"; break;
-    case Token::DECLARE_CODATATYPE: o << "DECLARE_CODATATYPE"; break;
-    case Token::DECLARE_CODATATYPES: o << "DECLARE_CODATATYPES"; break;
     case Token::DECLARE_CONST: o << "DECLARE_CONST"; break;
     case Token::DECLARE_CONSTS: o << "DECLARE_CONSTS"; break;
     case Token::DECLARE_DATATYPE: o << "DECLARE_DATATYPE"; break;
