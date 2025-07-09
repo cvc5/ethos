@@ -109,6 +109,25 @@ std::string termContextKindToCons(TermContextKind k)
   return ss.str();
 }
 
+bool SmtMetaReduce::printMetaType(const Expr& t,
+                    std::ostream& os,
+                    TermContextKind tctx)
+{
+  TermContextKind tk = getTypeMetaKind(t, tctx);
+  switch (tk)
+  {
+    case TermContextKind::EUNOIA: os << "eo.Term"; break;
+    case TermContextKind::SMT: os << "sm.Term"; break;
+    case TermContextKind::SMT_TYPE: os << "tsm.Type"; break;
+    case TermContextKind::SMT_VALUE: os << "vsm.Value"; break;
+    case TermContextKind::SMT_BUILTIN: os << getEmbedName(t); break;
+    case TermContextKind::SMT_MAP: os << "msm.Map"; break;
+    default:
+      return false;
+  }
+  return true;
+}
+
 void SmtMetaReduce::bind(const std::string& name, const Expr& e)
 {
   // NOTE: the code here ensures that (if needed) we can preserve
@@ -283,19 +302,8 @@ void SmtMetaReduce::printEmbType(const Expr& c,
   Kind k = t.getKind();
   // if it is a reference to the deep embedding datatype,
   // then we print it.
-  TermContextKind tk = getTypeMetaKind(c, TermContextKind::NONE);
-  if (tk != TermContextKind::NONE)
+  if (printMetaType(c, os))
   {
-    switch (tk)
-    {
-      case TermContextKind::EUNOIA: os << "eo.Term"; break;
-      case TermContextKind::SMT: os << "sm.Term"; break;
-      case TermContextKind::SMT_TYPE: os << "tsm.Type"; break;
-      case TermContextKind::SMT_VALUE: os << "vsm.Value"; break;
-      case TermContextKind::SMT_BUILTIN: os << getEmbedName(c); break;
-      case TermContextKind::SMT_MAP: os << "msm.Map"; break;
-      default: break;
-    }
     return;
   }
   if (k == Kind::PARAM || k == Kind::TYPE || k == Kind::BOOL_TYPE)

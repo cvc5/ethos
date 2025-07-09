@@ -104,6 +104,9 @@ class SmtMetaReduce : public StdPlugin
   void printEmbType(const Expr& c,
                     std::ostream& os,
                     TermContextKind tctx = TermContextKind::NONE);
+  static bool printMetaType(const Expr& t,
+                    std::ostream& os,
+                    TermContextKind tctx = TermContextKind::NONE);
   bool printEmbTerm(const Expr& c,
                     std::ostream& os,
                     const SelectorCtx& ctx,
@@ -112,10 +115,10 @@ class SmtMetaReduce : public StdPlugin
   void finalizeProgram(const Expr& v, const Expr& prog);
   /** Does t have subterm s? */
   static bool hasSubterm(const Expr& t, const Expr& s);
-  bool isProgram(const Expr& t);
-  bool isSmtApplyApp(const Expr& oApp);
-  std::string getName(const Expr& e);
-  std::string getEmbedName(const Expr& oApp);
+  static bool isProgram(const Expr& t);
+  static bool isSmtApplyApp(const Expr& oApp);
+  static std::string getName(const Expr& e);
+  static std::string getEmbedName(const Expr& oApp);
   /** Program declarations processed */
   std::set<Expr> d_progDeclProcessed;
   /** Programs seen */
@@ -137,7 +140,7 @@ class SmtMetaReduce : public StdPlugin
   bool isSmtLibExpression(TermContextKind ctx);
   /**
    */
-  TermContextKind getTypeMetaKind(
+  static TermContextKind getTypeMetaKind(
       const Expr& typ, TermContextKind elseKind = TermContextKind::EUNOIA);
   /**
    */
