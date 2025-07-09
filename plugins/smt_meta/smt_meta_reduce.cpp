@@ -72,9 +72,6 @@ std::string termContextKindToString(TermContextKind k)
     case TermContextKind::SMT: ss << "SMT"; break;
     case TermContextKind::SMT_BUILTIN: ss << "SMT_BUILTIN"; break;
     case TermContextKind::SMT_TYPE: ss << "SMT_TYPE"; break;
-    case TermContextKind::SMT_GUARDED: ss << "SMT_GUARDED"; break;
-    case TermContextKind::SMT_TYPE_GUARDED: ss << "SMT_TYPE_GUARDED"; break;
-    case TermContextKind::SMT_VALUE_GUARDED: ss << "SMT_VALUE_GUARDED"; break;
     case TermContextKind::SMT_VALUE: ss << "SMT_VALUE"; break;
     case TermContextKind::SMT_MAP: ss << "SMT_MAP"; break;
     case TermContextKind::PROGRAM: ss << "PROGRAM"; break;
@@ -89,12 +86,9 @@ std::string termContextKindToPrefix(TermContextKind k)
   switch (k)
   {
     case TermContextKind::EUNOIA: ss << "eo."; break;
-    case TermContextKind::SMT:
-    case TermContextKind::SMT_GUARDED: ss << "sm."; break;
-    case TermContextKind::SMT_TYPE:
-    case TermContextKind::SMT_TYPE_GUARDED: ss << "tsm."; break;
-    case TermContextKind::SMT_VALUE:
-    case TermContextKind::SMT_VALUE_GUARDED: ss << "vsm."; break;
+    case TermContextKind::SMT:ss << "sm."; break;
+    case TermContextKind::SMT_TYPE: ss << "tsm."; break;
+    case TermContextKind::SMT_VALUE: ss << "vsm."; break;
     case TermContextKind::SMT_BUILTIN: ss << "?"; break;
     default:
       ss << "?TermContextKindPrefix_" << termContextKindToString(k);
@@ -107,12 +101,9 @@ std::string termContextKindToCons(TermContextKind k)
   std::stringstream ss;
   switch (k)
   {
-    case TermContextKind::SMT:
-    case TermContextKind::SMT_GUARDED: ss << "SmtTerm"; break;
-    case TermContextKind::SMT_TYPE:
-    case TermContextKind::SMT_TYPE_GUARDED: ss << "SmtType"; break;
-    case TermContextKind::SMT_VALUE:
-    case TermContextKind::SMT_VALUE_GUARDED: ss << "SmtValue"; break;
+    case TermContextKind::SMT: ss << "SmtTerm"; break;
+    case TermContextKind::SMT_TYPE:ss << "SmtType"; break;
+    case TermContextKind::SMT_VALUE:ss << "SmtValue"; break;
     default: ss << "?TermContextKindCons"; break;
   }
   return ss.str();
@@ -626,13 +617,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           // stuckness and thus may assume totality here.
           isTotal = true;
         }
-        else if (isGuardedArgSmtExpression(parent))
-        {
-          // We are using a datatype selector to extract and SMT-LIB
-          // expression from a Eunoia term. Moreover, we are using
-          // the selector in a way that is guarded.
-          // isTotal = true;
-        }
         if (isSmtLibExpression(parent) && isTotal)
         {
           os << "(eo." << termContextKindToCons(parent) << ".arg1 ";
@@ -641,8 +625,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           parent = TermContextKind::EUNOIA;
         }
       }
-      if (parent == TermContextKind::SMT
-          || parent == TermContextKind::SMT_GUARDED)
+      if (parent == TermContextKind::SMT)
       {
         if (child == TermContextKind::SMT_BUILTIN)
         {
@@ -670,7 +653,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           parent = TermContextKind::SMT_BUILTIN;
         }
       }
-#if 0
+#if 1
       Assert(parent == child)
           << "Unhandled context switch for " << recTerm << " "
           << recTerm.getKind() << std::endl
@@ -1189,15 +1172,9 @@ bool SmtMetaReduce::isProgram(const Expr& t)
 bool SmtMetaReduce::isSmtLibExpression(TermContextKind ctx)
 {
   return ctx == TermContextKind::SMT || ctx == TermContextKind::SMT_TYPE
-         || ctx == TermContextKind::SMT_VALUE || isGuardedArgSmtExpression(ctx);
+         || ctx == TermContextKind::SMT_VALUE;
 }
 
-bool SmtMetaReduce::isGuardedArgSmtExpression(TermContextKind ctx)
-{
-  return ctx == TermContextKind::SMT_GUARDED
-         || ctx == TermContextKind::SMT_TYPE_GUARDED
-         || ctx == TermContextKind::SMT_VALUE_GUARDED;
-}
 
 TermContextKind SmtMetaReduce::getTypeMetaKind(const Expr& typ,
                                                TermContextKind elseKind)
@@ -1299,28 +1276,32 @@ TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
           // TODO: maybe they should have SMT context???
           tk = i == 2 ? TermContextKind::SMT_BUILTIN : TermContextKind::NONE;
         }
-        /*
         else if (esname.compare(0,6,"(_ is ")==0)
         {
           size_t firstDot = esname.find('.');
           Assert (firstDot != std::string::npos && firstDot>6);
-          std::string prefix = esname.substr(6, firstDot);
+          std::string prefix = esname.substr(6, firstDot-6);
+          Assert (d_prefixToMetaKind.find(prefix)!=d_prefixToMetaKind.end()) << "Bad prefix \"" << prefix << "\" in \"" << esname << "\"";
+          tk = d_prefixToMetaKind[prefix];
         }
-        */
         else if (esname == "eo.SmtTerm.arg1")
         {
           // corner case: the selector of terms is SMT
-          tk = TermContextKind::SMT_GUARDED;
+          tk = TermContextKind::EUNOIA;
         }
         else if (esname == "eo.SmtType.arg1")
         {
           // corner case: the selector of terms is SMT
-          tk = TermContextKind::SMT_TYPE_GUARDED;
+          tk = TermContextKind::EUNOIA;
         }
         else if (esname == "eo.SmtValue.arg1")
         {
           // corner case: the selector of terms is SMT
-          tk = TermContextKind::SMT_VALUE_GUARDED;
+          tk = TermContextKind::EUNOIA;
+        }
+        else if (esname=="vsm.Term.arg1")
+        {
+          tk = TermContextKind::SMT_VALUE;
         }
         else
         {
@@ -1430,7 +1411,7 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
       else
       {
         std::string esname = getEmbedName(child);
-        if (esname == "eo.SmtTerm.arg1")
+        if (esname == "eo.SmtTerm.arg1" || esname == "vsm.Term.arg1")
         {
           // Corner case: the selector for SMT terms.
           tk = TermContextKind::SMT;
@@ -1444,11 +1425,6 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
         {
           // Corner case: the selector for SMT values.
           tk = TermContextKind::SMT_VALUE;
-        }
-        else if (esname == "vsm.Term.arg1")
-        {
-          // For terms inside of SMT values
-          tk = TermContextKind::SMT;
         }
         else if (esname == "ite")
         {

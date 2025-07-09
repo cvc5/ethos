@@ -197,7 +197,7 @@ void ModelSmt::printSmtTerm(const std::string& name,
       }
       if (ka == Kind::BOOLEAN)
       {
-        appArgs << " ($smt_apply_1 \"= sm.True\" ";
+        appArgs << " ($smt_apply_= $sm_mk_true ";
       }
       else
       {
