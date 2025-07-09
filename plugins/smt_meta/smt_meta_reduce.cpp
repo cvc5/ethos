@@ -288,45 +288,6 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
   os << osEnd.str();
 }
 
-void SmtMetaReduce::printEmbType(const Expr& c,
-                                 std::ostream& os,
-                                 TermContextKind tctx)
-{
-  Assert(!c.isNull());
-  Expr t = c;
-  if (c.getKind() == Kind::QUOTE_TYPE)
-  {
-    Expr qt = t[0];
-    t = d_tc.getType(qt);
-  }
-  Kind k = t.getKind();
-  // if it is a reference to the deep embedding datatype,
-  // then we print it.
-  if (printMetaType(c, os))
-  {
-    return;
-  }
-  if (k == Kind::PARAM || k == Kind::TYPE || k == Kind::BOOL_TYPE)
-  {
-    // Bool refers to (eo.SmtType tsm.Bool), which is a Eunoia term
-    os << "eo.Term";
-  }
-  else if (k == Kind::APPLY || k==Kind::FUNCTION_TYPE)
-  {
-    // types print the same as terms
-    SelectorCtx ctxNull;
-    printEmbTerm(c, os, ctxNull, TermContextKind::SMT_TYPE);
-  }
-  else
-  {
-    Assert(false) << "printEmbType: Unknown type: " << c << " " << c.getKind();
-  }
-  // else if (c == d_metaSmtValue)
-  //{
-  //  os << "sm.Type";
-  //}
-}
-
 bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
                                          const std::string& initCtx,
                                          std::ostream& os,
@@ -912,7 +873,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
       varList << " ";
     }
     std::stringstream argType;
-    printEmbType(vt[i - 1], argType);
+    printMetaType(vt[i-1], argType, TermContextKind::EUNOIA);
     decl << argType.str();
     std::stringstream ssArg;
     ssArg << "x" << i;
@@ -929,7 +890,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   }
   appTerm << ")";
   std::stringstream retType;
-  printEmbType(vt[nargs - 1], retType);
+  printMetaType(vt[nargs - 1], retType, TermContextKind::EUNOIA);
   decl << ") " << retType.str() << ")" << std::endl;
   // std::cout << "DECLARE " << decl.str() << std::endl;
   //  if forward declared, we are done for now
