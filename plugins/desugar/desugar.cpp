@@ -969,11 +969,13 @@ Expr Desugar::mkSanitize(const Expr& t,
       // must introduce new parameter if matching a literal op kind
       if (k == Kind::ANNOT_PARAM)
       {
+        // TODO: build this into the Ethos printer??
         // strip off the "(eo::param ...)"
         ret = cur[0];
       }
       else if (k == Kind::VARIABLE)
       {
+        // TODO: build this into the Ethos printer??
         Expr tt = d_tc.getType(cur);
         const Literal* l = cur.getValue()->asLiteral();
         Assert(l != nullptr);

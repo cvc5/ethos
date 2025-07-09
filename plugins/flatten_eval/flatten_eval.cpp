@@ -19,8 +19,20 @@ std::vector<ProgramOut> FlattenEval::flattenEval(const Expr& v, const Expr& case
   std::vector<ProgramOut> ret;
   size_t pcount = 0;
   size_t vcount = 0;
+  std::map<Expr, Expr> retVisited;
+
 
   return ret;
+}
+
+bool FlattenEval::isEvaluationApp(const Expr& e)
+{
+  return false;
+}
+
+Expr FlattenEval::mkPurifyEvaluation(const Expr& e, std::map<Expr, Expr>& visited, size_t& vcount, std::map<Expr, Expr>& newVars)
+{
+  return e;
 }
 
 }  // namespace ethos

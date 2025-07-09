@@ -44,6 +44,16 @@ class FlattenEval : public StdPlugin
    * Introduces auxiliary programs to do so.
    */
   static std::vector<ProgramOut> flattenEval(const Expr& v, const Expr& caseBody, std::ostream& os);
+  /**
+   * True if this is an invocation of evaluation.
+   */
+  static bool isEvaluationApp(const Expr& e);
+  /**
+   * Given a term e, return a term that has no evaluation.
+   * For each top-level evaluation term in e, we replace it by a fresh parameter.
+   * We track a visited cache, and record new variables introduced in this manner.
+   */
+  static Expr mkPurifyEvaluation(const Expr& e, std::map<Expr, Expr>& visited, size_t& vcount, std::map<Expr, Expr>& newVars);
 };
 
 }  // namespace ethos
