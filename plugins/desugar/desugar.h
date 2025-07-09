@@ -112,4 +112,4 @@ class Desugar : public StdPlugin
 
 }  // namespace ethos
 
-#endif /* COMPILER_H */
+#endif /* DESUGAR_H */

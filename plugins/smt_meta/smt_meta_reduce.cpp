@@ -944,7 +944,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
                 << termContextKindToString(ctxPatMatch) << std::endl;
       printEmbPatternMatch(
           hd[j], args[j - 1], currCase, ctx, print, ctxPatMatch);
-      std::cout << "...returns " << currCase.str() << std::endl;
+      std::cout << "...returns \"" << currCase.str() << "\"" << std::endl;
     }
     // compile the return for this case
     std::stringstream currRet;
@@ -955,7 +955,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
               << "; Print body " << body << " in context "
               << termContextKindToString(bodyInitCtx) << std::endl;
     printEmbTerm(body, currRet, ctx, bodyInitCtx);
-    std::cout << "...returns " << currRet.str() << std::endl;
+    std::cout << "...returns \"" << currRet.str() << "\"" << std::endl;
     if (isEoProg || isSmtProgram)
     {
       // we permit SMT_PROGRAM and Eunoia programs to have pattern matching
