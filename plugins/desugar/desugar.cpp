@@ -836,6 +836,13 @@ void Desugar::finalize()
       EO_FATAL() << "Unknown kind: " << k;
     }
   }
+  // finalize the literal type declaration
+  d_litTypeDecl << "(define $eo_Numeral () " << d_ltNum.str() << ")" << std::endl;
+  d_litTypeDecl << "(define $eo_Rational () " << d_ltRational.str() << ")" << std::endl;
+  d_litTypeDecl << "(define $eo_String () " << d_ltString.str() << ")" << std::endl;
+  d_litTypeDecl << "(define $eo_Binary () " << d_ltBinary.str() << ")" << std::endl;
+  d_litTypeDecl << "; decimal and hexadecimal omitted for now." << std::endl;
+  
   auto replace = [](std::string& txt,
                     const std::string& tag,
                     const std::string& replacement) {
@@ -853,12 +860,6 @@ void Desugar::finalize()
   std::ostringstream sse;
   sse << ine.rdbuf();
   std::string finalEo = sse.str();
-
-  d_litTypeDecl << "(define $eo_Numeral () " << d_ltNum.str() << ")" << std::endl;
-  d_litTypeDecl << "(define $eo_Rational () " << d_ltRational.str() << ")" << std::endl;
-  d_litTypeDecl << "(define $eo_String () " << d_ltString.str() << ")" << std::endl;
-  d_litTypeDecl << "(define $eo_Binary () " << d_ltBinary.str() << ")" << std::endl;
-  d_litTypeDecl << "; decimal and hexadecimal omitted for now." << std::endl;
 
   replace(finalEo, "$EO_LITERAL_TYPE_DECL$", d_litTypeDecl.str());
   replace(finalEo, "$EO_DEFS$", d_defs.str());

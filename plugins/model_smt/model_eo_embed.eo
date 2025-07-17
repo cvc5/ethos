@@ -23,21 +23,6 @@ $SM_LITERAL_TYPE_DECL$
 ; In other words, this defines the Herbrand universe.
 (declare-datatype sm.Term
   (
-  ; The application of SMT-LIB terms
-  (sm.Apply (sm.Apply.arg1 sm.Term) (sm.Apply.arg2 sm.Term))
-  ; Booleans
-  ; NOTE: these are inlined for efficiency and to ensure there are no Boolean subterms
-  (sm.True)
-  (sm.False)
-  ; builtin literals
-  (sm.Numeral (sm.Numeral.arg1 Int))
-  (sm.Rational (sm.Rational.arg1 Real))
-  (sm.String (sm.String.arg1 String))
-  (sm.Binary (sm.Binary.arg1 Int) (sm.Binary.arg2 Int))
-  ; free constants
-  (sm.Const (sm.Const.arg1 tsm.Type) (sm.Const.arg2 Int))
-  ; skolems
-  (sm.Skolem (sm.Skolem.arg1 tsm.Type) (sm.Skolem.arg2 sm.Term) (sm.Skolem.arg3 Int))
 $SM_TERM_DECL$
   )
 )
@@ -51,19 +36,6 @@ $SM_TERM_DECL$
   (
   ; The type of types in Eunoia
   (eo.Type)
-  ; The Eunoia function type.
-  (eo.FunType (eo.FunType.arg1 eo.Term) (eo.FunType.arg2 eo.Term))
-  ; Application of a Eunoia term
-  (eo.Apply (eo.Apply.arg1 eo.Term) (eo.Apply.arg2 eo.Term))
-  ; The Eunoia representation of an SMT-LIB term
-  (eo.SmtTerm (eo.SmtTerm.arg1 sm.Term))
-  ; The Eunoia representation of an SMT-LIB type
-  (eo.SmtType (eo.SmtType.arg1 tsm.Type))
-  ; The Eunoia representation of an SMT-LIB value
-  ;(eo.SmtValue (eo.SmtValue.arg1 vsm.Value))
-  (eo.Var (eo.Var.arg1 String) (eo.Var.arg2 eo.Term))
-  ; "stuckness"
-  (eo.Stuck)
 $SM_EO_TERM_DECL$
   )
   (

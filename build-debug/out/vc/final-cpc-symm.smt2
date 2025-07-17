@@ -34,21 +34,24 @@
 ; In other words, this defines the Herbrand universe.
 (declare-datatype sm.Term
   (
-  ; The application of SMT-LIB terms
-  (sm.Apply (sm.Apply.arg1 sm.Term) (sm.Apply.arg2 sm.Term))
-  ; Booleans
-  ; NOTE: these are inlined for efficiency and to ensure there are no Boolean subterms
+  ; user-decl: $smd_sm.True
   (sm.True)
+  ; user-decl: $smd_sm.False
   (sm.False)
-  ; builtin literals
+  ; user-decl: $smd_sm.Numeral
   (sm.Numeral (sm.Numeral.arg1 Int))
+  ; user-decl: $smd_sm.Rational
   (sm.Rational (sm.Rational.arg1 Real))
+  ; user-decl: $smd_sm.String
   (sm.String (sm.String.arg1 String))
+  ; user-decl: $smd_sm.Binary
   (sm.Binary (sm.Binary.arg1 Int) (sm.Binary.arg2 Int))
-  ; free constants
-  (sm.Const (sm.Const.arg1 tsm.Type) (sm.Const.arg2 Int))
-  ; skolems
+  ; user-decl: $smd_sm.Apply
+  (sm.Apply (sm.Apply.arg1 sm.Term) (sm.Apply.arg2 sm.Term))
+  ; user-decl: $smd_sm.Skolem
   (sm.Skolem (sm.Skolem.arg1 tsm.Type) (sm.Skolem.arg2 sm.Term) (sm.Skolem.arg3 Int))
+  ; user-decl: $smd_sm.Const
+  (sm.Const (sm.Const.arg1 tsm.Type) (sm.Const.arg2 Int))
   ; user-decl: not
   (sm.not)
   ; user-decl: and
@@ -70,19 +73,20 @@
   (
   ; The type of types in Eunoia
   (eo.Type)
-  ; The Eunoia function type.
-  (eo.FunType (eo.FunType.arg1 eo.Term) (eo.FunType.arg2 eo.Term))
-  ; Application of a Eunoia term
-  (eo.Apply (eo.Apply.arg1 eo.Term) (eo.Apply.arg2 eo.Term))
-  ; The Eunoia representation of an SMT-LIB term
-  (eo.SmtTerm (eo.SmtTerm.arg1 sm.Term))
-  ; The Eunoia representation of an SMT-LIB type
-  (eo.SmtType (eo.SmtType.arg1 tsm.Type))
-  ; The Eunoia representation of an SMT-LIB value
-  ;(eo.SmtValue (eo.SmtValue.arg1 vsm.Value))
-  (eo.Var (eo.Var.arg1 String) (eo.Var.arg2 eo.Term))
-  ; "stuckness"
+  ; user-decl: $smd_eo.Stuck
   (eo.Stuck)
+  ; user-decl: $smd_eo.Apply
+  (eo.Apply (eo.Apply.arg1 eo.Term) (eo.Apply.arg2 eo.Term))
+  ; user-decl: $smd_eo.FunType
+  (eo.FunType (eo.FunType.arg1 eo.Term) (eo.FunType.arg2 eo.Term))
+  ; user-decl: $smd_eo.SmtTerm
+  (eo.SmtTerm (eo.SmtTerm.arg1 sm.Term))
+  ; user-decl: $smd_eo.SmtType
+  (eo.SmtType (eo.SmtType.arg1 tsm.Type))
+  ; user-decl: $smd_eo.SmtValue
+  (eo.SmtValue (eo.SmtValue.arg1 vsm.Value))
+  ; user-decl: $smd_eo.Var
+  (eo.Var (eo.Var.arg1 String) (eo.Var.arg2 eo.Term))
   ; user-decl: $eo_List
   (eo.$eo_List)
 

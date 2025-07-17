@@ -14,6 +14,7 @@
 #include <string>
 
 #include "state.h"
+#include "../smt_meta/smt_meta_reduce.h"
 
 namespace ethos {
 
@@ -230,7 +231,14 @@ void ModelSmt::printSmtTerm(const std::string& name,
   d_eval << preAppEnd.str() << std::endl;
 }
 
-void ModelSmt::printEmbType(const Expr& e, std::ostream& os) { os << e; }
+void ModelSmt::printEmbType(const Expr& e, std::ostream& os)
+{ 
+  if (!SmtMetaReduce::printMetaType(e, os))
+  {
+    Assert(false) << "Failed to get meta-type for " << e;
+    os << e;
+  }
+}
 
 void ModelSmt::finalizeDecl(const Expr& e)
 {
@@ -241,6 +249,7 @@ void ModelSmt::finalizeDecl(const Expr& e)
   std::stringstream* out = nullptr;
   std::stringstream prefix;
   std::stringstream metaType;
+  std::stringstream cname;
   metaType << "(($eo_get_meta_type " << e << ") ";
   if (sname.compare(0, 1, "@") == 0 || sname.compare(0, 8, "$eo_List") == 0
       || sname == "$eo_Var")
@@ -248,8 +257,29 @@ void ModelSmt::finalizeDecl(const Expr& e)
     prefix << "eo.";
     out = &d_embedEoTermDt;
     metaType << "$eo_Term)";
+    cname << prefix.str() << e;
   }
-  else if (sname.compare(0, 4, "$eo_") != 0 && sname != "$smt_BuiltinType")
+  else if (sname.compare(0,5,"$smd_")==0)
+  {
+    std::string sname2 = sname.substr(5);
+    if (sname2.compare(0,3,"eo.")==0)
+    {
+      out = &d_embedEoTermDt;
+      metaType << "$eo_Term)";
+    }
+    else if (sname2.compare(0,3,"tsm.")==0)
+    {
+      out = &d_embedTypeDt;
+      metaType << "$smt_Type)";
+    }
+    else if (sname2.compare(0,3,"sm.")==0)
+    {
+      out = &d_embedTermDt;
+      metaType << "$smt_Term)";
+    }
+    cname << sname2;
+  }
+  else if (sname.compare(0, 4, "$eo_") != 0 && sname.compare(0,5,"$smt_")!=0)
   {
     Expr c = e;
     Expr tc = d_tc.getType(c);
@@ -268,6 +298,7 @@ void ModelSmt::finalizeDecl(const Expr& e)
       out = &d_embedTermDt;
       metaType << "$smt_Term)";
     }
+    cname << prefix.str() << e;
   }
   if (out == nullptr)
   {
@@ -284,8 +315,6 @@ void ModelSmt::finalizeDecl(const Expr& e)
   Attr attr = d_state.getConstructorKind(e.getValue());
   // (*out) << "  ; attr is " << attr << std::endl;
   (*out) << "  (";
-  std::stringstream cname;
-  cname << prefix.str() << e;
   (*out) << cname.str();
   size_t nopqArgs = 0;
   if (attr == Attr::OPAQUE)
@@ -301,7 +330,7 @@ void ModelSmt::finalizeDecl(const Expr& e)
   for (size_t i = 0; i < nopqArgs; i++)
   {
     (*out) << " (" << cname.str();
-    (*out) << ".arg" << (i + 1);
+    (*out) << ".arg" << (i + 1) << " ";
     // print its type using the utility,
     // which takes into account what the type is in the final embedding
     Expr typ = ct[i];

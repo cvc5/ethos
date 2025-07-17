@@ -5,14 +5,6 @@
 
 STD_SMODEL_OUT=../plugins/model_smt/model_smt_gen.eo
 
-echo "**** run_gen_model_smt: Run ethos + model-smt on $1 to generate $STD_SMODEL_OUT"
-./src/ethos --plugin.model-smt $1
-if [[ $status -eq 0 ]]; then
-  echo "success"
-else
-  exit $status
-fi
-
 TMP_OUT=tmp.eo
 
 cp $1 $TMP_OUT
@@ -23,6 +15,14 @@ sed -i "/(echo \"include eo_builtin_smt\")/{
     r ../plugins/model_smt/eo_builtin_smt.eo
     d
 }" $TMP_OUT
+
+echo "**** run_gen_model_smt: Run ethos + model-smt on $1 to generate $STD_SMODEL_OUT"
+./src/ethos --plugin.model-smt $TMP_OUT
+if [[ $status -eq 0 ]]; then
+  echo "success"
+else
+  exit $status
+fi
 
 # include the model semantics, which was generated above
 sed -i "/(echo \"include eo_model_sat\")/{

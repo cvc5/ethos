@@ -89,6 +89,9 @@ class SmtMetaReduce : public StdPlugin
    */
   bool echo(const std::string& msg) override;
 
+  static bool printMetaType(const Expr& t,
+                    std::ostream& os,
+                    TermContextKind tctx = TermContextKind::NONE);
  private:
   bool printEmbPatternMatch(const Expr& c,
                             const std::string& initCtx,
@@ -99,9 +102,6 @@ class SmtMetaReduce : public StdPlugin
   void printEmbAtomicTerm(const Expr& c,
                           std::ostream& os,
                           TermContextKind tctx = TermContextKind::NONE);
-  static bool printMetaType(const Expr& t,
-                    std::ostream& os,
-                    TermContextKind tctx = TermContextKind::NONE);
   bool printEmbTerm(const Expr& c,
                     std::ostream& os,
                     const SelectorCtx& ctx,
