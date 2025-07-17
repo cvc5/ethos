@@ -248,9 +248,7 @@ void ModelSmt::finalizeDecl(const Expr& e)
   std::string sname = ss.str();
   std::stringstream* out = nullptr;
   std::stringstream prefix;
-  std::stringstream metaType;
   std::stringstream cname;
-  metaType << "(($eo_get_meta_type " << e << ") ";
   // get the meta-kind based on its name
   std::string cnamek;
   TermContextKind tk = SmtMetaReduce::getMetaKind(d_state, e, cnamek);
@@ -258,20 +256,17 @@ void ModelSmt::finalizeDecl(const Expr& e)
   {
     prefix << "eo.";
     out = &d_embedEoTermDt;
-    metaType << "$eo_Term)";
   }
   else if (tk==TermContextKind::SMT_TYPE)
   {
     prefix << "tsm.";
     out = &d_embedTypeDt;
-    metaType << "$smt_Type)";
   }
   else if (tk==TermContextKind::SMT)
   {
     // otherwise assume an SMT term
     prefix << "sm.";
     out = &d_embedTermDt;
-    metaType << "$smt_Term)";
   }
   cname << prefix.str() << cnamek;
   if (out == nullptr)
@@ -280,8 +275,6 @@ void ModelSmt::finalizeDecl(const Expr& e)
     return;
   }
   std::cout << "Include " << e << std::endl;
-  d_metaType << "  ; meta-type: " << e << std::endl;
-  d_metaType << "  " << metaType.str() << std::endl;
   (*out) << "  ; user-decl: " << e << std::endl;
   Expr c = e;
   Expr ct = d_tc.getType(c);
@@ -365,7 +358,6 @@ void ModelSmt::finalize()
   std::ostringstream sss;
   sss << ins.rdbuf();
   std::string finalSmt = sss.str();
-  replace(finalSmt, "$SMT_EMBED_META_TYPE_DECL$", d_metaType.str());
   replace(finalSmt, "$EO_TYPE_ENUM_CASES$", d_typeEnum.str());
   replace(finalSmt, "$EO_IS_VALUE_CASES$", d_isValue.str());
   replace(finalSmt, "$EO_IS_TYPE_CASES$", d_isType.str());

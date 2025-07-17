@@ -791,12 +791,6 @@ void SmtMetaReduce::finalizePrograms()
 void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
 {
   std::string vname = getName(v);
-  // ignore programs used for defining this compilation itself
-  // TODO: can remove if we are better at trim-def
-  if (vname == "$eo_get_meta_type")
-  {
-    return;
-  }
   std::cout << "*** Setting up program " << v << " / " << !prog.isNull() << std::endl;
   d_defs << "; " << (prog.isNull() ? "fwd-decl: " : "program: ") << v
          << std::endl;
@@ -976,11 +970,6 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
 
 void SmtMetaReduce::finalize()
 {
-  // Here, we expect $eo_get_meta_type to be defined as a function in the
-  // signature, which is an oracle for saying which datatype a term belongs
-  // to in the deep embedding. We expect this program to be defined as well
-  // as the names of the types.
-  d_eoGetMetaKind = lookupVar("$eo_get_meta_type");
   finalizePrograms();
 
   auto replace = [](std::string& txt,

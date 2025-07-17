@@ -146,8 +146,6 @@ class SmtMetaReduce : public StdPlugin
   std::stringstream d_defs;
   std::stringstream d_rules;
   std::stringstream d_smtVc;
-  /** The Eunoia program that returns the meta-kind of terms */
-  Expr d_eoGetMetaKind;
   /** */
   std::map<std::pair<Expr, size_t>, TermContextKind> d_metaKindArg;
   /** */
