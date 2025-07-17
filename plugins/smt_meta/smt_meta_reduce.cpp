@@ -53,6 +53,7 @@ void SelectorCtx::clear()
 
 SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s) 
 {
+  d_prefixToMetaKind["eo"] = TermContextKind::EUNOIA;
   d_prefixToMetaKind["sm"] = TermContextKind::SMT;
   d_prefixToMetaKind["tsm"] = TermContextKind::SMT_TYPE;
   d_prefixToMetaKind["vsm"] = TermContextKind::SMT_VALUE;

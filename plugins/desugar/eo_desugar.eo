@@ -412,7 +412,7 @@ $EO_DEFS$
 ;;; type checking
 
 ; program: $eo_typeof_apply
-(program $eo_typeof_apply ((T Type) (U Type) (V Type))
+(program $eo_typeof_apply ((T Type) (U Type))
   :signature (Type Type) Type
   (
   (($eo_typeof_apply (-> T U) T) U)

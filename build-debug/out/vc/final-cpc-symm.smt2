@@ -162,9 +162,11 @@
     eo.Type
   (ite ((_ is eo.Var) x1)
     (eo.Var.arg2 x1)
+  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Const) (eo.SmtTerm.arg1 x1)))
+    (eo.SmtType (sm.Const.arg1 (eo.SmtTerm.arg1 x1)))
   (ite true
     ($eo_typeof_main x1)
-    eo.Stuck))))))))))) :named sm.axiom.$eo_typeof))
+    eo.Stuck)))))))))))) :named sm.axiom.$eo_typeof))
 
 ; program: $mk_symm
 (define-fun $mk_symm ((x1 eo.Term)) eo.Term

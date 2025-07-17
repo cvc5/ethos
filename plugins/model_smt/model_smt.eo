@@ -32,8 +32,6 @@
 ;;; SMT term datatype constructors
 
 ; An application of SMT-LIB terms.
-(declare-parameterized-const $smd_sm.Apply
-  ((t1 $smt_Term :opaque) (t2 $smt_Term :opaque)) $smt_Term)
 (define $sm_apply_term ((t1 $smt_Term) (t2 $smt_Term))
   ($smd_sm.Apply t1 t2))
   
@@ -43,17 +41,11 @@
 ; can be custom defined based on the Eunoia signature (see method
 ; $eo_const_predicate in model_eo.eo).
 ; A skolem is identified by a type, a term and a kind.
-(declare-parameterized-const $smd_sm.Skolem
-  ((T $smt_Type :opaque) (k $smt_Term :opaque) (id $smt_builtin_Int :opaque))
-  $smt_Term)
 (define $sm_skolem
   ((T $smt_Type) (k $smt_Term) (id $smt_builtin_Int))
   ($smd_sm.Skolem T k id))
 
 ; A free constant
-(declare-parameterized-const $smd_sm.Const
-  ((T $smt_Type :opaque) (id $smt_builtin_Int :opaque))
-  $smt_Term)
 (define $sm_const ((T $smt_Type) (id $smt_builtin_Int))
   ($smd_sm.Const T id))
   
@@ -78,7 +70,7 @@
 ; This is used as an error condition
 (declare-parameterized-const $smd_tsm.NullSort
   ((id $smt_builtin_Int :opaque)) $smt_Type)
-(define $tsm_NullSort ((id $smt_builtin_Int :opaque)) ($smd_tsm.NullSort id))
+(define $tsm_NullSort ((id $smt_builtin_Int)) ($smd_tsm.NullSort id))
 
 ;;; SMT value datatype constructors
 
@@ -503,11 +495,9 @@ $SMT_EVAL_CASES$
 ; The SMT typeof function, which incorporates builtin SMT terms
 
 (program $smtx_typeof
-  ((T $smt_Type) (t $smt_Term) (F $smt_Term) (k $smt_builtin_Int) (id $smt_builtin_Int))
-  :signature ($smt_Term) $smt_Type
+  ((T $smt_Type) (t $smt_Term) (F $smt_Term) (k $smt_builtin_Int) (id $smt_builtin_Int) (f $smt_Term))
+  :signature ($smt_Term) Type
   (
-  (($smtx_typeof ($sm_const T id))        T)
-  (($smtx_typeof ($sm_skolem T F id))     T)
   ; for all other user defined terms, we totalize using the null sorts
   ; we use the hash so that all terms that do not type check have a new unknown sort.
   (($smtx_typeof t)                       ($smt_try_eo_type

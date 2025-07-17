@@ -29,6 +29,17 @@ public:
   size_t d_variant;
 };
 
+class ProgramOutCtx
+{
+public:
+  ProgramOutCtx(State& s, const Expr& pat, const Expr& body, size_t pcount);
+  std::vector<Expr> d_args;
+  std::vector<Expr> d_argTypes;
+  size_t d_varCount;
+  size_t d_progCount;
+  std::map<Expr, Expr> d_visited;
+};
+
 /**
  * Provides utilities for "flattening" evaluation.
  * At the moment we only define a utility method and don't use this as a standalone plugin.
@@ -41,19 +52,20 @@ class FlattenEval : public StdPlugin
 
   /**
    * Flattens the evaluation in the body of a case of the definition of program v.
-   * Introduces auxiliary programs to do so.
+   * Prints the returned term equivalent to caseBody on os.
+   * Introduces auxiliary programs to do so, printed on osp.
    */
-  static std::vector<ProgramOut> flattenEval(const Expr& v, const Expr& caseBody, std::ostream& os);
+  static void flattenEval(State& s, const Expr& pat, const Expr& body, std::ostream& os, std::ostream& osp);
   /**
-   * True if this is an invocation of evaluation.
+   * True if this is an invocation of evaluation that can be purified.
    */
-  static bool isEvaluationApp(const Expr& e);
+  static bool isPurifyEvaluationApp(const Expr& e);
   /**
    * Given a term e, return a term that has no evaluation.
    * For each top-level evaluation term in e, we replace it by a fresh parameter.
    * We track a visited cache, and record new variables introduced in this manner.
    */
-  static Expr mkPurifyEvaluation(const Expr& e, std::map<Expr, Expr>& visited, size_t& vcount, std::map<Expr, Expr>& newVars);
+  static Expr mkPurifyEvaluation(State& s, const Expr& e, ProgramOutCtx& ctx, std::vector<Expr>& newVars);
 };
 
 }  // namespace ethos

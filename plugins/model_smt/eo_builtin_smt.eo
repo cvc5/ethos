@@ -132,6 +132,20 @@
 (declare-parameterized-const $smd_sm.Binary
   ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Term)
 
+; Apply terms
+(declare-parameterized-const $smd_sm.Apply
+  ((t1 $smt_Term :opaque) (t2 $smt_Term :opaque)) $smt_Term)
+
+; Skolems?
+(declare-parameterized-const $smd_sm.Skolem
+  ((T $smt_Type :opaque) (k $smt_Term :opaque) (id $smt_builtin_Int :opaque))
+  $smt_Term)
+
+; Free constants
+(declare-parameterized-const $smd_sm.Const
+  ((T $smt_Type :opaque) (id $smt_builtin_Int :opaque))
+  $smt_Term)
+
 ;;; Eunoia datatype constructors
 
 ; The Eunoia representation of "stuckness".
@@ -187,8 +201,8 @@
 (define $eo_smt_type ((T $smt_Type)) ($smd_eo.SmtType T))
 
 ; The Eunoia representation of an SMT-LIB value.
-(declare-parameterized-const $smd_eo.SmtValue ((t $smt_Type :opaque)) $eo_Term)
-(define $eo_smt_value ((T $smt_Type)) ($smd_eo.SmtValue T))
+(declare-parameterized-const $smd_eo.SmtValue ((t $smt_Value :opaque)) $eo_Term)
+(define $eo_smt_value ((T $smt_Value)) ($smd_eo.SmtValue T))
 
 ;;; External datatype access
 
@@ -864,6 +878,7 @@
   (($eo_typeof ($eo_mk_string s))    $eo_String)
   (($eo_typeof ($eo_binary w n))     $eo_Binary)
   (($eo_typeof ($eo_Var s T))        T)
+  (($eo_typeof ($smd_sm.Const T n))  T)
   ; otherwise, invoke the routine for builtin types from the signature.
   (($eo_typeof t)                    ($eo_typeof_main t))
   )
