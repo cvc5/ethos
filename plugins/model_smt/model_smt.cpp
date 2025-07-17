@@ -251,8 +251,7 @@ void ModelSmt::finalizeDecl(const Expr& e)
   std::stringstream metaType;
   std::stringstream cname;
   metaType << "(($eo_get_meta_type " << e << ") ";
-  if (sname.compare(0, 1, "@") == 0 || sname.compare(0, 8, "$eo_List") == 0
-      || sname == "$eo_Var")
+  if (sname.compare(0, 1, "@") == 0 || sname.compare(0, 8, "$eo_List") == 0)
   {
     prefix << "eo.";
     out = &d_embedEoTermDt;

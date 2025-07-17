@@ -92,6 +92,28 @@ class SmtMetaReduce : public StdPlugin
   static bool printMetaType(const Expr& t,
                     std::ostream& os,
                     TermContextKind tctx = TermContextKind::NONE);
+  /**
+   * Return the "meta-kind" of a type typ, based on its naming convention
+   * introduced in the model_smt layer. In other words, we return the datatype
+   * that typ represents if applicable, SMT_BUILTIN if typ refers to a builtin
+   * SMT-LIB type, or elseKind otherwise.
+   * @param typ The given type.
+   * @param elseKind The returned kind if typ does not have a special meaning.
+   * @return The meta-kind of typ, or elseKind otherwise.
+   */
+  static TermContextKind getTypeMetaKind(
+      const Expr& typ, TermContextKind elseKind = TermContextKind::EUNOIA);
+  /** 
+   * Get the meta kind of the type of expression e, or else kind otherwise.
+   * In other words, we return the datatype that e is a constructor of in the
+   * final embedding, SMT_BUILTIN if e is a builtin SMT-LIB application, or
+   * elseKind otherwise.
+   * @param e The given expression.
+   * @param elseKind The returned kind if e does not have a special meaning.
+   * @return The meta-kind of the type of e, or elseKind otherwise.
+   */
+  static TermContextKind getMetaKind(
+      const Expr& e, TermContextKind elseKind = TermContextKind::EUNOIA);
  private:
   bool printEmbPatternMatch(const Expr& c,
                             const std::string& initCtx,
@@ -118,10 +140,6 @@ class SmtMetaReduce : public StdPlugin
   std::set<Expr> d_progDeclProcessed;
   /** Programs seen */
   std::vector<std::pair<Expr, Expr>> d_progSeen;
-  /** Attributes marked */
-  std::map<Expr, std::pair<Attr, Expr>> d_attrDecl;
-  /** */
-  std::map<std::string, TermContextKind> d_prefixToMetaKind;
   /** Common constants */
   Expr d_null;
   std::stringstream d_defs;
@@ -133,10 +151,6 @@ class SmtMetaReduce : public StdPlugin
   std::map<std::pair<Expr, size_t>, TermContextKind> d_metaKindArg;
   /** */
   bool isSmtLibExpression(TermContextKind ctx);
-  /**
-   */
-  static TermContextKind getTypeMetaKind(
-      const Expr& typ, TermContextKind elseKind = TermContextKind::EUNOIA);
   /**
    */
   bool isProgramApp(const Expr& app);

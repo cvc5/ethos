@@ -53,14 +53,35 @@ void SelectorCtx::clear()
 
 SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s) 
 {
-  d_prefixToMetaKind["eo"] = TermContextKind::EUNOIA;
-  d_prefixToMetaKind["sm"] = TermContextKind::SMT;
-  d_prefixToMetaKind["tsm"] = TermContextKind::SMT_TYPE;
-  d_prefixToMetaKind["vsm"] = TermContextKind::SMT_VALUE;
-  d_prefixToMetaKind["msm"] = TermContextKind::SMT_MAP;
 }
 
 SmtMetaReduce::~SmtMetaReduce() {}
+
+TermContextKind prefixToMetaKind(const std::string& str)
+{
+  if (str=="eo")
+  {
+    return TermContextKind::EUNOIA;
+  }
+  else if (str=="sm")
+  {
+    return TermContextKind::SMT;
+  }
+  else if (str=="tsm")
+  {
+    return TermContextKind::SMT_TYPE;
+  }
+  else if (str=="vsm")
+  {
+    return TermContextKind::SMT_VALUE;
+  }
+  else if (str=="msm")
+  {
+    return TermContextKind::SMT_MAP;
+  }
+  Assert (false) << "Bad prefix \"" << str << "\"";
+  return TermContextKind::NONE;
+}
 
 std::string termContextKindToString(TermContextKind k)
 {
@@ -1118,6 +1139,23 @@ TermContextKind SmtMetaReduce::getTypeMetaKind(const Expr& typ,
   return elseKind;
 }
 
+TermContextKind SmtMetaReduce::getMetaKind(const Expr& e, TermContextKind elseKind)
+{
+  std::string sname = getName(e);
+  // terms starting with @ are considered Eunoia (not SMT-LIB)
+  if (sname.compare(0, 1, "@") == 0 || sname.compare(0, 8, "$eo_List") == 0)
+  {
+    return TermContextKind::EUNOIA;
+  }
+  else if (sname.compare(0, 5, "$smd_")==0)
+  {
+    size_t firstDot = sname.find('.');
+    std::string prefix = sname.substr(6, firstDot-6);
+    return prefixToMetaKind(prefix);
+  }
+  return elseKind;
+}
+
 TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
                                               size_t i,
                                               TermContextKind parentCtx)
@@ -1183,8 +1221,7 @@ TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
           size_t firstDot = esname.find('.');
           Assert (firstDot != std::string::npos && firstDot>6);
           std::string prefix = esname.substr(6, firstDot-6);
-          Assert (d_prefixToMetaKind.find(prefix)!=d_prefixToMetaKind.end()) << "Bad prefix \"" << prefix << "\" in \"" << esname << "\"";
-          tk = d_prefixToMetaKind[prefix];
+          tk = prefixToMetaKind(prefix);
         }
         else if (esname == "eo.SmtTerm.arg1")
         {
