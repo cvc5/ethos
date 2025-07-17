@@ -12,13 +12,6 @@
 
 $EO_LITERAL_TYPE_DECL$
 
-; Macros for the literal types. These are used to define model evaluation.
-(define $eo_Numeral () $EO_NUMERAL$)
-(define $eo_Rational () $EO_RATIONAL$)
-(define $eo_String () $EO_STRING$)
-(define $eo_Binary () $EO_BINARY$)
-; note: decimal and hexadecimal omitted for now.
-
 ;;; core utilities
 
 ; A Eunoia term, used by $eo_model_sat.
