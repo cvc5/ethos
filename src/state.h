@@ -184,8 +184,6 @@ class State
                          std::vector<Expr>& actual);
   /** Get the program */
   Expr getProgram(const ExprValue* ev);
-  /** Get the oracle command */
-  bool getOracleCmd(const ExprValue* ev, std::string& ocmd);
   /** */
   size_t getAssumptionLevel() const;
   /** */
