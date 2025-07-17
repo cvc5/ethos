@@ -38,6 +38,10 @@ add_cxx_flag("-Wall")
 add_cxx_flag("-Wno-deprecated")
 add_cxx_flag("-std=gnu++17")
 
+if(WIN32)
+  add_definitions(-DUSE_CPP_FILESYSTEM)
+endif()
+
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_cxx_flag("-g")
   add_definitions(-DEO_ASSERTIONS)
