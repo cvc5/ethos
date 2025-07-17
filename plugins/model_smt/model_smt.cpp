@@ -251,34 +251,9 @@ void ModelSmt::finalizeDecl(const Expr& e)
   std::stringstream metaType;
   std::stringstream cname;
   metaType << "(($eo_get_meta_type " << e << ") ";
-  if (sname.compare(0, 1, "@") == 0 || sname.compare(0, 8, "$eo_List") == 0)
-  {
-    prefix << "eo.";
-    out = &d_embedEoTermDt;
-    metaType << "$eo_Term)";
-    cname << prefix.str() << e;
-  }
-  else if (sname.compare(0,5,"$smd_")==0)
-  {
-    std::string sname2 = sname.substr(5);
-    if (sname2.compare(0,3,"eo.")==0)
-    {
-      out = &d_embedEoTermDt;
-      metaType << "$eo_Term)";
-    }
-    else if (sname2.compare(0,3,"tsm.")==0)
-    {
-      out = &d_embedTypeDt;
-      metaType << "$smt_Type)";
-    }
-    else if (sname2.compare(0,3,"sm.")==0)
-    {
-      out = &d_embedTermDt;
-      metaType << "$smt_Term)";
-    }
-    cname << sname2;
-  }
-  else if (sname.compare(0, 4, "$eo_") != 0 && sname.compare(0,5,"$smt_")!=0)
+  std::string cnamek;
+  TermContextKind tk = SmtMetaReduce::getMetaKind(e, cnamek, TermContextKind::NONE);
+  if (tk==TermContextKind::NONE)
   {
     Expr c = e;
     Expr tc = d_tc.getType(c);
@@ -286,19 +261,33 @@ void ModelSmt::finalizeDecl(const Expr& e)
         || (tc.getKind() == Kind::FUNCTION_TYPE
             && tc[tc.getNumChildren() - 1].getKind() == Kind::TYPE))
     {
-      prefix << "tsm.";
-      out = &d_embedTypeDt;
-      metaType << "$smt_Type)";
+      tk = TermContextKind::SMT_TYPE;
     }
     else
     {
-      // otherwise assume an SMT term
-      prefix << "sm.";
-      out = &d_embedTermDt;
-      metaType << "$smt_Term)";
+      tk = TermContextKind::SMT;
     }
-    cname << prefix.str() << e;
   }
+  if (tk==TermContextKind::EUNOIA)
+  {
+    prefix << "eo.";
+    out = &d_embedEoTermDt;
+    metaType << "$eo_Term)";
+  }
+  else if (tk==TermContextKind::SMT_TYPE)
+  {
+    prefix << "tsm.";
+    out = &d_embedTypeDt;
+    metaType << "$smt_Type)";
+  }
+  else if (tk==TermContextKind::SMT)
+  {
+    // otherwise assume an SMT term
+    prefix << "sm.";
+    out = &d_embedTermDt;
+    metaType << "$smt_Term)";
+  }
+  cname << prefix.str() << cnamek;
   if (out == nullptr)
   {
     std::cout << "Do not include " << e << std::endl;

@@ -113,7 +113,7 @@ class SmtMetaReduce : public StdPlugin
    * @return The meta-kind of the type of e, or elseKind otherwise.
    */
   static TermContextKind getMetaKind(
-      const Expr& e, TermContextKind elseKind = TermContextKind::EUNOIA);
+      const Expr& e, std::string& cname, TermContextKind elseKind);
  private:
   bool printEmbPatternMatch(const Expr& c,
                             const std::string& initCtx,

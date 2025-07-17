@@ -1139,20 +1139,29 @@ TermContextKind SmtMetaReduce::getTypeMetaKind(const Expr& typ,
   return elseKind;
 }
 
-TermContextKind SmtMetaReduce::getMetaKind(const Expr& e, TermContextKind elseKind)
+TermContextKind SmtMetaReduce::getMetaKind(const Expr& e, std::string& cname, TermContextKind elseKind)
 {
   std::string sname = getName(e);
   // terms starting with @ are considered Eunoia (not SMT-LIB)
   if (sname.compare(0, 1, "@") == 0 || sname.compare(0, 8, "$eo_List") == 0)
   {
+    cname = sname;
     return TermContextKind::EUNOIA;
+  }
+  else if (sname.compare(0, 4, "$eo_") == 0 || sname.compare(0,5,"$smt_")==0)
+  {
+    // internal-only symbol
+    cname = sname;
+    return TermContextKind::SMT_BUILTIN;
   }
   else if (sname.compare(0, 5, "$smd_")==0)
   {
     size_t firstDot = sname.find('.');
-    std::string prefix = sname.substr(6, firstDot-6);
+    std::string prefix = sname.substr(5, firstDot-5);
+    cname = sname.substr(firstDot+1);
     return prefixToMetaKind(prefix);
   }
+  cname = sname;
   return elseKind;
 }
 
