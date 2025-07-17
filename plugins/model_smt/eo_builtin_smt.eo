@@ -149,6 +149,9 @@
 
 ;;; Eunoia datatype constructors
 
+; The type of types
+(declare-const $smd_eo.Type $eo_Term)
+
 ; The Eunoia representation of "stuckness".
 (declare-const $smd_eo.Stuck $eo_Term)
 (define $eo_stuck () $smd_eo.Stuck)

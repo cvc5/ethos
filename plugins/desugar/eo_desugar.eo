@@ -484,9 +484,6 @@ $EO_NIL_CASES$
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_smt
 
-; A placeholder for the type of SMT-LIB terms.
-(declare-const $eo_SmtType Type)
-
 ; A placeholder for asking whether a formula is satisfied by a model.
 ; This is used to define the verification condition we will write below.
 (program $eo_model_sat () :signature ($eo_Term) Bool)

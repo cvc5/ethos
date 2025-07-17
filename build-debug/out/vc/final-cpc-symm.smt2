@@ -27,9 +27,6 @@
   )
 )
 
-; carrying the literal types?
-
-
 ; The final embedding of SMT-LIB terms that are relevant to the VC.
 ; In other words, this defines the Herbrand universe.
 (declare-datatype sm.Term
@@ -71,7 +68,7 @@
 (declare-datatypes ((eo.Term 0) (vsm.Value 0) (msm.Map 0))
   (
   (
-  ; The type of types in Eunoia
+  ; user-decl: $smd_eo.Type
   (eo.Type)
   ; user-decl: $smd_eo.Stuck
   (eo.Stuck)
