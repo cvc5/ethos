@@ -251,23 +251,9 @@ void ModelSmt::finalizeDecl(const Expr& e)
   std::stringstream metaType;
   std::stringstream cname;
   metaType << "(($eo_get_meta_type " << e << ") ";
+  // get the meta-kind based on its name
   std::string cnamek;
-  TermContextKind tk = SmtMetaReduce::getMetaKind(e, cnamek, TermContextKind::NONE);
-  if (tk==TermContextKind::NONE)
-  {
-    Expr c = e;
-    Expr tc = d_tc.getType(c);
-    if (tc.getKind() == Kind::TYPE
-        || (tc.getKind() == Kind::FUNCTION_TYPE
-            && tc[tc.getNumChildren() - 1].getKind() == Kind::TYPE))
-    {
-      tk = TermContextKind::SMT_TYPE;
-    }
-    else
-    {
-      tk = TermContextKind::SMT;
-    }
-  }
+  TermContextKind tk = SmtMetaReduce::getMetaKind(d_state, e, cnamek);
   if (tk==TermContextKind::EUNOIA)
   {
     prefix << "eo.";

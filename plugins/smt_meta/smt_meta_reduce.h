@@ -108,12 +108,13 @@ class SmtMetaReduce : public StdPlugin
    * In other words, we return the datatype that e is a constructor of in the
    * final embedding, SMT_BUILTIN if e is a builtin SMT-LIB application, or
    * elseKind otherwise.
+   * @param s Reference to the state
    * @param e The given expression.
-   * @param elseKind The returned kind if e does not have a special meaning.
+   * @param cname Updated to the root name of the constructor.
    * @return The meta-kind of the type of e, or elseKind otherwise.
    */
   static TermContextKind getMetaKind(
-      const Expr& e, std::string& cname, TermContextKind elseKind);
+      State& s, const Expr& e, std::string& cname);
  private:
   bool printEmbPatternMatch(const Expr& c,
                             const std::string& initCtx,

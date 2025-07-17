@@ -1139,7 +1139,7 @@ TermContextKind SmtMetaReduce::getTypeMetaKind(const Expr& typ,
   return elseKind;
 }
 
-TermContextKind SmtMetaReduce::getMetaKind(const Expr& e, std::string& cname, TermContextKind elseKind)
+TermContextKind SmtMetaReduce::getMetaKind(State& s, const Expr& e, std::string& cname)
 {
   std::string sname = getName(e);
   // terms starting with @ are considered Eunoia (not SMT-LIB)
@@ -1162,7 +1162,17 @@ TermContextKind SmtMetaReduce::getMetaKind(const Expr& e, std::string& cname, Te
     return prefixToMetaKind(prefix);
   }
   cname = sname;
-  return elseKind;
+  // If not a distinguished symbol, it may be an SMT-LIB term or a type.
+  // Check the type of e.
+  Expr c = e;
+  Expr tc = s.getTypeChecker().getType(c);
+  if (tc.getKind() == Kind::TYPE
+      || (tc.getKind() == Kind::FUNCTION_TYPE
+          && tc[tc.getNumChildren() - 1].getKind() == Kind::TYPE))
+  {
+    return TermContextKind::SMT_TYPE;
+  }
+  return TermContextKind::SMT;
 }
 
 TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
@@ -1465,12 +1475,9 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
     //  datatypes, accessible via the $eo_get_meta_type method.
     if (k == Kind::CONST && tk == TermContextKind::EUNOIA)
     {
-      // std::cout << "...consult meta-kind side condition" << std::endl;
-      //  constants are managed by the Eunoia side condition
-      Expr mapp = d_state.mkExprSimple(Kind::APPLY, {d_eoGetMetaKind, hd});
-      Ctx ectx;
-      Expr mm = d_tc.evaluate(mapp.getValue(), ectx);
-      tk = getTypeMetaKind(mm);
+      // otherwise, use the meta kind utility.
+      std::string cnameTmp;
+      tk = getMetaKind(d_state, hd, cnameTmp);
       if (tk == TermContextKind::NONE && parentCtx != TermContextKind::NONE)
       {
         // otherwise just use the parent type????
