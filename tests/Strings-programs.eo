@@ -19,8 +19,12 @@
   )
 )
 
-(define $char_type_of ((T Type)) 
-  (eo::match ((U Type)) T (((Seq U) U))))
+(program $char_type_of ((U Type))
+  :signature (Type) Type
+  (
+  (($char_type_of (Seq U)) U)
+  )
+)
 (define $str_concat ((T Type :implicit) (x (Seq T)) (y (Seq T)))
   (eo::list_concat str.++ x y))
 (define $str_cons ((T Type :implicit) (x (Seq T)) (y (Seq T)))
@@ -118,7 +122,7 @@
   (
     ((string_flatten_word t) 
       (eo::ite (check_length_one t) 
-        ($str_cons t "")
+        ($str_cons t (mk_emptystr (eo::typeof t)))
         ($str_cons (eo::extract t 0 0) (string_flatten_word (eo::extract t 1 (eo::len t))))))
   )
 )
@@ -148,21 +152,20 @@
 ; We return:
 ;   (@pair "AB" (str.++ x ""))
 (program string_collect_acc ((U Type) (t (Seq U)) (tail (Seq U) :list))
-  ((Seq U)) (@Pair (Seq U) (Seq U))
+  :signature ((Seq U)) (@Pair (Seq U) (Seq U))
   (
-    ; TODO: sequences
+    ; sequence not handled yet
     ; Check if t is a word constant
     ((string_collect_acc (str.++ t tail))
       (eo::ite (check_length_one t)
-        (eo::match ((s1 (Seq U)) (s2 (Seq U))) 
-          (string_collect_acc tail)
-          (
-            ((@pair "" s2)  (@pair t s2))
-            ((@pair s1 s2)  (@pair (eo::concat t s1) s2))    ; concatentate the constant
-          )
-        )
+        (eo::define ((res (string_collect_acc tail)))
+        (eo::define ((s1 ($pair_first res)))
+        (eo::define ((s2 ($pair_second res)))
+          (eo::ite (eo::eq s1 "")
+            (@pair t s2)
+            (@pair (eo::concat t s1) s2)))))    ; concatenate the constant
         (@pair "" (str.++ t tail))))
-    ((string_collect_acc t)            (eo::requires t (mk_emptystr (eo::typeof t)) (@pair t t)))
+    ((string_collect_acc "")            (@pair "" ""))
   )
 )
 
@@ -174,21 +177,17 @@
 ; Notice that the collection of constants is done for all word constants in the
 ; term s recursively.
 (program string_collect ((U Type) (t (Seq U)) (s (Seq U) :list))
-  ((Seq U)) (Seq U)
+  :signature ((Seq U)) (Seq U)
   (
     ((string_collect (str.++ t s))
-      (eo::match ((s1 (Seq U)) (s2 (Seq U)))
-        (string_collect_acc (str.++ t s))
-        (
+      (eo::define ((res (string_collect_acc (str.++ t s))))
+      (eo::define ((s1 ($pair_first res)))
+      (eo::define ((s2 ($pair_second res)))
+        (eo::ite (eo::eq s1 "")
           ; did not strip a constant prefix, just append t to the result of processing s
-          ((@pair "" s2)
-            ($str_cons t (string_collect s)))
+          ($str_cons t (string_collect s))
           ; stripped a constant prefix, append it to second term in the pair
-          ((@pair s1 s2)
-            ($str_cons s1 (string_collect s2)))
-        )
-      )
-    )
+          ($str_cons s1 (string_collect s2)))))))
     ((string_collect t)       (eo::requires t (mk_emptystr (eo::typeof t)) t))
   )
 )

@@ -5,14 +5,10 @@
   :premises ((= s t))
   :args ((Seq U) rev)
   :conclusion
-    (eo::match ((ss (Seq U)) (ts (Seq U)))
-      (strip_prefix
-           (string_to_flat_form U s rev)
-           (string_to_flat_form U t rev))
-      (((@pair ss ts)
+    (eo::define ((res (strip_prefix (string_to_flat_form U s rev) (string_to_flat_form U t rev))))
         (=
-          (string_from_flat_form U ss rev)
-          (string_from_flat_form U ts rev)))))
+          (string_from_flat_form U ($pair_first res) rev)
+          (string_from_flat_form U ($pair_second res) rev)))
 )
 
 (declare-const x String)
