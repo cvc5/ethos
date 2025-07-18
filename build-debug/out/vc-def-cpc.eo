@@ -1,5 +1,5 @@
-; trim-defs: $eovc_refl $eo_typeof_main $eo_eq $eo_String $eo_Numeral $eo_Rational $eo_Binary $eo_dt_constructors $eo_dt_selectors
-; #trim-defs: 45
+; trim-defs: $eovc_symm $eo_typeof_main $eo_eq $eo_String $eo_Numeral $eo_Rational $eo_Binary $eo_dt_constructors $eo_dt_selectors
+; #trim-defs: 47
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -29,8 +29,16 @@
   )
 )
 (declare-parameterized-const ite (($eo_x_1 Bool) (A Type :implicit) ($eo_x_2 A) ($eo_x_3 A)) A)
+(declare-const not (-> Bool Bool))
 (declare-const and (-> Bool (-> Bool Bool)))
 (declare-parameterized-const = ((A Type :implicit) ($eo_x_1 A) ($eo_x_2 A)) Bool)
+(program $mk_symm ((T Type) (t2 T) (t1 T))
+  :signature (Bool) Bool
+  (
+  (($mk_symm (_ (= t1) t2)) (_ (= t2) t1))
+  (($mk_symm (not (_ (= t1) t2))) (not (_ (= t2) t1)))
+  )
+)
 (declare-const BitVec (-> Int Type))
 (program $eo_typeof_apply ((T Type) (U Type))
   :signature (Type Type) Type
@@ -77,6 +85,8 @@
   
   (($eo_typeof_main (_ (ite x1) x2)) ($eo_typeof_ite ($eo_typeof x1) ($eo_typeof x2)))
   
+  (($eo_typeof_main not) (-> Bool Bool))
+  
   (($eo_typeof_main and) (-> Bool (-> Bool Bool)))
   
   (($eo_typeof_main (= x1)) ($eo_typeof_= ($eo_typeof x1)))
@@ -103,24 +113,25 @@
 )
 (program $eo_model_sat () :signature ($eo_Term) Bool)
 (echo "include eo_model_sat")
-(program $eorx_refl ((T Type) (t T))
-  :signature ( T Type) Bool
+(program $eorx_symm ((F Bool))
+  :signature (Bool Type) Bool
   (
-  (($eorx_refl t T) (_ (= t) t))
+  (($eorx_symm F Bool) ($mk_symm F))
   )
 )
-(program $eor_refl ((T Type) (t T))
-  :signature (T) Bool
+(program $eor_symm ((F Bool))
+  :signature (Bool) Bool
   (
-  (($eor_refl t) ($eorx_refl t ($eo_typeof t)))
+  (($eor_symm F) ($eorx_symm F ($eo_typeof F)))
   )
 )
-(program $eovc_refl ((T Type) (t T))
-  :signature (T) Bool
+(program $eovc_symm ((F Bool))
+  :signature (Bool) Bool
   (
-  (($eovc_refl t)
-     (eo::requires ($eo_model_sat ($eor_refl t)) false
-       true))
+  (($eovc_symm F)
+     (eo::requires ($eo_model_sat F) true
+     (eo::requires ($eo_model_sat ($eor_symm F)) false
+       true)))
   )
 )
-(echo "smt-meta $eovc_refl")
+(echo "smt-meta $eovc_symm")
