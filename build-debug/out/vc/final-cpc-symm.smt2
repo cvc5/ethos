@@ -301,6 +301,20 @@
     vsm.NotValue
 ))
 
+; program: $smtx_model_eval_not
+(define-fun $smtx_model_eval_not ((x1 vsm.Value)) vsm.Value
+  (ite ((_ is vsm.Term) x1)
+    (vsm.Term (ite (not (= sm.True (vsm.Term.arg1 x1))) sm.True sm.False))
+    vsm.NotValue
+))
+
+; program: $smtx_model_eval_and
+(define-fun $smtx_model_eval_and ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
+  (ite (and ((_ is vsm.Term) x1) ((_ is vsm.Term) x2))
+    (vsm.Term (ite (and (= sm.True (vsm.Term.arg1 x1)) (= sm.True (vsm.Term.arg1 x2))) sm.True sm.False))
+    vsm.NotValue
+))
+
 ; program: $smtx_model_eval
 (assert (! (forall ((x1 sm.Term))
   (= ($smtx_model_eval x1)
@@ -309,9 +323,9 @@
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) (= (sm.Apply.arg1 (sm.Apply.arg1 x1)) sm.=))
     (ite (and (not ((_ is vsm.NotValue) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))))) (not ((_ is vsm.NotValue) ($smtx_model_eval (sm.Apply.arg2 x1))))) (vsm.Term (ite (= ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_model_eval (sm.Apply.arg2 x1))) sm.True sm.False)) vsm.NotValue)
   (ite (and ((_ is sm.Apply) x1) (= (sm.Apply.arg1 x1) sm.not))
-    (ite (not ((_ is vsm.NotValue) ($smtx_model_eval (sm.Apply.arg2 x1)))) (vsm.Term (ite (not (= sm.True (vsm.Term.arg1 ($smtx_model_eval (sm.Apply.arg2 x1))))) sm.True sm.False)) vsm.NotValue)
+    ($smtx_model_eval_not ($smtx_model_eval (sm.Apply.arg2 x1)))
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) (= (sm.Apply.arg1 (sm.Apply.arg1 x1)) sm.and))
-    (ite (not ((_ is vsm.NotValue) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))))) (ite (not ((_ is vsm.NotValue) ($smtx_model_eval (sm.Apply.arg2 x1)))) (vsm.Term (ite (and (= sm.True (vsm.Term.arg1 ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))))) (= sm.True (vsm.Term.arg1 ($smtx_model_eval (sm.Apply.arg2 x1))))) sm.True sm.False)) vsm.NotValue) vsm.NotValue)
+    ($smtx_model_eval_and ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_model_eval (sm.Apply.arg2 x1)))
   (ite ((_ is sm.Apply) x1)
     ($smtx_model_eval_apply ($smtx_model_eval (sm.Apply.arg1 x1)) ($smtx_model_eval (sm.Apply.arg2 x1)))
   (ite ((_ is sm.Const) x1)

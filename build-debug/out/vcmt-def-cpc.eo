@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm $eo_typeof $eo_hash $eo_requires $eo_apply $eo_fun_type
-; #trim-defs: 129
+; #trim-defs: 130
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -241,8 +241,6 @@
   ($smt_apply_3 "ite" ($smt_apply_1 "(_ is eo.SmtType)" t)
     t
     elseTerm))
-(define $smt_term_from_value ((t $smt_Term))
-  ($smt_apply_1 "vsm.Term.arg1" t))
 (program $smtx_term_is_value ()
   :signature ($smt_Term) $smt_builtin_Bool)
 (program $smtx_map_lookup
@@ -312,6 +310,22 @@
   (($smtx_model_eval_apply v i)               $vsm_not_value)
   )
 )
+(program $smtx_model_eval_not
+  ((x1 $smt_Term))
+  :signature ($smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_not ($vsm_term x1)) ($vsm_term ($sm_mk_bool ($smt_apply_1 "not" ($smt_apply_= $sm_mk_true x1)))))
+  (($smtx_model_eval_not x1) $vsm_not_value)
+  )
+)
+(program $smtx_model_eval_and
+  ((x1 $smt_Term) (x2 $smt_Term))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_and ($vsm_term x1) ($vsm_term x2)) ($vsm_term ($sm_mk_bool ($smt_apply_2 "and" ($smt_apply_= $sm_mk_true x1) ($smt_apply_= $sm_mk_true x2)))))
+  (($smtx_model_eval_and x1 x2) $vsm_not_value)
+  )
+)
 (program $smtx_model_eval
   ((T $smt_Type) (f $smt_Term) (y $smt_Term) (z $smt_Term) (k $smt_Term) (id $smt_builtin_Int) (F Bool)
    (val $smt_Value)
@@ -347,19 +361,8 @@
   
   
   
-  (($smtx_model_eval (not x1))
-    (eo::define ((e1 ($smtx_model_eval x1)))
-    ($smt_apply_3 "ite" ($vsm_is_value e1)
-      ($vsm_term ($sm_mk_bool ($smt_apply_1 "not" ($smt_apply_= $sm_mk_true ($smt_term_from_value e1)))))
-    $vsm_not_value)))
-  (($smtx_model_eval (and x1 x2))
-    (eo::define ((e1 ($smtx_model_eval x1)))
-    ($smt_apply_3 "ite" ($vsm_is_value e1)
-    (eo::define ((e2 ($smtx_model_eval x2)))
-    ($smt_apply_3 "ite" ($vsm_is_value e2)
-      ($vsm_term ($sm_mk_bool ($smt_apply_2 "and" ($smt_apply_= $sm_mk_true ($smt_term_from_value e1)) ($smt_apply_= $sm_mk_true ($smt_term_from_value e2)))))
-    $vsm_not_value))
-    $vsm_not_value)))
+  (($smtx_model_eval (not x1)) ($smtx_model_eval_not ($smtx_model_eval x1)))
+  (($smtx_model_eval (and x1 x2)) ($smtx_model_eval_and ($smtx_model_eval x1) ($smtx_model_eval x2)))
 
   
   

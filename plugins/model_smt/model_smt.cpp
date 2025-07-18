@@ -157,16 +157,6 @@ void ModelSmt::printSmtTerm(const std::string& name,
   // template
   d_eval << "  (($smtx_model_eval " << callApp.str() << ")";
   bool isOverloadArith = (args.size() > 0 && args[0] == Kind::PARAM);
-  std::stringstream preAppEnd;
-  d_eval << std::endl;
-  for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
-  {
-    d_eval << "    (eo::define ((e" << i << " ($smtx_model_eval x" << i << ")))"
-           << std::endl;
-    d_eval << "    ($smt_apply_3 \"ite\" ($vsm_is_value e" << i << ")"
-           << std::endl;
-    preAppEnd << std::endl << "    $vsm_not_value))";
-  }
   if (name == "forall" || name == "exists")
   {
     // does not "pre-rewrite" the body
@@ -192,50 +182,6 @@ void ModelSmt::printSmtTerm(const std::string& name,
   size_t paramCount = 0;
   for (Kind kas : argSchemas)
   {
-    std::stringstream appArgs;
-    appArgs << " \"" << name << "\"";
-    for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
-    {
-      Kind ka = args[i - 1];
-      std::stringstream ssmt;
-      ssmt << "($smt_term_from_value e" << i << ")";
-      if (ka == Kind::PARAM)
-      {
-        Assert(kas != Kind::NONE);
-        ka = kas;
-      }
-      if (ka == Kind::BOOLEAN)
-      {
-        appArgs << " ($smt_apply_= $sm_mk_true ";
-      }
-      else
-      {
-        // use the selector directly.
-        // this is guarded by the ITE
-        appArgs << " ($smt_apply_1 \"sm.";
-        Assert(d_kindToEoCons.find(ka) != d_kindToEoCons.end())
-            << "Could not find " << ka;
-        appArgs << d_kindToEoCons[ka] << ".arg1\" ";
-      }
-      appArgs << ssmt.str() << ")";
-    }
-    if (args.empty() || args.size() > 3)
-    {
-      EO_FATAL() << "Unhandled arity " << args.size() << " for " << name;
-    }
-    d_eval << "      ($vsm_term ($sm_mk_";
-    Kind kr = kret;
-    if (kr == Kind::PARAM)
-    {
-      Assert(kas != Kind::NONE);
-      kr = kas;
-    }
-    Assert(d_kindToEoPrefix.find(kr) != d_kindToEoPrefix.end())
-        << "Could not find kind ret " << kr;
-    d_eval << d_kindToEoPrefix[kr];
-    d_eval << " ($smt_apply_" << args.size() << appArgs.str() << ")))";
-    preAppEnd << ")";
-    //////
     progCases << "  ((" << progName.str();
     std::stringstream retArgs;
     for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
@@ -265,25 +211,35 @@ void ModelSmt::printSmtTerm(const std::string& name,
       }
     }
     progCases << ") ";
+    Kind kr = kret;
+    if (kr == Kind::PARAM)
+    {
+      Assert(kas != Kind::NONE);
+      kr = kas;
+    }
+    Assert(d_kindToEoPrefix.find(kr) != d_kindToEoPrefix.end())
+        << "Could not find kind ret " << kr;
     progCases << "($vsm_term ($sm_mk_" << d_kindToEoPrefix[kr];
     progCases << " ($smt_apply_" << args.size() << " \"" << name << "\"";
     progCases << retArgs.str() << "))))" << std::endl;
   }
-  d_eval << preAppEnd.str() << std::endl;
   d_modelEvalProgs << "(program " << progName.str() << std::endl;
   d_modelEvalProgs << "  (" << progParams.str() << ")" << std::endl;
   d_modelEvalProgs << "  :signature (";
   // make the default case as well
   progCases << "  ((" << progName.str();
+  d_eval << " (" << progName.str();
   for (size_t i = 0, nargs = args.size(); i < nargs; i++)
   {
     if (i>0)
     {
       d_modelEvalProgs << " ";
     }
+    d_eval << " ($smtx_model_eval x" << (i+1) << ")";
     d_modelEvalProgs << "$smt_Value";
     progCases << " x" << (i+1);
   }
+  d_eval << "))" << std::endl;
   progCases << ") $vsm_not_value)" << std::endl;
   d_modelEvalProgs << ") $smt_Value" << std::endl;
   d_modelEvalProgs << "  (" << std::endl;
