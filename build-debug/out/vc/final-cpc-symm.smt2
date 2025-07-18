@@ -38,21 +38,21 @@
 (declare-datatypes ((sm.Term 0) (eo.Term 0) (vsm.Value 0) (msm.Map 0))
   (
   (
-  ; user-decl: $smd_sm.True
+  ; user-decl: True
   (sm.True)
-  ; user-decl: $smd_sm.False
+  ; user-decl: False
   (sm.False)
-  ; user-decl: $smd_sm.Numeral
+  ; user-decl: Numeral
   (sm.Numeral (sm.Numeral.arg1 Int))
-  ; user-decl: $smd_sm.Rational
+  ; user-decl: Rational
   (sm.Rational (sm.Rational.arg1 Real))
-  ; user-decl: $smd_sm.String
+  ; user-decl: String
   (sm.String (sm.String.arg1 String))
-  ; user-decl: $smd_sm.Binary
+  ; user-decl: Binary
   (sm.Binary (sm.Binary.arg1 Int) (sm.Binary.arg2 Int))
-  ; user-decl: $smd_sm.Apply
+  ; user-decl: Apply
   (sm.Apply (sm.Apply.arg1 sm.Term) (sm.Apply.arg2 sm.Term))
-  ; user-decl: $smd_sm.Const
+  ; user-decl: Const
   (sm.Const (sm.Const.arg1 vsm.Value))
   ; user-decl: not
   (sm.not)
@@ -65,21 +65,21 @@
 
   )
   (
-  ; user-decl: $smd_eo.Type
+  ; user-decl: Type
   (eo.Type)
-  ; user-decl: $smd_eo.Stuck
+  ; user-decl: Stuck
   (eo.Stuck)
-  ; user-decl: $smd_eo.Apply
+  ; user-decl: Apply
   (eo.Apply (eo.Apply.arg1 eo.Term) (eo.Apply.arg2 eo.Term))
-  ; user-decl: $smd_eo.FunType
+  ; user-decl: FunType
   (eo.FunType (eo.FunType.arg1 eo.Term) (eo.FunType.arg2 eo.Term))
-  ; user-decl: $smd_eo.SmtTerm
+  ; user-decl: SmtTerm
   (eo.SmtTerm (eo.SmtTerm.arg1 sm.Term))
-  ; user-decl: $smd_eo.SmtType
+  ; user-decl: SmtType
   (eo.SmtType (eo.SmtType.arg1 tsm.Type))
-  ; user-decl: $smd_eo.SmtValue
+  ; user-decl: SmtValue
   (eo.SmtValue (eo.SmtValue.arg1 vsm.Value))
-  ; user-decl: $smd_eo.Var
+  ; user-decl: Var
   (eo.Var (eo.Var.arg1 String) (eo.Var.arg2 eo.Term))
   ; user-decl: $eo_List
   (eo.$eo_List)
@@ -91,7 +91,7 @@
   (vsm.Map (vsm.Map.arg1 tsm.Type) (vsm.Map.arg2 msm.Map))
   ; uninterpreted constants
   ; valueness: $smtx_usort_is_value
-  (vsm.UValue (vsm.UValue.arg1 tsm.Type) (vsm.UValue.arg2 Int))
+  (vsm.UConst (vsm.UConst.arg1 tsm.Type) (vsm.UConst.arg2 Int))
   ; an SMT value represented by an SMT-LIB term, e.g. Int/Real/String.
   ; valueness: $smtx_is_value
   (vsm.Term (vsm.Term.arg1 sm.Term))
@@ -293,7 +293,7 @@
 (assert (! (forall ((x1 sm.Term))
   (= ($smtx_model_eval x1)
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) ((_ is sm.Apply) (sm.Apply.arg1 (sm.Apply.arg1 x1))) (= (sm.Apply.arg1 (sm.Apply.arg1 (sm.Apply.arg1 x1))) sm.ite))
-    (ite (not ((_ is vsm.NotValue) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1)))))) (ite (and ((_ is vsm.Term) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1))))) (= (vsm.Term.arg1 ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1))))) sm.True)) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_model_eval (sm.Apply.arg2 x1))) vsm.NotValue)
+    (ite (and ((_ is vsm.Term) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1))))) (= (vsm.Term.arg1 ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1))))) sm.True)) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) (ite (and ((_ is vsm.Term) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1))))) (= (vsm.Term.arg1 ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1))))) sm.False)) ($smtx_model_eval (sm.Apply.arg2 x1)) vsm.NotValue))
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) (= (sm.Apply.arg1 (sm.Apply.arg1 x1)) sm.=))
     (ite (and (not ((_ is vsm.NotValue) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))))) (not ((_ is vsm.NotValue) ($smtx_model_eval (sm.Apply.arg2 x1))))) (vsm.Term (ite (= ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_model_eval (sm.Apply.arg2 x1))) sm.True sm.False)) vsm.NotValue)
   (ite (and ((_ is sm.Apply) x1) (= (sm.Apply.arg1 x1) sm.not))
@@ -331,9 +331,19 @@
   (= ($eo_model_typeof x1)
   (ite (= x1 eo.Stuck)
     eo.Stuck
+  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Const) (eo.SmtTerm.arg1 x1)))
+    ($eo_model_typeof (eo.SmtValue (sm.Const.arg1 (eo.SmtTerm.arg1 x1))))
+  (ite (and ((_ is eo.SmtValue) x1) ((_ is vsm.Term) (eo.SmtValue.arg1 x1)))
+    ($eo_model_typeof (eo.SmtTerm (vsm.Term.arg1 (eo.SmtValue.arg1 x1))))
+  (ite (and ((_ is eo.SmtValue) x1) ((_ is vsm.Map) (eo.SmtValue.arg1 x1)))
+    (eo.SmtType (vsm.Map.arg1 (eo.SmtValue.arg1 x1)))
+  (ite (and ((_ is eo.SmtValue) x1) ((_ is vsm.UConst) (eo.SmtValue.arg1 x1)))
+    (eo.SmtType (vsm.UConst.arg1 (eo.SmtValue.arg1 x1)))
+  (ite (and ((_ is eo.SmtValue) x1) (= (eo.SmtValue.arg1 x1) vsm.NotValue))
+    (eo.SmtType (tsm.NullSort 0))
   (ite true
     (ite ((_ is eo.SmtType) ($eo_typeof x1)) ($eo_typeof x1) (eo.SmtType (tsm.NullSort 0)))
-    eo.Stuck)))) :named sm.axiom.$eo_model_typeof))
+    eo.Stuck))))))))) :named sm.axiom.$eo_model_typeof))
 
 ; program: $eorx_symm
 (define-fun $eorx_symm ((x1 eo.Term) (x2 eo.Term)) eo.Term

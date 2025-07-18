@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm $vsm_is_value $eo_typeof $smt_Value $eo_hash $eo_requires $eo_apply $eo_fun_type
-; #trim-defs: 121
+; #trim-defs: 127
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -96,6 +96,8 @@
 (define $eo_smt_term ((t $smt_Term)) ($smd_eo.SmtTerm t))
 (declare-parameterized-const $smd_eo.SmtType ((t $smt_Type :opaque)) $eo_Term)
 (define $eo_smt_type ((T $smt_Type)) ($smd_eo.SmtType T))
+(declare-parameterized-const $smd_eo.SmtValue ((t $smt_Value :opaque)) $eo_Term)
+(define $eo_smt_value ((T $smt_Value)) ($smd_eo.SmtValue T))
 (declare-parameterized-const $smd_eo.Var
   ((s $smt_builtin_String :opaque) (T $eo_Term :opaque))
   $eo_Term)
@@ -105,6 +107,7 @@
 (define $sm_mk_bool ((c $smt_builtin_Bool))
   ($smt_apply_3 "ite" c $sm_mk_true $sm_mk_false))
 (define $sm_is_true ((b $smt_Term)) ($smt_apply_= b $sm_mk_true))
+(define $sm_is_false ((b $smt_Term)) ($smt_apply_= b $sm_mk_false))
 (define $eo_true () ($eo_smt_term $sm_mk_true))
 (define $eo_false () ($eo_smt_term $sm_mk_false))
 (define $eo_mk_numeral ((x $smt_builtin_Int))
@@ -223,6 +226,11 @@
   $smt_Value)
 (define $vsm_map ((T $smt_Type) (m $smt_Map))
   ($smd_vsm.Map T m))
+(declare-parameterized-const $smd_vsm.UConst
+  ((T $smt_Type :opaque) (id $smt_builtin_Int :opaque))
+  $smt_Value)
+(define $vsm_uconst ((T $smt_Type) (id $smt_builtin_Int))
+  ($smd_vsm.UConst T id))
 (declare-parameterized-const $smd_vsm.Term
   ((t $smt_Term :opaque))
   $smt_Value)
@@ -281,6 +289,10 @@
   ($smt_builtin_and
     ($smt_apply_1 "(_ is vsm.Term)" t)
     ($sm_is_true ($smt_apply_1 "vsm.Term.arg1" t))))
+(define $vsm_is_false ((t $smt_Value))
+  ($smt_builtin_and
+    ($smt_apply_1 "(_ is vsm.Term)" t)
+    ($sm_is_false ($smt_apply_1 "vsm.Term.arg1" t))))
 (program $smtx_model_eval () :signature ($smt_Term) $smt_Value)
 (program $smtx_model_eval_apply
   ((T $smt_Type) (m $smt_Map) (i $smt_Value) (v $smt_Value))
@@ -302,11 +314,11 @@
   
   (($smtx_model_eval (ite x1 x2 x3))
     (eo::define ((e1 ($smtx_model_eval x1)))
-    ($smt_apply_3 "ite" ($vsm_is_value e1)
-      ($smt_apply_3 "ite" ($vsm_is_true e1)
-        ($smtx_model_eval x2)
-        ($smtx_model_eval x3))
-      $vsm_not_value)))
+    ($smt_apply_3 "ite" ($vsm_is_true e1)
+      ($smtx_model_eval x2)
+      ($smt_apply_3 "ite" ($vsm_is_false e1)
+        ($smtx_model_eval x3)
+        $vsm_not_value))))
   
   
   
@@ -374,9 +386,16 @@
   (($eo_model_sat ($eo_smt_term F)) ($eo_model_sat_internal ($smtx_model_eval F)))
   )
 )
-(program $eo_model_typeof ((t $eo_Term))
+(program $eo_model_typeof
+  ((t $eo_Term) (val $smt_Value) (T $smt_Type) (m $smt_Map) (id $smt_builtin_Int))
   :signature ($eo_Term) $eo_Term
   (
+  
+  (($eo_model_typeof ($eo_smt_term ($sm_Const val)))      ($eo_model_typeof ($eo_smt_value val)))
+  (($eo_model_typeof ($eo_smt_value ($vsm_term t)))       ($eo_model_typeof ($eo_smt_term t)))
+  (($eo_model_typeof ($eo_smt_value ($vsm_map T m)))      T) 
+  (($eo_model_typeof ($eo_smt_value ($vsm_uconst T id)))  T)
+  (($eo_model_typeof ($eo_smt_value $vsm_not_value))      ($tsm_NullSort $smt_builtin_z_zero))
   (($eo_model_typeof t) ($smt_try_eo_type
                           ($eo_typeof t)
                           ($eo_smt_type ($tsm_NullSort $smt_builtin_z_zero))))

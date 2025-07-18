@@ -38,7 +38,7 @@ $SM_EO_TERM_DECL$
   (vsm.Map (vsm.Map.arg1 tsm.Type) (vsm.Map.arg2 msm.Map))
   ; uninterpreted constants
   ; valueness: $smtx_usort_is_value
-  (vsm.UValue (vsm.UValue.arg1 tsm.Type) (vsm.UValue.arg2 Int))
+  (vsm.UConst (vsm.UConst.arg1 tsm.Type) (vsm.UConst.arg2 Int))
   ; an SMT value represented by an SMT-LIB term, e.g. Int/Real/String.
   ; valueness: $smtx_is_value
   (vsm.Term (vsm.Term.arg1 sm.Term))

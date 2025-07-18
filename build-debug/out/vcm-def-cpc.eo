@@ -1057,7 +1057,7 @@
 ; Uninterpreted sorts
 (declare-parameterized-const $smd_tsm.USort
   ((id $smt_builtin_Int :opaque)) $smt_Type)
-(define $tsm_USort ((id $smt_builtin_Int :opaque)) ($smd_tsm.USort id))
+(define $tsm_USort ((id $smt_builtin_Int)) ($smd_tsm.USort id))
   
 ; The sort of a term that doesn't have an SMT-LIB type.
 ; This is used as an error condition
@@ -1312,6 +1312,12 @@
   ($smt_builtin_and
     ($smt_apply_1 "(_ is vsm.Term)" t)
     ($sm_is_true ($smt_apply_1 "vsm.Term.arg1" t))))
+    
+; Returns true if t is the SMT-LIB value denoting false.
+(define $vsm_is_false ((t $smt_Value))
+  ($smt_builtin_and
+    ($smt_apply_1 "(_ is vsm.Term)" t)
+    ($sm_is_false ($smt_apply_1 "vsm.Term.arg1" t))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1400,7 +1406,10 @@
 
 ; An evaluator for all terms that we can reason about models.
 ; This is a recursive call.
-; NOTE: for the sake of soundness, this must be a total function!!!!!!!
+; invariant: this must be a total function
+; invariant: unless this method returns $vsm_not_value, it must be such that
+;            it represents a unique SMT-LIB value, i.e. ($vsm_term t) is
+;            forbidden unless t denotes a value.
 (program $smtx_model_eval
   ((T $smt_Type) (f $smt_Term) (y $smt_Term) (z $smt_Term) (k $smt_Term) (id $smt_builtin_Int) (F Bool)
    (val $smt_Value)
@@ -1411,11 +1420,11 @@
   ; ITE branches to the appropriate child.
   (($smtx_model_eval (ite x1 x2 x3))
     (eo::define ((e1 ($smtx_model_eval x1)))
-    ($smt_apply_3 "ite" ($vsm_is_value e1)
-      ($smt_apply_3 "ite" ($vsm_is_true e1)
-        ($smtx_model_eval x2)
-        ($smtx_model_eval x3))
-      $vsm_not_value)))
+    ($smt_apply_3 "ite" ($vsm_is_true e1)
+      ($smtx_model_eval x2)
+      ($smt_apply_3 "ite" ($vsm_is_false e1)
+        ($smtx_model_eval x3)
+        $vsm_not_value))))
   ; Equality insists on valueness and then reduces to an equality over datatypes
   ; in the deep embedding (vsm.Value), meaning it works for all types, including
   ; functions and uninterpreted sorts where values are not represented by terms.
@@ -1493,9 +1502,17 @@
 
 ; The SMT typeof function, which incorporates builtin SMT terms
 
-(program $eo_model_typeof ((t $eo_Term))
+; invariant: all terms introduced by this layer must be given a type rule here.
+(program $eo_model_typeof
+  ((t $eo_Term) (val $smt_Value) (T $smt_Type) (m $smt_Map) (id $smt_builtin_Int))
   :signature ($eo_Term) $eo_Term
   (
+  ; the type of a constant is the type of its value.
+  (($eo_model_typeof ($eo_smt_term ($sm_Const val)))      ($eo_model_typeof ($eo_smt_value val)))
+  (($eo_model_typeof ($eo_smt_value ($vsm_term t)))       ($eo_model_typeof ($eo_smt_term t)))
+  (($eo_model_typeof ($eo_smt_value ($vsm_map T m)))      T) ; FIXME
+  (($eo_model_typeof ($eo_smt_value ($vsm_uconst T id)))  T)
+  (($eo_model_typeof ($eo_smt_value $vsm_not_value))      ($tsm_NullSort $smt_builtin_z_zero))
   (($eo_model_typeof t) ($smt_try_eo_type
                           ($eo_typeof t)
                           ($eo_smt_type ($tsm_NullSort $smt_builtin_z_zero))))

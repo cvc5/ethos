@@ -247,35 +247,32 @@ void ModelSmt::finalizeDecl(const Expr& e)
   ss << e;
   std::string sname = ss.str();
   std::stringstream* out = nullptr;
-  std::stringstream prefix;
   std::stringstream cname;
   // get the meta-kind based on its name
   std::string cnamek;
   TermContextKind tk = SmtMetaReduce::getMetaKind(d_state, e, cnamek);
   if (tk==TermContextKind::EUNOIA)
   {
-    prefix << "eo.";
+    cname << "eo." << cnamek;
     out = &d_embedEoTermDt;
   }
   else if (tk==TermContextKind::SMT_TYPE)
   {
-    prefix << "tsm.";
+    cname << "tsm." << cnamek;
     out = &d_embedTypeDt;
   }
   else if (tk==TermContextKind::SMT)
   {
-    // otherwise assume an SMT term
-    prefix << "sm.";
+    cname << "sm." << cnamek;
     out = &d_embedTermDt;
   }
-  cname << prefix.str() << cnamek;
   if (out == nullptr)
   {
     std::cout << "Do not include " << e << std::endl;
     return;
   }
   std::cout << "Include " << e << std::endl;
-  (*out) << "  ; user-decl: " << e << std::endl;
+  (*out) << "  ; user-decl: " << cnamek << std::endl;
   Expr c = e;
   Expr ct = d_tc.getType(c);
   // (*out) << "  ; type is " << ct << std::endl;
