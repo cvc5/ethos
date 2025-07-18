@@ -45,8 +45,6 @@
   (sm.Binary (sm.Binary.arg1 Int) (sm.Binary.arg2 Int))
   ; user-decl: $smd_sm.Apply
   (sm.Apply (sm.Apply.arg1 sm.Term) (sm.Apply.arg2 sm.Term))
-  ; user-decl: $smd_sm.Skolem
-  (sm.Skolem (sm.Skolem.arg1 tsm.Type) (sm.Skolem.arg2 sm.Term) (sm.Skolem.arg3 Int))
   ; user-decl: $smd_sm.Const
   (sm.Const (sm.Const.arg1 tsm.Type) (sm.Const.arg2 Int))
   ; user-decl: not
@@ -287,24 +285,6 @@
 ; fwd-decl: $smtx_model_lookup
 (declare-fun $smtx_model_lookup (tsm.Type Int Int) vsm.Value)
 
-; fwd-decl: $smtx_get_skolem_kind
-(declare-fun $smtx_get_skolem_kind (tsm.Type sm.Term Int) Int)
-
-; program: $smtx_model_skolem_lookup
-(define-fun $smtx_model_skolem_lookup ((x1 tsm.Type) (x2 sm.Term) (x3 Int)) vsm.Value
-    ($smtx_model_lookup x1 ($smtx_get_skolem_kind x1 x2 x3) x3)
-)
-
-; program: $smtx_const_predicate_internal
-(define-fun $smtx_const_predicate_internal ((x1 tsm.Type) (x2 sm.Term) (x3 Int) (x4 vsm.Value)) Bool
-    true
-)
-
-; program: $smtx_const_predicate
-(define-fun $smtx_const_predicate ((x1 tsm.Type) (x2 sm.Term) (x3 Int)) Bool
-    ($smtx_const_predicate_internal x1 x2 x3 ($smtx_model_skolem_lookup x1 x2 x3))
-)
-
 ; program: $smtx_model_eval_apply
 (define-fun $smtx_model_eval_apply ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
   (ite ((_ is vsm.Map) x1)
@@ -327,10 +307,8 @@
     ($smtx_model_eval_apply ($smtx_model_eval (sm.Apply.arg1 x1)) ($smtx_model_eval (sm.Apply.arg2 x1)))
   (ite ((_ is sm.Const) x1)
     ($smtx_model_lookup (sm.Const.arg1 x1) 0 (sm.Const.arg2 x1))
-  (ite ((_ is sm.Skolem) x1)
-    ($smtx_model_skolem_lookup (sm.Skolem.arg1 x1) (sm.Skolem.arg2 x1) (sm.Skolem.arg3 x1))
     (ite ($smtx_term_is_value x1) (vsm.Term x1) vsm.NotValue)
-))))))))) :named sm.axiom.$smtx_model_eval))
+)))))))) :named sm.axiom.$smtx_model_eval))
 
 ; program: $eo_model_sat
 (assert (! (forall ((x1 eo.Term))
@@ -381,9 +359,9 @@
     (= ($eo_hash x) ($eo_hash y))) (= x y))) :named sm.hash_injective))
 
 ; The constant predicate holds for the model value of a constant.
-(assert (! (forall ((T tsm.Type) (k sm.Term) (i Int))
-  ($smtx_const_predicate T k i))
- :named sm.model_is_value))
+;(assert (! (forall ((T tsm.Type) (k sm.Term) (i Int))
+;  ($smtx_const_predicate T k i))
+; :named sm.model_is_value))
 
 ;;; The verification condition
 

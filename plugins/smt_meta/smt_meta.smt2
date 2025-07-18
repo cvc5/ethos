@@ -17,9 +17,9 @@ $SM_DEFS$
     (= ($eo_hash x) ($eo_hash y))) (= x y))) :named sm.hash_injective))
 
 ; The constant predicate holds for the model value of a constant.
-(assert (! (forall ((T tsm.Type) (k sm.Term) (i Int))
-  ($smtx_const_predicate T k i))
- :named sm.model_is_value))
+;(assert (! (forall ((T tsm.Type) (k sm.Term) (i Int))
+;  ($smtx_const_predicate T k i))
+; :named sm.model_is_value))
 
 ;;; The verification condition
 

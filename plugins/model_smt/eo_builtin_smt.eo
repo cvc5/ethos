@@ -137,9 +137,9 @@
   ((t1 $smt_Term :opaque) (t2 $smt_Term :opaque)) $smt_Term)
 
 ; Skolems?
-(declare-parameterized-const $smd_sm.Skolem
-  ((T $smt_Type :opaque) (k $smt_Term :opaque) (id $smt_builtin_Int :opaque))
-  $smt_Term)
+;(declare-parameterized-const $smd_sm.Skolem
+;  ((T $smt_Type :opaque) (k $smt_Term :opaque) (id $smt_builtin_Int :opaque))
+;  $smt_Term)
 
 ; Free constants
 (declare-parameterized-const $smd_sm.Const

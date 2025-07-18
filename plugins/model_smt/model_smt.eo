@@ -41,9 +41,9 @@
 ; can be custom defined based on the Eunoia signature (see method
 ; $eo_const_predicate in model_eo.eo).
 ; A skolem is identified by a type, a term and a kind.
-(define $sm_skolem
-  ((T $smt_Type) (k $smt_Term) (id $smt_builtin_Int))
-  ($smd_sm.Skolem T k id))
+;(define $sm_skolem
+;  ((T $smt_Type) (k $smt_Term) (id $smt_builtin_Int))
+;  ($smd_sm.Skolem T k id))
 
 ; A free constant
 (define $sm_const ((T $smt_Type) (id $smt_builtin_Int))
@@ -338,17 +338,17 @@
 
 ; Returns the builtin integer corresponding to the kind of the
 ; skolem term ($sm_skolem T k id).
-(program $smtx_get_skolem_kind ((k $smt_Term))
-  :signature ($smt_Type $smt_Term $smt_builtin_Int) $smt_builtin_Int
-  ; TODO
-)
+;(program $smtx_get_skolem_kind ((k $smt_Term))
+;  :signature ($smt_Type $smt_Term $smt_builtin_Int) $smt_builtin_Int
+;  ; TODO
+;)
 
-(program $smtx_model_skolem_lookup ((T $smt_Type) (k $smt_Term) (id $smt_builtin_Int))
-  :signature ($smt_Type $smt_Term $smt_builtin_Int) $smt_Value
-  (
-  (($smtx_model_skolem_lookup T k id) ($smtx_model_lookup T ($smtx_get_skolem_kind T k id) id))
-  )
-)
+;(program $smtx_model_skolem_lookup ((T $smt_Type) (k $smt_Term) (id $smt_builtin_Int))
+;  :signature ($smt_Type $smt_Term $smt_builtin_Int) $smt_Value
+;  (
+;  (($smtx_model_skolem_lookup T k id) ($smtx_model_lookup T ($smtx_get_skolem_kind T k id) id))
+;  )
+;)
 
 ; Lookup the predicate the constant can be assumed to have.
 ; Otherwise, we lookup the predicate for the skolem, which may be
@@ -356,23 +356,24 @@
 ;   (exists val. ($smtx_const_predicate k id T val))
 ; is a valid formula.
 ; If the  is undefined, we return true.
-(program $smtx_const_predicate_internal
-  ((T $smt_Type) (k $smt_Term) (id $smt_builtin_Int) (val $smt_Value))
-  :signature ($smt_Type $smt_Term $smt_builtin_Int $smt_Value) $smt_builtin_Bool
-  (
-  ; User defined constant predicates.
+;(program $smtx_const_predicate_internal
+;  ((T $smt_Type) (k $smt_Term) (id $smt_builtin_Int) (val $smt_Value))
+;  :signature ($smt_Type $smt_Term $smt_builtin_Int $smt_Value) $smt_builtin_Bool
+;  (
+;  ; User defined constant predicates.
 $EO_CONST_PREDICATE_CASES$
-  (($smtx_const_predicate_internal T k id val) $smt_builtin_true)
-  )
-)
+;  (($smtx_const_predicate_internal T k id val) $smt_builtin_true)
+;  )
+;)
 
-(program $smtx_const_predicate ((T $smt_Type) (k $smt_Term) (id $smt_builtin_Int))
-  :signature ($smt_Type $smt_Term $smt_builtin_Int) $smt_builtin_Bool
-  (
-  (($smtx_const_predicate T k id)
-      ($smtx_const_predicate_internal T k id ($smtx_model_skolem_lookup T k id)))
-  )
-)
+;(program $smtx_const_predicate ((T $smt_Type) (k $smt_Term) (id $smt_builtin_Int))
+;  :signature ($smt_Type $smt_Term $smt_builtin_Int) $smt_builtin_Bool
+;  (
+;  (($smtx_const_predicate T k id)
+;      ($smtx_const_predicate_internal T k id ($smtx_model_skolem_lookup T k id)))
+;  )
+;)
+
 ; program: $smtx_substitute
 ; Used to define $smtx_eval_quant.
 ; TODO: debruijn
@@ -454,7 +455,7 @@ $SMT_EVAL_CASES$
   ; which is an uninterpreted function. The properties of this value are
   ; axiomatized in the final SMT2.
   (($smtx_model_eval ($sm_const T id))        ($smtx_model_lookup T $smt_builtin_z_zero id))
-  (($smtx_model_eval ($sm_skolem T k id))     ($smtx_model_skolem_lookup T k id))
+  ;(($smtx_model_eval ($sm_skolem T k id))     ($smtx_model_skolem_lookup T k id))
   
   ; Otherwise, it may be a term value (e.g. if z is a Boolean or numeral constant).
   ; We call the utility method which will either generate an SMT-LIB term value or
