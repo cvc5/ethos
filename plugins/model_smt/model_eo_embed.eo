@@ -16,20 +16,19 @@ $SM_TYPE_DECL$
   )
 )
 
-; The final embedding of SMT-LIB terms that are relevant to the VC.
-; In other words, this defines the Herbrand universe.
-(declare-datatype sm.Term
+; sm.Term:
+;   The final embedding of SMT-LIB terms that are relevant to the VC.
+;   In other words, this defines the Herbrand universe.
+; eo.Term:
+;   The final embedding of Eunoia terms that are relevant to the VC.
+;   SMT-LIB terms, types and values are embedded in this datatype.
+;   We require a mutually recursive datatype, since these are
+;   inter-dependent.
+(declare-datatypes ((sm.Term 0) (eo.Term 0) (vsm.Value 0) (msm.Map 0))
+  (
   (
 $SM_TERM_DECL$
   )
-)
-
-; The final embedding of Eunoia terms that are relevant to the VC.
-; SMT-LIB terms, types and values are embedded in this datatype.
-; We require a mutually recursive datatype, since these are
-; inter-dependent.
-(declare-datatypes ((eo.Term 0) (vsm.Value 0) (msm.Map 0))
-  (
   (
 $SM_EO_TERM_DECL$
   )

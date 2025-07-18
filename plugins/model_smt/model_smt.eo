@@ -44,10 +44,6 @@
 ;(define $sm_skolem
 ;  ((T $smt_Type) (k $smt_Term) (id $smt_builtin_Int))
 ;  ($smd_sm.Skolem T k id))
-
-; A free constant
-(define $sm_const ((T $smt_Type) (id $smt_builtin_Int))
-  ($smd_sm.Const T id))
   
 ;;; SMT type datatype constructors
 
@@ -410,6 +406,7 @@ $EO_CONST_PREDICATE_CASES$
 ; NOTE: for the sake of soundness, this must be a total function!!!!!!!
 (program $smtx_model_eval
   ((T $smt_Type) (f $smt_Term) (y $smt_Term) (z $smt_Term) (k $smt_Term) (id $smt_builtin_Int) (F Bool)
+   (val $smt_Value)
    ; generic parameters that may appear in terms to pattern match
    (x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term) (x4 $smt_Term) (x5 $smt_Term))
   :signature ($smt_Term) $smt_Value
@@ -454,7 +451,7 @@ $SMT_EVAL_CASES$
   ; These are given an arbitrary value by the model ($smtx_model_lookup),
   ; which is an uninterpreted function. The properties of this value are
   ; axiomatized in the final SMT2.
-  (($smtx_model_eval ($sm_const T id))        ($smtx_model_lookup T $smt_builtin_z_zero id))
+  (($smtx_model_eval ($sm_Const val))          val)
   ;(($smtx_model_eval ($sm_skolem T k id))     ($smtx_model_skolem_lookup T k id))
   
   ; Otherwise, it may be a term value (e.g. if z is a Boolean or numeral constant).

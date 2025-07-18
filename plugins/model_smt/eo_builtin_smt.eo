@@ -142,10 +142,8 @@
 ;  $smt_Term)
 
 ; Free constants
-(declare-parameterized-const $smd_sm.Const
-  ((T $smt_Type :opaque) (id $smt_builtin_Int :opaque))
-  $smt_Term)
-(define $sm_Const ((T $smt_Type) (id $smt_builtin_Int)) ($smd_sm.Const T id))
+(declare-parameterized-const $smd_sm.Const ((v $smt_Value :opaque)) $smt_Term)
+(define $sm_Const ((v $smt_Value)) ($smd_sm.Const v))
 
 ;;; Eunoia datatype constructors
 
@@ -877,7 +875,7 @@
   (($eo_typeof ($eo_binary w n))                $eo_Binary)
   (($eo_typeof ($eo_Var s T))                   T)
   ; SMT-LIB builtins
-  (($eo_typeof ($eo_smt_term ($sm_Const T n)))  T)
+  ;(($eo_typeof ($eo_smt_term ($sm_Const T n)))  T)
   ; otherwise, invoke the routine for builtin types from the signature.
   (($eo_typeof t)                               ($eo_typeof_main t))
   )

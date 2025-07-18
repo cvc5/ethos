@@ -1,5 +1,5 @@
-; trim-defs: $eovc_symm $eo_typeof_main $eo_eq $eo_String $eo_Numeral $eo_Rational $eo_Binary $eo_dt_constructors $eo_dt_selectors
-; #trim-defs: 47
+; trim-defs: $eovc_refl $eo_typeof_main $eo_eq $eo_String $eo_Numeral $eo_Rational $eo_Binary $eo_dt_constructors $eo_dt_selectors
+; #trim-defs: 45
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -149,7 +149,23 @@
 (declare-parameterized-const $smd_sm.Binary
   ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Term)
 
+; Apply terms
+(declare-parameterized-const $smd_sm.Apply
+  ((t1 $smt_Term :opaque) (t2 $smt_Term :opaque)) $smt_Term)
+
+; Skolems?
+;(declare-parameterized-const $smd_sm.Skolem
+;  ((T $smt_Type :opaque) (k $smt_Term :opaque) (id $smt_builtin_Int :opaque))
+;  $smt_Term)
+
+; Free constants
+(declare-parameterized-const $smd_sm.Const ((v $smt_Value :opaque)) $smt_Term)
+(define $sm_Const ((v $smt_Value)) ($smd_sm.Const v))
+
 ;;; Eunoia datatype constructors
+
+; The type of types
+(declare-const $smd_eo.Type $eo_Term)
 
 ; The Eunoia representation of "stuckness".
 (declare-const $smd_eo.Stuck $eo_Term)
@@ -204,8 +220,14 @@
 (define $eo_smt_type ((T $smt_Type)) ($smd_eo.SmtType T))
 
 ; The Eunoia representation of an SMT-LIB value.
-(declare-parameterized-const $smd_eo.SmtValue ((t $smt_Type :opaque)) $eo_Term)
-(define $eo_smt_value ((T $smt_Type)) ($smd_eo.SmtValue T))
+(declare-parameterized-const $smd_eo.SmtValue ((t $smt_Value :opaque)) $eo_Term)
+(define $eo_smt_value ((T $smt_Value)) ($smd_eo.SmtValue T))
+
+; Represents a Eunoia variable in the final deep embedding.
+(declare-parameterized-const $smd_eo.Var
+  ((s $smt_builtin_String :opaque) (T $eo_Term :opaque))
+  $eo_Term)
+(define $eo_Var ((s $smt_builtin_String) (T $eo_Term)) ($smd_eo.Var s T))
 
 ;;; External datatype access
 
@@ -404,6 +426,10 @@
 (define $eo_binary ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
   ($eo_smt_term ($smd_sm.Binary x1 x2)))
 
+; define: $eo_empty_binary
+(define $eo_empty_binary ()
+  ($eo_binary 0 0))
+
 ; program: $eo_mk_binary
 ; return: >
 ;   A "legal" binary value ($eo_mk_binary w n1), where 0 <= n1 < 2^w, n1 is
@@ -455,16 +481,10 @@
 ; implements: eo::requires
 ; NOTE: this must be defined as a program to ensure proper typing
 ; in the smt_meta_reduce compilation step.
-(program $eo_requires ((x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term))
+(program $eo_requires ((x1 $eo_Term) (x3 $eo_Term))
   :signature ($eo_Term $eo_Term $eo_Term) $eo_Term
   (
-  (($eo_requires x1 x2 x3)
-    ($smt_apply_3 "ite"
-      ($smt_builtin_and
-        ($smt_builtin_not ($smt_apply_= x1 $eo_stuck))
-        ($smt_apply_= x1 x2))   ; note the optimization that we don't have to check x2 for stuck.
-      x3
-      $eo_stuck))
+  (($eo_requires x1 x1 x3) x3)
   )
 )
 
@@ -662,7 +682,7 @@
   (($eo_extract ($eo_binary w n1) ($eo_mk_numeral n2) ($eo_mk_numeral n3))
     (eo::define ((nw ($smt_apply_2 "-" n3 n2)))
     ($smt_apply_3 "ite" ($smt_builtin_or ($eo_is_neg n2) ($eo_is_neg nw))
-      ($eo_mk_binary 0 0)
+      $eo_empty_binary
       ($eo_mk_binary
         ($smt_apply_1 "+ 1" nw)
         ($sm_mk_binary_extract w n1 n2 n3)))))
@@ -827,13 +847,6 @@
 
 ;;; since eo_typeof depends on literal predicates, typeof is only now ready.
 
-; Represents a Eunoia variable in the final deep embedding.
-(declare-parameterized-const $smd_eo.Var 
-  ((s $smt_builtin_String :opaque) (T $eo_Term :opaque))
-  $eo_Term)
-(define $eo_Var ((s $smt_builtin_String) (T $eo_Term)) ($smd_eo.Var s T))
-
-
 ; program: $eo_var
 ; implements: eo::var
 (program $eo_var ((s $smt_builtin_String) (T $eo_Term))
@@ -870,15 +883,18 @@
   ((t $eo_Term) (T $eo_Term) (n $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String) (w $smt_builtin_Int))
   :signature ($eo_Term) $eo_Term
   (
-  (($eo_typeof $eo_true)             Bool)
-  (($eo_typeof $eo_false)            Bool)
-  (($eo_typeof ($eo_mk_numeral n))   $eo_Numeral)
-  (($eo_typeof ($eo_mk_rational r))  $eo_Rational)
-  (($eo_typeof ($eo_mk_string s))    $eo_String)
-  (($eo_typeof ($eo_binary w n))     $eo_Binary)
-  (($eo_typeof ($eo_Var s T))        T)
+  ; TODO: auto-generate this
+  (($eo_typeof $eo_true)                        Bool)
+  (($eo_typeof $eo_false)                       Bool)
+  (($eo_typeof ($eo_mk_numeral n))              $eo_Numeral)
+  (($eo_typeof ($eo_mk_rational r))             $eo_Rational)
+  (($eo_typeof ($eo_mk_string s))               $eo_String)
+  (($eo_typeof ($eo_binary w n))                $eo_Binary)
+  (($eo_typeof ($eo_Var s T))                   T)
+  ; SMT-LIB builtins
+  ;(($eo_typeof ($eo_smt_term ($sm_Const T n)))  T)
   ; otherwise, invoke the routine for builtin types from the signature.
-  (($eo_typeof t)                    ($eo_typeof_main t))
+  (($eo_typeof t)                               ($eo_typeof_main t))
   )
 )
 (declare-const $eo_List Type)
@@ -894,18 +910,10 @@
   )
 )
 (declare-parameterized-const ite (($eo_x_1 Bool) (A Type :implicit) ($eo_x_2 A) ($eo_x_3 A)) A)
-(declare-const not (-> Bool Bool))
 (declare-const and (-> Bool (-> Bool Bool)))
 (declare-parameterized-const = ((A Type :implicit) ($eo_x_1 A) ($eo_x_2 A)) Bool)
-(program $mk_symm ((T Type) (t2 T) (t1 T))
-  :signature (Bool) Bool
-  (
-  (($mk_symm (_ (= t1) t2)) (_ (= t2) t1))
-  (($mk_symm (not (_ (= t1) t2))) (not (_ (= t2) t1)))
-  )
-)
 (declare-const BitVec (-> Int Type))
-(program $eo_typeof_apply ((T Type) (U Type) (V Type))
+(program $eo_typeof_apply ((T Type) (U Type))
   :signature (Type Type) Type
   (
   (($eo_typeof_apply (-> T U) T) U)
@@ -950,8 +958,6 @@
   
   (($eo_typeof_main (_ (ite x1) x2)) ($eo_typeof_ite ($eo_typeof x1) ($eo_typeof x2)))
   
-  (($eo_typeof_main not) (-> Bool Bool))
-  
   (($eo_typeof_main and) (-> Bool (-> Bool Bool)))
   
   (($eo_typeof_main (= x1)) ($eo_typeof_= ($eo_typeof x1)))
@@ -977,8 +983,22 @@
   )
 )
 (program $eo_model_sat () :signature ($eo_Term) Bool)
+; This file defines SMT-LIB model semantics in Eunoia.
+; It has exception handling utilities to call Eunoia programs in
+; a safe way that ensures that all programs in this signature are total.
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_eo_embed
+; The programs in this file operate on datatypes that correspond to
+; a deep embedding of Eunoia and SMT-LIB terms, types and values.
+; In particular, we use the following types:
+; 1. $eo_Term, the type of Eunoia terms.
+; 2. $smt_Term, the type of SMT-LIB terms.
+; 3. $smt_Type, the type of SMT-LIB types.
+; 4. $smt_Value, the type of SMT-LIB values.
+; 5. Further types defining specific SMT-LIB values, e.g. $smt_Map.
+; 6. $smt_builtin_X, the builtin SMT-LIB type X.
+; Note that the last type allows us to define symbols whose type
+; will be a native SMT-LIB type in the final embedding generated
+; by the smt-meta plugin.
 
 ;;; Eunoia datatype constructors
 
@@ -997,8 +1017,6 @@
 ;;; SMT term datatype constructors
 
 ; An application of SMT-LIB terms.
-(declare-parameterized-const $smd_sm.Apply
-  ((t1 $smt_Term :opaque) (t2 $smt_Term :opaque)) $smt_Term)
 (define $sm_apply_term ((t1 $smt_Term) (t2 $smt_Term))
   ($smd_sm.Apply t1 t2))
   
@@ -1008,19 +1026,9 @@
 ; can be custom defined based on the Eunoia signature (see method
 ; $eo_const_predicate in model_eo.eo).
 ; A skolem is identified by a type, a term and a kind.
-(declare-parameterized-const $smd_sm.Skolem
-  ((T $smt_Type :opaque) (k $smt_Term :opaque) (id $smt_builtin_Int :opaque))
-  $smt_Term)
-(define $sm_skolem
-  ((k $smt_builtin_Int) (id $smt_builtin_Int) (T $smt_Type))
-  ($smd_sm.Skolem k id T))
-
-; A free constant
-(declare-parameterized-const $smd_sm.Const
-  ((T $smt_Type :opaque) (id $smt_builtin_Int :opaque))
-  $smt_Term)
-(define $sm_const ((T $smt_Type) (id $smt_builtin_Int))
-  ($smd_sm.Const T id))
+;(define $sm_skolem
+;  ((T $smt_Type) (k $smt_Term) (id $smt_builtin_Int))
+;  ($smd_sm.Skolem T k id))
   
 ;;; SMT type datatype constructors
 
@@ -1043,84 +1051,55 @@
 ; This is used as an error condition
 (declare-parameterized-const $smd_tsm.NullSort
   ((id $smt_builtin_Int :opaque)) $smt_Type)
-(define $tsm_NullSort ((id $smt_builtin_Int :opaque)) ($smd_tsm.NullSort id))
+(define $tsm_NullSort ((id $smt_builtin_Int)) ($smd_tsm.NullSort id))
 
 ;;; SMT value datatype constructors
 
+; The type of values for functions in SMT-LIB.
 (declare-const $smt_Map Type)
 
+; A value denoting a map.
 (declare-parameterized-const $smd_vsm.Map
   ((T $smt_Type :opaque) (m $smt_Map :opaque))
   $smt_Value)
 (define $vsm_map ((T $smt_Type) (m $smt_Map))
   ($smd_vsm.Map T m))
 
+; A value denoting an uninterpreted constant.
 (declare-parameterized-const $smd_vsm.UConst
   ((T $smt_Type :opaque) (id $smt_builtin_Int :opaque))
   $smt_Value)
 (define $vsm_uconst ((T $smt_Type) (id $smt_builtin_Int))
   ($smd_vsm.UConst T id))
 
+; A value represented by an SMT-LIB term. This is used for types
+; where terms are used to denote the values of that type, e.g.
+; SMT-LIB numerals for Int.
 (declare-parameterized-const $smd_vsm.Term
   ((t $smt_Term :opaque))
   $smt_Value)
 (define $vsm_term ((t $smt_Term)) ($smd_vsm.Term t))
 
+; Denotes a failure case for values.
 (declare-const $smd_vsm.NotValue $smt_Value)
 (define $vsm_not_value () $smd_vsm.NotValue)
 
 ;;; SMT map value datatype constructors
 
+; Constructs a map value where i is mapped to e.
 (declare-parameterized-const $smd_msm.Map.cons
   ((i $smt_Value :opaque) (e $smt_Value :opaque) (m $smt_Map :opaque))
   $smt_Map)
 (define $map_cons ((i $smt_Value) (e $smt_Value) (m $smt_Map))
   ($smd_msm.Map.cons i e m))
-  
+
+; Constructs a map value where all indices are mapped to e.
 (declare-parameterized-const $smd_msm.Map.default
   ((e $smt_Value :opaque))
   $smt_Map)
 (define $map_default ((e $smt_Value)) ($smd_msm.Map.default e))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-; NOTE: this is auto-generated by the model_smt layer.
-; NOTE: we probably want to have this function live in the C++.
-; For each relevant user term, return the datatype above that it belongs to.
-; This program will be used in the smt_meta_reduce compilation step, and
-; will dissappear in the final signature.
-; TODO: fill in this function????
-(program $eo_get_meta_type ((T Type) (U Type) (t T) (f (-> U T)) (a U))
-  :signature (T) Type
-  (
-  ; meta-type: Int
-  (($eo_get_meta_type Int) $smt_Type)
-  ; meta-type: Real
-  (($eo_get_meta_type Real) $smt_Type)
-  ; meta-type: Char
-  (($eo_get_meta_type Char) $smt_Type)
-  ; meta-type: Seq
-  (($eo_get_meta_type Seq) $smt_Type)
-  ; meta-type: $eo_List
-  (($eo_get_meta_type $eo_List) $eo_Term)
-  ; meta-type: not
-  (($eo_get_meta_type not) $smt_Term)
-  ; meta-type: and
-  (($eo_get_meta_type and) $smt_Term)
-  ; meta-type: ite
-  (($eo_get_meta_type ite) $smt_Term)
-  ; meta-type: =
-  (($eo_get_meta_type =) $smt_Term)
-  ; meta-type: BitVec
-  (($eo_get_meta_type BitVec) $smt_Type)
-
-  ;(($eo_get_meta_type (f a)) ($eo_get_meta_type f))
-  ; otherwise, assume eo.new.Term
-  (($eo_get_meta_type t) $eo_Term)
-  )
-)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_smt
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Exception handling
 
 ; This file is a formalization of the SMT-LIB semantics in Eunoia.
 ; It uses a deep embedding of SMT-LIB terms .
@@ -1202,7 +1181,7 @@
   ((i $smt_Value) (j $smt_Value) (e $smt_Value) (M $smt_Map))
   :signature ($smt_Map $smt_Value) $smt_Value
   (
-  ; NOTE: the cases here are exhaustive, meaning we can soundly ignore the "is nil" else condition
+  ; NOTE: the cases here are exhaustive
   (($smtx_map_lookup ($map_cons i e M) i)  e)
   (($smtx_map_lookup ($map_cons j e M) i)  ($smtx_map_lookup M i))
   (($smtx_map_lookup ($map_default e) i)   e)
@@ -1228,7 +1207,8 @@
   )
 )
 
-; TODO:
+; TODO: use $smtx_map_is_redundant.
+; Also requires a sortedness and non-exhaustiveness conditions.
 (program $smtx_map_is_value ()
   :signature ($smt_Type $smt_Map) $smt_builtin_Bool)
 
@@ -1269,6 +1249,9 @@
 ; program: $smtx_term_is_value
 ; Returns true if its argument is an SMT value.
 ; This function is expected to never get stuck.
+; Note that this does not take a type. This function must ensure
+; that if it returns true for two terms t1 and t2 of the same type,
+; then t1 != t2 in all models.
 (program $smtx_term_is_value
   ((T $smt_Type) (t $smt_Term) (n $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String))
   :signature ($smt_Term) $smt_builtin_Bool
@@ -1286,7 +1269,7 @@
 
 ;;; Guarded utilities for making values
 
-; Returns a term of type @Value, embeds the term
+; Returns a term of type $smt_Value, embeds the term
 ; if indeed it is a value, or returns not a value otherwise.
 (define $smt_mk_value_term ((t $smt_Term))
   ($smt_apply_3 "ite"
@@ -1300,7 +1283,7 @@
     ($vsm_map T m)
     $vsm_not_value))
     
-;(define $smt_mk_value_uconst ((m $smt_Map) (T $smt_Type))
+;(define $smt_mk_value_uconst ((T $smt_Type) (id $smt_builtin_Int))
 ;  ($smt_apply_3 "ite"
 ;    ($smtx_map_is_value T m)
 ;    ($vsm_map T m)
@@ -1308,16 +1291,15 @@
 
 ;;; utilities
 
+; Returns true if t is a (non-error) SMT-LIB value.
 (define $vsm_is_value ((t $smt_Value))
   ($smt_apply_1 "not" ($smt_apply_1 "(_ is vsm.NotValue)" t)))
 
+; Returns true if t is the SMT-LIB value denoting true.
 (define $vsm_is_true ((t $smt_Value))
   ($smt_builtin_and
     ($smt_apply_1 "(_ is vsm.Term)" t)
     ($sm_is_true ($smt_apply_1 "vsm.Term.arg1" t))))
-
-; Used to totalize $eo_typeof.
-(program $smtx_typeof () :signature ($smt_Term) $smt_Type)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1333,26 +1315,45 @@
 ; Conceptually, returns the model value for constant with kind k, identifier id and type T.
 ; This is intentionally undefined in this signature.
 (program $smtx_model_lookup ()
-  :signature ($smt_builtin_Int $smt_builtin_Int $smt_Type) $smt_Value)
-  
+  :signature ($smt_Type $smt_builtin_Int $smt_builtin_Int) $smt_Value)
+
+; Returns the builtin integer corresponding to the kind of the
+; skolem term ($sm_skolem T k id).
+;(program $smtx_get_skolem_kind ((k $smt_Term))
+;  :signature ($smt_Type $smt_Term $smt_builtin_Int) $smt_builtin_Int
+;  ; TODO
+;)
+
+;(program $smtx_model_skolem_lookup ((T $smt_Type) (k $smt_Term) (id $smt_builtin_Int))
+;  :signature ($smt_Type $smt_Term $smt_builtin_Int) $smt_Value
+;  (
+;  (($smtx_model_skolem_lookup T k id) ($smtx_model_lookup T ($smtx_get_skolem_kind T k id) id))
+;  )
+;)
 
 ; Lookup the predicate the constant can be assumed to have.
-; If the kind is 0, it is an SMT-LIB input constant, we return true.
 ; Otherwise, we lookup the predicate for the skolem, which may be
-; user-defined. Note this need not be a valid formula due to the
-; definition of $smtx_model_eval, which checks whether the predicate
-; is satisfied in the model.
-; If this is undefined, we return true.
-(program $smtx_const_predicate
-  ((k $smt_builtin_Int) (id $smt_builtin_Int) (T $smt_Type) (val $smt_Value))
-  :signature ($smt_builtin_Int $smt_builtin_Int $smt_Type $smt_Value) $smt_builtin_Bool
-  (
-  ; User constants (with kind 0) are always interpreted
-  (($smtx_const_predicate $smt_builtin_z_zero id T val) $smt_builtin_true)
-  ; TODO
-  (($smtx_const_predicate k id T val) $smt_builtin_false)
-  )
-)
+; user-defined. This must correspond a valid formula, i.e. one where
+;   (exists val. ($smtx_const_predicate k id T val))
+; is a valid formula.
+; If the  is undefined, we return true.
+;(program $smtx_const_predicate_internal
+;  ((T $smt_Type) (k $smt_Term) (id $smt_builtin_Int) (val $smt_Value))
+;  :signature ($smt_Type $smt_Term $smt_builtin_Int $smt_Value) $smt_builtin_Bool
+;  (
+;  ; User defined constant predicates.
+
+;  (($smtx_const_predicate_internal T k id val) $smt_builtin_true)
+;  )
+;)
+
+;(program $smtx_const_predicate ((T $smt_Type) (k $smt_Term) (id $smt_builtin_Int))
+;  :signature ($smt_Type $smt_Term $smt_builtin_Int) $smt_builtin_Bool
+;  (
+;  (($smtx_const_predicate T k id)
+;      ($smtx_const_predicate_internal T k id ($smtx_model_skolem_lookup T k id)))
+;  )
+;)
 
 ; program: $smtx_substitute
 ; Used to define $smtx_eval_quant.
@@ -1367,16 +1368,6 @@
   )
 )
 
-(program $smtx_model_lookup_predicate 
-  ((T $smt_Type) (k $smt_builtin_Int) (id $smt_builtin_Int) (F $smt_Term) (t $smt_Term))
-  :signature ($smt_Term) $smt_builtin_Bool
-  (
-  (($smtx_model_lookup_predicate ($sm_const T id))   $smt_builtin_true)
-  (($smtx_model_lookup_predicate ($sm_skolem T F k)) $smt_builtin_true)
-  (($smtx_model_lookup_predicate t)                  $smt_builtin_false)
-  )
-)
-
 ;;; Core definition of $smtx_model_eval
 
 ; program: $smtx_model_eval_apply
@@ -1388,7 +1379,9 @@
   ((T $smt_Type) (m $smt_Map) (i $smt_Value) (v $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
+  ; The function evaluated to a map value, call the map lookup.
   (($smtx_model_eval_apply ($vsm_map T m) i)  ($smtx_map_lookup m i))
+  ; The function did not evaluate to a map value, we fail.
   (($smtx_model_eval_apply v i)               $vsm_not_value)
   )
 )
@@ -1397,14 +1390,12 @@
 ; This is a recursive call.
 ; NOTE: for the sake of soundness, this must be a total function!!!!!!!
 (program $smtx_model_eval
-  ((T Type) (U Type) (V Type) (a1 T) (a2 T) (c Bool) (f $smt_Term) (y U) (z $smt_Term) (k $smt_builtin_Int) (id $smt_builtin_Int) (F Bool)
+  ((T $smt_Type) (f $smt_Term) (y $smt_Term) (z $smt_Term) (k $smt_Term) (id $smt_builtin_Int) (F Bool)
+   (val $smt_Value)
    ; generic parameters that may appear in terms to pattern match
-   (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3))
+   (x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term) (x4 $smt_Term) (x5 $smt_Term))
   :signature ($smt_Term) $smt_Value
   (
-  ; Booleans are their own values.
-  (($smtx_model_eval $sm_mk_true)             ($vsm_term $sm_mk_true))
-  (($smtx_model_eval $sm_mk_false)            ($vsm_term $sm_mk_false))
   ; ITE branches to the appropriate child.
   (($smtx_model_eval (ite x1 x2 x3))
     (eo::define ((e1 ($smtx_model_eval x1)))
@@ -1433,21 +1424,19 @@
   ; - $smtx_eval_quant
   ; - $smt_eval_o_arith_*,
   ; - $smt_eval_apply_*
-  (($smtx_model_eval (not x1))
-    (eo::define ((e1 ($smtx_model_eval x1)))
-    ($smt_apply_3 "ite" ($vsm_is_value e1)
-      ($vsm_term ($sm_mk_bool ($smt_apply_1 "not" ($smt_apply_1 "= sm.True" ($smt_term_from_value e1)))))
-    $vsm_not_value)))
   (($smtx_model_eval (and x1 x2))
     (eo::define ((e1 ($smtx_model_eval x1)))
     ($smt_apply_3 "ite" ($vsm_is_value e1)
     (eo::define ((e2 ($smtx_model_eval x2)))
     ($smt_apply_3 "ite" ($vsm_is_value e2)
-      ($vsm_term ($sm_mk_bool ($smt_apply_2 "and" ($smt_apply_1 "= sm.True" ($smt_term_from_value e1)) ($smt_apply_1 "= sm.True" ($smt_term_from_value e2)))))
+      ($vsm_term ($sm_mk_bool ($smt_apply_2 "and" ($smt_apply_= $sm_mk_true ($smt_term_from_value e1)) ($smt_apply_= $sm_mk_true ($smt_term_from_value e2)))))
     $vsm_not_value))
     $vsm_not_value)))
 
-  ; Apply case.
+  ; Apply case. We evaluate f and y separately and then call the
+  ; $smtx_model_eval_apply above. We expect f to be an uninterpreted
+  ; function whose model evaluation is an SMT-LIB map in this case.
+  ; All interpreted f should be handled in the evaluation cases above.
   (($smtx_model_eval ($sm_apply_term f y))    (eo::define ((fme ($smtx_model_eval f)))
                                               (eo::define ((yme ($smtx_model_eval y)))
                                                 ($smtx_model_eval_apply fme yme))))
@@ -1455,42 +1444,34 @@
   ; These are given an arbitrary value by the model ($smtx_model_lookup),
   ; which is an uninterpreted function. The properties of this value are
   ; axiomatized in the final SMT2.
-  (($smtx_model_eval ($sm_const T id))        ($smtx_model_lookup $smt_builtin_z_zero id T))
-  ;(($smtx_model_eval ($sm_skolem T F))       ($smtx_model_lookup i i T))   ; FIXME
-  ; generic apply and base case.
-  ; these do not insist that the term is a value.
+  (($smtx_model_eval ($sm_Const val))          val)
+  ;(($smtx_model_eval ($sm_skolem T k id))     ($smtx_model_skolem_lookup T k id))
   
-  ; Otherwise, try to evaluate based on the user callback
-  ;(($smtx_model_eval z)                      ($smt_try_eo ($eo_model_eval z) z))
-  (($smtx_model_eval z)                      $vsm_not_value)
+  ; Otherwise, it may be a term value (e.g. if z is a Boolean or numeral constant).
+  ; We call the utility method which will either generate an SMT-LIB term value or
+  ; a SMT-LIB non-value error term.
+  (($smtx_model_eval z)                       ($smt_mk_value_term z))
   )
 )
 
-(program $smtx_model_sat ((b $smt_Value))
-  :signature ($smt_Value) Bool
-  (
-  (($smtx_model_sat ($vsm_term $sm_mk_true))  true)
-  (($smtx_model_sat b)                        false)
-  )
-)
 ; program: $eo_model_sat
-; note: Satisfied by the model if F evaluates to true.
-; We expect that the input to this method is an SMT term.
+; note: F is satisfied by the model if F evaluates to the SMT-LIB value denoting true.
+; We expect the input to this method to be a Eunoia term denoting an SMT-LIB formula
+; (term of Boolean type).
 (program $eo_model_sat ((F $smt_Term))
   :signature ($eo_Term) Bool
   (
-  (($eo_model_sat ($eo_smt_term F)) ($smtx_model_sat ($smtx_model_eval F)))
+  (($eo_model_sat ($eo_smt_term F))
+      ($smt_apply_3 "ite" ($vsm_is_true ($smtx_model_eval F)) true false))
   )
 )
 
 ; The SMT typeof function, which incorporates builtin SMT terms
 
 (program $smtx_typeof
-  ((T $smt_Type) (t $smt_Term) (F $smt_Term) (k $smt_builtin_Int) (id $smt_builtin_Int))
-  :signature ($smt_Term) $smt_Type
+  ((T $smt_Type) (t $smt_Term) (F $smt_Term) (k $smt_builtin_Int) (id $smt_builtin_Int) (f $smt_Term))
+  :signature ($smt_Term) Type
   (
-  (($smtx_typeof ($sm_const T id))        T)
-  (($smtx_typeof ($sm_skolem T F id))     T)
   ; for all other user defined terms, we totalize using the null sorts
   ; we use the hash so that all terms that do not type check have a new unknown sort.
   (($smtx_typeof t)                       ($smt_try_eo_type
@@ -1500,25 +1481,24 @@
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_end
-(program $eorx_symm ((F Bool))
-  :signature (Bool Type) Bool
+(program $eorx_refl ((T Type) (t T))
+  :signature ( T Type) Bool
   (
-  (($eorx_symm F Bool) ($mk_symm F))
+  (($eorx_refl t T) (_ (= t) t))
   )
 )
-(program $eor_symm ((F Bool))
-  :signature (Bool) Bool
+(program $eor_refl ((T Type) (t T))
+  :signature (T) Bool
   (
-  (($eor_symm F) ($eorx_symm F ($eo_typeof F)))
+  (($eor_refl t) ($eorx_refl t ($eo_typeof t)))
   )
 )
-(program $eovc_symm ((F Bool))
-  :signature (Bool) Bool
+(program $eovc_refl ((T Type) (t T))
+  :signature (T) Bool
   (
-  (($eovc_symm F)
-     (eo::requires ($eo_model_sat F) true
-     (eo::requires ($eo_model_sat ($eor_symm F)) false
-       true)))
+  (($eovc_refl t)
+     (eo::requires ($eo_model_sat ($eor_refl t)) false
+       true))
   )
 )
-(echo "smt-meta $eovc_symm")
+(echo "smt-meta $eovc_refl")

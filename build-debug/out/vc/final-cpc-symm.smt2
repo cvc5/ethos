@@ -27,9 +27,16 @@
   )
 )
 
-; The final embedding of SMT-LIB terms that are relevant to the VC.
-; In other words, this defines the Herbrand universe.
-(declare-datatype sm.Term
+; sm.Term:
+;   The final embedding of SMT-LIB terms that are relevant to the VC.
+;   In other words, this defines the Herbrand universe.
+; eo.Term:
+;   The final embedding of Eunoia terms that are relevant to the VC.
+;   SMT-LIB terms, types and values are embedded in this datatype.
+;   We require a mutually recursive datatype, since these are
+;   inter-dependent.
+(declare-datatypes ((sm.Term 0) (eo.Term 0) (vsm.Value 0) (msm.Map 0))
+  (
   (
   ; user-decl: $smd_sm.True
   (sm.True)
@@ -46,7 +53,7 @@
   ; user-decl: $smd_sm.Apply
   (sm.Apply (sm.Apply.arg1 sm.Term) (sm.Apply.arg2 sm.Term))
   ; user-decl: $smd_sm.Const
-  (sm.Const (sm.Const.arg1 tsm.Type) (sm.Const.arg2 Int))
+  (sm.Const (sm.Const.arg1 vsm.Value))
   ; user-decl: not
   (sm.not)
   ; user-decl: and
@@ -57,14 +64,6 @@
   (sm.=)
 
   )
-)
-
-; The final embedding of Eunoia terms that are relevant to the VC.
-; SMT-LIB terms, types and values are embedded in this datatype.
-; We require a mutually recursive datatype, since these are
-; inter-dependent.
-(declare-datatypes ((eo.Term 0) (vsm.Value 0) (msm.Map 0))
-  (
   (
   ; user-decl: $smd_eo.Type
   (eo.Type)
@@ -161,11 +160,9 @@
     eo.Type
   (ite ((_ is eo.Var) x1)
     (eo.Var.arg2 x1)
-  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Const) (eo.SmtTerm.arg1 x1)))
-    (eo.SmtType (sm.Const.arg1 (eo.SmtTerm.arg1 x1)))
   (ite true
     ($eo_typeof_main x1)
-    eo.Stuck)))))))))))) :named sm.axiom.$eo_typeof))
+    eo.Stuck))))))))))) :named sm.axiom.$eo_typeof))
 
 ; program: $mk_symm
 (define-fun $mk_symm ((x1 eo.Term)) eo.Term
@@ -282,9 +279,6 @@
 ; fwd-decl: $smtx_model_eval
 (declare-fun $smtx_model_eval (sm.Term) vsm.Value)
 
-; fwd-decl: $smtx_model_lookup
-(declare-fun $smtx_model_lookup (tsm.Type Int Int) vsm.Value)
-
 ; program: $smtx_model_eval_apply
 (define-fun $smtx_model_eval_apply ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
   (ite ((_ is vsm.Map) x1)
@@ -306,7 +300,7 @@
   (ite ((_ is sm.Apply) x1)
     ($smtx_model_eval_apply ($smtx_model_eval (sm.Apply.arg1 x1)) ($smtx_model_eval (sm.Apply.arg2 x1)))
   (ite ((_ is sm.Const) x1)
-    ($smtx_model_lookup (sm.Const.arg1 x1) 0 (sm.Const.arg2 x1))
+    (sm.Const.arg1 x1)
     (ite ($smtx_term_is_value x1) (vsm.Term x1) vsm.NotValue)
 )))))))) :named sm.axiom.$smtx_model_eval))
 
