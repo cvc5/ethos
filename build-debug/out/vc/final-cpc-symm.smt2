@@ -5,12 +5,6 @@
 ; The final embedding of SMT-LIB types that are relevant to the VC.
 (declare-datatype tsm.Type
   (
-  ; the Boolean type
-  (tsm.Bool)
-  ; uninterpreted sorts
-  (tsm.USort (tsm.USort.arg1 Int))
-  ; The application of SMT-LIB types
-  (tsm.Apply (tsm.Apply.arg1 tsm.Type) (tsm.Apply.arg2 tsm.Type))
   ; user-decl: Int
   (tsm.Int)
   ; user-decl: Real
@@ -19,11 +13,19 @@
   (tsm.Char)
   ; user-decl: Seq
   (tsm.Seq)
+  ; user-decl: Bool
+  (tsm.Bool)
+  ; user-decl: FunType
+  (tsm.FunType (tsm.FunType.arg1 tsm.Type) (tsm.FunType.arg2 tsm.Type))
+  ; user-decl: USort
+  (tsm.USort (tsm.USort.arg1 Int))
+  ; user-decl: NullSort
+  (tsm.NullSort (tsm.NullSort.arg1 Int))
+  ; user-decl: Apply
+  (tsm.Apply (tsm.Apply.arg1 tsm.Type) (tsm.Apply.arg2 tsm.Type))
   ; user-decl: BitVec
   (tsm.BitVec)
 
-  ; error sort
-  (tsm.NullSort (tsm.NullSort.arg1 Int))
   )
 )
 

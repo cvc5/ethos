@@ -48,24 +48,17 @@
 ;;; SMT type datatype constructors
 
 ; The Boolean type
-(declare-const $smd_tsm.Bool $smt_Type)
 (define $tsm_Bool () $smd_tsm.Bool)
 
 ; Function types
-(declare-parameterized-const $smd_tsm.FunType
-  ((T1 $smt_Type :opaque) (T2 $smt_Type :opaque)) $smt_Type)
 (define $tsm_fun_type ((T1 $smt_Type) (T2 $smt_Type))
   ($smd_tsm.FunType T1 T2))
   
 ; Uninterpreted sorts
-(declare-parameterized-const $smd_tsm.USort
-  ((id $smt_builtin_Int :opaque)) $smt_Type)
 (define $tsm_USort ((id $smt_builtin_Int)) ($smd_tsm.USort id))
   
 ; The sort of a term that doesn't have an SMT-LIB type.
 ; This is used as an error condition
-(declare-parameterized-const $smd_tsm.NullSort
-  ((id $smt_builtin_Int :opaque)) $smt_Type)
 (define $tsm_NullSort ((id $smt_builtin_Int)) ($smd_tsm.NullSort id))
 
 ;;; SMT value datatype constructors

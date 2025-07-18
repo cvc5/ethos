@@ -4,15 +4,7 @@
 ; The final embedding of SMT-LIB types that are relevant to the VC.
 (declare-datatype tsm.Type
   (
-  ; the Boolean type
-  (tsm.Bool)
-  ; uninterpreted sorts
-  (tsm.USort (tsm.USort.arg1 Int))
-  ; The application of SMT-LIB types
-  (tsm.Apply (tsm.Apply.arg1 tsm.Type) (tsm.Apply.arg2 tsm.Type))
 $SM_TYPE_DECL$
-  ; error sort
-  (tsm.NullSort (tsm.NullSort.arg1 Int))
   )
 )
 

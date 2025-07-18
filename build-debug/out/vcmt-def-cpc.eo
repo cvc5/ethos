@@ -43,10 +43,12 @@
 (define $smt_builtin_z_zero () ($smt_apply_0 "0"))
 (define $smt_builtin_and ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "and" b1 b2))
 (define $smt_builtin_or ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "or" b1 b2))
-(declare-const $smt_Term Type)
 (declare-const $smt_Type Type)
+(declare-const $smt_Term Type)
 (declare-const $smt_Value Type)
 (declare-const $smt_Map Type)
+(declare-parameterized-const $smd_tsm.NullSort
+  ((id $smt_builtin_Int :opaque)) $smt_Type)
 (declare-const $smd_sm.True $smt_Term)
 (declare-const $smd_sm.False $smt_Term)
 (declare-parameterized-const $smd_sm.Numeral
@@ -228,8 +230,6 @@
 (program $eo_model_typeof () :signature ($eo_Term) Bool)
 (define $sm_apply_term ((t1 $smt_Term) (t2 $smt_Term))
   ($smd_sm.Apply t1 t2))
-(declare-parameterized-const $smd_tsm.NullSort
-  ((id $smt_builtin_Int :opaque)) $smt_Type)
 (define $tsm_NullSort ((id $smt_builtin_Int)) ($smd_tsm.NullSort id))
 (define $vsm_map ((T $smt_Type) (m $smt_Map))
   ($smd_vsm.Map T m))

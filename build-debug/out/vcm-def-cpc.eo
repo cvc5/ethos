@@ -123,13 +123,13 @@
 ; - The SMT-like literals are declared for $smt_Term.
 ; - 
 
-; An SMT-LIB term.
-; This will be replaced by the datatype sm.Term in the final encoding.
-(declare-const $smt_Term Type)
-
 ; An SMT-LIB type.
 ; This will be replaced by the datatype tsm.Type in the final encoding.
 (declare-const $smt_Type Type)
+
+; An SMT-LIB term.
+; This will be replaced by the datatype sm.Term in the final encoding.
+(declare-const $smt_Term Type)
 
 ; An SMT-LIB value.
 ; This will be replaced by the datatype vsm.Value in the final encoding.
@@ -138,6 +138,28 @@
 ; The type of values for functions in SMT-LIB.
 (declare-const $smt_Map Type)
 
+;;; SMT type datatype constructors
+
+; The Boolean type
+(declare-const $smd_tsm.Bool $smt_Type)
+
+; Function types
+(declare-parameterized-const $smd_tsm.FunType
+  ((T1 $smt_Type :opaque) (T2 $smt_Type :opaque)) $smt_Type)
+
+; Uninterpreted sorts
+(declare-parameterized-const $smd_tsm.USort
+  ((id $smt_builtin_Int :opaque)) $smt_Type)
+
+; The sort of a term that doesn't have an SMT-LIB type.
+; This is used as an error condition
+(declare-parameterized-const $smd_tsm.NullSort
+  ((id $smt_builtin_Int :opaque)) $smt_Type)
+
+; Apply terms
+(declare-parameterized-const $smd_tsm.Apply
+  ((t1 $smt_Type :opaque) (t2 $smt_Type :opaque)) $smt_Type)
+  
 ;;; SMT term datatype constructors
 
 ; Note the Bool type is "inlined" into the final signature
@@ -1070,24 +1092,17 @@
 ;;; SMT type datatype constructors
 
 ; The Boolean type
-(declare-const $smd_tsm.Bool $smt_Type)
 (define $tsm_Bool () $smd_tsm.Bool)
 
 ; Function types
-(declare-parameterized-const $smd_tsm.FunType
-  ((T1 $smt_Type :opaque) (T2 $smt_Type :opaque)) $smt_Type)
 (define $tsm_fun_type ((T1 $smt_Type) (T2 $smt_Type))
   ($smd_tsm.FunType T1 T2))
   
 ; Uninterpreted sorts
-(declare-parameterized-const $smd_tsm.USort
-  ((id $smt_builtin_Int :opaque)) $smt_Type)
 (define $tsm_USort ((id $smt_builtin_Int)) ($smd_tsm.USort id))
   
 ; The sort of a term that doesn't have an SMT-LIB type.
 ; This is used as an error condition
-(declare-parameterized-const $smd_tsm.NullSort
-  ((id $smt_builtin_Int :opaque)) $smt_Type)
 (define $tsm_NullSort ((id $smt_builtin_Int)) ($smd_tsm.NullSort id))
 
 ;;; SMT value datatype constructors
