@@ -446,19 +446,48 @@ $SMT_EVAL_CASES$
   )
 )
 
-; The SMT typeof function, which incorporates builtin SMT terms
 
-; invariant: all terms introduced by this layer must be given a type rule here.
-(program $eo_model_typeof
-  ((t $eo_Term) (val $smt_Value) (T $smt_Type) (m $smt_Map) (id $smt_builtin_Int))
+(program $eo_app_from_smt ((f $smt_Term) (a $smt_Term))
   :signature ($eo_Term) $eo_Term
   (
+  (($eo_app_from_smt ($eo_smt_term ($sm_apply_term f a)))
+    ($eo_apply ($eo_app_from_smt ($eo_smt_term f)) ($eo_smt_term a)))
+  (($eo_app_from_smt ($eo_smt_term f)) ($eo_smt_term f))
+  )
+)
+
+; The EO model typeof function, which incorporates builtin SMT terms.
+; This is intended to cover all Eunoia and SMT terms (those of the form
+; (eo.SmtTerm *). Since values are embedded into SMT terms, we cover SMT values,
+; i.e. those of the form (eo.SmtValue *) as well.
+; Furthermore note:
+; - (SMT terms in $eo_typeof_main): sm.True, sm.False
+; - (SMT terms in $eo_typeof): sm.Numeral, sm.Rational, sm.String, sm.Binary
+; - (SMT terms handled below): sm.Const, sm.Apply
+; - (EO terms in $eo_typeof_main): eo.Type, eo.FunType, eo.Apply
+; - (EO terms in $eo_typeof): eo.Var
+; - (EO terms intentionally unhandled): eo.Stuck, eo.SmtType
+; invariant: all terms introduced by this layer must be given a type rule here.
+; TODO: use hash for the nullsort below?
+(program $eo_model_typeof
+  ((t $eo_Term) (val $smt_Value) (T $smt_Type) (m $smt_Map) (id $smt_builtin_Int)
+   (f $smt_Term) (a $smt_Term))
+  :signature ($eo_Term) $eo_Term
+  (
+  ; to compute the type of an apply, convert it to a Eunoia application
+  ;(($eo_model_typeof ($eo_smt_term ($sm_apply_term f a)))
+  ;  ($eo_model_typeof ($eo_app_from_smt ($eo_smt_term ($sm_apply_term f a)))))
   ; the type of a constant is the type of its value.
   (($eo_model_typeof ($eo_smt_term ($sm_Const val)))      ($eo_model_typeof ($eo_smt_value val)))
+  ; the type of a value term is the type of its term.
   (($eo_model_typeof ($eo_smt_value ($vsm_term t)))       ($eo_model_typeof ($eo_smt_term t)))
   (($eo_model_typeof ($eo_smt_value ($vsm_map T m)))      T) ; FIXME
+  ; the type of uninterpreted constants carry its type.
   (($eo_model_typeof ($eo_smt_value ($vsm_uconst T id)))  T)
+  ; the type of not-values is the null sort.
   (($eo_model_typeof ($eo_smt_value $vsm_not_value))      ($tsm_NullSort $smt_builtin_z_zero))
+  ; For all other terms, we try to run Eunoia's typeof builtin. If this fails,
+  ; then we are null sort. 
   (($eo_model_typeof t) ($smt_try_eo_type
                           ($eo_typeof t)
                           ($eo_smt_type ($tsm_NullSort $smt_builtin_z_zero))))

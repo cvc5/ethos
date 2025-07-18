@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm $eo_typeof $eo_hash $eo_requires $eo_apply $eo_fun_type
-; #trim-defs: 131
+; #trim-defs: 128
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -42,7 +42,6 @@
 (define $smt_builtin_false () ($smt_apply_0 "false"))
 (define $smt_builtin_z_zero () ($smt_apply_0 "0"))
 (define $smt_builtin_and ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "and" b1 b2))
-(define $smt_builtin_or ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "or" b1 b2))
 (declare-const $smt_Type Type)
 (declare-const $smt_Term Type)
 (declare-const $smt_Value Type)
@@ -79,21 +78,13 @@
 (declare-parameterized-const $smd_msm.Map.default
   ((e $smt_Value :opaque))
   $smt_Map)
-(declare-const $smd_eo.Stuck $eo_Term)
-(define $eo_stuck () $smd_eo.Stuck)
 (declare-parameterized-const $smd_eo.Apply
   ((f $eo_Term :opaque) (a $eo_Term :opaque))
   $eo_Term)
 (program $eo_apply ((x $eo_Term) (y $eo_Term))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
-  (($eo_apply x y)
-    ($smt_apply_3 "ite"
-      ($smt_builtin_or
-        ($smt_apply_= x $eo_stuck)
-        ($smt_apply_= y $eo_stuck))
-      $eo_stuck
-      ($smd_eo.Apply x y)))
+  (($eo_apply x y) ($smd_eo.Apply x y))
   )
 )
 (declare-parameterized-const $smd_eo.FunType
@@ -102,13 +93,7 @@
 (program $eo_fun_type ((t1 $eo_Term) (t2 $eo_Term))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
-  (($eo_fun_type t1 t2)
-      ($smt_apply_3 "ite"
-        ($smt_builtin_or
-          ($smt_apply_= t1 $eo_stuck)
-          ($smt_apply_= t2 $eo_stuck))
-        $eo_stuck
-        ($smd_eo.FunType t1 t2)))
+  (($eo_fun_type t1 t2) ($smd_eo.FunType t1 t2))
   )
 )
 (declare-parameterized-const $smd_eo.SmtTerm ((t $smt_Term :opaque)) $eo_Term)
@@ -408,15 +393,24 @@
   )
 )
 (program $eo_model_typeof
-  ((t $eo_Term) (val $smt_Value) (T $smt_Type) (m $smt_Map) (id $smt_builtin_Int))
+  ((t $eo_Term) (val $smt_Value) (T $smt_Type) (m $smt_Map) (id $smt_builtin_Int)
+   (f $smt_Term) (a $smt_Term))
   :signature ($eo_Term) $eo_Term
   (
   
+  
+  
+  
   (($eo_model_typeof ($eo_smt_term ($sm_Const val)))      ($eo_model_typeof ($eo_smt_value val)))
+  
   (($eo_model_typeof ($eo_smt_value ($vsm_term t)))       ($eo_model_typeof ($eo_smt_term t)))
   (($eo_model_typeof ($eo_smt_value ($vsm_map T m)))      T) 
+  
   (($eo_model_typeof ($eo_smt_value ($vsm_uconst T id)))  T)
+  
   (($eo_model_typeof ($eo_smt_value $vsm_not_value))      ($tsm_NullSort $smt_builtin_z_zero))
+  
+  
   (($eo_model_typeof t) ($smt_try_eo_type
                           ($eo_typeof t)
                           ($eo_smt_type ($tsm_NullSort $smt_builtin_z_zero))))

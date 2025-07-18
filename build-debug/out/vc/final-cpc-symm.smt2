@@ -23,36 +23,36 @@
   (tsm.Char)
   ; user-decl: Seq
   (tsm.Seq)
-  ; user-decl: Bool
+  ; smt-cons: Bool
   (tsm.Bool)
-  ; user-decl: FunType
+  ; smt-cons: FunType
   (tsm.FunType (tsm.FunType.arg1 tsm.Type) (tsm.FunType.arg2 tsm.Type))
-  ; user-decl: USort
+  ; smt-cons: USort
   (tsm.USort (tsm.USort.arg1 Int))
-  ; user-decl: NullSort
+  ; smt-cons: NullSort
   (tsm.NullSort (tsm.NullSort.arg1 Int))
-  ; user-decl: Apply
+  ; smt-cons: Apply
   (tsm.Apply (tsm.Apply.arg1 tsm.Type) (tsm.Apply.arg2 tsm.Type))
   ; user-decl: BitVec
   (tsm.BitVec)
 
   )
   (
-  ; user-decl: True
+  ; smt-cons: True
   (sm.True)
-  ; user-decl: False
+  ; smt-cons: False
   (sm.False)
-  ; user-decl: Numeral
+  ; smt-cons: Numeral
   (sm.Numeral (sm.Numeral.arg1 Int))
-  ; user-decl: Rational
+  ; smt-cons: Rational
   (sm.Rational (sm.Rational.arg1 Real))
-  ; user-decl: String
+  ; smt-cons: String
   (sm.String (sm.String.arg1 String))
-  ; user-decl: Binary
+  ; smt-cons: Binary
   (sm.Binary (sm.Binary.arg1 Int) (sm.Binary.arg2 Int))
-  ; user-decl: Apply
+  ; smt-cons: Apply
   (sm.Apply (sm.Apply.arg1 sm.Term) (sm.Apply.arg2 sm.Term))
-  ; user-decl: Const
+  ; smt-cons: Const
   (sm.Const (sm.Const.arg1 vsm.Value))
   ; user-decl: not
   (sm.not)
@@ -65,34 +65,34 @@
 
   )
   (
-  ; user-decl: Type
+  ; smt-cons: Type
   (eo.Type)
-  ; user-decl: Stuck
+  ; smt-cons: Stuck
   (eo.Stuck)
-  ; user-decl: Apply
+  ; smt-cons: Apply
   (eo.Apply (eo.Apply.arg1 eo.Term) (eo.Apply.arg2 eo.Term))
-  ; user-decl: FunType
+  ; smt-cons: FunType
   (eo.FunType (eo.FunType.arg1 eo.Term) (eo.FunType.arg2 eo.Term))
-  ; user-decl: SmtTerm
+  ; smt-cons: SmtTerm
   (eo.SmtTerm (eo.SmtTerm.arg1 sm.Term))
-  ; user-decl: SmtType
+  ; smt-cons: SmtType
   (eo.SmtType (eo.SmtType.arg1 tsm.Type))
-  ; user-decl: SmtValue
+  ; smt-cons: SmtValue
   (eo.SmtValue (eo.SmtValue.arg1 vsm.Value))
-  ; user-decl: Var
+  ; smt-cons: Var
   (eo.Var (eo.Var.arg1 String) (eo.Var.arg2 eo.Term))
   ; user-decl: $eo_List
   (eo.$eo_List)
 
   )
   (
-  ; user-decl: Map
+  ; smt-cons: Map
   (vsm.Map (vsm.Map.arg1 tsm.Type) (vsm.Map.arg2 msm.Map))
-  ; user-decl: NotValue
+  ; smt-cons: NotValue
   (vsm.NotValue)
-  ; user-decl: UConst
+  ; smt-cons: UConst
   (vsm.UConst (vsm.UConst.arg1 tsm.Type) (vsm.UConst.arg2 Int))
-  ; user-decl: Term
+  ; smt-cons: Term
   (vsm.Term (vsm.Term.arg1 sm.Term))
 
   )
@@ -114,7 +114,7 @@
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
     eo.Stuck
   (ite true
-    (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck)) eo.Stuck (eo.Apply x1 x2))
+    (eo.Apply x1 x2)
     eo.Stuck)))
 
 ; program: $eo_fun_type
@@ -122,7 +122,7 @@
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
     eo.Stuck
   (ite true
-    (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck)) eo.Stuck (eo.FunType x1 x2))
+    (eo.FunType x1 x2)
     eo.Stuck)))
 
 ; program: $eo_requires

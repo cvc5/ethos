@@ -92,6 +92,10 @@ class SmtMetaReduce : public StdPlugin
   static bool printMetaType(const Expr& t,
                     std::ostream& os,
                     TermContextKind tctx = TermContextKind::NONE);
+  /** Get the name of expression e, expected to be an atomic term */
+  static std::string getName(const Expr& e);
+  /** Is e a datatype constructor embedding? */
+  static bool isEmbedCons(const Expr& e);
   /**
    * Return the "meta-kind" of a type typ, based on its naming convention
    * introduced in the model_smt layer. In other words, we return the datatype
@@ -135,7 +139,6 @@ class SmtMetaReduce : public StdPlugin
   static bool hasSubterm(const Expr& t, const Expr& s);
   static bool isProgram(const Expr& t);
   static bool isSmtApplyApp(const Expr& oApp);
-  static std::string getName(const Expr& e);
   static std::string getEmbedName(const Expr& oApp);
   /** Program declarations processed */
   std::set<Expr> d_progDeclProcessed;

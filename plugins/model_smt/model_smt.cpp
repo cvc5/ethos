@@ -277,7 +277,8 @@ void ModelSmt::finalizeDecl(const Expr& e)
     return;
   }
   std::cout << "Include " << e << std::endl;
-  (*out) << "  ; user-decl: " << cnamek << std::endl;
+  bool isEmbedCons = SmtMetaReduce::isEmbedCons(e);
+  (*out) << "  ; " << (isEmbedCons ? "smt-cons: " : "user-decl: ") << cnamek << std::endl;
   Expr c = e;
   Expr ct = d_tc.getType(c);
   // (*out) << "  ; type is " << ct << std::endl;

@@ -434,6 +434,12 @@ std::string SmtMetaReduce::getName(const Expr& e)
   return ss.str();
 }
 
+bool SmtMetaReduce::isEmbedCons(const Expr& e)
+{
+  std::string sname = getName(e);
+  return (sname.compare(0, 5, "$smd_")==0);
+}
+
 bool SmtMetaReduce::isSmtApplyApp(const Expr& oApp)
 {
   if (oApp.getKind()!=Kind::APPLY_OPAQUE || oApp.getNumChildren() <= 1 || oApp[1].getKind() != Kind::STRING)
