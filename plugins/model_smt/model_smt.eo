@@ -70,33 +70,20 @@
 
 ;;; SMT value datatype constructors
 
-; The type of values for functions in SMT-LIB.
-(declare-const $smt_Map Type)
-
 ; A value denoting a map.
-(declare-parameterized-const $smd_vsm.Map
-  ((T $smt_Type :opaque) (m $smt_Map :opaque))
-  $smt_Value)
 (define $vsm_map ((T $smt_Type) (m $smt_Map))
   ($smd_vsm.Map T m))
 
 ; A value denoting an uninterpreted constant.
-(declare-parameterized-const $smd_vsm.UConst
-  ((T $smt_Type :opaque) (id $smt_builtin_Int :opaque))
-  $smt_Value)
 (define $vsm_uconst ((T $smt_Type) (id $smt_builtin_Int))
   ($smd_vsm.UConst T id))
 
 ; A value represented by an SMT-LIB term. This is used for types
 ; where terms are used to denote the values of that type, e.g.
 ; SMT-LIB numerals for Int.
-(declare-parameterized-const $smd_vsm.Term
-  ((t $smt_Term :opaque))
-  $smt_Value)
 (define $vsm_term ((t $smt_Term)) ($smd_vsm.Term t))
 
 ; Denotes a failure case for values.
-(declare-const $smd_vsm.NotValue $smt_Value)
 (define $vsm_not_value () $smd_vsm.NotValue)
 
 ;;; SMT map value datatype constructors

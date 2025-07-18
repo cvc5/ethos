@@ -73,6 +73,7 @@ class ModelSmt : public StdPlugin
   std::stringstream d_embedTypeDt;
   std::stringstream d_embedTermDt;
   std::stringstream d_embedEoTermDt;
+  std::stringstream d_embedValueDt;
   // SMT-LIB standard evaluation
   std::stringstream d_eval;
   // SMT-LIB symbols

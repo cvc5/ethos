@@ -118,6 +118,9 @@
 ; This will be replaced by the datatype vsm.Value in the final encoding.
 (declare-const $smt_Value Type)
 
+; The type of values for functions in SMT-LIB.
+(declare-const $smt_Map Type)
+
 ;;; SMT term datatype constructors
 
 ; Note the Bool type is "inlined" into the final signature
@@ -144,6 +147,28 @@
 ; Free constants
 (declare-parameterized-const $smd_sm.Const ((v $smt_Value :opaque)) $smt_Term)
 (define $sm_Const ((v $smt_Value)) ($smd_sm.Const v))
+
+;;; SMT value datatype constructors
+
+; A value denoting a map.
+(declare-parameterized-const $smd_vsm.Map
+  ((T $smt_Type :opaque) (m $smt_Map :opaque))
+  $smt_Value)
+
+; A value denoting an uninterpreted constant.
+(declare-parameterized-const $smd_vsm.UConst
+  ((T $smt_Type :opaque) (id $smt_builtin_Int :opaque))
+  $smt_Value)
+
+; A value represented by an SMT-LIB term. This is used for types
+; where terms are used to denote the values of that type, e.g.
+; SMT-LIB numerals for Int.
+(declare-parameterized-const $smd_vsm.Term
+  ((t $smt_Term :opaque))
+  $smt_Value)
+
+; Denotes a failure case for values.
+(declare-const $smd_vsm.NotValue $smt_Value)
 
 ;;; Eunoia datatype constructors
 

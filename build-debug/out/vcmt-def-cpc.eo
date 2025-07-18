@@ -46,6 +46,7 @@
 (declare-const $smt_Term Type)
 (declare-const $smt_Type Type)
 (declare-const $smt_Value Type)
+(declare-const $smt_Map Type)
 (declare-const $smd_sm.True $smt_Term)
 (declare-const $smd_sm.False $smt_Term)
 (declare-parameterized-const $smd_sm.Numeral
@@ -60,6 +61,16 @@
   ((t1 $smt_Term :opaque) (t2 $smt_Term :opaque)) $smt_Term)
 (declare-parameterized-const $smd_sm.Const ((v $smt_Value :opaque)) $smt_Term)
 (define $sm_Const ((v $smt_Value)) ($smd_sm.Const v))
+(declare-parameterized-const $smd_vsm.Map
+  ((T $smt_Type :opaque) (m $smt_Map :opaque))
+  $smt_Value)
+(declare-parameterized-const $smd_vsm.UConst
+  ((T $smt_Type :opaque) (id $smt_builtin_Int :opaque))
+  $smt_Value)
+(declare-parameterized-const $smd_vsm.Term
+  ((t $smt_Term :opaque))
+  $smt_Value)
+(declare-const $smd_vsm.NotValue $smt_Value)
 (declare-const $smd_eo.Stuck $eo_Term)
 (define $eo_stuck () $smd_eo.Stuck)
 (declare-parameterized-const $smd_eo.Apply
@@ -220,22 +231,11 @@
 (declare-parameterized-const $smd_tsm.NullSort
   ((id $smt_builtin_Int :opaque)) $smt_Type)
 (define $tsm_NullSort ((id $smt_builtin_Int)) ($smd_tsm.NullSort id))
-(declare-const $smt_Map Type)
-(declare-parameterized-const $smd_vsm.Map
-  ((T $smt_Type :opaque) (m $smt_Map :opaque))
-  $smt_Value)
 (define $vsm_map ((T $smt_Type) (m $smt_Map))
   ($smd_vsm.Map T m))
-(declare-parameterized-const $smd_vsm.UConst
-  ((T $smt_Type :opaque) (id $smt_builtin_Int :opaque))
-  $smt_Value)
 (define $vsm_uconst ((T $smt_Type) (id $smt_builtin_Int))
   ($smd_vsm.UConst T id))
-(declare-parameterized-const $smd_vsm.Term
-  ((t $smt_Term :opaque))
-  $smt_Value)
 (define $vsm_term ((t $smt_Term)) ($smd_vsm.Term t))
-(declare-const $smd_vsm.NotValue $smt_Value)
 (define $vsm_not_value () $smd_vsm.NotValue)
 (declare-parameterized-const $smd_msm.Map.cons
   ((i $smt_Value :opaque) (e $smt_Value :opaque) (m $smt_Map :opaque))

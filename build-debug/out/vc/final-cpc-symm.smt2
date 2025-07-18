@@ -86,17 +86,15 @@
 
   )
   (
-  ; map with an index type
-  ; valueness: $smtx_map_is_value
+  ; user-decl: Map
   (vsm.Map (vsm.Map.arg1 tsm.Type) (vsm.Map.arg2 msm.Map))
-  ; uninterpreted constants
-  ; valueness: $smtx_usort_is_value
-  (vsm.UConst (vsm.UConst.arg1 tsm.Type) (vsm.UConst.arg2 Int))
-  ; an SMT value represented by an SMT-LIB term, e.g. Int/Real/String.
-  ; valueness: $smtx_is_value
-  (vsm.Term (vsm.Term.arg1 sm.Term))
-  ; A non-value
+  ; user-decl: NotValue
   (vsm.NotValue)
+  ; user-decl: UConst
+  (vsm.UConst (vsm.UConst.arg1 tsm.Type) (vsm.UConst.arg2 Int))
+  ; user-decl: Term
+  (vsm.Term (vsm.Term.arg1 sm.Term))
+
   )
   (
   ; (msm.Map.cons i e M) maps i -> e, as well as mappings in M
