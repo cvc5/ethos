@@ -461,6 +461,15 @@ $SMT_EVAL_CASES$
   )
 )
 
+; program: $eo_model_sat_internal
+(program $eo_model_sat_internal ((val $smt_Value))
+  :signature ($smt_Value) Bool
+  (
+  (($eo_model_sat_internal ($vsm_term $sm_mk_true)) true)
+  (($eo_model_sat_internal ($vsm_term $sm_mk_false)) false)
+  )
+)
+
 ; program: $eo_model_sat
 ; note: F is satisfied by the model if F evaluates to the SMT-LIB value denoting true.
 ; We expect the input to this method to be a Eunoia term denoting an SMT-LIB formula
@@ -468,8 +477,7 @@ $SMT_EVAL_CASES$
 (program $eo_model_sat ((F $smt_Term))
   :signature ($eo_Term) Bool
   (
-  (($eo_model_sat ($eo_smt_term F))
-      ($smt_apply_3 "ite" ($vsm_is_true ($smtx_model_eval F)) true false))
+  (($eo_model_sat ($eo_smt_term F)) ($eo_model_sat_internal ($smtx_model_eval F)))
   )
 )
 

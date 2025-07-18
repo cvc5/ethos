@@ -304,13 +304,23 @@
     (ite ($smtx_term_is_value x1) (vsm.Term x1) vsm.NotValue)
 )))))))) :named sm.axiom.$smtx_model_eval))
 
+; program: $eo_model_sat_internal
+(define-fun $eo_model_sat_internal ((x1 vsm.Value)) eo.Term
+  (ite false
+    eo.Stuck
+  (ite (and ((_ is vsm.Term) x1) (= (vsm.Term.arg1 x1) sm.True))
+    (eo.SmtTerm sm.True)
+  (ite (and ((_ is vsm.Term) x1) (= (vsm.Term.arg1 x1) sm.False))
+    (eo.SmtTerm sm.False)
+    eo.Stuck))))
+
 ; program: $eo_model_sat
 (assert (! (forall ((x1 eo.Term))
   (= ($eo_model_sat x1)
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite ((_ is eo.SmtTerm) x1)
-    (ite (and ((_ is vsm.Term) ($smtx_model_eval (eo.SmtTerm.arg1 x1))) (= (vsm.Term.arg1 ($smtx_model_eval (eo.SmtTerm.arg1 x1))) sm.True)) (eo.SmtTerm sm.True) (eo.SmtTerm sm.False))
+    ($eo_model_sat_internal ($smtx_model_eval (eo.SmtTerm.arg1 x1)))
     eo.Stuck)))) :named sm.axiom.$eo_model_sat))
 
 ; program: $eorx_symm

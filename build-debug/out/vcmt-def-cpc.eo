@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm $vsm_is_value $eo_typeof $smt_Value $eo_hash $eo_requires $eo_apply $eo_fun_type
-; #trim-defs: 112
+; #trim-defs: 113
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -349,11 +349,17 @@
   (($smtx_model_eval z)                       ($smt_mk_value_term z))
   )
 )
+(program $eo_model_sat_internal ((val $smt_Value))
+  :signature ($smt_Value) Bool
+  (
+  (($eo_model_sat_internal ($vsm_term $sm_mk_true)) true)
+  (($eo_model_sat_internal ($vsm_term $sm_mk_false)) false)
+  )
+)
 (program $eo_model_sat ((F $smt_Term))
   :signature ($eo_Term) Bool
   (
-  (($eo_model_sat ($eo_smt_term F))
-      ($smt_apply_3 "ite" ($vsm_is_true ($smtx_model_eval F)) true false))
+  (($eo_model_sat ($eo_smt_term F)) ($eo_model_sat_internal ($smtx_model_eval F)))
   )
 )
 (program $eorx_symm ((F Bool))
