@@ -406,6 +406,7 @@
   :signature ($eo_Term) $eo_Term
   (
   
+  
   (($eo_model_typeof ($eo_smt_term ($sm_apply_term f a)))
     ($eo_model_typeof ($eo_app_from_smt ($eo_smt_term ($sm_apply_term f a)))))
   

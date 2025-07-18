@@ -1486,7 +1486,25 @@
   )
 )
 
-
+; program: $eo_app_from_smt
+; args:
+; - t $eo_Term: A Eunoia term, expected to be an SMT-LIB application.
+; return: >
+;   The (embedding of) the Eunoia term application that is equivalent to
+;   the given SMT-LIB application.
+; note: >
+;   We model Eunoia applications (eo.Apply) and SMT-LIB applications (sm.Apply)
+;   since we distinguish SMT-LIB terms from Eunoia terms. This ensures that
+;   sm.Term contains only legal SMT-LIB terms. However, to define
+;   $eo_model_typeof below, we rely on calling $eo_typeof, which in the final
+;   encoding expects applications to be eo.Apply. Thus, this method is used to
+;   "lift" SMT-LIB applications to Eunoia ones. For example:
+;      (eo.smt_term (sm.Apply sm.not sm.True))
+;   is lifted to:
+;      (eo.Apply (eo.smt_term sm.not) (eo.smt_term sm.True))
+;   The latter can be type checked using $eo_typeof. Note that we recurisvely
+;   convert sm.Apply in the head of terms only; their arguments may have
+;   further occurrences of sm.Apply.
 (program $eo_app_from_smt ((f $smt_Term) (a $smt_Term) (t $eo_Term))
   :signature ($eo_Term) $eo_Term
   (
@@ -1514,7 +1532,8 @@
    (f $smt_Term) (a $smt_Term))
   :signature ($eo_Term) $eo_Term
   (
-  ; to compute the type of an apply, convert it to a Eunoia application
+  ; To compute the type of an apply, convert it to a Eunoia application as
+  ; described above.
   (($eo_model_typeof ($eo_smt_term ($sm_apply_term f a)))
     ($eo_model_typeof ($eo_app_from_smt ($eo_smt_term ($sm_apply_term f a)))))
   ; the type of a constant is the type of its value.
