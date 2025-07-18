@@ -513,8 +513,6 @@
 
 ; program: $eo_requires
 ; implements: eo::requires
-; NOTE: this must be defined as a program to ensure proper typing
-; in the smt_meta_reduce compilation step.
 (program $eo_requires ((x1 $eo_Term) (x3 $eo_Term))
   :signature ($eo_Term $eo_Term $eo_Term) $eo_Term
   (

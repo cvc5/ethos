@@ -1,5 +1,5 @@
-; trim-defs: $eovc_symm $vsm_is_value $eo_typeof $smt_Value $eo_hash $eo_requires $eo_apply $eo_fun_type
-; #trim-defs: 133
+; trim-defs: $eovc_symm $eo_typeof $eo_hash $eo_requires $eo_apply $eo_fun_type
+; #trim-defs: 131
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)

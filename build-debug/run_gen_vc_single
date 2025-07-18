@@ -48,7 +48,7 @@ cp $STD_DESUGAR_OUT $INIT_DESUGAR
 # - the type rules
 echo "**** smt_meta: Run ethos + trim-deps on $INIT_DESUGAR to generate $VC_DEF_DESUGAR"
 #  "\$eo_is_bool" "\$eo_is_z" "\$eo_is_q" "\$eo_is_str" "\$eo_is_bin"
-./run_trim_defs $INIT_DESUGAR "\$eovc_$TARGET" "\$eo_typeof_main" "\$eo_eq" "\$eo_String" "\$eo_Numeral" "\$eo_Rational" "\$eo_Binary" "\$eo_dt_constructors" "\$eo_dt_selectors" >/dev/null
+./run_trim_defs $INIT_DESUGAR "\$eovc_$TARGET" "\$eo_typeof_main" "\$eo_String" "\$eo_Numeral" "\$eo_Rational" "\$eo_Binary" "\$eo_dt_constructors" "\$eo_dt_selectors" >/dev/null
 check_status
 cp $STD_TRIM_OUT $VC_DEF_DESUGAR
 # "\$eo_List" "\$eo_List_nil" "\$eo_List_cons" "\$eo_fail" "ite" "="
@@ -66,7 +66,7 @@ cp $STD_SMODEL_OUT $VCM_DEF_DESUGAR
 # - getting the meta type of terms, which is used in the final step below
 # - symbols that may appear in custom axioms (e.g. $smtx_const_predicate).
 echo "**** smt_meta: Run ethos + trim-deps on $VCM_DEF_DESUGAR to generate $VCMT_DEF_DESUGAR"
-./run_trim_defs $VCM_DEF_DESUGAR "\$eovc_$TARGET" "\$vsm_is_value" "\$eo_typeof" "\$smt_Value" "\$eo_hash" "\$eo_requires" "\$eo_apply" "\$eo_fun_type" >/dev/null
+./run_trim_defs $VCM_DEF_DESUGAR "\$eovc_$TARGET" "\$eo_typeof" "\$eo_hash" "\$eo_requires" "\$eo_apply" "\$eo_fun_type" >/dev/null
 check_status
 cp $STD_TRIM_OUT $VCMT_DEF_DESUGAR
 

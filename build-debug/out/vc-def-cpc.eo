@@ -1,5 +1,5 @@
-; trim-defs: $eovc_symm $eo_typeof_main $eo_eq $eo_String $eo_Numeral $eo_Rational $eo_Binary $eo_dt_constructors $eo_dt_selectors
-; #trim-defs: 48
+; trim-defs: $eovc_symm $eo_typeof_main $eo_String $eo_Numeral $eo_Rational $eo_Binary $eo_dt_constructors $eo_dt_selectors
+; #trim-defs: 46
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -21,13 +21,6 @@
   :signature (Type) $eo_List)
 (program $eo_dt_selectors ((T Type) (t T))
   :signature (T) $eo_List)
-(program $eo_eq ((T Type) (S Type) (t T) (s S))
-  :signature (T S) Bool
-  (
-  (($eo_eq t t) true)
-  (($eo_eq t s) false)
-  )
-)
 (declare-parameterized-const ite (($eo_x_1 Bool) (A Type :implicit) ($eo_x_2 A) ($eo_x_3 A)) A)
 (declare-const not (-> Bool Bool))
 (declare-const and (-> Bool (-> Bool Bool)))
