@@ -466,16 +466,10 @@
 ; implements: eo::requires
 ; NOTE: this must be defined as a program to ensure proper typing
 ; in the smt_meta_reduce compilation step.
-(program $eo_requires ((x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term))
+(program $eo_requires ((x1 $eo_Term) (x3 $eo_Term))
   :signature ($eo_Term $eo_Term $eo_Term) $eo_Term
   (
-  (($eo_requires x1 x2 x3)
-    ($smt_apply_3 "ite"
-      ($smt_builtin_and
-        ($smt_builtin_not ($smt_apply_= x1 $eo_stuck))
-        ($smt_apply_= x1 x2))   ; note the optimization that we don't have to check x2 for stuck.
-      x3
-      $eo_stuck))
+  (($eo_requires x1 x1 x3) x3)
   )
 )
 
