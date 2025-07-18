@@ -73,6 +73,12 @@
   ((t $smt_Term :opaque))
   $smt_Value)
 (declare-const $smd_vsm.NotValue $smt_Value)
+(declare-parameterized-const $smd_msm.Map.cons
+  ((i $smt_Value :opaque) (e $smt_Value :opaque) (m $smt_Map :opaque))
+  $smt_Map)
+(declare-parameterized-const $smd_msm.Map.default
+  ((e $smt_Value :opaque))
+  $smt_Map)
 (declare-const $smd_eo.Stuck $eo_Term)
 (define $eo_stuck () $smd_eo.Stuck)
 (declare-parameterized-const $smd_eo.Apply
@@ -237,14 +243,8 @@
   ($smd_vsm.UConst T id))
 (define $vsm_term ((t $smt_Term)) ($smd_vsm.Term t))
 (define $vsm_not_value () $smd_vsm.NotValue)
-(declare-parameterized-const $smd_msm.Map.cons
-  ((i $smt_Value :opaque) (e $smt_Value :opaque) (m $smt_Map :opaque))
-  $smt_Map)
 (define $map_cons ((i $smt_Value) (e $smt_Value) (m $smt_Map))
   ($smd_msm.Map.cons i e m))
-(declare-parameterized-const $smd_msm.Map.default
-  ((e $smt_Value :opaque))
-  $smt_Map)
 (define $map_default ((e $smt_Value)) ($smd_msm.Map.default e))
 (define $smt_try_eo_type ((t $eo_Term) (elseTerm $eo_Term))
   ($smt_apply_3 "ite" ($smt_apply_1 "(_ is eo.SmtType)" t)

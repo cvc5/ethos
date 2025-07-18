@@ -2,8 +2,18 @@
 ; This is both a valid *.smt2 and *.eo file after filling in the templates.
 ; For consistency we name it *.eo.
 
-; The final embedding of SMT-LIB types that are relevant to the VC.
-(declare-datatype tsm.Type
+; tsm.Type:
+;   The final embedding of SMT-LIB types that are relevant to the VC.
+; sm.Term:
+;   The final embedding of SMT-LIB terms that are relevant to the VC.
+;   In other words, this defines the Herbrand universe.
+; eo.Term:
+;   The final embedding of Eunoia terms that are relevant to the VC.
+;   SMT-LIB terms, types and values are embedded in this datatype.
+;   We require a mutually recursive datatype, since these are
+;   inter-dependent.
+(declare-datatypes ((tsm.Type 0) (sm.Term 0) (eo.Term 0) (vsm.Value 0) (msm.Map 0))
+  (
   (
   ; user-decl: Int
   (tsm.Int)
@@ -27,18 +37,6 @@
   (tsm.BitVec)
 
   )
-)
-
-; sm.Term:
-;   The final embedding of SMT-LIB terms that are relevant to the VC.
-;   In other words, this defines the Herbrand universe.
-; eo.Term:
-;   The final embedding of Eunoia terms that are relevant to the VC.
-;   SMT-LIB terms, types and values are embedded in this datatype.
-;   We require a mutually recursive datatype, since these are
-;   inter-dependent.
-(declare-datatypes ((sm.Term 0) (eo.Term 0) (vsm.Value 0) (msm.Map 0))
-  (
   (
   ; user-decl: True
   (sm.True)
@@ -106,7 +104,7 @@
   ))
 )
 
-;;; User defined symbols
+;;; Relevant definitions
 
 ; fwd-decl: $eo_typeof
 (declare-fun $eo_typeof (eo.Term) eo.Term)

@@ -156,10 +156,10 @@
 (declare-parameterized-const $smd_tsm.NullSort
   ((id $smt_builtin_Int :opaque)) $smt_Type)
 
-; Apply terms
+; Apply types
 (declare-parameterized-const $smd_tsm.Apply
   ((t1 $smt_Type :opaque) (t2 $smt_Type :opaque)) $smt_Type)
-  
+
 ;;; SMT term datatype constructors
 
 ; Note the Bool type is "inlined" into the final signature
@@ -208,6 +208,18 @@
 
 ; Denotes a failure case for values.
 (declare-const $smd_vsm.NotValue $smt_Value)
+
+;;; SMT map value datatype constructors
+
+; Constructs a map value where i is mapped to e.
+(declare-parameterized-const $smd_msm.Map.cons
+  ((i $smt_Value :opaque) (e $smt_Value :opaque) (m $smt_Map :opaque))
+  $smt_Map)
+
+; Constructs a map value where all indices are mapped to e.
+(declare-parameterized-const $smd_msm.Map.default
+  ((e $smt_Value :opaque))
+  $smt_Map)
 
 ;;; Eunoia datatype constructors
 
@@ -1126,16 +1138,10 @@
 ;;; SMT map value datatype constructors
 
 ; Constructs a map value where i is mapped to e.
-(declare-parameterized-const $smd_msm.Map.cons
-  ((i $smt_Value :opaque) (e $smt_Value :opaque) (m $smt_Map :opaque))
-  $smt_Map)
 (define $map_cons ((i $smt_Value) (e $smt_Value) (m $smt_Map))
   ($smd_msm.Map.cons i e m))
 
 ; Constructs a map value where all indices are mapped to e.
-(declare-parameterized-const $smd_msm.Map.default
-  ((e $smt_Value :opaque))
-  $smt_Map)
 (define $map_default ((e $smt_Value)) ($smd_msm.Map.default e))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Exception handling

@@ -192,6 +192,18 @@
 ; Denotes a failure case for values.
 (declare-const $smd_vsm.NotValue $smt_Value)
 
+;;; SMT map value datatype constructors
+
+; Constructs a map value where i is mapped to e.
+(declare-parameterized-const $smd_msm.Map.cons
+  ((i $smt_Value :opaque) (e $smt_Value :opaque) (m $smt_Map :opaque))
+  $smt_Map)
+
+; Constructs a map value where all indices are mapped to e.
+(declare-parameterized-const $smd_msm.Map.default
+  ((e $smt_Value :opaque))
+  $smt_Map)
+
 ;;; Eunoia datatype constructors
 
 ; The type of types

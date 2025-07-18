@@ -1,5 +1,5 @@
 
-;;; User defined symbols
+;;; Relevant definitions
 
 $SM_DEFS$
 

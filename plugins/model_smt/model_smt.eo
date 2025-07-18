@@ -82,16 +82,10 @@
 ;;; SMT map value datatype constructors
 
 ; Constructs a map value where i is mapped to e.
-(declare-parameterized-const $smd_msm.Map.cons
-  ((i $smt_Value :opaque) (e $smt_Value :opaque) (m $smt_Map :opaque))
-  $smt_Map)
 (define $map_cons ((i $smt_Value) (e $smt_Value) (m $smt_Map))
   ($smd_msm.Map.cons i e m))
 
 ; Constructs a map value where all indices are mapped to e.
-(declare-parameterized-const $smd_msm.Map.default
-  ((e $smt_Value :opaque))
-  $smt_Map)
 (define $map_default ((e $smt_Value)) ($smd_msm.Map.default e))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Exception handling
