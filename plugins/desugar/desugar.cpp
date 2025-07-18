@@ -178,6 +178,15 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
       }
       ct = ct[novars];
     }
+    // TODO: fix ambiguous terms
+    /*
+    else if (cattr==Attr::AMB)
+    {
+      std::vector<Expr> vars = Expr::getVariables(ct[0]);
+      printParamList(
+          vars, opaqueArgs, params, true, visited, firstParam, false);
+    }
+    */
     std::pair<std::vector<Expr>, Expr> ftype = ct.getFunctionType();
     argTypes = ftype.first;
     retType = ftype.second;

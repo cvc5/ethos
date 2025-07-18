@@ -282,11 +282,11 @@
 (define $sm_mk_false () $smd_sm.False)
 (define $sm_mk_bool ((c $smt_builtin_Bool))
   ($smt_apply_3 "ite" c $sm_mk_true $sm_mk_false))
-(define $sm_Numeral ((n $smt_builtin_Int))
+(define $sm_mk_z ((n $smt_builtin_Int))
   ($smd_sm.Numeral n))
-(define $sm_Rational ((r $smt_builtin_Real))
+(define $sm_mk_q ((r $smt_builtin_Real))
   ($smd_sm.Rational r))
-(define $sm_String ((s $smt_builtin_String))
+(define $sm_mk_str ((s $smt_builtin_String))
   ($smd_sm.String s))
 
 ;(define $smt_Int () ($smt_builtin_type_0 "Int"))
@@ -452,11 +452,11 @@
 (define $eo_mk_true () ($eo_smt_term $sm_mk_true))
 (define $eo_mk_false () ($eo_smt_term $sm_mk_false))
 (define $eo_mk_numeral ((x $smt_builtin_Int))
-  ($eo_smt_term ($sm_Numeral x)))
+  ($eo_smt_term ($sm_mk_z x)))
 (define $eo_mk_rational ((x $smt_builtin_Real))
-  ($eo_smt_term ($sm_Rational x)))
+  ($eo_smt_term ($sm_mk_q x)))
 (define $eo_mk_string ((x $smt_builtin_String))
-  ($eo_smt_term ($sm_String x)))
+  ($eo_smt_term ($sm_mk_str x)))
 
 ; define: $eo_binary
 ; note: >
@@ -1247,13 +1247,13 @@
   :signature ($smt_Term) $smt_builtin_Bool
   (
   ; standard atomic types are values
-  (($smtx_term_is_value $sm_mk_true)        $smt_builtin_true)
-  (($smtx_term_is_value $sm_mk_false)       $smt_builtin_true)
-  (($smtx_term_is_value ($sm_Numeral n))    $smt_builtin_true)
-  (($smtx_term_is_value ($sm_Rational r))   $smt_builtin_true)
-  (($smtx_term_is_value ($sm_String s))     $smt_builtin_true)
+  (($smtx_term_is_value $sm_mk_true)      $smt_builtin_true)
+  (($smtx_term_is_value $sm_mk_false)     $smt_builtin_true)
+  (($smtx_term_is_value ($sm_mk_z n))     $smt_builtin_true)
+  (($smtx_term_is_value ($sm_mk_q r))     $smt_builtin_true)
+  (($smtx_term_is_value ($sm_mk_str s))   $smt_builtin_true)
   ; by default, not a value
-  (($smtx_term_is_value t)                  $smt_builtin_false)
+  (($smtx_term_is_value t)                $smt_builtin_false)
   )
 )
 
@@ -1391,6 +1391,19 @@
   (($smtx_model_eval_apply v i)               $vsm_not_value)
   )
 )
+
+;(program $smtx_model_eval_mixed_arith 
+;  ((s $smt_builtin_String) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int)
+;   (r1 $smt_builtin_Real) (r2 $smt_builtin_Real))
+;  :signature ($smt_builtin_String $smt_Value $smt_Value) $smt_Value
+;  (
+;  (($smtx_model_eval_mixed_arith s ($vsm_term ($sm_mk_z n1)) ($vsm_term ($sm_mk_z n2)))
+;    ($vsm_term ($sm_mk_z ($smt_apply_2 s n1 n2))))
+;  (($smtx_model_eval_mixed_arith s ($vsm_term ($sm_mk_q r1)) ($vsm_term ($sm_mk_q r2)))
+;    ($vsm_term ($sm_mk_q ($smt_apply_2 s r1 r2))))
+;  (($smtx_model_eval_mixed_arith s v1 v2) $vsm_not_value)
+;  )
+;)
 
 ; An evaluator for all terms that we can reason about models.
 ; This is a recursive call.

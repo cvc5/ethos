@@ -220,13 +220,13 @@
   :signature ($smt_Term) $smt_builtin_Bool
   (
   ; standard atomic types are values
-  (($smtx_term_is_value $sm_mk_true)        $smt_builtin_true)
-  (($smtx_term_is_value $sm_mk_false)       $smt_builtin_true)
-  (($smtx_term_is_value ($sm_Numeral n))    $smt_builtin_true)
-  (($smtx_term_is_value ($sm_Rational r))   $smt_builtin_true)
-  (($smtx_term_is_value ($sm_String s))     $smt_builtin_true)
+  (($smtx_term_is_value $sm_mk_true)      $smt_builtin_true)
+  (($smtx_term_is_value $sm_mk_false)     $smt_builtin_true)
+  (($smtx_term_is_value ($sm_mk_z n))     $smt_builtin_true)
+  (($smtx_term_is_value ($sm_mk_q r))     $smt_builtin_true)
+  (($smtx_term_is_value ($sm_mk_str s))   $smt_builtin_true)
   ; by default, not a value
-  (($smtx_term_is_value t)                  $smt_builtin_false)
+  (($smtx_term_is_value t)                $smt_builtin_false)
   )
 )
 
@@ -364,6 +364,19 @@ $EO_CONST_PREDICATE_CASES$
   (($smtx_model_eval_apply v i)               $vsm_not_value)
   )
 )
+
+;(program $smtx_model_eval_mixed_arith 
+;  ((s $smt_builtin_String) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int)
+;   (r1 $smt_builtin_Real) (r2 $smt_builtin_Real))
+;  :signature ($smt_builtin_String $smt_Value $smt_Value) $smt_Value
+;  (
+;  (($smtx_model_eval_mixed_arith s ($vsm_term ($sm_mk_z n1)) ($vsm_term ($sm_mk_z n2)))
+;    ($vsm_term ($sm_mk_z ($smt_apply_2 s n1 n2))))
+;  (($smtx_model_eval_mixed_arith s ($vsm_term ($sm_mk_q r1)) ($vsm_term ($sm_mk_q r2)))
+;    ($vsm_term ($sm_mk_q ($smt_apply_2 s r1 r2))))
+;  (($smtx_model_eval_mixed_arith s v1 v2) $vsm_not_value)
+;  )
+;)
 
 ; An evaluator for all terms that we can reason about models.
 ; This is a recursive call.

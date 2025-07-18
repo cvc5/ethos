@@ -207,7 +207,7 @@ void ModelSmt::printSmtTerm(const std::string& name,
         appArgs << " ($smt_apply_1 \"sm.";
         Assert(d_kindToEoCons.find(ka) != d_kindToEoCons.end())
             << "Could not find " << ka;
-        appArgs << d_kindToEoCons[ka] << ".arg1\"";
+        appArgs << d_kindToEoCons[ka] << ".arg1\" ";
       }
       appArgs << ssmt.str() << ")";
     }
