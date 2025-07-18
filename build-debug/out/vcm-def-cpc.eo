@@ -1487,12 +1487,12 @@
 )
 
 
-(program $eo_app_from_smt ((f $smt_Term) (a $smt_Term))
+(program $eo_app_from_smt ((f $smt_Term) (a $smt_Term) (t $eo_Term))
   :signature ($eo_Term) $eo_Term
   (
   (($eo_app_from_smt ($eo_smt_term ($sm_apply_term f a)))
     ($eo_apply ($eo_app_from_smt ($eo_smt_term f)) ($eo_smt_term a)))
-  (($eo_app_from_smt ($eo_smt_term f)) ($eo_smt_term f))
+  (($eo_app_from_smt t) t)
   )
 )
 
@@ -1515,8 +1515,8 @@
   :signature ($eo_Term) $eo_Term
   (
   ; to compute the type of an apply, convert it to a Eunoia application
-  ;(($eo_model_typeof ($eo_smt_term ($sm_apply_term f a)))
-  ;  ($eo_model_typeof ($eo_app_from_smt ($eo_smt_term ($sm_apply_term f a)))))
+  (($eo_model_typeof ($eo_smt_term ($sm_apply_term f a)))
+    ($eo_model_typeof ($eo_app_from_smt ($eo_smt_term ($sm_apply_term f a)))))
   ; the type of a constant is the type of its value.
   (($eo_model_typeof ($eo_smt_term ($sm_Const val)))      ($eo_model_typeof ($eo_smt_value val)))
   ; the type of a value term is the type of its term.

@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm $eo_typeof $eo_hash $eo_requires $eo_apply $eo_fun_type
-; #trim-defs: 128
+; #trim-defs: 129
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -392,14 +392,22 @@
   (($eo_model_sat ($eo_smt_term F)) ($eo_model_sat_internal ($smtx_model_eval F)))
   )
 )
+(program $eo_app_from_smt ((f $smt_Term) (a $smt_Term) (t $eo_Term))
+  :signature ($eo_Term) $eo_Term
+  (
+  (($eo_app_from_smt ($eo_smt_term ($sm_apply_term f a)))
+    ($eo_apply ($eo_app_from_smt ($eo_smt_term f)) ($eo_smt_term a)))
+  (($eo_app_from_smt t) t)
+  )
+)
 (program $eo_model_typeof
   ((t $eo_Term) (val $smt_Value) (T $smt_Type) (m $smt_Map) (id $smt_builtin_Int)
    (f $smt_Term) (a $smt_Term))
   :signature ($eo_Term) $eo_Term
   (
   
-  
-  
+  (($eo_model_typeof ($eo_smt_term ($sm_apply_term f a)))
+    ($eo_model_typeof ($eo_app_from_smt ($eo_smt_term ($sm_apply_term f a)))))
   
   (($eo_model_typeof ($eo_smt_term ($sm_Const val)))      ($eo_model_typeof ($eo_smt_value val)))
   

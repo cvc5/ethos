@@ -338,11 +338,25 @@
     ($eo_model_sat_internal ($smtx_model_eval (eo.SmtTerm.arg1 x1)))
     eo.Stuck)))) :named sm.axiom.$eo_model_sat))
 
+; program: $eo_app_from_smt
+(declare-fun $eo_app_from_smt (eo.Term) eo.Term)
+(assert (! (forall ((x1 eo.Term))
+  (= ($eo_app_from_smt x1)
+  (ite (= x1 eo.Stuck)
+    eo.Stuck
+  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Apply) (eo.SmtTerm.arg1 x1)))
+    ($eo_apply ($eo_app_from_smt (eo.SmtTerm (sm.Apply.arg1 (eo.SmtTerm.arg1 x1)))) (eo.SmtTerm (sm.Apply.arg2 (eo.SmtTerm.arg1 x1))))
+  (ite true
+    x1
+    eo.Stuck))))) :named sm.axiom.$eo_app_from_smt))
+
 ; program: $eo_model_typeof
 (assert (! (forall ((x1 eo.Term))
   (= ($eo_model_typeof x1)
   (ite (= x1 eo.Stuck)
     eo.Stuck
+  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Apply) (eo.SmtTerm.arg1 x1)))
+    ($eo_model_typeof ($eo_app_from_smt (eo.SmtTerm (sm.Apply (sm.Apply.arg1 (eo.SmtTerm.arg1 x1)) (sm.Apply.arg2 (eo.SmtTerm.arg1 x1))))))
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Const) (eo.SmtTerm.arg1 x1)))
     ($eo_model_typeof (eo.SmtValue (sm.Const.arg1 (eo.SmtTerm.arg1 x1))))
   (ite (and ((_ is eo.SmtValue) x1) ((_ is vsm.Term) (eo.SmtValue.arg1 x1)))
@@ -355,7 +369,7 @@
     (eo.SmtType (tsm.NullSort 0))
   (ite true
     (ite ((_ is eo.SmtType) ($eo_typeof x1)) ($eo_typeof x1) (eo.SmtType (tsm.NullSort 0)))
-    eo.Stuck))))))))) :named sm.axiom.$eo_model_typeof))
+    eo.Stuck)))))))))) :named sm.axiom.$eo_model_typeof))
 
 ; program: $eorx_symm
 (define-fun $eorx_symm ((x1 eo.Term) (x2 eo.Term)) eo.Term
