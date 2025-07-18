@@ -378,6 +378,8 @@ $EO_CONST_PREDICATE_CASES$
 ;  )
 ;)
 
+$SMT_EVAL_PROGS$
+
 ; An evaluator for all terms that we can reason about models.
 ; This is a recursive call.
 ; invariant: this must be a total function

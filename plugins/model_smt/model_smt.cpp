@@ -40,6 +40,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   d_kindToEoPrefix[Kind::RATIONAL] = "q";
   d_kindToEoPrefix[Kind::STRING] = "str";
   d_kindToEoPrefix[Kind::BINARY] = "bin";
+  d_kindToType[Kind::NUMERAL] = "Int";
+  d_kindToType[Kind::RATIONAL] = "Real";
+  d_kindToType[Kind::STRING] = "String";
   // note BOOLEAN does not have a constructor as Bool is inlined
   d_kindToEoCons[Kind::NUMERAL] = "Numeral";
   d_kindToEoCons[Kind::RATIONAL] = "Rational";
@@ -182,6 +185,11 @@ void ModelSmt::printSmtTerm(const std::string& name,
   {
     argSchemas.push_back(Kind::NONE);
   }
+  std::stringstream progName;
+  progName << "$smtx_model_eval_" << name;
+  std::stringstream progCases;
+  std::stringstream progParams;
+  size_t paramCount = 0;
   for (Kind kas : argSchemas)
   {
     std::stringstream appArgs;
@@ -227,8 +235,60 @@ void ModelSmt::printSmtTerm(const std::string& name,
     d_eval << d_kindToEoPrefix[kr];
     d_eval << " ($smt_apply_" << args.size() << appArgs.str() << ")))";
     preAppEnd << ")";
+    //////
+    progCases << "  ((" << progName.str();
+    std::stringstream retArgs;
+    for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
+    {
+      Kind ka = args[i - 1];
+      if (ka == Kind::PARAM)
+      {
+        Assert(kas != Kind::NONE);
+        ka = kas;
+      }
+      paramCount++;
+      if (paramCount>1)
+      {
+        progParams << " ";
+      }
+      if (ka!=Kind::BOOLEAN)
+      {
+        progCases << " ($vsm_term ($sm_mk_" << d_kindToEoPrefix[ka] << " x" << paramCount << "))";
+        retArgs << " x" << paramCount;
+        progParams << "(x" << paramCount << " $smt_builtin_" << d_kindToType[ka] << ")";
+      }
+      else
+      {
+        progCases << " ($vsm_term x" << paramCount << ")";
+        retArgs << " ($smt_apply_= $sm_mk_true x" << paramCount << ")";
+        progParams << "(x" << paramCount << " $smt_Term)";
+      }
+    }
+    progCases << ") ";
+    progCases << "($vsm_term ($sm_mk_" << d_kindToEoPrefix[kr];
+    progCases << " ($smt_apply_" << args.size() << " \"" << name << "\"";
+    progCases << retArgs.str() << "))))" << std::endl;
   }
   d_eval << preAppEnd.str() << std::endl;
+  d_modelEvalProgs << "(program " << progName.str() << std::endl;
+  d_modelEvalProgs << "  (" << progParams.str() << ")" << std::endl;
+  d_modelEvalProgs << "  :signature (";
+  // make the default case as well
+  progCases << "  ((" << progName.str();
+  for (size_t i = 0, nargs = args.size(); i < nargs; i++)
+  {
+    if (i>0)
+    {
+      d_modelEvalProgs << " ";
+    }
+    d_modelEvalProgs << "$smt_Value";
+    progCases << " x" << (i+1);
+  }
+  progCases << ") $vsm_not_value)" << std::endl;
+  d_modelEvalProgs << ") $smt_Value" << std::endl;
+  d_modelEvalProgs << "  (" << std::endl;
+  d_modelEvalProgs << progCases.str();
+  d_modelEvalProgs << "  )" << std::endl << ")" << std::endl;
 }
 
 void ModelSmt::printEmbType(const Expr& e, std::ostream& os)
@@ -369,6 +429,7 @@ void ModelSmt::finalize()
   replace(finalSmt, "$EO_EVAL_CASES$", d_customEval.str());
   // plug in the evaluation cases handled by this plugin
   replace(finalSmt, "$SMT_EVAL_CASES$", d_eval.str());
+  replace(finalSmt, "$SMT_EVAL_PROGS$", d_modelEvalProgs.str());
 
   std::stringstream ssoe;
   ssoe << s_plugin_path << "plugins/model_smt/model_smt_gen.eo";

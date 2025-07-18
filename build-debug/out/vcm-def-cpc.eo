@@ -1405,6 +1405,24 @@
 ;  )
 ;)
 
+(program $smtx_model_eval_not
+  ((x1 $smt_Term))
+  :signature ($smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_not ($vsm_term x1)) ($vsm_term ($sm_mk_bool ($smt_apply_1 "not" ($smt_apply_= $sm_mk_true x1)))))
+  (($smtx_model_eval_not x1) $vsm_not_value)
+  )
+)
+(program $smtx_model_eval_and
+  ((x1 $smt_Term) (x2 $smt_Term))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_and ($vsm_term x1) ($vsm_term x2)) ($vsm_term ($sm_mk_bool ($smt_apply_2 "and" ($smt_apply_= $sm_mk_true x1) ($smt_apply_= $sm_mk_true x2)))))
+  (($smtx_model_eval_and x1 x2) $vsm_not_value)
+  )
+)
+
+
 ; An evaluator for all terms that we can reason about models.
 ; This is a recursive call.
 ; invariant: this must be a total function

@@ -63,12 +63,14 @@ class ModelSmt : public StdPlugin
   DtKind getDtKind(const Expr& e);
   std::map<Kind, std::string> d_kindToEoPrefix;
   std::map<Kind, std::string> d_kindToEoCons;
+  std::map<Kind, std::string> d_kindToType;
   std::map<std::string, std::string> d_overloadRevert;
   std::stringstream d_customEval;
   std::stringstream d_isValue;
   std::stringstream d_isType;
   std::stringstream d_typeEnum;
   std::stringstream d_constPred;
+  std::stringstream d_modelEvalProgs;
   // SMT-LIB term embedding
   std::stringstream d_embedTypeDt;
   std::stringstream d_embedTermDt;
