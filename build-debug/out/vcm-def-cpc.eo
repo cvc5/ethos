@@ -1301,17 +1301,27 @@
     ($vsm_term t)
     $vsm_not_value))
 
-(define $smt_mk_value_map ((m $smt_Map) (T $smt_Type))
+(define $smt_mk_value_map ((T $smt_Type) (m $smt_Map))
   ($smt_apply_3 "ite"
     ($smtx_map_is_value T m)
     ($vsm_map T m)
     $vsm_not_value))
-    
-;(define $smt_mk_value_uconst ((T $smt_Type) (id $smt_builtin_Int))
-;  ($smt_apply_3 "ite"
-;    ($smtx_map_is_value T m)
-;    ($vsm_map T m)
-;    $vsm_not_value))
+
+; program: $smtx_ensure_value
+; args:
+; - v $smt_Value: A value term.
+; return: >
+;   v itself if it denotes a proper SMT-LIB value, or $vsm_not_value otherwise.
+(program $smtx_ensure_value
+  ((t $smt_Value) (val $smt_Value) (T $smt_Type) (m $smt_Map) (id $smt_builtin_Int))
+  :signature ($smt_Value) $smt_Value
+  (
+  (($smtx_ensure_value ($vsm_term t))        ($smt_mk_value_term t))
+  (($smtx_ensure_value ($vsm_map T m))       ($smt_mk_value_map T m))
+  (($smtx_ensure_value ($vsm_uconst T id))   ($vsm_uconst T id))
+  (($smtx_ensure_value t)                    $vsm_not_value)
+  )
+)
 
 ;;; utilities
 
@@ -1478,17 +1488,15 @@
   (($smtx_model_eval ($sm_apply_term f y))    (eo::define ((fme ($smtx_model_eval f)))
                                               (eo::define ((yme ($smtx_model_eval y)))
                                                 ($smtx_model_eval_apply fme yme))))
-  ;; free constants and partial functions
-  ; These are given an arbitrary value by the model ($smtx_model_lookup),
-  ; which is an uninterpreted function. The properties of this value are
-  ; axiomatized in the final SMT2.
-  (($smtx_model_eval ($sm_Const val))          val)
-  ;(($smtx_model_eval ($sm_skolem T k id))     ($smtx_model_skolem_lookup T k id))
+  ;; free constants
+  ; Constants carry their value in the model, which is an arbitrary value term.
+  ; We run this value through $smtx_ensure_value to ensure it is a proper value.
+  (($smtx_model_eval ($sm_Const val))          ($smtx_ensure_value val))
   
   ; Otherwise, it may be a term value (e.g. if z is a Boolean or numeral constant).
   ; We call the utility method which will either generate an SMT-LIB term value or
   ; a SMT-LIB non-value error term.
-  (($smtx_model_eval z)                       ($smt_mk_value_term z))
+  (($smtx_model_eval z)                       ($smtx_ensure_value ($vsm_term z)))
   )
 )
 

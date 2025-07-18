@@ -261,6 +261,9 @@
     (msm.Map.default.arg1 x1)
 )))) :named sm.axiom.$smtx_map_lookup))
 
+; fwd-decl: $smtx_map_is_value
+(declare-fun $smtx_map_is_value (tsm.Type msm.Map) Bool)
+
 ; program: $smtx_term_is_value
 (assert (! (forall ((x1 sm.Term))
   (= ($smtx_term_is_value x1)
@@ -276,6 +279,17 @@
     true
     false
 ))))))) :named sm.axiom.$smtx_term_is_value))
+
+; program: $smtx_ensure_value
+(define-fun $smtx_ensure_value ((x1 vsm.Value)) vsm.Value
+  (ite ((_ is vsm.Term) x1)
+    (ite ($smtx_term_is_value (vsm.Term.arg1 x1)) (vsm.Term (vsm.Term.arg1 x1)) vsm.NotValue)
+  (ite ((_ is vsm.Map) x1)
+    (ite ($smtx_map_is_value (vsm.Map.arg1 x1) (vsm.Map.arg2 x1)) (vsm.Map (vsm.Map.arg1 x1) (vsm.Map.arg2 x1)) vsm.NotValue)
+  (ite ((_ is vsm.UConst) x1)
+    (vsm.UConst (vsm.UConst.arg1 x1) (vsm.UConst.arg2 x1))
+    vsm.NotValue
+))))
 
 ; fwd-decl: $smtx_model_eval
 (declare-fun $smtx_model_eval (sm.Term) vsm.Value)
@@ -301,8 +315,8 @@
   (ite ((_ is sm.Apply) x1)
     ($smtx_model_eval_apply ($smtx_model_eval (sm.Apply.arg1 x1)) ($smtx_model_eval (sm.Apply.arg2 x1)))
   (ite ((_ is sm.Const) x1)
-    (sm.Const.arg1 x1)
-    (ite ($smtx_term_is_value x1) (vsm.Term x1) vsm.NotValue)
+    ($smtx_ensure_value (sm.Const.arg1 x1))
+    ($smtx_ensure_value (vsm.Term x1))
 )))))))) :named sm.axiom.$smtx_model_eval))
 
 ; program: $eo_model_sat_internal

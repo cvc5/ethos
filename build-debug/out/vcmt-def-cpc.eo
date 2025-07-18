@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm $vsm_is_value $eo_typeof $smt_Value $eo_hash $eo_requires $eo_apply $eo_fun_type
-; #trim-defs: 127
+; #trim-defs: 130
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -264,6 +264,8 @@
   (($smtx_map_lookup ($map_default e) i)   e)
   )
 )
+(program $smtx_map_is_value ()
+  :signature ($smt_Type $smt_Map) $smt_builtin_Bool)
 (program $smtx_term_is_value
   ((T $smt_Type) (t $smt_Term) (n $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String))
   :signature ($smt_Term) $smt_builtin_Bool
@@ -283,6 +285,21 @@
     ($smtx_term_is_value t)
     ($vsm_term t)
     $vsm_not_value))
+(define $smt_mk_value_map ((T $smt_Type) (m $smt_Map))
+  ($smt_apply_3 "ite"
+    ($smtx_map_is_value T m)
+    ($vsm_map T m)
+    $vsm_not_value))
+(program $smtx_ensure_value
+  ((t $smt_Value) (val $smt_Value) (T $smt_Type) (m $smt_Map) (id $smt_builtin_Int))
+  :signature ($smt_Value) $smt_Value
+  (
+  (($smtx_ensure_value ($vsm_term t))        ($smt_mk_value_term t))
+  (($smtx_ensure_value ($vsm_map T m))       ($smt_mk_value_map T m))
+  (($smtx_ensure_value ($vsm_uconst T id))   ($vsm_uconst T id))
+  (($smtx_ensure_value t)                    $vsm_not_value)
+  )
+)
 (define $vsm_is_value ((t $smt_Value))
   ($smt_apply_1 "not" ($smt_apply_1 "(_ is vsm.NotValue)" t)))
 (define $vsm_is_true ((t $smt_Value))
@@ -363,14 +380,12 @@
   
   
   
-  
-  (($smtx_model_eval ($sm_Const val))          val)
-  
+  (($smtx_model_eval ($sm_Const val))          ($smtx_ensure_value val))
   
   
   
   
-  (($smtx_model_eval z)                       ($smt_mk_value_term z))
+  (($smtx_model_eval z)                       ($smtx_ensure_value ($vsm_term z)))
   )
 )
 (program $eo_model_sat_internal ((val $smt_Value))
