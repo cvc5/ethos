@@ -863,10 +863,11 @@
 ; program: $eo_typeof
 ; implements: eo::typeof
 (program $eo_typeof
-  ((t $eo_Term) (T $eo_Term) (n $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String) (w $smt_builtin_Int))
+  ((t $eo_Term) (T $eo_Term) (n $smt_builtin_Int) (r $smt_builtin_Real)
+   (s $smt_builtin_String) (w $smt_builtin_Int) (val $smt_Value))
   :signature ($eo_Term) $eo_Term
   (
-  ; TODO: auto-generate this
+  ; TODO: auto-generate these?
   (($eo_typeof $eo_true)                        Bool)
   (($eo_typeof $eo_false)                       Bool)
   (($eo_typeof ($eo_mk_numeral n))              $eo_Numeral)
@@ -874,9 +875,9 @@
   (($eo_typeof ($eo_mk_string s))               $eo_String)
   (($eo_typeof ($eo_binary w n))                $eo_Binary)
   (($eo_typeof ($eo_Var s T))                   T)
-  ; SMT-LIB builtins
-  ;(($eo_typeof ($eo_smt_term ($sm_Const T n)))  T)
   ; otherwise, invoke the routine for builtin types from the signature.
+  ; Note that we do not include SMT-LIB specific constructs here, as these are
+  ; not modelled in Eunoia's builtin typeof method.
   (($eo_typeof t)                               ($eo_typeof_main t))
   )
 )

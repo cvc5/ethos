@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm $eo_typeof_main $eo_eq $eo_String $eo_Numeral $eo_Rational $eo_Binary $eo_dt_constructors $eo_dt_selectors
-; #trim-defs: 47
+; #trim-defs: 48
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -880,10 +880,11 @@
 ; program: $eo_typeof
 ; implements: eo::typeof
 (program $eo_typeof
-  ((t $eo_Term) (T $eo_Term) (n $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String) (w $smt_builtin_Int))
+  ((t $eo_Term) (T $eo_Term) (n $smt_builtin_Int) (r $smt_builtin_Real)
+   (s $smt_builtin_String) (w $smt_builtin_Int) (val $smt_Value))
   :signature ($eo_Term) $eo_Term
   (
-  ; TODO: auto-generate this
+  ; TODO: auto-generate these?
   (($eo_typeof $eo_true)                        Bool)
   (($eo_typeof $eo_false)                       Bool)
   (($eo_typeof ($eo_mk_numeral n))              $eo_Numeral)
@@ -891,9 +892,9 @@
   (($eo_typeof ($eo_mk_string s))               $eo_String)
   (($eo_typeof ($eo_binary w n))                $eo_Binary)
   (($eo_typeof ($eo_Var s T))                   T)
-  ; SMT-LIB builtins
-  ;(($eo_typeof ($eo_smt_term ($sm_Const T n)))  T)
   ; otherwise, invoke the routine for builtin types from the signature.
+  ; Note that we do not include SMT-LIB specific constructs here, as these are
+  ; not modelled in Eunoia's builtin typeof method.
   (($eo_typeof t)                               ($eo_typeof_main t))
   )
 )
@@ -993,6 +994,7 @@
   )
 )
 (program $eo_model_sat () :signature ($eo_Term) Bool)
+(program $eo_model_typeof () :signature ($eo_Term) Bool)
 ; This file defines SMT-LIB model semantics in Eunoia.
 ; It has exception handling utilities to call Eunoia programs in
 ; a safe way that ensures that all programs in this signature are total.
@@ -1141,17 +1143,17 @@
 ;   than (ite (eo.is_ok *) * elseTerm).
 (define $smt_try_eo ((t $eo_Term) (elseTerm $eo_Term))
   ($smt_apply_3 "ite" ($smt_apply_1 "(_ is eo.SmtTerm)" t)
-    ($smt_apply_1 "eo.SmtTerm.arg1" t)
+    t
     elseTerm))
 ; Same as above, for SMT types.
 (define $smt_try_eo_type ((t $eo_Term) (elseTerm $eo_Term))
   ($smt_apply_3 "ite" ($smt_apply_1 "(_ is eo.SmtType)" t)
-    ($smt_apply_1 "eo.SmtType.arg1" t)
+    t
     elseTerm))
 ; Same as above, for SMT values.
 (define $smt_try_eo_value ((t $eo_Term) (elseTerm $eo_Term))
   ($smt_apply_3 "ite" ($smt_apply_1 "(_ is eo.SmtValue)" t)
-    ($smt_apply_1 "eo.SmtValue.arg1" t)
+    t
     elseTerm))
 
 ; Only call when we are sure that t is a value
@@ -1469,6 +1471,7 @@
   )
 )
 
+; program: $eo_model_sat_internal
 (program $eo_model_sat_internal ((val $smt_Value))
   :signature ($smt_Value) Bool
   (
@@ -1490,15 +1493,12 @@
 
 ; The SMT typeof function, which incorporates builtin SMT terms
 
-(program $smtx_typeof
-  ((T $smt_Type) (t $smt_Term) (F $smt_Term) (k $smt_builtin_Int) (id $smt_builtin_Int) (f $smt_Term))
-  :signature ($smt_Term) Type
+(program $eo_model_typeof ((t $eo_Term))
+  :signature ($eo_Term) $eo_Term
   (
-  ; for all other user defined terms, we totalize using the null sorts
-  ; we use the hash so that all terms that do not type check have a new unknown sort.
-  (($smtx_typeof t)                       ($smt_try_eo_type
-                                            ($eo_typeof t)
-                                            ($tsm_NullSort $smt_builtin_z_zero)))  ; TODO: Use hash?
+  (($eo_model_typeof t) ($smt_try_eo_type
+                          ($eo_typeof t)
+                          ($eo_smt_type ($tsm_NullSort $smt_builtin_z_zero))))
   )
 )
 
@@ -1512,7 +1512,7 @@
 (program $eor_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eor_symm F) ($eorx_symm F ($eo_typeof F)))
+  (($eor_symm F) ($eorx_symm F ($eo_model_typeof F)))
   )
 )
 (program $eovc_symm ((F Bool))

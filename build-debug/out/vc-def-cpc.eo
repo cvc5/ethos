@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm $eo_typeof_main $eo_eq $eo_String $eo_Numeral $eo_Rational $eo_Binary $eo_dt_constructors $eo_dt_selectors
-; #trim-defs: 47
+; #trim-defs: 48
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -112,6 +112,7 @@
   )
 )
 (program $eo_model_sat () :signature ($eo_Term) Bool)
+(program $eo_model_typeof () :signature ($eo_Term) Bool)
 (echo "include eo_model_sat")
 (program $eorx_symm ((F Bool))
   :signature (Bool Type) Bool
@@ -122,7 +123,7 @@
 (program $eor_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eor_symm F) ($eorx_symm F ($eo_typeof F)))
+  (($eor_symm F) ($eorx_symm F ($eo_model_typeof F)))
   )
 )
 (program $eovc_symm ((F Bool))

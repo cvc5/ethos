@@ -556,6 +556,10 @@
 ; This is used to define the verification condition we will write below.
 (program $eo_model_sat () :signature ($eo_Term) Bool)
 
+; A placeholder for asking the type of a given term.
+; This is used to define the verification condition we will write below.
+(program $eo_model_typeof () :signature ($eo_Term) Bool)
+
 ; We will include the definition of $eo_model_sat here.
 (echo "include eo_model_sat")
 
@@ -573,7 +577,7 @@
 (program $eor_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eor_symm F) ($eorx_symm F ($eo_typeof F)))
+  (($eor_symm F) ($eorx_symm F ($eo_model_typeof F)))
   )
 )
 ; verification: symm

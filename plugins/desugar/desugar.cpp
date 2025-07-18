@@ -634,7 +634,7 @@ void Desugar::finalizeRule(const Expr& e)
     tcrSig << " Type";
     tcrBody << " " << v << " ";
     printTerm(tv, tcrBody);
-    tcrCall << " " << v << " ($eo_typeof " << v << ")";
+    tcrCall << " " << v << " ($eo_model_typeof " << v << ")";
   }
 
   std::map<Expr, Expr> evMap = d_overloadSanVisited;

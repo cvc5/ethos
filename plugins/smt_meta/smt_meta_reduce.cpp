@@ -1377,8 +1377,9 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
         {
           Assert(child.getNumChildren() == 5);
           tk = getMetaKindReturn(child[3], parentCtx);
-          Assert(tk == getMetaKindReturn(child[4], parentCtx))
-              << "ITE branches have different meta types " << child;
+          TermContextKind k2 = getMetaKindReturn(child[4], parentCtx);
+          Assert(tk == k2)
+              << "ITE branches have different meta types " << child << " " << termContextKindToString(tk) << " and " << termContextKindToString(k2);
         }
         else if (esname == "=")
         {

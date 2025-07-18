@@ -246,6 +246,9 @@
 ; fwd-decl: $eo_model_sat
 (declare-fun $eo_model_sat (eo.Term) eo.Term)
 
+; fwd-decl: $eo_model_typeof
+(declare-fun $eo_model_typeof (eo.Term) eo.Term)
+
 ; fwd-decl: $smtx_term_is_value
 (declare-fun $smtx_term_is_value (sm.Term) Bool)
 
@@ -323,6 +326,15 @@
     ($eo_model_sat_internal ($smtx_model_eval (eo.SmtTerm.arg1 x1)))
     eo.Stuck)))) :named sm.axiom.$eo_model_sat))
 
+; program: $eo_model_typeof
+(assert (! (forall ((x1 eo.Term))
+  (= ($eo_model_typeof x1)
+  (ite (= x1 eo.Stuck)
+    eo.Stuck
+  (ite true
+    (ite ((_ is eo.SmtType) ($eo_typeof x1)) ($eo_typeof x1) (eo.SmtType (tsm.NullSort 0)))
+    eo.Stuck)))) :named sm.axiom.$eo_model_typeof))
+
 ; program: $eorx_symm
 (define-fun $eorx_symm ((x1 eo.Term) (x2 eo.Term)) eo.Term
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
@@ -336,7 +348,7 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    ($eorx_symm x1 ($eo_typeof x1))
+    ($eorx_symm x1 ($eo_model_typeof x1))
     eo.Stuck)))
 
 ; program: $eovc_symm
