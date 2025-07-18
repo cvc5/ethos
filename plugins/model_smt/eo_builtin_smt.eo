@@ -277,12 +277,12 @@
 (define $sm_mk_false () $smd_sm.False)
 (define $sm_mk_bool ((c $smt_builtin_Bool))
   ($smt_apply_3 "ite" c $sm_mk_true $sm_mk_false))
-(define $sm_mk_z ((n $smt_builtin_Int))
-  ($smt_apply_1 "sm.Numeral" n))
-(define $sm_mk_q ((r $smt_builtin_Real))
-  ($smt_apply_1 "sm.Rational" r))
-(define $sm_mk_str ((s $smt_builtin_String))
-  ($smt_apply_1 "sm.String" s))
+(define $sm_Numeral ((n $smt_builtin_Int))
+  ($smd_sm.Numeral n))
+(define $sm_Rational ((r $smt_builtin_Real))
+  ($smd_sm.Rational r))
+(define $sm_String ((s $smt_builtin_String))
+  ($smd_sm.String s))
 
 ;(define $smt_Int () ($smt_builtin_type_0 "Int"))
 ;(define $smt_Real () ($smt_builtin_type_0 "Real"))
@@ -293,14 +293,6 @@
 (define $sm_is_true ((b $smt_Term)) ($smt_apply_= b $sm_mk_true))
 (define $sm_is_false ((b $smt_Term)) ($smt_apply_= b $sm_mk_false))
 ; Assumes that t is a Boolean term
-(define $sm_is_bool ((T Type :implicit) (t T))
-  ($smt_builtin_or ($sm_is_true t) ($sm_is_false t)))
-(define $sm_is_z ((T Type :implicit) (t T))
-  ($smt_apply_1 "(_ is sm.Numeral)" t))
-(define $sm_is_q ((T Type :implicit) (t T))
-  ($smt_apply_1 "(_ is sm.Rational)" t))
-(define $sm_is_str ((T Type :implicit) (t T))
-  ($smt_apply_1 "(_ is sm.String)" t))
 
 ;;; Defining parametric bitvector operators
 
@@ -455,11 +447,11 @@
 (define $eo_mk_true () ($eo_smt_term $sm_mk_true))
 (define $eo_mk_false () ($eo_smt_term $sm_mk_false))
 (define $eo_mk_numeral ((x $smt_builtin_Int))
-  ($eo_smt_term ($smd_sm.Numeral x)))
+  ($eo_smt_term ($sm_Numeral x)))
 (define $eo_mk_rational ((x $smt_builtin_Real))
-  ($eo_smt_term ($smd_sm.Rational x)))
+  ($eo_smt_term ($sm_Rational x)))
 (define $eo_mk_string ((x $smt_builtin_String))
-  ($eo_smt_term ($smd_sm.String x)))
+  ($eo_smt_term ($sm_String x)))
 
 ; define: $eo_binary
 ; note: >
