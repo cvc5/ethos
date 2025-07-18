@@ -223,9 +223,8 @@ void ModelSmt::printSmtTerm(const std::string& name,
     progCases << " ($smt_apply_" << args.size() << " \"" << name << "\"";
     progCases << retArgs.str() << "))))" << std::endl;
   }
-  d_modelEvalProgs << "(program " << progName.str() << std::endl;
-  d_modelEvalProgs << "  (" << progParams.str() << ")" << std::endl;
-  d_modelEvalProgs << "  :signature (";
+  std::stringstream progSig;
+  progSig << "(";
   // make the default case as well
   progCases << "  ((" << progName.str();
   d_eval << " (" << progName.str();
@@ -233,15 +232,19 @@ void ModelSmt::printSmtTerm(const std::string& name,
   {
     if (i>0)
     {
-      d_modelEvalProgs << " ";
+      progSig << " ";
     }
     d_eval << " ($smtx_model_eval x" << (i+1) << ")";
-    d_modelEvalProgs << "$smt_Value";
-    progCases << " x" << (i+1);
+    progSig << "$smt_Value";
+    progCases << " t" << (i+1);
+    progParams << " (t" << (i+1) << " $smt_Value)";
   }
+  progSig << ") $smt_Value" << std::endl;
   d_eval << "))" << std::endl;
   progCases << ") $vsm_not_value)" << std::endl;
-  d_modelEvalProgs << ") $smt_Value" << std::endl;
+  d_modelEvalProgs << "(program " << progName.str() << std::endl;
+  d_modelEvalProgs << "  (" << progParams.str() << ")" << std::endl;
+  d_modelEvalProgs << "  :signature " << progSig.str() << std::endl;
   d_modelEvalProgs << "  (" << std::endl;
   d_modelEvalProgs << progCases.str();
   d_modelEvalProgs << "  )" << std::endl << ")" << std::endl;
