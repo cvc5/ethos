@@ -1,0 +1,34 @@
+#!/bin/bash
+
+OUT_DIR=./out
+
+STD_DESUGAR_OUT=../plugins/desugar/eo_desugar_gen.eo
+
+# the name of a EO signature
+INPUT="../../cvc5-ajr/proofs/eo/cpc/Cpc.eo"
+
+DESUGAR=$OUT_DIR/desugar.eo
+
+function check_status()
+{
+status=$?
+if [[ $status -eq 0 ]]; then
+  echo "success"
+else
+  exit $status
+fi
+}
+
+echo "**** Compile ethos"
+make -j4
+check_status
+
+echo "**** smt_meta: Run ethos + desugar on $INPUT to generate $STD_DESUGAR_OUT"
+./src/ethos --plugin.desugar-vc $INPUT >/dev/null
+check_status
+cp $STD_DESUGAR_OUT $DESUGAR
+
+echo "**** smt_meta: Verify it parses"
+./src/ethos $DESUGAR
+
+rm -f $STD_DESUGAR_OUT

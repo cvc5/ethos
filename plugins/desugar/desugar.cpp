@@ -14,6 +14,7 @@
 #include <string>
 
 #include "state.h"
+#include "../flatten_eval/flatten_eval.h"
 
 namespace ethos {
 
@@ -73,6 +74,16 @@ void Desugar::defineProgram(const Expr& v, const Expr& prog)
 
 void Desugar::finalizeProgram(const Expr& e, const Expr& prog, std::ostream& os)
 {
+#if 0
+  std::vector<std::pair<Expr, Expr>> evals = FlattenEval::flattenProgram(d_state, e, prog);
+  if (!evals.empty())
+  {
+    for (std::pair<Expr, Expr>& fe : evals)
+    {
+      finalizeProgramInternal(fe.first, fe.second, os);
+    }
+  }
+#endif
   Expr p = e;
   Expr pt = d_tc.getType(p);
   std::vector<Expr> pandt{pt, prog};
@@ -178,15 +189,6 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
       }
       ct = ct[novars];
     }
-    // TODO: fix ambiguous terms
-    /*
-    else if (cattr==Attr::AMB)
-    {
-      std::vector<Expr> vars = Expr::getVariables(ct[0]);
-      printParamList(
-          vars, opaqueArgs, params, true, visited, firstParam, false);
-    }
-    */
     std::pair<std::vector<Expr>, Expr> ftype = ct.getFunctionType();
     argTypes = ftype.first;
     retType = ftype.second;
@@ -215,9 +217,9 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
         }
         if (v.getKind() == Kind::PARAM)
         {
-          std::vector<Expr> vars;
-          vars.push_back(v);
-          printParamList(vars, os, params, true, visited, firstParam);
+          std::vector<Expr> varsp;
+          varsp.push_back(v);
+          printParamList(varsp, os, params, true, visited, firstParam);
         }
         else if ((cattr == Attr::AMB || cattr == Attr::AMB_DATATYPE_CONSTRUCTOR)
                  && i == 0)
@@ -225,7 +227,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
           // print the parameters; these will lead to a definition that is
           // ambiguous again.
           std::vector<Expr> avars = Expr::getVariables(v);
-          printParamList(vars, os, params, true, visited, firstParam);
+          printParamList(avars, os, params, true, visited, firstParam);
         }
         else
         {
@@ -506,7 +508,7 @@ void Desugar::printParamList(const std::vector<Expr>& vars,
     if (itv == visited.end())
     {
       visited[cur] = false;
-      // ensure its type has been printed
+      // ensure the variables in its type has been printed
       Assert(!tcur.isNull());
       std::vector<Expr> tvars = Expr::getVariables(tcur);
       toVisit.insert(toVisit.end(), tvars.begin(), tvars.end());
