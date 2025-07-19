@@ -265,9 +265,7 @@
 ; program: $smtx_term_is_value
 (assert (! (forall ((x1 sm.Term))
   (= ($smtx_term_is_value x1)
-  (ite (and ((_ is sm.Bool) x1) (= (sm.Bool.arg1 x1) true))
-    true
-  (ite (and ((_ is sm.Bool) x1) (= (sm.Bool.arg1 x1) false))
+  (ite ((_ is sm.Bool) x1)
     true
   (ite ((_ is sm.Numeral) x1)
     true
@@ -276,7 +274,7 @@
   (ite ((_ is sm.String) x1)
     true
     false
-))))))) :named sm.axiom.$smtx_term_is_value))
+)))))) :named sm.axiom.$smtx_term_is_value))
 
 ; program: $smtx_ensure_value
 (define-fun $smtx_ensure_value ((x1 vsm.Value)) vsm.Value
@@ -301,15 +299,15 @@
 
 ; program: $smtx_model_eval_not
 (define-fun $smtx_model_eval_not ((x1 vsm.Value)) vsm.Value
-  (ite ((_ is vsm.Term) x1)
-    (vsm.Term (sm.Bool (not (= (sm.Bool true) (vsm.Term.arg1 x1)))))
+  (ite (and ((_ is vsm.Term) x1) ((_ is sm.Bool) (vsm.Term.arg1 x1)))
+    (vsm.Term (sm.Bool (not (sm.Bool.arg1 (vsm.Term.arg1 x1)))))
     vsm.NotValue
 ))
 
 ; program: $smtx_model_eval_and
 (define-fun $smtx_model_eval_and ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
-  (ite (and ((_ is vsm.Term) x1) ((_ is vsm.Term) x2))
-    (vsm.Term (sm.Bool (and (= (sm.Bool true) (vsm.Term.arg1 x1)) (= (sm.Bool true) (vsm.Term.arg1 x2)))))
+  (ite (and ((_ is vsm.Term) x1) ((_ is sm.Bool) (vsm.Term.arg1 x1)) ((_ is vsm.Term) x2) ((_ is sm.Bool) (vsm.Term.arg1 x2)))
+    (vsm.Term (sm.Bool (and (sm.Bool.arg1 (vsm.Term.arg1 x1)) (sm.Bool.arg1 (vsm.Term.arg1 x2)))))
     vsm.NotValue
 ))
 

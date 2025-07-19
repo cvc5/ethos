@@ -198,18 +198,9 @@ void ModelSmt::printSmtTerm(const std::string& name,
       {
         progParams << " ";
       }
-      if (ka!=Kind::BOOLEAN)
-      {
-        progCases << " ($vsm_term ($sm_mk_" << d_kindToEoPrefix[ka] << " x" << paramCount << "))";
-        retArgs << " x" << paramCount;
-        progParams << "(x" << paramCount << " $smt_builtin_" << d_kindToType[ka] << ")";
-      }
-      else
-      {
-        progCases << " ($vsm_term x" << paramCount << ")";
-        retArgs << " ($smt_apply_= $sm_mk_true x" << paramCount << ")";
-        progParams << "(x" << paramCount << " $smt_Term)";
-      }
+      progCases << " ($vsm_term ($sm_mk_" << d_kindToEoPrefix[ka] << " x" << paramCount << "))";
+      retArgs << " x" << paramCount;
+      progParams << "(x" << paramCount << " $smt_builtin_" << d_kindToType[ka] << ")";
     }
     progCases << ") ";
     Kind kr = kret;

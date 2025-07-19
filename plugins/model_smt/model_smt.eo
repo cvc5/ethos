@@ -210,12 +210,11 @@
 ; that if it returns true for two terms t1 and t2 of the same type,
 ; then t1 != t2 in all models.
 (program $smtx_term_is_value
-  ((T $smt_Type) (t $smt_Term) (n $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String))
+  ((t $smt_Term) (b $smt_builtin_Bool) (n $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String))
   :signature ($smt_Term) $smt_builtin_Bool
   (
   ; standard atomic types are values
-  (($smtx_term_is_value $sm_mk_true)      $smt_builtin_true)
-  (($smtx_term_is_value $sm_mk_false)     $smt_builtin_true)
+  (($smtx_term_is_value ($sm_mk_bool b))  $smt_builtin_true)
   (($smtx_term_is_value ($sm_mk_z n))     $smt_builtin_true)
   (($smtx_term_is_value ($sm_mk_q r))     $smt_builtin_true)
   (($smtx_term_is_value ($sm_mk_str s))   $smt_builtin_true)
@@ -358,19 +357,6 @@ $EO_CONST_PREDICATE_CASES$
   (($smtx_model_eval_apply v i)               $vsm_not_value)
   )
 )
-
-;(program $smtx_model_eval_mixed_arith 
-;  ((s $smt_builtin_String) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int)
-;   (r1 $smt_builtin_Real) (r2 $smt_builtin_Real))
-;  :signature ($smt_builtin_String $smt_Value $smt_Value) $smt_Value
-;  (
-;  (($smtx_model_eval_mixed_arith s ($vsm_term ($sm_mk_z n1)) ($vsm_term ($sm_mk_z n2)))
-;    ($vsm_term ($sm_mk_z ($smt_apply_2 s n1 n2))))
-;  (($smtx_model_eval_mixed_arith s ($vsm_term ($sm_mk_q r1)) ($vsm_term ($sm_mk_q r2)))
-;    ($vsm_term ($sm_mk_q ($smt_apply_2 s r1 r2))))
-;  (($smtx_model_eval_mixed_arith s v1 v2) $vsm_not_value)
-;  )
-;)
 
 $SMT_EVAL_PROGS$
 

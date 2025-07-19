@@ -162,10 +162,9 @@
 
 ;;; SMT term datatype constructors
 
-(define $BoolValueType () $smt_builtin_Bool)
 ; Note the Bool type is "inlined" into the final signature
 (declare-parameterized-const $smd_sm.Bool
-  ((b $BoolValueType :opaque)) $smt_Term)
+  ((b $smt_builtin_Bool :opaque)) $smt_Term)
 (declare-parameterized-const $smd_sm.Numeral
   ((n $smt_builtin_Int :opaque)) $smt_Term)
 (declare-parameterized-const $smd_sm.Rational
@@ -1238,12 +1237,11 @@
 ; that if it returns true for two terms t1 and t2 of the same type,
 ; then t1 != t2 in all models.
 (program $smtx_term_is_value
-  ((T $smt_Type) (t $smt_Term) (n $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String))
+  ((t $smt_Term) (b $smt_builtin_Bool) (n $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String))
   :signature ($smt_Term) $smt_builtin_Bool
   (
   ; standard atomic types are values
-  (($smtx_term_is_value $sm_mk_true)      $smt_builtin_true)
-  (($smtx_term_is_value $sm_mk_false)     $smt_builtin_true)
+  (($smtx_term_is_value ($sm_mk_bool b))  $smt_builtin_true)
   (($smtx_term_is_value ($sm_mk_z n))     $smt_builtin_true)
   (($smtx_term_is_value ($sm_mk_q r))     $smt_builtin_true)
   (($smtx_term_is_value ($sm_mk_str s))   $smt_builtin_true)
@@ -1387,34 +1385,21 @@
   )
 )
 
-;(program $smtx_model_eval_mixed_arith 
-;  ((s $smt_builtin_String) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int)
-;   (r1 $smt_builtin_Real) (r2 $smt_builtin_Real))
-;  :signature ($smt_builtin_String $smt_Value $smt_Value) $smt_Value
-;  (
-;  (($smtx_model_eval_mixed_arith s ($vsm_term ($sm_mk_z n1)) ($vsm_term ($sm_mk_z n2)))
-;    ($vsm_term ($sm_mk_z ($smt_apply_2 s n1 n2))))
-;  (($smtx_model_eval_mixed_arith s ($vsm_term ($sm_mk_q r1)) ($vsm_term ($sm_mk_q r2)))
-;    ($vsm_term ($sm_mk_q ($smt_apply_2 s r1 r2))))
-;  (($smtx_model_eval_mixed_arith s v1 v2) $vsm_not_value)
-;  )
-;)
-
 (program $smtx_model_eval_not
-  ((x1 $smt_Term) (t1 $smt_Value))
+  ((x1 $smt_builtin_Bool) (t1 $smt_Value))
   :signature ($smt_Value) $smt_Value
 
   (
-  (($smtx_model_eval_not ($vsm_term x1)) ($vsm_term ($sm_mk_bool ($smt_apply_1 "not" ($smt_apply_= $sm_mk_true x1)))))
+  (($smtx_model_eval_not ($vsm_term ($sm_mk_bool x1))) ($vsm_term ($sm_mk_bool ($smt_apply_1 "not" x1))))
   (($smtx_model_eval_not t1) $vsm_not_value)
   )
 )
 (program $smtx_model_eval_and
-  ((x1 $smt_Term) (x2 $smt_Term) (t1 $smt_Value) (t2 $smt_Value))
+  ((x1 $smt_builtin_Bool) (x2 $smt_builtin_Bool) (t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
 
   (
-  (($smtx_model_eval_and ($vsm_term x1) ($vsm_term x2)) ($vsm_term ($sm_mk_bool ($smt_apply_2 "and" ($smt_apply_= $sm_mk_true x1) ($smt_apply_= $sm_mk_true x2)))))
+  (($smtx_model_eval_and ($vsm_term ($sm_mk_bool x1)) ($vsm_term ($sm_mk_bool x2))) ($vsm_term ($sm_mk_bool ($smt_apply_2 "and" x1 x2))))
   (($smtx_model_eval_and t1 t2) $vsm_not_value)
   )
 )
