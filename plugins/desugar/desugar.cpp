@@ -314,8 +314,6 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
     std::stringstream sslcEnd;
     size_t ngArgs = 0;
     std::stringstream ssngarg;
-    std::stringstream ssngpat;
-    std::stringstream ngSig;
     std::vector<Expr> ngscope;
     size_t argCount = 0;
     while (ct.getKind() == Kind::FUNCTION_TYPE)
@@ -335,12 +333,6 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
           cta = cta[0];
           if (cta.getKind() == Kind::ANNOT_PARAM)
           {
-            if (!ngscope.empty())
-            {
-              ngSig << " ";
-            }
-            ngSig << "Type";
-            ssngpat << " " << cta[1];
             ngscope.push_back(cta[1]);
             ssngarg << " ($eo_typeof " << ssx.str() << ")";
             cta = cta[0];
@@ -371,13 +363,6 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
           }
           ssngarg << " ($eo_typeof " << arg << ")";
         }
-        ssngpat << " ";
-        printTerm(cta, ssngpat);
-        if (!ngscope.empty())
-        {
-          ngSig << " ";
-        }
-        ngSig << "Type";
         ngscope.push_back(cta);
         ngArgs++;
         args.push_back(arg);
@@ -410,7 +395,6 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
       ssng << "$eo_typeof_";
       printName(e, ssng);
       std::string pname = ssng.str();
-#if 1
       // construct the program and print it
       std::vector<Expr> argTypes;
       Expr retType = d_state.mkType();
@@ -427,21 +411,6 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
       Expr progPair = d_state.mkPair(progPat, ct);
       Expr progDef = d_state.mkExpr(Kind::PROGRAM, {progPair});
       finalizeProgram(prog, progDef, d_eoTypeofNGround);
-#else
-      d_eoTypeofNGround << "(program " << pname << " (";
-      std::vector<Expr> ngvs = Expr::getVariables(ngscope);
-      std::vector<Expr> ngps;
-      printParamList(ngvs, d_eoTypeofNGround, ngps, false);
-      d_eoTypeofNGround << ")" << std::endl;
-      d_eoTypeofNGround << "  :signature (" << ngSig.str() << ") Type"
-                        << std::endl;
-      d_eoTypeofNGround << "  (" << std::endl;
-      d_eoTypeofNGround << "  ((" << pname << ssngpat.str() << ") ";
-      printTerm(ct, d_eoTypeofNGround);
-      d_eoTypeofNGround << ")" << std::endl;
-      d_eoTypeofNGround << "  )" << std::endl;
-      d_eoTypeofNGround << ")" << std::endl;
-#endif
       d_eoTypeof << "(" << pname << ssngarg.str() << ")";
     }
     else
