@@ -45,8 +45,14 @@ class Desugar : public StdPlugin
   void printTerm(const Expr& e, std::ostream& os);
   void printParamList(const std::vector<Expr>& vars,
                       std::ostream& os,
+                      bool useImplicit,
+                      bool isOpaque = false);
+  void printParamList(const std::vector<Expr>& vars,
+                      std::ostream& os,
                       std::vector<Expr>& params,
-                      bool useImplicit);
+                      std::map<Expr, bool>& visited,
+                      bool useImplicit,
+                      bool isOpaque = false);
   void printParamListOld(const std::vector<Expr>& vars,
                       std::ostream& os,
                       std::vector<Expr>& params,
@@ -61,7 +67,8 @@ class Desugar : public StdPlugin
                           const std::vector<Expr>& params,
                           bool useImplicit,
                          const std::vector<Expr>& nimplicit,
-                          bool isOpaque=false);
+                          bool isOpaque=false,
+                         size_t startIndex=0);
   void finalizeProgram(const Expr& v, const Expr& prog, std::ostream& os);
   void finalizeDefinition(const std::string& name, const Expr& t);
   void finalizeDeclaration(const Expr& t, std::ostream& os) override;

@@ -91,8 +91,7 @@ void Desugar::finalizeProgram(const Expr& e, const Expr& prog, std::ostream& os)
   os << "; " << (prog.isNull() ? "fwd-decl: " : "program: ") << e
          << std::endl;
   os << "(program " << e << " (";
-  std::vector<Expr> params;
-  printParamList(vars, os, params, false);
+  printParamList(vars, os, false);
   os << ")" << std::endl;
   Assert(pt.getKind() == Kind::PROGRAM_TYPE);
   Assert(pt.getNumChildren() > 1);
@@ -163,7 +162,6 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
   std::vector<Expr> argTypes;
   Expr retType;
   std::map<Expr, bool> visited;
-  bool firstParam = true;
   std::vector<Expr> params;
   std::stringstream opaqueArgs;
   if (ct.getKind() == Kind::FUNCTION_TYPE)
@@ -184,8 +182,8 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
             << "Bad opaque function variable " << ct << " for " << c;
         std::vector<Expr> vars;
         vars.push_back(v);
-        printParamListOld(
-            vars, opaqueArgs, params, true, visited, firstParam, true);
+        printParamList(
+            vars, opaqueArgs, params, visited, true, true);
       }
       ct = ct[novars];
     }
@@ -219,7 +217,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
         {
           std::vector<Expr> varsp;
           varsp.push_back(v);
-          printParamListOld(varsp, os, params, true, visited, firstParam);
+          printParamList(varsp, os, params, visited, true);
         }
         else if ((cattr == Attr::AMB || cattr == Attr::AMB_DATATYPE_CONSTRUCTOR)
                  && i == 0)
@@ -227,7 +225,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
           // print the parameters; these will lead to a definition that is
           // ambiguous again.
           std::vector<Expr> avars = Expr::getVariables(v);
-          printParamListOld(avars, os, params, true, visited, firstParam);
+          printParamList(avars, os, params, visited, true);
         }
         else
         {
@@ -243,7 +241,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
         Expr v = d_state.mkSymbol(Kind::PARAM, ssp.str(), at);
         std::vector<Expr> vars;
         vars.push_back(v);
-        printParamListOld(vars, os, params, true, visited, firstParam);
+        printParamList(vars, os, params, visited, true);
       }
     }
     os << ") ";
@@ -276,8 +274,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
       printName(e, ngnil);
       std::string pname = ngnil.str();
       d_eoNilNground << "(program " << pname << " (($eo_T Type) ";
-      std::vector<Expr> params;
-      printParamList(nvars, d_eoNilNground, params, false);
+      printParamList(nvars, d_eoNilNground, false);
       d_eoNilNground << ")" << std::endl;
       d_eoNilNground << "  :signature ((eo::quote $eo_T)) $eo_T" << std::endl;
       d_eoNilNground << "  (" << std::endl;
@@ -475,14 +472,26 @@ void Desugar::printTerm(const Expr& e, std::ostream& os)
 
 void Desugar::printParamList(const std::vector<Expr>& vars,
                              std::ostream& os,
-                             std::vector<Expr>& params,
-                             bool useImplicit)
+                             bool useImplicit,
+                             bool isOpaque)
 {
+  std::vector<Expr> params;
   std::map<Expr, bool> visited;
+  printParamList(vars, os, params, visited, useImplicit, isOpaque);
+}
+
+void Desugar::printParamList(const std::vector<Expr>& vars,
+                             std::ostream& os,
+                             std::vector<Expr>& params,
+                             std::map<Expr, bool>& visited,
+                             bool useImplicit,
+                             bool isOpaque)
+{
+  size_t startIndex = params.size();
   // get the parameter list
   getParamList(vars, params, visited);
   // print it on the output stream
-  printParamListNew(os, params, useImplicit, vars);
+  printParamListNew(os, params, useImplicit, vars, isOpaque, startIndex);
 }
 
 void Desugar::printParamListOld(const std::vector<Expr>& vars,
@@ -588,9 +597,10 @@ void Desugar::printParamListNew(std::ostream& os,
                         const std::vector<Expr>& params,
                         bool useImplicit,
                         const std::vector<Expr>& nimplicit,
-                        bool isOpaque)
+                        bool isOpaque,
+                         size_t startIndex)
 {
-  for (size_t i=0, nparams=params.size(); i<nparams; i++)
+  for (size_t i=startIndex, nparams=params.size(); i<nparams; i++)
   {
     if (i>0)
     {
@@ -625,8 +635,7 @@ void Desugar::finalizeDefinition(const std::string& name, const Expr& t)
   {
     vars.push_back(t[0][i]);
   }
-  std::vector<Expr> params;
-  printParamList(vars, d_defs, params, true);
+  printParamList(vars, d_defs, true);
   d_defs << ")" << std::endl;
   d_defs << "  ";
   printTerm(t[1], d_defs);
@@ -685,6 +694,7 @@ void Desugar::finalizeRule(const Expr& e)
   std::vector<Expr> params;
   std::map<Expr, bool> pvisited;
   bool pfirstParam = true;
+  // TODO: remove
   printParamListOld(vars, plout, params, false, pvisited, pfirstParam);
 
   std::stringstream tcrSig;
@@ -751,6 +761,7 @@ void Desugar::finalizeRule(const Expr& e)
   {
     finalVars.push_back(p.first);
   }
+  // TODO: remove
   printParamListOld(finalVars, plout, params, false, pvisited, pfirstParam);
   // strip off the "(Proof ...)", which may be beneath requires
   Expr rrt = rt[rt.getNumChildren() - 1];
