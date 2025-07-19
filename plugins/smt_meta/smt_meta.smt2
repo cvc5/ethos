@@ -16,10 +16,10 @@ $SM_DEFS$
   (=> (and (not (= x eo.Stuck)) (not (= y eo.Stuck))
     (= ($eo_hash x) ($eo_hash y))) (= x y))) :named sm.hash_injective))
 
-; The constant predicate holds for the model value of a constant.
-;(assert (! (forall ((T tsm.Type) (k sm.Term) (i Int))
-;  ($smtx_const_predicate T k i))
-; :named sm.model_is_value))
+; This axiom gives semantics to model lookups for partial functions
+(assert (! (forall ((t sm.Term))
+  ($smtx_model_lookup_predicate t))
+  :named sm.model_lookup_predicate))
 
 ;;; The verification condition
 

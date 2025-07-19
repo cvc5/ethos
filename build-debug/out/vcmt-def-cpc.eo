@@ -1,5 +1,5 @@
-; trim-defs: $eovc_symm $eo_typeof $eo_hash $eo_requires $eo_apply $eo_fun_type
-; #trim-defs: 127
+; trim-defs: $eovc_symm $eo_typeof $smtx_model_lookup_predicate $eo_hash $eo_requires $eo_apply $eo_fun_type
+; #trim-defs: 131
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -288,6 +288,23 @@
   )
 )
 (program $smtx_model_eval () :signature ($smt_Term) $smt_Value)
+(program $smtx_model_lookup ()
+  :signature ($smt_Term) $smt_Value)
+(program $smtx_model_lookup_predicate_internal ((t $smt_Term) (v $smt_Value))
+  :signature ($smt_Term $smt_Value) $smt_builtin_Bool
+  (
+
+  
+  (($smtx_model_lookup_predicate_internal t v) $smt_builtin_true)
+  )
+)
+(program $smtx_model_lookup_predicate ((t $smt_Term))
+  :signature ($smt_Term) $smt_builtin_Bool
+  (
+  (($smtx_model_lookup_predicate t)
+    ($smtx_model_lookup_predicate_internal t ($smtx_model_lookup t)))
+  )
+)
 (program $smtx_model_eval_apply
   ((T $smt_Type) (m $smt_Map) (i $smt_Value) (v $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value

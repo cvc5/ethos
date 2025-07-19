@@ -1284,51 +1284,35 @@
 ; We use this to define $eo_model_sat.
 (program $smtx_model_eval () :signature ($smt_Term) $smt_Value)
 
-; free constants
-
-; fwd-decl: $smtx_model_lookup
-; Conceptually, returns the model value for constant with kind k, identifier id and type T.
-; This is intentionally undefined in this signature.
+; program: $smtx_model_lookup
+; Conceptually, returns the model value for a term whose value is
+; partially constrained or unconstrained in the model. This is
+; intentionally undefined. For example, we may pass the following
+; terms to this method:
+;   (sm.Apply (sm.Apply sm./ x1) x2), when M(x2) = 0,
+;   TODO: skolems??
 (program $smtx_model_lookup ()
-  :signature ($smt_Type $smt_builtin_Int $smt_builtin_Int) $smt_Value)
-
-; Returns the builtin integer corresponding to the kind of the
-; skolem term ($sm_skolem T k id).
-;(program $smtx_get_skolem_kind ((k $smt_Term))
-;  :signature ($smt_Type $smt_Term $smt_builtin_Int) $smt_builtin_Int
-;  ; TODO
-;)
-
-;(program $smtx_model_skolem_lookup ((T $smt_Type) (k $smt_Term) (id $smt_builtin_Int))
-;  :signature ($smt_Type $smt_Term $smt_builtin_Int) $smt_Value
-;  (
-;  (($smtx_model_skolem_lookup T k id) ($smtx_model_lookup T ($smtx_get_skolem_kind T k id) id))
-;  )
-;)
+  :signature ($smt_Term) $smt_Value)
 
 ; Lookup the predicate the constant can be assumed to have.
-; Otherwise, we lookup the predicate for the skolem, which may be
-; user-defined. This must correspond a valid formula, i.e. one where
-;   (exists val. ($smtx_const_predicate k id T val))
-; is a valid formula.
-; If the  is undefined, we return true.
-;(program $smtx_const_predicate_internal
-;  ((T $smt_Type) (k $smt_Term) (id $smt_builtin_Int) (val $smt_Value))
-;  :signature ($smt_Type $smt_Term $smt_builtin_Int $smt_Value) $smt_builtin_Bool
-;  (
-;  ; User defined constant predicates.
+; These should be valid formulas.
+(program $smtx_model_lookup_predicate_internal ((t $smt_Term) (v $smt_Value))
+  :signature ($smt_Term $smt_Value) $smt_builtin_Bool
+  (
 
-;  (($smtx_const_predicate_internal T k id val) $smt_builtin_true)
-;  )
-;)
+  ; otherwise, no predicate
+  (($smtx_model_lookup_predicate_internal t v) $smt_builtin_true)
+  )
+)
 
-;(program $smtx_const_predicate ((T $smt_Type) (k $smt_Term) (id $smt_builtin_Int))
-;  :signature ($smt_Type $smt_Term $smt_builtin_Int) $smt_builtin_Bool
-;  (
-;  (($smtx_const_predicate T k id)
-;      ($smtx_const_predicate_internal T k id ($smtx_model_skolem_lookup T k id)))
-;  )
-;)
+; Calls the method above
+(program $smtx_model_lookup_predicate ((t $smt_Term))
+  :signature ($smt_Term) $smt_builtin_Bool
+  (
+  (($smtx_model_lookup_predicate t)
+    ($smtx_model_lookup_predicate_internal t ($smtx_model_lookup t)))
+  )
+)
 
 ; program: $smtx_substitute
 ; Used to define $smtx_eval_quant.

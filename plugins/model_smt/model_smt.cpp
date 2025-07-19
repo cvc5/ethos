@@ -376,8 +376,8 @@ void ModelSmt::finalize()
   replace(finalSmt, "$EO_TYPE_ENUM_CASES$", d_typeEnum.str());
   replace(finalSmt, "$EO_IS_VALUE_CASES$", d_isValue.str());
   replace(finalSmt, "$EO_IS_TYPE_CASES$", d_isType.str());
-  replace(finalSmt, "$EO_CONST_PREDICATE_CASES$", d_constPred.str());
   replace(finalSmt, "$EO_EVAL_CASES$", d_customEval.str());
+  replace(finalSmt, "$SMT_MODEL_LOOKUP_PREDICATE_CASES$", d_constPred.str());
   // plug in the evaluation cases handled by this plugin
   replace(finalSmt, "$SMT_EVAL_CASES$", d_eval.str());
   replace(finalSmt, "$SMT_EVAL_PROGS$", d_modelEvalProgs.str());

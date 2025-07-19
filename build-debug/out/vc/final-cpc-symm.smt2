@@ -290,6 +290,19 @@
 ; fwd-decl: $smtx_model_eval
 (declare-fun $smtx_model_eval (sm.Term) vsm.Value)
 
+; fwd-decl: $smtx_model_lookup
+(declare-fun $smtx_model_lookup (sm.Term) vsm.Value)
+
+; program: $smtx_model_lookup_predicate_internal
+(define-fun $smtx_model_lookup_predicate_internal ((x1 sm.Term) (x2 vsm.Value)) Bool
+    true
+)
+
+; program: $smtx_model_lookup_predicate
+(define-fun $smtx_model_lookup_predicate ((x1 sm.Term)) Bool
+    ($smtx_model_lookup_predicate_internal x1 ($smtx_model_lookup x1))
+)
+
 ; program: $smtx_model_eval_apply
 (define-fun $smtx_model_eval_apply ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
   (ite ((_ is vsm.Map) x1)
@@ -438,10 +451,10 @@
   (=> (and (not (= x eo.Stuck)) (not (= y eo.Stuck))
     (= ($eo_hash x) ($eo_hash y))) (= x y))) :named sm.hash_injective))
 
-; The constant predicate holds for the model value of a constant.
-;(assert (! (forall ((T tsm.Type) (k sm.Term) (i Int))
-;  ($smtx_const_predicate T k i))
-; :named sm.model_is_value))
+; This axiom gives semantics to model lookups for partial functions
+(assert (! (forall ((t sm.Term))
+  ($smtx_model_lookup_predicate t))
+  :named sm.model_lookup_predicate))
 
 ;;; The verification condition
 
