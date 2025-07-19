@@ -1236,25 +1236,6 @@ TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
           std::string prefix = esname.substr(6, firstDot-6);
           tk = prefixToMetaKind(prefix);
         }
-        else if (esname == "eo.SmtTerm.arg1")
-        {
-          // corner case: the selector of terms is SMT
-          tk = TermContextKind::EUNOIA;
-        }
-        else if (esname == "eo.SmtType.arg1")
-        {
-          // corner case: the selector of terms is SMT
-          tk = TermContextKind::EUNOIA;
-        }
-        else if (esname == "eo.SmtValue.arg1")
-        {
-          // corner case: the selector of terms is SMT
-          tk = TermContextKind::EUNOIA;
-        }
-        else if (esname=="vsm.Term.arg1")
-        {
-          tk = TermContextKind::SMT_VALUE;
-        }
         else
         {
           Assert(esname != "=") << "Use smt_apply_= instead";
@@ -1363,22 +1344,7 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
       else
       {
         std::string esname = getEmbedName(child);
-        if (esname == "eo.SmtTerm.arg1" || esname == "vsm.Term.arg1")
-        {
-          // Corner case: the selector for SMT terms.
-          tk = TermContextKind::SMT;
-        }
-        else if (esname == "eo.SmtType.arg1")
-        {
-          // Corner case: the selector for SMT types.
-          tk = TermContextKind::SMT_TYPE;
-        }
-        else if (esname == "eo.SmtValue.arg1")
-        {
-          // Corner case: the selector for SMT values.
-          tk = TermContextKind::SMT_VALUE;
-        }
-        else if (esname == "ite")
+        if (esname == "ite")
         {
           Assert(child.getNumChildren() == 5);
           tk = getMetaKindReturn(child[3], parentCtx);
@@ -1466,8 +1432,8 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
     //           << htype << ", thus context is " <<
     //           termContextKindToString(tk)
     //           << std::endl;
-    //  if it is a Eunoia constant, it depends on the mapping to
-    //  datatypes, accessible via the $eo_get_meta_type method.
+    // if it is a Eunoia constant, it depends on the naming
+    // convention
     if (k == Kind::CONST && tk == TermContextKind::EUNOIA)
     {
       // otherwise, use the meta kind utility.
