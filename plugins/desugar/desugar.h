@@ -47,7 +47,7 @@ class Desugar : public StdPlugin
                       std::ostream& os,
                       std::vector<Expr>& params,
                       bool useImplicit);
-  void printParamList(const std::vector<Expr>& vars,
+  void printParamListOld(const std::vector<Expr>& vars,
                       std::ostream& os,
                       std::vector<Expr>& params,
                       bool useImplicit,
