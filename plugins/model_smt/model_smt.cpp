@@ -40,6 +40,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   d_kindToEoPrefix[Kind::RATIONAL] = "q";
   d_kindToEoPrefix[Kind::STRING] = "str";
   d_kindToEoPrefix[Kind::BINARY] = "bin";
+  d_kindToType[Kind::BOOLEAN] = "Bool";
   d_kindToType[Kind::NUMERAL] = "Int";
   d_kindToType[Kind::RATIONAL] = "Real";
   d_kindToType[Kind::STRING] = "String";

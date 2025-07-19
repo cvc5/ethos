@@ -211,13 +211,10 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
       }
       if (!isSmtBuiltin)
       {
-        os << "sm.";
-        os << (l->d_bool ? "True" : "False");
+        os << "(sm.Bool ";
+        osEnd << ")";
       }
-      else
-      {
-        os << (l->d_bool ? "true" : "false");
-      }
+      os << (l->d_bool ? "true" : "false");
     }
     else if (k == Kind::NUMERAL)
     {
@@ -1052,6 +1049,8 @@ bool SmtMetaReduce::echo(const std::string& msg)
     // when embedded into Eunoia witnesses the unsoundness.
     Expr vt = d_tc.getType(vv);
     std::stringstream varList;
+    std::stringstream eoTrue;
+    eoTrue << "(eo.SmtTerm (sm.Bool true))";
     d_smtVc << "(assert (! ";
     if (vt.getKind() == Kind::PROGRAM_TYPE)
     {
@@ -1068,11 +1067,11 @@ bool SmtMetaReduce::echo(const std::string& msg)
         call << " (eo.SmtTerm x" << i << ")";
       }
       d_smtVc << ")" << std::endl;
-      d_smtVc << "  (= (" << eosc << call.str() << ") (eo.SmtTerm sm.True)))";
+      d_smtVc << "  (= (" << eosc << call.str() << ") " << eoTrue.str() << "))";
     }
     else
     {
-      d_smtVc << "(= " << eosc << " (eo.SmtTerm sm.True))";
+      d_smtVc << "(= " << eosc << " " << eoTrue.str() << "))";
     }
     d_smtVc << " :named sm.conjecture." << vv << ")";
     d_smtVc << ")" << std::endl;

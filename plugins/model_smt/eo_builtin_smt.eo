@@ -145,9 +145,10 @@
 
 ;;; SMT term datatype constructors
 
+(define $BoolValueType () $smt_builtin_Bool)
 ; Note the Bool type is "inlined" into the final signature
-(declare-const $smd_sm.True $smt_Term)
-(declare-const $smd_sm.False $smt_Term)
+(declare-parameterized-const $smd_sm.Bool
+  ((b $BoolValueType :opaque)) $smt_Term)
 (declare-parameterized-const $smd_sm.Numeral
   ((n $smt_builtin_Int :opaque)) $smt_Term)
 (declare-parameterized-const $smd_sm.Rational
@@ -261,8 +262,8 @@
 
 ;;; External datatype access
 
-(define $sm_mk_true () $smd_sm.True)
-(define $sm_mk_false () $smd_sm.False)
+(define $sm_mk_true () ($smd_sm.Bool $smt_builtin_true))
+(define $sm_mk_false () ($smd_sm.Bool $smt_builtin_false))
 (define $sm_mk_bool ((c $smt_builtin_Bool))
   ($smt_apply_3 "ite" c $sm_mk_true $sm_mk_false))
 (define $sm_mk_z ((n $smt_builtin_Int))

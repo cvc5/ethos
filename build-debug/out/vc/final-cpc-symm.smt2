@@ -38,10 +38,8 @@
 
   )
   (
-  ; smt-cons: True
-  (sm.True)
-  ; smt-cons: False
-  (sm.False)
+  ; smt-cons: Bool
+  (sm.Bool (sm.Bool.arg1 Bool))
   ; smt-cons: Numeral
   (sm.Numeral (sm.Numeral.arg1 Int))
   ; smt-cons: Rational
@@ -144,9 +142,9 @@
   (= ($eo_typeof x1)
   (ite (= x1 eo.Stuck)
     eo.Stuck
-  (ite (and ((_ is eo.SmtTerm) x1) (= (eo.SmtTerm.arg1 x1) sm.True))
+  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Bool) (eo.SmtTerm.arg1 x1)) (= (sm.Bool.arg1 (eo.SmtTerm.arg1 x1)) true))
     (eo.SmtType tsm.Bool)
-  (ite (and ((_ is eo.SmtTerm) x1) (= (eo.SmtTerm.arg1 x1) sm.False))
+  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Bool) (eo.SmtTerm.arg1 x1)) (= (sm.Bool.arg1 (eo.SmtTerm.arg1 x1)) false))
     (eo.SmtType tsm.Bool)
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Numeral) (eo.SmtTerm.arg1 x1)))
     (eo.SmtType tsm.Int)
@@ -215,9 +213,9 @@
     ($eo_typeof_fun_type ($eo_typeof (eo.FunType.arg1 x1)) ($eo_typeof (eo.FunType.arg2 x1)))
   (ite (= x1 (eo.SmtType tsm.Bool))
     eo.Type
-  (ite (= x1 (eo.SmtTerm sm.True))
+  (ite (= x1 (eo.SmtTerm (sm.Bool true)))
     (eo.SmtType tsm.Bool)
-  (ite (= x1 (eo.SmtTerm sm.False))
+  (ite (= x1 (eo.SmtTerm (sm.Bool false)))
     (eo.SmtType tsm.Bool)
   (ite (and ((_ is eo.SmtType) x1) (= (eo.SmtType.arg1 x1) tsm.Int))
     eo.Type
@@ -267,9 +265,9 @@
 ; program: $smtx_term_is_value
 (assert (! (forall ((x1 sm.Term))
   (= ($smtx_term_is_value x1)
-  (ite (= x1 sm.True)
+  (ite (and ((_ is sm.Bool) x1) (= (sm.Bool.arg1 x1) true))
     true
-  (ite (= x1 sm.False)
+  (ite (and ((_ is sm.Bool) x1) (= (sm.Bool.arg1 x1) false))
     true
   (ite ((_ is sm.Numeral) x1)
     true
@@ -304,14 +302,14 @@
 ; program: $smtx_model_eval_not
 (define-fun $smtx_model_eval_not ((x1 vsm.Value)) vsm.Value
   (ite ((_ is vsm.Term) x1)
-    (vsm.Term (ite (not (= sm.True (vsm.Term.arg1 x1))) sm.True sm.False))
+    (vsm.Term (ite (not (= (sm.Bool true) (vsm.Term.arg1 x1))) (sm.Bool true) (sm.Bool false)))
     vsm.NotValue
 ))
 
 ; program: $smtx_model_eval_and
 (define-fun $smtx_model_eval_and ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
   (ite (and ((_ is vsm.Term) x1) ((_ is vsm.Term) x2))
-    (vsm.Term (ite (and (= sm.True (vsm.Term.arg1 x1)) (= sm.True (vsm.Term.arg1 x2))) sm.True sm.False))
+    (vsm.Term (ite (and (= (sm.Bool true) (vsm.Term.arg1 x1)) (= (sm.Bool true) (vsm.Term.arg1 x2))) (sm.Bool true) (sm.Bool false)))
     vsm.NotValue
 ))
 
@@ -319,9 +317,9 @@
 (assert (! (forall ((x1 sm.Term))
   (= ($smtx_model_eval x1)
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) ((_ is sm.Apply) (sm.Apply.arg1 (sm.Apply.arg1 x1))) (= (sm.Apply.arg1 (sm.Apply.arg1 (sm.Apply.arg1 x1))) sm.ite))
-    (ite (and ((_ is vsm.Term) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1))))) (= (vsm.Term.arg1 ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1))))) sm.True)) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) (ite (and ((_ is vsm.Term) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1))))) (= (vsm.Term.arg1 ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1))))) sm.False)) ($smtx_model_eval (sm.Apply.arg2 x1)) vsm.NotValue))
+    (ite (and ((_ is vsm.Term) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1))))) (= (vsm.Term.arg1 ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1))))) (sm.Bool true))) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) (ite (and ((_ is vsm.Term) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1))))) (= (vsm.Term.arg1 ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1))))) (sm.Bool false))) ($smtx_model_eval (sm.Apply.arg2 x1)) vsm.NotValue))
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) (= (sm.Apply.arg1 (sm.Apply.arg1 x1)) sm.=))
-    (ite (and (not ((_ is vsm.NotValue) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))))) (not ((_ is vsm.NotValue) ($smtx_model_eval (sm.Apply.arg2 x1))))) (vsm.Term (ite (= ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_model_eval (sm.Apply.arg2 x1))) sm.True sm.False)) vsm.NotValue)
+    (ite (and (not ((_ is vsm.NotValue) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))))) (not ((_ is vsm.NotValue) ($smtx_model_eval (sm.Apply.arg2 x1))))) (vsm.Term (ite (= ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_model_eval (sm.Apply.arg2 x1))) (sm.Bool true) (sm.Bool false))) vsm.NotValue)
   (ite (and ((_ is sm.Apply) x1) (= (sm.Apply.arg1 x1) sm.not))
     ($smtx_model_eval_not ($smtx_model_eval (sm.Apply.arg2 x1)))
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) (= (sm.Apply.arg1 (sm.Apply.arg1 x1)) sm.and))
@@ -337,10 +335,10 @@
 (define-fun $eo_model_sat_internal ((x1 vsm.Value)) eo.Term
   (ite false
     eo.Stuck
-  (ite (and ((_ is vsm.Term) x1) (= (vsm.Term.arg1 x1) sm.True))
-    (eo.SmtTerm sm.True)
-  (ite (and ((_ is vsm.Term) x1) (= (vsm.Term.arg1 x1) sm.False))
-    (eo.SmtTerm sm.False)
+  (ite (and ((_ is vsm.Term) x1) ((_ is sm.Bool) (vsm.Term.arg1 x1)) (= (sm.Bool.arg1 (vsm.Term.arg1 x1)) true))
+    (eo.SmtTerm (sm.Bool true))
+  (ite (and ((_ is vsm.Term) x1) ((_ is sm.Bool) (vsm.Term.arg1 x1)) (= (sm.Bool.arg1 (vsm.Term.arg1 x1)) false))
+    (eo.SmtTerm (sm.Bool false))
     eo.Stuck))))
 
 ; program: $eo_model_sat
@@ -406,7 +404,7 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    ($eo_requires ($eo_model_sat x1) (eo.SmtTerm sm.True) ($eo_requires ($eo_model_sat ($eor_symm x1)) (eo.SmtTerm sm.False) (eo.SmtTerm sm.True)))
+    ($eo_requires ($eo_model_sat x1) (eo.SmtTerm (sm.Bool true)) ($eo_requires ($eo_model_sat ($eor_symm x1)) (eo.SmtTerm (sm.Bool false)) (eo.SmtTerm (sm.Bool true))))
     eo.Stuck)))
 
 
@@ -433,7 +431,7 @@
 
 ;;;; final verification condition for $eovc_symm
 (assert (! (exists ((x1 sm.Term))
-  (= ($eovc_symm (eo.SmtTerm x1)) (eo.SmtTerm sm.True))) :named sm.conjecture.$eovc_symm))
+  (= ($eovc_symm (eo.SmtTerm x1)) (eo.SmtTerm (sm.Bool true)))) :named sm.conjecture.$eovc_symm))
 
 
 (check-sat)
