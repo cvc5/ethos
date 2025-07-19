@@ -479,8 +479,8 @@ void Desugar::printParamList(const std::vector<Expr>& vars,
                              bool useImplicit)
 {
   std::map<Expr, bool> visited;
-  bool firstParam = true;
-  printParamList(vars, os, params, useImplicit, visited, firstParam);
+  getParamList(vars, params, visited);
+  printParamListNew(os, params, useImplicit, vars);
 }
 
 void Desugar::printParamList(const std::vector<Expr>& vars,
@@ -543,6 +543,73 @@ void Desugar::printParamList(const std::vector<Expr>& vars,
       toVisit.pop_back();
       params.push_back(cur);
     }
+  }
+}
+
+void Desugar::getParamList(const std::vector<Expr>& vars,
+                           std::vector<Expr>& params,
+                           std::map<Expr, bool>& visited)
+{
+  std::map<Expr, bool>::iterator itv;
+  std::vector<Expr> toVisit(vars.begin(), vars.end());
+  Expr cur;
+  while (!toVisit.empty())
+  {
+    cur = toVisit.back();
+    Assert(cur.getKind() == Kind::PARAM);
+    itv = visited.find(cur);
+    if (itv != visited.end() && itv->second)
+    {
+      toVisit.pop_back();
+      continue;
+    }
+    Expr tcur = d_tc.getType(cur);
+    if (itv == visited.end())
+    {
+      visited[cur] = false;
+      // ensure the variables in its type has been printed
+      Assert(!tcur.isNull());
+      std::vector<Expr> tvars = Expr::getVariables(tcur);
+      toVisit.insert(toVisit.end(), tvars.begin(), tvars.end());
+      continue;
+    }
+    else if (!itv->second)
+    {
+      Assert(!itv->second);
+      visited[cur] = true;
+      params.emplace_back(cur);
+      toVisit.pop_back();
+    }
+  }
+}
+void Desugar::printParamListNew(std::ostream& os,
+                        const std::vector<Expr>& params,
+                        bool useImplicit,
+                        const std::vector<Expr>& nimplicit,
+                        bool isOpaque)
+{
+  for (size_t i=0, nparams=params.size(); i<nparams; i++)
+  {
+    if (i>0)
+    {
+      os << " ";
+    }
+    Expr cur = params[i];
+    os << "(" << cur << " ";
+    Expr tcur = d_tc.getType(cur);
+    printTerm(tcur, os);
+    if (std::find(nimplicit.begin(), nimplicit.end(), cur)==nimplicit.end())
+    {
+      if (useImplicit)
+      {
+        os << " :implicit";
+      }
+    }
+    else if (isOpaque)
+    {
+      os << " :opaque";
+    }
+    os << ")";
   }
 }
 

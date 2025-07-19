@@ -54,6 +54,14 @@ class Desugar : public StdPlugin
                       std::map<Expr, bool>& visited,
                       bool& firstParam,
                       bool isOpaque = false);
+  void getParamList(const std::vector<Expr>& vars,
+                    std::vector<Expr>& params,
+                    std::map<Expr, bool>& visited);
+  void printParamListNew(std::ostream& os,
+                          const std::vector<Expr>& params,
+                          bool useImplicit,
+                         const std::vector<Expr>& nimplicit,
+                          bool isOpaque=false);
   void finalizeProgram(const Expr& v, const Expr& prog, std::ostream& os);
   void finalizeDefinition(const std::string& name, const Expr& t);
   void finalizeDeclaration(const Expr& t, std::ostream& os) override;
