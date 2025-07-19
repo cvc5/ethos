@@ -460,8 +460,8 @@
   :signature (Bool) Bool
   (
   (($eovc_symm F)
-     (eo::requires ($eo_model_sat F) true
-     (eo::requires ($eo_model_sat ($eor_symm F)) false
+     ($eo_requires ($eo_model_sat F) true
+     ($eo_requires ($eo_model_sat ($eor_symm F)) false
        true)))
   )
 )

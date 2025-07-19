@@ -37,7 +37,13 @@
 (declare-const $eo_Term Type)
 
 ; fail
-(define $eo_fail () (eo::requires true false true))
+(program $eo_fail_prog ()
+  :signature (Bool) Bool
+  (
+  (($eo_fail_prog true) true)
+  )
+)
+(define $eo_fail () ($eo_fail_prog false))
 
 ; forward declaration
 (program $eo_typeof ((T Type))

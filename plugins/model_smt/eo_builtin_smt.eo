@@ -778,8 +778,8 @@
 ; define: $eo_is_eq
 ; implements: eo::is_eq
 (define $eo_is_eq ((t $eo_Term) (s $eo_Term))
-  (eo::ite (eo::is_ok t)
-    (eo::ite (eo::is_ok s)
+  ($eo_ite ($eo_is_ok t)
+    ($eo_ite ($eo_is_ok s)
       ($eo_mk_bool ($smt_apply_= s t))  ; Note it is sound to use SMT-LIB equality, since we are guarding stuckness
       $eo_false)
     $eo_false))
@@ -865,7 +865,7 @@
   :signature ($eo_Term $eo_Term) $eo_Term
   (
   (($eo_var ($eo_mk_string s) T)
-      (eo::requires ($eo_typeof T) Type
+      ($eo_requires ($eo_typeof T) Type
         ($eo_Var s T)))
   )
 )

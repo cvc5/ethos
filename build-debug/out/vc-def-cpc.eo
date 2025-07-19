@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm $eo_typeof_main $eo_String $eo_Numeral $eo_Rational $eo_Binary $eo_dt_constructors $eo_dt_selectors
-; #trim-defs: 46
+; #trim-defs: 47
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -12,7 +12,13 @@
 (define $eo_String () (Seq Char))
 (define $eo_Binary () Type)
 (declare-const $eo_Term Type)
-(define $eo_fail () (eo::requires true false true))
+(program $eo_fail_prog ()
+  :signature (Bool) Bool
+  (
+  (($eo_fail_prog true) true)
+  )
+)
+(define $eo_fail () ($eo_fail_prog false))
 (program $eo_typeof ((T Type))
   :signature (T) Type)
 (echo "include eo_builtin_smt")
