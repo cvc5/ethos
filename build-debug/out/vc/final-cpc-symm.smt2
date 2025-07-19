@@ -302,14 +302,14 @@
 ; program: $smtx_model_eval_not
 (define-fun $smtx_model_eval_not ((x1 vsm.Value)) vsm.Value
   (ite ((_ is vsm.Term) x1)
-    (vsm.Term (ite (not (= (sm.Bool true) (vsm.Term.arg1 x1))) (sm.Bool true) (sm.Bool false)))
+    (vsm.Term (sm.Bool (not (= (sm.Bool true) (vsm.Term.arg1 x1)))))
     vsm.NotValue
 ))
 
 ; program: $smtx_model_eval_and
 (define-fun $smtx_model_eval_and ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
   (ite (and ((_ is vsm.Term) x1) ((_ is vsm.Term) x2))
-    (vsm.Term (ite (and (= (sm.Bool true) (vsm.Term.arg1 x1)) (= (sm.Bool true) (vsm.Term.arg1 x2))) (sm.Bool true) (sm.Bool false)))
+    (vsm.Term (sm.Bool (and (= (sm.Bool true) (vsm.Term.arg1 x1)) (= (sm.Bool true) (vsm.Term.arg1 x2)))))
     vsm.NotValue
 ))
 
@@ -319,7 +319,7 @@
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) ((_ is sm.Apply) (sm.Apply.arg1 (sm.Apply.arg1 x1))) (= (sm.Apply.arg1 (sm.Apply.arg1 (sm.Apply.arg1 x1))) sm.ite))
     (ite (and ((_ is vsm.Term) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1))))) (= (vsm.Term.arg1 ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1))))) (sm.Bool true))) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) (ite (and ((_ is vsm.Term) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1))))) (= (vsm.Term.arg1 ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1))))) (sm.Bool false))) ($smtx_model_eval (sm.Apply.arg2 x1)) vsm.NotValue))
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) (= (sm.Apply.arg1 (sm.Apply.arg1 x1)) sm.=))
-    (ite (and (not ((_ is vsm.NotValue) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))))) (not ((_ is vsm.NotValue) ($smtx_model_eval (sm.Apply.arg2 x1))))) (vsm.Term (ite (= ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_model_eval (sm.Apply.arg2 x1))) (sm.Bool true) (sm.Bool false))) vsm.NotValue)
+    (ite (and (not ((_ is vsm.NotValue) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))))) (not ((_ is vsm.NotValue) ($smtx_model_eval (sm.Apply.arg2 x1))))) (vsm.Term (sm.Bool (= ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_model_eval (sm.Apply.arg2 x1))))) vsm.NotValue)
   (ite (and ((_ is sm.Apply) x1) (= (sm.Apply.arg1 x1) sm.not))
     ($smtx_model_eval_not ($smtx_model_eval (sm.Apply.arg2 x1)))
   (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) (= (sm.Apply.arg1 (sm.Apply.arg1 x1)) sm.and))

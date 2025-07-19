@@ -265,7 +265,7 @@
 (define $sm_mk_true () ($smd_sm.Bool $smt_builtin_true))
 (define $sm_mk_false () ($smd_sm.Bool $smt_builtin_false))
 (define $sm_mk_bool ((c $smt_builtin_Bool))
-  ($smt_apply_3 "ite" c $sm_mk_true $sm_mk_false))
+  ($smd_sm.Bool c))
 (define $sm_mk_z ((n $smt_builtin_Int))
   ($smd_sm.Numeral n))
 (define $sm_mk_q ((r $smt_builtin_Real))
