@@ -54,7 +54,7 @@ class Desugar : public StdPlugin
                       std::map<Expr, bool>& visited,
                       bool& firstParam,
                       bool isOpaque = false);
-  void finalizeProgram(const Expr& v, const Expr& prog);
+  void finalizeProgram(const Expr& v, const Expr& prog, std::ostream& os);
   void finalizeDefinition(const std::string& name, const Expr& t);
   void finalizeDeclaration(const Expr& t, std::ostream& os) override;
   void finalizeRule(const Expr& v);

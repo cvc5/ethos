@@ -71,48 +71,48 @@ void Desugar::defineProgram(const Expr& v, const Expr& prog)
   d_declSeen.emplace_back(pair, Kind::PROGRAM_CONST);
 }
 
-void Desugar::finalizeProgram(const Expr& e, const Expr& prog)
+void Desugar::finalizeProgram(const Expr& e, const Expr& prog, std::ostream& os)
 {
   Expr p = e;
   Expr pt = d_tc.getType(p);
   std::vector<Expr> pandt{pt, prog};
   std::vector<Expr> vars = Expr::getVariables(pandt);
-  d_defs << "; " << (prog.isNull() ? "fwd-decl: " : "program: ") << e
+  os << "; " << (prog.isNull() ? "fwd-decl: " : "program: ") << e
          << std::endl;
-  d_defs << "(program " << e << " (";
+  os << "(program " << e << " (";
   std::vector<Expr> params;
-  printParamList(vars, d_defs, params, false);
-  d_defs << ")" << std::endl;
+  printParamList(vars, os, params, false);
+  os << ")" << std::endl;
   Assert(pt.getKind() == Kind::PROGRAM_TYPE);
   Assert(pt.getNumChildren() > 1);
-  d_defs << "  :signature (";
+  os << "  :signature (";
   size_t pargs = pt.getNumChildren() - 1;
   for (size_t i = 0; i < pargs; i++)
   {
     if (i > 0)
     {
-      d_defs << " ";
+      os << " ";
     }
-    printTerm(pt[i], d_defs);
+    printTerm(pt[i], os);
   }
-  d_defs << ") ";
-  printTerm(pt[pargs], d_defs);
-  d_defs << std::endl;
+  os << ") ";
+  printTerm(pt[pargs], os);
+  os << std::endl;
   if (!prog.isNull())
   {
-    d_defs << "  (" << std::endl;
+    os << "  (" << std::endl;
     for (size_t i = 0, ncases = prog.getNumChildren(); i < ncases; i++)
     {
       const Expr& c = prog[i];
-      d_defs << "  (";
-      printTerm(c[0], d_defs);
-      d_defs << " ";
-      printTerm(c[1], d_defs);
-      d_defs << ")" << std::endl;
+      os << "  (";
+      printTerm(c[0], os);
+      os << " ";
+      printTerm(c[1], os);
+      os << ")" << std::endl;
     }
-    d_defs << "  )" << std::endl;
+    os << "  )" << std::endl;
   }
-  d_defs << ")" << std::endl;
+  os << ")" << std::endl;
 }
 
 void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
@@ -579,6 +579,10 @@ void Desugar::finalizeRule(const Expr& e)
   // std::cout << "Finalize rule " << e << std::endl;
   Expr r = e;
   Expr rto = d_tc.getType(r);
+#if 0
+  // Make program
+
+#else
   // std::cout << "Finalize " << r << std::endl;
   // std::cout << "Type is " << rto << std::endl;
   //  compile to Eunoia program
@@ -746,6 +750,7 @@ void Desugar::finalizeRule(const Expr& e)
   d_eoVc << std::endl;
   // write a command to indicate that we should process the above vc
   d_eoVc << "(echo \"smt-meta $eovc_" << e << "\")" << std::endl;
+#endif
 }
 
 void Desugar::finalizeDatatype(const Expr& e, Attr a, const Expr& attrCons)
@@ -838,7 +843,7 @@ void Desugar::finalize()
     else if (k == Kind::PROGRAM_CONST)
     {
       Assert(e.getNumChildren() == 2);
-      finalizeProgram(e[0], e[1]);
+      finalizeProgram(e[0], e[1], d_defs);
     }
     else
     {

@@ -154,15 +154,14 @@
   ((T $smt_Type) (U $smt_Type) (t $smt_Value) (u $smt_Value) (M $smt_Map))
   :signature ($smt_Map $smt_Type) $smt_builtin_Bool
   (
-  (($smtx_map_is_redundant ($map_default u) U)     false)
+  (($smtx_map_is_redundant ($map_default u) U)     $smt_builtin_false)
   (($smtx_map_is_redundant ($map_cons t u M) U)
     ; lookup value on tail
-    (eo::define ((ru ($smtx_map_lookup t M)))
     ; if it is the same, this index is redundant and thus we are not a value
     ($smt_apply_3 "ite"
-      ($smt_apply_= ru u)
-      $smt_builtin_false
-      ($smtx_map_is_redundant M))))
+      ($smt_apply_= ($smtx_map_lookup t M) u)
+      $smt_builtin_true
+      ($smtx_map_is_redundant M)))
   )
 )
 
