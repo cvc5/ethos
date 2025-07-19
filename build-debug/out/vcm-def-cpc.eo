@@ -529,11 +529,10 @@
 
 ; program: $eo_not
 ; implements: eo::not
-(program $eo_not ((w $smt_builtin_Int) (n $smt_builtin_Int))
+(program $eo_not ((b $smt_builtin_Bool) (w $smt_builtin_Int) (n $smt_builtin_Int))
   :signature ($eo_Term) $eo_Term
   (
-  (($eo_not $eo_true)          $eo_false)
-  (($eo_not $eo_false)         $eo_true)
+  (($eo_not ($eo_mk_bool b))   ($eo_mk_bool ($smt_apply_1 "not" b)))
   (($eo_not ($eo_binary w n))  ($eo_mk_binary w ($sm_mk_binary_not w n)))
   )
 )
@@ -541,13 +540,12 @@
 ; program: $eo_and
 ; implements: eo::and
 (program $eo_and
-  ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+  ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool) (w $smt_builtin_Int)
+   (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
-  (($eo_and $eo_mk_true $eo_mk_true)   $eo_mk_true)
-  (($eo_and $eo_mk_true $eo_mk_false)  $eo_mk_false)
-  (($eo_and $eo_mk_false $eo_mk_true)  $eo_mk_false)
-  (($eo_and $eo_mk_false $eo_mk_false) $eo_mk_false)
+  (($eo_and ($eo_mk_bool b1) ($eo_mk_bool b2))
+     ($eo_mk_bool ($smt_apply_2 "and" b1 b2)))
   (($eo_and ($eo_binary w n1) ($eo_binary w n2))
      ($eo_mk_binary w ($sm_mk_binary_and w n1 n2)))
   )
@@ -556,13 +554,12 @@
 ; program: $eo_or
 ; implements: eo::or
 (program $eo_or
-  ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+  ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool) (w $smt_builtin_Int)
+   (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
-  (($eo_or $eo_mk_true $eo_mk_true)   $eo_mk_true)
-  (($eo_or $eo_mk_true $eo_mk_false)  $eo_mk_true)
-  (($eo_or $eo_mk_false $eo_mk_true)  $eo_mk_true)
-  (($eo_or $eo_mk_false $eo_mk_false) $eo_mk_false)
+  (($eo_or ($eo_mk_bool b1) ($eo_mk_bool b2))
+     ($eo_mk_bool ($smt_apply_2 "or" b1 b2)))
   (($eo_or ($eo_binary w n1) ($eo_binary w n2))
      ($eo_mk_binary w ($sm_mk_binary_or w n1 n2)))
   )
@@ -570,13 +567,13 @@
 
 ; program: $eo_xor
 ; implements: eo::xor
-(program $eo_xor ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+(program $eo_xor
+  ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool) (w $smt_builtin_Int)
+   (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
-  (($eo_xor $eo_mk_true $eo_mk_true)   $eo_mk_false)
-  (($eo_xor $eo_mk_true $eo_mk_false)  $eo_mk_true)
-  (($eo_xor $eo_mk_false $eo_mk_true)  $eo_mk_true)
-  (($eo_xor $eo_mk_false $eo_mk_false) $eo_mk_false)
+  (($eo_xor ($eo_mk_bool b1) ($eo_mk_bool b2))
+     ($eo_mk_bool ($smt_apply_2 "xor" b1 b2)))
   (($eo_xor ($eo_binary w n1) ($eo_binary w n2))
      ($eo_mk_binary w ($sm_mk_binary_or w n1 n2)))
   )
