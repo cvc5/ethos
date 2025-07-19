@@ -11,10 +11,52 @@
 
 namespace ethos {
 
-ProgramOutCtx::ProgramOutCtx(size_t pcount)
-    : d_varCount(0), d_progCount(pcount)
+ProgramOutCtx::ProgramOutCtx(State& s, size_t pcount)
+    : d_state(s), d_progPrefix("$eop_"), d_varCount(0), d_progCount(pcount)
 {
 
+}
+
+void ProgramOutCtx::addArg(const Expr& a)
+{
+  Expr aa = a;
+  Expr taa = d_state.getTypeChecker().getType(aa);
+  // if type is null, then we can introduce a type parameter
+  // this gives a warning
+  if (taa.isNull())
+  {
+    std::cout << "WARNING: unknown type for " << aa << std::endl;
+    taa = d_state.mkSymbol(Kind::PARAM, "tmp", d_state.mkType());
+  }
+  addArgTyped(a, taa);
+}
+
+void ProgramOutCtx::addArgTyped(const Expr& a, const Expr& at)
+{
+  d_args.push_back(a);
+  d_argTypes.push_back(at);
+}
+
+Expr ProgramOutCtx::allocateProgram(const Expr& retType)
+{
+  Assert (!retType.isNull());
+  Expr progType = d_state.mkProgramType(d_argTypes, retType);
+  d_progCount++;
+  std::stringstream ss;
+  ss << d_progPrefix << d_progCount;
+  Expr prog = d_state.mkSymbol(Kind::PARAM, ss.str(), progType);
+  std::vector<Expr> children;
+  children.push_back(prog);
+  children.insert(children.end(), d_args.begin(), d_args.end());
+  return d_state.mkExprSimple(Kind::APPLY, children);
+}
+Expr ProgramOutCtx::allocateVariable(const Expr& retType)
+{
+  Assert (!retType.isNull());
+  d_varCount++;
+  std::stringstream ss;
+  ss << "$eo_" << d_varCount;
+  return d_state.mkSymbol(Kind::PARAM, ss.str(), retType);
 }
 
 FlattenEval::FlattenEval(State& s) : StdPlugin(s) {}
@@ -27,19 +69,18 @@ void FlattenEval::flattenEval(State& s,
                               std::ostream& osp)
 {
   size_t pcount = 0;
-  ProgramOutCtx ctx(pcount);
+  ProgramOutCtx ctx(s, pcount);
   Assert(pat.getKind() == Kind::APPLY);
   Expr prog = pat[0];
   Expr progType = s.getTypeChecker().getType(prog);
   Assert(progType.getNumChildren() == pat.getNumChildren());
   for (size_t i = 1, nargs = pat.getNumChildren(); i < nargs; i++)
   {
-    ctx.d_args.push_back(pat[i]);
-    ctx.d_argTypes.push_back(progType[i - 1]);
+    ctx.addArgTyped(pat[i], progType[i-1]);
   }
   flattenEvalInternal(s, ctx, body, os, osp);
   // update the global context
-  pcount = ctx.d_progCount;
+  //pcount = ctx.d_progCount;
 }
 
 void FlattenEval::flattenEval(State& s,
@@ -48,20 +89,17 @@ void FlattenEval::flattenEval(State& s,
                 std::ostream& osp)
 {
   size_t pcount = 0;
-  ProgramOutCtx ctx(pcount);
+  ProgramOutCtx ctx(s, pcount);
   // get the free variables, which will be the arguments
   std::vector<Expr> vars = Expr::getVariables(t);
   TypeChecker& tc = s.getTypeChecker();
   for (const Expr& v : vars)
   {
-    Expr vv = v;
-    Expr vt = tc.getType(vv);
-    ctx.d_args.push_back(v);
-    ctx.d_argTypes.push_back(vt);
+    ctx.addArg(v);
   }
   flattenEvalInternal(s, ctx, t, os, osp);
-  // update the global context
-  pcount = ctx.d_progCount;
+  // update the global context??
+  //pcount = ctx.d_progCount;
 }
 
 void FlattenEval::flattenEvalInternal(State& s,
@@ -71,16 +109,39 @@ void FlattenEval::flattenEvalInternal(State& s,
                                   std::ostream& osp)
 {
   std::vector<Expr> newEvals;
-  Expr bodyFinal = mkPurifyEvaluation(s, t, ctx, newEvals);
-  while (!newEvals.empty())
+  std::map<Expr, Expr>& visited = ctx.d_visited;
+  Expr bodyFinal = t;
+  std::vector<std::pair<Expr, std::ostream*>> toVisit;
+  toVisit.emplace_back(t, &os);
+  std::pair<Expr, std::ostream*> cur;
+  TypeChecker& tc = s.getTypeChecker();
+  do
   {
+    cur = toVisit.back();
+    toVisit.pop_back();
+    Expr curTerm = cur.first;
+    newEvals.clear();
+    mkPurifyEvaluation(s, curTerm, ctx, newEvals);
     size_t nnewEval = newEvals.size();
-    for (size_t i=0; i<nnewEval; i++)
+    if (nnewEval>0)
     {
-
+      for (size_t i=0; i<nnewEval; i++)
+      {
+        Expr ceval = newEvals[i];
+        Expr cvar = visited[ceval];
+        Assert (!cvar.isNull() && cvar.getKind()==Kind::PARAM);
+        Kind cek = ceval.getKind();
+      }
+      Expr curTermT = tc.getType(curTerm);
+      Expr prog = ctx.allocateProgram(curTermT);
+    }
+    else
+    {
+      // otherwise, not necessary
+      (*cur.second) << curTerm;
     }
   }
-  os << bodyFinal;
+  while (!toVisit.empty());
 }
 
 bool FlattenEval::isPure(const Expr& e)
@@ -153,12 +214,13 @@ Expr FlattenEval::mkPurifyEvaluation(State& s,
       else if (isPure(cur))
       {
         newEvals.emplace_back(cur);
-        ctx.d_varCount++;
-        std::stringstream ss;
-        ss << "$eo_" << ctx.d_varCount;
         Expr curt = s.getTypeChecker().getType(cur);
-        Assert(!curt.isNull()) << "Failed to type check " << cur;
-        Expr v = s.mkSymbol(Kind::PARAM, ss.str(), curt);
+        if (curt.isNull())
+        {
+          std::cout << "WARNING: Failed to type check " << cur << std::endl;
+          curt = s.mkAny();
+        }
+        Expr v = ctx.allocateVariable(curt);
         visited[cur] = v;
         visit.pop_back();
         continue;

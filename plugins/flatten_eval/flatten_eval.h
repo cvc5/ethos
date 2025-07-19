@@ -31,12 +31,19 @@ class ProgramOut
 class ProgramOutCtx
 {
  public:
-  ProgramOutCtx(size_t pcount);
+  ProgramOutCtx(State& s, size_t pcount);
+  void addArg(const Expr& a);
+  void addArgTyped(const Expr& a, const Expr& at);
+  Expr allocateProgram(const Expr& retType);
+  Expr allocateVariable(const Expr& retType);
+  std::map<Expr, Expr> d_visited;
+ private:
+   State& d_state;
   std::vector<Expr> d_args;
   std::vector<Expr> d_argTypes;
+  std::string d_progPrefix;
   size_t d_varCount;
   size_t d_progCount;
-  std::map<Expr, Expr> d_visited;
 };
 
 /**
