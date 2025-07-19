@@ -32,19 +32,26 @@ class ProgramOutCtx
 {
  public:
   ProgramOutCtx(State& s, size_t pcount);
-  void addArg(const Expr& a);
-  void addArgTyped(const Expr& a, const Expr& at);
-  Expr allocateProgram(const Expr& retType);
+  void pushArg(const Expr& a);
+  void pushArgTyped(const Expr& a, const Expr& at);
+  void popArg();
   Expr allocateVariable(const Expr& retType);
+  Expr allocateProgram(const std::vector<Expr>& nvars, const std::vector<Expr>& nargs, const Expr& ret);
+  std::vector<Expr> getArgs() { return d_args; }
   std::map<Expr, Expr> d_visited;
 
  private:
+  Expr ensureFinalArg(const Expr& e);
+  Expr allocateProgramInternal(const Expr& retType);
+  Expr mkCurrentProgramPat(const Expr& prog);
+  Expr getTypeInternal(const Expr& e);
   State& d_state;
   std::vector<Expr> d_args;
   std::vector<Expr> d_argTypes;
   std::string d_progPrefix;
   size_t d_varCount;
   size_t d_progCount;
+  std::vector<std::pair<Expr, Expr>> d_progAlloc;
 };
 
 /**
@@ -63,20 +70,16 @@ class FlattenEval : public StdPlugin
    * v. Prints the returned term equivalent to caseBody on os. Introduces
    * auxiliary programs to do so, printed on osp.
    */
-  static void flattenEval(State& s,
+  static Expr flattenEval(State& s,
+                          ProgramOutCtx& ctx,
                           const Expr& pat,
-                          const Expr& body,
-                          std::ostream& os,
-                          std::ostream& osp);
-  static void flattenEval(State& s,
-                          const Expr& t,
-                          std::ostream& os,
-                          std::ostream& osp);
-  static void flattenEvalInternal(State& s,
+                          const Expr& body);
+  static Expr flattenEval(State& s,
+                          ProgramOutCtx& ctx,
+                          const Expr& t);
+  static Expr flattenEvalInternal(State& s,
                                   ProgramOutCtx& ctx,
-                                  const Expr& t,
-                                  std::ostream& os,
-                                  std::ostream& osp);
+                                  const Expr& t);
   /**
    * True if this is an invocation of evaluation that can be purified.
    */

@@ -16,39 +16,87 @@ ProgramOutCtx::ProgramOutCtx(State& s, size_t pcount)
 {
 }
 
-void ProgramOutCtx::addArg(const Expr& a)
+Expr ProgramOutCtx::getTypeInternal(const Expr& e)
 {
-  Expr aa = a;
-  Expr taa = d_state.getTypeChecker().getType(aa);
+  Expr etmp = e;
+  Expr te = d_state.getTypeChecker().getType(etmp);
   // if type is null, then we can introduce a type parameter
   // this gives a warning
-  if (taa.isNull())
+  if (te.isNull())
   {
-    std::cout << "WARNING: unknown type for " << aa << std::endl;
-    taa = d_state.mkSymbol(Kind::PARAM, "tmp", d_state.mkType());
+    std::cout << "WARNING: unknown type for " << e << std::endl;
+    te = d_state.mkSymbol(Kind::PARAM, "tmp", d_state.mkType());
   }
-  addArgTyped(a, taa);
+  return te;
+}
+void ProgramOutCtx::pushArg(const Expr& a)
+{
+  Expr taa = getTypeInternal(a);
+  pushArgTyped(a, taa);
 }
 
-void ProgramOutCtx::addArgTyped(const Expr& a, const Expr& at)
+void ProgramOutCtx::pushArgTyped(const Expr& a, const Expr& at)
 {
   d_args.push_back(a);
   d_argTypes.push_back(at);
 }
 
-Expr ProgramOutCtx::allocateProgram(const Expr& retType)
+void ProgramOutCtx::popArg()
+{
+  Assert (!d_args.empty());
+  d_args.pop_back();
+  d_argTypes.pop_back();
+}
+
+Expr ProgramOutCtx::allocateProgram(const std::vector<Expr>& nvars, const std::vector<Expr>& nargs, const Expr& ret)
+{
+  Assert (nvars.size()==nargs.size());
+  size_t numVars = nvars.size();
+  for (size_t i=0; i<numVars; i++)
+  {
+    pushArg(nvars[i]);
+  }
+  Expr retType = getTypeInternal(ret);
+  Expr prog = allocateProgramInternal(retType);
+
+  // the case
+  Expr progCase = mkCurrentProgramPat(prog);
+  Expr progPair = d_state.mkPair(progCase, ret);
+  Expr progDef = d_state.mkExpr(Kind::PROGRAM, {progPair});
+  d_progAlloc.emplace_back(prog, progDef);
+  for (size_t i=0; i<numVars; i++)
+  {
+    popArg();
+  }
+  std::vector<Expr> pappChildren;
+  pappChildren.push_back(prog);
+  pappChildren.insert(pappChildren.end(), d_args.begin(), d_args.end());
+  for (size_t i=0; i<numVars; i++)
+  {
+    pappChildren.push_back(ensureFinalArg(nargs[i]));
+  }
+  Expr progApp = d_state.mkExprSimple(Kind::APPLY, pappChildren);
+  return progApp;
+}
+
+Expr ProgramOutCtx::mkCurrentProgramPat(const Expr& prog)
+{
+  std::vector<Expr> pcChildren;
+  pcChildren.push_back(prog);
+  pcChildren.insert(pcChildren.end(), d_args.begin(), d_args.end());
+  return d_state.mkExprSimple(Kind::APPLY, pcChildren);
+}
+
+Expr ProgramOutCtx::allocateProgramInternal(const Expr& retType)
 {
   Assert(!retType.isNull());
   Expr progType = d_state.mkProgramType(d_argTypes, retType);
   d_progCount++;
   std::stringstream ss;
   ss << d_progPrefix << d_progCount;
-  Expr prog = d_state.mkSymbol(Kind::PARAM, ss.str(), progType);
-  std::vector<Expr> children;
-  children.push_back(prog);
-  children.insert(children.end(), d_args.begin(), d_args.end());
-  return d_state.mkExprSimple(Kind::APPLY, children);
+  return d_state.mkSymbol(Kind::PROGRAM_CONST, ss.str(), progType);
 }
+
 Expr ProgramOutCtx::allocateVariable(const Expr& retType)
 {
   Assert(!retType.isNull());
@@ -58,88 +106,154 @@ Expr ProgramOutCtx::allocateVariable(const Expr& retType)
   return d_state.mkSymbol(Kind::PARAM, ss.str(), retType);
 }
 
+Expr ProgramOutCtx::ensureFinalArg(const Expr& e)
+{
+  Kind k = e.getKind();
+  if (k==Kind::EVAL_IF_THEN_ELSE)
+  {
+    Expr et = getTypeInternal(e);
+    Expr btrue = d_state.mkTrue();
+    Expr prog;
+    std::vector<Expr> pcs;
+    for (size_t i=0; i<2; i++)
+    {
+      Expr bvalue = d_state.mkBool(i==0);
+      Expr progRet = i==0 ? e[1] : e[2];
+      // should have already ensured branches are pure
+      Assert (FlattenEval::isPure(progRet));
+      pushArg(bvalue);
+      if (i==0)
+      {
+        prog = allocateProgramInternal(et);
+      }
+      Expr progCase = mkCurrentProgramPat(prog);
+      Expr progPair = d_state.mkPair(progCase, progRet);
+      pcs.push_back(progPair);
+      popArg();
+    }
+    Expr progDef = d_state.mkExpr(Kind::PROGRAM, pcs);
+    d_progAlloc.emplace_back(prog, progDef);
+    std::vector<Expr> pappChildren;
+    pappChildren.push_back(prog);
+    pappChildren.insert(pappChildren.end(), d_args.begin(), d_args.end());
+    pappChildren.push_back(e[0]);
+    return d_state.mkExprSimple(Kind::APPLY, pappChildren);
+  }
+  else if (k==Kind::EVAL_REQUIRES)
+  {
+    // should have already ensured the return is pure.
+    Assert (FlattenEval::isPure(e[2]));
+    Expr et = getTypeInternal(e);
+    Expr prog = allocateProgramInternal(et);
+    Expr var = allocateVariable(et);
+    // args 0 and 1 must be equal, or else we are not evaluated
+    pushArg(var);
+    pushArg(var);
+    Expr progCase = mkCurrentProgramPat(prog);
+    Expr progPair = d_state.mkPair(progCase, e[2]);
+    Expr progDef = d_state.mkExpr(Kind::PROGRAM, {progPair});
+    d_progAlloc.emplace_back(prog, progDef);
+    popArg();
+    popArg();
+    std::vector<Expr> pappChildren;
+    pappChildren.push_back(prog);
+    pappChildren.insert(pappChildren.end(), d_args.begin(), d_args.end());
+    pappChildren.push_back(e[0]);
+    pappChildren.push_back(e[1]);
+    return d_state.mkExprSimple(Kind::APPLY, pappChildren);
+  }
+  return e;
+}
+
+
 FlattenEval::FlattenEval(State& s) : StdPlugin(s) {}
 FlattenEval::~FlattenEval() {}
 
-void FlattenEval::flattenEval(State& s,
+Expr FlattenEval::flattenEval(State& s,
+                              ProgramOutCtx& ctx,
                               const Expr& pat,
-                              const Expr& body,
-                              std::ostream& os,
-                              std::ostream& osp)
+                              const Expr& body)
 {
-  size_t pcount = 0;
-  ProgramOutCtx ctx(s, pcount);
   Assert(pat.getKind() == Kind::APPLY);
   Expr prog = pat[0];
   Expr progType = s.getTypeChecker().getType(prog);
   Assert(progType.getNumChildren() == pat.getNumChildren());
   for (size_t i = 1, nargs = pat.getNumChildren(); i < nargs; i++)
   {
-    ctx.addArgTyped(pat[i], progType[i - 1]);
+    ctx.pushArgTyped(pat[i], progType[i - 1]);
   }
-  flattenEvalInternal(s, ctx, body, os, osp);
-  // update the global context
-  // pcount = ctx.d_progCount;
+  return flattenEvalInternal(s, ctx, body);
 }
 
-void FlattenEval::flattenEval(State& s,
-                              const Expr& t,
-                              std::ostream& os,
-                              std::ostream& osp)
+Expr FlattenEval::flattenEval(State& s,
+                              ProgramOutCtx& ctx,
+                              const Expr& t)
 {
-  size_t pcount = 0;
-  ProgramOutCtx ctx(s, pcount);
   // get the free variables, which will be the arguments
+  // to potential programs
   std::vector<Expr> vars = Expr::getVariables(t);
-  TypeChecker& tc = s.getTypeChecker();
   for (const Expr& v : vars)
   {
-    ctx.addArg(v);
+    ctx.pushArg(v);
   }
-  flattenEvalInternal(s, ctx, t, os, osp);
-  // update the global context??
-  // pcount = ctx.d_progCount;
+  return flattenEvalInternal(s, ctx, t);
 }
 
-void FlattenEval::flattenEvalInternal(State& s,
+Expr FlattenEval::flattenEvalInternal(State& s,
                                       ProgramOutCtx& ctx,
-                                      const Expr& t,
-                                      std::ostream& os,
-                                      std::ostream& osp)
+                                      const Expr& t)
 {
-  std::vector<Expr> newEvals;
   std::map<Expr, Expr>& visited = ctx.d_visited;
-  Expr bodyFinal = t;
-  std::vector<std::pair<Expr, std::ostream*>> toVisit;
-  toVisit.emplace_back(t, &os);
-  std::pair<Expr, std::ostream*> cur;
-  TypeChecker& tc = s.getTypeChecker();
+  std::map<Expr, std::vector<Expr>> newEvals;
+  std::map<Expr, std::vector<Expr>>::iterator itp;
+  std::vector<Expr> toVisit;
+  toVisit.emplace_back(t);
+  Expr curTerm;
   do
   {
-    cur = toVisit.back();
-    toVisit.pop_back();
-    Expr curTerm = cur.first;
-    newEvals.clear();
-    mkPurifyEvaluation(s, curTerm, ctx, newEvals);
-    size_t nnewEval = newEvals.size();
-    if (nnewEval > 0)
+    Expr prevTerm = curTerm;
+    curTerm = toVisit.back();
+    itp = newEvals.find(curTerm);
+    if (itp==newEvals.end())
     {
-      for (size_t i = 0; i < nnewEval; i++)
+      std::vector<Expr>& nevals = newEvals[curTerm];
+      Expr curTermPurify = mkPurifyEvaluation(s, curTerm, ctx, nevals);
+      if (curTermPurify==curTerm)
       {
-        Expr ceval = newEvals[i];
+        Assert (nevals.empty());
+        toVisit.pop_back();
+        continue;
+      }
+      Assert (!nevals.empty());
+      // push a context change
+      for (size_t i = 0, nnewEval = nevals.size(); i < nnewEval; i++)
+      {
+        Expr ceval = nevals[i];
         Expr cvar = visited[ceval];
         Assert(!cvar.isNull() && cvar.getKind() == Kind::PARAM);
-        Kind cek = ceval.getKind();
+        ctx.pushArg(cvar);
       }
-      Expr curTermT = tc.getType(curTerm);
-      Expr prog = ctx.allocateProgram(curTermT);
+      toVisit.emplace_back(curTermPurify);
+      //Expr prog = ctx.allocateProgram(curTermT);
+      continue;
     }
-    else
+    Assert (!prevTerm.isNull());
+    toVisit.pop_back();
+    std::vector<Expr>& nevals = itp->second;
+    std::vector<Expr> nvars;
+    for (size_t i = 0, nnewEval = nevals.size(); i < nnewEval; i++)
     {
-      // otherwise, not necessary
-      (*cur.second) << curTerm;
+      Expr ceval = nevals[i];
+      Expr cvar = visited[ceval];
+      nvars.push_back(cvar);
+      ctx.popArg();
     }
+    // call allocate program, which will allocate the program and
+    // return the call.
+    curTerm = ctx.allocateProgram(nvars, nevals, prevTerm);
   } while (!toVisit.empty());
+  Assert (visited.find(t)!=visited.end());
+  return visited[t];
 }
 
 bool FlattenEval::isPure(const Expr& e)
@@ -157,6 +271,7 @@ bool FlattenEval::isPure(const Expr& e)
   {
     return false;
   }
+  // we are not pure if one of our relevant children is not pure.
   size_t istart = (k == Kind::APPLY ? 1 : 0);
   size_t iend = (k == Kind::EVAL_IF_THEN_ELSE
                      ? 1
@@ -165,8 +280,10 @@ bool FlattenEval::isPure(const Expr& e)
   {
     if (e[i].isEvaluatable())
     {
+      Kind ek = e[i].getKind();
       // TODO: cache
-      if (!isPure(e[i]))
+      // requires or ite as strict children are not allowed
+      if (ek==Kind::EVAL_IF_THEN_ELSE || ek==Kind::EVAL_REQUIRES || !isPure(e[i]))
       {
         return false;
       }

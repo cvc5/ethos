@@ -83,6 +83,7 @@
   :signature (T) $eo_List)
 
 ; Ensures this signature does not rely on and
+; TODO: remove dependence on ITE as well?
 (define $eo_if_both ((b1 Bool) (b2 Bool))
   (eo::ite b1 (eo::ite b2 true false) false))
 

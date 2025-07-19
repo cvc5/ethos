@@ -335,6 +335,10 @@ void Expr::printDebugInternal(const Expr& e,
               os << "(! " << l->toString() << " :decimal)";
               break;
             default:
+              if (k==Kind::VARIABLE)
+              {
+                // TODO?
+              }
               if (isSymbol(k))
               {
                 // symbols must be quoted if they have illegal characters
@@ -355,6 +359,10 @@ void Expr::printDebugInternal(const Expr& e,
       }
       else
       {
+        if (k==Kind::ANNOT_PARAM)
+        {
+          // TODO?
+        }
         os << "(";
         if (k != Kind::APPLY || (*cur.first)[0]->getNumChildren() > 0)
         {
