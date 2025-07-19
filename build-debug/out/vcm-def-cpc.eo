@@ -294,11 +294,6 @@
 ;(define $smt_BitVec ((w $smt_builtin_Int)) (_ ($smt_builtin_type_1 "BitVec") w))
 ;(define $smt_String () ($smt_builtin_type_0 "String"))
 
-; NOTE: we use equality directly, although we could use (_ sm.True) here.
-(define $sm_is_true ((b $smt_Term)) ($smt_apply_= b $sm_mk_true))
-(define $sm_is_false ((b $smt_Term)) ($smt_apply_= b $sm_mk_false))
-; Assumes that t is a Boolean term
-
 ;;; Defining parametric bitvector operators
 
 ; The operators in this section are needed to reason about the parametric
@@ -1281,24 +1276,6 @@
   )
 )
 
-;;; utilities
-
-; Returns true if t is a (non-error) SMT-LIB value.
-(define $vsm_is_value ((t $smt_Value))
-  ($smt_apply_1 "not" ($smt_apply_1 "(_ is vsm.NotValue)" t)))
-
-; Returns true if t is the SMT-LIB value denoting true.
-(define $vsm_is_true ((t $smt_Value))
-  ($smt_builtin_and
-    ($smt_apply_1 "(_ is vsm.Term)" t)
-    ($sm_is_true ($smt_apply_1 "vsm.Term.arg1" t))))
-    
-; Returns true if t is the SMT-LIB value denoting false.
-(define $vsm_is_false ((t $smt_Value))
-  ($smt_builtin_and
-    ($smt_apply_1 "(_ is vsm.Term)" t)
-    ($sm_is_false ($smt_apply_1 "vsm.Term.arg1" t))))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; Model semantics
@@ -1384,6 +1361,7 @@
   )
 )
 
+; return: The evaluation of an ite application.
 (program $smtx_model_eval_ite
   ((t1 $smt_Value) (t2 $smt_Value) (t3 $smt_Value))
   :signature ($smt_Value $smt_Value $smt_Value) $smt_Value
@@ -1395,6 +1373,7 @@
   )
 )
 
+; return: The evaluation of an equality application.
 (program $smtx_model_eval_=
   ((t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
@@ -1402,7 +1381,7 @@
   (
   (($smtx_model_eval_= $vsm_not_value t2) $vsm_not_value)
   (($smtx_model_eval_= t1 $vsm_not_value) $vsm_not_value)
-  ; use datatype equality over $smt_Value
+  ; use datatype equality over $smt_Value, which depends on t1 and t2 being proper values.
   (($smtx_model_eval_= t1 t2)             ($vsm_term ($sm_mk_bool ($smt_apply_= t1 t2))))
   )
 )
@@ -1454,10 +1433,8 @@
   (($smtx_model_eval (= x1 x2))
     ($smtx_model_eval_= ($smtx_model_eval x1) ($smtx_model_eval x2)))
   ; evaluation of standard SMT symbols
-  ; These calls may only call one of the above macros:
-  ; - $smtx_eval_quant
-  ; - $smt_eval_o_arith_*,
-  ; - $smt_eval_apply_*
+  ; These calls will reference helper methods above, e.g. of the form
+  ; $smtx_model_eval_*, or call builtin methods e.g. $smtx_eval_quant.
   (($smtx_model_eval (not x1)) ($smtx_model_eval_not ($smtx_model_eval x1)))
   (($smtx_model_eval (and x1 x2)) ($smtx_model_eval_and ($smtx_model_eval x1) ($smtx_model_eval x2)))
 
@@ -1467,15 +1444,16 @@
   ; All interpreted f should be handled in the evaluation cases above.
   (($smtx_model_eval ($sm_apply_term f y))
     ($smtx_model_eval_apply ($smtx_model_eval f) ($smtx_model_eval y)))
+
   ;; free constants
   ; Constants carry their value in the model, which is an arbitrary value term.
   ; We run this value through $smtx_ensure_value to ensure it is a proper value.
-  (($smtx_model_eval ($sm_Const val))          ($smtx_ensure_value val))
+  (($smtx_model_eval ($sm_Const val))           ($smtx_ensure_value val))
   
   ; Otherwise, it may be a term value (e.g. if z is a Boolean or numeral constant).
   ; We call the utility method which will either generate an SMT-LIB term value or
   ; a SMT-LIB non-value error term.
-  (($smtx_model_eval z)                       ($smtx_ensure_value ($vsm_term z)))
+  (($smtx_model_eval z)                         ($smtx_ensure_value ($vsm_term z)))
   )
 )
 

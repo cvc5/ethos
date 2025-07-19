@@ -360,8 +360,6 @@
   
   
   
-  
-  
   (($smtx_model_eval (not x1)) ($smtx_model_eval_not ($smtx_model_eval x1)))
   (($smtx_model_eval (and x1 x2)) ($smtx_model_eval_and ($smtx_model_eval x1) ($smtx_model_eval x2)))
 
@@ -371,15 +369,16 @@
   
   (($smtx_model_eval ($sm_apply_term f y))
     ($smtx_model_eval_apply ($smtx_model_eval f) ($smtx_model_eval y)))
+
   
   
   
-  (($smtx_model_eval ($sm_Const val))          ($smtx_ensure_value val))
+  (($smtx_model_eval ($sm_Const val))           ($smtx_ensure_value val))
   
   
   
   
-  (($smtx_model_eval z)                       ($smtx_ensure_value ($vsm_term z)))
+  (($smtx_model_eval z)                         ($smtx_ensure_value ($vsm_term z)))
   )
 )
 (program $eo_model_sat_internal ((val $smt_Value))
