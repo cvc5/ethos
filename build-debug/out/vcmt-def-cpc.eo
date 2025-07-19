@@ -170,14 +170,14 @@
   (($eo_typeof_apply (-> T U) T) U)
   )
 )
-(program $eo_typeof_ite (($eo_T Type) (A Type))
-  :signature ($eo_T $eo_T) Type
+(program $eo_typeof_ite ((A Type))
+  :signature (Type Type) Type
   (
   (($eo_typeof_ite Bool A) (-> A A))
   )
 )
-(program $eo_typeof_= (($eo_T Type) (A Type))
-  :signature ($eo_T) Type
+(program $eo_typeof_= ((A Type))
+  :signature (Type) Type
   (
   (($eo_typeof_= A) (-> A Bool))
   )

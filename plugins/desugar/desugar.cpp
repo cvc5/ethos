@@ -339,7 +339,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
             {
               ngSig << " ";
             }
-            ngSig << "$eo_T";
+            ngSig << "Type";
             ssngpat << " " << cta[1];
             ngscope.push_back(cta[1]);
             ssngarg << " ($eo_typeof " << ssx.str() << ")";
@@ -377,7 +377,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
         {
           ngSig << " ";
         }
-        ngSig << "$eo_T";
+        ngSig << "Type";
         ngscope.push_back(cta);
         ngArgs++;
         args.push_back(arg);
@@ -410,7 +410,25 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
       ssng << "$eo_typeof_";
       printName(e, ssng);
       std::string pname = ssng.str();
-      d_eoTypeofNGround << "(program " << pname << " (($eo_T Type) ";
+#if 1
+      // construct the program and print it
+      std::vector<Expr> argTypes;
+      Expr retType = d_state.mkType();
+      for (size_t i=0, ngsize=ngscope.size(); i<ngsize; i++)
+      {
+        argTypes.push_back(retType);
+      }
+      Expr progType = d_state.mkProgramType(argTypes, retType);
+      Expr prog = d_state.mkSymbol(Kind::PROGRAM_CONST, pname, progType);
+      std::vector<Expr> pchildren;
+      pchildren.push_back(prog);
+      pchildren.insert(pchildren.end(), ngscope.begin(), ngscope.end());
+      Expr progPat = d_state.mkExpr(Kind::APPLY, pchildren);
+      Expr progPair = d_state.mkPair(progPat, ct);
+      Expr progDef = d_state.mkExpr(Kind::PROGRAM, {progPair});
+      finalizeProgram(prog, progDef, d_eoTypeofNGround);
+#else
+      d_eoTypeofNGround << "(program " << pname << " (";
       std::vector<Expr> ngvs = Expr::getVariables(ngscope);
       std::vector<Expr> ngps;
       printParamList(ngvs, d_eoTypeofNGround, ngps, false);
@@ -423,6 +441,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
       d_eoTypeofNGround << ")" << std::endl;
       d_eoTypeofNGround << "  )" << std::endl;
       d_eoTypeofNGround << ")" << std::endl;
+#endif
       d_eoTypeof << "(" << pname << ssngarg.str() << ")";
     }
     else
