@@ -1068,17 +1068,6 @@ Expr Desugar::mkSanitize(const Expr& t,
         // strip off the "(eo::param ...)"
         ret = cur[0];
       }
-      else if (k == Kind::VARIABLE)
-      {
-        // TODO: build this into the Ethos printer??
-        Expr tt = d_tc.getType(cur);
-        const Literal* l = cur.getValue()->asLiteral();
-        Assert(l != nullptr);
-        std::vector<Expr> vargs;
-        vargs.push_back(d_state.mkLiteral(Kind::STRING, l->toString()));
-        vargs.push_back(tt);
-        ret = d_state.mkExprSimple(Kind::EVAL_VAR, vargs);
-      }
       else if (childChanged)
       {
         ret = Expr(d_state.mkExprSimple(k, children));

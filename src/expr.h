@@ -170,6 +170,12 @@ class Expr
  private:
   /** The underlying value */
   ExprValue* d_value;
+  /**
+   * Get the children that should be printed of e.
+   * This is typically the children of e, but handles corner
+   * cases e.g. variables print their types.
+   */
+  static std::vector<Expr> getPrintChildren(const ExprValue* e);
   /** */
   static void printDebugInternal(const Expr& e,
                                  std::ostream& os,
