@@ -43,9 +43,16 @@ void FlattenEval::flattenEval(State& s, const Expr& pat, const Expr& body, std::
   pcount = ctx.d_progCount;
 }
 
-bool FlattenEval::isPurifyEvaluationApp(const Expr& e)
+bool FlattenEval::isPure(const Expr& e)
 {
+  if (!e.isEvaluatable())
+  {
+    // terms with no evaluation in them are pure
+    return true;
+  }
   Kind k = e.getKind();
+  // if we have evaluation, and aren't a top-level application of evaluation,
+  // we are not pure (likely we are an APPLY with nested evaluation).
   if ((k!=Kind::APPLY || e[0].getKind() != Kind::PROGRAM_CONST) && !isLiteralOp(k))
   {
     return false;
@@ -56,7 +63,12 @@ bool FlattenEval::isPurifyEvaluationApp(const Expr& e)
   {
     if (e[i].isEvaluatable())
     {
-      return false;
+      if (!isPure(e[i]))
+      {
+        return false;
+      }
+      // if the argument is pure, we are ok, for instance
+      // (f (g x) y) is ok where f and g are programs.
     }
   }
   return true;
@@ -64,9 +76,9 @@ bool FlattenEval::isPurifyEvaluationApp(const Expr& e)
 
 Expr FlattenEval::mkPurifyEvaluation(State& s, const Expr& e, ProgramOutCtx& ctx, std::vector<Expr>& newEvals)
 {
-  if (isPurifyEvaluationApp(e))
+  if (isPure(e))
   {
-    // if it is already flattened, we are done
+    // if it is already pure, we are done
     return e;
   }
   Expr nullExpr;
@@ -89,7 +101,7 @@ Expr FlattenEval::mkPurifyEvaluation(State& s, const Expr& e, ProgramOutCtx& ctx
         visit.pop_back();
         continue;
       }
-      else if (isPurifyEvaluationApp(cur))
+      else if (isPure(cur))
       {
         newEvals.emplace_back(cur);
         ctx.d_varCount++;

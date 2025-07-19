@@ -59,7 +59,7 @@ class FlattenEval : public StdPlugin
   /**
    * True if this is an invocation of evaluation that can be purified.
    */
-  static bool isPurifyEvaluationApp(const Expr& e);
+  static bool isPure(const Expr& e);
   /**
    * Given a term e, return a term that has no evaluation.
    * For each top-level evaluation term in e, we replace it by a fresh parameter.
