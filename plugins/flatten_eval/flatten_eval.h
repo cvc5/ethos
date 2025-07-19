@@ -37,8 +37,9 @@ class ProgramOutCtx
   Expr allocateProgram(const Expr& retType);
   Expr allocateVariable(const Expr& retType);
   std::map<Expr, Expr> d_visited;
+
  private:
-   State& d_state;
+  State& d_state;
   std::vector<Expr> d_args;
   std::vector<Expr> d_argTypes;
   std::string d_progPrefix;

@@ -14,7 +14,6 @@ namespace ethos {
 ProgramOutCtx::ProgramOutCtx(State& s, size_t pcount)
     : d_state(s), d_progPrefix("$eop_"), d_varCount(0), d_progCount(pcount)
 {
-
 }
 
 void ProgramOutCtx::addArg(const Expr& a)
@@ -39,7 +38,7 @@ void ProgramOutCtx::addArgTyped(const Expr& a, const Expr& at)
 
 Expr ProgramOutCtx::allocateProgram(const Expr& retType)
 {
-  Assert (!retType.isNull());
+  Assert(!retType.isNull());
   Expr progType = d_state.mkProgramType(d_argTypes, retType);
   d_progCount++;
   std::stringstream ss;
@@ -52,7 +51,7 @@ Expr ProgramOutCtx::allocateProgram(const Expr& retType)
 }
 Expr ProgramOutCtx::allocateVariable(const Expr& retType)
 {
-  Assert (!retType.isNull());
+  Assert(!retType.isNull());
   d_varCount++;
   std::stringstream ss;
   ss << "$eo_" << d_varCount;
@@ -76,17 +75,17 @@ void FlattenEval::flattenEval(State& s,
   Assert(progType.getNumChildren() == pat.getNumChildren());
   for (size_t i = 1, nargs = pat.getNumChildren(); i < nargs; i++)
   {
-    ctx.addArgTyped(pat[i], progType[i-1]);
+    ctx.addArgTyped(pat[i], progType[i - 1]);
   }
   flattenEvalInternal(s, ctx, body, os, osp);
   // update the global context
-  //pcount = ctx.d_progCount;
+  // pcount = ctx.d_progCount;
 }
 
 void FlattenEval::flattenEval(State& s,
-                const Expr& t,
-                std::ostream& os,
-                std::ostream& osp)
+                              const Expr& t,
+                              std::ostream& os,
+                              std::ostream& osp)
 {
   size_t pcount = 0;
   ProgramOutCtx ctx(s, pcount);
@@ -99,14 +98,14 @@ void FlattenEval::flattenEval(State& s,
   }
   flattenEvalInternal(s, ctx, t, os, osp);
   // update the global context??
-  //pcount = ctx.d_progCount;
+  // pcount = ctx.d_progCount;
 }
 
 void FlattenEval::flattenEvalInternal(State& s,
-                                  ProgramOutCtx& ctx,
-                                  const Expr& t,
-                                  std::ostream& os,
-                                  std::ostream& osp)
+                                      ProgramOutCtx& ctx,
+                                      const Expr& t,
+                                      std::ostream& os,
+                                      std::ostream& osp)
 {
   std::vector<Expr> newEvals;
   std::map<Expr, Expr>& visited = ctx.d_visited;
@@ -123,13 +122,13 @@ void FlattenEval::flattenEvalInternal(State& s,
     newEvals.clear();
     mkPurifyEvaluation(s, curTerm, ctx, newEvals);
     size_t nnewEval = newEvals.size();
-    if (nnewEval>0)
+    if (nnewEval > 0)
     {
-      for (size_t i=0; i<nnewEval; i++)
+      for (size_t i = 0; i < nnewEval; i++)
       {
         Expr ceval = newEvals[i];
         Expr cvar = visited[ceval];
-        Assert (!cvar.isNull() && cvar.getKind()==Kind::PARAM);
+        Assert(!cvar.isNull() && cvar.getKind() == Kind::PARAM);
         Kind cek = ceval.getKind();
       }
       Expr curTermT = tc.getType(curTerm);
@@ -140,8 +139,7 @@ void FlattenEval::flattenEvalInternal(State& s,
       // otherwise, not necessary
       (*cur.second) << curTerm;
     }
-  }
-  while (!toVisit.empty());
+  } while (!toVisit.empty());
 }
 
 bool FlattenEval::isPure(const Expr& e)
@@ -185,7 +183,7 @@ Expr FlattenEval::mkPurifyEvaluation(State& s,
                                      std::vector<Expr>& newEvals)
 {
   Kind ek = e.getKind();
-  if (isPure(e) && ek!=Kind::EVAL_IF_THEN_ELSE && ek!=Kind::EVAL_REQUIRES)
+  if (isPure(e) && ek != Kind::EVAL_IF_THEN_ELSE && ek != Kind::EVAL_REQUIRES)
   {
     // if it is already pure, we are done
     // note that ite and requires still require processing
