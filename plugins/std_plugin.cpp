@@ -20,7 +20,8 @@ namespace ethos {
 #if 1
 std::string StdPlugin::s_plugin_path = "/home/andrew/ethos/";
 #else
-std::string StdPlugin::s_plugin_path = "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
+std::string StdPlugin::s_plugin_path =
+    "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
 #endif
 
 StdPlugin::StdPlugin(State& s) : d_state(s), d_tc(s.getTypeChecker()) {}

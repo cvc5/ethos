@@ -31,7 +31,6 @@ void SmtMetaReduce::bind(const std::string& name, const Expr& e)
   }
 }
 
-
 void SmtMetaReduce::finalizePrograms()
 {
   for (const std::pair<Expr, Expr>& p : d_progSeen)

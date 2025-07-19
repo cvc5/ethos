@@ -13,8 +13,8 @@
 #include <sstream>
 #include <string>
 
-#include "state.h"
 #include "../smt_meta/smt_meta_reduce.h"
+#include "state.h"
 
 namespace ethos {
 
@@ -194,13 +194,15 @@ void ModelSmt::printSmtTerm(const std::string& name,
         ka = kas;
       }
       paramCount++;
-      if (paramCount>1)
+      if (paramCount > 1)
       {
         progParams << " ";
       }
-      progCases << " ($vsm_term ($sm_mk_" << d_kindToEoPrefix[ka] << " x" << paramCount << "))";
+      progCases << " ($vsm_term ($sm_mk_" << d_kindToEoPrefix[ka] << " x"
+                << paramCount << "))";
       retArgs << " x" << paramCount;
-      progParams << "(x" << paramCount << " $smt_builtin_" << d_kindToType[ka] << ")";
+      progParams << "(x" << paramCount << " $smt_builtin_" << d_kindToType[ka]
+                 << ")";
     }
     progCases << ") ";
     Kind kr = kret;
@@ -222,14 +224,14 @@ void ModelSmt::printSmtTerm(const std::string& name,
   d_eval << " (" << progName.str();
   for (size_t i = 0, nargs = args.size(); i < nargs; i++)
   {
-    if (i>0)
+    if (i > 0)
     {
       progSig << " ";
     }
-    d_eval << " ($smtx_model_eval x" << (i+1) << ")";
+    d_eval << " ($smtx_model_eval x" << (i + 1) << ")";
     progSig << "$smt_Value";
-    progCases << " t" << (i+1);
-    progParams << " (t" << (i+1) << " $smt_Value)";
+    progCases << " t" << (i + 1);
+    progParams << " (t" << (i + 1) << " $smt_Value)";
   }
   progSig << ") $smt_Value" << std::endl;
   d_eval << "))" << std::endl;
@@ -243,7 +245,7 @@ void ModelSmt::printSmtTerm(const std::string& name,
 }
 
 void ModelSmt::printEmbType(const Expr& e, std::ostream& os)
-{ 
+{
   if (!SmtMetaReduce::printMetaType(e, os))
   {
     Assert(false) << "Failed to get meta-type for " << e;
@@ -262,22 +264,22 @@ void ModelSmt::finalizeDecl(const Expr& e)
   // get the meta-kind based on its name
   std::string cnamek;
   TermContextKind tk = SmtMetaReduce::getMetaKind(d_state, e, cnamek);
-  if (tk==TermContextKind::EUNOIA)
+  if (tk == TermContextKind::EUNOIA)
   {
     cname << "eo." << cnamek;
     out = &d_embedEoTermDt;
   }
-  else if (tk==TermContextKind::SMT_TYPE)
+  else if (tk == TermContextKind::SMT_TYPE)
   {
     cname << "tsm." << cnamek;
     out = &d_embedTypeDt;
   }
-  else if (tk==TermContextKind::SMT)
+  else if (tk == TermContextKind::SMT)
   {
     cname << "sm." << cnamek;
     out = &d_embedTermDt;
   }
-  else if (tk==TermContextKind::SMT_VALUE)
+  else if (tk == TermContextKind::SMT_VALUE)
   {
     cname << "vsm." << cnamek;
     out = &d_embedValueDt;
@@ -289,7 +291,8 @@ void ModelSmt::finalizeDecl(const Expr& e)
   }
   std::cout << "Include " << e << std::endl;
   bool isEmbedCons = SmtMetaReduce::isEmbedCons(e);
-  (*out) << "  ; " << (isEmbedCons ? "smt-cons: " : "user-decl: ") << cnamek << std::endl;
+  (*out) << "  ; " << (isEmbedCons ? "smt-cons: " : "user-decl: ") << cnamek
+         << std::endl;
   Expr c = e;
   Expr ct = d_tc.getType(c);
   // (*out) << "  ; type is " << ct << std::endl;

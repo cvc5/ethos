@@ -90,8 +90,8 @@ class SmtMetaReduce : public StdPlugin
   bool echo(const std::string& msg) override;
 
   static bool printMetaType(const Expr& t,
-                    std::ostream& os,
-                    TermContextKind tctx = TermContextKind::NONE);
+                            std::ostream& os,
+                            TermContextKind tctx = TermContextKind::NONE);
   /** Get the name of expression e, expected to be an atomic term */
   static std::string getName(const Expr& e);
   /** Is e a datatype constructor embedding? */
@@ -107,7 +107,7 @@ class SmtMetaReduce : public StdPlugin
    */
   static TermContextKind getTypeMetaKind(
       const Expr& typ, TermContextKind elseKind = TermContextKind::EUNOIA);
-  /** 
+  /**
    * Get the meta kind of the type of expression e, or else kind otherwise.
    * In other words, we return the datatype that e is a constructor of in the
    * final embedding, SMT_BUILTIN if e is a builtin SMT-LIB application, or
@@ -117,8 +117,10 @@ class SmtMetaReduce : public StdPlugin
    * @param cname Updated to the root name of the constructor.
    * @return The meta-kind of the type of e, or elseKind otherwise.
    */
-  static TermContextKind getMetaKind(
-      State& s, const Expr& e, std::string& cname);
+  static TermContextKind getMetaKind(State& s,
+                                     const Expr& e,
+                                     std::string& cname);
+
  private:
   bool printEmbPatternMatch(const Expr& c,
                             const std::string& initCtx,

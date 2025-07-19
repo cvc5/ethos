@@ -11,23 +11,31 @@
 
 namespace ethos {
 
-ProgramOutCtx::ProgramOutCtx(State& s, const Expr& pat, const Expr& body, size_t pcount) : d_varCount(0), d_progCount(pcount)
+ProgramOutCtx::ProgramOutCtx(State& s,
+                             const Expr& pat,
+                             const Expr& body,
+                             size_t pcount)
+    : d_varCount(0), d_progCount(pcount)
 {
-  Assert (pat.getKind()==Kind::APPLY);
+  Assert(pat.getKind() == Kind::APPLY);
   Expr prog = pat[0];
   Expr progType = s.getTypeChecker().getType(prog);
-  Assert (progType.getNumChildren()==pat.getNumChildren());
-  for (size_t i=1, nargs=pat.getNumChildren(); i<nargs; i++)
+  Assert(progType.getNumChildren() == pat.getNumChildren());
+  for (size_t i = 1, nargs = pat.getNumChildren(); i < nargs; i++)
   {
     d_args.push_back(pat[i]);
-    d_argTypes.push_back(progType[i-1]);
+    d_argTypes.push_back(progType[i - 1]);
   }
 }
 
 FlattenEval::FlattenEval(State& s) : StdPlugin(s) {}
-FlattenEval::~FlattenEval(){}
+FlattenEval::~FlattenEval() {}
 
-void FlattenEval::flattenEval(State& s, const Expr& pat, const Expr& body, std::ostream& os, std::ostream& osp)
+void FlattenEval::flattenEval(State& s,
+                              const Expr& pat,
+                              const Expr& body,
+                              std::ostream& os,
+                              std::ostream& osp)
 {
   size_t pcount = 0;
   ProgramOutCtx ctx(s, pat, body, pcount);
@@ -36,7 +44,6 @@ void FlattenEval::flattenEval(State& s, const Expr& pat, const Expr& body, std::
   while (!newEvals.empty())
   {
     size_t nnewEval = newEvals.size();
-
   }
   os << body0;
   // update the global context
@@ -53,13 +60,16 @@ bool FlattenEval::isPure(const Expr& e)
   Kind k = e.getKind();
   // if we have evaluation, and aren't a top-level application of evaluation,
   // we are not pure (likely we are an APPLY with nested evaluation).
-  if ((k!=Kind::APPLY || e[0].getKind() != Kind::PROGRAM_CONST) && !isLiteralOp(k))
+  if ((k != Kind::APPLY || e[0].getKind() != Kind::PROGRAM_CONST)
+      && !isLiteralOp(k))
   {
     return false;
   }
-  size_t istart = (k==Kind::APPLY ? 1 : 0);
-  size_t iend = (k==Kind::EVAL_IF_THEN_ELSE ? 1 : (k==Kind::EVAL_REQUIRES ? 2 : e.getNumChildren()));
-  for (size_t i=istart; i<iend; i++)
+  size_t istart = (k == Kind::APPLY ? 1 : 0);
+  size_t iend = (k == Kind::EVAL_IF_THEN_ELSE
+                     ? 1
+                     : (k == Kind::EVAL_REQUIRES ? 2 : e.getNumChildren()));
+  for (size_t i = istart; i < iend; i++)
   {
     if (e[i].isEvaluatable())
     {
@@ -74,7 +84,10 @@ bool FlattenEval::isPure(const Expr& e)
   return true;
 }
 
-Expr FlattenEval::mkPurifyEvaluation(State& s, const Expr& e, ProgramOutCtx& ctx, std::vector<Expr>& newEvals)
+Expr FlattenEval::mkPurifyEvaluation(State& s,
+                                     const Expr& e,
+                                     ProgramOutCtx& ctx,
+                                     std::vector<Expr>& newEvals)
 {
   if (isPure(e))
   {
@@ -108,14 +121,17 @@ Expr FlattenEval::mkPurifyEvaluation(State& s, const Expr& e, ProgramOutCtx& ctx
         std::stringstream ss;
         ss << "$eo_" << ctx.d_varCount;
         Expr curt = s.getTypeChecker().getType(cur);
-        Assert (!curt.isNull()) << "Failed to type check " << cur;
+        Assert(!curt.isNull()) << "Failed to type check " << cur;
         Expr v = s.mkSymbol(Kind::PARAM, ss.str(), curt);
         visited[cur] = v;
         visit.pop_back();
         continue;
       }
       visited[cur] = nullExpr;
-      size_t iend = (k==Kind::EVAL_IF_THEN_ELSE ? 1 : (k==Kind::EVAL_REQUIRES ? 2 : cur.getNumChildren()));
+      size_t iend =
+          (k == Kind::EVAL_IF_THEN_ELSE
+               ? 1
+               : (k == Kind::EVAL_REQUIRES ? 2 : cur.getNumChildren()));
       for (size_t i = 0; i < iend; i++)
       {
         visit.push_back(cur[i]);
@@ -150,4 +166,3 @@ Expr FlattenEval::mkPurifyEvaluation(State& s, const Expr& e, ProgramOutCtx& ctx
 }
 
 }  // namespace ethos
-

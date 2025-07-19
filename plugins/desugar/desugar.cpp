@@ -846,12 +846,16 @@ void Desugar::finalize()
     }
   }
   // finalize the literal type declaration
-  d_litTypeDecl << "(define $eo_Numeral () " << d_ltNum.str() << ")" << std::endl;
-  d_litTypeDecl << "(define $eo_Rational () " << d_ltRational.str() << ")" << std::endl;
-  d_litTypeDecl << "(define $eo_String () " << d_ltString.str() << ")" << std::endl;
-  d_litTypeDecl << "(define $eo_Binary () " << d_ltBinary.str() << ")" << std::endl;
+  d_litTypeDecl << "(define $eo_Numeral () " << d_ltNum.str() << ")"
+                << std::endl;
+  d_litTypeDecl << "(define $eo_Rational () " << d_ltRational.str() << ")"
+                << std::endl;
+  d_litTypeDecl << "(define $eo_String () " << d_ltString.str() << ")"
+                << std::endl;
+  d_litTypeDecl << "(define $eo_Binary () " << d_ltBinary.str() << ")"
+                << std::endl;
   d_litTypeDecl << "; decimal and hexadecimal omitted for now." << std::endl;
-  
+
   auto replace = [](std::string& txt,
                     const std::string& tag,
                     const std::string& replacement) {

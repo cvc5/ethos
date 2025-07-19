@@ -51,35 +51,33 @@ void SelectorCtx::clear()
   d_tctx.clear();
 }
 
-SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s) 
-{
-}
+SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s) {}
 
 SmtMetaReduce::~SmtMetaReduce() {}
 
 TermContextKind prefixToMetaKind(const std::string& str)
 {
-  if (str=="eo")
+  if (str == "eo")
   {
     return TermContextKind::EUNOIA;
   }
-  else if (str=="sm")
+  else if (str == "sm")
   {
     return TermContextKind::SMT;
   }
-  else if (str=="tsm")
+  else if (str == "tsm")
   {
     return TermContextKind::SMT_TYPE;
   }
-  else if (str=="vsm")
+  else if (str == "vsm")
   {
     return TermContextKind::SMT_VALUE;
   }
-  else if (str=="msm")
+  else if (str == "msm")
   {
     return TermContextKind::SMT_MAP;
   }
-  Assert (false) << "Bad prefix \"" << str << "\"";
+  Assert(false) << "Bad prefix \"" << str << "\"";
   return TermContextKind::NONE;
 }
 
@@ -106,7 +104,7 @@ std::string termContextKindToPrefix(TermContextKind k)
   switch (k)
   {
     case TermContextKind::EUNOIA: ss << "eo."; break;
-    case TermContextKind::SMT:ss << "sm."; break;
+    case TermContextKind::SMT: ss << "sm."; break;
     case TermContextKind::SMT_TYPE: ss << "tsm."; break;
     case TermContextKind::SMT_VALUE: ss << "vsm."; break;
     case TermContextKind::SMT_BUILTIN: ss << "?"; break;
@@ -122,16 +120,16 @@ std::string termContextKindToCons(TermContextKind k)
   switch (k)
   {
     case TermContextKind::SMT: ss << "SmtTerm"; break;
-    case TermContextKind::SMT_TYPE:ss << "SmtType"; break;
-    case TermContextKind::SMT_VALUE:ss << "SmtValue"; break;
+    case TermContextKind::SMT_TYPE: ss << "SmtType"; break;
+    case TermContextKind::SMT_VALUE: ss << "SmtValue"; break;
     default: ss << "?TermContextKindCons"; break;
   }
   return ss.str();
 }
 
 bool SmtMetaReduce::printMetaType(const Expr& t,
-                    std::ostream& os,
-                    TermContextKind tctx)
+                                  std::ostream& os,
+                                  TermContextKind tctx)
 {
   TermContextKind tk = getTypeMetaKind(t, tctx);
   switch (tk)
@@ -142,8 +140,7 @@ bool SmtMetaReduce::printMetaType(const Expr& t,
     case TermContextKind::SMT_VALUE: os << "vsm.Value"; break;
     case TermContextKind::SMT_BUILTIN: os << getEmbedName(t); break;
     case TermContextKind::SMT_MAP: os << "msm.Map"; break;
-    default:
-      return false;
+    default: return false;
   }
   return true;
 }
@@ -325,9 +322,9 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       else
       {
         EO_FATAL() << "Unhandled context change "
-                    << termContextKindToString(parent) << " / "
-                    << termContextKindToString(child) << " in " << tcur
-                    << " within " << c;
+                   << termContextKindToString(parent) << " / "
+                   << termContextKindToString(child) << " in " << tcur
+                   << " within " << c;
       }
     }
     if (ck == Kind::APPLY)
@@ -357,7 +354,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       printArgStart = 1;
       if (isSmtApplyApp(tcur))
       {
-        Assert (tcur[1].getKind()==Kind::STRING);
+        Assert(tcur[1].getKind() == Kind::STRING);
         // e.g. ($smt_apply_0 "0") in a pattern.
         const Literal* l = tcur[1].getValue()->asLiteral();
         std::stringstream eq;
@@ -434,12 +431,13 @@ std::string SmtMetaReduce::getName(const Expr& e)
 bool SmtMetaReduce::isEmbedCons(const Expr& e)
 {
   std::string sname = getName(e);
-  return (sname.compare(0, 5, "$smd_")==0);
+  return (sname.compare(0, 5, "$smd_") == 0);
 }
 
 bool SmtMetaReduce::isSmtApplyApp(const Expr& oApp)
 {
-  if (oApp.getKind()!=Kind::APPLY_OPAQUE || oApp.getNumChildren() <= 1 || oApp[1].getKind() != Kind::STRING)
+  if (oApp.getKind() != Kind::APPLY_OPAQUE || oApp.getNumChildren() <= 1
+      || oApp[1].getKind() != Kind::STRING)
   {
     return false;
   }
@@ -519,7 +517,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       // which was stored as part of the selector context.
       // TODO: maybe it is just call getMetaKindReturn here??
       ittc = ctx.d_tctx.find(recTerm);
-      //Assert(ittc != ctx.d_tctx.end()) << "Cannot find context " << recTerm;
+      // Assert(ittc != ctx.d_tctx.end()) << "Cannot find context " << recTerm;
       if (ittc != ctx.d_tctx.end())
       {
         child = ittc->second;
@@ -626,7 +624,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     {
       // parameters print as the string that gives the term they were matched to
       it = ctx.d_ctx.find(recTerm);
-      //Assert(it != ctx.d_ctx.end()) << "Cannot find " << recTerm;
+      // Assert(it != ctx.d_ctx.end()) << "Cannot find " << recTerm;
       if (it != ctx.d_ctx.end())
       {
         os << it->second;
@@ -794,7 +792,8 @@ void SmtMetaReduce::finalizePrograms()
 void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
 {
   std::string vname = getName(v);
-  std::cout << "*** Setting up program " << v << " / " << !prog.isNull() << std::endl;
+  std::cout << "*** Setting up program " << v << " / " << !prog.isNull()
+            << std::endl;
   d_defs << "; " << (prog.isNull() ? "fwd-decl: " : "program: ") << v
          << std::endl;
   std::stringstream decl;
@@ -824,7 +823,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
       varList << " ";
     }
     std::stringstream argType;
-    printMetaType(vt[i-1], argType, TermContextKind::EUNOIA);
+    printMetaType(vt[i - 1], argType, TermContextKind::EUNOIA);
     decl << argType.str();
     std::stringstream ssArg;
     ssArg << "x" << i;
@@ -1092,7 +1091,6 @@ bool SmtMetaReduce::isSmtLibExpression(TermContextKind ctx)
          || ctx == TermContextKind::SMT_VALUE;
 }
 
-
 TermContextKind SmtMetaReduce::getTypeMetaKind(const Expr& typ,
                                                TermContextKind elseKind)
 {
@@ -1133,7 +1131,9 @@ TermContextKind SmtMetaReduce::getTypeMetaKind(const Expr& typ,
   return elseKind;
 }
 
-TermContextKind SmtMetaReduce::getMetaKind(State& s, const Expr& e, std::string& cname)
+TermContextKind SmtMetaReduce::getMetaKind(State& s,
+                                           const Expr& e,
+                                           std::string& cname)
 {
   std::string sname = getName(e);
   // terms starting with @ are considered Eunoia (not SMT-LIB)
@@ -1142,17 +1142,18 @@ TermContextKind SmtMetaReduce::getMetaKind(State& s, const Expr& e, std::string&
     cname = sname;
     return TermContextKind::EUNOIA;
   }
-  else if (sname.compare(0, 4, "$eo_") == 0 || sname.compare(0,5,"$smt_")==0)
+  else if (sname.compare(0, 4, "$eo_") == 0
+           || sname.compare(0, 5, "$smt_") == 0)
   {
     // internal-only symbol
     cname = sname;
     return TermContextKind::SMT_BUILTIN;
   }
-  else if (sname.compare(0, 5, "$smd_")==0)
+  else if (sname.compare(0, 5, "$smd_") == 0)
   {
     size_t firstDot = sname.find('.');
-    std::string prefix = sname.substr(5, firstDot-5);
-    cname = sname.substr(firstDot+1);
+    std::string prefix = sname.substr(5, firstDot - 5);
+    cname = sname.substr(firstDot + 1);
     return prefixToMetaKind(prefix);
   }
   cname = sname;
@@ -1185,24 +1186,26 @@ TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
     }
     std::string sname = getName(parent[0]);
     TermContextKind tknew;
-    if (sname.compare(0, 5, "$smd_")==0)
+    if (sname.compare(0, 5, "$smd_") == 0)
     {
       // any operator introduced by $smd_ should have accurate type.
       Expr op = parent[0];
       Expr tpop = d_tc.getType(op);
-      Assert (tpop.getKind()==Kind::FUNCTION_TYPE) << "Not function " << parent;
+      Assert(tpop.getKind() == Kind::FUNCTION_TYPE)
+          << "Not function " << parent;
       std::pair<std::vector<Expr>, Expr> ftype = tpop.getFunctionType();
-      Assert (i<=ftype.first.size()) << "Bad index " << (i-1) << " / " << tpop << " from " << parent;
-      std::cout << "Get type meta kind for " << ftype.first[i-1] << std::endl;
-      Expr atype = ftype.first[i-1];
-      if (atype.getKind()==Kind::QUOTE_TYPE)
+      Assert(i <= ftype.first.size())
+          << "Bad index " << (i - 1) << " / " << tpop << " from " << parent;
+      std::cout << "Get type meta kind for " << ftype.first[i - 1] << std::endl;
+      Expr atype = ftype.first[i - 1];
+      if (atype.getKind() == Kind::QUOTE_TYPE)
       {
         Expr qt = atype[0];
         atype = d_tc.getType(qt);
       }
       std::cout << "...process to " << atype << std::endl;
       tknew = getTypeMetaKind(atype);
-      Assert (tknew!=TermContextKind::NONE);
+      Assert(tknew != TermContextKind::NONE);
       return tknew;
     }
     if (sname.compare(0, 11, "$smt_apply_") == 0)
@@ -1229,11 +1232,11 @@ TermContextKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
           // TODO: maybe they should have SMT context???
           tk = i == 2 ? TermContextKind::SMT_BUILTIN : TermContextKind::NONE;
         }
-        else if (esname.compare(0,6,"(_ is ")==0)
+        else if (esname.compare(0, 6, "(_ is ") == 0)
         {
           size_t firstDot = esname.find('.');
-          Assert (firstDot != std::string::npos && firstDot>6);
-          std::string prefix = esname.substr(6, firstDot-6);
+          Assert(firstDot != std::string::npos && firstDot > 6);
+          std::string prefix = esname.substr(6, firstDot - 6);
           tk = prefixToMetaKind(prefix);
         }
         else
@@ -1349,8 +1352,9 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
           Assert(child.getNumChildren() == 5);
           tk = getMetaKindReturn(child[3], parentCtx);
           TermContextKind k2 = getMetaKindReturn(child[4], parentCtx);
-          Assert(tk == k2)
-              << "ITE branches have different meta types " << child << " " << termContextKindToString(tk) << " and " << termContextKindToString(k2);
+          Assert(tk == k2) << "ITE branches have different meta types " << child
+                           << " " << termContextKindToString(tk) << " and "
+                           << termContextKindToString(k2);
         }
         else if (esname == "=")
         {
@@ -1371,13 +1375,13 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
     {
       tk = TermContextKind::SMT_TYPE;
     }
-    else if (sname.compare(0, 5, "$smd_")==0)
+    else if (sname.compare(0, 5, "$smd_") == 0)
     {
       Expr op = child[0];
       Expr tpop = d_tc.getType(op);
       std::pair<std::vector<Expr>, Expr> ftype = tpop.getFunctionType();
       TermContextKind tknew = getTypeMetaKind(ftype.second);
-      Assert (tknew!=TermContextKind::NONE);
+      Assert(tknew != TermContextKind::NONE);
       return tknew;
     }
     else if (sname == "$eo_Var")
@@ -1421,10 +1425,10 @@ TermContextKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
     Expr htype = d_tc.getType(hd);
     Assert(!htype.isNull()) << "Failed to type check " << hd;
     // Nullary deep embedding constructors
-    if (sname.compare(0, 5, "$smd_")==0)
+    if (sname.compare(0, 5, "$smd_") == 0)
     {
       TermContextKind tknew = getTypeMetaKind(htype);
-      Assert (tknew!=TermContextKind::NONE);
+      Assert(tknew != TermContextKind::NONE);
       return tknew;
     }
     tk = getTypeMetaKind(htype);
