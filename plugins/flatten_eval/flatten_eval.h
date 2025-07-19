@@ -31,7 +31,7 @@ class ProgramOut
 class ProgramOutCtx
 {
  public:
-  ProgramOutCtx(State& s, const Expr& pat, const Expr& body, size_t pcount);
+  ProgramOutCtx(size_t pcount);
   std::vector<Expr> d_args;
   std::vector<Expr> d_argTypes;
   size_t d_varCount;
@@ -60,6 +60,15 @@ class FlattenEval : public StdPlugin
                           const Expr& body,
                           std::ostream& os,
                           std::ostream& osp);
+  static void flattenEval(State& s,
+                          const Expr& t,
+                          std::ostream& os,
+                          std::ostream& osp);
+  static void flattenEvalInternal(State& s,
+                                  ProgramOutCtx& ctx,
+                                  const Expr& t,
+                                  std::ostream& os,
+                                  std::ostream& osp);
   /**
    * True if this is an invocation of evaluation that can be purified.
    */

@@ -11,21 +11,10 @@
 
 namespace ethos {
 
-ProgramOutCtx::ProgramOutCtx(State& s,
-                             const Expr& pat,
-                             const Expr& body,
-                             size_t pcount)
+ProgramOutCtx::ProgramOutCtx(size_t pcount)
     : d_varCount(0), d_progCount(pcount)
 {
-  Assert(pat.getKind() == Kind::APPLY);
-  Expr prog = pat[0];
-  Expr progType = s.getTypeChecker().getType(prog);
-  Assert(progType.getNumChildren() == pat.getNumChildren());
-  for (size_t i = 1, nargs = pat.getNumChildren(); i < nargs; i++)
-  {
-    d_args.push_back(pat[i]);
-    d_argTypes.push_back(progType[i - 1]);
-  }
+
 }
 
 FlattenEval::FlattenEval(State& s) : StdPlugin(s) {}
@@ -38,16 +27,60 @@ void FlattenEval::flattenEval(State& s,
                               std::ostream& osp)
 {
   size_t pcount = 0;
-  ProgramOutCtx ctx(s, pat, body, pcount);
+  ProgramOutCtx ctx(pcount);
+  Assert(pat.getKind() == Kind::APPLY);
+  Expr prog = pat[0];
+  Expr progType = s.getTypeChecker().getType(prog);
+  Assert(progType.getNumChildren() == pat.getNumChildren());
+  for (size_t i = 1, nargs = pat.getNumChildren(); i < nargs; i++)
+  {
+    ctx.d_args.push_back(pat[i]);
+    ctx.d_argTypes.push_back(progType[i - 1]);
+  }
+  flattenEvalInternal(s, ctx, body, os, osp);
+  // update the global context
+  pcount = ctx.d_progCount;
+}
+
+void FlattenEval::flattenEval(State& s,
+                const Expr& t,
+                std::ostream& os,
+                std::ostream& osp)
+{
+  size_t pcount = 0;
+  ProgramOutCtx ctx(pcount);
+  // get the free variables, which will be the arguments
+  std::vector<Expr> vars = Expr::getVariables(t);
+  TypeChecker& tc = s.getTypeChecker();
+  for (const Expr& v : vars)
+  {
+    Expr vv = v;
+    Expr vt = tc.getType(vv);
+    ctx.d_args.push_back(v);
+    ctx.d_argTypes.push_back(vt);
+  }
+  flattenEvalInternal(s, ctx, t, os, osp);
+  // update the global context
+  pcount = ctx.d_progCount;
+}
+
+void FlattenEval::flattenEvalInternal(State& s,
+                                  ProgramOutCtx& ctx,
+                                  const Expr& t,
+                                  std::ostream& os,
+                                  std::ostream& osp)
+{
   std::vector<Expr> newEvals;
-  Expr body0 = mkPurifyEvaluation(s, body, ctx, newEvals);
+  Expr bodyFinal = mkPurifyEvaluation(s, t, ctx, newEvals);
   while (!newEvals.empty())
   {
     size_t nnewEval = newEvals.size();
+    for (size_t i=0; i<nnewEval; i++)
+    {
+
+    }
   }
-  os << body0;
-  // update the global context
-  pcount = ctx.d_progCount;
+  os << bodyFinal;
 }
 
 bool FlattenEval::isPure(const Expr& e)
@@ -73,6 +106,7 @@ bool FlattenEval::isPure(const Expr& e)
   {
     if (e[i].isEvaluatable())
     {
+      // TODO: cache
       if (!isPure(e[i]))
       {
         return false;
@@ -89,9 +123,11 @@ Expr FlattenEval::mkPurifyEvaluation(State& s,
                                      ProgramOutCtx& ctx,
                                      std::vector<Expr>& newEvals)
 {
-  if (isPure(e))
+  Kind ek = e.getKind();
+  if (isPure(e) && ek!=Kind::EVAL_IF_THEN_ELSE && ek!=Kind::EVAL_REQUIRES)
   {
     // if it is already pure, we are done
+    // note that ite and requires still require processing
     return e;
   }
   Expr nullExpr;
