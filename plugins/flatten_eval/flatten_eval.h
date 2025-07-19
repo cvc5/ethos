@@ -21,17 +21,10 @@ namespace ethos {
 class State;
 class TypeChecker;
 
-class ProgramOut
-{
- public:
-  std::stringstream d_ss;
-  size_t d_variant;
-};
-
 class ProgramOutCtx
 {
  public:
-  ProgramOutCtx(State& s, size_t pcount);
+  ProgramOutCtx(State& s, const std::string& progPrefix);
   void pushArg(const Expr& a);
   void pushArgTyped(const Expr& a, const Expr& at);
   void popArg();
@@ -39,6 +32,7 @@ class ProgramOutCtx
   Expr allocateProgram(const std::vector<Expr>& nvars, const std::vector<Expr>& nargs, const Expr& ret);
   std::vector<Expr> getArgs() { return d_args; }
   std::map<Expr, Expr> d_visited;
+  std::vector<std::pair<Expr, Expr>> d_progAlloc;
 
  private:
   Expr ensureFinalArg(const Expr& e);
@@ -51,7 +45,6 @@ class ProgramOutCtx
   std::string d_progPrefix;
   size_t d_varCount;
   size_t d_progCount;
-  std::vector<std::pair<Expr, Expr>> d_progAlloc;
 };
 
 /**
@@ -64,7 +57,7 @@ class FlattenEval : public StdPlugin
  public:
   FlattenEval(State& s);
   ~FlattenEval();
-
+  static std::vector<std::pair<Expr, Expr>> flattenProgram(State& s, const Expr& prog, const Expr& progDef);
   /**
    * Flattens the evaluation in term t, where t may contain
    * free variables.
@@ -72,9 +65,6 @@ class FlattenEval : public StdPlugin
   static Expr flattenEval(State& s,
                           ProgramOutCtx& ctx,
                           const Expr& t);
-  static Expr flattenEvalInternal(State& s,
-                                  ProgramOutCtx& ctx,
-                                  const Expr& t);
   /**
    * Return the index of the child of e beyond which are not immediately evaluated.
    * This is 1 for ite, 2 for requires, and e.getNumChildren() otherwise.

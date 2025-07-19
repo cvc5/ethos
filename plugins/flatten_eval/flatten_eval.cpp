@@ -11,8 +11,8 @@
 
 namespace ethos {
 
-ProgramOutCtx::ProgramOutCtx(State& s, size_t pcount)
-    : d_state(s), d_progPrefix("$eop_"), d_varCount(0), d_progCount(pcount)
+ProgramOutCtx::ProgramOutCtx(State& s, const std::string& progPrefix)
+    : d_state(s), d_progPrefix(progPrefix), d_varCount(0), d_progCount(0)
 {
 }
 
@@ -93,7 +93,7 @@ Expr ProgramOutCtx::allocateProgramInternal(const Expr& retType)
   Expr progType = d_state.mkProgramType(d_argTypes, retType);
   d_progCount++;
   std::stringstream ss;
-  ss << d_progPrefix << d_progCount;
+  ss << d_progPrefix << "." << d_progCount;
   return d_state.mkSymbol(Kind::PROGRAM_CONST, ss.str(), progType);
 }
 
@@ -119,8 +119,6 @@ Expr ProgramOutCtx::ensureFinalArg(const Expr& e)
     {
       Expr bvalue = d_state.mkBool(i==0);
       Expr progRet = i==0 ? e[1] : e[2];
-      // should have already ensured branches are final.
-      Assert (FlattenEval::isFinal(progRet));
       pushArg(bvalue);
       if (i==0)
       {
@@ -141,8 +139,6 @@ Expr ProgramOutCtx::ensureFinalArg(const Expr& e)
   }
   else if (k==Kind::EVAL_REQUIRES)
   {
-    // should have already ensured the return is final.
-    Assert (FlattenEval::isFinal(e[2]));
     Expr et = getTypeInternal(e);
     Expr prog = allocateProgramInternal(et);
     Expr var = allocateVariable(et);
@@ -176,91 +172,44 @@ Expr FlattenEval::flattenEval(State& s,
   // get the free variables, which will be the arguments
   // to potential programs
   std::vector<Expr> vars = Expr::getVariables(t);
+  if (vars.empty())
+  {
+    // if ground, there is nothing to do
+    Assert (!t.isEvaluatable()) << "Static stuck evaluation";
+    return t;
+  }
+  Expr ret = t;
   for (const Expr& v : vars)
   {
     ctx.pushArg(v);
   }
-  return flattenEvalInternal(s, ctx, t);
-}
-
-Expr FlattenEval::flattenEvalInternal(State& s,
-                                      ProgramOutCtx& ctx,
-                                      const Expr& t)
-{
-  Expr nullExpr;
-  std::map<Expr, Expr> prePurify;
-  std::map<Expr, Expr> purify;
-  std::map<Expr, Expr>::iterator it;
-  std::map<Expr, std::vector<Expr>> newEvals;
-  std::map<Expr, std::vector<Expr>> newVars;
-  std::map<Expr, std::vector<Expr>>::iterator itp;
-  std::vector<Expr> toVisit;
-  toVisit.emplace_back(t);
-  Expr curTerm;
-  do
+  std::vector<Expr> nevals;
+  // local context??
+  std::map<Expr, Expr>& visited = ctx.d_visited;
+  visited.clear();
+  Expr tp = mkPurifyEvaluation(s, t, ctx, nevals);
+  if (tp!=t)
   {
-    curTerm = toVisit.back();
-    it = purify.find(curTerm);
-    if (it==purify.end())
-    {
-      std::vector<Expr>& nevals = newEvals[curTerm];
-      std::map<Expr, Expr>& visited = ctx.d_visited;
-      // local context???
-      visited.clear();
-      Expr curTermPurify = mkPurifyEvaluation(s, curTerm, ctx, nevals);
-      if (curTermPurify==curTerm)
-      {
-        Assert (nevals.empty());
-        purify[curTerm] = curTerm;
-        toVisit.pop_back();
-        continue;
-      }
-      Assert (!nevals.empty());
-      prePurify[curTerm] = curTermPurify;
-      purify[curTerm] = nullExpr;
-      // push a context change
-      std::vector<Expr>& nvars = newVars[curTerm];
-      for (size_t i = 0, nnewEval = nevals.size(); i < nnewEval; i++)
-      {
-        Expr ceval = nevals[i];
-        Expr cvar = visited[ceval];
-        Assert(!cvar.isNull() && cvar.getKind() == Kind::PARAM);
-        ctx.pushArg(cvar);
-        nvars.push_back(cvar);
-      }
-      // purify the term again, in the extended context
-      toVisit.emplace_back(curTermPurify);
-      continue;
-    }
-    else if (!it->second.isNull())
-    {
-      // already computed
-      toVisit.pop_back();
-      continue;
-    }
-    std::vector<Expr>& nevals = newEvals[curTerm];
-    std::vector<Expr>& nvars = newVars[curTerm];
-    Assert (!nevals.empty());
-    Assert (nevals.size()==nvars.size());
-    // done with the context now
+    // get the variables we use to purify nevals
+    std::vector<Expr> nvars;
     for (size_t i = 0, nnewEval = nevals.size(); i < nnewEval; i++)
     {
-      ctx.popArg();
+      Expr ceval = nevals[i];
+      Expr cvar = visited[ceval];
+      Assert(!cvar.isNull() && cvar.getKind() == Kind::PARAM);
+      nvars.push_back(cvar);
     }
-    // now, we must process the children of ITE/requires
-    toVisit.pop_back();
-    Expr prevTerm = prePurify[curTerm];
-    Assert (!prevTerm.isNull());
-    Expr pureRet = purify[prevTerm];
-    Assert (!pureRet.isNull());
-    // call allocate program, which will allocate the program and
-    // return the call.
-    Expr finalRes = ctx.allocateProgram(nvars, nevals, pureRet);
-    Assert (isFinal(finalRes));
-    purify[curTerm] = finalRes;
-  } while (!toVisit.empty());
-  Assert (purify.find(t)!=purify.end());
-  return purify[t];
+    // Allocate a program which has new variables that were introduced
+    // to construct tp. We call this program with the terms we purified.
+    // The actual terms in nevals may be processed further to eliminate
+    // ite and requires.
+    ret = ctx.allocateProgram(nvars, nevals, tp);
+  }
+  for (size_t i=0, npush=vars.size(); i<npush; i++)
+  {
+    ctx.popArg();
+  }
+  return ret;
 }
 
 bool FlattenEval::isFinal(const Expr& e)
@@ -395,6 +344,66 @@ Expr FlattenEval::mkPurifyEvaluation(State& s,
   Assert(visited.find(e) != visited.end());
   Assert(!visited.find(e)->second.isNull());
   return visited[e];
+}
+
+
+std::vector<std::pair<Expr, Expr>> FlattenEval::flattenProgram(State& s, const Expr& prog, const Expr& progDef)
+{
+  std::vector<std::pair<Expr, Expr>> ret;
+  std::vector<std::pair<Expr, Expr>> toVisit;
+  std::stringstream progName;
+  progName << prog;
+  ProgramOutCtx ctx(s, progName.str());
+  toVisit.emplace_back(prog, progDef);
+  std::pair<Expr, Expr> cur;
+  do
+  {
+    cur = toVisit.back();
+    Assert (ctx.getArgs().empty());
+    Expr cprog = cur.first;
+    Expr cdef = cur.second;
+    Assert (cdef.getKind()==Kind::PROGRAM);
+    // see if we need to purify each return term
+    std::vector<Expr> newCases;
+    bool caseChanged = false;
+    for (size_t i = 0, ncases = cdef.getNumChildren(); i < ncases; i++)
+    {
+      Expr cret = cdef[i][1];
+      Expr cretp = flattenEval(s, ctx, cret);
+      if (cretp!=cret)
+      {
+        caseChanged = true;
+        Expr cPair = s.mkPair(cdef[i][0], cretp);
+        newCases.push_back(cPair);
+      }
+      else
+      {
+        newCases.push_back(cdef[i]);
+      }
+    }
+    std::vector<std::pair<Expr, Expr>>& palloc = ctx.d_progAlloc;
+    if (caseChanged)
+    {
+      toVisit.pop_back();
+      Expr newDef = s.mkExpr(Kind::PROGRAM, newCases);
+      toVisit.emplace_back(cprog, newDef);
+      Assert (!palloc.empty());
+      // now process the programs we allocated.
+      toVisit.insert(toVisit.end(), palloc.begin(), palloc.end());
+      // clear them from the context
+      palloc.clear();
+    }
+    else
+    {
+      Assert (palloc.empty());
+      ret.push_back(cur);
+      // it did not need processed, it is finished.
+      toVisit.pop_back();
+    }
+  }
+  while (!toVisit.empty());
+
+  return ret;
 }
 
 }  // namespace ethos
