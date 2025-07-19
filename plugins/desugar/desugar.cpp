@@ -13,8 +13,8 @@
 #include <sstream>
 #include <string>
 
-#include "state.h"
 #include "../flatten_eval/flatten_eval.h"
+#include "state.h"
 
 namespace ethos {
 
@@ -88,8 +88,7 @@ void Desugar::finalizeProgram(const Expr& e, const Expr& prog, std::ostream& os)
   Expr pt = d_tc.getType(p);
   std::vector<Expr> pandt{pt, prog};
   std::vector<Expr> vars = Expr::getVariables(pandt);
-  os << "; " << (prog.isNull() ? "fwd-decl: " : "program: ") << e
-         << std::endl;
+  os << "; " << (prog.isNull() ? "fwd-decl: " : "program: ") << e << std::endl;
   os << "(program " << e << " (";
   printParamList(vars, os, false);
   os << ")" << std::endl;
@@ -182,8 +181,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
             << "Bad opaque function variable " << ct << " for " << c;
         std::vector<Expr> vars;
         vars.push_back(v);
-        printParamList(
-            vars, opaqueArgs, params, visited, true, true);
+        printParamList(vars, opaqueArgs, params, visited, true, true);
       }
       ct = ct[novars];
     }
@@ -397,7 +395,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
       // construct the program and print it
       std::vector<Expr> argTypes;
       Expr retType = d_state.mkType();
-      for (size_t i=0, ngsize=ngscope.size(); i<ngsize; i++)
+      for (size_t i = 0, ngsize = ngscope.size(); i < ngsize; i++)
       {
         argTypes.push_back(retType);
       }
@@ -495,12 +493,12 @@ void Desugar::printParamList(const std::vector<Expr>& vars,
 }
 
 void Desugar::printParamListOld(const std::vector<Expr>& vars,
-                             std::ostream& os,
-                             std::vector<Expr>& params,
-                             bool useImplicit,
-                             std::map<Expr, bool>& visited,
-                             bool& firstParam,
-                             bool isOpaque)
+                                std::ostream& os,
+                                std::vector<Expr>& params,
+                                bool useImplicit,
+                                std::map<Expr, bool>& visited,
+                                bool& firstParam,
+                                bool isOpaque)
 {
   std::map<Expr, bool>::iterator itv;
   std::vector<Expr> toVisit(vars.begin(), vars.end());
@@ -594,15 +592,15 @@ void Desugar::getParamList(const std::vector<Expr>& vars,
   }
 }
 void Desugar::printParamListNew(std::ostream& os,
-                        const std::vector<Expr>& params,
-                        bool useImplicit,
-                        const std::vector<Expr>& nimplicit,
-                        bool isOpaque,
-                         size_t startIndex)
+                                const std::vector<Expr>& params,
+                                bool useImplicit,
+                                const std::vector<Expr>& nimplicit,
+                                bool isOpaque,
+                                size_t startIndex)
 {
-  for (size_t i=startIndex, nparams=params.size(); i<nparams; i++)
+  for (size_t i = startIndex, nparams = params.size(); i < nparams; i++)
   {
-    if (i>0)
+    if (i > 0)
     {
       os << " ";
     }
@@ -610,7 +608,7 @@ void Desugar::printParamListNew(std::ostream& os,
     os << "(" << cur << " ";
     Expr tcur = d_tc.getType(cur);
     printTerm(tcur, os);
-    if (std::find(nimplicit.begin(), nimplicit.end(), cur)==nimplicit.end())
+    if (std::find(nimplicit.begin(), nimplicit.end(), cur) == nimplicit.end())
     {
       if (useImplicit)
       {

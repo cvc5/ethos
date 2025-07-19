@@ -43,16 +43,18 @@ void ProgramOutCtx::pushArgTyped(const Expr& a, const Expr& at)
 
 void ProgramOutCtx::popArg()
 {
-  Assert (!d_args.empty());
+  Assert(!d_args.empty());
   d_args.pop_back();
   d_argTypes.pop_back();
 }
 
-Expr ProgramOutCtx::allocateProgram(const std::vector<Expr>& nvars, const std::vector<Expr>& nargs, const Expr& ret)
+Expr ProgramOutCtx::allocateProgram(const std::vector<Expr>& nvars,
+                                    const std::vector<Expr>& nargs,
+                                    const Expr& ret)
 {
-  Assert (nvars.size()==nargs.size());
+  Assert(nvars.size() == nargs.size());
   size_t numVars = nvars.size();
-  for (size_t i=0; i<numVars; i++)
+  for (size_t i = 0; i < numVars; i++)
   {
     pushArg(nvars[i]);
   }
@@ -64,14 +66,14 @@ Expr ProgramOutCtx::allocateProgram(const std::vector<Expr>& nvars, const std::v
   Expr progPair = d_state.mkPair(progCase, ret);
   Expr progDef = d_state.mkExpr(Kind::PROGRAM, {progPair});
   d_progAlloc.emplace_back(prog, progDef);
-  for (size_t i=0; i<numVars; i++)
+  for (size_t i = 0; i < numVars; i++)
   {
     popArg();
   }
   std::vector<Expr> pappChildren;
   pappChildren.push_back(prog);
   pappChildren.insert(pappChildren.end(), d_args.begin(), d_args.end());
-  for (size_t i=0; i<numVars; i++)
+  for (size_t i = 0; i < numVars; i++)
   {
     pappChildren.push_back(ensureFinalArg(nargs[i]));
   }
@@ -109,18 +111,18 @@ Expr ProgramOutCtx::allocateVariable(const Expr& retType)
 Expr ProgramOutCtx::ensureFinalArg(const Expr& e)
 {
   Kind k = e.getKind();
-  if (k==Kind::EVAL_IF_THEN_ELSE)
+  if (k == Kind::EVAL_IF_THEN_ELSE)
   {
     Expr et = getTypeInternal(e);
     Expr btrue = d_state.mkTrue();
     Expr prog;
     std::vector<Expr> pcs;
-    for (size_t i=0; i<2; i++)
+    for (size_t i = 0; i < 2; i++)
     {
-      Expr bvalue = d_state.mkBool(i==0);
-      Expr progRet = i==0 ? e[1] : e[2];
+      Expr bvalue = d_state.mkBool(i == 0);
+      Expr progRet = i == 0 ? e[1] : e[2];
       pushArg(bvalue);
-      if (i==0)
+      if (i == 0)
       {
         prog = allocateProgramInternal(et);
       }
@@ -137,7 +139,7 @@ Expr ProgramOutCtx::ensureFinalArg(const Expr& e)
     pappChildren.push_back(e[0]);
     return d_state.mkExprSimple(Kind::APPLY, pappChildren);
   }
-  else if (k==Kind::EVAL_REQUIRES)
+  else if (k == Kind::EVAL_REQUIRES)
   {
     Expr et = getTypeInternal(e);
     Expr prog = allocateProgramInternal(et);
@@ -161,13 +163,10 @@ Expr ProgramOutCtx::ensureFinalArg(const Expr& e)
   return e;
 }
 
-
 FlattenEval::FlattenEval(State& s) : StdPlugin(s) {}
 FlattenEval::~FlattenEval() {}
 
-Expr FlattenEval::flattenEval(State& s,
-                              ProgramOutCtx& ctx,
-                              const Expr& t)
+Expr FlattenEval::flattenEval(State& s, ProgramOutCtx& ctx, const Expr& t)
 {
   // get the free variables, which will be the arguments
   // to potential programs
@@ -175,7 +174,7 @@ Expr FlattenEval::flattenEval(State& s,
   if (vars.empty())
   {
     // if ground, there is nothing to do
-    Assert (!t.isEvaluatable()) << "Static stuck evaluation";
+    Assert(!t.isEvaluatable()) << "Static stuck evaluation";
     return t;
   }
   Expr ret = t;
@@ -188,7 +187,7 @@ Expr FlattenEval::flattenEval(State& s,
   std::map<Expr, Expr>& visited = ctx.d_visited;
   visited.clear();
   Expr tp = mkPurifyEvaluation(s, t, ctx, nevals);
-  if (tp!=t)
+  if (tp != t)
   {
     // get the variables we use to purify nevals
     std::vector<Expr> nvars;
@@ -205,7 +204,7 @@ Expr FlattenEval::flattenEval(State& s,
     // ite and requires.
     ret = ctx.allocateProgram(nvars, nevals, tp);
   }
-  for (size_t i=0, npush=vars.size(); i<npush; i++)
+  for (size_t i = 0, npush = vars.size(); i < npush; i++)
   {
     ctx.popArg();
   }
@@ -215,7 +214,7 @@ Expr FlattenEval::flattenEval(State& s,
 bool FlattenEval::isFinal(const Expr& e)
 {
   Kind ek = e.getKind();
-  if (ek==Kind::EVAL_IF_THEN_ELSE || ek==Kind::EVAL_REQUIRES)
+  if (ek == Kind::EVAL_IF_THEN_ELSE || ek == Kind::EVAL_REQUIRES)
   {
     return false;
   }
@@ -226,8 +225,8 @@ size_t FlattenEval::deferIndex(const Expr& e)
 {
   Kind k = e.getKind();
   return (k == Kind::EVAL_IF_THEN_ELSE
-                     ? 1
-                     : (k == Kind::EVAL_REQUIRES ? 2 : e.getNumChildren()));
+              ? 1
+              : (k == Kind::EVAL_REQUIRES ? 2 : e.getNumChildren()));
 }
 
 bool FlattenEval::isPure(const Expr& e)
@@ -346,8 +345,8 @@ Expr FlattenEval::mkPurifyEvaluation(State& s,
   return visited[e];
 }
 
-
-std::vector<std::pair<Expr, Expr>> FlattenEval::flattenProgram(State& s, const Expr& prog, const Expr& progDef)
+std::vector<std::pair<Expr, Expr>> FlattenEval::flattenProgram(
+    State& s, const Expr& prog, const Expr& progDef)
 {
   std::vector<std::pair<Expr, Expr>> ret;
   std::vector<std::pair<Expr, Expr>> toVisit;
@@ -359,10 +358,10 @@ std::vector<std::pair<Expr, Expr>> FlattenEval::flattenProgram(State& s, const E
   do
   {
     cur = toVisit.back();
-    Assert (ctx.getArgs().empty());
+    Assert(ctx.getArgs().empty());
     Expr cprog = cur.first;
     Expr cdef = cur.second;
-    Assert (cdef.getKind()==Kind::PROGRAM);
+    Assert(cdef.getKind() == Kind::PROGRAM);
     // see if we need to purify each return term
     std::vector<Expr> newCases;
     bool caseChanged = false;
@@ -370,7 +369,7 @@ std::vector<std::pair<Expr, Expr>> FlattenEval::flattenProgram(State& s, const E
     {
       Expr cret = cdef[i][1];
       Expr cretp = flattenEval(s, ctx, cret);
-      if (cretp!=cret)
+      if (cretp != cret)
       {
         caseChanged = true;
         Expr cPair = s.mkPair(cdef[i][0], cretp);
@@ -387,7 +386,7 @@ std::vector<std::pair<Expr, Expr>> FlattenEval::flattenProgram(State& s, const E
       toVisit.pop_back();
       Expr newDef = s.mkExpr(Kind::PROGRAM, newCases);
       toVisit.emplace_back(cprog, newDef);
-      Assert (!palloc.empty());
+      Assert(!palloc.empty());
       // now process the programs we allocated.
       toVisit.insert(toVisit.end(), palloc.begin(), palloc.end());
       // clear them from the context
@@ -395,13 +394,12 @@ std::vector<std::pair<Expr, Expr>> FlattenEval::flattenProgram(State& s, const E
     }
     else
     {
-      Assert (palloc.empty());
+      Assert(palloc.empty());
       ret.push_back(cur);
       // it did not need processed, it is finished.
       toVisit.pop_back();
     }
-  }
-  while (!toVisit.empty());
+  } while (!toVisit.empty());
 
   return ret;
 }

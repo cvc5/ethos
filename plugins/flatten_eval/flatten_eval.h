@@ -29,7 +29,9 @@ class ProgramOutCtx
   void pushArgTyped(const Expr& a, const Expr& at);
   void popArg();
   Expr allocateVariable(const Expr& retType);
-  Expr allocateProgram(const std::vector<Expr>& nvars, const std::vector<Expr>& nargs, const Expr& ret);
+  Expr allocateProgram(const std::vector<Expr>& nvars,
+                       const std::vector<Expr>& nargs,
+                       const Expr& ret);
   std::vector<Expr> getArgs() { return d_args; }
   std::map<Expr, Expr> d_visited;
   std::vector<std::pair<Expr, Expr>> d_progAlloc;
@@ -57,17 +59,18 @@ class FlattenEval : public StdPlugin
  public:
   FlattenEval(State& s);
   ~FlattenEval();
-  static std::vector<std::pair<Expr, Expr>> flattenProgram(State& s, const Expr& prog, const Expr& progDef);
+  static std::vector<std::pair<Expr, Expr>> flattenProgram(State& s,
+                                                           const Expr& prog,
+                                                           const Expr& progDef);
   /**
    * Flattens the evaluation in term t, where t may contain
    * free variables.
    */
-  static Expr flattenEval(State& s,
-                          ProgramOutCtx& ctx,
-                          const Expr& t);
+  static Expr flattenEval(State& s, ProgramOutCtx& ctx, const Expr& t);
   /**
-   * Return the index of the child of e beyond which are not immediately evaluated.
-   * This is 1 for ite, 2 for requires, and e.getNumChildren() otherwise.
+   * Return the index of the child of e beyond which are not immediately
+   * evaluated. This is 1 for ite, 2 for requires, and e.getNumChildren()
+   * otherwise.
    */
   static size_t deferIndex(const Expr& e);
   /**

@@ -335,7 +335,7 @@ void Expr::printDebugInternal(const Expr& e,
               os << "(! " << l->toString() << " :decimal)";
               break;
             default:
-              if (k==Kind::VARIABLE)
+              if (k == Kind::VARIABLE)
               {
                 // TODO?
               }
@@ -359,7 +359,7 @@ void Expr::printDebugInternal(const Expr& e,
       }
       else
       {
-        if (k==Kind::ANNOT_PARAM)
+        if (k == Kind::ANNOT_PARAM)
         {
           // TODO?
         }
