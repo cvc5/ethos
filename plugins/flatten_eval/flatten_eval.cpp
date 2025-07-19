@@ -119,8 +119,8 @@ Expr ProgramOutCtx::ensureFinalArg(const Expr& e)
     {
       Expr bvalue = d_state.mkBool(i==0);
       Expr progRet = i==0 ? e[1] : e[2];
-      // should have already ensured branches are pure
-      Assert (FlattenEval::isPure(progRet));
+      // should have already ensured branches are final.
+      Assert (FlattenEval::isFinal(progRet));
       pushArg(bvalue);
       if (i==0)
       {
@@ -141,8 +141,8 @@ Expr ProgramOutCtx::ensureFinalArg(const Expr& e)
   }
   else if (k==Kind::EVAL_REQUIRES)
   {
-    // should have already ensured the return is pure.
-    Assert (FlattenEval::isPure(e[2]));
+    // should have already ensured the return is final.
+    Assert (FlattenEval::isFinal(e[2]));
     Expr et = getTypeInternal(e);
     Expr prog = allocateProgramInternal(et);
     Expr var = allocateVariable(et);
@@ -171,22 +171,6 @@ FlattenEval::~FlattenEval() {}
 
 Expr FlattenEval::flattenEval(State& s,
                               ProgramOutCtx& ctx,
-                              const Expr& pat,
-                              const Expr& body)
-{
-  Assert(pat.getKind() == Kind::APPLY);
-  Expr prog = pat[0];
-  Expr progType = s.getTypeChecker().getType(prog);
-  Assert(progType.getNumChildren() == pat.getNumChildren());
-  for (size_t i = 1, nargs = pat.getNumChildren(); i < nargs; i++)
-  {
-    ctx.pushArgTyped(pat[i], progType[i - 1]);
-  }
-  return flattenEvalInternal(s, ctx, body);
-}
-
-Expr FlattenEval::flattenEval(State& s,
-                              ProgramOutCtx& ctx,
                               const Expr& t)
 {
   // get the free variables, which will be the arguments
@@ -203,57 +187,98 @@ Expr FlattenEval::flattenEvalInternal(State& s,
                                       ProgramOutCtx& ctx,
                                       const Expr& t)
 {
-  std::map<Expr, Expr>& visited = ctx.d_visited;
+  Expr nullExpr;
+  std::map<Expr, Expr> prePurify;
+  std::map<Expr, Expr> purify;
+  std::map<Expr, Expr>::iterator it;
   std::map<Expr, std::vector<Expr>> newEvals;
+  std::map<Expr, std::vector<Expr>> newVars;
   std::map<Expr, std::vector<Expr>>::iterator itp;
   std::vector<Expr> toVisit;
   toVisit.emplace_back(t);
   Expr curTerm;
   do
   {
-    Expr prevTerm = curTerm;
     curTerm = toVisit.back();
-    itp = newEvals.find(curTerm);
-    if (itp==newEvals.end())
+    it = purify.find(curTerm);
+    if (it==purify.end())
     {
       std::vector<Expr>& nevals = newEvals[curTerm];
+      std::map<Expr, Expr>& visited = ctx.d_visited;
+      // local context???
+      visited.clear();
       Expr curTermPurify = mkPurifyEvaluation(s, curTerm, ctx, nevals);
       if (curTermPurify==curTerm)
       {
         Assert (nevals.empty());
+        purify[curTerm] = curTerm;
         toVisit.pop_back();
         continue;
       }
       Assert (!nevals.empty());
+      prePurify[curTerm] = curTermPurify;
+      purify[curTerm] = nullExpr;
       // push a context change
+      std::vector<Expr>& nvars = newVars[curTerm];
       for (size_t i = 0, nnewEval = nevals.size(); i < nnewEval; i++)
       {
         Expr ceval = nevals[i];
         Expr cvar = visited[ceval];
         Assert(!cvar.isNull() && cvar.getKind() == Kind::PARAM);
         ctx.pushArg(cvar);
+        nvars.push_back(cvar);
       }
+      // purify the term again, in the extended context
       toVisit.emplace_back(curTermPurify);
-      //Expr prog = ctx.allocateProgram(curTermT);
       continue;
     }
-    Assert (!prevTerm.isNull());
-    toVisit.pop_back();
-    std::vector<Expr>& nevals = itp->second;
-    std::vector<Expr> nvars;
+    else if (!it->second.isNull())
+    {
+      // already computed
+      toVisit.pop_back();
+      continue;
+    }
+    std::vector<Expr>& nevals = newEvals[curTerm];
+    std::vector<Expr>& nvars = newVars[curTerm];
+    Assert (!nevals.empty());
+    Assert (nevals.size()==nvars.size());
+    // done with the context now
     for (size_t i = 0, nnewEval = nevals.size(); i < nnewEval; i++)
     {
-      Expr ceval = nevals[i];
-      Expr cvar = visited[ceval];
-      nvars.push_back(cvar);
       ctx.popArg();
     }
+    // now, we must process the children of ITE/requires
+    toVisit.pop_back();
+    Expr prevTerm = prePurify[curTerm];
+    Assert (!prevTerm.isNull());
+    Expr pureRet = purify[prevTerm];
+    Assert (!pureRet.isNull());
     // call allocate program, which will allocate the program and
     // return the call.
-    curTerm = ctx.allocateProgram(nvars, nevals, prevTerm);
+    Expr finalRes = ctx.allocateProgram(nvars, nevals, pureRet);
+    Assert (isFinal(finalRes));
+    purify[curTerm] = finalRes;
   } while (!toVisit.empty());
-  Assert (visited.find(t)!=visited.end());
-  return visited[t];
+  Assert (purify.find(t)!=purify.end());
+  return purify[t];
+}
+
+bool FlattenEval::isFinal(const Expr& e)
+{
+  Kind ek = e.getKind();
+  if (ek==Kind::EVAL_IF_THEN_ELSE || ek==Kind::EVAL_REQUIRES)
+  {
+    return false;
+  }
+  return isPure(e);
+}
+
+size_t FlattenEval::deferIndex(const Expr& e)
+{
+  Kind k = e.getKind();
+  return (k == Kind::EVAL_IF_THEN_ELSE
+                     ? 1
+                     : (k == Kind::EVAL_REQUIRES ? 2 : e.getNumChildren()));
 }
 
 bool FlattenEval::isPure(const Expr& e)
@@ -273,17 +298,14 @@ bool FlattenEval::isPure(const Expr& e)
   }
   // we are not pure if one of our relevant children is not pure.
   size_t istart = (k == Kind::APPLY ? 1 : 0);
-  size_t iend = (k == Kind::EVAL_IF_THEN_ELSE
-                     ? 1
-                     : (k == Kind::EVAL_REQUIRES ? 2 : e.getNumChildren()));
+  size_t iend = deferIndex(e);
   for (size_t i = istart; i < iend; i++)
   {
     if (e[i].isEvaluatable())
     {
-      Kind ek = e[i].getKind();
       // TODO: cache
       // requires or ite as strict children are not allowed
-      if (ek==Kind::EVAL_IF_THEN_ELSE || ek==Kind::EVAL_REQUIRES || !isPure(e[i]))
+      if (!isFinal(e[i]))
       {
         return false;
       }
@@ -299,11 +321,11 @@ Expr FlattenEval::mkPurifyEvaluation(State& s,
                                      ProgramOutCtx& ctx,
                                      std::vector<Expr>& newEvals)
 {
-  Kind ek = e.getKind();
-  if (isPure(e) && ek != Kind::EVAL_IF_THEN_ELSE && ek != Kind::EVAL_REQUIRES)
+  if (isFinal(e))
   {
-    // if it is already pure, we are done
-    // note that ite and requires still require processing
+    // if it is already final, we are done
+    // Note if e is pure but not final (e.g. (ite C1 (ite C2 t1 t2) t3)),
+    // this method will return a single variable.
     return e;
   }
   Expr nullExpr;
@@ -341,10 +363,7 @@ Expr FlattenEval::mkPurifyEvaluation(State& s,
         continue;
       }
       visited[cur] = nullExpr;
-      size_t iend =
-          (k == Kind::EVAL_IF_THEN_ELSE
-               ? 1
-               : (k == Kind::EVAL_REQUIRES ? 2 : cur.getNumChildren()));
+      size_t iend = deferIndex(cur);
       for (size_t i = 0; i < iend; i++)
       {
         visit.push_back(cur[i]);

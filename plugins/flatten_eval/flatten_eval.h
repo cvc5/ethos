@@ -66,14 +66,9 @@ class FlattenEval : public StdPlugin
   ~FlattenEval();
 
   /**
-   * Flattens the evaluation in the body of a case of the definition of program
-   * v. Prints the returned term equivalent to caseBody on os. Introduces
-   * auxiliary programs to do so, printed on osp.
+   * Flattens the evaluation in term t, where t may contain
+   * free variables.
    */
-  static Expr flattenEval(State& s,
-                          ProgramOutCtx& ctx,
-                          const Expr& pat,
-                          const Expr& body);
   static Expr flattenEval(State& s,
                           ProgramOutCtx& ctx,
                           const Expr& t);
@@ -81,9 +76,15 @@ class FlattenEval : public StdPlugin
                                   ProgramOutCtx& ctx,
                                   const Expr& t);
   /**
+   * Return the index of the child of e beyond which are not immediately evaluated.
+   * This is 1 for ite, 2 for requires, and e.getNumChildren() otherwise.
+   */
+  static size_t deferIndex(const Expr& e);
+  /**
    * True if this is an invocation of evaluation that can be purified.
    */
   static bool isPure(const Expr& e);
+  static bool isFinal(const Expr& e);
   /**
    * Given a term e, return a term that has no evaluation.
    * For each top-level evaluation term in e, we replace it by a fresh
