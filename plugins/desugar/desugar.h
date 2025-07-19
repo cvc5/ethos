@@ -63,7 +63,7 @@ class Desugar : public StdPlugin
   void getParamList(const std::vector<Expr>& vars,
                     std::vector<Expr>& params,
                     std::map<Expr, bool>& visited);
-  void printParamListNew(std::ostream& os,
+  void finalizeParamList(std::ostream& os,
                          const std::vector<Expr>& params,
                          bool useImplicit,
                          const std::vector<Expr>& nimplicit,

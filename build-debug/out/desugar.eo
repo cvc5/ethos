@@ -1647,7 +1647,7 @@
 ; declare: RegLan
 (declare-const RegLan Type)
 ; declare: seq.empty
-(declare-parameterized-const seq.empty ((T Type)) (Seq T))
+(declare-parameterized-const seq.empty ((T Type :implicit)) (Seq T))
 ; define: $seq_empty
 (define $seq_empty ((U Type))
   (eo::ite (eo::is_eq U (Seq Char)) "" (_ seq.empty U)))
@@ -1858,7 +1858,7 @@
 ; declare: Set
 (declare-const Set (-> Type Type))
 ; declare: set.empty
-(declare-parameterized-const set.empty ((T Type)) (Set T))
+(declare-parameterized-const set.empty ((T Type :implicit)) (Set T))
 ; declare: set.singleton
 (declare-parameterized-const set.singleton ((T Type :implicit) ($eo_x_1 T)) (Set T))
 ; declare: set.union

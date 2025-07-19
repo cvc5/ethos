@@ -223,7 +223,12 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
           // print the parameters; these will lead to a definition that is
           // ambiguous again.
           std::vector<Expr> avars = Expr::getVariables(v);
-          printParamList(avars, os, params, visited, true);
+          // override the behavior to ensure all variables are implicit.
+          // TODO: this isn't right if some but not all free variables are implicit???
+          size_t startIndex = params.size();
+          getParamList(avars, params, visited);
+          std::vector<Expr> emptyVec;
+          finalizeParamList(os, params, true, emptyVec, false, startIndex);
         }
         else
         {
@@ -489,7 +494,7 @@ void Desugar::printParamList(const std::vector<Expr>& vars,
   // get the parameter list
   getParamList(vars, params, visited);
   // print it on the output stream
-  printParamListNew(os, params, useImplicit, vars, isOpaque, startIndex);
+  finalizeParamList(os, params, useImplicit, vars, isOpaque, startIndex);
 }
 
 void Desugar::printParamListOld(const std::vector<Expr>& vars,
@@ -591,7 +596,8 @@ void Desugar::getParamList(const std::vector<Expr>& vars,
     }
   }
 }
-void Desugar::printParamListNew(std::ostream& os,
+
+void Desugar::finalizeParamList(std::ostream& os,
                                 const std::vector<Expr>& params,
                                 bool useImplicit,
                                 const std::vector<Expr>& nimplicit,
