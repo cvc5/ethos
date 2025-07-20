@@ -576,30 +576,19 @@
 
 ;; verification conditions
 
-; rule: symm
-(program $eorx_symm ((F Bool))
-  :signature (Bool Type) Bool
-  (
-  (($eorx_symm F Bool) ($mk_symm F))
-  )
-)
+; program: $eor_symm
 (program $eor_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eor_symm F) ($eorx_symm F ($eo_model_typeof F)))
+  (($eor_symm F) (eo::define ((_v0 ($mk_symm F))) (eo::requires ($eo_model_typeof _v0) Bool _v0)))
   )
 )
-; verification: symm
+; program: $eovc_symm
 (program $eovc_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eovc_symm F)
-     (eo::requires ($eo_model_sat F) true
-     (eo::requires ($eo_model_sat ($eor_symm F)) false
-       true)))
+  (($eovc_symm F) (eo::requires ($eo_model_typeof F) Bool (eo::requires ($eo_model_sat F) true (eo::requires ($eo_model_sat ($eor_symm F)) false true))))
   )
 )
-
-
 (echo "smt-meta $eovc_symm")
 

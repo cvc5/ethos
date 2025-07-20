@@ -104,6 +104,7 @@ class Desugar : public StdPlugin
   Expr d_listNil;
   Expr d_listCons;
   Expr d_listType;
+  Expr d_boolType;
   /** Are we generating programs that are VC targets */
   bool d_genVcs;
 

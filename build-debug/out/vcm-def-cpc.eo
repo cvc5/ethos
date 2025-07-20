@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm $eo_typeof_main $eo_String $eo_Numeral $eo_Rational $eo_Binary $eo_dt_constructors $eo_dt_selectors
-; #trim-defs: 47
+; #trim-defs: 46
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -1534,25 +1534,16 @@
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_end
-(program $eorx_symm ((F Bool))
-  :signature (Bool Type) Bool
-  (
-  (($eorx_symm F Bool) ($mk_symm F))
-  )
-)
 (program $eor_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eor_symm F) ($eorx_symm F ($eo_model_typeof F)))
+  (($eor_symm F) (eo::define ((_v0 ($mk_symm F))) ($eo_requires ($eo_model_typeof _v0) Bool _v0)))
   )
 )
 (program $eovc_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eovc_symm F)
-     ($eo_requires ($eo_model_sat F) true
-     ($eo_requires ($eo_model_sat ($eor_symm F)) false
-       true)))
+  (($eovc_symm F) ($eo_requires ($eo_model_typeof F) Bool ($eo_requires ($eo_model_sat F) true ($eo_requires ($eo_model_sat ($eor_symm F)) false true))))
   )
 )
 (echo "smt-meta $eovc_symm")

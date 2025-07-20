@@ -412,20 +412,12 @@
     (ite ((_ is eo.SmtType) ($eo_typeof x1)) ($eo_typeof x1) (eo.SmtType (tsm.NullSort 0)))
     eo.Stuck)))))))))) :named sm.axiom.$eo_model_typeof))
 
-; program: $eorx_symm
-(define-fun $eorx_symm ((x1 eo.Term) (x2 eo.Term)) eo.Term
-  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
-    eo.Stuck
-  (ite (= x2 (eo.SmtType tsm.Bool))
-    ($mk_symm x1)
-    eo.Stuck)))
-
 ; program: $eor_symm
 (define-fun $eor_symm ((x1 eo.Term)) eo.Term
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    ($eorx_symm x1 ($eo_model_typeof x1))
+    ($eo_requires ($eo_model_typeof ($mk_symm x1)) (eo.SmtType tsm.Bool) ($mk_symm x1))
     eo.Stuck)))
 
 ; program: $eovc_symm
@@ -433,7 +425,7 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    ($eo_requires ($eo_model_sat x1) (eo.SmtTerm (sm.Bool true)) ($eo_requires ($eo_model_sat ($eor_symm x1)) (eo.SmtTerm (sm.Bool false)) (eo.SmtTerm (sm.Bool true))))
+    ($eo_requires ($eo_model_typeof x1) (eo.SmtType tsm.Bool) ($eo_requires ($eo_model_sat x1) (eo.SmtTerm (sm.Bool true)) ($eo_requires ($eo_model_sat ($eor_symm x1)) (eo.SmtTerm (sm.Bool false)) (eo.SmtTerm (sm.Bool true)))))
     eo.Stuck)))
 
 
