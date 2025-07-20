@@ -369,19 +369,19 @@
 ; program: $eo_list_minclude_rec
 ; - y $eo_List: The first list.
 ; - z $eo_List: The second list.
-; - rmLast Bool: false iff we failed to remove the last element of y from z.
+; - rmLast Bool: false if we failed to remove the last element of y from z.
 ; return: true iff we successfully remove all elements of y from z.
 ; note: a helper for $eo_list_minclude.
 (program $eo_list_minclude_rec
   ((T Type) (x T) (y $eo_List :list) (z $eo_List))
   ($eo_List $eo_List Bool) Bool
   (
-  (($eo_list_minclude_rec y z false)       false)
+  (($eo_list_minclude_rec y z false)            false)
   (($eo_list_minclude_rec ($eo_List_cons x y) z true)
     (eo::define ((res ($eo_list_erase $eo_List_cons z x)))
       ; pass true iff we successfully removed x from z.
       ($eo_list_minclude_rec y res ($eo_if_not ($eo_eq res z)))))
-  (($eo_list_minclude_rec $eo_List_nil z true)          true)
+  (($eo_list_minclude_rec $eo_List_nil z true)  true)
   )
 )
 

@@ -34,7 +34,7 @@ class ConjPrint
 /**
  * The datatype we are at.
  */
-enum class TermContextKind
+enum class MetaKind
 {
   /** A context in which the deep embedding of the term is a Eunoia term */
   EUNOIA,
@@ -54,9 +54,9 @@ enum class TermContextKind
   /** No context */
   NONE
 };
-std::string termContextKindToString(TermContextKind k);
-std::string termContextKindToPrefix(TermContextKind k);
-std::string termContextKindToCons(TermContextKind k);
+std::string metaKindToString(MetaKind k);
+std::string metaKindToPrefix(MetaKind k);
+std::string metaKindToCons(MetaKind k);
 
 class SelectorCtx
 {
@@ -71,7 +71,7 @@ class SelectorCtx
    */
   std::map<Expr, std::string> d_ctx;
   /** The context it was matched in */
-  std::map<Expr, TermContextKind> d_tctx;
+  std::map<Expr, MetaKind> d_tctx;
 };
 
 /**
@@ -91,7 +91,7 @@ class SmtMetaReduce : public StdPlugin
 
   static bool printMetaType(const Expr& t,
                             std::ostream& os,
-                            TermContextKind tctx = TermContextKind::NONE);
+                            MetaKind tctx = MetaKind::NONE);
   /** Get the name of expression e, expected to be an atomic term */
   static std::string getName(const Expr& e);
   /** Is e a datatype constructor embedding? */
@@ -105,8 +105,8 @@ class SmtMetaReduce : public StdPlugin
    * @param elseKind The returned kind if typ does not have a special meaning.
    * @return The meta-kind of typ, or elseKind otherwise.
    */
-  static TermContextKind getTypeMetaKind(
-      const Expr& typ, TermContextKind elseKind = TermContextKind::EUNOIA);
+  static MetaKind getTypeMetaKind(
+      const Expr& typ, MetaKind elseKind = MetaKind::EUNOIA);
   /**
    * Get the meta kind of the type of expression e, or else kind otherwise.
    * In other words, we return the datatype that e is a constructor of in the
@@ -117,7 +117,7 @@ class SmtMetaReduce : public StdPlugin
    * @param cname Updated to the root name of the constructor.
    * @return The meta-kind of the type of e, or elseKind otherwise.
    */
-  static TermContextKind getMetaKind(State& s,
+  static MetaKind getMetaKind(State& s,
                                      const Expr& e,
                                      std::string& cname);
 
@@ -127,14 +127,14 @@ class SmtMetaReduce : public StdPlugin
                             std::ostream& os,
                             SelectorCtx& ctx,
                             ConjPrint& print,
-                            TermContextKind tinit = TermContextKind::NONE);
+                            MetaKind tinit = MetaKind::NONE);
   void printEmbAtomicTerm(const Expr& c,
                           std::ostream& os,
-                          TermContextKind tctx = TermContextKind::NONE);
+                          MetaKind tctx = MetaKind::NONE);
   bool printEmbTerm(const Expr& c,
                     std::ostream& os,
                     const SelectorCtx& ctx,
-                    TermContextKind tinit = TermContextKind::NONE);
+                    MetaKind tinit = MetaKind::NONE);
   void finalizePrograms();
   void finalizeProgram(const Expr& v, const Expr& prog);
   /** Does t have subterm s? */
@@ -152,9 +152,9 @@ class SmtMetaReduce : public StdPlugin
   std::stringstream d_rules;
   std::stringstream d_smtVc;
   /** */
-  std::map<std::pair<Expr, size_t>, TermContextKind> d_metaKindArg;
+  std::map<std::pair<Expr, size_t>, MetaKind> d_metaKindArg;
   /** */
-  bool isSmtLibExpression(TermContextKind ctx);
+  bool isSmtLibExpression(MetaKind ctx);
   /**
    */
   bool isProgramApp(const Expr& app);
@@ -162,26 +162,26 @@ class SmtMetaReduce : public StdPlugin
    * This returns the expected meta-kind for the i^th child of
    * parent. It should not depend on parent[i] at all.
    */
-  TermContextKind getMetaKindArg(const Expr& parent,
+  MetaKind getMetaKindArg(const Expr& parent,
                                  size_t i,
-                                 TermContextKind parentCtx);
+                                 MetaKind parentCtx);
   /**
    * Returns the result of calling the above method for all
    * children i of parent.
    */
-  std::vector<TermContextKind> getMetaKindArgs(const Expr& parent,
-                                               TermContextKind parentCtx);
+  std::vector<MetaKind> getMetaKindArgs(const Expr& parent,
+                                               MetaKind parentCtx);
   /**
    * Get the meta-kind returned by a child.
    */
-  TermContextKind getMetaKindReturn(const Expr& child,
-                                    TermContextKind parentCtx);
+  MetaKind getMetaKindReturn(const Expr& child,
+                                    MetaKind parentCtx);
   /**
    * Same as above, but collects (flattens) the arguments of APPLY
    */
-  TermContextKind getMetaKindReturn(const Expr& child,
+  MetaKind getMetaKindReturn(const Expr& child,
                                     std::vector<Expr>& appArgs,
-                                    TermContextKind parentCtx);
+                                    MetaKind parentCtx);
 };
 
 }  // namespace ethos

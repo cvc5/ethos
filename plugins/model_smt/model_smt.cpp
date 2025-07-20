@@ -263,23 +263,23 @@ void ModelSmt::finalizeDecl(const Expr& e)
   std::stringstream cname;
   // get the meta-kind based on its name
   std::string cnamek;
-  TermContextKind tk = SmtMetaReduce::getMetaKind(d_state, e, cnamek);
-  if (tk == TermContextKind::EUNOIA)
+  MetaKind tk = SmtMetaReduce::getMetaKind(d_state, e, cnamek);
+  if (tk == MetaKind::EUNOIA)
   {
     cname << "eo." << cnamek;
     out = &d_embedEoTermDt;
   }
-  else if (tk == TermContextKind::SMT_TYPE)
+  else if (tk == MetaKind::SMT_TYPE)
   {
     cname << "tsm." << cnamek;
     out = &d_embedTypeDt;
   }
-  else if (tk == TermContextKind::SMT)
+  else if (tk == MetaKind::SMT)
   {
     cname << "sm." << cnamek;
     out = &d_embedTermDt;
   }
-  else if (tk == TermContextKind::SMT_VALUE)
+  else if (tk == MetaKind::SMT_VALUE)
   {
     cname << "vsm." << cnamek;
     out = &d_embedValueDt;
