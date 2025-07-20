@@ -396,7 +396,10 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
         MetaKind prev = ctx.d_tctx[tcur];
         if (prev != parent)
         {
-          Assert (false) << "Variable " << tcur << " matched in two contexts " << metaKindToString(parent) << " and " << metaKindToString(prev) << ", within " << c << ", (= " << currTerm << " " << it->second << ")";
+          Assert(false) << "Variable " << tcur << " matched in two contexts "
+                        << metaKindToString(parent) << " and "
+                        << metaKindToString(prev) << ", within " << c
+                        << ", (= " << currTerm << " " << it->second << ")";
         }
         // two occurrences of the same variable in a pattern
         // turns into an equality

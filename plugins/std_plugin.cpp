@@ -24,7 +24,8 @@ std::string StdPlugin::s_plugin_path =
     "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
 #endif
 
-StdPlugin::StdPlugin(State& s) : d_state(s), d_tc(s.getTypeChecker()) {
+StdPlugin::StdPlugin(State& s) : d_state(s), d_tc(s.getTypeChecker())
+{
   d_typeVarCounter = 0;
 }
 
@@ -169,7 +170,6 @@ bool StdPlugin::hasSubterm(const Expr& t, const Expr& s)
   }
   return false;
 }
-
 
 Expr StdPlugin::allocateTypeVariable()
 {

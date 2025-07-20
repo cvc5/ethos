@@ -48,7 +48,7 @@ Expr ProgramOutCtx::allocateProgram(const std::vector<Expr>& nvars,
 {
   Assert(nvars.size() == nargs.size());
   size_t numVars = nvars.size();
-  if (numVars==1 && ret==nvars[0])
+  if (numVars == 1 && ret == nvars[0])
   {
     // optimization: corner case where it is a single ite/requires
     return ensureFinalArg(nargs[0]);
@@ -344,7 +344,7 @@ Expr FlattenEval::mkPurifyEvaluation(State& s,
       for (size_t i = 0, nchild = cur.getNumChildren(); i < nchild; i++)
       {
         Expr cn = cur[i];
-        if (i>=iend)
+        if (i >= iend)
         {
           children.push_back(cn);
           continue;
@@ -464,10 +464,10 @@ std::vector<std::pair<Expr, Expr>> FlattenEval::flattenProgram(
   // optimization: check if the forward declaration was actually necessary
   if (hasFwdDecl)
   {
-    Assert (ret.size()>=2);
+    Assert(ret.size() >= 2);
     cur = ret.back();
-    Assert (cur.first==prog);
-    if (cur.second==progDef)
+    Assert(cur.first == prog);
+    if (cur.second == progDef)
     {
       ret.pop_back();
       ret.pop_back();
