@@ -51,11 +51,10 @@ Desugar::Desugar(State& s) : StdPlugin(s)
   Expr modelTypeofType = d_state.mkProgramType({anyT}, d_state.mkType());
   d_progEoModelTypeof = d_state.mkSymbol(
       Kind::PROGRAM_CONST, "$eo_model_typeof", modelTypeofType);
-  Expr eoRequireBType = d_state.mkProgramType({d_boolType, anyT}, anyT);
-  d_progEoRequiresTrue =d_state.mkSymbol(
-      Kind::PROGRAM_CONST, "$eo_requires_true", eoRequireBType);
-  d_progEoRequiresFalse =d_state.mkSymbol(
-      Kind::PROGRAM_CONST, "$eo_requires_false", eoRequireBType);
+  Expr anyT2 = allocateTypeVariable();
+  Expr eoRequireEqType = d_state.mkProgramType({anyT, anyT, anyT2}, anyT2);
+  d_progEoRequiresEq =d_state.mkSymbol(
+      Kind::PROGRAM_CONST, "$eo_requires_eq", eoRequireEqType);
 }
 
 Desugar::~Desugar() {}
@@ -1061,8 +1060,9 @@ Expr Desugar::mkSanitize(const Expr& t,
 Expr Desugar::mkRequiresBool(bool tgt, const Expr& test, const Expr& ret)
 {
   std::vector<Expr> children;
-  children.push_back(tgt ? d_progEoRequiresTrue : d_progEoRequiresFalse);
+  children.push_back(d_progEoRequiresEq);
   children.push_back(test);
+  children.push_back(d_state.mkBool(tgt));
   children.push_back(ret);
   return d_state.mkExpr(Kind::APPLY, children);
 }

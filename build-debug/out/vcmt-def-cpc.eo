@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_cong $eo_typeof $smtx_model_lookup_predicate $eo_hash $eo_apply $eo_fun_type
-; #trim-defs: 127
+; #trim-defs: 126
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -22,16 +22,10 @@
   )
 )
 (define $eo_fail () ($eo_fail_prog false))
-(program $eo_requires_true ((T Type) (t T))
-  :signature (Bool T) T
+(program $eo_requires_eq ((T Type) (U Type) (x1 T) (x3 U))
+  :signature (T T U) U
   (
-  (($eo_requires_true true t) t)
-  )
-)
-(program $eo_requires_false ((T Type) (t T))
-  :signature (Bool T) T
-  (
-  (($eo_requires_false false t) t)
+  (($eo_requires_eq x1 x1 x3) x3)
   )
 )
 (declare-const $smt_BuiltinType Type)
@@ -183,7 +177,7 @@
 (define $eo_list_rev
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)
    (f (-> T V V)) (a U))
-  ($eo_requires_true ($eo_is_list f a)
+  ($eo_requires_eq ($eo_is_list f a) true
     ($eo_list_rev_rec f a ($eo_nil f ($eo_typeof a)))))
 (declare-parameterized-const ite (($eo_x_1 Bool) (A Type :implicit) ($eo_x_2 A) ($eo_x_3 A)) A)
 (declare-const and (-> Bool (-> Bool Bool)))
@@ -458,7 +452,7 @@
 (program $eovc_cong ((U Type) (t U) (E Bool))
   :signature (Bool U) Bool
   (
-  (($eovc_cong E t) ($eo_requires_true ($eo_model_sat E) ($eo_requires_false ($eo_model_sat ($eor_cong t E)) true)))
+  (($eovc_cong E t) ($eo_requires_eq ($eo_model_sat E) true ($eo_requires_eq ($eo_model_sat ($eor_cong t E)) false true)))
   )
 )
 (echo "smt-meta $eovc_cong")

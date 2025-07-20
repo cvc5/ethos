@@ -472,18 +472,6 @@
 
 ;;;;;; Eunoia builtin
 
-; program: $eo_requires_eq
-; note: This is a helper, and not the official semantics for requires.
-;       The difference is that x3 should not be evaluated if the arguments
-;       to requires are disequal. Nevertheless, we use this method as a
-;       helper e.g. when we are sure that x3 will not be stuck.
-(program $eo_requires_eq ((x1 $eo_Term) (x3 $eo_Term))
-  :signature ($eo_Term $eo_Term $eo_Term) $eo_Term
-  (
-  (($eo_requires_eq x1 x1 x3) x3)
-  )
-)
-
 ; We are now ready to define the builtins of Eunoia.
 ; We define all the Eunoia builtins here that are best to
 ; define in terms of SMT-LIB operators.
