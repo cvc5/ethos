@@ -1,12 +1,25 @@
 ; This file is used for bootstrapping the semantics of Eunoia.
-
-; After instantiation, certain eo:: operators may be used in this file.
-; These are either:
-; (A) Those that are desugared in later steps, e.g. eo::add, eo::is_ok.
-; (B) Those that were part of user definitions that can be safely replaced by their $eo_ versions.
-
-;; INVARIANT: the methods in this file only use the following builtin operators:
-;  eo::ite, eo::requires, eo::is_ok
+; We use a naming convention where eo:: operators are defined as ordinary
+; programs with prefix $eo_. We additionally setup further desugaring
+; to be done in later stages. Overall, this includes:
+; 1. Definition of the builtin Eunoia list.
+; 2. A definition of $eo_eq.
+; 3. Definition of derived list operators.
+; 4. Definition of $eo_cons and (a template for) $eo_nil.
+; 5. Definition of a template of $eo_typeof_main, which is used in
+;    part to define $eo_typeof.
+; 6. Templates for $eo_dt_constructors and $eo_dt_selectors.
+; 7. A placeholder command (echo "include eo_builtin_smt") to specify
+;    where further eo:: builtins should be defined.
+; 8. Placeholders for defining a test environment for analyzing properties
+;    of proof rules ($eo_model_sat/$eo_model_typeof).
+; This file contains templates $EO_*$ which are automatically filled in
+; by user definitions. This includes:
+; 1. The literal type definitions (EO_LITERAL_TYPE_DECL).
+; 2. All user declarations and definitions (EO_DEFS).
+; 3. (Monomorphized) type rules for user declarations, for $eo_typeof.
+; 4. Cases of $eo_dt_constructors, $eo_dt_selectors, $eo_nil.
+; 5. A verification condition (EO_VC).
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; literal types
 
@@ -31,17 +44,22 @@
 ; decimal and hexadecimal omitted for now.
 
 
-;;; core utilities
-
-; forward declaration
-(program $eo_typeof ((T Type))
-  :signature (T) Type)
+;;; forward declarations
 
 ; forward declaration
 (program $eo_nil ((T Type) (U Type) (V Type) (W Type))
   :signature ((-> T U V) (eo::quote W)) W)
 
-; fail
+; forward declaration
+(program $eo_typeof ((T Type))
+  :signature (T) Type)
+
+;;; core utilities
+
+; The methods in this section are temporary definitions to eliminate
+; dependencies on other builtin constructs.
+
+; note: Used to intentionally specify a stuck evaluation.
 (program $eo_fail_prog ()
   :signature (Bool) Bool
   (
@@ -49,6 +67,15 @@
   )
 )
 (define $eo_fail () ($eo_fail_prog false))
+
+; note: This is used to ensure this signature does not depend on not.
+(program $eo_if_not ()
+  :signature (Bool) Bool
+  (
+  (($eo_if_not true)  false)
+  (($eo_if_not false) true)
+  )
+)
 
 ; note: This is used to ensure this signature does not depend on and.
 (program $eo_if_both ((b1 Bool) (b2 Bool))
@@ -64,6 +91,15 @@
   :signature (Bool T) T
   (
   (($eo_requires_true true t) t)
+  )
+)
+
+; note: This is used to ensure signature does not depend on ite.
+(program $eo_prepend_if ((T Type) (V Type) (x T) (f (-> T V V)) (res V))
+  :signature (Bool (-> T V V) V V) V
+  (
+  (($eo_prepend_if true f x res)  (f x res))
+  (($eo_prepend_if false f x res) res)
   )
 )
 
@@ -88,8 +124,6 @@
 (declare-parameterized-const $eo_List_cons ((T Type :implicit))
   (-> T $eo_List $eo_List)
   :right-assoc-nil $eo_List_nil)
-
-; core definitions
 
 ;;; $eo_eq
 
@@ -378,9 +412,8 @@
   :signature ((-> T V V) V V) V
   (
   (($eo_list_diff_rec f (f x y) z)  (eo::define ((res ($eo_list_erase $eo_List_cons z x)))
-                                    (eo::ite ($eo_eq res z)
-                                      (f x ($eo_list_diff_rec y res))
-                                      ($eo_list_diff_rec y res))))
+                                    ($eo_prepend_if ($eo_eq res z)
+                                      f x ($eo_list_diff_rec y res))))
   (($eo_list_diff_rec f nil z)      nil)
   )
 )
@@ -401,10 +434,9 @@
   ((T Type) (V Type) (x T) (y V) (f (-> T V V)) (nil V) (z V))
   :signature ((-> T V V) V V) V
   (
-  (($eo_list_inter_rec f (f x y) z) (eo::define ((res ($eo_list_erase f z x)))
-                                    (eo::ite ($eo_eq res z)
-                                      ($eo_list_inter_rec y res)
-                                      (f x ($eo_list_inter_rec y res)))))
+  (($eo_list_inter_rec f (f x y) z) (eo::define ((res ($eo_list_erase $eo_List_cons z x)))
+                                    ($eo_prepend_if ($eo_if_not ($eo_eq res z))
+                                      f x ($eo_list_inter_rec y res))))
   (($eo_list_inter_rec f nil z)     nil)
   )
 )
