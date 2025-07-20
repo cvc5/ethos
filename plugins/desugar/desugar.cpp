@@ -729,9 +729,12 @@ void Desugar::finalizeRule(const Expr& e)
   }
   Assert(rrt.getKind() == Kind::PROOF_TYPE) << "Bad return type: " << rrt.getKind() << " " << rrt;
   rrt = rrt[0];
+  // the final conclusion must have Bool type
+  Expr btype = d_state.mkBoolType();
+  Expr rrtBool = d_state.mkExpr(Kind::APPLY, {d_progEoModelTypeof, rrt});
+  reqs.push_back(d_state.mkPair(rrtBool, btype));
   rrt = d_state.mkRequires(reqs, rrt);
 
-  Expr btype = d_state.mkBoolType();
   Expr progType = d_state.mkProgramType(argsTypes, btype);
   std::stringstream pname;
   pname << "$eor_" << e;
@@ -757,6 +760,9 @@ void Desugar::finalizeRule(const Expr& e)
     std::vector<Expr> modelSatArgs;
     modelSatArgs.push_back(d_progEoModelSat);
     modelSatArgs.push_back(d_null);
+    std::vector<Expr> modelTypeofArgs;
+    modelTypeofArgs.push_back(d_progEoModelTypeof);
+    modelTypeofArgs.push_back(d_null);
     modelSatArgs[1] = progApps[1];
     // require that the conclusion is not satisfied
     unsound = d_state.mkRequires(d_state.mkExpr(Kind::APPLY, modelSatArgs), efalse, unsound);
@@ -768,6 +774,8 @@ void Desugar::finalizeRule(const Expr& e)
       {
         modelSatArgs[1] = args[ii];
         unsound = d_state.mkRequires(d_state.mkExpr(Kind::APPLY, modelSatArgs), etrue, unsound);
+        modelTypeofArgs[1] = args[ii];
+        unsound = d_state.mkRequires(d_state.mkExpr(Kind::APPLY, modelTypeofArgs), btype, unsound);
       }
     }
     std::vector<Expr> uvars = Expr::getVariables(unsound);
@@ -961,9 +969,9 @@ void Desugar::finalizeRule(const Expr& e)
     d_eoVc << std::endl;
   }
   d_eoVc << std::endl;
+#endif
   // write a command to indicate that we should process the above vc
   d_eoVc << "(echo \"smt-meta $eovc_" << e << "\")" << std::endl;
-#endif
 }
 
 void Desugar::finalizeDatatype(const Expr& e, Attr a, const Expr& attrCons)
