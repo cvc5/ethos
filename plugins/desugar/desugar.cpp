@@ -46,9 +46,11 @@ Desugar::Desugar(State& s) : StdPlugin(s)
   // a placeholder
   d_boolType = d_state.mkBoolType();
   Expr modelSatType = d_state.mkProgramType({d_boolType}, d_boolType);
-  d_progEoModelSat = d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_model_sat", modelSatType);
+  d_progEoModelSat =
+      d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_model_sat", modelSatType);
   Expr modelTypeofType = d_state.mkProgramType({d_any}, d_state.mkType());
-  d_progEoModelTypeof = d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_model_typeof", modelTypeofType);
+  d_progEoModelTypeof = d_state.mkSymbol(
+      Kind::PROGRAM_CONST, "$eo_model_typeof", modelTypeofType);
 }
 
 Desugar::~Desugar() {}
@@ -208,7 +210,8 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
   {
     os << "parameterized-const " << cname << " (" << opaqueArgs.str();
     size_t pcount = 0;
-    bool isAmb = (cattr == Attr::AMB || cattr == Attr::AMB_DATATYPE_CONSTRUCTOR);
+    bool isAmb =
+        (cattr == Attr::AMB || cattr == Attr::AMB_DATATYPE_CONSTRUCTOR);
     for (size_t i = 0, nargs = argTypes.size(); i < nargs; i++)
     {
       Expr at = argTypes[i];
@@ -249,7 +252,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
     // if ambiguous, go back and print the remaining parameters
     if (isAmb)
     {
-      Assert (argTypes[0].getKind()==Kind::QUOTE_TYPE);
+      Assert(argTypes[0].getKind() == Kind::QUOTE_TYPE);
       Expr v = argTypes[0][0];
       // print the parameters; these will lead to a definition that is
       // ambiguous again.
@@ -696,9 +699,9 @@ void Desugar::finalizeRule(const Expr& e)
       Expr arg = rt[i - 1];
       Expr argS = mkSanitize(arg, evMap, eVarCount, true, newVars);
       Kind ak = argS.getKind();
-      if (ak==Kind::QUOTE_TYPE || ak==Kind::PROOF_TYPE)
+      if (ak == Kind::QUOTE_TYPE || ak == Kind::PROOF_TYPE)
       {
-        Assert (arg.getKind()==argS.getKind());
+        Assert(arg.getKind() == argS.getKind());
         Expr aa = argS[0];
         Expr ta = d_tc.getType(aa);
         if (ta.isNull())
@@ -706,7 +709,7 @@ void Desugar::finalizeRule(const Expr& e)
           // EO_FATAL() << "Could not get type of " << aa << std::endl;
           ta = d_any;
         }
-        argIsProof.push_back(ak==Kind::PROOF_TYPE);
+        argIsProof.push_back(ak == Kind::PROOF_TYPE);
         args.push_back(arg[0]);
         argsS.push_back(argS[0]);
         argsTypes.push_back(ta);
@@ -716,7 +719,8 @@ void Desugar::finalizeRule(const Expr& e)
         Assert(false) << "Unknown proof argument " << ak << " in " << rt;
       }
     }
-    // we addtionally require that the purified variables are equal to what the purify
+    // we addtionally require that the purified variables are equal to what the
+    // purify
     for (std::pair<Expr, Expr>& nv : newVars)
     {
       reqs.push_back(d_state.mkPair(nv.first, nv.second));
@@ -729,7 +733,8 @@ void Desugar::finalizeRule(const Expr& e)
     reqs.push_back(d_state.mkPair(rrt[0], rrt[1]));
     rrt = rrt[2];
   }
-  Assert(rrt.getKind() == Kind::PROOF_TYPE) << "Bad return type: " << rrt.getKind() << " " << rrt;
+  Assert(rrt.getKind() == Kind::PROOF_TYPE)
+      << "Bad return type: " << rrt.getKind() << " " << rrt;
   rrt = rrt[0];
   // the final conclusion must have Bool type
   if (useTypeof)
@@ -744,9 +749,9 @@ void Desugar::finalizeRule(const Expr& e)
   pname << "$eor_" << e;
   Expr prog = d_state.mkSymbol(Kind::PROGRAM_CONST, pname.str(), progType);
   Expr progApps[2];
-  for (size_t i=0; i<2; i++)
+  for (size_t i = 0; i < 2; i++)
   {
-    std::vector<Expr>& ause = (i==0 ? argsS : args);
+    std::vector<Expr>& ause = (i == 0 ? argsS : args);
     std::vector<Expr> pAppChildren;
     pAppChildren.push_back(prog);
     pAppChildren.insert(pAppChildren.end(), ause.begin(), ause.end());
@@ -769,19 +774,24 @@ void Desugar::finalizeRule(const Expr& e)
     modelTypeofArgs.push_back(d_null);
     modelSatArgs[1] = progApps[1];
     // require that the conclusion is not satisfied
-    unsound = d_state.mkRequires(d_state.mkExpr(Kind::APPLY, modelSatArgs), efalse, unsound);
+    unsound = d_state.mkRequires(
+        d_state.mkExpr(Kind::APPLY, modelSatArgs), efalse, unsound);
     // require that each premise is satisfied
     for (size_t i = 0, nargs = args.size(); i < nargs; i++)
     {
-      size_t ii = nargs-(i+1);
+      size_t ii = nargs - (i + 1);
       if (argIsProof[ii])
       {
         modelSatArgs[1] = args[ii];
-        unsound = d_state.mkRequires(d_state.mkExpr(Kind::APPLY, modelSatArgs), etrue, unsound);
+        unsound = d_state.mkRequires(
+            d_state.mkExpr(Kind::APPLY, modelSatArgs), etrue, unsound);
         if (useTypeof)
         {
           modelTypeofArgs[1] = args[ii];
-          unsound = d_state.mkRequires(d_state.mkExpr(Kind::APPLY, modelTypeofArgs), d_boolType, unsound);
+          unsound =
+              d_state.mkRequires(d_state.mkExpr(Kind::APPLY, modelTypeofArgs),
+                                 d_boolType,
+                                 unsound);
         }
       }
     }
@@ -1010,7 +1020,8 @@ Expr Desugar::mkSanitize(const Expr& t)
 bool isEvalApp(const Expr& cur)
 {
   Kind k = cur.getKind();
-  return isLiteralOp(k) || (k==Kind::APPLY && cur[0].getKind()==Kind::PROGRAM_CONST);
+  return isLiteralOp(k)
+         || (k == Kind::APPLY && cur[0].getKind() == Kind::PROGRAM_CONST);
 }
 
 Expr Desugar::mkSanitize(const Expr& t,

@@ -242,10 +242,10 @@ std::vector<Expr> Expr::getPrintChildren(const ExprValue* e)
 {
   std::vector<Expr> ret;
   // special case: variable is printed as (eo::var "name" type)
-  if (e->getKind()==Kind::VARIABLE)
+  if (e->getKind() == Kind::VARIABLE)
   {
     Expr tt(ExprValue::d_state->lookupType(e));
-    Assert (!tt.isNull());
+    Assert(!tt.isNull());
     ret.push_back(tt);
     return ret;
   }
@@ -377,7 +377,7 @@ void Expr::printDebugInternal(const Expr& e,
         // special case: variables print as the evaluation that made them
         Expr tt(ExprValue::d_state->lookupType(cur.first));
         const Literal* l = cur.first->asLiteral();
-        Assert (l!=nullptr);
+        Assert(l != nullptr);
         os << "(eo::var \"" << l->toString() << "\" ";
         visit.back().second++;
         visit.emplace_back(tt.getValue(), 0);
