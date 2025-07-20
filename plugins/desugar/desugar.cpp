@@ -975,6 +975,12 @@ Expr Desugar::mkSanitize(const Expr& t,
     Kind k = cur.getKind();
     if (it == visited.end())
     {
+      // If we are sanitizing a pattern, in rare cases, that pattern
+      // may have evaluation. This is e.g. the case for the premises
+      // of RARE rules that contain list variables. In this mode,
+      // if we are a top-level application of evaluation, we purify
+      // this occurrence. We sanitize separately, not in pattern
+      // matching mode.
       if (inPatMatch && isEvalApp(cur))
       {
         varCount++;

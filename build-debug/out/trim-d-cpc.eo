@@ -460,18 +460,16 @@
 
 ; declare: ite
 (declare-parameterized-const ite (($eo_x_1 Bool) (A Type :implicit) ($eo_x_2 A) ($eo_x_3 A)) A)
-; declare: not
-(declare-const not (-> Bool Bool))
 ; declare: and
 (declare-const and (-> Bool (-> Bool Bool)))
 ; declare: =
 (declare-parameterized-const = ((A Type :implicit) ($eo_x_1 A) ($eo_x_2 A)) Bool)
-; program: $mk_symm
-(program $mk_symm ((T Type) (t2 T) (t1 T))
-  :signature (Bool) Bool
+; program: $mk_cong_rhs
+(program $mk_cong_rhs ((U Type) (t1 U) (tail Bool) (t2 U) (T Type) (f (-> T U)))
+  :signature (U Bool) U
   (
-  (($mk_symm (_ (= t1) t2)) (_ (= t2) t1))
-  (($mk_symm (not (_ (= t1) t2))) (not (_ (= t2) t1)))
+  (($mk_cong_rhs (f t1) (_ (and (_ (= t1) t2)) tail)) (_ ($mk_cong_rhs f tail) t2))
+  (($mk_cong_rhs f true) f)
   )
 )
 ; declare: BitVec
@@ -539,8 +537,6 @@
   (($eo_typeof_main Seq) (-> Type Type))
   ; type-rule: ite
   (($eo_typeof_main (_ (ite x1) x2)) ($eo_typeof_ite ($eo_typeof x1) ($eo_typeof x2)))
-  ; type-rule: not
-  (($eo_typeof_main not) (-> Bool Bool))
   ; type-rule: and
   (($eo_typeof_main and) (-> Bool (-> Bool Bool)))
   ; type-rule: =
@@ -608,19 +604,19 @@
 
 ;; verification conditions
 
-; program: $eor_symm
-(program $eor_symm ((F Bool))
-  :signature (Bool) Bool
+; program: $eor_cong
+(program $eor_cong ((U Type) (t U) (E Bool))
+  :signature (U Bool) Bool
   (
-  (($eor_symm F) (eo::define ((_v0 ($mk_symm F))) (eo::requires ($eo_model_typeof _v0) Bool _v0)))
+  (($eor_cong t E) (eo::define ((_v0 (_ (= t) ($mk_cong_rhs t (eo::list_rev and E))))) (eo::requires ($eo_model_typeof _v0) Bool _v0)))
   )
 )
-; program: $eovc_symm
-(program $eovc_symm ((F Bool))
-  :signature (Bool) Bool
+; program: $eovc_cong
+(program $eovc_cong ((U Type) (t U) (E Bool))
+  :signature (Bool U) Bool
   (
-  (($eovc_symm F) (eo::requires ($eo_model_typeof F) Bool (eo::requires ($eo_model_sat F) true (eo::requires ($eo_model_sat ($eor_symm F)) false true))))
+  (($eovc_cong E t) (eo::requires ($eo_model_typeof E) Bool (eo::requires ($eo_model_sat E) true (eo::requires ($eo_model_sat ($eor_cong t E)) false true))))
   )
 )
-(echo "smt-meta $eovc_symm")
+(echo "smt-meta $eovc_cong")
 
