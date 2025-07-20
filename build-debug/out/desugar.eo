@@ -330,8 +330,8 @@
    (f (-> T V V)) (x W) (y U) (z X) (nil W))
   ((-> T V V) U X) U
   (
-  (($eo_list_erase_all_rec f (f x y) z)   (eo::define ((res ($eo_list_erase_all_rec f y z)))
-                                            (eo::ite ($eo_eq z x) res (f x res))))
+  (($eo_list_erase_all_rec f (f x y) z)  ($eo_prepend_if ($eo_if_not ($eo_eq z x))
+                                              f x ($eo_list_erase_all_rec f y z)))
   (($eo_list_erase_all_rec f nil z)       nil)
   )
 )
