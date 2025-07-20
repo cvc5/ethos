@@ -1148,7 +1148,8 @@ MetaKind SmtMetaReduce::getMetaKind(State& s, const Expr& e, std::string& cname)
 
 MetaKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
                                        size_t i,
-                                       MetaKind parentCtx, const std::map<Expr, MetaKind>& ictx)
+                                       MetaKind parentCtx,
+                                       const std::map<Expr, MetaKind>& ictx)
 {
   // This method should rely on the parent only!!!
   MetaKind tk = MetaKind::NONE;
@@ -1282,7 +1283,9 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
   return getMetaKindReturn(child, parentCtx, ictx);
 }
 
-MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx, const std::map<Expr, MetaKind>& ictx)
+MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
+                                          MetaKind parentCtx,
+                                          const std::map<Expr, MetaKind>& ictx)
 {
   Assert(!child.isNull()) << "null term for meta kind";
   MetaKind tk = MetaKind::NONE;
@@ -1294,10 +1297,10 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx,
     hd = hd[0];
   }
   Kind k = hd.getKind();
-  if (k==Kind::PARAM)
+  if (k == Kind::PARAM)
   {
     std::map<Expr, MetaKind>::const_iterator itp = ictx.find(hd);
-    if (itp!=ictx.end())
+    if (itp != ictx.end())
     {
       return itp->second;
     }
@@ -1447,8 +1450,10 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx,
   return tk;
 }
 
-std::vector<MetaKind> SmtMetaReduce::getMetaKindArgs(const Expr& parent,
-                                                     MetaKind parentCtx, const std::map<Expr, MetaKind>& ictx)
+std::vector<MetaKind> SmtMetaReduce::getMetaKindArgs(
+    const Expr& parent,
+    MetaKind parentCtx,
+    const std::map<Expr, MetaKind>& ictx)
 {
   std::vector<MetaKind> args;
   std::cout << "  MetaArg: " << parent << " / " << metaKindToString(parentCtx)
