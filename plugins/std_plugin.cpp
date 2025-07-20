@@ -140,4 +140,32 @@ std::vector<Expr> StdPlugin::getSubtermsKind(Kind k, const Expr& t)
   return ret;
 }
 
+bool StdPlugin::hasSubterm(const Expr& t, const Expr& s)
+{
+  std::unordered_set<const ExprValue*> visited;
+  std::vector<Expr> toVisit;
+  toVisit.push_back(t);
+  Expr cur;
+  while (!toVisit.empty())
+  {
+    cur = toVisit.back();
+    toVisit.pop_back();
+    const ExprValue* cv = cur.getValue();
+    if (visited.find(cv) != visited.end())
+    {
+      continue;
+    }
+    visited.insert(cv);
+    if (cur == s)
+    {
+      return true;
+    }
+    for (size_t i = 0, nchildren = cur.getNumChildren(); i < nchildren; i++)
+    {
+      toVisit.push_back(cur[i]);
+    }
+  }
+  return false;
+}
+
 }  // namespace ethos

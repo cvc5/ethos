@@ -37,6 +37,8 @@ class StdPlugin : public Plugin
 
  protected:
   Expr lookupVar(const std::string& name);
+  /** Does t have subterm s? */
+  static bool hasSubterm(const Expr& t, const Expr& s);
   /**
    * Finalize a declaration that was made to define a literal type.
    * We can assume that t is ground.

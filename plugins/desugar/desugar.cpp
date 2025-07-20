@@ -93,7 +93,7 @@ void Desugar::finalizeProgram(const Expr& prog,
 {
   std::map<Expr, Expr> typeMap;
   std::vector<std::pair<Expr, Expr>> allDefs;
-  static bool flattenEval = false;
+  static bool flattenEval = true;
   if (flattenEval)
   {
     allDefs = FlattenEval::flattenProgram(d_state, prog, progDef, typeMap);
@@ -655,7 +655,7 @@ void Desugar::finalizeRule(const Expr& e)
         Assert(arg.getKind() == argS.getKind());
         Expr aa = argS[0];
         Expr ta = d_tc.getType(aa);
-        if (ta.isNull())
+        if (ta.isNull() || ta.isEvaluatable())
         {
           // EO_FATAL() << "Could not get type of " << aa << std::endl;
           ta = d_any;

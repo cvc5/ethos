@@ -470,11 +470,22 @@
 (declare-const and (-> Bool (-> Bool Bool)))
 ; declare: =
 (declare-parameterized-const = ((A Type :implicit) ($eo_x_1 A) ($eo_x_2 A)) Bool)
+; fwd-decl: $mk_cong_rhs
+(program $mk_cong_rhs ((U Type))
+  :signature (U Bool) U
+)
+; program: $mk_cong_rhs.fev1
+(program $mk_cong_rhs.fev1 ((T Type) (U Type) (tail Bool) (f (-> T U)) ($eo_1 (-> T U)) (t2 U))
+  :signature (U Bool (-> T U) (-> T U)) U
+  (
+  (($mk_cong_rhs.fev1 t2 tail f $eo_1) ($eo_1 t2))
+  )
+)
 ; program: $mk_cong_rhs
-(program $mk_cong_rhs ((U Type) (t1 U) (tail Bool) (t2 U) (T Type) (f (-> T U)))
+(program $mk_cong_rhs ((U Type) (t1 U) (t2 U) (tail Bool) (T Type) (f (-> T U)))
   :signature (U Bool) U
   (
-  (($mk_cong_rhs (f t1) (_ (and (_ (= t1) t2)) tail)) (_ ($mk_cong_rhs f tail) t2))
+  (($mk_cong_rhs (f t1) (_ (and (_ (= t1) t2)) tail)) ($mk_cong_rhs.fev1 t2 tail f ($mk_cong_rhs f tail)))
   (($mk_cong_rhs f true) f)
   )
 )
@@ -610,11 +621,18 @@
 
 ;; verification conditions
 
+; program: $eor_cong.fev1
+(program $eor_cong.fev1 ((U Type) (E Bool) (t U) ($eo_1 U))
+  :signature (Bool U U) Bool
+  (
+  (($eor_cong.fev1 E t $eo_1) (_ (= t) $eo_1))
+  )
+)
 ; program: $eor_cong
 (program $eor_cong ((U Type) (t U) (E Bool))
   :signature (U Bool) Bool
   (
-  (($eor_cong t E) (_ (= t) ($mk_cong_rhs t (eo::list_rev and E))))
+  (($eor_cong t E) ($eor_cong.fev1 E t ($mk_cong_rhs t (eo::list_rev and E))))
   )
 )
 ; program: $eovc_cong

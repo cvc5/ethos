@@ -996,34 +996,6 @@ void SmtMetaReduce::finalize()
   out << finalSm;
 }
 
-bool SmtMetaReduce::hasSubterm(const Expr& t, const Expr& s)
-{
-  std::unordered_set<const ExprValue*> visited;
-  std::vector<Expr> toVisit;
-  toVisit.push_back(t);
-  Expr cur;
-  while (!toVisit.empty())
-  {
-    cur = toVisit.back();
-    toVisit.pop_back();
-    const ExprValue* cv = cur.getValue();
-    if (visited.find(cv) != visited.end())
-    {
-      continue;
-    }
-    visited.insert(cv);
-    if (cur == s)
-    {
-      return true;
-    }
-    for (size_t i = 0, nchildren = cur.getNumChildren(); i < nchildren; i++)
-    {
-      toVisit.push_back(cur[i]);
-    }
-  }
-  return false;
-}
-
 bool SmtMetaReduce::echo(const std::string& msg)
 {
   if (msg.compare(0, 9, "smt-meta ") == 0)

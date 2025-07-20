@@ -135,8 +135,6 @@ class SmtMetaReduce : public StdPlugin
                     MetaKind tinit = MetaKind::NONE);
   void finalizePrograms();
   void finalizeProgram(const Expr& v, const Expr& prog);
-  /** Does t have subterm s? */
-  static bool hasSubterm(const Expr& t, const Expr& s);
   static bool isProgram(const Expr& t);
   static bool isSmtApplyApp(const Expr& oApp);
   static std::string getEmbedName(const Expr& oApp);

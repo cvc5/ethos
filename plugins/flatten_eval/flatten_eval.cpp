@@ -22,23 +22,17 @@ Expr ProgramOutCtx::getTypeInternal(const Expr& e)
   Expr te = d_state.getTypeChecker().getType(etmp);
   // if type is null, then we can introduce a type parameter
   // this gives a warning
-  if (te.isNull())
+  if (te.isNull() || te.isEvaluatable())
   {
-    std::cout << "WARNING: unknown type for " << e << std::endl;
-    te = d_state.mkSymbol(Kind::PARAM, "tmp", d_state.mkType());
+    return allocateTypeVariable();
   }
   return te;
 }
 void ProgramOutCtx::pushArg(const Expr& a)
 {
   Expr taa = getTypeInternal(a);
-  pushArgTyped(a, taa);
-}
-
-void ProgramOutCtx::pushArgTyped(const Expr& a, const Expr& at)
-{
   d_args.push_back(a);
-  d_argTypes.push_back(at);
+  d_argTypes.push_back(taa);
 }
 
 void ProgramOutCtx::popArg()
@@ -54,6 +48,11 @@ Expr ProgramOutCtx::allocateProgram(const std::vector<Expr>& nvars,
 {
   Assert(nvars.size() == nargs.size());
   size_t numVars = nvars.size();
+  if (numVars==1 && ret==nvars[0])
+  {
+    // optimization: corner case where it is a single ite/requires
+    return ensureFinalArg(nargs[0]);
+  }
   for (size_t i = 0; i < numVars; i++)
   {
     pushArg(nvars[i]);
@@ -92,20 +91,38 @@ Expr ProgramOutCtx::mkCurrentProgramPat(const Expr& prog)
 Expr ProgramOutCtx::allocateProgramInternal(const Expr& retType)
 {
   Assert(!retType.isNull());
-  Expr progType = d_state.mkProgramType(d_argTypes, retType);
+  Expr rt = retType;
+  if (rt.isEvaluatable())
+  {
+    rt = allocateTypeVariable();
+  }
+  Expr progType = d_state.mkProgramType(d_argTypes, rt);
   d_progCount++;
   std::stringstream ss;
   ss << d_progPrefix << ".fev" << d_progCount;
   return d_state.mkSymbol(Kind::PROGRAM_CONST, ss.str(), progType);
 }
 
+Expr ProgramOutCtx::allocateTypeVariable()
+{
+  d_varCount++;
+  std::stringstream ss;
+  ss << "$eoT_" << d_varCount;
+  return d_state.mkSymbol(Kind::PARAM, ss.str(), d_state.mkType());
+}
+
 Expr ProgramOutCtx::allocateVariable(const Expr& retType)
 {
   Assert(!retType.isNull());
+  Expr rt = retType;
+  if (rt.isEvaluatable())
+  {
+    rt = allocateTypeVariable();
+  }
   d_varCount++;
   std::stringstream ss;
   ss << "$eo_" << d_varCount;
-  return d_state.mkSymbol(Kind::PARAM, ss.str(), retType);
+  return d_state.mkSymbol(Kind::PARAM, ss.str(), rt);
 }
 
 Expr ProgramOutCtx::ensureFinalArg(const Expr& e)
@@ -356,13 +373,31 @@ std::vector<std::pair<Expr, Expr>> FlattenEval::flattenProgram(
     const Expr& progDef,
     std::map<Expr, Expr>& typeMap)
 {
+  Expr nullExpr;
   std::vector<std::pair<Expr, Expr>> ret;
   std::vector<std::pair<Expr, Expr>> toVisit;
+  // we will visit the main program body last
+  toVisit.emplace_back(prog, progDef);
+  bool hasFwdDecl = false;
+  if (!progDef.isNull())
+  {
+    // check if we need a forward declaration
+    for (size_t i = 0, ncases = progDef.getNumChildren(); i < ncases; i++)
+    {
+      if (hasSubterm(progDef[i][1], prog))
+      {
+        toVisit.emplace_back(prog, nullExpr);
+        hasFwdDecl = true;
+        break;
+      }
+    }
+  }
+  // initialize the program context
   std::stringstream progName;
   progName << prog;
   ProgramOutCtx ctx(s, progName.str());
   std::vector<std::pair<Expr, Expr>>& palloc = ctx.d_progAlloc;
-  // flatten its types, which will be processed until fix point below
+  // we first process its types, which will be processed until fix point below
   Expr p = prog;
   Expr pt = s.getTypeChecker().getType(p);
   Assert(pt.getKind() == Kind::PROGRAM_TYPE);
@@ -373,15 +408,6 @@ std::vector<std::pair<Expr, Expr>> FlattenEval::flattenProgram(
   }
   toVisit.insert(toVisit.end(), palloc.begin(), palloc.end());
   palloc.clear();
-  // process the main program body, unless this is a forward declaration.
-  if (!progDef.isNull())
-  {
-    toVisit.emplace_back(prog, progDef);
-  }
-  else
-  {
-    ret.emplace_back(prog, progDef);
-  }
   std::pair<Expr, Expr> cur;
   while (!toVisit.empty())
   {
@@ -389,6 +415,13 @@ std::vector<std::pair<Expr, Expr>> FlattenEval::flattenProgram(
     Assert(ctx.getArgs().empty());
     Expr cprog = cur.first;
     Expr cdef = cur.second;
+    if (cdef.isNull())
+    {
+      // forward declaration, immediately add to ret
+      ret.push_back(cur);
+      toVisit.pop_back();
+      continue;
+    }
     Assert(cdef.getKind() == Kind::PROGRAM);
     // see if we need to purify each return term
     std::vector<Expr> newCases;
@@ -426,6 +459,19 @@ std::vector<std::pair<Expr, Expr>> FlattenEval::flattenProgram(
       // it did not need processed, it is finished, add to final list.
       ret.push_back(cur);
       toVisit.pop_back();
+    }
+  }
+  // optimization: check if the forward declaration was actually necessary
+  if (hasFwdDecl)
+  {
+    Assert (ret.size()>=2);
+    cur = ret.back();
+    Assert (cur.first==prog);
+    if (cur.second==progDef)
+    {
+      ret.pop_back();
+      ret.pop_back();
+      ret.emplace_back(prog, progDef);
     }
   }
   return ret;
