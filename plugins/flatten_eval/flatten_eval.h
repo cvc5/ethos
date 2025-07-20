@@ -128,10 +128,11 @@ class FlattenEval : public StdPlugin
    * the list. The type of prog may also require flattening of
    * evaluation, which is stored in typeMap.
    */
-  static std::vector<std::pair<Expr, Expr>> flattenProgram(State& s,
-                                                           const Expr& prog,
-                                                           const Expr& progDef,
-                                                           std::map<Expr, Expr>& typeMap);
+  static std::vector<std::pair<Expr, Expr>> flattenProgram(
+      State& s,
+      const Expr& prog,
+      const Expr& progDef,
+      std::map<Expr, Expr>& typeMap);
   /**
    * Flattens the evaluation in term t, where t may contain
    * free variables.

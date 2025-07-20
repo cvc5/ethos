@@ -345,8 +345,10 @@ Expr FlattenEval::mkPurifyEvaluation(State& s,
 }
 
 std::vector<std::pair<Expr, Expr>> FlattenEval::flattenProgram(
-    State& s, const Expr& prog, const Expr& progDef,
-                                                           std::map<Expr, Expr>& typeMap)
+    State& s,
+    const Expr& prog,
+    const Expr& progDef,
+    std::map<Expr, Expr>& typeMap)
 {
   std::vector<std::pair<Expr, Expr>> ret;
   std::vector<std::pair<Expr, Expr>> toVisit;
@@ -357,8 +359,8 @@ std::vector<std::pair<Expr, Expr>> FlattenEval::flattenProgram(
   // flatten its types, which will be processed until fix point below
   Expr p = prog;
   Expr pt = s.getTypeChecker().getType(p);
-  Assert (pt.getKind()==Kind::PROGRAM_TYPE);
-  for (size_t i=0, nptargs = pt.getNumChildren(); i<nptargs; i++)
+  Assert(pt.getKind() == Kind::PROGRAM_TYPE);
+  for (size_t i = 0, nptargs = pt.getNumChildren(); i < nptargs; i++)
   {
     Expr ptc = pt[i];
     typeMap[ptc] = flattenEval(s, ctx, ptc);

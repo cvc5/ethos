@@ -82,7 +82,9 @@ void Desugar::defineProgram(const Expr& v, const Expr& prog)
   d_declSeen.emplace_back(pair, Kind::PROGRAM_CONST);
 }
 
-void Desugar::finalizeProgram(const Expr& prog, const Expr& progDef, std::ostream& os)
+void Desugar::finalizeProgram(const Expr& prog,
+                              const Expr& progDef,
+                              std::ostream& os)
 {
   std::map<Expr, Expr> typeMap;
   std::vector<std::pair<Expr, Expr>> allDefs;
@@ -102,7 +104,8 @@ void Desugar::finalizeProgram(const Expr& prog, const Expr& progDef, std::ostrea
     Expr pt = d_tc.getType(p);
     std::vector<Expr> pandt{pt, pdef};
     std::vector<Expr> vars = Expr::getVariables(pandt);
-    os << "; " << (pdef.isNull() ? "fwd-decl: " : "program: ") << p << std::endl;
+    os << "; " << (pdef.isNull() ? "fwd-decl: " : "program: ") << p
+       << std::endl;
     os << "(program " << p << " (";
     printParamList(vars, os, false);
     os << ")" << std::endl;
