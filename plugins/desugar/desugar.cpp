@@ -725,8 +725,8 @@ void Desugar::finalizeRule(const Expr& e)
     modelTypeofArgs.push_back(d_null);
     modelSatArgs[1] = progApps[1];
     // require that the conclusion is not satisfied
-    unsound = d_state.mkRequires(
-        d_state.mkExpr(Kind::APPLY, modelSatArgs), efalse, unsound);
+    unsound = mkRequiresBool(false,
+        d_state.mkExpr(Kind::APPLY, modelSatArgs), unsound);
     // require that each premise is satisfied
     for (size_t i = 0, nargs = args.size(); i < nargs; i++)
     {
@@ -734,8 +734,7 @@ void Desugar::finalizeRule(const Expr& e)
       if (argIsProof[ii])
       {
         modelSatArgs[1] = args[ii];
-        unsound = d_state.mkRequires(
-            d_state.mkExpr(Kind::APPLY, modelSatArgs), etrue, unsound);
+        unsound = mkRequiresBool(true, d_state.mkExpr(Kind::APPLY, modelSatArgs), unsound);
         if (useTypeof)
         {
           modelTypeofArgs[1] = args[ii];
@@ -1051,6 +1050,15 @@ Expr Desugar::mkSanitize(const Expr& t,
   Assert(visited.find(t) != visited.end());
   Assert(!visited.find(t)->second.isNull());
   return visited[t];
+}
+
+Expr Desugar::mkRequiresBool(bool tgt, const Expr& test, const Expr& ret)
+{
+  std::vector<Expr> children;
+  children.push_back(tgt ? d_progEoRequiresTrue : d_progEoRequiresFalse);
+  children.push_back(test);
+  children.push_back(ret);
+  return d_state.mkExpr(Kind::APPLY, children);
 }
 
 Attr Desugar::getAttribute(const Expr& e)

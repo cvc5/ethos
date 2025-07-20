@@ -74,6 +74,12 @@ $EO_LITERAL_TYPE_DECL$
   (($eo_requires_true true t) t)
   )
 )
+(program $eo_requires_false ((T Type) (t T))
+  :signature (Bool T) T
+  (
+  (($eo_requires_false false t) t)
+  )
+)
 
 ; note: This is used to ensure signature does not depend on ite.
 (program $eo_prepend_if ((T Type) (V Type) (x T) (f (-> T V V)) (res V))

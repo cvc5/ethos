@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_cong $eo_typeof_main $eo_String $eo_Numeral $eo_Rational $eo_Binary $eo_dt_constructors $eo_dt_selectors
-; #trim-defs: 48
+; #trim-defs: 49
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -26,6 +26,12 @@
   :signature (Bool T) T
   (
   (($eo_requires_true true t) t)
+  )
+)
+(program $eo_requires_false ((T Type) (t T))
+  :signature (Bool T) T
+  (
+  (($eo_requires_false false t) t)
   )
 )
 ; This file defines a deep embedding of SMT-LIB into Eunoia.
@@ -1573,7 +1579,7 @@
 (program $eovc_cong ((U Type) (t U) (E Bool))
   :signature (Bool U) Bool
   (
-  (($eovc_cong E t) ($eo_requires ($eo_model_sat E) true ($eo_requires ($eo_model_sat ($eor_cong t E)) false true)))
+  (($eovc_cong E t) ($eo_requires_true ($eo_model_sat E) ($eo_requires_false ($eo_model_sat ($eor_cong t E)) true)))
   )
 )
 (echo "smt-meta $eovc_cong")

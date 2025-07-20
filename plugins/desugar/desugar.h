@@ -78,6 +78,7 @@ class Desugar : public StdPlugin
                   size_t& varCount,
                   bool inPatMatch,
                   std::vector<std::pair<Expr, Expr>>& newVars);
+  Expr mkRequiresBool(bool tgt, const Expr& test, const Expr& ret);
   Attr getAttribute(const Expr& e);
   /** Declares seen */
   std::vector<std::pair<Expr, Kind>> d_declSeen;
