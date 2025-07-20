@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm $eo_typeof_main $eo_String $eo_Numeral $eo_Rational $eo_Binary $eo_dt_constructors $eo_dt_selectors
-; #trim-defs: 46
+; #trim-defs: 43
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -11,7 +11,8 @@
 (define $eo_Rational () Real)
 (define $eo_String () (Seq Char))
 (define $eo_Binary () Type)
-(declare-const $eo_Term Type)
+(program $eo_typeof ((T Type))
+  :signature (T) Type)
 (program $eo_fail_prog ()
   :signature (Bool) Bool
   (
@@ -19,8 +20,6 @@
   )
 )
 (define $eo_fail () ($eo_fail_prog false))
-(program $eo_typeof ((T Type))
-  :signature (T) Type)
 ; This file defines a deep embedding of SMT-LIB into Eunoia.
 ; It is used for two purposes:
 ; 1. To give an SMT-LIB specific bootstrapping of the SMT-LIB inspired builtin Eunoia functions, e.g. $eo_add.
@@ -128,6 +127,10 @@
 ; - $smt_Term, $smt_Type, $smt_Value are introduced as placeholders for the final datatypes in the deep embedding.
 ; - The SMT-like literals are declared for $smt_Term.
 ; - 
+
+; A Eunoia term.
+; This will be replaced by the datatype eo.Term in the final encoding.
+(declare-const $eo_Term Type)
 
 ; An SMT-LIB type.
 ; This will be replaced by the datatype tsm.Type in the final encoding.
@@ -934,10 +937,6 @@
   )
 )
 (declare-const $eo_List Type)
-(program $eo_dt_constructors ((T Type))
-  :signature (Type) $eo_List)
-(program $eo_dt_selectors ((T Type) (t T))
-  :signature (T) $eo_List)
 (declare-parameterized-const ite (($eo_x_1 Bool) (A Type :implicit) ($eo_x_2 A) ($eo_x_3 A)) A)
 (declare-const not (-> Bool Bool))
 (declare-const and (-> Bool (-> Bool Bool)))
@@ -1021,8 +1020,8 @@
   (($eo_dt_selectors t) $eo_fail)
   )
 )
-(program $eo_model_sat () :signature ($eo_Term) Bool)
-(program $eo_model_typeof () :signature ($eo_Term) Bool)
+(program $eo_model_sat () :signature (Bool) Bool)
+(program $eo_model_typeof ((T Type)) :signature (T) Bool)
 ; This file defines SMT-LIB model semantics in Eunoia.
 ; It has exception handling utilities to call Eunoia programs in
 ; a safe way that ensures that all programs in this signature are total.
@@ -1460,7 +1459,7 @@
 ; We expect the input to this method to be a Eunoia term denoting an SMT-LIB formula
 ; (term of Boolean type).
 (program $eo_model_sat ((F $smt_Term))
-  :signature ($eo_Term) Bool
+  :signature (Bool) Bool
   (
   (($eo_model_sat ($eo_smt_term F)) ($eo_model_sat_internal ($smtx_model_eval F)))
   )

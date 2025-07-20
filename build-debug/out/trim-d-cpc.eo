@@ -33,8 +33,13 @@
 
 ;;; core utilities
 
-; A Eunoia term, used by $eo_model_sat.
-(declare-const $eo_Term Type)
+; forward declaration
+(program $eo_typeof ((T Type))
+  :signature (T) Type)
+
+; forward declaration
+(program $eo_nil ((T Type) (U Type) (V Type) (W Type))
+  :signature ((-> T U V) (eo::quote W)) W)
 
 ; fail
 (program $eo_fail_prog ()
@@ -45,13 +50,22 @@
 )
 (define $eo_fail () ($eo_fail_prog false))
 
-; forward declaration
-(program $eo_typeof ((T Type))
-  :signature (T) Type)
+; note: This is used to ensure this signature does not depend on and.
+(program $eo_if_both ((b1 Bool) (b2 Bool))
+  :signature (Bool Bool) Bool
+  (
+  (($eo_if_both true true)  true)
+  (($eo_if_both b1 b2)      false)
+  )
+)
 
-; forward declaration
-(program $eo_nil ((T Type) (U Type) (V Type) (W Type))
-  :signature ((-> T U V) (eo::quote W)) W)
+; note: This is used to ensure signature does not depend on requires.
+(program $eo_requires_true ((T Type) (t T))
+  :signature (Bool T) T
+  (
+  (($eo_requires_true true t) t)
+  )
+)
 
 ;;; Core SMT-like builtins
 
@@ -65,6 +79,7 @@
 (echo "include eo_builtin_smt")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; desugar core
+
 ;;; $eo_List
 
 ; The builtin Eunoia list.
@@ -73,19 +88,6 @@
 (declare-parameterized-const $eo_List_cons ((T Type :implicit))
   (-> T $eo_List $eo_List)
   :right-assoc-nil $eo_List_nil)
-  
-; fwd-decl: $eo_dt_constructors
-(program $eo_dt_constructors ((T Type))
-  :signature (Type) $eo_List)
-
-; fwd-decl: $eo_dt_selectors
-(program $eo_dt_selectors ((T Type) (t T))
-  :signature (T) $eo_List)
-
-; Ensures this signature does not rely on and
-; TODO: remove dependence on ITE as well?
-(define $eo_if_both ((b1 Bool) (b2 Bool))
-  (eo::ite b1 (eo::ite b2 true false) false))
 
 ; core definitions
 
@@ -124,14 +126,6 @@
   ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
    (f (-> T U V)) (x W))
   ($eo_is_list_rec f ($eo_nil f ($eo_typeof x)) x))
-
-; Requires true
-(program $eo_requires_true ((T Type) (t T))
-  :signature (Bool T) T
-  (
-  (($eo_requires_true true t) t)
-  )
-)
 
 ;;; $eo_cons
 
@@ -563,11 +557,11 @@
 
 ; A placeholder for asking whether a formula is satisfied by a model.
 ; This is used to define the verification condition we will write below.
-(program $eo_model_sat () :signature ($eo_Term) Bool)
+(program $eo_model_sat () :signature (Bool) Bool)
 
 ; A placeholder for asking the type of a given term.
 ; This is used to define the verification condition we will write below.
-(program $eo_model_typeof () :signature ($eo_Term) Bool)
+(program $eo_model_typeof ((T Type)) :signature (T) Bool)
 
 ; We will include the definition of $eo_model_sat here.
 (echo "include eo_model_sat")

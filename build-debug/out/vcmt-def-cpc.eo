@@ -11,7 +11,6 @@
 (define $eo_Rational () Real)
 (define $eo_String () (Seq Char))
 (define $eo_Binary () Type)
-(declare-const $eo_Term Type)
 (program $eo_typeof ((T Type))
   :signature (T) Type)
 (declare-const $smt_BuiltinType Type)
@@ -41,6 +40,7 @@
 (define $smt_builtin_true () ($smt_apply_0 "true"))
 (define $smt_builtin_false () ($smt_apply_0 "false"))
 (define $smt_builtin_z_zero () ($smt_apply_0 "0"))
+(declare-const $eo_Term Type)
 (declare-const $smt_Type Type)
 (declare-const $smt_Term Type)
 (declare-const $smt_Value Type)
@@ -220,8 +220,8 @@
   (($eo_typeof_main (f x))     ($eo_typeof_apply ($eo_typeof f) ($eo_typeof x)))
   )
 )
-(program $eo_model_sat () :signature ($eo_Term) Bool)
-(program $eo_model_typeof () :signature ($eo_Term) Bool)
+(program $eo_model_sat () :signature (Bool) Bool)
+(program $eo_model_typeof ((T Type)) :signature (T) Bool)
 (define $sm_apply_term ((t1 $smt_Term) (t2 $smt_Term))
   ($smd_sm.Apply t1 t2))
 (define $tsm_NullSort ((id $smt_builtin_Int)) ($smd_tsm.NullSort id))
@@ -406,7 +406,7 @@
   )
 )
 (program $eo_model_sat ((F $smt_Term))
-  :signature ($eo_Term) Bool
+  :signature (Bool) Bool
   (
   (($eo_model_sat ($eo_smt_term F)) ($eo_model_sat_internal ($smtx_model_eval F)))
   )

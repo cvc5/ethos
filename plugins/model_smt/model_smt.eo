@@ -415,7 +415,7 @@ $SMT_EVAL_CASES$
 ; We expect the input to this method to be a Eunoia term denoting an SMT-LIB formula
 ; (term of Boolean type).
 (program $eo_model_sat ((F $smt_Term))
-  :signature ($eo_Term) Bool
+  :signature (Bool) Bool
   (
   (($eo_model_sat ($eo_smt_term F)) ($eo_model_sat_internal ($smtx_model_eval F)))
   )
