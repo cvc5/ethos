@@ -613,13 +613,7 @@ Expr State::mkRequires(const std::vector<Expr>& args, const Expr& ret)
 
 Expr State::mkRequires(const Expr& a1, const Expr& a2, const Expr& ret)
 {
-  if (a1==a2)
-  {
-    // trivially equal to return
-    return ret;
-  }
-  return Expr(mkExprInternal(Kind::EVAL_REQUIRES,
-                             {a1.getValue(), a2.getValue(), ret.getValue()}));
+  return Expr(mkExpr(Kind::EVAL_REQUIRES, {a1, a2, ret}));
 }
 
 Expr State::mkBoolType()

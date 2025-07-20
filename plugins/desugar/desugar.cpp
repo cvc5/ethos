@@ -41,6 +41,11 @@ Desugar::Desugar(State& s) : StdPlugin(s)
   }
   d_eoDtConsParamCount = 0;
   d_genWfCond = false;
+
+  // a placeholder
+  Expr btype = d_state.mkBoolType();
+  Expr modelSatType = d_state.mkProgramType({btype}, btype);
+  d_progEoModelSat = d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_model_sat", modelSatType);
 }
 
 Desugar::~Desugar() {}
@@ -657,8 +662,81 @@ void Desugar::finalizeRule(const Expr& e)
   Expr r = e;
   Expr rto = d_tc.getType(r);
 #if 0
+  Expr rt = mkSanitize(rto);
   // Make program
+  std::vector<bool> argIsProof;
+  std::vector<Expr> args;
+  std::vector<Expr> argsS;
+  std::vector<Expr> argsTypes;
+  Expr etrue = d_state.mkTrue();
+  Expr efalse = d_state.mkFalse();
+  if (rt.getKind() != Kind::FUNCTION_TYPE)
+  {
+    // dummy type
+    args.push_back(etrue);
+    argsS.push_back(etrue);
+    argsTypes.push_back(d_state.mkBoolType());
+  }
+  else
+  {
+    std::map<Expr, Expr> evMap = d_overloadSanVisited;
+    size_t eVarCount = 0;
+    std::vector<std::pair<Expr, Expr>> newVars;
+    for (size_t i = 1, nargs = rt.getNumChildren(); i < nargs; i++)
+    {
+      Expr arg = rt[i - 1];
+      Expr argS = mkSanitize(arg, evMap, eVarCount, true, newVars);
+      Kind ak = argS.getKind();
+      if (ak==Kind::QUOTE_TYPE || ak==Kind::PROOF_TYPE)
+      {
+        Assert (arg.getKind()==argS.getKind());
+        Expr aa = argS[0];
+        Expr ta = d_tc.getType(aa);
+        if (ta.isNull())
+        {
+          // EO_FATAL() << "Could not get type of " << aa << std::endl;
+          ta = d_any;
+        }
+        argIsProof.push_back(ak==Kind::PROOF_TYPE);
+        args.push_back(arg[0]);
+        argsS.push_back(argS[0]);
+        argsTypes.push_back(ta);
+      }
+      else
+      {
+        Assert(false) << "Unknown proof argument " << ak << " in " << rt;
+      }
+    }
+  }
+  // strip off the "(Proof ...)", which may be beneath requires
+  Expr rrt = rt[rt.getNumChildren() - 1];
+  std::vector<Expr> reqs;
+  // we addtionally require that the purified variables are equal to what the purify
+  for (std::pair<Expr, Expr>& nv : newVars)
+  {
+    reqs.push_back(d_state.mkPair(nv.first, nv.second));
+  }
+  while (rrt.getKind() == Kind::EVAL_REQUIRES)
+  {
+    reqs.push_back(d_state.mkPair(rrt[0], rrt[1]));
+    rrt = rrt[2];
+  }
+  Assert(rrt.getKind() == Kind::PROOF_TYPE);
+  rrt = rrt[0];
+  rrt = d_state.mkRequires(reqs, rrt);
 
+  Expr retType = d_state.mkBoolType();
+  Expr progType = d_state.mkProgramType(argsTypes, retType);
+  std::stringstream pname;
+  pname << "$eor_" << e;
+  Expr prog = d_state.mkSymbol(Kind::PROGRAM_CONST, pname.str(), progType);
+  std::vector<Expr> pAppChildren;
+  pAppChildren.push_back(prog);
+  pAppChildren.insert(pAppChildren.end(), argsS.begin(), argsS.end());
+  Expr progPat = d_state.mkExpr(Kind::APPLY, pAppChildren);
+
+  Expr unsound = etrue;
+  unsound = d_state.mkRequires(
 #else
   // std::cout << "Finalize " << r << std::endl;
   // std::cout << "Type is " << rto << std::endl;
