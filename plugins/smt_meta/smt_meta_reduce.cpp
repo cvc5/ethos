@@ -736,13 +736,14 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     else if (ck == Kind::FUNCTION_TYPE)
     {
       Assert(recTerm.getNumChildren() == 2);
-      // must use macro to ensure "Stuck" propagates
-      os << "($eo_fun_type ";
+      // use the final deep embedding
+      os << "(eo.FunType ";
       cparen[key]++;
     }
     else if (isLiteralOp(ck))
     {
       // ensure the remaining eo:: are eliminated
+      // TODO: is this necessary?
       std::string kstr = kindToTerm(ck);
       if (kstr.compare(0, 4, "eo::") == 0)
       {
