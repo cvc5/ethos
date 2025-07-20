@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_cong $eo_typeof $smtx_model_lookup_predicate $eo_hash $eo_requires $eo_apply $eo_fun_type
-; #trim-defs: 137
+; #trim-defs: 125
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -36,9 +36,6 @@
 (declare-parameterized-const $smt_apply_0
   ((op $smt_id :opaque))
   $smt_BuiltinType)
-(declare-parameterized-const $smt_apply_1
-  ((W1 Type :implicit)
-   (op $smt_id :opaque) (x1 W1 :opaque)) $smt_BuiltinType)
 (declare-parameterized-const $smt_apply_2
   ((W1 Type :implicit) (W2 Type :implicit)
    (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque)) $smt_BuiltinType)
@@ -54,14 +51,11 @@
 (define $smt_builtin_String () ($smt_type_0 "String"))
 (define $smt_builtin_true () ($smt_apply_0 "true"))
 (define $smt_builtin_false () ($smt_apply_0 "false"))
-(define $smt_builtin_z_zero () ($smt_apply_0 "0"))
 (declare-const $eo_Term Type)
 (declare-const $smt_Type Type)
 (declare-const $smt_Term Type)
 (declare-const $smt_Value Type)
 (declare-const $smt_Map Type)
-(declare-parameterized-const $smd_tsm.NullSort
-  ((id $smt_builtin_Int :opaque)) $smt_Type)
 (declare-parameterized-const $smd_sm.Bool
   ((b $smt_builtin_Bool :opaque)) $smt_Term)
 (declare-parameterized-const $smd_sm.Numeral
@@ -112,10 +106,6 @@
 )
 (declare-parameterized-const $smd_eo.SmtTerm ((t $smt_Term :opaque)) $eo_Term)
 (define $eo_smt_term ((t $smt_Term)) ($smd_eo.SmtTerm t))
-(declare-parameterized-const $smd_eo.SmtType ((t $smt_Type :opaque)) $eo_Term)
-(define $eo_smt_type ((T $smt_Type)) ($smd_eo.SmtType T))
-(declare-parameterized-const $smd_eo.SmtValue ((t $smt_Value :opaque)) $eo_Term)
-(define $eo_smt_value ((T $smt_Value)) ($smd_eo.SmtValue T))
 (declare-parameterized-const $smd_eo.Var
   ((s $smt_builtin_String :opaque) (T $eo_Term :opaque))
   $eo_Term)
@@ -270,10 +260,8 @@
   )
 )
 (program $eo_model_sat () :signature (Bool) Bool)
-(program $eo_model_typeof ((T Type)) :signature (T) Bool)
 (define $sm_apply_term ((t1 $smt_Term) (t2 $smt_Term))
   ($smd_sm.Apply t1 t2))
-(define $tsm_NullSort ((id $smt_builtin_Int)) ($smd_tsm.NullSort id))
 (define $vsm_map ((T $smt_Type) (m $smt_Map))
   ($smd_vsm.Map T m))
 (define $vsm_uconst ((T $smt_Type) (id $smt_builtin_Int))
@@ -285,10 +273,6 @@
 (define $map_cons ((i $smt_Value) (e $smt_Value) (m $smt_Map))
   ($smd_msm.Map.cons i e m))
 (define $map_default ((e $smt_Value)) ($smd_msm.Map.default e))
-(define $smt_try_eo_type ((t $eo_Term) (elseTerm $eo_Term))
-  ($smt_apply_3 "ite" ($smt_apply_1 "(_ is eo.SmtType)" t)
-    t
-    elseTerm))
 (program $smtx_term_is_value ()
   :signature ($smt_Term) $smt_builtin_Bool)
 (program $smtx_map_lookup
@@ -450,49 +434,16 @@
   (($eo_model_sat ($eo_smt_term F)) ($eo_model_sat_internal ($smtx_model_eval F)))
   )
 )
-(program $eo_app_from_smt ((f $smt_Term) (a $smt_Term) (t $eo_Term))
-  :signature ($eo_Term) $eo_Term
-  (
-  (($eo_app_from_smt ($eo_smt_term ($sm_apply_term f a)))
-    ($eo_apply ($eo_app_from_smt ($eo_smt_term f)) ($eo_smt_term a)))
-  (($eo_app_from_smt t) t)
-  )
-)
-(program $eo_model_typeof
-  ((t $eo_Term) (val $smt_Value) (T $smt_Type) (m $smt_Map) (id $smt_builtin_Int)
-   (f $smt_Term) (a $smt_Term))
-  :signature ($eo_Term) $eo_Term
-  (
-  
-  
-  (($eo_model_typeof ($eo_smt_term ($sm_apply_term f a)))
-    ($eo_model_typeof ($eo_app_from_smt ($eo_smt_term ($sm_apply_term f a)))))
-  
-  (($eo_model_typeof ($eo_smt_term ($sm_Const val)))      ($eo_model_typeof ($eo_smt_value val)))
-  
-  (($eo_model_typeof ($eo_smt_value ($vsm_term t)))       ($eo_model_typeof ($eo_smt_term t)))
-  (($eo_model_typeof ($eo_smt_value ($vsm_map T m)))      T) 
-  
-  (($eo_model_typeof ($eo_smt_value ($vsm_uconst T id)))  T)
-  
-  (($eo_model_typeof ($eo_smt_value $vsm_not_value))      ($tsm_NullSort $smt_builtin_z_zero))
-  
-  
-  (($eo_model_typeof t) ($smt_try_eo_type
-                          ($eo_typeof t)
-                          ($eo_smt_type ($tsm_NullSort $smt_builtin_z_zero))))
-  )
-)
 (program $eor_cong ((U Type) (t U) (E Bool))
   :signature (U Bool) Bool
   (
-  (($eor_cong t E) (eo::define ((_v0 (_ (= t) ($mk_cong_rhs t ($eo_list_rev and E))))) ($eo_requires ($eo_model_typeof _v0) Bool _v0)))
+  (($eor_cong t E) (_ (= t) ($mk_cong_rhs t ($eo_list_rev and E))))
   )
 )
 (program $eovc_cong ((U Type) (t U) (E Bool))
   :signature (Bool U) Bool
   (
-  (($eovc_cong E t) ($eo_requires ($eo_model_typeof E) Bool ($eo_requires ($eo_model_sat E) true ($eo_requires ($eo_model_sat ($eor_cong t E)) false true))))
+  (($eovc_cong E t) ($eo_requires ($eo_model_sat E) true ($eo_requires ($eo_model_sat ($eor_cong t E)) false true)))
   )
 )
 (echo "smt-meta $eovc_cong")

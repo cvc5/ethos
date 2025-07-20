@@ -608,14 +608,14 @@
 (program $eor_cong ((U Type) (t U) (E Bool))
   :signature (U Bool) Bool
   (
-  (($eor_cong t E) (eo::define ((_v0 (_ (= t) ($mk_cong_rhs t (eo::list_rev and E))))) (eo::requires ($eo_model_typeof _v0) Bool _v0)))
+  (($eor_cong t E) (_ (= t) ($mk_cong_rhs t (eo::list_rev and E))))
   )
 )
 ; program: $eovc_cong
 (program $eovc_cong ((U Type) (t U) (E Bool))
   :signature (Bool U) Bool
   (
-  (($eovc_cong E t) (eo::requires ($eo_model_typeof E) Bool (eo::requires ($eo_model_sat E) true (eo::requires ($eo_model_sat ($eor_cong t E)) false true))))
+  (($eovc_cong E t) (eo::requires ($eo_model_sat E) true (eo::requires ($eo_model_sat ($eor_cong t E)) false true)))
   )
 )
 (echo "smt-meta $eovc_cong")

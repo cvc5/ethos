@@ -117,6 +117,8 @@ class Desugar : public StdPlugin
 
   Expr d_progEoModelSat;
   Expr d_progEoModelTypeof;
+  Expr d_progEoRequiresTrue;
+  Expr d_progEoRequiresFalse;
   size_t d_eoDtConsParamCount;
   bool d_genWfCond;
 };

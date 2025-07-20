@@ -51,6 +51,11 @@ Desugar::Desugar(State& s) : StdPlugin(s)
   Expr modelTypeofType = d_state.mkProgramType({d_any}, d_state.mkType());
   d_progEoModelTypeof = d_state.mkSymbol(
       Kind::PROGRAM_CONST, "$eo_model_typeof", modelTypeofType);
+  Expr eoRequireBType = d_state.mkProgramType({d_boolType, d_any}, d_any);
+  d_progEoRequiresTrue =d_state.mkSymbol(
+      Kind::PROGRAM_CONST, "$eo_requires_true", eoRequireBType);
+  d_progEoRequiresFalse =d_state.mkSymbol(
+      Kind::PROGRAM_CONST, "$eo_requires_false", eoRequireBType);
 }
 
 Desugar::~Desugar() {}
@@ -119,11 +124,13 @@ void Desugar::finalizeProgram(const Expr& prog,
       {
         os << " ";
       }
-      Expr ptip = flattenEval ? typeMap[pt[i]] : pt[i];
+      Expr ptip = typeMap[pt[i]];
+      ptip = ptip.isNull() ? pt[i] : ptip;
       printTerm(ptip, os);
     }
     os << ") ";
-    Expr ptrp = flattenEval ? typeMap[pt[pargs]] : pt[pargs];
+    Expr ptrp = typeMap[pt[pargs]];
+    ptrp = ptrp.isNull() ? pt[pargs] : ptrp;
     printTerm(ptrp, os);
     os << std::endl;
     if (!pdef.isNull())
@@ -608,7 +615,7 @@ void Desugar::finalizeDefinition(const std::string& name, const Expr& t)
 
 void Desugar::finalizeRule(const Expr& e)
 {
-  static bool useTypeof = true;
+  static bool useTypeof = false;
   // std::cout << "Finalize rule " << e << std::endl;
   Expr r = e;
   Expr rto = d_tc.getType(r);

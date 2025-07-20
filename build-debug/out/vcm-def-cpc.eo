@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_cong $eo_typeof_main $eo_String $eo_Numeral $eo_Rational $eo_Binary $eo_dt_constructors $eo_dt_selectors
-; #trim-defs: 49
+; #trim-defs: 48
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -1063,7 +1063,6 @@
   )
 )
 (program $eo_model_sat () :signature (Bool) Bool)
-(program $eo_model_typeof ((T Type)) :signature (T) Bool)
 ; This file defines SMT-LIB model semantics in Eunoia.
 ; It has exception handling utilities to call Eunoia programs in
 ; a safe way that ensures that all programs in this signature are total.
@@ -1568,13 +1567,13 @@
 (program $eor_cong ((U Type) (t U) (E Bool))
   :signature (U Bool) Bool
   (
-  (($eor_cong t E) (eo::define ((_v0 (_ (= t) ($mk_cong_rhs t ($eo_list_rev and E))))) ($eo_requires ($eo_model_typeof _v0) Bool _v0)))
+  (($eor_cong t E) (_ (= t) ($mk_cong_rhs t ($eo_list_rev and E))))
   )
 )
 (program $eovc_cong ((U Type) (t U) (E Bool))
   :signature (Bool U) Bool
   (
-  (($eovc_cong E t) ($eo_requires ($eo_model_typeof E) Bool ($eo_requires ($eo_model_sat E) true ($eo_requires ($eo_model_sat ($eor_cong t E)) false true))))
+  (($eovc_cong E t) ($eo_requires ($eo_model_sat E) true ($eo_requires ($eo_model_sat ($eor_cong t E)) false true)))
   )
 )
 (echo "smt-meta $eovc_cong")
