@@ -271,9 +271,8 @@ Expr FlattenEval::mkPurifyEvaluation(State& s,
 {
   if (isFinal(e))
   {
-    // if it is already final, we are done
-    // Note if e is pure but not final (e.g. (ite C1 (ite C2 t1 t2) t3)),
-    // this method will return a single variable.
+    // if it is already final, we are done, otherwise we will
+    // preprocess it.
     return e;
   }
   Expr nullExpr;
@@ -383,6 +382,7 @@ std::vector<std::pair<Expr, Expr>> FlattenEval::flattenProgram(
     std::vector<std::pair<Expr, Expr>>& palloc = ctx.d_progAlloc;
     if (caseChanged)
     {
+      // update its definition in place.
       toVisit.pop_back();
       Expr newDef = s.mkExpr(Kind::PROGRAM, newCases);
       toVisit.emplace_back(cprog, newDef);
@@ -395,8 +395,8 @@ std::vector<std::pair<Expr, Expr>> FlattenEval::flattenProgram(
     else
     {
       Assert(palloc.empty());
+      // it did not need processed, it is finished, add to final list.
       ret.push_back(cur);
-      // it did not need processed, it is finished.
       toVisit.pop_back();
     }
   } while (!toVisit.empty());
