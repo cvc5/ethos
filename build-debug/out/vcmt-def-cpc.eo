@@ -1,5 +1,5 @@
-; trim-defs: $eovc_cong $eo_typeof $smtx_model_lookup_predicate $eo_hash $eo_requires $eo_apply $eo_fun_type
-; #trim-defs: 129
+; trim-defs: $eovc_cong $eo_typeof $smtx_model_lookup_predicate $eo_hash $eo_apply $eo_fun_type
+; #trim-defs: 127
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -136,12 +136,6 @@
   ($eo_smt_term ($sm_mk_str x)))
 (define $eo_binary ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
   ($eo_smt_term ($smd_sm.Binary x1 x2)))
-(program $eo_requires ((x1 $eo_Term) (x3 $eo_Term))
-  :signature ($eo_Term $eo_Term $eo_Term) $eo_Term
-  (
-  (($eo_requires x1 x1 x3) x3)
-  )
-)
 (program $eo_hash () :signature ($eo_Term) $eo_Term)
 (program $eo_typeof_main () :signature ($eo_Term) Type)
 (program $eo_typeof

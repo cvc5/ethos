@@ -139,14 +139,6 @@
     (eo.FunType x1 x2)
     eo.Stuck)))
 
-; program: $eo_requires
-(define-fun $eo_requires ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
-  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck) (= x3 eo.Stuck))
-    eo.Stuck
-  (ite (= x2 x1)
-    x3
-    eo.Stuck)))
-
 ; fwd-decl: $eo_hash
 (declare-fun $eo_hash (eo.Term) eo.Term)
 

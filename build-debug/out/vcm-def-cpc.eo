@@ -505,27 +505,26 @@
   )
 )
 
+
 ;;;;;; Eunoia builtin
+
+; program: $eo_requires_eq
+; note: This is a helper, and not the official semantics for requires.
+;       The difference is that x3 should not be evaluated if the arguments
+;       to requires are disequal. Nevertheless, we use this method as a
+;       helper e.g. when we are sure that x3 will not be stuck.
+(program $eo_requires_eq ((x1 $eo_Term) (x3 $eo_Term))
+  :signature ($eo_Term $eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_requires_eq x1 x1 x3) x3)
+  )
+)
 
 ; We are now ready to define the builtins of Eunoia.
 ; We define all the Eunoia builtins here that are best to
 ; define in terms of SMT-LIB operators.
 
-;;; If then else, is ok, requires
-
-; program: $eo_ite
-; implements: $eo_ite
-(define $eo_ite ((x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term))
-  ($smt_apply_3 "ite" ($smt_apply_= x1 $eo_mk_true)
-    x2
-  ($smt_apply_3 "ite" ($smt_apply_= x1 $eo_mk_false)
-    x3
-    $eo_stuck)))
-
-; TODO: we could define a total version here, which
-; can be used if we are sure the condition is not
-; stuck. Alternatively this could be automated in
-; the compiler.
+;;; Is okay
 
 ; program: $eo_is_ok
 ; implements: $eo_is_ok
@@ -533,15 +532,6 @@
   ($smt_apply_3 "ite" ($smt_apply_= x $eo_stuck)
     $eo_mk_false
     $eo_mk_true))
-
-; program: $eo_requires
-; implements: $eo_requires
-(program $eo_requires ((x1 $eo_Term) (x3 $eo_Term))
-  :signature ($eo_Term $eo_Term $eo_Term) $eo_Term
-  (
-  (($eo_requires x1 x1 x3) x3)
-  )
-)
 
 ;;; Boolean operators
 
@@ -818,8 +808,8 @@
 ; define: $eo_is_eq
 ; implements: $eo_is_eq
 (define $eo_is_eq ((t $eo_Term) (s $eo_Term))
-  ($eo_ite ($eo_is_ok t)
-    ($eo_ite ($eo_is_ok s)
+  ($smt_apply_3 "ite" ($eo_is_ok t)
+    ($smt_apply_3 "ite" ($eo_is_ok s)
       ($eo_mk_bool ($smt_apply_= s t))  ; Note it is sound to use SMT-LIB equality, since we are guarding stuckness
       $eo_false)
     $eo_false))
@@ -905,7 +895,7 @@
   :signature ($eo_Term $eo_Term) $eo_Term
   (
   (($eo_var ($eo_mk_string s) T)
-      ($eo_requires ($eo_typeof T) Type
+      ($eo_requires_eq ($eo_typeof T) Type
         ($eo_Var s T)))
   )
 )
