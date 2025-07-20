@@ -122,6 +122,7 @@ class Desugar : public StdPlugin
   std::stringstream d_eoModelConstPred;
 
   Expr d_progEoModelSat;
+  Expr d_progEoModelTypeof;
   size_t d_eoDtConsParamCount;
   bool d_genWfCond;
 };

@@ -46,6 +46,8 @@ Desugar::Desugar(State& s) : StdPlugin(s)
   Expr btype = d_state.mkBoolType();
   Expr modelSatType = d_state.mkProgramType({btype}, btype);
   d_progEoModelSat = d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_model_sat", modelSatType);
+  Expr modelTypeofType = d_state.mkProgramType({d_any}, d_state.mkType());
+  d_progEoModelTypeof = d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_model_typeof", modelTypeofType);
 }
 
 Desugar::~Desugar() {}
@@ -670,12 +672,17 @@ void Desugar::finalizeRule(const Expr& e)
   std::vector<Expr> argsTypes;
   Expr etrue = d_state.mkTrue();
   Expr efalse = d_state.mkFalse();
+  // accumulated requirements for returned conclusion
+  std::vector<Expr> reqs;
+  Expr rrt;
   if (rt.getKind() != Kind::FUNCTION_TYPE)
   {
     // dummy type
+    argIsProof.push_back(false);
     args.push_back(etrue);
     argsS.push_back(etrue);
     argsTypes.push_back(d_state.mkBoolType());
+    rrt = rt;
   }
   else
   {
@@ -707,36 +714,85 @@ void Desugar::finalizeRule(const Expr& e)
         Assert(false) << "Unknown proof argument " << ak << " in " << rt;
       }
     }
+    // we addtionally require that the purified variables are equal to what the purify
+    for (std::pair<Expr, Expr>& nv : newVars)
+    {
+      reqs.push_back(d_state.mkPair(nv.first, nv.second));
+    }
+    rrt = rt[rt.getNumChildren() - 1];
   }
   // strip off the "(Proof ...)", which may be beneath requires
-  Expr rrt = rt[rt.getNumChildren() - 1];
-  std::vector<Expr> reqs;
-  // we addtionally require that the purified variables are equal to what the purify
-  for (std::pair<Expr, Expr>& nv : newVars)
-  {
-    reqs.push_back(d_state.mkPair(nv.first, nv.second));
-  }
   while (rrt.getKind() == Kind::EVAL_REQUIRES)
   {
     reqs.push_back(d_state.mkPair(rrt[0], rrt[1]));
     rrt = rrt[2];
   }
-  Assert(rrt.getKind() == Kind::PROOF_TYPE);
+  Assert(rrt.getKind() == Kind::PROOF_TYPE) << "Bad return type: " << rrt.getKind() << " " << rrt;
   rrt = rrt[0];
   rrt = d_state.mkRequires(reqs, rrt);
 
-  Expr retType = d_state.mkBoolType();
-  Expr progType = d_state.mkProgramType(argsTypes, retType);
+  Expr btype = d_state.mkBoolType();
+  Expr progType = d_state.mkProgramType(argsTypes, btype);
   std::stringstream pname;
   pname << "$eor_" << e;
   Expr prog = d_state.mkSymbol(Kind::PROGRAM_CONST, pname.str(), progType);
-  std::vector<Expr> pAppChildren;
-  pAppChildren.push_back(prog);
-  pAppChildren.insert(pAppChildren.end(), argsS.begin(), argsS.end());
-  Expr progPat = d_state.mkExpr(Kind::APPLY, pAppChildren);
+  Expr progApps[2];
+  for (size_t i=0; i<2; i++)
+  {
+    std::vector<Expr>& ause = (i==0 ? argsS : args);
+    std::vector<Expr> pAppChildren;
+    pAppChildren.push_back(prog);
+    pAppChildren.insert(pAppChildren.end(), ause.begin(), ause.end());
+    progApps[i] = d_state.mkExpr(Kind::APPLY, pAppChildren);
+  }
+  Expr progPair = d_state.mkPair(progApps[0], rrt);
+  Expr progDef = d_state.mkExpr(Kind::PROGRAM, {progPair});
+  finalizeProgram(prog, progDef, d_eoVc);
 
-  Expr unsound = etrue;
-  unsound = d_state.mkRequires(
+  if (!d_state.isProofRuleSorry(e.getValue()))
+  {
+    std::stringstream pvcname;
+    pvcname << "$eovc_" << e;
+    Expr unsound = etrue;
+    std::vector<Expr> modelSatArgs;
+    modelSatArgs.push_back(d_progEoModelSat);
+    modelSatArgs.push_back(d_null);
+    modelSatArgs[1] = progApps[1];
+    // require that the conclusion is not satisfied
+    unsound = d_state.mkRequires(d_state.mkExpr(Kind::APPLY, modelSatArgs), efalse, unsound);
+    // require that each premise is satisfied
+    for (size_t i = 0, nargs = args.size(); i < nargs; i++)
+    {
+      size_t ii = nargs-(i+1);
+      if (argIsProof[ii])
+      {
+        modelSatArgs[1] = args[ii];
+        unsound = d_state.mkRequires(d_state.mkExpr(Kind::APPLY, modelSatArgs), etrue, unsound);
+      }
+    }
+    std::vector<Expr> uvars = Expr::getVariables(unsound);
+    if (uvars.empty())
+    {
+      // add a dummy variable
+      Expr dummy = d_state.mkSymbol(Kind::PARAM, "$etmp", btype);
+      uvars.push_back(dummy);
+    }
+    std::vector<Expr> uargTypes;
+    for (const Expr& v : uvars)
+    {
+      Expr vv = v;
+      uargTypes.push_back(d_tc.getType(vv));
+    }
+    progType = d_state.mkProgramType(uargTypes, btype);
+    prog = d_state.mkSymbol(Kind::PROGRAM_CONST, pvcname.str(), progType);
+    std::vector<Expr> vcpChildren;
+    vcpChildren.push_back(prog);
+    vcpChildren.insert(vcpChildren.end(), uvars.begin(), uvars.end());
+    Expr progPat = d_state.mkExpr(Kind::APPLY, vcpChildren);
+    progPair = d_state.mkPair(progPat, unsound);
+    progDef = d_state.mkExpr(Kind::PROGRAM, {progPair});
+    finalizeProgram(prog, progDef, d_eoVc);
+  }
 #else
   // std::cout << "Finalize " << r << std::endl;
   // std::cout << "Type is " << rto << std::endl;
