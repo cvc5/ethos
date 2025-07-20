@@ -82,56 +82,63 @@ void Desugar::defineProgram(const Expr& v, const Expr& prog)
   d_declSeen.emplace_back(pair, Kind::PROGRAM_CONST);
 }
 
-void Desugar::finalizeProgram(const Expr& e, const Expr& prog, std::ostream& os)
+void Desugar::finalizeProgram(const Expr& prog, const Expr& progDef, std::ostream& os)
 {
-#if 0
-  std::vector<std::pair<Expr, Expr>> evals = FlattenEval::flattenProgram(d_state, e, prog);
-  if (!evals.empty())
+  std::map<Expr, Expr> typeMap;
+  std::vector<std::pair<Expr, Expr>> allDefs;
+  static bool flattenEval = false;
+  if (flattenEval)
   {
-    for (std::pair<Expr, Expr>& fe : evals)
-    {
-      finalizeProgramInternal(fe.first, fe.second, os);
-    }
+    allDefs = FlattenEval::flattenProgram(d_state, prog, progDef, typeMap);
   }
-#endif
-  Expr p = e;
-  Expr pt = d_tc.getType(p);
-  std::vector<Expr> pandt{pt, prog};
-  std::vector<Expr> vars = Expr::getVariables(pandt);
-  os << "; " << (prog.isNull() ? "fwd-decl: " : "program: ") << e << std::endl;
-  os << "(program " << e << " (";
-  printParamList(vars, os, false);
-  os << ")" << std::endl;
-  Assert(pt.getKind() == Kind::PROGRAM_TYPE);
-  Assert(pt.getNumChildren() > 1);
-  os << "  :signature (";
-  size_t pargs = pt.getNumChildren() - 1;
-  for (size_t i = 0; i < pargs; i++)
+  else
   {
-    if (i > 0)
-    {
-      os << " ";
-    }
-    printTerm(pt[i], os);
+    allDefs.emplace_back(prog, progDef);
   }
-  os << ") ";
-  printTerm(pt[pargs], os);
-  os << std::endl;
-  if (!prog.isNull())
+  for (std::pair<Expr, Expr>& d : allDefs)
   {
-    os << "  (" << std::endl;
-    for (size_t i = 0, ncases = prog.getNumChildren(); i < ncases; i++)
+    Expr p = d.first;
+    Expr pdef = d.second;
+    Expr pt = d_tc.getType(p);
+    std::vector<Expr> pandt{pt, pdef};
+    std::vector<Expr> vars = Expr::getVariables(pandt);
+    os << "; " << (pdef.isNull() ? "fwd-decl: " : "program: ") << p << std::endl;
+    os << "(program " << p << " (";
+    printParamList(vars, os, false);
+    os << ")" << std::endl;
+    Assert(pt.getKind() == Kind::PROGRAM_TYPE);
+    Assert(pt.getNumChildren() > 1);
+    os << "  :signature (";
+    size_t pargs = pt.getNumChildren() - 1;
+    for (size_t i = 0; i < pargs; i++)
     {
-      const Expr& c = prog[i];
-      os << "  (";
-      printTerm(c[0], os);
-      os << " ";
-      printTerm(c[1], os);
-      os << ")" << std::endl;
+      if (i > 0)
+      {
+        os << " ";
+      }
+      Expr ptip = flattenEval ? typeMap[pt[i]] : pt[i];
+      printTerm(ptip, os);
     }
-    os << "  )" << std::endl;
+    os << ") ";
+    Expr ptrp = flattenEval ? typeMap[pt[pargs]] : pt[pargs];
+    printTerm(ptrp, os);
+    os << std::endl;
+    if (!pdef.isNull())
+    {
+      os << "  (" << std::endl;
+      for (size_t i = 0, ncases = pdef.getNumChildren(); i < ncases; i++)
+      {
+        const Expr& c = pdef[i];
+        os << "  (";
+        printTerm(c[0], os);
+        os << " ";
+        printTerm(c[1], os);
+        os << ")" << std::endl;
+      }
+      os << "  )" << std::endl;
+    }
+    os << ")" << std::endl;
   }
-  os << ")" << std::endl;
 }
 
 void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)

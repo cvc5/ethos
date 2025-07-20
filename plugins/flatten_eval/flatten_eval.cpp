@@ -345,14 +345,31 @@ Expr FlattenEval::mkPurifyEvaluation(State& s,
 }
 
 std::vector<std::pair<Expr, Expr>> FlattenEval::flattenProgram(
-    State& s, const Expr& prog, const Expr& progDef)
+    State& s, const Expr& prog, const Expr& progDef,
+                                                           std::map<Expr, Expr>& typeMap)
 {
   std::vector<std::pair<Expr, Expr>> ret;
   std::vector<std::pair<Expr, Expr>> toVisit;
   std::stringstream progName;
   progName << prog;
   ProgramOutCtx ctx(s, progName.str());
-  toVisit.emplace_back(prog, progDef);
+  std::vector<std::pair<Expr, Expr>>& palloc = ctx.d_progAlloc;
+  // flatten its types, which will be processed until fix point below
+  Expr p = prog;
+  Expr pt = s.getTypeChecker().getType(p);
+  Assert (pt.getKind()==Kind::PROGRAM_TYPE);
+  for (size_t i=0, nptargs = pt.getNumChildren(); i<nptargs; i++)
+  {
+    Expr ptc = pt[i];
+    typeMap[ptc] = flattenEval(s, ctx, ptc);
+  }
+  toVisit.insert(toVisit.end(), palloc.begin(), palloc.end());
+  palloc.clear();
+  // process the main program body, unless this is a forward declaration.
+  if (!progDef.isNull())
+  {
+    toVisit.emplace_back(prog, progDef);
+  }
   std::pair<Expr, Expr> cur;
   do
   {
@@ -379,7 +396,6 @@ std::vector<std::pair<Expr, Expr>> FlattenEval::flattenProgram(
         newCases.push_back(cdef[i]);
       }
     }
-    std::vector<std::pair<Expr, Expr>>& palloc = ctx.d_progAlloc;
     if (caseChanged)
     {
       // update its definition in place.
@@ -400,7 +416,6 @@ std::vector<std::pair<Expr, Expr>> FlattenEval::flattenProgram(
       toVisit.pop_back();
     }
   } while (!toVisit.empty());
-
   return ret;
 }
 

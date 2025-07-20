@@ -125,11 +125,13 @@ class FlattenEval : public StdPlugin
    * not have nested evaluation or special control-flow semantics
    * (ite/requires). These programs can be printed in order, such
    * that programs later in the list may rely on those earlier in
-   * the list.
+   * the list. The type of prog may also require flattening of
+   * evaluation, which is stored in typeMap.
    */
   static std::vector<std::pair<Expr, Expr>> flattenProgram(State& s,
                                                            const Expr& prog,
-                                                           const Expr& progDef);
+                                                           const Expr& progDef,
+                                                           std::map<Expr, Expr>& typeMap);
   /**
    * Flattens the evaluation in term t, where t may contain
    * free variables.
