@@ -513,7 +513,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     // otherwise, we check for a change of context and insert a cast if
     // necessary compute the child context
     Kind ck = recTerm.getKind();
-    std::vector<Expr> rtermArgs;
     MetaKind child = MetaKind::NONE;
     if (ck == Kind::PARAM)
     {
@@ -529,7 +528,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     }
     else
     {
-      child = getMetaKindReturn(recTerm, rtermArgs, parent);
+      child = getMetaKindReturn(recTerm, parent);
     }
     Assert(child != MetaKind::NONE)
         << "Failed to get child context for " << recTerm;
@@ -1276,14 +1275,6 @@ bool SmtMetaReduce::isProgramApp(const Expr& app)
 
 MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
 {
-  std::vector<Expr> appArgs;
-  return getMetaKindReturn(child, appArgs, parentCtx);
-}
-
-MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
-                                          std::vector<Expr>& appArgs,
-                                          MetaKind parentCtx)
-{
   Assert(!child.isNull()) << "null term for meta kind";
   MetaKind tk = MetaKind::NONE;
   Expr hd = child;
@@ -1291,7 +1282,6 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
   // sm.Apply
   while (hd.getKind() == Kind::APPLY && !isProgramApp(hd))
   {
-    appArgs.push_back(hd[1]);
     hd = hd[0];
   }
   Kind k = hd.getKind();
@@ -1373,8 +1363,13 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
     // SMT-LIB Bool
     tk = MetaKind::EUNOIA;
   }
+  else if (k == Kind::BOOLEAN)
+  {
+    tk = MetaKind::SMT;
+  }
   else if (isLiteral(k))
   {
+    // TODO: is this right?? whereas Boolean is implicitly SMT?
     tk = MetaKind::EUNOIA;
   }
   else if (k == Kind::PROGRAM_CONST)

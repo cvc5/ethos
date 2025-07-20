@@ -168,12 +168,6 @@ class SmtMetaReduce : public StdPlugin
    * Get the meta-kind returned by a child.
    */
   MetaKind getMetaKindReturn(const Expr& child, MetaKind parentCtx);
-  /**
-   * Same as above, but collects (flattens) the arguments of APPLY
-   */
-  MetaKind getMetaKindReturn(const Expr& child,
-                             std::vector<Expr>& appArgs,
-                             MetaKind parentCtx);
 };
 
 }  // namespace ethos
