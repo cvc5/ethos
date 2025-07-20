@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_cong $eo_typeof $smtx_model_lookup_predicate $eo_hash $eo_apply $eo_fun_type
-; #trim-defs: 126
+; #trim-defs: 125
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -110,8 +110,8 @@
   ($smd_sm.Rational r))
 (define $sm_mk_str ((s $smt_builtin_String))
   ($smd_sm.String s))
-(define $eo_true () ($eo_smt_term $sm_mk_true))
-(define $eo_false () ($eo_smt_term $sm_mk_false))
+(define $eo_mk_bool ((x $smt_builtin_Bool))
+  ($eo_smt_term ($sm_mk_bool x)))
 (define $eo_mk_numeral ((x $smt_builtin_Int))
   ($eo_smt_term ($sm_mk_z x)))
 (define $eo_mk_rational ((x $smt_builtin_Real))
@@ -123,13 +123,12 @@
 (program $eo_hash () :signature ($eo_Term) $eo_Term)
 (program $eo_typeof_main () :signature ($eo_Term) Type)
 (program $eo_typeof
-  ((t $eo_Term) (T $eo_Term) (n $smt_builtin_Int) (r $smt_builtin_Real)
+  ((t $eo_Term) (T $eo_Term) (b $smt_builtin_Bool) (n $smt_builtin_Int) (r $smt_builtin_Real)
    (s $smt_builtin_String) (w $smt_builtin_Int) (val $smt_Value))
   :signature ($eo_Term) $eo_Term
   (
   
-  (($eo_typeof $eo_true)                        Bool)
-  (($eo_typeof $eo_false)                       Bool)
+  (($eo_typeof ($eo_mk_bool b))                 Bool)
   (($eo_typeof ($eo_mk_numeral n))              $eo_Numeral)
   (($eo_typeof ($eo_mk_rational r))             $eo_Rational)
   (($eo_typeof ($eo_mk_string s))               $eo_String)

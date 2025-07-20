@@ -411,8 +411,6 @@
 
 ;;; Utilities
 
-(define $eo_true () ($eo_smt_term $sm_mk_true))
-(define $eo_false () ($eo_smt_term $sm_mk_false))
 (define $eo_mk_bool ((x $smt_builtin_Bool))
   ($eo_smt_term ($sm_mk_bool x)))
 (define $eo_mk_true () ($eo_smt_term $sm_mk_true))
@@ -747,20 +745,19 @@
   ($smt_apply_3 "ite" ($eo_is_ok t)
     ($smt_apply_3 "ite" ($eo_is_ok s)
       ($eo_mk_bool ($smt_apply_= s t))  ; Note it is sound to use SMT-LIB equality, since we are guarding stuckness
-      $eo_false)
-    $eo_false))
+      $eo_mk_false)
+    $eo_mk_false))
 
 ;;; $eo_is_bool
 
 ; Returns true if x is a Boolean literal.
 ; define: $eo_is_bool
 ; implements: eo::is_bool
-(program $eo_is_bool ((x $eo_Term))
+(program $eo_is_bool ((x $eo_Term) (b $smt_builtin_Bool))
   :signature ($eo_Term) $eo_Term
   (
-  (($eo_is_bool $eo_true)   $eo_true)
-  (($eo_is_bool $eo_false)  $eo_true)
-  (($eo_is_bool x)          $eo_false)
+  (($eo_is_bool ($eo_mk_bool b))  $eo_mk_true)
+  (($eo_is_bool x)                $eo_mk_false)
   )
 )
 
@@ -858,13 +855,12 @@
 ; program: $eo_typeof
 ; implements: eo::typeof
 (program $eo_typeof
-  ((t $eo_Term) (T $eo_Term) (n $smt_builtin_Int) (r $smt_builtin_Real)
+  ((t $eo_Term) (T $eo_Term) (b $smt_builtin_Bool) (n $smt_builtin_Int) (r $smt_builtin_Real)
    (s $smt_builtin_String) (w $smt_builtin_Int) (val $smt_Value))
   :signature ($eo_Term) $eo_Term
   (
   ; TODO: auto-generate these?
-  (($eo_typeof $eo_true)                        Bool)
-  (($eo_typeof $eo_false)                       Bool)
+  (($eo_typeof ($eo_mk_bool b))                 Bool)
   (($eo_typeof ($eo_mk_numeral n))              $eo_Numeral)
   (($eo_typeof ($eo_mk_rational r))             $eo_Rational)
   (($eo_typeof ($eo_mk_string s))               $eo_String)
