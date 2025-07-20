@@ -107,36 +107,12 @@
 ; fwd-decl: $eo_typeof
 (declare-fun $eo_typeof (eo.Term) eo.Term)
 
-; program: $eo_requires_true
-(define-fun $eo_requires_true ((x1 eo.Term) (x2 eo.Term)) eo.Term
-  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
+; program: $eo_requires_eq
+(define-fun $eo_requires_eq ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
+  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck) (= x3 eo.Stuck))
     eo.Stuck
-  (ite (= x1 (eo.SmtTerm (sm.Bool true)))
-    x2
-    eo.Stuck)))
-
-; program: $eo_requires_false
-(define-fun $eo_requires_false ((x1 eo.Term) (x2 eo.Term)) eo.Term
-  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
-    eo.Stuck
-  (ite (= x1 (eo.SmtTerm (sm.Bool false)))
-    x2
-    eo.Stuck)))
-
-; program: $eo_apply
-(define-fun $eo_apply ((x1 eo.Term) (x2 eo.Term)) eo.Term
-  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
-    eo.Stuck
-  (ite true
-    (eo.Apply x1 x2)
-    eo.Stuck)))
-
-; program: $eo_fun_type
-(define-fun $eo_fun_type ((x1 eo.Term) (x2 eo.Term)) eo.Term
-  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
-    eo.Stuck
-  (ite true
-    (eo.FunType x1 x2)
+  (ite (= x2 x1)
+    x3
     eo.Stuck)))
 
 ; fwd-decl: $eo_hash
@@ -150,9 +126,7 @@
   (= ($eo_typeof x1)
   (ite (= x1 eo.Stuck)
     eo.Stuck
-  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Bool) (eo.SmtTerm.arg1 x1)) (= (sm.Bool.arg1 (eo.SmtTerm.arg1 x1)) true))
-    (eo.SmtType tsm.Bool)
-  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Bool) (eo.SmtTerm.arg1 x1)) (= (sm.Bool.arg1 (eo.SmtTerm.arg1 x1)) false))
+  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Bool) (eo.SmtTerm.arg1 x1)))
     (eo.SmtType tsm.Bool)
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Numeral) (eo.SmtTerm.arg1 x1)))
     (eo.SmtType tsm.Int)
@@ -166,7 +140,7 @@
     (eo.Var.arg2 x1)
   (ite true
     ($eo_typeof_main x1)
-    eo.Stuck))))))))))) :named sm.axiom.$eo_typeof))
+    eo.Stuck)))))))))) :named sm.axiom.$eo_typeof))
 
 ; program: $mk_symm
 (define-fun $mk_symm ((x1 eo.Term)) eo.Term
@@ -191,7 +165,7 @@
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
     eo.Stuck
   (ite (= x1 (eo.SmtType tsm.Bool))
-    ($eo_fun_type x2 x2)
+    (eo.FunType x2 x2)
     eo.Stuck)))
 
 ; program: $eo_typeof_=
@@ -199,7 +173,7 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    ($eo_fun_type x1 (eo.SmtType tsm.Bool))
+    (eo.FunType x1 (eo.SmtType tsm.Bool))
     eo.Stuck)))
 
 ; program: $eo_typeof_fun_type
@@ -232,17 +206,17 @@
   (ite (and ((_ is eo.SmtType) x1) (= (eo.SmtType.arg1 x1) tsm.Char))
     eo.Type
   (ite (and ((_ is eo.SmtType) x1) (= (eo.SmtType.arg1 x1) tsm.Seq))
-    ($eo_fun_type eo.Type eo.Type)
+    (eo.FunType eo.Type eo.Type)
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Apply) (eo.SmtTerm.arg1 x1)) ((_ is sm.Apply) (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))) (= (sm.Apply.arg1 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))) sm.ite))
     ($eo_typeof_ite ($eo_typeof (eo.SmtTerm (sm.Apply.arg2 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))))) ($eo_typeof (eo.SmtTerm (sm.Apply.arg2 (eo.SmtTerm.arg1 x1)))))
   (ite (and ((_ is eo.SmtTerm) x1) (= (eo.SmtTerm.arg1 x1) sm.not))
-    ($eo_fun_type (eo.SmtType tsm.Bool) (eo.SmtType tsm.Bool))
+    (eo.FunType (eo.SmtType tsm.Bool) (eo.SmtType tsm.Bool))
   (ite (and ((_ is eo.SmtTerm) x1) (= (eo.SmtTerm.arg1 x1) sm.and))
-    ($eo_fun_type (eo.SmtType tsm.Bool) ($eo_fun_type (eo.SmtType tsm.Bool) (eo.SmtType tsm.Bool)))
+    (eo.FunType (eo.SmtType tsm.Bool) (eo.FunType (eo.SmtType tsm.Bool) (eo.SmtType tsm.Bool)))
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Apply) (eo.SmtTerm.arg1 x1)) (= (sm.Apply.arg1 (eo.SmtTerm.arg1 x1)) sm.=))
     ($eo_typeof_= ($eo_typeof (eo.SmtTerm (sm.Apply.arg2 (eo.SmtTerm.arg1 x1)))))
   (ite (and ((_ is eo.SmtType) x1) (= (eo.SmtType.arg1 x1) tsm.BitVec))
-    ($eo_fun_type (eo.SmtType tsm.Int) eo.Type)
+    (eo.FunType (eo.SmtType tsm.Int) eo.Type)
   (ite ((_ is eo.Apply) x1)
     ($eo_typeof_apply ($eo_typeof (eo.Apply.arg1 x1)) ($eo_typeof (eo.Apply.arg2 x1)))
     eo.Stuck)))))))))))))))))) :named sm.axiom.$eo_typeof_main))
@@ -397,7 +371,7 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    ($eo_requires_true ($eo_model_sat x1) ($eo_requires_false ($eo_model_sat ($eor_symm x1)) (eo.SmtTerm (sm.Bool true))))
+    ($eo_requires_eq ($eo_model_sat x1) (eo.SmtTerm (sm.Bool true)) ($eo_requires_eq ($eo_model_sat ($eor_symm x1)) (eo.SmtTerm (sm.Bool false)) (eo.SmtTerm (sm.Bool true))))
     eo.Stuck)))
 
 

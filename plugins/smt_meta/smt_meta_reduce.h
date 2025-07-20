@@ -72,6 +72,8 @@ class SelectorCtx
   std::map<Expr, std::string> d_ctx;
   /** The context it was matched in */
   std::map<Expr, MetaKind> d_tctx;
+  /** The inferred context for the parameter */
+  std::map<Expr, MetaKind> d_itctx;
 };
 
 /**
@@ -158,15 +160,16 @@ class SmtMetaReduce : public StdPlugin
    * This returns the expected meta-kind for the i^th child of
    * parent. It should not depend on parent[i] at all.
    */
-  MetaKind getMetaKindArg(const Expr& parent, size_t i, MetaKind parentCtx);
+  MetaKind getMetaKindArg(const Expr& parent, size_t i, MetaKind parentCtx, const std::map<Expr, MetaKind>& ictx);
   /**
    * Returns the result of calling the above method for all
    * children i of parent.
    */
-  std::vector<MetaKind> getMetaKindArgs(const Expr& parent, MetaKind parentCtx);
+  std::vector<MetaKind> getMetaKindArgs(const Expr& parent, MetaKind parentCtx, const std::map<Expr, MetaKind>& ictx);
   /**
    * Get the meta-kind returned by a child.
    */
+  MetaKind getMetaKindReturn(const Expr& child, MetaKind parentCtx, const std::map<Expr, MetaKind>& ictx);
   MetaKind getMetaKindReturn(const Expr& child, MetaKind parentCtx);
 };
 
