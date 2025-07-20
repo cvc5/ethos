@@ -200,11 +200,11 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
   {
     os << "parameterized-const " << cname << " (" << opaqueArgs.str();
     size_t pcount = 0;
+    bool isAmb = (cattr == Attr::AMB || cattr == Attr::AMB_DATATYPE_CONSTRUCTOR);
     for (size_t i = 0, nargs = argTypes.size(); i < nargs; i++)
     {
       Expr at = argTypes[i];
-      Kind ak = at.getKind();
-      if (ak == Kind::QUOTE_TYPE)
+      if (at.getKind() == Kind::QUOTE_TYPE)
       {
         Expr v = at[0];
         if (v.getKind() == Kind::ANNOT_PARAM)
@@ -217,18 +217,9 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
           varsp.push_back(v);
           printParamList(varsp, os, params, visited, true);
         }
-        else if ((cattr == Attr::AMB || cattr == Attr::AMB_DATATYPE_CONSTRUCTOR)
-                 && i == 0)
+        else if (isAmb && i == 0)
         {
-          // print the parameters; these will lead to a definition that is
-          // ambiguous again.
-          std::vector<Expr> avars = Expr::getVariables(v);
-          // override the behavior to ensure all variables are implicit.
-          // TODO: this isn't right if some but not all free variables are implicit???
-          size_t startIndex = params.size();
-          getParamList(avars, params, visited);
-          std::vector<Expr> emptyVec;
-          finalizeParamList(os, params, true, emptyVec, false, startIndex);
+          // skip
         }
         else
         {
@@ -246,6 +237,20 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
         vars.push_back(v);
         printParamList(vars, os, params, visited, true);
       }
+    }
+    // if ambiguous, go back and print the remaining parameters
+    if (isAmb)
+    {
+      Assert (argTypes[0].getKind()==Kind::QUOTE_TYPE);
+      Expr v = argTypes[0][0];
+      // print the parameters; these will lead to a definition that is
+      // ambiguous again.
+      std::vector<Expr> avars = Expr::getVariables(v);
+      // override the behavior to ensure all variables are implicit.
+      size_t startIndex = params.size();
+      getParamList(avars, params, visited);
+      std::vector<Expr> emptyVec;
+      finalizeParamList(os, params, true, emptyVec, false, startIndex);
     }
     os << ") ";
     printTerm(retType, os);
