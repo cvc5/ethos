@@ -105,8 +105,8 @@ class SmtMetaReduce : public StdPlugin
    * @param elseKind The returned kind if typ does not have a special meaning.
    * @return The meta-kind of typ, or elseKind otherwise.
    */
-  static MetaKind getTypeMetaKind(
-      const Expr& typ, MetaKind elseKind = MetaKind::EUNOIA);
+  static MetaKind getTypeMetaKind(const Expr& typ,
+                                  MetaKind elseKind = MetaKind::EUNOIA);
   /**
    * Get the meta kind of the type of expression e, or else kind otherwise.
    * In other words, we return the datatype that e is a constructor of in the
@@ -117,9 +117,7 @@ class SmtMetaReduce : public StdPlugin
    * @param cname Updated to the root name of the constructor.
    * @return The meta-kind of the type of e, or elseKind otherwise.
    */
-  static MetaKind getMetaKind(State& s,
-                                     const Expr& e,
-                                     std::string& cname);
+  static MetaKind getMetaKind(State& s, const Expr& e, std::string& cname);
 
  private:
   bool printEmbPatternMatch(const Expr& c,
@@ -162,26 +160,22 @@ class SmtMetaReduce : public StdPlugin
    * This returns the expected meta-kind for the i^th child of
    * parent. It should not depend on parent[i] at all.
    */
-  MetaKind getMetaKindArg(const Expr& parent,
-                                 size_t i,
-                                 MetaKind parentCtx);
+  MetaKind getMetaKindArg(const Expr& parent, size_t i, MetaKind parentCtx);
   /**
    * Returns the result of calling the above method for all
    * children i of parent.
    */
-  std::vector<MetaKind> getMetaKindArgs(const Expr& parent,
-                                               MetaKind parentCtx);
+  std::vector<MetaKind> getMetaKindArgs(const Expr& parent, MetaKind parentCtx);
   /**
    * Get the meta-kind returned by a child.
    */
-  MetaKind getMetaKindReturn(const Expr& child,
-                                    MetaKind parentCtx);
+  MetaKind getMetaKindReturn(const Expr& child, MetaKind parentCtx);
   /**
    * Same as above, but collects (flattens) the arguments of APPLY
    */
   MetaKind getMetaKindReturn(const Expr& child,
-                                    std::vector<Expr>& appArgs,
-                                    MetaKind parentCtx);
+                             std::vector<Expr>& appArgs,
+                             MetaKind parentCtx);
 };
 
 }  // namespace ethos

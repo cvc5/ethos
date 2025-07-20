@@ -28,7 +28,8 @@ class ProgramOutCtx
 {
  public:
   ProgramOutCtx(State& s, const std::string& progPrefix);
-  /** Add that a is a pattern argument of programs we are currently considering */
+  /** Add that a is a pattern argument of programs we are currently considering
+   */
   void pushArg(const Expr& a);
   /** Same as above, with a type */
   void pushArgTyped(const Expr& a, const Expr& at);

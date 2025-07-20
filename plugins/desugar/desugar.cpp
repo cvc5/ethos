@@ -230,7 +230,8 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
         }
         else if (isAmb && i == 0)
         {
-          // skip, the remaining free variables will be printed as implicit below.
+          // skip, the remaining free variables will be printed as implicit
+          // below.
         }
         else
         {
@@ -918,17 +919,17 @@ void Desugar::finalize()
 void Desugar::finalizeWellFounded()
 {
   // TODO
-  //std::stringstream wfDefs;
+  // std::stringstream wfDefs;
   // generate well-foundedness method
   // size_t pcIdCount = 0;
   // std::map<Expr, size_t> pcId;
-  //std::stringstream os;
-  //os << "(declare-const @pcall (-> $eo_Numeral $eo_List Type))" << std::endl;
-  //os << "(program $eovcwf_rec ((pc $eo_Numeral))" << std::endl;
-  //os << "  :signature ($eo_Numeral $eo_List $eo_List) Bool" << std::endl;
-  //os << "  (" << std::endl;
-  //os << "  )" << std::endl;
-  //os << ")" << std::endl;
+  // std::stringstream os;
+  // os << "(declare-const @pcall (-> $eo_Numeral $eo_List Type))" << std::endl;
+  // os << "(program $eovcwf_rec ((pc $eo_Numeral))" << std::endl;
+  // os << "  :signature ($eo_Numeral $eo_List $eo_List) Bool" << std::endl;
+  // os << "  (" << std::endl;
+  // os << "  )" << std::endl;
+  // os << ")" << std::endl;
 }
 
 bool Desugar::echo(const std::string& msg)

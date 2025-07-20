@@ -108,9 +108,7 @@ std::string metaKindToPrefix(MetaKind k)
     case MetaKind::SMT_TYPE: ss << "tsm."; break;
     case MetaKind::SMT_VALUE: ss << "vsm."; break;
     case MetaKind::SMT_BUILTIN: ss << "?"; break;
-    default:
-      ss << "?MetaKindPrefix_" << metaKindToString(k);
-      break;
+    default: ss << "?MetaKindPrefix_" << metaKindToString(k); break;
   }
   return ss.str();
 }
@@ -305,8 +303,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     if (parent != child)
     {
       if (parent == MetaKind::EUNOIA
-          && (child == MetaKind::SMT
-              || child == MetaKind::SMT_TYPE
+          && (child == MetaKind::SMT || child == MetaKind::SMT_TYPE
               || child == MetaKind::SMT_VALUE))
       {
         std::string cons = metaKindToCons(child);
@@ -321,9 +318,8 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       }
       else
       {
-        EO_FATAL() << "Unhandled context change "
-                   << metaKindToString(parent) << " / "
-                   << metaKindToString(child) << " in " << tcur
+        EO_FATAL() << "Unhandled context change " << metaKindToString(parent)
+                   << " / " << metaKindToString(child) << " in " << tcur
                    << " within " << c;
       }
     }
@@ -536,8 +532,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     {
       if (parent == MetaKind::EUNOIA)
       {
-        if (child == MetaKind::SMT
-            || child == MetaKind::SMT_BUILTIN)
+        if (child == MetaKind::SMT || child == MetaKind::SMT_BUILTIN)
         {
           // going from a Eunoia term to an SMT term
           os << "(eo.SmtTerm ";
@@ -613,8 +608,8 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       Assert(parent == child)
           << "Unhandled context switch for " << recTerm << " "
           << recTerm.getKind() << std::endl
-          << metaKindToString(parent) << " -> "
-          << metaKindToString(child) << " within term " << body;
+          << metaKindToString(parent) << " -> " << metaKindToString(child)
+          << " within term " << body;
 #endif
     }
     // We now should only care about the child context!!!
@@ -679,9 +674,8 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
         else
         {
           Assert(false) << "Unhandled apply kind for " << recTerm << " "
-                        << ", in context " << metaKindToString(parent)
-                        << " / " << metaKindToString(child)
-                        << " within term " << body;
+                        << ", in context " << metaKindToString(parent) << " / "
+                        << metaKindToString(child) << " within term " << body;
         }
       }
     }
@@ -1091,8 +1085,7 @@ bool SmtMetaReduce::isSmtLibExpression(MetaKind ctx)
          || ctx == MetaKind::SMT_VALUE;
 }
 
-MetaKind SmtMetaReduce::getTypeMetaKind(const Expr& typ,
-                                               MetaKind elseKind)
+MetaKind SmtMetaReduce::getTypeMetaKind(const Expr& typ, MetaKind elseKind)
 {
   Kind k = typ.getKind();
   if (k == Kind::APPLY_OPAQUE)
@@ -1131,9 +1124,7 @@ MetaKind SmtMetaReduce::getTypeMetaKind(const Expr& typ,
   return elseKind;
 }
 
-MetaKind SmtMetaReduce::getMetaKind(State& s,
-                                           const Expr& e,
-                                           std::string& cname)
+MetaKind SmtMetaReduce::getMetaKind(State& s, const Expr& e, std::string& cname)
 {
   std::string sname = getName(e);
   // terms starting with @ are considered Eunoia (not SMT-LIB)
@@ -1171,8 +1162,8 @@ MetaKind SmtMetaReduce::getMetaKind(State& s,
 }
 
 MetaKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
-                                              size_t i,
-                                              MetaKind parentCtx)
+                                       size_t i,
+                                       MetaKind parentCtx)
 {
   // This method should rely on the parent only!!!
   MetaKind tk = MetaKind::NONE;
@@ -1300,16 +1291,15 @@ bool SmtMetaReduce::isProgramApp(const Expr& app)
           && app[0].getKind() == Kind::PROGRAM_CONST);
 }
 
-MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
-                                                 MetaKind parentCtx)
+MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
 {
   std::vector<Expr> appArgs;
   return getMetaKindReturn(child, appArgs, parentCtx);
 }
 
 MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
-                                                 std::vector<Expr>& appArgs,
-                                                 MetaKind parentCtx)
+                                          std::vector<Expr>& appArgs,
+                                          MetaKind parentCtx)
 {
   Assert(!child.isNull()) << "null term for meta kind";
   MetaKind tk = MetaKind::NONE;
@@ -1465,12 +1455,12 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
   return tk;
 }
 
-std::vector<MetaKind> SmtMetaReduce::getMetaKindArgs(
-    const Expr& parent, MetaKind parentCtx)
+std::vector<MetaKind> SmtMetaReduce::getMetaKindArgs(const Expr& parent,
+                                                     MetaKind parentCtx)
 {
   std::vector<MetaKind> args;
-  std::cout << "  MetaArg: " << parent << " / "
-            << metaKindToString(parentCtx) << std::endl;
+  std::cout << "  MetaArg: " << parent << " / " << metaKindToString(parentCtx)
+            << std::endl;
   for (size_t i = 0, nchild = parent.getNumChildren(); i < nchild; i++)
   {
     MetaKind ctx = getMetaKindArg(parent, i, parentCtx);
