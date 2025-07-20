@@ -20,7 +20,6 @@ namespace ethos {
 
 Desugar::Desugar(State& s) : StdPlugin(s)
 {
-  d_any = d_state.mkSymbol(Kind::PARAM, "Any", d_state.mkType());
   // we require santization of the eo::List at this stage
   // TODO: maybe just use text replace??
   d_listNil = s.mkListNil();
@@ -45,13 +44,14 @@ Desugar::Desugar(State& s) : StdPlugin(s)
 
   // a placeholder
   d_boolType = d_state.mkBoolType();
+  Expr anyT = allocateTypeVariable();
   Expr modelSatType = d_state.mkProgramType({d_boolType}, d_boolType);
   d_progEoModelSat =
       d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_model_sat", modelSatType);
-  Expr modelTypeofType = d_state.mkProgramType({d_any}, d_state.mkType());
+  Expr modelTypeofType = d_state.mkProgramType({anyT}, d_state.mkType());
   d_progEoModelTypeof = d_state.mkSymbol(
       Kind::PROGRAM_CONST, "$eo_model_typeof", modelTypeofType);
-  Expr eoRequireBType = d_state.mkProgramType({d_boolType, d_any}, d_any);
+  Expr eoRequireBType = d_state.mkProgramType({d_boolType, anyT}, anyT);
   d_progEoRequiresTrue =d_state.mkSymbol(
       Kind::PROGRAM_CONST, "$eo_requires_true", eoRequireBType);
   d_progEoRequiresFalse =d_state.mkSymbol(
@@ -310,7 +310,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
       ngnil << "$eo_nil_";
       printName(e, ngnil);
       std::string pname = ngnil.str();
-      Expr tpTmp = d_state.mkSymbol(Kind::PARAM, "$eo_T", d_state.mkType());
+      Expr tpTmp = allocateTypeVariable();
       Expr qtt = d_state.mkExpr(Kind::QUOTE_TYPE, {tpTmp});
       Expr progType = d_state.mkProgramType({qtt}, tpTmp);
       Expr prog = d_state.mkSymbol(Kind::PROGRAM_CONST, pname, progType);
@@ -598,6 +598,7 @@ void Desugar::finalizeParamList(std::ostream& os,
 
 void Desugar::finalizeDefinition(const std::string& name, const Expr& t)
 {
+  return;
   Assert(t.getKind() == Kind::LAMBDA);
   d_defs << "; define: " << name << std::endl;
   d_defs << "(define " << name << " (";
@@ -658,7 +659,7 @@ void Desugar::finalizeRule(const Expr& e)
         if (ta.isNull() || ta.isEvaluatable())
         {
           // EO_FATAL() << "Could not get type of " << aa << std::endl;
-          ta = d_any;
+          ta = allocateTypeVariable();
         }
         argIsProof.push_back(ak == Kind::PROOF_TYPE);
         args.push_back(arg[0]);
@@ -1003,7 +1004,12 @@ Expr Desugar::mkSanitize(const Expr& t,
         Expr ret = mkSanitize(cur);
         std::stringstream ssv;
         ssv << "$ex_" << varCount;
-        Expr v = d_state.mkSymbol(Kind::PARAM, ssv.str(), d_any);
+        Expr tv = d_tc.getType(cur);
+        if (tv.isNull() || tv.isEvaluatable())
+        {
+          tv = allocateTypeVariable();
+        }
+        Expr v = d_state.mkSymbol(Kind::PARAM, ssv.str(), tv);
         newVars.emplace_back(v, ret);
         visited[cur] = v;
         visit.pop_back();

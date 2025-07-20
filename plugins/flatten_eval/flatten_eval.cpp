@@ -107,7 +107,7 @@ Expr ProgramOutCtx::allocateTypeVariable()
 {
   d_varCount++;
   std::stringstream ss;
-  ss << "$eoT_" << d_varCount;
+  ss << "$eoT.fev" << d_varCount;
   return d_state.mkSymbol(Kind::PARAM, ss.str(), d_state.mkType());
 }
 

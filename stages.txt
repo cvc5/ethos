@@ -79,26 +79,33 @@ Relies on:
 - (Optional) trim_defs.cpp (ethos plugin), 283 LOC C++
   - Slices the signature, preserves S-expressions.
   - Needed to make the VCs more manageable.
+- flatten_eval.cpp (ethos utility), 473 LOC C++
+  - Converts programs to a list of programs with no nested evaluation.
 
 Things handled at this stage:
-- Operator overloading.
-  - Introduces "$eoo_X.N" as a convention for overloaded symbols.
+- define commands inlined
+- Flattening of evaluation
+  - All evaluation nested inside of ordinary applications are lifted. This effectively
+    ensures that stuckness propagates eagerly through ordinary constant applications.
+  - Each instance of eo::requires, eo::ite converted to a program.
 - declare-rule
   - Proof type handled as part of the VC generation function ($eovc_X).
 - declare-consts
   - $eo_Numeral, $eo_Rational, $eo_String, $eo_Binary as references to builtin types.
-- eo::eq
-- eo::cons
-- eo::list_len, eo::list_concat, eo::list_nth, eo::list_find, eo::list_rev, eo::list_erase, eo::list_erase_all, eo::list_setof, eo::list_minclude, eo::list_meq
-- eo::nil
-  - Includes an auto-generation of cases for each :right-assoc-nil, :left-assoc-nil operator.
-- (All user-defined symbol cases of) eo::typeof
-  - *Approximates* the internal type system of Eunoia (monomorphizes partial applications).
-    - For example, we give a type rule for (= x), not =.
-  - Includes an auto-generation of cases for all user symbols ($eo_typeof_main).
-- eo::dt_constructors, eo::dt_selectors
-- Defines $eo_fail as a stuck term.
-- Defines $eo_model_preamble as a placeholder for inserting more definitions of $eo_.
+- Operator overloading.
+  - Introduces "$eoo_X.N" as a convention for overloaded symbols.
+- Desugaring template:
+  - eo::eq
+  - eo::cons
+  - eo::list_len, eo::list_concat, eo::list_nth, eo::list_find, eo::list_rev, eo::list_erase,
+    eo::list_erase_all, eo::list_setof, eo::list_minclude, eo::list_meq
+  - eo::nil
+    - Includes an auto-generation of cases for each :right-assoc-nil, :left-assoc-nil operator.
+  - eo::dt_constructors, eo::dt_selectors
+  - (All user-defined symbol cases of) eo::typeof
+    - *Approximates* the internal type system of Eunoia (monomorphizes partial applications).
+      - For example, we give a type rule for (= x), not =.
+    - Includes an auto-generation of cases for all user symbols ($eo_typeof_main).
 
 - TODO: ite, requires should be handled here, using "nested-eval-elim" plugin.
 
@@ -131,35 +138,25 @@ Things handled at this stage:
   - Includes definitions of literal types, and type of variables ($eo_Var).'
   - Reference to previously defined $eo_typeof_main.
 - Core Eunoia builtins defined.
-  - eo::is_ok, eo::ite, eo::requires
-  - $eo_is_ok reasons about the *deep embedding* of the SMT-LIB datatype we are defining.
+  - eo::is_ok which reasons about the *deep embedding* of the SMT-LIB datatype we are defining.
     In particular, $eo_is_ok asks whether the deep embedding of the term under test
     in the datatype constructor eo.Stuck.
-  - $eo_ite now can leverage the SMT-LIB encoding of "ite". The Eunoia semantics
-    of if-then-else is essentially the same as the SMT-LIB one, that is, after a
-    reduction from programs to constraints, if-then-else in the Eunoia program semantics
-    is equivalent to the SMT-LIB constraint over ite.
-- Stuckness propagates through Eunoia terms.
-  - We use macros $eo_apply and $eo_fun_type to ensure that no Eunoia datatype terms
-    have eo.Stuck as a strict subterm.
-- Custom extensions to SMT-LIB template (model_eo.eo).
-  - TODO: Skolem semantics ($eo_const_predicate).
 - SMT-LIB semantics (model_smt.eo).
   - Valueness ($smt_is_value)
     - Builtin atomics.
     - Datatypes.
+    - Function and array values.
   - Type enumeration ($smt_type_enum)
     - Builtin atomics (Int, String).
     - TODO: datatypes
     - TODO: arrays, functions
   - Existential semantics ($smt_model_eval_exists)
-  - Free constant semantics ($smt_model_lookup)
+  - Partial function semantics ($smt_model_lookup)
   - Builtin operator semantics
     - Defines a deep embedding of SMT-LIB terms into Eunoia via $smt_Term / $smt_apply_N
-    - Defines conversions from Eunoia literals to SMT-LIB values via $smt_to_eo_X/$eo_to_smt_X.
-  - overloading arithmetic
+  - Overloading arithmetic uses multi-case programs.
   - Reverts operator overload, recognizes "$eoo_-.2" as SMT-LIB "-".
-  - TODO: arrays, functions
+  - Function and array values ($smt_Map), including lookups and valueness.
   - Semantics of parametric bitvector operations
 
 

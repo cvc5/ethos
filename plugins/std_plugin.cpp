@@ -24,7 +24,9 @@ std::string StdPlugin::s_plugin_path =
     "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
 #endif
 
-StdPlugin::StdPlugin(State& s) : d_state(s), d_tc(s.getTypeChecker()) {}
+StdPlugin::StdPlugin(State& s) : d_state(s), d_tc(s.getTypeChecker()) {
+  d_typeVarCounter = 0;
+}
 
 StdPlugin::~StdPlugin() {}
 
@@ -166,6 +168,15 @@ bool StdPlugin::hasSubterm(const Expr& t, const Expr& s)
     }
   }
   return false;
+}
+
+
+Expr StdPlugin::allocateTypeVariable()
+{
+  d_typeVarCounter++;
+  std::stringstream ss;
+  ss << "$eoT_" << d_typeVarCounter;
+  return d_state.mkSymbol(Kind::PARAM, ss.str(), d_state.mkType());
 }
 
 }  // namespace ethos

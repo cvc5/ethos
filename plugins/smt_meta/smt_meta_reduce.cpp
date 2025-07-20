@@ -506,7 +506,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     // necessary compute the child context
     Kind ck = recTerm.getKind();
     std::vector<Expr> rtermArgs;
-    MetaKind child;
+    MetaKind child = MetaKind::NONE;
     if (ck == Kind::PARAM)
     {
       // If a parameter, it depends on the context in which it was matched,

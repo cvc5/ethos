@@ -37,6 +37,8 @@ class StdPlugin : public Plugin
 
  protected:
   Expr lookupVar(const std::string& name);
+  /** Allocate a fresh type variable */
+  Expr allocateTypeVariable();
   /** Does t have subterm s? */
   static bool hasSubterm(const Expr& t, const Expr& s);
   /**
@@ -52,6 +54,8 @@ class StdPlugin : public Plugin
   TypeChecker& d_tc;
   /** Declares processed for lit types */
   std::set<Expr> d_ltDeclProcessed;
+  /** type variable counter */
+  size_t d_typeVarCounter;
 
   std::stringstream d_litTypeDecl;
   std::stringstream d_ltNum;

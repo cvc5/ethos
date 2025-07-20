@@ -93,7 +93,6 @@ class Desugar : public StdPlugin
   /** */
   std::map<Expr, Expr> d_overloadSanVisited;
   /** Common constants */
-  Expr d_any;
   Expr d_null;
   Expr d_listNil;
   Expr d_listCons;
