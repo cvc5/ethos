@@ -4692,36 +4692,42 @@
 
 ;;; eo::nil definitions
 
+; program: $eo_nil_bvand
 (program $eo_nil_bvand (($eo_T Type) (m Int))
   :signature ((eo::quote $eo_T)) $eo_T
   (
   (($eo_nil_bvand (BitVec m)) (eo::not (eo::to_bin m 0)))
   )
 )
+; program: $eo_nil_bvor
 (program $eo_nil_bvor (($eo_T Type) (m Int))
   :signature ((eo::quote $eo_T)) $eo_T
   (
   (($eo_nil_bvor (BitVec m)) (eo::to_bin m 0))
   )
 )
+; program: $eo_nil_bvxor
 (program $eo_nil_bvxor (($eo_T Type) (m Int))
   :signature ((eo::quote $eo_T)) $eo_T
   (
   (($eo_nil_bvxor (BitVec m)) (eo::to_bin m 0))
   )
 )
+; program: $eo_nil_bvadd
 (program $eo_nil_bvadd (($eo_T Type) (m Int))
   :signature ((eo::quote $eo_T)) $eo_T
   (
   (($eo_nil_bvadd (BitVec m)) (eo::to_bin m 0))
   )
 )
+; program: $eo_nil_bvmul
 (program $eo_nil_bvmul (($eo_T Type) (m Int))
   :signature ((eo::quote $eo_T)) $eo_T
   (
   (($eo_nil_bvmul (BitVec m)) (eo::to_bin m 1))
   )
 )
+; program: $eo_nil_str.++
 (program $eo_nil_str.++ (($eo_T Type) (T Type))
   :signature ((eo::quote $eo_T)) $eo_T
   (

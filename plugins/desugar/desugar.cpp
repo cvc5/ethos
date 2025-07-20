@@ -230,7 +230,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
         }
         else if (isAmb && i == 0)
         {
-          // skip
+          // skip, the remaining free variables will be printed as implicit below.
         }
         else
         {
@@ -249,7 +249,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
         printParamList(vars, os, params, visited, true);
       }
     }
-    // if ambiguous, go back and print the remaining parameters
+    // if ambiguous, go back and print the remaining parameters as implicit
     if (isAmb)
     {
       Assert(argTypes[0].getKind() == Kind::QUOTE_TYPE);
@@ -292,18 +292,14 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
       ngnil << "$eo_nil_";
       printName(e, ngnil);
       std::string pname = ngnil.str();
-      d_eoNilNground << "(program " << pname << " (($eo_T Type) ";
-      printParamList(nvars, d_eoNilNground, false);
-      d_eoNilNground << ")" << std::endl;
-      d_eoNilNground << "  :signature ((eo::quote $eo_T)) $eo_T" << std::endl;
-      d_eoNilNground << "  (" << std::endl;
-      d_eoNilNground << "  ((" << pname << " ";
-      printTerm(ct[0], d_eoNilNground);
-      d_eoNilNground << ") ";
-      printTerm(cattrCons, d_eoNilNground);
-      d_eoNilNground << ")" << std::endl;
-      d_eoNilNground << "  )" << std::endl;
-      d_eoNilNground << ")" << std::endl;
+      Expr tpTmp = d_state.mkSymbol(Kind::PARAM, "$eo_T", d_state.mkType());
+      Expr qtt = d_state.mkExpr(Kind::QUOTE_TYPE, {tpTmp});
+      Expr progType = d_state.mkProgramType({qtt}, tpTmp);
+      Expr prog = d_state.mkSymbol(Kind::PROGRAM_CONST, pname, progType);
+      Expr progPat = d_state.mkExpr(Kind::APPLY, {prog, ct[0]});
+      Expr progPair = d_state.mkPair(progPat, cattrCons);
+      Expr progDef = d_state.mkExpr(Kind::PROGRAM, {progPair});
+      finalizeProgram(prog, progDef, d_eoNilNground);
       d_eoNil << "(" << pname << " T)";
     }
     else
@@ -511,69 +507,6 @@ void Desugar::printParamList(const std::vector<Expr>& vars,
   getParamList(vars, params, visited);
   // print it on the output stream
   finalizeParamList(os, params, useImplicit, vars, isOpaque, startIndex);
-}
-
-void Desugar::printParamListOld(const std::vector<Expr>& vars,
-                                std::ostream& os,
-                                std::vector<Expr>& params,
-                                bool useImplicit,
-                                std::map<Expr, bool>& visited,
-                                bool& firstParam,
-                                bool isOpaque)
-{
-  std::map<Expr, bool>::iterator itv;
-  std::vector<Expr> toVisit(vars.begin(), vars.end());
-  Expr cur;
-  while (!toVisit.empty())
-  {
-    cur = toVisit.back();
-    Assert(cur.getKind() == Kind::PARAM);
-    itv = visited.find(cur);
-    if (itv != visited.end() && itv->second)
-    {
-      toVisit.pop_back();
-      continue;
-    }
-    Expr tcur = d_tc.getType(cur);
-    if (itv == visited.end())
-    {
-      visited[cur] = false;
-      // ensure the variables in its type has been printed
-      Assert(!tcur.isNull());
-      std::vector<Expr> tvars = Expr::getVariables(tcur);
-      toVisit.insert(toVisit.end(), tvars.begin(), tvars.end());
-      continue;
-    }
-    else if (!itv->second)
-    {
-      Assert(!itv->second);
-      visited[cur] = true;
-      if (firstParam)
-      {
-        firstParam = false;
-      }
-      else
-      {
-        os << " ";
-      }
-      os << "(" << cur << " ";
-      printTerm(tcur, os);
-      if (std::find(vars.begin(), vars.end(), cur) == vars.end())
-      {
-        if (useImplicit)
-        {
-          os << " :implicit";
-        }
-      }
-      else if (isOpaque)
-      {
-        os << " :opaque";
-      }
-      os << ")";
-      toVisit.pop_back();
-      params.push_back(cur);
-    }
-  }
 }
 
 void Desugar::getParamList(const std::vector<Expr>& vars,
@@ -985,17 +918,17 @@ void Desugar::finalize()
 void Desugar::finalizeWellFounded()
 {
   // TODO
-  std::stringstream wfDefs;
+  //std::stringstream wfDefs;
   // generate well-foundedness method
   // size_t pcIdCount = 0;
   // std::map<Expr, size_t> pcId;
-  std::stringstream os;
-  os << "(declare-const @pcall (-> $eo_Numeral $eo_List Type))" << std::endl;
-  os << "(program $eovcwf_rec ((pc $eo_Numeral))" << std::endl;
-  os << "  :signature ($eo_Numeral $eo_List $eo_List) Bool" << std::endl;
-  os << "  (" << std::endl;
-  os << "  )" << std::endl;
-  os << ")" << std::endl;
+  //std::stringstream os;
+  //os << "(declare-const @pcall (-> $eo_Numeral $eo_List Type))" << std::endl;
+  //os << "(program $eovcwf_rec ((pc $eo_Numeral))" << std::endl;
+  //os << "  :signature ($eo_Numeral $eo_List $eo_List) Bool" << std::endl;
+  //os << "  (" << std::endl;
+  //os << "  )" << std::endl;
+  //os << ")" << std::endl;
 }
 
 bool Desugar::echo(const std::string& msg)

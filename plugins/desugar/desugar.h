@@ -53,13 +53,6 @@ class Desugar : public StdPlugin
                       std::map<Expr, bool>& visited,
                       bool useImplicit,
                       bool isOpaque = false);
-  void printParamListOld(const std::vector<Expr>& vars,
-                         std::ostream& os,
-                         std::vector<Expr>& params,
-                         bool useImplicit,
-                         std::map<Expr, bool>& visited,
-                         bool& firstParam,
-                         bool isOpaque = false);
   void getParamList(const std::vector<Expr>& vars,
                     std::vector<Expr>& params,
                     std::map<Expr, bool>& visited);
