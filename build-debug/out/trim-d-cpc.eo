@@ -17,9 +17,8 @@
 ; by user definitions. This includes:
 ; 1. The literal type definitions (EO_LITERAL_TYPE_DECL).
 ; 2. All user declarations and definitions (EO_DEFS).
-; 3. (Monomorphized) type rules for user declarations, for $eo_typeof.
-; 4. Cases of $eo_dt_constructors, $eo_dt_selectors, $eo_nil.
-; 5. A verification condition (EO_VC).
+; 3. Cases of $eo_dt_constructors, $eo_dt_selectors, $eo_nil, $eo_typeof_main.
+; 4. A verification condition (EO_VC).
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; literal types
 

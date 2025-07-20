@@ -393,6 +393,11 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       }
       else
       {
+        MetaKind prev = ctx.d_tctx[tcur];
+        if (prev != parent)
+        {
+          Assert (false) << "Variable " << tcur << " matched in two contexts " << metaKindToString(parent) << " and " << metaKindToString(prev) << ", within " << c << ", (= " << currTerm << " " << it->second << ")";
+        }
         // two occurrences of the same variable in a pattern
         // turns into an equality
         std::stringstream eq;
@@ -659,9 +664,11 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       {
         if (child == MetaKind::EUNOIA)
         {
-          // use macro to ensure "Stuck" propagates
-          // FIXME: remove in favor of flattening
-          os << "$eo_apply ";
+          // Note that we use eo.Apply unguarded. In particular, the
+          // flatten-eval step has ensured that constructing Eunoia terms
+          // in this way will not get stuck during term construction, but
+          // instead of program invocation.
+          os << "eo.Apply ";
         }
         else if (child == MetaKind::SMT)
         {

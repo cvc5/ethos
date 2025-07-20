@@ -251,29 +251,13 @@
 (declare-parameterized-const $smd_eo.Apply
   ((f $eo_Term :opaque) (a $eo_Term :opaque))
   $eo_Term)
-; note: this is a program to ensure that "stuckness" propagates. It is also
-; necessary to preserve its definition, since it must be in the final vc.
-;(define $eo_apply ((x $eo_Term) (y $eo_Term)) ($smd_eo.Apply x y))
-(program $eo_apply ((x $eo_Term) (y $eo_Term))
-  :signature ($eo_Term $eo_Term) $eo_Term
-  (
-  (($eo_apply x y) ($smd_eo.Apply x y))
-  )
-)
+(define $eo_apply ((x $eo_Term) (y $eo_Term)) ($smd_eo.Apply x y))
 
 ; The Eunoia function type
 (declare-parameterized-const $smd_eo.FunType
   ((t1 $eo_Term :opaque) (t2 $eo_Term :opaque))
   $eo_Term)
-; note: this is a program to ensure that "stuckness" propagates. It is also
-; necessary to preserve its definition, since it must be in the final vc.
-;(define $eo_fun_type ((t1 $eo_Term) (t2 $eo_Term)) ($smd_eo.FunType t1 t2))
-(program $eo_fun_type ((t1 $eo_Term) (t2 $eo_Term))
-  :signature ($eo_Term $eo_Term) $eo_Term
-  (
-  (($eo_fun_type t1 t2) ($smd_eo.FunType t1 t2))
-  )
-)
+(define $eo_fun_type ((t1 $eo_Term) (t2 $eo_Term)) ($smd_eo.FunType t1 t2))
 
 ; The Eunoia representation of an SMT-LIB term.
 (declare-parameterized-const $smd_eo.SmtTerm ((t $smt_Term :opaque)) $eo_Term)
