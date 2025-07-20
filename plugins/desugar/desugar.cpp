@@ -383,9 +383,9 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
           arg = d_state.mkSymbol(Kind::PARAM, ssx.str(), cta);
           if (cta.isGround())
           {
-            sslc << "(eo::requires ($eo_typeof " << arg << ") ";
+            sslc << "($eo_requires_true ($eo_eq ($eo_typeof " << arg << ") ";
             printTerm(cta, sslc);
-            sslc << " ";
+            sslc << ") ";
             sslcEnd << ")";
           }
           else if (cta.getKind() == Kind::PARAM)
