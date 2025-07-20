@@ -1,12 +1,17 @@
 ; This file is used for bootstrapping the semantics of Eunoia.
-
-; After instantiation, certain eo:: operators may be used in this file.
-; These are either:
-; (A) Those that are desugared in later steps, e.g. eo::add, eo::is_ok.
-; (B) Those that were part of user definitions that can be safely replaced by their $eo_ versions.
-
-;; INVARIANT: the methods in this file only use the following builtin operators:
-;  eo::ite, eo::requires, eo::is_ok
+; We use a naming convention where eo:: operators are defined as ordinary
+; programs with prefix $eo_. We additionally setup further desugaring
+; to be done in later stages. Overall, this includes:
+; 1. Definition of the builtin Eunoia list.
+; 2. A definition of $eo_eq.
+; 3. Definition of derived list operators.
+; 4. Definition of $eo_cons and a template of $eo_nil.
+; 5. Definition of a template of $eo_typeof_main, which is used in
+;    part to define $eo_typeof.
+; 6. A placeholder command (echo "include eo_builtin_smt") to specify
+;    where further eo:: builtins should be defined.
+; 7. Placeholders for defining a test environment for analyzing properties
+;    of proof rules ($eo_model_sat/$eo_model_typeof).
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; literal types
 
@@ -31,17 +36,22 @@
 ; decimal and hexadecimal omitted for now.
 
 
-;;; core utilities
-
-; forward declaration
-(program $eo_typeof ((T Type))
-  :signature (T) Type)
+;;; forward declarations
 
 ; forward declaration
 (program $eo_nil ((T Type) (U Type) (V Type) (W Type))
   :signature ((-> T U V) (eo::quote W)) W)
 
-; fail
+; forward declaration
+(program $eo_typeof ((T Type))
+  :signature (T) Type)
+
+;;; core utilities
+
+; The methods in this section are temporary definitions to eliminate
+; dependencies on other builtin constructs.
+
+; note: Used to intentionally specify a stuck evaluation.
 (program $eo_fail_prog ()
   :signature (Bool) Bool
   (
@@ -88,8 +98,6 @@
 (declare-parameterized-const $eo_List_cons ((T Type :implicit))
   (-> T $eo_List $eo_List)
   :right-assoc-nil $eo_List_nil)
-
-; core definitions
 
 ;;; $eo_eq
 
