@@ -95,7 +95,7 @@ Expr ProgramOutCtx::allocateProgramInternal(const Expr& retType)
   Expr progType = d_state.mkProgramType(d_argTypes, retType);
   d_progCount++;
   std::stringstream ss;
-  ss << d_progPrefix << "." << d_progCount;
+  ss << d_progPrefix << ".fev" << d_progCount;
   return d_state.mkSymbol(Kind::PROGRAM_CONST, ss.str(), progType);
 }
 
@@ -142,11 +142,11 @@ Expr ProgramOutCtx::ensureFinalArg(const Expr& e)
   else if (k == Kind::EVAL_REQUIRES)
   {
     Expr et = getTypeInternal(e);
-    Expr prog = allocateProgramInternal(et);
     Expr var = allocateVariable(et);
     // args 0 and 1 must be equal, or else we are not evaluated
     pushArg(var);
     pushArg(var);
+    Expr prog = allocateProgramInternal(et);
     Expr progCase = mkCurrentProgramPat(prog);
     Expr progPair = d_state.mkPair(progCase, e[2]);
     Expr progDef = d_state.mkExpr(Kind::PROGRAM, {progPair});
@@ -323,9 +323,15 @@ Expr FlattenEval::mkPurifyEvaluation(State& s,
       Expr ret = cur;
       bool childChanged = false;
       std::vector<Expr> children;
+      size_t iend = deferIndex(cur);
       for (size_t i = 0, nchild = cur.getNumChildren(); i < nchild; i++)
       {
         Expr cn = cur[i];
+        if (i>=iend)
+        {
+          children.push_back(cn);
+          continue;
+        }
         it = visited.find(cn);
         Assert(it != visited.end());
         Assert(!it->second.isNull());
@@ -372,8 +378,12 @@ std::vector<std::pair<Expr, Expr>> FlattenEval::flattenProgram(
   {
     toVisit.emplace_back(prog, progDef);
   }
+  else
+  {
+    ret.emplace_back(prog, progDef);
+  }
   std::pair<Expr, Expr> cur;
-  do
+  while (!toVisit.empty())
   {
     cur = toVisit.back();
     Assert(ctx.getArgs().empty());
@@ -417,7 +427,7 @@ std::vector<std::pair<Expr, Expr>> FlattenEval::flattenProgram(
       ret.push_back(cur);
       toVisit.pop_back();
     }
-  } while (!toVisit.empty());
+  }
   return ret;
 }
 

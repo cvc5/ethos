@@ -107,6 +107,22 @@
 ; fwd-decl: $eo_typeof
 (declare-fun $eo_typeof (eo.Term) eo.Term)
 
+; program: $eo_requires_true
+(define-fun $eo_requires_true ((x1 eo.Term) (x2 eo.Term)) eo.Term
+  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
+    eo.Stuck
+  (ite (= x1 (eo.SmtTerm (sm.Bool true)))
+    x2
+    eo.Stuck)))
+
+; program: $eo_requires_false
+(define-fun $eo_requires_false ((x1 eo.Term) (x2 eo.Term)) eo.Term
+  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
+    eo.Stuck
+  (ite (= x1 (eo.SmtTerm (sm.Bool false)))
+    x2
+    eo.Stuck)))
+
 ; program: $eo_apply
 (define-fun $eo_apply ((x1 eo.Term) (x2 eo.Term)) eo.Term
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
@@ -389,7 +405,7 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    ($eo_requires ($eo_model_sat x1) (eo.SmtTerm (sm.Bool true)) ($eo_requires ($eo_model_sat ($eor_symm x1)) (eo.SmtTerm (sm.Bool false)) (eo.SmtTerm (sm.Bool true))))
+    ($eo_requires_true ($eo_model_sat x1) ($eo_requires_false ($eo_model_sat ($eor_symm x1)) (eo.SmtTerm (sm.Bool true))))
     eo.Stuck)))
 
 
