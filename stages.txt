@@ -107,8 +107,6 @@ Things handled at this stage:
       - For example, we give a type rule for (= x), not =.
     - Includes an auto-generation of cases for all user symbols ($eo_typeof_main).
 
-- TODO: ite, requires should be handled here, using "nested-eval-elim" plugin.
-
 === Model_smt
 
 Compiles *.eo to *.eo.
@@ -144,8 +142,8 @@ Things handled at this stage:
 - SMT-LIB semantics (model_smt.eo).
   - Valueness ($smt_is_value)
     - Builtin atomics.
-    - Datatypes.
-    - Function and array values.
+    - TODO: Datatypes.
+    - TODO: Function and array values.
   - Type enumeration ($smt_type_enum)
     - Builtin atomics (Int, String).
     - TODO: datatypes
@@ -204,9 +202,6 @@ Things handled at this stage:
       (declare-parameterized-const and (-> Bool Bool Bool))
     becomes the nullary constructor:
       (sm.And)
-
-
-- TODO: curried apply -> SMT-LIB apply?
 
 ===
 
