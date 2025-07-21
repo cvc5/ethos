@@ -110,11 +110,11 @@
 ; This will be replaced by the datatype eo.Term in the final encoding.
 (declare-const $eo_Term Type)
 
-; An SMT-LIB type.
+; An atomic SMT-LIB type.
 ; This will be replaced by the datatype tsm.Type in the final encoding.
 (declare-const $smt_Type Type)
 
-; An SMT-LIB term.
+; An atomic SMT-LIB term.
 ; This will be replaced by the datatype sm.Term in the final encoding.
 (declare-const $smt_Term Type)
 
@@ -161,12 +161,12 @@
 
 ; A value denoting a map.
 (declare-parameterized-const $smd_vsm.Map
-  ((T $smt_Type :opaque) (m $smt_Map :opaque))
+  ((T $eo_Term :opaque) (m $smt_Map :opaque))
   $smt_Value)
 
 ; A value denoting an uninterpreted constant.
 (declare-parameterized-const $smd_vsm.UConst
-  ((T $smt_Type :opaque) (id $smt_builtin_Int :opaque))
+  ((T $eo_Term :opaque) (id $smt_builtin_Int :opaque))
   $smt_Value)
 
 ; A value represented by an SMT-LIB term. This is used for types

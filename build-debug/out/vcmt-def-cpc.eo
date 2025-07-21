@@ -63,10 +63,10 @@
 (declare-parameterized-const $smd_sm.Const ((v $smt_Value :opaque)) $smt_Term)
 (define $sm_Const ((v $smt_Value)) ($smd_sm.Const v))
 (declare-parameterized-const $smd_vsm.Map
-  ((T $smt_Type :opaque) (m $smt_Map :opaque))
+  ((T $eo_Term :opaque) (m $smt_Map :opaque))
   $smt_Value)
 (declare-parameterized-const $smd_vsm.UConst
-  ((T $smt_Type :opaque) (id $smt_builtin_Int :opaque))
+  ((T $eo_Term :opaque) (id $smt_builtin_Int :opaque))
   $smt_Value)
 (declare-parameterized-const $smd_vsm.Term
   ((t $smt_Term :opaque))
@@ -201,9 +201,9 @@
   )
 )
 (program $eo_model_sat () :signature (Bool) Bool)
-(define $vsm_map ((T $smt_Type) (m $smt_Map))
+(define $vsm_map ((T $eo_Term) (m $smt_Map))
   ($smd_vsm.Map T m))
-(define $vsm_uconst ((T $smt_Type) (id $smt_builtin_Int))
+(define $vsm_uconst ((T $eo_Term) (id $smt_builtin_Int))
   ($smd_vsm.UConst T id))
 (define $vsm_term ((t $smt_Term)) ($smd_vsm.Term t))
 (define $vsm_true () ($vsm_term $sm_mk_true))
@@ -244,13 +244,13 @@
     ($smtx_term_is_value t)
     ($vsm_term t)
     $vsm_not_value))
-(define $smt_mk_value_map ((T $smt_Type) (m $smt_Map))
+(define $smt_mk_value_map ((T $eo_Term) (m $smt_Map))
   ($smt_apply_3 "ite"
     ($smtx_map_is_value T m)
     ($vsm_map T m)
     $vsm_not_value))
 (program $smtx_ensure_value
-  ((t $smt_Value) (val $smt_Value) (T $smt_Type) (m $smt_Map) (id $smt_builtin_Int))
+  ((t $smt_Value) (val $smt_Value) (T $eo_Term) (m $smt_Map) (id $smt_builtin_Int))
   :signature ($smt_Value) $smt_Value
   (
   (($smtx_ensure_value ($vsm_term t))        ($smt_mk_value_term t))
@@ -278,7 +278,7 @@
   )
 )
 (program $smtx_model_eval_apply
-  ((T $smt_Type) (m $smt_Map) (i $smt_Value) (v $smt_Value))
+  ((T $eo_Term) (m $smt_Map) (i $smt_Value) (v $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
   

@@ -30,11 +30,11 @@
 ;;; SMT value datatype constructors
 
 ; A value denoting a map.
-(define $vsm_map ((T $smt_Type) (m $smt_Map))
+(define $vsm_map ((T $eo_Term) (m $smt_Map))
   ($smd_vsm.Map T m))
 
 ; A value denoting an uninterpreted constant.
-(define $vsm_uconst ((T $smt_Type) (id $smt_builtin_Int))
+(define $vsm_uconst ((T $eo_Term) (id $smt_builtin_Int))
   ($smd_vsm.UConst T id))
 
 ; A value represented by an SMT-LIB term. This is used for types
@@ -207,7 +207,7 @@
     ($vsm_term t)
     $vsm_not_value))
 
-(define $smt_mk_value_map ((T $smt_Type) (m $smt_Map))
+(define $smt_mk_value_map ((T $eo_Term) (m $smt_Map))
   ($smt_apply_3 "ite"
     ($smtx_map_is_value T m)
     ($vsm_map T m)
@@ -219,7 +219,7 @@
 ; return: >
 ;   v itself if it denotes a proper SMT-LIB value, or $vsm_not_value otherwise.
 (program $smtx_ensure_value
-  ((t $smt_Value) (val $smt_Value) (T $smt_Type) (m $smt_Map) (id $smt_builtin_Int))
+  ((t $smt_Value) (val $smt_Value) (T $eo_Term) (m $smt_Map) (id $smt_builtin_Int))
   :signature ($smt_Value) $smt_Value
   (
   (($smtx_ensure_value ($vsm_term t))        ($smt_mk_value_term t))
@@ -288,7 +288,7 @@ $SMT_MODEL_LOOKUP_PREDICATE_CASES$
 ; respectively. If value_f is a map value, then we extract
 ; the map and call the map lookup routine.
 (program $smtx_model_eval_apply
-  ((T $smt_Type) (m $smt_Map) (i $smt_Value) (v $smt_Value))
+  ((T $eo_Term) (m $smt_Map) (i $smt_Value) (v $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
   ; The function evaluated to a map value, call the map lookup.
@@ -395,35 +395,8 @@ $SMT_EVAL_CASES$
   )
 )
 
-; program: $eo_app_from_smt
-; args:
-; - t $eo_Term: A Eunoia term, expected to be an SMT-LIB application.
-; return: >
-;   The (embedding of) the Eunoia term application that is equivalent to
-;   the given SMT-LIB application.
-; note: >
-;   We model Eunoia applications (eo.Apply) and SMT-LIB applications (sm.Apply)
-;   since we distinguish SMT-LIB terms from Eunoia terms. This ensures that
-;   sm.Term contains only legal SMT-LIB terms. However, to define
-;   $eo_model_typeof below, we rely on calling $eo_typeof, which in the final
-;   encoding expects applications to be eo.Apply. Thus, this method is used to
-;   "lift" SMT-LIB applications to Eunoia ones. For example:
-;      (eo.smt_term (sm.Apply sm.not sm.True))
-;   is lifted to:
-;      (eo.Apply (eo.smt_term sm.not) (eo.smt_term sm.True))
-;   The latter can be type checked using $eo_typeof. Note that we recurisvely
-;   convert sm.Apply in the head of terms only; their arguments may have
-;   further occurrences of sm.Apply.
-;(program $eo_app_from_smt ((f $smt_Term) (a $smt_Term) (t $eo_Term))
-;  :signature ($eo_Term) $eo_Term
-;  (
-;  (($eo_app_from_smt ($eo_smt_term ($sm_apply_term f a)))
-;    ($eo_apply ($eo_app_from_smt ($eo_smt_term f)) ($eo_smt_term a)))
-;  (($eo_app_from_smt t) t)
-;  )
-;)
-
-; The EO model typeof function, which incorporates builtin SMT terms.
+; The EO model typeof function, which incorporates SMT terms introduced in the
+; model_smt layer.
 ; This is intended to cover all Eunoia and SMT terms (those of the form
 ; (eo.SmtTerm *). Since values are embedded into SMT terms, we cover SMT values,
 ; i.e. those of the form (eo.SmtValue *) as well.
@@ -437,7 +410,7 @@ $SMT_EVAL_CASES$
 ; invariant: all terms introduced by this layer must be given a type rule here.
 ; TODO: use hash for the nullsort below?
 (program $eo_model_typeof
-  ((t $eo_Term) (val $smt_Value) (T $smt_Type) (m $smt_Map) (id $smt_builtin_Int)
+  ((t $eo_Term) (val $smt_Value) (T $eo_Term) (m $smt_Map) (id $smt_builtin_Int)
    (f $smt_Term) (a $smt_Term))
   :signature ($eo_Term) $eo_Term
   (

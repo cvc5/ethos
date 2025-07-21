@@ -3,13 +3,14 @@
 ; For consistency we name it *.eo.
 
 ; tsm.Type:
-;   The final embedding of SMT-LIB types that are relevant to the VC.
+;   The final embedding of atomic SMT-LIB types that are relevant to the VC.
 ; sm.Term:
-;   The final embedding of SMT-LIB terms that are relevant to the VC.
-;   In other words, this defines the Herbrand universe.
+;   The final embedding of atomic SMT-LIB terms that are relevant to the VC.
 ; eo.Term:
 ;   The final embedding of Eunoia terms that are relevant to the VC.
-;   SMT-LIB terms, types and values are embedded in this datatype.
+;   SMT-LIB terms, types and values are embedded in this datatype. This
+;   datatype contains a superset of the Herbrand universe of all types being
+;   considered.
 ;   We require a mutually recursive datatype, since these are
 ;   inter-dependent.
 (declare-datatypes ((tsm.Type 0) (sm.Term 0) (eo.Term 0) (vsm.Value 0) (msm.Map 0))
@@ -79,11 +80,11 @@
   )
   (
   ; smt-cons: Map
-  (vsm.Map (vsm.Map.arg1 tsm.Type) (vsm.Map.arg2 msm.Map))
+  (vsm.Map (vsm.Map.arg1 eo.Term) (vsm.Map.arg2 msm.Map))
   ; smt-cons: NotValue
   (vsm.NotValue)
   ; smt-cons: UConst
-  (vsm.UConst (vsm.UConst.arg1 tsm.Type) (vsm.UConst.arg2 Int))
+  (vsm.UConst (vsm.UConst.arg1 eo.Term) (vsm.UConst.arg2 Int))
   ; smt-cons: Term
   (vsm.Term (vsm.Term.arg1 sm.Term))
 
@@ -254,7 +255,7 @@
   (ite ((_ is vsm.Term) x1)
     (ite ($smtx_term_is_value (vsm.Term.arg1 x1)) (vsm.Term (vsm.Term.arg1 x1)) vsm.NotValue)
   (ite ((_ is vsm.Map) x1)
-    (ite ($smtx_map_is_value (vsm.Map.arg1 x1) (vsm.Map.arg2 x1)) (vsm.Map (vsm.Map.arg1 x1) (vsm.Map.arg2 x1)) vsm.NotValue)
+    (ite ($smtx_map_is_value (eo.SmtType.arg1 (vsm.Map.arg1 x1)) (vsm.Map.arg2 x1)) (vsm.Map (vsm.Map.arg1 x1) (vsm.Map.arg2 x1)) vsm.NotValue)
   (ite ((_ is vsm.UConst) x1)
     (vsm.UConst (vsm.UConst.arg1 x1) (vsm.UConst.arg2 x1))
     vsm.NotValue

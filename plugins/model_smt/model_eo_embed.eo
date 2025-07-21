@@ -2,13 +2,14 @@
 ; For consistency we name it *.eo.
 
 ; tsm.Type:
-;   The final embedding of SMT-LIB types that are relevant to the VC.
+;   The final embedding of atomic SMT-LIB types that are relevant to the VC.
 ; sm.Term:
-;   The final embedding of SMT-LIB terms that are relevant to the VC.
-;   In other words, this defines the Herbrand universe.
+;   The final embedding of atomic SMT-LIB terms that are relevant to the VC.
 ; eo.Term:
 ;   The final embedding of Eunoia terms that are relevant to the VC.
-;   SMT-LIB terms, types and values are embedded in this datatype.
+;   SMT-LIB terms, types and values are embedded in this datatype. This
+;   datatype contains a superset of the Herbrand universe of all types being
+;   considered.
 ;   We require a mutually recursive datatype, since these are
 ;   inter-dependent.
 (declare-datatypes ((tsm.Type 0) (sm.Term 0) (eo.Term 0) (vsm.Value 0) (msm.Map 0))
