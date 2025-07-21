@@ -31,8 +31,6 @@
   (tsm.USort (tsm.USort.arg1 Int))
   ; smt-cons: NullSort
   (tsm.NullSort (tsm.NullSort.arg1 Int))
-  ; smt-cons: Apply
-  (tsm.Apply (tsm.Apply.arg1 tsm.Type) (tsm.Apply.arg2 tsm.Type))
   ; user-decl: BitVec
   (tsm.BitVec)
 
@@ -48,8 +46,6 @@
   (sm.String (sm.String.arg1 String))
   ; smt-cons: Binary
   (sm.Binary (sm.Binary.arg1 Int) (sm.Binary.arg2 Int))
-  ; smt-cons: Apply
-  (sm.Apply (sm.Apply.arg1 sm.Term) (sm.Apply.arg2 sm.Term))
   ; smt-cons: Const
   (sm.Const (sm.Const.arg1 vsm.Value))
   ; user-decl: not
@@ -133,7 +129,7 @@
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Rational) (eo.SmtTerm.arg1 x1)))
     (eo.SmtType tsm.Real)
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.String) (eo.SmtTerm.arg1 x1)))
-    (eo.SmtType (tsm.Apply tsm.Seq tsm.Char))
+    (eo.Apply (eo.SmtType tsm.Seq) (eo.SmtType tsm.Char))
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Binary) (eo.SmtTerm.arg1 x1)))
     eo.Type
   (ite ((_ is eo.Var) x1)
@@ -146,10 +142,10 @@
 (define-fun $mk_symm ((x1 eo.Term)) eo.Term
   (ite (= x1 eo.Stuck)
     eo.Stuck
-  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Apply) (eo.SmtTerm.arg1 x1)) ((_ is sm.Apply) (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))) (= (sm.Apply.arg1 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))) sm.=))
-    (eo.SmtTerm (sm.Apply (sm.Apply sm.= (sm.Apply.arg2 (eo.SmtTerm.arg1 x1))) (sm.Apply.arg2 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1)))))
-  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Apply) (eo.SmtTerm.arg1 x1)) ((_ is sm.Apply) (sm.Apply.arg2 (eo.SmtTerm.arg1 x1))) ((_ is sm.Apply) (sm.Apply.arg1 (sm.Apply.arg2 (eo.SmtTerm.arg1 x1)))) (= (sm.Apply.arg1 (sm.Apply.arg1 (sm.Apply.arg2 (eo.SmtTerm.arg1 x1)))) sm.=) (= (sm.Apply.arg1 (eo.SmtTerm.arg1 x1)) sm.not))
-    (eo.SmtTerm (sm.Apply sm.not (sm.Apply (sm.Apply sm.= (sm.Apply.arg2 (sm.Apply.arg2 (eo.SmtTerm.arg1 x1)))) (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg2 (eo.SmtTerm.arg1 x1)))))))
+  (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg1 x1)) ((_ is eo.SmtTerm) (eo.Apply.arg1 (eo.Apply.arg1 x1))) (= (eo.SmtTerm.arg1 (eo.Apply.arg1 (eo.Apply.arg1 x1))) sm.=))
+    (eo.Apply (eo.Apply (eo.SmtTerm sm.=) (eo.Apply.arg2 x1)) (eo.Apply.arg2 (eo.Apply.arg1 x1)))
+  (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg2 x1)) ((_ is eo.Apply) (eo.Apply.arg1 (eo.Apply.arg2 x1))) ((_ is eo.SmtTerm) (eo.Apply.arg1 (eo.Apply.arg1 (eo.Apply.arg2 x1)))) (= (eo.SmtTerm.arg1 (eo.Apply.arg1 (eo.Apply.arg1 (eo.Apply.arg2 x1)))) sm.=) ((_ is eo.SmtTerm) (eo.Apply.arg1 x1)) (= (eo.SmtTerm.arg1 (eo.Apply.arg1 x1)) sm.not))
+    (eo.Apply (eo.SmtTerm sm.not) (eo.Apply (eo.Apply (eo.SmtTerm sm.=) (eo.Apply.arg2 (eo.Apply.arg2 x1))) (eo.Apply.arg2 (eo.Apply.arg1 (eo.Apply.arg2 x1)))))
     eo.Stuck))))
 
 ; program: $eo_typeof_apply
@@ -207,14 +203,14 @@
     eo.Type
   (ite (and ((_ is eo.SmtType) x1) (= (eo.SmtType.arg1 x1) tsm.Seq))
     (eo.FunType eo.Type eo.Type)
-  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Apply) (eo.SmtTerm.arg1 x1)) ((_ is sm.Apply) (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))) (= (sm.Apply.arg1 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))) sm.ite))
-    ($eo_typeof_ite ($eo_typeof (eo.SmtTerm (sm.Apply.arg2 (sm.Apply.arg1 (eo.SmtTerm.arg1 x1))))) ($eo_typeof (eo.SmtTerm (sm.Apply.arg2 (eo.SmtTerm.arg1 x1)))))
+  (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg1 x1)) ((_ is eo.SmtTerm) (eo.Apply.arg1 (eo.Apply.arg1 x1))) (= (eo.SmtTerm.arg1 (eo.Apply.arg1 (eo.Apply.arg1 x1))) sm.ite))
+    ($eo_typeof_ite ($eo_typeof (eo.Apply.arg2 (eo.Apply.arg1 x1))) ($eo_typeof (eo.Apply.arg2 x1)))
   (ite (and ((_ is eo.SmtTerm) x1) (= (eo.SmtTerm.arg1 x1) sm.not))
     (eo.FunType (eo.SmtType tsm.Bool) (eo.SmtType tsm.Bool))
   (ite (and ((_ is eo.SmtTerm) x1) (= (eo.SmtTerm.arg1 x1) sm.and))
     (eo.FunType (eo.SmtType tsm.Bool) (eo.FunType (eo.SmtType tsm.Bool) (eo.SmtType tsm.Bool)))
-  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Apply) (eo.SmtTerm.arg1 x1)) (= (sm.Apply.arg1 (eo.SmtTerm.arg1 x1)) sm.=))
-    ($eo_typeof_= ($eo_typeof (eo.SmtTerm (sm.Apply.arg2 (eo.SmtTerm.arg1 x1)))))
+  (ite (and ((_ is eo.Apply) x1) ((_ is eo.SmtTerm) (eo.Apply.arg1 x1)) (= (eo.SmtTerm.arg1 (eo.Apply.arg1 x1)) sm.=))
+    ($eo_typeof_= ($eo_typeof (eo.Apply.arg2 x1)))
   (ite (and ((_ is eo.SmtType) x1) (= (eo.SmtType.arg1 x1) tsm.BitVec))
     (eo.FunType (eo.SmtType tsm.Int) eo.Type)
   (ite ((_ is eo.Apply) x1)
@@ -267,7 +263,7 @@
 ))))
 
 ; fwd-decl: $smtx_model_eval
-(declare-fun $smtx_model_eval (sm.Term) vsm.Value)
+(declare-fun $smtx_model_eval (eo.Term) vsm.Value)
 
 ; fwd-decl: $smtx_model_lookup
 (declare-fun $smtx_model_lookup (sm.Term) vsm.Value)
@@ -322,21 +318,21 @@
 ))
 
 ; program: $smtx_model_eval
-(assert (! (forall ((x1 sm.Term))
+(assert (! (forall ((x1 eo.Term))
   (= ($smtx_model_eval x1)
-  (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) ((_ is sm.Apply) (sm.Apply.arg1 (sm.Apply.arg1 x1))) (= (sm.Apply.arg1 (sm.Apply.arg1 (sm.Apply.arg1 x1))) sm.ite))
-    ($smtx_model_eval_ite ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 (sm.Apply.arg1 x1)))) ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_model_eval (sm.Apply.arg2 x1)))
-  (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) (= (sm.Apply.arg1 (sm.Apply.arg1 x1)) sm.=))
-    ($smtx_model_eval_= ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_model_eval (sm.Apply.arg2 x1)))
-  (ite (and ((_ is sm.Apply) x1) (= (sm.Apply.arg1 x1) sm.not))
-    ($smtx_model_eval_not ($smtx_model_eval (sm.Apply.arg2 x1)))
-  (ite (and ((_ is sm.Apply) x1) ((_ is sm.Apply) (sm.Apply.arg1 x1)) (= (sm.Apply.arg1 (sm.Apply.arg1 x1)) sm.and))
-    ($smtx_model_eval_and ($smtx_model_eval (sm.Apply.arg2 (sm.Apply.arg1 x1))) ($smtx_model_eval (sm.Apply.arg2 x1)))
-  (ite ((_ is sm.Apply) x1)
-    ($smtx_model_eval_apply ($smtx_model_eval (sm.Apply.arg1 x1)) ($smtx_model_eval (sm.Apply.arg2 x1)))
-  (ite ((_ is sm.Const) x1)
-    ($smtx_ensure_value (sm.Const.arg1 x1))
-    ($smtx_ensure_value (vsm.Term x1))
+  (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg1 x1)) ((_ is eo.Apply) (eo.Apply.arg1 (eo.Apply.arg1 x1))) ((_ is eo.SmtTerm) (eo.Apply.arg1 (eo.Apply.arg1 (eo.Apply.arg1 x1)))) (= (eo.SmtTerm.arg1 (eo.Apply.arg1 (eo.Apply.arg1 (eo.Apply.arg1 x1)))) sm.ite))
+    ($smtx_model_eval_ite ($smtx_model_eval (eo.Apply.arg2 (eo.Apply.arg1 (eo.Apply.arg1 x1)))) ($smtx_model_eval (eo.Apply.arg2 (eo.Apply.arg1 x1))) ($smtx_model_eval (eo.Apply.arg2 x1)))
+  (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg1 x1)) ((_ is eo.SmtTerm) (eo.Apply.arg1 (eo.Apply.arg1 x1))) (= (eo.SmtTerm.arg1 (eo.Apply.arg1 (eo.Apply.arg1 x1))) sm.=))
+    ($smtx_model_eval_= ($smtx_model_eval (eo.Apply.arg2 (eo.Apply.arg1 x1))) ($smtx_model_eval (eo.Apply.arg2 x1)))
+  (ite (and ((_ is eo.Apply) x1) ((_ is eo.SmtTerm) (eo.Apply.arg1 x1)) (= (eo.SmtTerm.arg1 (eo.Apply.arg1 x1)) sm.not))
+    ($smtx_model_eval_not ($smtx_model_eval (eo.Apply.arg2 x1)))
+  (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg1 x1)) ((_ is eo.SmtTerm) (eo.Apply.arg1 (eo.Apply.arg1 x1))) (= (eo.SmtTerm.arg1 (eo.Apply.arg1 (eo.Apply.arg1 x1))) sm.and))
+    ($smtx_model_eval_and ($smtx_model_eval (eo.Apply.arg2 (eo.Apply.arg1 x1))) ($smtx_model_eval (eo.Apply.arg2 x1)))
+  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Const) (eo.SmtTerm.arg1 x1)))
+    ($smtx_ensure_value (sm.Const.arg1 (eo.SmtTerm.arg1 x1)))
+  (ite ((_ is eo.Apply) x1)
+    ($smtx_model_eval_apply ($smtx_model_eval (eo.Apply.arg1 x1)) ($smtx_model_eval (eo.Apply.arg2 x1)))
+    ($smtx_ensure_value (vsm.Term (eo.SmtTerm.arg1 x1)))
 )))))))) :named sm.axiom.$smtx_model_eval))
 
 ; program: $eo_model_sat_internal
@@ -354,8 +350,8 @@
   (= ($eo_model_sat x1)
   (ite (= x1 eo.Stuck)
     eo.Stuck
-  (ite ((_ is eo.SmtTerm) x1)
-    ($eo_model_sat_internal ($smtx_model_eval (eo.SmtTerm.arg1 x1)))
+  (ite true
+    ($eo_model_sat_internal ($smtx_model_eval x1))
     eo.Stuck)))) :named sm.axiom.$eo_model_sat))
 
 ; program: $eor_symm
@@ -397,8 +393,8 @@
 ;;; The verification condition
 
 ;;;; final verification condition for $eovc_symm
-(assert (! (exists ((x1 sm.Term))
-  (= ($eovc_symm (eo.SmtTerm x1)) (eo.SmtTerm (sm.Bool true)))) :named sm.conjecture.$eovc_symm))
+(assert (! (exists ((x1 eo.Term))
+  (= ($eovc_symm x1) (eo.SmtTerm (sm.Bool true)))) :named sm.conjecture.$eovc_symm))
 
 
 (check-sat)

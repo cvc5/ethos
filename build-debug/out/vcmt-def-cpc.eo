@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm $eo_typeof $smtx_model_lookup_predicate $eo_hash $eo_apply $eo_fun_type
-; #trim-defs: 117
+; #trim-defs: 115
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -60,8 +60,6 @@
   ((s ($smt_type_0 "String") :opaque)) $smt_Term)
 (declare-parameterized-const $smd_sm.Binary
   ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Term)
-(declare-parameterized-const $smd_sm.Apply
-  ((t1 $smt_Term :opaque) (t2 $smt_Term :opaque)) $smt_Term)
 (declare-parameterized-const $smd_sm.Const ((v $smt_Value :opaque)) $smt_Term)
 (define $sm_Const ((v $smt_Value)) ($smd_sm.Const v))
 (declare-parameterized-const $smd_vsm.Map
@@ -203,8 +201,6 @@
   )
 )
 (program $eo_model_sat () :signature (Bool) Bool)
-(define $sm_apply_term ((t1 $smt_Term) (t2 $smt_Term))
-  ($smd_sm.Apply t1 t2))
 (define $vsm_map ((T $smt_Type) (m $smt_Map))
   ($smd_vsm.Map T m))
 (define $vsm_uconst ((T $smt_Type) (id $smt_builtin_Int))
@@ -263,7 +259,7 @@
   (($smtx_ensure_value t)                    $vsm_not_value)
   )
 )
-(program $smtx_model_eval () :signature ($smt_Term) $smt_Value)
+(program $smtx_model_eval () :signature ($eo_Term) $smt_Value)
 (program $smtx_model_lookup ()
   :signature ($smt_Term) $smt_Value)
 (program $smtx_model_lookup_predicate_internal ((t $smt_Term) (v $smt_Value))
@@ -331,11 +327,11 @@
   )
 )
 (program $smtx_model_eval
-  ((T $smt_Type) (f $smt_Term) (y $smt_Term) (z $smt_Term) (k $smt_Term) (id $smt_builtin_Int) (F Bool)
+  ((f $eo_Term) (y $eo_Term) (z $eo_Term)
    (val $smt_Value)
    
-   (x1 $smt_Term) (x2 $smt_Term) (x3 $smt_Term) (x4 $smt_Term) (x5 $smt_Term))
-  :signature ($smt_Term) $smt_Value
+   (x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term) (x4 $eo_Term) (x5 $eo_Term))
+  :signature ($eo_Term) $smt_Value
   (
   
   (($smtx_model_eval (ite x1 x2 x3))
@@ -356,18 +352,19 @@
   (($smtx_model_eval (not x1)) ($smtx_model_eval_not ($smtx_model_eval x1)))
   (($smtx_model_eval (and x1 x2)) ($smtx_model_eval_and ($smtx_model_eval x1) ($smtx_model_eval x2)))
 
-  
-  
-  
-  
-  (($smtx_model_eval ($sm_apply_term f y))
-    ($smtx_model_eval_apply ($smtx_model_eval f) ($smtx_model_eval y)))
 
   
   
   
   (($smtx_model_eval ($sm_Const val))           ($smtx_ensure_value val))
   
+  
+  
+  
+  
+  (($smtx_model_eval (f y))
+    ($smtx_model_eval_apply ($smtx_model_eval f) ($smtx_model_eval y)))
+
   
   
   
@@ -381,10 +378,10 @@
   (($eo_model_sat_internal ($vsm_term $sm_mk_false)) false)
   )
 )
-(program $eo_model_sat ((F $smt_Term))
+(program $eo_model_sat ((F $eo_Term))
   :signature (Bool) Bool
   (
-  (($eo_model_sat ($eo_smt_term F)) ($eo_model_sat_internal ($smtx_model_eval F)))
+  (($eo_model_sat F) ($eo_model_sat_internal ($smtx_model_eval F)))
   )
 )
 (program $eor_symm ((F Bool))

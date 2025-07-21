@@ -144,8 +144,8 @@
   ((id $smt_builtin_Int :opaque)) $smt_Type)
 
 ; Apply types
-(declare-parameterized-const $smd_tsm.Apply
-  ((t1 $smt_Type :opaque) (t2 $smt_Type :opaque)) $smt_Type)
+;(declare-parameterized-const $smd_tsm.Apply
+;  ((t1 $smt_Type :opaque) (t2 $smt_Type :opaque)) $smt_Type)
 
 ;;; SMT term datatype constructors
 
@@ -162,8 +162,8 @@
   ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Term)
 
 ; Apply terms
-(declare-parameterized-const $smd_sm.Apply
-  ((t1 $smt_Term :opaque) (t2 $smt_Term :opaque)) $smt_Term)
+;(declare-parameterized-const $smd_sm.Apply
+;  ((t1 $smt_Term :opaque) (t2 $smt_Term :opaque)) $smt_Term)
 
 ; Skolems?
 ;(declare-parameterized-const $smd_sm.Skolem

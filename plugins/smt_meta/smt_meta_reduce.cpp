@@ -1041,8 +1041,8 @@ bool SmtMetaReduce::echo(const std::string& msg)
         {
           d_smtVc << " ";
         }
-        d_smtVc << "(x" << i << " sm.Term)";
-        call << " (eo.SmtTerm x" << i << ")";
+        d_smtVc << "(x" << i << " eo.Term)";
+        call << " x" << i;
       }
       d_smtVc << ")" << std::endl;
       d_smtVc << "  (= (" << eosc << call.str() << ") " << eoTrue.str() << "))";
@@ -1290,6 +1290,20 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
   Assert(!child.isNull()) << "null term for meta kind";
   MetaKind tk = MetaKind::NONE;
   Expr hd = child;
+  if (hd.getKind()==Kind::APPLY)
+  {
+    if (isProgramApp(hd))
+    {
+      // if program app, depends on the type of the program
+      Expr p = hd[0];
+      Expr ptype = d_tc.getType(p);
+      Assert(ptype.getKind() == Kind::PROGRAM_TYPE);
+      // convert the type to a metakind
+      return getTypeMetaKind(ptype[ptype.getNumChildren() - 1]);
+    }
+    // all other apply is Eunoia
+    return MetaKind::EUNOIA;
+  }
   // if an apply, we look for the head, this will determine eo.Apply vs.
   // sm.Apply
   while (hd.getKind() == Kind::APPLY && !isProgramApp(hd))
