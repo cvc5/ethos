@@ -174,6 +174,9 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
     finalizeDatatype(e, cattr, cattrCons);
     // also handle it as a normal declaration below
   }
+  bool isAmb =
+      (cattr == Attr::AMB || cattr == Attr::AMB_DATATYPE_CONSTRUCTOR);
+  bool hasOpaqueArg = (cattr==Attr::OPAQUE || isAmb);
   // check for eo::List
   std::stringstream cnss;
   printName(c, cnss);
@@ -226,8 +229,6 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
   {
     os << "parameterized-const " << cname << " (" << opaqueArgs.str();
     size_t pcount = 0;
-    bool isAmb =
-        (cattr == Attr::AMB || cattr == Attr::AMB_DATATYPE_CONSTRUCTOR);
     for (size_t i = 0, nargs = argTypes.size(); i < nargs; i++)
     {
       Expr at = argTypes[i];
@@ -399,7 +400,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
         args.push_back(arg);
         argTypes.push_back(cta);
       }
-      Kind ak = (cattr == Attr::OPAQUE && pattern == e) ? Kind::APPLY_OPAQUE
+      Kind ak = (hasOpaqueArg && pattern == e) ? Kind::APPLY_OPAQUE
                                                         : Kind::APPLY;
       pattern = d_state.mkExprSimple(ak, args);
       // std::cout << "...pattern is now " << pattern << " from " << args <<

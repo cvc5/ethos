@@ -1720,7 +1720,7 @@
 (program $arith_reduction_pred.fev14 ((a Int) (b Int) ($eo_16 Int))
   :signature (Int Int Int) Bool
   (
-  (($arith_reduction_pred.fev14 b a $eo_16) (eo::define ((_v0 (_ @purify (_ (div_total a) b)))) (eo::define ((_v1 (* b))) (_ (and (_ (<= (_ _v1 (_ (* _v0) 1))) a)) (_ (and (_ (< a) (_ _v1 (_ (* (_ (+ _v0) (_ (+ $eo_16) 0))) 1)))) true)))))
+  (($arith_reduction_pred.fev14 b a $eo_16) (eo::define ((_v0 (@purify (_ (div_total a) b)))) (eo::define ((_v1 (* b))) (_ (and (_ (<= (_ _v1 (_ (* _v0) 1))) a)) (_ (and (_ (< a) (_ _v1 (_ (* (_ (+ _v0) (_ (+ $eo_16) 0))) 1)))) true)))))
   )
 )
 ; program: $arith_reduction_pred.fev13
@@ -1735,14 +1735,14 @@
   :signature (Int Int Bool) Bool
   (
   (($arith_reduction_pred.fev9 b a true) ($arith_reduction_pred.fev13 b a (eo::eq b 0) false))
-  (($arith_reduction_pred.fev9 b a false) (eo::define ((_v0 (_ @purify (_ (div_total a) b)))) (eo::define ((_v1 (+ _v0))) (eo::define ((_v2 (* b))) (eo::define ((_v3 (< a))) (eo::define ((_v4 (and (_ (<= (_ _v2 (_ (* _v0) 1))) a)))) (_ (and (_ (=> (_ (> b) 0)) (_ _v4 (_ (and (_ _v3 (_ _v2 (_ (* (_ _v1 (_ (+ 1) 0))) 1)))) true)))) (_ (and (_ (=> (_ (< b) 0)) (_ _v4 (_ (and (_ _v3 (_ _v2 (_ (* (_ _v1 (_ (+ -1) 0))) 1)))) true)))) true))))))))
+  (($arith_reduction_pred.fev9 b a false) (eo::define ((_v0 (@purify (_ (div_total a) b)))) (eo::define ((_v1 (+ _v0))) (eo::define ((_v2 (* b))) (eo::define ((_v3 (< a))) (eo::define ((_v4 (and (_ (<= (_ _v2 (_ (* _v0) 1))) a)))) (_ (and (_ (=> (_ (> b) 0)) (_ _v4 (_ (and (_ _v3 (_ _v2 (_ (* (_ _v1 (_ (+ 1) 0))) 1)))) true)))) (_ (and (_ (=> (_ (< b) 0)) (_ _v4 (_ (and (_ _v3 (_ _v2 (_ (* (_ _v1 (_ (+ -1) 0))) 1)))) true)))) true))))))))
   )
 )
 ; program: $arith_reduction_pred.fev8
 (program $arith_reduction_pred.fev8 ((a Int) (b Int) ($eo_9 Bool))
   :signature (Int Int Bool) Bool
   (
-  (($arith_reduction_pred.fev8 b a $eo_9) (_ (and (_ (= (_ (mod_total a) b)) (_ (- a) (_ (* b) (_ (* (_ @purify (_ (div_total a) b))) 1))))) (_ (and $eo_9) true)))
+  (($arith_reduction_pred.fev8 b a $eo_9) (_ (and (_ (= (_ (mod_total a) b)) (_ (- a) (_ (* b) (_ (* (@purify (_ (div_total a) b))) 1))))) (_ (and $eo_9) true)))
   )
 )
 ; program: $arith_reduction_pred.fev18
@@ -1757,7 +1757,7 @@
 (program $arith_reduction_pred.fev17 ((a Int) (b Int) ($eo_19 Int))
   :signature (Int Int Int) Bool
   (
-  (($arith_reduction_pred.fev17 b a $eo_19) (eo::define ((_v0 (_ @purify (_ (div_total a) b)))) (eo::define ((_v1 (* b))) (_ (and (_ (<= (_ _v1 (_ (* _v0) 1))) a)) (_ (and (_ (< a) (_ _v1 (_ (* (_ (+ _v0) (_ (+ $eo_19) 0))) 1)))) true)))))
+  (($arith_reduction_pred.fev17 b a $eo_19) (eo::define ((_v0 (@purify (_ (div_total a) b)))) (eo::define ((_v1 (* b))) (_ (and (_ (<= (_ _v1 (_ (* _v0) 1))) a)) (_ (and (_ (< a) (_ _v1 (_ (* (_ (+ _v0) (_ (+ $eo_19) 0))) 1)))) true)))))
   )
 )
 ; program: $arith_reduction_pred.fev16
@@ -1772,14 +1772,14 @@
   :signature (Int Int Bool) Bool
   (
   (($arith_reduction_pred.fev7 b a true) ($arith_reduction_pred.fev16 b a (eo::eq b 0) false))
-  (($arith_reduction_pred.fev7 b a false) (eo::define ((_v0 (_ @purify (_ (div_total a) b)))) (eo::define ((_v1 (+ _v0))) (eo::define ((_v2 (* b))) (eo::define ((_v3 (< a))) (eo::define ((_v4 (and (_ (<= (_ _v2 (_ (* _v0) 1))) a)))) (_ (and (_ (=> (_ (> b) 0)) (_ _v4 (_ (and (_ _v3 (_ _v2 (_ (* (_ _v1 (_ (+ 1) 0))) 1)))) true)))) (_ (and (_ (=> (_ (< b) 0)) (_ _v4 (_ (and (_ _v3 (_ _v2 (_ (* (_ _v1 (_ (+ -1) 0))) 1)))) true)))) true))))))))
+  (($arith_reduction_pred.fev7 b a false) (eo::define ((_v0 (@purify (_ (div_total a) b)))) (eo::define ((_v1 (+ _v0))) (eo::define ((_v2 (* b))) (eo::define ((_v3 (< a))) (eo::define ((_v4 (and (_ (<= (_ _v2 (_ (* _v0) 1))) a)))) (_ (and (_ (=> (_ (> b) 0)) (_ _v4 (_ (and (_ _v3 (_ _v2 (_ (* (_ _v1 (_ (+ 1) 0))) 1)))) true)))) (_ (and (_ (=> (_ (< b) 0)) (_ _v4 (_ (and (_ _v3 (_ _v2 (_ (* (_ _v1 (_ (+ -1) 0))) 1)))) true)))) true))))))))
   )
 )
 ; program: $arith_reduction_pred.fev6
 (program $arith_reduction_pred.fev6 ((a Int) (b Int) ($eo_8 Bool))
   :signature (Int Int Bool) Bool
   (
-  (($arith_reduction_pred.fev6 b a $eo_8) (eo::define ((_v0 (_ (div_total a) b))) (_ (and (_ (= _v0) (_ @purify _v0))) (_ (and $eo_8) true))))
+  (($arith_reduction_pred.fev6 b a $eo_8) (eo::define ((_v0 (_ (div_total a) b))) (_ (and (_ (= _v0) (@purify _v0))) (_ (and $eo_8) true))))
   )
 )
 ; program: $arith_reduction_pred.fev19
@@ -1801,7 +1801,7 @@
 (program $arith_reduction_pred.fev4 ((U Type) (V Type) ($eoT.fev7 Type) ($eo_6 Int) (v V) (u U))
   :signature (U V Int) $eoT.fev7
   (
-  (($arith_reduction_pred.fev4 u v $eo_6) (eo::define ((_v0 (_ (/_total u) v))) (eo::define ((_v1 (_ @purify _v0))) (_ (and (_ (= _v0) _v1)) (_ (and (_ (=> (not (_ (= v) $eo_6))) (_ (= (_ (* v) (_ (* _v1) 1))) u))) true)))))
+  (($arith_reduction_pred.fev4 u v $eo_6) (eo::define ((_v0 (_ (/_total u) v))) (eo::define ((_v1 (@purify _v0))) (_ (and (_ (= _v0) _v1)) (_ (and (_ (=> (not (_ (= v) $eo_6))) (_ (= (_ (* v) (_ (* _v1) 1))) u))) true)))))
   )
 )
 ; program: $arith_reduction_pred.fev20
@@ -1838,8 +1838,8 @@
 (program $arith_reduction_pred ((T Type) (V Type) (v V) (a Int) (b Int) (U Type) (u U))
   :signature (T) Bool
   (
-  (($arith_reduction_pred (is_int u)) (eo::define ((_v0 (_ (- u) (_ @purify (to_int u))))) (_ (and (_ (= (is_int u)) (_ (= _v0) 0/1))) (_ (and (_ (and (_ (<= 0/1) _v0)) (_ (and (_ (< _v0) 1/1)) true))) true))))
-  (($arith_reduction_pred (to_int u)) (eo::define ((_v0 (to_int u))) (eo::define ((_v1 (_ @purify _v0))) (eo::define ((_v2 (_ (- u) _v1))) (_ (and (_ (= _v0) _v1)) (_ (and (_ (and (_ (<= 0/1) _v2)) (_ (and (_ (< _v2) 1/1)) true))) true))))))
+  (($arith_reduction_pred (is_int u)) (eo::define ((_v0 (_ (- u) (@purify (to_int u))))) (_ (and (_ (= (is_int u)) (_ (= _v0) 0/1))) (_ (and (_ (and (_ (<= 0/1) _v0)) (_ (and (_ (< _v0) 1/1)) true))) true))))
+  (($arith_reduction_pred (to_int u)) (eo::define ((_v0 (to_int u))) (eo::define ((_v1 (@purify _v0))) (eo::define ((_v2 (_ (- u) _v1))) (_ (and (_ (= _v0) _v1)) (_ (and (_ (and (_ (<= 0/1) _v2)) (_ (and (_ (< _v2) 1/1)) true))) true))))))
   (($arith_reduction_pred (_ (/ u) v)) ($arith_reduction_pred.fev1 v u ($arith_reduction_pred.fev2 v u (eo::eq (eo::typeof u) Int)) ($arith_reduction_pred.fev3 v u (eo::is_eq (eo::typeof v) Int))))
   (($arith_reduction_pred (_ (div a) b)) (_ (= (_ (div a) b)) (_ (_ (ite (_ (= b) 0)) (@int_div_by_zero a)) (_ (div_total a) b))))
   (($arith_reduction_pred (_ (mod a) b)) (_ (= (_ (mod a) b)) (_ (_ (ite (_ (= b) 0)) (@mod_by_zero a)) (_ (mod_total a) b))))
@@ -2897,7 +2897,7 @@
   :signature ((eo::quote T)) T
   (
   (($seq_empty (Seq Char)) "")
-  (($seq_empty T) (_ seq.empty T))
+  (($seq_empty T) (as seq.empty T))
   )
 )
 ; declare: str.len
@@ -3417,8 +3417,8 @@
 (program $set_is_not_subset ((T Type) (ss (Set T)) (e2 T) (ts (Set T)) (e1 T) (s (Set T)))
   :signature ((Set T) (Set T)) Bool
   (
-  (($set_is_not_subset (_ set.empty (Set T)) s) false)
-  (($set_is_not_subset (set.singleton e1) (_ set.empty (Set T))) true)
+  (($set_is_not_subset (as set.empty (Set T)) s) false)
+  (($set_is_not_subset (set.singleton e1) (as set.empty (Set T))) true)
   (($set_is_not_subset (set.singleton e1) (set.singleton e2)) ($set_is_not_subset.fev1 e1 e2 (eo::eq e1 e2)))
   (($set_is_not_subset (set.singleton e1) (_ (set.union (set.singleton e2)) ss)) ($set_is_not_subset.fev2 ss e1 e2 ($set_is_not_subset.fev3 ss e1 e2 (eo::eq e1 e2))))
   (($set_is_not_subset (_ (set.union (set.singleton e1)) ts) s) ($set_is_not_subset.fev4 s ts e1 ($set_is_not_subset (set.singleton e1) s)))
@@ -3738,7 +3738,7 @@
 (program $str_is_empty ((U Type) (x (Seq U)))
   :signature ((Seq U)) Bool
   (
-  (($str_is_empty (_ seq.empty (Seq U))) true)
+  (($str_is_empty (as seq.empty (Seq U))) true)
   (($str_is_empty "") true)
   (($str_is_empty x) false)
   )
@@ -3766,7 +3766,7 @@
   :signature ((Seq T)) Int
   (
   (($str_value_len (_ (str.++ (seq.unit e)) ss)) (eo::add 1 ($str_value_len ss)))
-  (($str_value_len (_ seq.empty (Seq T))) 0)
+  (($str_value_len (as seq.empty (Seq T))) 0)
   (($str_value_len (seq.unit e)) 1)
   (($str_value_len s) ($str_value_len.fev1 s (eo::is_str s) true))
   )
@@ -4151,7 +4151,7 @@
 (program $str_reduction_pred.fev7 ((U Type) ($eoT.fev25 Type) ($eoT.fev27 Type) ($eoT.fev29 Type) ($eo_28 $eoT.fev27) (z (Seq U)) ($eo_26 $eoT.fev25) (x (Seq U)) (y (Seq U)))
   :signature ((Seq U) (Seq U) (Seq U) $eoT.fev25 $eoT.fev27) $eoT.fev29
   (
-  (($str_reduction_pred.fev7 y x z $eo_26 $eo_28) (eo::define ((_v0 (eo::var "@var.str_index" Int))) (eo::define ((_v1 (_ (@strings_occur_index x) y))) (eo::define ((_v2 (_ _v1 _v0))) (eo::define ((_v3 (_ (str.indexof x) y))) (eo::define ((_v4 (_ _v3 _v2))) (eo::define ((_v5 (_ (+ _v0) (_ (+ 1) 0)))) (eo::define ((_v6 (_ (_ (str.replace_all x) y) z))) (eo::define ((_v7 (_ @strings_replace_all_result _v6))) (eo::define ((_v8 (str.substr x))) (eo::define ((_v9 (_ (@strings_num_occur x) y))) (eo::define ((_v10 (_ _v1 _v9))) (eo::define ((_v11 (= (_ @purify _v6)))) (_ (_ (ite (_ (= y) $eo_28)) (_ _v11 x)) (_ (and (_ (>= _v9) 0)) (_ (and (_ _v11 (_ _v7 0))) (_ (and (_ (= (_ _v7 _v9)) (_ (_ _v8 _v10) (str.len x)))) (_ (and (_ (= (_ _v1 0)) 0)) (_ (and (_ (= (_ _v3 _v10)) -1)) (_ (and (_ (forall (_ ($eo_List_cons _v0) $eo_List_nil)) (_ (or (not (_ (>= _v0) 0))) (_ (or (not (_ (< _v0) _v9))) (_ (or (_ (and (not (_ (= _v4) -1))) (_ (and (_ (= (_ _v7 _v0)) (_ (str.++ (_ (_ _v8 _v2) (_ (- _v4) _v2))) (_ (str.++ z) (_ (str.++ (_ _v7 _v5)) $eo_26))))) (_ (and (_ (= (_ _v1 _v5)) (_ (+ _v4) (_ (+ (str.len y)) 0)))) true)))) false))))) true))))))))))))))))))))
+  (($str_reduction_pred.fev7 y x z $eo_26 $eo_28) (eo::define ((_v0 (eo::var "@var.str_index" Int))) (eo::define ((_v1 (_ (@strings_occur_index x) y))) (eo::define ((_v2 (_ _v1 _v0))) (eo::define ((_v3 (_ (str.indexof x) y))) (eo::define ((_v4 (_ _v3 _v2))) (eo::define ((_v5 (_ (+ _v0) (_ (+ 1) 0)))) (eo::define ((_v6 (_ (_ (str.replace_all x) y) z))) (eo::define ((_v7 (@strings_replace_all_result _v6))) (eo::define ((_v8 (str.substr x))) (eo::define ((_v9 (_ (@strings_num_occur x) y))) (eo::define ((_v10 (_ _v1 _v9))) (eo::define ((_v11 (= (@purify _v6)))) (_ (_ (ite (_ (= y) $eo_28)) (_ _v11 x)) (_ (and (_ (>= _v9) 0)) (_ (and (_ _v11 (_ _v7 0))) (_ (and (_ (= (_ _v7 _v9)) (_ (_ _v8 _v10) (str.len x)))) (_ (and (_ (= (_ _v1 0)) 0)) (_ (and (_ (= (_ _v3 _v10)) -1)) (_ (and (_ (forall (_ ($eo_List_cons _v0) $eo_List_nil)) (_ (or (not (_ (>= _v0) 0))) (_ (or (not (_ (< _v0) _v9))) (_ (or (_ (and (not (_ (= _v4) -1))) (_ (and (_ (= (_ _v7 _v0)) (_ (str.++ (_ (_ _v8 _v2) (_ (- _v4) _v2))) (_ (str.++ z) (_ (str.++ (_ _v7 _v5)) $eo_26))))) (_ (and (_ (= (_ _v1 _v5)) (_ (+ _v4) (_ (+ (str.len y)) 0)))) true)))) false))))) true))))))))))))))))))))
   )
 )
 ; program: $str_reduction_pred.fev6
@@ -4166,57 +4166,57 @@
 (program $str_reduction_pred.fev5 ((U Type) ($eoT.fev22 Type) ($eoT.fev24 Type) ($eo_23 $eoT.fev22) ($eo_21 (Seq U)) (n Int) (y (Seq U)) (x (Seq U)))
   :signature ((Seq U) (Seq U) Int (Seq U) $eoT.fev22) $eoT.fev24
   (
-  (($str_reduction_pred.fev5 x y n $eo_21 $eo_23) (eo::define ((_v0 (= (_ @purify (_ (_ (str.update x) n) y))))) (eo::define ((_v1 (str.len $eo_21))) (eo::define ((_v2 (str.substr x))) (eo::define ((_v3 (_ @purify (_ (_ _v2 n) _v1)))) (eo::define ((_v4 (_ @purify (_ (_ _v2 0) n)))) (eo::define ((_v5 (_ (+ n) (_ (+ _v1) 0)))) (eo::define ((_v6 (str.len x))) (eo::define ((_v7 (_ (str.++ (_ @purify (_ (_ _v2 _v5) (_ (- _v6) _v5)))) $eo_23))) (eo::define ((_v8 (str.++ _v4))) (_ (_ (ite (_ (and (_ (>= n) 0)) (_ (and (_ (> _v6) n)) true))) (_ (and (_ _v0 (_ _v8 (_ (str.++ $eo_21) _v7)))) (_ (and (_ (= x) (_ _v8 (_ (str.++ _v3) _v7)))) (_ (and (_ (= (str.len _v4)) n)) (_ (and (_ (= _v1) (str.len _v3))) true))))) (_ _v0 x))))))))))))
+  (($str_reduction_pred.fev5 x y n $eo_21 $eo_23) (eo::define ((_v0 (= (@purify (_ (_ (str.update x) n) y))))) (eo::define ((_v1 (str.len $eo_21))) (eo::define ((_v2 (str.substr x))) (eo::define ((_v3 (@purify (_ (_ _v2 n) _v1)))) (eo::define ((_v4 (@purify (_ (_ _v2 0) n)))) (eo::define ((_v5 (_ (+ n) (_ (+ _v1) 0)))) (eo::define ((_v6 (str.len x))) (eo::define ((_v7 (_ (str.++ (@purify (_ (_ _v2 _v5) (_ (- _v6) _v5)))) $eo_23))) (eo::define ((_v8 (str.++ _v4))) (_ (_ (ite (_ (and (_ (>= n) 0)) (_ (and (_ (> _v6) n)) true))) (_ (and (_ _v0 (_ _v8 (_ (str.++ $eo_21) _v7)))) (_ (and (_ (= x) (_ _v8 (_ (str.++ _v3) _v7)))) (_ (and (_ (= (str.len _v4)) n)) (_ (and (_ (= _v1) (str.len _v3))) true))))) (_ _v0 x))))))))))))
   )
 )
 ; program: $str_reduction_pred.fev4
 (program $str_reduction_pred.fev4 ((U Type) ($eoT.fev18 Type) ($eoT.fev20 Type) ($eo_19 $eoT.fev18) (x (Seq U)) (n Int))
   :signature (Int (Seq U) $eoT.fev18) $eoT.fev20
   (
-  (($str_reduction_pred.fev4 n x $eo_19) (eo::define ((_v0 (_ (+ n) (_ (+ 1) 0)))) (eo::define ((_v1 (str.len x))) (eo::define ((_v2 (_ (- _v1) _v0))) (eo::define ((_v3 (str.substr x))) (eo::define ((_v4 (_ @purify (_ (_ _v3 _v0) _v2)))) (eo::define ((_v5 (_ @purify (_ (_ _v3 0) n)))) (_ (=> (_ (and (_ (>= n) 0)) (_ (and (_ (> _v1) n)) true))) (_ (and (_ (= x) (_ (str.++ _v5) (_ (str.++ (seq.unit (_ @purify (_ (seq.nth x) n)))) (_ (str.++ _v4) $eo_19))))) (_ (and (_ (= (str.len _v5)) n)) (_ (and (_ (= (str.len _v4)) _v2)) true)))))))))))
+  (($str_reduction_pred.fev4 n x $eo_19) (eo::define ((_v0 (_ (+ n) (_ (+ 1) 0)))) (eo::define ((_v1 (str.len x))) (eo::define ((_v2 (_ (- _v1) _v0))) (eo::define ((_v3 (str.substr x))) (eo::define ((_v4 (@purify (_ (_ _v3 _v0) _v2)))) (eo::define ((_v5 (@purify (_ (_ _v3 0) n)))) (_ (=> (_ (and (_ (>= n) 0)) (_ (and (_ (> _v1) n)) true))) (_ (and (_ (= x) (_ (str.++ _v5) (_ (str.++ (seq.unit (@purify (_ (seq.nth x) n)))) (_ (str.++ _v4) $eo_19))))) (_ (and (_ (= (str.len _v5)) n)) (_ (and (_ (= (str.len _v4)) _v2)) true)))))))))))
   )
 )
 ; program: $str_reduction_pred.fev3
 (program $str_reduction_pred.fev3 ((U Type) ($eoT.fev11 Type) ($eoT.fev13 Type) ($eoT.fev15 Type) ($eoT.fev17 Type) ($eo_16 $eoT.fev15) ($eo_14 $eoT.fev13) ($eo_12 $eoT.fev11) (y (Seq U)) (z (Seq U)) (x (Seq U)))
   :signature ((Seq U) (Seq U) (Seq U) $eoT.fev11 $eoT.fev13 $eoT.fev15) $eoT.fev17
   (
-  (($str_reduction_pred.fev3 x z y $eo_12 $eo_14 $eo_16) (eo::define ((_v0 (= (_ @purify (_ (_ (str.replace x) y) z))))) (eo::define ((_v1 (str.len y))) (eo::define ((_v2 (str.substr x))) (eo::define ((_v3 (_ @purify (_ (_ _v2 0) (_ (_ (str.indexof x) y) 0))))) (eo::define ((_v4 (str.++ _v3))) (eo::define ((_v5 (_ (+ (str.len _v3)) (_ (+ _v1) 0)))) (eo::define ((_v6 (_ (str.++ (_ @purify (_ (_ _v2 _v5) (_ (- (str.len x)) _v5)))) $eo_12))) (eo::define ((_v7 (str.++ z))) (_ (_ (ite (_ (= y) $eo_16)) (_ _v0 (_ _v7 (_ (str.++ x) $eo_14)))) (_ (_ (ite (_ (str.contains x) y)) (_ (and (_ (= x) (_ _v4 (_ (str.++ y) _v6)))) (_ (and (_ _v0 (_ _v4 (_ _v7 _v6)))) (_ (and (not (_ (str.contains (_ _v4 (_ (str.++ (_ (_ (str.substr y) 0) (_ (- _v1) 1))) $eo_12))) y))) true)))) (_ _v0 x))))))))))))
+  (($str_reduction_pred.fev3 x z y $eo_12 $eo_14 $eo_16) (eo::define ((_v0 (= (@purify (_ (_ (str.replace x) y) z))))) (eo::define ((_v1 (str.len y))) (eo::define ((_v2 (str.substr x))) (eo::define ((_v3 (@purify (_ (_ _v2 0) (_ (_ (str.indexof x) y) 0))))) (eo::define ((_v4 (str.++ _v3))) (eo::define ((_v5 (_ (+ (str.len _v3)) (_ (+ _v1) 0)))) (eo::define ((_v6 (_ (str.++ (@purify (_ (_ _v2 _v5) (_ (- (str.len x)) _v5)))) $eo_12))) (eo::define ((_v7 (str.++ z))) (_ (_ (ite (_ (= y) $eo_16)) (_ _v0 (_ _v7 (_ (str.++ x) $eo_14)))) (_ (_ (ite (_ (str.contains x) y)) (_ (and (_ (= x) (_ _v4 (_ (str.++ y) _v6)))) (_ (and (_ _v0 (_ _v4 (_ _v7 _v6)))) (_ (and (not (_ (str.contains (_ _v4 (_ (str.++ (_ (_ (str.substr y) 0) (_ (- _v1) 1))) $eo_12))) y))) true)))) (_ _v0 x))))))))))))
   )
 )
 ; program: $str_reduction_pred.fev2
 (program $str_reduction_pred.fev2 ((U Type) ($eoT.fev6 Type) ($eoT.fev8 Type) ($eoT.fev10 Type) ($eo_9 $eoT.fev8) ($eo_7 $eoT.fev6) (x (Seq U)) (n Int) (y (Seq U)))
   :signature ((Seq U) Int (Seq U) $eoT.fev6 $eoT.fev8) $eoT.fev10
   (
-  (($str_reduction_pred.fev2 y n x $eo_7 $eo_9) (eo::define ((_v0 (str.len x))) (eo::define ((_v1 (_ (_ (str.substr x) n) (_ (- _v0) n)))) (eo::define ((_v2 (str.substr _v1))) (eo::define ((_v3 (_ @purify (_ (_ _v2 0) (_ (_ (str.indexof _v1) y) 0))))) (eo::define ((_v4 (+ (str.len _v3)))) (eo::define ((_v5 (= (_ @purify (_ (_ (str.indexof x) y) n))))) (eo::define ((_v6 (str.len y))) (eo::define ((_v7 (str.++ _v3))) (eo::define ((_v8 (_ _v4 (_ (+ _v6) 0)))) (_ (_ (ite (_ (or (not (_ (str.contains _v1) y))) (_ (or (_ (> n) _v0)) (_ (or (_ (> 0) n)) false)))) (_ _v5 -1)) (_ (_ (ite (_ (= y) $eo_9)) (_ _v5 n)) (_ (and (_ (= _v1) (_ _v7 (_ (str.++ y) (_ (str.++ (_ @purify (_ (_ _v2 _v8) (_ (- (str.len _v1)) _v8)))) $eo_7))))) (_ (and (not (_ (str.contains (_ _v7 (_ (str.++ (_ (_ (str.substr y) 0) (_ (- _v6) 1))) $eo_7))) y))) (_ (and (_ _v5 (_ (+ n) (_ _v4 0)))) true)))))))))))))))
+  (($str_reduction_pred.fev2 y n x $eo_7 $eo_9) (eo::define ((_v0 (str.len x))) (eo::define ((_v1 (_ (_ (str.substr x) n) (_ (- _v0) n)))) (eo::define ((_v2 (str.substr _v1))) (eo::define ((_v3 (@purify (_ (_ _v2 0) (_ (_ (str.indexof _v1) y) 0))))) (eo::define ((_v4 (+ (str.len _v3)))) (eo::define ((_v5 (= (@purify (_ (_ (str.indexof x) y) n))))) (eo::define ((_v6 (str.len y))) (eo::define ((_v7 (str.++ _v3))) (eo::define ((_v8 (_ _v4 (_ (+ _v6) 0)))) (_ (_ (ite (_ (or (not (_ (str.contains _v1) y))) (_ (or (_ (> n) _v0)) (_ (or (_ (> 0) n)) false)))) (_ _v5 -1)) (_ (_ (ite (_ (= y) $eo_9)) (_ _v5 n)) (_ (and (_ (= _v1) (_ _v7 (_ (str.++ y) (_ (str.++ (@purify (_ (_ _v2 _v8) (_ (- (str.len _v1)) _v8)))) $eo_7))))) (_ (and (not (_ (str.contains (_ _v7 (_ (str.++ (_ (_ (str.substr y) 0) (_ (- _v6) 1))) $eo_7))) y))) (_ (and (_ _v5 (_ (+ n) (_ _v4 0)))) true)))))))))))))))
   )
 )
 ; program: $str_reduction_pred.fev1
 (program $str_reduction_pred.fev1 ((U Type) ($eoT.fev1 Type) ($eoT.fev3 Type) ($eoT.fev5 Type) ($eo_4 $eoT.fev3) (x (Seq U)) (n Int) (m Int) ($eo_2 $eoT.fev1))
   :signature ((Seq U) Int Int $eoT.fev1 $eoT.fev3) $eoT.fev5
   (
-  (($str_reduction_pred.fev1 x m n $eo_2 $eo_4) (eo::define ((_v0 (str.substr x))) (eo::define ((_v1 (_ @purify (_ (_ _v0 n) m)))) (eo::define ((_v2 (_ (+ n) (_ (+ m) 0)))) (eo::define ((_v3 (str.len x))) (eo::define ((_v4 (_ (- _v3) _v2))) (eo::define ((_v5 (_ @purify (_ (_ _v0 _v2) _v4)))) (eo::define ((_v6 (= (str.len _v5)))) (eo::define ((_v7 (_ @purify (_ (_ _v0 0) n)))) (_ (_ (ite (_ (and (_ (>= n) 0)) (_ (and (_ (> _v3) n)) (_ (and (_ (> m) 0)) true)))) (_ (and (_ (= x) (_ (str.++ _v7) (_ (str.++ _v1) (_ (str.++ _v5) $eo_4))))) (_ (and (_ (= (str.len _v7)) n)) (_ (and (_ (or (_ _v6 _v4)) (_ (or (_ _v6 0)) false))) (_ (and (_ (<= (str.len _v1)) m)) true))))) (_ (= _v1) $eo_2)))))))))))
+  (($str_reduction_pred.fev1 x m n $eo_2 $eo_4) (eo::define ((_v0 (str.substr x))) (eo::define ((_v1 (@purify (_ (_ _v0 n) m)))) (eo::define ((_v2 (_ (+ n) (_ (+ m) 0)))) (eo::define ((_v3 (str.len x))) (eo::define ((_v4 (_ (- _v3) _v2))) (eo::define ((_v5 (@purify (_ (_ _v0 _v2) _v4)))) (eo::define ((_v6 (= (str.len _v5)))) (eo::define ((_v7 (@purify (_ (_ _v0 0) n)))) (_ (_ (ite (_ (and (_ (>= n) 0)) (_ (and (_ (> _v3) n)) (_ (and (_ (> m) 0)) true)))) (_ (and (_ (= x) (_ (str.++ _v7) (_ (str.++ _v1) (_ (str.++ _v5) $eo_4))))) (_ (and (_ (= (str.len _v7)) n)) (_ (and (_ (or (_ _v6 _v4)) (_ (or (_ _v6 0)) false))) (_ (and (_ (<= (str.len _v1)) m)) true))))) (_ (= _v1) $eo_2)))))))))))
   )
 )
 ; program: $str_reduction_pred
 (program $str_reduction_pred ((T Type) (m Int) (U Type) (z (Seq U)) (y (Seq U)) (n Int) (r RegLan) (t (Seq Char)) (s (Seq Char)) (x (Seq U)))
   :signature (T) Bool
   (
-  (($str_reduction_pred (_ (str.contains x) y)) (eo::define ((_v0 (str.len y))) (eo::define ((_v1 (eo::var "@var.str_index" Int))) (_ (= (_ @purify (_ (str.contains x) y))) (not (_ (forall (_ ($eo_List_cons _v1) $eo_List_nil)) (_ (or (not (_ (>= _v1) 0))) (_ (or (not (_ (<= _v1) (_ (- (str.len x)) _v0)))) (_ (or (not (_ (= (_ (_ (str.substr x) _v1) _v0)) y))) false)))))))))
-  (($str_reduction_pred (_ (_ (str.substr x) n) m)) ($str_reduction_pred.fev1 x m n ($seq_empty (eo::typeof x)) (eo::nil str.++ (eo::typeof (_ @purify (_ (_ (str.substr x) 0) n))))))
-  (($str_reduction_pred (_ (_ (str.indexof x) y) n)) (eo::define ((_v0 (_ (_ (str.substr x) n) (_ (- (str.len x)) n)))) ($str_reduction_pred.fev2 y n x (eo::nil str.++ (eo::typeof (_ @purify (_ (_ (str.substr _v0) 0) (_ (_ (str.indexof _v0) y) 0))))) ($seq_empty (eo::typeof x)))))
-  (($str_reduction_pred (_ (_ (str.replace x) y) z)) ($str_reduction_pred.fev3 x z y (eo::nil str.++ (eo::typeof (_ @purify (_ (_ (str.substr x) 0) (_ (_ (str.indexof x) y) 0))))) (eo::nil str.++ (eo::typeof z)) ($seq_empty (eo::typeof y))))
-  (($str_reduction_pred (str.from_int n)) (eo::define ((_v0 (_ @purify (str.from_int n)))) (eo::define ((_v1 (eo::var "@var.str_index" Int))) (eo::define ((_v2 (_ @strings_itos_result n))) (eo::define ((_v3 (_ _v2 (_ (+ _v1) (_ (+ 1) 0))))) (eo::define ((_v4 (>= n))) (eo::define ((_v5 (_ (- (str.to_code (_ (_ (str.substr _v0) _v1) 1))) 48))) (eo::define ((_v6 (str.len _v0))) (_ (_ (ite (_ _v4 0)) (_ (and (_ (>= _v6) 1)) (_ (and (_ (= n) (_ _v2 _v6))) (_ (and (_ (= 0) (_ _v2 0))) (_ (and (_ (forall (_ ($eo_List_cons _v1) $eo_List_nil)) (_ (or (not (_ (>= _v1) 0))) (_ (or (not (_ (< _v1) _v6))) (_ (or (_ (and (_ (= _v3) (_ (+ _v5) (_ (+ (_ (* 10) (_ (* (_ _v2 _v1)) 1))) 0)))) (_ (and (_ (and (_ (>= _v5) (_ (_ (ite (_ (and (_ (= _v1) 0)) (_ (and (_ (> _v6) 1)) true))) 1) 0))) (_ (and (_ (< _v5) 10)) true))) (_ (and (_ _v4 _v3)) true)))) false))))) true))))) (_ (= _v0) ""))))))))))
-  (($str_reduction_pred (str.to_int s)) (eo::define ((_v0 (eo::var "@var.str_index" Int))) (eo::define ((_v1 (_ @strings_stoi_result s))) (eo::define ((_v2 (_ _v1 (_ (+ _v0) (_ (+ 1) 0))))) (eo::define ((_v3 (_ @purify (str.to_int s)))) (eo::define ((_v4 (str.substr s))) (eo::define ((_v5 (_ (- (str.to_code (_ (_ _v4 _v0) 1))) 48))) (eo::define ((_v6 (str.len s))) (eo::define ((_v7 (= _v3))) (eo::define ((_v8 (_ @strings_stoi_non_digit s))) (eo::define ((_v9 (_ (- (str.to_code (_ (_ _v4 _v8) 1))) 48))) (_ (_ (ite (_ (< _v3) 0)) (_ (and (_ _v7 -1)) (_ (and (_ (or (_ (= s) "")) (_ (or (_ (and (_ (>= _v8) 0)) (_ (and (_ (< _v8) _v6)) (_ (and (_ (or (_ (< _v9) 0)) (_ (or (_ (>= _v9) 10)) false))) true)))) false))) true))) (_ (and (_ _v7 (_ _v1 _v6))) (_ (and (_ (= 0) (_ _v1 0))) (_ (and (_ (> _v6) 0)) (_ (and (_ (forall (_ ($eo_List_cons _v0) $eo_List_nil)) (_ (or (not (_ (>= _v0) 0))) (_ (or (not (_ (< _v0) _v6))) (_ (or (_ (and (_ (= _v2) (_ (+ _v5) (_ (+ (_ (* 10) (_ (* (_ _v1 _v0)) 1))) 0)))) (_ (and (_ (and (_ (>= _v5) 0)) (_ (and (_ (< _v5) 10)) true))) (_ (and (_ (>= _v3) _v2)) true)))) false))))) true))))))))))))))))
-  (($str_reduction_pred (_ (seq.nth x) n)) ($str_reduction_pred.fev4 n x (eo::nil str.++ (eo::typeof (_ @purify (_ (_ (str.substr x) 0) n))))))
-  (($str_reduction_pred (_ (_ (str.update x) n) y)) ($str_reduction_pred.fev5 x y n ($str_reduction_pred.fev6 x y n (eo::is_eq ($str_value_len y) 1)) (eo::nil str.++ (eo::typeof (_ @purify (_ (_ (str.substr x) 0) n))))))
+  (($str_reduction_pred (_ (str.contains x) y)) (eo::define ((_v0 (str.len y))) (eo::define ((_v1 (eo::var "@var.str_index" Int))) (_ (= (@purify (_ (str.contains x) y))) (not (_ (forall (_ ($eo_List_cons _v1) $eo_List_nil)) (_ (or (not (_ (>= _v1) 0))) (_ (or (not (_ (<= _v1) (_ (- (str.len x)) _v0)))) (_ (or (not (_ (= (_ (_ (str.substr x) _v1) _v0)) y))) false)))))))))
+  (($str_reduction_pred (_ (_ (str.substr x) n) m)) ($str_reduction_pred.fev1 x m n ($seq_empty (eo::typeof x)) (eo::nil str.++ (eo::typeof (@purify (_ (_ (str.substr x) 0) n))))))
+  (($str_reduction_pred (_ (_ (str.indexof x) y) n)) (eo::define ((_v0 (_ (_ (str.substr x) n) (_ (- (str.len x)) n)))) ($str_reduction_pred.fev2 y n x (eo::nil str.++ (eo::typeof (@purify (_ (_ (str.substr _v0) 0) (_ (_ (str.indexof _v0) y) 0))))) ($seq_empty (eo::typeof x)))))
+  (($str_reduction_pred (_ (_ (str.replace x) y) z)) ($str_reduction_pred.fev3 x z y (eo::nil str.++ (eo::typeof (@purify (_ (_ (str.substr x) 0) (_ (_ (str.indexof x) y) 0))))) (eo::nil str.++ (eo::typeof z)) ($seq_empty (eo::typeof y))))
+  (($str_reduction_pred (str.from_int n)) (eo::define ((_v0 (@purify (str.from_int n)))) (eo::define ((_v1 (eo::var "@var.str_index" Int))) (eo::define ((_v2 (@strings_itos_result n))) (eo::define ((_v3 (_ _v2 (_ (+ _v1) (_ (+ 1) 0))))) (eo::define ((_v4 (>= n))) (eo::define ((_v5 (_ (- (str.to_code (_ (_ (str.substr _v0) _v1) 1))) 48))) (eo::define ((_v6 (str.len _v0))) (_ (_ (ite (_ _v4 0)) (_ (and (_ (>= _v6) 1)) (_ (and (_ (= n) (_ _v2 _v6))) (_ (and (_ (= 0) (_ _v2 0))) (_ (and (_ (forall (_ ($eo_List_cons _v1) $eo_List_nil)) (_ (or (not (_ (>= _v1) 0))) (_ (or (not (_ (< _v1) _v6))) (_ (or (_ (and (_ (= _v3) (_ (+ _v5) (_ (+ (_ (* 10) (_ (* (_ _v2 _v1)) 1))) 0)))) (_ (and (_ (and (_ (>= _v5) (_ (_ (ite (_ (and (_ (= _v1) 0)) (_ (and (_ (> _v6) 1)) true))) 1) 0))) (_ (and (_ (< _v5) 10)) true))) (_ (and (_ _v4 _v3)) true)))) false))))) true))))) (_ (= _v0) ""))))))))))
+  (($str_reduction_pred (str.to_int s)) (eo::define ((_v0 (eo::var "@var.str_index" Int))) (eo::define ((_v1 (@strings_stoi_result s))) (eo::define ((_v2 (_ _v1 (_ (+ _v0) (_ (+ 1) 0))))) (eo::define ((_v3 (@purify (str.to_int s)))) (eo::define ((_v4 (str.substr s))) (eo::define ((_v5 (_ (- (str.to_code (_ (_ _v4 _v0) 1))) 48))) (eo::define ((_v6 (str.len s))) (eo::define ((_v7 (= _v3))) (eo::define ((_v8 (@strings_stoi_non_digit s))) (eo::define ((_v9 (_ (- (str.to_code (_ (_ _v4 _v8) 1))) 48))) (_ (_ (ite (_ (< _v3) 0)) (_ (and (_ _v7 -1)) (_ (and (_ (or (_ (= s) "")) (_ (or (_ (and (_ (>= _v8) 0)) (_ (and (_ (< _v8) _v6)) (_ (and (_ (or (_ (< _v9) 0)) (_ (or (_ (>= _v9) 10)) false))) true)))) false))) true))) (_ (and (_ _v7 (_ _v1 _v6))) (_ (and (_ (= 0) (_ _v1 0))) (_ (and (_ (> _v6) 0)) (_ (and (_ (forall (_ ($eo_List_cons _v0) $eo_List_nil)) (_ (or (not (_ (>= _v0) 0))) (_ (or (not (_ (< _v0) _v6))) (_ (or (_ (and (_ (= _v2) (_ (+ _v5) (_ (+ (_ (* 10) (_ (* (_ _v1 _v0)) 1))) 0)))) (_ (and (_ (and (_ (>= _v5) 0)) (_ (and (_ (< _v5) 10)) true))) (_ (and (_ (>= _v3) _v2)) true)))) false))))) true))))))))))))))))
+  (($str_reduction_pred (_ (seq.nth x) n)) ($str_reduction_pred.fev4 n x (eo::nil str.++ (eo::typeof (@purify (_ (_ (str.substr x) 0) n))))))
+  (($str_reduction_pred (_ (_ (str.update x) n) y)) ($str_reduction_pred.fev5 x y n ($str_reduction_pred.fev6 x y n (eo::is_eq ($str_value_len y) 1)) (eo::nil str.++ (eo::typeof (@purify (_ (_ (str.substr x) 0) n))))))
   (($str_reduction_pred (_ (_ (str.replace_all x) y) z)) (eo::define ((_v0 (_ (_ (@strings_occur_index x) y) (eo::var "@var.str_index" Int)))) ($str_reduction_pred.fev7 y x z (eo::nil str.++ (eo::typeof (_ (_ (str.substr x) _v0) (_ (- (_ (_ (str.indexof x) y) _v0)) _v0)))) ($seq_empty (eo::typeof x)))))
-  (($str_reduction_pred (_ (_ (str.replace_re s) r) t)) (eo::define ((_v0 (_ (str.++ (_ @re_first_match_post s r)) ""))) (eo::define ((_v1 (_ @re_first_match_pre s r))) (eo::define ((_v2 (str.++ _v1))) (eo::define ((_v3 (= (_ @purify (_ (_ (str.replace_re s) r) t))))) (eo::define ((_v4 (_ @re_first_match s r))) (eo::define ((_v5 (eo::var "@var.str_length" Int))) (eo::define ((_v6 (_ (_ (str.indexof_re s) r) 0))) (_ (_ (ite (_ (= _v6) -1)) (_ _v3 s)) (_ (and (_ (= s) (_ _v2 (_ (str.++ _v4) _v0)))) (_ (and (_ (= (str.len _v1)) _v6)) (_ (and (_ (forall (_ ($eo_List_cons _v5) $eo_List_nil)) (_ (or (not (_ (>= _v5) 0))) (_ (or (not (_ (< _v5) (str.len _v4)))) (_ (or (not (_ (str.in_re (_ (_ (str.substr _v4) 0) _v5)) r))) false))))) (_ (and (_ (str.in_re _v4) r)) (_ (and (_ _v3 (_ _v2 (_ (str.++ t) _v0)))) true))))))))))))))
-  (($str_reduction_pred (_ (_ (str.replace_re_all s) r) t)) (eo::define ((_v0 (eo::var "@var.str_index" Int))) (eo::define ((_v1 (_ (+ _v0) (_ (+ 1) 0)))) (eo::define ((_v2 (_ (_ (str.replace_re_all s) r) t))) (eo::define ((_v3 (_ @strings_replace_all_result _v2))) (eo::define ((_v4 (_ @strings_occur_index_re s r))) (eo::define ((_v5 (_ _v4 _v0))) (eo::define ((_v6 (_ (_ @strings_occur_len_re s r) _v1))) (eo::define ((_v7 (_ _v4 _v1))) (eo::define ((_v8 (_ (- _v7) _v6))) (eo::define ((_v9 (str.substr s))) (eo::define ((_v10 (eo::var "@var.str_length" Int))) (eo::define ((_v11 (_ _v9 _v8))) (eo::define ((_v12 (_ (re.diff r) (str.to_re "")))) (eo::define ((_v13 (_ (str.indexof_re s) _v12))) (eo::define ((_v14 (_ @strings_num_occur_re s r))) (eo::define ((_v15 (_ (_ _v9 (_ _v4 _v14)) (str.len s)))) (eo::define ((_v16 (= (_ @purify _v2)))) (_ (_ (ite (_ (= (_ _v13 0)) -1)) (_ _v16 s)) (_ (and (_ (> _v14) 0)) (_ (and (_ _v16 (_ _v3 0))) (_ (and (_ (= (_ _v3 _v14)) _v15)) (_ (and (_ (= (_ _v4 0)) 0)) (_ (and (_ (= (_ (_ (str.indexof_re _v15) _v12) 0)) -1)) (_ (and (_ (forall (_ ($eo_List_cons _v0) $eo_List_nil)) (_ (or (not (_ (>= _v0) 0))) (_ (or (not (_ (< _v0) _v14))) (_ (or (_ (and (_ (> _v6) 0)) (_ (and (_ (= _v7) (_ (+ (_ _v13 _v5)) (_ (+ _v6) 0)))) (_ (and (_ (str.in_re (_ _v11 _v6)) _v12)) (_ (and (_ (forall (_ ($eo_List_cons _v10) $eo_List_nil)) (_ (or (not (_ (> _v10) 0))) (_ (or (not (_ (< _v10) _v6))) (_ (or (not (_ (str.in_re (_ _v11 _v10)) r))) false))))) (_ (and (_ (= (_ _v3 _v0)) (_ (str.++ (_ (_ _v9 _v5) (_ (- _v8) _v5))) (_ (str.++ t) (_ (str.++ (_ _v3 _v1)) ""))))) true)))))) false))))) true)))))))))))))))))))))))))
-  (($str_reduction_pred (_ (_ (str.indexof_re s) r) n)) (eo::define ((_v0 (eo::var "@var.str_length" Int))) (eo::define ((_v1 (_ @purify (_ (_ (str.indexof_re s) r) n)))) (eo::define ((_v2 (str.substr s))) (eo::define ((_v3 (str.len s))) (eo::define ((_v4 (- _v3))) (eo::define ((_v5 (<= _v0))) (eo::define ((_v6 (_ ($eo_List_cons _v0) $eo_List_nil))) (eo::define ((_v7 (= _v1))) (eo::define ((_v8 (_ _v7 -1))) (eo::define ((_v9 (eo::var "@var.str_index" Int))) (_ (_ (ite (_ (or (_ (> n) _v3)) (_ (or (_ (> 0) n)) false))) _v8) (_ (_ (ite (_ (str.in_re "") r)) (_ _v7 n)) (_ (and (_ (forall (_ ($eo_List_cons _v9) _v6)) (_ (or (not (_ (>= _v9) n))) (_ (or (not (_ (< _v9) (_ (_ (ite _v8) _v3) _v1)))) (_ (or (not (_ (> _v0) 0))) (_ (or (not (_ _v5 (_ _v4 _v9)))) (_ (or (not (_ (str.in_re (_ (_ _v2 _v9) _v0)) r))) false))))))) (_ (and (_ (or _v8) (_ (or (_ (and (_ (>= _v1) n)) (_ (and (not (_ (forall _v6) (_ (or (not (_ (>= _v0) 0))) (_ (or (not (_ _v5 (_ _v4 _v1)))) (_ (or (not (_ (str.in_re (_ (_ _v2 _v1) _v0)) r))) false)))))) true))) false))) true)))))))))))))))
-  (($str_reduction_pred (_ (str.<= s) t)) (eo::define ((_v0 (eo::var "@var.str_index" Int))) (eo::define ((_v1 (str.substr s))) (eo::define ((_v2 (str.to_code (_ (_ _v1 _v0) 1)))) (eo::define ((_v3 (str.substr t))) (eo::define ((_v4 (str.to_code (_ (_ _v3 _v0) 1)))) (eo::define ((_v5 (_ @purify (_ (str.<= s) t)))) (eo::define ((_v6 (<= _v0))) (_ (_ (ite (_ (= s) t)) _v5) (not (_ (forall (_ ($eo_List_cons _v0) $eo_List_nil)) (_ (or (not (_ (>= _v0) 0))) (_ (or (not (_ _v6 (str.len s)))) (_ (or (not (_ _v6 (str.len t)))) (_ (or (not (_ (= (_ (_ _v1 0) _v0)) (_ (_ _v3 0) _v0)))) (_ (or (_ (_ (ite _v5) (_ (>= _v2) _v4)) (_ (>= _v4) _v2))) false))))))))))))))))
-  (($str_reduction_pred (str.to_lower s)) (eo::define ((_v0 (eo::var "@var.str_index" Int))) (eo::define ((_v1 (str.to_code (_ (_ (str.substr s) _v0) 1)))) (eo::define ((_v2 (_ @purify (str.to_lower s)))) (eo::define ((_v3 (str.len _v2))) (_ (and (_ (= (str.len s)) _v3)) (_ (and (_ (forall (_ ($eo_List_cons _v0) $eo_List_nil)) (_ (or (not (_ (>= _v0) 0))) (_ (or (not (_ (< _v0) _v3))) (_ (or (_ (= (str.to_code (_ (_ (str.substr _v2) _v0) 1))) (_ (_ (ite (_ (and (_ (<= 65) _v1)) (_ (and (_ (<= _v1) 90)) true))) (_ (+ _v1) (_ (+ 32) 0))) _v1))) false))))) true)))))))
-  (($str_reduction_pred (str.to_upper s)) (eo::define ((_v0 (eo::var "@var.str_index" Int))) (eo::define ((_v1 (str.to_code (_ (_ (str.substr s) _v0) 1)))) (eo::define ((_v2 (_ @purify (str.to_upper s)))) (eo::define ((_v3 (str.len _v2))) (_ (and (_ (= (str.len s)) _v3)) (_ (and (_ (forall (_ ($eo_List_cons _v0) $eo_List_nil)) (_ (or (not (_ (>= _v0) 0))) (_ (or (not (_ (< _v0) _v3))) (_ (or (_ (= (str.to_code (_ (_ (str.substr _v2) _v0) 1))) (_ (_ (ite (_ (and (_ (<= 97) _v1)) (_ (and (_ (<= _v1) 122)) true))) (_ (+ _v1) (_ (+ -32) 0))) _v1))) false))))) true)))))))
-  (($str_reduction_pred (str.rev x)) (eo::define ((_v0 (eo::var "@var.str_index" Int))) (eo::define ((_v1 (str.len x))) (eo::define ((_v2 (_ @purify (str.rev x)))) (eo::define ((_v3 (str.len _v2))) (_ (and (_ (= _v1) _v3)) (_ (and (_ (forall (_ ($eo_List_cons _v0) $eo_List_nil)) (_ (or (not (_ (>= _v0) 0))) (_ (or (not (_ (< _v0) _v3))) (_ (or (_ (= (_ (_ (str.substr _v2) _v0) 1)) (_ (_ (str.substr x) (_ (- _v1) (_ (+ _v0) (_ (+ 1) 0)))) 1))) false))))) true)))))))
+  (($str_reduction_pred (_ (_ (str.replace_re s) r) t)) (eo::define ((_v0 (_ (str.++ (@re_first_match_post s r)) ""))) (eo::define ((_v1 (@re_first_match_pre s r))) (eo::define ((_v2 (str.++ _v1))) (eo::define ((_v3 (= (@purify (_ (_ (str.replace_re s) r) t))))) (eo::define ((_v4 (@re_first_match s r))) (eo::define ((_v5 (eo::var "@var.str_length" Int))) (eo::define ((_v6 (_ (_ (str.indexof_re s) r) 0))) (_ (_ (ite (_ (= _v6) -1)) (_ _v3 s)) (_ (and (_ (= s) (_ _v2 (_ (str.++ _v4) _v0)))) (_ (and (_ (= (str.len _v1)) _v6)) (_ (and (_ (forall (_ ($eo_List_cons _v5) $eo_List_nil)) (_ (or (not (_ (>= _v5) 0))) (_ (or (not (_ (< _v5) (str.len _v4)))) (_ (or (not (_ (str.in_re (_ (_ (str.substr _v4) 0) _v5)) r))) false))))) (_ (and (_ (str.in_re _v4) r)) (_ (and (_ _v3 (_ _v2 (_ (str.++ t) _v0)))) true))))))))))))))
+  (($str_reduction_pred (_ (_ (str.replace_re_all s) r) t)) (eo::define ((_v0 (eo::var "@var.str_index" Int))) (eo::define ((_v1 (_ (+ _v0) (_ (+ 1) 0)))) (eo::define ((_v2 (_ (_ (str.replace_re_all s) r) t))) (eo::define ((_v3 (@strings_replace_all_result _v2))) (eo::define ((_v4 (@strings_occur_index_re s r))) (eo::define ((_v5 (_ _v4 _v0))) (eo::define ((_v6 (_ (@strings_occur_len_re s r) _v1))) (eo::define ((_v7 (_ _v4 _v1))) (eo::define ((_v8 (_ (- _v7) _v6))) (eo::define ((_v9 (str.substr s))) (eo::define ((_v10 (eo::var "@var.str_length" Int))) (eo::define ((_v11 (_ _v9 _v8))) (eo::define ((_v12 (_ (re.diff r) (str.to_re "")))) (eo::define ((_v13 (_ (str.indexof_re s) _v12))) (eo::define ((_v14 (@strings_num_occur_re s r))) (eo::define ((_v15 (_ (_ _v9 (_ _v4 _v14)) (str.len s)))) (eo::define ((_v16 (= (@purify _v2)))) (_ (_ (ite (_ (= (_ _v13 0)) -1)) (_ _v16 s)) (_ (and (_ (> _v14) 0)) (_ (and (_ _v16 (_ _v3 0))) (_ (and (_ (= (_ _v3 _v14)) _v15)) (_ (and (_ (= (_ _v4 0)) 0)) (_ (and (_ (= (_ (_ (str.indexof_re _v15) _v12) 0)) -1)) (_ (and (_ (forall (_ ($eo_List_cons _v0) $eo_List_nil)) (_ (or (not (_ (>= _v0) 0))) (_ (or (not (_ (< _v0) _v14))) (_ (or (_ (and (_ (> _v6) 0)) (_ (and (_ (= _v7) (_ (+ (_ _v13 _v5)) (_ (+ _v6) 0)))) (_ (and (_ (str.in_re (_ _v11 _v6)) _v12)) (_ (and (_ (forall (_ ($eo_List_cons _v10) $eo_List_nil)) (_ (or (not (_ (> _v10) 0))) (_ (or (not (_ (< _v10) _v6))) (_ (or (not (_ (str.in_re (_ _v11 _v10)) r))) false))))) (_ (and (_ (= (_ _v3 _v0)) (_ (str.++ (_ (_ _v9 _v5) (_ (- _v8) _v5))) (_ (str.++ t) (_ (str.++ (_ _v3 _v1)) ""))))) true)))))) false))))) true)))))))))))))))))))))))))
+  (($str_reduction_pred (_ (_ (str.indexof_re s) r) n)) (eo::define ((_v0 (eo::var "@var.str_length" Int))) (eo::define ((_v1 (@purify (_ (_ (str.indexof_re s) r) n)))) (eo::define ((_v2 (str.substr s))) (eo::define ((_v3 (str.len s))) (eo::define ((_v4 (- _v3))) (eo::define ((_v5 (<= _v0))) (eo::define ((_v6 (_ ($eo_List_cons _v0) $eo_List_nil))) (eo::define ((_v7 (= _v1))) (eo::define ((_v8 (_ _v7 -1))) (eo::define ((_v9 (eo::var "@var.str_index" Int))) (_ (_ (ite (_ (or (_ (> n) _v3)) (_ (or (_ (> 0) n)) false))) _v8) (_ (_ (ite (_ (str.in_re "") r)) (_ _v7 n)) (_ (and (_ (forall (_ ($eo_List_cons _v9) _v6)) (_ (or (not (_ (>= _v9) n))) (_ (or (not (_ (< _v9) (_ (_ (ite _v8) _v3) _v1)))) (_ (or (not (_ (> _v0) 0))) (_ (or (not (_ _v5 (_ _v4 _v9)))) (_ (or (not (_ (str.in_re (_ (_ _v2 _v9) _v0)) r))) false))))))) (_ (and (_ (or _v8) (_ (or (_ (and (_ (>= _v1) n)) (_ (and (not (_ (forall _v6) (_ (or (not (_ (>= _v0) 0))) (_ (or (not (_ _v5 (_ _v4 _v1)))) (_ (or (not (_ (str.in_re (_ (_ _v2 _v1) _v0)) r))) false)))))) true))) false))) true)))))))))))))))
+  (($str_reduction_pred (_ (str.<= s) t)) (eo::define ((_v0 (eo::var "@var.str_index" Int))) (eo::define ((_v1 (str.substr s))) (eo::define ((_v2 (str.to_code (_ (_ _v1 _v0) 1)))) (eo::define ((_v3 (str.substr t))) (eo::define ((_v4 (str.to_code (_ (_ _v3 _v0) 1)))) (eo::define ((_v5 (@purify (_ (str.<= s) t)))) (eo::define ((_v6 (<= _v0))) (_ (_ (ite (_ (= s) t)) _v5) (not (_ (forall (_ ($eo_List_cons _v0) $eo_List_nil)) (_ (or (not (_ (>= _v0) 0))) (_ (or (not (_ _v6 (str.len s)))) (_ (or (not (_ _v6 (str.len t)))) (_ (or (not (_ (= (_ (_ _v1 0) _v0)) (_ (_ _v3 0) _v0)))) (_ (or (_ (_ (ite _v5) (_ (>= _v2) _v4)) (_ (>= _v4) _v2))) false))))))))))))))))
+  (($str_reduction_pred (str.to_lower s)) (eo::define ((_v0 (eo::var "@var.str_index" Int))) (eo::define ((_v1 (str.to_code (_ (_ (str.substr s) _v0) 1)))) (eo::define ((_v2 (@purify (str.to_lower s)))) (eo::define ((_v3 (str.len _v2))) (_ (and (_ (= (str.len s)) _v3)) (_ (and (_ (forall (_ ($eo_List_cons _v0) $eo_List_nil)) (_ (or (not (_ (>= _v0) 0))) (_ (or (not (_ (< _v0) _v3))) (_ (or (_ (= (str.to_code (_ (_ (str.substr _v2) _v0) 1))) (_ (_ (ite (_ (and (_ (<= 65) _v1)) (_ (and (_ (<= _v1) 90)) true))) (_ (+ _v1) (_ (+ 32) 0))) _v1))) false))))) true)))))))
+  (($str_reduction_pred (str.to_upper s)) (eo::define ((_v0 (eo::var "@var.str_index" Int))) (eo::define ((_v1 (str.to_code (_ (_ (str.substr s) _v0) 1)))) (eo::define ((_v2 (@purify (str.to_upper s)))) (eo::define ((_v3 (str.len _v2))) (_ (and (_ (= (str.len s)) _v3)) (_ (and (_ (forall (_ ($eo_List_cons _v0) $eo_List_nil)) (_ (or (not (_ (>= _v0) 0))) (_ (or (not (_ (< _v0) _v3))) (_ (or (_ (= (str.to_code (_ (_ (str.substr _v2) _v0) 1))) (_ (_ (ite (_ (and (_ (<= 97) _v1)) (_ (and (_ (<= _v1) 122)) true))) (_ (+ _v1) (_ (+ -32) 0))) _v1))) false))))) true)))))))
+  (($str_reduction_pred (str.rev x)) (eo::define ((_v0 (eo::var "@var.str_index" Int))) (eo::define ((_v1 (str.len x))) (eo::define ((_v2 (@purify (str.rev x)))) (eo::define ((_v3 (str.len _v2))) (_ (and (_ (= _v1) _v3)) (_ (and (_ (forall (_ ($eo_List_cons _v0) $eo_List_nil)) (_ (or (not (_ (>= _v0) 0))) (_ (or (not (_ (< _v0) _v3))) (_ (or (_ (= (_ (_ (str.substr _v2) _v0) 1)) (_ (_ (str.substr x) (_ (- _v1) (_ (+ _v0) (_ (+ 1) 0)))) 1))) false))))) true)))))))
   )
 )
 ; program: $mk_str_eager_reduction.fev2
@@ -4230,17 +4230,17 @@
 (program $mk_str_eager_reduction.fev1 ((U Type) ($eoT.fev1 Type) ($eoT.fev3 Type) ($eo_2 $eoT.fev1) (x (Seq U)) (y (Seq U)))
   :signature ((Seq U) (Seq U) $eoT.fev1) $eoT.fev3
   (
-  (($mk_str_eager_reduction.fev1 y x $eo_2) (eo::define ((_v0 (= x))) (eo::define ((_v1 (str.substr x))) (eo::define ((_v2 (_ @purify (_ (_ _v1 0) (_ (_ (str.indexof x) y) 0))))) (eo::define ((_v3 (_ (+ (str.len _v2)) (_ (+ (str.len y)) 0)))) (_ (_ (ite (_ (str.contains x) y)) (_ _v0 (_ (str.++ _v2) (_ (str.++ y) (_ (str.++ (_ @purify (_ (_ _v1 _v3) (_ (- (str.len x)) _v3)))) $eo_2))))) (not (_ _v0 y))))))))
+  (($mk_str_eager_reduction.fev1 y x $eo_2) (eo::define ((_v0 (= x))) (eo::define ((_v1 (str.substr x))) (eo::define ((_v2 (@purify (_ (_ _v1 0) (_ (_ (str.indexof x) y) 0))))) (eo::define ((_v3 (_ (+ (str.len _v2)) (_ (+ (str.len y)) 0)))) (_ (_ (ite (_ (str.contains x) y)) (_ _v0 (_ (str.++ _v2) (_ (str.++ y) (_ (str.++ (@purify (_ (_ _v1 _v3) (_ (- (str.len x)) _v3)))) $eo_2))))) (not (_ _v0 y))))))))
   )
 )
 ; program: $mk_str_eager_reduction
 (program $mk_str_eager_reduction ((U Type) (y (Seq U)) (x (Seq U)) (n Int) (s (Seq Char)) (r RegLan))
   :signature (U) Bool
   (
-  (($mk_str_eager_reduction (str.from_code n)) (eo::define ((_v0 (_ @purify (str.from_code n)))) (_ (_ (ite (_ (and (_ (<= 0) n)) (_ (and (_ (< n) 196608)) true))) (_ (= n) (str.to_code _v0))) (_ (= _v0) ""))))
+  (($mk_str_eager_reduction (str.from_code n)) (eo::define ((_v0 (@purify (str.from_code n)))) (_ (_ (ite (_ (and (_ (<= 0) n)) (_ (and (_ (< n) 196608)) true))) (_ (= n) (str.to_code _v0))) (_ (= _v0) ""))))
   (($mk_str_eager_reduction (str.to_code s)) (eo::define ((_v0 (str.to_code s))) (_ (_ (ite (_ (= (str.len s)) 1)) (_ (and (_ (>= _v0) 0)) (_ (and (_ (< _v0) 196608)) true))) (_ (= _v0) -1))))
   (($mk_str_eager_reduction (str.to_int s)) (_ (>= (str.to_int s)) -1))
-  (($mk_str_eager_reduction (_ (str.contains x) y)) ($mk_str_eager_reduction.fev1 y x (eo::nil str.++ (eo::typeof (_ @purify (_ (_ (str.substr x) 0) (_ (_ (str.indexof x) y) 0)))))))
+  (($mk_str_eager_reduction (_ (str.contains x) y)) ($mk_str_eager_reduction.fev1 y x (eo::nil str.++ (eo::typeof (@purify (_ (_ (str.substr x) 0) (_ (_ (str.indexof x) y) 0)))))))
   (($mk_str_eager_reduction (_ (_ (str.indexof x) y) n)) (eo::define ((_v0 (_ (_ (str.indexof x) y) n))) (_ (and (_ (or (_ (= _v0) -1)) (_ (or (_ (>= _v0) n)) false))) (_ (and (_ (<= _v0) (str.len x))) true))))
   (($mk_str_eager_reduction (_ (_ (str.indexof_re s) r) n)) (eo::define ((_v0 (_ (_ (str.indexof_re s) r) n))) (_ (and (_ (or (_ (= _v0) -1)) (_ (or (_ (>= _v0) n)) false))) (_ (and (_ (<= _v0) (str.len s))) true))))
   (($mk_str_eager_reduction (_ (str.in_re s) r)) ($mk_str_eager_reduction.fev2 r s ($str_fixed_len_re r)))
@@ -4270,7 +4270,7 @@
   (
   (($re_unfold_pos_concat_rec t (str.to_re "") ro i) (_ (@pair "") true))
   (($re_unfold_pos_concat_rec t (_ (re.++ (str.to_re s)) r2) ro i) (eo::define ((_v0 ($re_unfold_pos_concat_rec t r2 ro (eo::add i 1)))) ($re_unfold_pos_concat_rec.fev1 i ro r2 t s ($pair_second _v0) (eo::cons str.++ s ($pair_first _v0)))))
-  (($re_unfold_pos_concat_rec t (_ (re.++ r1) r2) ro i) (eo::define ((_v0 ($re_unfold_pos_concat_rec t r2 ro (eo::add i 1)))) (eo::define ((_v1 (_ @re_unfold_pos_component t ro i))) ($re_unfold_pos_concat_rec.fev2 i ro r2 t r1 (eo::cons and (_ (str.in_re _v1) r1) ($pair_second _v0)) (eo::cons str.++ _v1 ($pair_first _v0))))))
+  (($re_unfold_pos_concat_rec t (_ (re.++ r1) r2) ro i) (eo::define ((_v0 ($re_unfold_pos_concat_rec t r2 ro (eo::add i 1)))) (eo::define ((_v1 (@re_unfold_pos_component t ro i))) ($re_unfold_pos_concat_rec.fev2 i ro r2 t r1 (eo::cons and (_ (str.in_re _v1) r1) ($pair_second _v0)) (eo::cons str.++ _v1 ($pair_first _v0))))))
   )
 )
 ; program: $str_flatten_word
@@ -6023,8 +6023,8 @@
   (($seq_is_prefix t t) true)
   ((eo::define ((_v0 (str.++ t))) ($seq_is_prefix (_ _v0 ts) (_ _v0 ss))) ($seq_is_prefix ts ss))
   (($seq_is_prefix (_ (str.++ (seq.unit et)) ts) (_ (str.++ (seq.unit es)) ss)) ($seq_is_prefix.fev1 et es ($seq_is_prefix.fev2 et es (eo::eq et es))))
-  (($seq_is_prefix (_ seq.empty (Seq T)) t) true)
-  (($seq_is_prefix (_ (str.++ (seq.unit et)) ts) (_ seq.empty (Seq T))) false)
+  (($seq_is_prefix (as seq.empty (Seq T)) t) true)
+  (($seq_is_prefix (_ (str.++ (seq.unit et)) ts) (as seq.empty (Seq T))) false)
   )
 )
 ; fwd-decl: $seq_find
@@ -6044,7 +6044,7 @@
   :signature ((Seq T) (Seq T) Int) Int
   (
   (($seq_find t t n) n)
-  (($seq_find (_ seq.empty (Seq T)) s n) -1)
+  (($seq_find (as seq.empty (Seq T)) s n) -1)
   (($seq_find (_ (str.++ t) ts) s n) ($seq_find.fev1 n s ts t ($seq_is_prefix (_ (str.++ t) ts) s)))
   )
 )
@@ -6056,14 +6056,14 @@
 (program $seq_subsequence.fev1 ((T Type) ($eoT.fev2 Type) (t (Seq T)) ($eo_1 Type))
   :signature ((Seq T) Type) $eoT.fev2
   (
-  (($seq_subsequence.fev1 t $eo_1) (_ seq.empty $eo_1))
+  (($seq_subsequence.fev1 t $eo_1) (as seq.empty $eo_1))
   )
 )
 ; program: $seq_subsequence
 (program $seq_subsequence ((T Type) (t (Seq T)) (e T) (l Int) (u Int) (ts (Seq T)))
   :signature (Int Int (Seq T)) (Seq T)
   (
-  (($seq_subsequence l u (_ seq.empty (Seq T))) (_ seq.empty (Seq T)))
+  (($seq_subsequence l u (as seq.empty (Seq T))) (as seq.empty (Seq T)))
   (($seq_subsequence l 0 t) ($seq_subsequence.fev1 t (eo::typeof t)))
   (($seq_subsequence 0 u (_ (str.++ (seq.unit e)) ts)) (eo::cons str.++ (seq.unit e) ($seq_subsequence 0 (eo::add u -1) ts)))
   (($seq_subsequence l u (_ (str.++ (seq.unit e)) ts)) ($seq_subsequence (eo::add l -1) (eo::add u -1) ts))
@@ -6121,7 +6121,7 @@
   :signature ((Set T)) $eo_List
   (
   (($set_union_to_list (_ (set.union (set.singleton e)) t)) (eo::cons $eo_List_cons e ($set_union_to_list t)))
-  (($set_union_to_list (_ set.empty (Set T))) $eo_List_nil)
+  (($set_union_to_list (as set.empty (Set T))) $eo_List_nil)
   (($set_union_to_list (set.singleton e)) (eo::cons $eo_List_cons e $eo_List_nil))
   )
 )
@@ -6244,7 +6244,7 @@
 (program $mk_skolems ((x $eo_List) (xs $eo_List) (F Bool) (i Int))
   :signature ($eo_List Bool Int) $eo_List
   (
-  (($mk_skolems (_ ($eo_List_cons x) xs) F i) (eo::cons $eo_List_cons (_ @quantifiers_skolemize F i) ($mk_skolems xs F (eo::add i 1))))
+  (($mk_skolems (_ ($eo_List_cons x) xs) F i) (eo::cons $eo_List_cons (@quantifiers_skolemize F i) ($mk_skolems xs F (eo::add i 1))))
   (($mk_skolems $eo_List_nil F i) $eo_List_nil)
   )
 )
@@ -9034,7 +9034,7 @@
   ; type-rule: distinct
   (($eo_typeof_main (distinct x1)) ($eo_typeof_distinct ($eo_typeof x1)))
   ; type-rule: @purify
-  (($eo_typeof_main (_ @purify x1)) ($eo_typeof_@purify ($eo_typeof x1) x1))
+  (($eo_typeof_main (@purify x1)) ($eo_typeof_@purify ($eo_typeof x1) x1))
   ; type-rule: +
   (($eo_typeof_main (_ (+ x1) x2)) ($eo_typeof_+ ($eo_typeof x1) ($eo_typeof x2)))
   ; type-rule: -
@@ -9088,7 +9088,7 @@
   ; type-rule: store
   (($eo_typeof_main (store x1)) ($eo_typeof_store ($eo_typeof x1)))
   ; type-rule: @array_deq_diff
-  (($eo_typeof_main (_ @array_deq_diff x1 x2)) ($eo_typeof_@array_deq_diff ($eo_typeof x1) x1 ($eo_typeof x2) x2))
+  (($eo_typeof_main (@array_deq_diff x1 x2)) ($eo_typeof_@array_deq_diff ($eo_typeof x1) x1 ($eo_typeof x2) x2))
   ; type-rule: /
   (($eo_typeof_main (_ (/ x1) x2)) ($eo_typeof_/ ($eo_typeof x1) ($eo_typeof x2)))
   ; type-rule: /_total
@@ -9222,7 +9222,7 @@
   ; type-rule: RegLan
   (($eo_typeof_main RegLan) Type)
   ; type-rule: seq.empty
-  (($eo_typeof_main (seq.empty x1)) ($eo_typeof_seq.empty x1))
+  (($eo_typeof_main (as seq.empty x1)) ($eo_typeof_seq.empty x1))
   ; type-rule: str.len
   (($eo_typeof_main (str.len x1)) ($eo_typeof_str.len ($eo_typeof x1)))
   ; type-rule: str.++
@@ -9308,33 +9308,33 @@
   ; type-rule: seq.nth
   (($eo_typeof_main (seq.nth x1)) ($eo_typeof_seq.nth ($eo_typeof x1)))
   ; type-rule: @re_unfold_pos_component
-  (($eo_typeof_main (_ @re_unfold_pos_component x1 x2 x3)) ($eo_typeof_@re_unfold_pos_component x1 x2 x3))
+  (($eo_typeof_main (@re_unfold_pos_component x1 x2 x3)) ($eo_typeof_@re_unfold_pos_component x1 x2 x3))
   ; type-rule: @strings_deq_diff
-  (($eo_typeof_main (_ @strings_deq_diff x1 x2)) ($eo_typeof_@strings_deq_diff ($eo_typeof x1) x1 ($eo_typeof x2) x2))
+  (($eo_typeof_main (@strings_deq_diff x1 x2)) ($eo_typeof_@strings_deq_diff ($eo_typeof x1) x1 ($eo_typeof x2) x2))
   ; type-rule: @strings_stoi_result
-  (($eo_typeof_main (_ @strings_stoi_result x1)) ($eo_typeof_@strings_stoi_result x1))
+  (($eo_typeof_main (@strings_stoi_result x1)) ($eo_typeof_@strings_stoi_result x1))
   ; type-rule: @strings_stoi_non_digit
-  (($eo_typeof_main (_ @strings_stoi_non_digit x1)) ($eo_typeof_@strings_stoi_non_digit x1))
+  (($eo_typeof_main (@strings_stoi_non_digit x1)) ($eo_typeof_@strings_stoi_non_digit x1))
   ; type-rule: @strings_itos_result
-  (($eo_typeof_main (_ @strings_itos_result x1)) ($eo_typeof_@strings_itos_result x1))
+  (($eo_typeof_main (@strings_itos_result x1)) ($eo_typeof_@strings_itos_result x1))
   ; type-rule: @strings_num_occur
   (($eo_typeof_main (_ (@strings_num_occur x1) x2)) ($eo_typeof_@strings_num_occur ($eo_typeof x1) x1 ($eo_typeof x2) x2))
   ; type-rule: @strings_num_occur_re
-  (($eo_typeof_main (_ @strings_num_occur_re x1 x2)) ($eo_typeof_@strings_num_occur_re x1 x2))
+  (($eo_typeof_main (@strings_num_occur_re x1 x2)) ($eo_typeof_@strings_num_occur_re x1 x2))
   ; type-rule: @strings_occur_index
   (($eo_typeof_main (_ (_ (@strings_occur_index x1) x2) x3)) ($eo_typeof_@strings_occur_index ($eo_typeof x1) x1 ($eo_typeof x2) x2 ($eo_typeof x3)))
   ; type-rule: @strings_occur_index_re
-  (($eo_typeof_main (_ @strings_occur_index_re x1 x2)) ($eo_typeof_@strings_occur_index_re x1 x2))
+  (($eo_typeof_main (@strings_occur_index_re x1 x2)) ($eo_typeof_@strings_occur_index_re x1 x2))
   ; type-rule: @strings_occur_len_re
-  (($eo_typeof_main (_ @strings_occur_len_re x1 x2)) ($eo_typeof_@strings_occur_len_re x1 x2))
+  (($eo_typeof_main (@strings_occur_len_re x1 x2)) ($eo_typeof_@strings_occur_len_re x1 x2))
   ; type-rule: @strings_replace_all_result
-  (($eo_typeof_main (_ (_ @strings_replace_all_result x1) x2)) ($eo_typeof_@strings_replace_all_result ($eo_typeof x1) x1 ($eo_typeof x2)))
+  (($eo_typeof_main (_ (@strings_replace_all_result x1) x2)) ($eo_typeof_@strings_replace_all_result ($eo_typeof x1) x1 ($eo_typeof x2)))
   ; type-rule: @re_first_match_pre
-  (($eo_typeof_main (_ @re_first_match_pre x1 x2)) ($eo_typeof_@re_first_match_pre x1 x2))
+  (($eo_typeof_main (@re_first_match_pre x1 x2)) ($eo_typeof_@re_first_match_pre x1 x2))
   ; type-rule: @re_first_match
-  (($eo_typeof_main (_ @re_first_match x1 x2)) ($eo_typeof_@re_first_match x1 x2))
+  (($eo_typeof_main (@re_first_match x1 x2)) ($eo_typeof_@re_first_match x1 x2))
   ; type-rule: @re_first_match_post
-  (($eo_typeof_main (_ @re_first_match_post x1 x2)) ($eo_typeof_@re_first_match_post x1 x2))
+  (($eo_typeof_main (@re_first_match_post x1 x2)) ($eo_typeof_@re_first_match_post x1 x2))
   ; type-rule: @witness_string_length
   (($eo_typeof_main (@witness_string_length x1)) ($eo_typeof_@witness_string_length x1))
   ; type-rule: forall
@@ -9342,9 +9342,9 @@
   ; type-rule: exists
   (($eo_typeof_main exists) (-> $eo_List (-> Bool Bool)))
   ; type-rule: @quantifiers_skolemize
-  (($eo_typeof_main (_ @quantifiers_skolemize x1 x2)) ($eo_typeof_@quantifiers_skolemize x1 x2))
+  (($eo_typeof_main (@quantifiers_skolemize x1 x2)) ($eo_typeof_@quantifiers_skolemize x1 x2))
   ; type-rule: @witness_inv_condition
-  (($eo_typeof_main (_ @witness_inv_condition x1)) ($eo_typeof_@witness_inv_condition x1))
+  (($eo_typeof_main (@witness_inv_condition x1)) ($eo_typeof_@witness_inv_condition x1))
   ; type-rule: is
   (($eo_typeof_main (_ (is x1) x2)) ($eo_typeof_is ($eo_typeof x1) ($eo_typeof x2)))
   ; type-rule: update
@@ -9364,7 +9364,7 @@
   ; type-rule: Set
   (($eo_typeof_main Set) (-> Type Type))
   ; type-rule: set.empty
-  (($eo_typeof_main (set.empty x1)) ($eo_typeof_set.empty x1))
+  (($eo_typeof_main (as set.empty x1)) ($eo_typeof_set.empty x1))
   ; type-rule: set.singleton
   (($eo_typeof_main (set.singleton x1)) ($eo_typeof_set.singleton ($eo_typeof x1)))
   ; type-rule: set.union
@@ -9386,7 +9386,7 @@
   ; type-rule: set.insert
   (($eo_typeof_main (_ (set.insert x1) x2)) ($eo_typeof_set.insert ($eo_typeof x1) ($eo_typeof x2)))
   ; type-rule: @sets_deq_diff
-  (($eo_typeof_main (_ @sets_deq_diff x1 x2)) ($eo_typeof_@sets_deq_diff ($eo_typeof x1) x1 ($eo_typeof x2) x2))
+  (($eo_typeof_main (@sets_deq_diff x1 x2)) ($eo_typeof_@sets_deq_diff ($eo_typeof x1) x1 ($eo_typeof x2) x2))
   ; type-rule: @Nfa
   (($eo_typeof_main @Nfa) Type)
   ; type-rule: @nfa.decline
@@ -9416,7 +9416,7 @@
   ; type-rule: @aci_sorted
   (($eo_typeof_main (_ (@aci_sorted x1) x2)) ($eo_typeof_@aci_sorted ($eo_typeof x1) ($eo_typeof x2)))
   ; type-rule: @const
-  (($eo_typeof_main (_ @const x1 x2)) ($eo_typeof_@const x1 x2))
+  (($eo_typeof_main (@const x1 x2)) ($eo_typeof_@const x1 x2))
 
   (($eo_typeof_main (f x))     ($eo_typeof_apply ($eo_typeof f) ($eo_typeof x)))
   )
@@ -10471,7 +10471,7 @@
 (program $eor_arrays_ext ((T Type) (U Type) (a (_ (Array T) U)) (b (_ (Array T) U)))
   :signature (Bool) Bool
   (
-  (($eor_arrays_ext (not (_ (= a) b))) (eo::define ((_v0 (_ @array_deq_diff a b))) (not (_ (= (_ (select a) _v0)) (_ (select b) _v0)))))
+  (($eor_arrays_ext (not (_ (= a) b))) (eo::define ((_v0 (@array_deq_diff a b))) (not (_ (= (_ (select a) _v0)) (_ (select b) _v0)))))
   )
 )
 ; program: $eovc_arrays_ext
@@ -11641,7 +11641,7 @@
 (program $eor_concat_csplit.fev10 (($eoT.fev17 Type) (U Type) ($eoT.fev20 Type) ($eo_15 (Seq U)) ($eo_19 (Seq U)) (u (Seq U)) ($eo_18 $eoT.fev17))
   :signature ((Seq U) (Seq U) $eoT.fev17 (Seq U)) $eoT.fev20
   (
-  (($eor_concat_csplit.fev10 $eo_15 u $eo_18 $eo_19) (_ (str.++ $eo_19) (_ (str.++ (_ @purify (_ (_ (str.substr u) 1) (_ (- (str.len u)) 1)))) $eo_18)))
+  (($eor_concat_csplit.fev10 $eo_15 u $eo_18 $eo_19) (_ (str.++ $eo_19) (_ (str.++ (@purify (_ (_ (str.substr u) 1) (_ (- (str.len u)) 1)))) $eo_18)))
   )
 )
 ; program: $eor_concat_csplit.fev8
@@ -11663,7 +11663,7 @@
 (program $eor_concat_csplit.fev11 (($eoT.fev11 Type) (U Type) ($eoT.fev22 Type) ($eo_13 (Seq U)) (u (Seq U)) ($eo_21 (Seq U)) ($eo_12 $eoT.fev11))
   :signature ($eoT.fev11 (Seq U) (Seq U) (Seq U)) $eoT.fev22
   (
-  (($eor_concat_csplit.fev11 $eo_12 $eo_13 u $eo_21) (_ (str.++ (_ @purify (_ (_ (str.substr u) 0) (_ (- (str.len u)) 1)))) (_ (str.++ $eo_21) $eo_12)))
+  (($eor_concat_csplit.fev11 $eo_12 $eo_13 u $eo_21) (_ (str.++ (@purify (_ (_ (str.substr u) 0) (_ (- (str.len u)) 1)))) (_ (str.++ $eo_21) $eo_12)))
   )
 )
 ; program: $eor_concat_csplit.fev6
@@ -11677,7 +11677,7 @@
 (program $eor_concat_csplit.fev5 ((U Type) ($eoT.fev10 Type) (s (Seq U)) (u (Seq U)) (rev Bool))
   :signature ((Seq U) Bool (Seq U) Bool) $eoT.fev10
   (
-  (($eor_concat_csplit.fev5 s rev u true) ($eor_concat_csplit.fev6 u s rev (eo::nil str.++ (eo::typeof (_ @purify (_ (_ (str.substr u) 0) (_ (- (str.len u)) 1))))) ($eor_concat_csplit.fev7 u s rev rev)))
+  (($eor_concat_csplit.fev5 s rev u true) ($eor_concat_csplit.fev6 u s rev (eo::nil str.++ (eo::typeof (@purify (_ (_ (str.substr u) 0) (_ (- (str.len u)) 1))))) ($eor_concat_csplit.fev7 u s rev rev)))
   (($eor_concat_csplit.fev5 s rev u false) ($eor_concat_csplit.fev8 s rev u ($eor_concat_csplit.fev9 s rev u rev)))
   )
 )
@@ -11753,7 +11753,7 @@
 (program $eor_concat_split.fev18 (($eoT.fev28 Type) (U Type) ($eoT.fev32 Type) ($eo_25 (Seq U)) (rev Bool) ($eo_26 (Seq U)) ($eo_31 (Seq U)) ($eo_30 (Seq U)) ($eo_29 $eoT.fev28))
   :signature ((Seq U) Bool (Seq U) $eoT.fev28 (Seq U) (Seq U)) $eoT.fev32
   (
-  (($eor_concat_split.fev18 $eo_25 rev $eo_26 $eo_29 $eo_30 $eo_31) (_ (str.++ $eo_31) (_ (str.++ (_ @purify $eo_30)) $eo_29)))
+  (($eor_concat_split.fev18 $eo_25 rev $eo_26 $eo_29 $eo_30 $eo_31) (_ (str.++ $eo_31) (_ (str.++ (@purify $eo_30)) $eo_29)))
   )
 )
 ; program: $eor_concat_split.fev15
@@ -11783,14 +11783,14 @@
 (program $eor_concat_split.fev20 ((U Type) ($eoT.fev36 Type) ($eoT.fev38 Type) ($eo_33 (Seq U)) ($eo_34 (Seq U)) ($eo_37 $eoT.fev36))
   :signature ((Seq U) (Seq U) $eoT.fev36) $eoT.fev38
   (
-  (($eor_concat_split.fev20 $eo_33 $eo_34 $eo_37) (_ (str.++ (_ @purify $eo_33)) (_ (str.++ $eo_34) $eo_37)))
+  (($eor_concat_split.fev20 $eo_33 $eo_34 $eo_37) (_ (str.++ (@purify $eo_33)) (_ (str.++ $eo_34) $eo_37)))
   )
 )
 ; program: $eor_concat_split.fev19
 (program $eor_concat_split.fev19 ((U Type) ($eoT.fev35 Type) (rev Bool) ($eo_22 (Seq U)) ($eo_23 (Seq U)) ($eo_34 (Seq U)) ($eo_33 (Seq U)))
   :signature (Bool (Seq U) (Seq U) (Seq U) (Seq U)) $eoT.fev35
   (
-  (($eor_concat_split.fev19 rev $eo_22 $eo_23 $eo_33 $eo_34) ($eor_concat_split.fev20 $eo_33 $eo_34 (eo::nil str.++ (eo::typeof (_ @purify $eo_33)))))
+  (($eor_concat_split.fev19 rev $eo_22 $eo_23 $eo_33 $eo_34) ($eor_concat_split.fev20 $eo_33 $eo_34 (eo::nil str.++ (eo::typeof (@purify $eo_33)))))
   )
 )
 ; program: $eor_concat_split.fev12
@@ -11828,7 +11828,7 @@
 (program $eor_concat_split.fev27 (($eoT.fev45 Type) (U Type) ($eoT.fev49 Type) ($eo_42 (Seq U)) (rev Bool) ($eo_43 (Seq U)) ($eo_48 (Seq U)) ($eo_47 (Seq U)) ($eo_46 $eoT.fev45))
   :signature ((Seq U) Bool (Seq U) $eoT.fev45 (Seq U) (Seq U)) $eoT.fev49
   (
-  (($eor_concat_split.fev27 $eo_42 rev $eo_43 $eo_46 $eo_47 $eo_48) (_ (str.++ $eo_48) (_ (str.++ (_ @purify $eo_47)) $eo_46)))
+  (($eor_concat_split.fev27 $eo_42 rev $eo_43 $eo_46 $eo_47 $eo_48) (_ (str.++ $eo_48) (_ (str.++ (@purify $eo_47)) $eo_46)))
   )
 )
 ; program: $eor_concat_split.fev24
@@ -11858,14 +11858,14 @@
 (program $eor_concat_split.fev29 ((U Type) ($eoT.fev53 Type) ($eoT.fev55 Type) ($eo_50 (Seq U)) ($eo_51 (Seq U)) ($eo_54 $eoT.fev53))
   :signature ((Seq U) (Seq U) $eoT.fev53) $eoT.fev55
   (
-  (($eor_concat_split.fev29 $eo_50 $eo_51 $eo_54) (_ (str.++ (_ @purify $eo_50)) (_ (str.++ $eo_51) $eo_54)))
+  (($eor_concat_split.fev29 $eo_50 $eo_51 $eo_54) (_ (str.++ (@purify $eo_50)) (_ (str.++ $eo_51) $eo_54)))
   )
 )
 ; program: $eor_concat_split.fev28
 (program $eor_concat_split.fev28 ((U Type) ($eoT.fev52 Type) (rev Bool) ($eo_39 (Seq U)) ($eo_40 (Seq U)) ($eo_51 (Seq U)) ($eo_50 (Seq U)))
   :signature (Bool (Seq U) (Seq U) (Seq U) (Seq U)) $eoT.fev52
   (
-  (($eor_concat_split.fev28 rev $eo_39 $eo_40 $eo_50 $eo_51) ($eor_concat_split.fev29 $eo_50 $eo_51 (eo::nil str.++ (eo::typeof (_ @purify $eo_50)))))
+  (($eor_concat_split.fev28 rev $eo_39 $eo_40 $eo_50 $eo_51) ($eor_concat_split.fev29 $eo_50 $eo_51 (eo::nil str.++ (eo::typeof (@purify $eo_50)))))
   )
 )
 ; program: $eor_concat_split.fev21
@@ -11903,14 +11903,14 @@
 (program $eor_concat_split.fev31 (($eoT.fev15 Type) ($eoT.fev17 Type) (U Type) ($eoT.fev60 Type) ($eoT.fev62 Type) ($eo_58 (Seq U)) ($eo_18 $eoT.fev17) ($eo_57 (Seq U)) ($eo_16 $eoT.fev15) ($eo_61 $eoT.fev60) ($eo_56 (Seq U)))
   :signature ((Seq U) $eoT.fev15 (Seq U) $eoT.fev17 (Seq U) $eoT.fev60) $eoT.fev62
   (
-  (($eor_concat_split.fev31 $eo_56 $eo_16 $eo_57 $eo_18 $eo_58 $eo_61) (eo::define ((_v0 (_ @purify $eo_56))) (_ (and (_ (or (_ (= $eo_58) $eo_18)) (_ (or (_ (= $eo_57) $eo_16)) false))) (_ (and (not (_ (= _v0) $eo_61))) (_ (and (_ (> (str.len _v0)) 0)) true)))))
+  (($eor_concat_split.fev31 $eo_56 $eo_16 $eo_57 $eo_18 $eo_58 $eo_61) (eo::define ((_v0 (@purify $eo_56))) (_ (and (_ (or (_ (= $eo_58) $eo_18)) (_ (or (_ (= $eo_57) $eo_16)) false))) (_ (and (not (_ (= _v0) $eo_61))) (_ (and (_ (> (str.len _v0)) 0)) true)))))
   )
 )
 ; program: $eor_concat_split.fev30
 (program $eor_concat_split.fev30 (($eoT.fev15 Type) ($eoT.fev17 Type) (U Type) ($eoT.fev59 Type) (rev Bool) ($eo_13 (Seq U)) ($eo_14 (Seq U)) ($eo_16 $eoT.fev15) ($eo_57 (Seq U)) ($eo_18 $eoT.fev17) ($eo_58 (Seq U)) ($eo_56 (Seq U)))
   :signature (Bool (Seq U) (Seq U) $eoT.fev15 $eoT.fev17 (Seq U) (Seq U) (Seq U)) $eoT.fev59
   (
-  (($eor_concat_split.fev30 rev $eo_13 $eo_14 $eo_16 $eo_18 $eo_56 $eo_57 $eo_58) ($eor_concat_split.fev31 $eo_56 $eo_16 $eo_57 $eo_18 $eo_58 ($seq_empty (eo::typeof (_ @purify $eo_56)))))
+  (($eor_concat_split.fev30 rev $eo_13 $eo_14 $eo_16 $eo_18 $eo_56 $eo_57 $eo_58) ($eor_concat_split.fev31 $eo_56 $eo_16 $eo_57 $eo_18 $eo_58 ($seq_empty (eo::typeof (@purify $eo_56)))))
   )
 )
 ; program: $eor_concat_split.fev7
@@ -11999,7 +11999,7 @@
 (program $eor_concat_lprop.fev17 (($eoT.fev25 Type) (U Type) ($eoT.fev29 Type) ($eo_22 (Seq U)) (rev Bool) ($eo_23 (Seq U)) ($eo_28 (Seq U)) ($eo_27 (Seq U)) ($eo_26 $eoT.fev25))
   :signature ((Seq U) Bool (Seq U) $eoT.fev25 (Seq U) (Seq U)) $eoT.fev29
   (
-  (($eor_concat_lprop.fev17 $eo_22 rev $eo_23 $eo_26 $eo_27 $eo_28) (_ (str.++ $eo_28) (_ (str.++ (_ @purify $eo_27)) $eo_26)))
+  (($eor_concat_lprop.fev17 $eo_22 rev $eo_23 $eo_26 $eo_27 $eo_28) (_ (str.++ $eo_28) (_ (str.++ (@purify $eo_27)) $eo_26)))
   )
 )
 ; program: $eor_concat_lprop.fev14
@@ -12029,14 +12029,14 @@
 (program $eor_concat_lprop.fev19 ((U Type) ($eoT.fev33 Type) ($eoT.fev35 Type) ($eo_30 (Seq U)) ($eo_31 (Seq U)) ($eo_34 $eoT.fev33))
   :signature ((Seq U) (Seq U) $eoT.fev33) $eoT.fev35
   (
-  (($eor_concat_lprop.fev19 $eo_30 $eo_31 $eo_34) (_ (str.++ (_ @purify $eo_30)) (_ (str.++ $eo_31) $eo_34)))
+  (($eor_concat_lprop.fev19 $eo_30 $eo_31 $eo_34) (_ (str.++ (@purify $eo_30)) (_ (str.++ $eo_31) $eo_34)))
   )
 )
 ; program: $eor_concat_lprop.fev18
 (program $eor_concat_lprop.fev18 ((U Type) ($eoT.fev32 Type) (rev Bool) ($eo_19 (Seq U)) ($eo_20 (Seq U)) ($eo_31 (Seq U)) ($eo_30 (Seq U)))
   :signature (Bool (Seq U) (Seq U) (Seq U) (Seq U)) $eoT.fev32
   (
-  (($eor_concat_lprop.fev18 rev $eo_19 $eo_20 $eo_30 $eo_31) ($eor_concat_lprop.fev19 $eo_30 $eo_31 (eo::nil str.++ (eo::typeof (_ @purify $eo_30)))))
+  (($eor_concat_lprop.fev18 rev $eo_19 $eo_20 $eo_30 $eo_31) ($eor_concat_lprop.fev19 $eo_30 $eo_31 (eo::nil str.++ (eo::typeof (@purify $eo_30)))))
   )
 )
 ; program: $eor_concat_lprop.fev11
@@ -12074,14 +12074,14 @@
 (program $eor_concat_lprop.fev21 (($eoT.fev15 Type) (U Type) ($eoT.fev39 Type) ($eoT.fev41 Type) ($eo_37 (Seq U)) ($eo_16 $eoT.fev15) ($eo_40 $eoT.fev39) ($eo_36 (Seq U)))
   :signature ((Seq U) $eoT.fev15 (Seq U) $eoT.fev39) $eoT.fev41
   (
-  (($eor_concat_lprop.fev21 $eo_36 $eo_16 $eo_37 $eo_40) (eo::define ((_v0 (_ @purify $eo_36))) (_ (and (_ (= $eo_37) $eo_16)) (_ (and (not (_ (= _v0) $eo_40))) (_ (and (_ (> (str.len _v0)) 0)) true)))))
+  (($eor_concat_lprop.fev21 $eo_36 $eo_16 $eo_37 $eo_40) (eo::define ((_v0 (@purify $eo_36))) (_ (and (_ (= $eo_37) $eo_16)) (_ (and (not (_ (= _v0) $eo_40))) (_ (and (_ (> (str.len _v0)) 0)) true)))))
   )
 )
 ; program: $eor_concat_lprop.fev20
 (program $eor_concat_lprop.fev20 (($eoT.fev15 Type) (U Type) ($eoT.fev38 Type) (rev Bool) ($eo_13 (Seq U)) ($eo_14 (Seq U)) ($eo_16 $eoT.fev15) ($eo_37 (Seq U)) ($eo_36 (Seq U)))
   :signature (Bool (Seq U) (Seq U) $eoT.fev15 (Seq U) (Seq U)) $eoT.fev38
   (
-  (($eor_concat_lprop.fev20 rev $eo_13 $eo_14 $eo_16 $eo_36 $eo_37) ($eor_concat_lprop.fev21 $eo_36 $eo_16 $eo_37 ($seq_empty (eo::typeof (_ @purify $eo_36)))))
+  (($eor_concat_lprop.fev20 rev $eo_13 $eo_14 $eo_16 $eo_36 $eo_37) ($eor_concat_lprop.fev21 $eo_36 $eo_16 $eo_37 ($seq_empty (eo::typeof (@purify $eo_36)))))
   )
 )
 ; program: $eor_concat_lprop.fev7
@@ -12290,7 +12290,7 @@
 (program $eor_concat_cprop.fev31 (($eoT.fev27 Type) (U Type) ($eoT.fev31 Type) ($eoT.fev33 Type) (tc (Seq U)) ($eo_29 (Seq U)) ($eo_28 $eoT.fev27) ($eo_32 $eoT.fev31))
   :signature ($eoT.fev27 (Seq U) (Seq U) $eoT.fev31) $eoT.fev33
   (
-  (($eor_concat_cprop.fev31 $eo_28 $eo_29 tc $eo_32) (eo::define ((_v0 (_ (_ (str.substr $eo_29) 0) $eo_28))) (eo::define ((_v1 (str.len _v0))) (_ (str.++ _v0) (_ (str.++ (_ @purify (_ (_ (str.substr tc) _v1) (_ (- (str.len tc)) _v1)))) $eo_32)))))
+  (($eor_concat_cprop.fev31 $eo_28 $eo_29 tc $eo_32) (eo::define ((_v0 (_ (_ (str.substr $eo_29) 0) $eo_28))) (eo::define ((_v1 (str.len _v0))) (_ (str.++ _v0) (_ (str.++ (@purify (_ (_ (str.substr tc) _v1) (_ (- (str.len tc)) _v1)))) $eo_32)))))
   )
 )
 ; program: $eor_concat_cprop.fev30
@@ -12455,14 +12455,14 @@
 (program $eor_concat_cprop.fev49 (($eoT.fev42 Type) (U Type) ($eoT.fev46 Type) ($eoT.fev48 Type) (tc (Seq U)) ($eo_44 (Seq U)) ($eo_43 $eoT.fev42) ($eo_47 $eoT.fev46))
   :signature ($eoT.fev42 (Seq U) (Seq U) $eoT.fev46) $eoT.fev48
   (
-  (($eor_concat_cprop.fev49 $eo_43 $eo_44 tc $eo_47) (eo::define ((_v0 (_ (_ (str.substr $eo_44) (_ (- (str.len $eo_44)) $eo_43)) $eo_43))) (_ (str.++ (_ @purify (_ (_ (str.substr tc) 0) (_ (- (str.len tc)) (str.len _v0))))) (_ (str.++ _v0) $eo_47))))
+  (($eor_concat_cprop.fev49 $eo_43 $eo_44 tc $eo_47) (eo::define ((_v0 (_ (_ (str.substr $eo_44) (_ (- (str.len $eo_44)) $eo_43)) $eo_43))) (_ (str.++ (@purify (_ (_ (str.substr tc) 0) (_ (- (str.len tc)) (str.len _v0))))) (_ (str.++ _v0) $eo_47))))
   )
 )
 ; program: $eor_concat_cprop.fev48
 (program $eor_concat_cprop.fev48 (($eoT.fev42 Type) (U Type) ($eoT.fev45 Type) ($eo_11 (Seq U)) ($eo_12 (Seq U)) ($eo_13 (Seq U)) (tc (Seq U)) ($eo_44 (Seq U)) ($eo_43 $eoT.fev42))
   :signature ((Seq U) (Seq U) (Seq U) (Seq U) $eoT.fev42 (Seq U)) $eoT.fev45
   (
-  (($eor_concat_cprop.fev48 $eo_11 $eo_12 $eo_13 tc $eo_43 $eo_44) ($eor_concat_cprop.fev49 $eo_43 $eo_44 tc (eo::nil str.++ (eo::typeof (_ @purify (_ (_ (str.substr tc) 0) (_ (- (str.len tc)) (str.len (_ (_ (str.substr $eo_44) (_ (- (str.len $eo_44)) $eo_43)) $eo_43)))))))))
+  (($eor_concat_cprop.fev48 $eo_11 $eo_12 $eo_13 tc $eo_43 $eo_44) ($eor_concat_cprop.fev49 $eo_43 $eo_44 tc (eo::nil str.++ (eo::typeof (@purify (_ (_ (str.substr tc) 0) (_ (- (str.len tc)) (str.len (_ (_ (str.substr $eo_44) (_ (- (str.len $eo_44)) $eo_43)) $eo_43)))))))))
   )
 )
 ; program: $eor_concat_cprop.fev6
@@ -12520,22 +12520,22 @@
 (program $eor_string_decompose.fev3 ((U Type) ($eoT.fev7 Type) ($eoT.fev9 Type) ($eo_8 $eoT.fev7) (s (Seq U)) (n Int))
   :signature (Int (Seq U) $eoT.fev7) $eoT.fev9
   (
-  (($eor_string_decompose.fev3 n s $eo_8) (eo::define ((_v0 (str.substr s))) (eo::define ((_v1 (_ @purify (_ (_ _v0 0) n)))) (_ (and (_ (= s) (_ (str.++ _v1) (_ (str.++ (_ @purify (_ (_ _v0 n) (_ (- (str.len s)) n)))) $eo_8)))) (_ (and (_ (= (str.len _v1)) n)) true)))))
+  (($eor_string_decompose.fev3 n s $eo_8) (eo::define ((_v0 (str.substr s))) (eo::define ((_v1 (@purify (_ (_ _v0 0) n)))) (_ (and (_ (= s) (_ (str.++ _v1) (_ (str.++ (@purify (_ (_ _v0 n) (_ (- (str.len s)) n)))) $eo_8)))) (_ (and (_ (= (str.len _v1)) n)) true)))))
   )
 )
 ; program: $eor_string_decompose.fev2
 (program $eor_string_decompose.fev2 ((U Type) ($eoT.fev4 Type) ($eoT.fev6 Type) ($eo_5 $eoT.fev4) (s (Seq U)) (n Int))
   :signature (Int (Seq U) $eoT.fev4) $eoT.fev6
   (
-  (($eor_string_decompose.fev2 n s $eo_5) (eo::define ((_v0 (_ (- (str.len s)) n))) (eo::define ((_v1 (str.substr s))) (eo::define ((_v2 (_ @purify (_ (_ _v1 _v0) n)))) (_ (and (_ (= s) (_ (str.++ (_ @purify (_ (_ _v1 0) _v0))) (_ (str.++ _v2) $eo_5)))) (_ (and (_ (= (str.len _v2)) n)) true))))))
+  (($eor_string_decompose.fev2 n s $eo_5) (eo::define ((_v0 (_ (- (str.len s)) n))) (eo::define ((_v1 (str.substr s))) (eo::define ((_v2 (@purify (_ (_ _v1 _v0) n)))) (_ (and (_ (= s) (_ (str.++ (@purify (_ (_ _v1 0) _v0))) (_ (str.++ _v2) $eo_5)))) (_ (and (_ (= (str.len _v2)) n)) true))))))
   )
 )
 ; program: $eor_string_decompose.fev1
 (program $eor_string_decompose.fev1 ((U Type) ($eoT.fev3 Type) (b Bool) (s (Seq U)) (n Int))
   :signature (Int (Seq U) Bool Bool) $eoT.fev3
   (
-  (($eor_string_decompose.fev1 n s b true) ($eor_string_decompose.fev2 n s (eo::nil str.++ (eo::typeof (_ @purify (_ (_ (str.substr s) 0) (_ (- (str.len s)) n)))))))
-  (($eor_string_decompose.fev1 n s b false) ($eor_string_decompose.fev3 n s (eo::nil str.++ (eo::typeof (_ @purify (_ (_ (str.substr s) 0) n))))))
+  (($eor_string_decompose.fev1 n s b true) ($eor_string_decompose.fev2 n s (eo::nil str.++ (eo::typeof (@purify (_ (_ (str.substr s) 0) (_ (- (str.len s)) n)))))))
+  (($eor_string_decompose.fev1 n s b false) ($eor_string_decompose.fev3 n s (eo::nil str.++ (eo::typeof (@purify (_ (_ (str.substr s) 0) n))))))
   )
 )
 ; program: $eor_string_decompose
@@ -12699,14 +12699,14 @@
 (program $eor_string_ext.fev1 ((T Type) ($eo_1 Bool) (t (Seq T)) (s (Seq T)))
   :signature ((Seq T) (Seq T) Bool) Bool
   (
-  (($eor_string_ext.fev1 s t $eo_1) (eo::define ((_v0 (str.len s))) (eo::define ((_v1 (_ @strings_deq_diff s t))) (_ (or (not (_ (= _v0) (str.len t)))) (_ (or (_ (and $eo_1) (_ (and (_ (<= 0) _v1)) (_ (and (_ (< _v1) _v0)) true)))) false)))))
+  (($eor_string_ext.fev1 s t $eo_1) (eo::define ((_v0 (str.len s))) (eo::define ((_v1 (@strings_deq_diff s t))) (_ (or (not (_ (= _v0) (str.len t)))) (_ (or (_ (and $eo_1) (_ (and (_ (<= 0) _v1)) (_ (and (_ (< _v1) _v0)) true)))) false)))))
   )
 )
 ; program: $eor_string_ext
 (program $eor_string_ext ((T Type) (t (Seq T)) (s (Seq T)))
   :signature (Bool) Bool
   (
-  (($eor_string_ext (not (_ (= s) t))) ($eor_string_ext.fev1 s t ($str_mk_ext_deq s t (_ @strings_deq_diff s t) (eo::typeof s))))
+  (($eor_string_ext (not (_ (= s) t))) ($eor_string_ext.fev1 s t ($str_mk_ext_deq s t (@strings_deq_diff s t) (eo::typeof s))))
   )
 )
 ; program: $eovc_string_ext
@@ -12721,7 +12721,7 @@
 (program $eor_string_reduction.fev1 ((U Type) ($eo_1 Bool) (s U))
   :signature (U Bool) Bool
   (
-  (($eor_string_reduction.fev1 s $eo_1) (_ (and $eo_1) (_ (and (_ (= s) (_ @purify s))) true)))
+  (($eor_string_reduction.fev1 s $eo_1) (_ (and $eo_1) (_ (and (_ (= s) (@purify s))) true)))
   )
 )
 ; program: $eor_string_reduction
@@ -13363,7 +13363,7 @@
 (program $eor_sets_ext ((T Type) (a (Set T)) (b (Set T)))
   :signature (Bool) Bool
   (
-  (($eor_sets_ext (not (_ (= a) b))) (eo::define ((_v0 (set.member (_ @sets_deq_diff a b)))) (not (_ (= (_ _v0 a)) (_ _v0 b)))))
+  (($eor_sets_ext (not (_ (= a) b))) (eo::define ((_v0 (set.member (@sets_deq_diff a b)))) (not (_ (= (_ _v0 a)) (_ _v0 b)))))
   )
 )
 ; program: $eovc_sets_ext
@@ -13519,14 +13519,14 @@
 (program $eor_skolem_intro ((T Type) (x T))
   :signature (T) Bool
   (
-  (($eor_skolem_intro (_ @purify x)) (_ (= (_ @purify x)) x))
+  (($eor_skolem_intro (@purify x)) (_ (= (@purify x)) x))
   )
 )
 ; program: $eovc_skolem_intro
 (program $eovc_skolem_intro ((T Type) (x T))
   :signature (T) Bool
   (
-  (($eovc_skolem_intro x) ($eo_requires_eq ($eo_model_sat ($eor_skolem_intro (_ @purify x))) false true))
+  (($eovc_skolem_intro x) ($eo_requires_eq ($eo_model_sat ($eor_skolem_intro (@purify x))) false true))
   )
 )
 (echo "smt-meta $eovc_skolem_intro")
@@ -13790,7 +13790,7 @@
 (program $eor_exists_inv_condition ((n Int) (x (BitVec n)) (R Bool))
   :signature (Bool) Bool
   (
-  (($eor_exists_inv_condition (_ (exists (_ ($eo_List_cons x) $eo_List_nil)) R)) ($eor_exists_inv_condition.fev1 R x ($substitute x (_ @witness_inv_condition (_ (exists (_ ($eo_List_cons x) $eo_List_nil)) R)) R) ($mk_invertibility_condition x R)))
+  (($eor_exists_inv_condition (_ (exists (_ ($eo_List_cons x) $eo_List_nil)) R)) ($eor_exists_inv_condition.fev1 R x ($substitute x (@witness_inv_condition (_ (exists (_ ($eo_List_cons x) $eo_List_nil)) R)) R) ($mk_invertibility_condition x R)))
   )
 )
 ; program: $eovc_exists_inv_condition
@@ -18081,14 +18081,14 @@
 (program $eor_sets-eq-singleton-emp ((@T1 Type) (@T0 Type) (x1 (Set @T0)) (y1 @T1))
   :signature ((Set @T0) @T1 Type Bool) Bool
   (
-  ((eo::define ((_v0 (Set @T0))) ($eor_sets-eq-singleton-emp x1 y1 _v0 (_ (= x1) (_ set.empty _v0)))) (_ (= (_ (= x1) (set.singleton y1))) false))
+  ((eo::define ((_v0 (Set @T0))) ($eor_sets-eq-singleton-emp x1 y1 _v0 (_ (= x1) (as set.empty _v0)))) (_ (= (_ (= x1) (set.singleton y1))) false))
   )
 )
 ; program: $eovc_sets-eq-singleton-emp
 (program $eovc_sets-eq-singleton-emp ((@T1 Type) (y1 @T1) (@T0 Type) (x1 (Set @T0)))
   :signature (Type (Set @T0) @T1) Bool
   (
-  (($eovc_sets-eq-singleton-emp @T0 x1 y1) (eo::define ((_v0 (Set @T0))) (eo::define ((_v1 (_ (= x1) (_ set.empty _v0)))) ($eo_requires_eq ($eo_model_sat _v1) true ($eo_requires_eq ($eo_model_sat ($eor_sets-eq-singleton-emp x1 y1 _v0 _v1)) false true)))))
+  (($eovc_sets-eq-singleton-emp @T0 x1 y1) (eo::define ((_v0 (Set @T0))) (eo::define ((_v1 (_ (= x1) (as set.empty _v0)))) ($eo_requires_eq ($eo_model_sat _v1) true ($eo_requires_eq ($eo_model_sat ($eor_sets-eq-singleton-emp x1 y1 _v0 _v1)) false true)))))
   )
 )
 (echo "smt-meta $eovc_sets-eq-singleton-emp")
@@ -18111,14 +18111,14 @@
 (program $eor_sets-member-emp ((@T0 Type) (@T1 Type) (x1 @T0) (y1 (Set @T1)))
   :signature (@T0 (Set @T1) Type Bool) Bool
   (
-  ((eo::define ((_v0 (Set @T1))) ($eor_sets-member-emp x1 y1 _v0 (_ (= y1) (_ set.empty _v0)))) (_ (= (_ (set.member x1) y1)) false))
+  ((eo::define ((_v0 (Set @T1))) ($eor_sets-member-emp x1 y1 _v0 (_ (= y1) (as set.empty _v0)))) (_ (= (_ (set.member x1) y1)) false))
   )
 )
 ; program: $eovc_sets-member-emp
 (program $eovc_sets-member-emp ((@T0 Type) (x1 @T0) (@T1 Type) (y1 (Set @T1)))
   :signature (Type (Set @T1) @T0) Bool
   (
-  (($eovc_sets-member-emp @T1 y1 x1) (eo::define ((_v0 (Set @T1))) (eo::define ((_v1 (_ (= y1) (_ set.empty _v0)))) ($eo_requires_eq ($eo_model_sat _v1) true ($eo_requires_eq ($eo_model_sat ($eor_sets-member-emp x1 y1 _v0 _v1)) false true)))))
+  (($eovc_sets-member-emp @T1 y1 x1) (eo::define ((_v0 (Set @T1))) (eo::define ((_v1 (_ (= y1) (as set.empty _v0)))) ($eo_requires_eq ($eo_model_sat _v1) true ($eo_requires_eq ($eo_model_sat ($eor_sets-member-emp x1 y1 _v0 _v1)) false true)))))
   )
 )
 (echo "smt-meta $eovc_sets-member-emp")
@@ -18171,14 +18171,14 @@
 (program $eor_sets-inter-emp1 ((@T1 Type) (@T0 Type) (y1 (Set @T1)) (x1 (Set @T0)))
   :signature ((Set @T0) (Set @T1) Type Bool) Bool
   (
-  ((eo::define ((_v0 (Set @T0))) ($eor_sets-inter-emp1 x1 y1 _v0 (_ (= x1) (_ set.empty _v0)))) (_ (= (_ (set.inter x1) y1)) x1))
+  ((eo::define ((_v0 (Set @T0))) ($eor_sets-inter-emp1 x1 y1 _v0 (_ (= x1) (as set.empty _v0)))) (_ (= (_ (set.inter x1) y1)) x1))
   )
 )
 ; program: $eovc_sets-inter-emp1
 (program $eovc_sets-inter-emp1 ((@T1 Type) (y1 (Set @T1)) (@T0 Type) (x1 (Set @T0)))
   :signature (Type (Set @T0) (Set @T1)) Bool
   (
-  (($eovc_sets-inter-emp1 @T0 x1 y1) (eo::define ((_v0 (Set @T0))) (eo::define ((_v1 (_ (= x1) (_ set.empty _v0)))) ($eo_requires_eq ($eo_model_sat _v1) true ($eo_requires_eq ($eo_model_sat ($eor_sets-inter-emp1 x1 y1 _v0 _v1)) false true)))))
+  (($eovc_sets-inter-emp1 @T0 x1 y1) (eo::define ((_v0 (Set @T0))) (eo::define ((_v1 (_ (= x1) (as set.empty _v0)))) ($eo_requires_eq ($eo_model_sat _v1) true ($eo_requires_eq ($eo_model_sat ($eor_sets-inter-emp1 x1 y1 _v0 _v1)) false true)))))
   )
 )
 (echo "smt-meta $eovc_sets-inter-emp1")
@@ -18186,14 +18186,14 @@
 (program $eor_sets-inter-emp2 ((@T0 Type) (@T1 Type) (x1 (Set @T0)) (y1 (Set @T1)))
   :signature ((Set @T0) (Set @T1) Type Bool) Bool
   (
-  ((eo::define ((_v0 (Set @T1))) ($eor_sets-inter-emp2 x1 y1 _v0 (_ (= y1) (_ set.empty _v0)))) (_ (= (_ (set.inter x1) y1)) y1))
+  ((eo::define ((_v0 (Set @T1))) ($eor_sets-inter-emp2 x1 y1 _v0 (_ (= y1) (as set.empty _v0)))) (_ (= (_ (set.inter x1) y1)) y1))
   )
 )
 ; program: $eovc_sets-inter-emp2
 (program $eovc_sets-inter-emp2 ((@T0 Type) (x1 (Set @T0)) (@T1 Type) (y1 (Set @T1)))
   :signature (Type (Set @T1) (Set @T0)) Bool
   (
-  (($eovc_sets-inter-emp2 @T1 y1 x1) (eo::define ((_v0 (Set @T1))) (eo::define ((_v1 (_ (= y1) (_ set.empty _v0)))) ($eo_requires_eq ($eo_model_sat _v1) true ($eo_requires_eq ($eo_model_sat ($eor_sets-inter-emp2 x1 y1 _v0 _v1)) false true)))))
+  (($eovc_sets-inter-emp2 @T1 y1 x1) (eo::define ((_v0 (Set @T1))) (eo::define ((_v1 (_ (= y1) (as set.empty _v0)))) ($eo_requires_eq ($eo_model_sat _v1) true ($eo_requires_eq ($eo_model_sat ($eor_sets-inter-emp2 x1 y1 _v0 _v1)) false true)))))
   )
 )
 (echo "smt-meta $eovc_sets-inter-emp2")
@@ -18201,14 +18201,14 @@
 (program $eor_sets-minus-emp1 ((@T1 Type) (@T0 Type) (y1 (Set @T1)) (x1 (Set @T0)))
   :signature ((Set @T0) (Set @T1) Type Bool) Bool
   (
-  ((eo::define ((_v0 (Set @T0))) ($eor_sets-minus-emp1 x1 y1 _v0 (_ (= x1) (_ set.empty _v0)))) (_ (= (_ (set.minus x1) y1)) x1))
+  ((eo::define ((_v0 (Set @T0))) ($eor_sets-minus-emp1 x1 y1 _v0 (_ (= x1) (as set.empty _v0)))) (_ (= (_ (set.minus x1) y1)) x1))
   )
 )
 ; program: $eovc_sets-minus-emp1
 (program $eovc_sets-minus-emp1 ((@T1 Type) (y1 (Set @T1)) (@T0 Type) (x1 (Set @T0)))
   :signature (Type (Set @T0) (Set @T1)) Bool
   (
-  (($eovc_sets-minus-emp1 @T0 x1 y1) (eo::define ((_v0 (Set @T0))) (eo::define ((_v1 (_ (= x1) (_ set.empty _v0)))) ($eo_requires_eq ($eo_model_sat _v1) true ($eo_requires_eq ($eo_model_sat ($eor_sets-minus-emp1 x1 y1 _v0 _v1)) false true)))))
+  (($eovc_sets-minus-emp1 @T0 x1 y1) (eo::define ((_v0 (Set @T0))) (eo::define ((_v1 (_ (= x1) (as set.empty _v0)))) ($eo_requires_eq ($eo_model_sat _v1) true ($eo_requires_eq ($eo_model_sat ($eor_sets-minus-emp1 x1 y1 _v0 _v1)) false true)))))
   )
 )
 (echo "smt-meta $eovc_sets-minus-emp1")
@@ -18216,14 +18216,14 @@
 (program $eor_sets-minus-emp2 ((@T0 Type) (@T1 Type) (y1 (Set @T1)) (x1 (Set @T0)))
   :signature ((Set @T0) (Set @T1) Type Bool) Bool
   (
-  ((eo::define ((_v0 (Set @T1))) ($eor_sets-minus-emp2 x1 y1 _v0 (_ (= y1) (_ set.empty _v0)))) (_ (= (_ (set.minus x1) y1)) x1))
+  ((eo::define ((_v0 (Set @T1))) ($eor_sets-minus-emp2 x1 y1 _v0 (_ (= y1) (as set.empty _v0)))) (_ (= (_ (set.minus x1) y1)) x1))
   )
 )
 ; program: $eovc_sets-minus-emp2
 (program $eovc_sets-minus-emp2 ((@T0 Type) (x1 (Set @T0)) (@T1 Type) (y1 (Set @T1)))
   :signature (Type (Set @T1) (Set @T0)) Bool
   (
-  (($eovc_sets-minus-emp2 @T1 y1 x1) (eo::define ((_v0 (Set @T1))) (eo::define ((_v1 (_ (= y1) (_ set.empty _v0)))) ($eo_requires_eq ($eo_model_sat _v1) true ($eo_requires_eq ($eo_model_sat ($eor_sets-minus-emp2 x1 y1 _v0 _v1)) false true)))))
+  (($eovc_sets-minus-emp2 @T1 y1 x1) (eo::define ((_v0 (Set @T1))) (eo::define ((_v1 (_ (= y1) (as set.empty _v0)))) ($eo_requires_eq ($eo_model_sat _v1) true ($eo_requires_eq ($eo_model_sat ($eor_sets-minus-emp2 x1 y1 _v0 _v1)) false true)))))
   )
 )
 (echo "smt-meta $eovc_sets-minus-emp2")
@@ -18231,14 +18231,14 @@
 (program $eor_sets-union-emp1 ((@T1 Type) (@T0 Type) (x1 (Set @T0)) (y1 (Set @T1)))
   :signature ((Set @T0) (Set @T1) Type Bool) Bool
   (
-  ((eo::define ((_v0 (Set @T0))) ($eor_sets-union-emp1 x1 y1 _v0 (_ (= x1) (_ set.empty _v0)))) (_ (= (_ (set.union x1) y1)) y1))
+  ((eo::define ((_v0 (Set @T0))) ($eor_sets-union-emp1 x1 y1 _v0 (_ (= x1) (as set.empty _v0)))) (_ (= (_ (set.union x1) y1)) y1))
   )
 )
 ; program: $eovc_sets-union-emp1
 (program $eovc_sets-union-emp1 ((@T1 Type) (y1 (Set @T1)) (@T0 Type) (x1 (Set @T0)))
   :signature (Type (Set @T0) (Set @T1)) Bool
   (
-  (($eovc_sets-union-emp1 @T0 x1 y1) (eo::define ((_v0 (Set @T0))) (eo::define ((_v1 (_ (= x1) (_ set.empty _v0)))) ($eo_requires_eq ($eo_model_sat _v1) true ($eo_requires_eq ($eo_model_sat ($eor_sets-union-emp1 x1 y1 _v0 _v1)) false true)))))
+  (($eovc_sets-union-emp1 @T0 x1 y1) (eo::define ((_v0 (Set @T0))) (eo::define ((_v1 (_ (= x1) (as set.empty _v0)))) ($eo_requires_eq ($eo_model_sat _v1) true ($eo_requires_eq ($eo_model_sat ($eor_sets-union-emp1 x1 y1 _v0 _v1)) false true)))))
   )
 )
 (echo "smt-meta $eovc_sets-union-emp1")
@@ -18246,14 +18246,14 @@
 (program $eor_sets-union-emp2 ((@T0 Type) (@T1 Type) (y1 (Set @T1)) (x1 (Set @T0)))
   :signature ((Set @T0) (Set @T1) Type Bool) Bool
   (
-  ((eo::define ((_v0 (Set @T1))) ($eor_sets-union-emp2 x1 y1 _v0 (_ (= y1) (_ set.empty _v0)))) (_ (= (_ (set.union x1) y1)) x1))
+  ((eo::define ((_v0 (Set @T1))) ($eor_sets-union-emp2 x1 y1 _v0 (_ (= y1) (as set.empty _v0)))) (_ (= (_ (set.union x1) y1)) x1))
   )
 )
 ; program: $eovc_sets-union-emp2
 (program $eovc_sets-union-emp2 ((@T0 Type) (x1 (Set @T0)) (@T1 Type) (y1 (Set @T1)))
   :signature (Type (Set @T1) (Set @T0)) Bool
   (
-  (($eovc_sets-union-emp2 @T1 y1 x1) (eo::define ((_v0 (Set @T1))) (eo::define ((_v1 (_ (= y1) (_ set.empty _v0)))) ($eo_requires_eq ($eo_model_sat _v1) true ($eo_requires_eq ($eo_model_sat ($eor_sets-union-emp2 x1 y1 _v0 _v1)) false true)))))
+  (($eovc_sets-union-emp2 @T1 y1 x1) (eo::define ((_v0 (Set @T1))) (eo::define ((_v1 (_ (= y1) (as set.empty _v0)))) ($eo_requires_eq ($eo_model_sat _v1) true ($eo_requires_eq ($eo_model_sat ($eor_sets-union-emp2 x1 y1 _v0 _v1)) false true)))))
   )
 )
 (echo "smt-meta $eovc_sets-union-emp2")
@@ -18321,7 +18321,7 @@
 (program $eor_sets-minus-self ((@T0 Type) (x1 (Set @T0)))
   :signature ((Set @T0) Type) Bool
   (
-  (($eor_sets-minus-self x1 (Set @T0)) (_ (= (_ (set.minus x1) x1)) (_ set.empty (Set @T0))))
+  (($eor_sets-minus-self x1 (Set @T0)) (_ (= (_ (set.minus x1) x1)) (as set.empty (Set @T0))))
   )
 )
 ; program: $eovc_sets-minus-self
@@ -18336,7 +18336,7 @@
 (program $eor_sets-is-empty-elim ((@T0 Type) (x1 (Set @T0)))
   :signature ((Set @T0) Type) Bool
   (
-  (($eor_sets-is-empty-elim x1 (Set @T0)) (_ (= (set.is_empty x1)) (_ (= x1) (_ set.empty (Set @T0)))))
+  (($eor_sets-is-empty-elim x1 (Set @T0)) (_ (= (set.is_empty x1)) (_ (= x1) (as set.empty (Set @T0)))))
   )
 )
 ; program: $eovc_sets-is-empty-elim
