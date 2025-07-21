@@ -358,15 +358,14 @@
     ($smtx_ensure_value (vsm.Term (eo.SmtTerm.arg1 x1)))
 )))))))) :named sm.axiom.$smtx_model_eval))
 
-; program: $eo_model_sat_internal
-(define-fun $eo_model_sat_internal ((x1 vsm.Value)) eo.Term
-  (ite false
-    eo.Stuck
+; program: $smtx_model_sat
+(define-fun $smtx_model_sat ((x1 vsm.Value)) eo.Term
   (ite (and ((_ is vsm.Term) x1) ((_ is sm.Bool) (vsm.Term.arg1 x1)) (= (sm.Bool.arg1 (vsm.Term.arg1 x1)) true))
-    (eo.SmtTerm (sm.Bool true))
+    (eo.SmtTerm (sm.Numeral 1))
   (ite (and ((_ is vsm.Term) x1) ((_ is sm.Bool) (vsm.Term.arg1 x1)) (= (sm.Bool.arg1 (vsm.Term.arg1 x1)) false))
-    (eo.SmtTerm (sm.Bool false))
-    eo.Stuck))))
+    (eo.SmtTerm (sm.Numeral (- 1)))
+    (eo.SmtTerm (sm.Numeral 0))
+)))
 
 ; program: $eo_model_sat
 (assert (! (forall ((x1 eo.Term))
@@ -374,7 +373,7 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    ($eo_model_sat_internal ($smtx_model_eval x1))
+    ($smtx_model_sat ($smtx_model_eval x1))
     eo.Stuck)))) :named sm.axiom.$eo_model_sat))
 
 ; program: $eor_symm
@@ -390,7 +389,7 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    ($eo_requires_eq ($eo_model_sat x1) (eo.SmtTerm (sm.Bool true)) ($eo_requires_eq ($eo_model_sat ($eor_symm x1)) (eo.SmtTerm (sm.Bool false)) (eo.SmtTerm (sm.Bool true))))
+    ($eo_requires_eq ($eo_model_sat x1) (eo.SmtTerm (sm.Numeral 1)) ($eo_requires_eq ($eo_model_sat ($eor_symm x1)) (eo.SmtTerm (sm.Numeral (- 1))) (eo.SmtTerm (sm.Bool true))))
     eo.Stuck)))
 
 

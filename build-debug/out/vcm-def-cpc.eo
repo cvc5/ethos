@@ -1,5 +1,5 @@
-; trim-defs: $eovc_symm $eo_typeof_main $eo_String $eo_Numeral $eo_Rational $eo_Binary $eo_dt_constructors $eo_dt_selectors $eo_List $eo_List_nil $eo_List_cons $eo_model_typeof
-; #trim-defs: 50
+; trim-defs: $eovc_symm $eo_typeof_main $eo_String $eo_Numeral $eo_Rational $eo_Binary $eo_dt_constructors $eo_dt_selectors $eo_List $eo_List_nil $eo_List_cons $eo_model_typeof $eo_requires_eq
+; #trim-defs: 51
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -109,7 +109,7 @@
 (define $smt_builtin_and ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "and" b1 b2))
 (define $smt_builtin_or ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "or" b1 b2))
 
-; TODO: =, ite
+; TODO: ite
 
 ; In this signature, we heavily use references to the Datatypes corresponding
 ; to the final deep embeddings of Eunoia terms (eo.Term) and SMT-LIB terms
@@ -976,8 +976,8 @@
   (($eo_dt_selectors t) $eo_fail)
   )
 )
-(program $eo_model_sat () :signature (Bool) Bool)
-(program $eo_model_typeof ((T Type)) :signature (T) Bool)
+(program $eo_model_sat () :signature (Bool) $eo_Numeral)
+(program $eo_model_typeof () :signature (Bool) Type)
 ; This file defines SMT-LIB model semantics in Eunoia.
 ; It has exception handling utilities to call Eunoia programs in
 ; a safe way that ensures that all programs in this signature are total.
@@ -1401,13 +1401,13 @@
   )
 )
 
-; program: $eo_model_sat_internal
-(program $eo_model_sat_internal ((val $smt_Value))
-  :signature ($smt_Value) Bool
+; program: $smtx_model_sat
+(program $smtx_model_sat ((val $smt_Value))
+  :signature ($smt_Value) $eo_Numeral
   (
-  (($eo_model_sat_internal $vsm_true)   true)
-  (($eo_model_sat_internal $vsm_false)  false)
-  ; otherwise stuck
+  (($smtx_model_sat $vsm_true)   1)
+  (($smtx_model_sat $vsm_false)  -1)
+  (($smtx_model_sat val)         0)  ; otherwise, don't know
   )
 )
 
@@ -1415,27 +1415,27 @@
 ; note: F is satisfied by the model if F evaluates to the SMT-LIB value denoting true.
 ; We expect the input to this method to be a Eunoia term denoting an SMT-LIB formula
 ; (term of Boolean type).
-(program $eo_model_sat ((F $eo_Term))
-  :signature (Bool) Bool
+(program $eo_model_sat ((F Bool))
+  :signature (Bool) $eo_Numeral
   (
-  (($eo_model_sat F) ($eo_model_sat_internal ($smtx_model_eval F)))
+  (($eo_model_sat F) ($smtx_model_sat ($smtx_model_eval F)))
   )
 )
 
 ; note: Helper for below.
-(program $eo_model_typeof_map ((T $eo_Term) (j $smt_Value) (e $smt_Value) (m $smt_Map))
+(program $smtx_typeof_map ((T $eo_Term) (j $smt_Value) (e $smt_Value) (m $smt_Map))
   :signature ($eo_Term $smt_Map) $eo_Term
   (
-  (($eo_model_typeof_map T ($map_cons j e m))   (-> T ($eo_model_typeof ($eo_smt_value e))))
-  (($eo_model_typeof_map T ($map_default e))    (-> T ($eo_model_typeof ($eo_smt_value e))))
+  (($smtx_typeof_map T ($map_cons j e m))   (-> T ($eo_model_typeof ($eo_smt_value e))))
+  (($smtx_typeof_map T ($map_default e))    (-> T ($eo_model_typeof ($eo_smt_value e))))
   )
 )
 
-; note: Helper for below. This is analogous to the method $eo_typeof_applye
-(program $eo_model_typeof_apply ((T $eo_Term) (U $eo_Term))
+; note: Helper for below. This is analogous to the method $eo_typeof_apply
+(program $smtx_typeof_apply ((T $eo_Term) (U $eo_Term))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
-  (($eo_model_typeof_apply (-> T U) T) U)
+  (($smtx_typeof_apply (-> T U) T) U)
   )
 )
 
@@ -1453,29 +1453,62 @@
 ; - (EO terms intentionally unhandled): eo.Stuck, eo.SmtType
 ; invariant: all terms introduced by this layer must be given a type rule here.
 ; TODO: use hash for the nullsort below?
-(program $eo_model_typeof
+(program $smtx_typeof
   ((t $eo_Term) (val $smt_Value) (T $eo_Term) (m $smt_Map) (id $smt_builtin_Int)
    (f $smt_Value) (a $smt_Term) (U $smt_Type))
   :signature ($eo_Term) $eo_Term
   (
   ; the type of an atomic type uses Eunoia's typeof builtin, or null sort if this fails.
-  (($eo_model_typeof ($eo_smt_type U))                    ($smt_try_typeof U))
+  (($smtx_typeof ($eo_smt_type U))                    ($smt_try_typeof U))
   ; the type of a constant is the type of its value.
-  (($eo_model_typeof ($eo_smt_term ($sm_Const val)))      ($eo_model_typeof ($eo_smt_value val)))
+  (($smtx_typeof ($eo_smt_term ($sm_Const val)))      ($smtx_typeof ($eo_smt_value val)))
   ; similar to above, we try Eunoia's typeof, or null sort.
-  (($eo_model_typeof ($eo_smt_term a))                    ($smt_try_typeof a))
-  (($eo_model_typeof ($eo_smt_value ($vsm_apply f val)))  ($eo_model_typeof_apply
-                                                            ($eo_model_typeof f)
-                                                            ($eo_model_typeof val)))
+  (($smtx_typeof ($eo_smt_term a))                    ($smt_try_typeof a))
+  (($smtx_typeof ($eo_smt_value ($vsm_apply f val)))  ($smtx_typeof_apply
+                                                        ($smtx_typeof f)
+                                                        ($smtx_typeof val)))
   ; the type of a value term is the type of its term.
-  (($eo_model_typeof ($eo_smt_value ($vsm_term t)))       ($eo_model_typeof ($eo_smt_term t)))
-  (($eo_model_typeof ($eo_smt_value ($vsm_map T m)))      ($eo_model_typeof_map T m))
+  (($smtx_typeof ($eo_smt_value ($vsm_term t)))       ($smtx_typeof ($eo_smt_term t)))
+  (($smtx_typeof ($eo_smt_value ($vsm_map T m)))      ($smtx_typeof_map T m))
   ; the type of uninterpreted constants carry its type.
-  (($eo_model_typeof ($eo_smt_value ($vsm_uconst T id)))  T)
+  (($smtx_typeof ($eo_smt_value ($vsm_uconst T id)))  T)
   ; the type of not-values is the null sort.
-  (($eo_model_typeof ($eo_smt_value $vsm_not_value))      ($tsm_NullSort $smt_builtin_z_zero))
+  (($smtx_typeof ($eo_smt_value $vsm_not_value))      ($tsm_NullSort $smt_builtin_z_zero))
   ; For all other terms, we try Eunoia's typeof, or null sort.
-  (($eo_model_typeof t)                                   ($smt_try_typeof t))
+  (($smtx_typeof t)                                   ($smt_try_typeof t))
+  )
+)
+
+; program: $eo_model_typeof
+; note: F is satisfied by the model if F evaluates to the SMT-LIB value denoting true.
+; We expect the input to this method to be a Eunoia term denoting an SMT-LIB formula
+; (term of Boolean type).
+(program $eo_model_typeof ((F Bool))
+  :signature (Bool) Type
+  (
+  (($eo_model_typeof F) ($smtx_typeof F))
+  )
+)
+
+; program: $smtx_is_smt_input
+(program $smtx_is_smt_input
+  ((t $eo_Term) (a $eo_Term) (s $smt_Term) (T $smt_Type))
+  :signature ($eo_Term) Bool
+  (
+  (($smtx_is_smt_input ($eo_apply t a))
+     ($eo_and ($smtx_is_smt_input t) ($smtx_is_smt_input a))) ; TODO: is this right??
+  (($smtx_is_smt_input ($eo_smt_term s)) true)
+  (($smtx_is_smt_input ($eo_smt_type T)) true)
+  (($smtx_is_smt_input t)                false)
+  )
+)
+
+; program: $eo_model_is_smt_input
+; return: true if this is a legal SMT-LIB input term or type.
+(program $eo_model_is_smt_input ((F Bool))
+  :signature (Bool) Bool
+  (
+  (($eo_model_is_smt_input F) ($smtx_is_smt_input F))
   )
 )
 
@@ -1489,7 +1522,7 @@
 (program $eovc_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eovc_symm F) ($eo_requires_eq ($eo_model_sat F) true ($eo_requires_eq ($eo_model_sat ($eor_symm F)) false true)))
+  (($eovc_symm F) ($eo_requires_eq ($eo_model_sat F) 1 ($eo_requires_eq ($eo_model_sat ($eor_symm F)) -1 true)))
   )
 )
 (echo "smt-meta $eovc_symm")

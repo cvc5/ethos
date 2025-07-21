@@ -1,5 +1,5 @@
-; trim-defs: $eovc_symm $eo_typeof_main $eo_String $eo_Numeral $eo_Rational $eo_Binary $eo_dt_constructors $eo_dt_selectors $eo_List $eo_List_nil $eo_List_cons $eo_model_typeof
-; #trim-defs: 50
+; trim-defs: $eovc_symm $eo_typeof_main $eo_String $eo_Numeral $eo_Rational $eo_Binary $eo_dt_constructors $eo_dt_selectors $eo_List $eo_List_nil $eo_List_cons $eo_model_typeof $eo_requires_eq
+; #trim-defs: 51
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -115,8 +115,8 @@
   (($eo_dt_selectors t) $eo_fail)
   )
 )
-(program $eo_model_sat () :signature (Bool) Bool)
-(program $eo_model_typeof ((T Type)) :signature (T) Bool)
+(program $eo_model_sat () :signature (Bool) $eo_Numeral)
+(program $eo_model_typeof () :signature (Bool) Type)
 (echo "include eo_model_sat")
 (program $eor_symm ((F Bool))
   :signature (Bool) Bool
@@ -127,7 +127,7 @@
 (program $eovc_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eovc_symm F) ($eo_requires_eq ($eo_model_sat F) true ($eo_requires_eq ($eo_model_sat ($eor_symm F)) false true)))
+  (($eovc_symm F) ($eo_requires_eq ($eo_model_sat F) 1 ($eo_requires_eq ($eo_model_sat ($eor_symm F)) -1 true)))
   )
 )
 (echo "smt-meta $eovc_symm")

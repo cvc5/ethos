@@ -97,6 +97,15 @@
   (($eo_requires_eq x1 x1 x3) x3)
   )
 )
+; program: $eo_requires_deq
+; return: x3 if x1 and x2 are disequal, or gets stuck otherwise.
+(program $eo_requires_deq ((T Type) (U Type) (x1 T) (x2 T) (x3 U))
+  :signature (T T U) U
+  (
+  (($eo_requires_deq x1 x1 x3) $eo_fail)
+  (($eo_requires_deq x1 x2 x3) x3)
+  )
+)
 
 ; note: This is used to ensure signature does not depend on ite.
 (program $eo_prepend_if ((T Type) (V Type) (x T) (f (-> T V V)) (res V))
@@ -598,13 +607,18 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_smt
 
+; The following functions may be used to define the verification condition we
+; will write below.
+
 ; A placeholder for asking whether a formula is satisfied by a model.
-; This is used to define the verification condition we will write below.
-(program $eo_model_sat () :signature (Bool) Bool)
+; 1: satisifed, -1: not satisfied, 0: don't know.
+(program $eo_model_sat () :signature (Bool) $eo_Numeral)
 
 ; A placeholder for asking the type of a given term.
-; This is used to define the verification condition we will write below.
-(program $eo_model_typeof ((T Type)) :signature (T) Bool)
+(program $eo_model_typeof () :signature (Bool) Type)
+
+; A placeholder for asking whether a term is legal syntax for an SMT-LIB term.
+(program $eo_model_is_smt_input () :signature (Bool) Bool)
 
 ; We will include the definition of $eo_model_sat here.
 (echo "include eo_model_sat")
@@ -624,7 +638,7 @@
 (program $eovc_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eovc_symm F) ($eo_requires_eq ($eo_model_sat F) true ($eo_requires_eq ($eo_model_sat ($eor_symm F)) false true)))
+  (($eovc_symm F) ($eo_requires_eq ($eo_model_sat F) 1 ($eo_requires_eq ($eo_model_sat ($eor_symm F)) -1 true)))
   )
 )
 (echo "smt-meta $eovc_symm")

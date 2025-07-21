@@ -220,7 +220,7 @@
   (($eo_dt_selectors t) $eo_fail)
   )
 )
-(program $eo_model_sat () :signature (Bool) Bool)
+(program $eo_model_sat () :signature (Bool) $eo_Numeral)
 (define $vsm_map ((T $eo_Term) (m $smt_Map))
   ($smd_vsm.Map T m))
 (define $vsm_uconst ((T $eo_Term) (id $smt_builtin_Int))
@@ -404,18 +404,18 @@
   (($smtx_model_eval z)                         ($smtx_ensure_value ($vsm_term z)))
   )
 )
-(program $eo_model_sat_internal ((val $smt_Value))
-  :signature ($smt_Value) Bool
+(program $smtx_model_sat ((val $smt_Value))
+  :signature ($smt_Value) $eo_Numeral
   (
-  (($eo_model_sat_internal $vsm_true)   true)
-  (($eo_model_sat_internal $vsm_false)  false)
-  
+  (($smtx_model_sat $vsm_true)   1)
+  (($smtx_model_sat $vsm_false)  -1)
+  (($smtx_model_sat val)         0)  
   )
 )
-(program $eo_model_sat ((F $eo_Term))
-  :signature (Bool) Bool
+(program $eo_model_sat ((F Bool))
+  :signature (Bool) $eo_Numeral
   (
-  (($eo_model_sat F) ($eo_model_sat_internal ($smtx_model_eval F)))
+  (($eo_model_sat F) ($smtx_model_sat ($smtx_model_eval F)))
   )
 )
 (program $eor_symm ((F Bool))
@@ -427,7 +427,7 @@
 (program $eovc_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eovc_symm F) ($eo_requires_eq ($eo_model_sat F) true ($eo_requires_eq ($eo_model_sat ($eor_symm F)) false true)))
+  (($eovc_symm F) ($eo_requires_eq ($eo_model_sat F) 1 ($eo_requires_eq ($eo_model_sat ($eor_symm F)) -1 true)))
   )
 )
 (echo "smt-meta $eovc_symm")

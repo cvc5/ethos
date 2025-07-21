@@ -78,7 +78,10 @@ class Desugar : public StdPlugin
                   size_t& varCount,
                   bool inPatMatch,
                   std::vector<std::pair<Expr, Expr>>& newVars);
-  Expr mkRequiresBool(bool tgt, const Expr& test, const Expr& ret);
+  Expr mkRequiresModelSat(bool tgt, const Expr& test, const Expr& ret);
+  Expr mkRequiresModelTypeofBool(const Expr& test, const Expr& ret);
+  Expr mkRequiresModelIsSmtTerm(const Expr& test, const Expr& ret);
+  Expr mkRequiresEq(const Expr& t1, const Expr& t2, const Expr& ret, bool negated=false);
   Attr getAttribute(const Expr& e);
   /** Declares seen */
   std::vector<std::pair<Expr, Kind>> d_declSeen;
@@ -115,9 +118,11 @@ class Desugar : public StdPlugin
   std::stringstream d_eoModelEval;
   std::stringstream d_eoModelConstPred;
 
-  Expr d_progEoModelSat;
-  Expr d_progEoModelTypeof;
-  Expr d_progEoRequiresEq;
+  Expr d_peoModelSat;
+  Expr d_peoModelTypeof;
+  Expr d_peoModelIsSmtTerm;
+  Expr d_peoRequiresEq;
+  Expr d_peoRequiresDeq;
   size_t d_eoDtConsParamCount;
   bool d_genWfCond;
 };

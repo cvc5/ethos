@@ -1300,10 +1300,16 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
       {
         // builtin equality returns an SMT-LIB builtin
         tk = MetaKind::SMT_BUILTIN;
+        MetaKind k1 = getMetaKindReturn(child[1], parentCtx);
+        MetaKind k2 = getMetaKindReturn(child[2], parentCtx);
+        Assert(k1 == k2) << "Equal sides have different meta types " << child
+                          << " " << metaKindToString(k1) << " "
+                          << metaKindToString(k2);
       }
       else
       {
         std::string esname = getEmbedName(child);
+        Assert (esname!="=") << "Expected $smt_apply_=";
         if (esname == "ite")
         {
           Assert(child.getNumChildren() == 5);
@@ -1312,16 +1318,6 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
           Assert(tk == k2) << "ITE branches have different meta types " << child
                            << " " << metaKindToString(tk) << " and "
                            << metaKindToString(k2);
-        }
-        else if (esname == "=")
-        {
-          MetaKind k1 = getMetaKindReturn(child[2], parentCtx);
-          MetaKind k2 = getMetaKindReturn(child[3], parentCtx);
-          Assert(k1 == k2) << "Equal sides have different meta types " << child
-                           << " " << metaKindToString(k1) << " "
-                           << metaKindToString(k2);
-        // builtin equality returns an SMT-LIB builtin
-          tk = MetaKind::SMT_BUILTIN;
         }
         else
         {
