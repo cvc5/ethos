@@ -465,27 +465,18 @@
 
 ; declare: ite
 (declare-parameterized-const ite (($eo_x_1 Bool) (A Type :implicit) ($eo_x_2 A) ($eo_x_3 A)) A)
+; declare: not
+(declare-const not (-> Bool Bool))
 ; declare: and
 (declare-const and (-> Bool (-> Bool Bool)))
 ; declare: =
 (declare-parameterized-const = ((A Type :implicit) ($eo_x_1 A) ($eo_x_2 A)) Bool)
-; fwd-decl: $mk_cong_rhs
-(program $mk_cong_rhs ((U Type))
-  :signature (U Bool) U
-)
-; program: $mk_cong_rhs.fev1
-(program $mk_cong_rhs.fev1 ((T Type) (U Type) (tail Bool) (f (-> T U)) ($eo_1 (-> T U)) (t2 U))
-  :signature (U Bool (-> T U) (-> T U)) U
+; program: $mk_symm
+(program $mk_symm ((T Type) (t2 T) (t1 T))
+  :signature (Bool) Bool
   (
-  (($mk_cong_rhs.fev1 t2 tail f $eo_1) ($eo_1 t2))
-  )
-)
-; program: $mk_cong_rhs
-(program $mk_cong_rhs ((U Type) (t1 U) (t2 U) (tail Bool) (T Type) (f (-> T U)))
-  :signature (U Bool) U
-  (
-  (($mk_cong_rhs (f t1) (_ (and (_ (= t1) t2)) tail)) ($mk_cong_rhs.fev1 t2 tail f ($mk_cong_rhs f tail)))
-  (($mk_cong_rhs f true) f)
+  (($mk_symm (_ (= t1) t2)) (_ (= t2) t1))
+  (($mk_symm (not (_ (= t1) t2))) (not (_ (= t2) t1)))
   )
 )
 ; declare: BitVec
@@ -553,6 +544,8 @@
   (($eo_typeof_main Seq) (-> Type Type))
   ; type-rule: ite
   (($eo_typeof_main (_ (ite x1) x2)) ($eo_typeof_ite ($eo_typeof x1) ($eo_typeof x2)))
+  ; type-rule: not
+  (($eo_typeof_main not) (-> Bool Bool))
   ; type-rule: and
   (($eo_typeof_main and) (-> Bool (-> Bool Bool)))
   ; type-rule: =
@@ -620,26 +613,19 @@
 
 ;; verification conditions
 
-; program: $eor_cong.fev1
-(program $eor_cong.fev1 ((U Type) (E Bool) (t U) ($eo_1 U))
-  :signature (Bool U U) Bool
+; program: $eor_symm
+(program $eor_symm ((F Bool))
+  :signature (Bool) Bool
   (
-  (($eor_cong.fev1 E t $eo_1) (_ (= t) $eo_1))
+  (($eor_symm F) ($mk_symm F))
   )
 )
-; program: $eor_cong
-(program $eor_cong ((U Type) (t U) (E Bool))
-  :signature (U Bool) Bool
+; program: $eovc_symm
+(program $eovc_symm ((F Bool))
+  :signature (Bool) Bool
   (
-  (($eor_cong t E) ($eor_cong.fev1 E t ($mk_cong_rhs t (eo::list_rev and E))))
+  (($eovc_symm F) ($eo_requires_eq ($eo_model_sat F) true ($eo_requires_eq ($eo_model_sat ($eor_symm F)) false true)))
   )
 )
-; program: $eovc_cong
-(program $eovc_cong ((U Type) (t U) (E Bool))
-  :signature (Bool U) Bool
-  (
-  (($eovc_cong E t) ($eo_requires_eq ($eo_model_sat E) true ($eo_requires_eq ($eo_model_sat ($eor_cong t E)) false true)))
-  )
-)
-(echo "smt-meta $eovc_cong")
+(echo "smt-meta $eovc_symm")
 
