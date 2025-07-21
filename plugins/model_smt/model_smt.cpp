@@ -248,8 +248,10 @@ void ModelSmt::printEmbType(const Expr& e, std::ostream& os)
 {
   if (!SmtMetaReduce::printMetaType(e, os))
   {
-    Assert(false) << "Failed to get meta-type for " << e;
-    os << e;
+    //Assert(false) << "Failed to get meta-type for " << e;
+    //os << e;
+    // otherwise, a user-provided ambiguous or opaque term, use eo_Term
+    os << "eo.Term";
   }
 }
 
