@@ -279,7 +279,6 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
   std::map<Expr, std::string>::iterator it;
   std::vector<std::tuple<Expr, std::string, MetaKind>> visit;
   std::tuple<Expr, std::string, MetaKind> cur;
-  const std::map<Expr, MetaKind>& ictx = ctx.d_itctx;
   visit.emplace_back(c, initCtx, tinit);
   do
   {
@@ -296,7 +295,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     //           << metaKindToString(parent) << " / kind " << ck
     //           << std::endl;
     // std::cout << "  atk: " << tcur << std::endl;
-    MetaKind child = getMetaKindReturn(tcur, parent, ictx);
+    MetaKind child = getMetaKindReturn(tcur, parent);
     // std::cout << "  atk: " << tcur << " is " << metaKindToString(atk)
     //           << std::endl;
     //  if the Eunoia term is an SMT term, change the context
@@ -369,7 +368,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       std::stringstream tester;
       tester << "((_ is " << cname.str() << ") " << currTerm << ")";
       print.push(tester.str());
-      std::vector<MetaKind> targs = getMetaKindArgs(tcur, parent, ictx);
+      std::vector<MetaKind> targs = getMetaKindArgs(tcur, parent);
       for (size_t i = printArgStart, nchild = tcur.getNumChildren(); i < nchild;
            i++)
       {
@@ -478,7 +477,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
   std::map<std::pair<Expr, MetaKind>, size_t>::iterator itc;
   std::stringstream osEnd;
   std::vector<Expr> ll;
-  const std::map<Expr, MetaKind>& ictx = ctx.d_itctx;
   // maps smt apply terms to the tuple that they actually are
   std::map<std::pair<Expr, MetaKind>, MetaKind>::iterator itt;
   Expr t = body;
@@ -763,7 +761,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
                  << " / " << metaKindToString(parent) << std::endl;
     }
     // otherwise, the new context depends on the types of the children
-    std::vector<MetaKind> targs = getMetaKindArgs(recTerm, parent, ictx);
+    std::vector<MetaKind> targs = getMetaKindArgs(recTerm, parent);
     // push in reverse order
     size_t nchild = recTerm.getNumChildren();
     for (size_t i = cstart; i < nchild; i++)
@@ -1148,8 +1146,7 @@ MetaKind SmtMetaReduce::getMetaKind(State& s, const Expr& e, std::string& cname)
 
 MetaKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
                                        size_t i,
-                                       MetaKind parentCtx,
-                                       const std::map<Expr, MetaKind>& ictx)
+                                       MetaKind parentCtx)
 {
   // This method should rely on the parent only!!!
   MetaKind tk = MetaKind::NONE;
@@ -1251,7 +1248,7 @@ MetaKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
     else
     {
       // the application case depends on the meta-kind of the head term
-      tk = getMetaKindReturn(parent, parentCtx, ictx);
+      tk = getMetaKindReturn(parent, parentCtx);
     }
   }
   else if (k == Kind::FUNCTION_TYPE)
@@ -1277,21 +1274,16 @@ bool SmtMetaReduce::isProgramApp(const Expr& app)
           && app[0].getKind() == Kind::PROGRAM_CONST);
 }
 
-MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
-{
-  std::map<Expr, MetaKind> ictx;
-  return getMetaKindReturn(child, parentCtx, ictx);
-}
-
 MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
-                                          MetaKind parentCtx,
-                                          const std::map<Expr, MetaKind>& ictx)
+                                          MetaKind parentCtx)
 {
   Assert(!child.isNull()) << "null term for meta kind";
   MetaKind tk = MetaKind::NONE;
   Expr hd = child;
+  Kind k = hd.getKind();
   if (hd.getKind()==Kind::APPLY)
   {
+    // check for programs
     if (isProgramApp(hd))
     {
       // if program app, depends on the type of the program
@@ -1303,33 +1295,6 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
     }
     // all other apply is Eunoia
     return MetaKind::EUNOIA;
-  }
-  // if an apply, we look for the head, this will determine eo.Apply vs.
-  // sm.Apply
-  while (hd.getKind() == Kind::APPLY && !isProgramApp(hd))
-  {
-    hd = hd[0];
-  }
-  Kind k = hd.getKind();
-  if (k == Kind::PARAM)
-  {
-    std::map<Expr, MetaKind>::const_iterator itp = ictx.find(hd);
-    if (itp != ictx.end())
-    {
-      return itp->second;
-    }
-    // TODO: error otherwise
-  }
-  // check for programs
-  if (k == Kind::APPLY)
-  {
-    Assert(isProgramApp(hd));
-    // if program app, depends on the type of the program
-    Expr p = hd[0];
-    Expr ptype = d_tc.getType(p);
-    Assert(ptype.getKind() == Kind::PROGRAM_TYPE);
-    // convert the type to a metakind
-    tk = getTypeMetaKind(ptype[ptype.getNumChildren() - 1]);
   }
   else if (k == Kind::APPLY_OPAQUE)
   {
@@ -1466,15 +1431,14 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
 
 std::vector<MetaKind> SmtMetaReduce::getMetaKindArgs(
     const Expr& parent,
-    MetaKind parentCtx,
-    const std::map<Expr, MetaKind>& ictx)
+    MetaKind parentCtx)
 {
   std::vector<MetaKind> args;
   std::cout << "  MetaArg: " << parent << " / " << metaKindToString(parentCtx)
             << std::endl;
   for (size_t i = 0, nchild = parent.getNumChildren(); i < nchild; i++)
   {
-    MetaKind ctx = getMetaKindArg(parent, i, parentCtx, ictx);
+    MetaKind ctx = getMetaKindArg(parent, i, parentCtx);
     std::cout << "    MetaArgChild: " << metaKindToString(ctx) << " for "
               << parent[i] << std::endl;
     args.push_back(ctx);
