@@ -61,8 +61,8 @@ echo "**** smt_meta: Run ethos + model-smt on $VC_DEF_DESUGAR to generate $VCM_D
 check_status
 cp $STD_SMODEL_OUT $VCM_DEF_DESUGAR
 
-# eliminate remaining eo::
-sed -i -e 's/eo::/\$eo_/g' -e 's/\$eo_quote/eo::quote/g' -e 's/\$eo_define/eo::define/g' $VCM_DEF_DESUGAR
+# should not eliminate remaining eo:: here
+#sed -i -e 's/eo::/\$eo_/g' -e 's/\$eo_quote/eo::quote/g' -e 's/\$eo_define/eo::define/g' $VCM_DEF_DESUGAR
 
 # trim again, where we require keeping the following:
 # - the verification condition

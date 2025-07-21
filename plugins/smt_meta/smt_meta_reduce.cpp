@@ -727,7 +727,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     else if (isLiteralOp(ck))
     {
       // ensure the remaining eo:: are eliminated
-      // TODO: is this necessary?
       std::string kstr = kindToTerm(ck);
       if (kstr.compare(0, 4, "eo::") == 0)
       {
@@ -1239,8 +1238,7 @@ MetaKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
   {
     tk = MetaKind::EUNOIA;
   }
-  else if (k == Kind::EVAL_IF_THEN_ELSE || k == Kind::EVAL_IS_OK
-           || k == Kind::EVAL_REQUIRES)
+  else if (isLiteralOp(k))
   {
     // all remaining builtins assume Eunoia arguments
     tk = MetaKind::EUNOIA;
@@ -1361,8 +1359,7 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
     // likely HO smt would change this.
     tk = MetaKind::EUNOIA;
   }
-  else if (k == Kind::EVAL_IF_THEN_ELSE || k == Kind::EVAL_IS_OK
-           || k == Kind::EVAL_REQUIRES)
+  else if (isLiteralOp(k))
   {
     tk = MetaKind::EUNOIA;
   }
