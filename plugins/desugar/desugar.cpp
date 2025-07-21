@@ -16,6 +16,11 @@
 #include "../flatten_eval/flatten_eval.h"
 #include "state.h"
 
+#define FLATTEN_EVAL
+//#define VC_USE_TYPE
+#define VC_USE_SMT_LIB_TERM
+//#define VC_USE_MODEL_SAT_STRICT
+
 namespace ethos {
 
 Desugar::Desugar(State& s) : StdPlugin(s)
@@ -99,15 +104,11 @@ void Desugar::finalizeProgram(const Expr& prog,
 {
   std::map<Expr, Expr> typeMap;
   std::vector<std::pair<Expr, Expr>> allDefs;
-  static bool flattenEval = true;
-  if (flattenEval)
-  {
-    allDefs = FlattenEval::flattenProgram(d_state, prog, progDef, typeMap);
-  }
-  else
-  {
-    allDefs.emplace_back(prog, progDef);
-  }
+#ifdef FLATTEN_EVAL
+  allDefs = FlattenEval::flattenProgram(d_state, prog, progDef, typeMap);
+#else
+  allDefs.emplace_back(prog, progDef);
+#endif
   for (std::pair<Expr, Expr>& d : allDefs)
   {
     Expr p = d.first;
@@ -623,7 +624,6 @@ void Desugar::finalizeDefinition(const std::string& name, const Expr& t)
 
 void Desugar::finalizeRule(const Expr& e)
 {
-  static bool useTypeof = false;
   // std::cout << "Finalize rule " << e << std::endl;
   Expr r = e;
   Expr rto = d_tc.getType(r);
@@ -695,12 +695,10 @@ void Desugar::finalizeRule(const Expr& e)
   Assert(rrt.getKind() == Kind::PROOF_TYPE)
       << "Bad return type: " << rrt.getKind() << " " << rrt;
   rrt = rrt[0];
+#ifdef VC_USE_TYPE
   // the final conclusion must have Bool type
-  if (useTypeof)
-  {
-    Expr rrtBool = d_state.mkExpr(Kind::APPLY, {d_peoModelTypeof, rrt});
-    reqs.push_back(d_state.mkPair(rrtBool, d_boolType));
-  }
+  rrt = mkRequiresModelTypeofBool(rrt, rrt);
+#endif
   rrt = d_state.mkRequires(reqs, rrt);
 
   Expr progType = d_state.mkProgramType(argsTypes, d_boolType);
@@ -737,14 +735,9 @@ void Desugar::finalizeRule(const Expr& e)
       if (argIsProof[ii])
       {
         unsound = mkRequiresModelSat(true, args[ii], unsound);
-        if (useTypeof)
-        {
-          modelTypeofArgs[1] = args[ii];
-          unsound =
-              d_state.mkRequires(d_state.mkExpr(Kind::APPLY, modelTypeofArgs),
-                                 d_boolType,
-                                 unsound);
-        }
+#ifdef VC_USE_TYPE
+        unsound = mkRequiresModelTypeofBool(args[ii], unsound);
+#endif
       }
     }
     std::vector<Expr> uvars = Expr::getVariables(unsound);
@@ -1065,8 +1058,7 @@ Expr Desugar::mkRequiresModelSat(bool tgt, const Expr& test, const Expr& ret)
   modelSatArgs.push_back(d_peoModelSat);
   modelSatArgs.push_back(test);
   Expr t1 = d_state.mkExpr(Kind::APPLY, modelSatArgs);
-#if 0
-  // 1 : satisfied, 0 should always count
+#ifdef VC_USE_MODEL_SAT_STRICT
   Expr t2 =  d_state.mkLiteral(Kind::NUMERAL, (tgt ? "-1" : "1"));
   return mkRequiresEq(t1, t2, ret, true);
 #else
