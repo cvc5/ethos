@@ -339,7 +339,7 @@ $SMT_MODEL_LOOKUP_PREDICATE_CASES$
     ; get the next value in the type enumeration
     (eo::define ((next ($smtx_enum_type ($eo_model_typeof x) i)))
     ; if it exists
-    ($smt_apply_3 "ite" ($eo_is_ok next)
+    ($smt_apply_3 "ite" ($smt_builtin_is_ok next)
       ; evaluate the body for this value. if this is a forcing value, return it
       ($smt_apply_3 "ite" ($smt_apply_= ($smtx_model_eval ($smtx_substitute x next F)) ($eo_mk_bool isExists))
         ($vsm_term ($sm_mk_bool isExists))

@@ -83,7 +83,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // addSmtLibSym("divisible", {Kind::NUMERAL, Kind::NUMERAL}, Kind::BOOLEAN);
   addSmtLibSym("/", {Kind::RATIONAL, Kind::RATIONAL}, Kind::RATIONAL);
   addSmtLibSym("div", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
+  addSmtLibSym("div_total", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
   addSmtLibSym("mod", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
+  addSmtLibSym("mod_total", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
   addSmtLibSym("to_int", {Kind::RATIONAL}, Kind::NUMERAL);
   addSmtLibSym("to_real", {Kind::NUMERAL}, Kind::RATIONAL);
   // strings
@@ -162,7 +164,8 @@ void ModelSmt::printSmtTerm(const std::string& name,
   {
     // does not "pre-rewrite" the body
     bool isExists = (name == "exists");
-    d_eval << "($smtx_eval_quant x1 x2 0 " << isExists << "))";
+    d_eval << "($smtx_eval_quant x1 x2 $smt_builtin_z_zero ";
+    d_eval << "$smt_builtin_" << (isExists ? "true" : "false") << "))";
     return;
   }
   std::vector<Kind> argSchemas;
