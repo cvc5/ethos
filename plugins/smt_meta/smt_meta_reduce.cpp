@@ -189,6 +189,13 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
   }
   else
   {
+    // Boolean constants are embedded as an SMT type, we have to wrap it
+    // explicitly here.
+    if (parent == MetaKind::EUNOIA)
+    {
+      os << "(eo.SmtTerm ";
+      osEnd << ")";
+    }
     const Literal* l = c.getValue()->asLiteral();
     if (l == nullptr)
     {
@@ -197,13 +204,6 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     }
     if (k == Kind::BOOLEAN)
     {
-      // Boolean constants are embedded as an SMT type, we have to wrap it
-      // explicitly here.
-      if (parent == MetaKind::EUNOIA)
-      {
-        os << "(eo.SmtTerm ";
-        osEnd << ")";
-      }
       if (!isSmtBuiltin)
       {
         os << "(sm.Bool ";
