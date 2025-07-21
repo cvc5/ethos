@@ -25,8 +25,6 @@
   (tsm.Seq)
   ; smt-cons: Bool
   (tsm.Bool)
-  ; smt-cons: FunType
-  (tsm.FunType (tsm.FunType.arg1 tsm.Type) (tsm.FunType.arg2 tsm.Type))
   ; smt-cons: USort
   (tsm.USort (tsm.USort.arg1 Int))
   ; smt-cons: NullSort

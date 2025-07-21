@@ -665,28 +665,12 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       // programs print as themselves
       if (!isProgramApp(recTerm))
       {
-        if (child == MetaKind::EUNOIA)
-        {
-          // Note that we use eo.Apply unguarded. In particular, the
-          // flatten-eval step has ensured that constructing Eunoia terms
-          // in this way will not get stuck during term construction, but
-          // instead of program invocation.
-          os << "eo.Apply ";
-        }
-        else if (child == MetaKind::SMT)
-        {
-          os << "sm.Apply ";
-        }
-        else if (child == MetaKind::SMT_TYPE)
-        {
-          os << "tsm.Apply ";
-        }
-        else
-        {
-          Assert(false) << "Unhandled apply kind for " << recTerm << " "
-                        << ", in context " << metaKindToString(parent) << " / "
-                        << metaKindToString(child) << " within term " << body;
-        }
+        Assert (child == MetaKind::EUNOIA);
+        // Note that we use eo.Apply unguarded. In particular, the
+        // flatten-eval step has ensured that constructing Eunoia terms
+        // in this way will not get stuck during term construction, but
+        // instead of program invocation.
+        os << "eo.Apply ";
       }
     }
     else if (ck == Kind::APPLY_OPAQUE)

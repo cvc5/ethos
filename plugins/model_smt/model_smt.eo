@@ -14,31 +14,11 @@
 ; Note that the last type allows us to define symbols whose type
 ; will be a native SMT-LIB type in the final embedding generated
 ; by the smt-meta plugin.
-
-;;; SMT term datatype constructors
-
-; An application of SMT-LIB terms.
-;(define $sm_apply_term ((t1 $smt_Term) (t2 $smt_Term))
-;  ($smd_sm.Apply t1 t2))
-  
-; A skolem, identified by kind, identifier and Type.
-; The kind 0 is reserved for standard SMT-LIB symbols introduced
-; by the user by declare-const. The other kinds of free symbols
-; can be custom defined based on the Eunoia signature (see method
-; $eo_const_predicate in model_eo.eo).
-; A skolem is identified by a type, a term and a kind.
-;(define $sm_skolem
-;  ((T $smt_Type) (k $smt_Term) (id $smt_builtin_Int))
-;  ($smd_sm.Skolem T k id))
   
 ;;; SMT type datatype constructors
 
 ; The Boolean type
 (define $tsm_Bool () $smd_tsm.Bool)
-
-; Function types
-(define $tsm_fun_type ((T1 $smt_Type) (T2 $smt_Type))
-  ($smd_tsm.FunType T1 T2))
   
 ; Uninterpreted sorts
 (define $tsm_USort ((id $smt_builtin_Int)) ($smd_tsm.USort id))
