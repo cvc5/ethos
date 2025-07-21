@@ -116,6 +116,16 @@
     (eo.SmtTerm (sm.Bool true))
     eo.Stuck)))
 
+; program: $eo_if_both
+(define-fun $eo_if_both ((x1 eo.Term) (x2 eo.Term)) eo.Term
+  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
+    eo.Stuck
+  (ite (and (= x1 (eo.SmtTerm (sm.Bool true))) (= x2 (eo.SmtTerm (sm.Bool true))))
+    (eo.SmtTerm (sm.Bool true))
+  (ite true
+    (eo.SmtTerm (sm.Bool false))
+    eo.Stuck))))
+
 ; program: $eo_requires_eq
 (define-fun $eo_requires_eq ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck) (= x3 eo.Stuck))
@@ -240,6 +250,9 @@
 
 ; fwd-decl: $eo_model_sat
 (declare-fun $eo_model_sat (eo.Term eo.Term eo.Term) eo.Term)
+
+; fwd-decl: $eo_model_is_smt_input
+(declare-fun $eo_model_is_smt_input (eo.Term) eo.Term)
 
 ; fwd-decl: $smtx_term_is_value
 (declare-fun $smtx_term_is_value (sm.Term) Bool)
@@ -376,6 +389,28 @@
     ($smtx_model_sat ($smtx_model_eval x1) x2 x3)
     eo.Stuck)))) :named sm.axiom.$eo_model_sat))
 
+; program: $smtx_is_smt_input
+(declare-fun $smtx_is_smt_input (eo.Term) eo.Term)
+(assert (! (forall ((x1 eo.Term))
+  (= ($smtx_is_smt_input x1)
+  (ite ((_ is eo.Apply) x1)
+    ($eo_if_both ($smtx_is_smt_input (eo.Apply.arg1 x1)) ($smtx_is_smt_input (eo.Apply.arg2 x1)))
+  (ite ((_ is eo.SmtTerm) x1)
+    (eo.SmtTerm (sm.Bool true))
+  (ite ((_ is eo.SmtType) x1)
+    (eo.SmtTerm (sm.Bool true))
+    (eo.SmtTerm (sm.Bool false))
+))))) :named sm.axiom.$smtx_is_smt_input))
+
+; program: $eo_model_is_smt_input
+(assert (! (forall ((x1 eo.Term))
+  (= ($eo_model_is_smt_input x1)
+  (ite (= x1 eo.Stuck)
+    eo.Stuck
+  (ite true
+    ($smtx_is_smt_input x1)
+    eo.Stuck)))) :named sm.axiom.$eo_model_is_smt_input))
+
 ; program: $eor_symm
 (define-fun $eor_symm ((x1 eo.Term)) eo.Term
   (ite (= x1 eo.Stuck)
@@ -389,7 +424,7 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    ($eo_requires_eq ($eo_model_sat x1 (eo.SmtTerm (sm.Bool true)) (eo.SmtTerm (sm.Bool false))) (eo.SmtTerm (sm.Bool true)) ($eo_requires_eq ($eo_model_sat ($eor_symm x1) (eo.SmtTerm (sm.Bool false)) (eo.SmtTerm (sm.Bool false))) (eo.SmtTerm (sm.Bool true)) (eo.SmtTerm (sm.Bool true))))
+    ($eo_requires_eq ($eo_model_sat x1 (eo.SmtTerm (sm.Bool true)) (eo.SmtTerm (sm.Bool false))) (eo.SmtTerm (sm.Bool true)) ($eo_requires_eq ($eo_model_sat ($eor_symm x1) (eo.SmtTerm (sm.Bool false)) (eo.SmtTerm (sm.Bool false))) (eo.SmtTerm (sm.Bool true)) ($eo_requires_eq ($eo_model_is_smt_input ($eor_symm x1)) (eo.SmtTerm (sm.Bool true)) (eo.SmtTerm (sm.Bool true)))))
     eo.Stuck)))
 
 

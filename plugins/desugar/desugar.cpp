@@ -18,7 +18,7 @@
 
 #define FLATTEN_EVAL
 //#define VC_USE_TYPE
-//#define VC_USE_SMT_LIB_TERM
+#define VC_USE_SMT_LIB_TERM
 #define VC_USE_MODEL_SAT_STRICT
 
 namespace ethos {

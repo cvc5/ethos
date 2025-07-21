@@ -497,7 +497,7 @@ $SMT_EVAL_CASES$
   :signature ($eo_Term) Bool
   (
   (($smtx_is_smt_input ($eo_apply t a))
-     ($eo_and ($smtx_is_smt_input t) ($smtx_is_smt_input a))) ; TODO: is this right??
+     ($eo_if_both ($smtx_is_smt_input t) ($smtx_is_smt_input a)))
   (($smtx_is_smt_input ($eo_smt_term s)) true)
   (($smtx_is_smt_input ($eo_smt_type T)) true)
   (($smtx_is_smt_input t)                false)

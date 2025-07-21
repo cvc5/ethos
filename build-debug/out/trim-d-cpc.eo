@@ -641,7 +641,7 @@
 (program $eovc_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eovc_symm F) ($eo_requires_eq ($eo_model_sat F true false) true ($eo_requires_eq ($eo_model_sat ($eor_symm F) false false) true true)))
+  (($eovc_symm F) (eo::define ((_v0 ($eor_symm F))) ($eo_requires_eq ($eo_model_sat F true false) true ($eo_requires_eq ($eo_model_sat _v0 false false) true ($eo_requires_eq ($eo_model_is_smt_input _v0) true true)))))
   )
 )
 (echo "smt-meta $eovc_symm")

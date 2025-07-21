@@ -1,5 +1,5 @@
-; trim-defs: $eovc_symm $eo_typeof_main $eo_String $eo_Numeral $eo_Rational $eo_Binary $eo_dt_constructors $eo_dt_selectors $eo_List $eo_List_nil $eo_List_cons $eo_model_typeof $eo_requires_eq
-; #trim-defs: 51
+; trim-defs: $eovc_symm $eo_typeof_main $eo_String $eo_Numeral $eo_Rational $eo_Binary $eo_dt_constructors $eo_dt_selectors $eo_List $eo_List_nil $eo_List_cons $eo_model_typeof $eo_requires_eq $eo_if_both
+; #trim-defs: 54
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -20,6 +20,13 @@
   )
 )
 (define $eo_fail () ($eo_fail_prog false))
+(program $eo_if_both ((b1 Bool) (b2 Bool))
+  :signature (Bool Bool) Bool
+  (
+  (($eo_if_both true true)  true)
+  (($eo_if_both b1 b2)      false)
+  )
+)
 (program $eo_requires_eq ((T Type) (U Type) (x1 T) (x3 U))
   :signature (T T U) U
   (
@@ -978,6 +985,7 @@
 )
 (program $eo_model_sat () :signature (Bool Bool Bool) Bool)
 (program $eo_model_typeof () :signature (Bool) Type)
+(program $eo_model_is_smt_input () :signature (Bool) Bool)
 ; This file defines SMT-LIB model semantics in Eunoia.
 ; It has exception handling utilities to call Eunoia programs in
 ; a safe way that ensures that all programs in this signature are total.
@@ -1497,7 +1505,7 @@
   :signature ($eo_Term) Bool
   (
   (($smtx_is_smt_input ($eo_apply t a))
-     ($eo_and ($smtx_is_smt_input t) ($smtx_is_smt_input a))) ; TODO: is this right??
+     ($eo_if_both ($smtx_is_smt_input t) ($smtx_is_smt_input a)))
   (($smtx_is_smt_input ($eo_smt_term s)) true)
   (($smtx_is_smt_input ($eo_smt_type T)) true)
   (($smtx_is_smt_input t)                false)
@@ -1523,7 +1531,7 @@
 (program $eovc_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eovc_symm F) ($eo_requires_eq ($eo_model_sat F true false) true ($eo_requires_eq ($eo_model_sat ($eor_symm F) false false) true true)))
+  (($eovc_symm F) (eo::define ((_v0 ($eor_symm F))) ($eo_requires_eq ($eo_model_sat F true false) true ($eo_requires_eq ($eo_model_sat _v0 false false) true ($eo_requires_eq ($eo_model_is_smt_input _v0) true true)))))
   )
 )
 (echo "smt-meta $eovc_symm")
