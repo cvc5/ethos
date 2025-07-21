@@ -1210,6 +1210,10 @@ MetaKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
     {
       tk = MetaKind::SMT_TYPE;
     }
+    else
+    {
+      tk = MetaKind::EUNOIA;
+    }
   }
   else if (k == Kind::APPLY)
   {
@@ -1331,15 +1335,17 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
       Assert(tknew != MetaKind::NONE);
       return tknew;
     }
-    else if (sname == "$eo_Var")
+    else
     {
       tk = MetaKind::EUNOIA;
     }
+    /*
     else
     {
       Assert(false) << "Unknown opaque app " << sname
                     << " in get meta kind return " << child;
     }
+    */
   }
   else if (k == Kind::BOOL_TYPE)
   {
