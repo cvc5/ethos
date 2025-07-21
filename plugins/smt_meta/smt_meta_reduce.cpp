@@ -1314,6 +1314,7 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
           Assert(k1 == k2) << "Equal sides have different meta types " << child
                            << " " << metaKindToString(k1) << " "
                            << metaKindToString(k2);
+        // builtin equality returns an SMT-LIB builtin
           tk = MetaKind::SMT_BUILTIN;
         }
         else
@@ -1337,7 +1338,10 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
     }
     else
     {
-      tk = MetaKind::EUNOIA;
+      // an opaque application of a user symbol, it depends on
+      // its classification via getMetaKind
+      std::string tmp;
+      tk = getMetaKind(d_state, child[0], tmp);
     }
     /*
     else

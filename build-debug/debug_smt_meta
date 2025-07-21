@@ -15,4 +15,6 @@ make -j4
 check_status
 
 echo "**** Debug"
-./src/ethos ./out/vcmt-def-cpc.eo --plugin.smt-meta --no-print-dag $@
+#./src/ethos ./out/vcmt-def-cpc.eo --plugin.smt-meta --no-print-dag $@
+get_backtrace ./src/ethos ./out/vcmt-def-cpc.eo --plugin.smt-meta --no-print-dag $@
+
