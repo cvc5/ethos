@@ -85,12 +85,14 @@
   (
   ; smt-cons: Map
   (vsm.Map (vsm.Map.arg1 eo.Term) (vsm.Map.arg2 msm.Map))
-  ; smt-cons: NotValue
-  (vsm.NotValue)
   ; smt-cons: UConst
   (vsm.UConst (vsm.UConst.arg1 eo.Term) (vsm.UConst.arg2 Int))
   ; smt-cons: Term
   (vsm.Term (vsm.Term.arg1 sm.Term))
+  ; smt-cons: NotValue
+  (vsm.NotValue)
+  ; smt-cons: Apply
+  (vsm.Apply (vsm.Apply.arg1 vsm.Value) (vsm.Apply.arg2 vsm.Value))
 
   )
   (
@@ -105,6 +107,14 @@
 
 ; fwd-decl: $eo_typeof
 (declare-fun $eo_typeof (eo.Term) eo.Term)
+
+; program: $eo_fail_prog
+(define-fun $eo_fail_prog ((x1 eo.Term)) eo.Term
+  (ite (= x1 eo.Stuck)
+    eo.Stuck
+  (ite (= x1 (eo.SmtTerm (sm.Bool true)))
+    (eo.SmtTerm (sm.Bool true))
+    eo.Stuck)))
 
 ; program: $eo_requires_eq
 (define-fun $eo_requires_eq ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
@@ -220,6 +230,14 @@
     ($eo_typeof_apply ($eo_typeof (eo.Apply.arg1 x1)) ($eo_typeof (eo.Apply.arg2 x1)))
     eo.Stuck)))))))))))))))))) :named sm.axiom.$eo_typeof_main))
 
+; program: $eo_dt_selectors
+(define-fun $eo_dt_selectors ((x1 eo.Term)) eo.Term
+  (ite (= x1 eo.Stuck)
+    eo.Stuck
+  (ite true
+    ($eo_fail_prog (eo.SmtTerm (sm.Bool false)))
+    eo.Stuck)))
+
 ; fwd-decl: $eo_model_sat
 (declare-fun $eo_model_sat (eo.Term) eo.Term)
 
@@ -257,7 +275,7 @@
 ; program: $smtx_ensure_value
 (define-fun $smtx_ensure_value ((x1 vsm.Value)) vsm.Value
   (ite ((_ is vsm.Term) x1)
-    (ite ($smtx_term_is_value (vsm.Term.arg1 x1)) (vsm.Term (vsm.Term.arg1 x1)) vsm.NotValue)
+    (ite ($smtx_term_is_value (vsm.Term.arg1 x1)) (vsm.Term (vsm.Term.arg1 x1)) (ite (ite (= ($eo_dt_selectors (eo.SmtTerm (vsm.Term.arg1 x1))) eo.Stuck) false true) (vsm.Apply (vsm.Term (vsm.Term.arg1 x1)) vsm.NotValue) vsm.NotValue))
   (ite ((_ is vsm.Map) x1)
     (ite ($smtx_map_is_value (eo.SmtType.arg1 (vsm.Map.arg1 x1)) (vsm.Map.arg2 x1)) (vsm.Map (vsm.Map.arg1 x1) (vsm.Map.arg2 x1)) vsm.NotValue)
   (ite ((_ is vsm.UConst) x1)

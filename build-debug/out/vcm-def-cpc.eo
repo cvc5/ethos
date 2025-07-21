@@ -204,6 +204,11 @@
   ((t $smt_Term :opaque))
   $smt_Value)
 
+; Apply values (for Herbrand interpretations).
+(declare-parameterized-const $smd_vsm.Apply
+  ((f $smt_Value :opaque) (a $smt_Value :opaque))
+  $smt_Value)
+
 ; Denotes a failure case for values.
 (declare-const $smd_vsm.NotValue $smt_Value)
 
@@ -1019,6 +1024,10 @@
 (define $vsm_true () ($vsm_term $sm_mk_true))
 (define $vsm_false () ($vsm_term $sm_mk_false))
 
+; A value denoting an application of a function in a Herbrand interpretation.
+(define $vsm_apply ((f $smt_Value) (a $smt_Value))
+  ($smd_vsm.Apply f a))
+
 ; Denotes a failure case for values.
 (define $vsm_not_value () $smd_vsm.NotValue)
 
@@ -1053,8 +1062,9 @@
     t
     elseTerm))
 
-(define $smt_try_type ((t $eo_Term))
-  ($smt_try t ($eo_smt_type ($tsm_NullSort $smt_builtin_z_zero))))
+; Guarded execution of $eo_typeof.
+(define $smt_try_typeof ((T Type :implicit) (t T))
+  ($smt_try ($eo_typeof t) ($eo_smt_type ($tsm_NullSort $smt_builtin_z_zero))))
 
 ;;;;;; SMT values
 
@@ -1118,9 +1128,7 @@
 (program $smtx_map_is_value ()
   :signature ($smt_Type $smt_Map) $smt_builtin_Bool)
 
-;;; Datatype values
-
-; Datatypes are not embedded.
+;;; Utilities for Datatype values
 
 ; TODO: since e.g. uinterpreted sorts can be nested in
 ; datatypes we need a lifted datatype value.
@@ -1134,21 +1142,6 @@
 ; returns: true if t is a constructor (i.e. it has selectors).
 (define $smt_is_dt_cons ((t $smt_Term))
   ($smt_builtin_is_ok ($eo_dt_selectors t)))
-
-; program: $smtx_dt_is_value
-; Returns true if its argument is a datatype value.
-; This checks that the term is constructed solely based on values and values of
-; (possibly other) types.
-;(program $smtx_dt_is_value ((f $smt_Term) (a $smt_Term) (c $smt_Term))
-;  :signature ($smt_Term) $smt_builtin_Bool
-;  (
-;  (($smtx_dt_is_value ($sm_apply_term f a)) ($smt_apply_3 "ite"
-;                                              ($smtx_term_is_value a)
-;                                              ($smtx_dt_is_value f)
-;                                              $smt_builtin_false))
-;  (($smtx_dt_is_value c)                    ($smt_is_dt_cons c))
-;  )
-;)
 
 ;;; Term values.
 
@@ -1177,10 +1170,13 @@
 ; Returns a term of type $smt_Value, embeds the term
 ; if indeed it is a value, or returns not a value otherwise.
 (define $smt_mk_value_term ((t $smt_Term))
-  ($smt_apply_3 "ite"
-    ($smtx_term_is_value t)
+  ($smt_apply_3 "ite" ($smtx_term_is_value t)
+    ; an atomic term
     ($vsm_term t)
-    $vsm_not_value))
+    ($smt_apply_3 "ite" ($smt_is_dt_cons t)
+      ; a datatype constructor, which becomes a (nil-terminated) vsm_apply
+      ($vsm_apply ($vsm_term t) $vsm_not_value)
+      $vsm_not_value)))
 
 (define $smt_mk_value_map ((T $eo_Term) (m $smt_Map))
   ($smt_apply_3 "ite"
@@ -1194,13 +1190,13 @@
 ; return: >
 ;   v itself if it denotes a proper SMT-LIB value, or $vsm_not_value otherwise.
 (program $smtx_ensure_value
-  ((t $smt_Value) (val $smt_Value) (T $eo_Term) (m $smt_Map) (id $smt_builtin_Int))
+  ((t $smt_Value) (f $smt_Value) (val $smt_Value) (T $eo_Term) (m $smt_Map) (id $smt_builtin_Int))
   :signature ($smt_Value) $smt_Value
   (
-  (($smtx_ensure_value ($vsm_term t))        ($smt_mk_value_term t))
-  (($smtx_ensure_value ($vsm_map T m))       ($smt_mk_value_map T m))
-  (($smtx_ensure_value ($vsm_uconst T id))   ($vsm_uconst T id))
-  (($smtx_ensure_value t)                    $vsm_not_value)
+  (($smtx_ensure_value ($vsm_term t))         ($smt_mk_value_term t))
+  (($smtx_ensure_value ($vsm_map T m))        ($smt_mk_value_map T m))
+  (($smtx_ensure_value ($vsm_uconst T id))    ($vsm_uconst T id))
+  (($smtx_ensure_value t)                     $vsm_not_value)
   )
 )
 
@@ -1407,8 +1403,9 @@
 (program $eo_model_sat_internal ((val $smt_Value))
   :signature ($smt_Value) Bool
   (
-  (($eo_model_sat_internal ($vsm_term $sm_mk_true)) true)
-  (($eo_model_sat_internal ($vsm_term $sm_mk_false)) false)
+  (($eo_model_sat_internal ($vsm_term $sm_mk_true))   true)
+  (($eo_model_sat_internal ($vsm_term $sm_mk_false))  false)
+  ; otherwise stuck
   )
 )
 
@@ -1420,6 +1417,23 @@
   :signature (Bool) Bool
   (
   (($eo_model_sat F) ($eo_model_sat_internal ($smtx_model_eval F)))
+  )
+)
+
+; note: Helper for below.
+(program $eo_model_typeof_map ((T $eo_Term) (j $smt_Value) (e $smt_Value) (m $smt_Map))
+  :signature ($eo_Term $smt_Map) $eo_Term
+  (
+  (($eo_model_typeof_map T ($map_cons j e m))   (-> T ($eo_model_typeof ($eo_smt_value e))))
+  (($eo_model_typeof_map T ($map_default e))    (-> T ($eo_model_typeof ($eo_smt_value e))))
+  )
+)
+
+; note: Helper for below. This is analogous to the method $eo_typeof_applye
+(program $eo_model_typeof_apply ((T $eo_Term) (U $eo_Term))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_model_typeof_apply (-> T U) T) U)
   )
 )
 
@@ -1439,26 +1453,27 @@
 ; TODO: use hash for the nullsort below?
 (program $eo_model_typeof
   ((t $eo_Term) (val $smt_Value) (T $eo_Term) (m $smt_Map) (id $smt_builtin_Int)
-   (f $smt_Term) (a $smt_Term))
+   (f $smt_Value) (a $smt_Term) (U $smt_Type))
   :signature ($eo_Term) $eo_Term
   (
-  ; To compute the type of an apply, convert it to a Eunoia application as
-  ; described above.
-  ;(($eo_model_typeof ($eo_smt_term ($sm_apply_term f a)))
-  ;  ($eo_model_typeof ($eo_app_from_smt ($eo_smt_term ($sm_apply_term f a)))))
+  ; the type of an atomic type uses Eunoia's typeof builtin, or null sort if this fails.
+  (($eo_model_typeof ($eo_smt_type U))                    ($smt_try_typeof U))
   ; the type of a constant is the type of its value.
   (($eo_model_typeof ($eo_smt_term ($sm_Const val)))      ($eo_model_typeof ($eo_smt_value val)))
-  (($eo_model_typeof ($eo_smt_term a))                    ($smt_try_type ($eo_typeof a)))
+  ; similar to above, we try Eunoia's typeof, or null sort.
+  (($eo_model_typeof ($eo_smt_term a))                    ($smt_try_typeof a))
+  (($eo_model_typeof ($eo_smt_value ($vsm_apply f val)))  ($eo_model_typeof_apply
+                                                            ($eo_model_typeof f)
+                                                            ($eo_model_typeof val)))
   ; the type of a value term is the type of its term.
   (($eo_model_typeof ($eo_smt_value ($vsm_term t)))       ($eo_model_typeof ($eo_smt_term t)))
-  (($eo_model_typeof ($eo_smt_value ($vsm_map T m)))      T) ; FIXME
+  (($eo_model_typeof ($eo_smt_value ($vsm_map T m)))      ($eo_model_typeof_map T m))
   ; the type of uninterpreted constants carry its type.
   (($eo_model_typeof ($eo_smt_value ($vsm_uconst T id)))  T)
   ; the type of not-values is the null sort.
   (($eo_model_typeof ($eo_smt_value $vsm_not_value))      ($tsm_NullSort $smt_builtin_z_zero))
-  ; For all other terms, we try to run Eunoia's typeof builtin. If this fails,
-  ; then we are null sort. 
-  (($eo_model_typeof t)                                   ($smt_try_type ($eo_typeof t)))
+  ; For all other terms, we try Eunoia's typeof, or null sort.
+  (($eo_model_typeof t)                                   ($smt_try_typeof t))
   )
 )
 

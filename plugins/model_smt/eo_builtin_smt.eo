@@ -176,6 +176,11 @@
   ((t $smt_Term :opaque))
   $smt_Value)
 
+; Apply values (for Herbrand interpretations).
+(declare-parameterized-const $smd_vsm.Apply
+  ((f $smt_Value :opaque) (a $smt_Value :opaque))
+  $smt_Value)
+
 ; Denotes a failure case for values.
 (declare-const $smd_vsm.NotValue $smt_Value)
 
