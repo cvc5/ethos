@@ -145,35 +145,4 @@
   (($smtx_enum_type T i) T)
   )
 )
-(program $smtx_enum_type ((T $eo_Term) (i $smt_builtin_Int))
-  :signature ($eo_Term $smt_builtin_Int) $smt_Value
-  (
-  ; otherwise, uninterpreted constant.
-  (($smtx_enum_type T i)               ($vsm_uconst T i))
-  )
-)
 
-
-; program: $smtx_eval_quant
-; specification for exists is a (non-computable) function
-; The last argument is whether we are check exists (resp. forall).
-(program $smtx_eval_quant
-  ((T Type) (x T) (xs $eo_List) (F $eo_Term) (i $smt_builtin_Int) (isExists $smt_builtin_Bool))
-  :signature ($eo_List $eo_Term $smt_builtin_Int $smt_builtin_Bool) $smt_Value
-  (
-  (($smtx_eval_quant $eo_List_nil F i isExists)
-    ; base case: we have processed all variables, recurse, negate if isExists is false.
-    ($vsm_term ($sm_mk_bool ($smt_apply_= ($smtx_model_eval F) isExists))))  ; we are now fully instantiated, look at the body
-  (($smtx_eval_quant ($eo_List_cons x xs) F i isExists)
-    ; get the next value in the type enumeration
-    (eo::define ((next ($smtx_enum_type ($smtx_typeof x) i)))
-    ; if it exists
-    ($smt_apply_3 "ite" ($eo_is_ok next)
-      ; evaluate the body for this value. if this is a forcing value, return it
-      ($smt_apply_3 "ite" ($smt_apply_= ($smtx_model_eval ($smtx_substitute x next F)) isExists)
-        isExists
-        ; otherwise recurse for the next value in the type enumeration for the current variable
-        ($smtx_eval_quant (@STermList_cons x xs) F ($smt_apply_1 "+ 1" i) isExists))
-      ($vsm_term ($sm_mk_bool ($smt_apply_1 "not" isExists)))))) ; out of values.
-  )
-)

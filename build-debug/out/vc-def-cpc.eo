@@ -1,5 +1,5 @@
-; trim-defs: $eovc_symm $eo_typeof_main $eo_String $eo_Numeral $eo_Rational $eo_Binary $eo_dt_constructors $eo_dt_selectors
-; #trim-defs: 43
+; trim-defs: $eovc_symm $eo_typeof_main $eo_String $eo_Numeral $eo_Rational $eo_Binary $eo_dt_constructors $eo_dt_selectors $eo_List $eo_List_nil $eo_List_cons $eo_model_typeof
+; #trim-defs: 50
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -28,6 +28,10 @@
 )
 (echo "include eo_builtin_smt")
 (declare-const $eo_List Type)
+(declare-const $eo_List_nil $eo_List)
+(declare-parameterized-const $eo_List_cons ((T Type :implicit))
+  (-> T $eo_List $eo_List)
+  :right-assoc-nil $eo_List_nil)
 (declare-parameterized-const ite (($eo_x_1 Bool) (A Type :implicit) ($eo_x_2 A) ($eo_x_3 A)) A)
 (declare-const not (-> Bool Bool))
 (declare-const and (-> Bool (-> Bool Bool)))
@@ -112,6 +116,7 @@
   )
 )
 (program $eo_model_sat () :signature (Bool) Bool)
+(program $eo_model_typeof ((T Type)) :signature (T) Bool)
 (echo "include eo_model_sat")
 (program $eor_symm ((F Bool))
   :signature (Bool) Bool

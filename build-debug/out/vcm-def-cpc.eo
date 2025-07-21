@@ -1,5 +1,5 @@
-; trim-defs: $eovc_symm $eo_typeof_main $eo_String $eo_Numeral $eo_Rational $eo_Binary $eo_dt_constructors $eo_dt_selectors
-; #trim-defs: 43
+; trim-defs: $eovc_symm $eo_typeof_main $eo_String $eo_Numeral $eo_Rational $eo_Binary $eo_dt_constructors $eo_dt_selectors $eo_List $eo_List_nil $eo_List_cons $eo_model_typeof
+; #trim-defs: 50
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -884,6 +884,10 @@
   )
 )
 (declare-const $eo_List Type)
+(declare-const $eo_List_nil $eo_List)
+(declare-parameterized-const $eo_List_cons ((T Type :implicit))
+  (-> T $eo_List $eo_List)
+  :right-assoc-nil $eo_List_nil)
 (declare-parameterized-const ite (($eo_x_1 Bool) (A Type :implicit) ($eo_x_2 A) ($eo_x_3 A)) A)
 (declare-const not (-> Bool Bool))
 (declare-const and (-> Bool (-> Bool Bool)))
@@ -968,6 +972,7 @@
   )
 )
 (program $eo_model_sat () :signature (Bool) Bool)
+(program $eo_model_typeof ((T Type)) :signature (T) Bool)
 ; This file defines SMT-LIB model semantics in Eunoia.
 ; It has exception handling utilities to call Eunoia programs in
 ; a safe way that ensures that all programs in this signature are total.
@@ -1201,6 +1206,15 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(program $smtx_enum_type ((T $eo_Term) (i $smt_builtin_Int))
+  :signature ($eo_Term $smt_builtin_Int) $smt_Value
+  (
+  ; otherwise, uninterpreted constant.
+  (($smtx_enum_type T i)               ($vsm_uconst T i))
+  )
+)
+
+
 ;;; Model semantics
 
 ; Forward declaration of the main method defined by this signature.
@@ -1290,6 +1304,30 @@
   (($smtx_model_eval_= t1 $vsm_not_value) $vsm_not_value)
   ; use datatype equality over $smt_Value, which depends on t1 and t2 being proper values.
   (($smtx_model_eval_= t1 t2)             ($vsm_term ($sm_mk_bool ($smt_apply_= t1 t2))))
+  )
+)
+
+; program: $smtx_eval_quant
+; specification for exists is a (non-computable) function
+; The last argument is whether we are check exists (resp. forall).
+(program $smtx_eval_quant
+  ((x $eo_Term) (xs $eo_List) (F $eo_Term) (i $smt_builtin_Int) (isExists $smt_builtin_Bool))
+  :signature ($eo_List $eo_Term $smt_builtin_Int $smt_builtin_Bool) $smt_Value
+  (
+  (($smtx_eval_quant $eo_List_nil F i isExists)
+    ; base case: we have processed all variables, recurse, negate if isExists is false.
+    ($vsm_term ($sm_mk_bool ($smt_apply_= ($smtx_model_eval F) isExists))))  ; we are now fully instantiated, look at the body
+  (($smtx_eval_quant ($eo_List_cons x xs) F i isExists)
+    ; get the next value in the type enumeration
+    (eo::define ((next ($smtx_enum_type ($eo_model_typeof x) i)))
+    ; if it exists
+    ($smt_apply_3 "ite" ($eo_is_ok next)
+      ; evaluate the body for this value. if this is a forcing value, return it
+      ($smt_apply_3 "ite" ($smt_apply_= ($smtx_model_eval ($smtx_substitute x next F)) isExists)
+        isExists
+        ; otherwise recurse for the next value in the type enumeration for the current variable
+        ($smtx_eval_quant ($eo_List_cons x xs) F ($smt_apply_1 "+ 1" i) isExists))
+      ($vsm_term ($sm_mk_bool ($smt_apply_1 "not" isExists)))))) ; out of values.
   )
 )
 

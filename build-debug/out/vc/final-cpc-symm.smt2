@@ -76,6 +76,10 @@
   (eo.Var (eo.Var.arg1 String) (eo.Var.arg2 eo.Term))
   ; user-decl: $eo_List
   (eo.$eo_List)
+  ; user-decl: $eo_List_nil
+  (eo.$eo_List_nil)
+  ; user-decl: $eo_List_cons
+  (eo.$eo_List_cons)
 
   )
   (
