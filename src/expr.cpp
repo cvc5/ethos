@@ -389,7 +389,17 @@ void Expr::printDebugInternal(const Expr& e,
           // TODO?
         }
         os << "(";
-        if (k != Kind::APPLY || (*cur.first)[0]->getNumChildren() > 0)
+        if (k == Kind::APPLY_OPAQUE)
+        {
+          // ambiguous functions must use "as"
+          Attr attr = ExprValue::d_state->getConstructorKind((*cur.first)[0]);
+          if (attr==Attr::AMB || attr==Attr::AMB_DATATYPE_CONSTRUCTOR)
+          {
+            os << "as ";
+          }
+          // otherwise printed as ordinary app
+        }
+        else if (k != Kind::APPLY || (*cur.first)[0]->getNumChildren() > 0)
         {
           os << kindToTerm(k) << " ";
         }

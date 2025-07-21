@@ -309,13 +309,15 @@
   )
 )
 (program $smtx_model_eval_apply
-  ((T $eo_Term) (m $smt_Map) (i $smt_Value) (v $smt_Value))
+  ((T $eo_Term) (m $smt_Map) (i $smt_Value) (f $smt_Value) (v $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
   
-  (($smtx_model_eval_apply ($vsm_map T m) i)  ($smtx_map_lookup m i))
+  (($smtx_model_eval_apply ($vsm_apply f v) i)  ($vsm_apply ($vsm_apply f v) i))
   
-  (($smtx_model_eval_apply v i)               $vsm_not_value)
+  (($smtx_model_eval_apply ($vsm_map T m) i)    ($smtx_map_lookup m i))
+  
+  (($smtx_model_eval_apply v i)                 $vsm_not_value)
   )
 )
 (program $smtx_model_eval_ite
@@ -405,8 +407,8 @@
 (program $eo_model_sat_internal ((val $smt_Value))
   :signature ($smt_Value) Bool
   (
-  (($eo_model_sat_internal ($vsm_term $sm_mk_true))   true)
-  (($eo_model_sat_internal ($vsm_term $sm_mk_false))  false)
+  (($eo_model_sat_internal $vsm_true)   true)
+  (($eo_model_sat_internal $vsm_false)  false)
   
   )
 )

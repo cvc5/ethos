@@ -410,6 +410,9 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     }
     else
     {
+      // TODO: should be a non-opaque!
+      Attr attr = d_state.getConstructorKind(tcur.getValue());
+      Assert (attr!=Attr::AMB) << "Matching on amb " << tcur;
       // base case, use equality
       // note that we have to use the full printEmbTerm method
       std::stringstream atomTerm;
@@ -1413,7 +1416,7 @@ std::vector<MetaKind> SmtMetaReduce::getMetaKindArgs(const Expr& parent,
                                                      MetaKind parentCtx)
 {
   std::vector<MetaKind> args;
-  std::cout << "  MetaArg: " << parent << " / " << metaKindToString(parentCtx)
+  std::cout << "  MetaArg: " << parent << " / " << parent.getKind() << " / " << metaKindToString(parentCtx)
             << std::endl;
   for (size_t i = 0, nchild = parent.getNumChildren(); i < nchild; i++)
   {
