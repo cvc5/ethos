@@ -665,7 +665,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       // programs print as themselves
       if (!isProgramApp(recTerm))
       {
-        Assert (child == MetaKind::EUNOIA);
+        Assert(child == MetaKind::EUNOIA);
         // Note that we use eo.Apply unguarded. In particular, the
         // flatten-eval step has ensured that constructing Eunoia terms
         // in this way will not get stuck during term construction, but
@@ -1258,14 +1258,13 @@ bool SmtMetaReduce::isProgramApp(const Expr& app)
           && app[0].getKind() == Kind::PROGRAM_CONST);
 }
 
-MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
-                                          MetaKind parentCtx)
+MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
 {
   Assert(!child.isNull()) << "null term for meta kind";
   MetaKind tk = MetaKind::NONE;
   Expr hd = child;
   Kind k = hd.getKind();
-  if (hd.getKind()==Kind::APPLY)
+  if (hd.getKind() == Kind::APPLY)
   {
     // check for programs
     if (isProgramApp(hd))
@@ -1413,9 +1412,8 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child,
   return tk;
 }
 
-std::vector<MetaKind> SmtMetaReduce::getMetaKindArgs(
-    const Expr& parent,
-    MetaKind parentCtx)
+std::vector<MetaKind> SmtMetaReduce::getMetaKindArgs(const Expr& parent,
+                                                     MetaKind parentCtx)
 {
   std::vector<MetaKind> args;
   std::cout << "  MetaArg: " << parent << " / " << metaKindToString(parentCtx)
