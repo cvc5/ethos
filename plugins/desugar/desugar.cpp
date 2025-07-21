@@ -18,8 +18,8 @@
 
 #define FLATTEN_EVAL
 //#define VC_USE_TYPE
-#define VC_USE_SMT_LIB_TERM
-//#define VC_USE_MODEL_SAT_STRICT
+//#define VC_USE_SMT_LIB_TERM
+#define VC_USE_MODEL_SAT_STRICT
 
 namespace ethos {
 
@@ -50,8 +50,7 @@ Desugar::Desugar(State& s) : StdPlugin(s)
   // a placeholder
   d_boolType = d_state.mkBoolType();
   Expr ttype = d_state.mkType();
-  Expr numType = d_state.mkSymbol(Kind::PARAM, "$eo_Numeral", ttype);
-  Expr modelSatType = d_state.mkProgramType({d_boolType}, numType);
+  Expr modelSatType = d_state.mkProgramType({d_boolType, d_boolType, d_boolType}, d_boolType);
   d_peoModelSat =
       d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_model_sat", modelSatType);
   Expr modelTypeofType = d_state.mkProgramType({d_boolType}, ttype);
@@ -65,8 +64,6 @@ Desugar::Desugar(State& s) : StdPlugin(s)
   Expr eoRequireEqType = d_state.mkProgramType({anyT, anyT, anyT2}, anyT2);
   d_peoRequiresEq =
       d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_requires_eq", eoRequireEqType);
-  d_peoRequiresDeq =
-      d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_requires_deq", eoRequireEqType);
 }
 
 Desugar::~Desugar() {}
@@ -718,51 +715,56 @@ void Desugar::finalizeRule(const Expr& e)
   Expr progDef = d_state.mkExpr(Kind::PROGRAM, {progPair});
   finalizeProgram(prog, progDef, d_eoVc);
 
-  if (!d_state.isProofRuleSorry(e.getValue()))
+  // if marked sorry, we should never do verification
+  if (d_state.isProofRuleSorry(e.getValue()))
   {
-    std::stringstream pvcname;
-    pvcname << "$eovc_" << e;
-    Expr unsound = etrue;
-    std::vector<Expr> modelTypeofArgs;
-    modelTypeofArgs.push_back(d_peoModelTypeof);
-    modelTypeofArgs.push_back(d_null);
-    // require that the conclusion is not satisfied
-    unsound = mkRequiresModelSat(false, progApps[1], unsound);
-    // require that each premise is satisfied
-    for (size_t i = 0, nargs = args.size(); i < nargs; i++)
-    {
-      size_t ii = nargs - (i + 1);
-      if (argIsProof[ii])
-      {
-        unsound = mkRequiresModelSat(true, args[ii], unsound);
-#ifdef VC_USE_TYPE
-        unsound = mkRequiresModelTypeofBool(args[ii], unsound);
-#endif
-      }
-    }
-    std::vector<Expr> uvars = Expr::getVariables(unsound);
-    if (uvars.empty())
-    {
-      // add a dummy variable
-      Expr dummy = d_state.mkSymbol(Kind::PARAM, "$etmp", d_boolType);
-      uvars.push_back(dummy);
-    }
-    std::vector<Expr> uargTypes;
-    for (const Expr& v : uvars)
-    {
-      Expr vv = v;
-      uargTypes.push_back(d_tc.getType(vv));
-    }
-    progType = d_state.mkProgramType(uargTypes, d_boolType);
-    prog = d_state.mkSymbol(Kind::PROGRAM_CONST, pvcname.str(), progType);
-    std::vector<Expr> vcpChildren;
-    vcpChildren.push_back(prog);
-    vcpChildren.insert(vcpChildren.end(), uvars.begin(), uvars.end());
-    Expr progPat = d_state.mkExpr(Kind::APPLY, vcpChildren);
-    progPair = d_state.mkPair(progPat, unsound);
-    progDef = d_state.mkExpr(Kind::PROGRAM, {progPair});
-    finalizeProgram(prog, progDef, d_eoVc);
+    return;
   }
+  
+  Expr conclusion = progApps[1];
+  std::stringstream pvcname;
+  pvcname << "$eovc_" << e;
+  Expr unsound = etrue;
+#ifdef VC_USE_SMT_LIB_TERM
+  // require that conclusion is an SMT-LIB term
+  unsound = mkRequiresModelIsSmtTerm(conclusion, unsound);
+#endif
+  // require that the conclusion is not satisfied
+  unsound = mkRequiresModelSat(false, conclusion, unsound);
+  // require that each premise is satisfied
+  for (size_t i = 0, nargs = args.size(); i < nargs; i++)
+  {
+    size_t ii = nargs - (i + 1);
+    if (argIsProof[ii])
+    {
+      unsound = mkRequiresModelSat(true, args[ii], unsound);
+#ifdef VC_USE_TYPE
+      unsound = mkRequiresModelTypeofBool(args[ii], unsound);
+#endif
+    }
+  }
+  std::vector<Expr> uvars = Expr::getVariables(unsound);
+  if (uvars.empty())
+  {
+    // add a dummy variable
+    Expr dummy = d_state.mkSymbol(Kind::PARAM, "$etmp", d_boolType);
+    uvars.push_back(dummy);
+  }
+  std::vector<Expr> uargTypes;
+  for (const Expr& v : uvars)
+  {
+    Expr vv = v;
+    uargTypes.push_back(d_tc.getType(vv));
+  }
+  progType = d_state.mkProgramType(uargTypes, d_boolType);
+  prog = d_state.mkSymbol(Kind::PROGRAM_CONST, pvcname.str(), progType);
+  std::vector<Expr> vcpChildren;
+  vcpChildren.push_back(prog);
+  vcpChildren.insert(vcpChildren.end(), uvars.begin(), uvars.end());
+  Expr progPat = d_state.mkExpr(Kind::APPLY, vcpChildren);
+  progPair = d_state.mkPair(progPat, unsound);
+  progDef = d_state.mkExpr(Kind::PROGRAM, {progPair});
+  finalizeProgram(prog, progDef, d_eoVc);
   // write a command to indicate that we should process the above vc
   d_eoVc << "(echo \"smt-meta $eovc_" << e << "\")" << std::endl;
 }
@@ -1057,14 +1059,15 @@ Expr Desugar::mkRequiresModelSat(bool tgt, const Expr& test, const Expr& ret)
   std::vector<Expr> modelSatArgs;
   modelSatArgs.push_back(d_peoModelSat);
   modelSatArgs.push_back(test);
-  Expr t1 = d_state.mkExpr(Kind::APPLY, modelSatArgs);
+  modelSatArgs.push_back(d_state.mkBool(tgt));
 #ifdef VC_USE_MODEL_SAT_STRICT
-  Expr t2 =  d_state.mkLiteral(Kind::NUMERAL, (tgt ? "-1" : "1"));
-  return mkRequiresEq(t1, t2, ret, true);
+  modelSatArgs.push_back(d_state.mkFalse());
 #else
-  Expr t2 =  d_state.mkLiteral(Kind::NUMERAL, (tgt ? "1" : "-1"));
-  return mkRequiresEq(t1, t2, ret);
+  modelSatArgs.push_back(d_state.mkTrue());
 #endif
+  Expr t1 = d_state.mkExpr(Kind::APPLY, modelSatArgs);
+  Expr t2 = d_state.mkTrue();
+  return mkRequiresEq(t1, t2, ret);
 }
 
 Expr Desugar::mkRequiresModelTypeofBool(const Expr& test, const Expr& ret)
@@ -1086,10 +1089,10 @@ Expr Desugar::mkRequiresModelIsSmtTerm(const Expr& test, const Expr& ret)
   return mkRequiresEq(t1, t2, ret);
 }
 
-Expr Desugar::mkRequiresEq(const Expr& t1, const Expr& t2, const Expr& ret, bool negated)
+Expr Desugar::mkRequiresEq(const Expr& t1, const Expr& t2, const Expr& ret)
 {
   std::vector<Expr> children;
-  children.push_back(negated ? d_peoRequiresDeq :d_peoRequiresEq);
+  children.push_back(d_peoRequiresEq);
   children.push_back(t1);
   children.push_back(t2);
   children.push_back(ret);

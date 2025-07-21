@@ -611,8 +611,11 @@
 ; will write below.
 
 ; A placeholder for asking whether a formula is satisfied by a model.
-; 1: satisifed, -1: not satisfied, 0: don't know.
-(program $eo_model_sat () :signature (Bool) $eo_Numeral)
+; args:
+; - F Bool: the formula to test.
+; - val Bool: the desired value.
+; - uok Bool: returned value if the value is unknown.
+(program $eo_model_sat () :signature (Bool Bool Bool) Bool)
 
 ; A placeholder for asking the type of a given term.
 (program $eo_model_typeof () :signature (Bool) Type)
@@ -620,7 +623,7 @@
 ; A placeholder for asking whether a term is legal syntax for an SMT-LIB term.
 (program $eo_model_is_smt_input () :signature (Bool) Bool)
 
-; We will include the definition of $eo_model_sat here.
+; We will include the definition of the above functions here.
 (echo "include eo_model_sat")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; vc
@@ -638,7 +641,7 @@
 (program $eovc_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eovc_symm F) ($eo_requires_eq ($eo_model_sat F) 1 ($eo_requires_eq ($eo_model_sat ($eor_symm F)) -1 true)))
+  (($eovc_symm F) ($eo_requires_eq ($eo_model_sat F true false) true ($eo_requires_eq ($eo_model_sat ($eor_symm F) false false) true true)))
   )
 )
 (echo "smt-meta $eovc_symm")
