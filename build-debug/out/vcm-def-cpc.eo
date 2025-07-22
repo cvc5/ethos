@@ -484,16 +484,22 @@
 ;;; Is okay
 
 ; program: $eo_is_ok
-; implements: eo::is_ok
+; implements: $eo_is_ok
 (define $eo_is_ok ((x $eo_Term))
   ($smt_apply_3 "ite" ($smt_apply_= x $eo_stuck)
     $eo_mk_false
     $eo_mk_true))
 
+; Returns SMT-LIB builtin true/false if x is stuck
+(define $smt_builtin_is_ok ((x $eo_Term))
+  ($smt_apply_3 "ite" ($smt_apply_= x $eo_stuck)
+    $smt_builtin_false
+    $smt_builtin_true))
+
 ;;; Boolean operators
 
 ; program: $eo_not
-; implements: eo::not
+; implements: $eo_not
 (program $eo_not ((b $smt_builtin_Bool) (w $smt_builtin_Int) (n $smt_builtin_Int))
   :signature ($eo_Term) $eo_Term
   (
@@ -503,7 +509,7 @@
 )
 
 ; program: $eo_and
-; implements: eo::and
+; implements: $eo_and
 (program $eo_and
   ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool) (w $smt_builtin_Int)
    (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
@@ -517,7 +523,7 @@
 )
 
 ; program: $eo_or
-; implements: eo::or
+; implements: $eo_or
 (program $eo_or
   ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool) (w $smt_builtin_Int)
    (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
@@ -531,7 +537,7 @@
 )
 
 ; program: $eo_xor
-; implements: eo::xor
+; implements: $eo_xor
 (program $eo_xor
   ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool) (w $smt_builtin_Int)
    (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
@@ -547,7 +553,7 @@
 ;;; Arithmetic operators
 
 ; program: $eo_add
-; implements: eo::add
+; implements: $eo_add
 (program $eo_add
   ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int) (r1 $smt_builtin_Real) (r2 $smt_builtin_Real))
   :signature ($eo_Term $eo_Term) $eo_Term
@@ -630,7 +636,7 @@
 )
 
 ; program: $eo_neg
-; implements: eo::neg
+; implements: $eo_neg
 (program $eo_neg ((n1 $smt_builtin_Int) (r1 $smt_builtin_Real))
   :signature ($eo_Term) $eo_Term
   (
@@ -645,7 +651,7 @@
 ;;; String operators
 
 ; program: $eo_len
-; implements: eo::len
+; implements: $eo_len
 (program $eo_len ((s1 $smt_builtin_String) (w $smt_builtin_Int) (n1 $smt_builtin_Int))
   :signature ($eo_Term) $eo_Term
   (
@@ -657,7 +663,7 @@
 )
 
 ; program: $eo_concat
-; implements: eo::concat
+; implements: $eo_concat
 (program $eo_concat
   ((w1 $smt_builtin_Int) (n1 $smt_builtin_Int) (w2 $smt_builtin_Int) (n2 $smt_builtin_Int)
    (s1 $smt_builtin_String) (s2 $smt_builtin_String))
@@ -671,7 +677,7 @@
 )
 
 ; program: $eo_extract
-; implements: eo::extract
+; implements: $eo_extract
 (program $eo_extract
   ((s1 $smt_builtin_String) (w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int) (n3 $smt_builtin_Int))
   :signature ($eo_Term $eo_Term $eo_Term) $eo_Term
@@ -689,7 +695,7 @@
 )
 
 ; program: $eo_find
-; implements: eo::find
+; implements: $eo_find
 (program $eo_find ((s1 $smt_builtin_String) (s2 $smt_builtin_String))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
@@ -701,7 +707,7 @@
 ;;; Conversion operators
 
 ; program: $eo_to_z
-; implements: eo::to_z
+; implements: $eo_to_z
 (program $eo_to_z ((n1 $smt_builtin_Int) (r1 $smt_builtin_Real) (s1 $smt_builtin_String) (w $smt_builtin_Int))
   :signature ($eo_Term) $eo_Term
   (
@@ -720,7 +726,7 @@
 )
 
 ; program: $eo_to_q
-; implements: eo::to_q
+; implements: $eo_to_q
 (program $eo_to_q ((n1 $smt_builtin_Int) (r1 $smt_builtin_Real) (s1 $smt_builtin_String) (w $smt_builtin_Int))
   :signature ($eo_Term) $eo_Term
   (
@@ -732,7 +738,7 @@
 )
 
 ; program: $eo_to_bin
-; implements: eo::to_bin
+; implements: $eo_to_bin
 (program $eo_to_bin ((w $smt_builtin_Int) (w1 $smt_builtin_Int) (n1 $smt_builtin_Int))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
@@ -744,7 +750,7 @@
 )
 
 ; program: $eo_to_str
-; implements: eo::to_str
+; implements: $eo_to_str
 (program $eo_to_str ((n1 $smt_builtin_Int) (s1 $smt_builtin_String))
   :signature ($eo_Term) $eo_Term
   (
@@ -753,8 +759,7 @@
       ($smt_builtin_and ($smt_apply_1 "<= 0" n1) ($smt_apply_1 "> 196608" n1))
       ($eo_mk_string ($smt_apply_1 "str.from_code" n1))
       $eo_stuck))
-  (($eo_to_str ($eo_mk_string s1))
-    ($eo_mk_string s1))
+  (($eo_to_str ($eo_mk_string s1)) ($eo_mk_string s1))
   ; TODO: technically others here
   )
 )
@@ -763,10 +768,10 @@
 
 ; Returns true if t and s are equivalent values (ground and fully evaluated).
 ; define: $eo_is_eq
-; implements: eo::is_eq
+; implements: $eo_is_eq
 (define $eo_is_eq ((t $eo_Term) (s $eo_Term))
-  ($smt_apply_3 "ite" ($eo_is_ok t)
-    ($smt_apply_3 "ite" ($eo_is_ok s)
+  ($smt_apply_3 "ite" ($smt_builtin_is_ok t)
+    ($smt_apply_3 "ite" ($smt_builtin_is_ok s)
       ($eo_mk_bool ($smt_apply_= s t))  ; Note it is sound to use SMT-LIB equality, since we are guarding stuckness
       $eo_mk_false)
     $eo_mk_false))
@@ -775,7 +780,7 @@
 
 ; Returns true if x is a Boolean literal.
 ; define: $eo_is_bool
-; implements: eo::is_bool
+; implements: $eo_is_bool
 (program $eo_is_bool ((x $eo_Term) (b $smt_builtin_Bool))
   :signature ($eo_Term) $eo_Term
   (
@@ -790,38 +795,58 @@
 
 ; Returns true if x is a numeral literal.
 ; define: $eo_is_z
-; implements: eo::is_z
-(define $eo_is_z ((x $eo_Term))
-  ($eo_is_eq ($eo_to_z x) x))
+; implements: $eo_is_z
+(program $eo_is_z ((x $eo_Term) (n $smt_builtin_Int))
+  :signature ($eo_Term) $eo_Term
+  (
+  (($eo_is_z ($eo_mk_numeral n))  $eo_mk_true)
+  (($eo_is_z x)                   $eo_mk_false)
+  )
+)
 
 ;;; $eo_is_q
 
 ; Returns true if x is a rational literal.
 ; define: $eo_is_q
-; implements: eo::is_q
-(define $eo_is_q ((x $eo_Term))
-  ($eo_is_eq ($eo_to_q x) x))
+; implements: $eo_is_q
+(program $eo_is_q ((x $eo_Term) (r $smt_builtin_Real))
+  :signature ($eo_Term) $eo_Term
+  (
+  (($eo_is_q ($eo_mk_rational r))  $eo_mk_true)
+  (($eo_is_q x)                   $eo_mk_false)
+  )
+)
 
 ;;; $eo_is_bin
 
 ; Returns true if x is a binary literal.
 ; define: $eo_is_bin
-; implements: eo::is_bin
-(define $eo_is_bin ((x $eo_Term))
-  ($eo_is_eq ($eo_to_bin ($eo_len x) x) x))
+; implements: $eo_is_bin
+(program $eo_is_bin ((x $eo_Term) (w $smt_builtin_Int) (n $smt_builtin_Int))
+  :signature ($eo_Term) $eo_Term
+  (
+  (($eo_is_bin ($eo_binary w n))  $eo_mk_true)
+  (($eo_is_bin x)                 $eo_mk_false)
+  )
+)
 
 ;;; $eo_is_str
 
 ; Returns true if x is a string literal.
 ; define: $eo_is_str
-; implements: eo::is_str
-(define $eo_is_str ((x $eo_Term))
-  ($eo_is_eq ($eo_to_str x) x))
+; implements: $eo_is_str
+(program $eo_is_str ((x $eo_Term) (s $smt_builtin_String))
+  :signature ($eo_Term) $eo_Term
+  (
+  (($eo_is_str ($eo_mk_string s)) $eo_mk_true)
+  (($eo_is_str x)                 $eo_mk_false)
+  )
+)
 
 ;;; Derived arithmetic
 
 ; fwd-decl: $eo_hash
-; Note: eo::hash is defined axiomatically in the final smt2 encoding.
+; Note: $eo_hash is defined axiomatically in the final smt2 encoding.
 (program $eo_hash () :signature ($eo_Term) $eo_Term)
 
 ;;; $eo_gt
@@ -829,7 +854,7 @@
 ; Compare arithmetic greater than. Assumes x and y are values.
 ; Returns true if x > y.
 ; define: $eo_gt
-; implements: eo::gt
+; implements: $eo_gt
 (define $eo_gt ((x $eo_Term) (y $eo_Term))
   ($eo_is_neg ($eo_add ($eo_neg x) y)))
 
@@ -839,14 +864,14 @@
 ; An arbitrary deterministic comparison of terms. Returns true if a > b based
 ; on this ordering.
 ; define: $eo_cmp
-; implements: eo::cmp
+; implements: $eo_cmp
 (define $eo_cmp ((a $eo_Term) (b $eo_Term))
   ($eo_is_neg ($eo_add ($eo_hash b) ($eo_neg ($eo_hash a)))))
 
 ;;; since eo_typeof depends on literal predicates, typeof is only now ready.
 
 ; program: $eo_var
-; implements: eo::var
+; implements: $eo_var
 (program $eo_var ((s $smt_builtin_String) (T $eo_Term))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
@@ -857,7 +882,7 @@
 )
 
 ; program: $eo_nameof
-; implements: eo::nameof
+; implements: $eo_nameof
 (program $eo_nameof ((s $eo_Term) (T $eo_Term))
   :signature ($eo_Term) $eo_Term
   (
@@ -867,7 +892,7 @@
 
 ; Returns true if x is a variable.
 ; define: $eo_is_var
-; implements: eo::is_var
+; implements: $eo_is_var
 (define $eo_is_var ((x $eo_Term))
   ($eo_is_eq ($eo_var ($eo_nameof x) ($eo_typeof x)) x))
 
@@ -876,7 +901,7 @@
 (program $eo_typeof_main () :signature ($eo_Term) Type)
 
 ; program: $eo_typeof
-; implements: eo::typeof
+; implements: $eo_typeof
 (program $eo_typeof
   ((t $eo_Term) (T $eo_Term) (b $smt_builtin_Bool) (n $smt_builtin_Int) (r $smt_builtin_Real)
    (s $smt_builtin_String) (w $smt_builtin_Int) (val $smt_Value))
@@ -1045,12 +1070,6 @@
 
 ; Invariant: all programs in this signature should be well-founded and never
 ; never get stuck unless otherwise stated.
-
-; Returns SMT-LIB builtin true/false if x is stuck
-(define $smt_builtin_is_ok ((x $eo_Term))
-  ($smt_apply_3 "ite" ($smt_apply_= x $eo_stuck)
-    $smt_builtin_false
-    $smt_builtin_true))
 
 ; Utilities to ensure that programs are total.
 ; Takes

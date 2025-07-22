@@ -65,12 +65,6 @@
 ; Invariant: all programs in this signature should be well-founded and never
 ; never get stuck unless otherwise stated.
 
-; Returns SMT-LIB builtin true/false if x is stuck
-(define $smt_builtin_is_ok ((x $eo_Term))
-  ($smt_apply_3 "ite" ($smt_apply_= x $eo_stuck)
-    $smt_builtin_false
-    $smt_builtin_true))
-
 ; Utilities to ensure that programs are total.
 ; Takes
 ; - A $eo_Term t where we are not sure if it gets stuck.

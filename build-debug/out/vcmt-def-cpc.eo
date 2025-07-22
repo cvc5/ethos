@@ -126,6 +126,10 @@
   ($eo_smt_term ($sm_mk_str x)))
 (define $eo_binary ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
   ($eo_smt_term ($smd_sm.Binary x1 x2)))
+(define $smt_builtin_is_ok ((x $eo_Term))
+  ($smt_apply_3 "ite" ($smt_apply_= x $eo_stuck)
+    $smt_builtin_false
+    $smt_builtin_true))
 (program $eo_hash () :signature ($eo_Term) $eo_Term)
 (program $eo_typeof_main () :signature ($eo_Term) Type)
 (program $eo_typeof
@@ -234,10 +238,6 @@
 (define $map_cons ((i $smt_Value) (e $smt_Value) (m $smt_Map))
   ($smd_msm.Map.cons i e m))
 (define $map_default ((e $smt_Value)) ($smd_msm.Map.default e))
-(define $smt_builtin_is_ok ((x $eo_Term))
-  ($smt_apply_3 "ite" ($smt_apply_= x $eo_stuck)
-    $smt_builtin_false
-    $smt_builtin_true))
 (program $smtx_is_value ()
   :signature ($smt_Value) $smt_builtin_Bool)
 (program $smtx_map_lookup
