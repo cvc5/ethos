@@ -1,5 +1,5 @@
 
-(declare-type @Pair (Type Type))
+(declare-const @Pair (-> Type Type Type))
 (declare-parameterized-const @pair ((U Type :implicit) (T Type :implicit)) (-> U T (@Pair U T)))
 
 ; program: $pair_first

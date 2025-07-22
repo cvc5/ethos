@@ -2,7 +2,7 @@
 (include "Arith-theory.eo")
 
 (declare-const RegLan Type)
-(declare-type Seq (Type))
+(declare-const Seq (-> Type Type))
 (declare-const Char Type)
 (define String () (Seq Char))
 

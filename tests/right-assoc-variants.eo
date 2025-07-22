@@ -3,7 +3,7 @@
 (declare-const Real Type)
 (declare-const BitVec (-> Int Type))
 (declare-const String Type)
-(declare-type Seq (Type))
+(declare-const Seq (-> Type Type))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

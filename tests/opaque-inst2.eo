@@ -7,7 +7,7 @@
 (declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
 (declare-const not (-> Bool Bool))
 
-(declare-type Array (Type Type))
+(declare-const Array (-> Type Type Type))
 (declare-const Int Type)
 
 (declare-const select (-> (Array Int Int) Int Int))

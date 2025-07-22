@@ -9,7 +9,7 @@
 (define testReflEq ((T Type :implicit) (x T)) (eo::is_eq x x))
 
 
-(declare-type Set (Type))
+(declare-const Set (-> Type Type))
 
 (declare-const foo (Set (eo::requires (testReflEq (addOne 0)) true Bool)))
 ; should fail

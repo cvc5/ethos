@@ -1,6 +1,6 @@
 (declare-const Int Type)
 
-(declare-type BitVec (Int)) 
+(declare-const BitVec (-> Int Type)) 
 
 (declare-parameterized-const bvadd ((n Int)) (->
   (BitVec n)

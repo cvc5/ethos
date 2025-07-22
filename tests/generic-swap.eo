@@ -1,4 +1,4 @@
-(declare-type Pair (Type))
+(declare-const Pair (-> Type Type))
 
 (declare-parameterized-const pair ((T Type :implicit)) (-> T T (Pair T)))
 
