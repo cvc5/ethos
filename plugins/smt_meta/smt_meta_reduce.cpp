@@ -15,9 +15,6 @@
 
 #include "state.h"
 
-#define USE_TRIGGERS
-//#define DEBUG_CONJECTURE
-
 namespace ethos {
 
 ConjPrint::ConjPrint() : d_npush(0) {}
@@ -948,9 +945,10 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
       d_defs << decl.str();
     }
     d_defs << "(assert (! (forall (" << varList.str() << ")" << std::endl << "  ";
-#ifdef USE_TRIGGERS
+if (StdPlugin::optionSmtMetaUseTriggers())
+{
     d_defs << "(! ";
-#endif
+}
     d_defs << "(= " << appTerm.str() << std::endl;
     casesEnd << ")";
   }
@@ -967,9 +965,10 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   d_defs << casesEnd.str();
   if (reqAxiom)
   {
-#ifdef USE_TRIGGERS
-    d_defs << " :pattern (" << appTerm.str() << "))";
-#endif
+    if (StdPlugin::optionSmtMetaUseTriggers())
+    {
+        d_defs << " :pattern (" << appTerm.str() << "))";
+    }
     d_defs << ") :named sm.axiom." << v << ")";
   }
   d_defs << ")" << std::endl;
@@ -1032,29 +1031,34 @@ bool SmtMetaReduce::echo(const std::string& msg)
     if (vt.getKind() == Kind::PROGRAM_TYPE)
     {
       std::stringstream conjEnd;
-#ifndef DEBUG_CONJECTURE
+if (!StdPlugin::optionSmtMetaDebugConjecture())
+{
       d_smtVc << "(assert (! (exists (";
       conjEnd << ")";
-#endif
+}
       size_t nargs = vt.getNumChildren();
       for (size_t i = 1; i < nargs; i++)
       {
-#ifdef DEBUG_CONJECTURE
+if (StdPlugin::optionSmtMetaDebugConjecture())
+{
         d_smtVc << "(declare-const x" << i << " eo.Term)" << std::endl;
-#else
+}
+else
+{
         if (i > 1)
         {
           d_smtVc << " ";
         }
         d_smtVc << "(x" << i << " eo.Term)";
-#endif
+}
         call << " x" << i;
       }
-#ifdef DEBUG_CONJECTURE
+if (StdPlugin::optionSmtMetaDebugConjecture())
+{
       d_smtVc << "(assert (! ";
-#else
+}else{
       d_smtVc << ")" << std::endl << "  ";
-#endif
+}
       d_smtVc << "(= (" << eosc << call.str() << ") " << eoTrue.str() << ")";
       d_smtVc << conjEnd.str();
     }
@@ -1065,11 +1069,11 @@ bool SmtMetaReduce::echo(const std::string& msg)
     d_smtVc << " :named sm.conjecture." << vv << ")";
     d_smtVc << ")" << std::endl;
     d_smtVc << "(check-sat)" << std::endl;
-#ifdef DEBUG_CONJECTURE
+if (StdPlugin::optionSmtMetaDebugConjecture())
+{
     d_smtVc << "(get-model)" << std::endl;
     d_smtVc << "(get-value (" << call.str() << "))" << std::endl;
-#endif
-    // std::cout << "...set target" << std::endl;
+}
     return false;
   }
   return true;

@@ -1434,6 +1434,20 @@
   )
 )
 
+; program: $smtx_model_sat_combined
+; args:
+; - isInput Bool: Whether it is legal SMT-LIB input syntax.
+; - T Type: Its type.
+; - val $smt_Value: The result of model value.
+(program $smtx_model_sat_combined ((b Bool) (T Type) (val $smt_Value))
+  :signature (Bool Type $smt_Value) $eo_Option
+  (
+  (($smtx_model_sat_combined true Bool $vsm_true)  ($eo_Option_some true))
+  (($smtx_model_sat_combined true Bool $vsm_false) ($eo_Option_some false))
+  (($smtx_model_sat_combined b T val)        $eo_Option_null)
+  )
+)
+
 ;;; type of
 
 ; note: Helper for below.

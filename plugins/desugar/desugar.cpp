@@ -16,11 +16,6 @@
 #include "../flatten_eval/flatten_eval.h"
 #include "state.h"
 
-#define FLATTEN_EVAL
-// this ensures that the types of premises and conclusion must be Bool to witness unsoundness
-//#define VC_USE_TYPE
-// this ensures the conclusion term is a valid SMT-LIB term
-#define VC_USE_IS_INPUT
 // commenting this makes the model_sat routine ensure totality
 #define VC_USE_MODEL_SAT_STRICT
 
@@ -110,11 +105,12 @@ void Desugar::finalizeProgram(const Expr& prog,
 {
   std::map<Expr, Expr> typeMap;
   std::vector<std::pair<Expr, Expr>> allDefs;
-#ifdef FLATTEN_EVAL
+if (StdPlugin::optionFlattenEval())
+{
   allDefs = FlattenEval::flattenProgram(d_state, prog, progDef, typeMap);
-#else
+}else{
   allDefs.emplace_back(prog, progDef);
-#endif
+}
   for (std::pair<Expr, Expr>& d : allDefs)
   {
     Expr p = d.first;
@@ -701,10 +697,11 @@ void Desugar::finalizeRule(const Expr& e)
   Assert(rrt.getKind() == Kind::PROOF_TYPE)
       << "Bad return type: " << rrt.getKind() << " " << rrt;
   rrt = rrt[0];
-#ifdef VC_USE_TYPE
-  // the final conclusion must have Bool type
-  rrt = mkRequiresModelTypeofBool(rrt, rrt);
-#endif
+  if (StdPlugin::optionVcUseTypeof())
+  {
+    // the final conclusion must have Bool type
+    rrt = mkRequiresModelTypeofBool(rrt, rrt);
+  }
   rrt = d_state.mkRequires(reqs, rrt);
 
   Expr progType = d_state.mkProgramType(argsTypes, d_boolType);
@@ -743,15 +740,17 @@ void Desugar::finalizeRule(const Expr& e)
     if (argIsProof[ii])
     {
       unsound = mkRequiresModelSat(true, args[ii], unsound);
-#ifdef VC_USE_TYPE
-      unsound = mkRequiresModelTypeofBool(args[ii], unsound);
-#endif
+      if (StdPlugin::optionVcUseTypeof())
+      {
+        unsound = mkRequiresModelTypeofBool(args[ii], unsound);
+      }
     }
   }
-#ifdef VC_USE_IS_INPUT
-  // require that conclusion is an SMT-LIB term
-  unsound = mkRequiresModelIsInput(conclusion, unsound);
-#endif
+  if (StdPlugin::optionVcUseIsInput())
+  {
+    // require that conclusion is an SMT-LIB term
+    unsound = mkRequiresModelIsInput(conclusion, unsound);
+  }
   std::vector<Expr> uvars = Expr::getVariables(unsound);
   if (uvars.empty())
   {
@@ -1069,13 +1068,14 @@ Expr Desugar::mkRequiresModelSat(bool tgt, const Expr& test, const Expr& ret)
   modelSatArgs.push_back(d_peoModelSat);
   modelSatArgs.push_back(test);
   Expr t1 = d_state.mkExpr(Kind::APPLY, modelSatArgs);
-#ifdef VC_USE_MODEL_SAT_STRICT
+if (StdPlugin::optionVcUseModelStrict() )
+{
   Expr t2 = mkOptionSome(tgt);
   return mkRequiresEq(t1, t2, ret);
-#else
+}else{
   Expr t2 = mkOptionSome(!tgt);
   return mkRequiresEq(t1, t2, ret, true);
-#endif
+}
 }
 
 Expr Desugar::mkRequiresModelTypeofBool(const Expr& test, const Expr& ret)

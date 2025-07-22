@@ -24,6 +24,19 @@ std::string StdPlugin::s_plugin_path =
     "/mnt/nfs/clasnetappvm/grad/ajreynol/ethos/";
 #endif
 
+// enables eager elimination of nested evaluation, ite, and requires
+bool StdPlugin::optionFlattenEval() { return true; }
+// this ensures that the types of premises and conclusion must be Bool to witness unsoundness
+bool StdPlugin::optionVcUseTypeof() { return false; }
+// use constraint of SMT-LIB input terms
+bool StdPlugin::optionVcUseIsInput() { return true; }
+// strict means we are not debugging completeness
+bool StdPlugin::optionVcUseModelStrict() { return true; }
+// uses trigger in final encoding
+bool StdPlugin::optionSmtMetaUseTriggers() { return true; }
+// makes conjecture easy to debug models
+bool StdPlugin::optionSmtMetaDebugConjecture() { return false; }
+
 StdPlugin::StdPlugin(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {
   d_typeVarCounter = 0;
@@ -50,7 +63,7 @@ void StdPlugin::setLiteralTypeRule(Kind k, const Expr& t)
   // e.g. eo::len.
   std::stringstream ss;
   ss << "(declare-consts ";
-  std::ostream* os;
+  std::ostream* os = nullptr;
   switch (k)
   {
     case Kind::NUMERAL:
@@ -178,5 +191,5 @@ Expr StdPlugin::allocateTypeVariable()
   ss << "$eoT_" << d_typeVarCounter;
   return d_state.mkSymbol(Kind::PARAM, ss.str(), d_state.mkType());
 }
-
+  
 }  // namespace ethos
