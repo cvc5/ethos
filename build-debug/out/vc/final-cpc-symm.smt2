@@ -425,7 +425,7 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    ($eo_if_both (ite (= x1 eo.Stuck) (eo.SmtTerm (sm.Bool false)) (eo.SmtTerm (sm.Bool true))) ($smtx_is_input x1))
+    ($smtx_is_input x1)
     eo.Stuck))) :pattern (($eo_model_is_input x1)))) :named sm.axiom.$eo_model_is_input))
 
 ; program: $eor_symm
@@ -441,7 +441,7 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    ($eo_requires_eq ($eo_model_sat x1) (eo.Apply (eo.Apply eo.$eo_List_cons (eo.SmtTerm (sm.Bool true))) (eo.Apply (eo.Apply eo.$eo_List_cons eo.$eo_List_nil) eo.$eo_List_nil)) ($eo_requires_eq ($eo_model_sat ($eor_symm x1)) (eo.Apply (eo.Apply eo.$eo_List_cons (eo.SmtTerm (sm.Bool false))) (eo.Apply (eo.Apply eo.$eo_List_cons eo.$eo_List_nil) eo.$eo_List_nil)) ($eo_requires_eq ($eo_model_is_input ($eor_symm x1)) (eo.SmtTerm (sm.Bool true)) (eo.SmtTerm (sm.Bool true)))))
+    ($eo_requires_eq ($eo_model_is_input ($eor_symm x1)) (eo.SmtTerm (sm.Bool true)) ($eo_requires_eq ($eo_model_sat x1) (eo.Apply (eo.Apply eo.$eo_List_cons (eo.SmtTerm (sm.Bool true))) (eo.Apply (eo.Apply eo.$eo_List_cons eo.$eo_List_nil) eo.$eo_List_nil)) ($eo_requires_eq ($eo_model_sat ($eor_symm x1)) (eo.Apply (eo.Apply eo.$eo_List_cons (eo.SmtTerm (sm.Bool false))) (eo.Apply (eo.Apply eo.$eo_List_cons eo.$eo_List_nil) eo.$eo_List_nil)) (eo.SmtTerm (sm.Bool true)))))
     eo.Stuck)))
 
 

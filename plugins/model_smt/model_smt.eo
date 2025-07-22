@@ -466,7 +466,7 @@ $SMT_EVAL_CASES$
                                                         ($smtx_typeof f)
                                                         ($smtx_typeof val)))
   ; the type of a value term is the type of its term.
-  (($smtx_typeof ($eo_smt_value ($vsm_term t)))       ($smtx_typeof ($eo_smt_term t)))
+  (($smtx_typeof ($eo_smt_value ($vsm_term a)))       ($smtx_typeof ($eo_smt_term a)))
   (($smtx_typeof ($eo_smt_value ($vsm_map T m)))      ($smtx_typeof_map T m))
   ; the type of uninterpreted constants carry its type.
   (($smtx_typeof ($eo_smt_value ($vsm_uconst T id)))  T)
@@ -522,7 +522,7 @@ $SMT_EVAL_CASES$
 (program $eo_model_is_input ((F Bool))
   :signature (Bool) Bool
   (
-  (($eo_model_is_input F) ($eo_if_both ($eo_is_ok F) ($smtx_is_input F)))
+  (($eo_model_is_input F) ($smtx_is_input F))
   )
 )
 

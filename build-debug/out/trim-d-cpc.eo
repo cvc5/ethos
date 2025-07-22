@@ -632,7 +632,7 @@
 (program $eovc_refl ((T Type) (t T))
   :signature (T) Bool
   (
-  (($eovc_refl t) (eo::define ((_v0 ($eor_refl t))) ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some false) ($eo_requires_eq ($eo_model_is_input _v0) true true))))
+  (($eovc_refl t) (eo::define ((_v0 ($eor_refl t))) ($eo_requires_eq ($eo_model_is_input _v0) true ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some false) true))))
   )
 )
 (echo "smt-meta $eovc_refl")

@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_refl $eo_typeof $smtx_model_lookup_predicate $eo_hash
-; #trim-defs: 132
+; #trim-defs: 129
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -118,8 +118,6 @@
   ($smd_sm.String s))
 (define $eo_mk_bool ((x $smt_builtin_Bool))
   ($eo_smt_term ($sm_mk_bool x)))
-(define $eo_mk_true () ($eo_smt_term $sm_mk_true))
-(define $eo_mk_false () ($eo_smt_term $sm_mk_false))
 (define $eo_mk_numeral ((x $smt_builtin_Int))
   ($eo_smt_term ($sm_mk_z x)))
 (define $eo_mk_rational ((x $smt_builtin_Real))
@@ -128,10 +126,6 @@
   ($eo_smt_term ($sm_mk_str x)))
 (define $eo_binary ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
   ($eo_smt_term ($smd_sm.Binary x1 x2)))
-(define $eo_is_ok ((x $eo_Term))
-  ($smt_apply_3 "ite" ($smt_apply_= x $eo_stuck)
-    $eo_mk_false
-    $eo_mk_true))
 (define $smt_builtin_is_ok ((x $eo_Term))
   ($smt_apply_3 "ite" ($smt_apply_= x $eo_stuck)
     $smt_builtin_false
@@ -444,7 +438,7 @@
 (program $eo_model_is_input ((F Bool))
   :signature (Bool) Bool
   (
-  (($eo_model_is_input F) ($eo_if_both ($eo_is_ok F) ($smtx_is_input F)))
+  (($eo_model_is_input F) ($smtx_is_input F))
   )
 )
 (program $eor_refl ((T Type) (t T))
@@ -456,7 +450,7 @@
 (program $eovc_refl ((T Type) (t T))
   :signature (T) Bool
   (
-  (($eovc_refl t) (eo::define ((_v0 ($eor_refl t))) ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some false) ($eo_requires_eq ($eo_model_is_input _v0) true true))))
+  (($eovc_refl t) (eo::define ((_v0 ($eor_refl t))) ($eo_requires_eq ($eo_model_is_input _v0) true ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some false) true))))
   )
 )
 (echo "smt-meta $eovc_refl")

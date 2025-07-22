@@ -1482,7 +1482,7 @@
                                                         ($smtx_typeof f)
                                                         ($smtx_typeof val)))
   ; the type of a value term is the type of its term.
-  (($smtx_typeof ($eo_smt_value ($vsm_term t)))       ($smtx_typeof ($eo_smt_term t)))
+  (($smtx_typeof ($eo_smt_value ($vsm_term a)))       ($smtx_typeof ($eo_smt_term a)))
   (($smtx_typeof ($eo_smt_value ($vsm_map T m)))      ($smtx_typeof_map T m))
   ; the type of uninterpreted constants carry its type.
   (($smtx_typeof ($eo_smt_value ($vsm_uconst T id)))  T)
@@ -1538,7 +1538,7 @@
 (program $eo_model_is_input ((F Bool))
   :signature (Bool) Bool
   (
-  (($eo_model_is_input F) ($eo_if_both ($eo_is_ok F) ($smtx_is_input F)))
+  (($eo_model_is_input F) ($smtx_is_input F))
   )
 )
 
@@ -1552,7 +1552,7 @@
 (program $eovc_refl ((T Type) (t T))
   :signature (T) Bool
   (
-  (($eovc_refl t) (eo::define ((_v0 ($eor_refl t))) ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some false) ($eo_requires_eq ($eo_model_is_input _v0) true true))))
+  (($eovc_refl t) (eo::define ((_v0 ($eor_refl t))) ($eo_requires_eq ($eo_model_is_input _v0) true ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some false) true))))
   )
 )
 (echo "smt-meta $eovc_refl")

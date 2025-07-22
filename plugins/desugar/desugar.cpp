@@ -20,7 +20,7 @@
 // this ensures that the types of premises and conclusion must be Bool to witness unsoundness
 //#define VC_USE_TYPE
 // this ensures the conclusion term is a valid SMT-LIB term
-#define VC_USE_SMT_LIB_TERM
+#define VC_USE_IS_INPUT
 // commenting this makes the model_sat routine ensure totality
 #define VC_USE_MODEL_SAT_STRICT
 
@@ -734,10 +734,6 @@ void Desugar::finalizeRule(const Expr& e)
   std::stringstream pvcname;
   pvcname << "$eovc_" << e;
   Expr unsound = etrue;
-#ifdef VC_USE_SMT_LIB_TERM
-  // require that conclusion is an SMT-LIB term
-  unsound = mkRequiresModelIsInput(conclusion, unsound);
-#endif
   // require that the conclusion is not satisfied
   unsound = mkRequiresModelSat(false, conclusion, unsound);
   // require that each premise is satisfied
@@ -752,6 +748,10 @@ void Desugar::finalizeRule(const Expr& e)
 #endif
     }
   }
+#ifdef VC_USE_IS_INPUT
+  // require that conclusion is an SMT-LIB term
+  unsound = mkRequiresModelIsInput(conclusion, unsound);
+#endif
   std::vector<Expr> uvars = Expr::getVariables(unsound);
   if (uvars.empty())
   {
