@@ -1,7 +1,7 @@
 (declare-type Int ())
 (declare-consts <numeral> Int)
 (declare-parameterized-const C 
-  ((x Int) (y Int :requires ((eo::gt x y) true) :requires ((eo::gt x y) true)))
-  Type)
+  ((x Int) (y Int))
+  (eo::requires (eo::gt x y) true (eo::requires (eo::gt x y) true Type)))
 
 (declare-const test (C 4 3))
