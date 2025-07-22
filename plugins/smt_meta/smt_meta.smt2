@@ -24,5 +24,3 @@ $SM_DEFS$
 ;;; The verification condition
 
 $SMT_VC$
-
-(check-sat)

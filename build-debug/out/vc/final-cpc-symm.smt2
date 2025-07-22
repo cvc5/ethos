@@ -425,7 +425,7 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    ($smtx_is_input x1)
+    ($eo_if_both (ite (= x1 eo.Stuck) (eo.SmtTerm (sm.Bool false)) (eo.SmtTerm (sm.Bool true))) ($smtx_is_input x1))
     eo.Stuck))) :pattern (($eo_model_is_input x1)))) :named sm.axiom.$eo_model_is_input))
 
 ; program: $eor_symm
@@ -469,6 +469,5 @@
 ;;;; final verification condition for $eovc_symm
 (assert (! (exists ((x1 eo.Term))
   (= ($eovc_symm x1) (eo.SmtTerm (sm.Bool true)))) :named sm.conjecture.$eovc_symm))
-
-
 (check-sat)
+

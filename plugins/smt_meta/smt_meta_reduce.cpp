@@ -16,6 +16,7 @@
 #include "state.h"
 
 #define USE_TRIGGERS
+//#define DEBUG_CONJECTURE
 
 namespace ethos {
 
@@ -1026,31 +1027,48 @@ bool SmtMetaReduce::echo(const std::string& msg)
     Expr vt = d_tc.getType(vv);
     std::stringstream varList;
     std::stringstream eoTrue;
+    std::stringstream call;
     eoTrue << "(eo.SmtTerm (sm.Bool true))";
-    d_smtVc << "(assert (! ";
     if (vt.getKind() == Kind::PROGRAM_TYPE)
     {
-      d_smtVc << "(exists (";
-      std::stringstream call;
+      std::stringstream conjEnd;
+#ifndef DEBUG_CONJECTURE
+      d_smtVc << "(assert (! (exists (";
+      conjEnd << ")";
+#endif
       size_t nargs = vt.getNumChildren();
       for (size_t i = 1; i < nargs; i++)
       {
+#ifdef DEBUG_CONJECTURE
+        d_smtVc << "(declare-const x" << i << " eo.Term)" << std::endl;
+#else
         if (i > 1)
         {
           d_smtVc << " ";
         }
         d_smtVc << "(x" << i << " eo.Term)";
+#endif
         call << " x" << i;
       }
-      d_smtVc << ")" << std::endl;
-      d_smtVc << "  (= (" << eosc << call.str() << ") " << eoTrue.str() << "))";
+#ifdef DEBUG_CONJECTURE
+      d_smtVc << "(assert (! ";
+#else
+      d_smtVc << ")" << std::endl << "  ";
+#endif
+      d_smtVc << "(= (" << eosc << call.str() << ") " << eoTrue.str() << ")";
+      d_smtVc << conjEnd.str();
     }
     else
     {
-      d_smtVc << "(= " << eosc << " " << eoTrue.str() << "))";
+      d_smtVc << "(assert (! (= " << eosc << " " << eoTrue.str() << ")";
     }
     d_smtVc << " :named sm.conjecture." << vv << ")";
     d_smtVc << ")" << std::endl;
+    d_smtVc << "(check-sat)" << std::endl;
+#ifdef DEBUG_CONJECTURE
+    d_smtVc << "(get-model)" << std::endl;
+    d_smtVc << "(get-value (" << call.str() << "))" << std::endl;
+#endif
     // std::cout << "...set target" << std::endl;
     return false;
   }
