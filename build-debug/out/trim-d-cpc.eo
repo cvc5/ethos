@@ -479,20 +479,10 @@
 
 ; declare: ite
 (declare-parameterized-const ite (($eo_x_1 Bool) (A Type :implicit) ($eo_x_2 A) ($eo_x_3 A)) A)
-; declare: not
-(declare-const not (-> Bool Bool))
 ; declare: and
 (declare-const and (-> Bool (-> Bool Bool)))
 ; declare: =
 (declare-parameterized-const = ((A Type :implicit) ($eo_x_1 A) ($eo_x_2 A)) Bool)
-; program: $mk_symm
-(program $mk_symm ((T Type) (t2 T) (t1 T))
-  :signature (Bool) Bool
-  (
-  (($mk_symm (_ (= t1) t2)) (_ (= t2) t1))
-  (($mk_symm (not (_ (= t1) t2))) (not (_ (= t2) t1)))
-  )
-)
 ; declare: BitVec
 (declare-const BitVec (-> Int Type))
 
@@ -558,8 +548,6 @@
   (($eo_typeof_main Seq) (-> Type Type))
   ; type-rule: ite
   (($eo_typeof_main (_ (ite x1) x2)) ($eo_typeof_ite ($eo_typeof x1) ($eo_typeof x2)))
-  ; type-rule: not
-  (($eo_typeof_main not) (-> Bool Bool))
   ; type-rule: and
   (($eo_typeof_main and) (-> Bool (-> Bool Bool)))
   ; type-rule: =
@@ -633,19 +621,19 @@
 
 ;; verification conditions
 
-; program: $eor_symm
-(program $eor_symm ((F Bool))
-  :signature (Bool) Bool
+; program: $eor_refl
+(program $eor_refl ((T Type) (t T))
+  :signature (T) Bool
   (
-  (($eor_symm F) ($mk_symm F))
+  (($eor_refl t) (_ (= t) t))
   )
 )
-; program: $eovc_symm
-(program $eovc_symm ((F Bool))
-  :signature (Bool) Bool
+; program: $eovc_refl
+(program $eovc_refl ((T Type) (t T))
+  :signature (T) Bool
   (
-  (($eovc_symm F) (eo::define ((_v0 ($eor_symm F))) ($eo_requires_eq ($eo_model_sat F) ($eo_Option_some true) ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some false) ($eo_requires_eq ($eo_model_is_input _v0) true true)))))
+  (($eovc_refl t) (eo::define ((_v0 ($eor_refl t))) ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some false) ($eo_requires_eq ($eo_model_is_input _v0) true true))))
   )
 )
-(echo "smt-meta $eovc_symm")
+(echo "smt-meta $eovc_refl")
 

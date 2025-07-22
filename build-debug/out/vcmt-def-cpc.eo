@@ -1,5 +1,5 @@
-; trim-defs: $eovc_symm $eo_typeof $smtx_model_lookup_predicate $eo_hash
-; #trim-defs: 133
+; trim-defs: $eovc_refl $eo_typeof $smtx_model_lookup_predicate $eo_hash
+; #trim-defs: 129
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -41,9 +41,6 @@
 (declare-parameterized-const $smt_apply_0
   ((op $smt_id :opaque))
   $smt_BuiltinType)
-(declare-parameterized-const $smt_apply_1
-  ((W1 Type :implicit)
-   (op $smt_id :opaque) (x1 W1 :opaque)) $smt_BuiltinType)
 (declare-parameterized-const $smt_apply_2
   ((W1 Type :implicit) (W2 Type :implicit)
    (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque)) $smt_BuiltinType)
@@ -158,16 +155,8 @@
 (define $eo_Option_some ((T Type :implicit) (t T)) ($eo_List_cons t $eo_List_nil))
 (define $eo_Option () $eo_List)
 (declare-parameterized-const ite (($eo_x_1 Bool) (A Type :implicit) ($eo_x_2 A) ($eo_x_3 A)) A)
-(declare-const not (-> Bool Bool))
 (declare-const and (-> Bool (-> Bool Bool)))
 (declare-parameterized-const = ((A Type :implicit) ($eo_x_1 A) ($eo_x_2 A)) Bool)
-(program $mk_symm ((T Type) (t2 T) (t1 T))
-  :signature (Bool) Bool
-  (
-  (($mk_symm (_ (= t1) t2)) (_ (= t2) t1))
-  (($mk_symm (not (_ (= t1) t2))) (not (_ (= t2) t1)))
-  )
-)
 (declare-const BitVec (-> Int Type))
 (program $eo_typeof_apply ((T Type) (U Type))
   :signature (Type Type) Type
@@ -213,8 +202,6 @@
   (($eo_typeof_main Seq) (-> Type Type))
   
   (($eo_typeof_main (_ (ite x1) x2)) ($eo_typeof_ite ($eo_typeof x1) ($eo_typeof x2)))
-  
-  (($eo_typeof_main not) (-> Bool Bool))
   
   (($eo_typeof_main and) (-> Bool (-> Bool Bool)))
   
@@ -369,15 +356,6 @@
   (($smtx_model_eval_= t1 t2)             ($vsm_term ($sm_mk_bool ($smt_apply_= t1 t2))))
   )
 )
-(program $smtx_model_eval_not
-  ((x1 $smt_builtin_Bool) (t1 $smt_Value))
-  :signature ($smt_Value) $smt_Value
-
-  (
-  (($smtx_model_eval_not ($vsm_term ($sm_mk_bool x1))) ($vsm_term ($sm_mk_bool ($smt_apply_1 "not" x1))))
-  (($smtx_model_eval_not t1) $vsm_not_value)
-  )
-)
 (program $smtx_model_eval_and
   ((x1 $smt_builtin_Bool) (x2 $smt_builtin_Bool) (t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
@@ -410,7 +388,6 @@
   
   
   
-  (($smtx_model_eval (not x1)) ($smtx_model_eval_not ($smtx_model_eval x1)))
   (($smtx_model_eval (and x1 x2)) ($smtx_model_eval_and ($smtx_model_eval x1) ($smtx_model_eval x2)))
 
 
@@ -464,16 +441,16 @@
   (($eo_model_is_input F) ($smtx_is_input F))
   )
 )
-(program $eor_symm ((F Bool))
-  :signature (Bool) Bool
+(program $eor_refl ((T Type) (t T))
+  :signature (T) Bool
   (
-  (($eor_symm F) ($mk_symm F))
+  (($eor_refl t) (_ (= t) t))
   )
 )
-(program $eovc_symm ((F Bool))
-  :signature (Bool) Bool
+(program $eovc_refl ((T Type) (t T))
+  :signature (T) Bool
   (
-  (($eovc_symm F) (eo::define ((_v0 ($eor_symm F))) ($eo_requires_eq ($eo_model_sat F) ($eo_Option_some true) ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some false) ($eo_requires_eq ($eo_model_is_input _v0) true true)))))
+  (($eovc_refl t) (eo::define ((_v0 ($eor_refl t))) ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some false) ($eo_requires_eq ($eo_model_is_input _v0) true true))))
   )
 )
-(echo "smt-meta $eovc_symm")
+(echo "smt-meta $eovc_refl")
