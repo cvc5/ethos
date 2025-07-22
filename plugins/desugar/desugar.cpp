@@ -19,6 +19,7 @@
 #define FLATTEN_EVAL
 //#define VC_USE_TYPE
 #define VC_USE_SMT_LIB_TERM
+// commenting this makes the model_sat routine ensure totality
 #define VC_USE_MODEL_SAT_STRICT
 
 namespace ethos {

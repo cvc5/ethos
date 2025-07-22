@@ -15,6 +15,8 @@
 
 #include "state.h"
 
+#define USE_TRIGGERS
+
 namespace ethos {
 
 ConjPrint::ConjPrint() : d_npush(0) {}
@@ -944,9 +946,12 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     {
       d_defs << decl.str();
     }
-    d_defs << "(assert (! (forall (" << varList.str() << ")" << std::endl;
-    d_defs << "  (= " << appTerm.str() << std::endl;
-    casesEnd << "))";
+    d_defs << "(assert (! (forall (" << varList.str() << ")" << std::endl << "  ";
+#ifdef USE_TRIGGERS
+    d_defs << "(! ";
+#endif
+    d_defs << "(= " << appTerm.str() << std::endl;
+    casesEnd << ")";
   }
   else
   {
@@ -961,7 +966,10 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   d_defs << casesEnd.str();
   if (reqAxiom)
   {
-    d_defs << " :named sm.axiom." << v << ")";
+#ifdef USE_TRIGGERS
+    d_defs << " :pattern (" << appTerm.str() << "))";
+#endif
+    d_defs << ") :named sm.axiom." << v << ")";
   }
   d_defs << ")" << std::endl;
   d_defs << std::endl;

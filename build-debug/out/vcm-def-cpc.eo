@@ -1081,13 +1081,12 @@
 
 ; forward declaration
 ; This method classifies SMT terms as being values.
-; The invariant of this method is that if
-;   ($smt_Type t1) and ($smt_Type t2)
-; return true where t1 and t2 have the same type ($smtx_typeof), then
-;   (not (= t1 t2))
-; is valid.
-(program $smtx_term_is_value ()
-  :signature ($smt_Term) $smt_builtin_Bool)
+; The invariant of this method is that if v1 and v2
+; return true where v1 and v2 have the same type ($smtx_typeof),
+; and are distinct, then they denote semantically distinct
+; values.
+(program $smtx_is_value ()
+  :signature ($smt_Value) $smt_builtin_Bool)
 
 ;;; Functions and array values.
 
@@ -1141,9 +1140,6 @@
 
 ;;; Utilities for Datatype values
 
-; TODO: since e.g. uinterpreted sorts can be nested in
-; datatypes we need a lifted datatype value.
-
 ; define: $smt_is_dt
 ; returns: true if t is a datatpe (i.e. it has constructors).
 (define $smt_is_dt ((t $smt_Type))
@@ -1182,7 +1178,7 @@
 ; if indeed it is a value, or returns not a value otherwise.
 (define $smt_mk_value_term ((t $smt_Term))
   ($smt_apply_3 "ite" ($smtx_term_is_value t)
-    ; an atomic term
+    ; an atomic term, e.g. 0, true, "abc"
     ($vsm_term t)
     ($smt_apply_3 "ite" ($smt_is_dt_cons t)
       ; a datatype constructor, which becomes a (nil-terminated) vsm_apply
@@ -1195,13 +1191,30 @@
     ($vsm_map T m)
     $vsm_not_value))
 
+; program: $smtx_is_value
+(program $smtx_is_value
+  ((t $smt_Value) (f $smt_Value) (v $smt_Value) (T $eo_Term) (m $smt_Map) (id $smt_builtin_Int))
+  :signature ($smt_Value) $smt_builtin_Bool
+  (
+  (($smtx_is_value ($vsm_term t))         ($smtx_term_is_value t))
+  (($smtx_is_value ($vsm_map T m))        ($smtx_map_is_value T m))
+  (($smtx_is_value ($vsm_uconst T id))    $smt_builtin_true)
+  ; Herbrand interpretations: nil terminated apply of value terms
+  (($smtx_is_value ($vsm_apply ($vsm_term t) $vsm_not_value))
+                                          ($smt_is_dt_cons t))
+  (($smtx_is_value ($vsm_apply f v))      ($smt_apply_2 "and" ($smtx_is_value f) ($smtx_is_value v)))
+  ; Otherwise false
+  (($smtx_is_value v)                     $smt_builtin_false)
+  )
+)
+
 ; program: $smtx_ensure_value
 ; args:
 ; - v $smt_Value: A value term.
 ; return: >
 ;   v itself if it denotes a proper SMT-LIB value, or $vsm_not_value otherwise.
 (program $smtx_ensure_value
-  ((t $smt_Value) (f $smt_Value) (val $smt_Value) (T $eo_Term) (m $smt_Map) (id $smt_builtin_Int))
+  ((v $smt_Value) (t $smt_Term) (T $eo_Term) (m $smt_Map) (id $smt_builtin_Int))
   :signature ($smt_Value) $smt_Value
   (
   (($smtx_ensure_value ($vsm_term t))         ($smt_mk_value_term t))
@@ -1408,7 +1421,7 @@
   ; Otherwise, it may be a term value (e.g. if z is a Boolean or numeral constant).
   ; We call the utility method which will either generate an SMT-LIB term value or
   ; a SMT-LIB non-value error term.
-  (($smtx_model_eval z)                         ($smtx_ensure_value ($vsm_term z)))
+  (($smtx_model_eval z)                         ($smt_mk_value_term z))
   )
 )
 
@@ -1483,16 +1496,17 @@
 
 ;;; SMT input
 
-; program: $smtx_is_smt_input
-(program $smtx_is_smt_input
-  ((t $eo_Term) (a $eo_Term) (s $smt_Term) (T $smt_Type))
+; program: $smtx_is_input
+(program $smtx_is_input
+  ((t $eo_Term) (a $eo_Term) (s $smt_Term) (T $smt_Type) (v $smt_Value))
   :signature ($eo_Term) Bool
   (
-  (($smtx_is_smt_input ($eo_apply t a))
-     ($eo_if_both ($smtx_is_smt_input t) ($smtx_is_smt_input a)))
-  (($smtx_is_smt_input ($eo_smt_term s)) true)
-  (($smtx_is_smt_input ($eo_smt_type T)) true)
-  (($smtx_is_smt_input t)                false)
+  (($smtx_is_input ($eo_apply t a))
+    ($eo_if_both ($smtx_is_input t) ($smtx_is_input a)))
+  (($smtx_is_input ($eo_smt_term ($sm_Const v)))  ($eo_mk_bool ($smtx_is_value v)))
+  (($smtx_is_input ($eo_smt_term s))              true)
+  (($smtx_is_input ($eo_smt_type T))              true)
+  (($smtx_is_input t)                             false)
   )
 )
 
@@ -1525,7 +1539,7 @@
 (program $eo_model_is_input ((F Bool))
   :signature (Bool) Bool
   (
-  (($eo_model_is_input F) ($smtx_is_smt_input F))
+  (($eo_model_is_input F) ($smtx_is_input F))
   )
 )
 

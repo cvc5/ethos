@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm $eo_typeof $smtx_model_lookup_predicate $eo_hash $eo_apply $eo_fun_type
-; #trim-defs: 136
+; #trim-defs: 137
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -255,8 +255,8 @@
   ($smt_apply_3 "ite" ($smt_apply_= x $eo_stuck)
     $smt_builtin_false
     $smt_builtin_true))
-(program $smtx_term_is_value ()
-  :signature ($smt_Term) $smt_builtin_Bool)
+(program $smtx_is_value ()
+  :signature ($smt_Value) $smt_builtin_Bool)
 (program $smtx_map_lookup
   ((i $smt_Value) (j $smt_Value) (e $smt_Value) (M $smt_Map))
   :signature ($smt_Map $smt_Value) $smt_Value
@@ -297,8 +297,23 @@
     ($smtx_map_is_value T m)
     ($vsm_map T m)
     $vsm_not_value))
+(program $smtx_is_value
+  ((t $smt_Value) (f $smt_Value) (v $smt_Value) (T $eo_Term) (m $smt_Map) (id $smt_builtin_Int))
+  :signature ($smt_Value) $smt_builtin_Bool
+  (
+  (($smtx_is_value ($vsm_term t))         ($smtx_term_is_value t))
+  (($smtx_is_value ($vsm_map T m))        ($smtx_map_is_value T m))
+  (($smtx_is_value ($vsm_uconst T id))    $smt_builtin_true)
+  
+  (($smtx_is_value ($vsm_apply ($vsm_term t) $vsm_not_value))
+                                          ($smt_is_dt_cons t))
+  (($smtx_is_value ($vsm_apply f v))      ($smt_apply_2 "and" ($smtx_is_value f) ($smtx_is_value v)))
+  
+  (($smtx_is_value v)                     $smt_builtin_false)
+  )
+)
 (program $smtx_ensure_value
-  ((t $smt_Value) (f $smt_Value) (val $smt_Value) (T $eo_Term) (m $smt_Map) (id $smt_builtin_Int))
+  ((v $smt_Value) (t $smt_Term) (T $eo_Term) (m $smt_Map) (id $smt_builtin_Int))
   :signature ($smt_Value) $smt_Value
   (
   (($smtx_ensure_value ($vsm_term t))         ($smt_mk_value_term t))
@@ -418,7 +433,7 @@
   
   
   
-  (($smtx_model_eval z)                         ($smtx_ensure_value ($vsm_term z)))
+  (($smtx_model_eval z)                         ($smt_mk_value_term z))
   )
 )
 (program $smtx_model_sat ((val $smt_Value))
@@ -429,15 +444,16 @@
   (($smtx_model_sat val)        $eo_Option_null)
   )
 )
-(program $smtx_is_smt_input
-  ((t $eo_Term) (a $eo_Term) (s $smt_Term) (T $smt_Type))
+(program $smtx_is_input
+  ((t $eo_Term) (a $eo_Term) (s $smt_Term) (T $smt_Type) (v $smt_Value))
   :signature ($eo_Term) Bool
   (
-  (($smtx_is_smt_input ($eo_apply t a))
-     ($eo_if_both ($smtx_is_smt_input t) ($smtx_is_smt_input a)))
-  (($smtx_is_smt_input ($eo_smt_term s)) true)
-  (($smtx_is_smt_input ($eo_smt_type T)) true)
-  (($smtx_is_smt_input t)                false)
+  (($smtx_is_input ($eo_apply t a))
+    ($eo_if_both ($smtx_is_input t) ($smtx_is_input a)))
+  (($smtx_is_input ($eo_smt_term ($sm_Const v)))  ($eo_mk_bool ($smtx_is_value v)))
+  (($smtx_is_input ($eo_smt_term s))              true)
+  (($smtx_is_input ($eo_smt_type T))              true)
+  (($smtx_is_input t)                             false)
   )
 )
 (program $eo_model_sat ((F Bool))
@@ -449,7 +465,7 @@
 (program $eo_model_is_input ((F Bool))
   :signature (Bool) Bool
   (
-  (($eo_model_is_input F) ($smtx_is_smt_input F))
+  (($eo_model_is_input F) ($smtx_is_input F))
   )
 )
 (program $eor_symm ((F Bool))
