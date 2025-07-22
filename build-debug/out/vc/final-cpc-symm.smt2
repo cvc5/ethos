@@ -294,7 +294,7 @@
   (ite ((_ is vsm.UConst) x1)
     true
   (ite (and ((_ is vsm.Apply) x1) (= (vsm.Apply.arg2 x1) vsm.NotValue) ((_ is vsm.Term) (vsm.Apply.arg1 x1)))
-    (ite (= ($eo_dt_selectors (eo.SmtTerm (vsm.Term.arg1 (vsm.Apply.arg1 x1)))) eo.Stuck) false true)
+    (not (= ($eo_dt_selectors (eo.SmtTerm (vsm.Term.arg1 (vsm.Apply.arg1 x1)))) eo.Stuck))
   (ite ((_ is vsm.Apply) x1)
     (and ($smtx_is_value (vsm.Apply.arg1 x1)) ($smtx_is_value (vsm.Apply.arg2 x1)))
     false
@@ -303,7 +303,7 @@
 ; program: $smtx_ensure_value
 (define-fun $smtx_ensure_value ((x1 vsm.Value)) vsm.Value
   (ite ((_ is vsm.Term) x1)
-    (ite ($smtx_term_is_value (vsm.Term.arg1 x1)) (vsm.Term (vsm.Term.arg1 x1)) (ite (ite (= ($eo_dt_selectors (eo.SmtTerm (vsm.Term.arg1 x1))) eo.Stuck) false true) (vsm.Apply (vsm.Term (vsm.Term.arg1 x1)) vsm.NotValue) vsm.NotValue))
+    (ite ($smtx_term_is_value (vsm.Term.arg1 x1)) (vsm.Term (vsm.Term.arg1 x1)) (ite (not (= ($eo_dt_selectors (eo.SmtTerm (vsm.Term.arg1 x1))) eo.Stuck)) (vsm.Apply (vsm.Term (vsm.Term.arg1 x1)) vsm.NotValue) vsm.NotValue))
   (ite ((_ is vsm.Map) x1)
     (ite ($smtx_map_is_value (eo.SmtType.arg1 (vsm.Map.arg1 x1)) (vsm.Map.arg2 x1)) (vsm.Map (vsm.Map.arg1 x1) (vsm.Map.arg2 x1)) vsm.NotValue)
   (ite ((_ is vsm.UConst) x1)
@@ -383,7 +383,7 @@
     ($smtx_ensure_value (sm.Const.arg1 (eo.SmtTerm.arg1 x1)))
   (ite ((_ is eo.Apply) x1)
     ($smtx_model_eval_apply ($smtx_model_eval (eo.Apply.arg1 x1)) ($smtx_model_eval (eo.Apply.arg2 x1)))
-    (ite ($smtx_term_is_value (eo.SmtTerm.arg1 x1)) (vsm.Term (eo.SmtTerm.arg1 x1)) (ite (ite (= ($eo_dt_selectors x1) eo.Stuck) false true) (vsm.Apply (vsm.Term (eo.SmtTerm.arg1 x1)) vsm.NotValue) vsm.NotValue))
+    (ite ($smtx_term_is_value (eo.SmtTerm.arg1 x1)) (vsm.Term (eo.SmtTerm.arg1 x1)) (ite (not (= ($eo_dt_selectors x1) eo.Stuck)) (vsm.Apply (vsm.Term (eo.SmtTerm.arg1 x1)) vsm.NotValue) vsm.NotValue))
 ))))))) :pattern (($smtx_model_eval x1)))) :named sm.axiom.$smtx_model_eval))
 
 ; program: $smtx_model_sat
