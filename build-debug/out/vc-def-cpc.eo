@@ -33,7 +33,7 @@
   (($eo_requires_eq x1 x1 x3) x3)
   )
 )
-(echo "include eo_builtin_smt")
+(echo "include eo_builtin_smt :deps $eo_typeof_main $eo_String $eo_Numeral $eo_Rational $eo_Binary $eo_typeof ")
 (declare-const $eo_List Type)
 (declare-const $eo_List_nil $eo_List)
 (declare-parameterized-const $eo_List_cons ((T Type :implicit))
@@ -128,7 +128,7 @@
 (program $eo_model_sat () :signature (Bool) $eo_Option)
 (program $eo_model_typeof () :signature (Bool) Type)
 (program $eo_model_is_input () :signature (Bool) Bool)
-(echo "include eo_model_sat")
+(echo "include eo_model_sat :deps $eo_dt_constructors $eo_dt_selectors $eo_if_both $eo_Option_some $eo_Option_null $eo_model_sat $eo_model_typeof $eo_model_is_input ite = ")
 (program $eor_symm ((F Bool))
   :signature (Bool) Bool
   (
