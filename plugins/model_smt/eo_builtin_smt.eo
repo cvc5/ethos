@@ -141,7 +141,7 @@
 
 ;;; SMT term datatype constructors
 
-; Note the Bool type is "inlined" into the final signature
+; the literal types
 (declare-parameterized-const $smd_sm.Bool
   ((b $smt_builtin_Bool :opaque)) $smt_Term)
 (declare-parameterized-const $smd_sm.Numeral

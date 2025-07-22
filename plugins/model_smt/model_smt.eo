@@ -402,26 +402,16 @@ $SMT_EVAL_CASES$
 )
 
 ; program: $smtx_model_sat
-(program $smtx_model_sat
-  ((mv $smt_Value) (b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool) (tgt $eo_Term) (uok $eo_Term))
-  :signature ($smt_Value $eo_Term $eo_Term) Bool
+(program $smtx_model_sat ()
+  :signature ($smt_Value) Bool
   (
-  (($smtx_model_sat ($vsm_term ($sm_mk_bool b1)) ($eo_mk_bool b1) uok)  true)
-  (($smtx_model_sat ($vsm_term ($sm_mk_bool b1)) ($eo_mk_bool b2) uok)  false)
-  (($smtx_model_sat mv tgt uok)                                         uok)  ; otherwise, depends on strict
+  (($smtx_model_sat $vsm_true)  true)
+  (($smtx_model_sat $vsm_false) false)
   )
 )
 
-; program: $eo_model_sat
-; note: F is satisfied by the model if F evaluates to the SMT-LIB value denoting true.
-; We expect the input to this method to be a Eunoia term denoting an SMT-LIB formula
-; (term of Boolean type).
-(program $eo_model_sat ((F Bool) (tgt Bool) (uok Bool))
-  :signature (Bool Bool Bool) Bool
-  (
-  (($eo_model_sat F tgt uok) ($smtx_model_sat ($smtx_model_eval F) tgt uok))
-  )
-)
+
+;;; type of
 
 ; note: Helper for below.
 (program $smtx_typeof_map ((T $eo_Term) (j $smt_Value) (e $smt_Value) (m $smt_Map))
@@ -480,16 +470,7 @@ $SMT_EVAL_CASES$
   )
 )
 
-; program: $eo_model_typeof
-; note: F is satisfied by the model if F evaluates to the SMT-LIB value denoting true.
-; We expect the input to this method to be a Eunoia term denoting an SMT-LIB formula
-; (term of Boolean type).
-(program $eo_model_typeof ((F Bool))
-  :signature (Bool) Type
-  (
-  (($eo_model_typeof F) ($smtx_typeof F))
-  )
-)
+;;; SMT input
 
 ; program: $smtx_is_smt_input
 (program $smtx_is_smt_input
@@ -504,12 +485,36 @@ $SMT_EVAL_CASES$
   )
 )
 
-; program: $eo_model_is_smt_input
-; return: true if this is a legal SMT-LIB input term or type.
-(program $eo_model_is_smt_input ((F Bool))
+;;;;;;;;;;;;;;;;;;;;;;
+
+; program: $eo_model_sat
+; note: F is satisfied by the model if F evaluates to the SMT-LIB value denoting true.
+; We expect the input to this method to be a Eunoia term denoting an SMT-LIB formula
+; (term of Boolean type).
+(program $eo_model_eval ((F Bool))
   :signature (Bool) Bool
   (
-  (($eo_model_is_smt_input F) ($smtx_is_smt_input F))
+  (($eo_model_eval F) ($smtx_model_sat ($smtx_model_eval F)))
+  )
+)
+
+; program: $eo_model_typeof
+; note: F is satisfied by the model if F evaluates to the SMT-LIB value denoting true.
+; We expect the input to this method to be a Eunoia term denoting an SMT-LIB formula
+; (term of Boolean type).
+(program $eo_model_typeof ((F Bool))
+  :signature (Bool) Type
+  (
+  (($eo_model_typeof F) ($smtx_typeof F))
+  )
+)
+
+; program: $eo_model_is_input
+; return: true if this is a legal SMT-LIB input term or type.
+(program $eo_model_is_input ((F Bool))
+  :signature (Bool) Bool
+  (
+  (($eo_model_is_input F) ($smtx_is_smt_input F))
   )
 )
 

@@ -122,9 +122,9 @@
   (($eo_dt_selectors t) $eo_fail)
   )
 )
-(program $eo_model_sat () :signature (Bool Bool Bool) Bool)
+(program $eo_model_eval () :signature (Bool) Bool)
 (program $eo_model_typeof () :signature (Bool) Type)
-(program $eo_model_is_smt_input () :signature (Bool) Bool)
+(program $eo_model_is_input () :signature (Bool) Bool)
 (echo "include eo_model_sat")
 (program $eor_symm ((F Bool))
   :signature (Bool) Bool
@@ -135,7 +135,7 @@
 (program $eovc_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eovc_symm F) (eo::define ((_v0 ($eor_symm F))) ($eo_requires_eq ($eo_model_sat F true false) true ($eo_requires_eq ($eo_model_sat _v0 false false) true ($eo_requires_eq ($eo_model_is_smt_input _v0) true true)))))
+  (($eovc_symm F) (eo::define ((_v0 ($eor_symm F))) ($eo_requires_eq ($eo_model_eval F) true ($eo_requires_eq ($eo_model_eval _v0) false ($eo_requires_eq ($eo_model_is_input _v0) true true)))))
   )
 )
 (echo "smt-meta $eovc_symm")

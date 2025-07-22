@@ -50,20 +50,22 @@ Desugar::Desugar(State& s) : StdPlugin(s)
   // a placeholder
   d_boolType = d_state.mkBoolType();
   Expr ttype = d_state.mkType();
-  Expr modelSatType = d_state.mkProgramType({d_boolType, d_boolType, d_boolType}, d_boolType);
-  d_peoModelSat =
-      d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_model_sat", modelSatType);
+  Expr modelSatType = d_state.mkProgramType({d_boolType}, d_boolType);
+  d_peoModelEval =
+      d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_model_eval", modelSatType);
   Expr modelTypeofType = d_state.mkProgramType({d_boolType}, ttype);
   d_peoModelTypeof = d_state.mkSymbol(
       Kind::PROGRAM_CONST, "$eo_model_typeof", modelTypeofType);
-  Expr modelIsSmtTermType = d_state.mkProgramType({d_boolType}, d_boolType);
-  d_peoModelIsSmtTerm =
-      d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_model_is_smt_input", modelIsSmtTermType);
+  Expr modelIsInputType = d_state.mkProgramType({d_boolType}, d_boolType);
+  d_peoModelIsInput =
+      d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_model_is_input", modelIsInputType);
   Expr anyT = allocateTypeVariable();
   Expr anyT2 = allocateTypeVariable();
   Expr eoRequireEqType = d_state.mkProgramType({anyT, anyT, anyT2}, anyT2);
   d_peoRequiresEq =
       d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_requires_eq", eoRequireEqType);
+  d_peoRequiresDeq =
+      d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_requires_deq", eoRequireEqType);
 }
 
 Desugar::~Desugar() {}
@@ -727,7 +729,7 @@ void Desugar::finalizeRule(const Expr& e)
   Expr unsound = etrue;
 #ifdef VC_USE_SMT_LIB_TERM
   // require that conclusion is an SMT-LIB term
-  unsound = mkRequiresModelIsSmtTerm(conclusion, unsound);
+  unsound = mkRequiresModelIsInput(conclusion, unsound);
 #endif
   // require that the conclusion is not satisfied
   unsound = mkRequiresModelSat(false, conclusion, unsound);
@@ -1057,17 +1059,22 @@ Expr Desugar::mkSanitize(const Expr& t,
 Expr Desugar::mkRequiresModelSat(bool tgt, const Expr& test, const Expr& ret)
 {
   std::vector<Expr> modelSatArgs;
-  modelSatArgs.push_back(d_peoModelSat);
+  modelSatArgs.push_back(d_peoModelEval);
   modelSatArgs.push_back(test);
-  modelSatArgs.push_back(d_state.mkBool(tgt));
-#ifdef VC_USE_MODEL_SAT_STRICT
-  modelSatArgs.push_back(d_state.mkFalse());
-#else
-  modelSatArgs.push_back(d_state.mkTrue());
-#endif
   Expr t1 = d_state.mkExpr(Kind::APPLY, modelSatArgs);
-  Expr t2 = d_state.mkTrue();
+#if 1
+  Expr t2t = d_state.mkBool(tgt);
+  return mkRequiresEq(t1, t2t, ret);
+#endif
+#ifdef VC_USE_MODEL_SAT_STRICT
+  modelSatArgs[1] = d_state.mkBool(tgt);
+  Expr t2 = d_state.mkExpr(Kind::APPLY, modelSatArgs);
   return mkRequiresEq(t1, t2, ret);
+#else
+  modelSatArgs[1] = d_state.mkBool(!tgt);
+  Expr t2 = d_state.mkExpr(Kind::APPLY, modelSatArgs);
+  return mkRequiresEq(t1, t2, ret, false);
+#endif
 }
 
 Expr Desugar::mkRequiresModelTypeofBool(const Expr& test, const Expr& ret)
@@ -1079,20 +1086,20 @@ Expr Desugar::mkRequiresModelTypeofBool(const Expr& test, const Expr& ret)
   return mkRequiresEq(t1, d_boolType, ret);
 }
 
-Expr Desugar::mkRequiresModelIsSmtTerm(const Expr& test, const Expr& ret)
+Expr Desugar::mkRequiresModelIsInput(const Expr& test, const Expr& ret)
 {
   std::vector<Expr> modelSatArgs;
-  modelSatArgs.push_back(d_peoModelIsSmtTerm);
+  modelSatArgs.push_back(d_peoModelIsInput);
   modelSatArgs.push_back(test);
   Expr t1 = d_state.mkExpr(Kind::APPLY, modelSatArgs);
   Expr t2 = d_state.mkTrue();
   return mkRequiresEq(t1, t2, ret);
 }
 
-Expr Desugar::mkRequiresEq(const Expr& t1, const Expr& t2, const Expr& ret)
+Expr Desugar::mkRequiresEq(const Expr& t1, const Expr& t2, const Expr& ret, bool neg)
 {
   std::vector<Expr> children;
-  children.push_back(d_peoRequiresEq);
+  children.push_back(neg ? d_peoRequiresDeq : d_peoRequiresEq);
   children.push_back(t1);
   children.push_back(t2);
   children.push_back(ret);

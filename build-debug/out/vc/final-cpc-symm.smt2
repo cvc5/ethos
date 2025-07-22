@@ -248,11 +248,11 @@
     ($eo_fail_prog (eo.SmtTerm (sm.Bool false)))
     eo.Stuck)))
 
-; fwd-decl: $eo_model_sat
-(declare-fun $eo_model_sat (eo.Term eo.Term eo.Term) eo.Term)
+; fwd-decl: $eo_model_eval
+(declare-fun $eo_model_eval (eo.Term) eo.Term)
 
-; fwd-decl: $eo_model_is_smt_input
-(declare-fun $eo_model_is_smt_input (eo.Term) eo.Term)
+; fwd-decl: $eo_model_is_input
+(declare-fun $eo_model_is_input (eo.Term) eo.Term)
 
 ; fwd-decl: $smtx_term_is_value
 (declare-fun $smtx_term_is_value (sm.Term) Bool)
@@ -372,22 +372,11 @@
 )))))))) :named sm.axiom.$smtx_model_eval))
 
 ; program: $smtx_model_sat
-(define-fun $smtx_model_sat ((x1 vsm.Value) (x2 eo.Term) (x3 eo.Term)) eo.Term
-  (ite (and ((_ is vsm.Term) x1) ((_ is sm.Bool) (vsm.Term.arg1 x1)) ((_ is eo.SmtTerm) x2) ((_ is sm.Bool) (eo.SmtTerm.arg1 x2)) (= (sm.Bool.arg1 (eo.SmtTerm.arg1 x2)) (sm.Bool.arg1 (vsm.Term.arg1 x1))))
+(define-fun $smtx_model_sat ((x1 vsm.Value)) eo.Term
+  (ite (and ((_ is vsm.Term) x1) ((_ is sm.Bool) (vsm.Term.arg1 x1)) (= (sm.Bool.arg1 (vsm.Term.arg1 x1)) true))
     (eo.SmtTerm (sm.Bool true))
-  (ite (and ((_ is vsm.Term) x1) ((_ is sm.Bool) (vsm.Term.arg1 x1)) ((_ is eo.SmtTerm) x2) ((_ is sm.Bool) (eo.SmtTerm.arg1 x2)))
     (eo.SmtTerm (sm.Bool false))
-    x3
-)))
-
-; program: $eo_model_sat
-(assert (! (forall ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term))
-  (= ($eo_model_sat x1 x2 x3)
-  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck) (= x3 eo.Stuck))
-    eo.Stuck
-  (ite true
-    ($smtx_model_sat ($smtx_model_eval x1) x2 x3)
-    eo.Stuck)))) :named sm.axiom.$eo_model_sat))
+))
 
 ; program: $smtx_is_smt_input
 (declare-fun $smtx_is_smt_input (eo.Term) eo.Term)
@@ -402,14 +391,23 @@
     (eo.SmtTerm (sm.Bool false))
 ))))) :named sm.axiom.$smtx_is_smt_input))
 
-; program: $eo_model_is_smt_input
+; program: $eo_model_eval
 (assert (! (forall ((x1 eo.Term))
-  (= ($eo_model_is_smt_input x1)
+  (= ($eo_model_eval x1)
+  (ite (= x1 eo.Stuck)
+    eo.Stuck
+  (ite true
+    ($smtx_model_sat ($smtx_model_eval x1))
+    eo.Stuck)))) :named sm.axiom.$eo_model_eval))
+
+; program: $eo_model_is_input
+(assert (! (forall ((x1 eo.Term))
+  (= ($eo_model_is_input x1)
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
     ($smtx_is_smt_input x1)
-    eo.Stuck)))) :named sm.axiom.$eo_model_is_smt_input))
+    eo.Stuck)))) :named sm.axiom.$eo_model_is_input))
 
 ; program: $eor_symm
 (define-fun $eor_symm ((x1 eo.Term)) eo.Term
@@ -424,7 +422,7 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    ($eo_requires_eq ($eo_model_sat x1 (eo.SmtTerm (sm.Bool true)) (eo.SmtTerm (sm.Bool false))) (eo.SmtTerm (sm.Bool true)) ($eo_requires_eq ($eo_model_sat ($eor_symm x1) (eo.SmtTerm (sm.Bool false)) (eo.SmtTerm (sm.Bool false))) (eo.SmtTerm (sm.Bool true)) ($eo_requires_eq ($eo_model_is_smt_input ($eor_symm x1)) (eo.SmtTerm (sm.Bool true)) (eo.SmtTerm (sm.Bool true)))))
+    ($eo_requires_eq ($eo_model_eval x1) (eo.SmtTerm (sm.Bool true)) ($eo_requires_eq ($eo_model_eval ($eor_symm x1)) (eo.SmtTerm (sm.Bool false)) ($eo_requires_eq ($eo_model_is_input ($eor_symm x1)) (eo.SmtTerm (sm.Bool true)) (eo.SmtTerm (sm.Bool true)))))
     eo.Stuck)))
 
 

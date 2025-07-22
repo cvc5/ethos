@@ -12,7 +12,7 @@
 ; 7. A placeholder command (echo "include eo_builtin_smt") to specify
 ;    where further eo:: builtins should be defined.
 ; 8. Placeholders for defining a test environment for analyzing properties
-;    of proof rules ($eo_model_sat/$eo_model_typeof).
+;    of proof rules ($eo_model_eval/$eo_model_typeof/$eo_model_is_input).
 ; This file contains templates $EO_*$ which are automatically filled in
 ; by user definitions. This includes:
 ; 1. The literal type definitions (EO_LITERAL_TYPE_DECL).
@@ -541,17 +541,13 @@ $EO_NIL_CASES$
 ; will write below.
 
 ; A placeholder for asking whether a formula is satisfied by a model.
-; args:
-; - F Bool: the formula to test.
-; - val Bool: the desired value.
-; - uok Bool: returned value if the value is unknown.
-(program $eo_model_sat () :signature (Bool Bool Bool) Bool)
+(program $eo_model_eval () :signature (Bool) Bool)
 
 ; A placeholder for asking the type of a given term.
 (program $eo_model_typeof () :signature (Bool) Type)
 
 ; A placeholder for asking whether a term is legal syntax for an SMT-LIB term.
-(program $eo_model_is_smt_input () :signature (Bool) Bool)
+(program $eo_model_is_input () :signature (Bool) Bool)
 
 ; We will include the definition of the above functions here.
 (echo "include eo_model_sat")
