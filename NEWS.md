@@ -6,6 +6,7 @@ ethos 0.2.1 pre-release
 
 - Adds builtin list operators `eo::list_diff` (difference) and `eo::list_inter` (intersection).
 - Removes support for oracles and the command `declare-oracle-fun`. Custom extensions are now recommended to be added via the plugin feature, which provides an interface for custom evaluation (Plugin::hasEvaluation).
+- Removes support for the commands `declare-type` and `define-type`, which were syntax sugar for declarations and definitions for terms returning types.
 
 ethos 0.2.0
 ===========
