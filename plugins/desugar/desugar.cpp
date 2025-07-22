@@ -52,7 +52,7 @@ Desugar::Desugar(State& s) : StdPlugin(s)
   // a placeholder
   d_boolType = d_state.mkBoolType();
   Expr ttype = d_state.mkType();
-  Expr optBoolType = d_state.mkSymbol(Kind::CONST, "$eo_OptionBool", ttype);
+  Expr optBoolType = d_state.mkSymbol(Kind::CONST, "$eo_Option", ttype);
   Expr modelSatType = d_state.mkProgramType({d_boolType}, optBoolType);
   d_peoModelSat =
       d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_model_sat", modelSatType);
