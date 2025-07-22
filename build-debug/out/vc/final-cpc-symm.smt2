@@ -47,10 +47,10 @@
   (sm.Binary (sm.Binary.arg1 Int) (sm.Binary.arg2 Int))
   ; smt-cons: Const
   (sm.Const (sm.Const.arg1 vsm.Value))
-  ; user-decl: not
-  (sm.not)
   ; user-decl: and
   (sm.and)
+  ; user-decl: not
+  (sm.not)
   ; user-decl: ite
   (sm.ite)
   ; user-decl: =
@@ -248,8 +248,8 @@
     ($eo_fail_prog (eo.SmtTerm (sm.Bool false)))
     eo.Stuck)))
 
-; fwd-decl: $eo_model_eval
-(declare-fun $eo_model_eval (eo.Term) eo.Term)
+; fwd-decl: $eo_model_sat
+(declare-fun $eo_model_sat (eo.Term) eo.Term)
 
 ; fwd-decl: $eo_model_is_input
 (declare-fun $eo_model_is_input (eo.Term) eo.Term)
@@ -374,9 +374,11 @@
 ; program: $smtx_model_sat
 (define-fun $smtx_model_sat ((x1 vsm.Value)) eo.Term
   (ite (and ((_ is vsm.Term) x1) ((_ is sm.Bool) (vsm.Term.arg1 x1)) (= (sm.Bool.arg1 (vsm.Term.arg1 x1)) true))
-    (eo.SmtTerm (sm.Bool true))
-    (eo.SmtTerm (sm.Bool false))
-))
+    (eo.Apply (eo.Apply eo.$eo_List_cons (eo.SmtTerm (sm.Bool true))) (eo.Apply (eo.Apply eo.$eo_List_cons eo.$eo_List_nil) eo.$eo_List_nil))
+  (ite (and ((_ is vsm.Term) x1) ((_ is sm.Bool) (vsm.Term.arg1 x1)) (= (sm.Bool.arg1 (vsm.Term.arg1 x1)) false))
+    (eo.Apply (eo.Apply eo.$eo_List_cons (eo.SmtTerm (sm.Bool false))) (eo.Apply (eo.Apply eo.$eo_List_cons eo.$eo_List_nil) eo.$eo_List_nil))
+    eo.$eo_List_nil
+)))
 
 ; program: $smtx_is_smt_input
 (declare-fun $smtx_is_smt_input (eo.Term) eo.Term)
@@ -391,14 +393,14 @@
     (eo.SmtTerm (sm.Bool false))
 ))))) :named sm.axiom.$smtx_is_smt_input))
 
-; program: $eo_model_eval
+; program: $eo_model_sat
 (assert (! (forall ((x1 eo.Term))
-  (= ($eo_model_eval x1)
+  (= ($eo_model_sat x1)
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
     ($smtx_model_sat ($smtx_model_eval x1))
-    eo.Stuck)))) :named sm.axiom.$eo_model_eval))
+    eo.Stuck)))) :named sm.axiom.$eo_model_sat))
 
 ; program: $eo_model_is_input
 (assert (! (forall ((x1 eo.Term))
@@ -422,7 +424,7 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    ($eo_requires_eq ($eo_model_eval x1) (eo.SmtTerm (sm.Bool true)) ($eo_requires_eq ($eo_model_eval ($eor_symm x1)) (eo.SmtTerm (sm.Bool false)) ($eo_requires_eq ($eo_model_is_input ($eor_symm x1)) (eo.SmtTerm (sm.Bool true)) (eo.SmtTerm (sm.Bool true)))))
+    ($eo_requires_eq ($eo_model_sat x1) (eo.Apply (eo.Apply eo.$eo_List_cons (eo.SmtTerm (sm.Bool true))) (eo.Apply (eo.Apply eo.$eo_List_cons eo.$eo_List_nil) eo.$eo_List_nil)) ($eo_requires_eq ($eo_model_sat ($eor_symm x1)) (eo.Apply (eo.Apply eo.$eo_List_cons (eo.SmtTerm (sm.Bool false))) (eo.Apply (eo.Apply eo.$eo_List_cons eo.$eo_List_nil) eo.$eo_List_nil)) ($eo_requires_eq ($eo_model_is_input ($eor_symm x1)) (eo.SmtTerm (sm.Bool true)) (eo.SmtTerm (sm.Bool true)))))
     eo.Stuck)))
 
 

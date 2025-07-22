@@ -50,9 +50,10 @@ Desugar::Desugar(State& s) : StdPlugin(s)
   // a placeholder
   d_boolType = d_state.mkBoolType();
   Expr ttype = d_state.mkType();
-  Expr modelSatType = d_state.mkProgramType({d_boolType}, d_boolType);
-  d_peoModelEval =
-      d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_model_eval", modelSatType);
+  Expr optBoolType = d_state.mkSymbol(Kind::CONST, "$eo_OptionBool", ttype);
+  Expr modelSatType = d_state.mkProgramType({d_boolType}, optBoolType);
+  d_peoModelSat =
+      d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_model_sat", modelSatType);
   Expr modelTypeofType = d_state.mkProgramType({d_boolType}, ttype);
   d_peoModelTypeof = d_state.mkSymbol(
       Kind::PROGRAM_CONST, "$eo_model_typeof", modelTypeofType);
@@ -66,6 +67,9 @@ Desugar::Desugar(State& s) : StdPlugin(s)
       d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_requires_eq", eoRequireEqType);
   d_peoRequiresDeq =
       d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_requires_deq", eoRequireEqType);
+  Expr optSomeType = d_state.mkProgramType({d_boolType}, d_listType);
+  d_peoOptionSome =
+      d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_Option_some", optSomeType);
 }
 
 Desugar::~Desugar() {}
@@ -1059,20 +1063,14 @@ Expr Desugar::mkSanitize(const Expr& t,
 Expr Desugar::mkRequiresModelSat(bool tgt, const Expr& test, const Expr& ret)
 {
   std::vector<Expr> modelSatArgs;
-  modelSatArgs.push_back(d_peoModelEval);
+  modelSatArgs.push_back(d_peoModelSat);
   modelSatArgs.push_back(test);
   Expr t1 = d_state.mkExpr(Kind::APPLY, modelSatArgs);
-#if 1
-  Expr t2t = d_state.mkBool(tgt);
-  return mkRequiresEq(t1, t2t, ret);
-#endif
 #ifdef VC_USE_MODEL_SAT_STRICT
-  modelSatArgs[1] = d_state.mkBool(tgt);
-  Expr t2 = d_state.mkExpr(Kind::APPLY, modelSatArgs);
+  Expr t2 = mkOptionSome(tgt);
   return mkRequiresEq(t1, t2, ret);
 #else
-  modelSatArgs[1] = d_state.mkBool(!tgt);
-  Expr t2 = d_state.mkExpr(Kind::APPLY, modelSatArgs);
+  Expr t2 = mkOptionSome(!tgt);
   return mkRequiresEq(t1, t2, ret, false);
 #endif
 }
@@ -1103,6 +1101,14 @@ Expr Desugar::mkRequiresEq(const Expr& t1, const Expr& t2, const Expr& ret, bool
   children.push_back(t1);
   children.push_back(t2);
   children.push_back(ret);
+  return d_state.mkExpr(Kind::APPLY, children);
+}
+
+Expr Desugar::mkOptionSome(bool val)
+{
+  std::vector<Expr> children;
+  children.push_back(d_peoOptionSome);
+  children.push_back(d_state.mkBool(val));
   return d_state.mkExpr(Kind::APPLY, children);
 }
 

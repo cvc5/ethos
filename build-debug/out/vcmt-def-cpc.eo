@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm $eo_typeof $smtx_model_lookup_predicate $eo_hash $eo_apply $eo_fun_type
-; #trim-defs: 131
+; #trim-defs: 136
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -154,6 +154,13 @@
   )
 )
 (declare-const $eo_List Type)
+(declare-const $eo_List_nil $eo_List)
+(declare-parameterized-const $eo_List_cons ((T Type :implicit))
+  (-> T $eo_List $eo_List)
+  :right-assoc-nil $eo_List_nil)
+(define $eo_Option_null () $eo_List_nil)
+(define $eo_Option_some ((T Type :implicit) (t T)) ($eo_List_cons t $eo_List_nil))
+(define $eo_Option () $eo_List)
 (declare-parameterized-const ite (($eo_x_1 Bool) (A Type :implicit) ($eo_x_2 A) ($eo_x_3 A)) A)
 (declare-const not (-> Bool Bool))
 (declare-const and (-> Bool (-> Bool Bool)))
@@ -229,7 +236,7 @@
   (($eo_dt_selectors t) $eo_fail)
   )
 )
-(program $eo_model_eval () :signature (Bool) Bool)
+(program $eo_model_sat () :signature (Bool) $eo_Option)
 (program $eo_model_is_input () :signature (Bool) Bool)
 (define $vsm_map ((T $eo_Term) (m $smt_Map))
   ($smd_vsm.Map T m))
@@ -414,11 +421,12 @@
   (($smtx_model_eval z)                         ($smtx_ensure_value ($vsm_term z)))
   )
 )
-(program $smtx_model_sat ()
-  :signature ($smt_Value) Bool
+(program $smtx_model_sat ((val $smt_Value))
+  :signature ($smt_Value) $eo_Option
   (
-  (($smtx_model_sat $vsm_true)  true)
-  (($smtx_model_sat $vsm_false) false)
+  (($smtx_model_sat $vsm_true)  ($eo_Option_some true))
+  (($smtx_model_sat $vsm_false) ($eo_Option_some false))
+  (($smtx_model_sat val)        $eo_Option_null)
   )
 )
 (program $smtx_is_smt_input
@@ -432,10 +440,10 @@
   (($smtx_is_smt_input t)                false)
   )
 )
-(program $eo_model_eval ((F Bool))
-  :signature (Bool) Bool
+(program $eo_model_sat ((F Bool))
+  :signature (Bool) $eo_Option
   (
-  (($eo_model_eval F) ($smtx_model_sat ($smtx_model_eval F)))
+  (($eo_model_sat F) ($smtx_model_sat ($smtx_model_eval F)))
   )
 )
 (program $eo_model_is_input ((F Bool))
@@ -453,7 +461,7 @@
 (program $eovc_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eovc_symm F) (eo::define ((_v0 ($eor_symm F))) ($eo_requires_eq ($eo_model_eval F) true ($eo_requires_eq ($eo_model_eval _v0) false ($eo_requires_eq ($eo_model_is_input _v0) true true)))))
+  (($eovc_symm F) (eo::define ((_v0 ($eor_symm F))) ($eo_requires_eq ($eo_model_sat F) ($eo_Option_some true) ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some false) ($eo_requires_eq ($eo_model_is_input _v0) true true)))))
   )
 )
 (echo "smt-meta $eovc_symm")

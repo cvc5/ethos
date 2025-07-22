@@ -138,6 +138,11 @@
   (-> T $eo_List $eo_List)
   :right-assoc-nil $eo_List_nil)
 
+; Untyped option type, using $eo_List
+(define $eo_Option_null () $eo_List_nil)
+(define $eo_Option_some ((T Type :implicit) (t T)) ($eo_List_cons t $eo_List_nil))
+(define $eo_Option () $eo_List)
+
 ;;; $eo_eq
 
 ; program: $eo_eq
@@ -611,7 +616,9 @@
 ; will write below.
 
 ; A placeholder for asking whether a formula is satisfied by a model.
-(program $eo_model_eval () :signature (Bool) Bool)
+; Returns ($eo_Option_some true) if satisfied, ($eo_Option_some false) if
+; not satisfied, or $eo_Option_null otherwise.
+(program $eo_model_sat () :signature (Bool) $eo_Option)
 
 ; A placeholder for asking the type of a given term.
 (program $eo_model_typeof () :signature (Bool) Type)
@@ -637,7 +644,7 @@
 (program $eovc_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eovc_symm F) (eo::define ((_v0 ($eor_symm F))) ($eo_requires_eq ($eo_model_eval F) true ($eo_requires_eq ($eo_model_eval _v0) false ($eo_requires_eq ($eo_model_is_input _v0) true true)))))
+  (($eovc_symm F) (eo::define ((_v0 ($eor_symm F))) ($eo_requires_eq ($eo_model_sat F) ($eo_Option_some true) ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some false) ($eo_requires_eq ($eo_model_is_input _v0) true true)))))
   )
 )
 (echo "smt-meta $eovc_symm")
