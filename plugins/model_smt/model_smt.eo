@@ -196,7 +196,7 @@
 
 ; program: $smtx_is_value
 (program $smtx_is_value
-  ((t $smt_Value) (f $smt_Value) (v $smt_Value) (T $eo_Term) (m $smt_Map) (id $smt_builtin_Int))
+  ((t $smt_Term) (f $smt_Value) (v $smt_Value) (T $eo_Term) (m $smt_Map) (id $smt_builtin_Int))
   :signature ($smt_Value) $smt_builtin_Bool
   (
   (($smtx_is_value ($vsm_term t))         ($smtx_term_is_value t))
@@ -223,7 +223,7 @@
   (($smtx_ensure_value ($vsm_term t))         ($smt_mk_value_term t))
   (($smtx_ensure_value ($vsm_map T m))        ($smt_mk_value_map T m))
   (($smtx_ensure_value ($vsm_uconst T id))    ($vsm_uconst T id))
-  (($smtx_ensure_value t)                     $vsm_not_value)
+  (($smtx_ensure_value v)                     $vsm_not_value)
   )
 )
 
@@ -522,7 +522,7 @@ $SMT_EVAL_CASES$
 (program $eo_model_is_input ((F Bool))
   :signature (Bool) Bool
   (
-  (($eo_model_is_input F) ($smtx_is_input F))
+  (($eo_model_is_input F) ($eo_if_both ($eo_is_ok F) ($smtx_is_input F)))
   )
 )
 

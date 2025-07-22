@@ -19,6 +19,7 @@
 #define FLATTEN_EVAL
 // this ensures that the types of premises and conclusion must be Bool to witness unsoundness
 //#define VC_USE_TYPE
+// this ensures the conclusion term is a valid SMT-LIB term
 #define VC_USE_SMT_LIB_TERM
 // commenting this makes the model_sat routine ensure totality
 #define VC_USE_MODEL_SAT_STRICT
@@ -1073,7 +1074,7 @@ Expr Desugar::mkRequiresModelSat(bool tgt, const Expr& test, const Expr& ret)
   return mkRequiresEq(t1, t2, ret);
 #else
   Expr t2 = mkOptionSome(!tgt);
-  return mkRequiresEq(t1, t2, ret, false);
+  return mkRequiresEq(t1, t2, ret, true);
 #endif
 }
 

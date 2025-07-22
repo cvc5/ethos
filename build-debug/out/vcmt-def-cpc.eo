@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_refl $eo_typeof $smtx_model_lookup_predicate $eo_hash
-; #trim-defs: 129
+; #trim-defs: 132
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -118,6 +118,8 @@
   ($smd_sm.String s))
 (define $eo_mk_bool ((x $smt_builtin_Bool))
   ($eo_smt_term ($sm_mk_bool x)))
+(define $eo_mk_true () ($eo_smt_term $sm_mk_true))
+(define $eo_mk_false () ($eo_smt_term $sm_mk_false))
 (define $eo_mk_numeral ((x $smt_builtin_Int))
   ($eo_smt_term ($sm_mk_z x)))
 (define $eo_mk_rational ((x $smt_builtin_Real))
@@ -126,6 +128,10 @@
   ($eo_smt_term ($sm_mk_str x)))
 (define $eo_binary ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
   ($eo_smt_term ($smd_sm.Binary x1 x2)))
+(define $eo_is_ok ((x $eo_Term))
+  ($smt_apply_3 "ite" ($smt_apply_= x $eo_stuck)
+    $eo_mk_false
+    $eo_mk_true))
 (define $smt_builtin_is_ok ((x $eo_Term))
   ($smt_apply_3 "ite" ($smt_apply_= x $eo_stuck)
     $smt_builtin_false
@@ -281,7 +287,7 @@
     ($vsm_map T m)
     $vsm_not_value))
 (program $smtx_is_value
-  ((t $smt_Value) (f $smt_Value) (v $smt_Value) (T $eo_Term) (m $smt_Map) (id $smt_builtin_Int))
+  ((t $smt_Term) (f $smt_Value) (v $smt_Value) (T $eo_Term) (m $smt_Map) (id $smt_builtin_Int))
   :signature ($smt_Value) $smt_builtin_Bool
   (
   (($smtx_is_value ($vsm_term t))         ($smtx_term_is_value t))
@@ -302,7 +308,7 @@
   (($smtx_ensure_value ($vsm_term t))         ($smt_mk_value_term t))
   (($smtx_ensure_value ($vsm_map T m))        ($smt_mk_value_map T m))
   (($smtx_ensure_value ($vsm_uconst T id))    ($vsm_uconst T id))
-  (($smtx_ensure_value t)                     $vsm_not_value)
+  (($smtx_ensure_value v)                     $vsm_not_value)
   )
 )
 (program $smtx_model_eval () :signature ($eo_Term) $smt_Value)
@@ -438,7 +444,7 @@
 (program $eo_model_is_input ((F Bool))
   :signature (Bool) Bool
   (
-  (($eo_model_is_input F) ($smtx_is_input F))
+  (($eo_model_is_input F) ($eo_if_both ($eo_is_ok F) ($smtx_is_input F)))
   )
 )
 (program $eor_refl ((T Type) (t T))
