@@ -1,5 +1,5 @@
-; trim-defs: $eovc_symm $eo_typeof_main $eo_String $eo_Numeral $eo_Rational $eo_Binary $eo_dt_constructors $eo_dt_selectors $eo_List $eo_List_nil $eo_List_cons $eo_model_typeof $eo_requires_eq $eo_if_both $eo_Option_some $eo_Option_null
-; #trim-defs: 59
+; trim-defs: $eovc_symm
+; #trim-defs: 44
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)

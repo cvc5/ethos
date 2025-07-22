@@ -17,6 +17,7 @@
 #include "state.h"
 
 #define FLATTEN_EVAL
+// this ensures that the types of premises and conclusion must be Bool to witness unsoundness
 //#define VC_USE_TYPE
 #define VC_USE_SMT_LIB_TERM
 // commenting this makes the model_sat routine ensure totality

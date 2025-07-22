@@ -17,7 +17,7 @@
 
 namespace ethos {
 
-#if 1
+#if 0
 std::string StdPlugin::s_plugin_path = "/home/andrew/ethos/";
 #else
 std::string StdPlugin::s_plugin_path =
