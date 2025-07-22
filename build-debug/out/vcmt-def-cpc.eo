@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_refl $eo_typeof $smtx_model_lookup_predicate $eo_hash
-; #trim-defs: 129
+; #trim-defs: 130
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -41,6 +41,9 @@
 (declare-parameterized-const $smt_apply_0
   ((op $smt_id :opaque))
   $smt_BuiltinType)
+(declare-parameterized-const $smt_apply_1
+  ((W1 Type :implicit)
+   (op $smt_id :opaque) (x1 W1 :opaque)) $smt_BuiltinType)
 (declare-parameterized-const $smt_apply_2
   ((W1 Type :implicit) (W2 Type :implicit)
    (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque)) $smt_BuiltinType)
@@ -127,9 +130,7 @@
 (define $eo_binary ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
   ($eo_smt_term ($smd_sm.Binary x1 x2)))
 (define $smt_builtin_is_ok ((x $eo_Term))
-  ($smt_apply_3 "ite" ($smt_apply_= x $eo_stuck)
-    $smt_builtin_false
-    $smt_builtin_true))
+  ($smt_apply_1 "not" ($smt_apply_= x $eo_stuck)))
 (program $eo_hash () :signature ($eo_Term) $eo_Term)
 (program $eo_typeof_main () :signature ($eo_Term) Type)
 (program $eo_typeof

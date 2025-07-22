@@ -242,7 +242,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     {
       if (!isSmtBuiltin)
       {
-        os << "(sm.Binary";
+        os << "(sm.Binary ";
         osEnd << ")";
       }
       const BitVector& bv = l->d_bv;
