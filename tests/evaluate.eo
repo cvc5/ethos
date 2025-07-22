@@ -1,5 +1,5 @@
 
-(declare-type Int ())
+(declare-const Int Type)
 
 (declare-const and (-> Bool Bool Bool))
 (declare-const i0 Int)

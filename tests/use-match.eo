@@ -1,4 +1,4 @@
-(declare-type String ())
+(declare-const String Type)
 (declare-consts <string> String)
 
 (program maybe_nil ((T Type) (U Type) (t T))

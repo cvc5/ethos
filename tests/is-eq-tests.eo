@@ -1,7 +1,7 @@
-(declare-type Int ())
+(declare-const Int Type)
 (declare-consts <numeral> Int)
 
-(declare-type String ())
+(declare-const String Type)
 (declare-consts <string> String)
 
 (define addOne ((T Type :implicit) (x T)) (eo::add x 1))

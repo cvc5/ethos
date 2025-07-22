@@ -1,9 +1,9 @@
 (include "Builtin-theory.eo")
 (include "Arith-theory.eo")
 
-(declare-type RegLan ())
+(declare-const RegLan Type)
 (declare-type Seq (Type))
-(declare-type Char ())
+(declare-const Char Type)
 (define String () (Seq Char))
 
 (declare-consts <string> String)

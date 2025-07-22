@@ -1,4 +1,4 @@
-(declare-type @List ())
+(declare-const @List Type)
 (declare-const @nil @List)
 (declare-parameterized-const @cons ((T Type :implicit)) (-> T @List @List) :right-assoc-nil @nil)
 

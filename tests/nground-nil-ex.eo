@@ -1,4 +1,4 @@
-(declare-type Int ())
+(declare-const Int Type)
 (declare-consts <numeral> Int)                ; numeral literals denote Int constants
 (declare-type BitVec (Int))
 (declare-consts <binary>

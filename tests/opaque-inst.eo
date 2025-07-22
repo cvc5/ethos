@@ -8,7 +8,7 @@
 (declare-const not (-> Bool Bool))
 
 (declare-type Array (Type Type))
-(declare-type Int ())
+(declare-const Int Type)
 
 (declare-const select (-> (Array Int Int) Int Int))
 

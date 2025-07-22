@@ -16,7 +16,7 @@
 )
 
 
-(declare-type Int ())
+(declare-const Int Type)
 
 (declare-const a1 (Array Int Int))
 (declare-const a2 (Array Int Int))

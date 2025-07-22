@@ -2,6 +2,6 @@
 (declare-type Set (Type))
 (declare-parameterized-const set.empty ((T Type :implicit)) (Set T))
 
-(declare-type Int ())
+(declare-const Int Type)
 
 (define f () (as set.empty (Set Int)) :type (Set Int))
