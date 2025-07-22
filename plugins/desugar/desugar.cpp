@@ -56,15 +56,15 @@ Desugar::Desugar(State& s) : StdPlugin(s)
   d_peoModelTypeof = d_state.mkSymbol(
       Kind::PROGRAM_CONST, "$eo_model_typeof", modelTypeofType);
   Expr modelIsInputType = d_state.mkProgramType({d_boolType}, d_boolType);
-  d_peoModelIsInput =
-      d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_model_is_input", modelIsInputType);
+  d_peoModelIsInput = d_state.mkSymbol(
+      Kind::PROGRAM_CONST, "$eo_model_is_input", modelIsInputType);
   Expr anyT = allocateTypeVariable();
   Expr anyT2 = allocateTypeVariable();
   Expr eoRequireEqType = d_state.mkProgramType({anyT, anyT, anyT2}, anyT2);
   d_peoRequiresEq =
       d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_requires_eq", eoRequireEqType);
-  d_peoRequiresDeq =
-      d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_requires_deq", eoRequireEqType);
+  d_peoRequiresDeq = d_state.mkSymbol(
+      Kind::PROGRAM_CONST, "$eo_requires_deq", eoRequireEqType);
   Expr optSomeType = d_state.mkProgramType({d_boolType}, d_listType);
   d_peoOptionSome =
       d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_Option_some", optSomeType);
@@ -105,12 +105,14 @@ void Desugar::finalizeProgram(const Expr& prog,
 {
   std::map<Expr, Expr> typeMap;
   std::vector<std::pair<Expr, Expr>> allDefs;
-if (StdPlugin::optionFlattenEval())
-{
-  allDefs = FlattenEval::flattenProgram(d_state, prog, progDef, typeMap);
-}else{
-  allDefs.emplace_back(prog, progDef);
-}
+  if (StdPlugin::optionFlattenEval())
+  {
+    allDefs = FlattenEval::flattenProgram(d_state, prog, progDef, typeMap);
+  }
+  else
+  {
+    allDefs.emplace_back(prog, progDef);
+  }
   for (std::pair<Expr, Expr>& d : allDefs)
   {
     Expr p = d.first;
@@ -184,9 +186,8 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
     finalizeDatatype(e, cattr, cattrCons);
     // also handle it as a normal declaration below
   }
-  bool isAmb =
-      (cattr == Attr::AMB || cattr == Attr::AMB_DATATYPE_CONSTRUCTOR);
-  bool hasOpaqueArg = (cattr==Attr::OPAQUE || isAmb);
+  bool isAmb = (cattr == Attr::AMB || cattr == Attr::AMB_DATATYPE_CONSTRUCTOR);
+  bool hasOpaqueArg = (cattr == Attr::OPAQUE || isAmb);
   // check for eo::List
   std::stringstream cnss;
   printName(c, cnss);
@@ -410,8 +411,8 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
         args.push_back(arg);
         argTypes.push_back(cta);
       }
-      Kind ak = (hasOpaqueArg && pattern == e) ? Kind::APPLY_OPAQUE
-                                                        : Kind::APPLY;
+      Kind ak =
+          (hasOpaqueArg && pattern == e) ? Kind::APPLY_OPAQUE : Kind::APPLY;
       pattern = d_state.mkExprSimple(ak, args);
       // std::cout << "...pattern is now " << pattern << " from " << args <<
       // std::endl;
@@ -726,7 +727,7 @@ void Desugar::finalizeRule(const Expr& e)
   {
     return;
   }
-  
+
   Expr conclusion = progApps[1];
   std::stringstream pvcname;
   pvcname << "$eovc_" << e;
@@ -1068,14 +1069,16 @@ Expr Desugar::mkRequiresModelSat(bool tgt, const Expr& test, const Expr& ret)
   modelSatArgs.push_back(d_peoModelSat);
   modelSatArgs.push_back(test);
   Expr t1 = d_state.mkExpr(Kind::APPLY, modelSatArgs);
-if (StdPlugin::optionVcUseModelStrict() )
-{
-  Expr t2 = mkOptionSome(tgt);
-  return mkRequiresEq(t1, t2, ret);
-}else{
-  Expr t2 = mkOptionSome(!tgt);
-  return mkRequiresEq(t1, t2, ret, true);
-}
+  if (StdPlugin::optionVcUseModelStrict())
+  {
+    Expr t2 = mkOptionSome(tgt);
+    return mkRequiresEq(t1, t2, ret);
+  }
+  else
+  {
+    Expr t2 = mkOptionSome(!tgt);
+    return mkRequiresEq(t1, t2, ret, true);
+  }
 }
 
 Expr Desugar::mkRequiresModelTypeofBool(const Expr& test, const Expr& ret)
@@ -1097,7 +1100,10 @@ Expr Desugar::mkRequiresModelIsInput(const Expr& test, const Expr& ret)
   return mkRequiresEq(t1, t2, ret);
 }
 
-Expr Desugar::mkRequiresEq(const Expr& t1, const Expr& t2, const Expr& ret, bool neg)
+Expr Desugar::mkRequiresEq(const Expr& t1,
+                           const Expr& t2,
+                           const Expr& ret,
+                           bool neg)
 {
   std::vector<Expr> children;
   children.push_back(neg ? d_peoRequiresDeq : d_peoRequiresEq);

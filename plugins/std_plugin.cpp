@@ -26,7 +26,8 @@ std::string StdPlugin::s_plugin_path =
 
 // enables eager elimination of nested evaluation, ite, and requires
 bool StdPlugin::optionFlattenEval() { return true; }
-// this ensures that the types of premises and conclusion must be Bool to witness unsoundness
+// this ensures that the types of premises and conclusion must be Bool to
+// witness unsoundness
 bool StdPlugin::optionVcUseTypeof() { return false; }
 // use constraint of SMT-LIB input terms
 bool StdPlugin::optionVcUseIsInput() { return true; }
@@ -191,5 +192,5 @@ Expr StdPlugin::allocateTypeVariable()
   ss << "$eoT_" << d_typeVarCounter;
   return d_state.mkSymbol(Kind::PARAM, ss.str(), d_state.mkType());
 }
-  
+
 }  // namespace ethos

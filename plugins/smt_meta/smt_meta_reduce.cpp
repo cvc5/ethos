@@ -412,7 +412,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     {
       // TODO: should be a non-opaque!
       Attr attr = d_state.getConstructorKind(tcur.getValue());
-      Assert (attr!=Attr::AMB) << "Matching on amb " << tcur;
+      Assert(attr != Attr::AMB) << "Matching on amb " << tcur;
       // base case, use equality
       // note that we have to use the full printEmbTerm method
       std::stringstream atomTerm;
@@ -557,7 +557,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           cparen[key]++;
           parent = MetaKind::SMT_TYPE;
         }
-        else if (child== MetaKind::SMT_VALUE)
+        else if (child == MetaKind::SMT_VALUE)
         {
           os << "(eo.SmtValue ";
           cparen[key]++;
@@ -944,11 +944,12 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     {
       d_defs << decl.str();
     }
-    d_defs << "(assert (! (forall (" << varList.str() << ")" << std::endl << "  ";
-if (StdPlugin::optionSmtMetaUseTriggers())
-{
-    d_defs << "(! ";
-}
+    d_defs << "(assert (! (forall (" << varList.str() << ")" << std::endl
+           << "  ";
+    if (StdPlugin::optionSmtMetaUseTriggers())
+    {
+      d_defs << "(! ";
+    }
     d_defs << "(= " << appTerm.str() << std::endl;
     casesEnd << ")";
   }
@@ -967,7 +968,7 @@ if (StdPlugin::optionSmtMetaUseTriggers())
   {
     if (StdPlugin::optionSmtMetaUseTriggers())
     {
-        d_defs << " :pattern (" << appTerm.str() << "))";
+      d_defs << " :pattern (" << appTerm.str() << "))";
     }
     d_defs << ") :named sm.axiom." << v << ")";
   }
@@ -1031,34 +1032,36 @@ bool SmtMetaReduce::echo(const std::string& msg)
     if (vt.getKind() == Kind::PROGRAM_TYPE)
     {
       std::stringstream conjEnd;
-if (!StdPlugin::optionSmtMetaDebugConjecture())
-{
-      d_smtVc << "(assert (! (exists (";
-      conjEnd << ")";
-}
+      if (!StdPlugin::optionSmtMetaDebugConjecture())
+      {
+        d_smtVc << "(assert (! (exists (";
+        conjEnd << ")";
+      }
       size_t nargs = vt.getNumChildren();
       for (size_t i = 1; i < nargs; i++)
       {
-if (StdPlugin::optionSmtMetaDebugConjecture())
-{
-        d_smtVc << "(declare-const x" << i << " eo.Term)" << std::endl;
-}
-else
-{
-        if (i > 1)
+        if (StdPlugin::optionSmtMetaDebugConjecture())
         {
-          d_smtVc << " ";
+          d_smtVc << "(declare-const x" << i << " eo.Term)" << std::endl;
         }
-        d_smtVc << "(x" << i << " eo.Term)";
-}
+        else
+        {
+          if (i > 1)
+          {
+            d_smtVc << " ";
+          }
+          d_smtVc << "(x" << i << " eo.Term)";
+        }
         call << " x" << i;
       }
-if (StdPlugin::optionSmtMetaDebugConjecture())
-{
-      d_smtVc << "(assert (! ";
-}else{
-      d_smtVc << ")" << std::endl << "  ";
-}
+      if (StdPlugin::optionSmtMetaDebugConjecture())
+      {
+        d_smtVc << "(assert (! ";
+      }
+      else
+      {
+        d_smtVc << ")" << std::endl << "  ";
+      }
       d_smtVc << "(= (" << eosc << call.str() << ") " << eoTrue.str() << ")";
       d_smtVc << conjEnd.str();
     }
@@ -1069,11 +1072,11 @@ if (StdPlugin::optionSmtMetaDebugConjecture())
     d_smtVc << " :named sm.conjecture." << vv << ")";
     d_smtVc << ")" << std::endl;
     d_smtVc << "(check-sat)" << std::endl;
-if (StdPlugin::optionSmtMetaDebugConjecture())
-{
-    d_smtVc << "(get-model)" << std::endl;
-    d_smtVc << "(get-value (" << call.str() << "))" << std::endl;
-}
+    if (StdPlugin::optionSmtMetaDebugConjecture())
+    {
+      d_smtVc << "(get-model)" << std::endl;
+      d_smtVc << "(get-value (" << call.str() << "))" << std::endl;
+    }
     return false;
   }
   return true;
@@ -1332,14 +1335,14 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
         MetaKind k1 = getMetaKindReturn(child[1], parentCtx);
         MetaKind k2 = getMetaKindReturn(child[2], parentCtx);
         Assert(k1 == k2) << "Equal sides have different meta types " << child
-                          << " " << metaKindToString(k1) << " "
-                          << metaKindToString(k2);
+                         << " " << metaKindToString(k1) << " "
+                         << metaKindToString(k2);
         return tk;
       }
       else
       {
         std::string esname = getEmbedName(child);
-        Assert (esname!="=") << "Expected $smt_apply_=";
+        Assert(esname != "=") << "Expected $smt_apply_=";
         if (esname == "ite")
         {
           Assert(child.getNumChildren() == 5);
@@ -1412,15 +1415,15 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
     if (sname.compare(0, 5, "$smd_") == 0)
     {
       MetaKind tknew = getTypeMetaKind(htype);
-      std::cout << "...use datatype embedding name, got " << metaKindToString(tknew) << std::endl;
+      std::cout << "...use datatype embedding name, got "
+                << metaKindToString(tknew) << std::endl;
       Assert(tknew != MetaKind::NONE);
       return tknew;
     }
     MetaKind tk = getTypeMetaKind(htype);
     std::cout << "...type for atomic term " << hd << " (" << k << ") is "
-            << htype << ", thus context is " <<
-              metaKindToString(tk)
-            << std::endl;
+              << htype << ", thus context is " << metaKindToString(tk)
+              << std::endl;
     // if it is a Eunoia constant, it depends on the naming
     // convention
     if (k == Kind::CONST && tk == MetaKind::EUNOIA)
@@ -1428,7 +1431,8 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
       // otherwise, use the meta kind utility.
       std::string cnameTmp;
       tk = getMetaKind(d_state, hd, cnameTmp);
-      std::cout << "...change to meta-kind " << metaKindToString(tk) << std::endl;
+      std::cout << "...change to meta-kind " << metaKindToString(tk)
+                << std::endl;
       // std::cout << "...evaluate meta-kind side condition returns " << mm
       //           << ", which is " << metaKindToString(tk) <<
       //           std::endl;
@@ -1453,8 +1457,8 @@ std::vector<MetaKind> SmtMetaReduce::getMetaKindArgs(const Expr& parent,
                                                      MetaKind parentCtx)
 {
   std::vector<MetaKind> args;
-  std::cout << "  MetaArg: " << parent << " / " << parent.getKind() << " / " << metaKindToString(parentCtx)
-            << std::endl;
+  std::cout << "  MetaArg: " << parent << " / " << parent.getKind() << " / "
+            << metaKindToString(parentCtx) << std::endl;
   for (size_t i = 0, nchild = parent.getNumChildren(); i < nchild; i++)
   {
     MetaKind ctx = getMetaKindArg(parent, i, parentCtx);

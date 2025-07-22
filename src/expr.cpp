@@ -393,7 +393,7 @@ void Expr::printDebugInternal(const Expr& e,
         {
           // ambiguous functions must use "as"
           Attr attr = ExprValue::d_state->getConstructorKind((*cur.first)[0]);
-          if (attr==Attr::AMB || attr==Attr::AMB_DATATYPE_CONSTRUCTOR)
+          if (attr == Attr::AMB || attr == Attr::AMB_DATATYPE_CONSTRUCTOR)
           {
             os << "as ";
           }

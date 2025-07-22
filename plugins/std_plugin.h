@@ -70,7 +70,6 @@ class StdPlugin : public Plugin
   static bool optionVcUseModelStrict();
   static bool optionSmtMetaUseTriggers();
   static bool optionSmtMetaDebugConjecture();
-  
 };
 
 }  // namespace ethos

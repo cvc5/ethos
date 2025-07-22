@@ -81,7 +81,10 @@ class Desugar : public StdPlugin
   Expr mkRequiresModelSat(bool tgt, const Expr& test, const Expr& ret);
   Expr mkRequiresModelTypeofBool(const Expr& test, const Expr& ret);
   Expr mkRequiresModelIsInput(const Expr& test, const Expr& ret);
-  Expr mkRequiresEq(const Expr& t1, const Expr& t2, const Expr& ret, bool neg=false);
+  Expr mkRequiresEq(const Expr& t1,
+                    const Expr& t2,
+                    const Expr& ret,
+                    bool neg = false);
   Expr mkOptionSome(bool val);
   Attr getAttribute(const Expr& e);
   /** Declares seen */
