@@ -454,7 +454,7 @@
 
 ; define: $eo_empty_binary
 (define $eo_empty_binary ()
-  ($eo_binary 0 0))
+  ($eo_binary $smt_builtin_z_zero $smt_builtin_z_zero))
 
 ; program: $eo_mk_binary
 ; return: >
@@ -623,7 +623,7 @@
   :signature ($eo_Term) $eo_Term
   (
   (($eo_is_neg ($eo_mk_numeral n1))
-    ($eo_mk_bool ($smt_apply_1 "> 0 " n1)))
+    ($eo_mk_bool ($smt_apply_1 "> 0" n1)))
   (($eo_is_neg ($eo_mk_rational r1))
     ($eo_mk_bool ($smt_apply_1 "> 0/1" r1)))
   )
@@ -680,7 +680,7 @@
      ($eo_mk_string ($smt_apply_3 "str.substr" s1 n2 ($smt_apply_1 "+ 1" ($smt_apply_2 "-" n3 n2)))))
   (($eo_extract ($eo_binary w n1) ($eo_mk_numeral n2) ($eo_mk_numeral n3))
     (eo::define ((nw ($smt_apply_2 "-" n3 n2)))
-    ($smt_apply_3 "ite" ($smt_builtin_or ($eo_is_neg n2) ($eo_is_neg nw))
+    ($smt_apply_3 "ite" ($smt_builtin_or ($smt_apply_1 "> 0" n2) ($smt_apply_1 "> 0" nw))
       $eo_empty_binary
       ($eo_mk_binary
         ($smt_apply_1 "+ 1" nw)

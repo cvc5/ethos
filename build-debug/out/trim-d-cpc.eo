@@ -197,7 +197,7 @@
    (f (-> T U V)) (x W1) (y W2) (z X) (nil W))
   :signature ((-> T U V) W X) $eo_List
   (
-  (($eo_get_elements_rec f nil (f x y)) ($eo_cons $eo_List_cons x ($eo_get_elements_rec f nil y)))
+  (($eo_get_elements_rec f nil (f x y)) ($eo_List_cons x ($eo_get_elements_rec f nil y)))
   (($eo_get_elements_rec f nil nil)     $eo_List_nil)
   )
 )
