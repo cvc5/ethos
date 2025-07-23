@@ -16,9 +16,6 @@
 #include "../flatten_eval/flatten_eval.h"
 #include "state.h"
 
-// commenting this makes the model_sat routine ensure totality
-#define VC_USE_MODEL_SAT_STRICT
-
 namespace ethos {
 
 Desugar::Desugar(State& s) : StdPlugin(s)

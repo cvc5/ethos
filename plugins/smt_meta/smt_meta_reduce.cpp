@@ -675,11 +675,19 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       if (!isProgramApp(recTerm))
       {
         Assert(child == MetaKind::EUNOIA);
-        // Note that we use eo.Apply unguarded. In particular, the
-        // flatten-eval step has ensured that constructing Eunoia terms
-        // in this way will not get stuck during term construction, but
-        // instead of program invocation.
-        os << "eo.Apply ";
+        if (StdPlugin::optionFlattenEval())
+        {
+          // Note that we use eo.Apply unguarded. In particular, the
+          // flatten-eval step has ensured that constructing Eunoia terms
+          // in this way will not get stuck during term construction, but
+          // instead at program invocation.
+          os << "eo.Apply ";
+        }
+        else
+        {
+          // Otherwise, we must propagate stuckness using the mk apply program.
+          os << "$eo_mk_apply ";
+        }
       }
     }
     else if (ck == Kind::APPLY_OPAQUE)

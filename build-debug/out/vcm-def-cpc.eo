@@ -486,7 +486,6 @@
   )
 )
 
-
 ;;;;;; Eunoia builtin
 
 ; We are now ready to define the builtins of Eunoia.
@@ -521,6 +520,15 @@
   ($smt_apply_3 "ite" ($smt_apply_= x1 x2)
     ($smt_apply_3 "ite" ($smt_builtin_is_ok x1) x3 x1)
     $eo_stuck))
+
+; note: This definition is only used if we are not eagerly flattening evaluation
+; This ensures that stuckness "propagates" through ordinary constant applications.
+(program $eo_mk_apply ((x1 $eo_Term) (x2 $eo_Term))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_mk_apply x1 x2) ($eo_apply x1 x2))
+  )
+)
 
 ;;; Boolean operators
 
