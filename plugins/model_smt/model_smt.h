@@ -56,15 +56,21 @@ class ModelSmt : public StdPlugin
                     const std::vector<Kind>& args,
                     Kind ret);
   void addSmtxSym(const std::string& sym,
-                    const std::vector<Kind>& args,
-                    const std::string& smtxName);
+                  const std::vector<Kind>& args,
+                  const std::string& smtxName);
   void printModelEvalCallApp(const std::string& name,
-                            const std::vector<Kind>& args, std::ostream& os);
+                             const std::vector<Kind>& args,
+                             std::ostream& os);
   void printType(const std::string& name, std::vector<Kind>& args);
   void printNormal(const std::string& name, std::vector<Kind>& args, Kind ret);
-  void printSmtx(const std::string& name, std::vector<Kind>& args, Kind ret, const std::string& smtxName);
+  void printSmtx(const std::string& name,
+                 std::vector<Kind>& args,
+                 Kind ret,
+                 const std::string& smtxName);
   void printReduce(const std::string& name,
-                            const std::vector<Kind>& args, Kind ret, const std::string& reduce);
+                   const std::vector<Kind>& args,
+                   Kind ret,
+                   const std::string& reduce);
   void finalizeDecl(const Expr& e);
   /** get the datatype e belongs to */
   DtKind getDtKind(const Expr& e);
@@ -89,12 +95,14 @@ class ModelSmt : public StdPlugin
    * SMT-LIB symbols which have a $smtx_ utility function to compute them
    * natively.
    */
-  std::map<std::string, std::tuple<std::vector<Kind>, Kind, std::string>> d_symSmtx;
+  std::map<std::string, std::tuple<std::vector<Kind>, Kind, std::string>>
+      d_symSmtx;
   /**
    * SMT-LIB symbols that have simple reductions, we use x1 ... xn as references
    * to the arguments.
    */
-  std::map<std::string, std::tuple<std::vector<Kind>, Kind, std::string>> d_symReduce;
+  std::map<std::string, std::tuple<std::vector<Kind>, Kind, std::string>>
+      d_symReduce;
 };
 
 }  // namespace ethos

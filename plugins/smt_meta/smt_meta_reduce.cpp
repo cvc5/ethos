@@ -377,10 +377,11 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
         ssNext << "(" << cname.str() << ".arg" << (i + 1 - printArgStart) << " "
                << currTerm << ")";
         // special case: since (-> T U) is (_ (_ -> T) U)
-        if (i==0 && isFunType)
+        if (i == 0 && isFunType)
         {
           std::stringstream testerf;
-          testerf << "((_ is eo.FunType) (eo.Apply.arg1 " << ssNext.str() << "))";
+          testerf << "((_ is eo.FunType) (eo.Apply.arg1 " << ssNext.str()
+                  << "))";
           print.push(testerf.str());
           std::stringstream ssNext2;
           ssNext2 << "(eo.Apply.arg2 " << ssNext.str() << ")";
@@ -516,7 +517,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     MetaKind parent = cur.second;
     std::pair<Expr, MetaKind> key(recTerm, parent);
     itc = cparen.find(key);
-    if (pushedChildren.find(key)!=pushedChildren.end())
+    if (pushedChildren.find(key) != pushedChildren.end())
     {
       if (itc != cparen.end())
       {
@@ -992,7 +993,6 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   d_defs << std::endl;
 }
 
-
 void SmtMetaReduce::bind(const std::string& name, const Expr& e)
 {
   if (e.getKind() != Kind::CONST)
@@ -1004,7 +1004,7 @@ void SmtMetaReduce::bind(const std::string& name, const Expr& e)
 
 void SmtMetaReduce::finalizeDecl(const Expr& e)
 {
-  if (d_declSeen.find(e)!=d_declSeen.end())
+  if (d_declSeen.find(e) != d_declSeen.end())
   {
     return;
   }

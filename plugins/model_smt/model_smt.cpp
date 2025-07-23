@@ -92,13 +92,15 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addNormalSym("str.len", {Kind::STRING}, Kind::NUMERAL);
   addNormalSym(
       "str.substr", {Kind::STRING, Kind::NUMERAL, Kind::NUMERAL}, Kind::STRING);
-  addNormalSym(
-      "str.at", {Kind::STRING, Kind::NUMERAL}, Kind::STRING);
+  addNormalSym("str.at", {Kind::STRING, Kind::NUMERAL}, Kind::STRING);
   addNormalSym("str.indexof",
                {Kind::STRING, Kind::STRING, Kind::NUMERAL},
                Kind::NUMERAL);
-  addNormalSym("str.replace", {Kind::STRING, Kind::STRING, Kind::STRING}, Kind::STRING);
-  addNormalSym("str.replace_all", {Kind::STRING, Kind::STRING, Kind::STRING}, Kind::STRING);
+  addNormalSym(
+      "str.replace", {Kind::STRING, Kind::STRING, Kind::STRING}, Kind::STRING);
+  addNormalSym("str.replace_all",
+               {Kind::STRING, Kind::STRING, Kind::STRING},
+               Kind::STRING);
   addNormalSym("str.from_code", {Kind::NUMERAL}, Kind::STRING);
   addNormalSym("str.to_code", {Kind::STRING}, Kind::NUMERAL);
   addNormalSym("str.from_int", {Kind::NUMERAL}, Kind::STRING);
@@ -115,12 +117,13 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addNormalSym("/_total", {Kind::PARAM, Kind::PARAM}, Kind::RATIONAL);
   addNormalSym("div_total", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
   addNormalSym("mod_total", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
-  addNormalSym("str.update", {Kind::STRING, Kind::NUMERAL, Kind::STRING}, Kind::STRING);
+  addNormalSym(
+      "str.update", {Kind::STRING, Kind::NUMERAL, Kind::STRING}, Kind::STRING);
   addNormalSym("str.rev", {Kind::STRING}, Kind::STRING);
   addNormalSym("str.to_lower", {Kind::STRING}, Kind::STRING);
   addNormalSym("str.to_upper", {Kind::STRING}, Kind::STRING);
-  //addNormalSym("int.ispow2", {Kind::NUMERAL, Kind::NUMERAL}, Kind::BOOLEAN);
-  //addNormalSym("int.log2", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
+  // addNormalSym("int.ispow2", {Kind::NUMERAL, Kind::NUMERAL}, Kind::BOOLEAN);
+  // addNormalSym("int.log2", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
   addNormalSym("int.pow2", {Kind::NUMERAL}, Kind::NUMERAL);
   // TODO: more
   // BV
@@ -154,16 +157,24 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
     printNormal(name, it->second.first, it->second.second);
     return;
   }
-  std::map<std::string, std::tuple<std::vector<Kind>, Kind, std::string>>::iterator its = d_symSmtx.find(name);
+  std::map<std::string,
+           std::tuple<std::vector<Kind>, Kind, std::string>>::iterator its =
+      d_symSmtx.find(name);
   if (its != d_symSmtx.end())
   {
-    printSmtx(name, std::get<0>(its->second), std::get<1>(its->second), std::get<2>(its->second));
+    printSmtx(name,
+              std::get<0>(its->second),
+              std::get<1>(its->second),
+              std::get<2>(its->second));
     return;
   }
   its = d_symReduce.find(name);
-  if (its!=d_symReduce.end())
+  if (its != d_symReduce.end())
   {
-    printReduce(name, std::get<0>(its->second), std::get<1>(its->second), std::get<2>(its->second));
+    printReduce(name,
+                std::get<0>(its->second),
+                std::get<1>(its->second),
+                std::get<2>(its->second));
     return;
   }
 }
@@ -171,7 +182,8 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
 void ModelSmt::printType(const std::string& name, std::vector<Kind>& args) {}
 
 void ModelSmt::printModelEvalCallApp(const std::string& name,
-                            const std::vector<Kind>& args, std::ostream& os)
+                                     const std::vector<Kind>& args,
+                                     std::ostream& os)
 {
   std::stringstream callApp;
   os << "($smtx_model_eval (" << name;
@@ -182,10 +194,10 @@ void ModelSmt::printModelEvalCallApp(const std::string& name,
   os << "))";
 }
 void ModelSmt::printNormal(const std::string& name,
-                            std::vector<Kind>& args,
-                            Kind kret)
+                           std::vector<Kind>& args,
+                           Kind kret)
 {
-  if (kret==Kind::TYPE)
+  if (kret == Kind::TYPE)
   {
     printType(name, args);
     return;
@@ -251,8 +263,9 @@ void ModelSmt::printNormal(const std::string& name,
         << "Could not find kind ret " << kr;
     progCases << "($vsm_term ($sm_mk_" << d_kindToEoPrefix[kr];
     progCases << " ($smt_apply_" << args.size() << " \"";
-    std::map<std::string, std::string>::iterator ito = d_overloadRevert.find(name);
-    if (ito!=d_overloadRevert.end())
+    std::map<std::string, std::string>::iterator ito =
+        d_overloadRevert.find(name);
+    if (ito != d_overloadRevert.end())
     {
       // e.g. in spite of having name $eoo_-.2, we use "-" as the invocation.
       progCases << ito->second;
@@ -290,7 +303,10 @@ void ModelSmt::printNormal(const std::string& name,
   d_modelEvalProgs << "  )" << std::endl << ")" << std::endl;
 }
 
-void ModelSmt::printSmtx(const std::string& name, std::vector<Kind>& args, Kind ret, const std::string& smtxName)
+void ModelSmt::printSmtx(const std::string& name,
+                         std::vector<Kind>& args,
+                         Kind ret,
+                         const std::string& smtxName)
 {
   std::stringstream scall;
   scall << "($smtx_" << smtxName;
@@ -303,11 +319,12 @@ void ModelSmt::printSmtx(const std::string& name, std::vector<Kind>& args, Kind 
 }
 
 void ModelSmt::printReduce(const std::string& name,
-                           const std::vector<Kind>& args, Kind ret,
+                           const std::vector<Kind>& args,
+                           Kind ret,
                            const std::string& reduce)
 {
   printModelEvalCallApp(name, args, d_eval);
-  d_eval << " " << reduce << ")" << std::endl;  
+  d_eval << " " << reduce << ")" << std::endl;
 }
 
 void ModelSmt::finalize()
