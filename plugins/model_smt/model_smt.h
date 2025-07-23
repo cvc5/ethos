@@ -57,7 +57,6 @@ class ModelSmt : public StdPlugin
                     Kind ret);
   void printSmtType(const std::string& name, std::vector<Kind>& args);
   void printSmtTerm(const std::string& name, std::vector<Kind>& args, Kind ret);
-  void printEmbType(const Expr& e, std::ostream& os);
   void finalizeDecl(const Expr& e);
   /** get the datatype e belongs to */
   DtKind getDtKind(const Expr& e);
@@ -71,17 +70,10 @@ class ModelSmt : public StdPlugin
   std::stringstream d_typeEnum;
   std::stringstream d_constPred;
   std::stringstream d_modelEvalProgs;
-  // SMT-LIB term embedding
-  std::stringstream d_embedTypeDt;
-  std::stringstream d_embedTermDt;
-  std::stringstream d_embedEoTermDt;
-  std::stringstream d_embedValueDt;
   // SMT-LIB standard evaluation
   std::stringstream d_eval;
   // SMT-LIB symbols
   std::map<std::string, std::pair<std::vector<Kind>, Kind>> d_smtLibSyms;
-  /** Declares seen */
-  std::set<Expr> d_declSeen;
 };
 
 }  // namespace ethos

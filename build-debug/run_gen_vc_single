@@ -79,19 +79,12 @@ echo "**** smt_meta: Verify it parses"
 echo "**** smt_meta: Generate SMT2 from $VCMT_DEF_DESUGAR to $VC_OUT"
 ./src/ethos --plugin.smt-meta $VCMT_DEF_DESUGAR >/dev/null
 check_status
+
 # set up the verification condition
 mv $STD_VC_OUT $VC_OUT
-# the logic
-#echo "(set-logic UFDTSNIRA)" > $VC_OUT
-# start with the final datatype
-# FIXME: keep this line
-#cat $STD_SMODEL_EMBED_OUT >> $VC_OUT
 # replace all occurrences of $smt_builtin_
 # TODO: $smt_apply_ and $smt_type_ as well???
 sed -i 's/\$smt_builtin_//g' $VC_OUT
-#sed -i 's/\.new//g' $VC_OUT
-# concatenate the VC computed above
-#cat $STD_VC_OUT >> $VC_OUT
 
 # TODO: trim-defs again, on smt2
 
