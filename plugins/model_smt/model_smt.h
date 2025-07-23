@@ -58,9 +58,11 @@ class ModelSmt : public StdPlugin
   void addSmtxSym(const std::string& sym,
                   const std::vector<Kind>& args,
                   const std::string& smtxName);
-  void printModelEvalCallApp(const std::string& name,
+  void printModelEvalCallBase(const std::string& name,
                              const std::vector<Kind>& args,
-                             std::ostream& os);
+                            const std::string& ret);
+  void printModelEvalCall(const std::string& name,
+                             const std::vector<Kind>& args);
   void printType(const std::string& name, const std::vector<Kind>& args);
   void printNormal(const std::string& name, const std::vector<Kind>& args, Kind ret);
   void printSmtx(const std::string& name,
@@ -104,11 +106,15 @@ class ModelSmt : public StdPlugin
   std::map<std::string, std::tuple<std::vector<Kind>, Kind, std::string>>
       d_symSmtx;
   /**
-   * SMT-LIB symbols that have simple reductions, we use x1 ... xn as references
-   * to the arguments.
+   * SMT-LIB symbols that have simple reductions based on atomic arguments.
    */
   std::map<std::string, std::tuple<std::vector<Kind>, Kind, std::string>>
       d_symReduce;
+  /**
+   * SMT-LIB symbols that have simple term-level reductions, we use x1 ... xn as references
+   * to the arguments.
+   */
+  std::map<std::string, std::string> d_symTermReduce;
 };
 
 }  // namespace ethos

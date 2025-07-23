@@ -53,8 +53,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // Similar for the other literals.
   // Note that we model *SMT-LIB* not *CPC* here.
   // builtin
-  addNormalSym("forall", {Kind::ANY, Kind::BOOLEAN}, Kind::BOOLEAN);
-  addNormalSym("exists", {Kind::ANY, Kind::BOOLEAN}, Kind::BOOLEAN);
+  //addNormalSym("forall", {Kind::ANY, Kind::BOOLEAN}, Kind::BOOLEAN);
+  //addNormalSym("exists", {Kind::ANY, Kind::BOOLEAN}, Kind::BOOLEAN);
   // Booleans
   addNormalSym("and", {Kind::BOOLEAN, Kind::BOOLEAN}, Kind::BOOLEAN);
   addNormalSym("or", {Kind::BOOLEAN, Kind::BOOLEAN}, Kind::BOOLEAN);
@@ -63,8 +63,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addNormalSym("not", {Kind::BOOLEAN}, Kind::BOOLEAN);
   // arithmetic
   // use Kind::PARAM to stand for either Int or Real arithmetic (not mixed)
-  addNormalSym("Int", {}, Kind::TYPE);
-  addNormalSym("Real", {}, Kind::TYPE);
+  //addNormalSym("Int", {}, Kind::TYPE);
+  //addNormalSym("Real", {}, Kind::TYPE);
   addNormalSym("+", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
   addNormalSym("-", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
   addNormalSym("*", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
@@ -87,7 +87,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addNormalSym("to_int", {Kind::RATIONAL}, Kind::NUMERAL);
   addNormalSym("to_real", {Kind::NUMERAL}, Kind::RATIONAL);
   // strings
-  addNormalSym("String", {}, Kind::TYPE);
+  //addNormalSym("String", {}, Kind::TYPE);
   addNormalSym("str.++", {Kind::STRING, Kind::STRING}, Kind::STRING);
   addNormalSym("str.len", {Kind::STRING}, Kind::NUMERAL);
   addNormalSym(
@@ -154,6 +154,7 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
       d_symNormal.find(name);
   if (it != d_symNormal.end())
   {
+    printModelEvalCall(name, it->second.first);
     printNormal(name, it->second.first, it->second.second);
     return;
   }
@@ -162,8 +163,10 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
       d_symSmtx.find(name);
   if (its != d_symSmtx.end())
   {
+    std::vector<Kind>& args = std::get<0>(its->second);
+    printModelEvalCall(name, args);
     printSmtx(name,
-              std::get<0>(its->second),
+              args,
               std::get<1>(its->second),
               std::get<2>(its->second));
     return;
@@ -171,48 +174,52 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
   its = d_symReduce.find(name);
   if (its != d_symReduce.end())
   {
+    std::vector<Kind>& args = std::get<0>(its->second);
+    printModelEvalCall(name, args);
     printReduce(name,
-                std::get<0>(its->second),
+                args,
                 std::get<1>(its->second),
                 std::get<2>(its->second));
+    return;
+  }
+  std::map<std::string, std::string>::iterator itst = d_symTermReduce.find(name);
+  if (itst != d_symTermReduce.end())
+  {
     return;
   }
 }
 
 void ModelSmt::printType(const std::string& name, const std::vector<Kind>& args) {}
 
-void ModelSmt::printModelEvalCallApp(const std::string& name,
+void ModelSmt::printModelEvalCallBase(const std::string& name,
                                      const std::vector<Kind>& args,
-                                     std::ostream& os)
+                            const std::string& ret)
 {
-  std::stringstream callApp;
-  os << "($smtx_model_eval (" << name;
+  d_eval << "  (($smtx_model_eval (" << name;
   for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
   {
-    os << " x" << i;
+    d_eval << " x" << i;
   }
-  os << "))";
+  d_eval << ")) " << ret << ")" << std::endl;;
 }
+void ModelSmt::printModelEvalCall(const std::string& name,
+                                     const std::vector<Kind>& args)
+{
+  std::stringstream callArgs;
+  callArgs << "($smtx_model_eval_" << name;
+  for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
+  {
+    callArgs << " ($smtx_model_eval x" << i << ")";
+  }
+  callArgs << ")";
+  printModelEvalCallBase(name, args, callArgs.str());
+}
+
 void ModelSmt::printNormal(const std::string& name,
                            const std::vector<Kind>& args,
                            Kind kret)
 {
-  if (kret == Kind::TYPE)
-  {
-    printType(name, args);
-    return;
-  }
-  d_eval << "  (";
-  printModelEvalCallApp(name, args, d_eval);
   bool isOverloadArith = (args.size() > 0 && args[0] == Kind::PARAM);
-  if (name == "forall" || name == "exists")
-  {
-    // does not "pre-rewrite" the body
-    bool isExists = (name == "exists");
-    d_eval << "($smtx_eval_quant x1 x2 $smt_builtin_z_zero ";
-    d_eval << "$smt_builtin_" << (isExists ? "true" : "false") << "))";
-    return;
-  }
   std::vector<Kind> argSchemas;
   if (isOverloadArith)
   {
@@ -266,20 +273,17 @@ void ModelSmt::printNormal(const std::string& name,
   progSig << "(";
   // make the default case as well
   progCases << "  ((" << progName.str();
-  d_eval << " (" << progName.str();
   for (size_t i = 0, nargs = args.size(); i < nargs; i++)
   {
     if (i > 0)
     {
       progSig << " ";
     }
-    d_eval << " ($smtx_model_eval x" << (i + 1) << ")";
     progSig << "$smt_Value";
     progCases << " t" << (i + 1);
     progParams << " (t" << (i + 1) << " $smt_Value)";
   }
   progSig << ") $smt_Value" << std::endl;
-  d_eval << "))" << std::endl;
   progCases << ") $vsm_not_value)" << std::endl;
   d_modelEvalProgs << "(program " << progName.str() << std::endl;
   d_modelEvalProgs << "  (" << progParams.str() << ")" << std::endl;
@@ -289,6 +293,16 @@ void ModelSmt::printNormal(const std::string& name,
   d_modelEvalProgs << "  )" << std::endl << ")" << std::endl;
 }
 
+/*
+  if (name == "forall" || name == "exists")
+  {
+    // does not "pre-rewrite" the body
+    bool isExists = (name == "exists");
+    d_eval << "($smtx_eval_quant x1 x2 $smt_builtin_z_zero ";
+    d_eval << "$smt_builtin_" << (isExists ? "true" : "false") << "))";
+    return;
+  }
+  */
 void ModelSmt::printInternal(const std::string& name, 
                     const std::vector<Kind>& args, 
                     const std::string& ret,
@@ -336,8 +350,6 @@ void ModelSmt::printReduce(const std::string& name,
                            Kind ret,
                            const std::string& reduce)
 {
-  printModelEvalCallApp(name, args, d_eval);
-  d_eval << " " << reduce << ")" << std::endl;
 }
 
 void ModelSmt::finalize()
