@@ -143,7 +143,7 @@ class Expr
   bool operator==(const Expr& e) const;
   /** Returns true if this expression is not equal to e*/
   bool operator!=(const Expr& e) const;
-  /** */
+  /** Ordering, allows Expr to be used in some std data structures */
   bool operator<(const Expr& e) const;
   /** is null */
   bool isNull() const;

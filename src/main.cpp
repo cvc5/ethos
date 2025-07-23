@@ -120,7 +120,6 @@ int main( int argc, char* argv[] )
 // enable all traces
 #ifdef EO_TRACING
       TraceChannel.on("expr_parser");
-      TraceChannel.on("oracles");
       TraceChannel.on("state");
       TraceChannel.on("step");
       TraceChannel.on("type_checker");

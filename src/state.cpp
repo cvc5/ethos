@@ -557,29 +557,11 @@ Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool 
     return Expr(mkExprInternal(Kind::FUNCTION_TYPE, atypes));
   }
   Expr curr = ret;
-  Kind rk = ret.getKind();
-  if (rk==Kind::EVAL_REQUIRES)
-  {
-    Expr currBase = ret;
-    do
-    {
-      currBase = currBase[2];
-      rk = currBase.getKind();
-    }while (rk==Kind::EVAL_REQUIRES);
-  }
   // no way to construct quote types, e.g. on return types
-  Assert (rk!=Kind::QUOTE_TYPE);
+  Assert (ret.getKind()!=Kind::QUOTE_TYPE);
   for (size_t i=0, nargs = args.size(); i<nargs; i++)
   {
     Expr a = args[(nargs-1)-i];
-    // process arguments
-    Kind ak = a.getKind();
-    while (ak == Kind::EVAL_REQUIRES)
-    {
-      curr = mkRequires(a[0], a[1], curr);
-      a = a[2];
-      ak = a.getKind();
-    }
     // append the function
     curr = Expr(
         mkExprInternal(Kind::FUNCTION_TYPE, {a.getValue(), curr.getValue()}));

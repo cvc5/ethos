@@ -44,7 +44,6 @@ std::ostream& operator<<(std::ostream& o, Token t)
     case Token::DEFINE_TYPE: o << "DEFINE_TYPE"; break;
     case Token::ECHO: o << "ECHO"; break;
     case Token::EVAL_DEFINE: o << "EVAL_DEFINE"; break;
-    case Token::EVAL_MATCH: o << "EVAL_MATCH"; break;
     case Token::EXIT: o << "EXIT"; break;
     case Token::HEX_LITERAL: o << "HEX_LITERAL"; break;
     case Token::INCLUDE: o << "INCLUDE"; break;

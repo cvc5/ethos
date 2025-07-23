@@ -46,7 +46,6 @@ enum class Token
   DEFINE_TYPE,
   ECHO,
   EVAL_DEFINE,  // eo::define
-  EVAL_MATCH,   // eo::match
   EXIT,
   HEX_LITERAL,
   INCLUDE,
