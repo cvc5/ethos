@@ -279,10 +279,18 @@ void ModelSmt::printNormal(const std::string& name,
                   progCases,
                   progParams);
   }
+  printAuxProgram(progName.str(), args, progCases, progParams);
+}
+
+void ModelSmt::printAuxProgram(const std::string& name,
+                     const std::vector<Kind>& args,
+                    std::stringstream& progCases,
+                    std::stringstream& progParams)
+{
   std::stringstream progSig;
   progSig << "(";
   // make the default case as well
-  progCases << "  ((" << progName.str();
+  progCases << "  ((" << name;
   for (size_t i = 0, nargs = args.size(); i < nargs; i++)
   {
     if (i > 0)
@@ -295,7 +303,7 @@ void ModelSmt::printNormal(const std::string& name,
   }
   progSig << ") $smt_Value" << std::endl;
   progCases << ") $vsm_not_value)" << std::endl;
-  d_modelEvalProgs << "(program " << progName.str() << std::endl;
+  d_modelEvalProgs << "(program " << name << std::endl;
   d_modelEvalProgs << "  (" << progParams.str() << ")" << std::endl;
   d_modelEvalProgs << "  :signature " << progSig.str() << std::endl;
   d_modelEvalProgs << "  (" << std::endl;

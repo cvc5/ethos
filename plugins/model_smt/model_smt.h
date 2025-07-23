@@ -64,6 +64,11 @@ class ModelSmt : public StdPlugin
                      size_t& paramCount,
                      std::ostream& progCases,
                      std::ostream& progParams);
+  void printAuxProgram(const std::string& name,
+                     const std::vector<Kind>& args,
+                    std::stringstream& progCases,
+                    std::stringstream& progParams);
+
   void printTermInternal(Kind k, const std::string& term, std::ostream& os);
   void finalizeDecl(const Expr& e);
   std::map<Kind, std::string> d_kindToEoPrefix;
