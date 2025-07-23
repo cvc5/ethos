@@ -4,8 +4,10 @@ This file contains a summary of important user-visible changes.
 ethos 0.2.1 pre-release
 =======================
 
+- Removes support for `eo::match`, which was equivalent to invoking an auxiliary function. These auxiliary functions now should be defined explicitly.
 - Adds builtin list operators `eo::list_diff` (difference) and `eo::list_inter` (intersection)
 - Adds support for explicit conclusions to proof rules via `:conclusion-explicit`.
+- Removes support for oracles and the command `declare-oracle-fun`. Custom extensions are now recommended to be added via the plugin feature, which provides an interface for custom evaluation (Plugin::hasEvaluation).
 
 ethos 0.2.0
 ===========

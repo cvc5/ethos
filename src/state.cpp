@@ -188,7 +188,6 @@ State::State(Options& opts, Stats& stats)
   d_any = Expr(mkExpr(Kind::ANY, {}));
   // self is a distinguished parameter
   d_self = Expr(mkSymbolInternal(Kind::PARAM, "eo::self", d_any));
-  bind("eo::self", d_self);
 }
 
 State::~State() {}
@@ -522,29 +521,11 @@ Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool 
     return Expr(mkExprInternal(Kind::FUNCTION_TYPE, atypes));
   }
   Expr curr = ret;
-  Kind rk = ret.getKind();
-  if (rk==Kind::EVAL_REQUIRES)
-  {
-    Expr currBase = ret;
-    do
-    {
-      currBase = currBase[2];
-      rk = currBase.getKind();
-    }while (rk==Kind::EVAL_REQUIRES);
-  }
   // no way to construct quote types, e.g. on return types
-  Assert (rk!=Kind::QUOTE_TYPE);
+  Assert (ret.getKind()!=Kind::QUOTE_TYPE);
   for (size_t i=0, nargs = args.size(); i<nargs; i++)
   {
     Expr a = args[(nargs-1)-i];
-    // process arguments
-    Kind ak = a.getKind();
-    while (ak == Kind::EVAL_REQUIRES)
-    {
-      curr = mkRequires(a[0], a[1], curr);
-      a = a[2];
-      ak = a.getKind();
-    }
     // append the function
     curr = Expr(
         mkExprInternal(Kind::FUNCTION_TYPE, {a.getValue(), curr.getValue()}));
@@ -733,7 +714,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         Warning() << "Wrong number of arguments when applying " << Expr(hd) << std::endl;
       }
     }
-    else if (hk==Kind::PROGRAM_CONST || hk==Kind::ORACLE)
+    else if (hk == Kind::PROGRAM_CONST)
     {
       // have to check whether we have marked the constructor kind, which is
       // not the case i.e. if we are constructing applications corresponding to
@@ -766,7 +747,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     // The exceptions to this are operators whose types are not flattened (programs and proof rules).
     if (children.size()>2)
     {
-      if (hk!=Kind::PROGRAM_CONST && hk!=Kind::PROOF_RULE && hk!=Kind::ORACLE)
+      if (hk != Kind::PROGRAM_CONST && hk != Kind::PROOF_RULE)
       {
         // return the curried version
         return Expr(mkApplyInternal(vchildren));
@@ -775,6 +756,22 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
   }
   else if (isLiteralOp(k))
   {
+    // this transforms e.g. (eo::add t1 t2 t3) into (eo::add (eo::add t1 t2)
+    // t3).
+    if (isNaryLiteralOp(k) && vchildren.size() > 2)
+    {
+      std::vector<ExprValue*> cc{nullptr, nullptr};
+      cc[0] = vchildren[0];
+      cc[1] = vchildren[1];
+      ExprValue* curr = mkExprInternal(k, cc);
+      for (size_t i = 2, nargs = vchildren.size(); i < nargs; i++)
+      {
+        cc[0] = curr;
+        cc[0] = vchildren[i];
+        curr = mkExprInternal(k, cc);
+      }
+      return Expr(curr);
+    }
     // only if correct arity, else we will catch the type error
     bool isArityOk = TypeChecker::checkArity(k, vchildren.size());
     if (isArityOk)
@@ -1422,18 +1419,6 @@ Expr State::getProgram(const ExprValue* ev)
   }
   return d_null;
 }
-bool State::getOracleCmd(const ExprValue* oracle, std::string& ocmd)
-{
-  AppInfo* ainfo = getAppInfo(oracle);
-  if (ainfo!=nullptr && ainfo->d_attrCons==Attr::ORACLE)
-  {
-    Expr oexpr = ainfo->d_attrConsTerm;
-    Assert(!oexpr.isNull());
-    ocmd = oexpr.getSymbol();
-    return true;
-  }
-  return false;
-}
 
 size_t State::getAssumptionLevel() const
 {
@@ -1578,24 +1563,6 @@ bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
     return markConstructorKind(v[0], a, cons);
   }
   Expr acons = cons;
-  if (a==Attr::ORACLE)
-  {
-    // use full path
-    std::string ocmd = cons.getSymbol();
-
-    Filepath inputPath = d_inputFile.parentPath();
-    inputPath.append(Filepath(ocmd));
-    inputPath.makeCanonical();
-
-    if (!inputPath.exists())
-    {
-      Warning() << "State:: could not include \"" + ocmd
-                       + "\" for oracle definition"
-                << std::endl;
-      return false;
-    }
-    acons = mkLiteral(Kind::STRING, inputPath.getRawPath());
-  }
   Assert (isSymbol(v.getKind()));
   AppInfo& ai = d_appData[v.getValue()];
   if (ai.d_attrCons != Attr::NONE)

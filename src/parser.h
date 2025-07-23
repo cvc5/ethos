@@ -58,6 +58,8 @@ class Parser
    * Parse and return the next term.
    */
   Expr parseNextExpr();
+  /** Get the lexer */
+  Lexer& getLexer() { return d_lex; }
 
  protected:
   /** The input */
