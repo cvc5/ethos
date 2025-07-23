@@ -469,6 +469,24 @@
 (define $eo_is_ok ((x $eo_Term))
   ($eo_mk_bool ($smt_builtin_is_ok x)))
 
+; program: $eo_ite
+; implements: eo::ite
+; note: This definition is only used if we are not eagerly flattening evaluation
+(define $eo_ite ((x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term))
+  ($smt_apply_3 "ite" ($smt_apply_= x1 true)
+    x2
+  ($smt_apply_3 "ite" ($smt_apply_= x1 false)
+    x3
+    $eo_stuck)))
+
+; program: $eo_requires
+; implements: eo::requires
+; note: This definition is only used if we are not eagerly flattening evaluation
+(define $eo_requires ((x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term))
+  ($smt_apply_3 "ite" ($smt_apply_= x1 x2)
+    ($smt_apply_3 "ite" ($smt_builtin_is_ok x1) x3 x1)
+    $eo_stuck))
+
 ;;; Boolean operators
 
 ; program: $eo_not
