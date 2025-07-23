@@ -34,7 +34,7 @@ class ExprParser
    * @param allowQuoteArg If true, we also permit (eo::quote <term>).
    * @param allowEval If true, we permit the term to be evaluatable.
    */
-  Expr parseType(bool allowQuoteArg=false, bool allowEval=true);
+  Expr parseType(bool allowQuoteArg = false, bool allowEval = true);
   /** Parses a formula <formula> (term of Boolean type). */
   Expr parseFormula();
   /** Parses an SMT-LIB term pair */
