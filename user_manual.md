@@ -239,23 +239,6 @@ For details, see [ambiguous functions](#amb-functions).
 
 > __Note:__ Internally, `(t T :implicit)` drops `t` from the list of arguments of the function type we are defining.
 
-### The :requires annotation
-
-Arguments to functions can also be annotated with the attribute `:requires (<term> <term>)` to denote a equality condition that is required for applications of the term to type check.
-
-```smt
-(declare-const Int Type)
-(declare-parameterized-const BitVec ((w Int :requires ((eo::is_neg w) false))) Type)
-```
-The above declares the integer type `Int` and a bitvector type constructor `BitVec` that expects a _non-negative integer_ `w`.
-In detail, the first argument of `BitVec` is supposed to be an `Int` value and is named `w` via the `:var` attribute.
-The second annotation indicates that the term `(eo::is_neg w)` must evaluate to `false` at type checking type.
-Symbol `eo::is_neg` denotes a builtin function that returns `true` if its argument is a negative numeral, and returns false otherwise (for details, see [computation](#computation)).
-<!-- This needs discussion, what is the input type of `eo::is_neg`? How can `eo::is_neg` accept a value of a user-defined type `Int` given that it is builtin?  -->
-
-> __Note:__ Internally, a parameter `(t T :requires (s r))` is syntax sugar for the type term `(eo::requires s r T)` where `eo::requires` is an operator that evaluates to its third argument if and only if its first two arguments are _computationally_ equivalent (details on this operator are given in [computation](#computation)).
-Furthermore, the function type `(-> (eo::requires s r T) S)` is treated as `(-> T (eo::requires s r S))`. Ethos rewrites all types of the former form to the latter.
-
 <a name="opaque"></a>
 
 ### The :opaque annotation
@@ -1442,6 +1425,14 @@ A list of requirements can be given to a proof rule.
 
 This rule expects an arithmetic inequality.
 It requires that the left hand side of this inequality `x` is a negative numeral, which is checked via the requirement `:requires (((eo::is_neg x) true))`.
+The above requires annotation is equivalent to wrapping the conclusion in an `eo::requires` term (for details, see [computation](#computation)).
+In particular, the above is equivalent to:
+
+```smt
+(declare-rule leq-contra ((x Int))
+    :premise ((>= x 0))
+    :conclusion (eo::requires (eo::is_neg x) true false))
+```
 
 ### Premise lists
 

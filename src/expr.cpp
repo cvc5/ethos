@@ -206,6 +206,11 @@ std::string quoteSymbol(const std::string& s)
   {
     return "||";
   }
+  // special case: if an "eo::" symbol, it is not quoted
+  if (s.compare(0, 4, "eo::") == 0)
+  {
+    return s;
+  }
 
   // this is the set of SMT-LIBv2 permitted characters in "simple" (non-quoted)
   // symbols
@@ -233,6 +238,24 @@ std::string quoteSymbol(const std::string& s)
   return "|" + tmp + "|";
 }
 
+std::vector<Expr> Expr::getPrintChildren(const ExprValue* e)
+{
+  std::vector<Expr> ret;
+  // special case: variable is printed as (eo::var "name" type)
+  if (e->getKind() == Kind::VARIABLE)
+  {
+    Expr tt(ExprValue::d_state->lookupType(e));
+    Assert(!tt.isNull());
+    ret.push_back(tt);
+    return ret;
+  }
+  for (size_t i = 0, nchildren = e->getNumChildren(); i < nchildren; i++)
+  {
+    ret.emplace_back((*e)[i]);
+  }
+  return ret;
+}
+
 std::map<const ExprValue*, size_t> Expr::computeLetBinding(
     const Expr& e, std::vector<Expr>& ll)
 {
@@ -245,7 +268,10 @@ std::map<const ExprValue*, size_t> Expr::computeLetBinding(
   do
   {
     cur = visit.back();
-    if (cur.getNumChildren() == 0)
+    // special case: variable is printed as (eo::var "name" type),
+    // so it should be letified.
+    std::vector<Expr> printChildren = getPrintChildren(cur.getValue());
+    if (printChildren.empty())
     {
       visit.pop_back();
       continue;
@@ -254,10 +280,7 @@ std::map<const ExprValue*, size_t> Expr::computeLetBinding(
     if (visited.find(cv) == visited.end())
     {
       visited.insert(cv);
-      for (size_t i = 0, nchildren = cur.getNumChildren(); i < nchildren; i++)
-      {
-        visit.push_back(cur[i]);
-      }
+      visit.insert(visit.end(), printChildren.begin(), printChildren.end());
       continue;
     }
     visit.pop_back();
@@ -305,7 +328,8 @@ void Expr::printDebugInternal(const Expr& e,
         continue;
       }
       Kind k = cur.first->getKind();
-      if (cur.first->getNumChildren() == 0)
+      std::vector<Expr> printChildren = getPrintChildren(cur.first);
+      if (printChildren.empty())
       {
         const Literal* l = cur.first->asLiteral();
         if (l!=nullptr)
@@ -313,7 +337,16 @@ void Expr::printDebugInternal(const Expr& e,
           switch (k)
           {
             case Kind::HEXADECIMAL:os << "#x" << l->toString();break;
-            case Kind::BINARY:os << "#b" << l->toString();break;
+            case Kind::BINARY:
+              if (l->d_bv.getSize() == 0)
+              {
+                os << "(eo::to_bin 0 0)";
+              }
+              else
+              {
+                os << "#b" << l->toString();
+              }
+              break;
             case Kind::STRING:os << "\"" << l->toString() << "\"";break;
             case Kind::DECIMAL:
               // currently don't have a way to print decimals natively, just
@@ -339,10 +372,30 @@ void Expr::printDebugInternal(const Expr& e,
         }
         visit.pop_back();
       }
+      else if (k == Kind::VARIABLE)
+      {
+        // special case: variables print as the evaluation that made them
+        Expr tt(ExprValue::d_state->lookupType(cur.first));
+        const Literal* l = cur.first->asLiteral();
+        Assert(l != nullptr);
+        os << "(eo::var \"" << l->toString() << "\" ";
+        visit.back().second++;
+        visit.emplace_back(tt.getValue(), 0);
+      }
       else
       {
         os << "(";
-        if (k!=Kind::APPLY && k!=Kind::TUPLE)
+        if (k == Kind::APPLY_OPAQUE)
+        {
+          // ambiguous functions must use "as"
+          Attr attr = ExprValue::d_state->getConstructorKind((*cur.first)[0]);
+          if (attr == Attr::AMB || attr == Attr::AMB_DATATYPE_CONSTRUCTOR)
+          {
+            os << "as ";
+          }
+          // otherwise printed as ordinary app
+        }
+        else if (k != Kind::APPLY || (*cur.first)[0]->getNumChildren() > 0)
         {
           os << kindToTerm(k) << " ";
         }
@@ -350,7 +403,7 @@ void Expr::printDebugInternal(const Expr& e,
         visit.emplace_back((*cur.first)[0], 0);
       }
     }
-    else if (cur.second == cur.first->getNumChildren())
+    else if (cur.second >= cur.first->getNumChildren())
     {
       os << ")";
       visit.pop_back();
@@ -455,6 +508,7 @@ Expr& Expr::operator=(const Expr& e)
 bool Expr::operator==(const Expr& e) const { return d_value == e.d_value; }
 bool Expr::operator!=(const Expr& e) const { return d_value != e.d_value; }
 Kind Expr::getKind() const { return d_value->getKind(); }
+bool Expr::operator<(const Expr& e) const { return d_value < e.d_value; }
 
 bool Expr::hasVariable(const Expr& e,
                        const std::unordered_set<const ExprValue*>& vars)
