@@ -164,15 +164,18 @@
 
 ; The Boolean type
 (declare-const $smd_tsm.Bool $smt_Type)
+(define $tsm_Bool () $smd_tsm.Bool)
 
 ; Uninterpreted sorts
 (declare-parameterized-const $smd_tsm.USort
   ((id $smt_builtin_Int :opaque)) $smt_Type)
+(define $tsm_USort ((id $smt_builtin_Int)) ($smd_tsm.USort id))
 
 ; The sort of a term that doesn't have an SMT-LIB type.
 ; This is used as an error condition
 (declare-parameterized-const $smd_tsm.NullSort
   ((id $smt_builtin_Int :opaque)) $smt_Type)
+(define $tsm_NullSort ((id $smt_builtin_Int)) ($smd_tsm.NullSort id))
 
 ;;; SMT term datatype constructors
 
@@ -198,11 +201,15 @@
 (declare-parameterized-const $smd_vsm.Map
   ((T $eo_Term :opaque) (m $smt_Map :opaque))
   $smt_Value)
+(define $vsm_map ((T $eo_Term) (m $smt_Map))
+  ($smd_vsm.Map T m))
 
 ; A value denoting an uninterpreted constant.
 (declare-parameterized-const $smd_vsm.UConst
   ((T $eo_Term :opaque) (id $smt_builtin_Int :opaque))
   $smt_Value)
+(define $vsm_uconst ((T $eo_Term) (id $smt_builtin_Int))
+  ($smd_vsm.UConst T id))
 
 ; A value represented by an SMT-LIB term. This is used for types
 ; where terms are used to denote the values of that type, e.g.
@@ -210,14 +217,18 @@
 (declare-parameterized-const $smd_vsm.Term
   ((t $smt_Term :opaque))
   $smt_Value)
+(define $vsm_term ((t $smt_Term)) ($smd_vsm.Term t))
 
 ; Apply values (for Herbrand interpretations).
 (declare-parameterized-const $smd_vsm.Apply
   ((f $smt_Value :opaque) (a $smt_Value :opaque))
   $smt_Value)
+(define $vsm_apply ((f $smt_Value) (a $smt_Value))
+  ($smd_vsm.Apply f a))
 
 ; Denotes a failure case for values.
 (declare-const $smd_vsm.NotValue $smt_Value)
+(define $vsm_not_value () $smd_vsm.NotValue)
 
 ;;; SMT map value datatype constructors
 
@@ -225,11 +236,14 @@
 (declare-parameterized-const $smd_msm.Map.cons
   ((i $smt_Value :opaque) (e $smt_Value :opaque) (m $smt_Map :opaque))
   $smt_Map)
+(define $msm_cons ((i $smt_Value) (e $smt_Value) (m $smt_Map))
+  ($smd_msm.Map.cons i e m))
 
 ; Constructs a map value where all indices are mapped to e.
 (declare-parameterized-const $smd_msm.Map.default
   ((e $smt_Value :opaque))
   $smt_Map)
+(define $msm_default ((e $smt_Value)) ($smd_msm.Map.default e))
 
 ;;; Eunoia datatype constructors
 
@@ -284,6 +298,9 @@
 ;(define $smt_Real () ($smt_builtin_type_0 "Real"))
 ;(define $smt_BitVec ((w $smt_builtin_Int)) (_ ($smt_builtin_type_1 "BitVec") w))
 ;(define $smt_String () ($smt_builtin_type_0 "String"))
+
+(define $vsm_true () ($vsm_term $sm_mk_true))
+(define $vsm_false () ($vsm_term $sm_mk_false))
 
 ;;; Defining parametric bitvector operators
 
@@ -1012,51 +1029,6 @@
 ; Note that the last type allows us to define symbols whose type
 ; will be a native SMT-LIB type in the final embedding generated
 ; by the smt-meta plugin.
-  
-;;; SMT type datatype constructors
-
-; The Boolean type
-(define $tsm_Bool () $smd_tsm.Bool)
-  
-; Uninterpreted sorts
-(define $tsm_USort ((id $smt_builtin_Int)) ($smd_tsm.USort id))
-  
-; The sort of a term that doesn't have an SMT-LIB type.
-; This is used as an error condition
-(define $tsm_NullSort ((id $smt_builtin_Int)) ($smd_tsm.NullSort id))
-
-;;; SMT value datatype constructors
-
-; A value denoting a map.
-(define $vsm_map ((T $eo_Term) (m $smt_Map))
-  ($smd_vsm.Map T m))
-
-; A value denoting an uninterpreted constant.
-(define $vsm_uconst ((T $eo_Term) (id $smt_builtin_Int))
-  ($smd_vsm.UConst T id))
-
-; A value represented by an SMT-LIB term. This is used for types
-; where terms are used to denote the values of that type, e.g.
-; SMT-LIB numerals for Int.
-(define $vsm_term ((t $smt_Term)) ($smd_vsm.Term t))
-(define $vsm_true () ($vsm_term $sm_mk_true))
-(define $vsm_false () ($vsm_term $sm_mk_false))
-
-; A value denoting an application of a function in a Herbrand interpretation.
-(define $vsm_apply ((f $smt_Value) (a $smt_Value))
-  ($smd_vsm.Apply f a))
-
-; Denotes a failure case for values.
-(define $vsm_not_value () $smd_vsm.NotValue)
-
-;;; SMT map value datatype constructors
-
-; Constructs a map value where i is mapped to e.
-(define $map_cons ((i $smt_Value) (e $smt_Value) (m $smt_Map))
-  ($smd_msm.Map.cons i e m))
-
-; Constructs a map value where all indices are mapped to e.
-(define $map_default ((e $smt_Value)) ($smd_msm.Map.default e))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Exception handling
 
@@ -1098,8 +1070,8 @@
   ((i $smt_Value) (j $smt_Value) (e $smt_Value) (M $smt_Map))
   :signature ($smt_Map) $smt_Value
   (
-  (($smtx_map_default ($map_cons j e M))  ($smtx_map_default M))
-  (($smtx_map_default ($map_default e))   e)
+  (($smtx_map_default ($msm_cons j e M))  ($smtx_map_default M))
+  (($smtx_map_default ($msm_default e))   e)
   )
 )
 
@@ -1110,9 +1082,9 @@
   :signature ($smt_Map $smt_Value) $smt_Value
   (
   ; NOTE: the cases here are exhaustive
-  (($smtx_map_lookup ($map_cons i e M) i)  e)
-  (($smtx_map_lookup ($map_cons j e M) i)  ($smtx_map_lookup M i))
-  (($smtx_map_lookup ($map_default e) i)   e)
+  (($smtx_map_lookup ($msm_cons i e M) i)  e)
+  (($smtx_map_lookup ($msm_cons j e M) i)  ($smtx_map_lookup M i))
+  (($smtx_map_lookup ($msm_default e) i)   e)
   )
 )
 
@@ -1123,8 +1095,8 @@
   ((T $smt_Type) (U $smt_Type) (t $smt_Value) (u $smt_Value) (M $smt_Map))
   :signature ($smt_Map $smt_Type) $smt_builtin_Bool
   (
-  (($smtx_map_is_redundant ($map_default u) U)     $smt_builtin_false)
-  (($smtx_map_is_redundant ($map_cons t u M) U)
+  (($smtx_map_is_redundant ($msm_default u) U)     $smt_builtin_false)
+  (($smtx_map_is_redundant ($msm_cons t u M) U)
     ; lookup value on tail
     ; if it is the same, this index is redundant and thus we are not a value
     ($smt_apply_3 "ite"
@@ -1450,8 +1422,8 @@
 (program $smtx_typeof_map ((T $eo_Term) (j $smt_Value) (e $smt_Value) (m $smt_Map))
   :signature ($eo_Term $smt_Map) $eo_Term
   (
-  (($smtx_typeof_map T ($map_cons j e m))   (-> T ($smtx_typeof_value e)))
-  (($smtx_typeof_map T ($map_default e))    (-> T ($smtx_typeof_value e)))
+  (($smtx_typeof_map T ($msm_cons j e m))   (-> T ($smtx_typeof_value e)))
+  (($smtx_typeof_map T ($msm_default e))    (-> T ($smtx_typeof_value e)))
   )
 )
 
