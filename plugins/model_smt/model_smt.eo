@@ -405,7 +405,7 @@ $SMT_EVAL_CASES$
 
 ; note: Helper for below.
 (program $smtx_typeof_map ((T $smt_builtin_Int) (j $smt_Value) (e $smt_Value) (m $smt_Map))
-  :signature ($eo_Term $smt_Map) $eo_Term
+  :signature ($smt_builtin_Int $smt_Map) $eo_Term
   (
   ; we rely on the reverse hash
   (($smtx_typeof_map T ($msm_cons j e m))   ($eo_mk_fun_type ($eo_reverse_hash ($eo_mk_numeral T)) ($smtx_typeof_value e)))
