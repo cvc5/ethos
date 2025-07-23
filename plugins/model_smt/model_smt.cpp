@@ -70,8 +70,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addSmtLibSym("*", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
   // we expect "-" to be overloaded, we look for its desugared name and map it
   // back
-  // addSmtLibSym("$eoo_-.2", {Kind::PARAM}, Kind::PARAM);
-  // d_overloadRevert["$eoo_-.2"] = "-";
+  addSmtLibSym("$eoo_-.2", {Kind::PARAM}, Kind::PARAM);
+  d_overloadRevert["$eoo_-.2"] = "-";
   addSmtLibSym("abs", {Kind::NUMERAL}, Kind::NUMERAL);
   addSmtLibSym(">=", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
   addSmtLibSym("<=", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
@@ -92,22 +92,31 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addSmtLibSym("str.len", {Kind::STRING}, Kind::NUMERAL);
   addSmtLibSym(
       "str.substr", {Kind::STRING, Kind::NUMERAL, Kind::NUMERAL}, Kind::STRING);
+  addSmtLibSym(
+      "str.at", {Kind::STRING, Kind::NUMERAL}, Kind::STRING);
   addSmtLibSym("str.indexof",
                {Kind::STRING, Kind::STRING, Kind::NUMERAL},
                Kind::NUMERAL);
+  addSmtLibSym("str.replace", {Kind::STRING, Kind::STRING, Kind::STRING}, Kind::STRING);
+  addSmtLibSym("str.replace_all", {Kind::STRING, Kind::STRING, Kind::STRING}, Kind::STRING);
   addSmtLibSym("str.from_code", {Kind::NUMERAL}, Kind::STRING);
   addSmtLibSym("str.to_code", {Kind::STRING}, Kind::NUMERAL);
   addSmtLibSym("str.from_int", {Kind::NUMERAL}, Kind::STRING);
   addSmtLibSym("str.to_int", {Kind::STRING}, Kind::NUMERAL);
   addSmtLibSym("str.is_digit", {Kind::STRING}, Kind::BOOLEAN);
+  addSmtLibSym("str.contains", {Kind::STRING, Kind::STRING}, Kind::BOOLEAN);
+  addSmtLibSym("str.suffixof", {Kind::STRING, Kind::STRING}, Kind::BOOLEAN);
+  addSmtLibSym("str.prefixof", {Kind::STRING, Kind::STRING}, Kind::BOOLEAN);
   addSmtLibSym("str.<=", {Kind::STRING, Kind::STRING}, Kind::BOOLEAN);
   addSmtLibSym("str.<", {Kind::STRING, Kind::STRING}, Kind::BOOLEAN);
 
-  ///----- non standard
+  ///----- non standard extensions
   addSmtLibSym("^", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
   addSmtLibSym("/_total", {Kind::PARAM, Kind::PARAM}, Kind::RATIONAL);
   addSmtLibSym("div_total", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
   addSmtLibSym("mod_total", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
+  addSmtLibSym("str.update", {Kind::STRING, Kind::NUMERAL, Kind::STRING}, Kind::STRING);
+  addSmtLibSym("str.rev", {Kind::STRING}, Kind::STRING);
   addSmtLibSym("str.to_lower", {Kind::STRING}, Kind::STRING);
   addSmtLibSym("str.to_upper", {Kind::STRING}, Kind::STRING);
   //addSmtLibSym("int.ispow2", {Kind::NUMERAL, Kind::NUMERAL}, Kind::BOOLEAN);
@@ -229,8 +238,18 @@ void ModelSmt::printSmtTerm(const std::string& name,
     Assert(d_kindToEoPrefix.find(kr) != d_kindToEoPrefix.end())
         << "Could not find kind ret " << kr;
     progCases << "($vsm_term ($sm_mk_" << d_kindToEoPrefix[kr];
-    progCases << " ($smt_apply_" << args.size() << " \"" << name << "\"";
-    progCases << retArgs.str() << "))))" << std::endl;
+    progCases << " ($smt_apply_" << args.size() << " \"";
+    std::map<std::string, std::string>::iterator ito = d_overloadRevert.find(name);
+    if (ito!=d_overloadRevert.end())
+    {
+      // e.g. in spite of having name $eoo_-.2, we use "-" as the invocation.
+      progCases << ito->second;
+    }
+    else
+    {
+      progCases << name;
+    }
+    progCases << "\"" << retArgs.str() << "))))" << std::endl;
   }
   std::stringstream progSig;
   progSig << "(";

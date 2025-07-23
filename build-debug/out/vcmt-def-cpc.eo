@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_refl $eo_typeof $smtx_model_lookup_predicate $eo_hash $tsm_Bool $eo_type $eo_fun_type
-; #trim-defs: 139
+; #trim-defs: 140
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -125,9 +125,10 @@
 (declare-parameterized-const $smd_eo.SmtType ((t $smt_Type :opaque)) $eo_Term)
 (define $eo_smt_type ((T $smt_Type)) ($smd_eo.SmtType T))
 (declare-parameterized-const $smd_eo.Var
-  ((s $smt_builtin_String :opaque) (T $eo_Term :opaque))
+  ((s $smt_builtin_String :opaque) (T $smt_builtin_Int :opaque))
   $eo_Term)
-(define $eo_Var ((s $smt_builtin_String) (T $eo_Term)) ($smd_eo.Var s T))
+(define $eo_Var ((s $smt_builtin_String) (T $smt_builtin_Int)) 
+  ($smd_eo.Var s T))
 (define $sm_mk_true () ($smd_sm.Bool $smt_builtin_true))
 (define $sm_mk_false () ($smd_sm.Bool $smt_builtin_false))
 (define $sm_mk_bool ((c $smt_builtin_Bool))
@@ -153,6 +154,7 @@
 (define $smt_builtin_is_ok ((x $eo_Term))
   ($smt_apply_1 "not" ($smt_apply_= x $eo_stuck)))
 (program $eo_hash () :signature ($eo_Term) $eo_Term)
+(program $eo_reverse_hash () :signature ($eo_Term) $eo_Term)
 (program $eo_typeof_main () :signature ($eo_Term) Type)
 (program $eo_typeof
   ((t $eo_Term) (T $eo_Term) (b $smt_builtin_Bool) (n $smt_builtin_Int) (r $smt_builtin_Real)
@@ -165,7 +167,7 @@
   (($eo_typeof ($eo_mk_rational r))             $eo_Rational)
   (($eo_typeof ($eo_mk_string s))               $eo_String)
   (($eo_typeof ($eo_binary w n))                $eo_Binary)
-  (($eo_typeof ($eo_Var s T))                   T)
+  (($eo_typeof ($eo_Var s n))                   ($eo_reverse_hash ($eo_mk_numeral n)))
   
   
   

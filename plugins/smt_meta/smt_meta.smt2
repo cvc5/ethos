@@ -46,9 +46,8 @@ $SM_DEFS$
     (and
       ((_ is eo.SmtTerm) ($eo_hash x))
       ((_ is sm.Numeral) (eo.SmtTerm.arg1 ($eo_hash x)))))) :named sm.hash_numeral))
-(assert (! (forall ((x eo.Term) (y eo.Term))
-  (=> (and (not (= x eo.Stuck)) (not (= y eo.Stuck))
-    (= ($eo_hash x) ($eo_hash y))) (= x y))) :named sm.hash_injective))
+(assert (! (forall ((x eo.Term))
+    (= ($eo_reverse_hash ($eo_hash x)) x)) :named sm.hash_injective))
 
 ; This axiom gives semantics to model lookups for partial functions
 (assert (! (forall ((t sm.Term))

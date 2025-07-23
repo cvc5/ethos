@@ -241,10 +241,13 @@
 (define $eo_smt_type ((T $smt_Type)) ($smd_eo.SmtType T))
 
 ; Represents a Eunoia variable in the final deep embedding.
+; Note that we embed only the *hash* of its type. This simplifies the
+; Eunoia datatype in the final embedding.
 (declare-parameterized-const $smd_eo.Var
-  ((s $smt_builtin_String :opaque) (T $eo_Term :opaque))
+  ((s $smt_builtin_String :opaque) (T $smt_builtin_Int :opaque))
   $eo_Term)
-(define $eo_Var ((s $smt_builtin_String) (T $eo_Term)) ($smd_eo.Var s T))
+(define $eo_Var ((s $smt_builtin_String) (T $smt_builtin_Int)) 
+  ($smd_eo.Var s T))
 
 ;;; External datatype access
 
@@ -849,6 +852,9 @@
 ; Note: eo::hash is defined axiomatically in the final smt2 encoding.
 (program $eo_hash () :signature ($eo_Term) $eo_Term)
 
+; fwd-decl: $eo_reverse_hash
+(program $eo_reverse_hash () :signature ($eo_Term) $eo_Term)
+
 ;;; $eo_gt
 
 ; Compare arithmetic greater than. Assumes x and y are values.
@@ -877,7 +883,7 @@
   (
   (($eo_var ($eo_mk_string s) T)
       ($eo_requires_eq ($eo_typeof T) Type
-        ($eo_Var s T)))
+        ($eo_Var s ($eo_hash T))))
   )
 )
 
@@ -897,7 +903,7 @@
   ($eo_is_eq ($eo_var ($eo_nameof x) ($eo_typeof x)) x))
 
 ; fwd-decl: $eo_typeof_main
-; Note: This method returns the type for all user defined terms.
+; note: This method returns the type for all user defined terms.
 (program $eo_typeof_main () :signature ($eo_Term) Type)
 
 ; program: $eo_typeof
@@ -913,7 +919,7 @@
   (($eo_typeof ($eo_mk_rational r))             $eo_Rational)
   (($eo_typeof ($eo_mk_string s))               $eo_String)
   (($eo_typeof ($eo_binary w n))                $eo_Binary)
-  (($eo_typeof ($eo_Var s T))                   T)
+  (($eo_typeof ($eo_Var s n))                   ($eo_reverse_hash ($eo_mk_numeral n)))
   ; otherwise, invoke the routine for builtin types from the signature.
   ; Note that we do not include SMT-LIB specific constructs here, as these are
   ; not modelled in Eunoia's builtin typeof method.
