@@ -30,8 +30,6 @@ CmdParser::CmdParser(Lexer& lex,
 {
   // initialize the command tokens
   // commands supported in both inputs and proofs
-  d_table["declare-codatatype"] = Token::DECLARE_CODATATYPE;    // undocumented, TODO: remove
-  d_table["declare-codatatypes"] = Token::DECLARE_CODATATYPES;  // undocumented, TODO: remove
   d_table["declare-const"] = Token::DECLARE_CONST;
   d_table["declare-datatype"] = Token::DECLARE_DATATYPE;
   d_table["declare-datatypes"] = Token::DECLARE_DATATYPES;
@@ -271,16 +269,11 @@ bool CmdParser::parseNextCommand()
     break;
     // single or multiple datatype
     // (declare-datatype <symbol> <datatype_dec>)
-    // (declare-codatatype <symbol> <datatype_dec>)
     // (declare-datatypes (<sort_dec>^{n+1}) (<datatype_dec>^{n+1}) )
-    // (declare-codatatypes (<sort_dec>^{n+1}) (<datatype_dec>^{n+1}) )
-    case Token::DECLARE_CODATATYPE:
     case Token::DECLARE_DATATYPE:
-    case Token::DECLARE_CODATATYPES:
     case Token::DECLARE_DATATYPES:
     {
-      bool isCo = (tok==Token::DECLARE_CODATATYPES || tok==Token::DECLARE_CODATATYPE);
-      bool isMulti = (tok==Token::DECLARE_CODATATYPES || tok==Token::DECLARE_DATATYPES);
+      bool isMulti = (tok == Token::DECLARE_DATATYPES);
       std::vector<std::string> dnames;
       std::vector<size_t> arities;
       std::map<const ExprValue*, std::vector<Expr>> dts;
@@ -316,7 +309,7 @@ bool CmdParser::parseNextCommand()
         d_lex.parseError("Failed to bind symbols for datatype definition");
       }
       // mark the attributes
-      Attr attr = isCo ? Attr::CODATATYPE : Attr::DATATYPE;
+      Attr attr = Attr::DATATYPE;
       for (std::pair<const ExprValue* const, std::vector<Expr>>& d : dts)
       {
         Expr dt = Expr(d.first);
@@ -342,11 +335,15 @@ bool CmdParser::parseNextCommand()
     // (declare-consts <symbol> <sort>)
     case Token::DECLARE_CONSTS:
     {
+      d_state.pushScope();
+      Expr self = d_state.mkSelf();
+      d_eparser.bind("eo::self", self);
       Kind k = d_eparser.parseLiteralKind();
       Expr t = d_eparser.parseType();
       // maybe requires?
       // set the type rule
       d_state.setLiteralTypeRule(k, t);
+      d_state.popScope();
     }
     break;
     // (declare-rule ...)
