@@ -27,14 +27,15 @@ class ExprParser
   ExprParser(Lexer& lex, State& state, bool isSignature);
   virtual ~ExprParser() {}
 
-  /** Parses an SMT-LIB term <term> */
+  /** Parses a term <term> */
   Expr parseExpr();
   /**
-   * Parses an SMT-LIB type <type>
-   * @param allowQuoteArg If true, we also permit (eo::arg <term>).
+   * Parses a type <type>. We reject types that are ground and evaluatable.
+   * @param allowQuoteArg If true, we also permit (eo::quote <term>).
+   * @param allowEval If true, we permit the term to be evaluatable.
    */
-  Expr parseType(bool allowQuoteArg=false);
-  /** Parses an SMT-LIB formula <formula> */
+  Expr parseType(bool allowQuoteArg=false, bool allowEval=true);
+  /** Parses a formula <formula> (term of Boolean type). */
   Expr parseFormula();
   /** Parses an SMT-LIB term pair */
   Expr parseExprPair();
@@ -43,10 +44,11 @@ class ExprParser
   /** Parses parentheses-enclosed term list (<term>*) */
   std::vector<Expr> parseExprList();
   /**
-   * Parses parentheses-enclosed term list (<type>*)
-   * @param allowQuoteArg If true, we also permit (eo::arg t).
+   * Parses parentheses-enclosed term list (<type>*).
+   * Note that we never allow evaluation in types in this list.
+   * @param allowQuoteArg If true, we also permit (eo::quote t).
    */
-  std::vector<Expr> parseTypeList(bool allowQuoteArg=false);
+  std::vector<Expr> parseTypeList(bool allowQuoteArg = false);
   /** Parses parentheses-enclosed term list ((<term> <term>)*) */
   std::vector<Expr> parseExprPairList();
   /**
@@ -55,6 +57,7 @@ class ExprParser
    * All variables marked
    * :implicit that were parsed and not added to the return value of this
    * method.
+   * Note that we never allow quote or evaluation in types in this list.
    *
    * @param k The category of the parameter list:
    * - CONST if this is a parameter list of declare-paramaterized-const.
