@@ -1,5 +1,5 @@
-; trim-defs: $eovc_refl $eo_typeof $smtx_model_lookup_predicate $eo_hash $tsm_Bool $eo_type $eo_mk_fun_type
-; #trim-defs: 141
+; trim-defs: $eovc_refl
+; #trim-defs: 115
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -7,12 +7,7 @@
 (declare-const Char Type)
 (declare-const Seq (-> Type Type))
 (declare-consts <string> (Seq Char))
-(define $eo_Numeral () Int)
-(define $eo_Rational () Real)
 (define $eo_String () (Seq Char))
-(define $eo_Binary () Type)
-(program $eo_typeof ((T Type))
-  :signature (T) Type)
 (program $eo_fail_prog ()
   :signature (Bool) Bool
   (
@@ -74,8 +69,6 @@
   ((r $smt_builtin_Real :opaque)) $smt_Term)
 (declare-parameterized-const $smd_sm.String
   ((s ($smt_type_0 "String") :opaque)) $smt_Term)
-(declare-parameterized-const $smd_sm.Binary
-  ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Term)
 (declare-parameterized-const $smd_sm.Const ((v $smt_Value :opaque)) $smt_Term)
 (define $sm_Const ((v $smt_Value)) ($smd_sm.Const v))
 (declare-parameterized-const $smd_vsm.Map
@@ -122,11 +115,6 @@
 (define $eo_smt_term ((t $smt_Term)) ($smd_eo.SmtTerm t))
 (declare-parameterized-const $smd_eo.SmtType ((t $smt_Type :opaque)) $eo_Term)
 (define $eo_smt_type ((T $smt_Type)) ($smd_eo.SmtType T))
-(declare-parameterized-const $smd_eo.Var
-  ((s $smt_builtin_String :opaque) (T $smt_builtin_Int :opaque))
-  $eo_Term)
-(define $eo_Var ((s $smt_builtin_String) (T $smt_builtin_Int)) 
-  ($smd_eo.Var s T))
 (define $sm_mk_true () ($smd_sm.Bool $smt_builtin_true))
 (define $sm_mk_false () ($smd_sm.Bool $smt_builtin_false))
 (define $sm_mk_bool ((c $smt_builtin_Bool))
@@ -139,41 +127,12 @@
   ($smd_sm.String s))
 (define $vsm_true () ($vsm_term $sm_mk_true))
 (define $vsm_false () ($vsm_term $sm_mk_false))
-(define $eo_mk_fun_type ((T1 $eo_Term) (T2 $eo_Term)) 
-  ($eo_apply ($eo_apply $eo_fun_type T1) T2))
 (define $eo_mk_bool ((x $smt_builtin_Bool))
   ($eo_smt_term ($sm_mk_bool x)))
-(define $eo_mk_numeral ((x $smt_builtin_Int))
-  ($eo_smt_term ($sm_mk_z x)))
-(define $eo_mk_rational ((x $smt_builtin_Real))
-  ($eo_smt_term ($sm_mk_q x)))
-(define $eo_mk_string ((x $smt_builtin_String))
-  ($eo_smt_term ($sm_mk_str x)))
-(define $eo_binary ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
-  ($eo_smt_term ($smd_sm.Binary x1 x2)))
 (define $smt_builtin_is_ok ((x $eo_Term))
   ($smt_apply_1 "not" ($smt_apply_= x $eo_stuck)))
 (program $eo_hash () :signature ($eo_Term) $eo_Term)
 (program $eo_reverse_hash () :signature ($eo_Term) $eo_Term)
-(program $eo_typeof_main () :signature ($eo_Term) Type)
-(program $eo_typeof
-  ((t $eo_Term) (T $eo_Term) (b $smt_builtin_Bool) (n $smt_builtin_Int) (r $smt_builtin_Real)
-   (s $smt_builtin_String) (w $smt_builtin_Int) (val $smt_Value))
-  :signature ($eo_Term) $eo_Term
-  (
-  
-  (($eo_typeof ($eo_mk_bool b))                 Bool)
-  (($eo_typeof ($eo_mk_numeral n))              $eo_Numeral)
-  (($eo_typeof ($eo_mk_rational r))             $eo_Rational)
-  (($eo_typeof ($eo_mk_string s))               $eo_String)
-  (($eo_typeof ($eo_binary w n))                $eo_Binary)
-  (($eo_typeof ($eo_Var s n))                   ($eo_reverse_hash ($eo_mk_numeral n)))
-  
-  
-  
-  (($eo_typeof t)                               ($eo_typeof_main t))
-  )
-)
 (declare-const $eo_List Type)
 (declare-const $eo_List_nil $eo_List)
 (declare-parameterized-const $eo_List_cons ((T Type :implicit))
@@ -185,61 +144,6 @@
 (declare-parameterized-const ite (($eo_x_1 Bool) (A Type :implicit) ($eo_x_2 A) ($eo_x_3 A)) A)
 (declare-const and (-> Bool (-> Bool Bool)))
 (declare-parameterized-const = ((A Type :implicit) ($eo_x_1 A) ($eo_x_2 A)) Bool)
-(declare-const BitVec (-> Int Type))
-(program $eo_typeof_apply ((T Type) (U Type))
-  :signature (Type Type) Type
-  (
-  (($eo_typeof_apply (-> T U) T) U)
-  )
-)
-(program $eo_typeof_ite ((A Type))
-  :signature (Type Type) Type
-  (
-  (($eo_typeof_ite Bool A) (-> A A))
-  )
-)
-(program $eo_typeof_= ((A Type))
-  :signature (Type) Type
-  (
-  (($eo_typeof_= A) (-> A Bool))
-  )
-)
-(program $eo_typeof_fun_type ()
-  :signature (Type Type) Type
-  (
-  (($eo_typeof_fun_type Type Type) Type)
-  )
-)
-(program $eo_typeof_main
-  ((T Type) (U Type) (V Type) (W Type) (f (-> U V T)) (x U) (t T)
-   (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3)) 
-  :signature (T) Type
-  (
-  (($eo_typeof_main Type)      Type)
-  (($eo_typeof_main (-> T U))  ($eo_typeof_fun_type ($eo_typeof T) ($eo_typeof U))) 
-  (($eo_typeof_main Bool)      Type)
-  (($eo_typeof_main true)      Bool)
-  (($eo_typeof_main false)     Bool)
-  
-  (($eo_typeof_main Int) Type)
-  
-  (($eo_typeof_main Real) Type)
-  
-  (($eo_typeof_main Char) Type)
-  
-  (($eo_typeof_main Seq) (-> Type Type))
-  
-  (($eo_typeof_main (_ (ite x1) x2)) ($eo_typeof_ite ($eo_typeof x1) ($eo_typeof x2)))
-  
-  (($eo_typeof_main and) (-> Bool (-> Bool Bool)))
-  
-  (($eo_typeof_main (= x1)) ($eo_typeof_= ($eo_typeof x1)))
-  
-  (($eo_typeof_main BitVec) (-> Int Type))
-
-  (($eo_typeof_main (f x))     ($eo_typeof_apply ($eo_typeof f) ($eo_typeof x)))
-  )
-)
 (program $eo_dt_selectors ((T Type) (t T))
   :signature (T) $eo_List
   (
@@ -465,4 +369,4 @@
   (($eovc_refl t) (eo::define ((_v0 ($eor_refl t))) ($eo_requires_eq ($eo_model_is_input _v0) true ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some false) true))))
   )
 )
-(echo "smt-meta $eovc_refl")
+(echo "smt-meta $eovc_refl :deps $smtx_model_lookup_predicate $eo_hash $eo_reverse_hash $tsm_Bool $eo_type $eo_fun_type ")

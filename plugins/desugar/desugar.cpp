@@ -772,7 +772,10 @@ void Desugar::finalizeRule(const Expr& e)
   progDef = d_state.mkExpr(Kind::PROGRAM, {progPair});
   finalizeProgram(prog, progDef, d_eoVc);
   // write a command to indicate that we should process the above vc
-  d_eoVc << "(echo \"smt-meta $eovc_" << e << "\")" << std::endl;
+  // we hard-code the symbols that are used in smt_meta.smt2 here.
+  std::stringstream metaDeps;
+  metaDeps << "$smtx_model_lookup_predicate $eo_hash $eo_reverse_hash $tsm_Bool $eo_type $eo_fun_type ";
+  d_eoVc << "(echo \"smt-meta $eovc_" << e << " :deps " << metaDeps.str() << "\")" << std::endl;
 }
 
 void Desugar::finalizeDatatype(const Expr& e, Attr a, const Expr& attrCons)

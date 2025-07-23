@@ -24,8 +24,6 @@
   (tsm.Seq)
   ; smt-cons: Bool
   (tsm.Bool)
-  ; user-decl: BitVec
-  (tsm.BitVec)
 
   )
   (
@@ -37,8 +35,6 @@
   (sm.Rational (sm.Rational.arg1 Real))
   ; smt-cons: String
   (sm.String (sm.String.arg1 String))
-  ; smt-cons: Binary
-  (sm.Binary (sm.Binary.arg1 Int) (sm.Binary.arg2 Int))
   ; smt-cons: Const
   (sm.Const (sm.Const.arg1 vsm.Value))
   ; user-decl: ite
@@ -62,8 +58,6 @@
   (eo.SmtTerm (eo.SmtTerm.arg1 sm.Term))
   ; smt-cons: SmtType
   (eo.SmtType (eo.SmtType.arg1 tsm.Type))
-  ; smt-cons: Var
-  (eo.Var (eo.Var.arg1 String) (eo.Var.arg2 Int))
   ; user-decl: $eo_List
   (eo.$eo_List)
   ; user-decl: $eo_List_nil
@@ -94,9 +88,6 @@
 )
 
 ;;; Relevant definitions
-
-; fwd-decl: $eo_typeof
-(declare-fun $eo_typeof (eo.Term) eo.Term)
 
 ; program: $eo_fail_prog
 (define-fun $eo_fail_prog ((x1 eo.Term)) eo.Term
@@ -129,97 +120,6 @@
 
 ; fwd-decl: $eo_reverse_hash
 (declare-fun $eo_reverse_hash (eo.Term) eo.Term)
-
-; fwd-decl: $eo_typeof_main
-(declare-fun $eo_typeof_main (eo.Term) eo.Term)
-
-; program: $eo_typeof
-(assert (! (forall ((x1 eo.Term))
-  (! (= ($eo_typeof x1)
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Bool) (eo.SmtTerm.arg1 x1)))
-    (eo.SmtType tsm.Bool)
-  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Numeral) (eo.SmtTerm.arg1 x1)))
-    (eo.SmtType tsm.Int)
-  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Rational) (eo.SmtTerm.arg1 x1)))
-    (eo.SmtType tsm.Real)
-  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.String) (eo.SmtTerm.arg1 x1)))
-    (eo.Apply (eo.SmtType tsm.Seq) (eo.SmtType tsm.Char))
-  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Binary) (eo.SmtTerm.arg1 x1)))
-    eo.Type
-  (ite ((_ is eo.Var) x1)
-    ($eo_reverse_hash (eo.SmtTerm (sm.Numeral (eo.Var.arg2 x1))))
-  (ite true
-    ($eo_typeof_main x1)
-    eo.Stuck))))))))) :pattern (($eo_typeof x1)))) :named sm.axiom.$eo_typeof))
-
-; program: $eo_typeof_apply
-(define-fun $eo_typeof_apply ((x1 eo.Term) (x2 eo.Term)) eo.Term
-  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
-    eo.Stuck
-  (ite (and ((_ is eo.Apply) x1) ((_ is eo.FunType) (eo.Apply.arg1 (eo.Apply.arg1 x1))) (= x2 (eo.Apply.arg2 (eo.Apply.arg1 x1))))
-    (eo.Apply.arg2 x1)
-    eo.Stuck)))
-
-; program: $eo_typeof_ite
-(define-fun $eo_typeof_ite ((x1 eo.Term) (x2 eo.Term)) eo.Term
-  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
-    eo.Stuck
-  (ite (= x1 (eo.SmtType tsm.Bool))
-    (eo.Apply (eo.Apply eo.FunType x2) x2)
-    eo.Stuck)))
-
-; program: $eo_typeof_=
-(define-fun $eo_typeof_= ((x1 eo.Term)) eo.Term
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite true
-    (eo.Apply (eo.Apply eo.FunType x1) (eo.SmtType tsm.Bool))
-    eo.Stuck)))
-
-; program: $eo_typeof_fun_type
-(define-fun $eo_typeof_fun_type ((x1 eo.Term) (x2 eo.Term)) eo.Term
-  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
-    eo.Stuck
-  (ite (and (= x1 eo.Type) (= x2 eo.Type))
-    eo.Type
-    eo.Stuck)))
-
-; program: $eo_typeof_main
-(assert (! (forall ((x1 eo.Term))
-  (! (= ($eo_typeof_main x1)
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite (= x1 eo.Type)
-    eo.Type
-  (ite (and ((_ is eo.Apply) x1) ((_ is eo.FunType) (eo.Apply.arg1 (eo.Apply.arg1 x1))))
-    ($eo_typeof_fun_type ($eo_typeof (eo.Apply.arg2 (eo.Apply.arg1 x1))) ($eo_typeof (eo.Apply.arg2 x1)))
-  (ite (= x1 (eo.SmtType tsm.Bool))
-    eo.Type
-  (ite (= x1 (eo.SmtTerm (sm.Bool true)))
-    (eo.SmtType tsm.Bool)
-  (ite (= x1 (eo.SmtTerm (sm.Bool false)))
-    (eo.SmtType tsm.Bool)
-  (ite (and ((_ is eo.SmtType) x1) (= (eo.SmtType.arg1 x1) tsm.Int))
-    eo.Type
-  (ite (and ((_ is eo.SmtType) x1) (= (eo.SmtType.arg1 x1) tsm.Real))
-    eo.Type
-  (ite (and ((_ is eo.SmtType) x1) (= (eo.SmtType.arg1 x1) tsm.Char))
-    eo.Type
-  (ite (and ((_ is eo.SmtType) x1) (= (eo.SmtType.arg1 x1) tsm.Seq))
-    (eo.Apply (eo.Apply eo.FunType eo.Type) eo.Type)
-  (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg1 x1)) ((_ is eo.SmtTerm) (eo.Apply.arg1 (eo.Apply.arg1 x1))) (= (eo.SmtTerm.arg1 (eo.Apply.arg1 (eo.Apply.arg1 x1))) sm.ite))
-    ($eo_typeof_ite ($eo_typeof (eo.Apply.arg2 (eo.Apply.arg1 x1))) ($eo_typeof (eo.Apply.arg2 x1)))
-  (ite (and ((_ is eo.SmtTerm) x1) (= (eo.SmtTerm.arg1 x1) sm.and))
-    (eo.Apply (eo.Apply eo.FunType (eo.SmtType tsm.Bool)) (eo.Apply (eo.Apply eo.FunType (eo.SmtType tsm.Bool)) (eo.SmtType tsm.Bool)))
-  (ite (and ((_ is eo.Apply) x1) ((_ is eo.SmtTerm) (eo.Apply.arg1 x1)) (= (eo.SmtTerm.arg1 (eo.Apply.arg1 x1)) sm.=))
-    ($eo_typeof_= ($eo_typeof (eo.Apply.arg2 x1)))
-  (ite (and ((_ is eo.SmtType) x1) (= (eo.SmtType.arg1 x1) tsm.BitVec))
-    (eo.Apply (eo.Apply eo.FunType (eo.SmtType tsm.Int)) eo.Type)
-  (ite ((_ is eo.Apply) x1)
-    ($eo_typeof_apply ($eo_typeof (eo.Apply.arg1 x1)) ($eo_typeof (eo.Apply.arg2 x1)))
-    eo.Stuck)))))))))))))))) :pattern (($eo_typeof_main x1)))) :named sm.axiom.$eo_typeof_main))
 
 ; program: $eo_dt_selectors
 (define-fun $eo_dt_selectors ((x1 eo.Term)) eo.Term
@@ -427,6 +327,7 @@
     (and
       ((_ is eo.SmtTerm) ($eo_hash x))
       ((_ is sm.Numeral) (eo.SmtTerm.arg1 ($eo_hash x)))))) :named sm.hash_numeral))
+; note: this implies that $eo_hash is injective
 (assert (! (forall ((x eo.Term))
     (= ($eo_reverse_hash ($eo_hash x)) x)) :named sm.hash_injective))
 

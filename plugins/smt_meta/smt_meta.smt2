@@ -46,6 +46,7 @@ $SM_DEFS$
     (and
       ((_ is eo.SmtTerm) ($eo_hash x))
       ((_ is sm.Numeral) (eo.SmtTerm.arg1 ($eo_hash x)))))) :named sm.hash_numeral))
+; note: this implies that $eo_hash is injective
 (assert (! (forall ((x eo.Term))
     (= ($eo_reverse_hash ($eo_hash x)) x)) :named sm.hash_injective))
 

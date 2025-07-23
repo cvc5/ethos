@@ -1133,6 +1133,10 @@ bool SmtMetaReduce::echo(const std::string& msg)
   if (msg.compare(0, 9, "smt-meta ") == 0)
   {
     std::string eosc = msg.substr(9);
+    size_t pos = eosc.find(' ');
+    if (pos != std::string::npos) {
+        eosc.erase(pos); // erase from the space to the end
+    }
     Expr vv = d_state.getVar(eosc);
     if (vv.isNull())
     {

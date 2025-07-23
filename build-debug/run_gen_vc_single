@@ -64,12 +64,9 @@ cp $STD_SMODEL_OUT $VCM_DEF_DESUGAR
 # should not eliminate remaining eo:: here
 sed -i -e 's/eo::/\$eo_/g' -e 's/\$eo_quote/eo::quote/g' -e 's/\$eo_define/eo::define/g' $VCM_DEF_DESUGAR
 
-# trim again, where we require keeping the following:
-# - the verification condition
-# - getting the meta type of terms, which is used in the final step below
-# - symbols that may appear in custom axioms (e.g. $smtx_const_predicate).
+# trim again, where we require keeping the verification condition
 echo "**** smt_meta: Run ethos + trim-deps on $VCM_DEF_DESUGAR to generate $VCMT_DEF_DESUGAR"
-./run_trim_defs $VCM_DEF_DESUGAR "\$eovc_$TARGET" "\$eo_typeof" "\$smtx_model_lookup_predicate" "\$eo_hash" "\$tsm_Bool" "\$eo_type" "\$eo_mk_fun_type" >/dev/null
+./run_trim_defs $VCM_DEF_DESUGAR "\$eovc_$TARGET" >/dev/null
 check_status
 cp $STD_TRIM_OUT $VCMT_DEF_DESUGAR
 
@@ -82,11 +79,8 @@ check_status
 
 # set up the verification condition
 mv $STD_VC_OUT $VC_OUT
-# replace all occurrences of $smt_builtin_
-# TODO: $smt_apply_ and $smt_type_ as well???
-sed -i 's/\$smt_builtin_//g' $VC_OUT
 
-# TODO: trim-defs again, on smt2
+# TODO: trim-defs again??
 
 echo "**** smt_meta: Run the final verification condition with unsat cores"
 ajr-cvc5 $VC_OUT --dump-unsat-cores --quant-ind #--parse-only
