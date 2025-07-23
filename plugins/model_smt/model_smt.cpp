@@ -17,20 +17,6 @@
 
 namespace ethos {
 
-std::string dtKindToString(DtKind k)
-{
-  std::stringstream ss;
-  switch (k)
-  {
-    case DtKind::EUNOIA_TERM: ss << "EUNOIA_TERM"; break;
-    case DtKind::SMT_TERM: ss << "SMT_TERM"; break;
-    case DtKind::SMT_TYPE: ss << "SMT_TYPE"; break;
-    case DtKind::SMT_VALUE: ss << "SMT_VALUE"; break;
-    default: ss << "?DtKind"; break;
-  }
-  return ss.str();
-}
-
 ModelSmt::ModelSmt(State& s) : StdPlugin(s)
 {
   Expr typ = d_state.mkType();
@@ -143,6 +129,22 @@ void ModelSmt::addNormalSym(const std::string& sym,
   d_symNormal[sym] = std::pair<std::vector<Kind>, Kind>(args, ret);
 }
 
+
+void ModelSmt::addReduceSym(const std::string& sym,
+                const std::vector<Kind>& args,
+                Kind ret,
+                const std::string& retTerm)
+{
+  d_symReduce[sym] = std::tuple<std::vector<Kind>, Kind, std::string>(args, ret, retTerm);
+}
+
+void ModelSmt::addTermReduceSym(const std::string& sym,
+                const std::vector<Kind>& args,
+                const std::string& retTerm)
+{
+  d_symTermReduce[sym] = std::pair<std::vector<Kind>, std::string>(args, retTerm);
+}
+
 void ModelSmt::bind(const std::string& name, const Expr& e)
 {
   if (e.getKind() != Kind::CONST)
@@ -160,18 +162,7 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
   }
   std::map<std::string,
            std::tuple<std::vector<Kind>, Kind, std::string>>::iterator its =
-      d_symSmtx.find(name);
-  if (its != d_symSmtx.end())
-  {
-    std::vector<Kind>& args = std::get<0>(its->second);
-    printModelEvalCall(name, args);
-    printSmtx(name,
-              args,
-              std::get<1>(its->second),
-              std::get<2>(its->second));
-    return;
-  }
-  its = d_symReduce.find(name);
+      d_symReduce.find(name);
   if (its != d_symReduce.end())
   {
     std::vector<Kind>& args = std::get<0>(its->second);
@@ -216,6 +207,14 @@ void ModelSmt::printModelEvalCall(const std::string& name,
   printModelEvalCallBase(name, args, callArgs.str());
 }
 
+void ModelSmt::printTermInternal(Kind k,
+                        const std::string& term,
+                        std::ostream& os)
+{
+  Assert (d_kindToEoPrefix.find(k)!=d_kindToEoPrefix.end());
+  os << "($vsm_term ($sm_mk_" << d_kindToEoPrefix[k] << " " << term << "))";
+}
+
 void ModelSmt::printNormal(const std::string& name,
                            const std::vector<Kind>& args,
                            Kind kret)
@@ -254,8 +253,7 @@ void ModelSmt::printNormal(const std::string& name,
     // print the return term
     Kind kr = kret==Kind::PARAM ? kas : kret;
     std::stringstream ssret;
-    ssret << "($vsm_term ($sm_mk_" << d_kindToEoPrefix[kr];
-    ssret << " ($smt_apply_" << args.size() << " \"";
+    ssret << "($smt_apply_" << args.size() << " \"";
     std::map<std::string, std::string>::iterator ito =
         d_overloadRevert.find(name);
     if (ito != d_overloadRevert.end())
@@ -267,8 +265,12 @@ void ModelSmt::printNormal(const std::string& name,
     {
       ssret << name;
     }
-    ssret << "\"" << retArgs.str() << ")))";
-    printInternal(progName.str(), instArgs, ssret.str(), paramCount, progCases, progParams);
+    ssret << "\"" << retArgs.str() << ")";
+    // print the term with the right type
+    std::stringstream fssret;
+    printTermInternal(kr, ssret.str(), fssret);
+    // then print it on cases
+    printInternal(progName.str(), instArgs, fssret.str(), paramCount, progCases, progParams);
   }
   std::stringstream progSig;
   progSig << "(";
