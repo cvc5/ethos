@@ -1,4 +1,4 @@
-(declare-type @List ())
+(declare-const @List Type)
 (declare-const @nil @List)
 (declare-parameterized-const @cons ((T Type :implicit)) (-> T @List @List) :right-assoc-nil @nil)
 
@@ -52,7 +52,7 @@
 
 ;; ---------------------
 
-(declare-type Int ())
+(declare-const Int Type)
 (declare-const a Int)
 (declare-const b Int)
 (define Q () (exists ((x Int) (y Int)) (and (= x a) (= y b))))

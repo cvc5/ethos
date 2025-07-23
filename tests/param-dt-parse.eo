@@ -1,5 +1,5 @@
 
-(declare-type Int ())
+(declare-const Int Type)
 (declare-consts <numeral> Int)
 
 (declare-parameterized-const @test ((T Type :opaque)) (-> Int T))

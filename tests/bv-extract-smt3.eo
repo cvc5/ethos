@@ -1,7 +1,7 @@
 (declare-parameterized-const = ((A Type :implicit)) (-> A A Bool))
 
 (declare-const and (-> Bool Bool Bool) :left-assoc)
-(declare-type Int ())
+(declare-const Int Type)
 (declare-const < (-> Int Int Bool))
 (declare-const <= (-> Int Int Bool) :chainable and)
 (declare-const - (-> Int Int Int))

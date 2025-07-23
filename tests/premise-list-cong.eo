@@ -16,7 +16,7 @@
     :conclusion (mk_cong_eq (= f f) E)
 )
 
-(declare-type U ())
+(declare-const U Type)
 (declare-const a U)
 (declare-const b U)
 (declare-const c U)

@@ -1,13 +1,13 @@
-(declare-type Int ())
+(declare-const Int Type)
 (declare-consts <numeral> Int)
-(declare-type Real ())
+(declare-const Real Type)
 (declare-consts <decimal> Real)
 (declare-const f (-> Int Int Int))
 
 (declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 
 
-(declare-type @List ())
+(declare-const @List Type)
 (declare-const @nil @List)
 (declare-parameterized-const @cons ((T Type :implicit)) (-> T @List @List) :right-assoc-nil @nil)
 (declare-const forall (-> @List Bool Bool) :binder @cons)
