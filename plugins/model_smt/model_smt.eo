@@ -434,12 +434,16 @@ $SMT_EVAL_CASES$
 
 ;;; type of
 
+; forward decl
+(program $smtx_typeof () :signature ($eo_Term) $eo_Term)
+(program $smtx_typeof_value () :signature ($smt_Value) $eo_Term)
+
 ; note: Helper for below.
 (program $smtx_typeof_map ((T $eo_Term) (j $smt_Value) (e $smt_Value) (m $smt_Map))
   :signature ($eo_Term $smt_Map) $eo_Term
   (
-  (($smtx_typeof_map T ($map_cons j e m))   (-> T ($eo_model_typeof ($eo_smt_value e))))
-  (($smtx_typeof_map T ($map_default e))    (-> T ($eo_model_typeof ($eo_smt_value e))))
+  (($smtx_typeof_map T ($map_cons j e m))   (-> T ($smtx_typeof_value e)))
+  (($smtx_typeof_map T ($map_default e))    (-> T ($smtx_typeof_value e)))
   )
 )
 
@@ -448,6 +452,22 @@ $SMT_EVAL_CASES$
   :signature ($eo_Term $eo_Term) $eo_Term
   (
   (($smtx_typeof_apply (-> T U) T) U)
+  )
+)
+
+(program $smtx_typeof_value
+  ((val $smt_Value) (T $eo_Term) (m $smt_Map) (id $smt_builtin_Int) (f $smt_Value) (a $smt_Term) (U $smt_Type))
+  :signature ($smt_Value) $eo_Term
+  (
+  (($smtx_typeof_value ($vsm_apply f val))
+    ($smtx_typeof_apply ($smtx_typeof f) ($smtx_typeof val)))
+  ; the type of a value term is the type of its term.
+  (($smtx_typeof_value ($vsm_term a))         ($smtx_typeof ($eo_smt_term a)))
+  (($smtx_typeof_value ($vsm_map T m))        ($smtx_typeof_map T m))
+  ; the type of uninterpreted constants carry its type.
+  (($smtx_typeof_value ($vsm_uconst T id))    T)
+  ; the type of not-values is the null sort.
+  (($smtx_typeof_value val)                   ($tsm_NullSort $smt_builtin_z_zero))
   )
 )
 
@@ -473,19 +493,9 @@ $SMT_EVAL_CASES$
   ; the type of an atomic type uses Eunoia's typeof builtin, or null sort if this fails.
   (($smtx_typeof ($eo_smt_type U))                    ($smt_try_typeof U))
   ; the type of a constant is the type of its value.
-  (($smtx_typeof ($eo_smt_term ($sm_Const val)))      ($smtx_typeof ($eo_smt_value val)))
+  (($smtx_typeof ($eo_smt_term ($sm_Const val)))      ($smtx_typeof_value val))
   ; similar to above, we try Eunoia's typeof, or null sort.
   (($smtx_typeof ($eo_smt_term a))                    ($smt_try_typeof a))
-  (($smtx_typeof ($eo_smt_value ($vsm_apply f val)))  ($smtx_typeof_apply
-                                                        ($smtx_typeof f)
-                                                        ($smtx_typeof val)))
-  ; the type of a value term is the type of its term.
-  (($smtx_typeof ($eo_smt_value ($vsm_term a)))       ($smtx_typeof ($eo_smt_term a)))
-  (($smtx_typeof ($eo_smt_value ($vsm_map T m)))      ($smtx_typeof_map T m))
-  ; the type of uninterpreted constants carry its type.
-  (($smtx_typeof ($eo_smt_value ($vsm_uconst T id)))  T)
-  ; the type of not-values is the null sort.
-  (($smtx_typeof ($eo_smt_value $vsm_not_value))      ($tsm_NullSort $smt_builtin_z_zero))
   ; For all other terms, we try Eunoia's typeof, or null sort.
   (($smtx_typeof t)                                   ($smt_try_typeof t))
   )

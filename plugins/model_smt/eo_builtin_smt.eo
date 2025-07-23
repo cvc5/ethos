@@ -226,10 +226,6 @@
 (declare-parameterized-const $smd_eo.SmtType ((t $smt_Type :opaque)) $eo_Term)
 (define $eo_smt_type ((T $smt_Type)) ($smd_eo.SmtType T))
 
-; The Eunoia representation of an SMT-LIB value.
-(declare-parameterized-const $smd_eo.SmtValue ((t $smt_Value :opaque)) $eo_Term)
-(define $eo_smt_value ((T $smt_Value)) ($smd_eo.SmtValue T))
-
 ; Represents a Eunoia variable in the final deep embedding.
 (declare-parameterized-const $smd_eo.Var
   ((s $smt_builtin_String :opaque) (T $eo_Term :opaque))
