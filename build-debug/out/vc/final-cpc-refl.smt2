@@ -4,14 +4,10 @@
 ;   The final embedding of atomic SMT-LIB types that are relevant to the VC.
 ; sm.Term:
 ;   The final embedding of atomic SMT-LIB terms that are relevant to the VC.
-; eo.Term:
-;   The final embedding of Eunoia terms that are relevant to the VC.
-;   SMT-LIB terms, types and values are embedded in this datatype. This
-;   datatype contains a superset of the Herbrand universe of all types being
-;   considered.
-;   We require a mutually recursive datatype, since these are
-;   inter-dependent.
-(declare-datatypes ((tsm.Type 0) (sm.Term 0) (eo.Term 0) (vsm.Value 0) (msm.Map 0))
+; vsm.Value:
+;   The final embedding of SMT-LIB values.
+; We require a mutually recursive datatype, since these are inter-dependent.
+(declare-datatypes ((tsm.Type 0) (sm.Term 0) (vsm.Value 0) (msm.Map 0))
   (
   (
   ; user-decl: Int
@@ -50,6 +46,34 @@
 
   )
   (
+  ; smt-cons: Map
+  (vsm.Map (vsm.Map.arg1 Int) (vsm.Map.arg2 msm.Map))
+  ; smt-cons: UConst
+  (vsm.UConst (vsm.UConst.arg1 Int) (vsm.UConst.arg2 Int))
+  ; smt-cons: Term
+  (vsm.Term (vsm.Term.arg1 sm.Term))
+  ; smt-cons: Apply
+  (vsm.Apply (vsm.Apply.arg1 vsm.Value) (vsm.Apply.arg2 vsm.Value))
+  ; smt-cons: NotValue
+  (vsm.NotValue)
+
+  )
+  (
+  ; (msm.Map.cons i e M) maps i -> e, as well as mappings in M
+  (msm.Map.cons (msm.Map.cons.arg1 vsm.Value) (msm.Map.cons.arg2 vsm.Value) (msm.Map.cons.arg3 msm.Map))
+  ; (msm.Map.default e) maps all remaining elements in the sort to e
+  (msm.Map.default (msm.Map.default.arg1 vsm.Value))
+  )
+  )
+)
+
+; eo.Term:
+;   The final embedding of Eunoia terms that are relevant to the VC.
+;   SMT-LIB terms, types and values are embedded in this datatype. This
+;   datatype contains a superset of the Herbrand universe of all types being
+;   considered.
+(declare-datatype eo.Term
+  (
   ; smt-cons: Type
   (eo.Type)
   ; smt-cons: Stuck
@@ -72,27 +96,7 @@
   (eo.$eo_List_cons)
 
   )
-  (
-  ; smt-cons: Map
-  (vsm.Map (vsm.Map.arg1 Int) (vsm.Map.arg2 msm.Map))
-  ; smt-cons: UConst
-  (vsm.UConst (vsm.UConst.arg1 Int) (vsm.UConst.arg2 Int))
-  ; smt-cons: Term
-  (vsm.Term (vsm.Term.arg1 sm.Term))
-  ; smt-cons: Apply
-  (vsm.Apply (vsm.Apply.arg1 vsm.Value) (vsm.Apply.arg2 vsm.Value))
-  ; smt-cons: NotValue
-  (vsm.NotValue)
-
-  )
-  (
-  ; (msm.Map.cons i e M) maps i -> e, as well as mappings in M
-  (msm.Map.cons (msm.Map.cons.arg1 vsm.Value) (msm.Map.cons.arg2 vsm.Value) (msm.Map.cons.arg3 msm.Map))
-  ; (msm.Map.default e) maps all remaining elements in the sort to e
-  (msm.Map.default (msm.Map.default.arg1 vsm.Value))
-  ))
 )
-
 ;;; Relevant definitions
 
 ; fwd-decl: $eo_typeof

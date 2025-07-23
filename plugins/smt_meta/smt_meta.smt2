@@ -4,23 +4,16 @@
 ;   The final embedding of atomic SMT-LIB types that are relevant to the VC.
 ; sm.Term:
 ;   The final embedding of atomic SMT-LIB terms that are relevant to the VC.
-; eo.Term:
-;   The final embedding of Eunoia terms that are relevant to the VC.
-;   SMT-LIB terms, types and values are embedded in this datatype. This
-;   datatype contains a superset of the Herbrand universe of all types being
-;   considered.
-;   We require a mutually recursive datatype, since these are
-;   inter-dependent.
-(declare-datatypes ((tsm.Type 0) (sm.Term 0) (eo.Term 0) (vsm.Value 0) (msm.Map 0))
+; vsm.Value:
+;   The final embedding of SMT-LIB values.
+; We require a mutually recursive datatype, since these are inter-dependent.
+(declare-datatypes ((tsm.Type 0) (sm.Term 0) (vsm.Value 0) (msm.Map 0))
   (
   (
 $SM_TYPE_DECL$
   )
   (
 $SM_TERM_DECL$
-  )
-  (
-$SM_EO_TERM_DECL$
   )
   (
 $SM_VALUE_DECL$
@@ -30,9 +23,20 @@ $SM_VALUE_DECL$
   (msm.Map.cons (msm.Map.cons.arg1 vsm.Value) (msm.Map.cons.arg2 vsm.Value) (msm.Map.cons.arg3 msm.Map))
   ; (msm.Map.default e) maps all remaining elements in the sort to e
   (msm.Map.default (msm.Map.default.arg1 vsm.Value))
-  ))
+  )
+  )
 )
 
+; eo.Term:
+;   The final embedding of Eunoia terms that are relevant to the VC.
+;   SMT-LIB terms, types and values are embedded in this datatype. This
+;   datatype contains a superset of the Herbrand universe of all types being
+;   considered.
+(declare-datatype eo.Term
+  (
+$SM_EO_TERM_DECL$
+  )
+)
 ;;; Relevant definitions
 
 $SM_DEFS$

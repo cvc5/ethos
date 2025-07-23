@@ -276,6 +276,9 @@
 (define $eo_mk_fun_type ((T1 $eo_Term) (T2 $eo_Term)) 
   ($eo_apply ($eo_apply $eo_fun_type T1) T2))
 
+(define $eo_null_type ()
+  ($eo_smt_type ($tsm_NullSort $smt_builtin_z_zero)))
+
 ;;; Defining parametric bitvector operators
 
 ; The operators in this section are needed to reason about the parametric
@@ -888,8 +891,8 @@
   :signature ($eo_String $eo_Term) $eo_Term
   (
   (($eo_var ($eo_mk_string s) T)
-      ($eo_requires_eq ($eo_typeof T) Type
-        ($eo_Var s ($eo_hash T))))
+    ; we use the hash of the type T to identify the variable
+    ($eo_requires_eq ($eo_typeof T) Type ($eo_Var s ($eo_hash T))))
   )
 )
 

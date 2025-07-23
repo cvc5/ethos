@@ -33,7 +33,7 @@
 
 ; Guarded execution of $eo_typeof.
 (define $smt_try_typeof ((T Type :implicit) (t T))
-  ($smt_try ($eo_typeof t) ($eo_smt_type ($tsm_NullSort $smt_builtin_z_zero))))
+  ($smt_try ($eo_typeof t) $eo_null_type))
 
 ;;;;;; SMT values
 
@@ -394,10 +394,20 @@ $SMT_EVAL_CASES$
 (program $smtx_typeof () :signature ($eo_Term) $eo_Term)
 (program $smtx_typeof_value () :signature ($smt_Value) $eo_Term)
 
+(program $smtx_mk_fun_type_internal
+  ((T $eo_Term) (U $eo_Term) (Tt $eo_Term) (Ut $eo_Term))
+  :signature ($eo_Term $eo_Term $eo_Term $eo_Term) $eo_Term
+  (
+  (($smtx_mk_fun_type_internal T U Type Type) ($eo_mk_fun_type T U))
+  (($smtx_mk_fun_type_internal T U Tt Ut)     $eo_null_type)
+  )
+)
+
 ; note: Helper for below.
 (program $smtx_typeof_map ((T $smt_builtin_Int) (j $smt_Value) (e $smt_Value) (m $smt_Map))
   :signature ($eo_Term $smt_Map) $eo_Term
   (
+  ; we rely on the reverse hash
   (($smtx_typeof_map T ($msm_cons j e m))   ($eo_mk_fun_type ($eo_reverse_hash ($eo_mk_numeral T)) ($smtx_typeof_value e)))
   (($smtx_typeof_map T ($msm_default e))    ($eo_mk_fun_type ($eo_reverse_hash ($eo_mk_numeral T)) ($smtx_typeof_value e)))
   )
@@ -423,7 +433,7 @@ $SMT_EVAL_CASES$
   ; the type of uninterpreted constants carry its type.
   (($smtx_typeof_value ($vsm_uconst T id))    ($eo_reverse_hash ($eo_mk_numeral T)))
   ; the type of not-values is the null sort.
-  (($smtx_typeof_value val)                   ($tsm_NullSort $smt_builtin_z_zero))
+  (($smtx_typeof_value val)                   $eo_null_type)
   )
 )
 
@@ -446,6 +456,8 @@ $SMT_EVAL_CASES$
    (f $smt_Value) (a $smt_Term) (U $smt_Type))
   :signature ($eo_Term) $eo_Term
   (
+  ; the function type is a first class term in this embedding, requires a case
+  (($smtx_typeof $eo_fun_type)                        Type)
   ; the type of an atomic type uses Eunoia's typeof builtin, or null sort if this fails.
   (($smtx_typeof ($eo_smt_type U))                    ($smt_try_typeof U))
   ; the type of a constant is the type of its value.
