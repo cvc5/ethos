@@ -35,19 +35,21 @@ class ModelSmt : public StdPlugin
                     const std::vector<Kind>& args,
                     Kind ret);
   void addReduceSym(const std::string& sym,
-                  const std::vector<Kind>& args,
-                  Kind ret,
-                  const std::string& retTerm);
+                    const std::vector<Kind>& args,
+                    Kind ret,
+                    const std::string& retTerm);
   void addTermReduceSym(const std::string& sym,
-                  const std::vector<Kind>& args,
-                  const std::string& retTerm);
+                        const std::vector<Kind>& args,
+                        const std::string& retTerm);
   void printModelEvalCallBase(const std::string& name,
-                             const std::vector<Kind>& args,
-                            const std::string& ret);
+                              const std::vector<Kind>& args,
+                              const std::string& ret);
   void printModelEvalCall(const std::string& name,
-                             const std::vector<Kind>& args);
+                          const std::vector<Kind>& args);
   void printType(const std::string& name, const std::vector<Kind>& args);
-  void printNormal(const std::string& name, const std::vector<Kind>& args, Kind ret);
+  void printNormal(const std::string& name,
+                   const std::vector<Kind>& args,
+                   Kind ret);
   void printSmtx(const std::string& name,
                  const std::vector<Kind>& args,
                  Kind ret,
@@ -56,15 +58,13 @@ class ModelSmt : public StdPlugin
                    const std::vector<Kind>& args,
                    Kind ret,
                    const std::string& reduce);
-  void printInternal(const std::string& name, 
-                     const std::vector<Kind>& args, 
+  void printInternal(const std::string& name,
+                     const std::vector<Kind>& args,
                      const std::string& ret,
                      size_t& paramCount,
                      std::ostream& progCases,
                      std::ostream& progParams);
-  void printTermInternal(Kind k,
-                         const std::string& term,
-                         std::ostream& os);
+  void printTermInternal(Kind k, const std::string& term, std::ostream& os);
   void finalizeDecl(const Expr& e);
   std::map<Kind, std::string> d_kindToEoPrefix;
   std::map<Kind, std::string> d_kindToEoCons;
@@ -89,10 +89,11 @@ class ModelSmt : public StdPlugin
   std::map<std::string, std::tuple<std::vector<Kind>, Kind, std::string>>
       d_symReduce;
   /**
-   * SMT-LIB symbols that have simple term-level reductions, we use x1 ... xn as references
-   * to the arguments.
+   * SMT-LIB symbols that have simple term-level reductions, we use x1 ... xn as
+   * references to the arguments.
    */
-  std::map<std::string, std::pair<std::vector<Kind>, std::string>> d_symTermReduce;
+  std::map<std::string, std::pair<std::vector<Kind>, std::string>>
+      d_symTermReduce;
 };
 
 }  // namespace ethos

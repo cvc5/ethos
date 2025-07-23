@@ -510,12 +510,13 @@ Expr ExprParser::parseType(bool allowQuoteArg, bool allowEval)
     else if (!allowEval)
     {
       std::stringstream msg;
-      msg << "Parsed type cannot contain evaluation in this context:" << std::endl;
+      msg << "Parsed type cannot contain evaluation in this context:"
+          << std::endl;
       msg << "Type: " << e << std::endl;
       d_lex.parseError(msg.str());
     }
   }
-  
+
   return e;
 }
 

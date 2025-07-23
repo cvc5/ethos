@@ -39,7 +39,8 @@ std::string nextToken(std::istream& in)
     if (c == ';')
     {
       // Skip to end of line
-      while (in.get(c) && c != '\n');
+      while (in.get(c) && c != '\n')
+        ;
       continue;
     }
     if (std::isspace(c))
@@ -76,7 +77,8 @@ std::string readFullCommand(std::istream& in)
     if (c == ';')
     {
       // skip comment to newline
-      while (in.get(c) && c != '\n');
+      while (in.get(c) && c != '\n')
+        ;
       result += '\n';
       continue;
     }

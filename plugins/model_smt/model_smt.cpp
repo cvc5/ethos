@@ -39,8 +39,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // Similar for the other literals.
   // Note that we model *SMT-LIB* not *CPC* here.
   // builtin
-  //addNormalSym("forall", {Kind::ANY, Kind::BOOLEAN}, Kind::BOOLEAN);
-  //addNormalSym("exists", {Kind::ANY, Kind::BOOLEAN}, Kind::BOOLEAN);
+  // addNormalSym("forall", {Kind::ANY, Kind::BOOLEAN}, Kind::BOOLEAN);
+  // addNormalSym("exists", {Kind::ANY, Kind::BOOLEAN}, Kind::BOOLEAN);
   // Booleans
   addNormalSym("and", {Kind::BOOLEAN, Kind::BOOLEAN}, Kind::BOOLEAN);
   addNormalSym("or", {Kind::BOOLEAN, Kind::BOOLEAN}, Kind::BOOLEAN);
@@ -49,8 +49,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addNormalSym("not", {Kind::BOOLEAN}, Kind::BOOLEAN);
   // arithmetic
   // use Kind::PARAM to stand for either Int or Real arithmetic (not mixed)
-  //addNormalSym("Int", {}, Kind::TYPE);
-  //addNormalSym("Real", {}, Kind::TYPE);
+  // addNormalSym("Int", {}, Kind::TYPE);
+  // addNormalSym("Real", {}, Kind::TYPE);
   addNormalSym("+", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
   addNormalSym("-", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
   addNormalSym("*", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
@@ -73,7 +73,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addNormalSym("to_int", {Kind::RATIONAL}, Kind::NUMERAL);
   addNormalSym("to_real", {Kind::NUMERAL}, Kind::RATIONAL);
   // strings
-  //addNormalSym("String", {}, Kind::TYPE);
+  // addNormalSym("String", {}, Kind::TYPE);
   addNormalSym("str.++", {Kind::STRING, Kind::STRING}, Kind::STRING);
   addNormalSym("str.len", {Kind::STRING}, Kind::NUMERAL);
   addNormalSym(
@@ -129,20 +129,21 @@ void ModelSmt::addNormalSym(const std::string& sym,
   d_symNormal[sym] = std::pair<std::vector<Kind>, Kind>(args, ret);
 }
 
-
 void ModelSmt::addReduceSym(const std::string& sym,
-                const std::vector<Kind>& args,
-                Kind ret,
-                const std::string& retTerm)
+                            const std::vector<Kind>& args,
+                            Kind ret,
+                            const std::string& retTerm)
 {
-  d_symReduce[sym] = std::tuple<std::vector<Kind>, Kind, std::string>(args, ret, retTerm);
+  d_symReduce[sym] =
+      std::tuple<std::vector<Kind>, Kind, std::string>(args, ret, retTerm);
 }
 
 void ModelSmt::addTermReduceSym(const std::string& sym,
-                const std::vector<Kind>& args,
-                const std::string& retTerm)
+                                const std::vector<Kind>& args,
+                                const std::string& retTerm)
 {
-  d_symTermReduce[sym] = std::pair<std::vector<Kind>, std::string>(args, retTerm);
+  d_symTermReduce[sym] =
+      std::pair<std::vector<Kind>, std::string>(args, retTerm);
 }
 
 void ModelSmt::bind(const std::string& name, const Expr& e)
@@ -167,13 +168,11 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
   {
     std::vector<Kind>& args = std::get<0>(its->second);
     printModelEvalCall(name, args);
-    printReduce(name,
-                args,
-                std::get<1>(its->second),
-                std::get<2>(its->second));
+    printReduce(name, args, std::get<1>(its->second), std::get<2>(its->second));
     return;
   }
-  std::map<std::string, std::pair<std::vector<Kind>, std::string>>::iterator itst = d_symTermReduce.find(name);
+  std::map<std::string, std::pair<std::vector<Kind>, std::string>>::iterator
+      itst = d_symTermReduce.find(name);
   if (itst != d_symTermReduce.end())
   {
     printModelEvalCallBase(name, itst->second.first, itst->second.second);
@@ -181,21 +180,24 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
   }
 }
 
-void ModelSmt::printType(const std::string& name, const std::vector<Kind>& args) {}
+void ModelSmt::printType(const std::string& name, const std::vector<Kind>& args)
+{
+}
 
 void ModelSmt::printModelEvalCallBase(const std::string& name,
-                                     const std::vector<Kind>& args,
-                            const std::string& ret)
+                                      const std::vector<Kind>& args,
+                                      const std::string& ret)
 {
   d_eval << "  (($smtx_model_eval (" << name;
   for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
   {
     d_eval << " x" << i;
   }
-  d_eval << ")) " << ret << ")" << std::endl;;
+  d_eval << ")) " << ret << ")" << std::endl;
+  ;
 }
 void ModelSmt::printModelEvalCall(const std::string& name,
-                                     const std::vector<Kind>& args)
+                                  const std::vector<Kind>& args)
 {
   std::stringstream callArgs;
   callArgs << "($smtx_model_eval_" << name;
@@ -208,10 +210,10 @@ void ModelSmt::printModelEvalCall(const std::string& name,
 }
 
 void ModelSmt::printTermInternal(Kind k,
-                        const std::string& term,
-                        std::ostream& os)
+                                 const std::string& term,
+                                 std::ostream& os)
 {
-  Assert (d_kindToEoPrefix.find(k)!=d_kindToEoPrefix.end());
+  Assert(d_kindToEoPrefix.find(k) != d_kindToEoPrefix.end());
   os << "($vsm_term ($sm_mk_" << d_kindToEoPrefix[k] << " " << term << "))";
 }
 
@@ -245,13 +247,13 @@ void ModelSmt::printNormal(const std::string& name,
     size_t tmpParamCount = paramCount;
     for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
     {
-      Kind ka = args[i-1];
-      instArgs.push_back(ka==Kind::PARAM ? kas : ka);
+      Kind ka = args[i - 1];
+      instArgs.push_back(ka == Kind::PARAM ? kas : ka);
       tmpParamCount++;
       retArgs << " x" << tmpParamCount;
     }
     // print the return term
-    Kind kr = kret==Kind::PARAM ? kas : kret;
+    Kind kr = kret == Kind::PARAM ? kas : kret;
     std::stringstream ssret;
     ssret << "($smt_apply_" << args.size() << " \"";
     std::map<std::string, std::string>::iterator ito =
@@ -270,7 +272,12 @@ void ModelSmt::printNormal(const std::string& name,
     std::stringstream fssret;
     printTermInternal(kr, ssret.str(), fssret);
     // then print it on cases
-    printInternal(progName.str(), instArgs, fssret.str(), paramCount, progCases, progParams);
+    printInternal(progName.str(),
+                  instArgs,
+                  fssret.str(),
+                  paramCount,
+                  progCases,
+                  progParams);
   }
   std::stringstream progSig;
   progSig << "(";
@@ -306,12 +313,12 @@ void ModelSmt::printNormal(const std::string& name,
     return;
   }
   */
-void ModelSmt::printInternal(const std::string& name, 
-                    const std::vector<Kind>& args, 
-                    const std::string& ret,
-                    size_t& paramCount,
-                    std::ostream& progCases,
-                    std::ostream& progParams)
+void ModelSmt::printInternal(const std::string& name,
+                             const std::vector<Kind>& args,
+                             const std::string& ret,
+                             size_t& paramCount,
+                             std::ostream& progCases,
+                             std::ostream& progParams)
 {
   progCases << "  ((" << name;
   std::stringstream retArgs;
@@ -327,7 +334,7 @@ void ModelSmt::printInternal(const std::string& name,
               << paramCount << "))";
     retArgs << " x" << paramCount;
     progParams << "(x" << paramCount << " $smt_builtin_" << d_kindToType[ka]
-                << ")";
+               << ")";
   }
   progCases << ") ";
   progCases << ret << ")" << std::endl;
