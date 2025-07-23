@@ -52,11 +52,19 @@ class ModelSmt : public StdPlugin
   void finalize() override;
 
  private:
-  void addSmtLibSym(const std::string& sym,
+  void addNormalSym(const std::string& sym,
                     const std::vector<Kind>& args,
                     Kind ret);
-  void printSmtType(const std::string& name, std::vector<Kind>& args);
-  void printSmtTerm(const std::string& name, std::vector<Kind>& args, Kind ret);
+  void addSmtxSym(const std::string& sym,
+                    const std::vector<Kind>& args,
+                    const std::string& smtxName);
+  void printModelEvalCallApp(const std::string& name,
+                            const std::vector<Kind>& args, std::ostream& os);
+  void printType(const std::string& name, std::vector<Kind>& args);
+  void printNormal(const std::string& name, std::vector<Kind>& args, Kind ret);
+  void printSmtx(const std::string& name, std::vector<Kind>& args, Kind ret, const std::string& smtxName);
+  void printReduce(const std::string& name,
+                            const std::vector<Kind>& args, Kind ret, const std::string& reduce);
   void finalizeDecl(const Expr& e);
   /** get the datatype e belongs to */
   DtKind getDtKind(const Expr& e);
@@ -72,8 +80,21 @@ class ModelSmt : public StdPlugin
   std::stringstream d_modelEvalProgs;
   // SMT-LIB standard evaluation
   std::stringstream d_eval;
-  // SMT-LIB symbols
-  std::map<std::string, std::pair<std::vector<Kind>, Kind>> d_smtLibSyms;
+  /**
+   * SMT-LIB symbols with "normal" evaluation, we give their argument kinds
+   * and their return kind.
+   */
+  std::map<std::string, std::pair<std::vector<Kind>, Kind>> d_symNormal;
+  /**
+   * SMT-LIB symbols which have a $smtx_ utility function to compute them
+   * natively.
+   */
+  std::map<std::string, std::tuple<std::vector<Kind>, Kind, std::string>> d_symSmtx;
+  /**
+   * SMT-LIB symbols that have simple reductions, we use x1 ... xn as references
+   * to the arguments.
+   */
+  std::map<std::string, std::tuple<std::vector<Kind>, Kind, std::string>> d_symReduce;
 };
 
 }  // namespace ethos

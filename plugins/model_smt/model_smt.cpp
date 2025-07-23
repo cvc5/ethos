@@ -53,91 +53,91 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // Similar for the other literals.
   // Note that we model *SMT-LIB* not *CPC* here.
   // builtin
-  addSmtLibSym("forall", {Kind::ANY, Kind::BOOLEAN}, Kind::BOOLEAN);
-  addSmtLibSym("exists", {Kind::ANY, Kind::BOOLEAN}, Kind::BOOLEAN);
+  addNormalSym("forall", {Kind::ANY, Kind::BOOLEAN}, Kind::BOOLEAN);
+  addNormalSym("exists", {Kind::ANY, Kind::BOOLEAN}, Kind::BOOLEAN);
   // Booleans
-  addSmtLibSym("and", {Kind::BOOLEAN, Kind::BOOLEAN}, Kind::BOOLEAN);
-  addSmtLibSym("or", {Kind::BOOLEAN, Kind::BOOLEAN}, Kind::BOOLEAN);
-  addSmtLibSym("xor", {Kind::BOOLEAN, Kind::BOOLEAN}, Kind::BOOLEAN);
-  addSmtLibSym("=>", {Kind::BOOLEAN, Kind::BOOLEAN}, Kind::BOOLEAN);
-  addSmtLibSym("not", {Kind::BOOLEAN}, Kind::BOOLEAN);
+  addNormalSym("and", {Kind::BOOLEAN, Kind::BOOLEAN}, Kind::BOOLEAN);
+  addNormalSym("or", {Kind::BOOLEAN, Kind::BOOLEAN}, Kind::BOOLEAN);
+  addNormalSym("xor", {Kind::BOOLEAN, Kind::BOOLEAN}, Kind::BOOLEAN);
+  addNormalSym("=>", {Kind::BOOLEAN, Kind::BOOLEAN}, Kind::BOOLEAN);
+  addNormalSym("not", {Kind::BOOLEAN}, Kind::BOOLEAN);
   // arithmetic
   // use Kind::PARAM to stand for either Int or Real arithmetic (not mixed)
-  addSmtLibSym("Int", {}, Kind::TYPE);
-  addSmtLibSym("Real", {}, Kind::TYPE);
-  addSmtLibSym("+", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
-  addSmtLibSym("-", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
-  addSmtLibSym("*", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
+  addNormalSym("Int", {}, Kind::TYPE);
+  addNormalSym("Real", {}, Kind::TYPE);
+  addNormalSym("+", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
+  addNormalSym("-", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
+  addNormalSym("*", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
   // we expect "-" to be overloaded, we look for its desugared name and map it
   // back
-  addSmtLibSym("$eoo_-.2", {Kind::PARAM}, Kind::PARAM);
+  addNormalSym("$eoo_-.2", {Kind::PARAM}, Kind::PARAM);
   d_overloadRevert["$eoo_-.2"] = "-";
-  addSmtLibSym("abs", {Kind::NUMERAL}, Kind::NUMERAL);
-  addSmtLibSym(">=", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
-  addSmtLibSym("<=", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
-  addSmtLibSym(">", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
-  addSmtLibSym("<", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
-  addSmtLibSym("is_int", {Kind::RATIONAL}, Kind::BOOLEAN);
+  addNormalSym("abs", {Kind::NUMERAL}, Kind::NUMERAL);
+  addNormalSym(">=", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
+  addNormalSym("<=", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
+  addNormalSym(">", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
+  addNormalSym("<", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
+  addNormalSym("is_int", {Kind::RATIONAL}, Kind::BOOLEAN);
   // NOTE: cannot handle indexed operators currently, as their value
   // cannot be dynamic in the encoding.
-  // addSmtLibSym("divisible", {Kind::NUMERAL, Kind::NUMERAL}, Kind::BOOLEAN);
-  addSmtLibSym("/", {Kind::RATIONAL, Kind::RATIONAL}, Kind::RATIONAL);
-  addSmtLibSym("div", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
-  addSmtLibSym("mod", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
-  addSmtLibSym("to_int", {Kind::RATIONAL}, Kind::NUMERAL);
-  addSmtLibSym("to_real", {Kind::NUMERAL}, Kind::RATIONAL);
+  // addNormalSym("divisible", {Kind::NUMERAL, Kind::NUMERAL}, Kind::BOOLEAN);
+  addNormalSym("/", {Kind::RATIONAL, Kind::RATIONAL}, Kind::RATIONAL);
+  addNormalSym("div", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
+  addNormalSym("mod", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
+  addNormalSym("to_int", {Kind::RATIONAL}, Kind::NUMERAL);
+  addNormalSym("to_real", {Kind::NUMERAL}, Kind::RATIONAL);
   // strings
-  addSmtLibSym("String", {}, Kind::TYPE);
-  addSmtLibSym("str.++", {Kind::STRING, Kind::STRING}, Kind::STRING);
-  addSmtLibSym("str.len", {Kind::STRING}, Kind::NUMERAL);
-  addSmtLibSym(
+  addNormalSym("String", {}, Kind::TYPE);
+  addNormalSym("str.++", {Kind::STRING, Kind::STRING}, Kind::STRING);
+  addNormalSym("str.len", {Kind::STRING}, Kind::NUMERAL);
+  addNormalSym(
       "str.substr", {Kind::STRING, Kind::NUMERAL, Kind::NUMERAL}, Kind::STRING);
-  addSmtLibSym(
+  addNormalSym(
       "str.at", {Kind::STRING, Kind::NUMERAL}, Kind::STRING);
-  addSmtLibSym("str.indexof",
+  addNormalSym("str.indexof",
                {Kind::STRING, Kind::STRING, Kind::NUMERAL},
                Kind::NUMERAL);
-  addSmtLibSym("str.replace", {Kind::STRING, Kind::STRING, Kind::STRING}, Kind::STRING);
-  addSmtLibSym("str.replace_all", {Kind::STRING, Kind::STRING, Kind::STRING}, Kind::STRING);
-  addSmtLibSym("str.from_code", {Kind::NUMERAL}, Kind::STRING);
-  addSmtLibSym("str.to_code", {Kind::STRING}, Kind::NUMERAL);
-  addSmtLibSym("str.from_int", {Kind::NUMERAL}, Kind::STRING);
-  addSmtLibSym("str.to_int", {Kind::STRING}, Kind::NUMERAL);
-  addSmtLibSym("str.is_digit", {Kind::STRING}, Kind::BOOLEAN);
-  addSmtLibSym("str.contains", {Kind::STRING, Kind::STRING}, Kind::BOOLEAN);
-  addSmtLibSym("str.suffixof", {Kind::STRING, Kind::STRING}, Kind::BOOLEAN);
-  addSmtLibSym("str.prefixof", {Kind::STRING, Kind::STRING}, Kind::BOOLEAN);
-  addSmtLibSym("str.<=", {Kind::STRING, Kind::STRING}, Kind::BOOLEAN);
-  addSmtLibSym("str.<", {Kind::STRING, Kind::STRING}, Kind::BOOLEAN);
+  addNormalSym("str.replace", {Kind::STRING, Kind::STRING, Kind::STRING}, Kind::STRING);
+  addNormalSym("str.replace_all", {Kind::STRING, Kind::STRING, Kind::STRING}, Kind::STRING);
+  addNormalSym("str.from_code", {Kind::NUMERAL}, Kind::STRING);
+  addNormalSym("str.to_code", {Kind::STRING}, Kind::NUMERAL);
+  addNormalSym("str.from_int", {Kind::NUMERAL}, Kind::STRING);
+  addNormalSym("str.to_int", {Kind::STRING}, Kind::NUMERAL);
+  addNormalSym("str.is_digit", {Kind::STRING}, Kind::BOOLEAN);
+  addNormalSym("str.contains", {Kind::STRING, Kind::STRING}, Kind::BOOLEAN);
+  addNormalSym("str.suffixof", {Kind::STRING, Kind::STRING}, Kind::BOOLEAN);
+  addNormalSym("str.prefixof", {Kind::STRING, Kind::STRING}, Kind::BOOLEAN);
+  addNormalSym("str.<=", {Kind::STRING, Kind::STRING}, Kind::BOOLEAN);
+  addNormalSym("str.<", {Kind::STRING, Kind::STRING}, Kind::BOOLEAN);
 
   ///----- non standard extensions
-  addSmtLibSym("^", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
-  addSmtLibSym("/_total", {Kind::PARAM, Kind::PARAM}, Kind::RATIONAL);
-  addSmtLibSym("div_total", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
-  addSmtLibSym("mod_total", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
-  addSmtLibSym("str.update", {Kind::STRING, Kind::NUMERAL, Kind::STRING}, Kind::STRING);
-  addSmtLibSym("str.rev", {Kind::STRING}, Kind::STRING);
-  addSmtLibSym("str.to_lower", {Kind::STRING}, Kind::STRING);
-  addSmtLibSym("str.to_upper", {Kind::STRING}, Kind::STRING);
-  //addSmtLibSym("int.ispow2", {Kind::NUMERAL, Kind::NUMERAL}, Kind::BOOLEAN);
-  //addSmtLibSym("int.log2", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
-  addSmtLibSym("int.pow2", {Kind::NUMERAL}, Kind::NUMERAL);
+  addNormalSym("^", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
+  addNormalSym("/_total", {Kind::PARAM, Kind::PARAM}, Kind::RATIONAL);
+  addNormalSym("div_total", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
+  addNormalSym("mod_total", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
+  addNormalSym("str.update", {Kind::STRING, Kind::NUMERAL, Kind::STRING}, Kind::STRING);
+  addNormalSym("str.rev", {Kind::STRING}, Kind::STRING);
+  addNormalSym("str.to_lower", {Kind::STRING}, Kind::STRING);
+  addNormalSym("str.to_upper", {Kind::STRING}, Kind::STRING);
+  //addNormalSym("int.ispow2", {Kind::NUMERAL, Kind::NUMERAL}, Kind::BOOLEAN);
+  //addNormalSym("int.log2", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
+  addNormalSym("int.pow2", {Kind::NUMERAL}, Kind::NUMERAL);
   // TODO: more
   // BV
   // arith/BV conversions
-  // addSmtLibSym("BitVec", {Kind::NUMERAL}, Kind::TYPE);
-  // addSmtLibSym("int_to_bv", {Kind::NUMERAL, Kind::NUMERAL}, Kind::BINARY);
-  // addSmtLibSym("ubv_to_int", {Kind::BINARY}, Kind::NUMERAL);
-  // addSmtLibSym("sbv_to_int", {Kind::BINARY}, Kind::NUMERAL);
+  // addNormalSym("BitVec", {Kind::NUMERAL}, Kind::TYPE);
+  // addNormalSym("int_to_bv", {Kind::NUMERAL, Kind::NUMERAL}, Kind::BINARY);
+  // addNormalSym("ubv_to_int", {Kind::BINARY}, Kind::NUMERAL);
+  // addNormalSym("sbv_to_int", {Kind::BINARY}, Kind::NUMERAL);
 }
 
 ModelSmt::~ModelSmt() {}
 
-void ModelSmt::addSmtLibSym(const std::string& sym,
+void ModelSmt::addNormalSym(const std::string& sym,
                             const std::vector<Kind>& args,
                             Kind ret)
 {
-  d_smtLibSyms[sym] = std::pair<std::vector<Kind>, Kind>(args, ret);
+  d_symNormal[sym] = std::pair<std::vector<Kind>, Kind>(args, ret);
 }
 
 void ModelSmt::bind(const std::string& name, const Expr& e)
@@ -146,40 +146,52 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
   {
     return;
   }
+  // maybe a normal symbol
   std::map<std::string, std::pair<std::vector<Kind>, Kind>>::iterator it =
-      d_smtLibSyms.find(name);
-  if (it == d_smtLibSyms.end())
+      d_symNormal.find(name);
+  if (it != d_symNormal.end())
   {
+    printNormal(name, it->second.first, it->second.second);
     return;
   }
-  std::vector<Kind>& args = it->second.first;
-  Kind ret = it->second.second;
-  if (ret == Kind::TYPE)
+  std::map<std::string, std::tuple<std::vector<Kind>, Kind, std::string>>::iterator its = d_symSmtx.find(name);
+  if (its != d_symSmtx.end())
   {
-    printSmtType(name, args);
+    printSmtx(name, std::get<0>(its->second), std::get<1>(its->second), std::get<2>(its->second));
+    return;
   }
-  else
+  its = d_symReduce.find(name);
+  if (its!=d_symReduce.end())
   {
-    printSmtTerm(name, args, ret);
+    printReduce(name, std::get<0>(its->second), std::get<1>(its->second), std::get<2>(its->second));
+    return;
   }
 }
 
-void ModelSmt::printSmtType(const std::string& name, std::vector<Kind>& args) {}
+void ModelSmt::printType(const std::string& name, std::vector<Kind>& args) {}
 
-void ModelSmt::printSmtTerm(const std::string& name,
+void ModelSmt::printModelEvalCallApp(const std::string& name,
+                            const std::vector<Kind>& args, std::ostream& os)
+{
+  std::stringstream callApp;
+  os << "($smtx_model_eval (" << name;
+  for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
+  {
+    os << " x" << i;
+  }
+  os << "))";
+}
+void ModelSmt::printNormal(const std::string& name,
                             std::vector<Kind>& args,
                             Kind kret)
 {
-  std::stringstream callApp;
-  callApp << "(" << name;
-  for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
+  if (kret==Kind::TYPE)
   {
-    callApp << " x" << i;
+    printType(name, args);
+    return;
   }
-  callApp << ")";
-  // This needs to be here, this is the user include of a standard
-  // template
-  d_eval << "  (($smtx_model_eval " << callApp.str() << ")";
+  d_eval << "  (";
+  printModelEvalCallApp(name, args, d_eval);
   bool isOverloadArith = (args.size() > 0 && args[0] == Kind::PARAM);
   if (name == "forall" || name == "exists")
   {
@@ -276,6 +288,26 @@ void ModelSmt::printSmtTerm(const std::string& name,
   d_modelEvalProgs << "  (" << std::endl;
   d_modelEvalProgs << progCases.str();
   d_modelEvalProgs << "  )" << std::endl << ")" << std::endl;
+}
+
+void ModelSmt::printSmtx(const std::string& name, std::vector<Kind>& args, Kind ret, const std::string& smtxName)
+{
+  std::stringstream scall;
+  scall << "($smtx_" << smtxName;
+  for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
+  {
+    scall << " x" << i;
+  }
+  scall << ")";
+  printReduce(name, args, ret, scall.str());
+}
+
+void ModelSmt::printReduce(const std::string& name,
+                           const std::vector<Kind>& args, Kind ret,
+                           const std::string& reduce)
+{
+  printModelEvalCallApp(name, args, d_eval);
+  d_eval << " " << reduce << ")" << std::endl;  
 }
 
 void ModelSmt::finalize()
