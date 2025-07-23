@@ -82,7 +82,6 @@ The core features of Eunoia include:
 - A set of built-in basic types and a library of operations (`eo::add`, `eo::mul`, `eo::concat`, `eo::extract`) for performing computations over values.
   <!--CT It would be more consistent with the rest of the terminology to use `define-program` instead -->
 - A command, `program`, for defining side conditions as an ordered list of rewrite rules.
-- A command, `declare-oracle-fun`, for defining external, user-provided oracles, that is, functions whose semantics are given by external binaries. Oracles can be used, e.g., for modular proof checking.
 - Commands for file inclusion (`include`) and referencing (`reference`). The latter command can be used to specify the name of an `*.smt2` input file that the proof is associated with.
 
 In the following sections, we describe these features in more detail. A full syntax for the commands is given at the end of this document.
@@ -254,23 +253,6 @@ For details, see [ambiguous functions](#amb-functions).
 > __Note:__ Internally, parameters `(t T)` in the command `declare-parameterized-const` are handled specially in the type system. In particular `(declare-parameterized-const foo ((T Type)) T)` defines `foo` to be of "quote arrow" type, `(~> T T)`, where the argument to `foo` is bound to `T`, e.g. `(foo Int)` binds `T` to `Int` and thus has type `Int`. Technical details of the type system can be found at the end of this manual.
 
 > __Note:__ Internally, `(t T :implicit)` drops `t` from the list of arguments of the function type we are defining.
-
-### The :requires annotation
-
-Arguments to functions can also be annotated with the attribute `:requires (<term> <term>)` to denote a equality condition that is required for applications of the term to type check.
-
-```smt
-(declare-type Int ())
-(declare-parameterized-const BitVec ((w Int :requires ((eo::is_neg w) false))) Type)
-```
-The above declares the integer type `Int` and a bitvector type constructor `BitVec` that expects a _non-negative integer_ `w`.
-In detail, the first argument of `BitVec` is supposed to be an `Int` value and is named `w` via the `:var` attribute.
-The second annotation indicates that the term `(eo::is_neg w)` must evaluate to `false` at type checking type.
-Symbol `eo::is_neg` denotes a builtin function that returns `true` if its argument is a negative numeral, and returns false otherwise (for details, see [computation](#computation)).
-<!-- This needs discussion, what is the input type of `eo::is_neg`? How can `eo::is_neg` accept a value of a user-defined type `Int` given that it is builtin?  -->
-
-> __Note:__ Internally, a parameter `(t T :requires (s r))` is syntax sugar for the type term `(eo::requires s r T)` where `eo::requires` is an operator that evaluates to its third argument if and only if its first two arguments are _computationally_ equivalent (details on this operator are given in [computation](#computation)).
-Furthermore, the function type `(-> (eo::requires s r T) S)` is treated as `(-> T (eo::requires s r S))`. Ethos rewrites all types of the former form to the latter.
 
 <a name="opaque"></a>
 
@@ -1458,6 +1440,14 @@ A list of requirements can be given to a proof rule.
 
 This rule expects an arithmetic inequality.
 It requires that the left hand side of this inequality `x` is a negative numeral, which is checked via the requirement `:requires (((eo::is_neg x) true))`.
+The above requires annotation is equivalent to wrapping the conclusion in an `eo::requires` term (for details, see [computation](#computation)).
+In particular, the above is equivalent to:
+
+```smt
+(declare-rule leq-contra ((x Int))
+    :premise ((>= x 0))
+    :conclusion (eo::requires (eo::is_neg x) true false))
+```
 
 ### Premise lists
 
@@ -1932,50 +1922,6 @@ Here, `normalize` is introduced as a program which recursively replaces all occu
 This method can be used for handling solvers that interpret constant division as the construction of a rational constant.
 The above program will be invoked on all formulas occuring in `assert` commands in `"file.smt2"` and subsequently formulas in `assume` commands.
 
-## Oracles
-
-Ethos supports a command, `declare-oracle-fun`, which associates the semantics of a function with an external binary.
-We reference to such functions as _oracle functions_.
-The syntax and semantics of such functions are described in this [paper](https://homepage.divms.uiowa.edu/~ajreynol/vmcai22a.pdf).
-
-In particular, Ethos supports the command:
-
-```smt
-(declare-oracle-fun <symbol> (<type>+) <type> <symbol>)
-```
-
-Like the `declare-fun` command from SMT-LIB, this command declares a constant named `<symbol>` whose type is given by the argument types and return type.
-In addition, a symbol is provided at the end of the command which specifies the name of executable command to run.
-Ground applications of oracle functions are eagerly evaluated by invoking the binary and parsing its result, which we describe in more detail in the following example.
-
-### Example: Oracle isPrime
-
-```smt
-(declare-type Int ())
-(declare-consts <numeral> Int)
-(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
-(declare-const >= (-> Int Int Bool))
-
-(declare-oracle-fun runIsPrime (Int) Bool ./isPrime)
-
-(declare-rule ((x Int) (y Int) (z Int))
-    :premises ((>= z 2) (= (* x y) z))
-    :requires (((runIsPrime z) false))
-    :conclusion false)
-```
-
-In the above example, `./isPrime` is assumed to be an executable that given text as input returns either the text `true` denoting that the input text denotes a prime integer value or `false` if the text denotes a composite integer value.
-Otherwise, it is expected to exit with a (non-zero) error code.
-
-An application of `(runIsPrime z)` for a ground term `z` invokes `./isPrime`.
-If `./isPrime` returns with an error, then `(runIsPrime z)` does not evaluate.
-Otherwise, `(runIsPrime z)` evaluates to the result of parsing its output using the current parser state.
-In this example, an output of response of `true` (resp. `false`) from the executable will be parsed back at the Boolean value `true` (resp. `false`).
-More generally, input and output of oracles may contain symbols that are defined in the current parser state.
-The user is responsible that the input can be properly parsed by the oracle, and the outputs of oracles can be properly parsed by Ethos.
-
-In the above example, a proof rule is then defined that says that if `z` is an integer greater than or equal to `2`, is the product of two integers `x` and `y`, and is prime based on invoking `runIsPrime` in the given requirement, then we can conclude `false`.
-
 <a name="responses"></a>
 
 ## Checker Response
@@ -2043,7 +1989,6 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
     (assume-push <symbol> <term>) |
     (declare-consts <lit-category> <type>) |
     (declare-parameterized-const <symbol> (<typed-param>*) <type> <attr>*) |
-    (declare-oracle-fun <symbol> (<type>+) <type> <symbol>) |
     (declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term> <attr>*) |
     (declare-type <symbol> (<type>*)) |
     (define <symbol> (<typed-param>*) <term> <attr>*) |
