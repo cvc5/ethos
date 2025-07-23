@@ -89,11 +89,11 @@ sed -i 's/\$smt_builtin_//g' $VC_OUT
 # TODO: trim-defs again, on smt2
 
 echo "**** smt_meta: Run the final verification condition with unsat cores"
-ajr-cvc5 $VC_OUT --dump-unsat-cores #--parse-only
+ajr-cvc5 $VC_OUT --dump-unsat-cores --quant-ind #--parse-only
 check_status
 
 echo "**** smt_meta: Run the final verification condition with proofs"
-ajr-cvc5 $VC_OUT --check-proofs-complete --stats-internal |& grep -P '(^unknown$|^unsat$|^sat$|finalProof::ruleCount|finalProof::totalRuleCount)'
+ajr-cvc5 $VC_OUT --check-proofs --stats-internal --quant-ind |& grep -P '(^unknown$|^unsat$|^sat$|finalProof::ruleCount|finalProof::totalRuleCount|finalProof::ruleUnhandled|finalProof::trust)'
 check_status
 
 # clear temporary files
