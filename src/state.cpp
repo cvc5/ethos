@@ -188,7 +188,6 @@ State::State(Options& opts, Stats& stats)
   d_any = Expr(mkExpr(Kind::ANY, {}));
   // self is a distinguished parameter
   d_self = Expr(mkSymbolInternal(Kind::PARAM, "eo::self", d_any));
-  bind("eo::self", d_self);
   d_conclusion =
       Expr(mkSymbolInternal(Kind::PARAM, "eo::conclusion", d_boolType));
   // eo::conclusion is not globally bound, since it can only appear
