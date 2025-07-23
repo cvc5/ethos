@@ -114,7 +114,7 @@ class ModelSmt : public StdPlugin
    * SMT-LIB symbols that have simple term-level reductions, we use x1 ... xn as references
    * to the arguments.
    */
-  std::map<std::string, std::string> d_symTermReduce;
+  std::map<std::string, std::pair<std::vector<Kind>, std::string>> d_symTermReduce;
 };
 
 }  // namespace ethos

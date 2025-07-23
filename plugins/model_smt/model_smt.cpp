@@ -182,9 +182,10 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
                 std::get<2>(its->second));
     return;
   }
-  std::map<std::string, std::string>::iterator itst = d_symTermReduce.find(name);
+  std::map<std::string, std::pair<std::vector<Kind>, std::string>>::iterator itst = d_symTermReduce.find(name);
   if (itst != d_symTermReduce.end())
   {
+    printModelEvalCallBase(name, itst->second.first, itst->second.second);
     return;
   }
 }
