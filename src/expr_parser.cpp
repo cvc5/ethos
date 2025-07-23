@@ -1174,7 +1174,6 @@ void ExprParser::parseAttributeList(
             case Attr::OPAQUE:
               // requires no value
               break;
-            case Attr::REQUIRES: val = parseExprPair(); break;
             case Attr::RESTRICT:
               // requires an expression that follows
               val = parseExpr();
