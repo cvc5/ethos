@@ -235,6 +235,7 @@
 
 ; The type of types
 (declare-const $smd_eo.Type $eo_Term)
+(define $eo_type () $smd_eo.Type)
 
 ; The Eunoia representation of "stuckness".
 (declare-const $smd_eo.Stuck $eo_Term)

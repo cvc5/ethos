@@ -976,6 +976,106 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   d_defs << std::endl;
 }
 
+
+void SmtMetaReduce::bind(const std::string& name, const Expr& e)
+{
+  if (e.getKind() != Kind::CONST)
+  {
+    return;
+  }
+  finalizeDecl(e);
+}
+
+void SmtMetaReduce::finalizeDecl(const Expr& e)
+{
+  if (d_declSeen.find(e)!=d_declSeen.end())
+  {
+    return;
+  }
+  d_declSeen.insert(e);
+  // first, determine which datatype (if any) this belongs to
+  std::stringstream ss;
+  ss << e;
+  std::string sname = ss.str();
+  std::stringstream* out = nullptr;
+  std::stringstream cname;
+  // get the meta-kind based on its name
+  std::string cnamek;
+  MetaKind tk = getMetaKind(d_state, e, cnamek);
+  if (tk == MetaKind::EUNOIA)
+  {
+    cname << "eo." << cnamek;
+    out = &d_embedEoTermDt;
+  }
+  else if (tk == MetaKind::SMT_TYPE)
+  {
+    cname << "tsm." << cnamek;
+    out = &d_embedTypeDt;
+  }
+  else if (tk == MetaKind::SMT)
+  {
+    cname << "sm." << cnamek;
+    out = &d_embedTermDt;
+  }
+  else if (tk == MetaKind::SMT_VALUE)
+  {
+    cname << "vsm." << cnamek;
+    out = &d_embedValueDt;
+  }
+  if (out == nullptr)
+  {
+    std::cout << "Do not include " << e << std::endl;
+    return;
+  }
+  std::cout << "Include " << e << std::endl;
+  (*out) << "  ; " << (isEmbedCons(e) ? "smt-cons: " : "user-decl: ") << cnamek
+         << std::endl;
+  Expr c = e;
+  Expr ct = d_tc.getType(c);
+  // (*out) << "  ; type is " << ct << std::endl;
+  Attr attr = d_state.getConstructorKind(e.getValue());
+  // (*out) << "  ; attr is " << attr << std::endl;
+  (*out) << "  (";
+  (*out) << cname.str();
+  size_t nopqArgs = 0;
+  if (attr == Attr::OPAQUE)
+  {
+    // opaque symbols are non-nullary constructors
+    Assert(ct.getKind() == Kind::FUNCTION_TYPE);
+    nopqArgs = ct.getNumChildren() - 1;
+  }
+  else if (attr == Attr::AMB || attr == Attr::AMB_DATATYPE_CONSTRUCTOR)
+  {
+    nopqArgs = 1;
+  }
+  for (size_t i = 0; i < nopqArgs; i++)
+  {
+    (*out) << " (" << cname.str();
+    (*out) << ".arg" << (i + 1) << " ";
+    // print its type using the utility,
+    // which takes into account what the type is in the final embedding
+    Expr typ = ct[i];
+    if (ct[i].getKind() == Kind::QUOTE_TYPE)
+    {
+      Expr targ = ct[i][0];
+      typ = d_tc.getType(targ);
+    }
+    std::stringstream sst;
+    if (!printMetaType(typ, *out))
+    {
+      // Assert(false) << "Failed to get meta-type for " << e;
+      // os << e;
+      //  otherwise, a user-provided ambiguous or opaque term, use eo_Term
+      (*out) << "eo.Term";
+    }
+    //(*out) << "; Printing datatype argument type " << typ << " gives \"" <<
+    // sst.str() << "\" " << termKindToString(tk) << std::endl;
+    (*out) << sst.str();
+    (*out) << ")";
+  }
+  (*out) << ")" << std::endl;
+}
+
 void SmtMetaReduce::finalize()
 {
   finalizePrograms();
@@ -1000,6 +1100,10 @@ void SmtMetaReduce::finalize()
 
   replace(finalSm, "$SM_DEFS$", d_defs.str());
   replace(finalSm, "$SMT_VC$", d_smtVc.str());
+  replace(finalSm, "$SM_TYPE_DECL$", d_embedTypeDt.str());
+  replace(finalSm, "$SM_TERM_DECL$", d_embedTermDt.str());
+  replace(finalSm, "$SM_VALUE_DECL$", d_embedValueDt.str());
+  replace(finalSm, "$SM_EO_TERM_DECL$", d_embedEoTermDt.str());
 
   std::stringstream sso;
   sso << s_plugin_path << "plugins/smt_meta/smt_meta_gen.smt2";

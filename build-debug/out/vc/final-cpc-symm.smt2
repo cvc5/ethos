@@ -1,6 +1,4 @@
 (set-logic UFDTSNIRA)
-; This is both a valid *.smt2 and *.eo file after filling in the templates.
-; For consistency we name it *.eo.
 
 ; tsm.Type:
 ;   The final embedding of atomic SMT-LIB types that are relevant to the VC.
@@ -26,10 +24,6 @@
   (tsm.Seq)
   ; smt-cons: Bool
   (tsm.Bool)
-  ; smt-cons: USort
-  (tsm.USort (tsm.USort.arg1 Int))
-  ; smt-cons: NullSort
-  (tsm.NullSort (tsm.NullSort.arg1 Int))
   ; user-decl: BitVec
   (tsm.BitVec)
 
@@ -47,12 +41,12 @@
   (sm.Binary (sm.Binary.arg1 Int) (sm.Binary.arg2 Int))
   ; smt-cons: Const
   (sm.Const (sm.Const.arg1 vsm.Value))
-  ; user-decl: and
-  (sm.and)
-  ; user-decl: not
-  (sm.not)
   ; user-decl: ite
   (sm.ite)
+  ; user-decl: not
+  (sm.not)
+  ; user-decl: and
+  (sm.and)
   ; user-decl: =
   (sm.=)
 
@@ -70,8 +64,6 @@
   (eo.SmtTerm (eo.SmtTerm.arg1 sm.Term))
   ; smt-cons: SmtType
   (eo.SmtType (eo.SmtType.arg1 tsm.Type))
-  ; smt-cons: SmtValue
-  (eo.SmtValue (eo.SmtValue.arg1 vsm.Value))
   ; smt-cons: Var
   (eo.Var (eo.Var.arg1 String) (eo.Var.arg2 eo.Term))
   ; user-decl: $eo_List
@@ -89,10 +81,10 @@
   (vsm.UConst (vsm.UConst.arg1 eo.Term) (vsm.UConst.arg2 Int))
   ; smt-cons: Term
   (vsm.Term (vsm.Term.arg1 sm.Term))
-  ; smt-cons: NotValue
-  (vsm.NotValue)
   ; smt-cons: Apply
   (vsm.Apply (vsm.Apply.arg1 vsm.Value) (vsm.Apply.arg2 vsm.Value))
+  ; smt-cons: NotValue
+  (vsm.NotValue)
 
   )
   (

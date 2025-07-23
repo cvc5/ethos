@@ -69,7 +69,7 @@ sed -i -e 's/eo::/\$eo_/g' -e 's/\$eo_quote/eo::quote/g' -e 's/\$eo_define/eo::d
 # - getting the meta type of terms, which is used in the final step below
 # - symbols that may appear in custom axioms (e.g. $smtx_const_predicate).
 echo "**** smt_meta: Run ethos + trim-deps on $VCM_DEF_DESUGAR to generate $VCMT_DEF_DESUGAR"
-./run_trim_defs $VCM_DEF_DESUGAR "\$eovc_$TARGET" "\$eo_typeof" "\$smtx_model_lookup_predicate" "\$eo_hash" >/dev/null
+./run_trim_defs $VCM_DEF_DESUGAR "\$eovc_$TARGET" "\$eo_typeof" "\$smtx_model_lookup_predicate" "\$eo_hash" "\$tsm_Bool" "\$eo_type" "\$eo_fun_type" >/dev/null
 check_status
 cp $STD_TRIM_OUT $VCMT_DEF_DESUGAR
 
@@ -80,17 +80,18 @@ echo "**** smt_meta: Generate SMT2 from $VCMT_DEF_DESUGAR to $VC_OUT"
 ./src/ethos --plugin.smt-meta $VCMT_DEF_DESUGAR >/dev/null
 check_status
 # set up the verification condition
+mv $STD_VC_OUT $VC_OUT
 # the logic
-echo "(set-logic UFDTSNIRA)" > $VC_OUT
+#echo "(set-logic UFDTSNIRA)" > $VC_OUT
 # start with the final datatype
 # FIXME: keep this line
-cat $STD_SMODEL_EMBED_OUT >> $VC_OUT
+#cat $STD_SMODEL_EMBED_OUT >> $VC_OUT
 # replace all occurrences of $smt_builtin_
 # TODO: $smt_apply_ and $smt_type_ as well???
 sed -i 's/\$smt_builtin_//g' $VC_OUT
 #sed -i 's/\.new//g' $VC_OUT
 # concatenate the VC computed above
-cat $STD_VC_OUT >> $VC_OUT
+#cat $STD_VC_OUT >> $VC_OUT
 
 # TODO: trim-defs again, on smt2
 

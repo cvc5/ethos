@@ -91,6 +91,7 @@ void StdPlugin::setLiteralTypeRule(Kind k, const Expr& t)
   // declared at the top
   if (os != nullptr)
   {
+    // TODO: approximate $eo_Binary as self program
     // it is only possible to define e.g. $eo_Binary
     // if t is ground. This avoids having eo::self as a free parameter.
     // We use $eo_undef_type otherwise.

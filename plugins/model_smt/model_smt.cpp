@@ -111,9 +111,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addSmtLibSym("mod_total", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
   addSmtLibSym("str.to_lower", {Kind::STRING}, Kind::STRING);
   addSmtLibSym("str.to_upper", {Kind::STRING}, Kind::STRING);
-  addSmtLibSym("int.ispow2", {Kind::NUMERAL, Kind::NUMERAL}, Kind::BOOLEAN);
-  addSmtLibSym("int.log2", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
-  addSmtLibSym("int.pow2", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
+  //addSmtLibSym("int.ispow2", {Kind::NUMERAL, Kind::NUMERAL}, Kind::BOOLEAN);
+  //addSmtLibSym("int.log2", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
+  addSmtLibSym("int.pow2", {Kind::NUMERAL}, Kind::NUMERAL);
   // TODO: more
   // BV
   // arith/BV conversions

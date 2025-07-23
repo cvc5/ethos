@@ -1,5 +1,5 @@
-; trim-defs: $eovc_refl $eo_typeof $smtx_model_lookup_predicate $eo_hash
-; #trim-defs: 130
+; trim-defs: $eovc_refl $eo_typeof $smtx_model_lookup_predicate $eo_hash $tsm_Bool $eo_type $eo_fun_type
+; #trim-defs: 139
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -64,6 +64,7 @@
 (declare-const $smt_Term Type)
 (declare-const $smt_Value Type)
 (declare-const $smt_Map Type)
+(declare-const $smd_tsm.Bool $smt_Type)
 (declare-parameterized-const $smd_sm.Bool
   ((b $smt_builtin_Bool :opaque)) $smt_Term)
 (declare-parameterized-const $smd_sm.Numeral
@@ -95,12 +96,18 @@
 (declare-parameterized-const $smd_msm.Map.default
   ((e $smt_Value :opaque))
   $smt_Map)
+(declare-const $smd_eo.Type $eo_Term)
+(define $eo_type () $smd_eo.Type)
 (declare-const $smd_eo.Stuck $eo_Term)
 (define $eo_stuck () $smd_eo.Stuck)
 (declare-parameterized-const $smd_eo.Apply
   ((f $eo_Term :opaque) (a $eo_Term :opaque))
   $eo_Term)
 (define $eo_apply ((x $eo_Term) (y $eo_Term)) ($smd_eo.Apply x y))
+(declare-parameterized-const $smd_eo.FunType
+  ((t1 $eo_Term :opaque) (t2 $eo_Term :opaque))
+  $eo_Term)
+(define $eo_fun_type ((t1 $eo_Term) (t2 $eo_Term)) ($smd_eo.FunType t1 t2))
 (declare-parameterized-const $smd_eo.SmtTerm ((t $smt_Term :opaque)) $eo_Term)
 (define $eo_smt_term ((t $smt_Term)) ($smd_eo.SmtTerm t))
 (declare-parameterized-const $smd_eo.SmtType ((t $smt_Type :opaque)) $eo_Term)
@@ -226,6 +233,7 @@
 )
 (program $eo_model_sat () :signature (Bool) $eo_Option)
 (program $eo_model_is_input () :signature (Bool) Bool)
+(define $tsm_Bool () $smd_tsm.Bool)
 (define $vsm_map ((T $eo_Term) (m $smt_Map))
   ($smd_vsm.Map T m))
 (define $vsm_uconst ((T $eo_Term) (id $smt_builtin_Int))
