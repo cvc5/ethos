@@ -179,7 +179,7 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
   }
 }
 
-void ModelSmt::printType(const std::string& name, std::vector<Kind>& args) {}
+void ModelSmt::printType(const std::string& name, const std::vector<Kind>& args) {}
 
 void ModelSmt::printModelEvalCallApp(const std::string& name,
                                      const std::vector<Kind>& args,
@@ -194,7 +194,7 @@ void ModelSmt::printModelEvalCallApp(const std::string& name,
   os << "))";
 }
 void ModelSmt::printNormal(const std::string& name,
-                           std::vector<Kind>& args,
+                           const std::vector<Kind>& args,
                            Kind kret)
 {
   if (kret == Kind::TYPE)
@@ -231,50 +231,36 @@ void ModelSmt::printNormal(const std::string& name,
   size_t paramCount = 0;
   for (Kind kas : argSchemas)
   {
-    progCases << "  ((" << progName.str();
+    // instantiate the arguments for the current schema and prepare the
+    // argument list for the return term.
+    std::vector<Kind> instArgs;
     std::stringstream retArgs;
+    size_t tmpParamCount = paramCount;
     for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
     {
-      Kind ka = args[i - 1];
-      if (ka == Kind::PARAM)
-      {
-        Assert(kas != Kind::NONE);
-        ka = kas;
-      }
-      paramCount++;
-      if (paramCount > 1)
-      {
-        progParams << " ";
-      }
-      progCases << " ($vsm_term ($sm_mk_" << d_kindToEoPrefix[ka] << " x"
-                << paramCount << "))";
-      retArgs << " x" << paramCount;
-      progParams << "(x" << paramCount << " $smt_builtin_" << d_kindToType[ka]
-                 << ")";
+      Kind ka = args[i-1];
+      instArgs.push_back(ka==Kind::PARAM ? kas : ka);
+      tmpParamCount++;
+      retArgs << " x" << tmpParamCount;
     }
-    progCases << ") ";
-    Kind kr = kret;
-    if (kr == Kind::PARAM)
-    {
-      Assert(kas != Kind::NONE);
-      kr = kas;
-    }
-    Assert(d_kindToEoPrefix.find(kr) != d_kindToEoPrefix.end())
-        << "Could not find kind ret " << kr;
-    progCases << "($vsm_term ($sm_mk_" << d_kindToEoPrefix[kr];
-    progCases << " ($smt_apply_" << args.size() << " \"";
+    // print the return term
+    Kind kr = kret==Kind::PARAM ? kas : kret;
+    std::stringstream ssret;
+    ssret << "($vsm_term ($sm_mk_" << d_kindToEoPrefix[kr];
+    ssret << " ($smt_apply_" << args.size() << " \"";
     std::map<std::string, std::string>::iterator ito =
         d_overloadRevert.find(name);
     if (ito != d_overloadRevert.end())
     {
       // e.g. in spite of having name $eoo_-.2, we use "-" as the invocation.
-      progCases << ito->second;
+      ssret << ito->second;
     }
     else
     {
-      progCases << name;
+      ssret << name;
     }
-    progCases << "\"" << retArgs.str() << "))))" << std::endl;
+    ssret << "\"" << retArgs.str() << ")))";
+    printInternal(progName.str(), instArgs, ssret.str(), paramCount, progCases, progParams);
   }
   std::stringstream progSig;
   progSig << "(";
@@ -303,8 +289,35 @@ void ModelSmt::printNormal(const std::string& name,
   d_modelEvalProgs << "  )" << std::endl << ")" << std::endl;
 }
 
+void ModelSmt::printInternal(const std::string& name, 
+                    const std::vector<Kind>& args, 
+                    const std::string& ret,
+                    size_t& paramCount,
+                    std::ostream& progCases,
+                    std::ostream& progParams)
+{
+  progCases << "  ((" << name;
+  std::stringstream retArgs;
+  for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
+  {
+    Kind ka = args[i - 1];
+    paramCount++;
+    if (paramCount > 1)
+    {
+      progParams << " ";
+    }
+    progCases << " ($vsm_term ($sm_mk_" << d_kindToEoPrefix[ka] << " x"
+              << paramCount << "))";
+    retArgs << " x" << paramCount;
+    progParams << "(x" << paramCount << " $smt_builtin_" << d_kindToType[ka]
+                << ")";
+  }
+  progCases << ") ";
+  progCases << ret << ")" << std::endl;
+}
+
 void ModelSmt::printSmtx(const std::string& name,
-                         std::vector<Kind>& args,
+                         const std::vector<Kind>& args,
                          Kind ret,
                          const std::string& smtxName)
 {

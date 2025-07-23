@@ -61,16 +61,22 @@ class ModelSmt : public StdPlugin
   void printModelEvalCallApp(const std::string& name,
                              const std::vector<Kind>& args,
                              std::ostream& os);
-  void printType(const std::string& name, std::vector<Kind>& args);
-  void printNormal(const std::string& name, std::vector<Kind>& args, Kind ret);
+  void printType(const std::string& name, const std::vector<Kind>& args);
+  void printNormal(const std::string& name, const std::vector<Kind>& args, Kind ret);
   void printSmtx(const std::string& name,
-                 std::vector<Kind>& args,
+                 const std::vector<Kind>& args,
                  Kind ret,
                  const std::string& smtxName);
   void printReduce(const std::string& name,
                    const std::vector<Kind>& args,
                    Kind ret,
                    const std::string& reduce);
+  void printInternal(const std::string& name, 
+                     const std::vector<Kind>& args, 
+                     const std::string& ret,
+                     size_t& paramCount,
+                     std::ostream& progCases,
+                     std::ostream& progParams);
   void finalizeDecl(const Expr& e);
   /** get the datatype e belongs to */
   DtKind getDtKind(const Expr& e);
