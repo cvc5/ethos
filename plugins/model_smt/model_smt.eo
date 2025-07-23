@@ -398,8 +398,8 @@ $SMT_EVAL_CASES$
 (program $smtx_typeof_map ((T $smt_builtin_Int) (j $smt_Value) (e $smt_Value) (m $smt_Map))
   :signature ($eo_Term $smt_Map) $eo_Term
   (
-  (($smtx_typeof_map T ($msm_cons j e m))   ($eo_fun_type ($eo_reverse_hash ($eo_mk_numeral T)) ($smtx_typeof_value e)))
-  (($smtx_typeof_map T ($msm_default e))    ($eo_fun_type ($eo_reverse_hash ($eo_mk_numeral T)) ($smtx_typeof_value e)))
+  (($smtx_typeof_map T ($msm_cons j e m))   ($eo_mk_fun_type ($eo_reverse_hash ($eo_mk_numeral T)) ($smtx_typeof_value e)))
+  (($smtx_typeof_map T ($msm_default e))    ($eo_mk_fun_type ($eo_reverse_hash ($eo_mk_numeral T)) ($smtx_typeof_value e)))
   )
 )
 
@@ -407,7 +407,7 @@ $SMT_EVAL_CASES$
 (program $smtx_typeof_apply ((T $eo_Term) (U $eo_Term))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
-  (($smtx_typeof_apply ($eo_fun_type T U) T) U)
+  (($smtx_typeof_apply ($eo_mk_fun_type T U) T) U)
   )
 )
 

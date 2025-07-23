@@ -1,5 +1,5 @@
-; trim-defs: $eovc_refl $eo_typeof $smtx_model_lookup_predicate $eo_hash $tsm_Bool $eo_type $eo_fun_type
-; #trim-defs: 140
+; trim-defs: $eovc_refl $eo_typeof $smtx_model_lookup_predicate $eo_hash $tsm_Bool $eo_type $eo_mk_fun_type
+; #trim-defs: 141
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -116,10 +116,8 @@
   ((f $eo_Term :opaque) (a $eo_Term :opaque))
   $eo_Term)
 (define $eo_apply ((x $eo_Term) (y $eo_Term)) ($smd_eo.Apply x y))
-(declare-parameterized-const $smd_eo.FunType
-  ((t1 $eo_Term :opaque) (t2 $eo_Term :opaque))
-  $eo_Term)
-(define $eo_fun_type ((t1 $eo_Term) (t2 $eo_Term)) ($smd_eo.FunType t1 t2))
+(declare-parameterized-const $smd_eo.FunType () $eo_Term)
+(define $eo_fun_type () $smd_eo.FunType)
 (declare-parameterized-const $smd_eo.SmtTerm ((t $smt_Term :opaque)) $eo_Term)
 (define $eo_smt_term ((t $smt_Term)) ($smd_eo.SmtTerm t))
 (declare-parameterized-const $smd_eo.SmtType ((t $smt_Type :opaque)) $eo_Term)
@@ -141,6 +139,8 @@
   ($smd_sm.String s))
 (define $vsm_true () ($vsm_term $sm_mk_true))
 (define $vsm_false () ($vsm_term $sm_mk_false))
+(define $eo_mk_fun_type ((T1 $eo_Term) (T2 $eo_Term)) 
+  ($eo_apply ($eo_apply $eo_fun_type T1) T2))
 (define $eo_mk_bool ((x $smt_builtin_Bool))
   ($eo_smt_term ($sm_mk_bool x)))
 (define $eo_mk_numeral ((x $smt_builtin_Int))

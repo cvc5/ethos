@@ -228,11 +228,9 @@
   $eo_Term)
 (define $eo_apply ((x $eo_Term) (y $eo_Term)) ($smd_eo.Apply x y))
 
-; The Eunoia function type
-(declare-parameterized-const $smd_eo.FunType
-  ((t1 $eo_Term :opaque) (t2 $eo_Term :opaque))
-  $eo_Term)
-(define $eo_fun_type ((t1 $eo_Term) (t2 $eo_Term)) ($smd_eo.FunType t1 t2))
+; Function type, which Eunoia function type reduces to
+(declare-parameterized-const $smd_eo.FunType () $eo_Term)
+(define $eo_fun_type () $smd_eo.FunType)
 
 ; The Eunoia representation of an SMT-LIB term.
 (declare-parameterized-const $smd_eo.SmtTerm ((t $smt_Term :opaque)) $eo_Term)
@@ -271,6 +269,12 @@
 
 (define $vsm_true () ($vsm_term $sm_mk_true))
 (define $vsm_false () ($vsm_term $sm_mk_false))
+
+; return: The embedding of (-> T1 T2).
+; note: Since the Eunoia function type is an atomic term, this becomes a
+;       curried apply.
+(define $eo_mk_fun_type ((T1 $eo_Term) (T2 $eo_Term)) 
+  ($eo_apply ($eo_apply $eo_fun_type T1) T2))
 
 ;;; Defining parametric bitvector operators
 

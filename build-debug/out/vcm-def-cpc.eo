@@ -263,11 +263,9 @@
   $eo_Term)
 (define $eo_apply ((x $eo_Term) (y $eo_Term)) ($smd_eo.Apply x y))
 
-; The Eunoia function type
-(declare-parameterized-const $smd_eo.FunType
-  ((t1 $eo_Term :opaque) (t2 $eo_Term :opaque))
-  $eo_Term)
-(define $eo_fun_type ((t1 $eo_Term) (t2 $eo_Term)) ($smd_eo.FunType t1 t2))
+; Function type, which Eunoia function type reduces to
+(declare-parameterized-const $smd_eo.FunType () $eo_Term)
+(define $eo_fun_type () $smd_eo.FunType)
 
 ; The Eunoia representation of an SMT-LIB term.
 (declare-parameterized-const $smd_eo.SmtTerm ((t $smt_Term :opaque)) $eo_Term)
@@ -306,6 +304,12 @@
 
 (define $vsm_true () ($vsm_term $sm_mk_true))
 (define $vsm_false () ($vsm_term $sm_mk_false))
+
+; return: The embedding of (-> T1 T2).
+; note: Since the Eunoia function type is an atomic term, this becomes a
+;       curried apply.
+(define $eo_mk_fun_type ((T1 $eo_Term) (T2 $eo_Term)) 
+  ($eo_apply ($eo_apply $eo_fun_type T1) T2))
 
 ;;; Defining parametric bitvector operators
 
@@ -1457,8 +1461,8 @@
 (program $smtx_typeof_map ((T $smt_builtin_Int) (j $smt_Value) (e $smt_Value) (m $smt_Map))
   :signature ($eo_Term $smt_Map) $eo_Term
   (
-  (($smtx_typeof_map T ($msm_cons j e m))   ($eo_fun_type ($eo_reverse_hash ($eo_mk_numeral T)) ($smtx_typeof_value e)))
-  (($smtx_typeof_map T ($msm_default e))    ($eo_fun_type ($eo_reverse_hash ($eo_mk_numeral T)) ($smtx_typeof_value e)))
+  (($smtx_typeof_map T ($msm_cons j e m))   ($eo_mk_fun_type ($eo_reverse_hash ($eo_mk_numeral T)) ($smtx_typeof_value e)))
+  (($smtx_typeof_map T ($msm_default e))    ($eo_mk_fun_type ($eo_reverse_hash ($eo_mk_numeral T)) ($smtx_typeof_value e)))
   )
 )
 
@@ -1466,7 +1470,7 @@
 (program $smtx_typeof_apply ((T $eo_Term) (U $eo_Term))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
-  (($smtx_typeof_apply ($eo_fun_type T U) T) U)
+  (($smtx_typeof_apply ($eo_mk_fun_type T U) T) U)
   )
 )
 

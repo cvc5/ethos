@@ -290,6 +290,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     Kind ck = tcur.getKind();
     std::stringstream cname;
     bool printArgs = false;
+    bool isFunType = (ck == Kind::FUNCTION_TYPE);
     size_t printArgStart = 0;
     // std::cout << "  patMatch: " << tcur << " / " << currTerm << " / "
     //           << metaKindToString(parent) << " / kind " << ck
@@ -340,7 +341,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     {
       // TODO: can this occur?
       // maybe if reasoning about function as first class argument?
-      cname << metaKindToPrefix(parent) << "FunType";
+      cname << metaKindToPrefix(parent) << "Apply";
       printArgs = true;
     }
     else if (ck == Kind::APPLY_OPAQUE)
@@ -375,8 +376,21 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
         std::stringstream ssNext;
         ssNext << "(" << cname.str() << ".arg" << (i + 1 - printArgStart) << " "
                << currTerm << ")";
-        // the next type is "reset"
-        visit.emplace_back(tcur[i], ssNext.str(), targs[i]);
+        // special case: since (-> T U) is (_ (_ -> T) U)
+        if (i==0 && isFunType)
+        {
+          std::stringstream testerf;
+          testerf << "((_ is eo.FunType) (eo.Apply.arg1 " << ssNext.str() << "))";
+          print.push(testerf.str());
+          std::stringstream ssNext2;
+          ssNext2 << "(eo.Apply.arg2 " << ssNext.str() << ")";
+          visit.emplace_back(tcur[i], ssNext2.str(), targs[i]);
+        }
+        else
+        {
+          // the next type is "reset"
+          visit.emplace_back(tcur[i], ssNext.str(), targs[i]);
+        }
       }
     }
     else if (ck == Kind::PARAM)
@@ -410,7 +424,6 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     }
     else
     {
-      // TODO: should be a non-opaque!
       Attr attr = d_state.getConstructorKind(tcur.getValue());
       Assert(attr != Attr::AMB) << "Matching on amb " << tcur;
       // base case, use equality
@@ -477,6 +490,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
   std::map<Expr, std::string>::const_iterator it;
   std::map<Expr, MetaKind>::const_iterator ittc;
   std::map<std::pair<Expr, MetaKind>, size_t> cparen;
+  std::map<std::pair<Expr, MetaKind>, bool> pushedChildren;
   std::map<std::pair<Expr, MetaKind>, size_t>::iterator itc;
   std::stringstream osEnd;
   std::vector<Expr> ll;
@@ -502,17 +516,22 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     MetaKind parent = cur.second;
     std::pair<Expr, MetaKind> key(recTerm, parent);
     itc = cparen.find(key);
-    if (itc != cparen.end())
+    if (pushedChildren.find(key)!=pushedChildren.end())
     {
-      // NONE context means done with arguments, close the pending parens
-      for (size_t i = 0; i < itc->second; i++)
+      if (itc != cparen.end())
       {
-        os << ")";
+        // NONE context means done with arguments, close the pending parens
+        for (size_t i = 0; i < itc->second; i++)
+        {
+          os << ")";
+        }
+        cparen.erase(key);
       }
+      pushedChildren.erase(key);
       visit.pop_back();
-      cparen.erase(key);
       continue;
     }
+    pushedChildren[key] = true;
     // otherwise, we check for a change of context and insert a cast if
     // necessary compute the child context
     Kind ck = recTerm.getKind();
@@ -645,11 +664,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       {
         os << recTerm;
       }
-      // dont pop back if we need to close parens
-      if (cparen.find(key) == cparen.end())
-      {
-        visit.pop_back();
-      }
       continue;
     }
     else if (recTerm.getNumChildren() == 0)
@@ -658,11 +672,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       // We handle SMT vs SMT_BUILTIN within that method
       // std::cout << "print emb atomic term: " << recTerm << std::endl;
       printEmbAtomicTerm(recTerm, os);
-      // dont pop back if we need to close parens
-      if (cparen.find(key) == cparen.end())
-      {
-        visit.pop_back();
-      }
       continue;
     }
     // we always push all children at once
@@ -719,11 +728,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           // print as "true" not "(true)".
           // Assert (!embName.empty()) << "empty embed name, from " << recTerm;
           os << embName;
-          // don't pop as we may need to process closing parens if casted
-          if (cparen.find(key) == cparen.end())
-          {
-            visit.pop_back();
-          }
           continue;
         }
       }
@@ -738,8 +742,12 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     {
       Assert(recTerm.getNumChildren() == 2);
       // use the final deep embedding
-      os << "(eo.FunType ";
+      os << "(eo.Apply (eo.Apply eo.FunType ";
       cparen[key]++;
+      // proactively insert a parenthesis after the first argument based on
+      // the curried apply above.
+      std::pair<Expr, MetaKind> fwdKey(recTerm[0], MetaKind::EUNOIA);
+      cparen[fwdKey]++;
     }
     else if (isLiteralOp(ck))
     {
