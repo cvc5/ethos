@@ -7,6 +7,7 @@ ethos 0.2.1 pre-release
 - Removes support for `eo::match`, which was equivalent to invoking an auxiliary function. These auxiliary functions now should be defined explicitly.
 - Adds builtin list operators `eo::list_diff` (difference) and `eo::list_inter` (intersection)
 - Removes support for oracles and the command `declare-oracle-fun`. Custom extensions are now recommended to be added via the plugin feature, which provides an interface for custom evaluation (Plugin::hasEvaluation).
+- Evaluation is now forbidden in types of parameters and in the argument types of programs.
 
 
 ethos 0.2.0
