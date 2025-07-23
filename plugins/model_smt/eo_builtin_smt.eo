@@ -163,17 +163,19 @@
 ;;; SMT value datatype constructors
 
 ; A value denoting a map.
+; note: Similar to $eo_Var we store the hash of its type.
 (declare-parameterized-const $smd_vsm.Map
-  ((T $eo_Term :opaque) (m $smt_Map :opaque))
+  ((T $smt_builtin_Int :opaque) (m $smt_Map :opaque))
   $smt_Value)
-(define $vsm_map ((T $eo_Term) (m $smt_Map))
+(define $vsm_map ((T $smt_builtin_Int) (m $smt_Map))
   ($smd_vsm.Map T m))
 
 ; A value denoting an uninterpreted constant.
+; note: Similar to $eo_Var we store the hash of its type.
 (declare-parameterized-const $smd_vsm.UConst
-  ((T $eo_Term :opaque) (id $smt_builtin_Int :opaque))
+  ((T $smt_builtin_Int :opaque) (id $smt_builtin_Int :opaque))
   $smt_Value)
-(define $vsm_uconst ((T $eo_Term) (id $smt_builtin_Int))
+(define $vsm_uconst ((T $smt_builtin_Int) (id $smt_builtin_Int))
   ($smd_vsm.UConst T id))
 
 ; A value represented by an SMT-LIB term. This is used for types

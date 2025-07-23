@@ -94,7 +94,7 @@
 ; TODO: use $smtx_map_is_redundant.
 ; Also requires a sortedness and non-exhaustiveness conditions.
 (program $smtx_map_is_value ()
-  :signature ($smt_Type $smt_Map) $smt_builtin_Bool)
+  :signature ($smt_builtin_Int $smt_Map) $smt_builtin_Bool)
 
 ;;; Utilities for Datatype values
 
@@ -143,7 +143,7 @@
       ($vsm_apply ($vsm_term t) $vsm_not_value)
       $vsm_not_value)))
 
-(define $smt_mk_value_map ((T $eo_Term) (m $smt_Map))
+(define $smt_mk_value_map ((T $smt_builtin_Int) (m $smt_Map))
   ($smt_apply_3 "ite"
     ($smtx_map_is_value T m)
     ($vsm_map T m)
@@ -151,7 +151,8 @@
 
 ; program: $smtx_is_value
 (program $smtx_is_value
-  ((t $smt_Term) (f $smt_Value) (v $smt_Value) (T $eo_Term) (m $smt_Map) (id $smt_builtin_Int))
+  ((t $smt_Term) (f $smt_Value) (v $smt_Value) (T $eo_Term) (m $smt_Map)
+   (T $smt_builtin_Int) (id $smt_builtin_Int))
   :signature ($smt_Value) $smt_builtin_Bool
   (
   (($smtx_is_value ($vsm_term t))         ($smtx_term_is_value t))
@@ -172,7 +173,7 @@
 ; return: >
 ;   v itself if it denotes a proper SMT-LIB value, or $vsm_not_value otherwise.
 (program $smtx_ensure_value
-  ((v $smt_Value) (t $smt_Term) (T $eo_Term) (m $smt_Map) (id $smt_builtin_Int))
+  ((v $smt_Value) (t $smt_Term) (T $smt_builtin_Int) (m $smt_Map) (id $smt_builtin_Int))
   :signature ($smt_Value) $smt_Value
   (
   (($smtx_ensure_value ($vsm_term t))         ($smt_mk_value_term t))
@@ -250,7 +251,7 @@ $SMT_MODEL_LOOKUP_PREDICATE_CASES$
 ; respectively. If value_f is a map value, then we extract
 ; the map and call the map lookup routine.
 (program $smtx_model_eval_apply
-  ((T $eo_Term) (m $smt_Map) (i $smt_Value) (f $smt_Value) (v $smt_Value))
+  ((T $smt_builtin_Int) (m $smt_Map) (i $smt_Value) (f $smt_Value) (v $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
   ; If a Herbrand interpretation, apply it to the next value.
@@ -394,11 +395,11 @@ $SMT_EVAL_CASES$
 (program $smtx_typeof_value () :signature ($smt_Value) $eo_Term)
 
 ; note: Helper for below.
-(program $smtx_typeof_map ((T $eo_Term) (j $smt_Value) (e $smt_Value) (m $smt_Map))
+(program $smtx_typeof_map ((T $smt_builtin_Int) (j $smt_Value) (e $smt_Value) (m $smt_Map))
   :signature ($eo_Term $smt_Map) $eo_Term
   (
-  (($smtx_typeof_map T ($msm_cons j e m))   (-> T ($smtx_typeof_value e)))
-  (($smtx_typeof_map T ($msm_default e))    (-> T ($smtx_typeof_value e)))
+  (($smtx_typeof_map T ($msm_cons j e m))   ($eo_fun_type ($eo_reverse_hash ($eo_mk_numeral T)) ($smtx_typeof_value e)))
+  (($smtx_typeof_map T ($msm_default e))    ($eo_fun_type ($eo_reverse_hash ($eo_mk_numeral T)) ($smtx_typeof_value e)))
   )
 )
 
@@ -406,21 +407,21 @@ $SMT_EVAL_CASES$
 (program $smtx_typeof_apply ((T $eo_Term) (U $eo_Term))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
-  (($smtx_typeof_apply (-> T U) T) U)
+  (($smtx_typeof_apply ($eo_fun_type T U) T) U)
   )
 )
 
 (program $smtx_typeof_value
-  ((val $smt_Value) (T $eo_Term) (m $smt_Map) (id $smt_builtin_Int) (f $smt_Value) (a $smt_Term) (U $smt_Type))
+  ((val $smt_Value) (T $smt_builtin_Int) (m $smt_Map) (id $smt_builtin_Int) (f $smt_Value) (a $smt_Term) (U $smt_Type))
   :signature ($smt_Value) $eo_Term
   (
   (($smtx_typeof_value ($vsm_apply f val))
-    ($smtx_typeof_apply ($smtx_typeof f) ($smtx_typeof val)))
+    ($smtx_typeof_apply ($smtx_typeof_value f) ($smtx_typeof_value val)))
   ; the type of a value term is the type of its term.
   (($smtx_typeof_value ($vsm_term a))         ($smtx_typeof ($eo_smt_term a)))
   (($smtx_typeof_value ($vsm_map T m))        ($smtx_typeof_map T m))
   ; the type of uninterpreted constants carry its type.
-  (($smtx_typeof_value ($vsm_uconst T id))    T)
+  (($smtx_typeof_value ($vsm_uconst T id))    ($eo_reverse_hash ($eo_mk_numeral T)))
   ; the type of not-values is the null sort.
   (($smtx_typeof_value val)                   ($tsm_NullSort $smt_builtin_z_zero))
   )

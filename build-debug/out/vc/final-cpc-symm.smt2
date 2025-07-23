@@ -65,7 +65,7 @@
   ; smt-cons: SmtType
   (eo.SmtType (eo.SmtType.arg1 tsm.Type))
   ; smt-cons: Var
-  (eo.Var (eo.Var.arg1 String) (eo.Var.arg2 eo.Term))
+  (eo.Var (eo.Var.arg1 String) (eo.Var.arg2 Int))
   ; user-decl: $eo_List
   (eo.$eo_List)
   ; user-decl: $eo_List_nil
@@ -76,9 +76,9 @@
   )
   (
   ; smt-cons: Map
-  (vsm.Map (vsm.Map.arg1 eo.Term) (vsm.Map.arg2 msm.Map))
+  (vsm.Map (vsm.Map.arg1 Int) (vsm.Map.arg2 msm.Map))
   ; smt-cons: UConst
-  (vsm.UConst (vsm.UConst.arg1 eo.Term) (vsm.UConst.arg2 Int))
+  (vsm.UConst (vsm.UConst.arg1 Int) (vsm.UConst.arg2 Int))
   ; smt-cons: Term
   (vsm.Term (vsm.Term.arg1 sm.Term))
   ; smt-cons: Apply
@@ -129,6 +129,9 @@
 ; fwd-decl: $eo_hash
 (declare-fun $eo_hash (eo.Term) eo.Term)
 
+; fwd-decl: $eo_reverse_hash
+(declare-fun $eo_reverse_hash (eo.Term) eo.Term)
+
 ; fwd-decl: $eo_typeof_main
 (declare-fun $eo_typeof_main (eo.Term) eo.Term)
 
@@ -148,7 +151,7 @@
   (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Binary) (eo.SmtTerm.arg1 x1)))
     eo.Type
   (ite ((_ is eo.Var) x1)
-    (eo.Var.arg2 x1)
+    ($eo_reverse_hash (eo.SmtTerm (sm.Numeral (eo.Var.arg2 x1))))
   (ite true
     ($eo_typeof_main x1)
     eo.Stuck))))))))) :pattern (($eo_typeof x1)))) :named sm.axiom.$eo_typeof))
@@ -261,7 +264,7 @@
 ))) :pattern (($smtx_map_lookup x1 x2)))) :named sm.axiom.$smtx_map_lookup))
 
 ; fwd-decl: $smtx_map_is_value
-(declare-fun $smtx_map_is_value (tsm.Type msm.Map) Bool)
+(declare-fun $smtx_map_is_value (Int msm.Map) Bool)
 
 ; program: $smtx_term_is_value
 (define-fun $smtx_term_is_value ((x1 sm.Term)) Bool
@@ -282,7 +285,7 @@
   (ite ((_ is vsm.Term) x1)
     ($smtx_term_is_value (vsm.Term.arg1 x1))
   (ite ((_ is vsm.Map) x1)
-    ($smtx_map_is_value (eo.SmtType.arg1 (vsm.Map.arg1 x1)) (vsm.Map.arg2 x1))
+    ($smtx_map_is_value (vsm.Map.arg1 x1) (vsm.Map.arg2 x1))
   (ite ((_ is vsm.UConst) x1)
     true
   (ite (and ((_ is vsm.Apply) x1) (= (vsm.Apply.arg2 x1) vsm.NotValue) ((_ is vsm.Term) (vsm.Apply.arg1 x1)))
@@ -297,7 +300,7 @@
   (ite ((_ is vsm.Term) x1)
     (ite ($smtx_term_is_value (vsm.Term.arg1 x1)) (vsm.Term (vsm.Term.arg1 x1)) (ite (not (= ($eo_dt_selectors (eo.SmtTerm (vsm.Term.arg1 x1))) eo.Stuck)) (vsm.Apply (vsm.Term (vsm.Term.arg1 x1)) vsm.NotValue) vsm.NotValue))
   (ite ((_ is vsm.Map) x1)
-    (ite ($smtx_map_is_value (eo.SmtType.arg1 (vsm.Map.arg1 x1)) (vsm.Map.arg2 x1)) (vsm.Map (vsm.Map.arg1 x1) (vsm.Map.arg2 x1)) vsm.NotValue)
+    (ite ($smtx_map_is_value (vsm.Map.arg1 x1) (vsm.Map.arg2 x1)) (vsm.Map (vsm.Map.arg1 x1) (vsm.Map.arg2 x1)) vsm.NotValue)
   (ite ((_ is vsm.UConst) x1)
     (vsm.UConst (vsm.UConst.arg1 x1) (vsm.UConst.arg2 x1))
     vsm.NotValue
@@ -447,9 +450,8 @@
     (and
       ((_ is eo.SmtTerm) ($eo_hash x))
       ((_ is sm.Numeral) (eo.SmtTerm.arg1 ($eo_hash x)))))) :named sm.hash_numeral))
-(assert (! (forall ((x eo.Term) (y eo.Term))
-  (=> (and (not (= x eo.Stuck)) (not (= y eo.Stuck))
-    (= ($eo_hash x) ($eo_hash y))) (= x y))) :named sm.hash_injective))
+(assert (! (forall ((x eo.Term))
+    (= ($eo_reverse_hash ($eo_hash x)) x)) :named sm.hash_injective))
 
 ; This axiom gives semantics to model lookups for partial functions
 (assert (! (forall ((t sm.Term))

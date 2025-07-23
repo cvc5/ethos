@@ -74,9 +74,9 @@
   )
   (
   ; smt-cons: Map
-  (vsm.Map (vsm.Map.arg1 eo.Term) (vsm.Map.arg2 msm.Map))
+  (vsm.Map (vsm.Map.arg1 Int) (vsm.Map.arg2 msm.Map))
   ; smt-cons: UConst
-  (vsm.UConst (vsm.UConst.arg1 eo.Term) (vsm.UConst.arg2 Int))
+  (vsm.UConst (vsm.UConst.arg1 Int) (vsm.UConst.arg2 Int))
   ; smt-cons: Term
   (vsm.Term (vsm.Term.arg1 sm.Term))
   ; smt-cons: Apply
@@ -250,7 +250,7 @@
 ))) :pattern (($smtx_map_lookup x1 x2)))) :named sm.axiom.$smtx_map_lookup))
 
 ; fwd-decl: $smtx_map_is_value
-(declare-fun $smtx_map_is_value (tsm.Type msm.Map) Bool)
+(declare-fun $smtx_map_is_value (Int msm.Map) Bool)
 
 ; program: $smtx_term_is_value
 (define-fun $smtx_term_is_value ((x1 sm.Term)) Bool
@@ -271,7 +271,7 @@
   (ite ((_ is vsm.Term) x1)
     ($smtx_term_is_value (vsm.Term.arg1 x1))
   (ite ((_ is vsm.Map) x1)
-    ($smtx_map_is_value (eo.SmtType.arg1 (vsm.Map.arg1 x1)) (vsm.Map.arg2 x1))
+    ($smtx_map_is_value (vsm.Map.arg1 x1) (vsm.Map.arg2 x1))
   (ite ((_ is vsm.UConst) x1)
     true
   (ite (and ((_ is vsm.Apply) x1) (= (vsm.Apply.arg2 x1) vsm.NotValue) ((_ is vsm.Term) (vsm.Apply.arg1 x1)))
@@ -286,7 +286,7 @@
   (ite ((_ is vsm.Term) x1)
     (ite ($smtx_term_is_value (vsm.Term.arg1 x1)) (vsm.Term (vsm.Term.arg1 x1)) (ite (not (= ($eo_dt_selectors (eo.SmtTerm (vsm.Term.arg1 x1))) eo.Stuck)) (vsm.Apply (vsm.Term (vsm.Term.arg1 x1)) vsm.NotValue) vsm.NotValue))
   (ite ((_ is vsm.Map) x1)
-    (ite ($smtx_map_is_value (eo.SmtType.arg1 (vsm.Map.arg1 x1)) (vsm.Map.arg2 x1)) (vsm.Map (vsm.Map.arg1 x1) (vsm.Map.arg2 x1)) vsm.NotValue)
+    (ite ($smtx_map_is_value (vsm.Map.arg1 x1) (vsm.Map.arg2 x1)) (vsm.Map (vsm.Map.arg1 x1) (vsm.Map.arg2 x1)) vsm.NotValue)
   (ite ((_ is vsm.UConst) x1)
     (vsm.UConst (vsm.UConst.arg1 x1) (vsm.UConst.arg2 x1))
     vsm.NotValue
