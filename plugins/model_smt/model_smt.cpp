@@ -89,7 +89,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("str.<=", {Kind::STRING, Kind::STRING}, Kind::BOOLEAN);
   addConstFoldSym("str.<", {Kind::STRING, Kind::STRING}, Kind::BOOLEAN);
   // bitvectors
-  addLiteralReduceSym("bvand", {Kind::BINARY, Kind::BINARY}, Kind::ANY, "($vsm_term ($sm_mk_binary x1 ($smtx_binary_and x1 x2 x4)))");
+  addLiteralBinReduceSym("bvand", {Kind::BINARY, Kind::BINARY}, "x1", "($smtx_binary_and x1 x2 x4)");
+  addLiteralBinReduceSym("bvor", {Kind::BINARY, Kind::BINARY}, "x1", "($smtx_binary_or x1 x2 x4)");
+  addLiteralBinReduceSym("bvxor", {Kind::BINARY, Kind::BINARY}, "x1", "($smtx_binary_xor x1 x2 x4)");
   addTermReduceSym("bvsle", {Kind::BINARY, Kind::BINARY}, "(bvsge x2 x1)");
   addTermReduceSym("bvule", {Kind::BINARY, Kind::BINARY}, "(bvuge x2 x1)");
   addTermReduceSym("bvslt", {Kind::BINARY, Kind::BINARY}, "(bvsgt x2 x1)");
@@ -134,6 +136,16 @@ void ModelSmt::addConstFoldSym(const std::string& sym,
                             Kind ret)
 {
   d_symConstFold[sym] = std::pair<std::vector<Kind>, Kind>(args, ret);
+}
+
+void ModelSmt::addLiteralBinReduceSym(const std::string& sym,
+                  const std::vector<Kind>& args,
+                  const std::string& retWidth,
+                          const std::string& retNum)
+{
+  std::stringstream ssr;
+  ssr << "($vsm_term ($sm_mk_binary " << retWidth << " " << retNum << "))";
+  addLiteralReduceSym(sym, args, Kind::ANY, ssr.str());
 }
 
 void ModelSmt::addLiteralReduceSym(const std::string& sym,
