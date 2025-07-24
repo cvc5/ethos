@@ -36,11 +36,11 @@ class ModelSmt : public StdPlugin
   void addConstFoldSym(const std::string& sym,
                        const std::vector<Kind>& args,
                        Kind ret);
-  void addLiteralBinReduceSym(const std::string& sym,
+  void addLitBinSym(const std::string& sym,
                               const std::vector<Kind>& args,
                               const std::string& retWidth,
                               const std::string& retNum);
-  void addLiteralReduceSym(const std::string& sym,
+  void addLitSym(const std::string& sym,
                            const std::vector<Kind>& args,
                            Kind ret,
                            const std::string& retTerm);
