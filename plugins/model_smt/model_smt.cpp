@@ -103,6 +103,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitBinSym("bvor", {kBitVec, kBitVec}, "x1", "($smtx_binary_or x1 x2 x4)");
   addLitBinSym(
       "bvxor", {kBitVec, kBitVec}, "x1", "($smtx_binary_xor x1 x2 x4)");
+  addLitBinSym("bvnot", {kBitVec}, "x1", "($smtx_binary_not x1 x2)");
+  addLitBinSym("bvneg", {kBitVec}, "x1", "($smt_builtin_neg x2)");
   // the following are program cases in the main method of the form
   // (($smtx_model_eval (f x1 x2)) ($smtx_model_eval <return>))
   addTermReduceSym("bvsle", {kBitVec, kBitVec}, "(bvsge x2 x1)");
