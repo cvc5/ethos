@@ -142,11 +142,22 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
     addReduceSym(i == 0 ? "exists" : "forall", {Kind::ANY, kBool}, ssq.str());
   }
 
-  ///----- non standard extensions
+  ///----- non standard extensions and skolems
+  // builtin
+  addTermReduceSym("@purify", {kT}, "x1");
+  // arithmetic
   addConstFoldSym("^", {kT, kT}, kT);
   addConstFoldSym("/_total", {kT, kT}, kReal);
   addConstFoldSym("div_total", {kInt, kInt}, kInt);
   addConstFoldSym("mod_total", {kInt, kInt}, kInt);
+  addConstFoldSym("int.pow2", {kInt}, kInt);
+  addTermReduceSym("@int_div_by_zero", {kInt}, "(div x1 0)");
+  addTermReduceSym("@int_div_by_zero", {kInt}, "(mod x1 0)");
+  addTermReduceSym("@div_by_zero", {kReal}, "(/ x1 0/1)");
+  // TODO: is this right? if so, simplify CPC
+  addTermReduceSym("int.log2", {kInt}, "(div x1 (int.pow2 x1))");
+  addTermReduceSym("int.ispow2", {kInt}, "(= x1 (int.pow2 (int.log2 x1)))");
+  // strings
   addConstFoldSym("str.update", {kString, kInt, kString}, kString);
   addConstFoldSym("str.rev", {kString}, kString);
   addConstFoldSym("str.to_lower", {kString}, kString);
@@ -160,20 +171,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTermReduceSym("@strings_stoi_non_digit",
                    {kString},
                    "(str.indexof_re x1 (re.comp (re.range \"0\" \"9\")) 0)");
-  // addConstFoldSym("int.ispow2", {kInt, kInt},
-  // kBool); addConstFoldSym("int.log2", {kInt, kInt},
-  // kInt);
-  addConstFoldSym("int.pow2", {kInt}, kInt);
+  // bitvectors
+  addTermReduceSym("bvite", {kBitVec, kBitVec, kBitVec}, "(ite (= x1 b1) x2 x3)");
+  addTermReduceSym("bvcomp", {kBitVec, kBitVec}, "(ite (= x1 x2) #b1 #b0)");
   addLitSym("@bvsize", {kBitVec}, kInt, "x1");
   addLitBinSym("@bv", {kInt, kInt}, "x2", "x1");
   addTermReduceSym("@bit", {kInt, kBitVec}, "(extract x1 x1 x2)");
-  addTermReduceSym("@purify", {kT}, "x1");
-  addTermReduceSym("@int_div_by_zero", {kInt}, "(div x1 0)");
-  addTermReduceSym("@int_div_by_zero", {kInt}, "(mod x1 0)");
-  addTermReduceSym("@div_by_zero", {kReal}, "(/ x1 0/1)");
-  // TODO: is this right? if so, simplify CPC
-  addTermReduceSym("int.log2", {kInt}, "(div x1 (int.pow2 x1))");
-  addTermReduceSym("int.ispow2", {kInt}, "(= x1 (int.pow2 (int.log2 x1)))");
 }
 
 ModelSmt::~ModelSmt() {}
