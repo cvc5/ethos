@@ -918,13 +918,11 @@
 (define $smtx_cmp ((T Type :implicit) (a T) (b T))
   ($smt_apply_2 "<=" ($smtx_hash a) ($smtx_hash b)))
 
-; final-decl: $smtx_value_hash
+; define: $smtx_value_hash
 ; note: this is an arbitrary hash for SMT values, defined axiomatically.
-(program $smtx_value_hash () :signature ($smt_Value) $smt_builtin_Int)
-
-; final-decl: $vsm_reverse_hash
-; note: this is the inverse of $smtx_value_hash, which will be defined axiomatically.
-(program $vsm_reverse_hash () :signature ($smt_builtin_Int) $smt_Value)
+; We rely on embedding values into constants, which are Eunoia terms.
+(define $smtx_value_hash ((v $smt_Value))
+  ($smtx_hash ($eo_smt_term ($sm_Const v))))
 
 ; The SMT-LIB comparison of two SMT-LIB values.
 (define $smtx_value_cmp ((a $smt_Value) (b $smt_Value))

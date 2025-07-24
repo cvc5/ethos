@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_arrays_ext
-; #trim-defs: 122
+; #trim-defs: 121
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -133,8 +133,8 @@
   ($smt_apply_1 "not" ($smt_apply_= x $eo_stuck)))
 (program $smtx_hash ((T Type)) :signature (T) $smt_builtin_Int)
 (program $eo_reverse_hash () :signature ($smt_builtin_Int) $eo_Term)
-(program $smtx_value_hash () :signature ($smt_Value) $smt_builtin_Int)
-(program $vsm_reverse_hash () :signature ($smt_builtin_Int) $smt_Value)
+(define $smtx_value_hash ((v $smt_Value))
+  ($smtx_hash ($eo_smt_term ($sm_Const v))))
 (declare-const $eo_List Type)
 (declare-const $eo_List_nil $eo_List)
 (declare-parameterized-const $eo_List_cons ((T Type :implicit))
