@@ -91,6 +91,13 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("str.<=", {kString, kString}, kBool);
   addConstFoldSym("str.<", {kString, kString}, kBool);
   // bitvectors
+  // the following are return terms of program cases of the form:
+  // (($smtx_model_eval_*
+  //    ($vsm_term ($sm_binary x1 x2)) ($vsm_term ($sm_binary x3 x4)))
+  //    <return-term>)
+  // where x1, x3 denote bitwidths and x2, x4 denote values.
+  addLitBinSym(
+      "bvadd", {kBitVec, kBitVec}, "x1", "($smt_builtin_add x2 x4)");
   addLitBinSym(
       "bvand", {kBitVec, kBitVec}, "x1", "($smtx_binary_and x1 x2 x4)");
   addLitBinSym("bvor", {kBitVec, kBitVec}, "x1", "($smtx_binary_or x1 x2 x4)");
@@ -382,7 +389,7 @@ void ModelSmt::printAuxProgramCase(const std::string& name,
     progCases << " ($vsm_term";
     if (ka == Kind::BINARY)
     {
-      progCases << " ($sm_mk_binary x" << paramCount << " x" << (paramCount + 1)
+      progCases << " ($sm_binary x" << paramCount << " x" << (paramCount + 1)
                 << "))";
       progParams << "(x" << paramCount << " $smt_builtin_Int)";
       progParams << " (x" << (paramCount + 1) << " $smt_builtin_Int)";
