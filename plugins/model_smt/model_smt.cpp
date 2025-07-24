@@ -115,6 +115,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                "($smtx_binary_concat x1 x2 x3 x4)");
   // the following are program cases in the main method of the form
   // (($smtx_model_eval (f x1 x2)) ($smtx_model_eval <return>))
+  addTermReduceSym("bvsub", {kBitVec, kBitVec}, "(bvadd x1 (bvneg x2))");
   addTermReduceSym("bvsle", {kBitVec, kBitVec}, "(bvsge x2 x1)");
   addTermReduceSym("bvule", {kBitVec, kBitVec}, "(bvuge x2 x1)");
   addTermReduceSym("bvslt", {kBitVec, kBitVec}, "(bvsgt x2 x1)");
@@ -122,6 +123,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTermReduceSym("nand", {kBitVec, kBitVec}, "(bvnot (bvand x1 x2))");
   addTermReduceSym("nor", {kBitVec, kBitVec}, "(bvnot (bvor x1 x2))");
   addTermReduceSym("xnor", {kBitVec, kBitVec}, "(bvnot (bvxor x1 x2))");
+  addTermReduceSym("bvuge", {kBitVec, kBitVec}, "(or (bvugt x1 x2) (= x1 x2))");
+  addTermReduceSym("bvsge", {kBitVec, kBitVec}, "(or (bvsgt x1 x2) (= x1 x2))");
   // arith/BV conversions
   addLitSym("ubv_to_int", {kBitVec}, kInt, "x2");
   addLitBinSym("int_to_bv", {kInt, kInt}, "x1", "x2");
@@ -149,6 +152,11 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("int.pow2", {kInt}, kInt);
   addLitSym("@bvsize", {kBitVec}, kInt, "x1");
   addLitBinSym("@bv", {kInt, kInt}, "x2", "x1");
+  addTermReduceSym("@bit", {kInt, kBitVec}, "(extract x1 x1 x2)");
+  addTermReduceSym("@purify", {kT}, "x1");
+  // TODO: is this right?
+  addTermReduceSym("int.log2", {kInt}, "(div x1 (int.pow2 x1))");
+  addTermReduceSym("int.ispow2", {kInt}, "(= x1 (int.pow2 (int.log2 x1)))");
 }
 
 ModelSmt::~ModelSmt() {}
