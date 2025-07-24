@@ -19,98 +19,104 @@ namespace ethos {
 
 ModelSmt::ModelSmt(State& s) : StdPlugin(s)
 {
-  d_kindToEoPrefix[Kind::BOOLEAN] = "bool";
-  d_kindToEoPrefix[Kind::NUMERAL] = "z";
-  d_kindToEoPrefix[Kind::RATIONAL] = "q";
-  d_kindToEoPrefix[Kind::STRING] = "str";
-  d_kindToEoPrefix[Kind::BINARY] = "bin";
-  d_kindToType[Kind::BOOLEAN] = "Bool";
-  d_kindToType[Kind::NUMERAL] = "Int";
-  d_kindToType[Kind::RATIONAL] = "Real";
-  d_kindToType[Kind::STRING] = "String";
-  d_kindToType[Kind::BINARY] = "Binary";
+  Kind kBool = Kind::BOOLEAN;
+  Kind kInt = Kind::NUMERAL;
+  Kind kReal = Kind::RATIONAL;
+  Kind kString = Kind::STRING;
+  Kind kBitVec = Kind::BINARY;
+  Kind kT = Kind::PARAM;
+  d_kindToEoPrefix[kBool] = "bool";
+  d_kindToEoPrefix[kInt] = "z";
+  d_kindToEoPrefix[kReal] = "q";
+  d_kindToEoPrefix[kString] = "str";
+  d_kindToEoPrefix[kBitVec] = "bin";
+  d_kindToType[kBool] = "Bool";
+  d_kindToType[kInt] = "Int";
+  d_kindToType[kReal] = "Real";
+  d_kindToType[kString] = "String";
+  d_kindToType[kBitVec] = "Binary";
   // All SMT-LIB symbols that have monomorphic return go here.
   // We have a NUMERAL category that we assume can be associated to Int,
   // Similar for the other literals.
   // Note that we model *SMT-LIB* not *CPC* here.
   // builtin
-  addHardCodeSym("=", {Kind::PARAM, Kind::PARAM});
-  addHardCodeSym("ite", {Kind::BOOLEAN, Kind::PARAM, Kind::PARAM});
+  addHardCodeSym("=", {kT, kT});
+  addHardCodeSym("ite", {kBool, kT, kT});
   // Booleans
-  addConstFoldSym("and", {Kind::BOOLEAN, Kind::BOOLEAN}, Kind::BOOLEAN);
-  addConstFoldSym("or", {Kind::BOOLEAN, Kind::BOOLEAN}, Kind::BOOLEAN);
-  addConstFoldSym("xor", {Kind::BOOLEAN, Kind::BOOLEAN}, Kind::BOOLEAN);
-  addConstFoldSym("=>", {Kind::BOOLEAN, Kind::BOOLEAN}, Kind::BOOLEAN);
-  addConstFoldSym("not", {Kind::BOOLEAN}, Kind::BOOLEAN);
+  addConstFoldSym("and", {kBool, kBool}, kBool);
+  addConstFoldSym("or", {kBool, kBool}, kBool);
+  addConstFoldSym("xor", {kBool, kBool}, kBool);
+  addConstFoldSym("=>", {kBool, kBool}, kBool);
+  addConstFoldSym("not", {kBool}, kBool);
   // arithmetic
-  // use Kind::PARAM to stand for either Int or Real arithmetic (not mixed)
-  // addConstFoldSym("Int", {}, Kind::TYPE);
-  // addConstFoldSym("Real", {}, Kind::TYPE);
-  addConstFoldSym("+", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
-  addConstFoldSym("-", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
-  addConstFoldSym("*", {Kind::PARAM, Kind::PARAM}, Kind::PARAM);
+  // use kT to stand for either Int or Real arithmetic (not mixed)
+  // addConstFoldSym("Int", {}, kType);
+  // addConstFoldSym("Real", {}, kType);
+  addConstFoldSym("+", {kT, kT}, kT);
+  addConstFoldSym("-", {kT, kT}, kT);
+  addConstFoldSym("*", {kT, kT}, kT);
   // we expect "-" to be overloaded, we look for its desugared name and map it
   // back
-  addConstFoldSym("$eoo_-.2", {Kind::PARAM}, Kind::PARAM);
+  addConstFoldSym("$eoo_-.2", {kT}, kT);
   d_overloadRevert["$eoo_-.2"] = "-";
-  addConstFoldSym("abs", {Kind::NUMERAL}, Kind::NUMERAL);
-  addConstFoldSym(">=", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
-  addConstFoldSym("<=", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
-  addConstFoldSym(">", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
-  addConstFoldSym("<", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
-  addConstFoldSym("is_int", {Kind::RATIONAL}, Kind::BOOLEAN);
-  addConstFoldSym("/", {Kind::RATIONAL, Kind::RATIONAL}, Kind::RATIONAL);
-  addConstFoldSym("div", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
-  addConstFoldSym("mod", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
-  addConstFoldSym("to_int", {Kind::RATIONAL}, Kind::NUMERAL);
-  addConstFoldSym("to_real", {Kind::NUMERAL}, Kind::RATIONAL);
+  addConstFoldSym("abs", {kInt}, kInt);
+  addConstFoldSym(">=", {kT, kT}, kBool);
+  addConstFoldSym("<=", {kT, kT}, kBool);
+  addConstFoldSym(">", {kT, kT}, kBool);
+  addConstFoldSym("<", {kT, kT}, kBool);
+  addConstFoldSym("is_int", {kReal}, kBool);
+  addConstFoldSym("/", {kReal, kReal}, kReal);
+  addConstFoldSym("div", {kInt, kInt}, kInt);
+  addConstFoldSym("mod", {kInt, kInt}, kInt);
+  addConstFoldSym("to_int", {kReal}, kInt);
+  addConstFoldSym("to_real", {kInt}, kReal);
   addTermReduceSym(
-      "divisible", {Kind::NUMERAL, Kind::NUMERAL}, "(= (mod x2 x1) 0)");
+      "divisible", {kInt, kInt}, "(= (mod x2 x1) 0)");
   // strings
-  // addConstFoldSym("String", {}, Kind::TYPE);
-  addConstFoldSym("str.++", {Kind::STRING, Kind::STRING}, Kind::STRING);
-  addConstFoldSym("str.len", {Kind::STRING}, Kind::NUMERAL);
+  // addConstFoldSym("String", {}, kType);
+  addConstFoldSym("str.++", {kString, kString}, kString);
+  addConstFoldSym("str.len", {kString}, kInt);
   addConstFoldSym(
-      "str.substr", {Kind::STRING, Kind::NUMERAL, Kind::NUMERAL}, Kind::STRING);
-  addConstFoldSym("str.at", {Kind::STRING, Kind::NUMERAL}, Kind::STRING);
+      "str.substr", {kString, kInt, kInt}, kString);
+  addConstFoldSym("str.at", {kString, kInt}, kString);
   addConstFoldSym("str.indexof",
-                  {Kind::STRING, Kind::STRING, Kind::NUMERAL},
-                  Kind::NUMERAL);
+                  {kString, kString, kInt},
+                  kInt);
   addConstFoldSym(
-      "str.replace", {Kind::STRING, Kind::STRING, Kind::STRING}, Kind::STRING);
+      "str.replace", {kString, kString, kString}, kString);
   addConstFoldSym("str.replace_all",
-                  {Kind::STRING, Kind::STRING, Kind::STRING},
-                  Kind::STRING);
-  addConstFoldSym("str.from_code", {Kind::NUMERAL}, Kind::STRING);
-  addConstFoldSym("str.to_code", {Kind::STRING}, Kind::NUMERAL);
-  addConstFoldSym("str.from_int", {Kind::NUMERAL}, Kind::STRING);
-  addConstFoldSym("str.to_int", {Kind::STRING}, Kind::NUMERAL);
-  addConstFoldSym("str.is_digit", {Kind::STRING}, Kind::BOOLEAN);
-  addConstFoldSym("str.contains", {Kind::STRING, Kind::STRING}, Kind::BOOLEAN);
-  addConstFoldSym("str.suffixof", {Kind::STRING, Kind::STRING}, Kind::BOOLEAN);
-  addConstFoldSym("str.prefixof", {Kind::STRING, Kind::STRING}, Kind::BOOLEAN);
-  addConstFoldSym("str.<=", {Kind::STRING, Kind::STRING}, Kind::BOOLEAN);
-  addConstFoldSym("str.<", {Kind::STRING, Kind::STRING}, Kind::BOOLEAN);
+                  {kString, kString, kString},
+                  kString);
+  addConstFoldSym("str.from_code", {kInt}, kString);
+  addConstFoldSym("str.to_code", {kString}, kInt);
+  addConstFoldSym("str.from_int", {kInt}, kString);
+  addConstFoldSym("str.to_int", {kString}, kInt);
+  addConstFoldSym("str.is_digit", {kString}, kBool);
+  addConstFoldSym("str.contains", {kString, kString}, kBool);
+  addConstFoldSym("str.suffixof", {kString, kString}, kBool);
+  addConstFoldSym("str.prefixof", {kString, kString}, kBool);
+  addConstFoldSym("str.<=", {kString, kString}, kBool);
+  addConstFoldSym("str.<", {kString, kString}, kBool);
   // bitvectors
   addLitBinSym("bvand",
-               {Kind::BINARY, Kind::BINARY},
+               {kBitVec, kBitVec},
                "x1",
                "($smtx_binary_and x1 x2 x4)");
   addLitBinSym(
-      "bvor", {Kind::BINARY, Kind::BINARY}, "x1", "($smtx_binary_or x1 x2 x4)");
+      "bvor", {kBitVec, kBitVec}, "x1", "($smtx_binary_or x1 x2 x4)");
   addLitBinSym("bvxor",
-               {Kind::BINARY, Kind::BINARY},
+               {kBitVec, kBitVec},
                "x1",
                "($smtx_binary_xor x1 x2 x4)");
-  addTermReduceSym("bvsle", {Kind::BINARY, Kind::BINARY}, "(bvsge x2 x1)");
-  addTermReduceSym("bvule", {Kind::BINARY, Kind::BINARY}, "(bvuge x2 x1)");
-  addTermReduceSym("bvslt", {Kind::BINARY, Kind::BINARY}, "(bvsgt x2 x1)");
-  addTermReduceSym("bvult", {Kind::BINARY, Kind::BINARY}, "(bvugt x2 x1)");
+  addTermReduceSym("bvsle", {kBitVec, kBitVec}, "(bvsge x2 x1)");
+  addTermReduceSym("bvule", {kBitVec, kBitVec}, "(bvuge x2 x1)");
+  addTermReduceSym("bvslt", {kBitVec, kBitVec}, "(bvsgt x2 x1)");
+  addTermReduceSym("bvult", {kBitVec, kBitVec}, "(bvugt x2 x1)");
   addTermReduceSym(
-      "nand", {Kind::BINARY, Kind::BINARY}, "(bvnot (bvand x1 x2))");
-  addTermReduceSym("nor", {Kind::BINARY, Kind::BINARY}, "(bvnot (bvor x1 x2))");
+      "nand", {kBitVec, kBitVec}, "(bvnot (bvand x1 x2))");
+  addTermReduceSym("nor", {kBitVec, kBitVec}, "(bvnot (bvor x1 x2))");
   addTermReduceSym(
-      "xnor", {Kind::BINARY, Kind::BINARY}, "(bvnot (bvxor x1 x2))");
+      "xnor", {kBitVec, kBitVec}, "(bvnot (bvxor x1 x2))");
   // Quantifiers
   for (size_t i = 0; i < 2; i++)
   {
@@ -118,30 +124,30 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
     ssq << "($smtx_eval_quant x1 x2 $smt_builtin_z_zero $smt_builtin_"
         << (i == 0 ? "true" : "false") << ")";
     addReduceSym(
-        i == 0 ? "exists" : "forall", {Kind::ANY, Kind::BOOLEAN}, ssq.str());
+        i == 0 ? "exists" : "forall", {Kind::ANY, kBool}, ssq.str());
   }
 
   ///----- non standard extensions
-  addConstFoldSym("^", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
-  addConstFoldSym("/_total", {Kind::PARAM, Kind::PARAM}, Kind::RATIONAL);
-  addConstFoldSym("div_total", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
-  addConstFoldSym("mod_total", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
+  addConstFoldSym("^", {kT, kT}, kBool);
+  addConstFoldSym("/_total", {kT, kT}, kReal);
+  addConstFoldSym("div_total", {kInt, kInt}, kInt);
+  addConstFoldSym("mod_total", {kInt, kInt}, kInt);
   addConstFoldSym(
-      "str.update", {Kind::STRING, Kind::NUMERAL, Kind::STRING}, Kind::STRING);
-  addConstFoldSym("str.rev", {Kind::STRING}, Kind::STRING);
-  addConstFoldSym("str.to_lower", {Kind::STRING}, Kind::STRING);
-  addConstFoldSym("str.to_upper", {Kind::STRING}, Kind::STRING);
-  // addConstFoldSym("int.ispow2", {Kind::NUMERAL, Kind::NUMERAL},
-  // Kind::BOOLEAN); addConstFoldSym("int.log2", {Kind::NUMERAL, Kind::NUMERAL},
-  // Kind::NUMERAL);
-  addConstFoldSym("int.pow2", {Kind::NUMERAL}, Kind::NUMERAL);
+      "str.update", {kString, kInt, kString}, kString);
+  addConstFoldSym("str.rev", {kString}, kString);
+  addConstFoldSym("str.to_lower", {kString}, kString);
+  addConstFoldSym("str.to_upper", {kString}, kString);
+  // addConstFoldSym("int.ispow2", {kInt, kInt},
+  // kBool); addConstFoldSym("int.log2", {kInt, kInt},
+  // kInt);
+  addConstFoldSym("int.pow2", {kInt}, kInt);
   // TODO: more
   // BV
   // arith/BV conversions
-  // addConstFoldSym("BitVec", {Kind::NUMERAL}, Kind::TYPE);
-  // addConstFoldSym("int_to_bv", {Kind::NUMERAL, Kind::NUMERAL}, Kind::BINARY);
-  // addConstFoldSym("ubv_to_int", {Kind::BINARY}, Kind::NUMERAL);
-  // addConstFoldSym("sbv_to_int", {Kind::BINARY}, Kind::NUMERAL);
+  // addConstFoldSym("BitVec", {kInt}, kType);
+  // addConstFoldSym("int_to_bv", {kInt, kInt}, kBitVec);
+  // addConstFoldSym("ubv_to_int", {kBitVec}, kInt);
+  // addConstFoldSym("sbv_to_int", {kBitVec}, kInt);
 }
 
 ModelSmt::~ModelSmt() {}
