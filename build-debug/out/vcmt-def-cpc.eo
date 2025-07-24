@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_evaluate
-; #trim-defs: 574
+; #trim-defs: 576
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -2884,6 +2884,22 @@
   (($smtx_model_eval_@bvsize t1) $vsm_not_value)
   )
 )
+(program $smtx_model_eval_concat
+  ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int) (x3 $smt_builtin_Int) (x4 $smt_builtin_Int) (t1 $smt_Value) (t2 $smt_Value))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_concat ($vsm_term ($sm_binary x1 x2)) ($vsm_term ($sm_binary x3 x4))) ($vsm_term ($sm_mk_binary ($smt_builtin_add x1 x3) ($smtx_binary_concat x1 x2 x3 x4))))
+  (($smtx_model_eval_concat t1 t2) $vsm_not_value)
+  )
+)
+(program $smtx_model_eval_extract
+  ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int) (x3 $smt_builtin_Int) (x4 $smt_builtin_Int) (t1 $smt_Value) (t2 $smt_Value) (t3 $smt_Value))
+  :signature ($smt_Value $smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_extract ($vsm_term ($sm_mk_z x1)) ($vsm_term ($sm_mk_z x2)) ($vsm_term ($sm_binary x3 x4))) ($vsm_term ($sm_mk_binary x3 ($smtx_binary_extract x3 x4 x1 x2))))
+  (($smtx_model_eval_extract t1 t2 t3) $vsm_not_value)
+  )
+)
 (program $smtx_model_eval_bvnot
   ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int) (t1 $smt_Value))
   :signature ($smt_Value) $smt_Value
@@ -3153,6 +3169,8 @@
   (($smtx_model_eval (/ x1 x2)) ($smtx_model_eval_/ ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (/_total x1 x2)) ($smtx_model_eval_/_total ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (@bvsize x1)) ($smtx_model_eval_@bvsize ($smtx_model_eval x1)))
+  (($smtx_model_eval (concat x1 x2)) ($smtx_model_eval_concat ($smtx_model_eval x1) ($smtx_model_eval x2)))
+  (($smtx_model_eval (extract x1 x2 x3)) ($smtx_model_eval_extract ($smtx_model_eval x1) ($smtx_model_eval x2) ($smtx_model_eval x3)))
   (($smtx_model_eval (bvnot x1)) ($smtx_model_eval_bvnot ($smtx_model_eval x1)))
   (($smtx_model_eval (bvand x1 x2)) ($smtx_model_eval_bvand ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (bvor x1 x2)) ($smtx_model_eval_bvor ($smtx_model_eval x1) ($smtx_model_eval x2)))
