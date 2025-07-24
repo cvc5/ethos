@@ -70,23 +70,16 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("mod", {kInt, kInt}, kInt);
   addConstFoldSym("to_int", {kReal}, kInt);
   addConstFoldSym("to_real", {kInt}, kReal);
-  addTermReduceSym(
-      "divisible", {kInt, kInt}, "(= (mod x2 x1) 0)");
+  addTermReduceSym("divisible", {kInt, kInt}, "(= (mod x2 x1) 0)");
   // strings
   // addConstFoldSym("String", {}, kType);
   addConstFoldSym("str.++", {kString, kString}, kString);
   addConstFoldSym("str.len", {kString}, kInt);
-  addConstFoldSym(
-      "str.substr", {kString, kInt, kInt}, kString);
+  addConstFoldSym("str.substr", {kString, kInt, kInt}, kString);
   addConstFoldSym("str.at", {kString, kInt}, kString);
-  addConstFoldSym("str.indexof",
-                  {kString, kString, kInt},
-                  kInt);
-  addConstFoldSym(
-      "str.replace", {kString, kString, kString}, kString);
-  addConstFoldSym("str.replace_all",
-                  {kString, kString, kString},
-                  kString);
+  addConstFoldSym("str.indexof", {kString, kString, kInt}, kInt);
+  addConstFoldSym("str.replace", {kString, kString, kString}, kString);
+  addConstFoldSym("str.replace_all", {kString, kString, kString}, kString);
   addConstFoldSym("str.from_code", {kInt}, kString);
   addConstFoldSym("str.to_code", {kString}, kInt);
   addConstFoldSym("str.from_int", {kInt}, kString);
@@ -98,33 +91,25 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("str.<=", {kString, kString}, kBool);
   addConstFoldSym("str.<", {kString, kString}, kBool);
   // bitvectors
-  addLitBinSym("bvand",
-               {kBitVec, kBitVec},
-               "x1",
-               "($smtx_binary_and x1 x2 x4)");
   addLitBinSym(
-      "bvor", {kBitVec, kBitVec}, "x1", "($smtx_binary_or x1 x2 x4)");
-  addLitBinSym("bvxor",
-               {kBitVec, kBitVec},
-               "x1",
-               "($smtx_binary_xor x1 x2 x4)");
+      "bvand", {kBitVec, kBitVec}, "x1", "($smtx_binary_and x1 x2 x4)");
+  addLitBinSym("bvor", {kBitVec, kBitVec}, "x1", "($smtx_binary_or x1 x2 x4)");
+  addLitBinSym(
+      "bvxor", {kBitVec, kBitVec}, "x1", "($smtx_binary_xor x1 x2 x4)");
   addTermReduceSym("bvsle", {kBitVec, kBitVec}, "(bvsge x2 x1)");
   addTermReduceSym("bvule", {kBitVec, kBitVec}, "(bvuge x2 x1)");
   addTermReduceSym("bvslt", {kBitVec, kBitVec}, "(bvsgt x2 x1)");
   addTermReduceSym("bvult", {kBitVec, kBitVec}, "(bvugt x2 x1)");
-  addTermReduceSym(
-      "nand", {kBitVec, kBitVec}, "(bvnot (bvand x1 x2))");
+  addTermReduceSym("nand", {kBitVec, kBitVec}, "(bvnot (bvand x1 x2))");
   addTermReduceSym("nor", {kBitVec, kBitVec}, "(bvnot (bvor x1 x2))");
-  addTermReduceSym(
-      "xnor", {kBitVec, kBitVec}, "(bvnot (bvxor x1 x2))");
+  addTermReduceSym("xnor", {kBitVec, kBitVec}, "(bvnot (bvxor x1 x2))");
   // Quantifiers
   for (size_t i = 0; i < 2; i++)
   {
     std::stringstream ssq;
     ssq << "($smtx_eval_quant x1 x2 $smt_builtin_z_zero $smt_builtin_"
         << (i == 0 ? "true" : "false") << ")";
-    addReduceSym(
-        i == 0 ? "exists" : "forall", {Kind::ANY, kBool}, ssq.str());
+    addReduceSym(i == 0 ? "exists" : "forall", {Kind::ANY, kBool}, ssq.str());
   }
 
   ///----- non standard extensions
@@ -132,8 +117,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("/_total", {kT, kT}, kReal);
   addConstFoldSym("div_total", {kInt, kInt}, kInt);
   addConstFoldSym("mod_total", {kInt, kInt}, kInt);
-  addConstFoldSym(
-      "str.update", {kString, kInt, kString}, kString);
+  addConstFoldSym("str.update", {kString, kInt, kString}, kString);
   addConstFoldSym("str.rev", {kString}, kString);
   addConstFoldSym("str.to_lower", {kString}, kString);
   addConstFoldSym("str.to_upper", {kString}, kString);
