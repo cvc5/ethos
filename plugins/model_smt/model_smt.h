@@ -31,14 +31,17 @@ class ModelSmt : public StdPlugin
   void finalize() override;
 
  private:
-  void addNormalSym(const std::string& sym,
+  void addConstFoldSym(const std::string& sym,
                     const std::vector<Kind>& args,
                     Kind ret);
-  void addReduceSym(const std::string& sym,
+  void addLiteralReduceSym(const std::string& sym,
                     const std::vector<Kind>& args,
                     Kind ret,
                     const std::string& retTerm);
   void addTermReduceSym(const std::string& sym,
+                        const std::vector<Kind>& args,
+                        const std::string& retTerm);
+  void addReduceSym(const std::string& sym,
                         const std::vector<Kind>& args,
                         const std::string& retTerm);
   void printModelEvalCallBase(const std::string& name,
@@ -58,7 +61,7 @@ class ModelSmt : public StdPlugin
                    const std::vector<Kind>& args,
                    Kind ret,
                    const std::string& reduce);
-  void printInternal(const std::string& name,
+  void printAuxPatMatch(const std::string& name,
                      const std::vector<Kind>& args,
                      const std::string& ret,
                      size_t& paramCount,
@@ -87,18 +90,18 @@ class ModelSmt : public StdPlugin
    * SMT-LIB symbols with "normal" evaluation, we give their argument kinds
    * and their return kind.
    */
-  std::map<std::string, std::pair<std::vector<Kind>, Kind>> d_symNormal;
+  std::map<std::string, std::pair<std::vector<Kind>, Kind>> d_symConstFold;
   /**
    * SMT-LIB symbols that have simple reductions based on atomic arguments.
    */
   std::map<std::string, std::tuple<std::vector<Kind>, Kind, std::string>>
-      d_symReduce;
+      d_symLitReduce;
   /**
    * SMT-LIB symbols that have simple term-level reductions, we use x1 ... xn as
    * references to the arguments.
    */
   std::map<std::string, std::pair<std::vector<Kind>, std::string>>
-      d_symTermReduce;
+      d_symReduce;
 };
 
 }  // namespace ethos

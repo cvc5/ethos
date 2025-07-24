@@ -71,14 +71,13 @@ check_status
 cp $STD_TRIM_OUT $VCMT_DEF_DESUGAR
 
 echo "**** smt_meta: Verify it parses"
-./src/ethos $VCMT_DEF_DESUGAR
+./src/ethos $VCMT_DEF_DESUGAR >/dev/null
+check_status
 
 echo "**** smt_meta: Generate SMT2 from $VCMT_DEF_DESUGAR to $VC_OUT"
 ./src/ethos --plugin.smt-meta $VCMT_DEF_DESUGAR >/dev/null
 check_status
-
-# set up the verification condition
-mv $STD_VC_OUT $VC_OUT
+cp $STD_VC_OUT $VC_OUT
 
 # TODO: trim-defs again??
 

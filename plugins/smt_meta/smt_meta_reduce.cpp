@@ -577,12 +577,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           cparen[key]++;
           parent = MetaKind::SMT_TYPE;
         }
-        else if (child == MetaKind::SMT_VALUE)
-        {
-          os << "(eo.SmtValue ";
-          cparen[key]++;
-          parent = MetaKind::SMT_VALUE;
-        }
       }
       if (child == MetaKind::EUNOIA)
       {
