@@ -114,6 +114,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTermReduceSym("nand", {kBitVec, kBitVec}, "(bvnot (bvand x1 x2))");
   addTermReduceSym("nor", {kBitVec, kBitVec}, "(bvnot (bvor x1 x2))");
   addTermReduceSym("xnor", {kBitVec, kBitVec}, "(bvnot (bvxor x1 x2))");
+  // arith/BV conversions
+  addLitSym("ubv_to_int", {kBitVec}, kInt, "x2");
+  addLitBinSym("int_to_bv", {kInt, kInt}, "x1", "x2");
   // Quantifiers
   for (size_t i = 0; i < 2; i++)
   {
@@ -136,13 +139,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // kBool); addConstFoldSym("int.log2", {kInt, kInt},
   // kInt);
   addConstFoldSym("int.pow2", {kInt}, kInt);
-  // TODO: more
-  // BV
-  // arith/BV conversions
-  // addConstFoldSym("BitVec", {kInt}, kType);
-  // addConstFoldSym("int_to_bv", {kInt, kInt}, kBitVec);
-  // addConstFoldSym("ubv_to_int", {kBitVec}, kInt);
-  // addConstFoldSym("sbv_to_int", {kBitVec}, kInt);
+  addLitSym("@bvsize", {kBitVec}, kInt, "x1");
+  addLitBinSym("@bv", {kInt, kInt}, "x2", "x1");
 }
 
 ModelSmt::~ModelSmt() {}

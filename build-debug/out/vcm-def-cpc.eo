@@ -3539,6 +3539,14 @@
   (($smtx_model_eval_/_total t1 t2) $vsm_not_value)
   )
 )
+(program $smtx_model_eval_@bvsize
+  ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int) (t1 $smt_Value))
+  :signature ($smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_@bvsize ($vsm_term ($sm_binary x1 x2))) ($vsm_term ($sm_mk_z x1)))
+  (($smtx_model_eval_@bvsize t1) $vsm_not_value)
+  )
+)
 (program $smtx_model_eval_bvnot
   ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int) (t1 $smt_Value))
   :signature ($smt_Value) $smt_Value
@@ -3593,6 +3601,14 @@
   (
   (($smtx_model_eval_bvmul ($vsm_term ($sm_binary x1 x2)) ($vsm_term ($sm_binary x3 x4))) ($vsm_term ($sm_mk_binary x1 ($smt_builtin_mul x2 x4))))
   (($smtx_model_eval_bvmul t1 t2) $vsm_not_value)
+  )
+)
+(program $smtx_model_eval_@bv
+  ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int) (t1 $smt_Value) (t2 $smt_Value))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_@bv ($vsm_term ($sm_mk_z x1)) ($vsm_term ($sm_mk_z x2))) ($vsm_term ($sm_mk_binary x2 x1)))
+  (($smtx_model_eval_@bv t1 t2) $vsm_not_value)
   )
 )
 (program $smtx_model_eval_str.len
@@ -3747,6 +3763,22 @@
   (($smtx_model_eval_str.replace_all t1 t2 t3) $vsm_not_value)
   )
 )
+(program $smtx_model_eval_int_to_bv
+  ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int) (t1 $smt_Value) (t2 $smt_Value))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_int_to_bv ($vsm_term ($sm_mk_z x1)) ($vsm_term ($sm_mk_z x2))) ($vsm_term ($sm_mk_binary x1 x2)))
+  (($smtx_model_eval_int_to_bv t1 t2) $vsm_not_value)
+  )
+)
+(program $smtx_model_eval_ubv_to_int
+  ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int) (t1 $smt_Value))
+  :signature ($smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_ubv_to_int ($vsm_term ($sm_binary x1 x2))) ($vsm_term ($sm_mk_z x2)))
+  (($smtx_model_eval_ubv_to_int t1) $vsm_not_value)
+  )
+)
 
 
 ; An evaluator for all terms that we can reason about models.
@@ -3791,6 +3823,7 @@
   (($smtx_model_eval (mod_total x1 x2)) ($smtx_model_eval_mod_total ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (/ x1 x2)) ($smtx_model_eval_/ ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (/_total x1 x2)) ($smtx_model_eval_/_total ($smtx_model_eval x1) ($smtx_model_eval x2)))
+  (($smtx_model_eval (@bvsize x1)) ($smtx_model_eval_@bvsize ($smtx_model_eval x1)))
   (($smtx_model_eval (bvnot x1)) ($smtx_model_eval_bvnot ($smtx_model_eval x1)))
   (($smtx_model_eval (bvand x1 x2)) ($smtx_model_eval_bvand ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (bvor x1 x2)) ($smtx_model_eval_bvor ($smtx_model_eval x1) ($smtx_model_eval x2)))
@@ -3802,6 +3835,7 @@
   (($smtx_model_eval (bvule x1 x2)) ($smtx_model_eval (bvuge x2 x1)))
   (($smtx_model_eval (bvslt x1 x2)) ($smtx_model_eval (bvsgt x2 x1)))
   (($smtx_model_eval (bvsle x1 x2)) ($smtx_model_eval (bvsge x2 x1)))
+  (($smtx_model_eval (@bv x1 x2)) ($smtx_model_eval_@bv ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (str.len x1)) ($smtx_model_eval_str.len ($smtx_model_eval x1)))
   (($smtx_model_eval (str.++ x1 x2)) ($smtx_model_eval_str.++ ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (str.substr x1 x2 x3)) ($smtx_model_eval_str.substr ($smtx_model_eval x1) ($smtx_model_eval x2) ($smtx_model_eval x3)))
@@ -3821,6 +3855,8 @@
   (($smtx_model_eval (str.from_int x1)) ($smtx_model_eval_str.from_int ($smtx_model_eval x1)))
   (($smtx_model_eval (str.<= x1 x2)) ($smtx_model_eval_str.<= ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (str.replace_all x1 x2 x3)) ($smtx_model_eval_str.replace_all ($smtx_model_eval x1) ($smtx_model_eval x2) ($smtx_model_eval x3)))
+  (($smtx_model_eval (int_to_bv x1 x2)) ($smtx_model_eval_int_to_bv ($smtx_model_eval x1) ($smtx_model_eval x2)))
+  (($smtx_model_eval (ubv_to_int x1)) ($smtx_model_eval_ubv_to_int ($smtx_model_eval x1)))
 
   ;; free constants
   ; Constants carry their value in the model, which is an arbitrary value term.
