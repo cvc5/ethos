@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_arrays_ext
-; #trim-defs: 121
+; #trim-defs: 113
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -15,13 +15,6 @@
   )
 )
 (define $eo_fail () ($eo_fail_prog false))
-(program $eo_if_both ((b1 Bool) (b2 Bool))
-  :signature (Bool Bool) Bool
-  (
-  (($eo_if_both true true)  true)
-  (($eo_if_both b1 b2)      false)
-  )
-)
 (program $eo_requires_eq ((T Type) (U Type) (x1 T) (x3 U))
   :signature (T T U) U
   (
@@ -113,8 +106,6 @@
 (define $eo_fun_type () $smd_eo.FunType)
 (declare-parameterized-const $smd_eo.SmtTerm ((t $smt_Term :opaque)) $eo_Term)
 (define $eo_smt_term ((t $smt_Term)) ($smd_eo.SmtTerm t))
-(declare-parameterized-const $smd_eo.SmtType ((t $smt_Type :opaque)) $eo_Term)
-(define $eo_smt_type ((T $smt_Type)) ($smd_eo.SmtType T))
 (define $sm_mk_true () ($smd_sm.Bool $smt_builtin_true))
 (define $sm_mk_false () ($smd_sm.Bool $smt_builtin_false))
 (define $sm_mk_bool ((c $smt_builtin_Bool))
@@ -127,8 +118,6 @@
   ($smd_sm.String s))
 (define $vsm_true () ($vsm_term $sm_mk_true))
 (define $vsm_false () ($vsm_term $sm_mk_false))
-(define $eo_mk_bool ((x $smt_builtin_Bool))
-  ($eo_smt_term ($sm_mk_bool x)))
 (define $smt_builtin_is_ok ((x $eo_Term))
   ($smt_apply_1 "not" ($smt_apply_= x $eo_stuck)))
 (program $smtx_hash ((T Type)) :signature (T) $smt_builtin_Int)
@@ -158,7 +147,6 @@
   )
 )
 (program $eo_model_sat () :signature (Bool) $eo_Option)
-(program $eo_model_is_input () :signature (Bool) Bool)
 (program $smtx_map_lookup
   ((i $smt_Value) (j $smt_Value) (e $smt_Value) (M $smt_Map))
   :signature ($smt_Map $smt_Value) $smt_Value
@@ -207,22 +195,6 @@
     ($smtx_map_is_value T m)
     ($vsm_map T m)
     $vsm_not_value))
-(program $smtx_is_value
-  ((t $smt_Term) (f $smt_Value) (v $smt_Value) (T $eo_Term) (m $smt_Map)
-   (T $smt_builtin_Int) (id $smt_builtin_Int))
-  :signature ($smt_Value) $smt_builtin_Bool
-  (
-  (($smtx_is_value ($vsm_term t))         ($smtx_term_is_value t))
-  (($smtx_is_value ($vsm_map T m))        ($smtx_map_is_value T m))
-  (($smtx_is_value ($vsm_uconst T id))    $smt_builtin_true)
-  
-  (($smtx_is_value ($vsm_apply ($vsm_term t) $vsm_not_value))
-                                          ($smt_is_dt_cons t))
-  (($smtx_is_value ($vsm_apply f v))      ($smt_apply_2 "and" ($smtx_is_value f) ($smtx_is_value v)))
-  
-  (($smtx_is_value v)                     $smt_builtin_false)
-  )
-)
 (program $smtx_ensure_value
   ((v $smt_Value) (t $smt_Term) (T $smt_builtin_Int) (m $smt_Map) (id $smt_builtin_Int))
   :signature ($smt_Value) $smt_Value
@@ -341,28 +313,10 @@
   (($smtx_model_sat val)        $eo_Option_null)
   )
 )
-(program $smtx_is_input
-  ((t $eo_Term) (a $eo_Term) (s $smt_Term) (T $smt_Type) (v $smt_Value))
-  :signature ($eo_Term) Bool
-  (
-  (($smtx_is_input ($eo_apply t a))
-    ($eo_if_both ($smtx_is_input t) ($smtx_is_input a)))
-  (($smtx_is_input ($eo_smt_term ($sm_Const v)))  ($eo_mk_bool ($smtx_is_value v)))
-  (($smtx_is_input ($eo_smt_term s))              true)
-  (($smtx_is_input ($eo_smt_type T))              true)
-  (($smtx_is_input t)                             false)
-  )
-)
 (program $eo_model_sat ((F Bool))
   :signature (Bool) $eo_Option
   (
   (($eo_model_sat F) ($smtx_model_sat ($smtx_model_eval F)))
-  )
-)
-(program $eo_model_is_input ((F Bool))
-  :signature (Bool) Bool
-  (
-  (($eo_model_is_input F) ($smtx_is_input F))
   )
 )
 (program $eor_arrays_ext ((T Type) (U Type) (a (_ (Array T) U)) (b (_ (Array T) U)))
@@ -374,7 +328,7 @@
 (program $eovc_arrays_ext ((T Type) (U Type) (a (_ (Array T) U)) (b (_ (Array T) U)))
   :signature ((_ (Array T) U) (_ (Array T) U)) Bool
   (
-  (($eovc_arrays_ext b a) (eo::define ((_v0 (not (_ (= a) b)))) (eo::define ((_v1 ($eor_arrays_ext _v0))) ($eo_requires_eq ($eo_model_is_input _v1) true ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some true) ($eo_requires_eq ($eo_model_sat _v1) ($eo_Option_some false) true))))))
+  (($eovc_arrays_ext b a) (eo::define ((_v0 (not (_ (= a) b)))) ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some true) ($eo_requires_eq ($eo_model_sat ($eor_arrays_ext _v0)) ($eo_Option_some false) true))))
   )
 )
-(echo "smt-meta $eovc_arrays_ext :deps $smtx_model_lookup_predicate $smtx_hash $eo_reverse_hash $smtx_value_hash $vsm_reverse_hash $tsm_Bool $eo_type $eo_fun_type ")
+(echo "smt-meta $eovc_arrays_ext :deps $smtx_model_lookup_predicate $smtx_hash $eo_reverse_hash $smtx_value_hash $vsm_reverse_hash $tsm_Bool $eo_type $eo_fun_type $eo_apply ")

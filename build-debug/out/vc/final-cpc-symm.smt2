@@ -58,8 +58,6 @@
   (eo.FunType)
   ; smt-cons: SmtTerm
   (eo.SmtTerm (eo.SmtTerm.arg1 sm.Term))
-  ; smt-cons: SmtType
-  (eo.SmtType (eo.SmtType.arg1 tsm.Type))
   ; user-decl: $eo_List
   (eo.$eo_List)
   ; user-decl: $eo_List_nil
@@ -99,16 +97,6 @@
     (eo.SmtTerm (sm.Bool true))
     eo.Stuck)))
 
-; program: $eo_if_both
-(define-fun $eo_if_both ((x1 eo.Term) (x2 eo.Term)) eo.Term
-  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
-    eo.Stuck
-  (ite (and (= x1 (eo.SmtTerm (sm.Bool true))) (= x2 (eo.SmtTerm (sm.Bool true))))
-    (eo.SmtTerm (sm.Bool true))
-  (ite true
-    (eo.SmtTerm (sm.Bool false))
-    eo.Stuck))))
-
 ; program: $eo_requires_eq
 (define-fun $eo_requires_eq ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck) (= x3 eo.Stuck))
@@ -119,14 +107,6 @@
 
 ; fwd-decl: $smtx_hash
 (declare-fun $smtx_hash (eo.Term) Int)
-
-; program: $eo_hash
-(define-fun $eo_hash ((x1 eo.Term)) eo.Term
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite true
-    (eo.SmtTerm (sm.Numeral ($smtx_hash x1)))
-    eo.Stuck)))
 
 ; fwd-decl: $eo_reverse_hash
 (declare-fun $eo_reverse_hash (Int) eo.Term)
@@ -151,9 +131,6 @@
 
 ; fwd-decl: $eo_model_sat
 (declare-fun $eo_model_sat (eo.Term) eo.Term)
-
-; fwd-decl: $eo_model_is_input
-(declare-fun $eo_model_is_input (eo.Term) eo.Term)
 
 ; program: $smtx_map_lookup
 (declare-fun $smtx_map_lookup (msm.Map vsm.Value) vsm.Value)
@@ -181,23 +158,6 @@
     true
     false
 )))))
-
-; program: $smtx_is_value
-(declare-fun $smtx_is_value (vsm.Value) Bool)
-(assert (! (forall ((x1 vsm.Value))
-  (! (= ($smtx_is_value x1)
-  (ite ((_ is vsm.Term) x1)
-    ($smtx_term_is_value (vsm.Term.arg1 x1))
-  (ite ((_ is vsm.Map) x1)
-    ($smtx_map_is_value (vsm.Map.arg1 x1) (vsm.Map.arg2 x1))
-  (ite ((_ is vsm.UConst) x1)
-    true
-  (ite (and ((_ is vsm.Apply) x1) (= (vsm.Apply.arg2 x1) vsm.NotValue) ((_ is vsm.Term) (vsm.Apply.arg1 x1)))
-    (not (= ($eo_dt_selectors (eo.SmtTerm (vsm.Term.arg1 (vsm.Apply.arg1 x1)))) eo.Stuck))
-  (ite ((_ is vsm.Apply) x1)
-    (and ($smtx_is_value (vsm.Apply.arg1 x1)) ($smtx_is_value (vsm.Apply.arg2 x1)))
-    false
-)))))) :pattern (($smtx_is_value x1)))) :named sm.axiom.$smtx_is_value))
 
 ; program: $smtx_ensure_value
 (define-fun $smtx_ensure_value ((x1 vsm.Value)) vsm.Value
@@ -294,21 +254,6 @@
     eo.$eo_List_nil
 )))
 
-; program: $smtx_is_input
-(declare-fun $smtx_is_input (eo.Term) eo.Term)
-(assert (! (forall ((x1 eo.Term))
-  (! (= ($smtx_is_input x1)
-  (ite ((_ is eo.Apply) x1)
-    ($eo_if_both ($smtx_is_input (eo.Apply.arg1 x1)) ($smtx_is_input (eo.Apply.arg2 x1)))
-  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Const) (eo.SmtTerm.arg1 x1)))
-    (eo.SmtTerm (sm.Bool ($smtx_is_value (sm.Const.arg1 (eo.SmtTerm.arg1 x1)))))
-  (ite ((_ is eo.SmtTerm) x1)
-    (eo.SmtTerm (sm.Bool true))
-  (ite ((_ is eo.SmtType) x1)
-    (eo.SmtTerm (sm.Bool true))
-    (eo.SmtTerm (sm.Bool false))
-))))) :pattern (($smtx_is_input x1)))) :named sm.axiom.$smtx_is_input))
-
 ; program: $eo_model_sat
 (assert (! (forall ((x1 eo.Term))
   (! (= ($eo_model_sat x1)
@@ -317,15 +262,6 @@
   (ite true
     ($smtx_model_sat ($smtx_model_eval x1))
     eo.Stuck))) :pattern (($eo_model_sat x1)))) :named sm.axiom.$eo_model_sat))
-
-; program: $eo_model_is_input
-(assert (! (forall ((x1 eo.Term))
-  (! (= ($eo_model_is_input x1)
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite true
-    ($smtx_is_input x1)
-    eo.Stuck))) :pattern (($eo_model_is_input x1)))) :named sm.axiom.$eo_model_is_input))
 
 ; program: $eor_symm
 (define-fun $eor_symm ((x1 eo.Term)) eo.Term
@@ -340,7 +276,7 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    ($eo_requires_eq ($eo_model_is_input ($eor_symm x1)) (eo.SmtTerm (sm.Bool true)) ($eo_requires_eq ($eo_model_sat x1) (eo.Apply (eo.Apply eo.$eo_List_cons (eo.SmtTerm (sm.Bool true))) (eo.Apply (eo.Apply eo.$eo_List_cons eo.$eo_List_nil) eo.$eo_List_nil)) ($eo_requires_eq ($eo_model_sat ($eor_symm x1)) (eo.Apply (eo.Apply eo.$eo_List_cons (eo.SmtTerm (sm.Bool false))) (eo.Apply (eo.Apply eo.$eo_List_cons eo.$eo_List_nil) eo.$eo_List_nil)) (eo.SmtTerm (sm.Bool true)))))
+    ($eo_requires_eq ($eo_model_sat x1) (eo.Apply (eo.Apply eo.$eo_List_cons (eo.SmtTerm (sm.Bool true))) (eo.Apply (eo.Apply eo.$eo_List_cons eo.$eo_List_nil) eo.$eo_List_nil)) ($eo_requires_eq ($eo_model_sat ($eor_symm x1)) (eo.Apply (eo.Apply eo.$eo_List_cons (eo.SmtTerm (sm.Bool false))) (eo.Apply (eo.Apply eo.$eo_List_cons eo.$eo_List_nil) eo.$eo_List_nil)) (eo.SmtTerm (sm.Bool true))))
     eo.Stuck)))
 
 
@@ -348,9 +284,9 @@
 ;;; Meta-level properties of models
 
 ; axiom for hash
-; note: this implies that $eo_hash is injective
+; note: this implies that $smtx_hash is injective, which implies $eo_hash is injective.
 (assert (! (forall ((x eo.Term))
-    (= ($eo_reverse_hash ($smtx_hash x)) x)) :named sm.hash_injective))
+    (= ($eo_reverse_hash ($smtx_hash x)) x)) :named eo.hash_injective))
 
 ; This axiom gives semantics to model lookups for partial functions
 (assert (! (forall ((t sm.Term))
