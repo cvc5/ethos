@@ -91,17 +91,20 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("str.<=", {kString, kString}, kBool);
   addConstFoldSym("str.<", {kString, kString}, kBool);
   // bitvectors
-  // the following are return terms of program cases of the form:
-  // (($smtx_model_eval_*
+  // the following are return terms of aux program cases of the form:
+  // (($smtx_model_eval_f
   //    ($vsm_term ($sm_binary x1 x2)) ($vsm_term ($sm_binary x3 x4)))
-  //    <return-term>)
+  //    <return>)
   // where x1, x3 denote bitwidths and x2, x4 denote values.
   addLitBinSym("bvadd", {kBitVec, kBitVec}, "x1", "($smt_builtin_add x2 x4)");
+  addLitBinSym("bvmul", {kBitVec, kBitVec}, "x1", "($smt_builtin_mul x2 x4)");
   addLitBinSym(
       "bvand", {kBitVec, kBitVec}, "x1", "($smtx_binary_and x1 x2 x4)");
   addLitBinSym("bvor", {kBitVec, kBitVec}, "x1", "($smtx_binary_or x1 x2 x4)");
   addLitBinSym(
       "bvxor", {kBitVec, kBitVec}, "x1", "($smtx_binary_xor x1 x2 x4)");
+  // the following are program cases in the main method of the form
+  // (($smtx_model_eval (f x1 x2)) ($smtx_model_eval <return>))
   addTermReduceSym("bvsle", {kBitVec, kBitVec}, "(bvsge x2 x1)");
   addTermReduceSym("bvule", {kBitVec, kBitVec}, "(bvuge x2 x1)");
   addTermReduceSym("bvslt", {kBitVec, kBitVec}, "(bvsgt x2 x1)");
