@@ -261,6 +261,8 @@
   ($smd_sm.Rational r))
 (define $sm_mk_str ((s $smt_builtin_String))
   ($smd_sm.String s))
+(define $sm_mk_binary ((w $smt_builtin_Int) (n $smt_builtin_Int))
+  ($smd_sm.Binary w n))
 
 ;(define $smt_Int () ($smt_builtin_type_0 "Int"))
 ;(define $smt_Real () ($smt_builtin_type_0 "Real"))
@@ -439,7 +441,7 @@
 ;   This should be used in pattern matching only, where it is assume that
 ;   it will match "legal" binary values only.
 (define $eo_binary ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
-  ($eo_smt_term ($smd_sm.Binary x1 x2)))
+  ($eo_smt_term ($sm_mk_binary x1 x2)))
 
 ; define: $eo_empty_binary
 (define $eo_empty_binary ()

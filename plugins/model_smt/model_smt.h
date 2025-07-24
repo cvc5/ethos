@@ -50,18 +50,14 @@ class ModelSmt : public StdPlugin
   void printModelEvalCall(const std::string& name,
                           const std::vector<Kind>& args);
   void printType(const std::string& name, const std::vector<Kind>& args);
-  void printNormal(const std::string& name,
+  void printConstFold(const std::string& name,
                    const std::vector<Kind>& args,
                    Kind ret);
-  void printSmtx(const std::string& name,
-                 const std::vector<Kind>& args,
-                 Kind ret,
-                 const std::string& smtxName);
-  void printReduce(const std::string& name,
+  void printLitReduce(const std::string& name,
                    const std::vector<Kind>& args,
                    Kind ret,
                    const std::string& reduce);
-  void printAuxPatMatch(const std::string& name,
+  void printAuxProgramCase(const std::string& name,
                      const std::vector<Kind>& args,
                      const std::string& ret,
                      size_t& paramCount,

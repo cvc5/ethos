@@ -19,7 +19,6 @@ namespace ethos {
 
 ModelSmt::ModelSmt(State& s) : StdPlugin(s)
 {
-  Expr typ = d_state.mkType();
   d_kindToEoPrefix[Kind::BOOLEAN] = "bool";
   d_kindToEoPrefix[Kind::NUMERAL] = "z";
   d_kindToEoPrefix[Kind::RATIONAL] = "q";
@@ -29,18 +28,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   d_kindToType[Kind::NUMERAL] = "Int";
   d_kindToType[Kind::RATIONAL] = "Real";
   d_kindToType[Kind::STRING] = "String";
-  // note BOOLEAN does not have a constructor as Bool is inlined
-  d_kindToEoCons[Kind::NUMERAL] = "Numeral";
-  d_kindToEoCons[Kind::RATIONAL] = "Rational";
-  d_kindToEoCons[Kind::STRING] = "String";
-  d_kindToEoCons[Kind::BINARY] = "Binary";
+  d_kindToType[Kind::BINARY] = "Binary";
   // All SMT-LIB symbols that have monomorphic return go here.
   // We have a NUMERAL category that we assume can be associated to Int,
   // Similar for the other literals.
   // Note that we model *SMT-LIB* not *CPC* here.
   // builtin
-  // addConstFoldSym("forall", {Kind::ANY, Kind::BOOLEAN}, Kind::BOOLEAN);
-  // addConstFoldSym("exists", {Kind::ANY, Kind::BOOLEAN}, Kind::BOOLEAN);
   // Booleans
   addConstFoldSym("and", {Kind::BOOLEAN, Kind::BOOLEAN}, Kind::BOOLEAN);
   addConstFoldSym("or", {Kind::BOOLEAN, Kind::BOOLEAN}, Kind::BOOLEAN);
@@ -64,14 +57,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym(">", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
   addConstFoldSym("<", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
   addConstFoldSym("is_int", {Kind::RATIONAL}, Kind::BOOLEAN);
-  // NOTE: cannot handle indexed operators currently, as their value
-  // cannot be dynamic in the encoding.
-  // addConstFoldSym("divisible", {Kind::NUMERAL, Kind::NUMERAL}, Kind::BOOLEAN);
   addConstFoldSym("/", {Kind::RATIONAL, Kind::RATIONAL}, Kind::RATIONAL);
   addConstFoldSym("div", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
   addConstFoldSym("mod", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
   addConstFoldSym("to_int", {Kind::RATIONAL}, Kind::NUMERAL);
   addConstFoldSym("to_real", {Kind::NUMERAL}, Kind::RATIONAL);
+  addTermReduceSym("divisible", {Kind::NUMERAL, Kind::NUMERAL}, "(= (mod x2 x1) 0)");
   // strings
   // addConstFoldSym("String", {}, Kind::TYPE);
   addConstFoldSym("str.++", {Kind::STRING, Kind::STRING}, Kind::STRING);
@@ -97,6 +88,22 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("str.prefixof", {Kind::STRING, Kind::STRING}, Kind::BOOLEAN);
   addConstFoldSym("str.<=", {Kind::STRING, Kind::STRING}, Kind::BOOLEAN);
   addConstFoldSym("str.<", {Kind::STRING, Kind::STRING}, Kind::BOOLEAN);
+  // bitvectors
+  addLiteralReduceSym("bvand", {Kind::BINARY, Kind::BINARY}, Kind::ANY, "($vsm_term ($sm_mk_binary x1 ($smtx_binary_and x1 x2 x4)))");
+  addTermReduceSym("bvsle", {Kind::BINARY, Kind::BINARY}, "(bvsge x2 x1)");
+  addTermReduceSym("bvule", {Kind::BINARY, Kind::BINARY}, "(bvuge x2 x1)");
+  addTermReduceSym("bvslt", {Kind::BINARY, Kind::BINARY}, "(bvsgt x2 x1)");
+  addTermReduceSym("bvult", {Kind::BINARY, Kind::BINARY}, "(bvugt x2 x1)");
+  addTermReduceSym("nand", {Kind::BINARY, Kind::BINARY}, "(bvnot (bvand x1 x2))");
+  addTermReduceSym("nor", {Kind::BINARY, Kind::BINARY}, "(bvnot (bvor x1 x2))");
+  addTermReduceSym("xnor", {Kind::BINARY, Kind::BINARY}, "(bvnot (bvxor x1 x2))");
+  // Quantifiers
+  for (size_t i=0; i<2; i++)
+  {
+    std::stringstream ssq;
+    ssq << "($smtx_eval_quant x1 x2 $smt_builtin_z_zero $smt_builtin_" << (i==0 ? "true" : "false") << ")";
+    addReduceSym(i==0 ? "exists" : "forall", {Kind::ANY, Kind::BOOLEAN}, ssq.str());
+  }
 
   ///----- non standard extensions
   addConstFoldSym("^", {Kind::PARAM, Kind::PARAM}, Kind::BOOLEAN);
@@ -118,14 +125,6 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // addConstFoldSym("int_to_bv", {Kind::NUMERAL, Kind::NUMERAL}, Kind::BINARY);
   // addConstFoldSym("ubv_to_int", {Kind::BINARY}, Kind::NUMERAL);
   // addConstFoldSym("sbv_to_int", {Kind::BINARY}, Kind::NUMERAL);
-  addTermReduceSym("bvsle", {Kind::BINARY, Kind::BINARY}, "(bvsge x2 x1)");
-  addTermReduceSym("bvule", {Kind::BINARY, Kind::BINARY}, "(bvuge x2 x1)");
-  addTermReduceSym("bvslt", {Kind::BINARY, Kind::BINARY}, "(bvsgt x2 x1)");
-  addTermReduceSym("bvult", {Kind::BINARY, Kind::BINARY}, "(bvugt x2 x1)");
-  addTermReduceSym("nand", {Kind::BINARY, Kind::BINARY}, "(bvnot (bvand x1 x2))");
-  addTermReduceSym("nor", {Kind::BINARY, Kind::BINARY}, "(bvnot (bvor x1 x2))");
-  addTermReduceSym("xnor", {Kind::BINARY, Kind::BINARY}, "(bvnot (bvxor x1 x2))");
-  addTermReduceSym("divisible", {Kind::NUMERAL, Kind::NUMERAL}, "(= (mod x2 x1) 0)");
 }
 
 ModelSmt::~ModelSmt() {}
@@ -175,7 +174,7 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
   if (it != d_symConstFold.end())
   {
     printModelEvalCall(name, it->second.first);
-    printNormal(name, it->second.first, it->second.second);
+    printConstFold(name, it->second.first, it->second.second);
     return;
   }
   std::map<std::string,
@@ -185,7 +184,7 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
   {
     std::vector<Kind>& args = std::get<0>(its->second);
     printModelEvalCall(name, args);
-    printReduce(name, args, std::get<1>(its->second), std::get<2>(its->second));
+    printLitReduce(name, args, std::get<1>(its->second), std::get<2>(its->second));
     return;
   }
   std::map<std::string, std::pair<std::vector<Kind>, std::string>>::iterator
@@ -230,11 +229,17 @@ void ModelSmt::printTermInternal(Kind k,
                                  const std::string& term,
                                  std::ostream& os)
 {
-  Assert(d_kindToEoPrefix.find(k) != d_kindToEoPrefix.end());
-  os << "($vsm_term ($sm_mk_" << d_kindToEoPrefix[k] << " " << term << "))";
+  if (d_kindToEoPrefix.find(k) != d_kindToEoPrefix.end())
+  {
+    os << "($vsm_term ($sm_mk_" << d_kindToEoPrefix[k] << " " << term << "))";
+  }
+  else
+  {
+    os << term;
+  }
 }
 
-void ModelSmt::printNormal(const std::string& name,
+void ModelSmt::printConstFold(const std::string& name,
                            const std::vector<Kind>& args,
                            Kind kret)
 {
@@ -289,7 +294,7 @@ void ModelSmt::printNormal(const std::string& name,
     std::stringstream fssret;
     printTermInternal(kr, ssret.str(), fssret);
     // then print it on cases
-    printAuxPatMatch(progName.str(),
+    printAuxProgramCase(progName.str(),
                   instArgs,
                   fssret.str(),
                   paramCount,
@@ -318,7 +323,7 @@ void ModelSmt::printAuxProgram(const std::string& name,
     progCases << " t" << (i + 1);
     progParams << " (t" << (i + 1) << " $smt_Value)";
   }
-  progSig << ") $smt_Value" << std::endl;
+  progSig << ") $smt_Value";
   progCases << ") $vsm_not_value)" << std::endl;
   d_modelEvalProgs << "(program " << name << std::endl;
   d_modelEvalProgs << "  (" << progParams.str() << ")" << std::endl;
@@ -328,17 +333,7 @@ void ModelSmt::printAuxProgram(const std::string& name,
   d_modelEvalProgs << "  )" << std::endl << ")" << std::endl;
 }
 
-/*
-  if (name == "forall" || name == "exists")
-  {
-    // does not "pre-rewrite" the body
-    bool isExists = (name == "exists");
-    d_eval << "($smtx_eval_quant x1 x2 $smt_builtin_z_zero ";
-    d_eval << "$smt_builtin_" << (isExists ? "true" : "false") << "))";
-    return;
-  }
-  */
-void ModelSmt::printAuxPatMatch(const std::string& name,
+void ModelSmt::printAuxProgramCase(const std::string& name,
                              const std::vector<Kind>& args,
                              const std::string& ret,
                              size_t& paramCount,
@@ -346,7 +341,6 @@ void ModelSmt::printAuxPatMatch(const std::string& name,
                              std::ostream& progParams)
 {
   progCases << "  ((" << name;
-  std::stringstream retArgs;
   for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
   {
     Kind ka = args[i - 1];
@@ -355,36 +349,45 @@ void ModelSmt::printAuxPatMatch(const std::string& name,
     {
       progParams << " ";
     }
-    progCases << " ($vsm_term ($sm_mk_" << d_kindToEoPrefix[ka] << " x"
-              << paramCount << "))";
-    retArgs << " x" << paramCount;
+    progCases << " ($vsm_term";
+    if (ka==Kind::BINARY)
+    {
+      progCases << " ($sm_mk_binary x" << paramCount << " x" << (paramCount+1) << "))";
+      progParams << "(x" << paramCount << " $smt_builtin_Int)";
+      progParams << " (x" << (paramCount+1) << " $smt_builtin_Int)";
+      paramCount++;
+      continue;
+    }
+    Assert (d_kindToEoPrefix.find(ka)!=d_kindToEoPrefix.end());
+    progCases << " ($sm_mk_" << d_kindToEoPrefix[ka] << " x" << paramCount << "))";
     progParams << "(x" << paramCount << " $smt_builtin_" << d_kindToType[ka]
-               << ")";
+              << ")";
   }
   progCases << ") ";
   progCases << ret << ")" << std::endl;
 }
 
-void ModelSmt::printSmtx(const std::string& name,
-                         const std::vector<Kind>& args,
-                         Kind ret,
-                         const std::string& smtxName)
-{
-  std::stringstream scall;
-  scall << "($smtx_" << smtxName;
-  for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
-  {
-    scall << " x" << i;
-  }
-  scall << ")";
-  printReduce(name, args, ret, scall.str());
-}
-
-void ModelSmt::printReduce(const std::string& name,
+void ModelSmt::printLitReduce(const std::string& name,
                            const std::vector<Kind>& args,
                            Kind ret,
                            const std::string& reduce)
 {
+  std::stringstream progName;
+  std::stringstream progCases;
+  std::stringstream progParams;
+  size_t paramCount = 0;
+  progName << "$smtx_model_eval_" << name;
+  // print the term with the right type
+  std::stringstream ssret;
+  printTermInternal(ret, reduce, ssret);
+  // then print it on cases
+  printAuxProgramCase(progName.str(),
+                args,
+                ssret.str(),
+                paramCount,
+                progCases,
+                progParams);
+  printAuxProgram(progName.str(), args, progCases, progParams);
 }
 
 void ModelSmt::finalize()

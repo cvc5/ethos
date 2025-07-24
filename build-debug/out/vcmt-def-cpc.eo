@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_evaluate
-; #trim-defs: 560
+; #trim-defs: 562
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -149,6 +149,8 @@
   ($smd_sm.Rational r))
 (define $sm_mk_str ((s $smt_builtin_String))
   ($smd_sm.String s))
+(define $sm_mk_binary ((w $smt_builtin_Int) (n $smt_builtin_Int))
+  ($smd_sm.Binary w n))
 (define $vsm_true () ($vsm_term $sm_mk_true))
 (define $vsm_false () ($vsm_term $sm_mk_false))
 (program $smtx_pow2 ((i $smt_builtin_Int))
@@ -228,7 +230,7 @@
 (define $eo_mk_string ((x $smt_builtin_String))
   ($eo_smt_term ($sm_mk_str x)))
 (define $eo_binary ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
-  ($eo_smt_term ($smd_sm.Binary x1 x2)))
+  ($eo_smt_term ($sm_mk_binary x1 x2)))
 (define $eo_empty_binary ()
   ($eo_binary $smt_builtin_z_zero $smt_builtin_z_zero))
 (program $eo_mk_binary ((w $smt_builtin_Int) (n $smt_builtin_Int))
@@ -2673,7 +2675,6 @@
 (program $smtx_model_eval_not
   ((x1 $smt_builtin_Bool) (t1 $smt_Value))
   :signature ($smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_not ($vsm_term ($sm_mk_bool x1))) ($vsm_term ($sm_mk_bool ($smt_apply_1 "not" x1))))
   (($smtx_model_eval_not t1) $vsm_not_value)
@@ -2682,7 +2683,6 @@
 (program $smtx_model_eval_or
   ((x1 $smt_builtin_Bool) (x2 $smt_builtin_Bool) (t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_or ($vsm_term ($sm_mk_bool x1)) ($vsm_term ($sm_mk_bool x2))) ($vsm_term ($sm_mk_bool ($smt_apply_2 "or" x1 x2))))
   (($smtx_model_eval_or t1 t2) $vsm_not_value)
@@ -2691,7 +2691,6 @@
 (program $smtx_model_eval_and
   ((x1 $smt_builtin_Bool) (x2 $smt_builtin_Bool) (t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_and ($vsm_term ($sm_mk_bool x1)) ($vsm_term ($sm_mk_bool x2))) ($vsm_term ($sm_mk_bool ($smt_apply_2 "and" x1 x2))))
   (($smtx_model_eval_and t1 t2) $vsm_not_value)
@@ -2700,7 +2699,6 @@
 (program $smtx_model_eval_=>
   ((x1 $smt_builtin_Bool) (x2 $smt_builtin_Bool) (t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_=> ($vsm_term ($sm_mk_bool x1)) ($vsm_term ($sm_mk_bool x2))) ($vsm_term ($sm_mk_bool ($smt_apply_2 "=>" x1 x2))))
   (($smtx_model_eval_=> t1 t2) $vsm_not_value)
@@ -2709,7 +2707,6 @@
 (program $smtx_model_eval_xor
   ((x1 $smt_builtin_Bool) (x2 $smt_builtin_Bool) (t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_xor ($vsm_term ($sm_mk_bool x1)) ($vsm_term ($sm_mk_bool x2))) ($vsm_term ($sm_mk_bool ($smt_apply_2 "xor" x1 x2))))
   (($smtx_model_eval_xor t1 t2) $vsm_not_value)
@@ -2718,7 +2715,6 @@
 (program $smtx_model_eval_+
   ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int) (x3 $smt_builtin_Real) (x4 $smt_builtin_Real) (t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_+ ($vsm_term ($sm_mk_z x1)) ($vsm_term ($sm_mk_z x2))) ($vsm_term ($sm_mk_z ($smt_apply_2 "+" x1 x2))))
   (($smtx_model_eval_+ ($vsm_term ($sm_mk_q x3)) ($vsm_term ($sm_mk_q x4))) ($vsm_term ($sm_mk_q ($smt_apply_2 "+" x3 x4))))
@@ -2728,7 +2724,6 @@
 (program $smtx_model_eval_-
   ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int) (x3 $smt_builtin_Real) (x4 $smt_builtin_Real) (t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_- ($vsm_term ($sm_mk_z x1)) ($vsm_term ($sm_mk_z x2))) ($vsm_term ($sm_mk_z ($smt_apply_2 "-" x1 x2))))
   (($smtx_model_eval_- ($vsm_term ($sm_mk_q x3)) ($vsm_term ($sm_mk_q x4))) ($vsm_term ($sm_mk_q ($smt_apply_2 "-" x3 x4))))
@@ -2738,7 +2733,6 @@
 (program $smtx_model_eval_*
   ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int) (x3 $smt_builtin_Real) (x4 $smt_builtin_Real) (t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_* ($vsm_term ($sm_mk_z x1)) ($vsm_term ($sm_mk_z x2))) ($vsm_term ($sm_mk_z ($smt_apply_2 "*" x1 x2))))
   (($smtx_model_eval_* ($vsm_term ($sm_mk_q x3)) ($vsm_term ($sm_mk_q x4))) ($vsm_term ($sm_mk_q ($smt_apply_2 "*" x3 x4))))
@@ -2748,7 +2742,6 @@
 (program $smtx_model_eval_<
   ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int) (x3 $smt_builtin_Real) (x4 $smt_builtin_Real) (t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_< ($vsm_term ($sm_mk_z x1)) ($vsm_term ($sm_mk_z x2))) ($vsm_term ($sm_mk_bool ($smt_apply_2 "<" x1 x2))))
   (($smtx_model_eval_< ($vsm_term ($sm_mk_q x3)) ($vsm_term ($sm_mk_q x4))) ($vsm_term ($sm_mk_bool ($smt_apply_2 "<" x3 x4))))
@@ -2758,7 +2751,6 @@
 (program $smtx_model_eval_<=
   ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int) (x3 $smt_builtin_Real) (x4 $smt_builtin_Real) (t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_<= ($vsm_term ($sm_mk_z x1)) ($vsm_term ($sm_mk_z x2))) ($vsm_term ($sm_mk_bool ($smt_apply_2 "<=" x1 x2))))
   (($smtx_model_eval_<= ($vsm_term ($sm_mk_q x3)) ($vsm_term ($sm_mk_q x4))) ($vsm_term ($sm_mk_bool ($smt_apply_2 "<=" x3 x4))))
@@ -2768,7 +2760,6 @@
 (program $smtx_model_eval_>
   ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int) (x3 $smt_builtin_Real) (x4 $smt_builtin_Real) (t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_> ($vsm_term ($sm_mk_z x1)) ($vsm_term ($sm_mk_z x2))) ($vsm_term ($sm_mk_bool ($smt_apply_2 ">" x1 x2))))
   (($smtx_model_eval_> ($vsm_term ($sm_mk_q x3)) ($vsm_term ($sm_mk_q x4))) ($vsm_term ($sm_mk_bool ($smt_apply_2 ">" x3 x4))))
@@ -2778,7 +2769,6 @@
 (program $smtx_model_eval_>=
   ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int) (x3 $smt_builtin_Real) (x4 $smt_builtin_Real) (t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_>= ($vsm_term ($sm_mk_z x1)) ($vsm_term ($sm_mk_z x2))) ($vsm_term ($sm_mk_bool ($smt_apply_2 ">=" x1 x2))))
   (($smtx_model_eval_>= ($vsm_term ($sm_mk_q x3)) ($vsm_term ($sm_mk_q x4))) ($vsm_term ($sm_mk_bool ($smt_apply_2 ">=" x3 x4))))
@@ -2788,7 +2778,6 @@
 (program $smtx_model_eval_to_real
   ((x1 $smt_builtin_Int) (t1 $smt_Value))
   :signature ($smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_to_real ($vsm_term ($sm_mk_z x1))) ($vsm_term ($sm_mk_q ($smt_apply_1 "to_real" x1))))
   (($smtx_model_eval_to_real t1) $vsm_not_value)
@@ -2797,7 +2786,6 @@
 (program $smtx_model_eval_to_int
   ((x1 $smt_builtin_Real) (t1 $smt_Value))
   :signature ($smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_to_int ($vsm_term ($sm_mk_q x1))) ($vsm_term ($sm_mk_z ($smt_apply_1 "to_int" x1))))
   (($smtx_model_eval_to_int t1) $vsm_not_value)
@@ -2806,7 +2794,6 @@
 (program $smtx_model_eval_is_int
   ((x1 $smt_builtin_Real) (t1 $smt_Value))
   :signature ($smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_is_int ($vsm_term ($sm_mk_q x1))) ($vsm_term ($sm_mk_bool ($smt_apply_1 "is_int" x1))))
   (($smtx_model_eval_is_int t1) $vsm_not_value)
@@ -2815,7 +2802,6 @@
 (program $smtx_model_eval_abs
   ((x1 $smt_builtin_Int) (t1 $smt_Value))
   :signature ($smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_abs ($vsm_term ($sm_mk_z x1))) ($vsm_term ($sm_mk_z ($smt_apply_1 "abs" x1))))
   (($smtx_model_eval_abs t1) $vsm_not_value)
@@ -2824,7 +2810,6 @@
 (program $smtx_model_eval_$eoo_-.2
   ((x1 $smt_builtin_Int) (x2 $smt_builtin_Real) (t1 $smt_Value))
   :signature ($smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_$eoo_-.2 ($vsm_term ($sm_mk_z x1))) ($vsm_term ($sm_mk_z ($smt_apply_1 "-" x1))))
   (($smtx_model_eval_$eoo_-.2 ($vsm_term ($sm_mk_q x2))) ($vsm_term ($sm_mk_q ($smt_apply_1 "-" x2))))
@@ -2834,7 +2819,6 @@
 (program $smtx_model_eval_div
   ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int) (t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_div ($vsm_term ($sm_mk_z x1)) ($vsm_term ($sm_mk_z x2))) ($vsm_term ($sm_mk_z ($smt_apply_2 "div" x1 x2))))
   (($smtx_model_eval_div t1 t2) $vsm_not_value)
@@ -2843,7 +2827,6 @@
 (program $smtx_model_eval_mod
   ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int) (t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_mod ($vsm_term ($sm_mk_z x1)) ($vsm_term ($sm_mk_z x2))) ($vsm_term ($sm_mk_z ($smt_apply_2 "mod" x1 x2))))
   (($smtx_model_eval_mod t1 t2) $vsm_not_value)
@@ -2852,7 +2835,6 @@
 (program $smtx_model_eval_int.pow2
   ((x1 $smt_builtin_Int) (t1 $smt_Value))
   :signature ($smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_int.pow2 ($vsm_term ($sm_mk_z x1))) ($vsm_term ($sm_mk_z ($smt_apply_1 "int.pow2" x1))))
   (($smtx_model_eval_int.pow2 t1) $vsm_not_value)
@@ -2861,7 +2843,6 @@
 (program $smtx_model_eval_div_total
   ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int) (t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_div_total ($vsm_term ($sm_mk_z x1)) ($vsm_term ($sm_mk_z x2))) ($vsm_term ($sm_mk_z ($smt_apply_2 "div_total" x1 x2))))
   (($smtx_model_eval_div_total t1 t2) $vsm_not_value)
@@ -2870,7 +2851,6 @@
 (program $smtx_model_eval_mod_total
   ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int) (t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_mod_total ($vsm_term ($sm_mk_z x1)) ($vsm_term ($sm_mk_z x2))) ($vsm_term ($sm_mk_z ($smt_apply_2 "mod_total" x1 x2))))
   (($smtx_model_eval_mod_total t1 t2) $vsm_not_value)
@@ -2879,7 +2859,6 @@
 (program $smtx_model_eval_/
   ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real) (t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_/ ($vsm_term ($sm_mk_q x1)) ($vsm_term ($sm_mk_q x2))) ($vsm_term ($sm_mk_q ($smt_apply_2 "/" x1 x2))))
   (($smtx_model_eval_/ t1 t2) $vsm_not_value)
@@ -2888,17 +2867,23 @@
 (program $smtx_model_eval_/_total
   ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int) (x3 $smt_builtin_Real) (x4 $smt_builtin_Real) (t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_/_total ($vsm_term ($sm_mk_z x1)) ($vsm_term ($sm_mk_z x2))) ($vsm_term ($sm_mk_q ($smt_apply_2 "/_total" x1 x2))))
   (($smtx_model_eval_/_total ($vsm_term ($sm_mk_q x3)) ($vsm_term ($sm_mk_q x4))) ($vsm_term ($sm_mk_q ($smt_apply_2 "/_total" x3 x4))))
   (($smtx_model_eval_/_total t1 t2) $vsm_not_value)
   )
 )
+(program $smtx_model_eval_bvand
+  ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int) (x3 $smt_builtin_Int) (x4 $smt_builtin_Int) (t1 $smt_Value) (t2 $smt_Value))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_bvand ($vsm_term ($sm_mk_binary x1 x2)) ($vsm_term ($sm_mk_binary x3 x4))) ($vsm_term ($sm_mk_binary x1 ($smtx_binary_and x1 x2 x4))))
+  (($smtx_model_eval_bvand t1 t2) $vsm_not_value)
+  )
+)
 (program $smtx_model_eval_str.len
   ((x1 $smt_builtin_String) (t1 $smt_Value))
   :signature ($smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_str.len ($vsm_term ($sm_mk_str x1))) ($vsm_term ($sm_mk_z ($smt_apply_1 "str.len" x1))))
   (($smtx_model_eval_str.len t1) $vsm_not_value)
@@ -2907,7 +2892,6 @@
 (program $smtx_model_eval_str.++
   ((x1 $smt_builtin_String) (x2 $smt_builtin_String) (t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_str.++ ($vsm_term ($sm_mk_str x1)) ($vsm_term ($sm_mk_str x2))) ($vsm_term ($sm_mk_str ($smt_apply_2 "str.++" x1 x2))))
   (($smtx_model_eval_str.++ t1 t2) $vsm_not_value)
@@ -2916,7 +2900,6 @@
 (program $smtx_model_eval_str.substr
   ((x1 $smt_builtin_String) (x2 $smt_builtin_Int) (x3 $smt_builtin_Int) (t1 $smt_Value) (t2 $smt_Value) (t3 $smt_Value))
   :signature ($smt_Value $smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_str.substr ($vsm_term ($sm_mk_str x1)) ($vsm_term ($sm_mk_z x2)) ($vsm_term ($sm_mk_z x3))) ($vsm_term ($sm_mk_str ($smt_apply_3 "str.substr" x1 x2 x3))))
   (($smtx_model_eval_str.substr t1 t2 t3) $vsm_not_value)
@@ -2925,7 +2908,6 @@
 (program $smtx_model_eval_str.contains
   ((x1 $smt_builtin_String) (x2 $smt_builtin_String) (t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_str.contains ($vsm_term ($sm_mk_str x1)) ($vsm_term ($sm_mk_str x2))) ($vsm_term ($sm_mk_bool ($smt_apply_2 "str.contains" x1 x2))))
   (($smtx_model_eval_str.contains t1 t2) $vsm_not_value)
@@ -2934,7 +2916,6 @@
 (program $smtx_model_eval_str.replace
   ((x1 $smt_builtin_String) (x2 $smt_builtin_String) (x3 $smt_builtin_String) (t1 $smt_Value) (t2 $smt_Value) (t3 $smt_Value))
   :signature ($smt_Value $smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_str.replace ($vsm_term ($sm_mk_str x1)) ($vsm_term ($sm_mk_str x2)) ($vsm_term ($sm_mk_str x3))) ($vsm_term ($sm_mk_str ($smt_apply_3 "str.replace" x1 x2 x3))))
   (($smtx_model_eval_str.replace t1 t2 t3) $vsm_not_value)
@@ -2943,7 +2924,6 @@
 (program $smtx_model_eval_str.indexof
   ((x1 $smt_builtin_String) (x2 $smt_builtin_String) (x3 $smt_builtin_Int) (t1 $smt_Value) (t2 $smt_Value) (t3 $smt_Value))
   :signature ($smt_Value $smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_str.indexof ($vsm_term ($sm_mk_str x1)) ($vsm_term ($sm_mk_str x2)) ($vsm_term ($sm_mk_z x3))) ($vsm_term ($sm_mk_z ($smt_apply_3 "str.indexof" x1 x2 x3))))
   (($smtx_model_eval_str.indexof t1 t2 t3) $vsm_not_value)
@@ -2952,7 +2932,6 @@
 (program $smtx_model_eval_str.at
   ((x1 $smt_builtin_String) (x2 $smt_builtin_Int) (t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_str.at ($vsm_term ($sm_mk_str x1)) ($vsm_term ($sm_mk_z x2))) ($vsm_term ($sm_mk_str ($smt_apply_2 "str.at" x1 x2))))
   (($smtx_model_eval_str.at t1 t2) $vsm_not_value)
@@ -2961,7 +2940,6 @@
 (program $smtx_model_eval_str.prefixof
   ((x1 $smt_builtin_String) (x2 $smt_builtin_String) (t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_str.prefixof ($vsm_term ($sm_mk_str x1)) ($vsm_term ($sm_mk_str x2))) ($vsm_term ($sm_mk_bool ($smt_apply_2 "str.prefixof" x1 x2))))
   (($smtx_model_eval_str.prefixof t1 t2) $vsm_not_value)
@@ -2970,7 +2948,6 @@
 (program $smtx_model_eval_str.suffixof
   ((x1 $smt_builtin_String) (x2 $smt_builtin_String) (t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_str.suffixof ($vsm_term ($sm_mk_str x1)) ($vsm_term ($sm_mk_str x2))) ($vsm_term ($sm_mk_bool ($smt_apply_2 "str.suffixof" x1 x2))))
   (($smtx_model_eval_str.suffixof t1 t2) $vsm_not_value)
@@ -2979,7 +2956,6 @@
 (program $smtx_model_eval_str.rev
   ((x1 $smt_builtin_String) (t1 $smt_Value))
   :signature ($smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_str.rev ($vsm_term ($sm_mk_str x1))) ($vsm_term ($sm_mk_str ($smt_apply_1 "str.rev" x1))))
   (($smtx_model_eval_str.rev t1) $vsm_not_value)
@@ -2988,7 +2964,6 @@
 (program $smtx_model_eval_str.update
   ((x1 $smt_builtin_String) (x2 $smt_builtin_Int) (x3 $smt_builtin_String) (t1 $smt_Value) (t2 $smt_Value) (t3 $smt_Value))
   :signature ($smt_Value $smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_str.update ($vsm_term ($sm_mk_str x1)) ($vsm_term ($sm_mk_z x2)) ($vsm_term ($sm_mk_str x3))) ($vsm_term ($sm_mk_str ($smt_apply_3 "str.update" x1 x2 x3))))
   (($smtx_model_eval_str.update t1 t2 t3) $vsm_not_value)
@@ -2997,7 +2972,6 @@
 (program $smtx_model_eval_str.to_lower
   ((x1 $smt_builtin_String) (t1 $smt_Value))
   :signature ($smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_str.to_lower ($vsm_term ($sm_mk_str x1))) ($vsm_term ($sm_mk_str ($smt_apply_1 "str.to_lower" x1))))
   (($smtx_model_eval_str.to_lower t1) $vsm_not_value)
@@ -3006,7 +2980,6 @@
 (program $smtx_model_eval_str.to_upper
   ((x1 $smt_builtin_String) (t1 $smt_Value))
   :signature ($smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_str.to_upper ($vsm_term ($sm_mk_str x1))) ($vsm_term ($sm_mk_str ($smt_apply_1 "str.to_upper" x1))))
   (($smtx_model_eval_str.to_upper t1) $vsm_not_value)
@@ -3015,7 +2988,6 @@
 (program $smtx_model_eval_str.to_code
   ((x1 $smt_builtin_String) (t1 $smt_Value))
   :signature ($smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_str.to_code ($vsm_term ($sm_mk_str x1))) ($vsm_term ($sm_mk_z ($smt_apply_1 "str.to_code" x1))))
   (($smtx_model_eval_str.to_code t1) $vsm_not_value)
@@ -3024,7 +2996,6 @@
 (program $smtx_model_eval_str.from_code
   ((x1 $smt_builtin_Int) (t1 $smt_Value))
   :signature ($smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_str.from_code ($vsm_term ($sm_mk_z x1))) ($vsm_term ($sm_mk_str ($smt_apply_1 "str.from_code" x1))))
   (($smtx_model_eval_str.from_code t1) $vsm_not_value)
@@ -3033,7 +3004,6 @@
 (program $smtx_model_eval_str.to_int
   ((x1 $smt_builtin_String) (t1 $smt_Value))
   :signature ($smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_str.to_int ($vsm_term ($sm_mk_str x1))) ($vsm_term ($sm_mk_z ($smt_apply_1 "str.to_int" x1))))
   (($smtx_model_eval_str.to_int t1) $vsm_not_value)
@@ -3042,7 +3012,6 @@
 (program $smtx_model_eval_str.from_int
   ((x1 $smt_builtin_Int) (t1 $smt_Value))
   :signature ($smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_str.from_int ($vsm_term ($sm_mk_z x1))) ($vsm_term ($sm_mk_str ($smt_apply_1 "str.from_int" x1))))
   (($smtx_model_eval_str.from_int t1) $vsm_not_value)
@@ -3051,7 +3020,6 @@
 (program $smtx_model_eval_str.<=
   ((x1 $smt_builtin_String) (x2 $smt_builtin_String) (t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_str.<= ($vsm_term ($sm_mk_str x1)) ($vsm_term ($sm_mk_str x2))) ($vsm_term ($sm_mk_bool ($smt_apply_2 "str.<=" x1 x2))))
   (($smtx_model_eval_str.<= t1 t2) $vsm_not_value)
@@ -3060,7 +3028,6 @@
 (program $smtx_model_eval_str.replace_all
   ((x1 $smt_builtin_String) (x2 $smt_builtin_String) (x3 $smt_builtin_String) (t1 $smt_Value) (t2 $smt_Value) (t3 $smt_Value))
   :signature ($smt_Value $smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_str.replace_all ($vsm_term ($sm_mk_str x1)) ($vsm_term ($sm_mk_str x2)) ($vsm_term ($sm_mk_str x3))) ($vsm_term ($sm_mk_str ($smt_apply_3 "str.replace_all" x1 x2 x3))))
   (($smtx_model_eval_str.replace_all t1 t2 t3) $vsm_not_value)
@@ -3113,6 +3080,7 @@
   (($smtx_model_eval (mod_total x1 x2)) ($smtx_model_eval_mod_total ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (/ x1 x2)) ($smtx_model_eval_/ ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (/_total x1 x2)) ($smtx_model_eval_/_total ($smtx_model_eval x1) ($smtx_model_eval x2)))
+  (($smtx_model_eval (bvand x1 x2)) ($smtx_model_eval_bvand ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (bvult x1 x2)) ($smtx_model_eval (bvugt x2 x1)))
   (($smtx_model_eval (bvule x1 x2)) ($smtx_model_eval (bvuge x2 x1)))
   (($smtx_model_eval (bvslt x1 x2)) ($smtx_model_eval (bvsgt x2 x1)))
