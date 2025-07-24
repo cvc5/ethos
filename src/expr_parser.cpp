@@ -1060,11 +1060,9 @@ void ExprParser::parseAttributeList(
           case Attr::CHAINABLE:
           case Attr::PAIRWISE:
           case Attr::BINDER:
-          {
             // requires an expression that follows
             handled = true;
             val = parseExpr();
-          }
             break;
           case Attr::LET_BINDER:
           {
@@ -1072,6 +1070,10 @@ void ExprParser::parseAttributeList(
             handled = true;
             val = parseExprPair();
           }
+            break;
+          case Attr::SEMANTICS:
+            handled = true;
+            val = parseExpr();
             break;
           default:break;
         }

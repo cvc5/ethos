@@ -199,7 +199,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     const Literal* l = c.getValue()->asLiteral();
     if (l == nullptr)
     {
-      EO_FATAL() << "Unknown atomic term kind " << k;
+      Assert(false) << "Unknown atomic term kind " << k;
       return;
     }
     if (k == Kind::BOOLEAN)
@@ -260,7 +260,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     }
     else
     {
-      EO_FATAL() << "Unknown atomic term literal kind " << k;
+      Assert(false) << "Unknown atomic term literal kind " << k;
     }
   }
   os << osEnd.str();
@@ -319,7 +319,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       }
       else
       {
-        EO_FATAL() << "Unhandled context change " << metaKindToString(parent)
+        Assert(false) << "Unhandled context change " << metaKindToString(parent)
                    << " / " << metaKindToString(child) << " in " << tcur
                    << " within " << c;
       }
@@ -328,7 +328,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     {
       if (isProgram(tcur[0]))
       {
-        EO_FATAL() << "Cannot match on program " << tcur[0];
+        Assert(false) << "Cannot match on program " << tcur[0];
       }
       Assert(tcur.getNumChildren() == 2);
       // Determine if this is a Eunoia internal term, or an
@@ -477,7 +477,7 @@ std::string SmtMetaReduce::getEmbedName(const Expr& oApp)
   }
   if (!isSmtApplyApp(oApp))
   {
-    EO_FATAL() << "Expected smt apply app when asking for embed name " << oApp;
+    Assert(false) << "Expected smt apply app when asking for embed name " << oApp;
   }
   const Literal* l = oApp[1].getValue()->asLiteral();
   return l->d_str.toString();
@@ -755,12 +755,21 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       }
       else
       {
-        EO_FATAL() << "Bad name for literal kind " << ck << std::endl;
+        Assert(false) << "Bad name for literal kind " << ck << std::endl;
       }
+    }
+    else if (ck == Kind::VARIABLE)
+    {
+      const Literal* l = recTerm.getValue()->asLiteral();
+      os << "(eo.Var \"" << l->toString() << "\" ($smtx_hash ";
+      Expr recTermT = d_tc.getType(recTerm);
+      visit.emplace_back(recTermT, MetaKind::EUNOIA);
+      cparen[key] += 2;
+      continue;
     }
     else
     {
-      EO_FATAL() << "Unhandled kind in print term " << ck << " " << recTerm
+      Assert(false) << "Unhandled kind in print term " << ck << " " << recTerm
                  << " / " << metaKindToString(parent) << std::endl;
     }
     // otherwise, the new context depends on the types of the children
@@ -934,13 +943,13 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     {
       if (i > 0 && !isSmtProgram)
       {
-        EO_FATAL()
+        Assert(false)
             << "Program " << v
             << " is not a Eunoia program and thus cannot have multiple cases";
       }
       if (print.d_npush > 0)
       {
-        EO_FATAL() << "Program " << v
+        Assert(false) << "Program " << v
                    << " is not a Eunoia program and thus cannot rely on "
                       "pattern matching";
       }
@@ -1135,7 +1144,7 @@ bool SmtMetaReduce::echo(const std::string& msg)
     Expr vv = d_state.getVar(eosc);
     if (vv.isNull())
     {
-      EO_FATAL()
+      Assert(false)
           << "When making verification condition, could not find program "
           << eosc;
     }
@@ -1339,10 +1348,14 @@ MetaKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
           // this allows SMT-LIB equality to operate on any datatype used in the embedding
           tk = MetaKind::NONE;
         }
-        else
+        else if (k1==MetaKind::EUNOIA || k2==MetaKind::EUNOIA)
         {
           // if they have different types, we must "connect" them through the top-level Eunoia datatype
           tk = MetaKind::EUNOIA;
+        }
+        else
+        {
+          Assert(false) << "Could not infer argument context for equality";
         }
       }
       else if (i == 1)

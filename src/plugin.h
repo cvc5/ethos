@@ -135,9 +135,16 @@ public:
                                const std::vector<ExprValue*>& args,
                                Ctx& newCtx) { return Expr(); }
   /**
-   * Return true if the echo should be processed
+   * Return true if the echo should be printed. If we return false, the
+   * assumption is that the message was intended for this plugin.
+   * @param msg The message.
+   * @return true if the caller should print the message.
    */
   virtual bool echo(const std::string& msg) { return true; }
+  /**
+   * Mark semantics, used for meta-level reasoning.
+   */ 
+  virtual void markSemantics(const Expr& c, const Expr& t) {}
   //--------- finalize
   /**
    * Finalize. Called once when the proof checker has finished parsing all input.

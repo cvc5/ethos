@@ -204,6 +204,8 @@ class State
   void markProofRuleSorry(const ExprValue * e);
   /** Does e refer to a proof rule marked :sorry? */
   bool isProofRuleSorry(const ExprValue* e) const;
+  /** Mark constant semantics */
+  void markSemantics(const Expr& c, const Expr& t);
   //--------------------------------------
   /** Get the type checker */
   TypeChecker& getTypeChecker();

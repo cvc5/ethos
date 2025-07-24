@@ -1446,6 +1446,14 @@ bool State::isProofRuleSorry(const ExprValue* e) const
   return d_pfrSorry.find(e)!=d_pfrSorry.end();
 }
 
+void State::markSemantics(const Expr& c, const Expr& t)
+{
+  if (d_plugin!=nullptr)
+  {
+    d_plugin->markSemantics(c, t);
+  }
+}
+
 AppInfo* State::getAppInfo(const ExprValue* e)
 {
   // we may be an ANNOT_PARAM here, which will never have relevant properties

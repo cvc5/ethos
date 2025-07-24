@@ -17,6 +17,7 @@ std::ostream& operator<<(std::ostream& o, Attr a)
     case Attr::NONE: o << "NONE"; break;
     case Attr::IMPLICIT: o << "implicit"; break;
     case Attr::TYPE: o << "type"; break;
+    case Attr::SEMANTICS: o << "semantics"; break;
     case Attr::SORRY: o << "sorry"; break;
     case Attr::LIST: o << "list"; break;
     case Attr::REQUIRES: o << "requires"; break;
