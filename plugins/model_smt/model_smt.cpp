@@ -62,7 +62,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("mod", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
   addConstFoldSym("to_int", {Kind::RATIONAL}, Kind::NUMERAL);
   addConstFoldSym("to_real", {Kind::NUMERAL}, Kind::RATIONAL);
-  addTermReduceSym("divisible", {Kind::NUMERAL, Kind::NUMERAL}, "(= (mod x2 x1) 0)");
+  addTermReduceSym(
+      "divisible", {Kind::NUMERAL, Kind::NUMERAL}, "(= (mod x2 x1) 0)");
   // strings
   // addConstFoldSym("String", {}, Kind::TYPE);
   addConstFoldSym("str.++", {Kind::STRING, Kind::STRING}, Kind::STRING);
@@ -71,13 +72,13 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "str.substr", {Kind::STRING, Kind::NUMERAL, Kind::NUMERAL}, Kind::STRING);
   addConstFoldSym("str.at", {Kind::STRING, Kind::NUMERAL}, Kind::STRING);
   addConstFoldSym("str.indexof",
-               {Kind::STRING, Kind::STRING, Kind::NUMERAL},
-               Kind::NUMERAL);
+                  {Kind::STRING, Kind::STRING, Kind::NUMERAL},
+                  Kind::NUMERAL);
   addConstFoldSym(
       "str.replace", {Kind::STRING, Kind::STRING, Kind::STRING}, Kind::STRING);
   addConstFoldSym("str.replace_all",
-               {Kind::STRING, Kind::STRING, Kind::STRING},
-               Kind::STRING);
+                  {Kind::STRING, Kind::STRING, Kind::STRING},
+                  Kind::STRING);
   addConstFoldSym("str.from_code", {Kind::NUMERAL}, Kind::STRING);
   addConstFoldSym("str.to_code", {Kind::STRING}, Kind::NUMERAL);
   addConstFoldSym("str.from_int", {Kind::NUMERAL}, Kind::STRING);
@@ -89,22 +90,33 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("str.<=", {Kind::STRING, Kind::STRING}, Kind::BOOLEAN);
   addConstFoldSym("str.<", {Kind::STRING, Kind::STRING}, Kind::BOOLEAN);
   // bitvectors
-  addLiteralBinReduceSym("bvand", {Kind::BINARY, Kind::BINARY}, "x1", "($smtx_binary_and x1 x2 x4)");
-  addLiteralBinReduceSym("bvor", {Kind::BINARY, Kind::BINARY}, "x1", "($smtx_binary_or x1 x2 x4)");
-  addLiteralBinReduceSym("bvxor", {Kind::BINARY, Kind::BINARY}, "x1", "($smtx_binary_xor x1 x2 x4)");
+  addLiteralBinReduceSym("bvand",
+                         {Kind::BINARY, Kind::BINARY},
+                         "x1",
+                         "($smtx_binary_and x1 x2 x4)");
+  addLiteralBinReduceSym(
+      "bvor", {Kind::BINARY, Kind::BINARY}, "x1", "($smtx_binary_or x1 x2 x4)");
+  addLiteralBinReduceSym("bvxor",
+                         {Kind::BINARY, Kind::BINARY},
+                         "x1",
+                         "($smtx_binary_xor x1 x2 x4)");
   addTermReduceSym("bvsle", {Kind::BINARY, Kind::BINARY}, "(bvsge x2 x1)");
   addTermReduceSym("bvule", {Kind::BINARY, Kind::BINARY}, "(bvuge x2 x1)");
   addTermReduceSym("bvslt", {Kind::BINARY, Kind::BINARY}, "(bvsgt x2 x1)");
   addTermReduceSym("bvult", {Kind::BINARY, Kind::BINARY}, "(bvugt x2 x1)");
-  addTermReduceSym("nand", {Kind::BINARY, Kind::BINARY}, "(bvnot (bvand x1 x2))");
+  addTermReduceSym(
+      "nand", {Kind::BINARY, Kind::BINARY}, "(bvnot (bvand x1 x2))");
   addTermReduceSym("nor", {Kind::BINARY, Kind::BINARY}, "(bvnot (bvor x1 x2))");
-  addTermReduceSym("xnor", {Kind::BINARY, Kind::BINARY}, "(bvnot (bvxor x1 x2))");
+  addTermReduceSym(
+      "xnor", {Kind::BINARY, Kind::BINARY}, "(bvnot (bvxor x1 x2))");
   // Quantifiers
-  for (size_t i=0; i<2; i++)
+  for (size_t i = 0; i < 2; i++)
   {
     std::stringstream ssq;
-    ssq << "($smtx_eval_quant x1 x2 $smt_builtin_z_zero $smt_builtin_" << (i==0 ? "true" : "false") << ")";
-    addReduceSym(i==0 ? "exists" : "forall", {Kind::ANY, Kind::BOOLEAN}, ssq.str());
+    ssq << "($smtx_eval_quant x1 x2 $smt_builtin_z_zero $smt_builtin_"
+        << (i == 0 ? "true" : "false") << ")";
+    addReduceSym(
+        i == 0 ? "exists" : "forall", {Kind::ANY, Kind::BOOLEAN}, ssq.str());
   }
 
   ///----- non standard extensions
@@ -117,8 +129,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("str.rev", {Kind::STRING}, Kind::STRING);
   addConstFoldSym("str.to_lower", {Kind::STRING}, Kind::STRING);
   addConstFoldSym("str.to_upper", {Kind::STRING}, Kind::STRING);
-  // addConstFoldSym("int.ispow2", {Kind::NUMERAL, Kind::NUMERAL}, Kind::BOOLEAN);
-  // addConstFoldSym("int.log2", {Kind::NUMERAL, Kind::NUMERAL}, Kind::NUMERAL);
+  // addConstFoldSym("int.ispow2", {Kind::NUMERAL, Kind::NUMERAL},
+  // Kind::BOOLEAN); addConstFoldSym("int.log2", {Kind::NUMERAL, Kind::NUMERAL},
+  // Kind::NUMERAL);
   addConstFoldSym("int.pow2", {Kind::NUMERAL}, Kind::NUMERAL);
   // TODO: more
   // BV
@@ -132,16 +145,16 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
 ModelSmt::~ModelSmt() {}
 
 void ModelSmt::addConstFoldSym(const std::string& sym,
-                            const std::vector<Kind>& args,
-                            Kind ret)
+                               const std::vector<Kind>& args,
+                               Kind ret)
 {
   d_symConstFold[sym] = std::pair<std::vector<Kind>, Kind>(args, ret);
 }
 
 void ModelSmt::addLiteralBinReduceSym(const std::string& sym,
-                  const std::vector<Kind>& args,
-                  const std::string& retWidth,
-                          const std::string& retNum)
+                                      const std::vector<Kind>& args,
+                                      const std::string& retWidth,
+                                      const std::string& retNum)
 {
   std::stringstream ssr;
   ssr << "($vsm_term ($sm_mk_binary " << retWidth << " " << retNum << "))";
@@ -149,9 +162,9 @@ void ModelSmt::addLiteralBinReduceSym(const std::string& sym,
 }
 
 void ModelSmt::addLiteralReduceSym(const std::string& sym,
-                            const std::vector<Kind>& args,
-                            Kind ret,
-                            const std::string& retTerm)
+                                   const std::vector<Kind>& args,
+                                   Kind ret,
+                                   const std::string& retTerm)
 {
   d_symLitReduce[sym] =
       std::tuple<std::vector<Kind>, Kind, std::string>(args, ret, retTerm);
@@ -167,11 +180,10 @@ void ModelSmt::addTermReduceSym(const std::string& sym,
 }
 
 void ModelSmt::addReduceSym(const std::string& sym,
-                                const std::vector<Kind>& args,
-                                const std::string& retTerm)
+                            const std::vector<Kind>& args,
+                            const std::string& retTerm)
 {
-  d_symReduce[sym] =
-      std::pair<std::vector<Kind>, std::string>(args, retTerm);
+  d_symReduce[sym] = std::pair<std::vector<Kind>, std::string>(args, retTerm);
 }
 
 void ModelSmt::bind(const std::string& name, const Expr& e)
@@ -196,7 +208,8 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
   {
     std::vector<Kind>& args = std::get<0>(its->second);
     printModelEvalCall(name, args);
-    printLitReduce(name, args, std::get<1>(its->second), std::get<2>(its->second));
+    printLitReduce(
+        name, args, std::get<1>(its->second), std::get<2>(its->second));
     return;
   }
   std::map<std::string, std::pair<std::vector<Kind>, std::string>>::iterator
@@ -252,8 +265,8 @@ void ModelSmt::printTermInternal(Kind k,
 }
 
 void ModelSmt::printConstFold(const std::string& name,
-                           const std::vector<Kind>& args,
-                           Kind kret)
+                              const std::vector<Kind>& args,
+                              Kind kret)
 {
   bool isOverloadArith = (args.size() > 0 && args[0] == Kind::PARAM);
   std::vector<Kind> argSchemas;
@@ -307,19 +320,19 @@ void ModelSmt::printConstFold(const std::string& name,
     printTermInternal(kr, ssret.str(), fssret);
     // then print it on cases
     printAuxProgramCase(progName.str(),
-                  instArgs,
-                  fssret.str(),
-                  paramCount,
-                  progCases,
-                  progParams);
+                        instArgs,
+                        fssret.str(),
+                        paramCount,
+                        progCases,
+                        progParams);
   }
   printAuxProgram(progName.str(), args, progCases, progParams);
 }
 
 void ModelSmt::printAuxProgram(const std::string& name,
-                     const std::vector<Kind>& args,
-                    std::stringstream& progCases,
-                    std::stringstream& progParams)
+                               const std::vector<Kind>& args,
+                               std::stringstream& progCases,
+                               std::stringstream& progParams)
 {
   std::stringstream progSig;
   progSig << "(";
@@ -346,11 +359,11 @@ void ModelSmt::printAuxProgram(const std::string& name,
 }
 
 void ModelSmt::printAuxProgramCase(const std::string& name,
-                             const std::vector<Kind>& args,
-                             const std::string& ret,
-                             size_t& paramCount,
-                             std::ostream& progCases,
-                             std::ostream& progParams)
+                                   const std::vector<Kind>& args,
+                                   const std::string& ret,
+                                   size_t& paramCount,
+                                   std::ostream& progCases,
+                                   std::ostream& progParams)
 {
   progCases << "  ((" << name;
   for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
@@ -362,27 +375,29 @@ void ModelSmt::printAuxProgramCase(const std::string& name,
       progParams << " ";
     }
     progCases << " ($vsm_term";
-    if (ka==Kind::BINARY)
+    if (ka == Kind::BINARY)
     {
-      progCases << " ($sm_mk_binary x" << paramCount << " x" << (paramCount+1) << "))";
+      progCases << " ($sm_mk_binary x" << paramCount << " x" << (paramCount + 1)
+                << "))";
       progParams << "(x" << paramCount << " $smt_builtin_Int)";
-      progParams << " (x" << (paramCount+1) << " $smt_builtin_Int)";
+      progParams << " (x" << (paramCount + 1) << " $smt_builtin_Int)";
       paramCount++;
       continue;
     }
-    Assert (d_kindToEoPrefix.find(ka)!=d_kindToEoPrefix.end());
-    progCases << " ($sm_mk_" << d_kindToEoPrefix[ka] << " x" << paramCount << "))";
+    Assert(d_kindToEoPrefix.find(ka) != d_kindToEoPrefix.end());
+    progCases << " ($sm_mk_" << d_kindToEoPrefix[ka] << " x" << paramCount
+              << "))";
     progParams << "(x" << paramCount << " $smt_builtin_" << d_kindToType[ka]
-              << ")";
+               << ")";
   }
   progCases << ") ";
   progCases << ret << ")" << std::endl;
 }
 
 void ModelSmt::printLitReduce(const std::string& name,
-                           const std::vector<Kind>& args,
-                           Kind ret,
-                           const std::string& reduce)
+                              const std::vector<Kind>& args,
+                              Kind ret,
+                              const std::string& reduce)
 {
   std::stringstream progName;
   std::stringstream progCases;
@@ -393,12 +408,8 @@ void ModelSmt::printLitReduce(const std::string& name,
   std::stringstream ssret;
   printTermInternal(ret, reduce, ssret);
   // then print it on cases
-  printAuxProgramCase(progName.str(),
-                args,
-                ssret.str(),
-                paramCount,
-                progCases,
-                progParams);
+  printAuxProgramCase(
+      progName.str(), args, ssret.str(), paramCount, progCases, progParams);
   printAuxProgram(progName.str(), args, progCases, progParams);
 }
 
