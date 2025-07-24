@@ -143,7 +143,7 @@ public:
   virtual bool echo(const std::string& msg) { return true; }
   /**
    * Mark semantics, used for meta-level reasoning.
-   */ 
+   */
   virtual void markSemantics(const Expr& c, const Expr& t) {}
   //--------- finalize
   /**

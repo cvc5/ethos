@@ -300,7 +300,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
   // TODO: is this necessary?
   // carry the marked semantics
   std::map<Expr, Expr>::iterator itm = d_markedSemantics.find(e);
-  if (itm!=d_markedSemantics.end())
+  if (itm != d_markedSemantics.end())
   {
     os << " :semantics ";
     printTerm(itm->second, os);

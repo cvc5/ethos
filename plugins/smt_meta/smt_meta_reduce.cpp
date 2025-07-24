@@ -320,8 +320,8 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
       else
       {
         Assert(false) << "Unhandled context change " << metaKindToString(parent)
-                   << " / " << metaKindToString(child) << " in " << tcur
-                   << " within " << c;
+                      << " / " << metaKindToString(child) << " in " << tcur
+                      << " within " << c;
       }
     }
     if (ck == Kind::APPLY)
@@ -477,7 +477,8 @@ std::string SmtMetaReduce::getEmbedName(const Expr& oApp)
   }
   if (!isSmtApplyApp(oApp))
   {
-    Assert(false) << "Expected smt apply app when asking for embed name " << oApp;
+    Assert(false) << "Expected smt apply app when asking for embed name "
+                  << oApp;
   }
   const Literal* l = oApp[1].getValue()->asLiteral();
   return l->d_str.toString();
@@ -770,7 +771,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     else
     {
       Assert(false) << "Unhandled kind in print term " << ck << " " << recTerm
-                 << " / " << metaKindToString(parent) << std::endl;
+                    << " / " << metaKindToString(parent) << std::endl;
     }
     // otherwise, the new context depends on the types of the children
     std::vector<MetaKind> targs = getMetaKindArgs(recTerm, parent);
@@ -950,8 +951,8 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
       if (print.d_npush > 0)
       {
         Assert(false) << "Program " << v
-                   << " is not a Eunoia program and thus cannot rely on "
-                      "pattern matching";
+                      << " is not a Eunoia program and thus cannot rely on "
+                         "pattern matching";
       }
       cases << "  " << currRet.str() << std::endl;
     }
@@ -1342,15 +1343,17 @@ MetaKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
       {
         MetaKind k1 = getMetaKindReturn(parent[1], parentCtx);
         MetaKind k2 = getMetaKindReturn(parent[2], parentCtx);
-        if (k1==k2)
+        if (k1 == k2)
         {
           // both sides have no context.
-          // this allows SMT-LIB equality to operate on any datatype used in the embedding
+          // this allows SMT-LIB equality to operate on any datatype used in the
+          // embedding
           tk = MetaKind::NONE;
         }
-        else if (k1==MetaKind::EUNOIA || k2==MetaKind::EUNOIA)
+        else if (k1 == MetaKind::EUNOIA || k2 == MetaKind::EUNOIA)
         {
-          // if they have different types, we must "connect" them through the top-level Eunoia datatype
+          // if they have different types, we must "connect" them through the
+          // top-level Eunoia datatype
           tk = MetaKind::EUNOIA;
         }
         else
@@ -1476,9 +1479,9 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
         MetaKind tk = MetaKind::SMT_BUILTIN;
         MetaKind k1 = getMetaKindReturn(child[1], parentCtx);
         MetaKind k2 = getMetaKindReturn(child[2], parentCtx);
-        Assert(k1==MetaKind::EUNOIA || k2 == MetaKind::EUNOIA || k1 == k2) << "Equal sides have incompatible meta types " << child
-                         << " " << metaKindToString(k1) << " "
-                         << metaKindToString(k2);
+        Assert(k1 == MetaKind::EUNOIA || k2 == MetaKind::EUNOIA || k1 == k2)
+            << "Equal sides have incompatible meta types " << child << " "
+            << metaKindToString(k1) << " " << metaKindToString(k2);
         return tk;
       }
       else

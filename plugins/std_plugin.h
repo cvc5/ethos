@@ -36,8 +36,9 @@ class StdPlugin : public Plugin
   void setLiteralTypeRule(Kind k, const Expr& t) override;
   /**
    * Mark semantics, used for meta-level reasoning.
-   */ 
+   */
   void markSemantics(const Expr& c, const Expr& t) override;
+
  protected:
   Expr lookupVar(const std::string& name);
   /** Allocate a fresh type variable */

@@ -1448,7 +1448,7 @@ bool State::isProofRuleSorry(const ExprValue* e) const
 
 void State::markSemantics(const Expr& c, const Expr& t)
 {
-  if (d_plugin!=nullptr)
+  if (d_plugin != nullptr)
   {
     d_plugin->markSemantics(c, t);
   }
