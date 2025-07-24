@@ -117,11 +117,19 @@
     x3
     eo.Stuck)))
 
-; fwd-decl: $eo_hash
-(declare-fun $eo_hash (eo.Term) eo.Term)
+; fwd-decl: $smtx_hash
+(declare-fun $smtx_hash (eo.Term) Int)
+
+; program: $eo_hash
+(define-fun $eo_hash ((x1 eo.Term)) eo.Term
+  (ite (= x1 eo.Stuck)
+    eo.Stuck
+  (ite true
+    (eo.SmtTerm (sm.Numeral ($smtx_hash x1)))
+    eo.Stuck)))
 
 ; fwd-decl: $eo_reverse_hash
-(declare-fun $eo_reverse_hash (eo.Term) eo.Term)
+(declare-fun $eo_reverse_hash (Int) eo.Term)
 
 ; program: $mk_symm
 (define-fun $mk_symm ((x1 eo.Term)) eo.Term
@@ -339,16 +347,10 @@
 
 ;;; Meta-level properties of models
 
-; axiom: $eo_hash
-; note: This is defined axiomatically.
-(assert (! (forall ((x eo.Term))
-  (=> (not (= x eo.Stuck))
-    (and
-      ((_ is eo.SmtTerm) ($eo_hash x))
-      ((_ is sm.Numeral) (eo.SmtTerm.arg1 ($eo_hash x)))))) :named sm.hash_numeral))
+; axiom for hash
 ; note: this implies that $eo_hash is injective
 (assert (! (forall ((x eo.Term))
-    (= ($eo_reverse_hash ($eo_hash x)) x)) :named sm.hash_injective))
+    (= ($eo_reverse_hash ($smtx_hash x)) x)) :named sm.hash_injective))
 
 ; This axiom gives semantics to model lookups for partial functions
 (assert (! (forall ((t sm.Term))

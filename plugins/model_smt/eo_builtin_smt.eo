@@ -861,18 +861,40 @@
 
 ;;; Derived arithmetic
 
-; fwd-decl: $eo_hash
-; Note: eo::hash is defined axiomatically in the final smt2 encoding.
-(program $eo_hash () :signature ($eo_Term) $eo_Term)
+; final-decl: $smtx_hash
+; note: this is defined axiomatically in the final smt2 encoding.
+(program $smtx_hash ((T Type)) :signature (T) $smt_builtin_Int)
 
-; FIXME: implement
-(program $smtx_hash () :signature ($eo_Term) $smt_builtin_Int)
+; program: $eo_hash
+; implements: eo::hash
+; note: this invokes the underconstrained function above as an oracle.
+(program $eo_hash ((T Type) (t T))
+  :signature (T) $eo_Numeral
+  (
+  (($eo_hash t) ($eo_mk_numeral ($smtx_hash t)))
+  )
+)
 
-(define $smtx_cmp ((a $eo_Term) (b $eo_Term))
+; final-decl: $eo_reverse_hash
+; note: this is the inverse of $smtx_hash, which will be defined axiomatically.
+(program $eo_reverse_hash () :signature ($smt_builtin_Int) $eo_Term)
+
+; The SMT-LIB comparison of two Eunoia or SMT-LIB terms.
+(define $smtx_cmp ((T Type :implicit) (a T) (b T))
   ($smt_apply_2 "<=" ($smtx_hash a) ($smtx_hash b)))
 
-; fwd-decl: $eo_reverse_hash
-(program $eo_reverse_hash () :signature ($eo_Term) $eo_Term)
+; final-decl: $smtx_value_hash
+; note: this is an arbitrary hash for SMT values, defined axiomatically.
+(program $smtx_value_hash () :signature ($smt_Value) $smt_builtin_Int)
+
+; final-decl: $vsm_reverse_hash
+; note: this is the inverse of $smtx_value_hash, which will be defined axiomatically.
+(program $vsm_reverse_hash () :signature ($smt_builtin_Int) $smt_Value)
+
+; The SMT-LIB comparison of two SMT-LIB values.
+(define $smtx_value_cmp ((a $smt_Value) (b $smt_Value))
+  ($smt_apply_2 "<=" ($smtx_value_hash a) ($smtx_value_hash b)))
+
 
 ;;; $eo_gt
 
@@ -938,7 +960,7 @@
   (($eo_typeof ($eo_mk_rational r))             $eo_Rational)
   (($eo_typeof ($eo_mk_string s))               $eo_String)
   (($eo_typeof ($eo_binary w n))                $eo_Binary)
-  (($eo_typeof ($eo_Var s n))                   ($eo_reverse_hash ($eo_mk_numeral n)))
+  (($eo_typeof ($eo_Var s n))                   ($eo_reverse_hash n))
   ; otherwise, invoke the routine for builtin types from the signature.
   ; Note that we do not include SMT-LIB specific constructs here, as these are
   ; not modelled in Eunoia's builtin typeof method.

@@ -896,18 +896,40 @@
 
 ;;; Derived arithmetic
 
-; fwd-decl: $eo_hash
-; Note: $eo_hash is defined axiomatically in the final smt2 encoding.
-(program $eo_hash () :signature ($eo_Term) $eo_Term)
+; final-decl: $smtx_hash
+; note: this is defined axiomatically in the final smt2 encoding.
+(program $smtx_hash ((T Type)) :signature (T) $smt_builtin_Int)
 
-; FIXME: implement
-(program $smtx_hash () :signature ($eo_Term) $smt_builtin_Int)
+; program: $eo_hash
+; implements: $eo_hash
+; note: this invokes the underconstrained function above as an oracle.
+(program $eo_hash ((T Type) (t T))
+  :signature (T) $eo_Numeral
+  (
+  (($eo_hash t) ($eo_mk_numeral ($smtx_hash t)))
+  )
+)
 
-(define $smtx_cmp ((a $eo_Term) (b $eo_Term))
+; final-decl: $eo_reverse_hash
+; note: this is the inverse of $smtx_hash, which will be defined axiomatically.
+(program $eo_reverse_hash () :signature ($smt_builtin_Int) $eo_Term)
+
+; The SMT-LIB comparison of two Eunoia or SMT-LIB terms.
+(define $smtx_cmp ((T Type :implicit) (a T) (b T))
   ($smt_apply_2 "<=" ($smtx_hash a) ($smtx_hash b)))
 
-; fwd-decl: $eo_reverse_hash
-(program $eo_reverse_hash () :signature ($eo_Term) $eo_Term)
+; final-decl: $smtx_value_hash
+; note: this is an arbitrary hash for SMT values, defined axiomatically.
+(program $smtx_value_hash () :signature ($smt_Value) $smt_builtin_Int)
+
+; final-decl: $vsm_reverse_hash
+; note: this is the inverse of $smtx_value_hash, which will be defined axiomatically.
+(program $vsm_reverse_hash () :signature ($smt_builtin_Int) $smt_Value)
+
+; The SMT-LIB comparison of two SMT-LIB values.
+(define $smtx_value_cmp ((a $smt_Value) (b $smt_Value))
+  ($smt_apply_2 "<=" ($smtx_value_hash a) ($smtx_value_hash b)))
+
 
 ;;; $eo_gt
 
@@ -973,7 +995,7 @@
   (($eo_typeof ($eo_mk_rational r))             $eo_Rational)
   (($eo_typeof ($eo_mk_string s))               $eo_String)
   (($eo_typeof ($eo_binary w n))                $eo_Binary)
-  (($eo_typeof ($eo_Var s n))                   ($eo_reverse_hash ($eo_mk_numeral n)))
+  (($eo_typeof ($eo_Var s n))                   ($eo_reverse_hash n))
   ; otherwise, invoke the routine for builtin types from the signature.
   ; Note that we do not include SMT-LIB specific constructs here, as these are
   ; not modelled in Eunoia's builtin typeof method.
@@ -1160,17 +1182,19 @@
 
 ; updates the map with a new entry, maintaining ordered-ness
 (program $smtx_map_update
-  ((i $smt_Value) (j $smt_Value) (d $smt_Value) (e $smt_Value) (M $smt_Map))
+  ((i $smt_Value) (j $smt_Value) (e1 $smt_Value) (e2 $smt_Value) (M $smt_Map))
   :signature ($smt_Map $smt_Value $smt_Value) $smt_Map
   (
-  ; this case recognizes that the update is redundant
-  (($smtx_map_update ($msm_cons i e M) i e) ($msm_cons i e M))
-  ; 
-  (($smtx_map_update ($msm_cons j e M) i e) ($smt_apply_3 "ite" ($smtx_cmp j i)
-                                              ($msm_cons i e ($msm_cons j e M))
-                                              ($msm_cons j e ($smtx_map_update M i e))))
-  (($smtx_map_update ($msm_default e) i e)  ($msm_default e))
-  (($smtx_map_update M i e)                 ($msm_cons i e M))
+  ; we overwrite if same index
+  (($smtx_map_update ($msm_cons i e1 M) i e2) ($msm_cons i e2 M))
+  ; otherwise, we check the hash to retain sortedness
+  (($smtx_map_update ($msm_cons j e1 M) i e2) ($smt_apply_3 "ite" ($smtx_value_cmp j i)
+                                                ($msm_cons i e2 ($msm_cons j e1 M))
+                                                ($msm_cons j e1 ($smtx_map_update M i e2))))
+  ; we are redundant wrt the default value
+  (($smtx_map_update ($msm_default e1) i e1)  ($msm_default e1))
+  ; ensures totality, we are a non-redundant update of the default map
+  (($smtx_map_update M i e2)                  ($msm_cons i e2 M))
   )
 )
 
@@ -1540,8 +1564,8 @@
   :signature ($smt_builtin_Int $smt_Map) $eo_Term
   (
   ; we rely on the reverse hash
-  (($smtx_typeof_map T ($msm_cons j e m))   ($eo_mk_fun_type ($eo_reverse_hash ($eo_mk_numeral T)) ($smtx_typeof_value e)))
-  (($smtx_typeof_map T ($msm_default e))    ($eo_mk_fun_type ($eo_reverse_hash ($eo_mk_numeral T)) ($smtx_typeof_value e)))
+  (($smtx_typeof_map T ($msm_cons j e m))   ($eo_mk_fun_type ($eo_reverse_hash T) ($smtx_typeof_value e)))
+  (($smtx_typeof_map T ($msm_default e))    ($eo_mk_fun_type ($eo_reverse_hash T) ($smtx_typeof_value e)))
   )
 )
 
@@ -1563,7 +1587,7 @@
   (($smtx_typeof_value ($vsm_term a))         ($smtx_typeof ($eo_smt_term a)))
   (($smtx_typeof_value ($vsm_map T m))        ($smtx_typeof_map T m))
   ; the type of uninterpreted constants carry its type.
-  (($smtx_typeof_value ($vsm_uconst T id))    ($eo_reverse_hash ($eo_mk_numeral T)))
+  (($smtx_typeof_value ($vsm_uconst T id))    ($eo_reverse_hash T))
   ; the type of not-values is the null sort.
   (($smtx_typeof_value val)                   $eo_null_type)
   )
@@ -1663,4 +1687,4 @@
   (($eovc_arrays_ext b a) (eo::define ((_v0 (not (_ (= a) b)))) (eo::define ((_v1 ($eor_arrays_ext _v0))) ($eo_requires_eq ($eo_model_is_input _v1) true ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some true) ($eo_requires_eq ($eo_model_sat _v1) ($eo_Option_some false) true))))))
   )
 )
-(echo "smt-meta $eovc_arrays_ext :deps $smtx_model_lookup_predicate $eo_hash $eo_reverse_hash $tsm_Bool $eo_type $eo_fun_type ")
+(echo "smt-meta $eovc_arrays_ext :deps $smtx_model_lookup_predicate $smtx_hash $eo_reverse_hash $smtx_value_hash $vsm_reverse_hash $tsm_Bool $eo_type $eo_fun_type ")

@@ -70,17 +70,19 @@
 
 ; updates the map with a new entry, maintaining ordered-ness
 (program $smtx_map_update
-  ((i $smt_Value) (j $smt_Value) (d $smt_Value) (e $smt_Value) (M $smt_Map))
+  ((i $smt_Value) (j $smt_Value) (e1 $smt_Value) (e2 $smt_Value) (M $smt_Map))
   :signature ($smt_Map $smt_Value $smt_Value) $smt_Map
   (
-  ; this case recognizes that the update is redundant
-  (($smtx_map_update ($msm_cons i e M) i e) ($msm_cons i e M))
-  ; 
-  (($smtx_map_update ($msm_cons j e M) i e) ($smt_apply_3 "ite" ($smtx_cmp j i)
-                                              ($msm_cons i e ($msm_cons j e M))
-                                              ($msm_cons j e ($smtx_map_update M i e))))
-  (($smtx_map_update ($msm_default e) i e)  ($msm_default e))
-  (($smtx_map_update M i e)                 ($msm_cons i e M))
+  ; we overwrite if same index
+  (($smtx_map_update ($msm_cons i e1 M) i e2) ($msm_cons i e2 M))
+  ; otherwise, we check the hash to retain sortedness
+  (($smtx_map_update ($msm_cons j e1 M) i e2) ($smt_apply_3 "ite" ($smtx_value_cmp j i)
+                                                ($msm_cons i e2 ($msm_cons j e1 M))
+                                                ($msm_cons j e1 ($smtx_map_update M i e2))))
+  ; we are redundant wrt the default value
+  (($smtx_map_update ($msm_default e1) i e1)  ($msm_default e1))
+  ; ensures totality, we are a non-redundant update of the default map
+  (($smtx_map_update M i e2)                  ($msm_cons i e2 M))
   )
 )
 
@@ -429,8 +431,8 @@ $SMT_EVAL_CASES$
   :signature ($smt_builtin_Int $smt_Map) $eo_Term
   (
   ; we rely on the reverse hash
-  (($smtx_typeof_map T ($msm_cons j e m))   ($eo_mk_fun_type ($eo_reverse_hash ($eo_mk_numeral T)) ($smtx_typeof_value e)))
-  (($smtx_typeof_map T ($msm_default e))    ($eo_mk_fun_type ($eo_reverse_hash ($eo_mk_numeral T)) ($smtx_typeof_value e)))
+  (($smtx_typeof_map T ($msm_cons j e m))   ($eo_mk_fun_type ($eo_reverse_hash T) ($smtx_typeof_value e)))
+  (($smtx_typeof_map T ($msm_default e))    ($eo_mk_fun_type ($eo_reverse_hash T) ($smtx_typeof_value e)))
   )
 )
 
@@ -452,7 +454,7 @@ $SMT_EVAL_CASES$
   (($smtx_typeof_value ($vsm_term a))         ($smtx_typeof ($eo_smt_term a)))
   (($smtx_typeof_value ($vsm_map T m))        ($smtx_typeof_map T m))
   ; the type of uninterpreted constants carry its type.
-  (($smtx_typeof_value ($vsm_uconst T id))    ($eo_reverse_hash ($eo_mk_numeral T)))
+  (($smtx_typeof_value ($vsm_uconst T id))    ($eo_reverse_hash T))
   ; the type of not-values is the null sort.
   (($smtx_typeof_value val)                   $eo_null_type)
   )
