@@ -31,6 +31,8 @@ class ModelSmt : public StdPlugin
   void finalize() override;
 
  private:
+   void addHardCodeSym(const std::string& sym,
+                       const std::vector<Kind>& args);
   void addConstFoldSym(const std::string& sym,
                        const std::vector<Kind>& args,
                        Kind ret);
@@ -101,6 +103,10 @@ class ModelSmt : public StdPlugin
    * references to the arguments.
    */
   std::map<std::string, std::pair<std::vector<Kind>, std::string>> d_symReduce;
+  /**
+   * SMT-LIB symbols that have a custom evaluation function that we define.
+   */
+  std::map<std::string, std::vector<Kind>> d_symHardCode;
 };
 
 }  // namespace ethos

@@ -34,6 +34,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // Similar for the other literals.
   // Note that we model *SMT-LIB* not *CPC* here.
   // builtin
+  addHardCodeSym("=", {Kind::PARAM, Kind::PARAM});
+  addHardCodeSym("ite", {Kind::BOOLEAN,Kind::PARAM, Kind::PARAM});
   // Booleans
   addConstFoldSym("and", {Kind::BOOLEAN, Kind::BOOLEAN}, Kind::BOOLEAN);
   addConstFoldSym("or", {Kind::BOOLEAN, Kind::BOOLEAN}, Kind::BOOLEAN);
@@ -144,6 +146,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
 
 ModelSmt::~ModelSmt() {}
 
+void ModelSmt::addHardCodeSym(const std::string& sym,
+                    const std::vector<Kind>& args)
+{
+  d_symHardCode[sym] = args;
+}
+
 void ModelSmt::addConstFoldSym(const std::string& sym,
                                const std::vector<Kind>& args,
                                Kind ret)
@@ -192,7 +200,13 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
   {
     return;
   }
-  // maybe a normal symbol
+  std::map<std::string, std::vector<Kind>>::iterator ith = d_symHardCode.find(name);
+  if (ith!=d_symHardCode.end())
+  {
+    printModelEvalCall(name, ith->second);
+    return;
+  }
+  // maybe a constant fold symbol
   std::map<std::string, std::pair<std::vector<Kind>, Kind>>::iterator it =
       d_symConstFold.find(name);
   if (it != d_symConstFold.end())

@@ -557,7 +557,7 @@ $EO_NIL_CASES$
 (program $eo_model_is_input () :signature (Bool) Bool)
 
 ; We will include the definition of the above functions here.
-(echo "include eo_model_sat :deps $eo_typeof_main $eo_dt_constructors $eo_dt_selectors $eo_if_both $eo_Option_some $eo_Option_null $eo_model_sat $eo_model_typeof $eo_model_is_input ite = ")
+(echo "include eo_model_sat :deps $eo_typeof_main $eo_dt_constructors $eo_dt_selectors $eo_if_both $eo_Option_some $eo_Option_null $eo_model_sat $eo_model_typeof $eo_model_is_input ")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; vc
 

@@ -3280,6 +3280,7 @@
   )
 )
 
+; ITE branches to the appropriate child.
 ; return: The evaluation of an ite application.
 (program $smtx_model_eval_ite
   ((t1 $smt_Value) (t2 $smt_Value) (t3 $smt_Value))
@@ -3292,11 +3293,18 @@
   )
 )
 
+; Equality insists on valueness and then reduces to an equality over datatypes
+; in the deep embedding (vsm.Value), meaning it works for all types, including
+; functions and uninterpreted sorts where values are not represented by terms.
+; Note that the valueness predicate ensures this is sound. Moreover note that
+; we do not invoke the type checker here. This means that if an ill-typed
+; equality was given as input to this method, it would always evaluate to false.
+; The caller of this method is responsible for ensuring that this behavior is
+; either avoided or admissible.
 ; return: The evaluation of an equality application.
 (program $smtx_model_eval_=
   ((t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_= $vsm_not_value t2) $vsm_not_value)
   (($smtx_model_eval_= t1 $vsm_not_value) $vsm_not_value)
@@ -3721,27 +3729,16 @@
    (x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term) (x4 $eo_Term) (x5 $eo_Term))
   :signature ($eo_Term) $smt_Value
   (
-  ; ITE branches to the appropriate child.
-  (($smtx_model_eval (ite x1 x2 x3))
-    ($smtx_model_eval_ite ($smtx_model_eval x1) ($smtx_model_eval x2) ($smtx_model_eval x3)))
-  ; Equality insists on valueness and then reduces to an equality over datatypes
-  ; in the deep embedding (vsm.Value), meaning it works for all types, including
-  ; functions and uninterpreted sorts where values are not represented by terms.
-  ; Note that the valueness predicate ensures this is sound. Moreover note that
-  ; we do not invoke the type checker here. This means that if an ill-typed
-  ; equality was given as input to this method, it would always evaluate to false.
-  ; The caller of this method is responsible for ensuring that this behavior is
-  ; either avoided or admissible.
-  (($smtx_model_eval (= x1 x2))
-    ($smtx_model_eval_= ($smtx_model_eval x1) ($smtx_model_eval x2)))
   ; evaluation of standard SMT symbols
   ; These calls will reference helper methods above, e.g. of the form
   ; $smtx_model_eval_*, or call builtin methods e.g. $smtx_eval_quant.
+  (($smtx_model_eval (ite x1 x2 x3)) ($smtx_model_eval_ite ($smtx_model_eval x1) ($smtx_model_eval x2) ($smtx_model_eval x3)))
   (($smtx_model_eval (not x1)) ($smtx_model_eval_not ($smtx_model_eval x1)))
   (($smtx_model_eval (or x1 x2)) ($smtx_model_eval_or ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (and x1 x2)) ($smtx_model_eval_and ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (=> x1 x2)) ($smtx_model_eval_=> ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (xor x1 x2)) ($smtx_model_eval_xor ($smtx_model_eval x1) ($smtx_model_eval x2)))
+  (($smtx_model_eval (= x1 x2)) ($smtx_model_eval_= ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (+ x1 x2)) ($smtx_model_eval_+ ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (- x1 x2)) ($smtx_model_eval_- ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (* x1 x2)) ($smtx_model_eval_* ($smtx_model_eval x1) ($smtx_model_eval x2)))
@@ -3787,7 +3784,6 @@
   (($smtx_model_eval (str.from_int x1)) ($smtx_model_eval_str.from_int ($smtx_model_eval x1)))
   (($smtx_model_eval (str.<= x1 x2)) ($smtx_model_eval_str.<= ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (str.replace_all x1 x2 x3)) ($smtx_model_eval_str.replace_all ($smtx_model_eval x1) ($smtx_model_eval x2) ($smtx_model_eval x3)))
-
 
   ;; free constants
   ; Constants carry their value in the model, which is an arbitrary value term.
