@@ -96,8 +96,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   //    ($vsm_term ($sm_binary x1 x2)) ($vsm_term ($sm_binary x3 x4)))
   //    <return-term>)
   // where x1, x3 denote bitwidths and x2, x4 denote values.
-  addLitBinSym(
-      "bvadd", {kBitVec, kBitVec}, "x1", "($smt_builtin_add x2 x4)");
+  addLitBinSym("bvadd", {kBitVec, kBitVec}, "x1", "($smt_builtin_add x2 x4)");
   addLitBinSym(
       "bvand", {kBitVec, kBitVec}, "x1", "($smtx_binary_and x1 x2 x4)");
   addLitBinSym("bvor", {kBitVec, kBitVec}, "x1", "($smtx_binary_or x1 x2 x4)");
