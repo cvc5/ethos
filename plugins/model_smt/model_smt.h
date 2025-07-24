@@ -31,19 +31,18 @@ class ModelSmt : public StdPlugin
   void finalize() override;
 
  private:
-   void addHardCodeSym(const std::string& sym,
-                       const std::vector<Kind>& args);
+  void addHardCodeSym(const std::string& sym, const std::vector<Kind>& args);
   void addConstFoldSym(const std::string& sym,
                        const std::vector<Kind>& args,
                        Kind ret);
   void addLitBinSym(const std::string& sym,
-                              const std::vector<Kind>& args,
-                              const std::string& retWidth,
-                              const std::string& retNum);
+                    const std::vector<Kind>& args,
+                    const std::string& retWidth,
+                    const std::string& retNum);
   void addLitSym(const std::string& sym,
-                           const std::vector<Kind>& args,
-                           Kind ret,
-                           const std::string& retTerm);
+                 const std::vector<Kind>& args,
+                 Kind ret,
+                 const std::string& retTerm);
   void addTermReduceSym(const std::string& sym,
                         const std::vector<Kind>& args,
                         const std::string& retTerm);

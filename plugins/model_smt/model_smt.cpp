@@ -35,7 +35,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // Note that we model *SMT-LIB* not *CPC* here.
   // builtin
   addHardCodeSym("=", {Kind::PARAM, Kind::PARAM});
-  addHardCodeSym("ite", {Kind::BOOLEAN,Kind::PARAM, Kind::PARAM});
+  addHardCodeSym("ite", {Kind::BOOLEAN, Kind::PARAM, Kind::PARAM});
   // Booleans
   addConstFoldSym("and", {Kind::BOOLEAN, Kind::BOOLEAN}, Kind::BOOLEAN);
   addConstFoldSym("or", {Kind::BOOLEAN, Kind::BOOLEAN}, Kind::BOOLEAN);
@@ -93,15 +93,15 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("str.<", {Kind::STRING, Kind::STRING}, Kind::BOOLEAN);
   // bitvectors
   addLitBinSym("bvand",
-                         {Kind::BINARY, Kind::BINARY},
-                         "x1",
-                         "($smtx_binary_and x1 x2 x4)");
+               {Kind::BINARY, Kind::BINARY},
+               "x1",
+               "($smtx_binary_and x1 x2 x4)");
   addLitBinSym(
       "bvor", {Kind::BINARY, Kind::BINARY}, "x1", "($smtx_binary_or x1 x2 x4)");
   addLitBinSym("bvxor",
-                         {Kind::BINARY, Kind::BINARY},
-                         "x1",
-                         "($smtx_binary_xor x1 x2 x4)");
+               {Kind::BINARY, Kind::BINARY},
+               "x1",
+               "($smtx_binary_xor x1 x2 x4)");
   addTermReduceSym("bvsle", {Kind::BINARY, Kind::BINARY}, "(bvsge x2 x1)");
   addTermReduceSym("bvule", {Kind::BINARY, Kind::BINARY}, "(bvuge x2 x1)");
   addTermReduceSym("bvslt", {Kind::BINARY, Kind::BINARY}, "(bvsgt x2 x1)");
@@ -147,7 +147,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
 ModelSmt::~ModelSmt() {}
 
 void ModelSmt::addHardCodeSym(const std::string& sym,
-                    const std::vector<Kind>& args)
+                              const std::vector<Kind>& args)
 {
   d_symHardCode[sym] = args;
 }
@@ -160,9 +160,9 @@ void ModelSmt::addConstFoldSym(const std::string& sym,
 }
 
 void ModelSmt::addLitBinSym(const std::string& sym,
-                                      const std::vector<Kind>& args,
-                                      const std::string& retWidth,
-                                      const std::string& retNum)
+                            const std::vector<Kind>& args,
+                            const std::string& retWidth,
+                            const std::string& retNum)
 {
   std::stringstream ssr;
   ssr << "($vsm_term ($sm_mk_binary " << retWidth << " " << retNum << "))";
@@ -170,9 +170,9 @@ void ModelSmt::addLitBinSym(const std::string& sym,
 }
 
 void ModelSmt::addLitSym(const std::string& sym,
-                                   const std::vector<Kind>& args,
-                                   Kind ret,
-                                   const std::string& retTerm)
+                         const std::vector<Kind>& args,
+                         Kind ret,
+                         const std::string& retTerm)
 {
   d_symLitReduce[sym] =
       std::tuple<std::vector<Kind>, Kind, std::string>(args, ret, retTerm);
@@ -200,8 +200,9 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
   {
     return;
   }
-  std::map<std::string, std::vector<Kind>>::iterator ith = d_symHardCode.find(name);
-  if (ith!=d_symHardCode.end())
+  std::map<std::string, std::vector<Kind>>::iterator ith =
+      d_symHardCode.find(name);
+  if (ith != d_symHardCode.end())
   {
     printModelEvalCall(name, ith->second);
     return;
