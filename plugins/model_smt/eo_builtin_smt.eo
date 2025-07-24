@@ -72,6 +72,7 @@
 (define $smt_builtin_z_zero () ($smt_apply_0 "0"))
 (define $smt_builtin_z_one () ($smt_apply_0 "1"))
 (define $smt_builtin_z_two () ($smt_apply_0 "2"))
+(define $smt_builtin_q_zero () ($smt_apply_0 "0/1"))
 (define $smt_builtin_add ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "+" x1 x2))
 (define $smt_builtin_mul ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "*" x1 x2))
 (define $smt_builtin_neg ((W Type :implicit) (x1 W)) ($smt_apply_1 "-" x1))

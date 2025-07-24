@@ -1331,9 +1331,19 @@ MetaKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
       std::string suffix = sname.substr(11);
       if (suffix == "=")
       {
-        // both sides have no context.
-        // this allows SMT-LIB equality to operate on Eunoia terms.
-        tk = MetaKind::NONE;
+        MetaKind k1 = getMetaKindReturn(parent[1], parentCtx);
+        MetaKind k2 = getMetaKindReturn(parent[2], parentCtx);
+        if (k1==k2)
+        {
+          // both sides have no context.
+          // this allows SMT-LIB equality to operate on any datatype used in the embedding
+          tk = MetaKind::NONE;
+        }
+        else
+        {
+          // if they have different types, we must "connect" them through the top-level Eunoia datatype
+          tk = MetaKind::EUNOIA;
+        }
       }
       else if (i == 1)
       {
@@ -1453,7 +1463,7 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
         MetaKind tk = MetaKind::SMT_BUILTIN;
         MetaKind k1 = getMetaKindReturn(child[1], parentCtx);
         MetaKind k2 = getMetaKindReturn(child[2], parentCtx);
-        Assert(k1 == k2) << "Equal sides have different meta types " << child
+        Assert(k1==MetaKind::EUNOIA || k2 == MetaKind::EUNOIA || k1 == k2) << "Equal sides have incompatible meta types " << child
                          << " " << metaKindToString(k1) << " "
                          << metaKindToString(k2);
         return tk;

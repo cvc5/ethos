@@ -154,7 +154,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitBinSym("@bv", {kInt, kInt}, "x2", "x1");
   addTermReduceSym("@bit", {kInt, kBitVec}, "(extract x1 x1 x2)");
   addTermReduceSym("@purify", {kT}, "x1");
-  // TODO: is this right?
+  addTermReduceSym("@int_div_by_zero", {kInt}, "(div x1 0)");
+  addTermReduceSym("@int_div_by_zero", {kInt}, "(mod x1 0)");
+  addTermReduceSym("@div_by_zero", {kReal}, "(/ x1 0/1)");
+  // TODO: is this right? if so, simplify CPC
   addTermReduceSym("int.log2", {kInt}, "(div x1 (int.pow2 x1))");
   addTermReduceSym("int.ispow2", {kInt}, "(= x1 (int.pow2 (int.log2 x1)))");
 }
