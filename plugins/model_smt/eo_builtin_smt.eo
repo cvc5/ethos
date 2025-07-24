@@ -865,6 +865,9 @@
 ; Note: eo::hash is defined axiomatically in the final smt2 encoding.
 (program $eo_hash () :signature ($eo_Term) $eo_Term)
 
+; FIXME: implement
+(program $smtx_hash () :signature ($eo_Term) $smt_builtin_Int)
+
 ; fwd-decl: $eo_reverse_hash
 (program $eo_reverse_hash () :signature ($eo_Term) $eo_Term)
 
@@ -896,7 +899,7 @@
   (
   (($eo_var ($eo_mk_string s) T)
     ; we use the hash of the type T to identify the variable
-    ($eo_requires_eq ($eo_typeof T) Type ($eo_Var s ($eo_hash T))))
+    ($eo_requires_eq ($eo_typeof T) Type ($eo_Var s ($smtx_hash T))))
   )
 )
 

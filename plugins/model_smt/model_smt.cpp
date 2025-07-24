@@ -138,7 +138,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   }
 
   ///----- non standard extensions
-  addConstFoldSym("^", {kT, kT}, kBool);
+  addConstFoldSym("^", {kT, kT}, kT);
   addConstFoldSym("/_total", {kT, kT}, kReal);
   addConstFoldSym("div_total", {kInt, kInt}, kInt);
   addConstFoldSym("mod_total", {kInt, kInt}, kInt);
@@ -146,8 +146,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("str.rev", {kString}, kString);
   addConstFoldSym("str.to_lower", {kString}, kString);
   addConstFoldSym("str.to_upper", {kString}, kString);
-  addTermReduceSym("@strings_itos_result",{kInt, kInt}, "(str.from_int (mod x1 (^ 10 x2))");
-  addTermReduceSym("@strings_stoi_result",{kInt, kInt}, "(str.to_int (mod x1 (^ 10 x2))");
+  addTermReduceSym("@strings_itos_result",{kInt, kInt}, "(str.from_int (mod x1 (^ 10 x2)))");
+  addTermReduceSym("@strings_stoi_result",{kString, kInt}, "(str.to_int (str.substr x1 0 x2))");
   addTermReduceSym("@strings_stoi_non_digit", {kString}, "(str.indexof_re x1 (re.comp (re.range \"0\" \"9\")) 0)");
   // addConstFoldSym("int.ispow2", {kInt, kInt},
   // kBool); addConstFoldSym("int.log2", {kInt, kInt},

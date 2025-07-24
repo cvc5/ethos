@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_evaluate
-; #trim-defs: 576
+; #trim-defs: 575
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -2557,8 +2557,6 @@
 )
 (program $eo_model_sat () :signature (Bool) $eo_Option)
 (program $eo_model_is_input () :signature (Bool) Bool)
-(program $smtx_is_value ()
-  :signature ($smt_Value) $smt_builtin_Bool)
 (program $smtx_map_lookup
   ((i $smt_Value) (j $smt_Value) (e $smt_Value) (M $smt_Map))
   :signature ($smt_Map $smt_Value) $smt_Value
