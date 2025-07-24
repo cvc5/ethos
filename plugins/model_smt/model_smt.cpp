@@ -177,6 +177,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitSym("@bvsize", {kBitVec}, kInt, "x1");
   addLitBinSym("@bv", {kInt, kInt}, "x2", "x1");
   addTermReduceSym("@bit", {kInt, kBitVec}, "(extract x1 x1 x2)");
+  // tuples
+  // these allow Herbrand interpretations
+  addReduceSym("tuple", {}, "($vsm_apply ($vsm_term tuple) $vsm_not_value)");
+  addReduceSym("unit.tuple", {}, "($vsm_term unit.tuple)");
 }
 
 ModelSmt::~ModelSmt() {}
@@ -279,7 +283,13 @@ void ModelSmt::printModelEvalCallBase(const std::string& name,
                                       const std::vector<Kind>& args,
                                       const std::string& ret)
 {
-  d_eval << "  (($smtx_model_eval (" << name;
+  d_eval << "  (($smtx_model_eval ";
+  if (args.empty())
+  {
+    d_eval << name << ") " << ret << ")" << std::endl;
+    return;
+  }
+  d_eval << "(" << name;
   for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
   {
     d_eval << " x" << i;
