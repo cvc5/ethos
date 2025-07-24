@@ -903,6 +903,9 @@
 ; FIXME: implement
 (program $smtx_hash () :signature ($eo_Term) $smt_builtin_Int)
 
+(define $smtx_cmp ((a $eo_Term) (b $eo_Term))
+  ($smt_apply_2 "<=" ($smtx_hash a) ($smtx_hash b)))
+
 ; fwd-decl: $eo_reverse_hash
 (program $eo_reverse_hash () :signature ($eo_Term) $eo_Term)
 
@@ -1155,21 +1158,37 @@
   )
 )
 
-; This program determines whether the map value is canonical
-; This program is only necessary if we are doing equality between arrays
-; (or functions).
+; updates the map with a new entry, maintaining ordered-ness
+(program $smtx_map_update
+  ((i $smt_Value) (j $smt_Value) (d $smt_Value) (e $smt_Value) (M $smt_Map))
+  :signature ($smt_Map $smt_Value $smt_Value) $smt_Map
+  (
+  ; this case recognizes that the update is redundant
+  (($smtx_map_update ($msm_cons i e M) i e) ($msm_cons i e M))
+  ; 
+  (($smtx_map_update ($msm_cons j e M) i e) ($smt_apply_3 "ite" ($smtx_cmp j i)
+                                              ($msm_cons i e ($msm_cons j e M))
+                                              ($msm_cons j e ($smtx_map_update M i e))))
+  (($smtx_map_update ($msm_default e) i e)  ($msm_default e))
+  (($smtx_map_update M i e)                 ($msm_cons i e M))
+  )
+)
+
+; This program determines whether the map value is canonical.
+; It returns true if the array is "redundant", i.e. has a non-canonical
+; ordering of indicies, or duplicate/redundant entries.
 (program $smtx_map_is_redundant
   ((T $smt_Type) (U $smt_Type) (t $smt_Value) (u $smt_Value) (M $smt_Map))
   :signature ($smt_Map $smt_Type) $smt_builtin_Bool
   (
   (($smtx_map_is_redundant ($msm_default u) U)     $smt_builtin_false)
   (($smtx_map_is_redundant ($msm_cons t u M) U)
-    ; lookup value on tail
-    ; if it is the same, this index is redundant and thus we are not a value
+    ; recompute updating the value
+    ; if it is not the same, we are redundant.
     ($smt_apply_3 "ite"
-      ($smt_apply_= ($smtx_map_lookup t M) u)
-      $smt_builtin_true
-      ($smtx_map_is_redundant M)))
+      ($smt_apply_= ($smtx_map_update M t u) ($msm_cons t u M))
+      ($smtx_map_is_redundant M)
+      $smt_builtin_true))
   )
 )
 
@@ -1178,6 +1197,23 @@
 (program $smtx_map_is_value ()
   :signature ($smt_builtin_Int $smt_Map) $smt_builtin_Bool)
 
+(program $smtx_select
+  ((v $smt_Value) (i $smt_Value) (T $smt_builtin_Int) (m $smt_Map))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_select ($vsm_map T m) i) ($smtx_map_lookup m i))
+  (($smtx_select v i)              $vsm_not_value)
+  )
+)
+
+(program $smtx_store
+  ((v $smt_Value) (i $smt_Value) (e $smt_Value) (T $smt_builtin_Int) (m $smt_Map))
+  :signature ($smt_Value $smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_store ($vsm_map T m) i e) ($vsm_map T ($smtx_map_update m i e)))
+  (($smtx_store v i e)              $vsm_not_value)
+  )
+)
 ;;; Utilities for Datatype values
 
 ; define: $smt_is_dt
@@ -1443,6 +1479,7 @@
   (($smtx_model_eval (not x1)) ($smtx_model_eval_not ($smtx_model_eval x1)))
   (($smtx_model_eval (and x1 x2)) ($smtx_model_eval_and ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (= x1 x2)) ($smtx_model_eval_= ($smtx_model_eval x1) ($smtx_model_eval x2)))
+  (($smtx_model_eval (select x1 x2)) ($smtx_select ($smtx_model_eval x1) ($smtx_model_eval x2)))
 
   ;; free constants
   ; Constants carry their value in the model, which is an arbitrary value term.

@@ -868,6 +868,9 @@
 ; FIXME: implement
 (program $smtx_hash () :signature ($eo_Term) $smt_builtin_Int)
 
+(define $smtx_cmp ((a $eo_Term) (b $eo_Term))
+  ($smt_apply_2 "<=" ($smtx_hash a) ($smtx_hash b)))
+
 ; fwd-decl: $eo_reverse_hash
 (program $eo_reverse_hash () :signature ($eo_Term) $eo_Term)
 

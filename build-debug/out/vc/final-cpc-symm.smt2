@@ -147,9 +147,6 @@
 ; fwd-decl: $eo_model_is_input
 (declare-fun $eo_model_is_input (eo.Term) eo.Term)
 
-; fwd-decl: $smtx_is_value
-(declare-fun $smtx_is_value (vsm.Value) Bool)
-
 ; program: $smtx_map_lookup
 (declare-fun $smtx_map_lookup (msm.Map vsm.Value) vsm.Value)
 (assert (! (forall ((x1 msm.Map) (x2 vsm.Value))
@@ -178,6 +175,7 @@
 )))))
 
 ; program: $smtx_is_value
+(declare-fun $smtx_is_value (vsm.Value) Bool)
 (assert (! (forall ((x1 vsm.Value))
   (! (= ($smtx_is_value x1)
   (ite ((_ is vsm.Term) x1)

@@ -35,7 +35,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   d_kindToType[kReal] = "Real";
   d_kindToType[kString] = "String";
   d_kindToType[kBitVec] = "Binary";
-  // All SMT-LIB symbols that have monomorphic return go here.
+  // All SMT-LIB symbols require having their semantics defined here.
   // We have a NUMERAL category that we assume can be associated to Int,
   // Similar for the other literals.
   // Note that we model *SMT-LIB* not *CPC* here.
@@ -50,8 +50,6 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("not", {kBool}, kBool);
   // arithmetic
   // use kT to stand for either Int or Real arithmetic (not mixed)
-  // addConstFoldSym("Int", {}, kType);
-  // addConstFoldSym("Real", {}, kType);
   addConstFoldSym("+", {kT, kT}, kT);
   addConstFoldSym("-", {kT, kT}, kT);
   addConstFoldSym("*", {kT, kT}, kT);
@@ -71,8 +69,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("to_int", {kReal}, kInt);
   addConstFoldSym("to_real", {kInt}, kReal);
   addTermReduceSym("divisible", {kInt, kInt}, "(= (mod x2 x1) 0)");
+  // arrays
+  addReduceSym("select", {kT, kT}, "($smtx_select ($smtx_model_eval x1) ($smtx_model_eval x2))");
+  addReduceSym("store", {kT, kT, kT}, "($smtx_store ($smtx_model_eval x1) ($smtx_model_eval x2) ($smtx_model_eval x3))");
   // strings
-  // addConstFoldSym("String", {}, kType);
   addConstFoldSym("str.++", {kString, kString}, kString);
   addConstFoldSym("str.len", {kString}, kInt);
   addConstFoldSym("str.substr", {kString, kInt, kInt}, kString);
@@ -271,8 +271,8 @@ void ModelSmt::printModelEvalCallBase(const std::string& name,
     d_eval << " x" << i;
   }
   d_eval << ")) " << ret << ")" << std::endl;
-  ;
 }
+
 void ModelSmt::printModelEvalCall(const std::string& name,
                                   const std::vector<Kind>& args)
 {

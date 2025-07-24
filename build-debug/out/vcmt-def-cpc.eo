@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_arrays_ext
-; #trim-defs: 119
+; #trim-defs: 120
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -169,6 +169,14 @@
 )
 (program $smtx_map_is_value ()
   :signature ($smt_builtin_Int $smt_Map) $smt_builtin_Bool)
+(program $smtx_select
+  ((v $smt_Value) (i $smt_Value) (T $smt_builtin_Int) (m $smt_Map))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_select ($vsm_map T m) i) ($smtx_map_lookup m i))
+  (($smtx_select v i)              $vsm_not_value)
+  )
+)
 (define $smt_is_dt_cons ((t $smt_Term))
   ($smt_builtin_is_ok ($eo_dt_selectors t)))
 (program $smtx_term_is_value
@@ -303,6 +311,7 @@
   (($smtx_model_eval (not x1)) ($smtx_model_eval_not ($smtx_model_eval x1)))
   (($smtx_model_eval (and x1 x2)) ($smtx_model_eval_and ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (= x1 x2)) ($smtx_model_eval_= ($smtx_model_eval x1) ($smtx_model_eval x2)))
+  (($smtx_model_eval (select x1 x2)) ($smtx_select ($smtx_model_eval x1) ($smtx_model_eval x2)))
 
   
   
