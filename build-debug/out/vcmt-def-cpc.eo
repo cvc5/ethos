@@ -297,8 +297,8 @@
   (($smtx_model_eval (not x1)) ($smtx_model_eval_not ($smtx_model_eval x1)))
   (($smtx_model_eval (and x1 x2)) ($smtx_model_eval_and ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (= x1 x2)) ($smtx_model_eval_= ($smtx_model_eval x1) ($smtx_model_eval x2)))
-  (($smtx_model_eval (select x1 x2)) ($smtx_map_select ($smtx_model_eval x1) ($smtx_model_eval x2)))
-  (($smtx_model_eval (@array_deq_diff x1 x2)) ($smtx_map_diff ($smtx_model_eval x1) ($smtx_model_eval x2)))
+  (($smtx_model_eval (select x1 x2)) (eo::define ((e1 ($smtx_model_eval x1))) (eo::define ((e2 ($smtx_model_eval x2))) ($smtx_map_select e1 e2))))
+  (($smtx_model_eval (@array_deq_diff x1 x2)) (eo::define ((e1 ($smtx_model_eval x1))) (eo::define ((e2 ($smtx_model_eval x2))) ($smtx_map_diff e1 e2))))
 
   
   

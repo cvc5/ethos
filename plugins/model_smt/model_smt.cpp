@@ -70,14 +70,13 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("to_real", {kInt}, kReal);
   addTermReduceSym("divisible", {kInt, kInt}, "(= (mod x2 x1) 0)");
   // arrays
-  addReduceSym(
+  addRecReduceSym(
       "select",
       {kT, kT},
-      "($smtx_map_select ($smtx_model_eval x1) ($smtx_model_eval x2))");
-  addReduceSym("store",
+      "($smtx_map_select e1 e2)");
+  addRecReduceSym("store",
                {kT, kT, kT},
-               "($smtx_map_store ($smtx_model_eval x1) ($smtx_model_eval x2) "
-               "($smtx_model_eval x3))");
+               "($smtx_map_store e1 e2 e3)");
   // strings
   addConstFoldSym("str.++", {kString, kString}, kString);
   addConstFoldSym("str.len", {kString}, kInt);
@@ -159,9 +158,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTermReduceSym("int.log2", {kInt}, "(div x1 (int.pow2 x1))");
   addTermReduceSym("int.ispow2", {kInt}, "(= x1 (int.pow2 (int.log2 x1)))");
   // arrays
-  addReduceSym("@array_deq_diff",
+  addRecReduceSym("@array_deq_diff",
                {kT, kT},
-               "($smtx_map_diff ($smtx_model_eval x1) ($smtx_model_eval x2))");
+               "($smtx_map_diff e1 e2)");
   // strings
   addConstFoldSym("str.update", {kString, kInt, kString}, kString);
   addConstFoldSym("str.rev", {kString}, kString);
@@ -182,9 +181,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   //             {kT},
   //             "($smtx_set_empty ($smtx_hash x1))");
   addTermReduceSym("set.subset", {kT, kT}, "(= (set.inter x1 x2) x1)");
-  addReduceSym("set.member",
+  addRecReduceSym("set.member",
                {kT, kT},
-               "($smtx_select ($smtx_model_eval x2) ($smtx_model_eval x1))");
+               "($smtx_select e2 e1)");
   // addTermReduceSym("set.singleton",
   //              {kT},
   //              "($smtx_set_insert ($smtx_model_eval x1) ($smtx_set_empty
@@ -250,6 +249,21 @@ void ModelSmt::addReduceSym(const std::string& sym,
                             const std::string& retTerm)
 {
   d_symReduce[sym] = std::pair<std::vector<Kind>, std::string>(args, retTerm);
+}
+
+void ModelSmt::addRecReduceSym(const std::string& sym,
+                  const std::vector<Kind>& args,
+                  const std::string& retTerm)
+{
+  std::stringstream ss;
+  std::stringstream ssend;
+  for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
+  {
+    ss << "(eo::define ((e" << i << " ($smtx_model_eval x" << i << "))) ";
+    ssend << ")";
+  }
+  ss << retTerm << ssend.str();
+  addReduceSym(sym, args, ss.str());
 }
 
 void ModelSmt::bind(const std::string& name, const Expr& e)

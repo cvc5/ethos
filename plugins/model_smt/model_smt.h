@@ -49,6 +49,9 @@ class ModelSmt : public StdPlugin
   void addReduceSym(const std::string& sym,
                     const std::vector<Kind>& args,
                     const std::string& retTerm);
+  void addRecReduceSym(const std::string& sym,
+                    const std::vector<Kind>& args,
+                    const std::string& retTerm);
   void printModelEvalCallBase(const std::string& name,
                               const std::vector<Kind>& args,
                               const std::string& ret);
