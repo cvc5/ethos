@@ -1315,11 +1315,11 @@
   )
 )
 
-(program $smtx_set_diff ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map))
+(program $smtx_set_minus ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_set_diff ($vsm_map T m1) ($vsm_map T m2))
-    ; m1 diff m2 starting with empty set.
+  (($smtx_set_minus ($vsm_map T m1) ($vsm_map T m2))
+    ; m1 minus m2 starting with empty set.
     ($vsm_map T ($smtx_mss_op_internal $smt_builtin_false m1 m2 $smtx_msm_empty_set)))
   )
 )
@@ -1328,7 +1328,7 @@
   :signature ($smt_Value $smt_Value) $smt_Value
   (
   (($smtx_set_union ($vsm_map T m1) ($vsm_map T m2))
-    ; m1 diff the empty set starting with m2.
+    ; m1 minus the empty set starting with m2.
     ($vsm_map T ($smtx_mss_op_internal $smt_builtin_false m1 $smtx_msm_empty_set m2)))
   )
 )
