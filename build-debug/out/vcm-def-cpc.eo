@@ -1234,9 +1234,27 @@
 
 ; A set is a mapping to Bool.
 ; The empty set maps all to false.
-(define $msm_empty_set () ($msm_default false))
+(define $smtx_msm_empty_set () ($msm_default $vsm_false))
 ; Inserting sets e to true.
-(define $msm_set_insert ((e $smt_Value) (m $smt_Map)) ($smtx_msm_update m e true))
+(define $smtx_mss_mk_insert ((e $smt_Value) (m $smt_Map)) ($smtx_msm_update m e $vsm_true))
+(define $smtx_mss_insert ((e $smt_Value) (m $smt_Map)) ($msm_cons e $vsm_true m))
+(define $smtx_mss_member ((e $smt_Value) (m $smt_Map))
+  ($smt_apply_= ($smtx_msm_lookup m e) $vsm_true))
+
+; Helper for computing binary set operators.
+(program $smtx_mss_op_internal
+  ((m1 $smt_Map) (m2 $smt_Map) (acc $smt_Map) (e $smt_Value) (isInter $smt_builtin_Bool))
+  :signature ($smt_builtin_Bool $smt_Map $smt_Map $smt_Map) $smt_Map
+  (
+  (($smtx_mss_op_internal isInter $smtx_msm_empty_set m2 acc) acc)
+  (($smtx_mss_op_internal isInter ($smtx_mss_insert e m1) m2 acc)
+    ($smtx_mss_op_internal isInter m1 m2
+      ($smt_apply_3 "ite"
+        ($smt_apply_= ($smtx_mss_member e m2) isInter)
+        ($smtx_mss_mk_insert e acc)
+        acc)))
+  )
+)
 
 ;;; Map value utilities
 
@@ -1276,7 +1294,7 @@
 (program $smtx_empty_set ((T $eo_Term))
   :signature ($eo_Term) $smt_Value
   (
-  (($smtx_empty_set T) ($vsm_map ($smtx_hash T) $msm_empty_set))
+  (($smtx_empty_set T) ($vsm_map ($smtx_hash T) $smtx_msm_empty_set))
   )
 )
 
@@ -1284,7 +1302,34 @@
   :signature ($smt_Value) $smt_Value
   (
   (($smtx_set_singleton e)
-    ($vsm_map ($smtx_hash ($smtx_typeof_value e)) ($msm_set_insert e $msm_empty_set)))
+    ($vsm_map ($smtx_hash ($smtx_typeof_value e)) ($smtx_mss_insert e $smtx_msm_empty_set)))
+  )
+)
+
+(program $smtx_set_inter ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_set_inter ($vsm_map T m1) ($vsm_map T m2))
+    ; m1 intersected m2 starting with empty set.
+    ($vsm_map T ($smtx_mss_op_internal $smt_builtin_true m1 m2 $smtx_msm_empty_set)))
+  )
+)
+
+(program $smtx_set_diff ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_set_diff ($vsm_map T m1) ($vsm_map T m2))
+    ; m1 diff m2 starting with empty set.
+    ($vsm_map T ($smtx_mss_op_internal $smt_builtin_false m1 m2 $smtx_msm_empty_set)))
+  )
+)
+
+(program $smtx_set_union ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_set_union ($vsm_map T m1) ($vsm_map T m2))
+    ; m1 diff the empty set starting with m2.
+    ($vsm_map T ($smtx_mss_op_internal $smt_builtin_false m1 $smtx_msm_empty_set m2)))
   )
 )
 
@@ -1514,6 +1559,7 @@
   (($smtx_model_eval (ite x1 x2 x3)) ($smtx_model_eval_ite ($smtx_model_eval x1) ($smtx_model_eval x2) ($smtx_model_eval x3)))
   (($smtx_model_eval (and x1 x2)) ($smtx_model_eval_and ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (= x1 x2)) ($smtx_model_eval_= ($smtx_model_eval x1) ($smtx_model_eval x2)))
+  (($smtx_model_eval (set.inter x1 x2)) (eo::define ((e1 ($smtx_model_eval x1))) (eo::define ((e2 ($smtx_model_eval x2))) ($smtx_set_inter e1 e2))))
 
   ;; free constants
   ; Constants carry their value in the model, which is an arbitrary value term.

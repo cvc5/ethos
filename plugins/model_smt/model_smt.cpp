@@ -172,6 +172,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // (Set T) is modelled as (Array T Bool).
   addReduceSym("set.empty", {kT}, "($smtx_set_empty x1)");
   addRecReduceSym("set.singleton", {kT}, "($smtx_set_singleton e1)");
+  addRecReduceSym("set.inter", {kT, kT}, "($smtx_set_inter e1 e2)");
+  addRecReduceSym("set.diff", {kT, kT}, "($smtx_set_diff e1 e2)");
+  addRecReduceSym("set.union", {kT, kT}, "($smtx_set_union e1 e2)");
   addRecReduceSym("set.member", {kT, kT}, "($smtx_select e2 e1)");
   addTermReduceSym("set.subset", {kT, kT}, "(= (set.inter x1 x2) x1)");
   addRecReduceSym("@sets_deq_diff", {kT, kT}, "($smtx_map_diff e1 e2)");
