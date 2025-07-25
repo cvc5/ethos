@@ -31,7 +31,7 @@ fi
 
 echo "**** smt_meta: Run ethos + trim-defs on $INPUT and $TARGET to $INIT_TRIM"
 #./run_trim_defs $INPUT $TARGET "\$eo_model_sat" >/dev/null
-./run_trim_defs $INPUT $TARGET  "ite" "=" >/dev/null
+./run_trim_defs $INPUT $TARGET "ite" "=" >/dev/null
 check_status
 cp $STD_TRIM_OUT $INIT_TRIM
 
@@ -51,15 +51,31 @@ echo "**** smt_meta: Run ethos + trim-deps on $INIT_DESUGAR to generate $VC_DEF_
 ./run_trim_defs $INIT_DESUGAR "\$eovc_$TARGET" >/dev/null
 check_status
 cp $STD_TRIM_OUT $VC_DEF_DESUGAR
-# "\$eo_List" "\$eo_List_nil" "\$eo_List_cons" "\$eo_fail" "ite" "="
+# "\$eo_List" "\$eo_List_nil" "\$eo_List_cons" "\$eo_fail"
 
 # eliminate these operators here, as desugar doesn't do this currently
 sed -i -e 's/eo::list/\$eo_list/g' -e 's/eo::eq /\$eo_eq /g' $VC_DEF_DESUGAR
 
+
 echo "**** smt_meta: Run ethos + model-smt on $VC_DEF_DESUGAR to generate $VCM_DEF_DESUGAR"
-./run_gen_model_smt $VC_DEF_DESUGAR >/dev/null
+# make a copy of the current file, the current step will be included into it
+TMP_OUT=tmp.eo
+cp $VC_DEF_DESUGAR $TMP_OUT
+# Replace the command "(echo "include eo_builtin_smt")" with the premble as defined in Eunoia.
+# This file is not a template, but has a fixed definition.
+sed -i "/(echo \"include eo_builtin_smt.*/{
+    r ../plugins/model_smt/eo_builtin_smt.eo
+    d
+}" $TMP_OUT
+# now compute the model smt
+./src/ethos --plugin.model-smt $TMP_OUT >/dev/null
 check_status
-cp $STD_SMODEL_OUT $VCM_DEF_DESUGAR
+# include the model semantics, which was generated above
+sed -i "/(echo \"include eo_model_sat.*/{
+    r ../plugins/model_smt/model_smt_gen.eo
+    d
+}" $TMP_OUT
+mv $TMP_OUT $VCM_DEF_DESUGAR
 
 # should not eliminate remaining eo:: here
 sed -i -e 's/eo::/\$eo_/g' -e 's/\$eo_quote/eo::quote/g' -e 's/\$eo_define/eo::define/g' $VCM_DEF_DESUGAR
