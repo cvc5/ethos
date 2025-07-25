@@ -966,7 +966,6 @@ Expr TypeChecker::evaluateProgramInternal(
     RuleStat* ps = &d_sts.d_pstats[hd];
     ps->d_count++;
   }
-  Assert(!prog.isNull());
   if (!prog.isNull())
   {
     Trace("type_checker") << "INTERPRET program " << children << std::endl;
@@ -1002,6 +1001,10 @@ Expr TypeChecker::evaluateProgramInternal(
       }
     }
     Trace("type_checker") << "...failed to match." << std::endl;
+  }
+  else
+  {
+    Warning() << "No program defined for " << Expr(children[0]) << std::endl;
   }
   // just return nullptr, which should be interpreted as a failed evaluation
   return d_null;

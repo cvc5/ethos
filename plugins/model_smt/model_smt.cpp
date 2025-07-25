@@ -188,10 +188,6 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTermReduceSym("set.subset", {kT, kT}, "(= (set.inter x1 x2) x1)");
   addRecReduceSym("@sets_deq_diff", {kT, kT}, "($smtx_map_diff e1 e2)");
   //addTermReduceSym("set.is_empty", {kT}, "(= x1 ($smtx_empty_set_of_typeof x1))");
-  // addTermReduceSym("set.singleton",
-  //              {kT},
-  //              "($smtx_set_insert ($smtx_model_eval x1) ($smtx_set_empty
-  //              ($smtx_hash x1)))");
   //  bitvectors
   addTermReduceSym(
       "bvite", {kBitVec, kBitVec, kBitVec}, "(ite (= x1 b1) x2 x3)");

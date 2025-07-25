@@ -483,12 +483,53 @@
 (declare-const and (-> Bool (-> Bool Bool)))
 ; declare: =
 (declare-parameterized-const = ((A Type :implicit) ($eo_x_1 A) ($eo_x_2 A)) Bool)
+; program: $assoc_nil_nth_type
+(program $assoc_nil_nth_type ((T Type) (U Type) (V Type) (W Type) (W1 Type) (x1 W1) (f (-> T (-> U V))) (W2 Type) (x2 W2) (n Int))
+  :signature ((-> T (-> U V)) W Int) Type
+  (
+  (($assoc_nil_nth_type f (_ (f x1) x2) 0) (eo::typeof x1))
+  (($assoc_nil_nth_type f (_ (f x1) x2) n) ($assoc_nil_nth_type f x2 (eo::add n -1)))
+  )
+)
+; program: $assoc_nil_nth
+(program $assoc_nil_nth ((W Type) (x W) (W1 Type) (x1 W1) (T Type) (U Type) (V Type) (f (-> T (-> U V))) (W2 Type) (x2 W2) (n Int))
+  :signature ((eo::quote f) (eo::quote x) (eo::quote n)) ($assoc_nil_nth_type f x n)
+  (
+  (($assoc_nil_nth f (_ (f x1) x2) 0) x1)
+  (($assoc_nil_nth f (_ (f x1) x2) n) ($assoc_nil_nth f x2 (eo::add n -1)))
+  )
+)
 ; declare: BitVec
 (declare-const BitVec (-> Int Type))
-; declare: Set
-(declare-const Set (-> Type Type))
-; declare: set.singleton
-(declare-parameterized-const set.singleton ((T Type :implicit) ($eo_x_1 T)) (Set T))
+; declare: forall
+(declare-const forall (-> $eo_List (-> Bool Bool)))
+; fwd-decl: $substitute_simul
+(program $substitute_simul ((S Type))
+  :signature (S $eo_List $eo_List) S
+)
+; program: $substitute_simul.fev2
+(program $substitute_simul.fev2 ((S Type) (ss $eo_List) (xs $eo_List) (x S))
+  :signature (S $eo_List $eo_List Bool) S
+  (
+  (($substitute_simul.fev2 x xs ss true) x)
+  (($substitute_simul.fev2 x xs ss false) ($assoc_nil_nth $eo_List_cons ss (eo::list_find $eo_List_cons xs x)))
+  )
+)
+; program: $substitute_simul.fev1
+(program $substitute_simul.fev1 ((T Type) (S Type) (ss $eo_List) (xs $eo_List) (a T) (f (-> T S)) ($eo_2 (-> T S)) ($eo_1 T))
+  :signature ($eo_List $eo_List T (-> T S) T (-> T S)) S
+  (
+  (($substitute_simul.fev1 ss xs a f $eo_1 $eo_2) ($eo_2 $eo_1))
+  )
+)
+; program: $substitute_simul
+(program $substitute_simul ((S Type) (T Type) (a T) (f (-> T S)) (ss $eo_List) (xs $eo_List) (x S))
+  :signature (S $eo_List $eo_List) S
+  (
+  (($substitute_simul (f a) xs ss) ($substitute_simul.fev1 ss xs a f ($substitute_simul a xs ss) ($substitute_simul f xs ss)))
+  (($substitute_simul x xs ss) ($substitute_simul.fev2 x xs ss (eo::is_neg (eo::list_find $eo_List_cons xs x))))
+  )
+)
 
 
 ;;; type checking
@@ -515,13 +556,6 @@
   :signature (Type) Type
   (
   (($eo_typeof_= A) (-> A Bool))
-  )
-)
-; program: $eo_typeof_set.singleton
-(program $eo_typeof_set.singleton ((T Type))
-  :signature (Type) Type
-  (
-  (($eo_typeof_set.singleton T) (Set T))
   )
 )
 
@@ -565,10 +599,8 @@
   (($eo_typeof_main (= x1)) ($eo_typeof_= ($eo_typeof x1)))
   ; type-rule: BitVec
   (($eo_typeof_main BitVec) (-> Int Type))
-  ; type-rule: Set
-  (($eo_typeof_main Set) (-> Type Type))
-  ; type-rule: set.singleton
-  (($eo_typeof_main (set.singleton x1)) ($eo_typeof_set.singleton ($eo_typeof x1)))
+  ; type-rule: forall
+  (($eo_typeof_main forall) (-> $eo_List (-> Bool Bool)))
 
   (($eo_typeof_main (f x))     ($eo_typeof_apply ($eo_typeof f) ($eo_typeof x)))
   )
@@ -636,19 +668,19 @@
 
 ;; verification conditions
 
-; program: $eor_sets_singleton_inj
-(program $eor_sets_singleton_inj ((T Type) (a T) (b T))
-  :signature (Bool) Bool
+; program: $eor_instantiate
+(program $eor_instantiate ((F Bool) (xs $eo_List) (ts $eo_List))
+  :signature ($eo_List Bool) Bool
   (
-  (($eor_sets_singleton_inj (_ (= (set.singleton a)) (set.singleton b))) (_ (= a) b))
+  (($eor_instantiate ts (_ (forall xs) F)) ($substitute_simul F xs ts))
   )
 )
-; program: $eovc_sets_singleton_inj
-(program $eovc_sets_singleton_inj ((T Type) (a T) (b T))
-  :signature (T T) Bool
+; program: $eovc_instantiate
+(program $eovc_instantiate ((ts $eo_List) (xs $eo_List) (F Bool))
+  :signature (Bool $eo_List $eo_List) Bool
   (
-  (($eovc_sets_singleton_inj b a) (eo::define ((_v0 (_ (= (set.singleton a)) (set.singleton b)))) ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some true) ($eo_requires_eq ($eo_model_sat ($eor_sets_singleton_inj _v0)) ($eo_Option_some false) true))))
+  (($eovc_instantiate F xs ts) (eo::define ((_v0 (_ (forall xs) F))) ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some true) ($eo_requires_eq ($eo_model_sat ($eor_instantiate ts _v0)) ($eo_Option_some false) true))))
   )
 )
-(echo "smt-meta $eovc_sets_singleton_inj :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $eo_smt_type $tsm_Bool $eo_type $eo_fun_type $eo_apply ")
+(echo "smt-meta $eovc_instantiate :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $eo_smt_type $tsm_Bool $eo_type $eo_fun_type $eo_apply ")
 

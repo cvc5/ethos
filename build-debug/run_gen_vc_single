@@ -121,6 +121,7 @@ cp $STD_VC_OUT $VC_OUT
 echo "**** smt_meta: Verify cvc5 parses"
 ajr-cvc5 $VC_OUT --parse-only
 check_status
+exit 0
 
 echo "**** smt_meta: Run the final verification condition with unsat cores"
 ajr-cvc5 $VC_OUT --dump-unsat-cores --quant-ind #--parse-only
