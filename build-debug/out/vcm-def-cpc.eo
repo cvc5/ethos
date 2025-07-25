@@ -202,15 +202,23 @@
 ;;; SMT value datatype constructors
 
 ; A value denoting a map.
-; note: Similar to $eo_Var we store the hash of its type.
+; note: we store the hash of its type.
 (declare-parameterized-const $smd_vsm.Map
   ((T $smt_builtin_Int :opaque) (m $smt_Map :opaque))
   $smt_Value)
 (define $vsm_map ((T $smt_builtin_Int) (m $smt_Map))
   ($smd_vsm.Map T m))
 
+; A value denoting a sequence.
+; note: we store the hash of its type.
+(declare-parameterized-const $smd_vsm.Seq
+  ((T $smt_builtin_Int :opaque) (s $smt_Seq :opaque))
+  $smt_Value)
+(define $vsm_seq ((T $smt_builtin_Int) (s $smt_Seq))
+  ($smd_vsm.Seq T s))
+
 ; A value denoting an uninterpreted constant.
-; note: Similar to $eo_Var we store the hash of its type.
+; note: we store the hash of its type.
 (declare-parameterized-const $smd_vsm.UConst
   ((T $smt_builtin_Int :opaque) (id $smt_builtin_Int :opaque))
   $smt_Value)
@@ -1243,32 +1251,6 @@
 (program $smtx_map_is_value ()
   :signature ($smt_builtin_Int $smt_Map) $smt_builtin_Bool)
 
-;;; Map as sets
-
-; A set is a mapping to Bool.
-; The empty set maps all to false.
-(define $smtx_msm_empty_set () ($msm_default $vsm_false))
-; Inserting sets e to true.
-(define $smtx_mss_mk_insert ((e $smt_Value) (m $smt_Map)) ($smtx_msm_update m e $vsm_true))
-(define $smtx_mss_insert ((e $smt_Value) (m $smt_Map)) ($msm_cons e $vsm_true m))
-(define $smtx_mss_member ((e $smt_Value) (m $smt_Map))
-  ($smt_apply_= ($smtx_msm_lookup m e) $vsm_true))
-
-; Helper for computing binary set operators.
-(program $smtx_mss_op_internal
-  ((m1 $smt_Map) (m2 $smt_Map) (acc $smt_Map) (e $smt_Value) (isInter $smt_builtin_Bool))
-  :signature ($smt_builtin_Bool $smt_Map $smt_Map $smt_Map) $smt_Map
-  (
-  (($smtx_mss_op_internal isInter $smtx_msm_empty_set m2 acc) acc)
-  (($smtx_mss_op_internal isInter ($smtx_mss_insert e m1) m2 acc)
-    ($smtx_mss_op_internal isInter m1 m2
-      ($smt_apply_3 "ite"
-        ($smt_apply_= ($smtx_mss_member e m2) isInter)
-        ($smtx_mss_mk_insert e acc)
-        acc)))
-  )
-)
-
 ;;; Map value utilities
 
 (program $smtx_map_select
@@ -1300,6 +1282,32 @@
   )
 )
 
+;;; Map as sets
+
+; A set is a mapping to Bool.
+; The empty set maps all to false.
+(define $smtx_msm_empty_set () ($msm_default $vsm_false))
+; Inserting sets e to true.
+(define $smtx_mss_mk_insert ((e $smt_Value) (m $smt_Map)) ($smtx_msm_update m e $vsm_true))
+(define $smtx_mss_insert ((e $smt_Value) (m $smt_Map)) ($msm_cons e $vsm_true m))
+(define $smtx_mss_member ((e $smt_Value) (m $smt_Map))
+  ($smt_apply_= ($smtx_msm_lookup m e) $vsm_true))
+
+; Helper for computing binary set operators.
+(program $smtx_mss_op_internal
+  ((m1 $smt_Map) (m2 $smt_Map) (acc $smt_Map) (e $smt_Value) (isInter $smt_builtin_Bool))
+  :signature ($smt_builtin_Bool $smt_Map $smt_Map $smt_Map) $smt_Map
+  (
+  (($smtx_mss_op_internal isInter $smtx_msm_empty_set m2 acc) acc)
+  (($smtx_mss_op_internal isInter ($smtx_mss_insert e m1) m2 acc)
+    ($smtx_mss_op_internal isInter m1 m2
+      ($smt_apply_3 "ite"
+        ($smt_apply_= ($smtx_mss_member e m2) isInter)
+        ($smtx_mss_mk_insert e acc)
+        acc)))
+  )
+)
+
 ;;; Map values as set values
 
 ; args:
@@ -1311,6 +1319,7 @@
   )
 )
 
+; return the singleton set containing e.
 (program $smtx_set_singleton ((e $eo_Term))
   :signature ($smt_Value) $smt_Value
   (
@@ -1319,6 +1328,7 @@
   )
 )
 
+; return the intersection of two set values.
 (program $smtx_set_inter ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
@@ -1328,6 +1338,7 @@
   )
 )
 
+; return the set minus of two set values.
 (program $smtx_set_minus ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
@@ -1337,6 +1348,7 @@
   )
 )
 
+; return the union of two set values.
 (program $smtx_set_union ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
@@ -1362,23 +1374,23 @@
 
 ;;; Term values.
 
-; program: $smtx_term_is_value
+; program: $smtx_is_atomic_term_value
 ; Returns true if its argument is an SMT value.
 ; This function is expected to never get stuck.
 ; Note that this does not take a type. This function must ensure
 ; that if it returns true for two terms t1 and t2 of the same type,
 ; then t1 != t2 in all models.
-(program $smtx_term_is_value
+(program $smtx_is_atomic_term_value
   ((t $smt_Term) (b $smt_builtin_Bool) (n $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String))
   :signature ($smt_Term) $smt_builtin_Bool
   (
   ; standard atomic types are values
-  (($smtx_term_is_value ($sm_mk_bool b))  $smt_builtin_true)
-  (($smtx_term_is_value ($sm_mk_z n))     $smt_builtin_true)
-  (($smtx_term_is_value ($sm_mk_q r))     $smt_builtin_true)
-  (($smtx_term_is_value ($sm_mk_str s))   $smt_builtin_true)
+  (($smtx_is_atomic_term_value ($sm_mk_bool b))  $smt_builtin_true)
+  (($smtx_is_atomic_term_value ($sm_mk_z n))     $smt_builtin_true)
+  (($smtx_is_atomic_term_value ($sm_mk_q r))     $smt_builtin_true)
+  (($smtx_is_atomic_term_value ($sm_mk_str s))   $smt_builtin_true)
   ; by default, not a value
-  (($smtx_term_is_value t)                $smt_builtin_false)
+  (($smtx_is_atomic_term_value t)                $smt_builtin_false)
   )
 )
 
@@ -1387,7 +1399,7 @@
 ; Returns a term of type $smt_Value, embeds the term
 ; if indeed it is a value, or returns not a value otherwise.
 (define $smt_mk_value_term ((t $smt_Term))
-  ($smt_apply_3 "ite" ($smtx_term_is_value t)
+  ($smt_apply_3 "ite" ($smtx_is_atomic_term_value t)
     ; an atomic term, e.g. 0, true, "abc"
     ($vsm_term t)
     ($smt_apply_3 "ite" ($smt_is_dt_cons t)
@@ -1407,7 +1419,7 @@
    (T $smt_builtin_Int) (id $smt_builtin_Int))
   :signature ($smt_Value) $smt_builtin_Bool
   (
-  (($smtx_is_value ($vsm_term t))         ($smtx_term_is_value t))
+  (($smtx_is_value ($vsm_term t))         ($smtx_is_atomic_term_value t))
   (($smtx_is_value ($vsm_map T m))        ($smtx_map_is_value T m))
   (($smtx_is_value ($vsm_uconst T id))    $smt_builtin_true)
   ; Herbrand interpretations: nil terminated apply of value terms

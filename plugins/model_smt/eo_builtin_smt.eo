@@ -167,15 +167,23 @@
 ;;; SMT value datatype constructors
 
 ; A value denoting a map.
-; note: Similar to $eo_Var we store the hash of its type.
+; note: we store the hash of its type.
 (declare-parameterized-const $smd_vsm.Map
   ((T $smt_builtin_Int :opaque) (m $smt_Map :opaque))
   $smt_Value)
 (define $vsm_map ((T $smt_builtin_Int) (m $smt_Map))
   ($smd_vsm.Map T m))
 
+; A value denoting a sequence.
+; note: we store the hash of its type.
+(declare-parameterized-const $smd_vsm.Seq
+  ((T $smt_builtin_Int :opaque) (s $smt_Seq :opaque))
+  $smt_Value)
+(define $vsm_seq ((T $smt_builtin_Int) (s $smt_Seq))
+  ($smd_vsm.Seq T s))
+
 ; A value denoting an uninterpreted constant.
-; note: Similar to $eo_Var we store the hash of its type.
+; note: we store the hash of its type.
 (declare-parameterized-const $smd_vsm.UConst
   ((T $smt_builtin_Int :opaque) (id $smt_builtin_Int :opaque))
   $smt_Value)
