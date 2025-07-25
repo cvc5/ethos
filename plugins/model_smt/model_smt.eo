@@ -205,7 +205,7 @@
   :signature ($smt_Value) $smt_Value
   (
   (($smtx_set_singleton e)
-    (eo::define ((T ($smtx_typeof e)))
+    (eo::define ((T ($smtx_typeof_value e)))
       ($vsm_map ($smtx_hash T) ($smtx_mss_insert e $smtx_msm_empty_set))))
   )
 )

@@ -141,6 +141,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
         << (i == 0 ? "true" : "false") << ")";
     addReduceSym(i == 0 ? "exists" : "forall", {Kind::ANY, kBool}, ssq.str());
   }
+  // TODO
+  //addReduceSym("exists", {Kind::ANY, kBool}, "($smtx_eval_exists x1 x2)");
+  //addTermReduceSym("forall", {Kind::ANY, kBool}, "(not (forall x1 (not x2)))");
 
   ///----- non standard extensions and skolems
   // builtin
@@ -184,14 +187,14 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addRecReduceSym("set.inter", {kT, kT}, "($smtx_set_inter e1 e2)");
   addRecReduceSym("set.minus", {kT, kT}, "($smtx_set_minus e1 e2)");
   addRecReduceSym("set.union", {kT, kT}, "($smtx_set_union e1 e2)");
-  addRecReduceSym("set.member", {kT, kT}, "($smtx_select e2 e1)");
+  addRecReduceSym("set.member", {kT, kT}, "($smtx_map_select e2 e1)");
   addTermReduceSym("set.subset", {kT, kT}, "(= (set.inter x1 x2) x1)");
   addRecReduceSym("@sets_deq_diff", {kT, kT}, "($smtx_map_diff e1 e2)");
   //addTermReduceSym("set.is_empty", {kT}, "(= x1 ($smtx_empty_set_of_typeof x1))");
   //  bitvectors
   addTermReduceSym(
-      "bvite", {kBitVec, kBitVec, kBitVec}, "(ite (= x1 b1) x2 x3)");
-  addTermReduceSym("bvcomp", {kBitVec, kBitVec}, "(ite (= x1 x2) #b1 #b0)");
+      "bvite", {kBitVec, kBitVec, kBitVec}, "(ite (= x1 (@bv 1 1)) x2 x3)");
+  addTermReduceSym("bvcomp", {kBitVec, kBitVec}, "(ite (= x1 x2) (@bv 1 1) (@bv 0 1))");
   addLitSym("@bvsize", {kBitVec}, kInt, "x1");
   addLitBinSym("@bv", {kInt, kInt}, "x2", "x1");
   addTermReduceSym("@bit", {kInt, kBitVec}, "(extract x1 x1 x2)");
