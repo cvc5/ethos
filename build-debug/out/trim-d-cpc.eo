@@ -479,36 +479,16 @@
 
 ; declare: ite
 (declare-parameterized-const ite (($eo_x_1 Bool) (A Type :implicit) ($eo_x_2 A) ($eo_x_3 A)) A)
-; declare: or
-(declare-const or (-> Bool (-> Bool Bool)))
 ; declare: and
 (declare-const and (-> Bool (-> Bool Bool)))
 ; declare: =
 (declare-parameterized-const = ((A Type :implicit) ($eo_x_1 A) ($eo_x_2 A)) Bool)
-; program: $is_arith_type
-(program $is_arith_type ()
-  :signature (Type) Bool
-  (
-  (($is_arith_type Int) true)
-  (($is_arith_type Real) true)
-  )
-)
-; declare: >
-(declare-parameterized-const > ((T Type :implicit) ($eo_x_1 T) (U Type :implicit) ($eo_x_2 U)) Bool)
 ; declare: BitVec
 (declare-const BitVec (-> Int Type))
-; declare: seq.empty
-(declare-parameterized-const seq.empty ((T Type :implicit)) (Seq T))
-; program: $seq_empty
-(program $seq_empty ((T Type))
-  :signature ((eo::quote T)) T
-  (
-  (($seq_empty (Seq Char)) "")
-  (($seq_empty T) (as seq.empty T))
-  )
-)
-; declare: str.len
-(declare-parameterized-const str.len ((T Type :implicit) ($eo_x_1 (Seq T))) Int)
+; declare: Set
+(declare-const Set (-> Type Type))
+; declare: set.singleton
+(declare-parameterized-const set.singleton ((T Type :implicit) ($eo_x_1 T)) (Set T))
 
 
 ;;; type checking
@@ -537,39 +517,11 @@
   (($eo_typeof_= A) (-> A Bool))
   )
 )
-; program: $eo_typeof_>.fev2
-(program $eo_typeof_>.fev2 ((U Type) ($eo_4 Type))
-  :signature (Type Type Type) Type
-  (
-  (($eo_typeof_>.fev2 U $eo_4 $eo_4) Bool)
-  )
-)
-; program: $eo_typeof_>.fev1
-(program $eo_typeof_>.fev1 ((T Type) ($eo_2 Type) (U Type))
-  :signature (Type Type Type Type) Type
-  (
-  (($eo_typeof_>.fev1 U T $eo_2 $eo_2) ($eo_typeof_>.fev2 U ($is_arith_type U) true))
-  )
-)
-; program: $eo_typeof_>
-(program $eo_typeof_> ((U Type) (T Type))
-  :signature (Type Type) Type
-  (
-  (($eo_typeof_> T U) ($eo_typeof_>.fev1 U T ($is_arith_type T) true))
-  )
-)
-; program: $eo_typeof_seq.empty
-(program $eo_typeof_seq.empty ((T Type))
+; program: $eo_typeof_set.singleton
+(program $eo_typeof_set.singleton ((T Type))
   :signature (Type) Type
   (
-  (($eo_typeof_seq.empty (Seq T)) (Seq T))
-  )
-)
-; program: $eo_typeof_str.len
-(program $eo_typeof_str.len ((T Type))
-  :signature (Type) Type
-  (
-  (($eo_typeof_str.len (Seq T)) Int)
+  (($eo_typeof_set.singleton T) (Set T))
   )
 )
 
@@ -607,20 +559,16 @@
   (($eo_typeof_main Seq) (-> Type Type))
   ; type-rule: ite
   (($eo_typeof_main (_ (ite x1) x2)) ($eo_typeof_ite ($eo_typeof x1) ($eo_typeof x2)))
-  ; type-rule: or
-  (($eo_typeof_main or) (-> Bool (-> Bool Bool)))
   ; type-rule: and
   (($eo_typeof_main and) (-> Bool (-> Bool Bool)))
   ; type-rule: =
   (($eo_typeof_main (= x1)) ($eo_typeof_= ($eo_typeof x1)))
-  ; type-rule: >
-  (($eo_typeof_main (_ (> x1) x2)) ($eo_typeof_> ($eo_typeof x1) ($eo_typeof x2)))
   ; type-rule: BitVec
   (($eo_typeof_main BitVec) (-> Int Type))
-  ; type-rule: seq.empty
-  (($eo_typeof_main (as seq.empty x1)) ($eo_typeof_seq.empty x1))
-  ; type-rule: str.len
-  (($eo_typeof_main (str.len x1)) ($eo_typeof_str.len ($eo_typeof x1)))
+  ; type-rule: Set
+  (($eo_typeof_main Set) (-> Type Type))
+  ; type-rule: set.singleton
+  (($eo_typeof_main (set.singleton x1)) ($eo_typeof_set.singleton ($eo_typeof x1)))
 
   (($eo_typeof_main (f x))     ($eo_typeof_apply ($eo_typeof f) ($eo_typeof x)))
   )
@@ -659,7 +607,6 @@
   ((T Type) (U Type) (V Type) (W Type) (f (-> T U V)))
   :signature ((-> T U V) (eo::quote W)) W
   (
-  (($eo_nil or T) false)
   (($eo_nil and T) true)
 
   (($eo_nil f T) $eo_fail)
@@ -689,26 +636,19 @@
 
 ;; verification conditions
 
-; program: $eor_string_length_pos.fev1
-(program $eor_string_length_pos.fev1 ((U Type) ($eoT.fev1 Type) ($eoT.fev3 Type) ($eo_2 $eoT.fev1) (s U))
-  :signature (U $eoT.fev1) $eoT.fev3
+; program: $eor_sets_singleton_inj
+(program $eor_sets_singleton_inj ((T Type) (a T) (b T))
+  :signature (Bool) Bool
   (
-  (($eor_string_length_pos.fev1 s $eo_2) (eo::define ((_v0 (str.len s))) (_ (or (_ (and (_ (= _v0) 0)) (_ (and (_ (= s) $eo_2)) true))) (_ (or (_ (> _v0) 0)) false))))
+  (($eor_sets_singleton_inj (_ (= (set.singleton a)) (set.singleton b))) (_ (= a) b))
   )
 )
-; program: $eor_string_length_pos
-(program $eor_string_length_pos ((U Type) (s U))
-  :signature (U) Bool
+; program: $eovc_sets_singleton_inj
+(program $eovc_sets_singleton_inj ((T Type) (a T) (b T))
+  :signature (T T) Bool
   (
-  (($eor_string_length_pos s) ($eor_string_length_pos.fev1 s ($seq_empty (eo::typeof s))))
+  (($eovc_sets_singleton_inj b a) (eo::define ((_v0 (_ (= (set.singleton a)) (set.singleton b)))) ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some true) ($eo_requires_eq ($eo_model_sat ($eor_sets_singleton_inj _v0)) ($eo_Option_some false) true))))
   )
 )
-; program: $eovc_string_length_pos
-(program $eovc_string_length_pos ((U Type) (s U))
-  :signature (U) Bool
-  (
-  (($eovc_string_length_pos s) ($eo_requires_eq ($eo_model_sat ($eor_string_length_pos s)) ($eo_Option_some false) true))
-  )
-)
-(echo "smt-meta $eovc_string_length_pos :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $eo_smt_type $tsm_Bool $eo_type $eo_fun_type $eo_apply ")
+(echo "smt-meta $eovc_sets_singleton_inj :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $eo_smt_type $tsm_Bool $eo_type $eo_fun_type $eo_apply ")
 

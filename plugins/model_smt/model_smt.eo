@@ -200,15 +200,13 @@
   )
 )
 
-; Return the empty set of the type of the element e.
-(define $smtx_empty_set_of_typeof ((e $eo_Term))
-  ($smtx_empty_set ($smtx_typeof e)))
-
 ; return the singleton set containing e.
 (program $smtx_set_singleton ((e $smt_Value))
   :signature ($smt_Value) $smt_Value
   (
-  (($smtx_set_singleton e) ($smtx_mss_insert e ($smtx_empty_set_of_typeof e)))
+  (($smtx_set_singleton e)
+    (eo::define ((T ($smtx_typeof e)))
+      ($vsm_map ($smtx_hash T) ($smtx_mss_insert e $smtx_msm_empty_set))))
   )
 )
 

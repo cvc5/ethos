@@ -125,9 +125,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTermReduceSym("bvule", {kBitVec, kBitVec}, "(bvuge x2 x1)");
   addTermReduceSym("bvslt", {kBitVec, kBitVec}, "(bvsgt x2 x1)");
   addTermReduceSym("bvult", {kBitVec, kBitVec}, "(bvugt x2 x1)");
-  addTermReduceSym("nand", {kBitVec, kBitVec}, "(bvnot (bvand x1 x2))");
-  addTermReduceSym("nor", {kBitVec, kBitVec}, "(bvnot (bvor x1 x2))");
-  addTermReduceSym("xnor", {kBitVec, kBitVec}, "(bvnot (bvxor x1 x2))");
+  addTermReduceSym("bvnand", {kBitVec, kBitVec}, "(bvnot (bvand x1 x2))");
+  addTermReduceSym("bvnor", {kBitVec, kBitVec}, "(bvnot (bvor x1 x2))");
+  addTermReduceSym("bvxnor", {kBitVec, kBitVec}, "(bvnot (bvxor x1 x2))");
   addTermReduceSym("bvuge", {kBitVec, kBitVec}, "(or (bvugt x1 x2) (= x1 x2))");
   addTermReduceSym("bvsge", {kBitVec, kBitVec}, "(or (bvsgt x1 x2) (= x1 x2))");
   // arith/BV conversions
@@ -187,7 +187,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addRecReduceSym("set.member", {kT, kT}, "($smtx_select e2 e1)");
   addTermReduceSym("set.subset", {kT, kT}, "(= (set.inter x1 x2) x1)");
   addRecReduceSym("@sets_deq_diff", {kT, kT}, "($smtx_map_diff e1 e2)");
-  addTermReduceSym("set.is_empty", {kT}, "(= x1 ($smtx_empty_set_of_typeof x1))");
+  //addTermReduceSym("set.is_empty", {kT}, "(= x1 ($smtx_empty_set_of_typeof x1))");
   // addTermReduceSym("set.singleton",
   //              {kT},
   //              "($smtx_set_insert ($smtx_model_eval x1) ($smtx_set_empty
@@ -338,8 +338,8 @@ void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
   // This assertion is critical for soundness: if we do not know how to
   // interpret the symbol, we cannot claim this verification condition
   // accurately models SMT-LIB semantics.
-  Assert(false) << "No model semantics found for " << name;
   EO_FATAL() << "ERROR: no model semantics found for " << name;
+  Assert(false) << "No model semantics found for " << name;
 }
 
 void ModelSmt::printType(const std::string& name, const std::vector<Kind>& args)

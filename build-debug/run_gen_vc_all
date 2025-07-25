@@ -2,6 +2,20 @@
 # The name of a EO signature
 INPUT="../../cvc5-ajr/proofs/eo/cpc/Cpc.eo"
 
+function check_status()
+{
+status=$?
+if [[ $status -eq 0 ]]; then
+  echo "success"
+else
+  exit $status
+fi
+}
+
+echo "**** Compile ethos"
+make -j4
+check_status
+
 ./run_gen_vc_single $INPUT evaluate
 ./run_gen_vc_single $INPUT distinct_values
 ./run_gen_vc_single $INPUT aci_norm
