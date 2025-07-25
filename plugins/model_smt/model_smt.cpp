@@ -36,8 +36,6 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   d_kindToType[kString] = "String";
   d_kindToType[kBitVec] = "Binary";
   // All SMT-LIB symbols require having their semantics defined here.
-  // We have a NUMERAL category that we assume can be associated to Int,
-  // Similar for the other literals.
   // Note that we model *SMT-LIB* not *CPC* here.
   // builtin
   addHardCodeSym("=", {kT, kT});
@@ -49,6 +47,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("=>", {kBool, kBool}, kBool);
   addConstFoldSym("not", {kBool}, kBool);
   // arithmetic
+  addTypeSym("Int", {});
+  addTypeSym("Real", {});
   // use kT to stand for either Int or Real arithmetic (not mixed)
   addConstFoldSym("+", {kT, kT}, kT);
   addConstFoldSym("-", {kT, kT}, kT);
@@ -70,9 +70,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("to_real", {kInt}, kReal);
   addTermReduceSym("divisible", {kInt, kInt}, "(= (mod x2 x1) 0)");
   // arrays
+  addTypeSym("Array", {kT, kT});
   addRecReduceSym("select", {kT, kT}, "($smtx_map_select e1 e2)");
   addRecReduceSym("store", {kT, kT, kT}, "($smtx_map_store e1 e2 e3)");
   // strings
+  addTypeSym("Seq", {kT});
+  addTypeSym("Char", {});
   addConstFoldSym("str.++", {kString, kString}, kString);
   addConstFoldSym("str.len", {kString}, kInt);
   addConstFoldSym("str.substr", {kString, kInt, kInt}, kString);
@@ -91,6 +94,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("str.<=", {kString, kString}, kBool);
   addConstFoldSym("str.<", {kString, kString}, kBool);
   // bitvectors
+  addTypeSym("BitVec", {kInt});
   // the following are return terms of aux program cases of the form:
   // (($smtx_model_eval_f
   //    ($vsm_term ($sm_binary x1 x2)) ($vsm_term ($sm_binary x3 x4)))
@@ -173,6 +177,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addRecReduceSym("seq.unit", {kT}, "($smtx_seq_unit e1)");
   // sets
   // (Set T) is modelled as (Array T Bool).
+  addTypeSym("Set", {kT});
   addReduceSym("set.empty", {kT}, "($smtx_empty_set x1)");
   addRecReduceSym("set.singleton", {kT}, "($smtx_set_singleton e1)");
   addRecReduceSym("set.inter", {kT, kT}, "($smtx_set_inter e1 e2)");
@@ -181,6 +186,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addRecReduceSym("set.member", {kT, kT}, "($smtx_select e2 e1)");
   addTermReduceSym("set.subset", {kT, kT}, "(= (set.inter x1 x2) x1)");
   addRecReduceSym("@sets_deq_diff", {kT, kT}, "($smtx_map_diff e1 e2)");
+  addTermReduceSym("set.is_empty", {kT}, "(= x1 ($smtx_empty_set_of_typeof x1))");
   // addTermReduceSym("set.singleton",
   //              {kT},
   //              "($smtx_set_insert ($smtx_model_eval x1) ($smtx_set_empty
@@ -194,12 +200,21 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTermReduceSym("@bit", {kInt, kBitVec}, "(extract x1 x1 x2)");
   // tuples
   // these allow Herbrand interpretations
+  addTypeSym("Tuple", {kT, kT});
+  addTypeSym("UnitTuple", {});
   addReduceSym("tuple", {}, "($vsm_apply ($vsm_term tuple) $vsm_not_value)");
   addReduceSym("unit.tuple", {}, "($vsm_term unit.tuple)");
 }
 
 ModelSmt::~ModelSmt() {}
 
+void ModelSmt::addTypeSym(const std::string& sym,
+                       const std::vector<Kind>& args)
+{
+  // for now, ignored
+  d_symIgnore[sym] = true;
+}
+  
 void ModelSmt::addHardCodeSym(const std::string& sym,
                               const std::vector<Kind>& args)
 {
@@ -269,6 +284,11 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
   {
     return;
   }
+  // internal declarations are ignored
+  if (name.compare(0, 1, "$") == 0 || name.compare(0, 2, "@@") == 0)
+  {
+    return;
+  }
   std::map<std::string, std::vector<Kind>>::iterator ith =
       d_symHardCode.find(name);
   if (ith != d_symHardCode.end())
@@ -303,6 +323,12 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
     printModelEvalCallBase(name, itst->second.first, itst->second.second);
     return;
   }
+  if (d_symIgnore.find(name)!=d_symIgnore.end())
+  {
+    // intentionally ignored
+    return;
+  }
+  Assert(false) << "No definition found for " << name;
 }
 
 void ModelSmt::printType(const std::string& name, const std::vector<Kind>& args)

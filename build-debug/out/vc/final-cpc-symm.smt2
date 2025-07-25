@@ -11,7 +11,7 @@
 ;   considered.
 ;   We require a mutually recursive datatype, since these are
 ;   inter-dependent.
-(declare-datatypes ((tsm.Type 0) (sm.Term 0) (eo.Term 0) (vsm.Value 0) (msm.Map 0) (seq.Seq 0))
+(declare-datatypes ((tsm.Type 0) (sm.Term 0) (eo.Term 0) (vsm.Value 0) (msm.Map 0) (ssm.Seq 0))
   (
   (
   ; user-decl: Int
@@ -88,10 +88,10 @@
   (msm.default (msm.default.arg1 vsm.Value))
   )
   (
-  ; (seq.cons i s) is a sequence
-  (seq.cons (seq.cons.arg1 vsm.Value) (seq.cons.arg2 seq.Seq))
+  ; (ssm.cons i s) is a sequence
+  (ssm.cons (ssm.cons.arg1 vsm.Value) (ssm.cons.arg2 ssm.Seq))
   ; the empty sequence
-  (seq.empty)
+  (ssm.empty)
   )
   )
 )

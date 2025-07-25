@@ -102,6 +102,9 @@ class ModelSmt : public StdPlugin
   void addConstFoldSym(const std::string& sym,
                        const std::vector<Kind>& args,
                        Kind ret);
+  /** add type */
+  void addTypeSym(const std::string& sym,
+                       const std::vector<Kind>& args);
   /**
    * Helper method for printing the final program case to $smtx_model_eval, i.e.
    * (($smtx_model_eval (<name> x1 ... xn)) <retTerm>).
@@ -115,7 +118,6 @@ class ModelSmt : public StdPlugin
    */
   void printModelEvalCall(const std::string& name,
                           const std::vector<Kind>& args);
-  void printType(const std::string& name, const std::vector<Kind>& args);
   /** Print necessary information for a symbol added via addConstFoldSym */
   void printConstFold(const std::string& name,
                       const std::vector<Kind>& args,
@@ -135,6 +137,7 @@ class ModelSmt : public StdPlugin
                        const std::vector<Kind>& args,
                        std::stringstream& progCases,
                        std::stringstream& progParams);
+  void printType(const std::string& name, const std::vector<Kind>& args);
 
   void printTermInternal(Kind k, const std::string& term, std::ostream& os);
   /** Finalize declaration, main entry point for calling methods above */
@@ -168,6 +171,8 @@ class ModelSmt : public StdPlugin
    * SMT-LIB symbols that have a custom evaluation function that we define.
    */
   std::map<std::string, std::vector<Kind>> d_symHardCode;
+  /** Symbols that we need no definition for */
+  std::map<std::string, bool> d_symIgnore;
 };
 
 }  // namespace ethos

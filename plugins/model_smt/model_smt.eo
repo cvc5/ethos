@@ -200,42 +200,51 @@
   )
 )
 
+; Return the empty set of the type of the element e.
+(define $smtx_empty_set_of_typeof ((e $eo_Term))
+  ($smtx_empty_set ($smtx_typeof e)))
+
 ; return the singleton set containing e.
 (program $smtx_set_singleton ((e $smt_Value))
   :signature ($smt_Value) $smt_Value
   (
-  (($smtx_set_singleton e)
-    ($vsm_map ($smtx_hash ($smtx_typeof_value e)) ($smtx_mss_insert e $smtx_msm_empty_set)))
+  (($smtx_set_singleton e) ($smtx_mss_insert e ($smtx_empty_set_of_typeof e)))
   )
 )
 
 ; return the intersection of two set values.
-(program $smtx_set_inter ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map))
+(program $smtx_set_inter
+  ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
   (($smtx_set_inter ($vsm_map T m1) ($vsm_map T m2))
     ; m1 intersected m2 starting with empty set.
     ($vsm_map T ($smtx_mss_op_internal $smt_builtin_true m1 m2 $smtx_msm_empty_set)))
+  (($smtx_set_inter v1 v2)  $vsm_not_value)
   )
 )
 
 ; return the set minus of two set values.
-(program $smtx_set_minus ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map))
+(program $smtx_set_minus
+  ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
   (($smtx_set_minus ($vsm_map T m1) ($vsm_map T m2))
     ; m1 minus m2 starting with empty set.
     ($vsm_map T ($smtx_mss_op_internal $smt_builtin_false m1 m2 $smtx_msm_empty_set)))
+  (($smtx_set_minus v1 v2)  $vsm_not_value)
   )
 )
 
 ; return the union of two set values.
-(program $smtx_set_union ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map))
+(program $smtx_set_union
+  ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
   (($smtx_set_union ($vsm_map T m1) ($vsm_map T m2))
     ; m1 minus the empty set starting with m2.
     ($vsm_map T ($smtx_mss_op_internal $smt_builtin_false m1 $smtx_msm_empty_set m2)))
+  (($smtx_set_union v1 v2)  $vsm_not_value)
   )
 )
 

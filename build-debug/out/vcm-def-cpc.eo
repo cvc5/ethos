@@ -1,5 +1,5 @@
-; trim-defs: $eovc_seq-len-unit
-; #trim-defs: 46
+; trim-defs: $eovc_sets-inter-comm
+; #trim-defs: 45
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -1033,8 +1033,8 @@
 (declare-const and (-> Bool (-> Bool Bool)))
 (declare-parameterized-const = ((A Type :implicit) ($eo_x_1 A) ($eo_x_2 A)) Bool)
 (declare-const BitVec (-> Int Type))
-(declare-parameterized-const str.len ((T Type :implicit) ($eo_x_1 (Seq T))) Int)
-(declare-parameterized-const seq.unit ((T Type :implicit) ($eo_x_1 T)) (Seq T))
+(declare-const Set (-> Type Type))
+(declare-parameterized-const set.inter ((T Type :implicit) ($eo_x_1 (Set T)) ($eo_x_2 (Set T))) (Set T))
 (program $eo_typeof_apply ((T Type) (U Type))
   :signature (Type Type) Type
   (
@@ -1053,16 +1053,10 @@
   (($eo_typeof_= A) (-> A Bool))
   )
 )
-(program $eo_typeof_str.len ((T Type))
+(program $eo_typeof_set.inter ((T Type))
   :signature (Type) Type
   (
-  (($eo_typeof_str.len (Seq T)) Int)
-  )
-)
-(program $eo_typeof_seq.unit ((T Type))
-  :signature (Type) Type
-  (
-  (($eo_typeof_seq.unit T) (Seq T))
+  (($eo_typeof_set.inter (Set T)) (eo::define ((_v0 (Set T))) (-> _v0 _v0)))
   )
 )
 (program $eo_typeof_fun_type ()
@@ -1098,9 +1092,9 @@
   
   (($eo_typeof_main BitVec) (-> Int Type))
   
-  (($eo_typeof_main (str.len x1)) ($eo_typeof_str.len ($eo_typeof x1)))
+  (($eo_typeof_main Set) (-> Type Type))
   
-  (($eo_typeof_main (seq.unit x1)) ($eo_typeof_seq.unit ($eo_typeof x1)))
+  (($eo_typeof_main (set.inter x1)) ($eo_typeof_set.inter ($eo_typeof x1)))
 
   (($eo_typeof_main (f x))     ($eo_typeof_apply ($eo_typeof f) ($eo_typeof x)))
   )
@@ -1325,42 +1319,51 @@
   )
 )
 
+; Return the empty set of the type of the element e.
+(define $smtx_empty_set_of_typeof ((e $eo_Term))
+  ($smtx_empty_set ($smtx_typeof e)))
+
 ; return the singleton set containing e.
 (program $smtx_set_singleton ((e $smt_Value))
   :signature ($smt_Value) $smt_Value
   (
-  (($smtx_set_singleton e)
-    ($vsm_map ($smtx_hash ($smtx_typeof_value e)) ($smtx_mss_insert e $smtx_msm_empty_set)))
+  (($smtx_set_singleton e) ($smtx_mss_insert e ($smtx_empty_set_of_typeof e)))
   )
 )
 
 ; return the intersection of two set values.
-(program $smtx_set_inter ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map))
+(program $smtx_set_inter
+  ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
   (($smtx_set_inter ($vsm_map T m1) ($vsm_map T m2))
     ; m1 intersected m2 starting with empty set.
     ($vsm_map T ($smtx_mss_op_internal $smt_builtin_true m1 m2 $smtx_msm_empty_set)))
+  (($smtx_set_inter v1 v2)  $vsm_not_value)
   )
 )
 
 ; return the set minus of two set values.
-(program $smtx_set_minus ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map))
+(program $smtx_set_minus
+  ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
   (($smtx_set_minus ($vsm_map T m1) ($vsm_map T m2))
     ; m1 minus m2 starting with empty set.
     ($vsm_map T ($smtx_mss_op_internal $smt_builtin_false m1 m2 $smtx_msm_empty_set)))
+  (($smtx_set_minus v1 v2)  $vsm_not_value)
   )
 )
 
 ; return the union of two set values.
-(program $smtx_set_union ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map))
+(program $smtx_set_union
+  ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
   (($smtx_set_union ($vsm_map T m1) ($vsm_map T m2))
     ; m1 minus the empty set starting with m2.
     ($vsm_map T ($smtx_mss_op_internal $smt_builtin_false m1 $smtx_msm_empty_set m2)))
+  (($smtx_set_union v1 v2)  $vsm_not_value)
   )
 )
 
@@ -1586,14 +1589,6 @@
   (($smtx_model_eval_and t1 t2) $vsm_not_value)
   )
 )
-(program $smtx_model_eval_str.len
-  ((x1 $smt_builtin_String) (t1 $smt_Value))
-  :signature ($smt_Value) $smt_Value
-  (
-  (($smtx_model_eval_str.len ($vsm_term ($sm_mk_str x1))) ($vsm_term ($sm_mk_z ($smt_apply_1 "str.len" x1))))
-  (($smtx_model_eval_str.len t1) $vsm_not_value)
-  )
-)
 
 
 ; An evaluator for all terms that we can reason about models.
@@ -1615,8 +1610,7 @@
   (($smtx_model_eval (ite x1 x2 x3)) ($smtx_model_eval_ite ($smtx_model_eval x1) ($smtx_model_eval x2) ($smtx_model_eval x3)))
   (($smtx_model_eval (and x1 x2)) ($smtx_model_eval_and ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (= x1 x2)) ($smtx_model_eval_= ($smtx_model_eval x1) ($smtx_model_eval x2)))
-  (($smtx_model_eval (str.len x1)) ($smtx_model_eval_str.len ($smtx_model_eval x1)))
-  (($smtx_model_eval (seq.unit x1)) (eo::define ((e1 ($smtx_model_eval x1))) ($smtx_seq_unit e1)))
+  (($smtx_model_eval (set.inter x1 x2)) (eo::define ((e1 ($smtx_model_eval x1))) (eo::define ((e2 ($smtx_model_eval x2))) ($smtx_set_inter e1 e2))))
 
   ;; free constants
   ; Constants carry their value in the model, which is an arbitrary value term.
@@ -1788,16 +1782,16 @@
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_end
-(program $eor_seq-len-unit ((@T0 Type) (x1 @T0))
-  :signature (@T0) Bool
+(program $eor_sets-inter-comm ((@T0 Type) (@T1 Type) (y1 (Set @T1)) (x1 (Set @T0)))
+  :signature ((Set @T0) (Set @T1)) Bool
   (
-  (($eor_seq-len-unit x1) (_ (= (str.len (seq.unit x1))) 1))
+  (($eor_sets-inter-comm x1 y1) (_ (= (_ (set.inter x1) y1)) (_ (set.inter y1) x1)))
   )
 )
-(program $eovc_seq-len-unit ((@T0 Type) (x1 @T0))
-  :signature (@T0) Bool
+(program $eovc_sets-inter-comm ((@T1 Type) (@T0 Type) (x1 (Set @T0)) (y1 (Set @T1)))
+  :signature ((Set @T1) (Set @T0)) Bool
   (
-  (($eovc_seq-len-unit x1) ($eo_requires_eq ($eo_model_sat ($eor_seq-len-unit x1)) ($eo_Option_some false) true))
+  (($eovc_sets-inter-comm y1 x1) ($eo_requires_eq ($eo_model_sat ($eor_sets-inter-comm x1 y1)) ($eo_Option_some false) true))
   )
 )
-(echo "smt-meta $eovc_seq-len-unit :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $eo_smt_type $tsm_Bool $eo_type $eo_fun_type $eo_apply ")
+(echo "smt-meta $eovc_sets-inter-comm :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $eo_smt_type $tsm_Bool $eo_type $eo_fun_type $eo_apply ")
