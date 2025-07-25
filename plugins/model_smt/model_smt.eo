@@ -201,7 +201,7 @@
 )
 
 ; return the singleton set containing e.
-(program $smtx_set_singleton ((e $eo_Term))
+(program $smtx_set_singleton ((e $smt_Value))
   :signature ($smt_Value) $smt_Value
   (
   (($smtx_set_singleton e)
@@ -248,7 +248,7 @@
   )
 )
 
-(program $smtx_seq_unit ((e $eo_Term))
+(program $smtx_seq_unit ((e $smt_Value))
   :signature ($smt_Value) $smt_Value
   (
   (($smtx_seq_unit e)

@@ -58,6 +58,13 @@ SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s) {
   d_prefixToMetaKind["vsm"] = MetaKind::SMT_VALUE;
   d_prefixToMetaKind["msm"] = MetaKind::SMT_MAP;
   d_prefixToMetaKind["ssm"] = MetaKind::SMT_SEQ;
+  d_typeToMetaKind["$eo_Type"] = MetaKind::EUNOIA;
+  d_typeToMetaKind["$smt_Term"] = MetaKind::SMT;
+  d_typeToMetaKind["$smt_Type"] = MetaKind::SMT_TYPE;
+  d_typeToMetaKind["$smt_Value"] = MetaKind::SMT_VALUE;
+  d_typeToMetaKind["$smt_Map"] = MetaKind::SMT_MAP;
+  d_typeToMetaKind["$smt_Seq"] = MetaKind::SMT_SEQ;
+  d_typeToMetaKind["$smt_BuiltinType"] = MetaKind::SMT_BUILTIN;
 }
 
 SmtMetaReduce::~SmtMetaReduce() {}
@@ -119,7 +126,7 @@ std::string metaKindToCons(MetaKind k)
 
 bool SmtMetaReduce::printMetaType(const Expr& t,
                                   std::ostream& os,
-                                  MetaKind tctx)
+                                  MetaKind tctx) const
 {
   MetaKind tk = getTypeMetaKind(t, tctx);
   switch (tk)
@@ -130,6 +137,7 @@ bool SmtMetaReduce::printMetaType(const Expr& t,
     case MetaKind::SMT_VALUE: os << "vsm.Value"; break;
     case MetaKind::SMT_BUILTIN: os << getEmbedName(t); break;
     case MetaKind::SMT_MAP: os << "msm.Map"; break;
+    case MetaKind::SMT_SEQ: os << "ssm.Seq"; break;
     default: return false;
   }
   return true;
@@ -1214,7 +1222,7 @@ bool SmtMetaReduce::isSmtLibExpression(MetaKind ctx)
          || ctx == MetaKind::SMT_VALUE;
 }
 
-MetaKind SmtMetaReduce::getTypeMetaKind(const Expr& typ, MetaKind elseKind)
+MetaKind SmtMetaReduce::getTypeMetaKind(const Expr& typ, MetaKind elseKind) const
 {
   Kind k = typ.getKind();
   if (k == Kind::APPLY_OPAQUE)
@@ -1226,29 +1234,10 @@ MetaKind SmtMetaReduce::getTypeMetaKind(const Expr& typ, MetaKind elseKind)
     }
   }
   std::string sname = getName(typ);
-  if (sname == "$eo_Term")
+  std::map<std::string, MetaKind>::const_iterator it = d_typeToMetaKind.find(sname);
+  if (it!=d_typeToMetaKind.end())
   {
-    return MetaKind::EUNOIA;
-  }
-  else if (sname == "$smt_Term")
-  {
-    return MetaKind::SMT;
-  }
-  else if (sname == "$smt_Type")
-  {
-    return MetaKind::SMT_TYPE;
-  }
-  else if (sname == "$smt_Value")
-  {
-    return MetaKind::SMT_VALUE;
-  }
-  else if (sname == "$smt_Map")
-  {
-    return MetaKind::SMT_MAP;
-  }
-  else if (sname == "$smt_BuiltinType")
-  {
-    return MetaKind::SMT_BUILTIN;
+    return it->second;
   }
   return elseKind;
 }

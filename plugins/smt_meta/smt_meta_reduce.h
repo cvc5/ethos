@@ -93,9 +93,9 @@ class SmtMetaReduce : public StdPlugin
    */
   bool echo(const std::string& msg) override;
 
-  static bool printMetaType(const Expr& t,
+  bool printMetaType(const Expr& t,
                             std::ostream& os,
-                            MetaKind tctx = MetaKind::NONE);
+                            MetaKind tctx = MetaKind::NONE) const;
   /** Get the name of expression e, expected to be an atomic term */
   static std::string getName(const Expr& e);
   /** Is e a datatype constructor embedding? */
@@ -109,8 +109,8 @@ class SmtMetaReduce : public StdPlugin
    * @param elseKind The returned kind if typ does not have a special meaning.
    * @return The meta-kind of typ, or elseKind otherwise.
    */
-  static MetaKind getTypeMetaKind(const Expr& typ,
-                                  MetaKind elseKind = MetaKind::EUNOIA);
+  MetaKind getTypeMetaKind(const Expr& typ,
+                                  MetaKind elseKind = MetaKind::EUNOIA) const;
   /**
    * Get the meta kind of the type of expression e, or else kind otherwise.
    * In other words, we return the datatype that e is a constructor of in the
@@ -151,6 +151,7 @@ class SmtMetaReduce : public StdPlugin
   /** Common constants */
   Expr d_null;
   std::map<std::string, MetaKind> d_prefixToMetaKind;
+  std::map<std::string, MetaKind> d_typeToMetaKind;
   std::stringstream d_defs;
   std::stringstream d_rules;
   std::stringstream d_smtVc;

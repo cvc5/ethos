@@ -169,8 +169,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                    {kString},
                    "(str.indexof_re x1 (re.comp (re.range \"0\" \"9\")) 0)");
   // sequences
-  //addReduceSym("seq.empty", {kT}, "($smtx_empty_seq x1)");
-  //addRecReduceSym("seq.unit", {kT}, "($smtx_seq_unit e1)");
+  addReduceSym("seq.empty", {kT}, "($smtx_empty_seq x1)");
+  addRecReduceSym("seq.unit", {kT}, "($smtx_seq_unit e1)");
   // sets
   // (Set T) is modelled as (Array T Bool).
   addReduceSym("set.empty", {kT}, "($smtx_empty_set x1)");
