@@ -244,7 +244,7 @@
 (program $smtx_empty_seq ((T $eo_Term))
   :signature ($eo_Term) $smt_Value
   (
-  (($smtx_empty_seq T) ($vsm_seq ($smtx_hash T) $seq_empty))
+  (($smtx_empty_seq T) ($vsm_seq ($smtx_hash T) $ssm_empty))
   )
 )
 
@@ -252,7 +252,7 @@
   :signature ($smt_Value) $smt_Value
   (
   (($smtx_seq_unit e)
-    ($vsm_seq ($smtx_hash ($smtx_typeof_value e)) ($seq_cons e $seq_empty)))
+    ($vsm_seq ($smtx_hash ($smtx_typeof_value e)) ($ssm_cons e $ssm_empty)))
   )
 )
 

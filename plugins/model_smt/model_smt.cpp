@@ -168,9 +168,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTermReduceSym("@strings_stoi_non_digit",
                    {kString},
                    "(str.indexof_re x1 (re.comp (re.range \"0\" \"9\")) 0)");
+  // sequences
+  //addReduceSym("seq.empty", {kT}, "($smtx_empty_seq x1)");
+  //addRecReduceSym("seq.unit", {kT}, "($smtx_seq_unit e1)");
   // sets
   // (Set T) is modelled as (Array T Bool).
-  addReduceSym("set.empty", {kT}, "($smtx_set_empty x1)");
+  addReduceSym("set.empty", {kT}, "($smtx_empty_set x1)");
   addRecReduceSym("set.singleton", {kT}, "($smtx_set_singleton e1)");
   addRecReduceSym("set.inter", {kT, kT}, "($smtx_set_inter e1 e2)");
   addRecReduceSym("set.minus", {kT, kT}, "($smtx_set_minus e1 e2)");

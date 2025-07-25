@@ -226,13 +226,13 @@
 
 ;;; SMT sequence value datatype constructors
 
-(declare-parameterized-const $smd_seq.cons
+(declare-parameterized-const $smd_ssm.cons
   ((i $smt_Value :opaque) (s $smt_Seq :opaque))
   $smt_Seq)
-(define $seq_cons ((i $smt_Value) (s $smt_Seq)) ($smd_seq.cons i s))
+(define $ssm_cons ((i $smt_Value) (s $smt_Seq)) ($smd_ssm.cons i s))
 
-(declare-parameterized-const $smd_seq.empty () $smt_Seq)
-(define $seq_empty () $smd_seq.empty)
+(declare-parameterized-const $smd_ssm.empty () $smt_Seq)
+(define $ssm_empty () $smd_ssm.empty)
 
 ;;; Eunoia datatype constructors
 

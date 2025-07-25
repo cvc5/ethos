@@ -45,9 +45,10 @@ enum class MetaKind
   SMT_TYPE,
   /** A context in which the deep embedding of the term is an SMT-LIB value */
   SMT_VALUE,
-  /** A context in which the deep embedding of the term is an SMT-LIB map value
-   */
+  /** A context in which the term is an SMT-LIB map value */
   SMT_MAP,
+  /** A context in which the term is an SMT-LIB sequence value */
+  SMT_SEQ,
   /** A builtin SMT-LIB term context */
   SMT_BUILTIN,
   /** A program */
@@ -120,9 +121,10 @@ class SmtMetaReduce : public StdPlugin
    * @param cname Updated to the root name of the constructor.
    * @return The meta-kind of the type of e, or elseKind otherwise.
    */
-  static MetaKind getMetaKind(State& s, const Expr& e, std::string& cname);
+  MetaKind getMetaKind(State& s, const Expr& e, std::string& cname) const;
 
  private:
+  MetaKind prefixToMetaKind(const std::string& str) const;
   bool printEmbPatternMatch(const Expr& c,
                             const std::string& initCtx,
                             std::ostream& os,
@@ -148,6 +150,7 @@ class SmtMetaReduce : public StdPlugin
   std::vector<std::pair<Expr, Expr>> d_progSeen;
   /** Common constants */
   Expr d_null;
+  std::map<std::string, MetaKind> d_prefixToMetaKind;
   std::stringstream d_defs;
   std::stringstream d_rules;
   std::stringstream d_smtVc;

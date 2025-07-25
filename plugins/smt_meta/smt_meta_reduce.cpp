@@ -51,31 +51,23 @@ void SelectorCtx::clear()
   d_tctx.clear();
 }
 
-SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s) {}
+SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s) {
+  d_prefixToMetaKind["eo"] = MetaKind::EUNOIA;
+  d_prefixToMetaKind["sm"] = MetaKind::SMT;
+  d_prefixToMetaKind["tsm"] = MetaKind::SMT_TYPE;
+  d_prefixToMetaKind["vsm"] = MetaKind::SMT_VALUE;
+  d_prefixToMetaKind["msm"] = MetaKind::SMT_MAP;
+  d_prefixToMetaKind["ssm"] = MetaKind::SMT_SEQ;
+}
 
 SmtMetaReduce::~SmtMetaReduce() {}
 
-MetaKind prefixToMetaKind(const std::string& str)
+MetaKind SmtMetaReduce::prefixToMetaKind(const std::string& str) const
 {
-  if (str == "eo")
+  std::map<std::string, MetaKind>::const_iterator it = d_prefixToMetaKind.find(str);
+  if (it!=d_prefixToMetaKind.end())
   {
-    return MetaKind::EUNOIA;
-  }
-  else if (str == "sm")
-  {
-    return MetaKind::SMT;
-  }
-  else if (str == "tsm")
-  {
-    return MetaKind::SMT_TYPE;
-  }
-  else if (str == "vsm")
-  {
-    return MetaKind::SMT_VALUE;
-  }
-  else if (str == "msm")
-  {
-    return MetaKind::SMT_MAP;
+    return it->second;
   }
   Assert(false) << "Bad prefix \"" << str << "\"";
   return MetaKind::NONE;
@@ -1261,7 +1253,7 @@ MetaKind SmtMetaReduce::getTypeMetaKind(const Expr& typ, MetaKind elseKind)
   return elseKind;
 }
 
-MetaKind SmtMetaReduce::getMetaKind(State& s, const Expr& e, std::string& cname)
+MetaKind SmtMetaReduce::getMetaKind(State& s, const Expr& e, std::string& cname) const
 {
   std::string sname = getName(e);
   // terms starting with @ are considered Eunoia (not SMT-LIB)

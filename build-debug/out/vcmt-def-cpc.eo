@@ -1,4 +1,4 @@
-; trim-defs: $eovc_seq-len-unit
+; trim-defs: $eovc_trans
 ; #trim-defs: 109
 (declare-const Int Type)
 (declare-consts <numeral> Int)
@@ -137,8 +137,22 @@
 (declare-parameterized-const ite (($eo_x_1 Bool) (A Type :implicit) ($eo_x_2 A) ($eo_x_3 A)) A)
 (declare-const and (-> Bool (-> Bool Bool)))
 (declare-parameterized-const = ((A Type :implicit) ($eo_x_1 A) ($eo_x_2 A)) Bool)
-(declare-parameterized-const str.len ((T Type :implicit) ($eo_x_1 (Seq T))) Int)
-(declare-parameterized-const seq.unit ((T Type :implicit) ($eo_x_1 T)) (Seq T))
+(program $mk_trans ((U Type))
+  :signature (U U Bool) Bool
+)
+(program $mk_trans.fev1 ((U Type) (t3 U) (t2 U) ($eo_2 Bool) (t1 U) (t4 U) (tail Bool))
+  :signature (Bool U U U U Bool Bool) Bool
+  (
+  (($mk_trans.fev1 tail t4 t1 t3 t2 $eo_2 $eo_2) ($mk_trans t1 t4 tail))
+  )
+)
+(program $mk_trans ((U Type) (tail Bool) (t4 U) (t3 U) (t1 U) (t2 U))
+  :signature (U U Bool) Bool
+  (
+  (($mk_trans t1 t2 (_ (and (_ (= t3) t4)) tail)) ($mk_trans.fev1 tail t4 t1 t3 t2 t2 t3))
+  (($mk_trans t1 t2 true) (_ (= t1) t2))
+  )
+)
 (program $eo_dt_selectors ((T Type) (t T))
   :signature (T) $eo_List
   (
@@ -237,14 +251,6 @@
   (($smtx_model_eval_and t1 t2) $vsm_not_value)
   )
 )
-(program $smtx_model_eval_str.len
-  ((x1 $smt_builtin_String) (t1 $smt_Value))
-  :signature ($smt_Value) $smt_Value
-  (
-  (($smtx_model_eval_str.len ($vsm_term ($sm_mk_str x1))) ($vsm_term ($sm_mk_z ($smt_apply_1 "str.len" x1))))
-  (($smtx_model_eval_str.len t1) $vsm_not_value)
-  )
-)
 (program $smtx_model_eval
   ((f $eo_Term) (y $eo_Term) (z $eo_Term)
    (val $smt_Value)
@@ -258,7 +264,6 @@
   (($smtx_model_eval (ite x1 x2 x3)) ($smtx_model_eval_ite ($smtx_model_eval x1) ($smtx_model_eval x2) ($smtx_model_eval x3)))
   (($smtx_model_eval (and x1 x2)) ($smtx_model_eval_and ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (= x1 x2)) ($smtx_model_eval_= ($smtx_model_eval x1) ($smtx_model_eval x2)))
-  (($smtx_model_eval (str.len x1)) ($smtx_model_eval_str.len ($smtx_model_eval x1)))
 
   
   
@@ -292,16 +297,16 @@
   (($eo_model_sat F) ($smtx_model_sat ($smtx_model_eval F)))
   )
 )
-(program $eor_seq-len-unit ((@T0 Type) (x1 @T0))
-  :signature (@T0) Bool
+(program $eor_trans ((T Type) (t1 T) (t2 T) (tail Bool))
+  :signature (Bool) Bool
   (
-  (($eor_seq-len-unit x1) (_ (= (str.len (seq.unit x1))) 1))
+  (($eor_trans (_ (and (_ (= t1) t2)) tail)) ($mk_trans t1 t2 tail))
   )
 )
-(program $eovc_seq-len-unit ((@T0 Type) (x1 @T0))
-  :signature (@T0) Bool
+(program $eovc_trans ((T Type) (t1 T) (t2 T) (tail Bool))
+  :signature (Bool T T) Bool
   (
-  (($eovc_seq-len-unit x1) ($eo_requires_eq ($eo_model_sat ($eor_seq-len-unit x1)) ($eo_Option_some false) true))
+  (($eovc_trans tail t2 t1) (eo::define ((_v0 (_ (and (_ (= t1) t2)) tail))) ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some true) ($eo_requires_eq ($eo_model_sat ($eor_trans _v0)) ($eo_Option_some false) true))))
   )
 )
-(echo "smt-meta $eovc_seq-len-unit :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $eo_smt_type $tsm_Bool $eo_type $eo_fun_type $eo_apply ")
+(echo "smt-meta $eovc_trans :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $eo_smt_type $tsm_Bool $eo_type $eo_fun_type $eo_apply ")
