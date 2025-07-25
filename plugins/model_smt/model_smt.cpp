@@ -70,9 +70,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("to_real", {kInt}, kReal);
   addTermReduceSym("divisible", {kInt, kInt}, "(= (mod x2 x1) 0)");
   // arrays
-  addReduceSym("select",
-               {kT, kT},
-               "($smtx_map_select ($smtx_model_eval x1) ($smtx_model_eval x2))");
+  addReduceSym(
+      "select",
+      {kT, kT},
+      "($smtx_map_select ($smtx_model_eval x1) ($smtx_model_eval x2))");
   addReduceSym("store",
                {kT, kT, kT},
                "($smtx_map_store ($smtx_model_eval x1) ($smtx_model_eval x2) "
@@ -158,7 +159,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTermReduceSym("int.log2", {kInt}, "(div x1 (int.pow2 x1))");
   addTermReduceSym("int.ispow2", {kInt}, "(= x1 (int.pow2 (int.log2 x1)))");
   // arrays
-  addReduceSym("@array_deq_diff", {kT, kT}, "($smtx_map_diff ($smtx_model_eval x1) ($smtx_model_eval x2))");
+  addReduceSym("@array_deq_diff",
+               {kT, kT},
+               "($smtx_map_diff ($smtx_model_eval x1) ($smtx_model_eval x2))");
   // strings
   addConstFoldSym("str.update", {kString, kInt, kString}, kString);
   addConstFoldSym("str.rev", {kString}, kString);
@@ -175,18 +178,20 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                    "(str.indexof_re x1 (re.comp (re.range \"0\" \"9\")) 0)");
   // sets
   // (Set T) is modelled as (Array T Bool).
-  //addTermReduceSym("set.empty",
+  // addTermReduceSym("set.empty",
   //             {kT},
   //             "($smtx_set_empty ($smtx_hash x1))");
   addTermReduceSym("set.subset", {kT, kT}, "(= (set.inter x1 x2) x1)");
   addReduceSym("set.member",
                {kT, kT},
                "($smtx_select ($smtx_model_eval x2) ($smtx_model_eval x1))");
-  //addTermReduceSym("set.singleton",
-  //             {kT},
-  //             "($smtx_set_insert ($smtx_model_eval x1) ($smtx_set_empty ($smtx_hash x1)))");
-  // bitvectors
-  addTermReduceSym("bvite", {kBitVec, kBitVec, kBitVec}, "(ite (= x1 b1) x2 x3)");
+  // addTermReduceSym("set.singleton",
+  //              {kT},
+  //              "($smtx_set_insert ($smtx_model_eval x1) ($smtx_set_empty
+  //              ($smtx_hash x1)))");
+  //  bitvectors
+  addTermReduceSym(
+      "bvite", {kBitVec, kBitVec, kBitVec}, "(ite (= x1 b1) x2 x3)");
   addTermReduceSym("bvcomp", {kBitVec, kBitVec}, "(ite (= x1 x2) #b1 #b0)");
   addLitSym("@bvsize", {kBitVec}, kInt, "x1");
   addLitBinSym("@bv", {kInt, kInt}, "x2", "x1");
