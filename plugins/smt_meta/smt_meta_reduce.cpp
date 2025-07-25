@@ -1252,7 +1252,7 @@ MetaKind SmtMetaReduce::getMetaKind(State& s,
 {
   std::string sname = getName(e);
   // terms starting with @ are considered Eunoia (not SMT-LIB)
-  if (sname.compare(0, 1, "@") == 0 || sname.compare(0, 8, "$eo_List") == 0)
+  if (sname.compare(0, 2, "@@") == 0 || sname.compare(0, 8, "$eo_List") == 0)
   {
     cname = sname;
     return MetaKind::EUNOIA;

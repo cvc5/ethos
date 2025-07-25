@@ -479,18 +479,29 @@
 
 ; declare: ite
 (declare-parameterized-const ite (($eo_x_1 Bool) (A Type :implicit) ($eo_x_2 A) ($eo_x_3 A)) A)
-; declare: not
-(declare-const not (-> Bool Bool))
 ; declare: and
 (declare-const and (-> Bool (-> Bool Bool)))
 ; declare: =
 (declare-parameterized-const = ((A Type :implicit) ($eo_x_1 A) ($eo_x_2 A)) Bool)
-; declare: Array
-(declare-const Array (-> Type (-> Type Type)))
-; declare: select
-(declare-parameterized-const select ((U Type :implicit) (T Type :implicit) ($eo_x_1 (_ (Array U) T)) ($eo_x_2 U)) T)
-; declare: @array_deq_diff
-(declare-parameterized-const @array_deq_diff ((T Type :implicit) (U Type :implicit) (a (_ (Array T) U) :opaque) (b (_ (Array T) U) :opaque)) T)
+; fwd-decl: $mk_trans
+(program $mk_trans ((U Type))
+  :signature (U U Bool) Bool
+)
+; program: $mk_trans.fev1
+(program $mk_trans.fev1 ((U Type) (t3 U) (t2 U) ($eo_2 Bool) (t1 U) (t4 U) (tail Bool))
+  :signature (Bool U U U U Bool Bool) Bool
+  (
+  (($mk_trans.fev1 tail t4 t1 t3 t2 $eo_2 $eo_2) ($mk_trans t1 t4 tail))
+  )
+)
+; program: $mk_trans
+(program $mk_trans ((U Type) (tail Bool) (t4 U) (t3 U) (t1 U) (t2 U))
+  :signature (U U Bool) Bool
+  (
+  (($mk_trans t1 t2 (_ (and (_ (= t3) t4)) tail)) ($mk_trans.fev1 tail t4 t1 t3 t2 t2 t3))
+  (($mk_trans t1 t2 true) (_ (= t1) t2))
+  )
+)
 ; declare: BitVec
 (declare-const BitVec (-> Int Type))
 
@@ -519,20 +530,6 @@
   :signature (Type) Type
   (
   (($eo_typeof_= A) (-> A Bool))
-  )
-)
-; program: $eo_typeof_select
-(program $eo_typeof_select ((U Type) (T Type))
-  :signature (Type) Type
-  (
-  (($eo_typeof_select (_ (Array U) T)) (-> U T))
-  )
-)
-; program: $eo_typeof_@array_deq_diff
-(program $eo_typeof_@array_deq_diff ((T Type) (U Type) (a (_ (Array T) U)) (b (_ (Array T) U)))
-  :signature (Type Type Type Type) Type
-  (
-  ((eo::define ((_v0 (_ (Array T) U))) ($eo_typeof_@array_deq_diff _v0 a _v0 b)) T)
   )
 )
 
@@ -570,18 +567,10 @@
   (($eo_typeof_main Seq) (-> Type Type))
   ; type-rule: ite
   (($eo_typeof_main (_ (ite x1) x2)) ($eo_typeof_ite ($eo_typeof x1) ($eo_typeof x2)))
-  ; type-rule: not
-  (($eo_typeof_main not) (-> Bool Bool))
   ; type-rule: and
   (($eo_typeof_main and) (-> Bool (-> Bool Bool)))
   ; type-rule: =
   (($eo_typeof_main (= x1)) ($eo_typeof_= ($eo_typeof x1)))
-  ; type-rule: Array
-  (($eo_typeof_main Array) (-> Type (-> Type Type)))
-  ; type-rule: select
-  (($eo_typeof_main (select x1)) ($eo_typeof_select ($eo_typeof x1)))
-  ; type-rule: @array_deq_diff
-  (($eo_typeof_main (@array_deq_diff x1 x2)) ($eo_typeof_@array_deq_diff ($eo_typeof x1) x1 ($eo_typeof x2) x2))
   ; type-rule: BitVec
   (($eo_typeof_main BitVec) (-> Int Type))
 
@@ -651,19 +640,19 @@
 
 ;; verification conditions
 
-; program: $eor_arrays_ext
-(program $eor_arrays_ext ((T Type) (U Type) (a (_ (Array T) U)) (b (_ (Array T) U)))
+; program: $eor_trans
+(program $eor_trans ((T Type) (t1 T) (t2 T) (tail Bool))
   :signature (Bool) Bool
   (
-  (($eor_arrays_ext (not (_ (= a) b))) (eo::define ((_v0 (@array_deq_diff a b))) (not (_ (= (_ (select a) _v0)) (_ (select b) _v0)))))
+  (($eor_trans (_ (and (_ (= t1) t2)) tail)) ($mk_trans t1 t2 tail))
   )
 )
-; program: $eovc_arrays_ext
-(program $eovc_arrays_ext ((T Type) (U Type) (a (_ (Array T) U)) (b (_ (Array T) U)))
-  :signature ((_ (Array T) U) (_ (Array T) U)) Bool
+; program: $eovc_trans
+(program $eovc_trans ((T Type) (t1 T) (t2 T) (tail Bool))
+  :signature (Bool T T) Bool
   (
-  (($eovc_arrays_ext b a) (eo::define ((_v0 (not (_ (= a) b)))) ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some true) ($eo_requires_eq ($eo_model_sat ($eor_arrays_ext _v0)) ($eo_Option_some false) true))))
+  (($eovc_trans tail t2 t1) (eo::define ((_v0 (_ (and (_ (= t1) t2)) tail))) ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some true) ($eo_requires_eq ($eo_model_sat ($eor_trans _v0)) ($eo_Option_some false) true))))
   )
 )
-(echo "smt-meta $eovc_arrays_ext :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $eo_smt_type $tsm_Bool $eo_type $eo_fun_type $eo_apply ")
+(echo "smt-meta $eovc_trans :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $eo_smt_type $tsm_Bool $eo_type $eo_fun_type $eo_apply ")
 

@@ -329,6 +329,9 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
     // intentionally ignored
     return;
   }
+  // This assertion is critical for soundness: if we do not know how to
+  // interpret the symbol, we cannot claim this verification condition
+  // accurately models SMT-LIB semantics.
   Assert(false) << "No definition found for " << name;
 }
 
