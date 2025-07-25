@@ -18,7 +18,6 @@ VC_DEF_DESUGAR=$OUT_DIR/vc-def-cpc.eo
 VCM_DEF_DESUGAR=$OUT_DIR/vcm-def-cpc.eo
 VCMT_DEF_DESUGAR=$OUT_DIR/vcmt-def-cpc.eo
 VC_OUT=$OUT_DIR/vc/final-cpc-$TARGET.smt2
-
 function check_status()
 {
 status=$?
@@ -29,9 +28,30 @@ else
 fi
 }
 
+function trim_defs()
+{
+TMP_TRIM_OUT=temp_trim.eo
+# the name of a EO signature
+INPUT_FILE=$1
+shift
+# output file
+echo "(include \"$INPUT_FILE\")" > $TMP_TRIM_OUT
+# add commands for each argument
+while [[ $# -gt 0 ]]; do
+  TARGET_SYM="$1"
+  echo "(echo \"trim-defs $TARGET_SYM\")" >> $TMP_TRIM_OUT
+  shift
+done
+./src/ethos --plugin.trim-defs $TMP_TRIM_OUT
+check_status
+rm -f $TMP_TRIM_OUT
+}
+
+echo "********* Verifying the correctness of $TARGET *********"
+
 echo "**** smt_meta: Run ethos + trim-defs on $INPUT and $TARGET to $INIT_TRIM"
 #./run_trim_defs $INPUT $TARGET "\$eo_model_sat" >/dev/null
-./run_trim_defs $INPUT $TARGET "ite" "=" >/dev/null
+trim_defs $INPUT $TARGET "ite" "=" >/dev/null
 check_status
 cp $STD_TRIM_OUT $INIT_TRIM
 
@@ -48,7 +68,7 @@ cp $STD_DESUGAR_OUT $INIT_DESUGAR
 # - the type rules
 echo "**** smt_meta: Run ethos + trim-deps on $INIT_DESUGAR to generate $VC_DEF_DESUGAR"
 #  "\$eo_is_bool" "\$eo_is_z" "\$eo_is_q" "\$eo_is_str" "\$eo_is_bin"
-./run_trim_defs $INIT_DESUGAR "\$eovc_$TARGET" >/dev/null
+trim_defs $INIT_DESUGAR "\$eovc_$TARGET" >/dev/null
 check_status
 cp $STD_TRIM_OUT $VC_DEF_DESUGAR
 # "\$eo_List" "\$eo_List_nil" "\$eo_List_cons" "\$eo_fail"
@@ -59,7 +79,7 @@ sed -i -e 's/eo::list/\$eo_list/g' -e 's/eo::eq /\$eo_eq /g' $VC_DEF_DESUGAR
 
 echo "**** smt_meta: Run ethos + model-smt on $VC_DEF_DESUGAR to generate $VCM_DEF_DESUGAR"
 # make a copy of the current file, the current step will be included into it
-TMP_OUT=tmp.eo
+TMP_OUT=$(mktemp)
 cp $VC_DEF_DESUGAR $TMP_OUT
 # Replace the command "(echo "include eo_builtin_smt")" with the premble as defined in Eunoia.
 # This file is not a template, but has a fixed definition.
@@ -76,17 +96,18 @@ sed -i "/(echo \"include eo_model_sat.*/{
     d
 }" $TMP_OUT
 mv $TMP_OUT $VCM_DEF_DESUGAR
+rm -f $TMP_OUT
 
 # should not eliminate remaining eo:: here
 sed -i -e 's/eo::/\$eo_/g' -e 's/\$eo_quote/eo::quote/g' -e 's/\$eo_define/eo::define/g' $VCM_DEF_DESUGAR
 
 # trim again, where we require keeping the verification condition
 echo "**** smt_meta: Run ethos + trim-deps on $VCM_DEF_DESUGAR to generate $VCMT_DEF_DESUGAR"
-./run_trim_defs $VCM_DEF_DESUGAR "\$eovc_$TARGET" >/dev/null
+trim_defs $VCM_DEF_DESUGAR "\$eovc_$TARGET" >/dev/null
 check_status
 cp $STD_TRIM_OUT $VCMT_DEF_DESUGAR
 
-echo "**** smt_meta: Verify it parses"
+echo "**** smt_meta: Verify ethos parses"
 ./src/ethos $VCMT_DEF_DESUGAR >/dev/null
 check_status
 
@@ -96,6 +117,10 @@ check_status
 cp $STD_VC_OUT $VC_OUT
 
 # TODO: trim-defs again??
+
+echo "**** smt_meta: Verify cvc5 parses"
+ajr-cvc5 $VC_OUT --parse-only
+check_status
 
 echo "**** smt_meta: Run the final verification condition with unsat cores"
 ajr-cvc5 $VC_OUT --dump-unsat-cores --quant-ind #--parse-only

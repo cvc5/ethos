@@ -11,7 +11,7 @@
 ;   considered.
 ;   We require a mutually recursive datatype, since these are
 ;   inter-dependent.
-(declare-datatypes ((tsm.Type 0) (sm.Term 0) (eo.Term 0) (vsm.Value 0) (msm.Map 0))
+(declare-datatypes ((tsm.Type 0) (sm.Term 0) (eo.Term 0) (vsm.Value 0) (msm.Map 0) (ssm.Seq 0))
   (
   (
   ; user-decl: Int
@@ -80,11 +80,18 @@
 
   )
   (
-  ; (msm.Map.cons i e M) maps i -> e, as well as mappings in M
-  (msm.Map.cons (msm.Map.cons.arg1 vsm.Value) (msm.Map.cons.arg2 vsm.Value) (msm.Map.cons.arg3 msm.Map))
-  ; (msm.Map.default e) maps all remaining elements in the sort to e
-  (msm.Map.default (msm.Map.default.arg1 vsm.Value))
-  ))
+  ; (msm.cons i e M) maps i -> e, as well as mappings in M
+  (msm.cons (msm.cons.arg1 vsm.Value) (msm.cons.arg2 vsm.Value) (msm.cons.arg3 msm.Map))
+  ; (msm.default e) maps all remaining elements in the sort to e
+  (msm.default (msm.default.arg1 vsm.Value))
+  )
+  (
+  ; (ssm.cons i s) is a sequence
+  (ssm.cons (ssm.cons.arg1 vsm.Value) (ssm.cons.arg2 ssm.Seq))
+  ; the empty sequence
+  (ssm.empty)
+  )
+  )
 )
 
 ;;; Relevant definitions
@@ -97,16 +104,6 @@
     (eo.SmtTerm (sm.Bool true))
     eo.Stuck)))
 
-; program: $eo_if_both
-(define-fun $eo_if_both ((x1 eo.Term) (x2 eo.Term)) eo.Term
-  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
-    eo.Stuck
-  (ite (and (= x1 (eo.SmtTerm (sm.Bool true))) (= x2 (eo.SmtTerm (sm.Bool true))))
-    (eo.SmtTerm (sm.Bool true))
-  (ite true
-    (eo.SmtTerm (sm.Bool false))
-    eo.Stuck))))
-
 ; program: $eo_requires_eq
 (define-fun $eo_requires_eq ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck) (= x3 eo.Stuck))
@@ -115,11 +112,11 @@
     x3
     eo.Stuck)))
 
-; fwd-decl: $eo_hash
-(declare-fun $eo_hash (eo.Term) eo.Term)
+; fwd-decl: $smtx_hash
+(declare-fun $smtx_hash (eo.Term) Int)
 
 ; fwd-decl: $eo_reverse_hash
-(declare-fun $eo_reverse_hash (eo.Term) eo.Term)
+(declare-fun $eo_reverse_hash (Int) eo.Term)
 
 ; program: $eo_dt_selectors
 (define-fun $eo_dt_selectors ((x1 eo.Term)) eo.Term
@@ -132,28 +129,22 @@
 ; fwd-decl: $eo_model_sat
 (declare-fun $eo_model_sat (eo.Term) eo.Term)
 
-; fwd-decl: $eo_model_is_input
-(declare-fun $eo_model_is_input (eo.Term) eo.Term)
-
-; fwd-decl: $smtx_is_value
-(declare-fun $smtx_is_value (vsm.Value) Bool)
-
-; program: $smtx_map_lookup
-(declare-fun $smtx_map_lookup (msm.Map vsm.Value) vsm.Value)
+; program: $smtx_msm_lookup
+(declare-fun $smtx_msm_lookup (msm.Map vsm.Value) vsm.Value)
 (assert (! (forall ((x1 msm.Map) (x2 vsm.Value))
-  (! (= ($smtx_map_lookup x1 x2)
-  (ite (and ((_ is msm.Map.cons) x1) (= x2 (msm.Map.cons.arg1 x1)))
-    (msm.Map.cons.arg2 x1)
-  (ite ((_ is msm.Map.cons) x1)
-    ($smtx_map_lookup (msm.Map.cons.arg3 x1) x2)
-    (msm.Map.default.arg1 x1)
-))) :pattern (($smtx_map_lookup x1 x2)))) :named sm.axiom.$smtx_map_lookup))
+  (! (= ($smtx_msm_lookup x1 x2)
+  (ite (and ((_ is msm.cons) x1) (= x2 (msm.cons.arg1 x1)))
+    (msm.cons.arg2 x1)
+  (ite ((_ is msm.cons) x1)
+    ($smtx_msm_lookup (msm.cons.arg3 x1) x2)
+    (msm.default.arg1 x1)
+))) :pattern (($smtx_msm_lookup x1 x2)))) :named sm.axiom.$smtx_msm_lookup))
 
 ; fwd-decl: $smtx_map_is_value
 (declare-fun $smtx_map_is_value (Int msm.Map) Bool)
 
-; program: $smtx_term_is_value
-(define-fun $smtx_term_is_value ((x1 sm.Term)) Bool
+; program: $smtx_is_atomic_term_value
+(define-fun $smtx_is_atomic_term_value ((x1 sm.Term)) Bool
   (ite ((_ is sm.Bool) x1)
     true
   (ite ((_ is sm.Numeral) x1)
@@ -165,26 +156,10 @@
     false
 )))))
 
-; program: $smtx_is_value
-(assert (! (forall ((x1 vsm.Value))
-  (! (= ($smtx_is_value x1)
-  (ite ((_ is vsm.Term) x1)
-    ($smtx_term_is_value (vsm.Term.arg1 x1))
-  (ite ((_ is vsm.Map) x1)
-    ($smtx_map_is_value (vsm.Map.arg1 x1) (vsm.Map.arg2 x1))
-  (ite ((_ is vsm.UConst) x1)
-    true
-  (ite (and ((_ is vsm.Apply) x1) (= (vsm.Apply.arg2 x1) vsm.NotValue) ((_ is vsm.Term) (vsm.Apply.arg1 x1)))
-    (not (= ($eo_dt_selectors (eo.SmtTerm (vsm.Term.arg1 (vsm.Apply.arg1 x1)))) eo.Stuck))
-  (ite ((_ is vsm.Apply) x1)
-    (and ($smtx_is_value (vsm.Apply.arg1 x1)) ($smtx_is_value (vsm.Apply.arg2 x1)))
-    false
-)))))) :pattern (($smtx_is_value x1)))) :named sm.axiom.$smtx_is_value))
-
 ; program: $smtx_ensure_value
 (define-fun $smtx_ensure_value ((x1 vsm.Value)) vsm.Value
   (ite ((_ is vsm.Term) x1)
-    (ite ($smtx_term_is_value (vsm.Term.arg1 x1)) (vsm.Term (vsm.Term.arg1 x1)) (ite (not (= ($eo_dt_selectors (eo.SmtTerm (vsm.Term.arg1 x1))) eo.Stuck)) (vsm.Apply (vsm.Term (vsm.Term.arg1 x1)) vsm.NotValue) vsm.NotValue))
+    (ite ($smtx_is_atomic_term_value (vsm.Term.arg1 x1)) (vsm.Term (vsm.Term.arg1 x1)) (ite (not (= ($eo_dt_selectors (eo.SmtTerm (vsm.Term.arg1 x1))) eo.Stuck)) (vsm.Apply (vsm.Term (vsm.Term.arg1 x1)) vsm.NotValue) vsm.NotValue))
   (ite ((_ is vsm.Map) x1)
     (ite ($smtx_map_is_value (vsm.Map.arg1 x1) (vsm.Map.arg2 x1)) (vsm.Map (vsm.Map.arg1 x1) (vsm.Map.arg2 x1)) vsm.NotValue)
   (ite ((_ is vsm.UConst) x1)
@@ -195,25 +170,12 @@
 ; fwd-decl: $smtx_model_eval
 (declare-fun $smtx_model_eval (eo.Term) vsm.Value)
 
-; fwd-decl: $smtx_model_lookup
-(declare-fun $smtx_model_lookup (sm.Term) vsm.Value)
-
-; program: $smtx_model_lookup_predicate_internal
-(define-fun $smtx_model_lookup_predicate_internal ((x1 sm.Term) (x2 vsm.Value)) Bool
-    true
-)
-
-; program: $smtx_model_lookup_predicate
-(define-fun $smtx_model_lookup_predicate ((x1 sm.Term)) Bool
-    ($smtx_model_lookup_predicate_internal x1 ($smtx_model_lookup x1))
-)
-
 ; program: $smtx_model_eval_apply
 (define-fun $smtx_model_eval_apply ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
   (ite ((_ is vsm.Apply) x1)
     (vsm.Apply (vsm.Apply (vsm.Apply.arg1 x1) (vsm.Apply.arg2 x1)) x2)
   (ite ((_ is vsm.Map) x1)
-    ($smtx_map_lookup (vsm.Map.arg2 x1) x2)
+    ($smtx_msm_lookup (vsm.Map.arg2 x1) x2)
     vsm.NotValue
 )))
 
@@ -255,7 +217,7 @@
     ($smtx_ensure_value (sm.Const.arg1 (eo.SmtTerm.arg1 x1)))
   (ite ((_ is eo.Apply) x1)
     ($smtx_model_eval_apply ($smtx_model_eval (eo.Apply.arg1 x1)) ($smtx_model_eval (eo.Apply.arg2 x1)))
-    (ite ($smtx_term_is_value (eo.SmtTerm.arg1 x1)) (vsm.Term (eo.SmtTerm.arg1 x1)) (ite (not (= ($eo_dt_selectors x1) eo.Stuck)) (vsm.Apply (vsm.Term (eo.SmtTerm.arg1 x1)) vsm.NotValue) vsm.NotValue))
+    (ite ($smtx_is_atomic_term_value (eo.SmtTerm.arg1 x1)) (vsm.Term (eo.SmtTerm.arg1 x1)) (ite (not (= ($eo_dt_selectors x1) eo.Stuck)) (vsm.Apply (vsm.Term (eo.SmtTerm.arg1 x1)) vsm.NotValue) vsm.NotValue))
 )))))) :pattern (($smtx_model_eval x1)))) :named sm.axiom.$smtx_model_eval))
 
 ; program: $smtx_model_sat
@@ -267,21 +229,6 @@
     eo.$eo_List_nil
 )))
 
-; program: $smtx_is_input
-(declare-fun $smtx_is_input (eo.Term) eo.Term)
-(assert (! (forall ((x1 eo.Term))
-  (! (= ($smtx_is_input x1)
-  (ite ((_ is eo.Apply) x1)
-    ($eo_if_both ($smtx_is_input (eo.Apply.arg1 x1)) ($smtx_is_input (eo.Apply.arg2 x1)))
-  (ite (and ((_ is eo.SmtTerm) x1) ((_ is sm.Const) (eo.SmtTerm.arg1 x1)))
-    (eo.SmtTerm (sm.Bool ($smtx_is_value (sm.Const.arg1 (eo.SmtTerm.arg1 x1)))))
-  (ite ((_ is eo.SmtTerm) x1)
-    (eo.SmtTerm (sm.Bool true))
-  (ite ((_ is eo.SmtType) x1)
-    (eo.SmtTerm (sm.Bool true))
-    (eo.SmtTerm (sm.Bool false))
-))))) :pattern (($smtx_is_input x1)))) :named sm.axiom.$smtx_is_input))
-
 ; program: $eo_model_sat
 (assert (! (forall ((x1 eo.Term))
   (! (= ($eo_model_sat x1)
@@ -290,15 +237,6 @@
   (ite true
     ($smtx_model_sat ($smtx_model_eval x1))
     eo.Stuck))) :pattern (($eo_model_sat x1)))) :named sm.axiom.$eo_model_sat))
-
-; program: $eo_model_is_input
-(assert (! (forall ((x1 eo.Term))
-  (! (= ($eo_model_is_input x1)
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite true
-    ($smtx_is_input x1)
-    eo.Stuck))) :pattern (($eo_model_is_input x1)))) :named sm.axiom.$eo_model_is_input))
 
 ; program: $eor_refl
 (define-fun $eor_refl ((x1 eo.Term)) eo.Term
@@ -313,28 +251,17 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    ($eo_requires_eq ($eo_model_is_input ($eor_refl x1)) (eo.SmtTerm (sm.Bool true)) ($eo_requires_eq ($eo_model_sat ($eor_refl x1)) (eo.Apply (eo.Apply eo.$eo_List_cons (eo.SmtTerm (sm.Bool false))) (eo.Apply (eo.Apply eo.$eo_List_cons eo.$eo_List_nil) eo.$eo_List_nil)) (eo.SmtTerm (sm.Bool true))))
+    ($eo_requires_eq ($eo_model_sat ($eor_refl x1)) (eo.Apply (eo.Apply eo.$eo_List_cons (eo.SmtTerm (sm.Bool false))) (eo.Apply (eo.Apply eo.$eo_List_cons eo.$eo_List_nil) eo.$eo_List_nil)) (eo.SmtTerm (sm.Bool true)))
     eo.Stuck)))
 
 
 
 ;;; Meta-level properties of models
 
-; axiom: $eo_hash
-; note: This is defined axiomatically.
+; axiom for hash
+; note: this implies that $smtx_hash is injective, which implies $eo_hash is injective.
 (assert (! (forall ((x eo.Term))
-  (=> (not (= x eo.Stuck))
-    (and
-      ((_ is eo.SmtTerm) ($eo_hash x))
-      ((_ is sm.Numeral) (eo.SmtTerm.arg1 ($eo_hash x)))))) :named sm.hash_numeral))
-; note: this implies that $eo_hash is injective
-(assert (! (forall ((x eo.Term))
-    (= ($eo_reverse_hash ($eo_hash x)) x)) :named sm.hash_injective))
-
-; This axiom gives semantics to model lookups for partial functions
-(assert (! (forall ((t sm.Term))
-  ($smtx_model_lookup_predicate t))
-  :named sm.model_lookup_predicate))
+    (= ($eo_reverse_hash ($smtx_hash x)) x)) :named eo.hash_injective))
 
 ;;; The verification condition
 

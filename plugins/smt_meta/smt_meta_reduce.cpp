@@ -341,8 +341,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     }
     else if (ck == Kind::FUNCTION_TYPE)
     {
-      // TODO: can this occur?
-      // maybe if reasoning about function as first class argument?
+      // we handle function in a special case below.
       cname << metaKindToPrefix(parent) << "Apply";
       printArgs = true;
     }

@@ -152,7 +152,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("mod_total", {kInt, kInt}, kInt);
   addConstFoldSym("int.pow2", {kInt}, kInt);
   addTermReduceSym("@int_div_by_zero", {kInt}, "(div x1 0)");
-  addTermReduceSym("@int_div_by_zero", {kInt}, "(mod x1 0)");
+  addTermReduceSym("@mod_by_zero", {kInt}, "(mod x1 0)");
   addTermReduceSym("@div_by_zero", {kReal}, "(/ x1 0/1)");
   // TODO: is this right? if so, simplify CPC
   addTermReduceSym("int.log2", {kInt}, "(div x1 (int.pow2 x1))");
@@ -290,11 +290,17 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
   {
     return;
   }
+  d_declSeen.emplace_back(name, e);
+}
+
+void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
+{
+  Attr attr = d_state.getConstructorKind(e.getValue());
   std::map<std::string, std::vector<Kind>>::iterator ith =
       d_symHardCode.find(name);
   if (ith != d_symHardCode.end())
   {
-    printModelEvalCall(name, ith->second);
+    printModelEvalCall(name, ith->second, attr);
     return;
   }
   // maybe a constant fold symbol
@@ -302,7 +308,7 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
       d_symConstFold.find(name);
   if (it != d_symConstFold.end())
   {
-    printModelEvalCall(name, it->second.first);
+    printModelEvalCall(name, it->second.first, attr);
     printConstFold(name, it->second.first, it->second.second);
     return;
   }
@@ -312,7 +318,7 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
   if (its != d_symLitReduce.end())
   {
     std::vector<Kind>& args = std::get<0>(its->second);
-    printModelEvalCall(name, args);
+    printModelEvalCall(name, args, attr);
     printLitReduce(
         name, args, std::get<1>(its->second), std::get<2>(its->second));
     return;
@@ -321,7 +327,7 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
       itst = d_symReduce.find(name);
   if (itst != d_symReduce.end())
   {
-    printModelEvalCallBase(name, itst->second.first, itst->second.second);
+    printModelEvalCallBase(name, itst->second.first, itst->second.second, attr);
     return;
   }
   if (d_symIgnore.find(name)!=d_symIgnore.end())
@@ -332,7 +338,8 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
   // This assertion is critical for soundness: if we do not know how to
   // interpret the symbol, we cannot claim this verification condition
   // accurately models SMT-LIB semantics.
-  Assert(false) << "No definition found for " << name;
+  Assert(false) << "No model semantics found for " << name;
+  EO_FATAL() << "ERROR: no model semantics found for " << name;
 }
 
 void ModelSmt::printType(const std::string& name, const std::vector<Kind>& args)
@@ -341,7 +348,7 @@ void ModelSmt::printType(const std::string& name, const std::vector<Kind>& args)
 
 void ModelSmt::printModelEvalCallBase(const std::string& name,
                                       const std::vector<Kind>& args,
-                                      const std::string& ret)
+                                      const std::string& ret, Attr attr)
 {
   d_eval << "  (($smtx_model_eval ";
   if (args.empty())
@@ -349,7 +356,14 @@ void ModelSmt::printModelEvalCallBase(const std::string& name,
     d_eval << name << ") " << ret << ")" << std::endl;
     return;
   }
-  d_eval << "(" << name;
+  if (attr==Attr::AMB)
+  {
+    d_eval << "(as " << name;
+  }
+  else
+  {
+    d_eval << "(" << name;
+  }
   for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
   {
     d_eval << " x" << i;
@@ -358,7 +372,7 @@ void ModelSmt::printModelEvalCallBase(const std::string& name,
 }
 
 void ModelSmt::printModelEvalCall(const std::string& name,
-                                  const std::vector<Kind>& args)
+                                  const std::vector<Kind>& args, Attr attr)
 {
   std::stringstream callArgs;
   callArgs << "($smtx_model_eval_" << name;
@@ -367,7 +381,7 @@ void ModelSmt::printModelEvalCall(const std::string& name,
     callArgs << " ($smtx_model_eval x" << i << ")";
   }
   callArgs << ")";
-  printModelEvalCallBase(name, args, callArgs.str());
+  printModelEvalCallBase(name, args, callArgs.str(), attr);
 }
 
 void ModelSmt::printTermInternal(Kind k,
@@ -535,6 +549,10 @@ void ModelSmt::printLitReduce(const std::string& name,
 
 void ModelSmt::finalize()
 {
+  for (std::pair<std::string, Expr>& d :d_declSeen)
+  {
+    finalizeDecl(d.first, d.second);
+  }
   auto replace = [](std::string& txt,
                     const std::string& tag,
                     const std::string& replacement) {

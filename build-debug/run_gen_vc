@@ -24,8 +24,6 @@ else
 fi
 }
 
-echo "********* Verifying the correctness of $TARGET *********"
-
 echo "**** Compile ethos"
 make -j4
 check_status

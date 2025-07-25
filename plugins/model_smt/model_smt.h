@@ -111,13 +111,13 @@ class ModelSmt : public StdPlugin
    */
   void printModelEvalCallBase(const std::string& name,
                               const std::vector<Kind>& args,
-                              const std::string& ret);
+                              const std::string& ret, Attr attr);
   /**
    * Same as printModelEvalCallBase, but where <retTerm> is
    * ($smtx_model_eval_<name> ($smtx_model_eval x1) ... ($smtx_model_eval xn)).
    */
   void printModelEvalCall(const std::string& name,
-                          const std::vector<Kind>& args);
+                          const std::vector<Kind>& args, Attr attr);
   /** Print necessary information for a symbol added via addConstFoldSym */
   void printConstFold(const std::string& name,
                       const std::vector<Kind>& args,
@@ -141,7 +141,7 @@ class ModelSmt : public StdPlugin
 
   void printTermInternal(Kind k, const std::string& term, std::ostream& os);
   /** Finalize declaration, main entry point for calling methods above */
-  void finalizeDecl(const Expr& e);
+  void finalizeDecl(const std::string& name, const Expr& e);
   /** Utilities for determining how to print arguments and returns */
   std::map<Kind, std::string> d_kindToEoPrefix;
   std::map<Kind, std::string> d_kindToEoCons;
@@ -152,6 +152,8 @@ class ModelSmt : public StdPlugin
   std::stringstream d_modelEvalProgs;
   /** SMT-LIB model evaluation cases */
   std::stringstream d_eval;
+  /** Declarations seen */
+  std::vector<std::pair<std::string,Expr>> d_declSeen;
   /**
    * SMT-LIB symbols with "normal" evaluation, we give their argument kinds
    * and their return kind.
