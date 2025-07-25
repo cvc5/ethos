@@ -51,7 +51,8 @@ void SelectorCtx::clear()
   d_tctx.clear();
 }
 
-SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s) {
+SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s)
+{
   d_prefixToMetaKind["eo"] = MetaKind::EUNOIA;
   d_prefixToMetaKind["sm"] = MetaKind::SMT;
   d_prefixToMetaKind["tsm"] = MetaKind::SMT_TYPE;
@@ -71,8 +72,9 @@ SmtMetaReduce::~SmtMetaReduce() {}
 
 MetaKind SmtMetaReduce::prefixToMetaKind(const std::string& str) const
 {
-  std::map<std::string, MetaKind>::const_iterator it = d_prefixToMetaKind.find(str);
-  if (it!=d_prefixToMetaKind.end())
+  std::map<std::string, MetaKind>::const_iterator it =
+      d_prefixToMetaKind.find(str);
+  if (it != d_prefixToMetaKind.end())
   {
     return it->second;
   }
@@ -1222,7 +1224,8 @@ bool SmtMetaReduce::isSmtLibExpression(MetaKind ctx)
          || ctx == MetaKind::SMT_VALUE;
 }
 
-MetaKind SmtMetaReduce::getTypeMetaKind(const Expr& typ, MetaKind elseKind) const
+MetaKind SmtMetaReduce::getTypeMetaKind(const Expr& typ,
+                                        MetaKind elseKind) const
 {
   Kind k = typ.getKind();
   if (k == Kind::APPLY_OPAQUE)
@@ -1234,15 +1237,18 @@ MetaKind SmtMetaReduce::getTypeMetaKind(const Expr& typ, MetaKind elseKind) cons
     }
   }
   std::string sname = getName(typ);
-  std::map<std::string, MetaKind>::const_iterator it = d_typeToMetaKind.find(sname);
-  if (it!=d_typeToMetaKind.end())
+  std::map<std::string, MetaKind>::const_iterator it =
+      d_typeToMetaKind.find(sname);
+  if (it != d_typeToMetaKind.end())
   {
     return it->second;
   }
   return elseKind;
 }
 
-MetaKind SmtMetaReduce::getMetaKind(State& s, const Expr& e, std::string& cname) const
+MetaKind SmtMetaReduce::getMetaKind(State& s,
+                                    const Expr& e,
+                                    std::string& cname) const
 {
   std::string sname = getName(e);
   // terms starting with @ are considered Eunoia (not SMT-LIB)

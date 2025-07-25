@@ -94,8 +94,8 @@ class SmtMetaReduce : public StdPlugin
   bool echo(const std::string& msg) override;
 
   bool printMetaType(const Expr& t,
-                            std::ostream& os,
-                            MetaKind tctx = MetaKind::NONE) const;
+                     std::ostream& os,
+                     MetaKind tctx = MetaKind::NONE) const;
   /** Get the name of expression e, expected to be an atomic term */
   static std::string getName(const Expr& e);
   /** Is e a datatype constructor embedding? */
@@ -110,7 +110,7 @@ class SmtMetaReduce : public StdPlugin
    * @return The meta-kind of typ, or elseKind otherwise.
    */
   MetaKind getTypeMetaKind(const Expr& typ,
-                                  MetaKind elseKind = MetaKind::EUNOIA) const;
+                           MetaKind elseKind = MetaKind::EUNOIA) const;
   /**
    * Get the meta kind of the type of expression e, or else kind otherwise.
    * In other words, we return the datatype that e is a constructor of in the

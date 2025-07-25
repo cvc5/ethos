@@ -93,8 +93,8 @@ class ModelSmt : public StdPlugin
   /**
    * Similar to addLitSym, but where <retTerm> is
    * automatically generated for sym, args, ret to invoke the
-   * SMT-LIB operator. For example, if sym is "and", args is {Kind::BOOL, Kind::BOOL},
-   * and ret is Kind::BOOL, then <retTerm> is
+   * SMT-LIB operator. For example, if sym is "and", args is {Kind::BOOL,
+   * Kind::BOOL}, and ret is Kind::BOOL, then <retTerm> is
    * ($vsm_term ($sm_mk_bool ($smt_apply_2 "and" x1 x2))).
    * The return kind determines which $sm_mk_* in the return,
    * and the argument kinds determine
