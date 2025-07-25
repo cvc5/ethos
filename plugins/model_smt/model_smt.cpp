@@ -157,6 +157,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // TODO: is this right? if so, simplify CPC
   addTermReduceSym("int.log2", {kInt}, "(div x1 (int.pow2 x1))");
   addTermReduceSym("int.ispow2", {kInt}, "(= x1 (int.pow2 (int.log2 x1)))");
+  // arrays
+  addReduceSym("@array_deq_diff", {kT, kT}, "($smtx_map_diff ($smtx_model_eval x1) ($smtx_model_eval x2))");
   // strings
   addConstFoldSym("str.update", {kString, kInt, kString}, kString);
   addConstFoldSym("str.rev", {kString}, kString);

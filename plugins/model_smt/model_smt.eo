@@ -41,6 +41,18 @@
 
 ;;;;;; SMT values
 
+;;; Generic utilities
+
+; returns one of (v1,v2), preferring values to non-values
+(program $smtx_value_either ((v1 $smt_Value) (v2 $smt_Value))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_value_either v1 $vsm_not_value) v1)
+  (($smtx_value_either $vsm_not_value v2) v2)
+  (($smtx_value_either v1 v2)             v1)
+  )
+)
+
 ;;; Map utilities
 
 ; Get the default for the map
@@ -59,7 +71,6 @@
   ((i $smt_Value) (j $smt_Value) (e $smt_Value) (m $smt_Map))
   :signature ($smt_Map $smt_Value) $smt_Value
   (
-  ; NOTE: the cases here are exhaustive
   (($smtx_msm_lookup ($msm_cons i e m) i)  e)
   (($smtx_msm_lookup ($msm_cons j e m) i)  ($smtx_msm_lookup m i))
   (($smtx_msm_lookup ($msm_default e) i)   e)
@@ -87,18 +98,32 @@
 ; This program determines whether the map value is canonical.
 ; It returns true if the array is "redundant", i.e. has a non-canonical
 ; ordering of indicies, or duplicate/redundant entries.
-(program $smtx_msm_is_redundant
-  ((T $smt_Type) (U $smt_Type) (t $smt_Value) (u $smt_Value) (m $smt_Map))
-  :signature ($smt_Map $smt_Type) $smt_builtin_Bool
+(program $smtx_msm_is_redundant ((i $smt_Value) (e $smt_Value) (m $smt_Map))
+  :signature ($smt_Map) $smt_builtin_Bool
   (
-  (($smtx_msm_is_redundant ($msm_default u) U)     $smt_builtin_false)
-  (($smtx_msm_is_redundant ($msm_cons t u m) U)
-    ; recompute updating the value
-    ; if it is not the same, we are redundant.
+  (($smtx_msm_is_redundant ($msm_default e))     $smt_builtin_false)
+  (($smtx_msm_is_redundant ($msm_cons i e m))
+    ; Recompute the update. If it changes, we are redundant.
     ($smt_apply_3 "ite"
-      ($smt_apply_= ($smtx_msm_update m t u) ($msm_cons t u m))
+      ($smt_apply_= ($smtx_msm_update m i e) ($msm_cons i e m))
       ($smtx_msm_is_redundant m)
       $smt_builtin_true))
+  )
+)
+
+; Returns the first index of m1 that is mapped to a different value in m2.
+; If no such value exists, return $vsm_not_value.
+(program $smtx_msm_find_diff
+  ((i $smt_Value) (e $smt_Value) (m1 $smt_Map) (m2 $smt_Map))
+  :signature ($smt_Map $smt_Map) $smt_Value
+  (
+  (($smtx_msm_find_diff ($msm_default e) m2)    $vsm_not_value)
+  (($smtx_msm_find_diff ($msm_cons i e m1) m2)
+    ; Lookup the current index, if it different, return this index.
+    ($smt_apply_3 "ite"
+      ($smt_apply_= ($smtx_msm_lookup m2 i) e)
+      ($smtx_msm_find_diff m1 m2)
+      i))
   )
 )
 
@@ -107,7 +132,8 @@
 (program $smtx_map_is_value ()
   :signature ($smt_builtin_Int $smt_Map) $smt_builtin_Bool)
 
-; Sets
+;;; Map as sets
+
 ; A set is a mapping to Bool.
 ; The empty set maps all to false.
 (define $msm_empty_set () ($msm_default false))
@@ -136,13 +162,15 @@
 
 (program $smtx_map_diff
   ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map))
-  :signature ($smt_Map $smt_Map) $smt_Value
+  :signature ($smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_map_diff ($vsm_map T m1) ($vsm_map T m2)) $vsm_not_value)
+  (($smtx_map_diff ($vsm_map T m1) ($vsm_map T m2))
+    ; find an index in the first that conflicts with the second, or vice versa
+    ($smtx_value_either ($smtx_msm_find_diff m1 m2) ($smtx_msm_find_diff m2 m1)))
   )
 )
 
-; Sets
+;;; Map values as set values
 
 ; args:
 ; - T: the type of the empty set. This is expected to have type Type.

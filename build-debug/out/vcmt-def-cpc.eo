@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_arrays_ext
-; #trim-defs: 110
+; #trim-defs: 113
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -147,14 +147,34 @@
   )
 )
 (program $eo_model_sat () :signature (Bool) $eo_Option)
+(program $smtx_value_either ((v1 $smt_Value) (v2 $smt_Value))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_value_either v1 $vsm_not_value) v1)
+  (($smtx_value_either $vsm_not_value v2) v2)
+  (($smtx_value_either v1 v2)             v1)
+  )
+)
 (program $smtx_msm_lookup
   ((i $smt_Value) (j $smt_Value) (e $smt_Value) (m $smt_Map))
   :signature ($smt_Map $smt_Value) $smt_Value
   (
-  
   (($smtx_msm_lookup ($msm_cons i e m) i)  e)
   (($smtx_msm_lookup ($msm_cons j e m) i)  ($smtx_msm_lookup m i))
   (($smtx_msm_lookup ($msm_default e) i)   e)
+  )
+)
+(program $smtx_msm_find_diff
+  ((i $smt_Value) (e $smt_Value) (m1 $smt_Map) (m2 $smt_Map))
+  :signature ($smt_Map $smt_Map) $smt_Value
+  (
+  (($smtx_msm_find_diff ($msm_default e) m2)    $vsm_not_value)
+  (($smtx_msm_find_diff ($msm_cons i e m1) m2)
+    
+    ($smt_apply_3 "ite"
+      ($smt_apply_= ($smtx_msm_lookup m2 i) e)
+      ($smtx_msm_find_diff m1 m2)
+      i))
   )
 )
 (program $smtx_map_is_value ()
@@ -165,6 +185,15 @@
   (
   (($smtx_map_select ($vsm_map T m) i) ($smtx_msm_lookup m i))
   (($smtx_map_select v i)              $vsm_not_value)
+  )
+)
+(program $smtx_map_diff
+  ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_map_diff ($vsm_map T m1) ($vsm_map T m2))
+    
+    ($smtx_value_either ($smtx_msm_find_diff m1 m2) ($smtx_msm_find_diff m2 m1)))
   )
 )
 (define $smt_is_dt_cons ((t $smt_Term))
@@ -269,6 +298,7 @@
   (($smtx_model_eval (and x1 x2)) ($smtx_model_eval_and ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (= x1 x2)) ($smtx_model_eval_= ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (select x1 x2)) ($smtx_map_select ($smtx_model_eval x1) ($smtx_model_eval x2)))
+  (($smtx_model_eval (@array_deq_diff x1 x2)) ($smtx_map_diff ($smtx_model_eval x1) ($smtx_model_eval x2)))
 
   
   
