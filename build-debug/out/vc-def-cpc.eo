@@ -1,5 +1,5 @@
-; trim-defs: $eovc_sets-inter-comm
-; #trim-defs: 45
+; trim-defs: $eovc_seq-len-unit
+; #trim-defs: 46
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -46,8 +46,8 @@
 (declare-const and (-> Bool (-> Bool Bool)))
 (declare-parameterized-const = ((A Type :implicit) ($eo_x_1 A) ($eo_x_2 A)) Bool)
 (declare-const BitVec (-> Int Type))
-(declare-const Set (-> Type Type))
-(declare-parameterized-const set.inter ((T Type :implicit) ($eo_x_1 (Set T)) ($eo_x_2 (Set T))) (Set T))
+(declare-parameterized-const str.len ((T Type :implicit) ($eo_x_1 (Seq T))) Int)
+(declare-parameterized-const seq.unit ((T Type :implicit) ($eo_x_1 T)) (Seq T))
 (program $eo_typeof_apply ((T Type) (U Type))
   :signature (Type Type) Type
   (
@@ -66,10 +66,16 @@
   (($eo_typeof_= A) (-> A Bool))
   )
 )
-(program $eo_typeof_set.inter ((T Type))
+(program $eo_typeof_str.len ((T Type))
   :signature (Type) Type
   (
-  (($eo_typeof_set.inter (Set T)) (eo::define ((_v0 (Set T))) (-> _v0 _v0)))
+  (($eo_typeof_str.len (Seq T)) Int)
+  )
+)
+(program $eo_typeof_seq.unit ((T Type))
+  :signature (Type) Type
+  (
+  (($eo_typeof_seq.unit T) (Seq T))
   )
 )
 (program $eo_typeof_fun_type ()
@@ -105,9 +111,9 @@
   
   (($eo_typeof_main BitVec) (-> Int Type))
   
-  (($eo_typeof_main Set) (-> Type Type))
+  (($eo_typeof_main (str.len x1)) ($eo_typeof_str.len ($eo_typeof x1)))
   
-  (($eo_typeof_main (set.inter x1)) ($eo_typeof_set.inter ($eo_typeof x1)))
+  (($eo_typeof_main (seq.unit x1)) ($eo_typeof_seq.unit ($eo_typeof x1)))
 
   (($eo_typeof_main (f x))     ($eo_typeof_apply ($eo_typeof f) ($eo_typeof x)))
   )
@@ -131,16 +137,16 @@
 (program $eo_model_typeof () :signature (Bool) Type)
 (program $eo_model_is_input () :signature (Bool) Bool)
 (echo "include eo_model_sat :deps $eo_typeof_main $eo_dt_constructors $eo_dt_selectors $eo_if_both $eo_Option_some $eo_Option_null $eo_model_sat $eo_model_typeof $eo_model_is_input ")
-(program $eor_sets-inter-comm ((@T0 Type) (@T1 Type) (y1 (Set @T1)) (x1 (Set @T0)))
-  :signature ((Set @T0) (Set @T1)) Bool
+(program $eor_seq-len-unit ((@T0 Type) (x1 @T0))
+  :signature (@T0) Bool
   (
-  (($eor_sets-inter-comm x1 y1) (_ (= (_ (set.inter x1) y1)) (_ (set.inter y1) x1)))
+  (($eor_seq-len-unit x1) (_ (= (str.len (seq.unit x1))) 1))
   )
 )
-(program $eovc_sets-inter-comm ((@T1 Type) (@T0 Type) (x1 (Set @T0)) (y1 (Set @T1)))
-  :signature ((Set @T1) (Set @T0)) Bool
+(program $eovc_seq-len-unit ((@T0 Type) (x1 @T0))
+  :signature (@T0) Bool
   (
-  (($eovc_sets-inter-comm y1 x1) ($eo_requires_eq ($eo_model_sat ($eor_sets-inter-comm x1 y1)) ($eo_Option_some false) true))
+  (($eovc_seq-len-unit x1) ($eo_requires_eq ($eo_model_sat ($eor_seq-len-unit x1)) ($eo_Option_some false) true))
   )
 )
-(echo "smt-meta $eovc_sets-inter-comm :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $eo_smt_type $tsm_Bool $eo_type $eo_fun_type $eo_apply ")
+(echo "smt-meta $eovc_seq-len-unit :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $eo_smt_type $tsm_Bool $eo_type $eo_fun_type $eo_apply ")

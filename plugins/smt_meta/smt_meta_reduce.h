@@ -6,8 +6,8 @@
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
  ******************************************************************************/
-#ifndef SMT_META_REDUCE_H
-#define SMT_META_REDUCE_H
+#ifndef PLUGIN_SMT_META_REDUCE_H
+#define PLUGIN_SMT_META_REDUCE_H
 
 #include <map>
 #include <set>
@@ -21,6 +21,7 @@ namespace ethos {
 class State;
 class TypeChecker;
 
+/** A utility for printing conjunctions */
 class ConjPrint
 {
  public:
@@ -182,4 +183,4 @@ class SmtMetaReduce : public StdPlugin
 
 }  // namespace ethos
 
-#endif /* COMPILER_H */
+#endif

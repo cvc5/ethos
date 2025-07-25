@@ -239,6 +239,23 @@
   )
 )
 
+;;; Utilities for Sequence values
+
+(program $smtx_empty_seq ((T $eo_Term))
+  :signature ($eo_Term) $smt_Value
+  (
+  (($smtx_empty_seq T) ($vsm_seq ($smtx_hash T) $seq_empty))
+  )
+)
+
+(program $smtx_seq_unit ((e $eo_Term))
+  :signature ($smt_Value) $smt_Value
+  (
+  (($smtx_seq_unit e)
+    ($vsm_seq ($smtx_hash ($smtx_typeof_value e)) ($seq_cons e $seq_empty)))
+  )
+)
+
 ;;; Utilities for Datatype values
 
 ; TODO: meta semantics for arbitrary unknown datatypes?

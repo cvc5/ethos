@@ -6,8 +6,8 @@
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
  ******************************************************************************/
-#ifndef SMT_MODEL_H
-#define SMT_MODEL_H
+#ifndef PLUGIN_MODEL_SMT_H
+#define PLUGIN_MODEL_SMT_H
 
 #include <map>
 #include <sstream>
@@ -172,4 +172,4 @@ class ModelSmt : public StdPlugin
 
 }  // namespace ethos
 
-#endif /* COMPILER_H */
+#endif
