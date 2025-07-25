@@ -782,7 +782,7 @@ void Desugar::finalizeRule(const Expr& e)
   // we hard-code the symbols that are used in smt_meta.smt2 here.
   std::stringstream metaDeps;
   metaDeps << "$smtx_hash $eo_reverse_hash $smtx_value_hash "
-              "$tsm_Bool $eo_type $eo_fun_type $eo_apply ";
+              "$eo_smt_type $tsm_Bool $eo_type $eo_fun_type $eo_apply ";
   d_eoVc << "(echo \"smt-meta $eovc_" << e << " :deps " << metaDeps.str()
          << "\")" << std::endl;
 }

@@ -160,6 +160,7 @@
   )
 )
 
+; Returns the value where m1 and m2 differ, or $vsm_not_value otherwise.
 (program $smtx_map_diff
   ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map))
   :signature ($smt_Value $smt_Value) $smt_Value
@@ -178,6 +179,14 @@
   :signature ($eo_Term) $smt_Value
   (
   (($smtx_empty_set T) ($vsm_map ($smtx_hash T) $msm_empty_set))
+  )
+)
+
+(program $smtx_set_singleton ((e $eo_Term))
+  :signature ($smt_Value) $smt_Value
+  (
+  (($smtx_set_singleton e)
+    ($vsm_map ($smtx_hash ($smtx_typeof_value e)) ($msm_set_insert e $msm_empty_set)))
   )
 )
 

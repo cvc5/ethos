@@ -170,11 +170,11 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                    "(str.indexof_re x1 (re.comp (re.range \"0\" \"9\")) 0)");
   // sets
   // (Set T) is modelled as (Array T Bool).
-  // addTermReduceSym("set.empty",
-  //             {kT},
-  //             "($smtx_set_empty ($smtx_hash x1))");
-  addTermReduceSym("set.subset", {kT, kT}, "(= (set.inter x1 x2) x1)");
+  addReduceSym("set.empty", {kT}, "($smtx_set_empty x1)");
+  addRecReduceSym("set.singleton", {kT}, "($smtx_set_singleton e1)");
   addRecReduceSym("set.member", {kT, kT}, "($smtx_select e2 e1)");
+  addTermReduceSym("set.subset", {kT, kT}, "(= (set.inter x1 x2) x1)");
+  addRecReduceSym("@sets_deq_diff", {kT, kT}, "($smtx_map_diff e1 e2)");
   // addTermReduceSym("set.singleton",
   //              {kT},
   //              "($smtx_set_insert ($smtx_model_eval x1) ($smtx_set_empty
