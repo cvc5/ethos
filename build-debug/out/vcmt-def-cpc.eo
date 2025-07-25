@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_arrays_ext
-; #trim-defs: 113
+; #trim-defs: 110
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -147,24 +147,24 @@
   )
 )
 (program $eo_model_sat () :signature (Bool) $eo_Option)
-(program $smtx_map_lookup
-  ((i $smt_Value) (j $smt_Value) (e $smt_Value) (M $smt_Map))
+(program $smtx_msm_lookup
+  ((i $smt_Value) (j $smt_Value) (e $smt_Value) (m $smt_Map))
   :signature ($smt_Map $smt_Value) $smt_Value
   (
   
-  (($smtx_map_lookup ($msm_cons i e M) i)  e)
-  (($smtx_map_lookup ($msm_cons j e M) i)  ($smtx_map_lookup M i))
-  (($smtx_map_lookup ($msm_default e) i)   e)
+  (($smtx_msm_lookup ($msm_cons i e m) i)  e)
+  (($smtx_msm_lookup ($msm_cons j e m) i)  ($smtx_msm_lookup m i))
+  (($smtx_msm_lookup ($msm_default e) i)   e)
   )
 )
 (program $smtx_map_is_value ()
   :signature ($smt_builtin_Int $smt_Map) $smt_builtin_Bool)
-(program $smtx_select
+(program $smtx_map_select
   ((v $smt_Value) (i $smt_Value) (T $smt_builtin_Int) (m $smt_Map))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_select ($vsm_map T m) i) ($smtx_map_lookup m i))
-  (($smtx_select v i)              $vsm_not_value)
+  (($smtx_map_select ($vsm_map T m) i) ($smtx_msm_lookup m i))
+  (($smtx_map_select v i)              $vsm_not_value)
   )
 )
 (define $smt_is_dt_cons ((t $smt_Term))
@@ -206,23 +206,6 @@
   )
 )
 (program $smtx_model_eval () :signature ($eo_Term) $smt_Value)
-(program $smtx_model_lookup ()
-  :signature ($smt_Term) $smt_Value)
-(program $smtx_model_lookup_predicate_internal ((t $smt_Term) (v $smt_Value))
-  :signature ($smt_Term $smt_Value) $smt_builtin_Bool
-  (
-
-  
-  (($smtx_model_lookup_predicate_internal t v) $smt_builtin_true)
-  )
-)
-(program $smtx_model_lookup_predicate ((t $smt_Term))
-  :signature ($smt_Term) $smt_builtin_Bool
-  (
-  (($smtx_model_lookup_predicate t)
-    ($smtx_model_lookup_predicate_internal t ($smtx_model_lookup t)))
-  )
-)
 (program $smtx_model_eval_apply
   ((T $smt_builtin_Int) (m $smt_Map) (i $smt_Value) (f $smt_Value) (v $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
@@ -230,7 +213,7 @@
   
   (($smtx_model_eval_apply ($vsm_apply f v) i)  ($vsm_apply ($vsm_apply f v) i))
   
-  (($smtx_model_eval_apply ($vsm_map T m) i)    ($smtx_map_lookup m i))
+  (($smtx_model_eval_apply ($vsm_map T m) i)    ($smtx_msm_lookup m i))
   
   (($smtx_model_eval_apply v i)                 $vsm_not_value)
   )
@@ -285,7 +268,7 @@
   (($smtx_model_eval (not x1)) ($smtx_model_eval_not ($smtx_model_eval x1)))
   (($smtx_model_eval (and x1 x2)) ($smtx_model_eval_and ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (= x1 x2)) ($smtx_model_eval_= ($smtx_model_eval x1) ($smtx_model_eval x2)))
-  (($smtx_model_eval (select x1 x2)) ($smtx_select ($smtx_model_eval x1) ($smtx_model_eval x2)))
+  (($smtx_model_eval (select x1 x2)) ($smtx_map_select ($smtx_model_eval x1) ($smtx_model_eval x2)))
 
   
   
@@ -331,4 +314,4 @@
   (($eovc_arrays_ext b a) (eo::define ((_v0 (not (_ (= a) b)))) ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some true) ($eo_requires_eq ($eo_model_sat ($eor_arrays_ext _v0)) ($eo_Option_some false) true))))
   )
 )
-(echo "smt-meta $eovc_arrays_ext :deps $smtx_model_lookup_predicate $smtx_hash $eo_reverse_hash $smtx_value_hash $vsm_reverse_hash $tsm_Bool $eo_type $eo_fun_type $eo_apply ")
+(echo "smt-meta $eovc_arrays_ext :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $tsm_Bool $eo_type $eo_fun_type $eo_apply ")

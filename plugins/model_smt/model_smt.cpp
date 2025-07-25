@@ -72,10 +72,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // arrays
   addReduceSym("select",
                {kT, kT},
-               "($smtx_select ($smtx_model_eval x1) ($smtx_model_eval x2))");
+               "($smtx_map_select ($smtx_model_eval x1) ($smtx_model_eval x2))");
   addReduceSym("store",
                {kT, kT, kT},
-               "($smtx_store ($smtx_model_eval x1) ($smtx_model_eval x2) "
+               "($smtx_map_store ($smtx_model_eval x1) ($smtx_model_eval x2) "
                "($smtx_model_eval x3))");
   // strings
   addConstFoldSym("str.++", {kString, kString}, kString);
@@ -171,6 +171,18 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTermReduceSym("@strings_stoi_non_digit",
                    {kString},
                    "(str.indexof_re x1 (re.comp (re.range \"0\" \"9\")) 0)");
+  // sets
+  // (Set T) is modelled as (Array T Bool).
+  //addTermReduceSym("set.empty",
+  //             {kT},
+  //             "($smtx_set_empty ($smtx_hash x1))");
+  addTermReduceSym("set.subset", {kT, kT}, "(= (set.inter x1 x2) x1)");
+  addReduceSym("set.member",
+               {kT, kT},
+               "($smtx_select ($smtx_model_eval x2) ($smtx_model_eval x1))");
+  //addTermReduceSym("set.singleton",
+  //             {kT},
+  //             "($smtx_set_insert ($smtx_model_eval x1) ($smtx_set_empty ($smtx_hash x1)))");
   // bitvectors
   addTermReduceSym("bvite", {kBitVec, kBitVec, kBitVec}, "(ite (= x1 b1) x2 x3)");
   addTermReduceSym("bvcomp", {kBitVec, kBitVec}, "(ite (= x1 x2) #b1 #b0)");

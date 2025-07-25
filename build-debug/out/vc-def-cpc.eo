@@ -155,4 +155,4 @@
   (($eovc_arrays_ext b a) (eo::define ((_v0 (not (_ (= a) b)))) ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some true) ($eo_requires_eq ($eo_model_sat ($eor_arrays_ext _v0)) ($eo_Option_some false) true))))
   )
 )
-(echo "smt-meta $eovc_arrays_ext :deps $smtx_model_lookup_predicate $smtx_hash $eo_reverse_hash $smtx_value_hash $vsm_reverse_hash $tsm_Bool $eo_type $eo_fun_type $eo_apply ")
+(echo "smt-meta $eovc_arrays_ext :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $tsm_Bool $eo_type $eo_fun_type $eo_apply ")

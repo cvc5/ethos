@@ -44,11 +44,6 @@ $SM_DEFS$
 (assert (! (forall ((x eo.Term))
     (= ($eo_reverse_hash ($smtx_hash x)) x)) :named eo.hash_injective))
 
-; This axiom gives semantics to model lookups for partial functions
-(assert (! (forall ((t sm.Term))
-  ($smtx_model_lookup_predicate t))
-  :named sm.model_lookup_predicate))
-
 ;;; The verification condition
 
 $SMT_VC$

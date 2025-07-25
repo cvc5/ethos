@@ -1151,92 +1151,121 @@
 
 ;;;;;; SMT values
 
-;;; Functions and array values.
-
-; $smt_Map is recursive and thus defined above.
+;;; Map utilities
 
 ; Get the default for the map
-(program $smtx_map_default
-  ((i $smt_Value) (j $smt_Value) (e $smt_Value) (M $smt_Map))
+(program $smtx_msm_get_default
+  ((i $smt_Value) (j $smt_Value) (e $smt_Value) (m $smt_Map))
   :signature ($smt_Map) $smt_Value
   (
-  (($smtx_map_default ($msm_cons j e M))  ($smtx_map_default M))
-  (($smtx_map_default ($msm_default e))   e)
+  (($smtx_msm_get_default ($msm_cons j e m))  ($smtx_msm_get_default m))
+  (($smtx_msm_get_default ($msm_default e))   e)
   )
 )
 
 ; This program looks up the value of a term in a map.
 ; This is used for function evaluation.
-(program $smtx_map_lookup
-  ((i $smt_Value) (j $smt_Value) (e $smt_Value) (M $smt_Map))
+(program $smtx_msm_lookup
+  ((i $smt_Value) (j $smt_Value) (e $smt_Value) (m $smt_Map))
   :signature ($smt_Map $smt_Value) $smt_Value
   (
   ; NOTE: the cases here are exhaustive
-  (($smtx_map_lookup ($msm_cons i e M) i)  e)
-  (($smtx_map_lookup ($msm_cons j e M) i)  ($smtx_map_lookup M i))
-  (($smtx_map_lookup ($msm_default e) i)   e)
+  (($smtx_msm_lookup ($msm_cons i e m) i)  e)
+  (($smtx_msm_lookup ($msm_cons j e m) i)  ($smtx_msm_lookup m i))
+  (($smtx_msm_lookup ($msm_default e) i)   e)
   )
 )
 
 ; updates the map with a new entry, maintaining ordered-ness
-(program $smtx_map_update
-  ((i $smt_Value) (j $smt_Value) (e1 $smt_Value) (e2 $smt_Value) (M $smt_Map))
+(program $smtx_msm_update
+  ((i $smt_Value) (j $smt_Value) (e1 $smt_Value) (e2 $smt_Value) (m $smt_Map))
   :signature ($smt_Map $smt_Value $smt_Value) $smt_Map
   (
   ; we overwrite if same index
-  (($smtx_map_update ($msm_cons i e1 M) i e2) ($msm_cons i e2 M))
+  (($smtx_msm_update ($msm_cons i e1 m) i e2) ($msm_cons i e2 m))
   ; otherwise, we check the hash to retain sortedness
-  (($smtx_map_update ($msm_cons j e1 M) i e2) ($smt_apply_3 "ite" ($smtx_value_cmp j i)
-                                                ($msm_cons i e2 ($msm_cons j e1 M))
-                                                ($msm_cons j e1 ($smtx_map_update M i e2))))
+  (($smtx_msm_update ($msm_cons j e1 m) i e2) ($smt_apply_3 "ite" ($smtx_value_cmp j i)
+                                                ($msm_cons i e2 ($msm_cons j e1 m))
+                                                ($msm_cons j e1 ($smtx_msm_update m i e2))))
   ; we are redundant wrt the default value
-  (($smtx_map_update ($msm_default e1) i e1)  ($msm_default e1))
+  (($smtx_msm_update ($msm_default e1) i e1)  ($msm_default e1))
   ; ensures totality, we are a non-redundant update of the default map
-  (($smtx_map_update M i e2)                  ($msm_cons i e2 M))
+  (($smtx_msm_update m i e2)                  ($msm_cons i e2 m))
   )
 )
 
 ; This program determines whether the map value is canonical.
 ; It returns true if the array is "redundant", i.e. has a non-canonical
 ; ordering of indicies, or duplicate/redundant entries.
-(program $smtx_map_is_redundant
-  ((T $smt_Type) (U $smt_Type) (t $smt_Value) (u $smt_Value) (M $smt_Map))
+(program $smtx_msm_is_redundant
+  ((T $smt_Type) (U $smt_Type) (t $smt_Value) (u $smt_Value) (m $smt_Map))
   :signature ($smt_Map $smt_Type) $smt_builtin_Bool
   (
-  (($smtx_map_is_redundant ($msm_default u) U)     $smt_builtin_false)
-  (($smtx_map_is_redundant ($msm_cons t u M) U)
+  (($smtx_msm_is_redundant ($msm_default u) U)     $smt_builtin_false)
+  (($smtx_msm_is_redundant ($msm_cons t u m) U)
     ; recompute updating the value
     ; if it is not the same, we are redundant.
     ($smt_apply_3 "ite"
-      ($smt_apply_= ($smtx_map_update M t u) ($msm_cons t u M))
-      ($smtx_map_is_redundant M)
+      ($smt_apply_= ($smtx_msm_update m t u) ($msm_cons t u m))
+      ($smtx_msm_is_redundant m)
       $smt_builtin_true))
   )
 )
 
-; TODO: use $smtx_map_is_redundant.
+; TODO: use $smtx_msm_is_redundant.
 ; Also requires a sortedness and non-exhaustiveness conditions.
 (program $smtx_map_is_value ()
   :signature ($smt_builtin_Int $smt_Map) $smt_builtin_Bool)
 
-(program $smtx_select
+; Sets
+; A set is a mapping to Bool.
+; The empty set maps all to false.
+(define $msm_empty_set () ($msm_default false))
+; Inserting sets e to true.
+(define $msm_set_insert ((e $smt_Value) (m $smt_Map)) ($smtx_msm_update m e true))
+
+;;; Map value utilities
+
+(program $smtx_map_select
   ((v $smt_Value) (i $smt_Value) (T $smt_builtin_Int) (m $smt_Map))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_select ($vsm_map T m) i) ($smtx_map_lookup m i))
-  (($smtx_select v i)              $vsm_not_value)
+  (($smtx_map_select ($vsm_map T m) i) ($smtx_msm_lookup m i))
+  (($smtx_map_select v i)              $vsm_not_value)
   )
 )
 
-(program $smtx_store
+(program $smtx_map_store
   ((v $smt_Value) (i $smt_Value) (e $smt_Value) (T $smt_builtin_Int) (m $smt_Map))
   :signature ($smt_Value $smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_store ($vsm_map T m) i e) ($vsm_map T ($smtx_map_update m i e)))
-  (($smtx_store v i e)              $vsm_not_value)
+  (($smtx_map_store ($vsm_map T m) i e) ($vsm_map T ($smtx_msm_update m i e)))
+  (($smtx_map_store v i e)              $vsm_not_value)
   )
 )
+
+(program $smtx_map_diff
+  ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map))
+  :signature ($smt_Map $smt_Map) $smt_Value
+  (
+  (($smtx_map_diff ($vsm_map T m1) ($vsm_map T m2)) $vsm_not_value)
+  )
+)
+
+; Sets
+
+; args:
+; - T: the type of the empty set. This is expected to have type Type.
+(program $smtx_empty_set ((T $eo_Term))
+  :signature ($eo_Term) $smt_Value
+  (
+  (($smtx_empty_set T) ($vsm_map ($smtx_hash T) $msm_empty_set))
+  )
+)
+
 ;;; Utilities for Datatype values
+
+; TODO: meta semantics for arbitrary unknown datatypes?
 
 ; define: $smt_is_dt
 ; returns: true if t is a datatpe (i.e. it has constructors).
@@ -1323,7 +1352,12 @@
   )
 )
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Model semantics
+
+; Forward declaration of the main method defined by this signature.
+; We use this to define $eo_model_sat.
+(program $smtx_model_eval () :signature ($eo_Term) $smt_Value)
 
 ; returns $vsm_not_value if we are done (i.e. the cardinality of T is less than i).
 (program $smtx_enum_type ((T $eo_Term) (i $smt_builtin_Int))
@@ -1331,43 +1365,6 @@
   (
   ; otherwise, uninterpreted constant.
   (($smtx_enum_type T i)               ($vsm_uconst ($smtx_hash T) i))
-  )
-)
-
-
-;;; Model semantics
-
-; Forward declaration of the main method defined by this signature.
-; We use this to define $eo_model_sat.
-(program $smtx_model_eval () :signature ($eo_Term) $smt_Value)
-
-; program: $smtx_model_lookup
-; Conceptually, returns the model value for a term whose value is
-; partially constrained or unconstrained in the model. This is
-; intentionally undefined. For example, we may pass the following
-; terms to this method:
-;   (sm.Apply (sm.Apply sm./ x1) x2), when M(x2) = 0,
-;   TODO: skolems??
-(program $smtx_model_lookup ()
-  :signature ($smt_Term) $smt_Value)
-
-; Lookup the predicate the constant can be assumed to have.
-; These should be valid formulas.
-(program $smtx_model_lookup_predicate_internal ((t $smt_Term) (v $smt_Value))
-  :signature ($smt_Term $smt_Value) $smt_builtin_Bool
-  (
-
-  ; otherwise, no predicate
-  (($smtx_model_lookup_predicate_internal t v) $smt_builtin_true)
-  )
-)
-
-; Calls the method above
-(program $smtx_model_lookup_predicate ((t $smt_Term))
-  :signature ($smt_Term) $smt_builtin_Bool
-  (
-  (($smtx_model_lookup_predicate t)
-    ($smtx_model_lookup_predicate_internal t ($smtx_model_lookup t)))
   )
 )
 
@@ -1399,7 +1396,7 @@
   ; If a Herbrand interpretation, apply it to the next value.
   (($smtx_model_eval_apply ($vsm_apply f v) i)  ($vsm_apply ($vsm_apply f v) i))
   ; The function evaluated to a map value, call the map lookup.
-  (($smtx_model_eval_apply ($vsm_map T m) i)    ($smtx_map_lookup m i))
+  (($smtx_model_eval_apply ($vsm_map T m) i)    ($smtx_msm_lookup m i))
   ; The function did not evaluate to a map value, we fail.
   (($smtx_model_eval_apply v i)                 $vsm_not_value)
   )
@@ -1501,7 +1498,7 @@
   (($smtx_model_eval (not x1)) ($smtx_model_eval_not ($smtx_model_eval x1)))
   (($smtx_model_eval (and x1 x2)) ($smtx_model_eval_and ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (= x1 x2)) ($smtx_model_eval_= ($smtx_model_eval x1) ($smtx_model_eval x2)))
-  (($smtx_model_eval (select x1 x2)) ($smtx_select ($smtx_model_eval x1) ($smtx_model_eval x2)))
+  (($smtx_model_eval (select x1 x2)) ($smtx_map_select ($smtx_model_eval x1) ($smtx_model_eval x2)))
 
   ;; free constants
   ; Constants carry their value in the model, which is an arbitrary value term.
@@ -1685,4 +1682,4 @@
   (($eovc_arrays_ext b a) (eo::define ((_v0 (not (_ (= a) b)))) ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some true) ($eo_requires_eq ($eo_model_sat ($eor_arrays_ext _v0)) ($eo_Option_some false) true))))
   )
 )
-(echo "smt-meta $eovc_arrays_ext :deps $smtx_model_lookup_predicate $smtx_hash $eo_reverse_hash $smtx_value_hash $vsm_reverse_hash $tsm_Bool $eo_type $eo_fun_type $eo_apply ")
+(echo "smt-meta $eovc_arrays_ext :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $tsm_Bool $eo_type $eo_fun_type $eo_apply ")

@@ -132,16 +132,16 @@
 ; fwd-decl: $eo_model_sat
 (declare-fun $eo_model_sat (eo.Term) eo.Term)
 
-; program: $smtx_map_lookup
-(declare-fun $smtx_map_lookup (msm.Map vsm.Value) vsm.Value)
+; program: $smtx_msm_lookup
+(declare-fun $smtx_msm_lookup (msm.Map vsm.Value) vsm.Value)
 (assert (! (forall ((x1 msm.Map) (x2 vsm.Value))
-  (! (= ($smtx_map_lookup x1 x2)
+  (! (= ($smtx_msm_lookup x1 x2)
   (ite (and ((_ is msm.Map.cons) x1) (= x2 (msm.Map.cons.arg1 x1)))
     (msm.Map.cons.arg2 x1)
   (ite ((_ is msm.Map.cons) x1)
-    ($smtx_map_lookup (msm.Map.cons.arg3 x1) x2)
+    ($smtx_msm_lookup (msm.Map.cons.arg3 x1) x2)
     (msm.Map.default.arg1 x1)
-))) :pattern (($smtx_map_lookup x1 x2)))) :named sm.axiom.$smtx_map_lookup))
+))) :pattern (($smtx_msm_lookup x1 x2)))) :named sm.axiom.$smtx_msm_lookup))
 
 ; fwd-decl: $smtx_map_is_value
 (declare-fun $smtx_map_is_value (Int msm.Map) Bool)
@@ -173,25 +173,12 @@
 ; fwd-decl: $smtx_model_eval
 (declare-fun $smtx_model_eval (eo.Term) vsm.Value)
 
-; fwd-decl: $smtx_model_lookup
-(declare-fun $smtx_model_lookup (sm.Term) vsm.Value)
-
-; program: $smtx_model_lookup_predicate_internal
-(define-fun $smtx_model_lookup_predicate_internal ((x1 sm.Term) (x2 vsm.Value)) Bool
-    true
-)
-
-; program: $smtx_model_lookup_predicate
-(define-fun $smtx_model_lookup_predicate ((x1 sm.Term)) Bool
-    ($smtx_model_lookup_predicate_internal x1 ($smtx_model_lookup x1))
-)
-
 ; program: $smtx_model_eval_apply
 (define-fun $smtx_model_eval_apply ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
   (ite ((_ is vsm.Apply) x1)
     (vsm.Apply (vsm.Apply (vsm.Apply.arg1 x1) (vsm.Apply.arg2 x1)) x2)
   (ite ((_ is vsm.Map) x1)
-    ($smtx_map_lookup (vsm.Map.arg2 x1) x2)
+    ($smtx_msm_lookup (vsm.Map.arg2 x1) x2)
     vsm.NotValue
 )))
 
@@ -287,11 +274,6 @@
 ; note: this implies that $smtx_hash is injective, which implies $eo_hash is injective.
 (assert (! (forall ((x eo.Term))
     (= ($eo_reverse_hash ($smtx_hash x)) x)) :named eo.hash_injective))
-
-; This axiom gives semantics to model lookups for partial functions
-(assert (! (forall ((t sm.Term))
-  ($smtx_model_lookup_predicate t))
-  :named sm.model_lookup_predicate))
 
 ;;; The verification condition
 
