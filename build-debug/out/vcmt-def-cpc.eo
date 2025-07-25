@@ -85,15 +85,15 @@
   ($smd_vsm.Apply f a))
 (declare-const $smd_vsm.NotValue $smt_Value)
 (define $vsm_not_value () $smd_vsm.NotValue)
-(declare-parameterized-const $smd_msm.Map.cons
+(declare-parameterized-const $smd_msm.cons
   ((i $smt_Value :opaque) (e $smt_Value :opaque) (m $smt_Map :opaque))
   $smt_Map)
 (define $msm_cons ((i $smt_Value) (e $smt_Value) (m $smt_Map))
-  ($smd_msm.Map.cons i e m))
-(declare-parameterized-const $smd_msm.Map.default
+  ($smd_msm.cons i e m))
+(declare-parameterized-const $smd_msm.default
   ((e $smt_Value :opaque))
   $smt_Map)
-(define $msm_default ((e $smt_Value)) ($smd_msm.Map.default e))
+(define $msm_default ((e $smt_Value)) ($smd_msm.default e))
 (declare-const $smd_eo.Type $eo_Term)
 (define $eo_type () $smd_eo.Type)
 (declare-const $smd_eo.Stuck $eo_Term)

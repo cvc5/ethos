@@ -158,8 +158,11 @@
 ; This will be replaced by the datatype vsm.Value in the final encoding.
 (declare-const $smt_Value Type)
 
-; The type of values for functions in SMT-LIB.
+; The type used to define values for functions, arrays and sets in SMT-LIB.
 (declare-const $smt_Map Type)
+
+; The type used to define values for sequences in SMT-LIB.
+(declare-const $smt_Seq Type)
 
 ;;; SMT type datatype constructors
 
@@ -236,17 +239,27 @@
 ;;; SMT map value datatype constructors
 
 ; Constructs a map value where i is mapped to e.
-(declare-parameterized-const $smd_msm.Map.cons
+(declare-parameterized-const $smd_msm.cons
   ((i $smt_Value :opaque) (e $smt_Value :opaque) (m $smt_Map :opaque))
   $smt_Map)
 (define $msm_cons ((i $smt_Value) (e $smt_Value) (m $smt_Map))
-  ($smd_msm.Map.cons i e m))
+  ($smd_msm.cons i e m))
 
 ; Constructs a map value where all indices are mapped to e.
-(declare-parameterized-const $smd_msm.Map.default
+(declare-parameterized-const $smd_msm.default
   ((e $smt_Value :opaque))
   $smt_Map)
-(define $msm_default ((e $smt_Value)) ($smd_msm.Map.default e))
+(define $msm_default ((e $smt_Value)) ($smd_msm.default e))
+
+;;; SMT sequence value datatype constructors
+
+(declare-parameterized-const $smd_seq.cons
+  ((i $smt_Value :opaque) (s $smt_Seq :opaque))
+  $smt_Seq)
+(define $seq_cons ((i $smt_Value) (s $smt_Seq)) ($smd_seq.cons i s))
+
+(declare-parameterized-const $smd_seq.empty () $smt_Seq)
+(define $seq_empty () $smd_seq.empty)
 
 ;;; Eunoia datatype constructors
 

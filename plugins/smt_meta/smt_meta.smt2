@@ -11,7 +11,7 @@
 ;   considered.
 ;   We require a mutually recursive datatype, since these are
 ;   inter-dependent.
-(declare-datatypes ((tsm.Type 0) (sm.Term 0) (eo.Term 0) (vsm.Value 0) (msm.Map 0))
+(declare-datatypes ((tsm.Type 0) (sm.Term 0) (eo.Term 0) (vsm.Value 0) (msm.Map 0) (seq.Seq 0))
   (
   (
 $SM_TYPE_DECL$
@@ -26,11 +26,18 @@ $SM_EO_TERM_DECL$
 $SM_VALUE_DECL$
   )
   (
-  ; (msm.Map.cons i e M) maps i -> e, as well as mappings in M
-  (msm.Map.cons (msm.Map.cons.arg1 vsm.Value) (msm.Map.cons.arg2 vsm.Value) (msm.Map.cons.arg3 msm.Map))
-  ; (msm.Map.default e) maps all remaining elements in the sort to e
-  (msm.Map.default (msm.Map.default.arg1 vsm.Value))
-  ))
+  ; (msm.cons i e M) maps i -> e, as well as mappings in M
+  (msm.cons (msm.cons.arg1 vsm.Value) (msm.cons.arg2 vsm.Value) (msm.cons.arg3 msm.Map))
+  ; (msm.default e) maps all remaining elements in the sort to e
+  (msm.default (msm.default.arg1 vsm.Value))
+  )
+  (
+  ; (seq.cons i s) is a sequence
+  (seq.cons (seq.cons.arg1 vsm.Value) (seq.cons.arg2 seq.Seq))
+  ; the empty sequence
+  (seq.empty)
+  )
+  )
 )
 
 ;;; Relevant definitions
