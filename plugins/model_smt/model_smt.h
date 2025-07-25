@@ -31,36 +31,96 @@ class ModelSmt : public StdPlugin
   void finalize() override;
 
  private:
-  void addHardCodeSym(const std::string& sym, const std::vector<Kind>& args);
-  void addConstFoldSym(const std::string& sym,
-                       const std::vector<Kind>& args,
-                       Kind ret);
-  void addLitBinSym(const std::string& sym,
+  /**
+   * The following functions are used to setup auto-generation of cases
+   * to add to $smtx_model_eval. In all cases, we provide an argument
+   * kind vector to determine the expected signature of the operator,
+   * which determines how to pattern match on it.
+   */
+  /**
+   * Add function whose evaluation is <retTerm>.
+   */
+  void addReduceSym(const std::string& sym,
                     const std::vector<Kind>& args,
-                    const std::string& retWidth,
-                    const std::string& retNum);
+                    const std::string& retTerm);
+  /**
+   * Add function whose evaluation is ($smt_model_eval <retTerm>).
+   */
+  void addTermReduceSym(const std::string& sym,
+                        const std::vector<Kind>& args,
+                        const std::string& retTerm);
+  /**
+   * Add function whose evaluation is
+   * (eo::define ((e1 ($smt_model_eval x1)))
+   * (eo::define ((e2 ($smt_model_eval x2)))
+   *  <retTerm>)).
+   */
+  void addRecReduceSym(const std::string& sym,
+                       const std::vector<Kind>& args,
+                       const std::string& retTerm);
+  /**
+   * Add function whose evaluation is
+   * ($smt_model_eval_<sym> ($smt_model_eval x1) ($smt_model_eval x2)),
+   * where $smt_model_eval_<sym> is manually defined program.
+   */
+  void addHardCodeSym(const std::string& sym, const std::vector<Kind>& args);
+  /**
+   * Add function whose evaluation is given by
+   * ($smt_model_eval_<sym> ($smt_model_eval x1) ($smt_model_eval x2)),
+   * where $smt_model_eval_<sym> is an auto-generated auxiliary
+   * program whose case is determined by args, and has <retTerm> as its
+   * return, e.g.:
+   * (program $smt_model_eval_<sym> ()
+   *   :signature ($smt_Value $smt_Value) $smt_Value
+   *   (
+   *   (($smt_model_eval_<sym> ($eo_<arg1> x1) ($eo_<arg2> x2)) <retTerm>)
+   *   )
+   * )
+   * Note that x1, ..., xn in this context are SMT-LIB literal values.
+   */
   void addLitSym(const std::string& sym,
                  const std::vector<Kind>& args,
                  Kind ret,
                  const std::string& retTerm);
-  void addTermReduceSym(const std::string& sym,
-                        const std::vector<Kind>& args,
-                        const std::string& retTerm);
-  void addReduceSym(const std::string& sym,
+  /**
+   * Similar to addLitSym, but where <retTerm> is
+   * ($vsm_term ($sm_mk_binary <retWidth> <retNum>)).
+   */
+  void addLitBinSym(const std::string& sym,
                     const std::vector<Kind>& args,
-                    const std::string& retTerm);
-  void addRecReduceSym(const std::string& sym,
+                    const std::string& retWidth,
+                    const std::string& retNum);
+  /**
+   * Similar to addLitSym, but where <retTerm> is
+   * automatically generated for sym, args, ret to invoke the
+   * SMT-LIB operator. For example, if sym is "and", args is {Kind::BOOL, Kind::BOOL},
+   * and ret is Kind::BOOL, then <retTerm> is
+   * ($vsm_term ($sm_mk_bool ($smt_apply_2 "and" x1 x2))).
+   * The return kind determines which $sm_mk_* in the return,
+   * and the argument kinds determine
+   */
+  void addConstFoldSym(const std::string& sym,
                        const std::vector<Kind>& args,
-                       const std::string& retTerm);
+                       Kind ret);
+  /**
+   * Helper method for printing the final program case to $smtx_model_eval, i.e.
+   * (($smtx_model_eval (<name> x1 ... xn)) <retTerm>).
+   */
   void printModelEvalCallBase(const std::string& name,
                               const std::vector<Kind>& args,
                               const std::string& ret);
+  /**
+   * Same as printModelEvalCallBase, but where <retTerm> is
+   * ($smtx_model_eval_<name> ($smtx_model_eval x1) ... ($smtx_model_eval xn)).
+   */
   void printModelEvalCall(const std::string& name,
                           const std::vector<Kind>& args);
   void printType(const std::string& name, const std::vector<Kind>& args);
+  /** Print necessary information for a symbol added via addConstFoldSym */
   void printConstFold(const std::string& name,
                       const std::vector<Kind>& args,
                       Kind ret);
+  /** Print necessary information for a symbol added via addLitSym */
   void printLitReduce(const std::string& name,
                       const std::vector<Kind>& args,
                       Kind ret,
@@ -77,18 +137,17 @@ class ModelSmt : public StdPlugin
                        std::stringstream& progParams);
 
   void printTermInternal(Kind k, const std::string& term, std::ostream& os);
+  /** Finalize declaration, main entry point for calling methods above */
   void finalizeDecl(const Expr& e);
+  /** Utilities for determining how to print arguments and returns */
   std::map<Kind, std::string> d_kindToEoPrefix;
   std::map<Kind, std::string> d_kindToEoCons;
   std::map<Kind, std::string> d_kindToType;
   std::map<std::string, std::string> d_overloadRevert;
-  std::stringstream d_customEval;
-  std::stringstream d_isValue;
-  std::stringstream d_isType;
   std::stringstream d_typeEnum;
-  std::stringstream d_constPred;
+  /** Auxiliary programs for SMT-LIB model evaluation */
   std::stringstream d_modelEvalProgs;
-  // SMT-LIB standard evaluation
+  /** SMT-LIB model evaluation cases */
   std::stringstream d_eval;
   /**
    * SMT-LIB symbols with "normal" evaluation, we give their argument kinds

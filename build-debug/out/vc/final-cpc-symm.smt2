@@ -11,7 +11,7 @@
 ;   considered.
 ;   We require a mutually recursive datatype, since these are
 ;   inter-dependent.
-(declare-datatypes ((tsm.Type 0) (sm.Term 0) (eo.Term 0) (vsm.Value 0) (msm.Map 0))
+(declare-datatypes ((tsm.Type 0) (sm.Term 0) (eo.Term 0) (vsm.Value 0) (msm.Map 0) (seq.Seq 0))
   (
   (
   ; user-decl: Int
@@ -58,6 +58,8 @@
   (eo.FunType)
   ; smt-cons: SmtTerm
   (eo.SmtTerm (eo.SmtTerm.arg1 sm.Term))
+  ; smt-cons: SmtType
+  (eo.SmtType (eo.SmtType.arg1 tsm.Type))
   ; user-decl: $eo_List
   (eo.$eo_List)
   ; user-decl: $eo_List_nil
@@ -80,11 +82,18 @@
 
   )
   (
-  ; (msm.Map.cons i e M) maps i -> e, as well as mappings in M
-  (msm.Map.cons (msm.Map.cons.arg1 vsm.Value) (msm.Map.cons.arg2 vsm.Value) (msm.Map.cons.arg3 msm.Map))
-  ; (msm.Map.default e) maps all remaining elements in the sort to e
-  (msm.Map.default (msm.Map.default.arg1 vsm.Value))
-  ))
+  ; (msm.cons i e M) maps i -> e, as well as mappings in M
+  (msm.cons (msm.cons.arg1 vsm.Value) (msm.cons.arg2 vsm.Value) (msm.cons.arg3 msm.Map))
+  ; (msm.default e) maps all remaining elements in the sort to e
+  (msm.default (msm.default.arg1 vsm.Value))
+  )
+  (
+  ; (seq.cons i s) is a sequence
+  (seq.cons (seq.cons.arg1 vsm.Value) (seq.cons.arg2 seq.Seq))
+  ; the empty sequence
+  (seq.empty)
+  )
+  )
 )
 
 ;;; Relevant definitions
@@ -136,18 +145,18 @@
 (declare-fun $smtx_msm_lookup (msm.Map vsm.Value) vsm.Value)
 (assert (! (forall ((x1 msm.Map) (x2 vsm.Value))
   (! (= ($smtx_msm_lookup x1 x2)
-  (ite (and ((_ is msm.Map.cons) x1) (= x2 (msm.Map.cons.arg1 x1)))
-    (msm.Map.cons.arg2 x1)
-  (ite ((_ is msm.Map.cons) x1)
-    ($smtx_msm_lookup (msm.Map.cons.arg3 x1) x2)
-    (msm.Map.default.arg1 x1)
+  (ite (and ((_ is msm.cons) x1) (= x2 (msm.cons.arg1 x1)))
+    (msm.cons.arg2 x1)
+  (ite ((_ is msm.cons) x1)
+    ($smtx_msm_lookup (msm.cons.arg3 x1) x2)
+    (msm.default.arg1 x1)
 ))) :pattern (($smtx_msm_lookup x1 x2)))) :named sm.axiom.$smtx_msm_lookup))
 
 ; fwd-decl: $smtx_map_is_value
 (declare-fun $smtx_map_is_value (Int msm.Map) Bool)
 
-; program: $smtx_term_is_value
-(define-fun $smtx_term_is_value ((x1 sm.Term)) Bool
+; program: $smtx_is_atomic_term_value
+(define-fun $smtx_is_atomic_term_value ((x1 sm.Term)) Bool
   (ite ((_ is sm.Bool) x1)
     true
   (ite ((_ is sm.Numeral) x1)
@@ -162,7 +171,7 @@
 ; program: $smtx_ensure_value
 (define-fun $smtx_ensure_value ((x1 vsm.Value)) vsm.Value
   (ite ((_ is vsm.Term) x1)
-    (ite ($smtx_term_is_value (vsm.Term.arg1 x1)) (vsm.Term (vsm.Term.arg1 x1)) (ite (not (= ($eo_dt_selectors (eo.SmtTerm (vsm.Term.arg1 x1))) eo.Stuck)) (vsm.Apply (vsm.Term (vsm.Term.arg1 x1)) vsm.NotValue) vsm.NotValue))
+    (ite ($smtx_is_atomic_term_value (vsm.Term.arg1 x1)) (vsm.Term (vsm.Term.arg1 x1)) (ite (not (= ($eo_dt_selectors (eo.SmtTerm (vsm.Term.arg1 x1))) eo.Stuck)) (vsm.Apply (vsm.Term (vsm.Term.arg1 x1)) vsm.NotValue) vsm.NotValue))
   (ite ((_ is vsm.Map) x1)
     (ite ($smtx_map_is_value (vsm.Map.arg1 x1) (vsm.Map.arg2 x1)) (vsm.Map (vsm.Map.arg1 x1) (vsm.Map.arg2 x1)) vsm.NotValue)
   (ite ((_ is vsm.UConst) x1)
@@ -229,7 +238,7 @@
     ($smtx_ensure_value (sm.Const.arg1 (eo.SmtTerm.arg1 x1)))
   (ite ((_ is eo.Apply) x1)
     ($smtx_model_eval_apply ($smtx_model_eval (eo.Apply.arg1 x1)) ($smtx_model_eval (eo.Apply.arg2 x1)))
-    (ite ($smtx_term_is_value (eo.SmtTerm.arg1 x1)) (vsm.Term (eo.SmtTerm.arg1 x1)) (ite (not (= ($eo_dt_selectors x1) eo.Stuck)) (vsm.Apply (vsm.Term (eo.SmtTerm.arg1 x1)) vsm.NotValue) vsm.NotValue))
+    (ite ($smtx_is_atomic_term_value (eo.SmtTerm.arg1 x1)) (vsm.Term (eo.SmtTerm.arg1 x1)) (ite (not (= ($eo_dt_selectors x1) eo.Stuck)) (vsm.Apply (vsm.Term (eo.SmtTerm.arg1 x1)) vsm.NotValue) vsm.NotValue))
 ))))))) :pattern (($smtx_model_eval x1)))) :named sm.axiom.$smtx_model_eval))
 
 ; program: $smtx_model_sat
