@@ -70,13 +70,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("to_real", {kInt}, kReal);
   addTermReduceSym("divisible", {kInt, kInt}, "(= (mod x2 x1) 0)");
   // arrays
-  addRecReduceSym(
-      "select",
-      {kT, kT},
-      "($smtx_map_select e1 e2)");
-  addRecReduceSym("store",
-               {kT, kT, kT},
-               "($smtx_map_store e1 e2 e3)");
+  addRecReduceSym("select", {kT, kT}, "($smtx_map_select e1 e2)");
+  addRecReduceSym("store", {kT, kT, kT}, "($smtx_map_store e1 e2 e3)");
   // strings
   addConstFoldSym("str.++", {kString, kString}, kString);
   addConstFoldSym("str.len", {kString}, kInt);
@@ -158,9 +153,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTermReduceSym("int.log2", {kInt}, "(div x1 (int.pow2 x1))");
   addTermReduceSym("int.ispow2", {kInt}, "(= x1 (int.pow2 (int.log2 x1)))");
   // arrays
-  addRecReduceSym("@array_deq_diff",
-               {kT, kT},
-               "($smtx_map_diff e1 e2)");
+  addRecReduceSym("@array_deq_diff", {kT, kT}, "($smtx_map_diff e1 e2)");
   // strings
   addConstFoldSym("str.update", {kString, kInt, kString}, kString);
   addConstFoldSym("str.rev", {kString}, kString);
@@ -181,9 +174,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   //             {kT},
   //             "($smtx_set_empty ($smtx_hash x1))");
   addTermReduceSym("set.subset", {kT, kT}, "(= (set.inter x1 x2) x1)");
-  addRecReduceSym("set.member",
-               {kT, kT},
-               "($smtx_select e2 e1)");
+  addRecReduceSym("set.member", {kT, kT}, "($smtx_select e2 e1)");
   // addTermReduceSym("set.singleton",
   //              {kT},
   //              "($smtx_set_insert ($smtx_model_eval x1) ($smtx_set_empty
@@ -252,8 +243,8 @@ void ModelSmt::addReduceSym(const std::string& sym,
 }
 
 void ModelSmt::addRecReduceSym(const std::string& sym,
-                  const std::vector<Kind>& args,
-                  const std::string& retTerm)
+                               const std::vector<Kind>& args,
+                               const std::string& retTerm)
 {
   std::stringstream ss;
   std::stringstream ssend;
