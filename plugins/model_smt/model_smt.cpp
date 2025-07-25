@@ -76,6 +76,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // strings
   addTypeSym("Seq", {kT});
   addTypeSym("Char", {});
+  addTypeSym("RegLan", {});
   addConstFoldSym("str.++", {kString, kString}, kString);
   addConstFoldSym("str.len", {kString}, kInt);
   addConstFoldSym("str.substr", {kString, kInt, kInt}, kString);
