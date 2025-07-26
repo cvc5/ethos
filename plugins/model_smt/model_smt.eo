@@ -439,8 +439,8 @@
 ; specification for exists is a (non-computable) function
 ; The last argument is whether we are check exists (resp. forall).
 (program $smtx_eval_quant
-  ((x $eo_Term) (xs $eo_List) (F $eo_Term) (i $smt_builtin_Int) (isExists $smt_builtin_Bool))
-  :signature ($eo_List $eo_Term $smt_builtin_Int $smt_builtin_Bool) $smt_Value
+  ((x $eo_Term) (xs $eo_Term) (F $eo_Term) (i $smt_builtin_Int) (isExists $smt_builtin_Bool))
+  :signature ($eo_Term $eo_Term $smt_builtin_Int $smt_builtin_Bool) $smt_Value
   (
   (($smtx_eval_quant $eo_List_nil F i isExists)
     ; base case: we have processed all variables, recurse, negate if isExists is false.
@@ -457,6 +457,19 @@
         ($vsm_term ($sm_mk_bool isExists))
         ; otherwise recurse for the next value in the type enumeration for the current variable
         ($smtx_eval_quant ($eo_List_cons x xs) F ($smt_apply_1 "+ 1" i) isExists)))))
+  )
+)
+
+(program $smtx_model_eval_exists ((xs $eo_Term) (F $eo_Term))
+  :signature ($eo_Term $eo_Term) $smt_Value
+  (
+  (($smtx_model_eval_exists xs F) ($smtx_eval_quant xs F $smt_builtin_z_zero $smt_builtin_true))
+  )
+)
+(program $smtx_model_eval_forall ((xs $eo_Term) (F $eo_Term))
+  :signature ($eo_Term $eo_Term) $smt_Value
+  (
+  (($smtx_model_eval_forall xs F) ($smtx_eval_quant xs F $smt_builtin_z_zero $smt_builtin_false))
   )
 )
 

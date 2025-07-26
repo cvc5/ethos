@@ -134,16 +134,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitSym("ubv_to_int", {kBitVec}, kInt, "x2");
   addLitBinSym("int_to_bv", {kInt, kInt}, "x1", "x2");
   // Quantifiers
-  for (size_t i = 0; i < 2; i++)
-  {
-    std::stringstream ssq;
-    ssq << "($smtx_eval_quant x1 x2 $smt_builtin_z_zero $smt_builtin_"
-        << (i == 0 ? "true" : "false") << ")";
-    addReduceSym(i == 0 ? "exists" : "forall", {Kind::ANY, kBool}, ssq.str());
-  }
-  // TODO
-  //addReduceSym("exists", {Kind::ANY, kBool}, "($smtx_eval_exists x1 x2)");
-  //addTermReduceSym("forall", {Kind::ANY, kBool}, "(not (forall x1 (not x2)))");
+  addReduceSym("exists", {Kind::ANY, kBool}, "($smtx_model_eval_exists x1 x2)");
+  addReduceSym("forall", {Kind::ANY, kBool}, "($smtx_model_eval_forall x1 x2)");
 
   ///----- non standard extensions and skolems
   // builtin
