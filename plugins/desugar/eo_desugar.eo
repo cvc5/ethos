@@ -124,6 +124,11 @@ $EO_LITERAL_TYPE_DECL$
 (define $eo_Option_some ((T Type :implicit) (t T)) ($eo_List_cons t $eo_List_nil))
 (define $eo_Option () $eo_List)
 
+; The builtin Eunoia pair. TODO: add?
+(declare-const $eo_Pair (-> Type Type Type))
+(declare-parameterized-const $eo_Pair_mk ((U Type :implicit) (T Type :implicit))
+  (-> U T ($eo_Pair U T)))
+
 ;;; $eo_eq
 
 ; program: $eo_eq
@@ -557,7 +562,7 @@ $EO_NIL_CASES$
 (program $eo_model_is_input () :signature (Bool) Bool)
 
 ; We will include the definition of the above functions here.
-(echo "include eo_model_sat :deps $eo_typeof_main $eo_dt_constructors $eo_dt_selectors $eo_if_both $eo_Option_some $eo_Option_null $eo_model_sat $eo_model_typeof $eo_model_is_input ")
+(echo "include eo_model_sat :deps $eo_typeof_main $eo_dt_constructors $eo_dt_selectors $eo_if_both $eo_Option_some $eo_Option_null $eo_model_sat $eo_model_typeof $eo_model_is_input $eo_Pair $eo_Pair_mk ")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; vc
 

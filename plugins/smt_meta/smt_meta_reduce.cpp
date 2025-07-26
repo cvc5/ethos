@@ -1250,14 +1250,13 @@ MetaKind SmtMetaReduce::getMetaKind(State& s,
                                     std::string& cname) const
 {
   std::string sname = getName(e);
-  // terms starting with @ are considered Eunoia (not SMT-LIB)
-  if (sname.compare(0, 2, "@@") == 0 || sname.compare(0, 8, "$eo_List") == 0)
+  // terms starting with @@ are considered Eunoia (not SMT-LIB)
+  if (sname.compare(0, 2, "@@") == 0 || sname.compare(0, 4, "$eo_") == 0)
   {
     cname = sname;
     return MetaKind::EUNOIA;
   }
-  else if (sname.compare(0, 4, "$eo_") == 0
-           || sname.compare(0, 5, "$smt_") == 0)
+  else if (sname.compare(0, 5, "$smt_") == 0)
   {
     // internal-only symbol
     cname = sname;

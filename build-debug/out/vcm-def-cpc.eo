@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_bool-eq-true
-; #trim-defs: 40
+; #trim-defs: 42
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -1029,6 +1029,9 @@
 (define $eo_Option_null () $eo_List_nil)
 (define $eo_Option_some ((T Type :implicit) (t T)) ($eo_List_cons t $eo_List_nil))
 (define $eo_Option () $eo_List)
+(declare-const $eo_Pair (-> Type Type Type))
+(declare-parameterized-const $eo_Pair_mk ((U Type :implicit) (T Type :implicit))
+  (-> U T ($eo_Pair U T)))
 (declare-const and (-> Bool (-> Bool Bool)))
 (declare-parameterized-const = ((A Type :implicit) ($eo_x_1 A) ($eo_x_2 A)) Bool)
 (declare-const BitVec (-> Int Type))
@@ -1557,6 +1560,51 @@
         ($smtx_eval_quant ($eo_List_cons x xs) F ($smt_apply_1 "+ 1" i) isExists)))))
   )
 )
+
+(program $smtx_eval_choice_internal
+  ((b $smt_builtin_Bool) (mv $smt_Value) (v $smt_Value) (tgt $smt_builtin_Bool))
+  :signature ($smt_Value $smt_Value $smt_builtin_Bool) $eo_Option
+  (
+  ; if the body evaluated to the target value, return successfully
+  (($smtx_eval_choice_internal ($vsm_term ($sm_mk_bool tgt)) v tgt)
+    ($eo_Pair_mk ($vsm_term ($sm_mk_bool tgt)) v))
+  ; if the body successfully evaluated but was not the target, we are inconclusive
+  (($smtx_eval_choice_internal ($vsm_term ($sm_mk_bool b)) v tgt) $eo_Option_null)
+  ; if the body failed to evaluate, return that we are unevaluated
+  (($smtx_eval_choice_internal mv v b)
+    ($eo_Pair_mk $vsm_not_value $vsm_not_value))
+  )
+)
+
+; Returns a pair of values (v, k) where
+;   v is the result of evaluating (Q xs F),
+;   k is the value that witnessed it.
+;(program $smtx_eval_choice
+;  ((x $eo_Term) (xs $eo_Term) (F $eo_Term) (i $smt_builtin_Int) (tgt $smt_builtin_Bool))
+;  :signature ($eo_Term $eo_Term $smt_builtin_Int $smt_builtin_Bool) ($eo_Pair $smt_Value $smt_Value)
+;  (
+;  (($smtx_eval_choice $eo_List_nil F i tgt)
+;    ; finished instantiation, evaluate the instantiated body and give
+;    ($eo_Pair_mk ($smtx_model_eval F) $vsm_not_value))
+;  (($smtx_eval_choice ($eo_List_cons x xs) F i tgt)
+;    ; get the next value in the type enumeration
+;    (eo::define ((next ($smtx_enum_type ($eo_model_typeof x) i)))
+;    (eo::define ((eval ($smtx_eval_choice xs ($smtx_model_val_substitute x next F) $smt_builtin_z_zero tgt)))
+;    (eo::define ((ret ($smtx_eval_choice_internal eval next tgt))
+;    ; if it exists
+;    ($smt_apply_3 "ite" ($smt_apply_= next $vsm_not_value)
+;      ; out of values, return the negation of target with no value (no witness)
+;      ($eo_Pair_mk ($vsm_term ($sm_mk_bool ($smt_apply_1 "not" tgt))) $vsm_not_value)
+;      ; if evaluate was inconclusive, we are inconclusive
+;      ($smt_apply_3 "ite" ($smt_apply_= eval $vsm_not_value)
+;      ; evaluate the body for this value. if this is a forcing value, return it
+;      ($smt_apply_3 "ite" ($smt_apply_= ret $eo_Option_null)
+;        ; inconclusive, recurse for the next value in the type enumeration for the current variable
+;        ($smtx_eval_choice ($eo_List_cons x xs) F ($smt_apply_1 "+ 1" i) tgt)
+        ; otherwise return, which is either the case that we failed to evaluate, or evaluated to tgt
+;        ret))))))
+;  )
+;)
 
 (program $smtx_model_eval_exists ((xs $eo_Term) (F $eo_Term))
   :signature ($eo_Term $eo_Term) $smt_Value
