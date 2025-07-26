@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_bool-eq-true
-; #trim-defs: 42
+; #trim-defs: 44
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -39,12 +39,24 @@
 (declare-parameterized-const $eo_List_cons ((T Type :implicit))
   (-> T $eo_List $eo_List)
   :right-assoc-nil $eo_List_nil)
-(define $eo_Option_null () $eo_List_nil)
-(define $eo_Option_some ((T Type :implicit) (t T)) ($eo_List_cons t $eo_List_nil))
-(define $eo_Option () $eo_List)
 (declare-const $eo_Pair (-> Type Type Type))
 (declare-parameterized-const $eo_Pair_mk ((U Type :implicit) (T Type :implicit))
   (-> U T ($eo_Pair U T)))
+(program $eo_Pair_first ((T Type) (S Type) (t T) (s S))
+  :signature (($eo_Pair T S)) T
+  (
+  (($eo_Pair_first ($eo_Pair_mk t s)) t)
+  )
+)
+(program $eo_Pair_second ((T Type) (S Type) (t T) (s S))
+  :signature (($eo_Pair T S)) S
+  (
+  (($eo_Pair_second ($eo_Pair_mk t s)) s)
+  )
+)
+(define $eo_Option_null () $eo_List_nil)
+(define $eo_Option_some ((T Type :implicit) (t T)) ($eo_List_cons t $eo_List_nil))
+(define $eo_Option () $eo_List)
 (declare-const and (-> Bool (-> Bool Bool)))
 (declare-parameterized-const = ((A Type :implicit) ($eo_x_1 A) ($eo_x_2 A)) Bool)
 (declare-const BitVec (-> Int Type))
@@ -112,7 +124,7 @@
 (program $eo_model_sat () :signature (Bool) $eo_Option)
 (program $eo_model_typeof () :signature (Bool) Type)
 (program $eo_model_is_input () :signature (Bool) Bool)
-(echo "include eo_model_sat :deps $eo_typeof_main $eo_dt_constructors $eo_dt_selectors $eo_if_both $eo_Option_some $eo_Option_null $eo_model_sat $eo_model_typeof $eo_model_is_input $eo_Pair $eo_Pair_mk ")
+(echo "include eo_model_sat :deps $eo_typeof_main $eo_dt_constructors $eo_dt_selectors $eo_if_both $eo_Option_some $eo_Option_null $eo_model_sat $eo_model_typeof $eo_model_is_input $eo_Pair_mk $eo_Pair_first $eo_Pair_second ")
 (program $eor_bool-eq-true ((t1 Bool))
   :signature (Bool) Bool
   (

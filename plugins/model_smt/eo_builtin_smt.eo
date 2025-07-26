@@ -81,6 +81,8 @@
 (define $smt_builtin_not ((b $smt_builtin_Bool)) ($smt_apply_1 "not" b))
 (define $smt_builtin_and ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "and" b1 b2))
 (define $smt_builtin_or ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "or" b1 b2))
+(define $smt_builtin_z_inc ((W Type :implicit) (x1 W)) ($smt_apply_1 "+ 1" x1))
+(define $smt_builtin_z_dec ((W Type :implicit) (x1 W)) ($smt_apply_1 "+ -1" x1))
 
 ; TODO: ite
 
@@ -400,18 +402,18 @@
   :signature ($smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
   (($smtx_binary_not w n)
-    ($smt_apply_2 "-" ($smtx_pow2 w) ($smt_apply_1 "+ 1" n)))
+    ($smt_apply_2 "-" ($smtx_pow2 w) ($smt_builtin_z_inc n)))
   )
 )
 
 ; program: $smtx_binary_max
 ; return: >
 ;   The integer value of the maximum unsigned binary value of width w. This is
-;   equal to 1-2^w. This value will be taken modulo 2^w.
+;   equal to 2^w-1.
 (program $smtx_binary_max ((w $smt_builtin_Int))
   :signature ($smt_builtin_Int) $smt_builtin_Int
   (
-  (($smtx_binary_max w) ($smt_apply_1 "- 1" ($smtx_pow2 w)))
+  (($smtx_binary_max w) ($smt_builtin_z_dec ($smtx_pow2 w)))
   )
 )
 
@@ -728,13 +730,13 @@
   :signature ($eo_Term $eo_Term $eo_Term) $eo_Term
   (
   (($eo_extract ($eo_mk_string s1) ($eo_mk_numeral n2) ($eo_mk_numeral n3))
-     ($eo_mk_string ($smt_apply_3 "str.substr" s1 n2 ($smt_apply_1 "+ 1" ($smt_apply_2 "-" n3 n2)))))
+     ($eo_mk_string ($smt_apply_3 "str.substr" s1 n2 ($smt_builtin_z_inc ($smt_apply_2 "-" n3 n2)))))
   (($eo_extract ($eo_binary w n1) ($eo_mk_numeral n2) ($eo_mk_numeral n3))
     (eo::define ((nw ($smt_apply_2 "-" n3 n2)))
     ($smt_apply_3 "ite" ($smt_builtin_or ($smt_apply_1 "> 0" n2) ($smt_apply_1 "> 0" nw))
       $eo_empty_binary
       ($eo_mk_binary
-        ($smt_apply_1 "+ 1" nw)
+        ($smt_builtin_z_inc nw)
         ($smtx_binary_extract w n1 n2 n3)))))
   )
 )
