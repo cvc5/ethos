@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_bool-eq-true
-; #trim-defs: 44
+; #trim-defs: 40
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -39,21 +39,6 @@
 (declare-parameterized-const $eo_List_cons ((T Type :implicit))
   (-> T $eo_List $eo_List)
   :right-assoc-nil $eo_List_nil)
-(declare-const $eo_Pair (-> Type Type Type))
-(declare-parameterized-const $eo_Pair_mk ((U Type :implicit) (T Type :implicit))
-  (-> U T ($eo_Pair U T)))
-(program $eo_Pair_first ((T Type) (S Type) (t T) (s S))
-  :signature (($eo_Pair T S)) T
-  (
-  (($eo_Pair_first ($eo_Pair_mk t s)) t)
-  )
-)
-(program $eo_Pair_second ((T Type) (S Type) (t T) (s S))
-  :signature (($eo_Pair T S)) S
-  (
-  (($eo_Pair_second ($eo_Pair_mk t s)) s)
-  )
-)
 (define $eo_Option_null () $eo_List_nil)
 (define $eo_Option_some ((T Type :implicit) (t T)) ($eo_List_cons t $eo_List_nil))
 (define $eo_Option () $eo_List)

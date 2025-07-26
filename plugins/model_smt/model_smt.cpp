@@ -177,7 +177,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // (Set T) is modelled as (Array T Bool).
   addTypeSym("Set", {kT});
   addReduceSym("set.empty", {kT}, "($smtx_empty_set x1)");
-  addRecReduceSym("set.singleton", {kT}, "($smtx_set_singleton e1)");
+  addRecReduceSym("set.singleton", {kT}, "($smtx_set_singleton ($eo_typeof (set.singleton x1)) e1)");
   addRecReduceSym("set.inter", {kT, kT}, "($smtx_set_inter e1 e2)");
   addRecReduceSym("set.minus", {kT, kT}, "($smtx_set_minus e1 e2)");
   addRecReduceSym("set.union", {kT, kT}, "($smtx_set_union e1 e2)");

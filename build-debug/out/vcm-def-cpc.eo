@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_bool-eq-true
-; #trim-defs: 44
+; #trim-defs: 40
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -311,7 +311,7 @@
 
 ; The type of types
 (declare-const $smd_eo.Type $eo_Term)
-(define $eo_type () $smd_eo.Type)
+(define $eo_Type () $smd_eo.Type)
 
 ; The Eunoia representation of "stuckness".
 (declare-const $smd_eo.Stuck $eo_Term)
@@ -1064,21 +1064,6 @@
 (declare-parameterized-const $eo_List_cons ((T Type :implicit))
   (-> T $eo_List $eo_List)
   :right-assoc-nil $eo_List_nil)
-(declare-const $eo_Pair (-> Type Type Type))
-(declare-parameterized-const $eo_Pair_mk ((U Type :implicit) (T Type :implicit))
-  (-> U T ($eo_Pair U T)))
-(program $eo_Pair_first ((T Type) (S Type) (t T) (s S))
-  :signature (($eo_Pair T S)) T
-  (
-  (($eo_Pair_first ($eo_Pair_mk t s)) t)
-  )
-)
-(program $eo_Pair_second ((T Type) (S Type) (t T) (s S))
-  :signature (($eo_Pair T S)) S
-  (
-  (($eo_Pair_second ($eo_Pair_mk t s)) s)
-  )
-)
 (define $eo_Option_null () $eo_List_nil)
 (define $eo_Option_some ((T Type :implicit) (t T)) ($eo_List_cons t $eo_List_nil))
 (define $eo_Option () $eo_List)
@@ -1512,13 +1497,12 @@
   )
 )
 
-; return the singleton set containing e.
-(program $smtx_set_singleton ((e $smt_Value))
-  :signature ($smt_Value) $smt_Value
+; return the singleton set whose type is T and contains e.
+(program $smtx_set_singleton ((T $eo_Term) (e $smt_Value))
+  :signature ($eo_Term $smt_Value) $smt_Value
   (
-  (($smtx_set_singleton e)
-    (eo::define ((T ($smtx_typeof_value e)))
-      ($vsm_map ($smtx_hash T) ($smtx_mss_insert e $smtx_msm_empty_set))))
+  (($smtx_set_singleton T e)
+     ($vsm_map ($smtx_hash T) ($smtx_mss_insert e $smtx_msm_empty_set)))
   )
 )
 
@@ -1786,16 +1770,6 @@
   )
 )
 
-; note: Helper for below.
-(program $smtx_typeof_map ((T $smt_builtin_Int) (j $smt_Value) (e $smt_Value) (m $smt_Map))
-  :signature ($smt_builtin_Int $smt_Map) $eo_Term
-  (
-  ; we rely on the reverse hash
-  (($smtx_typeof_map T ($msm_cons j e m))   ($eo_mk_fun_type ($eo_reverse_hash T) ($smtx_typeof_value e)))
-  (($smtx_typeof_map T ($msm_default e))    ($eo_mk_fun_type ($eo_reverse_hash T) ($smtx_typeof_value e)))
-  )
-)
-
 ; note: Helper for below. This is analogous to the method $eo_typeof_apply
 (program $smtx_typeof_apply ((T $eo_Term) (U $eo_Term))
   :signature ($eo_Term $eo_Term) $eo_Term
@@ -1804,19 +1778,22 @@
   )
 )
 
+; Helper for below. This defines the typeof
 (program $smtx_typeof_value
-  ((val $smt_Value) (T $smt_builtin_Int) (m $smt_Map) (id $smt_builtin_Int) (f $smt_Value) (a $smt_Term) (U $smt_Type))
+  ((val $smt_Value) (T $smt_builtin_Int) (m $smt_Map) (s $smt_Seq)
+   (id $smt_builtin_Int) (f $smt_Value) (a $smt_Term) (U $smt_Type))
   :signature ($smt_Value) $eo_Term
   (
   (($smtx_typeof_value ($vsm_apply f val))
-    ($smtx_typeof_apply ($smtx_typeof_value f) ($smtx_typeof_value val)))
+    ($smtx_typeof_apply ($smtx_typeof_value f)  ($smtx_typeof_value val)))
   ; the type of a value term is the type of its term.
-  (($smtx_typeof_value ($vsm_term a))         ($smtx_typeof ($eo_smt_term a)))
-  (($smtx_typeof_value ($vsm_map T m))        ($smtx_typeof_map T m))
-  ; the type of uninterpreted constants carry its type.
-  (($smtx_typeof_value ($vsm_uconst T id))    ($eo_reverse_hash T))
+  (($smtx_typeof_value ($vsm_term a))           ($smtx_typeof ($eo_smt_term a)))
+  (($smtx_typeof_value ($vsm_map T m))          ($eo_reverse_hash T))
+  (($smtx_typeof_value ($vsm_seq T s))          ($eo_reverse_hash T))
+  ; the type of uninterpreted constants carry its type, accessible via reverse hash.
+  (($smtx_typeof_value ($vsm_uconst T id))      ($eo_reverse_hash T))
   ; the type of not-values is the null sort.
-  (($smtx_typeof_value val)                   $eo_null_type)
+  (($smtx_typeof_value val)                     $eo_null_type)
   )
 )
 
@@ -1839,8 +1816,8 @@
    (f $smt_Value) (a $smt_Term) (U $smt_Type))
   :signature ($eo_Term) $eo_Term
   (
-  ; the function type is a first class term in this embedding, requires a case
-  (($smtx_typeof $eo_fun_type)                        Type)
+  ; the arrow type is first class in this embedding but not in Eunoia, requires a case
+  (($smtx_typeof $eo_fun_type)                        $eo_Type)
   ; the type of an atomic type uses Eunoia's typeof builtin, or null sort if this fails.
   (($smtx_typeof ($eo_smt_type U))                    ($smt_try_typeof U))
   ; the type of a constant is the type of its value.

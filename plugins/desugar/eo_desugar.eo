@@ -119,34 +119,6 @@ $EO_LITERAL_TYPE_DECL$
   (-> T $eo_List $eo_List)
   :right-assoc-nil $eo_List_nil)
 
-;;; $eo_Pair
-
-; The builtin Eunoia pair. TODO: add to builtin?
-(declare-const $eo_Pair (-> Type Type Type))
-(declare-parameterized-const $eo_Pair_mk ((U Type :implicit) (T Type :implicit))
-  (-> U T ($eo_Pair U T)))
-
-; program: $eo_Pair_first
-; args:
-; - t ($eo_Pair T S)
-; return: The first element in the pair
-(program $eo_Pair_first ((T Type) (S Type) (t T) (s S))
-  :signature (($eo_Pair T S)) T
-  (
-  (($eo_Pair_first ($eo_Pair_mk t s)) t)
-  )
-)
-; program: $eo_Pair_second
-; args:
-; - t ($eo_Pair T S)
-; return: The second element in the pair
-(program $eo_Pair_second ((T Type) (S Type) (t T) (s S))
-  :signature (($eo_Pair T S)) S
-  (
-  (($eo_Pair_second ($eo_Pair_mk t s)) s)
-  )
-)
-
 ;;; $eo_Option
 
 ; Untyped option type, using $eo_List

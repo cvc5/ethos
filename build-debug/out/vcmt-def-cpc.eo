@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_bool-eq-true
-; #trim-defs: 104
+; #trim-defs: 102
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -94,8 +94,6 @@
   ((e $smt_Value :opaque))
   $smt_Map)
 (define $msm_default ((e $smt_Value)) ($smd_msm.default e))
-(declare-const $smd_eo.Type $eo_Term)
-(define $eo_type () $smd_eo.Type)
 (declare-const $smd_eo.Stuck $eo_Term)
 (define $eo_stuck () $smd_eo.Stuck)
 (declare-parameterized-const $smd_eo.Apply

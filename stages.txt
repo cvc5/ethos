@@ -113,9 +113,13 @@ Compiles *.eo to *.eo.
 Includes a definition of $eo_model_sat, which defines SMT-LIB model semantics.
 
 Relies on:
-- eo_builtin_smt.eo, 561 LOC EO
+- eo_builtin_smt.eo, 600 LOC EO
   - Defines the SMT-like builtins of Eunoia
-- model_smt.eo, 296 LOC EO
+  - Declares all terms in the SMT-LIB deep embedding
+- model_smt.eo, 436 LOC EO
+  - Model semantics $eo_model_sat
+  - SMT-LIB input $eo_model_is_input
+  - type system for SMT-LIB terms and values $eo_model_typeof
 - model_smt.cpp (ethos plugin), 514 LOC C++
 - trim_defs.cpp (ethos plugin), also used above
 
