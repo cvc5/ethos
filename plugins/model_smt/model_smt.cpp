@@ -149,7 +149,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // builtin
   addTermReduceSym("@purify", {kT}, "x1");
   // arithmetic
-  addConstFoldSym("^", {kT, kT}, kT);
+  //addConstFoldSym("^", {kT, kT}, kT);
   addConstFoldSym("/_total", {kT, kT}, kReal);
   addConstFoldSym("div_total", {kInt, kInt}, kInt);
   addConstFoldSym("mod_total", {kInt, kInt}, kInt);

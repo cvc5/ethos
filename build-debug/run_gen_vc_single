@@ -51,7 +51,7 @@ echo "********* Verifying the correctness of $TARGET *********"
 
 echo "**** smt_meta: Run ethos + trim-defs on $INPUT and $TARGET to $INIT_TRIM"
 #./run_trim_defs $INPUT $TARGET "\$eo_model_sat" >/dev/null
-trim_defs $INPUT $TARGET "ite" "=" >/dev/null
+trim_defs $INPUT $TARGET >/dev/null
 check_status
 cp $STD_TRIM_OUT $INIT_TRIM
 
@@ -121,7 +121,6 @@ cp $STD_VC_OUT $VC_OUT
 echo "**** smt_meta: Verify cvc5 parses"
 ajr-cvc5 $VC_OUT --parse-only
 check_status
-exit 0
 
 echo "**** smt_meta: Run the final verification condition with unsat cores"
 ajr-cvc5 $VC_OUT --dump-unsat-cores --quant-ind #--parse-only
