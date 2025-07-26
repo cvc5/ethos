@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_bool-eq-true
-; #trim-defs: 102
+; #trim-defs: 105
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -124,6 +124,8 @@
 (program $eo_reverse_hash () :signature ($smt_builtin_Int) $eo_Term)
 (define $smtx_value_hash ((v $smt_Value))
   ($smtx_hash ($eo_smt_term ($sm_Const v))))
+(define $smtx_value_cmp ((a $smt_Value) (b $smt_Value))
+  ($smt_apply_2 "<=" ($smtx_value_hash a) ($smtx_value_hash b)))
 (declare-const $eo_List Type)
 (declare-const $eo_List_nil $eo_List)
 (declare-parameterized-const $eo_List_cons ((T Type :implicit))
@@ -151,8 +153,36 @@
   (($smtx_msm_lookup ($msm_default e) i)   e)
   )
 )
-(program $smtx_map_is_value ()
-  :signature ($smt_builtin_Int $smt_Map) $smt_builtin_Bool)
+(program $smtx_msm_update
+  ((i $smt_Value) (j $smt_Value) (e1 $smt_Value) (e2 $smt_Value) (m $smt_Map))
+  :signature ($smt_Map $smt_Value $smt_Value) $smt_Map
+  (
+  
+  (($smtx_msm_update ($msm_cons i e1 m) i e2) ($msm_cons i e2 m))
+  
+  (($smtx_msm_update ($msm_cons j e1 m) i e2) ($smt_apply_3 "ite" ($smtx_value_cmp j i)
+                                                ($msm_cons i e2 ($msm_cons j e1 m))
+                                                ($msm_cons j e1 ($smtx_msm_update m i e2))))
+  
+  (($smtx_msm_update ($msm_default e1) i e1)  ($msm_default e1))
+  
+  (($smtx_msm_update m i e2)                  ($msm_cons i e2 m))
+  )
+)
+(program $smtx_msm_is_irredundant ((i $smt_Value) (e $smt_Value) (m $smt_Map))
+  :signature ($smt_Map) $smt_builtin_Bool
+  (
+  (($smtx_msm_is_irredundant ($msm_default e))     $smt_builtin_true)
+  (($smtx_msm_is_irredundant ($msm_cons i e m))
+    
+    ($smt_apply_3 "ite"
+      ($smt_apply_= ($smtx_msm_update m i e) ($msm_cons i e m))
+      ($smtx_msm_is_irredundant m)
+      $smt_builtin_false))
+  )
+)
+(define $smtx_map_is_value ((m $smt_Map))
+  ($smtx_msm_is_irredundant m))
 (define $smt_is_dt_cons ((t $smt_Term))
   ($smt_builtin_is_ok ($eo_dt_selectors t)))
 (program $smtx_is_atomic_term_value
@@ -178,7 +208,7 @@
       $vsm_not_value)))
 (define $smt_mk_value_map ((T $smt_builtin_Int) (m $smt_Map))
   ($smt_apply_3 "ite"
-    ($smtx_map_is_value T m)
+    ($smtx_map_is_value m)
     ($vsm_map T m)
     $vsm_not_value))
 (program $smtx_ensure_value

@@ -98,16 +98,16 @@
 ; This program determines whether the map value is canonical.
 ; It returns true if the array is "redundant", i.e. has a non-canonical
 ; ordering of indicies, or duplicate/redundant entries.
-(program $smtx_msm_is_redundant ((i $smt_Value) (e $smt_Value) (m $smt_Map))
+(program $smtx_msm_is_irredundant ((i $smt_Value) (e $smt_Value) (m $smt_Map))
   :signature ($smt_Map) $smt_builtin_Bool
   (
-  (($smtx_msm_is_redundant ($msm_default e))     $smt_builtin_false)
-  (($smtx_msm_is_redundant ($msm_cons i e m))
+  (($smtx_msm_is_irredundant ($msm_default e))     $smt_builtin_true)
+  (($smtx_msm_is_irredundant ($msm_cons i e m))
     ; Recompute the update. If it changes, we are redundant.
     ($smt_apply_3 "ite"
       ($smt_apply_= ($smtx_msm_update m i e) ($msm_cons i e m))
-      ($smtx_msm_is_redundant m)
-      $smt_builtin_true))
+      ($smtx_msm_is_irredundant m)
+      $smt_builtin_false))
   )
 )
 
@@ -127,10 +127,9 @@
   )
 )
 
-; TODO: use $smtx_msm_is_redundant.
-; Also requires a sortedness and non-exhaustiveness conditions.
-(program $smtx_map_is_value ()
-  :signature ($smt_builtin_Int $smt_Map) $smt_builtin_Bool)
+; note: this is only correct for infinite maps!!!
+(define $smtx_map_is_value ((m $smt_Map))
+  ($smtx_msm_is_irredundant m))
 
 ;;; Map as sets
 
@@ -170,6 +169,9 @@
   )
 )
 
+; TODO
+(program $smtx_seq_is_value () :signature ($smt_Seq) $smt_builtin_Bool)
+
 ;;; Utilities for Datatype values
 
 ; TODO: meta semantics for arbitrary unknown datatypes?
@@ -184,7 +186,7 @@
 (define $smt_is_dt_cons ((t $smt_Term))
   ($smt_builtin_is_ok ($eo_dt_selectors t)))
 
-;;; Term values.
+;;; Utilities for making values
 
 ; program: $smtx_is_atomic_term_value
 ; Returns true if its argument is an SMT value.
@@ -206,8 +208,6 @@
   )
 )
 
-;;; Guarded utilities for making values
-
 ; Returns a term of type $smt_Value, embeds the term
 ; if indeed it is a value, or returns not a value otherwise.
 (define $smt_mk_value_term ((t $smt_Term))
@@ -221,18 +221,22 @@
 
 (define $smt_mk_value_map ((T $smt_builtin_Int) (m $smt_Map))
   ($smt_apply_3 "ite"
-    ($smtx_map_is_value T m)
+    ($smtx_map_is_value m)
     ($vsm_map T m)
     $vsm_not_value))
 
+; fwd-decl: $smtx_is_value
+(program $smtx_is_value () :signature ($smt_Value) $smt_builtin_Bool)
+
 ; program: $smtx_is_value
 (program $smtx_is_value
-  ((t $smt_Term) (f $smt_Value) (v $smt_Value) (T $eo_Term) (m $smt_Map)
+  ((t $smt_Term) (f $smt_Value) (v $smt_Value) (T $eo_Term) (m $smt_Map) (s $smt_Seq)
    (T $smt_builtin_Int) (id $smt_builtin_Int))
   :signature ($smt_Value) $smt_builtin_Bool
   (
   (($smtx_is_value ($vsm_term t))         ($smtx_is_atomic_term_value t))
-  (($smtx_is_value ($vsm_map T m))        ($smtx_map_is_value T m))
+  (($smtx_is_value ($vsm_map T m))        ($smtx_map_is_value m))
+  (($smtx_is_value ($vsm_seq T s))        ($smtx_seq_is_value s))
   (($smtx_is_value ($vsm_uconst T id))    $smt_builtin_true)
   ; Herbrand interpretations: nil terminated apply of value terms
   (($smtx_is_value ($vsm_apply ($vsm_term t) $vsm_not_value))
@@ -258,7 +262,6 @@
   (($smtx_ensure_value v)                     $vsm_not_value)
   )
 )
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Model semantics
 
