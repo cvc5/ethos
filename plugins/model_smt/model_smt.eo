@@ -132,37 +132,6 @@
 (program $smtx_map_is_value ()
   :signature ($smt_builtin_Int $smt_Map) $smt_builtin_Bool)
 
-;;; Map value utilities
-
-(program $smtx_map_select
-  ((v $smt_Value) (i $smt_Value) (T $smt_builtin_Int) (m $smt_Map))
-  :signature ($smt_Value $smt_Value) $smt_Value
-  (
-  (($smtx_map_select ($vsm_map T m) i) ($smtx_msm_lookup m i))
-  (($smtx_map_select v i)              $vsm_not_value)
-  )
-)
-
-(program $smtx_map_store
-  ((v $smt_Value) (i $smt_Value) (e $smt_Value) (T $smt_builtin_Int) (m $smt_Map))
-  :signature ($smt_Value $smt_Value $smt_Value) $smt_Value
-  (
-  (($smtx_map_store ($vsm_map T m) i e) ($vsm_map T ($smtx_msm_update m i e)))
-  (($smtx_map_store v i e)              $vsm_not_value)
-  )
-)
-
-; Returns the value where m1 and m2 differ, or $vsm_not_value otherwise.
-(program $smtx_map_diff
-  ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map))
-  :signature ($smt_Value $smt_Value) $smt_Value
-  (
-  (($smtx_map_diff ($vsm_map T m1) ($vsm_map T m2))
-    ; find an index in the first that conflicts with the second, or vice versa
-    ($smtx_value_either ($smtx_msm_find_diff m1 m2) ($smtx_msm_find_diff m2 m1)))
-  )
-)
-
 ;;; Map as sets
 
 ; A set is a mapping to Bool.
@@ -189,87 +158,7 @@
   )
 )
 
-;;; Map values as set values
-
-; args:
-; - T: the type of the empty set. This is expected to have type Type.
-(program $smtx_empty_set ((T $eo_Term))
-  :signature ($eo_Term) $smt_Value
-  (
-  (($smtx_empty_set T) ($vsm_map ($smtx_hash T) $smtx_msm_empty_set))
-  )
-)
-
-; return the singleton set containing e.
-(program $smtx_set_singleton ((e $smt_Value))
-  :signature ($smt_Value) $smt_Value
-  (
-  (($smtx_set_singleton e)
-    (eo::define ((T ($smtx_typeof_value e)))
-      ($vsm_map ($smtx_hash T) ($smtx_mss_insert e $smtx_msm_empty_set))))
-  )
-)
-
-; return the intersection of two set values.
-(program $smtx_set_inter
-  ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
-  :signature ($smt_Value $smt_Value) $smt_Value
-  (
-  (($smtx_set_inter ($vsm_map T m1) ($vsm_map T m2))
-    ; m1 intersected m2 starting with empty set.
-    ($vsm_map T ($smtx_mss_op_internal $smt_builtin_true m1 m2 $smtx_msm_empty_set)))
-  (($smtx_set_inter v1 v2)  $vsm_not_value)
-  )
-)
-
-; return the set minus of two set values.
-(program $smtx_set_minus
-  ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
-  :signature ($smt_Value $smt_Value) $smt_Value
-  (
-  (($smtx_set_minus ($vsm_map T m1) ($vsm_map T m2))
-    ; m1 minus m2 starting with empty set.
-    ($vsm_map T ($smtx_mss_op_internal $smt_builtin_false m1 m2 $smtx_msm_empty_set)))
-  (($smtx_set_minus v1 v2)  $vsm_not_value)
-  )
-)
-
-; return the union of two set values.
-(program $smtx_set_union
-  ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
-  :signature ($smt_Value $smt_Value) $smt_Value
-  (
-  (($smtx_set_union ($vsm_map T m1) ($vsm_map T m2))
-    ; m1 minus the empty set starting with m2.
-    ($vsm_map T ($smtx_mss_op_internal $smt_builtin_false m1 $smtx_msm_empty_set m2)))
-  (($smtx_set_union v1 v2)  $vsm_not_value)
-  )
-)
-
 ;;; Utilities for Sequence values
-
-;(program $smtx_seqof ((T $smt_builtin_Int) (s $smt_Seq) (v $smt_Value))
-;  :signature ($smt_Value) $smt_Seq
-;  (
-;  (($smtx_seqof ($vsm_seq T s)) s)
-;  (($smtx_seqof v)              $ssm_empty)
-;  )
-;)
-
-(program $smtx_empty_seq ((T $eo_Term))
-  :signature ($eo_Term) $smt_Value
-  (
-  (($smtx_empty_seq T) ($vsm_seq ($smtx_hash T) $ssm_empty))
-  )
-)
-
-(program $smtx_seq_unit ((e $smt_Value))
-  :signature ($smt_Value) $smt_Value
-  (
-  (($smtx_seq_unit e)
-    ($vsm_seq ($smtx_hash ($smtx_typeof_value e)) ($ssm_cons e $ssm_empty)))
-  )
-)
 
 (program $smtx_ssm_seq_nth ((v $smt_Value) (vs $smt_Seq) (n $smt_builtin_Int))
   :signature ($smt_Seq $smt_builtin_Int) $smt_Value
@@ -278,15 +167,6 @@
   (($smtx_ssm_seq_nth ($ssm_cons v vs) $smt_builtin_z_zero)   v)
   (($smtx_ssm_seq_nth ($ssm_cons v vs) n)
     ($smtx_ssm_seq_nth vs ($smt_builtin_z_dec n)))
-  )
-)
-
-(program $smtx_seq_nth
-  ((T $smt_builtin_Int) (s $smt_Seq) (n $smt_builtin_Int) (v1 $smt_Value) (v2 $smt_Value))
-  :signature ($smt_Value $smt_Value) $smt_Value
-  (
-  (($smtx_seq_nth ($vsm_seq T s) ($vsm_term ($sm_mk_z n))) ($smtx_ssm_seq_nth s n))
-  (($smtx_seq_nth v1 v2) $vsm_not_value)
   )
 )
 
@@ -386,32 +266,7 @@
 ; We use this to define $eo_model_sat.
 (program $smtx_model_eval () :signature ($eo_Term) $smt_Value)
 
-; returns $vsm_not_value if we are done (i.e. the cardinality of T is less than i).
-(program $smtx_enum_type ((T $eo_Term) (i $smt_builtin_Int))
-  :signature ($eo_Term $smt_builtin_Int) $smt_Value
-  (
-  ; otherwise, uninterpreted constant.
-  (($smtx_enum_type T i)               ($vsm_uconst ($smtx_hash T) i))
-  )
-)
-
-; program: $smtx_model_val_substitute
-; Used to define $smtx_eval_choice.
-; ($smtx_model_val_substitute x v t) returns the term where x is replaced by
-; the constant that is interpreted as v.
-(program $smtx_model_val_substitute
-  ((x $eo_Term) (v $smt_Value) (f $eo_Term) (a $eo_Term) (z $eo_Term))
-  :signature ($eo_Term $smt_Value $eo_Term) $eo_Term
-  (
-  (($smtx_model_val_substitute x v (f a))
-    (_ ($smtx_model_val_substitute x v f) ($smtx_model_val_substitute x v a)))
-  (($smtx_model_val_substitute x v x)
-    ($eo_smt_term ($sm_Const v)))   ; we are now the constant with the given interpretation
-  (($smtx_model_val_substitute x v z) z)
-  )
-)
-
-;;; Core definition of $smtx_model_eval
+;;; Core
 
 ; program: $smtx_model_eval_apply
 ; We call ($smtx_model_eval_apply value_f value_i) when
@@ -464,26 +319,167 @@
   )
 )
 
+;;; Functions, arrays
+
+(program $smtx_map_select
+  ((v $smt_Value) (i $smt_Value) (T $smt_builtin_Int) (m $smt_Map))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_map_select ($vsm_map T m) i) ($smtx_msm_lookup m i))
+  (($smtx_map_select v i)              $vsm_not_value)
+  )
+)
+
+(program $smtx_map_store
+  ((v $smt_Value) (i $smt_Value) (e $smt_Value) (T $smt_builtin_Int) (m $smt_Map))
+  :signature ($smt_Value $smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_map_store ($vsm_map T m) i e) ($vsm_map T ($smtx_msm_update m i e)))
+  (($smtx_map_store v i e)              $vsm_not_value)
+  )
+)
+
+; Returns the value where m1 and m2 differ, or $vsm_not_value otherwise.
+(program $smtx_map_diff
+  ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_map_diff ($vsm_map T m1) ($vsm_map T m2))
+    ; find an index in the first that conflicts with the second, or vice versa
+    ($smtx_value_either ($smtx_msm_find_diff m1 m2) ($smtx_msm_find_diff m2 m1)))
+  )
+)
+
+;;; Sets
+
+; args:
+; - T: the type of the empty set. This is expected to have type Type.
+(program $smtx_empty_set ((T $eo_Term))
+  :signature ($eo_Term) $smt_Value
+  (
+  (($smtx_empty_set T) ($vsm_map ($smtx_hash T) $smtx_msm_empty_set))
+  )
+)
+
+; return the singleton set containing e.
+(program $smtx_set_singleton ((e $smt_Value))
+  :signature ($smt_Value) $smt_Value
+  (
+  (($smtx_set_singleton e)
+    (eo::define ((T ($smtx_typeof_value e)))
+      ($vsm_map ($smtx_hash T) ($smtx_mss_insert e $smtx_msm_empty_set))))
+  )
+)
+
+; return the intersection of two set values.
+(program $smtx_set_inter
+  ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_set_inter ($vsm_map T m1) ($vsm_map T m2))
+    ; m1 intersected m2 starting with empty set.
+    ($vsm_map T ($smtx_mss_op_internal $smt_builtin_true m1 m2 $smtx_msm_empty_set)))
+  (($smtx_set_inter v1 v2)  $vsm_not_value)
+  )
+)
+
+; return the set minus of two set values.
+(program $smtx_set_minus
+  ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_set_minus ($vsm_map T m1) ($vsm_map T m2))
+    ; m1 minus m2 starting with empty set.
+    ($vsm_map T ($smtx_mss_op_internal $smt_builtin_false m1 m2 $smtx_msm_empty_set)))
+  (($smtx_set_minus v1 v2)  $vsm_not_value)
+  )
+)
+
+; return the union of two set values.
+(program $smtx_set_union
+  ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_set_union ($vsm_map T m1) ($vsm_map T m2))
+    ; m1 minus the empty set starting with m2.
+    ($vsm_map T ($smtx_mss_op_internal $smt_builtin_false m1 $smtx_msm_empty_set m2)))
+  (($smtx_set_union v1 v2)  $vsm_not_value)
+  )
+)
+
+;;; Sequences
+
+(program $smtx_empty_seq ((T $eo_Term))
+  :signature ($eo_Term) $smt_Value
+  (
+  (($smtx_empty_seq T) ($vsm_seq ($smtx_hash T) $ssm_empty))
+  )
+)
+
+(program $smtx_seq_unit ((e $smt_Value))
+  :signature ($smt_Value) $smt_Value
+  (
+  (($smtx_seq_unit e)
+    ($vsm_seq ($smtx_hash ($smtx_typeof_value e)) ($ssm_cons e $ssm_empty)))
+  )
+)
+
+(program $smtx_seq_nth
+  ((T $smt_builtin_Int) (s $smt_Seq) (n $smt_builtin_Int) (v1 $smt_Value) (v2 $smt_Value))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_seq_nth ($vsm_seq T s) ($vsm_term ($sm_mk_z n))) ($smtx_ssm_seq_nth s n))
+  (($smtx_seq_nth v1 v2) $vsm_not_value)
+  )
+)
+
+;;; Quantifiers
+
+; returns $vsm_not_value if we are done (i.e. the cardinality of T is less than i).
+(program $smtx_enum_type ((T $eo_Term) (i $smt_builtin_Int))
+  :signature ($eo_Term $smt_builtin_Int) $smt_Value
+  (
+  ; otherwise, uninterpreted constant.
+  (($smtx_enum_type T i)               ($vsm_uconst ($smtx_hash T) i))
+  )
+)
+
+; program: $smtx_model_val_substitute
+; Used to define $smtx_eval_quant.
+; ($smtx_model_val_substitute x v t) returns the term where x is replaced by
+; the constant that is interpreted as v.
+(program $smtx_model_val_substitute
+  ((x $eo_Term) (v $smt_Value) (f $eo_Term) (a $eo_Term) (z $eo_Term))
+  :signature ($eo_Term $smt_Value $eo_Term) $eo_Term
+  (
+  (($smtx_model_val_substitute x v (f a))
+    (_ ($smtx_model_val_substitute x v f) ($smtx_model_val_substitute x v a)))
+  (($smtx_model_val_substitute x v x)
+    ($eo_smt_term ($sm_Const v)))   ; we are now the constant with the given interpretation
+  (($smtx_model_val_substitute x v z) z)
+  )
+)
+
 ; Say we are checking the satisfiability of (exists ((x T)) F).
-; We call ($smtx_eval_choice_next ($vsm_Pair_mk m ws) w true) in this context
+; We call ($smtx_eval_quant_next ($vsm_Pair_mk m ws) w true) in this context
 ; where F[w/x] evaluated to m, where ws is the list of witnesses we have accumulated
 ; so far. This method either returns a $vsm_Pair corresponding to the final return value of
-; the function below, or $vsm_not_value if we were inconclusive. In particular, for
-; exists, if m is true, we append w to ws. If m is false, we are inconclusive. If
-; m was another value, then we return $vsm_not_value, indicating the model value of the
-; entire quantified formula is unknown.
-(program $smtx_eval_choice_next
+; the function below, or $vsm_not_value if we were inconclusive. In particular, if m is
+; true, we append w to ws. If m is false, we are inconclusive. If m was another value, then
+; we return $vsm_not_value, indicating the model value of the entire quantified formula is
+; unknown.
+(program $smtx_eval_quant_next
   ((b $smt_builtin_Bool) (mv $smt_Value) (w $smt_Value) (ws $vsm_List) (tgt $smt_builtin_Bool))
   :signature ($vsm_Pair $smt_Value $smt_builtin_Bool) $smt_Value
   (
   ; if the body evaluated to the target value, return successfully
-  (($smtx_eval_choice_next ($vsm_Pair_mk ($vsm_term ($sm_mk_bool tgt)) ws) w tgt)
+  (($smtx_eval_quant_next ($vsm_Pair_mk ($vsm_term ($sm_mk_bool tgt)) ws) w tgt)
     ($vsm_Pair_mk ($vsm_term ($sm_mk_bool tgt)) ($smtx_vsm_List_cons w ws)))
   ; if the body successfully evaluated but was the negation of the target, we are inconclusive
-  (($smtx_eval_choice_next ($vsm_Pair_mk ($vsm_term ($sm_mk_bool b)) ws) w tgt)
+  (($smtx_eval_quant_next ($vsm_Pair_mk ($vsm_term ($sm_mk_bool b)) ws) w tgt)
     $vsm_not_value)
   ; if the body evaluated to something else, return that we are unevaluated
-  (($smtx_eval_choice_next mv w b)
+  (($smtx_eval_quant_next mv w b)
     ($vsm_Pair_mk $vsm_not_value $vsm_List_empty))
   )
 )
@@ -492,14 +488,14 @@
 ;   v is the result of evaluating (Q xs F),
 ;   k is the sequence of values that witnessed it.
 ; note: this assumes that binders use $eo_List for their binder!
-(program $smtx_eval_choice
+(program $smtx_eval_quant
   ((Q (-> $eo_List $eo_Term $eo_Term)) (x $eo_Term) (xs $eo_Term) (F $eo_Term) (i $smt_builtin_Int) (tgt $smt_builtin_Bool))
   :signature ($eo_Term $smt_builtin_Int $smt_builtin_Bool) $vsm_Pair
   (
-  (($smtx_eval_choice (Q $eo_List_nil F) i tgt)
+  (($smtx_eval_quant (Q $eo_List_nil F) i tgt)
     ; finished instantiation, evaluate the instantiated body and give the empty list
     ($vsm_Pair_mk ($smtx_model_eval F) $vsm_List_empty))
-  (($smtx_eval_choice (Q ($eo_List_cons x xs) F) i tgt)
+  (($smtx_eval_quant (Q ($eo_List_cons x xs) F) i tgt)
     ; get the next value in the type enumeration
     (eo::define ((next ($smtx_enum_type ($eo_model_typeof x) i)))
     ; if we are out of values, we return the negation
@@ -507,46 +503,54 @@
       ; out of values, return the negation of target with no value (no witness)
       ($vsm_Pair_mk ($vsm_term ($sm_mk_bool ($smt_apply_1 "not" tgt))) $vsm_List_empty)
       ; recurse on the next variable
-      (eo::define ((eval ($smtx_eval_choice (Q xs ($smtx_model_val_substitute x next F)) $smt_builtin_z_zero tgt)))
+      (eo::define ((eval ($smtx_eval_quant (Q xs ($smtx_model_val_substitute x next F)) $smt_builtin_z_zero tgt)))
       ; setup the return value
-      (eo::define ((ret ($smtx_eval_choice_next eval next tgt)))
+      (eo::define ((ret ($smtx_eval_quant_next eval next tgt)))
       ; check if the above setup was inconclusive
       ($smt_apply_3 "ite" ($smt_apply_= ret $vsm_not_value)
         ; inconclusive, recurse for the next value in the type enumeration for the current variable
-        ($smtx_eval_choice (Q ($eo_List_cons x xs) F) ($smt_builtin_z_inc i) tgt)
+        ($smtx_eval_quant (Q ($eo_List_cons x xs) F) ($smt_builtin_z_inc i) tgt)
         ; otherwise return, which is either the case that we failed to evaluate, or evaluated to tgt
         ret))))))
   ; not a quantified formula, fail
-  (($smtx_eval_choice F i tgt) $vsm_not_value)
+  (($smtx_eval_quant F i tgt) $vsm_not_value)
   )
 )
 
+; main entry for model evaluation of exists.
 (program $smtx_model_eval_exists ((F $eo_Term))
   :signature ($eo_Term) $smt_Value
   (
   (($smtx_model_eval_exists F)
     ; use the routine above, returning the first component
-    ($smtx_vsm_Pair_first ($smtx_eval_choice F $smt_builtin_z_zero $smt_builtin_true)))
+    ($smtx_vsm_Pair_first ($smtx_eval_quant F $smt_builtin_z_zero $smt_builtin_true)))
   )
 )
+
+; main entry for model evaluation of forall.
 (program $smtx_model_eval_forall ((F $eo_Term))
   :signature ($eo_Term) $smt_Value
   (
   (($smtx_model_eval_forall F)
     ; use the routine above, returning the second component
-    ($smtx_vsm_Pair_first ($smtx_eval_choice F $smt_builtin_z_zero $smt_builtin_false)))
+    ($smtx_vsm_Pair_first ($smtx_eval_quant F $smt_builtin_z_zero $smt_builtin_false)))
   )
 )
+
+; main entry for model evaluation of choice.
+; this returns the choice function for the n^th variable of existential F.
 (program $smtx_eval_choice_nth ((F $eo_Term) (n $smt_builtin_Int) (t $eo_Term))
   :signature ($eo_Term $eo_Term) $smt_Value
   (
   (($smtx_eval_choice_nth F ($eo_mk_numeral n))
     ; use the routine above, returning the n^th element of the second component
-    (eo::define ((eval ($smtx_eval_choice F $smt_builtin_z_zero $smt_builtin_false)))
+    (eo::define ((eval ($smtx_eval_quant F $smt_builtin_z_zero $smt_builtin_false)))
       ($smtx_seq_nth ($smtx_vsm_Pair_second eval) ($vsm_term ($sm_mk_z n)))))
   (($smtx_eval_choice_nth F t) $vsm_not_value)
   )
 )
+
+;;; Other model evaluation functions
 
 $SMT_EVAL_PROGS$
 
