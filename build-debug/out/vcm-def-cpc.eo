@@ -271,6 +271,42 @@
 (declare-parameterized-const $smd_ssm.empty () $smt_Seq)
 (define $ssm_empty () $smd_ssm.empty)
 
+;;; Other value utilities
+
+; a pair of values, uses $vsm_apply for now
+(define $vsm_Pair () $smt_Value)
+(define $vsm_Pair_mk ((v1 $smt_Value) (v2 $smt_Value)) ($vsm_apply v1 v2))
+
+; program: $vsm_Pair_first
+; return: The first element in the pair
+(program $smtx_vsm_Pair_first ((t $smt_Value) (s $smt_Value) (v $vsm_Pair))
+  :signature ($vsm_Pair) $smt_Value
+  (
+  (($smtx_vsm_Pair_first ($vsm_Pair_mk t s))   t)
+  (($smtx_vsm_Pair_first v)                    $vsm_not_value)
+  )
+)
+; program: $vsm_Pair_second
+; return: The second element in the pair
+(program $smtx_vsm_Pair_second ((t $smt_Value) (s $smt_Value) (v $vsm_Pair))
+  :signature ($vsm_Pair) $smt_Value
+  (
+  (($smtx_vsm_Pair_second ($vsm_Pair_mk t s))  s)
+  (($smtx_vsm_Pair_second v)                   $vsm_not_value)
+  )
+)
+
+; a list of values, uses $vsm_seq
+(define $vsm_List () $smt_Value)
+(define $vsm_List_empty () ($vsm_seq $smt_builtin_z_zero $ssm_empty))
+(program $smtx_vsm_List_cons ((T $smt_builtin_Int) (s $smt_Seq) (v $smt_Value) (vs $smt_Value))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_vsm_List_cons v ($vsm_seq T s))  ($vsm_seq T ($ssm_cons v s)))
+  (($smtx_vsm_List_cons v vs)              $vsm_not_value)
+  )
+)
+
 ;;; Eunoia datatype constructors
 
 ; The type of types
@@ -1511,7 +1547,7 @@
 )
 
 ; program: $smtx_model_val_substitute
-; Used to define $smtx_eval_quant.
+; Used to define $smtx_eval_choice.
 ; ($smtx_model_val_substitute x v t) returns the term where x is replaced by
 ; the constant that is interpreted as v.
 (program $smtx_model_val_substitute
@@ -1579,44 +1615,27 @@
   )
 )
 
-; program: $smtx_eval_quant
-; specification for exists is a (non-computable) function
-; The last argument is whether we are check exists (resp. forall).
-(program $smtx_eval_quant
-  ((x $eo_Term) (xs $eo_Term) (F $eo_Term) (i $smt_builtin_Int) (isExists $smt_builtin_Bool))
-  :signature ($eo_Term $eo_Term $smt_builtin_Int $smt_builtin_Bool) $smt_Value
-  (
-  (($smtx_eval_quant $eo_List_nil F i isExists)
-    ; base case: we have processed all variables, recurse, negate if isExists is false.
-    ($vsm_term ($sm_mk_bool ($smt_apply_= ($smtx_model_eval F) ($vsm_term ($sm_mk_bool isExists))))))  ; we are now fully instantiated, look at the body
-  (($smtx_eval_quant ($eo_List_cons x xs) F i isExists)
-    ; get the next value in the type enumeration
-    (eo::define ((next ($smtx_enum_type ($eo_model_typeof x) i)))
-    ; if it exists
-    ($smt_apply_3 "ite" ($smt_apply_= next $vsm_not_value)
-      ; out of values, return the appropriate Bool
-      ($vsm_term ($sm_mk_bool ($smt_apply_1 "not" isExists)))
-      ; evaluate the body for this value. if this is a forcing value, return it
-      ($smt_apply_3 "ite" ($smt_apply_= ($smtx_model_eval ($smtx_model_val_substitute x next F)) ($vsm_term ($sm_mk_bool isExists)))
-        ($vsm_term ($sm_mk_bool isExists))
-        ; otherwise recurse for the next value in the type enumeration for the current variable
-        ($smtx_eval_quant ($eo_List_cons x xs) F ($smt_builtin_z_inc i) isExists)))))
-  )
-)
-
-(program $smtx_eval_choice_internal
-  ((b $smt_builtin_Bool) (mv $smt_Value) (v $smt_Value) (vs $smt_Seq) (tgt $smt_builtin_Bool))
-  :signature (($eo_Pair $smt_Value $smt_Seq) $smt_Value $smt_builtin_Bool) $eo_Option
+; Say we are checking the satisfiability of (exists ((x T)) F).
+; We call ($smtx_eval_choice_next ($vsm_Pair_mk m ws) w true) in this context
+; where F[w/x] evaluated to m, where ws is the list of witnesses we have accumulated
+; so far. This method either returns a $vsm_Pair corresponding to the final return value of
+; the function below, or $vsm_not_value if we were inconclusive. In particular, for
+; exists, if m is true, we append w to ws. If m is false, we are inconclusive. If
+; m was another value, then we return $vsm_not_value, indicating the model value of the
+; entire quantified formula is unknown.
+(program $smtx_eval_choice_next
+  ((b $smt_builtin_Bool) (mv $smt_Value) (w $smt_Value) (ws $vsm_List) (tgt $smt_builtin_Bool))
+  :signature ($vsm_Pair $smt_Value $smt_builtin_Bool) $smt_Value
   (
   ; if the body evaluated to the target value, return successfully
-  (($smtx_eval_choice_internal ($eo_Pair_mk ($vsm_term ($sm_mk_bool tgt)) vs) v tgt)
-    ($eo_Option_some ($eo_Pair_mk ($vsm_term ($sm_mk_bool tgt)) ($ssm_cons v vs))))
+  (($smtx_eval_choice_next ($vsm_Pair_mk ($vsm_term ($sm_mk_bool tgt)) ws) w tgt)
+    ($vsm_Pair_mk ($vsm_term ($sm_mk_bool tgt)) ($smtx_vsm_List_cons w ws)))
   ; if the body successfully evaluated but was the negation of the target, we are inconclusive
-  (($smtx_eval_choice_internal ($eo_Pair_mk ($vsm_term ($sm_mk_bool b)) vs) v tgt)
-    $eo_Option_null)
+  (($smtx_eval_choice_next ($vsm_Pair_mk ($vsm_term ($sm_mk_bool b)) ws) w tgt)
+    $vsm_not_value)
   ; if the body evaluated to something else, return that we are unevaluated
-  (($smtx_eval_choice_internal mv v b)
-    ($eo_Option_some ($eo_Pair_mk $vsm_not_value $ssm_empty)))
+  (($smtx_eval_choice_next mv w b)
+    ($vsm_Pair_mk $vsm_not_value $vsm_List_empty))
   )
 )
 
@@ -1626,22 +1645,24 @@
 ; note: this assumes that binders use $eo_List for their binder!
 (program $smtx_eval_choice
   ((x $eo_Term) (xs $eo_Term) (F $eo_Term) (i $smt_builtin_Int) (tgt $smt_builtin_Bool))
-  :signature ($eo_Term $eo_Term $smt_builtin_Int $smt_builtin_Bool) ($eo_Pair $smt_Value $smt_Seq)
+  :signature ($eo_Term $eo_Term $smt_builtin_Int $smt_builtin_Bool) $vsm_Pair
   (
   (($smtx_eval_choice $eo_List_nil F i tgt)
     ; finished instantiation, evaluate the instantiated body and give the empty list
-    ($eo_Pair_mk ($smtx_model_eval F) $ssm_empty))
+    ($vsm_Pair_mk ($smtx_model_eval F) $vsm_List_empty))
   (($smtx_eval_choice ($eo_List_cons x xs) F i tgt)
     ; get the next value in the type enumeration
     (eo::define ((next ($smtx_enum_type ($eo_model_typeof x) i)))
-    (eo::define ((eval ($smtx_eval_choice xs ($smtx_model_val_substitute x next F) $smt_builtin_z_zero tgt)))
-    (eo::define ((ret ($smtx_eval_choice_internal eval next tgt)))
     ; if we are out of values, we return the negation
     ($smt_apply_3 "ite" ($smt_apply_= next $vsm_not_value)
       ; out of values, return the negation of target with no value (no witness)
-      ($eo_Pair_mk ($vsm_term ($sm_mk_bool ($smt_apply_1 "not" tgt))) $ssm_empty)
-      ; evaluate the body for this value. if this is a forcing value, return it
-      ($smt_apply_3 "ite" ($smt_apply_= ret $eo_Option_null)
+      ($vsm_Pair_mk ($vsm_term ($sm_mk_bool ($smt_apply_1 "not" tgt))) $vsm_List_empty)
+      ; recurse on the next variable
+      (eo::define ((eval ($smtx_eval_choice xs ($smtx_model_val_substitute x next F) $smt_builtin_z_zero tgt)))
+      ; setup the return value
+      (eo::define ((ret ($smtx_eval_choice_next eval next tgt)))
+      ; check if the above setup was inconclusive
+      ($smt_apply_3 "ite" ($smt_apply_= ret $vsm_not_value)
         ; inconclusive, recurse for the next value in the type enumeration for the current variable
         ($smtx_eval_choice ($eo_List_cons x xs) F ($smt_builtin_z_inc i) tgt)
         ; otherwise return, which is either the case that we failed to evaluate, or evaluated to tgt
@@ -1653,29 +1674,27 @@
   :signature ($eo_Term $eo_Term) $smt_Value
   (
   (($smtx_model_eval_exists xs F)
-    ($smtx_eval_quant xs F $smt_builtin_z_zero $smt_builtin_true))
     ; use the routine above, returning the first component
-    ;($eo_Pair_first ($smtx_eval_choice xs F $smt_builtin_z_zero $smt_builtin_true)))
+    ($smtx_vsm_Pair_first ($smtx_eval_choice xs F $smt_builtin_z_zero $smt_builtin_true)))
   )
 )
 (program $smtx_model_eval_forall ((xs $eo_Term) (F $eo_Term))
   :signature ($eo_Term $eo_Term) $smt_Value
   (
   (($smtx_model_eval_forall xs F)
-    ($smtx_eval_quant xs F $smt_builtin_z_zero $smt_builtin_false))
     ; use the routine above, returning the second component
-    ;($eo_Pair_first ($smtx_eval_choice xs F $smt_builtin_z_zero $smt_builtin_false)))
+    ($smtx_vsm_Pair_first ($smtx_eval_choice xs F $smt_builtin_z_zero $smt_builtin_false)))
   )
 )
-;(program $smtx_eval_choice_nth ((xs $eo_Term) (F $eo_Term) (n $eo_Term))
-;  :signature ($eo_Term $eo_Term $eo_Term) $smt_Value
-;  (
-;  (($smtx_eval_choice_nth xs F ($eo_mk_numeral n))
-;    ; use the routine above, returning the n^th element of the second component
-;    (eo::define ((eval ($smtx_eval_choice xs F $smt_builtin_z_zero $smt_builtin_false)))
-;      ($smtx_ssm_seq_nth ($eo_Pair_second eval) n)))
-;  )
-;)
+(program $smtx_eval_choice_nth ((xs $eo_Term) (F $eo_Term) (n $eo_Term))
+  :signature ($eo_Term $eo_Term $eo_Term) $smt_Value
+  (
+  (($smtx_eval_choice_nth xs F ($eo_mk_numeral n))
+    ; use the routine above, returning the n^th element of the second component
+    (eo::define ((eval ($smtx_eval_choice xs F $smt_builtin_z_zero $smt_builtin_false)))
+      ($smtx_ssm_seq_nth ($smtx_seqof ($smtx_vsm_Pair_second eval)) n)))
+  )
+)
 
 (program $smtx_model_eval_and
   ((x1 $smt_builtin_Bool) (x2 $smt_builtin_Bool) (t1 $smt_Value) (t2 $smt_Value))
