@@ -1460,6 +1460,7 @@
 
 ;;; Functions, arrays
 
+; Array select
 (program $smtx_map_select
   ((v $smt_Value) (i $smt_Value) (T $smt_builtin_Int) (m $smt_Map))
   :signature ($smt_Value $smt_Value) $smt_Value
@@ -1469,6 +1470,7 @@
   )
 )
 
+; Array store
 (program $smtx_map_store
   ((v $smt_Value) (i $smt_Value) (e $smt_Value) (T $smt_builtin_Int) (m $smt_Map))
   :signature ($smt_Value $smt_Value $smt_Value) $smt_Value
@@ -1478,6 +1480,7 @@
   )
 )
 
+; Array diff
 ; Returns the value where m1 and m2 differ, or $vsm_not_value otherwise.
 (program $smtx_map_diff
   ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map))
@@ -1491,6 +1494,7 @@
 
 ;;; Sets
 
+; Empty set
 ; args:
 ; - T: the type of the empty set. This is expected to have type Type.
 (program $smtx_empty_set ((T $eo_Term))
@@ -1500,6 +1504,7 @@
   )
 )
 
+; Set singleton
 ; return the singleton set whose type is T and contains e.
 (program $smtx_set_singleton ((T $eo_Term) (e $smt_Value))
   :signature ($eo_Term $smt_Value) $smt_Value
@@ -1509,6 +1514,7 @@
   )
 )
 
+; Set intersection
 ; return the intersection of two set values.
 (program $smtx_set_inter
   ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
@@ -1521,6 +1527,7 @@
   )
 )
 
+; Set minus
 ; return the set minus of two set values.
 (program $smtx_set_minus
   ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
@@ -1533,6 +1540,7 @@
   )
 )
 
+; Set union
 ; return the union of two set values.
 (program $smtx_set_union
   ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
@@ -1547,6 +1555,7 @@
 
 ;;; Sequences
 
+; Empty sequence
 (program $smtx_empty_seq ((T $eo_Term))
   :signature ($eo_Term) $smt_Value
   (
@@ -1554,6 +1563,7 @@
   )
 )
 
+; Sequence unit
 (program $smtx_seq_unit ((e $smt_Value))
   :signature ($smt_Value) $smt_Value
   (
@@ -1562,6 +1572,7 @@
   )
 )
 
+; Sequence nth
 (program $smtx_seq_nth
   ((T $smt_builtin_Int) (s $smt_Seq) (n $smt_builtin_Int) (v1 $smt_Value) (v2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
@@ -1573,6 +1584,7 @@
 
 ;;; Quantifiers
 
+; Type enumeration
 ; returns $vsm_not_value if we are done (i.e. the cardinality of T is less than i).
 (program $smtx_enum_type ((T $eo_Term) (i $smt_builtin_Int))
   :signature ($eo_Term $smt_builtin_Int) $smt_Value
@@ -1582,6 +1594,7 @@
   )
 )
 
+; Substitution
 ; program: $smtx_model_val_substitute
 ; Used to define $smtx_eval_quant.
 ; ($smtx_model_val_substitute x v t) returns the term where x is replaced by
@@ -1598,6 +1611,7 @@
   )
 )
 
+; Helper for model evaluation of quantifiers.
 ; Say we are checking the satisfiability of (exists ((x T)) F).
 ; We call ($smtx_eval_quant_next ($vsm_Pair_mk m ws) w true) in this context
 ; where F[w/x] evaluated to m, where ws is the list of witnesses we have accumulated
@@ -1622,9 +1636,13 @@
   )
 )
 
+; Model evaluation of quantifiers.
 ; Returns a pair of values (v, k) where
 ;   v is the result of evaluating (Q xs F),
-;   k is the sequence of values that witnessed it.
+;   k is the sequence of values that witnessed it, if applicable.
+; This method is non-terminating in general, as it iterates over potentially
+; infinite type enumerations. Nevertheless, we expect to be able to reason about
+; it symbolically.
 ; note: this assumes that binders use $eo_List for their binder!
 (program $smtx_eval_quant
   ((Q (-> $eo_List $eo_Term $eo_Term)) (x $eo_Term) (xs $eo_Term) (F $eo_Term) (i $smt_builtin_Int) (tgt $smt_builtin_Bool))
@@ -1684,6 +1702,7 @@
     ; use the routine above, returning the n^th element of the second component
     (eo::define ((eval ($smtx_eval_quant F $smt_builtin_z_zero $smt_builtin_false)))
       ($smtx_seq_nth ($smtx_vsm_Pair_second eval) ($vsm_term ($sm_mk_z n)))))
+  ; fail if we did not pass a numeral
   (($smtx_eval_choice_nth F t) $vsm_not_value)
   )
 )
@@ -1762,7 +1781,7 @@
   )
 )
 
-;;; type of
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Type system
 
 (program $smtx_mk_fun_type_internal
   ((T $eo_Term) (U $eo_Term) (Tt $eo_Term) (Ut $eo_Term))
@@ -1832,9 +1851,13 @@
   )
 )
 
-;;; SMT input
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; SMT-LIB input syntax
 
 ; program: $smtx_is_input
+; Returns true if the given term uses only SMT-LIB syntax. This will
+; return false e.g. if it contains Eunoia-specific terms (e.g. $eo_List)
+; or if it contains free constants that are not interpreted as canonical
+; values.
 (program $smtx_is_input
   ((t $eo_Term) (a $eo_Term) (s $smt_Term) (T $smt_Type) (v $smt_Value))
   :signature ($eo_Term) Bool
