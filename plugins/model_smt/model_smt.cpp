@@ -141,7 +141,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // builtin
   addTermReduceSym("@purify", {kT}, "x1");
   // arithmetic
-  //addConstFoldSym("^", {kT, kT}, kT);
+  // addConstFoldSym("^", {kT, kT}, kT);
   addConstFoldSym("/_total", {kT, kT}, kReal);
   addConstFoldSym("div_total", {kInt, kInt}, kInt);
   addConstFoldSym("mod_total", {kInt, kInt}, kInt);
@@ -183,11 +183,13 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addRecReduceSym("set.member", {kT, kT}, "($smtx_map_select e2 e1)");
   addTermReduceSym("set.subset", {kT, kT}, "(= (set.inter x1 x2) x1)");
   addRecReduceSym("@sets_deq_diff", {kT, kT}, "($smtx_map_diff e1 e2)");
-  //addTermReduceSym("set.is_empty", {kT}, "(= x1 ($smtx_empty_set_of_typeof x1))");
-  //  bitvectors
+  // addTermReduceSym("set.is_empty", {kT}, "(= x1 ($smtx_empty_set_of_typeof
+  // x1))");
+  //   bitvectors
   addTermReduceSym(
       "bvite", {kBitVec, kBitVec, kBitVec}, "(ite (= x1 (@bv 1 1)) x2 x3)");
-  addTermReduceSym("bvcomp", {kBitVec, kBitVec}, "(ite (= x1 x2) (@bv 1 1) (@bv 0 1))");
+  addTermReduceSym(
+      "bvcomp", {kBitVec, kBitVec}, "(ite (= x1 x2) (@bv 1 1) (@bv 0 1))");
   addLitSym("@bvsize", {kBitVec}, kInt, "x1");
   addLitBinSym("@bv", {kInt, kInt}, "x2", "x1");
   addTermReduceSym("@bit", {kInt, kBitVec}, "(extract x1 x1 x2)");
@@ -201,13 +203,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
 
 ModelSmt::~ModelSmt() {}
 
-void ModelSmt::addTypeSym(const std::string& sym,
-                       const std::vector<Kind>& args)
+void ModelSmt::addTypeSym(const std::string& sym, const std::vector<Kind>& args)
 {
   // for now, ignored
   d_symIgnore[sym] = true;
 }
-  
+
 void ModelSmt::addHardCodeSym(const std::string& sym,
                               const std::vector<Kind>& args)
 {
@@ -322,7 +323,7 @@ void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
     printModelEvalCallBase(name, itst->second.first, itst->second.second, attr);
     return;
   }
-  if (d_symIgnore.find(name)!=d_symIgnore.end())
+  if (d_symIgnore.find(name) != d_symIgnore.end())
   {
     // intentionally ignored
     return;
@@ -340,7 +341,8 @@ void ModelSmt::printType(const std::string& name, const std::vector<Kind>& args)
 
 void ModelSmt::printModelEvalCallBase(const std::string& name,
                                       const std::vector<Kind>& args,
-                                      const std::string& ret, Attr attr)
+                                      const std::string& ret,
+                                      Attr attr)
 {
   d_eval << "  (($smtx_model_eval ";
   if (args.empty())
@@ -348,7 +350,7 @@ void ModelSmt::printModelEvalCallBase(const std::string& name,
     d_eval << name << ") " << ret << ")" << std::endl;
     return;
   }
-  if (attr==Attr::AMB)
+  if (attr == Attr::AMB)
   {
     d_eval << "(as " << name;
   }
@@ -364,7 +366,8 @@ void ModelSmt::printModelEvalCallBase(const std::string& name,
 }
 
 void ModelSmt::printModelEvalCall(const std::string& name,
-                                  const std::vector<Kind>& args, Attr attr)
+                                  const std::vector<Kind>& args,
+                                  Attr attr)
 {
   std::stringstream callArgs;
   callArgs << "($smtx_model_eval_" << name;
@@ -541,7 +544,7 @@ void ModelSmt::printLitReduce(const std::string& name,
 
 void ModelSmt::finalize()
 {
-  for (std::pair<std::string, Expr>& d :d_declSeen)
+  for (std::pair<std::string, Expr>& d : d_declSeen)
   {
     finalizeDecl(d.first, d.second);
   }
