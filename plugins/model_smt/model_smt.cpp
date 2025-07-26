@@ -171,6 +171,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // sequences
   addReduceSym("seq.empty", {kT}, "($smtx_empty_seq x1)");
   addRecReduceSym("seq.unit", {kT}, "($smtx_seq_unit e1)");
+  addRecReduceSym("seq.nth", {kT, kInt}, "($smtx_seq_nth e1 e2)");
   // sets
   // (Set T) is modelled as (Array T Bool).
   addTypeSym("Set", {kT});

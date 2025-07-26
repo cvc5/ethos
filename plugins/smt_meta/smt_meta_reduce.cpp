@@ -93,6 +93,7 @@ std::string metaKindToString(MetaKind k)
     case MetaKind::SMT_TYPE: ss << "SMT_TYPE"; break;
     case MetaKind::SMT_VALUE: ss << "SMT_VALUE"; break;
     case MetaKind::SMT_MAP: ss << "SMT_MAP"; break;
+    case MetaKind::SMT_SEQ: ss << "SMT_SEQ"; break;
     case MetaKind::PROGRAM: ss << "PROGRAM"; break;
     case MetaKind::NONE: ss << "NONE"; break;
     default: ss << "?MetaKind"; break;
