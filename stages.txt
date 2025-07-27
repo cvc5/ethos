@@ -211,6 +211,7 @@ Not handled:
   - TODO: well foundedness as a Eunoia program
 - Modelling of assume-push/step-pop.
 - TODO: modelling of :conclusion-explicit, :assumption.
+- TODO: unconstrained semantics of datatype constructors and selectors
 
 - TODO: remove type checking from proof rule semantics?
 - TODO: type checking as a separate property: type preservation for proof rules.

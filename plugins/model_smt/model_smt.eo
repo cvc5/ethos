@@ -450,13 +450,21 @@
 
 ; Type enumeration
 ; returns $vsm_not_value if we are done (i.e. the cardinality of T is less than i).
-(program $smtx_enum_type ((T $eo_Term) (i $smt_builtin_Int))
+(program $smtx_model_type_enum ((T $eo_Term) (i $smt_builtin_Int))
   :signature ($eo_Term $smt_builtin_Int) $smt_Value
   (
+  ; auto-generated cases
+$SMT_TYPE_ENUM_CASES$
   ; otherwise, uninterpreted constant.
-  (($smtx_enum_type T i)               ($vsm_uconst ($smtx_hash T) i))
+  (($smtx_model_type_enum T i)               ($vsm_uconst ($smtx_hash T) i))
   )
 )
+
+; Return builtin true if T is an uninterpreted sort.
+(define $smtx_model_is_usort ((T $eo_Term))
+  ($smt_apply_=
+    ($smtx_model_type_enum T $smt_builtin_z_zero)
+    ($vsm_uconst ($smtx_hash T) $smt_builtin_z_zero)))
 
 ; Substitution
 ; program: $smtx_model_val_substitute
@@ -517,7 +525,7 @@
     ($vsm_Pair_mk ($smtx_model_eval F) $vsm_List_empty))
   (($smtx_eval_quant (Q ($eo_List_cons x xs) F) i tgt)
     ; get the next value in the type enumeration
-    (eo::define ((next ($smtx_enum_type ($eo_model_typeof x) i)))
+    (eo::define ((next ($smtx_model_type_enum ($eo_model_typeof x) i)))
     ; if we are out of values, we return the negation
     ($smt_apply_3 "ite" ($smt_apply_= next $vsm_not_value)
       ; out of values, return the negation of target with no value (no witness)
@@ -655,6 +663,7 @@ $SMT_EVAL_CASES$
 )
 
 ; Helper for below. This defines the typeof
+; TODO: doesn't properly guard map and sequence values
 (program $smtx_typeof_value
   ((val $smt_Value) (T $smt_builtin_Int) (m $smt_Map) (s $smt_Seq)
    (id $smt_builtin_Int) (f $smt_Value) (a $smt_Term) (U $smt_Type))
@@ -666,8 +675,13 @@ $SMT_EVAL_CASES$
   (($smtx_typeof_value ($vsm_term a))           ($smtx_typeof ($eo_smt_term a)))
   (($smtx_typeof_value ($vsm_map T m))          ($eo_reverse_hash T))
   (($smtx_typeof_value ($vsm_seq T s))          ($eo_reverse_hash T))
-  ; the type of uninterpreted constants carry its type, accessible via reverse hash.
+  ; The type of uninterpreted constants carry its type, accessible via reverse hash.
   (($smtx_typeof_value ($vsm_uconst T id))      ($eo_reverse_hash T))
+  ; we insist that the type is uninterpreted here, or else we return the null type.
+  ; this prevents uninterpreted sort constants being used for interpreted types.
+  ;(($smtx_typeof_value ($vsm_uconst T id))
+  ;  (eo::define ((ret ($eo_reverse_hash T)))
+  ;  ($smt_apply_3 "ite" ($smtx_model_is_usort ret) ret $eo_null_type)))
   ; the type of not-values is the null sort.
   (($smtx_typeof_value val)                     $eo_null_type)
   )

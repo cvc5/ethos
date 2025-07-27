@@ -570,6 +570,7 @@ void ModelSmt::finalize()
   sss << ins.rdbuf();
   std::string finalSmt = sss.str();
   replace(finalSmt, "$SMT_TYPE_ENUM_CASES$", d_typeEnum.str());
+  replace(finalSmt, "$SMT_IS_VALUE_CASES$", d_typeIsValue.str());
   // plug in the evaluation cases handled by this plugin
   replace(finalSmt, "$SMT_EVAL_CASES$", d_eval.str());
   replace(finalSmt, "$SMT_EVAL_PROGS$", d_modelEvalProgs.str());
