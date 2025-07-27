@@ -324,11 +324,6 @@
 (define $sm_binary ((w $smt_builtin_Int) (n $smt_builtin_Int))
   ($smd_sm.Binary w n))
 
-;(define $smt_Int () ($smt_builtin_type_0 "Int"))
-;(define $smt_Real () ($smt_builtin_type_0 "Real"))
-;(define $smt_BitVec ((w $smt_builtin_Int)) (_ ($smt_builtin_type_1 "BitVec") w))
-;(define $smt_String () ($smt_builtin_type_0 "String"))
-
 (define $vsm_true () ($vsm_term $sm_mk_true))
 (define $vsm_false () ($vsm_term $sm_mk_false))
 

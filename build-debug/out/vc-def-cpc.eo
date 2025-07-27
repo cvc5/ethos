@@ -119,7 +119,7 @@
 (program $eovc_bool-eq-true ((t1 Bool))
   :signature (Bool) Bool
   (
-  (($eovc_bool-eq-true t1) ($eo_requires_eq ($eo_model_sat ($eor_bool-eq-true t1)) ($eo_Option_some false) true))
+  (($eovc_bool-eq-true t1) (eo::define ((_v0 ($eor_bool-eq-true t1))) ($eo_requires_eq ($eo_model_is_input _v0) true ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some false) true))))
   )
 )
 (echo "smt-meta $eovc_bool-eq-true :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $eo_smt_type $tsm_Bool $eo_type $eo_fun_type $eo_apply ")

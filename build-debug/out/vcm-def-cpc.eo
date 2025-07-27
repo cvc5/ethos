@@ -1155,6 +1155,9 @@
 (program $smtx_typeof () :signature ($eo_Term) $eo_Term)
 (program $smtx_typeof_value () :signature ($smt_Value) $eo_Term)
 
+; fwd-decl: $smtx_is_value
+(program $smtx_is_value () :signature ($smt_Value) $smt_builtin_Bool)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Exception handling
 
 ; Invariant: all programs in this signature should be well-founded and never
@@ -1233,16 +1236,22 @@
 
 ; This program determines whether the map value is canonical.
 ; It returns true if the array is "redundant", i.e. has a non-canonical
-; ordering of indicies, or duplicate/redundant entries.
+; ordering of indicies, duplicate/redundant entries, or was constructed
+; from non-values.
 (program $smtx_msm_is_irredundant ((i $smt_Value) (e $smt_Value) (m $smt_Map))
   :signature ($smt_Map) $smt_builtin_Bool
   (
-  (($smtx_msm_is_irredundant ($msm_default e))     $smt_builtin_true)
+  (($smtx_msm_is_irredundant ($msm_default e))     ($smtx_is_value e))
   (($smtx_msm_is_irredundant ($msm_cons i e m))
-    ; Recompute the update. If it changes, we are redundant.
+    ; First ensure the index and element are values
     ($smt_apply_3 "ite"
-      ($smt_apply_= ($smtx_msm_update m i e) ($msm_cons i e m))
-      ($smtx_msm_is_irredundant m)
+      ($smt_builtin_and ($smtx_is_value i) ($smtx_is_value e))
+      ; Recompute the update. If it changes, we are redundant.
+      ($smt_apply_3 "ite"
+        ($smt_apply_= ($smtx_msm_update m i e) ($msm_cons i e m))
+        ($smtx_msm_is_irredundant m)
+        $smt_builtin_false)
+      ; otherwise redundant due to valueness
       $smt_builtin_false))
   )
 )
@@ -1305,8 +1314,13 @@
   )
 )
 
-; TODO
-(program $smtx_seq_is_value () :signature ($smt_Seq) $smt_builtin_Bool)
+(program $smtx_seq_is_value ((vs $smt_Seq) (v $smt_Value))
+  :signature ($smt_Seq) $smt_builtin_Bool
+  (
+  (($smtx_seq_is_value $ssm_empty)        $smt_builtin_true)
+  (($smtx_seq_is_value ($ssm_cons v vs))  ($smt_builtin_and ($smtx_is_value v) ($smtx_seq_is_value vs)))
+  )
+)
 
 ;;; Utilities for Datatype values
 
@@ -1361,9 +1375,6 @@
     ($vsm_map T m)
     $vsm_not_value))
 
-; fwd-decl: $smtx_is_value
-(program $smtx_is_value () :signature ($smt_Value) $smt_builtin_Bool)
-
 ; program: $smtx_is_value
 (program $smtx_is_value
   ((t $smt_Term) (f $smt_Value) (v $smt_Value) (T $eo_Term) (m $smt_Map) (s $smt_Seq)
@@ -1377,7 +1388,7 @@
   ; Herbrand interpretations: nil terminated apply of value terms
   (($smtx_is_value ($vsm_apply ($vsm_term t) $vsm_not_value))
                                           ($smt_is_dt_cons t))
-  (($smtx_is_value ($vsm_apply f v))      ($smt_apply_2 "and" ($smtx_is_value f) ($smtx_is_value v)))
+  (($smtx_is_value ($vsm_apply f v))      ($smt_builtin_and ($smtx_is_value f) ($smtx_is_value v)))
   ; Otherwise false
   (($smtx_is_value v)                     $smt_builtin_false)
   )
@@ -1928,7 +1939,7 @@
 (program $eovc_bool-eq-true ((t1 Bool))
   :signature (Bool) Bool
   (
-  (($eovc_bool-eq-true t1) ($eo_requires_eq ($eo_model_sat ($eor_bool-eq-true t1)) ($eo_Option_some false) true))
+  (($eovc_bool-eq-true t1) (eo::define ((_v0 ($eor_bool-eq-true t1))) ($eo_requires_eq ($eo_model_is_input _v0) true ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some false) true))))
   )
 )
 (echo "smt-meta $eovc_bool-eq-true :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $eo_smt_type $tsm_Bool $eo_type $eo_fun_type $eo_apply ")
