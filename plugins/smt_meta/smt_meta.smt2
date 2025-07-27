@@ -49,7 +49,7 @@ $SM_DEFS$
 ; axiom for hash
 ; note: this implies that $smtx_hash is injective, which implies $eo_hash is injective.
 (assert (! (forall ((x eo.Term))
-    (= ($eo_reverse_hash ($smtx_hash x)) x)) :named eo.hash_injective))
+    (! (= ($eo_reverse_hash ($smtx_hash x)) x) :pattern (($smtx_hash x)))) :named eo.hash_injective))
 
 ;;; The verification condition
 

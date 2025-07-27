@@ -37,8 +37,6 @@
   (sm.String (sm.String.arg1 String))
   ; smt-cons: Const
   (sm.Const (sm.Const.arg1 vsm.Value))
-  ; user-decl: ite
-  (sm.ite)
   ; user-decl: and
   (sm.and)
   ; user-decl: =
@@ -46,8 +44,6 @@
 
   )
   (
-  ; smt-cons: Type
-  (eo.Type)
   ; smt-cons: Stuck
   (eo.Stuck)
   ; smt-cons: Apply
@@ -140,8 +136,27 @@
     (msm.default.arg1 x1)
 ))) :pattern (($smtx_msm_lookup x1 x2)))) :named sm.axiom.$smtx_msm_lookup))
 
-; fwd-decl: $smtx_map_is_value
-(declare-fun $smtx_map_is_value (Int msm.Map) Bool)
+; program: $smtx_msm_update
+(declare-fun $smtx_msm_update (msm.Map vsm.Value vsm.Value) msm.Map)
+(assert (! (forall ((x1 msm.Map) (x2 vsm.Value) (x3 vsm.Value))
+  (! (= ($smtx_msm_update x1 x2 x3)
+  (ite (and ((_ is msm.cons) x1) (= x2 (msm.cons.arg1 x1)))
+    (msm.cons (msm.cons.arg1 x1) x3 (msm.cons.arg3 x1))
+  (ite ((_ is msm.cons) x1)
+    (ite (<= ($smtx_hash (eo.SmtTerm (sm.Const (msm.cons.arg1 x1)))) ($smtx_hash (eo.SmtTerm (sm.Const x2)))) (msm.cons x2 x3 (msm.cons (msm.cons.arg1 x1) (msm.cons.arg2 x1) (msm.cons.arg3 x1))) (msm.cons (msm.cons.arg1 x1) (msm.cons.arg2 x1) ($smtx_msm_update (msm.cons.arg3 x1) x2 x3)))
+  (ite (and ((_ is msm.default) x1) (= x3 (msm.default.arg1 x1)))
+    (msm.default (msm.default.arg1 x1))
+    (msm.cons x2 x3 x1)
+)))) :pattern (($smtx_msm_update x1 x2 x3)))) :named sm.axiom.$smtx_msm_update))
+
+; program: $smtx_msm_is_irredundant
+(declare-fun $smtx_msm_is_irredundant (msm.Map) Bool)
+(assert (! (forall ((x1 msm.Map))
+  (! (= ($smtx_msm_is_irredundant x1)
+  (ite ((_ is msm.default) x1)
+    true
+    (ite (= ($smtx_msm_update (msm.cons.arg3 x1) (msm.cons.arg1 x1) (msm.cons.arg2 x1)) (msm.cons (msm.cons.arg1 x1) (msm.cons.arg2 x1) (msm.cons.arg3 x1))) ($smtx_msm_is_irredundant (msm.cons.arg3 x1)) false)
+)) :pattern (($smtx_msm_is_irredundant x1)))) :named sm.axiom.$smtx_msm_is_irredundant))
 
 ; program: $smtx_is_atomic_term_value
 (define-fun $smtx_is_atomic_term_value ((x1 sm.Term)) Bool
@@ -161,7 +176,7 @@
   (ite ((_ is vsm.Term) x1)
     (ite ($smtx_is_atomic_term_value (vsm.Term.arg1 x1)) (vsm.Term (vsm.Term.arg1 x1)) (ite (not (= ($eo_dt_selectors (eo.SmtTerm (vsm.Term.arg1 x1))) eo.Stuck)) (vsm.Apply (vsm.Term (vsm.Term.arg1 x1)) vsm.NotValue) vsm.NotValue))
   (ite ((_ is vsm.Map) x1)
-    (ite ($smtx_map_is_value (vsm.Map.arg1 x1) (vsm.Map.arg2 x1)) (vsm.Map (vsm.Map.arg1 x1) (vsm.Map.arg2 x1)) vsm.NotValue)
+    (ite ($smtx_msm_is_irredundant (vsm.Map.arg2 x1)) (vsm.Map (vsm.Map.arg1 x1) (vsm.Map.arg2 x1)) vsm.NotValue)
   (ite ((_ is vsm.UConst) x1)
     (vsm.UConst (vsm.UConst.arg1 x1) (vsm.UConst.arg2 x1))
     vsm.NotValue
@@ -176,15 +191,6 @@
     (vsm.Apply (vsm.Apply (vsm.Apply.arg1 x1) (vsm.Apply.arg2 x1)) x2)
   (ite ((_ is vsm.Map) x1)
     ($smtx_msm_lookup (vsm.Map.arg2 x1) x2)
-    vsm.NotValue
-)))
-
-; program: $smtx_model_eval_ite
-(define-fun $smtx_model_eval_ite ((x1 vsm.Value) (x2 vsm.Value) (x3 vsm.Value)) vsm.Value
-  (ite (and ((_ is vsm.Term) x1) ((_ is sm.Bool) (vsm.Term.arg1 x1)) (= (sm.Bool.arg1 (vsm.Term.arg1 x1)) true))
-    x2
-  (ite (and ((_ is vsm.Term) x1) ((_ is sm.Bool) (vsm.Term.arg1 x1)) (= (sm.Bool.arg1 (vsm.Term.arg1 x1)) false))
-    x3
     vsm.NotValue
 )))
 
@@ -207,8 +213,6 @@
 ; program: $smtx_model_eval
 (assert (! (forall ((x1 eo.Term))
   (! (= ($smtx_model_eval x1)
-  (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg1 x1)) ((_ is eo.Apply) (eo.Apply.arg1 (eo.Apply.arg1 x1))) ((_ is eo.SmtTerm) (eo.Apply.arg1 (eo.Apply.arg1 (eo.Apply.arg1 x1)))) (= (eo.SmtTerm.arg1 (eo.Apply.arg1 (eo.Apply.arg1 (eo.Apply.arg1 x1)))) sm.ite))
-    ($smtx_model_eval_ite ($smtx_model_eval (eo.Apply.arg2 (eo.Apply.arg1 (eo.Apply.arg1 x1)))) ($smtx_model_eval (eo.Apply.arg2 (eo.Apply.arg1 x1))) ($smtx_model_eval (eo.Apply.arg2 x1)))
   (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg1 x1)) ((_ is eo.SmtTerm) (eo.Apply.arg1 (eo.Apply.arg1 x1))) (= (eo.SmtTerm.arg1 (eo.Apply.arg1 (eo.Apply.arg1 x1))) sm.and))
     ($smtx_model_eval_and ($smtx_model_eval (eo.Apply.arg2 (eo.Apply.arg1 x1))) ($smtx_model_eval (eo.Apply.arg2 x1)))
   (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg1 x1)) ((_ is eo.SmtTerm) (eo.Apply.arg1 (eo.Apply.arg1 x1))) (= (eo.SmtTerm.arg1 (eo.Apply.arg1 (eo.Apply.arg1 x1))) sm.=))
@@ -218,7 +222,7 @@
   (ite ((_ is eo.Apply) x1)
     ($smtx_model_eval_apply ($smtx_model_eval (eo.Apply.arg1 x1)) ($smtx_model_eval (eo.Apply.arg2 x1)))
     (ite ($smtx_is_atomic_term_value (eo.SmtTerm.arg1 x1)) (vsm.Term (eo.SmtTerm.arg1 x1)) (ite (not (= ($eo_dt_selectors x1) eo.Stuck)) (vsm.Apply (vsm.Term (eo.SmtTerm.arg1 x1)) vsm.NotValue) vsm.NotValue))
-)))))) :pattern (($smtx_model_eval x1)))) :named sm.axiom.$smtx_model_eval))
+))))) :pattern (($smtx_model_eval x1)))) :named sm.axiom.$smtx_model_eval))
 
 ; program: $smtx_model_sat
 (define-fun $smtx_model_sat ((x1 vsm.Value)) eo.Term
@@ -261,7 +265,7 @@
 ; axiom for hash
 ; note: this implies that $smtx_hash is injective, which implies $eo_hash is injective.
 (assert (! (forall ((x eo.Term))
-    (= ($eo_reverse_hash ($smtx_hash x)) x)) :named eo.hash_injective))
+    (! (= ($eo_reverse_hash ($smtx_hash x)) x) :pattern (($smtx_hash x)))) :named eo.hash_injective))
 
 ;;; The verification condition
 
