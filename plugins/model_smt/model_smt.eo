@@ -19,6 +19,10 @@
 (program $smtx_typeof () :signature ($eo_Term) $eo_Term)
 (program $smtx_typeof_value () :signature ($smt_Value) $eo_Term)
 
+; returns true if v has type T.
+(define $smtx_value_has_type ((v $smt_Value) (T $eo_Term))
+  ($smt_apply_= ($smtx_typeof ($eo_smt_term ($sm_Const v))) T))  ; FIXME: use T
+
 ; fwd-decl: $smtx_is_value
 (program $smtx_is_value () :signature ($smt_Value) $smt_builtin_Bool)
 
@@ -140,11 +144,25 @@
 (define $smtx_map_is_value ((m $smt_Map))
   ($smtx_msm_is_irredundant m))
 
+; Returns true if the index type of the map is T1 and the element type is T2.
+(program $smtx_map_has_type
+  ((T1 $eo_Term) (T2 $eo_Term) (i $smt_Value) (e $smt_Value) (m $smt_Map))
+  :signature ($smt_Map $eo_Term $eo_Term) $smt_builtin_Bool
+  (
+  (($smtx_map_has_type ($msm_default e) T1 T2)   ($smtx_value_has_type e T2))
+  (($smtx_map_has_type ($msm_cons i e m) T1 T2)
+    ($smt_apply_3 "ite"
+      ($smt_builtin_and ($smtx_value_has_type i T1) ($smtx_value_has_type e T2))
+      ($smtx_map_has_type m T1 T2)
+      $smt_builtin_false))
+  )
+)
+
 ;;; Map as sets
 
 ; A set is a mapping to Bool.
 ; The empty set maps all to false.
-(define $smtx_msm_empty_set () ($msm_default $vsm_false))
+(define $msm_empty_set () ($msm_default $vsm_false))
 ; Inserting sets e to true.
 (define $smtx_mss_mk_insert ((e $smt_Value) (m $smt_Map)) ($smtx_msm_update m e $vsm_true))
 (define $smtx_mss_insert ((e $smt_Value) (m $smt_Map)) ($msm_cons e $vsm_true m))
@@ -156,7 +174,7 @@
   ((m1 $smt_Map) (m2 $smt_Map) (acc $smt_Map) (e $smt_Value) (isInter $smt_builtin_Bool))
   :signature ($smt_builtin_Bool $smt_Map $smt_Map $smt_Map) $smt_Map
   (
-  (($smtx_mss_op_internal isInter $smtx_msm_empty_set m2 acc) acc)
+  (($smtx_mss_op_internal isInter $msm_empty_set m2 acc) acc)
   (($smtx_mss_op_internal isInter ($smtx_mss_insert e m1) m2 acc)
     ($smtx_mss_op_internal isInter m1 m2
       ($smt_apply_3 "ite"
@@ -186,6 +204,19 @@
   )
 )
 
+(program $smtx_seq_has_type
+  ((T1 $eo_Term) (vs $smt_Seq) (v $smt_Value))
+  :signature ($smt_Seq $eo_Term) $smt_builtin_Bool
+  (
+  (($smtx_seq_has_type $ssm_empty T1)        $smt_builtin_true)
+  (($smtx_seq_has_type ($ssm_cons v vs) T1)
+    ($smt_apply_3 "ite"
+      ($smtx_value_has_type v T1)
+      ($smtx_seq_has_type vs T1)
+      $smt_builtin_false))
+  )
+)
+
 ;;; Utilities for Datatype values
 
 ; TODO: meta semantics for arbitrary unknown datatypes?
@@ -209,7 +240,7 @@
 ; that if it returns true for two terms t1 and t2 of the same type,
 ; then t1 != t2 in all models.
 (program $smtx_is_atomic_term_value
-  ((t $smt_Term) (b $smt_builtin_Bool) (n $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String))
+  ((t $smt_Term) (b $smt_builtin_Bool) (w $smt_builtin_Int) (n $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String))
   :signature ($smt_Term) $smt_builtin_Bool
   (
   ; standard atomic types are values
@@ -217,6 +248,7 @@
   (($smtx_is_atomic_term_value ($sm_mk_z n))     $smt_builtin_true)
   (($smtx_is_atomic_term_value ($sm_mk_q r))     $smt_builtin_true)
   (($smtx_is_atomic_term_value ($sm_mk_str s))   $smt_builtin_true)
+  (($smtx_is_atomic_term_value ($sm_binary w n)) $smt_builtin_true)
   ; by default, not a value
   (($smtx_is_atomic_term_value t)                $smt_builtin_false)
   )
@@ -305,7 +337,6 @@
 (program $smtx_model_eval_ite
   ((t1 $smt_Value) (t2 $smt_Value) (t3 $smt_Value))
   :signature ($smt_Value $smt_Value $smt_Value) $smt_Value
-
   (
   (($smtx_model_eval_ite $vsm_true t2 t3)   t2)
   (($smtx_model_eval_ite $vsm_false t2 t3)  t3)
@@ -375,7 +406,7 @@
 (program $smtx_empty_set ((T $eo_Term))
   :signature ($eo_Term) $smt_Value
   (
-  (($smtx_empty_set T) ($vsm_map ($smtx_hash T) $smtx_msm_empty_set))
+  (($smtx_empty_set T) ($vsm_map ($smtx_hash T) $msm_empty_set))
   )
 )
 
@@ -385,7 +416,7 @@
   :signature ($eo_Term $smt_Value) $smt_Value
   (
   (($smtx_set_singleton T e)
-     ($vsm_map ($smtx_hash T) ($smtx_mss_insert e $smtx_msm_empty_set)))
+     ($vsm_map ($smtx_hash T) ($smtx_mss_insert e $msm_empty_set)))
   )
 )
 
@@ -397,7 +428,7 @@
   (
   (($smtx_set_inter ($vsm_map T m1) ($vsm_map T m2))
     ; m1 intersected m2 starting with empty set.
-    ($vsm_map T ($smtx_mss_op_internal $smt_builtin_true m1 m2 $smtx_msm_empty_set)))
+    ($vsm_map T ($smtx_mss_op_internal $smt_builtin_true m1 m2 $msm_empty_set)))
   (($smtx_set_inter v1 v2)  $vsm_not_value)
   )
 )
@@ -410,7 +441,7 @@
   (
   (($smtx_set_minus ($vsm_map T m1) ($vsm_map T m2))
     ; m1 minus m2 starting with empty set.
-    ($vsm_map T ($smtx_mss_op_internal $smt_builtin_false m1 m2 $smtx_msm_empty_set)))
+    ($vsm_map T ($smtx_mss_op_internal $smt_builtin_false m1 m2 $msm_empty_set)))
   (($smtx_set_minus v1 v2)  $vsm_not_value)
   )
 )
@@ -423,7 +454,7 @@
   (
   (($smtx_set_union ($vsm_map T m1) ($vsm_map T m2))
     ; m1 minus the empty set starting with m2.
-    ($vsm_map T ($smtx_mss_op_internal $smt_builtin_false m1 $smtx_msm_empty_set m2)))
+    ($vsm_map T ($smtx_mss_op_internal $smt_builtin_false m1 $msm_empty_set m2)))
   (($smtx_set_union v1 v2)  $vsm_not_value)
   )
 )
@@ -470,12 +501,6 @@ $SMT_TYPE_ENUM_CASES$
   (($smtx_model_type_enum T i)               ($vsm_uconst ($smtx_hash T) i))
   )
 )
-
-; Return builtin true if T is an uninterpreted sort.
-(define $smtx_model_is_usort ((T $eo_Term))
-  ($smt_apply_=
-    ($smtx_model_type_enum T $smt_builtin_z_zero)
-    ($vsm_uconst ($smtx_hash T) $smt_builtin_z_zero)))
 
 ; Substitution
 ; program: $smtx_model_val_substitute
@@ -688,13 +713,32 @@ $SMT_EVAL_CASES$
   (($smtx_typeof_value ($vsm_seq T s))          ($eo_reverse_hash T))
   ; The type of uninterpreted constants carry its type, accessible via reverse hash.
   (($smtx_typeof_value ($vsm_uconst T id))      ($eo_reverse_hash T))
-  ; we insist that the type is uninterpreted here, or else we return the null type.
-  ; this prevents uninterpreted sort constants being used for interpreted types.
-  ;(($smtx_typeof_value ($vsm_uconst T id))
-  ;  (eo::define ((ret ($eo_reverse_hash T)))
-  ;  ($smt_apply_3 "ite" ($smtx_model_is_usort ret) ret $eo_null_type)))
   ; the type of not-values is the null sort.
   (($smtx_typeof_value val)                     $eo_null_type)
+  )
+)
+
+(program $smtx_typeof_const
+  ((id $smt_builtin_Int) (w $smt_builtin_Int) (n $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String)
+   (b $smt_builtin_Bool) (x1 $eo_Term) (x2 $eo_Term) (m $smt_Map) (sq $smt_Seq)
+   (T $smt_builtin_Int) (v $smt_Value))
+  :signature ($eo_Term $smt_Value) $eo_Term
+  (
+  (($smtx_typeof_const $eo_null_type v)      ($smtx_typeof_value v))
+;;;; new
+; (($smtx_typeof_const Bool ($vsm_term ($sm_mk_bool b)))      Bool)
+; (($smtx_typeof_const Int ($vsm_term ($sm_mk_z n)))          Int)
+; (($smtx_typeof_const Real ($vsm_term ($sm_mk_q r)))         Real)
+; (($smtx_typeof_const String ($vsm_term ($sm_mk_str s)))     String)
+; (($smtx_typeof_const (BitVec ($eo_mk_numeral w)) ($vsm_term ($sm_binary w n)))
+;    (BitVec ($eo_mk_numeral w)))
+; (($smtx_typeof_const ($tsm_USort n) ($vsm_uconst T id))     ($tsm_USort n))
+; (($smtx_typeof_const (Array x1 x2) ($vsm_map T m))
+;    ($eo_requires_eq ($smtx_map_has_type m x1 x2) true (Array x1 x2)))
+; (($smtx_typeof_const (Set x1) ($vsm_map T m))
+;    ($eo_requires_eq ($smtx_map_has_type m x1 Bool) true (Set x1)))
+; (($smtx_typeof_const (Seq x1) ($vsm_seq T sq))
+;    ($eo_requires_eq ($smtx_seq_has_type m x1) true (Seq x1)))
   )
 )
 
@@ -720,9 +764,9 @@ $SMT_EVAL_CASES$
   ; the arrow type is first class in this embedding but not in Eunoia, requires a case
   (($smtx_typeof $eo_fun_type)                        $eo_Type)
   ; the type of an atomic type uses Eunoia's typeof builtin, or null sort if this fails.
-  (($smtx_typeof ($eo_smt_type U))                    ($smt_try_typeof U))
-  ; the type of a constant is the type of its value.
-  (($smtx_typeof ($eo_smt_term ($sm_Const val)))      ($smtx_typeof_value val))
+  (($smtx_typeof ($eo_smt_type U))                    ($smt_try_typeof U)) ; FIXME dont exception
+  ; the type of a constant uses utility above
+  (($smtx_typeof ($eo_smt_term ($sm_Const val)))      ($smtx_typeof_const $eo_null_type val))
   ; similar to above, we try Eunoia's typeof, or null sort.
   (($smtx_typeof ($eo_smt_term a))                    ($smt_try_typeof a))
   ; For all other terms, we try Eunoia's typeof, or null sort.

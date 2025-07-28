@@ -190,9 +190,14 @@ Expr FlattenEval::flattenEval(State& s, ProgramOutCtx& ctx, const Expr& t)
   std::vector<Expr> vars = Expr::getVariables(t);
   if (vars.empty())
   {
-    // if ground, there is nothing to do
-    Assert(!t.isEvaluatable()) << "Static stuck evaluation";
-    return t;
+    // if ground and not evaluatable, we are done
+    if (!t.isEvaluatable())
+    {
+      return t;
+    }
+    // otherwise add a dummy variable
+    Expr dummy = s.mkSymbol(Kind::PARAM, "$etmp", s.mkBoolType());
+    vars.push_back(dummy);
   }
   Expr ret = t;
   for (const Expr& v : vars)

@@ -150,6 +150,7 @@ class ModelSmt : public StdPlugin
   std::map<std::string, std::string> d_overloadRevert;
   std::stringstream d_typeIsValue;
   std::stringstream d_typeEnum;
+  std::stringstream d_constTypeof;
   /** Auxiliary programs for SMT-LIB model evaluation */
   std::stringstream d_modelEvalProgs;
   /** SMT-LIB model evaluation cases */

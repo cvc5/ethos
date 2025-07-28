@@ -28,7 +28,7 @@ std::string StdPlugin::s_plugin_path =
 bool StdPlugin::optionFlattenEval() { return true; }
 // this ensures that the types of premises and conclusion must be Bool to
 // witness unsoundness
-bool StdPlugin::optionVcUseTypeof() { return false; }
+bool StdPlugin::optionVcUseTypeof() { return true; }
 // use constraint of SMT-LIB input terms
 bool StdPlugin::optionVcUseIsInput() { return true; }
 // strict means we are not debugging completeness

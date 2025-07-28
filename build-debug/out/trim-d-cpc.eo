@@ -616,7 +616,7 @@
 (program $eor_bool-eq-true ((t1 Bool))
   :signature (Bool) Bool
   (
-  (($eor_bool-eq-true t1) (_ (= (_ (= t1) true)) t1))
+  (($eor_bool-eq-true t1) (eo::define ((_v0 (_ (= (_ (= t1) true)) t1))) ($eo_requires_eq ($eo_model_typeof _v0) Bool _v0)))
   )
 )
 ; program: $eovc_bool-eq-true
@@ -626,5 +626,5 @@
   (($eovc_bool-eq-true t1) (eo::define ((_v0 ($eor_bool-eq-true t1))) ($eo_requires_eq ($eo_model_is_input _v0) true ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some false) true))))
   )
 )
-(echo "smt-meta $eovc_bool-eq-true :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $eo_smt_type $tsm_Bool $eo_type $eo_fun_type $eo_apply ")
+(echo "smt-meta $eovc_bool-eq-true :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $eo_smt_type $tsm_Bool $eo_Type $eo_fun_type $eo_apply ")
 
