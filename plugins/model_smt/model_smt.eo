@@ -42,8 +42,7 @@
     elseTerm))
 
 ; Guarded execution of $eo_typeof.
-(define $smt_try_typeof ((T Type :implicit) (t T))
-  ($smt_try ($eo_typeof t) $eo_null_type))
+(define $smt_try_type ((t $eo_Term)) ($smt_try ($smtx_typeof t) $eo_null_type))
 
 ; Used for constant type rules
 (define $smtx_builtin_requires ((b $smt_builtin_Bool) (t $eo_Term))
@@ -144,10 +143,10 @@
 )
 
 ; note: this is only correct for infinite maps!!!
-(define $smtx_map_is_value ((m $smt_Map))
-  ($smtx_msm_is_irredundant m))
+;       otherwise we have to check for non-exhaustiveness of the map
+(define $smtx_map_is_value ((m $smt_Map)) ($smtx_msm_is_irredundant m))
 
-; Returns true if the index type of the map is T1 and the element type is T2.
+; Returns true if the index type of the map can have T1 and the element can have type T2.
 (program $smtx_map_has_type
   ((T1 $eo_Term) (T2 $eo_Term) (i $smt_Value) (e $smt_Value) (m $smt_Map))
   :signature ($smt_Map $eo_Term $eo_Term) $smt_builtin_Bool
@@ -455,6 +454,7 @@
 (program $smtx_model_type_enum_internal ()
   :signature ($eo_Term $smt_builtin_Int $smt_builtin_Int) $smt_Value)
 
+; Helper for below.
 (program $smtx_model_type_enum_next
   ((T $eo_Term) (i $smt_builtin_Int) (h $smt_builtin_Int) (v $smt_Value) (t $smt_Term))
   :signature ($eo_Term $smt_builtin_Int $smt_builtin_Int $eo_Term $eo_Term) $smt_Value
@@ -471,7 +471,7 @@
 )
 
 ; Enumerates a stream of Eunoia terms, ordered by their hash.
-; Returns the value v corresponding to the i^th one in this stream
+; Returns the value v corresponding to the i^th term in this stream
 ; that has the form ($sm_Const T v) and has type T.
 (program $smtx_model_type_enum_internal
   ((T $eo_Term) (i $smt_builtin_Int) (h $smt_builtin_Int))
@@ -483,7 +483,7 @@
     (eo::define ((hp ($smt_apply_= ($smt_apply_2 "mod" h $smt_builtin_z_two) $smt_builtin_z_zero)))
     (eo::define ((hu ($smt_apply_3 "ite" hp ($smt_builtin_neg hn) hn)))
     (eo::define ((t ($eo_reverse_hash hu)))
-      ($smtx_model_type_enum_next T i h t ($smtx_typeof t)))))))  ; FIXME: catch stuckness
+      ($smtx_model_type_enum_next T i h t ($smt_try_type t))))))) ; we catch stuckness here
   )
 )
 
@@ -550,7 +550,7 @@
     ($vsm_Pair_mk ($smtx_model_eval F) $vsm_List_empty))
   (($smtx_eval_quant (Q ($eo_List_cons x xs) F) i tgt)
     ; get the next value in the type enumeration
-    (eo::define ((T ($smtx_typeof x)))
+    (eo::define ((T ($smt_try_type x)))
     (eo::define ((next ($smtx_model_type_enum T i)))
     ; if we are out of values, we return the negation
     ($smt_apply_3 "ite" ($smt_apply_= next $vsm_not_value)
@@ -671,23 +671,7 @@ $SMT_EVAL_CASES$
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Type system
 
-(program $smtx_mk_fun_type_internal
-  ((T $eo_Term) (U $eo_Term) (Tt $eo_Term) (Ut $eo_Term))
-  :signature ($eo_Term $eo_Term $eo_Term $eo_Term) $eo_Term
-  (
-  (($smtx_mk_fun_type_internal T U Type Type) ($eo_mk_fun_type T U))
-  (($smtx_mk_fun_type_internal T U Tt Ut)     $eo_null_type)
-  )
-)
-
-; note: Helper for below. This is analogous to the method $eo_typeof_apply
-(program $smtx_typeof_apply ((T $eo_Term) (U $eo_Term))
-  :signature ($eo_Term $eo_Term) $eo_Term
-  (
-  (($smtx_typeof_apply ($eo_mk_fun_type T U) T) U)
-  )
-)
-
+; This method gets stuck
 (program $smtx_typeof_const
   ((id $smt_builtin_Int) (w $smt_builtin_Int) (n $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String)
    (b $smt_builtin_Bool) (x1 $eo_Term) (x2 $eo_Term) (m $smt_Map) (sq $smt_Seq)
@@ -721,15 +705,15 @@ $SMT_CONST_TYPE_OF_CASES$
   :signature ($eo_Term) $eo_Term
   (
   ; the arrow type is first class in this embedding but not in Eunoia, requires a case
-  (($smtx_typeof $eo_fun_type)                        $eo_Type)
+  (($smtx_typeof $eo_fun_type)                        ($eo_mk_fun_type $eo_Type $eo_Type))
   ; the type of an atomic type uses Eunoia's typeof builtin, or null sort if this fails.
-  (($smtx_typeof ($eo_smt_type U))                    ($smt_try_typeof U)) ; FIXME dont exception
+  (($smtx_typeof ($eo_smt_type U))                    ($eo_typeof U))
   ; the type of a constant uses utility above
   (($smtx_typeof ($eo_smt_term ($sm_Const T val)))    ($smtx_typeof_const T val))
   ; similar to above, we try Eunoia's typeof, or null sort.
-  (($smtx_typeof ($eo_smt_term a))                    ($smt_try_typeof a))
+  (($smtx_typeof ($eo_smt_term a))                    ($eo_typeof a))
   ; For all other terms, we try Eunoia's typeof, or null sort.
-  (($smtx_typeof t)                                   ($smt_try_typeof t))
+  (($smtx_typeof t)                                   ($eo_typeof t))
   )
 )
 

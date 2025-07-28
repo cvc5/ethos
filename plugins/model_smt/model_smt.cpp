@@ -205,7 +205,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addRecReduceSym("set.member", {kT, kT}, "($smtx_map_select e2 e1)");
   addTermReduceSym("set.subset", {kT, kT}, "(= (set.inter x1 x2) x1)");
   addRecReduceSym("@sets_deq_diff", {kT, kT}, "($smtx_map_diff e1 e2)");
-  // addTermReduceSym("set.is_empty", {kT}, "(= x1 ($smtx_empty_set_of_typeof
+  addRecReduceSym("set.is_empty", {kT}, "($vsm_term ($sm_mk_bool ($smt_apply_= e1 $smtx_empty_set)))");
   // x1))");
   //   bitvectors
   addTermReduceSym(

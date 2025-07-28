@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_bool-eq-true
-; #trim-defs: 163
+; #trim-defs: 162
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -166,6 +166,8 @@
   ($smd_sm.Binary w n))
 (define $vsm_true () ($vsm_term $sm_mk_true))
 (define $vsm_false () ($vsm_term $sm_mk_false))
+(define $eo_mk_fun_type ((T1 $eo_Term) (T2 $eo_Term)) 
+  ($eo_apply ($eo_apply $eo_fun_type T1) T2))
 (define $eo_null_type ()
   ($eo_smt_type ($tsm_NullSort $smt_builtin_z_zero)))
 (program $smtx_pow2 ((i $smt_builtin_Int))
@@ -280,12 +282,6 @@
 (define $smtx_value_has_type ((v $smt_Value) (T $eo_Term))
   ($smt_apply_= ($smtx_typeof ($eo_smt_term ($sm_Const T v))) T))
 (program $smtx_is_value () :signature ($smt_Value) $smt_builtin_Bool)
-(define $smt_try ((t $eo_Term) (elseTerm $eo_Term))
-  ($smt_apply_3 "ite" ($smt_builtin_is_ok t)
-    t
-    elseTerm))
-(define $smt_try_typeof ((T Type :implicit) (t T))
-  ($smt_try ($eo_typeof t) $eo_null_type))
 (define $smtx_builtin_requires ((b $smt_builtin_Bool) (t $eo_Term))
   ($smt_apply_3 "ite" b t $eo_fail))
 (program $smtx_msm_lookup
@@ -330,8 +326,7 @@
       $smt_builtin_false))
   )
 )
-(define $smtx_map_is_value ((m $smt_Map))
-  ($smtx_msm_is_irredundant m))
+(define $smtx_map_is_value ((m $smt_Map)) ($smtx_msm_is_irredundant m))
 (program $smtx_seq_is_value ((vs $smt_Seq) (v $smt_Value))
   :signature ($smt_Seq) $smt_builtin_Bool
   (
@@ -487,15 +482,15 @@
   :signature ($eo_Term) $eo_Term
   (
   
-  (($smtx_typeof $eo_fun_type)                        $eo_Type)
+  (($smtx_typeof $eo_fun_type)                        ($eo_mk_fun_type $eo_Type $eo_Type))
   
-  (($smtx_typeof ($eo_smt_type U))                    ($smt_try_typeof U)) 
+  (($smtx_typeof ($eo_smt_type U))                    ($eo_typeof U))
   
   (($smtx_typeof ($eo_smt_term ($sm_Const T val)))    ($smtx_typeof_const T val))
   
-  (($smtx_typeof ($eo_smt_term a))                    ($smt_try_typeof a))
+  (($smtx_typeof ($eo_smt_term a))                    ($eo_typeof a))
   
-  (($smtx_typeof t)                                   ($smt_try_typeof t))
+  (($smtx_typeof t)                                   ($eo_typeof t))
   )
 )
 (program $smtx_is_input

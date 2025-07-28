@@ -880,11 +880,11 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   // compile the pattern matching
   std::stringstream cases;
   std::stringstream casesEnd;
+  // If the return type does not have meta-kind Eunoia, then it cannot get
+  // stuck. We ensure that all programs over such types are total.
+  bool isSmtProgram = (getTypeMetaKind(vt[nargs - 1])!=MetaKind::EUNOIA);
   // start with stuck case, if not a SMT program
-  // TODO: make more robust by looking at types???
-  bool isSmtProgram = (vname.compare(0, 6, "$smtx_") == 0);
-  bool isEoProg = !isSmtProgram;
-  if (isEoProg)
+  if (!isSmtProgram)
   {
     cases << "  (ite ";
     printStuck.printConjunction(cases, true);
@@ -931,38 +931,17 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
               << metaKindToString(bodyInitCtx) << std::endl;
     printEmbTerm(body, currRet, ctx, bodyInitCtx);
     std::cout << "...returns \"" << currRet.str() << "\"" << std::endl;
-    if (isEoProg || isSmtProgram)
+    // for SMT programs, the last case is assumed to be total
+    // this is part of the trusted core: to ensure all programs in
+    // model_smt.eo are total.
+    if (i + 1 < ncases || !isSmtProgram)
     {
-      // we permit SMT_PROGRAM and Eunoia programs to have pattern matching
-      // now print the case/return
-      // for SMT_PROGRAM, the last case is assumed to be total
-      // this is part of the trusted core: to ensure all programs in
-      // model_smt.eo are total.
-      if (i + 1 < ncases || !isSmtProgram)
-      {
-        cases << "  (ite ";
-        print.printConjunction(cases);
-        cases << std::endl;
-        casesEnd << ")";
-      }
-      cases << "    " << currRet.str() << std::endl;
+      cases << "  (ite ";
+      print.printConjunction(cases);
+      cases << std::endl;
+      casesEnd << ")";
     }
-    else
-    {
-      if (i > 0 && !isSmtProgram)
-      {
-        Assert(false)
-            << "Program " << v
-            << " is not a Eunoia program and thus cannot have multiple cases";
-      }
-      if (print.d_npush > 0)
-      {
-        Assert(false) << "Program " << v
-                      << " is not a Eunoia program and thus cannot rely on "
-                         "pattern matching";
-      }
-      cases << "  " << currRet.str() << std::endl;
-    }
+    cases << "    " << currRet.str() << std::endl;
   }
   // axiom
   if (reqAxiom)
@@ -987,7 +966,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
            << retType.str() << std::endl;
   }
   d_defs << cases.str();
-  if (isEoProg)
+  if (!isSmtProgram)
   {
     d_defs << "    eo.Stuck";
   }
