@@ -86,7 +86,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTypeSym("(Seq Char)", {}, "($vsm_term ($sm_mk_str s))", "(Seq Char)");
   d_typeCase["Seq"].push_back("(Seq Char)");
   d_symIgnore["Char"] = true;
-  // addTypeSym("RegLan", {});
+  d_symIgnore["RegLan"] = true;
   addConstFoldSym("str.++", {kString, kString}, kString);
   addConstFoldSym("str.len", {kString}, kInt);
   addConstFoldSym("str.substr", {kString, kInt, kInt}, kString);
@@ -219,8 +219,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // these allow Herbrand interpretations
   // addTypeSym("Tuple", {kT, kT});
   // addTypeSym("UnitTuple", {});
+  d_symIgnore["Tuple"] = true;
+  d_symIgnore["UnitTuple"] = true;
   addReduceSym("tuple", {}, "($vsm_apply ($vsm_term tuple) $vsm_not_value)");
-  addReduceSym("unit.tuple", {}, "($vsm_term unit.tuple)");
+  addReduceSym("tuple.unit", {}, "($vsm_term tuple.unit)");
 }
 
 ModelSmt::~ModelSmt() {}

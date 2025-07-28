@@ -811,6 +811,11 @@ void SmtMetaReduce::finalizePrograms()
 
 void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
 {
+  // check for duplicate forward declaration, ignore
+  if (prog.isNull() && d_progDeclProcessed.find(v)!=d_progDeclProcessed.end())
+  {
+    return;
+  }
   std::string vname = getName(v);
   std::cout << "*** Setting up program " << v << " / " << !prog.isNull()
             << std::endl;
