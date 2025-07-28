@@ -70,15 +70,22 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("to_real", {kInt}, kReal);
   addTermReduceSym("divisible", {kInt, kInt}, "(= (mod x2 x1) 0)");
   // arrays
-  addTypeSym("Array", {kT, kT}, "($vsm_map T m)", "($eo_requires_eq ($smtx_map_has_type m x1 x2) true (Array x1 x2))");
+  addTypeSym(
+      "Array",
+      {kT, kT},
+      "($vsm_map T m)",
+      "($eo_requires_eq ($smtx_map_has_type m x1 x2) true (Array x1 x2))");
   addRecReduceSym("select", {kT, kT}, "($smtx_map_select e1 e2)");
   addRecReduceSym("store", {kT, kT, kT}, "($smtx_map_store e1 e2 e3)");
   // strings
-  addTypeSym("Seq", {kT}, "($vsm_seq T sq)", "($eo_requires_eq ($smtx_seq_has_type m x1) true (Seq x1))");
+  addTypeSym("Seq",
+             {kT},
+             "($vsm_seq T sq)",
+             "($eo_requires_eq ($smtx_seq_has_type m x1) true (Seq x1))");
   addTypeSym("String", {kT}, "($vsm_term ($sm_mk_str s))", "String");
   d_typeCase["Seq"].push_back("String");
   d_symIgnore["Char"] = true;
-  //addTypeSym("RegLan", {});
+  // addTypeSym("RegLan", {});
   addConstFoldSym("str.++", {kString, kString}, kString);
   addConstFoldSym("str.len", {kString}, kInt);
   addConstFoldSym("str.substr", {kString, kInt, kInt}, kString);
@@ -97,7 +104,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("str.<=", {kString, kString}, kBool);
   addConstFoldSym("str.<", {kString, kString}, kBool);
   // bitvectors
-  addTypeSym("BitVec", {kInt}, "($vsm_term ($sm_binary w n))", "($eq_requires_eq x1 ($eo_mk_numeral w) (BitVec x1))");
+  addTypeSym("BitVec",
+             {kInt},
+             "($vsm_term ($sm_binary w n))",
+             "($eq_requires_eq x1 ($eo_mk_numeral w) (BitVec x1))");
   // the following are return terms of aux program cases of the form:
   // (($smtx_model_eval_f
   //    ($vsm_term ($sm_binary x1 x2)) ($vsm_term ($sm_binary x3 x4)))
@@ -136,9 +146,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitSym("ubv_to_int", {kBitVec}, kInt, "x2");
   addLitBinSym("int_to_bv", {kInt, kInt}, "x1", "x2");
   // Quantifiers
-  addReduceSym("exists", {Kind::ANY, kBool}, "($smtx_model_eval_exists (exists x1 x2))");
-  addReduceSym("forall", {Kind::ANY, kBool}, "($smtx_model_eval_forall (forall x1 x2))");
-  addReduceSym("@quantifiers_skolemize", {kBool, kInt}, "($smtx_eval_choice_nth x1 x2)");
+  addReduceSym(
+      "exists", {Kind::ANY, kBool}, "($smtx_model_eval_exists (exists x1 x2))");
+  addReduceSym(
+      "forall", {Kind::ANY, kBool}, "($smtx_model_eval_forall (forall x1 x2))");
+  addReduceSym(
+      "@quantifiers_skolemize", {kBool, kInt}, "($smtx_eval_choice_nth x1 x2)");
 
   ///----- non standard extensions and skolems
   // builtin
@@ -177,9 +190,14 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addRecReduceSym("seq.nth", {kT, kInt}, "($smtx_seq_nth e1 e2)");
   // sets
   // (Set T) is modelled as (Array T Bool).
-  addTypeSym("Set", {kT}, "($vsm_map T m)", "($eo_requires_eq ($smtx_map_has_type m x1 Bool) true (Set x1))");
+  addTypeSym("Set",
+             {kT},
+             "($vsm_map T m)",
+             "($eo_requires_eq ($smtx_map_has_type m x1 Bool) true (Set x1))");
   addReduceSym("set.empty", {kT}, "($smtx_empty_set x1)");
-  addRecReduceSym("set.singleton", {kT}, "($smtx_set_singleton ($eo_typeof (set.singleton x1)) e1)");
+  addRecReduceSym("set.singleton",
+                  {kT},
+                  "($smtx_set_singleton ($eo_typeof (set.singleton x1)) e1)");
   addRecReduceSym("set.inter", {kT, kT}, "($smtx_set_inter e1 e2)");
   addRecReduceSym("set.minus", {kT, kT}, "($smtx_set_minus e1 e2)");
   addRecReduceSym("set.union", {kT, kT}, "($smtx_set_union e1 e2)");
@@ -198,15 +216,18 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTermReduceSym("@bit", {kInt, kBitVec}, "(extract x1 x1 x2)");
   // tuples
   // these allow Herbrand interpretations
-  //addTypeSym("Tuple", {kT, kT});
-  //addTypeSym("UnitTuple", {});
+  // addTypeSym("Tuple", {kT, kT});
+  // addTypeSym("UnitTuple", {});
   addReduceSym("tuple", {}, "($vsm_apply ($vsm_term tuple) $vsm_not_value)");
   addReduceSym("unit.tuple", {}, "($vsm_term unit.tuple)");
 }
 
 ModelSmt::~ModelSmt() {}
 
-void ModelSmt::addTypeSym(const std::string& sym, const std::vector<Kind>& args, const std::string& cpat, const std::string& cret)
+void ModelSmt::addTypeSym(const std::string& sym,
+                          const std::vector<Kind>& args,
+                          const std::string& cpat,
+                          const std::string& cret)
 {
   d_symTypes[sym] =
       std::tuple<std::vector<Kind>, std::string, std::string>(args, cpat, cret);
@@ -292,10 +313,15 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
 void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
 {
   Attr attr = d_state.getConstructorKind(e.getValue());
-  std::map<std::string, std::tuple<std::vector<Kind>, std::string, std::string>>::iterator itt = d_symTypes.find(name);
-  if (itt!=d_symTypes.end())
+  std::map<std::string,
+           std::tuple<std::vector<Kind>, std::string, std::string>>::iterator
+      itt = d_symTypes.find(name);
+  if (itt != d_symTypes.end())
   {
-    printConstType(name, std::get<0>(itt->second), std::get<1>(itt->second), std::get<2>(itt->second));
+    printConstType(name,
+                   std::get<0>(itt->second),
+                   std::get<1>(itt->second),
+                   std::get<2>(itt->second));
     return;
   }
   std::map<std::string, std::vector<Kind>>::iterator ith =
@@ -344,7 +370,10 @@ void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
   Assert(false) << "No model semantics found for " << name;
 }
 
-void ModelSmt::printConstType(const std::string& name, const std::vector<Kind>& args, const std::string& cpat, const std::string& cret)
+void ModelSmt::printConstType(const std::string& name,
+                              const std::vector<Kind>& args,
+                              const std::string& cpat,
+                              const std::string& cret)
 {
 }
 

@@ -104,7 +104,9 @@ class ModelSmt : public StdPlugin
                        Kind ret);
   /** add type */
   void addTypeSym(const std::string& sym,
-                              const std::vector<Kind>& args, const std::string& cpat, const std::string& cret);
+                  const std::vector<Kind>& args,
+                  const std::string& cpat,
+                  const std::string& cret);
   /**
    * Helper method for printing the final program case to $smtx_model_eval, i.e.
    * (($smtx_model_eval (<name> x1 ... xn)) <retTerm>).
@@ -130,7 +132,10 @@ class ModelSmt : public StdPlugin
                       Kind ret,
                       const std::string& reduce);
   /** Print for type */
-  void printConstType(const std::string& name, const std::vector<Kind>& args, const std::string& cpat, const std::string& cret);
+  void printConstType(const std::string& name,
+                      const std::vector<Kind>& args,
+                      const std::string& cpat,
+                      const std::string& cret);
   void printAuxProgramCase(const std::string& name,
                            const std::vector<Kind>& args,
                            const std::string& ret,
@@ -162,7 +167,8 @@ class ModelSmt : public StdPlugin
   /**
    * SMT-LIB types.
    */
-  std::map<std::string, std::tuple<std::vector<Kind>, std::string, std::string>> d_symTypes;
+  std::map<std::string, std::tuple<std::vector<Kind>, std::string, std::string>>
+      d_symTypes;
   std::map<std::string, std::vector<std::string>> d_typeCase;
   /**
    * SMT-LIB symbols with "normal" evaluation, we give their argument kinds

@@ -1251,7 +1251,7 @@ MetaKind SmtMetaReduce::getMetaKind(State& s,
                                     std::string& cname) const
 {
   std::string sname = getName(e);
-  if (sname.compare(0, 5, "$smt_") == 0 || sname=="$eo_Term")
+  if (sname.compare(0, 5, "$smt_") == 0 || sname == "$eo_Term")
   {
     // internal-only symbol, e.g. one used for defining the deep embedding
     cname = sname;
