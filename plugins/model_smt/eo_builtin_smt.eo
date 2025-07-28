@@ -941,7 +941,7 @@
 ; note: this is an arbitrary hash for SMT values, defined axiomatically.
 ; We rely on embedding values into constants, which are Eunoia terms.
 (define $smtx_value_hash ((v $smt_Value))
-  ($smtx_hash ($eo_smt_term ($sm_Const v))))
+  ($smtx_hash ($eo_smt_term ($sm_Const v))))  ; FIXME add null sort
 
 ; The SMT-LIB comparison of two SMT-LIB values.
 (define $smtx_value_cmp ((a $smt_Value) (b $smt_Value))

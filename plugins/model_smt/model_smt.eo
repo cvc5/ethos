@@ -204,6 +204,7 @@
   )
 )
 
+; returns true if all elements in the sequence have type T1
 (program $smtx_seq_has_type
   ((T1 $eo_Term) (vs $smt_Seq) (v $smt_Value))
   :signature ($smt_Seq $eo_Term) $smt_builtin_Bool
@@ -474,7 +475,7 @@
   :signature ($smt_Value) $smt_Value
   (
   (($smtx_seq_unit e)
-    ($vsm_seq ($smtx_hash ($smtx_typeof_value e)) ($ssm_cons e $ssm_empty)))
+    ($vsm_seq ($smtx_hash ($smtx_typeof_value e)) ($ssm_cons e $ssm_empty)))  ; FIXME: simplify
   )
 )
 
@@ -492,6 +493,7 @@
 
 ; Type enumeration
 ; returns $vsm_not_value if we are done (i.e. the cardinality of T is less than i).
+; FIXME: use hash!!!!  we require it is an arbitrarily ordered enumeration
 (program $smtx_model_type_enum ((T $eo_Term) (i $smt_builtin_Int))
   :signature ($eo_Term $smt_builtin_Int) $smt_Value
   (
@@ -508,13 +510,12 @@ $SMT_TYPE_ENUM_CASES$
 ; ($smtx_model_val_substitute x v t) returns the term where x is replaced by
 ; the constant that is interpreted as v.
 (program $smtx_model_val_substitute
-  ((x $eo_Term) (v $smt_Value) (f $eo_Term) (a $eo_Term) (z $eo_Term))
-  :signature ($eo_Term $smt_Value $eo_Term) $eo_Term
+  ((x $eo_Term) (v $eo_Term) (f $eo_Term) (a $eo_Term) (z $eo_Term))
+  :signature ($eo_Term $eo_Term $eo_Term) $eo_Term
   (
   (($smtx_model_val_substitute x v (f a))
     (_ ($smtx_model_val_substitute x v f) ($smtx_model_val_substitute x v a)))
-  (($smtx_model_val_substitute x v x)
-    ($eo_smt_term ($sm_Const v)))   ; we are now the constant with the given interpretation
+  (($smtx_model_val_substitute x v x) v)   ; we are now the constant with the given interpretation
   (($smtx_model_val_substitute x v z) z)
   )
 )
@@ -561,13 +562,15 @@ $SMT_TYPE_ENUM_CASES$
     ($vsm_Pair_mk ($smtx_model_eval F) $vsm_List_empty))
   (($smtx_eval_quant (Q ($eo_List_cons x xs) F) i tgt)
     ; get the next value in the type enumeration
-    (eo::define ((next ($smtx_model_type_enum ($eo_model_typeof x) i)))
+    (eo::define ((T ($smtx_typeof x)))
+    (eo::define ((next ($smtx_model_type_enum T i)))
     ; if we are out of values, we return the negation
     ($smt_apply_3 "ite" ($smt_apply_= next $vsm_not_value)
       ; out of values, return the negation of target with no value (no witness)
       ($vsm_Pair_mk ($vsm_term ($sm_mk_bool ($smt_apply_1 "not" tgt))) $vsm_List_empty)
       ; recurse on the next variable
-      (eo::define ((eval ($smtx_eval_quant (Q xs ($smtx_model_val_substitute x next F)) $smt_builtin_z_zero tgt)))
+      (eo::define ((subs ($smtx_model_val_substitute x ($eo_smt_term ($sm_Const next)) F))) ; FIXME add T
+      (eo::define ((eval ($smtx_eval_quant (Q xs subs) $smt_builtin_z_zero tgt)))
       ; setup the return value
       (eo::define ((ret ($smtx_eval_quant_next eval next tgt)))
       ; check if the above setup was inconclusive
@@ -575,7 +578,7 @@ $SMT_TYPE_ENUM_CASES$
         ; inconclusive, recurse for the next value in the type enumeration for the current variable
         ($smtx_eval_quant (Q ($eo_List_cons x xs) F) ($smt_builtin_z_inc i) tgt)
         ; otherwise return, which is either the case that we failed to evaluate, or evaluated to tgt
-        ret))))))
+        ret))))))))
   ; not a quantified formula, fail
   (($smtx_eval_quant F i tgt) $vsm_not_value)
   )
@@ -639,7 +642,7 @@ $SMT_EVAL_CASES$
   ;; free constants
   ; Constants carry their value in the model, which is an arbitrary value term.
   ; We run this value through $smtx_ensure_value to ensure it is a proper value.
-  (($smtx_model_eval ($sm_Const val))           ($smtx_ensure_value val))
+  (($smtx_model_eval ($sm_Const val))           ($smtx_ensure_value val))     ; FIXME: add T
   
   ; Apply case. We evaluate f and y separately and then call the
   ; $smtx_model_eval_apply above. We expect f to be an uninterpreted
@@ -700,6 +703,7 @@ $SMT_EVAL_CASES$
 
 ; Helper for below. This defines the typeof
 ; TODO: doesn't properly guard map and sequence values
+; FIXME: remove
 (program $smtx_typeof_value
   ((val $smt_Value) (T $smt_builtin_Int) (m $smt_Map) (s $smt_Seq)
    (id $smt_builtin_Int) (f $smt_Value) (a $smt_Term) (U $smt_Type))
@@ -724,15 +728,16 @@ $SMT_EVAL_CASES$
    (T $smt_builtin_Int) (v $smt_Value))
   :signature ($eo_Term $smt_Value) $eo_Term
   (
-  (($smtx_typeof_const $eo_null_type v)      ($smtx_typeof_value v))
-;;;; new
-; (($smtx_typeof_const Bool ($vsm_term ($sm_mk_bool b)))      Bool)
+  (($smtx_typeof_const $eo_null_type v)      ($smtx_typeof_value v))  ; FIXME: remove
+  (($smtx_typeof_const Bool ($vsm_term ($sm_mk_bool b)))      Bool)
+  (($smtx_typeof_const ($tsm_USort n) ($vsm_uconst T id))     ($tsm_USort n))
+  ; auto-generated
+$SMT_CONST_TYPE_OF_CASES$
 ; (($smtx_typeof_const Int ($vsm_term ($sm_mk_z n)))          Int)
 ; (($smtx_typeof_const Real ($vsm_term ($sm_mk_q r)))         Real)
 ; (($smtx_typeof_const String ($vsm_term ($sm_mk_str s)))     String)
 ; (($smtx_typeof_const (BitVec ($eo_mk_numeral w)) ($vsm_term ($sm_binary w n)))
 ;    (BitVec ($eo_mk_numeral w)))
-; (($smtx_typeof_const ($tsm_USort n) ($vsm_uconst T id))     ($tsm_USort n))
 ; (($smtx_typeof_const (Array x1 x2) ($vsm_map T m))
 ;    ($eo_requires_eq ($smtx_map_has_type m x1 x2) true (Array x1 x2)))
 ; (($smtx_typeof_const (Set x1) ($vsm_map T m))
@@ -766,7 +771,7 @@ $SMT_EVAL_CASES$
   ; the type of an atomic type uses Eunoia's typeof builtin, or null sort if this fails.
   (($smtx_typeof ($eo_smt_type U))                    ($smt_try_typeof U)) ; FIXME dont exception
   ; the type of a constant uses utility above
-  (($smtx_typeof ($eo_smt_term ($sm_Const val)))      ($smtx_typeof_const $eo_null_type val))
+  (($smtx_typeof ($eo_smt_term ($sm_Const val)))      ($smtx_typeof_const $eo_null_type val)) ; FIXME add and pass T
   ; similar to above, we try Eunoia's typeof, or null sort.
   (($smtx_typeof ($eo_smt_term a))                    ($smt_try_typeof a))
   ; For all other terms, we try Eunoia's typeof, or null sort.
@@ -787,7 +792,7 @@ $SMT_EVAL_CASES$
   (
   (($smtx_is_input ($eo_apply t a))
     ($eo_if_both ($smtx_is_input t) ($smtx_is_input a)))
-  (($smtx_is_input ($eo_smt_term ($sm_Const v)))  ($eo_mk_bool ($smtx_is_value v)))
+  (($smtx_is_input ($eo_smt_term ($sm_Const v)))  ($eo_mk_bool ($smtx_is_value v)))  ; FIXME recurse on T
   (($smtx_is_input ($eo_smt_term s))              true)
   (($smtx_is_input ($eo_smt_type T))              true)
   (($smtx_is_input t)                             false)

@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_bool-eq-true
-; #trim-defs: 157
+; #trim-defs: 159
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -69,6 +69,9 @@
 (declare-const $smt_Seq Type)
 (declare-const $smd_tsm.Bool $smt_Type)
 (define $tsm_Bool () $smd_tsm.Bool)
+(declare-parameterized-const $smd_tsm.USort
+  ((id $smt_builtin_Int :opaque)) $smt_Type)
+(define $tsm_USort ((id $smt_builtin_Int)) ($smd_tsm.USort id))
 (declare-parameterized-const $smd_tsm.NullSort
   ((id $smt_builtin_Int :opaque)) $smt_Type)
 (define $tsm_NullSort ((id $smt_builtin_Int)) ($smd_tsm.NullSort id))
@@ -429,7 +432,7 @@
   
   
   
-  (($smtx_model_eval ($sm_Const val))           ($smtx_ensure_value val))
+  (($smtx_model_eval ($sm_Const val))           ($smtx_ensure_value val))     
   
   
   
@@ -481,9 +484,10 @@
    (T $smt_builtin_Int) (v $smt_Value))
   :signature ($eo_Term $smt_Value) $eo_Term
   (
-  (($smtx_typeof_const $eo_null_type v)      ($smtx_typeof_value v))
-
-
+  (($smtx_typeof_const $eo_null_type v)      ($smtx_typeof_value v))  
+  (($smtx_typeof_const Bool ($vsm_term ($sm_mk_bool b)))      Bool)
+  (($smtx_typeof_const ($tsm_USort n) ($vsm_uconst T id))     ($tsm_USort n))
+  
 
 
 
@@ -508,7 +512,7 @@
   
   (($smtx_typeof ($eo_smt_type U))                    ($smt_try_typeof U)) 
   
-  (($smtx_typeof ($eo_smt_term ($sm_Const val)))      ($smtx_typeof_const $eo_null_type val))
+  (($smtx_typeof ($eo_smt_term ($sm_Const val)))      ($smtx_typeof_const $eo_null_type val)) 
   
   (($smtx_typeof ($eo_smt_term a))                    ($smt_try_typeof a))
   
@@ -521,7 +525,7 @@
   (
   (($smtx_is_input ($eo_apply t a))
     ($eo_if_both ($smtx_is_input t) ($smtx_is_input a)))
-  (($smtx_is_input ($eo_smt_term ($sm_Const v)))  ($eo_mk_bool ($smtx_is_value v)))
+  (($smtx_is_input ($eo_smt_term ($sm_Const v)))  ($eo_mk_bool ($smtx_is_value v)))  
   (($smtx_is_input ($eo_smt_term s))              true)
   (($smtx_is_input ($eo_smt_type T))              true)
   (($smtx_is_input t)                             false)
