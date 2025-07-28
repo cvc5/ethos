@@ -35,10 +35,9 @@ $EO_LITERAL_TYPE_DECL$
 
 ;;; $eo_Option
 
-; Untyped option type, using $eo_List
-(define $eo_Option_null () $eo_List_nil)
-(define $eo_Option_some ((T Type :implicit) (t T)) ($eo_List_cons t $eo_List_nil))
-(define $eo_Option () $eo_List)
+(declare-const $eo_Option Type)
+(declare-const $eo_Option_null $eo_Option)
+(declare-parameterized-const $eo_Option_some ((T Type :implicit) (t T :opaque)) $eo_Option)
 
 ;;; forward declarations
 
@@ -564,7 +563,7 @@ $EO_NIL_CASES$
 (program $eo_model_is_input () :signature (Bool) Bool)
 
 ; We will include the definition of the above functions here.
-(echo "include eo_model_sat :deps $eo_typeof_main $eo_dt_constructors $eo_dt_selectors $eo_if_both $eo_Option_some $eo_Option_null $eo_model_sat $eo_model_typeof $eo_model_is_input $eo_Pair_mk $eo_Pair_first $eo_Pair_second ")
+(echo "include eo_model_sat :deps $eo_typeof_main $eo_dt_constructors $eo_dt_selectors $eo_if_both $eo_List_nil $eo_List_cons $eo_Option_some $eo_Option_null $eo_model_sat $eo_model_typeof $eo_model_is_input $eo_Pair_mk $eo_Pair_first $eo_Pair_second ")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; vc
 

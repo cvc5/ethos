@@ -1241,7 +1241,9 @@ MetaKind SmtMetaReduce::getMetaKind(State& s,
     cname = sname;
     return MetaKind::SMT_BUILTIN;
   }
-  // terms starting with @@ are considered Eunoia (not SMT-LIB)
+  // terms starting with @@ are considered Eunoia (not SMT-LIB).
+  // all symbols apart from $eo_Term that begin with $eo_ are Eunoia terms,
+  // e.g. $eo_Var, $eo_List, etc.
   if (sname.compare(0, 2, "@@") == 0 || sname.compare(0, 4, "$eo_") == 0)
   {
     cname = sname;
