@@ -1600,18 +1600,42 @@
 
 ;;; Quantifiers
 
-; Type enumeration
-; returns $vsm_not_value if we are done (i.e. the cardinality of T is less than i).
-; FIXME: use hash!!!!  we require it is an arbitrarily ordered enumeration
-(program $smtx_model_type_enum ((T $eo_Term) (i $smt_builtin_Int))
-  :signature ($eo_Term $smt_builtin_Int) $smt_Value
-  (
-  ; auto-generated cases
+(program $smtx_model_type_enum_internal ()
+  :signature ($eo_Term $smt_builtin_Int $smt_builtin_Int) $smt_Value)
 
-  ; otherwise, uninterpreted constant.
-  (($smtx_model_type_enum T i)               ($vsm_uconst i))
+(program $smtx_model_type_enum_next
+  ((T $eo_Term) (i $smt_builtin_Int) (h $smt_builtin_Int) (v $smt_Value) (t $smt_Term))
+  :signature ($eo_Term $smt_builtin_Int $smt_builtin_Int $eo_Term $eo_Term) $smt_Value
+  (
+  ; we are looking for the first term of type T and the current term is legal, return
+  (($smtx_model_type_enum_next T $smt_builtin_z_zero h ($sm_Const T v) T) v)
+  ; the current term is legal, decrement i and increment hash counter
+  (($smtx_model_type_enum_next T i h ($sm_Const T v) T)
+    ($smtx_model_type_enum_internal T ($smt_builtin_z_dec i) ($smt_builtin_z_inc h)))
+  ; the current term is not legal, increment hash counter
+  (($smtx_model_type_enum_next T i h t T)
+    ($smtx_model_type_enum_internal T i ($smt_builtin_z_inc h)))
   )
 )
+
+(program $smtx_model_type_enum_internal
+  ((T $eo_Term) (i $smt_builtin_Int) (h $smt_builtin_Int))
+  :signature ($eo_Term $smt_builtin_Int $smt_builtin_Int) $smt_Value
+  (
+  (($smtx_model_type_enum_internal T i h)
+    ; Hash counter 1, 2, 3, 4, 5 ... turns into 0, -1, 1, -2, 2, ....
+    (eo::define ((hn ($smt_apply_2 "div" h $smt_builtin_z_two)))
+    (eo::define ((hp ($smt_apply_= ($smt_apply_2 "mod" h $smt_builtin_z_two) $smt_builtin_z_zero)))
+    (eo::define ((hu ($smt_apply_3 "ite" hp ($smt_builtin_neg hn) hn)))
+    (eo::define ((t ($eo_reverse_hash hu)))
+      ($smtx_model_type_enum_next T i h t ($smtx_typeof t)))))))
+  )
+)
+
+; Type enumeration
+(define $smtx_model_type_enum ((T $eo_Term) (i $smt_builtin_Int))
+  ; start with hash counter one
+  ($smtx_model_type_enum_internal T i $smt_builtin_z_one))
 
 ; Substitution
 ; program: $smtx_model_val_substitute
