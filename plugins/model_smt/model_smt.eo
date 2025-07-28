@@ -385,25 +385,12 @@
 ;;; Sets
 
 ; Empty set
-; args:
-; - T: the type of the empty set. This is expected to have type Type.
-; TODO: simplify
-(program $smtx_empty_set ((T $eo_Term))
-  :signature ($eo_Term) $smt_Value
-  (
-  (($smtx_empty_set T) ($vsm_map $msm_empty_set))
-  )
-)
+(define $smtx_empty_set () ($vsm_map $msm_empty_set))
 
 ; Set singleton
 ; return the singleton set whose type is T and contains e.
-; TODO: simplify
-(program $smtx_set_singleton ((T $eo_Term) (e $smt_Value))
-  :signature ($eo_Term $smt_Value) $smt_Value
-  (
-  (($smtx_set_singleton T e) ($vsm_map ($smtx_mss_insert e $msm_empty_set)))
-  )
-)
+(define $smtx_set_singleton ((e $smt_Value))
+  ($vsm_map ($smtx_mss_insert e $msm_empty_set)))
 
 ; Set intersection
 ; return the intersection of two set values.
@@ -447,21 +434,10 @@
 ;;; Sequences
 
 ; Empty sequence
-; TODO: remove
-(program $smtx_empty_seq ((T $eo_Term))
-  :signature ($eo_Term) $smt_Value
-  (
-  (($smtx_empty_seq T) ($vsm_seq $ssm_empty))
-  )
-)
+(define $smtx_empty_seq () ($vsm_seq $ssm_empty))
 
 ; Sequence unit
-(program $smtx_seq_unit ((e $smt_Value))
-  :signature ($smt_Value) $smt_Value
-  (
-  (($smtx_seq_unit e) ($vsm_seq ($ssm_cons e $ssm_empty)))
-  )
-)
+(define $smtx_seq_unit ((e $smt_Value)) ($vsm_seq ($ssm_cons e $ssm_empty)))
 
 ; Sequence nth
 (program $smtx_seq_nth

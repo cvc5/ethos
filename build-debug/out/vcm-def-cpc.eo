@@ -1510,25 +1510,12 @@
 ;;; Sets
 
 ; Empty set
-; args:
-; - T: the type of the empty set. This is expected to have type Type.
-; TODO: simplify
-(program $smtx_empty_set ((T $eo_Term))
-  :signature ($eo_Term) $smt_Value
-  (
-  (($smtx_empty_set T) ($vsm_map $msm_empty_set))
-  )
-)
+(define $smtx_empty_set () ($vsm_map $msm_empty_set))
 
 ; Set singleton
 ; return the singleton set whose type is T and contains e.
-; TODO: simplify
-(program $smtx_set_singleton ((T $eo_Term) (e $smt_Value))
-  :signature ($eo_Term $smt_Value) $smt_Value
-  (
-  (($smtx_set_singleton T e) ($vsm_map ($smtx_mss_insert e $msm_empty_set)))
-  )
-)
+(define $smtx_set_singleton ((e $smt_Value))
+  ($vsm_map ($smtx_mss_insert e $msm_empty_set)))
 
 ; Set intersection
 ; return the intersection of two set values.
@@ -1572,21 +1559,10 @@
 ;;; Sequences
 
 ; Empty sequence
-; TODO: remove
-(program $smtx_empty_seq ((T $eo_Term))
-  :signature ($eo_Term) $smt_Value
-  (
-  (($smtx_empty_seq T) ($vsm_seq $ssm_empty))
-  )
-)
+(define $smtx_empty_seq () ($vsm_seq $ssm_empty))
 
 ; Sequence unit
-(program $smtx_seq_unit ((e $smt_Value))
-  :signature ($smt_Value) $smt_Value
-  (
-  (($smtx_seq_unit e) ($vsm_seq ($ssm_cons e $ssm_empty)))
-  )
-)
+(define $smtx_seq_unit ((e $smt_Value)) ($vsm_seq ($ssm_cons e $ssm_empty)))
 
 ; Sequence nth
 (program $smtx_seq_nth
@@ -1600,6 +1576,7 @@
 
 ;;; Quantifiers
 
+; Forward declaration for below.
 (program $smtx_model_type_enum_internal ()
   :signature ($eo_Term $smt_builtin_Int $smt_builtin_Int) $smt_Value)
 
@@ -1618,6 +1595,9 @@
   )
 )
 
+; Enumerates a stream of Eunoia terms, ordered by their hash.
+; Returns the value v corresponding to the i^th one in this stream
+; that has the form ($sm_Const T v) and has type T.
 (program $smtx_model_type_enum_internal
   ((T $eo_Term) (i $smt_builtin_Int) (h $smt_builtin_Int))
   :signature ($eo_Term $smt_builtin_Int $smt_builtin_Int) $smt_Value
@@ -1628,7 +1608,7 @@
     (eo::define ((hp ($smt_apply_= ($smt_apply_2 "mod" h $smt_builtin_z_two) $smt_builtin_z_zero)))
     (eo::define ((hu ($smt_apply_3 "ite" hp ($smt_builtin_neg hn) hn)))
     (eo::define ((t ($eo_reverse_hash hu)))
-      ($smtx_model_type_enum_next T i h t ($smtx_typeof t)))))))
+      ($smtx_model_type_enum_next T i h t ($smtx_typeof t)))))))  ; FIXME: catch stuckness
   )
 )
 

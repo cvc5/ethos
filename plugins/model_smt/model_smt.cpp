@@ -186,7 +186,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                    {kString},
                    "(str.indexof_re x1 (re.comp (re.range \"0\" \"9\")) 0)");
   // sequences
-  addReduceSym("seq.empty", {kT}, "($smtx_empty_seq x1)");
+  addReduceSym("seq.empty", {kT}, "$smtx_empty_seq");
   addRecReduceSym("seq.unit", {kT}, "($smtx_seq_unit e1)");
   addRecReduceSym("seq.nth", {kT, kInt}, "($smtx_seq_nth e1 e2)");
   // sets
@@ -195,10 +195,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
              {kT},
              "($vsm_map m)",
              "($smtx_builtin_requires ($smtx_map_has_type m x1 Bool) (Set x1))");
-  addReduceSym("set.empty", {kT}, "($smtx_empty_set x1)");
+  addReduceSym("set.empty", {kT}, "$smtx_empty_set");
   addRecReduceSym("set.singleton",
                   {kT},
-                  "($smtx_set_singleton ($eo_typeof (set.singleton x1)) e1)");
+                  "($smtx_set_singleton e1)");
   addRecReduceSym("set.inter", {kT, kT}, "($smtx_set_inter e1 e2)");
   addRecReduceSym("set.minus", {kT, kT}, "($smtx_set_minus e1 e2)");
   addRecReduceSym("set.union", {kT, kT}, "($smtx_set_union e1 e2)");
