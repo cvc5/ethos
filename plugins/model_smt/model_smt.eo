@@ -448,6 +448,55 @@
   )
 )
 
+;;; Regular languages
+
+;(program $smtx_model_eval_str.in_re
+;  ((s $smt_builtin_String) (v $smt_Value) (r1 $eo_Term) (r2 $eo_Term) 
+;   (s1 $smt_builtin_String) (s2 $smt_builtin_String))
+;  :signature ($smt_builtin_String $eo_Term) $smt_Value
+;  (
+;  ; auto-generated cases
+;  (($smtx_model_eval_str.in_re s (re.inter r1 r2)) 
+;    ($vsm_term ($sm_mk_bool ($smt_builtin_and 
+;      ($smt_apply_= ($smtx_model_eval_str.in_re s r1) $vsm_true)
+;      ($smt_apply_= ($smtx_model_eval_str.in_re s r2) $vsm_true)))))
+;  (($smtx_model_eval_str.in_re s (re.union r1 r2)) 
+;    ($vsm_term ($sm_mk_bool ($smt_builtin_or 
+;      ($smt_apply_= ($smtx_model_eval_str.in_re s r1) $vsm_true)
+;      ($smt_apply_= ($smtx_model_eval_str.in_re s r2) $vsm_true)))))
+;  (($smtx_model_eval_str.in_re s re.allchar)
+;    ($vsm_term ($sm_mk_bool ($smt_apply_2 "str.in_re" s re.allchar))))
+;  (($smtx_model_eval_str.in_re s re.none)
+;    ($vsm_term ($sm_mk_bool ($smt_apply_2 "str.in_re" s re.none))))
+;  (($smtx_model_eval_str.in_re s re.all)
+;    ($vsm_term ($sm_mk_bool ($smt_apply_2 "str.in_re" s re.all))))
+;  (($smtx_model_eval_str.in_re s (re.range s1 s2))
+;  ; otherwise unevaluated
+;  (($smtx_model_eval_str.in_re s r1) $vsm_not_value)
+;  )
+;)
+
+;(program $smtx_eval_reglan
+;  ((s $eo_Term) (r1 $eo_Term) (r2 $eo_Term) (n1 $eo_Term) (n2 $eo_Term))
+;  :signature ($eo_Term) $smt_Value
+;  (
+;  ; auto-generated cases
+;  (($smtx_eval_reglan (str.to_re s)) ($vsm_re ($smt_apply_1 "str.to_re" ($smtx_model_eval s))))
+;  (($smtx_eval_reglan (re.* r1)) ($vsm_re ($smt_apply_1 "re.*" ($smtx_eval_reglan r1))))
+;  (($smtx_eval_reglan (re.+ r1)) ($vsm_re ($smt_apply_1 "re.+" ($smtx_eval_reglan r1))))
+;  (($smtx_eval_reglan (re.opt r1)) ($vsm_re ($smt_apply_1 "re.+" ($smtx_eval_reglan r1))))
+;  (($smtx_eval_reglan (re.comp r1)) ($vsm_re ($smt_apply_1 "re.+" ($smtx_eval_reglan r1))))
+;  (($smtx_eval_reglan (re.++ r1 r2)) ($vsm_re ($smt_apply_2 "re.++" ($smtx_eval_reglan r1) ($smtx_eval_reglan r2))))
+;  (($smtx_eval_reglan (re.inter r1 r2)) ($vsm_re ($smt_apply_2 "re.inter" ($smtx_eval_reglan r1) ($smtx_eval_reglan r2))))
+;  (($smtx_eval_reglan (re.union r1 r2)) ($vsm_re ($smt_apply_2 "re.union" ($smtx_eval_reglan r1) ($smtx_eval_reglan r2))))
+;  (($smtx_eval_reglan (re.diff r1 r2)) ($vsm_re ($smt_apply_2 "re.diff" ($smtx_eval_reglan r1) ($smtx_eval_reglan r2))))
+;  (($smtx_eval_reglan re.allchar) ($vsm_re ($smt_apply_0 "re.allchar"))
+;  (($smtx_eval_reglan re.none) ($vsm_re ($smt_apply_0 "re.none"))
+;  (($smtx_eval_reglan re.all) ($vsm_re ($smt_apply_0 "re.all"))
+;  (($smtx_eval_reglan r1) $vsm_not_value)
+;  )
+;)
+
 ;;; Quantifiers
 
 ; Forward declaration for below.

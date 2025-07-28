@@ -65,6 +65,7 @@
 (define $smt_builtin_Int () ($smt_type_0 "Int"))
 (define $smt_builtin_Real () ($smt_type_0 "Real"))
 (define $smt_builtin_String () ($smt_type_0 "String"))
+(define $smt_builtin_RegLan () ($smt_type_0 "RegLan"))
 (define $smt_builtin_true () ($smt_apply_0 "true"))
 (define $smt_builtin_false () ($smt_apply_0 "false"))
 (define $smt_builtin_= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_= x1 x2))
@@ -169,14 +170,16 @@
 ;;; SMT value datatype constructors
 
 ; A value denoting a map.
-; note: we store the hash of its type.
 (declare-parameterized-const $smd_vsm.Map ((m $smt_Map :opaque)) $smt_Value)
 (define $vsm_map ((m $smt_Map)) ($smd_vsm.Map m))
 
 ; A value denoting a sequence.
-; note: we store the hash of its type.
 (declare-parameterized-const $smd_vsm.Seq ((s $smt_Seq :opaque)) $smt_Value)
 (define $vsm_seq ((s $smt_Seq)) ($smd_vsm.Seq s))
+
+; A value denoting a regular language.
+;(declare-parameterized-const $smd_vsm.RegLan ((r $smt_builtin_RegLan :opaque)) $smt_Value)
+;(define $vsm_re ((r $smt_builtin_RegLan)) ($smd_vsm.RegLan r))
 
 ; A value denoting an uninterpreted constant.
 ; note: we store the hash of its type.

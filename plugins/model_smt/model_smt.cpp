@@ -25,16 +25,19 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   Kind kString = Kind::STRING;
   Kind kBitVec = Kind::BINARY;
   Kind kT = Kind::PARAM;
+  //Kind kRegLan = Kind::EVAL_TO_STRING;
   d_kindToEoPrefix[kBool] = "bool";
   d_kindToEoPrefix[kInt] = "z";
   d_kindToEoPrefix[kReal] = "q";
   d_kindToEoPrefix[kString] = "str";
   d_kindToEoPrefix[kBitVec] = "bin";
+  //d_kindToEoPrefix[kRegLan] = "re";
   d_kindToType[kBool] = "Bool";
   d_kindToType[kInt] = "Int";
   d_kindToType[kReal] = "Real";
   d_kindToType[kString] = "String";
   d_kindToType[kBitVec] = "Binary";
+  //d_kindToType[kRegLan] = "RegLan";
   // All SMT-LIB symbols require having their semantics defined here.
   // Note that we model *SMT-LIB* not *CPC* here.
   // builtin
@@ -212,6 +215,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "bvite", {kBitVec, kBitVec, kBitVec}, "(ite (= x1 (@bv 1 1)) x2 x3)");
   addTermReduceSym(
       "bvcomp", {kBitVec, kBitVec}, "(ite (= x1 x2) (@bv 1 1) (@bv 0 1))");
+  addTermReduceSym(
+      "bvultbv", {kBitVec, kBitVec, kBitVec}, "(ite (bvult x1 x2) (@bv 1 1) (@bv 0 1))");
+  addTermReduceSym(
+      "bvsltbv", {kBitVec, kBitVec, kBitVec}, "(ite (bvslt x1 x2) (@bv 1 1) (@bv 0 1))");
   addLitSym("@bvsize", {kBitVec}, kInt, "x1");
   addLitBinSym("@bv", {kInt, kInt}, "x2", "x1");
   addTermReduceSym("@bit", {kInt, kBitVec}, "(extract x1 x1 x2)");
