@@ -198,8 +198,8 @@
   ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Term)
 
 ; Free constants
-(declare-parameterized-const $smd_sm.Const ((v $smt_Value :opaque)) $smt_Term)
-(define $sm_Const ((v $smt_Value)) ($smd_sm.Const v))
+(declare-parameterized-const $smd_sm.Const ((T $eo_Term :opaque) (v $smt_Value :opaque)) $smt_Term)
+(define $sm_Const ((T $eo_Term) (v $smt_Value)) ($smd_sm.Const T v))
 
 ;;; SMT value datatype constructors
 
@@ -976,7 +976,7 @@
 ; note: this is an arbitrary hash for SMT values, defined axiomatically.
 ; We rely on embedding values into constants, which are Eunoia terms.
 (define $smtx_value_hash ((v $smt_Value))
-  ($smtx_hash ($eo_smt_term ($sm_Const v))))  ; FIXME add null sort
+  ($smtx_hash ($eo_smt_term ($sm_Const $eo_null_type v))))
 
 ; The SMT-LIB comparison of two SMT-LIB values.
 (define $smtx_value_cmp ((a $smt_Value) (b $smt_Value))
@@ -1152,7 +1152,7 @@
 
 ; returns true if v has type T.
 (define $smtx_value_has_type ((v $smt_Value) (T $eo_Term))
-  ($smt_apply_= ($smtx_typeof ($eo_smt_term ($sm_Const v))) T))  ; FIXME: use T
+  ($smt_apply_= ($smtx_typeof ($eo_smt_term ($sm_Const T v))) T))
 
 ; fwd-decl: $smtx_is_value
 (program $smtx_is_value () :signature ($smt_Value) $smt_builtin_Bool)
@@ -1708,7 +1708,7 @@
       ; out of values, return the negation of target with no value (no witness)
       ($vsm_Pair_mk ($vsm_term ($sm_mk_bool ($smt_apply_1 "not" tgt))) $vsm_List_empty)
       ; recurse on the next variable
-      (eo::define ((subs ($smtx_model_val_substitute x ($eo_smt_term ($sm_Const next)) F))) ; FIXME add T
+      (eo::define ((subs ($smtx_model_val_substitute x ($eo_smt_term ($sm_Const T next)) F)))
       (eo::define ((eval ($smtx_eval_quant (Q xs subs) $smt_builtin_z_zero tgt)))
       ; setup the return value
       (eo::define ((ret ($smtx_eval_quant_next eval next tgt)))
@@ -1776,8 +1776,7 @@
 ;            it represents a unique SMT-LIB value, i.e. ($vsm_term t) is
 ;            forbidden unless t denotes a value.
 (program $smtx_model_eval
-  ((f $eo_Term) (y $eo_Term) (z $eo_Term)
-   (val $smt_Value)
+  ((f $eo_Term) (y $eo_Term) (z $eo_Term) (val $smt_Value) (T $eo_Term)
    ; generic parameters that may appear in terms to pattern match
    (x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term) (x4 $eo_Term) (x5 $eo_Term))
   :signature ($eo_Term) $smt_Value
@@ -1791,7 +1790,7 @@
   ;; free constants
   ; Constants carry their value in the model, which is an arbitrary value term.
   ; We run this value through $smtx_ensure_value to ensure it is a proper value.
-  (($smtx_model_eval ($sm_Const val))           ($smtx_ensure_value val))     ; FIXME: add T
+  (($smtx_model_eval ($sm_Const T val))          val)
   
   ; Apply case. We evaluate f and y separately and then call the
   ; $smtx_model_eval_apply above. We expect f to be an uninterpreted
@@ -1916,7 +1915,7 @@
 ; invariant: all terms introduced by this layer must be given a type rule here.
 ; TODO: use hash for the nullsort below?
 (program $smtx_typeof
-  ((t $eo_Term) (val $smt_Value) (T $eo_Term) (m $smt_Map) (id $smt_builtin_Int)
+  ((t $eo_Term) (val $smt_Value) (T $eo_Term) (m $smt_Map) (id $smt_builtin_Int) (T $eo_Term)
    (f $smt_Value) (a $smt_Term) (U $smt_Type))
   :signature ($eo_Term) $eo_Term
   (
@@ -1925,7 +1924,7 @@
   ; the type of an atomic type uses Eunoia's typeof builtin, or null sort if this fails.
   (($smtx_typeof ($eo_smt_type U))                    ($smt_try_typeof U)) ; FIXME dont exception
   ; the type of a constant uses utility above
-  (($smtx_typeof ($eo_smt_term ($sm_Const val)))      ($smtx_typeof_const $eo_null_type val)) ; FIXME add and pass T
+  (($smtx_typeof ($eo_smt_term ($sm_Const T val)))    ($smtx_typeof_const T val))
   ; similar to above, we try Eunoia's typeof, or null sort.
   (($smtx_typeof ($eo_smt_term a))                    ($smt_try_typeof a))
   ; For all other terms, we try Eunoia's typeof, or null sort.
@@ -1941,14 +1940,15 @@
 ; or if it contains free constants that are not interpreted as canonical
 ; values.
 (program $smtx_is_input
-  ((t $eo_Term) (a $eo_Term) (s $smt_Term) (T $smt_Type) (v $smt_Value))
+  ((t $eo_Term) (a $eo_Term) (s $smt_Term) (u $smt_Type) (v $smt_Value) (T $eo_Term))
   :signature ($eo_Term) Bool
   (
   (($smtx_is_input ($eo_apply t a))
     ($eo_if_both ($smtx_is_input t) ($smtx_is_input a)))
-  (($smtx_is_input ($eo_smt_term ($sm_Const v)))  ($eo_mk_bool ($smtx_is_value v)))  ; FIXME recurse on T
+  (($smtx_is_input ($eo_smt_term ($sm_Const T v)))
+    ($eo_if_both ($smtx_is_input T) ($eo_mk_bool ($smtx_is_value v))))
   (($smtx_is_input ($eo_smt_term s))              true)
-  (($smtx_is_input ($eo_smt_type T))              true)
+  (($smtx_is_input ($eo_smt_type u))              true)
   (($smtx_is_input t)                             false)
   )
 )

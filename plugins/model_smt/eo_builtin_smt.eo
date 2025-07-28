@@ -163,8 +163,8 @@
   ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Term)
 
 ; Free constants
-(declare-parameterized-const $smd_sm.Const ((v $smt_Value :opaque)) $smt_Term)
-(define $sm_Const ((v $smt_Value)) ($smd_sm.Const v))
+(declare-parameterized-const $smd_sm.Const ((T $eo_Term :opaque) (v $smt_Value :opaque)) $smt_Term)
+(define $sm_Const ((T $eo_Term) (v $smt_Value)) ($smd_sm.Const T v))
 
 ;;; SMT value datatype constructors
 
@@ -941,7 +941,7 @@
 ; note: this is an arbitrary hash for SMT values, defined axiomatically.
 ; We rely on embedding values into constants, which are Eunoia terms.
 (define $smtx_value_hash ((v $smt_Value))
-  ($smtx_hash ($eo_smt_term ($sm_Const v))))  ; FIXME add null sort
+  ($smtx_hash ($eo_smt_term ($sm_Const $eo_null_type v))))
 
 ; The SMT-LIB comparison of two SMT-LIB values.
 (define $smtx_value_cmp ((a $smt_Value) (b $smt_Value))
