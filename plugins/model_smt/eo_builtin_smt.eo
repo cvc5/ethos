@@ -170,27 +170,20 @@
 
 ; A value denoting a map.
 ; note: we store the hash of its type.
-(declare-parameterized-const $smd_vsm.Map
-  ((T $smt_builtin_Int :opaque) (m $smt_Map :opaque))
-  $smt_Value)
-(define $vsm_map ((T $smt_builtin_Int) (m $smt_Map))
-  ($smd_vsm.Map T m))
+(declare-parameterized-const $smd_vsm.Map ((m $smt_Map :opaque)) $smt_Value)
+(define $vsm_map ((m $smt_Map)) ($smd_vsm.Map m))
 
 ; A value denoting a sequence.
 ; note: we store the hash of its type.
-(declare-parameterized-const $smd_vsm.Seq
-  ((T $smt_builtin_Int :opaque) (s $smt_Seq :opaque))
-  $smt_Value)
-(define $vsm_seq ((T $smt_builtin_Int) (s $smt_Seq))
-  ($smd_vsm.Seq T s))
+(declare-parameterized-const $smd_vsm.Seq ((s $smt_Seq :opaque)) $smt_Value)
+(define $vsm_seq ((s $smt_Seq)) ($smd_vsm.Seq s))
 
 ; A value denoting an uninterpreted constant.
 ; note: we store the hash of its type.
 (declare-parameterized-const $smd_vsm.UConst
-  ((T $smt_builtin_Int :opaque) (id $smt_builtin_Int :opaque))
+  ((id $smt_builtin_Int :opaque))
   $smt_Value)
-(define $vsm_uconst ((T $smt_builtin_Int) (id $smt_builtin_Int))
-  ($smd_vsm.UConst T id))
+(define $vsm_uconst ((id $smt_builtin_Int)) ($smd_vsm.UConst id))
 
 ; A value represented by an SMT-LIB term. This is used for types
 ; where terms are used to denote the values of that type, e.g.
@@ -263,12 +256,12 @@
 
 ; a list of values, uses $vsm_seq
 (define $vsm_List () $smt_Value)
-(define $vsm_List_empty () ($vsm_seq $smt_builtin_z_zero $ssm_empty))
-(program $smtx_vsm_List_cons ((T $smt_builtin_Int) (s $smt_Seq) (v $smt_Value) (vs $smt_Value))
+(define $vsm_List_empty () ($vsm_seq $ssm_empty))
+(program $smtx_vsm_List_cons ((s $smt_Seq) (v $smt_Value) (vs $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_vsm_List_cons v ($vsm_seq T s))  ($vsm_seq T ($ssm_cons v s)))
-  (($smtx_vsm_List_cons v vs)              $vsm_not_value)
+  (($smtx_vsm_List_cons v ($vsm_seq s))  ($vsm_seq ($ssm_cons v s)))
+  (($smtx_vsm_List_cons v vs)            $vsm_not_value)
   )
 )
 

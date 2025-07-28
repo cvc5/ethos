@@ -17,7 +17,6 @@
 
 ; forward decl
 (program $smtx_typeof () :signature ($eo_Term) $eo_Term)
-(program $smtx_typeof_value () :signature ($smt_Value) $eo_Term)
 
 ; returns true if v has type T.
 (define $smtx_value_has_type ((v $smt_Value) (T $eo_Term))
@@ -274,44 +273,21 @@
       ($vsm_apply ($vsm_term t) $vsm_not_value)
       $vsm_not_value)))
 
-(define $smt_mk_value_map ((T $smt_builtin_Int) (m $smt_Map))
-  ($smt_apply_3 "ite"
-    ($smtx_map_is_value m)
-    ($vsm_map T m)
-    $vsm_not_value))
-
 ; program: $smtx_is_value
 (program $smtx_is_value
-  ((t $smt_Term) (f $smt_Value) (v $smt_Value) (T $eo_Term) (m $smt_Map) (s $smt_Seq)
-   (T $smt_builtin_Int) (id $smt_builtin_Int))
+  ((t $smt_Term) (f $smt_Value) (v $smt_Value) (m $smt_Map) (s $smt_Seq) (id $smt_builtin_Int))
   :signature ($smt_Value) $smt_builtin_Bool
   (
   (($smtx_is_value ($vsm_term t))         ($smtx_is_atomic_term_value t))
-  (($smtx_is_value ($vsm_map T m))        ($smtx_map_is_value m))
-  (($smtx_is_value ($vsm_seq T s))        ($smtx_seq_is_value s))
-  (($smtx_is_value ($vsm_uconst T id))    $smt_builtin_true)
+  (($smtx_is_value ($vsm_map m))          ($smtx_map_is_value m))
+  (($smtx_is_value ($vsm_seq s))          ($smtx_seq_is_value s))
+  (($smtx_is_value ($vsm_uconst id))      $smt_builtin_true)
   ; Herbrand interpretations: nil terminated apply of value terms
   (($smtx_is_value ($vsm_apply ($vsm_term t) $vsm_not_value))
                                           ($smt_is_dt_cons t))
   (($smtx_is_value ($vsm_apply f v))      ($smt_builtin_and ($smtx_is_value f) ($smtx_is_value v)))
   ; Otherwise false
   (($smtx_is_value v)                     $smt_builtin_false)
-  )
-)
-
-; program: $smtx_ensure_value
-; args:
-; - v $smt_Value: A value term.
-; return: >
-;   v itself if it denotes a proper SMT-LIB value, or $vsm_not_value otherwise.
-(program $smtx_ensure_value
-  ((v $smt_Value) (t $smt_Term) (T $smt_builtin_Int) (m $smt_Map) (id $smt_builtin_Int))
-  :signature ($smt_Value) $smt_Value
-  (
-  (($smtx_ensure_value ($vsm_term t))         ($smt_mk_value_term t))
-  (($smtx_ensure_value ($vsm_map T m))        ($smt_mk_value_map T m))
-  (($smtx_ensure_value ($vsm_uconst T id))    ($vsm_uconst T id))
-  (($smtx_ensure_value v)                     $vsm_not_value)
   )
 )
 
@@ -329,13 +305,13 @@
 ; respectively. If value_f is a map value, then we extract
 ; the map and call the map lookup routine.
 (program $smtx_model_eval_apply
-  ((T $smt_builtin_Int) (m $smt_Map) (i $smt_Value) (f $smt_Value) (v $smt_Value))
+  ((m $smt_Map) (i $smt_Value) (f $smt_Value) (v $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
   ; If a Herbrand interpretation, apply it to the next value.
   (($smtx_model_eval_apply ($vsm_apply f v) i)  ($vsm_apply ($vsm_apply f v) i))
   ; The function evaluated to a map value, call the map lookup.
-  (($smtx_model_eval_apply ($vsm_map T m) i)    ($smtx_msm_lookup m i))
+  (($smtx_model_eval_apply ($vsm_map m) i)    ($smtx_msm_lookup m i))
   ; The function did not evaluate to a map value, we fail.
   (($smtx_model_eval_apply v i)                 $vsm_not_value)
   )
@@ -377,31 +353,30 @@
 
 ; Array select
 (program $smtx_map_select
-  ((v $smt_Value) (i $smt_Value) (T $smt_builtin_Int) (m $smt_Map))
+  ((v $smt_Value) (i $smt_Value) (m $smt_Map))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_map_select ($vsm_map T m) i) ($smtx_msm_lookup m i))
+  (($smtx_map_select ($vsm_map m) i) ($smtx_msm_lookup m i))
   (($smtx_map_select v i)              $vsm_not_value)
   )
 )
 
 ; Array store
 (program $smtx_map_store
-  ((v $smt_Value) (i $smt_Value) (e $smt_Value) (T $smt_builtin_Int) (m $smt_Map))
+  ((v $smt_Value) (i $smt_Value) (e $smt_Value) (m $smt_Map))
   :signature ($smt_Value $smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_map_store ($vsm_map T m) i e) ($vsm_map T ($smtx_msm_update m i e)))
-  (($smtx_map_store v i e)              $vsm_not_value)
+  (($smtx_map_store ($vsm_map m) i e) ($vsm_map ($smtx_msm_update m i e)))
+  (($smtx_map_store v i e)            $vsm_not_value)
   )
 )
 
 ; Array diff
 ; Returns the value where m1 and m2 differ, or $vsm_not_value otherwise.
-(program $smtx_map_diff
-  ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map))
+(program $smtx_map_diff ((m1 $smt_Map) (m2 $smt_Map))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_map_diff ($vsm_map T m1) ($vsm_map T m2))
+  (($smtx_map_diff ($vsm_map m1) ($vsm_map m2))
     ; find an index in the first that conflicts with the second, or vice versa
     ($smtx_value_either ($smtx_msm_find_diff m1 m2) ($smtx_msm_find_diff m2 m1)))
   )
@@ -412,32 +387,33 @@
 ; Empty set
 ; args:
 ; - T: the type of the empty set. This is expected to have type Type.
+; TODO: simplify
 (program $smtx_empty_set ((T $eo_Term))
   :signature ($eo_Term) $smt_Value
   (
-  (($smtx_empty_set T) ($vsm_map ($smtx_hash T) $msm_empty_set))
+  (($smtx_empty_set T) ($vsm_map $msm_empty_set))
   )
 )
 
 ; Set singleton
 ; return the singleton set whose type is T and contains e.
+; TODO: simplify
 (program $smtx_set_singleton ((T $eo_Term) (e $smt_Value))
   :signature ($eo_Term $smt_Value) $smt_Value
   (
-  (($smtx_set_singleton T e)
-     ($vsm_map ($smtx_hash T) ($smtx_mss_insert e $msm_empty_set)))
+  (($smtx_set_singleton T e) ($vsm_map ($smtx_mss_insert e $msm_empty_set)))
   )
 )
 
 ; Set intersection
 ; return the intersection of two set values.
 (program $smtx_set_inter
-  ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
+  ((m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_set_inter ($vsm_map T m1) ($vsm_map T m2))
+  (($smtx_set_inter ($vsm_map m1) ($vsm_map m2))
     ; m1 intersected m2 starting with empty set.
-    ($vsm_map T ($smtx_mss_op_internal $smt_builtin_true m1 m2 $msm_empty_set)))
+    ($vsm_map ($smtx_mss_op_internal $smt_builtin_true m1 m2 $msm_empty_set)))
   (($smtx_set_inter v1 v2)  $vsm_not_value)
   )
 )
@@ -445,12 +421,12 @@
 ; Set minus
 ; return the set minus of two set values.
 (program $smtx_set_minus
-  ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
+  ((m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_set_minus ($vsm_map T m1) ($vsm_map T m2))
+  (($smtx_set_minus ($vsm_map m1) ($vsm_map m2))
     ; m1 minus m2 starting with empty set.
-    ($vsm_map T ($smtx_mss_op_internal $smt_builtin_false m1 m2 $msm_empty_set)))
+    ($vsm_map ($smtx_mss_op_internal $smt_builtin_false m1 m2 $msm_empty_set)))
   (($smtx_set_minus v1 v2)  $vsm_not_value)
   )
 )
@@ -458,12 +434,12 @@
 ; Set union
 ; return the union of two set values.
 (program $smtx_set_union
-  ((T $smt_builtin_Int) (m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
+  ((m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_set_union ($vsm_map T m1) ($vsm_map T m2))
+  (($smtx_set_union ($vsm_map m1) ($vsm_map m2))
     ; m1 minus the empty set starting with m2.
-    ($vsm_map T ($smtx_mss_op_internal $smt_builtin_false m1 $msm_empty_set m2)))
+    ($vsm_map ($smtx_mss_op_internal $smt_builtin_false m1 $msm_empty_set m2)))
   (($smtx_set_union v1 v2)  $vsm_not_value)
   )
 )
@@ -471,10 +447,11 @@
 ;;; Sequences
 
 ; Empty sequence
+; TODO: remove
 (program $smtx_empty_seq ((T $eo_Term))
   :signature ($eo_Term) $smt_Value
   (
-  (($smtx_empty_seq T) ($vsm_seq ($smtx_hash T) $ssm_empty))
+  (($smtx_empty_seq T) ($vsm_seq $ssm_empty))
   )
 )
 
@@ -482,17 +459,16 @@
 (program $smtx_seq_unit ((e $smt_Value))
   :signature ($smt_Value) $smt_Value
   (
-  (($smtx_seq_unit e)
-    ($vsm_seq ($smtx_hash ($smtx_typeof_value e)) ($ssm_cons e $ssm_empty)))  ; FIXME: simplify
+  (($smtx_seq_unit e) ($vsm_seq ($ssm_cons e $ssm_empty)))
   )
 )
 
 ; Sequence nth
 (program $smtx_seq_nth
-  ((T $smt_builtin_Int) (s $smt_Seq) (n $smt_builtin_Int) (v1 $smt_Value) (v2 $smt_Value))
+  ((s $smt_Seq) (n $smt_builtin_Int) (v1 $smt_Value) (v2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_seq_nth ($vsm_seq T s) ($vsm_term ($sm_mk_z n))) ($smtx_ssm_seq_nth s n))
+  (($smtx_seq_nth ($vsm_seq s) ($vsm_term ($sm_mk_z n))) ($smtx_ssm_seq_nth s n))
   (($smtx_seq_nth v1 v2) $vsm_not_value)
   )
 )
@@ -508,7 +484,7 @@
   ; auto-generated cases
 $SMT_TYPE_ENUM_CASES$
   ; otherwise, uninterpreted constant.
-  (($smtx_model_type_enum T i)               ($vsm_uconst ($smtx_hash T) i))
+  (($smtx_model_type_enum T i)               ($vsm_uconst i))
   )
 )
 
@@ -708,49 +684,16 @@ $SMT_EVAL_CASES$
   )
 )
 
-; Helper for below. This defines the typeof
-; TODO: doesn't properly guard map and sequence values
-; FIXME: remove
-(program $smtx_typeof_value
-  ((val $smt_Value) (T $smt_builtin_Int) (m $smt_Map) (s $smt_Seq)
-   (id $smt_builtin_Int) (f $smt_Value) (a $smt_Term) (U $smt_Type))
-  :signature ($smt_Value) $eo_Term
-  (
-  (($smtx_typeof_value ($vsm_apply f val))
-    ($smtx_typeof_apply ($smtx_typeof_value f)  ($smtx_typeof_value val)))
-  ; the type of a value term is the type of its term.
-  (($smtx_typeof_value ($vsm_term a))           ($smtx_typeof ($eo_smt_term a)))
-  (($smtx_typeof_value ($vsm_map T m))          ($eo_reverse_hash T))
-  (($smtx_typeof_value ($vsm_seq T s))          ($eo_reverse_hash T))
-  ; The type of uninterpreted constants carry its type, accessible via reverse hash.
-  (($smtx_typeof_value ($vsm_uconst T id))      ($eo_reverse_hash T))
-  ; the type of not-values is the null sort.
-  (($smtx_typeof_value val)                     $eo_null_type)
-  )
-)
-
 (program $smtx_typeof_const
   ((id $smt_builtin_Int) (w $smt_builtin_Int) (n $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String)
    (b $smt_builtin_Bool) (x1 $eo_Term) (x2 $eo_Term) (m $smt_Map) (sq $smt_Seq)
    (T $smt_builtin_Int) (v $smt_Value))
   :signature ($eo_Term $smt_Value) $eo_Term
   (
-  (($smtx_typeof_const $eo_null_type v)      ($smtx_typeof_value v))  ; FIXME: remove
-  (($smtx_typeof_const Bool ($vsm_term ($sm_mk_bool b)))      Bool)
-  (($smtx_typeof_const ($tsm_USort n) ($vsm_uconst T id))     ($tsm_USort n))
+  (($smtx_typeof_const Bool ($vsm_term ($sm_mk_bool b)))  Bool)
+  (($smtx_typeof_const ($tsm_USort n) ($vsm_uconst id))   ($tsm_USort n))
   ; auto-generated
 $SMT_CONST_TYPE_OF_CASES$
-; (($smtx_typeof_const Int ($vsm_term ($sm_mk_z n)))          Int)
-; (($smtx_typeof_const Real ($vsm_term ($sm_mk_q r)))         Real)
-; (($smtx_typeof_const String ($vsm_term ($sm_mk_str s)))     String)
-; (($smtx_typeof_const (BitVec ($eo_mk_numeral w)) ($vsm_term ($sm_binary w n)))
-;    (BitVec ($eo_mk_numeral w)))
-; (($smtx_typeof_const (Array x1 x2) ($vsm_map T m))
-;    ($eo_requires_eq ($smtx_map_has_type m x1 x2) true (Array x1 x2)))
-; (($smtx_typeof_const (Set x1) ($vsm_map T m))
-;    ($eo_requires_eq ($smtx_map_has_type m x1 Bool) true (Set x1)))
-; (($smtx_typeof_const (Seq x1) ($vsm_seq T sq))
-;    ($eo_requires_eq ($smtx_seq_has_type m x1) true (Seq x1)))
   )
 )
 

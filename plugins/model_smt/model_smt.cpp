@@ -73,14 +73,14 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTypeSym(
       "Array",
       {kT, kT},
-      "($vsm_map T m)",
+      "($vsm_map m)",
       "($smtx_builtin_requires ($smtx_map_has_type m x1 x2) (Array x1 x2))");
   addRecReduceSym("select", {kT, kT}, "($smtx_map_select e1 e2)");
   addRecReduceSym("store", {kT, kT, kT}, "($smtx_map_store e1 e2 e3)");
   // strings
   addTypeSym("Seq",
              {kT},
-             "($vsm_seq T sq)",
+             "($vsm_seq sq)",
              "($smtx_builtin_requires ($smtx_seq_has_type sq x1) (Seq x1))");
   // string is represented as sequence of characters
   addTypeSym("(Seq Char)", {}, "($vsm_term ($sm_mk_str s))", "(Seq Char)");
@@ -193,7 +193,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // (Set T) is modelled as (Array T Bool).
   addTypeSym("Set",
              {kT},
-             "($vsm_map T m)",
+             "($vsm_map m)",
              "($smtx_builtin_requires ($smtx_map_has_type m x1 Bool) (Set x1))");
   addReduceSym("set.empty", {kT}, "($smtx_empty_set x1)");
   addRecReduceSym("set.singleton",
