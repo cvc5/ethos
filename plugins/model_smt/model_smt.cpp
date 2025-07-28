@@ -74,16 +74,17 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "Array",
       {kT, kT},
       "($vsm_map T m)",
-      "($eo_requires_eq ($smtx_map_has_type m x1 x2) true (Array x1 x2))");
+      "($smtx_builtin_requires ($smtx_map_has_type m x1 x2) (Array x1 x2))");
   addRecReduceSym("select", {kT, kT}, "($smtx_map_select e1 e2)");
   addRecReduceSym("store", {kT, kT, kT}, "($smtx_map_store e1 e2 e3)");
   // strings
   addTypeSym("Seq",
              {kT},
              "($vsm_seq T sq)",
-             "($eo_requires_eq ($smtx_seq_has_type m x1) true (Seq x1))");
-  addTypeSym("String", {kT}, "($vsm_term ($sm_mk_str s))", "String");
-  d_typeCase["Seq"].push_back("String");
+             "($smtx_builtin_requires ($smtx_seq_has_type sq x1) (Seq x1))");
+  // string is represented as sequence of characters
+  addTypeSym("(Seq Char)", {}, "($vsm_term ($sm_mk_str s))", "(Seq Char)");
+  d_typeCase["Seq"].push_back("(Seq Char)");
   d_symIgnore["Char"] = true;
   // addTypeSym("RegLan", {});
   addConstFoldSym("str.++", {kString, kString}, kString);
@@ -107,7 +108,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTypeSym("BitVec",
              {kInt},
              "($vsm_term ($sm_binary w n))",
-             "($eq_requires_eq x1 ($eo_mk_numeral w) (BitVec x1))");
+             "($eo_requires_eq x1 ($eo_mk_numeral w) (BitVec x1))");
   // the following are return terms of aux program cases of the form:
   // (($smtx_model_eval_f
   //    ($vsm_term ($sm_binary x1 x2)) ($vsm_term ($sm_binary x3 x4)))
@@ -193,7 +194,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTypeSym("Set",
              {kT},
              "($vsm_map T m)",
-             "($eo_requires_eq ($smtx_map_has_type m x1 Bool) true (Set x1))");
+             "($smtx_builtin_requires ($smtx_map_has_type m x1 Bool) (Set x1))");
   addReduceSym("set.empty", {kT}, "($smtx_empty_set x1)");
   addRecReduceSym("set.singleton",
                   {kT},
@@ -312,7 +313,7 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
 
 void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
 {
-  Attr attr = d_state.getConstructorKind(e.getValue());
+  Attr attr = e.isNull() ? Attr::NONE : d_state.getConstructorKind(e.getValue());
   std::map<std::string,
            std::tuple<std::vector<Kind>, std::string, std::string>>::iterator
       itt = d_symTypes.find(name);
@@ -375,6 +376,30 @@ void ModelSmt::printConstType(const std::string& name,
                               const std::string& cpat,
                               const std::string& cret)
 {
+  std::map<std::string, std::vector<std::string>>::iterator itc = d_typeCase.find(name);
+  if (itc!=d_typeCase.end())
+  {
+    // first print the special cases, e.g. String for Seq
+    for (const std::string& cs : itc->second)
+    {
+      finalizeDecl(cs, d_null);
+    }
+  }
+  d_constTypeof << "  (($smtx_typeof_const ";
+  if (args.empty())
+  {
+    d_constTypeof << name << " ";
+  }
+  else
+  {
+    d_constTypeof << "(" << name;
+    for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
+    {
+      d_constTypeof << " x" << i;
+    }
+    d_constTypeof << ") ";
+  }
+  d_constTypeof << cpat << ") " << cret << ")" << std::endl;
 }
 
 void ModelSmt::printModelEvalCallBase(const std::string& name,

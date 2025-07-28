@@ -155,6 +155,7 @@ class ModelSmt : public StdPlugin
   std::map<Kind, std::string> d_kindToEoCons;
   std::map<Kind, std::string> d_kindToType;
   std::map<std::string, std::string> d_overloadRevert;
+  Expr d_null;
   std::stringstream d_typeIsValue;
   std::stringstream d_typeEnum;
   std::stringstream d_constTypeof;
@@ -169,6 +170,7 @@ class ModelSmt : public StdPlugin
    */
   std::map<std::string, std::tuple<std::vector<Kind>, std::string, std::string>>
       d_symTypes;
+  /** Special cases */
   std::map<std::string, std::vector<std::string>> d_typeCase;
   /**
    * SMT-LIB symbols with "normal" evaluation, we give their argument kinds

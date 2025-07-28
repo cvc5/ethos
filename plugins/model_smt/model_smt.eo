@@ -46,6 +46,10 @@
 (define $smt_try_typeof ((T Type :implicit) (t T))
   ($smt_try ($eo_typeof t) $eo_null_type))
 
+; Used for constant type rules
+(define $smtx_builtin_requires ((b $smt_builtin_Bool) (t $eo_Term))
+  ($smt_apply_3 "ite" b t $eo_fail))
+
 ;;;;;; SMT values
 
 ;;; Generic utilities
@@ -249,7 +253,11 @@
   (($smtx_is_atomic_term_value ($sm_mk_z n))     $smt_builtin_true)
   (($smtx_is_atomic_term_value ($sm_mk_q r))     $smt_builtin_true)
   (($smtx_is_atomic_term_value ($sm_mk_str s))   $smt_builtin_true)
-  (($smtx_is_atomic_term_value ($sm_binary w n)) $smt_builtin_true)
+  (($smtx_is_atomic_term_value ($sm_binary w n))
+    ; must be legal width and value
+    ($smt_builtin_and
+      ($smt_apply_1 "<= 0" w)
+      ($smt_apply_= ($sm_binary w n) ($sm_mk_binary w n))))
   ; by default, not a value
   (($smtx_is_atomic_term_value t)                $smt_builtin_false)
   )
