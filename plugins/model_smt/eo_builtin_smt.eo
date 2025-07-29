@@ -178,8 +178,8 @@
 (define $vsm_seq ((s $smt_Seq)) ($smd_vsm.Seq s))
 
 ; A value denoting a regular language.
-;(declare-parameterized-const $smd_vsm.RegLan ((r $smt_builtin_RegLan :opaque)) $smt_Value)
-;(define $vsm_re ((r $smt_builtin_RegLan)) ($smd_vsm.RegLan r))
+(declare-parameterized-const $smd_vsm.RegLan ((r $smt_builtin_RegLan :opaque)) $smt_Value)
+(define $vsm_re ((r $smt_builtin_RegLan)) ($smd_vsm.RegLan r))
 
 ; A value denoting an uninterpreted constant.
 ; note: we store the hash of its type.

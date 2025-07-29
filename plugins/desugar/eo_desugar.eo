@@ -30,8 +30,7 @@ $EO_LITERAL_TYPE_DECL$
 (declare-const $eo_List Type)
 (declare-const $eo_List_nil $eo_List)
 (declare-parameterized-const $eo_List_cons ((T Type :implicit))
-  (-> T $eo_List $eo_List)
-  :right-assoc-nil $eo_List_nil)
+  (-> T $eo_List $eo_List))
 
 ;;; $eo_Option
 
@@ -542,7 +541,8 @@ $EO_NIL_NGROUND_DEFS$
   :signature ((-> T U V) (eo::quote W)) W
   (
 $EO_NIL_CASES$
-  (($eo_nil f T) $eo_fail)
+  ; builtin case of $eo_List
+  (($eo_nil $eo_List_cons $eo_List) $eo_List_nil)
   )
 )
 

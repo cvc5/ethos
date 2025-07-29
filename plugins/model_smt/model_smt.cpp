@@ -25,19 +25,18 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   Kind kString = Kind::STRING;
   Kind kBitVec = Kind::BINARY;
   Kind kT = Kind::PARAM;
-  //Kind kRegLan = Kind::EVAL_TO_STRING;
+  Kind kRegLan = Kind::EVAL_TO_STRING;
   d_kindToEoPrefix[kBool] = "bool";
   d_kindToEoPrefix[kInt] = "z";
   d_kindToEoPrefix[kReal] = "q";
   d_kindToEoPrefix[kString] = "str";
   d_kindToEoPrefix[kBitVec] = "bin";
-  //d_kindToEoPrefix[kRegLan] = "re";
   d_kindToType[kBool] = "Bool";
   d_kindToType[kInt] = "Int";
   d_kindToType[kReal] = "Real";
   d_kindToType[kString] = "String";
   d_kindToType[kBitVec] = "Binary";
-  //d_kindToType[kRegLan] = "RegLan";
+  d_kindToType[kRegLan] = "RegLan";
   // All SMT-LIB symbols require having their semantics defined here.
   // Note that we model *SMT-LIB* not *CPC* here.
   // builtin
@@ -107,6 +106,19 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("str.prefixof", {kString, kString}, kBool);
   addConstFoldSym("str.<=", {kString, kString}, kBool);
   addConstFoldSym("str.<", {kString, kString}, kBool);
+  addReduceSym("re.allchar", {}, "($vsm_re ($smt_apply_0 \"re.allchar\"))");
+  addReduceSym("re.none", {}, "($vsm_re ($smt_apply_0 \"re.none\"))");
+  addReduceSym("re.all", {}, "($vsm_re ($smt_apply_0 \"re.all\"))");
+  addConstFoldSym("str.in_re", {kString, kRegLan}, kBool);
+  addConstFoldSym("str.to_re", {kString}, kRegLan);
+  addConstFoldSym("re.*", {kRegLan}, kRegLan);
+  addConstFoldSym("re.+", {kRegLan}, kRegLan);
+  addConstFoldSym("re.opt", {kRegLan}, kRegLan);
+  addConstFoldSym("re.comp", {kRegLan}, kRegLan);
+  addConstFoldSym("re.++", {kRegLan, kRegLan}, kRegLan);
+  addConstFoldSym("re.inter", {kRegLan, kRegLan}, kRegLan);
+  addConstFoldSym("re.union", {kRegLan, kRegLan}, kRegLan);
+  addConstFoldSym("re.range", {kString, kString}, kRegLan);
   // bitvectors
   addTypeSym("BitVec",
              {kInt},
@@ -459,6 +471,10 @@ void ModelSmt::printTermInternal(Kind k,
   {
     os << "($vsm_term ($sm_mk_" << d_kindToEoPrefix[k] << " " << term << "))";
   }
+  else if (k==Kind::EVAL_TO_STRING)
+  {
+    os << "($vsm_re " << term << ")";
+  }
   else
   {
     os << term;
@@ -574,6 +590,12 @@ void ModelSmt::printAuxProgramCase(const std::string& name,
     if (paramCount > 1)
     {
       progParams << " ";
+    }
+    if (ka==Kind::EVAL_TO_STRING)
+    {
+      progCases << "($vsm_re x" << paramCount << ")";
+      progParams << "(x" << paramCount << " $smt_builtin_RegLan)";
+      continue;
     }
     progCases << " ($vsm_term";
     if (ka == Kind::BINARY)

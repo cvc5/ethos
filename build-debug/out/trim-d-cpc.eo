@@ -49,8 +49,7 @@
 (declare-const $eo_List Type)
 (declare-const $eo_List_nil $eo_List)
 (declare-parameterized-const $eo_List_cons ((T Type :implicit))
-  (-> T $eo_List $eo_List)
-  :right-assoc-nil $eo_List_nil)
+  (-> T $eo_List $eo_List))
 
 ;;; $eo_Option
 
@@ -589,7 +588,8 @@
   (
   (($eo_nil and T) true)
 
-  (($eo_nil f T) $eo_fail)
+  ; builtin case of $eo_List
+  (($eo_nil $eo_List_cons $eo_List) $eo_List_nil)
   )
 )
 

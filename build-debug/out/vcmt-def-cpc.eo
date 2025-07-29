@@ -490,9 +490,12 @@
   )
 )
 (program $smtx_is_input
-  ((t $eo_Term) (a $eo_Term) (s $smt_Term) (u $smt_Type) (v $smt_Value) (T $eo_Term))
+  ((t $eo_Term) (a $eo_Term) (s $smt_Term) (u $smt_Type) (v $smt_Value) (T $eo_Term)
+   (sv $smt_builtin_String) (Tv $smt_builtin_Int))
   :signature ($eo_Term) Bool
   (
+  
+  
   (($smtx_is_input ($eo_apply t a))
     ($eo_if_both ($smtx_is_input t) ($smtx_is_input a)))
   (($smtx_is_input ($eo_smt_term ($sm_Const T v)))

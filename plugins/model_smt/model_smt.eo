@@ -648,6 +648,7 @@
   (
   (($smtx_eval_choice_nth F ($eo_mk_numeral n))
     ; use the routine above, returning the n^th element of the second component
+    ; note that we expect F to be a forall, hence we use false as the target value.
     (eo::define ((eval ($smtx_eval_quant F $smt_builtin_z_zero $smt_builtin_false)))
       ($smtx_seq_nth ($smtx_vsm_Pair_second eval) ($vsm_term ($sm_mk_z n)))))
   ; fail if we did not pass a numeral
@@ -774,9 +775,12 @@ $SMT_CONST_TYPE_OF_CASES$
 ; or if it contains free constants that are not interpreted as canonical
 ; values.
 (program $smtx_is_input
-  ((t $eo_Term) (a $eo_Term) (s $smt_Term) (u $smt_Type) (v $smt_Value) (T $eo_Term))
+  ((t $eo_Term) (a $eo_Term) (s $smt_Term) (u $smt_Type) (v $smt_Value) (T $eo_Term)
+   (sv $smt_builtin_String) (Tv $smt_builtin_Int))
   :signature ($eo_Term) Bool
   (
+  ; TODO: variables beneath quantifiers
+  ; (($smtx_is_input ($eo_Var sv Tv))               true)
   (($smtx_is_input ($eo_apply t a))
     ($eo_if_both ($smtx_is_input t) ($smtx_is_input a)))
   (($smtx_is_input ($eo_smt_term ($sm_Const T v)))
