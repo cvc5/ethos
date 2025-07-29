@@ -15,6 +15,14 @@
 #include "../std_plugin.h"
 namespace ethos {
 
+struct Command
+{
+  std::string d_cmdName;
+  std::string d_symbolName;
+  std::unordered_set<std::string> d_bodySyms;
+  std::string d_fullText;
+};
+
 /**
  */
 class TrimDefs : public StdPlugin
@@ -37,6 +45,7 @@ class TrimDefs : public StdPlugin
   void finalize() override;
 
  private:
+  void processCommand(Command& cmd);
   std::vector<std::string> d_defTargets;
   size_t d_idCounter;
   std::map<std::string, size_t> d_symToId;

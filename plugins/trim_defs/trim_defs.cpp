@@ -21,14 +21,6 @@
 
 namespace ethos {
 
-struct Command
-{
-  std::string d_cmdName;
-  std::string d_symbolName;
-  std::unordered_set<std::string> d_bodySyms;
-  std::string d_fullText;
-};
-
 // Read one token, skipping whitespace
 std::string nextToken(std::istream& in)
 {
@@ -140,7 +132,6 @@ Command parseCommand(const std::string& s_expr_text)
 // Main parser from istream
 void TrimDefs::parseCommands(std::istream& in)
 {
-  std::map<std::string, size_t>::iterator its;
   while (in)
   {
     std::string tok = nextToken(in);
@@ -149,56 +140,64 @@ void TrimDefs::parseCommands(std::istream& in)
       in.putback('(');
       std::string full = readFullCommand(in);
       Command cmd = parseCommand(full);
-      if (cmd.d_cmdName == "include")
-      {
-        continue;
-      }
-      // std::cout << "Command: " << cmd.d_cmdName << " " << cmd.d_symbolName
-      //           << std::endl;
-      its = d_symToId.find(cmd.d_symbolName);
-      size_t id;
-      if (its == d_symToId.end())
-      {
-        ++d_idCounter;
-        d_symToId[cmd.d_symbolName] = d_idCounter;
-        id = d_idCounter;
-      }
-      else
-      {
-        id = its->second;
-      }
-      size_t cid = d_commands.size();
-      d_symCommands[id].insert(cid);
-      // declare-consts must always be visited
-      // echo is also always preserved
-      if (cmd.d_cmdName == "declare-consts" || cmd.d_cmdName == "echo")
-      {
-        d_toVisit.push_back(id);
-      }
-      // std::cout << "*** command " << cmd.d_fullText << std::endl;
-      d_commands.push_back(cmd.d_fullText);
-      std::unordered_set<size_t>& csyms = d_cmdSyms[cid];
-      for (const std::string& s : cmd.d_bodySyms)
-      {
-        // replace eo:: by $eo_
-        std::string su = s;
-        if (su.compare(0, 4, "eo::") == 0)
-        {
-          std::stringstream ssn;
-          ssn << "$eo_" << su.substr(4);
-          su = ssn.str();
-        }
-        its = d_symToId.find(su);
-        if (its != d_symToId.end() && its->second != id)  // no self
-        {
-          // std::cout << "...*** sym " << s << std::endl;
-          csyms.insert(its->second);
-        }
-        else
-        {
-          // std::cout << "...non-sym " << s << std::endl;
-        }
-      }
+      processCommand(cmd);
+    }
+  }
+}
+void TrimDefs::processCommand(Command& cmd)
+{
+  if (cmd.d_cmdName == "include")
+  {
+    return;
+  }
+  if (cmd.d_fullText.compare(0, 20, "(echo \"trim-defs-cmd") == 0)
+  {
+    return;
+  }
+  std::map<std::string, size_t>::iterator its = d_symToId.find(cmd.d_symbolName);
+  // std::cout << "Command: " << cmd.d_cmdName << " " << cmd.d_symbolName
+  //           << std::endl;
+  size_t id;
+  if (its == d_symToId.end())
+  {
+    ++d_idCounter;
+    d_symToId[cmd.d_symbolName] = d_idCounter;
+    id = d_idCounter;
+  }
+  else
+  {
+    id = its->second;
+  }
+  size_t cid = d_commands.size();
+  d_symCommands[id].insert(cid);
+  // declare-consts must always be visited
+  // echo is also always preserved
+  if (cmd.d_cmdName == "declare-consts" || cmd.d_cmdName == "echo")
+  {
+    d_toVisit.push_back(id);
+  }
+  // std::cout << "*** command " << cmd.d_fullText << std::endl;
+  d_commands.push_back(cmd.d_fullText);
+  std::unordered_set<size_t>& csyms = d_cmdSyms[cid];
+  for (const std::string& s : cmd.d_bodySyms)
+  {
+    // replace eo:: by $eo_
+    std::string su = s;
+    if (su.compare(0, 4, "eo::") == 0)
+    {
+      std::stringstream ssn;
+      ssn << "$eo_" << su.substr(4);
+      su = ssn.str();
+    }
+    its = d_symToId.find(su);
+    if (its != d_symToId.end() && its->second != id)  // no self
+    {
+      // std::cout << "...*** sym " << s << std::endl;
+      csyms.insert(its->second);
+    }
+    else
+    {
+      // std::cout << "...non-sym " << s << std::endl;
     }
   }
 }
@@ -230,6 +229,13 @@ bool TrimDefs::echo(const std::string& msg)
   {
     d_defTargets.push_back(msg.substr(10));
     // std::cout << "...set target" << std::endl;
+    return false;
+  }
+  if (msg.compare(0, 14, "trim-defs-cmd ") == 0)
+  {
+    std::string msgr = msg.substr(14);
+    Command cmd = parseCommand(msgr);
+    processCommand(cmd);
     return false;
   }
   return true;
@@ -291,6 +297,10 @@ void TrimDefs::finalize()
   {
     // do not include the commands we processed
     if (d_commands[i].compare(0, 16, "(echo \"trim-defs") == 0)
+    {
+      continue;
+    }
+    if (d_commands[i].compare(0, 8, "(depends")==0)
     {
       continue;
     }

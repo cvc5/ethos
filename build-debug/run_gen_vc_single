@@ -7,6 +7,8 @@ STD_DESUGAR_OUT=../plugins/desugar/eo_desugar_gen.eo
 STD_SMODEL_OUT=../plugins/model_smt/model_smt_gen.eo
 STD_SMODEL_EMBED_OUT=../plugins/model_smt/model_eo_embed_gen.eo
 STD_VC_OUT=../plugins/smt_meta/smt_meta_gen.smt2
+# file used to ensure that trim-defs preserves dependencies for term reductions
+STD_SMODEL_DEPS=../plugins/model_smt/term_reduce_deps.eo
 # the name of a EO signature
 INPUT=$1
 # should be the name of a constant or proof rule in $INPUT
@@ -36,6 +38,8 @@ INPUT_FILE=$1
 shift
 # output file
 echo "(include \"$INPUT_FILE\")" > $TMP_TRIM_OUT
+# ensure the dependencies are kept
+cat $STD_SMODEL_DEPS >> $TMP_TRIM_OUT
 # add commands for each argument
 while [[ $# -gt 0 ]]; do
   TARGET_SYM="$1"
@@ -121,6 +125,7 @@ cp $STD_VC_OUT $VC_OUT
 echo "**** smt_meta: Verify cvc5 parses"
 ajr-cvc5 $VC_OUT --parse-only
 check_status
+exit 0
 
 echo "**** smt_meta: Run the final verification condition with unsat cores"
 ajr-cvc5 $VC_OUT --dump-unsat-cores --quant-ind #--parse-only

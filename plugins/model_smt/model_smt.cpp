@@ -106,6 +106,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("str.prefixof", {kString, kString}, kBool);
   addConstFoldSym("str.<=", {kString, kString}, kBool);
   addConstFoldSym("str.<", {kString, kString}, kBool);
+#if 0
   addReduceSym("re.allchar", {}, "($vsm_re ($smt_apply_0 \"re.allchar\"))");
   addReduceSym("re.none", {}, "($vsm_re ($smt_apply_0 \"re.none\"))");
   addReduceSym("re.all", {}, "($vsm_re ($smt_apply_0 \"re.all\"))");
@@ -119,6 +120,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("re.inter", {kRegLan, kRegLan}, kRegLan);
   addConstFoldSym("re.union", {kRegLan, kRegLan}, kRegLan);
   addConstFoldSym("re.range", {kString, kString}, kRegLan);
+#endif
   // bitvectors
   addTypeSym("BitVec",
              {kInt},
@@ -291,6 +293,7 @@ void ModelSmt::addTermReduceSym(const std::string& sym,
                                 const std::vector<Kind>& args,
                                 const std::string& retTerm)
 {
+  std::cout << "(echo \"trim-defs-cmd (depends " << sym << " " << retTerm << ")\")" << std::endl;
   std::stringstream ssret;
   ssret << "($smtx_model_eval " << retTerm << ")";
   addReduceSym(sym, args, ssret.str());
