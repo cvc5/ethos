@@ -152,7 +152,7 @@
 ;;; SMT term datatype constructors
 
 ; the literal types
-(declare-parameterized-const $smd_sm.Bool
+(declare-parameterized-const $smd_sm.Boolean
   ((b $smt_builtin_Bool :opaque)) $smt_Term)
 (declare-parameterized-const $smd_sm.Numeral
   ((n $smt_builtin_Int :opaque)) $smt_Term)
@@ -307,10 +307,10 @@
 
 ;;; External datatype access
 
-(define $sm_mk_true () ($smd_sm.Bool $smt_builtin_true))
-(define $sm_mk_false () ($smd_sm.Bool $smt_builtin_false))
+(define $sm_mk_true () ($smd_sm.Boolean $smt_builtin_true))
+(define $sm_mk_false () ($smd_sm.Boolean $smt_builtin_false))
 (define $sm_mk_bool ((c $smt_builtin_Bool))
-  ($smd_sm.Bool c))
+  ($smd_sm.Boolean c))
 (define $sm_mk_z ((n $smt_builtin_Int))
   ($smd_sm.Numeral n))
 (define $sm_mk_q ((r $smt_builtin_Real))

@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_bool-eq-true
-; #trim-defs: 42
+; #trim-defs: 41
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const Real Type)
@@ -195,7 +195,7 @@
 ;;; SMT term datatype constructors
 
 ; the literal types
-(declare-parameterized-const $smd_sm.Bool
+(declare-parameterized-const $smd_sm.Boolean
   ((b $smt_builtin_Bool :opaque)) $smt_Term)
 (declare-parameterized-const $smd_sm.Numeral
   ((n $smt_builtin_Int :opaque)) $smt_Term)
@@ -350,10 +350,10 @@
 
 ;;; External datatype access
 
-(define $sm_mk_true () ($smd_sm.Bool $smt_builtin_true))
-(define $sm_mk_false () ($smd_sm.Bool $smt_builtin_false))
+(define $sm_mk_true () ($smd_sm.Boolean $smt_builtin_true))
+(define $sm_mk_false () ($smd_sm.Boolean $smt_builtin_false))
 (define $sm_mk_bool ((c $smt_builtin_Bool))
-  ($smd_sm.Bool c))
+  ($smd_sm.Boolean c))
 (define $sm_mk_z ((n $smt_builtin_Int))
   ($smd_sm.Numeral n))
 (define $sm_mk_q ((r $smt_builtin_Real))
@@ -1088,11 +1088,20 @@
    (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3)) 
   :signature (T) Type
   (
-  (($eo_typeof_main Type)      Type)
-  (($eo_typeof_main (-> T U))  ($eo_typeof_fun_type ($eo_typeof T) ($eo_typeof U))) 
-  (($eo_typeof_main Bool)      Type)
-  (($eo_typeof_main true)      Bool)
-  (($eo_typeof_main false)     Bool)
+  (($eo_typeof_main Type)                 Type)
+  (($eo_typeof_main (-> T U))
+    
+    ($eo_typeof_fun_type ($eo_typeof T)   ($eo_typeof U)))
+  (($eo_typeof_main Bool)                 Type)
+  (($eo_typeof_main true)                 Bool)
+  (($eo_typeof_main false)                Bool)
+  
+  (($eo_typeof_main $eo_List)             Type)
+  (($eo_typeof_main $eo_List_nil)         $eo_List)
+  (($eo_typeof_main ($eo_List_cons x1))   (-> $eo_List $eo_List))
+  (($eo_typeof_main $eo_Option)           Type)
+  (($eo_typeof_main $eo_Option_null)      $eo_Option)
+  (($eo_typeof_main ($eo_Option_some x1)) $eo_Option)
   
   (($eo_typeof_main Int) Type)
   
@@ -1108,7 +1117,7 @@
   
   (($eo_typeof_main BitVec) (-> Int Type))
 
-  (($eo_typeof_main (f x))     ($eo_typeof_apply ($eo_typeof f) ($eo_typeof x)))
+  (($eo_typeof_main (f x))        ($eo_typeof_apply ($eo_typeof f) ($eo_typeof x)))
   )
 )
 (program $eo_dt_constructors
@@ -1127,7 +1136,6 @@
   )
 )
 (program $eo_model_sat () :signature (Bool) $eo_Option)
-(program $eo_model_typeof () :signature (Bool) Type)
 (program $eo_model_is_input () :signature (Bool) Bool)
 ; This file defines SMT-LIB model semantics in Eunoia.
 ; It has exception handling utilities to call Eunoia programs in
@@ -1882,38 +1890,6 @@
   )
 )
 
-; The EO model typeof function, which incorporates SMT terms introduced in the
-; model_smt layer.
-; This is intended to cover all Eunoia and SMT terms (those of the form
-; (eo.SmtTerm *). Since values are embedded into SMT terms, we cover SMT values,
-; i.e. those of the form (eo.SmtValue *) as well.
-; Furthermore note:
-; - (SMT terms in $eo_typeof_main): sm.True, sm.False
-; - (SMT terms in $eo_typeof): sm.Numeral, sm.Rational, sm.String, sm.Binary
-; - (SMT terms handled below): sm.Const, sm.Apply
-; - (EO terms in $eo_typeof_main): eo.Type, eo.FunType, eo.Apply
-; - (EO terms in $eo_typeof): eo.Var
-; - (EO terms intentionally unhandled): eo.Stuck, eo.SmtType
-; invariant: all terms introduced by this layer must be given a type rule here.
-; TODO: use hash for the nullsort below?
-;(program $smtx_typeof
-;  ((t $eo_Term) (val $smt_Value) (T $eo_Term) (m $smt_Map) (id $smt_builtin_Int) (T $eo_Term)
-;   (f $smt_Value) (a $smt_Term) (U $smt_Type))
-;  :signature ($eo_Term) $eo_Term
-;  (
-;  ; the arrow type is first class in this embedding but not in Eunoia, requires a case
-;  (($smtx_typeof $eo_fun_type)                        ($eo_mk_fun_type $eo_Type $eo_Type))
-;  ; the type of an atomic type uses Eunoia's typeof builtin, or null sort if this fails.
-;  (($smtx_typeof ($eo_smt_type U))                    ($eo_typeof U))
-;  ; the type of a constant uses utility above
-;  (($smtx_typeof ($eo_Const T val))    ($smtx_typeof_const T val))
-;  ; similar to above, we try Eunoia's typeof, or null sort.
-;  (($smtx_typeof ($eo_smt_term a))                    ($eo_typeof a))
-;  ; For all other terms, we try Eunoia's typeof, or null sort.
-;  (($smtx_typeof t)                                   ($eo_typeof t))
-;  )
-;)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; SMT-LIB input syntax
 
 (program $smtx_is_list
@@ -1981,17 +1957,6 @@
   )
 )
 
-; program: $eo_model_typeof
-; note: F is satisfied by the model if F evaluates to the SMT-LIB value denoting true.
-; We expect the input to this method to be a Eunoia term denoting an SMT-LIB formula
-; (term of Boolean type).
-(program $eo_model_typeof ((F Bool))
-  :signature (Bool) Type
-  (
-  (($eo_model_typeof F) ($eo_typeof F))
-  )
-)
-
 ; program: $eo_model_is_input
 ; return: true if this is a legal SMT-LIB input term or type.
 (program $eo_model_is_input ((F Bool))
@@ -2005,7 +1970,7 @@
 (program $eor_bool-eq-true ((t1 Bool))
   :signature (Bool) Bool
   (
-  (($eor_bool-eq-true t1) (eo::define ((_v0 (_ (= (_ (= t1) true)) t1))) ($eo_requires_eq ($eo_model_typeof _v0) Bool _v0)))
+  (($eor_bool-eq-true t1) (eo::define ((_v0 (_ (= (_ (= t1) true)) t1))) ($eo_requires_eq ($eo_typeof _v0) Bool _v0)))
   )
 )
 (program $eovc_bool-eq-true ((t1 Bool))

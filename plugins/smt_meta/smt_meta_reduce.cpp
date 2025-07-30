@@ -75,18 +75,18 @@ SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s)
     tmp = allocateGrammar("G_eo.List", "eo.Term");
     tmp->d_rules << "(eo.Apply (eo.Apply eo.$eo_List_cons G_eo.Term) G_eo.List) eo.$eo_List_nil";
     tmp = allocateGrammar("G_sm.Term", "sm.Term");
-    d_gconstRule["Bool"] = "(sm.Const (eo.SmtType tsm.Bool) (vsm.Term (sm.Bool G_Bool)))";
-    d_gconstRule["Int"] = "(sm.Const (eo.SmtType tsm.Int) (vsm.Term (sm.Numeral G_Int)))";
-    d_gconstRule["Real"] = "(sm.Const (eo.SmtType tsm.Real) (vsm.Term (sm.Rational G_Real)))";
-    d_gconstRule["BitVec"] = "(sm.Const (eo.Apply (eo.SmtType tsm.BitVec) (eo.SmtTerm (sm.Numeral G_Int))) (vsm.Term (sm.Binary G_Int G_Int)))";
+    d_gconstRule["Bool"] = "(eo.Const (eo.SmtType tsm.Bool) (vsm.Term (sm.Boolean G_Bool)))";
+    d_gconstRule["Int"] = "(eo.Const (eo.SmtType tsm.Int) (vsm.Term (sm.Numeral G_Int)))";
+    d_gconstRule["Real"] = "(eo.Const (eo.SmtType tsm.Real) (vsm.Term (sm.Rational G_Real)))";
+    d_gconstRule["BitVec"] = "(eo.Const (eo.Apply (eo.SmtType tsm.BitVec) (eo.SmtTerm (sm.Numeral G_Int))) (vsm.Term (sm.Binary G_Int G_Int)))";
     std::stringstream sseq;
-    sseq << "(sm.Const (eo.Apply (eo.SmtType tsm.Seq) (eo.SmtType tsm.Char)) (vsm.Term (sm.String G_String)))";
-    sseq << " (sm.Const (eo.Apply (eo.SmtType tsm.Seq) G_eo.Term) (vsm.Seq G_ssm.Seq))";
+    sseq << "(eo.Const (eo.Apply (eo.SmtType tsm.Seq) (eo.SmtType tsm.Char)) (vsm.Term (sm.String G_String)))";
+    sseq << " (eo.Const (eo.Apply (eo.SmtType tsm.Seq) G_eo.Term) (vsm.Seq G_ssm.Seq))";
     d_gconstRule["BitVec"] = sseq.str();
     std::stringstream sarr;
-    sarr << "(sm.Const (eo.Apply (eo.Apply (eo.SmtType tsm.Array) G_eo.Term) G_eo.Term) (vsm.Map G_msm.Map))";
+    sarr << "(eo.Const (eo.Apply (eo.Apply (eo.SmtType tsm.Array) G_eo.Term) G_eo.Term) (vsm.Map G_msm.Map))";
     d_gconstRule["Array"] = sarr.str();
-    allocateGrammar("G_tsm.Type", "tsm.Type");
+    tmp = allocateGrammar("G_tsm.Type", "tsm.Type");
     allocateGrammar("G_vsm.Value", "vsm.Value");
     tmp = allocateGrammar("G_msm.Map", "msm.Map");
     tmp->d_rules << "(msm.cons G_vsm.Value G_vsm.Value G_msm.Map) (msm.default G_vsm.Value)";
@@ -246,7 +246,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     {
       if (!isSmtBuiltin)
       {
-        os << "(sm.Bool ";
+        os << "(sm.Boolean ";
         osEnd << ")";
       }
       os << (l->d_bool ? "true" : "false");
@@ -1048,53 +1048,25 @@ void SmtMetaReduce::finalizeDecl(const Expr& e)
   // get the meta-kind based on its name
   std::string cnamek;
   MetaKind tk = getMetaKind(d_state, e, cnamek);
-  SygusGrammar* sg = nullptr;
   if (tk == MetaKind::EUNOIA)
   {
     cname << "eo." << cnamek;
     out = &d_embedEoTermDt;
-    // do not enumerate builtin symbols with sygus
-    // this includes and lists which are handled specially, and 
-    // options which are internally only (for now)
-    if (cnamek.compare(0, 4, "$eo_")!=0 && cnamek!="Stuck")
-    {
-      sg = getGrammar("G_eo.Term");
-    }
-    if (StdPlugin::optionSmtMetaSygusGrammarWellTyped())
-    {
-      if (cnamek=="Apply")
-      {
-        sg = nullptr;
-      }
-    }
   }
   else if (tk == MetaKind::SMT_TYPE)
   {
     cname << "tsm." << cnamek;
     out = &d_embedTypeDt;
-    sg = getGrammar("G_tsm.Type");
   }
   else if (tk == MetaKind::SMT)
   {
     cname << "sm." << cnamek;
     out = &d_embedTermDt;
-    sg = getGrammar("G_sm.Term");
-    if (StdPlugin::optionSmtMetaSygusGrammarWellTyped())
-    {
-      if (cnamek=="Const")
-      {
-        sg = nullptr;
-      }
-    }
   }
   else if (tk == MetaKind::SMT_VALUE)
   {
     cname << "vsm." << cnamek;
     out = &d_embedValueDt;
-    if (cnamek!="NotValue")
-    {
-      sg = getGrammar("G_vsm.Value");
-    }
   }
   if (out == nullptr)
   {
@@ -1150,40 +1122,80 @@ void SmtMetaReduce::finalizeDecl(const Expr& e)
     (*out) << ")";
   }
   (*out) << ")" << std::endl;
-  std::stringstream grule;
+  std::stringstream gruleBase;
   if (nopqArgs>0)
   {
-    grule << "(" << cname.str() << sygusArgs.str() << ")";
+    gruleBase << "(" << cname.str() << sygusArgs.str() << ")";
   }
   else
   {
-    grule << cname.str();
+    gruleBase << cname.str();
   }
-  if (sg!=nullptr)
+  std::stringstream grule;
+  std::stringstream gruleEnd;
+  SygusGrammar* sg = nullptr;
+  MetaKind tkg = tk;
+  if (tk == MetaKind::EUNOIA)
   {
-    sg->d_rules << grule.str() << " ";
+    // do not enumerate builtin symbols with sygus
+    // this includes and lists which are handled specially, and 
+    // options which are internally only (for now)
+    if (cnamek.compare(0, 4, "$eo_")!=0 && cnamek!="Stuck")
+    {
+      sg = getGrammar("G_eo.Term");
+    }
+    if (StdPlugin::optionSmtMetaSygusGrammarWellTyped())
+    {
+      if (cnamek=="Apply" || cnamek=="Const")
+      {
+        sg = nullptr;
+      }
+    }
   }
+  else if (tk == MetaKind::SMT_TYPE)
+  {
+    if (cnamek!="Char")
+    {
+      // print on both
+      sg = getGrammar("G_tsm.Type");
+      sg->d_rules << gruleBase.str() << " ";
+      sg = getGrammar("G_eo.Term");
+      grule << "(eo.SmtType ";
+      gruleEnd << ")";
+      tkg = MetaKind::EUNOIA;
+    }
+  }
+  else if (tk == MetaKind::SMT)
+  {
+    // print on both
+    sg = getGrammar("G_sm.Term");
+    sg->d_rules << gruleBase.str() << " ";
+    sg = getGrammar("G_eo.Term");
+    grule << "(eo.SmtTerm ";
+    gruleEnd << ")";
+    tkg = MetaKind::EUNOIA;
+  }
+  else if (tk == MetaKind::SMT_VALUE)
+  {
+    if (cnamek!="NotValue")
+    {
+      sg = getGrammar("G_vsm.Value");
+    }
+  }
+  if (sg==nullptr)
+  {
+    return;
+  }
+  grule << gruleBase.str() << gruleEnd.str();
+  sg->d_rules << grule.str() << " ";
   if (StdPlugin::optionSmtMetaSygusGrammarWellTyped())
   {
     // if it has function type, make an APPLY rule
-    if (nopqArgs==0 && ct.getKind() == Kind::FUNCTION_TYPE && cnamek.compare(0, 4, "$eo_")!=0)
+    if (tkg == MetaKind::EUNOIA && nopqArgs==0 && ct.getKind() == Kind::FUNCTION_TYPE && cnamek.compare(0, 4, "$eo_")!=0)
     {
-      sg = getGrammar("G_eo.Term");
-      std::stringstream eoss;
-      if (tk == MetaKind::SMT_TYPE)
-      {
-        eoss << "(eo.SmtType " << grule.str() << ")";
-      }
-      else if (tk == MetaKind::SMT)
-      {
-        eoss << "(eo.SmtTerm " << grule.str() << ")";
-      }
-      else if (tk == MetaKind::EUNOIA)
-      {
-        eoss << grule.str();
-      }
-      std::string curr = eoss.str();
+      std::string curr = grule.str();
       Expr ctp = ct;
+      // all partial applications of it
       while (ctp.getKind()==Kind::FUNCTION_TYPE)
       {
         std::stringstream next;
@@ -1196,7 +1208,7 @@ void SmtMetaReduce::finalizeDecl(const Expr& e)
     std::map<std::string, std::string>::iterator it = d_gconstRule.find(cnamek);
     if (it != d_gconstRule.end())
     {
-      sg = getGrammar("G_sm.Term");
+      sg = getGrammar("G_eo.Term");
       sg->d_rules << it->second << " ";
     }
   }
@@ -1263,7 +1275,7 @@ bool SmtMetaReduce::echo(const std::string& msg)
     std::stringstream varList;
     std::stringstream eoTrue;
     std::stringstream call;
-    eoTrue << "(eo.SmtTerm (sm.Bool true))";
+    eoTrue << "(eo.SmtTerm (sm.Boolean true))";
     Assert(vt.getKind() == Kind::PROGRAM_TYPE);
     size_t nargs = vt.getNumChildren();
     ConjectureType ctype = StdPlugin::optionSmtMetaConjectureType();

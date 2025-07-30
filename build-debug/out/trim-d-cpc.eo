@@ -529,11 +529,20 @@
    (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3)) ; assumes functions can be monomorphized with at most 3 arguments
   :signature (T) Type
   (
-  (($eo_typeof_main Type)      Type)
-  (($eo_typeof_main (-> T U))  ($eo_typeof_fun_type ($eo_typeof T) ($eo_typeof U))) ; requires both children are types
-  (($eo_typeof_main Bool)      Type)
-  (($eo_typeof_main true)      Bool)
-  (($eo_typeof_main false)     Bool)
+  (($eo_typeof_main Type)                 Type)
+  (($eo_typeof_main (-> T U))
+    ; requires both children are types
+    ($eo_typeof_fun_type ($eo_typeof T)   ($eo_typeof U)))
+  (($eo_typeof_main Bool)                 Type)
+  (($eo_typeof_main true)                 Bool)
+  (($eo_typeof_main false)                Bool)
+  ; TODO: auto-generate these?
+  (($eo_typeof_main $eo_List)             Type)
+  (($eo_typeof_main $eo_List_nil)         $eo_List)
+  (($eo_typeof_main ($eo_List_cons x1))   (-> $eo_List $eo_List))
+  (($eo_typeof_main $eo_Option)           Type)
+  (($eo_typeof_main $eo_Option_null)      $eo_Option)
+  (($eo_typeof_main ($eo_Option_some x1)) $eo_Option)
   ; type-rule: Int
   (($eo_typeof_main Int) Type)
   ; type-rule: Real
@@ -549,7 +558,7 @@
   ; type-rule: BitVec
   (($eo_typeof_main BitVec) (-> Int Type))
 
-  (($eo_typeof_main (f x))     ($eo_typeof_apply ($eo_typeof f) ($eo_typeof x)))
+  (($eo_typeof_main (f x))        ($eo_typeof_apply ($eo_typeof f) ($eo_typeof x)))
   )
 )
 
@@ -603,14 +612,11 @@
 ; not satisfied, or $eo_Option_null otherwise.
 (program $eo_model_sat () :signature (Bool) $eo_Option)
 
-; A placeholder for asking the type of a given term.
-(program $eo_model_typeof () :signature (Bool) Type)
-
 ; A placeholder for asking whether a term is legal syntax for an SMT-LIB term.
 (program $eo_model_is_input () :signature (Bool) Bool)
 
 ; We will include the definition of the above functions here.
-(echo "include eo_model_sat :deps $eo_typeof_main $eo_dt_constructors $eo_dt_selectors $eo_if_both $eo_List_nil $eo_List_cons $eo_Option_some $eo_Option_null $eo_model_sat $eo_model_typeof $eo_model_is_input $eo_Pair_mk $eo_Pair_first $eo_Pair_second ")
+(echo "include eo_model_sat :deps $eo_typeof_main $eo_dt_constructors $eo_dt_selectors $eo_if_both $eo_List_nil $eo_List_cons $eo_Option_some $eo_Option_null $eo_model_sat $eo_model_is_input $eo_Pair_mk $eo_Pair_first $eo_Pair_second ")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; vc
 
@@ -620,7 +626,7 @@
 (program $eor_bool-eq-true ((t1 Bool))
   :signature (Bool) Bool
   (
-  (($eor_bool-eq-true t1) (eo::define ((_v0 (_ (= (_ (= t1) true)) t1))) ($eo_requires_eq ($eo_model_typeof _v0) Bool _v0)))
+  (($eor_bool-eq-true t1) (eo::define ((_v0 (_ (= (_ (= t1) true)) t1))) ($eo_requires_eq ($eo_typeof _v0) Bool _v0)))
   )
 )
 ; program: $eovc_bool-eq-true

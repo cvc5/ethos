@@ -735,38 +735,6 @@ $SMT_CONST_TYPE_OF_CASES$
   )
 )
 
-; The EO model typeof function, which incorporates SMT terms introduced in the
-; model_smt layer.
-; This is intended to cover all Eunoia and SMT terms (those of the form
-; (eo.SmtTerm *). Since values are embedded into SMT terms, we cover SMT values,
-; i.e. those of the form (eo.SmtValue *) as well.
-; Furthermore note:
-; - (SMT terms in $eo_typeof_main): sm.True, sm.False
-; - (SMT terms in $eo_typeof): sm.Numeral, sm.Rational, sm.String, sm.Binary
-; - (SMT terms handled below): sm.Const, sm.Apply
-; - (EO terms in $eo_typeof_main): eo.Type, eo.FunType, eo.Apply
-; - (EO terms in $eo_typeof): eo.Var
-; - (EO terms intentionally unhandled): eo.Stuck, eo.SmtType
-; invariant: all terms introduced by this layer must be given a type rule here.
-; TODO: use hash for the nullsort below?
-;(program $smtx_typeof
-;  ((t $eo_Term) (val $smt_Value) (T $eo_Term) (m $smt_Map) (id $smt_builtin_Int) (T $eo_Term)
-;   (f $smt_Value) (a $smt_Term) (U $smt_Type))
-;  :signature ($eo_Term) $eo_Term
-;  (
-;  ; the arrow type is first class in this embedding but not in Eunoia, requires a case
-;  (($smtx_typeof $eo_fun_type)                        ($eo_mk_fun_type $eo_Type $eo_Type))
-;  ; the type of an atomic type uses Eunoia's typeof builtin, or null sort if this fails.
-;  (($smtx_typeof ($eo_smt_type U))                    ($eo_typeof U))
-;  ; the type of a constant uses utility above
-;  (($smtx_typeof ($eo_Const T val))    ($smtx_typeof_const T val))
-;  ; similar to above, we try Eunoia's typeof, or null sort.
-;  (($smtx_typeof ($eo_smt_term a))                    ($eo_typeof a))
-;  ; For all other terms, we try Eunoia's typeof, or null sort.
-;  (($smtx_typeof t)                                   ($eo_typeof t))
-;  )
-;)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; SMT-LIB input syntax
 
 (program $smtx_is_list
@@ -825,17 +793,6 @@ $SMT_IS_INPUT_CASES$
   :signature (Bool) $eo_Option
   (
   (($eo_model_sat F) ($smtx_model_sat ($smtx_model_eval F)))
-  )
-)
-
-; program: $eo_model_typeof
-; note: F is satisfied by the model if F evaluates to the SMT-LIB value denoting true.
-; We expect the input to this method to be a Eunoia term denoting an SMT-LIB formula
-; (term of Boolean type).
-(program $eo_model_typeof ((F Bool))
-  :signature (Bool) Type
-  (
-  (($eo_model_typeof F) ($eo_typeof F))
   )
 )
 
