@@ -1,5 +1,7 @@
 #!/bin/bash
 
+#USE_SYGUS=ON
+
 OUT_DIR=./out
 
 STD_TRIM_OUT=../plugins/trim_defs/trim_gen.eo
@@ -120,20 +122,29 @@ echo "**** smt_meta: Generate SMT2 from $VCMT_DEF_DESUGAR to $VC_OUT"
 check_status
 cp $STD_VC_OUT $VC_OUT
 
-# TODO: trim-defs again??
+if [[ "$USE_SYGUS" == "ON" ]]; then
+  echo "**** smt_meta: Verify cvc5 parses with sygus"
+  ajr-cvc5 $VC_OUT --parse-only --lang=sygus
+  check_status
 
-echo "**** smt_meta: Verify cvc5 parses"
-ajr-cvc5 $VC_OUT --parse-only
-check_status
-exit 0
+  echo "**** smt_meta: Check for counterexamples with sygus"
+  ajr-cvc5 --lang=sygus --no-e-matching $VC_OUT --sygus-abort-size=2 -q -o sygus-enumerator -o sygus-grammar --sygus-enum=fast -o sygus
+  check_status
+else
 
-echo "**** smt_meta: Run the final verification condition with unsat cores"
-ajr-cvc5 $VC_OUT --dump-unsat-cores --quant-ind #--parse-only
-check_status
+  echo "**** smt_meta: Verify cvc5 parses"
+  ajr-cvc5 $VC_OUT --parse-only
+  check_status
+  exit 0
 
-echo "**** smt_meta: Run the final verification condition with proofs"
-ajr-cvc5 $VC_OUT --check-proofs --stats-internal --quant-ind |& grep -P '(^unknown$|^unsat$|^sat$|finalProof::ruleCount|finalProof::totalRuleCount|finalProof::ruleUnhandled|finalProof::trust)'
-check_status
+  echo "**** smt_meta: Run the final verification condition with unsat cores"
+  ajr-cvc5 $VC_OUT --dump-unsat-cores --quant-ind #--parse-only
+  check_status
+
+  echo "**** smt_meta: Run the final verification condition with proofs"
+  ajr-cvc5 $VC_OUT --check-proofs --stats-internal --quant-ind |& grep -P '(^unknown$|^unsat$|^sat$|finalProof::ruleCount|finalProof::totalRuleCount|finalProof::ruleUnhandled|finalProof::trust)'
+  check_status
+fi
 
 # clear temporary files
 #rm -f $INIT_TRIM

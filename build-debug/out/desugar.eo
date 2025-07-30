@@ -49,8 +49,7 @@
 (declare-const $eo_List Type)
 (declare-const $eo_List_nil $eo_List)
 (declare-parameterized-const $eo_List_cons ((T Type :implicit))
-  (-> T $eo_List $eo_List)
-  :right-assoc-nil $eo_List_nil)
+  (-> T $eo_List $eo_List))
 
 ;;; $eo_Option
 
@@ -726,21 +725,21 @@
 ; declare: mod
 (declare-const mod (-> Int (-> Int Int)))
 ; declare: divisible
-(declare-parameterized-const divisible ((x1 Int) (x2 Int)) Bool)
+(declare-const divisible (-> Int (-> Int Bool)))
 ; declare: int.pow2
 (declare-const int.pow2 (-> Int Int))
 ; declare: int.log2
-(declare-parameterized-const int.log2 ((x1 Int)) Int)
+(declare-const int.log2 (-> Int Int))
 ; declare: int.ispow2
-(declare-parameterized-const int.ispow2 ((x1 Int)) Bool)
+(declare-const int.ispow2 (-> Int Bool))
 ; declare: div_total
 (declare-const div_total (-> Int (-> Int Int)))
 ; declare: mod_total
 (declare-const mod_total (-> Int (-> Int Int)))
 ; declare: @int_div_by_zero
-(declare-parameterized-const @int_div_by_zero ((x Int)) Int)
+(declare-const @int_div_by_zero (-> Int Int))
 ; declare: @mod_by_zero
-(declare-parameterized-const @mod_by_zero ((x Int)) Int)
+(declare-const @mod_by_zero (-> Int Int))
 ; program: $assoc_nil_nth_type
 (program $assoc_nil_nth_type ((T Type) (U Type) (V Type) (W Type) (W1 Type) (x1 W1) (f (-> T (-> U V))) (W2 Type) (x2 W2) (n Int))
   :signature ((-> T (-> U V)) W Int) Type
@@ -962,7 +961,7 @@
 ; declare: /_total
 (declare-parameterized-const /_total ((T Type :implicit) ($eo_x_1 T) (U Type :implicit) ($eo_x_2 U)) Real)
 ; declare: @div_by_zero
-(declare-parameterized-const @div_by_zero ((x Real)) Real)
+(declare-const @div_by_zero (-> Real Real))
 ; program: $arith_eval_int_log_2_rec
 (program $arith_eval_int_log_2_rec ((x Int))
   :signature (Int) Int
@@ -1046,6 +1045,8 @@
 (declare-parameterized-const bvxor ((m Int :implicit) ($eo_x_1 (BitVec m)) ($eo_x_2 (BitVec m))) (BitVec m))
 ; declare: bvxnor
 (declare-parameterized-const bvxnor ((m Int :implicit) ($eo_x_1 (BitVec m)) ($eo_x_2 (BitVec m))) (BitVec m))
+; declare: bvcomp
+(declare-parameterized-const bvcomp ((m Int :implicit) ($eo_x_1 (BitVec m)) ($eo_x_2 (BitVec m))) (BitVec 1))
 ; declare: bvneg
 (declare-parameterized-const bvneg ((m Int :implicit) ($eo_x_1 (BitVec m))) (BitVec m))
 ; declare: bvadd
@@ -1057,29 +1058,29 @@
 ; declare: bvurem
 (declare-parameterized-const bvurem ((m Int :implicit) ($eo_x_1 (BitVec m)) ($eo_x_2 (BitVec m))) (BitVec m))
 ; declare: bvsub
-(declare-parameterized-const bvsub ((m Int :implicit) (x1 (BitVec m)) (x2 (BitVec m))) (BitVec m))
+(declare-parameterized-const bvsub ((m Int :implicit) ($eo_x_1 (BitVec m)) ($eo_x_2 (BitVec m))) (BitVec m))
 ; declare: bvsdiv
 (declare-parameterized-const bvsdiv ((m Int :implicit) ($eo_x_1 (BitVec m)) ($eo_x_2 (BitVec m))) (BitVec m))
 ; declare: bvsrem
 (declare-parameterized-const bvsrem ((m Int :implicit) ($eo_x_1 (BitVec m)) ($eo_x_2 (BitVec m))) (BitVec m))
 ; declare: bvsmod
 (declare-parameterized-const bvsmod ((m Int :implicit) ($eo_x_1 (BitVec m)) ($eo_x_2 (BitVec m))) (BitVec m))
+; declare: bvult
+(declare-parameterized-const bvult ((m Int :implicit) ($eo_x_1 (BitVec m)) ($eo_x_2 (BitVec m))) Bool)
+; declare: bvule
+(declare-parameterized-const bvule ((m Int :implicit) ($eo_x_1 (BitVec m)) ($eo_x_2 (BitVec m))) Bool)
 ; declare: bvugt
 (declare-parameterized-const bvugt ((m Int :implicit) ($eo_x_1 (BitVec m)) ($eo_x_2 (BitVec m))) Bool)
 ; declare: bvuge
-(declare-parameterized-const bvuge ((m Int :implicit) (x1 (BitVec m)) (x2 (BitVec m))) Bool)
-; declare: bvult
-(declare-parameterized-const bvult ((m Int :implicit) (x1 (BitVec m)) (x2 (BitVec m))) Bool)
-; declare: bvule
-(declare-parameterized-const bvule ((m Int :implicit) (x1 (BitVec m)) (x2 (BitVec m))) Bool)
+(declare-parameterized-const bvuge ((m Int :implicit) ($eo_x_1 (BitVec m)) ($eo_x_2 (BitVec m))) Bool)
+; declare: bvslt
+(declare-parameterized-const bvslt ((m Int :implicit) ($eo_x_1 (BitVec m)) ($eo_x_2 (BitVec m))) Bool)
+; declare: bvsle
+(declare-parameterized-const bvsle ((m Int :implicit) ($eo_x_1 (BitVec m)) ($eo_x_2 (BitVec m))) Bool)
 ; declare: bvsgt
 (declare-parameterized-const bvsgt ((m Int :implicit) ($eo_x_1 (BitVec m)) ($eo_x_2 (BitVec m))) Bool)
 ; declare: bvsge
-(declare-parameterized-const bvsge ((m Int :implicit) (x1 (BitVec m)) (x2 (BitVec m))) Bool)
-; declare: bvslt
-(declare-parameterized-const bvslt ((m Int :implicit) (x1 (BitVec m)) (x2 (BitVec m))) Bool)
-; declare: bvsle
-(declare-parameterized-const bvsle ((m Int :implicit) (x1 (BitVec m)) (x2 (BitVec m))) Bool)
+(declare-parameterized-const bvsge ((m Int :implicit) ($eo_x_1 (BitVec m)) ($eo_x_2 (BitVec m))) Bool)
 ; declare: bvshl
 (declare-parameterized-const bvshl ((m Int :implicit) ($eo_x_1 (BitVec m)) ($eo_x_2 (BitVec m))) (BitVec m))
 ; declare: bvlshr
@@ -1094,6 +1095,8 @@
 (declare-parameterized-const rotate_left (($eo_x_1 Int) (m Int :implicit) ($eo_x_2 (BitVec m))) (BitVec m))
 ; declare: rotate_right
 (declare-parameterized-const rotate_right (($eo_x_1 Int) (m Int :implicit) ($eo_x_2 (BitVec m))) (BitVec m))
+; declare: bvite
+(declare-parameterized-const bvite (($eo_x_1 (BitVec 1)) (T Type :implicit) ($eo_x_2 T) ($eo_x_3 T)) T)
 ; declare: bvuaddo
 (declare-parameterized-const bvuaddo ((m Int :implicit) ($eo_x_1 (BitVec m)) ($eo_x_2 (BitVec m))) Bool)
 ; declare: bvnego
@@ -1124,10 +1127,6 @@
 (declare-parameterized-const @from_bools (($eo_x_1 Bool) (n Int :implicit) ($eo_x_2 (BitVec n))) (BitVec (eo::add 1 n)))
 ; declare: @bv
 (declare-parameterized-const @bv ((value Int) (w Int)) (BitVec w))
-; declare: bvcomp
-(declare-parameterized-const bvcomp ((m Int :implicit) (x1 (BitVec m)) (x2 (BitVec m))) (BitVec 1))
-; declare: bvite
-(declare-parameterized-const bvite ((x1 (BitVec 1)) (T Type :implicit) (x2 T) (x3 T)) T)
 ; declare: @@Monomial
 (declare-const @@Monomial Type)
 ; declare: @@mon
@@ -2999,11 +2998,11 @@
 ; declare: @strings_deq_diff
 (declare-const @strings_deq_diff Int)
 ; declare: @strings_stoi_result
-(declare-parameterized-const @strings_stoi_result ((s (Seq Char) :opaque) (x Int)) Int)
+(declare-const @strings_stoi_result (-> Int Int))
 ; declare: @strings_stoi_non_digit
 (declare-const @strings_stoi_non_digit Int)
 ; declare: @strings_itos_result
-(declare-parameterized-const @strings_itos_result ((n Int :opaque) (x Int)) Int)
+(declare-const @strings_itos_result (-> Int Int))
 ; declare: @strings_num_occur
 (declare-parameterized-const @strings_num_occur ((T Type :implicit) (s (Seq T)) (t (Seq T))) Int)
 ; declare: @strings_num_occur_re
@@ -3024,10 +3023,10 @@
 (declare-const @re_first_match_post (Seq Char))
 ; declare: @witness_string_length
 (declare-parameterized-const @witness_string_length ((T Type) ($eo_x_1 Int) ($eo_x_2 Int)) T)
-; declare: exists
-(declare-const exists (-> $eo_List (-> Bool Bool)))
 ; declare: forall
 (declare-const forall (-> $eo_List (-> Bool Bool)))
+; declare: exists
+(declare-const exists (-> $eo_List (-> Bool Bool)))
 ; program: $get_var_list
 (program $get_var_list ((Q (-> $eo_List (-> Bool Bool))) (G Bool) (xs $eo_List))
   :signature (Bool) $eo_List
@@ -3197,22 +3196,8 @@
 (declare-parameterized-const tuple ((T Type :implicit) ($eo_x_1 T) (U Type :implicit) ($eo_x_2 U)) (eo::cons Tuple T U))
 ; declare: tuple.select
 (declare-parameterized-const tuple.select ((i Int) (T Type :implicit) ($eo_x_1 T)) (eo::list_nth Tuple T i))
-; program: $get_tuple_update_type.fev1
-(program $get_tuple_update_type.fev1 ((i Int) ($eo_1 Type) (T Type))
-  :signature (Type Int Type) Type
-  (
-  (($get_tuple_update_type.fev1 T i $eo_1) (-> $eo_1 T))
-  )
-)
-; program: $get_tuple_update_type
-(program $get_tuple_update_type ((T Type) (i Int))
-  :signature (Int Type) Type
-  (
-  (($get_tuple_update_type i T) ($get_tuple_update_type.fev1 T i (eo::list_nth Tuple T i)))
-  )
-)
 ; declare: tuple.update
-(declare-parameterized-const tuple.update ((i Int) (T Type)) ($get_tuple_update_type i T))
+(declare-parameterized-const tuple.update ((i Int) (T Type :implicit) ($eo_x_1 T) (U Type :implicit) ($eo_x_2 U)) T)
 ; declare: Set
 (declare-const Set (-> Type Type))
 ; declare: set.empty
@@ -3228,7 +3213,7 @@
 ; declare: set.member
 (declare-parameterized-const set.member ((T Type :implicit) ($eo_x_1 T) ($eo_x_2 (Set T))) Bool)
 ; declare: set.subset
-(declare-parameterized-const set.subset ((T Type :implicit) (x1 (Set T)) (x2 (Set T))) Bool)
+(declare-parameterized-const set.subset ((T Type :implicit) ($eo_x_1 (Set T)) ($eo_x_2 (Set T))) Bool)
 ; declare: set.choose
 (declare-parameterized-const set.choose ((T Type :implicit) ($eo_x_1 (Set T))) T)
 ; declare: set.is_empty
@@ -6146,7 +6131,7 @@
   (
   (($set_union_to_list (_ (set.union (set.singleton e)) t)) (eo::cons $eo_List_cons e ($set_union_to_list t)))
   (($set_union_to_list (as set.empty (Set T))) $eo_List_nil)
-  (($set_union_to_list (set.singleton e)) (eo::cons $eo_List_cons e $eo_List_nil))
+  (($set_union_to_list (set.singleton e)) (_ ($eo_List_cons e) $eo_List_nil))
   )
 )
 ; fwd-decl: $eval_sets_inter
@@ -8109,41 +8094,6 @@
   (($eo_typeof_$eoo_-.2 T) ($eo_typeof_$eoo_-.2.fev1 T ($is_arith_type T) true))
   )
 )
-; program: $eo_typeof_divisible
-(program $eo_typeof_divisible ((x1 Int) (x2 Int))
-  :signature (Type Type) Type
-  (
-  (($eo_typeof_divisible x1 x2) Bool)
-  )
-)
-; program: $eo_typeof_int.log2
-(program $eo_typeof_int.log2 ((x1 Int))
-  :signature (Type) Type
-  (
-  (($eo_typeof_int.log2 x1) Int)
-  )
-)
-; program: $eo_typeof_int.ispow2
-(program $eo_typeof_int.ispow2 ((x1 Int))
-  :signature (Type) Type
-  (
-  (($eo_typeof_int.ispow2 x1) Bool)
-  )
-)
-; program: $eo_typeof_@int_div_by_zero
-(program $eo_typeof_@int_div_by_zero ((x Int))
-  :signature (Type) Type
-  (
-  (($eo_typeof_@int_div_by_zero x) Int)
-  )
-)
-; program: $eo_typeof_@mod_by_zero
-(program $eo_typeof_@mod_by_zero ((x Int))
-  :signature (Type) Type
-  (
-  (($eo_typeof_@mod_by_zero x) Int)
-  )
-)
 ; program: $eo_typeof_select
 (program $eo_typeof_select ((U Type) (T Type))
   :signature (Type) Type
@@ -8205,13 +8155,6 @@
   :signature (Type Type) Type
   (
   (($eo_typeof_/_total T U) ($eo_typeof_/_total.fev1 U T ($is_arith_type T) true))
-  )
-)
-; program: $eo_typeof_@div_by_zero
-(program $eo_typeof_@div_by_zero ((x Real))
-  :signature (Type) Type
-  (
-  (($eo_typeof_@div_by_zero x) Real)
   )
 )
 ; program: $eo_typeof_@bvsize
@@ -8312,6 +8255,13 @@
   (($eo_typeof_bvxnor (BitVec m)) (eo::define ((_v0 (BitVec m))) (-> _v0 _v0)))
   )
 )
+; program: $eo_typeof_bvcomp
+(program $eo_typeof_bvcomp ((m Int))
+  :signature (Type) Type
+  (
+  (($eo_typeof_bvcomp (BitVec m)) (-> (BitVec m) (BitVec 1)))
+  )
+)
 ; program: $eo_typeof_bvneg
 (program $eo_typeof_bvneg ((m Int))
   :signature (Type) Type
@@ -8348,10 +8298,10 @@
   )
 )
 ; program: $eo_typeof_bvsub
-(program $eo_typeof_bvsub ((m Int) (x1 (BitVec m)) (x2 (BitVec m)))
-  :signature (Type Type Type Type) Type
+(program $eo_typeof_bvsub ((m Int))
+  :signature (Type) Type
   (
-  ((eo::define ((_v0 (BitVec m))) ($eo_typeof_bvsub _v0 x1 _v0 x2)) (BitVec m))
+  (($eo_typeof_bvsub (BitVec m)) (eo::define ((_v0 (BitVec m))) (-> _v0 _v0)))
   )
 )
 ; program: $eo_typeof_bvsdiv
@@ -8375,6 +8325,20 @@
   (($eo_typeof_bvsmod (BitVec m)) (eo::define ((_v0 (BitVec m))) (-> _v0 _v0)))
   )
 )
+; program: $eo_typeof_bvult
+(program $eo_typeof_bvult ((m Int))
+  :signature (Type) Type
+  (
+  (($eo_typeof_bvult (BitVec m)) (-> (BitVec m) Bool))
+  )
+)
+; program: $eo_typeof_bvule
+(program $eo_typeof_bvule ((m Int))
+  :signature (Type) Type
+  (
+  (($eo_typeof_bvule (BitVec m)) (-> (BitVec m) Bool))
+  )
+)
 ; program: $eo_typeof_bvugt
 (program $eo_typeof_bvugt ((m Int))
   :signature (Type) Type
@@ -8383,24 +8347,24 @@
   )
 )
 ; program: $eo_typeof_bvuge
-(program $eo_typeof_bvuge ((m Int) (x1 (BitVec m)) (x2 (BitVec m)))
-  :signature (Type Type Type Type) Type
+(program $eo_typeof_bvuge ((m Int))
+  :signature (Type) Type
   (
-  ((eo::define ((_v0 (BitVec m))) ($eo_typeof_bvuge _v0 x1 _v0 x2)) Bool)
+  (($eo_typeof_bvuge (BitVec m)) (-> (BitVec m) Bool))
   )
 )
-; program: $eo_typeof_bvult
-(program $eo_typeof_bvult ((m Int) (x1 (BitVec m)) (x2 (BitVec m)))
-  :signature (Type Type Type Type) Type
+; program: $eo_typeof_bvslt
+(program $eo_typeof_bvslt ((m Int))
+  :signature (Type) Type
   (
-  ((eo::define ((_v0 (BitVec m))) ($eo_typeof_bvult _v0 x1 _v0 x2)) Bool)
+  (($eo_typeof_bvslt (BitVec m)) (-> (BitVec m) Bool))
   )
 )
-; program: $eo_typeof_bvule
-(program $eo_typeof_bvule ((m Int) (x1 (BitVec m)) (x2 (BitVec m)))
-  :signature (Type Type Type Type) Type
+; program: $eo_typeof_bvsle
+(program $eo_typeof_bvsle ((m Int))
+  :signature (Type) Type
   (
-  ((eo::define ((_v0 (BitVec m))) ($eo_typeof_bvule _v0 x1 _v0 x2)) Bool)
+  (($eo_typeof_bvsle (BitVec m)) (-> (BitVec m) Bool))
   )
 )
 ; program: $eo_typeof_bvsgt
@@ -8411,24 +8375,10 @@
   )
 )
 ; program: $eo_typeof_bvsge
-(program $eo_typeof_bvsge ((m Int) (x1 (BitVec m)) (x2 (BitVec m)))
-  :signature (Type Type Type Type) Type
+(program $eo_typeof_bvsge ((m Int))
+  :signature (Type) Type
   (
-  ((eo::define ((_v0 (BitVec m))) ($eo_typeof_bvsge _v0 x1 _v0 x2)) Bool)
-  )
-)
-; program: $eo_typeof_bvslt
-(program $eo_typeof_bvslt ((m Int) (x1 (BitVec m)) (x2 (BitVec m)))
-  :signature (Type Type Type Type) Type
-  (
-  ((eo::define ((_v0 (BitVec m))) ($eo_typeof_bvslt _v0 x1 _v0 x2)) Bool)
-  )
-)
-; program: $eo_typeof_bvsle
-(program $eo_typeof_bvsle ((m Int) (x1 (BitVec m)) (x2 (BitVec m)))
-  :signature (Type Type Type Type) Type
-  (
-  ((eo::define ((_v0 (BitVec m))) ($eo_typeof_bvsle _v0 x1 _v0 x2)) Bool)
+  (($eo_typeof_bvsge (BitVec m)) (-> (BitVec m) Bool))
   )
 )
 ; program: $eo_typeof_bvshl
@@ -8492,6 +8442,13 @@
   :signature (Type Type) Type
   (
   (($eo_typeof_rotate_right Int (BitVec m)) (BitVec m))
+  )
+)
+; program: $eo_typeof_bvite
+(program $eo_typeof_bvite ((T Type))
+  :signature (Type Type) Type
+  (
+  (($eo_typeof_bvite (BitVec 1) T) (-> T T))
   )
 )
 ; program: $eo_typeof_bvuaddo
@@ -8604,20 +8561,6 @@
   :signature (Type Type) Type
   (
   (($eo_typeof_@bv value w) (BitVec w))
-  )
-)
-; program: $eo_typeof_bvcomp
-(program $eo_typeof_bvcomp ((m Int) (x1 (BitVec m)) (x2 (BitVec m)))
-  :signature (Type Type Type Type) Type
-  (
-  ((eo::define ((_v0 (BitVec m))) ($eo_typeof_bvcomp _v0 x1 _v0 x2)) (BitVec 1))
-  )
-)
-; program: $eo_typeof_bvite
-(program $eo_typeof_bvite ((x1 (BitVec 1)) (T Type) (x2 T) (x3 T))
-  :signature (Type Type Type Type Type) Type
-  (
-  (($eo_typeof_bvite x1 T x2 T x3) T)
   )
 )
 ; program: $eo_typeof_@@mon
@@ -8747,10 +8690,10 @@
   )
 )
 ; program: $eo_typeof_@strings_stoi_result
-(program $eo_typeof_@strings_stoi_result ((s (Seq Char)) (x Int))
-  :signature (Type Type) Type
+(program $eo_typeof_@strings_stoi_result ((s (Seq Char)))
+  :signature (Type) Type
   (
-  (($eo_typeof_@strings_stoi_result s x) Int)
+  (($eo_typeof_@strings_stoi_result s) (-> Int Int))
   )
 )
 ; program: $eo_typeof_@strings_stoi_non_digit
@@ -8761,10 +8704,10 @@
   )
 )
 ; program: $eo_typeof_@strings_itos_result
-(program $eo_typeof_@strings_itos_result ((n Int) (x Int))
-  :signature (Type Type) Type
+(program $eo_typeof_@strings_itos_result ((n Int))
+  :signature (Type) Type
   (
-  (($eo_typeof_@strings_itos_result n x) Int)
+  (($eo_typeof_@strings_itos_result n) (-> Int Int))
   )
 )
 ; program: $eo_typeof_@strings_num_occur
@@ -8879,11 +8822,18 @@
   (($eo_typeof_tuple.select i T) (eo::list_nth Tuple T i))
   )
 )
-; program: $eo_typeof_tuple.update
-(program $eo_typeof_tuple.update ((i Int) (T Type))
-  :signature (Type Type) Type
+; program: $eo_typeof_tuple.update.fev1
+(program $eo_typeof_tuple.update.fev1 ((i Int) (U Type) ($eo_2 Type) (T Type))
+  :signature (Type Int Type Type Type) Type
   (
-  (($eo_typeof_tuple.update i T) ($get_tuple_update_type i T))
+  (($eo_typeof_tuple.update.fev1 T i U $eo_2 $eo_2) T)
+  )
+)
+; program: $eo_typeof_tuple.update
+(program $eo_typeof_tuple.update ((U Type) (T Type) (i Int))
+  :signature (Type Type Type) Type
+  (
+  (($eo_typeof_tuple.update i T U) ($eo_typeof_tuple.update.fev1 T i U U (eo::list_nth Tuple T i)))
   )
 )
 ; program: $eo_typeof_set.empty
@@ -8929,10 +8879,10 @@
   )
 )
 ; program: $eo_typeof_set.subset
-(program $eo_typeof_set.subset ((T Type) (x1 (Set T)) (x2 (Set T)))
-  :signature (Type Type Type Type) Type
+(program $eo_typeof_set.subset ((T Type))
+  :signature (Type) Type
   (
-  ((eo::define ((_v0 (Set T))) ($eo_typeof_set.subset _v0 x1 _v0 x2)) Bool)
+  (($eo_typeof_set.subset (Set T)) (-> (Set T) Bool))
   )
 )
 ; program: $eo_typeof_set.choose
@@ -9097,21 +9047,21 @@
   ; type-rule: mod
   (($eo_typeof_main mod) (-> Int (-> Int Int)))
   ; type-rule: divisible
-  (($eo_typeof_main (_ (divisible x1) x2)) ($eo_typeof_divisible x1 x2))
+  (($eo_typeof_main divisible) (-> Int (-> Int Bool)))
   ; type-rule: int.pow2
   (($eo_typeof_main int.pow2) (-> Int Int))
   ; type-rule: int.log2
-  (($eo_typeof_main (int.log2 x1)) ($eo_typeof_int.log2 x1))
+  (($eo_typeof_main int.log2) (-> Int Int))
   ; type-rule: int.ispow2
-  (($eo_typeof_main (int.ispow2 x1)) ($eo_typeof_int.ispow2 x1))
+  (($eo_typeof_main int.ispow2) (-> Int Bool))
   ; type-rule: div_total
   (($eo_typeof_main div_total) (-> Int (-> Int Int)))
   ; type-rule: mod_total
   (($eo_typeof_main mod_total) (-> Int (-> Int Int)))
   ; type-rule: @int_div_by_zero
-  (($eo_typeof_main (@int_div_by_zero x1)) ($eo_typeof_@int_div_by_zero x1))
+  (($eo_typeof_main @int_div_by_zero) (-> Int Int))
   ; type-rule: @mod_by_zero
-  (($eo_typeof_main (@mod_by_zero x1)) ($eo_typeof_@mod_by_zero x1))
+  (($eo_typeof_main @mod_by_zero) (-> Int Int))
   ; type-rule: Array
   (($eo_typeof_main Array) (-> Type (-> Type Type)))
   ; type-rule: select
@@ -9125,7 +9075,7 @@
   ; type-rule: /_total
   (($eo_typeof_main (_ (/_total x1) x2)) ($eo_typeof_/_total ($eo_typeof x1) ($eo_typeof x2)))
   ; type-rule: @div_by_zero
-  (($eo_typeof_main (@div_by_zero x1)) ($eo_typeof_@div_by_zero x1))
+  (($eo_typeof_main @div_by_zero) (-> Real Real))
   ; type-rule: BitVec
   (($eo_typeof_main BitVec) (-> Int Type))
   ; type-rule: @bvsize
@@ -9150,6 +9100,8 @@
   (($eo_typeof_main (bvxor x1)) ($eo_typeof_bvxor ($eo_typeof x1)))
   ; type-rule: bvxnor
   (($eo_typeof_main (bvxnor x1)) ($eo_typeof_bvxnor ($eo_typeof x1)))
+  ; type-rule: bvcomp
+  (($eo_typeof_main (bvcomp x1)) ($eo_typeof_bvcomp ($eo_typeof x1)))
   ; type-rule: bvneg
   (($eo_typeof_main (bvneg x1)) ($eo_typeof_bvneg ($eo_typeof x1)))
   ; type-rule: bvadd
@@ -9161,29 +9113,29 @@
   ; type-rule: bvurem
   (($eo_typeof_main (bvurem x1)) ($eo_typeof_bvurem ($eo_typeof x1)))
   ; type-rule: bvsub
-  (($eo_typeof_main (_ (bvsub x1) x2)) ($eo_typeof_bvsub ($eo_typeof x1) x1 ($eo_typeof x2) x2))
+  (($eo_typeof_main (bvsub x1)) ($eo_typeof_bvsub ($eo_typeof x1)))
   ; type-rule: bvsdiv
   (($eo_typeof_main (bvsdiv x1)) ($eo_typeof_bvsdiv ($eo_typeof x1)))
   ; type-rule: bvsrem
   (($eo_typeof_main (bvsrem x1)) ($eo_typeof_bvsrem ($eo_typeof x1)))
   ; type-rule: bvsmod
   (($eo_typeof_main (bvsmod x1)) ($eo_typeof_bvsmod ($eo_typeof x1)))
+  ; type-rule: bvult
+  (($eo_typeof_main (bvult x1)) ($eo_typeof_bvult ($eo_typeof x1)))
+  ; type-rule: bvule
+  (($eo_typeof_main (bvule x1)) ($eo_typeof_bvule ($eo_typeof x1)))
   ; type-rule: bvugt
   (($eo_typeof_main (bvugt x1)) ($eo_typeof_bvugt ($eo_typeof x1)))
   ; type-rule: bvuge
-  (($eo_typeof_main (_ (bvuge x1) x2)) ($eo_typeof_bvuge ($eo_typeof x1) x1 ($eo_typeof x2) x2))
-  ; type-rule: bvult
-  (($eo_typeof_main (_ (bvult x1) x2)) ($eo_typeof_bvult ($eo_typeof x1) x1 ($eo_typeof x2) x2))
-  ; type-rule: bvule
-  (($eo_typeof_main (_ (bvule x1) x2)) ($eo_typeof_bvule ($eo_typeof x1) x1 ($eo_typeof x2) x2))
+  (($eo_typeof_main (bvuge x1)) ($eo_typeof_bvuge ($eo_typeof x1)))
+  ; type-rule: bvslt
+  (($eo_typeof_main (bvslt x1)) ($eo_typeof_bvslt ($eo_typeof x1)))
+  ; type-rule: bvsle
+  (($eo_typeof_main (bvsle x1)) ($eo_typeof_bvsle ($eo_typeof x1)))
   ; type-rule: bvsgt
   (($eo_typeof_main (bvsgt x1)) ($eo_typeof_bvsgt ($eo_typeof x1)))
   ; type-rule: bvsge
-  (($eo_typeof_main (_ (bvsge x1) x2)) ($eo_typeof_bvsge ($eo_typeof x1) x1 ($eo_typeof x2) x2))
-  ; type-rule: bvslt
-  (($eo_typeof_main (_ (bvslt x1) x2)) ($eo_typeof_bvslt ($eo_typeof x1) x1 ($eo_typeof x2) x2))
-  ; type-rule: bvsle
-  (($eo_typeof_main (_ (bvsle x1) x2)) ($eo_typeof_bvsle ($eo_typeof x1) x1 ($eo_typeof x2) x2))
+  (($eo_typeof_main (bvsge x1)) ($eo_typeof_bvsge ($eo_typeof x1)))
   ; type-rule: bvshl
   (($eo_typeof_main (bvshl x1)) ($eo_typeof_bvshl ($eo_typeof x1)))
   ; type-rule: bvlshr
@@ -9198,6 +9150,8 @@
   (($eo_typeof_main (_ (rotate_left x1) x2)) ($eo_typeof_rotate_left ($eo_typeof x1) ($eo_typeof x2)))
   ; type-rule: rotate_right
   (($eo_typeof_main (_ (rotate_right x1) x2)) ($eo_typeof_rotate_right ($eo_typeof x1) ($eo_typeof x2)))
+  ; type-rule: bvite
+  (($eo_typeof_main (_ (bvite x1) x2)) ($eo_typeof_bvite ($eo_typeof x1) ($eo_typeof x2)))
   ; type-rule: bvuaddo
   (($eo_typeof_main (bvuaddo x1)) ($eo_typeof_bvuaddo ($eo_typeof x1)))
   ; type-rule: bvnego
@@ -9228,10 +9182,6 @@
   (($eo_typeof_main (_ (@from_bools x1) x2)) ($eo_typeof_@from_bools ($eo_typeof x1) ($eo_typeof x2)))
   ; type-rule: @bv
   (($eo_typeof_main (_ (@bv x1) x2)) ($eo_typeof_@bv x1 x2))
-  ; type-rule: bvcomp
-  (($eo_typeof_main (_ (bvcomp x1) x2)) ($eo_typeof_bvcomp ($eo_typeof x1) x1 ($eo_typeof x2) x2))
-  ; type-rule: bvite
-  (($eo_typeof_main (_ (_ (bvite x1) x2) x3)) ($eo_typeof_bvite x1 ($eo_typeof x2) x2 ($eo_typeof x3) x3))
   ; type-rule: @@Monomial
   (($eo_typeof_main @@Monomial) Type)
   ; type-rule: @@mon
@@ -9333,11 +9283,11 @@
   ; type-rule: @strings_deq_diff
   (($eo_typeof_main (@strings_deq_diff x1 x2)) ($eo_typeof_@strings_deq_diff ($eo_typeof x1) x1 ($eo_typeof x2) x2))
   ; type-rule: @strings_stoi_result
-  (($eo_typeof_main (_ (@strings_stoi_result x1) x2)) ($eo_typeof_@strings_stoi_result x1 x2))
+  (($eo_typeof_main (@strings_stoi_result x1)) ($eo_typeof_@strings_stoi_result x1))
   ; type-rule: @strings_stoi_non_digit
   (($eo_typeof_main (@strings_stoi_non_digit x1)) ($eo_typeof_@strings_stoi_non_digit x1))
   ; type-rule: @strings_itos_result
-  (($eo_typeof_main (_ (@strings_itos_result x1) x2)) ($eo_typeof_@strings_itos_result x1 x2))
+  (($eo_typeof_main (@strings_itos_result x1)) ($eo_typeof_@strings_itos_result x1))
   ; type-rule: @strings_num_occur
   (($eo_typeof_main (_ (@strings_num_occur x1) x2)) ($eo_typeof_@strings_num_occur ($eo_typeof x1) x1 ($eo_typeof x2) x2))
   ; type-rule: @strings_num_occur_re
@@ -9358,10 +9308,10 @@
   (($eo_typeof_main (@re_first_match_post x1 x2)) ($eo_typeof_@re_first_match_post x1 x2))
   ; type-rule: @witness_string_length
   (($eo_typeof_main (@witness_string_length x1)) ($eo_typeof_@witness_string_length x1))
-  ; type-rule: exists
-  (($eo_typeof_main exists) (-> $eo_List (-> Bool Bool)))
   ; type-rule: forall
   (($eo_typeof_main forall) (-> $eo_List (-> Bool Bool)))
+  ; type-rule: exists
+  (($eo_typeof_main exists) (-> $eo_List (-> Bool Bool)))
   ; type-rule: @quantifiers_skolemize
   (($eo_typeof_main (@quantifiers_skolemize x1 x2)) ($eo_typeof_@quantifiers_skolemize x1 x2))
   ; type-rule: @witness_inv_condition
@@ -9381,7 +9331,7 @@
   ; type-rule: tuple.select
   (($eo_typeof_main (_ (tuple.select x1) x2)) ($eo_typeof_tuple.select x1 ($eo_typeof x2)))
   ; type-rule: tuple.update
-  (($eo_typeof_main (_ (tuple.update x1) x2)) ($eo_typeof_tuple.update x1 x2))
+  (($eo_typeof_main (_ (_ (tuple.update x1) x2) x3)) ($eo_typeof_tuple.update x1 ($eo_typeof x2) ($eo_typeof x3)))
   ; type-rule: Set
   (($eo_typeof_main Set) (-> Type Type))
   ; type-rule: set.empty
@@ -9397,7 +9347,7 @@
   ; type-rule: set.member
   (($eo_typeof_main (set.member x1)) ($eo_typeof_set.member ($eo_typeof x1)))
   ; type-rule: set.subset
-  (($eo_typeof_main (_ (set.subset x1) x2)) ($eo_typeof_set.subset ($eo_typeof x1) x1 ($eo_typeof x2) x2))
+  (($eo_typeof_main (set.subset x1)) ($eo_typeof_set.subset ($eo_typeof x1)))
   ; type-rule: set.choose
   (($eo_typeof_main (set.choose x1)) ($eo_typeof_set.choose ($eo_typeof x1)))
   ; type-rule: set.is_empty
@@ -9538,7 +9488,8 @@
   (($eo_nil tuple T) tuple.unit)
   (($eo_nil @@nfa_list T) @@nfa_decline)
 
-  (($eo_nil f T) $eo_fail)
+  ; builtin case of $eo_List
+  (($eo_nil $eo_List_cons $eo_List) $eo_List_nil)
   )
 )
 

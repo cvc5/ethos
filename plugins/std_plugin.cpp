@@ -17,7 +17,7 @@
 
 namespace ethos {
 
-#if 0
+#if 1
 std::string StdPlugin::s_plugin_path = "/home/andrew/ethos/";
 #else
 std::string StdPlugin::s_plugin_path =
@@ -37,6 +37,8 @@ bool StdPlugin::optionVcUseModelStrict() { return true; }
 bool StdPlugin::optionSmtMetaUseTriggers() { return true; }
 // makes conjecture easy to debug models
 bool StdPlugin::optionSmtMetaDebugConjecture() { return false; }
+// type of conjecture
+ConjectureType StdPlugin::optionSmtMetaConjectureType() { return ConjectureType::DEFAULT; }
 
 StdPlugin::StdPlugin(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {

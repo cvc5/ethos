@@ -23,6 +23,11 @@ namespace ethos {
 class State;
 class TypeChecker;
 
+enum class ConjectureType
+{
+  DEFAULT,
+  SYGUS
+};
 /**
  * The purpose of this plugin is to do things that are common to multiple
  * plugins. For example, tracking the dependencies for literal types.
@@ -76,6 +81,7 @@ class StdPlugin : public Plugin
   static bool optionVcUseModelStrict();
   static bool optionSmtMetaUseTriggers();
   static bool optionSmtMetaDebugConjecture();
+  static ConjectureType optionSmtMetaConjectureType();
 };
 
 }  // namespace ethos

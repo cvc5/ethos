@@ -381,6 +381,9 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
         // special case: since (-> T U) is (_ (_ -> T) U)
         if (i == 0 && isFunType)
         {
+          std::stringstream testera;
+          testera << "((_ is eo.Apply) " << ssNext.str() << ")";
+          print.push(testera.str());
           std::stringstream testerf;
           testerf << "((_ is eo.FunType) (eo.Apply.arg1 " << ssNext.str()
                   << "))";
@@ -1144,7 +1147,10 @@ bool SmtMetaReduce::echo(const std::string& msg)
     std::stringstream eoTrue;
     std::stringstream call;
     eoTrue << "(eo.SmtTerm (sm.Bool true))";
-    if (vt.getKind() == Kind::PROGRAM_TYPE)
+    Assert (vt.getKind() == Kind::PROGRAM_TYPE);
+    size_t nargs = vt.getNumChildren();
+    ConjectureType ctype = StdPlugin::optionSmtMetaConjectureType();
+    if (ctype==ConjectureType::DEFAULT)
     {
       std::stringstream conjEnd;
       if (!StdPlugin::optionSmtMetaDebugConjecture())
@@ -1152,7 +1158,6 @@ bool SmtMetaReduce::echo(const std::string& msg)
         d_smtVc << "(assert (! (exists (";
         conjEnd << ")";
       }
-      size_t nargs = vt.getNumChildren();
       for (size_t i = 1; i < nargs; i++)
       {
         if (StdPlugin::optionSmtMetaDebugConjecture())
@@ -1179,18 +1184,26 @@ bool SmtMetaReduce::echo(const std::string& msg)
       }
       d_smtVc << "(= (" << eosc << call.str() << ") " << eoTrue.str() << ")";
       d_smtVc << conjEnd.str();
+      d_smtVc << " :named sm.conjecture." << vv << ")";
+      d_smtVc << ")" << std::endl;
+      d_smtVc << "(check-sat)" << std::endl;
+      if (StdPlugin::optionSmtMetaDebugConjecture())
+      {
+        d_smtVc << "(get-model)" << std::endl;
+        d_smtVc << "(get-value (" << call.str() << "))" << std::endl;
+      }
     }
-    else
+    else if (ctype==ConjectureType::SYGUS)
     {
-      d_smtVc << "(assert (! (= " << eosc << " " << eoTrue.str() << ")";
-    }
-    d_smtVc << " :named sm.conjecture." << vv << ")";
-    d_smtVc << ")" << std::endl;
-    d_smtVc << "(check-sat)" << std::endl;
-    if (StdPlugin::optionSmtMetaDebugConjecture())
-    {
-      d_smtVc << "(get-model)" << std::endl;
-      d_smtVc << "(get-value (" << call.str() << "))" << std::endl;
+      for (size_t i = 1; i < nargs; i++)
+      {
+        d_smtVc << "(synth-fun x" << i << " () eo.Term)" << std::endl;
+        call << " x" << i;
+      }
+      d_smtVc << "(constraint ";
+      d_smtVc << "(= (" << eosc << call.str() << ") " << eoTrue.str() << ")";
+      d_smtVc << ")" << std::endl;
+      d_smtVc << "(check-synth)" << std::endl;
     }
     return false;
   }
