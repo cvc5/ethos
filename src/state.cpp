@@ -31,6 +31,7 @@ Options::Options()
   d_pluginDesugar = false;
   d_pluginDesugarGenVc = false;
   d_pluginSmtMeta = false;
+  d_pluginSmtMetaSygus = false;
   d_pluginTrimDefs = false;
   d_pluginModelSmt = false;
 }
@@ -89,6 +90,11 @@ bool Options::setOption(const std::string& key, bool val)
   else if (key == "plugin.smt-meta")
   {
     d_pluginSmtMeta = true;
+  }
+  else if (key == "plugin.smt-meta-sygus")
+  {
+    d_pluginSmtMeta = true;
+    d_pluginSmtMetaSygus = true;
   }
   else if (key == "plugin.trim-defs")
   {

@@ -66,6 +66,43 @@ SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s)
   d_typeToMetaKind["$smt_Map"] = MetaKind::SMT_MAP;
   d_typeToMetaKind["$smt_Seq"] = MetaKind::SMT_SEQ;
   d_typeToMetaKind["$smt_BuiltinType"] = MetaKind::SMT_BUILTIN;
+  
+  if (StdPlugin::optionSmtMetaSygusGrammar())
+  {
+    SygusGrammar * tmp;
+    tmp = allocateGrammar("G_eo.Term", "eo.Term");
+    tmp->d_rules << "G_eo.List ";
+    tmp = allocateGrammar("G_eo.List", "eo.Term");
+    tmp->d_rules << "(eo.Apply (eo.Apply eo.$eo_List_cons G_eo.Term) G_eo.List) eo.$eo_List_nil";
+    tmp = allocateGrammar("G_sm.Term", "sm.Term");
+    d_gconstRule["Bool"] = "(sm.Const (eo.SmtType tsm.Bool) (vsm.Term (sm.Bool G_Bool)))";
+    d_gconstRule["Int"] = "(sm.Const (eo.SmtType tsm.Int) (vsm.Term (sm.Numeral G_Int)))";
+    d_gconstRule["Real"] = "(sm.Const (eo.SmtType tsm.Real) (vsm.Term (sm.Rational G_Real)))";
+    d_gconstRule["BitVec"] = "(sm.Const (eo.Apply (eo.SmtType tsm.BitVec) (eo.SmtTerm (sm.Numeral G_Int))) (vsm.Term (sm.Binary G_Int G_Int)))";
+    std::stringstream sseq;
+    sseq << "(sm.Const (eo.Apply (eo.SmtType tsm.Seq) (eo.SmtType tsm.Char)) (vsm.Term (sm.String G_String)))";
+    sseq << " (sm.Const (eo.Apply (eo.SmtType tsm.Seq) G_eo.Term) (vsm.Seq G_ssm.Seq))";
+    d_gconstRule["BitVec"] = sseq.str();
+    std::stringstream sarr;
+    sarr << "(sm.Const (eo.Apply (eo.Apply (eo.SmtType tsm.Array) G_eo.Term) G_eo.Term) (vsm.Map G_msm.Map))";
+    d_gconstRule["Array"] = sarr.str();
+    allocateGrammar("G_tsm.Type", "tsm.Type");
+    allocateGrammar("G_vsm.Value", "vsm.Value");
+    tmp = allocateGrammar("G_msm.Map", "msm.Map");
+    tmp->d_rules << "(msm.cons G_vsm.Value G_vsm.Value G_msm.Map) (msm.default G_vsm.Value)";
+    tmp = allocateGrammar("G_ssm.Seq", "ssm.Seq");
+    tmp->d_rules << "(ssm.cons G_vsm.Value G_ssm.Seq) ssm.empty";
+    tmp = allocateGrammar("G_Bool", "Bool");
+    tmp->d_rules << "true false";
+    tmp = allocateGrammar("G_Int", "Int");
+    tmp->d_rules << "0 (- G_Int_C) G_Int_C";
+    tmp = allocateGrammar("G_Int_C", "Int");
+    tmp->d_rules << "1 (+ G_Int_C 1)";
+    tmp = allocateGrammar("G_Real", "Real");
+    tmp->d_rules << "0.0 (/ G_Int_C G_Int_C) (- (/ G_Int_C G_Int_C))";
+    tmp = allocateGrammar("G_String", "String");
+    tmp->d_rules << "\"\" (str.++ G_String \"A\")";
+  }
 }
 
 SmtMetaReduce::~SmtMetaReduce() {}
@@ -1011,25 +1048,53 @@ void SmtMetaReduce::finalizeDecl(const Expr& e)
   // get the meta-kind based on its name
   std::string cnamek;
   MetaKind tk = getMetaKind(d_state, e, cnamek);
+  SygusGrammar* sg = nullptr;
   if (tk == MetaKind::EUNOIA)
   {
     cname << "eo." << cnamek;
     out = &d_embedEoTermDt;
+    // do not enumerate builtin symbols with sygus
+    // this includes and lists which are handled specially, and 
+    // options which are internally only (for now)
+    if (cnamek.compare(0, 4, "$eo_")!=0 && cnamek!="Stuck")
+    {
+      sg = getGrammar("G_eo.Term");
+    }
+    if (StdPlugin::optionSmtMetaSygusGrammarWellTyped())
+    {
+      if (cnamek=="Apply")
+      {
+        sg = nullptr;
+      }
+    }
   }
   else if (tk == MetaKind::SMT_TYPE)
   {
     cname << "tsm." << cnamek;
     out = &d_embedTypeDt;
+    sg = getGrammar("G_tsm.Type");
   }
   else if (tk == MetaKind::SMT)
   {
     cname << "sm." << cnamek;
     out = &d_embedTermDt;
+    sg = getGrammar("G_sm.Term");
+    if (StdPlugin::optionSmtMetaSygusGrammarWellTyped())
+    {
+      if (cnamek=="Const")
+      {
+        sg = nullptr;
+      }
+    }
   }
   else if (tk == MetaKind::SMT_VALUE)
   {
     cname << "vsm." << cnamek;
     out = &d_embedValueDt;
+    if (cnamek!="NotValue")
+    {
+      sg = getGrammar("G_vsm.Value");
+    }
   }
   if (out == nullptr)
   {
@@ -1057,6 +1122,7 @@ void SmtMetaReduce::finalizeDecl(const Expr& e)
   {
     nopqArgs = 1;
   }
+  std::stringstream sygusArgs;
   for (size_t i = 0; i < nopqArgs; i++)
   {
     (*out) << " (" << cname.str();
@@ -1070,19 +1136,60 @@ void SmtMetaReduce::finalizeDecl(const Expr& e)
       typ = d_tc.getType(targ);
     }
     std::stringstream sst;
-    if (!printMetaType(typ, *out))
+    if (!printMetaType(typ, sst))
     {
       // Assert(false) << "Failed to get meta-type for " << e;
       // os << e;
       //  otherwise, a user-provided ambiguous or opaque term, use eo_Term
-      (*out) << "eo.Term";
+      sst << "eo.Term";
     }
+    (*out) << sst.str();
+    sygusArgs << " G_" << sst.str();
     //(*out) << "; Printing datatype argument type " << typ << " gives \"" <<
     // sst.str() << "\" " << termKindToString(tk) << std::endl;
-    (*out) << sst.str();
     (*out) << ")";
   }
   (*out) << ")" << std::endl;
+  std::stringstream grule;
+  if (nopqArgs>0)
+  {
+    grule << "(" << cname.str() << sygusArgs.str() << ")";
+  }
+  else
+  {
+    grule << cname.str();
+  }
+  if (sg!=nullptr)
+  {
+    sg->d_rules << grule.str() << " ";
+  }
+  if (StdPlugin::optionSmtMetaSygusGrammarWellTyped())
+  {
+    // if it has function type, make an APPLY rule
+    if (nopqArgs==0 && ct.getKind() == Kind::FUNCTION_TYPE)
+    {
+      sg = getGrammar("G_eo.Term");
+      std::stringstream eoss;
+      if (tk == MetaKind::SMT_TYPE)
+      {
+        sg->d_rules << "(eo.Apply (eo.SmtType " << grule.str() << ") G_eo.Term) ";
+      }
+      else if (tk == MetaKind::SMT)
+      {
+        sg->d_rules << "(eo.Apply (eo.SmtTerm " << grule.str() << ") G_eo.Term) ";
+      }
+      else if (tk == MetaKind::EUNOIA)
+      {
+        sg->d_rules << "(eo.Apply " << grule.str() << " G_eo.Term) ";
+      }
+    }
+    std::map<std::string, std::string>::iterator it = d_gconstRule.find(cnamek);
+    if (it != d_gconstRule.end())
+    {
+      sg = getGrammar("G_sm.Term");
+      sg->d_rules << it->second << " ";
+    }
+  }
 }
 
 void SmtMetaReduce::finalize()
@@ -1150,7 +1257,7 @@ bool SmtMetaReduce::echo(const std::string& msg)
     Assert(vt.getKind() == Kind::PROGRAM_TYPE);
     size_t nargs = vt.getNumChildren();
     ConjectureType ctype = StdPlugin::optionSmtMetaConjectureType();
-    if (ctype == ConjectureType::DEFAULT)
+    if (ctype == ConjectureType::VC)
     {
       std::stringstream conjEnd;
       if (!StdPlugin::optionSmtMetaDebugConjecture())
@@ -1197,7 +1304,24 @@ bool SmtMetaReduce::echo(const std::string& msg)
     {
       for (size_t i = 1; i < nargs; i++)
       {
-        d_smtVc << "(synth-fun x" << i << " () eo.Term)" << std::endl;
+        d_smtVc << "(synth-fun x" << i << " () eo.Term";
+        if (StdPlugin::optionSmtMetaSygusGrammar())
+        {
+          d_smtVc << std::endl << "  (";
+          bool firstTime = true;
+          std::stringstream body;
+          for (const std::string& gn : d_glist)
+          {
+            SygusGrammar& g = d_grammar[gn];
+            d_smtVc << (firstTime ? "" : " ") << "(" << g.d_gname << " " << g.d_typeName << ")";
+            firstTime = false;
+            body << "  (" << g.d_gname << " " << g.d_typeName << " (" << g.d_rules.str() << "))" << std::endl;
+          }
+          d_smtVc << ") (" << std::endl;
+          d_smtVc << body.str();
+          d_smtVc << ")" << std::endl;
+        }
+        d_smtVc << ")" << std::endl;
         call << " x" << i;
       }
       d_smtVc << "(constraint ";
@@ -1205,9 +1329,29 @@ bool SmtMetaReduce::echo(const std::string& msg)
       d_smtVc << ")" << std::endl;
       d_smtVc << "(check-synth)" << std::endl;
     }
+    else {
+      Assert(false) << "Unknown conjecture type";
+    }
     return false;
   }
   return true;
+}
+
+SygusGrammar* SmtMetaReduce::allocateGrammar(const std::string& gn, const std::string& tn)
+{
+  d_glist.push_back(gn);
+  SygusGrammar& sg = d_grammar[gn];
+  sg.initialize(gn, tn);
+  return &sg;
+}
+SygusGrammar* SmtMetaReduce::getGrammar(const std::string& gn)
+{
+  std::map<std::string, SygusGrammar>::iterator it = d_grammar.find(gn);
+  if (it!=d_grammar.end())
+  {
+    return &it->second;
+  }
+  return nullptr;
 }
 
 bool SmtMetaReduce::isProgram(const Expr& t)
@@ -1274,9 +1418,11 @@ MetaKind SmtMetaReduce::getMetaKind(State& s,
   // Check the type of e.
   Expr c = e;
   Expr tc = s.getTypeChecker().getType(c);
-  if (tc.getKind() == Kind::TYPE
-      || (tc.getKind() == Kind::FUNCTION_TYPE
-          && tc[tc.getNumChildren() - 1].getKind() == Kind::TYPE))
+  while (tc.getKind()==Kind::FUNCTION_TYPE)
+  {
+    tc = tc[tc.getNumChildren() - 1];
+  }
+  if (tc.getKind() == Kind::TYPE)
   {
     return MetaKind::SMT_TYPE;
   }

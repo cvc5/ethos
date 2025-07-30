@@ -22,6 +22,7 @@ VC_DEF_DESUGAR=$OUT_DIR/vc-def-cpc.eo
 VCM_DEF_DESUGAR=$OUT_DIR/vcm-def-cpc.eo
 VCMT_DEF_DESUGAR=$OUT_DIR/vcmt-def-cpc.eo
 VC_OUT=$OUT_DIR/vc/final-cpc-$TARGET.smt2
+SYGUS_OUT=$OUT_DIR/vc/final-cpc-$TARGET.sy
 function check_status()
 {
 status=$?
@@ -34,12 +35,12 @@ fi
 
 function trim_defs()
 {
-TMP_TRIM_OUT=temp_trim.eo
+TMP_TRIM_OUT=$OUT_DIR/temp_trim.eo
 # the name of a EO signature
 INPUT_FILE=$1
 shift
 # output file
-echo "(include \"$INPUT_FILE\")" > $TMP_TRIM_OUT
+echo "(include \"../$INPUT_FILE\")" > $TMP_TRIM_OUT
 # ensure the dependencies are kept
 cat $STD_SMODEL_DEPS >> $TMP_TRIM_OUT
 # add commands for each argument
@@ -117,20 +118,24 @@ echo "**** smt_meta: Verify ethos parses"
 ./src/ethos $VCMT_DEF_DESUGAR >/dev/null
 check_status
 
-echo "**** smt_meta: Generate SMT2 from $VCMT_DEF_DESUGAR to $VC_OUT"
-./src/ethos --plugin.smt-meta $VCMT_DEF_DESUGAR >/dev/null
-check_status
-cp $STD_VC_OUT $VC_OUT
-
 if [[ "$USE_SYGUS" == "ON" ]]; then
+  echo "**** smt_meta: Generate sygus from $VCMT_DEF_DESUGAR to $VC_OUT"
+  ./src/ethos --plugin.smt-meta-sygus $VCMT_DEF_DESUGAR >/dev/null
+  check_status
+  cp $STD_VC_OUT $SYGUS_OUT
+
   echo "**** smt_meta: Verify cvc5 parses with sygus"
-  ajr-cvc5 $VC_OUT --parse-only --lang=sygus
+  ajr-cvc5 $SYGUS_OUT --parse-only --lang=sygus
   check_status
 
   echo "**** smt_meta: Check for counterexamples with sygus"
-  ajr-cvc5 --lang=sygus --no-e-matching $VC_OUT --sygus-abort-size=2 -q -o sygus-enumerator -o sygus-grammar --sygus-enum=fast -o sygus
+  ajr-cvc5 --no-e-matching $SYGUS_OUT --sygus-abort-size=3 -q -o sygus-enumerator -o sygus-grammar --sygus-enum=fast -o sygus
   check_status
 else
+  echo "**** smt_meta: Generate SMT2 from $VCMT_DEF_DESUGAR to $VC_OUT"
+  ./src/ethos --plugin.smt-meta $VCMT_DEF_DESUGAR >/dev/null
+  check_status
+  cp $STD_VC_OUT $VC_OUT
 
   echo "**** smt_meta: Verify cvc5 parses"
   ajr-cvc5 $VC_OUT --parse-only

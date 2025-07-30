@@ -17,7 +17,7 @@
 
 namespace ethos {
 
-#if 1
+#if 0
 std::string StdPlugin::s_plugin_path = "/home/andrew/ethos/";
 #else
 std::string StdPlugin::s_plugin_path =
@@ -40,10 +40,18 @@ bool StdPlugin::optionSmtMetaUseTriggers() { return true; }
 // makes conjecture easy to debug models
 bool StdPlugin::optionSmtMetaDebugConjecture() { return false; }
 // type of conjecture
-ConjectureType StdPlugin::optionSmtMetaConjectureType()
+ConjectureType StdPlugin::optionSmtMetaConjectureType() const
 {
-  return ConjectureType::DEFAULT;
+  if (d_state.getOptions().d_pluginSmtMetaSygus)
+  {
+    return ConjectureType::SYGUS;
+  }
+  return ConjectureType::VC;
 }
+// whether we are optimizing with a sygus grammar
+bool StdPlugin::optionSmtMetaSygusGrammar() { return true; }
+// whether the sygus grammar is designed to enumerate well-typed terms
+bool StdPlugin::optionSmtMetaSygusGrammarWellTyped() { return true; }
 
 StdPlugin::StdPlugin(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {

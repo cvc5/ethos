@@ -25,7 +25,7 @@ class TypeChecker;
 
 enum class ConjectureType
 {
-  DEFAULT,
+  VC,
   SYGUS
 };
 /**
@@ -82,7 +82,9 @@ class StdPlugin : public Plugin
   static bool optionVcUseModelStrict();
   static bool optionSmtMetaUseTriggers();
   static bool optionSmtMetaDebugConjecture();
-  static ConjectureType optionSmtMetaConjectureType();
+  ConjectureType optionSmtMetaConjectureType() const;
+  static bool optionSmtMetaSygusGrammar();
+  static bool optionSmtMetaSygusGrammarWellTyped();
 };
 
 }  // namespace ethos

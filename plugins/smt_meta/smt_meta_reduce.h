@@ -32,6 +32,21 @@ class ConjPrint
   size_t d_npush;
 };
 
+/** for sygus */
+class SygusGrammar
+{
+public:
+  SygusGrammar(){}
+  void initialize(const std::string& gn, const std::string& tn)
+  {
+    d_gname = gn;
+    d_typeName = tn;
+  }
+  std::string d_gname;
+  std::string d_typeName;
+  std::stringstream d_rules;
+};
+
 /**
  * The datatype we are at.
  */
@@ -164,6 +179,12 @@ class SmtMetaReduce : public StdPlugin
   std::map<std::pair<Expr, size_t>, MetaKind> d_metaKindArg;
   /** Declares seen */
   std::set<Expr> d_declSeen;
+  /** Grammars */
+  std::vector<std::string> d_glist;
+  std::map<std::string, SygusGrammar> d_grammar;
+  std::map<std::string, std::string> d_gconstRule;
+  SygusGrammar* allocateGrammar(const std::string& gn, const std::string& tn);
+  SygusGrammar* getGrammar(const std::string& gn);
   /** */
   bool isSmtLibExpression(MetaKind ctx);
   /**
