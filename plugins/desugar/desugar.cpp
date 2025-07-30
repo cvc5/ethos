@@ -768,6 +768,10 @@ void Desugar::finalizeRule(const Expr& e)
   {
     Expr vv = v;
     uargTypes.push_back(d_tc.getType(vv));
+    if (StdPlugin::optionVcUseArgIsInput())
+    {
+      unsound = mkRequiresModelIsInput(vv, unsound);
+    }
   }
   progType = d_state.mkProgramType(uargTypes, d_boolType);
   prog = d_state.mkSymbol(Kind::PROGRAM_CONST, pvcname.str(), progType);

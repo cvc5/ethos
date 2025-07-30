@@ -351,6 +351,7 @@ void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
 {
   Attr attr =
       e.isNull() ? Attr::NONE : d_state.getConstructorKind(e.getValue());
+  // maybe it requires a special case in "is input"?
   std::map<std::string,
            std::tuple<std::vector<Kind>, std::string, std::string>>::iterator
       itt = d_symTypes.find(name);
@@ -443,7 +444,7 @@ void ModelSmt::printType(const std::string& name,
     d_isInput << ") ";
   }
   d_constTypeof << cpat << ") " << cret << ")" << std::endl;
-  d_isInput << cpat << "))) true)" << std::endl;
+  d_isInput << cpat << "))) $smt_builtin_true)" << std::endl;
 }
 
 void ModelSmt::printModelEvalCallBase(const std::string& name,
