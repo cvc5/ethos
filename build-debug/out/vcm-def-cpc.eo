@@ -206,10 +206,6 @@
 (declare-parameterized-const $smd_sm.Binary
   ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Term)
 
-; Free constants
-(declare-parameterized-const $smd_eo.Const ((T $eo_Term :opaque) (v $smt_Value :opaque)) $eo_Term)
-(define $eo_Const ((T $eo_Term) (v $smt_Value)) ($smd_eo.Const T v))
-
 ;;; SMT value datatype constructors
 
 ; A value denoting a map.
@@ -275,42 +271,6 @@
 (declare-parameterized-const $smd_ssm.empty () $smt_Seq)
 (define $ssm_empty () $smd_ssm.empty)
 
-;;; Other value utilities
-
-; a pair of values, uses $vsm_apply for now
-(define $vsm_Pair () $smt_Value)
-(define $vsm_Pair_mk ((v1 $smt_Value) (v2 $smt_Value)) ($vsm_apply v1 v2))
-
-; program: $vsm_Pair_first
-; return: The first element in the pair
-(program $smtx_vsm_Pair_first ((t $smt_Value) (s $smt_Value) (v $vsm_Pair))
-  :signature ($vsm_Pair) $smt_Value
-  (
-  (($smtx_vsm_Pair_first ($vsm_Pair_mk t s))   t)
-  (($smtx_vsm_Pair_first v)                    $vsm_not_value)
-  )
-)
-; program: $vsm_Pair_second
-; return: The second element in the pair
-(program $smtx_vsm_Pair_second ((t $smt_Value) (s $smt_Value) (v $vsm_Pair))
-  :signature ($vsm_Pair) $smt_Value
-  (
-  (($smtx_vsm_Pair_second ($vsm_Pair_mk t s))  s)
-  (($smtx_vsm_Pair_second v)                   $vsm_not_value)
-  )
-)
-
-; a list of values, uses $vsm_seq
-(define $vsm_List () $smt_Value)
-(define $vsm_List_empty () ($vsm_seq $ssm_empty))
-(program $smtx_vsm_List_cons ((s $smt_Seq) (v $smt_Value) (vs $smt_Value))
-  :signature ($smt_Value $smt_Value) $smt_Value
-  (
-  (($smtx_vsm_List_cons v ($vsm_seq s))  ($vsm_seq ($ssm_cons v s)))
-  (($smtx_vsm_List_cons v vs)            $vsm_not_value)
-  )
-)
-
 ;;; Eunoia datatype constructors
 
 ; The type of types
@@ -348,8 +308,15 @@
 (define $eo_Var ((s $smt_builtin_String) (T $smt_builtin_Int)) 
   ($smd_eo.Var s T))
 
+; Free constants
+(declare-parameterized-const $smd_eo.Const
+  ((T $eo_Term :opaque) (v $smt_Value :opaque))
+  $eo_Term)
+(define $eo_Const ((T $eo_Term) (v $smt_Value)) ($smd_eo.Const T v))
+
 ;;; External datatype access
 
+; TODO: remove "mk_"
 (define $sm_mk_true () ($smd_sm.Boolean $smt_builtin_true))
 (define $sm_mk_false () ($smd_sm.Boolean $smt_builtin_false))
 (define $sm_mk_bool ((c $smt_builtin_Bool))
@@ -374,6 +341,42 @@
 
 (define $eo_null_type ()
   ($eo_smt_type ($tsm_NullSort $smt_builtin_z_zero)))
+
+;;; SMT value utilities
+
+; a pair of values, uses $vsm_apply for now
+(define $vsm_Pair () $smt_Value)
+(define $vsm_Pair_mk ((v1 $smt_Value) (v2 $smt_Value)) ($vsm_apply v1 v2))
+
+; program: $vsm_Pair_first
+; return: The first element in the pair
+(program $smtx_vsm_Pair_first ((t $smt_Value) (s $smt_Value) (v $vsm_Pair))
+  :signature ($vsm_Pair) $smt_Value
+  (
+  (($smtx_vsm_Pair_first ($vsm_Pair_mk t s))   t)
+  (($smtx_vsm_Pair_first v)                    $vsm_not_value)
+  )
+)
+; program: $vsm_Pair_second
+; return: The second element in the pair
+(program $smtx_vsm_Pair_second ((t $smt_Value) (s $smt_Value) (v $vsm_Pair))
+  :signature ($vsm_Pair) $smt_Value
+  (
+  (($smtx_vsm_Pair_second ($vsm_Pair_mk t s))  s)
+  (($smtx_vsm_Pair_second v)                   $vsm_not_value)
+  )
+)
+
+; a list of values, uses $vsm_seq
+(define $vsm_List () $smt_Value)
+(define $vsm_List_empty () ($vsm_seq $ssm_empty))
+(program $smtx_vsm_List_cons ((s $smt_Seq) (v $smt_Value) (vs $smt_Value))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_vsm_List_cons v ($vsm_seq s))  ($vsm_seq ($ssm_cons v s)))
+  (($smtx_vsm_List_cons v vs)            $vsm_not_value)
+  )
+)
 
 ;;; Defining parametric bitvector operators
 
@@ -1038,7 +1041,8 @@
 ; note: This method returns the type for all user defined terms.
 (program $eo_typeof_main () :signature ($eo_Term) Type)
 
-; fwd-decl:
+; fwd-decl: $eo_typeof_const
+; This method is auto-generated based on SMT-LIB model semantics.
 (program $eo_typeof_const () :signature ($eo_Term $smt_Value) $eo_Term)
 
 ; program: $eo_typeof
@@ -1055,10 +1059,12 @@
   (($eo_typeof ($eo_mk_string s))               $eo_String)
   (($eo_typeof ($eo_binary w n))                $eo_Binary)
   (($eo_typeof ($eo_Var s n))                   ($eo_reverse_hash n))
+  ; constants are introduced by this signature, we extend $eo_typeof for them,
+  ; despite them not being modelled by Eunoia builtin typeof. We do this for
+  ; simplicity and since such as extension is benign, e.g. it can be seen as if
+  ; "const" was another Eunoia builtin.
   (($eo_typeof ($eo_Const T val))               ($eo_typeof_const T val))
-  ; otherwise, invoke the routine for builtin types from the signature.
-  ; Note that we do not include SMT-LIB specific constructs here, as these are
-  ; not modelled in Eunoia's builtin typeof method.
+  ; otherwise, invoke the routine for user types from the signature.
   (($eo_typeof t)                               ($eo_typeof_main t))
   )
 )
