@@ -458,9 +458,9 @@
    (T $smt_builtin_Int) (v $smt_Value))
   :signature ($eo_Term $smt_Value) $eo_Term
   (
-  (($smtx_typeof_const Bool ($vsm_term ($sm_mk_bool b)))  Bool)
   (($smtx_typeof_const ($tsm_USort n) ($vsm_uconst id))   ($tsm_USort n))
   
+  (($smtx_typeof_const Bool ($vsm_term ($sm_mk_bool b))) Bool)
   (($smtx_typeof_const Int ($vsm_term ($sm_mk_z n))) Int)
   (($smtx_typeof_const Real ($vsm_term ($sm_mk_q r))) Real)
   (($smtx_typeof_const (Seq Char) ($vsm_term ($sm_mk_str s))) (Seq Char))
@@ -501,6 +501,9 @@
    (T $eo_Term) (v $smt_Value) (t $eo_Term) (a $eo_Term) (tu $smt_Type) (tt $smt_Term))
   :signature ($eo_Term) $smt_builtin_Bool
   (
+  (($smtx_is_input ($eo_smt_term ($sm_Const ($tsm_USort n) ($vsm_uconst id))))
+    $smt_builtin_true)
+  (($smtx_is_input ($eo_smt_term ($sm_Const Bool ($vsm_term ($sm_mk_bool b))))) $smt_builtin_true)
   (($smtx_is_input ($eo_smt_term ($sm_Const Int ($vsm_term ($sm_mk_z n))))) $smt_builtin_true)
   (($smtx_is_input ($eo_smt_term ($sm_Const Real ($vsm_term ($sm_mk_q r))))) $smt_builtin_true)
   (($smtx_is_input ($eo_smt_term ($sm_Const (Seq Char) ($vsm_term ($sm_mk_str s))))) $smt_builtin_true)

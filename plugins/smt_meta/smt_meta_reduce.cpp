@@ -1166,21 +1166,31 @@ void SmtMetaReduce::finalizeDecl(const Expr& e)
   if (StdPlugin::optionSmtMetaSygusGrammarWellTyped())
   {
     // if it has function type, make an APPLY rule
-    if (nopqArgs==0 && ct.getKind() == Kind::FUNCTION_TYPE)
+    if (nopqArgs==0 && ct.getKind() == Kind::FUNCTION_TYPE && cnamek.compare(0, 4, "$eo_")!=0)
     {
       sg = getGrammar("G_eo.Term");
       std::stringstream eoss;
       if (tk == MetaKind::SMT_TYPE)
       {
-        sg->d_rules << "(eo.Apply (eo.SmtType " << grule.str() << ") G_eo.Term) ";
+        eoss << "(eo.SmtType " << grule.str() << ")";
       }
       else if (tk == MetaKind::SMT)
       {
-        sg->d_rules << "(eo.Apply (eo.SmtTerm " << grule.str() << ") G_eo.Term) ";
+        eoss << "(eo.SmtTerm " << grule.str() << ")";
       }
       else if (tk == MetaKind::EUNOIA)
       {
-        sg->d_rules << "(eo.Apply " << grule.str() << " G_eo.Term) ";
+        eoss << grule.str();
+      }
+      std::string curr = eoss.str();
+      Expr ctp = ct;
+      while (ctp.getKind()==Kind::FUNCTION_TYPE)
+      {
+        std::stringstream next;
+        next << "(eo.Apply " << curr << " G_eo.Term)";
+        curr = next.str();
+        sg->d_rules << curr << " ";
+        ctp = ctp[1];
       }
     }
     std::map<std::string, std::string>::iterator it = d_gconstRule.find(cnamek);

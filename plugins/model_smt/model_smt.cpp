@@ -40,6 +40,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // All SMT-LIB symbols require having their semantics defined here.
   // Note that we model *SMT-LIB* not *CPC* here.
   // builtin
+  // immediately include Bool, as it will not be defined
+  printType("Bool", {}, "($vsm_term ($sm_mk_bool b))", "Bool");
   addHardCodeSym("=", {kT, kT});
   addHardCodeSym("ite", {kBool, kT, kT});
   // Booleans

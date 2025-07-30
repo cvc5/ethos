@@ -129,7 +129,7 @@ if [[ "$USE_SYGUS" == "ON" ]]; then
   check_status
 
   echo "**** smt_meta: Check for counterexamples with sygus"
-  ajr-cvc5 --no-e-matching $SYGUS_OUT --sygus-abort-size=3 -q -o sygus-enumerator -o sygus-grammar --sygus-enum=fast -o sygus
+  ajr-cvc5 --no-e-matching $SYGUS_OUT -q -o sygus-enumerator -o sygus-grammar --sygus-enum=fast -o sygus
   check_status
 else
   echo "**** smt_meta: Generate SMT2 from $VCMT_DEF_DESUGAR to $VC_OUT"
