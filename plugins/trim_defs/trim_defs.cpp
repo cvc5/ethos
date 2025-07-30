@@ -154,7 +154,8 @@ void TrimDefs::processCommand(Command& cmd)
   {
     return;
   }
-  std::map<std::string, size_t>::iterator its = d_symToId.find(cmd.d_symbolName);
+  std::map<std::string, size_t>::iterator its =
+      d_symToId.find(cmd.d_symbolName);
   // std::cout << "Command: " << cmd.d_cmdName << " " << cmd.d_symbolName
   //           << std::endl;
   size_t id;
@@ -300,7 +301,7 @@ void TrimDefs::finalize()
     {
       continue;
     }
-    if (d_commands[i].compare(0, 8, "(depends")==0)
+    if (d_commands[i].compare(0, 8, "(depends") == 0)
     {
       continue;
     }

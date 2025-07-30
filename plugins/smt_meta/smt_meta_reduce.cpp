@@ -815,7 +815,7 @@ void SmtMetaReduce::finalizePrograms()
 void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
 {
   // check for duplicate forward declaration, ignore
-  if (prog.isNull() && d_progDeclProcessed.find(v)!=d_progDeclProcessed.end())
+  if (prog.isNull() && d_progDeclProcessed.find(v) != d_progDeclProcessed.end())
   {
     return;
   }
@@ -885,7 +885,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   std::stringstream casesEnd;
   // If the return type does not have meta-kind Eunoia, then it cannot get
   // stuck. We ensure that all programs over such types are total.
-  bool isSmtProgram = (getTypeMetaKind(vt[nargs - 1])!=MetaKind::EUNOIA);
+  bool isSmtProgram = (getTypeMetaKind(vt[nargs - 1]) != MetaKind::EUNOIA);
   // start with stuck case, if not a SMT program
   if (!isSmtProgram)
   {
@@ -1147,10 +1147,10 @@ bool SmtMetaReduce::echo(const std::string& msg)
     std::stringstream eoTrue;
     std::stringstream call;
     eoTrue << "(eo.SmtTerm (sm.Bool true))";
-    Assert (vt.getKind() == Kind::PROGRAM_TYPE);
+    Assert(vt.getKind() == Kind::PROGRAM_TYPE);
     size_t nargs = vt.getNumChildren();
     ConjectureType ctype = StdPlugin::optionSmtMetaConjectureType();
-    if (ctype==ConjectureType::DEFAULT)
+    if (ctype == ConjectureType::DEFAULT)
     {
       std::stringstream conjEnd;
       if (!StdPlugin::optionSmtMetaDebugConjecture())
@@ -1193,7 +1193,7 @@ bool SmtMetaReduce::echo(const std::string& msg)
         d_smtVc << "(get-value (" << call.str() << "))" << std::endl;
       }
     }
-    else if (ctype==ConjectureType::SYGUS)
+    else if (ctype == ConjectureType::SYGUS)
     {
       for (size_t i = 1; i < nargs; i++)
       {

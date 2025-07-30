@@ -38,7 +38,10 @@ bool StdPlugin::optionSmtMetaUseTriggers() { return true; }
 // makes conjecture easy to debug models
 bool StdPlugin::optionSmtMetaDebugConjecture() { return false; }
 // type of conjecture
-ConjectureType StdPlugin::optionSmtMetaConjectureType() { return ConjectureType::DEFAULT; }
+ConjectureType StdPlugin::optionSmtMetaConjectureType()
+{
+  return ConjectureType::DEFAULT;
+}
 
 StdPlugin::StdPlugin(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {

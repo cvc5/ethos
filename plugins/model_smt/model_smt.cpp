@@ -206,31 +206,35 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addRecReduceSym("seq.nth", {kT, kInt}, "($smtx_seq_nth e1 e2)");
   // sets
   // (Set T) is modelled as (Array T Bool).
-  addTypeSym("Set",
-             {kT},
-             "($vsm_map m)",
-             "($smtx_builtin_requires ($smtx_map_has_type m x1 Bool) (Set x1))");
+  addTypeSym(
+      "Set",
+      {kT},
+      "($vsm_map m)",
+      "($smtx_builtin_requires ($smtx_map_has_type m x1 Bool) (Set x1))");
   addReduceSym("set.empty", {kT}, "$smtx_empty_set");
-  addRecReduceSym("set.singleton",
-                  {kT},
-                  "($smtx_set_singleton e1)");
+  addRecReduceSym("set.singleton", {kT}, "($smtx_set_singleton e1)");
   addRecReduceSym("set.inter", {kT, kT}, "($smtx_set_inter e1 e2)");
   addRecReduceSym("set.minus", {kT, kT}, "($smtx_set_minus e1 e2)");
   addRecReduceSym("set.union", {kT, kT}, "($smtx_set_union e1 e2)");
   addRecReduceSym("set.member", {kT, kT}, "($smtx_map_select e2 e1)");
   addTermReduceSym("set.subset", {kT, kT}, "(= (set.inter x1 x2) x1)");
   addRecReduceSym("@sets_deq_diff", {kT, kT}, "($smtx_map_diff e1 e2)");
-  addRecReduceSym("set.is_empty", {kT}, "($vsm_term ($sm_mk_bool ($smt_apply_= e1 $smtx_empty_set)))");
+  addRecReduceSym(
+      "set.is_empty",
+      {kT},
+      "($vsm_term ($sm_mk_bool ($smt_apply_= e1 $smtx_empty_set)))");
   // x1))");
   //   bitvectors
   addTermReduceSym(
       "bvite", {kBitVec, kBitVec, kBitVec}, "(ite (= x1 (@bv 1 1)) x2 x3)");
   addTermReduceSym(
       "bvcomp", {kBitVec, kBitVec}, "(ite (= x1 x2) (@bv 1 1) (@bv 0 1))");
-  addTermReduceSym(
-      "bvultbv", {kBitVec, kBitVec, kBitVec}, "(ite (bvult x1 x2) (@bv 1 1) (@bv 0 1))");
-  addTermReduceSym(
-      "bvsltbv", {kBitVec, kBitVec, kBitVec}, "(ite (bvslt x1 x2) (@bv 1 1) (@bv 0 1))");
+  addTermReduceSym("bvultbv",
+                   {kBitVec, kBitVec, kBitVec},
+                   "(ite (bvult x1 x2) (@bv 1 1) (@bv 0 1))");
+  addTermReduceSym("bvsltbv",
+                   {kBitVec, kBitVec, kBitVec},
+                   "(ite (bvslt x1 x2) (@bv 1 1) (@bv 0 1))");
   addLitSym("@bvsize", {kBitVec}, kInt, "x1");
   addLitBinSym("@bv", {kInt, kInt}, "x2", "x1");
   addTermReduceSym("@bit", {kInt, kBitVec}, "(extract x1 x1 x2)");
@@ -268,9 +272,8 @@ void ModelSmt::addConstFoldSym(const std::string& sym,
   d_symConstFold[sym] = std::pair<std::vector<Kind>, Kind>(args, ret);
 }
 
-
 void ModelSmt::addQuantifier(const std::string& sym,
-                      const std::vector<Kind>& args)
+                             const std::vector<Kind>& args)
 {
   // always call hard-coded method, without pre-evaluation
   std::stringstream ret;
@@ -301,7 +304,8 @@ void ModelSmt::addTermReduceSym(const std::string& sym,
                                 const std::vector<Kind>& args,
                                 const std::string& retTerm)
 {
-  std::cout << "(echo \"trim-defs-cmd (depends " << sym << " " << retTerm << ")\")" << std::endl;
+  std::cout << "(echo \"trim-defs-cmd (depends " << sym << " " << retTerm
+            << ")\")" << std::endl;
   std::stringstream ssret;
   ssret << "($smtx_model_eval " << retTerm << ")";
   addReduceSym(sym, args, ssret.str());
@@ -345,16 +349,17 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
 
 void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
 {
-  Attr attr = e.isNull() ? Attr::NONE : d_state.getConstructorKind(e.getValue());
+  Attr attr =
+      e.isNull() ? Attr::NONE : d_state.getConstructorKind(e.getValue());
   std::map<std::string,
            std::tuple<std::vector<Kind>, std::string, std::string>>::iterator
       itt = d_symTypes.find(name);
   if (itt != d_symTypes.end())
   {
     printType(name,
-                   std::get<0>(itt->second),
-                   std::get<1>(itt->second),
-                   std::get<2>(itt->second));
+              std::get<0>(itt->second),
+              std::get<1>(itt->second),
+              std::get<2>(itt->second));
     return;
   }
   std::map<std::string, std::vector<Kind>>::iterator ith =
@@ -404,12 +409,13 @@ void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
 }
 
 void ModelSmt::printType(const std::string& name,
-                              const std::vector<Kind>& args,
-                              const std::string& cpat,
-                              const std::string& cret)
+                         const std::vector<Kind>& args,
+                         const std::string& cpat,
+                         const std::string& cret)
 {
-  std::map<std::string, std::vector<std::string>>::iterator itc = d_typeCase.find(name);
-  if (itc!=d_typeCase.end())
+  std::map<std::string, std::vector<std::string>>::iterator itc =
+      d_typeCase.find(name);
+  if (itc != d_typeCase.end())
   {
     // first print the special cases, e.g. String for Seq
     for (const std::string& cs : itc->second)
@@ -488,7 +494,7 @@ void ModelSmt::printTermInternal(Kind k,
   {
     os << "($vsm_term ($sm_mk_" << d_kindToEoPrefix[k] << " " << term << "))";
   }
-  else if (k==Kind::EVAL_TO_STRING)
+  else if (k == Kind::EVAL_TO_STRING)
   {
     os << "($vsm_re " << term << ")";
   }
@@ -608,7 +614,7 @@ void ModelSmt::printAuxProgramCase(const std::string& name,
     {
       progParams << " ";
     }
-    if (ka==Kind::EVAL_TO_STRING)
+    if (ka == Kind::EVAL_TO_STRING)
     {
       progCases << "($vsm_re x" << paramCount << ")";
       progParams << "(x" << paramCount << " $smt_builtin_RegLan)";

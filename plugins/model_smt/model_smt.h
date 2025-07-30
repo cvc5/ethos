@@ -104,8 +104,7 @@ class ModelSmt : public StdPlugin
                        Kind ret);
   /**
    */
-  void addQuantifier(const std::string& sym,
-                       const std::vector<Kind>& args);
+  void addQuantifier(const std::string& sym, const std::vector<Kind>& args);
   /** add type */
   void addTypeSym(const std::string& sym,
                   const std::vector<Kind>& args,
@@ -137,9 +136,9 @@ class ModelSmt : public StdPlugin
                       const std::string& reduce);
   /** Print for type */
   void printType(const std::string& name,
-                      const std::vector<Kind>& args,
-                      const std::string& cpat,
-                      const std::string& cret);
+                 const std::vector<Kind>& args,
+                 const std::string& cpat,
+                 const std::string& cret);
   void printAuxProgramCase(const std::string& name,
                            const std::vector<Kind>& args,
                            const std::string& ret,
