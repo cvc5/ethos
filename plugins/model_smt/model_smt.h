@@ -102,6 +102,10 @@ class ModelSmt : public StdPlugin
   void addConstFoldSym(const std::string& sym,
                        const std::vector<Kind>& args,
                        Kind ret);
+  /**
+   */
+  void addQuantifier(const std::string& sym,
+                       const std::vector<Kind>& args);
   /** add type */
   void addTypeSym(const std::string& sym,
                   const std::vector<Kind>& args,
@@ -132,7 +136,7 @@ class ModelSmt : public StdPlugin
                       Kind ret,
                       const std::string& reduce);
   /** Print for type */
-  void printConstType(const std::string& name,
+  void printType(const std::string& name,
                       const std::vector<Kind>& args,
                       const std::string& cpat,
                       const std::string& cret);
@@ -157,8 +161,8 @@ class ModelSmt : public StdPlugin
   std::map<std::string, std::string> d_overloadRevert;
   Expr d_null;
   std::stringstream d_typeIsValue;
-  std::stringstream d_typeEnum;
   std::stringstream d_constTypeof;
+  std::stringstream d_isInput;
   /** Auxiliary programs for SMT-LIB model evaluation */
   std::stringstream d_modelEvalProgs;
   /** SMT-LIB model evaluation cases */

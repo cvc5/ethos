@@ -678,8 +678,9 @@ $SMT_EVAL_PROGS$
 $SMT_EVAL_CASES$
   ;; free constants
   ; Constants carry their value in the model, which is an arbitrary value term.
-  ; We do not check valueness or type here, which is done separately.
-  (($smtx_model_eval ($sm_Const T val))          val)
+  ; If this is a true value, then we return it, otherwise we return $vsm_not_value.
+  (($smtx_model_eval ($sm_Const T val))
+    ($smt_apply_3 "ite" ($smtx_is_value val) val $vsm_not_value))
   
   ; Apply case. We evaluate f and y separately and then call the
   ; $smtx_model_eval_apply above. We expect f to be an uninterpreted
@@ -769,25 +770,35 @@ $SMT_CONST_TYPE_OF_CASES$
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; SMT-LIB input syntax
 
+(program $smtx_is_var_list
+  ((t $eo_List) (s $smt_builtin_String) (T $smt_builtin_Int))
+  :signature ($eo_Term) Bool
+  (
+  (($smtx_is_var_list $eo_List_nil) true)
+  (($smtx_is_var_list ($eo_List_cons ($eo_Var s T) t)) ($smtx_is_var_list t))
+  (($smtx_is_var_list t) false)
+  )
+)
+
 ; program: $smtx_is_input
 ; Returns true if the given term uses only SMT-LIB syntax. This will
 ; return false e.g. if it contains Eunoia-specific terms (e.g. $eo_List)
 ; or if it contains free constants that are not interpreted as canonical
 ; values.
 (program $smtx_is_input
-  ((t $eo_Term) (a $eo_Term) (s $smt_Term) (u $smt_Type) (v $smt_Value) (T $eo_Term)
-   (sv $smt_builtin_String) (Tv $smt_builtin_Int))
+  ((id $smt_builtin_Int) (w $smt_builtin_Int) (n $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String)
+   (b $smt_builtin_Bool) (x1 $eo_Term) (x2 $eo_Term) (m $smt_Map) (sq $smt_Seq)
+   (T $eo_Term) (v $smt_Value) (t $eo_Term) (a $eo_Term) (tu $smt_Type) (tt $smt_Term))
   :signature ($eo_Term) Bool
   (
-  ; TODO: variables beneath quantifiers
-  ; (($smtx_is_input ($eo_Var sv Tv))               true)
+$SMT_IS_INPUT_CASES$
+  ; all legal constants handled above, false otherwise
+  (($smtx_is_input ($eo_smt_term ($sm_Const T v)))  false)
+  (($smtx_is_input ($eo_smt_term tt))               true)
+  (($smtx_is_input ($eo_smt_type tu))               true)
   (($smtx_is_input ($eo_apply t a))
     ($eo_if_both ($smtx_is_input t) ($smtx_is_input a)))
-  (($smtx_is_input ($eo_smt_term ($sm_Const T v)))
-    ($eo_if_both ($smtx_is_input T) ($eo_mk_bool ($smtx_is_value v))))
-  (($smtx_is_input ($eo_smt_term s))              true)
-  (($smtx_is_input ($eo_smt_type u))              true)
-  (($smtx_is_input t)                             false)
+  (($smtx_is_input t)                               false)
   )
 )
 

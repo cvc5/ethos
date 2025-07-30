@@ -164,10 +164,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitSym("ubv_to_int", {kBitVec}, kInt, "x2");
   addLitBinSym("int_to_bv", {kInt, kInt}, "x1", "x2");
   // Quantifiers
-  addReduceSym(
-      "exists", {Kind::ANY, kBool}, "($smtx_model_eval_exists (exists x1 x2))");
-  addReduceSym(
-      "forall", {Kind::ANY, kBool}, "($smtx_model_eval_forall (forall x1 x2))");
+  addQuantifier("exists", {Kind::ANY, kBool});
+  addQuantifier("forall", {Kind::ANY, kBool});
   addReduceSym(
       "@quantifiers_skolemize", {kBool, kInt}, "($smtx_eval_choice_nth x1 x2)");
 
@@ -270,6 +268,16 @@ void ModelSmt::addConstFoldSym(const std::string& sym,
   d_symConstFold[sym] = std::pair<std::vector<Kind>, Kind>(args, ret);
 }
 
+
+void ModelSmt::addQuantifier(const std::string& sym,
+                      const std::vector<Kind>& args)
+{
+  // always call hard-coded method, without pre-evaluation
+  std::stringstream ret;
+  ret << "($smtx_model_eval_" << sym << " (" << sym << " x1 x2 ))";
+  addReduceSym(sym, args, ret.str());
+}
+
 void ModelSmt::addLitBinSym(const std::string& sym,
                             const std::vector<Kind>& args,
                             const std::string& retWidth,
@@ -343,7 +351,7 @@ void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
       itt = d_symTypes.find(name);
   if (itt != d_symTypes.end())
   {
-    printConstType(name,
+    printType(name,
                    std::get<0>(itt->second),
                    std::get<1>(itt->second),
                    std::get<2>(itt->second));
@@ -395,7 +403,7 @@ void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
   Assert(false) << "No model semantics found for " << name;
 }
 
-void ModelSmt::printConstType(const std::string& name,
+void ModelSmt::printType(const std::string& name,
                               const std::vector<Kind>& args,
                               const std::string& cpat,
                               const std::string& cret)
@@ -410,20 +418,26 @@ void ModelSmt::printConstType(const std::string& name,
     }
   }
   d_constTypeof << "  (($smtx_typeof_const ";
+  d_isInput << "  (($smtx_is_input ($eo_smt_term ($sm_Const ";
   if (args.empty())
   {
     d_constTypeof << name << " ";
+    d_isInput << name << " ";
   }
   else
   {
     d_constTypeof << "(" << name;
+    d_isInput << "(" << name;
     for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
     {
       d_constTypeof << " x" << i;
+      d_isInput << " x" << i;
     }
     d_constTypeof << ") ";
+    d_isInput << ") ";
   }
   d_constTypeof << cpat << ") " << cret << ")" << std::endl;
+  d_isInput << cpat << "))) true)" << std::endl;
 }
 
 void ModelSmt::printModelEvalCallBase(const std::string& name,
@@ -665,9 +679,9 @@ void ModelSmt::finalize()
   std::ostringstream sss;
   sss << ins.rdbuf();
   std::string finalSmt = sss.str();
-  replace(finalSmt, "$SMT_TYPE_ENUM_CASES$", d_typeEnum.str());
   replace(finalSmt, "$SMT_IS_VALUE_CASES$", d_typeIsValue.str());
   replace(finalSmt, "$SMT_CONST_TYPE_OF_CASES$", d_constTypeof.str());
+  replace(finalSmt, "$SMT_IS_INPUT_CASES$", d_isInput.str());
   // plug in the evaluation cases handled by this plugin
   replace(finalSmt, "$SMT_EVAL_CASES$", d_eval.str());
   replace(finalSmt, "$SMT_EVAL_PROGS$", d_modelEvalProgs.str());
