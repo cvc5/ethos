@@ -51,7 +51,7 @@ ConjectureType StdPlugin::optionSmtMetaConjectureType() const
 // whether we are optimizing with a sygus grammar
 bool StdPlugin::optionSmtMetaSygusGrammar() { return true; }
 // whether the sygus grammar is designed to enumerate well-typed terms
-bool StdPlugin::optionSmtMetaSygusGrammarWellTyped() { return true; }
+bool StdPlugin::optionSmtMetaSygusGrammarWellTyped() { return false; }
 
 StdPlugin::StdPlugin(State& s) : d_state(s), d_tc(s.getTypeChecker())
 {

@@ -164,8 +164,8 @@
   ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Term)
 
 ; Free constants
-(declare-parameterized-const $smd_sm.Const ((T $eo_Term :opaque) (v $smt_Value :opaque)) $smt_Term)
-(define $sm_Const ((T $eo_Term) (v $smt_Value)) ($smd_sm.Const T v))
+(declare-parameterized-const $smd_eo.Const ((T $eo_Term :opaque) (v $smt_Value :opaque)) $eo_Term)
+(define $eo_Const ((T $eo_Term) (v $smt_Value)) ($smd_eo.Const T v))
 
 ;;; SMT value datatype constructors
 
@@ -937,7 +937,7 @@
 ; note: this is an arbitrary hash for SMT values, defined axiomatically.
 ; We rely on embedding values into constants, which are Eunoia terms.
 (define $smtx_value_hash ((v $smt_Value))
-  ($smtx_hash ($eo_smt_term ($sm_Const $eo_null_type v))))
+  ($smtx_hash ($eo_Const $eo_null_type v)))
 
 ; The SMT-LIB comparison of two SMT-LIB values.
 (define $smtx_value_cmp ((a $smt_Value) (b $smt_Value))
@@ -995,6 +995,9 @@
 ; note: This method returns the type for all user defined terms.
 (program $eo_typeof_main () :signature ($eo_Term) Type)
 
+; fwd-decl:
+(program $eo_typeof_const () :signature ($eo_Term $smt_Value) $eo_Term)
+
 ; program: $eo_typeof
 ; implements: eo::typeof
 (program $eo_typeof
@@ -1009,6 +1012,7 @@
   (($eo_typeof ($eo_mk_string s))               $eo_String)
   (($eo_typeof ($eo_binary w n))                $eo_Binary)
   (($eo_typeof ($eo_Var s n))                   ($eo_reverse_hash n))
+  (($eo_typeof ($eo_Const T val))               ($eo_typeof_const T val))
   ; otherwise, invoke the routine for builtin types from the signature.
   ; Note that we do not include SMT-LIB specific constructs here, as these are
   ; not modelled in Eunoia's builtin typeof method.

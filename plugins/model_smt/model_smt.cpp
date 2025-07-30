@@ -426,8 +426,8 @@ void ModelSmt::printType(const std::string& name,
       finalizeDecl(cs, d_null);
     }
   }
-  d_constTypeof << "  (($smtx_typeof_const ";
-  d_isInput << "  (($smtx_is_input ($eo_smt_term ($sm_Const ";
+  d_constTypeof << "  (($eo_typeof_const ";
+  d_isInput << "  (($smtx_is_input ($eo_Const ";
   if (args.empty())
   {
     d_constTypeof << name << " ";
@@ -446,7 +446,7 @@ void ModelSmt::printType(const std::string& name,
     d_isInput << ") ";
   }
   d_constTypeof << cpat << ") " << cret << ")" << std::endl;
-  d_isInput << cpat << "))) $smt_builtin_true)" << std::endl;
+  d_isInput << cpat << ")) $smt_builtin_true)" << std::endl;
 }
 
 void ModelSmt::printModelEvalCallBase(const std::string& name,
