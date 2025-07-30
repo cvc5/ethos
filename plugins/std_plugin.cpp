@@ -30,9 +30,9 @@ bool StdPlugin::optionFlattenEval() { return true; }
 // witness unsoundness
 bool StdPlugin::optionVcUseTypeof() { return true; }
 // use constraint that conclusion is SMT-LIB input term
-bool StdPlugin::optionVcUseIsInput() { return true; }
+bool StdPlugin::optionVcUseIsInput() { return false; }
 // use constraint that arguments are SMT-LIB input terms
-bool StdPlugin::optionVcUseArgIsInput() { return false; }
+bool StdPlugin::optionVcUseArgIsInput() { return true; }
 // strict means we are not debugging completeness
 bool StdPlugin::optionVcUseModelStrict() { return true; }
 // uses trigger in final encoding
@@ -42,7 +42,7 @@ bool StdPlugin::optionSmtMetaDebugConjecture() { return false; }
 // type of conjecture
 ConjectureType StdPlugin::optionSmtMetaConjectureType()
 {
-  return ConjectureType::DEFAULT;
+  return ConjectureType::SYGUS;
 }
 
 StdPlugin::StdPlugin(State& s) : d_state(s), d_tc(s.getTypeChecker())
