@@ -127,9 +127,11 @@ if [[ "$USE_SYGUS" == "ON" ]]; then
   ajr-cvc5 $SYGUS_OUT --parse-only --lang=sygus
   check_status
 
-  echo "**** smt_meta: Check for counterexamples with sygus"
-  ajr-cvc5 --no-e-matching --macros-quant --dag-thresh=0 --tlimit=10000 $SYGUS_OUT -q -o sygus-enumerator -o sygus-grammar --sygus-enum=fast -o sygus
-  #ajr-cvc5 --no-e-matching --macros-quant --dag-thresh=0 --tlimit=5000 $SYGUS_OUT -q
+  BASE_ARGS="--no-e-matching --macros-quant --re-first-class --dag-thresh=0"
+  
+  echo "**** smt_meta: Check for counterexamples with sygus, args $BASE_ARGS"
+  #ajr-cvc5 $BASE_ARGS $SYGUS_OUT -q -o sygus-enumerator -o sygus-grammar -o sygus
+  ajr-cvc5 $BASE_ARGS --tlimit=60000 $SYGUS_OUT -q
   check_status
 else
   echo "**** smt_meta: Generate SMT2 from $VCMT_DEF_DESUGAR to $VC_OUT"
@@ -141,12 +143,14 @@ else
   ajr-cvc5 $VC_OUT --parse-only
   check_status
 
+  BASE_ARGS="--macros-quant --re-first-class --quant-ind"
+  
   echo "**** smt_meta: Run the final verification condition with unsat cores"
-  ajr-cvc5 $VC_OUT --dump-unsat-cores --macros-quant --quant-ind #--parse-only
+  ajr-cvc5 $VC_OUT --dump-unsat-cores $BASE_ARGS #--parse-only
   check_status
 
   echo "**** smt_meta: Run the final verification condition with proofs"
-  ajr-cvc5 $VC_OUT --check-proofs --stats-internal --quant-ind |& grep -P '(^unknown$|^unsat$|^sat$|finalProof::ruleCount|finalProof::totalRuleCount|finalProof::ruleUnhandled|finalProof::trust)'
+  ajr-cvc5 $VC_OUT --check-proofs --stats-internal $BASE_ARGS |& grep -P '(^unknown$|^unsat$|^sat$|finalProof::ruleCount|finalProof::totalRuleCount|finalProof::ruleUnhandled|finalProof::trust)'
   check_status
 fi
 

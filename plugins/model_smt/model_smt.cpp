@@ -51,8 +51,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("=>", {kBool, kBool}, kBool);
   addConstFoldSym("not", {kBool}, kBool);
   // arithmetic
-  addTypeSym("Int", {}, "($vsm_term ($sm_mk_z n))", "Int");
-  addTypeSym("Real", {}, "($vsm_term ($sm_mk_q r))", "Real");
+  addTypeSym("Int", {});
+  addTypeSym("Real", {});
   // use kT to stand for either Int or Real arithmetic (not mixed)
   addConstFoldSym("+", {kT, kT}, kT);
   addConstFoldSym("-", {kT, kT}, kT);
@@ -76,24 +76,15 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // arrays
   addTypeSym(
       "Array",
-      {kT, kT},
-      "($vsm_map m)",
-      "($smtx_builtin_requires ($smtx_map_has_type m x1 x2) (Array x1 x2))");
+      {kT, kT});
   addRecReduceSym("select", {kT, kT}, "($smtx_map_select e1 e2)");
   addRecReduceSym("store", {kT, kT, kT}, "($smtx_map_store e1 e2 e3)");
   addReduceSym(
       "const", {kT, kT}, "($vsm_map ($msm_default ($smtx_model_eval x2)))");
   // strings
-  addTypeSym("Seq",
-             {kT},
-             "($vsm_seq sq)",
-             "($smtx_builtin_requires ($smtx_seq_has_type sq x1) (Seq x1))");
-  // string is represented as sequence of characters
-  addTypeSym("(Seq Char)", {}, "($vsm_term ($sm_mk_str s))", "(Seq Char)");
-  d_typeCase["Seq"].push_back("(Seq Char)");
-  d_symIgnore["Seq"] = true;
-  d_symIgnore["Char"] = true;
-  d_symIgnore["RegLan"] = true;
+  addTypeSym("Seq", {kT});
+  addTypeSym("Char", {});
+  addTypeSym("RegLan", {});
   addConstFoldSym("str.++", {kString, kString}, kString);
   addConstFoldSym("str.len", {kString}, kInt);
   addConstFoldSym("str.substr", {kString, kInt, kInt}, kString);
@@ -111,11 +102,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("str.prefixof", {kString, kString}, kBool);
   addConstFoldSym("str.<=", {kString, kString}, kBool);
   addConstFoldSym("str.<", {kString, kString}, kBool);
-#if 1
+  // regular expressions
   addReduceSym("re.allchar", {}, "($vsm_re ($smt_apply_0 \"re.allchar\"))");
   addReduceSym("re.none", {}, "($vsm_re ($smt_apply_0 \"re.none\"))");
   addReduceSym("re.all", {}, "($vsm_re ($smt_apply_0 \"re.all\"))");
-  addConstFoldSym("str.in_re", {kString, kRegLan}, kBool);
   addConstFoldSym("str.to_re", {kString}, kRegLan);
   addConstFoldSym("re.*", {kRegLan}, kRegLan);
   addConstFoldSym("re.+", {kRegLan}, kRegLan);
@@ -126,12 +116,14 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("re.union", {kRegLan, kRegLan}, kRegLan);
   addConstFoldSym("re.diff", {kRegLan, kRegLan}, kRegLan);
   addConstFoldSym("re.range", {kString, kString}, kRegLan);
-#endif
+  // RE operators
+  addConstFoldSym("str.in_re", {kString, kRegLan}, kBool);
+  addConstFoldSym("str.indexof_re", {kString, kRegLan, kInt}, kInt);
+  addConstFoldSym("str.replace_re", {kString, kRegLan, kString}, kString);
+  addConstFoldSym("str.replace_re_all", {kString, kRegLan, kString}, kString);
   // bitvectors
   addTypeSym("BitVec",
-             {kInt},
-             "($vsm_term ($sm_binary w n))",
-             "($eo_requires_eq x1 ($eo_mk_numeral w) (BitVec x1))");
+             {kInt});
   // the following are return terms of aux program cases of the form:
   // (($smtx_model_eval_f
   //    ($vsm_term ($sm_binary x1 x2)) ($vsm_term ($sm_binary x3 x4)))
@@ -208,15 +200,14 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                    "(str.indexof_re x1 (re.comp (re.range \"0\" \"9\")) 0)");
   // sequences
   addReduceSym("seq.empty", {kT}, "$smtx_empty_seq");
+  d_specialCases["seq.empty"].emplace_back("(as seq.empty (Seq Char))", "($vsm_term ($sm_mk_str $smt_builtin_str_empty))");
   addRecReduceSym("seq.unit", {kT}, "($smtx_seq_unit e1)");
   addRecReduceSym("seq.nth", {kT, kInt}, "($smtx_seq_nth e1 e2)");
   // sets
   // (Set T) is modelled as (Array T Bool).
   addTypeSym(
       "Set",
-      {kT},
-      "($vsm_map m)",
-      "($smtx_builtin_requires ($smtx_map_has_type m x1 Bool) (Set x1))");
+      {kT});
   addReduceSym("set.empty", {kT}, "$smtx_empty_set");
   addRecReduceSym("set.singleton", {kT}, "($smtx_set_singleton e1)");
   addRecReduceSym("set.inter", {kT, kT}, "($smtx_set_inter e1 e2)");
@@ -246,8 +237,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTermReduceSym("@bit", {kInt, kBitVec}, "(extract x1 x1 x2)");
   // tuples
   // these allow Herbrand interpretations
-  // addTypeSym("Tuple", {kT, kT});
-  // addTypeSym("UnitTuple", {});
+  addTypeSym("Tuple", {kT, kT});
+  addTypeSym("UnitTuple", {});
   d_symIgnore["Tuple"] = true;
   d_symIgnore["UnitTuple"] = true;
   addReduceSym("tuple", {}, "($vsm_apply ($vsm_term tuple) $vsm_not_value)");
@@ -257,12 +248,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
 ModelSmt::~ModelSmt() {}
 
 void ModelSmt::addTypeSym(const std::string& sym,
-                          const std::vector<Kind>& args,
-                          const std::string& cpat,
-                          const std::string& cret)
+                          const std::vector<Kind>& args)
 {
-  d_symTypes[sym] =
-      std::tuple<std::vector<Kind>, std::string, std::string>(args, cpat, cret);
+  d_symIgnore[sym] = true;
+  d_symTypes[sym] = args;
 }
 
 void ModelSmt::addHardCodeSym(const std::string& sym,
@@ -355,20 +344,17 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
 
 void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
 {
+  // check for special cases
+  std::map<std::string, std::vector<std::pair<std::string, std::string>>>::iterator itsc = d_specialCases.find(name);
+  if (itsc!=d_specialCases.end())
+  {
+    for (size_t i=0, ncases=itsc->second.size(); i<ncases; i++)
+    {
+      printModelEvalCallBase(itsc->second[i].first, {}, itsc->second[i].second, Attr::NONE);
+    }
+  }
   Attr attr =
       e.isNull() ? Attr::NONE : d_state.getConstructorKind(e.getValue());
-  // maybe it requires a special case in "is input"?
-  std::map<std::string,
-           std::tuple<std::vector<Kind>, std::string, std::string>>::iterator
-      itt = d_symTypes.find(name);
-  if (itt != d_symTypes.end())
-  {
-    printType(name,
-              std::get<0>(itt->second),
-              std::get<1>(itt->second),
-              std::get<2>(itt->second));
-    return;
-  }
   std::map<std::string, std::vector<Kind>>::iterator ith =
       d_symHardCode.find(name);
   if (ith != d_symHardCode.end())

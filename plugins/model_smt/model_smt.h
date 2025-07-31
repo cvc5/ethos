@@ -107,9 +107,9 @@ class ModelSmt : public StdPlugin
   void addQuantifier(const std::string& sym, const std::vector<Kind>& args);
   /** add type */
   void addTypeSym(const std::string& sym,
-                  const std::vector<Kind>& args,
-                  const std::string& cpat,
-                  const std::string& cret);
+                  const std::vector<Kind>& args);
+  /** add symbol case */
+  void addSymCase(const std::string& sym, const std::string& pat, const std::string& ret);
   /**
    * Helper method for printing the final program case to $smtx_model_eval, i.e.
    * (($smtx_model_eval (<name> x1 ... xn)) <retTerm>).
@@ -168,11 +168,12 @@ class ModelSmt : public StdPlugin
   std::stringstream d_eval;
   /** Declarations seen */
   std::vector<std::pair<std::string, Expr>> d_declSeen;
+  /** Special cases, printed prior to symbol */
+  std::map<std::string, std::vector<std::pair<std::string, std::string>>> d_specialCases;
   /**
    * SMT-LIB types.
    */
-  std::map<std::string, std::tuple<std::vector<Kind>, std::string, std::string>>
-      d_symTypes;
+  std::map<std::string, std::vector<Kind>> d_symTypes;
   /** Special cases */
   std::map<std::string, std::vector<std::string>> d_typeCase;
   /**

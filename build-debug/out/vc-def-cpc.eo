@@ -1,5 +1,5 @@
-; trim-defs: $eovc_symm
-; #trim-defs: 48
+; trim-defs: $eovc_sets_singleton_inj
+; #trim-defs: 49
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (define $eo_Numeral () Int)
@@ -44,16 +44,10 @@
   )
 )
 (echo "include eo_builtin_smt :deps $eo_typeof_main $eo_String $eo_Numeral $eo_Rational $eo_Binary $eo_typeof ")
-(declare-const not (-> Bool Bool))
 (declare-const and (-> Bool (-> Bool Bool)))
 (declare-parameterized-const = ((A Type :implicit) ($eo_x_1 A) ($eo_x_2 A)) Bool)
-(program $mk_symm ((T Type) (t2 T) (t1 T))
-  :signature (Bool) Bool
-  (
-  (($mk_symm (_ (= t1) t2)) (_ (= t2) t1))
-  (($mk_symm (not (_ (= t1) t2))) (not (_ (= t2) t1)))
-  )
-)
+(declare-const Set (-> Type Type))
+(declare-parameterized-const set.singleton ((T Type :implicit) ($eo_x_1 T)) (Set T))
 (program $eo_typeof_apply ((T Type) (U Type))
   :signature (Type Type) Type
   (
@@ -64,6 +58,12 @@
   :signature (Type) Type
   (
   (($eo_typeof_= A) (-> A Bool))
+  )
+)
+(program $eo_typeof_set.singleton ((T Type))
+  :signature (Type) Type
+  (
+  (($eo_typeof_set.singleton T) (Set T))
   )
 )
 (program $eo_typeof_fun_type ()
@@ -102,11 +102,13 @@
   
   (($eo_typeof_main Seq) (-> Type Type))
   
-  (($eo_typeof_main not) (-> Bool Bool))
-  
   (($eo_typeof_main and) (-> Bool (-> Bool Bool)))
   
   (($eo_typeof_main (= x1)) ($eo_typeof_= ($eo_typeof x1)))
+  
+  (($eo_typeof_main Set) (-> Type Type))
+  
+  (($eo_typeof_main (set.singleton x1)) ($eo_typeof_set.singleton ($eo_typeof x1)))
 
   (($eo_typeof_main (f x))        ($eo_typeof_apply ($eo_typeof f) ($eo_typeof x)))
   )
@@ -153,16 +155,16 @@
 (program $eo_model_sat () :signature (Bool) $eo_Option)
 (program $eo_model_is_input () :signature (Bool) Bool)
 (echo "include eo_model_sat :deps $eo_typeof_main $eo_is_ok $eo_dt_constructors $eo_dt_selectors $eo_if_both $eo_List_nil $eo_List_cons $eo_Option_some $eo_Option_null $eo_model_sat $eo_model_is_input $eo_Pair_mk $eo_Pair_first $eo_Pair_second $eo_lit_type_Numeral $eo_lit_type_Rational $eo_lit_type_String $eo_lit_type_Binary ")
-(program $eor_symm ((F Bool))
+(program $eor_sets_singleton_inj ((T Type) (a T) (b T))
   :signature (Bool) Bool
   (
-  (($eor_symm (not F)) (eo::define ((_v0 ($mk_symm F))) ($eo_requires_eq ($eo_typeof _v0) Bool _v0)))
+  (($eor_sets_singleton_inj (_ (= (set.singleton a)) (set.singleton b))) (eo::define ((_v0 (_ (= a) b))) ($eo_requires_eq ($eo_typeof _v0) Bool _v0)))
   )
 )
-(program $eovc_symm ((F Bool))
-  :signature (Bool) Bool
+(program $eovc_sets_singleton_inj ((T Type) (a T) (b T))
+  :signature (T T) Bool
   (
-  (($eovc_symm F) (eo::define ((_v0 (not F))) (eo::define ((_v1 ($eor_symm _v0))) ($eo_requires_eq ($eo_model_is_input _v1) true ($eo_requires_eq ($eo_typeof _v0) Bool ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some true) ($eo_requires_eq ($eo_model_sat _v1) ($eo_Option_some false) true)))))))
+  (($eovc_sets_singleton_inj b a) (eo::define ((_v0 (_ (= (set.singleton a)) (set.singleton b)))) (eo::define ((_v1 ($eor_sets_singleton_inj _v0))) ($eo_requires_eq ($eo_model_is_input _v1) true ($eo_requires_eq ($eo_typeof _v0) Bool ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some true) ($eo_requires_eq ($eo_model_sat _v1) ($eo_Option_some false) true)))))))
   )
 )
-(echo "smt-meta $eovc_symm :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $eo_smt_type $tsm_Bool $eo_Type $eo_fun_type $eo_apply ")
+(echo "smt-meta $eovc_sets_singleton_inj :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $smtx_reverse_value_hash $eo_smt_type $tsm_Bool $eo_Type $eo_fun_type $eo_apply ")
