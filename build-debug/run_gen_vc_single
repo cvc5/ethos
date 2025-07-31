@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#USE_SYGUS=ON
+USE_SYGUS=ON
 
 OUT_DIR=./out
 

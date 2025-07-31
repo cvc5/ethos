@@ -37,14 +37,26 @@ class SygusGrammar
 {
  public:
   SygusGrammar() {}
-  void initialize(const std::string& gn, const std::string& tn)
-  {
-    d_gname = gn;
-    d_typeName = tn;
-  }
   std::string d_gname;
   std::string d_typeName;
   std::stringstream d_rules;
+};
+class SygusRuleSchema
+{
+public:
+  SygusRuleSchema(){}
+  std::string d_cname;
+  std::vector<Expr> d_approxArgs;
+  std::unordered_set<size_t> d_eqArgs;
+  std::vector<Expr> instantiate(const Expr& g)
+  {
+    std::vector<Expr> ret = d_approxArgs;
+    for (size_t a : d_eqArgs)
+    {
+      ret[a] = g;
+    }
+    return ret;
+  }
 };
 
 /**
@@ -208,6 +220,7 @@ class SmtMetaReduce : public StdPlugin
   std::map<std::string, std::string> d_gconstRule;
   std::map<Expr, SygusGrammar*> d_grammarTypeAlloc;
   std::map<std::string, Kind> d_cnameToKind;
+  std::map<Expr, SygusRuleSchema> d_grammarRuleSchema;
   void initializeGrammars();
   void finalizeGrammars();
   SygusGrammar* allocateGrammar(const std::string& gn, const std::string& tn);
@@ -220,6 +233,7 @@ class SmtMetaReduce : public StdPlugin
                        MetaKind tk,
                        const std::string& gbase,
                        const Expr& t);
+  void addRulesForSig(const std::string& gbase, const std::vector<Expr>& approxSig);
 };
 
 }  // namespace ethos

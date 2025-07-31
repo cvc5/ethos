@@ -489,10 +489,20 @@
 
 ; all further definitions
 
+; declare: not
+(declare-const not (-> Bool Bool))
 ; declare: and
 (declare-const and (-> Bool (-> Bool Bool)))
 ; declare: =
 (declare-parameterized-const = ((A Type :implicit) ($eo_x_1 A) ($eo_x_2 A)) Bool)
+; program: $mk_symm
+(program $mk_symm ((T Type) (t2 T) (t1 T))
+  :signature (Bool) Bool
+  (
+  (($mk_symm (_ (= t1) t2)) (not (_ (= t2) t1)))
+  (($mk_symm (not (_ (= t1) t2))) (not (_ (= t2) t1)))
+  )
+)
 
 
 ;;; type checking
@@ -558,6 +568,8 @@
   (($eo_typeof_main Char) Type)
   ; type-rule: Seq
   (($eo_typeof_main Seq) (-> Type Type))
+  ; type-rule: not
+  (($eo_typeof_main not) (-> Bool Bool))
   ; type-rule: and
   (($eo_typeof_main and) (-> Bool (-> Bool Bool)))
   ; type-rule: =
@@ -653,19 +665,19 @@
 
 ;; verification conditions
 
-; program: $eor_bool-eq-true
-(program $eor_bool-eq-true ((t1 Bool))
+; program: $eor_symm
+(program $eor_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eor_bool-eq-true t1) (eo::define ((_v0 (_ (= (_ (= t1) true)) t1))) ($eo_requires_eq ($eo_typeof _v0) Bool _v0)))
+  (($eor_symm F) (eo::define ((_v0 ($mk_symm F))) ($eo_requires_eq ($eo_typeof _v0) Bool _v0)))
   )
 )
-; program: $eovc_bool-eq-true
-(program $eovc_bool-eq-true ((t1 Bool))
+; program: $eovc_symm
+(program $eovc_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eovc_bool-eq-true t1) (eo::define ((_v0 ($eor_bool-eq-true t1))) ($eo_requires_eq ($eo_model_is_input _v0) true ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some false) true))))
+  (($eovc_symm F) (eo::define ((_v0 ($eor_symm F))) ($eo_requires_eq ($eo_model_is_input _v0) true ($eo_requires_eq ($eo_typeof F) Bool ($eo_requires_eq ($eo_model_sat F) ($eo_Option_some true) ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some false) true))))))
   )
 )
-(echo "smt-meta $eovc_bool-eq-true :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $eo_smt_type $tsm_Bool $eo_Type $eo_fun_type $eo_apply ")
+(echo "smt-meta $eovc_symm :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $eo_smt_type $tsm_Bool $eo_Type $eo_fun_type $eo_apply ")
 

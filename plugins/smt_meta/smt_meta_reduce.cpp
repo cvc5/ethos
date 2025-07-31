@@ -1723,7 +1723,8 @@ SygusGrammar* SmtMetaReduce::allocateGrammar(const std::string& gn,
   Assert(!d_gisFinalized);
   d_glist.push_back(gn);
   SygusGrammar& sg = d_grammar[gn];
-  sg.initialize(gn, tn);
+  sg.d_gname = gn;
+  sg.d_typeName = tn;
   return &sg;
 }
 
@@ -1887,6 +1888,21 @@ void SmtMetaReduce::addGrammarRules(const Expr& e,
   std::vector<Expr> approxSig = getGrammarSigApprox(ct);
   Assert(!approxSig.empty());
   std::string curr = grule.str();
+  addRulesForSig(curr, approxSig);
+  // separately, if there is a constant rule, add it
+  // TODO: remove this??
+  std::map<std::string, std::string>::iterator it = d_gconstRule.find(cname);
+  if (it != d_gconstRule.end())
+  {
+    // get the grammar for this symbol, e.g. T_BitVec
+    SygusGrammar* sgc = getGrammarFor(e);
+    sgc->d_rules << it->second << " ";
+  }
+}
+
+void SmtMetaReduce::addRulesForSig(const std::string& gbase, const std::vector<Expr>& approxSig)
+{
+  std::string curr = gbase;
   // if it is a function
   if (approxSig.size() > 1)
   {
@@ -1907,13 +1923,6 @@ void SmtMetaReduce::addGrammarRules(const Expr& e,
   Expr aret = approxSig[approxSig.size() - 1];
   SygusGrammar* sgret = getGrammarFor(aret);
   sgret->d_rules << curr << " ";
-  std::map<std::string, std::string>::iterator it = d_gconstRule.find(cname);
-  if (it != d_gconstRule.end())
-  {
-    // get the grammar for this symbol, e.g. T_BitVec
-    SygusGrammar* sgc = getGrammarFor(e);
-    sgc->d_rules << it->second << " ";
-  }
 }
 
 }  // namespace ethos
