@@ -50,8 +50,8 @@ Desugar::Desugar(State& s) : StdPlugin(s)
   d_peoModelSat =
       d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_model_sat", modelSatType);
   Expr modelTypeofType = d_state.mkProgramType({d_boolType}, ttype);
-  d_peoModelTypeof = d_state.mkSymbol(
-      Kind::PROGRAM_CONST, "$eo_typeof", modelTypeofType);
+  d_peoModelTypeof =
+      d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_typeof", modelTypeofType);
   Expr modelIsInputType = d_state.mkProgramType({d_boolType}, d_boolType);
   d_peoModelIsInput = d_state.mkSymbol(
       Kind::PROGRAM_CONST, "$eo_model_is_input", modelIsInputType);

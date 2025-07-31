@@ -35,8 +35,8 @@ class ConjPrint
 /** for sygus */
 class SygusGrammar
 {
-public:
-  SygusGrammar(){}
+ public:
+  SygusGrammar() {}
   void initialize(const std::string& gn, const std::string& tn)
   {
     d_gname = gn;
@@ -215,7 +215,11 @@ class SmtMetaReduce : public StdPlugin
   Expr getGrammarTypeApprox(const Expr& e);
   std::vector<Expr> getGrammarSigApprox(const Expr& e);
   SygusGrammar* getGrammarFor(const Expr& t);
-  void addGrammarRules(const Expr& e, const std::string& cname, MetaKind tk, const std::string& gbase, const Expr& t);
+  void addGrammarRules(const Expr& e,
+                       const std::string& cname,
+                       MetaKind tk,
+                       const std::string& gbase,
+                       const Expr& t);
 };
 
 }  // namespace ethos

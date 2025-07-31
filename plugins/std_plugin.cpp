@@ -139,7 +139,8 @@ void StdPlugin::setLiteralTypeRule(Kind k, const Expr& t)
     // We use $eo_undef_type otherwise.
     if (t.isGround())
     {
-      d_litTypeDecl << "(define $eo_" << eoss.str() << " () " << t << ")" << std::endl;
+      d_litTypeDecl << "(define $eo_" << eoss.str() << " () " << t << ")"
+                    << std::endl;
     }
     else
     {
@@ -156,7 +157,8 @@ void StdPlugin::setLiteralTypeRule(Kind k, const Expr& t)
 #else
       Expr ltinst = d_tc.getOrSetLiteralTypeRule(k, gt.getValue());
       d_litTypeDecl << "; type-rules (approx): " << k << std::endl;
-      d_litTypeDecl << "(define $eo_" << eoss.str() << " () " << ltinst << ")" << std::endl;
+      d_litTypeDecl << "(define $eo_" << eoss.str() << " () " << ltinst << ")"
+                    << std::endl;
 #endif
       // since $eo_Numeral is used to define the type rules for builtin
       // operators, it must have a ground type.
