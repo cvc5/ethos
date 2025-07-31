@@ -91,6 +91,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // string is represented as sequence of characters
   addTypeSym("(Seq Char)", {}, "($vsm_term ($sm_mk_str s))", "(Seq Char)");
   d_typeCase["Seq"].push_back("(Seq Char)");
+  d_symIgnore["Seq"] = true;
   d_symIgnore["Char"] = true;
   d_symIgnore["RegLan"] = true;
   addConstFoldSym("str.++", {kString, kString}, kString);
@@ -419,38 +420,6 @@ void ModelSmt::printType(const std::string& name,
                          const std::string& cpat,
                          const std::string& cret)
 {
-  return;
-  std::map<std::string, std::vector<std::string>>::iterator itc =
-      d_typeCase.find(name);
-  if (itc != d_typeCase.end())
-  {
-    // first print the special cases, e.g. String for Seq
-    for (const std::string& cs : itc->second)
-    {
-      finalizeDecl(cs, d_null);
-    }
-  }
-  d_constTypeof << "  (($eo_typeof_const ";
-  d_isInput << "  (($smtx_is_input ($eo_Const ";
-  if (args.empty())
-  {
-    d_constTypeof << name << " ";
-    d_isInput << name << " ";
-  }
-  else
-  {
-    d_constTypeof << "(" << name;
-    d_isInput << "(" << name;
-    for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
-    {
-      d_constTypeof << " x" << i;
-      d_isInput << " x" << i;
-    }
-    d_constTypeof << ") ";
-    d_isInput << ") ";
-  }
-  d_constTypeof << cpat << ") " << cret << ")" << std::endl;
-  d_isInput << cpat << ")) $smt_builtin_true)" << std::endl;
 }
 
 void ModelSmt::printModelEvalCallBase(const std::string& name,

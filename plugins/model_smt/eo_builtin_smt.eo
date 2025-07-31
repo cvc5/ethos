@@ -138,11 +138,6 @@
 (declare-const $smd_tsm.Bool $smt_Type)
 (define $tsm_Bool () $smd_tsm.Bool)
 
-; Uninterpreted sorts
-(declare-parameterized-const $smd_tsm.USort
-  ((id $smt_builtin_Int :opaque)) $smt_Type)
-(define $tsm_USort ((id $smt_builtin_Int)) ($smd_tsm.USort id))
-
 ; The sort of a term that doesn't have an SMT-LIB type.
 ; This is used as an error condition
 (declare-parameterized-const $smd_tsm.NullSort
@@ -176,13 +171,6 @@
 ; A value denoting a regular language.
 (declare-parameterized-const $smd_vsm.RegLan ((r $smt_builtin_RegLan :opaque)) $smt_Value)
 (define $vsm_re ((r $smt_builtin_RegLan)) ($smd_vsm.RegLan r))
-
-; A value denoting an uninterpreted constant.
-; note: we store the hash of its type.
-(declare-parameterized-const $smd_vsm.UConst
-  ((id $smt_builtin_Int :opaque))
-  $smt_Value)
-(define $vsm_uconst ((id $smt_builtin_Int)) ($smd_vsm.UConst id))
 
 ; A value represented by an SMT-LIB term. This is used for types
 ; where terms are used to denote the values of that type, e.g.
@@ -264,12 +252,6 @@
   $eo_Term)
 (define $eo_Var ((s $smt_builtin_String) (T $smt_builtin_Int)) 
   ($smd_eo.Var s T))
-
-; Free constants
-(declare-parameterized-const $smd_eo.Const
-  ((T $eo_Term :opaque) (v $smt_Value :opaque))
-  $eo_Term)
-(define $eo_Const ((T $eo_Term) (v $smt_Value)) ($smd_eo.Const T v))
 
 ;;; External datatype access
 
@@ -938,9 +920,7 @@
 
 ; define: $smtx_value_hash
 ; note: this is an arbitrary hash for SMT values, defined axiomatically.
-; We rely on embedding values into constants, which are Eunoia terms.
-(define $smtx_value_hash ((v $smt_Value))
-  ($smtx_hash ($eo_Const $eo_null_type v)))
+(program $smtx_value_hash () :signature ($smt_Value) $smt_builtin_Int)
 
 ; The SMT-LIB comparison of two SMT-LIB values.
 (define $smtx_value_cmp ((a $smt_Value) (b $smt_Value))

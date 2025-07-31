@@ -122,6 +122,11 @@ Expr SmtMetaSygus::getGrammarTypeApprox(const Expr& e)
   {
     cur = cur[0];
   }
+  if (cur.getKind()==Kind::QUOTE_TYPE)
+  {
+    Expr q = cur[0];
+    cur = d_tc.getType(q);
+  }
   if (!cur.isGround())
   {
     return d_null;
@@ -330,6 +335,7 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
   addRulesForSig(curr, approxSig);
   // separately, if there is a constant rule, add it
   // TODO: remove this??
+#if 0
   std::map<std::string, std::string>::iterator it = d_gconstRule.find(cname);
   if (it != d_gconstRule.end())
   {
@@ -337,6 +343,7 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
     SygusGrammar* sgc = getGrammarFor(e);
     sgc->d_rules << it->second << " ";
   }
+#endif
 }
 
 void SmtMetaSygus::addRulesForSig(const std::string& gbase,
