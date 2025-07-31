@@ -547,7 +547,7 @@
 
 ;;;; final verification condition for $eovc_symm
 (synth-fun arg_F () eo.Term
-  ((G_Start eo.Term) (G_eo.Term eo.Term) (G_sm.Term sm.Term) (G_tsm.Type tsm.Type) (G_vsm.Value vsm.Value) (G_msm.Map msm.Map) (G_ssm.Seq ssm.Seq) (G_Bool Bool) (G_Int Int) (G_Int_C Int) (G_Real Real) (G_String String) (T_SmtType eo.Term) (T_Type eo.Term) (T_Fun eo.Term) (T_Int eo.Term) (T_$eo_List eo.Term) (T_$eo_Option eo.Term) (T_SmtTerm eo.Term) (T_Bool eo.Term) (T_Real eo.Term) (T_Seq eo.Term) (T_BitVec eo.Term)) (
+  ((G_Start eo.Term) (G_eo.Term eo.Term) (G_sm.Term sm.Term) (G_tsm.Type tsm.Type) (G_vsm.Value vsm.Value) (G_msm.Map msm.Map) (G_ssm.Seq ssm.Seq) (G_Bool Bool) (G_Int Int) (G_RegLan RegLan) (G_Int_C Int) (G_Real Real) (G_String String) (T_SmtType eo.Term) (T_Type eo.Term) (T_Fun eo.Term) (T_Int eo.Term) (T_$eo_List eo.Term) (T_$eo_Option eo.Term) (T_SmtTerm eo.Term) (T_Bool eo.Term) (T_Real eo.Term) (T_Seq eo.Term) (T_BitVec eo.Term)) (
   (G_Start eo.Term (T_Bool))
   (G_eo.Term eo.Term (eo.Type eo.FunType (eo.Var G_String G_Int) T_Type T_Bool T_Fun T_SmtTerm T_SmtType T_Int T_Real T_BitVec T_Seq T_$eo_List T_$eo_Option T_SmtType T_Type T_Fun T_Int T_$eo_List T_$eo_Option T_SmtTerm T_Bool T_Real T_Seq T_BitVec ))
   (G_sm.Term sm.Term ((sm.Boolean G_Bool) (sm.Numeral G_Int) (sm.Rational G_Real) (sm.String G_String) (sm.Binary G_Int G_Int) sm.not sm.and sm.= ))
@@ -557,6 +557,7 @@
   (G_ssm.Seq ssm.Seq ((ssm.cons G_vsm.Value G_ssm.Seq) ssm.empty))
   (G_Bool Bool (true false))
   (G_Int Int (0 (- G_Int_C) G_Int_C))
+  (G_RegLan RegLan (re.all re.none (str.to_re G_String) (re.union G_RegLan G_RegLan)))
   (G_Int_C Int (1 (+ G_Int_C 1)))
   (G_Real Real (0.0 (/ G_Int_C G_Int_C) (- (/ G_Int_C G_Int_C))))
   (G_String String ("" (str.++ G_String "A") (str.++ G_String "B")))

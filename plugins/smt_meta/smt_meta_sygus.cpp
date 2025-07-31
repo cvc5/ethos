@@ -41,6 +41,8 @@ void SmtMetaSygus::initializeGrammars()
   tmp->d_rules << "true false";
   tmp = allocateGrammar("G_Int", "Int");
   tmp->d_rules << "0 (- G_Int_C) G_Int_C";
+  tmp = allocateGrammar("G_RegLan", "RegLan");
+  tmp->d_rules << "re.all re.none (str.to_re G_String) (re.union G_RegLan G_RegLan)";
   tmp = allocateGrammar("G_Int_C", "Int");
   tmp->d_rules << "1 (+ G_Int_C 1)";
   tmp = allocateGrammar("G_Real", "Real");

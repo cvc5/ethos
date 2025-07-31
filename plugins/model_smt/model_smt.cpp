@@ -110,7 +110,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("str.prefixof", {kString, kString}, kBool);
   addConstFoldSym("str.<=", {kString, kString}, kBool);
   addConstFoldSym("str.<", {kString, kString}, kBool);
-#if 0
+#if 1
   addReduceSym("re.allchar", {}, "($vsm_re ($smt_apply_0 \"re.allchar\"))");
   addReduceSym("re.none", {}, "($vsm_re ($smt_apply_0 \"re.none\"))");
   addReduceSym("re.all", {}, "($vsm_re ($smt_apply_0 \"re.all\"))");
