@@ -69,39 +69,7 @@ SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s)
   
   if (StdPlugin::optionSmtMetaSygusGrammar())
   {
-    SygusGrammar * tmp;
-    tmp = allocateGrammar("G_eo.Term", "eo.Term");
-    tmp->d_rules << "G_eo.List ";
-    tmp = allocateGrammar("G_eo.List", "eo.Term");
-    tmp->d_rules << "(eo.Apply (eo.Apply eo.$eo_List_cons G_eo.Term) G_eo.List) eo.$eo_List_nil";
-    tmp = allocateGrammar("G_sm.Term", "sm.Term");
-    d_gconstRule["Bool"] = "(eo.Const (eo.SmtType tsm.Bool) (vsm.Term (sm.Boolean G_Bool)))";
-    d_gconstRule["Int"] = "(eo.Const (eo.SmtType tsm.Int) (vsm.Term (sm.Numeral G_Int)))";
-    d_gconstRule["Real"] = "(eo.Const (eo.SmtType tsm.Real) (vsm.Term (sm.Rational G_Real)))";
-    d_gconstRule["BitVec"] = "(eo.Const (eo.Apply (eo.SmtType tsm.BitVec) (eo.SmtTerm (sm.Numeral G_Int))) (vsm.Term (sm.Binary G_Int G_Int)))";
-    std::stringstream sseq;
-    sseq << "(eo.Const (eo.Apply (eo.SmtType tsm.Seq) (eo.SmtType tsm.Char)) (vsm.Term (sm.String G_String)))";
-    sseq << " (eo.Const (eo.Apply (eo.SmtType tsm.Seq) G_eo.Term) (vsm.Seq G_ssm.Seq))";
-    d_gconstRule["BitVec"] = sseq.str();
-    std::stringstream sarr;
-    sarr << "(eo.Const (eo.Apply (eo.Apply (eo.SmtType tsm.Array) G_eo.Term) G_eo.Term) (vsm.Map G_msm.Map))";
-    d_gconstRule["Array"] = sarr.str();
-    tmp = allocateGrammar("G_tsm.Type", "tsm.Type");
-    allocateGrammar("G_vsm.Value", "vsm.Value");
-    tmp = allocateGrammar("G_msm.Map", "msm.Map");
-    tmp->d_rules << "(msm.cons G_vsm.Value G_vsm.Value G_msm.Map) (msm.default G_vsm.Value)";
-    tmp = allocateGrammar("G_ssm.Seq", "ssm.Seq");
-    tmp->d_rules << "(ssm.cons G_vsm.Value G_ssm.Seq) ssm.empty";
-    tmp = allocateGrammar("G_Bool", "Bool");
-    tmp->d_rules << "true false";
-    tmp = allocateGrammar("G_Int", "Int");
-    tmp->d_rules << "0 (- G_Int_C) G_Int_C";
-    tmp = allocateGrammar("G_Int_C", "Int");
-    tmp->d_rules << "1 (+ G_Int_C 1)";
-    tmp = allocateGrammar("G_Real", "Real");
-    tmp->d_rules << "0.0 (/ G_Int_C G_Int_C) (- (/ G_Int_C G_Int_C))";
-    tmp = allocateGrammar("G_String", "String");
-    tmp->d_rules << "\"\" (str.++ G_String \"A\")";
+    initializeGrammars();
   }
 }
 
@@ -1084,15 +1052,19 @@ void SmtMetaReduce::finalizeDecl(const Expr& e)
   (*out) << "  (";
   (*out) << cname.str();
   size_t nopqArgs = 0;
+  Expr retType = ct;
   if (attr == Attr::OPAQUE)
   {
     // opaque symbols are non-nullary constructors
     Assert(ct.getKind() == Kind::FUNCTION_TYPE);
     nopqArgs = ct.getNumChildren() - 1;
+    retType = ct[nopqArgs];
   }
   else if (attr == Attr::AMB || attr == Attr::AMB_DATATYPE_CONSTRUCTOR)
   {
+    Assert (ct.getNumChildren()==2);
     nopqArgs = 1;
+    retType = ct[1];
   }
   std::stringstream sygusArgs;
   for (size_t i = 0; i < nopqArgs; i++)
@@ -1131,87 +1103,7 @@ void SmtMetaReduce::finalizeDecl(const Expr& e)
   {
     gruleBase << cname.str();
   }
-  std::stringstream grule;
-  std::stringstream gruleEnd;
-  SygusGrammar* sg = nullptr;
-  MetaKind tkg = tk;
-  if (tk == MetaKind::EUNOIA)
-  {
-    // do not enumerate builtin symbols with sygus
-    // this includes and lists which are handled specially, and 
-    // options which are internally only (for now)
-    if (cnamek.compare(0, 4, "$eo_")!=0 && cnamek!="Stuck")
-    {
-      sg = getGrammar("G_eo.Term");
-    }
-    if (StdPlugin::optionSmtMetaSygusGrammarWellTyped())
-    {
-      if (cnamek=="Apply" || cnamek=="Const")
-      {
-        sg = nullptr;
-      }
-    }
-  }
-  else if (tk == MetaKind::SMT_TYPE)
-  {
-    if (cnamek!="Char")
-    {
-      // print on both
-      sg = getGrammar("G_tsm.Type");
-      sg->d_rules << gruleBase.str() << " ";
-      sg = getGrammar("G_eo.Term");
-      grule << "(eo.SmtType ";
-      gruleEnd << ")";
-      tkg = MetaKind::EUNOIA;
-    }
-  }
-  else if (tk == MetaKind::SMT)
-  {
-    // print on both
-    sg = getGrammar("G_sm.Term");
-    sg->d_rules << gruleBase.str() << " ";
-    sg = getGrammar("G_eo.Term");
-    grule << "(eo.SmtTerm ";
-    gruleEnd << ")";
-    tkg = MetaKind::EUNOIA;
-  }
-  else if (tk == MetaKind::SMT_VALUE)
-  {
-    if (cnamek!="NotValue")
-    {
-      sg = getGrammar("G_vsm.Value");
-    }
-  }
-  if (sg==nullptr)
-  {
-    return;
-  }
-  grule << gruleBase.str() << gruleEnd.str();
-  sg->d_rules << grule.str() << " ";
-  if (StdPlugin::optionSmtMetaSygusGrammarWellTyped())
-  {
-    // if it has function type, make an APPLY rule
-    if (tkg == MetaKind::EUNOIA && nopqArgs==0 && ct.getKind() == Kind::FUNCTION_TYPE && cnamek.compare(0, 4, "$eo_")!=0)
-    {
-      std::string curr = grule.str();
-      Expr ctp = ct;
-      // all partial applications of it
-      while (ctp.getKind()==Kind::FUNCTION_TYPE)
-      {
-        std::stringstream next;
-        next << "(eo.Apply " << curr << " G_eo.Term)";
-        curr = next.str();
-        sg->d_rules << curr << " ";
-        ctp = ctp[1];
-      }
-    }
-    std::map<std::string, std::string>::iterator it = d_gconstRule.find(cnamek);
-    if (it != d_gconstRule.end())
-    {
-      sg = getGrammar("G_eo.Term");
-      sg->d_rules << it->second << " ";
-    }
-  }
+  addGrammarRules(e, cnamek, tk, gruleBase.str(), retType);
 }
 
 void SmtMetaReduce::finalize()
@@ -1324,19 +1216,22 @@ bool SmtMetaReduce::echo(const std::string& msg)
     }
     else if (ctype == ConjectureType::SYGUS)
     {
+      finalizeGrammars();
       for (size_t i = 1; i < nargs; i++)
       {
         d_smtVc << "(synth-fun x" << i << " () eo.Term";
         if (StdPlugin::optionSmtMetaSygusGrammar())
         {
-          d_smtVc << std::endl << "  (";
-          bool firstTime = true;
+          d_smtVc << std::endl << "  ((G_Start eo.Term)";
+          // start with the appropriate non-terminal
+          Expr gt = getGrammarTypeApprox(vt[i-1]);
+          SygusGrammar * sggt = getGrammarFor(gt);
           std::stringstream body;
+          body << "  (G_Start eo.Term (" << sggt->d_gname << "))" << std::endl;
           for (const std::string& gn : d_glist)
           {
             SygusGrammar& g = d_grammar[gn];
-            d_smtVc << (firstTime ? "" : " ") << "(" << g.d_gname << " " << g.d_typeName << ")";
-            firstTime = false;
+            d_smtVc << " (" << g.d_gname << " " << g.d_typeName << ")";
             body << "  (" << g.d_gname << " " << g.d_typeName << " (" << g.d_rules.str() << "))" << std::endl;
           }
           d_smtVc << ") (" << std::endl;
@@ -1357,23 +1252,6 @@ bool SmtMetaReduce::echo(const std::string& msg)
     return false;
   }
   return true;
-}
-
-SygusGrammar* SmtMetaReduce::allocateGrammar(const std::string& gn, const std::string& tn)
-{
-  d_glist.push_back(gn);
-  SygusGrammar& sg = d_grammar[gn];
-  sg.initialize(gn, tn);
-  return &sg;
-}
-SygusGrammar* SmtMetaReduce::getGrammar(const std::string& gn)
-{
-  std::map<std::string, SygusGrammar>::iterator it = d_grammar.find(gn);
-  if (it!=d_grammar.end())
-  {
-    return &it->second;
-  }
-  return nullptr;
 }
 
 bool SmtMetaReduce::isProgram(const Expr& t)
@@ -1766,6 +1644,257 @@ std::vector<MetaKind> SmtMetaReduce::getMetaKindArgs(const Expr& parent,
   }
   std::cout << "  MetaArg: end" << std::endl;
   return args;
+}
+
+
+void SmtMetaReduce::initializeGrammars()
+{
+  d_gisFinalized = false;
+  d_gfun = d_state.mkSymbol(Kind::CONST, "Fun", d_state.mkType());
+  SygusGrammar * tmp;
+  tmp = allocateGrammar("G_eo.Term", "eo.Term");
+  // all types that can be meta-kinds of opaque arguments must go here
+  allocateGrammar("G_sm.Term", "sm.Term");
+  allocateGrammar("G_tsm.Type", "tsm.Type");
+  allocateGrammar("G_vsm.Value", "vsm.Value");
+  tmp = allocateGrammar("G_msm.Map", "msm.Map");
+  tmp->d_rules << "(msm.cons G_vsm.Value G_vsm.Value G_msm.Map) (msm.default G_vsm.Value)";
+  tmp = allocateGrammar("G_ssm.Seq", "ssm.Seq");
+  tmp->d_rules << "(ssm.cons G_vsm.Value G_ssm.Seq) ssm.empty";
+  tmp = allocateGrammar("G_Bool", "Bool");
+  tmp->d_rules << "true false";
+  tmp = allocateGrammar("G_Int", "Int");
+  tmp->d_rules << "0 (- G_Int_C) G_Int_C";
+  tmp = allocateGrammar("G_Int_C", "Int");
+  tmp->d_rules << "1 (+ G_Int_C 1)";
+  tmp = allocateGrammar("G_Real", "Real");
+  tmp->d_rules << "0.0 (/ G_Int_C G_Int_C) (- (/ G_Int_C G_Int_C))";
+  tmp = allocateGrammar("G_String", "String");
+  tmp->d_rules << "\"\" (str.++ G_String \"A\")";
+  // grammar constants
+#if 0
+  d_gconstRule["Bool"] = "(eo.Const (eo.SmtType tsm.Bool) (vsm.Term (sm.Boolean G_Bool)))";
+  d_gconstRule["Int"] = "(eo.Const (eo.SmtType tsm.Int) (vsm.Term (sm.Numeral G_Int)))";
+  d_gconstRule["Real"] = "(eo.Const (eo.SmtType tsm.Real) (vsm.Term (sm.Rational G_Real)))";
+  d_gconstRule["BitVec"] = "(eo.Const (eo.Apply (eo.SmtType tsm.BitVec) (eo.SmtTerm (sm.Numeral G_Int))) (vsm.Term (sm.Binary G_Int G_Int)))";
+  std::stringstream sseq;
+  sseq << "(eo.Const (eo.Apply (eo.SmtType tsm.Seq) (eo.SmtType tsm.Char)) (vsm.Term (sm.String G_String)))";
+  sseq << " (eo.Const (eo.Apply (eo.SmtType tsm.Seq) G_eo.Term) (vsm.Seq G_ssm.Seq))";
+  d_gconstRule["Seq"] = sseq.str();
+#endif
+  // FIXME: is eo_Const even necessary???? just introduce a default array constant
+  std::stringstream sarr;
+  sarr << "(eo.Const (eo.Apply (eo.Apply (eo.SmtType tsm.Array) G_eo.Term) G_eo.Term) (vsm.Map G_msm.Map))";
+  d_gconstRule["Array"] = sarr.str();
+
+  d_cnameToKind["Boolean"] = Kind::BOOLEAN;
+  d_cnameToKind["Numeral"] = Kind::NUMERAL;
+  d_cnameToKind["Rational"] = Kind::RATIONAL;
+  d_cnameToKind["Binary"] = Kind::BINARY;
+  d_cnameToKind["String"] = Kind::STRING;
+}
+
+void SmtMetaReduce::finalizeGrammars()
+{
+  d_gisFinalized = true;
+  SygusGrammar * sg = getGrammarFor(d_null);
+  // add reference to unknown to all eo.Term grammars
+  for(std::pair<const Expr, SygusGrammar*>& g : d_grammarTypeAlloc)
+  {
+    Assert (!g.first.isNull());
+    sg->d_rules << g.second->d_gname << " ";
+    if (g.first==d_gfun)
+    {
+      // (partial) function applications
+      g.second->d_rules << "(eo.Apply " << g.second->d_gname << " " << sg->d_gname << ") ";
+    }
+  }
+}
+
+SygusGrammar* SmtMetaReduce::allocateGrammar(const std::string& gn, const std::string& tn)
+{
+  Assert (!d_gisFinalized);
+  d_glist.push_back(gn);
+  SygusGrammar& sg = d_grammar[gn];
+  sg.initialize(gn, tn);
+  return &sg;
+}
+
+SygusGrammar* SmtMetaReduce::getGrammar(const std::string& gn)
+{
+  std::map<std::string, SygusGrammar>::iterator it = d_grammar.find(gn);
+  if (it!=d_grammar.end())
+  {
+    return &it->second;
+  }
+  return nullptr;
+}
+
+Expr SmtMetaReduce::getGrammarTypeApprox(const Expr& e)
+{
+  Expr cur = e;
+  while (cur.getKind()==Kind::APPLY)
+  {
+    cur = cur[0];
+  }
+  if (!cur.isGround())
+  {
+    return d_null;
+  }
+  Kind ck = cur.getKind();
+  if (ck==Kind::FUNCTION_TYPE)
+  {
+    return d_gfun;
+  }
+  else if (ck==Kind::TYPE || ck==Kind::BOOL_TYPE)
+  {
+    return cur;
+  }
+  else if (ck==Kind::CONST)
+  {
+    std::string cname = getName(cur);
+    if (cname=="$eo_Type")
+    {
+      return d_null;
+    }
+    return cur;
+  }
+  else if (ck==Kind::PROGRAM_CONST)
+  {
+    // unknown case
+    return d_null;
+  }
+  else
+  {
+    Assert(false) << "Unknown grammar type " << ck << " " << e;
+  }
+  return d_null;
+}
+
+std::vector<Expr> SmtMetaReduce::getGrammarSigApprox(const Expr& t)
+{
+  std::vector<Expr> ret;
+  Expr ct = t;
+  while (ct.getKind()==Kind::FUNCTION_TYPE)
+  {
+    Assert (ct.getNumChildren()==2);
+    ret.push_back(getGrammarTypeApprox(ct[0]));
+    ct = ct[1];
+  }
+  ret.push_back(getGrammarTypeApprox(ct));
+  return ret;
+}
+
+SygusGrammar* SmtMetaReduce::getGrammarFor(const Expr& t)
+{
+  if (t.isNull())
+  {
+    return getGrammar("G_eo.Term");
+  }
+  std::map<Expr, SygusGrammar*>::iterator itg = d_grammarTypeAlloc.find(t);
+  if (itg!=d_grammarTypeAlloc.end())
+  {
+    return itg->second;
+  }
+  std::stringstream gname;
+  gname << "T_" << t;
+  SygusGrammar* sg = allocateGrammar(gname.str(), "eo.Term");
+  d_grammarTypeAlloc[t] = sg;
+  return sg;
+}
+
+void SmtMetaReduce::addGrammarRules(const Expr& e, const std::string& cname, MetaKind tk, const std::string& gbase, const Expr& t)
+{
+  std::cout << "Add grammar rules " << e << " / " << cname << "..." << std::endl;
+  std::stringstream grule;
+  std::stringstream gruleEnd;
+  if (tk == MetaKind::EUNOIA)
+  {
+    if (cname=="Stuck" || cname=="SmtTerm" || cname=="SmtType")
+    {
+      return;
+    }
+    if (StdPlugin::optionSmtMetaSygusGrammarWellTyped())
+    {
+      if (cname=="Apply" || cname=="Const")
+      {
+        return;
+      }
+    }
+  }
+  else if (tk == MetaKind::SMT_TYPE)
+  {
+    if (cname=="Char" || cname=="NullSort")
+    {
+      return;
+    }
+    // print on both
+    SygusGrammar* sg = getGrammar("G_tsm.Type");
+    sg->d_rules << gbase << " ";
+    grule << "(eo.SmtType ";
+    gruleEnd << ")";
+  }
+  else if (tk == MetaKind::SMT)
+  {
+    // print on both
+    SygusGrammar* sg = getGrammar("G_sm.Term");
+    sg->d_rules << gbase << " ";
+    grule << "(eo.SmtTerm ";
+    gruleEnd << ")";
+  }
+  else if (tk == MetaKind::SMT_VALUE)
+  {
+    if (cname!="NotValue")
+    {
+      SygusGrammar* sg = getGrammar("G_vsm.Value");
+      sg->d_rules << gbase << " ";
+    }
+    return;
+  }
+  grule << gbase << gruleEnd.str();
+  std::map<std::string, Kind>::iterator itk = d_cnameToKind.find(cname);
+  Expr ct;
+  if (itk==d_cnameToKind.end())
+  {
+    ct = t;
+  }
+  else if (itk->second==Kind::BOOLEAN)
+  {
+    ct = d_state.mkBoolType();
+  }
+  else
+  {
+    ct = d_tc.getOrSetLiteralTypeRule(itk->second);
+  }
+  std::vector<Expr> approxSig = getGrammarSigApprox(ct);
+  Assert (!approxSig.empty());
+  std::string curr = grule.str();
+  // if it is a function
+  if (approxSig.size()>1)
+  {
+    // print it as a standalone function
+    SygusGrammar * sg = getGrammarFor(d_gfun);
+    sg->d_rules << curr << " ";
+    // then, construct a complete application of the symbol, for the approximation
+    for (size_t i=1, nsig=approxSig.size(); i<nsig; i++)
+    {
+      SygusGrammar * sga = getGrammarFor(approxSig[i-1]);
+      std::stringstream next;
+      next << "(eo.Apply " << curr << " " << sga->d_gname << ")";
+      curr = next.str();
+    }
+  }
+  // print the complete application
+  Expr aret = approxSig[approxSig.size()-1];
+  SygusGrammar * sgret = getGrammarFor(aret);
+  sgret->d_rules << curr << " ";
+  std::map<std::string, std::string>::iterator it = d_gconstRule.find(cname);
+  if (it != d_gconstRule.end())
+  {
+    // get the grammar for this symbol, e.g. T_BitVec
+    SygusGrammar * sgc = getGrammarFor(e);
+    sgc->d_rules << it->second << " ";
+  }
 }
 
 }  // namespace ethos

@@ -1,16 +1,16 @@
 ; trim-defs: $eovc_bool-eq-true
-; #trim-defs: 159
+; #trim-defs: 158
 (declare-const Int Type)
 (declare-consts <numeral> Int)
+(define $eo_Numeral () Int)
 (declare-const Real Type)
 (declare-consts <rational> Real)
+(define $eo_Rational () Real)
+(declare-const BitVec (-> Int Type))
 (declare-const Char Type)
 (declare-const Seq (-> Type Type))
 (declare-consts <string> (Seq Char))
-(define $eo_Numeral () Int)
-(define $eo_Rational () Real)
 (define $eo_String () (Seq Char))
-(define $eo_Binary () Type)
 (declare-const $eo_List Type)
 (declare-const $eo_List_nil $eo_List)
 (declare-parameterized-const $eo_List_cons ((T Type :implicit))
@@ -204,7 +204,7 @@
   (($eo_typeof ($eo_mk_numeral n))              $eo_Numeral)
   (($eo_typeof ($eo_mk_rational r))             $eo_Rational)
   (($eo_typeof ($eo_mk_string s))               $eo_String)
-  (($eo_typeof ($eo_binary w n))                $eo_Binary)
+  (($eo_typeof ($eo_binary w n))                (BitVec ($eo_mk_numeral w))) 
   (($eo_typeof ($eo_Var s n))                   ($eo_reverse_hash n))
   
   
@@ -217,7 +217,6 @@
 )
 (declare-const and (-> Bool (-> Bool Bool)))
 (declare-parameterized-const = ((A Type :implicit) ($eo_x_1 A) ($eo_x_2 A)) Bool)
-(declare-const BitVec (-> Int Type))
 (program $eo_typeof_apply ((T Type) (U Type))
   :signature (Type Type) Type
   (
@@ -260,6 +259,8 @@
   
   (($eo_typeof_main Real) Type)
   
+  (($eo_typeof_main BitVec) (-> Int Type))
+  
   (($eo_typeof_main Char) Type)
   
   (($eo_typeof_main Seq) (-> Type Type))
@@ -267,8 +268,6 @@
   (($eo_typeof_main and) (-> Bool (-> Bool Bool)))
   
   (($eo_typeof_main (= x1)) ($eo_typeof_= ($eo_typeof x1)))
-  
-  (($eo_typeof_main BitVec) (-> Int Type))
 
   (($eo_typeof_main (f x))        ($eo_typeof_apply ($eo_typeof f) ($eo_typeof x)))
   )
@@ -475,9 +474,9 @@
   (($eo_typeof_const Bool ($vsm_term ($sm_mk_bool b))) Bool)
   (($eo_typeof_const Int ($vsm_term ($sm_mk_z n))) Int)
   (($eo_typeof_const Real ($vsm_term ($sm_mk_q r))) Real)
+  (($eo_typeof_const (BitVec x1) ($vsm_term ($sm_binary w n))) ($eo_requires_eq x1 ($eo_mk_numeral w) (BitVec x1)))
   (($eo_typeof_const (Seq Char) ($vsm_term ($sm_mk_str s))) (Seq Char))
   (($eo_typeof_const (Seq x1) ($vsm_seq sq)) ($smtx_builtin_requires ($smtx_seq_has_type sq x1) (Seq x1)))
-  (($eo_typeof_const (BitVec x1) ($vsm_term ($sm_binary w n))) ($eo_requires_eq x1 ($eo_mk_numeral w) (BitVec x1)))
 
   )
 )
@@ -501,9 +500,9 @@
   (($smtx_is_input ($eo_Const Bool ($vsm_term ($sm_mk_bool b)))) $smt_builtin_true)
   (($smtx_is_input ($eo_Const Int ($vsm_term ($sm_mk_z n)))) $smt_builtin_true)
   (($smtx_is_input ($eo_Const Real ($vsm_term ($sm_mk_q r)))) $smt_builtin_true)
+  (($smtx_is_input ($eo_Const (BitVec x1) ($vsm_term ($sm_binary w n)))) $smt_builtin_true)
   (($smtx_is_input ($eo_Const (Seq Char) ($vsm_term ($sm_mk_str s)))) $smt_builtin_true)
   (($smtx_is_input ($eo_Const (Seq x1) ($vsm_seq sq))) $smt_builtin_true)
-  (($smtx_is_input ($eo_Const (BitVec x1) ($vsm_term ($sm_binary w n)))) $smt_builtin_true)
 
   
   (($smtx_is_input ($eo_Const T v))                 $smt_builtin_false)

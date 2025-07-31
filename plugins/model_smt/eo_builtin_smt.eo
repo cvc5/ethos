@@ -1014,7 +1014,7 @@
   (($eo_typeof ($eo_mk_numeral n))              $eo_Numeral)
   (($eo_typeof ($eo_mk_rational r))             $eo_Rational)
   (($eo_typeof ($eo_mk_string s))               $eo_String)
-  (($eo_typeof ($eo_binary w n))                $eo_Binary)
+  (($eo_typeof ($eo_binary w n))                (BitVec ($eo_mk_numeral w))) ; HACK
   (($eo_typeof ($eo_Var s n))                   ($eo_reverse_hash n))
   ; constants are introduced by this signature, we extend $eo_typeof for them,
   ; despite them not being modelled by Eunoia builtin typeof. We do this for

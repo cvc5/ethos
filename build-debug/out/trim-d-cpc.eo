@@ -26,21 +26,23 @@
 (declare-const Int Type)
 ; type-rules: NUMERAL
 (declare-consts <numeral> Int)
+(define $eo_Numeral () Int)
 ; declare: Real
 (declare-const Real Type)
 ; type-rules: RATIONAL
 (declare-consts <rational> Real)
+(define $eo_Rational () Real)
+; declare: BitVec
+(declare-const BitVec (-> Int Type))
+; type-rules (approx): BINARY
+(define $eo_Binary () (BitVec 1))
 ; declare: Char
 (declare-const Char Type)
 ; declare: Seq
 (declare-const Seq (-> Type Type))
 ; type-rules: STRING
 (declare-consts <string> (Seq Char))
-(define $eo_Numeral () Int)
-(define $eo_Rational () Real)
 (define $eo_String () (Seq Char))
-(define $eo_Binary () Type)
-; decimal and hexadecimal omitted for now.
 
 
 ;;; $eo_List
@@ -486,8 +488,6 @@
 (declare-const and (-> Bool (-> Bool Bool)))
 ; declare: =
 (declare-parameterized-const = ((A Type :implicit) ($eo_x_1 A) ($eo_x_2 A)) Bool)
-; declare: BitVec
-(declare-const BitVec (-> Int Type))
 
 
 ;;; type checking
@@ -547,6 +547,8 @@
   (($eo_typeof_main Int) Type)
   ; type-rule: Real
   (($eo_typeof_main Real) Type)
+  ; type-rule: BitVec
+  (($eo_typeof_main BitVec) (-> Int Type))
   ; type-rule: Char
   (($eo_typeof_main Char) Type)
   ; type-rule: Seq
@@ -555,8 +557,6 @@
   (($eo_typeof_main and) (-> Bool (-> Bool Bool)))
   ; type-rule: =
   (($eo_typeof_main (= x1)) ($eo_typeof_= ($eo_typeof x1)))
-  ; type-rule: BitVec
-  (($eo_typeof_main BitVec) (-> Int Type))
 
   (($eo_typeof_main (f x))        ($eo_typeof_apply ($eo_typeof f) ($eo_typeof x)))
   )

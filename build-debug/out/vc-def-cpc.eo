@@ -2,15 +2,16 @@
 ; #trim-defs: 41
 (declare-const Int Type)
 (declare-consts <numeral> Int)
+(define $eo_Numeral () Int)
 (declare-const Real Type)
 (declare-consts <rational> Real)
+(define $eo_Rational () Real)
+(declare-const BitVec (-> Int Type))
+(define $eo_Binary () (BitVec 1))
 (declare-const Char Type)
 (declare-const Seq (-> Type Type))
 (declare-consts <string> (Seq Char))
-(define $eo_Numeral () Int)
-(define $eo_Rational () Real)
 (define $eo_String () (Seq Char))
-(define $eo_Binary () Type)
 (declare-const $eo_List Type)
 (declare-const $eo_List_nil $eo_List)
 (declare-parameterized-const $eo_List_cons ((T Type :implicit))
@@ -44,7 +45,6 @@
 (echo "include eo_builtin_smt :deps $eo_typeof_main $eo_String $eo_Numeral $eo_Rational $eo_Binary $eo_typeof ")
 (declare-const and (-> Bool (-> Bool Bool)))
 (declare-parameterized-const = ((A Type :implicit) ($eo_x_1 A) ($eo_x_2 A)) Bool)
-(declare-const BitVec (-> Int Type))
 (program $eo_typeof_apply ((T Type) (U Type))
   :signature (Type Type) Type
   (
@@ -87,6 +87,8 @@
   
   (($eo_typeof_main Real) Type)
   
+  (($eo_typeof_main BitVec) (-> Int Type))
+  
   (($eo_typeof_main Char) Type)
   
   (($eo_typeof_main Seq) (-> Type Type))
@@ -94,8 +96,6 @@
   (($eo_typeof_main and) (-> Bool (-> Bool Bool)))
   
   (($eo_typeof_main (= x1)) ($eo_typeof_= ($eo_typeof x1)))
-  
-  (($eo_typeof_main BitVec) (-> Int Type))
 
   (($eo_typeof_main (f x))        ($eo_typeof_apply ($eo_typeof f) ($eo_typeof x)))
   )

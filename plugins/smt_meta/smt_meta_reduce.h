@@ -179,12 +179,6 @@ class SmtMetaReduce : public StdPlugin
   std::map<std::pair<Expr, size_t>, MetaKind> d_metaKindArg;
   /** Declares seen */
   std::set<Expr> d_declSeen;
-  /** Grammars */
-  std::vector<std::string> d_glist;
-  std::map<std::string, SygusGrammar> d_grammar;
-  std::map<std::string, std::string> d_gconstRule;
-  SygusGrammar* allocateGrammar(const std::string& gn, const std::string& tn);
-  SygusGrammar* getGrammar(const std::string& gn);
   /** */
   bool isSmtLibExpression(MetaKind ctx);
   /**
@@ -204,6 +198,24 @@ class SmtMetaReduce : public StdPlugin
    * Get the meta-kind returned by a child.
    */
   MetaKind getMetaKindReturn(const Expr& child, MetaKind parentCtx);
+  /************* sygus *********/
+
+  /** Grammars */
+  Expr d_gfun;
+  bool d_gisFinalized;
+  std::vector<std::string> d_glist;
+  std::map<std::string, SygusGrammar> d_grammar;
+  std::map<std::string, std::string> d_gconstRule;
+  std::map<Expr, SygusGrammar*> d_grammarTypeAlloc;
+  std::map<std::string, Kind> d_cnameToKind;
+  void initializeGrammars();
+  void finalizeGrammars();
+  SygusGrammar* allocateGrammar(const std::string& gn, const std::string& tn);
+  SygusGrammar* getGrammar(const std::string& gn);
+  Expr getGrammarTypeApprox(const Expr& e);
+  std::vector<Expr> getGrammarSigApprox(const Expr& e);
+  SygusGrammar* getGrammarFor(const Expr& t);
+  void addGrammarRules(const Expr& e, const std::string& cname, MetaKind tk, const std::string& gbase, const Expr& t);
 };
 
 }  // namespace ethos

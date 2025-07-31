@@ -17,7 +17,7 @@
 
 namespace ethos {
 
-#if 0
+#if 1
 std::string StdPlugin::s_plugin_path = "/home/andrew/ethos/";
 #else
 std::string StdPlugin::s_plugin_path =
@@ -83,25 +83,31 @@ void StdPlugin::setLiteralTypeRule(Kind k, const Expr& t)
   // They can use core eo operators that are desugared later
   // e.g. eo::len.
   std::stringstream ss;
+  std::stringstream eoss;
   ss << "(declare-consts ";
   std::ostream* os = nullptr;
+  Expr gt;
   switch (k)
   {
     case Kind::NUMERAL:
       ss << "<numeral>";
-      os = &d_ltNum;
+      eoss << "Numeral";
+      gt = d_state.mkLiteral(k, "0");
       break;
     case Kind::RATIONAL:
       ss << "<rational>";
-      os = &d_ltRational;
+      eoss << "Rational";
+      gt = d_state.mkLiteral(k, "0/1");
       break;
     case Kind::BINARY:
       ss << "<binary>";
-      os = &d_ltBinary;
+      eoss << "Binary";
+      gt = d_state.mkLiteral(k, "0");
       break;
     case Kind::STRING:
       ss << "<string>";
-      os = &d_ltString;
+      eoss << "String";
+      gt = d_state.mkLiteral(k, "");
       break;
     case Kind::DECIMAL: ss << "<decimal>"; break;
     case Kind::HEXADECIMAL: ss << "<hexadecimal>"; break;
@@ -109,44 +115,56 @@ void StdPlugin::setLiteralTypeRule(Kind k, const Expr& t)
   }
   ss << " " << t << ")" << std::endl;
   // declared at the top
-  if (os != nullptr)
+  if (!eoss.str().empty())
   {
+    // get the symbols and declare them in the preamble
+    std::vector<Expr> syms = getSubtermsKind(Kind::CONST, t);
+    for (const Expr& s : syms)
+    {
+      if (d_ltDeclProcessed.find(s) != d_ltDeclProcessed.end())
+      {
+        continue;
+      }
+      d_ltDeclProcessed.insert(s);
+      finalizeDeclaration(s, d_litTypeDecl);
+    }
+    if (!t.isEvaluatable())
+    {
+      d_litTypeDecl << "; type-rules: " << k << std::endl;
+      d_litTypeDecl << ss.str();
+    }
     // TODO: approximate $eo_Binary as self program
     // it is only possible to define e.g. $eo_Binary
     // if t is ground. This avoids having eo::self as a free parameter.
     // We use $eo_undef_type otherwise.
     if (t.isGround())
     {
-      // get the symbols and declare them in the preamble
-      std::vector<Expr> syms = getSubtermsKind(Kind::CONST, t);
-      for (const Expr& s : syms)
-      {
-        if (d_ltDeclProcessed.find(s) != d_ltDeclProcessed.end())
-        {
-          continue;
-        }
-        d_ltDeclProcessed.insert(s);
-        finalizeDeclaration(s, d_litTypeDecl);
-      }
-      d_litTypeDecl << "; type-rules: " << k << std::endl;
-      d_litTypeDecl << ss.str();
-      (*os) << t;
+      d_litTypeDecl << "(define $eo_" << eoss.str() << " () " << t << ")" << std::endl;
     }
     else
     {
+#if 0
+      Expr t = d_state.mkSymbol(Kind::CONST, "t", d_state.mkAny());
+      Expr ltinst = d_tc.getOrSetLiteralTypeRule(k, t.getValue());
+      d_litTypeDecl << "(program $eo_mk_" << eoss.str() << " ((T Type) (t T))" << std::endl;
+      d_litTypeDecl << "  :signature (T) Type" << std::endl;
+      d_litTypeDecl << "  (" << std::endl;
+      d_litTypeDecl << "  (($eo_mk_" << eoss.str() << " t) " << ltinst << ")" << std::endl;
+      d_litTypeDecl << "  )" << std::endl;
+      d_litTypeDecl << ")" << std::endl;
+      d_litTypeDecl << "(define $eo_" << eoss.str() << " () ($eo_mk_" << eoss.str() << " " << gt << "))" << std::endl;
+#else
+      Expr ltinst = d_tc.getOrSetLiteralTypeRule(k, gt.getValue());
+      d_litTypeDecl << "; type-rules (approx): " << k << std::endl;
+      d_litTypeDecl << "(define $eo_" << eoss.str() << " () " << ltinst << ")" << std::endl;
+#endif
       // since $eo_Numeral is used to define the type rules for builtin
       // operators, it must have a ground type.
       if (k == Kind::NUMERAL)
       {
         EO_FATAL() << "Must have a ground type for <numeral>.";
       }
-      (*os) << "Type";
     }
-  }
-  else
-  {
-    d_litTypeDecl << "; type-rules: " << k << std::endl;
-    d_litTypeDecl << ss.str();
   }
 }
 
