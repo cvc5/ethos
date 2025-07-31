@@ -1691,6 +1691,7 @@ void SmtMetaReduce::initializeGrammars()
           "G_eo.Term) (vsm.Map G_msm.Map))";
   d_gconstRule["Array"] = sarr.str();
 
+  d_cnameToKind["Bool"] = Kind::TYPE;
   d_cnameToKind["Boolean"] = Kind::BOOLEAN;
   d_cnameToKind["Numeral"] = Kind::NUMERAL;
   d_cnameToKind["Rational"] = Kind::RATIONAL;
@@ -1759,7 +1760,7 @@ Expr SmtMetaReduce::getGrammarTypeApprox(const Expr& e)
   else if (ck == Kind::CONST)
   {
     std::string cname = getName(cur);
-    if (cname == "$eo_Type")
+    if (cname == "$eo_Term")
     {
       return d_null;
     }
@@ -1835,7 +1836,7 @@ void SmtMetaReduce::addGrammarRules(const Expr& e,
   }
   else if (tk == MetaKind::SMT_TYPE)
   {
-    if (cname == "Char" || cname == "NullSort")
+    if (cname == "NullSort")
     {
       return;
     }
@@ -1868,6 +1869,10 @@ void SmtMetaReduce::addGrammarRules(const Expr& e,
   if (itk == d_cnameToKind.end())
   {
     ct = t;
+  }
+  else if (itk->second == Kind::TYPE)
+  {
+    ct = d_state.mkType();
   }
   else if (itk->second == Kind::BOOLEAN)
   {

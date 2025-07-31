@@ -85,7 +85,6 @@ void StdPlugin::setLiteralTypeRule(Kind k, const Expr& t)
   std::stringstream ss;
   std::stringstream eoss;
   ss << "(declare-consts ";
-  std::ostream* os = nullptr;
   Expr gt;
   switch (k)
   {

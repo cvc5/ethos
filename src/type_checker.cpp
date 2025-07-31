@@ -1826,6 +1826,7 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_LIST_INTER: return Expr(childTypes[1]);
     case Kind::EVAL_CONCAT:
     case Kind::EVAL_EXTRACT:
+      // TODO: inaccurate
       // type is the first child
       return Expr(childTypes[0]);
     case Kind::EVAL_IS_OK:
@@ -1858,6 +1859,7 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_TO_STRING:
       return getOrSetLiteralTypeRule(Kind::STRING);
     case Kind::EVAL_TO_BIN:
+      // TODO: inaccurate
       return getOrSetLiteralTypeRule(Kind::BINARY);
     case Kind::EVAL_DT_CONSTRUCTORS:
     case Kind::EVAL_DT_SELECTORS: return d_state.mkListType();
