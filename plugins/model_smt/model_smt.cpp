@@ -122,6 +122,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("re.++", {kRegLan, kRegLan}, kRegLan);
   addConstFoldSym("re.inter", {kRegLan, kRegLan}, kRegLan);
   addConstFoldSym("re.union", {kRegLan, kRegLan}, kRegLan);
+  addConstFoldSym("re.diff", {kRegLan, kRegLan}, kRegLan);
   addConstFoldSym("re.range", {kString, kString}, kRegLan);
 #endif
   // bitvectors

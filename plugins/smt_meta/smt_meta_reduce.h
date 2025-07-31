@@ -15,6 +15,8 @@
 #include <string>
 
 #include "../std_plugin.h"
+#include "smt_meta_sygus.h"
+#include "utils.h"
 
 namespace ethos {
 
@@ -31,61 +33,6 @@ class ConjPrint
   std::stringstream d_ss;
   size_t d_npush;
 };
-
-/** for sygus */
-class SygusGrammar
-{
- public:
-  SygusGrammar() {}
-  std::string d_gname;
-  std::string d_typeName;
-  std::stringstream d_rules;
-};
-class SygusRuleSchema
-{
-public:
-  SygusRuleSchema(){}
-  std::string d_cname;
-  std::vector<Expr> d_approxArgs;
-  std::unordered_set<size_t> d_eqArgs;
-  std::vector<Expr> instantiate(const Expr& g)
-  {
-    std::vector<Expr> ret = d_approxArgs;
-    for (size_t a : d_eqArgs)
-    {
-      ret[a] = g;
-    }
-    return ret;
-  }
-};
-
-/**
- * The datatype we are at.
- */
-enum class MetaKind
-{
-  /** A context in which the deep embedding of the term is a Eunoia term */
-  EUNOIA,
-  /** A context in which the deep embedding of the term is an SMT-LIB term */
-  SMT,
-  /** A context in which the deep embedding of the term is an SMT-LIB type */
-  SMT_TYPE,
-  /** A context in which the deep embedding of the term is an SMT-LIB value */
-  SMT_VALUE,
-  /** A context in which the term is an SMT-LIB map value */
-  SMT_MAP,
-  /** A context in which the term is an SMT-LIB sequence value */
-  SMT_SEQ,
-  /** A builtin SMT-LIB term context */
-  SMT_BUILTIN,
-  /** A program */
-  PROGRAM,
-  /** No context */
-  NONE
-};
-std::string metaKindToString(MetaKind k);
-std::string metaKindToPrefix(MetaKind k);
-std::string metaKindToCons(MetaKind k);
 
 class SelectorCtx
 {
@@ -210,32 +157,7 @@ class SmtMetaReduce : public StdPlugin
    */
   MetaKind getMetaKindReturn(const Expr& child, MetaKind parentCtx);
   /************* sygus *********/
-
-  /** Grammars */
-  Expr d_gfun;
-  Expr d_gsmtTerm;
-  Expr d_gsmtType;
-  bool d_gisFinalized;
-  std::map<Expr, std::vector<Expr>> d_grefs;
-  std::vector<std::string> d_glist;
-  std::map<std::string, SygusGrammar> d_grammar;
-  std::map<std::string, std::string> d_gconstRule;
-  std::map<Expr, SygusGrammar*> d_grammarTypeAlloc;
-  std::map<std::string, Kind> d_cnameToKind;
-  std::map<Expr, SygusRuleSchema> d_grammarRuleSchema;
-  void initializeGrammars();
-  void finalizeGrammars();
-  SygusGrammar* allocateGrammar(const std::string& gn, const std::string& tn);
-  SygusGrammar* getGrammar(const std::string& gn);
-  Expr getGrammarTypeApprox(const Expr& e);
-  std::vector<Expr> getGrammarSigApprox(const Expr& e);
-  SygusGrammar* getGrammarFor(const Expr& t);
-  void addGrammarRules(const Expr& e,
-                       const std::string& cname,
-                       MetaKind tk,
-                       const std::string& gbase,
-                       const Expr& t);
-  void addRulesForSig(const std::string& gbase, const std::vector<Expr>& approxSig);
+  SmtMetaSygus d_smSygus;
 };
 
 }  // namespace ethos
