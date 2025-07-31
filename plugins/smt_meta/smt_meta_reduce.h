@@ -180,7 +180,6 @@ class SmtMetaReduce : public StdPlugin
   std::map<std::string, MetaKind> d_prefixToMetaKind;
   std::map<std::string, MetaKind> d_typeToMetaKind;
   std::stringstream d_defs;
-  std::stringstream d_rules;
   std::stringstream d_smtVc;
   // SMT-LIB term embedding
   std::stringstream d_embedTypeDt;

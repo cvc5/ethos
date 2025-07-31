@@ -1689,23 +1689,6 @@ void SmtMetaReduce::initializeGrammars()
   tmp->d_rules << "0.0 (/ G_Int_C G_Int_C) (- (/ G_Int_C G_Int_C))";
   tmp = allocateGrammar("G_String", "String");
   tmp->d_rules << "\"\" (str.++ G_String \"A\") (str.++ G_String \"B\")";
-  // grammar constants
-#if 0
-  d_gconstRule["Bool"] = "(eo.Const (eo.SmtType tsm.Bool) (vsm.Term (sm.Boolean G_Bool)))";
-  d_gconstRule["Int"] = "(eo.Const (eo.SmtType tsm.Int) (vsm.Term (sm.Numeral G_Int)))";
-  d_gconstRule["Real"] = "(eo.Const (eo.SmtType tsm.Real) (vsm.Term (sm.Rational G_Real)))";
-  d_gconstRule["BitVec"] = "(eo.Const (eo.Apply (eo.SmtType tsm.BitVec) (eo.SmtTerm (sm.Numeral G_Int))) (vsm.Term (sm.Binary G_Int G_Int)))";
-  std::stringstream sseq;
-  sseq << "(eo.Const (eo.Apply (eo.SmtType tsm.Seq) (eo.SmtType tsm.Char)) (vsm.Term (sm.String G_String)))";
-  sseq << " (eo.Const (eo.Apply (eo.SmtType tsm.Seq) G_eo.Term) (vsm.Seq G_ssm.Seq))";
-  d_gconstRule["Seq"] = sseq.str();
-#endif
-  // FIXME: is eo_Const even necessary???? just introduce a default array
-  // constant
-  std::stringstream sarr;
-  sarr << "(eo.Const (eo.Apply (eo.Apply (eo.SmtType tsm.Array) G_eo.Term) "
-          "G_eo.Term) (vsm.Map G_msm.Map))";
-  d_gconstRule["Array"] = sarr.str();
 
   d_cnameToKind["Bool"] = Kind::TYPE;
   d_cnameToKind["Boolean"] = Kind::BOOLEAN;

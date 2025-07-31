@@ -81,6 +81,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "($smtx_builtin_requires ($smtx_map_has_type m x1 x2) (Array x1 x2))");
   addRecReduceSym("select", {kT, kT}, "($smtx_map_select e1 e2)");
   addRecReduceSym("store", {kT, kT, kT}, "($smtx_map_store e1 e2 e3)");
+  addReduceSym("const", {kT, kT}, "($vsm_map ($msm_default ($smtx_model_eval x2)))");
   // strings
   addTypeSym("Seq",
              {kT},
@@ -416,6 +417,7 @@ void ModelSmt::printType(const std::string& name,
                          const std::string& cpat,
                          const std::string& cret)
 {
+  return;
   std::map<std::string, std::vector<std::string>>::iterator itc =
       d_typeCase.find(name);
   if (itc != d_typeCase.end())
@@ -460,15 +462,25 @@ void ModelSmt::printModelEvalCallBase(const std::string& name,
     d_eval << name << ") " << ret << ")" << std::endl;
     return;
   }
+  size_t i = 1;
+  size_t nargs = args.size();
   if (attr == Attr::AMB)
   {
-    d_eval << "(as " << name;
+    if (nargs==1)
+    {
+      d_eval << "(as " << name;
+    }
+    else
+    {
+      i++;
+      d_eval << "(_ (as " << name << " x1)";
+    }
   }
   else
   {
     d_eval << "(" << name;
   }
-  for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
+  for (; i <= nargs; i++)
   {
     d_eval << " x" << i;
   }

@@ -998,10 +998,6 @@
 ; note: This method returns the type for all user defined terms.
 (program $eo_typeof_main () :signature ($eo_Term) Type)
 
-; fwd-decl: $eo_typeof_const
-; This method is auto-generated based on SMT-LIB model semantics.
-(program $eo_typeof_const () :signature ($eo_Term $smt_Value) $eo_Term)
-
 ; forward declarations for literal type rules
 (program $eo_lit_type_Numeral ((T Type)) :signature (T) Type)
 (program $eo_lit_type_Rational ((T Type)) :signature (T) Type)
@@ -1022,11 +1018,6 @@
   (($eo_typeof ($eo_mk_string s))               ($eo_lit_type_String ($eo_mk_string s)))
   (($eo_typeof ($eo_binary w n))                ($eo_lit_type_Binary ($eo_binary w n)))
   (($eo_typeof ($eo_Var s n))                   ($eo_reverse_hash n))
-  ; constants are introduced by this signature, we extend $eo_typeof for them,
-  ; despite them not being modelled by Eunoia builtin typeof. We do this for
-  ; simplicity and since such as extension is benign, e.g. it can be seen as if
-  ; "const" was another Eunoia builtin.
-  (($eo_typeof ($eo_Const T val))               ($eo_typeof_const T val))
   ; otherwise, invoke the routine for user types from the signature.
   (($eo_typeof t)                               ($eo_typeof_main t))
   )

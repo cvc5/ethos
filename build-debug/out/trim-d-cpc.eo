@@ -659,7 +659,7 @@
 (program $eo_model_is_input () :signature (Bool) Bool)
 
 ; We will include the definition of the above functions here.
-(echo "include eo_model_sat :deps $eo_typeof_main $eo_dt_constructors $eo_dt_selectors $eo_if_both $eo_List_nil $eo_List_cons $eo_Option_some $eo_Option_null $eo_model_sat $eo_model_is_input $eo_Pair_mk $eo_Pair_first $eo_Pair_second $eo_lit_type_Numeral $eo_lit_type_Rational $eo_lit_type_String $eo_lit_type_Binary ")
+(echo "include eo_model_sat :deps $eo_typeof_main $eo_is_ok $eo_dt_constructors $eo_dt_selectors $eo_if_both $eo_List_nil $eo_List_cons $eo_Option_some $eo_Option_null $eo_model_sat $eo_model_is_input $eo_Pair_mk $eo_Pair_first $eo_Pair_second $eo_lit_type_Numeral $eo_lit_type_Rational $eo_lit_type_String $eo_lit_type_Binary ")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; vc
 
@@ -669,14 +669,14 @@
 (program $eor_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eor_symm (not F)) (eo::define ((_v0 ($mk_symm F))) ($eo_requires_eq ($eo_typeof _v0) Bool _v0)))
+  (($eor_symm F) (eo::define ((_v0 ($mk_symm F))) ($eo_requires_eq ($eo_typeof _v0) Bool _v0)))
   )
 )
 ; program: $eovc_symm
 (program $eovc_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eovc_symm F) (eo::define ((_v0 (not F))) (eo::define ((_v1 ($eor_symm _v0))) ($eo_requires_eq ($eo_model_is_input _v1) true ($eo_requires_eq ($eo_typeof _v0) Bool ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some true) ($eo_requires_eq ($eo_model_sat _v1) ($eo_Option_some false) true)))))))
+  (($eovc_symm F) (eo::define ((_v0 ($eor_symm F))) ($eo_requires_eq ($eo_model_is_input _v0) true ($eo_requires_eq ($eo_typeof F) Bool ($eo_requires_eq ($eo_model_sat F) ($eo_Option_some true) ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some false) true))))))
   )
 )
 (echo "smt-meta $eovc_symm :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $eo_smt_type $tsm_Bool $eo_Type $eo_fun_type $eo_apply ")
