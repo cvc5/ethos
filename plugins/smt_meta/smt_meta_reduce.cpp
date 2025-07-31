@@ -1159,6 +1159,10 @@ bool SmtMetaReduce::echo(const std::string& msg)
           << "When making verification condition, could not find program "
           << eosc;
     }
+    Expr def = d_state.getProgram(vv.getValue());
+    Assert (!def.isNull());
+    Expr patCall = def[0][0];
+    Assert (!patCall.isNull());
     d_smtVc << ";;;; final verification condition for " << eosc << std::endl;
     // NOTE: this is intentionally quantifying on sm.Term, not eo.Term.
     // In other words, this conjectures that there is an sm.Term, that
@@ -1169,6 +1173,7 @@ bool SmtMetaReduce::echo(const std::string& msg)
     std::stringstream call;
     eoTrue << "(eo.SmtTerm (sm.Boolean true))";
     Assert(vt.getKind() == Kind::PROGRAM_TYPE);
+    Assert (patCall.getNumChildren()==vt.getNumChildren());
     size_t nargs = vt.getNumChildren();
     ConjectureType ctype = StdPlugin::optionSmtMetaConjectureType();
     if (ctype == ConjectureType::VC)
@@ -1219,12 +1224,20 @@ bool SmtMetaReduce::echo(const std::string& msg)
       finalizeGrammars();
       for (size_t i = 1; i < nargs; i++)
       {
-        d_smtVc << "(synth-fun x" << i << " () eo.Term";
+        std::stringstream varName;
+        varName << "arg_" << patCall[i];
+        d_smtVc << "(synth-fun " << varName.str() << " () eo.Term";
         if (StdPlugin::optionSmtMetaSygusGrammar())
         {
           d_smtVc << std::endl << "  ((G_Start eo.Term)";
           // start with the appropriate non-terminal
           Expr gt = getGrammarTypeApprox(vt[i - 1]);
+          // if unknown, it is likely a type parameter, in which case we
+          // assume we are looking for an SMT-LIB term
+          if (gt.isNull())
+          {
+            gt = d_gsmtTerm;
+          }
           SygusGrammar* sggt = getGrammarFor(gt);
           std::stringstream body;
           body << "  (G_Start eo.Term (" << sggt->d_gname << "))" << std::endl;
@@ -1240,7 +1253,7 @@ bool SmtMetaReduce::echo(const std::string& msg)
           d_smtVc << ")" << std::endl;
         }
         d_smtVc << ")" << std::endl;
-        call << " x" << i;
+        call << " " << varName.str();
       }
       d_smtVc << "(constraint ";
       d_smtVc << "(= (" << eosc << call.str() << ") " << eoTrue.str() << ")";
@@ -1650,8 +1663,11 @@ std::vector<MetaKind> SmtMetaReduce::getMetaKindArgs(const Expr& parent,
 
 void SmtMetaReduce::initializeGrammars()
 {
+  std::cout << "INITIALIZE grammars" << std::endl;
   d_gisFinalized = false;
   d_gfun = d_state.mkSymbol(Kind::CONST, "Fun", d_state.mkType());
+  d_gsmtTerm = d_state.mkSymbol(Kind::CONST, "SmtTerm", d_state.mkType());
+  d_gsmtType = d_state.mkSymbol(Kind::CONST, "SmtType", d_state.mkType());
   SygusGrammar* tmp;
   tmp = allocateGrammar("G_eo.Term", "eo.Term");
   // all types that can be meta-kinds of opaque arguments must go here
@@ -1672,7 +1688,7 @@ void SmtMetaReduce::initializeGrammars()
   tmp = allocateGrammar("G_Real", "Real");
   tmp->d_rules << "0.0 (/ G_Int_C G_Int_C) (- (/ G_Int_C G_Int_C))";
   tmp = allocateGrammar("G_String", "String");
-  tmp->d_rules << "\"\" (str.++ G_String \"A\")";
+  tmp->d_rules << "\"\" (str.++ G_String \"A\") (str.++ G_String \"B\")";
   // grammar constants
 #if 0
   d_gconstRule["Bool"] = "(eo.Const (eo.SmtType tsm.Bool) (vsm.Term (sm.Boolean G_Bool)))";
@@ -1701,6 +1717,7 @@ void SmtMetaReduce::initializeGrammars()
 
 void SmtMetaReduce::finalizeGrammars()
 {
+  std::cout << "FINALIZE grammars" << std::endl;
   d_gisFinalized = true;
   SygusGrammar* sg = getGrammarFor(d_null);
   // add reference to unknown to all eo.Term grammars
@@ -1711,8 +1728,25 @@ void SmtMetaReduce::finalizeGrammars()
     if (g.first == d_gfun)
     {
       // (partial) function applications
-      g.second->d_rules << "(eo.Apply " << g.second->d_gname << " "
-                        << sg->d_gname << ") ";
+      //g.second->d_rules << "(eo.Apply " << g.second->d_gname << " "
+      //                  << sg->d_gname << ") ";
+    }
+  }
+  // resolve all unique references
+  for (std::pair<const Expr, std::vector<Expr>>& g : d_grefs)
+  {
+    SygusGrammar* sg = getGrammarFor(g.first);
+    std::set<Expr> processed;
+    for (size_t i=0, nrefs=g.second.size(); i<nrefs; i++)
+    {
+      Expr aret = g.second[i];
+      if (processed.find(aret)!=processed.end())
+      {
+        continue;
+      }
+      processed.insert(aret);
+      SygusGrammar* sgr = getGrammarFor(aret);
+      sg->d_rules << sgr->d_gname << " ";
     }
   }
 }
@@ -1763,7 +1797,12 @@ Expr SmtMetaReduce::getGrammarTypeApprox(const Expr& e)
     std::string cname = getName(cur);
     if (cname == "$eo_Term")
     {
+      // special case: those marked $eo_Term are general Eunoia terms
       return d_null;
+    }
+    else if (cname=="$smt_Type")
+    {
+      return d_gsmtType;
     }
     return cur;
   }
@@ -1808,6 +1847,8 @@ SygusGrammar* SmtMetaReduce::getGrammarFor(const Expr& t)
   gname << "T_" << t;
   SygusGrammar* sg = allocateGrammar(gname.str(), "eo.Term");
   d_grammarTypeAlloc[t] = sg;
+  // add the reference in the main Eunoia grammar
+  d_grefs[d_null].push_back(t);
   return sg;
 }
 
@@ -1821,6 +1862,7 @@ void SmtMetaReduce::addGrammarRules(const Expr& e,
             << std::endl;
   std::stringstream grule;
   std::stringstream gruleEnd;
+  Expr defaultG;
   if (tk == MetaKind::EUNOIA)
   {
     if (cname == "Stuck" || cname == "SmtTerm" || cname == "SmtType")
@@ -1846,6 +1888,7 @@ void SmtMetaReduce::addGrammarRules(const Expr& e,
     sg->d_rules << gbase << " ";
     grule << "(eo.SmtType ";
     gruleEnd << ")";
+    defaultG = d_gsmtType;
   }
   else if (tk == MetaKind::SMT)
   {
@@ -1854,6 +1897,7 @@ void SmtMetaReduce::addGrammarRules(const Expr& e,
     sg->d_rules << gbase << " ";
     grule << "(eo.SmtTerm ";
     gruleEnd << ")";
+    defaultG = d_gsmtTerm;
   }
   else if (tk == MetaKind::SMT_VALUE)
   {
@@ -1887,6 +1931,56 @@ void SmtMetaReduce::addGrammarRules(const Expr& e,
   }
   std::vector<Expr> approxSig = getGrammarSigApprox(ct);
   Assert(!approxSig.empty());
+  for (size_t i=0, nsig=approxSig.size(); i<nsig; i++)
+  {
+    if (approxSig[i].isNull())
+    {
+      approxSig[i] = defaultG;
+    }
+  }
+  // the return type of this is now marked as a possible sort
+  Expr aret = approxSig[approxSig.size() - 1];
+  if (!defaultG.isNull() && !aret.isNull() && aret!=defaultG)
+  {
+    // ensure its allocated
+    getGrammarFor(defaultG);
+    d_grefs[defaultG].push_back(aret);
+  }
+#if 0
+  if (approxSig.size()>1)
+  {
+    std::cout << "AJR check " << cname << " " << ct << std::endl;
+    std::pair<std::vector<Expr>, Expr> ftype = ct.getFunctionType();
+    std::vector<Expr>& fargs = ftype.first;
+    Assert (approxSig.size()==fargs.size()+1);
+    for (size_t i=1, nargs=approxSig.size(); i<nargs; i++)
+    {
+      if (!approxSig[i-1].isNull())
+      {
+        continue;
+      }
+      std::cout << "AJR maybe " << i << " " << fargs << std::endl;
+      std::unordered_set<size_t> eqArgs;
+      eqArgs.insert(i-1);
+      for (size_t j=i, nargs=fargs.size(); j<nargs; j++)
+      {
+        if (fargs[i-1]==fargs[j])
+        {
+          eqArgs.insert(j);
+        }
+      }
+      if (eqArgs.size()>1)
+      {
+        SygusRuleSchema& srs = d_grammarRuleSchema[e];
+        srs.d_cname = grule.str();
+        srs.d_approxArgs = approxSig;
+        srs.d_eqArgs = eqArgs;
+        return;
+      }
+    }
+  }
+#endif
+  // check if we should make this a schema
   std::string curr = grule.str();
   addRulesForSig(curr, approxSig);
   // separately, if there is a constant rule, add it

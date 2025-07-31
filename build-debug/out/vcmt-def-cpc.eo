@@ -234,7 +234,7 @@
 (program $mk_symm ((T Type) (t2 T) (t1 T))
   :signature (Bool) Bool
   (
-  (($mk_symm (_ (= t1) t2)) (not (_ (= t2) t1)))
+  (($mk_symm (_ (= t1) t2)) (_ (= t2) t1))
   (($mk_symm (not (_ (= t1) t2))) (not (_ (= t2) t1)))
   )
 )
@@ -586,13 +586,13 @@
 (program $eor_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eor_symm F) (eo::define ((_v0 ($mk_symm F))) ($eo_requires_eq ($eo_typeof _v0) Bool _v0)))
+  (($eor_symm (not F)) (eo::define ((_v0 ($mk_symm F))) ($eo_requires_eq ($eo_typeof _v0) Bool _v0)))
   )
 )
 (program $eovc_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eovc_symm F) (eo::define ((_v0 ($eor_symm F))) ($eo_requires_eq ($eo_model_is_input _v0) true ($eo_requires_eq ($eo_typeof F) Bool ($eo_requires_eq ($eo_model_sat F) ($eo_Option_some true) ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some false) true))))))
+  (($eovc_symm F) (eo::define ((_v0 (not F))) (eo::define ((_v1 ($eor_symm _v0))) ($eo_requires_eq ($eo_model_is_input _v1) true ($eo_requires_eq ($eo_typeof _v0) Bool ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some true) ($eo_requires_eq ($eo_model_sat _v1) ($eo_Option_some false) true)))))))
   )
 )
 (echo "smt-meta $eovc_symm :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $eo_smt_type $tsm_Bool $eo_Type $eo_fun_type $eo_apply ")

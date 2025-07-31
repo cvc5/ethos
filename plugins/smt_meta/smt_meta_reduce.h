@@ -214,7 +214,10 @@ class SmtMetaReduce : public StdPlugin
 
   /** Grammars */
   Expr d_gfun;
+  Expr d_gsmtTerm;
+  Expr d_gsmtType;
   bool d_gisFinalized;
+  std::map<Expr, std::vector<Expr>> d_grefs;
   std::vector<std::string> d_glist;
   std::map<std::string, SygusGrammar> d_grammar;
   std::map<std::string, std::string> d_gconstRule;

@@ -125,7 +125,7 @@ if [[ "$USE_SYGUS" == "ON" ]]; then
   check_status
 
   echo "**** smt_meta: Check for counterexamples with sygus"
-  ajr-cvc5 --no-e-matching --macros-quant $SYGUS_OUT -q -o sygus-enumerator -o sygus-grammar --sygus-enum=fast -o sygus
+  ajr-cvc5 --no-e-matching --macros-quant --dag-thresh=0 $SYGUS_OUT -q -o sygus-enumerator -o sygus-grammar --sygus-enum=fast -o sygus
   check_status
 else
   echo "**** smt_meta: Generate SMT2 from $VCMT_DEF_DESUGAR to $VC_OUT"
@@ -138,7 +138,7 @@ else
   check_status
 
   echo "**** smt_meta: Run the final verification condition with unsat cores"
-  ajr-cvc5 $VC_OUT --dump-unsat-cores --quant-ind #--parse-only
+  ajr-cvc5 $VC_OUT --dump-unsat-cores --macros-quant --quant-ind #--parse-only
   check_status
 
   echo "**** smt_meta: Run the final verification condition with proofs"
