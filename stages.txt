@@ -1,3 +1,5 @@
+NOTE: This is the branch prior to aggressive simplifications to model SMT.
+
 Run:
 
 ./build-debug/run_gen_vc <proof-rule>
