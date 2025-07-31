@@ -1115,9 +1115,9 @@ bool SmtMetaReduce::echo(const std::string& msg)
           << eosc;
     }
     Expr def = d_state.getProgram(vv.getValue());
-    Assert (!def.isNull());
+    Assert(!def.isNull());
     Expr patCall = def[0][0];
-    Assert (!patCall.isNull());
+    Assert(!patCall.isNull());
     d_smtVc << ";;;; final verification condition for " << eosc << std::endl;
     // NOTE: this is intentionally quantifying on sm.Term, not eo.Term.
     // In other words, this conjectures that there is an sm.Term, that
@@ -1128,7 +1128,7 @@ bool SmtMetaReduce::echo(const std::string& msg)
     std::stringstream call;
     eoTrue << "(eo.SmtTerm (sm.Boolean true))";
     Assert(vt.getKind() == Kind::PROGRAM_TYPE);
-    Assert (patCall.getNumChildren()==vt.getNumChildren());
+    Assert(patCall.getNumChildren() == vt.getNumChildren());
     size_t nargs = vt.getNumChildren();
     ConjectureType ctype = StdPlugin::optionSmtMetaConjectureType();
     if (ctype == ConjectureType::VC)
@@ -1184,7 +1184,7 @@ bool SmtMetaReduce::echo(const std::string& msg)
         d_smtVc << "(synth-fun " << varName.str() << " () eo.Term";
         if (StdPlugin::optionSmtMetaSygusGrammar())
         {
-          d_smSygus.printGrammar(varName.str(), vt[i-1], d_smtVc);
+          d_smSygus.printGrammar(varName.str(), vt[i - 1], d_smtVc);
         }
         d_smtVc << ")" << std::endl;
         call << " " << varName.str();

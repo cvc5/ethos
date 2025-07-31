@@ -12,13 +12,13 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+
 #include "../std_plugin.h"
 
 namespace ethos {
 
-SmtMetaSygus::SmtMetaSygus(State& s) : StdPlugin(s)
-{}
-SmtMetaSygus::~SmtMetaSygus(){}
+SmtMetaSygus::SmtMetaSygus(State& s) : StdPlugin(s) {}
+SmtMetaSygus::~SmtMetaSygus() {}
 void SmtMetaSygus::initializeGrammars()
 {
   std::cout << "INITIALIZE grammars" << std::endl;
@@ -69,7 +69,7 @@ void SmtMetaSygus::finalizeGrammars()
     if (g.first == d_gfun)
     {
       // (partial) function applications
-      //g.second->d_rules << "(eo.Apply " << g.second->d_gname << " "
+      // g.second->d_rules << "(eo.Apply " << g.second->d_gname << " "
       //                  << sg->d_gname << ") ";
     }
   }
@@ -78,10 +78,10 @@ void SmtMetaSygus::finalizeGrammars()
   {
     SygusGrammar* sg = getGrammarFor(g.first);
     std::set<Expr> processed;
-    for (size_t i=0, nrefs=g.second.size(); i<nrefs; i++)
+    for (size_t i = 0, nrefs = g.second.size(); i < nrefs; i++)
     {
       Expr aret = g.second[i];
-      if (processed.find(aret)!=processed.end())
+      if (processed.find(aret) != processed.end())
       {
         continue;
       }
@@ -93,7 +93,7 @@ void SmtMetaSygus::finalizeGrammars()
 }
 
 SygusGrammar* SmtMetaSygus::allocateGrammar(const std::string& gn,
-                                             const std::string& tn)
+                                            const std::string& tn)
 {
   Assert(!d_gisFinalized);
   d_glist.push_back(gn);
@@ -143,7 +143,7 @@ Expr SmtMetaSygus::getGrammarTypeApprox(const Expr& e)
       // special case: those marked $eo_Term are general Eunoia terms
       return d_null;
     }
-    else if (cname=="$smt_Type")
+    else if (cname == "$smt_Type")
     {
       return d_gsmtType;
     }
@@ -196,10 +196,10 @@ SygusGrammar* SmtMetaSygus::getGrammarFor(const Expr& t)
 }
 
 void SmtMetaSygus::addGrammarRules(const Expr& e,
-                                    const std::string& cname,
-                                    MetaKind tk,
-                                    const std::string& gbase,
-                                    const Expr& t)
+                                   const std::string& cname,
+                                   MetaKind tk,
+                                   const std::string& gbase,
+                                   const Expr& t)
 {
   std::cout << "Add grammar rules " << e << " / " << cname << "..."
             << std::endl;
@@ -274,7 +274,7 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
   }
   std::vector<Expr> approxSig = getGrammarSigApprox(ct);
   Assert(!approxSig.empty());
-  for (size_t i=0, nsig=approxSig.size(); i<nsig; i++)
+  for (size_t i = 0, nsig = approxSig.size(); i < nsig; i++)
   {
     if (approxSig[i].isNull())
     {
@@ -283,7 +283,7 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
   }
   // the return type of this is now marked as a possible sort
   Expr aret = approxSig[approxSig.size() - 1];
-  if (!defaultG.isNull() && !aret.isNull() && aret!=defaultG)
+  if (!defaultG.isNull() && !aret.isNull() && aret != defaultG)
   {
     // ensure its allocated
     getGrammarFor(defaultG);
@@ -337,7 +337,8 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
   }
 }
 
-void SmtMetaSygus::addRulesForSig(const std::string& gbase, const std::vector<Expr>& approxSig)
+void SmtMetaSygus::addRulesForSig(const std::string& gbase,
+                                  const std::vector<Expr>& approxSig)
 {
   std::string curr = gbase;
   // if it is a function
@@ -362,7 +363,9 @@ void SmtMetaSygus::addRulesForSig(const std::string& gbase, const std::vector<Ex
   sgret->d_rules << curr << " ";
 }
 
-void SmtMetaSygus::printGrammar(const std::string& name, const Expr& t, std::ostream& os)
+void SmtMetaSygus::printGrammar(const std::string& name,
+                                const Expr& t,
+                                std::ostream& os)
 {
   os << std::endl << "  ((G_Start eo.Term)";
   // start with the appropriate non-terminal
@@ -380,8 +383,8 @@ void SmtMetaSygus::printGrammar(const std::string& name, const Expr& t, std::ost
   {
     SygusGrammar& g = d_grammar[gn];
     os << " (" << g.d_gname << " " << g.d_typeName << ")";
-    body << "  (" << g.d_gname << " " << g.d_typeName << " ("
-          << g.d_rules.str() << "))" << std::endl;
+    body << "  (" << g.d_gname << " " << g.d_typeName << " (" << g.d_rules.str()
+         << "))" << std::endl;
   }
   os << ") (" << std::endl;
   os << body.str();

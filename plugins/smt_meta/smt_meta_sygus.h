@@ -15,9 +15,9 @@
 #include <sstream>
 #include <string>
 
+#include "../std_plugin.h"
 #include "state.h"
 #include "utils.h"
-#include "../std_plugin.h"
 
 namespace ethos {
 
@@ -32,8 +32,8 @@ class SygusGrammar
 };
 class SygusRuleSchema
 {
-public:
-  SygusRuleSchema(){}
+ public:
+  SygusRuleSchema() {}
   std::string d_cname;
   std::vector<Expr> d_approxArgs;
   std::unordered_set<size_t> d_eqArgs;
@@ -63,6 +63,7 @@ class SmtMetaSygus : public StdPlugin
                        const std::string& gbase,
                        const Expr& t);
   void printGrammar(const std::string& name, const Expr& t, std::ostream& os);
+
  private:
   /** Grammars */
   Expr d_null;
@@ -82,7 +83,8 @@ class SmtMetaSygus : public StdPlugin
   Expr getGrammarTypeApprox(const Expr& e);
   std::vector<Expr> getGrammarSigApprox(const Expr& e);
   SygusGrammar* getGrammarFor(const Expr& t);
-  void addRulesForSig(const std::string& gbase, const std::vector<Expr>& approxSig);
+  void addRulesForSig(const std::string& gbase,
+                      const std::vector<Expr>& approxSig);
 };
 
 }  // namespace ethos

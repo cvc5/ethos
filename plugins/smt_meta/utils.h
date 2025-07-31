@@ -13,7 +13,7 @@
 #include <string>
 
 namespace ethos {
-  
+
 /**
  * The datatype we are at.
  */
@@ -42,6 +42,6 @@ std::string metaKindToString(MetaKind k);
 std::string metaKindToPrefix(MetaKind k);
 std::string metaKindToCons(MetaKind k);
 
-}
+}  // namespace ethos
 
 #endif

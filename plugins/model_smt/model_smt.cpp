@@ -81,7 +81,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "($smtx_builtin_requires ($smtx_map_has_type m x1 x2) (Array x1 x2))");
   addRecReduceSym("select", {kT, kT}, "($smtx_map_select e1 e2)");
   addRecReduceSym("store", {kT, kT, kT}, "($smtx_map_store e1 e2 e3)");
-  addReduceSym("const", {kT, kT}, "($vsm_map ($msm_default ($smtx_model_eval x2)))");
+  addReduceSym(
+      "const", {kT, kT}, "($vsm_map ($msm_default ($smtx_model_eval x2)))");
   // strings
   addTypeSym("Seq",
              {kT},
@@ -467,7 +468,7 @@ void ModelSmt::printModelEvalCallBase(const std::string& name,
   size_t nargs = args.size();
   if (attr == Attr::AMB)
   {
-    if (nargs==1)
+    if (nargs == 1)
     {
       d_eval << "(as " << name;
     }

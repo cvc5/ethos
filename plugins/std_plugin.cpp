@@ -137,10 +137,12 @@ void StdPlugin::setLiteralTypeRule(Kind k, const Expr& t)
     {
       Expr t = d_state.mkSymbol(Kind::CONST, "t", d_state.mkAny());
       Expr ltinst = d_tc.getOrSetLiteralTypeRule(k, t.getValue());
-      d_litTypeProg << "(program $eo_lit_type_" << eoss.str() << " ((T Type) (t T))" << std::endl;
+      d_litTypeProg << "(program $eo_lit_type_" << eoss.str()
+                    << " ((T Type) (t T))" << std::endl;
       d_litTypeProg << "  :signature (T) Type" << std::endl;
       d_litTypeProg << "  (" << std::endl;
-      d_litTypeProg << "  (($eo_lit_type_" << eoss.str() << " t) " << ltinst << ")" << std::endl;
+      d_litTypeProg << "  (($eo_lit_type_" << eoss.str() << " t) " << ltinst
+                    << ")" << std::endl;
       d_litTypeProg << "  )" << std::endl;
       d_litTypeProg << ")" << std::endl;
       Expr gt = getGroundTermForLiteralKind(k);
@@ -235,18 +237,10 @@ Expr StdPlugin::getGroundTermForLiteralKind(Kind k)
   Expr gt;
   switch (k)
   {
-    case Kind::NUMERAL:
-      gt = d_state.mkLiteral(k, "0");
-      break;
-    case Kind::RATIONAL:
-      gt = d_state.mkLiteral(k, "0/1");
-      break;
-    case Kind::BINARY:
-      gt = d_state.mkLiteral(k, "0");
-      break;
-    case Kind::STRING:
-      gt = d_state.mkLiteral(k, "");
-      break;
+    case Kind::NUMERAL: gt = d_state.mkLiteral(k, "0"); break;
+    case Kind::RATIONAL: gt = d_state.mkLiteral(k, "0/1"); break;
+    case Kind::BINARY: gt = d_state.mkLiteral(k, "0"); break;
+    case Kind::STRING: gt = d_state.mkLiteral(k, ""); break;
     default: break;
   }
   return gt;

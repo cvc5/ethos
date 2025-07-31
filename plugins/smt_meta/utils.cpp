@@ -12,7 +12,6 @@
 #include <sstream>
 
 namespace ethos {
-  
 
 std::string metaKindToString(MetaKind k)
 {
@@ -59,4 +58,4 @@ std::string metaKindToCons(MetaKind k)
   return ss.str();
 }
 
-}
+}  // namespace ethos
