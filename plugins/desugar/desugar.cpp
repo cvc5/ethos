@@ -908,6 +908,7 @@ void Desugar::finalize()
   std::string finalEo = sse.str();
 
   replace(finalEo, "$EO_LITERAL_TYPE_DECL$", d_litTypeDecl.str());
+  replace(finalEo, "$EO_LIT_TYPEOF_DEFS$", d_litTypeProg.str());
   replace(finalEo, "$EO_DEFS$", d_defs.str());
   replace(finalEo, "$EO_NIL_CASES$", d_eoNil.str());
   replace(finalEo, "$EO_NIL_NGROUND_DEFS$", d_eoNilNground.str());

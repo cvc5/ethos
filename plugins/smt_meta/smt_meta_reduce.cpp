@@ -1880,7 +1880,9 @@ void SmtMetaReduce::addGrammarRules(const Expr& e,
   }
   else
   {
-    ct = d_tc.getOrSetLiteralTypeRule(itk->second);
+    // ensure it is ground by getting an arbitrary value
+    Expr gt = getGroundTermForLiteralKind(itk->second);
+    ct = d_tc.getOrSetLiteralTypeRule(itk->second, gt.getValue());
   }
   std::vector<Expr> approxSig = getGrammarSigApprox(ct);
   Assert(!approxSig.empty());

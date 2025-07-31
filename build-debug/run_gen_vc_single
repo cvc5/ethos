@@ -101,7 +101,8 @@ mv $TMP_OUT $VCM_DEF_DESUGAR
 rm -f $TMP_OUT
 
 # should not eliminate remaining eo:: here
-sed -i -e 's/eo::/\$eo_/g' -e 's/\$eo_quote/eo::quote/g' -e 's/\$eo_define/eo::define/g' $VCM_DEF_DESUGAR
+# previously would have eliminated eo:: here???
+#sed -i -e 's/eo::/\$eo_/g' -e 's/\$eo_quote/eo::quote/g' -e 's/\$eo_define/eo::define/g' $VCM_DEF_DESUGAR
 
 # trim again, where we require keeping the verification condition
 echo "**** smt_meta: Run ethos + trim-deps on $VCM_DEF_DESUGAR to generate $VCMT_DEF_DESUGAR"
@@ -124,7 +125,7 @@ if [[ "$USE_SYGUS" == "ON" ]]; then
   check_status
 
   echo "**** smt_meta: Check for counterexamples with sygus"
-  ajr-cvc5 --no-e-matching $SYGUS_OUT -q -o sygus-enumerator -o sygus-grammar --sygus-enum=fast -o sygus
+  ajr-cvc5 --no-e-matching --macros-quant $SYGUS_OUT -q -o sygus-enumerator -o sygus-grammar --sygus-enum=fast -o sygus
   check_status
 else
   echo "**** smt_meta: Generate SMT2 from $VCMT_DEF_DESUGAR to $VC_OUT"

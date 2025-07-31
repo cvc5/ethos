@@ -516,6 +516,8 @@ $EO_TYPEOF_CASES$
   )
 )
 
+$EO_LIT_TYPEOF_DEFS$
+
 ;;; datatype constructors
 
 ; program: $eo_dt_constructors
@@ -569,7 +571,7 @@ $EO_NIL_CASES$
 (program $eo_model_is_input () :signature (Bool) Bool)
 
 ; We will include the definition of the above functions here.
-(echo "include eo_model_sat :deps $eo_typeof_main $eo_dt_constructors $eo_dt_selectors $eo_if_both $eo_List_nil $eo_List_cons $eo_Option_some $eo_Option_null $eo_model_sat $eo_model_is_input $eo_Pair_mk $eo_Pair_first $eo_Pair_second ")
+(echo "include eo_model_sat :deps $eo_typeof_main $eo_dt_constructors $eo_dt_selectors $eo_if_both $eo_List_nil $eo_List_cons $eo_Option_some $eo_Option_null $eo_model_sat $eo_model_is_input $eo_Pair_mk $eo_Pair_first $eo_Pair_second $eo_lit_type_Numeral $eo_lit_type_Rational $eo_lit_type_String $eo_lit_type_Binary ")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; vc
 

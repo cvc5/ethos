@@ -1,12 +1,12 @@
 ; trim-defs: $eovc_bool-eq-true
-; #trim-defs: 158
+; #trim-defs: 167
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (define $eo_Numeral () Int)
 (declare-const Real Type)
 (declare-consts <rational> Real)
-(define $eo_Rational () Real)
 (declare-const BitVec (-> Int Type))
+(declare-consts <binary> (BitVec (eo::len eo::self)))
 (declare-const Char Type)
 (declare-const Seq (-> Type Type))
 (declare-consts <string> (Seq Char))
@@ -186,6 +186,15 @@
   ($eo_smt_term ($sm_binary x1 x2)))
 (define $smt_builtin_is_ok ((x $eo_Term))
   ($smt_apply_1 "not" ($smt_apply_= x $eo_stuck)))
+(program $eo_len ((T Type) (s1 $smt_builtin_String) (w $smt_builtin_Int) (n1 $smt_builtin_Int))
+  :signature (T) $eo_Numeral
+  (
+  (($eo_len ($eo_mk_string s1))
+    ($eo_mk_numeral ($smt_apply_1 "str.len" s1)))
+  (($eo_len ($eo_binary w n1))
+    ($eo_mk_numeral w))
+  )
+)
 (program $smtx_hash ((T Type)) :signature (T) $smt_builtin_Int)
 (program $eo_reverse_hash () :signature ($smt_builtin_Int) $eo_Term)
 (define $smtx_value_hash ((v $smt_Value))
@@ -194,6 +203,10 @@
   ($smt_apply_2 "<=" ($smtx_value_hash a) ($smtx_value_hash b)))
 (program $eo_typeof_main () :signature ($eo_Term) Type)
 (program $eo_typeof_const () :signature ($eo_Term $smt_Value) $eo_Term)
+(program $eo_lit_type_Numeral ((T Type)) :signature (T) Type)
+(program $eo_lit_type_Rational ((T Type)) :signature (T) Type)
+(program $eo_lit_type_Binary ((T Type)) :signature (T) Type)
+(program $eo_lit_type_String ((T Type)) :signature (T) Type)
 (program $eo_typeof
   ((t $eo_Term) (T $eo_Term) (b $smt_builtin_Bool) (n $smt_builtin_Int) (r $smt_builtin_Real)
    (s $smt_builtin_String) (w $smt_builtin_Int) (val $smt_Value))
@@ -201,10 +214,10 @@
   (
   
   (($eo_typeof ($eo_mk_bool b))                 Bool)
-  (($eo_typeof ($eo_mk_numeral n))              $eo_Numeral)
-  (($eo_typeof ($eo_mk_rational r))             $eo_Rational)
-  (($eo_typeof ($eo_mk_string s))               $eo_String)
-  (($eo_typeof ($eo_binary w n))                (BitVec ($eo_mk_numeral w))) 
+  (($eo_typeof ($eo_mk_numeral n))              ($eo_lit_type_Numeral ($eo_mk_numeral n)))
+  (($eo_typeof ($eo_mk_rational r))             ($eo_lit_type_Rational ($eo_mk_rational r)))
+  (($eo_typeof ($eo_mk_string s))               ($eo_lit_type_String ($eo_mk_string s)))
+  (($eo_typeof ($eo_binary w n))                ($eo_lit_type_Binary ($eo_binary w n)))
   (($eo_typeof ($eo_Var s n))                   ($eo_reverse_hash n))
   
   
@@ -270,6 +283,30 @@
   (($eo_typeof_main (= x1)) ($eo_typeof_= ($eo_typeof x1)))
 
   (($eo_typeof_main (f x))        ($eo_typeof_apply ($eo_typeof f) ($eo_typeof x)))
+  )
+)
+(program $eo_lit_type_Numeral ((T Type) (t T))
+  :signature (T) Type
+  (
+  (($eo_lit_type_Numeral t) Int)
+  )
+)
+(program $eo_lit_type_Rational ((T Type) (t T))
+  :signature (T) Type
+  (
+  (($eo_lit_type_Rational t) Real)
+  )
+)
+(program $eo_lit_type_Binary ((T Type) (t T))
+  :signature (T) Type
+  (
+  (($eo_lit_type_Binary t) (BitVec (eo::len t)))
+  )
+)
+(program $eo_lit_type_String ((T Type) (t T))
+  :signature (T) Type
+  (
+  (($eo_lit_type_String t) (Seq Char))
   )
 )
 (program $eo_dt_selectors ((T Type) (t T))

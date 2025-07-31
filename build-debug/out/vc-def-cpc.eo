@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_bool-eq-true
-; #trim-defs: 41
+; #trim-defs: 46
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (define $eo_Numeral () Int)
@@ -7,6 +7,7 @@
 (declare-consts <rational> Real)
 (define $eo_Rational () Real)
 (declare-const BitVec (-> Int Type))
+(declare-consts <binary> (BitVec (eo::len eo::self)))
 (define $eo_Binary () (BitVec 1))
 (declare-const Char Type)
 (declare-const Seq (-> Type Type))
@@ -100,6 +101,30 @@
   (($eo_typeof_main (f x))        ($eo_typeof_apply ($eo_typeof f) ($eo_typeof x)))
   )
 )
+(program $eo_lit_type_Numeral ((T Type) (t T))
+  :signature (T) Type
+  (
+  (($eo_lit_type_Numeral t) Int)
+  )
+)
+(program $eo_lit_type_Rational ((T Type) (t T))
+  :signature (T) Type
+  (
+  (($eo_lit_type_Rational t) Real)
+  )
+)
+(program $eo_lit_type_Binary ((T Type) (t T))
+  :signature (T) Type
+  (
+  (($eo_lit_type_Binary t) (BitVec (eo::len t)))
+  )
+)
+(program $eo_lit_type_String ((T Type) (t T))
+  :signature (T) Type
+  (
+  (($eo_lit_type_String t) (Seq Char))
+  )
+)
 (program $eo_dt_constructors
   ((T Type))
   :signature (Type) $eo_List
@@ -117,7 +142,7 @@
 )
 (program $eo_model_sat () :signature (Bool) $eo_Option)
 (program $eo_model_is_input () :signature (Bool) Bool)
-(echo "include eo_model_sat :deps $eo_typeof_main $eo_dt_constructors $eo_dt_selectors $eo_if_both $eo_List_nil $eo_List_cons $eo_Option_some $eo_Option_null $eo_model_sat $eo_model_is_input $eo_Pair_mk $eo_Pair_first $eo_Pair_second ")
+(echo "include eo_model_sat :deps $eo_typeof_main $eo_dt_constructors $eo_dt_selectors $eo_if_both $eo_List_nil $eo_List_cons $eo_Option_some $eo_Option_null $eo_model_sat $eo_model_is_input $eo_Pair_mk $eo_Pair_first $eo_Pair_second $eo_lit_type_Numeral $eo_lit_type_Rational $eo_lit_type_String $eo_lit_type_Binary ")
 (program $eor_bool-eq-true ((t1 Bool))
   :signature (Bool) Bool
   (

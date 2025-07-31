@@ -1002,6 +1002,12 @@
 ; This method is auto-generated based on SMT-LIB model semantics.
 (program $eo_typeof_const () :signature ($eo_Term $smt_Value) $eo_Term)
 
+; forward declarations for literal type rules
+(program $eo_lit_type_Numeral ((T Type)) :signature (T) Type)
+(program $eo_lit_type_Rational ((T Type)) :signature (T) Type)
+(program $eo_lit_type_Binary ((T Type)) :signature (T) Type)
+(program $eo_lit_type_String ((T Type)) :signature (T) Type)
+  
 ; program: $eo_typeof
 ; implements: eo::typeof
 (program $eo_typeof
@@ -1011,10 +1017,10 @@
   (
   ; TODO: auto-generate these?
   (($eo_typeof ($eo_mk_bool b))                 Bool)
-  (($eo_typeof ($eo_mk_numeral n))              $eo_Numeral)
-  (($eo_typeof ($eo_mk_rational r))             $eo_Rational)
-  (($eo_typeof ($eo_mk_string s))               $eo_String)
-  (($eo_typeof ($eo_binary w n))                (BitVec ($eo_mk_numeral w))) ; HACK
+  (($eo_typeof ($eo_mk_numeral n))              ($eo_lit_type_Numeral ($eo_mk_numeral n)))
+  (($eo_typeof ($eo_mk_rational r))             ($eo_lit_type_Rational ($eo_mk_rational r)))
+  (($eo_typeof ($eo_mk_string s))               ($eo_lit_type_String ($eo_mk_string s)))
+  (($eo_typeof ($eo_binary w n))                ($eo_lit_type_Binary ($eo_binary w n)))
   (($eo_typeof ($eo_Var s n))                   ($eo_reverse_hash n))
   ; constants are introduced by this signature, we extend $eo_typeof for them,
   ; despite them not being modelled by Eunoia builtin typeof. We do this for

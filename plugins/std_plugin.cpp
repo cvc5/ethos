@@ -17,7 +17,7 @@
 
 namespace ethos {
 
-#if 1
+#if 0
 std::string StdPlugin::s_plugin_path = "/home/andrew/ethos/";
 #else
 std::string StdPlugin::s_plugin_path =
@@ -85,28 +85,23 @@ void StdPlugin::setLiteralTypeRule(Kind k, const Expr& t)
   std::stringstream ss;
   std::stringstream eoss;
   ss << "(declare-consts ";
-  Expr gt;
   switch (k)
   {
     case Kind::NUMERAL:
       ss << "<numeral>";
       eoss << "Numeral";
-      gt = d_state.mkLiteral(k, "0");
       break;
     case Kind::RATIONAL:
       ss << "<rational>";
       eoss << "Rational";
-      gt = d_state.mkLiteral(k, "0/1");
       break;
     case Kind::BINARY:
       ss << "<binary>";
       eoss << "Binary";
-      gt = d_state.mkLiteral(k, "0");
       break;
     case Kind::STRING:
       ss << "<string>";
       eoss << "String";
-      gt = d_state.mkLiteral(k, "");
       break;
     case Kind::DECIMAL: ss << "<decimal>"; break;
     case Kind::HEXADECIMAL: ss << "<hexadecimal>"; break;
@@ -127,43 +122,45 @@ void StdPlugin::setLiteralTypeRule(Kind k, const Expr& t)
       d_ltDeclProcessed.insert(s);
       finalizeDeclaration(s, d_litTypeDecl);
     }
-    if (!t.isEvaluatable())
-    {
-      d_litTypeDecl << "; type-rules: " << k << std::endl;
-      d_litTypeDecl << ss.str();
-    }
+    d_litTypeDecl << "; type-rules: " << k << std::endl;
+    d_litTypeDecl << ss.str();
     // TODO: approximate $eo_Binary as self program
     // it is only possible to define e.g. $eo_Binary
     // if t is ground. This avoids having eo::self as a free parameter.
     // We use $eo_undef_type otherwise.
-    if (t.isGround())
+    if (false && t.isGround())
     {
       d_litTypeDecl << "(define $eo_" << eoss.str() << " () " << t << ")"
                     << std::endl;
     }
     else
     {
-#if 0
       Expr t = d_state.mkSymbol(Kind::CONST, "t", d_state.mkAny());
       Expr ltinst = d_tc.getOrSetLiteralTypeRule(k, t.getValue());
-      d_litTypeDecl << "(program $eo_mk_" << eoss.str() << " ((T Type) (t T))" << std::endl;
-      d_litTypeDecl << "  :signature (T) Type" << std::endl;
-      d_litTypeDecl << "  (" << std::endl;
-      d_litTypeDecl << "  (($eo_mk_" << eoss.str() << " t) " << ltinst << ")" << std::endl;
-      d_litTypeDecl << "  )" << std::endl;
-      d_litTypeDecl << ")" << std::endl;
-      d_litTypeDecl << "(define $eo_" << eoss.str() << " () ($eo_mk_" << eoss.str() << " " << gt << "))" << std::endl;
-#else
-      Expr ltinst = d_tc.getOrSetLiteralTypeRule(k, gt.getValue());
-      d_litTypeDecl << "; type-rules (approx): " << k << std::endl;
-      d_litTypeDecl << "(define $eo_" << eoss.str() << " () " << ltinst << ")"
+      d_litTypeProg << "(program $eo_lit_type_" << eoss.str() << " ((T Type) (t T))" << std::endl;
+      d_litTypeProg << "  :signature (T) Type" << std::endl;
+      d_litTypeProg << "  (" << std::endl;
+      d_litTypeProg << "  (($eo_lit_type_" << eoss.str() << " t) " << ltinst << ")" << std::endl;
+      d_litTypeProg << "  )" << std::endl;
+      d_litTypeProg << ")" << std::endl;
+      Expr gt = getGroundTermForLiteralKind(k);
+      Expr ltg = d_tc.getOrSetLiteralTypeRule(k, gt.getValue());
+      if (t.isGround())
+      {
+        d_litTypeDecl << "; type-rules: " << k << std::endl;
+      }
+      else
+      {
+        // FIXME: maybe shouldn't even generate this??
+        d_litTypeDecl << "; (approx) type-rules: " << k << std::endl;
+      }
+      d_litTypeDecl << "(define $eo_" << eoss.str() << " () " << ltg << ")"
                     << std::endl;
-#endif
       // since $eo_Numeral is used to define the type rules for builtin
       // operators, it must have a ground type.
       if (k == Kind::NUMERAL)
       {
-        EO_FATAL() << "Must have a ground type for <numeral>.";
+        Assert(t.isGround()) << "Must have a ground type for <numeral>.";
       }
     }
   }
@@ -231,6 +228,28 @@ Expr StdPlugin::allocateTypeVariable()
   std::stringstream ss;
   ss << "$eoT_" << d_typeVarCounter;
   return d_state.mkSymbol(Kind::PARAM, ss.str(), d_state.mkType());
+}
+
+Expr StdPlugin::getGroundTermForLiteralKind(Kind k)
+{
+  Expr gt;
+  switch (k)
+  {
+    case Kind::NUMERAL:
+      gt = d_state.mkLiteral(k, "0");
+      break;
+    case Kind::RATIONAL:
+      gt = d_state.mkLiteral(k, "0/1");
+      break;
+    case Kind::BINARY:
+      gt = d_state.mkLiteral(k, "0");
+      break;
+    case Kind::STRING:
+      gt = d_state.mkLiteral(k, "");
+      break;
+    default: break;
+  }
+  return gt;
 }
 
 }  // namespace ethos

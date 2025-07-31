@@ -48,6 +48,8 @@ class StdPlugin : public Plugin
   Expr lookupVar(const std::string& name);
   /** Allocate a fresh type variable */
   Expr allocateTypeVariable();
+  /** Get ground term for kind */
+  Expr getGroundTermForLiteralKind(Kind k);
   /** Does t have subterm s? */
   static bool hasSubterm(const Expr& t, const Expr& s);
   /**
@@ -69,10 +71,7 @@ class StdPlugin : public Plugin
   std::map<Expr, Expr> d_markedSemantics;
 
   std::stringstream d_litTypeDecl;
-  std::stringstream d_ltNum;
-  std::stringstream d_ltRational;
-  std::stringstream d_ltString;
-  std::stringstream d_ltBinary;
+  std::stringstream d_litTypeProg;
   static std::string s_plugin_path;
   /** Standard configurations for the reduction */
   static bool optionFlattenEval();
