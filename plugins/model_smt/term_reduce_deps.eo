@@ -1,4 +1,5 @@
 (echo "trim-defs-cmd (depends divisible (= (mod x2 x1) 0))")
+(echo "trim-defs-cmd (depends distinct (not (= x1 x2)))")
 (echo "trim-defs-cmd (depends bvsub (bvadd x1 (bvneg x2)))")
 (echo "trim-defs-cmd (depends bvsle (bvsge x2 x1))")
 (echo "trim-defs-cmd (depends bvule (bvuge x2 x1))")
@@ -14,7 +15,7 @@
 (echo "trim-defs-cmd (depends @mod_by_zero (mod x1 0))")
 (echo "trim-defs-cmd (depends @div_by_zero (/ x1 0/1))")
 (echo "trim-defs-cmd (depends int.log2 (div x1 (int.pow2 x1)))")
-(echo "trim-defs-cmd (depends int.ispow2 (= x1 (int.pow2 (int.log2 x1))))")
+(echo "trim-defs-cmd (depends int.ispow2 (and (>= x1 0) (= x1 (int.pow2 (int.log2 x1)))))")
 (echo "trim-defs-cmd (depends @strings_itos_result (str.from_int (mod x1 (^ 10 x2))))")
 (echo "trim-defs-cmd (depends @strings_stoi_result (str.to_int (str.substr x1 0 x2)))")
 (echo "trim-defs-cmd (depends @strings_stoi_non_digit (str.indexof_re x1 (re.comp (re.range ""0"" ""9"")) 0))")
@@ -24,6 +25,11 @@
 (echo "trim-defs-cmd (depends bvultbv (ite (bvult x1 x2) (@bv 1 1) (@bv 0 1)))")
 (echo "trim-defs-cmd (depends bvsltbv (ite (bvslt x1 x2) (@bv 1 1) (@bv 0 1)))")
 (echo "trim-defs-cmd (depends @bit (extract x1 x1 x2))")
+
+;;; Types
 ; special case: we need to include array constant if Array type is involved so
 ; that we have constructible values.
-(echo "trim-defs-cmd (depends Array const)")
+(echo "trim-defs-cmd (depends Array (const))")
+(echo "trim-defs-cmd (depends Set (set.empty set.union))")
+; TODO: more?
+

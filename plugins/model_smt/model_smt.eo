@@ -351,99 +351,11 @@
   )
 )
 
-;;; Regular languages
-
-;(program $smtx_model_eval_str.in_re
-;  ((s $smt_builtin_String) (v $smt_Value) (r1 $eo_Term) (r2 $eo_Term) 
-;   (s1 $smt_builtin_String) (s2 $smt_builtin_String))
-;  :signature ($smt_builtin_String $eo_Term) $smt_Value
-;  (
-;  ; auto-generated cases
-;  (($smtx_model_eval_str.in_re s (re.inter r1 r2)) 
-;    ($vsm_term ($sm_mk_bool ($smt_builtin_and 
-;      ($smt_apply_= ($smtx_model_eval_str.in_re s r1) $vsm_true)
-;      ($smt_apply_= ($smtx_model_eval_str.in_re s r2) $vsm_true)))))
-;  (($smtx_model_eval_str.in_re s (re.union r1 r2)) 
-;    ($vsm_term ($sm_mk_bool ($smt_builtin_or 
-;      ($smt_apply_= ($smtx_model_eval_str.in_re s r1) $vsm_true)
-;      ($smt_apply_= ($smtx_model_eval_str.in_re s r2) $vsm_true)))))
-;  (($smtx_model_eval_str.in_re s re.allchar)
-;    ($vsm_term ($sm_mk_bool ($smt_apply_2 "str.in_re" s re.allchar))))
-;  (($smtx_model_eval_str.in_re s re.none)
-;    ($vsm_term ($sm_mk_bool ($smt_apply_2 "str.in_re" s re.none))))
-;  (($smtx_model_eval_str.in_re s re.all)
-;    ($vsm_term ($sm_mk_bool ($smt_apply_2 "str.in_re" s re.all))))
-;  (($smtx_model_eval_str.in_re s (re.range s1 s2))
-;  ; otherwise unevaluated
-;  (($smtx_model_eval_str.in_re s r1) $vsm_not_value)
-;  )
-;)
-
-;(program $smtx_eval_reglan
-;  ((s $eo_Term) (r1 $eo_Term) (r2 $eo_Term) (n1 $eo_Term) (n2 $eo_Term))
-;  :signature ($eo_Term) $smt_Value
-;  (
-;  ; auto-generated cases
-;  (($smtx_eval_reglan (str.to_re s)) ($vsm_re ($smt_apply_1 "str.to_re" ($smtx_model_eval s))))
-;  (($smtx_eval_reglan (re.* r1)) ($vsm_re ($smt_apply_1 "re.*" ($smtx_eval_reglan r1))))
-;  (($smtx_eval_reglan (re.+ r1)) ($vsm_re ($smt_apply_1 "re.+" ($smtx_eval_reglan r1))))
-;  (($smtx_eval_reglan (re.opt r1)) ($vsm_re ($smt_apply_1 "re.+" ($smtx_eval_reglan r1))))
-;  (($smtx_eval_reglan (re.comp r1)) ($vsm_re ($smt_apply_1 "re.+" ($smtx_eval_reglan r1))))
-;  (($smtx_eval_reglan (re.++ r1 r2)) ($vsm_re ($smt_apply_2 "re.++" ($smtx_eval_reglan r1) ($smtx_eval_reglan r2))))
-;  (($smtx_eval_reglan (re.inter r1 r2)) ($vsm_re ($smt_apply_2 "re.inter" ($smtx_eval_reglan r1) ($smtx_eval_reglan r2))))
-;  (($smtx_eval_reglan (re.union r1 r2)) ($vsm_re ($smt_apply_2 "re.union" ($smtx_eval_reglan r1) ($smtx_eval_reglan r2))))
-;  (($smtx_eval_reglan (re.diff r1 r2)) ($vsm_re ($smt_apply_2 "re.diff" ($smtx_eval_reglan r1) ($smtx_eval_reglan r2))))
-;  (($smtx_eval_reglan re.allchar) ($vsm_re ($smt_apply_0 "re.allchar"))
-;  (($smtx_eval_reglan re.none) ($vsm_re ($smt_apply_0 "re.none"))
-;  (($smtx_eval_reglan re.all) ($vsm_re ($smt_apply_0 "re.all"))
-;  (($smtx_eval_reglan r1) $vsm_not_value)
-;  )
-;)
-
 ;;; Quantifiers
 
-; Forward declaration for below.
-(program $smtx_model_type_enum_internal ()
-  :signature ($eo_Term $smt_builtin_Int $smt_builtin_Int) $smt_Value)
-
-; Helper for below.
-(program $smtx_model_type_enum_next
-  ((T $eo_Term) (i $smt_builtin_Int) (h $smt_builtin_Int) (v $smt_Value) (t $smt_Term))
-  :signature ($eo_Term $smt_builtin_Int $smt_builtin_Int $eo_Term $eo_Term) $smt_Value
-  (
-  ; FIXME
-  ; we are looking for the first term of type T and the current term is legal, return
-  ;(($smtx_model_type_enum_next T $smt_builtin_z_zero h (eo_Const T v) T) v)
-  ; the current term is legal, decrement i and increment hash counter
-  ;(($smtx_model_type_enum_next T i h (eo_Const T v) T)
-  ;  ($smtx_model_type_enum_internal T ($smt_builtin_z_dec i) ($smt_builtin_z_inc h)))
-  ; the current term is not legal, increment hash counter
-  (($smtx_model_type_enum_next T i h t T)
-    ($smtx_model_type_enum_internal T i ($smt_builtin_z_inc h)))
-  )
-)
-
-; Enumerates a stream of Eunoia terms, ordered by their hash.
-; Returns the value v corresponding to the i^th term in this stream
-; that has the form (eo_Const T v) and has type T.
-(program $smtx_model_type_enum_internal
-  ((T $eo_Term) (i $smt_builtin_Int) (h $smt_builtin_Int))
-  :signature ($eo_Term $smt_builtin_Int $smt_builtin_Int) $smt_Value
-  (
-  (($smtx_model_type_enum_internal T i h)
-    ; Hash counter 1, 2, 3, 4, 5 ... turns into 0, -1, 1, -2, 2, ....
-    (eo::define ((hn ($smt_apply_2 "div" h $smt_builtin_z_two)))
-    (eo::define ((hp ($smt_apply_= ($smt_apply_2 "mod" h $smt_builtin_z_two) $smt_builtin_z_zero)))
-    (eo::define ((hu ($smt_apply_3 "ite" hp ($smt_builtin_neg hn) hn)))
-    (eo::define ((t ($eo_reverse_hash hu)))
-      ($smtx_model_type_enum_next T i h t ($smt_try_type t))))))) ; we catch stuckness here
-  )
-)
-
-; Type enumeration
-(define $smtx_model_type_enum ((T $eo_Term) (i $smt_builtin_Int))
-  ; start with hash counter one
-  ($smtx_model_type_enum_internal T i $smt_builtin_z_one))
+; Returns the n^th term in the enumeration of type.
+; This is axiomatized.
+(program $smtx_model_type_enum () :signature ($eo_Term $smt_builtin_Int) $smt_Value)
 
 ; Substitution
 ; program: $smtx_model_val_substitute
@@ -451,12 +363,12 @@
 ; ($smtx_model_val_substitute x v t) returns the term where x is replaced by
 ; the constant that is interpreted as v.
 (program $smtx_model_val_substitute
-  ((x $eo_Term) (v $eo_Term) (f $eo_Term) (a $eo_Term) (z $eo_Term))
+  ((x $eo_Term) (v $smt_Value) (f $eo_Term) (a $eo_Term) (z $eo_Term))
   :signature ($eo_Term $smt_Value $eo_Term) $eo_Term
   (
   (($smtx_model_val_substitute x v (f a))
     (_ ($smtx_model_val_substitute x v f) ($smtx_model_val_substitute x v a)))
-  (($smtx_model_val_substitute x v x) v)   ; we are now the constant with the given interpretation
+  (($smtx_model_val_substitute x v x) ($eo_Value v))   ; we are now the constant with the given interpretation
   (($smtx_model_val_substitute x v z) z)
   )
 )
@@ -587,11 +499,12 @@ $SMT_EVAL_CASES$
   ; All interpreted f should be handled in the evaluation cases above.
   (($smtx_model_eval (f y))
     ($smtx_model_eval_apply ($smtx_model_eval f) ($smtx_model_eval y)))
-
+  ; An SMT-LIB value, which returns its value.
+  (($smtx_model_eval ($eo_Value val))             val)
   ; Otherwise, it may be a term value (e.g. if z is a Boolean or numeral constant).
   ; We call the utility method which will either generate an SMT-LIB term value or
   ; a SMT-LIB non-value error term.
-  (($smtx_model_eval z)                         ($smt_mk_value_term z))
+  (($smtx_model_eval z)                           ($smt_mk_value_term z))
   )
 )
 
@@ -633,19 +546,19 @@ $SMT_EVAL_CASES$
 
 ; program: $smtx_is_input
 ; Returns true if the given term uses only SMT-LIB syntax. This will
-; return false e.g. if it contains Eunoia-specific terms (e.g. $eo_List)
-; or if it contains free constants that are not interpreted as canonical
-; values.
+; return false e.g. if it contains Eunoia-specific terms. Note that
+; we assume that binders use $eo_List, so they are included here.
+; We do *not* allow $eo_Value here, which may not be canonical values
+; and are not strictly permitted.
 (program $smtx_is_input
-  ((id $smt_builtin_Int) (w $smt_builtin_Int) (n $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String)
-   (b $smt_builtin_Bool) (x1 $eo_Term) (x2 $eo_Term) (m $smt_Map) (sq $smt_Seq)
-   (T $eo_Term) (v $smt_Value) (t $eo_Term) (a $eo_Term) (tu $smt_Type) (tt $smt_Term))
+  ((T Type) (s $smt_builtin_String) (t $eo_Term) (a $eo_Term)
+   (tu $smt_Type) (tt $smt_Term))
   :signature ($eo_Term) $smt_builtin_Bool
   (
   ; all legal constants handled above, false otherwise
   (($smtx_is_input ($eo_smt_term tt))               $smt_builtin_true)
   (($smtx_is_input ($eo_smt_type tu))               $smt_builtin_true)
-  (($smtx_is_input ($eo_Var s id))                  $smt_builtin_true)
+  (($smtx_is_input ($eo_Var s T))                   $smt_builtin_true)
   (($smtx_is_input ($eo_List_cons a t))             ($smtx_is_list t))
   (($smtx_is_input ($eo_apply t a))
     ($smt_builtin_and ($smtx_is_input t) ($smtx_is_input a)))
