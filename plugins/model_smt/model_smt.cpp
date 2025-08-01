@@ -138,10 +138,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "bvxor", {kBitVec, kBitVec}, "x1", "($smtx_binary_xor x1 x2 x4)");
   addLitBinSym("bvnot", {kBitVec}, "x1", "($smtx_binary_not x1 x2)");
   addLitBinSym("bvneg", {kBitVec}, "x1", "($smt_builtin_neg x2)");
-  addLitBinSym("extract",
-               {kInt, kInt, kBitVec},
-               "x3",
-               "($smtx_binary_extract x3 x4 x1 x2)");
+  addLitSym("extract",
+               {kInt, kInt, kBitVec}, kT,
+               "($smt_apply_3 \"ite\" ($smt_apply_2 \">=\" x1 x2) ($vsm_term ($sm_mk_binary x3 ($smtx_binary_extract x3 x4 x1 x2))) $vsm_not_value)");
   addLitBinSym("concat",
                {kBitVec, kBitVec},
                "($smt_builtin_add x1 x3)",
@@ -160,7 +159,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTermReduceSym("bvsge", {kBitVec, kBitVec}, "(or (bvsgt x1 x2) (= x1 x2))");
   // arith/BV conversions
   addLitSym("ubv_to_int", {kBitVec}, kInt, "x2");
-  addLitBinSym("int_to_bv", {kInt, kInt}, "x1", "x2");
+  addLitSym("int_to_bv", {kInt, kInt}, kT, "($smtx_model_eval ($eo_mk_binary x1 x2))");
   // Quantifiers
   addQuantifier("exists", {Kind::ANY, kBool});
   addQuantifier("forall", {Kind::ANY, kBool});
@@ -233,7 +232,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                    {kBitVec, kBitVec, kBitVec},
                    "(ite (bvslt x1 x2) (@bv 1 1) (@bv 0 1))");
   addLitSym("@bvsize", {kBitVec}, kInt, "x1");
-  addLitBinSym("@bv", {kInt, kInt}, "x2", "x1");
+  //addLitBinSym("@bv", {kInt, kInt}, "x2", "x1");
+  // must guard for negative widths here, which will evaluate to stuck
+  addLitSym("@bv", {kInt, kInt}, kT, "($smtx_model_eval ($eo_mk_binary x2 x1))");
   addTermReduceSym("@bit", {kInt, kBitVec}, "(extract x1 x1 x2)");
   // tuples
   // these allow Herbrand interpretations

@@ -131,7 +131,7 @@ if [[ "$USE_SYGUS" == "ON" ]]; then
   
   echo "**** smt_meta: Check for counterexamples with sygus, args $BASE_ARGS"
   #ajr-cvc5 $BASE_ARGS $SYGUS_OUT -q -o sygus-enumerator -o sygus-grammar -o sygus
-  ajr-cvc5 $BASE_ARGS --tlimit=60000 $SYGUS_OUT -q
+  ajr-cvc5 $BASE_ARGS --tlimit=600000 $SYGUS_OUT -q
   check_status
 else
   echo "**** smt_meta: Generate SMT2 from $VCMT_DEF_DESUGAR to $VC_OUT"
