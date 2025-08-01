@@ -500,6 +500,7 @@
 (program $eo_mk_binary ((w $smt_builtin_Int) (n $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int) $eo_Term
   (
+  ; FIXME: the upper bound should only apply to to_bin
   (($eo_mk_binary w n)
     ($smt_apply_3 "ite"
       ($smt_builtin_and ($smt_apply_1 "<= 0" w) ($smt_apply_1 ">= 4294967296" w))
