@@ -75,9 +75,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("to_real", {kInt}, kReal);
   addTermReduceSym("divisible", {kInt, kInt}, "(= (mod x2 x1) 0)");
   // arrays
-  addTypeSym(
-      "Array",
-      {kT, kT});
+  addTypeSym("Array", {kT, kT});
   addRecReduceSym("select", {kT, kT}, "($smtx_map_select e1 e2)");
   addRecReduceSym("store", {kT, kT, kT}, "($smtx_map_store e1 e2 e3)");
   addReduceSym(
@@ -123,8 +121,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("str.replace_re", {kString, kRegLan, kString}, kString);
   addConstFoldSym("str.replace_re_all", {kString, kRegLan, kString}, kString);
   // bitvectors
-  addTypeSym("BitVec",
-             {kInt});
+  addTypeSym("BitVec", {kInt});
   // the following are return terms of aux program cases of the form:
   // (($smtx_model_eval_f
   //    ($vsm_term ($sm_binary x1 x2)) ($vsm_term ($sm_binary x3 x4)))
@@ -139,9 +136,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "bvxor", {kBitVec, kBitVec}, "x1", "($smtx_binary_xor x1 x2 x4)");
   addLitBinSym("bvnot", {kBitVec}, "x1", "($smtx_binary_not x1 x2)");
   addLitBinSym("bvneg", {kBitVec}, "x1", "($smt_builtin_neg x2)");
-  addLitSym("extract",
-               {kInt, kInt, kBitVec}, kT,
-               "($smt_apply_3 \"ite\" ($smt_apply_2 \">=\" x1 x2) ($vsm_term ($sm_mk_binary x3 ($smtx_binary_extract x3 x4 x1 x2))) $vsm_not_value)");
+  addLitSym(
+      "extract",
+      {kInt, kInt, kBitVec},
+      kT,
+      "($smt_apply_3 \"ite\" ($smt_apply_2 \">=\" x1 x2) ($vsm_term "
+      "($sm_mk_binary x3 ($smtx_binary_extract x3 x4 x1 x2))) $vsm_not_value)");
   addLitBinSym("concat",
                {kBitVec, kBitVec},
                "($smt_builtin_add x1 x3)",
@@ -160,7 +160,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTermReduceSym("bvsge", {kBitVec, kBitVec}, "(or (bvsgt x1 x2) (= x1 x2))");
   // arith/BV conversions
   addLitSym("ubv_to_int", {kBitVec}, kInt, "x2");
-  addLitSym("int_to_bv", {kInt, kInt}, kT, "($smtx_model_eval ($eo_mk_binary x1 x2))");
+  addLitSym("int_to_bv",
+            {kInt, kInt},
+            kT,
+            "($smtx_model_eval ($eo_mk_binary x1 x2))");
   // Quantifiers
   addQuantifier("exists", {Kind::ANY, kBool});
   addQuantifier("forall", {Kind::ANY, kBool});
@@ -180,8 +183,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTermReduceSym("@mod_by_zero", {kInt}, "(mod x1 0)");
   addTermReduceSym("@div_by_zero", {kReal}, "(/ x1 0/1)");
   // TODO: is this right? if so, simplify CPC
-  addTermReduceSym("int.log2", {kInt}, "(ite (< x1 0) 0 (div x1 (int.pow2 x1)))");
-  addTermReduceSym("int.ispow2", {kInt}, "(and (>= x1 0) (= x1 (int.pow2 (int.log2 x1))))");
+  addTermReduceSym(
+      "int.log2", {kInt}, "(ite (< x1 0) 0 (div x1 (int.pow2 x1)))");
+  addTermReduceSym(
+      "int.ispow2", {kInt}, "(and (>= x1 0) (= x1 (int.pow2 (int.log2 x1))))");
   // arrays
   addRecReduceSym("@array_deq_diff", {kT, kT}, "($smtx_map_diff e1 e2)");
   // strings
@@ -200,14 +205,14 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                    "(str.indexof_re x1 (re.comp (re.range \"0\" \"9\")) 0)");
   // sequences
   addReduceSym("seq.empty", {kT}, "$smtx_empty_seq");
-  d_specialCases["seq.empty"].emplace_back("(as seq.empty (Seq Char))", "($vsm_term ($sm_mk_str $smt_builtin_str_empty))");
+  d_specialCases["seq.empty"].emplace_back(
+      "(as seq.empty (Seq Char))",
+      "($vsm_term ($sm_mk_str $smt_builtin_str_empty))");
   addRecReduceSym("seq.unit", {kT}, "($smtx_seq_unit e1)");
   addRecReduceSym("seq.nth", {kT, kInt}, "($smtx_seq_nth e1 e2)");
   // sets
   // (Set T) is modelled as (Array T Bool).
-  addTypeSym(
-      "Set",
-      {kT});
+  addTypeSym("Set", {kT});
   addReduceSym("set.empty", {kT}, "$smtx_empty_set");
   addRecReduceSym("set.singleton", {kT}, "($smtx_set_singleton e1)");
   addRecReduceSym("set.inter", {kT, kT}, "($smtx_set_inter e1 e2)");
@@ -233,9 +238,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                    {kBitVec, kBitVec, kBitVec},
                    "(ite (bvslt x1 x2) (@bv 1 1) (@bv 0 1))");
   addLitSym("@bvsize", {kBitVec}, kInt, "x1");
-  //addLitBinSym("@bv", {kInt, kInt}, "x2", "x1");
-  // must guard for negative widths here, which will evaluate to stuck
-  addLitSym("@bv", {kInt, kInt}, kT, "($smtx_model_eval ($eo_mk_binary x2 x1))");
+  // addLitBinSym("@bv", {kInt, kInt}, "x2", "x1");
+  //  must guard for negative widths here, which will evaluate to stuck
+  addLitSym(
+      "@bv", {kInt, kInt}, kT, "($smtx_model_eval ($eo_mk_binary x2 x1))");
   addTermReduceSym("@bit", {kInt, kBitVec}, "(extract x1 x1 x2)");
   // tuples
   // these allow Herbrand interpretations
@@ -249,8 +255,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
 
 ModelSmt::~ModelSmt() {}
 
-void ModelSmt::addTypeSym(const std::string& sym,
-                          const std::vector<Kind>& args)
+void ModelSmt::addTypeSym(const std::string& sym, const std::vector<Kind>& args)
 {
   d_symIgnore[sym] = true;
   d_symTypes[sym] = args;
@@ -347,12 +352,15 @@ void ModelSmt::bind(const std::string& name, const Expr& e)
 void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
 {
   // check for special cases
-  std::map<std::string, std::vector<std::pair<std::string, std::string>>>::iterator itsc = d_specialCases.find(name);
-  if (itsc!=d_specialCases.end())
+  std::map<std::string,
+           std::vector<std::pair<std::string, std::string>>>::iterator itsc =
+      d_specialCases.find(name);
+  if (itsc != d_specialCases.end())
   {
-    for (size_t i=0, ncases=itsc->second.size(); i<ncases; i++)
+    for (size_t i = 0, ncases = itsc->second.size(); i < ncases; i++)
     {
-      printModelEvalCallBase(itsc->second[i].first, {}, itsc->second[i].second, Attr::NONE);
+      printModelEvalCallBase(
+          itsc->second[i].first, {}, itsc->second[i].second, Attr::NONE);
     }
   }
   Attr attr =
