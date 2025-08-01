@@ -60,6 +60,7 @@ Things handled at this stage:
 - Non-essential Eunoia commands (declare-type/define-type).
 - Operator properties.
   - :right-assoc-nil, :right-assoc, :left-assoc-nil, :left-assoc, :chainable, :binder, :let-binder
+- Desugar n-ary literal ops to binary (e.g. (eo::add a b c) -> (eo::add (eo::add a b) c)).
 
 === Desugar
 
@@ -74,12 +75,12 @@ Eunoia program $eovc_X which:
 This side condition is the target for verification in the Smt_Meta step below.
 
 Relies on:
-- eo_desugar.eo template, 320 LOC EO
+- eo_desugar.eo template, 327 LOC EO
 - desugar.cpp (ethos plugin), 1098 LOC C++
 - (Optional) trim_defs.cpp (ethos plugin), 283 LOC C++
   - Slices the signature, preserves S-expressions.
   - Needed to make the VCs more manageable.
-- flatten_eval.cpp (ethos utility), 473 LOC C++
+- flatten_eval.cpp (ethos utility), 477 LOC C++
   - Converts programs to a list of programs with no nested evaluation.
 
 Things handled at this stage:
@@ -113,18 +114,17 @@ Compiles *.eo to *.eo.
 Includes a definition of $eo_model_sat, which defines SMT-LIB model semantics.
 
 Relies on:
-- eo_builtin_smt.eo, 593 LOC EO
+- eo_builtin_smt.eo, 595 LOC EO
   - Defines the SMT-like builtins of Eunoia
   - Declares all terms in the SMT-LIB deep embedding
-- model_smt.eo, 454 LOC EO
+- model_smt.eo, 327 LOC EO
   - Model semantics $eo_model_sat
   - SMT-LIB input $eo_model_is_input
-  - type system for SMT-LIB terms and values $eo_model_typeof
-- model_smt.cpp (ethos plugin), 514 LOC C++
+- model_smt.cpp (ethos plugin), 568 LOC C++
 - trim_defs.cpp (ethos plugin), also used above
 
 Things handled at this stage:
-- Model preamble reduces many Eunoia builtins to SMT-LIB literal semantics (model_smt_preamble.eo)
+- Reduces many Eunoia builtins to SMT-LIB literal semantics
   - eo::not, eo::and, eo::or, eo::xor
   - eo::add, eo::mul, eo::qdiv, eo::zdiv, eo::zmod, eo::is_neg, eo::neg
   - eo::len, eo::concat, eo::extract, eo::find
@@ -136,27 +136,31 @@ Things handled at this stage:
   - eo::is_eq, eo::is_z, eo::is_q, eo::is_bin, eo::is_str, eo::is_bool, eo::is_var
   - eo::gt, eo::cmp
 - eo::typeof completed
-  - Includes definitions of literal types, and type of variables ($eo_Var).'
+  - Includes definitions of literal types, and type of variables ($eo_Var).
   - Reference to previously defined $eo_typeof_main.
 - Core Eunoia builtins defined.
   - eo::is_ok which reasons about the *deep embedding* of the SMT-LIB datatype we are defining.
     In particular, $eo_is_ok asks whether the deep embedding of the term under test
     in the datatype constructor eo.Stuck.
 - SMT-LIB semantics (model_smt.eo).
-  - Valueness ($smt_is_value)
-    - Builtin atomics.
-    - Datatypes.
-    - Function, array, set values.
-    - TODO: sequences
-  - TODO: Type enumeration ($smt_type_enum)?
-  - Existential semantics ($smt_model_eval_exists)
-  - TODO: Partial function semantics ($smt_model_lookup)
-  - Builtin operator semantics
-    - Defines a deep embedding of SMT-LIB terms into Eunoia via $smt_Term / $smt_apply_N
-  - Overloading arithmetic uses multi-case programs.
-  - Reverts operator overload, recognizes "$eoo_-.2" as SMT-LIB "-".
-  - Function and array values ($smt_Map), including lookups and valueness.
-  - Semantics of parametric bitvector operations
+  - Map utility
+    - Used for array or function values. Operations for lookup, canonical update.
+    - Specialized for sets. Utilities for basic operations on sets.
+  - Sequence utility.
+    - Used for sequence values.
+  - Defines a core evaluation semantics ($smt_model_eval)
+    - Function application.
+    - Auto-generated in various forms
+      - Term reductions "this operator evaluates based on the evaluation of this term"
+        - e.g. (bvsle x1 x2) is (bvsge x2 x1).
+      - Constant folding auxialary functions "this operator evaluates the arguments then calls the SMT-LIB operator on the result"
+        - e.g. (+ x1 x2) is ($smt_apply_2 "+" ($evaluate x1) ($evaluate x2))
+      - Hard-coded cases "this operator uses the custom function defined in this signature".
+        - e.g. (select x1 x2) is ($smtx_map_select ($evaluate x1) ($evaluate x2)).
+    - Overloading arithmetic uses multi-case programs.
+    - Reverts operator overload, recognizes "$eoo_-.2" as SMT-LIB "-".
+  - Forward declaration of type enumeration ($smt_model_type_enum)
+  - Existential semantics ($smt_eval_quant)
 
 
 === Smt_Meta
@@ -182,17 +186,12 @@ Things handled at this stage:
   - SMT-LIB Types (tsm.Type)
   - SMT-LIB Values (vsm.Value)
     - Note that values are disjoint from terms. Terms can be embedded into
-      values, guarded by a value-ness predicate.
-- Exception handling based on *datatype selector semantics*.
-  - Part of the trusted core is that the model_smt layer may use three distinguished
-    selectors (eo.SmtTerm.arg1, eo.SmtType.arg1, eo.SmtValue.arg1) *only* on Eunoia
-    terms that we are sure successfully evaluate. This is managed by a try/catch
-    pattern in model_smt.eo ($smt_try_X).
+      values using a distinguished constructor eo.Value, which is not allowed
+      in inputs.
 - Eunoia semantics of pattern matching based on datatype selectors/testers.
 - Symbols introduced for deep embedding in Model_Smt $smt_apply_N, $smt_type_N.
 - Remaining eo::define and define commands inlined.
 - Axiom for eo::hash
-- Axiom for partial function semantics
 - Ambiguously typed functions retain their "opaque" semantics, which is handled at this step.
 - :opaque on user symbols becomes part of the deep embedding.
   - For example a constructor like:
@@ -212,10 +211,7 @@ Not handled:
 - Modelling of assume-push/step-pop.
 - TODO: modelling of :conclusion-explicit, :assumption.
 - TODO: unconstrained semantics of datatype constructors and selectors
-
-- TODO: remove type checking from proof rule semantics?
-- TODO: type checking as a separate property: type preservation for proof rules.
-
+- TODO: axiom for type enumeration.
 - TODO: we could construct another intermediate *.eo where all types are
   replaced by those in the deep embedding.
 
@@ -223,7 +219,7 @@ Not handled:
 
 Future research:
 - Fuzz Ethos to make sure it is syncronized with desugaring semantics.
-- Lean_Meta plugin, either:
+- Lean_Meta or Isabelle_Meta plugin, either:
   - A reimplementation of the above meta-prover in Lean.
   - Use cvc5 to prove meta-theorems and replay them for each proof rule.
 - Parametric bitvectors in cvc5 to prove VCs.
