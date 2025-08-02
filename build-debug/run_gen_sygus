@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# ****** THIS IS THE MAIN ENTRY POINT FOR VERIFICATION OF EUNOIA **********
+# ****** THIS IS THE MAIN ENTRY POINT FOR SYGUS VALIDATION OF EUNOIA **********
 
 # To run this script:
-# ./run_gen_vc <proof-rule-name>
+# ./run_gen_sygus <proof-rule-name>
 
-# This will generate a *.smt2 file that encodes the soundness of that proof
-# rule. If the generated *.smt2 is unsat, then the proof rule is shown to be
-# sound by this toolchain.
+# This will generate a *.sy file that encodes a synthesis problem to find
+# unsoundness of that proof rule. If the generated *.sy has a solution, then
+# the proof rule is shown to be unsound by this toolchain.
 
 # The name of a EO signature
 INPUT="../../cvc5-ajr/proofs/eo/cpc/Cpc.eo"
