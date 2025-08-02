@@ -79,7 +79,6 @@ ExprParser::ExprParser(Lexer& lex, State& state, bool isSignature)
   d_strToAttr[":syntax"] = Attr::SYNTAX;
   d_strToAttr[":restrict"] = Attr::RESTRICT;
   d_strToAttr[":sorry"] = Attr::SORRY;
-  d_strToAttr[":semantics"] = Attr::SEMANTICS;
 
   d_strToLiteralKind["<boolean>"] = Kind::BOOLEAN;
   d_strToLiteralKind["<numeral>"] = Kind::NUMERAL;
@@ -1072,10 +1071,6 @@ void ExprParser::parseAttributeList(
             val = parseExprPair();
           }
             break;
-            case Attr::SEMANTICS:
-              handled = true;
-              val = parseExpr();
-              break;
             default: break;
         }
       }

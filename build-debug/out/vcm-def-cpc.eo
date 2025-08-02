@@ -1518,7 +1518,8 @@
 
 ;;; Quantifiers
 
-; Forward declaration for below.
+; Returns the n^th term in the enumeration of type.
+; This is axiomatized.
 (program $smtx_model_type_enum () :signature ($eo_Term $smt_builtin_Int) $smt_Value)
 
 ; Substitution
@@ -1681,7 +1682,7 @@
   ; function whose model evaluation is an SMT-LIB map in this case.
   ; All interpreted f should be handled in the evaluation cases above.
   (($smtx_model_eval (f y))
-    ($smtx_model_eval_apply ($smtx_model_eval f)  ($smtx_model_eval y)))
+    ($smtx_model_eval_apply ($smtx_model_eval f) ($smtx_model_eval y)))
   ; An SMT-LIB value, which returns its value.
   (($smtx_model_eval ($eo_Value val))             val)
   ; Otherwise, it may be a term value (e.g. if z is a Boolean or numeral constant).
@@ -1729,9 +1730,10 @@
 
 ; program: $smtx_is_input
 ; Returns true if the given term uses only SMT-LIB syntax. This will
-; return false e.g. if it contains Eunoia-specific terms (e.g. $eo_List)
-; or if it contains free constants that are not interpreted as canonical
-; values.
+; return false e.g. if it contains Eunoia-specific terms. Note that
+; we assume that binders use $eo_List, so they are included here.
+; We do *not* allow $eo_Value here, which may not be canonical values
+; and are not strictly permitted.
 (program $smtx_is_input
   ((T Type) (s $smt_builtin_String) (t $eo_Term) (a $eo_Term)
    (tu $smt_Type) (tt $smt_Term))

@@ -70,11 +70,6 @@ Expr StdPlugin::lookupVar(const std::string& name)
   return e;
 }
 
-void StdPlugin::markSemantics(const Expr& c, const Expr& t)
-{
-  d_markedSemantics[c] = t;
-}
-
 void StdPlugin::finalizeDeclaration(const Expr& t, std::ostream& os) {}
 void StdPlugin::setLiteralTypeRule(Kind k, const Expr& t)
 {

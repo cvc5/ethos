@@ -39,10 +39,6 @@ class StdPlugin : public Plugin
   ~StdPlugin();
   /** Set type rule for literal kind k to t */
   void setLiteralTypeRule(Kind k, const Expr& t) override;
-  /**
-   * Mark semantics, used for meta-level reasoning.
-   */
-  void markSemantics(const Expr& c, const Expr& t) override;
 
  protected:
   Expr lookupVar(const std::string& name);
@@ -67,8 +63,6 @@ class StdPlugin : public Plugin
   std::set<Expr> d_ltDeclProcessed;
   /** type variable counter */
   size_t d_typeVarCounter;
-  /** mark semantics */
-  std::map<Expr, Expr> d_markedSemantics;
 
   std::stringstream d_litTypeDecl;
   std::stringstream d_litTypeProg;

@@ -393,7 +393,7 @@
   
   
   (($smtx_model_eval (f y))
-    ($smtx_model_eval_apply ($smtx_model_eval f)  ($smtx_model_eval y)))
+    ($smtx_model_eval_apply ($smtx_model_eval f) ($smtx_model_eval y)))
   
   (($smtx_model_eval ($eo_Value val))             val)
   

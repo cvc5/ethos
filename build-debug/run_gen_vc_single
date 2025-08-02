@@ -1,6 +1,9 @@
 #!/bin/bash
 
-#USE_SYGUS=ON
+if [ X$1 = X'-sygus' ]; then
+  USE_SYGUS=ON
+  shift
+fi
 
 OUT_DIR=./out
 

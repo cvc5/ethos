@@ -63,6 +63,9 @@ public:
                            const Expr& referenceNf)
   {
   }
+  /**
+   * Same as above, but called immediately after a file has been parsed.
+   */
   virtual void finalizeIncludeFile(const Filepath& s,
                                    bool isSignature,
                                    bool isReference,
@@ -141,10 +144,6 @@ public:
    * @return true if the caller should print the message.
    */
   virtual bool echo(const std::string& msg) { return true; }
-  /**
-   * Mark semantics, used for meta-level reasoning.
-   */
-  virtual void markSemantics(const Expr& c, const Expr& t) {}
   //--------- finalize
   /**
    * Finalize. Called once when the proof checker has finished parsing all input.
