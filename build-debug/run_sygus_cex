@@ -1,3 +1,0 @@
-#!/bin/bash
-echo "Find counterexamples with sygus, via --lang=sygus --no-e-matching"
-ajr-cvc5 --lang=sygus --ext-rewrite-quant -o sygus $@
