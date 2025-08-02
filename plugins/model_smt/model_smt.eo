@@ -1,0 +1,591 @@
+; This file defines SMT-LIB model semantics in Eunoia.
+; It has exception handling utilities to call Eunoia programs in
+; a safe way that ensures that all programs in this signature are total.
+
+; The programs in this file operate on datatypes that correspond to
+; a deep embedding of Eunoia and SMT-LIB terms, types and values.
+; In particular, we use the following types:
+; 1. $eo_Term, the type of Eunoia terms.
+; 2. $smt_Term, the type of SMT-LIB terms.
+; 3. $smt_Type, the type of SMT-LIB types.
+; 4. $smt_Value, the type of SMT-LIB values.
+; 5. Further types defining specific SMT-LIB values, e.g. $smt_Map.
+; 6. $smt_builtin_X, the builtin SMT-LIB type X.
+; Note that the last type allows us to define symbols whose type
+; will be a native SMT-LIB type in the final embedding generated
+; by the smt-meta plugin.
+
+;;;;;; Exception handling
+
+; Utilities to ensure that programs are total.
+; Takes
+; - A $eo_Term t where we are not sure if it gets stuck.
+; - A $eo_Term elseTerm where we are sure it does not get stuck.
+; Returns the SMT term corresponding to the evaluation of t, if possible,
+; or elseTerm otherwise. This always successfully evaluates.
+(define $smt_try ((t $eo_Term) (elseTerm $eo_Term))
+  ($smt_apply_3 "ite" ($smt_builtin_is_ok t)
+    t
+    elseTerm))
+    
+; Guarded execution of $eo_typeof.
+(define $smt_try_type ((t $eo_Term)) ($smt_try ($eo_typeof t) $eo_null_type))
+
+;;;;;; SMT values
+
+;;; Generic utilities
+
+; returns one of (v1,v2), preferring values to non-values
+(program $smtx_value_either ((v1 $smt_Value) (v2 $smt_Value))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_value_either v1 $vsm_not_value) v1)
+  (($smtx_value_either $vsm_not_value v2) v2)
+  (($smtx_value_either v1 v2)             v1)
+  )
+)
+
+;;; Map utilities
+
+; Get the default for the map
+(program $smtx_msm_get_default
+  ((i $smt_Value) (j $smt_Value) (e $smt_Value) (m $smt_Map))
+  :signature ($smt_Map) $smt_Value
+  (
+  (($smtx_msm_get_default ($msm_cons j e m))  ($smtx_msm_get_default m))
+  (($smtx_msm_get_default ($msm_default e))   e)
+  )
+)
+
+; This program looks up the value of a term in a map.
+; This is used for function evaluation.
+(program $smtx_msm_lookup
+  ((i $smt_Value) (j $smt_Value) (e $smt_Value) (m $smt_Map))
+  :signature ($smt_Map $smt_Value) $smt_Value
+  (
+  (($smtx_msm_lookup ($msm_cons i e m) i)  e)
+  (($smtx_msm_lookup ($msm_cons j e m) i)  ($smtx_msm_lookup m i))
+  (($smtx_msm_lookup ($msm_default e) i)   e)
+  )
+)
+
+; updates the map with a new entry, maintaining ordered-ness
+(program $smtx_msm_update
+  ((i $smt_Value) (j $smt_Value) (e1 $smt_Value) (e2 $smt_Value) (m $smt_Map))
+  :signature ($smt_Map $smt_Value $smt_Value) $smt_Map
+  (
+  ; we overwrite if same index
+  (($smtx_msm_update ($msm_cons i e1 m) i e2) ($msm_cons i e2 m))
+  ; otherwise, we check the hash to retain sortedness
+  (($smtx_msm_update ($msm_cons j e1 m) i e2) ($smt_apply_3 "ite" ($smtx_value_cmp j i)
+                                                ($msm_cons i e2 ($msm_cons j e1 m))
+                                                ($msm_cons j e1 ($smtx_msm_update m i e2))))
+  ; we are redundant wrt the default value
+  (($smtx_msm_update ($msm_default e1) i e1)  ($msm_default e1))
+  ; ensures totality, we are a non-redundant update of the default map
+  (($smtx_msm_update m i e2)                  ($msm_cons i e2 m))
+  )
+)
+
+; Returns the first index of m1 that is mapped to a different value in m2.
+; If no such value exists, return $vsm_not_value.
+(program $smtx_msm_find_diff
+  ((i $smt_Value) (e $smt_Value) (m1 $smt_Map) (m2 $smt_Map))
+  :signature ($smt_Map $smt_Map) $smt_Value
+  (
+  (($smtx_msm_find_diff ($msm_default e) m2)    $vsm_not_value)
+  (($smtx_msm_find_diff ($msm_cons i e m1) m2)
+    ; Lookup the current index, if it different, return this index.
+    ($smt_apply_3 "ite"
+      ($smt_apply_= ($smtx_msm_lookup m2 i) e)
+      ($smtx_msm_find_diff m1 m2)
+      i))
+  )
+)
+
+;;; Map as sets
+
+; A set is a mapping to Bool.
+; The empty set maps all to false.
+(define $msm_empty_set () ($msm_default $vsm_false))
+; Inserting sets e to true.
+(define $smtx_mss_mk_insert ((e $smt_Value) (m $smt_Map)) ($smtx_msm_update m e $vsm_true))
+(define $smtx_mss_insert ((e $smt_Value) (m $smt_Map)) ($msm_cons e $vsm_true m))
+(define $smtx_mss_member ((e $smt_Value) (m $smt_Map))
+  ($smt_apply_= ($smtx_msm_lookup m e) $vsm_true))
+
+; Helper for computing binary set operators.
+(program $smtx_mss_op_internal
+  ((m1 $smt_Map) (m2 $smt_Map) (acc $smt_Map) (e $smt_Value) (isInter $smt_builtin_Bool))
+  :signature ($smt_builtin_Bool $smt_Map $smt_Map $smt_Map) $smt_Map
+  (
+  (($smtx_mss_op_internal isInter $msm_empty_set m2 acc) acc)
+  (($smtx_mss_op_internal isInter ($smtx_mss_insert e m1) m2 acc)
+    ($smtx_mss_op_internal isInter m1 m2
+      ($smt_apply_3 "ite"
+        ($smt_apply_= ($smtx_mss_member e m2) isInter)
+        ($smtx_mss_mk_insert e acc)
+        acc)))
+  )
+)
+
+;;; Utilities for Sequence values
+
+(program $smtx_ssm_seq_nth ((v $smt_Value) (vs $smt_Seq) (n $smt_builtin_Int))
+  :signature ($smt_Seq $smt_builtin_Int) $smt_Value
+  (
+  (($smtx_ssm_seq_nth $ssm_empty n)                           $vsm_not_value)
+  (($smtx_ssm_seq_nth ($ssm_cons v vs) $smt_builtin_z_zero)   v)
+  (($smtx_ssm_seq_nth ($ssm_cons v vs) n)
+    ($smtx_ssm_seq_nth vs ($smt_builtin_z_dec n)))
+  )
+)
+
+;;; Utilities for Datatype values
+
+; TODO: meta semantics for arbitrary unknown datatypes?
+
+; define: $smt_is_dt
+; returns: true if t is a datatpe (i.e. it has constructors).
+(define $smt_is_dt ((t $smt_Type))
+  ($smt_builtin_is_ok ($eo_dt_constructors t)))
+
+; define: $smt_is_dt_cons
+; returns: true if t is a constructor (i.e. it has selectors).
+(define $smt_is_dt_cons ((t $smt_Term))
+  ($smt_builtin_is_ok ($eo_dt_selectors t)))
+
+;;; Utilities for making values
+
+; program: $smtx_is_atomic_term_value
+; Returns true if its argument is an SMT value.
+; This function is expected to never get stuck.
+; Note that this does not take a type. This function must ensure
+; that if it returns true for two terms t1 and t2 of the same type,
+; then t1 != t2 in all models.
+(program $smtx_is_atomic_term_value
+  ((t $smt_Term) (b $smt_builtin_Bool) (w $smt_builtin_Int) (n $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String))
+  :signature ($smt_Term) $smt_builtin_Bool
+  (
+  ; standard atomic types are values
+  (($smtx_is_atomic_term_value ($sm_mk_bool b))  $smt_builtin_true)
+  (($smtx_is_atomic_term_value ($sm_mk_z n))     $smt_builtin_true)
+  (($smtx_is_atomic_term_value ($sm_mk_q r))     $smt_builtin_true)
+  (($smtx_is_atomic_term_value ($sm_mk_str s))   $smt_builtin_true)
+  (($smtx_is_atomic_term_value ($sm_binary w n))
+    ; must be legal width and value
+    ($smt_builtin_and
+      ($smt_apply_1 "<= 0" w)
+      ($smt_apply_= ($sm_binary w n) ($sm_mk_binary w n))))
+  ; by default, not a value
+  (($smtx_is_atomic_term_value t)                $smt_builtin_false)
+  )
+)
+
+; Returns a term of type $smt_Value, embeds the term
+; if indeed it is a value, or returns not a value otherwise.
+(define $smt_mk_value_term ((t $smt_Term))
+  ($smt_apply_3 "ite" ($smtx_is_atomic_term_value t)
+    ; an atomic term, e.g. 0, true, "abc"
+    ($vsm_term t)
+    ($smt_apply_3 "ite" ($smt_is_dt_cons t)
+      ; a datatype constructor, which becomes a (nil-terminated) vsm_apply
+      ($vsm_apply ($vsm_term t) $vsm_not_value)
+      $vsm_not_value)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Model semantics
+
+; Forward declaration of the main method defined by this signature.
+; We use this to define $eo_model_sat.
+(program $smtx_model_eval () :signature ($eo_Term) $smt_Value)
+
+;;; Core
+
+; program: $smtx_model_eval_apply
+; We call ($smtx_model_eval_apply value_f value_i) when
+; evaluating (f i) whose values are value_f and value_i
+; respectively. If value_f is a map value, then we extract
+; the map and call the map lookup routine.
+(program $smtx_model_eval_apply
+  ((m $smt_Map) (i $smt_Value) (f $smt_Value) (v $smt_Value))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  ; If a Herbrand interpretation, apply it to the next value.
+  (($smtx_model_eval_apply ($vsm_apply f v) i)  ($vsm_apply ($vsm_apply f v) i))
+  ; The function evaluated to a map value, call the map lookup.
+  (($smtx_model_eval_apply ($vsm_map m) i)    ($smtx_msm_lookup m i))
+  ; The function did not evaluate to a map value, we fail.
+  (($smtx_model_eval_apply v i)                 $vsm_not_value)
+  )
+)
+
+; ITE branches to the appropriate child.
+; return: The evaluation of an ite application.
+(program $smtx_model_eval_ite
+  ((t1 $smt_Value) (t2 $smt_Value) (t3 $smt_Value))
+  :signature ($smt_Value $smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_ite $vsm_true t2 t3)   t2)
+  (($smtx_model_eval_ite $vsm_false t2 t3)  t3)
+  (($smtx_model_eval_ite t1 t2 t3)          $vsm_not_value)
+  )
+)
+
+; Equality insists on valueness and then reduces to an equality over datatypes
+; in the deep embedding (vsm.Value), meaning it works for all types, including
+; functions and uninterpreted sorts where values are not represented by terms.
+; Note that the valueness predicate ensures this is sound. Moreover note that
+; we do not invoke the type checker here. This means that if an ill-typed
+; equality was given as input to this method, it would always evaluate to false.
+; The caller of this method is responsible for ensuring that this behavior is
+; either avoided or admissible.
+; return: The evaluation of an equality application.
+(program $smtx_model_eval_=
+  ((t1 $smt_Value) (t2 $smt_Value))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_model_eval_= $vsm_not_value t2) $vsm_not_value)
+  (($smtx_model_eval_= t1 $vsm_not_value) $vsm_not_value)
+  ; use datatype equality over $smt_Value, which depends on t1 and t2 being proper values.
+  (($smtx_model_eval_= t1 t2)             ($vsm_term ($sm_mk_bool ($smt_apply_= t1 t2))))
+  )
+)
+
+;;; Functions, arrays
+
+; Array select
+(program $smtx_map_select
+  ((v $smt_Value) (i $smt_Value) (m $smt_Map))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_map_select ($vsm_map m) i) ($smtx_msm_lookup m i))
+  (($smtx_map_select v i)              $vsm_not_value)
+  )
+)
+
+; Array store
+(program $smtx_map_store
+  ((v $smt_Value) (i $smt_Value) (e $smt_Value) (m $smt_Map))
+  :signature ($smt_Value $smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_map_store ($vsm_map m) i e) ($vsm_map ($smtx_msm_update m i e)))
+  (($smtx_map_store v i e)            $vsm_not_value)
+  )
+)
+
+; Array diff
+; Returns the value where m1 and m2 differ, or $vsm_not_value otherwise.
+(program $smtx_map_diff ((m1 $smt_Map) (m2 $smt_Map))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_map_diff ($vsm_map m1) ($vsm_map m2))
+    ; find an index in the first that conflicts with the second, or vice versa
+    ($smtx_value_either ($smtx_msm_find_diff m1 m2) ($smtx_msm_find_diff m2 m1)))
+  )
+)
+
+;;; Sets
+
+; Empty set
+(define $smtx_empty_set () ($vsm_map $msm_empty_set))
+
+; Set singleton
+; return the singleton set whose type is T and contains e.
+(define $smtx_set_singleton ((e $smt_Value))
+  ($vsm_map ($smtx_mss_insert e $msm_empty_set)))
+
+; Set intersection
+; return the intersection of two set values.
+(program $smtx_set_inter
+  ((m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_set_inter ($vsm_map m1) ($vsm_map m2))
+    ; m1 intersected m2 starting with empty set.
+    ($vsm_map ($smtx_mss_op_internal $smt_builtin_true m1 m2 $msm_empty_set)))
+  (($smtx_set_inter v1 v2)  $vsm_not_value)
+  )
+)
+
+; Set minus
+; return the set minus of two set values.
+(program $smtx_set_minus
+  ((m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_set_minus ($vsm_map m1) ($vsm_map m2))
+    ; m1 minus m2 starting with empty set.
+    ($vsm_map ($smtx_mss_op_internal $smt_builtin_false m1 m2 $msm_empty_set)))
+  (($smtx_set_minus v1 v2)  $vsm_not_value)
+  )
+)
+
+; Set union
+; return the union of two set values.
+(program $smtx_set_union
+  ((m1 $smt_Map) (m2 $smt_Map) (v1 $smt_Value) (v2 $smt_Value))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_set_union ($vsm_map m1) ($vsm_map m2))
+    ; m1 minus the empty set starting with m2.
+    ($vsm_map ($smtx_mss_op_internal $smt_builtin_false m1 $msm_empty_set m2)))
+  (($smtx_set_union v1 v2)  $vsm_not_value)
+  )
+)
+
+;;; Sequences
+
+; Empty sequence
+(define $smtx_empty_seq () ($vsm_seq $ssm_empty))
+
+; Sequence unit
+(define $smtx_seq_unit ((e $smt_Value)) ($vsm_seq ($ssm_cons e $ssm_empty)))
+
+; Sequence nth
+(program $smtx_seq_nth
+  ((s $smt_Seq) (n $smt_builtin_Int) (v1 $smt_Value) (v2 $smt_Value))
+  :signature ($smt_Value $smt_Value) $smt_Value
+  (
+  (($smtx_seq_nth ($vsm_seq s) ($vsm_term ($sm_mk_z n))) ($smtx_ssm_seq_nth s n))
+  (($smtx_seq_nth v1 v2) $vsm_not_value)
+  )
+)
+
+;;; Quantifiers
+
+; Returns the n^th term in the enumeration of type.
+; This is axiomatized.
+(program $smtx_model_type_enum () :signature ($eo_Term $smt_builtin_Int) $smt_Value)
+
+; Substitution
+; program: $smtx_model_val_substitute
+; Used to define $smtx_eval_quant.
+; ($smtx_model_val_substitute x v t) returns the term where x is replaced by
+; the constant that is interpreted as v.
+(program $smtx_model_val_substitute
+  ((x $eo_Term) (v $smt_Value) (f $eo_Term) (a $eo_Term) (z $eo_Term))
+  :signature ($eo_Term $smt_Value $eo_Term) $eo_Term
+  (
+  (($smtx_model_val_substitute x v (f a))
+    (_ ($smtx_model_val_substitute x v f) ($smtx_model_val_substitute x v a)))
+  (($smtx_model_val_substitute x v x) ($eo_Value v))   ; we are now the constant with the given interpretation
+  (($smtx_model_val_substitute x v z) z)
+  )
+)
+
+; Helper for model evaluation of quantifiers.
+; Say we are checking the satisfiability of (exists ((x T)) F).
+; We call ($smtx_eval_quant_next ($vsm_Pair_mk m ws) w true) in this context
+; where F[w/x] evaluated to m, where ws is the list of witnesses we have accumulated
+; so far. This method either returns a $vsm_Pair corresponding to the final return value of
+; the function below, or $vsm_not_value if we were inconclusive. In particular, if m is
+; true, we append w to ws. If m is false, we are inconclusive. If m was another value, then
+; we return $vsm_not_value, indicating the model value of the entire quantified formula is
+; unknown.
+(program $smtx_eval_quant_next
+  ((b $smt_builtin_Bool) (mv $smt_Value) (w $smt_Value) (ws $vsm_List) (tgt $smt_builtin_Bool))
+  :signature ($vsm_Pair $smt_Value $smt_builtin_Bool) $smt_Value
+  (
+  ; if the body evaluated to the target value, return successfully
+  (($smtx_eval_quant_next ($vsm_Pair_mk ($vsm_term ($sm_mk_bool tgt)) ws) w tgt)
+    ($vsm_Pair_mk ($vsm_term ($sm_mk_bool tgt)) ($smtx_vsm_List_cons w ws)))
+  ; if the body successfully evaluated but was the negation of the target, we are inconclusive
+  (($smtx_eval_quant_next ($vsm_Pair_mk ($vsm_term ($sm_mk_bool b)) ws) w tgt)
+    $vsm_not_value)
+  ; if the body evaluated to something else, return that we are unevaluated
+  (($smtx_eval_quant_next mv w b)
+    ($vsm_Pair_mk $vsm_not_value $vsm_List_empty))
+  )
+)
+
+; Model evaluation of quantifiers.
+; Returns a pair of values (v, k) where
+;   v is the result of evaluating (Q xs F),
+;   k is the sequence of values that witnessed it, if applicable.
+; This method is non-terminating in general, as it iterates over potentially
+; infinite type enumerations. Nevertheless, we expect to be able to reason about
+; it symbolically.
+; note: this assumes that binders use $eo_List for their binder!
+(program $smtx_eval_quant
+  ((Q (-> $eo_List $eo_Term $eo_Term)) (x $eo_Term) (xs $eo_Term) (F $eo_Term) (i $smt_builtin_Int) (tgt $smt_builtin_Bool))
+  :signature ($eo_Term $smt_builtin_Int $smt_builtin_Bool) $vsm_Pair
+  (
+  (($smtx_eval_quant (Q $eo_List_nil F) i tgt)
+    ; finished instantiation, evaluate the instantiated body and give the empty list
+    ($vsm_Pair_mk ($smtx_model_eval F) $vsm_List_empty))
+  (($smtx_eval_quant (Q ($eo_List_cons x xs) F) i tgt)
+    ; get the next value in the type enumeration
+    (eo::define ((T ($smt_try_type x)))
+    (eo::define ((next ($smtx_model_type_enum T i)))
+    ; if we are out of values, we return the negation
+    ($smt_apply_3 "ite" ($smt_apply_= next $vsm_not_value)
+      ; out of values, return the negation of target with no value (no witness)
+      ($vsm_Pair_mk ($vsm_term ($sm_mk_bool ($smt_apply_1 "not" tgt))) $vsm_List_empty)
+      ; recurse on the next variable
+      (eo::define ((subs ($smtx_model_val_substitute x next F)))
+      (eo::define ((eval ($smtx_eval_quant (Q xs subs) $smt_builtin_z_zero tgt)))
+      ; setup the return value
+      (eo::define ((ret ($smtx_eval_quant_next eval next tgt)))
+      ; check if the above setup was inconclusive
+      ($smt_apply_3 "ite" ($smt_apply_= ret $vsm_not_value)
+        ; inconclusive, recurse for the next value in the type enumeration for the current variable
+        ($smtx_eval_quant (Q ($eo_List_cons x xs) F) ($smt_builtin_z_inc i) tgt)
+        ; otherwise return, which is either the case that we failed to evaluate, or evaluated to tgt
+        ret))))))))
+  ; not a quantified formula, fail
+  (($smtx_eval_quant F i tgt) $vsm_not_value)
+  )
+)
+
+; main entry for model evaluation of exists.
+(program $smtx_model_eval_exists ((F $eo_Term))
+  :signature ($eo_Term) $smt_Value
+  (
+  (($smtx_model_eval_exists F)
+    ; use the routine above, returning the first component
+    ($smtx_vsm_Pair_first ($smtx_eval_quant F $smt_builtin_z_zero $smt_builtin_true)))
+  )
+)
+
+; main entry for model evaluation of forall.
+(program $smtx_model_eval_forall ((F $eo_Term))
+  :signature ($eo_Term) $smt_Value
+  (
+  (($smtx_model_eval_forall F)
+    ; use the routine above, returning the second component
+    ($smtx_vsm_Pair_first ($smtx_eval_quant F $smt_builtin_z_zero $smt_builtin_false)))
+  )
+)
+
+; main entry for model evaluation of choice.
+; this returns the choice function for the n^th variable of existential F.
+(program $smtx_eval_choice_nth ((F $eo_Term) (n $smt_builtin_Int) (t $eo_Term))
+  :signature ($eo_Term $eo_Term) $smt_Value
+  (
+  (($smtx_eval_choice_nth F ($eo_mk_numeral n))
+    ; use the routine above, returning the n^th element of the second component
+    ; note that we expect F to be a forall, hence we use false as the target value.
+    (eo::define ((eval ($smtx_eval_quant F $smt_builtin_z_zero $smt_builtin_false)))
+      ($smtx_seq_nth ($smtx_vsm_Pair_second eval) ($vsm_term ($sm_mk_z n)))))
+  ; fail if we did not pass a numeral
+  (($smtx_eval_choice_nth F t) $vsm_not_value)
+  )
+)
+
+;;; Other model evaluation functions
+
+$SMT_EVAL_PROGS$
+
+; An evaluator for all terms that we can reason about models.
+; This is a recursive call.
+; invariant: this must be a total function
+; invariant: unless this method returns $vsm_not_value, it must be such that
+;            it represents a unique SMT-LIB value, i.e. ($vsm_term t) is
+;            forbidden unless t denotes a value.
+(program $smtx_model_eval
+  ((f $eo_Term) (y $eo_Term) (z $eo_Term) (val $smt_Value) (T $eo_Term)
+   ; generic parameters that may appear in terms to pattern match
+   (x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term) (x4 $eo_Term) (x5 $eo_Term))
+  :signature ($eo_Term) $smt_Value
+  (
+  ; evaluation of standard SMT symbols
+  ; These calls will reference helper methods above, e.g. of the form
+  ; $smtx_model_eval_*, or call builtin methods e.g. $smtx_eval_quant.
+$SMT_EVAL_CASES$
+  
+  ; Apply case. We evaluate f and y separately and then call the
+  ; $smtx_model_eval_apply above. We expect f to be an uninterpreted
+  ; function whose model evaluation is an SMT-LIB map in this case.
+  ; All interpreted f should be handled in the evaluation cases above.
+  (($smtx_model_eval (f y))
+    ($smtx_model_eval_apply ($smtx_model_eval f) ($smtx_model_eval y)))
+  ; An SMT-LIB value, which returns its value.
+  (($smtx_model_eval ($eo_Value val))             val)
+  ; Otherwise, it may be a term value (e.g. if z is a Boolean or numeral constant).
+  ; We call the utility method which will either generate an SMT-LIB term value or
+  ; a SMT-LIB non-value error term.
+  (($smtx_model_eval z)                           ($smt_mk_value_term z))
+  )
+)
+
+; program: $smtx_model_sat
+(program $smtx_model_sat ((val $smt_Value))
+  :signature ($smt_Value) $eo_Option
+  (
+  (($smtx_model_sat $vsm_true)  ($eo_Option_some true))
+  (($smtx_model_sat $vsm_false) ($eo_Option_some false))
+  (($smtx_model_sat val)        $eo_Option_null)
+  )
+)
+
+; program: $smtx_model_sat_combined
+; args:
+; - isInput Bool: Whether it is legal SMT-LIB input syntax.
+; - T Type: Its type.
+; - val $smt_Value: The result of model value.
+(program $smtx_model_sat_combined ((b Bool) (T Type) (val $smt_Value))
+  :signature (Bool Type $smt_Value) $eo_Option
+  (
+  (($smtx_model_sat_combined true Bool $vsm_true)  ($eo_Option_some true))
+  (($smtx_model_sat_combined true Bool $vsm_false) ($eo_Option_some false))
+  (($smtx_model_sat_combined b T val)        $eo_Option_null)
+  )
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; SMT-LIB input syntax
+
+(program $smtx_is_list
+  ((t $eo_List) (a $eo_Term) (s $smt_builtin_String) (T $smt_builtin_Int))
+  :signature ($eo_Term) $smt_builtin_Bool
+  (
+  (($smtx_is_list $eo_List_nil)         $smt_builtin_true)
+  (($smtx_is_list ($eo_List_cons a t))  ($smtx_is_list t))
+  (($smtx_is_list t)                    $smt_builtin_false)
+  )
+)
+
+; program: $smtx_is_input
+; Returns true if the given term uses only SMT-LIB syntax. This will
+; return false e.g. if it contains Eunoia-specific terms. Note that
+; we assume that binders use $eo_List, so they are included here.
+; We do *not* allow $eo_Value here, which may not be canonical values
+; and are not strictly permitted.
+(program $smtx_is_input
+  ((T Type) (s $smt_builtin_String) (t $eo_Term) (a $eo_Term)
+   (tu $smt_Type) (tt $smt_Term))
+  :signature ($eo_Term) $smt_builtin_Bool
+  (
+  ; all legal constants handled above, false otherwise
+  (($smtx_is_input ($eo_smt_term tt))               $smt_builtin_true)
+  (($smtx_is_input ($eo_smt_type tu))               $smt_builtin_true)
+  (($smtx_is_input ($eo_Var s T))                   $smt_builtin_true)
+  (($smtx_is_input ($eo_List_cons a t))             ($smtx_is_list t))
+  (($smtx_is_input ($eo_apply t a))
+    ($smt_builtin_and ($smtx_is_input t) ($smtx_is_input a)))
+  (($smtx_is_input t)                               $smt_builtin_false)
+  )
+)
+
+;;;;;;;;;;;;;;;;;;;;;;
+
+; program: $eo_model_sat
+; note: F is satisfied by the model if F evaluates to the SMT-LIB value denoting true.
+; We expect the input to this method to be a Eunoia term denoting an SMT-LIB formula
+; (term of Boolean type).
+(program $eo_model_sat ((F Bool))
+  :signature (Bool) $eo_Option
+  (
+  (($eo_model_sat F) ($smtx_model_sat ($smtx_model_eval F)))
+  )
+)
+
+; program: $eo_model_is_input
+; return: true if this is a legal SMT-LIB input term or type.
+(program $eo_model_is_input ((F Bool))
+  :signature (Bool) Bool
+  (
+  (($eo_model_is_input F) ($eo_smt_term ($sm_mk_bool ($smtx_is_input F))))
+  )
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_end

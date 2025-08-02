@@ -23,6 +23,7 @@ enum class Attr
   IMPLICIT,
   REQUIRES,
   TYPE,
+  SEMANTICS,
   // properties of rules
   SORRY,
 

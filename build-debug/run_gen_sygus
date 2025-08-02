@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# ****** THIS IS THE MAIN ENTRY POINT FOR SYGUS VALIDATION OF EUNOIA **********
+
+# To run this script:
+# ./run_gen_sygus <proof-rule-name>
+
+# This will generate a *.sy file that encodes a synthesis problem to find
+# unsoundness of that proof rule. If the generated *.sy has a solution, then
+# the proof rule is shown to be unsound by this toolchain.
+
+# The name of a EO signature
+INPUT="../../cvc5-ajr/proofs/eo/cpc/Cpc.eo"
+# should be the name of a constant or proof rule in $INPUT
+TARGET=$1
+
+function check_status()
+{
+status=$?
+if [[ $status -eq 0 ]]; then
+  echo "success"
+else
+  exit $status
+fi
+}
+
+echo "**** Compile ethos"
+make -j4
+check_status
+
+./run_gen_vc_single -sygus $INPUT $TARGET
+

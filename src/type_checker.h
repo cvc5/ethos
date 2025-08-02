@@ -51,6 +51,12 @@ class TypeChecker
   /** Set type rule for literal kind k to t */
   void setLiteralTypeRule(Kind k, const Expr& t);
   /**
+   * Get or set type rule (to default) for literal kind k. The argument
+   * self is the expression to instantiate eo::self with, if applicable,
+   * otherwise eo::? is used.
+   */
+  Expr getOrSetLiteralTypeRule(Kind k, ExprValue* self = nullptr);
+  /**
    * Evaluate the expression e in the given context.
    */
   Expr evaluate(ExprValue* e, Ctx& ctx);
@@ -98,12 +104,6 @@ class TypeChecker
                               Ctx& newCtx);
   /** Return its type */
   Expr getTypeInternal(ExprValue* e, std::ostream* out);
-  /**
-   * Get or set type rule (to default) for literal kind k. The argument
-   * self is the expression to instantiate eo::self with, if applicable,
-   * otherwise eo::? is used.
-   */
-  Expr getOrSetLiteralTypeRule(Kind k, ExprValue* self = nullptr);
   /** Evaluate literal op */
   Expr evaluateLiteralOpInternal(Kind k, const std::vector<ExprValue*>& args);
   /** Evaluate list rev internal

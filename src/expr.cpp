@@ -384,6 +384,10 @@ void Expr::printDebugInternal(const Expr& e,
       }
       else
       {
+        if (k == Kind::ANNOT_PARAM)
+        {
+          // TODO?
+        }
         os << "(";
         if (k == Kind::APPLY_OPAQUE)
         {
