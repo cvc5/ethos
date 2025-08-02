@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# ****** THIS IS THE MAIN ENTRY POINT FOR VERIFICATION OF EUNOIA **********
+
+# To run this script:
+# ./run_gen_vc <proof-rule-name>
+
+# This will generate a *.smt2 file that encodes the soundness of that proof
+# rule. If the generated *.smt2 is unsat, then the proof rule is shown to be
+# sound by this toolchain.
+
+# The name of a EO signature
+INPUT="../../cvc5-ajr/proofs/eo/cpc/Cpc.eo"
+# should be the name of a constant or proof rule in $INPUT
+TARGET=$1
+
+function check_status()
+{
+status=$?
+if [[ $status -eq 0 ]]; then
+  echo "success"
+else
+  exit $status
+fi
+}
+
+echo "**** Compile ethos"
+make -j4
+check_status
+
+./run_gen_vc_single -sygus $INPUT $TARGET
+
