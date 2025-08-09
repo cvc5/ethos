@@ -252,13 +252,6 @@
 (define $eo_Var ((s $smt_builtin_String) (T $eo_Term))
   ($smd_eo.Var s T))
 
-; A placeholder for model evaluation.
-; Note this term conceptually as an unknown return type, as
-; values do not carry their types.
-(declare-parameterized-const $smd_eo.Value ((v $smt_Value :opaque))
-  $eo_Term)
-(define $eo_Value ((v $smt_Value)) ($smd_eo.Value v))
-
 ;;; External datatype access
 
 ; TODO: remove "mk_"

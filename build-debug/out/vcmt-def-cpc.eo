@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 144
+; #trim-defs: 142
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (define $eo_Numeral () Int)
@@ -123,9 +123,6 @@
   $eo_Term)
 (define $eo_Var ((s $smt_builtin_String) (T $eo_Term))
   ($smd_eo.Var s T))
-(declare-parameterized-const $smd_eo.Value ((v $smt_Value :opaque))
-  $eo_Term)
-(define $eo_Value ((v $smt_Value)) ($smd_eo.Value v))
 (define $sm_mk_true () ($smd_sm.Boolean $smt_builtin_true))
 (define $sm_mk_false () ($smd_sm.Boolean $smt_builtin_false))
 (define $sm_mk_bool ((c $smt_builtin_Bool))
@@ -394,8 +391,6 @@
   
   (($smtx_model_eval (f y))
     ($smtx_model_eval_apply ($smtx_model_eval f) ($smtx_model_eval y)))
-  
-  (($smtx_model_eval ($eo_Value val))             val)
   
   
   
