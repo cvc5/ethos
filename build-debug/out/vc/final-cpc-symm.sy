@@ -74,8 +74,6 @@
   (eo.SmtType (eo.SmtType.arg1 tsm.Type))
   ; smt-cons: Var
   (eo.Var (eo.Var.arg1 String) (eo.Var.arg2 eo.Term))
-  ; smt-cons: Value
-  (eo.Value (eo.Value.arg1 vsm.Value))
 
   )
   (
@@ -397,10 +395,8 @@
     ($smtx_model_eval_= ($smtx_model_eval (eo.Apply.arg2 (eo.Apply.arg1 x1))) ($smtx_model_eval (eo.Apply.arg2 x1)))
   (ite ((_ is eo.Apply) x1)
     ($smtx_model_eval_apply ($smtx_model_eval (eo.Apply.arg1 x1)) ($smtx_model_eval (eo.Apply.arg2 x1)))
-  (ite ((_ is eo.Value) x1)
-    (eo.Value.arg1 x1)
     (ite ($smtx_is_atomic_term_value (eo.SmtTerm.arg1 x1)) (vsm.Term (eo.SmtTerm.arg1 x1)) (ite (not (= ($eo_dt_selectors x1) eo.Stuck)) (vsm.Apply (vsm.Term (eo.SmtTerm.arg1 x1)) vsm.NotValue) vsm.NotValue))
-)))))) :pattern (($smtx_model_eval x1)))) :named sm.axiom.$smtx_model_eval))
+))))) :pattern (($smtx_model_eval x1)))) :named sm.axiom.$smtx_model_eval))
 
 ; program: $smtx_model_sat
 (define-fun $smtx_model_sat ((x1 vsm.Value)) eo.Term
@@ -492,14 +488,9 @@
 
 ;;;; final verification condition for $eovc_symm
 (synth-fun arg_F () eo.Term
-  ((G_Start eo.Term) (G_eo.Term eo.Term) (G_sm.Term sm.Term) (G_tsm.Type tsm.Type) (G_vsm.Value vsm.Value) (G_msm.Map msm.Map) (G_ssm.Seq ssm.Seq) (G_Bool Bool) (G_Int Int) (G_RegLan RegLan) (G_Int_C Int) (G_Real Real) (G_String String) (T_SmtType eo.Term) (T_Type eo.Term) (T_Fun eo.Term) (T_Int eo.Term) (T_$eo_List eo.Term) (T_$eo_Option eo.Term) (T_SmtTerm eo.Term) (T_Bool eo.Term) (T_Real eo.Term) (T_Seq eo.Term) (T_BitVec eo.Term)) (
+  ((G_Start eo.Term) (G_eo.Term eo.Term) (G_Bool Bool) (G_Int Int) (G_RegLan RegLan) (G_Int_C Int) (G_Real Real) (G_String String) (T_SmtType eo.Term) (T_Type eo.Term) (T_Fun eo.Term) (T_Int eo.Term) (T_$eo_List eo.Term) (T_$eo_Option eo.Term) (T_SmtTerm eo.Term) (T_Bool eo.Term) (T_Real eo.Term) (T_Seq eo.Term) (T_BitVec eo.Term)) (
   (G_Start eo.Term (T_Bool))
-  (G_eo.Term eo.Term (eo.Type eo.FunType (eo.Var G_String G_eo.Term) (eo.Value G_vsm.Value) T_Type T_Bool T_Fun T_SmtTerm T_SmtType T_Int T_Real T_BitVec T_Seq T_$eo_List T_$eo_Option T_SmtType T_Type T_Fun T_Int T_$eo_List T_$eo_Option T_SmtTerm T_Bool T_Real T_Seq T_BitVec ))
-  (G_sm.Term sm.Term ((sm.Boolean G_Bool) (sm.Numeral G_Int) (sm.Rational G_Real) (sm.String G_String) (sm.Binary G_Int G_Int) sm.not sm.and sm.= ))
-  (G_tsm.Type tsm.Type (tsm.Int tsm.Real tsm.BitVec tsm.Char tsm.Seq tsm.Bool ))
-  (G_vsm.Value vsm.Value ((vsm.Map G_msm.Map) (vsm.Term G_sm.Term) (vsm.Apply G_vsm.Value G_vsm.Value) ))
-  (G_msm.Map msm.Map ((msm.cons G_vsm.Value G_vsm.Value G_msm.Map) (msm.default G_vsm.Value)))
-  (G_ssm.Seq ssm.Seq ((ssm.cons G_vsm.Value G_ssm.Seq) ssm.empty))
+  (G_eo.Term eo.Term (eo.Type eo.FunType (eo.Var G_String G_eo.Term) T_Type T_Bool T_Fun T_SmtTerm T_SmtType T_Int T_Real T_BitVec T_Seq T_$eo_List T_$eo_Option T_SmtType T_Type T_Fun T_Int T_$eo_List T_$eo_Option T_SmtTerm T_Bool T_Real T_Seq T_BitVec ))
   (G_Bool Bool (true false))
   (G_Int Int (0 (- G_Int_C) G_Int_C))
   (G_RegLan RegLan (re.all re.none (str.to_re G_String) (re.union G_RegLan G_RegLan)))

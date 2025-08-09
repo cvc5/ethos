@@ -1512,7 +1512,9 @@
 ;;; Quantifiers
 
 ; Returns the n^th term in the enumeration of type.
-; This is axiomatized.
+; We return a term that has model value that has the n^th value, or
+; stuck if we are beyond the cardinality of the type.
+; TODO: This is axiomatized.
 (program $smtx_model_type_enum () :signature ($eo_Term $smt_builtin_Int) $eo_Term)
 
 ; Substitution

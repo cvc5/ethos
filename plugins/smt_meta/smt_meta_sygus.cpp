@@ -28,6 +28,7 @@ void SmtMetaSygus::initializeGrammars()
   d_gsmtType = d_state.mkSymbol(Kind::CONST, "SmtType", d_state.mkType());
   SygusGrammar* tmp;
   tmp = allocateGrammar("G_eo.Term", "eo.Term");
+#if 0
   // all types that can be meta-kinds of opaque arguments must go here
   allocateGrammar("G_sm.Term", "sm.Term");
   allocateGrammar("G_tsm.Type", "tsm.Type");
@@ -37,6 +38,7 @@ void SmtMetaSygus::initializeGrammars()
                   "G_vsm.Value)";
   tmp = allocateGrammar("G_ssm.Seq", "ssm.Seq");
   tmp->d_rules << "(ssm.cons G_vsm.Value G_ssm.Seq) ssm.empty";
+#endif
   tmp = allocateGrammar("G_Bool", "Bool");
   tmp->d_rules << "true false";
   tmp = allocateGrammar("G_Int", "Int");
@@ -235,8 +237,10 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
       return;
     }
     // print on both
+#if 0
     SygusGrammar* sg = getGrammar("G_tsm.Type");
     sg->d_rules << gbase << " ";
+#endif
     grule << "(eo.SmtType ";
     gruleEnd << ")";
     defaultG = d_gsmtType;
@@ -244,19 +248,27 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
   else if (tk == MetaKind::SMT)
   {
     // print on both
+#if 0
     SygusGrammar* sg = getGrammar("G_sm.Term");
     sg->d_rules << gbase << " ";
+#endif
     grule << "(eo.SmtTerm ";
     gruleEnd << ")";
     defaultG = d_gsmtTerm;
   }
   else if (tk == MetaKind::SMT_VALUE)
   {
+#if 0
     if (cname != "NotValue")
     {
       SygusGrammar* sg = getGrammar("G_vsm.Value");
       sg->d_rules << gbase << " ";
     }
+#endif
+    return;
+  }
+  else if (tk==MetaKind::SMT_MAP || tk==MetaKind::SMT_SEQ)
+  {
     return;
   }
   grule << gbase << gruleEnd.str();
