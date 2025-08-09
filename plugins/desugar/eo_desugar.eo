@@ -520,6 +520,8 @@ $EO_LIT_TYPEOF_DEFS$
 
 ;;; datatype constructors
 
+; TODO: meta semantics for arbitrary unknown datatypes?
+
 ; program: $eo_dt_constructors
 ; implements: eo::dt_constructors
 (program $eo_dt_constructors

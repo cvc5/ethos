@@ -188,6 +188,7 @@ Things handled at this stage:
     - Note that values are disjoint from terms. Terms can be embedded into
       values using a distinguished constructor eo.Value, which is not allowed
       in inputs.
+- Function types become ordinary applications e.g. (-> T1 T2) ---> (_ (_ -> T1) T2).
 - Eunoia semantics of pattern matching based on datatype selectors/testers.
 - Symbols introduced for deep embedding in Model_Smt $smt_apply_N, $smt_type_N.
 - Remaining eo::define and define commands inlined.

@@ -143,8 +143,6 @@
 
 ;;; Utilities for Datatype values
 
-; TODO: meta semantics for arbitrary unknown datatypes?
-
 ; define: $smt_is_dt
 ; returns: true if t is a datatpe (i.e. it has constructors).
 (define $smt_is_dt ((t $smt_Type))
@@ -440,6 +438,32 @@
   )
 )
 
+(program $smtx_eval_quant2
+  ((s $smt_builtin_String) (T $eo_Term) (v $eo_Term) (F $eo_Term) (i $smt_builtin_Int))
+  :signature ($eo_Term $eo_Term $smt_builtin_Int) $vsm_Pair
+  (
+  (($smtx_eval_quant2 ($eo_Var s T) F i)
+    (eo::define ((next ($smtx_model_type_enum T i)))
+    ; if we are out of values, we return the negation
+    ($smt_apply_3 "ite" ($smt_builtin_is_ok next)
+      ; out of values, return the negation of target with no value (no witness)
+      ($vsm_Pair_mk $vsm_false $vsm_not_value)
+      ; recurse on the next variable
+      (eo::define ((Fsubs ($smtx_model_val_substitute ($eo_Var s T) next F)))
+      (eo::define ((eval ($smtx_model_eval Fsubs)))
+      ; if false, inconclusive, recurse for the next value in the type enumeration for the variable
+      ($smt_apply_3 "ite" ($smt_apply_= eval $vsm_false)
+        ($smtx_eval_quant2 ($eo_Var s T) F ($smt_builtin_z_inc i))
+        ; if true, return successfully, return true with the witness
+        ($smt_apply_3 "ite" ($smt_apply_= eval $vsm_true)
+          ($vsm_Pair_mk $vsm_true next)
+          ; otherwise return not value, which is the case that we failed to evaluate
+          ($vsm_Pair_mk $vsm_not_value $vsm_not_value))))))))
+  ; not a variable, fail
+  (($smtx_eval_quant2 v F i) $vsm_not_value)
+  )
+)
+
 ; main entry for model evaluation of exists.
 (program $smtx_model_eval_exists ((F $eo_Term))
   :signature ($eo_Term) $smt_Value
@@ -451,6 +475,7 @@
 )
 
 ; main entry for model evaluation of forall.
+; TODO: use term reduction
 (program $smtx_model_eval_forall ((F $eo_Term))
   :signature ($eo_Term) $smt_Value
   (
@@ -474,6 +499,30 @@
   (($smtx_eval_choice_nth F t) $vsm_not_value)
   )
 )
+
+;;; Datatypes
+
+(program $smtx_eval_dt_head ((f $smt_Value) (a $smt_Value))
+  :signature ($smt_Value) $smt_Value
+  (
+  (($smtx_eval_dt_head ($vsm_apply f $vsm_not_value)) f)
+  (($smtx_eval_dt_head ($vsm_apply f a))              ($smtx_eval_dt_head f))
+  )
+)
+
+(program $smtx_eval_dt_selector_rec ((s $eo_Term) (ss $eo_List) (s2 $eo_Term) (f $smt_Value) (a $smt_Value))
+  :signature ($smt_Value $eo_List $eo_Term) $smt_Value
+  (
+  (($smtx_eval_dt_selector_rec ($vsm_apply f a) ($eo_List_cons s ss) s)  a)
+  (($smtx_eval_dt_selector_rec ($vsm_apply f a) ($eo_List_cons s2 ss) s)
+    ($smtx_eval_dt_selector_rec f ss s))
+  ; wrongly applied selector? should axiomatize it?
+  (($smtx_eval_dt_selector_rec a ss s) ($smtx_model_eval s))
+  )
+)
+
+; TODO: handle reverse list??
+;(define $smtx_eval_selector
 
 ;;; Other model evaluation functions
 
