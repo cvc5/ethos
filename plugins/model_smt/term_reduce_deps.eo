@@ -1,4 +1,7 @@
 (echo "trim-defs-cmd (depends divisible (= (mod x2 x1) 0))")
+(echo "trim-defs-cmd (depends /_total (ite (= x2 0/1) 0/1 (/ x1 x2)))")
+(echo "trim-defs-cmd (depends div_total (ite (= x2 0) 0 (div x1 x2)))")
+(echo "trim-defs-cmd (depends mod_total (ite (= x2 0) x1 (mod x1 x2)))")
 (echo "trim-defs-cmd (depends distinct (not (= x1 x2)))")
 (echo "trim-defs-cmd (depends bvsub (bvadd x1 (bvneg x2)))")
 (echo "trim-defs-cmd (depends bvsle (bvsge x2 x1))")
