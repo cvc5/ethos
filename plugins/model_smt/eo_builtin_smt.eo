@@ -490,7 +490,7 @@
 ; program: $eo_mk_binary
 ; return: >
 ;   A "legal" binary value ($eo_mk_binary w n1), where 0 <= n1 < 2^w, n1 is
-;   congruent mod 2^w to n if w is a 32-bit numeral value, or stuck otherwise.
+;   congruent mod 2^w to n if w is positive, or stuck otherwise.
 ; note: >
 ;   All binaries considered by Eunoia should run through this method to ensure
 ;   they are legal. We alternatively use ($eo_smt_term ($sm_mk_binary w n)) if
@@ -498,10 +498,8 @@
 (program $eo_mk_binary ((w $smt_builtin_Int) (n $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int) $eo_Term
   (
-  ; FIXME: the upper bound should only apply to to_bin
   (($eo_mk_binary w n)
-    ($smt_apply_3 "ite"
-      ($smt_builtin_and ($smt_apply_1 "<= 0" w) ($smt_apply_1 ">= 4294967296" w))
+    ($smt_apply_3 "ite" ($smt_apply_1 "<= 0" w)
       ($eo_smt_term ($sm_mk_binary w n))  ; ensure that n is legal
       $eo_stuck))
   )
@@ -796,8 +794,16 @@
 (program $eo_to_bin ((w $smt_builtin_Int) (w1 $smt_builtin_Int) (n1 $smt_builtin_Int))
   :signature ($eo_Term $eo_Term) $eo_Binary
   (
-  (($eo_to_bin ($eo_mk_numeral w) ($eo_mk_numeral n1))  ($eo_mk_binary w n1))
-  (($eo_to_bin ($eo_mk_numeral w) ($eo_binary w1 n1))   ($eo_mk_binary w n1))
+  (($eo_to_bin ($eo_mk_numeral w) ($eo_mk_numeral n1))
+    ; the upper bound is enforced here
+    ($smt_apply_3 "ite" ($smt_apply_1 ">= 4294967296" w)
+      ($eo_mk_binary w n1)
+      $eo_stuck))
+  (($eo_to_bin ($eo_mk_numeral w) ($eo_binary w1 n1))
+    ; the upper bound is enforced here
+    ($smt_apply_3 "ite" ($smt_apply_1 ">= 4294967296" w)
+      ($eo_mk_binary w n1)
+      $eo_stuck))
   )
 )
 
