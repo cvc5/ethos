@@ -805,7 +805,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       for (size_t i = 2, nargs = vchildren.size(); i < nargs; i++)
       {
         cc[0] = curr;
-        cc[0] = vchildren[i];
+        cc[1] = vchildren[i];
         curr = mkExprInternal(k, cc);
       }
       return Expr(curr);
