@@ -444,11 +444,11 @@
   (
   (($smtx_eval_quant2 ($eo_Var s T) F i)
     (eo::define ((next ($smtx_model_type_enum T i)))
-    ; if we are out of values, we return the negation
+    ; check if we are out of values
     ($smt_apply_3 "ite" ($smt_builtin_is_ok next)
-      ; out of values, return the negation of target with no value (no witness)
-      ($vsm_Pair_mk $vsm_false $vsm_not_value)
-      ; recurse on the next variable
+      ; If not out of values, evaluate for the current variable.
+      ; Note we do not check for variable shadowing, which will induce ill-formed binders
+      ; and fail to evaluate.
       (eo::define ((Fsubs ($smtx_model_val_substitute ($eo_Var s T) next F)))
       (eo::define ((eval ($smtx_model_eval Fsubs)))
       ; if false, inconclusive, recurse for the next value in the type enumeration for the variable
@@ -458,7 +458,9 @@
         ($smt_apply_3 "ite" ($smt_apply_= eval $vsm_true)
           ($vsm_Pair_mk $vsm_true next)
           ; otherwise return not value, which is the case that we failed to evaluate
-          ($vsm_Pair_mk $vsm_not_value $vsm_not_value))))))))
+          ($vsm_Pair_mk $vsm_not_value $vsm_not_value)))))
+      ; out of values, return the negation of target with no value (no witness)
+      ($vsm_Pair_mk $vsm_false $vsm_not_value))))
   ; not a variable, fail
   (($smtx_eval_quant2 v F i) $vsm_not_value)
   )
@@ -499,6 +501,40 @@
   (($smtx_eval_choice_nth F t) $vsm_not_value)
   )
 )
+
+; Recurses over the domain of the type of the variable.
+; Constructs a map where each input/output pair is computed.
+(program $smtx_eval_lambda_rec
+  ((s $smt_builtin_String) (T $eo_Term) (v $eo_Term) (F $eo_Term) (i $smt_builtin_Int) (acc $smt_Value))
+  :signature ($eo_Term $eo_Term $smt_builtin_Int $smt_Value) $smt_Value
+  (
+  (($smtx_eval_lambda_rec ($eo_Var s T) F i acc)
+    ; Get the next enumerated input.
+    (eo::define ((input ($smtx_model_type_enum T i)))
+    ; If out of values, return the accumulated value
+    ($smt_apply_3 "ite" ($smt_builtin_is_ok input)
+      acc
+      ; compute the output of the body
+      (eo::define ((Fsubs ($smtx_model_val_substitute ($eo_Var s T) input F)))
+      (eo::define ((output ($smtx_model_eval Fsubs)))
+      ; if we fail to evalue the body, we fail to evaluate
+      ($smt_apply_3 "ite" ($smt_apply_= output $vsm_not_value)
+        $vsm_not_value
+        ; recurse, updating the accumulated value.
+        ($smtx_eval_lambda_rec ($eo_Var s T) F ($smt_builtin_z_inc i)
+          ($smt_apply_3 "ite" ($smt_apply_= acc $vsm_not_value)
+            ; if the first value, we store as default
+            ($vsm_map ($msm_default output))
+            ; otherwise, we update.
+            ($smtx_map_store acc ($smtx_model_eval input) output)))))))))
+  ; not a variable, fail
+  (($smtx_eval_lambda_rec v F i acc) $vsm_not_value)
+  )
+)
+
+(define $smtx_model_eval_lambda ((v $eo_Term) (F $eo_Term))
+  ; use routine above, starting from first enumeration, not-value accumulator.
+  ($smtx_eval_lambda_rec v F $smt_builtin_z_zero $vsm_not_value))
 
 ;;; Datatypes
 

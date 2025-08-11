@@ -822,6 +822,8 @@
   )
 )
 
+;;; Testers
+
 ;;; $eo_is_eq
 
 ; Returns true if t and s are equivalent values (ground and fully evaluated).
@@ -836,69 +838,88 @@
 ;;; $eo_is_bool
 
 ; Returns true if x is a Boolean literal.
-; define: $eo_is_bool
-; implements: eo::is_bool
-(program $eo_is_bool ((x $eo_Term) (b $smt_builtin_Bool))
+(program $eo_is_bool_internal ((x $eo_Term) (b $smt_builtin_Bool))
   :signature ($eo_Term) Bool
   (
-  (($eo_is_bool ($eo_mk_bool b))  true)
-  (($eo_is_bool x)                false)
+  (($eo_is_bool_internal ($eo_mk_bool b))  true)
+  (($eo_is_bool_internal x)                false)
   )
 )
 
-;;; Conversion operators
+; Returns true if x is a Boolean literal.
+; define: $eo_is_bool
+; implements: eo::is_bool
+(define $eo_is_bool ((t $eo_Term))
+  ($eo_mk_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t) ($eo_is_bool_internal t))))
 
 ;;; $eo_is_z
 
 ; Returns true if x is a numeral literal.
-; define: $eo_is_z
-; implements: eo::is_z
-(program $eo_is_z ((x $eo_Term) (n $smt_builtin_Int))
+(program $eo_is_z_internal ((x $eo_Term) (n $smt_builtin_Int))
   :signature ($eo_Term) Bool
   (
-  (($eo_is_z ($eo_mk_numeral n))  true)
-  (($eo_is_z x)                   false)
+  (($eo_is_z_internal ($eo_mk_numeral n))  true)
+  (($eo_is_z_internal x)                   false)
   )
 )
+
+; Returns true if x is a numeral literal.
+; define: $eo_is_z
+; implements: eo::is_z
+(define $eo_is_z ((t $eo_Term))
+  ($eo_mk_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t) ($eo_is_z_internal t))))
 
 ;;; $eo_is_q
 
 ; Returns true if x is a rational literal.
-; define: $eo_is_q
-; implements: eo::is_q
-(program $eo_is_q ((x $eo_Term) (r $smt_builtin_Real))
+(program $eo_is_q_internal ((x $eo_Term) (r $smt_builtin_Real))
   :signature ($eo_Term) Bool
   (
-  (($eo_is_q ($eo_mk_rational r))  true)
-  (($eo_is_q x)                   false)
+  (($eo_is_q_internal ($eo_mk_rational r))  true)
+  (($eo_is_q_internal x)                   false)
   )
 )
+
+; Returns true if x is a rational literal.
+; define: $eo_is_q
+; implements: eo::is_q
+(define $eo_is_q ((t $eo_Term))
+  ($eo_mk_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t) ($eo_is_q_internal t))))
+
 
 ;;; $eo_is_bin
 
 ; Returns true if x is a binary literal.
-; define: $eo_is_bin
-; implements: eo::is_bin
-(program $eo_is_bin ((x $eo_Term) (w $smt_builtin_Int) (n $smt_builtin_Int))
+(program $eo_is_bin_internal ((x $eo_Term) (w $smt_builtin_Int) (n $smt_builtin_Int))
   :signature ($eo_Term) Bool
   (
-  (($eo_is_bin ($eo_binary w n))  true)
-  (($eo_is_bin x)                 false)
+  (($eo_is_bin_internal ($eo_binary w n))  true)
+  (($eo_is_bin_internal x)                 false)
   )
 )
+
+; Returns true if x is a binary literal.
+; define: $eo_is_bin
+; implements: eo::is_bin
+(define $eo_is_bin ((t $eo_Term))
+  ($eo_mk_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t) ($eo_is_bin_internal t))))
 
 ;;; $eo_is_str
 
 ; Returns true if x is a string literal.
-; define: $eo_is_str
-; implements: eo::is_str
-(program $eo_is_str ((x $eo_Term) (s $smt_builtin_String))
+(program $eo_is_str_internal ((x $eo_Term) (s $smt_builtin_String))
   :signature ($eo_Term) Bool
   (
-  (($eo_is_str ($eo_mk_string s)) true)
-  (($eo_is_str x)                 false)
+  (($eo_is_str_internal ($eo_mk_string s)) true)
+  (($eo_is_str_internal x)                 false)
   )
 )
+
+; Returns true if x is a string literal.
+; define: $eo_is_str
+; implements: eo::is_str
+(define $eo_is_str ((t $eo_Term))
+  ($eo_mk_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t) ($eo_is_str_internal t))))
 
 ;;; Derived arithmetic
 

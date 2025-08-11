@@ -17,6 +17,13 @@
 
 namespace ethos {
 
+std::string guardCond(const std::string& guard, const std::string& val)
+{
+  std::stringstream ss;
+  ss << "($smt_apply_3 \"ite\" " << guard << " " << val << " $vsm_not_value)";
+  return ss.str();
+}
+
 ModelSmt::ModelSmt(State& s) : StdPlugin(s)
 {
   Kind kBool = Kind::BOOLEAN;
@@ -140,8 +147,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "extract",
       {kInt, kInt, kBitVec},
       kT,
-      "($smt_apply_3 \"ite\" ($smt_apply_2 \">=\" x1 x2) ($vsm_term "
-      "($sm_mk_binary x3 ($smtx_binary_extract x3 x4 x1 x2))) $vsm_not_value)");
+      guardCond("($smt_apply_2 \">=\" x1 x2)", "($vsm_term ($sm_mk_binary x3 ($smtx_binary_extract x3 x4 x1 x2)))"));
   addLitBinSym("concat",
                {kBitVec, kBitVec},
                "($smt_builtin_add x1 x3)",
@@ -238,10 +244,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                    {kBitVec, kBitVec, kBitVec},
                    "(ite (bvslt x1 x2) (@bv 1 1) (@bv 0 1))");
   addLitSym("@bvsize", {kBitVec}, kInt, "x1");
-  // addLitBinSym("@bv", {kInt, kInt}, "x2", "x1");
-  //  must guard for negative widths here, which will evaluate to stuck
+  //  must guard for non-positive widths, which do not evaluate
   addLitSym(
-      "@bv", {kInt, kInt}, kT, "($smtx_model_eval ($eo_mk_binary x2 x1))");
+      "@bv", {kInt, kInt}, kT,
+      guardCond("($smt_apply_2 \">\" x2 $smt_builtin_z_zero)","($smtx_model_eval ($eo_mk_binary x2 x1))"));
   addTermReduceSym("@bit", {kInt, kBitVec}, "(extract x1 x1 x2)");
   // tuples
   // these allow Herbrand interpretations
