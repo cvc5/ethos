@@ -501,7 +501,7 @@
   ((w $smt_builtin_Int) (n $smt_builtin_Int) (x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
-  (($smtx_binary_extract w n x1 x2) ($smt_builtin_div n ($smtx_pow2 x1)))
+  (($smtx_binary_extract w n x1 x2) ($smt_builtin_div n ($smtx_pow2 x2)))
   )
 )
 

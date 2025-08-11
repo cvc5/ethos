@@ -16,8 +16,15 @@
 #include "state.h"
 
 namespace ethos {
+  
+std::string smtApp(const std::string& app, const std::string& c1, const std::string& c2)
+{
+  std::stringstream ss;
+  ss << "($smt_apply_2 \"" << app << "\" " << c1 << " " << c2 << ")";
+  return ss.str();
+}
 
-std::string guardCond(const std::string& guard, const std::string& val)
+std::string smtGuard(const std::string& guard, const std::string& val)
 {
   std::stringstream ss;
   ss << "($smt_apply_3 \"ite\" " << guard << " " << val << " $vsm_not_value)";
@@ -144,14 +151,20 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "bvxor", {kBitVec, kBitVec}, "x1", "($smtx_binary_xor x1 x2 x4)");
   addLitBinSym("bvnot", {kBitVec}, "x1", "($smtx_binary_not x1 x2)");
   addLitBinSym("bvneg", {kBitVec}, "x1", "($smt_builtin_neg x2)");
+  std::stringstream ssExtractCond;
+  ssExtractCond << smtApp("and", smtApp(">=", "x1", "x2"), smtApp("and", smtApp(">=", "x2", "$smt_builtin_z_zero"), smtApp(">", "x3", "x1")));
+  std::stringstream ssExtractRet;
+  ssExtractRet << "($vsm_term ($sm_mk_binary ";
+  ssExtractRet << smtApp("-", smtApp("+", "x1", "$smt_builtin_z_one"), "x2");
+  ssExtractRet << " ($smtx_binary_extract x3 x4 x1 x2)))";
   addLitSym(
       "extract",
       {kInt, kInt, kBitVec},
       kT,
-      guardCond("($smt_apply_2 \">=\" x1 x2)", "($vsm_term ($sm_mk_binary x3 ($smtx_binary_extract x3 x4 x1 x2)))"));
+      smtGuard(ssExtractCond.str(), ssExtractRet.str()));
   addLitBinSym("concat",
                {kBitVec, kBitVec},
-               "($smt_builtin_add x1 x3)",
+               smtApp("+", "x1", "x3"),
                "($smtx_binary_concat x1 x2 x3 x4)");
   // the following are program cases in the main method of the form
   // (($smtx_model_eval (f x1 x2)) ($smtx_model_eval <return>))
@@ -258,7 +271,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   //  must guard for non-positive widths, which do not evaluate
   addLitSym(
       "@bv", {kInt, kInt}, kT,
-      guardCond("($smt_apply_2 \">\" x2 $smt_builtin_z_zero)","($smtx_model_eval ($eo_mk_binary x2 x1))"));
+      smtGuard(smtApp(">", "x2","$smt_builtin_z_zero"),"($smtx_model_eval ($eo_mk_binary x2 x1))"));
   addTermReduceSym("@bit", {kInt, kBitVec}, "(extract x1 x1 x2)");
   // tuples
   // these allow Herbrand interpretations
