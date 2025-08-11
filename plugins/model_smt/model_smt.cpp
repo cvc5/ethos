@@ -269,9 +269,11 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                    "(ite (bvslt x1 x2) (@bv 1 1) (@bv 0 1))");
   addLitSym("@bvsize", {kBitVec}, kInt, "x1");
   //  must guard for non-positive widths, which do not evaluate
+  std::stringstream ssBvCond;
+  ssBvCond << smtApp("and", smtApp(">", "x2","$smt_builtin_z_zero"), smtApp("and", smtApp(">", "($smtx_pow2 x2)","x1"), smtApp(">=", "x1","$smt_builtin_z_zero")));
   addLitSym(
       "@bv", {kInt, kInt}, kT,
-      smtGuard(smtApp(">", "x2","$smt_builtin_z_zero"),"($smtx_model_eval ($eo_mk_binary x2 x1))"));
+      smtGuard(ssBvCond.str(),"($smtx_model_eval ($eo_mk_binary x2 x1))"));
   addTermReduceSym("@bit", {kInt, kBitVec}, "(extract x1 x1 x2)");
   // tuples
   // these allow Herbrand interpretations

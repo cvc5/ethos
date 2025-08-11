@@ -895,7 +895,8 @@
 ; define: $eo_is_bool
 ; implements: $eo_is_bool
 (define $eo_is_bool ((t $eo_Term))
-  ($eo_mk_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t) ($eo_is_bool_internal t))))
+  ($eo_mk_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t) 
+    ($smt_apply_= ($eo_is_bool_internal t) true))))
 
 ;;; $eo_is_z
 
@@ -912,7 +913,8 @@
 ; define: $eo_is_z
 ; implements: $eo_is_z
 (define $eo_is_z ((t $eo_Term))
-  ($eo_mk_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t) ($eo_is_z_internal t))))
+  ($eo_mk_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t)
+    ($smt_apply_= ($eo_is_z_internal t) true))))
 
 ;;; $eo_is_q
 
@@ -929,7 +931,8 @@
 ; define: $eo_is_q
 ; implements: $eo_is_q
 (define $eo_is_q ((t $eo_Term))
-  ($eo_mk_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t) ($eo_is_q_internal t))))
+  ($eo_mk_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t)
+    ($smt_apply_= ($eo_is_q_internal t) true))))
 
 
 ;;; $eo_is_bin
@@ -947,7 +950,8 @@
 ; define: $eo_is_bin
 ; implements: $eo_is_bin
 (define $eo_is_bin ((t $eo_Term))
-  ($eo_mk_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t) ($eo_is_bin_internal t))))
+  ($eo_mk_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t)
+    ($smt_apply_= ($eo_is_bin_internal t) true))))
 
 ;;; $eo_is_str
 
@@ -964,7 +968,8 @@
 ; define: $eo_is_str
 ; implements: $eo_is_str
 (define $eo_is_str ((t $eo_Term))
-  ($eo_mk_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t) ($eo_is_str_internal t))))
+  ($eo_mk_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t)
+    ($smt_apply_= ($eo_is_str_internal t) true))))
 
 ;;; Derived arithmetic
 
