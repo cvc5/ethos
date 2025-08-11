@@ -158,6 +158,7 @@ set(ethos_test_file_list
     list-nth-non-list.eo
     eo-list-ops.eo
     eo-list-ops-napply.eo
+    curry-nary.eo
 )
 
 macro(ethos_test file)
