@@ -798,17 +798,15 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     // t3).
     if (isNaryLiteralOp(k) && vchildren.size() > 2)
     {
-      std::vector<ExprValue*> cc{nullptr, nullptr};
-      cc[0] = vchildren[0];
-      cc[1] = vchildren[1];
-      ExprValue* curr = mkExprInternal(k, cc);
+      std::vector<Expr> cc{children[0], children[1]};
+      Expr curr = mkExpr(k, cc);
       for (size_t i = 2, nargs = vchildren.size(); i < nargs; i++)
       {
         cc[0] = curr;
-        cc[1] = vchildren[i];
-        curr = mkExprInternal(k, cc);
+        cc[1] = children[i];
+        curr = mkExpr(k, cc);
       }
-      return Expr(curr);
+      return curr;
     }
     // only if correct arity, else we will catch the type error
     bool isArityOk = TypeChecker::checkArity(k, vchildren.size());
