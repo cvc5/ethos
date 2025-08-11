@@ -33,6 +33,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   Kind kBitVec = Kind::BINARY;
   Kind kT = Kind::PARAM;
   Kind kRegLan = Kind::EVAL_TO_STRING;
+  Kind kList = Kind::EVAL_CONS;
   d_kindToEoPrefix[kBool] = "bool";
   d_kindToEoPrefix[kInt] = "z";
   d_kindToEoPrefix[kReal] = "q";
@@ -231,6 +232,11 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "set.is_empty",
       {kT},
       "($vsm_term ($sm_mk_bool ($smt_apply_= e1 $smtx_empty_set)))");
+  addReduceSym("set.insert", {kList, kT},
+               "($smtx_model_eval (set.insert x2 (set.union (set.singleton x1) x3)))");
+  d_specialCases["set.insert"].emplace_back(
+      "(set.insert $eo_List_nil x1)",
+      "($smtx_model_eval x1)");
   // x1))");
   //   bitvectors
   addTermReduceSym(
@@ -453,9 +459,20 @@ void ModelSmt::printModelEvalCallBase(const std::string& name,
   {
     d_eval << "(" << name;
   }
+  size_t icount = 1;
   for (; i <= nargs; i++)
   {
-    d_eval << " x" << i;
+    Kind k = args[i-1];
+    if (k==Kind::EVAL_CONS)
+    {
+      d_eval << " ($eo_List_cons x" << icount << " x" << (icount+1) << ")";
+      icount++;
+    }
+    else
+    {
+      d_eval << " x" << icount;
+    }
+    icount++;
   }
   d_eval << ")) " << ret << ")" << std::endl;
 }
