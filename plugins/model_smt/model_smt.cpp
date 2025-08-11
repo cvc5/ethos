@@ -179,6 +179,11 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
 
   ///----- non standard extensions and skolems
   // builtin
+  addReduceSym("lambda", {kList, kT},
+               "($smtx_model_eval_lambda x1 (lambda x2 x3))");
+  d_specialCases["lambda"].emplace_back(
+      "(lambda $eo_List_nil x1)",
+      "($smtx_model_eval x1)");
   addTermReduceSym("@purify", {kT}, "x1");
   // arithmetic
   // addConstFoldSym("^", {kT, kT}, kT);
