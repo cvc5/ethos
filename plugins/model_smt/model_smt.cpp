@@ -17,18 +17,27 @@
 
 namespace ethos {
   
+std::string smtEq(const std::string& c1, const std::string& c2)
+{
+  std::stringstream ss;
+  ss << "($smt_apply_= " << c1 << " " << c2 << ")";
+  return ss.str();
+}
 std::string smtApp(const std::string& app, const std::string& c1, const std::string& c2)
 {
   std::stringstream ss;
   ss << "($smt_apply_2 \"" << app << "\" " << c1 << " " << c2 << ")";
   return ss.str();
 }
-
-std::string smtGuard(const std::string& guard, const std::string& val)
+std::string smtIte(const std::string& guard, const std::string& t, const std::string& e)
 {
   std::stringstream ss;
-  ss << "($smt_apply_3 \"ite\" " << guard << " " << val << " $vsm_not_value)";
+  ss << "($smt_apply_3 \"ite\" " << guard << " " << t << " " << e << ")";
   return ss.str();
+}
+std::string smtGuard(const std::string& guard, const std::string& val)
+{
+  return smtIte(guard, val, "$vsm_not_value");
 }
 
 ModelSmt::ModelSmt(State& s) : StdPlugin(s)
@@ -166,6 +175,39 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                {kBitVec, kBitVec},
                smtApp("+", "x1", "x3"),
                "($smtx_binary_concat x1 x2 x3 x4)");
+  // the following operators require a mix of literal evaluation and term
+  // reduction
+  std::stringstream ssRLeftRet;
+  ssRLeftRet << "(eo::define ((wm1 (- ($eo_mk_numeral x2) 1))) ";
+  ssRLeftRet << "($smtx_model_eval";
+  ssRLeftRet << " (rotate_left (- ($eo_mk_numeral x1) 1) (concat";
+  ssRLeftRet << " (extract (- wm1 1) 0 ($eo_mk_binary x2 x3))";
+  ssRLeftRet << " (extract wm1 wm1 ($eo_mk_binary x2 x3))))))";
+  addLitSym("rotate_left", {kInt, kBitVec}, kT,
+            smtGuard(smtApp(">=", "x1", "$smt_builtin_z_zero"),
+                     smtIte(smtEq("x1", "$smt_builtin_z_zero"), 
+                            "($vsm_term ($sm_binary x2 x3))", 
+                            ssRLeftRet.str())));
+  std::stringstream ssRRightRet;
+  ssRRightRet << "(eo::define ((wm1 (- ($eo_mk_numeral x2) 1))) ";
+  ssRRightRet << "($smtx_model_eval";
+  ssRRightRet << " (rotate_right (- ($eo_mk_numeral x1) 1) (concat";
+  ssRRightRet << " (extract 0 0 ($eo_mk_binary x2 x3))";
+  ssRRightRet << " (extract wm1 1 ($eo_mk_binary x2 x3))))))";
+  addLitSym("rotate_right", {kInt, kBitVec}, kT,
+            smtGuard(smtApp(">=", "x1", "$smt_builtin_z_zero"),
+                     smtIte(smtEq("x1", "$smt_builtin_z_zero"), 
+                            "($vsm_term ($sm_binary x2 x3))", 
+                            ssRRightRet.str())));
+  std::stringstream ssRepeatRet;
+  ssRepeatRet << "($smtx_model_eval (concat";
+  ssRepeatRet << " (repeat (- ($eo_mk_numeral x1) 1) ($eo_mk_binary x2 x3))";
+  ssRepeatRet << " ($eo_mk_binary x2 x3)))";
+  addLitSym("repeat", {kInt, kBitVec}, kT,
+            smtGuard(smtApp(">=", "x1", "$smt_builtin_z_one"),
+                     smtIte(smtEq("x1", "$smt_builtin_z_one"), 
+                            "($vsm_term ($sm_binary x2 x3))", 
+                            ssRepeatRet.str())));
   // the following are program cases in the main method of the form
   // (($smtx_model_eval (f x1 x2)) ($smtx_model_eval <return>))
   addTermReduceSym("bvsub", {kBitVec, kBitVec}, "(bvadd x1 (bvneg x2))");
@@ -463,6 +505,7 @@ void ModelSmt::printModelEvalCallBase(const std::string& name,
   }
   size_t i = 1;
   size_t nargs = args.size();
+  size_t icount = 1;
   if (attr == Attr::AMB)
   {
     if (nargs == 1)
@@ -472,6 +515,7 @@ void ModelSmt::printModelEvalCallBase(const std::string& name,
     else
     {
       i++;
+      icount++;
       d_eval << "(_ (as " << name << " x1)";
     }
   }
@@ -479,7 +523,6 @@ void ModelSmt::printModelEvalCallBase(const std::string& name,
   {
     d_eval << "(" << name;
   }
-  size_t icount = 1;
   for (; i <= nargs; i++)
   {
     Kind k = args[i-1];

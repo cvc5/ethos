@@ -121,14 +121,14 @@ SygusGrammar* SmtMetaSygus::getGrammar(const std::string& gn)
 Expr SmtMetaSygus::getGrammarTypeApprox(const Expr& e)
 {
   Expr cur = e;
-  while (cur.getKind() == Kind::APPLY)
-  {
-    cur = cur[0];
-  }
   if (cur.getKind() == Kind::QUOTE_TYPE)
   {
     Expr q = cur[0];
     cur = d_tc.getType(q);
+  }
+  while (cur.getKind() == Kind::APPLY)
+  {
+    cur = cur[0];
   }
   if (!cur.isGround())
   {
