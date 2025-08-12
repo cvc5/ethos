@@ -347,30 +347,35 @@
   )
 )
 
+; program: $smtx_binary_and_rec
+; note: Helper for $smtx_binary_and below.
+(program $smtx_binary_and_rec ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+  :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
+  (
+  (($smtx_binary_and_rec w n1 n2)
+      ($smt_builtin_add
+        ($smt_apply_3 "ite" ($smt_apply_= w $smt_builtin_z_zero)
+          $smt_builtin_z_zero
+          ($smtx_binary_and_rec ($smt_builtin_z_dec w) n1 n2))
+        ($smt_builtin_mul ($smtx_pow2 w)
+            ($smt_apply_3 "ite" ($smt_builtin_and ($smtx_bit n1 w) ($smtx_bit n2 w)) 
+              $smt_builtin_z_one 
+              $smt_builtin_z_zero))))
+  )
+)
+
 ; program: $smtx_binary_and
 ; return: >
 ;   The integer value of the binary value obtained by taking the bitwise and of
 ;   binary literals ($eo_binary w n1) and ($eo_binary w n2). This value will be
 ;   taken modulo 2^w.
 ; note: >
-;   Assumes that 0 <= n1 < 2^w, 0 <= n2 < 2^w.
-(program $smtx_binary_and ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
-  :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
-  (
-  (($smtx_binary_and w n1 n2)
-     ($smt_apply_3 "ite" ($smt_apply_= w $smt_builtin_z_zero) $smt_builtin_z_zero
-     ($smt_apply_3 "ite" ($smt_apply_= w $smt_builtin_z_one)
-       ($smt_apply_3 "ite"
-        ($smt_builtin_and
-          ($smt_apply_= n1 $smt_builtin_z_one)
-          ($smt_apply_= n2 $smt_builtin_z_one))
-        $smt_builtin_z_one $smt_builtin_z_zero)
-       ($smt_builtin_add
-         ($smtx_binary_and ($smt_apply_2 "-" w $smt_builtin_z_one) n1 n2)
-         ($smt_builtin_mul ($smtx_pow2 w)
-            ($smt_apply_3 "ite" ($smt_builtin_and ($smtx_bit n1 w) ($smtx_bit n2 w)) $smt_builtin_z_one $smt_builtin_z_zero))))))
-  )
-)
+;   Assumes that 0 <= n1 < 2^w, 0 <= n2 < 2^w, 0 <= w.
+(define $smtx_binary_and
+  ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+  ($smt_apply_3 "ite" ($smt_apply_= w $smt_builtin_z_zero)
+    $smt_builtin_z_zero
+    ($smtx_binary_and_rec ($smt_builtin_z_dec w) n1 n2)))
 
 ; program: $smtx_binary_or
 ; return: >
@@ -378,7 +383,7 @@
 ;   binary literals ($eo_binary w n1) and ($eo_binary w n2). This is equal to
 ;   n1+n2-($smtx_binary_and w n1 n2). This value will be taken modulo 2^w.
 ; note: >
-;   Assumes that 0 <= n1 < 2^w, 0 <= n2 < 2^w.
+;   Assumes that 0 <= n1 < 2^w, 0 <= n2 < 2^w, 0 <= w.
 (program $smtx_binary_or ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
@@ -393,7 +398,7 @@
 ;   binary literals ($eo_binary w n1) and ($eo_binary w n2). This is equal to
 ;   n1+n2-(2*($smtx_binary_and w n1 n2)). This value will be taken modulo 2^w.
 ; note: >
-;   Assumes that 0 <= n1 < 2^w, 0 <= n2 < 2^w.
+;   Assumes that 0 <= n1 < 2^w, 0 <= n2 < 2^w, 0 <= w.
 (program $smtx_binary_xor ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
@@ -408,7 +413,7 @@
 ;   the binary literal ($eo_binary w n). This is equal to 2^w-(1+n). This value
 ;   will be taken modulo 2^w.
 ; note: >
-;   Assumes that 0 <= n < 2^w.
+;   Assumes that 0 <= n < 2^w, 0 <= w.
 (program $smtx_binary_not ((w $smt_builtin_Int) (n $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
@@ -435,7 +440,7 @@
 ;   n1*2^w2 + n2. Note the return value does not depend on w1. This value will
 ;   be taken modulo 2^(w1+w2).
 ; note: >
-;   Assumes that 0 <= n1 < 2^w1, 0 <= n2 < 2^w2.
+;   Assumes that 0 <= n1 < 2^w1, 0 <= n2 < 2^w2, 0 <= w1, 0 <= w2.
 (program $smtx_binary_concat
   ((w1 $smt_builtin_Int) (n1 $smt_builtin_Int) (w2 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
@@ -451,7 +456,7 @@
 ;   through x2 (inclusive) of binary literal ($eo_binary w n). This is equal
 ;   to (div n 2^x1). This value will be taken modulo 2^(1+x2-x1).
 ; note: >
-;   Assumes that 0 <= n < 2^w, 0 <= x1 <= x2.
+;   Assumes that 0 <= n < 2^w, 0 <= x1 <= x2 < w.
 (program $smtx_binary_extract
   ((w $smt_builtin_Int) (n $smt_builtin_Int) (x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
@@ -460,7 +465,7 @@
   )
 )
 
-; note: Assumes w is legal, makes n legal. We cannot handle errors with
+; note: Assumes 0 <= w, makes n legal. We cannot handle errors with
 ;       w here since we cannot return stuckness.
 (define $sm_mk_binary ((w $smt_builtin_Int) (n $smt_builtin_Int))
   ($sm_binary w ($smt_builtin_mod n ($smtx_pow2 w))))
