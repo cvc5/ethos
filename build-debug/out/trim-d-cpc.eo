@@ -226,7 +226,6 @@
 ;;; $eo_list_len
 
 ; Note: a helper for $eo_list_len.
-; TODO: uses eo::add
 (program $eo_list_len_rec
   ((T Type) (U Type) (V Type) (W Type) (f (-> T U V)) (x T) (y U) (nil W))
   :signature ((-> T U V) W) $eo_Numeral
@@ -268,7 +267,6 @@
 ;;; $eo_list_nth
 
 ; Note: a helper for $eo_list_nth.
-; TODO: uses eo::add
 (program $eo_list_nth_rec
   ((T Type) (U Type) (f (-> T T T)) (x U) (y U) (n $eo_Numeral))
   :signature ((-> T T T) U $eo_Numeral) U
@@ -289,7 +287,6 @@
 ;;; $eo_list_find
 
 ; Note: a helper for $eo_list_find.
-; TODO: uses add
 (program $eo_list_find_rec
   ((T Type) (U Type) (V Type) (W Type) (X Type)
    (f (-> T U V)) (x W) (z W) (y U) (z X) (nil W) (n $eo_Numeral))
