@@ -1174,22 +1174,6 @@
 ; will be a native SMT-LIB type in the final embedding generated
 ; by the smt-meta plugin.
 
-;;;;;; Exception handling
-
-; Utilities to ensure that programs are total.
-; Takes
-; - A $eo_Term t where we are not sure if it gets stuck.
-; - A $eo_Term elseTerm where we are sure it does not get stuck.
-; Returns the SMT term corresponding to the evaluation of t, if possible,
-; or elseTerm otherwise. This always successfully evaluates.
-(define $smt_try ((t $eo_Term) (elseTerm $eo_Term))
-  ($smt_apply_3 "ite" ($smt_builtin_is_ok t)
-    t
-    elseTerm))
-    
-; Guarded execution of $eo_typeof.
-(define $smt_try_type ((t $eo_Term)) ($smt_try ($eo_typeof t) $eo_null_type))
-
 ;;;;;; SMT values
 
 ;;; Generic utilities
