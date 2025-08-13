@@ -280,42 +280,6 @@
 (define $eo_null_type ()
   ($eo_smt_type ($tsm_NullSort $smt_builtin_z_zero)))
 
-;;; SMT value utilities
-
-; a pair of values, uses $vsm_apply for now
-(define $vsm_Pair () $smt_Value)
-(define $vsm_Pair_mk ((v1 $smt_Value) (v2 $smt_Value)) ($vsm_apply v1 v2))
-
-; program: $vsm_Pair_first
-; return: The first element in the pair
-(program $smtx_vsm_Pair_first ((t $smt_Value) (s $smt_Value) (v $vsm_Pair))
-  :signature ($vsm_Pair) $smt_Value
-  (
-  (($smtx_vsm_Pair_first ($vsm_Pair_mk t s))   t)
-  (($smtx_vsm_Pair_first v)                    $vsm_not_value)
-  )
-)
-; program: $vsm_Pair_second
-; return: The second element in the pair
-(program $smtx_vsm_Pair_second ((t $smt_Value) (s $smt_Value) (v $vsm_Pair))
-  :signature ($vsm_Pair) $smt_Value
-  (
-  (($smtx_vsm_Pair_second ($vsm_Pair_mk t s))  s)
-  (($smtx_vsm_Pair_second v)                   $vsm_not_value)
-  )
-)
-
-; a list of values, uses $vsm_seq
-(define $vsm_List () $smt_Value)
-(define $vsm_List_empty () ($vsm_seq $ssm_empty))
-(program $smtx_vsm_List_cons ((s $smt_Seq) (v $smt_Value) (vs $smt_Value))
-  :signature ($smt_Value $smt_Value) $smt_Value
-  (
-  (($smtx_vsm_List_cons v ($vsm_seq s))  ($vsm_seq ($ssm_cons v s)))
-  (($smtx_vsm_List_cons v vs)            $vsm_not_value)
-  )
-)
-
 ;;; Defining parametric bitvector operators
 
 ; The operators in this section are needed to reason about the parametric

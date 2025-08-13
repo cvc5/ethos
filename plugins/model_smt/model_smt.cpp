@@ -227,10 +227,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             kT,
             "($smtx_model_eval ($eo_mk_binary x1 x2))");
   // Quantifiers
-  addQuantifier("exists", {Kind::ANY, kBool});
-  addQuantifier("forall", {Kind::ANY, kBool});
-  addReduceSym(
-      "@quantifiers_skolemize", {kBool, kInt}, "($smtx_eval_choice_nth x1 x2)");
+  addReduceSym("exists", {kList, kT},
+               "($smtx_model_eval_exists x1 (exists x2 x3))");
+  d_specialCases["exists"].emplace_back(
+      "(exists $eo_List_nil x1)",
+      "($smtx_model_eval x1)");
+  addTermReduceSym("forall", {kT, kBool}, "(not (exists x1 (not x2)))");
 
   ///----- non standard extensions and skolems
   // builtin
@@ -241,7 +243,6 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "($smtx_model_eval x1)");
   addTermReduceSym("@purify", {kT}, "x1");
   // arithmetic
-  // addConstFoldSym("^", {kT, kT}, kT);
   addTermReduceSym("/_total", {kT, kT}, "(ite (= x2 0/1) 0/1 (/ x1 x2))");
   addTermReduceSym("div_total", {kInt, kInt}, "(ite (= x2 0) 0 (div x1 x2))");
   addTermReduceSym("mod_total", {kInt, kInt}, "(ite (= x2 0) x1 (mod x1 x2))");
