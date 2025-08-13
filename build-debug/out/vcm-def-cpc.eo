@@ -1518,7 +1518,7 @@
 
 ; Substitution
 ; program: $smtx_model_substitute
-; Used to define $smtx_eval_quant.
+; Used to define $smtx_eval_exists_rec.
 ; ($smtx_model_substitute x v t) returns the term where x is replaced by
 ; the constant that is interpreted as v.
 (program $smtx_model_substitute
@@ -1532,11 +1532,11 @@
   )
 )
 
-(program $smtx_eval_quant
+(program $smtx_eval_exists_rec
   ((s $smt_builtin_String) (T $eo_Term) (v $eo_Term) (F $eo_Term) (i $smt_builtin_Int))
   :signature ($eo_Term $eo_Term $smt_builtin_Int) $smt_Value
   (
-  (($smtx_eval_quant ($eo_Var s T) F i)
+  (($smtx_eval_exists_rec ($eo_Var s T) F i)
     (eo::define ((next ($smtx_model_type_enum T i)))
     ; check if we are out of values
     ($smt_apply_3 "ite" ($smt_builtin_is_ok next)
@@ -1547,23 +1547,23 @@
       (eo::define ((eval ($smtx_model_eval Fsubs)))
       ; if false, inconclusive, recurse for the next value in the type enumeration for the variable
       ($smt_apply_3 "ite" ($smt_apply_= eval $vsm_false)
-        ($smtx_eval_quant ($eo_Var s T) F ($smt_builtin_z_inc i))
-        ; if true, return successfully, return true with the witness
+        ($smtx_eval_exists_rec ($eo_Var s T) F ($smt_builtin_z_inc i))
+        ; if true, return successfully, return true
         ($smt_apply_3 "ite" ($smt_apply_= eval $vsm_true)
           $vsm_true
           ; otherwise return not value, which is the case that we failed to evaluate
           $vsm_not_value))))
-      ; out of values, return the negation of target with no value (no witness)
+      ; out of values, return false
       $vsm_false)))
   ; not a variable, fail
-  (($smtx_eval_quant v F i) $vsm_not_value)
+  (($smtx_eval_exists_rec v F i) $vsm_not_value)
   )
 )
 
 ; main entry for model evaluation of exists.
 (define $smtx_model_eval_exists ((v $eo_Term) (F $eo_Term))
   ; use the routine above, returning the first component
-  ($smtx_eval_quant v F $smt_builtin_z_zero))
+  ($smtx_eval_exists_rec v F $smt_builtin_z_zero))
 
 ; Recurses over the domain of the type of the variable.
 ; Constructs a map where each input/output pair is computed.
@@ -1657,7 +1657,7 @@
   (
   ; evaluation of standard SMT symbols
   ; These calls will reference helper methods above, e.g. of the form
-  ; $smtx_model_eval_*, or call builtin methods e.g. $smtx_eval_quant.
+  ; $smtx_model_eval_*, or call builtin methods e.g. $smtx_eval_exists_rec.
   (($smtx_model_eval (not x1)) ($smtx_model_eval_not ($smtx_model_eval x1)))
   (($smtx_model_eval (and x1 x2)) ($smtx_model_eval_and ($smtx_model_eval x1) ($smtx_model_eval x2)))
   (($smtx_model_eval (= x1 x2)) ($smtx_model_eval_= ($smtx_model_eval x1) ($smtx_model_eval x2)))

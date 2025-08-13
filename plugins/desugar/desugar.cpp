@@ -899,6 +899,14 @@ void Desugar::finalize()
   std::ostringstream sse;
   sse << ine.rdbuf();
   std::string finalEo = sse.str();
+  
+  /*
+  std::stringstream ssies;
+  ssies << s_plugin_path << "plugins/model_smt/eo_builtin_smt.eo";
+  std::ifstream ines(ssies.str());
+  std::ostringstream sses;
+  sses << ines.rdbuf();
+  */
 
   replace(finalEo, "$EO_LITERAL_TYPE_DECL$", d_litTypeDecl.str());
   replace(finalEo, "$EO_LIT_TYPEOF_DEFS$", d_litTypeProg.str());
