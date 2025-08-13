@@ -76,11 +76,6 @@ echo "**** smt_meta: Run ethos + trim-deps on $INIT_DESUGAR to generate $VC_DEF_
 trim_defs $INIT_DESUGAR "\$eovc_$TARGET" >/dev/null
 check_status
 cp $STD_TRIM_OUT $VC_DEF_DESUGAR
-# "\$eo_List" "\$eo_List_nil" "\$eo_List_cons" "\$eo_fail"
-
-# TODO: eliminate this line
-# eliminate these operators here, as desugar doesn't do this currently
-#sed -i -e 's/eo::list/\$eo_list/g' -e 's/eo::eq /\$eo_eq /g' $VC_DEF_DESUGAR
 
 echo "**** smt_meta: Run ethos + model-smt on $VC_DEF_DESUGAR to generate $VCM_DEF_DESUGAR"
 # make a copy of the current file, the current step will be included into it
@@ -102,13 +97,6 @@ sed -i "/(echo \"include eo_model_sat.*/{
 }" $TMP_OUT
 mv $TMP_OUT $VCM_DEF_DESUGAR
 rm -f $TMP_OUT
-
-# Need to eliminate eo:: with $eo_ here so that these definitions are
-# inlined in the smt-meta step below. However, we do not modify the bodies
-# of declare-consts commands. Moreover, eo::quote and eo::define should be
-# preserved.
-#sed -i '/^(declare-consts/! s|eo::|$eo_|g' $VCM_DEF_DESUGAR
-#sed -i -e 's/\$eo_quote/eo::quote/g' -e 's/\$eo_define/eo::define/g' $VCM_DEF_DESUGAR
 
 # trim again, where we require keeping the verification condition
 echo "**** smt_meta: Run ethos + trim-deps on $VCM_DEF_DESUGAR to generate $VCMT_DEF_DESUGAR"

@@ -126,12 +126,84 @@
     x3
     eo.Stuck)))
 
+; program: $eo_apply
+(define-fun $eo_apply ((x1 eo.Term) (x2 eo.Term)) eo.Term
+  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
+    eo.Stuck
+  (ite true
+    (eo.Apply x1 x2)
+    eo.Stuck)))
+
+; program: $eo_smt_term
+(define-fun $eo_smt_term ((x1 sm.Term)) eo.Term
+  (ite false
+    eo.Stuck
+  (ite true
+    (eo.SmtTerm x1)
+    eo.Stuck)))
+
+; program: $eo_smt_type
+(define-fun $eo_smt_type ((x1 tsm.Type)) eo.Term
+  (ite false
+    eo.Stuck
+  (ite true
+    (eo.SmtType x1)
+    eo.Stuck)))
+
+; program: $eo_Var
+(define-fun $eo_Var ((x1 String) (x2 eo.Term)) eo.Term
+  (ite (= x2 eo.Stuck)
+    eo.Stuck
+  (ite true
+    (eo.Var x1 x2)
+    eo.Stuck)))
+
 ; program: $smtx_pow2
 (declare-fun $smtx_pow2 (Int) Int)
 (assert (! (forall ((x1 Int))
   (! (= ($smtx_pow2 x1)
     (ite (<= x1 0) 1 (* 2 ($smtx_pow2 (- x1 1))))
 ) :pattern (($smtx_pow2 x1)))) :named sm.axiom.$smtx_pow2))
+
+; program: $eo_mk_bool
+(define-fun $eo_mk_bool ((x1 Bool)) eo.Term
+  (ite false
+    eo.Stuck
+  (ite true
+    (eo.SmtTerm (sm.Boolean x1))
+    eo.Stuck)))
+
+; program: $eo_mk_numeral
+(define-fun $eo_mk_numeral ((x1 Int)) eo.Term
+  (ite false
+    eo.Stuck
+  (ite true
+    (eo.SmtTerm (sm.Numeral x1))
+    eo.Stuck)))
+
+; program: $eo_mk_rational
+(define-fun $eo_mk_rational ((x1 Real)) eo.Term
+  (ite false
+    eo.Stuck
+  (ite true
+    (eo.SmtTerm (sm.Rational x1))
+    eo.Stuck)))
+
+; program: $eo_mk_string
+(define-fun $eo_mk_string ((x1 String)) eo.Term
+  (ite false
+    eo.Stuck
+  (ite true
+    (eo.SmtTerm (sm.String x1))
+    eo.Stuck)))
+
+; program: $eo_binary
+(define-fun $eo_binary ((x1 Int) (x2 Int)) eo.Term
+  (ite false
+    eo.Stuck
+  (ite true
+    (eo.SmtTerm (sm.Binary x1 x2))
+    eo.Stuck)))
 
 ; program: $eo_len
 (define-fun $eo_len ((x1 eo.Term)) eo.Term
