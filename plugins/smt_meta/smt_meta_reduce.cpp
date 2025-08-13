@@ -768,6 +768,35 @@ void SmtMetaReduce::finalizePrograms()
 {
   for (const std::pair<Expr, Expr>& p : d_progSeen)
   {
+    // We need to preserve definitions in the final VC (see ::bind).
+    // We reduce defines to a program e.g.
+    // (define foo ((x T)) (bar x))
+    //   becomes
+    // (program foo ((x T))
+    //   :signature (T) (eo::typeof (bar x))
+    //   (
+    //   ((foo x) (bar x))
+    //   )
+    // )
+    if (p.second.getKind() == Kind::LAMBDA)
+    {
+      Expr e = p.second;
+      Assert(e[0].getKind() == Kind::TUPLE);
+      std::vector<Expr> appChildren;
+      appChildren.push_back(p.first);
+      for (size_t i = 0, nargs = e[0].getNumChildren(); i < nargs; i++)
+      {
+        appChildren.push_back(e[0][i]);
+      }
+      Expr progApp = d_state.mkExprSimple(Kind::APPLY, appChildren);
+      Expr pcase = d_state.mkPair(progApp, e[1]);
+      Expr prog = d_state.mkExprSimple(Kind::PROGRAM, {pcase});
+      std::cout << "...do program " << p.first << " / " << prog << " instead"
+                << std::endl;
+      finalizeProgram(p.first, prog);
+      std::cout << "...finished lambda program" << std::endl;
+      continue;
+    }
     finalizeProgram(p.first, p.second);
   }
 }
@@ -948,6 +977,36 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
 
 void SmtMetaReduce::bind(const std::string& name, const Expr& e)
 {
+  // NOTE: the code here ensures that we preserve definitions for the final vc.
+  // This is required since we do not replace e.g. eo::list_concat with
+  // $eo_list_concat until the final generation of smt2. This means that this
+  // definition (although it would have been inlined) is still necessary to
+  // define what eo::list_concat will desugar to. Also note this definition is
+  // properly preserved by trim_defs which is agnostic to eo:: vs $eo_.
+  if (name.compare(0, 4, "$eo_") == 0 && e.getKind() == Kind::LAMBDA)
+  {
+    Expr p = e;
+    // dummy type
+    std::vector<Expr> argTypes;
+    Assert(e[0].getKind() == Kind::TUPLE);
+    Assert(e[0].getNumChildren() != 0);
+    for (size_t i = 0, nargs = e[0].getNumChildren(); i < nargs; i++)
+    {
+      Expr aa = e[0][i];
+      argTypes.push_back(d_tc.getType(aa));
+    }
+    Expr body = e[1];
+    Expr retType = d_tc.getType(body);
+    std::cout << "Look at define " << name << std::endl;
+    // if we fail to type check, just allocate a type variable
+    retType = retType.isNull() ? allocateTypeVariable() : retType;
+    Expr pt = d_state.mkProgramType(argTypes, retType);
+    std::cout << "....make program " << name << " for define, prog type is "
+              << pt << std::endl;
+    // Expr pt = d_state.mkBuiltinType(Kind::LAMBDA);
+    Expr tmp = d_state.mkSymbol(Kind::PROGRAM_CONST, name, pt);
+    d_progSeen.emplace_back(tmp, p);
+  }
   if (e.getKind() != Kind::CONST)
   {
     return;

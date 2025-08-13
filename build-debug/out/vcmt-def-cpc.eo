@@ -277,7 +277,7 @@
 (program $eo_lit_type_Binary ((T Type) (t T))
   :signature (T) Type
   (
-  (($eo_lit_type_Binary t) (BitVec ($eo_len t)))
+  (($eo_lit_type_Binary t) (BitVec (eo::len t)))
   )
 )
 (program $eo_lit_type_String ((T Type) (t T))

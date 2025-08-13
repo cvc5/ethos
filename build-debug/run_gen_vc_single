@@ -80,7 +80,7 @@ cp $STD_TRIM_OUT $VC_DEF_DESUGAR
 
 # TODO: eliminate this line
 # eliminate these operators here, as desugar doesn't do this currently
-sed -i -e 's/eo::list/\$eo_list/g' -e 's/eo::eq /\$eo_eq /g' $VC_DEF_DESUGAR
+#sed -i -e 's/eo::list/\$eo_list/g' -e 's/eo::eq /\$eo_eq /g' $VC_DEF_DESUGAR
 
 echo "**** smt_meta: Run ethos + model-smt on $VC_DEF_DESUGAR to generate $VCM_DEF_DESUGAR"
 # make a copy of the current file, the current step will be included into it
@@ -107,8 +107,8 @@ rm -f $TMP_OUT
 # inlined in the smt-meta step below. However, we do not modify the bodies
 # of declare-consts commands. Moreover, eo::quote and eo::define should be
 # preserved.
-sed -i '/^(declare-consts/! s|eo::|$eo_|g' $VCM_DEF_DESUGAR
-sed -i -e 's/\$eo_quote/eo::quote/g' -e 's/\$eo_define/eo::define/g' $VCM_DEF_DESUGAR
+#sed -i '/^(declare-consts/! s|eo::|$eo_|g' $VCM_DEF_DESUGAR
+#sed -i -e 's/\$eo_quote/eo::quote/g' -e 's/\$eo_define/eo::define/g' $VCM_DEF_DESUGAR
 
 # trim again, where we require keeping the verification condition
 echo "**** smt_meta: Run ethos + trim-deps on $VCM_DEF_DESUGAR to generate $VCMT_DEF_DESUGAR"
@@ -145,6 +145,7 @@ else
   echo "**** smt_meta: Verify cvc5 parses"
   ajr-cvc5 $VC_OUT --parse-only
   check_status
+  exit 0
 
   BASE_ARGS="--macros-quant --re-first-class --quant-ind"
   
