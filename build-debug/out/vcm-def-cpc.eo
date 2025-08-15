@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 48
+; #trim-defs: 46
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (define $eo_Numeral () Int)
@@ -17,9 +17,6 @@
 (declare-const $eo_List_nil $eo_List)
 (declare-parameterized-const $eo_List_cons ((T Type :implicit))
   (-> T $eo_List $eo_List))
-(declare-const $eo_Option Type)
-(declare-const $eo_Option_null $eo_Option)
-(declare-parameterized-const $eo_Option_some ((T Type :implicit) (t T :opaque)) $eo_Option)
 (program $eo_typeof ((T Type)) :signature (T) Type)
 (program $eo_dt_constructors () :signature (Type) $eo_List)
 (program $eo_dt_selectors ((T Type)) :signature (T) $eo_List)
@@ -130,8 +127,6 @@
 (define $smt_builtin_or ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "or" b1 b2))
 (define $smt_builtin_z_inc ((W Type :implicit) (x1 W)) ($smt_apply_1 "+ 1" x1))
 (define $smt_builtin_z_dec ((W Type :implicit) (x1 W)) ($smt_apply_1 "+ -1" x1))
-
-; TODO: ite
 
 ; In this signature, we heavily use references to the Datatypes corresponding
 ; to the final deep embeddings of Eunoia terms (eo.Term) and SMT-LIB terms
@@ -1093,9 +1088,6 @@
   (($eo_typeof_main $eo_List)             Type)
   (($eo_typeof_main $eo_List_nil)         $eo_List)
   (($eo_typeof_main ($eo_List_cons x1))   (-> $eo_List $eo_List))
-  (($eo_typeof_main $eo_Option)           Type)
-  (($eo_typeof_main $eo_Option_null)      $eo_Option)
-  (($eo_typeof_main ($eo_Option_some x1)) $eo_Option)
   
   (($eo_typeof_main Int) Type)
   
@@ -1155,7 +1147,8 @@
   (($eo_dt_selectors t) $eo_fail)
   )
 )
-(program $eo_model_sat () :signature (Bool) $eo_Option)
+(program $eo_model_sat () :signature (Bool) Bool)
+(program $eo_model_unsat () :signature (Bool) Bool)
 (program $eo_model_is_input () :signature (Bool) Bool)
 ; This file defines SMT-LIB model semantics in Eunoia.
 ; It has exception handling utilities to call Eunoia programs in
@@ -1660,16 +1653,6 @@
   )
 )
 
-; program: $smtx_model_sat
-(program $smtx_model_sat ((val $smt_Value))
-  :signature ($smt_Value) $eo_Option
-  (
-  (($smtx_model_sat $vsm_true)  ($eo_Option_some true))
-  (($smtx_model_sat $vsm_false) ($eo_Option_some false))
-  (($smtx_model_sat val)        $eo_Option_null)
-  )
-)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; SMT-LIB input syntax
 
 (program $smtx_is_list
@@ -1709,9 +1692,15 @@
 ; We expect the input to this method to be a Eunoia term denoting an SMT-LIB formula
 ; (term of Boolean type).
 (program $eo_model_sat ((F Bool))
-  :signature (Bool) $eo_Option
+  :signature (Bool) Bool
   (
-  (($eo_model_sat F) ($smtx_model_sat ($smtx_model_eval F)))
+  (($eo_model_sat F) ($smt_apply_3 "ite" ($smt_apply_= ($smtx_model_eval F) $vsm_true) true false))
+  )
+)
+(program $eo_model_unsat ((F Bool))
+  :signature (Bool) Bool
+  (
+  (($eo_model_unsat F) ($smt_apply_3 "ite" ($smt_apply_= ($smtx_model_eval F) $vsm_false) true false))
   )
 )
 
@@ -1734,7 +1723,7 @@
 (program $eovc_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eovc_symm F) (eo::define ((_v0 ($eor_symm F))) ($eo_requires_eq ($eo_model_is_input _v0) true ($eo_requires_eq ($eo_typeof F) Bool ($eo_requires_eq ($eo_model_sat F) ($eo_Option_some true) ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some false) true))))))
+  (($eovc_symm F) (eo::define ((_v0 ($eor_symm F))) ($eo_requires_eq ($eo_model_is_input _v0) true ($eo_requires_eq ($eo_typeof F) Bool ($eo_requires_eq ($eo_model_sat F) true ($eo_requires_eq ($eo_model_unsat _v0) true true))))))
   )
 )
 (echo "smt-meta $eovc_symm :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $smtx_reverse_value_hash $eo_smt_type $tsm_Bool $eo_Type $eo_fun_type $eo_apply ")

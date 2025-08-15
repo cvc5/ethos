@@ -86,8 +86,6 @@
 (define $smt_builtin_z_inc ((W Type :implicit) (x1 W)) ($smt_apply_1 "+ 1" x1))
 (define $smt_builtin_z_dec ((W Type :implicit) (x1 W)) ($smt_apply_1 "+ -1" x1))
 
-; TODO: ite
-
 ; In this signature, we heavily use references to the Datatypes corresponding
 ; to the final deep embeddings of Eunoia terms (eo.Term) and SMT-LIB terms
 ; (sm.Term), where the latter is a subfield type of the former.

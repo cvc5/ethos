@@ -552,9 +552,6 @@
   (($eo_typeof_main $eo_List)             Type)
   (($eo_typeof_main $eo_List_nil)         $eo_List)
   (($eo_typeof_main ($eo_List_cons x1))   (-> $eo_List $eo_List))
-  (($eo_typeof_main $eo_Option)           Type)
-  (($eo_typeof_main $eo_Option_null)      $eo_Option)
-  (($eo_typeof_main ($eo_Option_some x1)) $eo_Option)
   ; type-rule: Int
   (($eo_typeof_main Int) Type)
   ; type-rule: Real
@@ -649,16 +646,15 @@
 ; The following functions may be used to define the verification condition we
 ; will write below.
 
-; A placeholder for asking whether a formula is satisfied by a model.
-; Returns ($eo_Option_some true) if satisfied, ($eo_Option_some false) if
-; not satisfied, or $eo_Option_null otherwise.
-(program $eo_model_sat () :signature (Bool) $eo_Option)
-
+; A placeholder for asking whether a formula evaluates to true in a model.
+(program $eo_model_sat () :signature (Bool) Bool)
+; A placeholder for asking whether a formula evaluates to false in a model.
+(program $eo_model_unsat () :signature (Bool) Bool)
 ; A placeholder for asking whether a term is legal syntax for an SMT-LIB term.
 (program $eo_model_is_input () :signature (Bool) Bool)
 
 ; We will include the definition of the above functions here.
-(echo "include eo_model_sat :deps $eo_typeof_main $eo_is_ok $eo_dt_constructors $eo_dt_selectors $eo_if_both $eo_List_nil $eo_List_cons $eo_Option_some $eo_Option_null $eo_model_sat $eo_model_is_input $eo_Pair_mk $eo_Pair_first $eo_Pair_second $eo_lit_type_Numeral $eo_lit_type_Rational $eo_lit_type_String $eo_lit_type_Binary ")
+(echo "include eo_model_sat :deps $eo_typeof_main $eo_is_ok $eo_dt_constructors $eo_dt_selectors $eo_if_both $eo_List_nil $eo_List_cons $eo_lit_type_Numeral $eo_lit_type_Rational $eo_lit_type_String $eo_lit_type_Binary ")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; vc
 
@@ -675,7 +671,7 @@
 (program $eovc_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eovc_symm F) (eo::define ((_v0 ($eor_symm F))) ($eo_requires_eq ($eo_model_is_input _v0) true ($eo_requires_eq ($eo_typeof F) Bool ($eo_requires_eq ($eo_model_sat F) ($eo_Option_some true) ($eo_requires_eq ($eo_model_sat _v0) ($eo_Option_some false) true))))))
+  (($eovc_symm F) (eo::define ((_v0 ($eor_symm F))) ($eo_requires_eq ($eo_model_is_input _v0) true ($eo_requires_eq ($eo_typeof F) Bool ($eo_requires_eq ($eo_model_sat F) true ($eo_requires_eq ($eo_model_unsat _v0) true true))))))
   )
 )
 (echo "smt-meta $eovc_symm :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $smtx_reverse_value_hash $eo_smt_type $tsm_Bool $eo_Type $eo_fun_type $eo_apply ")

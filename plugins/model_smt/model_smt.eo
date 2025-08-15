@@ -482,16 +482,6 @@ $SMT_EVAL_CASES$
   )
 )
 
-; program: $smtx_model_sat
-(program $smtx_model_sat ((val $smt_Value))
-  :signature ($smt_Value) $eo_Option
-  (
-  (($smtx_model_sat $vsm_true)  ($eo_Option_some true))
-  (($smtx_model_sat $vsm_false) ($eo_Option_some false))
-  (($smtx_model_sat val)        $eo_Option_null)
-  )
-)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; SMT-LIB input syntax
 
 (program $smtx_is_list
@@ -531,9 +521,15 @@ $SMT_EVAL_CASES$
 ; We expect the input to this method to be a Eunoia term denoting an SMT-LIB formula
 ; (term of Boolean type).
 (program $eo_model_sat ((F Bool))
-  :signature (Bool) $eo_Option
+  :signature (Bool) Bool
   (
-  (($eo_model_sat F) ($smtx_model_sat ($smtx_model_eval F)))
+  (($eo_model_sat F) ($smt_apply_3 "ite" ($smt_apply_= ($smtx_model_eval F) $vsm_true) true false))
+  )
+)
+(program $eo_model_unsat ((F Bool))
+  :signature (Bool) Bool
+  (
+  (($eo_model_unsat F) ($smt_apply_3 "ite" ($smt_apply_= ($smtx_model_eval F) $vsm_false) true false))
   )
 )
 

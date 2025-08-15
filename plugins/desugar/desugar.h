@@ -85,7 +85,6 @@ class Desugar : public StdPlugin
                     const Expr& t2,
                     const Expr& ret,
                     bool neg = false);
-  Expr mkOptionSome(bool val);
   Attr getAttribute(const Expr& e);
   /** Declares seen */
   std::vector<std::pair<Expr, Kind>> d_declSeen;
@@ -123,11 +122,11 @@ class Desugar : public StdPlugin
   std::stringstream d_eoModelConstPred;
 
   Expr d_peoModelSat;
+  Expr d_peoModelUnsat;
   Expr d_peoModelTypeof;
   Expr d_peoModelIsInput;
   Expr d_peoRequiresEq;
   Expr d_peoRequiresDeq;
-  Expr d_peoOptionSome;
   size_t d_eoDtConsParamCount;
   bool d_genWfCond;
 };
