@@ -141,6 +141,7 @@ check_status
 ./run_gen_vc_single $INPUT str-in-re-eval
 ./run_gen_vc_single $INPUT str-in-re-consume
 ./run_gen_vc_single $INPUT re-loop-elim
+./run_gen_vc_single $INPUT re-eq-elim
 ./run_gen_vc_single $INPUT re-inter-inclusion
 ./run_gen_vc_single $INPUT re-union-inclusion
 ./run_gen_vc_single $INPUT str-in-re-concat-star-char

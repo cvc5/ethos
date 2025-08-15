@@ -627,7 +627,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       }
       continue;
     }
-    else if (recTerm.getNumChildren() == 0)
+    else if (recTerm.getNumChildren() == 0 && ck!=Kind::VARIABLE)
     {
       // atomic terms print here
       // We handle SMT vs SMT_BUILTIN within that method
@@ -727,10 +727,10 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     else if (ck == Kind::VARIABLE)
     {
       const Literal* l = recTerm.getValue()->asLiteral();
-      os << "(eo.Var \"" << l->toString() << "\" ($smtx_hash ";
+      os << "(eo.Var \"" << l->toString() << "\" ";
       Expr recTermT = d_tc.getType(recTerm);
       visit.emplace_back(recTermT, MetaKind::EUNOIA);
-      cparen[key] += 2;
+      cparen[key] += 1;
       continue;
     }
     else
