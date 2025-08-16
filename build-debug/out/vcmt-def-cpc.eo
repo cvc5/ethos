@@ -146,13 +146,13 @@
 )
 (define $sm_mk_binary ((w $smt_builtin_Int) (n $smt_builtin_Int))
   ($sm_binary w ($smt_builtin_mod n ($smtx_pow2 w))))
-(define $eo_mk_bool ((x $smt_builtin_Bool))
+(define $eo_bool ((x $smt_builtin_Bool))
   ($eo_smt_term ($sm_mk_bool x)))
-(define $eo_mk_numeral ((x $smt_builtin_Int))
+(define $eo_numeral ((x $smt_builtin_Int))
   ($eo_smt_term ($sm_mk_z x)))
-(define $eo_mk_rational ((x $smt_builtin_Real))
+(define $eo_rational ((x $smt_builtin_Real))
   ($eo_smt_term ($sm_mk_q x)))
-(define $eo_mk_string ((x $smt_builtin_String))
+(define $eo_string ((x $smt_builtin_String))
   ($eo_smt_term ($sm_mk_str x)))
 (define $eo_binary ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
   ($eo_smt_term ($sm_binary x1 x2)))
@@ -161,10 +161,10 @@
 (program $eo_len ((T Type) (s1 $smt_builtin_String) (w $smt_builtin_Int) (n1 $smt_builtin_Int))
   :signature (T) $eo_Numeral
   (
-  (($eo_len ($eo_mk_string s1))
-    ($eo_mk_numeral ($smt_apply_1 "str.len" s1)))
+  (($eo_len ($eo_string s1))
+    ($eo_numeral ($smt_apply_1 "str.len" s1)))
   (($eo_len ($eo_binary w n1))
-    ($eo_mk_numeral w))
+    ($eo_numeral w))
   )
 )
 (program $smtx_hash ((T Type)) :signature (T) $smt_builtin_Int)
@@ -182,10 +182,10 @@
   :signature ($eo_Term) $eo_Term
   (
   
-  (($eo_typeof ($eo_mk_bool b))                 Bool)
-  (($eo_typeof ($eo_mk_numeral n))              ($eo_lit_type_Numeral ($eo_mk_numeral n)))
-  (($eo_typeof ($eo_mk_rational r))             ($eo_lit_type_Rational ($eo_mk_rational r)))
-  (($eo_typeof ($eo_mk_string s))               ($eo_lit_type_String ($eo_mk_string s)))
+  (($eo_typeof ($eo_bool b))                 Bool)
+  (($eo_typeof ($eo_numeral n))              ($eo_lit_type_Numeral ($eo_numeral n)))
+  (($eo_typeof ($eo_rational r))             ($eo_lit_type_Rational ($eo_rational r)))
+  (($eo_typeof ($eo_string s))               ($eo_lit_type_String ($eo_string s)))
   (($eo_typeof ($eo_binary w n))                ($eo_lit_type_Binary ($eo_binary w n)))
   (($eo_typeof ($eo_Var s T))                   T)
   

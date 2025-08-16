@@ -178,9 +178,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // the following operators require a mix of literal evaluation and term
   // reduction
   std::stringstream ssRLeftRet;
-  ssRLeftRet << "(eo::define ((wm1 (- ($eo_mk_numeral x2) 1))) ";
+  ssRLeftRet << "(eo::define ((wm1 (- ($eo_numeral x2) 1))) ";
   ssRLeftRet << "($smtx_model_eval";
-  ssRLeftRet << " (rotate_left (- ($eo_mk_numeral x1) 1) (concat";
+  ssRLeftRet << " (rotate_left (- ($eo_numeral x1) 1) (concat";
   ssRLeftRet << " (extract (- wm1 1) 0 ($eo_mk_binary x2 x3))";
   ssRLeftRet << " (extract wm1 wm1 ($eo_mk_binary x2 x3))))))";
   addLitSym("rotate_left", {kInt, kBitVec}, kT,
@@ -189,9 +189,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                             "($vsm_term ($sm_binary x2 x3))", 
                             ssRLeftRet.str())));
   std::stringstream ssRRightRet;
-  ssRRightRet << "(eo::define ((wm1 (- ($eo_mk_numeral x2) 1))) ";
+  ssRRightRet << "(eo::define ((wm1 (- ($eo_numeral x2) 1))) ";
   ssRRightRet << "($smtx_model_eval";
-  ssRRightRet << " (rotate_right (- ($eo_mk_numeral x1) 1) (concat";
+  ssRRightRet << " (rotate_right (- ($eo_numeral x1) 1) (concat";
   ssRRightRet << " (extract 0 0 ($eo_mk_binary x2 x3))";
   ssRRightRet << " (extract wm1 1 ($eo_mk_binary x2 x3))))))";
   addLitSym("rotate_right", {kInt, kBitVec}, kT,
@@ -201,7 +201,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                             ssRRightRet.str())));
   std::stringstream ssRepeatRet;
   ssRepeatRet << "($smtx_model_eval (concat";
-  ssRepeatRet << " (repeat (- ($eo_mk_numeral x1) 1) ($eo_mk_binary x2 x3))";
+  ssRepeatRet << " (repeat (- ($eo_numeral x1) 1) ($eo_mk_binary x2 x3))";
   ssRepeatRet << " ($eo_mk_binary x2 x3)))";
   addLitSym("repeat", {kInt, kBitVec}, kT,
             smtGuard(smtApp(">=", "x1", "$smt_builtin_z_one"),

@@ -272,7 +272,7 @@
 ; return: The embedding of (-> T1 T2).
 ; note: Since the Eunoia function type is an atomic term, this becomes a
 ;       curried apply.
-(define $eo_mk_fun_type ((T1 $eo_Term) (T2 $eo_Term)) 
+(define $eo_mk_fun_type ((T1 $eo_Term) (T2 $eo_Term))
   ($eo_apply ($eo_apply $eo_fun_type T1) T2))
 
 (define $eo_null_type ()
@@ -434,13 +434,13 @@
 
 ;;; Utilities
 
-(define $eo_mk_bool ((x $smt_builtin_Bool))
+(define $eo_bool ((x $smt_builtin_Bool))
   ($eo_smt_term ($sm_mk_bool x)))
-(define $eo_mk_numeral ((x $smt_builtin_Int))
+(define $eo_numeral ((x $smt_builtin_Int))
   ($eo_smt_term ($sm_mk_z x)))
-(define $eo_mk_rational ((x $smt_builtin_Real))
+(define $eo_rational ((x $smt_builtin_Real))
   ($eo_smt_term ($sm_mk_q x)))
-(define $eo_mk_string ((x $smt_builtin_String))
+(define $eo_string ((x $smt_builtin_String))
   ($eo_smt_term ($sm_mk_str x)))
 
 ; define: $eo_binary
@@ -487,7 +487,7 @@
 ; program: $eo_is_ok
 ; implements: eo::is_ok
 (define $eo_is_ok ((x $eo_Term))
-  ($eo_mk_bool ($smt_builtin_is_ok x)))
+  ($eo_bool ($smt_builtin_is_ok x)))
 
 ; program: $eo_ite
 ; implements: eo::ite
@@ -523,7 +523,7 @@
 (program $eo_not ((T Type) (b $smt_builtin_Bool) (w $smt_builtin_Int) (n $smt_builtin_Int))
   :signature (T) T
   (
-  (($eo_not ($eo_mk_bool b))   ($eo_mk_bool ($smt_apply_1 "not" b)))
+  (($eo_not ($eo_bool b))   ($eo_bool ($smt_apply_1 "not" b)))
   (($eo_not ($eo_binary w n))  ($eo_smt_term ($sm_mk_binary w ($smtx_binary_not w n))))
   )
 )
@@ -535,8 +535,8 @@
    (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature (T T) T
   (
-  (($eo_and ($eo_mk_bool b1) ($eo_mk_bool b2))
-     ($eo_mk_bool ($smt_apply_2 "and" b1 b2)))
+  (($eo_and ($eo_bool b1) ($eo_bool b2))
+     ($eo_bool ($smt_apply_2 "and" b1 b2)))
   (($eo_and ($eo_binary w n1) ($eo_binary w n2))
      ($eo_smt_term ($sm_mk_binary w ($smtx_binary_and w n1 n2))))
   )
@@ -549,8 +549,8 @@
    (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature (T T) T
   (
-  (($eo_or ($eo_mk_bool b1) ($eo_mk_bool b2))
-     ($eo_mk_bool ($smt_apply_2 "or" b1 b2)))
+  (($eo_or ($eo_bool b1) ($eo_bool b2))
+     ($eo_bool ($smt_apply_2 "or" b1 b2)))
   (($eo_or ($eo_binary w n1) ($eo_binary w n2))
      ($eo_smt_term ($sm_mk_binary w ($smtx_binary_or w n1 n2))))
   )
@@ -563,8 +563,8 @@
    (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature (T T) T
   (
-  (($eo_xor ($eo_mk_bool b1) ($eo_mk_bool b2))
-     ($eo_mk_bool ($smt_apply_2 "xor" b1 b2)))
+  (($eo_xor ($eo_bool b1) ($eo_bool b2))
+     ($eo_bool ($smt_apply_2 "xor" b1 b2)))
   (($eo_xor ($eo_binary w n1) ($eo_binary w n2))
      ($eo_smt_term ($sm_mk_binary w ($smtx_binary_or w n1 n2))))
   )
@@ -578,10 +578,10 @@
   ((T Type) (w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int) (r1 $smt_builtin_Real) (r2 $smt_builtin_Real))
   :signature (T T) T
   (
-  (($eo_add ($eo_mk_numeral n1) ($eo_mk_numeral n2))
-    ($eo_mk_numeral ($smt_builtin_add n1 n2)))
-  (($eo_add ($eo_mk_rational r1) ($eo_mk_rational r2))
-    ($eo_mk_rational ($smt_builtin_add r1 r2)))
+  (($eo_add ($eo_numeral n1) ($eo_numeral n2))
+    ($eo_numeral ($smt_builtin_add n1 n2)))
+  (($eo_add ($eo_rational r1) ($eo_rational r2))
+    ($eo_rational ($smt_builtin_add r1 r2)))
   (($eo_add ($eo_binary w n1) ($eo_binary w n2))
     ($eo_smt_term ($sm_mk_binary w ($smt_builtin_add n1 n2))))  ; don't need to recheck bitwidth
   )
@@ -591,10 +591,10 @@
   ((T Type) (w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int) (r1 $smt_builtin_Real) (r2 $smt_builtin_Real))
   :signature (T T) T
   (
-  (($eo_mul ($eo_mk_numeral n1) ($eo_mk_numeral n2))
-    ($eo_mk_numeral ($smt_builtin_mul n1 n2)))
-  (($eo_mul ($eo_mk_rational r1) ($eo_mk_rational r2))
-    ($eo_mk_rational ($smt_builtin_mul r1 r2)))
+  (($eo_mul ($eo_numeral n1) ($eo_numeral n2))
+    ($eo_numeral ($smt_builtin_mul n1 n2)))
+  (($eo_mul ($eo_rational r1) ($eo_rational r2))
+    ($eo_rational ($smt_builtin_mul r1 r2)))
   (($eo_mul ($eo_binary w n1) ($eo_binary w n2))
     ($eo_smt_term ($sm_mk_binary w ($smt_builtin_mul n1 n2))))
   )
@@ -605,16 +605,16 @@
    (r1 $smt_builtin_Real) (r2 $smt_builtin_Real))
   :signature (T T) $eo_Rational
   (
-  (($eo_qdiv ($eo_mk_numeral n1) ($eo_mk_numeral n2))
+  (($eo_qdiv ($eo_numeral n1) ($eo_numeral n2))
     (eo::define ((r1 ($smt_apply_1 "to_real" n1)))
     (eo::define ((r2 ($smt_apply_1 "to_real" n2)))
     ($smt_apply_3 "ite" ($smt_apply_1 "= 0" n2)
       $eo_stuck
-      ($eo_mk_rational ($smt_apply_2 "/" r1 r2))))))
-  (($eo_qdiv ($eo_mk_rational r1) ($eo_mk_rational r2))
+      ($eo_rational ($smt_apply_2 "/" r1 r2))))))
+  (($eo_qdiv ($eo_rational r1) ($eo_rational r2))
     ($smt_apply_3 "ite" ($smt_apply_1 "= 0/1" r2)
       $eo_stuck
-      ($eo_mk_rational ($smt_apply_2 "/" r1 r2))))
+      ($eo_rational ($smt_apply_2 "/" r1 r2))))
   )
 )
 
@@ -622,10 +622,10 @@
 (program $eo_zdiv ((T Type) (w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature (T T) T
   (
-  (($eo_zdiv ($eo_mk_numeral n1) ($eo_mk_numeral n2))
+  (($eo_zdiv ($eo_numeral n1) ($eo_numeral n2))
     ($smt_apply_3 "ite" ($smt_apply_1 "= 0" n2)
       $eo_stuck
-      ($eo_mk_numeral ($smt_builtin_div n1 n2))))
+      ($eo_numeral ($smt_builtin_div n1 n2))))
   (($eo_zdiv ($eo_binary w n1) ($eo_binary w n2))
     ($smt_apply_3 "ite" ($smt_apply_1 "= 0" n2)
       ($eo_smt_term ($sm_binary w ($smtx_binary_max w)))
@@ -636,10 +636,10 @@
 (program $eo_zmod ((T Type) (w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature (T T) T
   (
-  (($eo_zmod ($eo_mk_numeral n1) ($eo_mk_numeral n2))
+  (($eo_zmod ($eo_numeral n1) ($eo_numeral n2))
     ($smt_apply_3 "ite" ($smt_apply_1 "= 0" n2)
       $eo_stuck
-      ($eo_mk_numeral ($smt_builtin_mod n1 n2))))
+      ($eo_numeral ($smt_builtin_mod n1 n2))))
   (($eo_zmod ($eo_binary w n1) ($eo_binary w n2))
     ($smt_apply_3 "ite" ($smt_apply_1 "= 0" n2)
       ($eo_binary w n1)
@@ -650,10 +650,10 @@
 (program $eo_is_neg ((T Type) (n1 $smt_builtin_Int) (r1 $smt_builtin_Real))
   :signature (T) Bool
   (
-  (($eo_is_neg ($eo_mk_numeral n1))
-    ($eo_mk_bool ($smt_apply_1 "> 0" n1)))
-  (($eo_is_neg ($eo_mk_rational r1))
-    ($eo_mk_bool ($smt_apply_1 "> 0/1" r1)))
+  (($eo_is_neg ($eo_numeral n1))
+    ($eo_bool ($smt_apply_1 "> 0" n1)))
+  (($eo_is_neg ($eo_rational r1))
+    ($eo_bool ($smt_apply_1 "> 0/1" r1)))
   )
 )
 
@@ -662,10 +662,10 @@
 (program $eo_neg ((T Type) (w $smt_builtin_Int) (n1 $smt_builtin_Int) (r1 $smt_builtin_Real))
   :signature (T) T
   (
-  (($eo_neg ($eo_mk_numeral n1))
-    ($eo_mk_numeral ($smt_builtin_neg n1)))
-  (($eo_neg ($eo_mk_rational r1))
-    ($eo_mk_rational ($smt_builtin_neg r1)))
+  (($eo_neg ($eo_numeral n1))
+    ($eo_numeral ($smt_builtin_neg n1)))
+  (($eo_neg ($eo_rational r1))
+    ($eo_rational ($smt_builtin_neg r1)))
   (($eo_neg ($eo_binary w n1))
     ($eo_smt_term ($sm_mk_binary w ($smt_builtin_neg n1))))
   )
@@ -679,10 +679,10 @@
 (program $eo_len ((T Type) (s1 $smt_builtin_String) (w $smt_builtin_Int) (n1 $smt_builtin_Int))
   :signature (T) $eo_Numeral
   (
-  (($eo_len ($eo_mk_string s1))
-    ($eo_mk_numeral ($smt_apply_1 "str.len" s1)))
+  (($eo_len ($eo_string s1))
+    ($eo_numeral ($smt_apply_1 "str.len" s1)))
   (($eo_len ($eo_binary w n1))
-    ($eo_mk_numeral w))
+    ($eo_numeral w))
   )
 )
 
@@ -693,8 +693,8 @@
    (s1 $smt_builtin_String) (s2 $smt_builtin_String))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
-  (($eo_concat ($eo_mk_string s1) ($eo_mk_string s2))
-     ($eo_mk_string ($smt_apply_2 "str.++" s1 s2)))
+  (($eo_concat ($eo_string s1) ($eo_string s2))
+     ($eo_string ($smt_apply_2 "str.++" s1 s2)))
   (($eo_concat ($eo_binary w1 n1) ($eo_binary w2 n2))
      ($eo_mk_binary ($smt_builtin_add w1 w2) ($smtx_binary_concat w1 n1 w2 n2)))
   )
@@ -706,9 +706,9 @@
   ((s1 $smt_builtin_String) (w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int) (n3 $smt_builtin_Int))
   :signature ($eo_Term $eo_Term $eo_Term) $eo_Term
   (
-  (($eo_extract ($eo_mk_string s1) ($eo_mk_numeral n2) ($eo_mk_numeral n3))
-     ($eo_mk_string ($smt_apply_3 "str.substr" s1 n2 ($smt_builtin_z_inc ($smt_apply_2 "-" n3 n2)))))
-  (($eo_extract ($eo_binary w n1) ($eo_mk_numeral n2) ($eo_mk_numeral n3))
+  (($eo_extract ($eo_string s1) ($eo_numeral n2) ($eo_numeral n3))
+     ($eo_string ($smt_apply_3 "str.substr" s1 n2 ($smt_builtin_z_inc ($smt_apply_2 "-" n3 n2)))))
+  (($eo_extract ($eo_binary w n1) ($eo_numeral n2) ($eo_numeral n3))
     (eo::define ((nw ($smt_apply_2 "-" n3 n2)))
     ($smt_apply_3 "ite" ($smt_builtin_or ($smt_apply_1 "> 0" n2) ($smt_apply_1 "> 0" nw))
       $eo_empty_binary
@@ -723,8 +723,8 @@
 (program $eo_find ((s1 $smt_builtin_String) (s2 $smt_builtin_String))
   :signature ($eo_Term $eo_Term) $eo_Numeral
   (
-  (($eo_find ($eo_mk_string s1) ($eo_mk_string s2))
-     ($eo_mk_numeral ($smt_apply_3 "str.indexof" s1 s2 $smt_builtin_z_zero)))
+  (($eo_find ($eo_string s1) ($eo_string s2))
+     ($eo_numeral ($smt_apply_3 "str.indexof" s1 s2 $smt_builtin_z_zero)))
   )
 )
 
@@ -735,14 +735,14 @@
 (program $eo_to_z ((n1 $smt_builtin_Int) (r1 $smt_builtin_Real) (s1 $smt_builtin_String) (w $smt_builtin_Int))
   :signature ($eo_Term) $eo_Numeral
   (
-  (($eo_to_z ($eo_mk_numeral n1))   ($eo_mk_numeral n1))
-  (($eo_to_z ($eo_mk_rational r1))  ($eo_mk_numeral ($smt_apply_1 "to_int" r1)))
-  (($eo_to_z ($eo_mk_string s1))
+  (($eo_to_z ($eo_numeral n1))   ($eo_numeral n1))
+  (($eo_to_z ($eo_rational r1))  ($eo_numeral ($smt_apply_1 "to_int" r1)))
+  (($eo_to_z ($eo_string s1))
     ($smt_apply_3 "ite"
       ($smt_apply_1 "= 1" ($smt_apply_1 "str.len" s1))
-      ($eo_mk_numeral ($smt_apply_1 "str.to_code" s1))
+      ($eo_numeral ($smt_apply_1 "str.to_code" s1))
       $eo_stuck))
-  (($eo_to_z ($eo_binary w n1))     ($eo_mk_numeral n1))
+  (($eo_to_z ($eo_binary w n1))     ($eo_numeral n1))
   )
 )
 
@@ -751,8 +751,8 @@
 (program $eo_to_q ((n1 $smt_builtin_Int) (r1 $smt_builtin_Real) (s1 $smt_builtin_String) (w $smt_builtin_Int))
   :signature ($eo_Term) $eo_Rational
   (
-  (($eo_to_q ($eo_mk_numeral n1))   ($eo_mk_rational ($smt_apply_1 "to_real" n1)))
-  (($eo_to_q ($eo_mk_rational r1))  ($eo_mk_rational r1))
+  (($eo_to_q ($eo_numeral n1))   ($eo_rational ($smt_apply_1 "to_real" n1)))
+  (($eo_to_q ($eo_rational r1))  ($eo_rational r1))
   )
 )
 
@@ -761,12 +761,12 @@
 (program $eo_to_bin ((w $smt_builtin_Int) (w1 $smt_builtin_Int) (n1 $smt_builtin_Int))
   :signature ($eo_Term $eo_Term) $eo_Binary
   (
-  (($eo_to_bin ($eo_mk_numeral w) ($eo_mk_numeral n1))
+  (($eo_to_bin ($eo_numeral w) ($eo_numeral n1))
     ; the upper bound is enforced here
     ($smt_apply_3 "ite" ($smt_apply_1 ">= 4294967296" w)
       ($eo_mk_binary w n1)
       $eo_stuck))
-  (($eo_to_bin ($eo_mk_numeral w) ($eo_binary w1 n1))
+  (($eo_to_bin ($eo_numeral w) ($eo_binary w1 n1))
     ; the upper bound is enforced here
     ($smt_apply_3 "ite" ($smt_apply_1 ">= 4294967296" w)
       ($eo_mk_binary w n1)
@@ -779,12 +779,12 @@
 (program $eo_to_str ((n1 $smt_builtin_Int) (s1 $smt_builtin_String))
   :signature ($eo_Term) $eo_String
   (
-  (($eo_to_str ($eo_mk_numeral n1))
+  (($eo_to_str ($eo_numeral n1))
     ($smt_apply_3 "ite"
       ($smt_builtin_and ($smt_apply_1 "<= 0" n1) ($smt_apply_1 "> 196608" n1))
-      ($eo_mk_string ($smt_apply_1 "str.from_code" n1))
+      ($eo_string ($smt_apply_1 "str.from_code" n1))
       $eo_stuck))
-  (($eo_to_str ($eo_mk_string s1)) ($eo_mk_string s1))
+  (($eo_to_str ($eo_string s1)) ($eo_string s1))
   ; TODO: technically others here
   )
 )
@@ -797,7 +797,7 @@
 ; define: $eo_is_eq
 ; implements: eo::is_eq
 (define $eo_is_eq ((t $eo_Term) (s $eo_Term))
-  ($eo_mk_bool ($smt_apply_3 "and"
+  ($eo_bool ($smt_apply_3 "and"
     ($smt_builtin_is_ok t)
     ($smt_builtin_is_ok s)
     ($smt_apply_= s t))))
@@ -808,7 +808,7 @@
 (program $eo_is_bool_internal ((x $eo_Term) (b $smt_builtin_Bool))
   :signature ($eo_Term) Bool
   (
-  (($eo_is_bool_internal ($eo_mk_bool b))  true)
+  (($eo_is_bool_internal ($eo_bool b))  true)
   (($eo_is_bool_internal x)                false)
   )
 )
@@ -817,7 +817,7 @@
 ; define: $eo_is_bool
 ; implements: eo::is_bool
 (define $eo_is_bool ((t $eo_Term))
-  ($eo_mk_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t) 
+  ($eo_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t)
     ($smt_apply_= ($eo_is_bool_internal t) true))))
 
 ;;; $eo_is_z
@@ -826,7 +826,7 @@
 (program $eo_is_z_internal ((x $eo_Term) (n $smt_builtin_Int))
   :signature ($eo_Term) Bool
   (
-  (($eo_is_z_internal ($eo_mk_numeral n))  true)
+  (($eo_is_z_internal ($eo_numeral n))  true)
   (($eo_is_z_internal x)                   false)
   )
 )
@@ -835,7 +835,7 @@
 ; define: $eo_is_z
 ; implements: eo::is_z
 (define $eo_is_z ((t $eo_Term))
-  ($eo_mk_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t)
+  ($eo_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t)
     ($smt_apply_= ($eo_is_z_internal t) true))))
 
 ;;; $eo_is_q
@@ -844,7 +844,7 @@
 (program $eo_is_q_internal ((x $eo_Term) (r $smt_builtin_Real))
   :signature ($eo_Term) Bool
   (
-  (($eo_is_q_internal ($eo_mk_rational r))  true)
+  (($eo_is_q_internal ($eo_rational r))  true)
   (($eo_is_q_internal x)                   false)
   )
 )
@@ -853,7 +853,7 @@
 ; define: $eo_is_q
 ; implements: eo::is_q
 (define $eo_is_q ((t $eo_Term))
-  ($eo_mk_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t)
+  ($eo_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t)
     ($smt_apply_= ($eo_is_q_internal t) true))))
 
 
@@ -872,7 +872,7 @@
 ; define: $eo_is_bin
 ; implements: eo::is_bin
 (define $eo_is_bin ((t $eo_Term))
-  ($eo_mk_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t)
+  ($eo_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t)
     ($smt_apply_= ($eo_is_bin_internal t) true))))
 
 ;;; $eo_is_str
@@ -881,7 +881,7 @@
 (program $eo_is_str_internal ((x $eo_Term) (s $smt_builtin_String))
   :signature ($eo_Term) Bool
   (
-  (($eo_is_str_internal ($eo_mk_string s)) true)
+  (($eo_is_str_internal ($eo_string s)) true)
   (($eo_is_str_internal x)                 false)
   )
 )
@@ -890,7 +890,7 @@
 ; define: $eo_is_str
 ; implements: eo::is_str
 (define $eo_is_str ((t $eo_Term))
-  ($eo_mk_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t)
+  ($eo_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t)
     ($smt_apply_= ($eo_is_str_internal t) true))))
 
 ;;; Derived arithmetic
@@ -905,7 +905,7 @@
 (program $eo_hash ((T Type) (t T))
   :signature (T) $eo_Numeral
   (
-  (($eo_hash t) ($eo_mk_numeral ($smtx_hash t)))
+  (($eo_hash t) ($eo_numeral ($smtx_hash t)))
   )
 )
 
@@ -953,7 +953,7 @@
 (program $eo_var ((s $smt_builtin_String) (T $eo_Term))
   :signature ($eo_String $eo_Term) $eo_Term
   (
-  (($eo_var ($eo_mk_string s) T)
+  (($eo_var ($eo_string s) T)
     ; we use the hash of the type T to identify the variable
     ($eo_requires_eq ($eo_typeof T) Type ($eo_Var s T)))
   )
@@ -964,7 +964,7 @@
 (program $eo_nameof ((s $smt_builtin_String) (T $eo_Term))
   :signature ($eo_Term) $eo_String
   (
-  (($eo_nameof ($eo_Var s T)) ($eo_mk_string s))
+  (($eo_nameof ($eo_Var s T)) ($eo_string s))
   )
 )
 
@@ -992,10 +992,10 @@
   :signature ($eo_Term) $eo_Term
   (
   ; TODO: auto-generate these?
-  (($eo_typeof ($eo_mk_bool b))                 Bool)
-  (($eo_typeof ($eo_mk_numeral n))              ($eo_lit_type_Numeral ($eo_mk_numeral n)))
-  (($eo_typeof ($eo_mk_rational r))             ($eo_lit_type_Rational ($eo_mk_rational r)))
-  (($eo_typeof ($eo_mk_string s))               ($eo_lit_type_String ($eo_mk_string s)))
+  (($eo_typeof ($eo_bool b))                 Bool)
+  (($eo_typeof ($eo_numeral n))              ($eo_lit_type_Numeral ($eo_numeral n)))
+  (($eo_typeof ($eo_rational r))             ($eo_lit_type_Rational ($eo_rational r)))
+  (($eo_typeof ($eo_string s))               ($eo_lit_type_String ($eo_string s)))
   (($eo_typeof ($eo_binary w n))                ($eo_lit_type_Binary ($eo_binary w n)))
   (($eo_typeof ($eo_Var s T))                   T)
   ; otherwise, invoke the routine for user types from the signature.
