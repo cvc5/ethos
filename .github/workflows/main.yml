@@ -51,6 +51,8 @@ jobs:
 
     - name: Install Packages (macOS)
       if: runner.os == 'macOS'
+      env:
+        HOMEBREW_DEVELOPER: 1 # Required by Brew >= 4.6.4. See https://github.com/Homebrew/brew/pull/20414
       run: |
         # Install GMP 6.3.0 bottle for macOS 12.0 (monterey)
         # Ensure compatibility with older versions of macOS
