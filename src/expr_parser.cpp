@@ -1242,7 +1242,7 @@ Expr ExprParser::findFreeVar(const Expr& e, const std::vector<Expr>& bvs)
     if (std::find(bvs.begin(), bvs.end(), v)==bvs.end())
     {
       // ignore distinguished variables
-      if (v==d_state.mkConclusion() || v==d_state.mkSelf())
+      if (v == d_state.mkSelf())
       {
         continue;
       }

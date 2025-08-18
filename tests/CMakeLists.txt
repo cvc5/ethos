@@ -154,6 +154,8 @@ set(ethos_test_file_list
     list-ops-new.eo
     double-list.eo
     list-param-immediate.eo
+    conclusion-explicit-cases.eo
+    rule-all-cases.eo
     nground-nil-ex.eo
     list-nth-non-list.eo
     eo-list-ops.eo
