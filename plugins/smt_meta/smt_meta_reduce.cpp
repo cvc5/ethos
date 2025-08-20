@@ -436,10 +436,6 @@ std::string SmtMetaReduce::getEmbedName(const Expr& oApp)
 {
   Assert(oApp.getKind() == Kind::APPLY_OPAQUE);
   std::string aname = getName(oApp[0]);
-  if (aname == "$smt_apply_=")
-  {
-    return "=";
-  }
   if (!isSmtApplyApp(oApp))
   {
     Assert(false) << "Expected smt apply app when asking for embed name "
@@ -671,13 +667,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           || sname.compare(0, 10, "$smt_type_") == 0)
       {
         std::string embName = getEmbedName(recTerm);
-        if (embName == "=")
-        {
-          os << "(= ";
-          cparen[key]++;
-          cstart = 1;
-        }
-        else if (recTerm.getNumChildren() > 2)
+        if (recTerm.getNumChildren() > 2)
         {
           os << "(" << embName << " ";
           cparen[key]++;
@@ -1377,30 +1367,7 @@ MetaKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
     }
     if (sname.compare(0, 11, "$smt_apply_") == 0)
     {
-      std::string suffix = sname.substr(11);
-      if (suffix == "=")
-      {
-        MetaKind k1 = getMetaKindReturn(parent[1], parentCtx);
-        MetaKind k2 = getMetaKindReturn(parent[2], parentCtx);
-        if (k1 == k2)
-        {
-          // both sides have no context.
-          // this allows SMT-LIB equality to operate on any datatype used in the
-          // embedding
-          tk = MetaKind::NONE;
-        }
-        else if (k1 == MetaKind::EUNOIA || k2 == MetaKind::EUNOIA)
-        {
-          // if they have different types, we must "connect" them through the
-          // top-level Eunoia datatype
-          tk = MetaKind::EUNOIA;
-        }
-        else
-        {
-          Assert(false) << "Could not infer argument context for equality";
-        }
-      }
-      else if (i == 1)
+      if (i == 1)
       {
         // SMT-LIB identifier
         tk = MetaKind::NONE;
@@ -1408,7 +1375,29 @@ MetaKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
       else
       {
         std::string esname = getEmbedName(parent);
-        if (esname == "ite")
+        if (esname == "=")
+        {
+          MetaKind k1 = getMetaKindReturn(parent[2], parentCtx);
+          MetaKind k2 = getMetaKindReturn(parent[3], parentCtx);
+          if (k1 == k2)
+          {
+            // both sides have no context.
+            // this allows SMT-LIB equality to operate on any datatype used in the
+            // embedding
+            tk = MetaKind::NONE;
+          }
+          else if (k1 == MetaKind::EUNOIA || k2 == MetaKind::EUNOIA)
+          {
+            // if they have different types, we must "connect" them through the
+            // top-level Eunoia datatype
+            tk = MetaKind::EUNOIA;
+          }
+          else
+          {
+            Assert(false) << "Could not infer argument context for equality";
+          }
+        }
+        else if (esname == "ite")
         {
           // the condition is stored at position 2, after op and deep
           // embedding the branches have no context.
@@ -1424,7 +1413,6 @@ MetaKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
         }
         else
         {
-          Assert(esname != "=") << "Use smt_apply_= instead";
           tk = MetaKind::SMT_BUILTIN;
         }
       }
@@ -1511,36 +1499,31 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
     std::string sname = getName(child[0]);
     if (sname.compare(0, 11, "$smt_apply_") == 0)
     {
-      std::string suffix = sname.substr(11);
-      if (suffix == "=")
+      std::string esname = getEmbedName(child);
+      if (esname == "=")
       {
         // builtin equality returns an SMT-LIB builtin
         MetaKind tk = MetaKind::SMT_BUILTIN;
-        MetaKind k1 = getMetaKindReturn(child[1], parentCtx);
-        MetaKind k2 = getMetaKindReturn(child[2], parentCtx);
+        MetaKind k1 = getMetaKindReturn(child[2], parentCtx);
+        MetaKind k2 = getMetaKindReturn(child[3], parentCtx);
         Assert(k1 == MetaKind::EUNOIA || k2 == MetaKind::EUNOIA || k1 == k2)
             << "Equal sides have incompatible meta types " << child << " "
             << metaKindToString(k1) << " " << metaKindToString(k2);
         return tk;
       }
+      if (esname == "ite")
+      {
+        Assert(child.getNumChildren() == 5);
+        MetaKind tk = getMetaKindReturn(child[3], parentCtx);
+        MetaKind k2 = getMetaKindReturn(child[4], parentCtx);
+        Assert(tk == k2) << "ITE branches have different meta types " << child
+                          << " " << metaKindToString(tk) << " and "
+                          << metaKindToString(k2);
+        return tk;
+      }
       else
       {
-        std::string esname = getEmbedName(child);
-        Assert(esname != "=") << "Expected $smt_apply_=";
-        if (esname == "ite")
-        {
-          Assert(child.getNumChildren() == 5);
-          MetaKind tk = getMetaKindReturn(child[3], parentCtx);
-          MetaKind k2 = getMetaKindReturn(child[4], parentCtx);
-          Assert(tk == k2) << "ITE branches have different meta types " << child
-                           << " " << metaKindToString(tk) << " and "
-                           << metaKindToString(k2);
-          return tk;
-        }
-        else
-        {
-          return MetaKind::SMT_BUILTIN;
-        }
+        return MetaKind::SMT_BUILTIN;
       }
     }
     else if (sname.compare(0, 10, "$smt_type_") == 0)

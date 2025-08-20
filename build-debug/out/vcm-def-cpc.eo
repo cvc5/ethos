@@ -88,11 +88,6 @@
   ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit) (W4 Type :implicit) (W5 Type :implicit)
    (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque) (x4 W4 :opaque) (x5 W5 :opaque)) $smt_BuiltinType)
 
-; Handles the corner case of SMT-LIB equality, which we use for Eunoia terms as well.
-(declare-parameterized-const $smt_apply_=
-  ((W Type :implicit) (x1 W :opaque) (x2 W :opaque))
-  $smt_BuiltinType)
-
 ; builtin types, which print as e.g. "sm.Int".
 (declare-parameterized-const $smt_builtin_type_0
   ((op $smt_id :opaque))
@@ -110,7 +105,7 @@
 (define $smt_builtin_RegLan () ($smt_type_0 "RegLan"))
 (define $smt_builtin_true () ($smt_apply_0 "true"))
 (define $smt_builtin_false () ($smt_apply_0 "false"))
-(define $smt_builtin_= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_= x1 x2))
+(define $smt_builtin_= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "=" x1 x2))
 (define $smt_builtin_ite ((W Type :implicit) (b $smt_builtin_Bool) (x1 W) (x2 W)) ($smt_apply_3 "ite" b x1 x2))
 (define $smt_builtin_z_zero () ($smt_apply_0 "0"))
 (define $smt_builtin_z_one () ($smt_apply_0 "1"))
@@ -358,7 +353,7 @@
   (
   (($smtx_binary_and_rec w n1 n2)
       ($smt_builtin_add
-        ($smt_apply_3 "ite" ($smt_apply_= w $smt_builtin_z_zero)
+        ($smt_apply_3 "ite" ($smt_builtin_= w $smt_builtin_z_zero)
           $smt_builtin_z_zero
           ($smtx_binary_and_rec ($smt_builtin_z_dec w) n1 n2))
         ($smt_builtin_mul ($smtx_pow2 w)
@@ -377,7 +372,7 @@
 ;   Assumes that 0 <= n1 < 2^w, 0 <= n2 < 2^w, 0 <= w.
 (define $smtx_binary_and
   ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
-  ($smt_apply_3 "ite" ($smt_apply_= w $smt_builtin_z_zero)
+  ($smt_apply_3 "ite" ($smt_builtin_= w $smt_builtin_z_zero)
     $smt_builtin_z_zero
     ($smtx_binary_and_rec ($smt_builtin_z_dec w) n1 n2)))
 
@@ -524,7 +519,7 @@
 
 ; Returns SMT-LIB builtin true/false if x is stuck
 (define $smt_builtin_is_ok ((x $eo_Term))
-  ($smt_apply_1 "not" ($smt_apply_= x $eo_stuck)))
+  ($smt_apply_1 "not" ($smt_builtin_= x $eo_stuck)))
 
 ; program: $eo_is_ok
 ; implements: eo::is_ok
@@ -535,9 +530,9 @@
 ; implements: eo::ite
 ; note: This definition is only used if we are not eagerly flattening evaluation
 (define $eo_ite ((x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term))
-  ($smt_apply_3 "ite" ($smt_apply_= x1 true)
+  ($smt_apply_3 "ite" ($smt_builtin_= x1 true)
     x2
-  ($smt_apply_3 "ite" ($smt_apply_= x1 false)
+  ($smt_apply_3 "ite" ($smt_builtin_= x1 false)
     x3
     $eo_stuck)))
 
@@ -545,7 +540,7 @@
 ; implements: eo::requires
 ; note: This definition is only used if we are not eagerly flattening evaluation
 (define $eo_requires ((x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term))
-  ($smt_apply_3 "ite" ($smt_apply_= x1 x2)
+  ($smt_apply_3 "ite" ($smt_builtin_= x1 x2)
     ($smt_apply_3 "ite" ($smt_builtin_is_ok x1) x3 x1)
     $eo_stuck))
 
@@ -842,7 +837,7 @@
   ($eo_bool ($smt_apply_3 "and"
     ($smt_builtin_is_ok t)
     ($smt_builtin_is_ok s)
-    ($smt_apply_= s t))))
+    ($smt_builtin_= s t))))
 
 ;;; $eo_is_bool
 
@@ -860,7 +855,7 @@
 ; implements: eo::is_bool
 (define $eo_is_bool ((t $eo_Term))
   ($eo_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t)
-    ($smt_apply_= ($eo_is_bool_internal t) true))))
+    ($smt_builtin_= ($eo_is_bool_internal t) true))))
 
 ;;; $eo_is_z
 
@@ -878,7 +873,7 @@
 ; implements: eo::is_z
 (define $eo_is_z ((t $eo_Term))
   ($eo_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t)
-    ($smt_apply_= ($eo_is_z_internal t) true))))
+    ($smt_builtin_= ($eo_is_z_internal t) true))))
 
 ;;; $eo_is_q
 
@@ -896,7 +891,7 @@
 ; implements: eo::is_q
 (define $eo_is_q ((t $eo_Term))
   ($eo_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t)
-    ($smt_apply_= ($eo_is_q_internal t) true))))
+    ($smt_builtin_= ($eo_is_q_internal t) true))))
 
 
 ;;; $eo_is_bin
@@ -915,7 +910,7 @@
 ; implements: eo::is_bin
 (define $eo_is_bin ((t $eo_Term))
   ($eo_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t)
-    ($smt_apply_= ($eo_is_bin_internal t) true))))
+    ($smt_builtin_= ($eo_is_bin_internal t) true))))
 
 ;;; $eo_is_str
 
@@ -933,7 +928,7 @@
 ; implements: eo::is_str
 (define $eo_is_str ((t $eo_Term))
   ($eo_bool ($smt_apply_2 "and" ($smt_builtin_is_ok t)
-    ($smt_apply_= ($eo_is_str_internal t) true))))
+    ($smt_builtin_= ($eo_is_str_internal t) true))))
 
 ;;; Derived arithmetic
 
@@ -1233,7 +1228,7 @@
   (($smtx_msm_find_diff ($msm_cons i e m1) m2)
     ; Lookup the current index, if it different, return this index.
     ($smt_apply_3 "ite"
-      ($smt_apply_= ($smtx_msm_lookup m2 i) e)
+      ($smt_builtin_= ($smtx_msm_lookup m2 i) e)
       ($smtx_msm_find_diff m1 m2)
       i))
   )
@@ -1248,7 +1243,7 @@
 (define $smtx_mss_mk_insert ((e $smt_Value) (m $smt_Map)) ($smtx_msm_update m e $vsm_true))
 (define $smtx_mss_insert ((e $smt_Value) (m $smt_Map)) ($msm_cons e $vsm_true m))
 (define $smtx_mss_member ((e $smt_Value) (m $smt_Map))
-  ($smt_apply_= ($smtx_msm_lookup m e) $vsm_true))
+  ($smt_builtin_= ($smtx_msm_lookup m e) $vsm_true))
 
 ; Helper for computing binary set operators.
 (program $smtx_mss_op_internal
@@ -1259,7 +1254,7 @@
   (($smtx_mss_op_internal isInter ($smtx_mss_insert e m1) m2 acc)
     ($smtx_mss_op_internal isInter m1 m2
       ($smt_apply_3 "ite"
-        ($smt_apply_= ($smtx_mss_member e m2) isInter)
+        ($smt_builtin_= ($smtx_mss_member e m2) isInter)
         ($smtx_mss_mk_insert e acc)
         acc)))
   )
@@ -1294,7 +1289,7 @@
 ;  (
 ;  (($smtx_smt_seq_to_ssm_seq s)
 ;    ($smt_apply_3 "ite"
-;      ($smt_apply_=
+;      ($smt_builtin_=
 ;  )
 ;)
 
@@ -1331,7 +1326,7 @@
     ; must be legal width and value
     ($smt_builtin_and
       ($smt_apply_1 "<= 0" w)
-      ($smt_apply_= ($sm_binary w n) ($sm_mk_binary w n))))
+      ($smt_builtin_= ($sm_binary w n) ($sm_mk_binary w n))))
   ; by default, not a value
   (($smtx_is_atomic_term_value t)                $smt_builtin_false)
   )
@@ -1402,7 +1397,7 @@
   (($smtx_model_eval_= $vsm_not_value t2) $vsm_not_value)
   (($smtx_model_eval_= t1 $vsm_not_value) $vsm_not_value)
   ; use datatype equality over $smt_Value, which depends on t1 and t2 being proper values.
-  (($smtx_model_eval_= t1 t2)             ($vsm_term ($sm_mk_bool ($smt_apply_= t1 t2))))
+  (($smtx_model_eval_= t1 t2)             ($vsm_term ($sm_mk_bool ($smt_builtin_= t1 t2))))
   )
 )
 
@@ -1544,10 +1539,10 @@
       (eo::define ((Fsubs ($smtx_model_substitute ($eo_Var s T) next F)))
       (eo::define ((eval ($smtx_model_eval Fsubs)))
       ; if false, inconclusive, recurse for the next value in the type enumeration for the variable
-      ($smt_apply_3 "ite" ($smt_apply_= eval $vsm_false)
+      ($smt_apply_3 "ite" ($smt_builtin_= eval $vsm_false)
         ($smtx_eval_exists_rec ($eo_Var s T) F ($smt_builtin_z_inc i))
         ; if true, return successfully, return true
-        ($smt_apply_3 "ite" ($smt_apply_= eval $vsm_true)
+        ($smt_apply_3 "ite" ($smt_builtin_= eval $vsm_true)
           $vsm_true
           ; otherwise return not value, which is the case that we failed to evaluate
           $vsm_not_value))))
@@ -1579,11 +1574,11 @@
       (eo::define ((Fsubs ($smtx_model_substitute ($eo_Var s T) input F)))
       (eo::define ((output ($smtx_model_eval Fsubs)))
       ; if we fail to evalue the body, we fail to evaluate
-      ($smt_apply_3 "ite" ($smt_apply_= output $vsm_not_value)
+      ($smt_apply_3 "ite" ($smt_builtin_= output $vsm_not_value)
         $vsm_not_value
         ; recurse, updating the accumulated value.
         ($smtx_eval_lambda_rec ($eo_Var s T) F ($smt_builtin_z_inc i)
-          ($smt_apply_3 "ite" ($smt_apply_= acc $vsm_not_value)
+          ($smt_apply_3 "ite" ($smt_builtin_= acc $vsm_not_value)
             ; if the first value, we store as default
             ($vsm_map ($msm_default output))
             ; otherwise, we update.
@@ -1715,13 +1710,13 @@
 (program $eo_model_sat ((F Bool))
   :signature (Bool) Bool
   (
-  (($eo_model_sat F) ($smt_apply_3 "ite" ($smt_apply_= ($smtx_model_eval F) $vsm_true) true false))
+  (($eo_model_sat F) ($smt_apply_3 "ite" ($smt_builtin_= ($smtx_model_eval F) $vsm_true) true false))
   )
 )
 (program $eo_model_unsat ((F Bool))
   :signature (Bool) Bool
   (
-  (($eo_model_unsat F) ($smt_apply_3 "ite" ($smt_apply_= ($smtx_model_eval F) $vsm_false) true false))
+  (($eo_model_unsat F) ($smt_apply_3 "ite" ($smt_builtin_= ($smtx_model_eval F) $vsm_false) true false))
   )
 )
 

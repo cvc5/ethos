@@ -20,7 +20,7 @@ namespace ethos {
 std::string smtEq(const std::string& c1, const std::string& c2)
 {
   std::stringstream ss;
-  ss << "($smt_apply_= " << c1 << " " << c2 << ")";
+  ss << "($smt_builtin_= " << c1 << " " << c2 << ")";
   return ss.str();
 }
 std::string smtApp(const std::string& app, const std::string& c1, const std::string& c2)
@@ -292,7 +292,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addRecReduceSym(
       "set.is_empty",
       {kT},
-      "($vsm_term ($sm_mk_bool ($smt_apply_= e1 $smtx_empty_set)))");
+      "($vsm_term ($sm_mk_bool ($smt_builtin_= e1 $smtx_empty_set)))");
   addReduceSym("set.insert", {kList, kT},
                "($smtx_model_eval (set.insert x2 (set.union (set.singleton x1) x3)))");
   d_specialCases["set.insert"].emplace_back(

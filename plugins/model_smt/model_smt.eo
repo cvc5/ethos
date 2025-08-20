@@ -81,7 +81,7 @@
   (($smtx_msm_find_diff ($msm_cons i e m1) m2)
     ; Lookup the current index, if it different, return this index.
     ($smt_apply_3 "ite"
-      ($smt_apply_= ($smtx_msm_lookup m2 i) e)
+      ($smt_builtin_= ($smtx_msm_lookup m2 i) e)
       ($smtx_msm_find_diff m1 m2)
       i))
   )
@@ -96,7 +96,7 @@
 (define $smtx_mss_mk_insert ((e $smt_Value) (m $smt_Map)) ($smtx_msm_update m e $vsm_true))
 (define $smtx_mss_insert ((e $smt_Value) (m $smt_Map)) ($msm_cons e $vsm_true m))
 (define $smtx_mss_member ((e $smt_Value) (m $smt_Map))
-  ($smt_apply_= ($smtx_msm_lookup m e) $vsm_true))
+  ($smt_builtin_= ($smtx_msm_lookup m e) $vsm_true))
 
 ; Helper for computing binary set operators.
 (program $smtx_mss_op_internal
@@ -107,7 +107,7 @@
   (($smtx_mss_op_internal isInter ($smtx_mss_insert e m1) m2 acc)
     ($smtx_mss_op_internal isInter m1 m2
       ($smt_apply_3 "ite"
-        ($smt_apply_= ($smtx_mss_member e m2) isInter)
+        ($smt_builtin_= ($smtx_mss_member e m2) isInter)
         ($smtx_mss_mk_insert e acc)
         acc)))
   )
@@ -142,7 +142,7 @@
 ;  (
 ;  (($smtx_smt_seq_to_ssm_seq s)
 ;    ($smt_apply_3 "ite"
-;      ($smt_apply_=
+;      ($smt_builtin_=
 ;  )
 ;)
 
@@ -179,7 +179,7 @@
     ; must be legal width and value
     ($smt_builtin_and
       ($smt_apply_1 "<= 0" w)
-      ($smt_apply_= ($sm_binary w n) ($sm_mk_binary w n))))
+      ($smt_builtin_= ($sm_binary w n) ($sm_mk_binary w n))))
   ; by default, not a value
   (($smtx_is_atomic_term_value t)                $smt_builtin_false)
   )
@@ -250,7 +250,7 @@
   (($smtx_model_eval_= $vsm_not_value t2) $vsm_not_value)
   (($smtx_model_eval_= t1 $vsm_not_value) $vsm_not_value)
   ; use datatype equality over $smt_Value, which depends on t1 and t2 being proper values.
-  (($smtx_model_eval_= t1 t2)             ($vsm_term ($sm_mk_bool ($smt_apply_= t1 t2))))
+  (($smtx_model_eval_= t1 t2)             ($vsm_term ($sm_mk_bool ($smt_builtin_= t1 t2))))
   )
 )
 
@@ -392,10 +392,10 @@
       (eo::define ((Fsubs ($smtx_model_substitute ($eo_Var s T) next F)))
       (eo::define ((eval ($smtx_model_eval Fsubs)))
       ; if false, inconclusive, recurse for the next value in the type enumeration for the variable
-      ($smt_apply_3 "ite" ($smt_apply_= eval $vsm_false)
+      ($smt_apply_3 "ite" ($smt_builtin_= eval $vsm_false)
         ($smtx_eval_exists_rec ($eo_Var s T) F ($smt_builtin_z_inc i))
         ; if true, return successfully, return true
-        ($smt_apply_3 "ite" ($smt_apply_= eval $vsm_true)
+        ($smt_apply_3 "ite" ($smt_builtin_= eval $vsm_true)
           $vsm_true
           ; otherwise return not value, which is the case that we failed to evaluate
           $vsm_not_value))))
@@ -427,11 +427,11 @@
       (eo::define ((Fsubs ($smtx_model_substitute ($eo_Var s T) input F)))
       (eo::define ((output ($smtx_model_eval Fsubs)))
       ; if we fail to evalue the body, we fail to evaluate
-      ($smt_apply_3 "ite" ($smt_apply_= output $vsm_not_value)
+      ($smt_apply_3 "ite" ($smt_builtin_= output $vsm_not_value)
         $vsm_not_value
         ; recurse, updating the accumulated value.
         ($smtx_eval_lambda_rec ($eo_Var s T) F ($smt_builtin_z_inc i)
-          ($smt_apply_3 "ite" ($smt_apply_= acc $vsm_not_value)
+          ($smt_apply_3 "ite" ($smt_builtin_= acc $vsm_not_value)
             ; if the first value, we store as default
             ($vsm_map ($msm_default output))
             ; otherwise, we update.
@@ -544,13 +544,13 @@ $SMT_EVAL_CASES$
 (program $eo_model_sat ((F Bool))
   :signature (Bool) Bool
   (
-  (($eo_model_sat F) ($smt_apply_3 "ite" ($smt_apply_= ($smtx_model_eval F) $vsm_true) true false))
+  (($eo_model_sat F) ($smt_apply_3 "ite" ($smt_builtin_= ($smtx_model_eval F) $vsm_true) true false))
   )
 )
 (program $eo_model_unsat ((F Bool))
   :signature (Bool) Bool
   (
-  (($eo_model_unsat F) ($smt_apply_3 "ite" ($smt_apply_= ($smtx_model_eval F) $vsm_false) true false))
+  (($eo_model_unsat F) ($smt_apply_3 "ite" ($smt_builtin_= ($smtx_model_eval F) $vsm_false) true false))
   )
 )
 
