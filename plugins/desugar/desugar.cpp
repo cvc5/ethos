@@ -1080,6 +1080,7 @@ Expr Desugar::mkRequiresModelSat(bool tgt, const Expr& test, const Expr& ret)
   {
     // FIXME
     //return mkRequiresEq(t1, t2, ret, true);
+    return d_null;
   }
 }
 

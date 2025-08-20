@@ -125,6 +125,27 @@
   )
 )
 
+; Converts a $smt_Seq to a (Seq $smt_Value).
+(program $smtx_ssm_seq_to_smt_seq ((v $smt_Value) (vs $smt_Seq))
+  :signature ($smt_Seq) ($smt_builtin_type_1 "Seq" $smt_Value)
+  (
+  (($smtx_ssm_seq_to_smt_seq $ssm_empty)
+    ($smt_apply_0 "(as seq.empty (Seq vsm.Value))"))
+  (($smtx_ssm_seq_to_smt_seq ($ssm_cons v vs))
+    ($smt_apply_2 "seq.++" v ($smtx_ssm_seq_to_smt_seq vs)))
+  )
+)
+
+; Converts a (Seq $smt_Value) to a $smt_Seq
+;(program $smtx_smt_seq_to_ssm_seq ((s ($smt_builtin_type_1 "Seq" $smt_Value)))
+;  :signature (($smt_builtin_type_1 "Seq" $smt_Value)) $smt_Seq
+;  (
+;  (($smtx_smt_seq_to_ssm_seq s)
+;    ($smt_apply_3 "ite"
+;      ($smt_apply_=
+;  )
+;)
+
 ;;; Utilities for Datatype values
 
 ; define: $smt_is_dt
