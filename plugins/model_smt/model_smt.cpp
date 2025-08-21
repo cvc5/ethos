@@ -32,7 +32,7 @@ std::string smtApp(const std::string& app, const std::string& c1, const std::str
 std::string smtIte(const std::string& guard, const std::string& t, const std::string& e)
 {
   std::stringstream ss;
-  ss << "($smt_apply_3 \"ite\" " << guard << " " << t << " " << e << ")";
+  ss << "($smt_builtin_ite " << guard << " " << t << " " << e << ")";
   return ss.str();
 }
 std::string smtGuard(const std::string& guard, const std::string& val)
@@ -65,7 +65,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // Note that we model *SMT-LIB* not *CPC* here.
   // builtin
   // immediately include Bool, as it will not be defined
-  printType("Bool", {}, "($vsm_term ($sm_mk_bool b))", "Bool");
+  printType("Bool", {}, "($vsm_term ($sm_bool b))", "Bool");
   addHardCodeSym("=", {kT, kT});
   addHardCodeSym("ite", {kBool, kT, kT});
   addTermReduceSym("distinct", {kT, kT}, "(not (= x1 x2))");
@@ -275,7 +275,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addReduceSym("seq.empty", {kT}, "$smtx_empty_seq");
   d_specialCases["seq.empty"].emplace_back(
       "(as seq.empty (Seq Char))",
-      "($vsm_term ($sm_mk_str $smt_builtin_str_empty))");
+      "($vsm_term ($sm_str $smt_builtin_str_empty))");
   addRecReduceSym("seq.unit", {kT}, "($smtx_seq_unit e1)");
   addRecReduceSym("seq.nth", {kT, kInt}, "($smtx_seq_nth e1 e2)");
   // sets
@@ -292,7 +292,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addRecReduceSym(
       "set.is_empty",
       {kT},
-      "($vsm_term ($sm_mk_bool ($smt_builtin_= e1 $smtx_empty_set)))");
+      "($vsm_term ($sm_bool ($smt_builtin_= e1 $smtx_empty_set)))");
   addReduceSym("set.insert", {kList, kT},
                "($smtx_model_eval (set.insert x2 (set.union (set.singleton x1) x3)))");
   d_specialCases["set.insert"].emplace_back(
@@ -561,7 +561,7 @@ void ModelSmt::printTermInternal(Kind k,
 {
   if (d_kindToEoPrefix.find(k) != d_kindToEoPrefix.end())
   {
-    os << "($vsm_term ($sm_mk_" << d_kindToEoPrefix[k] << " " << term << "))";
+    os << "($vsm_term ($sm_" << d_kindToEoPrefix[k] << " " << term << "))";
   }
   else if (k == Kind::EVAL_TO_STRING)
   {
@@ -700,7 +700,7 @@ void ModelSmt::printAuxProgramCase(const std::string& name,
       continue;
     }
     Assert(d_kindToEoPrefix.find(ka) != d_kindToEoPrefix.end());
-    progCases << " ($sm_mk_" << d_kindToEoPrefix[ka] << " x" << paramCount
+    progCases << " ($sm_" << d_kindToEoPrefix[ka] << " x" << paramCount
               << "))";
     progParams << "(x" << paramCount << " $smt_builtin_" << d_kindToType[ka]
                << ")";

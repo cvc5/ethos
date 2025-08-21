@@ -61,7 +61,7 @@
   ; we overwrite if same index
   (($smtx_msm_update ($msm_cons i e1 m) i e2) ($msm_cons i e2 m))
   ; otherwise, we check the hash to retain sortedness
-  (($smtx_msm_update ($msm_cons j e1 m) i e2) ($smt_apply_3 "ite" ($smtx_value_cmp j i)
+  (($smtx_msm_update ($msm_cons j e1 m) i e2) ($smt_builtin_ite ($smtx_value_cmp j i)
                                                 ($msm_cons i e2 ($msm_cons j e1 m))
                                                 ($msm_cons j e1 ($smtx_msm_update m i e2))))
   ; we are redundant wrt the default value
@@ -80,7 +80,7 @@
   (($smtx_msm_find_diff ($msm_default e) m2)    $vsm_not_value)
   (($smtx_msm_find_diff ($msm_cons i e m1) m2)
     ; Lookup the current index, if it different, return this index.
-    ($smt_apply_3 "ite"
+    ($smt_builtin_ite
       ($smt_builtin_= ($smtx_msm_lookup m2 i) e)
       ($smtx_msm_find_diff m1 m2)
       i))
@@ -106,7 +106,7 @@
   (($smtx_mss_op_internal isInter $msm_empty_set m2 acc) acc)
   (($smtx_mss_op_internal isInter ($smtx_mss_insert e m1) m2 acc)
     ($smtx_mss_op_internal isInter m1 m2
-      ($smt_apply_3 "ite"
+      ($smt_builtin_ite
         ($smt_builtin_= ($smtx_mss_member e m2) isInter)
         ($smtx_mss_mk_insert e acc)
         acc)))
@@ -141,7 +141,7 @@
 ;  :signature (($smt_builtin_type_1 "Seq" $smt_Value)) $smt_Seq
 ;  (
 ;  (($smtx_smt_seq_to_ssm_seq s)
-;    ($smt_apply_3 "ite"
+;    ($smt_builtin_ite
 ;      ($smt_builtin_=
 ;  )
 ;)
@@ -171,10 +171,10 @@
   :signature ($smt_Term) $smt_builtin_Bool
   (
   ; standard atomic types are values
-  (($smtx_is_atomic_term_value ($sm_mk_bool b))  $smt_builtin_true)
-  (($smtx_is_atomic_term_value ($sm_mk_z n))     $smt_builtin_true)
-  (($smtx_is_atomic_term_value ($sm_mk_q r))     $smt_builtin_true)
-  (($smtx_is_atomic_term_value ($sm_mk_str s))   $smt_builtin_true)
+  (($smtx_is_atomic_term_value ($sm_bool b))  $smt_builtin_true)
+  (($smtx_is_atomic_term_value ($sm_z n))     $smt_builtin_true)
+  (($smtx_is_atomic_term_value ($sm_q r))     $smt_builtin_true)
+  (($smtx_is_atomic_term_value ($sm_str s))   $smt_builtin_true)
   (($smtx_is_atomic_term_value ($sm_binary w n))
     ; must be legal width and value
     ($smt_builtin_and
@@ -188,10 +188,10 @@
 ; Returns a term of type $smt_Value, embeds the term
 ; if indeed it is a value, or returns not a value otherwise.
 (define $smt_mk_value_term ((t $smt_Term))
-  ($smt_apply_3 "ite" ($smtx_is_atomic_term_value t)
+  ($smt_builtin_ite ($smtx_is_atomic_term_value t)
     ; an atomic term, e.g. 0, true, "abc"
     ($vsm_term t)
-    ($smt_apply_3 "ite" ($smt_is_dt_cons t)
+    ($smt_builtin_ite ($smt_is_dt_cons t)
       ; a datatype constructor, which becomes a (nil-terminated) vsm_apply
       ($vsm_apply ($vsm_term t) $vsm_not_value)
       $vsm_not_value)))
@@ -250,7 +250,7 @@
   (($smtx_model_eval_= $vsm_not_value t2) $vsm_not_value)
   (($smtx_model_eval_= t1 $vsm_not_value) $vsm_not_value)
   ; use datatype equality over $smt_Value, which depends on t1 and t2 being proper values.
-  (($smtx_model_eval_= t1 t2)             ($vsm_term ($sm_mk_bool ($smt_builtin_= t1 t2))))
+  (($smtx_model_eval_= t1 t2)             ($vsm_term ($sm_bool ($smt_builtin_= t1 t2))))
   )
 )
 
@@ -349,7 +349,7 @@
   ((s $smt_Seq) (n $smt_builtin_Int) (v1 $smt_Value) (v2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_seq_nth ($vsm_seq s) ($vsm_term ($sm_mk_z n))) ($smtx_ssm_seq_nth s n))
+  (($smtx_seq_nth ($vsm_seq s) ($vsm_term ($sm_z n))) ($smtx_ssm_seq_nth s n))
   (($smtx_seq_nth v1 v2) $vsm_not_value)
   )
 )
@@ -385,17 +385,17 @@
   (($smtx_eval_exists_rec ($eo_Var s T) F i)
     (eo::define ((next ($smtx_model_type_enum T i)))
     ; check if we are out of values
-    ($smt_apply_3 "ite" ($smt_builtin_is_ok next)
+    ($smt_builtin_ite ($smt_builtin_is_ok next)
       ; If not out of values, evaluate for the current variable.
       ; Note we do not check for variable shadowing, which will induce ill-formed binders
       ; and fail to evaluate.
       (eo::define ((Fsubs ($smtx_model_substitute ($eo_Var s T) next F)))
       (eo::define ((eval ($smtx_model_eval Fsubs)))
       ; if false, inconclusive, recurse for the next value in the type enumeration for the variable
-      ($smt_apply_3 "ite" ($smt_builtin_= eval $vsm_false)
+      ($smt_builtin_ite ($smt_builtin_= eval $vsm_false)
         ($smtx_eval_exists_rec ($eo_Var s T) F ($smt_builtin_z_inc i))
         ; if true, return successfully, return true
-        ($smt_apply_3 "ite" ($smt_builtin_= eval $vsm_true)
+        ($smt_builtin_ite ($smt_builtin_= eval $vsm_true)
           $vsm_true
           ; otherwise return not value, which is the case that we failed to evaluate
           $vsm_not_value))))
@@ -411,6 +411,24 @@
   ; use the routine above, returning the first component
   ($smtx_eval_exists_rec v F $smt_builtin_z_zero))
 
+; alternative implementation
+;(program $smtx_model_eval_exists2
+;  ((s $smt_builtin_String) (T $eo_Term) (v $eo_Term) (F $eo_Term))
+;  :signature ($eo_Term $eo_Term) $smt_Value
+;  (
+;  (($smtx_model_eval_exists2 ($eo_Var s T) F)
+;    ($vsm_term ($sm_bool
+;      ($smt_apply_1 "exists (($eo_qv eo.Term))" 
+;        ($smt_builtin_and 
+;          ($smt_builtin_= ($eo_typeof ($smt_apply_0 "$eo_qv")) T)
+;          ($smt_builtin_= 
+;            ($smtx_model_eval ($smtx_model_substitute ($eo_Var s T) ($smt_apply_0 "$eo_qv") F))
+;            $vsm_true))))))
+;  ; not a variable, fail
+;  (($smtx_model_eval_exists2 v F) $vsm_not_value)
+;  )
+;)
+  
 ; Recurses over the domain of the type of the variable.
 ; Constructs a map where each input/output pair is computed.
 (program $smtx_eval_lambda_rec
@@ -421,17 +439,17 @@
     ; Get the next enumerated input.
     (eo::define ((input ($smtx_model_type_enum T i)))
     ; If out of values, return the accumulated value
-    ($smt_apply_3 "ite" ($smt_builtin_is_ok input)
+    ($smt_builtin_ite ($smt_builtin_is_ok input)
       acc
       ; compute the output of the body
       (eo::define ((Fsubs ($smtx_model_substitute ($eo_Var s T) input F)))
       (eo::define ((output ($smtx_model_eval Fsubs)))
       ; if we fail to evalue the body, we fail to evaluate
-      ($smt_apply_3 "ite" ($smt_builtin_= output $vsm_not_value)
+      ($smt_builtin_ite ($smt_builtin_= output $vsm_not_value)
         $vsm_not_value
         ; recurse, updating the accumulated value.
         ($smtx_eval_lambda_rec ($eo_Var s T) F ($smt_builtin_z_inc i)
-          ($smt_apply_3 "ite" ($smt_builtin_= acc $vsm_not_value)
+          ($smt_builtin_ite ($smt_builtin_= acc $vsm_not_value)
             ; if the first value, we store as default
             ($vsm_map ($msm_default output))
             ; otherwise, we update.
@@ -544,13 +562,13 @@ $SMT_EVAL_CASES$
 (program $eo_model_sat ((F Bool))
   :signature (Bool) Bool
   (
-  (($eo_model_sat F) ($smt_apply_3 "ite" ($smt_builtin_= ($smtx_model_eval F) $vsm_true) true false))
+  (($eo_model_sat F) ($smt_builtin_ite ($smt_builtin_= ($smtx_model_eval F) $vsm_true) true false))
   )
 )
 (program $eo_model_unsat ((F Bool))
   :signature (Bool) Bool
   (
-  (($eo_model_unsat F) ($smt_apply_3 "ite" ($smt_builtin_= ($smtx_model_eval F) $vsm_false) true false))
+  (($eo_model_unsat F) ($smt_builtin_ite ($smt_builtin_= ($smtx_model_eval F) $vsm_false) true false))
   )
 )
 
@@ -559,7 +577,7 @@ $SMT_EVAL_CASES$
 (program $eo_model_is_input ((F Bool))
   :signature (Bool) Bool
   (
-  (($eo_model_is_input F) ($eo_smt_term ($sm_mk_bool ($smtx_is_input F))))
+  (($eo_model_is_input F) ($eo_smt_term ($sm_bool ($smtx_is_input F))))
   )
 )
 
