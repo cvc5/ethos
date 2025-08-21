@@ -1288,8 +1288,14 @@
 ;  :signature (($smt_builtin_type_1 "Seq" $smt_Value)) $smt_Seq
 ;  (
 ;  (($smtx_smt_seq_to_ssm_seq s)
+;    (eo::define ((lens ($smt_apply_2 "seq.len" s)))
 ;    ($smt_builtin_ite
-;      ($smt_builtin_=
+;      ($smt_builtin_= lens $smt_builtin_z_zero)
+;      $ssm_empty
+;      ($ssm_cons
+;        ($smt_apply_3 "seq.substr" s $smt_builtin_z_zero $smt_builtin_z_one)
+;        ($smtx_smt_seq_to_ssm_seq
+;          ($smt_apply_3 "seq.substr" s $smt_builtin_z_one lens))))))
 ;  )
 ;)
 

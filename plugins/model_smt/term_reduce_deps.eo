@@ -39,6 +39,6 @@
 ; special case: we need to include array constant if Array type is involved so
 ; that we have constructible values.
 (echo "trim-defs-cmd (depends Array (const))")
-(echo "trim-defs-cmd (depends Set (set.empty set.union))")
+(echo "trim-defs-cmd (depends Set (set.empty set.union set.singleton))")
 ; TODO: more?
 
