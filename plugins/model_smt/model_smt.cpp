@@ -223,9 +223,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                {kBitVec, kBitVec},
                smtApp("+", "x1", "x3"),
                "($smtx_binary_concat x1 x2 x3 x4)");
-  addLitSym("bvugt",
-            {kBitVec, kBitVec},
-            kBool, smtApp(">", "x2", "x4"));
+  addLitSym("bvugt", {kBitVec, kBitVec}, kBool, smtApp(">", "x2", "x4"));
   // the following operators require a mix of literal evaluation and term
   // reduction
   std::stringstream ssSgtRet;
@@ -233,7 +231,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ssSgtRet << "($smtx_model_eval (or (and";
   ssSgtRet << " (= (extract wm1 wm1 s) #b1) (= (extract wm1 wm1 t) #b0)) (and";
   ssSgtRet << " (= (extract wm1 wm1 s) (extract wm1 wm1 t)) (bvult s t)))))";
-  addLitSym("bvsgt", {kBitVec, kBitVec}, kT, smtBinaryBinReturn(ssSgtRet.str()));
+  addLitSym(
+      "bvsgt", {kBitVec, kBitVec}, kT, smtBinaryBinReturn(ssSgtRet.str()));
   addLitSym("zero_extend",
             {kInt, kBitVec},
             kT,
@@ -245,7 +244,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ssAshrRet << " (= (extract wm1 wm1 s) #b0)";
   ssAshrRet << " (bvlshr s t)";
   ssAshrRet << " (bvnot (bvlshr (bvnot s) t)))))";
-  addLitSym("bvashr", {kBitVec, kBitVec}, kT, smtBinaryBinReturn(ssAshrRet.str()));
+  addLitSym(
+      "bvashr", {kBitVec, kBitVec}, kT, smtBinaryBinReturn(ssAshrRet.str()));
   std::stringstream ssRLeftRet;
   ssRLeftRet << "(eo::define ((wm1 (- ($eo_numeral x2) 1))) ";
   ssRLeftRet << "($smtx_model_eval";
@@ -298,22 +298,28 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // overflow predicates
   addLitSym("bvuaddo",
             {kBitVec, kBitVec},
-            kBool, smtApp(">=", "($smt_builtin_add x2 x4)", "($smtx_pow2 x1)"));
+            kBool,
+            smtApp(">=", "($smt_builtin_add x2 x4)", "($smtx_pow2 x1)"));
   addLitSym("bvumulo",
             {kBitVec, kBitVec},
-            kBool, smtApp(">=", "($smt_builtin_mul x2 x4)", "($smtx_pow2 x1)"));
+            kBool,
+            smtApp(">=", "($smt_builtin_mul x2 x4)", "($smtx_pow2 x1)"));
   addLitSym("bvnego",
             {kBitVec},
-            kBool, smtEq("x2", "($smtx_pow2 ($smt_builtin_z_dec x1))"));
+            kBool,
+            smtEq("x2", "($smtx_pow2 ($smt_builtin_z_dec x1))"));
   addTermReduceSym("bvusubo", {kBitVec, kBitVec}, "(bvult x1 x2)");
   addLitSym("bvssubo",
             {kBitVec, kBitVec},
             kT,
-            smtBinaryBinReturn("($smtx_model_eval (ite (bvnego t) (bvsge s ($eo_mk_binary x1 $smt_builtin_z_zero)) (bvsaddo s (bvneg t))))"));
+            smtBinaryBinReturn(
+                "($smtx_model_eval (ite (bvnego t) (bvsge s ($eo_mk_binary x1 "
+                "$smt_builtin_z_zero)) (bvsaddo s (bvneg t))))"));
   addLitSym("bvsdivo",
             {kBitVec, kBitVec},
             kT,
-            smtBinaryBinReturn("($smtx_model_eval (and (bvnego s) (= t (bvnot ($eo_mk_binary x1 $smt_builtin_z_zero)))))"));
+            smtBinaryBinReturn("($smtx_model_eval (and (bvnego s) (= t (bvnot "
+                               "($eo_mk_binary x1 $smt_builtin_z_zero)))))"));
   // arith/BV conversions
   addLitSym("ubv_to_int", {kBitVec}, kInt, "x2");
   addLitSym("int_to_bv",
@@ -404,8 +410,16 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                    {kBitVec, kBitVec, kBitVec},
                    "(ite (bvslt x1 x2) (@bv 1 1) (@bv 0 1))");
   addLitSym("@bvsize", {kBitVec}, kInt, "x1");
-  addLitSym("bvredor", {kBitVec}, kT, "($smtx_model_eval (bvnot (bvcomp ($eo_mk_binary x1 x2) ($eo_mk_binary x1 $smt_builtin_z_zero))))");
-  addLitSym("bvredand", {kBitVec}, kT, "($smtx_model_eval (bvcomp ($eo_mk_binary x1 x2) (bvnot ($eo_mk_binary x1 $smt_builtin_z_zero))))");
+  addLitSym("bvredor",
+            {kBitVec},
+            kT,
+            "($smtx_model_eval (bvnot (bvcomp ($eo_mk_binary x1 x2) "
+            "($eo_mk_binary x1 $smt_builtin_z_zero))))");
+  addLitSym("bvredand",
+            {kBitVec},
+            kT,
+            "($smtx_model_eval (bvcomp ($eo_mk_binary x1 x2) (bvnot "
+            "($eo_mk_binary x1 $smt_builtin_z_zero))))");
   //  must guard for non-positive widths, which do not evaluate
   std::stringstream ssBvCond;
   ssBvCond << smtApp("and",
