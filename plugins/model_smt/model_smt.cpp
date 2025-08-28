@@ -202,6 +202,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                {kBitVec, kBitVec},
                smtApp("+", "x1", "x3"),
                "($smtx_binary_concat x1 x2 x3 x4)");
+  addLitSym("bvugt",
+            {kBitVec, kBitVec},
+            kBool, smtApp(">", "x2", "x4"));
   addLitSym("zero_extend",
             {kInt, kBitVec},
             kT,
@@ -267,6 +270,14 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTermReduceSym("bvxnor", {kBitVec, kBitVec}, "(bvnot (bvxor x1 x2))");
   addTermReduceSym("bvuge", {kBitVec, kBitVec}, "(or (bvugt x1 x2) (= x1 x2))");
   addTermReduceSym("bvsge", {kBitVec, kBitVec}, "(or (bvsgt x1 x2) (= x1 x2))");
+  // overflow predicates
+  addLitSym("bvuaddo",
+            {kBitVec, kBitVec},
+            kBool, smtApp(">=", "($smt_builtin_add x2 x4)", "($smtx_pow2 x1)"));
+  addLitSym("bvumulo",
+            {kBitVec, kBitVec},
+            kBool, smtApp(">=", "($smt_builtin_mul x2 x4)", "($smtx_pow2 x1)"));
+  addTermReduceSym("bvusubo", {kBitVec, kBitVec}, "(bvult s t)");
   // arith/BV conversions
   addLitSym("ubv_to_int", {kBitVec}, kInt, "x2");
   addLitSym("int_to_bv",
