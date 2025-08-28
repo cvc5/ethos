@@ -164,6 +164,27 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("re.union", {kRegLan, kRegLan}, kRegLan);
   addConstFoldSym("re.diff", {kRegLan, kRegLan}, kRegLan);
   addConstFoldSym("re.range", {kString, kString}, kRegLan);
+  /*
+  std::stringstream ssReRepeatRet;
+  ssReRepeatRet << "($smtx_model_eval (ite (= ($eo_numeral x1) 0)";
+  ssReRepeatRet << " (str.to_re \"\")";
+  ssReRepeatRet << " (re.++ (re.^ (- ($eo_numeral x1) 1) x2) x2)))";
+  addLitSym("re.^",
+            {kInt, kRegLan},
+            kT,
+            smtGuard(smtApp(">=", "x1", "$smt_builtin_z_zero"),
+                    ssReRepeatRet.str()));
+  std::stringstream ssReLoopRet;
+  ssReLoopRet << "($smtx_model_eval (ite (> ($eo_numeral x1) ($eo_numeral x2))";
+  ssReLoopRet << " re.none (ite (= ($eo_numeral x1) ($eo_numeral x2))";
+  ssReLoopRet << " (re.^ ($eo_numeral x1) x3)";
+  ssReLoopRet << " (re.union (re.loop x1 (- x2 1) (re.^ ($eo_numeral x2) x3))))))";
+  addLitSym("re.loop",
+            {kInt, kInt, kRegLan},
+            kT,
+            smtGuard(smtApp("and", smtApp(">=", "x1", "$smt_builtin_z_zero"), smtApp(">=", "x2", "$smt_builtin_z_zero")),
+                     ssReLoopRet.str()));
+  */
   // RE operators
   addConstFoldSym("str.in_re", {kString, kRegLan}, kBool);
   addConstFoldSym("str.indexof_re", {kString, kRegLan, kInt}, kInt);
