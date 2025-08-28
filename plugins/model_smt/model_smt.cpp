@@ -157,6 +157,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // where x1, x3 denote bitwidths and x2, x4 denote values.
   addLitBinSym("bvadd", {kBitVec, kBitVec}, "x1", "($smt_builtin_add x2 x4)");
   addLitBinSym("bvmul", {kBitVec, kBitVec}, "x1", "($smt_builtin_mul x2 x4)");
+  addLitBinSym("bvudiv", {kBitVec, kBitVec}, "x1", smtIte(smtEq("x3","$smt_builtin_z_zero"),"($smtx_binary_max x1)", "($smt_builtin_div x2 x4)"));
+  addLitBinSym("bvurem", {kBitVec, kBitVec}, "x1", smtIte(smtEq("x3","$smt_builtin_z_zero"),"x2", "($smt_builtin_mod x2 x4)"));
   addLitBinSym(
       "bvand", {kBitVec, kBitVec}, "x1", "($smtx_binary_and x1 x2 x4)");
   addLitBinSym("bvor", {kBitVec, kBitVec}, "x1", "($smtx_binary_or x1 x2 x4)");
@@ -184,6 +186,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                {kBitVec, kBitVec},
                smtApp("+", "x1", "x3"),
                "($smtx_binary_concat x1 x2 x3 x4)");
+  addLitSym("zero_extend", {kInt, kBitVec}, kT, smtGuard(smtApp(">=", "x1", "$smt_builtin_z_zero"),
+                                                     "($vsm_term ($sm_binary ($smt_builtin_add x1 x2) x3))"));
   std::stringstream ssAshrRet;
   ssAshrRet << "(eo::define ((wm1 (- ($eo_numeral x1) 1))) ";
   ssAshrRet << "(eo::define ((s ($eo_mk_binary x1 x2))) ";
