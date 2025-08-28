@@ -44,8 +44,29 @@ std::string smtGuard(const std::string& guard, const std::string& val)
   return smtIte(guard, val, "$vsm_not_value");
 }
 
+/**
+ * Makes s and t be in the context of the return term, used to specify the
+ * return term of binary operations on bitvectors.
+ */
+std::string smtBinaryBinReturn(const std::string& term)
+{
+  std::stringstream ss;
+  ss << "(eo::define ((s ($eo_mk_binary x1 x2))) ";
+  ss << "(eo::define ((t ($eo_mk_binary x3 x4))) ";
+  ss << term << "))";
+  return ss.str();
+}
+
 ModelSmt::ModelSmt(State& s) : StdPlugin(s)
 {
+  // This constructor is the main source of the specification of the semantics
+  // of all possible operators defined in a Eunoia signature. For example, if
+  // the user defines a symbol named "and", we assume its semantics is given
+  // by invoking the SMT-LIB symbol named "and".
+  // At a high level, each operator is either given a semantics which:
+  // (1) reduces the semantics to another term,
+  // (2) invokes an SMT-LIB operator (usually of the same name),
+  // (3) invokes a custom procedure as defined in model_smt.eo.
   Kind kBool = Kind::BOOLEAN;
   Kind kInt = Kind::NUMERAL;
   Kind kReal = Kind::RATIONAL;
@@ -205,6 +226,14 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitSym("bvugt",
             {kBitVec, kBitVec},
             kBool, smtApp(">", "x2", "x4"));
+  // the following operators require a mix of literal evaluation and term
+  // reduction
+  std::stringstream ssSgtRet;
+  ssSgtRet << "(eo::define ((wm1 (- ($eo_numeral x1) 1))) ";
+  ssSgtRet << "($smtx_model_eval (or (and";
+  ssSgtRet << " (= (extract wm1 wm1 s) #b1) (= (extract wm1 wm1 t) #b0)) (and";
+  ssSgtRet << " (= (extract wm1 wm1 s) (extract wm1 wm1 t)) (bvult s t)))))";
+  addLitSym("bvsgt", {kBitVec, kBitVec}, kT, smtBinaryBinReturn(ssSgtRet.str()));
   addLitSym("zero_extend",
             {kInt, kBitVec},
             kT,
@@ -212,15 +241,11 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                      "($vsm_term ($sm_binary ($smt_builtin_add x1 x2) x3))"));
   std::stringstream ssAshrRet;
   ssAshrRet << "(eo::define ((wm1 (- ($eo_numeral x1) 1))) ";
-  ssAshrRet << "(eo::define ((s ($eo_mk_binary x1 x2))) ";
-  ssAshrRet << "(eo::define ((t ($eo_mk_binary x3 x4))) ";
   ssAshrRet << "($smtx_model_eval (ite";
   ssAshrRet << " (= (extract wm1 wm1 s) #b0)";
   ssAshrRet << " (bvlshr s t)";
-  ssAshrRet << " (bvnot (bvlshr (bvnot s) t)))))))";
-  addLitSym("bvashr", {kBitVec, kBitVec}, kT, ssAshrRet.str());
-  // the following operators require a mix of literal evaluation and term
-  // reduction
+  ssAshrRet << " (bvnot (bvlshr (bvnot s) t)))))";
+  addLitSym("bvashr", {kBitVec, kBitVec}, kT, smtBinaryBinReturn(ssAshrRet.str()));
   std::stringstream ssRLeftRet;
   ssRLeftRet << "(eo::define ((wm1 (- ($eo_numeral x2) 1))) ";
   ssRLeftRet << "($smtx_model_eval";
@@ -277,7 +302,15 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitSym("bvumulo",
             {kBitVec, kBitVec},
             kBool, smtApp(">=", "($smt_builtin_mul x2 x4)", "($smtx_pow2 x1)"));
-  addTermReduceSym("bvusubo", {kBitVec, kBitVec}, "(bvult s t)");
+  addTermReduceSym("bvusubo", {kBitVec, kBitVec}, "(bvult x1 x2)");
+  addLitSym("bvssubo",
+            {kBitVec, kBitVec},
+            kT,
+            smtBinaryBinReturn("($smtx_model_eval (ite (bvnego t) (bvsge s ($eo_mk_binary x1 $smt_builtin_z_zero)) (bvsaddo s (bvneg t))))"));
+  addLitSym("bvsdivo",
+            {kBitVec, kBitVec},
+            kT,
+            smtBinaryBinReturn("($smtx_model_eval (and (bvnego s) (= t (bvnot ($eo_mk_binary x1 $smt_builtin_z_zero)))))"));
   // arith/BV conversions
   addLitSym("ubv_to_int", {kBitVec}, kInt, "x2");
   addLitSym("int_to_bv",
@@ -291,6 +324,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                                         "($smtx_model_eval x1)");
   addTermReduceSym("forall", {kT, kBool}, "(not (exists x1 (not x2)))");
 
+  //===========================================================================
   ///----- non standard extensions and skolems
   // builtin
   addReduceSym(
