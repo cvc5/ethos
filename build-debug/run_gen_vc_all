@@ -541,6 +541,7 @@ check_status
 ./run_gen_vc_single $INPUT re-opt-elim
 ./run_gen_vc_single $INPUT re-diff-elim
 ./run_gen_vc_single $INPUT re-plus-elim
+./run_gen_vc_single $INPUT re-repeat-elim
 ./run_gen_vc_single $INPUT re-concat-star-swap
 ./run_gen_vc_single $INPUT re-concat-star-repeat
 ./run_gen_vc_single $INPUT re-concat-star-subsume1

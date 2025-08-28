@@ -302,6 +302,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitSym("bvumulo",
             {kBitVec, kBitVec},
             kBool, smtApp(">=", "($smt_builtin_mul x2 x4)", "($smtx_pow2 x1)"));
+  addLitSym("bvnego",
+            {kBitVec},
+            kBool, smtEq("x2", "($smtx_pow2 ($smt_builtin_z_dec x1))"));
   addTermReduceSym("bvusubo", {kBitVec, kBitVec}, "(bvult x1 x2)");
   addLitSym("bvssubo",
             {kBitVec, kBitVec},
