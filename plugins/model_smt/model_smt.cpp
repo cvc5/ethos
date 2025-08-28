@@ -404,6 +404,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                    {kBitVec, kBitVec, kBitVec},
                    "(ite (bvslt x1 x2) (@bv 1 1) (@bv 0 1))");
   addLitSym("@bvsize", {kBitVec}, kInt, "x1");
+  addLitSym("bvredor", {kBitVec}, kT, "($smtx_model_eval (bvnot (bvcomp ($eo_mk_binary x1 x2) ($eo_mk_binary x1 $smt_builtin_z_zero))))");
+  addLitSym("bvredand", {kBitVec}, kT, "($smtx_model_eval (bvcomp ($eo_mk_binary x1 x2) (bvnot ($eo_mk_binary x1 $smt_builtin_z_zero))))");
   //  must guard for non-positive widths, which do not evaluate
   std::stringstream ssBvCond;
   ssBvCond << smtApp("and",

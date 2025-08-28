@@ -21,6 +21,8 @@
 (echo "trim-defs-cmd (depends bvusubo (bvult s t))")
 (echo "trim-defs-cmd (depends bvssubo (ite (bvnego t) (bvsge s b1) (bvsaddo s (bvneg t))))")
 (echo "trim-defs-cmd (depends bvsdivo (and (bvnego s) (= t (bvnot b1))))")
+(echo "trim-defs-cmd (depends bvredor (bvnot (bvcomp b1 b2)))")
+(echo "trim-defs-cmd (depends bvredand (bvcomp b1 (bvnot b2)))")
 (echo "trim-defs-cmd (depends @purify x1)")
 (echo "trim-defs-cmd (depends @int_div_by_zero (div x1 0))")
 (echo "trim-defs-cmd (depends @mod_by_zero (mod x1 0))")
