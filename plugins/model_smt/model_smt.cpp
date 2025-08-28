@@ -164,6 +164,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "bvxor", {kBitVec, kBitVec}, "x1", "($smtx_binary_xor x1 x2 x4)");
   addLitBinSym("bvnot", {kBitVec}, "x1", "($smtx_binary_not x1 x2)");
   addLitBinSym("bvneg", {kBitVec}, "x1", "($smt_builtin_neg x2)");
+  addLitBinSym("bvshl", {kBitVec, kBitVec}, "x1", "($smt_builtin_mul x2 ($smtx_pow2 x4))");
+  addLitBinSym("bvlshr", {kBitVec, kBitVec}, "x1", "($smt_builtin_div x2 ($smtx_pow2 x4))");
   std::stringstream ssExtractCond;
   ssExtractCond << smtApp("and",
                           smtApp(">=", "x1", "x2"),
@@ -182,6 +184,18 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                {kBitVec, kBitVec},
                smtApp("+", "x1", "x3"),
                "($smtx_binary_concat x1 x2 x3 x4)");
+  std::stringstream ssAshrRet;
+  ssAshrRet << "(eo::define ((wm1 (- ($eo_numeral x1) 1))) ";
+  ssAshrRet << "(eo::define ((s ($eo_mk_binary x1 x2))) ";
+  ssAshrRet << "(eo::define ((t ($eo_mk_binary x3 x4))) ";
+  ssAshrRet << "($smtx_model_eval (ite";
+  ssAshrRet << " (= (extract wm1 wm1 s) #b0)";
+  ssAshrRet << " (bvlshr s t)";
+  ssAshrRet << " (bvnot (bvlshr (bvnot s) t)))))))";
+  addLitSym("bvashr",
+            {kBitVec, kBitVec},
+            kT,
+            ssAshrRet.str());
   // the following operators require a mix of literal evaluation and term
   // reduction
   std::stringstream ssRLeftRet;
