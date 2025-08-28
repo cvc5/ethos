@@ -16,20 +16,24 @@
 #include "state.h"
 
 namespace ethos {
-  
+
 std::string smtEq(const std::string& c1, const std::string& c2)
 {
   std::stringstream ss;
   ss << "($smt_builtin_= " << c1 << " " << c2 << ")";
   return ss.str();
 }
-std::string smtApp(const std::string& app, const std::string& c1, const std::string& c2)
+std::string smtApp(const std::string& app,
+                   const std::string& c1,
+                   const std::string& c2)
 {
   std::stringstream ss;
   ss << "($smt_apply_2 \"" << app << "\" " << c1 << " " << c2 << ")";
   return ss.str();
 }
-std::string smtIte(const std::string& guard, const std::string& t, const std::string& e)
+std::string smtIte(const std::string& guard,
+                   const std::string& t,
+                   const std::string& e)
 {
   std::stringstream ss;
   ss << "($smt_builtin_ite " << guard << " " << t << " " << e << ")";
@@ -161,16 +165,19 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitBinSym("bvnot", {kBitVec}, "x1", "($smtx_binary_not x1 x2)");
   addLitBinSym("bvneg", {kBitVec}, "x1", "($smt_builtin_neg x2)");
   std::stringstream ssExtractCond;
-  ssExtractCond << smtApp("and", smtApp(">=", "x1", "x2"), smtApp("and", smtApp(">=", "x2", "$smt_builtin_z_zero"), smtApp(">", "x3", "x1")));
+  ssExtractCond << smtApp("and",
+                          smtApp(">=", "x1", "x2"),
+                          smtApp("and",
+                                 smtApp(">=", "x2", "$smt_builtin_z_zero"),
+                                 smtApp(">", "x3", "x1")));
   std::stringstream ssExtractRet;
   ssExtractRet << "($vsm_term ($sm_mk_binary ";
   ssExtractRet << smtApp("-", smtApp("+", "x1", "$smt_builtin_z_one"), "x2");
   ssExtractRet << " ($smtx_binary_extract x3 x4 x1 x2)))";
-  addLitSym(
-      "extract",
-      {kInt, kInt, kBitVec},
-      kT,
-      smtGuard(ssExtractCond.str(), ssExtractRet.str()));
+  addLitSym("extract",
+            {kInt, kInt, kBitVec},
+            kT,
+            smtGuard(ssExtractCond.str(), ssExtractRet.str()));
   addLitBinSym("concat",
                {kBitVec, kBitVec},
                smtApp("+", "x1", "x3"),
@@ -183,10 +190,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ssRLeftRet << " (rotate_left (- ($eo_numeral x1) 1) (concat";
   ssRLeftRet << " (extract (- wm1 1) 0 ($eo_mk_binary x2 x3))";
   ssRLeftRet << " (extract wm1 wm1 ($eo_mk_binary x2 x3))))))";
-  addLitSym("rotate_left", {kInt, kBitVec}, kT,
+  addLitSym("rotate_left",
+            {kInt, kBitVec},
+            kT,
             smtGuard(smtApp(">=", "x1", "$smt_builtin_z_zero"),
-                     smtIte(smtEq("x1", "$smt_builtin_z_zero"), 
-                            "($vsm_term ($sm_binary x2 x3))", 
+                     smtIte(smtEq("x1", "$smt_builtin_z_zero"),
+                            "($vsm_term ($sm_binary x2 x3))",
                             ssRLeftRet.str())));
   std::stringstream ssRRightRet;
   ssRRightRet << "(eo::define ((wm1 (- ($eo_numeral x2) 1))) ";
@@ -194,19 +203,23 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ssRRightRet << " (rotate_right (- ($eo_numeral x1) 1) (concat";
   ssRRightRet << " (extract 0 0 ($eo_mk_binary x2 x3))";
   ssRRightRet << " (extract wm1 1 ($eo_mk_binary x2 x3))))))";
-  addLitSym("rotate_right", {kInt, kBitVec}, kT,
+  addLitSym("rotate_right",
+            {kInt, kBitVec},
+            kT,
             smtGuard(smtApp(">=", "x1", "$smt_builtin_z_zero"),
-                     smtIte(smtEq("x1", "$smt_builtin_z_zero"), 
-                            "($vsm_term ($sm_binary x2 x3))", 
+                     smtIte(smtEq("x1", "$smt_builtin_z_zero"),
+                            "($vsm_term ($sm_binary x2 x3))",
                             ssRRightRet.str())));
   std::stringstream ssRepeatRet;
   ssRepeatRet << "($smtx_model_eval (concat";
   ssRepeatRet << " (repeat (- ($eo_numeral x1) 1) ($eo_mk_binary x2 x3))";
   ssRepeatRet << " ($eo_mk_binary x2 x3)))";
-  addLitSym("repeat", {kInt, kBitVec}, kT,
+  addLitSym("repeat",
+            {kInt, kBitVec},
+            kT,
             smtGuard(smtApp(">=", "x1", "$smt_builtin_z_one"),
-                     smtIte(smtEq("x1", "$smt_builtin_z_one"), 
-                            "($vsm_term ($sm_binary x2 x3))", 
+                     smtIte(smtEq("x1", "$smt_builtin_z_one"),
+                            "($vsm_term ($sm_binary x2 x3))",
                             ssRepeatRet.str())));
   // the following are program cases in the main method of the form
   // (($smtx_model_eval (f x1 x2)) ($smtx_model_eval <return>))
@@ -227,20 +240,18 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             kT,
             "($smtx_model_eval ($eo_mk_binary x1 x2))");
   // Quantifiers
-  addReduceSym("exists", {kList, kT},
-               "($smtx_model_eval_exists x1 (exists x2 x3))");
-  d_specialCases["exists"].emplace_back(
-      "(exists $eo_List_nil x1)",
-      "($smtx_model_eval x1)");
+  addReduceSym(
+      "exists", {kList, kT}, "($smtx_model_eval_exists x1 (exists x2 x3))");
+  d_specialCases["exists"].emplace_back("(exists $eo_List_nil x1)",
+                                        "($smtx_model_eval x1)");
   addTermReduceSym("forall", {kT, kBool}, "(not (exists x1 (not x2)))");
 
   ///----- non standard extensions and skolems
   // builtin
-  addReduceSym("lambda", {kList, kT},
-               "($smtx_model_eval_lambda x1 (lambda x2 x3))");
-  d_specialCases["lambda"].emplace_back(
-      "(lambda $eo_List_nil x1)",
-      "($smtx_model_eval x1)");
+  addReduceSym(
+      "lambda", {kList, kT}, "($smtx_model_eval_lambda x1 (lambda x2 x3))");
+  d_specialCases["lambda"].emplace_back("(lambda $eo_List_nil x1)",
+                                        "($smtx_model_eval x1)");
   addTermReduceSym("@purify", {kT}, "x1");
   // arithmetic
   addTermReduceSym("/_total", {kT, kT}, "(ite (= x2 0/1) 0/1 (/ x1 x2))");
@@ -289,15 +300,15 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addRecReduceSym("set.member", {kT, kT}, "($smtx_map_select e2 e1)");
   addTermReduceSym("set.subset", {kT, kT}, "(= (set.inter x1 x2) x1)");
   addRecReduceSym("@sets_deq_diff", {kT, kT}, "($smtx_map_diff e1 e2)");
-  addRecReduceSym(
-      "set.is_empty",
-      {kT},
-      "($vsm_term ($sm_bool ($smt_builtin_= e1 $smtx_empty_set)))");
-  addReduceSym("set.insert", {kList, kT},
-               "($smtx_model_eval (set.insert x2 (set.union (set.singleton x1) x3)))");
-  d_specialCases["set.insert"].emplace_back(
-      "(set.insert $eo_List_nil x1)",
-      "($smtx_model_eval x1)");
+  addRecReduceSym("set.is_empty",
+                  {kT},
+                  "($vsm_term ($sm_bool ($smt_builtin_= e1 $smtx_empty_set)))");
+  addReduceSym(
+      "set.insert",
+      {kList, kT},
+      "($smtx_model_eval (set.insert x2 (set.union (set.singleton x1) x3)))");
+  d_specialCases["set.insert"].emplace_back("(set.insert $eo_List_nil x1)",
+                                            "($smtx_model_eval x1)");
   // x1))");
   //   bitvectors
   addTermReduceSym(
@@ -313,10 +324,16 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitSym("@bvsize", {kBitVec}, kInt, "x1");
   //  must guard for non-positive widths, which do not evaluate
   std::stringstream ssBvCond;
-  ssBvCond << smtApp("and", smtApp(">", "x2","$smt_builtin_z_zero"), smtApp("and", smtApp(">", "($smtx_pow2 x2)","x1"), smtApp(">=", "x1","$smt_builtin_z_zero")));
+  ssBvCond << smtApp("and",
+                     smtApp(">", "x2", "$smt_builtin_z_zero"),
+                     smtApp("and",
+                            smtApp(">", "($smtx_pow2 x2)", "x1"),
+                            smtApp(">=", "x1", "$smt_builtin_z_zero")));
   addLitSym(
-      "@bv", {kInt, kInt}, kT,
-      smtGuard(ssBvCond.str(),"($smtx_model_eval ($eo_mk_binary x2 x1))"));
+      "@bv",
+      {kInt, kInt},
+      kT,
+      smtGuard(ssBvCond.str(), "($smtx_model_eval ($eo_mk_binary x2 x1))"));
   addTermReduceSym("@bit", {kInt, kBitVec}, "(extract x1 x1 x2)");
   // tuples
   // these allow Herbrand interpretations
@@ -526,10 +543,10 @@ void ModelSmt::printModelEvalCallBase(const std::string& name,
   }
   for (; i <= nargs; i++)
   {
-    Kind k = args[i-1];
-    if (k==Kind::EVAL_CONS)
+    Kind k = args[i - 1];
+    if (k == Kind::EVAL_CONS)
     {
-      d_eval << " ($eo_List_cons x" << icount << " x" << (icount+1) << ")";
+      d_eval << " ($eo_List_cons x" << icount << " x" << (icount + 1) << ")";
       icount++;
     }
     else
@@ -700,8 +717,7 @@ void ModelSmt::printAuxProgramCase(const std::string& name,
       continue;
     }
     Assert(d_kindToEoPrefix.find(ka) != d_kindToEoPrefix.end());
-    progCases << " ($sm_" << d_kindToEoPrefix[ka] << " x" << paramCount
-              << "))";
+    progCases << " ($sm_" << d_kindToEoPrefix[ka] << " x" << paramCount << "))";
     progParams << "(x" << paramCount << " $smt_builtin_" << d_kindToType[ka]
                << ")";
   }

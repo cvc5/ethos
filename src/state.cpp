@@ -1352,7 +1352,7 @@ bool State::getActualPremises(const ExprValue* rule,
                               std::vector<Expr>& actual)
 {
   AppInfo* ainfo = getAppInfo(rule);
-  if (ainfo!=nullptr && ainfo->d_attrCons==Attr::PREMISE_LIST)
+  if (ainfo != nullptr && ainfo->d_attrCons == Attr::PREMISE_LIST)
   {
     Expr plCons = ainfo->d_attrConsTerm;
     if (!plCons.isNull())

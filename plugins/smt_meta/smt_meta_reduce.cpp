@@ -623,7 +623,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       }
       continue;
     }
-    else if (recTerm.getNumChildren() == 0 && ck!=Kind::VARIABLE)
+    else if (recTerm.getNumChildren() == 0 && ck != Kind::VARIABLE)
     {
       // atomic terms print here
       // We handle SMT vs SMT_BUILTIN within that method
@@ -1382,8 +1382,8 @@ MetaKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
           if (k1 == k2)
           {
             // both sides have no context.
-            // this allows SMT-LIB equality to operate on any datatype used in the
-            // embedding
+            // this allows SMT-LIB equality to operate on any datatype used in
+            // the embedding
             tk = MetaKind::NONE;
           }
           else if (k1 == MetaKind::EUNOIA || k2 == MetaKind::EUNOIA)
@@ -1517,8 +1517,8 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
         MetaKind tk = getMetaKindReturn(child[3], parentCtx);
         MetaKind k2 = getMetaKindReturn(child[4], parentCtx);
         Assert(tk == k2) << "ITE branches have different meta types " << child
-                          << " " << metaKindToString(tk) << " and "
-                          << metaKindToString(k2);
+                         << " " << metaKindToString(tk) << " and "
+                         << metaKindToString(k2);
         return tk;
       }
       else

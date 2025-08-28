@@ -267,7 +267,7 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
 #endif
     return;
   }
-  else if (tk==MetaKind::SMT_MAP || tk==MetaKind::SMT_SEQ)
+  else if (tk == MetaKind::SMT_MAP || tk == MetaKind::SMT_SEQ)
   {
     return;
   }

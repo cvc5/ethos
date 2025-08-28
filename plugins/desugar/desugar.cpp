@@ -897,7 +897,7 @@ void Desugar::finalize()
   std::ostringstream sse;
   sse << ine.rdbuf();
   std::string finalEo = sse.str();
-  
+
   /*
   std::stringstream ssies;
   ssies << s_plugin_path << "plugins/model_smt/eo_builtin_smt.eo";
@@ -1079,7 +1079,7 @@ Expr Desugar::mkRequiresModelSat(bool tgt, const Expr& test, const Expr& ret)
   else
   {
     // FIXME
-    //return mkRequiresEq(t1, t2, ret, true);
+    // return mkRequiresEq(t1, t2, ret, true);
     return d_null;
   }
 }

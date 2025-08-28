@@ -407,7 +407,7 @@ bool CmdParser::parseNextCommand()
       {
         conc = d_eparser.parseExpr();
       }
-      else if (keyword=="conclusion-given")
+      else if (keyword == "conclusion-given")
       {
         // :conclusion-given is equivalent to :conclusion eo::conclusion
         conc = d_state.mkConclusion();
@@ -884,7 +884,7 @@ bool CmdParser::parseNextCommand()
       // the assumption, if pop
       if (isPop)
       {
-        if (d_state.getAssumptionLevel()==0)
+        if (d_state.getAssumptionLevel() == 0)
         {
           d_lex.parseError("Cannot pop at level zero");
         }
@@ -912,11 +912,12 @@ bool CmdParser::parseNextCommand()
       // if we did not already match what was proven.
       if (!proven.isNull())
       {
-        if (concType.getKind()!=Kind::PROOF_TYPE || concType[0]!=proven)
+        if (concType.getKind() != Kind::PROOF_TYPE || concType[0] != proven)
         {
           Ctx cctx;
           cctx[d_state.mkConclusion().getValue()] = proven.getValue();
-          concType = d_state.getTypeChecker().evaluate(concType.getValue(), cctx);
+          concType =
+              d_state.getTypeChecker().evaluate(concType.getValue(), cctx);
         }
       }
       // ensure proof type, note this is where "proof checking" happens.
