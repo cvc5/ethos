@@ -358,6 +358,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                                "($eo_mk_binary x1 $smt_builtin_z_zero)))))"));
   // arith/BV conversions
   addLitSym("ubv_to_int", {kBitVec}, kInt, "x2");
+  addLitSym("sbv_to_int", {kBitVec}, kInt, "($smtx_binary_uts x1 x2)");
   addLitSym("int_to_bv",
             {kInt, kInt},
             kT,
