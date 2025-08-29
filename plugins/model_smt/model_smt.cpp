@@ -482,11 +482,11 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       kT,
       smtGuard(ssBvCond.str(), "($smtx_model_eval ($eo_mk_binary x2 x1))"));
   addTermReduceSym("@bit", {kInt, kBitVec}, "(extract x1 x1 x2)");
-  addLitSym(
+  addLitBinSym(
       "@from_bools",
       {kBool, kBitVec},
-      kT,
-      "($vsm_term ($sm_mk_binary ($smt_builtin_z_inc x2) ($smt_builtin_add ($smt_builtin_ite x1 ($smtx_pow2 x2) $smt_builtin_z_zero) x3)))");
+      "($smt_builtin_z_inc x2)", 
+      "($smt_builtin_add ($smt_builtin_ite x1 ($smtx_pow2 x2) $smt_builtin_z_zero) x3)");
   // tuples
   // these allow Herbrand interpretations
   addTypeSym("Tuple", {kT, kT});
