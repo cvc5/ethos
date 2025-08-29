@@ -390,6 +390,19 @@
   )
 )
 
+; program: $smtx_binary_uts
+; return: >
+;   The conversion of n from unsigned to signed integer.
+(program $smtx_binary_uts ((w $smt_builtin_Int) (n $smt_builtin_Int))
+  :signature ($smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
+  (
+  (($smtx_binary_uts w n) 
+    ($smt_apply_2 "-" 
+      ($smt_apply_2 "*" $smt_builtin_z_two ($smt_apply_2 "mod" n ($smtx_pow2 ($smt_apply_2 "-" w $smt_builtin_z_one)))) 
+      n))
+  )
+)
+
 ; program: $smtx_binary_concat
 ; return: >
 ;   The integer value of the binary value obtained by concatenating binary

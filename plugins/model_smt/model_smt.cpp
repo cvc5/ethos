@@ -321,6 +321,21 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             {kBitVec, kBitVec},
             kBool,
             smtApp(">=", "($smt_builtin_add x2 x4)", "($smtx_pow2 x1)"));
+  for (size_t i=0; i<2; i++)
+  {
+    std::string intOp = i==0 ? "+" : "*";
+    std::string bvOp = i==0 ? "bvsaddo" : "bvsmulo";
+    std::stringstream ssRet;
+    ssRet << "(eo::define ((sret ($smt_apply_2 \"" << intOp << "\" ($smtx_binary_uts x1 x2) ($smtx_binary_uts x3 x4)))) ";
+    ssRet << "(eo::define ((p2wm1 ($smt_apply_2 \"-\" ($smtx_pow2 x1) $smt_builtin_z_one))) ";
+    ssRet << " ($smt_builtin_or " << smtApp(">=", "sret", "p2wm1");
+    ssRet << " " << smtApp("<=", "sret", "($smt_builtin_neg p2wm1)");
+    ssRet << ")))";
+    addLitSym(bvOp,
+              {kBitVec, kBitVec},
+              kBool,
+              ssRet.str());
+  }
   addLitSym("bvumulo",
             {kBitVec, kBitVec},
             kBool,
