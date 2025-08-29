@@ -296,11 +296,22 @@
 ; program: $smtx_bit
 ; return: >
 ;   true iff the i^th bit of a binary with integer value x is set. Note this
-;   method is agnostic to bitwidth. 
+;   method is agnostic to bitwidth.
 (program $smtx_bit ((x $smt_builtin_Int) (i $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int) $smt_builtin_Bool
   (
   (($smtx_bit x i) ($smt_apply_1 "= 1" ($smt_builtin_mod ($smt_builtin_div x ($smtx_pow2 i)) $smt_builtin_z_two)))
+  )
+)
+
+; program: $smtx_msb
+; return: >
+;   true iff the most significant bit of the binary of width w and value n is
+;   set.
+(program $smtx_msb ((w $smt_builtin_Int) (n $smt_builtin_Int))
+  :signature ($smt_builtin_Int $smt_builtin_Int) $smt_builtin_Bool
+  (
+  (($smtx_msb w n) ($smtx_bit n ($smt_builtin_z_dec w)))
   )
 )
 
@@ -392,13 +403,15 @@
 
 ; program: $smtx_binary_uts
 ; return: >
-;   The conversion of n from unsigned to signed integer.
+;   The conversion of n from unsigned to signed integer, which is
+;   2*(n mod 2^w-1) - n.
 (program $smtx_binary_uts ((w $smt_builtin_Int) (n $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
   (($smtx_binary_uts w n) 
     ($smt_apply_2 "-" 
-      ($smt_apply_2 "*" $smt_builtin_z_two ($smt_apply_2 "mod" n ($smtx_pow2 ($smt_apply_2 "-" w $smt_builtin_z_one)))) 
+      ($smt_apply_2 "*" $smt_builtin_z_two 
+        ($smt_apply_2 "mod" n ($smtx_pow2 ($smt_apply_2 "-" w $smt_builtin_z_one)))) 
       n))
   )
 )

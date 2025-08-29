@@ -259,6 +259,17 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             kT,
             smtGuard(smtApp(">=", "x1", "$smt_builtin_z_zero"),
                      "($vsm_term ($sm_binary ($smt_builtin_add x1 x2) x3))"));
+  std::stringstream ssSExtRet;
+  ssSExtRet << "(eo::define ((wm1 (- ($eo_numeral x2) 1))) ";
+  ssSExtRet << "(eo::define ((t ($eo_mk_binary x2 x3))) ";
+  ssSExtRet << "($smtx_model_eval (concat (repeat ($eo_numeral x1) (extract wm1 wm1 t)) t))))";
+  addLitSym("sign_extend",
+            {kInt, kBitVec},
+            kT,
+            smtGuard(smtApp(">=", "x1", "$smt_builtin_z_zero"),
+                     smtIte(smtEq("x1", "$smt_builtin_z_zero"),
+                            "($vsm_term ($sm_binary x2 x3))",
+                            ssSExtRet.str())));
   std::stringstream ssAshrRet;
   ssAshrRet << "(eo::define ((wm1 (- ($eo_numeral x1) 1))) ";
   ssAshrRet << "($smtx_model_eval (ite";
@@ -269,10 +280,11 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "bvashr", {kBitVec, kBitVec}, kT, smtBinaryBinReturn(ssAshrRet.str()));
   std::stringstream ssRLeftRet;
   ssRLeftRet << "(eo::define ((wm1 (- ($eo_numeral x2) 1))) ";
+  ssRLeftRet << "(eo::define ((t ($eo_mk_binary x2 x3))) ";
   ssRLeftRet << "($smtx_model_eval";
   ssRLeftRet << " (rotate_left (- ($eo_numeral x1) 1) (concat";
-  ssRLeftRet << " (extract (- wm1 1) 0 ($eo_mk_binary x2 x3))";
-  ssRLeftRet << " (extract wm1 wm1 ($eo_mk_binary x2 x3))))))";
+  ssRLeftRet << " (extract (- wm1 1) 0 t)";
+  ssRLeftRet << " (extract wm1 wm1 t)))))";
   addLitSym("rotate_left",
             {kInt, kBitVec},
             kT,
@@ -326,7 +338,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
     std::string intOp = i==0 ? "+" : "*";
     std::string bvOp = i==0 ? "bvsaddo" : "bvsmulo";
     std::stringstream ssRet;
-    ssRet << "(eo::define ((sret ($smt_apply_2 \"" << intOp << "\" ($smtx_binary_uts x1 x2) ($smtx_binary_uts x3 x4)))) ";
+    ssRet << "(eo::define ((sret ($smt_apply_2 \"" << intOp << "\"";
+    ssRet << " ($smtx_binary_uts x1 x2) ($smtx_binary_uts x3 x4)))) ";
     ssRet << "(eo::define ((p2wm1 ($smt_apply_2 \"-\" ($smtx_pow2 x1) $smt_builtin_z_one))) ";
     ssRet << " ($smt_builtin_or " << smtApp(">=", "sret", "p2wm1");
     ssRet << " " << smtApp("<=", "sret", "($smt_builtin_neg p2wm1)");

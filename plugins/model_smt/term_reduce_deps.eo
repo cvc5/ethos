@@ -15,6 +15,7 @@
 (echo "trim-defs-cmd (depends bvsge (or (bvsgt x1 x2) (= x1 x2)))")
 (echo "trim-defs-cmd (depends bvsgt (or (and (= (extract (- w 1) (- w 1) s) #b1) (= (extract (- w 1) (- w 1) t) #b0)) (and (= (extract (- w 1) (- w 1) s) (extract (- w 1) (- w 1) t)) (bvult s t))))")
 (echo "trim-defs-cmd (depends bvashr (ite (= (extract (- w 1) (- w 1) s) #b0) (bvlshr s t) (bvnot (bvlshr (bvnot s) t))))")
+(echo "trim-defs-cmd (depends sign_extend (concat (repeat ($eo_numeral x1) (extract (- w 1) (- w 1) t)) t))")
 (echo "trim-defs-cmd (depends rotate_left (rotate_left (- x1 1) (concat (extract (- w 1) 0 b1) (extract w w b1))))")
 (echo "trim-defs-cmd (depends rotate_right (rotate_right (- x1 1) (concat (extract 0 0 b1) (extract w 1 b1))))")
 (echo "trim-defs-cmd (depends repeat (concat (repeat (- x1 1) b1) b1))")
