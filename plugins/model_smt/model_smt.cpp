@@ -447,7 +447,6 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       "($smtx_model_eval (set.insert x2 (set.union (set.singleton x1) x3)))");
   d_specialCases["set.insert"].emplace_back("(set.insert $eo_List_nil x1)",
                                             "($smtx_model_eval x1)");
-  // x1))");
   //   bitvectors
   addTermReduceSym(
       "bvite", {kBitVec, kBitVec, kBitVec}, "(ite (= x1 (@bv 1 1)) x2 x3)");
@@ -483,6 +482,11 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       kT,
       smtGuard(ssBvCond.str(), "($smtx_model_eval ($eo_mk_binary x2 x1))"));
   addTermReduceSym("@bit", {kInt, kBitVec}, "(extract x1 x1 x2)");
+  addLitSym(
+      "@from_bools",
+      {kBool, kBitVec},
+      kT,
+      "($vsm_term ($sm_mk_binary ($smt_builtin_z_inc x2) ($smt_builtin_add ($smt_builtin_ite x1 ($smtx_pow2 x2) $smt_builtin_z_zero) x3)))");
   // tuples
   // these allow Herbrand interpretations
   addTypeSym("Tuple", {kT, kT});
