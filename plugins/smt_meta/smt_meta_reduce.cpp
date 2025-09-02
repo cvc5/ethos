@@ -434,7 +434,7 @@ bool SmtMetaReduce::isSmtApplyApp(const Expr& oApp)
 
 std::string SmtMetaReduce::getEmbedName(const Expr& oApp)
 {
-  Assert(oApp.getKind() == Kind::APPLY_OPAQUE);
+  Assert(oApp.getKind() == Kind::APPLY_OPAQUE) << "Bad kind for opaque " << oApp.getKind() << " " << oApp;
   std::string aname = getName(oApp[0]);
   if (!isSmtApplyApp(oApp))
   {
@@ -641,7 +641,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       if (!isProgramApp(recTerm))
       {
         Assert(child == MetaKind::EUNOIA);
-        if (StdPlugin::optionFlattenEval())
+        if (StdPlugin::optionFlattenEval() || !recTerm.isEvaluatable())
         {
           // Note that we use eo.Apply unguarded. In particular, the
           // flatten-eval step has ensured that constructing Eunoia terms
