@@ -164,25 +164,23 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addConstFoldSym("re.union", {kRegLan, kRegLan}, kRegLan);
   addConstFoldSym("re.diff", {kRegLan, kRegLan}, kRegLan);
   addConstFoldSym("re.range", {kString, kString}, kRegLan);
-  /*
   std::stringstream ssReRepeatRet;
   ssReRepeatRet << "($smtx_model_eval (ite (= x1 0)";
   ssReRepeatRet << " (str.to_re \"\")";
   ssReRepeatRet << " (re.++ (re.^ (- x1 1) x2) x2)))";
   addReduceSym("re.^",
             {kInt, kRegLan},
-            smtGuard(smtApp(">=", "x1", "$smt_builtin_z_zero"),
+            smtGuard(smtEq("($smtx_model_eval (>= x1 0))", "$vsm_true"),
                     ssReRepeatRet.str()));
   std::stringstream ssReLoopRet;
   ssReLoopRet << "($smtx_model_eval (ite (> x1 x2)";
   ssReLoopRet << " re.none (ite (= x1 x2)";
-  ssReLoopRet << " (re.^ ($eo_numeral x1) x3)";
+  ssReLoopRet << " (re.^ x1 x3)";
   ssReLoopRet << " (re.union (re.loop x1 (- x2 1) (re.^ x2 x3))))))";
   addReduceSym("re.loop",
             {kInt, kInt, kRegLan},
-            smtGuard(smtApp("and", smtApp(">=", "x1", "$smt_builtin_z_zero"), smtApp(">=", "x2", "$smt_builtin_z_zero")),
+            smtGuard(smtEq("($smtx_model_eval (and (>= x1 0) (>= x2 0)))", "$vsm_true"),
                      ssReLoopRet.str()));
-                     */
   // RE operators
   addConstFoldSym("str.in_re", {kString, kRegLan}, kBool);
   addConstFoldSym("str.indexof_re", {kString, kRegLan, kInt}, kInt);
@@ -891,7 +889,7 @@ void ModelSmt::printAuxProgramCase(const std::string& name,
     }
     if (ka == Kind::EVAL_TO_STRING)
     {
-      progCases << "($vsm_re x" << paramCount << ")";
+      progCases << " ($vsm_re x" << paramCount << ")";
       progParams << "(x" << paramCount << " $smt_builtin_RegLan)";
       continue;
     }
