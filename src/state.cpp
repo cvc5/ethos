@@ -1094,6 +1094,8 @@ Expr State::mkApplyAttr(AppInfo* ai,
     case Attr::ARG_LIST:
     {
       Expr argList;
+      // If there is only one argument, and it was marked :list, then it is
+      // not desugared.
       if (vchildren.size()==2 && getConstructorKind(vchildren[1])==Attr::LIST)
       {
         argList = Expr(vchildren[1]);
