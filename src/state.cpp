@@ -1093,14 +1093,22 @@ Expr State::mkApplyAttr(AppInfo* ai,
     break;
     case Attr::ARG_LIST:
     {
-      std::vector<Expr> cchildren;
-      Assert(!consTerm.isNull());
-      cchildren.push_back(consTerm);
-      for (size_t i = 1, nchild = vchildren.size(); i < nchild; i++)
+      Expr argList;
+      if (vchildren.size()==2 && getConstructorKind(vchildren[1])==Attr::LIST)
       {
-        cchildren.emplace_back(vchildren[i]);
+        argList = Expr(vchildren[1]);
       }
-      Expr argList = mkExpr(Kind::APPLY, cchildren);
+      else
+      {
+        std::vector<Expr> cchildren;
+        Assert(!consTerm.isNull());
+        cchildren.push_back(consTerm);
+        for (size_t i = 1, nchild = vchildren.size(); i < nchild; i++)
+        {
+          cchildren.emplace_back(vchildren[i]);
+        }
+        argList = mkExpr(Kind::APPLY, cchildren);
+      }
       return Expr(mkExprInternal(Kind::APPLY, {vchildren[0], argList.getValue()}));
     }
     break;
