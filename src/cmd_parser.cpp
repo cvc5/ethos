@@ -667,11 +667,11 @@ bool CmdParser::parseNextCommand()
       if (tok == Token::STRING_LITERAL)
       {
         std::string msg = d_eparser.parseStr(true);
-        std::cout << msg << std::endl;
+        d_state.echo(msg);
       }
       else
       {
-        std::cout << std::endl;
+        d_state.echo("");
       }
     }
     break;
@@ -764,7 +764,7 @@ bool CmdParser::parseNextCommand()
           d_lex.parseError("Cannot define program more than once");
         }
         // it should be a program with the same type
-        d_eparser.typeCheck(pprev, progType);
+        // d_eparser.typeCheck(pprev, progType);
         pvar = pprev;
       }
       else
@@ -821,10 +821,8 @@ bool CmdParser::parseNextCommand()
         program = d_state.mkExpr(Kind::PROGRAM, pchildren);
       }
       d_state.popScope();
-      if (!program.isNull())
-      {
-        d_state.defineProgram(pvar, program);
-      }
+      // call even if null
+      d_state.defineProgram(pvar, program);
       if (pprev.isNull())
       {
         // rebind the program, if new

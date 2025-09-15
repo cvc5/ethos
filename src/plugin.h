@@ -52,10 +52,23 @@ public:
   /**
    * Include file, if not already done so.
    * @param s Specifies the path and name of the file to include.
+   * @param isReference Whether the given file was marked as a signature file.
    * @param isReference Whether the given file was marked as a reference file.
-   * @param referenceNf The method for normalizing the reference file, if one exists.
+   * @param referenceNf The method for normalizing the reference file, if one
+   * exists.
    */
-  virtual void includeFile(const Filepath& s, bool isReference, const Expr& referenceNf) {}
+  virtual void includeFile(const Filepath& s,
+                           bool isSignature,
+                           bool isReference,
+                           const Expr& referenceNf)
+  {
+  }
+  virtual void finalizeIncludeFile(const Filepath& s,
+                                   bool isSignature,
+                                   bool isReference,
+                                   const Expr& referenceNf)
+  {
+  }
   /**
    * Set type rule for literal kind k to t. This is called when the
    * command declare-consts is executed.
@@ -121,6 +134,17 @@ public:
   virtual Expr evaluateProgram(ExprValue* prog,
                                const std::vector<ExprValue*>& args,
                                Ctx& newCtx) { return Expr(); }
+  /**
+   * Return true if the echo should be printed. If we return false, the
+   * assumption is that the message was intended for this plugin.
+   * @param msg The message.
+   * @return true if the caller should print the message.
+   */
+  virtual bool echo(const std::string& msg) { return true; }
+  /**
+   * Mark semantics, used for meta-level reasoning.
+   */
+  virtual void markSemantics(const Expr& c, const Expr& t) {}
   //--------- finalize
   /**
    * Finalize. Called once when the proof checker has finished parsing all input.

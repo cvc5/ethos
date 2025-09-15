@@ -1,0 +1,170 @@
+#!/bin/bash
+
+if [ X$1 = X'-sygus' ]; then
+  USE_SYGUS=ON
+  shift
+fi
+
+OUT_DIR=./out
+
+STD_TRIM_OUT=../plugins/trim_defs/trim_gen.eo
+STD_DESUGAR_OUT=../plugins/desugar/eo_desugar_gen.eo
+STD_SMODEL_OUT=../plugins/model_smt/model_smt_gen.eo
+STD_SMODEL_EMBED_OUT=../plugins/model_smt/model_eo_embed_gen.eo
+STD_VC_OUT=../plugins/smt_meta/smt_meta_gen.smt2
+# file used to ensure that trim-defs preserves dependencies for term reductions
+STD_SMODEL_DEPS=../plugins/model_smt/term_reduce_deps.eo
+# the name of a EO signature
+INPUT=$1
+# should be the name of a constant or proof rule in $INPUT
+TARGET=$2
+# trim out
+INIT_TRIM=$OUT_DIR/trim-cpc.eo
+INIT_DESUGAR=$OUT_DIR/trim-d-cpc.eo
+VC_DEF_DESUGAR=$OUT_DIR/vc-def-cpc.eo
+VCM_DEF_DESUGAR=$OUT_DIR/vcm-def-cpc.eo
+VCMT_DEF_DESUGAR=$OUT_DIR/vcmt-def-cpc.eo
+VC_OUT=$OUT_DIR/vc/final-cpc-$TARGET.smt2
+SYGUS_OUT=$OUT_DIR/vc/final-cpc-$TARGET.sy
+function check_status()
+{
+status=$?
+if [[ $status -eq 0 ]]; then
+  echo "success"
+else
+  exit $status
+fi
+}
+
+function trim_defs()
+{
+TMP_TRIM_OUT=$OUT_DIR/temp_trim.eo
+# the name of a EO signature
+INPUT_FILE=$1
+shift
+# output file
+echo "(include \"../$INPUT_FILE\")" > $TMP_TRIM_OUT
+# ensure the dependencies are kept
+cat $STD_SMODEL_DEPS >> $TMP_TRIM_OUT
+# add commands for each argument
+while [[ $# -gt 0 ]]; do
+  TARGET_SYM="$1"
+  echo "(echo \"trim-defs $TARGET_SYM\")" >> $TMP_TRIM_OUT
+  shift
+done
+./src/ethos --plugin.trim-defs $TMP_TRIM_OUT
+check_status
+rm -f $TMP_TRIM_OUT
+}
+
+echo "********* Verifying the correctness of $TARGET *********"
+
+# trim dependencies with respect to the proof rule
+echo "**** smt_meta: Run ethos + trim-defs on $INPUT and $TARGET to $INIT_TRIM"
+trim_defs $INPUT $TARGET >/dev/null
+check_status
+cp $STD_TRIM_OUT $INIT_TRIM
+
+echo "**** smt_meta: Run ethos + desugar on $INIT_TRIM to generate $INIT_DESUGAR"
+./src/ethos --plugin.desugar-vc $INIT_TRIM >/dev/null
+check_status
+cp $STD_DESUGAR_OUT $INIT_DESUGAR
+
+# trim dependencies with respect to the verification Eunoia program
+# note the dependencies are further managed by echo commands with :deps
+echo "**** smt_meta: Run ethos + trim-deps on $INIT_DESUGAR to generate $VC_DEF_DESUGAR"
+trim_defs $INIT_DESUGAR "\$eovc_$TARGET" >/dev/null
+check_status
+cp $STD_TRIM_OUT $VC_DEF_DESUGAR
+# "\$eo_List" "\$eo_List_nil" "\$eo_List_cons" "\$eo_fail"
+
+# TODO: eliminate this line
+# eliminate these operators here, as desugar doesn't do this currently
+sed -i -e 's/eo::list/\$eo_list/g' -e 's/eo::eq /\$eo_eq /g' $VC_DEF_DESUGAR
+
+echo "**** smt_meta: Run ethos + model-smt on $VC_DEF_DESUGAR to generate $VCM_DEF_DESUGAR"
+# make a copy of the current file, the current step will be included into it
+TMP_OUT=$(mktemp)
+cp $VC_DEF_DESUGAR $TMP_OUT
+# Replace the command "(echo "include eo_builtin_smt")" with the premble as defined in Eunoia.
+# This file is not a template, but has a fixed definition.
+sed -i "/(echo \"include eo_builtin_smt.*/{
+    r ../plugins/model_smt/eo_builtin_smt.eo
+    d
+}" $TMP_OUT
+# now compute the model smt
+./src/ethos --plugin.model-smt $TMP_OUT >/dev/null
+check_status
+# include the model semantics, which was generated above
+sed -i "/(echo \"include eo_model_sat.*/{
+    r ../plugins/model_smt/model_smt_gen.eo
+    d
+}" $TMP_OUT
+mv $TMP_OUT $VCM_DEF_DESUGAR
+rm -f $TMP_OUT
+
+# Need to eliminate eo:: with $eo_ here so that these definitions are
+# inlined in the smt-meta step below. However, we do not modify the bodies
+# of declare-consts commands. Moreover, eo::quote and eo::define should be
+# preserved.
+sed -i '/^(declare-consts/! s|eo::|$eo_|g' $VCM_DEF_DESUGAR
+sed -i -e 's/\$eo_quote/eo::quote/g' -e 's/\$eo_define/eo::define/g' $VCM_DEF_DESUGAR
+
+# trim again, where we require keeping the verification condition
+echo "**** smt_meta: Run ethos + trim-deps on $VCM_DEF_DESUGAR to generate $VCMT_DEF_DESUGAR"
+trim_defs $VCM_DEF_DESUGAR "\$eovc_$TARGET" >/dev/null
+check_status
+cp $STD_TRIM_OUT $VCMT_DEF_DESUGAR
+
+echo "**** smt_meta: Verify ethos parses"
+./src/ethos $VCMT_DEF_DESUGAR >/dev/null
+check_status
+
+if [[ "$USE_SYGUS" == "ON" ]]; then
+  echo "**** smt_meta: Generate sygus from $VCMT_DEF_DESUGAR to $VC_OUT"
+  ./src/ethos --plugin.smt-meta-sygus $VCMT_DEF_DESUGAR >/dev/null
+  check_status
+  cp $STD_VC_OUT $SYGUS_OUT
+
+  echo "**** smt_meta: Verify cvc5 parses with sygus"
+  ajr-cvc5 $SYGUS_OUT --parse-only --lang=sygus
+  check_status
+
+  BASE_ARGS="--no-e-matching --macros-quant --re-first-class --dag-thresh=0"
+  
+  echo "**** smt_meta: Check for counterexamples with sygus, args $BASE_ARGS"
+  #ajr-cvc5 $BASE_ARGS $SYGUS_OUT -q -o sygus-enumerator -o sygus-grammar -o sygus
+  ajr-cvc5 $BASE_ARGS --tlimit=600000 $SYGUS_OUT -q
+  check_status
+else
+  echo "**** smt_meta: Generate SMT2 from $VCMT_DEF_DESUGAR to $VC_OUT"
+  ./src/ethos --plugin.smt-meta $VCMT_DEF_DESUGAR >/dev/null
+  check_status
+  cp $STD_VC_OUT $VC_OUT
+
+  echo "**** smt_meta: Verify cvc5 parses"
+  ajr-cvc5 $VC_OUT --parse-only
+  check_status
+
+  BASE_ARGS="--macros-quant --re-first-class --quant-ind"
+  
+  echo "**** smt_meta: Run the final verification condition with unsat cores"
+  ajr-cvc5 $VC_OUT --dump-unsat-cores $BASE_ARGS #--parse-only
+  check_status
+
+  echo "**** smt_meta: Run the final verification condition with proofs"
+  ajr-cvc5 $VC_OUT --check-proofs --stats-internal $BASE_ARGS |& grep -P '(^unknown$|^unsat$|^sat$|finalProof::ruleCount|finalProof::totalRuleCount|finalProof::ruleUnhandled|finalProof::trust)'
+  check_status
+fi
+
+# clear temporary files
+#rm -f $INIT_TRIM
+#rm -f $INIT_DESUGAR
+#rm -f $VC_DEF_DESUGAR
+#rm -f $VCM_DEF_DESUGAR
+#rm -f $VCMT_DEF_DESUGAR
+rm -f $STD_TRIM_OUT
+rm -f $STD_DESUGAR_OUT
+rm -f $STD_SMODEL_OUT
+rm -f $STD_SMODEL_EMBED_OUT
+rm -f $STD_VC_OUT

@@ -45,6 +45,13 @@ class Options
   bool d_normalizeHexadecimal;
   /** Treat numerals as rational literals */
   bool d_normalizeNumeral;
+  /** plugins */
+  bool d_pluginDesugar;
+  bool d_pluginDesugarGenVc;
+  bool d_pluginSmtMeta;
+  bool d_pluginSmtMetaSygus;
+  bool d_pluginTrimDefs;
+  bool d_pluginModelSmt;
 };
 
 /**
@@ -91,6 +98,8 @@ class State
   bool markConstructorKind(const Expr& v, Attr a, const Expr& cons);
   /** Define program, where v is PROGRAM_CONST and prog is PROGRAM. */
   void defineProgram(const Expr& v, const Expr& prog);
+  /** Echo */
+  void echo(const std::string& msg);
   //--------------------------------------
   /** Type */
   Expr mkType();
@@ -126,6 +135,8 @@ class State
   Expr mkPair(const Expr& t1, const Expr& t2);
   /** */
   Expr mkExpr(Kind k, const std::vector<Expr>& children);
+  /** Same as above, without desugaring */
+  Expr mkExprSimple(Kind k, const std::vector<Expr>& children);
   /** make true */
   Expr mkTrue() const;
   /** make false */
@@ -207,6 +218,8 @@ class State
   void markProofRuleSorry(const ExprValue * e);
   /** Does e refer to a proof rule marked :sorry? */
   bool isProofRuleSorry(const ExprValue* e) const;
+  /** Mark constant semantics */
+  void markSemantics(const Expr& c, const Expr& t);
   //--------------------------------------
   /** Get the type checker */
   TypeChecker& getTypeChecker();
