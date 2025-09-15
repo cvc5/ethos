@@ -1,8 +1,12 @@
+
 (declare-const or (-> Bool Bool Bool))
 (declare-const not (-> Bool Bool))
 (declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 (declare-const exists (-> eo::List Bool Bool) :binder eo::List::cons)
+
+
 (declare-type Array (Type Type))
+
 (declare-parameterized-const select ((U Type :implicit) (T Type :implicit))
    (-> (Array U T) U T))
 
@@ -14,7 +18,9 @@
   :conclusion (or (= a b) (exists ((x T)) (not (= (select a x) (select b x)))))
 )
 
+
 (declare-type Int ())
+
 (declare-const a1 (Array Int Int))
 (declare-const a2 (Array Int Int))
 
