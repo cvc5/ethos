@@ -75,6 +75,7 @@ ExprParser::ExprParser(Lexer& lex, State& state, bool isSignature)
   d_strToAttr[":pairwise"] = Attr::PAIRWISE;
   d_strToAttr[":binder"] = Attr::BINDER;
   d_strToAttr[":let-binder"] = Attr::LET_BINDER;
+  d_strToAttr[":arg-list"] = Attr::ARG_LIST;
   d_strToAttr[":opaque"] = Attr::OPAQUE;
   d_strToAttr[":syntax"] = Attr::SYNTAX;
   d_strToAttr[":restrict"] = Attr::RESTRICT;
@@ -1046,6 +1047,7 @@ void ExprParser::parseAttributeList(
           case Attr::CHAINABLE:
           case Attr::PAIRWISE:
           case Attr::BINDER:
+          case Attr::ARG_LIST:
           {
             // requires an expression that follows
             handled = true;

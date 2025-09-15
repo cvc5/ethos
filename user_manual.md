@@ -316,6 +316,8 @@ The Eunoia language supports term annotations on declared constants which, for i
 
 - `:pairwise <symbol>` denoting that the arguments of the declared constant are treated pairwise using the (binary) operator given by `<symbol>`.
 
+- `:arg-list <symbol>` denoting that the arguments of the declared constant are provided to the n-ary operator given by `<symbol>`. The current symbol is is unary, taking the result of that operator.
+
 - `:binder <symbol>` denoting that the first argument of the declared constant can be provided using a syntax for variable lists whose constructor is the one provided by `<symbol>`.
 
 A declared function can be marked with at most one of the above attributes or an error is thrown.
@@ -510,6 +512,22 @@ a pairwise operator applied to a single argument reduces to the neutral element 
 For example, `(distinct x)` is equivalent to `true`.
 
 <a name="binders"></a>
+
+#### Argument List
+
+In practice, note that pairwise handling of operators introduces quadratically many new terms.
+As an alternative, an n-ary operator like distinct can be marked as taking an argument list,
+as demonstrated in the example below.
+
+```smt
+(declare-type Int ())
+(declare-parameterized-const distinct ((xs eo::List)) Bool :arg-list eo::List::cons)
+(define P ((x Int) (y Int) (z Int)) (distinct x y z))
+```
+
+In the above example, `(distinct x y z)` is treated as `(distinct (eo::List::cons a b c))`,
+which is further desugared to `(distinct (eo::List::cons a (eo::List::cons b (eo::List::cons c eo::List::nil))))`.
+In contrast to the above example, the size of this term is not quadratic in size with respect to the input arguments.
 
 #### Binder
 

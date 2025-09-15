@@ -51,6 +51,7 @@ enum class Attr
   LEFT_ASSOC_NIL,
   CHAINABLE,
   PAIRWISE,
+  ARG_LIST,
 
   // ambiguous functions e.g. set.empty which require annotations
   AMB,

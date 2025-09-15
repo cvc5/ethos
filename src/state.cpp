@@ -1091,6 +1091,19 @@ Expr State::mkApplyAttr(AppInfo* ai,
       return mkExpr(Kind::APPLY, cchildren);
     }
     break;
+    case Attr::ARG_LIST:
+    {
+      std::vector<Expr> cchildren;
+      Assert(!consTerm.isNull());
+      cchildren.push_back(consTerm);
+      for (size_t i = 1, nchild = vchildren.size(); i < nchild; i++)
+      {
+        cchildren.emplace_back(vchildren[i]);
+      }
+      Expr argList = mkExpr(Kind::APPLY, cchildren);
+      return Expr(mkExprInternal(Kind::APPLY, {vchildren[0], argList.getValue()}));
+    }
+    break;
     case Attr::OPAQUE:
     {
       // determine how many opaque children
