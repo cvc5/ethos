@@ -25,7 +25,7 @@ std::string StdPlugin::s_plugin_path =
 #endif
 
 // enables eager elimination of nested evaluation, ite, and requires
-bool StdPlugin::optionFlattenEval() { return true; }
+bool StdPlugin::optionFlattenEval() { return false; }
 // this ensures that the types of premises and conclusion must be Bool to
 // witness unsoundness
 bool StdPlugin::optionVcUseTypeof() { return true; }

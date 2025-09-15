@@ -199,6 +199,14 @@
     (eo.SmtTerm (sm.Binary x1 x2))
     eo.Stuck)))
 
+; program: $eo_mk_apply
+(define-fun $eo_mk_apply ((x1 eo.Term) (x2 eo.Term)) eo.Term
+  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
+    eo.Stuck
+  (ite true
+    (eo.Apply x1 x2)
+    eo.Stuck)))
+
 ; program: $eo_len
 (define-fun $eo_len ((x1 eo.Term)) eo.Term
   (ite (= x1 eo.Stuck)
@@ -356,7 +364,7 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    (eo.Apply (eo.SmtType tsm.BitVec) ($eo_len x1))
+    ($eo_mk_apply (eo.SmtType tsm.BitVec) ($eo_len x1))
     eo.Stuck))) :pattern (($eo_lit_type_Binary x1)))) :named sm.axiom.$eo_lit_type_Binary))
 
 ; program: $eo_lit_type_String

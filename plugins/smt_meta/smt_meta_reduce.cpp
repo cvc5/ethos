@@ -830,6 +830,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
       varList << " ";
     }
     std::stringstream argType;
+    std::cout << "Print meta type " << vt[i-1] << std::endl;
     printMetaType(vt[i - 1], argType, MetaKind::EUNOIA);
     decl << argType.str();
     std::stringstream ssArg;
@@ -986,10 +987,11 @@ void SmtMetaReduce::bind(const std::string& name, const Expr& e)
       argTypes.push_back(d_tc.getType(aa));
     }
     Expr body = e[1];
-    Expr retType = d_tc.getType(body);
+    //Expr retType = d_tc.getType(body);
     std::cout << "Look at define " << name << std::endl;
     // if we fail to type check, just allocate a type variable
-    retType = retType.isNull() ? allocateTypeVariable() : retType;
+    //retType = retType.isNull() ? allocateTypeVariable() : retType;
+    Expr retType = allocateTypeVariable();
     Expr pt = d_state.mkProgramType(argTypes, retType);
     std::cout << "....make program " << name << " for define, prog type is "
               << pt << std::endl;

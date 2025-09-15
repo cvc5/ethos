@@ -33,7 +33,6 @@ check_status
 ./run_gen_vc_single $INPUT arith_reduction
 ./run_gen_vc_single $INPUT arith_poly_norm
 ./run_gen_vc_single $INPUT arith_poly_norm_rel
-./run_gen_vc_single $INPUT arith-pow-elim
 ./run_gen_vc_single $INPUT arrays_read_over_write
 ./run_gen_vc_single $INPUT arrays_read_over_write_contra
 ./run_gen_vc_single $INPUT arrays_read_over_write_1

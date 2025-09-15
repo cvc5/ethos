@@ -525,7 +525,7 @@
 ; note: This definition is only used if we are not eagerly flattening evaluation
 (define $eo_requires ((x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term))
   ($smt_builtin_ite ($smt_builtin_= x1 x2)
-    ($smt_builtin_ite ($smt_builtin_is_ok x1) x3 x1)
+    ($smt_builtin_ite ($smt_builtin_is_ok x1) x3 $eo_stuck)
     $eo_stuck))
 
 ; note: This definition is only used if we are not eagerly flattening evaluation

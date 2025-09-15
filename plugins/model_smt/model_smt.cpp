@@ -280,7 +280,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ssRLeftRet << "($smtx_model_eval";
   ssRLeftRet << " (rotate_left (- ($eo_numeral x1) 1) (concat";
   ssRLeftRet << " (extract (- wm1 1) 0 t)";
-  ssRLeftRet << " (extract wm1 wm1 t)))))";
+  ssRLeftRet << " (extract wm1 wm1 t))))))";
   addLitSym("rotate_left",
             {kInt, kBitVec},
             kT,
