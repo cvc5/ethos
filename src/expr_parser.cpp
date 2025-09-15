@@ -632,7 +632,7 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList(
       // rule, then if it has non-ground type, its type will be taken into
       // account for matching and evaluation. We wrap it in (eo::param ...)
       // here.
-      if ((k == Kind::CONST || k == Kind::PROOF_RULE) && !t.isGround())
+      if (k == Kind::CONST && !t.isGround())
       {
         v = d_state.mkExpr(Kind::ANNOT_PARAM, {v, t});
       }

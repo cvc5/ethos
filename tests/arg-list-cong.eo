@@ -26,7 +26,7 @@
   Bool
   :arg-list @list)
 
-(declare-rule arg_list_cong ((E Bool) (T Type) (xs @List) (f (-> @List T)))
+(declare-rule arg_list_cong ((E Bool) (T Type) (U Type) (xs U) (f (-> U T)))
     :premise-list E and
     :args ((f xs))
     :conclusion (= (f xs) (f ($mk_nary_cong_rhs xs E)))
