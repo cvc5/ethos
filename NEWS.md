@@ -8,6 +8,7 @@ ethos 0.2.1 pre-release
 - Adds builtin list operators `eo::list_diff` (difference) and `eo::list_inter` (intersection)
 - Adds support for explicit conclusions to proof rules via `:conclusion-explicit`.
 - Removes support for oracles and the command `declare-oracle-fun`. Custom extensions are now recommended to be added via the plugin feature, which provides an interface for custom evaluation (Plugin::hasEvaluation).
+- We now reject proof rules whose conclusions contain free parameters *only* occurring in the types of arguments. Furthermore, free parameters in the types of arguments to proof rules are not bound when applying the proof rule.
 
 ethos 0.2.0
 ===========
