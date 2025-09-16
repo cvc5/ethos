@@ -1,6 +1,6 @@
 (include "Uf-rules.eo")
 
-(declare-const S Type)
+(declare-type S ())
 (declare-const c1 S)
 (declare-const c2 S)
 (declare-const c3 S)

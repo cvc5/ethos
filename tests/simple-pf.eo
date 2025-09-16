@@ -8,7 +8,7 @@
   :conclusion (= T y x))
 
   
-(declare-const Int Type)
+(declare-type Int ())
 (declare-const a Int)
 (declare-const b Int)
 (declare-const c Bool)

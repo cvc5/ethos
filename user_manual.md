@@ -115,6 +115,13 @@ The following commands are supported for declaring and defining types and terms.
 
 - `(declare-consts <lit-category> <type>)` declares the class of symbols denoted by the literal category to have the given type.
 
+- `(declare-type <symbol> (<type>*))` declares a new type constructor named `<symbol>` whose kind is `Type` if `<type>*` is empty. If `<type>*` is `<type_1> ... <type_n>`, then kind of `<symbol>` is `(-> <type_1> ... <type_n> Type)`.
+  This is a derived command as it is a shorthand for
+  `(declare-const <symbol> Type)` if `<type>*` is empty, and for
+  `(declare-const <symbol> (-> <type>* Type))` otherwise.
+
+<!--CT Do we really need `define-type`? -->
+- `(define-type <symbol> (<type>*) <type>)` defines `<symbol>` to be a lambda term whose type is given by the argument and return types.
 - `(declare-datatype <symbol> <datatype-dec>)` defines a datatype `<symbol>`, along with its associated constructors, selectors, discriminators and updaters.
 
 - `(declare-datatypes (<sort-dec>^n) (<datatype-dec>^n))` defines a list of `n` datatypes for some `n>0`.
@@ -136,7 +143,7 @@ The Eunoia language contains further commands for declaring symbols that are not
 #### Example: Basic Declarations
 
 ```smt
-(declare-const Int Type)
+(declare-type Int ())
 (declare-const c Int)
 (declare-const f (-> Int Int Int))
 (declare-const g (-> Int (-> Int Int)))
@@ -174,8 +181,8 @@ In other words, the following sequence of commands is equivalent to the one abov
 Eunoia supports the declaration of polymorphic types, that is, types depending on other types.
 
 ```smt
-(declare-const Int Type)
-(declare-const Array (-> Type Type Type))
+(declare-type Int ())
+(declare-type Array (Type Type))
 (declare-const a (Array Int Bool))
 
 (define IntArray ((T Type)) (Array Int T))
@@ -183,7 +190,15 @@ Eunoia supports the declaration of polymorphic types, that is, types depending o
 ```
 
 In the above example, we declare an integer type constructor of kind `Type` and array type constructor of kind `(-> Type Type Type)`.
-We then declare two arrays, `a` and `b`, which, after parsing have an identical type, `(Array Int Bool)`.
+
+<!-- We should say something about the defines above -->
+
+Note the following declarations generate terms of the same type:
+
+```smt
+(declare-type Array_v2 (Type Type))
+(declare-const Array_v3 (-> Type Type Type))
+```
 
 <a name="tcdefine"></a>
 
@@ -213,7 +228,7 @@ The syntax of this command is the following:
 Consider the following example:
 
 ```smt
-(declare-const Int Type)
+(declare-type Int ())
 (declare-parameterized-const eq ((T Type)) (-> T T Bool))
 (define P ((x Int) (y Int)) (eq Int x y))
 ```
@@ -223,7 +238,7 @@ The above example declares a predicate symbol `eq` whose first argument is a typ
 In contrast, the example below declares a predicate `=` where the type of the arguments is implicit (this corresponds to the SMT-LIB standard definition of `=`). An implicit argument for a parameterized constant can be given by the annotation `:implicit`. In the definition of `P`, the type `Int` of the arguments is not provided.
 
 ```smt
-(declare-const Int Type)
+(declare-type Int ())
 (declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 (define P ((x Int) (y Int)) (= x y))
 ```
@@ -248,12 +263,12 @@ In particular, functions with opaque arguments intuitively can be considered a _
 An example of this annotation is the following:
 
 ```smt
-(declare-const Array (-> Type Type Type))
+(declare-type Array (Type Type))
 (declare-parameterized-const @array_diff
   ((T Type :implicit) (U Type :implicit) (t (Array T U) :opaque) (u (Array T U) :opaque))
    T)
 
-(declare-const Int Type)
+(declare-type Int ())
 (declare-const A (Array Int Int))
 (declare-const B (Array Int Int))
 (define d () (@array_diff A B) :type Int)
@@ -273,7 +288,7 @@ The concatenation of the expected arguments can be passed to the symbol in the o
 For example:
 
 ```smt
-(declare-const Int Type)
+(declare-type Int ())
 (declare-parameterized-const @purify_fun ((f (-> Int Int) :opaque)) (-> Int Int))
 
 (declare-const f (-> Int Int))
@@ -390,7 +405,7 @@ The nil terminator of a right associative operator may involve previously declar
 For example:
 
 ```smt
-(declare-const RegLan Type)
+(declare-type RegLan ())
 (declare-const re.all RegLan)
 (declare-const re.inter (-> RegLan RegLan RegLan) :right-assoc-nil re.all)
 ```
@@ -461,7 +476,7 @@ In contrast, `(or x)` denotes the `or` whose children are `x` and `false`.
 #### Chainable
 
 ```smt
-(declare-const Int Type)
+(declare-type Int ())
 (declare-const and (-> Bool Bool Bool) :right-assoc)
 (declare-const >= (-> Int Int Bool) :chainable and)
 (define P ((x Int) (y Int) (z Int)) (>= x y z))
@@ -480,7 +495,7 @@ For example, `(>= x)` is equivalent to `true`.
 #### Pairwise
 
 ```smt
-(declare-const Int Type)
+(declare-type Int ())
 (declare-const and (-> Bool Bool Bool) :right-assoc)
 (declare-parameterized-const distinct ((T Type :implicit)) (-> T T Bool) :pairwise and)
 (define P ((x Int) (y Int) (z Int)) (distinct x y z))
@@ -536,8 +551,8 @@ not desugared further since `xs` is marked `:list`.
 #### Binder
 
 ```smt
-(declare-const Int Type)
-(declare-const @List Type)
+(declare-type Int ())
+(declare-type @List ())
 (declare-const @nil @List)
 (declare-parameterized-const @cons ((T Type :implicit)) (-> T @List @List)
  :right-assoc-nil @nil)
@@ -576,10 +591,10 @@ If these parameters are *not* contained in any explicit argument to the function
 For example, consider a generic definition of the empty set:
 
 ```smt
-(declare-const Set (-> Type Type))
+(declare-type Set (Type))
 (declare-parameterized-const set.empty ((T Type :implicit)) (Set T))
 
-(declare-const Int Type)
+(declare-type Int ())
 (define f () (as set.empty (Set Int)) :type (Set Int))
 ```
 
@@ -636,7 +651,7 @@ The only other escape sequences are of the form `\u{dn ...d1}` for `1<=n<=5` and
 The following gives an example of how to define the class of numeral constants.
 
 ```smt
-(declare-const Int Type)
+(declare-type Int ())
 (declare-consts <numeral> Int)
 (define P ((x Int)) (> x 7))
 ```
@@ -870,7 +885,7 @@ Ethos supports extensions of `eo::and, eo::or, eo::xor, eo::add, eo::mul, eo::co
 Note the following examples of core operators for the given signature
 
 ```smt
-(declare-const Int Type)
+(declare-type Int ())
 (declare-const x Int)
 (declare-const y Int)
 (declare-const a Bool)
@@ -1042,9 +1057,9 @@ For example, `(eo::nil bvor (BitVec 4))` denotes the nil terminator of `bvor` wh
 ### Example: Type rule for BitVector concatenation
 
 ```smt
-(declare-const Int Type)
+(declare-type Int ())
 (declare-consts <numeral> Int)
-(declare-const BitVec (-> Int Type))
+(declare-type BitVec (Int))
 
 (declare-parameterized-const concat ((n Int :implicit) (m Int :implicit))
   (->
@@ -1082,9 +1097,9 @@ This was not the case with `z` in the previous example, whose type prior to eval
 ### Example: Type rule for BitVector constants
 
 ```smt
-(declare-const Int Type)
+(declare-type Int ())
 (declare-consts <numeral> Int)
-(declare-const BitVec (-> Int Type))
+(declare-type BitVec (Int))
 
 (declare-consts <binary> (BitVec (eo::len eo::self)))
 
@@ -1106,9 +1121,9 @@ In the following example,
 we declare bitvector-or (`bvor` in SMT-LIB) where its nil terminator is bitvector zero for the given bitwidth.
 
 ```smt
-(declare-const Int Type)
+(declare-type Int ())
 (declare-consts <numeral> Int)                ; numeral literals denote Int constants
-(declare-const BitVec (-> Int Type))
+(declare-type BitVec (Int))
 (declare-consts <binary>
     (BitVec (eo::len eo::self)))              ; binary literals denote BitVec constants of their length
 (define bvzero ((m Int)) (eo::to_bin m 0))    ; returns the bitvector value zero for bitwidth m
@@ -1263,7 +1278,7 @@ In particular, Eunoia has support for:
 In detail, for the purposes of representing the return value of these operators, Eunoia assumes the definition of a type `eo::List` with constructors `eo::List::nil` and `eo::List::cons`, where the latter is right associative with the former as its nil terminator. In other words, the following commands can be assumed as part of the builtin signature assumed by Ethos:
 
 ```smt
-(declare-const eo::List Type)
+(declare-type eo::List ())
 (declare-const eo::List::nil eo::List)
 (declare-const eo::List::cons ((T Type :implicit)) (-> T eo::List eo::List)
                :right-assoc-nil eo::List::nil)
@@ -1452,7 +1467,7 @@ In detail, an application of this proof rule for premise proof `(= a b)` for con
 A list of requirements can be given to a proof rule.
 
 ```smt
-(declare-const Int Type)
+(declare-type Int ())
 (declare-consts <numeral> Int)
 (declare-const >= (-> Int Int Bool))
 (declare-rule leq-contra ((x Int))
@@ -1534,7 +1549,7 @@ where
     :premises ((= t s))
     :conclusion (= s t)
 )
-(declare-const Int Type)
+(declare-type Int ())
 (declare-const a Int)
 (declare-const b Int)
 (assume @p0 (= a b))
@@ -1729,7 +1744,7 @@ Calling it with arguments `A`, `B`, and `(@array_diff A B)` would return `(@arra
 ### Example: Term evaluator
 
 ```smt
-(declare-const Int Type)
+(declare-type Int ())
 (declare-consts <numeral> Int)
 (declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 (declare-const + (-> Int Int Int))
@@ -1756,8 +1771,8 @@ The above example recursively evaluates arithmetic terms and predicates accordin
 ### Example: A computational type rule
 
 ```smt
-(declare-const Int Type)
-(declare-const Real Type)
+(declare-type Int ())
+(declare-type Real ())
 (program arith.typeunion ()
     :signature (Type Type) Type
     (
@@ -1778,7 +1793,7 @@ The return type of `+` invokes this side condition, which conceptually is implem
 ### Example: Conversion to DIMACS
 
 ```smt
-(declare-const String Type)
+(declare-type String ())
 (declare-consts <string> String)
 (declare-const not (-> Bool Bool))
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
@@ -1817,9 +1832,9 @@ The syntax `eo::quote` is used for this purpose, which can specify an input para
 and is provided as part of the type signature of the program.
 
 ```
-(declare-const Int Type)
+(declare-type Int ())
 (declare-consts <numeral> Int)
-(declare-const BitVec (-> Int Type))
+(declare-type BitVec (Int))
 (declare-consts <binary> (BitVec (eo::len eo::self)))
 
 (declare-const @bv_empty (BitVec 0))
@@ -1869,7 +1884,7 @@ For example, the above program could be generalized to concatentate an arbitrary
 ### Example: Proof rule for symmetry of (dis)equality
 
 ```smt
-(declare-const Int Type)
+(declare-type Int ())
 (declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 (declare-const not (-> Bool Bool))
 
@@ -1893,7 +1908,7 @@ It matches the given premise `F` with either `(= t1 t2)` or `(not (= t1 t2))` an
 ### Example: Proof rule for transitivity of equality with a premise list
 
 ```smt
-(declare-const Int Type)
+(declare-type Int ())
 (declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 (declare-const and (-> Bool Bool Bool) :left-assoc)
 
@@ -1949,8 +1964,8 @@ For this reason, ethos additionally supports providing an optional normalization
 For example:
 
 ```smt
-(declare-const Int Type)
-(declare-const Real Type)
+(declare-type Int ())
+(declare-type Real ())
 (declare-const / (-> Int Int Real))
 (program normalize ((T Type) (S Type) (f (-> S T)) (x S) (a Int) (b Int))
    :signature (T) T
@@ -2034,8 +2049,10 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
     (assume-push <symbol> <term>) |
     (declare-consts <lit-category> <type>) |
     (declare-parameterized-const <symbol> (<typed-param>*) <type> <attr>*) |
-    (declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term> <attr>*) |
+    (declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? <conclusion> <attr>*) |
+    (declare-type <symbol> (<type>*)) |
     (define <symbol> (<typed-param>*) <term> <attr>*) |
+    (define-type <symbol> (<type>*) <type>) |
     (include <string>) |
     (program <symbol> (<typed-param>*) :signature (<type>+) <type> ((<term> <term>)+)) |
     (reference <string> <symbol>?) |

@@ -1,7 +1,7 @@
-(declare-const Int Type)
+(declare-type Int ())
 (declare-consts <numeral> Int)
 
-(declare-const BitVec (-> Int Type)) 
+(declare-type BitVec (Int)) 
 
 
 (declare-parameterized-const bvadd ((n Int :implicit)) (-> (BitVec n) (BitVec n)

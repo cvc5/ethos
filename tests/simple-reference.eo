@@ -1,4 +1,4 @@
-(declare-const Int Type)
+(declare-type Int ())
 (declare-const > (-> Int Int Bool))
 (declare-const < (-> Int Int Bool))
 (declare-consts <numeral> Int)

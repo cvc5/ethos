@@ -1,7 +1,7 @@
 (include "Nary.eo")
 
 ; Nary tests on a custom type
-(declare-const S Type)
+(declare-type S ())
 
 (declare-const nil S)
 (declare-const cons (-> S S S)

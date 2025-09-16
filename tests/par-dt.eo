@@ -1,4 +1,4 @@
-(declare-const Int Type)
+(declare-type Int ())
 (declare-datatypes ((List 1)) ((par (T) ((nil) (cons (head T) (tail (List T)))))))
 (define y () (eo::var "y" (List Int)))
 (define @t1 () (tail y) :type (List Int))

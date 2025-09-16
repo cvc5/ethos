@@ -1,4 +1,4 @@
-(declare-const Int Type)
+(declare-type Int ())
 (declare-consts <numeral> Int)
 (declare-const FiniteField (-> Int Type))
 

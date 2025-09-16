@@ -2,7 +2,7 @@
 (include "Arith-theory.eo")
 (include "Datatypes-theory.eo")
 
-(declare-const Set (-> Type Type))
+(declare-type Set (Type))
 
 ; NOTE: permits non-set types
 (declare-parameterized-const set.empty ((T Type)) (-> T))

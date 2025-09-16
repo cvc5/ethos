@@ -1,5 +1,5 @@
 
-(declare-const Int Type)
+(declare-type Int ())
 (declare-consts <numeral> Int)
 
 (program less-than ()

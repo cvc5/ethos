@@ -1,4 +1,4 @@
-(declare-const Pair (-> Type Type))
+(declare-type Pair (Type))
 
 (declare-parameterized-const pair ((T Type :implicit)) (-> T T (Pair T)))
 
@@ -19,7 +19,7 @@
   :conclusion (is_swap t (swap t))
 )
 
-(declare-const Int Type)
+(declare-type Int ())
 (declare-const a Int)
 (declare-const b Int)
 

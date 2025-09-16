@@ -1,6 +1,6 @@
 
 
-(declare-const Int Type)
+(declare-type Int ())
 
 (declare-const exists (-> eo::List Bool Bool) :binder eo::List::cons)
 (declare-parameterized-const = ((A Type :implicit)) (-> A A Bool))

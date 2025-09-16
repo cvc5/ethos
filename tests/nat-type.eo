@@ -1,4 +1,4 @@
-(declare-const Nat Type)
+(declare-type Nat ())
 
 (declare-consts <numeral> (eo::requires (eo::is_neg eo::self) false Nat))
 

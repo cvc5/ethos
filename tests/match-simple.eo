@@ -1,10 +1,10 @@
 
 (declare-const => (-> Bool Bool Bool))
 
-(declare-const Int Type)
+(declare-type Int ())
 (declare-consts <numeral> Int)
 
-(declare-const Pair (-> Type Type Type))
+(declare-type Pair (Type Type))
 (declare-parameterized-const pair ((U Type :implicit) (T Type :implicit)) (-> U T (Pair U T)))
 (declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 (declare-const + (-> Int Int Int) :right-assoc)

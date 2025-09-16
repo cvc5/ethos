@@ -1,4 +1,4 @@
-(declare-const Int Type)
+(declare-type Int ())
 (declare-const - (-> Int Int Int))
 ; bound after above
 (declare-const - (-> Int Int))

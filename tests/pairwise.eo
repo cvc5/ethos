@@ -11,7 +11,7 @@
    :conclusion a
 )
 
-(declare-const U Type)
+(declare-type U ())
 
 (declare-const a U)
 (declare-const b U)

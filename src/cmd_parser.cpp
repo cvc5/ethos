@@ -61,7 +61,9 @@ CmdParser::CmdParser(Lexer& lex,
     d_table["declare-consts"] = Token::DECLARE_CONSTS;
     d_table["declare-parameterized-const"] = Token::DECLARE_PARAMETERIZED_CONST;
     d_table["declare-rule"] = Token::DECLARE_RULE;
+    d_table["declare-type"] = Token::DECLARE_TYPE;
     d_table["define"] = Token::DEFINE;
+    d_table["define-type"] = Token::DEFINE_TYPE;
     d_table["include"] = Token::INCLUDE;
     d_table["program"] = Token::PROGRAM;
     d_table["reference"] = Token::REFERENCE;
@@ -487,6 +489,28 @@ bool CmdParser::parseNextCommand()
       d_eparser.bind(name, decType);
     }
     break;
+    // (declare-type <symbol> (<sort>*))
+    case Token::DECLARE_TYPE:
+    {
+      //d_state.checkThatLogicIsSet();
+      //d_state.checkLogicAllowsFreeExprs();
+      std::string name = d_eparser.parseSymbol();
+      //d_state.checkUserSymbol(name);
+      std::vector<Expr> args = d_eparser.parseTypeList();
+      Expr type;
+      Expr ttype = d_state.mkType();
+      if (args.empty())
+      {
+        type = ttype;
+      }
+      else
+      {
+        type = d_state.mkFunctionType(args, ttype);
+      }
+      Expr decType = d_state.mkSymbol(Kind::CONST, name, type);
+      d_eparser.bind(name, decType);
+    }
+    break;
     // (define-const <symbol> <sort> <term>)
     case Token::DEFINE_CONST:
     {
@@ -500,8 +524,10 @@ bool CmdParser::parseNextCommand()
     }
     break;
     // (define-fun <symbol> (<sorted_var>*) <sort> <term>)
+    // (define-type <symbol> (<sorted_var>*) <term>)
     // (define <symbol> (<sorted_var>*) <term> <attr>*)
     case Token::DEFINE_FUN:
+    case Token::DEFINE_TYPE:
     case Token::DEFINE:
     {
       d_state.pushScope();
@@ -534,6 +560,10 @@ bool CmdParser::parseNextCommand()
       if (tok == Token::DEFINE_FUN)
       {
         ret = d_eparser.parseType();
+      }
+      else if (tok == Token::DEFINE_TYPE)
+      {
+        ret = d_state.mkType();
       }
       Expr expr = d_eparser.parseExpr();
       // ensure we have the right type

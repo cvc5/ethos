@@ -1,5 +1,5 @@
 
-(declare-const Int Type)
+(declare-type Int ())
 (declare-consts <numeral> Int)
 (declare-const > (-> Int Int Bool))
 
@@ -9,7 +9,7 @@
     :conclusion (> t s)
 )
 
-(declare-const Bin Type)
+(declare-type Bin ())
 (declare-consts <binary> Bin)
 (declare-const bvugt (-> Bin Bin Bool))
 

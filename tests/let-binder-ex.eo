@@ -1,8 +1,8 @@
-(declare-const @List Type)
+(declare-type @List ())
 (declare-const @nil @List)
 (declare-parameterized-const @cons ((T Type :implicit)) (-> T @List @List) :right-assoc-nil @nil)
 
-(declare-const @Pair (-> Type Type Type))
+(declare-type @Pair (Type Type))
 (declare-parameterized-const @pair ((U Type :implicit) (T Type :implicit)) (-> U T (@Pair U T)))
 
 (declare-parameterized-const myLet ((T Type :implicit)) (-> @List T T) :let-binder (@pair @cons))

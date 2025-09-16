@@ -1,7 +1,7 @@
 ; ethos gave a spurious error on this example in cvc5 regressions when the
 ; definition of evaluatable was oversimplified to not check literalOp kinds.
 
-(declare-const Int Type)
+(declare-type Int ())
 (declare-consts <numeral> Int)
 
 (declare-parameterized-const = ((A Type :implicit)) (-> A A Bool))

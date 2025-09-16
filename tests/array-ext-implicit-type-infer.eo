@@ -5,7 +5,7 @@
 (declare-const exists (-> eo::List Bool Bool) :binder eo::List::cons)
 
 
-(declare-const Array (-> Type Type Type))
+(declare-type Array (Type Type))
 
 (declare-parameterized-const select ((U Type :implicit) (T Type :implicit))
    (-> (Array U T) U T))
@@ -19,7 +19,7 @@
 )
 
 
-(declare-const Int Type)
+(declare-type Int ())
 
 (declare-const a1 (Array Int Int))
 (declare-const a2 (Array Int Int))

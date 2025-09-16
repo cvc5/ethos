@@ -1,5 +1,5 @@
-(declare-const String Type)
-(declare-const Int Type)
+(declare-type String ())
+(declare-type Int ())
 
 (declare-parameterized-const @strings_stoi_result ((s String :opaque)) (-> Int Int))
 
