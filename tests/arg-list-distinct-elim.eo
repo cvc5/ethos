@@ -40,7 +40,7 @@
   :signature (Bool) Bool
   (
   (($mk_distinct-elim (distinct x xs))   ($mk_distinct-elim-rec x xs ($mk_distinct-elim (distinct xs))))
-  (($mk_distinct-elim (distinct xs))     true) ; nil case
+  (($mk_distinct-elim (distinct xs))     true) ; nil case (only match is when `xs` is nil)
   )
 )
 

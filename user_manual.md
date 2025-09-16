@@ -316,7 +316,7 @@ The Eunoia language supports term annotations on declared constants which, for i
 
 - `:pairwise <symbol>` denoting that the arguments of the declared constant are treated pairwise using the (binary) operator given by `<symbol>`.
 
-- `:arg-list <symbol>` denoting that the arguments of the declared constant are provided to the n-ary operator given by `<symbol>`. The current symbol is is unary, taking the result of that operator.
+- `:arg-list <symbol>` denoting that the arguments of the declared constant are provided to the n-ary operator given by `<symbol>`. The annotated symbol is is unary, taking the result of that operator.
 
 - `:binder <symbol>` denoting that the first argument of the declared constant can be provided using a syntax for variable lists whose constructor is the one provided by `<symbol>`.
 
@@ -515,8 +515,8 @@ For example, `(distinct x)` is equivalent to `true`.
 
 #### Argument List
 
-In practice, note that pairwise handling of operators introduces quadratically many new terms.
-As an alternative, an n-ary operator like distinct can be marked as taking an argument list,
+In practice, note that handling pairwise operators introduces quadratically many new terms.
+As an alternative, an n-ary operator like `distinct` can be marked as taking an argument list,
 as demonstrated in the example below.
 
 ```smt
