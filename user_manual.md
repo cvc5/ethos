@@ -301,6 +301,8 @@ The Eunoia language supports term annotations on declared constants which, for i
 
 - `:pairwise <symbol>` denoting that the arguments of the declared constant are treated pairwise using the (binary) operator given by `<symbol>`.
 
+- `:arg-list <symbol>` denoting that the arguments of the declared constant are provided to the n-ary operator given by `<symbol>`. The annotated symbol is is unary, taking the result of that operator.
+
 - `:binder <symbol>` denoting that the first argument of the declared constant can be provided using a syntax for variable lists whose constructor is the one provided by `<symbol>`.
 
 A declared function can be marked with at most one of the above attributes or an error is thrown.
@@ -495,6 +497,41 @@ a pairwise operator applied to a single argument reduces to the neutral element 
 For example, `(distinct x)` is equivalent to `true`.
 
 <a name="binders"></a>
+
+#### Argument List
+
+In practice, note that handling pairwise operators introduces quadratically many new terms.
+As an alternative, an n-ary operator like `distinct` can be marked as taking an argument list,
+as demonstrated in the example below.
+
+```smt
+(declare-type Int ())
+(declare-parameterized-const distinct ((xs eo::List)) Bool :arg-list eo::List::cons)
+(define P ((x Int) (y Int) (z Int)) (distinct x y z))
+```
+
+In the above example, `(distinct x y z)` is desugared to `(distinct (eo::List::cons a b c))`,
+which is further desugared to `(distinct (eo::List::cons a (eo::List::cons b (eo::List::cons c eo::List::nil))))`.
+In contrast to the above example, the size of this term is not quadratic in size with respect to the input arguments.
+
+This desugaring further takes into account if arguments to the annotated symbol have been marked with the attribute`:list`.
+In particular, if there is only a single argument to `distinct`, and it is marked `:list`, then
+it is *not* passed to the given list constructor but instead taken as the lone
+argument. Note the following examples:
+
+```
+(define distinct-of ((xs eo::List :list))
+  (distinct xs))
+(define distinct-of2 ((T Type :implicit) (x T) (xs eo::List :list))
+  (distinct x xs))
+```
+
+In the first definition, the argument to `distinct` is marked `:list`, hence
+`(distinct xs)` is *not* desugared to `(distinct (eo::List::cons xs))`
+since `xs` is marked `:list`.
+In the second definition, `(distinct x xs)` has multiple arguments, hence
+it is desugared to `(distinct (eo::List::cons x xs))`. This term is
+not desugared further since `xs` is marked `:list`.
 
 #### Binder
 
@@ -1347,12 +1384,13 @@ The selectors of a constructor (which are never ambiguous) are returned independ
 The generic syntax for a `declare-rule` command accepted by `ethos` is:
 
 ```smt
-(declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? :conclusion <term> <attr>*)
+(declare-rule <symbol> (<typed-param>*) <assumption>? <premises>? <arguments>? <reqs>? <conclusion> <attr>*)
 where
 <assumption>   ::= :assumption <term>
 <premises>     ::= :premises (<term>*) | :premise-list <term> <term>
 <arguments>    ::= :args (<term>*)
 <reqs>         ::= :requires ((<term> <term>)*)
+<conclusion>   ::= :conclusion <term> | :conclusion-explicit <term>
 ```
 
 A proof rule begins by defining a list of free parameters, followed by 4 optional fields and a conclusion term.
@@ -1453,6 +1491,28 @@ The conclusion of the rule returns `F` itself.
 Note that the type of functions provided as the second argument of `:premise-list` should be operators that are marked to take an arbitrary number of arguments, that is those marked e.g. with `:right-assoc-nil` or `:chainable`.
 
 <a name="proofs"></a>
+
+### Explicit Conclusions
+
+Rules can be specified to pattern match on the provided conclusion as input.
+This is useful if the proof rule is written in the style where an arbitrary conclusion can be provided by user, and is checked to see if it is a valid possible conclusion of the rule.
+For example:
+
+```smt
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil true)
+(declare-const not (-> Bool Bool))
+
+(declare-rule split ((F Bool))
+  :conclusion-explicit (or F (not F))
+)
+(step @p0 (or true (not true)) :rule split)
+```
+
+In the above rule definition, a proof rule `split` is given which expects a conclusion of the form `(or F (not F))` to be provided.
+A step invoking this rule is only valid if the provided conclusion of that step matches this pattern.
+Further requirements can be added, e.g. checking that `F` satisfies some side condition,
+where it is assumed that `F` is bound to the term found when matching the conclusion of the rule.
+Any step not providing a conclusion as the second argument to the step command will result in a proof checking failure.
 
 ## Writing Proofs
 
@@ -2025,6 +2085,7 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
 <simple-premises> ::= :premises (<term>*)
 <arguments>       ::= :args (<term>*)
 <reqs>            ::= :requires ((<term> <term>)*)
+<conclusion>      ::= :conclusion <term> | :conclusion-explicit <term>
 
 ```
 

@@ -5,9 +5,9 @@
   )
 )
 
-(declare-rule bind ((ctx Bool) (old_ctx Bool) (T Type) (l T) (r T) (l1 T) (r1 T))
+(declare-rule bind ((ctx Bool) (old_ctx Bool) (T Type) (l T) (r T) (l1 T) (r1 T) (C Bool))
   :assumption ctx
-  :conclusion-given
+  :conclusion-explicit C
 )
 
 (declare-const @cl (-> Bool Bool Bool) :right-assoc-nil false)
