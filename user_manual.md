@@ -525,7 +525,7 @@ as demonstrated in the example below.
 (define P ((x Int) (y Int) (z Int)) (distinct x y z))
 ```
 
-In the above example, `(distinct x y z)` is treated as `(distinct (eo::List::cons a b c))`,
+In the above example, `(distinct x y z)` is desugared to `(distinct (eo::List::cons a b c))`,
 which is further desugared to `(distinct (eo::List::cons a (eo::List::cons b (eo::List::cons c eo::List::nil))))`.
 In contrast to the above example, the size of this term is not quadratic in size with respect to the input arguments.
 
