@@ -1,0 +1,44 @@
+
+
+(declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
+(declare-parameterized-const = ((A Type :implicit)) (-> A A Bool) :chainable and)
+
+(program $mk_nary_cong_rhs ((U Type) (f (-> U U U)) (s1 U) (s2 U) (t U :list) (tail Bool :list) (nil U))
+    :signature (U Bool) U
+    (
+        (($mk_nary_cong_rhs (f s1 t) (and (= s1 s2) tail))  (eo::cons f s2 ($mk_nary_cong_rhs t tail)))
+        (($mk_nary_cong_rhs nil true)                       nil)
+    )
+)
+
+(declare-rule nary_cong ((U Type) (E Bool) (t U))
+    :premise-list E and
+    :args (t)
+    :conclusion (= t ($mk_nary_cong_rhs t E))
+)
+
+(define @List () eo::List)
+(define @list.nil () eo::List::nil)
+(define @list () eo::List::cons)
+
+
+(declare-parameterized-const distinct ((xs @List))
+  Bool
+  :arg-list @list)
+
+(declare-rule arg_list_cong ((E Bool) (T Type) (U Type) (xs U) (f (-> U T)))
+    :premise-list E and
+    :args ((f xs))
+    :conclusion (= (f xs) (f ($mk_nary_cong_rhs xs E)))
+)
+
+(declare-const Int Type)
+(declare-const a Int)
+(declare-const b Int)
+(declare-const c Int)
+(declare-const d Int)
+(declare-const e Int)
+(assume @p0 (= a d))
+(assume @p1 (= b e))
+(assume @p2 (= c c))
+(step @p3 (= (distinct a b c) (distinct d e c)) :rule arg_list_cong :premises (@p0 @p1 @p2) :args ((distinct a b c)))

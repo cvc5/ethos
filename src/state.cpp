@@ -1091,6 +1091,31 @@ Expr State::mkApplyAttr(AppInfo* ai,
       return mkExpr(Kind::APPLY, cchildren);
     }
     break;
+    case Attr::ARG_LIST:
+    {
+      Expr argList;
+      // If there is only one argument, and it was marked :list, then it is
+      // not desugared.
+      if (vchildren.size() == 2
+          && getConstructorKind(vchildren[1]) == Attr::LIST)
+      {
+        argList = Expr(vchildren[1]);
+      }
+      else
+      {
+        std::vector<Expr> cchildren;
+        Assert(!consTerm.isNull());
+        cchildren.push_back(consTerm);
+        for (size_t i = 1, nchild = vchildren.size(); i < nchild; i++)
+        {
+          cchildren.emplace_back(vchildren[i]);
+        }
+        argList = mkExpr(Kind::APPLY, cchildren);
+      }
+      return Expr(
+          mkExprInternal(Kind::APPLY, {vchildren[0], argList.getValue()}));
+    }
+    break;
     case Attr::OPAQUE:
     {
       // determine how many opaque children

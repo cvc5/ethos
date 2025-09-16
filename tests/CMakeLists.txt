@@ -161,6 +161,8 @@ set(ethos_test_file_list
     eo-list-ops.eo
     eo-list-ops-napply.eo
     curry-nary.eo
+    arg-list-cong.eo
+    arg-list-distinct-elim.eo
 )
 
 macro(ethos_test file)
