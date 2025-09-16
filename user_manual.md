@@ -529,6 +529,25 @@ In the above example, `(distinct x y z)` is treated as `(distinct (eo::List::con
 which is further desugared to `(distinct (eo::List::cons a (eo::List::cons b (eo::List::cons c eo::List::nil))))`.
 In contrast to the above example, the size of this term is not quadratic in size with respect to the input arguments.
 
+This desugaring further takes into account if arguments to the annotated symbol have been marked with the attribute`:list`.
+In particular, if there is only a single argument to `distinct`, and it is marked `:list`, then
+it is *not* passed to the given list constructor but instead taken as the lone
+argument. Note the following examples:
+
+```
+(define distinct-of ((xs eo::List :list))
+  (distinct xs))
+(define distinct-of2 ((T Type :implicit) (x T) (xs eo::List :list))
+  (distinct x xs))
+```
+
+In the first definition, the argument to `distinct` is marked `:list`, hence
+`(distinct xs)` is *not* desugared to `(distinct (eo::List::cons xs))`
+since `xs` is marked `:list`.
+In the second definition, `(distinct x xs)` has multiple arguments, hence
+it is desugared to `(distinct (eo::List::cons x xs))`. This term is
+not desugared further since `xs` is marked `:list`.
+
 #### Binder
 
 ```smt
