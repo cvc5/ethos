@@ -2,7 +2,7 @@
 ; (declare-const eo::List::nil eo::List)
 ; (declare-parameterized-const eo::List::cons ((T Type :implicit)) (-> T eo::List eo::List))
 
-(declare-type Int ())
+(declare-const Int Type)
 (declare-datatypes ((Lst 0)) (((cons (head Int) (tail Lst)) (nil))))
 
 
