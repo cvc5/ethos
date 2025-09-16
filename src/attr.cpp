@@ -53,8 +53,7 @@ bool isNAryAttr(Attr a)
     case Attr::RIGHT_ASSOC_NIL:
     case Attr::CHAINABLE:
     case Attr::PAIRWISE:
-    case Attr::ARG_LIST:
-      return true;
+    case Attr::ARG_LIST: return true;
     default:
       break;
   }

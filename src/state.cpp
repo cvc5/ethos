@@ -1096,7 +1096,8 @@ Expr State::mkApplyAttr(AppInfo* ai,
       Expr argList;
       // If there is only one argument, and it was marked :list, then it is
       // not desugared.
-      if (vchildren.size()==2 && getConstructorKind(vchildren[1])==Attr::LIST)
+      if (vchildren.size() == 2
+          && getConstructorKind(vchildren[1]) == Attr::LIST)
       {
         argList = Expr(vchildren[1]);
       }
@@ -1111,7 +1112,8 @@ Expr State::mkApplyAttr(AppInfo* ai,
         }
         argList = mkExpr(Kind::APPLY, cchildren);
       }
-      return Expr(mkExprInternal(Kind::APPLY, {vchildren[0], argList.getValue()}));
+      return Expr(
+          mkExprInternal(Kind::APPLY, {vchildren[0], argList.getValue()}));
     }
     break;
     case Attr::OPAQUE:
