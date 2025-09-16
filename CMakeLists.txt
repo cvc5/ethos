@@ -12,7 +12,6 @@ project (ethos_checker)
 # >> 2-valued: ON OFF
 #    > for options where we don't need to detect if set by user (default: OFF)
 option(BUILD_STATIC          "Build static binary" OFF)
-option(ENABLE_ORACLES        "Enable support for Oracles" ON)
 
 if(BUILD_STATIC)
   set(BUILD_SHARED_LIBS OFF)
@@ -41,10 +40,6 @@ add_cxx_flag("-std=gnu++17")
 
 if(WIN32)
   add_definitions(-DUSE_CPP_FILESYSTEM)
-  if(ENABLE_ORACLES)
-    message(STATUS "Disabling Oracles since they are not supported on Windows.")
-    set(ENABLE_ORACLES OFF)
-  endif()
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -56,10 +51,6 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
   message(STATUS "Configured release build.")
 else()
   message(FATAL_ERROR "Invalid build type '${CMAKE_BUILD_TYPE}'")
-endif()
-
-if(ENABLE_ORACLES)
-  add_definitions(-DEO_ORACLES)
 endif()
 
 enable_testing()

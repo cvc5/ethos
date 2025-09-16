@@ -32,7 +32,6 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::PROGRAM_CONST: o << "PROGRAM_CONST"; break;
     case Kind::PROOF_RULE: o << "PROOF_RULE"; break;
     case Kind::VARIABLE: o << "VARIABLE"; break;
-    case Kind::ORACLE: o << "ORACLE"; break;
     case Kind::TUPLE: o << "TUPLE"; break;
     case Kind::PROGRAM: o << "PROGRAM"; break;
     case Kind::AS: o << "AS"; break;
@@ -124,7 +123,7 @@ std::string kindToTerm(Kind k)
     case Kind::PROGRAM_TYPE: ss << "eo::arrow"; break;
     case Kind::PROOF_TYPE: ss << "Proof"; break;
     case Kind::BOOL_TYPE: ss << "Bool"; break;
-    case Kind::QUOTE_TYPE: ss << "Quote"; break;
+    case Kind::QUOTE_TYPE: ss << "eo::quote"; break;
     case Kind::TUPLE: ss << "eo::tuple"; break;
     // terms
     case Kind::APPLY: ss << "_"; break;
@@ -222,8 +221,7 @@ bool isSymbol(Kind k)
     case Kind::CONST:
     case Kind::PROGRAM_CONST:
     case Kind::PROOF_RULE:
-    case Kind::VARIABLE:
-    case Kind::ORACLE: return true; break;
+    case Kind::VARIABLE: return true; break;
     default: break;
   }
   return false;
@@ -311,6 +309,22 @@ bool isLiteralOp(Kind k)
   }
   return false;
 }
+
+bool isNaryLiteralOp(Kind k)
+{
+  switch (k)
+  {
+    case Kind::EVAL_ADD:
+    case Kind::EVAL_MUL:
+    case Kind::EVAL_AND:
+    case Kind::EVAL_OR:
+    case Kind::EVAL_XOR:
+    case Kind::EVAL_CONCAT: return true;
+    default: break;
+  }
+  return false;
+}
+
 bool isListLiteralOp(Kind k)
 {
   switch (k)

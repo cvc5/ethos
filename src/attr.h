@@ -20,7 +20,6 @@ enum class Attr
 {
   NONE = 0,
 
-  VAR,
   IMPLICIT,
   REQUIRES,
   TYPE,
@@ -30,7 +29,6 @@ enum class Attr
   //------------------ below here is mutually exclusive?
   LIST,
   PROGRAM,
-  ORACLE,
   BINDER,
   LET_BINDER,
   OPAQUE,
@@ -39,8 +37,12 @@ enum class Attr
   SYNTAX,
   RESTRICT,
 
-  // indicate how to construct proof rule steps
-  PREMISE_LIST,
+  // indicate how to construct proof rule steps.
+  // A proof rule R maps to a tuple (P, A, C), where
+  // - P is an n-ary operator set by :premise-list (default State::mkAny()),
+  // - A indicates if R has been marked :assumption (default false),
+  // - C indicates if R has been marked :conclusion-explicit (default false).
+  PROOF_RULE,
 
   // indicate how to construct apps of function symbols
   RIGHT_ASSOC,
@@ -49,6 +51,7 @@ enum class Attr
   LEFT_ASSOC_NIL,
   CHAINABLE,
   PAIRWISE,
+  ARG_LIST,
 
   // ambiguous functions e.g. set.empty which require annotations
   AMB,
@@ -56,8 +59,7 @@ enum class Attr
   // datatypes
   DATATYPE,
   DATATYPE_CONSTRUCTOR,
-  AMB_DATATYPE_CONSTRUCTOR,  // constructors requiring an opaque type argument
-  CODATATYPE
+  AMB_DATATYPE_CONSTRUCTOR  // constructors requiring an opaque type argument
 };
 
 /**

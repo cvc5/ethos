@@ -155,19 +155,16 @@ set(ethos_test_file_list
     double-list.eo
     list-param-immediate.eo
     eo-definitions-test.eo
+    conclusion-explicit-cases.eo
+    rule-all-cases.eo
     nground-nil-ex.eo
     list-nth-non-list.eo
     eo-list-ops.eo
     eo-list-ops-napply.eo
+    curry-nary.eo
+    arg-list-cong.eo
+    arg-list-distinct-elim.eo
 )
-
-#if(ENABLE_ORACLES)
-#  list(APPEND ethos_test_file_list
-#      oracle-ex.eo
-#      oracle-ex2.eo
-#      tiny_oracle.eo
-#  )
-#endif()
 
 macro(ethos_test file)
   add_test(
