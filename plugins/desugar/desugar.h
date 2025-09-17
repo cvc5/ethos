@@ -28,6 +28,8 @@ class Desugar : public StdPlugin
  public:
   Desugar(State& s);
   ~Desugar();
+  /** Define */
+  void define(const std::string& name, const Expr& e) override;
   /** */
   void bind(const std::string& name, const Expr& e) override;
   /** Mark attributes */

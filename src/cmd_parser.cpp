@@ -593,6 +593,8 @@ bool CmdParser::parseNextCommand()
       // bind
       Trace("define") << "Define: " << name << " -> " << expr << std::endl;
       d_eparser.bind(name, expr);
+      // also call state
+      d_state.define(name, expr);
     }
     break;
     // (define-sort <symbol> (<symbol>*) <sort>)

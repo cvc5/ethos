@@ -9,7 +9,7 @@
 ; 5. Definition of a template of $eo_typeof_main, which is used in
 ;    part to define $eo_typeof.
 ; 6. Templates for $eo_dt_constructors and $eo_dt_selectors.
-; 7. A placeholder command (echo "include eo_builtin_smt") to specify
+; 7. A placeholder command echo "include eo_builtin_smt" to specify
 ;    where further eo:: builtins should be defined.
 ; 8. Placeholders for defining a test environment for analyzing properties
 ;    of proof rules ($eo_model_eval/$eo_model_typeof/$eo_model_is_input).
@@ -447,7 +447,7 @@
   (
   (($eo_list_diff_rec f (f x y) z)  (eo::define ((res ($eo_list_erase $eo_List_cons z x)))
                                     ($eo_prepend_if ($eo_eq res z)
-                                      f x ($eo_list_diff_rec y res))))
+                                      f x ($eo_list_diff_rec f y res))))
   (($eo_list_diff_rec f nil z)      nil)
   )
 )
@@ -470,7 +470,7 @@
   (
   (($eo_list_inter_rec f (f x y) z) (eo::define ((res ($eo_list_erase $eo_List_cons z x)))
                                     ($eo_prepend_if ($eo_if_not ($eo_eq res z))
-                                      f x ($eo_list_inter_rec y res))))
+                                      f x ($eo_list_inter_rec f y res))))
   (($eo_list_inter_rec f nil z)     nil)
   )
 )
@@ -675,4 +675,5 @@
   )
 )
 (echo "smt-meta $eovc_symm :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $smtx_reverse_value_hash $eo_smt_type $tsm_Bool $eo_Type $eo_fun_type $eo_apply $eo_mk_apply ")
+
 

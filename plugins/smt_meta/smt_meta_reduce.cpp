@@ -966,7 +966,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   d_defs << std::endl;
 }
 
-void SmtMetaReduce::bind(const std::string& name, const Expr& e)
+void SmtMetaReduce::define(const std::string& name, const Expr& e)
 {
   // NOTE: the code here ensures that we preserve definitions for the final vc.
   // This is required since we do not replace e.g. eo::list_concat with
@@ -999,6 +999,10 @@ void SmtMetaReduce::bind(const std::string& name, const Expr& e)
     Expr tmp = d_state.mkSymbol(Kind::PROGRAM_CONST, name, pt);
     d_progSeen.emplace_back(tmp, p);
   }
+}
+
+void SmtMetaReduce::bind(const std::string& name, const Expr& e)
+{
   if (e.getKind() != Kind::CONST)
   {
     return;

@@ -100,6 +100,12 @@ public:
    * @param prog Its definition, which is a term of kind PROGRAM.
    */
   virtual void defineProgram(const Expr& v, const Expr& prog) {}
+  /**
+   * Define. Called when a define or define-fun command is executed.
+   * @param name The name we are binding.
+   * @param e The expression that name is bound to.
+   */
+  virtual void define(const std::string& name, const Expr& e) {}
   //--------- evaluation
   /**
    * @return true if this plugin implements the evaluation methods below for

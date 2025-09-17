@@ -1646,6 +1646,14 @@ void State::defineProgram(const Expr& v, const Expr& prog)
   }
 }
 
+void State::define(const std::string& name, const Expr& e)
+{
+  if (d_plugin!=nullptr)
+  {
+    d_plugin->define(name, e);
+  }
+}
+
 void State::echo(const std::string& msg)
 {
   if (d_plugin != nullptr)

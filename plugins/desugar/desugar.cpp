@@ -68,7 +68,7 @@ Desugar::Desugar(State& s) : StdPlugin(s)
 
 Desugar::~Desugar() {}
 
-void Desugar::bind(const std::string& name, const Expr& e)
+void Desugar::define(const std::string& name, const Expr& e)
 {
   Kind k = e.getKind();
   if (k == Kind::LAMBDA)
@@ -79,7 +79,12 @@ void Desugar::bind(const std::string& name, const Expr& e)
     Expr p = d_state.mkPair(tmp, e);
     d_declSeen.emplace_back(p, Kind::LAMBDA);
   }
-  else if (k == Kind::CONST || k == Kind::PROOF_RULE)
+}
+
+void Desugar::bind(const std::string& name, const Expr& e)
+{
+  Kind k = e.getKind();
+  if (k == Kind::CONST || k == Kind::PROOF_RULE)
   {
     d_declSeen.emplace_back(e, k);
   }
