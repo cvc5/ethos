@@ -131,12 +131,33 @@ public:
    * included in this list, at position 0 of args.
    * @param ctx The context under which we are evaluating, which is a
    * substitution from variables to their value.
-   * @return The result of evaluation prog for the given argumetns in context
-   * ctx.
+   * @return The result of evaluation prog for the given arguments in context
+   * ctx, or null if the plugin does not evaluate this application.
    */
   virtual Expr evaluateProgram(ExprValue* prog,
                                const std::vector<ExprValue*>& args,
                                Ctx& newCtx) { return Expr(); }
+  /**
+   * Notify assume
+   * @param name
+   * @param proven The given conclusion.
+   */
+  virtual void notifyAssume(const std::string& name, Expr& proven, bool isPush) {}
+  /**
+   * Check step.
+   * @param children The proof rule followed by the computed arguments to
+   * that program based on a step or step-pop command.
+   * @param proven The given conclusion.
+   * @return The proof type corresponding to the result of checking the step,
+   * or null if the plugin does not check this step.
+   */
+  virtual bool notifyStep(const std::string& name,
+                           std::vector<Expr>& children,
+                             Expr& rule,
+                             Expr& proven,
+                             std::vector<Expr>& premises,
+                             std::vector<Expr>& args,
+                             bool isPop) { return false; }
   /**
    * Return true if the echo should be printed. If we return false, the
    * assumption is that the message was intended for this plugin.

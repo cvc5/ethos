@@ -103,15 +103,12 @@ bool CmdParser::parseNextCommand()
     case Token::ASSUME:
     case Token::ASSUME_PUSH:
     {
-      if (tok==Token::ASSUME_PUSH)
-      {
-        d_state.pushAssumptionScope();
-      }
       // note we typically expect d_state.getAssumptionLevel() to be zero
       // when using ASSUME, but we do not check for this here.
       std::string name = d_eparser.parseSymbol();
       // parse what is proven
       Expr proven = d_eparser.parseFormula();
+      d_state.notifyAssume(name, proven, (tok==Token::ASSUME_PUSH));
       Expr pt = d_state.mkProofType(proven);
       Expr v = d_state.mkSymbol(Kind::CONST, name, pt);
       d_eparser.bind(name, v);
@@ -866,8 +863,8 @@ bool CmdParser::parseNextCommand()
         args = d_eparser.parseExprList();
       }
       std::vector<Expr> children;
-      if (!d_state.getProofRuleArguments(
-              children, rule, proven, premises, args, isPop))
+      if (!d_state.notifyStep(
+              name, children, rule, proven, premises, args, isPop))
       {
         d_lex.parseError("Failed to get arguments for proof rule");
       }

@@ -178,6 +178,11 @@ class State
   /** Get the proof rule with the given name or nullptr if it does not exist */
   Expr getProofRule(const std::string& name) const;
   /**
+   */
+  void notifyAssume(const std::string& name,
+                  Expr& proven,
+                  bool isPush);
+  /**
    * Get proof rule arguments, which determines the argument list to a proof
    * rule in a step or step-pop. This takes into account whether the rule was
    * marked :premise-list, :conclusion-explicit, or :assumption (for step-pop
@@ -190,12 +195,13 @@ class State
    * @param isPop Whether we were a step-pop.
    * @return true if we successfully populated the arguments to the proof rule.
    */
-  bool getProofRuleArguments(std::vector<Expr>& children,
-                             Expr& rule,
-                             Expr& proven,
-                             std::vector<Expr>& premises,
-                             std::vector<Expr>& args,
-                             bool isPop);
+  bool notifyStep(const std::string& name,
+                   std::vector<Expr>& children,
+                  Expr& rule,
+                  Expr& proven,
+                  std::vector<Expr>& premises,
+                  std::vector<Expr>& args,
+                  bool isPop);
   /** Get the program */
   Expr getProgram(const ExprValue* ev);
   /** */
@@ -230,6 +236,8 @@ class State
   /** Get plugin */
   Plugin* getPlugin();
 
+  /** Get the internal data for expression e. */
+  AppInfo* getAppInfo(const ExprValue* e);
  private:
   /** Common constants */
   Expr d_null;
@@ -293,8 +301,6 @@ class State
                            const std::vector<Expr>& children,
                            const ExprValue* retType = nullptr,
                            bool retApply = false);
-  /** Get the internal data for expression e. */
-  AppInfo* getAppInfo(const ExprValue* e);
   const AppInfo* getAppInfo(const ExprValue* e) const;
   /** Bind builtin */
   void bindBuiltin(const std::string& name, Kind k, Attr ac = Attr::NONE);

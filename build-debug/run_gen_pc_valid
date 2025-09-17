@@ -1,0 +1,40 @@
+#!/bin/bash
+
+OUT_DIR=./out
+
+STD_TRIM_OUT=../plugins/trim_defs/trim_gen.eo
+STD_DESUGAR_OUT=../plugins/desugar/eo_desugar_gen.eo
+STD_SMODEL_OUT=../plugins/model_smt/model_smt_gen.eo
+STD_SMODEL_EMBED_OUT=../plugins/model_smt/model_eo_embed_gen.eo
+STD_VC_OUT=../plugins/smt_meta/smt_meta_gen.smt2
+# file used to ensure that trim-defs preserves dependencies for term reductions
+STD_SMODEL_DEPS=../plugins/model_smt/term_reduce_deps.eo
+
+# should be the name of a proof file
+INPUT=$1
+# trim out
+INIT_DESUGAR=$OUT_DIR/desugar-pcv.eo
+
+function check_status()
+{
+status=$?
+if [[ $status -eq 0 ]]; then
+  echo "success"
+else
+  exit $status
+fi
+}
+
+echo "********* Validating equivalence of proof checking for $INPUT *********"
+
+echo "**** Compile ethos"
+make -j4
+check_status
+
+echo "**** smt_meta: Run ethos + desugar on $INPUT to generate $INIT_DESUGAR"
+./src/ethos --plugin.desugar-vc $INPUT >/dev/null
+check_status
+cp $STD_DESUGAR_OUT $INIT_DESUGAR
+
+# clear temporary files
+rm -f $STD_DESUGAR_OUT

@@ -36,6 +36,16 @@ class Desugar : public StdPlugin
   void defineProgram(const Expr& v, const Expr& prog) override;
   /** Finalize */
   void finalize() override;
+  /** */
+  void notifyAssume(const std::string& name, Expr& proven, bool isPush) override;
+  /** */
+  bool notifyStep(const std::string& name,
+                   std::vector<Expr>& children,
+                  Expr& rule,
+                  Expr& proven,
+                  std::vector<Expr>& premises,
+                  std::vector<Expr>& args,
+                  bool isPop) override;
   /**
    */
   bool echo(const std::string& msg) override;
@@ -104,6 +114,7 @@ class Desugar : public StdPlugin
   Expr d_listCons;
   Expr d_listType;
   Expr d_boolType;
+  Expr d_true;
   /** Are we generating programs that are VC targets */
   bool d_genVcs;
 
@@ -120,6 +131,8 @@ class Desugar : public StdPlugin
   // for model semantics
   std::stringstream d_eoModelEval;
   std::stringstream d_eoModelConstPred;
+  // the proof steps
+  std::stringstream d_eoPfSteps;
 
   Expr d_peoModelSat;
   Expr d_peoModelUnsat;

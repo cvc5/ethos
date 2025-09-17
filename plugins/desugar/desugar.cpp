@@ -42,6 +42,7 @@ Desugar::Desugar(State& s) : StdPlugin(s)
   d_eoDtConsParamCount = 0;
   d_genWfCond = false;
 
+  d_true = d_state.mkTrue();
   // a placeholder
   d_boolType = d_state.mkBoolType();
   Expr ttype = d_state.mkType();
@@ -192,6 +193,11 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
     return;
   }
   Expr cto = d_tc.getType(c);
+  if (cto.getKind()==Kind::PROOF_TYPE)
+  {
+    // a step, ignore
+    return;
+  }
   Expr ct = cto;
   std::vector<Expr> argTypes;
   Expr retType;
@@ -630,7 +636,6 @@ void Desugar::finalizeRule(const Expr& e)
   std::vector<Expr> args;
   std::vector<Expr> argsS;
   std::vector<Expr> argsTypes;
-  Expr etrue = d_state.mkTrue();
   Expr efalse = d_state.mkFalse();
   // accumulated requirements for returned conclusion
   std::vector<Expr> reqs;
@@ -725,7 +730,7 @@ void Desugar::finalizeRule(const Expr& e)
   Expr conclusion = progApps[1];
   std::stringstream pvcname;
   pvcname << "$eovc_" << e;
-  Expr unsound = etrue;
+  Expr unsound = d_true;
   // require that the conclusion is not satisfied
   unsound = mkRequiresModelSat(false, conclusion, unsound);
   // require that each premise is satisfied
@@ -939,6 +944,108 @@ void Desugar::finalize()
   std::cout << "Write core-defs    " << ssoe.str() << std::endl;
   std::ofstream oute(ssoe.str());
   oute << finalEo;
+  oute << std::endl;
+  oute << d_eoPfSteps.str();
+}
+
+void Desugar::notifyAssume(const std::string& name, Expr& proven, bool isPush)
+{
+  d_eoPfSteps << "(define $eop_" << name << " () ";
+  printTerm(proven, d_eoPfSteps);
+  d_eoPfSteps << ")" << std::endl;
+}
+
+bool Desugar::notifyStep(const std::string& name,
+                   std::vector<Expr>& children,
+                  Expr& rule,
+                  Expr& proven,
+                  std::vector<Expr>& premises,
+                  std::vector<Expr>& args,
+                  bool isPop)
+{
+  // prints as a definition
+  std::stringstream stmp;
+  stmp << "(define $eop_" << name << " () ($eor_" << rule;
+  for (size_t i=0; i<args.size(); i++)
+  {
+    stmp << " ";
+    printTerm(args[i], stmp);
+  }
+  AppInfo* ainfo = d_state.getAppInfo(rule.getValue());
+  bool stdPremises = true;
+  if (ainfo != nullptr)
+  {
+    Attr a = ainfo->d_attrCons;
+    Assert (a==Attr::PROOF_RULE);
+    Expr tupleVal = ainfo->d_attrConsTerm;
+    Assert (tupleVal.getNumChildren()==3);
+    Expr plCons;
+    if (tupleVal[0].getKind()!=Kind::ANY)
+    {
+      plCons = tupleVal[0];
+    }
+    bool isConcExplicit = tupleVal[2]==d_true;
+    if (isConcExplicit)
+    {
+      if (proven.isNull())
+      {
+        return false;
+      }
+      stmp << " ";
+      printTerm(proven, stmp);
+    }
+    if (isPop)
+    {
+      std::vector<Expr> as = d_state.getCurrentAssumptions();
+      stmp << " ";
+      printTerm(as[0], stmp);
+    }
+    if (!plCons.isNull())
+    {
+      stdPremises = false;
+      std::vector<Expr> achildren;
+      achildren.push_back(plCons);
+      for (Expr& e : premises)
+      {
+        std::stringstream tmp;
+        tmp << "$eop_" << e;
+        Expr dummy = d_state.mkSymbol(Kind::CONST, tmp.str(), d_boolType);
+        achildren.push_back(dummy);
+      }
+      Expr ap;
+      if (achildren.size()==1)
+      {
+        // the nil terminator if applied to empty list
+        AppInfo* aic = d_state.getAppInfo(plCons.getValue());
+        Attr ck = aic->d_attrCons;
+        if (ck==Attr::RIGHT_ASSOC_NIL || ck==Attr::LEFT_ASSOC_NIL)
+        {
+          ap = aic->d_attrConsTerm;
+        }
+        else
+        {
+          return false;
+        }
+      }
+      else
+      {
+        ap = d_state.mkExpr(Kind::APPLY, achildren);
+      }
+      stmp << " ";
+      printTerm(ap, stmp);
+    }
+  }
+  if (stdPremises)
+  {
+    for (size_t i=0; i<premises.size(); i++)
+    {
+      stmp << " $eop_";
+      printTerm(premises[i], stmp);
+    }
+  }
+  stmp << "))";
+  d_eoPfSteps << stmp.str() << std::endl;
+  return false;
 }
 
 void Desugar::finalizeWellFounded()
@@ -1099,8 +1206,7 @@ Expr Desugar::mkRequiresModelIsInput(const Expr& test, const Expr& ret)
   modelSatArgs.push_back(d_peoModelIsInput);
   modelSatArgs.push_back(test);
   Expr t1 = d_state.mkExpr(Kind::APPLY, modelSatArgs);
-  Expr t2 = d_state.mkTrue();
-  return mkRequiresEq(t1, t2, ret);
+  return mkRequiresEq(t1, d_true, ret);
 }
 
 Expr Desugar::mkRequiresEq(const Expr& t1,
