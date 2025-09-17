@@ -1,9 +1,9 @@
 
-(declare-type Int ())
-(declare-type Real ())
+(declare-const Int Type)
+(declare-const Real Type)
 (declare-const BitVec (-> Int Type))
-(declare-type String ())
-(declare-type Seq (Type))
+(declare-const String Type)
+(declare-const Seq (-> Type Type))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
