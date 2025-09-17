@@ -396,8 +396,8 @@
   (
   (($eo_list_diff_rec f (f x y) z)  (eo::define ((res ($eo_list_erase f z x)))
                                     (eo::ite ($eo_eq res z)
-                                      (f x ($eo_list_diff_rec y res))
-                                      ($eo_list_diff_rec y res))))
+                                      (f x ($eo_list_diff_rec f y res))
+                                      ($eo_list_diff_rec f y res))))
   (($eo_list_diff_rec f nil z)      nil)
   )
 )
@@ -420,8 +420,8 @@
   (
   (($eo_list_inter_rec f (f x y) z) (eo::define ((res ($eo_list_erase f z x)))
                                     (eo::ite ($eo_eq res z)
-                                      ($eo_list_inter_rec y res)
-                                      (f x ($eo_list_inter_rec y res)))))
+                                      ($eo_list_inter_rec f y res)
+                                      (f x ($eo_list_inter_rec f y res)))))
   (($eo_list_inter_rec f nil z)     nil)
   )
 )
