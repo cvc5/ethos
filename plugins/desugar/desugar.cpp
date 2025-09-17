@@ -948,7 +948,7 @@ void Desugar::finalize()
 
 void Desugar::notifyAssume(const std::string& name, Expr& proven, bool isPush)
 {
-  d_eoPfSteps << "(define $eop_" << name << " () ";
+  d_eoPfSteps << "(define $eo_p_" << name << " () ";
   printTerm(proven, d_eoPfSteps);
   d_eoPfSteps << " :type Bool)" << std::endl;
 }
@@ -963,7 +963,7 @@ bool Desugar::notifyStep(const std::string& name,
 {
   // prints as a definition
   std::stringstream stmp;
-  stmp << "(define $eop_" << name << " () ($eor_" << rule;
+  stmp << "(define $eo_p_" << name << " () ($eor_" << rule;
   for (size_t i=0; i<args.size(); i++)
   {
     stmp << " ";
@@ -1006,7 +1006,7 @@ bool Desugar::notifyStep(const std::string& name,
       for (Expr& e : premises)
       {
         std::stringstream tmp;
-        tmp << "$eop_" << e;
+        tmp << "$eo_p_" << e;
         Expr dummy = d_state.mkSymbol(Kind::CONST, tmp.str(), d_boolType);
         achildren.push_back(dummy);
       }
@@ -1037,7 +1037,7 @@ bool Desugar::notifyStep(const std::string& name,
   {
     for (size_t i=0; i<premises.size(); i++)
     {
-      stmp << " $eop_";
+      stmp << " $eo_p_";
       printTerm(premises[i], stmp);
     }
   }
@@ -1046,15 +1046,15 @@ bool Desugar::notifyStep(const std::string& name,
   std::stringstream sname;
   if (!proven.isNull())
   {
-    sname << "$eopc_" << name;
+    sname << "$eo_pc_" << name;
     d_eoPfSteps << "(define " << sname.str() << " () ";
-    d_eoPfSteps << "(eo::eq $eop_" << name << " ";
+    d_eoPfSteps << "(eo::eq $eo_p_" << name << " ";
     printTerm(proven, d_eoPfSteps);
     d_eoPfSteps << "))" << std::endl;
   }
   else 
   {
-    sname << "$eop_" << name;
+    sname << "$eo_p_" << name;
   }
   d_eoPfSteps << "(echo \"smt-meta-cmd (simplify " << sname.str() << ")\")" << std::endl;
   return false;

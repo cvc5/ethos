@@ -936,52 +936,59 @@ void SmtMetaReduce::define(const std::string& name, const Expr& e)
   // definition (although it would have been inlined) is still necessary to
   // define what eo::list_concat will desugar to. Also note this definition is
   // properly preserved by trim_defs which is agnostic to eo:: vs $eo_.
-  if (name.compare(0, 4, "$eo_") == 0 && e.getKind() == Kind::LAMBDA)
+  if (name.compare(0, 4, "$eo_") == 0)
   {
-    Expr p = e;
-    // dummy type
-    std::vector<Expr> argTypes;
-    Assert(e[0].getKind() == Kind::TUPLE);
-    Assert(e[0].getNumChildren() != 0);
-    for (size_t i = 0, nargs = e[0].getNumChildren(); i < nargs; i++)
+    if (e.getKind() == Kind::LAMBDA)
     {
-      Expr aa = e[0][i];
-      argTypes.push_back(d_tc.getType(aa));
+      Expr p = e;
+      // dummy type
+      std::vector<Expr> argTypes;
+      Assert(e[0].getKind() == Kind::TUPLE);
+      Assert(e[0].getNumChildren() != 0);
+      for (size_t i = 0, nargs = e[0].getNumChildren(); i < nargs; i++)
+      {
+        Expr aa = e[0][i];
+        argTypes.push_back(d_tc.getType(aa));
+      }
+      Expr body = e[1];
+      //Expr retType = d_tc.getType(body);
+      std::cout << "Look at define " << name << std::endl;
+      // if we fail to type check, just allocate a type variable
+      //retType = retType.isNull() ? allocateTypeVariable() : retType;
+      Expr retType = allocateTypeVariable();
+      Expr pt = d_state.mkProgramType(argTypes, retType);
+      std::cout << "....make program " << name << " for define, prog type is "
+                << pt << std::endl;
+      // Expr pt = d_state.mkBuiltinType(Kind::LAMBDA);
+      Expr tmp = d_state.mkSymbol(Kind::PROGRAM_CONST, name, pt);
+      // We need to preserve definitions in the final VC.
+      // We reduce defines to a program e.g.
+      // (define foo ((x T)) (bar x))
+      //   becomes
+      // (program foo ((x T))
+      //   :signature (T) (eo::typeof (bar x))
+      //   (
+      //   ((foo x) (bar x))
+      //   )
+      // )
+      std::vector<Expr> appChildren;
+      appChildren.push_back(tmp);
+      for (size_t i = 0, nargs = e[0].getNumChildren(); i < nargs; i++)
+      {
+        appChildren.push_back(e[0][i]);
+      }
+      Expr progApp = d_state.mkExprSimple(Kind::APPLY, appChildren);
+      Expr pcase = d_state.mkPair(progApp, e[1]);
+      Expr prog = d_state.mkExprSimple(Kind::PROGRAM, {pcase});
+      std::cout << "...do program " << tmp << " / " << prog << " instead"
+                << std::endl;
+      finalizeProgram(tmp, prog);
+      std::cout << "...finished lambda program" << std::endl;
     }
-    Expr body = e[1];
-    //Expr retType = d_tc.getType(body);
-    std::cout << "Look at define " << name << std::endl;
-    // if we fail to type check, just allocate a type variable
-    //retType = retType.isNull() ? allocateTypeVariable() : retType;
-    Expr retType = allocateTypeVariable();
-    Expr pt = d_state.mkProgramType(argTypes, retType);
-    std::cout << "....make program " << name << " for define, prog type is "
-              << pt << std::endl;
-    // Expr pt = d_state.mkBuiltinType(Kind::LAMBDA);
-    Expr tmp = d_state.mkSymbol(Kind::PROGRAM_CONST, name, pt);
-    // We need to preserve definitions in the final VC.
-    // We reduce defines to a program e.g.
-    // (define foo ((x T)) (bar x))
-    //   becomes
-    // (program foo ((x T))
-    //   :signature (T) (eo::typeof (bar x))
-    //   (
-    //   ((foo x) (bar x))
-    //   )
-    // )
-    std::vector<Expr> appChildren;
-    appChildren.push_back(tmp);
-    for (size_t i = 0, nargs = e[0].getNumChildren(); i < nargs; i++)
+    else 
     {
-      appChildren.push_back(e[0][i]);
+      // TODO
     }
-    Expr progApp = d_state.mkExprSimple(Kind::APPLY, appChildren);
-    Expr pcase = d_state.mkPair(progApp, e[1]);
-    Expr prog = d_state.mkExprSimple(Kind::PROGRAM, {pcase});
-    std::cout << "...do program " << tmp << " / " << prog << " instead"
-              << std::endl;
-    finalizeProgram(tmp, prog);
-    std::cout << "...finished lambda program" << std::endl;    
   }
 }
 
