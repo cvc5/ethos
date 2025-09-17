@@ -722,7 +722,7 @@ void Desugar::finalizeRule(const Expr& e)
   finalizeProgram(prog, progDef, d_eoVc);
 
   // if marked sorry, we should never do verification
-  if (d_state.isProofRuleSorry(e.getValue()))
+  if (d_state.isProofRuleSorry(e.getValue()) || !d_genVcs)
   {
     return;
   }
@@ -921,23 +921,16 @@ void Desugar::finalize()
   replace(finalEo, "$EO_DT_CONSTRUCTORS_PARAM$", d_eoDtConsParam.str());
   replace(finalEo, "$EO_DT_CONSTRUCTORS_CASES$", d_eoDtCons.str());
   replace(finalEo, "$EO_DT_SELECTORS_CASES$", d_eoDtSel.str());
-  if (d_genVcs)
+  if (d_genWfCond)
   {
-    if (d_genWfCond)
-    {
-      finalizeWellFounded();
-      replace(finalEo, "$EO_VC$", d_eoVcWf.str());
-    }
-    else
-    {
-      // Verification conditions for *all* proof rules are ready now
-      // TODO: make this manual?
-      replace(finalEo, "$EO_VC$", d_eoVc.str());
-    }
+    finalizeWellFounded();
+    replace(finalEo, "$EO_VC$", d_eoVcWf.str());
   }
   else
   {
-    replace(finalEo, "$EO_VC$", "");
+    // Verification conditions for *all* proof rules are ready now
+    // TODO: make this manual?
+    replace(finalEo, "$EO_VC$", d_eoVc.str());
   }
   std::stringstream ssoe;
   ssoe << s_plugin_path << "plugins/desugar/eo_desugar_gen.eo";
@@ -952,7 +945,7 @@ void Desugar::notifyAssume(const std::string& name, Expr& proven, bool isPush)
 {
   d_eoPfSteps << "(define $eop_" << name << " () ";
   printTerm(proven, d_eoPfSteps);
-  d_eoPfSteps << ")" << std::endl;
+  d_eoPfSteps << " :type Bool)" << std::endl;
 }
 
 bool Desugar::notifyStep(const std::string& name,
@@ -1043,8 +1036,22 @@ bool Desugar::notifyStep(const std::string& name,
       printTerm(premises[i], stmp);
     }
   }
-  stmp << "))";
+  stmp << ") :type Bool)";
   d_eoPfSteps << stmp.str() << std::endl;
+  std::stringstream sname;
+  if (!proven.isNull())
+  {
+    sname << "$eopc_" << name;
+    d_eoPfSteps << "(define " << sname.str() << " () ";
+    d_eoPfSteps << "(eo::eq $eop_" << name << " ";
+    printTerm(proven, d_eoPfSteps);
+    d_eoPfSteps << "))" << std::endl;
+  }
+  else 
+  {
+    sname << "$eop_" << name;
+  }
+  d_eoPfSteps << "(echo \"smt-meta-cmd (simplify " << sname.str() << ")\")" << std::endl;
   return false;
 }
 
