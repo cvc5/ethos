@@ -21,7 +21,7 @@ SmtMetaSygus::SmtMetaSygus(State& s) : StdPlugin(s) {}
 SmtMetaSygus::~SmtMetaSygus() {}
 void SmtMetaSygus::initializeGrammars()
 {
-  std::cout << "INITIALIZE grammars" << std::endl;
+  Trace("smt-meta-sygus") << "INITIALIZE grammars" << std::endl;
   d_gisFinalized = false;
   d_gfun = d_state.mkSymbol(Kind::CONST, "Fun", d_state.mkType());
   d_gsmtTerm = d_state.mkSymbol(Kind::CONST, "SmtTerm", d_state.mkType());
@@ -63,7 +63,7 @@ void SmtMetaSygus::initializeGrammars()
 
 void SmtMetaSygus::finalizeGrammars()
 {
-  std::cout << "FINALIZE grammars" << std::endl;
+  Trace("smt-meta-sygus") << "FINALIZE grammars" << std::endl;
   d_gisFinalized = true;
   SygusGrammar* sg = getGrammarFor(d_null);
   // add reference to unknown to all eo.Term grammars
@@ -211,7 +211,7 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
                                    const std::string& gbase,
                                    const Expr& t)
 {
-  std::cout << "Add grammar rules " << e << " / " << cname << "..."
+  Trace("smt-meta-sygus") << "Add grammar rules " << e << " / " << cname << "..."
             << std::endl;
   std::stringstream grule;
   std::stringstream gruleEnd;
@@ -312,7 +312,7 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
 #if 0
   if (approxSig.size()>1)
   {
-    std::cout << "AJR check " << cname << " " << ct << std::endl;
+    Trace("smt-meta-sygus") << "AJR check " << cname << " " << ct << std::endl;
     std::pair<std::vector<Expr>, Expr> ftype = ct.getFunctionType();
     std::vector<Expr>& fargs = ftype.first;
     Assert (approxSig.size()==fargs.size()+1);
@@ -322,7 +322,7 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
       {
         continue;
       }
-      std::cout << "AJR maybe " << i << " " << fargs << std::endl;
+      Trace("smt-meta-sygus") << "AJR maybe " << i << " " << fargs << std::endl;
       std::unordered_set<size_t> eqArgs;
       eqArgs.insert(i-1);
       for (size_t j=i, nargs=fargs.size(); j<nargs; j++)
