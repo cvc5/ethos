@@ -1067,6 +1067,7 @@ void ExprParser::parseAttributeList(
             // requires an expression that follows
             handled = true;
             val = parseExpr();
+          }
             break;
           case Attr::LET_BINDER:
           {
