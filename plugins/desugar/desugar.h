@@ -39,10 +39,12 @@ class Desugar : public StdPlugin
   /** Finalize */
   void finalize() override;
   /** */
-  void notifyAssume(const std::string& name, Expr& proven, bool isPush) override;
+  void notifyAssume(const std::string& name,
+                    Expr& proven,
+                    bool isPush) override;
   /** */
   bool notifyStep(const std::string& name,
-                   std::vector<Expr>& children,
+                  std::vector<Expr>& children,
                   Expr& rule,
                   Expr& proven,
                   std::vector<Expr>& premises,

@@ -169,18 +169,19 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ssReRepeatRet << " (str.to_re \"\")";
   ssReRepeatRet << " (re.++ (re.^ (- x1 1) x2) x2)))";
   addReduceSym("re.^",
-            {kInt, kRegLan},
-            smtGuard(smtEq("($smtx_model_eval (>= x1 0))", "$vsm_true"),
-                    ssReRepeatRet.str()));
+               {kInt, kRegLan},
+               smtGuard(smtEq("($smtx_model_eval (>= x1 0))", "$vsm_true"),
+                        ssReRepeatRet.str()));
   std::stringstream ssReLoopRet;
   ssReLoopRet << "($smtx_model_eval (ite (> x1 x2)";
   ssReLoopRet << " re.none (ite (= x1 x2)";
   ssReLoopRet << " (re.^ x1 x3)";
   ssReLoopRet << " (re.union (re.loop x1 (- x2 1) (re.^ x2 x3))))))";
   addReduceSym("re.loop",
-            {kInt, kInt, kRegLan},
-            smtGuard(smtEq("($smtx_model_eval (and (>= x1 0) (>= x2 0)))", "$vsm_true"),
-                     ssReLoopRet.str()));
+               {kInt, kInt, kRegLan},
+               smtGuard(smtEq("($smtx_model_eval (and (>= x1 0) (>= x2 0)))",
+                              "$vsm_true"),
+                        ssReLoopRet.str()));
   // RE operators
   addConstFoldSym("str.in_re", {kString, kRegLan}, kBool);
   addConstFoldSym("str.indexof_re", {kString, kRegLan, kInt}, kInt);
@@ -258,7 +259,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   std::stringstream ssSExtRet;
   ssSExtRet << "(eo::define ((wm1 (- ($eo_numeral x2) 1))) ";
   ssSExtRet << "(eo::define ((t ($eo_mk_binary x2 x3))) ";
-  ssSExtRet << "($smtx_model_eval (concat (repeat ($eo_numeral x1) (extract wm1 wm1 t)) t))))";
+  ssSExtRet << "($smtx_model_eval (concat (repeat ($eo_numeral x1) (extract "
+               "wm1 wm1 t)) t))))";
   addLitSym("sign_extend",
             {kInt, kBitVec},
             kT,
@@ -325,13 +327,13 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTermReduceSym("bvuge", {kBitVec, kBitVec}, "(or (bvugt x1 x2) (= x1 x2))");
   addTermReduceSym("bvsge", {kBitVec, kBitVec}, "(or (bvsgt x1 x2) (= x1 x2))");
   // sdiv, srem, smod
-  for (size_t i=0; i<3; i++)
+  for (size_t i = 0; i < 3; i++)
   {
     std::stringstream ssRet;
     ssRet << "(eo::define ((msb_s ($eo_bool ($smtx_msb x1 x2)))) ";
     ssRet << "(eo::define ((msb_t ($eo_bool ($smtx_msb x3 x4)))) ";
     std::string op;
-    if (i==0)
+    if (i == 0)
     {
       op = "bvsdiv";
       ssRet << "($smtx_model_eval";
@@ -340,7 +342,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       ssRet << " (ite (and (not msb_s) msb_t) (bvneg (bvudiv s (bvneg t)))";
       ssRet << " (bvudiv (bvneg s) (bvneg t))))))))";
     }
-    else if (i==1)
+    else if (i == 1)
     {
       op = "bvsrem";
       ssRet << "($smtx_model_eval";
@@ -372,21 +374,19 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             {kBitVec, kBitVec},
             kBool,
             smtApp(">=", "($smt_builtin_mul x2 x4)", "($smtx_pow2 x1)"));
-  for (size_t i=0; i<2; i++)
+  for (size_t i = 0; i < 2; i++)
   {
-    std::string intOp = i==0 ? "+" : "*";
-    std::string bvOp = i==0 ? "bvsaddo" : "bvsmulo";
+    std::string intOp = i == 0 ? "+" : "*";
+    std::string bvOp = i == 0 ? "bvsaddo" : "bvsmulo";
     std::stringstream ssRet;
     ssRet << "(eo::define ((sret ($smt_apply_2 \"" << intOp << "\"";
     ssRet << " ($smtx_binary_uts x1 x2) ($smtx_binary_uts x3 x4)))) ";
-    ssRet << "(eo::define ((p2wm1 ($smt_apply_2 \"-\" ($smtx_pow2 x1) $smt_builtin_z_one))) ";
+    ssRet << "(eo::define ((p2wm1 ($smt_apply_2 \"-\" ($smtx_pow2 x1) "
+             "$smt_builtin_z_one))) ";
     ssRet << " ($smt_builtin_or " << smtApp(">=", "sret", "p2wm1");
     ssRet << " " << smtApp("<=", "sret", "($smt_builtin_neg p2wm1)");
     ssRet << ")))";
-    addLitSym(bvOp,
-              {kBitVec, kBitVec},
-              kBool,
-              ssRet.str());
+    addLitSym(bvOp, {kBitVec, kBitVec}, kBool, ssRet.str());
   }
   addLitSym("bvnego",
             {kBitVec},
@@ -517,11 +517,11 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
       kT,
       smtGuard(ssBvCond.str(), "($smtx_model_eval ($eo_mk_binary x2 x1))"));
   addTermReduceSym("@bit", {kInt, kBitVec}, "(extract x1 x1 x2)");
-  addLitBinSym(
-      "@from_bools",
-      {kBool, kBitVec},
-      "($smt_builtin_z_inc x2)", 
-      "($smt_builtin_add ($smt_builtin_ite x1 ($smtx_pow2 x2) $smt_builtin_z_zero) x3)");
+  addLitBinSym("@from_bools",
+               {kBool, kBitVec},
+               "($smt_builtin_z_inc x2)",
+               "($smt_builtin_add ($smt_builtin_ite x1 ($smtx_pow2 x2) "
+               "$smt_builtin_z_zero) x3)");
   // tuples
   // these allow Herbrand interpretations
   addTypeSym("Tuple", {kT, kT});

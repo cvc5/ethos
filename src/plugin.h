@@ -148,7 +148,9 @@ public:
    * @param name
    * @param proven The given conclusion.
    */
-  virtual void notifyAssume(const std::string& name, Expr& proven, bool isPush) {}
+  virtual void notifyAssume(const std::string& name, Expr& proven, bool isPush)
+  {
+  }
   /**
    * Check step.
    * @param children The proof rule followed by the computed arguments to
@@ -158,12 +160,15 @@ public:
    * or null if the plugin does not check this step.
    */
   virtual bool notifyStep(const std::string& name,
-                           std::vector<Expr>& children,
-                             Expr& rule,
-                             Expr& proven,
-                             std::vector<Expr>& premises,
-                             std::vector<Expr>& args,
-                             bool isPop) { return false; }
+                          std::vector<Expr>& children,
+                          Expr& rule,
+                          Expr& proven,
+                          std::vector<Expr>& premises,
+                          std::vector<Expr>& args,
+                          bool isPop)
+  {
+    return false;
+  }
   /**
    * Return true if the echo should be printed. If we return false, the
    * assumption is that the message was intended for this plugin.

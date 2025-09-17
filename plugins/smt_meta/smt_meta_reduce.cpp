@@ -434,7 +434,8 @@ bool SmtMetaReduce::isSmtApplyApp(const Expr& oApp)
 
 std::string SmtMetaReduce::getEmbedName(const Expr& oApp)
 {
-  Assert(oApp.getKind() == Kind::APPLY_OPAQUE) << "Bad kind for opaque " << oApp.getKind() << " " << oApp;
+  Assert(oApp.getKind() == Kind::APPLY_OPAQUE)
+      << "Bad kind for opaque " << oApp.getKind() << " " << oApp;
   std::string aname = getName(oApp[0]);
   if (!isSmtApplyApp(oApp))
   {
@@ -792,7 +793,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
       varList << " ";
     }
     std::stringstream argType;
-    std::cout << "Print meta type " << vt[i-1] << std::endl;
+    std::cout << "Print meta type " << vt[i - 1] << std::endl;
     printMetaType(vt[i - 1], argType, MetaKind::EUNOIA);
     decl << argType.str();
     std::stringstream ssArg;
@@ -951,10 +952,10 @@ void SmtMetaReduce::define(const std::string& name, const Expr& e)
         argTypes.push_back(d_tc.getType(aa));
       }
       Expr body = e[1];
-      //Expr retType = d_tc.getType(body);
+      // Expr retType = d_tc.getType(body);
       std::cout << "Look at define " << name << std::endl;
       // if we fail to type check, just allocate a type variable
-      //retType = retType.isNull() ? allocateTypeVariable() : retType;
+      // retType = retType.isNull() ? allocateTypeVariable() : retType;
       Expr retType = allocateTypeVariable();
       Expr pt = d_state.mkProgramType(argTypes, retType);
       std::cout << "....make program " << name << " for define, prog type is "
@@ -985,7 +986,7 @@ void SmtMetaReduce::define(const std::string& name, const Expr& e)
       finalizeProgram(tmp, prog);
       std::cout << "...finished lambda program" << std::endl;
     }
-    else 
+    else
     {
       // TODO
     }

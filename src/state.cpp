@@ -1366,11 +1366,9 @@ Expr State::getProofRule(const std::string& name) const
   return d_null;
 }
 
-void State::notifyAssume(const std::string& name,
-                Expr& proven,
-                bool isPush)
+void State::notifyAssume(const std::string& name, Expr& proven, bool isPush)
 {
-  if (d_plugin!=nullptr)
+  if (d_plugin != nullptr)
   {
     d_plugin->notifyAssume(name, proven, isPush);
   }
@@ -1379,18 +1377,19 @@ void State::notifyAssume(const std::string& name,
     pushAssumptionScope();
   }
 }
-  
+
 bool State::notifyStep(const std::string& name,
-                        std::vector<Expr>& children,
-                        Expr& rule,
-                        Expr& proven,
-                        std::vector<Expr>& premises,
-                        std::vector<Expr>& args,
-                        bool isPop)
+                       std::vector<Expr>& children,
+                       Expr& rule,
+                       Expr& proven,
+                       std::vector<Expr>& premises,
+                       std::vector<Expr>& args,
+                       bool isPop)
 {
-  if (d_plugin!=nullptr)
+  if (d_plugin != nullptr)
   {
-    if (d_plugin->notifyStep(name, children, rule, proven, premises, args, isPop))
+    if (d_plugin->notifyStep(
+            name, children, rule, proven, premises, args, isPop))
     {
       return true;
     }
@@ -1496,7 +1495,7 @@ bool State::notifyStep(const std::string& name,
   }
   return true;
 }
-      
+
 Expr State::getProgram(const ExprValue* ev)
 {
   AppInfo* ainfo = getAppInfo(ev);
@@ -1648,7 +1647,7 @@ void State::defineProgram(const Expr& v, const Expr& prog)
 
 void State::define(const std::string& name, const Expr& e)
 {
-  if (d_plugin!=nullptr)
+  if (d_plugin != nullptr)
   {
     d_plugin->define(name, e);
   }

@@ -181,9 +181,7 @@ class State
   Expr getProofRule(const std::string& name) const;
   /**
    */
-  void notifyAssume(const std::string& name,
-                  Expr& proven,
-                  bool isPush);
+  void notifyAssume(const std::string& name, Expr& proven, bool isPush);
   /**
    * Get proof rule arguments, which determines the argument list to a proof
    * rule in a step or step-pop. This takes into account whether the rule was
@@ -198,7 +196,7 @@ class State
    * @return true if we successfully populated the arguments to the proof rule.
    */
   bool notifyStep(const std::string& name,
-                   std::vector<Expr>& children,
+                  std::vector<Expr>& children,
                   Expr& rule,
                   Expr& proven,
                   std::vector<Expr>& premises,
@@ -240,6 +238,7 @@ class State
 
   /** Get the internal data for expression e. */
   AppInfo* getAppInfo(const ExprValue* e);
+
  private:
   /** Common constants */
   Expr d_null;

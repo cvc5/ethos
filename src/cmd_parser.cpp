@@ -108,7 +108,7 @@ bool CmdParser::parseNextCommand()
       std::string name = d_eparser.parseSymbol();
       // parse what is proven
       Expr proven = d_eparser.parseFormula();
-      d_state.notifyAssume(name, proven, (tok==Token::ASSUME_PUSH));
+      d_state.notifyAssume(name, proven, (tok == Token::ASSUME_PUSH));
       Expr pt = d_state.mkProofType(proven);
       Expr v = d_state.mkSymbol(Kind::CONST, name, pt);
       d_eparser.bind(name, v);

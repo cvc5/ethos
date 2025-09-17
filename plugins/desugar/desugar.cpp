@@ -198,7 +198,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
     return;
   }
   Expr cto = d_tc.getType(c);
-  if (cto.getKind()==Kind::PROOF_TYPE)
+  if (cto.getKind() == Kind::PROOF_TYPE)
   {
     // a step, ignore
     return;
@@ -785,9 +785,10 @@ void Desugar::finalizeRule(const Expr& e)
   // write a command to indicate that we should process the above vc
   // we hard-code the symbols that are used in smt_meta.smt2 here.
   std::stringstream metaDeps;
-  metaDeps << "$smtx_hash $eo_reverse_hash $smtx_value_hash "
-              "$smtx_reverse_value_hash "
-              "$eo_smt_type $tsm_Bool $eo_Type $eo_fun_type $eo_apply $eo_mk_apply ";
+  metaDeps
+      << "$smtx_hash $eo_reverse_hash $smtx_value_hash "
+         "$smtx_reverse_value_hash "
+         "$eo_smt_type $tsm_Bool $eo_Type $eo_fun_type $eo_apply $eo_mk_apply ";
   d_eoVc << "(echo \"smt-meta $eovc_" << e << " :deps " << metaDeps.str()
          << "\")" << std::endl;
 }
@@ -954,17 +955,17 @@ void Desugar::notifyAssume(const std::string& name, Expr& proven, bool isPush)
 }
 
 bool Desugar::notifyStep(const std::string& name,
-                   std::vector<Expr>& children,
-                  Expr& rule,
-                  Expr& proven,
-                  std::vector<Expr>& premises,
-                  std::vector<Expr>& args,
-                  bool isPop)
+                         std::vector<Expr>& children,
+                         Expr& rule,
+                         Expr& proven,
+                         std::vector<Expr>& premises,
+                         std::vector<Expr>& args,
+                         bool isPop)
 {
   // prints as a definition
   std::stringstream stmp;
   stmp << "(define $eo_p_" << name << " () ($eor_" << rule;
-  for (size_t i=0; i<args.size(); i++)
+  for (size_t i = 0; i < args.size(); i++)
   {
     stmp << " ";
     printTerm(args[i], stmp);
@@ -974,15 +975,15 @@ bool Desugar::notifyStep(const std::string& name,
   if (ainfo != nullptr)
   {
     Attr a = ainfo->d_attrCons;
-    Assert (a==Attr::PROOF_RULE);
+    Assert(a == Attr::PROOF_RULE);
     Expr tupleVal = ainfo->d_attrConsTerm;
-    Assert (tupleVal.getNumChildren()==3);
+    Assert(tupleVal.getNumChildren() == 3);
     Expr plCons;
-    if (tupleVal[0].getKind()!=Kind::ANY)
+    if (tupleVal[0].getKind() != Kind::ANY)
     {
       plCons = tupleVal[0];
     }
-    bool isConcExplicit = tupleVal[2]==d_true;
+    bool isConcExplicit = tupleVal[2] == d_true;
     if (isConcExplicit)
     {
       if (proven.isNull())
@@ -1011,12 +1012,12 @@ bool Desugar::notifyStep(const std::string& name,
         achildren.push_back(dummy);
       }
       Expr ap;
-      if (achildren.size()==1)
+      if (achildren.size() == 1)
       {
         // the nil terminator if applied to empty list
         AppInfo* aic = d_state.getAppInfo(plCons.getValue());
         Attr ck = aic->d_attrCons;
-        if (ck==Attr::RIGHT_ASSOC_NIL || ck==Attr::LEFT_ASSOC_NIL)
+        if (ck == Attr::RIGHT_ASSOC_NIL || ck == Attr::LEFT_ASSOC_NIL)
         {
           ap = aic->d_attrConsTerm;
         }
@@ -1035,7 +1036,7 @@ bool Desugar::notifyStep(const std::string& name,
   }
   if (stdPremises)
   {
-    for (size_t i=0; i<premises.size(); i++)
+    for (size_t i = 0; i < premises.size(); i++)
     {
       stmp << " $eo_p_";
       printTerm(premises[i], stmp);
@@ -1052,11 +1053,12 @@ bool Desugar::notifyStep(const std::string& name,
     printTerm(proven, d_eoPfSteps);
     d_eoPfSteps << "))" << std::endl;
   }
-  else 
+  else
   {
     sname << "$eo_p_" << name;
   }
-  d_eoPfSteps << "(echo \"smt-meta-cmd (simplify " << sname.str() << ")\")" << std::endl;
+  d_eoPfSteps << "(echo \"smt-meta-cmd (simplify " << sname.str() << ")\")"
+              << std::endl;
   return false;
 }
 
