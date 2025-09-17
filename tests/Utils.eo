@@ -1,5 +1,5 @@
 
-(declare-type @Pair (Type Type))
+(declare-const @Pair (-> Type Type Type))
 (declare-parameterized-const @pair ((U Type :implicit) (T Type :implicit)) (-> U T (@Pair U T)))
 
 ; program: $pair_first
@@ -35,7 +35,7 @@
 )
 
 ; untyped list
-(declare-type @List ())
+(declare-const @List Type)
 (declare-const @list.nil @List)
 (declare-parameterized-const @list ((T Type :implicit)) (-> T @List @List) :right-assoc-nil @list.nil)
 

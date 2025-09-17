@@ -6,7 +6,11 @@ ethos 0.2.1 pre-release
 
 - Removes support for `eo::match`, which was equivalent to invoking an auxiliary function. These auxiliary functions now should be defined explicitly.
 - Adds builtin list operators `eo::list_diff` (difference) and `eo::list_inter` (intersection)
+- Adds support for explicit conclusions to proof rules via `:conclusion-explicit`.
 - Removes support for oracles and the command `declare-oracle-fun`. Custom extensions are now recommended to be added via the plugin feature, which provides an interface for custom evaluation (Plugin::hasEvaluation).
+- Removes support for the commands `declare-type` and `define-type`, which were syntax sugar for declarations and definitions for terms returning types.
+- We now reject proof rules whose conclusions contain free parameters *only* occurring in the types of arguments. Furthermore, free parameters in the types of arguments to proof rules are not bound when applying the proof rule.
+- Adds `:arg-list` to denote variadic operators that expect a list of arguments passed to another variadic operator.
 
 
 ethos 0.2.0
