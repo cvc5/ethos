@@ -750,45 +750,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
 
 void SmtMetaReduce::defineProgram(const Expr& v, const Expr& prog)
 {
-  // have to wait, due to dependence on $eo_get_meta_type being defined.
-  d_progSeen.emplace_back(v, prog);
-}
-
-void SmtMetaReduce::finalizePrograms()
-{
-  for (const std::pair<Expr, Expr>& p : d_progSeen)
-  {
-    // We need to preserve definitions in the final VC (see ::bind).
-    // We reduce defines to a program e.g.
-    // (define foo ((x T)) (bar x))
-    //   becomes
-    // (program foo ((x T))
-    //   :signature (T) (eo::typeof (bar x))
-    //   (
-    //   ((foo x) (bar x))
-    //   )
-    // )
-    if (p.second.getKind() == Kind::LAMBDA)
-    {
-      Expr e = p.second;
-      Assert(e[0].getKind() == Kind::TUPLE);
-      std::vector<Expr> appChildren;
-      appChildren.push_back(p.first);
-      for (size_t i = 0, nargs = e[0].getNumChildren(); i < nargs; i++)
-      {
-        appChildren.push_back(e[0][i]);
-      }
-      Expr progApp = d_state.mkExprSimple(Kind::APPLY, appChildren);
-      Expr pcase = d_state.mkPair(progApp, e[1]);
-      Expr prog = d_state.mkExprSimple(Kind::PROGRAM, {pcase});
-      std::cout << "...do program " << p.first << " / " << prog << " instead"
-                << std::endl;
-      finalizeProgram(p.first, prog);
-      std::cout << "...finished lambda program" << std::endl;
-      continue;
-    }
-    finalizeProgram(p.first, p.second);
-  }
+  finalizeProgram(v, prog);
 }
 
 void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
@@ -997,7 +959,29 @@ void SmtMetaReduce::define(const std::string& name, const Expr& e)
               << pt << std::endl;
     // Expr pt = d_state.mkBuiltinType(Kind::LAMBDA);
     Expr tmp = d_state.mkSymbol(Kind::PROGRAM_CONST, name, pt);
-    d_progSeen.emplace_back(tmp, p);
+    // We need to preserve definitions in the final VC.
+    // We reduce defines to a program e.g.
+    // (define foo ((x T)) (bar x))
+    //   becomes
+    // (program foo ((x T))
+    //   :signature (T) (eo::typeof (bar x))
+    //   (
+    //   ((foo x) (bar x))
+    //   )
+    // )
+    std::vector<Expr> appChildren;
+    appChildren.push_back(tmp);
+    for (size_t i = 0, nargs = e[0].getNumChildren(); i < nargs; i++)
+    {
+      appChildren.push_back(e[0][i]);
+    }
+    Expr progApp = d_state.mkExprSimple(Kind::APPLY, appChildren);
+    Expr pcase = d_state.mkPair(progApp, e[1]);
+    Expr prog = d_state.mkExprSimple(Kind::PROGRAM, {pcase});
+    std::cout << "...do program " << tmp << " / " << prog << " instead"
+              << std::endl;
+    finalizeProgram(tmp, prog);
+    std::cout << "...finished lambda program" << std::endl;    
   }
 }
 
@@ -1118,8 +1102,6 @@ void SmtMetaReduce::finalizeDecl(const Expr& e)
 
 void SmtMetaReduce::finalize()
 {
-  finalizePrograms();
-
   auto replace = [](std::string& txt,
                     const std::string& tag,
                     const std::string& replacement) {

@@ -114,7 +114,6 @@ class SmtMetaReduce : public StdPlugin
                     std::ostream& os,
                     const SelectorCtx& ctx,
                     MetaKind tinit = MetaKind::NONE);
-  void finalizePrograms();
   void finalizeProgram(const Expr& v, const Expr& prog);
   void finalizeDecl(const Expr& e);
   static bool isProgram(const Expr& t);
@@ -122,8 +121,6 @@ class SmtMetaReduce : public StdPlugin
   static std::string getEmbedName(const Expr& oApp);
   /** Program declarations processed */
   std::set<Expr> d_progDeclProcessed;
-  /** Programs seen */
-  std::vector<std::pair<Expr, Expr>> d_progSeen;
   /** Common constants */
   Expr d_null;
   std::map<std::string, MetaKind> d_prefixToMetaKind;
