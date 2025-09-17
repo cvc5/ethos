@@ -419,7 +419,7 @@ $EO_LITERAL_TYPE_DECL$
   ((T Type) (V Type) (x T) (y V) (f (-> T V V)) (nil V) (z V))
   :signature ((-> T V V) V V) V
   (
-  (($eo_list_diff_rec f (f x y) z)  (eo::define ((res ($eo_list_erase $eo_List_cons z x)))
+  (($eo_list_diff_rec f (f x y) z)  (eo::define ((res ($eo_list_erase f z x)))
                                     ($eo_prepend_if ($eo_eq res z)
                                       f x ($eo_list_diff_rec f y res))))
   (($eo_list_diff_rec f nil z)      nil)
@@ -442,7 +442,7 @@ $EO_LITERAL_TYPE_DECL$
   ((T Type) (V Type) (x T) (y V) (f (-> T V V)) (nil V) (z V))
   :signature ((-> T V V) V V) V
   (
-  (($eo_list_inter_rec f (f x y) z) (eo::define ((res ($eo_list_erase $eo_List_cons z x)))
+  (($eo_list_inter_rec f (f x y) z) (eo::define ((res ($eo_list_erase f z x)))
                                     ($eo_prepend_if ($eo_if_not ($eo_eq res z))
                                       f x ($eo_list_inter_rec f y res))))
   (($eo_list_inter_rec f nil z)     nil)
