@@ -114,7 +114,15 @@ class SmtMetaReduce : public StdPlugin
                     std::ostream& os,
                     const SelectorCtx& ctx,
                     MetaKind tinit = MetaKind::NONE);
-  void finalizeProgram(const Expr& v, const Expr& prog);
+  /**
+   * Write program definition to d_defs. For consistency this is also called
+   * for define commands.
+   * @param v The program variable.
+   * @param prog The program definition.
+   * @param isDefine True iff this program definition originated from a
+   * define command.
+   */
+  void finalizeProgram(const Expr& v, const Expr& prog, bool isDefine=false);
   void finalizeDecl(const Expr& e);
   static bool isProgram(const Expr& t);
   static bool isSmtApplyApp(const Expr& oApp);

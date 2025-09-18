@@ -754,7 +754,7 @@ void SmtMetaReduce::defineProgram(const Expr& v, const Expr& prog)
   finalizeProgram(v, prog);
 }
 
-void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
+void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog, bool isDefine)
 {
   // check for duplicate forward declaration, ignore
   if (prog.isNull() && d_progDeclProcessed.find(v) != d_progDeclProcessed.end())
@@ -828,9 +828,11 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
   std::stringstream casesEnd;
   // If the return type does not have meta-kind Eunoia, then it cannot get
   // stuck. We ensure that all programs over such types are total.
-  bool isSmtProgram = (getTypeMetaKind(vt[nargs - 1]) != MetaKind::EUNOIA);
+  // We also are not a Eunoia program if we called this method via a define
+  // command.
+  bool isEunoiaProgram = (getTypeMetaKind(vt[nargs - 1]) == MetaKind::EUNOIA) && !isDefine;
   // start with stuck case, if not a SMT program
-  if (!isSmtProgram)
+  if (isEunoiaProgram)
   {
     cases << "  (ite ";
     printStuck.printConjunction(cases, true);
@@ -880,7 +882,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
     // for SMT programs, the last case is assumed to be total
     // this is part of the trusted core: to ensure all programs in
     // model_smt.eo are total.
-    if (i + 1 < ncases || !isSmtProgram)
+    if (i + 1 < ncases || isEunoiaProgram)
     {
       cases << "  (ite ";
       print.printConjunction(cases);
@@ -912,7 +914,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog)
            << retType.str() << std::endl;
   }
   d_defs << cases.str();
-  if (!isSmtProgram)
+  if (isEunoiaProgram)
   {
     d_defs << "    eo.Stuck";
   }
@@ -983,7 +985,7 @@ void SmtMetaReduce::define(const std::string& name, const Expr& e)
       Expr prog = d_state.mkExprSimple(Kind::PROGRAM, {pcase});
       Trace("smt-meta") << "...do program " << tmp << " / " << prog << " instead"
                 << std::endl;
-      finalizeProgram(tmp, prog);
+      finalizeProgram(tmp, prog, true);
       Trace("smt-meta") << "...finished lambda program" << std::endl;
     }
     else

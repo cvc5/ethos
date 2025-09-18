@@ -45,18 +45,19 @@ sed -i "/(echo \"include eo_builtin_smt.*/{
     d
 }" $INIT_DESUGAR
 
-
 echo "**** smt_meta: Generate SMT2 from $INIT_DESUGAR to $PC_VALID_OUT"
 ./src/ethos --plugin.smt-meta $INIT_DESUGAR >/dev/null
 check_status
 cp $STD_VC_OUT $PC_VALID_OUT
 
-
 echo "**** smt_meta: Verify cvc5 parses"
 ajr-cvc5 $PC_VALID_OUT --parse-only
 check_status
-exit 0
   
+echo "**** smt_meta: Run proof validation"
+ajr-cvc5 $PC_VALID_OUT
+check_status
+
 # clear temporary files
 rm -f $STD_DESUGAR_OUT
 rm -f $STD_VC_OUT
