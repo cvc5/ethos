@@ -951,7 +951,8 @@ void Desugar::notifyAssume(const std::string& name, Expr& proven, bool isPush)
 {
   d_eoPfSteps << "(define $eo_p_" << name << " () ";
   printTerm(proven, d_eoPfSteps);
-  d_eoPfSteps << " :type Bool)" << std::endl;
+  //d_eoPfSteps << " :type Bool";
+  d_eoPfSteps << ")" << std::endl;
 }
 
 bool Desugar::notifyStep(const std::string& name,
@@ -1042,7 +1043,9 @@ bool Desugar::notifyStep(const std::string& name,
       printTerm(premises[i], stmp);
     }
   }
-  stmp << ") :type Bool)";
+  stmp << ")";
+  // stmp << " :type Bool";
+  stmp << ")";
   d_eoPfSteps << stmp.str() << std::endl;
   std::stringstream sname;
   if (!proven.isNull())
