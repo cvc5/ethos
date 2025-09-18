@@ -374,7 +374,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
         Expr cta = ct[i - 1];
         std::stringstream ssx;
         argCount++;
-        ssx << "x" << argCount;
+        ssx << "$eo_x" << argCount;
         Expr arg;
         if (cta.getKind() == Kind::QUOTE_TYPE)
         {

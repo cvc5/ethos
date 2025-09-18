@@ -70,21 +70,24 @@
   )
 )
 (program $eo_typeof_main
-  ((T Type) (U Type) (V Type) (W Type) (f (-> U V T)) (x U) (t T)
-   (W1 Type) (x1 W1) (W2 Type) (x2 W2) (W3 Type) (x3 W3)) 
-  :signature (T) Type
+  (($eo_T Type) ($eo_U Type) ($eo_V Type) ($eo_W Type) 
+   ($eo_f (-> $eo_U $eo_V $eo_T)) ($eo_x $eo_U) ($eo_t $eo_T)
+   ($eo_W1 Type) ($eo_x1 $eo_W1)
+   ($eo_W2 Type) ($eo_x2 $eo_W2)
+   ($eo_W3 Type) ($eo_x3 $eo_W3)) 
+  :signature ($eo_T) Type
   (
-  (($eo_typeof_main Type)                 Type)
-  (($eo_typeof_main (-> T U))
+  (($eo_typeof_main Type)                   Type)
+  (($eo_typeof_main (-> $eo_T $eo_U))
     
-    ($eo_typeof_fun_type ($eo_typeof T)   ($eo_typeof U)))
-  (($eo_typeof_main Bool)                 Type)
-  (($eo_typeof_main true)                 Bool)
-  (($eo_typeof_main false)                Bool)
+    ($eo_typeof_fun_type ($eo_typeof $eo_T) ($eo_typeof $eo_U)))
+  (($eo_typeof_main Bool)                   Type)
+  (($eo_typeof_main true)                   Bool)
+  (($eo_typeof_main false)                  Bool)
   
-  (($eo_typeof_main $eo_List)             Type)
-  (($eo_typeof_main $eo_List_nil)         $eo_List)
-  (($eo_typeof_main ($eo_List_cons x1))   (-> $eo_List $eo_List))
+  (($eo_typeof_main $eo_List)               Type)
+  (($eo_typeof_main $eo_List_nil)           $eo_List)
+  (($eo_typeof_main ($eo_List_cons $eo_x1)) (-> $eo_List $eo_List))
   
   (($eo_typeof_main Int) Type)
   
@@ -100,9 +103,9 @@
   
   (($eo_typeof_main and) (-> Bool (-> Bool Bool)))
   
-  (($eo_typeof_main (= x1)) ($eo_typeof_= ($eo_typeof x1)))
+  (($eo_typeof_main (= $eo_x1)) ($eo_typeof_= ($eo_typeof $eo_x1)))
 
-  (($eo_typeof_main (f x))        ($eo_typeof_apply ($eo_typeof f) ($eo_typeof x)))
+  (($eo_typeof_main ($eo_f $eo_x))          ($eo_typeof_apply ($eo_typeof $eo_f) ($eo_typeof $eo_x)))
   )
 )
 (program $eo_lit_type_Numeral ((T Type) (t T))
