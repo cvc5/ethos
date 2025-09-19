@@ -15,7 +15,7 @@ INPUT=$1
 # trim out
 INIT_DESUGAR=$OUT_DIR/desugar-pcv.eo
 INPUT_FILE=$(basename -- "$INPUT")
-PC_VALID_OUT=$OUT_DIR/check-$INPUT_FILE.smt2
+PC_VALID_OUT=$OUT_DIR/pcv/check-$INPUT_FILE.smt2
 
 function check_status()
 {

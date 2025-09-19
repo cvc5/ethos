@@ -990,9 +990,7 @@ void SmtMetaReduce::define(const std::string& name, const Expr& e)
     }
     else
     {
-      d_defs << "(define-fun " << name << " () ";
-      Expr pt = d_tc.getType(p);
-      printMetaType(pt, d_defs, MetaKind::EUNOIA);
+      d_defs << "(define-fun " << name << " () eo.Term";
       d_defs << " ";
       SelectorCtx ctx;
       printEmbTerm(p, d_defs, ctx);
@@ -1423,6 +1421,13 @@ MetaKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
           std::string prefix = esname.substr(6, firstDot - 6);
           tk = prefixToMetaKind(prefix);
         }
+        else if (esname.compare(0, 3, "$eo")==0)
+        {
+          // special case: if we are specifying that we should be applying
+          // an $eo function, we are Eunoia. This only is used when desugaring
+          // proof steps currently.
+          tk = MetaKind::EUNOIA;
+        }
         else
         {
           tk = MetaKind::SMT_BUILTIN;
@@ -1532,6 +1537,13 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
                          << " " << metaKindToString(tk) << " and "
                          << metaKindToString(k2);
         return tk;
+      }
+      else if (esname.compare(0,3,"$eo")==0)
+      {
+        // special case: if we are specifying that we should be applying
+        // an $eo function, we are Eunoia. This only is used when desugaring
+        // proof steps currently.
+        return MetaKind::EUNOIA;
       }
       else
       {

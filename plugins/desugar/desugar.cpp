@@ -963,12 +963,14 @@ bool Desugar::notifyStep(const std::string& name,
                          std::vector<Expr>& args,
                          bool isPop)
 {
+  size_t nargs = 0;
   // prints as a definition
   std::stringstream stmp;
   for (size_t i = 0; i < args.size(); i++)
   {
     stmp << " ";
     printTerm(args[i], stmp);
+    nargs++;
   }
   AppInfo* ainfo = d_state.getAppInfo(rule.getValue());
   bool stdPremises = true;
@@ -992,12 +994,14 @@ bool Desugar::notifyStep(const std::string& name,
       }
       stmp << " ";
       printTerm(proven, stmp);
+      nargs++;
     }
     if (isPop)
     {
       std::vector<Expr> as = d_state.getCurrentAssumptions();
       stmp << " ";
       printTerm(as[0], stmp);
+      nargs++;
     }
     if (!plCons.isNull())
     {
@@ -1032,6 +1036,7 @@ bool Desugar::notifyStep(const std::string& name,
       }
       stmp << " ";
       printTerm(ap, stmp);
+      nargs++;
     }
   }
   if (stdPremises)
@@ -1040,9 +1045,11 @@ bool Desugar::notifyStep(const std::string& name,
     {
       stmp << " $eo_p_";
       printTerm(premises[i], stmp);
+      nargs++;
     }
   }
-  d_eoPfSteps << "(define $eo_p_" << name << " () ($eor_" << rule;
+  d_eoPfSteps << "(define $eo_p_" << name << " () ($smt_apply_" << nargs << " ";
+  d_eoPfSteps << "\"$eor_" << rule << "\"";
   d_eoPfSteps << stmp.str();
   d_eoPfSteps << ")";
   // stmp << " :type Bool";
@@ -1052,7 +1059,7 @@ bool Desugar::notifyStep(const std::string& name,
   {
     sname << "$eo_pc_" << name;
     d_eoPfSteps << "(define " << sname.str() << " () ";
-    d_eoPfSteps << "(eo::eq $eo_p_" << name << " ";
+    d_eoPfSteps << "($smt_apply_2 \"$eo_eq\" $eo_p_" << name << " ";
     printTerm(proven, d_eoPfSteps);
     d_eoPfSteps << "))" << std::endl;
   }
