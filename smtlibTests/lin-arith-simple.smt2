@@ -1,0 +1,5 @@
+(set-logic ALL)
+(declare-const x Int)
+(assert (< x 4))
+(assert (> x 8))
+(check-sat)
