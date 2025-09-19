@@ -1,8 +1,8 @@
 This file contains a summary of important user-visible changes.
 
 
-ethos 0.2.1 pre-release
-=======================
+ethos 0.2.1
+===========
 
 - Removes support for `eo::match`, which was equivalent to invoking an auxiliary function. These auxiliary functions now should be defined explicitly.
 - Adds builtin list operators `eo::list_diff` (difference) and `eo::list_inter` (intersection)
