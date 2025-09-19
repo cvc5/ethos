@@ -965,7 +965,6 @@ bool Desugar::notifyStep(const std::string& name,
 {
   // prints as a definition
   std::stringstream stmp;
-  stmp << "(define $eo_p_" << name << " () ($eor_" << rule;
   for (size_t i = 0; i < args.size(); i++)
   {
     stmp << " ";
@@ -1043,10 +1042,11 @@ bool Desugar::notifyStep(const std::string& name,
       printTerm(premises[i], stmp);
     }
   }
-  stmp << ")";
+  d_eoPfSteps << "(define $eo_p_" << name << " () ($eor_" << rule;
+  d_eoPfSteps << stmp.str();
+  d_eoPfSteps << ")";
   // stmp << " :type Bool";
-  stmp << ")";
-  d_eoPfSteps << stmp.str() << std::endl;
+  d_eoPfSteps << ")" << std::endl;
   std::stringstream sname;
   if (!proven.isNull())
   {
