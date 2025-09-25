@@ -5,7 +5,8 @@ Run:
 At a high-level, the correctness of a Eunoia proof rule can be compiled to
 a *.smt2 file, which if unsat, is evidence that the proof rule is sound.
 The final encoding uses a deep embedding where:
-- A single datatype "sm.Term" is declared, which several builtin constructors.
+- A datatype "eo.Term" is declared, which several builtin constructors, e.g.
+  eo.Stuck and eo.Apply.
 - All constants in the Eunoia signature are constructors of this datatype.
 - Eunoia programs are uninterpreted functions.
 - Definitions of Eunoia programs are quantified axioms.

@@ -1098,7 +1098,8 @@
    ($eo_f (-> $eo_U $eo_V $eo_T)) ($eo_x $eo_U) ($eo_t $eo_T)
    ($eo_W1 Type) ($eo_x1 $eo_W1)
    ($eo_W2 Type) ($eo_x2 $eo_W2)
-   ($eo_W3 Type) ($eo_x3 $eo_W3)) 
+   ($eo_W3 Type) ($eo_x3 $eo_W3)
+   ($eo_W4 Type) ($eo_x4 $eo_W4)) 
   :signature ($eo_T) Type
   (
   (($eo_typeof_main Type)                   Type)

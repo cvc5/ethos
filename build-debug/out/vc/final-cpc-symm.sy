@@ -98,6 +98,8 @@
 
 ;;; Relevant definitions
 
+(define-fun $eo_Numeral () eo.Term (eo.SmtType tsm.Int))
+(define-fun $eo_String () eo.Term (eo.Apply (eo.SmtType tsm.Seq) (eo.SmtType tsm.Char)))
 ; fwd-decl: $eo_typeof
 (declare-fun $eo_typeof (eo.Term) eo.Term)
 
@@ -112,6 +114,7 @@
     (eo.SmtTerm (sm.Boolean true))
     eo.Stuck)))
 
+(define-fun $eo_fail () eo.Term ($eo_fail_prog (eo.SmtTerm (sm.Boolean false))))
 ; program: $eo_requires_eq
 (define-fun $eo_requires_eq ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck) (= x3 eo.Stuck))
@@ -120,37 +123,28 @@
     x3
     eo.Stuck)))
 
+(define-fun $eo_Type () eo.Term eo.Type)
+(define-fun $eo_stuck () eo.Term eo.Stuck)
 ; program: $eo_apply
 (define-fun $eo_apply ((x1 eo.Term) (x2 eo.Term)) eo.Term
-  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
-    eo.Stuck
-  (ite true
     (eo.Apply x1 x2)
-    eo.Stuck)))
+)
 
+(define-fun $eo_fun_type () eo.Term eo.FunType)
 ; program: $eo_smt_term
 (define-fun $eo_smt_term ((x1 sm.Term)) eo.Term
-  (ite false
-    eo.Stuck
-  (ite true
     (eo.SmtTerm x1)
-    eo.Stuck)))
+)
 
 ; program: $eo_smt_type
 (define-fun $eo_smt_type ((x1 tsm.Type)) eo.Term
-  (ite false
-    eo.Stuck
-  (ite true
     (eo.SmtType x1)
-    eo.Stuck)))
+)
 
 ; program: $eo_Var
 (define-fun $eo_Var ((x1 String) (x2 eo.Term)) eo.Term
-  (ite (= x2 eo.Stuck)
-    eo.Stuck
-  (ite true
     (eo.Var x1 x2)
-    eo.Stuck)))
+)
 
 ; program: $smtx_pow2
 (declare-fun $smtx_pow2 (Int) Int)
@@ -161,43 +155,28 @@
 
 ; program: $eo_bool
 (define-fun $eo_bool ((x1 Bool)) eo.Term
-  (ite false
-    eo.Stuck
-  (ite true
     (eo.SmtTerm (sm.Boolean x1))
-    eo.Stuck)))
+)
 
 ; program: $eo_numeral
 (define-fun $eo_numeral ((x1 Int)) eo.Term
-  (ite false
-    eo.Stuck
-  (ite true
     (eo.SmtTerm (sm.Numeral x1))
-    eo.Stuck)))
+)
 
 ; program: $eo_rational
 (define-fun $eo_rational ((x1 Real)) eo.Term
-  (ite false
-    eo.Stuck
-  (ite true
     (eo.SmtTerm (sm.Rational x1))
-    eo.Stuck)))
+)
 
 ; program: $eo_string
 (define-fun $eo_string ((x1 String)) eo.Term
-  (ite false
-    eo.Stuck
-  (ite true
     (eo.SmtTerm (sm.String x1))
-    eo.Stuck)))
+)
 
 ; program: $eo_binary
 (define-fun $eo_binary ((x1 Int) (x2 Int)) eo.Term
-  (ite false
-    eo.Stuck
-  (ite true
     (eo.SmtTerm (sm.Binary x1 x2))
-    eo.Stuck)))
+)
 
 ; program: $eo_mk_apply
 (define-fun $eo_mk_apply ((x1 eo.Term) (x2 eo.Term)) eo.Term
@@ -272,7 +251,7 @@
   (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg1 x1)) ((_ is eo.SmtTerm) (eo.Apply.arg1 (eo.Apply.arg1 x1))) (= (eo.SmtTerm.arg1 (eo.Apply.arg1 (eo.Apply.arg1 x1))) sm.=))
     (eo.Apply (eo.Apply (eo.SmtTerm sm.=) (eo.Apply.arg2 x1)) (eo.Apply.arg2 (eo.Apply.arg1 x1)))
   (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg2 x1)) ((_ is eo.Apply) (eo.Apply.arg1 (eo.Apply.arg2 x1))) ((_ is eo.SmtTerm) (eo.Apply.arg1 (eo.Apply.arg1 (eo.Apply.arg2 x1)))) (= (eo.SmtTerm.arg1 (eo.Apply.arg1 (eo.Apply.arg1 (eo.Apply.arg2 x1)))) sm.=) ((_ is eo.SmtTerm) (eo.Apply.arg1 x1)) (= (eo.SmtTerm.arg1 (eo.Apply.arg1 x1)) sm.not))
-    (eo.Apply (eo.SmtTerm sm.not) (eo.Apply (eo.Apply (eo.SmtTerm sm.=) (eo.Apply.arg2 (eo.Apply.arg2 x1))) (eo.Apply.arg2 (eo.Apply.arg1 (eo.Apply.arg2 x1)))))
+    (eo.Apply (eo.Apply (eo.SmtTerm sm.=) (eo.Apply.arg2 (eo.Apply.arg2 x1))) (eo.Apply.arg2 (eo.Apply.arg1 (eo.Apply.arg2 x1))))
     eo.Stuck))))
 
 ; program: $eo_typeof_apply

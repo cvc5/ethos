@@ -1,5 +1,6 @@
 #!/bin/bash
 
+CVC5=~/bin/cvc5-test
 OUT_DIR=./out
 
 STD_TRIM_OUT=../plugins/trim_defs/trim_gen.eo
@@ -51,11 +52,11 @@ check_status
 cp $STD_VC_OUT $PC_VALID_OUT
 
 echo "**** smt_meta: Verify cvc5 parses"
-ajr-cvc5 $PC_VALID_OUT --parse-only
+$CVC5 $PC_VALID_OUT --parse-only
 check_status
   
 echo "**** smt_meta: Run proof validation"
-ajr-cvc5 $PC_VALID_OUT
+$CVC5 $PC_VALID_OUT
 check_status
 
 # clear temporary files
