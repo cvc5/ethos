@@ -16,12 +16,12 @@ jobs:
           os: ubuntu-22.04-arm
           shell: bash
         - name: macOS-x86_64
-          os: macos-13
+          os: macos-15-intel
           bottle-suffix: monterey
           gmp-sha256: b04023f65b8c79c45798a4bfd97fdbeb10f1bf9e8416e22e8eeedbd9b2a8c102
           shell: bash
         - name: macOS-arm64
-          os: macos-14
+          os: macos-15
           bottle-suffix: arm64_monterey
           gmp-sha256: 2115b33b8b4052f91ffb85e476c7fc0388cf4e614af1ce6453b35e6d25473911
           shell: bash
