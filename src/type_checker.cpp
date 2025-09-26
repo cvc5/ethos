@@ -1257,7 +1257,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       case Kind::EVAL_IS_STR:kk = Kind::STRING;break;
       case Kind::EVAL_IS_BOOL:kk = Kind::BOOLEAN;break;
       case Kind::EVAL_IS_VAR:kk = Kind::VARIABLE;break;
-      default: Assert(false); break;
+      default: Unreachable(); kk = Kind::NONE; break;
       }
       Literal lb(args[0]->getKind()==kk);
       return Expr(d_state.mkLiteralInternal(lb));

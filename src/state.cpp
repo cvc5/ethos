@@ -1337,8 +1337,7 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
   AppInfo* ainfo = getAppInfo(rule.getValue());
   if (ainfo != nullptr)
   {
-    Attr a = ainfo->d_attrCons;
-    Assert (a==Attr::PROOF_RULE);
+    Assert (ainfo->d_attrCons == Attr::PROOF_RULE);
     Expr tupleVal = ainfo->d_attrConsTerm;
     Assert (tupleVal.getNumChildren()==3);
     Expr plCons;

@@ -105,7 +105,7 @@ jobs:
 
     - name: Build
       run: |
-        ./configure.sh ${{ matrix.build-type  }} --static
+        ./configure.sh ${{ matrix.build-type  }} --static --werror
         cd build
         make -j${{ env.num_proc }}
 
