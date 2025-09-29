@@ -1040,8 +1040,10 @@ Expr State::mkApplyAttr(AppInfo* ai,
         {
           // If we are a "non-singleton" kind, we add singleton elimination.
           // Note that this case is applied possibly on ground arguments,
-          // in contrast to the case of EVAL_LIST_CONCAT above. Hence, we must
-          // call mkExpr in case we evaluate this application immediately.
+          // in contrast to the case of EVAL_LIST_CONCAT above which requires a
+          // :list annotation, which can only be applied to parameters. Hence,
+          // we must call mkExpr in case we evaluate this application
+          // immediately.
           std::vector<Expr> ccse;
           ccse.emplace_back(hd);
           ccse.emplace_back(curr);
