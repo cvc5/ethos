@@ -1036,6 +1036,10 @@ Expr State::mkApplyAttr(AppInfo* ai,
           }
           i++;
         }
+        if (isNsNil)
+        {
+          // add singleton elimination
+        }
         Trace("type_checker")
             << "...return for " << Expr(vchildren[0]) << std::endl;
         return Expr(curr);
