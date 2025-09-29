@@ -164,6 +164,7 @@ set(ethos_test_file_list
     arg-list-cong.eo
     arg-list-distinct-elim.eo
     list-non-singleton.eo
+    list-non-singleton-left.eo
 )
 
 macro(ethos_test file)

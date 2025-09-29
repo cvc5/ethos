@@ -1433,7 +1433,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     // not an associative operator
     return d_null;
   }
-  bool isLeft = (ck==Attr::LEFT_ASSOC_NIL);
+  bool isLeft = (ck==Attr::LEFT_ASSOC_NIL || ck==Attr::LEFT_ASSOC_NS_NIL);
   Trace("type_checker_debug") << "EVALUATE-LIT (list) " << k << " " << isLeft << " " << args << std::endl;
   // infer the nil expression, which depends on the type of args[1]
   std::vector<Expr> eargs;
