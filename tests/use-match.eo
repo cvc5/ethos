@@ -1,4 +1,4 @@
-(declare-type String ())
+(declare-const String Type)
 (declare-consts <string> String)
 
 (program maybe_nil ((T Type) (U Type) (t T))
@@ -9,7 +9,7 @@
     )
 )
 
-(declare-type Pair (Type Type))
+(declare-const Pair (-> Type Type Type))
 (declare-parameterized-const pair ((U Type :implicit) (T Type :implicit)) (-> U T (Pair U T)))
 (declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 

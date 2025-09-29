@@ -1,4 +1,4 @@
-(declare-type Int ())
+(declare-const Int Type)
 (declare-consts <numeral> Int)
 
 (declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
@@ -15,7 +15,7 @@
     )
 )
 
-(declare-type String ())
+(declare-const String Type)
 (declare-consts <string> String)
   
 (declare-const str.++ (-> String String String))

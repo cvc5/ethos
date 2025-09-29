@@ -20,7 +20,7 @@ std::ostream& operator<<(std::ostream& o, Attr a)
     case Attr::SORRY: o << "sorry"; break;
     case Attr::LIST: o << "list"; break;
     case Attr::REQUIRES: o << "requires"; break;
-    case Attr::PREMISE_LIST: o << "premise_list"; break;
+    case Attr::PROOF_RULE: o << "proof_rule"; break;
     case Attr::PROGRAM: o << "program"; break;
     case Attr::BINDER: o << "binder"; break;
     case Attr::LET_BINDER: o << "let_binder"; break;
@@ -33,6 +33,7 @@ std::ostream& operator<<(std::ostream& o, Attr a)
     case Attr::LEFT_ASSOC_NIL: o << "let-assoc-nil"; break;
     case Attr::CHAINABLE: o << "chainable"; break;
     case Attr::PAIRWISE: o << "pairwise"; break;
+    case Attr::ARG_LIST: o << "arg-list"; break;
     case Attr::DATATYPE: o << "datatype"; break;
     case Attr::AMB: o << "amb"; break;
     case Attr::DATATYPE_CONSTRUCTOR: o << "datatype_constructor"; break;
@@ -52,7 +53,7 @@ bool isNAryAttr(Attr a)
     case Attr::RIGHT_ASSOC_NIL:
     case Attr::CHAINABLE:
     case Attr::PAIRWISE:
-      return true;
+    case Attr::ARG_LIST: return true;
     default:
       break;
   }

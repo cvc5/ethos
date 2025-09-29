@@ -188,10 +188,6 @@ State::State(Options& opts, Stats& stats)
   d_any = Expr(mkExpr(Kind::ANY, {}));
   // self is a distinguished parameter
   d_self = Expr(mkSymbolInternal(Kind::PARAM, "eo::self", d_any));
-  d_conclusion =
-      Expr(mkSymbolInternal(Kind::PARAM, "eo::conclusion", d_boolType));
-  // eo::conclusion is not globally bound, since it can only appear
-  // in :requires.
 }
 
 State::~State() {}
@@ -604,8 +600,6 @@ Expr State::mkSymbol(Kind k, const std::string& name, const Expr& type)
 
 Expr State::mkSelf() const { return d_self; }
 
-Expr State::mkConclusion() const { return d_conclusion; }
-
 Expr State::mkPair(const Expr& t1, const Expr& t2)
 {
   return Expr(mkExprInternal(Kind::TUPLE, {t1.getValue(), t2.getValue()}));
@@ -766,17 +760,15 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     // t3).
     if (isNaryLiteralOp(k) && vchildren.size() > 2)
     {
-      std::vector<ExprValue*> cc{nullptr, nullptr};
-      cc[0] = vchildren[0];
-      cc[1] = vchildren[1];
-      ExprValue* curr = mkExprInternal(k, cc);
+      std::vector<Expr> cc{children[0], children[1]};
+      Expr curr = mkExpr(k, cc);
       for (size_t i = 2, nargs = vchildren.size(); i < nargs; i++)
       {
         cc[0] = curr;
-        cc[0] = vchildren[i];
-        curr = mkExprInternal(k, cc);
+        cc[1] = children[i];
+        curr = mkExpr(k, cc);
       }
-      return Expr(curr);
+      return curr;
     }
     // only if correct arity, else we will catch the type error
     bool isArityOk = TypeChecker::checkArity(k, vchildren.size());
@@ -1099,6 +1091,31 @@ Expr State::mkApplyAttr(AppInfo* ai,
       return mkExpr(Kind::APPLY, cchildren);
     }
     break;
+    case Attr::ARG_LIST:
+    {
+      Expr argList;
+      // If there is only one argument, and it was marked :list, then it is
+      // not desugared.
+      if (vchildren.size() == 2
+          && getConstructorKind(vchildren[1]) == Attr::LIST)
+      {
+        argList = Expr(vchildren[1]);
+      }
+      else
+      {
+        std::vector<Expr> cchildren;
+        Assert(!consTerm.isNull());
+        cchildren.push_back(consTerm);
+        for (size_t i = 1, nchild = vchildren.size(); i < nchild; i++)
+        {
+          cchildren.emplace_back(vchildren[i]);
+        }
+        argList = mkExpr(Kind::APPLY, cchildren);
+      }
+      return Expr(
+          mkExprInternal(Kind::APPLY, {vchildren[0], argList.getValue()}));
+    }
+    break;
     case Attr::OPAQUE:
     {
       // determine how many opaque children
@@ -1307,19 +1324,62 @@ Expr State::getProofRule(const std::string& name) const
   return d_null;
 }
 
-bool State::getActualPremises(const ExprValue* rule,
-                              std::vector<Expr>& given,
-                              std::vector<Expr>& actual)
+bool State::getProofRuleArguments(std::vector<Expr>& children,
+                                  Expr& rule,
+                                  Expr& proven,
+                                  std::vector<Expr>& premises,
+                                  std::vector<Expr>& args,
+                                  bool isPop)
 {
-  AppInfo* ainfo = getAppInfo(rule);
-  if (ainfo!=nullptr && ainfo->d_attrCons==Attr::PREMISE_LIST)
+  children.emplace_back(rule.getValue());
+  // arguments first
+  children.insert(children.end(), args.begin(), args.end());
+  AppInfo* ainfo = getAppInfo(rule.getValue());
+  if (ainfo != nullptr)
   {
-    Expr plCons = ainfo->d_attrConsTerm;
+    Assert (ainfo->d_attrCons == Attr::PROOF_RULE);
+    Expr tupleVal = ainfo->d_attrConsTerm;
+    Assert (tupleVal.getNumChildren()==3);
+    Expr plCons;
+    if (tupleVal[0]!=d_any)
+    {
+      plCons = tupleVal[0];
+    }
+    bool isAssume = tupleVal[1]==d_true;
+    bool isConcExplicit = tupleVal[2]==d_true;
+    if (isConcExplicit)
+    {
+      if (proven.isNull())
+      {
+        // requires a conclusion to be provided
+        return false;
+      }
+      children.push_back(proven);
+    }
+    if (isPop == isAssume)
+    {
+      if (isPop)
+      {
+        std::vector<Expr> as = getCurrentAssumptions();
+        // The size of assumptions should be one, but may contain more
+        // assumptions if e.g. we encountered assume in a nested assumption
+        // scope. Nevertheless, as[0] is always the first assumption in
+        // the assume-push.
+        // push the assumption
+        children.push_back(as[0]);
+      }
+    }
+    else
+    {
+      // using step for a rule requiring an assumption, or step-pop for a rule
+      // not requiring an assumption.
+      return false;
+    }
     if (!plCons.isNull())
     {
       std::vector<Expr> achildren;
       achildren.push_back(plCons);
-      for (Expr& e : given)
+      for (Expr& e : premises)
       {
         // should be proof types
         Expr eproven = d_tc.getType(e);
@@ -1349,14 +1409,26 @@ bool State::getActualPremises(const ExprValue* rule,
         ap = mkExpr(Kind::APPLY, achildren);
       }
       Expr pfap = mkProofType(ap);
-      // TODO: collect operator???
-      // dummy, const term of the given proof type
+      // dummy, "collected" term of the given proof type
       Expr n = mkSymbol(Kind::CONST, "tmp", pfap);
-      actual.push_back(n);
-      return true;
+      children.push_back(n);
+    }
+    else
+    {
+      // otherwise ordinary premises
+      children.insert(children.end(), premises.begin(), premises.end());
     }
   }
-  actual = given;
+  else
+  {
+    // premises after arguments
+    children.insert(children.end(), premises.begin(), premises.end());
+    if (isPop)
+    {
+      // ordinary rule cannot use assumption
+      return false;
+    }
+  }
   return true;
 }
 

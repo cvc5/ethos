@@ -1,6 +1,6 @@
-(declare-type Int ())
+(declare-const Int Type)
 (declare-consts <numeral> Int)
-(declare-type BitVec (Int))
+(declare-const BitVec (-> Int Type))
 (declare-consts <binary> (BitVec (eo::len eo::self)))
 
 (define @bv_empty () (eo::to_bin 0 0))

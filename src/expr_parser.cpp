@@ -75,6 +75,7 @@ ExprParser::ExprParser(Lexer& lex, State& state, bool isSignature)
   d_strToAttr[":pairwise"] = Attr::PAIRWISE;
   d_strToAttr[":binder"] = Attr::BINDER;
   d_strToAttr[":let-binder"] = Attr::LET_BINDER;
+  d_strToAttr[":arg-list"] = Attr::ARG_LIST;
   d_strToAttr[":opaque"] = Attr::OPAQUE;
   d_strToAttr[":syntax"] = Attr::SYNTAX;
   d_strToAttr[":restrict"] = Attr::RESTRICT;
@@ -641,11 +642,12 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList(
     else
     {
       v = d_state.mkSymbol(Kind::PARAM, name, t);
-      // if this parameter is used to define the type of a constant or proof
-      // rule, then if it has non-ground type, its type will be taken into
-      // account for matching and evaluation. We wrap it in (eo::param ...)
-      // here.
-      if ((k == Kind::CONST || k == Kind::PROOF_RULE) && !t.isGround())
+      // if this parameter is used to define the type of a constant, then if 
+      // it has non-ground type, its type will be taken into account for
+      // matching and evaluation. We wrap it in (eo::param ...) here.
+      // Older versions of ethos had also done this for PROOF_RULE, but
+      // we now view proof rules more as programs not constants.
+      if (k == Kind::CONST && !t.isGround())
       {
         v = d_state.mkExpr(Kind::ANNOT_PARAM, {v, t});
       }
@@ -1060,6 +1062,7 @@ void ExprParser::parseAttributeList(
           case Attr::CHAINABLE:
           case Attr::PAIRWISE:
           case Attr::BINDER:
+          case Attr::ARG_LIST:
           {
             // requires an expression that follows
             handled = true;
@@ -1256,7 +1259,7 @@ Expr ExprParser::findFreeVar(const Expr& e, const std::vector<Expr>& bvs)
     if (std::find(bvs.begin(), bvs.end(), v)==bvs.end())
     {
       // ignore distinguished variables
-      if (v==d_state.mkConclusion() || v==d_state.mkSelf())
+      if (v == d_state.mkSelf())
       {
         continue;
       }

@@ -6,12 +6,12 @@
     :args (t)
     :conclusion (= t t)
 )
-(declare-type @List ())
+(declare-const @List Type)
 (declare-const @list.nil @List)
 (declare-parameterized-const @list ((T Type :implicit)) (-> T @List @List) :right-assoc-nil @list.nil)
 (declare-const forall (-> @List Bool Bool) :binder @list)
 
-(declare-type Int ())
+(declare-const Int Type)
 (declare-const a Int)
 (declare-const b Int)
 
