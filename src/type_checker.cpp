@@ -163,7 +163,8 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_GT:
     case Kind::EVAL_LIST_LENGTH:
     case Kind::EVAL_LIST_REV:
-    case Kind::EVAL_LIST_SETOF: ret = (nargs == 2); break;
+    case Kind::EVAL_LIST_SETOF:
+    case Kind::EVAL_LIST_SINGLETON_ELIM: ret = (nargs == 2); break;
     case Kind::EVAL_NIL:
       ret = (nargs==2);
       break;
@@ -1569,6 +1570,15 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_LIST_DIFF:
     case Kind::EVAL_LIST_INTER:
       return evaluateListDiffInterInternal(k, op, nil, isLeft, args);
+    case Kind::EVAL_LIST_SINGLETON_ELIM: 
+    {
+      std::vector<ExprValue*> hargs;
+      if (getNAryChildren(args[1], op, nil, hargs, isLeft) == nullptr)
+      {
+        return d_null;
+      }
+      return Expr(hargs.size()==1 ? hargs[0] : args[1]);
+    }
     default:
       break;
   }
@@ -1820,7 +1830,8 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_LIST_REV:
     case Kind::EVAL_LIST_SETOF:
     case Kind::EVAL_LIST_DIFF:
-    case Kind::EVAL_LIST_INTER: return Expr(childTypes[1]);
+    case Kind::EVAL_LIST_INTER:
+    case Kind::EVAL_LIST_SINGLETON_ELIM: return Expr(childTypes[1]);
     case Kind::EVAL_CONCAT:
     case Kind::EVAL_EXTRACT:
       // type is the first child

@@ -81,6 +81,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::EVAL_LIST_MEQ: o << "EVAL_LIST_MEQ"; break;
     case Kind::EVAL_LIST_DIFF: o << "EVAL_LIST_DIFF"; break;
     case Kind::EVAL_LIST_INTER: o << "EVAL_LIST_INTER"; break;
+    case Kind::EVAL_LIST_SINGLETON_ELIM: o << "EVAL_LIST_SINGLETON_ELIM"; break;
     // boolean
     case Kind::EVAL_NOT: o << "EVAL_NOT"; break;
     case Kind::EVAL_AND: o << "EVAL_AND"; break;
@@ -174,6 +175,7 @@ std::string kindToTerm(Kind k)
           case Kind::EVAL_LIST_MEQ: ss << "list_meq"; break;
           case Kind::EVAL_LIST_DIFF: ss << "list_diff"; break;
           case Kind::EVAL_LIST_INTER: ss << "list_inter"; break;
+          case Kind::EVAL_LIST_SINGLETON_ELIM: ss << "list_singleton_elim"; break;
           // boolean
           case Kind::EVAL_NOT: ss << "not"; break;
           case Kind::EVAL_AND: ss << "and"; break;
@@ -278,6 +280,7 @@ bool isLiteralOp(Kind k)
     case Kind::EVAL_LIST_MEQ:
     case Kind::EVAL_LIST_DIFF:
     case Kind::EVAL_LIST_INTER:
+    case Kind::EVAL_LIST_SINGLETON_ELIM:
     // boolean
     case Kind::EVAL_NOT:
     case Kind::EVAL_AND:
@@ -342,7 +345,8 @@ bool isListLiteralOp(Kind k)
     case Kind::EVAL_LIST_MINCLUDE:
     case Kind::EVAL_LIST_MEQ:
     case Kind::EVAL_LIST_DIFF:
-    case Kind::EVAL_LIST_INTER: return true;
+    case Kind::EVAL_LIST_INTER:
+    case Kind::EVAL_LIST_SINGLETON_ELIM: return true;
     default:
       break;
   }

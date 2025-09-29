@@ -129,6 +129,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("list_meq", Kind::EVAL_LIST_MEQ);
   bindBuiltinEval("list_diff", Kind::EVAL_LIST_DIFF);
   bindBuiltinEval("list_inter", Kind::EVAL_LIST_INTER);
+  bindBuiltinEval("list_singleton_elim", Kind::EVAL_LIST_SINGLETON_ELIM);
   // boolean
   bindBuiltinEval("not", Kind::EVAL_NOT);
   bindBuiltinEval("and", Kind::EVAL_AND);
@@ -1024,8 +1025,7 @@ Expr State::mkApplyAttr(AppInfo* ai,
         {
           cc[prevIndex] = curr;
           cc[nextIndex] = vchildren[isLeft ? i : nchild - i];
-          // if the "head" child is marked as list, we construct
-          // Kind::EVAL_LIST_CONCAT
+          // if the "head" child is marked as list, we construct concatenation
           if (isNil && getConstructorKind(cc[nextIndex]) == Attr::LIST)
           {
             curr = mkExprInternal(Kind::EVAL_LIST_CONCAT, cc);
@@ -1039,6 +1039,8 @@ Expr State::mkApplyAttr(AppInfo* ai,
         if (isNsNil)
         {
           // add singleton elimination
+          std::vector<ExprValue*> ccse{hd, curr};
+          curr = mkExprInternal(Kind::EVAL_LIST_SINGLETON_ELIM, ccse);
         }
         Trace("type_checker")
             << "...return for " << Expr(vchildren[0]) << std::endl;
