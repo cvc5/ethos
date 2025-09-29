@@ -1,6 +1,11 @@
 This file contains a summary of important user-visible changes.
 
 
+ethos 0.2.2-prerelease
+======================
+- Adds builtin list operator `eo::list_singleton_elim` which converts singleton lists to their (single) element.
+- Adds the operator annotation `:right-assoc-non-singleton-nil` (resp. `:left-assoc-non-singleton-nil`). This annotation is similar to `:right-assoc-nil` but additionally collapses singleton lists to their single elements.
+
 ethos 0.2.1
 ===========
 
