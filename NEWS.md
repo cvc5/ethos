@@ -1,5 +1,9 @@
 This file contains a summary of important user-visible changes.
 
+ethos 0.2.2 prerelease
+======================
+
+- Evaluation is now forbidden in types of parameters and in the argument types of programs.
 
 ethos 0.2.1
 ===========
