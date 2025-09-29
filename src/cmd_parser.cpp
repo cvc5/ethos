@@ -438,6 +438,15 @@ bool CmdParser::parseNextCommand()
         Expr pet = d_state.mkProofType(e);
         argTypes.push_back(pet);
       }
+      for (const Expr& t : argTypes)
+      {
+        if (t.isEvaluatable())
+        {
+          std::stringstream ss;
+          ss << "Cannot have evaluation in definition of proof rule " << name << ", got " << t[0];
+          d_lex.parseError(ss.str());
+        }
+      }
       Expr ret = d_state.mkProofType(conc);
       // include the requirements into the return type
       if (!reqs.empty())
