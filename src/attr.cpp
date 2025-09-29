@@ -30,7 +30,9 @@ std::ostream& operator<<(std::ostream& o, Attr a)
     case Attr::RIGHT_ASSOC: o << "right-assoc"; break;
     case Attr::LEFT_ASSOC: o << "left-assoc"; break;
     case Attr::RIGHT_ASSOC_NIL: o << "right-assoc-nil"; break;
-    case Attr::LEFT_ASSOC_NIL: o << "let-assoc-nil"; break;
+    case Attr::LEFT_ASSOC_NIL: o << "left-assoc-nil"; break;
+    case Attr::RIGHT_ASSOC_NS_NIL: o << "right-assoc-non-singleton-nil"; break;
+    case Attr::LEFT_ASSOC_NS_NIL: o << "left-assoc-non-singleton-nil"; break;
     case Attr::CHAINABLE: o << "chainable"; break;
     case Attr::PAIRWISE: o << "pairwise"; break;
     case Attr::ARG_LIST: o << "arg-list"; break;
@@ -56,6 +58,21 @@ bool isNAryAttr(Attr a)
     case Attr::CHAINABLE:
     case Attr::PAIRWISE:
     case Attr::ARG_LIST: return true;
+    default:
+      break;
+  }
+  return false;
+}
+
+bool isListNilAttr(Attr a)
+{
+  switch (a)
+  {
+    case Attr::LEFT_ASSOC_NIL:
+    case Attr::RIGHT_ASSOC_NIL:
+    case Attr::RIGHT_ASSOC_NS_NIL:
+    case Attr::LEFT_ASSOC_NS_NIL:
+      return true;
     default:
       break;
   }

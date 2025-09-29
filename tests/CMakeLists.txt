@@ -163,6 +163,7 @@ set(ethos_test_file_list
     curry-nary.eo
     arg-list-cong.eo
     arg-list-distinct-elim.eo
+    list-non-singleton.eo
 )
 
 macro(ethos_test file)

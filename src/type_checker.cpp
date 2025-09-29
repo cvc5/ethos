@@ -1428,7 +1428,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     return d_null;
   }
   Attr ck = ac->d_attrCons;
-  if (ck!=Attr::RIGHT_ASSOC_NIL && ck!=Attr::LEFT_ASSOC_NIL)
+  if (!isListNilAttr(ck))
   {
     // not an associative operator
     return d_null;
@@ -1575,8 +1575,11 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       std::vector<ExprValue*> hargs;
       if (getNAryChildren(args[1], op, nil, hargs, isLeft) == nullptr)
       {
+        Trace("type_checker") << "...head not in list form" << std::endl;
         return d_null;
       }
+        Trace("type_checker") << "...has " << hargs.size() << " arguments" << std::endl;
+      // if a list of size 1, it is that argument, otherwise unchanged
       return Expr(hargs.size()==1 ? hargs[0] : args[1]);
     }
     default:

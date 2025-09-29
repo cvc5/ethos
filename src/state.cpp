@@ -1038,9 +1038,14 @@ Expr State::mkApplyAttr(AppInfo* ai,
         }
         if (isNsNil)
         {
-          // if we a "non-singleton" kind, we add singleton elimination
-          std::vector<ExprValue*> ccse{hd, curr};
-          curr = mkExprInternal(Kind::EVAL_LIST_SINGLETON_ELIM, ccse);
+          // If we are a "non-singleton" kind, we add singleton elimination.
+          // Note that this case is applied possibly on ground arguments,
+          // in contrast to the case of EVAL_LIST_CONCAT above. Hence, we must
+          // call mkExpr in case we evaluate this application immediately.
+          std::vector<Expr> ccse;
+          ccse.emplace_back(hd);
+          ccse.emplace_back(curr);
+          return mkExpr(Kind::EVAL_LIST_SINGLETON_ELIM, ccse);
         }
         Trace("type_checker")
             << "...return for " << Expr(vchildren[0]) << std::endl;
@@ -1406,7 +1411,7 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
         // the nil terminator if applied to empty list
         AppInfo* aic = getAppInfo(plCons.getValue());
         Attr ck = aic->d_attrCons;
-        if (ck==Attr::RIGHT_ASSOC_NIL || ck==Attr::LEFT_ASSOC_NIL)
+        if (isListNilAttr(ck))
         {
           ap = aic->d_attrConsTerm;
         }

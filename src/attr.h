@@ -70,6 +70,10 @@ enum class Attr
  */
 bool isNAryAttr(Attr a);
 /**
+ * Returns true if the attribute is :(right|left)-assoc-(non-singleton)?-nil.
+ */
+bool isListNilAttr(Attr a);
+/**
  * Is the Attr specifying a constructor kind?
  */
 bool isConstructorKindAttr(Attr a);
