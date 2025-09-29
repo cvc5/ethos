@@ -51,6 +51,8 @@ bool isNAryAttr(Attr a)
     case Attr::RIGHT_ASSOC:
     case Attr::LEFT_ASSOC_NIL:
     case Attr::RIGHT_ASSOC_NIL:
+    case Attr::RIGHT_ASSOC_NS_NIL:
+    case Attr::LEFT_ASSOC_NS_NIL:
     case Attr::CHAINABLE:
     case Attr::PAIRWISE:
     case Attr::ARG_LIST: return true;

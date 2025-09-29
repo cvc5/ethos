@@ -970,6 +970,8 @@ Expr State::mkApplyAttr(AppInfo* ai,
     case Attr::RIGHT_ASSOC:
     case Attr::LEFT_ASSOC_NIL:
     case Attr::RIGHT_ASSOC_NIL:
+    case Attr::RIGHT_ASSOC_NS_NIL:
+    case Attr::LEFT_ASSOC_NS_NIL:
     {
       // This means that we don't construct bogus terms when e.g.
       // right-assoc-nil operators are used in side condition bodies.
@@ -978,8 +980,11 @@ Expr State::mkApplyAttr(AppInfo* ai,
       if (nchild >= 2)
       {
         bool isLeft = (ai->d_attrCons == Attr::LEFT_ASSOC
-                       || ai->d_attrCons == Attr::LEFT_ASSOC_NIL);
-        bool isNil = (ai->d_attrCons == Attr::RIGHT_ASSOC_NIL
+                       || ai->d_attrCons == Attr::LEFT_ASSOC_NIL
+                       || ai->d_attrCons == Attr::LEFT_ASSOC_NS_NIL);
+        bool isNsNil = (ai->d_attrCons == Attr::RIGHT_ASSOC_NS_NIL
+                      || ai->d_attrCons == Attr::LEFT_ASSOC_NS_NIL);
+        bool isNil = (isNsNil || ai->d_attrCons == Attr::RIGHT_ASSOC_NIL
                       || ai->d_attrCons == Attr::LEFT_ASSOC_NIL);
         size_t i = 1;
         ExprValue* curr = vchildren[isLeft ? i : nchild - i];
