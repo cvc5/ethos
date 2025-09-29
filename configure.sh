@@ -21,6 +21,7 @@ General options;
 Features:
 The following flags enable optional features (disable with --no-<option name>).
   --static                 build static binary [default=no]
+  --werror                 build with -Werror
 
 
 CMake Options (Advanced)
@@ -55,6 +56,7 @@ install_prefix=default
 buildtype=default
 
 build_static=default
+werror=default
 
 #--------------------------------------------------------------------------#
 
@@ -83,6 +85,8 @@ do
     --static) build_static=ON;;
     --no-static) build_static=OFF;;
 
+    --werror) werror=ON;;
+
     -D*) cmake_opts="${cmake_opts} $1" ;;
 
     -*) die "invalid option '$1' (try -h)";;
@@ -98,6 +102,11 @@ do
 done
 
 #--------------------------------------------------------------------------#
+
+if [ $werror != default ]; then
+  export CFLAGS=-Werror
+  export CXXFLAGS=-Werror
+fi
 
 [ $buildtype != default ] \
   && cmake_opts="$cmake_opts -DCMAKE_BUILD_TYPE=$buildtype"
