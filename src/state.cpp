@@ -1038,7 +1038,7 @@ Expr State::mkApplyAttr(AppInfo* ai,
         }
         if (isNsNil)
         {
-          // add singleton elimination
+          // if we a "non-singleton" kind, we add singleton elimination
           std::vector<ExprValue*> ccse{hd, curr};
           curr = mkExprInternal(Kind::EVAL_LIST_SINGLETON_ELIM, ccse);
         }
