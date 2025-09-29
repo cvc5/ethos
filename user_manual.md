@@ -458,6 +458,40 @@ Examples of this desugaring are given below.
 Note that in the case of `(or z)`, no application of `or` is constructed, since only one argument term is given, since it is marked with `:list`.
 In contrast, `(or x)` denotes the `or` whose children are `x` and `false`.
 
+#### Right/Left associative with nil terminator, without singleton list
+
+A further variant of right and left associative operators
+avoids constructing lists with a single element.
+In particular, note the following example:
+
+```smt
+(declare-const or (-> Bool Bool Bool) :right-assoc-non-singleton-nil false)
+(define or_3 ((x Bool :list) (y Bool) (z Bool :list)) (or x y z))
+(define Q () (or (or a b) a false))
+(define P () (or false a false))
+```
+
+In this example, `or` has been marked `:right-assoc-non-singleton-nil false`.
+This attribute is identical to `:right-assoc-nil false`, but where `or` applied to
+a single child is instead replaced by the child itself.
+
+We define a predicate `or_3` which concatenates three terms, the first
+and third being lists and the middle child `y` being a Boolean.
+The definition of `Q` is equivalent to `(or a b a)`, which is identical to if `or` had been marked `:right-assoc-nil`.
+The definition of `P` is equivalent to `a`, which is not the same as `(or a)`,
+which would have been the result if `or` had been marked `:right-assoc-nil`.
+
+In general, applications of `right-assoc-non-singleton-nil` operators `(f t1 ... tn)`
+are desugared to `(eo::list_singleton_elim f t)` where `t` is the result of
+desugaring `(f t1 ... tn)` using the policy described in the previous section.
+The semantics of `eo::list_singleton_elim` is provided later in [list-computation](#list-computation).
+In particular, this means that the definition of `or_3` is desugared as follows:
+```smt
+(define or_3 ((x Bool :list) (y Bool) (z Bool :list))
+  (or x y z)   ; (eo::list_singleton_elim or (eo::list_concat or x (or y z)))
+)
+```
+
 #### Chainable
 
 ```smt
