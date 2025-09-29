@@ -1433,7 +1433,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     // not an associative operator
     return d_null;
   }
-  bool isLeft = (ck==Attr::LEFT_ASSOC_NIL || ck==Attr::LEFT_ASSOC_NS_NIL);
+  bool isLeft = (ck == Attr::LEFT_ASSOC_NIL || ck == Attr::LEFT_ASSOC_NS_NIL);
   Trace("type_checker_debug") << "EVALUATE-LIT (list) " << k << " " << isLeft << " " << args << std::endl;
   // infer the nil expression, which depends on the type of args[1]
   std::vector<Expr> eargs;
@@ -1570,7 +1570,7 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_LIST_DIFF:
     case Kind::EVAL_LIST_INTER:
       return evaluateListDiffInterInternal(k, op, nil, isLeft, args);
-    case Kind::EVAL_LIST_SINGLETON_ELIM: 
+    case Kind::EVAL_LIST_SINGLETON_ELIM:
     {
       std::vector<ExprValue*> hargs;
       if (getNAryChildren(args[1], op, nil, hargs, isLeft) == nullptr)
@@ -1578,9 +1578,10 @@ Expr TypeChecker::evaluateLiteralOpInternal(
         Trace("type_checker") << "...head not in list form" << std::endl;
         return d_null;
       }
-        Trace("type_checker") << "...has " << hargs.size() << " arguments" << std::endl;
+      Trace("type_checker")
+          << "...has " << hargs.size() << " arguments" << std::endl;
       // if a list of size 1, it is that argument, otherwise unchanged
-      return Expr(hargs.size()==1 ? hargs[0] : args[1]);
+      return Expr(hargs.size() == 1 ? hargs[0] : args[1]);
     }
     default:
       break;

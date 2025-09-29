@@ -175,7 +175,9 @@ std::string kindToTerm(Kind k)
           case Kind::EVAL_LIST_MEQ: ss << "list_meq"; break;
           case Kind::EVAL_LIST_DIFF: ss << "list_diff"; break;
           case Kind::EVAL_LIST_INTER: ss << "list_inter"; break;
-          case Kind::EVAL_LIST_SINGLETON_ELIM: ss << "list_singleton_elim"; break;
+          case Kind::EVAL_LIST_SINGLETON_ELIM:
+            ss << "list_singleton_elim";
+            break;
           // boolean
           case Kind::EVAL_NOT: ss << "not"; break;
           case Kind::EVAL_AND: ss << "and"; break;

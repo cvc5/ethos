@@ -71,10 +71,8 @@ bool isListNilAttr(Attr a)
     case Attr::LEFT_ASSOC_NIL:
     case Attr::RIGHT_ASSOC_NIL:
     case Attr::RIGHT_ASSOC_NS_NIL:
-    case Attr::LEFT_ASSOC_NS_NIL:
-      return true;
-    default:
-      break;
+    case Attr::LEFT_ASSOC_NS_NIL: return true;
+    default: break;
   }
   return false;
 }

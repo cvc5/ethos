@@ -984,7 +984,7 @@ Expr State::mkApplyAttr(AppInfo* ai,
                        || ai->d_attrCons == Attr::LEFT_ASSOC_NIL
                        || ai->d_attrCons == Attr::LEFT_ASSOC_NS_NIL);
         bool isNsNil = (ai->d_attrCons == Attr::RIGHT_ASSOC_NS_NIL
-                      || ai->d_attrCons == Attr::LEFT_ASSOC_NS_NIL);
+                        || ai->d_attrCons == Attr::LEFT_ASSOC_NS_NIL);
         bool isNil = (isNsNil || ai->d_attrCons == Attr::RIGHT_ASSOC_NIL
                       || ai->d_attrCons == Attr::LEFT_ASSOC_NIL);
         size_t i = 1;

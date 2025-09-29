@@ -49,7 +49,7 @@ enum class Attr
   LEFT_ASSOC,
   RIGHT_ASSOC_NIL,
   LEFT_ASSOC_NIL,
-  RIGHT_ASSOC_NS_NIL, // non-singleton version
+  RIGHT_ASSOC_NS_NIL,  // non-singleton version
   LEFT_ASSOC_NS_NIL,
   CHAINABLE,
   PAIRWISE,
