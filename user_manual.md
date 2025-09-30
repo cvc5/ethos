@@ -485,12 +485,9 @@ In general, applications of `right-assoc-non-singleton-nil` operators `(f t1 ...
 are desugared to `(eo::list_singleton_elim f t)` where `t` is the result of
 desugaring `(f t1 ... tn)` using the policy described in the previous section.
 The semantics of `eo::list_singleton_elim` is provided later in [list-computation](#list-computation).
-In particular, this means that the definition of `or_3` is desugared as follows:
-```smt
-(define or_3 ((x Bool :list) (y Bool) (z Bool :list))
-  (or x y z)   ; (eo::list_singleton_elim or (eo::list_concat or x (or y z)))
-)
-```
+In particular, this means that the definition of `or_3` is desugared to
+`(eo::list_singleton_elim or (eo::list_concat or x (or y z)))`
+in the example above.
 
 #### Chainable
 
@@ -977,6 +974,8 @@ We say that a term is an `f`-list with children `t1 ... tn` if it is of the form
   - (Difference) If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, this returns the result of erasing elements of `t11 ... t1n` that occur in `t21 ... t2m` where multiplicity is considered. In detail, for each `i = 1, ..., n`, if `t1i` occurs in `t21 ... t2m`, we remove one copy of it from that list. Otherwise if `t1i` does not occur in `t21 ... t2m`, we append it to the final result.
 - `(eo::list_inter f t1 t2)`
   - (Intersection) If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, this returns the result of erasing elements of `t11 ... t1n` that do not occur in `t21 ... t2m` where multiplicity is considered. In detail, for each `i = 1, ..., n`, if `t1i` occurs in `t21 ... t2m`, we erase one copy of it from that list and append it to the final result.
+- `(eo::list_singleton_elim f t1)`
+  - (Singleton elimination) If `t1` is an `f`-list containing a single child `t11`, this returns `t11`. All other `f`-lists `t1` are returned unchanged. Otherwise, this operator does not evaluate.
 
 ### List Computation Examples
 
@@ -1065,6 +1064,10 @@ The terms on both sides of the given evaluation are written in their form prior 
 (eo::list_inter or (or a a b) (or a b))     == (or a b)
 (eo::list_inter or (or a b c b a) (or c b)) == (or b c)
 (eo::list_inter or (or a b a c a) (or a a)) == (or a a)
+
+(eo::list_singleton_elim or (or a b c))     == (or a b c)
+(eo::list_singleton_elim or (or a a a))     == (or a a a)
+(eo::list_singleton_elim or (or a))         == a
 ```
 
 ### Parametric Nil terminators
