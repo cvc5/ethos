@@ -95,6 +95,7 @@ enum class Kind
   EVAL_LIST_MEQ,
   EVAL_LIST_DIFF,
   EVAL_LIST_INTER,
+  EVAL_LIST_SINGLETON_ELIM,
   // boolean
   EVAL_NOT,
   EVAL_AND,
