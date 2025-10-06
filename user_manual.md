@@ -685,7 +685,7 @@ Note, however, that the evaluation of these operators is handled by more efficie
   - Returns `t2` if `t1` is `true`, `t3` if `t1` is `false`, and is not evaluated otherwise. Note that the branches of this term are only evaluated if they are the return term.
 
 - `(eo::eq t1 t2)`
-  - If `t1` and `t2` are ground values, this returns `true` if `t1` is (syntactically) equal to `t2` and false otherwise. Otherwise, if either `t1` or `t2` is non-ground, it does not evaluate. Note this can be expressed as an ordinary Eunoia program as we describe in [derived-ops](#derived-ops).
+  - If `t1` and `t2` are ground values, this returns `true` if `t1` is (syntactically) equal to `t2` and `false` otherwise. If either `t1` or `t2` is non-ground, it does not evaluate. Note this can be expressed as an ordinary Eunoia program as we describe in [derived-ops](#derived-ops).
 
 - `(eo::is_eq t1 t2)`
   - Equivalent to `(eo::ite (eo::and (eo::is_ok t) (eo::is_ok s)) (eo::eq s t) false)`.
@@ -2100,7 +2100,7 @@ The following signature can be used to give an alternative definition
 of certain builtin operators that can be expressed as standard Eunoia programs,
 or based on other operators.
 We provide this as a parsable Eunoia file, which is also part of our
-regressions (see <https://github.com/cvc5/ethos/tree/main/tests/eo-definitions.eo>).
+regression tests (see <https://github.com/cvc5/ethos/tree/main/tests/eo-definitions.eo>).
 
 We use the convention that each `eo::X` definition is given a corresponding
 definition `$eo_X` in the following signature.
