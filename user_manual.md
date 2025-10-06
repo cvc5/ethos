@@ -914,7 +914,7 @@ We describe the evaluation for right associative operators; left associative eva
 We say that a term is an `f`-list with children `t1 ... tn` if it is of the form `(f t1 ... tn)` where `n>0` or `nil` if `n=0`.
 
 Note that all of the list operators here (with the exception of `eo::nil`) have a semantics that can be described as an ordinary Eunoia program.
-We provide a signature of these definitions in [derived-list-ops](#derived-list-ops).
+We describe a signature that gives these definitions in [derived-ops](#derived-ops).
 
 ### List operators
 
