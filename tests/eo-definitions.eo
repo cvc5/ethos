@@ -82,8 +82,8 @@
 
 ;;; $eo_cmp
 
-; An arbitrary deterministic comparison of terms. Returns true if a > b based
-; on this ordering.
+; A deterministic comparison of terms. Returns true if a > b based
+; on this ordering. This ordering is based on eo::hash.
 ; define: $eo_cmp
 ; implements: eo::cmp
 (define $eo_cmp ((T Type :implicit) (U Type :implicit) (a T) (b U))
