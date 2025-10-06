@@ -2109,7 +2109,7 @@ file to use `$eo_` instead of `eo::` should
 have no impact on behavior (apart from performance), unless otherwise noted.
 
 The signature above provides definitions of Eunoia list operators in terms
-of standard Eunoia programs.
+of standard Eunoia programs or definitions.
 It is possible to define programs for *all* list operators with the exception
 of `eo::nil`.
 In particular, the behavior of `eo::nil` is dynamically modified based on the
@@ -2154,7 +2154,7 @@ Providing a concrete type, e.g. `(BitVec 4)` will ensure `m` is bound to `4`
 and hence `($eo_nil bvor (BitVec 4))` evaluates to `(eo::to_bin 0 4)`, which is
 `#b0000`.
 
-All other list operators can be defined as ordinary Eunoia programs.
+All other list operators can be defined as ordinary Eunoia programs or definitions.
 
 ### Proofs as terms
 
