@@ -992,6 +992,7 @@ Expr State::mkApplyAttr(AppInfo* ai,
         std::vector<ExprValue*> cc{hd, nullptr, nullptr};
         size_t nextIndex = isLeft ? 2 : 1;
         size_t prevIndex = isLeft ? 1 : 2;
+        size_t nlistTerms = 0;
         if (isNil)
         {
           if (getConstructorKind(curr) != Attr::LIST)
@@ -1032,11 +1033,13 @@ Expr State::mkApplyAttr(AppInfo* ai,
           }
           else
           {
+            nlistTerms++;
             curr = mkApplyInternal(cc);
           }
           i++;
         }
-        if (isNsNil)
+        // if we are a non-singleton list with fewer than 2 non-list children
+        if (isNsNil && nlistTerms<2)
         {
           // If we are a "non-singleton" kind, we add singleton elimination.
           // Note that this case is applied possibly on ground arguments,

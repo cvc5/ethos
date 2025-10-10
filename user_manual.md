@@ -481,11 +481,16 @@ The definition of `Q` is equivalent to `(or a b a)`, which is identical to if `o
 The definition of `P` is equivalent to `a`, which is not the same as `(or a)`,
 which would have been the result if `or` had been marked `:right-assoc-nil`.
 
-In general, applications of `right-assoc-non-singleton-nil` operators `(f t1 ... tn)`
-are desugared to `(eo::list_singleton_elim f t)` where `t` is the result of
-desugaring `(f t1 ... tn)` using the policy described in the previous section.
+More generally,
+applications of `right-assoc-non-singleton-nil` operators `(f t1 ... tn)`
+are desugared as follows.
+First, we compute the result `t` of
+desugaring `(f t1 ... tn)` using the policy described in the previous section,
+where `f` is `right-assoc-nil`.
+If at least two of `t1 ... tn` are not marked `:list`, we return `t`.
+Otherwise we return the term `(eo::list_singleton_elim f t)`.
 The semantics of `eo::list_singleton_elim` is provided later in [list-computation](#list-computation).
-In particular, this means that the definition of `or_3` is desugared to
+This means that the definition of `or_3` is desugared to
 `(eo::list_singleton_elim or (eo::list_concat or x (or y z)))`
 in the example above.
 
