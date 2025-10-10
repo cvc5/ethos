@@ -467,8 +467,8 @@ In particular, note the following example:
 ```smt
 (declare-const or (-> Bool Bool Bool) :right-assoc-non-singleton-nil false)
 (define or_3 ((x Bool :list) (y Bool) (z Bool :list)) (or x y z))
-(define Q () (or (or a b) a false))
-(define P () (or false a false))
+(define Q () (or_3 (or a b) a false))
+(define P () (or_3 false a false))
 ```
 
 In this example, `or` has been marked `:right-assoc-non-singleton-nil false`.
@@ -477,8 +477,8 @@ a single child is instead replaced by the child itself.
 
 We define a predicate `or_3` which concatenates three terms, the first
 and third being lists and the middle child `y` being a Boolean.
-The definition of `Q` is equivalent to `(or a b a)`, which is identical to if `or` had been marked `:right-assoc-nil`.
-The definition of `P` is equivalent to `a`, which is not the same as `(or a)`,
+The definition of `Q` is equivalent after desugaring to `(or a (or b (or a false)))`, which is identical to if `or` had been marked `:right-assoc-nil`.
+The definition of `P` is equivalent after desugaring to `a`, which is not the same as `(or a false)`,
 which would have been the result if `or` had been marked `:right-assoc-nil`.
 
 More generally,

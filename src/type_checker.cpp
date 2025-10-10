@@ -164,10 +164,8 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_LIST_LENGTH:
     case Kind::EVAL_LIST_REV:
     case Kind::EVAL_LIST_SETOF:
-    case Kind::EVAL_LIST_SINGLETON_ELIM: ret = (nargs == 2); break;
-    case Kind::EVAL_NIL:
-      ret = (nargs==2);
-      break;
+    case Kind::EVAL_LIST_SINGLETON_ELIM:
+    case Kind::EVAL_NIL: ret = (nargs == 2); break;
     case Kind::EVAL_LIST_CONCAT: ret = (nargs == 3); break;
     case Kind::PROOF_TYPE:
     case Kind::EVAL_IS_OK:
