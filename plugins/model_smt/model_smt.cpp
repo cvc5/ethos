@@ -530,6 +530,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   d_symIgnore["UnitTuple"] = true;
   addReduceSym("tuple", {}, "($vsm_apply ($vsm_term tuple) $vsm_not_value)");
   addReduceSym("tuple.unit", {}, "($vsm_term tuple.unit)");
+  
+  // for alethe
+  addTermReduceSym("@cl", {kT, kT}, "(or x1 x2)");
 }
 
 ModelSmt::~ModelSmt() {}

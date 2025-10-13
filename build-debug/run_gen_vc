@@ -11,6 +11,7 @@
 
 # The name of a EO signature
 INPUT="../../cvc5-ajr/proofs/eo/cpc/Cpc.eo"
+#INPUT="../../cvc5-ajr/proofs/eo/alethe/alethe.eo"
 # should be the name of a constant or proof rule in $INPUT
 TARGET=$1
 
