@@ -384,7 +384,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
     ssRet << "(eo::define ((p2wm1 ($smt_apply_2 \"-\" ($smtx_pow2 x1) "
              "$smt_builtin_z_one))) ";
     ssRet << " ($smt_builtin_or " << smtApp(">=", "sret", "p2wm1");
-    ssRet << " " << smtApp("<=", "sret", "($smt_builtin_neg p2wm1)");
+    ssRet << " " << smtApp("<", "sret", "($smt_builtin_neg p2wm1)");
     ssRet << ")))";
     addLitSym(bvOp, {kBitVec, kBitVec}, kBool, ssRet.str());
   }
@@ -504,14 +504,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             kT,
             "($smtx_model_eval (bvcomp ($eo_mk_binary x1 x2) (bvnot "
             "($eo_mk_binary x1 $smt_builtin_z_zero))))");
-  //  must guard for non-positive widths, which do not evaluate
-  std::stringstream ssBvCond;
-  ssBvCond << smtApp(">", "x2", "$smt_builtin_z_zero");
+  // utility guards for negative widths, which do not evaluate
   addLitSym(
       "@bv",
       {kInt, kInt},
       kT,
-      smtGuard(ssBvCond.str(), "($smtx_model_eval ($eo_mk_binary x2 x1))"));
+      "($smtx_model_eval ($eo_mk_binary x2 x1))");
   addTermReduceSym("@bit", {kInt, kBitVec}, "(extract x1 x1 x2)");
   addLitBinSym("@from_bools",
                {kBool, kBitVec},
