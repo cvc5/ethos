@@ -435,8 +435,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTermReduceSym("@mod_by_zero", {kInt}, "(mod x1 0)");
   addTermReduceSym("@div_by_zero", {kReal}, "(/ x1 0/1)");
   // TODO: is this right? if so, simplify CPC
-  addTermReduceSym(
-      "int.log2", {kInt}, "(ite (< x1 0) 0 (div x1 (int.pow2 x1)))");
+  //addTermReduceSym(
+  //    "int.log2", {kInt}, "(ite (< x1 0) 0 (div x1 (int.pow2 x1)))");
   addTermReduceSym(
       "int.ispow2", {kInt}, "(and (>= x1 0) (= x1 (int.pow2 (int.log2 x1))))");
   // arrays
@@ -506,11 +506,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             "($eo_mk_binary x1 $smt_builtin_z_zero))))");
   //  must guard for non-positive widths, which do not evaluate
   std::stringstream ssBvCond;
-  ssBvCond << smtApp("and",
-                     smtApp(">", "x2", "$smt_builtin_z_zero"),
-                     smtApp("and",
-                            smtApp(">", "($smtx_pow2 x2)", "x1"),
-                            smtApp(">=", "x1", "$smt_builtin_z_zero")));
+  ssBvCond << smtApp(">", "x2", "$smt_builtin_z_zero");
   addLitSym(
       "@bv",
       {kInt, kInt},

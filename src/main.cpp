@@ -147,29 +147,32 @@ int main( int argc, char* argv[] )
     }
   }
   // options are finalized, now initialize the state and run the includes
-  // TODO: use unique_ptr
   Stats stats;
   State s(opts, stats);
-  SmtMetaReduce pluginSmr(s);
-  ModelSmt pluginMsmt(s);
-  Desugar pluginDs(s);
-  TrimDefs pluginTds(s);
+  std::unique_ptr<SmtMetaReduce> pluginSmr;
+  std::unique_ptr<ModelSmt> pluginMsmt;
+  std::unique_ptr<Desugar> pluginDs;
+  std::unique_ptr<TrimDefs> pluginTds;
   Plugin* plugin = nullptr;
   if (opts.d_pluginDesugar)
   {
-    plugin = &pluginDs;
+    pluginDs.reset(new Desugar(s));
+    plugin = pluginDs.get();
   }
   else if (opts.d_pluginSmtMeta)
   {
-    plugin = &pluginSmr;
+    pluginSmr.reset(new SmtMetaReduce(s));
+    plugin = pluginSmr.get();
   }
   else if (opts.d_pluginTrimDefs)
   {
-    plugin = &pluginTds;
+    pluginTds.reset(new TrimDefs(s));
+    plugin = pluginTds.get();
   }
   else if (opts.d_pluginModelSmt)
   {
-    plugin = &pluginMsmt;
+    pluginMsmt.reset(new ModelSmt(s));
+    plugin = pluginMsmt.get();
   }
   // NOTE: initialization of plugin goes here
   if (plugin != nullptr)
