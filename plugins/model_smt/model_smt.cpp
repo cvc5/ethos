@@ -248,7 +248,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ssSgtRet << "(eo::define ((msb_s ($eo_bool ($smtx_msb x1 x2)))) ";
   ssSgtRet << "(eo::define ((msb_t ($eo_bool ($smtx_msb x3 x4)))) ";
   ssSgtRet << "($smtx_model_eval (or (and msb_s (not msb_t))";
-  ssSgtRet << " (and (= msb_s msb_t) (bvult s t))))))";
+  ssSgtRet << " (and (= msb_s msb_t) (bvugt s t))))))";
   addLitSym(
       "bvsgt", {kBitVec, kBitVec}, kT, smtBinaryBinReturn(ssSgtRet.str()));
   addLitSym("zero_extend",
