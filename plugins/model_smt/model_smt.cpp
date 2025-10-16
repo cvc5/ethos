@@ -381,8 +381,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
     std::stringstream ssRet;
     ssRet << "(eo::define ((sret ($smt_apply_2 \"" << intOp << "\"";
     ssRet << " ($smtx_binary_uts x1 x2) ($smtx_binary_uts x3 x4)))) ";
-    ssRet << "(eo::define ((p2wm1 ($smt_apply_2 \"-\" ($smtx_pow2 x1) "
-             "$smt_builtin_z_one))) ";
+    ssRet << "(eo::define ((p2wm1 ($smtx_pow2 ($smt_apply_2 \"-\" x1 "
+             "$smt_builtin_z_one)))) ";
     ssRet << " ($smt_builtin_or " << smtApp(">=", "sret", "p2wm1");
     ssRet << " " << smtApp("<", "sret", "($smt_builtin_neg p2wm1)");
     ssRet << ")))";
