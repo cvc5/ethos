@@ -188,6 +188,10 @@ State::State(Options& opts, Stats& stats)
   d_any = Expr(mkExpr(Kind::ANY, {}));
   // self is a distinguished parameter
   d_self = Expr(mkSymbolInternal(Kind::PARAM, "eo::self", d_any));
+
+  d_proofType = Expr(mkSymbolInternal(Kind::CONST, "Proof", d_type));
+  Expr ptype = mkFunctionType({d_boolType}, d_proofType);
+  d_proof = Expr(mkSymbolInternal(Kind::CONST, "pf", ptype));
 }
 
 State::~State() {}

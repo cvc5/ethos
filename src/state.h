@@ -373,6 +373,9 @@ class State
   TypeChecker d_tc;
   /** Plugin, if using one */
   Plugin* d_plugin;
+  // ----------- new proof
+  Expr d_proofType;
+  Expr d_proof;
 };
 
 }  // namespace ethos
