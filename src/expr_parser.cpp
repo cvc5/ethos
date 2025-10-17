@@ -1234,7 +1234,20 @@ void ExprParser::typeCheckProgramPair(Expr& pat,
                                       Expr& ret,
                                       bool checkPreservation)
 {
-  // currently, does nothing
+  // ensure the right hand side is bound by the left hand side
+  std::vector<Expr> bvs = Expr::getVariables(pat);
+  ensureBound(ret, bvs);
+  for (size_t i = 1, nchildren = pat.getNumChildren(); i < nchildren;
+        i++)
+  {
+    Expr ecc = pat[i];
+    if (ecc.isEvaluatable())
+    {
+      std::stringstream ss;
+      ss << "Cannot match on evaluatable subterm " << pat[i];
+      d_lex.parseError(ss.str());
+    }
+  }
 }
 
 Expr ExprParser::findFreeVar(const Expr& e, const std::vector<Expr>& bvs)

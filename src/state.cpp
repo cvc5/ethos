@@ -586,6 +586,17 @@ Expr State::mkProofType(const Expr& proven)
 {
   return Expr(mkExprInternal(Kind::PROOF_TYPE, {proven.getValue()}));
 }
+
+Expr State::mkProofTypeNew()
+{
+  return d_proofType;
+}
+
+Expr State::mkProofNew(const Expr& proven)
+{
+  return Expr(mkExprInternal(Kind::APPLY, {d_proof.getValue(), proven.getValue()}));
+}
+
 Expr State::mkQuoteType(const Expr& t)
 {
   return Expr(mkExprInternal(Kind::QUOTE_TYPE, {t.getValue()}));

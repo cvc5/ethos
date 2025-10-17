@@ -110,6 +110,12 @@ class State
   Expr mkListNil();
   /** (Proof <proven>) */
   Expr mkProofType(const Expr& proven);
+  ///----- new
+  /** Proof */
+  Expr mkProofTypeNew();
+  /** mkproof */
+  Expr mkProofNew(const Expr& proven);
+  ///----- new
   /** (Quote <term>) */
   Expr mkQuoteType(const Expr& t);
   /** */

@@ -391,7 +391,8 @@ bool CmdParser::parseNextCommand()
         args = d_eparser.parseExprList();
         keyword = d_eparser.parseKeyword();
       }
-      std::vector<Expr> argTypes;
+      std::vector<Expr> progTypes;
+      std::vector<Expr> progArgs;
       // parse requirements, optionally
       if (keyword=="requires")
       {
@@ -417,60 +418,60 @@ bool CmdParser::parseNextCommand()
       // ordinary arguments first
       for (Expr& e : args)
       {
-        Expr et = d_state.mkQuoteType(e);
-        argTypes.push_back(et);
+
+        progArgs.push_back(e);
       }
       // then explicit conclusion
       if (concExplicit)
       {
-        Expr qct = d_state.mkQuoteType(conc);
-        argTypes.push_back(qct);
+        progTypes.push_back(d_state.mkBoolType());
+        progArgs.push_back(conc);
       }
       // then assumption
       if (!assume.isNull())
       {
-        Expr ast = d_state.mkQuoteType(assume);
-        argTypes.push_back(ast);
+        progTypes.push_back(d_state.mkBoolType());
+        progArgs.push_back(assume);
       }
       // finally, premises
       for (const Expr& e : premises)
       {
-        Expr pet = d_state.mkProofType(e);
-        argTypes.push_back(pet);
+        Expr pet = d_state.mkProofNew(e);
+        progTypes.push_back(d_state.mkProofTypeNew());
+        progArgs.push_back(pet);
       }
-      Expr ret = d_state.mkProofType(conc);
+      Expr ret = d_state.mkProofNew(conc);
       // include the requirements into the return type
       if (!reqs.empty())
       {
         ret = d_state.mkRequires(reqs, ret);
       }
-      // Ensure all free variables in the conclusion are bound in the arguments.
-      // Otherwise, this rule will always generate a free variable, which is
-      // likely unintentional.
-      std::vector<Expr> bvs = Expr::getVariables(argTypes);
-      d_eparser.ensureBound(ret, bvs);
+      Expr pt = d_state.mkProofTypeNew();
       // make the overall type
-      if (!argTypes.empty())
+      if (!progArgs.empty())
       {
-        ret = d_state.mkFunctionType(argTypes, ret, false);
+        pt = d_state.mkProgramType(progArgs, pt);
       }
       d_state.popScope();
-      Expr rule = d_state.mkSymbol(Kind::PROOF_RULE, name, ret);
+      Expr rule = d_state.mkSymbol(Kind::PROOF_RULE, name, pt);
       d_eparser.typeCheck(rule);
+      progArgs.insert(progArgs.begin(), rule);
+      Expr ppat = d_state.mkExpr(Kind::APPLY, progArgs);
+      d_eparser.typeCheckProgramPair(ppat, ret, true);
+      Expr progCase = d_state.mkPair(ppat, ret);
+      Expr prog = d_state.mkExpr(Kind::PROGRAM, {progCase});
       d_eparser.bind(name, rule);
-      if (!assume.isNull() || concExplicit || !plCons.isNull())
-      {
-        std::vector<Expr> tupleChildren;
-        tupleChildren.push_back(plCons.isNull() ? d_state.mkAny() : plCons);
-        tupleChildren.push_back(d_state.mkBool(!assume.isNull()));
-        tupleChildren.push_back(d_state.mkBool(concExplicit));
-        Expr attrVal = d_state.mkExpr(Kind::TUPLE, tupleChildren);
-        // we always carry plCons, in case the rule was marked
-        // :premise-list as well as :assumption or :conclusion-explicit
-        // simulataneously. We will handle all 3 special cases at once in
-        // State::getProofRuleArguments when the rule is applied.
-        d_state.markConstructorKind(rule, Attr::PROOF_RULE, attrVal);
-      }
+      std::vector<Expr> tupleChildren;
+      tupleChildren.push_back(plCons.isNull() ? d_state.mkAny() : plCons);
+      tupleChildren.push_back(d_state.mkBool(!assume.isNull()));
+      tupleChildren.push_back(d_state.mkBool(concExplicit));
+      tupleChildren.push_back(prog);
+      Expr attrVal = d_state.mkExpr(Kind::TUPLE, tupleChildren);
+      // we always carry plCons, in case the rule was marked
+      // :premise-list as well as :assumption or :conclusion-explicit
+      // simulataneously. We will handle all 3 special cases at once in
+      // State::getProofRuleArguments when the rule is applied.
+      d_state.markConstructorKind(rule, Attr::PROOF_RULE, attrVal);
       AttrMap attrs;
       d_eparser.parseAttributeList(Kind::PROOF_RULE, rule, attrs);
     }
@@ -769,22 +770,7 @@ bool CmdParser::parseNextCommand()
           {
             d_lex.parseError("Wrong arity for pattern");
           }
-          // ensure the right hand side is bound by the left hand side
-          std::vector<Expr> bvs = Expr::getVariables(pc);
           Expr rhs = p[1];
-          d_eparser.ensureBound(rhs, bvs);
-          // TODO: allow variable or default case?
-          for (size_t i = 1, nchildren = pc.getNumChildren(); i < nchildren;
-               i++)
-          {
-            Expr ecc = pc[i];
-            if (ecc.isEvaluatable())
-            {
-              std::stringstream ss;
-              ss << "Cannot match on evaluatable subterm " << pc[i];
-              d_lex.parseError(ss.str());
-            }
-          }
           // type check whether this is a legal pattern/return pair.
           d_eparser.typeCheckProgramPair(pc, rhs, true);
         }
