@@ -38,7 +38,7 @@
 (declare-const BitVec (-> Int Type))
 ; type-rules: BINARY
 (declare-consts <binary> (BitVec (eo::len eo::self)))
-; type-rules: BINARY
+; (approx) type-rules: BINARY
 (define $eo_Binary () (BitVec 1))
 ; declare: Char
 (declare-const Char Type)

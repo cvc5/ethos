@@ -48,6 +48,8 @@ class StdPlugin : public Plugin
   static bool hasSubterm(const Expr& t, const Expr& s);
   /** Get the subterms of a kind */
   std::vector<Expr> getSubtermsKind(Kind k, const Expr& t);
+  /** */
+  static std::string literalKindToString(Kind k);
   /** the state */
   State& d_state;
   /** the type checker */

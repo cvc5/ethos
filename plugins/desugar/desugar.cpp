@@ -861,6 +861,22 @@ void Desugar::finalizeDatatype(const Expr& e, Attr a, const Expr& attrCons)
 
 void Desugar::finalize()
 {
+  // ensure all literal types are defined
+  std::set<Kind> literalKinds = { Kind::NUMERAL, Kind::RATIONAL, Kind::BINARY, Kind::STRING };
+  Expr builtinType;
+  for (Kind k :literalKinds)
+  {
+    if (d_ltKindProcessed.find(k)!=d_ltKindProcessed.end())
+    {
+      continue;
+    }
+    if (builtinType.isNull())
+    {
+      builtinType = d_state.mkSymbol(Kind::CONST, "$eo_Builtin_Type", d_state.mkType());
+    }
+    setLiteralTypeRule(k, builtinType);
+  }
+  
   for (std::pair<Expr, Kind>& d : d_declSeen)
   {
     Kind k = d.second;
@@ -1257,36 +1273,32 @@ Attr Desugar::getAttribute(const Expr& e)
 
 void Desugar::setLiteralTypeRule(Kind k, const Expr& t)
 {
+  Assert (d_ltKindProcessed.find(k)==d_ltKindProcessed.end());
+  d_ltKindProcessed.insert(k);
   // NOTE: literal definitions cannot use any builtin operators
   // that are desugared in the initial step, e.g. eo::list_*.
   // They can use core eo operators that are desugared later
   // e.g. eo::len.
-  std::stringstream ss;
   std::stringstream eoss;
-  ss << "(declare-consts ";
   switch (k)
   {
     case Kind::NUMERAL:
-      ss << "<numeral>";
       eoss << "Numeral";
       break;
     case Kind::RATIONAL:
-      ss << "<rational>";
       eoss << "Rational";
       break;
     case Kind::BINARY:
-      ss << "<binary>";
       eoss << "Binary";
       break;
     case Kind::STRING:
-      ss << "<string>";
       eoss << "String";
       break;
-    case Kind::DECIMAL: ss << "<decimal>"; break;
-    case Kind::HEXADECIMAL: ss << "<hexadecimal>"; break;
+    case Kind::DECIMAL:
+    case Kind::HEXADECIMAL:
+      break;
     default: EO_FATAL() << "Unknown literal type rule" << k << std::endl; break;
   }
-  ss << " " << t << ")" << std::endl;
   // declared at the top
   if (!eoss.str().empty())
   {
@@ -1302,48 +1314,43 @@ void Desugar::setLiteralTypeRule(Kind k, const Expr& t)
       finalizeDeclaration(s, d_litTypeDecl);
     }
     d_litTypeDecl << "; type-rules: " << k << std::endl;
-    d_litTypeDecl << ss.str();
-    // TODO: approximate $eo_Binary as self program
-    // it is only possible to define e.g. $eo_Binary
-    // if t is ground. This avoids having eo::self as a free parameter.
-    // We use $eo_undef_type otherwise.
-    if (false && t.isGround())
+    d_litTypeDecl << "(declare-consts " << literalKindToString(k) << " " << t << ")" << std::endl;
+    // A literal type may be non-ground if it uses eo::self.
+    // For consistency, we always define the program $eo_lit_type_X, even
+    // if the type is ground. We additionally always define the nullary type
+    // $eo_X, even if the type is non-ground, in which case we arbitrarily
+    // instantiate it with getGroundTermForLiteralKind.
+    Expr ltinst = t;
+    Expr ltg = t;
+    if (t.isGround())
     {
-      d_litTypeDecl << "(define $eo_" << eoss.str() << " () " << t << ")"
-                    << std::endl;
+      d_litTypeDecl << "; type-rules: " << k << std::endl;
     }
     else
     {
-      Expr t = d_state.mkSymbol(Kind::CONST, "t", d_state.mkAny());
-      Expr ltinst = d_tc.getOrSetLiteralTypeRule(k, t.getValue());
-      d_litTypeProg << "(program $eo_lit_type_" << eoss.str()
-                    << " ((T Type) (t T))" << std::endl;
-      d_litTypeProg << "  :signature (T) Type" << std::endl;
-      d_litTypeProg << "  (" << std::endl;
-      d_litTypeProg << "  (($eo_lit_type_" << eoss.str() << " t) " << ltinst
-                    << ")" << std::endl;
-      d_litTypeProg << "  )" << std::endl;
-      d_litTypeProg << ")" << std::endl;
+      Expr ty = d_state.mkSymbol(Kind::CONST, "t", d_state.mkAny());
       Expr gt = getGroundTermForLiteralKind(k);
-      Expr ltg = d_tc.getOrSetLiteralTypeRule(k, gt.getValue());
-      if (t.isGround())
-      {
-        d_litTypeDecl << "; type-rules: " << k << std::endl;
-      }
-      else
-      {
-        // FIXME: maybe shouldn't even generate this??
-        d_litTypeDecl << "; (approx) type-rules: " << k << std::endl;
-      }
-      d_litTypeDecl << "(define $eo_" << eoss.str() << " () " << ltg << ")"
-                    << std::endl;
-      // since $eo_Numeral is used to define the type rules for builtin
-      // operators, it must have a ground type.
-      if (k == Kind::NUMERAL)
-      {
-        Assert(t.isGround()) << "Must have a ground type for <numeral>.";
-      }
+      ltg = d_tc.getOrSetLiteralTypeRule(k, gt.getValue());
+      ltinst = d_tc.getOrSetLiteralTypeRule(k, ty.getValue());
+      d_litTypeDecl << "; (approx) type-rules: " << k << std::endl;
     }
+    d_litTypeDecl << "(define $eo_" << eoss.str() << " () " << ltg << ")"
+                  << std::endl;
+    d_litTypeProg << "(program $eo_lit_type_" << eoss.str()
+                  << " ((T Type) (t T))" << std::endl;
+    d_litTypeProg << "  :signature (T) Type" << std::endl;
+    d_litTypeProg << "  (" << std::endl;
+    d_litTypeProg << "  (($eo_lit_type_" << eoss.str() << " t) " << ltinst
+                  << ")" << std::endl;
+    d_litTypeProg << "  )" << std::endl;
+    d_litTypeProg << ")" << std::endl;
+    // since $eo_Numeral is used to define the type rules for builtin
+    // operators, it must have a ground type.
+    if (k == Kind::NUMERAL)
+    {
+      Assert(t.isGround()) << "Must have a ground type for <numeral>.";
+    }
+    
   }
 }
 

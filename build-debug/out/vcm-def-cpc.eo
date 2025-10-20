@@ -1059,10 +1059,10 @@
   (($eo_typeof ($eo_numeral n))              ($eo_lit_type_Numeral ($eo_numeral n)))
   (($eo_typeof ($eo_rational r))             ($eo_lit_type_Rational ($eo_rational r)))
   (($eo_typeof ($eo_string s))               ($eo_lit_type_String ($eo_string s)))
-  (($eo_typeof ($eo_binary w n))                ($eo_lit_type_Binary ($eo_binary w n)))
-  (($eo_typeof ($eo_Var s T))                   T)
+  (($eo_typeof ($eo_binary w n))             ($eo_lit_type_Binary ($eo_binary w n)))
+  (($eo_typeof ($eo_Var s T))                T)
   ; otherwise, invoke the routine for user types from the signature.
-  (($eo_typeof t)                               ($eo_typeof_main t))
+  (($eo_typeof t)                            ($eo_typeof_main t))
   )
 )
 (declare-const not (-> Bool Bool))

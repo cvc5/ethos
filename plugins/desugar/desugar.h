@@ -124,6 +124,7 @@ class Desugar : public StdPlugin
   bool d_genVcs;
 
   /** Declares processed for lit types */
+  std::unordered_set<Kind> d_ltKindProcessed;
   std::set<Expr> d_ltDeclProcessed;
   std::stringstream d_litTypeDecl;
   std::stringstream d_litTypeProg;

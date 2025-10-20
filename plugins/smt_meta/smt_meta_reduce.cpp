@@ -390,8 +390,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     }
     else
     {
-      Attr attr = d_state.getConstructorKind(tcur.getValue());
-      Assert(attr != Attr::AMB) << "Matching on amb " << tcur;
+      Assert(d_state.getConstructorKind(tcur.getValue()) != Attr::AMB) << "Matching on amb " << tcur;
       // base case, use equality
       // note that we have to use the full printEmbTerm method
       std::stringstream atomTerm;
