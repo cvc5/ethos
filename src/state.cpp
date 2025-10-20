@@ -1344,15 +1344,16 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
                                   std::vector<Expr>& args,
                                   bool isPop)
 {
-  // arguments first
-  children.emplace_back(rule);
-  children.insert(children.end(), args.begin(), args.end());
   AppInfo* ainfo = getAppInfo(rule.getValue());
   if (ainfo != nullptr)
   {
     Assert (ainfo->d_attrCons == Attr::PROOF_RULE);
     Expr tupleVal = ainfo->d_attrConsTerm;
     Assert (tupleVal.getNumChildren()==4);
+    // first, we add the program
+    children.emplace_back(tupleVal[3]);
+    // arguments first
+    children.insert(children.end(), args.begin(), args.end());
     Expr plCons;
     if (tupleVal[0]!=d_any)
     {
@@ -1429,12 +1430,9 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
       // otherwise ordinary premises
       children.insert(children.end(), premises.begin(), premises.end());
     }
-    if (children.size()==1)
-    {
-      children[0] = tupleVal[3];
-    }
     return true;
   }
+  Trace("pf-args") << "...no attribute marker" << std::endl;
   return false;
 }
 

@@ -922,6 +922,7 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
 
 Expr TypeChecker::evaluateProgramApp(const std::vector<Expr>& args)
 {
+  Assert (args.size()>1);
   std::vector<ExprValue*> vargs;
   for (const Expr& a : args)
   {

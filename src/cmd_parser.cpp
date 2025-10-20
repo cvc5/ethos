@@ -455,19 +455,23 @@ bool CmdParser::parseNextCommand()
       d_state.popScope();
       Expr rule = d_state.mkSymbol(Kind::PROOF_RULE, name, pt);
       d_eparser.typeCheck(rule);
-      Expr prog;
+      Expr ruleProg;
       if (!progArgs.empty())
       {
         progArgs.insert(progArgs.begin(), rule);
         Expr ppat = d_state.mkExpr(Kind::APPLY, progArgs);
         d_eparser.typeCheckProgramPair(ppat, ret, true);
         Expr progCase = d_state.mkPair(ppat, ret);
-        prog = d_state.mkExpr(Kind::PROGRAM, {progCase});
-        d_state.defineProgram(rule, prog);
+        Expr prog = d_state.mkExpr(Kind::PROGRAM, {progCase});
+        std::stringstream ss;
+        ss << "$eo_prog_" << name;
+        ruleProg = d_state.mkSymbol(Kind::PROGRAM_CONST, ss.str(), pt);
+        d_state.defineProgram(ruleProg, prog);
       }
       else
       {
-        prog = ret;
+        // the returned proof term is the standalone definition.
+        ruleProg = ret;
         // must check ground
         if (!ret.isGround())
         {
@@ -479,7 +483,7 @@ bool CmdParser::parseNextCommand()
       tupleChildren.push_back(plCons.isNull() ? d_state.mkAny() : plCons);
       tupleChildren.push_back(d_state.mkBool(!assume.isNull()));
       tupleChildren.push_back(d_state.mkBool(concExplicit));
-      tupleChildren.push_back(prog);
+      tupleChildren.push_back(ruleProg);
       Expr attrVal = d_state.mkExpr(Kind::TUPLE, tupleChildren);
       // we always carry plCons, in case the rule was marked
       // :premise-list as well as :assumption or :conclusion-explicit
