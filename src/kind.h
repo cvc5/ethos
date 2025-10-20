@@ -40,9 +40,9 @@ enum class Kind
                 // checking
   ANY,          // atomic term standing for an unknown, treated as non-ground
                 // and evaluatable.
-  PROOF, // a proof term (pf <proven>). We use a special kind for efficiency,
-         // although pf can be seen as an ordinary term of type (-> Bool Proof),
-         // where Proof is an ordinary type (see State::d_proofType).
+  PROOF,  // a proof term (pf <proven>). We use a special kind for efficiency,
+          // although pf can be seen as an ordinary term of type (-> Bool
+          // Proof), where Proof is an ordinary type (see State::d_proofType).
 
   // symbols
   PARAM,
