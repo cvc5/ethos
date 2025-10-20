@@ -113,7 +113,7 @@ bool CmdParser::parseNextCommand()
       // parse what is proven
       Expr proven = d_eparser.parseFormula();
       // bind the assumption to (pf <proven>).
-      Expr pt = d_state.mkProofNew(proven);
+      Expr pt = d_state.mkProof(proven);
       d_eparser.bind(name, pt);
       if (!d_state.addAssumption(proven))
       {
@@ -436,17 +436,17 @@ bool CmdParser::parseNextCommand()
       // finally, premises
       for (const Expr& e : premises)
       {
-        Expr pet = d_state.mkProofNew(e);
-        progTypes.push_back(d_state.mkProofTypeNew());
+        Expr pet = d_state.mkProof(e);
+        progTypes.push_back(d_state.mkProofType());
         progArgs.push_back(pet);
       }
-      Expr ret = d_state.mkProofNew(conc);
+      Expr ret = d_state.mkProof(conc);
       // include the requirements into the return type
       if (!reqs.empty())
       {
         ret = d_state.mkRequires(reqs, ret);
       }
-      Expr pt = d_state.mkProofTypeNew();
+      Expr pt = d_state.mkProofType();
       // make the overall type
       if (!progArgs.empty())
       {

@@ -580,17 +580,12 @@ Expr State::mkListType() { return d_listType; }
 Expr State::mkListCons() { return d_listCons; }
 Expr State::mkListNil() { return d_listNil; }
 
-Expr State::mkProofType(const Expr& proven)
-{
-  return Expr(mkExprInternal(Kind::PROOF_TYPE, {proven.getValue()}));
-}
-
-Expr State::mkProofTypeNew()
+Expr State::mkProofType()
 {
   return d_proofType;
 }
 
-Expr State::mkProofNew(const Expr& proven)
+Expr State::mkProof(const Expr& proven)
 {
   return Expr(mkExprInternal(Kind::PROOF, {proven.getValue()}));
 }
@@ -1391,6 +1386,9 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
     }
     if (!plCons.isNull())
     {
+      // this collects the premises (pf F1) ... (pf Fn) and constructs
+      // e.g. (pf (and F1 ... Fn)), where and is the operator marked with
+      // :premise-list.
       std::vector<Expr> achildren;
       achildren.push_back(plCons);
       for (Expr& e : premises)
@@ -1402,6 +1400,7 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
         }
         achildren.push_back(e[0]);
       }
+      // TODO: do not special case this?
       Expr ap;
       if (achildren.size()==1)
       {
@@ -1421,7 +1420,8 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
       {
         ap = mkExpr(Kind::APPLY, achildren);
       }
-      Expr n = mkProofNew(ap);
+      // collects to a proof
+      Expr n = mkProof(ap);
       children.push_back(n);
     }
     else

@@ -24,7 +24,6 @@ enum class Kind
   TYPE,
   FUNCTION_TYPE,
   PROGRAM_TYPE,
-  PROOF_TYPE,
   BOOL_TYPE,
   QUOTE_TYPE,
 
