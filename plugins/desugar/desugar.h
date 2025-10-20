@@ -53,7 +53,8 @@ class Desugar : public StdPlugin
   /**
    */
   bool echo(const std::string& msg) override;
-
+  /** Set type rule for literal kind k to t */
+  void setLiteralTypeRule(Kind k, const Expr& t) override;
  private:
   void printName(const Expr& e, std::ostream& os);
   void printTerm(const Expr& e, std::ostream& os);
@@ -78,7 +79,7 @@ class Desugar : public StdPlugin
                          size_t startIndex = 0);
   void finalizeProgram(const Expr& v, const Expr& prog, std::ostream& os);
   void finalizeDefinition(const std::string& name, const Expr& t);
-  void finalizeDeclaration(const Expr& t, std::ostream& os) override;
+  void finalizeDeclaration(const Expr& t, std::ostream& os);
   void finalizeRule(const Expr& v);
   /**
    * Finalize datatype or datatype constructor.
@@ -122,6 +123,10 @@ class Desugar : public StdPlugin
   /** Are we generating programs that are VC targets */
   bool d_genVcs;
 
+  /** Declares processed for lit types */
+  std::set<Expr> d_ltDeclProcessed;
+  std::stringstream d_litTypeDecl;
+  std::stringstream d_litTypeProg;
   std::stringstream d_defs;
   std::stringstream d_eoNilNground;
   std::stringstream d_eoNil;

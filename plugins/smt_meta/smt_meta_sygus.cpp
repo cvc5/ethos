@@ -405,8 +405,17 @@ void SmtMetaSygus::printGrammar(const std::string& name,
   {
     SygusGrammar& g = d_grammar[gn];
     os << " (" << g.d_gname << " " << g.d_typeName << ")";
-    body << "  (" << g.d_gname << " " << g.d_typeName << " (" << g.d_rules.str()
-         << "))" << std::endl;
+    body << "  (" << g.d_gname << " " << g.d_typeName << " (";
+    // just add the constant rule if none exist
+    if (g.d_rules.str().empty())
+    {
+      body << "(Constant " << g.d_typeName << ")";
+    }
+    else
+    {
+      body << g.d_rules.str();
+    }
+    body << "))" << std::endl;
   }
   os << ") (" << std::endl;
   os << body.str();
