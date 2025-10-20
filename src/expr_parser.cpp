@@ -1237,8 +1237,7 @@ void ExprParser::typeCheckProgramPair(Expr& pat,
   // ensure the right hand side is bound by the left hand side
   std::vector<Expr> bvs = Expr::getVariables(pat);
   ensureBound(ret, bvs);
-  for (size_t i = 1, nchildren = pat.getNumChildren(); i < nchildren;
-        i++)
+  for (size_t i = 1, nchildren = pat.getNumChildren(); i < nchildren; i++)
   {
     Expr ecc = pat[i];
     if (ecc.isEvaluatable())

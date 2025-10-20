@@ -25,8 +25,13 @@ CmdParser::CmdParser(Lexer& lex,
                      State& state,
                      ExprParser& eparser,
                      bool isReference)
-    : d_lex(lex), d_state(state), d_tc(state.getTypeChecker()), d_sts(state.getStats()),
-      d_eparser(eparser), d_isReference(isReference), d_isFinished(false)
+    : d_lex(lex),
+      d_state(state),
+      d_tc(state.getTypeChecker()),
+      d_sts(state.getStats()),
+      d_eparser(eparser),
+      d_isReference(isReference),
+      d_isFinished(false)
 {
   // initialize the command tokens
   // commands supported in both inputs and proofs
@@ -883,7 +888,7 @@ bool CmdParser::parseNextCommand()
       if (children.size()>1)
       {
         // check type rule for APPLY directly without constructing the app
-        //concType = d_eparser.typeCheckApp(children);
+        // concType = d_eparser.typeCheckApp(children);
         pfTerm = d_tc.evaluateProgramApp(children);
       }
       else
@@ -894,7 +899,8 @@ bool CmdParser::parseNextCommand()
       if (pfTerm.getKind() != Kind::PROOF)
       {
         std::stringstream ss;
-        ss << "Non-proof conclusion for rule " << ruleName << ", got " << pfTerm;
+        ss << "Non-proof conclusion for rule " << ruleName << ", got "
+           << pfTerm;
         d_lex.parseError(ss.str());
       }
       // Check that the proved term is actually Bool
@@ -908,7 +914,7 @@ bool CmdParser::parseNextCommand()
       }
       if (!proven.isNull())
       {
-        if (pfTerm[0]!=proven)
+        if (pfTerm[0] != proven)
         {
           std::stringstream ss;
           ss << "Unexpected conclusion for rule " << ruleName << ":" << std::endl;

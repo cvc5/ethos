@@ -367,9 +367,8 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     if (out)
     {
       (*out) << "Incorrect arity for " << Expr(hd);
-      (*out) << ", which expects " << (hdtypes.size() - 1)
-              << " arguments but " << (children.size() - 1)
-              << " were provided";
+      (*out) << ", which expects " << (hdtypes.size() - 1) << " arguments but "
+             << (children.size() - 1) << " were provided";
     }
     return d_null;
   }
@@ -884,7 +883,7 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
 
 Expr TypeChecker::evaluateProgramApp(const std::vector<Expr>& args)
 {
-  Assert (args.size()>1);
+  Assert(args.size() > 1);
   std::vector<ExprValue*> vargs;
   for (const Expr& a : args)
   {

@@ -581,10 +581,7 @@ Expr State::mkListType() { return d_listType; }
 Expr State::mkListCons() { return d_listCons; }
 Expr State::mkListNil() { return d_listNil; }
 
-Expr State::mkProofType()
-{
-  return d_proofType;
-}
+Expr State::mkProofType() { return d_proofType; }
 
 Expr State::mkProof(const Expr& proven)
 {
@@ -1345,7 +1342,7 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
   {
     Assert (ainfo->d_attrCons == Attr::PROOF_RULE);
     Expr tupleVal = ainfo->d_attrConsTerm;
-    Assert (tupleVal.getNumChildren()==4);
+    Assert(tupleVal.getNumChildren() == 4);
     // first, we add the program
     children.emplace_back(tupleVal[3]);
     // arguments first
