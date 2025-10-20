@@ -1395,13 +1395,12 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
       achildren.push_back(plCons);
       for (Expr& e : premises)
       {
-        // should be proof types
-        Expr eproven = d_tc.getType(e);
-        if (eproven.isNull() || eproven.getKind() != Kind::PROOF_TYPE)
+        // should be proofs
+        if (e.getKind() != Kind::PROOF)
         {
           return false;
         }
-        achildren.push_back(eproven[0]);
+        achildren.push_back(e[0]);
       }
       Expr ap;
       if (achildren.size()==1)
