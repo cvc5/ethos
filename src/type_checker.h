@@ -55,7 +55,7 @@ class TypeChecker
    */
   Expr evaluate(ExprValue* e, Ctx& ctx);
   /**
-   * Evaluate program, where args[0] is a term of kind PROGRAM_CONST
+   * Evaluate program app, where args[0] is a term of kind PROGRAM_CONST
    * and the remaining args are what is being applied to.
    *
    * If this returns (APPLY args), then the application does not
@@ -63,11 +63,8 @@ class TypeChecker
    * if an error was encountered.
    *
    * Otherwise, the program evaluates in one step to the returned term,
-   * and is equal to the result of evaluating that expression in the context newCtx,
-   * which is computed in this call.
-   *
-   * If we are evaluating an oracle, newCtx is never set and the returned term
-   * is the result of calling the oracle and parsing its output.
+   * where the returned term is the result of evaluating the returned term
+   * in the context that was matched.
    */
   Expr evaluateProgramApp(const std::vector<Expr>& args);
   /**

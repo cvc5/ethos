@@ -25,7 +25,7 @@ CmdParser::CmdParser(Lexer& lex,
                      State& state,
                      ExprParser& eparser,
                      bool isReference)
-    : d_lex(lex), d_state(state), d_sts(state.getStats()),
+    : d_lex(lex), d_state(state), d_tc(state.getTypeChecker()), d_sts(state.getStats()),
       d_eparser(eparser), d_isReference(isReference), d_isFinished(false)
 {
   // initialize the command tokens
@@ -344,7 +344,7 @@ bool CmdParser::parseNextCommand()
       d_state.popScope();
     }
     break;
-    // (declare-rule ...)
+    // (declare-rule ...), which defines a program for manipulating proof terms.
     case Token::DECLARE_RULE:
     {
       // ensure zero scope
@@ -391,8 +391,6 @@ bool CmdParser::parseNextCommand()
         args = d_eparser.parseExprList();
         keyword = d_eparser.parseKeyword();
       }
-      std::vector<Expr> progTypes;
-      std::vector<Expr> progArgs;
       // parse requirements, optionally
       if (keyword=="requires")
       {
@@ -415,29 +413,28 @@ bool CmdParser::parseNextCommand()
       {
         d_lex.parseError("Expected conclusion in declare-rule");
       }
+      // We construct the list of arguments to pattern match on (progArgs).
+      std::vector<Expr> progArgs;
       // ordinary arguments first
       for (Expr& e : args)
       {
-
+        Expr et = d_tc.getType(e);
         progArgs.push_back(e);
       }
       // then explicit conclusion
       if (concExplicit)
       {
-        progTypes.push_back(d_state.mkBoolType());
         progArgs.push_back(conc);
       }
       // then assumption
       if (!assume.isNull())
       {
-        progTypes.push_back(d_state.mkBoolType());
         progArgs.push_back(assume);
       }
       // finally, premises
       for (const Expr& e : premises)
       {
         Expr pet = d_state.mkProof(e);
-        progTypes.push_back(d_state.mkProofType());
         progArgs.push_back(pet);
       }
       Expr ret = d_state.mkProof(conc);
@@ -446,12 +443,8 @@ bool CmdParser::parseNextCommand()
       {
         ret = d_state.mkRequires(reqs, ret);
       }
+      // rules have type Proof, which is not used.
       Expr pt = d_state.mkProofType();
-      // make the overall type
-      if (!progArgs.empty())
-      {
-        pt = d_state.mkProgramType(progArgs, pt);
-      }
       d_state.popScope();
       Expr rule = d_state.mkSymbol(Kind::PROOF_RULE, name, pt);
       d_eparser.typeCheck(rule);
@@ -465,6 +458,14 @@ bool CmdParser::parseNextCommand()
         Expr prog = d_state.mkExpr(Kind::PROGRAM, {progCase});
         std::stringstream ss;
         ss << "$eo_prog_" << name;
+        // construct the program type based on the arguments we are matching
+        std::vector<Expr> progTypes;
+        for (Expr& e : progArgs)
+        {
+          Expr et = d_tc.getType(e);
+          progTypes.push_back(et);
+        }
+        pt = d_state.mkProgramType(progTypes, pt);
         ruleProg = d_state.mkSymbol(Kind::PROGRAM_CONST, ss.str(), pt);
         d_state.defineProgram(ruleProg, prog);
       }
@@ -883,7 +884,7 @@ bool CmdParser::parseNextCommand()
       {
         // check type rule for APPLY directly without constructing the app
         //concType = d_eparser.typeCheckApp(children);
-        pfTerm = d_state.getTypeChecker().evaluateProgramApp(children);
+        pfTerm = d_tc.evaluateProgramApp(children);
       }
       else
       {
