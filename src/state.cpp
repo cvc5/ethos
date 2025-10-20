@@ -1344,15 +1344,15 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
                                   std::vector<Expr>& args,
                                   bool isPop)
 {
-  children.emplace_back(rule.getValue());
   // arguments first
+  children.emplace_back(rule);
   children.insert(children.end(), args.begin(), args.end());
   AppInfo* ainfo = getAppInfo(rule.getValue());
   if (ainfo != nullptr)
   {
     Assert (ainfo->d_attrCons == Attr::PROOF_RULE);
     Expr tupleVal = ainfo->d_attrConsTerm;
-    Assert (tupleVal.getNumChildren()==3);
+    Assert (tupleVal.getNumChildren()==4);
     Expr plCons;
     if (tupleVal[0]!=d_any)
     {
@@ -1429,18 +1429,13 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
       // otherwise ordinary premises
       children.insert(children.end(), premises.begin(), premises.end());
     }
-  }
-  else
-  {
-    // premises after arguments
-    children.insert(children.end(), premises.begin(), premises.end());
-    if (isPop)
+    if (children.size()==1)
     {
-      // ordinary rule cannot use assumption
-      return false;
+      children[0] = tupleVal[3];
     }
+    return true;
   }
-  return true;
+  return false;
 }
 
 Expr State::getProgram(const ExprValue* ev)

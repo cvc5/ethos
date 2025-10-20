@@ -55,7 +55,7 @@ class TypeChecker
    */
   Expr evaluate(ExprValue* e, Ctx& ctx);
   /**
-   * Evaluate program, where args[0] is a term of kind PROGRAM_CONST or ORACLE
+   * Evaluate program, where args[0] is a term of kind PROGRAM_CONST
    * and the remaining args are what is being applied to.
    *
    * If this returns (APPLY args), then the application does not
@@ -69,8 +69,7 @@ class TypeChecker
    * If we are evaluating an oracle, newCtx is never set and the returned term
    * is the result of calling the oracle and parsing its output.
    */
-  Expr evaluateProgram(const std::vector<ExprValue*>& args,
-                       Ctx& newCtx);
+  Expr evaluateProgramApp(const std::vector<Expr>& args);
   /**
    * Evaluate literal op k applied to args. Returns (<k> args) if the
    * operator does not evaluate.

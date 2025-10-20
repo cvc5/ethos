@@ -455,11 +455,25 @@ bool CmdParser::parseNextCommand()
       d_state.popScope();
       Expr rule = d_state.mkSymbol(Kind::PROOF_RULE, name, pt);
       d_eparser.typeCheck(rule);
-      progArgs.insert(progArgs.begin(), rule);
-      Expr ppat = d_state.mkExpr(Kind::APPLY, progArgs);
-      d_eparser.typeCheckProgramPair(ppat, ret, true);
-      Expr progCase = d_state.mkPair(ppat, ret);
-      Expr prog = d_state.mkExpr(Kind::PROGRAM, {progCase});
+      Expr prog;
+      if (!progArgs.empty())
+      {
+        progArgs.insert(progArgs.begin(), rule);
+        Expr ppat = d_state.mkExpr(Kind::APPLY, progArgs);
+        d_eparser.typeCheckProgramPair(ppat, ret, true);
+        Expr progCase = d_state.mkPair(ppat, ret);
+        prog = d_state.mkExpr(Kind::PROGRAM, {progCase});
+        d_state.defineProgram(rule, prog);
+      }
+      else
+      {
+        prog = ret;
+        // must check ground
+        if (!ret.isGround())
+        {
+          d_lex.parseError("Nullary proof rule must have ground conclusion");
+        }
+      }
       d_eparser.bind(name, rule);
       std::vector<Expr> tupleChildren;
       tupleChildren.push_back(plCons.isNull() ? d_state.mkAny() : plCons);
@@ -860,25 +874,26 @@ bool CmdParser::parseNextCommand()
         d_lex.parseError("Failed to get arguments for proof rule");
       }
       // compute the type of applying the rule
-      Expr concType;
+      Expr pfTerm;
       if (children.size()>1)
       {
         // check type rule for APPLY directly without constructing the app
-        concType = d_eparser.typeCheckApp(children);
+        //concType = d_eparser.typeCheckApp(children);
+        pfTerm = d_state.getTypeChecker().evaluateProgramApp(children);
       }
       else
       {
-        concType = d_eparser.typeCheck(rule);
+        pfTerm = children[0];
       }
       // ensure proof type, note this is where "proof checking" happens.
-      if (concType.getKind() != Kind::PROOF_TYPE)
+      if (pfTerm.getKind() != Kind::PROOF)
       {
         std::stringstream ss;
-        ss << "Non-proof conclusion for rule " << ruleName << ", got " << concType;
+        ss << "Non-proof conclusion for rule " << ruleName << ", got " << pfTerm;
         d_lex.parseError(ss.str());
       }
       // Check that the proved term is actually Bool
-      Expr concTerm = concType[0];
+      Expr concTerm = pfTerm[0];
       Expr concTermType = d_eparser.typeCheck(concTerm);
       if (concTermType.getKind() != Kind::BOOL_TYPE)
       {
@@ -888,12 +903,12 @@ bool CmdParser::parseNextCommand()
       }
       if (!proven.isNull())
       {
-        if (concType[0]!=proven)
+        if (pfTerm[0]!=proven)
         {
           std::stringstream ss;
           ss << "Unexpected conclusion for rule " << ruleName << ":" << std::endl;
-          ss << "    Proves: " << concType << std::endl;
-          ss << "  Expected: (Proof " << proven << ")";
+          ss << "    Proves: " << pfTerm << std::endl;
+          ss << "  Expected: (pf " << proven << ")";
           d_lex.parseError(ss.str());
         }
       }
@@ -903,8 +918,7 @@ bool CmdParser::parseNextCommand()
         d_state.popAssumptionScope();
       }
       // bind to variable, note that the definition term is not kept
-      Expr v = d_state.mkSymbol(Kind::CONST, name, concType);
-      d_eparser.bind(name, v);
+      d_eparser.bind(name, pfTerm);
       // d_eparser.bind(name, def);
       Assert (rs!=nullptr);
       // increment the count regardless of whether stats are enabled, since it

@@ -920,16 +920,22 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
   return evaluated;
 }
 
-Expr TypeChecker::evaluateProgram(
-    const std::vector<ExprValue*>& children, Ctx& newCtx)
+Expr TypeChecker::evaluateProgramApp(const std::vector<Expr>& args)
 {
-  const Expr& ret = evaluateProgramInternal(children, newCtx);
+  std::vector<ExprValue*> vargs;
+  for (const Expr& a : args)
+  {
+    vargs.emplace_back(a.getValue());
+  }
+  Ctx newCtx;
+  Expr ret = evaluateProgramInternal(vargs, newCtx);
   if (!ret.isNull())
   {
-    return ret;
+    // evaluate in context
+    return evaluate(ret.getValue(), newCtx);
   }
   // otherwise does not evaluate, return application
-  return Expr(d_state.mkExprInternal(Kind::APPLY, children));
+  return Expr(d_state.mkExprInternal(Kind::APPLY, vargs));
 }
 
 bool TypeChecker::isGround(const std::vector<ExprValue*>& args)
