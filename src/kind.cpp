@@ -40,6 +40,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::APPLY_OPAQUE: o << "APPLY_OPAQUE"; break;
     case Kind::ANNOT_PARAM: o << "ANNOT_PARAM"; break;
     case Kind::ANY: o << "ANY"; break;
+    case Kind::PROOF: o << "PROOF"; break;
     // literals
     case Kind::BOOLEAN: o << "BOOLEAN"; break;
     case Kind::NUMERAL: o << "NUMERAL"; break;

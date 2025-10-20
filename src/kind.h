@@ -41,6 +41,7 @@ enum class Kind
                 // checking
   ANY,          // atomic term standing for an unknown, treated as non-ground
                 // and evaluatable.
+  PROOF,
 
   // symbols
   PARAM,

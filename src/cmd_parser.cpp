@@ -112,9 +112,9 @@ bool CmdParser::parseNextCommand()
       std::string name = d_eparser.parseSymbol();
       // parse what is proven
       Expr proven = d_eparser.parseFormula();
-      Expr pt = d_state.mkProofType(proven);
-      Expr v = d_state.mkSymbol(Kind::CONST, name, pt);
-      d_eparser.bind(name, v);
+      // bind the assumption to (pf <proven>).
+      Expr pt = d_state.mkProofNew(proven);
+      d_eparser.bind(name, pt);
       if (!d_state.addAssumption(proven))
       {
         std::stringstream ss;

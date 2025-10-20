@@ -190,8 +190,6 @@ State::State(Options& opts, Stats& stats)
   d_self = Expr(mkSymbolInternal(Kind::PARAM, "eo::self", d_any));
 
   d_proofType = Expr(mkSymbolInternal(Kind::CONST, "Proof", d_type));
-  Expr ptype = mkFunctionType({d_boolType}, d_proofType);
-  d_proof = Expr(mkSymbolInternal(Kind::CONST, "pf", ptype));
 }
 
 State::~State() {}
@@ -594,7 +592,7 @@ Expr State::mkProofTypeNew()
 
 Expr State::mkProofNew(const Expr& proven)
 {
-  return Expr(mkExprInternal(Kind::APPLY, {d_proof.getValue(), proven.getValue()}));
+  return Expr(mkExprInternal(Kind::PROOF, {proven.getValue()}));
 }
 
 Expr State::mkQuoteType(const Expr& t)
@@ -1423,9 +1421,7 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
       {
         ap = mkExpr(Kind::APPLY, achildren);
       }
-      Expr pfap = mkProofType(ap);
-      // dummy, "collected" term of the given proof type
-      Expr n = mkSymbol(Kind::CONST, "tmp", pfap);
+      Expr n = mkProofNew(ap);
       children.push_back(n);
     }
     else

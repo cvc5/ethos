@@ -268,6 +268,20 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       }
     }
       return d_state.mkType();
+    case Kind::PROOF:
+    {
+      ExprValue* ctype = d_state.lookupType(e->d_children[0]);
+      Assert(ctype != nullptr);
+      if (ctype->getKind()!=Kind::BOOL_TYPE)
+      {
+        if (out)
+        {
+          (*out) << "Non-Bool for argument of Proof";
+        }
+        return d_null;
+      }
+      return d_state.mkProofTypeNew();
+    }
     case Kind::ANNOT_PARAM:
       // its type is the second child
       return Expr(e->d_children[1]);
