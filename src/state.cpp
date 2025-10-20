@@ -1343,7 +1343,8 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
     Assert (ainfo->d_attrCons == Attr::PROOF_RULE);
     Expr tupleVal = ainfo->d_attrConsTerm;
     Assert(tupleVal.getNumChildren() == 4);
-    // first, we add the program
+    // first, we add the program or definition (the latter case is used for
+    // proof rules with no arguments or premises).
     children.emplace_back(tupleVal[3]);
     // arguments first
     children.insert(children.end(), args.begin(), args.end());
@@ -1429,7 +1430,6 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
     }
     return true;
   }
-  Trace("pf-args") << "...no attribute marker" << std::endl;
   return false;
 }
 
