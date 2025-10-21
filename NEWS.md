@@ -1,6 +1,11 @@
 This file contains a summary of important user-visible changes.
 
 
+ethos 0.2.2 prerelease
+======================
+
+- Higher-order applications of the form `(_ f t1 ...tn)` no longer desugar based on the desugaring policy for `f`.
+
 ethos 0.2.1
 ===========
 

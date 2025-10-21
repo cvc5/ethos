@@ -306,10 +306,13 @@ The Eunoia language supports term annotations on declared constants which, for i
 - `:binder <symbol>` denoting that the first argument of the declared constant can be provided using a syntax for variable lists whose constructor is the one provided by `<symbol>`.
 
 A declared function can be marked with at most one of the above attributes or an error is thrown.
+We refer to constants with one of the above attributes (with the exception of `:binder`) as _variadic_ constants.
+We describe these policies in detail in the following sections, which will describe how the parser desugars input syntax of the form `(f t1 ... tn)`.
 
-A parameter may be marked with the following attribute:
+Furthermore, a parameter may be marked with the following attribute:
 
 - `:list`, denoting that the parameter should be treated as a list when appearing as a child of an application of a right (left) associative operator.
+
 
 #### Right/Left associative
 
@@ -506,12 +509,16 @@ as demonstrated in the example below.
 
 ```smt
 (declare-type Int ())
-(declare-parameterized-const distinct ((xs eo::List)) Bool :arg-list eo::List::cons)
+(declare-const @List Type)
+(declare-const @nil @List)
+(declare-parameterized-const @cons ((T Type :implicit)) (-> T @List @List)
+ :right-assoc-nil @nil)
+(declare-parameterized-const distinct ((xs @List)) Bool :arg-list @list)
 (define P ((x Int) (y Int) (z Int)) (distinct x y z))
 ```
 
-In the above example, `(distinct x y z)` is desugared to `(distinct (eo::List::cons a b c))`,
-which is further desugared to `(distinct (eo::List::cons a (eo::List::cons b (eo::List::cons c eo::List::nil))))`.
+In the above example, `(distinct x y z)` is desugared to `(distinct (@cons a b c))`,
+which is further desugared to `(distinct (@cons a (@cons b (@cons c @nil))))`.
 In contrast to the above example, the size of this term is not quadratic in size with respect to the input arguments.
 
 This desugaring further takes into account if arguments to the annotated symbol have been marked with the attribute`:list`.
@@ -520,17 +527,17 @@ it is *not* passed to the given list constructor but instead taken as the lone
 argument. Note the following examples:
 
 ```
-(define distinct-of ((xs eo::List :list))
+(define distinct-of ((xs @List :list))
   (distinct xs))
-(define distinct-of2 ((T Type :implicit) (x T) (xs eo::List :list))
+(define distinct-of2 ((T Type :implicit) (x T) (xs @List :list))
   (distinct x xs))
 ```
 
 In the first definition, the argument to `distinct` is marked `:list`, hence
-`(distinct xs)` is *not* desugared to `(distinct (eo::List::cons xs))`
+`(distinct xs)` is *not* desugared to `(distinct (@cons xs))`
 since `xs` is marked `:list`.
 In the second definition, `(distinct x xs)` has multiple arguments, hence
-it is desugared to `(distinct (eo::List::cons x xs))`. This term is
+it is desugared to `(distinct (@cons x xs))`. This term is
 not desugared further since `xs` is marked `:list`.
 
 #### Binder
@@ -566,6 +573,11 @@ On the other hand, the definition `Q3` is distinct from both of these, since `y`
 Furthermore, note that a binder also may accept an explicit term as its first argument.
 In the above example, `Q4` has `(@cons x)` as its first argument, where `x` was explicitly defined as a variable.
 This means that the definition of `Q4` is also syntactically equivalent to the definition of `Q1` and `Q2`.
+
+#### Further notes on desugaring
+
+
+
 
 <a name="amb-functions"></a>
 
