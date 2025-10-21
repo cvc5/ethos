@@ -163,6 +163,8 @@ set(ethos_test_file_list
     curry-nary.eo
     arg-list-cong.eo
     arg-list-distinct-elim.eo
+    or-no-desugar.eo
+    further-notes-attr.eo
 )
 
 macro(ethos_test file)
