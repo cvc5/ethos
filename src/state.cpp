@@ -660,7 +660,8 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           // remove the dummy operator "_"
           vchildren.erase(vchildren.begin(), vchildren.begin()+1);
           // return the curried version
-          return Expr(mkApplyInternal(vchildren));
+          return Expr(vchildren.size() > 2 ? mkApplyInternal(vchildren)
+                                    : mkExprInternal(Kind::APPLY, vchildren));
         }
         // another builtin operator, possibly APPLY
         std::vector<Expr> achildren(children.begin()+1, children.end());
