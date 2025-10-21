@@ -574,9 +574,36 @@ Furthermore, note that a binder also may accept an explicit term as its first ar
 In the above example, `Q4` has `(@cons x)` as its first argument, where `x` was explicitly defined as a variable.
 This means that the definition of `Q4` is also syntactically equivalent to the definition of `Q1` and `Q2`.
 
-#### Further notes on desugaring
+#### Further notes on constants with attributes
 
+We have described ways the parser process applications of the form `(f t1 ... tn)`, where `f` has been marked with an attribute.
+This preprocessing is only applied during parsing, and not during program execution.
+Furthermore, higher-order applications `(_ f t1 ... tn)` do *not* recursively invoke the desugaring policy for `f`.
+Note the following examples.
 
+```smt
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+
+(declare-const a Bool)
+(declare-const b Bool)
+(define apply-f-to-ab ((f (-> Bool Bool Bool))) (f a b))
+(define apply-or-to-ab () (apply-f-to-ab or))
+(define apply-or-to-ab-2 () (or a b))
+(define apply-or-to-ab-3 () (_ or a b))
+```
+
+In the above example, we define `or` as a right-associative nil operator.
+We then define two Boolean constants `a` and `b`, and a higher-order predicate `apply-f-to-ab`
+that applies a given binary predicate to these constants.
+Note that since `f` is a parameter, the term `(f a b)` is parsed as an ordinary application, namely it is `(_ (_ f a) b)` after desugaring.
+
+The definition `apply-or-to-ab`, which applies this predicate to `or`,
+does *not* trigger any desugaring of `or` when it is invoked, meaning after simplification,
+`apply-or-to-ab` is equivalent to `(_ (_ or a) b)`.
+In constrast, definition of the predicate `apply-or-to-ab-2` involves an application of `or`,
+which when parsed desugars to` (_ (_ or a) (_ (_ or b) false))`.
+As a final example, the definition of predicate `apply-or-to-ab-3` is `(_ or a b)`,
+which is *not* an application of `or` and hence desugars to `(_ (_ or a) b)`.
 
 
 <a name="amb-functions"></a>
