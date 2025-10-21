@@ -603,10 +603,9 @@ The definition `apply-or-to-ab`, which applies this predicate to `or`,
 does *not* trigger any desugaring of `or` when it is invoked, meaning after simplification,
 `apply-or-to-ab` is equivalent to `(_ (_ or a) b)`.
 In constrast, definition of the predicate `apply-or-to-ab-2` involves an application of `or`,
-which when parsed desugars to` (_ (_ or a) (_ (_ or b) false))`.
+which desugars to` (_ (_ or a) (_ (_ or b) false))`.
 As a final example, the definition of predicate `apply-or-to-ab-3` is `(_ or a b)`,
 which is *not* an application of `or` and hence desugars to `(_ (_ or a) b)`.
-
 
 <a name="amb-functions"></a>
 
