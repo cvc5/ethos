@@ -508,12 +508,12 @@ As an alternative, an n-ary operator like `distinct` can be marked as taking an 
 as demonstrated in the example below.
 
 ```smt
-(declare-type Int ())
+(declare-const Int Type)
 (declare-const @List Type)
 (declare-const @nil @List)
 (declare-parameterized-const @cons ((T Type :implicit)) (-> T @List @List)
  :right-assoc-nil @nil)
-(declare-parameterized-const distinct ((xs @List)) Bool :arg-list @list)
+(declare-parameterized-const distinct ((xs @List)) Bool :arg-list @cons)
 (define P ((x Int) (y Int) (z Int)) (distinct x y z))
 ```
 
