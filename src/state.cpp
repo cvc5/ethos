@@ -654,14 +654,15 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           std::vector<Expr> achildren(children.begin()+1, children.end()-1);
           return mkFunctionType(achildren, children.back());
         }
-        else if (ai->d_kind==Kind::APPLY)
+        else if (ai->d_kind == Kind::APPLY)
         {
           // Applications (_ f ...) do *not* recursively desugar.
           // remove the dummy operator "_"
-          vchildren.erase(vchildren.begin(), vchildren.begin()+1);
+          vchildren.erase(vchildren.begin(), vchildren.begin() + 1);
           // return the curried version
-          return Expr(vchildren.size() > 2 ? mkApplyInternal(vchildren)
-                                    : mkExprInternal(Kind::APPLY, vchildren));
+          return Expr(vchildren.size() > 2
+                          ? mkApplyInternal(vchildren)
+                          : mkExprInternal(Kind::APPLY, vchildren));
         }
         // another builtin operator, possibly APPLY
         std::vector<Expr> achildren(children.begin()+1, children.end());
