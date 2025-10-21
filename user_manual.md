@@ -576,10 +576,12 @@ This means that the definition of `Q4` is also syntactically equivalent to the d
 
 #### Further notes on constants with attributes
 
-We have described ways the parser process applications of the form `(f t1 ... tn)`, where `f` has been marked with an attribute.
-This preprocessing is only applied during parsing, and not during program execution.
-Furthermore, higher-order applications `(_ f t1 ... tn)` do *not* recursively invoke the desugaring policy for `f`.
-Note the following examples.
+We have described ways Ethos parses (or _desugars_) applications of the form `(f t1 ... tn)`,
+where `f` has been marked with an attribute.
+This desugaring is only applied during parsing and *not* during macro expansion.
+Furthermore, higher-order applications `(_ f t1 ... tn)`
+do *not* recursively invoke the desugaring policy for `f`.
+Note the following example.
 
 ```smt
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
