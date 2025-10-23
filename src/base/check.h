@@ -88,7 +88,7 @@ class OstreamVoider
 //     }
 //   }
 #define EO_FATAL() \
-  FatalStream().stream()
+  FatalStream(__PRETTY_FUNCTION__, __FILE__, __LINE__).stream()
 
 /* GCC <= 9.2 ignores EO_NO_RETURN of ~FatalStream() if
  * used in template classes (e.g., CDHashMap::save()).  As a workaround we
@@ -138,6 +138,8 @@ class OstreamVoider
 #define Assert(cond) \
   EO_FATAL_IF(false, __PRETTY_FUNCTION__, __FILE__, __LINE__)
 #endif
+
+#define Unreachable() EO_FATAL() << "Unreachable code reached "
 
 }  // namespace ethos
 

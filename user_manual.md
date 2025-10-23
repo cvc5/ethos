@@ -458,6 +458,42 @@ Examples of this desugaring are given below.
 Note that in the case of `(or z)`, no application of `or` is constructed, since only one argument term is given, since it is marked with `:list`.
 In contrast, `(or x)` denotes the `or` whose children are `x` and `false`.
 
+#### Right/Left associative with nil terminator, without singleton list
+
+A further variant of right and left associative operators
+avoids constructing lists with a single element.
+In particular, note the following example:
+
+```smt
+(declare-const or (-> Bool Bool Bool) :right-assoc-non-singleton-nil false)
+(define or_3 ((x Bool :list) (y Bool) (z Bool :list)) (or x y z))
+(define Q () (or_3 (or a b) a false))
+(define P () (or_3 false a false))
+```
+
+In this example, `or` has been marked `:right-assoc-non-singleton-nil false`.
+This attribute is identical to `:right-assoc-nil false`, but where `or` applied to
+a single child is instead replaced by the child itself.
+
+We define a predicate `or_3` which concatenates three terms, the first
+and third being lists and the middle child `y` being a Boolean.
+The definition of `Q` is equivalent after desugaring to `(or a (or b (or a false)))`, which is identical to if `or` had been marked `:right-assoc-nil`.
+The definition of `P` is equivalent after desugaring to `a`, which is not the same as `(or a false)`,
+which would have been the result if `or` had been marked `:right-assoc-nil`.
+
+More generally,
+applications of `right-assoc-non-singleton-nil` operators `(f t1 ... tn)`
+are desugared as follows.
+First, we compute the result `t` of
+desugaring `(f t1 ... tn)` using the policy described in the previous section,
+where `f` is `right-assoc-nil`.
+If at least two of `t1 ... tn` are not marked `:list`, we return `t`.
+Otherwise we return the term `(eo::list_singleton_elim f t)`.
+The semantics of `eo::list_singleton_elim` is provided later in [list-computation](#list-computation).
+This means that the definition of `or_3` is desugared to
+`(eo::list_singleton_elim or (eo::list_concat or x (or y z)))`
+in the example above.
+
 #### Chainable
 
 ```smt
@@ -943,6 +979,8 @@ We say that a term is an `f`-list with children `t1 ... tn` if it is of the form
   - (Difference) If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, this returns the result of erasing elements of `t11 ... t1n` that occur in `t21 ... t2m` where multiplicity is considered. In detail, for each `i = 1, ..., n`, if `t1i` occurs in `t21 ... t2m`, we remove one copy of it from that list. Otherwise if `t1i` does not occur in `t21 ... t2m`, we append it to the final result.
 - `(eo::list_inter f t1 t2)`
   - (Intersection) If `t1` is an `f`-list with children `t11 ... t1n` and `t2` is an `f`-list with children `t21 ... t2m`, this returns the result of erasing elements of `t11 ... t1n` that do not occur in `t21 ... t2m` where multiplicity is considered. In detail, for each `i = 1, ..., n`, if `t1i` occurs in `t21 ... t2m`, we erase one copy of it from that list and append it to the final result.
+- `(eo::list_singleton_elim f t1)`
+  - (Singleton elimination) If `t1` is an `f`-list containing a single child `t11`, this returns `t11`. All other `f`-lists `t1` are returned unchanged. Otherwise, this operator does not evaluate.
 
 ### List Computation Examples
 
@@ -1031,6 +1069,10 @@ The terms on both sides of the given evaluation are written in their form prior 
 (eo::list_inter or (or a a b) (or a b))     == (or a b)
 (eo::list_inter or (or a b c b a) (or c b)) == (or b c)
 (eo::list_inter or (or a b a c a) (or a a)) == (or a a)
+
+(eo::list_singleton_elim or (or a b c))     == (or a b c)
+(eo::list_singleton_elim or (or a a a))     == (or a a a)
+(eo::list_singleton_elim or (or a))         == a
 ```
 
 ### Parametric Nil terminators
