@@ -434,3 +434,24 @@
   (eo::requires ($eo_is_list f a) true
   (eo::requires ($eo_is_list f b) true
     ($eo_list_inter_rec f a b))))
+
+;;; $eo_list_singleton_elim
+
+; Note: a helper for $eo_list_singleton_elim.
+(program $eo_list_singleton_elim_2
+  ((T Type) (U Type) (V Type) (W Type) (W1 Type) (W2 Type) (X Type)
+   (f (-> T U V)) (x W1) (y W2) (z X) (nil W))
+  :signature ((-> T U V) W X) $eo_List
+  (
+  (($eo_list_singleton_elim_2 f nil (f x nil))  x)
+  (($eo_list_singleton_elim_2 f nil z)          z)
+  )
+)
+
+; define: $eo_list_singleton_elim
+; implements: eo::list_singleton_elim
+(define $eo_list_singleton_elim
+  ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
+   (f (-> T U V)) (a W))
+  ($eo_requires_eq ($eo_is_list f a) true
+    ($eo_list_singleton_elim_2 f ($eo_nil f ($eo_typeof a)) a)))
