@@ -104,3 +104,7 @@
 (declare-const test24 (eo::requires ($eo_list_inter or (or a a b) (or a b)) (or a b) Bool))
 (declare-const test25 (eo::requires ($eo_list_inter or (or a b c b a) (or c b)) (or b c) Bool))
 (declare-const test26 (eo::requires ($eo_list_inter or (or a b a c a) (or a a)) (or a a) Bool))
+
+(declare-const test27 (eo::requires ($eo_list_singleton_elim or (or a b c)) (or a b c) Bool))
+(declare-const test28 (eo::requires ($eo_list_singleton_elim or (or a a a)) (or a a a) Bool))
+(declare-const test29 (eo::requires ($eo_list_singleton_elim or (or a)) a Bool))
