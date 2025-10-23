@@ -1,8 +1,15 @@
 This file contains a summary of important user-visible changes.
 
 
-ethos 0.2.1 pre-release
-=======================
+ethos 0.2.2-prerelease
+======================
+- Adds builtin list operator `eo::list_singleton_elim` which converts singleton lists to their (single) element.
+- Adds the operator annotation `:right-assoc-non-singleton-nil` (resp. `:left-assoc-non-singleton-nil`). This annotation is similar to `:right-assoc-nil` but additionally collapses singleton lists to their single elements.
+
+ethos 0.2.1
+===========
+
+This release of Ethos is associated with the 1.3.1 release of the SMT solver cvc5.
 
 - Removes support for `eo::match`, which was equivalent to invoking an auxiliary function. These auxiliary functions now should be defined explicitly.
 - Adds builtin list operators `eo::list_diff` (difference) and `eo::list_inter` (intersection)
