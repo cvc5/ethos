@@ -709,7 +709,7 @@ Binary values are considered to be in little endian form.
 
 Some of the following operators can be defined in terms of the other operators.
 For these operators, we provide the equivalent formulation.
-A signature defining these files can be found in [non-core-eval](#non-core-eval).
+A signature defining these files can be found in [derived-ops](#derived-ops).
 Note, however, that the evaluation of these operators is handled by more efficient methods internally in Ethos, that is, they are not treated as syntax sugar internally.
 
 ### Core operators
@@ -721,7 +721,7 @@ Note, however, that the evaluation of these operators is handled by more efficie
   - Returns `t2` if `t1` is `true`, `t3` if `t1` is `false`, and is not evaluated otherwise. Note that the branches of this term are only evaluated if they are the return term.
 
 - `(eo::eq t1 t2)`
-  - If `t1` and `t2` are ground values, this returns `true` if `t1` is (syntactically) equal to `t2` and false otherwise. Otherwise, if either `t1` or `t2` is non-ground, it does not evaluate.
+  - If `t1` and `t2` are ground values, this returns `true` if `t1` is (syntactically) equal to `t2` and `false` otherwise. If either `t1` or `t2` is non-ground, it does not evaluate. Note this can be expressed as an ordinary Eunoia program as we describe in [derived-ops](#derived-ops).
 
 - `(eo::is_eq t1 t2)`
   - Equivalent to `(eo::ite (eo::and (eo::is_ok t) (eo::is_ok s)) (eo::eq s t) false)`.
@@ -948,6 +948,9 @@ For example `(eo::eq x y)` returns `false`.
 Below, we assume that `f` is right associative operator with nil terminator `nil` and `t1, t2` are values. Otherwise, the following operators do not evaluate.
 We describe the evaluation for right associative operators; left associative evaluation is defined analogously.
 We say that a term is an `f`-list with children `t1 ... tn` if it is of the form `(f t1 ... tn)` where `n>0` or `nil` if `n=0`.
+
+Note that all of the list operators here (with the exception of `eo::nil`) have a semantics that can be described as an ordinary Eunoia program.
+We describe a signature that gives these definitions in [derived-ops](#derived-ops).
 
 ### List operators
 
@@ -1307,8 +1310,9 @@ In detail, for the purposes of representing the return value of these operators,
 ```smt
 (declare-const eo::List Type)
 (declare-const eo::List::nil eo::List)
-(declare-const eo::List::cons ((T Type :implicit)) (-> T eo::List eo::List)
-               :right-assoc-nil eo::List::nil)
+(declare-parameterized-const eo::List::cons ((T Type :implicit))
+  (-> T eo::List eo::List)
+  :right-assoc-nil eo::List::nil)
 ```
 
 > __Note:__ `eo::List` is not itself a datatype type.
@@ -2131,48 +2135,68 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
 
 ```
 
- <a name="non-core-eval"></a>
+### Derived Definitions of Evaluation Operators
+<a name="derived-ops"></a>
 
-### Definitions of Non-Core Evaluation Operators
+We provide a signature that give an alternative definition
+of certain builtin operators that can be expressed as standard Eunoia programs,
+or based on other operators.
+We provide this as a parsable Eunoia file, which is part of our
+regression tests (see <https://github.com/cvc5/ethos/tree/main/tests/eo-definitions.eo>).
 
-The following signature can be used to define operators that are not required to be supported as core evaluation operators.
+In this signature, we use the convention that each `eo::X` definition is given a corresponding
+definition `$eo_X` in the following signature.
+Including this signature and modifying a Eunoia
+file to use `$eo_` instead of `eo::` should
+have no impact on behavior (apart from performance), unless otherwise noted.
 
-```smt
-; Returns true if x is a numeral literal.
-(define eo::is_z ((T Type :implicit) (x T))
-  (eo::is_eq (eo::to_z x) x))
+The signature above provides definitions of Eunoia list operators in terms
+of standard Eunoia programs or definitions.
+It is possible to define programs for *all* list operators with the exception
+of `eo::nil`.
+In particular, the behavior of `eo::nil` is dynamically modified based on the
+declared constants. We provide instructions
+for how to construct the definition of `$eo_nil` for a fixed signature.
 
-; Returns true if x is a rational literal.
-(define eo::is_q ((T Type :implicit) (x T))
-  (eo::is_eq (eo::to_q x) x))
-
-; Returns true if x is a binary literal.
-(define eo::is_bin ((T Type :implicit) (x T))
-  (eo::is_eq (eo::to_bin (eo::len x) x) x))
-
-; Returns true if x is a string literal.
-(define eo::is_str ((T Type :implicit) (x T))
-  (eo::is_eq (eo::to_str x) x))
-
-; Returns true if x is a Boolean literal.
-(define eo::is_bool ((T Type :implicit) (x T))
-  (eo::ite (eo::is_eq x true) true (eo::is_eq x false)))
-
-; Returns true if x is a variable.
-(define eo::is_var ((T Type :implicit) (x T))
-  (eo::is_eq (eo::var (eo::nameof x) (eo::typeof x)) x))
-
-; Compare arithmetic greater than. Assumes x and y are values.
-; Returns true if x > y.
-(define eo::gt ((T Type :implicit) (x T) (y T))
-  (eo::is_neg (eo::add (eo::neg x) y)))
-
-; An arbitrary deterministic comparison of terms. Returns true if a > b based
-; on this ordering.
-(define eo::cmp ((T Type :implicit) (U Type :implicit) (a T) (b U))
-  (eo::is_neg (eo::add (eo::hash b) (eo::neg (eo::hash a)))))
+We assume the definition of `$eo_nil` has the following form:
 
 ```
+; program: $eo_nil
+; implements: eo::nil
+(program $eo_nil ((T Type) (U Type) (V Type) (W Type))
+  :signature ((-> T U V) (eo::quote W)) W
+  (
+  ; ... Cases for each associative-nil operator, see description below.
+  )
+)
+```
+
+For each declare-const or declare-parameterized-const `f` whose return type is `T`
+declared in the signature that is marked `:right-assoc-nil nil` or `:left-assoc-nil nil`,
+we add the case`(($eo_nil f T) nil)` to the definition of `$eo_nil` above.
+For example, given:
+```
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+```
+We add the case `(($eo_nil or Bool) false)` to `$eo_nil` above.
+
+> __Note:__ In our formulation, we assume that the case `(($eo_nil eo_List_cons eo_List) eo_List_nil)`
+for our (redefinition) of the builtin Eunoia list is included.
+
+In the definition of `$eo_nil`, notice that
+it is necessary to include the type as part of the case to support functions with
+non-ground nil terminators, which requiring instantiating the free parameters
+of `T`. For example, given:
+```
+(declare-parameterized-const bvor ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) (BitVec m)) :right-assoc-nil (eo::to_bin 0 m))
+```
+We add the case `(($eo_nil bvor (BitVec m))  (eo::to_bin 0 m))` to `$eo_nil` above.
+Providing a concrete type, e.g. `(BitVec 4)` will ensure `m` is bound to `4`
+and hence `($eo_nil bvor (BitVec 4))` evaluates to `(eo::to_bin 0 4)`, which is
+`#b0000`.
+
+All other list operators can be defined as ordinary Eunoia programs or definitions.
 
 ### Proofs as terms
 
