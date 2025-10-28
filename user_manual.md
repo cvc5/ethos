@@ -306,10 +306,13 @@ The Eunoia language supports term annotations on declared constants which, for i
 - `:binder <symbol>` denoting that the first argument of the declared constant can be provided using a syntax for variable lists whose constructor is the one provided by `<symbol>`.
 
 A declared function can be marked with at most one of the above attributes or an error is thrown.
+We refer to constants with one of the above attributes (with the exception of `:binder`) as _variadic_ constants.
+We describe these policies in detail in the following sections, which will describe how the parser desugars input syntax of the form `(f t1 ... tn)`.
 
-A parameter may be marked with the following attribute:
+Furthermore, a parameter may be marked with the following attribute:
 
 - `:list`, denoting that the parameter should be treated as a list when appearing as a child of an application of a right (left) associative operator.
+
 
 #### Right/Left associative
 
@@ -541,13 +544,17 @@ As an alternative, an n-ary operator like `distinct` can be marked as taking an 
 as demonstrated in the example below.
 
 ```smt
-(declare-type Int ())
-(declare-parameterized-const distinct ((xs eo::List)) Bool :arg-list eo::List::cons)
+(declare-const Int Type)
+(declare-const @List Type)
+(declare-const @nil @List)
+(declare-parameterized-const @cons ((T Type :implicit)) (-> T @List @List)
+ :right-assoc-nil @nil)
+(declare-parameterized-const distinct ((xs @List)) Bool :arg-list @cons)
 (define P ((x Int) (y Int) (z Int)) (distinct x y z))
 ```
 
-In the above example, `(distinct x y z)` is desugared to `(distinct (eo::List::cons a b c))`,
-which is further desugared to `(distinct (eo::List::cons a (eo::List::cons b (eo::List::cons c eo::List::nil))))`.
+In the above example, `(distinct x y z)` is desugared to `(distinct (@cons a b c))`,
+which is further desugared to `(distinct (@cons a (@cons b (@cons c @nil))))`.
 In contrast to the above example, the size of this term is not quadratic in size with respect to the input arguments.
 
 This desugaring further takes into account if arguments to the annotated symbol have been marked with the attribute`:list`.
@@ -556,17 +563,17 @@ it is *not* passed to the given list constructor but instead taken as the lone
 argument. Note the following examples:
 
 ```
-(define distinct-of ((xs eo::List :list))
+(define distinct-of ((xs @List :list))
   (distinct xs))
-(define distinct-of2 ((T Type :implicit) (x T) (xs eo::List :list))
+(define distinct-of2 ((T Type :implicit) (x T) (xs @List :list))
   (distinct x xs))
 ```
 
 In the first definition, the argument to `distinct` is marked `:list`, hence
-`(distinct xs)` is *not* desugared to `(distinct (eo::List::cons xs))`
+`(distinct xs)` is *not* desugared to `(distinct (@cons xs))`
 since `xs` is marked `:list`.
 In the second definition, `(distinct x xs)` has multiple arguments, hence
-it is desugared to `(distinct (eo::List::cons x xs))`. This term is
+it is desugared to `(distinct (@cons x xs))`. This term is
 not desugared further since `xs` is marked `:list`.
 
 #### Binder
@@ -602,6 +609,39 @@ On the other hand, the definition `Q3` is distinct from both of these, since `y`
 Furthermore, note that a binder also may accept an explicit term as its first argument.
 In the above example, `Q4` has `(@cons x)` as its first argument, where `x` was explicitly defined as a variable.
 This means that the definition of `Q4` is also syntactically equivalent to the definition of `Q1` and `Q2`.
+
+#### Further notes on constants with attributes
+
+We have described ways Ethos parses (or *desugars*) applications of the form `(f t1 ... tn)`,
+where `f` has been marked with an attribute.
+This desugaring is only applied during parsing and *not* during macro expansion.
+Furthermore, higher-order applications `(_ f t1 ... tn)`
+do *not* recursively invoke the desugaring policy for `f`.
+Note the following example.
+
+```smt
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+
+(declare-const a Bool)
+(declare-const b Bool)
+(define apply-f-to-ab ((f (-> Bool Bool Bool))) (f a b))
+(define apply-or-to-ab () (apply-f-to-ab or))
+(define apply-or-to-ab-2 () (or a b))
+(define apply-or-to-ab-3 () (_ or a b))
+```
+
+In the above example, we define `or` as a right-associative nil operator.
+We then define two Boolean constants `a` and `b`, and a higher-order predicate `apply-f-to-ab`
+that applies a given binary predicate to these constants.
+Note that since `f` is a parameter, the term `(f a b)` is parsed as an ordinary application, namely it is `(_ (_ f a) b)` after desugaring.
+
+The definition `apply-or-to-ab`, which applies this predicate to `or`,
+does *not* trigger any desugaring of `or` when it is invoked, meaning after simplification,
+`apply-or-to-ab` is equivalent to `(_ (_ or a) b)`.
+In constrast, definition of the predicate `apply-or-to-ab-2` involves an application of `or`,
+which desugars to` (_ (_ or a) (_ (_ or b) false))`.
+As a final example, the definition of predicate `apply-or-to-ab-3` is `(_ or a b)`,
+which is *not* an application of `or` and hence desugars to `(_ (_ or a) b)`.
 
 <a name="amb-functions"></a>
 
