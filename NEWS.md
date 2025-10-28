@@ -4,6 +4,11 @@ ethos 0.2.2 prerelease
 ======================
 
 - Evaluation is now forbidden in types of parameters and in the argument types of programs.
+- Higher-order applications of the form `(_ f t1 ...tn)` no longer desugar based on the desugaring policy for `f`.
+- Adds builtin list operator `eo::list_singleton_elim` which converts singleton lists to their (single) element.
+- Adds the operator annotation `:right-assoc-non-singleton-nil` (resp. `:left-assoc-non-singleton-nil`). This annotation is similar to `:right-assoc-nil` but additionally collapses singleton lists to their single elements.
+
+
 
 ethos 0.2.1
 ===========
