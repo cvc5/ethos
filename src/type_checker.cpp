@@ -163,10 +163,9 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_GT:
     case Kind::EVAL_LIST_LENGTH:
     case Kind::EVAL_LIST_REV:
-    case Kind::EVAL_LIST_SETOF: ret = (nargs == 2); break;
-    case Kind::EVAL_NIL:
-      ret = (nargs==2);
-      break;
+    case Kind::EVAL_LIST_SETOF:
+    case Kind::EVAL_LIST_SINGLETON_ELIM:
+    case Kind::EVAL_NIL: ret = (nargs == 2); break;
     case Kind::EVAL_LIST_CONCAT: ret = (nargs == 3); break;
     case Kind::PROOF_TYPE:
     case Kind::EVAL_IS_OK:
@@ -1427,12 +1426,12 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     return d_null;
   }
   Attr ck = ac->d_attrCons;
-  if (ck!=Attr::RIGHT_ASSOC_NIL && ck!=Attr::LEFT_ASSOC_NIL)
+  if (!isListNilAttr(ck))
   {
     // not an associative operator
     return d_null;
   }
-  bool isLeft = (ck==Attr::LEFT_ASSOC_NIL);
+  bool isLeft = (ck == Attr::LEFT_ASSOC_NIL || ck == Attr::LEFT_ASSOC_NS_NIL);
   Trace("type_checker_debug") << "EVALUATE-LIT (list) " << k << " " << isLeft << " " << args << std::endl;
   // infer the nil expression, which depends on the type of args[1]
   std::vector<Expr> eargs;
@@ -1569,6 +1568,19 @@ Expr TypeChecker::evaluateLiteralOpInternal(
     case Kind::EVAL_LIST_DIFF:
     case Kind::EVAL_LIST_INTER:
       return evaluateListDiffInterInternal(k, op, nil, isLeft, args);
+    case Kind::EVAL_LIST_SINGLETON_ELIM:
+    {
+      std::vector<ExprValue*> hargs;
+      if (getNAryChildren(args[1], op, nil, hargs, isLeft) == nullptr)
+      {
+        Trace("type_checker") << "...head not in list form" << std::endl;
+        return d_null;
+      }
+      Trace("type_checker")
+          << "...has " << hargs.size() << " arguments" << std::endl;
+      // if a list of size 1, it is that argument, otherwise unchanged
+      return Expr(hargs.size() == 1 ? hargs[0] : args[1]);
+    }
     default:
       break;
   }
@@ -1820,7 +1832,8 @@ Expr TypeChecker::getLiteralOpType(Kind k,
     case Kind::EVAL_LIST_REV:
     case Kind::EVAL_LIST_SETOF:
     case Kind::EVAL_LIST_DIFF:
-    case Kind::EVAL_LIST_INTER: return Expr(childTypes[1]);
+    case Kind::EVAL_LIST_INTER:
+    case Kind::EVAL_LIST_SINGLETON_ELIM: return Expr(childTypes[1]);
     case Kind::EVAL_CONCAT:
     case Kind::EVAL_EXTRACT:
       // type is the first child

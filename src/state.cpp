@@ -129,6 +129,7 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("list_meq", Kind::EVAL_LIST_MEQ);
   bindBuiltinEval("list_diff", Kind::EVAL_LIST_DIFF);
   bindBuiltinEval("list_inter", Kind::EVAL_LIST_INTER);
+  bindBuiltinEval("list_singleton_elim", Kind::EVAL_LIST_SINGLETON_ELIM);
   // boolean
   bindBuiltinEval("not", Kind::EVAL_NOT);
   bindBuiltinEval("and", Kind::EVAL_AND);
@@ -974,6 +975,8 @@ Expr State::mkApplyAttr(AppInfo* ai,
     case Attr::RIGHT_ASSOC:
     case Attr::LEFT_ASSOC_NIL:
     case Attr::RIGHT_ASSOC_NIL:
+    case Attr::RIGHT_ASSOC_NS_NIL:
+    case Attr::LEFT_ASSOC_NS_NIL:
     {
       // This means that we don't construct bogus terms when e.g.
       // right-assoc-nil operators are used in side condition bodies.
@@ -982,14 +985,18 @@ Expr State::mkApplyAttr(AppInfo* ai,
       if (nchild >= 2)
       {
         bool isLeft = (ai->d_attrCons == Attr::LEFT_ASSOC
-                       || ai->d_attrCons == Attr::LEFT_ASSOC_NIL);
-        bool isNil = (ai->d_attrCons == Attr::RIGHT_ASSOC_NIL
+                       || ai->d_attrCons == Attr::LEFT_ASSOC_NIL
+                       || ai->d_attrCons == Attr::LEFT_ASSOC_NS_NIL);
+        bool isNsNil = (ai->d_attrCons == Attr::RIGHT_ASSOC_NS_NIL
+                        || ai->d_attrCons == Attr::LEFT_ASSOC_NS_NIL);
+        bool isNil = (isNsNil || ai->d_attrCons == Attr::RIGHT_ASSOC_NIL
                       || ai->d_attrCons == Attr::LEFT_ASSOC_NIL);
         size_t i = 1;
         ExprValue* curr = vchildren[isLeft ? i : nchild - i];
         std::vector<ExprValue*> cc{hd, nullptr, nullptr};
         size_t nextIndex = isLeft ? 2 : 1;
         size_t prevIndex = isLeft ? 1 : 2;
+        size_t nlistTerms = 0;
         if (isNil)
         {
           if (getConstructorKind(curr) != Attr::LIST)
@@ -1023,17 +1030,31 @@ Expr State::mkApplyAttr(AppInfo* ai,
         {
           cc[prevIndex] = curr;
           cc[nextIndex] = vchildren[isLeft ? i : nchild - i];
-          // if the "head" child is marked as list, we construct
-          // Kind::EVAL_LIST_CONCAT
+          // if the "head" child is marked as list, we construct concatenation
           if (isNil && getConstructorKind(cc[nextIndex]) == Attr::LIST)
           {
             curr = mkExprInternal(Kind::EVAL_LIST_CONCAT, cc);
           }
           else
           {
+            nlistTerms++;
             curr = mkApplyInternal(cc);
           }
           i++;
+        }
+        // if we are a non-singleton list with fewer than 2 non-list children
+        if (isNsNil && nlistTerms<2)
+        {
+          // If we are a "non-singleton" kind, we add singleton elimination.
+          // Note that this case is applied possibly on ground arguments,
+          // in contrast to the case of EVAL_LIST_CONCAT above which requires a
+          // :list annotation, which can only be applied to parameters. Hence,
+          // we must call mkExpr in case we evaluate this application
+          // immediately.
+          std::vector<Expr> ccse;
+          ccse.emplace_back(hd);
+          ccse.emplace_back(curr);
+          return mkExpr(Kind::EVAL_LIST_SINGLETON_ELIM, ccse);
         }
         Trace("type_checker")
             << "...return for " << Expr(vchildren[0]) << std::endl;
@@ -1399,7 +1420,7 @@ bool State::getProofRuleArguments(std::vector<Expr>& children,
         // the nil terminator if applied to empty list
         AppInfo* aic = getAppInfo(plCons.getValue());
         Attr ck = aic->d_attrCons;
-        if (ck==Attr::RIGHT_ASSOC_NIL || ck==Attr::LEFT_ASSOC_NIL)
+        if (isListNilAttr(ck))
         {
           ap = aic->d_attrConsTerm;
         }
