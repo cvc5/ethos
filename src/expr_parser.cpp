@@ -467,7 +467,7 @@ Expr ExprParser::parseExpr()
   return ret;
 }
 
-Expr ExprParser::parseType(bool allowQuoteArg)
+Expr ExprParser::parseType(bool allowQuoteArg, bool allowEval)
 {
   if (allowQuoteArg)
   {
@@ -501,13 +501,25 @@ Expr ExprParser::parseType(bool allowQuoteArg)
   // ensure it is a type
   typeCheck(e, d_state.mkType());
   // should not contain stuck term
-  if (e.isGround() && e.isEvaluatable())
+  if (e.isEvaluatable())
   {
-    std::stringstream msg;
-    msg << "Parsed type has an unevalated term:" << std::endl;
-    msg << "Type: " << e << std::endl;
-    d_lex.parseError(msg.str());
+    if (e.isGround())
+    {
+      std::stringstream msg;
+      msg << "Parsed type has an unevalated term:" << std::endl;
+      msg << "Type: " << e << std::endl;
+      d_lex.parseError(msg.str());
+    }
+    else if (!allowEval)
+    {
+      std::stringstream msg;
+      msg << "Parsed type cannot contain evaluation in this context:"
+          << std::endl;
+      msg << "Type: " << e << std::endl;
+      d_lex.parseError(msg.str());
+    }
   }
+
   return e;
 }
 
@@ -543,7 +555,8 @@ std::vector<Expr> ExprParser::parseTypeList(bool allowQuoteArg)
   while (tok != Token::RPAREN)
   {
     d_lex.reinsertToken(tok);
-    Expr t = parseType(allowQuoteArg);
+    // never allow evaluation
+    Expr t = parseType(allowQuoteArg, false);
     terms.push_back(t);
     tok = d_lex.nextToken();
   }
@@ -617,7 +630,8 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList(
   while (d_lex.eatTokenChoice(Token::LPAREN, Token::RPAREN))
   {
     name = parseSymbol();
-    t = parseType();
+    // do not allow quote or evaluation
+    t = parseType(false, false);
     Expr v;
     bool isImplicit = false;
     if (k == Kind::NONE)
