@@ -576,7 +576,7 @@ This means that the definition of `Q4` is also syntactically equivalent to the d
 
 #### Further notes on constants with attributes
 
-We have described ways Ethos parses (or _desugars_) applications of the form `(f t1 ... tn)`,
+We have described ways Ethos parses (or *desugars*) applications of the form `(f t1 ... tn)`,
 where `f` has been marked with an attribute.
 This desugaring is only applied during parsing and *not* during macro expansion.
 Furthermore, higher-order applications `(_ f t1 ... tn)`
