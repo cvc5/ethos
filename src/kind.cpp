@@ -20,7 +20,6 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::TYPE: o << "TYPE"; break;
     case Kind::FUNCTION_TYPE: o << "FUNCTION_TYPE"; break;
     case Kind::PROGRAM_TYPE: o << "PROGRAM_TYPE"; break;
-    case Kind::PROOF_TYPE: o << "PROOF_TYPE"; break;
     case Kind::BOOL_TYPE: o << "BOOL_TYPE"; break;
     case Kind::QUOTE_TYPE: o << "QUOTE_TYPE"; break;
     // terms
@@ -40,6 +39,7 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::APPLY_OPAQUE: o << "APPLY_OPAQUE"; break;
     case Kind::ANNOT_PARAM: o << "ANNOT_PARAM"; break;
     case Kind::ANY: o << "ANY"; break;
+    case Kind::PROOF: o << "PROOF"; break;
     // literals
     case Kind::BOOLEAN: o << "BOOLEAN"; break;
     case Kind::NUMERAL: o << "NUMERAL"; break;
@@ -122,7 +122,6 @@ std::string kindToTerm(Kind k)
     case Kind::TYPE: ss << "Type"; break;
     case Kind::FUNCTION_TYPE: ss << "->"; break;
     case Kind::PROGRAM_TYPE: ss << "eo::arrow"; break;
-    case Kind::PROOF_TYPE: ss << "Proof"; break;
     case Kind::BOOL_TYPE: ss << "Bool"; break;
     case Kind::QUOTE_TYPE: ss << "eo::quote"; break;
     case Kind::TUPLE: ss << "eo::tuple"; break;
@@ -136,6 +135,7 @@ std::string kindToTerm(Kind k)
     case Kind::AS: ss << "eo::as"; break;
     case Kind::AS_RETURN: ss << "as"; break;
     case Kind::PARAMETERIZED: ss << "eo::_"; break;
+    case Kind::PROOF: ss << "pf"; break;
     // operations on literals
     default:
       if (isLiteralOp(k))

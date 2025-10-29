@@ -167,7 +167,7 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
     case Kind::EVAL_LIST_SINGLETON_ELIM:
     case Kind::EVAL_NIL: ret = (nargs == 2); break;
     case Kind::EVAL_LIST_CONCAT: ret = (nargs == 3); break;
-    case Kind::PROOF_TYPE:
+    case Kind::PROOF:
     case Kind::EVAL_IS_OK:
     case Kind::EVAL_TYPE_OF:
     case Kind::EVAL_NAME_OF:
@@ -253,7 +253,7 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
     case Kind::FUNCTION_TYPE:
     case Kind::PROGRAM_TYPE:
     case Kind::ANY: return d_state.mkType();
-    case Kind::PROOF_TYPE:
+    case Kind::PROOF:
     {
       ExprValue* ctype = d_state.lookupType(e->d_children[0]);
       Assert(ctype != nullptr);
@@ -265,8 +265,8 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
         }
         return d_null;
       }
+      return d_state.mkProofType();
     }
-      return d_state.mkType();
     case Kind::ANNOT_PARAM:
       // its type is the second child
       return Expr(e->d_children[1]);
@@ -366,33 +366,8 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     if (out)
     {
       (*out) << "Incorrect arity for " << Expr(hd);
-      if (hdtypes[hdtypes.size() - 1]->getKind() == Kind::PROOF_TYPE)
-      {
-        // proof rule can give more information, partioned into args/premises
-        size_t npIndex1 = hdtypes.size() - 1;
-        while (npIndex1 > 0
-               && hdtypes[npIndex1 - 1]->getKind() == Kind::PROOF_TYPE)
-        {
-          npIndex1--;
-        }
-        size_t npIndex2 = children.size() - 1;
-        while (npIndex2 > 0
-               && d_state.lookupType(children[npIndex2 - 1])->getKind()
-                      == Kind::PROOF_TYPE)
-        {
-          npIndex2--;
-        }
-        (*out) << ", which expects " << npIndex1 << " arguments and "
-               << (hdtypes.size() - 1 - npIndex1) << " premises but "
-               << npIndex2 << " arguments and "
-               << (children.size() - 1 - npIndex2) << " premises were provided";
-      }
-      else
-      {
-        (*out) << ", which expects " << (hdtypes.size() - 1)
-               << " arguments but " << (children.size() - 1)
-               << " were provided";
-      }
+      (*out) << ", which expects " << (hdtypes.size() - 1) << " arguments but "
+             << (children.size() - 1) << " were provided";
     }
     return d_null;
   }
@@ -905,16 +880,23 @@ Expr TypeChecker::evaluate(ExprValue* e, Ctx& ctx)
   return evaluated;
 }
 
-Expr TypeChecker::evaluateProgram(
-    const std::vector<ExprValue*>& children, Ctx& newCtx)
+Expr TypeChecker::evaluateProgramApp(const std::vector<Expr>& args)
 {
-  const Expr& ret = evaluateProgramInternal(children, newCtx);
+  Assert(args.size() > 1);
+  std::vector<ExprValue*> vargs;
+  for (const Expr& a : args)
+  {
+    vargs.emplace_back(a.getValue());
+  }
+  Ctx newCtx;
+  Expr ret = evaluateProgramInternal(vargs, newCtx);
   if (!ret.isNull())
   {
-    return ret;
+    // evaluate in context
+    return evaluate(ret.getValue(), newCtx);
   }
   // otherwise does not evaluate, return application
-  return Expr(d_state.mkExprInternal(Kind::APPLY, children));
+  return Expr(d_state.mkExprInternal(Kind::APPLY, vargs));
 }
 
 bool TypeChecker::isGround(const std::vector<ExprValue*>& args)
