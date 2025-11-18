@@ -3,6 +3,7 @@ This file contains a summary of important user-visible changes.
 ethos 0.2.2 prerelease
 ======================
 
+- The attribute `:signature` to specify the argument and return types of programs is now required.
 - Evaluation is now forbidden in types of parameters and in the argument types of programs.
 - Higher-order applications of the form `(_ f t1 ...tn)` no longer desugar based on the desugaring policy for `f`.
 - Adds builtin list operator `eo::list_singleton_elim` which converts singleton lists to their (single) element.
