@@ -63,13 +63,13 @@
 ; Concatenation str.++ applications t1 and t2. Note this side condition requires
 ; taking the sort u of t1 for constructing the empty string.
 (program string_concat ((T Type) (t1 (Seq T)) (t2 (Seq T)))
-  ((Seq T) (Seq T)) (Seq T)
+  :signature ((Seq T) (Seq T)) (Seq T)
   (((string_concat t1 t2) ($str_concat t1 t2)))
 )
 
 (program $string_rev_rec
     ((T Type) (t (Seq T)) (ss (Seq T) :list) (acc (Seq T)))
-    ((Seq T) (Seq T) Type) (Seq T)
+    :signature ((Seq T) (Seq T) Type) (Seq T)
     (
         (($string_rev_rec (str.++ t ss) acc T) ($string_rev_rec ss (eo::cons str.++ t acc) T))
         (($string_rev_rec t acc T)             (eo::requires t (mk_emptystr (Seq T)) acc))
@@ -78,7 +78,7 @@
 
 (program $string_rev
     ((T Type) (t (Seq T)))
-    ((Seq T)) (Seq T)
+    :signature ((Seq T)) (Seq T)
     (
         (($string_rev t) (eo::define ((U ($char_type_of (eo::typeof t)))) ($string_rev_rec t (mk_emptystr (Seq U)) U)))
     )
@@ -118,7 +118,7 @@
 ; Helper for below, assumes t is a non-empty word constant.
 ; For example, given "AB", this returns (str.++ "A" (str.++ "B" "")).
 (program string_flatten_word ((U Type) (t (Seq U)))
-  ((Seq U)) (Seq U)
+  :signature ((Seq U)) (Seq U)
   (
     ((string_flatten_word t) 
       (eo::ite (check_length_one t) 
@@ -127,7 +127,7 @@
   )
 )
 (program string_flatten ((U Type) (t (Seq U)) (tail (Seq U) :list) (tail2 (Seq U) :list))
-  ((Seq U)) (Seq U)
+  :signature ((Seq U)) (Seq U)
   (
     ; required for sequences
     ((string_flatten (str.++ (str.++ t tail2) tail)) 
@@ -200,7 +200,7 @@
 ;   (pair (str.++ y (str.++ z "")) (str.++ w ""))
 ; This side condition may fail if s or t is not a str.++ application.
 (program strip_prefix ((U Type) (t (Seq U)) (s (Seq U)) (t2 (Seq U) :list) (s2 (Seq U) :list))
-  ((Seq U) (Seq U)) (@Pair (Seq U) (Seq U))
+  :signature ((Seq U) (Seq U)) (@Pair (Seq U) (Seq U))
   (
     ((strip_prefix (str.++ t t2) (str.++ t s2)) (strip_prefix t2 s2))
     ((strip_prefix t s)                         (@pair t s))
@@ -210,7 +210,7 @@
 
 (program $string_nary_intro
     ((T Type) (t (Seq T)) (ss (Seq T) :list))
-    ((Seq T)) (Seq T)
+    :signature ((Seq T)) (Seq T)
     (
         (($string_nary_intro (str.++ t ss)) (str.++ t ss))
         (($string_nary_intro t)             (eo::define ((nil (mk_emptystr (eo::typeof t))))
@@ -220,7 +220,7 @@
 
 (program $string_nary_elim
     ((T Type) (t (Seq T)) (ss (Seq T) :list))
-    ((Seq T)) (Seq T)
+    :signature ((Seq T)) (Seq T)
     (
         (($string_nary_elim (str.++ t ss)) (eo::define ((nil (mk_emptystr (eo::typeof t))))
                                            (eo::ite (eo::is_eq ss nil) t (str.++ t ss))))

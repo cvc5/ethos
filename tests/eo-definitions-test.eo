@@ -20,7 +20,7 @@
 ; as described below. This means we cannot provide a static definition of it
 ; in this signature, and this is not equivalent to the builtin $eo_nil.
 (program $eo_nil ((T Type) (U Type) (V Type) (W Type) (Any Type))
-  ((-> T U V) W) Any
+  :signature ((-> T U V) W) Any
   (
   (($eo_nil or Bool) false)
   (($eo_nil and Bool) true)

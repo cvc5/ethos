@@ -17,7 +17,7 @@
 ; Appends `c` to the head of `xs`.
 (program nary.append
     ((L Type) (cons (-> L L L)) (c L) (xs L :list))
-    ((-> L L L) L L) L
+    :signature ((-> L L L) L L) L
     (
         ((nary.append cons c xs) (cons c xs))
     )
