@@ -14,7 +14,7 @@
 (declare-parameterized-const eq ((T Type :implicit)) (-> T T Bool))
 
 (program f_eq_args ((U Type) (f (-> U U U)) (a U) (b U :list))
-  (U) U
+  :signature (U) U
   (
     ((f_eq_args (f a (f a b))) a)
   )

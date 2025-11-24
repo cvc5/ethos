@@ -154,6 +154,7 @@ set(ethos_test_file_list
     list-ops-new.eo
     double-list.eo
     list-param-immediate.eo
+    eo-definitions-test.eo
     conclusion-explicit-cases.eo
     rule-all-cases.eo
     nground-nil-ex.eo
@@ -163,6 +164,8 @@ set(ethos_test_file_list
     curry-nary.eo
     arg-list-cong.eo
     arg-list-distinct-elim.eo
+    or-no-desugar.eo
+    further-notes-attr.eo
     list-non-singleton.eo
     list-non-singleton-left.eo
 )

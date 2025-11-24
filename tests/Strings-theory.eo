@@ -12,7 +12,7 @@
 
 ; Make empty string of the given string-like sort U.
 (program mk_emptystr ((U Type))
-  ((eo::quote U)) U
+  :signature ((eo::quote U)) U
   (
   ((mk_emptystr String)   "")
   ((mk_emptystr (Seq U))  (seq.empty (Seq U)))

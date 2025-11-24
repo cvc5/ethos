@@ -687,11 +687,15 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           std::vector<Expr> achildren(children.begin()+1, children.end()-1);
           return mkFunctionType(achildren, children.back());
         }
-        else if (ai->d_kind==Kind::PARAMETERIZED)
+        else if (ai->d_kind == Kind::APPLY)
         {
-          // make as tuple
-          std::vector<Expr> achildren(vchildren.begin()+2, vchildren.end());
-          return mkParameterized(vchildren[1], achildren);
+          // Applications (_ f ...) do *not* recursively desugar.
+          // remove the dummy operator "_"
+          vchildren.erase(vchildren.begin(), vchildren.begin() + 1);
+          // return the curried version
+          return Expr(vchildren.size() > 2
+                          ? mkApplyInternal(vchildren)
+                          : mkExprInternal(Kind::APPLY, vchildren));
         }
         // another builtin operator, possibly APPLY
         std::vector<Expr> achildren(children.begin()+1, children.end());

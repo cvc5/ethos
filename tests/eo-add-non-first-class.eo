@@ -4,7 +4,7 @@
 (declare-const g (-> Int Int Int))
 
 (program dummy ((f (-> Int Int Int)) (n1 Int) (n2 Int))
-    (Int Int (-> Int Int Int)) Int
+    :signature (Int Int (-> Int Int Int)) Int
 
     (((dummy n1 n2 f) (f n1 n2)))
 )

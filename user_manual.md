@@ -306,10 +306,13 @@ The Eunoia language supports term annotations on declared constants which, for i
 - `:binder <symbol>` denoting that the first argument of the declared constant can be provided using a syntax for variable lists whose constructor is the one provided by `<symbol>`.
 
 A declared function can be marked with at most one of the above attributes or an error is thrown.
+We refer to constants with one of the above attributes (with the exception of `:binder`) as _variadic_ constants.
+We describe these policies in detail in the following sections, which will describe how the parser desugars input syntax of the form `(f t1 ... tn)`.
 
-A parameter may be marked with the following attribute:
+Furthermore, a parameter may be marked with the following attribute:
 
 - `:list`, denoting that the parameter should be treated as a list when appearing as a child of an application of a right (left) associative operator.
+
 
 #### Right/Left associative
 
@@ -541,13 +544,17 @@ As an alternative, an n-ary operator like `distinct` can be marked as taking an 
 as demonstrated in the example below.
 
 ```smt
-(declare-type Int ())
-(declare-parameterized-const distinct ((xs eo::List)) Bool :arg-list eo::List::cons)
+(declare-const Int Type)
+(declare-const @List Type)
+(declare-const @nil @List)
+(declare-parameterized-const @cons ((T Type :implicit)) (-> T @List @List)
+ :right-assoc-nil @nil)
+(declare-parameterized-const distinct ((xs @List)) Bool :arg-list @cons)
 (define P ((x Int) (y Int) (z Int)) (distinct x y z))
 ```
 
-In the above example, `(distinct x y z)` is desugared to `(distinct (eo::List::cons a b c))`,
-which is further desugared to `(distinct (eo::List::cons a (eo::List::cons b (eo::List::cons c eo::List::nil))))`.
+In the above example, `(distinct x y z)` is desugared to `(distinct (@cons a b c))`,
+which is further desugared to `(distinct (@cons a (@cons b (@cons c @nil))))`.
 In contrast to the above example, the size of this term is not quadratic in size with respect to the input arguments.
 
 This desugaring further takes into account if arguments to the annotated symbol have been marked with the attribute`:list`.
@@ -556,17 +563,17 @@ it is *not* passed to the given list constructor but instead taken as the lone
 argument. Note the following examples:
 
 ```
-(define distinct-of ((xs eo::List :list))
+(define distinct-of ((xs @List :list))
   (distinct xs))
-(define distinct-of2 ((T Type :implicit) (x T) (xs eo::List :list))
+(define distinct-of2 ((T Type :implicit) (x T) (xs @List :list))
   (distinct x xs))
 ```
 
 In the first definition, the argument to `distinct` is marked `:list`, hence
-`(distinct xs)` is *not* desugared to `(distinct (eo::List::cons xs))`
+`(distinct xs)` is *not* desugared to `(distinct (@cons xs))`
 since `xs` is marked `:list`.
 In the second definition, `(distinct x xs)` has multiple arguments, hence
-it is desugared to `(distinct (eo::List::cons x xs))`. This term is
+it is desugared to `(distinct (@cons x xs))`. This term is
 not desugared further since `xs` is marked `:list`.
 
 #### Binder
@@ -602,6 +609,39 @@ On the other hand, the definition `Q3` is distinct from both of these, since `y`
 Furthermore, note that a binder also may accept an explicit term as its first argument.
 In the above example, `Q4` has `(@cons x)` as its first argument, where `x` was explicitly defined as a variable.
 This means that the definition of `Q4` is also syntactically equivalent to the definition of `Q1` and `Q2`.
+
+#### Further notes on constants with attributes
+
+We have described ways Ethos parses (or *desugars*) applications of the form `(f t1 ... tn)`,
+where `f` has been marked with an attribute.
+This desugaring is only applied during parsing and *not* during macro expansion.
+Furthermore, higher-order applications `(_ f t1 ... tn)`
+do *not* recursively invoke the desugaring policy for `f`.
+Note the following example.
+
+```smt
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+
+(declare-const a Bool)
+(declare-const b Bool)
+(define apply-f-to-ab ((f (-> Bool Bool Bool))) (f a b))
+(define apply-or-to-ab () (apply-f-to-ab or))
+(define apply-or-to-ab-2 () (or a b))
+(define apply-or-to-ab-3 () (_ or a b))
+```
+
+In the above example, we define `or` as a right-associative nil operator.
+We then define two Boolean constants `a` and `b`, and a higher-order predicate `apply-f-to-ab`
+that applies a given binary predicate to these constants.
+Note that since `f` is a parameter, the term `(f a b)` is parsed as an ordinary application, namely it is `(_ (_ f a) b)` after desugaring.
+
+The definition `apply-or-to-ab`, which applies this predicate to `or`,
+does *not* trigger any desugaring of `or` when it is invoked, meaning after simplification,
+`apply-or-to-ab` is equivalent to `(_ (_ or a) b)`.
+In constrast, definition of the predicate `apply-or-to-ab-2` involves an application of `or`,
+which desugars to` (_ (_ or a) (_ (_ or b) false))`.
+As a final example, the definition of predicate `apply-or-to-ab-3` is `(_ or a b)`,
+which is *not* an application of `or` and hence desugars to `(_ (_ or a) b)`.
 
 <a name="amb-functions"></a>
 
@@ -709,7 +749,7 @@ Binary values are considered to be in little endian form.
 
 Some of the following operators can be defined in terms of the other operators.
 For these operators, we provide the equivalent formulation.
-A signature defining these files can be found in [non-core-eval](#non-core-eval).
+A signature defining these files can be found in [derived-ops](#derived-ops).
 Note, however, that the evaluation of these operators is handled by more efficient methods internally in Ethos, that is, they are not treated as syntax sugar internally.
 
 ### Core operators
@@ -721,7 +761,7 @@ Note, however, that the evaluation of these operators is handled by more efficie
   - Returns `t2` if `t1` is `true`, `t3` if `t1` is `false`, and is not evaluated otherwise. Note that the branches of this term are only evaluated if they are the return term.
 
 - `(eo::eq t1 t2)`
-  - If `t1` and `t2` are ground values, this returns `true` if `t1` is (syntactically) equal to `t2` and false otherwise. Otherwise, if either `t1` or `t2` is non-ground, it does not evaluate.
+  - If `t1` and `t2` are ground values, this returns `true` if `t1` is (syntactically) equal to `t2` and `false` otherwise. If either `t1` or `t2` is non-ground, it does not evaluate. Note this can be expressed as an ordinary Eunoia program as we describe in [derived-ops](#derived-ops).
 
 - `(eo::is_eq t1 t2)`
   - Equivalent to `(eo::ite (eo::and (eo::is_ok t) (eo::is_ok s)) (eo::eq s t) false)`.
@@ -948,6 +988,9 @@ For example `(eo::eq x y)` returns `false`.
 Below, we assume that `f` is right associative operator with nil terminator `nil` and `t1, t2` are values. Otherwise, the following operators do not evaluate.
 We describe the evaluation for right associative operators; left associative evaluation is defined analogously.
 We say that a term is an `f`-list with children `t1 ... tn` if it is of the form `(f t1 ... tn)` where `n>0` or `nil` if `n=0`.
+
+Note that all of the list operators here (with the exception of `eo::nil`) have a semantics that can be described as an ordinary Eunoia program.
+We describe a signature that gives these definitions in [derived-ops](#derived-ops).
 
 ### List operators
 
@@ -1307,8 +1350,9 @@ In detail, for the purposes of representing the return value of these operators,
 ```smt
 (declare-const eo::List Type)
 (declare-const eo::List::nil eo::List)
-(declare-const eo::List::cons ((T Type :implicit)) (-> T eo::List eo::List)
-               :right-assoc-nil eo::List::nil)
+(declare-parameterized-const eo::List::cons ((T Type :implicit))
+  (-> T eo::List eo::List)
+  :right-assoc-nil eo::List::nil)
 ```
 
 > __Note:__ `eo::List` is not itself a datatype type.
@@ -2131,48 +2175,68 @@ When streaming input to Ethos, we assume the input is being given for a proof fi
 
 ```
 
- <a name="non-core-eval"></a>
+### Derived Definitions of Evaluation Operators
+<a name="derived-ops"></a>
 
-### Definitions of Non-Core Evaluation Operators
+We provide a signature that give an alternative definition
+of certain builtin operators that can be expressed as standard Eunoia programs,
+or based on other operators.
+We provide this as a parsable Eunoia file, which is part of our
+regression tests (see <https://github.com/cvc5/ethos/tree/main/tests/eo-definitions.eo>).
 
-The following signature can be used to define operators that are not required to be supported as core evaluation operators.
+In this signature, we use the convention that each `eo::X` definition is given a corresponding
+definition `$eo_X` in the following signature.
+Including this signature and modifying a Eunoia
+file to use `$eo_` instead of `eo::` should
+have no impact on behavior (apart from performance), unless otherwise noted.
 
-```smt
-; Returns true if x is a numeral literal.
-(define eo::is_z ((T Type :implicit) (x T))
-  (eo::is_eq (eo::to_z x) x))
+The signature above provides definitions of Eunoia list operators in terms
+of standard Eunoia programs or definitions.
+It is possible to define programs for *all* list operators with the exception
+of `eo::nil`.
+In particular, the behavior of `eo::nil` is dynamically modified based on the
+declared constants. We provide instructions
+for how to construct the definition of `$eo_nil` for a fixed signature.
 
-; Returns true if x is a rational literal.
-(define eo::is_q ((T Type :implicit) (x T))
-  (eo::is_eq (eo::to_q x) x))
-
-; Returns true if x is a binary literal.
-(define eo::is_bin ((T Type :implicit) (x T))
-  (eo::is_eq (eo::to_bin (eo::len x) x) x))
-
-; Returns true if x is a string literal.
-(define eo::is_str ((T Type :implicit) (x T))
-  (eo::is_eq (eo::to_str x) x))
-
-; Returns true if x is a Boolean literal.
-(define eo::is_bool ((T Type :implicit) (x T))
-  (eo::ite (eo::is_eq x true) true (eo::is_eq x false)))
-
-; Returns true if x is a variable.
-(define eo::is_var ((T Type :implicit) (x T))
-  (eo::is_eq (eo::var (eo::nameof x) (eo::typeof x)) x))
-
-; Compare arithmetic greater than. Assumes x and y are values.
-; Returns true if x > y.
-(define eo::gt ((T Type :implicit) (x T) (y T))
-  (eo::is_neg (eo::add (eo::neg x) y)))
-
-; An arbitrary deterministic comparison of terms. Returns true if a > b based
-; on this ordering.
-(define eo::cmp ((T Type :implicit) (U Type :implicit) (a T) (b U))
-  (eo::is_neg (eo::add (eo::hash b) (eo::neg (eo::hash a)))))
+We assume the definition of `$eo_nil` has the following form:
 
 ```
+; program: $eo_nil
+; implements: eo::nil
+(program $eo_nil ((T Type) (U Type) (V Type) (W Type))
+  :signature ((-> T U V) (eo::quote W)) W
+  (
+  ; ... Cases for each associative-nil operator, see description below.
+  )
+)
+```
+
+For each declare-const or declare-parameterized-const `f` whose return type is `T`
+declared in the signature that is marked `:right-assoc-nil nil` or `:left-assoc-nil nil`,
+we add the case`(($eo_nil f T) nil)` to the definition of `$eo_nil` above.
+For example, given:
+```
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+```
+We add the case `(($eo_nil or Bool) false)` to `$eo_nil` above.
+
+> __Note:__ In our formulation, we assume that the case `(($eo_nil eo_List_cons eo_List) eo_List_nil)`
+for our (redefinition) of the builtin Eunoia list is included.
+
+In the definition of `$eo_nil`, notice that
+it is necessary to include the type as part of the case to support functions with
+non-ground nil terminators, which requiring instantiating the free parameters
+of `T`. For example, given:
+```
+(declare-parameterized-const bvor ((m Int :implicit))
+  (-> (BitVec m) (BitVec m) (BitVec m)) :right-assoc-nil (eo::to_bin 0 m))
+```
+We add the case `(($eo_nil bvor (BitVec m))  (eo::to_bin 0 m))` to `$eo_nil` above.
+Providing a concrete type, e.g. `(BitVec 4)` will ensure `m` is bound to `4`
+and hence `($eo_nil bvor (BitVec 4))` evaluates to `(eo::to_bin 0 4)`, which is
+`#b0000`.
+
+All other list operators can be defined as ordinary Eunoia programs or definitions.
 
 ### Proofs as terms
 
