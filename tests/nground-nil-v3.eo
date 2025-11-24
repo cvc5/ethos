@@ -15,7 +15,7 @@
 )
 
 (program $get_tail ((T Type) (f (-> T T T)) (t T) (s T :list))
-  ((-> T T T) T) T
+  :signature ((-> T T T) T) T
   (
   (($get_tail f (f t s)) s)
   )

@@ -696,14 +696,16 @@ bool CmdParser::parseNextCommand()
       d_state.pushScope();
       std::vector<Expr> vars =
           d_eparser.parseAndBindSortedVarList(Kind::PROGRAM);
-      // read ":signature", optionally
+      // read ":signature"
+      bool parsedSig = false;
       if (d_lex.peekToken() == Token::KEYWORD)
       {
         std::string keyword = d_eparser.parseKeyword();
-        if (keyword != "signature")
-        {
-          d_lex.parseError("Expected :signature attribute");
-        }
+        parsedSig = (keyword == "signature");
+      }
+      if (!parsedSig)
+      {
+        d_lex.parseError("Expected :signature attribute");
       }
       std::vector<Expr> argTypes = d_eparser.parseTypeList(true);
       Expr retType = d_eparser.parseType();

@@ -55,7 +55,7 @@
 
 ;
 (program arith_normalize_lit ((T Type) (U Type) (r (-> T U Bool)) (a T) (b U))
-  (Bool) Bool
+  :signature (Bool) Bool
   (
     ((arith_normalize_lit (not (not (r a b)))) (r a b))
     ((arith_normalize_lit (not (r a b)))       (arith_rel_neg r a b))
@@ -65,14 +65,14 @@
 
 (program mk_arith_sum_ub_step
   ((T Type) (U Type) (S Type) (V Type) (r1 (-> T U Bool)) (a1 T) (b1 U) (r2 (-> S V Bool)) (a2 S :list) (b2 V :list))
-  (Bool Bool) Bool
+  :signature (Bool Bool) Bool
   (
     ((mk_arith_sum_ub_step (r1 a1 b1) (r2 a2 b2)) (arith_rel_sum r1 r2 (+ a1 a2) (+ b1 b2)))
   )
 )
 
 (program mk_arith_sum_ub ((T Type) (U Type) (r (-> T U Bool)) (a T) (b U) (tail Bool :list))
-    (Bool) Bool
+    :signature (Bool) Bool
     (
         ((mk_arith_sum_ub true)               (= 0 0))
         ((mk_arith_sum_ub (and (r a b) tail)) (mk_arith_sum_ub_step (r a b) (mk_arith_sum_ub tail)))
@@ -86,7 +86,7 @@
 
 ; Computes the conclusion of the PfRule::ARITH_MULT_POS rule.
 (program mk_arith_mult_pos ((T Type) (U Type) (S Type) (r (-> T U Bool)) (a T) (b U) (m S))
-  (S Bool) Bool
+  :signature (S Bool) Bool
   (
     ((mk_arith_mult_pos m (r a b)) (r (* m a) (* m b)))
   )
@@ -99,7 +99,7 @@
 
 ; Computes the conclusion of the PfRule::ARITH_MULT_NEG rule.
 (program mk_arith_mult_neg ((T Type) (U Type) (S Type) (r (-> T U Bool)) (a T) (b U) (m S))
-  (S Bool) Bool
+  :signature (S Bool) Bool
   (
     ((mk_arith_mult_neg m (r a b)) (arith_rel_inv r (* m a) (* m b)))
   )
@@ -113,7 +113,7 @@
 
 ; Computes the conclusion of the PfRule::ARITH_TRICHOTOMY rule.
 (program mk_arith_trichotomy ((T Type) (U Type) (S Type) (r1 (-> T U Bool)) (r2 (-> T U Bool)) (a T) (b U) (m S))
-  (Bool S) Bool
+  :signature (Bool S) Bool
   (
     ((mk_arith_trichotomy (r1 a b) (r2 a b)) (arith_rel_trichotomy r1 r2 a b))
   )

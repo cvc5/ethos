@@ -23,7 +23,7 @@
   
 (program substitute
   ((T Type) (U Type) (S Type) (V Type) (x S) (y S) (f (-> T U)) (a T) (z U) (w V))
-  (S S U) U
+  :signature (S S U) U
   (
   ((substitute x y x)             y)
   ((substitute x y (skolem U w))  (skolem U w))   ; do not traverse

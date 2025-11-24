@@ -41,7 +41,7 @@
   (-> (BitVec n) (BitVec m) (BitVec (arith.eval (+ n m)))))
 
 (program bv.eval ((T Type) (U Type) (S Type) (n Int) (a (BitVec n)) (b (BitVec n)) (z S) (h Int) (l Int))
-    (S) S
+    :signature (S) S
     (
       ((bv.eval (= a b))           (eo::is_eq (bv.eval a) (bv.eval b)))
       ((bv.eval (bvadd a b))       (eo::add (bv.eval a) (bv.eval b)))
