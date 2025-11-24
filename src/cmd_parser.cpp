@@ -696,7 +696,7 @@ bool CmdParser::parseNextCommand()
       d_state.pushScope();
       std::vector<Expr> vars =
           d_eparser.parseAndBindSortedVarList(Kind::PROGRAM);
-      // read ":signature", optionally
+      // read ":signature"
       bool parsedSig = false;
       if (d_lex.peekToken() == Token::KEYWORD)
       {
