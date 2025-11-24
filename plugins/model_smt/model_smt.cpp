@@ -431,12 +431,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTermReduceSym("div_total", {kInt, kInt}, "(ite (= x2 0) 0 (div x1 x2))");
   addTermReduceSym("mod_total", {kInt, kInt}, "(ite (= x2 0) x1 (mod x1 x2))");
   addConstFoldSym("int.pow2", {kInt}, kInt);
+  addConstFoldSym("int.log2", {kInt}, kInt);
   addTermReduceSym("@int_div_by_zero", {kInt}, "(div x1 0)");
   addTermReduceSym("@mod_by_zero", {kInt}, "(mod x1 0)");
   addTermReduceSym("@div_by_zero", {kReal}, "(/ x1 0/1)");
-  // TODO: is this right? if so, simplify CPC
-  //addTermReduceSym(
-  //    "int.log2", {kInt}, "(ite (< x1 0) 0 (div x1 (int.pow2 x1)))");
   addTermReduceSym(
       "int.ispow2", {kInt}, "(and (>= x1 0) (= x1 (int.pow2 (int.log2 x1))))");
   // arrays
