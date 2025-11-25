@@ -334,7 +334,7 @@
 (program $eo_list_erase_rec
   ((T Type) (U Type) (V Type) (W Type) (X Type)
    (f (-> T V V)) (x W) (y U) (z X) (nil U))
-  ((-> T V V) U X) U
+  :signature ((-> T V V) U X) U
   (
   (($eo_list_erase_rec f (f x y) x)   y)
   (($eo_list_erase_rec f (f x y) z)   (f x ($eo_list_erase_rec f y z)))
@@ -356,7 +356,7 @@
 (program $eo_list_erase_all_rec
   ((T Type) (U Type) (V Type) (W Type) (X Type)
    (f (-> T V V)) (x W) (y U) (z X) (nil W))
-  ((-> T V V) U X) U
+  :signature ((-> T V V) U X) U
   (
   (($eo_list_erase_all_rec f (f x y) z)  ($eo_prepend_if ($eo_if_not ($eo_eq z x))
                                               f x ($eo_list_erase_all_rec f y z)))
@@ -378,7 +378,7 @@
 (program $eo_list_setof_rec
   ((T Type) (U Type) (V Type) (W Type)
    (f (-> T V V)) (x W) (y U) (nil U))
-  ((-> T V V) U) U
+  :signature ((-> T V V) U) U
   (
   (($eo_list_setof_rec f (f x y))  (f x ($eo_list_setof_rec f ($eo_list_erase_all f y x))))
   (($eo_list_setof_rec f nil)      nil)
@@ -402,7 +402,7 @@
 ; note: a helper for $eo_list_minclude.
 (program $eo_list_minclude_rec
   ((T Type) (x T) (y $eo_List :list) (z $eo_List))
-  ($eo_List $eo_List Bool) Bool
+  :signature ($eo_List $eo_List Bool) Bool
   (
   (($eo_list_minclude_rec y z false)            false)
   (($eo_list_minclude_rec ($eo_List_cons x y) z true)
