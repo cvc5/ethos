@@ -925,7 +925,7 @@ bool CmdParser::parseNextCommand()
       }
       if (!proven.isNull())
       {
-        if (pfTerm[0] != proven)
+        if (concTerm != proven)
         {
           std::stringstream ss;
           ss << "Unexpected conclusion for rule " << ruleName << ":" << std::endl;
