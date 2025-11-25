@@ -421,11 +421,7 @@ bool CmdParser::parseNextCommand()
       // We construct the list of arguments to pattern match on (progArgs).
       std::vector<Expr> progArgs;
       // ordinary arguments first
-      for (Expr& e : args)
-      {
-        Expr et = d_tc.getType(e);
-        progArgs.push_back(e);
-      }
+      progArgs.insert(progArgs.end(), args.begin(), args.end());
       // then explicit conclusion
       if (concExplicit)
       {
