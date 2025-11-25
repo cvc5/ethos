@@ -30,7 +30,7 @@
 ; Retuns `true` if l inList c.
 (program nary.ctn
     ((L Type) (cons (-> L L L)) (nil L) (c L) (x L) (xs L :list))
-    ((-> L L L) L L L) Bool
+    :signature ((-> L L L) L L L) Bool
     (
         ((nary.ctn cons nil c (cons c xs)) true)
         ((nary.ctn cons nil c (cons x xs)) (nary.ctn cons nil c xs))
@@ -42,7 +42,7 @@
 ; Retuns `true` if l nary.ctn c.
 (program nary.is_subset
     ((L Type) (cons (-> L L L)) (nil L) (c L) (t L) (xs L :list))
-    ((-> L L L) L L L) Bool
+    :signature ((-> L L L) L L L) Bool
     (
         ((nary.is_subset cons nil (cons c xs) t) (eo::ite (nary.ctn cons nil c t) (nary.is_subset cons nil xs t) false))
         ((nary.is_subset cons nil nil t)         true)
@@ -53,7 +53,7 @@
 ; Removes the first occurrence of `c` from `xs`.
 (program nary.remove
     ((L Type) (cons (-> L L L)) (nil L) (c L) (y L) (xs L :list))
-    ((-> L L L) L L L) L
+    :signature ((-> L L L) L L L) L
     (
         ((nary.remove cons nil c (cons c xs)) xs)
         ((nary.remove cons nil c (cons y xs)) (eo::cons cons y (nary.remove cons nil c xs)))
@@ -64,7 +64,7 @@
 ; Helper for reverse
 (program nary.reverseRec
     ((L Type) (cons (-> L L L)) (nil L) (x L) (xs L :list) (l L :list))
-    ((-> L L L) L L L) L
+    :signature ((-> L L L) L L L) L
     (
         ((nary.reverseRec cons nil (cons x xs) l) (nary.reverseRec cons nil xs (eo::cons cons x l)))
         ((nary.reverseRec cons nil nil l)         l)
@@ -75,7 +75,7 @@
 ; Reverses the list `xs`.
 (program nary.reverse
     ((L Type) (cons (-> L L L)) (nil L) (xs L :list))
-    ((-> L L L) L L) L
+    :signature ((-> L L L) L L) L
     (
         ((nary.reverse cons nil xs) (nary.reverseRec cons nil xs nil))
     )
@@ -85,7 +85,7 @@
 ; Returns the sole element if `xs` is a singleton list.
 (program nary.elim
     ((L Type) (cons (-> L L L)) (nil L) (elim-nil L) (c L) (x L) (xs L :list))
-    ((-> L L L) L L L) L
+    :signature ((-> L L L) L L L) L
     (
         ((nary.elim cons nil elim-nil (cons x nil)) x)
         ((nary.elim cons nil elim-nil (cons x xs))  (cons x xs))
@@ -97,7 +97,7 @@
 ; Returns a singleton list if `x` is not a list.
 (program nary.intro
     ((L Type) (cons (-> L L L)) (nil L) (intro-nil L) (x L) (xs L :list))
-    ((-> L L L) L L L) L
+    :signature ((-> L L L) L L L) L
     (
         ((nary.intro cons nil intro-nil (cons x xs)) (cons x xs))
         ((nary.intro cons nil intro-nil nil)         intro-nil)
@@ -106,7 +106,7 @@
 )
 (program list.intro
     ((L Type) (cons (-> L L L)) (nil L) (intro-nil L) (x L) (xs L :list))
-    ((-> L L L) L L) L
+    :signature ((-> L L L) L L) L
     (
         ((list.intro cons nil (cons x xs)) (cons x xs))
         ((list.intro cons nil nil)         nil)
@@ -118,7 +118,7 @@
 ; I should be a numeral
 (program nary.at
     ((L Type) (I Type) (cons (-> L L L)) (nil L) (i I) (x L) (xs L :list))
-    ((-> L L L) L I L) L
+    :signature ((-> L L L) L I L) L
     (
         ((nary.at cons nil 0 (cons x xs)) x)
         ((nary.at cons nil i (cons x xs)) (nary.at cons nil (eo::add i (eo::neg 1)) xs))
@@ -129,7 +129,7 @@
 ; returns the number of children of the input
 (program nary.nchild
     ((L Type) (cons (-> L L L)) (nil L) (i Int) (x L) (xs L :list))
-    ((-> L L L) L L) Int
+    :signature ((-> L L L) L L) Int
     (
         ((nary.nchild cons nil (cons x xs)) (eo::add 1 (nary.nchild cons nil xs)))
         ((nary.nchild cons nil nil)         0)
@@ -142,7 +142,7 @@
 ; Retuns `true` if t is a prefix of s
 (program nary.is_prefix
     ((L Type) (cons (-> L L L)) (nil L) (t L) (c1 L) (c2 L) (xs1 L :list) (xs2 L :list))
-    ((-> L L L) L L L) Bool
+    :signature ((-> L L L) L L L) Bool
     (
         ((nary.is_prefix cons nil nil t)                       true)
         ((nary.is_prefix cons nil (cons c1 xs1) (cons c2 xs2)) (eo::ite (eo::is_eq c1 c2) (nary.is_prefix cons nil xs1 xs2) false))
@@ -152,7 +152,7 @@
 ; nary.join
 (program nary.join
     ((L Type) (cons (-> L L L)) (nil L) (elim-nil L) (c L) (x L) (xs L :list) (y L) (ys L :list))
-    ((-> L L L) L L L) L
+    :signature ((-> L L L) L L L) L
     (
         ((nary.join cons nil (cons x nil) (cons x ys)) ys)
         ((nary.join cons nil (cons x xs) y)            (cons x (nary.join cons nil xs y)))

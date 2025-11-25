@@ -22,7 +22,7 @@
 
 
 (program repeat_term ((m Int) (n Int) (x (BitVec m)))
-  ((BitVec m) (eo::quote n)) (BitVec (eo::mul m n))
+  :signature ((BitVec m) (eo::quote n)) (BitVec (eo::mul m n))
   (
     ((repeat_term x 0) @bv_empty)
     ((repeat_term x n) (eo::requires (eo::is_neg n) false
