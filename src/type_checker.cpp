@@ -397,6 +397,7 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     // which along with how ctypes[i] is the argument itself, has the effect
     // of an implicit upcast.
     hdt = hdt->getKind() == Kind::QUOTE_TYPE ? hdt->d_children[0] : hdt;
+    //Assert (!hdt->isEvaluatable()) << "Evaluatable: " << Expr(hdt);
     if (!match(hdt, ctypes[i], ctx, visited))
     {
       if (out)
