@@ -890,8 +890,7 @@ bool CmdParser::parseNextCommand()
       Expr pfTerm;
       if (children.size()>1)
       {
-        // check type rule for APPLY directly without constructing the app
-        // concType = d_eparser.typeCheckApp(children);
+        // evaluate the program app
         pfTerm = d_tc.evaluateProgramApp(children);
       }
       else
