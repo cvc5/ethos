@@ -25,8 +25,13 @@ CmdParser::CmdParser(Lexer& lex,
                      State& state,
                      ExprParser& eparser,
                      bool isReference)
-    : d_lex(lex), d_state(state), d_sts(state.getStats()),
-      d_eparser(eparser), d_isReference(isReference), d_isFinished(false)
+    : d_lex(lex),
+      d_state(state),
+      d_tc(state.getTypeChecker()),
+      d_sts(state.getStats()),
+      d_eparser(eparser),
+      d_isReference(isReference),
+      d_isFinished(false)
 {
   // initialize the command tokens
   // commands supported in both inputs and proofs
@@ -112,9 +117,9 @@ bool CmdParser::parseNextCommand()
       std::string name = d_eparser.parseSymbol();
       // parse what is proven
       Expr proven = d_eparser.parseFormula();
-      Expr pt = d_state.mkProofType(proven);
-      Expr v = d_state.mkSymbol(Kind::CONST, name, pt);
-      d_eparser.bind(name, v);
+      // bind the assumption to (pf <proven>).
+      Expr pt = d_state.mkProof(proven);
+      d_eparser.bind(name, pt);
       if (!d_state.addAssumption(proven))
       {
         std::stringstream ss;
@@ -344,7 +349,7 @@ bool CmdParser::parseNextCommand()
       d_state.popScope();
     }
     break;
-    // (declare-rule ...)
+    // (declare-rule ...), which defines a program for manipulating proof terms.
     case Token::DECLARE_RULE:
     {
       // ensure zero scope
@@ -391,7 +396,6 @@ bool CmdParser::parseNextCommand()
         args = d_eparser.parseExprList();
         keyword = d_eparser.parseKeyword();
       }
-      std::vector<Expr> argTypes;
       // parse requirements, optionally
       if (keyword=="requires")
       {
@@ -414,63 +418,80 @@ bool CmdParser::parseNextCommand()
       {
         d_lex.parseError("Expected conclusion in declare-rule");
       }
+      // We construct the list of arguments to pattern match on (progArgs).
+      std::vector<Expr> progArgs;
       // ordinary arguments first
-      for (Expr& e : args)
-      {
-        Expr et = d_state.mkQuoteType(e);
-        argTypes.push_back(et);
-      }
+      progArgs.insert(progArgs.end(), args.begin(), args.end());
       // then explicit conclusion
       if (concExplicit)
       {
-        Expr qct = d_state.mkQuoteType(conc);
-        argTypes.push_back(qct);
+        progArgs.push_back(conc);
       }
       // then assumption
       if (!assume.isNull())
       {
-        Expr ast = d_state.mkQuoteType(assume);
-        argTypes.push_back(ast);
+        progArgs.push_back(assume);
       }
       // finally, premises
       for (const Expr& e : premises)
       {
-        Expr pet = d_state.mkProofType(e);
-        argTypes.push_back(pet);
+        Expr pet = d_state.mkProof(e);
+        progArgs.push_back(pet);
       }
-      Expr ret = d_state.mkProofType(conc);
+      Expr ret = d_state.mkProof(conc);
       // include the requirements into the return type
       if (!reqs.empty())
       {
         ret = d_state.mkRequires(reqs, ret);
       }
-      // Ensure all free variables in the conclusion are bound in the arguments.
-      // Otherwise, this rule will always generate a free variable, which is
-      // likely unintentional.
-      std::vector<Expr> bvs = Expr::getVariables(argTypes);
-      d_eparser.ensureBound(ret, bvs);
-      // make the overall type
-      if (!argTypes.empty())
-      {
-        ret = d_state.mkFunctionType(argTypes, ret, false);
-      }
+      // rules have type Proof, which is not used.
+      Expr pt = d_state.mkProofType();
       d_state.popScope();
-      Expr rule = d_state.mkSymbol(Kind::PROOF_RULE, name, ret);
+      Expr rule = d_state.mkSymbol(Kind::PROOF_RULE, name, pt);
       d_eparser.typeCheck(rule);
-      d_eparser.bind(name, rule);
-      if (!assume.isNull() || concExplicit || !plCons.isNull())
+      Expr ruleProg;
+      if (!progArgs.empty())
       {
-        std::vector<Expr> tupleChildren;
-        tupleChildren.push_back(plCons.isNull() ? d_state.mkAny() : plCons);
-        tupleChildren.push_back(d_state.mkBool(!assume.isNull()));
-        tupleChildren.push_back(d_state.mkBool(concExplicit));
-        Expr attrVal = d_state.mkExpr(Kind::TUPLE, tupleChildren);
-        // we always carry plCons, in case the rule was marked
-        // :premise-list as well as :assumption or :conclusion-explicit
-        // simulataneously. We will handle all 3 special cases at once in
-        // State::getProofRuleArguments when the rule is applied.
-        d_state.markConstructorKind(rule, Attr::PROOF_RULE, attrVal);
+        // construct the program type based on the arguments we are matching
+        std::vector<Expr> progTypes;
+        for (Expr& e : progArgs)
+        {
+          Expr et = d_tc.getType(e);
+          progTypes.push_back(et);
+        }
+        pt = d_state.mkProgramType(progTypes, pt);
+        std::stringstream ss;
+        ss << "$eo_prog_" << name;
+        ruleProg = d_state.mkSymbol(Kind::PROGRAM_CONST, ss.str(), pt);
+        progArgs.insert(progArgs.begin(), ruleProg);
+        Expr ppat = d_state.mkExpr(Kind::APPLY, progArgs);
+        d_eparser.typeCheckProgramPair(ppat, ret, true);
+        Expr progCase = d_state.mkPair(ppat, ret);
+        Expr prog = d_state.mkExpr(Kind::PROGRAM, {progCase});
+        d_state.defineProgram(ruleProg, prog);
       }
+      else
+      {
+        // the returned proof term is the standalone definition.
+        ruleProg = ret;
+        // must check ground
+        if (!ret.isGround() || ret.isEvaluatable())
+        {
+          d_lex.parseError("Nullary proof rule must have ground reduced conclusion");
+        }
+      }
+      d_eparser.bind(name, rule);
+      std::vector<Expr> tupleChildren;
+      tupleChildren.push_back(plCons.isNull() ? d_state.mkAny() : plCons);
+      tupleChildren.push_back(d_state.mkBool(!assume.isNull()));
+      tupleChildren.push_back(d_state.mkBool(concExplicit));
+      tupleChildren.push_back(ruleProg);
+      Expr attrVal = d_state.mkExpr(Kind::TUPLE, tupleChildren);
+      // we always carry plCons, in case the rule was marked
+      // :premise-list as well as :assumption or :conclusion-explicit
+      // simulataneously. We will handle all 3 special cases at once in
+      // State::getProofRuleArguments when the rule is applied.
+      d_state.markConstructorKind(rule, Attr::PROOF_RULE, attrVal);
       AttrMap attrs;
       d_eparser.parseAttributeList(Kind::PROOF_RULE, rule, attrs);
     }
@@ -771,22 +792,7 @@ bool CmdParser::parseNextCommand()
           {
             d_lex.parseError("Wrong arity for pattern");
           }
-          // ensure the right hand side is bound by the left hand side
-          std::vector<Expr> bvs = Expr::getVariables(pc);
           Expr rhs = p[1];
-          d_eparser.ensureBound(rhs, bvs);
-          // TODO: allow variable or default case?
-          for (size_t i = 1, nchildren = pc.getNumChildren(); i < nchildren;
-               i++)
-          {
-            Expr ecc = pc[i];
-            if (ecc.isEvaluatable())
-            {
-              std::stringstream ss;
-              ss << "Cannot match on evaluatable subterm " << pc[i];
-              d_lex.parseError(ss.str());
-            }
-          }
           // type check whether this is a legal pattern/return pair.
           d_eparser.typeCheckProgramPair(pc, rhs, true);
         }
@@ -876,25 +882,38 @@ bool CmdParser::parseNextCommand()
         d_lex.parseError("Failed to get arguments for proof rule");
       }
       // compute the type of applying the rule
-      Expr concType;
+      Expr pfTerm;
       if (children.size()>1)
       {
         // check type rule for APPLY directly without constructing the app
-        concType = d_eparser.typeCheckApp(children);
+        // concType = d_eparser.typeCheckApp(children);
+        pfTerm = d_tc.evaluateProgramApp(children);
       }
       else
       {
-        concType = d_eparser.typeCheck(rule);
+        pfTerm = children[0];
       }
       // ensure proof type, note this is where "proof checking" happens.
-      if (concType.getKind() != Kind::PROOF_TYPE)
+      if (pfTerm.isEvaluatable())
       {
+        // error message gives the list of arguments and the proof rule
         std::stringstream ss;
-        ss << "Non-proof conclusion for rule " << ruleName << ", got " << concType;
+        ss << "A step of rule " << ruleName << " failed to check." << std::endl;
+        Expr prog = d_state.getProgram(children[0].getValue());
+        Assert (prog.getNumChildren()==1 && prog[0].getNumChildren()==2);
+        std::vector<Expr> eargs;
+        for (size_t i=1, nchild = prog[0][0].getNumChildren(); i<nchild; i++)
+        {
+          eargs.push_back(prog[0][0][i]);
+        }
+        ss << "Expected args: " << eargs << std::endl;
+        std::vector<Expr> pargs(children.begin()+1, children.end());
+        ss << "Provided args: " << pargs << std::endl;
         d_lex.parseError(ss.str());
       }
+      Assert (pfTerm.getKind()==Kind::PROOF);
       // Check that the proved term is actually Bool
-      Expr concTerm = concType[0];
+      Expr concTerm = pfTerm[0];
       Expr concTermType = d_eparser.typeCheck(concTerm);
       if (concTermType.getKind() != Kind::BOOL_TYPE)
       {
@@ -904,12 +923,12 @@ bool CmdParser::parseNextCommand()
       }
       if (!proven.isNull())
       {
-        if (concType[0]!=proven)
+        if (concTerm != proven)
         {
           std::stringstream ss;
           ss << "Unexpected conclusion for rule " << ruleName << ":" << std::endl;
-          ss << "    Proves: " << concType << std::endl;
-          ss << "  Expected: (Proof " << proven << ")";
+          ss << "    Proves: " << pfTerm << std::endl;
+          ss << "  Expected: (pf " << proven << ")";
           d_lex.parseError(ss.str());
         }
       }
@@ -919,8 +938,7 @@ bool CmdParser::parseNextCommand()
         d_state.popAssumptionScope();
       }
       // bind to variable, note that the definition term is not kept
-      Expr v = d_state.mkSymbol(Kind::CONST, name, concType);
-      d_eparser.bind(name, v);
+      d_eparser.bind(name, pfTerm);
       // d_eparser.bind(name, def);
       Assert (rs!=nullptr);
       // increment the count regardless of whether stats are enabled, since it
