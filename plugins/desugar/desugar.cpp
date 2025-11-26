@@ -641,19 +641,23 @@ void Desugar::finalizeRule(const Expr& e)
   Expr tupleVal = ainfo->d_attrConsTerm;
   Assert(tupleVal.getNumChildren() == 4);
   Expr rprog = tupleVal[3];
-  Expr rprogDef;
-  if (rprog.getKind() == Kind::PROGRAM_CONST)
-  {
-    rprogDef = d_state.getProgram(rprog.getValue());
-  }
-
+  
   // if marked sorry, we should never do verification
   if (d_state.isProofRuleSorry(e.getValue()) || !d_genVcs)
   {
     return;
   }
 
-  Expr progCase = rprogDef[0][0];
+  Expr progCase;
+  if (rprog.getKind() == Kind::PROGRAM_CONST)
+  {
+    Expr rprogDef = d_state.getProgram(rprog.getValue());
+    progCase = rprogDef[0][0];
+  }
+  else
+  {
+    progCase = rprog;
+  }
   Expr conclusion = d_state.mkExpr(Kind::APPLY, {d_peoProven, progCase});
   std::stringstream pvcname;
   pvcname << "$eovc_" << e;
