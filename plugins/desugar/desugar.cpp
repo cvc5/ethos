@@ -198,7 +198,8 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
     return;
   }
   Expr cto = d_tc.getType(c);
-  if (cto.getKind() == Kind::PROOF_TYPE)
+  // merge-FIXME
+  //if (cto.getKind() == Kind::PROOF_TYPE)
   {
     // a step, ignore
     return;
@@ -665,7 +666,9 @@ void Desugar::finalizeRule(const Expr& e)
       Expr arg = rt[i - 1];
       Expr argS = mkSanitize(arg, evMap, eVarCount, true, newVars);
       Kind ak = argS.getKind();
-      if (ak == Kind::QUOTE_TYPE || ak == Kind::PROOF_TYPE)
+      // merge-FIXME
+      //if (ak == Kind::QUOTE_TYPE || ak == Kind::PROOF_TYPE)
+      if (ak == Kind::QUOTE_TYPE)
       {
         Assert(arg.getKind() == argS.getKind());
         Expr aa = argS[0];
@@ -675,7 +678,8 @@ void Desugar::finalizeRule(const Expr& e)
           // EO_FATAL() << "Could not get type of " << aa << std::endl;
           ta = allocateTypeVariable();
         }
-        argIsProof.push_back(ak == Kind::PROOF_TYPE);
+        // merge-FIXME
+        //argIsProof.push_back(ak == Kind::PROOF_TYPE);
         args.push_back(arg[0]);
         argsS.push_back(argS[0]);
         argsTypes.push_back(ta);
@@ -699,8 +703,9 @@ void Desugar::finalizeRule(const Expr& e)
     reqs.push_back(d_state.mkPair(rrt[0], rrt[1]));
     rrt = rrt[2];
   }
-  Assert(rrt.getKind() == Kind::PROOF_TYPE)
-      << "Bad return type: " << rrt.getKind() << " " << rrt;
+  // merge-FIXME
+  //Assert(rrt.getKind() == Kind::PROOF_TYPE)
+  //    << "Bad return type: " << rrt.getKind() << " " << rrt;
   rrt = rrt[0];
   if (StdPlugin::optionVcUseTypeof())
   {

@@ -221,6 +221,9 @@ State::State(Options& opts, Stats& stats)
   d_any = Expr(mkExpr(Kind::ANY, {}));
   // self is a distinguished parameter
   d_self = Expr(mkSymbolInternal(Kind::PARAM, "eo::self", d_any));
+  // Proof is the return type of terms with kind Kind::PROOF, which is an
+  // ordinary type (not available in the parser).
+  d_proofType = Expr(mkSymbolInternal(Kind::CONST, "Proof", d_type));
 }
 
 State::~State() {}
@@ -611,10 +614,13 @@ Expr State::mkListType() { return d_listType; }
 Expr State::mkListCons() { return d_listCons; }
 Expr State::mkListNil() { return d_listNil; }
 
-Expr State::mkProofType(const Expr& proven)
+Expr State::mkProofType() { return d_proofType; }
+
+Expr State::mkProof(const Expr& proven)
 {
-  return Expr(mkExprInternal(Kind::PROOF_TYPE, {proven.getValue()}));
+  return Expr(mkExprInternal(Kind::PROOF, {proven.getValue()}));
 }
+
 Expr State::mkQuoteType(const Expr& t)
 {
   return Expr(mkExprInternal(Kind::QUOTE_TYPE, {t.getValue()}));
@@ -1427,7 +1433,12 @@ bool State::notifyStep(const std::string& name,
   {
     Assert (ainfo->d_attrCons == Attr::PROOF_RULE);
     Expr tupleVal = ainfo->d_attrConsTerm;
-    Assert (tupleVal.getNumChildren()==3);
+    Assert(tupleVal.getNumChildren() == 4);
+    // first, we add the program or definition (the latter case is used for
+    // proof rules with no arguments or premises).
+    children.emplace_back(tupleVal[3]);
+    // arguments first
+    children.insert(children.end(), args.begin(), args.end());
     Expr plCons;
     if (tupleVal[0]!=d_any)
     {
@@ -1465,18 +1476,21 @@ bool State::notifyStep(const std::string& name,
     }
     if (!plCons.isNull())
     {
+      // this collects the premises (pf F1) ... (pf Fn) and constructs
+      // e.g. (pf (and F1 ... Fn)), where and is the operator marked with
+      // :premise-list.
       std::vector<Expr> achildren;
       achildren.push_back(plCons);
       for (Expr& e : premises)
       {
-        // should be proof types
-        Expr eproven = d_tc.getType(e);
-        if (eproven.isNull() || eproven.getKind() != Kind::PROOF_TYPE)
+        // should be proofs
+        if (e.getKind() != Kind::PROOF)
         {
           return false;
         }
-        achildren.push_back(eproven[0]);
+        achildren.push_back(e[0]);
       }
+      // TODO: do not special case this?
       Expr ap;
       if (achildren.size()==1)
       {
@@ -1496,9 +1510,8 @@ bool State::notifyStep(const std::string& name,
       {
         ap = mkExpr(Kind::APPLY, achildren);
       }
-      Expr pfap = mkProofType(ap);
-      // dummy, "collected" term of the given proof type
-      Expr n = mkSymbol(Kind::CONST, "tmp", pfap);
+      // collects to a proof
+      Expr n = mkProof(ap);
       children.push_back(n);
     }
     else
@@ -1506,18 +1519,9 @@ bool State::notifyStep(const std::string& name,
       // otherwise ordinary premises
       children.insert(children.end(), premises.begin(), premises.end());
     }
+    return true;
   }
-  else
-  {
-    // premises after arguments
-    children.insert(children.end(), premises.begin(), premises.end());
-    if (isPop)
-    {
-      // ordinary rule cannot use assumption
-      return false;
-    }
-  }
-  return true;
+  return false;
 }
 
 Expr State::getProgram(const ExprValue* ev)

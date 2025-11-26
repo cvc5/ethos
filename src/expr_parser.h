@@ -159,11 +159,13 @@ class ExprParser
   Expr typeCheck(Expr& e, const Expr& expected);
   /**
    * Type check program pair. This method is called when (pat, ret) is
-   * parsed as a pattern/return pair for a program or eo::match.
+   * parsed as a pattern/return pair for a program.
    * If checkPreservation is true, we should expect it to be possible to
    * show that pat and ret have the same type and give an error or warning
    * otherwise.
-   * NOTE: currently this method is not implemented.
+   * This currently checks that the free parameters of ret are a subset of
+   * the free parameters of pat. This ensures that programs do not return
+   * terms with free parameters that are not bound during pattern matching.
    */
   void typeCheckProgramPair(Expr& pat, Expr& ret, bool checkPreservation);
   /** get variable, else error */

@@ -119,8 +119,10 @@ class State
   Expr mkListCons();
   /** eo::List::nil */
   Expr mkListNil();
-  /** (Proof <proven>) */
-  Expr mkProofType(const Expr& proven);
+  /** The Proof type, which is an ordinary simple type */
+  Expr mkProofType();
+  /** (pf <proven>), where <proven> is a formula. */
+  Expr mkProof(const Expr& proven);
   /** (Quote <term>) */
   Expr mkQuoteType(const Expr& t);
   /** */
@@ -252,6 +254,8 @@ class State
   Expr d_listType;
   Expr d_listNil;
   Expr d_listCons;
+  /** The proof type */
+  Expr d_proofType;
   /** Mark that file s was included */
   bool markIncluded(const Filepath& s);
   /** mark deleted */
