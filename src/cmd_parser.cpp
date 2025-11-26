@@ -247,8 +247,13 @@ bool CmdParser::parseNextCommand()
           d_lex.parseError("Can only use opaque argument on functions without attributes.");
         }
         // Reconstruct with opaque arguments, do not flatten function type.
-        t = d_state.mkFunctionType(opaqueArgs, t, false);
+        t = d_state.mkFunctionType(opaqueArgs, t);
         ck = Attr::OPAQUE;
+        // we store the number of opaque arguments as the constructor
+        std::stringstream onum;
+        onum << opaqueArgs.size();
+        Assert (cons.isNull());
+        cons = d_state.mkLiteral(Kind::NUMERAL, onum.str());
       }
       Expr v = d_state.mkSymbol(sk, name, t);
       // if the type has a property, we mark it on the variable of this type
@@ -589,7 +594,7 @@ bool CmdParser::parseNextCommand()
           {
             types.push_back(d_eparser.typeCheck(e));
           }
-          t = d_state.mkFunctionType(types, t, false);
+          t = d_state.mkFunctionType(types, t);
         }
         expr = d_state.mkSymbol(Kind::CONST, name, t);
         Expr a = d_state.mkExpr(Kind::APPLY, {eq, expr, rhs});
