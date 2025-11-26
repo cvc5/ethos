@@ -390,7 +390,8 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     }
     else
     {
-      Assert(d_state.getConstructorKind(tcur.getValue()) != Attr::AMB) << "Matching on amb " << tcur;
+      Assert(d_state.getConstructorKind(tcur.getValue()) != Attr::AMB)
+          << "Matching on amb " << tcur;
       // base case, use equality
       // note that we have to use the full printEmbTerm method
       std::stringstream atomTerm;
@@ -753,7 +754,9 @@ void SmtMetaReduce::defineProgram(const Expr& v, const Expr& prog)
   finalizeProgram(v, prog);
 }
 
-void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog, bool isDefine)
+void SmtMetaReduce::finalizeProgram(const Expr& v,
+                                    const Expr& prog,
+                                    bool isDefine)
 {
   // check for duplicate forward declaration, ignore
   if (prog.isNull() && d_progDeclProcessed.find(v) != d_progDeclProcessed.end())
@@ -762,7 +765,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog, bool isDefi
   }
   std::string vname = getName(v);
   Trace("smt-meta") << "*** Setting up program " << v << " / " << !prog.isNull()
-            << std::endl;
+                    << std::endl;
   d_defs << "; " << (prog.isNull() ? "fwd-decl: " : "program: ") << v
          << std::endl;
   std::stringstream decl;
@@ -829,7 +832,8 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog, bool isDefi
   // stuck. We ensure that all programs over such types are total.
   // We also are not a Eunoia program if we called this method via a define
   // command.
-  bool isEunoiaProgram = (getTypeMetaKind(vt[nargs - 1]) == MetaKind::EUNOIA) && !isDefine;
+  bool isEunoiaProgram =
+      (getTypeMetaKind(vt[nargs - 1]) == MetaKind::EUNOIA) && !isDefine;
   // start with stuck case, if not a SMT program
   if (isEunoiaProgram)
   {
@@ -862,11 +866,13 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog, bool isDefi
       // program.
       MetaKind ctxPatMatch = vctxArgs[j - 1];
       Trace("smt-meta") << std::endl
-                << "; Print pat matching for " << hd[j] << " in context "
-                << metaKindToString(ctxPatMatch) << std::endl;
+                        << "; Print pat matching for " << hd[j]
+                        << " in context " << metaKindToString(ctxPatMatch)
+                        << std::endl;
       printEmbPatternMatch(
           hd[j], args[j - 1], currCase, ctx, print, ctxPatMatch);
-      Trace("smt-meta") << "...returns \"" << currCase.str() << "\"" << std::endl;
+      Trace("smt-meta") << "...returns \"" << currCase.str() << "\""
+                        << std::endl;
     }
     // compile the return for this case
     std::stringstream currRet;
@@ -874,8 +880,8 @@ void SmtMetaReduce::finalizeProgram(const Expr& v, const Expr& prog, bool isDefi
     // we print
     MetaKind bodyInitCtx = vctxArgs[nargs - 1];
     Trace("smt-meta") << std::endl
-              << "; Print body " << body << " in context "
-              << metaKindToString(bodyInitCtx) << std::endl;
+                      << "; Print body " << body << " in context "
+                      << metaKindToString(bodyInitCtx) << std::endl;
     printEmbTerm(body, currRet, ctx, bodyInitCtx);
     Trace("smt-meta") << "...returns \"" << currRet.str() << "\"" << std::endl;
     // for SMT programs, the last case is assumed to be total
@@ -959,8 +965,8 @@ void SmtMetaReduce::define(const std::string& name, const Expr& e)
       // retType = retType.isNull() ? allocateTypeVariable() : retType;
       Expr retType = allocateTypeVariable();
       Expr pt = d_state.mkProgramType(argTypes, retType);
-      Trace("smt-meta") << "....make program " << name << " for define, prog type is "
-                << pt << std::endl;
+      Trace("smt-meta") << "....make program " << name
+                        << " for define, prog type is " << pt << std::endl;
       // Expr pt = d_state.mkBuiltinType(Kind::LAMBDA);
       Expr tmp = d_state.mkSymbol(Kind::PROGRAM_CONST, name, pt);
       // We need to preserve definitions in the final VC.
@@ -982,8 +988,8 @@ void SmtMetaReduce::define(const std::string& name, const Expr& e)
       Expr progApp = d_state.mkExprSimple(Kind::APPLY, appChildren);
       Expr pcase = d_state.mkPair(progApp, e[1]);
       Expr prog = d_state.mkExprSimple(Kind::PROGRAM, {pcase});
-      Trace("smt-meta") << "...do program " << tmp << " / " << prog << " instead"
-                << std::endl;
+      Trace("smt-meta") << "...do program " << tmp << " / " << prog
+                        << " instead" << std::endl;
       finalizeProgram(tmp, prog, true);
       Trace("smt-meta") << "...finished lambda program" << std::endl;
     }
@@ -1362,7 +1368,8 @@ MetaKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
       std::pair<std::vector<Expr>, Expr> ftype = tpop.getFunctionType();
       Assert(i <= ftype.first.size())
           << "Bad index " << (i - 1) << " / " << tpop << " from " << parent;
-      Trace("smt-meta") << "Get type meta kind for " << ftype.first[i - 1] << std::endl;
+      Trace("smt-meta") << "Get type meta kind for " << ftype.first[i - 1]
+                        << std::endl;
       Expr atype = ftype.first[i - 1];
       if (atype.getKind() == Kind::QUOTE_TYPE)
       {
@@ -1420,7 +1427,7 @@ MetaKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
           std::string prefix = esname.substr(6, firstDot - 6);
           tk = prefixToMetaKind(prefix);
         }
-        else if (esname.compare(0, 3, "$eo")==0)
+        else if (esname.compare(0, 3, "$eo") == 0)
         {
           // special case: if we are specifying that we should be applying
           // an $eo function, we are Eunoia. This only is used when desugaring
@@ -1537,7 +1544,7 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
                          << metaKindToString(k2);
         return tk;
       }
-      else if (esname.compare(0,3,"$eo")==0)
+      else if (esname.compare(0, 3, "$eo") == 0)
       {
         // special case: if we are specifying that we should be applying
         // an $eo function, we are Eunoia. This only is used when desugaring
@@ -1606,14 +1613,14 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
     {
       MetaKind tknew = getTypeMetaKind(htype);
       Trace("smt-meta") << "...use datatype embedding name, got "
-                << metaKindToString(tknew) << std::endl;
+                        << metaKindToString(tknew) << std::endl;
       Assert(tknew != MetaKind::NONE);
       return tknew;
     }
     MetaKind tk = getTypeMetaKind(htype);
-    Trace("smt-meta") << "...type for atomic term " << hd << " (" << k << ") is "
-              << htype << ", thus context is " << metaKindToString(tk)
-              << std::endl;
+    Trace("smt-meta") << "...type for atomic term " << hd << " (" << k
+                      << ") is " << htype << ", thus context is "
+                      << metaKindToString(tk) << std::endl;
     // if it is a Eunoia constant, it depends on the naming
     // convention
     if (k == Kind::CONST && tk == MetaKind::EUNOIA)
@@ -1622,8 +1629,9 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
       std::string cnameTmp;
       tk = getMetaKind(d_state, hd, cnameTmp);
       Trace("smt-meta") << "...change to meta-kind " << metaKindToString(tk)
-                << std::endl;
-      // Trace("smt-meta") << "...evaluate meta-kind side condition returns " << mm
+                        << std::endl;
+      // Trace("smt-meta") << "...evaluate meta-kind side condition returns " <<
+      // mm
       //           << ", which is " << metaKindToString(tk) <<
       //           std::endl;
     }
@@ -1647,13 +1655,13 @@ std::vector<MetaKind> SmtMetaReduce::getMetaKindArgs(const Expr& parent,
                                                      MetaKind parentCtx)
 {
   std::vector<MetaKind> args;
-  Trace("smt-meta") << "  MetaArg: " << parent << " / " << parent.getKind() << " / "
-            << metaKindToString(parentCtx) << std::endl;
+  Trace("smt-meta") << "  MetaArg: " << parent << " / " << parent.getKind()
+                    << " / " << metaKindToString(parentCtx) << std::endl;
   for (size_t i = 0, nchild = parent.getNumChildren(); i < nchild; i++)
   {
     MetaKind ctx = getMetaKindArg(parent, i, parentCtx);
-    Trace("smt-meta") << "    MetaArgChild: " << metaKindToString(ctx) << " for "
-              << parent[i] << std::endl;
+    Trace("smt-meta") << "    MetaArgChild: " << metaKindToString(ctx)
+                      << " for " << parent[i] << std::endl;
     args.push_back(ctx);
   }
   Trace("smt-meta") << "  MetaArg: end" << std::endl;

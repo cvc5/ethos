@@ -504,10 +504,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             "($eo_mk_binary x1 $smt_builtin_z_zero))))");
   // utility guards for negative widths, which do not evaluate
   addLitSym(
-      "@bv",
-      {kInt, kInt},
-      kT,
-      "($smtx_model_eval ($eo_mk_binary x2 x1))");
+      "@bv", {kInt, kInt}, kT, "($smtx_model_eval ($eo_mk_binary x2 x1))");
   addTermReduceSym("@bit", {kInt, kBitVec}, "(extract x1 x1 x2)");
   addLitBinSym("@from_bools",
                {kBool, kBitVec},
@@ -522,7 +519,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   d_symIgnore["UnitTuple"] = true;
   addReduceSym("tuple", {}, "($vsm_apply ($vsm_term tuple) $vsm_not_value)");
   addReduceSym("tuple.unit", {}, "($vsm_term tuple.unit)");
-  
+
   // for alethe
   addTermReduceSym("@cl", {kT, kT}, "(or x1 x2)");
 }

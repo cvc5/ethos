@@ -122,7 +122,7 @@ class SmtMetaReduce : public StdPlugin
    * @param isDefine True iff this program definition originated from a
    * define command.
    */
-  void finalizeProgram(const Expr& v, const Expr& prog, bool isDefine=false);
+  void finalizeProgram(const Expr& v, const Expr& prog, bool isDefine = false);
   void finalizeDecl(const Expr& e);
   static bool isProgram(const Expr& t);
   static bool isSmtApplyApp(const Expr& oApp);

@@ -66,12 +66,13 @@ Desugar::Desugar(State& s) : StdPlugin(s)
       d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_requires_eq", eoRequireEqType);
   d_peoRequiresDeq = d_state.mkSymbol(
       Kind::PROGRAM_CONST, "$eo_requires_deq", eoRequireEqType);
-  Expr eoProvenType = d_state.mkProgramType({d_state.mkProofType()}, d_state.mkBoolType());
-  d_peoProven = d_state.mkSymbol(
-      Kind::PROGRAM_CONST, "$eo_proven", eoProvenType);
-  Expr eoPfType = d_state.mkFunctionType({d_state.mkBoolType()}, d_state.mkProofType());
-  d_peoPf = d_state.mkSymbol(
-      Kind::CONST, "$eo_pf", eoPfType);
+  Expr eoProvenType =
+      d_state.mkProgramType({d_state.mkProofType()}, d_state.mkBoolType());
+  d_peoProven =
+      d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_proven", eoProvenType);
+  Expr eoPfType =
+      d_state.mkFunctionType({d_state.mkBoolType()}, d_state.mkProofType());
+  d_peoPf = d_state.mkSymbol(Kind::CONST, "$eo_pf", eoPfType);
 }
 
 Desugar::~Desugar() {}
@@ -641,17 +642,17 @@ void Desugar::finalizeRule(const Expr& e)
   Assert(tupleVal.getNumChildren() == 4);
   Expr rprog = tupleVal[3];
   Expr rprogDef;
-  if (rprog.getKind()==Kind::PROGRAM_CONST)
+  if (rprog.getKind() == Kind::PROGRAM_CONST)
   {
     rprogDef = d_state.getProgram(rprog.getValue());
   }
-  
+
   // if marked sorry, we should never do verification
   if (d_state.isProofRuleSorry(e.getValue()) || !d_genVcs)
   {
     return;
   }
-  
+
   Expr progCase = rprogDef[0][0];
   Expr conclusion = d_state.mkExpr(Kind::APPLY, {d_peoProven, progCase});
   std::stringstream pvcname;
@@ -663,7 +664,7 @@ void Desugar::finalizeRule(const Expr& e)
   for (size_t i = 0, nargs = progCase.getNumChildren(); i < nargs; i++)
   {
     size_t ii = nargs - (i + 1);
-    if (progCase[ii].getKind()==Kind::PROOF)
+    if (progCase[ii].getKind() == Kind::PROOF)
     {
       unsound = mkRequiresModelSat(true, progCase[ii][0], unsound);
       if (StdPlugin::optionVcUseTypeof())
@@ -783,21 +784,23 @@ void Desugar::finalizeDatatype(const Expr& e, Attr a, const Expr& attrCons)
 void Desugar::finalize()
 {
   // ensure all literal types are defined
-  std::set<Kind> literalKinds = { Kind::NUMERAL, Kind::RATIONAL, Kind::BINARY, Kind::STRING };
+  std::set<Kind> literalKinds = {
+      Kind::NUMERAL, Kind::RATIONAL, Kind::BINARY, Kind::STRING};
   Expr builtinType;
-  for (Kind k :literalKinds)
+  for (Kind k : literalKinds)
   {
-    if (d_ltKindProcessed.find(k)!=d_ltKindProcessed.end())
+    if (d_ltKindProcessed.find(k) != d_ltKindProcessed.end())
     {
       continue;
     }
     if (builtinType.isNull())
     {
-      builtinType = d_state.mkSymbol(Kind::CONST, "$eo_Builtin_Type", d_state.mkType());
+      builtinType =
+          d_state.mkSymbol(Kind::CONST, "$eo_Builtin_Type", d_state.mkType());
     }
     setLiteralTypeRule(k, builtinType);
   }
-  
+
   for (std::pair<Expr, Kind>& d : d_declSeen)
   {
     Kind k = d.second;
@@ -888,7 +891,7 @@ void Desugar::notifyAssume(const std::string& name, Expr& proven, bool isPush)
 {
   d_eoPfSteps << "(define $eo_p_" << name << " () ";
   printTerm(proven, d_eoPfSteps);
-  //d_eoPfSteps << " :type Bool";
+  // d_eoPfSteps << " :type Bool";
   d_eoPfSteps << ")" << std::endl;
 }
 
@@ -1198,7 +1201,7 @@ Attr Desugar::getAttribute(const Expr& e)
 
 void Desugar::setLiteralTypeRule(Kind k, const Expr& t)
 {
-  Assert (d_ltKindProcessed.find(k)==d_ltKindProcessed.end());
+  Assert(d_ltKindProcessed.find(k) == d_ltKindProcessed.end());
   d_ltKindProcessed.insert(k);
   // NOTE: literal definitions cannot use any builtin operators
   // that are desugared in the initial step, e.g. eo::list_*.
@@ -1207,21 +1210,12 @@ void Desugar::setLiteralTypeRule(Kind k, const Expr& t)
   std::stringstream eoss;
   switch (k)
   {
-    case Kind::NUMERAL:
-      eoss << "Numeral";
-      break;
-    case Kind::RATIONAL:
-      eoss << "Rational";
-      break;
-    case Kind::BINARY:
-      eoss << "Binary";
-      break;
-    case Kind::STRING:
-      eoss << "String";
-      break;
+    case Kind::NUMERAL: eoss << "Numeral"; break;
+    case Kind::RATIONAL: eoss << "Rational"; break;
+    case Kind::BINARY: eoss << "Binary"; break;
+    case Kind::STRING: eoss << "String"; break;
     case Kind::DECIMAL:
-    case Kind::HEXADECIMAL:
-      break;
+    case Kind::HEXADECIMAL: break;
     default: EO_FATAL() << "Unknown literal type rule" << k << std::endl; break;
   }
   // declared at the top
@@ -1239,7 +1233,8 @@ void Desugar::setLiteralTypeRule(Kind k, const Expr& t)
       finalizeDeclaration(s, d_litTypeDecl);
     }
     d_litTypeDecl << "; type-rules: " << k << std::endl;
-    d_litTypeDecl << "(declare-consts " << literalKindToString(k) << " " << t << ")" << std::endl;
+    d_litTypeDecl << "(declare-consts " << literalKindToString(k) << " " << t
+                  << ")" << std::endl;
     // A literal type may be non-ground if it uses eo::self.
     // For consistency, we always define the program $eo_lit_type_X, even
     // if the type is ground. We additionally always define the nullary type
@@ -1275,7 +1270,6 @@ void Desugar::setLiteralTypeRule(Kind k, const Expr& t)
     {
       Assert(t.isGround()) << "Must have a ground type for <numeral>.";
     }
-    
   }
 }
 

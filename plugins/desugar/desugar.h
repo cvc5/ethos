@@ -55,6 +55,7 @@ class Desugar : public StdPlugin
   bool echo(const std::string& msg) override;
   /** Set type rule for literal kind k to t */
   void setLiteralTypeRule(Kind k, const Expr& t) override;
+
  private:
   void printName(const Expr& e, std::ostream& os);
   void printTerm(const Expr& e, std::ostream& os);

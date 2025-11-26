@@ -153,18 +153,10 @@ std::string StdPlugin::literalKindToString(Kind k)
   std::stringstream ss;
   switch (k)
   {
-    case Kind::NUMERAL:
-      ss << "<numeral>";
-      break;
-    case Kind::RATIONAL:
-      ss << "<rational>";
-      break;
-    case Kind::BINARY:
-      ss << "<binary>";
-      break;
-    case Kind::STRING:
-      ss << "<string>";
-      break;
+    case Kind::NUMERAL: ss << "<numeral>"; break;
+    case Kind::RATIONAL: ss << "<rational>"; break;
+    case Kind::BINARY: ss << "<binary>"; break;
+    case Kind::STRING: ss << "<string>"; break;
     case Kind::DECIMAL: ss << "<decimal>"; break;
     case Kind::HEXADECIMAL: ss << "<hexadecimal>"; break;
     default: EO_FATAL() << "Unknown literal type rule" << k << std::endl; break;

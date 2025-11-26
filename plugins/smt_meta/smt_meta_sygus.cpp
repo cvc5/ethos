@@ -211,8 +211,8 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
                                    const std::string& gbase,
                                    const Expr& t)
 {
-  Trace("smt-meta-sygus") << "Add grammar rules " << e << " / " << cname << "..."
-            << std::endl;
+  Trace("smt-meta-sygus") << "Add grammar rules " << e << " / " << cname
+                          << "..." << std::endl;
   std::stringstream grule;
   std::stringstream gruleEnd;
   Expr defaultG;
