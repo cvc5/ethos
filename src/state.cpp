@@ -1425,9 +1425,6 @@ bool State::notifyStep(const std::string& name,
       return true;
     }
   }
-  children.emplace_back(rule.getValue());
-  // arguments first
-  children.insert(children.end(), args.begin(), args.end());
   AppInfo* ainfo = getAppInfo(rule.getValue());
   if (ainfo != nullptr)
   {
