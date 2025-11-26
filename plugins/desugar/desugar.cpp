@@ -31,9 +31,11 @@ Desugar::Desugar(State& s) : StdPlugin(s)
   d_overloadSanVisited[d_listCons] =
       d_state.mkSymbol(Kind::CONST, "$eo_List_cons", lct);
   d_listType = s.mkListType();
-  Expr lt = d_tc.getType(d_listType);
   d_overloadSanVisited[d_listType] =
-      d_state.mkSymbol(Kind::CONST, "$eo_List", lt);
+      d_state.mkSymbol(Kind::CONST, "$eo_List", s.mkType());
+  Expr pft = s.mkProofType();
+  d_overloadSanVisited[pft] =
+      d_state.mkSymbol(Kind::CONST, "$eo_Proof", s.mkType());
   d_genVcs = d_state.getOptions().d_pluginDesugarGenVc;
   if (d_genVcs)
   {
@@ -64,6 +66,12 @@ Desugar::Desugar(State& s) : StdPlugin(s)
       d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_requires_eq", eoRequireEqType);
   d_peoRequiresDeq = d_state.mkSymbol(
       Kind::PROGRAM_CONST, "$eo_requires_deq", eoRequireEqType);
+  Expr eoProvenType = d_state.mkProgramType({d_state.mkProofType()}, d_state.mkBoolType());
+  d_peoProven = d_state.mkSymbol(
+      Kind::PROGRAM_CONST, "$eo_proven", eoProvenType);
+  Expr eoPfType = d_state.mkFunctionType({d_state.mkBoolType()}, d_state.mkProofType());
+  d_peoPf = d_state.mkSymbol(
+      Kind::CONST, "$eo_pf", eoPfType);
 }
 
 Desugar::~Desugar() {}
@@ -198,12 +206,6 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
     return;
   }
   Expr cto = d_tc.getType(c);
-  // merge-FIXME
-  //if (cto.getKind() == Kind::PROOF_TYPE)
-  {
-    // a step, ignore
-    return;
-  }
   Expr ct = cto;
   std::vector<Expr> argTypes;
   Expr retType;
@@ -633,126 +635,40 @@ void Desugar::finalizeDefinition(const std::string& name, const Expr& t)
 
 void Desugar::finalizeRule(const Expr& e)
 {
-  // std::cout << "Finalize rule " << e << std::endl;
-  Expr r = e;
-  Expr rto = d_tc.getType(r);
-  Expr rt = mkSanitize(rto);
-  // Make program
-  std::vector<bool> argIsProof;
-  std::vector<Expr> args;
-  std::vector<Expr> argsS;
-  std::vector<Expr> argsTypes;
-  Expr efalse = d_state.mkFalse();
-  // accumulated requirements for returned conclusion
-  std::vector<Expr> reqs;
-  Expr rrt;
-  if (rt.getKind() != Kind::FUNCTION_TYPE)
+  std::cout << "Finalize rule " << e << std::endl;
+  AppInfo* ainfo = d_state.getAppInfo(e.getValue());
+  Expr tupleVal = ainfo->d_attrConsTerm;
+  Assert(tupleVal.getNumChildren() == 4);
+  Expr rprog = tupleVal[3];
+  Expr rprogDef;
+  if (rprog.getKind()==Kind::PROGRAM_CONST)
   {
-    Expr dummy = d_state.mkSymbol(Kind::PARAM, "$etmp", d_boolType);
-    // dummy argument
-    argIsProof.push_back(false);
-    args.push_back(dummy);
-    argsS.push_back(dummy);
-    argsTypes.push_back(d_state.mkBoolType());
-    rrt = rt;
+    rprogDef = d_state.getProgram(rprog.getValue());
   }
-  else
-  {
-    std::map<Expr, Expr> evMap = d_overloadSanVisited;
-    size_t eVarCount = 0;
-    std::vector<std::pair<Expr, Expr>> newVars;
-    for (size_t i = 1, nargs = rt.getNumChildren(); i < nargs; i++)
-    {
-      Expr arg = rt[i - 1];
-      Expr argS = mkSanitize(arg, evMap, eVarCount, true, newVars);
-      Kind ak = argS.getKind();
-      // merge-FIXME
-      //if (ak == Kind::QUOTE_TYPE || ak == Kind::PROOF_TYPE)
-      if (ak == Kind::QUOTE_TYPE)
-      {
-        Assert(arg.getKind() == argS.getKind());
-        Expr aa = argS[0];
-        Expr ta = d_tc.getType(aa);
-        if (ta.isNull() || ta.isEvaluatable())
-        {
-          // EO_FATAL() << "Could not get type of " << aa << std::endl;
-          ta = allocateTypeVariable();
-        }
-        // merge-FIXME
-        //argIsProof.push_back(ak == Kind::PROOF_TYPE);
-        args.push_back(arg[0]);
-        argsS.push_back(argS[0]);
-        argsTypes.push_back(ta);
-      }
-      else
-      {
-        Assert(false) << "Unknown proof argument " << ak << " in " << rt;
-      }
-    }
-    // we addtionally require that the purified variables are equal to what the
-    // purify
-    for (std::pair<Expr, Expr>& nv : newVars)
-    {
-      reqs.push_back(d_state.mkPair(nv.first, nv.second));
-    }
-    rrt = rt[rt.getNumChildren() - 1];
-  }
-  // strip off the "(Proof ...)", which may be beneath requires
-  while (rrt.getKind() == Kind::EVAL_REQUIRES)
-  {
-    reqs.push_back(d_state.mkPair(rrt[0], rrt[1]));
-    rrt = rrt[2];
-  }
-  // merge-FIXME
-  //Assert(rrt.getKind() == Kind::PROOF_TYPE)
-  //    << "Bad return type: " << rrt.getKind() << " " << rrt;
-  rrt = rrt[0];
-  if (StdPlugin::optionVcUseTypeof())
-  {
-    // the final conclusion must have Bool type
-    rrt = mkRequiresModelTypeofBool(rrt, rrt);
-  }
-  rrt = d_state.mkRequires(reqs, rrt);
-
-  Expr progType = d_state.mkProgramType(argsTypes, d_boolType);
-  std::stringstream pname;
-  pname << "$eor_" << e;
-  Expr prog = d_state.mkSymbol(Kind::PROGRAM_CONST, pname.str(), progType);
-  Expr progApps[2];
-  for (size_t i = 0; i < 2; i++)
-  {
-    std::vector<Expr>& ause = (i == 0 ? argsS : args);
-    std::vector<Expr> pAppChildren;
-    pAppChildren.push_back(prog);
-    pAppChildren.insert(pAppChildren.end(), ause.begin(), ause.end());
-    progApps[i] = d_state.mkExpr(Kind::APPLY, pAppChildren);
-  }
-  Expr progPair = d_state.mkPair(progApps[0], rrt);
-  Expr progDef = d_state.mkExpr(Kind::PROGRAM, {progPair});
-  finalizeProgram(prog, progDef, d_eoVc);
-
+  
   // if marked sorry, we should never do verification
   if (d_state.isProofRuleSorry(e.getValue()) || !d_genVcs)
   {
     return;
   }
-
-  Expr conclusion = progApps[1];
+  
+  Expr progCase = rprogDef[0][0];
+  Expr conclusion = d_state.mkExpr(Kind::APPLY, {d_peoProven, progCase});
   std::stringstream pvcname;
   pvcname << "$eovc_" << e;
   Expr unsound = d_true;
   // require that the conclusion is not satisfied
   unsound = mkRequiresModelSat(false, conclusion, unsound);
   // require that each premise is satisfied
-  for (size_t i = 0, nargs = args.size(); i < nargs; i++)
+  for (size_t i = 0, nargs = progCase.getNumChildren(); i < nargs; i++)
   {
     size_t ii = nargs - (i + 1);
-    if (argIsProof[ii])
+    if (progCase[ii].getKind()==Kind::PROOF)
     {
-      unsound = mkRequiresModelSat(true, args[ii], unsound);
+      unsound = mkRequiresModelSat(true, progCase[ii][0], unsound);
       if (StdPlugin::optionVcUseTypeof())
       {
-        unsound = mkRequiresModelTypeofBool(args[ii], unsound);
+        unsound = mkRequiresModelTypeofBool(progCase[ii][0], unsound);
       }
     }
   }
@@ -778,14 +694,14 @@ void Desugar::finalizeRule(const Expr& e)
       unsound = mkRequiresModelIsInput(vv, unsound);
     }
   }
-  progType = d_state.mkProgramType(uargTypes, d_boolType);
-  prog = d_state.mkSymbol(Kind::PROGRAM_CONST, pvcname.str(), progType);
+  Expr progType = d_state.mkProgramType(uargTypes, d_boolType);
+  Expr prog = d_state.mkSymbol(Kind::PROGRAM_CONST, pvcname.str(), progType);
   std::vector<Expr> vcpChildren;
   vcpChildren.push_back(prog);
   vcpChildren.insert(vcpChildren.end(), uvars.begin(), uvars.end());
   Expr progPat = d_state.mkExpr(Kind::APPLY, vcpChildren);
-  progPair = d_state.mkPair(progPat, unsound);
-  progDef = d_state.mkExpr(Kind::PROGRAM, {progPair});
+  Expr progPair = d_state.mkPair(progPat, unsound);
+  Expr progDef = d_state.mkExpr(Kind::PROGRAM, {progPair});
   finalizeProgram(prog, progDef, d_eoVc);
   // write a command to indicate that we should process the above vc
   // we hard-code the symbols that are used in smt_meta.smt2 here.
@@ -1204,6 +1120,10 @@ Expr Desugar::mkSanitize(const Expr& t,
         // TODO: build this into the Ethos printer??
         // strip off the "(eo::param ...)"
         ret = cur[0];
+      }
+      else if (k == Kind::PROOF)
+      {
+        ret = d_state.mkExprSimple(Kind::APPLY, {d_peoPf, cur[0]});
       }
       else if (childChanged)
       {

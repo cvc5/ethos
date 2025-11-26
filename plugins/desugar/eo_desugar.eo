@@ -20,6 +20,18 @@
 ; 3. Cases of $eo_dt_constructors, $eo_dt_selectors, $eo_nil, $eo_typeof_main.
 ; 4. A verification condition (EO_VC).
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; proofs
+
+(declare-const $eo_Proof Type)
+(declare-const $eo_pf (-> Bool $eo_Proof))
+
+(program $eo_proven ((F Bool))
+  :signature ($eo_Proof) Bool
+  (
+  (($eo_proven ($eo_pf F)) F)
+  )
+)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; literal types
 
 $EO_LITERAL_TYPE_DECL$

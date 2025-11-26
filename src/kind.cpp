@@ -135,7 +135,7 @@ std::string kindToTerm(Kind k)
     case Kind::AS: ss << "eo::as"; break;
     case Kind::AS_RETURN: ss << "as"; break;
     case Kind::PARAMETERIZED: ss << "eo::_"; break;
-    case Kind::PROOF: ss << "pf"; break;
+    case Kind::PROOF: ss << "eo::pf"; break;
     // operations on literals
     default:
       if (isLiteralOp(k))

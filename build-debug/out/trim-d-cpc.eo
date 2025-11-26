@@ -20,6 +20,18 @@
 ; 3. Cases of $eo_dt_constructors, $eo_dt_selectors, $eo_nil, $eo_typeof_main.
 ; 4. A verification condition (EO_VC).
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; proofs
+
+(declare-const $eo_Proof Type)
+(declare-const $eo_pf (-> Bool $eo_Proof))
+
+(program $eo_proven ((F Bool))
+  :signature ($eo_Proof) Bool
+  (
+  (($eo_proven ($eo_pf F)) F)
+  )
+)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; literal types
 
 ; declare: Int
@@ -521,6 +533,13 @@
   (($mk_symm (not (_ (= t1) t2))) (not (_ (= t2) t1)))
   )
 )
+; program: $eo_prog_symm
+(program $eo_prog_symm ((F Bool))
+  :signature ($eo_Proof) $eo_Proof
+  (
+  (($eo_prog_symm ($eo_pf F)) ($eo_pf ($mk_symm F)))
+  )
+)
 
 
 ;;; type checking
@@ -685,18 +704,11 @@
 
 ;; verification conditions
 
-; program: $eor_symm
-(program $eor_symm ((F Bool))
-  :signature (Bool) Bool
-  (
-  (($eor_symm F) (eo::define ((_v0 ($mk_symm F))) ($eo_requires_eq ($eo_typeof _v0) Bool _v0)))
-  )
-)
 ; program: $eovc_symm
 (program $eovc_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eovc_symm F) (eo::define ((_v0 ($eor_symm F))) ($eo_requires_eq ($eo_model_is_input _v0) true ($eo_requires_eq ($eo_typeof F) Bool ($eo_requires_eq ($eo_model_sat F) true ($eo_requires_eq ($eo_model_unsat _v0) true true))))))
+  (($eovc_symm F) (eo::define ((_v0 ($eo_proven ($eo_prog_symm ($eo_pf F))))) ($eo_requires_eq ($eo_model_is_input _v0) true ($eo_requires_eq ($eo_typeof F) Bool ($eo_requires_eq ($eo_model_sat F) true ($eo_requires_eq ($eo_model_unsat _v0) true true))))))
   )
 )
 (echo "smt-meta $eovc_symm :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $smtx_reverse_value_hash $eo_smt_type $tsm_Bool $eo_Type $eo_fun_type $eo_apply $eo_mk_apply ")

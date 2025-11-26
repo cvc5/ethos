@@ -223,7 +223,7 @@ State::State(Options& opts, Stats& stats)
   d_self = Expr(mkSymbolInternal(Kind::PARAM, "eo::self", d_any));
   // Proof is the return type of terms with kind Kind::PROOF, which is an
   // ordinary type (not available in the parser).
-  d_proofType = Expr(mkSymbolInternal(Kind::CONST, "Proof", d_type));
+  d_proofType = Expr(mkSymbolInternal(Kind::CONST, "eo::Proof", d_type));
 }
 
 State::~State() {}

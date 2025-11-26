@@ -48,6 +48,10 @@
 
   )
   (
+  ; user-decl: $eo_Proof
+  (eo.$eo_Proof)
+  ; user-decl: $eo_pf
+  (eo.$eo_pf)
   ; user-decl: $eo_List
   (eo.$eo_List)
   ; user-decl: $eo_List_nil
@@ -97,6 +101,14 @@
 )
 
 ;;; Relevant definitions
+
+; program: $eo_proven
+(define-fun $eo_proven ((x1 eo.Term)) eo.Term
+  (ite (= x1 eo.Stuck)
+    eo.Stuck
+  (ite (and ((_ is eo.Apply) x1) (= (eo.Apply.arg1 x1) eo.$eo_pf))
+    (eo.Apply.arg2 x1)
+    eo.Stuck)))
 
 (define-fun $eo_Numeral () eo.Term (eo.SmtType tsm.Int))
 (define-fun $eo_String () eo.Term (eo.Apply (eo.SmtType tsm.Seq) (eo.SmtType tsm.Char)))
@@ -253,6 +265,14 @@
   (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg2 x1)) ((_ is eo.Apply) (eo.Apply.arg1 (eo.Apply.arg2 x1))) ((_ is eo.SmtTerm) (eo.Apply.arg1 (eo.Apply.arg1 (eo.Apply.arg2 x1)))) (= (eo.SmtTerm.arg1 (eo.Apply.arg1 (eo.Apply.arg1 (eo.Apply.arg2 x1)))) sm.=) ((_ is eo.SmtTerm) (eo.Apply.arg1 x1)) (= (eo.SmtTerm.arg1 (eo.Apply.arg1 x1)) sm.not))
     (eo.Apply (eo.SmtTerm sm.not) (eo.Apply (eo.Apply (eo.SmtTerm sm.=) (eo.Apply.arg2 (eo.Apply.arg2 x1))) (eo.Apply.arg2 (eo.Apply.arg1 (eo.Apply.arg2 x1)))))
     eo.Stuck))))
+
+; program: $eo_prog_symm
+(define-fun $eo_prog_symm ((x1 eo.Term)) eo.Term
+  (ite (= x1 eo.Stuck)
+    eo.Stuck
+  (ite (and ((_ is eo.Apply) x1) (= (eo.Apply.arg1 x1) eo.$eo_pf))
+    ($eo_mk_apply eo.$eo_pf ($mk_symm (eo.Apply.arg2 x1)))
+    eo.Stuck)))
 
 ; program: $eo_typeof_apply
 (define-fun $eo_typeof_apply ((x1 eo.Term) (x2 eo.Term)) eo.Term
@@ -503,20 +523,12 @@
     (eo.SmtTerm (sm.Boolean ($smtx_is_input x1)))
     eo.Stuck))) :pattern (($eo_model_is_input x1)))) :named sm.axiom.$eo_model_is_input))
 
-; program: $eor_symm
-(define-fun $eor_symm ((x1 eo.Term)) eo.Term
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite true
-    ($eo_requires_eq ($eo_typeof ($mk_symm x1)) (eo.SmtType tsm.Bool) ($mk_symm x1))
-    eo.Stuck)))
-
 ; program: $eovc_symm
 (define-fun $eovc_symm ((x1 eo.Term)) eo.Term
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    ($eo_requires_eq ($eo_model_is_input ($eor_symm x1)) (eo.SmtTerm (sm.Boolean true)) ($eo_requires_eq ($eo_typeof x1) (eo.SmtType tsm.Bool) ($eo_requires_eq ($eo_model_sat x1) (eo.SmtTerm (sm.Boolean true)) ($eo_requires_eq ($eo_model_unsat ($eor_symm x1)) (eo.SmtTerm (sm.Boolean true)) (eo.SmtTerm (sm.Boolean true))))))
+    ($eo_requires_eq ($eo_model_is_input ($eo_proven ($eo_prog_symm (eo.Apply eo.$eo_pf x1)))) (eo.SmtTerm (sm.Boolean true)) ($eo_requires_eq ($eo_typeof x1) (eo.SmtType tsm.Bool) ($eo_requires_eq ($eo_model_sat x1) (eo.SmtTerm (sm.Boolean true)) ($eo_requires_eq ($eo_model_unsat ($eo_proven ($eo_prog_symm (eo.Apply eo.$eo_pf x1)))) (eo.SmtTerm (sm.Boolean true)) (eo.SmtTerm (sm.Boolean true))))))
     eo.Stuck)))
 
 

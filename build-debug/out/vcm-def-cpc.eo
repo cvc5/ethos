@@ -1,5 +1,13 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 46
+; #trim-defs: 49
+(declare-const $eo_Proof Type)
+(declare-const $eo_pf (-> Bool $eo_Proof))
+(program $eo_proven ((F Bool))
+  :signature ($eo_Proof) Bool
+  (
+  (($eo_proven ($eo_pf F)) F)
+  )
+)
 (declare-const Int Type)
 (declare-consts <numeral> Int)
 (define $eo_Numeral () Int)
@@ -1075,6 +1083,12 @@
   (($mk_symm (not (_ (= t1) t2))) (not (_ (= t2) t1)))
   )
 )
+(program $eo_prog_symm ((F Bool))
+  :signature ($eo_Proof) $eo_Proof
+  (
+  (($eo_prog_symm ($eo_pf F)) ($eo_pf ($mk_symm F)))
+  )
+)
 (program $eo_typeof_apply ((T Type) (U Type))
   :signature (Type Type) Type
   (
@@ -1784,16 +1798,10 @@
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_end
-(program $eor_symm ((F Bool))
-  :signature (Bool) Bool
-  (
-  (($eor_symm F) (eo::define ((_v0 ($mk_symm F))) ($eo_requires_eq ($eo_typeof _v0) Bool _v0)))
-  )
-)
 (program $eovc_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eovc_symm F) (eo::define ((_v0 ($eor_symm F))) ($eo_requires_eq ($eo_model_is_input _v0) true ($eo_requires_eq ($eo_typeof F) Bool ($eo_requires_eq ($eo_model_sat F) true ($eo_requires_eq ($eo_model_unsat _v0) true true))))))
+  (($eovc_symm F) (eo::define ((_v0 ($eo_proven ($eo_prog_symm ($eo_pf F))))) ($eo_requires_eq ($eo_model_is_input _v0) true ($eo_requires_eq ($eo_typeof F) Bool ($eo_requires_eq ($eo_model_sat F) true ($eo_requires_eq ($eo_model_unsat _v0) true true))))))
   )
 )
 (echo "smt-meta $eovc_symm :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $smtx_reverse_value_hash $eo_smt_type $tsm_Bool $eo_Type $eo_fun_type $eo_apply $eo_mk_apply ")
