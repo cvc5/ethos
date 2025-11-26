@@ -40,11 +40,6 @@ class TypeChecker
    */
   Expr getType(Expr& e, std::ostream* out = nullptr);
   /**
-   * Get the type of an application, equivalent to calling getType on
-   * (APPLY children).
-   */
-  Expr getTypeApp(std::vector<Expr>& children, std::ostream* out = nullptr);
-  /**
    * Check arity for kind, returns false if k cannot be applied to nargs.
    */
   static bool checkArity(Kind k, size_t nargs, std::ostream* out = nullptr);

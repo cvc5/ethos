@@ -328,17 +328,6 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
   return d_null;
 }
 
-Expr TypeChecker::getTypeApp(std::vector<Expr>& children, std::ostream* out)
-{
-  std::vector<ExprValue*> vchildren;
-  for (const Expr& c : children)
-  {
-    vchildren.push_back(c.getValue());
-  }
-  Ctx ctx;
-  return getTypeAppInternal(vchildren, ctx, out);
-}
-
 Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
                                      Ctx& ctx,
                                      std::ostream* out)

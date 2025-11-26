@@ -1174,6 +1174,10 @@ Expr State::mkApplyAttr(AppInfo* ai,
             rchildren.end(), vchildren.begin() + 1 + nargs, vchildren.end());
         Trace("opaque") << "...return operator applied to children"
                         << std::endl;
+        if (rchildren.size()>2)
+        {
+          return Expr(mkApplyInternal(rchildren));
+        }
         return Expr(mkExprInternal(Kind::APPLY, rchildren));
       }
     }
