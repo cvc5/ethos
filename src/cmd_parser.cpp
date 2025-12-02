@@ -192,8 +192,8 @@ bool CmdParser::parseNextCommand()
           std::vector<Expr> fvpt = Expr::getVariables(pt);
           for (const Expr& fv : fvpt)
           {
-            if (std::find(params.begin(), params.begin() + ii, fv)
-                == params.begin() + ii)
+            std::vector<Expr>::iterator itpend = params.begin() + ii;
+            if (std::find(params.begin(), itpend, fv) == itpend)
             {
               // variable not in the list bound up to ii.
               isBinding = true;
@@ -217,7 +217,7 @@ bool CmdParser::parseNextCommand()
           else
           {
             // Otherwise, the parameter is quoted. We wrap its type to ensure
-            // the argument passed to it is ground.
+            // the argument passed to it matches.
             Expr ap = d_state.mkExpr(Kind::ANNOT_PARAM, {p, pt});
             qt = d_state.mkQuoteType(ap);
           }
