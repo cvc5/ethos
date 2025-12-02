@@ -368,20 +368,21 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
   }
   std::set<std::pair<ExprValue*, ExprValue*>> visited;
   Expr hdEval;
-  for (size_t i=1, nchild=hdtypes.size(); i<nchild; i++)
+  for (size_t i = 1, nchild = hdtypes.size(); i < nchild; i++)
   {
     // matching, update context
-    ExprValue* hdt = hdtypes[i-1];
+    ExprValue* hdt = hdtypes[i - 1];
     // if the argument is (Quote t), we match on its argument,
     // which along with how ctypes[i] is the argument itself, has the effect
     // of an implicit upcast.
     bool isQuote = false;
     ExprValue* child = children[i];
-    if (hdt->getKind()== Kind::QUOTE_TYPE)
+    if (hdt->getKind() == Kind::QUOTE_TYPE)
     {
       // if there are two children to Quote, then the second specifies the
       // expected type.
-      if (hdt->getNumChildren()==2 && d_state.lookupType(child)!=hdt->d_children[1])
+      if (hdt->getNumChildren() == 2
+          && d_state.lookupType(child) != hdt->d_children[1])
       {
         // type mismatch, will fail at match below
         hdt = hdt->d_children[1];
@@ -401,7 +402,7 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     {
       if (out)
       {
-        ExprValue* hdto = hdtypes[i-1];
+        ExprValue* hdto = hdtypes[i - 1];
         (*out) << "Checking application of " << Expr(hd) << std::endl;
         if (isQuote)
         {

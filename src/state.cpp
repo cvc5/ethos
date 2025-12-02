@@ -596,7 +596,8 @@ Expr State::mkQuoteType(const Expr& t)
 
 Expr State::mkQuoteType(const Expr& t, const Expr& type)
 {
-  return Expr(mkExprInternal(Kind::QUOTE_TYPE, {t.getValue(), type.getValue()}));
+  return Expr(
+      mkExprInternal(Kind::QUOTE_TYPE, {t.getValue(), type.getValue()}));
 }
 Expr State::mkBuiltinType(Kind k)
 {
