@@ -216,10 +216,9 @@ bool CmdParser::parseNextCommand()
           }
           else
           {
-            // Otherwise, the parameter is quoted. We wrap its type to ensure
-            // the argument passed to it matches.
-            Expr ap = d_state.mkExpr(Kind::ANNOT_PARAM, {p, pt});
-            qt = d_state.mkQuoteType(ap);
+            // Otherwise, the parameter is quoted. We also pass its type to
+            // ensure the argument passed to it matches.
+            qt = d_state.mkQuoteType(p, pt);
           }
           itp = pattrMap.find(p.getValue());
           if (itp != pattrMap.end())

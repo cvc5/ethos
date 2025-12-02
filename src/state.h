@@ -114,6 +114,8 @@ class State
   Expr mkProof(const Expr& proven);
   /** (Quote <term>) */
   Expr mkQuoteType(const Expr& t);
+  /** (Quote <term> <type>) */
+  Expr mkQuoteType(const Expr& t, const Expr& type);
   /** */
   Expr mkBuiltinType(Kind k);
   /** */

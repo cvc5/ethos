@@ -594,6 +594,10 @@ Expr State::mkQuoteType(const Expr& t)
   return Expr(mkExprInternal(Kind::QUOTE_TYPE, {t.getValue()}));
 }
 
+Expr State::mkQuoteType(const Expr& t, const Expr& type)
+{
+  return Expr(mkExprInternal(Kind::QUOTE_TYPE, {t.getValue(), type.getValue()}));
+}
 Expr State::mkBuiltinType(Kind k)
 {
   // for now, just use any type
@@ -1298,7 +1302,6 @@ Expr State::mkLetBinderList(const ExprValue* ev, const std::vector<std::pair<Exp
 
 Attr State::getConstructorKind(const ExprValue* v) const
 {
-  Assert (v->getKind() != Kind::ANNOT_PARAM);
   const AppInfo* ai = getAppInfo(v);
   if (ai!=nullptr)
   {
@@ -1596,7 +1599,6 @@ void State::defineProgram(const Expr& v, const Expr& prog)
 
 bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
 {
-  Assert (v.getKind()!=Kind::ANNOT_PARAM);
   Expr acons = cons;
   Assert (isSymbol(v.getKind()));
   AppInfo& ai = d_appData[v.getValue()];
