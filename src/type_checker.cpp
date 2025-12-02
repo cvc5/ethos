@@ -376,6 +376,7 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     // which along with how ctypes[i] is the argument itself, has the effect
     // of an implicit upcast.
     bool isQuote = false;
+    bool success = true;
     ExprValue* child = children[i];
     if (hdt->getKind() == Kind::QUOTE_TYPE)
     {
@@ -384,7 +385,7 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
       if (hdt->getNumChildren() == 2
           && d_state.lookupType(child) != hdt->d_children[1])
       {
-        // type mismatch, will fail at match below
+        success = false;
         hdt = hdt->d_children[1];
         child = d_state.lookupType(child);
       }
@@ -398,7 +399,7 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     {
       child = d_state.lookupType(child);
     }
-    if (!match(hdt, child, ctx, visited))
+    if (!success || !match(hdt, child, ctx, visited))
     {
       if (out)
       {
