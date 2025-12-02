@@ -1048,13 +1048,6 @@ Expr Desugar::mkSanitize(const Expr& t)
   return mkSanitize(t, visited);
 }
 
-bool isEvalApp(const Expr& cur)
-{
-  Kind k = cur.getKind();
-  return isLiteralOp(k)
-         || (k == Kind::APPLY && cur[0].getKind() == Kind::PROGRAM_CONST);
-}
-
 Expr Desugar::mkSanitize(const Expr& t,
                          std::map<Expr, Expr>& visited)
 {
