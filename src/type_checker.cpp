@@ -385,9 +385,9 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
       if (hdt->getNumChildren() == 2)
       {
         // type should be ground by this point.
-        Assert (hdt->d_children[1]->isGround());
-        ExprValue * ct = d_state.lookupType(child);
-        Assert (ct!=nullptr);
+        Assert(hdt->d_children[1]->isGround());
+        ExprValue* ct = d_state.lookupType(child);
+        Assert(ct != nullptr);
         if (ct != hdt->d_children[1])
         {
           success = false;
@@ -404,7 +404,7 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     else
     {
       child = d_state.lookupType(child);
-      Assert (child!=nullptr);
+      Assert(child != nullptr);
     }
     if (!success || !match(hdt, child, ctx, visited))
     {
