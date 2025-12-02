@@ -1063,6 +1063,7 @@ Expr Desugar::mkSanitize(const Expr& t,
                          bool inPatMatch,
                          std::vector<std::pair<Expr, Expr>>& newVars)
 {
+  Assert (!t.isNull());
   std::map<Expr, Expr>::iterator it;
   std::vector<Expr> visit;
   Expr cur;
@@ -1130,7 +1131,9 @@ Expr Desugar::mkSanitize(const Expr& t,
       }
       else if (k == Kind::PROOF)
       {
-        ret = d_state.mkExprSimple(Kind::APPLY, {d_peoPf, cur[0]});
+        // "pf" is a kind, we handle it specially here by turning it into an
+        // ordinary application.
+        ret = d_state.mkExprSimple(Kind::APPLY, {d_peoPf, children[0]});
       }
       else if (childChanged)
       {

@@ -451,9 +451,12 @@ bool CmdParser::parseNextCommand()
       {
         // construct the program type based on the arguments we are matching
         std::vector<Expr> progTypes;
-        for (Expr& e : progArgs)
+        Expr type = d_state.mkType();
+        for (size_t i=0, nargs=progArgs.size(); i<nargs; i++)
         {
-          Expr et = d_tc.getType(e);
+          std::stringstream ss;
+          ss << "$eo_arg_" << i;
+          Expr et = d_state.mkSymbol(Kind::PARAM, ss.str(), type);
           progTypes.push_back(et);
         }
         pt = d_state.mkProgramType(progTypes, pt);

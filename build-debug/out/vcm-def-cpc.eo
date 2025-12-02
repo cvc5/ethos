@@ -1083,8 +1083,8 @@
   (($mk_symm (not (_ (= t1) t2))) (not (_ (= t2) t1)))
   )
 )
-(program $eo_prog_symm ((F Bool))
-  :signature ($eo_Proof) $eo_Proof
+(program $eo_prog_symm (($eo_arg_0 Type) (F Bool))
+  :signature ($eo_arg_0) $eo_Proof
   (
   (($eo_prog_symm ($eo_pf F)) ($eo_pf ($mk_symm F)))
   )
