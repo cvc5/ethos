@@ -184,41 +184,38 @@ bool CmdParser::parseNextCommand()
         for (size_t i = 0, nparams = params.size(); i < nparams; i++)
         {
           size_t ii = nparams - i - 1;
-          // Check if the type of the parameter is binding.
           Expr p = params[ii];
           Expr pt = d_tc.getType(p);
-          bool isBinding = false;
           Expr qt;
-          std::vector<Expr> fvpt = Expr::getVariables(pt);
-          for (const Expr& fv : fvpt)
+          // Check if the parameter is contained in the return type. If so,
+          // then it must be quoted.
+          std::unordered_set<const ExprValue*> vp{p.getValue()};
+          if (Expr::hasVariable(t, vp))
           {
-            std::vector<Expr>::iterator itpend = params.begin() + ii;
-            if (std::find(params.begin(), itpend, fv) == itpend)
+            // If the type of the parameter has an implicit free parameter
+            // in its type, then we throw an error.
+            std::vector<Expr> fvpt = Expr::getVariables(pt);
+            for (const Expr& fv : fvpt)
             {
-              // variable not in the list bound up to ii.
-              isBinding = true;
-              break;
+              std::vector<Expr>::iterator itpend = params.begin() + ii;
+              if (std::find(params.begin(), itpend, fv) == itpend)
+              {
+                // variable not in the list bound up to ii.
+                std::stringstream ss;
+                ss << "Cannot bind parameter and its type simulataneously. ";
+                ss << "The parameter in question was " << p << ".";
+                d_lex.parseError(ss.str());
+              }
             }
-          }
-          if (isBinding)
-          {
-            // ensure t does not contain p
-            std::unordered_set<const ExprValue*> vp{p.getValue()};
-            if (Expr::hasVariable(t, vp))
-            {
-              std::stringstream ss;
-              ss << "Cannot bind parameter and its type simulataneously. ";
-              ss << "The parameter in question was " << p << ".";
-              d_lex.parseError(ss.str());
-            }
-            // If binding, the parameter is not quoted.
-            qt = pt;
+            // We also pass its type to ensure the argument passed to it matches
+            // its type.
+            qt = d_state.mkQuoteType(p, pt);
           }
           else
           {
-            // Otherwise, the parameter is quoted. We also pass its type to
-            // ensure the argument passed to it matches.
-            qt = d_state.mkQuoteType(p, pt);
+            // If not contained, the parameter is not quoted and we are an
+            // ordinary function argument type.
+            qt = pt;
           }
           itp = pattrMap.find(p.getValue());
           if (itp != pattrMap.end())
