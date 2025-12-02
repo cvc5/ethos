@@ -537,11 +537,13 @@ bool TypeChecker::match(ExprValue* a,
           stack.emplace_back(curr.first->d_children[0], curr.second);
           // independently check its type
           ExprValue* t = d_state.lookupType(curr.second);
-          if (t == nullptr)
+          // The type must match. Note that t is expected to be ground at this
+          // point.
+          Assert (curr.first->d_children[1]->isGround());
+          if (curr.first->d_children[1] != t)
           {
             return false;
           }
-          stack.emplace_back(curr.first->d_children[1], t);
         }
         else
         {

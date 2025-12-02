@@ -212,12 +212,15 @@ bool CmdParser::parseNextCommand()
                  << p << ".";
               d_lex.parseError(ss.str());
             }
+            // If binding, the parameter is not quoted.
             qt = pt;
           }
           else
           {
+            // Otherwise, the parameter is quoted. We wrap its type to ensure
+            // the argument passed to it is ground.
             Expr ap = d_state.mkExpr(Kind::ANNOT_PARAM, {p, pt});
-            qt = d_state.mkQuoteType(p);
+            qt = d_state.mkQuoteType(ap);
           }
           itp = pattrMap.find(p.getValue());
           if (itp != pattrMap.end())
