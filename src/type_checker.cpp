@@ -403,14 +403,12 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     {
       if (out)
       {
-        ExprValue* hdto = hdtypes[i - 1];
         (*out) << "Checking application of " << Expr(hd) << std::endl;
         if (isQuote)
         {
           (*out) << "Unexpected child #" << i << std::endl;
           (*out) << "  Term: " << Expr(children[i]) << std::endl;
           (*out) << "  Expected pattern: ";
-          hdto = hdto->d_children[0];
         }
         else
         {
@@ -419,12 +417,7 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
           (*out) << "  Has type: " << Expr(child) << std::endl;
           (*out) << "  Expected type: ";
         }
-        (*out) << Expr(hdt);
-        if (hdto != hdt)
-        {
-          (*out) << ", from " << Expr(hdto);
-        }
-        (*out) << std::endl;
+        (*out) << Expr(hdt) << std::endl;
         (*out) << "  Context " << ctx << std::endl;
       }
       return d_null;
