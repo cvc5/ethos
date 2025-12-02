@@ -90,10 +90,7 @@ class Desugar : public StdPlugin
   /** */
   Expr mkSanitize(const Expr& t);
   Expr mkSanitize(const Expr& t,
-                  std::map<Expr, Expr>& visited,
-                  size_t& varCount,
-                  bool inPatMatch,
-                  std::vector<std::pair<Expr, Expr>>& newVars);
+                  std::map<Expr, Expr>& visited);
   Expr mkRequiresModelSat(bool tgt, const Expr& test, const Expr& ret);
   Expr mkRequiresModelTypeofBool(const Expr& test, const Expr& ret);
   Expr mkRequiresModelIsInput(const Expr& test, const Expr& ret);

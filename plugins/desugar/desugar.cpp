@@ -1045,9 +1045,7 @@ Expr Desugar::mkSanitize(const Expr& t)
 {
   // take overloads into account
   std::map<Expr, Expr> visited = d_overloadSanVisited;
-  size_t varCount = 0;
-  std::vector<std::pair<Expr, Expr>> newVars;
-  return mkSanitize(t, visited, varCount, false, newVars);
+  return mkSanitize(t, visited);
 }
 
 bool isEvalApp(const Expr& cur)
@@ -1058,10 +1056,7 @@ bool isEvalApp(const Expr& cur)
 }
 
 Expr Desugar::mkSanitize(const Expr& t,
-                         std::map<Expr, Expr>& visited,
-                         size_t& varCount,
-                         bool inPatMatch,
-                         std::vector<std::pair<Expr, Expr>>& newVars)
+                         std::map<Expr, Expr>& visited)
 {
   Assert (!t.isNull());
   std::map<Expr, Expr>::iterator it;
@@ -1075,35 +1070,10 @@ Expr Desugar::mkSanitize(const Expr& t,
     Kind k = cur.getKind();
     if (it == visited.end())
     {
-      // If we are sanitizing a pattern, in rare cases, that pattern
-      // may have evaluation. This is e.g. the case for the premises
-      // of RARE rules that contain list variables. In this mode,
-      // if we are a top-level application of evaluation, we purify
-      // this occurrence. We sanitize separately, not in pattern
-      // matching mode.
-      if (inPatMatch && isEvalApp(cur))
+      visited[cur] = d_null;
+      for (size_t i = 0, nchild = cur.getNumChildren(); i < nchild; i++)
       {
-        varCount++;
-        Expr ret = mkSanitize(cur);
-        std::stringstream ssv;
-        ssv << "$ex_" << varCount;
-        Expr tv = d_tc.getType(cur);
-        if (tv.isNull() || tv.isEvaluatable())
-        {
-          tv = allocateTypeVariable();
-        }
-        Expr v = d_state.mkSymbol(Kind::PARAM, ssv.str(), tv);
-        newVars.emplace_back(v, ret);
-        visited[cur] = v;
-        visit.pop_back();
-      }
-      else
-      {
-        visited[cur] = d_null;
-        for (size_t i = 0, nchild = cur.getNumChildren(); i < nchild; i++)
-        {
-          visit.push_back(cur[i]);
-        }
+        visit.push_back(cur[i]);
       }
       continue;
     }
