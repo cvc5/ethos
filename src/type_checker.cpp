@@ -381,15 +381,21 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     if (hdt->getKind() == Kind::QUOTE_TYPE)
     {
       // if there are two children to Quote, then the second specifies the
-      // expected type.
-      if (hdt->getNumChildren() == 2
-          && d_state.lookupType(child) != hdt->d_children[1])
+      // expected type. We require that the type matches verbatim.
+      if (hdt->getNumChildren() == 2)
       {
-        success = false;
-        hdt = hdt->d_children[1];
-        child = d_state.lookupType(child);
+        // type should be ground by this point.
+        Assert (hdt->d_children[1]->isGround());
+        ExprValue * ct = d_state.lookupType(child);
+        Assert (ct!=nullptr);
+        if (ct != hdt->d_children[1])
+        {
+          success = false;
+          hdt = hdt->d_children[1];
+          child = ct;
+        }
       }
-      else
+      if (success)
       {
         hdt = hdt->d_children[0];
         isQuote = true;
@@ -398,6 +404,7 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     else
     {
       child = d_state.lookupType(child);
+      Assert (child!=nullptr);
     }
     if (!success || !match(hdt, child, ctx, visited))
     {
