@@ -636,17 +636,17 @@ void Desugar::finalizeDefinition(const std::string& name, const Expr& t)
 
 void Desugar::finalizeRule(const Expr& e)
 {
-  std::cout << "Finalize rule " << e << std::endl;
-  AppInfo* ainfo = d_state.getAppInfo(e.getValue());
-  Expr tupleVal = ainfo->d_attrConsTerm;
-  Assert(tupleVal.getNumChildren() == 4);
-  Expr rprog = tupleVal[3];
-  
   // if marked sorry, we should never do verification
   if (d_state.isProofRuleSorry(e.getValue()) || !d_genVcs)
   {
     return;
   }
+  
+  std::cout << "Finalize rule " << e << std::endl;
+  AppInfo* ainfo = d_state.getAppInfo(e.getValue());
+  Expr tupleVal = ainfo->d_attrConsTerm;
+  Assert(tupleVal.getNumChildren() == 4);
+  Expr rprog = tupleVal[3];
 
   Expr progCase;
   if (rprog.getKind() == Kind::PROGRAM_CONST)
