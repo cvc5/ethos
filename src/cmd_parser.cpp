@@ -192,7 +192,8 @@ bool CmdParser::parseNextCommand()
           std::vector<Expr> fvpt = Expr::getVariables(pt);
           for (const Expr& fv : fvpt)
           {
-            if (std::find(params.begin(), params.begin()+ii, fv)==params.begin()+ii)
+            if (std::find(params.begin(), params.begin() + ii, fv)
+                == params.begin() + ii)
             {
               // variable not in the list bound up to ii.
               isBinding = true;
@@ -206,7 +207,9 @@ bool CmdParser::parseNextCommand()
             if (Expr::hasVariable(t, vp))
             {
               std::stringstream ss;
-              ss << "Cannot bind parameter and its type simulataneously. The parameter in question was " << p << ".";
+              ss << "Cannot bind parameter and its type simulataneously. The "
+                    "parameter in question was "
+                 << p << ".";
               d_lex.parseError(ss.str());
             }
             qt = pt;
