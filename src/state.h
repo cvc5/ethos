@@ -114,7 +114,11 @@ class State
   Expr mkProof(const Expr& proven);
   /** (Quote <term>) */
   Expr mkQuoteType(const Expr& t);
-  /** (Quote <term> <type>) */
+  /**
+   * (Quote <term> <type>)
+   * TODO: this is a placeholder used for representing quote arrow with a
+   * type requirement. This should be unified with the above 1 arg version.
+   */
   Expr mkQuoteType(const Expr& t, const Expr& type);
   /** */
   Expr mkBuiltinType(Kind k);
