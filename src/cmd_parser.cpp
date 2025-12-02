@@ -207,9 +207,8 @@ bool CmdParser::parseNextCommand()
             if (Expr::hasVariable(t, vp))
             {
               std::stringstream ss;
-              ss << "Cannot bind parameter and its type simulataneously. The "
-                    "parameter in question was "
-                 << p << ".";
+              ss << "Cannot bind parameter and its type simulataneously. ";
+              ss << "The parameter in question was " << p << ".";
               d_lex.parseError(ss.str());
             }
             // If binding, the parameter is not quoted.
