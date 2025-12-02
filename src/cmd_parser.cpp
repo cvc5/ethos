@@ -220,13 +220,6 @@ bool CmdParser::parseNextCommand()
           itp = pattrMap.find(p.getValue());
           if (itp != pattrMap.end())
           {
-            itpa = itp->second.find(Attr::REQUIRES);
-            if (itpa != itp->second.end())
-            {
-              // requires adds to return type
-              t = d_state.mkRequires(itpa->second, t);
-              itp->second.erase(itpa);
-            }
             itpa = itp->second.find(Attr::OPAQUE);
             if (itpa != itp->second.end())
             {

@@ -66,7 +66,6 @@ ExprParser::ExprParser(Lexer& lex, State& state, bool isSignature)
   d_strToAttr[":implicit"] = Attr::IMPLICIT;
   d_strToAttr[":type"] = Attr::TYPE;
   d_strToAttr[":list"] = Attr::LIST;
-  d_strToAttr[":requires"] = Attr::REQUIRES;
   d_strToAttr[":left-assoc"] = Attr::LEFT_ASSOC;
   d_strToAttr[":right-assoc"] = Attr::RIGHT_ASSOC;
   d_strToAttr[":left-assoc-nil"] = Attr::LEFT_ASSOC_NIL;

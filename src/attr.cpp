@@ -19,7 +19,6 @@ std::ostream& operator<<(std::ostream& o, Attr a)
     case Attr::TYPE: o << "type"; break;
     case Attr::SORRY: o << "sorry"; break;
     case Attr::LIST: o << "list"; break;
-    case Attr::REQUIRES: o << "requires"; break;
     case Attr::PROOF_RULE: o << "proof_rule"; break;
     case Attr::PROGRAM: o << "program"; break;
     case Attr::BINDER: o << "binder"; break;
