@@ -184,8 +184,39 @@ bool CmdParser::parseNextCommand()
         for (size_t i = 0, nparams = params.size(); i < nparams; i++)
         {
           size_t ii = nparams - i - 1;
-          Expr qt = d_state.mkQuoteType(params[ii]);
-          itp = pattrMap.find(params[ii].getValue());
+          // Check if the type of the parameter is binding.
+          Expr p = params[ii];
+          Expr pt = d_tc.getType(p);
+          bool isBinding = false;
+          Expr qt;
+          std::vector<Expr> fvpt = Expr::getVariables(pt);
+          for (const Expr& fv : fvpt)
+          {
+            if (std::find(params.begin(), params.begin()+ii, fv)==params.begin()+ii)
+            {
+              // variable not in the list bound up to ii.
+              isBinding = true;
+              break;
+            }
+          }
+          if (isBinding)
+          {
+            // ensure t does not contain p
+            std::unordered_set<const ExprValue*> vp{p.getValue()};
+            if (Expr::hasVariable(t, vp))
+            {
+              std::stringstream ss;
+              ss << "Cannot bind parameter and its type simulataneously. The parameter in question was " << p << ".";
+              d_lex.parseError(ss.str());
+            }
+            qt = pt;
+          }
+          else
+          {
+            Expr ap = d_state.mkExpr(Kind::ANNOT_PARAM, {p, pt});
+            qt = d_state.mkQuoteType(p);
+          }
+          itp = pattrMap.find(p.getValue());
           if (itp != pattrMap.end())
           {
             itpa = itp->second.find(Attr::REQUIRES);
