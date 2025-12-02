@@ -379,7 +379,8 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     ExprValue* child = children[i];
     if (hdt->getKind()== Kind::QUOTE_TYPE)
     {
-      // if there are two children
+      // if there are two children to Quote, then the second specifies the
+      // expected type.
       if (hdt->getNumChildren()==2 && d_state.lookupType(child)!=hdt->d_children[1])
       {
         // type mismatch, will fail at match below
