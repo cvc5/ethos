@@ -328,17 +328,6 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
   return d_null;
 }
 
-Expr TypeChecker::getTypeApp(std::vector<Expr>& children, std::ostream* out)
-{
-  std::vector<ExprValue*> vchildren;
-  for (const Expr& c : children)
-  {
-    vchildren.push_back(c.getValue());
-  }
-  Ctx ctx;
-  return getTypeAppInternal(vchildren, ctx, out);
-}
-
 Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
                                      Ctx& ctx,
                                      std::ostream* out)
@@ -408,12 +397,8 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     // which along with how ctypes[i] is the argument itself, has the effect
     // of an implicit upcast.
     hdt = hdt->getKind() == Kind::QUOTE_TYPE ? hdt->d_children[0] : hdt;
-    // must evaluate here
-    if (hdt->isEvaluatable())
-    {
-      hdEval = evaluate(hdt, ctx);
-      hdt = hdEval.getValue();
-    }
+    // Note that apart from ANNOT_PARAM, hdt should not be evaluatable at this
+    // point.
     if (!match(hdt, ctypes[i], ctx, visited))
     {
       if (out)
