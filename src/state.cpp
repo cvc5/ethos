@@ -1144,8 +1144,8 @@ Expr State::mkApplyAttr(AppInfo* ai,
       Assert(t.getKind() == Kind::FUNCTION_TYPE);
       // get the number of opaque arguments, stored as the constructor term
       Expr acons = ai->d_attrConsTerm;
-      Assert (acons.getKind()==Kind::NUMERAL);
-      Assert (acons.getValue()->asLiteral()->d_int.fitsUnsignedInt());
+      Assert(acons.getKind() == Kind::NUMERAL);
+      Assert(acons.getValue()->asLiteral()->d_int.fitsUnsignedInt());
       size_t nargs = acons.getValue()->asLiteral()->d_int.toUnsignedInt();
       if (nargs >= vchildren.size())
       {
@@ -1156,7 +1156,7 @@ Expr State::mkApplyAttr(AppInfo* ai,
       {
         // construct curried APPLY_OPAQUE application.
         ExprValue* curr = vchildren[0];
-        for (size_t i=1; i<nargs+1; i++)
+        for (size_t i = 1; i < nargs + 1; i++)
         {
           curr = mkExprInternal(Kind::APPLY_OPAQUE, {curr, vchildren[i]});
         }
@@ -1174,7 +1174,7 @@ Expr State::mkApplyAttr(AppInfo* ai,
             rchildren.end(), vchildren.begin() + 1 + nargs, vchildren.end());
         Trace("opaque") << "...return operator applied to children"
                         << std::endl;
-        if (rchildren.size()>2)
+        if (rchildren.size() > 2)
         {
           return Expr(mkApplyInternal(rchildren));
         }

@@ -252,7 +252,7 @@ bool CmdParser::parseNextCommand()
         // we store the number of opaque arguments as the constructor
         std::stringstream onum;
         onum << opaqueArgs.size();
-        Assert (cons.isNull());
+        Assert(cons.isNull());
         cons = d_state.mkLiteral(Kind::NUMERAL, onum.str());
       }
       Expr v = d_state.mkSymbol(sk, name, t);
