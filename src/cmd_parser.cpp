@@ -899,17 +899,18 @@ bool CmdParser::parseNextCommand()
         // error message gives the list of arguments and the proof rule
         std::stringstream ss;
         ss << "A step of rule " << ruleName << " failed to check." << std::endl;
-        if (pfTerm.getKind()==Kind::APPLY && pfTerm[0]==children[0])
+        if (pfTerm.getKind() == Kind::APPLY && pfTerm[0] == children[0])
         {
           Expr prog = d_state.getProgram(children[0].getValue());
-          Assert (prog.getNumChildren()==1 && prog[0].getNumChildren()==2);
+          Assert(prog.getNumChildren() == 1 && prog[0].getNumChildren() == 2);
           std::vector<Expr> eargs;
-          for (size_t i=1, nchild = prog[0][0].getNumChildren(); i<nchild; i++)
+          for (size_t i = 1, nchild = prog[0][0].getNumChildren(); i < nchild;
+               i++)
           {
             eargs.push_back(prog[0][0][i]);
           }
           ss << "Expected args: " << eargs << std::endl;
-          std::vector<Expr> pargs(children.begin()+1, children.end());
+          std::vector<Expr> pargs(children.begin() + 1, children.end());
           ss << "Provided args: " << pargs << std::endl;
           d_lex.parseError(ss.str());
         }
