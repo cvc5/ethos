@@ -6,8 +6,8 @@
 ; a deep embedding of Eunoia and SMT-LIB terms, types and values.
 ; In particular, we use the following types:
 ; 1. $eo_Term, the type of Eunoia terms.
-; 2. $smt_Term, the type of SMT-LIB terms.
-; 3. $smt_Type, the type of SMT-LIB types.
+; 2. $eo_Term, the type of SMT-LIB terms.
+; 3. $eo_Term, the type of SMT-LIB types.
 ; 4. $smt_Value, the type of SMT-LIB values.
 ; 5. Further types defining specific SMT-LIB values, e.g. $smt_Map.
 ; 6. $smt_builtin_X, the builtin SMT-LIB type X.
@@ -156,12 +156,12 @@
 
 ; define: $smt_is_dt
 ; returns: true if t is a datatpe (i.e. it has constructors).
-(define $smt_is_dt ((t $smt_Type))
+(define $smt_is_dt ((t $eo_Term))
   ($smt_builtin_is_ok ($eo_dt_constructors t)))
 
 ; define: $smt_is_dt_cons
 ; returns: true if t is a constructor (i.e. it has selectors).
-(define $smt_is_dt_cons ((t $smt_Term))
+(define $smt_is_dt_cons ((t $eo_Term))
   ($smt_builtin_is_ok ($eo_dt_selectors t)))
 
 ;;; Utilities for making values
@@ -173,19 +173,19 @@
 ; that if it returns true for two terms t1 and t2 of the same type,
 ; then t1 != t2 in all models.
 (program $smtx_is_atomic_term_value
-  ((t $smt_Term) (b $smt_builtin_Bool) (w $smt_builtin_Int) (n $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String))
-  :signature ($smt_Term) $smt_builtin_Bool
+  ((t $eo_Term) (b $smt_builtin_Bool) (w $smt_builtin_Int) (n $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String))
+  :signature ($eo_Term) $smt_builtin_Bool
   (
   ; standard atomic types are values
-  (($smtx_is_atomic_term_value ($sm_bool b))  $smt_builtin_true)
-  (($smtx_is_atomic_term_value ($sm_z n))     $smt_builtin_true)
-  (($smtx_is_atomic_term_value ($sm_q r))     $smt_builtin_true)
-  (($smtx_is_atomic_term_value ($sm_str s))   $smt_builtin_true)
-  (($smtx_is_atomic_term_value ($sm_binary w n))
+  (($smtx_is_atomic_term_value ($eo_bool b))  $smt_builtin_true)
+  (($smtx_is_atomic_term_value ($eo_z n))     $smt_builtin_true)
+  (($smtx_is_atomic_term_value ($eo_q r))     $smt_builtin_true)
+  (($smtx_is_atomic_term_value ($eo_str s))   $smt_builtin_true)
+  (($smtx_is_atomic_term_value ($eo_binary w n))
     ; must be legal width and value
     ($smt_builtin_and
       ($smt_apply_1 "<= 0" w)
-      ($smt_builtin_= ($sm_binary w n) ($sm_mk_binary w n))))
+      ($smt_builtin_= ($eo_binary w n) ($eo_mk_binary w n))))
   ; by default, not a value
   (($smtx_is_atomic_term_value t)                $smt_builtin_false)
   )
@@ -193,7 +193,7 @@
 
 ; Returns a term of type $smt_Value, embeds the term
 ; if indeed it is a value, or returns not a value otherwise.
-(define $smt_mk_value_term ((t $smt_Term))
+(define $smt_mk_value_term ((t $eo_Term))
   ($smt_builtin_ite ($smtx_is_atomic_term_value t)
     ; an atomic term, e.g. 0, true, "abc"
     ($vsm_term t)
@@ -256,7 +256,7 @@
   (($smtx_model_eval_= $vsm_not_value t2) $vsm_not_value)
   (($smtx_model_eval_= t1 $vsm_not_value) $vsm_not_value)
   ; use datatype equality over $smt_Value, which depends on t1 and t2 being proper values.
-  (($smtx_model_eval_= t1 t2)             ($vsm_term ($sm_bool ($smt_builtin_= t1 t2))))
+  (($smtx_model_eval_= t1 t2)             ($vsm_term ($eo_bool ($smt_builtin_= t1 t2))))
   )
 )
 
@@ -355,7 +355,7 @@
   ((s $smt_Seq) (n $smt_builtin_Int) (v1 $smt_Value) (v2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_seq_nth ($vsm_seq s) ($vsm_term ($sm_z n))) ($smtx_ssm_seq_nth s n))
+  (($smtx_seq_nth ($vsm_seq s) ($vsm_term ($eo_z n))) ($smtx_ssm_seq_nth s n))
   (($smtx_seq_nth v1 v2) $vsm_not_value)
   )
 )
@@ -423,7 +423,7 @@
 ;  :signature ($eo_Term $eo_Term) $smt_Value
 ;  (
 ;  (($smtx_model_eval_exists2 ($eo_Var s T) F)
-;    ($vsm_term ($sm_bool
+;    ($vsm_term ($eo_bool
 ;      ($smt_apply_1 "exists (($eo_qv eo.Term))" 
 ;        ($smt_builtin_and 
 ;          ($smt_builtin_= ($eo_typeof ($smt_apply_0 "$eo_qv")) T)
@@ -526,39 +526,6 @@ $SMT_EVAL_CASES$
   (($smtx_model_eval z)                           ($smt_mk_value_term z))
   )
 )
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; SMT-LIB input syntax
-
-(program $smtx_is_list
-  ((t $eo_List) (a $eo_Term) (s $smt_builtin_String) (T $smt_builtin_Int))
-  :signature ($eo_Term) $smt_builtin_Bool
-  (
-  (($smtx_is_list $eo_List_nil)         $smt_builtin_true)
-  (($smtx_is_list ($eo_List_cons a t))  ($smtx_is_list t))
-  (($smtx_is_list t)                    $smt_builtin_false)
-  )
-)
-
-; program: $smtx_is_input
-; Returns true if the given term uses only SMT-LIB syntax. This will
-; return false e.g. if it contains Eunoia-specific terms. Note that
-; we assume that binders use $eo_List, so they are included here.
-(program $smtx_is_input
-  ((T Type) (s $smt_builtin_String) (t $eo_Term) (a $eo_Term)
-   (tu $smt_Type) (tt $smt_Term))
-  :signature ($eo_Term) $smt_builtin_Bool
-  (
-  ; all legal constants handled above, false otherwise
-  (($smtx_is_input ($eo_smt_term tt))               $smt_builtin_true)
-  (($smtx_is_input ($eo_smt_type tu))               $smt_builtin_true)
-  (($smtx_is_input ($eo_Var s T))                   $smt_builtin_true)
-  (($smtx_is_input ($eo_List_cons a t))             ($smtx_is_list t))
-  (($smtx_is_input ($eo_apply t a))
-    ($smt_builtin_and ($smtx_is_input t) ($smtx_is_input a)))
-  (($smtx_is_input t)                               $smt_builtin_false)
-  )
-)
-
 ;;;;;;;;;;;;;;;;;;;;;;
 
 ; program: $eo_model_sat
@@ -575,15 +542,6 @@ $SMT_EVAL_CASES$
   :signature (Bool) Bool
   (
   (($eo_model_unsat F) ($smt_builtin_ite ($smt_builtin_= ($smtx_model_eval F) $vsm_false) true false))
-  )
-)
-
-; program: $eo_model_is_input
-; return: true if this is a legal SMT-LIB input term or type.
-(program $eo_model_is_input ((F Bool))
-  :signature (Bool) Bool
-  (
-  (($eo_model_is_input F) ($eo_smt_term ($sm_bool ($smtx_is_input F))))
   )
 )
 

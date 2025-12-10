@@ -11,14 +11,8 @@
 ;   considered.
 ;   We require a mutually recursive datatype, since these are
 ;   inter-dependent.
-(declare-datatypes ((tsm.Type 0) (sm.Term 0) (eo.Term 0) (vsm.Value 0) (msm.Map 0) (ssm.Seq 0))
+(declare-datatypes ((eo.Term 0) (vsm.Value 0) (msm.Map 0) (ssm.Seq 0))
   (
-  (
-$SM_TYPE_DECL$
-  )
-  (
-$SM_TERM_DECL$
-  )
   (
 $SM_EO_TERM_DECL$
   )

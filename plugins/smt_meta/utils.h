@@ -21,10 +21,6 @@ enum class MetaKind
 {
   /** A context in which the deep embedding of the term is a Eunoia term */
   EUNOIA,
-  /** A context in which the deep embedding of the term is an SMT-LIB term */
-  SMT,
-  /** A context in which the deep embedding of the term is an SMT-LIB type */
-  SMT_TYPE,
   /** A context in which the deep embedding of the term is an SMT-LIB value */
   SMT_VALUE,
   /** A context in which the term is an SMT-LIB map value */

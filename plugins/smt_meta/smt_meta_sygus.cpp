@@ -230,32 +230,6 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
       }
     }
   }
-  else if (tk == MetaKind::SMT_TYPE)
-  {
-    if (cname == "NullSort")
-    {
-      return;
-    }
-    // print on both
-#if 0
-    SygusGrammar* sg = getGrammar("G_tsm.Type");
-    sg->d_rules << gbase << " ";
-#endif
-    grule << "(eo.SmtType ";
-    gruleEnd << ")";
-    defaultG = d_gsmtType;
-  }
-  else if (tk == MetaKind::SMT)
-  {
-    // print on both
-#if 0
-    SygusGrammar* sg = getGrammar("G_sm.Term");
-    sg->d_rules << gbase << " ";
-#endif
-    grule << "(eo.SmtTerm ";
-    gruleEnd << ")";
-    defaultG = d_gsmtTerm;
-  }
   else if (tk == MetaKind::SMT_VALUE)
   {
 #if 0

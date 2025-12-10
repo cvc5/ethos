@@ -30,7 +30,7 @@ bool StdPlugin::optionFlattenEval() { return false; }
 // witness unsoundness
 bool StdPlugin::optionVcUseTypeof() { return true; }
 // use constraint that conclusion is SMT-LIB input term
-bool StdPlugin::optionVcUseIsInput() { return true; }
+bool StdPlugin::optionVcUseIsInput() { return false; }
 // use constraint that arguments are SMT-LIB input terms
 bool StdPlugin::optionVcUseArgIsInput() { return false; }
 // strict means we are not debugging completeness

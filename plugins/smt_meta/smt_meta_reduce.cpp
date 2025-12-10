@@ -54,14 +54,10 @@ void SelectorCtx::clear()
 SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s), d_smSygus(s)
 {
   d_prefixToMetaKind["eo"] = MetaKind::EUNOIA;
-  d_prefixToMetaKind["sm"] = MetaKind::SMT;
-  d_prefixToMetaKind["tsm"] = MetaKind::SMT_TYPE;
   d_prefixToMetaKind["vsm"] = MetaKind::SMT_VALUE;
   d_prefixToMetaKind["msm"] = MetaKind::SMT_MAP;
   d_prefixToMetaKind["ssm"] = MetaKind::SMT_SEQ;
   d_typeToMetaKind["$eo_Type"] = MetaKind::EUNOIA;
-  d_typeToMetaKind["$smt_Term"] = MetaKind::SMT;
-  d_typeToMetaKind["$smt_Type"] = MetaKind::SMT_TYPE;
   d_typeToMetaKind["$smt_Value"] = MetaKind::SMT_VALUE;
   d_typeToMetaKind["$smt_Map"] = MetaKind::SMT_MAP;
   d_typeToMetaKind["$smt_Seq"] = MetaKind::SMT_SEQ;
@@ -95,8 +91,6 @@ bool SmtMetaReduce::printMetaType(const Expr& t,
   switch (tk)
   {
     case MetaKind::EUNOIA: os << "eo.Term"; break;
-    case MetaKind::SMT: os << "sm.Term"; break;
-    case MetaKind::SMT_TYPE: os << "tsm.Type"; break;
     case MetaKind::SMT_VALUE: os << "vsm.Value"; break;
     case MetaKind::SMT_BUILTIN: os << getEmbedName(t); break;
     case MetaKind::SMT_MAP: os << "msm.Map"; break;
@@ -142,23 +136,10 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
   }
   else if (k == Kind::BOOL_TYPE)
   {
-    // Bool is embedded as an SMT type, we have to wrap it explicitly here.
-    if (parent == MetaKind::EUNOIA)
-    {
-      os << "(eo.SmtType ";
-      osEnd << ")";
-    }
-    os << "tsm.Bool";
+    os << "eo.Bool";
   }
   else
   {
-    // Boolean constants are embedded as an SMT type, we have to wrap it
-    // explicitly here.
-    if (parent == MetaKind::EUNOIA)
-    {
-      os << "(eo.SmtTerm ";
-      osEnd << ")";
-    }
     const Literal* l = c.getValue()->asLiteral();
     if (l == nullptr)
     {
@@ -169,7 +150,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     {
       if (!isSmtBuiltin)
       {
-        os << "(sm.Boolean ";
+        os << "(eo.Boolean ";
         osEnd << ")";
       }
       os << (l->d_bool ? "true" : "false");
@@ -178,7 +159,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     {
       if (!isSmtBuiltin)
       {
-        os << "(sm.Numeral ";
+        os << "(eo.Numeral ";
         osEnd << ")";
       }
       const Integer& ci = l->d_int;
@@ -196,7 +177,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     {
       if (!isSmtBuiltin)
       {
-        os << "(sm.Rational ";
+        os << "(eo.Rational ";
         osEnd << ")";
       }
       os << c;
@@ -205,7 +186,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     {
       if (!isSmtBuiltin)
       {
-        os << "(sm.Binary ";
+        os << "(eo.Binary ";
         osEnd << ")";
       }
       const BitVector& bv = l->d_bv;
@@ -216,7 +197,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     {
       if (!isSmtBuiltin)
       {
-        os << "(sm.String ";
+        os << "(eo.String ";
         osEnd << ")";
       }
       os << c;
@@ -267,8 +248,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     if (parent != child)
     {
       if (parent == MetaKind::EUNOIA
-          && (child == MetaKind::SMT || child == MetaKind::SMT_TYPE
-              || child == MetaKind::SMT_VALUE))
+          && child == MetaKind::SMT_VALUE)
       {
         std::string cons = metaKindToCons(child);
         std::stringstream tester;
@@ -523,24 +503,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     //           << metaKindToString(child) << std::endl;
     if (parent != MetaKind::NONE && parent != child)
     {
-      if (parent == MetaKind::EUNOIA)
-      {
-        if (child == MetaKind::SMT || child == MetaKind::SMT_BUILTIN)
-        {
-          // going from a Eunoia term to an SMT term
-          os << "(eo.SmtTerm ";
-          cparen[key]++;
-          // literals will be processed in printEmbAtomicTerm.
-          parent = MetaKind::SMT;
-        }
-        else if (child == MetaKind::SMT_TYPE)
-        {
-          // going from a Eunoia term to an SMT type
-          os << "(eo.SmtType ";
-          cparen[key]++;
-          parent = MetaKind::SMT_TYPE;
-        }
-      }
       if (child == MetaKind::EUNOIA)
       {
         // TODO: revisit this
@@ -570,29 +532,29 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
           parent = MetaKind::EUNOIA;
         }
       }
-      if (parent == MetaKind::SMT)
+      if (parent == MetaKind::EUNOIA)
       {
         if (child == MetaKind::SMT_BUILTIN)
         {
           // wrap the literal types
           if (ck == Kind::NUMERAL)
           {
-            os << "(sm.Numeral ";
+            os << "(eo.Numeral ";
             cparen[key]++;
           }
           else if (ck == Kind::RATIONAL)
           {
-            os << "(sm.Rational ";
+            os << "(eo.Rational ";
             cparen[key]++;
           }
           else if (ck == Kind::BINARY)
           {
-            os << "(sm.Binary";
+            os << "(eo.Binary";
             cparen[key]++;
           }
           else if (ck == Kind::STRING)
           {
-            os << "(sm.String ";
+            os << "(eo.String ";
             cparen[key]++;
           }
           parent = MetaKind::SMT_BUILTIN;
@@ -1034,16 +996,6 @@ void SmtMetaReduce::finalizeDecl(const Expr& e)
     cname << "eo." << cnamek;
     out = &d_embedEoTermDt;
   }
-  else if (tk == MetaKind::SMT_TYPE)
-  {
-    cname << "tsm." << cnamek;
-    out = &d_embedTypeDt;
-  }
-  else if (tk == MetaKind::SMT)
-  {
-    cname << "sm." << cnamek;
-    out = &d_embedTermDt;
-  }
   else if (tk == MetaKind::SMT_VALUE)
   {
     cname << "vsm." << cnamek;
@@ -1183,7 +1135,7 @@ bool SmtMetaReduce::echo(const std::string& msg)
     std::stringstream varList;
     std::stringstream eoTrue;
     std::stringstream call;
-    eoTrue << "(eo.SmtTerm (sm.Boolean true))";
+    eoTrue << "(eo.Boolean true)";
     Assert(vt.getKind() == Kind::PROGRAM_TYPE);
     Assert(patCall.getNumChildren() == vt.getNumChildren());
     size_t nargs = vt.getNumChildren();
@@ -1274,8 +1226,7 @@ bool SmtMetaReduce::isProgram(const Expr& t)
 
 bool SmtMetaReduce::isSmtLibExpression(MetaKind ctx)
 {
-  return ctx == MetaKind::SMT || ctx == MetaKind::SMT_TYPE
-         || ctx == MetaKind::SMT_VALUE;
+  return ctx == MetaKind::SMT_VALUE;
 }
 
 MetaKind SmtMetaReduce::getTypeMetaKind(const Expr& typ,
@@ -1327,19 +1278,7 @@ MetaKind SmtMetaReduce::getMetaKind(State& s,
     return prefixToMetaKind(prefix);
   }
   cname = sname;
-  // If not a distinguished symbol, it may be an SMT-LIB term or a type.
-  // Check the type of e.
-  Expr c = e;
-  Expr tc = s.getTypeChecker().getType(c);
-  while (tc.getKind() == Kind::FUNCTION_TYPE)
-  {
-    tc = tc[tc.getNumChildren() - 1];
-  }
-  if (tc.getKind() == Kind::TYPE)
-  {
-    return MetaKind::SMT_TYPE;
-  }
-  return MetaKind::SMT;
+  return MetaKind::EUNOIA;
 }
 
 MetaKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
@@ -1439,10 +1378,6 @@ MetaKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
           tk = MetaKind::SMT_BUILTIN;
         }
       }
-    }
-    else if (sname.compare(0, 10, "$smt_type_") == 0)
-    {
-      tk = MetaKind::SMT_TYPE;
     }
     else
     {
@@ -1555,10 +1490,6 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
       {
         return MetaKind::SMT_BUILTIN;
       }
-    }
-    else if (sname.compare(0, 10, "$smt_type_") == 0)
-    {
-      return MetaKind::SMT_TYPE;
     }
     else if (sname.compare(0, 5, "$smd_") == 0)
     {
