@@ -244,8 +244,13 @@ bool CmdParser::parseNextCommand()
           d_lex.parseError("Can only use opaque argument on functions without attributes.");
         }
         // Reconstruct with opaque arguments, do not flatten function type.
-        t = d_state.mkFunctionType(opaqueArgs, t, false);
+        t = d_state.mkFunctionType(opaqueArgs, t);
         ck = Attr::OPAQUE;
+        // we store the number of opaque arguments as the constructor
+        std::stringstream onum;
+        onum << opaqueArgs.size();
+        Assert(cons.isNull());
+        cons = d_state.mkLiteral(Kind::NUMERAL, onum.str());
       }
       Expr v = d_state.mkSymbol(sk, name, t);
       // if the type has a property, we mark it on the variable of this type
@@ -589,7 +594,7 @@ bool CmdParser::parseNextCommand()
           {
             types.push_back(d_eparser.typeCheck(e));
           }
-          t = d_state.mkFunctionType(types, t, false);
+          t = d_state.mkFunctionType(types, t);
         }
         expr = d_state.mkSymbol(Kind::CONST, name, t);
         Expr a = d_state.mkExpr(Kind::APPLY, {eq, expr, rhs});
@@ -885,8 +890,7 @@ bool CmdParser::parseNextCommand()
       Expr pfTerm;
       if (children.size()>1)
       {
-        // check type rule for APPLY directly without constructing the app
-        // concType = d_eparser.typeCheckApp(children);
+        // evaluate the program app
         pfTerm = d_tc.evaluateProgramApp(children);
       }
       else
@@ -899,17 +903,26 @@ bool CmdParser::parseNextCommand()
         // error message gives the list of arguments and the proof rule
         std::stringstream ss;
         ss << "A step of rule " << ruleName << " failed to check." << std::endl;
-        Expr prog = d_state.getProgram(children[0].getValue());
-        Assert (prog.getNumChildren()==1 && prog[0].getNumChildren()==2);
-        std::vector<Expr> eargs;
-        for (size_t i=1, nchild = prog[0][0].getNumChildren(); i<nchild; i++)
+        if (pfTerm.getKind() == Kind::APPLY && pfTerm[0] == children[0])
         {
-          eargs.push_back(prog[0][0][i]);
+          Expr prog = d_state.getProgram(children[0].getValue());
+          Assert(prog.getNumChildren() == 1 && prog[0].getNumChildren() == 2);
+          std::vector<Expr> eargs;
+          for (size_t i = 1, nchild = prog[0][0].getNumChildren(); i < nchild;
+               i++)
+          {
+            eargs.push_back(prog[0][0][i]);
+          }
+          ss << "Expected args: " << eargs << std::endl;
+          std::vector<Expr> pargs(children.begin() + 1, children.end());
+          ss << "Provided args: " << pargs << std::endl;
+          d_lex.parseError(ss.str());
         }
-        ss << "Expected args: " << eargs << std::endl;
-        std::vector<Expr> pargs(children.begin()+1, children.end());
-        ss << "Provided args: " << pargs << std::endl;
-        d_lex.parseError(ss.str());
+        else
+        {
+          ss << "Evaluation failed: " << pfTerm << std::endl;
+          d_lex.parseError(ss.str());
+        }
       }
       Assert (pfTerm.getKind()==Kind::PROOF);
       // Check that the proved term is actually Bool

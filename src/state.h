@@ -108,7 +108,7 @@ class State
   /** Make type constant (-> Type ... Type Type) */
   Expr mkTypeConstant(const std::string& name, size_t arity);
   /** (-> <type>+ <type>) */
-  Expr mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool flatten = true);
+  Expr mkFunctionType(const std::vector<Expr>& args, const Expr& ret);
   /** (-> <type>+ <type>) */
   Expr mkProgramType(const std::vector<Expr>& args, const Expr& ret);
   /** Bool */
