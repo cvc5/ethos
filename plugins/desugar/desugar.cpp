@@ -653,6 +653,11 @@ void Desugar::finalizeRule(const Expr& e)
   Expr unsound = d_true;
   // require that the conclusion is not satisfied
   unsound = mkRequiresModelSat(false, conclusion, unsound);
+  // must be properly typed Bool
+  if (StdPlugin::optionVcUseTypeof())
+  {
+    unsound = mkRequiresModelTypeofBool(conclusion, unsound);
+  }
   // require that each premise is satisfied
   for (size_t i = 0, nargs = progCase.getNumChildren(); i < nargs; i++)
   {
