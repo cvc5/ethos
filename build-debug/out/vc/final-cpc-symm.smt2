@@ -1,14 +1,16 @@
 (set-logic UFDTSNIRA)
 
-; tsm.Type:
-;   The final embedding of atomic SMT-LIB types that are relevant to the VC.
-; sm.Term:
-;   The final embedding of atomic SMT-LIB terms that are relevant to the VC.
 ; eo.Term:
 ;   The final embedding of Eunoia terms that are relevant to the VC.
-;   SMT-LIB terms, types and values are embedded in this datatype. This
+;   SMT-LIB terms and types are embedded in this datatype. This
 ;   datatype contains a superset of the Herbrand universe of all types being
 ;   considered.
+; vsm.Value:
+;   A datatype corresponding to SMT-LIB values.
+; msm.Map:
+;   A datatype corresponding to SMT-LIB map values, for functions and arrays.
+; ssm.Seq:
+;   A datatype corresponding to SMT-LIB sequence values.
 ;   We require a mutually recursive datatype, since these are
 ;   inter-dependent.
 (declare-datatypes ((eo.Term 0) (vsm.Value 0) (msm.Map 0) (ssm.Seq 0))

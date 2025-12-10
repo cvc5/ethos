@@ -95,8 +95,7 @@ class Desugar : public StdPlugin
   Expr mkRequiresModelTypeofBool(const Expr& test, const Expr& ret);
   Expr mkRequiresEq(const Expr& t1,
                     const Expr& t2,
-                    const Expr& ret,
-                    bool neg = false);
+                    const Expr& ret);
   Attr getAttribute(const Expr& e);
   /** Declares seen */
   std::vector<std::pair<Expr, Kind>> d_declSeen;
@@ -146,7 +145,6 @@ class Desugar : public StdPlugin
   Expr d_peoModelTypeof;
   Expr d_peoModelIsInput;
   Expr d_peoRequiresEq;
-  Expr d_peoRequiresDeq;
   size_t d_eoDtConsParamCount;
   bool d_genWfCond;
   Expr d_peoProven;

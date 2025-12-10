@@ -59,8 +59,6 @@ Desugar::Desugar(State& s) : StdPlugin(s)
   Expr eoRequireEqType = d_state.mkProgramType({anyT, anyT, anyT2}, anyT2);
   d_peoRequiresEq =
       d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_requires_eq", eoRequireEqType);
-  d_peoRequiresDeq = d_state.mkSymbol(
-      Kind::PROGRAM_CONST, "$eo_requires_deq", eoRequireEqType);
   Expr eoProvenType =
       d_state.mkProgramType({d_state.mkProofType()}, d_state.mkBoolType());
   d_peoProven =
@@ -1122,11 +1120,10 @@ Expr Desugar::mkRequiresModelTypeofBool(const Expr& test, const Expr& ret)
 
 Expr Desugar::mkRequiresEq(const Expr& t1,
                            const Expr& t2,
-                           const Expr& ret,
-                           bool neg)
+                           const Expr& ret)
 {
   std::vector<Expr> children;
-  children.push_back(neg ? d_peoRequiresDeq : d_peoRequiresEq);
+  children.push_back(d_peoRequiresEq);
   children.push_back(t1);
   children.push_back(t2);
   children.push_back(ret);

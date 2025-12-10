@@ -46,12 +46,6 @@ $EO_LITERAL_TYPE_DECL$
 (declare-parameterized-const $eo_List_cons ((T Type :implicit))
   (-> T $eo_List $eo_List))
 
-;;; $eo_Option
-
-(declare-const $eo_Option Type)
-(declare-const $eo_Option_null $eo_Option)
-(declare-parameterized-const $eo_Option_some ((T Type :implicit) (t T :opaque)) $eo_Option)
-
 ;;; forward declarations
 
 ; forward declaration
@@ -109,15 +103,6 @@ $EO_LITERAL_TYPE_DECL$
   :signature (T T U) U
   (
   (($eo_requires_eq x1 x1 x3) x3)
-  )
-)
-; program: $eo_requires_deq
-; return: x3 if x1 and x2 are disequal, or gets stuck otherwise.
-(program $eo_requires_deq ((T Type) (U Type) (x1 T) (x2 T) (x3 U))
-  :signature (T T U) U
-  (
-  (($eo_requires_deq x1 x1 x3) $eo_fail)
-  (($eo_requires_deq x1 x2 x3) x3)
   )
 )
 
@@ -601,8 +586,6 @@ $EO_NIL_CASES$
 (program $eo_model_sat () :signature (Bool) Bool)
 ; A placeholder for asking whether a formula evaluates to false in a model.
 (program $eo_model_unsat () :signature (Bool) Bool)
-; A placeholder for asking whether a term is legal syntax for an SMT-LIB term.
-(program $eo_model_is_input () :signature (Bool) Bool)
 
 ; We will include the definition of the above functions here.
 (echo "include eo_model_sat :deps $eo_typeof_main $eo_is_ok $eo_dt_constructors $eo_dt_selectors $eo_if_both $eo_List_nil $eo_List_cons $eo_lit_type_Numeral $eo_lit_type_Rational $eo_lit_type_String $eo_lit_type_Binary ")
