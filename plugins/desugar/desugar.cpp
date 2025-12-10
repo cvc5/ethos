@@ -12,8 +12,6 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-
-#include "../flatten_eval/flatten_eval.h"
 #include "state.h"
 
 namespace ethos {
@@ -56,9 +54,6 @@ Desugar::Desugar(State& s) : StdPlugin(s)
   Expr modelTypeofType = d_state.mkProgramType({d_boolType}, ttype);
   d_peoModelTypeof =
       d_state.mkSymbol(Kind::PROGRAM_CONST, "$eo_typeof", modelTypeofType);
-  Expr modelIsInputType = d_state.mkProgramType({d_boolType}, d_boolType);
-  d_peoModelIsInput = d_state.mkSymbol(
-      Kind::PROGRAM_CONST, "$eo_model_is_input", modelIsInputType);
   Expr anyT = allocateTypeVariable();
   Expr anyT2 = allocateTypeVariable();
   Expr eoRequireEqType = d_state.mkProgramType({anyT, anyT, anyT2}, anyT2);
@@ -115,14 +110,7 @@ void Desugar::finalizeProgram(const Expr& prog,
 {
   std::map<Expr, Expr> typeMap;
   std::vector<std::pair<Expr, Expr>> allDefs;
-  if (StdPlugin::optionFlattenEval())
-  {
-    allDefs = FlattenEval::flattenProgram(d_state, prog, progDef, typeMap);
-  }
-  else
-  {
-    allDefs.emplace_back(prog, progDef);
-  }
+  allDefs.emplace_back(prog, progDef);
   for (std::pair<Expr, Expr>& d : allDefs)
   {
     Expr p = d.first;
@@ -681,11 +669,6 @@ void Desugar::finalizeRule(const Expr& e)
       }
     }
   }
-  if (StdPlugin::optionVcUseIsInput())
-  {
-    // require that conclusion is an SMT-LIB term
-    unsound = mkRequiresModelIsInput(conclusion, unsound);
-  }
   std::vector<Expr> uvars = Expr::getVariables(unsound);
   if (uvars.empty())
   {
@@ -698,10 +681,6 @@ void Desugar::finalizeRule(const Expr& e)
   {
     Expr vv = v;
     uargTypes.push_back(d_tc.getType(vv));
-    if (StdPlugin::optionVcUseArgIsInput())
-    {
-      unsound = mkRequiresModelIsInput(vv, unsound);
-    }
   }
   Expr progType = d_state.mkProgramType(uargTypes, d_boolType);
   Expr prog = d_state.mkSymbol(Kind::PROGRAM_CONST, pvcname.str(), progType);
@@ -1139,15 +1118,6 @@ Expr Desugar::mkRequiresModelTypeofBool(const Expr& test, const Expr& ret)
   modelTypeofArgs.push_back(test);
   Expr t1 = d_state.mkExpr(Kind::APPLY, modelTypeofArgs);
   return mkRequiresEq(t1, d_boolType, ret);
-}
-
-Expr Desugar::mkRequiresModelIsInput(const Expr& test, const Expr& ret)
-{
-  std::vector<Expr> modelSatArgs;
-  modelSatArgs.push_back(d_peoModelIsInput);
-  modelSatArgs.push_back(test);
-  Expr t1 = d_state.mkExpr(Kind::APPLY, modelSatArgs);
-  return mkRequiresEq(t1, d_true, ret);
 }
 
 Expr Desugar::mkRequiresEq(const Expr& t1,

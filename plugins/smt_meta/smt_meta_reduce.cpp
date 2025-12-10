@@ -604,7 +604,7 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
       if (!isProgramApp(recTerm))
       {
         Assert(child == MetaKind::EUNOIA);
-        if (StdPlugin::optionFlattenEval() || !recTerm.isEvaluatable())
+        if (!recTerm.isEvaluatable())
         {
           // Note that we use eo.Apply unguarded. In particular, the
           // flatten-eval step has ensured that constructing Eunoia terms

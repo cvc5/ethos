@@ -93,7 +93,6 @@ class Desugar : public StdPlugin
                   std::map<Expr, Expr>& visited);
   Expr mkRequiresModelSat(bool tgt, const Expr& test, const Expr& ret);
   Expr mkRequiresModelTypeofBool(const Expr& test, const Expr& ret);
-  Expr mkRequiresModelIsInput(const Expr& test, const Expr& ret);
   Expr mkRequiresEq(const Expr& t1,
                     const Expr& t2,
                     const Expr& ret,

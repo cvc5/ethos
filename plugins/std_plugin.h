@@ -59,10 +59,7 @@ class StdPlugin : public Plugin
 
   static std::string s_plugin_path;
   /** Standard configurations for the reduction */
-  static bool optionFlattenEval();
   static bool optionVcUseTypeof();
-  static bool optionVcUseIsInput();
-  static bool optionVcUseArgIsInput();
   static bool optionVcUseModelStrict();
   static bool optionSmtMetaUseTriggers();
   static bool optionSmtMetaDebugConjecture();

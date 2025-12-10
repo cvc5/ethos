@@ -7,7 +7,6 @@ add_executable(ethos ${ethos_SRC}
 ../plugins/desugar/desugar.cpp
 ../plugins/trim_defs/trim_defs.cpp
 ../plugins/model_smt/model_smt.cpp
-../plugins/flatten_eval/flatten_eval.cpp
 ../plugins/std_plugin.cpp)
 
 target_link_libraries(ethos ${LIBRARIES})
