@@ -13,7 +13,7 @@
 (echo "trim-defs-cmd (depends bvxnor (bvnot (bvxor x1 x2)))")
 (echo "trim-defs-cmd (depends bvuge (or (bvugt x1 x2) (= x1 x2)))")
 (echo "trim-defs-cmd (depends bvsge (or (bvsgt x1 x2) (= x1 x2)))")
-(echo "trim-defs-cmd (depends bvsgt (or (and msb_s (not msb_t)) (and (= msb_s msb_t) (bvult s t))))")
+(echo "trim-defs-cmd (depends bvsgt (or (and (not msb_s) msb_t) (and (= msb_s msb_t) (bvult s t))))")
 (echo "trim-defs-cmd (depends bvashr (ite (= (extract (- w 1) (- w 1) s) #b0) (bvlshr s t) (bvnot (bvlshr (bvnot s) t))))")
 (echo "trim-defs-cmd (depends bvsdiv (ite (and (not msb_s) (not msb_t)) (bvudiv s t) (ite (and msb_s (not msb_t)) (bvneg (bvudiv (bvneg s) t)) (ite (and (not msb_s) msb_t) (bvneg (bvudiv s (bvneg t))) (bvudiv (bvneg s) (bvneg t))))))")
 (echo "trim-defs-cmd (depends bvsrem (ite (and (not msb_s) (not msb_t)) (bvurem s t) (ite (and msb_s (not msb_t)) (bvneg (bvurem (bvneg s) t)) (ite (and (not msb_s) msb_t) (bvneg (bvurem s (bvneg t))) (bvurem (bvneg s) (bvneg t))))))")
