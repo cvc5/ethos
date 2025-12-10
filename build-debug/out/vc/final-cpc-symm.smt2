@@ -19,7 +19,7 @@
   ; user-decl: $eo_Proof
   (eo.$eo_Proof)
   ; user-decl: $eo_pf
-  (eo.$eo_pf)
+  (eo.$eo_pf (eo.$eo_pf.arg1 eo.Term))
   ; user-decl: Int
   (eo.Int)
   ; user-decl: Real
@@ -98,8 +98,8 @@
 (define-fun $eo_proven ((x1 eo.Term)) eo.Term
   (ite (= x1 eo.Stuck)
     eo.Stuck
-  (ite (and ((_ is eo.Apply) x1) (= (eo.Apply.arg1 x1) eo.$eo_pf))
-    (eo.Apply.arg2 x1)
+  (ite ((_ is eo.$eo_pf) x1)
+    (eo.$eo_pf.arg1 x1)
     eo.Stuck)))
 
 (define-fun $eo_Numeral () eo.Term eo.Int)
@@ -268,8 +268,8 @@
 (define-fun $eo_prog_symm ((x1 eo.Term)) eo.Term
   (ite (= x1 eo.Stuck)
     eo.Stuck
-  (ite (and ((_ is eo.Apply) x1) (= (eo.Apply.arg1 x1) eo.$eo_pf))
-    ($eo_mk_apply eo.$eo_pf ($mk_symm (eo.Apply.arg2 x1)))
+  (ite ((_ is eo.$eo_pf) x1)
+    (eo.$eo_pf ($mk_symm (eo.$eo_pf.arg1 x1)))
     eo.Stuck)))
 
 ; program: $eo_typeof_apply
@@ -486,7 +486,7 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    ($eo_requires_eq ($eo_typeof x1) eo.Bool ($eo_requires_eq ($eo_model_sat x1) (eo.Boolean true) ($eo_requires_eq ($eo_model_unsat ($eo_proven ($eo_prog_symm (eo.Apply eo.$eo_pf x1)))) (eo.Boolean true) (eo.Boolean true))))
+    ($eo_requires_eq ($eo_typeof x1) eo.Bool ($eo_requires_eq ($eo_model_sat x1) (eo.Boolean true) ($eo_requires_eq ($eo_model_unsat ($eo_proven ($eo_prog_symm (eo.$eo_pf x1)))) (eo.Boolean true) (eo.Boolean true))))
     eo.Stuck)))
 
 

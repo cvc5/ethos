@@ -50,9 +50,6 @@ class Desugar : public StdPlugin
                   std::vector<Expr>& premises,
                   std::vector<Expr>& args,
                   bool isPop) override;
-  /**
-   */
-  bool echo(const std::string& msg) override;
   /** Set type rule for literal kind k to t */
   void setLiteralTypeRule(Kind k, const Expr& t) override;
 
@@ -133,10 +130,6 @@ class Desugar : public StdPlugin
   std::stringstream d_eoDtCons;
   std::stringstream d_eoDtSel;
   std::stringstream d_eoVc;
-  std::stringstream d_eoVcWf;
-  // for model semantics
-  std::stringstream d_eoModelEval;
-  std::stringstream d_eoModelConstPred;
   // the proof steps
   std::stringstream d_eoPfSteps;
 
@@ -146,7 +139,6 @@ class Desugar : public StdPlugin
   Expr d_peoModelIsInput;
   Expr d_peoRequiresEq;
   size_t d_eoDtConsParamCount;
-  bool d_genWfCond;
   Expr d_peoProven;
   Expr d_peoPf;
 };

@@ -40,7 +40,6 @@ Desugar::Desugar(State& s) : StdPlugin(s)
     d_eoVc << ";; verification conditions" << std::endl << std::endl;
   }
   d_eoDtConsParamCount = 0;
-  d_genWfCond = false;
 
   d_true = d_state.mkTrue();
   // a placeholder
@@ -695,7 +694,7 @@ void Desugar::finalizeRule(const Expr& e)
   metaDeps
       << "$smtx_hash $eo_reverse_hash $smtx_value_hash "
          "$smtx_reverse_value_hash "
-         "$eo_smt_type $tsm_Bool $eo_Type $eo_fun_type $eo_apply $eo_mk_apply ";
+         "$eo_smt_type $eo_Bool $eo_Type $eo_fun_type $eo_apply $eo_mk_apply ";
   d_eoVc << "(echo \"smt-meta $eovc_" << e << " :deps " << metaDeps.str()
          << "\")" << std::endl;
 }
@@ -852,17 +851,9 @@ void Desugar::finalize()
   replace(finalEo, "$EO_DT_CONSTRUCTORS_PARAM$", d_eoDtConsParam.str());
   replace(finalEo, "$EO_DT_CONSTRUCTORS_CASES$", d_eoDtCons.str());
   replace(finalEo, "$EO_DT_SELECTORS_CASES$", d_eoDtSel.str());
-  if (d_genWfCond)
-  {
-    finalizeWellFounded();
-    replace(finalEo, "$EO_VC$", d_eoVcWf.str());
-  }
-  else
-  {
-    // Verification conditions for *all* proof rules are ready now
-    // TODO: make this manual?
-    replace(finalEo, "$EO_VC$", d_eoVc.str());
-  }
+  // Verification conditions for *all* proof rules are ready now
+  // TODO: make this manual?
+  replace(finalEo, "$EO_VC$", d_eoVc.str());
   std::stringstream ssoe;
   ssoe << s_plugin_path << "plugins/desugar/eo_desugar_gen.eo";
   std::cout << "Write core-defs    " << ssoe.str() << std::endl;
@@ -1010,16 +1001,6 @@ void Desugar::finalizeWellFounded()
   // os << "  (" << std::endl;
   // os << "  )" << std::endl;
   // os << ")" << std::endl;
-}
-
-bool Desugar::echo(const std::string& msg)
-{
-  if (msg == "desugar-wf")
-  {
-    d_genWfCond = true;
-    return false;
-  }
-  return true;
 }
 
 Expr Desugar::mkSanitize(const Expr& t)
