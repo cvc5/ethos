@@ -257,9 +257,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             smtGuard(smtApp(">=", "x1", "$smt_builtin_z_zero"),
                      "($vsm_term ($eo_binary ($smt_builtin_add x1 x2) x3))"));
   std::stringstream ssSExtRet;
-  ssSExtRet << "(eo::define ((wm1 (- ($eo_numeral x2) 1))) ";
+  ssSExtRet << "(eo::define ((wm1 (- ($eo_z x2) 1))) ";
   ssSExtRet << "(eo::define ((t ($eo_mk_binary x2 x3))) ";
-  ssSExtRet << "($smtx_model_eval (concat (repeat ($eo_numeral x1) (extract "
+  ssSExtRet << "($smtx_model_eval (concat (repeat ($eo_z x1) (extract "
                "wm1 wm1 t)) t))))";
   addLitSym("sign_extend",
             {kInt, kBitVec},
@@ -269,7 +269,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                             "($vsm_term ($eo_binary x2 x3))",
                             ssSExtRet.str())));
   std::stringstream ssAshrRet;
-  ssAshrRet << "(eo::define ((wm1 (- ($eo_numeral x1) 1))) ";
+  ssAshrRet << "(eo::define ((wm1 (- ($eo_z x1) 1))) ";
   ssAshrRet << "($smtx_model_eval (ite";
   ssAshrRet << " (= (extract wm1 wm1 s) #b0)";
   ssAshrRet << " (bvlshr s t)";
@@ -277,10 +277,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitSym(
       "bvashr", {kBitVec, kBitVec}, kT, smtBinaryBinReturn(ssAshrRet.str()));
   std::stringstream ssRLeftRet;
-  ssRLeftRet << "(eo::define ((wm1 (- ($eo_numeral x2) 1))) ";
+  ssRLeftRet << "(eo::define ((wm1 (- ($eo_z x2) 1))) ";
   ssRLeftRet << "(eo::define ((t ($eo_mk_binary x2 x3))) ";
   ssRLeftRet << "($smtx_model_eval";
-  ssRLeftRet << " (rotate_left (- ($eo_numeral x1) 1) (concat";
+  ssRLeftRet << " (rotate_left (- ($eo_z x1) 1) (concat";
   ssRLeftRet << " (extract (- wm1 1) 0 t)";
   ssRLeftRet << " (extract wm1 wm1 t))))))";
   addLitSym("rotate_left",
@@ -291,9 +291,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                             "($vsm_term ($eo_binary x2 x3))",
                             ssRLeftRet.str())));
   std::stringstream ssRRightRet;
-  ssRRightRet << "(eo::define ((wm1 (- ($eo_numeral x2) 1))) ";
+  ssRRightRet << "(eo::define ((wm1 (- ($eo_z x2) 1))) ";
   ssRRightRet << "($smtx_model_eval";
-  ssRRightRet << " (rotate_right (- ($eo_numeral x1) 1) (concat";
+  ssRRightRet << " (rotate_right (- ($eo_z x1) 1) (concat";
   ssRRightRet << " (extract 0 0 ($eo_mk_binary x2 x3))";
   ssRRightRet << " (extract wm1 1 ($eo_mk_binary x2 x3))))))";
   addLitSym("rotate_right",
@@ -305,7 +305,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                             ssRRightRet.str())));
   std::stringstream ssRepeatRet;
   ssRepeatRet << "($smtx_model_eval (concat";
-  ssRepeatRet << " (repeat (- ($eo_numeral x1) 1) ($eo_mk_binary x2 x3))";
+  ssRepeatRet << " (repeat (- ($eo_z x1) 1) ($eo_mk_binary x2 x3))";
   ssRepeatRet << " ($eo_mk_binary x2 x3)))";
   addLitSym("repeat",
             {kInt, kBitVec},

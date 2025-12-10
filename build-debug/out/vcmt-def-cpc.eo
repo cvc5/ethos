@@ -81,7 +81,7 @@
 (declare-parameterized-const $smd_eo.Rational
   ((r $smt_builtin_Real :opaque)) $eo_Term)
 (declare-parameterized-const $smd_eo.String
-  ((s ($smt_type_0 "String") :opaque)) $eo_Term)
+  ((s $smt_builtin_String :opaque)) $eo_Term)
 (declare-parameterized-const $smd_eo.Binary
   ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $eo_Term)
 (declare-parameterized-const $smd_vsm.Map ((m $smt_Map :opaque)) $smt_Value)

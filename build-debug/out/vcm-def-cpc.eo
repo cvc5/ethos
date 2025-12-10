@@ -190,7 +190,7 @@
 (declare-parameterized-const $smd_eo.Rational
   ((r $smt_builtin_Real :opaque)) $eo_Term)
 (declare-parameterized-const $smd_eo.String
-  ((s ($smt_type_0 "String") :opaque)) $eo_Term)
+  ((s $smt_builtin_String :opaque)) $eo_Term)
 (declare-parameterized-const $smd_eo.Binary
   ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $eo_Term)
 
@@ -735,7 +735,7 @@
   (($eo_concat ($eo_str s1) ($eo_str s2))
      ($eo_str ($smt_apply_2 "str.++" s1 s2)))
   (($eo_concat ($eo_binary w1 n1) ($eo_binary w2 n2))
-     ($eo_mk_binary ($smt_builtin_add w1 w2) ($smtx_binary_concat w1 n1 w2 n2)))
+     ($eo_mk_binary_w ($smt_builtin_add w1 w2) ($smtx_binary_concat w1 n1 w2 n2)))
   )
 )
 
