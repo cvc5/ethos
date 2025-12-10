@@ -1197,12 +1197,9 @@ Expr State::mkApplyAttr(AppInfo* ai,
       else
       {
         // construct curried APPLY_OPAQUE application.
-        ExprValue* curr = vchildren[0];
-        for (size_t i = 1; i < nargs + 1; i++)
-        {
-          curr = mkExprInternal(Kind::APPLY_OPAQUE, {curr, vchildren[i]});
-        }
-        Expr op = Expr(curr);
+        std::vector<ExprValue*> ochildren(vchildren.begin(),
+                                          vchildren.begin() + 1 + nargs);
+        Expr op = Expr(mkExprInternal(Kind::APPLY_OPAQUE, ochildren));
         Trace("opaque") << "Construct opaque operator " << op << std::endl;
         if (nargs + 1 == vchildren.size())
         {

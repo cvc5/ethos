@@ -217,7 +217,11 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
   {
     if (cattr == Attr::OPAQUE)
     {
-      size_t novars = ct.getNumChildren() - 1;
+      AppInfo* ainfo = d_state.getAppInfo(e.getValue());
+      Expr anum = ainfo->d_attrConsTerm;
+      Assert(anum.getKind() == Kind::NUMERAL);
+      Assert(anum.getValue()->asLiteral()->d_int.fitsUnsignedInt());
+      size_t novars = anum.getValue()->asLiteral()->d_int.toUnsignedInt();
       for (size_t i = 0; i < novars; i++)
       {
         Assert(ct[i].getKind() == Kind::QUOTE_TYPE)
