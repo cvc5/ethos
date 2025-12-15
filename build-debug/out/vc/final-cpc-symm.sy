@@ -528,7 +528,7 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    ($eo_requires_eq ($eo_model_is_input ($eo_proven ($eo_prog_symm (eo.Apply eo.$eo_pf x1)))) (eo.SmtTerm (sm.Boolean true)) ($eo_requires_eq ($eo_typeof x1) (eo.SmtType tsm.Bool) ($eo_requires_eq ($eo_model_sat x1) (eo.SmtTerm (sm.Boolean true)) ($eo_requires_eq ($eo_model_unsat ($eo_proven ($eo_prog_symm (eo.Apply eo.$eo_pf x1)))) (eo.SmtTerm (sm.Boolean true)) (eo.SmtTerm (sm.Boolean true))))))
+    ($eo_requires_eq ($eo_model_is_input ($eo_proven ($eo_prog_symm (eo.Apply eo.$eo_pf x1)))) (eo.SmtTerm (sm.Boolean true)) ($eo_requires_eq ($eo_typeof x1) (eo.SmtType tsm.Bool) ($eo_requires_eq ($eo_model_sat x1) (eo.SmtTerm (sm.Boolean true)) ($eo_requires_eq ($eo_typeof ($eo_proven ($eo_prog_symm (eo.Apply eo.$eo_pf x1)))) (eo.SmtType tsm.Bool) ($eo_requires_eq ($eo_model_unsat ($eo_proven ($eo_prog_symm (eo.Apply eo.$eo_pf x1)))) (eo.SmtTerm (sm.Boolean true)) (eo.SmtTerm (sm.Boolean true)))))))
     eo.Stuck)))
 
 
