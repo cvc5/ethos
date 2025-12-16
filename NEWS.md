@@ -1,7 +1,7 @@
 This file contains a summary of important user-visible changes.
 
-ethos 0.2.2 prerelease
-======================
+ethos 0.2.2
+===========
 
 - The attribute `:signature` to specify the argument and return types of programs is now required.
 - Evaluation is now forbidden in types of parameters and in the argument types of programs.

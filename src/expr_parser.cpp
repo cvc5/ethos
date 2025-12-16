@@ -1198,30 +1198,6 @@ Expr ExprParser::typeCheck(Expr& e)
   }
   return v;
 }
-Expr ExprParser::typeCheckApp(std::vector<Expr>& children)
-{
-  // ensure all children are type checked
-  for (Expr& c : children)
-  {
-    typeCheck(c);
-  }
-  const Expr& v = d_state.getTypeChecker().getTypeApp(children);
-  if (v.isNull())
-  {
-    // we allocate stringstream for error messages only when an error occurs
-    // thus, we require recomputing the error message here.
-    std::stringstream ss;
-    d_state.getTypeChecker().getTypeApp(children, &ss);
-    std::stringstream msg;
-    msg << "Type checking application failed when applying " << children[0]
-        << std::endl;
-    msg << "Children: "
-        << std::vector<Expr>(children.begin() + 1, children.end()) << std::endl;
-    msg << "Message: " << ss.str() << std::endl;
-    d_lex.parseError(msg.str());
-  }
-  return v;
-}
 
 Expr ExprParser::typeCheck(Expr& e, const Expr& expected)
 {

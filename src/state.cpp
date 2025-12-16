@@ -507,22 +507,11 @@ Expr State::mkTypeConstant(const std::string& name, size_t arity)
   return mkSymbol(Kind::CONST, name, t);
 }
 
-Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool flatten)
+Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret)
 {
   if (args.empty())
   {
     return ret;
-  }
-  // process restrictions
-  if (!flatten)
-  {
-    std::vector<ExprValue*> atypes;
-    for (size_t i = 0, nargs = args.size(); i < nargs; i++)
-    {
-      atypes.push_back(args[i].getValue());
-    }
-    atypes.push_back(ret.getValue());
-    return Expr(mkExprInternal(Kind::FUNCTION_TYPE, atypes));
   }
   Expr curr = ret;
   // no way to construct quote types, e.g. on return types
@@ -1158,7 +1147,11 @@ Expr State::mkApplyAttr(AppInfo* ai,
       Expr hdt = Expr(hd);
       const Expr& t = d_tc.getType(hdt);
       Assert(t.getKind() == Kind::FUNCTION_TYPE);
-      size_t nargs = t.getNumChildren() - 1;
+      // get the number of opaque arguments, stored as the constructor term
+      Expr acons = ai->d_attrConsTerm;
+      Assert(acons.getKind() == Kind::NUMERAL);
+      Assert(acons.getValue()->asLiteral()->d_int.fitsUnsignedInt());
+      size_t nargs = acons.getValue()->asLiteral()->d_int.toUnsignedInt();
       if (nargs >= vchildren.size())
       {
         Warning() << "Too few arguments when applying opaque symbol " << hdt
@@ -1166,9 +1159,13 @@ Expr State::mkApplyAttr(AppInfo* ai,
       }
       else
       {
-        std::vector<Expr> ochildren(vchildren.begin(),
-                                    vchildren.begin() + 1 + nargs);
-        Expr op = mkExpr(Kind::APPLY_OPAQUE, ochildren);
+        // construct curried APPLY_OPAQUE application.
+        ExprValue* curr = vchildren[0];
+        for (size_t i = 1; i < nargs + 1; i++)
+        {
+          curr = mkExprInternal(Kind::APPLY_OPAQUE, {curr, vchildren[i]});
+        }
+        Expr op = Expr(curr);
         Trace("opaque") << "Construct opaque operator " << op << std::endl;
         if (nargs + 1 == vchildren.size())
         {
@@ -1182,6 +1179,10 @@ Expr State::mkApplyAttr(AppInfo* ai,
             rchildren.end(), vchildren.begin() + 1 + nargs, vchildren.end());
         Trace("opaque") << "...return operator applied to children"
                         << std::endl;
+        if (rchildren.size() > 2)
+        {
+          return Expr(mkApplyInternal(rchildren));
+        }
         return Expr(mkExprInternal(Kind::APPLY, rchildren));
       }
     }
