@@ -1,4 +1,4 @@
-(set-logic UFDTSNIRA)
+(set-logic ALL)
 
 ; tsm.Type:
 ;   The final embedding of atomic SMT-LIB types that are relevant to the VC.

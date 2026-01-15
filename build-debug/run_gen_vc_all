@@ -414,6 +414,8 @@ check_status
 ./run_gen_vc_single $INPUT str-replace-one-pre
 ./run_gen_vc_single $INPUT str-replace-find-pre
 ./run_gen_vc_single $INPUT str-replace-all-no-contains
+./run_gen_vc_single $INPUT str-replace-all-id
+./run_gen_vc_single $INPUT str-replace-all-self
 ./run_gen_vc_single $INPUT str-replace-re-none
 ./run_gen_vc_single $INPUT str-replace-re-all-none
 ./run_gen_vc_single $INPUT str-len-concat-rec
