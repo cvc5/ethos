@@ -370,7 +370,7 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     if (hdt->getKind() == Kind::QUOTE_TYPE)
     {
       // We ensure that the type of the argument is equal to the type of the
-      // quoted term, whose type should both be ground.
+      // quoted term, whose type should be ground.
       ExprValue* ct = d_state.lookupType(child);
       ExprValue* cte = d_state.lookupType(hdt->d_children[0]);
       Assert (cte->isGround());
