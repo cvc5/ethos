@@ -8,7 +8,7 @@ ethos 0.2.2
 - Higher-order applications of the form `(_ f t1 ...tn)` no longer desugar based on the desugaring policy for `f`.
 - Adds builtin list operator `eo::list_singleton_elim` which converts singleton lists to their (single) element.
 - Adds the operator annotation `:right-assoc-non-singleton-nil` (resp. `:left-assoc-non-singleton-nil`). This annotation is similar to `:right-assoc-nil` but additionally collapses singleton lists to their single elements.
-- The command `declare-parameterized-const` now forbids parameters that require simultaneously binding that parameter and free parameters in its type.
+- The command `declare-parameterized-const` now forbids return types that contain parameters with non-ground type.
 
 ethos 0.2.1
 ===========

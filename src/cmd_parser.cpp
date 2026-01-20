@@ -192,24 +192,18 @@ bool CmdParser::parseNextCommand()
           std::unordered_set<const ExprValue*> vp{p.getValue()};
           if (Expr::hasVariable(t, vp))
           {
-            // If the type of the parameter has an implicit free parameter
-            // in its type, then we throw an error.
-            std::vector<Expr> fvpt = Expr::getVariables(pt);
-            for (const Expr& fv : fvpt)
+            // If the type of the parameter is non-ground, then we throw an
+            // error.
+            if (!pt.isGround())
             {
-              std::vector<Expr>::iterator itpend = params.begin() + ii;
-              if (std::find(params.begin(), itpend, fv) == itpend)
-              {
-                // variable not in the list bound up to ii.
-                std::stringstream ss;
-                ss << "Cannot bind parameter and its type simulataneously. ";
-                ss << "The parameter in question was " << p << ".";
-                d_lex.parseError(ss.str());
-              }
+              std::stringstream ss;
+              ss << "Cannot define a dependent type that is non-ground. ";
+              ss << "The type in question was " << pt << ".";
+              d_lex.parseError(ss.str());
             }
             // We also pass its type to ensure the argument passed to it matches
             // its type.
-            qt = d_state.mkQuoteType(p, pt);
+            qt = d_state.mkQuoteType(p);
           }
           else
           {
