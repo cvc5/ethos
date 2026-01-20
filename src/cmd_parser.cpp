@@ -197,7 +197,8 @@ bool CmdParser::parseNextCommand()
             if (!pt.isGround())
             {
               std::stringstream ss;
-              ss << "Cannot define a type involving a parameter that has non-ground type. ";
+              ss << "Cannot define a type involving a parameter that has "
+                    "non-ground type. ";
               ss << "The parameter in question was " << p << ".";
               d_lex.parseError(ss.str());
             }

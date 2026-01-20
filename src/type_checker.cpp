@@ -373,7 +373,7 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
       // quoted term, whose type should be ground.
       ExprValue* ct = d_state.lookupType(child);
       ExprValue* cte = d_state.lookupType(hdt->d_children[0]);
-      Assert (cte->isGround());
+      Assert(cte->isGround());
       Assert(ct != nullptr);
       if (ct != cte)
       {
