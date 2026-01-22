@@ -736,6 +736,14 @@ bool CmdParser::parseNextCommand()
       std::vector<Expr> argTypes = d_eparser.parseTypeList(true);
       Expr retType = d_eparser.parseType();
       Expr progType = retType;
+      Expr tup = d_state.mkExpr(Kind::TUPLE, argTypes);
+      std::vector<Expr> pargs = Expr::getVariables(tup);
+      Expr fv = d_eparser.findFreeVar(progType, pargs);
+      if (!fv.isNull())
+      {
+        d_lex.parseError(
+            "Program type is not well scoped");
+      }
       if (!argTypes.empty())
       {
         progType = d_state.mkProgramType(argTypes, retType);
