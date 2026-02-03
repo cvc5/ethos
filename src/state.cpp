@@ -886,7 +886,9 @@ Expr State::mkList(const std::vector<Expr>& args)
   return mkExpr(Kind::APPLY, largs);
 }
 
-Expr State::mkDisambiguatedType(const Expr& disambPat, const Expr& ret, const std::string& name)
+Expr State::mkDisambiguatedType(const Expr& disambPat,
+                                const Expr& ret,
+                                const std::string& name)
 {
   // For example, for the ambiguous datatype constructor
   //   (declare-datatypes ((List 1)) (

@@ -158,14 +158,16 @@ class State
    * applying that symbol to that type as its first argument. It returns a type
    * of the form (-> (Quote x) ($eo_disamb_type_<name> x)) where
    * $eo_disamb_type_<name> is a program defined by this method.
-   * 
+   *
    * @param disambPat The pattern which is expected as the second argument to
    *                  "as" above.
    * @param ret The return type, whose free parameters are a subset of the free
    *            parameters of disambPat.
    * @param name The name of the symbol we are disambiguating.
    */
-  Expr mkDisambiguatedType(const Expr& disambPat, const Expr& ret, const std::string& name);
+  Expr mkDisambiguatedType(const Expr& disambPat,
+                           const Expr& ret,
+                           const std::string& name);
   //--------------------------------------
   /** Get the constructor kind for symbol v */
   Attr getConstructorKind(const ExprValue* v) const;
