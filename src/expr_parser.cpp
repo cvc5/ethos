@@ -883,42 +883,15 @@ void ExprParser::parseConstructorDefinitionList(
     {
       // if this is an ambiguous datatype constructor, we add (Quote T)
       // as the first argument type.
-      Expr tup = d_state.mkExpr(Kind::TUPLE, typelist);
-      std::vector<Expr> pargs = Expr::getVariables(tup);
+      std::vector<Expr> pargs = Expr::getVariables(typelist);
       Expr fv = findFreeVar(dt, pargs);
       Trace("param-dt") << "Parameteric datatype constructor: " << name;
       Trace("param-dt") << (fv.isNull() ? " un" : " ") << "ambiguous"
                         << std::endl;
       if (!fv.isNull())
       {
-        // For example, for the ambiguous datatype constructor
-        //   (declare-datatypes ((List 1)) (
-        //     (par (X) ((nil) (cons (head X) (tail (List X)))))))
-        // nil is an ambiguous constructor, which will be written as
-        // (as nil (List Int)), which is interpretted as opaque application.
-        // To define the type of nil, we first define the program to compute its
-        // return type:
-        //   (program $eo_ctype_nil ((T Type))
-        //     :signature (Type) Type
-        //     ((($eo_ctype_nil (List T)) (List T))))
-        // Then, its return type becomes an invocation of this program, where
-        // its type is the same as if it were declared via:
-        //   (declare-parameterized-const nil ((T Type :opaque))
-        //     ($eo_ctype_nil T)).
-        Expr typ = d_state.mkType();
-        Expr pt = d_state.mkProgramType({typ}, typ);
-        std::stringstream ss;
-        ss << "$eo_ctype_" << name;
-        Expr tprog = d_state.mkSymbol(Kind::PROGRAM_CONST, ss.str(), pt);
-        Expr tpat = d_state.mkExpr(Kind::APPLY, {tprog, dt});
-        Expr progCase = d_state.mkPair(tpat, ctype);
-        Expr prog = d_state.mkExpr(Kind::PROGRAM, {progCase});
-        d_state.defineProgram(tprog, prog);
-        ss << "_var";
-        Expr tv = d_state.mkSymbol(Kind::PARAM, ss.str(), typ);
-        Expr qtv = d_state.mkQuoteType(tv);
-        Expr fapp = d_state.mkExpr(Kind::APPLY, {tprog, tv});
-        ctype = d_state.mkFunctionType({qtv}, fapp);
+        // use the mkDisambiguatedType utility
+        ctype = d_state.mkDisambiguatedType(dt, ctype, name);
         isAmb = true;
       }
     }

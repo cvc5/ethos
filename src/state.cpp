@@ -886,6 +886,37 @@ Expr State::mkList(const std::vector<Expr>& args)
   return mkExpr(Kind::APPLY, largs);
 }
 
+Expr State::mkDisambiguatedType(const Expr& disambPat, const Expr& ret, const std::string& name)
+{
+  // For example, for the ambiguous datatype constructor
+  //   (declare-datatypes ((List 1)) (
+  //     (par (X) ((nil) (cons (head X) (tail (List X)))))))
+  // nil is an ambiguous constructor, which will be written as
+  // (as nil (List Int)), which is interpretted as opaque application.
+  // To define the type of nil, we first define the program to compute its
+  // return type:
+  //   (program $eo_disamb_type_nil ((T Type))
+  //     :signature (Type) Type
+  //     ((($eo_ctype_nil (List T)) (List T))))
+  // Then, its return type becomes an invocation of this program, where
+  // its type is the same as if it were declared via:
+  //   (declare-parameterized-const nil ((T Type :opaque))
+  //     ($eo_ctype_nil T)).
+  Expr pt = mkProgramType({d_type}, d_type);
+  std::stringstream ss;
+  ss << "$eo_disamb_type_" << name;
+  Expr tprog = mkSymbol(Kind::PROGRAM_CONST, ss.str(), pt);
+  Expr tpat = mkExpr(Kind::APPLY, {tprog, disambPat});
+  Expr progCase = mkPair(tpat, ret);
+  Expr prog = mkExpr(Kind::PROGRAM, {progCase});
+  defineProgram(tprog, prog);
+  ss << "_var";
+  Expr tv = mkSymbol(Kind::PARAM, ss.str(), d_type);
+  Expr qtv = mkQuoteType(tv);
+  Expr fapp = mkExpr(Kind::APPLY, {tprog, tv});
+  return mkFunctionType({qtv}, fapp);
+}
+
 ExprValue* State::mkLiteralInternal(Literal& l)
 {
   d_stats.d_mkExprCount++;

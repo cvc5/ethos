@@ -219,8 +219,7 @@ bool CmdParser::parseNextCommand()
         std::pair<std::vector<Expr>, Expr> ft = t.getFunctionType();
         std::vector<Expr> argTypes = ft.first;
         argTypes.insert(argTypes.end(), opaqueArgs.begin(), opaqueArgs.end());
-        Expr tup = d_state.mkExpr(Kind::TUPLE, argTypes);
-        std::vector<Expr> pargs = Expr::getVariables(tup);
+        std::vector<Expr> pargs = Expr::getVariables(argTypes);
         Expr fv = d_eparser.findFreeVar(ft.second, pargs);
         if (!fv.isNull())
         {
@@ -233,8 +232,8 @@ bool CmdParser::parseNextCommand()
             d_lex.parseError(
                 "Ambiguous functions cannot have opaque arguments");
           }
-          Expr qt = d_state.mkQuoteType(ft.second);
-          t = d_state.mkFunctionType({qt}, t);
+          // must disambiguate the type using the utility
+          t = d_state.mkDisambiguatedType(ft.second, t, name);
           ck = Attr::AMB;
         }
       }
