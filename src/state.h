@@ -162,7 +162,8 @@ class State
    * @param disambPat The pattern which is expected as the second argument to
    *                  "as" above.
    * @param ret The return type, whose free parameters are a subset of the free
-   *            parameters of disambPat.
+   *            parameters of disambPat. This is typically either disambPat,
+   *            or a function type whose return type is disambPat.
    * @param name The name of the symbol we are disambiguating.
    */
   Expr mkDisambiguatedType(const Expr& disambPat,
