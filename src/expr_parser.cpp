@@ -878,6 +878,7 @@ void ExprParser::parseConstructorDefinitionList(
       d_lex.eatToken(Token::RPAREN);
     }
     bool isAmb = false;
+    Expr ctype = d_state.mkFunctionType(typelist, dt);
     if (!params.empty())
     {
       // if this is an ambiguous datatype constructor, we add (Quote T)
@@ -890,12 +891,26 @@ void ExprParser::parseConstructorDefinitionList(
                         << std::endl;
       if (!fv.isNull())
       {
-        Expr odt = d_state.mkQuoteType(dt);
-        typelist.insert(typelist.begin(), odt);
+        //Expr odt = d_state.mkQuoteType(dt);
+        //typelist.insert(typelist.begin(), odt);
+        // a program from type to type
+        Expr typ = d_state.mkType();
+        Expr pt = d_state.mkProgramType({typ}, typ);
+        std::stringstream ss;
+        ss << "$eo_ctype_" << name;
+        Expr tprog = d_state.mkSymbol(Kind::PROGRAM_CONST, ss.str(), pt);
+        Expr tpat = d_state.mkExpr(Kind::APPLY, {tprog, dt});
+        Expr progCase = d_state.mkPair(tpat, ctype);
+        Expr prog = d_state.mkExpr(Kind::PROGRAM, {progCase});
+        d_state.defineProgram(tprog, prog);
+        ss << "_var";
+        Expr tv = d_state.mkSymbol(Kind::PARAM, ss.str(), typ);
+        Expr qtv = d_state.mkQuoteType(tv);
+        Expr fapp = d_state.mkExpr(Kind::APPLY, {tprog, tv});
+        ctype = d_state.mkFunctionType({qtv}, fapp);
         isAmb = true;
       }
     }
-    Expr ctype = d_state.mkFunctionType(typelist, dt);
     Expr cons = d_state.mkSymbol(Kind::CONST, name, ctype);
     toBind.emplace_back(name, cons);
     conslist.push_back(cons);
