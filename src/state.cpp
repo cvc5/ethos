@@ -899,11 +899,11 @@ Expr State::mkDisambiguatedType(const Expr& disambPat,
   // return type:
   //   (program $eo_disamb_type_nil ((T Type))
   //     :signature (Type) Type
-  //     ((($eo_ctype_nil (List T)) (List T))))
+  //     ((($eo_disamb_type_nil (List T)) (List T))))
   // Then, its return type becomes an invocation of this program, where
   // its type is the same as if it were declared via:
   //   (declare-parameterized-const nil ((T Type :opaque))
-  //     ($eo_ctype_nil T)).
+  //     ($eo_disamb_type_nil T)).
   Expr pt = mkProgramType({d_type}, d_type);
   std::stringstream ss;
   ss << "$eo_disamb_type_" << name;
