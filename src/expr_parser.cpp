@@ -891,9 +891,20 @@ void ExprParser::parseConstructorDefinitionList(
                         << std::endl;
       if (!fv.isNull())
       {
-        //Expr odt = d_state.mkQuoteType(dt);
-        //typelist.insert(typelist.begin(), odt);
-        // a program from type to type
+        // For example, for the ambiguous datatype constructor
+        //   (declare-datatypes ((List 1)) (
+        //     (par (X) ((nil) (cons (head X) (tail (List X)))))))
+        // nil is an ambiguous constructor, which will be written as
+        // (as nil (List Int)), which is interpretted as opaque application.
+        // To define the type of nil, we first define the program to compute its
+        // return type:
+        //   (program $eo_ctype_nil ((T Type))
+        //     :signature (Type) Type
+        //     ((($eo_ctype_nil (List T)) (List T))))
+        // Then, its return type becomes an invocation of this program, where
+        // its type is the same as if it were declared via:
+        //   (declare-parameterized-const nil ((T Type :opaque))
+        //     ($eo_ctype_nil T)).
         Expr typ = d_state.mkType();
         Expr pt = d_state.mkProgramType({typ}, typ);
         std::stringstream ss;
