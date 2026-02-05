@@ -67,8 +67,6 @@ set(ethos_test_file_list
     rare-example.eo
     define-fun.alfc.eo
     quant-sk-small.alfc.eo
-    oracle-ex.eo
-    oracle-ex2.eo
     Arith-rules.eo
     Arith-theory.eo
     Booleans-rules.eo
@@ -94,7 +92,6 @@ set(ethos_test_file_list
     define-sort-iarray.eo
     axiom-implicit.eo
     match-variants.eo
-    tiny_oracle.eo
     arity-overload.eo
     binder-ex.eo
     typeof.eo
@@ -127,6 +124,51 @@ set(ethos_test_file_list
     opaque-inline.eo
     implicit-then-var.eo
     is_eq.eo
+    simple-reference.eo
+    simple-quant-reference.eo
+    simple-lra-reference.eo
+    left-cons.eo
+    overload-standalone.eo
+    datatypes-split-rule.eo
+    singular-datatype.eo
+    simul-overload.eo
+    bang-lex.eo
+    segfault-98.eo
+    eo-add-non-first-class.eo
+    unstuck-eval-bv-example.eo
+    param-dt-parse.eo
+    param-dt-parse-amb-fun.eo
+    datatypes-split-rule-param.eo
+    datatypes-split-rule-param-uinst.eo
+    overload-define.eo
+    nested-requires.eo
+    pairwise-singleton.eo
+    quote-opaque.eo
+    quote-requires.eo
+    set-empty-amb.eo
+    const-array.eo
+    type-var-exists.eo
+    array-ext-implicit-type-infer.eo
+    define-scope-attr.eo
+    is-eq-tests.eo
+    eo-arg-ex.eo
+    list-ops-new.eo
+    double-list.eo
+    list-param-immediate.eo
+    eo-definitions-test.eo
+    conclusion-explicit-cases.eo
+    rule-all-cases.eo
+    nground-nil-ex.eo
+    list-nth-non-list.eo
+    eo-list-ops.eo
+    eo-list-ops-napply.eo
+    curry-nary.eo
+    arg-list-cong.eo
+    arg-list-distinct-elim.eo
+    or-no-desugar.eo
+    further-notes-attr.eo
+    list-non-singleton.eo
+    list-non-singleton-left.eo
 )
 
 macro(ethos_test file)

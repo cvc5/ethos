@@ -1,10 +1,10 @@
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 
-(declare-const forall (-> (! Type :var T :implicit) T Bool Bool))
-(declare-const exists (-> (! Type :var T :implicit) T Bool Bool))
+(declare-parameterized-const forall ((T Type :implicit)) (-> T Bool Bool))
+(declare-parameterized-const exists ((T Type :implicit)) (-> T Bool Bool))
 
 ; (skolem U t), where U is the type of the skolem and t is an index
-(declare-const skolem (-> (! Type :var U) (! Type :var T :implicit) T U))
+(declare-parameterized-const skolem ((U Type) (T Type :implicit)) (-> T U))
 
 (declare-const => (-> Bool Bool Bool))
 (declare-const and (-> Bool Bool Bool))
@@ -23,7 +23,7 @@
   
 (program substitute
   ((T Type) (U Type) (S Type) (V Type) (x S) (y S) (f (-> T U)) (a T) (z U) (w V))
-  (S S U) U
+  :signature (S S U) U
   (
   ((substitute x y x)             y)
   ((substitute x y (skolem U w))  (skolem U w))   ; do not traverse
@@ -44,7 +44,7 @@
 
 (program run_simplify
   ((T Type) (x T))
-  (Bool) Bool
+  :signature (Bool) Bool
   (
   ((run_simplify (forall x (= x x))) true)
   )

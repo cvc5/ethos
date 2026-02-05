@@ -1,0 +1,10 @@
+(declare-const Int Type)
+(declare-consts <numeral> Int)
+
+(declare-parameterized-const BitVec ((n Int))
+  (eo::requires (eo::gt n 0) true Type))
+
+(declare-const f (BitVec 3))
+
+; gives type error
+;(declare-const f (BitVec -1))

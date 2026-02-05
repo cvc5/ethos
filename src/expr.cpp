@@ -67,8 +67,9 @@ void ExprValue::computeFlags()
     std::vector<ExprValue*>& children = cur->d_children;
     if (children.empty())
     {
-      bool isNonGround = (ck==Kind::PARAM);
-      cur->setFlag(Flag::IS_EVAL, false);
+      bool isEval = (ck == Kind::PROGRAM_CONST || ck == Kind::ANY);
+      bool isNonGround = (ck == Kind::PARAM || ck == Kind::ANY);
+      cur->setFlag(Flag::IS_EVAL, isEval);
       cur->setFlag(Flag::IS_NON_GROUND, isNonGround);
       visit.pop_back();
     }
@@ -86,34 +87,15 @@ void ExprValue::computeFlags()
     else
     {
       visit.pop_back();
-      if (ck==Kind::APPLY)
+      if (isLiteralOp(ck))
       {
-        Kind cck = children[0]->getKind();
-        if (cck==Kind::PROGRAM_CONST || cck==Kind::ORACLE)
-        {
-          cur->setFlag(Flag::IS_PROG_EVAL, true);
-          cur->setFlag(Flag::IS_EVAL, true);
-        }
-      }
-      else if (isLiteralOp(ck))
-      {
-        // requires type and literal operator kinds evaluate
+        // literal operator kinds are evaluatable
         cur->setFlag(Flag::IS_EVAL, true);
       }
+      // flags are a union of the flags of the children
       for (ExprValue* c : children)
       {
-        if (c->getFlag(Flag::IS_NON_GROUND))
-        {
-          cur->setFlag(Flag::IS_NON_GROUND, true);
-        }
-        if (c->getFlag(Flag::IS_EVAL))
-        {
-          cur->setFlag(Flag::IS_EVAL, true);
-        }
-        if (c->getFlag(Flag::IS_PROG_EVAL))
-        {
-          cur->setFlag(Flag::IS_PROG_EVAL, true);
-        }
+        cur->d_flags |= static_cast<uint8_t>(c->d_flags);
       }
     }
   }
@@ -129,18 +111,6 @@ bool ExprValue::isGround()
 {
   computeFlags();
   return !getFlag(ExprValue::Flag::IS_NON_GROUND);
-}
-
-bool ExprValue::isProgEvaluatable()
-{
-  computeFlags();
-  return getFlag(ExprValue::Flag::IS_PROG_EVAL);
-}
-
-bool ExprValue::isCompiled()
-{
-  // this is set manually
-  return getFlag(ExprValue::Flag::IS_COMPILED);
 }
 
 void ExprValue::dec()
@@ -188,12 +158,6 @@ Expr::~Expr()
 bool Expr::isNull() const { return d_value->isNull(); }
 bool Expr::isEvaluatable() const { return d_value->isEvaluatable(); }
 bool Expr::isGround() const { return d_value->isGround(); }
-bool Expr::isProgEvaluatable() const { return d_value->isProgEvaluatable(); }
-bool Expr::isCompiled() const { return d_value->isCompiled(); }
-void Expr::setCompiled()
-{
-  return d_value->setFlag(ExprValue::Flag::IS_COMPILED, true);
-}
 std::string Expr::getSymbol() const
 {
   const Literal * l = d_value->asLiteral();
@@ -242,6 +206,11 @@ std::string quoteSymbol(const std::string& s)
   {
     return "||";
   }
+  // special case: if an "eo::" symbol, it is not quoted
+  if (s.compare(0, 4, "eo::") == 0)
+  {
+    return s;
+  }
 
   // this is the set of SMT-LIBv2 permitted characters in "simple" (non-quoted)
   // symbols
@@ -269,11 +238,28 @@ std::string quoteSymbol(const std::string& s)
   return "|" + tmp + "|";
 }
 
+std::vector<Expr> Expr::getPrintChildren(const ExprValue* e)
+{
+  std::vector<Expr> ret;
+  // special case: variable is printed as (eo::var "name" type)
+  if (e->getKind() == Kind::VARIABLE)
+  {
+    Expr tt(ExprValue::d_state->lookupType(e));
+    Assert(!tt.isNull());
+    ret.push_back(tt);
+    return ret;
+  }
+  for (size_t i = 0, nchildren = e->getNumChildren(); i < nchildren; i++)
+  {
+    ret.emplace_back((*e)[i]);
+  }
+  return ret;
+}
+
 std::map<const ExprValue*, size_t> Expr::computeLetBinding(
     const Expr& e, std::vector<Expr>& ll)
 {
-  size_t idc = 0;
-  std::map<const ExprValue*, size_t> lbind;
+  std::map<const ExprValue*, size_t> lcount;
   std::unordered_set<const ExprValue*> visited;
   std::vector<Expr> visit;
   std::vector<Expr> llv;
@@ -282,35 +268,41 @@ std::map<const ExprValue*, size_t> Expr::computeLetBinding(
   do
   {
     cur = visit.back();
-    visit.pop_back();
-    if (cur.getNumChildren() == 0)
+    // special case: variable is printed as (eo::var "name" type),
+    // so it should be letified.
+    std::vector<Expr> printChildren = getPrintChildren(cur.getValue());
+    if (printChildren.empty())
     {
+      visit.pop_back();
       continue;
     }
     const ExprValue* cv = cur.getValue();
     if (visited.find(cv) == visited.end())
     {
       visited.insert(cv);
-      llv.push_back(cur);
-      for (size_t i = 0, nchildren = cur.getNumChildren(); i < nchildren; i++)
-      {
-        visit.push_back(cur[i]);
-      }
+      visit.insert(visit.end(), printChildren.begin(), printChildren.end());
       continue;
     }
-    if (lbind.find(cv) == lbind.end())
+    visit.pop_back();
+    // add to vector, which is done after all subterms of cv are added to llv
+    if (lcount.find(cv) == lcount.end())
     {
-      lbind[cv] = idc;
-      idc++;
+      llv.push_back(cur);
     }
+    lcount[cv]++;
   }while(!visit.empty());
+  // go back and only keep the ones that were found more than once.
+  std::map<const ExprValue*, size_t> lbind;
+  size_t idc = 0;
   for (size_t i=0, lsize = llv.size(); i<lsize; i++)
   {
-    const Expr& l = llv[lsize - 1 - i];
+    const Expr& l = llv[i];
     const ExprValue* lv = l.getValue();
-    if (lbind.find(lv) != lbind.end())
+    if (lcount[lv] > 1)
     {
       ll.push_back(l);
+      lbind[lv] = idc;
+      idc++;
     }
   }
   return lbind;
@@ -336,7 +328,8 @@ void Expr::printDebugInternal(const Expr& e,
         continue;
       }
       Kind k = cur.first->getKind();
-      if (cur.first->getNumChildren() == 0)
+      std::vector<Expr> printChildren = getPrintChildren(cur.first);
+      if (printChildren.empty())
       {
         const Literal* l = cur.first->asLiteral();
         if (l!=nullptr)
@@ -344,8 +337,22 @@ void Expr::printDebugInternal(const Expr& e,
           switch (k)
           {
             case Kind::HEXADECIMAL:os << "#x" << l->toString();break;
-            case Kind::BINARY:os << "#b" << l->toString();break;
+            case Kind::BINARY:
+              if (l->d_bv.getSize() == 0)
+              {
+                os << "(eo::to_bin 0 0)";
+              }
+              else
+              {
+                os << "#b" << l->toString();
+              }
+              break;
             case Kind::STRING:os << "\"" << l->toString() << "\"";break;
+            case Kind::DECIMAL:
+              // currently don't have a way to print decimals natively, just
+              // use attribute
+              os << "(! " << l->toString() << " :decimal)";
+              break;
             default:
               if (isSymbol(k))
               {
@@ -365,10 +372,30 @@ void Expr::printDebugInternal(const Expr& e,
         }
         visit.pop_back();
       }
+      else if (k == Kind::VARIABLE)
+      {
+        // special case: variables print as the evaluation that made them
+        Expr tt(ExprValue::d_state->lookupType(cur.first));
+        const Literal* l = cur.first->asLiteral();
+        Assert(l != nullptr);
+        os << "(eo::var \"" << l->toString() << "\" ";
+        visit.back().second++;
+        visit.emplace_back(tt.getValue(), 0);
+      }
       else
       {
         os << "(";
-        if (k!=Kind::APPLY && k!=Kind::TUPLE)
+        if (k == Kind::APPLY_OPAQUE)
+        {
+          // ambiguous functions must use "as"
+          Attr attr = ExprValue::d_state->getConstructorKind((*cur.first)[0]);
+          if (attr == Attr::AMB || attr == Attr::AMB_DATATYPE_CONSTRUCTOR)
+          {
+            os << "as ";
+          }
+          // otherwise printed as ordinary app
+        }
+        else if (k != Kind::APPLY || (*cur.first)[0]->getNumChildren() > 0)
         {
           os << kindToTerm(k) << " ";
         }
@@ -376,7 +403,7 @@ void Expr::printDebugInternal(const Expr& e,
         visit.emplace_back((*cur.first)[0], 0);
       }
     }
-    else if (cur.second == cur.first->getNumChildren())
+    else if (cur.second >= cur.first->getNumChildren())
     {
       os << ")";
       visit.pop_back();
@@ -395,7 +422,7 @@ void Expr::printDebug(const Expr& e, std::ostream& os)
 {
   std::map<const ExprValue*, size_t> lbind;
   std::string cparen;
-  if (ExprValue::d_state->getOptions().d_printLet)
+  if (ExprValue::d_state->getOptions().d_printDag)
   {
     std::vector<Expr> ll;
     lbind = computeLetBinding(e, ll);
@@ -404,7 +431,7 @@ void Expr::printDebug(const Expr& e, std::ostream& os)
     {
       const ExprValue* lv = l.getValue();
       size_t id = lbind[lv];
-      os << "(let ((_v" << id << " ";
+      os << "(eo::define ((_v" << id << " ";
       lbind.erase(lv);
       printDebugInternal(l, os, lbind);
       lbind[lv] = id;
@@ -481,6 +508,7 @@ Expr& Expr::operator=(const Expr& e)
 bool Expr::operator==(const Expr& e) const { return d_value == e.d_value; }
 bool Expr::operator!=(const Expr& e) const { return d_value != e.d_value; }
 Kind Expr::getKind() const { return d_value->getKind(); }
+bool Expr::operator<(const Expr& e) const { return d_value < e.d_value; }
 
 bool Expr::hasVariable(const Expr& e,
                        const std::unordered_set<const ExprValue*>& vars)

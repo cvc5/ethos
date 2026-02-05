@@ -1,9 +1,9 @@
-(declare-type Int ())
-(declare-type Real ())
+(declare-const Int Type)
+(declare-const Real Type)
 (declare-const + (-> Int Int Int))
 (declare-const + (-> Real Real Real))
 
-(declare-const = (-> (! Type :var A :implicit) A A Bool))
+(declare-parameterized-const = ((A Type :implicit)) (-> A A Bool))
 (declare-consts <numeral> Int)
 (declare-consts <decimal> Real)
 

@@ -1,5 +1,5 @@
 
-(declare-const = (-> (! Type :var T) T T Bool))
+(declare-parameterized-const = ((T Type)) (-> T T Bool))
 
 ;(declare-const = ((T Type)) (-> T T Bool))
 
@@ -11,7 +11,7 @@
   :conclusion (= Bool (= T x y) (= T y x)))
   
 
-(declare-type Int ())
+(declare-const Int Type)
 (declare-const x Int)
 (declare-const y Int)
 (declare-const c Bool)

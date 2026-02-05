@@ -1,16 +1,10 @@
-(declare-type Int ())
+(declare-const Int Type)
 (declare-consts <numeral> Int)
 (declare-const BitVec (-> Int Type))
 
 
-(declare-const extract (->
-  (! Int :var n :implicit)
-  (! Int :var h)
-  (! Int :var l)
-  (BitVec n)
-  (!
-    (BitVec (eo::add h (eo::add (eo::neg l) 1)))
-      :requires ((eo::is_neg l) false)
-      ; TODO: more conditions
-  ))
+(declare-parameterized-const extract ((n Int :implicit) (h Int) (l Int)) 
+  (-> (BitVec n) 
+      (eo::requires (eo::is_neg l) false (BitVec (eo::add h (eo::add (eo::neg l) 1))))
+  )
 )

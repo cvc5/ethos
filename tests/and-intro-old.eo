@@ -1,12 +1,12 @@
 
 (declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 
 ; nary.append cons c xs
 ; Appends `c` to the head of `xs`.
 (program nary.append
     ((L Type) (cons (-> L L L)) (c L) (xs L :list))
-    ((-> L L L) L L) L
+    :signature ((-> L L L) L L) L
     (
         ((nary.append cons c xs) (cons c xs))
     )

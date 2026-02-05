@@ -1,0 +1,19 @@
+
+(declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
+(declare-parameterized-const distinct ((A Type :implicit)) (-> A A Bool) :pairwise and)
+
+(declare-const b Bool)
+
+(declare-parameterized-const = ((A Type :implicit)) (-> A A Bool) :chainable and)
+
+(define a () (= b) :type Bool)
+
+; chainable with one argument reduces to the neutral element
+(declare-const c1 (eo::requires a true Bool))
+(define test1 () c1 :type Bool)
+
+(define c () (distinct b) :type Bool)
+
+; pairwise with one argument reduces to the neutral element
+(declare-const c2 (eo::requires c true Bool))
+(define test1 () c2 :type Bool)

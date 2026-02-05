@@ -2,16 +2,16 @@
 ; we can't do options in regression tests, these pass with:
 ; `--no-normalize-dec --no-normalize-hex`
 
-(declare-type Real ())
+(declare-const Real Type)
 (declare-consts <rational> Real)
 ;(declare-consts <decimal> Real)
-(declare-type BitVec ())
+(declare-const BitVec Type)
 (declare-consts <binary> BitVec)
 ;(declare-consts <hexadecimal> BitVec)
-(declare-type String ())
+(declare-const String Type)
 (declare-consts <string> String)
 
-(declare-const ok (-> (! Type :var T :implicit) T Bool))
+(declare-parameterized-const ok ((T Type :implicit)) (-> T Bool))
 
 (declare-rule test_to_str ((T Type) (x T) (s String))
   :args (x s)

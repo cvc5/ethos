@@ -1,0 +1,17 @@
+
+(declare-const Int Type)
+(declare-consts <numeral> Int)
+
+(declare-const not (-> Bool Bool))
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil (not true))
+(declare-const a Bool)
+(declare-const b Bool)
+(declare-const c Bool)
+(declare-const d Bool)
+
+(declare-const test016 (eo::requires (eo::list_concat or (not true) (not true)) (not true) Bool))
+(declare-const test017 (eo::requires (eo::list_concat or (or a b) (or b)) (or a b b) Bool))
+(declare-const test018 (eo::requires (eo::list_concat or (or (or a a)) (or b)) (or (or a a) b) Bool))
+(declare-const test019 (eo::requires (eo::list_concat or (not true) (or b)) (or b) Bool))
+(declare-const test020 (eo::requires (eo::list_concat or (or a b b) (not true)) (or a b b) Bool))
+(declare-const test021 (eo::requires (eo::list_concat or (or a) (or b)) (or a b) Bool))

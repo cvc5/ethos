@@ -1,0 +1,46 @@
+; This version of the signature assumes testers are written e.g. (_ is (as nil (Lst Int))), for the instantiated version of the constructor
+
+; use SMT-LIB syntax for as
+;(define as ((T Type :implicit) (x T) (S Type)) (as x S))
+
+(declare-const Int Type)
+(declare-datatypes ((Lst 1)) ((par (X) ((cons (head X) (tail (Lst X))) (nil)))))
+
+
+(declare-parameterized-const is ((C Type :implicit) (D Type :implicit)) (-> C D Bool))
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
+
+(program $mk_dt_split ((D Type) (x D) (T Type) (c T) (xs eo::List :list))
+  :signature (eo::List D) Bool
+  (
+    (($mk_dt_split eo::List::nil x)          false)
+    (($mk_dt_split (eo::List::cons c xs) x)  (eo::cons or (is c x) ($mk_dt_split xs x)))
+  )
+)
+
+(declare-rule dt-split ((D Type) (x D))
+  :args (x)
+  :conclusion ($mk_dt_split (eo::dt_constructors (eo::typeof x)) x)
+)
+
+(declare-const x (Lst Int))
+
+(step @p0 (or (is cons x) (is (as nil (Lst Int)) x)) :rule dt-split :args (x))
+
+
+(program $mk_dt_inst ((D Type) (x D) (T Type) (U Type) (t (-> T U)) (tb D) (s (-> D T)) (xs eo::List :list))
+  :signature (eo::List D T) D
+  (
+    (($mk_dt_inst eo::List::nil x tb)         tb)
+    (($mk_dt_inst (eo::List::cons s xs) x t)  ($mk_dt_inst xs x (t (s x))))
+  )
+)
+
+(declare-rule dt-inst ((D Type) (T Type) (c T) (x D))
+  :args (c x)
+  :conclusion (= (is c x) (= x ($mk_dt_inst (eo::dt_selectors c) x c)))
+)
+
+(step @p1 (= (is cons x) (= x (cons (head x) (tail x)))) :rule dt-inst :args (cons x))
+(step @p1 (= (is (as nil (Lst Int)) x) (= x (as nil (Lst Int)))) :rule dt-inst :args ((as nil (Lst Int)) x))

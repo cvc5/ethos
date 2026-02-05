@@ -9,6 +9,20 @@ endmacro()
 
 project (ethos_checker)
 
+# >> 2-valued: ON OFF
+#    > for options where we don't need to detect if set by user (default: OFF)
+option(BUILD_STATIC          "Build static binary" OFF)
+
+if(BUILD_STATIC)
+  set(BUILD_SHARED_LIBS OFF)
+  set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
+  # Linking system libraries statically is strongly discouraged on macOS.
+  # See https://developer.apple.com/library/archive/qa/qa1118/_index.html
+  if(NOT APPLE)
+    set(CMAKE_EXE_LINKER_FLAGS "-static")
+  endif()
+endif()
+
 set (CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 find_package(GMP REQUIRED)
@@ -23,6 +37,10 @@ endif()
 add_cxx_flag("-Wall")
 add_cxx_flag("-Wno-deprecated")
 add_cxx_flag("-std=gnu++17")
+
+if(WIN32)
+  add_definitions(-DUSE_CPP_FILESYSTEM)
+endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_cxx_flag("-g")

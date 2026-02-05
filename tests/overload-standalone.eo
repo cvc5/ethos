@@ -1,0 +1,14 @@
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
+
+(declare-const a Bool)
+(declare-const b Bool)
+
+(define singleton-list ((T Type :implicit) (f (-> T T T)) (a T)) (eo::cons f a (eo::nil f (eo::typeof a))))
+
+(declare-rule refl ((T Type) (t T))
+  :args (t)
+  :conclusion (= t t)
+)
+
+(step @p0 (= (or b) (or b)) :rule refl :args ((singleton-list or b)))

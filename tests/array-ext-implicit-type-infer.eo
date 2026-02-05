@@ -1,0 +1,27 @@
+
+(declare-const or (-> Bool Bool Bool))
+(declare-const not (-> Bool Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
+(declare-const exists (-> eo::List Bool Bool) :binder eo::List::cons)
+
+
+(declare-const Array (-> Type Type Type))
+
+(declare-parameterized-const select ((U Type :implicit) (T Type :implicit))
+   (-> (Array U T) U T))
+
+; In ethos 0.2.0, this rule would work even if the T argument was removed.
+; The semantics for proof rules was simplified to not bind free parameters
+; in the *types* of arguments.
+(declare-rule array_ext ((T Type) (U Type) (a (Array T U)) (b (Array T U)))
+  :args (T a b)
+  :conclusion (or (= a b) (exists ((x T)) (not (= (select a x) (select b x)))))
+)
+
+
+(declare-const Int Type)
+
+(declare-const a1 (Array Int Int))
+(declare-const a2 (Array Int Int))
+
+(step @p0 (or (= a1 a2) (exists ((x Int)) (not (= (select a1 x) (select a2 x))))) :rule array_ext :args (Int a1 a2))

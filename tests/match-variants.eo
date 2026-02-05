@@ -1,34 +1,24 @@
-(declare-type Int ())
+(declare-const Int Type)
 (declare-const a Int)
 (declare-const b Int)
 (declare-const P (-> Int Bool))
 (declare-const f (-> Int Int))
 ; Legal match terms:
-(define test1 ((x Int))
-    (eo::match ((y Int)) 
-        x 
-        (
-            (a a) 
-            (b b) 
-            ((f (f a)) a)
-            (y a)
-        )
-    ))
-(define test2 ((F Bool))
-    (eo::match ((x Int))
-        F
-        (
-            ((P x) x)
-        )
-    ))
-(define test3 ((F Bool) (y Int)) 
-    (f (eo::match ((x Int)) 
-            F 
-            (
-                ((P x) y)
-            )
-        )))
+(program test1 ((x Int) (y Int))
+  :signature (Int) Int
+  (
+  ((test1 a) a)
+  ((test1 b) b)
+  ((test1 (f (f a))) a)
+  ((test1 y) a)
+  )
+)
+(program test2 ((F Bool) (x Int))
+  :signature (Bool) Int
+  (
+  ((test2 (P x)) x)
+  )
+)
 
-; These do not work:
-;(define test4 ((F Bool) (y Int)) (eo::match ((x Int)) F (((P y) a))))  ; since y is not locally bound
-;(define test5 ((F Bool) (y Int)) (eo::match ((x Int)) F (((P a) x))))  ; since x is not bound by (P a)
+(define test3 ((F Bool))
+    (f (test2 F)))

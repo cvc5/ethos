@@ -1,0 +1,19 @@
+(program check_bind ((ctx Bool) (T Type) (l T) (r T) (l1 T) (r1 T))
+  :signature (Bool T T T T) Bool
+  (
+   ((check_bind ctx l r l1 r1) true)
+  )
+)
+
+(declare-rule bind ((ctx Bool) (old_ctx Bool) (T Type) (l T) (r T) (l1 T) (r1 T) (C Bool))
+  :assumption ctx
+  :conclusion-explicit C
+)
+
+(declare-const @cl (-> Bool Bool Bool) :right-assoc-nil false)
+
+(define ctx1 ( ) true)
+(assume-push context ctx1)
+(assume-push context true)
+(step-pop t5.t4 (@cl true) :rule bind)
+(step-pop t5.t4.2 (@cl true) :rule bind)

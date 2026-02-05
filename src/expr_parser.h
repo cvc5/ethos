@@ -27,11 +27,15 @@ class ExprParser
   ExprParser(Lexer& lex, State& state, bool isSignature);
   virtual ~ExprParser() {}
 
-  /** Parses an SMT-LIB term <term> */
+  /** Parses a term <term> */
   Expr parseExpr();
-  /** Parses an SMT-LIB type <type> */
-  Expr parseType();
-  /** Parses an SMT-LIB formula <formula> */
+  /**
+   * Parses a type <type>. We reject types that are ground and evaluatable.
+   * @param allowQuoteArg If true, we also permit (eo::quote <term>).
+   * @param allowEval If true, we permit the term to be evaluatable.
+   */
+  Expr parseType(bool allowQuoteArg = false, bool allowEval = true);
+  /** Parses a formula <formula> (term of Boolean type). */
   Expr parseFormula();
   /** Parses an SMT-LIB term pair */
   Expr parseExprPair();
@@ -39,25 +43,36 @@ class ExprParser
   std::string parseSymbolicExpr();
   /** Parses parentheses-enclosed term list (<term>*) */
   std::vector<Expr> parseExprList();
-  /** Parses parentheses-enclosed term list (<type>*) */
-  std::vector<Expr> parseTypeList();
+  /**
+   * Parses parentheses-enclosed term list (<type>*).
+   * Note that we never allow evaluation in types in this list.
+   * @param allowQuoteArg If true, we also permit (eo::quote t).
+   */
+  std::vector<Expr> parseTypeList(bool allowQuoteArg = false);
   /** Parses parentheses-enclosed term list ((<term> <term>)*) */
   std::vector<Expr> parseExprPairList();
   /**
    * Parse parentheses-enclosed sorted variable list of the form:
    * ((<symbol> <sort>)*)
-   * 
-   * @param isLookup If true, we expect the variable list to be already bound
-   * variables and throw an error if a variable does not match.
-   */
-  std::vector<Expr> parseAndBindSortedVarList(bool isLookup=false);
-  /**
-   * Same as above, but tracks implicit variables. All variables marked
+   * All variables marked
    * :implicit that were parsed and not added to the return value of this
-   * method are added to impls.
+   * method.
+   * Note that we never allow quote or evaluation in types in this list.
+   *
+   * @param k The category of the parameter list:
+   * - CONST if this is a parameter list of declare-paramaterized-const.
+   * - LAMBDA if this is the parameter list of a define command.
+   * - PROOF_RULE if this is the parameter list of a declare-rule command.
+   * - PROGRAM if this is the parameter list of a program or eo::match.
+   * - NONE otherwise (e.g. if an SMT-LIB binder).
+   * This impacts which attributes are available and how they are handled.
    */
-  std::vector<Expr> parseAndBindSortedVarList(std::vector<Expr>& impls,
-                                              bool isLookup=false);
+  std::vector<Expr> parseAndBindSortedVarList(Kind k);
+  /**
+   * Same as above, but tracks attributes.
+   */
+  std::vector<Expr> parseAndBindSortedVarList(
+      Kind k, std::map<ExprValue*, AttrMap>& amap);
   /**
    * Parse and bind a let list, i.e. ((x1 t1) ... (xn tn)), where x1...xn are
    * symbols to bind to terms t1...tn.
@@ -85,11 +100,20 @@ class ExprParser
    * datatype_dec :=
    *   (<constructor_dec>+) | (par (<symbol>+) (<constructor_dec>+))
    * constructor_dec := (<symbol> (<symbol> <sort>)∗)
+   *
+   * @param dnames The names of the datatypes.
+   * @param arities The arities of the datatypes given by the names dnames.
+   * @param dts Mapping from datatypes to their constructor symbols.
+   * @param dtcons Mapping from constructors to their selector symbols.
+   * @param ambCons The subset of constructors in the domain of dtcons that are
+   * ambiguous constructors, i.e. require their return type as the first
+   * argument.
    */
   bool parseDatatypesDef(const std::vector<std::string>& dnames,
                          const std::vector<size_t>& arities,
                          std::map<const ExprValue*, std::vector<Expr>>& dts,
-                         std::map<const ExprValue*, std::vector<Expr>>& dtcons);
+                         std::map<const ExprValue*, std::vector<Expr>>& dtcons,
+                         std::unordered_set<const ExprValue*>& ambCons);
   /**
    * Parses ':X', returns 'X'
    */
@@ -101,11 +125,11 @@ class ExprParser
    * string when `unescape` is set to true.
    */
   std::string parseStr(bool unescape);
-  
+
   /**
    * Parse attribute list
    * <attr_1> ... <attr_n>
-   * 
+   *
    * @param k The category of expression we are applying attributes to which is:
    * - PARAM if applied to a parameter,
    * - PROOF_RULE if applied to the symbol introduced by a declare-rule command,
@@ -114,14 +138,14 @@ class ExprParser
    * - NONE otherwise.
    * @param e The expression we are applying to
    * @param attr The attributes which are populated
-   * @param pushedScope True if we pushed a scope while reading the list. This
-   * is true when e.g. the attribute :var is read. The caller of this method
-   * is responsible for popping the scope.
+   * @param plk If k is PARAM, this is the category of the parameter list
+   * which that parameter belongs to
    */
-  void parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushedScope);
-  /** Same as above, but ensures we pop the scope */
-  void parseAttributeList(Kind k, Expr& e, AttrMap& attrs);
-  
+  void parseAttributeList(Kind k,
+                          Expr& e,
+                          AttrMap& attrs,
+                          Kind plk = Kind::NONE);
+
   /**
    * Parse literal kind.
    */
@@ -129,19 +153,40 @@ class ExprParser
   //-------------------------- checking
   /** type check the expression */
   Expr typeCheck(Expr& e);
-  /** type check (APPLY children), without constructing the APPLY */
-  Expr typeCheckApp(std::vector<Expr>& children);
   /** ensure type */
   Expr typeCheck(Expr& e, const Expr& expected);
+  /**
+   * Type check program pair. This method is called when (pat, ret) is
+   * parsed as a pattern/return pair for a program.
+   * If checkPreservation is true, we should expect it to be possible to
+   * show that pat and ret have the same type and give an error or warning
+   * otherwise.
+   * This currently checks that the free parameters of ret are a subset of
+   * the free parameters of pat. This ensures that programs do not return
+   * terms with free parameters that are not bound during pattern matching.
+   */
+  void typeCheckProgramPair(Expr& pat, Expr& ret, bool checkPreservation);
   /** get variable, else error */
   Expr getVar(const std::string& name);
   /** get variable, else error */
   Expr getProofRule(const std::string& name);
   /** Bind, or throw error otherwise */
   void bind(const std::string& name, Expr& e);
-  /** Ensure bound */
+  /**
+   * @return a variable from the free variables of e that is not in bvs if
+   * one exists, or the null expression otherwise.
+   */
+  Expr findFreeVar(const Expr& e, const std::vector<Expr>& bvs);
+  /**
+   * Throw an exception if the free variables of e are not in bvs.
+   */
   void ensureBound(const Expr& e, const std::vector<Expr>& bvs);
   //-------------------------- end checking
+  /**
+   * Process attribute maps. Calls the method above for each entry in the map,
+   * where ex
+   */
+  void processAttributeMaps(const std::map<ExprValue*, AttrMap>& amap);
   /**
    * Process attribute map. This processes an attribute list to
    * assign a "constructor kind" to a constant or parameter.
@@ -149,22 +194,27 @@ class ExprParser
    * @param attrs The attributes we just processed.
    * @param ck The constructor kind contained in attrs.
    * @param cons The corresponding constructor with ck.
-   * @param params The free parameters, if processing a constant.
    */
-  void processAttributeMap(const AttrMap& attrs,
-                           Attr& ck,
-                           Expr& cons,
-                           const std::vector<Expr>& params);
+  void processAttributeMap(const AttrMap& attrs, Attr& ck, Expr& cons);
+
  protected:
   /**
    * Parse constructor definition list, add to declaration type. The expected
    * syntax is '(<constructor_dec>+)'.
+   * @param dt The datatype this constructor list is for.
+   * @param conslist Populated with the constructors of dt.
+   * @param dtcons Mapping from constructors to their selector symbols.
+   * @param toBind The symbols to bind.
+   * @param ambCons The subset of conslist that are ambiguous constructors.
+   * @param param The parameters of dt.
    */
   void parseConstructorDefinitionList(
       Expr& dt,
       std::vector<Expr>& conslist,
       std::map<const ExprValue*, std::vector<Expr>>& dtcons,
-      std::vector<std::pair<std::string, Expr>>& toBind);
+      std::vector<std::pair<std::string, Expr>>& toBind,
+      std::unordered_set<const ExprValue*>& ambCons,
+      const std::vector<Expr>& params);
   /** Return the unsigned for the current token string. */
   uint32_t tokenStrToUnsigned();
   /**

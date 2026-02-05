@@ -1,0 +1,7 @@
+(declare-const Int Type)
+(declare-const > (-> Int Int Bool))
+(declare-const < (-> Int Int Bool))
+(declare-consts <numeral> Int)
+(reference "simple.smt2")
+(assume @p0 (> x 0))
+(assume @p1 (< x 0))

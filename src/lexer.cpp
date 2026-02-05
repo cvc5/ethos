@@ -182,12 +182,10 @@ const char* Lexer::tokenStr() const
 
 Token Lexer::nextTokenInternal()
 {
-  //Trace("lexer-debug") << "Call nextToken" << std::endl;
   d_token.clear();
   Token ret = computeNextToken();
   // null terminate?
   d_token.push_back(0);
-  //Trace("lexer-debug") << "Return nextToken " << ret << " / " << tokenStr() << std::endl;
   return ret;
 }
 
@@ -222,7 +220,6 @@ Token Lexer::computeNextToken()
   pushToToken(ch);
   switch (ch)
   {
-    case '!': return Token::ATTRIBUTE;
     case '(': return Token::LPAREN;
     case ')': return Token::RPAREN;
     case '|':
@@ -242,13 +239,19 @@ Token Lexer::computeNextToken()
       {
         case 'b':
           pushToToken(ch);
-          // parse [01]*
-          parseCharList(CharacterClass::BIT);
+          // parse [01]+
+          if (!parseNonEmptyCharList(CharacterClass::BIT))
+          {
+            parseError("Error expected bit string");
+          }
           return Token::BINARY_LITERAL;
         case 'x':
           pushToToken(ch);
-          // parse [0-9a-fA-F]*
-          parseCharList(CharacterClass::HEXADECIMAL_DIGIT);
+          // parse [0-9a-fA-F]+
+          if (!parseNonEmptyCharList(CharacterClass::HEXADECIMAL_DIGIT))
+          {
+            parseError("Error expected hexadecimal string");
+          }
           return Token::HEX_LITERAL;
         default:
           // otherwise error
@@ -385,6 +388,12 @@ Token Lexer::tokenizeCurrentSymbol() const
   Assert(!d_token.empty());
   switch (d_token[0])
   {
+    case '!':
+      if (d_token.size()==1)
+      {
+        return Token::ATTRIBUTE;
+      }
+      break;
     case '-':
     {
       if (d_token.size()>=2)
@@ -419,13 +428,7 @@ Token Lexer::tokenizeCurrentSymbol() const
     case 'e':
       if (d_token.size()>=4 && d_token[1] == 'o' && d_token[2] == ':' && d_token[3] == ':')
       {
-        if (d_token.size()==9 && d_token[4]=='m' && d_token[5]=='a' &&
-            d_token[6]=='t' && d_token[7]=='c' && d_token[8]=='h')
-        {
-          // eo::match
-          return Token::EVAL_MATCH;
-        }
-        else if (d_token.size()==10 && d_token[4]=='d' && d_token[5]=='e' &&
+        if (d_token.size()==10 && d_token[4]=='d' && d_token[5]=='e' &&
                  d_token[6]=='f' && d_token[7]=='i' && d_token[8]=='n' &&
                  d_token[9]=='e')
         {

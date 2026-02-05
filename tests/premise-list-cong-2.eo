@@ -1,10 +1,10 @@
 
 
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 (declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
 
 (program mk_cong_eq ((T Type) (U Type) (f1 (-> T U)) (f2 (-> T U)) (t1 U) (t2 U) (tail Bool :list))
-    (Bool Bool) Bool
+    :signature (Bool Bool) Bool
     (
         ((mk_cong_eq (= f1 f2) true)                 (= f1 f2))
         ((mk_cong_eq (= f1 f2) (and (= t1 t2) tail)) (mk_cong_eq (= (f1 t1) (f2 t2)) tail))
@@ -24,7 +24,7 @@
 )
 
 
-(declare-type U ())
+(declare-const U Type)
 (declare-const a U)
 (declare-const b U)
 (declare-const c U)

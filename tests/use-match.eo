@@ -1,33 +1,34 @@
-(program maybe_nil ((T Type) (t T))
-    (T T) T
+(declare-const String Type)
+(declare-consts <string> String)
+
+(program maybe_nil ((T Type) (U Type) (t T))
+    :signature (T U) T
     (
       ((maybe_nil t t)       t)
       ((maybe_nil t "") t)
     )
 )
 
-(declare-type Pair (Type Type))
-(declare-const pair (-> (! Type :var U :implicit) (! Type :var T :implicit) U T (Pair U T)))
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-const Pair (-> Type Type Type))
+(declare-parameterized-const pair ((U Type :implicit) (T Type :implicit)) (-> U T (Pair U T)))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 
 ; nary.append cons c xs
 ; Appends `c` to the head of `xs`.
 (program nary.append
     ((L Type) (cons (-> L L L)) (c L) (xs L :list))
-    ((-> L L L) L L) L
+    :signature ((-> L L L) L L) L
     (
         ((nary.append cons c xs) (cons c xs))
     )
 )
 
-(declare-type String ())
-(declare-consts <string> String)
 (declare-const str.++ (-> String String String) :right-assoc-nil "")
 
 ; `check_true b`
 ; returns true if b is true, returns false otherwise
 (program check_true ((b Bool))
-  (Bool) Bool
+  :signature (Bool) Bool
   (
     ((check_true true) true)
     ((check_true b) false)
@@ -35,34 +36,37 @@
 )
 (define check_length_one ((s String)) (check_true (eo::is_eq (eo::len s) 1)))
 
+(program string_collect_acc_match ((t String) (s1 String) (s2 String))
+  :signature (String (Pair String String)) (Pair String String)
+  (
+  ((string_collect_acc_match t (pair "" s2)) (pair t s2))
+  ((string_collect_acc_match t (pair s1 s2)) (pair (eo::concat t s1) s2))
+  )
+)
+
 (program string_collect_acc ((t String) (tail String :list))
-  (String) (Pair String String)
+  :signature (String) (Pair String String)
   (
     ((string_collect_acc "")         (pair "" ""))
     ; Check if t is a word constant
     ((string_collect_acc (str.++ t tail))
       (eo::ite (check_length_one t)
-        (eo::match ((s1 String) (s2 String)) 
-          (string_collect_acc tail)
-          (
-            ((pair "" s2) (pair t s2))
-            ((pair s1 s2) (pair (eo::concat t s1) s2))
-          )
-        )
+        (string_collect_acc_match t (string_collect_acc tail))
         (pair "" (str.++ t tail))))
   )
 )
 
+(program mk_collect_acc ((s String) (s1 String) (s2 String :list))
+  :signature (String (Pair String String)) Bool
+  (
+  ((mk_collect_acc s (pair "" s2))  (= s s2))
+  ((mk_collect_acc s (pair s1 s2))  (= s (str.++ s1 s2)))
+  )
+)
 
 (declare-rule collect_acc ((s String))
   :args (s)
-  :conclusion (eo::match ((s1 String) (s2 String :list)) 
-                (string_collect_acc s) 
-                (
-                  ((pair "" s2)  (= s s2))
-                  ((pair s1 s2)       (= s (str.++ s1 s2)))
-                )
-              )
+  :conclusion (mk_collect_acc s (string_collect_acc s))
 )
 
 (declare-const x String)

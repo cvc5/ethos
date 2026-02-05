@@ -1,0 +1,47 @@
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+(declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
+(declare-const a Bool)
+(declare-const b Bool)
+(declare-const c Bool)
+(declare-const d Bool)
+
+
+(declare-const test1 (eo::requires (eo::list_rev or (or a b c)) (or c b a) Bool))
+(declare-const test2 (eo::requires (eo::list_rev or false) false Bool))
+
+(declare-const test3 (eo::requires (eo::list_erase or (or a b c) a) (or b c) Bool))
+(declare-const test4 (eo::requires (eo::list_erase or (or c a a b a) a) (or c a b a) Bool))
+(declare-const test5 (eo::requires (eo::list_erase or (or a b c) d) (or a b c) Bool))
+(declare-const test6 (eo::requires (eo::list_erase or false d) false Bool))
+
+(declare-const test7 (eo::requires (eo::list_erase_all or (or a b c) a) (or b c) Bool))
+(declare-const test8 (eo::requires (eo::list_erase_all or (or a a b a) a) (or b) Bool))
+(declare-const test9 (eo::requires (eo::list_erase_all or (or a b c) d) (or a b c) Bool))
+(declare-const test10 (eo::requires (eo::list_erase_all or false d) false Bool))
+
+(declare-const test7 (eo::requires (eo::list_setof or (or a b c)) (or a b c) Bool))
+(declare-const test8 (eo::requires (eo::list_setof or (or a b a c a b c)) (or a b c) Bool))
+(declare-const test9 (eo::requires (eo::list_setof or (or a a a)) (or a) Bool))
+(declare-const test10 (eo::requires (eo::list_setof or false) false Bool))
+
+(declare-const test11 (eo::requires (eo::list_minclude or (or a b) (or a a b)) true Bool))
+(declare-const test12 (eo::requires (eo::list_minclude or (or a b) (or b a)) true Bool))
+(declare-const test13 (eo::requires (eo::list_minclude or (or a b b) (or a b)) false Bool))
+(declare-const test14 (eo::requires (eo::list_minclude or false (or a b)) true Bool))
+
+(declare-const test15 (eo::requires (eo::list_meq or (or a b) (or a a b)) false Bool))
+(declare-const test16 (eo::requires (eo::list_meq or (or a b c b) (or b a c b)) true Bool))
+(declare-const test17 (eo::requires (eo::list_meq or (or a b b) (or a a b)) false Bool))
+(declare-const test18 (eo::requires (eo::list_meq or false false) true Bool))
+
+(declare-const test19 (eo::requires (eo::list_diff or (or a b) (or a a b)) false Bool))
+(declare-const test20 (eo::requires (eo::list_diff or (or a a b) (or a b)) (or a) Bool))
+(declare-const test21 (eo::requires (eo::list_diff or (or a b c b a) (or c b)) (or a b a) Bool))
+(declare-const test22 (eo::requires (eo::list_diff or (or a b a c a) (or a a)) (or b c a) Bool))
+(declare-const test23 (eo::requires (eo::list_diff or (or a b c) (or a b c)) false Bool))
+
+(declare-const test24 (eo::requires (eo::list_inter or (or a b) (or a a b)) (or a b) Bool))
+(declare-const test25 (eo::requires (eo::list_inter or (or a a b) (or a b)) (or a b) Bool))
+(declare-const test26 (eo::requires (eo::list_inter or (or a b c b a) (or c b)) (or b c) Bool))
+(declare-const test27 (eo::requires (eo::list_inter or (or a b a c a) (or a a)) (or a a) Bool))
+(declare-const test28 (eo::requires (eo::list_inter or (or a b c) (or a b c)) (or a b c) Bool))

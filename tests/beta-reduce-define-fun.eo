@@ -1,10 +1,10 @@
 
-(declare-const = (-> (! Type :var T) T T Bool))
+(declare-parameterized-const = ((T Type)) (-> T T Bool))
 
 (declare-const not (-> Bool Bool))
 
 
-(declare-type U ())
+(declare-const U Type)
 (define f_true ((x U)) true)
 
 

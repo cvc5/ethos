@@ -52,6 +52,11 @@ Filepath::Filepath(const char* rawPath)
 #endif
 }
 
+#ifdef USE_CPP_FILESYSTEM
+Filepath::Filepath(std::filesystem::path rawPath)
+: rawPath(rawPath) {}
+#endif
+
 Filepath::~Filepath() {}
 
 bool Filepath::isAbsolute() const
@@ -200,7 +205,13 @@ Filepath Filepath::parentPath() const
 #endif
 }
 
-std::string Filepath::getRawPath() const { return this->rawPath; }
+std::string Filepath::getRawPath() const {
+#ifndef USE_CPP_FILESYSTEM
+  return rawPath;
+#else
+  return rawPath.string();
+#endif
+}
 
 bool operator<(const Filepath& a, const Filepath& b)
 {

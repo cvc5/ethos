@@ -1,26 +1,21 @@
 
 
 
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
 (declare-const not (-> Bool Bool))
 
-(declare-type Array (Type Type))
-(declare-type Int ())
+(declare-const Array (-> Type Type Type))
+(declare-const Int Type)
 
 (declare-const select (-> (Array Int Int) Int Int))
 
 
-(declare-const @array_deq_diff 
-  (-> 
-    (! Type :implicit :var T)
-    (! Type :implicit :var U)
-    (! (Array T U) :opaque)
-    (! (Array T U) :opaque)
-    T
-  )
+(declare-parameterized-const @array_deq_diff
+  ((T Type :implicit) (U Type :implicit) (a (Array T U) :opaque) (b (Array T U) :opaque))
+  T
 )
 
 

@@ -30,18 +30,21 @@ class Options
 {
  public:
   Options();
-  bool d_printLet;
+  /**
+   * @return true if the option was successfully set.
+   */
+  bool setOption(const std::string& key, bool val);
+  bool d_printDag;
   /** 'let' is lexed as the SMT-LIB syntax for a dag term specified by a let */
   bool d_parseLet;
   bool d_stats;
+  bool d_statsAll;
   bool d_statsCompact;
   bool d_ruleSymTable;
   bool d_normalizeDecimal;
   bool d_normalizeHexadecimal;
   /** Treat numerals as rational literals */
   bool d_normalizeNumeral;
-  /** Binders generate fresh variables in proof and reference files */
-  bool d_binderFresh;
 };
 
 /**
@@ -94,13 +97,21 @@ class State
   /** Make type constant (-> Type ... Type Type) */
   Expr mkTypeConstant(const std::string& name, size_t arity);
   /** (-> <type>+ <type>) */
-  Expr mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool flatten = true);
-  /** ? */
-  Expr mkAbstractType();
+  Expr mkFunctionType(const std::vector<Expr>& args, const Expr& ret);
+  /** (-> <type>+ <type>) */
+  Expr mkProgramType(const std::vector<Expr>& args, const Expr& ret);
   /** Bool */
   Expr mkBoolType();
-  /** (Proof <proven>) */
-  Expr mkProofType(const Expr& proven);
+  /** eo::List */
+  Expr mkListType();
+  /** eo::List::cons */
+  Expr mkListCons();
+  /** eo::List::nil */
+  Expr mkListNil();
+  /** The Proof type, which is an ordinary simple type */
+  Expr mkProofType();
+  /** (pf <proven>), where <proven> is a formula. */
+  Expr mkProof(const Expr& proven);
   /** (Quote <term>) */
   Expr mkQuoteType(const Expr& t);
   /** */
@@ -112,17 +123,19 @@ class State
   /** (eo::requires <arg1> <arg2> <type>) */
   Expr mkRequires(const Expr& a1, const Expr& a2, const Expr& ret);
   /** */
-  Expr mkSelf();
-  /** Make the conclusion variable */
-  Expr mkConclusion();
+  Expr mkSelf() const;
   /** Make pair */
   Expr mkPair(const Expr& t1, const Expr& t2);
   /** */
   Expr mkExpr(Kind k, const std::vector<Expr>& children);
   /** make true */
-  Expr mkTrue();
+  Expr mkTrue() const;
   /** make false */
-  Expr mkFalse();
+  Expr mkFalse() const;
+  /** make Boolean value */
+  Expr mkBool(bool val) const;
+  /** Make any */
+  Expr mkAny() const;
   /**
    * Create a literal from a string.
    * @param s The string representation of the literal, may represent an
@@ -134,6 +147,11 @@ class State
    * Make parameterized with given parameters
    */
   Expr mkParameterized(const ExprValue* hd, const std::vector<Expr>& params);
+  /**
+   * Make (eo::List::Cons <args>) if args is non-empty or eo::List::nil
+   * otherwise.
+   */
+  Expr mkList(const std::vector<Expr>& args);
   //--------------------------------------
   /** Get the constructor kind for symbol v */
   Attr getConstructorKind(const ExprValue* v) const;
@@ -150,14 +168,27 @@ class State
   Expr getBoundVar(const std::string& name, const Expr& type);
   /** Get the proof rule with the given name or nullptr if it does not exist */
   Expr getProofRule(const std::string& name) const;
-  /** Get actual premises */
-  bool getActualPremises(const ExprValue* ev,
-                         std::vector<Expr>& given,
-                         std::vector<Expr>& actual);
+  /**
+   * Get proof rule arguments, which determines the argument list to a proof
+   * rule in a step or step-pop. This takes into account whether the rule was
+   * marked :premise-list, :conclusion-explicit, or :assumption (for step-pop
+   * commands).
+   * @param children The vector of children to populate.
+   * @param rule The proof rule being applied.
+   * @param proven The conclusion of the proof rule, if provided.
+   * @param premises The provided premises of the proof rule.
+   * @param args The provided arguments of the proof rule.
+   * @param isPop Whether we were a step-pop.
+   * @return true if we successfully populated the arguments to the proof rule.
+   */
+  bool getProofRuleArguments(std::vector<Expr>& children,
+                             Expr& rule,
+                             Expr& proven,
+                             std::vector<Expr>& premises,
+                             std::vector<Expr>& args,
+                             bool isPop);
   /** Get the program */
   Expr getProgram(const ExprValue* ev);
-  /** Get the oracle command */
-  bool getOracleCmd(const ExprValue* ev, std::string& ocmd);
   /** */
   size_t getAssumptionLevel() const;
   /** */
@@ -195,18 +226,33 @@ class State
   Expr d_null;
   Expr d_type;
   Expr d_boolType;
-  Expr d_absType;
   Expr d_true;
   Expr d_false;
   Expr d_self;
-  Expr d_conclusion;
+  Expr d_any;
   Expr d_fail;
-  /** Get base operator */
-  const ExprValue* getBaseOperator(const ExprValue * v) const;
+  Expr d_listType;
+  Expr d_listNil;
+  Expr d_listCons;
+  /** The proof type */
+  Expr d_proofType;
   /** Mark that file s was included */
   bool markIncluded(const Filepath& s);
   /** mark deleted */
   void markDeleted(ExprValue* e);
+  /**
+   * Make (<APPLY> children) based on attribute. Returns the null term if the
+   * attribute does not impact how to build the application.
+   * @param ai The attribute of the head.
+   * @param vchildren The children, including the head term.
+   * @param consTerm The computed constructor term correspond to the
+   * application.
+   * @return The application of vchildren based on ai, or the null term if
+   * the default construction should be used to construct the application.
+   */
+  Expr mkApplyAttr(AppInfo* ai,
+                   const std::vector<ExprValue*>& vchildren,
+                   const Expr& consTerm);
   /** Make (<APPLY> children), curried. */
   ExprValue* mkApplyInternal(const std::vector<ExprValue*>& children);
   /**
@@ -229,13 +275,17 @@ class State
    * construct. This includes a head operator.
    * @param retType If non-null, this is required return type of the
    * application.
+   * @param retApply If true, we return the application of the
+   * appropriate overloaded constructor to children; otherwise we return the
+   * overloaded constructor itself.
    * @return If possible, one of the elements of overloads that meets
    * the above requirements. If multiple are possible, we return the
    * first only. If none are possible, we return the null expression.
    */
   Expr getOverloadInternal(const std::vector<Expr>& overloads,
                            const std::vector<Expr>& children,
-                           const ExprValue* retType = nullptr);
+                           const ExprValue* retType = nullptr,
+                           bool retApply = false);
   /** Get the internal data for expression e. */
   AppInfo* getAppInfo(const ExprValue* e);
   const AppInfo* getAppInfo(const ExprValue* e) const;
@@ -264,6 +314,11 @@ class State
    *   d_overloadedDecls = { "A", "A", "B" }.
    */
   std::vector<std::string> d_overloadedDecls;
+  /**
+   * Maps symbols that are bound to >= 2 terms to the list of all terms bound
+   * to that symbol. Each vector in the range of this map has size >=2.
+   */
+  std::map<std::string, std::vector<Expr>> d_overloads;
   /**
    * Context size, which is the size of d_decls at the time of when each
    * current pushScope was called.
@@ -314,12 +369,12 @@ class State
   /** Are we in garbage collection? */
   bool d_inGarbageCollection;
   //--------------------- utilities
-  /** Type checker */
-  TypeChecker d_tc;
   /** Options */
   Options& d_opts;
   /** Stats */
   Stats& d_stats;
+  /** Type checker */
+  TypeChecker d_tc;
   /** Plugin, if using one */
   Plugin* d_plugin;
 };

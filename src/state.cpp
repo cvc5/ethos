@@ -20,36 +20,87 @@ namespace ethos {
 Options::Options()
 {
   d_parseLet = true;
-  d_printLet = false;
+  d_printDag = true;
   d_stats = false;
+  d_statsAll = false;
   d_statsCompact = false;
   d_ruleSymTable = true;
   d_normalizeDecimal = true;
   d_normalizeHexadecimal = true;
   d_normalizeNumeral = false;
-  d_binderFresh = false;
+}
+
+bool Options::setOption(const std::string& key, bool val)
+{
+  if (key == "parse-let")
+  {
+    d_parseLet = val;
+  }
+  else if (key == "print-dag")
+  {
+    d_printDag = val;
+  }
+  else if (key == "stats")
+  {
+    d_stats = val;
+  }
+  else if (key == "stats-all")
+  {
+    // also implies stats are enabled.
+    d_stats = val ? true : d_stats;
+    d_statsAll = val;
+  }
+  else if (key == "stats-compact")
+  {
+    // also implies stats are enabled.
+    d_stats = val ? true : d_stats;
+    d_statsCompact = val;
+  }
+  else if (key == "rule-sym-table")
+  {
+    d_ruleSymTable = val;
+  }
+  else if (key == "normalize-dec")
+  {
+    d_normalizeDecimal = val;
+  }
+  else if (key == "normalize-num")
+  {
+    d_normalizeNumeral = val;
+  }
+  else if (key == "normalize-hex")
+  {
+    d_normalizeHexadecimal = val;
+  }
+  else
+  {
+    return false;
+  }
+  Trace("options") << "setOption(\"" << key << "\", " << val << ")"
+                   << std::endl;
+  return true;
 }
 
 State::State(Options& opts, Stats& stats)
     : d_hashCounter(0),
       d_hasReference(false),
       d_inGarbageCollection(false),
-      d_tc(*this, opts),
       d_opts(opts),
       d_stats(stats),
+      d_tc(*this, opts),
       d_plugin(nullptr)
 {
   ExprValue::d_state = this;
-  d_absType = Expr(mkExprInternal(Kind::ABSTRACT_TYPE, {}));
 
   // lambda is not builtin?
   // forall, exists, choice?
   //bindBuiltin("lambda", Kind::LAMBDA, true);
   bindBuiltin("->", Kind::FUNCTION_TYPE);
   bindBuiltin("_", Kind::APPLY);
-  bindBuiltin("eo::_", Kind::PARAMETERIZED);
 
+  bindBuiltinEval("is_ok", Kind::EVAL_IS_OK);
   bindBuiltinEval("is_eq", Kind::EVAL_IS_EQ);
+  bindBuiltinEval("eq", Kind::EVAL_EQ);
   bindBuiltinEval("ite", Kind::EVAL_IF_THEN_ELSE);
   bindBuiltinEval("requires", Kind::EVAL_REQUIRES);
   bindBuiltinEval("hash", Kind::EVAL_HASH);
@@ -70,6 +121,15 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("list_concat", Kind::EVAL_LIST_CONCAT);
   bindBuiltinEval("list_nth", Kind::EVAL_LIST_NTH);
   bindBuiltinEval("list_find", Kind::EVAL_LIST_FIND);
+  bindBuiltinEval("list_erase", Kind::EVAL_LIST_ERASE);
+  bindBuiltinEval("list_erase_all", Kind::EVAL_LIST_ERASE_ALL);
+  bindBuiltinEval("list_rev", Kind::EVAL_LIST_REV);
+  bindBuiltinEval("list_setof", Kind::EVAL_LIST_SETOF);
+  bindBuiltinEval("list_minclude", Kind::EVAL_LIST_MINCLUDE);
+  bindBuiltinEval("list_meq", Kind::EVAL_LIST_MEQ);
+  bindBuiltinEval("list_diff", Kind::EVAL_LIST_DIFF);
+  bindBuiltinEval("list_inter", Kind::EVAL_LIST_INTER);
+  bindBuiltinEval("list_singleton_elim", Kind::EVAL_LIST_SINGLETON_ELIM);
   // boolean
   bindBuiltinEval("not", Kind::EVAL_NOT);
   bindBuiltinEval("and", Kind::EVAL_AND);
@@ -93,19 +153,13 @@ State::State(Options& opts, Stats& stats)
   bindBuiltinEval("concat", Kind::EVAL_CONCAT);
   bindBuiltinEval("extract", Kind::EVAL_EXTRACT);
   bindBuiltinEval("find", Kind::EVAL_FIND);
+  // datatypes
+  bindBuiltinEval("dt_constructors", Kind::EVAL_DT_CONSTRUCTORS);
+  bindBuiltinEval("dt_selectors", Kind::EVAL_DT_SELECTORS);
 
   // as
+  bindBuiltin("as", Kind::AS_RETURN);
   bindBuiltinEval("as", Kind::AS);
-  
-  // we do not export eo::null
-  // for now, eo::? is (undocumented) syntax for abstract type
-  bind("eo::?", mkAbstractType());
-  // self is a distinguished parameter
-  d_self = Expr(mkSymbolInternal(Kind::PARAM, "eo::self", mkAbstractType()));
-  bind("eo::self", d_self);
-  d_conclusion = Expr(mkSymbolInternal(Kind::PARAM, "eo::conclusion", mkBoolType()));
-  // eo::conclusion is not globally bound, since it can only appear
-  // in :requires.
 
   // note we don't allow parsing (Proof ...), (Quote ...), or (quote ...).
 
@@ -116,6 +170,28 @@ State::State(Options& opts, Stats& stats)
   bind("true", d_true);
   d_false = Expr(new Literal(false));
   bind("false", d_false);
+
+  // builtin lists
+  d_listType = Expr(mkSymbolInternal(Kind::CONST, "eo::List", d_type));
+  bind("eo::List", d_listType);
+  d_listNil = Expr(mkSymbolInternal(Kind::CONST, "eo::List::nil", d_listType));
+  bind("eo::List::nil", d_listNil);
+  Expr t = Expr(mkSymbolInternal(Kind::PARAM, "T", d_type));
+  std::vector<Expr> argTypes;
+  argTypes.push_back(t);
+  argTypes.push_back(d_listType);
+  Expr consType = mkFunctionType(argTypes, d_listType);
+  d_listCons = Expr(mkSymbolInternal(Kind::CONST, "eo::List::cons", consType));
+  bind("eo::List::cons", d_listCons);
+  markConstructorKind(d_listCons, Attr::RIGHT_ASSOC_NIL, d_listNil);
+
+  // any is used internally but is not avaiable to the user
+  d_any = Expr(mkExpr(Kind::ANY, {}));
+  // self is a distinguished parameter
+  d_self = Expr(mkSymbolInternal(Kind::PARAM, "eo::self", d_any));
+  // Proof is the return type of terms with kind Kind::PROOF, which is an
+  // ordinary type (not available in the parser).
+  d_proofType = Expr(mkSymbolInternal(Kind::CONST, "Proof", d_type));
 }
 
 State::~State() {}
@@ -154,27 +230,32 @@ void State::popScope()
   }
   size_t lastSize = d_declsSizeCtx.back();
   d_declsSizeCtx.pop_back();
-  for (size_t i=lastSize, currSize = d_decls.size(); i<currSize; i++)
+  size_t i = d_decls.size();
+  while (i > lastSize)
   {
+    i--;
     // Check if overloaded, which is the case if the last overloaded
     // declaration had the same name.
     if (!d_overloadedDecls.empty() && d_overloadedDecls.back()==d_decls[i])
     {
       d_overloadedDecls.pop_back();
+      std::map<std::string, Expr>::iterator its = d_symTable.find(d_decls[i]);
+      Assert (its!=d_symTable.end());
       // it should be overloaded
-      AppInfo* ai = getAppInfo(d_symTable[d_decls[i]].getValue());
-      Assert (ai!=nullptr);
-      Assert (!ai->d_overloads.empty());
-      ai->d_overloads.pop_back();
-      if (ai->d_overloads.size()==1)
+      std::vector<Expr>& ov = d_overloads[d_decls[i]];
+      // we always have at least 2 overloads
+      Assert (ov.size()>=2);
+      // was overloaded, we revert the binding
+      ov.pop_back();
+      Expr tmp = ov.back();
+      its->second = tmp;
+      if (ov.size()==1)
       {
-        Trace("overload") << "** no-overload: " << d_decls[i] << std::endl;
-        // no longer overloaded since the overload vector is now size one
-        ai->d_overloads.clear();
+        d_overloads.erase(d_decls[i]);
       }
-      // was overloaded, so we don't unbind
       continue;
     }
+    Trace("overload") << "** unbind " << d_decls[i] << std::endl;
     d_symTable.erase(d_decls[i]);
   }
   d_decls.resize(lastSize);
@@ -249,8 +330,11 @@ bool State::includeFile(const std::string& s, bool isSignature, bool isReference
   Trace("state") << "...finished" << std::endl;
   if (getAssumptionLevel()!=0)
   {
+    Assert(!d_declsSizeCtx.empty() && d_declsSizeCtx.back() < d_decls.size());
     EO_FATAL() << "Including file " << inputPath.getRawPath()
-                 << " did not preserve assumption scope";
+               << " did not preserve assumption scope. The most recent open "
+                  "assumption was "
+               << d_decls[d_declsSizeCtx.back()] << ".";
   }
   return true;
 }
@@ -423,38 +507,35 @@ Expr State::mkTypeConstant(const std::string& name, size_t arity)
   return mkSymbol(Kind::CONST, name, t);
 }
 
-Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret, bool flatten)
+Expr State::mkFunctionType(const std::vector<Expr>& args, const Expr& ret)
 {
   if (args.empty())
   {
     return ret;
   }
-  // process restrictions
-  if (!flatten)
-  {
-    std::vector<ExprValue*> atypes;
-    for (size_t i = 0, nargs = args.size(); i < nargs; i++)
-    {
-      atypes.push_back(args[i].getValue());
-    }
-    atypes.push_back(ret.getValue());
-    return Expr(mkExprInternal(Kind::FUNCTION_TYPE, atypes));
-  }
   Expr curr = ret;
+  // no way to construct quote types, e.g. on return types
+  Assert (ret.getKind()!=Kind::QUOTE_TYPE);
   for (size_t i=0, nargs = args.size(); i<nargs; i++)
   {
     Expr a = args[(nargs-1)-i];
-    // process arguments
-    if (a.getKind() == Kind::EVAL_REQUIRES)
-    {
-      curr = mkRequires(a[0], a[1], curr);
-      a = a[2];
-    }
     // append the function
     curr = Expr(
         mkExprInternal(Kind::FUNCTION_TYPE, {a.getValue(), curr.getValue()}));
   }
   return curr;
+}
+
+Expr State::mkProgramType(const std::vector<Expr>& args, const Expr& ret)
+{
+  Assert(!args.empty());
+  std::vector<ExprValue*> atypes;
+  for (size_t i = 0, nargs = args.size(); i < nargs; i++)
+  {
+    atypes.push_back(args[i].getValue());
+  }
+  atypes.push_back(ret.getValue());
+  return Expr(mkExprInternal(Kind::PROGRAM_TYPE, atypes));
 }
 
 Expr State::mkRequires(const std::vector<Expr>& args, const Expr& ret)
@@ -480,16 +561,23 @@ Expr State::mkRequires(const Expr& a1, const Expr& a2, const Expr& ret)
                              {a1.getValue(), a2.getValue(), ret.getValue()}));
 }
 
-Expr State::mkAbstractType() { return d_absType; }
-
 Expr State::mkBoolType()
 {
   return d_boolType;
 }
-Expr State::mkProofType(const Expr& proven)
+
+Expr State::mkListType() { return d_listType; }
+
+Expr State::mkListCons() { return d_listCons; }
+Expr State::mkListNil() { return d_listNil; }
+
+Expr State::mkProofType() { return d_proofType; }
+
+Expr State::mkProof(const Expr& proven)
 {
-  return Expr(mkExprInternal(Kind::PROOF_TYPE, {proven.getValue()}));
+  return Expr(mkExprInternal(Kind::PROOF, {proven.getValue()}));
 }
+
 Expr State::mkQuoteType(const Expr& t)
 {
   return Expr(mkExprInternal(Kind::QUOTE_TYPE, {t.getValue()}));
@@ -497,8 +585,8 @@ Expr State::mkQuoteType(const Expr& t)
 
 Expr State::mkBuiltinType(Kind k)
 {
-  // for now, just use abstract type
-  return d_absType;
+  // for now, just use any type
+  return d_any;
 }
 
 Expr State::mkSymbol(Kind k, const std::string& name, const Expr& type)
@@ -506,15 +594,7 @@ Expr State::mkSymbol(Kind k, const std::string& name, const Expr& type)
   return Expr(mkSymbolInternal(k, name, type));
 }
 
-Expr State::mkSelf()
-{
-  return d_self;
-}
-
-Expr State::mkConclusion()
-{
-  return d_conclusion;
-}
+Expr State::mkSelf() const { return d_self; }
 
 Expr State::mkPair(const Expr& t1, const Expr& t2)
 {
@@ -558,8 +638,6 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     Assert(!children.empty());
     // see if there is a special way of building terms for the head
     ExprValue* hd = vchildren[0];
-    // immediately strip off PARAMETERIZED if it exists
-    hd = hd->getKind()==Kind::PARAMETERIZED ? (*hd)[1] : hd;
     AppInfo* ai = getAppInfo(hd);
     if (ai!=nullptr)
     {
@@ -572,187 +650,46 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
           std::vector<Expr> achildren(children.begin()+1, children.end()-1);
           return mkFunctionType(achildren, children.back());
         }
-        else if (ai->d_kind==Kind::PARAMETERIZED)
+        else if (ai->d_kind == Kind::APPLY)
         {
-          // make as tuple
-          std::vector<Expr> achildren(vchildren.begin()+2, vchildren.end());
-          return mkParameterized(vchildren[1], achildren);
+          // Applications (_ f ...) do *not* recursively desugar.
+          // remove the dummy operator "_"
+          vchildren.erase(vchildren.begin(), vchildren.begin() + 1);
+          // return the curried version
+          return Expr(vchildren.size() > 2
+                          ? mkApplyInternal(vchildren)
+                          : mkExprInternal(Kind::APPLY, vchildren));
         }
         // another builtin operator, possibly APPLY
         std::vector<Expr> achildren(children.begin()+1, children.end());
         // must call mkExpr again, since we may auto-evaluate
         return mkExpr(ai->d_kind, achildren);
       }
-      if (!ai->d_overloads.empty())
+      if (ai->d_isOverloaded)
       {
         Trace("overload") << "Use overload when constructing " << k << " " << children << std::endl;
-        Expr ret = getOverloadInternal(ai->d_overloads, children);
+        std::vector<Expr>& ov = d_overloads[ai->d_overloadName];
+        Assert (ov.size()>=2);
+        Expr ret = getOverloadInternal(ov, children, nullptr, true);
         if (!ret.isNull())
         {
-          vchildren[0] = ret.getValue();
           Trace("overload") << "...found overload " << ret << std::endl;
-          return vchildren.size()<=2 ? Expr(mkExprInternal(k, vchildren)) : Expr(mkApplyInternal(vchildren));
+          return ret;
         }
+        Warning() << "No overload found when constructing application "
+                  << children << std::endl;
       }
-      Trace("state-debug") << "Process category " << ai->d_attrCons << " for " << children[0] << std::endl;
-      size_t nchild = vchildren.size();
       // Compute the "constructor term" for the operator, which may involve
       // type inference. We store the constructor term in consTerm and operator
       // in hdTerm, where notice hdTerm is of kind PARAMETERIZED if consTerm
       // (prior to resolution) was PARAMETERIZED. So, for example, applying
       // `bvor` to `a` of type `(BitVec 4)` results in
-      //   hdTerm := (PARAMETERIZED (4) bvor),
       //   consTerm := #b0000.
-      Expr hdTerm;
-      Expr consTerm;
-      d_tc.computedParameterizedInternal(ai, children, hdTerm, consTerm);
-      Trace("state-debug") << "...updated " << hdTerm << " / " << consTerm << std::endl;
-      vchildren[0] = hd;
-      // if it has a constructor attribute
-      switch (ai->d_attrCons)
+      Expr consTerm = d_tc.computeConstructorTermInternal(ai, children);
+      Expr ret = mkApplyAttr(ai, vchildren, consTerm);
+      if (!ret.isNull())
       {
-        case Attr::LEFT_ASSOC:
-        case Attr::RIGHT_ASSOC:
-        case Attr::LEFT_ASSOC_NIL:
-        case Attr::RIGHT_ASSOC_NIL:
-        {
-          // This means that we don't construct bogus terms when e.g.
-          // right-assoc-nil operators are used in side condition bodies.
-          // note that nchild>=2 treats e.g. (or a) as (or a false).
-          // checking nchild>2 treats (or a) as a function Bool -> Bool.
-          if (nchild>=2)
-          {
-            bool isLeft = (ai->d_attrCons==Attr::LEFT_ASSOC ||
-                           ai->d_attrCons==Attr::LEFT_ASSOC_NIL);
-            bool isNil = (ai->d_attrCons==Attr::RIGHT_ASSOC_NIL ||
-                          ai->d_attrCons==Attr::LEFT_ASSOC_NIL);
-            size_t i = 1;
-            ExprValue* curr = vchildren[isLeft ? i : nchild - i];
-            std::vector<ExprValue*> cc{hd, nullptr, nullptr};
-            size_t nextIndex = isLeft ? 2 : 1;
-            size_t prevIndex = isLeft ? 1 : 2;
-            if (isNil)
-            {
-              if (getConstructorKind(curr) != Attr::LIST)
-              {
-                // if the last term is not marked as a list variable and
-                // we have a null terminator, then we insert the null terminator
-                Trace("state-debug") << "...insert nil terminator " << consTerm << std::endl;
-                if (consTerm.isNull())
-                {
-                  // if we failed to infer a nil terminator (likely due to
-                  // a non-ground parameter), then we insert a placeholder
-                  // (eo::nil f t1 ... tn), which if t1...tn are non-ground
-                  // will evaluate to the proper nil terminator when
-                  // instantiated.
-                  curr = mkExprInternal(Kind::EVAL_NIL, vchildren);
-                }
-                else
-                {
-                  curr = consTerm.getValue();
-                }
-                i--;
-              }
-            }
-            // now, add the remaining children
-            i++;
-            while (i<nchild)
-            {
-              cc[prevIndex] = curr;
-              cc[nextIndex] = vchildren[isLeft ? i : nchild - i];
-              // if the "head" child is marked as list, we construct Kind::EVAL_LIST_CONCAT
-              if (isNil && getConstructorKind(cc[nextIndex]) == Attr::LIST)
-              {
-                curr = mkExprInternal(Kind::EVAL_LIST_CONCAT, cc);
-              }
-              else
-              {
-                curr = mkApplyInternal(cc);
-              }
-              i++;
-            }
-            Trace("type_checker") << "...return for " << children[0] << std::endl;// << ": " << Expr(curr) << std::endl;
-            return Expr(curr);
-          }
-          // otherwise partial??
-        }
-          break;
-        case Attr::CHAINABLE:
-        {
-          std::vector<Expr> cchildren;
-          Assert(!consTerm.isNull());
-          cchildren.push_back(consTerm);
-          std::vector<ExprValue*> cc{hd, nullptr, nullptr};
-          for (size_t i=1, nchild = vchildren.size()-1; i<nchild; i++)
-          {
-            cc[1] = vchildren[i];
-            cc[2] = vchildren[i + 1];
-            cchildren.emplace_back(mkApplyInternal(cc));
-          }
-          if (cchildren.size()==2)
-          {
-            // no need to chain
-            return cchildren[1];
-          }
-          // note this could loop
-          return mkExpr(Kind::APPLY, cchildren);
-        }
-          break;
-        case Attr::PAIRWISE:
-        {
-          std::vector<Expr> cchildren;
-          Assert(!consTerm.isNull());
-          cchildren.push_back(consTerm);
-          std::vector<ExprValue*> cc{hd, nullptr, nullptr};
-          for (size_t i=1, nchild = vchildren.size(); i<nchild-1; i++)
-          {
-            for (size_t j=i+1; j<nchild; j++)
-            {
-              cc[1] = vchildren[i];
-              cc[2] = vchildren[j];
-              cchildren.emplace_back(mkApplyInternal(cc));
-            }
-          }
-          if (cchildren.size()==2)
-          {
-            // no need to chain
-            return cchildren[1];
-          }
-          // note this could loop
-          return mkExpr(Kind::APPLY, cchildren);
-        }
-          break;
-        case Attr::OPAQUE:
-        {
-          // determine how many opaque children
-          Expr hdt = Expr(hd);
-          const Expr& t = d_tc.getType(hdt);
-          Assert (t.getKind()==Kind::FUNCTION_TYPE);
-          size_t nargs = t.getNumChildren()-1;
-          if (nargs>=children.size())
-          {
-            Warning() << "Too few arguments when applying opaque symbol " << hdt << std::endl;
-          }
-          else
-          {
-            std::vector<Expr> ochildren(children.begin(), children.begin()+1+nargs);
-            Expr op = mkExpr(Kind::APPLY_OPAQUE, ochildren);
-            Trace("opaque") << "Construct opaque operator " << op << std::endl;
-            if (nargs+1==children.size())
-            {
-              Trace("opaque") << "...return operator" << std::endl;
-              return op;
-            }
-            // higher order
-            std::vector<Expr> rchildren;
-            rchildren.push_back(op);
-            rchildren.insert(rchildren.end(), children.begin()+1+nargs, children.end());
-            Trace("opaque") << "...return operator applied to children" << std::endl;
-            return mkExpr(Kind::APPLY, rchildren);
-          }
-        }
-        default:
-          break;
+        return ret;
       }
     }
     Kind hk = hd->getKind();
@@ -777,7 +714,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
         Warning() << "Wrong number of arguments when applying " << Expr(hd) << std::endl;
       }
     }
-    else if (hk==Kind::PROGRAM_CONST || hk==Kind::ORACLE)
+    else if (hk == Kind::PROGRAM_CONST)
     {
       // have to check whether we have marked the constructor kind, which is
       // not the case i.e. if we are constructing applications corresponding to
@@ -810,7 +747,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     // The exceptions to this are operators whose types are not flattened (programs and proof rules).
     if (children.size()>2)
     {
-      if (hk!=Kind::PROGRAM_CONST && hk!=Kind::PROOF_RULE && hk!=Kind::ORACLE)
+      if (hk != Kind::PROGRAM_CONST && hk != Kind::PROOF_RULE)
       {
         // return the curried version
         return Expr(mkApplyInternal(vchildren));
@@ -819,6 +756,20 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
   }
   else if (isLiteralOp(k))
   {
+    // this transforms e.g. (eo::add t1 t2 t3) into (eo::add (eo::add t1 t2)
+    // t3).
+    if (isNaryLiteralOp(k) && vchildren.size() > 2)
+    {
+      std::vector<Expr> cc{children[0], children[1]};
+      Expr curr = mkExpr(k, cc);
+      for (size_t i = 2, nargs = vchildren.size(); i < nargs; i++)
+      {
+        cc[0] = curr;
+        cc[1] = children[i];
+        curr = mkExpr(k, cc);
+      }
+      return curr;
+    }
     // only if correct arity, else we will catch the type error
     bool isArityOk = TypeChecker::checkArity(k, vchildren.size());
     if (isArityOk)
@@ -832,10 +783,23 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
                 << ", " << children.size() << " arguments" << std::endl;
     }
   }
+  else if (k == Kind::AS_RETURN)
+  {
+    // (as nil (List Int)) --> (_ nil (List Int))
+    Attr ck = getConstructorKind(vchildren[0]);
+    if ((ck == Attr::AMB_DATATYPE_CONSTRUCTOR || ck == Attr::AMB)
+        && children.size() == 2)
+    {
+      Trace("overload") << "...type arg for ambiguous constructor" << std::endl;
+      return mkExpr(Kind::APPLY_OPAQUE, {children[0], children[1]});
+    }
+    // note we don't support other uses of `as` for symbol disambiguation yet,
+    // we fallthrough and construct the bogus term of kind AS_RETURN.
+  }
   else if (k==Kind::AS)
   {
-    // if it has 2 children, process it, otherwise we make the bogus term
-    // below
+    // if it has 2 children, process it, otherwise we make the bogus term of
+    // kind AS below
     if (vchildren.size()==2)
     {
       Trace("overload") << "process eo::as " << children[0] << " " << children[1] << std::endl;
@@ -850,15 +814,19 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
       {
         dummyChildren.emplace_back(mkSymbol(Kind::CONST, "tmp", t));
       }
-      if (ai!=nullptr && !ai->d_overloads.empty())
+      if (ai!=nullptr && ai->d_isOverloaded)
       {
         Trace("overload") << "...overloaded" << std::endl;
-        reto = getOverloadInternal(ai->d_overloads, dummyChildren, ftype.second.getValue());
+        std::vector<Expr>& ov = d_overloads[ai->d_overloadName];
+        Assert (ov.size()>=2);
+        reto = getOverloadInternal(
+            ov, dummyChildren, ftype.second.getValue(), false);
       }
       else
       {
         Trace("overload") << "...not overloaded" << std::endl;
-        reto = getOverloadInternal({children[0]}, dummyChildren, ftype.second.getValue());
+        reto = getOverloadInternal(
+            {children[0]}, dummyChildren, ftype.second.getValue(), false);
       }
       if (!reto.isNull())
       {
@@ -870,15 +838,13 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
   return Expr(mkExprInternal(k, vchildren));
 }
 
-Expr State::mkTrue()
-{
-  return d_true;
-}
+Expr State::mkTrue() const { return d_true; }
 
-Expr State::mkFalse()
-{
-  return d_false;
-}
+Expr State::mkFalse() const { return d_false; }
+
+Expr State::mkBool(bool val) const { return val ? d_true : d_false; }
+
+Expr State::mkAny() const { return d_any; }
 
 Expr State::mkLiteral(Kind k, const std::string& s)
 {
@@ -906,6 +872,18 @@ Expr State::mkLiteral(Kind k, const std::string& s)
 Expr State::mkParameterized(const ExprValue* hd, const std::vector<Expr>& params)
 {
   return mkExpr(Kind::PARAMETERIZED, {mkExpr(Kind::TUPLE, params), Expr(hd)});
+}
+
+Expr State::mkList(const std::vector<Expr>& args)
+{
+  if (args.empty())
+  {
+    return d_listNil;
+  }
+  std::vector<Expr> largs;
+  largs.push_back(d_listCons);
+  largs.insert(largs.end(), args.begin(), args.end());
+  return mkExpr(Kind::APPLY, largs);
 }
 
 ExprValue* State::mkLiteralInternal(Literal& l)
@@ -976,6 +954,238 @@ ExprValue* State::mkLiteralInternal(Literal& l)
   return ev;
 }
 
+Expr State::mkApplyAttr(AppInfo* ai,
+                        const std::vector<ExprValue*>& vchildren,
+                        const Expr& consTerm)
+{
+  ExprValue* hd = vchildren[0];
+  Trace("state-debug") << "Process category " << ai->d_attrCons << " for "
+                       << Expr(vchildren[0]) << std::endl;
+  size_t nchild = vchildren.size();
+  Trace("state-debug") << "...updated " << consTerm << std::endl;
+  // if it has a constructor attribute
+  switch (ai->d_attrCons)
+  {
+    case Attr::LEFT_ASSOC:
+    case Attr::RIGHT_ASSOC:
+    case Attr::LEFT_ASSOC_NIL:
+    case Attr::RIGHT_ASSOC_NIL:
+    case Attr::RIGHT_ASSOC_NS_NIL:
+    case Attr::LEFT_ASSOC_NS_NIL:
+    {
+      // This means that we don't construct bogus terms when e.g.
+      // right-assoc-nil operators are used in side condition bodies.
+      // note that nchild>=2 treats e.g. (or a) as (or a false).
+      // checking nchild>2 treats (or a) as a function Bool -> Bool.
+      if (nchild >= 2)
+      {
+        bool isLeft = (ai->d_attrCons == Attr::LEFT_ASSOC
+                       || ai->d_attrCons == Attr::LEFT_ASSOC_NIL
+                       || ai->d_attrCons == Attr::LEFT_ASSOC_NS_NIL);
+        bool isNsNil = (ai->d_attrCons == Attr::RIGHT_ASSOC_NS_NIL
+                        || ai->d_attrCons == Attr::LEFT_ASSOC_NS_NIL);
+        bool isNil = (isNsNil || ai->d_attrCons == Attr::RIGHT_ASSOC_NIL
+                      || ai->d_attrCons == Attr::LEFT_ASSOC_NIL);
+        size_t i = 1;
+        ExprValue* curr = vchildren[isLeft ? i : nchild - i];
+        std::vector<ExprValue*> cc{hd, nullptr, nullptr};
+        size_t nextIndex = isLeft ? 2 : 1;
+        size_t prevIndex = isLeft ? 1 : 2;
+        size_t nlistTerms = 0;
+        if (isNil)
+        {
+          if (getConstructorKind(curr) != Attr::LIST)
+          {
+            // if the last term is not marked as a list variable and
+            // we have a null terminator, then we insert the null terminator
+            Trace("state-debug")
+                << "...insert nil terminator " << consTerm << std::endl;
+            if (consTerm.isNull())
+            {
+              // if we failed to infer a nil terminator (likely due to
+              // a non-ground parameter), then we insert a placeholder
+              // (eo::nil f (eo::typeof t1)), which if t1 is non-ground
+              // will evaluate to the proper nil terminator when
+              // instantiated.
+              Expr typ =
+                  Expr(mkExprInternal(Kind::EVAL_TYPE_OF, {vchildren[1]}));
+              curr = mkExprInternal(Kind::EVAL_NIL,
+                                    {vchildren[0], typ.getValue()});
+            }
+            else
+            {
+              curr = consTerm.getValue();
+            }
+            i--;
+          }
+        }
+        // now, add the remaining children
+        i++;
+        while (i < nchild)
+        {
+          cc[prevIndex] = curr;
+          cc[nextIndex] = vchildren[isLeft ? i : nchild - i];
+          // if the "head" child is marked as list, we construct concatenation
+          if (isNil && getConstructorKind(cc[nextIndex]) == Attr::LIST)
+          {
+            curr = mkExprInternal(Kind::EVAL_LIST_CONCAT, cc);
+          }
+          else
+          {
+            nlistTerms++;
+            curr = mkApplyInternal(cc);
+          }
+          i++;
+        }
+        // if we are a non-singleton list with fewer than 2 non-list children
+        if (isNsNil && nlistTerms<2)
+        {
+          // If we are a "non-singleton" kind, we add singleton elimination.
+          // Note that this case is applied possibly on ground arguments,
+          // in contrast to the case of EVAL_LIST_CONCAT above which requires a
+          // :list annotation, which can only be applied to parameters. Hence,
+          // we must call mkExpr in case we evaluate this application
+          // immediately.
+          std::vector<Expr> ccse;
+          ccse.emplace_back(hd);
+          ccse.emplace_back(curr);
+          return mkExpr(Kind::EVAL_LIST_SINGLETON_ELIM, ccse);
+        }
+        Trace("type_checker")
+            << "...return for " << Expr(vchildren[0]) << std::endl;
+        return Expr(curr);
+      }
+      else
+      {
+        // Otherwise we are applying the operator to zero arguments. This
+        // can never occur in standard parsing since it is not possible
+        // to apply a function to zero arguments. However, this case may
+        // arise if e.g. a pairwise or chainable operator is applied to
+        // exactly one argument, e.g. (distinct t) is equivalent to true.
+        return consTerm;
+      }
+    }
+    break;
+    case Attr::CHAINABLE:
+    {
+      std::vector<Expr> cchildren;
+      Assert(!consTerm.isNull());
+      cchildren.push_back(consTerm);
+      std::vector<ExprValue*> cc{hd, nullptr, nullptr};
+      for (size_t i = 1, nchild = vchildren.size() - 1; i < nchild; i++)
+      {
+        cc[1] = vchildren[i];
+        cc[2] = vchildren[i + 1];
+        cchildren.emplace_back(mkApplyInternal(cc));
+      }
+      if (cchildren.size() == 2)
+      {
+        // no need to chain
+        return cchildren[1];
+      }
+      // note this could loop
+      return mkExpr(Kind::APPLY, cchildren);
+    }
+    break;
+    case Attr::PAIRWISE:
+    {
+      std::vector<Expr> cchildren;
+      Assert(!consTerm.isNull());
+      cchildren.push_back(consTerm);
+      std::vector<ExprValue*> cc{hd, nullptr, nullptr};
+      for (size_t i = 1, nchild = vchildren.size(); i < nchild - 1; i++)
+      {
+        for (size_t j = i + 1; j < nchild; j++)
+        {
+          cc[1] = vchildren[i];
+          cc[2] = vchildren[j];
+          cchildren.emplace_back(mkApplyInternal(cc));
+        }
+      }
+      if (cchildren.size() == 2)
+      {
+        // no need to chain
+        return cchildren[1];
+      }
+      // note this could loop
+      return mkExpr(Kind::APPLY, cchildren);
+    }
+    break;
+    case Attr::ARG_LIST:
+    {
+      Expr argList;
+      // If there is only one argument, and it was marked :list, then it is
+      // not desugared.
+      if (vchildren.size() == 2
+          && getConstructorKind(vchildren[1]) == Attr::LIST)
+      {
+        argList = Expr(vchildren[1]);
+      }
+      else
+      {
+        std::vector<Expr> cchildren;
+        Assert(!consTerm.isNull());
+        cchildren.push_back(consTerm);
+        for (size_t i = 1, nchild = vchildren.size(); i < nchild; i++)
+        {
+          cchildren.emplace_back(vchildren[i]);
+        }
+        argList = mkExpr(Kind::APPLY, cchildren);
+      }
+      return Expr(
+          mkExprInternal(Kind::APPLY, {vchildren[0], argList.getValue()}));
+    }
+    break;
+    case Attr::OPAQUE:
+    {
+      // determine how many opaque children
+      Expr hdt = Expr(hd);
+      const Expr& t = d_tc.getType(hdt);
+      Assert(t.getKind() == Kind::FUNCTION_TYPE);
+      // get the number of opaque arguments, stored as the constructor term
+      Expr acons = ai->d_attrConsTerm;
+      Assert(acons.getKind() == Kind::NUMERAL);
+      Assert(acons.getValue()->asLiteral()->d_int.fitsUnsignedInt());
+      size_t nargs = acons.getValue()->asLiteral()->d_int.toUnsignedInt();
+      if (nargs >= vchildren.size())
+      {
+        Warning() << "Too few arguments when applying opaque symbol " << hdt
+                  << std::endl;
+      }
+      else
+      {
+        // construct curried APPLY_OPAQUE application.
+        ExprValue* curr = vchildren[0];
+        for (size_t i = 1; i < nargs + 1; i++)
+        {
+          curr = mkExprInternal(Kind::APPLY_OPAQUE, {curr, vchildren[i]});
+        }
+        Expr op = Expr(curr);
+        Trace("opaque") << "Construct opaque operator " << op << std::endl;
+        if (nargs + 1 == vchildren.size())
+        {
+          Trace("opaque") << "...return operator" << std::endl;
+          return op;
+        }
+        // higher order
+        std::vector<ExprValue*> rchildren;
+        rchildren.push_back(op.getValue());
+        rchildren.insert(
+            rchildren.end(), vchildren.begin() + 1 + nargs, vchildren.end());
+        Trace("opaque") << "...return operator applied to children"
+                        << std::endl;
+        if (rchildren.size() > 2)
+        {
+          return Expr(mkApplyInternal(rchildren));
+        }
+        return Expr(mkExprInternal(Kind::APPLY, rchildren));
+      }
+    }
+    default: break;
+  }
+  return d_null;
+}
+
 ExprValue* State::mkApplyInternal(const std::vector<ExprValue*>& children)
 {
   Assert(children.size() > 2);
@@ -1028,22 +1238,23 @@ bool State::bind(const std::string& name, const Expr& e)
   std::map<std::string, Expr>::iterator its = d_symTable.find(name);
   if (its!=d_symTable.end())
   {
-    // if already bound, we overload
-    AppInfo& ai = d_appData[its->second.getValue()];
-    // if the first time overloading, add the original
-    if (ai.d_overloads.empty())
+    Trace("overload") << "** overload: " << name << std::endl;
+    // if already bound, mark as overloaded
+    AppInfo& ain = d_appData[e.getValue()];
+    ain.d_isOverloaded = true;
+    ain.d_overloadName = name;
+    std::vector<Expr>& ov = d_overloads[name];
+    if (ov.empty())
     {
-      Trace("overload") << "** overload: " << name << std::endl;
-      ai.d_overloads.push_back(its->second);
+      // if first time overloading, add the original symbol
+      ov.emplace_back(its->second);
     }
-    ai.d_overloads.push_back(e);
+    ov.emplace_back(e);
     // add to declaration
     if (!d_declsSizeCtx.empty())
     {
-      d_decls.emplace_back(name);
       d_overloadedDecls.emplace_back(name);
     }
-    return true;
   }
   // Trace("state-debug") << "bind " << name << " -> " << &e << std::endl;
   d_symTable[name] = e;
@@ -1086,17 +1297,15 @@ Expr State::mkLetBinderList(const ExprValue* ev, const std::vector<std::pair<Exp
   return mkExpr(Kind::APPLY, vlist);
 }
 
-const ExprValue* State::getBaseOperator(const ExprValue * v) const
-{
-  if (v->getKind()==Kind::PARAMETERIZED)
-  {
-    return (*v)[0];
-  }
-  return v;
-}
-
 Attr State::getConstructorKind(const ExprValue* v) const
 {
+  // If we ask for the constructor kind of an annotated parameter,
+  // it is stored on the parameter it annotates. This makes a difference
+  // for parameters with non-ground type that are marked :list.
+  if (v->getKind() == Kind::ANNOT_PARAM)
+  {
+    return getConstructorKind(v->d_children[0]);
+  }
   const AppInfo* ai = getAppInfo(v);
   if (ai!=nullptr)
   {
@@ -1118,6 +1327,13 @@ Expr State::getVar(const std::string& name) const
 
 Expr State::getBoundVar(const std::string& name, const Expr& type)
 {
+  if (!type.isGround())
+  {
+    // If the type is non-ground, we cannot evaluate it yet. Moreover this is
+    // not cached here, instead it is cached as part of mkExpr.
+    Expr ename = mkLiteral(Kind::STRING, name);
+    return mkExpr(Kind::EVAL_VAR, {ename, type});
+  }
   std::pair<std::string, const ExprValue*> key(name, type.getValue());
   std::map<std::pair<std::string, const ExprValue*>, Expr>::iterator it = d_boundVars.find(key);
   if (it!=d_boundVars.end())
@@ -1140,35 +1356,83 @@ Expr State::getProofRule(const std::string& name) const
   return d_null;
 }
 
-bool State::getActualPremises(const ExprValue* rule,
-                              std::vector<Expr>& given,
-                              std::vector<Expr>& actual)
+bool State::getProofRuleArguments(std::vector<Expr>& children,
+                                  Expr& rule,
+                                  Expr& proven,
+                                  std::vector<Expr>& premises,
+                                  std::vector<Expr>& args,
+                                  bool isPop)
 {
-  AppInfo* ainfo = getAppInfo(rule);
-  if (ainfo!=nullptr && ainfo->d_attrCons==Attr::PREMISE_LIST)
+  AppInfo* ainfo = getAppInfo(rule.getValue());
+  if (ainfo != nullptr)
   {
-    Expr plCons = ainfo->d_attrConsTerm;
+    Assert (ainfo->d_attrCons == Attr::PROOF_RULE);
+    Expr tupleVal = ainfo->d_attrConsTerm;
+    Assert(tupleVal.getNumChildren() == 4);
+    // first, we add the program or definition (the latter case is used for
+    // proof rules with no arguments or premises).
+    children.emplace_back(tupleVal[3]);
+    // arguments first
+    children.insert(children.end(), args.begin(), args.end());
+    Expr plCons;
+    if (tupleVal[0]!=d_any)
+    {
+      plCons = tupleVal[0];
+    }
+    bool isAssume = tupleVal[1]==d_true;
+    bool isConcExplicit = tupleVal[2]==d_true;
+    if (isConcExplicit)
+    {
+      if (proven.isNull())
+      {
+        // requires a conclusion to be provided
+        return false;
+      }
+      children.push_back(proven);
+    }
+    if (isPop == isAssume)
+    {
+      if (isPop)
+      {
+        std::vector<Expr> as = getCurrentAssumptions();
+        // The size of assumptions should be one, but may contain more
+        // assumptions if e.g. we encountered assume in a nested assumption
+        // scope. Nevertheless, as[0] is always the first assumption in
+        // the assume-push.
+        // push the assumption
+        children.push_back(as[0]);
+      }
+    }
+    else
+    {
+      // using step for a rule requiring an assumption, or step-pop for a rule
+      // not requiring an assumption.
+      return false;
+    }
     if (!plCons.isNull())
     {
+      // this collects the premises (pf F1) ... (pf Fn) and constructs
+      // e.g. (pf (and F1 ... Fn)), where and is the operator marked with
+      // :premise-list.
       std::vector<Expr> achildren;
       achildren.push_back(plCons);
-      for (Expr& e : given)
+      for (Expr& e : premises)
       {
-        // should be proof types
-        Expr eproven = d_tc.getType(e);
-        if (eproven.isNull() || eproven.getKind() != Kind::PROOF_TYPE)
+        // should be proofs
+        if (e.getKind() != Kind::PROOF)
         {
           return false;
         }
-        achildren.push_back(eproven[0]);
+        achildren.push_back(e[0]);
       }
+      // TODO: do not special case this?
       Expr ap;
       if (achildren.size()==1)
       {
         // the nil terminator if applied to empty list
         AppInfo* aic = getAppInfo(plCons.getValue());
         Attr ck = aic->d_attrCons;
-        if (ck==Attr::RIGHT_ASSOC_NIL || ck==Attr::LEFT_ASSOC_NIL)
+        if (isListNilAttr(ck))
         {
           ap = aic->d_attrConsTerm;
         }
@@ -1181,16 +1445,18 @@ bool State::getActualPremises(const ExprValue* rule,
       {
         ap = mkExpr(Kind::APPLY, achildren);
       }
-      Expr pfap = mkProofType(ap);
-      // TODO: collect operator???
-      // dummy, const term of the given proof type
-      Expr n = mkSymbol(Kind::CONST, "tmp", pfap);
-      actual.push_back(n);
-      return true;
+      // collects to a proof
+      Expr n = mkProof(ap);
+      children.push_back(n);
     }
+    else
+    {
+      // otherwise ordinary premises
+      children.insert(children.end(), premises.begin(), premises.end());
+    }
+    return true;
   }
-  actual = given;
-  return true;
+  return false;
 }
 
 Expr State::getProgram(const ExprValue* ev)
@@ -1201,18 +1467,6 @@ Expr State::getProgram(const ExprValue* ev)
     return ainfo->d_attrConsTerm;
   }
   return d_null;
-}
-bool State::getOracleCmd(const ExprValue* oracle, std::string& ocmd)
-{
-  AppInfo* ainfo = getAppInfo(oracle);
-  if (ainfo!=nullptr && ainfo->d_attrCons==Attr::ORACLE)
-  {
-    Expr oexpr = ainfo->d_attrConsTerm;
-    Assert(!oexpr.isNull());
-    ocmd = oexpr.getSymbol();
-    return true;
-  }
-  return false;
 }
 
 size_t State::getAssumptionLevel() const
@@ -1257,7 +1511,8 @@ bool State::isProofRuleSorry(const ExprValue* e) const
 
 AppInfo* State::getAppInfo(const ExprValue* e)
 {
-  Assert (e->getKind()!=Kind::PARAMETERIZED);
+  // we may be an ANNOT_PARAM here, which will never have relevant properties
+  // in the context where it is being used as the head of an application
   std::map<const ExprValue *, AppInfo>::iterator it = d_appData.find(e);
   if (it!=d_appData.end())
   {
@@ -1268,7 +1523,7 @@ AppInfo* State::getAppInfo(const ExprValue* e)
 
 const AppInfo* State::getAppInfo(const ExprValue* e) const
 {
-  Assert (e->getKind()!=Kind::PARAMETERIZED);
+  // similar to above, we may be ANNOT_PARAM.
   std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(e);
   if (it!=d_appData.end())
   {
@@ -1319,12 +1574,12 @@ Plugin* State::getPlugin()
 void State::bindBuiltin(const std::string& name, Kind k, Attr ac)
 {
   // type is irrelevant, assign abstract
-  bindBuiltin(name, k, ac, d_absType);
+  bindBuiltin(name, k, ac, d_any);
 }
 
 void State::bindBuiltin(const std::string& name, Kind k, Attr ac, const Expr& t)
 {
-  Expr c = mkSymbol(Kind::CONST, name, t);
+  Expr c = mkSymbol(Kind::BUILTIN_CONST, name, t);
   bind(name, c);
   if (ac!=Attr::NONE || k!=Kind::NONE)
   {
@@ -1351,27 +1606,21 @@ void State::defineProgram(const Expr& v, const Expr& prog)
 
 bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
 {
-  Expr acons = cons;
-  if (a==Attr::ORACLE)
+  // If marking an annotated parameter, we mark the parameter it annotates.
+  if (v.getKind() == Kind::ANNOT_PARAM)
   {
-    // use full path
-    std::string ocmd = cons.getSymbol();
-
-    Filepath inputPath = d_inputFile.parentPath();
-    inputPath.append(Filepath(ocmd));
-    inputPath.makeCanonical();
-
-    if (!inputPath.exists())
-    {
-      Warning() << "State:: could not include \"" + ocmd + "\" for oracle definition";
-      return false;
-    }
-
-    acons = mkLiteral(Kind::STRING, inputPath.getRawPath());
+    return markConstructorKind(v[0], a, cons);
   }
+  Expr acons = cons;
   Assert (isSymbol(v.getKind()));
   AppInfo& ai = d_appData[v.getValue()];
-  Assert (ai.d_attrCons==Attr::NONE);
+  if (ai.d_attrCons != Attr::NONE)
+  {
+    // note this fails even if we mark the same constructor, e.g. :list twice
+    Warning() << "Cannot set the constructor kind for a term more than once ("
+              << ai.d_attrCons << " and " << a << ")" << std::endl;
+    return false;
+  }
   ai.d_attrCons = a;
   ai.d_attrConsTerm = acons;
   if (d_plugin!=nullptr)
@@ -1383,7 +1632,8 @@ bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
 
 Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
                                 const std::vector<Expr>& children,
-                                const ExprValue* retType)
+                                const ExprValue* retType,
+                                bool retApply)
 {
   Assert (!overloads.empty());
   Trace("overload") << "Get overload" << std::endl;
@@ -1397,14 +1647,32 @@ Expr State::getOverloadInternal(const std::vector<Expr>& overloads,
   {
     // search in reverse order, i.e. the last bound symbol takes precendence
     size_t ii = (noverloads-1)-i;
-    vchildren[0] = overloads[ii].getValue();
-    Expr x = Expr(vchildren.size()>2 ? mkApplyInternal(vchildren) : mkExprInternal(Kind::APPLY, vchildren));
+    ExprValue* hd = overloads[ii].getValue();
+    vchildren[0] = hd;
+    Expr hde(hd);
+    Trace("overload") << "Try " << d_tc.getType(hde) << std::endl;
+    AppInfo* ai = getAppInfo(hd);
+    Expr x;
+    if (ai != nullptr)
+    {
+      Trace("overload") << "...has property " << ai->d_attrCons << std::endl;
+      Expr consTerm = d_tc.computeConstructorTermInternal(ai, children);
+      x = mkApplyAttr(ai, vchildren, consTerm);
+    }
+    if (x.isNull())
+    {
+      x = Expr(vchildren.size() > 2 ? mkApplyInternal(vchildren)
+                                    : mkExprInternal(Kind::APPLY, vchildren));
+    }
     Expr t = d_tc.getType(x);
+
+    Trace("overload") << "type of " << x << " is " << t << std::endl;
     // if term is well-formed, and matches the return type if it exists
     if (!t.isNull() && (retType==nullptr || retType==t.getValue()))
     {
+      Trace("overload") << "...return success" << std::endl;
       // return the operator, do not check the remainder
-      return overloads[ii];
+      return retApply ? x : overloads[ii];
     }
   }
   // otherwise, none found, return null

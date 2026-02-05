@@ -27,15 +27,25 @@ using AttrMap = std::map<Attr, std::vector<Expr>>;
 class AppInfo
 {
 public:
-  AppInfo() : d_attrCons( ), d_kind(Kind::NONE) {}
+  AppInfo() : d_attrCons( ), d_kind(Kind::NONE), d_isOverloaded(false) {}
   /** Attribute */
   Attr d_attrCons;
   /** Attribute */
   Expr d_attrConsTerm;
   /** Associated kind */
   Kind d_kind;
-  /** Overloading */
-  std::vector<Expr> d_overloads;
+  /**
+   * Whether this symbol is overloaded. The overloads for this symbol are
+   * maintained in State::d_overloads[d_overloadName].
+   */
+  bool d_isOverloaded;
+  /**
+   * The name of the symbol, if overloaded. Note this is required to be
+   * stored explicitly to handle cases where symbols are bound to terms that do
+   * not have their given name, e.g. (define s () (+ 1 1)) maps "s" to the term
+   * (+ 1 1), which does not have the name "s".
+   */
+  std::string d_overloadName;
 };
 
 }  // namespace ethos

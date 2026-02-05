@@ -1,8 +1,8 @@
-(declare-type @List ())
+(declare-const @List Type)
 (declare-const @list.nil @List)
-(declare-const @list.cons (-> (! Type :var T :implicit) T @List @List) :right-assoc-nil @list.nil)
+(declare-parameterized-const @list.cons ((T Type :implicit)) (-> T @List @List) :right-assoc-nil @list.nil)
 
-(declare-type Int ())
+(declare-const Int Type)
 (declare-const P (-> Int Bool))
 (declare-const forall (-> @List Bool Bool) :binder @list.cons)
 (declare-rule id ((y Bool)) :premises (y) :conclusion y)

@@ -1,44 +1,49 @@
 
 (declare-const => (-> Bool Bool Bool))
 
-(declare-type Int ())
+(declare-const Int Type)
 (declare-consts <numeral> Int)
 
-(declare-type Pair (Type Type))
-(declare-const pair (-> (! Type :var U :implicit) (! Type :var T :implicit) U T (Pair U T)))
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-const Pair (-> Type Type Type))
+(declare-parameterized-const pair ((U Type :implicit) (T Type :implicit)) (-> U T (Pair U T)))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 (declare-const + (-> Int Int Int) :right-assoc)
 (declare-const < (-> Int Int Bool) :right-assoc)
+
+
+
+(program rm_from_sum_match ((x Int) (y Int) (z Int) (w Int) (b Bool))
+  :signature (Int Int Int (Pair Int Bool)) (Pair Int Bool)
+  (
+  ((rm_from_sum_match x y z (pair w b)) (eo::ite
+                                          (eo::is_eq x y)
+                                          (pair w true)
+                                          (pair (+ y w) b)))
+  )
+)
 
 ; `rm_from_sum s t`
 ; `rm_from_sum a (+ a b)` = (pair b true)
 ; `rm_from_sum a (+ c b)` = (pair (+ c b) false)
 ; 
 (program rm_from_sum ((x Int) (y Int) (z Int))
-  (Int Int) (Pair Int Bool)
+  :signature (Int Int) (Pair Int Bool)
   (
-    ((rm_from_sum x (+ y z))
-      (eo::match ((w Int) (b Bool))
-        ; head
-        (rm_from_sum x z)
-        ; matches (pair w b)
-        (
-        ((pair w b) (eo::ite 
-                      (eo::is_eq x y) 
-                      (pair w true) 
-                      (pair (+ y w) b)))
-        )
-      ))
+    ((rm_from_sum x (+ y z)) (rm_from_sum_match x y z (rm_from_sum x z)))
     ((rm_from_sum x y) (pair y false))
+  )
+)
+
+(program conc_rm_from_sum ((x Int) (y Int) (w Int) (b Bool))
+  :signature (Int Int (Pair Int Bool)) Bool
+  (
+  ((conc_rm_from_sum x y (pair w b)) (eo::ite b (< w y) (= w y)))
   )
 )
 
 (declare-rule rm_sum ((x Int) (y Int))
   :args (x y)
-  :conclusion (=> (< 0 x)
-                (eo::match ((w Int) (b Bool))
-                  (rm_from_sum x y) ; head
-                  (((pair w b) (eo::ite b (< w y) (= w y))))))
+  :conclusion (=> (< 0 x) (conc_rm_from_sum x y (rm_from_sum x y)))
 )
 
 (declare-const a Int)

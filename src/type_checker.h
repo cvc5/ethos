@@ -18,6 +18,7 @@
 namespace ethos {
 
 class State;
+class Stats;
 class Options;
 class Plugin;
 
@@ -39,11 +40,6 @@ class TypeChecker
    */
   Expr getType(Expr& e, std::ostream* out = nullptr);
   /**
-   * Get the type of an application, equivalent to calling getType on
-   * (APPLY children).
-   */
-  Expr getTypeApp(std::vector<Expr>& children, std::ostream* out = nullptr);
-  /**
    * Check arity for kind, returns false if k cannot be applied to nargs.
    */
   static bool checkArity(Kind k, size_t nargs, std::ostream* out = nullptr);
@@ -54,7 +50,7 @@ class TypeChecker
    */
   Expr evaluate(ExprValue* e, Ctx& ctx);
   /**
-   * Evaluate program, where args[0] is a term of kind PROGRAM_CONST or ORACLE
+   * Evaluate program app, where args[0] is a term of kind PROGRAM_CONST
    * and the remaining args are what is being applied to.
    *
    * If this returns (APPLY args), then the application does not
@@ -62,14 +58,10 @@ class TypeChecker
    * if an error was encountered.
    *
    * Otherwise, the program evaluates in one step to the returned term,
-   * and is equal to the result of evaluating that expression in the context newCtx,
-   * which is computed in this call.
-   *
-   * If we are evaluating an oracle, newCtx is never set and the returned term
-   * is the result of calling the oracle and parsing its output.
+   * where the returned term is the result of evaluating the returned term
+   * in the context that was matched.
    */
-  Expr evaluateProgram(const std::vector<ExprValue*>& args,
-                       Ctx& newCtx);
+  Expr evaluateProgramApp(const std::vector<Expr>& args);
   /**
    * Evaluate literal op k applied to args. Returns (<k> args) if the
    * operator does not evaluate.
@@ -97,23 +89,97 @@ class TypeChecker
                               Ctx& newCtx);
   /** Return its type */
   Expr getTypeInternal(ExprValue* e, std::ostream* out);
-  /** Get or set type rule (to default) for literal kind k */
-  ExprValue* getOrSetLiteralTypeRule(Kind k);
+  /**
+   * Get or set type rule (to default) for literal kind k. The argument
+   * self is the expression to instantiate eo::self with, if applicable,
+   * otherwise eo::? is used.
+   */
+  Expr getOrSetLiteralTypeRule(Kind k, ExprValue* self = nullptr);
   /** Evaluate literal op */
   Expr evaluateLiteralOpInternal(Kind k, const std::vector<ExprValue*>& args);
+  /** Evaluate list rev internal
+   * @param op The n-ary operator.
+   * @param nil The nil terminator for the operator.
+   * @param isLeft Whether we are :left-assoc-nil (or :right-assoc-nil).
+   * @param args The arguments to the application.
+   * @return The result of the evaluation.
+   */
+  Expr evaluateListRevInternal(ExprValue* op,
+                               ExprValue* nil,
+                               bool isLeft,
+                               const std::vector<ExprValue*>& args);
+  /** Evaluate list erase internal
+   * @param k The kind of application (ERASE or ERASE_ALL).
+   * @param op The n-ary operator.
+   * @param nil The nil terminator for the operator.
+   * @param isLeft Whether we are :left-assoc-nil (or :right-assoc-nil).
+   * @param args The arguments to the application.
+   * @return The result of the evaluation.
+   */
+  Expr evaluateListEraseInternal(Kind k,
+                                 ExprValue* op,
+                                 ExprValue* nil,
+                                 bool isLeft,
+                                 const std::vector<ExprValue*>& args);
+  /** Evaluate list setof internal
+   * @param op The n-ary operator.
+   * @param nil The nil terminator for the operator.
+   * @param isLeft Whether we are :left-assoc-nil (or :right-assoc-nil).
+   * @param args The arguments to the application.
+   * @return The result of the evaluation.
+   */
+  Expr evaluateListSetOfInternal(ExprValue* op,
+                                 ExprValue* nil,
+                                 bool isLeft,
+                                 const std::vector<ExprValue*>& args);
+  /** Evaluate list multiset predicate internal
+   * @param k The kind of application (MINCLUDE or MEQ).
+   * @param op The n-ary operator.
+   * @param nil The nil terminator for the operator.
+   * @param isLeft Whether we are :left-assoc-nil (or :right-assoc-nil).
+   * @param args The arguments to the application.
+   * @return The result of the evaluation.
+   */
+  Expr evaluateListMPredInternal(Kind k,
+                                 ExprValue* op,
+                                 ExprValue* nil,
+                                 bool isLeft,
+                                 const std::vector<ExprValue*>& args);
+  /** Evaluate list diff/intersection internal
+   * @param k The kind of application (DIFF or INTER).
+   * @param op The n-ary operator.
+   * @param nil The nil terminator for the operator.
+   * @param isLeft Whether we are :left-assoc-nil (or :right-assoc-nil).
+   * @param args The arguments to the application.
+   * @return The result of the evaluation.
+   */
+  Expr evaluateListDiffInterInternal(Kind k,
+                                     ExprValue* op,
+                                     ExprValue* nil,
+                                     bool isLeft,
+                                     const std::vector<ExprValue*>& args);
+  /**
+   * Helper for above, starting with ret, append children in hargs to ret,
+   * using n-ary operator op, which is :right-assoc-nil or :left-assoc-nil
+   * if isLeft is true.
+   * @param op The n-ary operator.
+   * @param ret The current return value.
+   * @param hargs The arguments to prepend to ret.
+   * @param isLeft Whether we are :left-assoc-nil (or :right-assoc-nil).
+   * @return The result of prepending the children.
+   */
+  Expr prependNAryChildren(ExprValue* op,
+                           ExprValue* ret,
+                           const std::vector<ExprValue*>& hargs,
+                           bool isLeft);
   /** Type check */
-  ExprValue* getLiteralOpType(Kind k,
-                              std::vector<ExprValue*>& children,
-                              std::vector<ExprValue*>& childTypes,
-                              std::ostream* out);
+  Expr getLiteralOpType(Kind k,
+                        std::vector<ExprValue*>& children,
+                        std::vector<ExprValue*>& childTypes,
+                        std::ostream* out);
   /** Get the nil terminator */
   Expr computeConstructorTermInternal(AppInfo* ai,
                                       const std::vector<Expr>& children);
-  /** Returns the (possibly disambiguated) operator in children and its nil terminator */
-  bool computedParameterizedInternal(AppInfo* ai,
-                                     const std::vector<Expr>& children,
-                                     Expr& hd,
-                                     Expr& nil);
   /** The state */
   State& d_state;
   /** Plugin of the state */
@@ -123,6 +189,10 @@ class TypeChecker
   /** The null expression */
   Expr d_null;
   Expr d_negOne;
+  /** Stats enabled? */
+  bool d_statsEnabled;
+  /** Reference to the stats */
+  Stats& d_sts;
 };
 
 }  // namespace ethos

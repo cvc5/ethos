@@ -1,29 +1,29 @@
-(declare-type Int ())
+(declare-const Int Type)
 (declare-consts <numeral> Int)
 
 (declare-const BitVec (-> Int Type))
 (declare-consts <binary> (BitVec (eo::len eo::self)))
 
-(declare-parameterized-const bvor ((m Int))
+(declare-parameterized-const bvor ((m Int :implicit))
     (-> (BitVec m) (BitVec m) (BitVec m))
     :right-assoc-nil (eo::to_bin m 0)
 )
 
-(declare-parameterized-const bvand ((m Int))
+(declare-parameterized-const bvand ((m Int :implicit))
     (-> (BitVec m) (BitVec m) (BitVec m))
     :right-assoc-nil (eo::not (eo::to_bin m 0))
 )
 
 (program $get_tail ((T Type) (f (-> T T T)) (t T) (s T :list))
-  ((-> T T T) T) T
+  :signature ((-> T T T) T) T
   (
   (($get_tail f (f t s)) s)
   )
 )
 
-(declare-const is-tail-of (-> (! Type :var T :implicit) (! Type :var U :implicit) T U Bool))
+(declare-parameterized-const is-tail-of ((T Type :implicit) (U Type :implicit)) (-> T U Bool))
 
-(declare-rule find_tail ((T Type) (f (-> T T T)) (t T) (s T :list))
+(declare-rule find_tail ((T Type) (W1 Type) (W2 Type) (W3 Type)  (f (-> W1 W2 W3)) (t T) (s T :list))
   :args ((f t s))
   :conclusion (is-tail-of ($get_tail f (f t s)) (f t s)))
 
@@ -31,7 +31,7 @@
 (declare-const b (BitVec 4))
 (declare-const c (BitVec 3))
 
-(step @p0-explicit (is-tail-of #b0000 (_ (eo::_ bvor 4) a)) :rule find_tail :args ((_ (eo::_ bvor 4) a)))
+(step @p0-explicit (is-tail-of #b0000 (bvor a)) :rule find_tail :args ((bvor a)))
 (step @p0 (is-tail-of #b0000 (bvor a)) :rule find_tail :args ((bvor a)))
 (step @p1 (is-tail-of #b111 (bvand c)) :rule find_tail :args ((bvand c)))
 (step @p0 (is-tail-of (bvand b) (bvand a b)) :rule find_tail :args ((bvand a b)))

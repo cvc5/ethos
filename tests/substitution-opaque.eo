@@ -1,11 +1,11 @@
 
 
 
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 
 (program substitute
   ((T Type) (U Type) (S Type) (x S) (y S) (f (-> T U)) (a T) (z U))
-  (S S U) U
+  :signature (S S U) U
   (
   ((substitute x y x)     y)
   ((substitute x y (f a)) (_ (substitute x y f) (substitute x y a)))
@@ -26,15 +26,11 @@
 (declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
 (declare-const not (-> Bool Bool))
 
-(declare-type Array (Type Type))
-(declare-type Int ())
+(declare-const Array (-> Type Type Type))
+(declare-const Int Type)
 
-(declare-const @array_deq_diff 
-  (-> 
-    (! (Array Int Int) :opaque)
-    (! (Array Int Int) :opaque)
-    Int
-  )
+(declare-parameterized-const @array_deq_diff ((a (Array Int Int) :opaque) (b (Array Int Int) :opaque))
+  Int
 )
 
 (declare-const n (Array Int Int))

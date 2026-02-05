@@ -1,5 +1,5 @@
 
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 
 
 (declare-rule eq-symm ((T Type) (x T) (y T))
@@ -8,7 +8,7 @@
   :conclusion (= y x))
 
   
-(declare-type Int ())
+(declare-const Int Type)
 (declare-const a Int)
 (declare-const b Int)
 (declare-const c Bool)

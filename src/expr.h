@@ -9,6 +9,7 @@
 #ifndef EXPR_H
 #define EXPR_H
 
+#include <cstdint>
 #include <map>
 #include <unordered_set>
 #include <vector>
@@ -56,24 +57,28 @@ class ExprValue
   bool isEvaluatable();
   /** Has variable */
   bool isGround();
-  /** Has program variable */
-  bool isProgEvaluatable();
-  /** Is part of compiled code */
-  bool isCompiled();
  protected:
   /** The kind */
   Kind d_kind;
   /** The children of this expression */
   std::vector<ExprValue*> d_children;
-  /** flags */
+  /**
+   * Flags, indicating properties of the term.
+   */
   enum class Flag
   {
     NONE = 0,
+    /** Have we computed the flags for this term? */
     IS_FLAGS_COMPUTED = (1 << 0),
+    /**
+     * Is the term "evaluatable", i.e. contains a literal op, program or oracle
+     * as a subterm?
+     */
     IS_EVAL = (1 << 1),
-    IS_PROG_EVAL = (1 << 2),
-    IS_NON_GROUND = (1 << 3),
-    IS_COMPILED = (1 << 4)
+    /**
+     * Is the term non-ground, i.e. contains a parameter as a subterm?
+     */
+    IS_NON_GROUND = (1 << 2),
   };
   char d_flags;
   /** */
@@ -113,9 +118,9 @@ class Expr
   explicit Expr(const ExprValue* ev);
   Expr(const Expr& e);
   ~Expr();
-  /** Get the free symbols */
+  /** Get the free parameters in expression e */
   static std::vector<Expr> getVariables(const Expr& e);
-  /** Get the free symbols in vector es */
+  /** Get the free parameters in vector es */
   static std::vector<Expr> getVariables(const std::vector<Expr>& es);
   /** Get the free symbols */
   static bool hasVariable(const Expr& e,
@@ -138,6 +143,8 @@ class Expr
   bool operator==(const Expr& e) const;
   /** Returns true if this expression is not equal to e*/
   bool operator!=(const Expr& e) const;
+  /** Ordering, allows Expr to be used in some std data structures */
+  bool operator<(const Expr& e) const;
   /** is null */
   bool isNull() const;
   /** get the kind of this expression */
@@ -146,12 +153,6 @@ class Expr
   bool isEvaluatable() const;
   /** Has variable */
   bool isGround() const;
-  /** Has program variable */
-  bool isProgEvaluatable() const;
-  /** Is part of compiled code */
-  bool isCompiled() const;
-  /** Set compiled */
-  void setCompiled();
   /** Get symbol */
   std::string getSymbol() const;
   /** Get underlying value */
@@ -162,12 +163,19 @@ class Expr
   std::pair<std::vector<Expr>, Expr> getFunctionType() const;
   /** Get arity, where this is a function type. Used for overloading. */
   size_t getFunctionArity() const;
- private:
-  /** The underlying value */
-  ExprValue* d_value;
   /** */
   static std::map<const ExprValue*, size_t> computeLetBinding(
       const Expr& e, std::vector<Expr>& ll);
+
+ private:
+  /** The underlying value */
+  ExprValue* d_value;
+  /**
+   * Get the children that should be printed of e.
+   * This is typically the children of e, but handles corner
+   * cases e.g. variables print their types.
+   */
+  static std::vector<Expr> getPrintChildren(const ExprValue* e);
   /** */
   static void printDebugInternal(const Expr& e,
                                  std::ostream& os,

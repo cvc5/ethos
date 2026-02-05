@@ -1,20 +1,13 @@
-(declare-type Int ())
+(declare-const Int Type)
 (declare-consts <numeral> Int)
 
-(declare-type BitVec (Int)) 
+(declare-const BitVec (-> Int Type)) 
 
 
-(declare-const bvadd (->
-  (! Int :var n :implicit)
-  (BitVec n)
-  (BitVec n)
+(declare-parameterized-const bvadd ((n Int :implicit)) (-> (BitVec n) (BitVec n)
   (BitVec n)))
 
-(declare-const bvconcat (->
-  (! Int :var n :implicit)
-  (! Int :var m :implicit)
-  (BitVec n)
-  (BitVec m)
+(declare-parameterized-const bvconcat ((n Int :implicit) (m Int :implicit)) (-> (BitVec n) (BitVec m)
   (BitVec (eo::add n m))))
   
 

@@ -51,19 +51,6 @@ enum class ParseCtx
   LET_NEXT_BIND,
   LET_BODY,
   /**
-   * Match terms
-   *
-   * MATCH_HEAD: in context (match <term>
-   *
-   * MATCH_NEXT_CASE: in context (match <term> (<case>* (<pattern> <term>
-   *                  or in context (match <term> (<case>* (<pattern>.
-   * `args` contains the head, plus a list of arguments of the form
-   * (TUPLE t1 t2), denoting the cases we have parsed. Optionally, the
-   * last element of args is a (non-TUPLE) term denoting the pattern.
-   */
-  MATCH_HEAD,
-  MATCH_NEXT_CASE,
-  /**
    * Term annotations
    *
    * TERM_ANNOTATE_BODY: in context (! <term> <attribute>* <attribute>
@@ -76,7 +63,6 @@ enum class ParseCtx
 ExprParser::ExprParser(Lexer& lex, State& state, bool isSignature)
     : d_lex(lex), d_state(state), d_isSignature(isSignature)
 {
-  d_strToAttr[":var"] = Attr::VAR;
   d_strToAttr[":implicit"] = Attr::IMPLICIT;
   d_strToAttr[":is_eq"] = Attr::IS_EQ;
   d_strToAttr[":type"] = Attr::TYPE;
@@ -86,10 +72,13 @@ ExprParser::ExprParser(Lexer& lex, State& state, bool isSignature)
   d_strToAttr[":right-assoc"] = Attr::RIGHT_ASSOC;
   d_strToAttr[":left-assoc-nil"] = Attr::LEFT_ASSOC_NIL;
   d_strToAttr[":right-assoc-nil"] = Attr::RIGHT_ASSOC_NIL;
+  d_strToAttr[":left-assoc-non-singleton-nil"] = Attr::LEFT_ASSOC_NS_NIL;
+  d_strToAttr[":right-assoc-non-singleton-nil"] = Attr::RIGHT_ASSOC_NS_NIL;
   d_strToAttr[":chainable"] = Attr::CHAINABLE;
   d_strToAttr[":pairwise"] = Attr::PAIRWISE;
   d_strToAttr[":binder"] = Attr::BINDER;
   d_strToAttr[":let-binder"] = Attr::LET_BINDER;
+  d_strToAttr[":arg-list"] = Attr::ARG_LIST;
   d_strToAttr[":opaque"] = Attr::OPAQUE;
   d_strToAttr[":syntax"] = Attr::SYNTAX;
   d_strToAttr[":restrict"] = Attr::RESTRICT;
@@ -158,16 +147,6 @@ Expr ExprParser::parseExpr()
             letBinders.emplace_back();
           }
           break;
-          case Token::EVAL_MATCH:
-          {
-            // parse the variable list
-            d_state.pushScope();
-            std::vector<Expr> vs = parseAndBindSortedVarList();
-            std::vector<Expr> args;
-            args.emplace_back(d_state.mkExpr(Kind::TUPLE, vs));
-            pstack.emplace_back(ParseCtx::MATCH_HEAD, 1, args);
-          }
-          break;
           case Token::ATTRIBUTE:
             pstack.emplace_back(ParseCtx::TERM_ANNOTATE_BODY);
             break;
@@ -176,9 +155,11 @@ Expr ExprParser::parseExpr()
             // we allow the syntax ((_ to begin a term
             pstack.emplace_back(ParseCtx::NEXT_ARG);
             tok = d_lex.nextToken();
-            if (tokenStrToSymbol(tok)!="_")
+            if (tokenStrToSymbol(tok) != "_" && tokenStrToSymbol(tok) != "as")
             {
-              d_lex.parseError("Expected indexed symbol as head of apply");
+              d_lex.parseError(
+                  "Expected qualified identifier or indexed symbol as head of "
+                  "apply");
             }
           }
           case Token::SYMBOL:
@@ -195,10 +176,8 @@ Expr ExprParser::parseExpr()
             if (ck==Attr::BINDER || ck==Attr::LET_BINDER)
             {
               // If it is a binder, immediately read the bound variable list.
-              // If option d_binderFresh is true, we parse and bind fresh
-              // variables. Otherwise, we make calls to State::getBoundVar
-              // meaning the bound variables are unique for each (name, type)
-              // pair.
+              // We make calls to State::getBoundVar meaning the bound variables
+              // are unique for each (name, type) pair.
               // We only do this if there are two left parentheses. Otherwise we
               // will parse a tuple term that stands for a symbolic bound
               // variable list. We do this because there are no terms that
@@ -214,10 +193,9 @@ Expr ExprParser::parseExpr()
                   if (ck==Attr::BINDER)
                   {
                     nscopes = 1;
-                    // we always do lookups if parsing signature
-                    bool isLookup = d_isSignature || !d_state.getOptions().d_binderFresh;
                     d_state.pushScope();
-                    std::vector<Expr> vs = parseAndBindSortedVarList(isLookup);
+                    std::vector<Expr> vs =
+                        parseAndBindSortedVarList(Kind::NONE);
                     if (vs.empty())
                     {
                       d_lex.parseError("Expected non-empty sorted variable list");
@@ -281,6 +259,12 @@ Expr ExprParser::parseExpr()
       {
         std::string name = tokenStrToSymbol(tok);
         ret = getVar(name);
+        if (ret.getKind()==Kind::BUILTIN_CONST)
+        {
+          std::stringstream ss;
+          ss << "Cannot use \"" << name << "\" as a first-class term.";
+          d_lex.parseError(ss.str());
+        }
       }
       break;
       case Token::INTEGER_LITERAL:
@@ -362,9 +346,6 @@ Expr ExprParser::parseExpr()
         String str(s, true);
         ret = d_state.mkLiteral(Kind::STRING, str.toString());
       }
-      break;
-      case Token::ABSTRACT_TYPE:
-      ret = d_state.mkAbstractType();
       break;
       case Token::TYPE:
       ret = d_state.mkType();
@@ -461,191 +442,22 @@ Expr ExprParser::parseExpr()
         {
           // now parse attribute list
           AttrMap attrs;
-          bool pushedScope = false;
           // NOTE parsing attributes may trigger recursive calls to this
           // method.
-          parseAttributeList(Kind::NONE, ret, attrs, pushedScope);
-          // the scope of the variable is one level up
-          if (pushedScope && pstack.size()>1)
-          {
-            pstack[pstack.size()-2].d_nscopes++;
-          }
+          parseAttributeList(Kind::NONE, ret, attrs);
           // process the attributes
           for (std::pair<const Attr, std::vector<Expr>>& a : attrs)
           {
-            switch(a.first)
-            {
-              case Attr::VAR:
-                Assert (a.second.size()==1);
-                // it is now (Quote v) for that variable
-                ret = d_state.mkQuoteType(a.second[0]);
-                break;
-              case Attr::IMPLICIT:
-                // the term will not be added as an argument to the parent
-                // note this always comes after VAR due to enum order
-                ret = d_null;
-                break;
-              case Attr::REQUIRES:
-                if (ret.isNull())
-                {
-                  d_lex.parseError("Cannot mark requires on implicit argument");
-                }
-                ret = d_state.mkRequires(a.second, ret);
-                break;
-              case Attr::OPAQUE:
-                if (ret.isNull())
-                {
-                  d_lex.parseError("Cannot mark opaque on implicit argument");
-                }
-                if (ret.getKind()==Kind::EVAL_REQUIRES)
-                {
-                  d_lex.parseError("Cannot combine opaque and requires");
-                }
-                ret = d_state.mkExpr(Kind::OPAQUE_TYPE, {ret});
-                break;
-              default:
-                // ignored
-                std::stringstream ss;
-                ss << "Unprocessed attribute " << a.first;
-                d_lex.warning(ss.str());
-                break;
-            }
+            // all term attributes are ignored
+            std::stringstream ss;
+            ss << "Unprocessed attribute " << a.first;
+            d_lex.warning(ss.str());
           }
           d_lex.eatToken(Token::RPAREN);
           // finished parsing attributes, ret is either nullptr if implicit,
           // or the term we parsed as the body of the annotation.
           sf.pop(d_state);
           pstack.pop_back();
-        }
-        break;
-        // ------------------------- match terms
-        case ParseCtx::MATCH_HEAD:
-        {
-          Assert(!ret.isNull());
-          // add the head
-          sf.d_args.push_back(ret);
-          ret = d_null;
-          d_lex.eatToken(Token::LPAREN);
-          // we now parse a pattern
-          sf.d_ctx = ParseCtx::MATCH_NEXT_CASE;
-          needsUpdateCtx = true;
-        }
-        break;
-        case ParseCtx::MATCH_NEXT_CASE:
-        {
-          std::vector<Expr>& args = sf.d_args;
-          bool checkNextPat = true;
-          if (!ret.isNull())
-          {
-            // if we just got done parsing a term (either a pattern or a return)
-            Expr last = args.back();
-            if (args.size() > 2 && last.getKind() != Kind::TUPLE)
-            {
-              // case where we just read a return value
-              // replace the back of this with a pair
-              args.back() = d_state.mkPair(last, ret);
-              d_lex.eatToken(Token::RPAREN);
-            }
-            else
-            {
-              // case where we just read a pattern
-              args.push_back(ret);
-              checkNextPat = false;
-            }
-            ret = d_null;
-          }
-          // if no more cases, we are done
-          if (checkNextPat)
-          {
-            if (d_lex.eatTokenChoice(Token::RPAREN, Token::LPAREN))
-            {
-              d_lex.eatToken(Token::RPAREN);
-              Trace("parser") << "Parsed match " << args << std::endl;
-              // make a program
-              if (args.size()<=2)
-              {
-                d_lex.parseError("Expected non-empty list of cases");
-              }
-              Expr atype = d_state.mkAbstractType();
-              // environment is the variable list
-              std::vector<Expr> vl;
-              for (size_t i = 0, nchildren = args[0].getNumChildren();
-                   i < nchildren;
-                   i++)
-              {
-                vl.push_back(args[0][i]);
-              }
-              Expr hd = args[1];
-              std::vector<Expr> caseArgs(args.begin()+2, args.end());
-              std::vector<Expr> allVars = Expr::getVariables(caseArgs);
-              std::vector<Expr> env;
-              std::vector<Expr> fargTypes;
-              fargTypes.push_back(atype);
-              for (const Expr& v : allVars)
-              {
-                if (std::find(vl.begin(), vl.end(), v)==vl.end())
-                {
-                  // A variable not appearing in the local binding of the match,
-                  // add it to the environment.
-                  env.push_back(v);
-                  // It will be an argument to the internal program
-                  fargTypes.push_back(atype);
-                }
-              }
-              Trace("parser") << "Binder is " << vl << std::endl;
-              Trace("parser") << "Env is " << env << std::endl;
-              // make the program variable, whose type is abstract
-              Expr ftype = d_state.mkFunctionType(fargTypes, atype, false);
-              std::stringstream pvname;
-              pvname << "_match_" << hd;
-              Expr pv = d_state.mkSymbol(Kind::PROGRAM_CONST, pvname.str(), ftype);
-              // process the cases
-              std::vector<Expr> cases;
-              for (size_t i=0, nargs = caseArgs.size(); i<nargs; i++)
-              {
-                const Expr& cs = caseArgs[i];
-                Assert(cs.getKind() == Kind::TUPLE);
-                const Expr& lhs = cs[0];
-                // check that variables in the pattern are only from the binder
-                ensureBound(lhs, vl);
-                const Expr& rhs = cs[1];
-                std::vector<Expr> appArgs{pv, lhs};
-                appArgs.insert(appArgs.end(), env.begin(), env.end());
-                Expr lhsa = d_state.mkExpr(Kind::APPLY, appArgs);
-                cases.push_back(d_state.mkPair(lhsa, rhs));
-                // check free variable requirement
-                std::vector<Expr> bvsl = Expr::getVariables(lhs);
-                std::vector<Expr> bvsr = Expr::getVariables(rhs);
-                for (const Expr& v : bvsr)
-                {
-                  // if not in the locally bound variable list, skip
-                  if (std::find(vl.begin(), vl.end(), v)==vl.end())
-                  {
-                    continue;
-                  }
-                  // otherwise, must be in the left hand side
-                  if (std::find(bvsl.begin(), bvsl.end(), v)==bvsl.end())
-                  {
-                    std::stringstream msg;
-                    msg << "Unexpected free parameter in match case:" << std::endl;
-                    msg << "       Expression: " << rhs << std::endl;
-                    msg << "   Free parameter: " << v << std::endl;
-                    msg << "Does not occur in: " << lhs << std::endl;
-                    d_lex.parseError(msg.str());
-                  }
-                }
-              }
-              Expr prog = d_state.mkExpr(Kind::PROGRAM, cases);
-              d_state.defineProgram(pv, prog);
-              std::vector<Expr> appArgs{pv, hd};
-              appArgs.insert(appArgs.end(), env.begin(), env.end());
-              ret = d_state.mkExpr(Kind::APPLY, appArgs);
-              // pop the stack
-              sf.pop(d_state);
-              pstack.pop_back();
-            }
-          }
-          // otherwise, ready to parse the next expression
         }
         break;
         default: break;
@@ -656,11 +468,59 @@ Expr ExprParser::parseExpr()
   return ret;
 }
 
-Expr ExprParser::parseType()
+Expr ExprParser::parseType(bool allowQuoteArg, bool allowEval)
 {
+  if (allowQuoteArg)
+  {
+    Token tok = d_lex.nextToken();
+    if (tok==Token::LPAREN)
+    {
+      tok = d_lex.nextToken();
+      if (tok==Token::SYMBOL)
+      {
+        std::string s = d_lex.tokenStr();
+        if (s=="eo::quote")
+        {
+          Expr t = parseExpr();
+          if (t.getKind()!=Kind::PARAM)
+          {
+            d_lex.parseError("Expected a parameter as argument to eo::quote");
+          }
+          d_lex.eatToken(Token::RPAREN);
+          return d_state.mkQuoteType(t);
+        }
+      }
+      d_lex.reinsertToken(tok);
+      d_lex.reinsertToken(Token::LPAREN);
+    }
+    else
+    {
+      d_lex.reinsertToken(tok);
+    }
+  }
   Expr e = parseExpr();
   // ensure it is a type
   typeCheck(e, d_state.mkType());
+  // should not contain stuck term
+  if (e.isEvaluatable())
+  {
+    if (e.isGround())
+    {
+      std::stringstream msg;
+      msg << "Parsed type has an unevalated term:" << std::endl;
+      msg << "Type: " << e << std::endl;
+      d_lex.parseError(msg.str());
+    }
+    else if (!allowEval)
+    {
+      std::stringstream msg;
+      msg << "Parsed type cannot contain evaluation in this context:"
+          << std::endl;
+      msg << "Type: " << e << std::endl;
+      d_lex.parseError(msg.str());
+    }
+  }
+
   return e;
 }
 
@@ -688,7 +548,7 @@ std::vector<Expr> ExprParser::parseExprList()
   return terms;
 }
 
-std::vector<Expr> ExprParser::parseTypeList()
+std::vector<Expr> ExprParser::parseTypeList(bool allowQuoteArg)
 {
   d_lex.eatToken(Token::LPAREN);
   std::vector<Expr> terms;
@@ -696,7 +556,8 @@ std::vector<Expr> ExprParser::parseTypeList()
   while (tok != Token::RPAREN)
   {
     d_lex.reinsertToken(tok);
-    Expr t = parseType();
+    // never allow evaluation
+    Expr t = parseType(allowQuoteArg, false);
     terms.push_back(t);
     tok = d_lex.nextToken();
   }
@@ -751,29 +612,30 @@ std::vector<Expr> ExprParser::parseExprPairList()
   return terms;
 }
 
-std::vector<Expr> ExprParser::parseAndBindSortedVarList(bool isLookup)
+std::vector<Expr> ExprParser::parseAndBindSortedVarList(Kind k)
 {
-  std::vector<Expr> impls;
-  return parseAndBindSortedVarList(impls, isLookup);
+  std::map<ExprValue*, AttrMap> amap;
+  std::vector<Expr> vars = parseAndBindSortedVarList(k, amap);
+  processAttributeMaps(amap);
+  return vars;
 }
 
 std::vector<Expr> ExprParser::parseAndBindSortedVarList(
-                     std::vector<Expr>& impls, bool isLookup)
+    Kind k, std::map<ExprValue*, AttrMap>& amap)
 {
   std::vector<Expr> varList;
   d_lex.eatToken(Token::LPAREN);
   std::string name;
   Expr t;
-  Attr ck = Attr::NONE;
-  Expr cons;
   // while the next token is LPAREN, exit if RPAREN
   while (d_lex.eatTokenChoice(Token::LPAREN, Token::RPAREN))
   {
     name = parseSymbol();
-    t = parseType();
+    // do not allow quote or evaluation
+    t = parseType(false, false);
     Expr v;
     bool isImplicit = false;
-    if (isLookup)
+    if (k == Kind::NONE)
     {
       // lookup and type check
       v = d_state.getBoundVar(name, t);
@@ -783,23 +645,25 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList(
     else
     {
       v = d_state.mkSymbol(Kind::PARAM, name, t);
+      // if this parameter is used to define the type of a constant, then if 
+      // it has non-ground type, its type will be taken into account for
+      // matching and evaluation. We wrap it in (eo::param ...) here.
+      // Older versions of ethos had also done this for PROOF_RULE, but
+      // we now view proof rules more as programs not constants.
+      if (k == Kind::CONST && !t.isGround())
+      {
+        v = d_state.mkExpr(Kind::ANNOT_PARAM, {v, t});
+      }
       bind(name, v);
       // parse attribute list
-      AttrMap attrs;
-      parseAttributeList(Kind::PARAM, v, attrs);
+      AttrMap& attrs = amap[v.getValue()];
+      // all other parameter lists make fresh parameters, pass along the
+      // parameter list kind k
+      parseAttributeList(Kind::PARAM, v, attrs, k);
       if (attrs.find(Attr::IMPLICIT)!=attrs.end())
       {
         attrs.erase(Attr::IMPLICIT);
         isImplicit = true;
-        impls.push_back(v);
-      }
-      // process the attribute map, which may mark the parameter as a list
-      processAttributeMap(attrs, ck, cons, {});
-      if (ck!=Attr::NONE)
-      {
-        d_state.markConstructorKind(v, ck, cons);
-        ck = Attr::NONE;
-        cons = d_null;
       }
     }
     d_lex.eatToken(Token::RPAREN);
@@ -824,7 +688,7 @@ std::vector<std::pair<Expr, Expr>> ExprParser::parseAndBindLetList()
     t = parseExpr();
     d_lex.eatToken(Token::RPAREN);
     tt = typeCheck(t);
-    v = d_state.mkSymbol(Kind::VARIABLE, name, tt);
+    v = d_state.getBoundVar(name, tt);
     letList.emplace_back(v, t);
   }
   // now perform the bindings, which bind to the variable, not its definition
@@ -860,7 +724,8 @@ bool ExprParser::parseDatatypesDef(
     const std::vector<std::string>& dnames,
     const std::vector<size_t>& arities,
     std::map<const ExprValue*, std::vector<Expr>>& dts,
-    std::map<const ExprValue*, std::vector<Expr>>& dtcons)
+    std::map<const ExprValue*, std::vector<Expr>>& dtcons,
+    std::unordered_set<const ExprValue*>& ambCons)
 {
   Assert(dnames.size() == arities.size()
          || (dnames.size() == 1 && arities.empty()));
@@ -955,7 +820,8 @@ bool ExprParser::parseDatatypesDef(
       dti = d_state.mkExpr(Kind::APPLY, dapp);
     }
     std::vector<std::pair<std::string, Expr>> toBind;
-    parseConstructorDefinitionList(dti, dts[dt.getValue()], dtcons, toBind);
+    std::vector<Expr>& clist = dts[dt.getValue()];
+    parseConstructorDefinitionList(dti, clist, dtcons, toBind, ambCons, params);
     if (pushedScope)
     {
       d_lex.eatToken(Token::RPAREN);
@@ -983,7 +849,9 @@ void ExprParser::parseConstructorDefinitionList(
     Expr& dt,
     std::vector<Expr>& conslist,
     std::map<const ExprValue*, std::vector<Expr>>& dtcons,
-    std::vector<std::pair<std::string, Expr>>& toBind)
+    std::vector<std::pair<std::string, Expr>>& toBind,
+    std::unordered_set<const ExprValue*>& ambCons,
+    const std::vector<Expr>& params)
 {
   d_lex.eatToken(Token::LPAREN);
   Expr boolType = d_state.mkBoolType();
@@ -1010,6 +878,24 @@ void ExprParser::parseConstructorDefinitionList(
       toBind.emplace_back(ss.str(), updater);
       d_lex.eatToken(Token::RPAREN);
     }
+    bool isAmb = false;
+    if (!params.empty())
+    {
+      // if this is an ambiguous datatype constructor, we add (Quote T)
+      // as the first argument type.
+      Expr tup = d_state.mkExpr(Kind::TUPLE, typelist);
+      std::vector<Expr> pargs = Expr::getVariables(tup);
+      Expr fv = findFreeVar(dt, pargs);
+      Trace("param-dt") << "Parameteric datatype constructor: " << name;
+      Trace("param-dt") << (fv.isNull() ? " un" : " ") << "ambiguous"
+                        << std::endl;
+      if (!fv.isNull())
+      {
+        Expr odt = d_state.mkQuoteType(dt);
+        typelist.insert(typelist.begin(), odt);
+        isAmb = true;
+      }
+    }
     Expr ctype = d_state.mkFunctionType(typelist, dt);
     Expr cons = d_state.mkSymbol(Kind::CONST, name, ctype);
     toBind.emplace_back(name, cons);
@@ -1021,6 +907,10 @@ void ExprParser::parseConstructorDefinitionList(
     Expr tester = d_state.mkSymbol(Kind::CONST, ss.str(), dtype);
     toBind.emplace_back(ss.str(), tester);
     dtcons[cons.getValue()] = sels;
+    if (isAmb)
+    {
+      ambCons.insert(cons.getValue());
+    }
   }
 }
 
@@ -1086,7 +976,8 @@ std::string ExprParser::parseStr(bool unescape)
   return s;
 }
 
-void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushedScope)
+void ExprParser::parseAttributeList(
+    Kind k, Expr& e, AttrMap& attrs, Kind plk)
 {
   std::map<std::string, Attr>::iterator its;
   // while the next token is KEYWORD, exit if RPAREN
@@ -1126,9 +1017,36 @@ void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushe
       case Kind::PARAM:
       {
         // attributes on parameters
-        if (a==Attr::LIST || a==Attr::IMPLICIT)
+        if (a == Attr::LIST)
+        {
+          // list is always handled in all contexts and is processed
+          // immediately. We process immediately to ensure that
+          // e.g. if this parameter occurs in a type of another parameter
+          // we are parsing, it is handled as list.
+          d_state.markConstructorKind(e, a, d_null);
+          continue;
+        }
+        // parameter lists of define and declare-parameterized-const
+        // allow for several attributes
+        if (plk == Kind::CONST || plk == Kind::LAMBDA)
         {
           handled = true;
+          switch (a)
+          {
+            case Attr::IMPLICIT:
+            case Attr::OPAQUE:
+              // requires no value
+              break;
+            case Attr::RESTRICT:
+              // requires an expression that follows
+              val = parseExpr();
+              break;
+            case Attr::SYNTAX:
+              // ignores the literal kind
+              parseLiteralKind();
+              break;
+            default: handled = false; break;
+          }
         }
       }
         break;
@@ -1144,9 +1062,12 @@ void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushe
             break;
           case Attr::RIGHT_ASSOC_NIL:
           case Attr::LEFT_ASSOC_NIL:
+          case Attr::RIGHT_ASSOC_NS_NIL:
+          case Attr::LEFT_ASSOC_NS_NIL:
           case Attr::CHAINABLE:
           case Attr::PAIRWISE:
           case Attr::BINDER:
+          case Attr::ARG_LIST:
           {
             // requires an expression that follows
             handled = true;
@@ -1189,62 +1110,6 @@ void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushe
         }
       }
         break;
-      case Kind::NONE:
-      {
-        // attributes on general terms, including type arguments
-        handled = true;
-        switch (a)
-        {
-          case Attr::IMPLICIT:
-          case Attr::OPAQUE:
-            // requires no value
-            break;
-          case Attr::VAR:
-          {
-            if (e.isNull())
-            {
-              d_lex.parseError("Cannot use :var in this context");
-            }
-            if (attrs.find(Attr::VAR)!=attrs.end())
-            {
-              d_lex.parseError("Cannot use :var on the same term more than once");
-            }
-            std::string name = parseSymbol();
-            // e should be a type
-            val = d_state.mkSymbol(Kind::PARAM, name, e);
-            // immediately bind
-            if (!pushedScope)
-            {
-              pushedScope = true;
-              d_state.pushScope();
-            }
-            bind(name, val);
-          }
-          break;
-          case Attr::RESTRICT:
-          {
-            // requires an expression that follows
-            val = parseExpr();
-          }
-            break;
-          case Attr::REQUIRES:
-          {
-            // requires a pair
-            val = parseExprPair();
-          }
-            break;
-          case Attr::SYNTAX:
-          {
-            // ignores the literal kind
-            parseLiteralKind();
-          }
-            break;
-          default:
-            handled = false;
-            break;
-        }
-      }
-        break;
       default:
         break;
     }
@@ -1255,17 +1120,6 @@ void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs, bool& pushe
     attrs[its->second].push_back(val);
   }
   d_lex.reinsertToken(Token::RPAREN);
-}
-
-void ExprParser::parseAttributeList(Kind k, Expr& e, AttrMap& attrs)
-{
-  bool pushedScope = false;
-  parseAttributeList(k, e, attrs, pushedScope);
-  // pop the scope if necessary
-  if (pushedScope)
-  {
-    d_state.popScope();
-  }
 }
 
 Kind ExprParser::parseLiteralKind()
@@ -1343,7 +1197,8 @@ void ExprParser::bind(const std::string& name, Expr& e)
   if (!d_state.bind(name, e))
   {
     std::stringstream ss;
-    ss << "Failed to bind symbol " << name;
+    ss << "Failed to bind symbol " << name
+       << ", since the symbol has already been defined";
     d_lex.parseError(ss.str());
   }
 }
@@ -1366,28 +1221,6 @@ Expr ExprParser::typeCheck(Expr& e)
   }
   return v;
 }
-Expr ExprParser::typeCheckApp(std::vector<Expr>& children)
-{
-  // ensure all children are type checked
-  for (Expr& c : children)
-  {
-    typeCheck(c);
-  }
-  const Expr& v = d_state.getTypeChecker().getTypeApp(children);
-  if (v.isNull())
-  {
-    // we allocate stringstream for error messages only when an error occurs
-    // thus, we require recomputing the error message here.
-    std::stringstream ss;
-    d_state.getTypeChecker().getTypeApp(children, &ss);
-    std::stringstream msg;
-    msg << "Type checking application failed:" << std::endl;
-    msg << "Children: " << children << std::endl;
-    msg << "Message: " << ss.str() << std::endl;
-    d_lex.parseError(msg.str());
-  }
-  return v;
-}
 
 Expr ExprParser::typeCheck(Expr& e, const Expr& expected)
 {
@@ -1404,7 +1237,26 @@ Expr ExprParser::typeCheck(Expr& e, const Expr& expected)
   return et;
 }
 
-void ExprParser::ensureBound(const Expr& e, const std::vector<Expr>& bvs)
+void ExprParser::typeCheckProgramPair(Expr& pat,
+                                      Expr& ret,
+                                      bool checkPreservation)
+{
+  // ensure the right hand side is bound by the left hand side
+  std::vector<Expr> bvs = Expr::getVariables(pat);
+  ensureBound(ret, bvs);
+  for (size_t i = 1, nchildren = pat.getNumChildren(); i < nchildren; i++)
+  {
+    Expr ecc = pat[i];
+    if (ecc.isEvaluatable())
+    {
+      std::stringstream ss;
+      ss << "Cannot match on evaluatable subterm " << pat[i];
+      d_lex.parseError(ss.str());
+    }
+  }
+}
+
+Expr ExprParser::findFreeVar(const Expr& e, const std::vector<Expr>& bvs)
 {
   std::vector<Expr> efv = Expr::getVariables(e);
   for (const Expr& v : efv)
@@ -1412,24 +1264,47 @@ void ExprParser::ensureBound(const Expr& e, const std::vector<Expr>& bvs)
     if (std::find(bvs.begin(), bvs.end(), v)==bvs.end())
     {
       // ignore distinguished variables
-      if (v==d_state.mkConclusion() || v==d_state.mkSelf())
+      if (v == d_state.mkSelf())
       {
         continue;
       }
-      std::stringstream msg;
-      msg << "Unexpected free parameter in expression:" << std::endl;
-      msg << "      Expression: " << e << std::endl;
-      msg << "  Free parameter: " << v << std::endl;
-      msg << "Bound parameters: " << bvs << std::endl;
-      d_lex.parseError(msg.str());
+      return v;
+    }
+  }
+  return d_null;
+}
+
+void ExprParser::ensureBound(const Expr& e, const std::vector<Expr>& bvs)
+{
+  Expr v = findFreeVar(e, bvs);
+  if (!v.isNull())
+  {
+    std::stringstream msg;
+    msg << "Unexpected free parameter in expression:" << std::endl;
+    msg << "      Expression: " << e << std::endl;
+    msg << "  Free parameter: " << v << std::endl;
+    msg << "Bound parameters: " << bvs << std::endl;
+    d_lex.parseError(msg.str());
+  }
+}
+
+void ExprParser::processAttributeMaps(const std::map<ExprValue*, AttrMap>& amap)
+{
+  // process the attribute map, which may mark the parameter as a list
+  for (const std::pair<ExprValue* const, AttrMap>& as : amap)
+  {
+    Attr ck = Attr::NONE;
+    Expr cons;
+    processAttributeMap(as.second, ck, cons);
+    if (ck != Attr::NONE)
+    {
+      Expr v(as.first);
+      d_state.markConstructorKind(v, ck, cons);
     }
   }
 }
 
-void ExprParser::processAttributeMap(const AttrMap& attrs,
-                                     Attr& ck,
-                                     Expr& cons,
-                                     const std::vector<Expr>& params)
+void ExprParser::processAttributeMap(const AttrMap& attrs, Attr& ck, Expr& cons)
 {
   ck = Attr::NONE;
   for (const std::pair<const Attr, std::vector<Expr>>& a : attrs)
@@ -1450,18 +1325,13 @@ void ExprParser::processAttributeMap(const AttrMap& attrs,
         // if the constructor spec is non-ground, make a lambda
         if (!av.isNull() && !av.isGround())
         {
+          std::vector<Expr> params = Expr::getVariables(av);
           Assert (!params.empty());
           cons = d_state.mkParameterized(av.getValue(), params);
         }
         else
         {
           cons = av;
-          // if the nil constructor doesn't use parameters, just ignore
-          if (!params.empty())
-          {
-            Warning() << "Ignoring unused parameters for definition of "
-                      << "symbol with nil constructor " << av << std::endl;
-          }
         }
         ck = a.first;
       }

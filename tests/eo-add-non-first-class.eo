@@ -1,0 +1,34 @@
+(declare-const Int Type)
+(declare-consts <numeral> Int)
+
+(declare-const g (-> Int Int Int))
+
+(program dummy ((f (-> Int Int Int)) (n1 Int) (n2 Int))
+    :signature (Int Int (-> Int Int Int)) Int
+
+    (((dummy n1 n2 f) (f n1 n2)))
+)
+
+; this should work
+(define tmp1 () (dummy 1 1 g))
+(declare-const c1 (eo::requires tmp1 (g 1 1) Int))
+(define test1 () c1 :type Int)
+
+
+(program foo ((n1 Int) (n2 Int))
+    :signature (Int Int) Int
+
+    (((foo n1 n2) n1))
+)
+
+
+; this should not work
+;(define tmp2 () (dummy 1 1 foo))
+;(declare-const c2 (eo::requires tmp2 1 Int))
+;(define test1 () c2 :type Int)
+
+
+; this should not work
+;(define tmp3 () (dummy 1 1 eo::add))
+;(declare-const c3 (eo::requires tmp3 2 Int))
+;(define test2 () c3 :type Int)

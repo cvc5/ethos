@@ -1,0 +1,60 @@
+; This version of the signature assumes testers are written e.g. (_ is nil), for the uninstantiated version of the constructor
+
+; helper method to get the *uninstantiated* form of the list of constructors of a datatype
+(program $dt_get_constructors ((D Type) (T Type) (U Type) (DC (-> Type Type)))
+  :signature (U) eo::List
+  (
+    (($dt_get_constructors (DC T))        ($dt_get_constructors DC))   ; user-defined parameteric datatypes, traverse
+    (($dt_get_constructors D)             (eo::dt_constructors D))     ; ordinary user-defined datatypes
+  )
+)
+
+(declare-const Int Type)
+(declare-datatypes ((Lst 1)) ((par (X)((cons (head X) (tail (Lst X))) (nil)))))
+
+
+(declare-parameterized-const is ((C Type :implicit) (D Type :implicit)) (-> C D Bool))
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
+
+(program $mk_dt_split ((D Type) (x D) (T Type) (c T) (xs eo::List :list))
+  :signature (eo::List D) Bool
+  (
+    (($mk_dt_split eo::List::nil x)          false)
+    (($mk_dt_split (eo::List::cons c xs) x)  (eo::cons or (is c x) ($mk_dt_split xs x)))
+  )
+)
+
+(declare-rule dt-split ((D Type) (x D))
+  :args (x)
+  :conclusion ($mk_dt_split ($dt_get_constructors (eo::typeof x)) x)
+)
+
+(declare-const x (Lst Int))
+
+(step @p0 (or (is cons x) (is nil x)) :rule dt-split :args (x))
+
+
+(program $mk_dt_inst ((D Type) (x D) (T Type) (U Type) (t (-> T U)) (tb D) (s (-> D T)) (xs eo::List :list))
+  :signature (eo::List D T) D
+  (
+    (($mk_dt_inst eo::List::nil x tb)         tb)
+    (($mk_dt_inst (eo::List::cons s xs) x t)  ($mk_dt_inst xs x (t (s x))))
+  )
+)
+
+(declare-rule dt-inst ((D Type) (T Type) (c T) (x D))
+  :args (c x)
+  :conclusion (= (is c x) 
+      (= x 
+         (eo::define ((U (eo::typeof x)))
+         ($mk_dt_inst (eo::dt_selectors c) x
+            ; start with the *instantiated* version of the constructor, which is at the same index
+            (eo::list_nth 
+              eo::List::cons 
+              (eo::dt_constructors U) 
+              (eo::list_find eo::List::cons ($dt_get_constructors U) c))))))
+)
+
+(step @p1 (= (is cons x) (= x (cons (head x) (tail x)))) :rule dt-inst :args (cons x))
+(step @p1 (= (is nil x) (= x (as nil (Lst Int)))) :rule dt-inst :args (nil x))

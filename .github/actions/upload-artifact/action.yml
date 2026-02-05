@@ -1,0 +1,28 @@
+name: Upload artifact
+description: Create and upload an artifact with the binary and libraries
+inputs:
+  binary-dir:
+    description: path to the directory with the binary
+  shell:
+    default: bash
+
+runs:
+  using: composite
+  steps:
+    - name: Prepare artifact
+      shell: ${{ inputs.shell }}
+      run: |
+        mkdir artifact
+        cp COPYING ./artifact/
+        cp -r licenses ./artifact/
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          cp ${{ inputs.binary-dir }}/ethos.exe ./artifact/
+        else
+          cp ${{ inputs.binary-dir }}/ethos ./artifact/
+        fi
+
+    - name: Upload binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: ethos-${{ matrix.name }}
+        path: artifact/*

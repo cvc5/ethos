@@ -1,0 +1,34 @@
+(declare-const Int Type)
+(declare-consts <numeral> Int)
+(declare-const BitVec (-> Int Type))
+(declare-consts <binary> (BitVec (eo::len eo::self)))
+
+(define @bv_empty () (eo::to_bin 0 0))
+
+(declare-parameterized-const concat ((n Int :implicit) (m Int :implicit))
+  (-> (BitVec n) (BitVec m) (BitVec (eo::add n m)))
+  :right-assoc-nil @bv_empty)
+
+(program zero_of_width ((n Int))
+  :signature ((eo::quote n)) (BitVec n)
+  (
+    ((zero_of_width 0) @bv_empty)
+    ((zero_of_width n) (eo::requires (eo::is_neg n) false
+                          (concat #b0 (zero_of_width (eo::add n -1)))))
+  )
+)
+
+(define foo () (zero_of_width 7) :type (BitVec 7))
+
+
+(program repeat_term ((m Int) (n Int) (x (BitVec m)))
+  :signature ((BitVec m) (eo::quote n)) (BitVec (eo::mul m n))
+  (
+    ((repeat_term x 0) @bv_empty)
+    ((repeat_term x n) (eo::requires (eo::is_neg n) false
+                         (concat x (repeat_term x (eo::add n -1)))))
+  )
+)
+
+(declare-const a (BitVec 5))
+(define foo2 () (repeat_term a 7) :type (BitVec 35))

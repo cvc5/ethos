@@ -1,0 +1,19 @@
+
+
+(declare-parameterized-const = ((A Type :implicit)) (-> A A Bool))
+
+(declare-rule refl ((T Type) (t T))
+    :args (t)
+    :conclusion (= t t)
+)
+(declare-const @List Type)
+(declare-const @list.nil @List)
+(declare-parameterized-const @list ((T Type :implicit)) (-> T @List @List) :right-assoc-nil @list.nil)
+(declare-const forall (-> @List Bool Bool) :binder @list)
+
+(declare-const Int Type)
+(declare-const a Int)
+(declare-const b Int)
+
+(step @p99 :rule refl :args ((forall ((a Int) (b Int)) true)))
+(step @p106 :rule refl :args (a))

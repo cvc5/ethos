@@ -1,9 +1,9 @@
-(declare-type Int ())
+(declare-const Int Type)
 (declare-const - (-> Int Int Int))
 ; bound after above
 (declare-const - (-> Int Int))
 
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 (declare-const a Int)
 (declare-consts <numeral> Int)
 

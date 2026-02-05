@@ -1,0 +1,8 @@
+
+(declare-const and (-> Bool Bool Bool) :left-assoc-nil true)
+
+(define singleton-list ((T Type :implicit) (f (-> T T T)) (a T)) (eo::cons f a (eo::nil f (eo::typeof a))))
+
+(declare-const a Bool)
+
+(declare-const test1 (eo::requires (singleton-list and a) (and a) Bool))

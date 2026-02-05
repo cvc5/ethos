@@ -1,15 +1,15 @@
-(declare-type Int ())
+(declare-const Int Type)
 
 (declare-consts <numeral> Int)
 
 
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 
 (declare-const + (-> Int Int Int) :right-assoc)
 
 
 (program run_evaluate ((a Int) (b Int))
-    (Int) Int
+    :signature (Int) Int
     (
       ((run_evaluate (+ a b)) (eo::add (run_evaluate a) (run_evaluate b)))
       ((run_evaluate a) a)

@@ -1,6 +1,6 @@
-(declare-type Nat ())
+(declare-const Nat Type)
 
-(declare-consts <numeral> (! Nat :requires ((eo::is_neg eo::self) false)))
+(declare-consts <numeral> (eo::requires (eo::is_neg eo::self) false Nat))
 
 (declare-const f (-> Nat Bool))
 

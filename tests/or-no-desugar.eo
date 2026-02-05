@@ -1,0 +1,32 @@
+
+
+(declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
+(declare-const and (-> Bool Bool Bool) :right-assoc-nil true)
+(declare-const not (-> Bool Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
+
+(program substitute-over-or2 ((x Bool) (y Bool) (l Bool) (z Bool))
+  :signature (Bool Bool Bool) Bool
+  (
+  ; note that (_ or z l) does *not* desugar, so this method is equivalent to the one below.
+  ((substitute-over-or2 x y (_ or z l)) (_ or (substitute-over-or2 x y z) (substitute-over-or2 x y l)))
+  ((substitute-over-or2 x y x)          y)
+  ((substitute-over-or2 x y z)          z)
+  )
+)
+
+
+(program substitute-over-or ((x Bool) (y Bool) (l Bool :list) (z Bool))
+  :signature (Bool Bool Bool) Bool
+  (
+  ((substitute-over-or x y (or z l))  (_ or (substitute-over-or x y z) (substitute-over-or x y l)))
+  ((substitute-over-or x y x)         y)
+  ((substitute-over-or x y z)         z)
+  )
+)
+
+(declare-const a Bool)
+(declare-const b Bool)
+(declare-const c Bool)
+(declare-const test1 (eo::requires (substitute-over-or c b (or a b c)) (or a b b) Bool))
+(declare-const test2 (eo::requires (substitute-over-or2 c b (or a b c)) (or a b b) Bool))

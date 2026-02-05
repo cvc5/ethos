@@ -1,5 +1,5 @@
 
-(declare-const = (-> (! Type :var T) T T Bool))
+(declare-parameterized-const = ((T Type)) (-> T T Bool))
 
 (declare-const not (-> Bool Bool))
 
@@ -14,7 +14,7 @@
   :conclusion false
 )
 
-(declare-type Int ())
+(declare-const Int Type)
 (declare-const x Int)
 (declare-const y Int)
 (declare-const c Bool)

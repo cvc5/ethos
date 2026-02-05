@@ -46,7 +46,8 @@ public:
   size_t d_litCount;
   std::time_t d_startTime;
   std::map<const ExprValue*, RuleStat> d_rstats;
-  std::string toString(State& s, bool compact) const;
+  std::map<const ExprValue*, RuleStat> d_pstats;
+  std::string toString(State& s, bool compact, bool all) const;
 
   static std::time_t getCurrentTime();
 };

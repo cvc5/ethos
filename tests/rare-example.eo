@@ -1,4 +1,4 @@
-(declare-const = (-> (! Type :var T :implicit) T T Bool))
+(declare-parameterized-const = ((T Type :implicit)) (-> T T Bool))
 (declare-const or (-> Bool Bool Bool) :right-assoc-nil false)
 (declare-const and (-> Bool Bool Bool) :left-assoc-nil true)
 
@@ -12,16 +12,16 @@
 )
 
 (program elim_singleton_list_rhs ((T Type) (f (-> T T T)) (t T) (s T :list))
-  ((-> T T T) T) T
+  :signature ((-> T T T) T) T
   (
-  ((elim_singleton_list_rhs f (f t s)) (eo::ite (eo::is_eq s (eo::nil f)) t (f t s)))
+  ((elim_singleton_list_rhs f (f t s)) (eo::ite (eo::is_eq s (eo::nil f (eo::typeof (f t s)))) t (f t s)))
   ((elim_singleton_list_rhs f t)       t)
   )
 )
 (program elim_singleton_list_lhs ((T Type) (f (-> T T T)) (t T :list) (s T))
-  ((-> T T T) T) T
+  :signature ((-> T T T) T) T
   (
-  ((elim_singleton_list_lhs f (f t s)) (eo::ite (eo::is_eq t (eo::nil f)) s (f t s)))
+  ((elim_singleton_list_lhs f (f t s)) (eo::ite (eo::is_eq t (eo::nil f (eo::typeof (f t s)))) s (f t s)))
   ((elim_singleton_list_lhs f s)       s)
   )
 )

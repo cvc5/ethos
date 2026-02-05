@@ -19,7 +19,6 @@ namespace ethos {
 enum class Token
 {
   EOF_TOK = 0,
-  ABSTRACT_TYPE,
   ASSERT,
   ASSUME,
   ASSUME_PUSH,
@@ -29,8 +28,6 @@ enum class Token
   CHECK_SAT,
   CHECK_SAT_ASSUMING,
   DECIMAL_LITERAL,
-  DECLARE_CODATATYPE,
-  DECLARE_CODATATYPES,
   DECLARE_CONST,
   DECLARE_CONSTS,
   DECLARE_DATATYPE,
@@ -49,7 +46,6 @@ enum class Token
   DEFINE_TYPE,
   ECHO,
   EVAL_DEFINE,  // eo::define
-  EVAL_MATCH,   // eo::match
   EXIT,
   HEX_LITERAL,
   INCLUDE,

@@ -1,0 +1,11 @@
+
+(declare-const Int Type)
+(declare-consts <numeral> Int)
+
+(declare-const Array (-> Type Type Type))
+
+; The store all array constant.
+(declare-parameterized-const const ((T Type :implicit) (U Type :implicit)) (-> U (Array T U)))
+
+
+(define foo () ((as const (Array Int Int)) 0) :type (Array Int Int))

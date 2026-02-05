@@ -1,0 +1,13 @@
+
+
+(declare-const Int Type)
+
+(declare-const exists (-> eo::List Bool Bool) :binder eo::List::cons)
+(declare-parameterized-const = ((A Type :implicit)) (-> A A Bool))
+
+(declare-rule exists-refl ((T Type))
+  :args (T)
+  :conclusion (exists ((x T)) (= x x)))
+
+  
+(step @p0 (exists ((x Int)) (= x x)) :rule exists-refl :args (Int))

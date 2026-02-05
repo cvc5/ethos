@@ -1,0 +1,23 @@
+(declare-const Int Type)
+(declare-consts <numeral> Int)
+
+(declare-const String Type)
+(declare-consts <string> String)
+
+(define addOne ((T Type :implicit) (x T)) (eo::add x 1))
+
+(define testReflEq ((T Type :implicit) (x T)) (eo::is_eq x x))
+
+
+(declare-const Set (-> Type Type))
+
+(declare-const foo (Set (eo::requires (testReflEq (addOne 0)) true Bool)))
+; should fail
+;(declare-const foo2 (Set (eo::requires (testReflEq (addOne "ABC")) true Bool)))
+
+
+(declare-const foo3 (Set (eo::requires (eo::eq "ABC" "ABC") true Bool)))
+(declare-const foo4 (Set (eo::requires (eo::is_ok "ABC") true Bool)))
+; should fail
+;(declare-const foo5 (Set (eo::requires (eo::is_ok (addOne "ABC")) true Bool)))
+

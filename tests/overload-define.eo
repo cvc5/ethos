@@ -1,0 +1,10 @@
+(declare-const Int Type)
+(declare-consts <numeral> Int)
+(declare-const f (-> Int Int Int))
+
+(define g () (f 0))
+(define g () (f 1))
+
+(declare-const P (-> Int Bool))
+
+(assume @p0 (P (g 0)))

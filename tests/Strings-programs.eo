@@ -11,7 +11,7 @@
 
 ; Return true if s is the empty string or sequence.
 (program string_is_empty ((U Type) (x U))
-  (U) Bool
+  :signature (U) Bool
   (
     ((string_is_empty (seq.empty U)) true)
     ((string_is_empty "") true)
@@ -19,8 +19,12 @@
   )
 )
 
-(define $char_type_of ((T Type)) 
-  (eo::match ((U Type)) T (((Seq U) U))))
+(program $char_type_of ((U Type))
+  :signature (Type) Type
+  (
+  (($char_type_of (Seq U)) U)
+  )
+)
 (define $str_concat ((T Type :implicit) (x (Seq T)) (y (Seq T)))
   (eo::list_concat str.++ x y))
 (define $str_cons ((T Type :implicit) (x (Seq T)) (y (Seq T)))
@@ -59,22 +63,22 @@
 ; Concatenation str.++ applications t1 and t2. Note this side condition requires
 ; taking the sort u of t1 for constructing the empty string.
 (program string_concat ((T Type) (t1 (Seq T)) (t2 (Seq T)))
-  ((Seq T) (Seq T)) (Seq T)
+  :signature ((Seq T) (Seq T)) (Seq T)
   (((string_concat t1 t2) ($str_concat t1 t2)))
 )
 
 (program $string_rev_rec
     ((T Type) (t (Seq T)) (ss (Seq T) :list) (acc (Seq T)))
-    ((Seq T) (Seq T) Type) (Seq T)
+    :signature ((Seq T) (Seq T) Type) (Seq T)
     (
-        (($string_rev_rec (str.++ t ss) acc T) ($string_rev_rec ss (eo::cons (eo::_ str.++ T) t acc) T))
+        (($string_rev_rec (str.++ t ss) acc T) ($string_rev_rec ss (eo::cons str.++ t acc) T))
         (($string_rev_rec t acc T)             (eo::requires t (mk_emptystr (Seq T)) acc))
     )
 )
 
 (program $string_rev
     ((T Type) (t (Seq T)))
-    ((Seq T)) (Seq T)
+    :signature ((Seq T)) (Seq T)
     (
         (($string_rev t) (eo::define ((U ($char_type_of (eo::typeof t)))) ($string_rev_rec t (mk_emptystr (Seq U)) U)))
     )
@@ -84,10 +88,10 @@
 (define string_rev ((U Type) (rev Bool) (t (Seq U))) (eo::ite rev ($string_rev t) t))
 
 ; Returns true if the length of s evaluates to one, false otherwise.
-(define check_length_one ((s String)) (check_true (eo::is_eq (eo::len s) 1)))
+(define check_length_one ((s String)) (eo::is_eq (eo::len s) 1))
 
 ; Returns true if the length of s evaluates to greater than one, false otherwise.
-(define check_length_gt_one ((s String)) (check_true (eo::is_neg (eo::add 1 (eo::neg (eo::len s))))))
+(define check_length_gt_one ((s String)) (eo::is_eq (eo::is_neg (eo::add 1 (eo::neg (eo::len s)))) true))
 
 ; Flatten constants in str.++ application s. Notice that the rewritten form
 ; of strings in cvc5 are such that constants are grouped into constants of
@@ -113,17 +117,17 @@
 
 ; Helper for below, assumes t is a non-empty word constant.
 ; For example, given "AB", this returns (str.++ "A" (str.++ "B" "")).
-(program string_flatten_word ((t String))
-  (String) String
+(program string_flatten_word ((U Type) (t (Seq U)))
+  :signature ((Seq U)) (Seq U)
   (
     ((string_flatten_word t) 
       (eo::ite (check_length_one t) 
-        ($str_cons t "")
+        ($str_cons t (mk_emptystr (eo::typeof t)))
         ($str_cons (eo::extract t 0 0) (string_flatten_word (eo::extract t 1 (eo::len t))))))
   )
 )
 (program string_flatten ((U Type) (t (Seq U)) (tail (Seq U) :list) (tail2 (Seq U) :list))
-  ((Seq U)) (Seq U)
+  :signature ((Seq U)) (Seq U)
   (
     ; required for sequences
     ((string_flatten (str.++ (str.++ t tail2) tail)) 
@@ -148,21 +152,20 @@
 ; We return:
 ;   (@pair "AB" (str.++ x ""))
 (program string_collect_acc ((U Type) (t (Seq U)) (tail (Seq U) :list))
-  ((Seq U)) (@Pair (Seq U) (Seq U))
+  :signature ((Seq U)) (@Pair (Seq U) (Seq U))
   (
-    ; TODO: sequences
+    ; sequence not handled yet
     ; Check if t is a word constant
     ((string_collect_acc (str.++ t tail))
       (eo::ite (check_length_one t)
-        (eo::match ((s1 (Seq U)) (s2 (Seq U))) 
-          (string_collect_acc tail)
-          (
-            ((@pair "" s2)  (@pair t s2))
-            ((@pair s1 s2)  (@pair (eo::concat t s1) s2))    ; concatentate the constant
-          )
-        )
+        (eo::define ((res (string_collect_acc tail)))
+        (eo::define ((s1 ($pair_first res)))
+        (eo::define ((s2 ($pair_second res)))
+          (eo::ite (eo::eq s1 "")
+            (@pair t s2)
+            (@pair (eo::concat t s1) s2)))))    ; concatenate the constant
         (@pair "" (str.++ t tail))))
-    ((string_collect_acc t)            (eo::requires t (mk_emptystr (eo::typeof t)) (@pair t t)))
+    ((string_collect_acc "")            (@pair "" ""))
   )
 )
 
@@ -174,21 +177,17 @@
 ; Notice that the collection of constants is done for all word constants in the
 ; term s recursively.
 (program string_collect ((U Type) (t (Seq U)) (s (Seq U) :list))
-  ((Seq U)) (Seq U)
+  :signature ((Seq U)) (Seq U)
   (
     ((string_collect (str.++ t s))
-      (eo::match ((s1 (Seq U)) (s2 (Seq U)))
-        (string_collect_acc (str.++ t s))
-        (
+      (eo::define ((res (string_collect_acc (str.++ t s))))
+      (eo::define ((s1 ($pair_first res)))
+      (eo::define ((s2 ($pair_second res)))
+        (eo::ite (eo::eq s1 "")
           ; did not strip a constant prefix, just append t to the result of processing s
-          ((@pair "" s2)
-            ($str_cons t (string_collect s)))
+          ($str_cons t (string_collect s))
           ; stripped a constant prefix, append it to second term in the pair
-          ((@pair s1 s2)
-            ($str_cons s1 (string_collect s2)))
-        )
-      )
-    )
+          ($str_cons s1 (string_collect s2)))))))
     ((string_collect t)       (eo::requires t (mk_emptystr (eo::typeof t)) t))
   )
 )
@@ -201,7 +200,7 @@
 ;   (pair (str.++ y (str.++ z "")) (str.++ w ""))
 ; This side condition may fail if s or t is not a str.++ application.
 (program strip_prefix ((U Type) (t (Seq U)) (s (Seq U)) (t2 (Seq U) :list) (s2 (Seq U) :list))
-  ((Seq U) (Seq U)) (@Pair (Seq U) (Seq U))
+  :signature ((Seq U) (Seq U)) (@Pair (Seq U) (Seq U))
   (
     ((strip_prefix (str.++ t t2) (str.++ t s2)) (strip_prefix t2 s2))
     ((strip_prefix t s)                         (@pair t s))
@@ -211,7 +210,7 @@
 
 (program $string_nary_intro
     ((T Type) (t (Seq T)) (ss (Seq T) :list))
-    ((Seq T)) (Seq T)
+    :signature ((Seq T)) (Seq T)
     (
         (($string_nary_intro (str.++ t ss)) (str.++ t ss))
         (($string_nary_intro t)             (eo::define ((nil (mk_emptystr (eo::typeof t))))
@@ -221,7 +220,7 @@
 
 (program $string_nary_elim
     ((T Type) (t (Seq T)) (ss (Seq T) :list))
-    ((Seq T)) (Seq T)
+    :signature ((Seq T)) (Seq T)
     (
         (($string_nary_elim (str.++ t ss)) (eo::define ((nil (mk_emptystr (eo::typeof t))))
                                            (eo::ite (eo::is_eq ss nil) t (str.++ t ss))))

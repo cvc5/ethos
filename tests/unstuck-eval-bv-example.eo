@@ -1,0 +1,43 @@
+; ethos gave a spurious error on this example in cvc5 regressions when the
+; definition of evaluatable was oversimplified to not check literalOp kinds.
+
+(declare-const Int Type)
+(declare-consts <numeral> Int)
+
+(declare-parameterized-const = ((A Type :implicit)) (-> A A Bool))
+(declare-const < (-> Int Int Bool))
+(declare-const - (-> Int Int Int))
+(declare-const + (-> Int Int Int) :right-assoc-nil 0)
+
+; note: We do not currently check that the index of this sort is positive.
+(declare-const BitVec (-> Int Type))
+(declare-consts <binary> (BitVec (eo::len eo::self)))
+
+; bvsize
+(declare-parameterized-const @bvsize ((m Int :implicit)) (-> (BitVec m) Int))
+
+; define: @bv_empty
+; return: The empty bitvector.
+(define @bv_empty () (eo::to_bin 0 0))
+
+(declare-parameterized-const concat ((n Int :implicit) (m Int :implicit))
+  (-> (BitVec n) (BitVec m) (BitVec (eo::add n m))) :right-assoc-nil @bv_empty)
+
+(declare-parameterized-const extract ((n Int :implicit) (h Int) (l Int)) 
+  (-> (BitVec n) (BitVec (eo::add h (eo::neg l) 1))))
+  
+(declare-rule bv-extract-concat-4 ((@n0 Int) (@n1 Int) (@n2 Int) (x1 (BitVec @n0)) (y1 (BitVec @n1)) (xs1 (BitVec @n2) :list) (i1 Int) (j1 Int))
+  :premises ((= (< j1 (- (+ (@bvsize x1) (@bvsize xs1) (@bvsize y1)) (@bvsize x1))) true))
+  :args (x1 y1 xs1 i1 j1)
+  :conclusion (= (extract j1 i1 (concat x1 xs1 y1)) (extract j1 i1 (concat xs1 y1)))
+)
+
+(declare-const a (_ BitVec 4))
+(declare-const b (_ BitVec 4))
+(declare-const c (_ BitVec 4))
+(declare-const d (_ BitVec 4))
+
+(assume @p30210 (= (< 2 (- (+ (@bvsize a) (@bvsize (concat b c)) (@bvsize d)) (@bvsize a))) true))
+(step @p30211 :rule bv-extract-concat-4 :premises (@p30210) :args (a d (concat b c) 0 2))
+
+

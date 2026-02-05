@@ -1,0 +1,11 @@
+
+
+(declare-const Int Type)
+
+; should give a warning
+(program foo ((x Int :list :list))
+  :signature (Int) Int
+  (
+    ((foo x) x)
+  )
+)

@@ -1,0 +1,9 @@
+(declare-const Real Type)
+(declare-const > (-> Real Real Bool))
+(declare-const < (-> Real Real Bool))
+(declare-consts <rational> Real)
+; normalize numerals to rationals
+(set-option :normalize-num true)
+(reference "simple-lra.smt2")
+(assume @p0 (< x 0/1))
+(assume @p1 (< 1/1 x))
