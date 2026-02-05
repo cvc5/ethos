@@ -64,6 +64,7 @@ ExprParser::ExprParser(Lexer& lex, State& state, bool isSignature)
     : d_lex(lex), d_state(state), d_isSignature(isSignature)
 {
   d_strToAttr[":implicit"] = Attr::IMPLICIT;
+  d_strToAttr[":is_eq"] = Attr::IS_EQ;
   d_strToAttr[":type"] = Attr::TYPE;
   d_strToAttr[":list"] = Attr::LIST;
   d_strToAttr[":requires"] = Attr::REQUIRES;
@@ -1086,14 +1087,26 @@ void ExprParser::parseAttributeList(
         break;
       case Kind::LAMBDA:
       {
-        // only :type is available in define
+        Assert (!e.isNull());
         if (a==Attr::TYPE)
         {
-          Assert (!e.isNull());
           handled = true;
           val = parseExpr();
           // run type checking
           typeCheck(e, val);
+        }
+        else if (a==Attr::IS_EQ)
+        {
+          handled = true;
+          val = parseExpr();
+          if (e!=val)
+          {
+            std::stringstream msg;
+            msg << "Terms are not equal:" << std::endl;
+            msg << "Expression: " << e << std::endl;
+            msg << "Target expression: " << val << std::endl;
+            d_lex.parseError(msg.str());
+          }
         }
       }
         break;

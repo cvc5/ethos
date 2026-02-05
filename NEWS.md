@@ -1,5 +1,10 @@
 This file contains a summary of important user-visible changes.
 
+ethos 0.2.3 prerelease
+======================
+
+- Adds support for an attribute `:is_eq` to test whether a defined term is equal to another.
+
 ethos 0.2.2
 ===========
 

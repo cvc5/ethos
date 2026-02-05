@@ -22,7 +22,9 @@ enum class Attr
 
   IMPLICIT,
   REQUIRES,
+  // inspecting define
   TYPE,
+  IS_EQ,
   // properties of rules
   SORRY,
 

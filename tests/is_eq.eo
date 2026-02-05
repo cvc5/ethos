@@ -1,0 +1,3 @@
+
+(define test () (eo::add 1 1) :is_eq 2)
+
