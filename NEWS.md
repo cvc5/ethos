@@ -8,6 +8,8 @@ ethos 0.2.3 prerelease
 ethos 0.2.2
 ===========
 
+This release of Ethos is associated with the 1.3.2 release of the SMT solver cvc5.
+
 - The attribute `:signature` to specify the argument and return types of programs is now required.
 - Evaluation is now forbidden in types of parameters and in the argument types of programs.
 - Higher-order applications of the form `(_ f t1 ...tn)` no longer desugar based on the desugaring policy for `f`.
