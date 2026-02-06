@@ -230,7 +230,9 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp)
                   << oApp;
   }
   const Literal* l = oApp[1].getValue()->asLiteral();
-  return l->d_str.toString();
+  std::stringstream ss;
+  ss << "smt." << l->d_str.toString();
+  return ss.str();
 }
 
 bool LeanMetaReduce::printEmbTerm(const Expr& body,
@@ -803,18 +805,14 @@ bool LeanMetaReduce::echo(const std::string& msg)
       d_thms << "theorem correct_" << eosc << " : ";
       if (nargs>1)
       {
-        d_thms << "forall ";
+        d_thms << "forall";
         for (size_t i = 1; i < nargs; i++)
         {
-          if (i > 1)
-          {
-            d_thms << " ";
-          }
           call << " x" << i;
         }
         d_thms << call.str() << " : Term, ";
       }
-      d_thms << "(" << eosc << call.str() << ") != " << eoTrue.str() << ":=" << std::endl;
+      d_thms << "(" << eosc << call.str() << ") != " << eoTrue.str() << " :=" << std::endl;
       d_thms << "by" << std::endl;
       d_thms << "  sorry" << std::endl;
       d_thms << std::endl;
@@ -889,9 +887,7 @@ MetaKind LeanMetaReduce::getMetaKind(State& s,
   }
   else if (sname.compare(0, 5, "$smd_") == 0)
   {
-    size_t firstDot = sname.find('.');
-    std::string prefix = sname.substr(5, firstDot - 5);
-    cname = sname.substr(firstDot + 1);
+    cname = sname.substr(5);
     return MetaKind::EUNOIA;
   }
   cname = sname;
