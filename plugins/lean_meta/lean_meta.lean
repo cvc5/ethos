@@ -2,12 +2,12 @@
 namespace Eo
 
 inductive Term : Type where
-  $LEAN_TERM_DEF$
+$LEAN_TERM_DEF$
 
 /- Relevant definitions -/
 
-$SM_DEFS$
+$LEAN_DEFS$
 
 /- The verification conditions -/
 
-$SMT_VC$
+$LEAN_THMS$

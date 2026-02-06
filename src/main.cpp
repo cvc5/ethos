@@ -15,6 +15,7 @@
 #include "../plugins/desugar/desugar.h"
 #include "../plugins/model_smt/model_smt.h"
 #include "../plugins/smt_meta/smt_meta_reduce.h"
+#include "../plugins/lean_meta/lean_meta_reduce.h"
 #include "../plugins/trim_defs/trim_defs.h"
 #include "base/check.h"
 #include "base/output.h"
@@ -150,6 +151,7 @@ int main( int argc, char* argv[] )
   Stats stats;
   State s(opts, stats);
   std::unique_ptr<SmtMetaReduce> pluginSmr;
+  std::unique_ptr<LeanMetaReduce> pluginLmr;
   std::unique_ptr<ModelSmt> pluginMsmt;
   std::unique_ptr<Desugar> pluginDs;
   std::unique_ptr<TrimDefs> pluginTds;
@@ -163,6 +165,11 @@ int main( int argc, char* argv[] )
   {
     pluginSmr.reset(new SmtMetaReduce(s));
     plugin = pluginSmr.get();
+  }
+  else if (opts.d_pluginLeanMeta)
+  {
+    pluginLmr.reset(new LeanMetaReduce(s));
+    plugin = pluginLmr.get();
   }
   else if (opts.d_pluginTrimDefs)
   {

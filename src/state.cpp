@@ -32,6 +32,7 @@ Options::Options()
   d_pluginDesugarGenVc = false;
   d_pluginSmtMeta = false;
   d_pluginSmtMetaSygus = false;
+  d_pluginLeanMeta = false;
   d_pluginTrimDefs = false;
   d_pluginModelSmt = false;
 }
@@ -95,6 +96,10 @@ bool Options::setOption(const std::string& key, bool val)
   {
     d_pluginSmtMeta = true;
     d_pluginSmtMetaSygus = true;
+  }
+  else if (key == "plugin.lean-meta")
+  {
+    d_pluginLeanMeta = true;
   }
   else if (key == "plugin.trim-defs")
   {

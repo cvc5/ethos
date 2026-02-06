@@ -73,18 +73,11 @@ class LeanMetaReduce : public StdPlugin
 
  private:
   MetaKind prefixToMetaKind(const std::string& str) const;
-  bool printEmbPatternMatch(const Expr& c,
-                            const std::string& initCtx,
-                            std::ostream& os,
-                            SelectorCtx& ctx,
-                            ConjPrint& print,
-                            MetaKind tinit = MetaKind::NONE);
   void printEmbAtomicTerm(const Expr& c,
                           std::ostream& os,
                           MetaKind tctx = MetaKind::NONE);
   bool printEmbTerm(const Expr& c,
                     std::ostream& os,
-                    const SelectorCtx& ctx,
                     MetaKind tinit = MetaKind::NONE);
   /**
    * Write program definition to d_defs. For consistency this is also called
@@ -106,7 +99,7 @@ class LeanMetaReduce : public StdPlugin
   std::map<std::string, MetaKind> d_prefixToMetaKind;
   std::map<std::string, MetaKind> d_typeToMetaKind;
   std::stringstream d_defs;
-  std::stringstream d_smtVc;
+  std::stringstream d_thms;
   // SMT-LIB term embedding
   std::stringstream d_embedTypeDt;
   std::stringstream d_embedTermDt;
@@ -114,6 +107,8 @@ class LeanMetaReduce : public StdPlugin
   std::stringstream d_embedValueDt;
   /** */
   std::map<std::pair<Expr, size_t>, MetaKind> d_metaKindArg;
+  /** */
+  std::map<Expr, std::string> d_funToDecl;
   /** Declares seen */
   std::set<Expr> d_declSeen;
   /** */

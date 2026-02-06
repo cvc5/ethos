@@ -11,7 +11,6 @@ OUT_DIR=./out
 STD_TRIM_OUT=../plugins/trim_defs/trim_gen.eo
 STD_DESUGAR_OUT=../plugins/desugar/eo_desugar_gen.eo
 STD_SMODEL_OUT=../plugins/model_smt/model_smt_gen.eo
-STD_SMODEL_EMBED_OUT=../plugins/model_smt/model_eo_embed_gen.eo
 STD_VC_OUT=../plugins/smt_meta/smt_meta_gen.smt2
 # file used to ensure that trim-defs preserves dependencies for term reductions
 STD_SMODEL_DEPS=../plugins/model_smt/term_reduce_deps.eo
@@ -156,5 +155,4 @@ fi
 rm -f $STD_TRIM_OUT
 rm -f $STD_DESUGAR_OUT
 rm -f $STD_SMODEL_OUT
-rm -f $STD_SMODEL_EMBED_OUT
 rm -f $STD_VC_OUT
