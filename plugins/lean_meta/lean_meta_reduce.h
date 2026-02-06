@@ -6,16 +6,16 @@
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
  ******************************************************************************/
-#ifndef PLUGIN_SMT_META_REDUCE_H
-#define PLUGIN_SMT_META_REDUCE_H
+#ifndef PLUGIN_LEAN_META_REDUCE_H
+#define PLUGIN_LEAN_META_REDUCE_H
 
 #include <map>
 #include <set>
+#include <sstream>
 #include <string>
 
 #include "../std_plugin.h"
-#include "smt_meta_sygus.h"
-#include "utils.h"
+#include "../smt_meta/utils.h"
 
 namespace ethos {
 
@@ -24,11 +24,11 @@ class TypeChecker;
 
 /**
  */
-class SmtMetaReduce : public StdPlugin
+class LeanMetaReduce : public StdPlugin
 {
  public:
-  SmtMetaReduce(State& s);
-  ~SmtMetaReduce();
+  LeanMetaReduce(State& s);
+  ~LeanMetaReduce();
   /** Define program */
   void defineProgram(const Expr& v, const Expr& prog) override;
   /** Define */
@@ -135,8 +135,6 @@ class SmtMetaReduce : public StdPlugin
    * Get the meta-kind returned by a child.
    */
   MetaKind getMetaKindReturn(const Expr& child, MetaKind parentCtx);
-  /************* sygus *********/
-  SmtMetaSygus d_smSygus;
 };
 
 }  // namespace ethos

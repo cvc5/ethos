@@ -7,7 +7,7 @@
  * directory for licensing information.
  ******************************************************************************/
 
-#include "smt_meta_reduce.h"
+#include "lean_meta_reduce.h"
 
 #include <fstream>
 #include <sstream>
@@ -17,7 +17,8 @@
 
 namespace ethos {
 
-SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s), d_smSygus(s)
+
+LeanMetaReduce::LeanMetaReduce(State& s) : StdPlugin(s)
 {
   d_prefixToMetaKind["eo"] = MetaKind::EUNOIA;
   d_prefixToMetaKind["sm"] = MetaKind::SMT;
@@ -32,16 +33,11 @@ SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s), d_smSygus(s)
   d_typeToMetaKind["$smt_Map"] = MetaKind::SMT_MAP;
   d_typeToMetaKind["$smt_Seq"] = MetaKind::SMT_SEQ;
   d_typeToMetaKind["$smt_BuiltinType"] = MetaKind::SMT_BUILTIN;
-
-  if (StdPlugin::optionSmtMetaSygusGrammar())
-  {
-    d_smSygus.initializeGrammars();
-  }
 }
 
-SmtMetaReduce::~SmtMetaReduce() {}
+LeanMetaReduce::~LeanMetaReduce() {}
 
-MetaKind SmtMetaReduce::prefixToMetaKind(const std::string& str) const
+MetaKind LeanMetaReduce::prefixToMetaKind(const std::string& str) const
 {
   std::map<std::string, MetaKind>::const_iterator it =
       d_prefixToMetaKind.find(str);
@@ -53,7 +49,7 @@ MetaKind SmtMetaReduce::prefixToMetaKind(const std::string& str) const
   return MetaKind::NONE;
 }
 
-bool SmtMetaReduce::printMetaType(const Expr& t,
+bool LeanMetaReduce::printMetaType(const Expr& t,
                                   std::ostream& os,
                                   MetaKind tctx) const
 {
@@ -72,7 +68,7 @@ bool SmtMetaReduce::printMetaType(const Expr& t,
   return true;
 }
 
-void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
+void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
                                        std::ostream& os,
                                        MetaKind parent)
 {
@@ -195,7 +191,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
   os << osEnd.str();
 }
 
-bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
+bool LeanMetaReduce::printEmbPatternMatch(const Expr& c,
                                          const std::string& initCtx,
                                          std::ostream& os,
                                          SelectorCtx& ctx,
@@ -370,7 +366,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
   return true;
 }
 
-std::string SmtMetaReduce::getName(const Expr& e)
+std::string LeanMetaReduce::getName(const Expr& e)
 {
   std::stringstream ss;
   if (e.getNumChildren() == 0)
@@ -380,13 +376,13 @@ std::string SmtMetaReduce::getName(const Expr& e)
   return ss.str();
 }
 
-bool SmtMetaReduce::isEmbedCons(const Expr& e)
+bool LeanMetaReduce::isEmbedCons(const Expr& e)
 {
   std::string sname = getName(e);
   return (sname.compare(0, 5, "$smd_") == 0);
 }
 
-bool SmtMetaReduce::isSmtApplyApp(const Expr& oApp)
+bool LeanMetaReduce::isSmtApplyApp(const Expr& oApp)
 {
   if (oApp.getKind() != Kind::APPLY_OPAQUE || oApp.getNumChildren() <= 1
       || oApp[1].getKind() != Kind::STRING)
@@ -398,7 +394,7 @@ bool SmtMetaReduce::isSmtApplyApp(const Expr& oApp)
           || sname.compare(0, 10, "$smt_type_") == 0);
 }
 
-std::string SmtMetaReduce::getEmbedName(const Expr& oApp)
+std::string LeanMetaReduce::getEmbedName(const Expr& oApp)
 {
   Assert(oApp.getKind() == Kind::APPLY_OPAQUE)
       << "Bad kind for opaque " << oApp.getKind() << " " << oApp;
@@ -412,7 +408,7 @@ std::string SmtMetaReduce::getEmbedName(const Expr& oApp)
   return l->d_str.toString();
 }
 
-bool SmtMetaReduce::printEmbTerm(const Expr& body,
+bool LeanMetaReduce::printEmbTerm(const Expr& body,
                                  std::ostream& os,
                                  const SelectorCtx& ctx,
                                  MetaKind tinit)
@@ -715,12 +711,12 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
   return true;
 }
 
-void SmtMetaReduce::defineProgram(const Expr& v, const Expr& prog)
+void LeanMetaReduce::defineProgram(const Expr& v, const Expr& prog)
 {
   finalizeProgram(v, prog);
 }
 
-void SmtMetaReduce::finalizeProgram(const Expr& v,
+void LeanMetaReduce::finalizeProgram(const Expr& v,
                                     const Expr& prog,
                                     bool isDefine)
 {
@@ -902,7 +898,7 @@ void SmtMetaReduce::finalizeProgram(const Expr& v,
   d_defs << std::endl;
 }
 
-void SmtMetaReduce::define(const std::string& name, const Expr& e)
+void LeanMetaReduce::define(const std::string& name, const Expr& e)
 {
   // NOTE: the code here ensures that we preserve definitions for the final vc.
   // This is required since we do not replace e.g. eo::list_concat with
@@ -970,7 +966,7 @@ void SmtMetaReduce::define(const std::string& name, const Expr& e)
   }
 }
 
-void SmtMetaReduce::bind(const std::string& name, const Expr& e)
+void LeanMetaReduce::bind(const std::string& name, const Expr& e)
 {
   if (e.getKind() != Kind::CONST)
   {
@@ -979,7 +975,7 @@ void SmtMetaReduce::bind(const std::string& name, const Expr& e)
   finalizeDecl(e);
 }
 
-void SmtMetaReduce::finalizeDecl(const Expr& e)
+void LeanMetaReduce::finalizeDecl(const Expr& e)
 {
   if (d_declSeen.find(e) != d_declSeen.end())
   {
@@ -1082,10 +1078,9 @@ void SmtMetaReduce::finalizeDecl(const Expr& e)
   {
     gruleBase << cname.str();
   }
-  d_smSygus.addGrammarRules(e, cnamek, tk, gruleBase.str(), retType);
 }
 
-void SmtMetaReduce::finalize()
+void LeanMetaReduce::finalize()
 {
   auto replace = [](std::string& txt,
                     const std::string& tag,
@@ -1119,7 +1114,7 @@ void SmtMetaReduce::finalize()
   out << finalSm;
 }
 
-bool SmtMetaReduce::echo(const std::string& msg)
+bool LeanMetaReduce::echo(const std::string& msg)
 {
   std::cout << "ECHO " << msg << std::endl;
   if (msg.compare(0, 9, "smt-meta ") == 0)
@@ -1197,26 +1192,6 @@ bool SmtMetaReduce::echo(const std::string& msg)
         d_smtVc << "(get-value (" << call.str() << "))" << std::endl;
       }
     }
-    else if (ctype == ConjectureType::SYGUS)
-    {
-      d_smSygus.finalizeGrammars();
-      for (size_t i = 1; i < nargs; i++)
-      {
-        std::stringstream varName;
-        varName << "arg_" << patCall[i];
-        d_smtVc << "(synth-fun " << varName.str() << " () eo.Term";
-        if (StdPlugin::optionSmtMetaSygusGrammar())
-        {
-          d_smSygus.printGrammar(varName.str(), vt[i - 1], d_smtVc);
-        }
-        d_smtVc << ")" << std::endl;
-        call << " " << varName.str();
-      }
-      d_smtVc << "(constraint ";
-      d_smtVc << "(= (" << eosc << call.str() << ") " << eoTrue.str() << ")";
-      d_smtVc << ")" << std::endl;
-      d_smtVc << "(check-synth)" << std::endl;
-    }
     else
     {
       Assert(false) << "Unknown conjecture type";
@@ -1233,18 +1208,18 @@ bool SmtMetaReduce::echo(const std::string& msg)
   return true;
 }
 
-bool SmtMetaReduce::isProgram(const Expr& t)
+bool LeanMetaReduce::isProgram(const Expr& t)
 {
   return (t.getKind() == Kind::PROGRAM_CONST);
 }
 
-bool SmtMetaReduce::isSmtLibExpression(MetaKind ctx)
+bool LeanMetaReduce::isSmtLibExpression(MetaKind ctx)
 {
   return ctx == MetaKind::SMT || ctx == MetaKind::SMT_TYPE
          || ctx == MetaKind::SMT_VALUE;
 }
 
-MetaKind SmtMetaReduce::getTypeMetaKind(const Expr& typ,
+MetaKind LeanMetaReduce::getTypeMetaKind(const Expr& typ,
                                         MetaKind elseKind) const
 {
   Kind k = typ.getKind();
@@ -1266,7 +1241,7 @@ MetaKind SmtMetaReduce::getTypeMetaKind(const Expr& typ,
   return elseKind;
 }
 
-MetaKind SmtMetaReduce::getMetaKind(State& s,
+MetaKind LeanMetaReduce::getMetaKind(State& s,
                                     const Expr& e,
                                     std::string& cname) const
 {
@@ -1308,7 +1283,7 @@ MetaKind SmtMetaReduce::getMetaKind(State& s,
   return MetaKind::SMT;
 }
 
-MetaKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
+MetaKind LeanMetaReduce::getMetaKindArg(const Expr& parent,
                                        size_t i,
                                        MetaKind parentCtx)
 {
@@ -1457,13 +1432,13 @@ MetaKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
   return tk;
 }
 
-bool SmtMetaReduce::isProgramApp(const Expr& app)
+bool LeanMetaReduce::isProgramApp(const Expr& app)
 {
   return (app.getKind() == Kind::APPLY
           && app[0].getKind() == Kind::PROGRAM_CONST);
 }
 
-MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
+MetaKind LeanMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
 {
   Assert(!child.isNull()) << "null term for meta kind";
   Expr hd = child;
@@ -1617,7 +1592,7 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
   return MetaKind::NONE;
 }
 
-std::vector<MetaKind> SmtMetaReduce::getMetaKindArgs(const Expr& parent,
+std::vector<MetaKind> LeanMetaReduce::getMetaKindArgs(const Expr& parent,
                                                      MetaKind parentCtx)
 {
   std::vector<MetaKind> args;

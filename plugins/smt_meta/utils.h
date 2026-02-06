@@ -11,6 +11,10 @@
 #define PLUGIN_SMT_META_UTILS_H
 
 #include <string>
+#include <sstream>
+#include <map>
+
+#include "state.h"
 
 namespace ethos {
 
@@ -41,6 +45,33 @@ enum class MetaKind
 std::string metaKindToString(MetaKind k);
 std::string metaKindToPrefix(MetaKind k);
 std::string metaKindToCons(MetaKind k);
+
+/** A utility for printing conjunctions */
+class ConjPrint
+{
+ public:
+  ConjPrint();
+  void push(const std::string& str);
+  void printConjunction(std::ostream& os, bool isDisj = false);
+  std::stringstream d_ss;
+  size_t d_npush;
+};
+
+class SelectorCtx
+{
+ public:
+  SelectorCtx();
+  void clear();
+  /**
+   * Maps parameters to a string representation of what
+   * that parameter was mapped to. This is a chain of
+   * datatype selectors, where we do not model the AST
+   * of this chain.
+   */
+  std::map<Expr, std::string> d_ctx;
+  /** The context it was matched in */
+  std::map<Expr, MetaKind> d_tctx;
+};
 
 }  // namespace ethos
 

@@ -58,4 +58,39 @@ std::string metaKindToCons(MetaKind k)
   return ss.str();
 }
 
+
+ConjPrint::ConjPrint() : d_npush(0) {}
+void ConjPrint::push(const std::string& str)
+{
+  if (d_npush > 0)
+  {
+    d_ss << " ";
+  }
+  d_ss << str;
+  d_npush++;
+}
+
+void ConjPrint::printConjunction(std::ostream& os, bool isDisj)
+{
+  if (d_npush == 0)
+  {
+    os << (isDisj ? "false" : "true");
+  }
+  else if (d_npush > 1)
+  {
+    os << "(" << (isDisj ? "or" : "and") << " " << d_ss.str() << ")";
+  }
+  else
+  {
+    os << d_ss.str();
+  }
+}
+
+SelectorCtx::SelectorCtx() {}
+void SelectorCtx::clear()
+{
+  d_ctx.clear();
+  d_tctx.clear();
+}
+
 }  // namespace ethos

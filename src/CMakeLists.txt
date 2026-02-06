@@ -1,6 +1,7 @@
 file(GLOB_RECURSE ethos_SRC CONFIGURE_DEPENDS "*.h" "*.cpp")
 
 add_executable(ethos ${ethos_SRC}
+../plugins/lean_meta/lean_meta_reduce.cpp
 ../plugins/smt_meta/smt_meta_reduce.cpp
 ../plugins/smt_meta/smt_meta_sygus.cpp
 ../plugins/smt_meta/utils.cpp
