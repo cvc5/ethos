@@ -15,6 +15,7 @@
 #include <string>
 
 #include "../std_plugin.h"
+#include "desugar_proof.h"
 
 namespace ethos {
 
@@ -56,9 +57,9 @@ class Desugar : public StdPlugin
   /** Set type rule for literal kind k to t */
   void setLiteralTypeRule(Kind k, const Expr& t) override;
 
+  void printTerm(const Expr& e, std::ostream& os);
  private:
   void printName(const Expr& e, std::ostream& os);
-  void printTerm(const Expr& e, std::ostream& os);
   void printParamList(const std::vector<Expr>& vars,
                       std::ostream& os,
                       bool useImplicit,
@@ -93,7 +94,6 @@ class Desugar : public StdPlugin
                   std::map<Expr, Expr>& visited);
   Expr mkRequiresModelSat(bool tgt, const Expr& test, const Expr& ret);
   Expr mkRequiresModelTypeofBool(const Expr& test, const Expr& ret);
-  Expr mkRequiresModelIsInput(const Expr& test, const Expr& ret);
   Expr mkRequiresEq(const Expr& t1,
                     const Expr& t2,
                     const Expr& ret,
@@ -145,13 +145,14 @@ class Desugar : public StdPlugin
   Expr d_peoModelSat;
   Expr d_peoModelUnsat;
   Expr d_peoModelTypeof;
-  Expr d_peoModelIsInput;
   Expr d_peoRequiresEq;
   Expr d_peoRequiresDeq;
   size_t d_eoDtConsParamCount;
   bool d_genWfCond;
   Expr d_peoProven;
   Expr d_peoPf;
+  /** desugaring proofs for cross reference */
+  DesugarProof d_dproof;
 };
 
 }  // namespace ethos

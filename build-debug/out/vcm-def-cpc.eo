@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 49
+; #trim-defs: 48
 (declare-const $eo_Proof Type)
 (declare-const $eo_pf (-> Bool $eo_Proof))
 (program $eo_proven ((F Bool))
@@ -1188,7 +1188,6 @@
 )
 (program $eo_model_sat () :signature (Bool) Bool)
 (program $eo_model_unsat () :signature (Bool) Bool)
-(program $eo_model_is_input () :signature (Bool) Bool)
 ; This file defines SMT-LIB model semantics in Eunoia.
 ; It has exception handling utilities to call Eunoia programs in
 ; a safe way that ensures that all programs in this signature are total.
@@ -1737,38 +1736,6 @@
   )
 )
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; SMT-LIB input syntax
-
-(program $smtx_is_list
-  ((t $eo_List) (a $eo_Term) (s $smt_builtin_String) (T $smt_builtin_Int))
-  :signature ($eo_Term) $smt_builtin_Bool
-  (
-  (($smtx_is_list $eo_List_nil)         $smt_builtin_true)
-  (($smtx_is_list ($eo_List_cons a t))  ($smtx_is_list t))
-  (($smtx_is_list t)                    $smt_builtin_false)
-  )
-)
-
-; program: $smtx_is_input
-; Returns true if the given term uses only SMT-LIB syntax. This will
-; return false e.g. if it contains Eunoia-specific terms. Note that
-; we assume that binders use $eo_List, so they are included here.
-(program $smtx_is_input
-  ((T Type) (s $smt_builtin_String) (t $eo_Term) (a $eo_Term)
-   (tu $smt_Type) (tt $smt_Term))
-  :signature ($eo_Term) $smt_builtin_Bool
-  (
-  ; all legal constants handled above, false otherwise
-  (($smtx_is_input ($eo_smt_term tt))               $smt_builtin_true)
-  (($smtx_is_input ($eo_smt_type tu))               $smt_builtin_true)
-  (($smtx_is_input ($eo_Var s T))                   $smt_builtin_true)
-  (($smtx_is_input ($eo_List_cons a t))             ($smtx_is_list t))
-  (($smtx_is_input ($eo_apply t a))
-    ($smt_builtin_and ($smtx_is_input t) ($smtx_is_input a)))
-  (($smtx_is_input t)                               $smt_builtin_false)
-  )
-)
-
 ;;;;;;;;;;;;;;;;;;;;;;
 
 ; program: $eo_model_sat
@@ -1788,20 +1755,11 @@
   )
 )
 
-; program: $eo_model_is_input
-; return: true if this is a legal SMT-LIB input term or type.
-(program $eo_model_is_input ((F Bool))
-  :signature (Bool) Bool
-  (
-  (($eo_model_is_input F) ($eo_smt_term ($sm_bool ($smtx_is_input F))))
-  )
-)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_end
 (program $eovc_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eovc_symm F) (eo::define ((_v0 ($eo_proven ($eo_prog_symm ($eo_pf F))))) ($eo_requires_eq ($eo_model_is_input _v0) true ($eo_requires_eq ($eo_typeof F) Bool ($eo_requires_eq ($eo_model_sat F) true ($eo_requires_eq ($eo_typeof _v0) Bool ($eo_requires_eq ($eo_model_unsat _v0) true true)))))))
+  (($eovc_symm F) (eo::define ((_v0 ($eo_proven ($eo_prog_symm ($eo_pf F))))) ($eo_requires_eq ($eo_typeof F) Bool ($eo_requires_eq ($eo_model_sat F) true ($eo_requires_eq ($eo_typeof _v0) Bool ($eo_requires_eq ($eo_model_unsat _v0) true true))))))
   )
 )
 (echo "smt-meta $eovc_symm :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $smtx_reverse_value_hash $eo_smt_type $tsm_Bool $eo_Type $eo_fun_type $eo_apply $eo_mk_apply ")

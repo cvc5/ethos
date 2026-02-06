@@ -527,38 +527,6 @@ $SMT_EVAL_CASES$
   )
 )
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; SMT-LIB input syntax
-
-(program $smtx_is_list
-  ((t $eo_List) (a $eo_Term) (s $smt_builtin_String) (T $smt_builtin_Int))
-  :signature ($eo_Term) $smt_builtin_Bool
-  (
-  (($smtx_is_list $eo_List_nil)         $smt_builtin_true)
-  (($smtx_is_list ($eo_List_cons a t))  ($smtx_is_list t))
-  (($smtx_is_list t)                    $smt_builtin_false)
-  )
-)
-
-; program: $smtx_is_input
-; Returns true if the given term uses only SMT-LIB syntax. This will
-; return false e.g. if it contains Eunoia-specific terms. Note that
-; we assume that binders use $eo_List, so they are included here.
-(program $smtx_is_input
-  ((T Type) (s $smt_builtin_String) (t $eo_Term) (a $eo_Term)
-   (tu $smt_Type) (tt $smt_Term))
-  :signature ($eo_Term) $smt_builtin_Bool
-  (
-  ; all legal constants handled above, false otherwise
-  (($smtx_is_input ($eo_smt_term tt))               $smt_builtin_true)
-  (($smtx_is_input ($eo_smt_type tu))               $smt_builtin_true)
-  (($smtx_is_input ($eo_Var s T))                   $smt_builtin_true)
-  (($smtx_is_input ($eo_List_cons a t))             ($smtx_is_list t))
-  (($smtx_is_input ($eo_apply t a))
-    ($smt_builtin_and ($smtx_is_input t) ($smtx_is_input a)))
-  (($smtx_is_input t)                               $smt_builtin_false)
-  )
-)
-
 ;;;;;;;;;;;;;;;;;;;;;;
 
 ; program: $eo_model_sat
@@ -575,15 +543,6 @@ $SMT_EVAL_CASES$
   :signature (Bool) Bool
   (
   (($eo_model_unsat F) ($smt_builtin_ite ($smt_builtin_= ($smtx_model_eval F) $vsm_false) true false))
-  )
-)
-
-; program: $eo_model_is_input
-; return: true if this is a legal SMT-LIB input term or type.
-(program $eo_model_is_input ((F Bool))
-  :signature (Bool) Bool
-  (
-  (($eo_model_is_input F) ($eo_smt_term ($sm_bool ($smtx_is_input F))))
   )
 )
 

@@ -5,6 +5,7 @@ add_executable(ethos ${ethos_SRC}
 ../plugins/smt_meta/smt_meta_sygus.cpp
 ../plugins/smt_meta/utils.cpp
 ../plugins/desugar/desugar.cpp
+../plugins/desugar/desugar_proof.cpp
 ../plugins/trim_defs/trim_defs.cpp
 ../plugins/model_smt/model_smt.cpp
 ../plugins/flatten_eval/flatten_eval.cpp

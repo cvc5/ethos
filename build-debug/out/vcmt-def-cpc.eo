@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 145
+; #trim-defs: 141
 (declare-const $eo_Proof Type)
 (declare-const $eo_pf (-> Bool $eo_Proof))
 (program $eo_proven ((F Bool))
@@ -312,7 +312,6 @@
 )
 (program $eo_model_sat () :signature (Bool) Bool)
 (program $eo_model_unsat () :signature (Bool) Bool)
-(program $eo_model_is_input () :signature (Bool) Bool)
 (program $smtx_msm_lookup
   ((i $smt_Value) (j $smt_Value) (e $smt_Value) (m $smt_Map))
   :signature ($smt_Map $smt_Value) $smt_Value
@@ -415,30 +414,6 @@
   (($smtx_model_eval z)                           ($smt_mk_value_term z))
   )
 )
-(program $smtx_is_list
-  ((t $eo_List) (a $eo_Term) (s $smt_builtin_String) (T $smt_builtin_Int))
-  :signature ($eo_Term) $smt_builtin_Bool
-  (
-  (($smtx_is_list $eo_List_nil)         $smt_builtin_true)
-  (($smtx_is_list ($eo_List_cons a t))  ($smtx_is_list t))
-  (($smtx_is_list t)                    $smt_builtin_false)
-  )
-)
-(program $smtx_is_input
-  ((T Type) (s $smt_builtin_String) (t $eo_Term) (a $eo_Term)
-   (tu $smt_Type) (tt $smt_Term))
-  :signature ($eo_Term) $smt_builtin_Bool
-  (
-  
-  (($smtx_is_input ($eo_smt_term tt))               $smt_builtin_true)
-  (($smtx_is_input ($eo_smt_type tu))               $smt_builtin_true)
-  (($smtx_is_input ($eo_Var s T))                   $smt_builtin_true)
-  (($smtx_is_input ($eo_List_cons a t))             ($smtx_is_list t))
-  (($smtx_is_input ($eo_apply t a))
-    ($smt_builtin_and ($smtx_is_input t) ($smtx_is_input a)))
-  (($smtx_is_input t)                               $smt_builtin_false)
-  )
-)
 (program $eo_model_sat ((F Bool))
   :signature (Bool) Bool
   (
@@ -451,16 +426,10 @@
   (($eo_model_unsat F) ($smt_builtin_ite ($smt_builtin_= ($smtx_model_eval F) $vsm_false) true false))
   )
 )
-(program $eo_model_is_input ((F Bool))
-  :signature (Bool) Bool
-  (
-  (($eo_model_is_input F) ($eo_smt_term ($sm_bool ($smtx_is_input F))))
-  )
-)
 (program $eovc_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eovc_symm F) (eo::define ((_v0 ($eo_proven ($eo_prog_symm ($eo_pf F))))) ($eo_requires_eq ($eo_model_is_input _v0) true ($eo_requires_eq ($eo_typeof F) Bool ($eo_requires_eq ($eo_model_sat F) true ($eo_requires_eq ($eo_typeof _v0) Bool ($eo_requires_eq ($eo_model_unsat _v0) true true)))))))
+  (($eovc_symm F) (eo::define ((_v0 ($eo_proven ($eo_prog_symm ($eo_pf F))))) ($eo_requires_eq ($eo_typeof F) Bool ($eo_requires_eq ($eo_model_sat F) true ($eo_requires_eq ($eo_typeof _v0) Bool ($eo_requires_eq ($eo_model_unsat _v0) true true))))))
   )
 )
 (echo "smt-meta $eovc_symm :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $smtx_reverse_value_hash $eo_smt_type $tsm_Bool $eo_Type $eo_fun_type $eo_apply $eo_mk_apply ")

@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 49
+; #trim-defs: 48
 (declare-const $eo_Proof Type)
 (declare-const $eo_pf (-> Bool $eo_Proof))
 (program $eo_proven ((F Bool))
@@ -164,12 +164,11 @@
 )
 (program $eo_model_sat () :signature (Bool) Bool)
 (program $eo_model_unsat () :signature (Bool) Bool)
-(program $eo_model_is_input () :signature (Bool) Bool)
 (echo "include eo_model_sat :deps $eo_typeof_main $eo_is_ok $eo_dt_constructors $eo_dt_selectors $eo_if_both $eo_List_nil $eo_List_cons $eo_lit_type_Numeral $eo_lit_type_Rational $eo_lit_type_String $eo_lit_type_Binary ")
 (program $eovc_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eovc_symm F) (eo::define ((_v0 ($eo_proven ($eo_prog_symm ($eo_pf F))))) ($eo_requires_eq ($eo_model_is_input _v0) true ($eo_requires_eq ($eo_typeof F) Bool ($eo_requires_eq ($eo_model_sat F) true ($eo_requires_eq ($eo_typeof _v0) Bool ($eo_requires_eq ($eo_model_unsat _v0) true true)))))))
+  (($eovc_symm F) (eo::define ((_v0 ($eo_proven ($eo_prog_symm ($eo_pf F))))) ($eo_requires_eq ($eo_typeof F) Bool ($eo_requires_eq ($eo_model_sat F) true ($eo_requires_eq ($eo_typeof _v0) Bool ($eo_requires_eq ($eo_model_unsat _v0) true true))))))
   )
 )
 (echo "smt-meta $eovc_symm :deps $smtx_hash $eo_reverse_hash $smtx_value_hash $smtx_reverse_value_hash $eo_smt_type $tsm_Bool $eo_Type $eo_fun_type $eo_apply $eo_mk_apply ")
