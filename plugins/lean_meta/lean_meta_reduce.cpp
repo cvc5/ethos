@@ -84,7 +84,9 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
   if (child == MetaKind::PROGRAM)
   {
     // programs always print verbatim
-    os << c;
+    std::stringstream ss;
+    ss << c;
+    os << cleanSmtId(ss.str());
     return;
   }
   bool isSmtBuiltin = (parent == MetaKind::SMT_BUILTIN);
@@ -93,15 +95,17 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
   {
     std::string cname = getName(c);
     os << "Term.";
+    std::stringstream ss;
     // if it is an explicit embedding of a datatype, take the suffix
     if (cname.compare(0, 5, "$smd_") == 0)
     {
-      os << cname.substr(5);
+      ss << cname.substr(5);
     }
     else
     {
-      os << cname;
+      ss << cname;
     }
+    os << cleanSmtId(ss.str());
   }
   else if (k == Kind::BOOL_TYPE)
   {
@@ -247,14 +251,7 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp)
   }
   const Literal* l = oApp[1].getValue()->asLiteral();
   std::stringstream ss;
-  std::string smtStr = l->d_str.toString();
-  smtStr = replace_all(smtStr, "++", "concat");
-  smtStr = replace_all(smtStr, "+", "plus");
-  smtStr = replace_all(smtStr, "-", "neg");
-  smtStr = replace_all(smtStr, "*", "mult");
-  smtStr = replace_all(smtStr, "<=", "leq");
-  smtStr = replace_all(smtStr, "=", "eq");
-  smtStr = replace_all(smtStr, ".", "_");
+  std::string smtStr = cleanSmtId(l->d_str.toString());
   ss << "smt_" << smtStr;
   return ss.str();
 }
@@ -321,7 +318,9 @@ bool LeanMetaReduce::printEmbTerm(const Expr& body,
     // if we are printing the head of the term
     if (ck == Kind::PARAM)
     {
-      os << recTerm;
+      std::stringstream ssp;
+      ssp << recTerm;
+      os << cleanSmtId(ssp.str());
       continue;
     }
     else if (recTerm.getNumChildren() == 0 && ck != Kind::VARIABLE)
@@ -353,7 +352,7 @@ bool LeanMetaReduce::printEmbTerm(const Expr& body,
         else
         {
           // Otherwise, we must propagate stuckness using the mk apply program.
-          os << "$eo_mk_apply ";
+          os << "__eo_mk_apply ";
         }
       }
     }
@@ -407,7 +406,7 @@ bool LeanMetaReduce::printEmbTerm(const Expr& body,
       std::string kstr = kindToTerm(ck);
       if (kstr.compare(0, 4, "eo::") == 0)
       {
-        os << "($eo_" << kstr.substr(4) << " ";
+        os << "(__eo_" << kstr.substr(4) << " ";
         cparen[key]++;
       }
       else
@@ -478,7 +477,9 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     vctxArgs.push_back(getTypeMetaKind(vt[j]));
   }
   // Trace("lean-meta") << "Type is " << vt << std::endl;
-  decl << "def " << v << " : ";
+  decl << "def ";
+  printEmbAtomicTerm(v, decl);
+  decl << " : ";
   std::stringstream varList;
   Assert(vt.getKind() == Kind::PROGRAM_TYPE)
       << "bad type " << vt << " for " << v;
@@ -666,7 +667,7 @@ void LeanMetaReduce::define(const std::string& name, const Expr& e)
     }
     else
     {
-      d_defs << "def " << name << " : Term";
+      d_defs << "def " << cleanSmtId(name) << " : Term";
       d_defs << " := ";
       printEmbTerm(p, d_defs);
       d_defs << std::endl;
@@ -731,7 +732,7 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   Attr attr = d_state.getConstructorKind(e.getValue());
   // (*out) << "  ; attr is " << attr << std::endl;
   (*out) << "  | ";
-  (*out) << cname.str() << " : ";
+  (*out) << cleanSmtId(cname.str()) << " : ";
   size_t nopqArgs = 0;
   Expr retType = ct;
   if (attr == Attr::OPAQUE)
@@ -798,7 +799,7 @@ void LeanMetaReduce::finalize()
   replace(finalLean, "$LEAN_THMS$", d_thms.str());
   replace(finalLean, "$LEAN_TERM_DEF$", d_embedTermDt.str());
   // FIXME: do this earlier
-  finalLean = replace_all(finalLean, "$", "__");
+  //finalLean = replace_all(finalLean, "$", "__");
   
   std::stringstream sso;
   sso << s_plugin_path << "plugins/lean_meta/lean_meta_gen.lean";
@@ -829,7 +830,7 @@ bool LeanMetaReduce::echo(const std::string& msg)
     Assert(!def.isNull());
     Expr patCall = def[0][0];
     Assert(!patCall.isNull());
-    d_thms << "/- correctness theorem for " << eosc << " -/" << std::endl;
+    d_thms << "/- correctness theorem for " << cleanSmtId(eosc) << " -/" << std::endl;
     // NOTE: this is intentionally quantifying on sm.Term, not eo.Term.
     // In other words, this conjectures that there is an sm.Term, that
     // when embedded into Eunoia witnesses the unsoundness.
@@ -837,24 +838,40 @@ bool LeanMetaReduce::echo(const std::string& msg)
     std::stringstream varList;
     std::stringstream eoTrue;
     std::stringstream call;
-    eoTrue << "(Term.Boolean true)";
+    eoTrue << "(Term.Boolean Smt_Bool.true)";
     Assert(vt.getKind() == Kind::PROGRAM_TYPE);
     Assert(patCall.getNumChildren() == vt.getNumChildren());
-    size_t nargs = vt.getNumChildren();
     ConjectureType ctype = StdPlugin::optionSmtMetaConjectureType();
     if (ctype == ConjectureType::VC)
     {
-      d_thms << "theorem correct_" << eosc << " : ";
-      if (nargs>1)
+      d_thms << "theorem correct_" << cleanSmtId(eosc) << " ";
+      std::vector<Expr> vars = Expr::getVariables(patCall);
+      if (!vars.empty())
       {
-        d_thms << "forall";
-        for (size_t i = 1; i < nargs; i++)
+        d_thms << "(";
+        for (size_t i = 0, nvars = vars.size(); i < nvars; i++)
         {
-          call << " x" << i;
+          call << (i>0 ? " " : "") << vars[i];
         }
-        d_thms << call.str() << " : Term, ";
+        d_thms << call.str() << " : Term)";
       }
-      d_thms << "(" << eosc << call.str() << ") != " << eoTrue.str() << " :=" << std::endl;
+      d_thms << " :" << std::endl;
+      d_thms << "  ";
+      // premises are assumptions in theorem
+      Expr pfcons = d_state.getVar("$eo_pf");
+      AlwaysAssert(!pfcons.isNull()) << "Could not find proof constructor";
+      for (size_t i=0, nargs=patCall.getNumChildren(); i<nargs; i++)
+      {
+        if (patCall[i].getKind()==Kind::APPLY_OPAQUE && patCall[i][0]==pfcons)
+        {
+          d_thms << "(eo_model_Bool ";
+          printEmbTerm(patCall[i][1], d_thms);
+          d_thms << " smt_Bool.true) -> ";
+        }
+      }
+      d_thms << "(Not (eo_model_Bool ";
+      printEmbTerm(patCall, d_thms);
+      d_thms << " smt_Bool.false)) :=" << std::endl;
       d_thms << "by" << std::endl;
       d_thms << "  sorry" << std::endl;
       d_thms << std::endl;
@@ -1272,6 +1289,20 @@ std::vector<MetaKind> LeanMetaReduce::getMetaKindArgs(const Expr& parent,
   }
   Trace("lean-meta") << "  MetaArg: end" << std::endl;
   return args;
+}
+
+std::string LeanMetaReduce::cleanSmtId(const std::string& id)
+{
+  std::string idc = id;
+  idc = replace_all(idc, "++", "concat");
+  idc = replace_all(idc, "+", "plus");
+  idc = replace_all(idc, "-", "neg");
+  idc = replace_all(idc, "*", "mult");
+  idc = replace_all(idc, "<=", "leq");
+  idc = replace_all(idc, "=", "eq");
+  idc = replace_all(idc, ".", "_");
+  idc = replace_all(idc, "$", "__");
+  return idc;
 }
 
 }  // namespace ethos

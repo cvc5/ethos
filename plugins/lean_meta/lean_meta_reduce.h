@@ -130,6 +130,10 @@ class LeanMetaReduce : public StdPlugin
    * Get the meta-kind returned by a child.
    */
   MetaKind getMetaKindReturn(const Expr& child, MetaKind parentCtx);
+  /** 
+   * Remove SMT-LIB identifier issues
+   */
+  static std::string cleanSmtId(const std::string& id);
 };
 
 }  // namespace ethos

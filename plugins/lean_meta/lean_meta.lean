@@ -74,6 +74,8 @@ $LEAN_DEFS$
 
 /- The verification conditions -/
 
+axiom eo_model_Bool : Term -> smt_Bool -> Prop
+
 $LEAN_THMS$
 
 end Eo
