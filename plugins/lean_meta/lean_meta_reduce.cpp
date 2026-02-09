@@ -92,6 +92,7 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
   if (k == Kind::CONST)
   {
     std::string cname = getName(c);
+    os << "Term.";
     // if it is an explicit embedding of a datatype, take the suffix
     if (cname.compare(0, 5, "$smd_") == 0)
     {
@@ -99,7 +100,7 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
     }
     else
     {
-      os << "Term." << cname;
+      os << cname;
     }
   }
   else if (k == Kind::BOOL_TYPE)
@@ -134,7 +135,7 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
         os << "(Term.Boolean ";
         osEnd << ")";
       }
-      os << (l->d_bool ? "true" : "false");
+      os << "smt_Bool." << (l->d_bool ? "true" : "false");
     }
     else if (k == Kind::NUMERAL)
     {
@@ -147,7 +148,7 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
       if (ci.sgn() == -1)
       {
         const Integer& cin = -ci;
-        os << "(smt_- " << cin.toString() << ")";
+        os << "(smt_neg " << cin.toString() << ")";
       }
       else
       {
@@ -219,6 +220,21 @@ bool LeanMetaReduce::isSmtApplyApp(const Expr& oApp)
           || sname.compare(0, 10, "$smt_type_") == 0);
 }
 
+std::string replace_all(std::string str,
+                        const std::string& from,
+                        const std::string& to)
+{
+    if (from.empty()) return str;  // avoid infinite loop
+
+    std::size_t pos = 0;
+    while ((pos = str.find(from, pos)) != std::string::npos) {
+        str.replace(pos, from.length(), to);
+        pos += to.length();  // move past the replacement
+    }
+    return str;
+}
+
+
 std::string LeanMetaReduce::getEmbedName(const Expr& oApp)
 {
   Assert(oApp.getKind() == Kind::APPLY_OPAQUE)
@@ -231,7 +247,15 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp)
   }
   const Literal* l = oApp[1].getValue()->asLiteral();
   std::stringstream ss;
-  ss << "smt_" << l->d_str.toString();
+  std::string smtStr = l->d_str.toString();
+  smtStr = replace_all(smtStr, "++", "concat");
+  smtStr = replace_all(smtStr, "+", "plus");
+  smtStr = replace_all(smtStr, "-", "neg");
+  smtStr = replace_all(smtStr, "*", "mult");
+  smtStr = replace_all(smtStr, "<=", "leq");
+  smtStr = replace_all(smtStr, "=", "eq");
+  smtStr = replace_all(smtStr, ".", "_");
+  ss << "smt_" << smtStr;
   return ss.str();
 }
 
@@ -370,7 +394,7 @@ bool LeanMetaReduce::printEmbTerm(const Expr& body,
     {
       Assert(recTerm.getNumChildren() == 2);
       // use the final deep embedding
-      os << "(Apply (Apply FunType ";
+      os << "(Term.Apply (Term.Apply Term.FunType ";
       cparen[key]++;
       // proactively insert a parenthesis after the first argument based on
       // the curried apply above.
@@ -516,18 +540,19 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
         }
         if (i==j)
         {
-          cases << "Stuck ";
+          cases << "Term.Stuck ";
         }
         else
         {
           cases << "_ ";
         }
       }
-      cases << " => Stuck" << std::endl;
+      cases << " => Term.Stuck" << std::endl;
     }
   }
   size_t ncases = prog.getNumChildren();
   SelectorCtx ctx;
+  bool wasDefault;
   for (size_t i = 0; i < ncases; i++)
   {
     const Expr& c = prog[i];
@@ -538,6 +563,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     ConjPrint print;
     cases << "  | ";
     Assert(hd.getNumChildren() == nargs);
+    wasDefault = true;
     for (size_t j = 1, nhdchild = hd.getNumChildren(); j < nhdchild; j++)
     {
       if (j>1)
@@ -550,15 +576,28 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
       // program.
       MetaKind ctxPatMatch = vctxArgs[j - 1];
       printEmbTerm(hd[j], cases, ctxPatMatch);
+      if (hd[j].getKind()!=Kind::PARAM)
+      {
+        wasDefault = false;
+      }
     }
     cases << " => ";
     MetaKind bodyInitCtx = vctxArgs[nargs - 1];
     printEmbTerm(body, cases, bodyInitCtx);
     cases << std::endl;
   }
-  if (isEunoiaProgram)
+  if (isEunoiaProgram && !wasDefault)
   {
-    cases << "  | _ => Stuck" << std::endl;
+    cases << "  | ";
+    for (size_t j = 1; j < nargs; j++)
+    {
+      if (j>1)
+      {
+        cases << ", ";
+      }
+      cases << "_";
+    }
+    cases << " => Term.Stuck" << std::endl;
   }
   // axiom
   d_defs << decl.str();
@@ -758,17 +797,9 @@ void LeanMetaReduce::finalize()
   replace(finalLean, "$LEAN_DEFS$", d_defs.str());
   replace(finalLean, "$LEAN_THMS$", d_thms.str());
   replace(finalLean, "$LEAN_TERM_DEF$", d_embedTermDt.str());
-  bool success;
-  do {
-    success = false;
-    auto pos = finalLean.find("$");
-    if (pos != std::string::npos)
-    {
-      finalLean.replace(pos, 1, "__");
-      success = true;
-    }
-  } while (success);
-
+  // FIXME: do this earlier
+  finalLean = replace_all(finalLean, "$", "__");
+  
   std::stringstream sso;
   sso << s_plugin_path << "plugins/lean_meta/lean_meta_gen.lean";
   Trace("lean-meta") << "Write lean-defs " << sso.str() << std::endl;
