@@ -162,7 +162,7 @@
 (declare-parameterized-const $smd_sm.Rational
   ((r $smt_builtin_Real :opaque)) $smt_Term)
 (declare-parameterized-const $smd_sm.String
-  ((s ($smt_type_0 "String") :opaque)) $smt_Term)
+  ((s $smt_builtin_String :opaque)) $smt_Term)
 (declare-parameterized-const $smd_sm.Binary
   ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Term)
 
