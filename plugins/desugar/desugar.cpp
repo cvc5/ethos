@@ -639,7 +639,11 @@ void Desugar::finalizeDefinition(const std::string& name, const Expr& t)
 void Desugar::finalizeRule(const Expr& e)
 {
   // if marked sorry, we should never do verification
-  if (d_state.isProofRuleSorry(e.getValue()) || !d_genVcs)
+  if (d_state.isProofRuleSorry(e.getValue()))
+  {
+    return;
+  }
+  if (!d_genVcs)
   {
     return;
   }

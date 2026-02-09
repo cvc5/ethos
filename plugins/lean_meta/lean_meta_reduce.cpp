@@ -76,7 +76,7 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
   Kind k = c.getKind();
   if (k == Kind::TYPE)
   {
-    os << "Type";
+    os << "Term.Type";
     return;
   }
   std::string name;
@@ -99,7 +99,7 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
     }
     else
     {
-      os << cname;
+      os << "Term." << cname;
     }
   }
   else if (k == Kind::BOOL_TYPE)
@@ -110,7 +110,7 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
     //  os << "(eo.SmtType ";
     //  osEnd << ")";
     //}
-    os << "Bool";
+    os << "Term.Bool";
   }
   else
   {
@@ -131,7 +131,7 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
     {
       if (!isSmtBuiltin)
       {
-        os << "(Boolean ";
+        os << "(Term.Boolean ";
         osEnd << ")";
       }
       os << (l->d_bool ? "true" : "false");
@@ -140,14 +140,14 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
     {
       if (!isSmtBuiltin)
       {
-        os << "(Numeral ";
+        os << "(Term.Numeral ";
         osEnd << ")";
       }
       const Integer& ci = l->d_int;
       if (ci.sgn() == -1)
       {
         const Integer& cin = -ci;
-        os << "(- " << cin.toString() << ")";
+        os << "(smt_- " << cin.toString() << ")";
       }
       else
       {
@@ -158,7 +158,7 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
     {
       if (!isSmtBuiltin)
       {
-        os << "(Rational ";
+        os << "(Term.Rational ";
         osEnd << ")";
       }
       os << c;
@@ -167,7 +167,7 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
     {
       if (!isSmtBuiltin)
       {
-        os << "(Binary ";
+        os << "(Term.Binary ";
         osEnd << ")";
       }
       const BitVector& bv = l->d_bv;
@@ -178,7 +178,7 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
     {
       if (!isSmtBuiltin)
       {
-        os << "(String ";
+        os << "(Term.String ";
         osEnd << ")";
       }
       os << c;
@@ -231,7 +231,7 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp)
   }
   const Literal* l = oApp[1].getValue()->asLiteral();
   std::stringstream ss;
-  ss << "smt." << l->d_str.toString();
+  ss << "smt_" << l->d_str.toString();
   return ss.str();
 }
 
@@ -324,7 +324,7 @@ bool LeanMetaReduce::printEmbTerm(const Expr& body,
           // flatten-eval step has ensured that constructing Eunoia terms
           // in this way will not get stuck during term construction, but
           // instead at program invocation.
-          os << "Apply ";
+          os << "Term.Apply ";
         }
         else
         {
@@ -394,7 +394,7 @@ bool LeanMetaReduce::printEmbTerm(const Expr& body,
     else if (ck == Kind::VARIABLE)
     {
       const Literal* l = recTerm.getValue()->asLiteral();
-      os << "(Var \"" << l->toString() << "\" ";
+      os << "(Term.Var \"" << l->toString() << "\" ";
       Expr recTermT = d_tc.getType(recTerm);
       visit.emplace_back(recTermT, MetaKind::EUNOIA);
       cparen[key] += 1;
@@ -565,6 +565,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   d_defs << cases.str();
   d_defs << std::endl;
   d_defs << std::endl;
+  // if it corresponds to a proof rule, print a Lean theorem
 }
 
 void LeanMetaReduce::define(const std::string& name, const Expr& e)
@@ -757,6 +758,16 @@ void LeanMetaReduce::finalize()
   replace(finalLean, "$LEAN_DEFS$", d_defs.str());
   replace(finalLean, "$LEAN_THMS$", d_thms.str());
   replace(finalLean, "$LEAN_TERM_DEF$", d_embedTermDt.str());
+  bool success;
+  do {
+    success = false;
+    auto pos = finalLean.find("$");
+    if (pos != std::string::npos)
+    {
+      finalLean.replace(pos, 1, "__");
+      success = true;
+    }
+  } while (success);
 
   std::stringstream sso;
   sso << s_plugin_path << "plugins/lean_meta/lean_meta_gen.lean";
@@ -795,7 +806,7 @@ bool LeanMetaReduce::echo(const std::string& msg)
     std::stringstream varList;
     std::stringstream eoTrue;
     std::stringstream call;
-    eoTrue << "(Boolean true)";
+    eoTrue << "(Term.Boolean true)";
     Assert(vt.getKind() == Kind::PROGRAM_TYPE);
     Assert(patCall.getNumChildren() == vt.getNumChildren());
     size_t nargs = vt.getNumChildren();

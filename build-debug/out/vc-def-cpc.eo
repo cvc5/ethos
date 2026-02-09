@@ -1,7 +1,7 @@
 ; trim-defs: $eovc_symm
 ; #trim-defs: 46
 (declare-const $eo_Proof Type)
-(declare-const $eo_pf (-> Bool $eo_Proof))
+(declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (program $eo_proven ((F Bool))
   :signature ($eo_Proof) Bool
   (

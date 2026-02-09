@@ -944,7 +944,7 @@
   (
   (($eo_var ($eo_str s) T)
     ; we use the hash of the type T to identify the variable
-    ($eo_requires_eq ($eo_typeof T) Type ($eo_Var s T)))
+    ($eo_requires ($eo_typeof T) Type ($eo_Var s T)))
   )
 )
 

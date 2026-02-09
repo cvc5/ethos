@@ -25,7 +25,7 @@
 ; The return type of proof rules.
 (declare-const $eo_Proof Type)
 ; Constructor of proofs, takes a formula that is proven.
-(declare-const $eo_pf (-> Bool $eo_Proof))
+(declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 ; Extracts the proven formula from a proof term.
 (program $eo_proven ((F Bool))
   :signature ($eo_Proof) Bool
@@ -676,8 +676,6 @@
 (program $eo_model_sat () :signature (Bool) Bool)
 ; A placeholder for asking whether a formula evaluates to false in a model.
 (program $eo_model_unsat () :signature (Bool) Bool)
-; A placeholder for asking whether a term is legal syntax for an SMT-LIB term.
-(program $eo_model_is_input () :signature (Bool) Bool)
 
 ; We will include the definition of the above functions here.
 (echo "include eo_model_sat :deps $eo_typeof_main $eo_is_ok $eo_dt_constructors $eo_dt_selectors $eo_if_both $eo_List_nil $eo_List_cons $eo_lit_type_Numeral $eo_lit_type_Rational $eo_lit_type_String $eo_lit_type_Binary ")
