@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 139
+; #trim-defs: 145
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (program $eo_proven ((F Bool))
@@ -59,9 +59,15 @@
 (define $smt_builtin_z_zero () ($smt_apply_0 "0"))
 (define $smt_builtin_z_one () ($smt_apply_0 "1"))
 (define $smt_builtin_z_two () ($smt_apply_0 "2"))
+(define $smt_builtin_<= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "<=" x1 x2))
+(define $smt_builtin_add ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "+" x1 x2))
 (define $smt_builtin_mul ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "*" x1 x2))
+(define $smt_builtin_neg ((W Type :implicit) (x1 W)) ($smt_apply_1 "-" x1))
 (define $smt_builtin_mod ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "mod" x1 x2))
+(define $smt_builtin_not ((b $smt_builtin_Bool)) ($smt_apply_1 "not" b))
 (define $smt_builtin_and ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "and" b1 b2))
+(define $smt_builtin_z_neg_one () ($smt_builtin_neg $smt_builtin_z_one))
+(define $smt_builtin_z_dec ((W Type :implicit) (x1 W)) ($smt_builtin_add x1 $smt_builtin_z_neg_one))
 (declare-const $eo_Term Type)
 (declare-const $smt_Type Type)
 (declare-const $smt_Term Type)
@@ -138,10 +144,10 @@
   :signature ($smt_builtin_Int) $smt_builtin_Int
   (
   (($smtx_pow2 i)
-    ($smt_builtin_ite ($smt_apply_2 "<=" i $smt_builtin_z_zero)
+    ($smt_builtin_ite ($smt_builtin_<= i $smt_builtin_z_zero)
       $smt_builtin_z_one
       ($smt_builtin_mul $smt_builtin_z_two
-        ($smtx_pow2 ($smt_apply_2 "-" i $smt_builtin_z_one)))))
+        ($smtx_pow2 ($smt_builtin_z_dec i)))))
   )
 )
 (define $sm_mk_binary ((w $smt_builtin_Int) (n $smt_builtin_Int))
@@ -157,7 +163,7 @@
 (define $eo_binary ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
   ($eo_smt_term ($sm_binary x1 x2)))
 (define $smt_builtin_is_ok ((x $eo_Term))
-  ($smt_apply_1 "not" ($smt_builtin_= x $eo_stuck)))
+  ($smt_builtin_not ($smt_builtin_= x $eo_stuck)))
 (program $eo_mk_apply ((x1 $eo_Term) (x2 $eo_Term))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
@@ -327,7 +333,7 @@
   (($smtx_is_atomic_term_value ($sm_binary w n))
     
     ($smt_builtin_and
-      ($smt_apply_1 "<= 0" w)
+      ($smt_apply_2 "<=" $smt_builtin_z_zero w)
       ($smt_builtin_= ($sm_binary w n) ($sm_mk_binary w n))))
   
   (($smtx_is_atomic_term_value t)                $smt_builtin_false)

@@ -51,7 +51,7 @@
   ; user-decl: $eo_Proof
   (eo.$eo_Proof)
   ; user-decl: $eo_pf
-  (eo.$eo_pf)
+  (eo.$eo_pf (eo.$eo_pf.arg1 eo.Term))
   ; user-decl: $eo_List
   (eo.$eo_List)
   ; user-decl: $eo_List_nil
@@ -106,8 +106,8 @@
 (define-fun $eo_proven ((x1 eo.Term)) eo.Term
   (ite (= x1 eo.Stuck)
     eo.Stuck
-  (ite (and ((_ is eo.Apply) x1) (= (eo.Apply.arg1 x1) eo.$eo_pf))
-    (eo.Apply.arg2 x1)
+  (ite ((_ is eo.$eo_pf) x1)
+    (eo.$eo_pf.arg1 x1)
     eo.Stuck)))
 
 (define-fun $eo_Numeral () eo.Term (eo.SmtType tsm.Int))
@@ -118,15 +118,6 @@
 ; fwd-decl: $eo_dt_selectors
 (declare-fun $eo_dt_selectors (eo.Term) eo.Term)
 
-; program: $eo_fail_prog
-(define-fun $eo_fail_prog ((x1 eo.Term)) eo.Term
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite (= x1 (eo.SmtTerm (sm.Boolean true)))
-    (eo.SmtTerm (sm.Boolean true))
-    eo.Stuck)))
-
-(define-fun $eo_fail () eo.Term ($eo_fail_prog (eo.SmtTerm (sm.Boolean false))))
 ; program: $eo_requires_eq
 (define-fun $eo_requires_eq ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck) (= x3 eo.Stuck))
@@ -162,7 +153,7 @@
 (declare-fun $smtx_pow2 (Int) Int)
 (assert (! (forall ((x1 Int))
   (! (= ($smtx_pow2 x1)
-    (ite (<= x1 0) 1 (* 2 ($smtx_pow2 (- x1 1))))
+    (ite (<= x1 0) 1 (* 2 ($smtx_pow2 (+ x1 (- 1)))))
 ) :pattern (($smtx_pow2 x1)))) :named sm.axiom.$smtx_pow2))
 
 ; program: $eo_bool
@@ -270,8 +261,8 @@
 (define-fun $eo_prog_symm ((x1 eo.Term)) eo.Term
   (ite (= x1 eo.Stuck)
     eo.Stuck
-  (ite (and ((_ is eo.Apply) x1) (= (eo.Apply.arg1 x1) eo.$eo_pf))
-    ($eo_mk_apply eo.$eo_pf ($mk_symm (eo.Apply.arg2 x1)))
+  (ite ((_ is eo.$eo_pf) x1)
+    (eo.$eo_pf ($mk_symm (eo.$eo_pf.arg1 x1)))
     eo.Stuck)))
 
 ; program: $eo_typeof_apply
@@ -380,9 +371,7 @@
   (! (= ($eo_dt_selectors x1)
   (ite (= x1 eo.Stuck)
     eo.Stuck
-  (ite true
-    ($eo_fail_prog (eo.SmtTerm (sm.Boolean false)))
-    eo.Stuck))) :pattern (($eo_dt_selectors x1)))) :named sm.axiom.$eo_dt_selectors))
+    eo.Stuck)) :pattern (($eo_dt_selectors x1)))) :named sm.axiom.$eo_dt_selectors))
 
 ; fwd-decl: $eo_model_sat
 (declare-fun $eo_model_sat (eo.Term) eo.Term)
@@ -488,7 +477,7 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    ($eo_requires_eq ($eo_typeof x1) (eo.SmtType tsm.Bool) ($eo_requires_eq ($eo_model_sat x1) (eo.SmtTerm (sm.Boolean true)) ($eo_requires_eq ($eo_typeof ($eo_proven ($eo_prog_symm (eo.Apply eo.$eo_pf x1)))) (eo.SmtType tsm.Bool) ($eo_requires_eq ($eo_model_unsat ($eo_proven ($eo_prog_symm (eo.Apply eo.$eo_pf x1)))) (eo.SmtTerm (sm.Boolean true)) (eo.SmtTerm (sm.Boolean true))))))
+    ($eo_requires_eq ($eo_typeof x1) (eo.SmtType tsm.Bool) ($eo_requires_eq ($eo_model_sat x1) (eo.SmtTerm (sm.Boolean true)) ($eo_requires_eq ($eo_typeof ($eo_proven ($eo_prog_symm (eo.$eo_pf x1)))) (eo.SmtType tsm.Bool) ($eo_requires_eq ($eo_model_unsat ($eo_proven ($eo_prog_symm (eo.$eo_pf x1)))) (eo.SmtTerm (sm.Boolean true)) (eo.SmtTerm (sm.Boolean true))))))
     eo.Stuck)))
 
 
@@ -507,9 +496,9 @@
 
 ;;;; final verification condition for $eovc_symm
 (synth-fun arg_F () eo.Term
-  ((G_Start eo.Term) (G_eo.Term eo.Term) (G_Bool Bool) (G_Int Int) (G_RegLan RegLan) (G_Int_C Int) (G_Real Real) (G_String String) (T_Type eo.Term) (T_Fun eo.Term) (T_Bool eo.Term) (T_$eo_Proof eo.Term) (T_SmtType eo.Term) (T_Int eo.Term) (T_$eo_List eo.Term) (T_SmtTerm eo.Term) (T_Real eo.Term) (T_Seq eo.Term) (T_BitVec eo.Term)) (
+  ((G_Start eo.Term) (G_eo.Term eo.Term) (G_Bool Bool) (G_Int Int) (G_RegLan RegLan) (G_Int_C Int) (G_Real Real) (G_String String) (T_Type eo.Term) (T_$eo_Proof eo.Term) (T_SmtType eo.Term) (T_Fun eo.Term) (T_Int eo.Term) (T_$eo_List eo.Term) (T_SmtTerm eo.Term) (T_Bool eo.Term) (T_Real eo.Term) (T_Seq eo.Term) (T_BitVec eo.Term)) (
   (G_Start eo.Term (T_Bool))
-  (G_eo.Term eo.Term (eo.Type eo.FunType (eo.Var G_String G_eo.Term) T_Type T_Bool T_Fun T_SmtTerm T_SmtType T_$eo_Proof T_Int T_Real T_BitVec T_Seq T_$eo_List T_Type T_Fun T_Bool T_$eo_Proof T_SmtType T_Int T_$eo_List T_SmtTerm T_Real T_Seq T_BitVec ))
+  (G_eo.Term eo.Term (eo.Type eo.FunType (eo.Var G_String G_eo.Term) T_Type T_Bool T_Fun T_SmtTerm T_SmtType T_$eo_Proof T_Int T_Real T_BitVec T_Seq T_$eo_List T_Type T_$eo_Proof T_SmtType T_Fun T_Int T_$eo_List T_SmtTerm T_Bool T_Real T_Seq T_BitVec ))
   (G_Bool Bool (true false))
   (G_Int Int (0 (- G_Int_C) G_Int_C))
   (G_RegLan RegLan (re.all re.none (str.to_re G_String) (re.union G_RegLan G_RegLan)))
@@ -517,13 +506,13 @@
   (G_Real Real (0.0 (/ G_Int_C G_Int_C) (- (/ G_Int_C G_Int_C))))
   (G_String String ("" (str.++ G_String "A") (str.++ G_String "B")))
   (T_Type eo.Term (eo.$eo_Proof (eo.SmtType tsm.Int) (eo.SmtType tsm.Real) (eo.Apply (eo.SmtType tsm.BitVec) T_Int) (eo.SmtType tsm.Char) (eo.Apply (eo.SmtType tsm.Seq) T_Type) eo.$eo_List (eo.SmtType tsm.Bool) ))
-  (T_Fun eo.Term (eo.$eo_pf (eo.SmtType tsm.BitVec) (eo.SmtType tsm.Seq) eo.$eo_List_cons (eo.SmtTerm sm.not) (eo.SmtTerm sm.and) (eo.SmtTerm sm.=) ))
-  (T_Bool eo.Term ((eo.SmtTerm (sm.Boolean G_Bool)) (eo.Apply (eo.SmtTerm sm.not) T_Bool) (eo.Apply (eo.Apply (eo.SmtTerm sm.and) T_Bool) T_Bool) (eo.Apply (eo.Apply (eo.SmtTerm sm.=) T_SmtTerm) T_SmtTerm) ))
-  (T_$eo_Proof eo.Term ((eo.Apply eo.$eo_pf T_Bool) ))
+  (T_$eo_Proof eo.Term ((eo.$eo_pf G_eo.Term) ))
   (T_SmtType eo.Term (T_Type ))
+  (T_Fun eo.Term ((eo.SmtType tsm.BitVec) (eo.SmtType tsm.Seq) eo.$eo_List_cons (eo.SmtTerm sm.not) (eo.SmtTerm sm.and) (eo.SmtTerm sm.=) ))
   (T_Int eo.Term ((eo.SmtTerm (sm.Numeral G_Int)) ))
   (T_$eo_List eo.Term (eo.$eo_List_nil (eo.Apply (eo.Apply eo.$eo_List_cons G_eo.Term) T_$eo_List) ))
   (T_SmtTerm eo.Term (T_Bool T_Int T_Real T_Seq T_BitVec ))
+  (T_Bool eo.Term ((eo.SmtTerm (sm.Boolean G_Bool)) (eo.Apply (eo.SmtTerm sm.not) T_Bool) (eo.Apply (eo.Apply (eo.SmtTerm sm.and) T_Bool) T_Bool) (eo.Apply (eo.Apply (eo.SmtTerm sm.=) T_SmtTerm) T_SmtTerm) ))
   (T_Real eo.Term ((eo.SmtTerm (sm.Rational G_Real)) ))
   (T_Seq eo.Term ((eo.SmtTerm (sm.String G_String)) ))
   (T_BitVec eo.Term ((eo.SmtTerm (sm.Binary G_Int G_Int)) ))

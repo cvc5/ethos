@@ -184,7 +184,7 @@
   (($smtx_is_atomic_term_value ($sm_binary w n))
     ; must be legal width and value
     ($smt_builtin_and
-      ($smt_apply_1 "<= 0" w)
+      ($smt_apply_2 "<=" $smt_builtin_z_zero w)
       ($smt_builtin_= ($sm_binary w n) ($sm_mk_binary w n))))
   ; by default, not a value
   (($smtx_is_atomic_term_value t)                $smt_builtin_false)

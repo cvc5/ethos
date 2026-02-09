@@ -153,7 +153,7 @@
 (declare-fun $smtx_pow2 (Int) Int)
 (assert (! (forall ((x1 Int))
   (! (= ($smtx_pow2 x1)
-    (ite (<= x1 0) 1 (* 2 ($smtx_pow2 (- x1 1))))
+    (ite (<= x1 0) 1 (* 2 ($smtx_pow2 (+ x1 (- 1)))))
 ) :pattern (($smtx_pow2 x1)))) :named sm.axiom.$smtx_pow2))
 
 ; program: $eo_bool

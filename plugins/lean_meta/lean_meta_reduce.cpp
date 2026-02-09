@@ -308,9 +308,6 @@ bool LeanMetaReduce::printEmbTerm(const Expr& body,
     // otherwise, we check for a change of context and insert a cast if
     // necessary compute the child context
     Kind ck = recTerm.getKind();
-    MetaKind child  = getMetaKindReturn(recTerm, parent);
-    Assert(child != MetaKind::NONE)
-        << "Failed to get child context for " << recTerm;
     // Trace("lean-meta") << "print: " << recTerm << " (" << ck << "), "
     //           << metaKindToString(parent) << " / "
     //           << metaKindToString(child) << std::endl;
@@ -340,7 +337,6 @@ bool LeanMetaReduce::printEmbTerm(const Expr& body,
       // programs print as themselves
       if (!isProgramApp(recTerm))
       {
-        Assert(child == MetaKind::EUNOIA);
         if (StdPlugin::optionFlattenEval() || !recTerm.isEvaluatable())
         {
           // Note that we use eo.Apply unguarded. In particular, the
@@ -480,39 +476,20 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   decl << "def ";
   printEmbAtomicTerm(v, decl);
   decl << " : ";
-  std::stringstream varList;
   Assert(vt.getKind() == Kind::PROGRAM_TYPE)
       << "bad type " << vt << " for " << v;
   Assert(nargs > 1);
-  std::vector<std::string> args;
-  std::stringstream appTerm;
-  appTerm << "(" << v;
-  ConjPrint printStuck;
   for (size_t i = 1; i < nargs; i++)
   {
     if (i > 1)
     {
       decl << " ";
-      varList << " ";
     }
     std::stringstream argType;
     Trace("lean-meta") << "Print meta type " << vt[i - 1] << std::endl;
     printMetaType(vt[i - 1], argType, MetaKind::EUNOIA);
-    decl << argType.str() << " -> ";
-    std::stringstream ssArg;
-    ssArg << "x" << i;
-    appTerm << " " << ssArg.str();
-    args.emplace_back(ssArg.str());
-    varList << "(" << ssArg.str() << " " << argType.str() << ")";
-    // don't have to check stuckness if type is not Eunoia
-    if (vctxArgs[i - 1] == MetaKind::EUNOIA)
-    {
-      std::stringstream ssCurr;
-      ssCurr << "(= " << ssArg.str() << " eo.Stuck)";
-      printStuck.push(ssCurr.str());
-    }
+    decl << argType.str() << " ->";
   }
-  appTerm << ")";
   std::stringstream retType;
   printMetaType(vt[nargs - 1], retType, MetaKind::EUNOIA);
   decl << retType.str() << std::endl;
@@ -856,7 +833,6 @@ bool LeanMetaReduce::echo(const std::string& msg)
         d_thms << call.str() << " : Term)";
       }
       d_thms << " :" << std::endl;
-      d_thms << "  ";
       // premises are assumptions in theorem
       Expr pfcons = d_state.getVar("$eo_pf");
       AlwaysAssert(!pfcons.isNull()) << "Could not find proof constructor";
@@ -864,12 +840,12 @@ bool LeanMetaReduce::echo(const std::string& msg)
       {
         if (patCall[i].getKind()==Kind::APPLY_OPAQUE && patCall[i][0]==pfcons)
         {
-          d_thms << "(eo_model_Bool ";
+          d_thms << "  (eo_model_Bool ";
           printEmbTerm(patCall[i][1], d_thms);
-          d_thms << " smt_Bool.true) -> ";
+          d_thms << " smt_Bool.true) ->" << std::endl;
         }
       }
-      d_thms << "(Not (eo_model_Bool ";
+      d_thms << "  (Not (eo_model_Bool ";
       printEmbTerm(patCall, d_thms);
       d_thms << " smt_Bool.false)) :=" << std::endl;
       d_thms << "by" << std::endl;
@@ -1299,6 +1275,7 @@ std::string LeanMetaReduce::cleanSmtId(const std::string& id)
   idc = replace_all(idc, "-", "neg");
   idc = replace_all(idc, "*", "mult");
   idc = replace_all(idc, "<=", "leq");
+  idc = replace_all(idc, "<", "lt");
   idc = replace_all(idc, "=", "eq");
   idc = replace_all(idc, ".", "_");
   idc = replace_all(idc, "$", "__");

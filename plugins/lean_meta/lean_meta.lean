@@ -70,7 +70,11 @@ $LEAN_TERM_DEF$
 
 /- Relevant definitions -/
 
+mutual
+
 $LEAN_DEFS$
+
+end 
 
 /- The verification conditions -/
 
