@@ -72,15 +72,6 @@ $EO_LITERAL_TYPE_DECL$
 ; The methods in this section are temporary definitions to eliminate
 ; dependencies on other builtin constructs.
 
-; note: Used to intentionally specify a stuck evaluation.
-(program $eo_fail_prog ()
-  :signature (Bool) Bool
-  (
-  (($eo_fail_prog true) true)
-  )
-)
-(define $eo_fail () ($eo_fail_prog false))
-
 ; note: This is used to ensure this signature does not depend on not.
 (program $eo_if_not ()
   :signature (Bool) Bool
@@ -109,15 +100,6 @@ $EO_LITERAL_TYPE_DECL$
   :signature (T T U) U
   (
   (($eo_requires_eq x1 x1 x3) x3)
-  )
-)
-; program: $eo_requires_deq
-; return: x3 if x1 and x2 are disequal, or gets stuck otherwise.
-(program $eo_requires_deq ((T Type) (U Type) (x1 T) (x2 T) (x3 U))
-  :signature (T T U) U
-  (
-  (($eo_requires_deq x1 x1 x3) $eo_fail)
-  (($eo_requires_deq x1 x2 x3) x3)
   )
 )
 
@@ -562,7 +544,6 @@ $EO_LIT_TYPEOF_DEFS$
   :signature (Type) $eo_List
   (
 $EO_DT_CONSTRUCTORS_CASES$
-  (($eo_dt_constructors T) $eo_fail)
   )
 )
 
@@ -572,7 +553,6 @@ $EO_DT_CONSTRUCTORS_CASES$
   :signature (T) $eo_List
   (
 $EO_DT_SELECTORS_CASES$
-  (($eo_dt_selectors t) $eo_fail)
   )
 )
 

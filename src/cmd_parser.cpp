@@ -781,10 +781,6 @@ bool CmdParser::parseNextCommand()
       {
         // parse the body
         std::vector<Expr> pchildren = d_eparser.parseExprPairList();
-        if (pchildren.empty())
-        {
-          d_lex.parseError("Expected non-empty list of cases");
-        }
         // ensure program cases are
         // (A) applications of the program
         // (B) have arguments that are not evaluatable

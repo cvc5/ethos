@@ -118,15 +118,6 @@
 ; fwd-decl: $eo_dt_selectors
 (declare-fun $eo_dt_selectors (eo.Term) eo.Term)
 
-; program: $eo_fail_prog
-(define-fun $eo_fail_prog ((x1 eo.Term)) eo.Term
-  (ite (= x1 eo.Stuck)
-    eo.Stuck
-  (ite (= x1 (eo.SmtTerm (sm.Boolean true)))
-    (eo.SmtTerm (sm.Boolean true))
-    eo.Stuck)))
-
-(define-fun $eo_fail () eo.Term ($eo_fail_prog (eo.SmtTerm (sm.Boolean false))))
 ; program: $eo_requires_eq
 (define-fun $eo_requires_eq ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck) (= x3 eo.Stuck))
@@ -380,9 +371,7 @@
   (! (= ($eo_dt_selectors x1)
   (ite (= x1 eo.Stuck)
     eo.Stuck
-  (ite true
-    ($eo_fail_prog (eo.SmtTerm (sm.Boolean false)))
-    eo.Stuck))) :pattern (($eo_dt_selectors x1)))) :named sm.axiom.$eo_dt_selectors))
+    eo.Stuck)) :pattern (($eo_dt_selectors x1)))) :named sm.axiom.$eo_dt_selectors))
 
 ; fwd-decl: $eo_model_sat
 (declare-fun $eo_model_sat (eo.Term) eo.Term)

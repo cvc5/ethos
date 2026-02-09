@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 48
+; #trim-defs: 46
 (declare-const $eo_Proof Type)
 (declare-const $eo_pf (-> Bool $eo_Proof))
 (program $eo_proven ((F Bool))
@@ -28,13 +28,6 @@
 (program $eo_typeof ((T Type)) :signature (T) Type)
 (program $eo_dt_constructors () :signature (Type) $eo_List)
 (program $eo_dt_selectors ((T Type)) :signature (T) $eo_List)
-(program $eo_fail_prog ()
-  :signature (Bool) Bool
-  (
-  (($eo_fail_prog true) true)
-  )
-)
-(define $eo_fail () ($eo_fail_prog false))
 (program $eo_if_both ((b1 Bool) (b2 Bool))
   :signature (Bool Bool) Bool
   (
@@ -152,14 +145,12 @@
   :signature (Type) $eo_List
   (
 
-  (($eo_dt_constructors T) $eo_fail)
   )
 )
 (program $eo_dt_selectors ((T Type) (t T))
   :signature (T) $eo_List
   (
 
-  (($eo_dt_selectors t) $eo_fail)
   )
 )
 (program $eo_model_sat () :signature (Bool) Bool)
