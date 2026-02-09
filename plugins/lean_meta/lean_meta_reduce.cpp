@@ -27,8 +27,6 @@ LeanMetaReduce::LeanMetaReduce(State& s) : StdPlugin(s)
   d_prefixToMetaKind["msm"] = MetaKind::SMT_MAP;
   d_prefixToMetaKind["ssm"] = MetaKind::SMT_SEQ;
   d_typeToMetaKind["$eo_Type"] = MetaKind::EUNOIA;
-  d_typeToMetaKind["$smt_Term"] = MetaKind::SMT;
-  d_typeToMetaKind["$smt_Type"] = MetaKind::SMT_TYPE;
   d_typeToMetaKind["$smt_Value"] = MetaKind::SMT_VALUE;
   d_typeToMetaKind["$smt_Map"] = MetaKind::SMT_MAP;
   d_typeToMetaKind["$smt_Seq"] = MetaKind::SMT_SEQ;
@@ -139,7 +137,7 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
         os << "(Term.Boolean ";
         osEnd << ")";
       }
-      os << "smt_Bool." << (l->d_bool ? "true" : "false");
+      os << (l->d_bool ? "true" : "false");
     }
     else if (k == Kind::NUMERAL)
     {
@@ -152,7 +150,7 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
       if (ci.sgn() == -1)
       {
         const Integer& cin = -ci;
-        os << "(smt_neg " << cin.toString() << ")";
+        os << "-" << cin.toString();
       }
       else
       {
@@ -238,6 +236,13 @@ std::string replace_all(std::string str,
     return str;
 }
 
+bool is_integer(const std::string& s) {
+    if (s.empty()) return false;
+    for (unsigned char c : s) {
+        if (!std::isdigit(c)) return false;
+    }
+    return true;
+}
 
 std::string LeanMetaReduce::getEmbedName(const Expr& oApp)
 {
@@ -250,8 +255,13 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp)
                   << oApp;
   }
   const Literal* l = oApp[1].getValue()->asLiteral();
-  std::stringstream ss;
   std::string smtStr = cleanSmtId(l->d_str.toString());
+  // literals don't need smt_
+  if (is_integer(smtStr))
+  {
+    return smtStr;
+  }
+  std::stringstream ss;
   ss << "smt_" << smtStr;
   return ss.str();
 }
@@ -509,6 +519,10 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   {
     for (size_t i = 1; i < nargs; i++)
     {
+      if (getTypeMetaKind(vt[i - 1], MetaKind::EUNOIA)!=MetaKind::EUNOIA)
+      {
+        continue;
+      }
       cases << "  | ";
       for (size_t j = 1; j < nargs; j++)
       {
@@ -842,12 +856,12 @@ bool LeanMetaReduce::echo(const std::string& msg)
         {
           d_thms << "  (eo_model_Bool ";
           printEmbTerm(patCall[i][1], d_thms);
-          d_thms << " smt_Bool.true) ->" << std::endl;
+          d_thms << " true) ->" << std::endl;
         }
       }
       d_thms << "  (Not (eo_model_Bool ";
       printEmbTerm(patCall, d_thms);
-      d_thms << " smt_Bool.false)) :=" << std::endl;
+      d_thms << " false)) :=" << std::endl;
       d_thms << "by" << std::endl;
       d_thms << "  sorry" << std::endl;
       d_thms << std::endl;
@@ -1277,7 +1291,9 @@ std::string LeanMetaReduce::cleanSmtId(const std::string& id)
   idc = replace_all(idc, "<=", "leq");
   idc = replace_all(idc, "<", "lt");
   idc = replace_all(idc, "=", "eq");
+  idc = replace_all(idc, "/", "qdiv");
   idc = replace_all(idc, ".", "_");
+  idc = replace_all(idc, "@", "_at_");
   idc = replace_all(idc, "$", "__");
   return idc;
 }

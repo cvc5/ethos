@@ -4,12 +4,13 @@ namespace Eo
 
 /- Builtin data types, placeholders -/
 
-inductive smt_Bool : Type where
-  | id : smt_Bool
-  | true : smt_Bool
-  | false : smt_Bool
-inductive smt_Int : Type where
-  | id : smt_Int
+abbrev smt_Bool := Bool
+-- inductive smt_Bool : Type where
+--  | true : smt_Bool
+--  | false : smt_Bool
+abbrev smt_Int := Int
+-- inductive smt_Int : Type where
+--  | id : smt_Int
 inductive smt_Real : Type where
   | id : smt_Real
 inductive smt_String : Type where
@@ -18,48 +19,67 @@ inductive smt_String : Type where
 /- Evaluation functions, placeholders -/
 
 def smt_not : smt_Bool -> smt_Bool
-  | _ => smt_Bool.id
+  | x => Bool.not x
 def smt_and : smt_Bool -> smt_Bool -> smt_Bool
-  | _, _ => smt_Bool.id
+  | x, y => x && y
 def smt_or : smt_Bool -> smt_Bool -> smt_Bool
-  | _, _ => smt_Bool.id
+  | x, y => x || y
 def smt_xor : smt_Bool -> smt_Bool -> smt_Bool
-  | _, _ => smt_Bool.id
+  | x, y => Bool.xor x y
 
 def smt_eq : forall {T : Type}, T -> T -> smt_Bool
-  | _, _, _ => smt_Bool.id
+  | _, x, y => true -- FIXME
 def smt_ite : forall {T : Type}, smt_Bool -> T -> T -> T
-  | _, _, x, _ => x
+  | _, true, x, y => x
+  | _, false, x, y => y
 
-def smt_plus : forall {T : Type}, T -> T -> T
-  | _, x, _ => x
-def smt_mult : forall {T : Type}, T -> T -> T
-  | _, x, _ => x
-def smt_neg : forall {T : Type}, T -> T
-  | _, x => x
-def smt_qdiv : forall {T : Type}, T -> T -> smt_Real
-  | _, _, _ => smt_Real.id
+-- Integer arithmetic
+def smt_zplus : smt_Int -> smt_Int -> smt_Int
+  | x, y => x+y
+def smt_zmult : smt_Int -> smt_Int -> smt_Int
+  | x, y => x*y
+def smt_zneg : smt_Int -> smt_Int
+  | x => -x
+def smt_zleq : smt_Int -> smt_Int -> smt_Bool
+  | x, y => decide (x <= y)
+def smt_zlt : smt_Int -> smt_Int -> smt_Bool
+  | x, y => decide (x < y)
 def smt_div : smt_Int -> smt_Int -> smt_Int
-  | _, _ => smt_Int.id
+  | x, y => x/y
 def smt_mod : smt_Int -> smt_Int -> smt_Int
-  | _, _ => smt_Int.id
-def smt_leq : forall {T : Type}, T -> T -> smt_Bool
-  | _, _, _ => smt_Bool.id
-def smt_to_int : forall {T : Type}, T -> smt_Int
-  | _, _ => smt_Int.id
-def smt_to_real : forall {T : Type}, T -> smt_Real
+  | x, y => x%y
+  
+-- Rational arithmetic
+def smt_qplus : smt_Real -> smt_Real -> smt_Real
+  | x, _ => x
+def smt_qmult : smt_Real -> smt_Real -> smt_Real
+  | x, _ => x
+def smt_qneg : smt_Real -> smt_Real
+  | x => x
+def smt_qleq : smt_Real -> smt_Real -> smt_Bool
+  | _, _ => true -- FIXME
+def smt_qlt : smt_Real -> smt_Real -> smt_Bool
+  | _, _ => true -- FIXME
+def smt_qdiv : smt_Real -> smt_Real -> smt_Real
   | _, _ => smt_Real.id
+  
+-- Conversions
+def smt_to_int : smt_Real -> smt_Int
+  | _ => 0 -- FIXME
+def smt_to_real : smt_Int -> smt_Real
+  | _ => smt_Real.id
 
+-- Strings
 def smt_str_len : smt_String -> smt_Int
-  | _ => smt_Int.id
+  | _ => 0 -- FIXME
 def smt_str_concat : smt_String -> smt_String -> smt_String
   | _, _ => smt_String.id
 def smt_str_substr : smt_String -> smt_Int -> smt_Int -> smt_String
   | _, _, _ => smt_String.id
 def smt_str_indexof : smt_String -> smt_String -> smt_Int -> smt_Int
-  | _, _, _ => smt_Int.id
+  | _, _, _ => 0 -- FIXME
 def smt_str_to_code : smt_String -> smt_Int
-  | _ => smt_Int.id
+  | _ => 0 -- FIXME
 def smt_str_from_code : smt_Int -> smt_String
   | _ => smt_String.id
 

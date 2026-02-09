@@ -72,21 +72,28 @@
 (define $smt_builtin_z_max_width () ($smt_apply_0 "4294967296"))
 (define $smt_builtin_q_zero () ($smt_apply_0 "0/1"))
 (define $smt_builtin_str_empty () ($smt_apply_0 """"""))
-(define $smt_builtin_<= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "<=" x1 x2))
-(define $smt_builtin_< ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "<" x1 x2))
-(define $smt_builtin_add ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "+" x1 x2))
-(define $smt_builtin_mul ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "*" x1 x2))
-(define $smt_builtin_neg ((W Type :implicit) (x1 W)) ($smt_apply_1 "-" x1))
-(define $smt_builtin_sub ((W Type :implicit) (x1 W) (x2 W)) ($smt_builtin_add x1 ($smt_builtin_neg x2)))
-(define $smt_builtin_div ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "div" x1 x2))
-(define $smt_builtin_mod ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "mod" x1 x2))
 (define $smt_builtin_not ((b $smt_builtin_Bool)) ($smt_apply_1 "not" b))
 (define $smt_builtin_and ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "and" b1 b2))
 (define $smt_builtin_or ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "or" b1 b2))
-
-(define $smt_builtin_z_neg_one () ($smt_builtin_neg $smt_builtin_z_one))
-(define $smt_builtin_z_inc ((W Type :implicit) (x1 W)) ($smt_builtin_add x1 $smt_builtin_z_one))
-(define $smt_builtin_z_dec ((W Type :implicit) (x1 W)) ($smt_builtin_add x1 $smt_builtin_z_neg_one))
+; integer version
+(define $smt_builtin_z_<= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zleq" x1 x2))
+(define $smt_builtin_z_< ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zlt" x1 x2))
+(define $smt_builtin_z_add ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zplus" x1 x2))
+(define $smt_builtin_z_mul ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zmult" x1 x2))
+(define $smt_builtin_z_neg ((W Type :implicit) (x1 W)) ($smt_apply_1 "zneg" x1))
+; real version
+(define $smt_builtin_q_<= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "qleq" x1 x2))
+(define $smt_builtin_q_< ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "qlt" x1 x2))
+(define $smt_builtin_q_add ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "qplus" x1 x2))
+(define $smt_builtin_q_mul ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "qmult" x1 x2))
+(define $smt_builtin_q_neg ((W Type :implicit) (x1 W)) ($smt_apply_1 "qneg" x1))
+; other arithmetic
+(define $smt_builtin_z_sub ((W Type :implicit) (x1 W) (x2 W)) ($smt_builtin_z_add x1 ($smt_builtin_z_neg x2)))
+(define $smt_builtin_div ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "div" x1 x2))
+(define $smt_builtin_mod ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "mod" x1 x2))
+(define $smt_builtin_z_neg_one () ($smt_builtin_z_neg $smt_builtin_z_one))
+(define $smt_builtin_z_inc ((W Type :implicit) (x1 W)) ($smt_builtin_z_add x1 $smt_builtin_z_one))
+(define $smt_builtin_z_dec ((W Type :implicit) (x1 W)) ($smt_builtin_z_add x1 $smt_builtin_z_neg_one))
 
 ; macro for applying (+ t1 t2 t3), which is (+ t1 (+ t2 t3))
 (define $smt_apply_nary_3
@@ -298,9 +305,9 @@
   :signature ($smt_builtin_Int) $smt_builtin_Int
   (
   (($smtx_pow2 i)
-    ($smt_builtin_ite ($smt_builtin_<= i $smt_builtin_z_zero)
+    ($smt_builtin_ite ($smt_builtin_z_<= i $smt_builtin_z_zero)
       $smt_builtin_z_one
-      ($smt_builtin_mul $smt_builtin_z_two
+      ($smt_builtin_z_mul $smt_builtin_z_two
         ($smtx_pow2 ($smt_builtin_z_dec i)))))
   )
 )
@@ -336,11 +343,11 @@
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
   (($smtx_binary_and_rec w n1 n2)
-      ($smt_builtin_add
+      ($smt_builtin_z_add
         ($smt_builtin_ite ($smt_builtin_= w $smt_builtin_z_zero)
           $smt_builtin_z_zero
           ($smtx_binary_and_rec ($smt_builtin_z_dec w) n1 n2))
-        ($smt_builtin_mul ($smtx_pow2 w)
+        ($smt_builtin_z_mul ($smtx_pow2 w)
             ($smt_builtin_ite ($smt_builtin_and ($smtx_bit n1 w) ($smtx_bit n2 w)) 
               $smt_builtin_z_one 
               $smt_builtin_z_zero))))
@@ -371,7 +378,7 @@
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
   (($smtx_binary_or w n1 n2)
-    ($smt_apply_nary_3 "+" n1 n2 ($smt_builtin_neg ($smtx_binary_and w n1 n2))))
+    ($smt_apply_nary_3 "+" n1 n2 ($smt_builtin_z_neg ($smtx_binary_and w n1 n2))))
   )
 )
 
@@ -386,7 +393,7 @@
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
   (($smtx_binary_xor w n1 n2)
-    ($smt_apply_nary_3 "+" n1 n2 ($smt_builtin_neg ($smt_builtin_mul $smt_builtin_z_two ($smtx_binary_and w n1 n2)))))
+    ($smt_apply_nary_3 "+" n1 n2 ($smt_builtin_z_neg ($smt_builtin_z_mul $smt_builtin_z_two ($smtx_binary_and w n1 n2)))))
   )
 )
 
@@ -401,7 +408,7 @@
   :signature ($smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
   (($smtx_binary_not w n)
-    ($smt_builtin_sub ($smtx_pow2 w) ($smt_builtin_z_inc n)))
+    ($smt_builtin_z_sub ($smtx_pow2 w) ($smt_builtin_z_inc n)))
   )
 )
 
@@ -424,8 +431,8 @@
   :signature ($smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
   (($smtx_binary_uts w n) 
-    ($smt_builtin_sub
-      ($smt_builtin_mul $smt_builtin_z_two
+    ($smt_builtin_z_sub
+      ($smt_builtin_z_mul $smt_builtin_z_two
         ($smt_builtin_mod n ($smtx_pow2 ($smt_builtin_z_dec w))))
       n))
   )
@@ -444,7 +451,7 @@
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
   (($smtx_binary_concat w1 n1 w2 n2)
-    ($smt_builtin_add ($smt_builtin_mul n1 ($smtx_pow2 w2)) n2))
+    ($smt_builtin_z_add ($smt_builtin_z_mul n1 ($smtx_pow2 w2)) n2))
   )
 )
 
@@ -502,7 +509,7 @@
   :signature ($smt_builtin_Int $smt_builtin_Int) $eo_Term
   (
   (($eo_mk_binary w n)
-    ($smt_builtin_ite ($smt_builtin_<= $smt_builtin_z_zero w)
+    ($smt_builtin_ite ($smt_builtin_z_<= $smt_builtin_z_zero w)
       ($eo_smt_term ($sm_mk_binary w n))  ; ensure that n is legal
       $eo_stuck))
   )
@@ -615,11 +622,11 @@
   :signature (T T) T
   (
   (($eo_add ($eo_numeral n1) ($eo_numeral n2))
-    ($eo_numeral ($smt_builtin_add n1 n2)))
+    ($eo_numeral ($smt_builtin_z_add n1 n2)))
   (($eo_add ($eo_rational r1) ($eo_rational r2))
-    ($eo_rational ($smt_builtin_add r1 r2)))
+    ($eo_rational ($smt_builtin_q_add r1 r2)))
   (($eo_add ($eo_binary w n1) ($eo_binary w n2))
-    ($eo_smt_term ($sm_mk_binary w ($smt_builtin_add n1 n2))))  ; don't need to recheck bitwidth
+    ($eo_smt_term ($sm_mk_binary w ($smt_builtin_z_add n1 n2))))  ; don't need to recheck bitwidth
   )
 )
 
@@ -628,11 +635,11 @@
   :signature (T T) T
   (
   (($eo_mul ($eo_numeral n1) ($eo_numeral n2))
-    ($eo_numeral ($smt_builtin_mul n1 n2)))
+    ($eo_numeral ($smt_builtin_z_mul n1 n2)))
   (($eo_mul ($eo_rational r1) ($eo_rational r2))
-    ($eo_rational ($smt_builtin_mul r1 r2)))
+    ($eo_rational ($smt_builtin_q_mul r1 r2)))
   (($eo_mul ($eo_binary w n1) ($eo_binary w n2))
-    ($eo_smt_term ($sm_mk_binary w ($smt_builtin_mul n1 n2))))
+    ($eo_smt_term ($sm_mk_binary w ($smt_builtin_z_mul n1 n2))))
   )
 )
 
@@ -687,9 +694,9 @@
   :signature (T) Bool
   (
   (($eo_is_neg ($eo_numeral n1))
-    ($eo_bool ($smt_builtin_< n1 $smt_builtin_z_zero)))
+    ($eo_bool ($smt_builtin_z_< n1 $smt_builtin_z_zero)))
   (($eo_is_neg ($eo_rational r1))
-    ($eo_bool ($smt_builtin_< r1 $smt_builtin_q_zero)))
+    ($eo_bool ($smt_builtin_q_< r1 $smt_builtin_q_zero)))
   )
 )
 
@@ -699,11 +706,11 @@
   :signature (T) T
   (
   (($eo_neg ($eo_numeral n1))
-    ($eo_numeral ($smt_builtin_neg n1)))
+    ($eo_numeral ($smt_builtin_z_neg n1)))
   (($eo_neg ($eo_rational r1))
-    ($eo_rational ($smt_builtin_neg r1)))
+    ($eo_rational ($smt_builtin_q_neg r1)))
   (($eo_neg ($eo_binary w n1))
-    ($eo_smt_term ($sm_mk_binary w ($smt_builtin_neg n1))))
+    ($eo_smt_term ($sm_mk_binary w ($smt_builtin_z_neg n1))))
   )
 )
 
@@ -732,7 +739,7 @@
   (($eo_concat ($eo_string s1) ($eo_string s2))
      ($eo_string ($smt_apply_2 "str.++" s1 s2)))
   (($eo_concat ($eo_binary w1 n1) ($eo_binary w2 n2))
-     ($eo_mk_binary ($smt_builtin_add w1 w2) ($smtx_binary_concat w1 n1 w2 n2)))
+     ($eo_mk_binary ($smt_builtin_z_add w1 w2) ($smtx_binary_concat w1 n1 w2 n2)))
   )
 )
 
@@ -743,10 +750,10 @@
   :signature ($eo_Term $eo_Term $eo_Term) $eo_Term
   (
   (($eo_extract ($eo_string s1) ($eo_numeral n2) ($eo_numeral n3))
-     ($eo_string ($smt_apply_3 "str.substr" s1 n2 ($smt_builtin_z_inc ($smt_builtin_sub n3 n2)))))
+     ($eo_string ($smt_apply_3 "str.substr" s1 n2 ($smt_builtin_z_inc ($smt_builtin_z_sub n3 n2)))))
   (($eo_extract ($eo_binary w n1) ($eo_numeral n2) ($eo_numeral n3))
-    (eo::define ((nw ($smt_builtin_sub n3 n2)))
-    ($smt_builtin_ite ($smt_builtin_or ($smt_builtin_< n2 $smt_builtin_z_zero) ($smt_builtin_< nw $smt_builtin_z_zero))
+    (eo::define ((nw ($smt_builtin_z_sub n3 n2)))
+    ($smt_builtin_ite ($smt_builtin_or ($smt_builtin_z_< n2 $smt_builtin_z_zero) ($smt_builtin_z_< nw $smt_builtin_z_zero))
       $eo_empty_binary
       ($eo_mk_binary
         ($smt_builtin_z_inc nw)
@@ -799,12 +806,12 @@
   (
   (($eo_to_bin ($eo_numeral w) ($eo_numeral n1))
     ; the upper bound is enforced here
-    ($smt_builtin_ite ($smt_builtin_<= w $smt_builtin_z_max_width)
+    ($smt_builtin_ite ($smt_builtin_z_<= w $smt_builtin_z_max_width)
       ($eo_mk_binary w n1)
       $eo_stuck))
   (($eo_to_bin ($eo_numeral w) ($eo_binary w1 n1))
     ; the upper bound is enforced here
-    ($smt_builtin_ite ($smt_builtin_<= w $smt_builtin_z_max_width)
+    ($smt_builtin_ite ($smt_builtin_z_<= w $smt_builtin_z_max_width)
       ($eo_mk_binary w n1)
       $eo_stuck))
   )
@@ -817,7 +824,7 @@
   (
   (($eo_to_str ($eo_numeral n1))
     ($smt_builtin_ite
-      ($smt_builtin_and ($smt_builtin_<= $smt_builtin_z_zero n1) ($smt_builtin_< n1 $smt_builtin_z_max_code))
+      ($smt_builtin_and ($smt_builtin_z_<= $smt_builtin_z_zero n1) ($smt_builtin_z_< n1 $smt_builtin_z_max_code))
       ($eo_string ($smt_apply_1 "str.from_code" n1))
       $eo_stuck))
   (($eo_to_str ($eo_string s1)) ($eo_string s1))
@@ -881,7 +888,7 @@
   :signature ($eo_Term) Bool
   (
   (($eo_is_q_internal ($eo_rational r))  true)
-  (($eo_is_q_internal x)                   false)
+  (($eo_is_q_internal x)                 false)
   )
 )
 
@@ -951,7 +958,7 @@
 
 ; The SMT-LIB comparison of two Eunoia or SMT-LIB terms.
 (define $smtx_cmp ((T Type :implicit) (a T) (b T))
-  ($smt_builtin_<= ($smtx_hash a) ($smtx_hash b)))
+  ($smt_builtin_z_<= ($smtx_hash a) ($smtx_hash b)))
 
 ; define: $smtx_value_hash
 ; note: this is an arbitrary hash for SMT values, defined axiomatically.
@@ -960,7 +967,7 @@
 
 ; The SMT-LIB comparison of two SMT-LIB values.
 (define $smtx_value_cmp ((a $smt_Value) (b $smt_Value))
-  ($smt_builtin_<= ($smtx_value_hash a) ($smtx_value_hash b)))
+  ($smt_builtin_z_<= ($smtx_value_hash a) ($smtx_value_hash b)))
 
 
 ;;; $eo_gt

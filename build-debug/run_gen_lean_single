@@ -83,8 +83,8 @@ sed -i "/(echo \"include eo_builtin_smt.*/{
     d
 }" $TMP_OUT
 # now compute the model smt
-./src/ethos --plugin.model-smt $TMP_OUT >/dev/null
-check_status
+#./src/ethos --plugin.model-smt $TMP_OUT >/dev/null
+#check_status
 # include the model semantics, which was generated above
 #sed -i "/(echo \"include eo_model_sat.*/{
 #    r ../plugins/model_smt/model_smt_gen.eo
