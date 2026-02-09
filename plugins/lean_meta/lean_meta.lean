@@ -12,7 +12,7 @@ abbrev smt_Int := Int
 -- inductive smt_Int : Type where
 --  | id : smt_Int
 inductive smt_Real : Type where
-  | id : smt_Real
+  | rat : Int -> Int -> smt_Real
 inductive smt_String : Type where
   | id : smt_String
 
@@ -30,8 +30,8 @@ def smt_xor : smt_Bool -> smt_Bool -> smt_Bool
 def smt_eq : forall {T : Type}, T -> T -> smt_Bool
   | _, x, y => true -- FIXME
 def smt_ite : forall {T : Type}, smt_Bool -> T -> T -> T
-  | _, true, x, y => x
-  | _, false, x, y => y
+  | _, true, x, _ => x
+  | _, false, _, y => y
 
 -- Integer arithmetic
 def smt_zplus : smt_Int -> smt_Int -> smt_Int
@@ -50,24 +50,26 @@ def smt_mod : smt_Int -> smt_Int -> smt_Int
   | x, y => x%y
   
 -- Rational arithmetic
+def smt_mk_rational : smt_Int -> smt_Int -> smt_Real
+  | x, y => (smt_Real.rat x y)
 def smt_qplus : smt_Real -> smt_Real -> smt_Real
-  | x, _ => x
+  | x, _ => x -- FIXME
 def smt_qmult : smt_Real -> smt_Real -> smt_Real
-  | x, _ => x
+  | x, _ => x -- FIXME
 def smt_qneg : smt_Real -> smt_Real
-  | x => x
+  | x => x -- FIXME
 def smt_qleq : smt_Real -> smt_Real -> smt_Bool
   | _, _ => true -- FIXME
 def smt_qlt : smt_Real -> smt_Real -> smt_Bool
   | _, _ => true -- FIXME
 def smt_qdiv : smt_Real -> smt_Real -> smt_Real
-  | _, _ => smt_Real.id
+  | x, _ => x -- FIXME
   
 -- Conversions
 def smt_to_int : smt_Real -> smt_Int
   | _ => 0 -- FIXME
 def smt_to_real : smt_Int -> smt_Real
-  | _ => smt_Real.id
+  | _ => (smt_Real.rat 0 1) -- FIXME
 
 -- Strings
 def smt_str_len : smt_String -> smt_Int

@@ -17,6 +17,19 @@
 
 namespace ethos {
 
+std::string replace_all(std::string str,
+                        const std::string& from,
+                        const std::string& to)
+{
+    if (from.empty()) return str;  // avoid infinite loop
+
+    std::size_t pos = 0;
+    while ((pos = str.find(from, pos)) != std::string::npos) {
+        str.replace(pos, from.length(), to);
+        pos += to.length();  // move past the replacement
+    }
+    return str;
+}
 
 LeanMetaReduce::LeanMetaReduce(State& s) : StdPlugin(s)
 {
@@ -164,7 +177,10 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
         os << "(Term.Rational ";
         osEnd << ")";
       }
-      os << c;
+      std::stringstream ss;
+      ss << c;
+      std::string rstr = ss.str();
+      os << "(smt_mk_rational " << replace_all(rstr, "/", " ") << ")";
     }
     else if (k == Kind::BINARY)
     {
@@ -220,20 +236,6 @@ bool LeanMetaReduce::isSmtApplyApp(const Expr& oApp)
   std::string sname = getName(oApp[0]);
   return (sname.compare(0, 11, "$smt_apply_") == 0
           || sname.compare(0, 10, "$smt_type_") == 0);
-}
-
-std::string replace_all(std::string str,
-                        const std::string& from,
-                        const std::string& to)
-{
-    if (from.empty()) return str;  // avoid infinite loop
-
-    std::size_t pos = 0;
-    while ((pos = str.find(from, pos)) != std::string::npos) {
-        str.replace(pos, from.length(), to);
-        pos += to.length();  // move past the replacement
-    }
-    return str;
 }
 
 bool is_integer(const std::string& s) {
