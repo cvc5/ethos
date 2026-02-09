@@ -1292,6 +1292,8 @@ std::string LeanMetaReduce::cleanSmtId(const std::string& id)
   idc = replace_all(idc, "*", "mult");
   idc = replace_all(idc, "<=", "leq");
   idc = replace_all(idc, "<", "lt");
+  idc = replace_all(idc, ">=", "geq");
+  idc = replace_all(idc, ">", "gt");
   idc = replace_all(idc, "=", "eq");
   idc = replace_all(idc, "/", "qdiv");
   idc = replace_all(idc, ".", "_");

@@ -379,7 +379,7 @@
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
   (($smtx_binary_or w n1 n2)
-    ($smt_apply_nary_3 "+" n1 n2 ($smt_builtin_z_neg ($smtx_binary_and w n1 n2))))
+    ($smt_builtin_z_add n1 ($smt_builtin_z_sub n2 ($smtx_binary_and w n1 n2))))
   )
 )
 
@@ -394,7 +394,7 @@
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
   (($smtx_binary_xor w n1 n2)
-    ($smt_apply_nary_3 "+" n1 n2 ($smt_builtin_z_neg ($smt_builtin_z_mul $smt_builtin_z_two ($smtx_binary_and w n1 n2)))))
+    ($smt_builtin_z_add n1 ($smt_builtin_z_sub n2 ($smt_builtin_z_mul $smt_builtin_z_two ($smtx_binary_and w n1 n2)))))
   )
 )
 
