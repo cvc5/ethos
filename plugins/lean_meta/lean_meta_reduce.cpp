@@ -70,10 +70,7 @@ bool LeanMetaReduce::printMetaType(const Expr& t,
     case MetaKind::EUNOIA: os << "Term"; break;
     case MetaKind::SMT: os << "Term"; break;
     case MetaKind::SMT_TYPE: os << "Term"; break;
-    case MetaKind::SMT_VALUE: os << "Term"; break;
     case MetaKind::SMT_BUILTIN: os << getEmbedName(t); break;
-    case MetaKind::SMT_MAP: os << "msm.Map"; break;
-    case MetaKind::SMT_SEQ: os << "ssm.Seq"; break;
     default: return false;
   }
   return true;
@@ -947,19 +944,7 @@ MetaKind LeanMetaReduce::getMetaKind(State& s,
     return MetaKind::EUNOIA;
   }
   cname = sname;
-  // If not a distinguished symbol, it may be an SMT-LIB term or a type.
-  // Check the type of e.
-  Expr c = e;
-  Expr tc = s.getTypeChecker().getType(c);
-  while (tc.getKind() == Kind::FUNCTION_TYPE)
-  {
-    tc = tc[tc.getNumChildren() - 1];
-  }
-  if (tc.getKind() == Kind::TYPE)
-  {
-    return MetaKind::SMT_TYPE;
-  }
-  return MetaKind::SMT;
+  return MetaKind::EUNOIA;
 }
 
 MetaKind LeanMetaReduce::getMetaKindArg(const Expr& parent,
@@ -1040,13 +1025,6 @@ MetaKind LeanMetaReduce::getMetaKindArg(const Expr& parent,
           // TODO: maybe they should have SMT context???
           tk = i == 2 ? MetaKind::SMT_BUILTIN : MetaKind::NONE;
         }
-        else if (esname.compare(0, 6, "(_ is ") == 0)
-        {
-          size_t firstDot = esname.find('.');
-          Assert(firstDot != std::string::npos && firstDot > 6);
-          std::string prefix = esname.substr(6, firstDot - 6);
-          tk = prefixToMetaKind(prefix);
-        }
         else if (esname.compare(0, 3, "$eo") == 0)
         {
           // special case: if we are specifying that we should be applying
@@ -1059,10 +1037,6 @@ MetaKind LeanMetaReduce::getMetaKindArg(const Expr& parent,
           tk = MetaKind::SMT_BUILTIN;
         }
       }
-    }
-    else if (sname.compare(0, 10, "$smt_type_") == 0)
-    {
-      tk = MetaKind::SMT_TYPE;
     }
     else
     {
@@ -1175,10 +1149,6 @@ MetaKind LeanMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx
       {
         return MetaKind::SMT_BUILTIN;
       }
-    }
-    else if (sname.compare(0, 10, "$smt_type_") == 0)
-    {
-      return MetaKind::SMT_TYPE;
     }
     else if (sname.compare(0, 5, "$smd_") == 0)
     {
