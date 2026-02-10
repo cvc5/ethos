@@ -1,17 +1,14 @@
 
 namespace Eo
 
-
-/- Builtin data types, placeholders -/
+/- Builtin data types -/
 
 abbrev smt_Bool := Bool
 abbrev smt_Int := Int
 abbrev smt_Real := Rat
-inductive smt_String : Type where
-  | id : smt_String
-deriving DecidableEq
+abbrev smt_String := String
 
-/- Evaluation functions, placeholders -/
+/- Evaluation functions -/
 
 def smt_not : smt_Bool -> smt_Bool
   | x => Bool.not x
@@ -62,21 +59,21 @@ def smt_qdiv : smt_Real -> smt_Real -> smt_Real
 def smt_to_int : smt_Real -> smt_Int
   | x => 0 -- FIXME
 def smt_to_real : smt_Int -> smt_Real
-  | x => x/1
+  | x => (smt_mk_rational x 1)
 
 -- Strings
 def smt_str_len : smt_String -> smt_Int
-  | _ => 0 -- FIXME
+  | x => Int.ofNat x.length
 def smt_str_concat : smt_String -> smt_String -> smt_String
-  | _, _ => smt_String.id
+  | x, y => x ++ y
 def smt_str_substr : smt_String -> smt_Int -> smt_Int -> smt_String
-  | _, _, _ => smt_String.id
+  | _, _, _ => "" -- FIXME
 def smt_str_indexof : smt_String -> smt_String -> smt_Int -> smt_Int
   | _, _, _ => 0 -- FIXME
 def smt_str_to_code : smt_String -> smt_Int
   | _ => 0 -- FIXME
 def smt_str_from_code : smt_Int -> smt_String
-  | _ => smt_String.id -- FIXME
+  | _ => "" -- FIXME
 
 /- Term definition -/
 

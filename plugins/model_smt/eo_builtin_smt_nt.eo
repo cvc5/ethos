@@ -350,7 +350,7 @@
   (
   (($smtx_binary_and_rec w n1 n2)
       ($smt_builtin_z_add
-        ($smt_builtin_ite ($smt_builtin_= w $smt_builtin_z_zero)
+        ($smt_builtin_ite ($smt_builtin_z_= w $smt_builtin_z_zero)
           $smt_builtin_z_zero
           ($smtx_binary_and_rec ($smt_builtin_z_dec w) n1 n2))
         ($smt_builtin_z_mul ($smtx_pow2 w)
