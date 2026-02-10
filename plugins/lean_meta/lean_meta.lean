@@ -5,15 +5,8 @@ namespace Eo
 /- Builtin data types, placeholders -/
 
 abbrev smt_Bool := Bool
--- inductive smt_Bool : Type where
---  | true : smt_Bool
---  | false : smt_Bool
 abbrev smt_Int := Int
--- inductive smt_Int : Type where
---  | id : smt_Int
-inductive smt_Real : Type where
-  | rat : Int -> Int -> smt_Real
-deriving DecidableEq
+abbrev smt_Real := Rat
 inductive smt_String : Type where
   | id : smt_String
 deriving DecidableEq
@@ -51,25 +44,25 @@ def smt_mod : smt_Int -> smt_Int -> smt_Int
   
 -- Rational arithmetic
 def smt_mk_rational : smt_Int -> smt_Int -> smt_Real
-  | x, y => (smt_Real.rat x y)
+  | x, y => x/y
 def smt_qplus : smt_Real -> smt_Real -> smt_Real
-  | x, _ => x -- FIXME
+  | x, y => x+y
 def smt_qmult : smt_Real -> smt_Real -> smt_Real
-  | x, _ => x -- FIXME
+  | x, y => x*y
 def smt_qneg : smt_Real -> smt_Real
-  | x => x -- FIXME
+  | x => -x
 def smt_qleq : smt_Real -> smt_Real -> smt_Bool
-  | _, _ => true -- FIXME
+  | x, y => decide (x <= y)
 def smt_qlt : smt_Real -> smt_Real -> smt_Bool
-  | _, _ => true -- FIXME
+  | x, y => decide (x < y)
 def smt_qdiv : smt_Real -> smt_Real -> smt_Real
-  | x, _ => x -- FIXME
+  | x, y => x/y
   
 -- Conversions
 def smt_to_int : smt_Real -> smt_Int
-  | _ => 0 -- FIXME
+  | x => 0 -- FIXME
 def smt_to_real : smt_Int -> smt_Real
-  | _ => (smt_Real.rat 0 1) -- FIXME
+  | x => x/1
 
 -- Strings
 def smt_str_len : smt_String -> smt_Int
@@ -83,7 +76,7 @@ def smt_str_indexof : smt_String -> smt_String -> smt_Int -> smt_Int
 def smt_str_to_code : smt_String -> smt_Int
   | _ => 0 -- FIXME
 def smt_str_from_code : smt_Int -> smt_String
-  | _ => smt_String.id
+  | _ => smt_String.id -- FIXME
 
 /- Term definition -/
 
