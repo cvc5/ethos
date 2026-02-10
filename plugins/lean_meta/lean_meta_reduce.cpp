@@ -819,49 +819,48 @@ bool LeanMetaReduce::echo(const std::string& msg)
           << "When making verification condition, could not find program "
           << eosc;
     }
-    Expr def = d_state.getProgram(vv.getValue());
-    Assert(!def.isNull());
-    Expr patCall = def[0][0];
-    Assert(!patCall.isNull());
     d_thms << "/- correctness theorem for " << cleanSmtId(eosc) << " -/" << std::endl;
-    // NOTE: this is intentionally quantifying on sm.Term, not eo.Term.
-    // In other words, this conjectures that there is an sm.Term, that
-    // when embedded into Eunoia witnesses the unsoundness.
-    Expr vt = d_tc.getType(vv);
-    std::stringstream varList;
-    std::stringstream eoTrue;
     std::stringstream call;
-    eoTrue << "(Term.Boolean Smt_Bool.true)";
-    Assert(vt.getKind() == Kind::PROGRAM_TYPE);
-    Assert(patCall.getNumChildren() == vt.getNumChildren());
     ConjectureType ctype = StdPlugin::optionSmtMetaConjectureType();
     if (ctype == ConjectureType::VC)
     {
       d_thms << "theorem correct_" << cleanSmtId(eosc) << " ";
-      std::vector<Expr> vars = Expr::getVariables(patCall);
-      if (!vars.empty())
-      {
-        d_thms << "(";
-        for (size_t i = 0, nvars = vars.size(); i < nvars; i++)
-        {
-          call << (i>0 ? " " : "") << vars[i];
-        }
-        d_thms << call.str() << " : Term)";
-      }
-      d_thms << " :" << std::endl;
-      // premises are assumptions in theorem
+      Expr def = d_state.getProgram(vv.getValue());
+      Expr patCall;
       Expr pfcons = d_state.getVar("$eo_pf");
       Expr pfproven = d_state.getVar("$eo_proven");
       AlwaysAssert(!pfcons.isNull()) << "Could not find proof constructor";
       AlwaysAssert(!pfproven.isNull()) << "Could not find proven constructor";
-      for (size_t i=0, nargs=patCall.getNumChildren(); i<nargs; i++)
+      if (!def.isNull())
       {
-        if (patCall[i].getKind()==Kind::APPLY_OPAQUE && patCall[i][0]==pfcons)
+        patCall = def[0][0];
+        Assert(!patCall.isNull());
+        std::vector<Expr> vars = Expr::getVariables(patCall);
+        if (!vars.empty())
         {
-          d_thms << "  (eo_model_Bool ";
-          printEmbTerm(patCall[i][1], d_thms);
-          d_thms << " true) ->" << std::endl;
+          d_thms << "(";
+          for (size_t i = 0, nvars = vars.size(); i < nvars; i++)
+          {
+            call << (i>0 ? " " : "") << vars[i];
+          }
+          d_thms << call.str() << " : Term)";
         }
+        d_thms << " :" << std::endl;
+        // premises are assumptions in theorem
+        for (size_t i=0, nargs=patCall.getNumChildren(); i<nargs; i++)
+        {
+          if (patCall[i].getKind()==Kind::APPLY_OPAQUE && patCall[i][0]==pfcons)
+          {
+            d_thms << "  (eo_model_Bool ";
+            printEmbTerm(patCall[i][1], d_thms);
+            d_thms << " true) ->" << std::endl;
+          }
+        }
+      }
+      else
+      {
+        d_thms << " :" << std::endl;
+        patCall = vv;
       }
       d_thms << "  (Not (eo_model_Bool ";
       Expr provenPatCall = d_state.mkExpr(Kind::APPLY, {pfproven, patCall});

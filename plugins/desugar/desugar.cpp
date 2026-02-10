@@ -643,23 +643,28 @@ void Desugar::finalizeRule(const Expr& e)
   {
     return;
   }
-  if (!d_genVcs)
-  {
-  std::stringstream metaDeps;
-  metaDeps
-      << "$eo_proven $smtx_hash $eo_reverse_hash $smtx_value_hash "
-         "$smtx_reverse_value_hash "
-         "$eo_smt_type $tsm_Bool $eo_Type $eo_fun_type $eo_apply $eo_mk_apply ";
-  d_eoVc << "(echo \"smt-meta $eo_prog_" << e << " :deps " << metaDeps.str()
-         << "\")" << std::endl;
-    return;
-  }
-  
   std::cout << "Finalize rule " << e << std::endl;
   AppInfo* ainfo = d_state.getAppInfo(e.getValue());
   Expr tupleVal = ainfo->d_attrConsTerm;
   Assert(tupleVal.getNumChildren() == 4);
   Expr rprog = tupleVal[3];
+  if (!d_genVcs)
+  {
+    if (rprog.getKind() != Kind::PROGRAM_CONST)
+    {
+      d_eoVc << "(define $eo_prog_" << e << " () ";
+      printTerm(rprog, d_eoVc);
+      d_eoVc << ")" << std::endl;
+    }
+    std::stringstream metaDeps;
+    metaDeps
+        << "$eo_proven $smtx_hash $eo_reverse_hash $smtx_value_hash "
+          "$smtx_reverse_value_hash "
+          "$eo_smt_type $tsm_Bool $eo_Type $eo_fun_type $eo_apply $eo_mk_apply ";
+    d_eoVc << "(echo \"smt-meta $eo_prog_" << e << " :deps " << metaDeps.str()
+          << "\")" << std::endl;
+    return;
+  }
 
   Expr progCase;
   if (rprog.getKind() == Kind::PROGRAM_CONST)
