@@ -97,7 +97,7 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
     // programs always print verbatim
     std::stringstream ss;
     ss << c;
-    os << cleanSmtId(ss.str());
+    os << cleanId(ss.str());
     return;
   }
   bool isSmtBuiltin = (parent == MetaKind::SMT_BUILTIN);
@@ -598,6 +598,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   // axiom
   d_defs << decl.str();
   d_defs << cases.str();
+  //d_defs << "decreasing_by sorry" << std::endl;
   d_defs << std::endl;
   d_defs << std::endl;
   // if it corresponds to a proof rule, print a Lean theorem
@@ -662,7 +663,7 @@ void LeanMetaReduce::define(const std::string& name, const Expr& e)
     }
     else
     {
-      d_defs << "def " << cleanSmtId(name) << " : Term";
+      d_defs << "def " << cleanId(name) << " : Term";
       d_defs << " := ";
       printEmbTerm(p, d_defs);
       d_defs << std::endl;
@@ -821,12 +822,12 @@ bool LeanMetaReduce::echo(const std::string& msg)
           << "When making verification condition, could not find program "
           << eosc;
     }
-    d_thms << "/- correctness theorem for " << cleanSmtId(eosc) << " -/" << std::endl;
+    d_thms << "/- correctness theorem for " << cleanId(eosc) << " -/" << std::endl;
     std::stringstream call;
     ConjectureType ctype = StdPlugin::optionSmtMetaConjectureType();
     if (ctype == ConjectureType::VC)
     {
-      d_thms << "theorem correct_" << cleanSmtId(eosc) << " ";
+      d_thms << "theorem correct_" << cleanId(eosc) << " ";
       Expr def = d_state.getProgram(vv.getValue());
       Expr patCall;
       Expr pfcons = d_state.getVar("$eo_pf");
@@ -1313,7 +1314,9 @@ std::string LeanMetaReduce::cleanSmtId(const std::string& id)
 
 std::string LeanMetaReduce::cleanId(const std::string& id)
 {
-  return cleanSmtId(id);
+  std::string idc = id;
+  idc = replace_all(idc, "-", "_");
+  return cleanSmtId(idc);
 }
 
 }  // namespace ethos
