@@ -10,6 +10,7 @@ add_executable(ethos ${ethos_SRC}
 ../plugins/trim_defs/trim_defs.cpp
 ../plugins/model_smt/model_smt.cpp
 ../plugins/flatten_eval/flatten_eval.cpp
+../plugins/linear_patterns/linear_patterns.cpp
 ../plugins/std_plugin.cpp)
 
 target_link_libraries(ethos ${LIBRARIES})

@@ -546,7 +546,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   }
   size_t ncases = prog.getNumChildren();
   SelectorCtx ctx;
-  bool wasDefault;
+  bool wasDefault = false;
   for (size_t i = 0; i < ncases; i++)
   {
     const Expr& c = prog[i];
