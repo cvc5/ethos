@@ -580,42 +580,48 @@
 ; program: $eo_and
 ; implements: eo::and
 (program $eo_and
-  ((T Type) (b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool) (w $smt_builtin_Int)
+  ((T Type) (b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)
+   (w1 $smt_builtin_Int) (w2 $smt_builtin_Int)
    (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature (T T) T
   (
   (($eo_and ($eo_bool b1) ($eo_bool b2))
      ($eo_bool ($smt_builtin_and b1 b2)))
-  (($eo_and ($eo_binary w n1) ($eo_binary w n2))
-     ($eo_smt_term ($sm_mk_binary w ($smtx_binary_and w n1 n2))))
+  (($eo_and ($eo_binary w1 n1) ($eo_binary w2 n2))
+    ($eo_requires ($eo_numeral w1) ($eo_numeral w2)
+      ($eo_smt_term ($sm_mk_binary w1 ($smtx_binary_and w1 n1 n2)))))
   )
 )
 
 ; program: $eo_or
 ; implements: eo::or
 (program $eo_or
-  ((T Type) (b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool) (w $smt_builtin_Int)
+  ((T Type) (b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)
+   (w1 $smt_builtin_Int) (w2 $smt_builtin_Int)
    (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature (T T) T
   (
   (($eo_or ($eo_bool b1) ($eo_bool b2))
      ($eo_bool ($smt_builtin_or b1 b2)))
-  (($eo_or ($eo_binary w n1) ($eo_binary w n2))
-     ($eo_smt_term ($sm_mk_binary w ($smtx_binary_or w n1 n2))))
+  (($eo_or ($eo_binary w1 n1) ($eo_binary w2 n2))
+    ($eo_requires ($eo_numeral w1) ($eo_numeral w2)
+     ($eo_smt_term ($sm_mk_binary w1 ($smtx_binary_or w1 n1 n2)))))
   )
 )
 
 ; program: $eo_xor
 ; implements: eo::xor
 (program $eo_xor
-  ((T Type) (b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool) (w $smt_builtin_Int)
+  ((T Type) (b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)
+   (w1 $smt_builtin_Int) (w2 $smt_builtin_Int)
    (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature (T T) T
   (
   (($eo_xor ($eo_bool b1) ($eo_bool b2))
      ($eo_bool ($smt_apply_2 "xor" b1 b2)))
-  (($eo_xor ($eo_binary w n1) ($eo_binary w n2))
-     ($eo_smt_term ($sm_mk_binary w ($smtx_binary_or w n1 n2))))
+  (($eo_xor ($eo_binary w1 n1) ($eo_binary w2 n2))
+    ($eo_requires ($eo_numeral w1) ($eo_numeral w2)
+     ($eo_smt_term ($sm_mk_binary w1 ($smtx_binary_or w1 n1 n2)))))
   )
 )
 
@@ -624,33 +630,37 @@
 ; program: $eo_add
 ; implements: eo::add
 (program $eo_add
-  ((T Type) (w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int) (r1 $smt_builtin_Real) (r2 $smt_builtin_Real))
+  ((T Type) (w1 $smt_builtin_Int) (w2 $smt_builtin_Int)
+   (n1 $smt_builtin_Int) (n2 $smt_builtin_Int) (r1 $smt_builtin_Real) (r2 $smt_builtin_Real))
   :signature (T T) T
   (
   (($eo_add ($eo_numeral n1) ($eo_numeral n2))
     ($eo_numeral ($smt_builtin_z_add n1 n2)))
   (($eo_add ($eo_rational r1) ($eo_rational r2))
     ($eo_rational ($smt_builtin_q_add r1 r2)))
-  (($eo_add ($eo_binary w n1) ($eo_binary w n2))
-    ($eo_smt_term ($sm_mk_binary w ($smt_builtin_z_add n1 n2))))  ; don't need to recheck bitwidth
+  (($eo_add ($eo_binary w1 n1) ($eo_binary w2 n2))
+    ($eo_requires ($eo_numeral w1) ($eo_numeral w2)
+      ($eo_smt_term ($sm_mk_binary w1 ($smt_builtin_z_add n1 n2)))))  ; don't need to recheck bitwidth
   )
 )
 
 (program $eo_mul
-  ((T Type) (w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int) (r1 $smt_builtin_Real) (r2 $smt_builtin_Real))
+  ((T Type) (w1 $smt_builtin_Int) (w2 $smt_builtin_Int)
+   (n1 $smt_builtin_Int) (n2 $smt_builtin_Int) (r1 $smt_builtin_Real) (r2 $smt_builtin_Real))
   :signature (T T) T
   (
   (($eo_mul ($eo_numeral n1) ($eo_numeral n2))
     ($eo_numeral ($smt_builtin_z_mul n1 n2)))
   (($eo_mul ($eo_rational r1) ($eo_rational r2))
     ($eo_rational ($smt_builtin_q_mul r1 r2)))
-  (($eo_mul ($eo_binary w n1) ($eo_binary w n2))
-    ($eo_smt_term ($sm_mk_binary w ($smt_builtin_z_mul n1 n2))))
+  (($eo_mul ($eo_binary w1 n1) ($eo_binary w2 n2))
+    ($eo_requires ($eo_numeral w1) ($eo_numeral w2)
+      ($eo_smt_term ($sm_mk_binary w1 ($smt_builtin_z_mul n1 n2)))))
   )
 )
 
 (program $eo_qdiv
-  ((T Type) (w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int)
+  ((T Type) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int)
    (r1 $smt_builtin_Real) (r2 $smt_builtin_Real))
   :signature (T T) $eo_Rational
   (
@@ -668,31 +678,37 @@
 )
 
 
-(program $eo_zdiv ((T Type) (w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+(program $eo_zdiv
+  ((T Type) (w1 $smt_builtin_Int) (w2 $smt_builtin_Int)
+   (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature (T T) T
   (
   (($eo_zdiv ($eo_numeral n1) ($eo_numeral n2))
     ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
       $eo_stuck
       ($eo_numeral ($smt_builtin_div n1 n2))))
-  (($eo_zdiv ($eo_binary w n1) ($eo_binary w n2))
-    ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
-      ($eo_smt_term ($sm_binary w ($smtx_binary_max w)))
-      ($eo_smt_term ($sm_mk_binary w ($smt_builtin_div n1 n2)))))
+  (($eo_zdiv ($eo_binary w1 n1) ($eo_binary w2 n2))
+    ($eo_requires ($eo_numeral w1) ($eo_numeral w2)
+      ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
+        ($eo_smt_term ($sm_binary w1 ($smtx_binary_max w1)))
+        ($eo_smt_term ($sm_mk_binary w1 ($smt_builtin_div n1 n2))))))
   )
 )
 
-(program $eo_zmod ((T Type) (w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
+(program $eo_zmod
+  ((T Type) (w1 $smt_builtin_Int) (w2 $smt_builtin_Int)
+   (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
   :signature (T T) T
   (
   (($eo_zmod ($eo_numeral n1) ($eo_numeral n2))
     ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
       $eo_stuck
       ($eo_numeral ($smt_builtin_mod n1 n2))))
-  (($eo_zmod ($eo_binary w n1) ($eo_binary w n2))
-    ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
-      ($eo_binary w n1)
-      ($eo_smt_term ($sm_mk_binary w ($smt_builtin_mod n1 n2)))))
+  (($eo_zmod ($eo_binary w1 n1) ($eo_binary w2 n2))
+    ($eo_requires ($eo_numeral w1) ($eo_numeral w2)
+      ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
+        ($eo_binary w1 n1)
+        ($eo_smt_term ($sm_mk_binary w1 ($smt_builtin_mod n1 n2))))))
   )
 )
 
