@@ -134,6 +134,7 @@ class LeanMetaReduce : public StdPlugin
    * Remove SMT-LIB identifier issues
    */
   static std::string cleanSmtId(const std::string& id);
+  static std::string cleanId(const std::string& id);
 };
 
 }  // namespace ethos

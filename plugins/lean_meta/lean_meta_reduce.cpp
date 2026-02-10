@@ -1289,6 +1289,10 @@ std::vector<MetaKind> LeanMetaReduce::getMetaKindArgs(const Expr& parent,
 
 std::string LeanMetaReduce::cleanSmtId(const std::string& id)
 {
+  if (id=="end")
+  {
+    return "__eo_end";
+  }
   std::string idc = id;
   idc = replace_all(idc, "++", "concat");
   idc = replace_all(idc, "+", "plus");
@@ -1305,6 +1309,11 @@ std::string LeanMetaReduce::cleanSmtId(const std::string& id)
   idc = replace_all(idc, "@", "_at_");
   idc = replace_all(idc, "$", "__");
   return idc;
+}
+
+std::string LeanMetaReduce::cleanId(const std::string& id)
+{
+  return cleanSmtId(id);
 }
 
 }  // namespace ethos

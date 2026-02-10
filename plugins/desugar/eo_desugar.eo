@@ -98,7 +98,8 @@ $EO_LITERAL_TYPE_DECL$
    (f (-> T U V)) (g (-> T U V)) (x T) (y U) (nil W) (z X))
   :signature ((-> T U V) W X) Bool
   (
-  (($eo_is_list_rec f nil (g x y)) (eo::ite (eo::eq f g) ($eo_is_list_rec f nil y) false))
+  (($eo_is_list_rec f nil (g x y)) (eo::ite (eo::eq f g)
+                                      ($eo_is_list_rec f nil y) false))
   (($eo_is_list_rec f nil z)       (eo::eq nil z))
   )
 )
@@ -212,8 +213,8 @@ $EO_LITERAL_TYPE_DECL$
    (f (-> T U V)) (x W) (z W) (y U) (z X) (nil W) (n $eo_Numeral))
   :signature (W X $eo_Numeral) $eo_Numeral
   (
-  (($eo_list_find_rec (f x y) x n)  n)
-  (($eo_list_find_rec (f x y) z n)  ($eo_list_find_rec y z (eo::add n 1)))
+  (($eo_list_find_rec (f x y) z n)  (eo::ite (eo::eq x z) n
+                                      ($eo_list_find_rec y z (eo::add n 1))))
   (($eo_list_find_rec nil z n)      -1)
   )
 )
@@ -256,8 +257,8 @@ $EO_LITERAL_TYPE_DECL$
    (f (-> T V V)) (x W) (y U) (z X) (nil U))
   :signature (U X) U
   (
-  (($eo_list_erase_rec (f x y) x)   y)
-  (($eo_list_erase_rec (f x y) z)   (f x ($eo_list_erase_rec y z)))
+  (($eo_list_erase_rec (f x y) z)   (eo::ite (eo::eq x z) y
+                                      (f x ($eo_list_erase_rec y z))))
   (($eo_list_erase_rec nil z)       nil)
   )
 )
