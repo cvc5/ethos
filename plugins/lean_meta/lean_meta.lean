@@ -13,8 +13,10 @@ abbrev smt_Int := Int
 --  | id : smt_Int
 inductive smt_Real : Type where
   | rat : Int -> Int -> smt_Real
+deriving DecidableEq
 inductive smt_String : Type where
   | id : smt_String
+deriving DecidableEq
 
 /- Evaluation functions, placeholders -/
 
@@ -27,8 +29,6 @@ def smt_or : smt_Bool -> smt_Bool -> smt_Bool
 def smt_xor : smt_Bool -> smt_Bool -> smt_Bool
   | x, y => Bool.xor x y
 
-def smt_eq : forall {T : Type}, T -> T -> smt_Bool
-  | _, x, y => true -- FIXME
 def smt_ite : forall {T : Type}, smt_Bool -> T -> T -> T
   | _, true, x, _ => x
   | _, false, _, y => y
@@ -89,7 +89,12 @@ def smt_str_from_code : smt_Int -> smt_String
 
 inductive Term : Type where
 $LEAN_TERM_DEF$
+deriving DecidableEq
 
+/- Term equality -/
+def smt_eq : Term -> Term -> smt_Bool
+  | x, y => decide (x = y)
+  
 /- Relevant definitions -/
 
 mutual

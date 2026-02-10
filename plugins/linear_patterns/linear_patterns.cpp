@@ -59,8 +59,7 @@ Expr LinearPattern::linearizeRec(State& s, const Expr& pat, std::map<Expr, size_
       std::stringstream ss;
       ss << "$eov_" << pat << "." << it->second;
       it->second++;
-      // FIXME: get type
-      Expr patType;
+      Expr patType = pat.getType();
       Expr npat = s.mkSymbol(Kind::PARAM, ss.str(), patType);
       Expr cond = s.mkExpr(Kind::EVAL_EQ, {pat, npat});
       conds.push_back(cond);
@@ -79,7 +78,7 @@ Expr LinearPattern::linearizeRec(State& s, const Expr& pat, std::map<Expr, size_
     }
     if (childChanged)
     {
-      return s.mkExpr(pat.getKind(), nchildren);
+      return s.mkExprSimple(pat.getKind(), nchildren);
     }
   }
   // TODO

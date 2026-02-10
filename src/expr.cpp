@@ -512,6 +512,12 @@ Expr& Expr::operator=(const Expr& e)
 bool Expr::operator==(const Expr& e) const { return d_value == e.d_value; }
 bool Expr::operator!=(const Expr& e) const { return d_value != e.d_value; }
 Kind Expr::getKind() const { return d_value->getKind(); }
+Expr Expr::getType() const
+{
+  // TODO: why is getType non-const?
+  Expr t(d_value);
+  return ExprValue::d_state->getTypeChecker().getType(t);
+}
 bool Expr::operator<(const Expr& e) const { return d_value < e.d_value; }
 
 bool Expr::hasVariable(const Expr& e,

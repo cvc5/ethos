@@ -851,7 +851,9 @@ bool LeanMetaReduce::echo(const std::string& msg)
       d_thms << " :" << std::endl;
       // premises are assumptions in theorem
       Expr pfcons = d_state.getVar("$eo_pf");
+      Expr pfproven = d_state.getVar("$eo_proven");
       AlwaysAssert(!pfcons.isNull()) << "Could not find proof constructor";
+      AlwaysAssert(!pfproven.isNull()) << "Could not find proven constructor";
       for (size_t i=0, nargs=patCall.getNumChildren(); i<nargs; i++)
       {
         if (patCall[i].getKind()==Kind::APPLY_OPAQUE && patCall[i][0]==pfcons)
@@ -862,7 +864,8 @@ bool LeanMetaReduce::echo(const std::string& msg)
         }
       }
       d_thms << "  (Not (eo_model_Bool ";
-      printEmbTerm(patCall, d_thms);
+      Expr provenPatCall = d_state.mkExpr(Kind::APPLY, {pfproven, patCall});
+      printEmbTerm(provenPatCall, d_thms);
       d_thms << " false)) :=" << std::endl;
       d_thms << "by" << std::endl;
       d_thms << "  sorry" << std::endl;

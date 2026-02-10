@@ -293,6 +293,11 @@
 (define $eo_null_type ()
   ($eo_smt_type ($tsm_NullSort $smt_builtin_z_zero)))
 
+(define $smt_builtin_z_= ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
+  ($smt_builtin_= ($sm_z x1) ($sm_z x2)))
+(define $smt_builtin_q_= ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real))
+  ($smt_builtin_= ($sm_q x1) ($sm_q x2)))
+
 ;;; Defining parametric bitvector operators
 
 ; The operators in this section are needed to reason about the parametric
@@ -321,7 +326,7 @@
   :signature ($smt_builtin_Int $smt_builtin_Int) $smt_builtin_Bool
   (
   (($smtx_bit x i)
-    ($smt_builtin_=
+    ($smt_builtin_z_=
       $smt_builtin_z_one
       ($smt_builtin_mod ($smt_builtin_div x ($smtx_pow2 i)) $smt_builtin_z_two)))
   )
@@ -364,7 +369,7 @@
 ;   Assumes that 0 <= n1 < 2^w, 0 <= n2 < 2^w, 0 <= w.
 (define $smtx_binary_and
   ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
-  ($smt_builtin_ite ($smt_builtin_= w $smt_builtin_z_zero)
+  ($smt_builtin_ite ($smt_builtin_z_= w $smt_builtin_z_zero)
     $smt_builtin_z_zero
     ($smtx_binary_and_rec ($smt_builtin_z_dec w) n1 n2)))
 
@@ -652,11 +657,11 @@
   (($eo_qdiv ($eo_numeral n1) ($eo_numeral n2))
     (eo::define ((r1 ($smt_apply_1 "to_real" n1)))
     (eo::define ((r2 ($smt_apply_1 "to_real" n2)))
-    ($smt_builtin_ite ($smt_builtin_= $smt_builtin_z_zero n2)
+    ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
       $eo_stuck
       ($eo_rational ($smt_apply_2 "/" r1 r2))))))
   (($eo_qdiv ($eo_rational r1) ($eo_rational r2))
-    ($smt_builtin_ite ($smt_builtin_= $smt_builtin_q_zero r2)
+    ($smt_builtin_ite ($smt_builtin_q_= $smt_builtin_q_zero r2)
       $eo_stuck
       ($eo_rational ($smt_apply_2 "/" r1 r2))))
   )
@@ -667,11 +672,11 @@
   :signature (T T) T
   (
   (($eo_zdiv ($eo_numeral n1) ($eo_numeral n2))
-    ($smt_builtin_ite ($smt_builtin_= $smt_builtin_z_zero n2)
+    ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
       $eo_stuck
       ($eo_numeral ($smt_builtin_div n1 n2))))
   (($eo_zdiv ($eo_binary w n1) ($eo_binary w n2))
-    ($smt_builtin_ite ($smt_builtin_= $smt_builtin_z_zero n2)
+    ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
       ($eo_smt_term ($sm_binary w ($smtx_binary_max w)))
       ($eo_smt_term ($sm_mk_binary w ($smt_builtin_div n1 n2)))))
   )
@@ -681,11 +686,11 @@
   :signature (T T) T
   (
   (($eo_zmod ($eo_numeral n1) ($eo_numeral n2))
-    ($smt_builtin_ite ($smt_builtin_= $smt_builtin_z_zero n2)
+    ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
       $eo_stuck
       ($eo_numeral ($smt_builtin_mod n1 n2))))
   (($eo_zmod ($eo_binary w n1) ($eo_binary w n2))
-    ($smt_builtin_ite ($smt_builtin_= $smt_builtin_z_zero n2)
+    ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
       ($eo_binary w n1)
       ($eo_smt_term ($sm_mk_binary w ($smt_builtin_mod n1 n2)))))
   )
@@ -783,7 +788,7 @@
   (($eo_to_z ($eo_rational r1))  ($eo_numeral ($smt_apply_1 "to_int" r1)))
   (($eo_to_z ($eo_string s1))
     ($smt_builtin_ite
-      ($smt_builtin_= $smt_builtin_z_one ($smt_apply_1 "str.len" s1))
+      ($smt_builtin_z_= $smt_builtin_z_one ($smt_apply_1 "str.len" s1))
       ($eo_numeral ($smt_apply_1 "str.to_code" s1))
       $eo_stuck))
   (($eo_to_z ($eo_binary w n1))     ($eo_numeral n1))
