@@ -194,8 +194,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   //    ($vsm_term ($sm_binary x1 x2)) ($vsm_term ($sm_binary x3 x4)))
   //    <return>)
   // where x1, x3 denote bitwidths and x2, x4 denote values.
-  addLitBinSym("bvadd", {kBitVec, kBitVec}, "x1", "($smt_builtin_add x2 x4)");
-  addLitBinSym("bvmul", {kBitVec, kBitVec}, "x1", "($smt_builtin_mul x2 x4)");
+  addLitBinSym("bvadd", {kBitVec, kBitVec}, "x1", "($smt_builtin_z_add x2 x4)");
+  addLitBinSym("bvmul", {kBitVec, kBitVec}, "x1", "($smt_builtin_z_mul x2 x4)");
   addLitBinSym("bvudiv",
                {kBitVec, kBitVec},
                "x1",
@@ -214,11 +214,11 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitBinSym(
       "bvxor", {kBitVec, kBitVec}, "x1", "($smtx_binary_xor x1 x2 x4)");
   addLitBinSym("bvnot", {kBitVec}, "x1", "($smtx_binary_not x1 x2)");
-  addLitBinSym("bvneg", {kBitVec}, "x1", "($smt_builtin_neg x2)");
+  addLitBinSym("bvneg", {kBitVec}, "x1", "($smt_builtin_z_neg x2)");
   addLitBinSym("bvshl",
                {kBitVec, kBitVec},
                "x1",
-               "($smt_builtin_mul x2 ($smtx_pow2 x4))");
+               "($smt_builtin_z_mul x2 ($smtx_pow2 x4))");
   addLitBinSym("bvlshr",
                {kBitVec, kBitVec},
                "x1",
@@ -255,7 +255,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             {kInt, kBitVec},
             kT,
             smtGuard(smtApp(">=", "x1", "$smt_builtin_z_zero"),
-                     "($vsm_term ($sm_binary ($smt_builtin_add x1 x2) x3))"));
+                     "($vsm_term ($sm_binary ($smt_builtin_z_add x1 x2) x3))"));
   std::stringstream ssSExtRet;
   ssSExtRet << "(eo::define ((wm1 (- ($eo_numeral x2) 1))) ";
   ssSExtRet << "(eo::define ((t ($eo_mk_binary x2 x3))) ";
@@ -369,11 +369,11 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitSym("bvuaddo",
             {kBitVec, kBitVec},
             kBool,
-            smtApp(">=", "($smt_builtin_add x2 x4)", "($smtx_pow2 x1)"));
+            smtApp(">=", "($smt_builtin_z_add x2 x4)", "($smtx_pow2 x1)"));
   addLitSym("bvumulo",
             {kBitVec, kBitVec},
             kBool,
-            smtApp(">=", "($smt_builtin_mul x2 x4)", "($smtx_pow2 x1)"));
+            smtApp(">=", "($smt_builtin_z_mul x2 x4)", "($smtx_pow2 x1)"));
   for (size_t i = 0; i < 2; i++)
   {
     std::string intOp = i == 0 ? "+" : "*";
@@ -384,7 +384,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
     ssRet << "(eo::define ((p2wm1 ($smtx_pow2 ($smt_apply_2 \"-\" x1 "
              "$smt_builtin_z_one)))) ";
     ssRet << " ($smt_builtin_or " << smtApp(">=", "sret", "p2wm1");
-    ssRet << " " << smtApp("<", "sret", "($smt_builtin_neg p2wm1)");
+    ssRet << " " << smtApp("<", "sret", "($smt_builtin_z_neg p2wm1)");
     ssRet << ")))";
     addLitSym(bvOp, {kBitVec, kBitVec}, kBool, ssRet.str());
   }
@@ -509,7 +509,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitBinSym("@from_bools",
                {kBool, kBitVec},
                "($smt_builtin_z_inc x2)",
-               "($smt_builtin_add ($smt_builtin_ite x1 ($smtx_pow2 x2) "
+               "($smt_builtin_z_add ($smt_builtin_ite x1 ($smtx_pow2 x2) "
                "$smt_builtin_z_zero) x3)");
   // tuples
   // these allow Herbrand interpretations

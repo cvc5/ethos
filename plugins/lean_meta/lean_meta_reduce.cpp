@@ -163,7 +163,7 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
       if (ci.sgn() == -1)
       {
         const Integer& cin = -ci;
-        os << "-" << cin.toString();
+        os << "(-" << cin.toString() << " : smt_Int)";
       }
       else
       {

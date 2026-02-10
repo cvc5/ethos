@@ -842,6 +842,17 @@
 
 ;;; $eo_is_eq
 
+;;; $eo_eq
+
+; program: $eo_eq
+; implements: eo::eq
+(program $eo_eq ((t $eo_Term) (s $eo_Term))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_eq t s) ($eo_bool ($smt_builtin_= s t)))
+  )
+)
+
 ; Returns true if t and s are equivalent values (ground and fully evaluated).
 ; define: $eo_is_eq
 ; implements: eo::is_eq
@@ -876,7 +887,7 @@
   :signature ($eo_Term) Bool
   (
   (($eo_is_z_internal ($eo_numeral n))  true)
-  (($eo_is_z_internal x)                   false)
+  (($eo_is_z_internal x)                false)
   )
 )
 

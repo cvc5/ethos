@@ -118,14 +118,6 @@
 ; fwd-decl: $eo_dt_selectors
 (declare-fun $eo_dt_selectors (eo.Term) eo.Term)
 
-; program: $eo_requires_eq
-(define-fun $eo_requires_eq ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
-  (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck) (= x3 eo.Stuck))
-    eo.Stuck
-  (ite (= x2 x1)
-    x3
-    eo.Stuck)))
-
 (define-fun $eo_Type () eo.Term eo.Type)
 (define-fun $eo_stuck () eo.Term eo.Stuck)
 ; program: $eo_apply
@@ -179,6 +171,11 @@
 ; program: $eo_binary
 (define-fun $eo_binary ((x1 Int) (x2 Int)) eo.Term
     (eo.SmtTerm (sm.Binary x1 x2))
+)
+
+; program: $eo_requires
+(define-fun $eo_requires ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
+    (ite (= x1 x2) (ite (not (= x1 eo.Stuck)) x3 eo.Stuck) eo.Stuck)
 )
 
 ; program: $eo_mk_apply
@@ -269,8 +266,8 @@
 (define-fun $eo_typeof_apply ((x1 eo.Term) (x2 eo.Term)) eo.Term
   (ite (or (= x1 eo.Stuck) (= x2 eo.Stuck))
     eo.Stuck
-  (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg1 x1)) ((_ is eo.FunType) (eo.Apply.arg1 (eo.Apply.arg1 x1))) (= x2 (eo.Apply.arg2 (eo.Apply.arg1 x1))))
-    (eo.Apply.arg2 x1)
+  (ite (and ((_ is eo.Apply) x1) ((_ is eo.Apply) (eo.Apply.arg1 x1)) ((_ is eo.FunType) (eo.Apply.arg1 (eo.Apply.arg1 x1))))
+    ($eo_requires (eo.Apply.arg2 (eo.Apply.arg1 x1)) x2 (eo.Apply.arg2 x1))
     eo.Stuck)))
 
 ; program: $eo_typeof_=
@@ -477,7 +474,7 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    ($eo_requires_eq ($eo_typeof x1) (eo.SmtType tsm.Bool) ($eo_requires_eq ($eo_model_sat x1) (eo.SmtTerm (sm.Boolean true)) ($eo_requires_eq ($eo_typeof ($eo_proven ($eo_prog_symm (eo.$eo_pf x1)))) (eo.SmtType tsm.Bool) ($eo_requires_eq ($eo_model_unsat ($eo_proven ($eo_prog_symm (eo.$eo_pf x1)))) (eo.SmtTerm (sm.Boolean true)) (eo.SmtTerm (sm.Boolean true))))))
+    ($eo_requires ($eo_typeof x1) (eo.SmtType tsm.Bool) ($eo_requires ($eo_model_sat x1) (eo.SmtTerm (sm.Boolean true)) ($eo_requires ($eo_typeof ($eo_proven ($eo_prog_symm (eo.$eo_pf x1)))) (eo.SmtType tsm.Bool) ($eo_requires ($eo_model_unsat ($eo_proven ($eo_prog_symm (eo.$eo_pf x1)))) (eo.SmtTerm (sm.Boolean true)) (eo.SmtTerm (sm.Boolean true))))))
     eo.Stuck)))
 
 

@@ -836,6 +836,15 @@
 
 ;;; Testers
 
+; program: $eo_eq
+; implements: eo::eq
+(program $eo_eq ((t $eo_Term) (s $eo_Term))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_eq t s) ($eo_bool ($smt_builtin_= s t)))
+  )
+)
+
 ;;; $eo_is_eq
 
 ; Returns true if t and s are equivalent values (ground and fully evaluated).

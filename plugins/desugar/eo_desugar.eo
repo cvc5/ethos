@@ -46,12 +46,6 @@ $EO_LITERAL_TYPE_DECL$
 (declare-parameterized-const $eo_List_cons ((T Type :implicit))
   (-> T $eo_List $eo_List))
 
-;;; $eo_Option
-
-(declare-const $eo_Option Type)
-(declare-const $eo_Option_null $eo_Option)
-(declare-parameterized-const $eo_Option_some ((T Type :implicit) (t T :opaque)) $eo_Option)
-
 ;;; forward declarations
 
 ; forward declaration
@@ -71,37 +65,6 @@ $EO_LITERAL_TYPE_DECL$
 
 ; The methods in this section are temporary definitions to eliminate
 ; dependencies on other builtin constructs.
-
-; note: This is used to ensure this signature does not depend on not.
-(program $eo_if_not ()
-  :signature (Bool) Bool
-  (
-  (($eo_if_not true)  false)
-  (($eo_if_not false) true)
-  )
-)
-
-; note: This is used to ensure this signature does not depend on and.
-(program $eo_if_both ((b1 Bool) (b2 Bool))
-  :signature (Bool Bool) Bool
-  (
-  (($eo_if_both true true)  true)
-  (($eo_if_both b1 b2)      false)
-  )
-)
-
-; note: This is used to ensure signature does not depend on requires.
-; program: $eo_requires_eq
-; note: This is a helper, and not the official semantics for requires.
-;       The difference is that x3 should not be evaluated if the arguments
-;       to requires are disequal. Nevertheless, we use this method as a
-;       helper e.g. when we are sure that x3 will not be stuck.
-(program $eo_requires_eq ((T Type) (U Type) (x1 T) (x3 U))
-  :signature (T T U) U
-  (
-  (($eo_requires_eq x1 x1 x3) x3)
-  )
-)
 
 ; note: This is used to ensure signature does not depend on ite.
 (program $eo_prepend_if ((T Type) (V Type) (x T) (f (-> T V V)) (res V))
@@ -125,18 +88,6 @@ $EO_LITERAL_TYPE_DECL$
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; desugar core
 
-;;; $eo_eq
-
-; program: $eo_eq
-; implements: eo::eq
-(program $eo_eq ((T Type) (S Type) (t T) (s S))
-  :signature (T S) Bool
-  (
-  (($eo_eq t t) true)
-  (($eo_eq t s) false)
-  )
-)
-
 ;;;;;; List operators
 
 ;;; $eo_is_list
@@ -144,12 +95,11 @@ $EO_LITERAL_TYPE_DECL$
 ; Note: a helper for $eo_is_list.
 (program $eo_is_list_rec
   ((T Type) (U Type) (V Type) (W Type) (X Type)
-   (f (-> T U V)) (x T) (y U) (nil W) (z X))
+   (f (-> T U V)) (g (-> T U V)) (x T) (y U) (nil W) (z X))
   :signature ((-> T U V) W X) Bool
   (
-  (($eo_is_list_rec f nil (f x y)) ($eo_is_list_rec f nil y))
-  (($eo_is_list_rec f nil nil)     true)
-  (($eo_is_list_rec f nil z)       false)
+  (($eo_is_list_rec f nil (g x y)) (eo::ite (eo::eq f g) ($eo_is_list_rec f nil y) false))
+  (($eo_is_list_rec f nil z)       (eo::eq nil z))
   )
 )
 
@@ -169,7 +119,7 @@ $EO_LITERAL_TYPE_DECL$
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)
    (W1 Type :implicit) (W2 Type :implicit)
    (f (-> T U V)) (e W1) (a W2))
-  ($eo_requires_eq ($eo_is_list f a) true (f e a)))
+  (eo::requires ($eo_is_list f a) true (f e a)))
 
 ;;; $eo_get_elements
 
@@ -177,10 +127,10 @@ $EO_LITERAL_TYPE_DECL$
 (program $eo_get_elements_rec
   ((T Type) (U Type) (V Type) (W Type) (W1 Type) (W2 Type) (X Type)
    (f (-> T U V)) (x W1) (y W2) (z X) (nil W))
-  :signature ((-> T U V) W X) $eo_List
+  :signature (X) $eo_List
   (
-  (($eo_get_elements_rec f nil (f x y)) ($eo_List_cons x ($eo_get_elements_rec f nil y)))
-  (($eo_get_elements_rec f nil nil)     $eo_List_nil)
+  (($eo_get_elements_rec (f x y)) ($eo_List_cons x ($eo_get_elements_rec y)))
+  (($eo_get_elements_rec nil)     $eo_List_nil)
   )
 )
 
@@ -190,18 +140,18 @@ $EO_LITERAL_TYPE_DECL$
 (define $eo_get_elements
   ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
    (f (-> T U V)) (a W))
-  ($eo_requires_eq ($eo_is_list f a) true
-    ($eo_get_elements_rec f ($eo_nil f ($eo_typeof a)) a)))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_get_elements_rec a)))
 
 ;;; $eo_list_len
 
 ; Note: a helper for $eo_list_len.
 (program $eo_list_len_rec
   ((T Type) (U Type) (V Type) (W Type) (f (-> T U V)) (x T) (y U) (nil W))
-  :signature ((-> T U V) W) $eo_Numeral
+  :signature (W) $eo_Numeral
   (
-  (($eo_list_len_rec f (f x y))  (eo::add 1 ($eo_list_len_rec f y)))
-  (($eo_list_len_rec f nil)      0)
+  (($eo_list_len_rec (f x y))  (eo::add 1 ($eo_list_len_rec y)))
+  (($eo_list_len_rec nil)      0)
   )
 )
 
@@ -210,18 +160,18 @@ $EO_LITERAL_TYPE_DECL$
 (define $eo_list_len
   ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
    (f (-> T U V)) (a W))
-  ($eo_requires_eq ($eo_is_list f a) true
-    ($eo_list_len_rec f a)))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_len_rec a)))
 
 ;;; $eo_list_concat
 
 ; Note: a helper for $eo_list_concat.
 (program $eo_list_concat_rec
   ((T Type) (U Type) (V Type) (W Type) (f (-> T V V)) (x W) (y U) (z U) (nil U))
-  :signature ((-> T V V) U U) U
+  :signature (U U) U
   (
-  (($eo_list_concat_rec f (f x y) z)  (f x ($eo_list_concat_rec f y z)))
-  (($eo_list_concat_rec f nil z)      z)
+  (($eo_list_concat_rec (f x y) z)  (f x ($eo_list_concat_rec y z)))
+  (($eo_list_concat_rec nil z)      z)
   )
 )
 
@@ -230,19 +180,19 @@ $EO_LITERAL_TYPE_DECL$
 (define $eo_list_concat
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)
    (f (-> T V V)) (a U) (b U))
-  ($eo_requires_eq ($eo_is_list f a) true
-  ($eo_requires_eq ($eo_is_list f b) true
-    ($eo_list_concat_rec f a b))))
+  (eo::requires ($eo_is_list f a) true
+  (eo::requires ($eo_is_list f b) true
+    ($eo_list_concat_rec a b))))
 
 ;;; $eo_list_nth
 
 ; Note: a helper for $eo_list_nth.
 (program $eo_list_nth_rec
   ((T Type) (U Type) (f (-> T T T)) (x U) (y U) (n $eo_Numeral))
-  :signature ((-> T T T) U $eo_Numeral) U
+  :signature (U $eo_Numeral) U
   (
-  (($eo_list_nth_rec f (f x y) 0)  x)
-  (($eo_list_nth_rec f (f x y) n)  ($eo_list_nth_rec f y (eo::add n -1)))
+  (($eo_list_nth_rec (f x y) 0)  x)
+  (($eo_list_nth_rec (f x y) n)  ($eo_list_nth_rec y (eo::add n -1)))
   )
 )
 
@@ -251,8 +201,8 @@ $EO_LITERAL_TYPE_DECL$
 (define $eo_list_nth
   ((T Type :implicit) (U Type :implicit)
    (f (-> T T T)) (a U) (n $eo_Numeral))
-  ($eo_requires_eq ($eo_is_list f a) true
-    ($eo_list_nth_rec f a n)))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_nth_rec a n)))
 
 ;;; $eo_list_find
 
@@ -260,11 +210,11 @@ $EO_LITERAL_TYPE_DECL$
 (program $eo_list_find_rec
   ((T Type) (U Type) (V Type) (W Type) (X Type)
    (f (-> T U V)) (x W) (z W) (y U) (z X) (nil W) (n $eo_Numeral))
-  :signature ((-> T U V) W X $eo_Numeral) $eo_Numeral
+  :signature (W X $eo_Numeral) $eo_Numeral
   (
-  (($eo_list_find_rec f (f x y) x n)  n)
-  (($eo_list_find_rec f (f x y) z n)  ($eo_list_find_rec f y z (eo::add n 1)))
-  (($eo_list_find_rec f nil z n)      -1)
+  (($eo_list_find_rec (f x y) x n)  n)
+  (($eo_list_find_rec (f x y) z n)  ($eo_list_find_rec y z (eo::add n 1)))
+  (($eo_list_find_rec nil z n)      -1)
   )
 )
 
@@ -274,8 +224,8 @@ $EO_LITERAL_TYPE_DECL$
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)
    (W1 Type :implicit) (W2 Type :implicit)
    (f (-> T U V)) (a W1) (e W2))
-  ($eo_requires_eq ($eo_is_list f a) true
-    ($eo_list_find_rec f a e 0)))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_find_rec a e 0)))
 
 ;;; $eo_list_rev
 
@@ -283,10 +233,10 @@ $EO_LITERAL_TYPE_DECL$
 (program $eo_list_rev_rec
   ((T Type) (U Type) (V Type) (W Type)
    (f (-> T V V)) (x W) (y U) (nil U) (acc U))
-  :signature ((-> T V V) U U) U
+  :signature (U U) U
   (
-    (($eo_list_rev_rec f (f x y) acc) ($eo_list_rev_rec f y (f x acc)))
-    (($eo_list_rev_rec f nil acc)      acc)
+    (($eo_list_rev_rec (f x y) acc) ($eo_list_rev_rec y (f x acc)))
+    (($eo_list_rev_rec nil acc)      acc)
   )
 )
 
@@ -295,8 +245,8 @@ $EO_LITERAL_TYPE_DECL$
 (define $eo_list_rev
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)
    (f (-> T V V)) (a U))
-  ($eo_requires_eq ($eo_is_list f a) true
-    ($eo_list_rev_rec f a ($eo_nil f ($eo_typeof a)))))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_rev_rec a ($eo_nil f ($eo_typeof a)))))
 
 ;;; $eo_list_erase
 
@@ -304,11 +254,11 @@ $EO_LITERAL_TYPE_DECL$
 (program $eo_list_erase_rec
   ((T Type) (U Type) (V Type) (W Type) (X Type)
    (f (-> T V V)) (x W) (y U) (z X) (nil U))
-  :signature ((-> T V V) U X) U
+  :signature (U X) U
   (
-  (($eo_list_erase_rec f (f x y) x)   y)
-  (($eo_list_erase_rec f (f x y) z)   (f x ($eo_list_erase_rec f y z)))
-  (($eo_list_erase_rec f nil z)       nil)
+  (($eo_list_erase_rec (f x y) x)   y)
+  (($eo_list_erase_rec (f x y) z)   (f x ($eo_list_erase_rec y z)))
+  (($eo_list_erase_rec nil z)       nil)
   )
 )
 
@@ -317,8 +267,8 @@ $EO_LITERAL_TYPE_DECL$
 (define $eo_list_erase
   ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
    (f (-> T V V)) (a U) (e W))
-  ($eo_requires_eq ($eo_is_list f a) true
-    ($eo_list_erase_rec f a e)))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_erase_rec a e)))
 
 ;;; $eo_list_erase_all
 
@@ -326,11 +276,11 @@ $EO_LITERAL_TYPE_DECL$
 (program $eo_list_erase_all_rec
   ((T Type) (U Type) (V Type) (W Type) (X Type)
    (f (-> T V V)) (x W) (y U) (z X) (nil W))
-  :signature ((-> T V V) U X) U
+  :signature (U X) U
   (
-  (($eo_list_erase_all_rec f (f x y) z)  ($eo_prepend_if ($eo_if_not ($eo_eq z x))
-                                              f x ($eo_list_erase_all_rec f y z)))
-  (($eo_list_erase_all_rec f nil z)       nil)
+  (($eo_list_erase_all_rec (f x y) z)  ($eo_prepend_if (eo::not (eo::eq z x))
+                                            f x ($eo_list_erase_all_rec y z)))
+  (($eo_list_erase_all_rec nil z)       nil)
   )
 )
 
@@ -339,8 +289,8 @@ $EO_LITERAL_TYPE_DECL$
 (define $eo_list_erase_all
   ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
    (f (-> T V V)) (a U) (e W))
-  ($eo_requires_eq ($eo_is_list f a) true
-    ($eo_list_erase_all_rec f a e)))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_erase_all_rec a e)))
 
 ;;; $eo_list_setof
 
@@ -348,10 +298,10 @@ $EO_LITERAL_TYPE_DECL$
 (program $eo_list_setof_rec
   ((T Type) (U Type) (V Type) (W Type)
    (f (-> T V V)) (x W) (y U) (nil U))
-  :signature ((-> T V V) U) U
+  :signature (U) U
   (
-  (($eo_list_setof_rec f (f x y))  (f x ($eo_list_setof_rec f ($eo_list_erase_all f y x))))
-  (($eo_list_setof_rec f nil)      nil)
+  (($eo_list_setof_rec (f x y))  (f x ($eo_list_setof_rec ($eo_list_erase_all f y x))))
+  (($eo_list_setof_rec nil)      nil)
   )
 )
 
@@ -359,8 +309,8 @@ $EO_LITERAL_TYPE_DECL$
 ; implements: eo::list_setof
 (define $eo_list_setof
   ((T Type :implicit) (U Type :implicit) (V Type :implicit) (f (-> T V V)) (a U))
-  ($eo_requires_eq ($eo_is_list f a) true
-    ($eo_list_setof_rec f a)))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_setof_rec a)))
 
 ;;; $eo_list_minclude
 
@@ -378,7 +328,7 @@ $EO_LITERAL_TYPE_DECL$
   (($eo_list_minclude_rec ($eo_List_cons x y) z true)
     (eo::define ((res ($eo_list_erase $eo_List_cons z x)))
       ; pass true iff we successfully removed x from z.
-      ($eo_list_minclude_rec y res ($eo_if_not ($eo_eq res z)))))
+      ($eo_list_minclude_rec y res (eo::not (eo::eq res z)))))
   (($eo_list_minclude_rec $eo_List_nil z true)  true)
   )
 )
@@ -394,8 +344,8 @@ $EO_LITERAL_TYPE_DECL$
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)
    (W1 Type :implicit) (W2 Type :implicit)
    (f (-> T U V)) (a W1) (b W2))
-  ($eo_requires_eq ($eo_is_list f a) true
-  ($eo_requires_eq ($eo_is_list f b) true
+  (eo::requires ($eo_is_list f a) true
+  (eo::requires ($eo_is_list f b) true
     ($eo_list_minclude_rec ($eo_get_elements f a) ($eo_get_elements f b) true))))
 
 ;;; $eo_list_meq
@@ -406,19 +356,19 @@ $EO_LITERAL_TYPE_DECL$
   ((T Type :implicit) (U Type :implicit) (V Type :implicit)
    (W1 Type :implicit) (W2 Type :implicit)
    (f (-> T U V)) (a W1) (b W2))
-  ($eo_if_both ($eo_list_minclude f a b) ($eo_list_minclude f b a)))
+  (eo::and ($eo_list_minclude f a b) ($eo_list_minclude f b a)))
 
 ;;; $eo_list_diff
 
 ; Note: a helper for $eo_list_diff.
 (program $eo_list_diff_rec
   ((T Type) (V Type) (x T) (y V) (f (-> T V V)) (nil V) (z V))
-  :signature ((-> T V V) V V) V
+  :signature (V V) V
   (
-  (($eo_list_diff_rec f (f x y) z)  (eo::define ((res ($eo_list_erase f z x)))
-                                    ($eo_prepend_if ($eo_eq res z)
-                                      f x ($eo_list_diff_rec f y res))))
-  (($eo_list_diff_rec f nil z)      nil)
+  (($eo_list_diff_rec (f x y) z)  (eo::define ((res ($eo_list_erase f z x)))
+                                    ($eo_prepend_if (eo::eq res z)
+                                      f x ($eo_list_diff_rec y res))))
+  (($eo_list_diff_rec nil z)      nil)
   )
 )
 
@@ -427,21 +377,21 @@ $EO_LITERAL_TYPE_DECL$
 (define $eo_list_diff
   ((T Type :implicit) (V Type :implicit)
    (f (-> T V V)) (a V) (b V))
-  ($eo_requires_eq ($eo_is_list f a) true
-  ($eo_requires_eq ($eo_is_list f b) true
-    ($eo_list_diff_rec f a b))))
+  (eo::requires ($eo_is_list f a) true
+  (eo::requires ($eo_is_list f b) true
+    ($eo_list_diff_rec a b))))
 
 ;;; $eo_list_inter
 
 ; Note: a helper for $eo_list_inter
 (program $eo_list_inter_rec
   ((T Type) (V Type) (x T) (y V) (f (-> T V V)) (nil V) (z V))
-  :signature ((-> T V V) V V) V
+  :signature (V V) V
   (
-  (($eo_list_inter_rec f (f x y) z) (eo::define ((res ($eo_list_erase f z x)))
-                                    ($eo_prepend_if ($eo_if_not ($eo_eq res z))
-                                      f x ($eo_list_inter_rec f y res))))
-  (($eo_list_inter_rec f nil z)     nil)
+  (($eo_list_inter_rec (f x y) z) (eo::define ((res ($eo_list_erase f z x)))
+                                    ($eo_prepend_if (eo::not (eo::eq res z))
+                                      f x ($eo_list_inter_rec y res))))
+  (($eo_list_inter_rec nil z)     nil)
   )
 )
 
@@ -450,20 +400,19 @@ $EO_LITERAL_TYPE_DECL$
 (define $eo_list_inter
   ((T Type :implicit) (V Type :implicit)
    (f (-> T V V)) (a V) (b V))
-  ($eo_requires_eq ($eo_is_list f a) true
-  ($eo_requires_eq ($eo_is_list f b) true
-    ($eo_list_inter_rec f a b))))
+  (eo::requires ($eo_is_list f a) true
+  (eo::requires ($eo_is_list f b) true
+    ($eo_list_inter_rec a b))))
 
 ;;; $eo_list_singleton_elim
 
 ; Note: a helper for $eo_list_singleton_elim.
 (program $eo_list_singleton_elim_2
-  ((T Type) (U Type) (V Type) (W Type) (W1 Type) (W2 Type) (X Type)
-   (f (-> T U V)) (x W1) (y W2) (z X) (nil W))
-  :signature ((-> T U V) W X) $eo_List
+  ((T Type) (f (-> T T T)) (x T) (y T) (z T) (nil T))
+  :signature (T T) T
   (
-  (($eo_list_singleton_elim_2 f nil (f x nil))  x)
-  (($eo_list_singleton_elim_2 f nil z)          z)
+  (($eo_list_singleton_elim_2 nil (f x y))  (eo::ite (eo::eq y nil) x (f x y)))
+  (($eo_list_singleton_elim_2 nil z)        z)
   )
 )
 
@@ -472,8 +421,8 @@ $EO_LITERAL_TYPE_DECL$
 (define $eo_list_singleton_elim
   ((T Type :implicit) (U Type :implicit) (V Type :implicit) (W Type :implicit)
    (f (-> T U V)) (a W))
-  ($eo_requires_eq ($eo_is_list f a) true
-    ($eo_list_singleton_elim_2 f ($eo_nil f ($eo_typeof a)) a)))
+  (eo::requires ($eo_is_list f a) true
+    ($eo_list_singleton_elim_2 ($eo_nil f ($eo_typeof a)) a)))
 
 ; all further definitions
 
@@ -482,10 +431,10 @@ $EO_DEFS$
 ;;; type checking
 
 ; program: $eo_typeof_apply
-(program $eo_typeof_apply ((T Type) (U Type))
+(program $eo_typeof_apply ((T Type) (U Type) (V Type))
   :signature (Type Type) Type
   (
-  (($eo_typeof_apply (-> T U) T) U)
+  (($eo_typeof_apply (-> T U) V) (eo::requires T V U))
   )
 )
 
@@ -583,7 +532,7 @@ $EO_NIL_CASES$
 (program $eo_model_unsat () :signature (Bool) Bool)
 
 ; We will include the definition of the above functions here.
-(echo "include eo_model_sat :deps $eo_typeof_main $eo_is_ok $eo_dt_constructors $eo_dt_selectors $eo_if_both $eo_List_nil $eo_List_cons $eo_lit_type_Numeral $eo_lit_type_Rational $eo_lit_type_String $eo_lit_type_Binary ")
+(echo "include eo_model_sat :deps $eo_typeof_main $eo_is_ok $eo_dt_constructors $eo_dt_selectors $eo_List_nil $eo_List_cons $eo_lit_type_Numeral $eo_lit_type_Rational $eo_lit_type_String $eo_lit_type_Binary ")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; vc
 

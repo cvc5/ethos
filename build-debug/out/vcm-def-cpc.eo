@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 46
+; #trim-defs: 44
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (program $eo_proven ((F Bool))
@@ -28,19 +28,6 @@
 (program $eo_typeof ((T Type)) :signature (T) Type)
 (program $eo_dt_constructors () :signature (Type) $eo_List)
 (program $eo_dt_selectors ((T Type)) :signature (T) $eo_List)
-(program $eo_if_both ((b1 Bool) (b2 Bool))
-  :signature (Bool Bool) Bool
-  (
-  (($eo_if_both true true)  true)
-  (($eo_if_both b1 b2)      false)
-  )
-)
-(program $eo_requires_eq ((T Type) (U Type) (x1 T) (x3 U))
-  :signature (T T U) U
-  (
-  (($eo_requires_eq x1 x1 x3) x3)
-  )
-)
 ; This file defines a deep embedding of SMT-LIB into Eunoia.
 ; It is used for two purposes:
 ; 1. To give an SMT-LIB specific bootstrapping of the SMT-LIB inspired builtin Eunoia functions, e.g. $eo_add.
@@ -879,6 +866,15 @@
 
 ;;; Testers
 
+; program: $eo_eq
+; implements: eo::eq
+(program $eo_eq ((t $eo_Term) (s $eo_Term))
+  :signature ($eo_Term $eo_Term) $eo_Term
+  (
+  (($eo_eq t s) ($eo_bool ($smt_builtin_= s t)))
+  )
+)
+
 ;;; $eo_is_eq
 
 ; Returns true if t and s are equivalent values (ground and fully evaluated).
@@ -1106,10 +1102,10 @@
   (($eo_prog_symm ($eo_pf F)) ($eo_pf ($mk_symm F)))
   )
 )
-(program $eo_typeof_apply ((T Type) (U Type))
+(program $eo_typeof_apply ((T Type) (U Type) (V Type))
   :signature (Type Type) Type
   (
-  (($eo_typeof_apply (-> T U) T) U)
+  (($eo_typeof_apply (-> T U) V) (eo::requires T V U))
   )
 )
 (program $eo_typeof_= ((A Type))
@@ -1774,7 +1770,7 @@
 (program $eovc_symm ((F Bool))
   :signature (Bool) Bool
   (
-  (($eovc_symm F) (eo::define ((_v0 ($eo_proven ($eo_prog_symm ($eo_pf F))))) ($eo_requires_eq ($eo_typeof F) Bool ($eo_requires_eq ($eo_model_sat F) true ($eo_requires_eq ($eo_typeof _v0) Bool ($eo_requires_eq ($eo_model_unsat _v0) true true))))))
+  (($eovc_symm F) (eo::define ((_v0 ($eo_proven ($eo_prog_symm ($eo_pf F))))) (eo::requires ($eo_typeof F) Bool (eo::requires ($eo_model_sat F) true (eo::requires ($eo_typeof _v0) Bool (eo::requires ($eo_model_unsat _v0) true true))))))
   )
 )
 (echo "smt-meta $eovc_symm :deps $eo_proven $smtx_hash $eo_reverse_hash $smtx_value_hash $smtx_reverse_value_hash $eo_smt_type $tsm_Bool $eo_Type $eo_fun_type $eo_apply $eo_mk_apply ")

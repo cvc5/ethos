@@ -1044,11 +1044,10 @@ Expr Desugar::mkRequiresEq(const Expr& t1,
                            bool neg)
 {
   std::vector<Expr> children;
-  children.push_back(neg ? d_peoRequiresDeq : d_peoRequiresEq);
   children.push_back(t1);
   children.push_back(t2);
   children.push_back(ret);
-  return d_state.mkExpr(Kind::APPLY, children);
+  return d_state.mkExprSimple(Kind::EVAL_REQUIRES, children);
 }
 
 Attr Desugar::getAttribute(const Expr& e)
