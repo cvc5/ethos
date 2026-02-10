@@ -28,7 +28,7 @@ std::vector<std::pair<Expr, Expr>> LinearPattern::linearize(
 
 std::pair<Expr, Expr> LinearPattern::linearizePattern(State& s, const Expr& pat)
 {
-  std::set<Expr> params;
+  std::map<Expr, size_t> params;
   std::vector<Expr> conds;
   Expr lpat = linearizeRec(s, pat, params, conds);
   if (conds.empty())
@@ -45,8 +45,43 @@ std::pair<Expr, Expr> LinearPattern::linearizePattern(State& s, const Expr& pat)
   return std::pair<Expr, Expr>(lpat, cond);
 }
 
-Expr LinearPattern::linearizeRec(State& s, const Expr& pat, std::set<Expr>& params, std::vector<Expr>& conds)
+Expr LinearPattern::linearizeRec(State& s, const Expr& pat, std::map<Expr, size_t>& params, std::vector<Expr>& conds)
 {
+  if (pat.getKind()==Kind::PARAM)
+  {
+    std::map<Expr, size_t>::iterator it = params.find(pat);
+    if (it==params.end())
+    {
+      params[pat] = 1;
+    }
+    else
+    {
+      std::stringstream ss;
+      ss << "$eov_" << pat << "." << it->second;
+      it->second++;
+      // FIXME: get type
+      Expr patType;
+      Expr npat = s.mkSymbol(Kind::PARAM, ss.str(), patType);
+      Expr cond = s.mkExpr(Kind::EVAL_EQ, {pat, npat});
+      conds.push_back(cond);
+      return npat;
+    }
+  }
+  else if (pat.getNumChildren()>0)
+  {
+    std::vector<Expr> nchildren;
+    bool childChanged = false;
+    for (size_t i=0, nchild = pat.getNumChildren(); i<nchild; i++)
+    {
+      Expr ns = linearizeRec(s, pat[i], params, conds);
+      nchildren.push_back(ns);
+      childChanged = childChanged || pat[i]!=ns;
+    }
+    if (childChanged)
+    {
+      return s.mkExpr(pat.getKind(), nchildren);
+    }
+  }
   // TODO
   return pat;
 }

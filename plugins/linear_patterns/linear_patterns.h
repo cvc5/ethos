@@ -44,7 +44,7 @@ class LinearPattern : public StdPlugin
    * If condition is null, then no linearization was necessary.
    */
   static std::pair<Expr, Expr> linearizePattern(State& s, const Expr& pat);
-  static Expr linearizeRec(State& s, const Expr& pat, std::set<Expr>& params, std::vector<Expr>& conds);
+  static Expr linearizeRec(State& s, const Expr& pat, std::map<Expr, size_t>& params, std::vector<Expr>& conds);
 };
 
 }  // namespace ethos
