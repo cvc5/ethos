@@ -65,8 +65,6 @@
 (declare-const $eo_Term Type)
 (declare-const $smt_Type Type)
 (declare-const $smt_Term Type)
-(declare-const $smt_Value Type)
-(declare-const $smt_Map Type)
 (declare-const $smd_tsm.Bool $smt_Type)
 (define $tsm_Bool () $smd_tsm.Bool)
 (declare-parameterized-const $smd_sm.Boolean
@@ -79,28 +77,6 @@
   ((s $smt_builtin_String :opaque)) $smt_Term)
 (declare-parameterized-const $smd_sm.Binary
   ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Term)
-(declare-parameterized-const $smd_vsm.Map ((m $smt_Map :opaque)) $smt_Value)
-(define $vsm_map ((m $smt_Map)) ($smd_vsm.Map m))
-(declare-parameterized-const $smd_vsm.Term
-  ((t $smt_Term :opaque))
-  $smt_Value)
-(define $vsm_term ((t $smt_Term)) ($smd_vsm.Term t))
-(declare-parameterized-const $smd_vsm.Apply
-  ((f $smt_Value :opaque) (a $smt_Value :opaque))
-  $smt_Value)
-(define $vsm_apply ((f $smt_Value) (a $smt_Value))
-  ($smd_vsm.Apply f a))
-(declare-const $smd_vsm.NotValue $smt_Value)
-(define $vsm_not_value () $smd_vsm.NotValue)
-(declare-parameterized-const $smd_msm.cons
-  ((i $smt_Value :opaque) (e $smt_Value :opaque) (m $smt_Map :opaque))
-  $smt_Map)
-(define $msm_cons ((i $smt_Value) (e $smt_Value) (m $smt_Map))
-  ($smd_msm.cons i e m))
-(declare-parameterized-const $smd_msm.default
-  ((e $smt_Value :opaque))
-  $smt_Map)
-(define $msm_default ((e $smt_Value)) ($smd_msm.default e))
 (declare-const $smd_eo.Type $eo_Term)
 (define $eo_Type () $smd_eo.Type)
 (declare-const $smd_eo.Stuck $eo_Term)
@@ -132,8 +108,6 @@
   ($smd_sm.String s))
 (define $sm_binary ((w $smt_builtin_Int) (n $smt_builtin_Int))
   ($smd_sm.Binary w n))
-(define $vsm_true () ($vsm_term $sm_true))
-(define $vsm_false () ($vsm_term $sm_false))
 (program $smtx_pow2 ((i $smt_builtin_Int))
   :signature ($smt_builtin_Int) $smt_builtin_Int
   (
@@ -179,8 +153,6 @@
 )
 (program $smtx_hash ((T Type)) :signature (T) $smt_builtin_Int)
 (program $eo_reverse_hash () :signature ($smt_builtin_Int) $eo_Term)
-(program $smtx_value_hash () :signature ($smt_Value) $smt_builtin_Int)
-(program $smtx_reverse_value_hash () :signature ($smt_builtin_Int) $smt_Value)
 (program $eo_typeof_main () :signature ($eo_Term) Type)
 (program $eo_lit_type_Numeral ((T Type)) :signature (T) Type)
 (program $eo_lit_type_Rational ((T Type)) :signature (T) Type)
@@ -188,7 +160,7 @@
 (program $eo_lit_type_String ((T Type)) :signature (T) Type)
 (program $eo_typeof
   ((t $eo_Term) (T $eo_Term) (b $smt_builtin_Bool) (n $smt_builtin_Int) (r $smt_builtin_Real)
-   (s $smt_builtin_String) (w $smt_builtin_Int) (val $smt_Value))
+   (s $smt_builtin_String) (w $smt_builtin_Int))
   :signature ($eo_Term) $eo_Term
   (
   
@@ -308,6 +280,34 @@
 )
 (program $eo_model_sat () :signature (Bool) Bool)
 (program $eo_model_unsat () :signature (Bool) Bool)
+(declare-const $smt_Value Type)
+(declare-const $smt_Map Type)
+(declare-parameterized-const $smd_vsm.Map ((m $smt_Map :opaque)) $smt_Value)
+(define $vsm_map ((m $smt_Map)) ($smd_vsm.Map m))
+(declare-parameterized-const $smd_vsm.Term
+  ((t $smt_Term :opaque))
+  $smt_Value)
+(define $vsm_term ((t $smt_Term)) ($smd_vsm.Term t))
+(declare-parameterized-const $smd_vsm.Apply
+  ((f $smt_Value :opaque) (a $smt_Value :opaque))
+  $smt_Value)
+(define $vsm_apply ((f $smt_Value) (a $smt_Value))
+  ($smd_vsm.Apply f a))
+(declare-const $smd_vsm.NotValue $smt_Value)
+(define $vsm_not_value () $smd_vsm.NotValue)
+(declare-parameterized-const $smd_msm.cons
+  ((i $smt_Value :opaque) (e $smt_Value :opaque) (m $smt_Map :opaque))
+  $smt_Map)
+(define $msm_cons ((i $smt_Value) (e $smt_Value) (m $smt_Map))
+  ($smd_msm.cons i e m))
+(declare-parameterized-const $smd_msm.default
+  ((e $smt_Value :opaque))
+  $smt_Map)
+(define $msm_default ((e $smt_Value)) ($smd_msm.default e))
+(define $vsm_true () ($vsm_term $sm_true))
+(define $vsm_false () ($vsm_term $sm_false))
+(program $smtx_value_hash () :signature ($smt_Value) $smt_builtin_Int)
+(program $smtx_reverse_value_hash () :signature ($smt_builtin_Int) $smt_Value)
 (program $smtx_msm_lookup
   ((i $smt_Value) (j $smt_Value) (e $smt_Value) (m $smt_Map))
   :signature ($smt_Map $smt_Value) $smt_Value

@@ -570,6 +570,8 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
       // program.
       MetaKind ctxPatMatch = vctxArgs[j - 1];
       printEmbTerm(hd[j], cases, ctxPatMatch);
+      // note this further assumes variables are unique as they are required
+      // to be unique at this point
       if (hd[j].getKind()!=Kind::PARAM)
       {
         wasDefault = false;
@@ -1298,6 +1300,7 @@ std::string LeanMetaReduce::cleanSmtId(const std::string& id)
   idc = replace_all(idc, ">", "gt");
   idc = replace_all(idc, "=", "eq");
   idc = replace_all(idc, "/", "qdiv");
+  idc = replace_all(idc, "^", "exp");
   idc = replace_all(idc, ".", "_");
   idc = replace_all(idc, "@", "_at_");
   idc = replace_all(idc, "$", "__");

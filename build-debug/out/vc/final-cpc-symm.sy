@@ -202,12 +202,6 @@
 ; fwd-decl: $eo_reverse_hash
 (declare-fun $eo_reverse_hash (Int) eo.Term)
 
-; fwd-decl: $smtx_value_hash
-(declare-fun $smtx_value_hash (vsm.Value) Int)
-
-; fwd-decl: $smtx_reverse_value_hash
-(declare-fun $smtx_reverse_value_hash (Int) vsm.Value)
-
 ; fwd-decl: $eo_typeof_main
 (declare-fun $eo_typeof_main (eo.Term) eo.Term)
 
@@ -375,6 +369,12 @@
 
 ; fwd-decl: $eo_model_unsat
 (declare-fun $eo_model_unsat (eo.Term) eo.Term)
+
+; fwd-decl: $smtx_value_hash
+(declare-fun $smtx_value_hash (vsm.Value) Int)
+
+; fwd-decl: $smtx_reverse_value_hash
+(declare-fun $smtx_reverse_value_hash (Int) vsm.Value)
 
 ; program: $smtx_msm_lookup
 (declare-fun $smtx_msm_lookup (msm.Map vsm.Value) vsm.Value)
