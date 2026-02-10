@@ -19,9 +19,8 @@ def smt_or : smt_Bool -> smt_Bool -> smt_Bool
 def smt_xor : smt_Bool -> smt_Bool -> smt_Bool
   | x, y => Bool.xor x y
 
-def smt_ite : forall {T : Type}, smt_Bool -> T -> T -> T
-  | _, true, x, _ => x
-  | _, false, _, y => y
+def smt_ite {T : Type} (c : Bool) (t e : T) : T :=
+  if c then t else e
 
 -- Integer arithmetic
 def smt_zplus : smt_Int -> smt_Int -> smt_Int
