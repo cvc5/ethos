@@ -578,6 +578,8 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   }
   if (!wasDefault)
   {
+    // should be a datatype with stuck
+    Assert (retk==MetaKind::EUNOIA || retk==MetaKind::PROOF);
     cases << "  | ";
     for (size_t j = 1; j < nargs; j++)
     {
