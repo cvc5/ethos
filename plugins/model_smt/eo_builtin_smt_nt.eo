@@ -187,9 +187,6 @@
 ; The Eunoia representation of an SMT-LIB term.
 (define $eo_smt_term ((t $smt_Term)) t)
 
-; The Eunoia representation of an SMT-LIB type.
-(define $eo_smt_type ((T $smt_Type)) T)
-
 ; Represents a Eunoia variable in the final deep embedding.
 (declare-parameterized-const $smd_Var
   ((s $smt_builtin_String :opaque) (T $eo_Term :opaque))
@@ -218,9 +215,6 @@
 ;       curried apply.
 (define $eo_mk_fun_type ((T1 $eo_Term) (T2 $eo_Term))
   ($eo_apply ($eo_apply $eo_fun_type T1) T2))
-
-(define $eo_null_type ()
-  ($eo_smt_type ($tsm_NullSort $smt_builtin_z_zero)))
 
 (define $smt_builtin_z_= ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
   ($smt_builtin_= ($sm_z x1) ($sm_z x2)))

@@ -177,7 +177,7 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
       std::stringstream ss;
       ss << c;
       std::string rstr = ss.str();
-      os << "(smt_mk_rational " << replace_all(rstr, "/", " ") << ")";
+      os << "(eo_lit_mk_rational " << replace_all(rstr, "/", " ") << ")";
     }
     else if (k == Kind::BINARY)
     {
@@ -498,14 +498,10 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   Assert(nargs > 1);
   for (size_t i = 1; i < nargs; i++)
   {
-    if (i > 1)
-    {
-      decl << " ";
-    }
     std::stringstream argType;
     Trace("lean-meta") << "Print meta type " << vt[i - 1] << std::endl;
     printMetaType(vt[i - 1], argType, MetaKind::EUNOIA);
-    decl << argType.str() << " ->";
+    decl << argType.str() << " -> ";
   }
   std::stringstream retType;
   printMetaType(vt[nargs - 1], retType, MetaKind::EUNOIA);
@@ -737,6 +733,13 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
     retType = ct[1];
   }
   std::stringstream eoIsSmtCall;
+  // revert overloads
+  if (cnamek.compare(0, 5, "$eoo_")==0)
+  {
+    size_t firstDot = cnamek.find('.');
+    Assert(firstDot != std::string::npos && firstDot > 5);
+    cnamek = cnamek.substr(5, firstDot - 5);
+  }
   std::string eoIsSmtRet = "(Smt_Term.Id \"" + cnamek + "\")";
   for (size_t i = 0; i < nopqArgs; i++)
   {
