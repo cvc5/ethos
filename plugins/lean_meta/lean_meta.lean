@@ -139,6 +139,7 @@ def __smtx_hash : Term -> eo_lit_Int
 /- Proofs -/
 inductive Proof : Type where
   | pf : Term -> Proof
+  | Stuck : Proof
   
 /- Relevant definitions -/
 

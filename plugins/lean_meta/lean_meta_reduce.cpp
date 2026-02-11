@@ -508,8 +508,8 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   // stuck. We ensure that all programs over such types are total.
   // We also are not a Eunoia program if we called this method via a define
   // command.
-  bool isEunoiaProgram =
-      (getTypeMetaKind(vt[nargs - 1]) == MetaKind::EUNOIA) && !isDefine;
+  MetaKind retk = getTypeMetaKind(vt[nargs - 1]);
+  bool isEunoiaProgram = (retk == MetaKind::EUNOIA) && !isDefine;
   // start with stuck case, if not a SMT program
   if (isEunoiaProgram)
   {
@@ -576,7 +576,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     printEmbTerm(body, cases, bodyInitCtx);
     cases << std::endl;
   }
-  if (isEunoiaProgram && !wasDefault)
+  if (!wasDefault)
   {
     cases << "  | ";
     for (size_t j = 1; j < nargs; j++)
@@ -587,7 +587,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
       }
       cases << "_";
     }
-    cases << " => Term.Stuck" << std::endl;
+    cases << " => " << retType.str()<< ".Stuck" << std::endl;
   }
   // axiom
   d_defs << decl.str();
