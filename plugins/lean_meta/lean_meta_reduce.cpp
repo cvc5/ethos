@@ -262,7 +262,7 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp)
     return smtStr;
   }
   std::stringstream ss;
-  ss << "smt_" << smtStr;
+  ss << "eo_lit_" << smtStr;
   return ss.str();
 }
 
@@ -468,6 +468,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   {
     return;
   }
+  // must linearize the patterns
   std::vector<std::pair<Expr, Expr>> linProgs = LinearPattern::linearize(d_state, v, prog);
   if (linProgs.size()>1)
   {

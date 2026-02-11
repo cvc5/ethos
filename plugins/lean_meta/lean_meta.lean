@@ -1,77 +1,81 @@
 
 namespace Eo
 
+/- Placeholder -/
+inductive Smt_Term : Type where
+  | id : Smt_Term
+
 /- Builtin data types -/
 
-abbrev smt_Bool := Bool
-abbrev smt_Int := Int
-abbrev smt_Real := Rat
-abbrev smt_String := String
+abbrev eo_lit_Bool := Bool
+abbrev eo_lit_Int := Int
+abbrev eo_lit_Real := Rat
+abbrev eo_lit_String := String
 
 /- Evaluation functions -/
 
-def smt_not : smt_Bool -> smt_Bool
+def eo_lit_not : eo_lit_Bool -> eo_lit_Bool
   | x => Bool.not x
-def smt_and : smt_Bool -> smt_Bool -> smt_Bool
+def eo_lit_and : eo_lit_Bool -> eo_lit_Bool -> eo_lit_Bool
   | x, y => x && y
-def smt_or : smt_Bool -> smt_Bool -> smt_Bool
+def eo_lit_or : eo_lit_Bool -> eo_lit_Bool -> eo_lit_Bool
   | x, y => x || y
-def smt_xor : smt_Bool -> smt_Bool -> smt_Bool
+def eo_lit_xor : eo_lit_Bool -> eo_lit_Bool -> eo_lit_Bool
   | x, y => Bool.xor x y
 
-def smt_ite {T : Type} (c : Bool) (t e : T) : T :=
+def eo_lit_ite {T : Type} (c : Bool) (t e : T) : T :=
   if c then t else e
 
 -- Integer arithmetic
-def smt_zplus : smt_Int -> smt_Int -> smt_Int
+def eo_lit_zplus : eo_lit_Int -> eo_lit_Int -> eo_lit_Int
   | x, y => x+y
-def smt_zmult : smt_Int -> smt_Int -> smt_Int
+def eo_lit_zmult : eo_lit_Int -> eo_lit_Int -> eo_lit_Int
   | x, y => x*y
-def smt_zneg : smt_Int -> smt_Int
+def eo_lit_zneg : eo_lit_Int -> eo_lit_Int
   | x => -x
-def smt_zleq : smt_Int -> smt_Int -> smt_Bool
+def eo_lit_zleq : eo_lit_Int -> eo_lit_Int -> eo_lit_Bool
   | x, y => decide (x <= y)
-def smt_zlt : smt_Int -> smt_Int -> smt_Bool
+def eo_lit_zlt : eo_lit_Int -> eo_lit_Int -> eo_lit_Bool
   | x, y => decide (x < y)
-def smt_div : smt_Int -> smt_Int -> smt_Int
+def eo_lit_div : eo_lit_Int -> eo_lit_Int -> eo_lit_Int
   | x, y => x/y
-def smt_mod : smt_Int -> smt_Int -> smt_Int
+def eo_lit_mod : eo_lit_Int -> eo_lit_Int -> eo_lit_Int
   | x, y => x%y
   
 -- Rational arithmetic
-def smt_mk_rational : smt_Int -> smt_Int -> smt_Real
+def eo_lit_mk_rational : eo_lit_Int -> eo_lit_Int -> eo_lit_Real
   | x, y => x/y
-def smt_qplus : smt_Real -> smt_Real -> smt_Real
+def eo_lit_qplus : eo_lit_Real -> eo_lit_Real -> eo_lit_Real
   | x, y => x+y
-def smt_qmult : smt_Real -> smt_Real -> smt_Real
+def eo_lit_qmult : eo_lit_Real -> eo_lit_Real -> eo_lit_Real
   | x, y => x*y
-def smt_qneg : smt_Real -> smt_Real
+def eo_lit_qneg : eo_lit_Real -> eo_lit_Real
   | x => -x
-def smt_qleq : smt_Real -> smt_Real -> smt_Bool
+def eo_lit_qleq : eo_lit_Real -> eo_lit_Real -> eo_lit_Bool
   | x, y => decide (x <= y)
-def smt_qlt : smt_Real -> smt_Real -> smt_Bool
+def eo_lit_qlt : eo_lit_Real -> eo_lit_Real -> eo_lit_Bool
   | x, y => decide (x < y)
-def smt_qdiv : smt_Real -> smt_Real -> smt_Real
+def eo_lit_qdiv : eo_lit_Real -> eo_lit_Real -> eo_lit_Real
   | x, y => x/y
   
 -- Conversions
-def smt_to_int : smt_Real -> smt_Int
+def eo_lit_to_int : eo_lit_Real -> eo_lit_Int
   | x => 0 -- FIXME
-def smt_to_real : smt_Int -> smt_Real
-  | x => (smt_mk_rational x 1)
+def eo_lit_to_real : eo_lit_Int -> eo_lit_Real
+  | x => (eo_lit_mk_rational x 1)
 
 -- Strings
-def smt_str_len : smt_String -> smt_Int
+def eo_lit_str_len : eo_lit_String -> eo_lit_Int
   | x => Int.ofNat x.length
-def smt_str_concat : smt_String -> smt_String -> smt_String
+def eo_lit_str_concat : eo_lit_String -> eo_lit_String -> eo_lit_String
   | x, y => x ++ y
-def smt_str_substr : smt_String -> smt_Int -> smt_Int -> smt_String
+def eo_lit_str_substr : eo_lit_String -> eo_lit_Int -> eo_lit_Int -> eo_lit_String
   | _, _, _ => "" -- FIXME
-def smt_str_indexof : smt_String -> smt_String -> smt_Int -> smt_Int
+def eo_lit_str_indexof : eo_lit_String -> eo_lit_String -> eo_lit_Int -> eo_lit_Int
   | _, _, _ => 0 -- FIXME
-def smt_str_to_code : smt_String -> smt_Int
+def eo_lit_str_to_code : eo_lit_String -> eo_lit_Int
   | _ => 0 -- FIXME
-def smt_str_from_code : smt_Int -> smt_String
+def eo_lit_str_from_code : eo_lit_Int -> eo_lit_String
   | _ => "" -- FIXME
 
 /- Term definition -/
@@ -81,7 +85,7 @@ $LEAN_TERM_DEF$
 deriving DecidableEq
 
 /- Term equality -/
-def smt_eq : Term -> Term -> smt_Bool
+def eo_lit_eq : Term -> Term -> eo_lit_Bool
   | x, y => decide (x = y)
   
 /- Relevant definitions -/
@@ -94,7 +98,16 @@ end
 
 /- The verification conditions -/
 
-axiom eo_model_Bool : Term -> smt_Bool -> Prop
+/- (s,b) is true if the SMT term s evaluates to b in the standard model -/
+axiom eo_lit_model_Bool : Smt_Term -> Bool -> Prop
+
+/- (t,s) is true if the Eunoia term represents SMT-LIB term s -/
+axiom eo_is_smt : Term -> Smt_Term -> Prop
+
+/- (t,b) is true if t is a Eunoia term corresponding to an SMT-LIB term that
+   evaluates to b in the standard model -/
+def eo_model_Bool (e : Term) (b : Bool) : Prop :=
+  exists (t : Smt_Term), (eo_is_smt e t) /\ (eo_lit_model_Bool t b)
 
 $LEAN_THMS$
 
