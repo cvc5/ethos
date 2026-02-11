@@ -3,12 +3,20 @@ namespace Eo
 
 /- Placeholder for SMT-LIB semantics -/
 
+/-
+An SMT-LIB term. This is a placeholder for the definition of SMT-LIB terms.
+This is to be defined externally.
+-/
 inductive Smt_Term : Type where
   | Id : String -> Smt_Term
   | Apply : Smt_Term -> Smt_Term -> Smt_Term
 
-/- (s,b) is true if the SMT term s evaluates to b in the standard model -/
-axiom eo_lit_model_Bool : Smt_Term -> Bool -> Prop
+/-
+A predicate defining a relation on SMT-LIB terms and Booleans such that
+(s,b) is true if the SMT term s evaluates to b in the standard model.
+This is to be defined externally.
+-/
+axiom smt_interprets : Smt_Term -> Bool -> Prop
 
 /- Builtin data types -/
 
@@ -103,14 +111,22 @@ end
 
 /- The verification conditions -/
 
-/- (t,s) is true if the Eunoia term represents SMT-LIB term s -/
-inductive eo_is_smt : Term -> Smt_Term -> Prop
+/-
+An inductive predicate defining the correspondence between Eunoia terms
+and SMT-LIB terms.
+(t,s) is true if the Eunoia term represents SMT-LIB term s.
+-/
+inductive eo_is_smt : Term -> Model_Term -> Prop
 $LEAN_EO_IS_SMT_DEF$
 
-/- (t,b) is true if t is a Eunoia term corresponding to an SMT-LIB term that
-   evaluates to b in the standard model -/
-def eo_model_Bool (t : Term) (b : Bool) : Prop :=
-  exists (s : Smt_Term), (eo_is_smt t s) /\ (eo_lit_model_Bool s b)
+/-
+A predicate defining when a Eunoia term corresponds to an SMT-LIB term that
+evaluates to true or false in a model.
+(t,b) is true if t is a Eunoia term corresponding to an SMT-LIB term that
+evaluates to b in the standard model.
+-/
+def eo_interprets (t : Term) (b : Bool) : Prop :=
+  exists (s : Smt_Term), (eo_is_smt t s) /\ (smt_interprets s b)
 
 $LEAN_THMS$
 

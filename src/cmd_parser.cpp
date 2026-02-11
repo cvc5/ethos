@@ -459,10 +459,17 @@ bool CmdParser::parseNextCommand()
         Expr type = d_state.mkType();
         for (size_t i=0, nargs=progArgs.size(); i<nargs; i++)
         {
-          std::stringstream ss;
-          ss << "$eo_arg_" << i;
-          Expr et = d_state.mkSymbol(Kind::PARAM, ss.str(), type);
-          progTypes.push_back(et);
+          if (progArgs[i].getKind()==Kind::PROOF)
+          {
+            progTypes.push_back(d_state.mkProofType());
+          }
+          else
+          {
+            std::stringstream ss;
+            ss << "$eo_arg_" << i;
+            Expr et = d_state.mkSymbol(Kind::PARAM, ss.str(), type);
+            progTypes.push_back(et);
+          }
         }
         pt = d_state.mkProgramType(progTypes, pt);
         std::stringstream ss;

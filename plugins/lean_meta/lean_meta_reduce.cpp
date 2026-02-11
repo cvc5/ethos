@@ -759,7 +759,7 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
       //  otherwise, a user-provided ambiguous or opaque term, use eo_Term
       sst << "Term";
     }
-    eoIsSmtCall << "x" << (i+1) << " ";
+    eoIsSmtCall << (i>0 ? " " : "") << "x" << (i+1);
     std::stringstream eosr;
     eosr << "(smt_Term.Apply " << eoIsSmtRet << " y" << (i+1) << ")";
     eoIsSmtRet = eosr.str();
@@ -768,6 +768,12 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
     // sst.str() << "\" " << termKindToString(tk) << std::endl;
   }
   (*out) << "Term" << std::endl;
+  // special case for apply
+  if (cnamek=="Apply")
+  {
+    isSmtTerm = true;
+    eoIsSmtRet = "(Smt_Term.Apply y1 y2)";
+  }
   // if an SMT term
   if (isSmtTerm)
   {
@@ -778,15 +784,16 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
       std::stringstream conds;
       for (size_t i = 0; i < nopqArgs; i++)
       {
-        d_eoIsSmt << "y" << (i+1);
+        d_eoIsSmt << "y" << (i+1) << " ";
         conds << "(eo_is_smt x" << (i+1) << " y" << (i+1) << ") -> ";
       }
-      d_eoIsSmt << ": Smt_Term) " << conds.str();
+      d_eoIsSmt << ": Smt_Term), " << std::endl << "  ";
+      d_eoIsSmt << conds.str() << std::endl << "  ";
     }
     d_eoIsSmt << "(eo_is_smt ";
     if (nopqArgs>0)
     {
-      d_eoIsSmt << "(Term." << cname << eoIsSmtCall.str() << ")";
+      d_eoIsSmt << "(Term." << cname << " " << eoIsSmtCall.str() << ")";
     }
     else
     {
@@ -855,44 +862,38 @@ bool LeanMetaReduce::echo(const std::string& msg)
       d_thms << "theorem correct_" << cleanId(eosc) << " ";
       Expr def = d_state.getProgram(vv.getValue());
       Expr patCall;
-      Expr pfcons = d_state.getVar("$eo_pf");
-      Expr pfproven = d_state.getVar("$eo_proven");
-      AlwaysAssert(!pfcons.isNull()) << "Could not find proof constructor";
-      AlwaysAssert(!pfproven.isNull()) << "Could not find proven constructor";
-      if (!def.isNull())
+      Expr pftype = d_state.getVar("$eo_Proof");
+      AlwaysAssert(!pftype.isNull()) << "Could not find proof type";
+      Expr vt = vv.getType();
+      std::stringstream pcs;
+      if (vt.getKind()==Kind::PROGRAM_TYPE)
       {
-        patCall = def[0][0];
-        Assert(!patCall.isNull());
-        std::vector<Expr> vars = Expr::getVariables(patCall);
-        if (!vars.empty())
+        d_thms << "(";
+        std::stringstream conds;
+        std::stringstream progArgs;
+        for (size_t i=1; i<vt.getNumChildren(); i++)
         {
-          d_thms << "(";
-          for (size_t i = 0, nvars = vars.size(); i < nvars; i++)
+          d_thms << (i>1 ? " " : "") << "x" << i;
+          if (vt[i-1]==pftype)
           {
-            call << (i>0 ? " " : "") << vars[i];
+            conds << "  (eo_interprets x" << i << " true) ->" << std::endl;
+            progArgs << (i>1 ? " " : "") << "(__eo_pf x" << i << ")";
           }
-          d_thms << call.str() << " : Term)";
-        }
-        d_thms << " :" << std::endl;
-        // premises are assumptions in theorem
-        for (size_t i=0, nargs=patCall.getNumChildren(); i<nargs; i++)
-        {
-          if (patCall[i].getKind()==Kind::APPLY_OPAQUE && patCall[i][0]==pfcons)
+          else
           {
-            d_thms << "  (eo_model_Bool ";
-            printEmbTerm(patCall[i][1], d_thms);
-            d_thms << " true) ->" << std::endl;
+            progArgs << (i>1 ? " " : "") << "x" << i;
           }
         }
+        d_thms << " : Term)" << " :" << std::endl;
+        d_thms << conds.str();
+        pcs << "(" << cleanId(eosc) << " " << progArgs.str() << ")";
       }
       else
       {
-        d_thms << " :" << std::endl;
-        patCall = vv;
+        pcs << cleanId(eosc);
       }
-      d_thms << "  (Not (eo_model_Bool ";
-      Expr provenPatCall = d_state.mkExpr(Kind::APPLY, {pfproven, patCall});
-      printEmbTerm(provenPatCall, d_thms);
+      d_thms << "  (Not (eo_interprets ";
+      d_thms << "(__eo_proven " << pcs.str() << ")";
       d_thms << " false)) :=" << std::endl;
       d_thms << "by" << std::endl;
       d_thms << "  sorry" << std::endl;
