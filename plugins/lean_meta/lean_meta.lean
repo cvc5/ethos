@@ -109,7 +109,7 @@ $LEAN_DEFS$
 
 end 
 
-/- The verification conditions -/
+/- The theorem statements -/
 
 /-
 An inductive predicate defining the correspondence between Eunoia terms

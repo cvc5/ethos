@@ -877,7 +877,7 @@ bool LeanMetaReduce::echo(const std::string& msg)
           if (vt[i-1]==pftype)
           {
             conds << "  (eo_interprets x" << i << " true) ->" << std::endl;
-            progArgs << (i>1 ? " " : "") << "(__eo_pf x" << i << ")";
+            progArgs << (i>1 ? " " : "") << "(Term.__eo_pf x" << i << ")";
           }
           else
           {
