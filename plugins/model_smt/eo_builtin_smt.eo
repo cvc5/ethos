@@ -143,12 +143,6 @@
 (declare-const $smd_tsm.Bool $smt_Type)
 (define $tsm_Bool () $smd_tsm.Bool)
 
-; The sort of a term that doesn't have an SMT-LIB type.
-; This is used as an error condition
-(declare-parameterized-const $smd_tsm.NullSort
-  ((id $smt_builtin_Int :opaque)) $smt_Type)
-(define $tsm_NullSort ((id $smt_builtin_Int)) ($smd_tsm.NullSort id))
-
 ;;; SMT term datatype constructors
 
 ; the literal types
@@ -219,9 +213,6 @@
 ;       curried apply.
 (define $eo_mk_fun_type ((T1 $eo_Term) (T2 $eo_Term))
   ($eo_apply ($eo_apply $eo_fun_type T1) T2))
-
-(define $eo_null_type ()
-  ($eo_smt_type ($tsm_NullSort $smt_builtin_z_zero)))
 
 ;;; Defining parametric bitvector operators
 
