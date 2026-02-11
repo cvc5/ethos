@@ -14,6 +14,7 @@
 #include <string>
 
 #include "state.h"
+#include "../linear_patterns/linear_patterns.h"
 
 namespace ethos {
 
@@ -465,6 +466,15 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   // forward declaration, ignore
   if (prog.isNull())
   {
+    return;
+  }
+  std::vector<std::pair<Expr, Expr>> linProgs = LinearPattern::linearize(d_state, v, prog);
+  if (linProgs.size()>1)
+  {
+    for (size_t i=0, lsize = linProgs.size(); i<lsize; i++)
+    {
+      finalizeProgram(linProgs[i].first, linProgs[i].second, isDefine);
+    }
     return;
   }
   std::string vname = getName(v);

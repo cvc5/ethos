@@ -44,21 +44,30 @@ std::vector<std::pair<Expr, Expr>> LinearPattern::linearize(
     Expr newProg = s.mkSymbol(Kind::PROGRAM_CONST, ss.str(), ptype);
     std::vector<Expr> newappc;
     std::vector<Expr> defappc;
+    defappc.push_back(currProg);
     newappc.push_back(newProg);
-    for (size_t j=1, ncallArgs=pat.getNumChildren(); j<ncallArgs; j++)
+    bool wasDefault = true;
+    for (size_t j=1, ncallArgs=lpat.first.getNumChildren(); j<ncallArgs; j++)
     {
-      newappc.push_back(pat[j]);
+      wasDefault = wasDefault && lpat.first[j].getKind()==Kind::PARAM;
+      newappc.push_back(lpat.first[j]);
       std::stringstream ssd;
       ssd << "$eo.dv." << j;
       defappc.push_back(s.mkSymbol(Kind::PARAM, ssd.str(), pat[j].getType()));
     }
     Expr newApp = s.mkExprSimple(Kind::APPLY, newappc);
-    Expr defApp = s.mkExprSimple(Kind::APPLY, defappc);
     Expr retLin = s.mkExpr(Kind::EVAL_IF_THEN_ELSE, {lpat.second, progDef[i][1], newApp});
     Expr linCase = s.mkPair(lpat.first, retLin);
     currCases.push_back(linCase);
-    Expr defCase = s.mkPair(defApp, newApp);
-    currCases.push_back(defCase);
+    // only needs a default if the linearized case was not already fully general
+    if (!wasDefault)
+    {
+      Expr defApp = s.mkExprSimple(Kind::APPLY, defappc);
+      defappc[0] = newProg;
+      Expr defRet = s.mkExprSimple(Kind::APPLY, defappc);
+      Expr defCase = s.mkPair(defApp, defRet);
+      currCases.push_back(defCase);
+    }
     Expr currProgDef = s.mkExprSimple(Kind::PROGRAM, currCases);
     ret.emplace_back(currProg, currProgDef);
     currProg = newProg;
@@ -73,6 +82,7 @@ std::vector<std::pair<Expr, Expr>> LinearPattern::linearize(
     // otherwise finish with remainder
     Expr currProgDef = s.mkExprSimple(Kind::PROGRAM, currCases);
     ret.emplace_back(currProg, currProgDef);
+    std::reverse(ret.begin(), ret.end());
   }
   return ret;
 }
