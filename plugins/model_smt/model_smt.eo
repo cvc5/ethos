@@ -1,19 +1,9 @@
 ; This file defines SMT-LIB model semantics in Eunoia.
-; It has exception handling utilities to call Eunoia programs in
-; a safe way that ensures that all programs in this signature are total.
-
 ; The programs in this file operate on datatypes that correspond to
-; a deep embedding of Eunoia and SMT-LIB terms, types and values.
+; a deep embedding of SMT-LIB values.
 ; In particular, we use the following types:
-; 1. $eo_Term, the type of Eunoia terms.
-; 2. $smt_Term, the type of SMT-LIB terms.
-; 3. $smt_Type, the type of SMT-LIB types.
-; 4. $smt_Value, the type of SMT-LIB values.
-; 5. Further types defining specific SMT-LIB values, e.g. $smt_Map.
-; 6. $smt_builtin_X, the builtin SMT-LIB type X.
-; Note that the last type allows us to define symbols whose type
-; will be a native SMT-LIB type in the final embedding generated
-; by the smt-meta plugin.
+; 1. $smt_Value, the type of SMT-LIB values.
+; 2. Further types defining specific SMT-LIB values, e.g. $smt_Map.
 
 ;;;;;; SMT values
 
@@ -340,6 +330,34 @@
   (($smtx_model_eval_= t1 t2)             ($vsm_term ($sm_bool ($smt_builtin_= t1 t2))))
   )
 )
+
+;(program $smtx_model_eval_=
+;  ((t1 $smt_Value) (t2 $smt_Value)
+;   (b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)
+;   (w1 $smt_builtin_Int) (w2 $smt_builtin_Int)
+;   (n1 $smt_builtin_Int) (n2 $smt_builtin_Int)
+;   (r1 $smt_builtin_Real) (r2 $smt_builtin_Real)
+;   (s1 $smt_builtin_String) (s2 $smt_builtin_String)
+;  )
+;  :signature ($smt_Value $smt_Value) $smt_Value
+;  (
+;  (($smtx_model_eval_= ($vsm_term ($sm_bool b1)) ($vsm_term ($sm_bool b2)))
+;    ($vsm_term ($sm_bool ($smt_builtin_= ($sm_bool b1) ($sm_bool b2)))))
+;  (($smtx_model_eval_= ($vsm_term ($sm_z n1)) ($vsm_term ($sm_z n2)))
+;    ($vsm_term ($sm_bool ($smt_builtin_= ($sm_z n1) ($sm_z n2)))))
+;  (($smtx_model_eval_= ($vsm_term ($sm_q r1)) ($vsm_term ($sm_q r2)))
+;    ($vsm_term ($sm_bool ($smt_builtin_= ($sm_q r1) ($sm_q r2)))))
+;  (($smtx_model_eval_= ($vsm_term ($sm_str s1)) ($vsm_term ($sm_str s2)))
+;    ($vsm_term ($sm_bool ($smt_builtin_= ($sm_str s1) ($sm_str s2)))))
+;  (($smtx_model_eval_= ($vsm_term ($sm_binary w1 n1)) ($vsm_term ($sm_binary w2 n2)))
+;    ; note that we know that w1, w2 are legal by invariant on model eval
+;    ($smt_builtin_ite ($smt_builtin_z_= w1 w2)
+;      ($vsm_term ($sm_bool ($smt_builtin_= ($sm_binary w1 n1) ($sm_binary w2 n2))))
+;      $vsm_not_value))
+;  ; TODO: datatype values, others?
+;  (($smtx_model_eval_= t1 t2) $vsm_not_value)
+;  )
+;)
 
 ;;; Functions, arrays
 
