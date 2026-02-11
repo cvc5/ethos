@@ -1,9 +1,14 @@
 
 namespace Eo
 
-/- Placeholder -/
+/- Placeholder for SMT-LIB semantics -/
+
 inductive Smt_Term : Type where
-  | id : Smt_Term
+  | Id : String -> Smt_Term
+  | Apply : Smt_Term -> Smt_Term -> Smt_Term
+
+/- (s,b) is true if the SMT term s evaluates to b in the standard model -/
+axiom eo_lit_model_Bool : Smt_Term -> Bool -> Prop
 
 /- Builtin data types -/
 
@@ -98,16 +103,14 @@ end
 
 /- The verification conditions -/
 
-/- (s,b) is true if the SMT term s evaluates to b in the standard model -/
-axiom eo_lit_model_Bool : Smt_Term -> Bool -> Prop
-
 /- (t,s) is true if the Eunoia term represents SMT-LIB term s -/
-axiom eo_is_smt : Term -> Smt_Term -> Prop
+inductive eo_is_smt : Term -> Smt_Term -> Prop
+$LEAN_EO_IS_SMT_DEF$
 
 /- (t,b) is true if t is a Eunoia term corresponding to an SMT-LIB term that
    evaluates to b in the standard model -/
-def eo_model_Bool (e : Term) (b : Bool) : Prop :=
-  exists (t : Smt_Term), (eo_is_smt e t) /\ (eo_lit_model_Bool t b)
+def eo_model_Bool (t : Term) (b : Bool) : Prop :=
+  exists (s : Smt_Term), (eo_is_smt t s) /\ (eo_lit_model_Bool s b)
 
 $LEAN_THMS$
 

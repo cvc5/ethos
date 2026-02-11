@@ -69,7 +69,7 @@ class LeanMetaReduce : public StdPlugin
    * @param cname Updated to the root name of the constructor.
    * @return The meta-kind of the type of e, or elseKind otherwise.
    */
-  MetaKind getMetaKind(State& s, const Expr& e, std::string& cname) const;
+  MetaKind getMetaKind(State& s, const Expr& e, std::string& cname, bool& isSmtTerm) const;
 
  private:
   MetaKind prefixToMetaKind(const std::string& str) const;
@@ -101,35 +101,17 @@ class LeanMetaReduce : public StdPlugin
   std::stringstream d_defs;
   std::stringstream d_thms;
   // SMT-LIB term embedding
-  std::stringstream d_embedTypeDt;
   std::stringstream d_embedTermDt;
-  std::stringstream d_embedEoTermDt;
-  std::stringstream d_embedValueDt;
+  std::stringstream d_eoIsSmt;
   /** */
   std::map<std::pair<Expr, size_t>, MetaKind> d_metaKindArg;
   /** */
   std::map<Expr, std::string> d_funToDecl;
   /** Declares seen */
   std::set<Expr> d_declSeen;
-  /** */
-  bool isSmtLibExpression(MetaKind ctx);
   /**
    */
   bool isProgramApp(const Expr& app);
-  /**
-   * This returns the expected meta-kind for the i^th child of
-   * parent. It should not depend on parent[i] at all.
-   */
-  MetaKind getMetaKindArg(const Expr& parent, size_t i, MetaKind parentCtx);
-  /**
-   * Returns the result of calling the above method for all
-   * children i of parent.
-   */
-  std::vector<MetaKind> getMetaKindArgs(const Expr& parent, MetaKind parentCtx);
-  /**
-   * Get the meta-kind returned by a child.
-   */
-  MetaKind getMetaKindReturn(const Expr& child, MetaKind parentCtx);
   /** 
    * Remove SMT-LIB identifier issues
    */
