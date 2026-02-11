@@ -100,9 +100,10 @@ class LeanMetaReduce : public StdPlugin
   std::map<std::string, MetaKind> d_typeToMetaKind;
   std::stringstream d_defs;
   std::stringstream d_thms;
-  // SMT-LIB term embedding
+  /** Eunoia term embedding */
   std::stringstream d_embedTermDt;
-  std::stringstream d_eoIsSmt;
+  /** Eunoia to object inductive predicate */
+  std::stringstream d_eoIsObj;
   /** */
   std::map<std::pair<Expr, size_t>, MetaKind> d_metaKindArg;
   /** */

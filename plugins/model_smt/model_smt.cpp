@@ -240,7 +240,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitBinSym("concat",
                {kBitVec, kBitVec},
                smtApp("+", "x1", "x3"),
-               "($smtx_binary_concat x1 x2 x3 x4)");
+               "($smtx_binary_concat x1 x2 x3 x4)", false);
   addLitSym("bvugt", {kBitVec, kBitVec}, kBool, smtApp(">", "x2", "x4"));
   // the following operators require a mix of literal evaluation and term
   // reduction
@@ -557,11 +557,17 @@ void ModelSmt::addQuantifier(const std::string& sym,
 void ModelSmt::addLitBinSym(const std::string& sym,
                             const std::vector<Kind>& args,
                             const std::string& retWidth,
-                            const std::string& retNum)
+                            const std::string& retNum,
+                            bool reqSameWidth)
 {
   std::stringstream ssr;
   ssr << "($vsm_term ($sm_mk_binary " << retWidth << " " << retNum << "))";
-  addLitSym(sym, args, Kind::ANY, ssr.str());
+  std::string ssres = ssr.str();
+  if (reqSameWidth && args.size()==2 && args[0]==Kind::BINARY && args[1]==Kind::BINARY)
+  {
+    ssres = smtIte("($smt_builtin_= x1 x3)", ssres, "$vsm_not_value");
+  }
+  addLitSym(sym, args, Kind::ANY, ssres);
 }
 
 void ModelSmt::addLitSym(const std::string& sym,

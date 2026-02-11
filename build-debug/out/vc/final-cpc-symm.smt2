@@ -1,5 +1,18 @@
 (set-logic ALL)
 
+; Helpers to avoid mixed arithmetic
+(define-fun mk_rational ((x Int) (y Int)) Real (/ (to_real x) (to_real y)))
+(define-fun zleq ((x Int) (y Int)) Bool (<= x y))
+(define-fun zlt ((x Int) (y Int)) Bool (< x y))
+(define-fun zplus ((x Int) (y Int)) Int (+ x y))
+(define-fun zmult ((x Int) (y Int)) Int (* x y))
+(define-fun zneg ((x Int)) Int (- x))
+(define-fun qleq ((x Real) (y Real)) Bool (<= x y))
+(define-fun qlt ((x Real) (y Real)) Bool (< x y))
+(define-fun qplus ((x Real) (y Real)) Real (+ x y))
+(define-fun qmult ((x Real) (y Real)) Real (* x y))
+(define-fun qneg ((x Real)) Real (- x))
+
 ; tsm.Type:
 ;   The final embedding of atomic SMT-LIB types that are relevant to the VC.
 ; sm.Term:

@@ -101,8 +101,7 @@
   ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit)
    (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque))
   ($smt_apply_2 op x1 ($smt_apply_2 op x2 x3)))
-
-
+s
 ; In this signature, we heavily use references to the Datatypes corresponding
 ; to the final deep embeddings of Eunoia terms (eo.Term) and SMT-LIB terms
 ; (sm.Term), where the latter is a subfield type of the former.

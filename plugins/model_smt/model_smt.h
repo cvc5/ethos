@@ -89,7 +89,8 @@ class ModelSmt : public StdPlugin
   void addLitBinSym(const std::string& sym,
                     const std::vector<Kind>& args,
                     const std::string& retWidth,
-                    const std::string& retNum);
+                    const std::string& retNum,
+                    bool reqSameWidth = true);
   /**
    * Similar to addLitSym, but where <retTerm> is
    * automatically generated for sym, args, ret to invoke the

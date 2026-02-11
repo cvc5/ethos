@@ -641,6 +641,6 @@
   (($eovc_symm F) (eo::define ((_v0 ($eo_proven ($eo_prog_symm ($eo_pf F))))) (eo::requires ($eo_typeof F) Bool (eo::requires ($eo_model_sat F) true (eo::requires ($eo_typeof _v0) Bool (eo::requires ($eo_model_unsat _v0) true true))))))
   )
 )
-(echo "smt-meta $eovc_symm :deps $eo_proven $smtx_hash $eo_reverse_hash $smtx_value_hash $smtx_reverse_value_hash $eo_smt_type $tsm_Bool $eo_Type $eo_fun_type $eo_apply $eo_mk_apply ")
+(echo "smt-meta $eovc_symm :deps $eo_proven $smtx_hash $eo_reverse_hash $smtx_value_hash $smtx_reverse_value_hash $eo_smt_term $eo_smt_type $tsm_Bool $eo_Type $eo_fun_type $eo_apply $eo_mk_apply ")
 
 

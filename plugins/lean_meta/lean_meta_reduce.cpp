@@ -732,7 +732,7 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
     nopqArgs = 1;
     retType = ct[1];
   }
-  std::stringstream eoIsSmtCall;
+  std::stringstream eoIsObjCall;
   // revert overloads
   if (cnamek.compare(0, 5, "$eoo_")==0)
   {
@@ -740,7 +740,7 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
     Assert(firstDot != std::string::npos && firstDot > 5);
     cnamek = cnamek.substr(5, firstDot - 5);
   }
-  std::string eoIsSmtRet = "(Smt_Term.Id \"" + cnamek + "\")";
+  std::string eoIsObjRet = "(Smt_Term.Id \"" + cnamek + "\")";
   for (size_t i = 0; i < nopqArgs; i++)
   {
     // print its type using the utility,
@@ -759,10 +759,10 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
       //  otherwise, a user-provided ambiguous or opaque term, use eo_Term
       sst << "Term";
     }
-    eoIsSmtCall << (i>0 ? " " : "") << "x" << (i+1);
+    eoIsObjCall << (i>0 ? " " : "") << "x" << (i+1);
     std::stringstream eosr;
-    eosr << "(smt_Term.Apply " << eoIsSmtRet << " y" << (i+1) << ")";
-    eoIsSmtRet = eosr.str();
+    eosr << "(smt_Term.Apply " << eoIsObjRet << " y" << (i+1) << ")";
+    eoIsObjRet = eosr.str();
     (*out) << sst.str() << " -> ";
     //(*out) << "; Printing datatype argument type " << typ << " gives \"" <<
     // sst.str() << "\" " << termKindToString(tk) << std::endl;
@@ -772,35 +772,35 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   if (cnamek=="Apply")
   {
     isSmtTerm = true;
-    eoIsSmtRet = "(Smt_Term.Apply y1 y2)";
+    eoIsObjRet = "(Smt_Term.Apply y1 y2)";
   }
   // if an SMT term
   if (isSmtTerm)
   {
-    d_eoIsSmt << "| " << cname << "_case : "; 
+    d_eoIsObj << "| " << cname << "_case : "; 
     if (nopqArgs>0)
     {
-      d_eoIsSmt << "forall (" << eoIsSmtCall.str() << " : Term) (";
+      d_eoIsObj << "forall (" << eoIsObjCall.str() << " : Term) (";
       std::stringstream conds;
       for (size_t i = 0; i < nopqArgs; i++)
       {
-        d_eoIsSmt << "y" << (i+1) << " ";
-        conds << "(eo_is_smt x" << (i+1) << " y" << (i+1) << ") -> ";
+        d_eoIsObj << "y" << (i+1) << " ";
+        conds << "(eo_is_obj x" << (i+1) << " y" << (i+1) << ") -> ";
       }
-      d_eoIsSmt << ": Smt_Term), " << std::endl << "  ";
-      d_eoIsSmt << conds.str() << std::endl << "  ";
+      d_eoIsObj << ": Smt_Term), " << std::endl << "  ";
+      d_eoIsObj << conds.str() << std::endl << "  ";
     }
-    d_eoIsSmt << "(eo_is_smt ";
+    d_eoIsObj << "(eo_is_obj ";
     if (nopqArgs>0)
     {
-      d_eoIsSmt << "(Term." << cname << " " << eoIsSmtCall.str() << ")";
+      d_eoIsObj << "(Term." << cname << " " << eoIsObjCall.str() << ")";
     }
     else
     {
-      d_eoIsSmt << "Term." << cname;
+      d_eoIsObj << "Term." << cname;
     }
-    d_eoIsSmt << " " << eoIsSmtRet << ")";
-    d_eoIsSmt << std::endl;
+    d_eoIsObj << " " << eoIsObjRet << ")";
+    d_eoIsObj << std::endl;
   }
 }
 
@@ -827,7 +827,7 @@ void LeanMetaReduce::finalize()
   replace(finalLean, "$LEAN_DEFS$", d_defs.str());
   replace(finalLean, "$LEAN_THMS$", d_thms.str());
   replace(finalLean, "$LEAN_TERM_DEF$", d_embedTermDt.str());
-  replace(finalLean, "$LEAN_EO_IS_SMT_DEF$", d_eoIsSmt.str());
+  replace(finalLean, "$LEAN_EO_IS_OBJ_DEF$", d_eoIsObj.str());
   
   std::stringstream sso;
   sso << s_plugin_path << "plugins/lean_meta/lean_meta_gen.lean";

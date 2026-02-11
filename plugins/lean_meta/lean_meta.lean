@@ -1,22 +1,27 @@
 
 namespace Eo
 
-/- Placeholder for SMT-LIB semantics -/
-
-/-
-An SMT-LIB term. This is a placeholder for the definition of SMT-LIB terms.
-This is to be defined externally.
+/- 
+Placeholder for SMT-LIB terms.
+TODO: define this separately
 -/
 inductive Smt_Term : Type where
   | Id : String -> Smt_Term
   | Apply : Smt_Term -> Smt_Term -> Smt_Term
 
+
 /-
-A predicate defining a relation on SMT-LIB terms and Booleans such that
-(s,b) is true if the SMT term s evaluates to b in the standard model.
+A definition of terms in the object language.
 This is to be defined externally.
 -/
-axiom smt_interprets : Smt_Term -> Bool -> Prop
+abbrev Object_Term := Smt_Term
+
+/-
+A predicate defining a relation on terms in the object language and Booleans
+such that (s,b) is true if s evaluates to b.
+This is to be defined externally.
+-/
+axiom obj_interprets : Object_Term -> Bool -> Prop
 
 /- Builtin data types -/
 
@@ -73,7 +78,7 @@ def eo_lit_qdiv : eo_lit_Real -> eo_lit_Real -> eo_lit_Real
   
 -- Conversions
 def eo_lit_to_int : eo_lit_Real -> eo_lit_Int
-  | x => 0 -- FIXME
+  | x => (Rat.floor x)
 def eo_lit_to_real : eo_lit_Int -> eo_lit_Real
   | x => (eo_lit_mk_rational x 1)
 
@@ -82,14 +87,36 @@ def eo_lit_str_len : eo_lit_String -> eo_lit_Int
   | x => Int.ofNat x.length
 def eo_lit_str_concat : eo_lit_String -> eo_lit_String -> eo_lit_String
   | x, y => x ++ y
-def eo_lit_str_substr : eo_lit_String -> eo_lit_Int -> eo_lit_Int -> eo_lit_String
-  | _, _, _ => "" -- FIXME
-def eo_lit_str_indexof : eo_lit_String -> eo_lit_String -> eo_lit_Int -> eo_lit_Int
-  | _, _, _ => 0 -- FIXME
-def eo_lit_str_to_code : eo_lit_String -> eo_lit_Int
-  | _ => 0 -- FIXME
-def eo_lit_str_from_code : eo_lit_Int -> eo_lit_String
-  | _ => "" -- FIXME
+def eo_lit_str_substr (s : eo_lit_String) (i n : eo_lit_Int) : eo_lit_String :=
+  let len : Int := (eo_lit_str_len s)
+  if i < 0 || n <= 0 || i >= len then
+    ""
+  else
+    let start : Nat := Int.toNat i
+    let take  : Nat := Int.toNat (min n (len - i))
+    String.Pos.Raw.extract s ⟨start⟩ ⟨start + take⟩
+def eo_lit_str_indexof_rec (s t : eo_lit_String) (i len : Nat) : eo_lit_Int :=
+  if (i+len)>(eo_lit_str_len s) then
+    -1
+  else if String.Pos.Raw.substrEq s ⟨i⟩ t ⟨0⟩ len then
+    i
+  else 
+    eo_lit_str_indexof_rec s t (i+1) len
+decreasing_by sorry  -- FIXME
+def eo_lit_str_indexof (s t : eo_lit_String) (i : eo_lit_Int) : eo_lit_Int :=
+  if i < 0 then
+    -1
+  else
+    (eo_lit_str_indexof_rec s t (Int.toNat i) (Int.toNat (eo_lit_str_len t)))
+def eo_lit_str_to_code (s : eo_lit_String) : eo_lit_Int :=
+  match s.toList with
+  | [c] => Int.ofNat c.toNat
+  | _   => -1
+def eo_lit_str_from_code (i : eo_lit_Int) : eo_lit_String :=
+  if (0 <= i && i <= 196608) then
+    String.singleton (Char.ofNat (Int.toNat i))
+  else
+    ""
 
 /- Term definition -/
 
@@ -109,24 +136,28 @@ $LEAN_DEFS$
 
 end 
 
-/- The theorem statements -/
+/- Definitions for theorems -/
 
 /-
 An inductive predicate defining the correspondence between Eunoia terms
-and SMT-LIB terms.
-(t,s) is true if the Eunoia term represents SMT-LIB term s.
+and terms in the object language.
+(t,s) is true if the Eunoia term represents a term s in the object language.
+This is to be custom defined in the Eunoia-to-Lean compiler based on the
+target definition of Object_Term.
 -/
-inductive eo_is_smt : Term -> Model_Term -> Prop
-$LEAN_EO_IS_SMT_DEF$
+inductive eo_is_obj : Term -> Object_Term -> Prop
+$LEAN_EO_IS_OBJ_DEF$
 
 /-
-A predicate defining when a Eunoia term corresponds to an SMT-LIB term that
-evaluates to true or false in a model.
-(t,b) is true if t is a Eunoia term corresponding to an SMT-LIB term that
-evaluates to b in the standard model.
+A predicate defining when a Eunoia term corresponds to an object term that
+evaluates to true or false.
+(t,b) is true if t is a Eunoia term corresponding to an object term that
+evaluates to b.
 -/
 def eo_interprets (t : Term) (b : Bool) : Prop :=
-  exists (s : Smt_Term), (eo_is_smt t s) /\ (smt_interprets s b)
+  exists (s : Object_Term), (eo_is_obj t s) /\ (obj_interprets s b)
+
+/- The theorem statements -/
 
 $LEAN_THMS$
 

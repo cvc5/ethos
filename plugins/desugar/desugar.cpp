@@ -659,7 +659,7 @@ void Desugar::finalizeRule(const Expr& e)
     std::stringstream metaDeps;
     metaDeps
         << "$eo_proven $smtx_hash $eo_reverse_hash $smtx_value_hash "
-          "$smtx_reverse_value_hash "
+          "$smtx_reverse_value_hash $eo_smt_term "
           "$eo_smt_type $tsm_Bool $eo_Type $eo_fun_type $eo_apply $eo_mk_apply ";
     d_eoVc << "(echo \"smt-meta $eo_prog_" << e << " :deps " << metaDeps.str()
           << "\")" << std::endl;
@@ -726,7 +726,7 @@ void Desugar::finalizeRule(const Expr& e)
   std::stringstream metaDeps;
   metaDeps
       << "$eo_proven $smtx_hash $eo_reverse_hash $smtx_value_hash "
-         "$smtx_reverse_value_hash "
+         "$smtx_reverse_value_hash $eo_smt_term "
          "$eo_smt_type $tsm_Bool $eo_Type $eo_fun_type $eo_apply $eo_mk_apply ";
   d_eoVc << "(echo \"smt-meta $eovc_" << e << " :deps " << metaDeps.str()
          << "\")" << std::endl;

@@ -214,6 +214,11 @@
 (define $eo_mk_fun_type ((T1 $eo_Term) (T2 $eo_Term))
   ($eo_apply ($eo_apply $eo_fun_type T1) T2))
 
+(define $smt_builtin_z_= ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
+  ($smt_builtin_= ($sm_z x1) ($sm_z x2)))
+(define $smt_builtin_q_= ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real))
+  ($smt_builtin_= ($sm_q x1) ($sm_q x2)))
+
 ;;; Defining parametric bitvector operators
 
 ; The operators in this section are needed to reason about the parametric

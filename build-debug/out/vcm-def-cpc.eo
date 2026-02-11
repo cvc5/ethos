@@ -244,6 +244,11 @@
 (define $eo_mk_fun_type ((T1 $eo_Term) (T2 $eo_Term))
   ($eo_apply ($eo_apply $eo_fun_type T1) T2))
 
+(define $smt_builtin_z_= ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
+  ($smt_builtin_= ($sm_z x1) ($sm_z x2)))
+(define $smt_builtin_q_= ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real))
+  ($smt_builtin_= ($sm_q x1) ($sm_q x2)))
+
 ;;; Defining parametric bitvector operators
 
 ; The operators in this section are needed to reason about the parametric
@@ -1764,4 +1769,4 @@
   (($eovc_symm F) (eo::define ((_v0 ($eo_proven ($eo_prog_symm ($eo_pf F))))) (eo::requires ($eo_typeof F) Bool (eo::requires ($eo_model_sat F) true (eo::requires ($eo_typeof _v0) Bool (eo::requires ($eo_model_unsat _v0) true true))))))
   )
 )
-(echo "smt-meta $eovc_symm :deps $eo_proven $smtx_hash $eo_reverse_hash $smtx_value_hash $smtx_reverse_value_hash $eo_smt_type $tsm_Bool $eo_Type $eo_fun_type $eo_apply $eo_mk_apply ")
+(echo "smt-meta $eovc_symm :deps $eo_proven $smtx_hash $eo_reverse_hash $smtx_value_hash $smtx_reverse_value_hash $eo_smt_term $eo_smt_type $tsm_Bool $eo_Type $eo_fun_type $eo_apply $eo_mk_apply ")
