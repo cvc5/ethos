@@ -52,7 +52,7 @@ check_status
 rm -f $TMP_TRIM_OUT
 }
 
-echo "********* Verifying the correctness of $TARGET *********"
+echo "********* Generating Lean for $TARGET in $INPUT *********"
 
 # trim dependencies with respect to the proof rule
 echo "**** lean_meta: Run ethos + trim-defs on $INPUT and $TARGET to $INIT_TRIM"

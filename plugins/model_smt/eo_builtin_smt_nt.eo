@@ -59,6 +59,7 @@
 (define $smt_builtin_Bool () ($smt_type_0 "Bool"))
 (define $smt_builtin_Int () ($smt_type_0 "Int"))
 (define $smt_builtin_Real () ($smt_type_0 "Real"))
+(define $smt_builtin_Rat () ($smt_type_0 "Rat"))
 (define $smt_builtin_String () ($smt_type_0 "String"))
 (define $smt_builtin_RegLan () ($smt_type_0 "RegLan"))
 (define $smt_builtin_true () ($smt_apply_0 "true"))
@@ -101,7 +102,7 @@
   ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit)
    (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque))
   ($smt_apply_2 op x1 ($smt_apply_2 op x2 x3)))
-s
+
 ; In this signature, we heavily use references to the Datatypes corresponding
 ; to the final deep embeddings of Eunoia terms (eo.Term) and SMT-LIB terms
 ; (sm.Term), where the latter is a subfield type of the former.
@@ -143,12 +144,6 @@ s
 (declare-const $smd_Bool $smt_Type)
 (define $tsm_Bool () $smd_Bool)
 
-; The sort of a term that doesn't have an SMT-LIB type.
-; This is used as an error condition
-(declare-parameterized-const $smd_NullSort
-  ((id $smt_builtin_Int :opaque)) $smt_Type)
-(define $tsm_NullSort ((id $smt_builtin_Int)) ($smd_NullSort id))
-
 ;;; SMT term datatype constructors
 
 ; the literal types
@@ -157,7 +152,7 @@ s
 (declare-parameterized-const $smd_Numeral
   ((n $smt_builtin_Int :opaque)) $smt_Term)
 (declare-parameterized-const $smd_Rational
-  ((r $smt_builtin_Real :opaque)) $smt_Term)
+  ((r $smt_builtin_Rat :opaque)) $smt_Term)
 (declare-parameterized-const $smd_String
   ((s $smt_builtin_String :opaque)) $smt_Term)
 (declare-parameterized-const $smd_Binary
@@ -202,7 +197,7 @@ s
   ($smd_Boolean c))
 (define $sm_z ((n $smt_builtin_Int))
   ($smd_Numeral n))
-(define $sm_q ((r $smt_builtin_Real))
+(define $sm_q ((r $smt_builtin_Rat))
   ($smd_Rational r))
 (define $sm_str ((s $smt_builtin_String))
   ($smd_String s))
@@ -217,7 +212,7 @@ s
 
 (define $smt_builtin_z_= ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
   ($smt_builtin_= ($sm_z x1) ($sm_z x2)))
-(define $smt_builtin_q_= ((x1 $smt_builtin_Real) (x2 $smt_builtin_Real))
+(define $smt_builtin_q_= ((x1 $smt_builtin_Rat) (x2 $smt_builtin_Rat))
   ($smt_builtin_= ($sm_q x1) ($sm_q x2)))
 
 ;;; Defining parametric bitvector operators
@@ -409,7 +404,7 @@ s
   ($eo_smt_term ($sm_bool x)))
 (define $eo_numeral ((x $smt_builtin_Int))
   ($eo_smt_term ($sm_z x)))
-(define $eo_rational ((x $smt_builtin_Real))
+(define $eo_rational ((x $smt_builtin_Rat))
   ($eo_smt_term ($sm_q x)))
 (define $eo_string ((x $smt_builtin_String))
   ($eo_smt_term ($sm_str x)))
@@ -553,7 +548,7 @@ s
 ; implements: eo::add
 (program $eo_add
   ((T Type) (w1 $smt_builtin_Int) (w2 $smt_builtin_Int)
-   (n1 $smt_builtin_Int) (n2 $smt_builtin_Int) (r1 $smt_builtin_Real) (r2 $smt_builtin_Real))
+   (n1 $smt_builtin_Int) (n2 $smt_builtin_Int) (r1 $smt_builtin_Rat) (r2 $smt_builtin_Rat))
   :signature (T T) T
   (
   (($eo_add ($eo_numeral n1) ($eo_numeral n2))
@@ -568,7 +563,7 @@ s
 
 (program $eo_mul
   ((T Type) (w1 $smt_builtin_Int) (w2 $smt_builtin_Int)
-   (n1 $smt_builtin_Int) (n2 $smt_builtin_Int) (r1 $smt_builtin_Real) (r2 $smt_builtin_Real))
+   (n1 $smt_builtin_Int) (n2 $smt_builtin_Int) (r1 $smt_builtin_Rat) (r2 $smt_builtin_Rat))
   :signature (T T) T
   (
   (($eo_mul ($eo_numeral n1) ($eo_numeral n2))
@@ -583,7 +578,7 @@ s
 
 (program $eo_qdiv
   ((T Type) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int)
-   (r1 $smt_builtin_Real) (r2 $smt_builtin_Real))
+   (r1 $smt_builtin_Rat) (r2 $smt_builtin_Rat))
   :signature (T T) $eo_Rational
   (
   (($eo_qdiv ($eo_numeral n1) ($eo_numeral n2))
@@ -634,7 +629,7 @@ s
   )
 )
 
-(program $eo_is_neg ((T Type) (n1 $smt_builtin_Int) (r1 $smt_builtin_Real))
+(program $eo_is_neg ((T Type) (n1 $smt_builtin_Int) (r1 $smt_builtin_Rat))
   :signature (T) Bool
   (
   (($eo_is_neg ($eo_numeral n1))
@@ -646,7 +641,7 @@ s
 
 ; program: $eo_neg
 ; implements: eo::neg
-(program $eo_neg ((T Type) (w $smt_builtin_Int) (n1 $smt_builtin_Int) (r1 $smt_builtin_Real))
+(program $eo_neg ((T Type) (w $smt_builtin_Int) (n1 $smt_builtin_Int) (r1 $smt_builtin_Rat))
   :signature (T) T
   (
   (($eo_neg ($eo_numeral n1))
@@ -719,7 +714,7 @@ s
 
 ; program: $eo_to_z
 ; implements: eo::to_z
-(program $eo_to_z ((n1 $smt_builtin_Int) (r1 $smt_builtin_Real) (s1 $smt_builtin_String) (w $smt_builtin_Int))
+(program $eo_to_z ((n1 $smt_builtin_Int) (r1 $smt_builtin_Rat) (s1 $smt_builtin_String) (w $smt_builtin_Int))
   :signature ($eo_Term) $eo_Numeral
   (
   (($eo_to_z ($eo_numeral n1))   ($eo_numeral n1))
@@ -735,7 +730,7 @@ s
 
 ; program: $eo_to_q
 ; implements: eo::to_q
-(program $eo_to_q ((n1 $smt_builtin_Int) (r1 $smt_builtin_Real) (s1 $smt_builtin_String) (w $smt_builtin_Int))
+(program $eo_to_q ((n1 $smt_builtin_Int) (r1 $smt_builtin_Rat) (s1 $smt_builtin_String) (w $smt_builtin_Int))
   :signature ($eo_Term) $eo_Rational
   (
   (($eo_to_q ($eo_numeral n1))   ($eo_rational ($smt_apply_1 "to_real" n1)))
@@ -839,7 +834,7 @@ s
 ;;; $eo_is_q
 
 ; Returns true if x is a rational literal.
-(program $eo_is_q_internal ((x $eo_Term) (r $smt_builtin_Real))
+(program $eo_is_q_internal ((x $eo_Term) (r $smt_builtin_Rat))
   :signature ($eo_Term) Bool
   (
   (($eo_is_q_internal ($eo_rational r))  true)
@@ -976,7 +971,7 @@ s
 ; program: $eo_typeof
 ; implements: eo::typeof
 (program $eo_typeof
-  ((t $eo_Term) (T $eo_Term) (b $smt_builtin_Bool) (n $smt_builtin_Int) (r $smt_builtin_Real)
+  ((t $eo_Term) (T $eo_Term) (b $smt_builtin_Bool) (n $smt_builtin_Int) (r $smt_builtin_Rat)
    (s $smt_builtin_String) (w $smt_builtin_Int))
   :signature ($eo_Term) $eo_Term
   (

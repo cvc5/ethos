@@ -1,5 +1,6 @@
 (set-logic ALL)
 
+(define-sort Rat () Real)
 ; Helpers to avoid mixed arithmetic
 (define-fun mk_rational ((x Int) (y Int)) Real (/ (to_real x) (to_real y)))
 (define-fun zleq ((x Int) (y Int)) Bool (<= x y))

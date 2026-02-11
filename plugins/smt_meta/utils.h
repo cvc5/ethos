@@ -39,6 +39,8 @@ enum class MetaKind
   SMT_BUILTIN,
   /** A program */
   PROGRAM,
+  /** A proof */ 
+  PROOF,
   /** No context */
   NONE
 };

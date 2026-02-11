@@ -96,7 +96,6 @@ class LeanMetaReduce : public StdPlugin
   std::set<Expr> d_progDeclProcessed;
   /** Common constants */
   Expr d_null;
-  std::map<std::string, MetaKind> d_prefixToMetaKind;
   std::map<std::string, MetaKind> d_typeToMetaKind;
   std::stringstream d_defs;
   std::stringstream d_thms;

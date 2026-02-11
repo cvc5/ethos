@@ -34,32 +34,12 @@ std::string replace_all(std::string str,
 
 LeanMetaReduce::LeanMetaReduce(State& s) : StdPlugin(s)
 {
-  d_prefixToMetaKind["eo"] = MetaKind::EUNOIA;
-  d_prefixToMetaKind["sm"] = MetaKind::SMT;
-  d_prefixToMetaKind["tsm"] = MetaKind::SMT_TYPE;
-  d_prefixToMetaKind["vsm"] = MetaKind::SMT_VALUE;
-  d_prefixToMetaKind["msm"] = MetaKind::SMT_MAP;
-  d_prefixToMetaKind["ssm"] = MetaKind::SMT_SEQ;
   d_typeToMetaKind["$eo_Type"] = MetaKind::EUNOIA;
-  d_typeToMetaKind["$smt_Value"] = MetaKind::SMT_VALUE;
-  d_typeToMetaKind["$smt_Map"] = MetaKind::SMT_MAP;
-  d_typeToMetaKind["$smt_Seq"] = MetaKind::SMT_SEQ;
+  d_typeToMetaKind["$eo_Proof"] = MetaKind::PROOF;
   d_typeToMetaKind["$smt_BuiltinType"] = MetaKind::SMT_BUILTIN;
 }
 
 LeanMetaReduce::~LeanMetaReduce() {}
-
-MetaKind LeanMetaReduce::prefixToMetaKind(const std::string& str) const
-{
-  std::map<std::string, MetaKind>::const_iterator it =
-      d_prefixToMetaKind.find(str);
-  if (it != d_prefixToMetaKind.end())
-  {
-    return it->second;
-  }
-  Assert(false) << "Bad prefix \"" << str << "\"";
-  return MetaKind::NONE;
-}
 
 bool LeanMetaReduce::printMetaType(const Expr& t,
                                   std::ostream& os,
@@ -69,8 +49,7 @@ bool LeanMetaReduce::printMetaType(const Expr& t,
   switch (tk)
   {
     case MetaKind::EUNOIA: os << "Term"; break;
-    case MetaKind::SMT: os << "Term"; break;
-    case MetaKind::SMT_TYPE: os << "Term"; break;
+    case MetaKind::PROOF: os << "Proof"; break;
     case MetaKind::SMT_BUILTIN: os << getEmbedName(t); break;
     default: return false;
   }
@@ -102,18 +81,25 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
   if (k == Kind::CONST)
   {
     std::string cname = getName(c);
-    os << "Term.";
-    std::stringstream ss;
-    // if it is an explicit embedding of a datatype, take the suffix
-    if (cname.compare(0, 5, "$smd_") == 0)
+    if (cname=="$eo_pf")
     {
-      ss << cname.substr(5);
+      os << "Proof.pf";
     }
     else
     {
-      ss << cname;
+      os << "Term.";
+      std::stringstream ss;
+      // if it is an explicit embedding of a datatype, take the suffix
+      if (cname.compare(0, 5, "$smd_") == 0)
+      {
+        ss << cname.substr(5);
+      }
+      else
+      {
+        ss << cname;
+      }
+      os << cleanSmtId(ss.str());
     }
-    os << cleanSmtId(ss.str());
   }
   else if (k == Kind::BOOL_TYPE)
   {
@@ -160,7 +146,7 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
       if (ci.sgn() == -1)
       {
         const Integer& cin = -ci;
-        os << "(-" << cin.toString() << " : smt_Int)";
+        os << "(-" << cin.toString() << " : eo_lit_Int)";
       }
       else
       {
@@ -176,8 +162,13 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
       }
       std::stringstream ss;
       ss << c;
+      bool isNeg = (l->d_rat.sgn()==-1);
+      os << (isNeg ? "(- " : "");
       std::string rstr = ss.str();
-      os << "(eo_lit_mk_rational " << replace_all(rstr, "/", " ") << ")";
+      rstr = replace_all(rstr, "/", " ");
+      rstr = replace_all(rstr, "-", "");
+      os << "(eo_lit_mk_rational " << rstr << ")";
+      os << (isNeg ? ")" : "");
     }
     else if (k == Kind::BINARY)
     {
@@ -475,6 +466,8 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     }
     return;
   }
+  Assert (linProgs.size()==1);
+  Expr vprog = linProgs[0].second;
   std::string vname = getName(v);
   Trace("lean-meta") << "*** Setting up program " << v << " / " << !prog.isNull()
                     << std::endl;
@@ -545,12 +538,12 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
       cases << " => Term.Stuck" << std::endl;
     }
   }
-  size_t ncases = prog.getNumChildren();
+  size_t ncases = vprog.getNumChildren();
   SelectorCtx ctx;
   bool wasDefault = false;
   for (size_t i = 0; i < ncases; i++)
   {
-    const Expr& c = prog[i];
+    const Expr& c = vprog[i];
     const Expr& hd = c[0];
     const Expr& body = c[1];
     ctx.clear();
@@ -741,6 +734,8 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
     cnamek = cnamek.substr(5, firstDot - 5);
   }
   std::string eoIsObjRet = "(Smt_Term.Id \"" + cnamek + "\")";
+  std::stringstream ssq;
+  std::stringstream sscond;
   for (size_t i = 0; i < nopqArgs; i++)
   {
     // print its type using the utility,
@@ -752,17 +747,22 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
       typ = d_tc.getType(targ);
     }
     std::stringstream sst;
-    if (!printMetaType(typ, sst))
+    MetaKind tk = getTypeMetaKind(typ, MetaKind::EUNOIA);
+    if (tk==MetaKind::EUNOIA)
     {
-      // Assert(false) << "Failed to get meta-type for " << e;
-      // os << e;
-      //  otherwise, a user-provided ambiguous or opaque term, use eo_Term
       sst << "Term";
+      ssq << "(y" << (i+1) << " : Smt_Term)";
+      sscond << "  (eo_is_obj x" << (i+1) << " y" << (i+1) << ") ->" << std::endl;
+      std::stringstream eosr;
+      eosr << "(Smt_Term.Apply " << eoIsObjRet << " y" << (i+1) << ")";
+      eoIsObjRet = eosr.str();
+    }
+    else
+    {
+      sst << getEmbedName(typ);
     }
     eoIsObjCall << (i>0 ? " " : "") << "x" << (i+1);
-    std::stringstream eosr;
-    eosr << "(smt_Term.Apply " << eoIsObjRet << " y" << (i+1) << ")";
-    eoIsObjRet = eosr.str();
+    ssq << "(x" << (i+1) << " : " << sst.str() << ")";
     (*out) << sst.str() << " -> ";
     //(*out) << "; Printing datatype argument type " << typ << " gives \"" <<
     // sst.str() << "\" " << termKindToString(tk) << std::endl;
@@ -772,7 +772,17 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   if (cnamek=="Apply")
   {
     isSmtTerm = true;
-    eoIsObjRet = "(Smt_Term.Apply y1 y2)";
+    eoIsObjRet = "(Smt_Term." + cnamek + " y1 y2)";
+  }
+  else  if (cnamek=="Binary")
+  {
+    isSmtTerm = true;
+    eoIsObjRet = "(Smt_Term." + cnamek + " x1 x2)";
+  }
+  else if (cnamek=="Boolean" || cnamek=="Numeral" || cnamek=="Rational" || cnamek=="String")
+  {
+    isSmtTerm = true;
+    eoIsObjRet = "(Smt_Term." + cnamek + " x1)";
   }
   // if an SMT term
   if (isSmtTerm)
@@ -780,15 +790,8 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
     d_eoIsObj << "| " << cname << "_case : "; 
     if (nopqArgs>0)
     {
-      d_eoIsObj << "forall (" << eoIsObjCall.str() << " : Term) (";
-      std::stringstream conds;
-      for (size_t i = 0; i < nopqArgs; i++)
-      {
-        d_eoIsObj << "y" << (i+1) << " ";
-        conds << "(eo_is_obj x" << (i+1) << " y" << (i+1) << ") -> ";
-      }
-      d_eoIsObj << ": Smt_Term), " << std::endl << "  ";
-      d_eoIsObj << conds.str() << std::endl << "  ";
+      d_eoIsObj << "forall " << ssq.str() << "," << std::endl;
+      d_eoIsObj << sscond.str() << "  ";
     }
     d_eoIsObj << "(eo_is_obj ";
     if (nopqArgs>0)
@@ -861,9 +864,6 @@ bool LeanMetaReduce::echo(const std::string& msg)
     {
       d_thms << "theorem correct_" << cleanId(eosc) << " ";
       Expr def = d_state.getProgram(vv.getValue());
-      Expr patCall;
-      Expr pftype = d_state.getVar("$eo_Proof");
-      AlwaysAssert(!pftype.isNull()) << "Could not find proof type";
       Expr vt = vv.getType();
       std::stringstream pcs;
       if (vt.getKind()==Kind::PROGRAM_TYPE)
@@ -874,10 +874,10 @@ bool LeanMetaReduce::echo(const std::string& msg)
         for (size_t i=1; i<vt.getNumChildren(); i++)
         {
           d_thms << (i>1 ? " " : "") << "x" << i;
-          if (vt[i-1]==pftype)
+          if (getTypeMetaKind(vt[i-1])==MetaKind::PROOF)
           {
             conds << "  (eo_interprets x" << i << " true) ->" << std::endl;
-            progArgs << (i>1 ? " " : "") << "(Term.__eo_pf x" << i << ")";
+            progArgs << (i>1 ? " " : "") << "(Proof.pf x" << i << ")";
           }
           else
           {

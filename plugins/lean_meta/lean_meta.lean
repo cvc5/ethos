@@ -6,9 +6,13 @@ Placeholder for SMT-LIB terms.
 TODO: define this separately
 -/
 inductive Smt_Term : Type where
+  | Boolean : Bool -> Smt_Term
+  | Numeral : Int -> Smt_Term
+  | Rational : Rat -> Smt_Term
+  | String : String -> Smt_Term
+  | Binary : Int -> Int -> Smt_Term
   | Id : String -> Smt_Term
   | Apply : Smt_Term -> Smt_Term -> Smt_Term
-
 
 /-
 A definition of terms in the object language.
@@ -27,7 +31,7 @@ axiom obj_interprets : Object_Term -> Bool -> Prop
 
 abbrev eo_lit_Bool := Bool
 abbrev eo_lit_Int := Int
-abbrev eo_lit_Real := Rat
+abbrev eo_lit_Rat := Rat
 abbrev eo_lit_String := String
 
 /- Evaluation functions -/
@@ -61,25 +65,25 @@ def eo_lit_mod : eo_lit_Int -> eo_lit_Int -> eo_lit_Int
   | x, y => x%y
   
 -- Rational arithmetic
-def eo_lit_mk_rational : eo_lit_Int -> eo_lit_Int -> eo_lit_Real
+def eo_lit_mk_rational : eo_lit_Int -> eo_lit_Int -> eo_lit_Rat
   | x, y => x/y
-def eo_lit_qplus : eo_lit_Real -> eo_lit_Real -> eo_lit_Real
+def eo_lit_qplus : eo_lit_Rat -> eo_lit_Rat -> eo_lit_Rat
   | x, y => x+y
-def eo_lit_qmult : eo_lit_Real -> eo_lit_Real -> eo_lit_Real
+def eo_lit_qmult : eo_lit_Rat -> eo_lit_Rat -> eo_lit_Rat
   | x, y => x*y
-def eo_lit_qneg : eo_lit_Real -> eo_lit_Real
+def eo_lit_qneg : eo_lit_Rat -> eo_lit_Rat
   | x => -x
-def eo_lit_qleq : eo_lit_Real -> eo_lit_Real -> eo_lit_Bool
+def eo_lit_qleq : eo_lit_Rat -> eo_lit_Rat -> eo_lit_Bool
   | x, y => decide (x <= y)
-def eo_lit_qlt : eo_lit_Real -> eo_lit_Real -> eo_lit_Bool
+def eo_lit_qlt : eo_lit_Rat -> eo_lit_Rat -> eo_lit_Bool
   | x, y => decide (x < y)
-def eo_lit_qdiv : eo_lit_Real -> eo_lit_Real -> eo_lit_Real
+def eo_lit_qdiv : eo_lit_Rat -> eo_lit_Rat -> eo_lit_Rat
   | x, y => x/y
   
 -- Conversions
-def eo_lit_to_int : eo_lit_Real -> eo_lit_Int
+def eo_lit_to_int : eo_lit_Rat -> eo_lit_Int
   | x => (Rat.floor x)
-def eo_lit_to_real : eo_lit_Int -> eo_lit_Real
+def eo_lit_to_real : eo_lit_Int -> eo_lit_Rat
   | x => (eo_lit_mk_rational x 1)
 
 -- Strings
@@ -123,10 +127,18 @@ def eo_lit_str_from_code (i : eo_lit_Int) : eo_lit_String :=
 inductive Term : Type where
 $LEAN_TERM_DEF$
 deriving DecidableEq
-
+  
 /- Term equality -/
 def eo_lit_eq : Term -> Term -> eo_lit_Bool
   | x, y => decide (x = y)
+
+/- Used for defining hash -/
+def __smtx_hash : Term -> eo_lit_Int
+  | _ => 0 -- FIXME
+
+/- Proofs -/
+inductive Proof : Type where
+  | pf : Term -> Proof
   
 /- Relevant definitions -/
 

@@ -37,6 +37,14 @@ std::vector<std::pair<Expr, Expr>> LinearPattern::linearize(
       currCases.push_back(progDef[i]);
       continue;
     }
+    if (i+1==ncases)
+    {
+      // as an optimization, just do a requires if we are the last case
+      Expr ctrue = s.mkTrue();
+      Expr ret = s.mkExpr(Kind::EVAL_REQUIRES, {lpat.second, ctrue, progDef[i][1]});
+      currCases.push_back(s.mkPair(lpat.first, ret));
+      continue;
+    }
     // make a new copy of the program
     progCount++;
     std::stringstream ss;
@@ -73,17 +81,10 @@ std::vector<std::pair<Expr, Expr>> LinearPattern::linearize(
     currProg = newProg;
     currCases.clear();
   }
-  if (currProg==prog)
-  {
-    ret.emplace_back(prog, progDef);
-  }
-  else
-  {
-    // otherwise finish with remainder
-    Expr currProgDef = s.mkExprSimple(Kind::PROGRAM, currCases);
-    ret.emplace_back(currProg, currProgDef);
-    std::reverse(ret.begin(), ret.end());
-  }
+  // finish with remainder
+  Expr currProgDef = s.mkExprSimple(Kind::PROGRAM, currCases);
+  ret.emplace_back(currProg, currProgDef);
+  std::reverse(ret.begin(), ret.end());
   return ret;
 }
 
