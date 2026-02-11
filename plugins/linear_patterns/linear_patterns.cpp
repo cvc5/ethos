@@ -21,8 +21,59 @@ std::vector<std::pair<Expr, Expr>> LinearPattern::linearize(
     const Expr& prog,
     const Expr& progDef)
 {
+  Assert (!progDef.isNull() && progDef.getKind()==Kind::PROGRAM);
   std::vector<std::pair<Expr, Expr>> ret;
-  // TODO
+  std::vector<Expr> currCases;
+  Expr currProg = prog;
+  size_t progCount = 0;
+  Expr ptype = prog.getType();
+  for (size_t i=0, ncases = progDef.getNumChildren(); i<ncases; i++)
+  {
+    Assert (progDef[i].getKind()==Kind::TUPLE && progDef[i].getNumChildren()==2);
+    Expr pat = progDef[i][0];
+    std::pair<Expr, Expr> lpat = linearizePattern(s, pat);
+    if (lpat.second.isNull())
+    {
+      currCases.push_back(progDef[i]);
+      continue;
+    }
+    // make a new copy of the program
+    progCount++;
+    std::stringstream ss;
+    ss << "$eo.l." << progCount << "." << prog;
+    Expr newProg = s.mkSymbol(Kind::PROGRAM_CONST, ss.str(), ptype);
+    std::vector<Expr> newappc;
+    std::vector<Expr> defappc;
+    newappc.push_back(newProg);
+    for (size_t j=1, ncallArgs=pat.getNumChildren(); j<ncallArgs; j++)
+    {
+      newappc.push_back(pat[j]);
+      std::stringstream ssd;
+      ssd << "$eo.dv." << j;
+      defappc.push_back(s.mkSymbol(Kind::PARAM, ssd.str(), pat[j].getType()));
+    }
+    Expr newApp = s.mkExprSimple(Kind::APPLY, newappc);
+    Expr defApp = s.mkExprSimple(Kind::APPLY, defappc);
+    Expr retLin = s.mkExpr(Kind::EVAL_IF_THEN_ELSE, {lpat.second, progDef[i][1], newApp});
+    Expr linCase = s.mkPair(lpat.first, retLin);
+    currCases.push_back(linCase);
+    Expr defCase = s.mkPair(defApp, newApp);
+    currCases.push_back(defCase);
+    Expr currProgDef = s.mkExprSimple(Kind::PROGRAM, currCases);
+    ret.emplace_back(currProg, currProgDef);
+    currProg = newProg;
+    currCases.clear();
+  }
+  if (currProg==prog)
+  {
+    ret.emplace_back(prog, progDef);
+  }
+  else
+  {
+    // otherwise finish with remainder
+    Expr currProgDef = s.mkExprSimple(Kind::PROGRAM, currCases);
+    ret.emplace_back(currProg, currProgDef);
+  }
   return ret;
 }
 
@@ -56,9 +107,9 @@ Expr LinearPattern::linearizeRec(State& s, const Expr& pat, std::map<Expr, size_
     }
     else
     {
-      std::stringstream ss;
-      ss << "$eov_" << pat << "." << it->second;
       it->second++;
+      std::stringstream ss;
+      ss << "$eo.lv." << pat << "." << it->second;
       Expr patType = pat.getType();
       Expr npat = s.mkSymbol(Kind::PARAM, ss.str(), patType);
       Expr cond = s.mkExpr(Kind::EVAL_EQ, {pat, npat});
@@ -81,7 +132,6 @@ Expr LinearPattern::linearizeRec(State& s, const Expr& pat, std::map<Expr, size_
       return s.mkExprSimple(pat.getKind(), nchildren);
     }
   }
-  // TODO
   return pat;
 }
 
