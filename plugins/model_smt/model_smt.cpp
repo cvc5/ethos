@@ -241,7 +241,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                {kBitVec, kBitVec},
                smtApp("+", "x1", "x3"),
                "($smtx_binary_concat x1 x2 x3 x4)", false);
-  addLitSym("bvugt", {kBitVec, kBitVec}, kBool, smtApp(">", "x2", "x4"));
+  std::stringstream ssUgtRet;
+  ssUgtRet << "($vsm_term ($sm_bool " << smtApp(">", "x2", "x4") << "))";
+  addLitSym("bvugt", {kBitVec, kBitVec}, kT, smtGuard("($smt_builtin_z_= x1 x3)", ssUgtRet.str()));
   // the following operators require a mix of literal evaluation and term
   // reduction
   std::stringstream ssSgtRet;
@@ -565,7 +567,7 @@ void ModelSmt::addLitBinSym(const std::string& sym,
   std::string ssres = ssr.str();
   if (reqSameWidth && args.size()==2 && args[0]==Kind::BINARY && args[1]==Kind::BINARY)
   {
-    ssres = smtIte("($smt_builtin_= x1 x3)", ssres, "$vsm_not_value");
+    ssres = smtGuard("($smt_builtin_z_= x1 x3)", ssres);
   }
   addLitSym(sym, args, Kind::ANY, ssres);
 }

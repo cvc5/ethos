@@ -321,43 +321,45 @@
 ; either avoided or admissible.
 ; return: The evaluation of an equality application.
 (program $smtx_model_eval_=
-  ((t1 $smt_Value) (t2 $smt_Value))
+  ((t1 $smt_Value) (t2 $smt_Value)
+   (b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)
+   (w1 $smt_builtin_Int) (w2 $smt_builtin_Int)
+   (n1 $smt_builtin_Int) (n2 $smt_builtin_Int)
+   (r1 $smt_builtin_Real) (r2 $smt_builtin_Real)
+   (s1 $smt_builtin_String) (s2 $smt_builtin_String)
+  )
   :signature ($smt_Value $smt_Value) $smt_Value
   (
+  (($smtx_model_eval_= ($vsm_term ($sm_bool b1)) ($vsm_term ($sm_bool b2)))
+    ($vsm_term ($sm_bool ($smt_builtin_= ($sm_bool b1) ($sm_bool b2)))))
+  (($smtx_model_eval_= ($vsm_term ($sm_bool b1)) t2) $vsm_not_value)
+  (($smtx_model_eval_= t1 ($vsm_term ($sm_bool b2))) $vsm_not_value)
+  (($smtx_model_eval_= ($vsm_term ($sm_z n1)) ($vsm_term ($sm_z n2)))
+    ($vsm_term ($sm_bool ($smt_builtin_= ($sm_z n1) ($sm_z n2)))))
+  (($smtx_model_eval_= ($vsm_term ($sm_z n1)) t2) $vsm_not_value)
+  (($smtx_model_eval_= t1 ($vsm_term ($sm_z n2))) $vsm_not_value)
+  (($smtx_model_eval_= ($vsm_term ($sm_q r1)) ($vsm_term ($sm_q r2)))
+    ($vsm_term ($sm_bool ($smt_builtin_= ($sm_q r1) ($sm_q r2)))))
+  (($smtx_model_eval_= ($vsm_term ($sm_q r1)) t2) $vsm_not_value)
+  (($smtx_model_eval_= t1 ($vsm_term ($sm_q r2))) $vsm_not_value)
+  (($smtx_model_eval_= ($vsm_term ($sm_str s1)) ($vsm_term ($sm_str s2)))
+    ($vsm_term ($sm_bool ($smt_builtin_= ($sm_str s1) ($sm_str s2)))))
+  (($smtx_model_eval_= ($vsm_term ($sm_str s1)) t2) $vsm_not_value)
+  (($smtx_model_eval_= t1 ($vsm_term ($sm_str s2))) $vsm_not_value)
+  (($smtx_model_eval_= ($vsm_term ($sm_binary w1 n1)) ($vsm_term ($sm_binary w2 n2)))
+    ; note that we know that w1, w2 are legal by invariant on model eval
+    ($smt_builtin_ite ($smt_builtin_z_= w1 w2)
+      ($vsm_term ($sm_bool ($smt_builtin_= ($sm_binary w1 n1) ($sm_binary w2 n2))))
+      $vsm_not_value))
+  (($smtx_model_eval_= ($vsm_term ($sm_binary w1 n1)) t2) $vsm_not_value)
+  (($smtx_model_eval_= t1 ($vsm_term ($sm_binary w2 n2))) $vsm_not_value)
+  ; TODO: datatype values, others?
   (($smtx_model_eval_= $vsm_not_value t2) $vsm_not_value)
   (($smtx_model_eval_= t1 $vsm_not_value) $vsm_not_value)
   ; use datatype equality over $smt_Value, which depends on t1 and t2 being proper values.
   (($smtx_model_eval_= t1 t2)             ($vsm_term ($sm_bool ($smt_builtin_= t1 t2))))
   )
 )
-
-;(program $smtx_model_eval_=
-;  ((t1 $smt_Value) (t2 $smt_Value)
-;   (b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)
-;   (w1 $smt_builtin_Int) (w2 $smt_builtin_Int)
-;   (n1 $smt_builtin_Int) (n2 $smt_builtin_Int)
-;   (r1 $smt_builtin_Real) (r2 $smt_builtin_Real)
-;   (s1 $smt_builtin_String) (s2 $smt_builtin_String)
-;  )
-;  :signature ($smt_Value $smt_Value) $smt_Value
-;  (
-;  (($smtx_model_eval_= ($vsm_term ($sm_bool b1)) ($vsm_term ($sm_bool b2)))
-;    ($vsm_term ($sm_bool ($smt_builtin_= ($sm_bool b1) ($sm_bool b2)))))
-;  (($smtx_model_eval_= ($vsm_term ($sm_z n1)) ($vsm_term ($sm_z n2)))
-;    ($vsm_term ($sm_bool ($smt_builtin_= ($sm_z n1) ($sm_z n2)))))
-;  (($smtx_model_eval_= ($vsm_term ($sm_q r1)) ($vsm_term ($sm_q r2)))
-;    ($vsm_term ($sm_bool ($smt_builtin_= ($sm_q r1) ($sm_q r2)))))
-;  (($smtx_model_eval_= ($vsm_term ($sm_str s1)) ($vsm_term ($sm_str s2)))
-;    ($vsm_term ($sm_bool ($smt_builtin_= ($sm_str s1) ($sm_str s2)))))
-;  (($smtx_model_eval_= ($vsm_term ($sm_binary w1 n1)) ($vsm_term ($sm_binary w2 n2)))
-;    ; note that we know that w1, w2 are legal by invariant on model eval
-;    ($smt_builtin_ite ($smt_builtin_z_= w1 w2)
-;      ($vsm_term ($sm_bool ($smt_builtin_= ($sm_binary w1 n1) ($sm_binary w2 n2))))
-;      $vsm_not_value))
-;  ; TODO: datatype values, others?
-;  (($smtx_model_eval_= t1 t2) $vsm_not_value)
-;  )
-;)
 
 ;;; Functions, arrays
 

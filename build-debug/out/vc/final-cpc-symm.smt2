@@ -430,12 +430,42 @@
 
 ; program: $smtx_model_eval_=
 (define-fun $smtx_model_eval_= ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
+  (ite (and ((_ is vsm.Term) x1) ((_ is sm.Boolean) (vsm.Term.arg1 x1)) ((_ is vsm.Term) x2) ((_ is sm.Boolean) (vsm.Term.arg1 x2)))
+    (vsm.Term (sm.Boolean (= (sm.Boolean (sm.Boolean.arg1 (vsm.Term.arg1 x1))) (sm.Boolean (sm.Boolean.arg1 (vsm.Term.arg1 x2))))))
+  (ite (and ((_ is vsm.Term) x1) ((_ is sm.Boolean) (vsm.Term.arg1 x1)))
+    vsm.NotValue
+  (ite (and ((_ is vsm.Term) x2) ((_ is sm.Boolean) (vsm.Term.arg1 x2)))
+    vsm.NotValue
+  (ite (and ((_ is vsm.Term) x1) ((_ is sm.Numeral) (vsm.Term.arg1 x1)) ((_ is vsm.Term) x2) ((_ is sm.Numeral) (vsm.Term.arg1 x2)))
+    (vsm.Term (sm.Boolean (= (sm.Numeral (sm.Numeral.arg1 (vsm.Term.arg1 x1))) (sm.Numeral (sm.Numeral.arg1 (vsm.Term.arg1 x2))))))
+  (ite (and ((_ is vsm.Term) x1) ((_ is sm.Numeral) (vsm.Term.arg1 x1)))
+    vsm.NotValue
+  (ite (and ((_ is vsm.Term) x2) ((_ is sm.Numeral) (vsm.Term.arg1 x2)))
+    vsm.NotValue
+  (ite (and ((_ is vsm.Term) x1) ((_ is sm.Rational) (vsm.Term.arg1 x1)) ((_ is vsm.Term) x2) ((_ is sm.Rational) (vsm.Term.arg1 x2)))
+    (vsm.Term (sm.Boolean (= (sm.Rational (sm.Rational.arg1 (vsm.Term.arg1 x1))) (sm.Rational (sm.Rational.arg1 (vsm.Term.arg1 x2))))))
+  (ite (and ((_ is vsm.Term) x1) ((_ is sm.Rational) (vsm.Term.arg1 x1)))
+    vsm.NotValue
+  (ite (and ((_ is vsm.Term) x2) ((_ is sm.Rational) (vsm.Term.arg1 x2)))
+    vsm.NotValue
+  (ite (and ((_ is vsm.Term) x1) ((_ is sm.String) (vsm.Term.arg1 x1)) ((_ is vsm.Term) x2) ((_ is sm.String) (vsm.Term.arg1 x2)))
+    (vsm.Term (sm.Boolean (= (sm.String (sm.String.arg1 (vsm.Term.arg1 x1))) (sm.String (sm.String.arg1 (vsm.Term.arg1 x2))))))
+  (ite (and ((_ is vsm.Term) x1) ((_ is sm.String) (vsm.Term.arg1 x1)))
+    vsm.NotValue
+  (ite (and ((_ is vsm.Term) x2) ((_ is sm.String) (vsm.Term.arg1 x2)))
+    vsm.NotValue
+  (ite (and ((_ is vsm.Term) x1) ((_ is sm.Binary) (vsm.Term.arg1 x1)) ((_ is vsm.Term) x2) ((_ is sm.Binary) (vsm.Term.arg1 x2)))
+    (ite (= (sm.Numeral (sm.Binary.arg1 (vsm.Term.arg1 x1))) (sm.Numeral (sm.Binary.arg1 (vsm.Term.arg1 x2)))) (vsm.Term (sm.Boolean (= (sm.Binary (sm.Binary.arg1 (vsm.Term.arg1 x1)) (sm.Binary.arg2 (vsm.Term.arg1 x1))) (sm.Binary (sm.Binary.arg1 (vsm.Term.arg1 x2)) (sm.Binary.arg2 (vsm.Term.arg1 x2)))))) vsm.NotValue)
+  (ite (and ((_ is vsm.Term) x1) ((_ is sm.Binary) (vsm.Term.arg1 x1)))
+    vsm.NotValue
+  (ite (and ((_ is vsm.Term) x2) ((_ is sm.Binary) (vsm.Term.arg1 x2)))
+    vsm.NotValue
   (ite (= x1 vsm.NotValue)
     vsm.NotValue
   (ite (= x2 vsm.NotValue)
     vsm.NotValue
     (vsm.Term (sm.Boolean (= x1 x2)))
-)))
+))))))))))))))))))
 
 ; program: $smtx_model_eval_not
 (define-fun $smtx_model_eval_not ((x1 vsm.Value)) vsm.Value
