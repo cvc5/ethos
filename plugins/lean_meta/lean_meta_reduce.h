@@ -14,8 +14,8 @@
 #include <sstream>
 #include <string>
 
-#include "../std_plugin.h"
 #include "../smt_meta/utils.h"
+#include "../std_plugin.h"
 
 namespace ethos {
 
@@ -69,7 +69,10 @@ class LeanMetaReduce : public StdPlugin
    * @param cname Updated to the root name of the constructor.
    * @return The meta-kind of the type of e, or elseKind otherwise.
    */
-  MetaKind getMetaKind(State& s, const Expr& e, std::string& cname, bool& isSmtTerm) const;
+  MetaKind getMetaKind(State& s,
+                       const Expr& e,
+                       std::string& cname,
+                       bool& isSmtTerm) const;
 
  private:
   MetaKind prefixToMetaKind(const std::string& str) const;
@@ -112,7 +115,7 @@ class LeanMetaReduce : public StdPlugin
   /**
    */
   bool isProgramApp(const Expr& app);
-  /** 
+  /**
    * Remove SMT-LIB identifier issues
    */
   static std::string cleanSmtId(const std::string& id);

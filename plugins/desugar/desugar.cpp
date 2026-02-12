@@ -657,12 +657,12 @@ void Desugar::finalizeRule(const Expr& e)
       d_eoVc << ")" << std::endl;
     }
     std::stringstream metaDeps;
-    metaDeps
-        << "$eo_proven $smtx_hash $eo_reverse_hash $smtx_value_hash "
-          "$smtx_reverse_value_hash $eo_smt_term "
-          "$eo_smt_type $tsm_Bool $eo_Type $eo_fun_type $eo_apply $eo_mk_apply ";
+    metaDeps << "$eo_proven $smtx_hash $eo_reverse_hash $smtx_value_hash "
+                "$smtx_reverse_value_hash $eo_smt_term "
+                "$eo_smt_type $tsm_Bool $eo_Type $eo_fun_type $eo_apply "
+                "$eo_mk_apply ";
     d_eoVc << "(echo \"smt-meta $eo_prog_" << e << " :deps " << metaDeps.str()
-          << "\")" << std::endl;
+           << "\")" << std::endl;
     return;
   }
 
@@ -918,7 +918,8 @@ bool Desugar::notifyStep(const std::string& name,
                          std::vector<Expr>& args,
                          bool isPop)
 {
-  return d_dproof.notifyStep(name, children, rule, proven, premises, args, isPop);
+  return d_dproof.notifyStep(
+      name, children, rule, proven, premises, args, isPop);
 }
 
 void Desugar::finalizeWellFounded()
@@ -954,10 +955,9 @@ Expr Desugar::mkSanitize(const Expr& t)
   return mkSanitize(t, visited);
 }
 
-Expr Desugar::mkSanitize(const Expr& t,
-                         std::map<Expr, Expr>& visited)
+Expr Desugar::mkSanitize(const Expr& t, std::map<Expr, Expr>& visited)
 {
-  Assert (!t.isNull());
+  Assert(!t.isNull());
   std::map<Expr, Expr>::iterator it;
   std::vector<Expr> visit;
   Expr cur;

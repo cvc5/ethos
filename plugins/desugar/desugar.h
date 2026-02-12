@@ -58,6 +58,7 @@ class Desugar : public StdPlugin
   void setLiteralTypeRule(Kind k, const Expr& t) override;
 
   void printTerm(const Expr& e, std::ostream& os);
+
  private:
   void printName(const Expr& e, std::ostream& os);
   void printParamList(const std::vector<Expr>& vars,
@@ -90,8 +91,7 @@ class Desugar : public StdPlugin
   void finalizeWellFounded();
   /** */
   Expr mkSanitize(const Expr& t);
-  Expr mkSanitize(const Expr& t,
-                  std::map<Expr, Expr>& visited);
+  Expr mkSanitize(const Expr& t, std::map<Expr, Expr>& visited);
   Expr mkRequiresModelSat(bool tgt, const Expr& test, const Expr& ret);
   Expr mkRequiresModelTypeofBool(const Expr& test, const Expr& ret);
   Expr mkRequiresEq(const Expr& t1,

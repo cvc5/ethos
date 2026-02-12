@@ -59,7 +59,6 @@ std::string metaKindToCons(MetaKind k)
   return ss.str();
 }
 
-
 ConjPrint::ConjPrint() : d_npush(0) {}
 void ConjPrint::push(const std::string& str)
 {

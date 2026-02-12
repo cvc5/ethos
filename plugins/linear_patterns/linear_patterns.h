@@ -34,17 +34,20 @@ class LinearPattern : public StdPlugin
    * This returns a list of programs and their definitions that do
    * not have non-linear patterns.
    */
-  static std::vector<std::pair<Expr, Expr>> linearize(
-      State& s,
-      const Expr& prog,
-      const Expr& progDef);
+  static std::vector<std::pair<Expr, Expr>> linearize(State& s,
+                                                      const Expr& prog,
+                                                      const Expr& progDef);
+
  private:
   /**
    * Returns a pair (new pattern, condition) where new pattern is linear.
    * If condition is null, then no linearization was necessary.
    */
   static std::pair<Expr, Expr> linearizePattern(State& s, const Expr& pat);
-  static Expr linearizeRec(State& s, const Expr& pat, std::map<Expr, size_t>& params, std::vector<Expr>& conds);
+  static Expr linearizeRec(State& s,
+                           const Expr& pat,
+                           std::map<Expr, size_t>& params,
+                           std::vector<Expr>& conds);
 };
 
 }  // namespace ethos

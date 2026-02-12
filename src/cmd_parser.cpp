@@ -457,9 +457,9 @@ bool CmdParser::parseNextCommand()
         // construct the program type based on the arguments we are matching
         std::vector<Expr> progTypes;
         Expr type = d_state.mkType();
-        for (size_t i=0, nargs=progArgs.size(); i<nargs; i++)
+        for (size_t i = 0, nargs = progArgs.size(); i < nargs; i++)
         {
-          if (progArgs[i].getKind()==Kind::PROOF)
+          if (progArgs[i].getKind() == Kind::PROOF)
           {
             progTypes.push_back(d_state.mkProofType());
           }

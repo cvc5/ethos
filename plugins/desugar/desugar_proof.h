@@ -42,12 +42,13 @@ class DesugarProof : public StdPlugin
                   std::vector<Expr>& premises,
                   std::vector<Expr>& args,
                   bool isPop) override;
+
  private:
   void printTerm(const Expr& e, std::ostream& os);
   Expr d_true;
   Expr d_boolType;
   // parent desugar
-  Desugar * d_desugar;
+  Desugar* d_desugar;
   // the proof steps
   std::stringstream d_eoPfSteps;
 };

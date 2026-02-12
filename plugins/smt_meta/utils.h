@@ -10,9 +10,9 @@
 #ifndef PLUGIN_SMT_META_UTILS_H
 #define PLUGIN_SMT_META_UTILS_H
 
-#include <string>
-#include <sstream>
 #include <map>
+#include <sstream>
+#include <string>
 
 #include "state.h"
 
@@ -39,7 +39,7 @@ enum class MetaKind
   SMT_BUILTIN,
   /** A program */
   PROGRAM,
-  /** A proof */ 
+  /** A proof */
   PROOF,
   /** No context */
   NONE

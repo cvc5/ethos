@@ -13,8 +13,8 @@
 #include <sstream>
 #include <string>
 
-#include "state.h"
 #include "../linear_patterns/linear_patterns.h"
+#include "state.h"
 
 namespace ethos {
 
@@ -22,14 +22,15 @@ std::string replace_all(std::string str,
                         const std::string& from,
                         const std::string& to)
 {
-    if (from.empty()) return str;  // avoid infinite loop
+  if (from.empty()) return str;  // avoid infinite loop
 
-    std::size_t pos = 0;
-    while ((pos = str.find(from, pos)) != std::string::npos) {
-        str.replace(pos, from.length(), to);
-        pos += to.length();  // move past the replacement
-    }
-    return str;
+  std::size_t pos = 0;
+  while ((pos = str.find(from, pos)) != std::string::npos)
+  {
+    str.replace(pos, from.length(), to);
+    pos += to.length();  // move past the replacement
+  }
+  return str;
 }
 
 LeanMetaReduce::LeanMetaReduce(State& s) : StdPlugin(s)
@@ -42,8 +43,8 @@ LeanMetaReduce::LeanMetaReduce(State& s) : StdPlugin(s)
 LeanMetaReduce::~LeanMetaReduce() {}
 
 bool LeanMetaReduce::printMetaType(const Expr& t,
-                                  std::ostream& os,
-                                  MetaKind tctx) const
+                                   std::ostream& os,
+                                   MetaKind tctx) const
 {
   MetaKind tk = getTypeMetaKind(t, tctx);
   switch (tk)
@@ -57,8 +58,8 @@ bool LeanMetaReduce::printMetaType(const Expr& t,
 }
 
 void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
-                                       std::ostream& os,
-                                       MetaKind parent)
+                                        std::ostream& os,
+                                        MetaKind parent)
 {
   parent = parent == MetaKind::NONE ? MetaKind::EUNOIA : parent;
   Kind k = c.getKind();
@@ -68,7 +69,7 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
     return;
   }
   std::string name;
-  if (c.getKind()==Kind::PROGRAM_CONST)
+  if (c.getKind() == Kind::PROGRAM_CONST)
   {
     // programs always print verbatim
     std::stringstream ss;
@@ -81,7 +82,7 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
   if (k == Kind::CONST)
   {
     std::string cname = getName(c);
-    if (cname=="$eo_pf")
+    if (cname == "$eo_pf")
     {
       os << "Proof.pf";
     }
@@ -104,7 +105,7 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
   else if (k == Kind::BOOL_TYPE)
   {
     // Bool is embedded as an SMT type, we have to wrap it explicitly here.
-    //if (parent == MetaKind::EUNOIA)
+    // if (parent == MetaKind::EUNOIA)
     //{
     //  os << "(eo.SmtType ";
     //  osEnd << ")";
@@ -115,7 +116,7 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
   {
     // Boolean constants are embedded as an SMT type, we have to wrap it
     // explicitly here.
-    //if (parent == MetaKind::EUNOIA)
+    // if (parent == MetaKind::EUNOIA)
     //{
     //  os << "(SmtTerm ";
     //  osEnd << ")";
@@ -162,7 +163,7 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
       }
       std::stringstream ss;
       ss << c;
-      bool isNeg = (l->d_rat.sgn()==-1);
+      bool isNeg = (l->d_rat.sgn() == -1);
       os << (isNeg ? "(- " : "");
       std::string rstr = ss.str();
       rstr = replace_all(rstr, "/", " ");
@@ -226,12 +227,14 @@ bool LeanMetaReduce::isSmtApplyApp(const Expr& oApp)
           || sname.compare(0, 10, "$smt_type_") == 0);
 }
 
-bool is_integer(const std::string& s) {
-    if (s.empty()) return false;
-    for (unsigned char c : s) {
-        if (!std::isdigit(c)) return false;
-    }
-    return true;
+bool is_integer(const std::string& s)
+{
+  if (s.empty()) return false;
+  for (unsigned char c : s)
+  {
+    if (!std::isdigit(c)) return false;
+  }
+  return true;
 }
 
 std::string LeanMetaReduce::getEmbedName(const Expr& oApp)
@@ -257,8 +260,8 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp)
 }
 
 bool LeanMetaReduce::printEmbTerm(const Expr& body,
-                                 std::ostream& os,
-                                 MetaKind tinit)
+                                  std::ostream& os,
+                                  MetaKind tinit)
 {
   std::map<Expr, std::string>::const_iterator it;
   std::map<Expr, MetaKind>::const_iterator ittc;
@@ -324,7 +327,8 @@ bool LeanMetaReduce::printEmbTerm(const Expr& body,
     {
       // atomic terms print here
       // We handle SMT vs SMT_BUILTIN within that method
-      // Trace("lean-meta") << "print emb atomic term: " << recTerm << std::endl;
+      // Trace("lean-meta") << "print emb atomic term: " << recTerm <<
+      // std::endl;
       printEmbAtomicTerm(recTerm, os);
       continue;
     }
@@ -448,8 +452,8 @@ void LeanMetaReduce::defineProgram(const Expr& v, const Expr& prog)
 }
 
 void LeanMetaReduce::finalizeProgram(const Expr& v,
-                                    const Expr& prog,
-                                    bool isDefine)
+                                     const Expr& prog,
+                                     bool isDefine)
 {
   // forward declaration, ignore
   if (prog.isNull())
@@ -457,22 +461,23 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     return;
   }
   // must linearize the patterns
-  std::vector<std::pair<Expr, Expr>> linProgs = LinearPattern::linearize(d_state, v, prog);
-  if (linProgs.size()>1)
+  std::vector<std::pair<Expr, Expr>> linProgs =
+      LinearPattern::linearize(d_state, v, prog);
+  if (linProgs.size() > 1)
   {
-    for (size_t i=0, lsize = linProgs.size(); i<lsize; i++)
+    for (size_t i = 0, lsize = linProgs.size(); i < lsize; i++)
     {
       finalizeProgram(linProgs[i].first, linProgs[i].second, isDefine);
     }
     return;
   }
-  Assert (linProgs.size()==1);
+  Assert(linProgs.size() == 1);
   Expr vprog = linProgs[0].second;
   std::string vname = getName(v);
-  Trace("lean-meta") << "*** Setting up program " << v << " / " << !prog.isNull()
-                    << std::endl;
-  //d_defs << "/- " << (prog.isNull() ? "fwd-decl: " : "program: ") << v
-  //       << " -/" << std::endl;
+  Trace("lean-meta") << "*** Setting up program " << v << " / "
+                     << !prog.isNull() << std::endl;
+  // d_defs << "/- " << (prog.isNull() ? "fwd-decl: " : "program: ") << v
+  //        << " -/" << std::endl;
   std::stringstream decl;
   Expr vv = v;
   Expr vt = d_tc.getType(vv);
@@ -515,18 +520,18 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   {
     for (size_t i = 1; i < nargs; i++)
     {
-      if (getTypeMetaKind(vt[i - 1], MetaKind::EUNOIA)!=MetaKind::EUNOIA)
+      if (getTypeMetaKind(vt[i - 1], MetaKind::EUNOIA) != MetaKind::EUNOIA)
       {
         continue;
       }
       cases << "  | ";
       for (size_t j = 1; j < nargs; j++)
       {
-        if (j>1)
+        if (j > 1)
         {
           cases << ", ";
         }
-        if (i==j)
+        if (i == j)
         {
           cases << "Term.Stuck ";
         }
@@ -554,7 +559,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     wasDefault = true;
     for (size_t j = 1, nhdchild = hd.getNumChildren(); j < nhdchild; j++)
     {
-      if (j>1)
+      if (j > 1)
       {
         cases << ", ";
       }
@@ -566,7 +571,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
       printEmbTerm(hd[j], cases, ctxPatMatch);
       // note this further assumes variables are unique as they are required
       // to be unique at this point
-      if (hd[j].getKind()!=Kind::PARAM)
+      if (hd[j].getKind() != Kind::PARAM)
       {
         wasDefault = false;
       }
@@ -579,22 +584,22 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   if (!wasDefault)
   {
     // should be a datatype with stuck
-    Assert (retk==MetaKind::EUNOIA || retk==MetaKind::PROOF);
+    Assert(retk == MetaKind::EUNOIA || retk == MetaKind::PROOF);
     cases << "  | ";
     for (size_t j = 1; j < nargs; j++)
     {
-      if (j>1)
+      if (j > 1)
       {
         cases << ", ";
       }
       cases << "_";
     }
-    cases << " => " << retType.str()<< ".Stuck" << std::endl;
+    cases << " => " << retType.str() << ".Stuck" << std::endl;
   }
   // axiom
   d_defs << decl.str();
   d_defs << cases.str();
-  //d_defs << "decreasing_by sorry" << std::endl;
+  // d_defs << "decreasing_by sorry" << std::endl;
   d_defs << std::endl;
   d_defs << std::endl;
   // if it corresponds to a proof rule, print a Lean theorem
@@ -630,7 +635,7 @@ void LeanMetaReduce::define(const std::string& name, const Expr& e)
       Expr retType = allocateTypeVariable();
       Expr pt = d_state.mkProgramType(argTypes, retType);
       Trace("lean-meta") << "....make program " << name
-                        << " for define, prog type is " << pt << std::endl;
+                         << " for define, prog type is " << pt << std::endl;
       // Expr pt = d_state.mkBuiltinType(Kind::LAMBDA);
       Expr tmp = d_state.mkSymbol(Kind::PROGRAM_CONST, name, pt);
       // We need to preserve definitions in the final VC.
@@ -653,7 +658,7 @@ void LeanMetaReduce::define(const std::string& name, const Expr& e)
       Expr pcase = d_state.mkPair(progApp, e[1]);
       Expr prog = d_state.mkExprSimple(Kind::PROGRAM, {pcase});
       Trace("lean-meta") << "...do program " << tmp << " / " << prog
-                        << " instead" << std::endl;
+                         << " instead" << std::endl;
       finalizeProgram(tmp, prog, true);
       Trace("lean-meta") << "...finished lambda program" << std::endl;
     }
@@ -703,7 +708,8 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
     return;
   }
   Trace("lean-meta") << "Include " << e << std::endl;
-  //(*out) << "  /- " << (isEmbedCons(e) ? "smt-cons: " : "user-decl: ") << cnamek
+  //(*out) << "  /- " << (isEmbedCons(e) ? "smt-cons: " : "user-decl: ") <<
+  //cnamek
   //       << " -/" << std::endl;
   Expr c = e;
   Expr ct = d_tc.getType(c);
@@ -729,7 +735,7 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   }
   std::stringstream eoIsObjCall;
   // revert overloads
-  if (cnamek.compare(0, 5, "$eoo_")==0)
+  if (cnamek.compare(0, 5, "$eoo_") == 0)
   {
     size_t firstDot = cnamek.find('.');
     Assert(firstDot != std::string::npos && firstDot > 5);
@@ -750,38 +756,40 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
     }
     std::stringstream sst;
     MetaKind tk = getTypeMetaKind(typ, MetaKind::EUNOIA);
-    if (tk==MetaKind::EUNOIA)
+    if (tk == MetaKind::EUNOIA)
     {
       sst << "Term";
-      ssq << "(y" << (i+1) << " : Smt_Term)";
-      sscond << "  (eo_is_obj x" << (i+1) << " y" << (i+1) << ") ->" << std::endl;
+      ssq << "(y" << (i + 1) << " : Smt_Term)";
+      sscond << "  (eo_is_obj x" << (i + 1) << " y" << (i + 1) << ") ->"
+             << std::endl;
       std::stringstream eosr;
-      eosr << "(Smt_Term.Apply " << eoIsObjRet << " y" << (i+1) << ")";
+      eosr << "(Smt_Term.Apply " << eoIsObjRet << " y" << (i + 1) << ")";
       eoIsObjRet = eosr.str();
     }
     else
     {
       sst << getEmbedName(typ);
     }
-    eoIsObjCall << (i>0 ? " " : "") << "x" << (i+1);
-    ssq << "(x" << (i+1) << " : " << sst.str() << ")";
+    eoIsObjCall << (i > 0 ? " " : "") << "x" << (i + 1);
+    ssq << "(x" << (i + 1) << " : " << sst.str() << ")";
     (*out) << sst.str() << " -> ";
     //(*out) << "; Printing datatype argument type " << typ << " gives \"" <<
     // sst.str() << "\" " << termKindToString(tk) << std::endl;
   }
   (*out) << "Term" << std::endl;
   // special case for apply
-  if (cnamek=="Apply")
+  if (cnamek == "Apply")
   {
     isSmtTerm = true;
     eoIsObjRet = "(Smt_Term." + cnamek + " y1 y2)";
   }
-  else  if (cnamek=="Binary")
+  else if (cnamek == "Binary")
   {
     isSmtTerm = true;
     eoIsObjRet = "(Smt_Term." + cnamek + " x1 x2)";
   }
-  else if (cnamek=="Boolean" || cnamek=="Numeral" || cnamek=="Rational" || cnamek=="String")
+  else if (cnamek == "Boolean" || cnamek == "Numeral" || cnamek == "Rational"
+           || cnamek == "String")
   {
     isSmtTerm = true;
     eoIsObjRet = "(Smt_Term." + cnamek + " x1)";
@@ -789,14 +797,14 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   // if an SMT term
   if (isSmtTerm)
   {
-    d_eoIsObj << "| " << cname << "_case : "; 
-    if (nopqArgs>0)
+    d_eoIsObj << "| " << cname << "_case : ";
+    if (nopqArgs > 0)
     {
       d_eoIsObj << "forall " << ssq.str() << "," << std::endl;
       d_eoIsObj << sscond.str() << "  ";
     }
     d_eoIsObj << "(eo_is_obj ";
-    if (nopqArgs>0)
+    if (nopqArgs > 0)
     {
       d_eoIsObj << "(Term." << cname << " " << eoIsObjCall.str() << ")";
     }
@@ -833,7 +841,7 @@ void LeanMetaReduce::finalize()
   replace(finalLean, "$LEAN_THMS$", d_thms.str());
   replace(finalLean, "$LEAN_TERM_DEF$", d_embedTermDt.str());
   replace(finalLean, "$LEAN_EO_IS_OBJ_DEF$", d_eoIsObj.str());
-  
+
   std::stringstream sso;
   sso << s_plugin_path << "plugins/lean_meta/lean_meta_gen.lean";
   Trace("lean-meta") << "Write lean-defs " << sso.str() << std::endl;
@@ -859,7 +867,8 @@ bool LeanMetaReduce::echo(const std::string& msg)
           << "When making verification condition, could not find program "
           << eosc;
     }
-    d_thms << "/- correctness theorem for " << cleanId(eosc) << " -/" << std::endl;
+    d_thms << "/- correctness theorem for " << cleanId(eosc) << " -/"
+           << std::endl;
     std::stringstream call;
     ConjectureType ctype = StdPlugin::optionSmtMetaConjectureType();
     if (ctype == ConjectureType::VC)
@@ -868,22 +877,22 @@ bool LeanMetaReduce::echo(const std::string& msg)
       Expr def = d_state.getProgram(vv.getValue());
       Expr vt = vv.getType();
       std::stringstream pcs;
-      if (vt.getKind()==Kind::PROGRAM_TYPE)
+      if (vt.getKind() == Kind::PROGRAM_TYPE)
       {
         d_thms << "(";
         std::stringstream conds;
         std::stringstream progArgs;
-        for (size_t i=1; i<vt.getNumChildren(); i++)
+        for (size_t i = 1; i < vt.getNumChildren(); i++)
         {
-          d_thms << (i>1 ? " " : "") << "x" << i;
-          if (getTypeMetaKind(vt[i-1])==MetaKind::PROOF)
+          d_thms << (i > 1 ? " " : "") << "x" << i;
+          if (getTypeMetaKind(vt[i - 1]) == MetaKind::PROOF)
           {
             conds << "  (eo_interprets x" << i << " true) ->" << std::endl;
-            progArgs << (i>1 ? " " : "") << "(Proof.pf x" << i << ")";
+            progArgs << (i > 1 ? " " : "") << "(Proof.pf x" << i << ")";
           }
           else
           {
-            progArgs << (i>1 ? " " : "") << "x" << i;
+            progArgs << (i > 1 ? " " : "") << "x" << i;
           }
         }
         d_thms << " : Term)" << " :" << std::endl;
@@ -923,7 +932,7 @@ bool LeanMetaReduce::isProgram(const Expr& t)
 }
 
 MetaKind LeanMetaReduce::getTypeMetaKind(const Expr& typ,
-                                        MetaKind elseKind) const
+                                         MetaKind elseKind) const
 {
   Kind k = typ.getKind();
   if (k == Kind::APPLY_OPAQUE)
@@ -945,9 +954,9 @@ MetaKind LeanMetaReduce::getTypeMetaKind(const Expr& typ,
 }
 
 MetaKind LeanMetaReduce::getMetaKind(State& s,
-                                    const Expr& e,
-                                    std::string& cname,
-                                    bool& isSmtTerm) const
+                                     const Expr& e,
+                                     std::string& cname,
+                                     bool& isSmtTerm) const
 {
   std::string sname = getName(e);
   if (sname.compare(0, 5, "$smt_") == 0 || sname == "$eo_Term")
@@ -990,7 +999,7 @@ bool LeanMetaReduce::isProgramApp(const Expr& app)
 
 std::string LeanMetaReduce::cleanSmtId(const std::string& id)
 {
-  if (id=="end")
+  if (id == "end")
   {
     return "__eo_end";
   }

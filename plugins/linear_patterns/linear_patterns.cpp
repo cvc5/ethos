@@ -8,6 +8,7 @@
  ******************************************************************************/
 
 #include "linear_patterns.h"
+
 #include "state.h"
 
 namespace ethos {
@@ -16,20 +17,20 @@ LinearPattern::LinearPattern(State& s) : StdPlugin(s) {}
 
 LinearPattern::~LinearPattern() {}
 
-std::vector<std::pair<Expr, Expr>> LinearPattern::linearize(
-    State& s,
-    const Expr& prog,
-    const Expr& progDef)
+std::vector<std::pair<Expr, Expr>> LinearPattern::linearize(State& s,
+                                                            const Expr& prog,
+                                                            const Expr& progDef)
 {
-  Assert (!progDef.isNull() && progDef.getKind()==Kind::PROGRAM);
+  Assert(!progDef.isNull() && progDef.getKind() == Kind::PROGRAM);
   std::vector<std::pair<Expr, Expr>> ret;
   std::vector<Expr> currCases;
   Expr currProg = prog;
   size_t progCount = 0;
   Expr ptype = prog.getType();
-  for (size_t i=0, ncases = progDef.getNumChildren(); i<ncases; i++)
+  for (size_t i = 0, ncases = progDef.getNumChildren(); i < ncases; i++)
   {
-    Assert (progDef[i].getKind()==Kind::TUPLE && progDef[i].getNumChildren()==2);
+    Assert(progDef[i].getKind() == Kind::TUPLE
+           && progDef[i].getNumChildren() == 2);
     Expr pat = progDef[i][0];
     std::pair<Expr, Expr> lpat = linearizePattern(s, pat);
     if (lpat.second.isNull())
@@ -37,11 +38,12 @@ std::vector<std::pair<Expr, Expr>> LinearPattern::linearize(
       currCases.push_back(progDef[i]);
       continue;
     }
-    if (i+1==ncases)
+    if (i + 1 == ncases)
     {
       // as an optimization, just do a requires if we are the last case
       Expr ctrue = s.mkTrue();
-      Expr ret = s.mkExpr(Kind::EVAL_REQUIRES, {lpat.second, ctrue, progDef[i][1]});
+      Expr ret =
+          s.mkExpr(Kind::EVAL_REQUIRES, {lpat.second, ctrue, progDef[i][1]});
       currCases.push_back(s.mkPair(lpat.first, ret));
       continue;
     }
@@ -55,16 +57,18 @@ std::vector<std::pair<Expr, Expr>> LinearPattern::linearize(
     defappc.push_back(currProg);
     newappc.push_back(newProg);
     bool wasDefault = true;
-    for (size_t j=1, ncallArgs=lpat.first.getNumChildren(); j<ncallArgs; j++)
+    for (size_t j = 1, ncallArgs = lpat.first.getNumChildren(); j < ncallArgs;
+         j++)
     {
-      wasDefault = wasDefault && lpat.first[j].getKind()==Kind::PARAM;
+      wasDefault = wasDefault && lpat.first[j].getKind() == Kind::PARAM;
       newappc.push_back(lpat.first[j]);
       std::stringstream ssd;
       ssd << "$eo.dv." << j;
       defappc.push_back(s.mkSymbol(Kind::PARAM, ssd.str(), pat[j].getType()));
     }
     Expr newApp = s.mkExprSimple(Kind::APPLY, newappc);
-    Expr retLin = s.mkExpr(Kind::EVAL_IF_THEN_ELSE, {lpat.second, progDef[i][1], newApp});
+    Expr retLin =
+        s.mkExpr(Kind::EVAL_IF_THEN_ELSE, {lpat.second, progDef[i][1], newApp});
     Expr linCase = s.mkPair(lpat.first, retLin);
     currCases.push_back(linCase);
     // only needs a default if the linearized case was not already fully general
@@ -95,11 +99,11 @@ std::pair<Expr, Expr> LinearPattern::linearizePattern(State& s, const Expr& pat)
   Expr lpat = linearizeRec(s, pat, params, conds);
   if (conds.empty())
   {
-    Assert (lpat==pat);
+    Assert(lpat == pat);
     Expr nullExpr;
     return std::pair<Expr, Expr>(lpat, nullExpr);
   }
-  if (conds.size()==1)
+  if (conds.size() == 1)
   {
     return std::pair<Expr, Expr>(lpat, conds[0]);
   }
@@ -107,12 +111,15 @@ std::pair<Expr, Expr> LinearPattern::linearizePattern(State& s, const Expr& pat)
   return std::pair<Expr, Expr>(lpat, cond);
 }
 
-Expr LinearPattern::linearizeRec(State& s, const Expr& pat, std::map<Expr, size_t>& params, std::vector<Expr>& conds)
+Expr LinearPattern::linearizeRec(State& s,
+                                 const Expr& pat,
+                                 std::map<Expr, size_t>& params,
+                                 std::vector<Expr>& conds)
 {
-  if (pat.getKind()==Kind::PARAM)
+  if (pat.getKind() == Kind::PARAM)
   {
     std::map<Expr, size_t>::iterator it = params.find(pat);
-    if (it==params.end())
+    if (it == params.end())
     {
       params[pat] = 1;
     }
@@ -128,15 +135,15 @@ Expr LinearPattern::linearizeRec(State& s, const Expr& pat, std::map<Expr, size_
       return npat;
     }
   }
-  else if (pat.getNumChildren()>0)
+  else if (pat.getNumChildren() > 0)
   {
     std::vector<Expr> nchildren;
     bool childChanged = false;
-    for (size_t i=0, nchild = pat.getNumChildren(); i<nchild; i++)
+    for (size_t i = 0, nchild = pat.getNumChildren(); i < nchild; i++)
     {
       Expr ns = linearizeRec(s, pat[i], params, conds);
       nchildren.push_back(ns);
-      childChanged = childChanged || pat[i]!=ns;
+      childChanged = childChanged || pat[i] != ns;
     }
     if (childChanged)
     {
@@ -145,6 +152,5 @@ Expr LinearPattern::linearizeRec(State& s, const Expr& pat, std::map<Expr, size_
   }
   return pat;
 }
-
 
 }  // namespace ethos

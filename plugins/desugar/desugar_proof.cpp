@@ -13,8 +13,8 @@
 #include <sstream>
 #include <string>
 
-#include "state.h"
 #include "desugar.h"
+#include "state.h"
 
 namespace ethos {
 
@@ -26,12 +26,11 @@ DesugarProof::DesugarProof(State& s, Desugar* d) : StdPlugin(s), d_desugar(d)
 
 DesugarProof::~DesugarProof() {}
 
-void DesugarProof::output(std::ostream& out)
-{
-  out << d_eoPfSteps.str();
-}
+void DesugarProof::output(std::ostream& out) { out << d_eoPfSteps.str(); }
 
-void DesugarProof::notifyAssume(const std::string& name, Expr& proven, bool isPush)
+void DesugarProof::notifyAssume(const std::string& name,
+                                Expr& proven,
+                                bool isPush)
 {
   d_eoPfSteps << "(define $eo_p_" << name << " () ";
   printTerm(proven, d_eoPfSteps);
@@ -40,12 +39,12 @@ void DesugarProof::notifyAssume(const std::string& name, Expr& proven, bool isPu
 }
 
 bool DesugarProof::notifyStep(const std::string& name,
-                         std::vector<Expr>& children,
-                         Expr& rule,
-                         Expr& proven,
-                         std::vector<Expr>& premises,
-                         std::vector<Expr>& args,
-                         bool isPop)
+                              std::vector<Expr>& children,
+                              Expr& rule,
+                              Expr& proven,
+                              std::vector<Expr>& premises,
+                              std::vector<Expr>& args,
+                              bool isPop)
 {
   size_t nargs = 0;
   // prints as a definition
