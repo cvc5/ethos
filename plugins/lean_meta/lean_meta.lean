@@ -1,3 +1,4 @@
+set_option linter.unusedVariables false
 
 namespace Eo
 
@@ -147,7 +148,7 @@ mutual
 
 $LEAN_DEFS$
 
-end 
+end
 
 /- Definitions for theorems -/
 

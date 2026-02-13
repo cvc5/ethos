@@ -58,10 +58,8 @@ bool LeanMetaReduce::printMetaType(const Expr& t,
 }
 
 void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
-                                        std::ostream& os,
-                                        MetaKind parent)
+                                        std::ostream& os)
 {
-  parent = parent == MetaKind::NONE ? MetaKind::EUNOIA : parent;
   Kind k = c.getKind();
   if (k == Kind::TYPE)
   {
@@ -77,7 +75,6 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
     os << cleanId(ss.str());
     return;
   }
-  bool isSmtBuiltin = (parent == MetaKind::SMT_BUILTIN);
   std::stringstream osEnd;
   if (k == Kind::CONST)
   {
@@ -91,7 +88,7 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
       os << "Term.";
       std::stringstream ss;
       // if it is an explicit embedding of a datatype, take the suffix
-      if (cname.compare(0, 5, "$smd_") == 0)
+      if (isEmbedCons(c))
       {
         ss << cname.substr(5);
       }
@@ -104,23 +101,10 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
   }
   else if (k == Kind::BOOL_TYPE)
   {
-    // Bool is embedded as an SMT type, we have to wrap it explicitly here.
-    // if (parent == MetaKind::EUNOIA)
-    //{
-    //  os << "(eo.SmtType ";
-    //  osEnd << ")";
-    //}
     os << "Term.Bool";
   }
   else
   {
-    // Boolean constants are embedded as an SMT type, we have to wrap it
-    // explicitly here.
-    // if (parent == MetaKind::EUNOIA)
-    //{
-    //  os << "(SmtTerm ";
-    //  osEnd << ")";
-    //}
     const Literal* l = c.getValue()->asLiteral();
     if (l == nullptr)
     {
@@ -129,20 +113,14 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
     }
     if (k == Kind::BOOLEAN)
     {
-      if (!isSmtBuiltin)
-      {
-        os << "(Term.Boolean ";
-        osEnd << ")";
-      }
+      os << "(Term.Boolean ";
+      osEnd << ")";
       os << (l->d_bool ? "true" : "false");
     }
     else if (k == Kind::NUMERAL)
     {
-      if (!isSmtBuiltin)
-      {
-        os << "(Term.Numeral ";
-        osEnd << ")";
-      }
+      os << "(Term.Numeral ";
+      osEnd << ")";
       const Integer& ci = l->d_int;
       if (ci.sgn() == -1)
       {
@@ -156,11 +134,8 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
     }
     else if (k == Kind::RATIONAL)
     {
-      if (!isSmtBuiltin)
-      {
-        os << "(Term.Rational ";
-        osEnd << ")";
-      }
+      os << "(Term.Rational ";
+      osEnd << ")";
       std::stringstream ss;
       ss << c;
       bool isNeg = (l->d_rat.sgn() == -1);
@@ -173,23 +148,16 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
     }
     else if (k == Kind::BINARY)
     {
-      if (!isSmtBuiltin)
-      {
-        os << "(Term.Binary ";
-        osEnd << ")";
-      }
+      os << "(Term.Binary ";
+      osEnd << ")";
       const BitVector& bv = l->d_bv;
       const Integer& bvi = bv.getValue();
       os << bv.getSize() << " " << bvi.toString();
     }
     else if (k == Kind::STRING)
     {
-      if (!isSmtBuiltin)
-      {
-        os << "(Term.String ";
-        osEnd << ")";
-      }
-      os << c;
+      os << "(Term.String " << c;
+      osEnd << ")";
     }
     else
     {
@@ -448,13 +416,6 @@ bool LeanMetaReduce::printEmbTerm(const Expr& body,
 
 void LeanMetaReduce::defineProgram(const Expr& v, const Expr& prog)
 {
-  finalizeProgram(v, prog);
-}
-
-void LeanMetaReduce::finalizeProgram(const Expr& v,
-                                     const Expr& prog,
-                                     bool isDefine)
-{
   // forward declaration, ignore
   if (prog.isNull())
   {
@@ -463,17 +424,105 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   // must linearize the patterns
   std::vector<std::pair<Expr, Expr>> linProgs =
       LinearPattern::linearize(d_state, v, prog);
-  if (linProgs.size() > 1)
+  Assert(!linProgs.empty());
+  for (size_t i = 0, lsize = linProgs.size(); i < lsize; i++)
   {
-    for (size_t i = 0, lsize = linProgs.size(); i < lsize; i++)
+    Expr p = linProgs[i].first;
+    d_progDefs.emplace_back(p);
+    d_progToDef[p] = linProgs[i].second;
+  }
+}
+
+void LeanMetaReduce::finalizePrograms()
+{
+  std::set<Expr> progProcessed;
+  std::vector<Expr> waiting;
+  std::set<Expr> waitingDef;
+  for (size_t i=0, nprogs=d_progDefs.size(); i<nprogs; i++)
+  {
+    Expr prog = d_progDefs[i];
+#if 1
+    bool isDefine = (d_progIsDefine.find(prog)!=d_progIsDefine.end());
+    Expr def = d_progToDef[prog];
+    finalizeProgram(prog, def, isDefine);
+#else
+    Expr prog = d_progDefs[i];
+    if (progProcessed.find(prog)!=progProcessed.end())
     {
-      finalizeProgram(linProgs[i].first, linProgs[i].second, isDefine);
+      continue;
     }
+    Expr def = d_progToDef[prog];
+    std::vector<Expr> calls = StdPlugin::getSubtermsKind(Kind::PROGRAM_CONST, def);
+    bool hasWaitingDef = false;
+    for (size_t j=0, ncalls=calls.size(); j<ncalls; j++)
+    {
+      Expr sc = calls[j];
+      if (sc!=prog && progProcessed.find(sc)==progProcessed.end() &&
+          d_progToDef.find(sc)!=d_progToDef.end())
+      {
+        if (std::find(waiting.begin(), waiting.end(), sc)==waiting.end())
+        {
+          waitingDef.insert(sc);
+        }
+        hasWaitingDef = true;
+      }
+    }
+    if (!hasWaitingDef)
+    {
+      // go ahead and define it
+      bool isDefine = (d_progIsDefine.find(prog)!=d_progIsDefine.end());
+      finalizeProgram(prog, def, isDefine);
+      progProcessed.insert(prog);
+    }
+    else
+    {
+      // otherwise we are waiting
+      waiting.push_back(prog);
+    }
+    // remove from waiting defs
+    waitingDef.erase(prog);
+    if (!waiting.empty() && waitingDef.empty())
+    {
+      if (waiting.size()>1)
+      {
+        d_defs << "mutual" << std::endl;
+      }
+      for (size_t j=0, ncalls=waiting.size(); j<ncalls; j++)
+      {
+        Expr prog = waiting[j];
+        Expr def = d_progToDef[prog];
+        if (!def.isNull())
+        {
+          bool isDefine = (d_progIsDefine.find(prog)!=d_progIsDefine.end());
+          finalizeProgram(prog, def, isDefine);
+          progProcessed.insert(prog);
+        }
+      }
+      if (waiting.size()>1)
+      {
+        d_defs << "end" << std::endl;
+      }
+      waiting.clear();
+    }
+#endif
+  }
+  Assert (waiting.empty());
+}
+
+void LeanMetaReduce::finalizeProgram(const Expr& v,
+                                     const Expr& prog,
+                                     bool isDefine)
+{
+  std::string vname = getName(v);
+  if (prog.getKind()!=Kind::PROGRAM)
+  {
+    d_defs << "def " << cleanId(vname) << " : Term";
+    d_defs << " := ";
+    printEmbTerm(prog, d_defs);
+    d_defs << std::endl;
     return;
   }
-  Assert(linProgs.size() == 1);
-  Expr vprog = linProgs[0].second;
-  std::string vname = getName(v);
+  Expr vprog = prog;
   Trace("lean-meta") << "*** Setting up program " << v << " / "
                      << !prog.isNull() << std::endl;
   // d_defs << "/- " << (prog.isNull() ? "fwd-decl: " : "program: ") << v
@@ -659,15 +708,16 @@ void LeanMetaReduce::define(const std::string& name, const Expr& e)
       Expr prog = d_state.mkExprSimple(Kind::PROGRAM, {pcase});
       Trace("lean-meta") << "...do program " << tmp << " / " << prog
                          << " instead" << std::endl;
-      finalizeProgram(tmp, prog, true);
+      d_progDefs.emplace_back(tmp);
+      d_progToDef[tmp] = prog;
+      d_progIsDefine.insert(tmp);
       Trace("lean-meta") << "...finished lambda program" << std::endl;
     }
     else
     {
-      d_defs << "def " << cleanId(name) << " : Term";
-      d_defs << " := ";
-      printEmbTerm(p, d_defs);
-      d_defs << std::endl;
+      Expr tmp = d_state.mkSymbol(Kind::PROGRAM_CONST, name, d_state.mkAny());
+      d_progDefs.emplace_back(tmp);
+      d_progToDef[tmp] = p;
     }
   }
 }
@@ -819,6 +869,7 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
 
 void LeanMetaReduce::finalize()
 {
+  finalizePrograms();
   auto replace = [](std::string& txt,
                     const std::string& tag,
                     const std::string& replacement) {
@@ -916,13 +967,6 @@ bool LeanMetaReduce::echo(const std::string& msg)
     }
     return false;
   }
-  else if (msg.compare(0, 13, "smt-meta-cmd ") == 0)
-  {
-    std::string eosc = msg.substr(13);
-    d_defs << "(echo \"Run " << eosc << "...\")" << std::endl;
-    d_defs << eosc << std::endl;
-    return false;
-  }
   return true;
 }
 
@@ -973,7 +1017,7 @@ MetaKind LeanMetaReduce::getMetaKind(State& s,
     cname = sname;
     return MetaKind::EUNOIA;
   }
-  else if (sname.compare(0, 5, "$smd_") == 0)
+  else if (isEmbedCons(e))
   {
     cname = sname.substr(5);
     return MetaKind::EUNOIA;

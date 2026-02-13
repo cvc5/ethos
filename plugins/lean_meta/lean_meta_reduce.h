@@ -77,11 +77,11 @@ class LeanMetaReduce : public StdPlugin
  private:
   MetaKind prefixToMetaKind(const std::string& str) const;
   void printEmbAtomicTerm(const Expr& c,
-                          std::ostream& os,
-                          MetaKind tctx = MetaKind::NONE);
+                          std::ostream& os);
   bool printEmbTerm(const Expr& c,
                     std::ostream& os,
                     MetaKind tinit = MetaKind::NONE);
+  void finalizePrograms();
   /**
    * Write program definition to d_defs. For consistency this is also called
    * for define commands.
@@ -95,8 +95,6 @@ class LeanMetaReduce : public StdPlugin
   static bool isProgram(const Expr& t);
   static bool isSmtApplyApp(const Expr& oApp);
   static std::string getEmbedName(const Expr& oApp);
-  /** Program declarations processed */
-  std::set<Expr> d_progDeclProcessed;
   /** Common constants */
   Expr d_null;
   std::map<std::string, MetaKind> d_typeToMetaKind;
@@ -106,12 +104,12 @@ class LeanMetaReduce : public StdPlugin
   std::stringstream d_embedTermDt;
   /** Eunoia to object inductive predicate */
   std::stringstream d_eoIsObj;
-  /** */
-  std::map<std::pair<Expr, size_t>, MetaKind> d_metaKindArg;
-  /** */
-  std::map<Expr, std::string> d_funToDecl;
   /** Declares seen */
   std::set<Expr> d_declSeen;
+  /** List of program definitions */
+  std::vector<Expr> d_progDefs;
+  std::map<Expr, Expr> d_progToDef;
+  std::set<Expr> d_progIsDefine;
   /**
    */
   bool isProgramApp(const Expr& app);
