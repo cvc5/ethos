@@ -84,7 +84,7 @@ cp $VC_DEF_DESUGAR $TMP_OUT
 # Replace the command "(echo "include eo_builtin_smt")" with the premble as defined in Eunoia.
 # This file is not a template, but has a fixed definition.
 sed -i "/(echo \"include eo_builtin_smt.*/{
-    r ../plugins/model_smt/eo_builtin_smt_nt.eo
+    r ../plugins/model_smt/eo_builtin_smt.eo
     d
 }" $TMP_OUT
 # now compute the model smt
@@ -133,7 +133,7 @@ else
   echo "**** smt_meta: Verify cvc5 parses"
   $CVC5 $VC_OUT --parse-only
   check_status
-  exit 0
+  #exit 0
 
   BASE_ARGS="--macros-quant --re-first-class --quant-ind"
   
