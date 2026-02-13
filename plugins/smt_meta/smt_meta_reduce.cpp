@@ -26,6 +26,7 @@ SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s), d_smSygus(s)
   d_prefixToMetaKind["msm"] = MetaKind::SMT_MAP;
   d_prefixToMetaKind["ssm"] = MetaKind::SMT_SEQ;
   d_typeToMetaKind["$eo_Type"] = MetaKind::EUNOIA;
+  //d_typeToMetaKind["$eo_Proof"] = MetaKind::PROOF;
   d_typeToMetaKind["$smt_Term"] = MetaKind::SMT;
   d_typeToMetaKind["$smt_Type"] = MetaKind::SMT_TYPE;
   d_typeToMetaKind["$smt_Value"] = MetaKind::SMT_VALUE;
@@ -49,8 +50,9 @@ MetaKind SmtMetaReduce::prefixToMetaKind(const std::string& str) const
   {
     return it->second;
   }
-  Assert(false) << "Bad prefix \"" << str << "\"";
-  return MetaKind::NONE;
+  return MetaKind::EUNOIA;
+  //Assert(false) << "Bad prefix \"" << str << "\"";
+  //return MetaKind::NONE;
 }
 
 bool SmtMetaReduce::printMetaType(const Expr& t,
@@ -99,6 +101,11 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     // if it is an explicit embedding of a datatype, take the suffix
     if (cname.compare(0, 5, "$smd_") == 0)
     {
+      size_t firstDot = cname.find('.');
+      if (firstDot==std::string::npos)
+      {
+        os << "eo.";
+      }
       os << cname.substr(5);
     }
     else
@@ -109,22 +116,22 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
   else if (k == Kind::BOOL_TYPE)
   {
     // Bool is embedded as an SMT type, we have to wrap it explicitly here.
-    if (parent == MetaKind::EUNOIA)
-    {
-      os << "(eo.SmtType ";
-      osEnd << ")";
-    }
-    os << "tsm.Bool";
+    //if (parent == MetaKind::EUNOIA)
+    //{
+    //  os << "(eo.SmtType ";
+    //  osEnd << ")";
+    //}
+    os << "eo.Bool";
   }
   else
   {
     // Boolean constants are embedded as an SMT type, we have to wrap it
     // explicitly here.
-    if (parent == MetaKind::EUNOIA)
-    {
-      os << "(eo.SmtTerm ";
-      osEnd << ")";
-    }
+    //if (parent == MetaKind::EUNOIA)
+    //{
+    //  os << "(eo.SmtTerm ";
+    //  osEnd << ")";
+    //}
     const Literal* l = c.getValue()->asLiteral();
     if (l == nullptr)
     {
@@ -135,7 +142,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     {
       if (!isSmtBuiltin)
       {
-        os << "(sm.Boolean ";
+        os << "(eo.Boolean ";
         osEnd << ")";
       }
       os << (l->d_bool ? "true" : "false");
@@ -144,7 +151,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     {
       if (!isSmtBuiltin)
       {
-        os << "(sm.Numeral ";
+        os << "(eo.Numeral ";
         osEnd << ")";
       }
       const Integer& ci = l->d_int;
@@ -162,7 +169,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     {
       if (!isSmtBuiltin)
       {
-        os << "(sm.Rational ";
+        os << "(eo.Rational ";
         osEnd << ")";
       }
       os << c;
@@ -171,7 +178,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     {
       if (!isSmtBuiltin)
       {
-        os << "(sm.Binary ";
+        os << "(eo.Binary ";
         osEnd << ")";
       }
       const BitVector& bv = l->d_bv;
@@ -182,7 +189,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     {
       if (!isSmtBuiltin)
       {
-        os << "(sm.String ";
+        os << "(eo.String ";
         osEnd << ")";
       }
       os << c;
@@ -1149,7 +1156,7 @@ bool SmtMetaReduce::echo(const std::string& msg)
     std::stringstream varList;
     std::stringstream eoTrue;
     std::stringstream call;
-    eoTrue << "(eo.SmtTerm (sm.Boolean true))";
+    eoTrue << "(eo.Boolean true)";
     Assert(vt.getKind() == Kind::PROGRAM_TYPE);
     Assert(patCall.getNumChildren() == vt.getNumChildren());
     size_t nargs = vt.getNumChildren();
@@ -1288,11 +1295,17 @@ MetaKind SmtMetaReduce::getMetaKind(State& s,
   else if (sname.compare(0, 5, "$smd_") == 0)
   {
     size_t firstDot = sname.find('.');
+    if (firstDot==std::string::npos)
+    {
+      cname = sname.substr(5);
+      return MetaKind::EUNOIA;
+    }
     std::string prefix = sname.substr(5, firstDot - 5);
     cname = sname.substr(firstDot + 1);
     return prefixToMetaKind(prefix);
   }
   cname = sname;
+  return MetaKind::EUNOIA;
   // If not a distinguished symbol, it may be an SMT-LIB term or a type.
   // Check the type of e.
   Expr c = e;

@@ -84,7 +84,7 @@ cp $VC_DEF_DESUGAR $TMP_OUT
 # Replace the command "(echo "include eo_builtin_smt")" with the premble as defined in Eunoia.
 # This file is not a template, but has a fixed definition.
 sed -i "/(echo \"include eo_builtin_smt.*/{
-    r ../plugins/model_smt/eo_builtin_smt.eo
+    r ../plugins/model_smt/eo_builtin_smt_nt.eo
     d
 }" $TMP_OUT
 # now compute the model smt

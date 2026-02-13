@@ -48,7 +48,7 @@ void SmtMetaSygus::initializeGrammars()
       << "re.all re.none (str.to_re G_String) (re.union G_RegLan G_RegLan)";
   tmp = allocateGrammar("G_Int_C", "Int");
   tmp->d_rules << "1 (+ G_Int_C 1)";
-  tmp = allocateGrammar("G_Real", "Real");
+  tmp = allocateGrammar("G_Rat", "Rat");
   tmp->d_rules << "0.0 (/ G_Int_C G_Int_C) (- (/ G_Int_C G_Int_C))";
   tmp = allocateGrammar("G_String", "String");
   tmp->d_rules << "\"\" (str.++ G_String \"A\") (str.++ G_String \"B\")";
@@ -218,6 +218,10 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
   Expr defaultG;
   if (tk == MetaKind::EUNOIA)
   {
+    tk = getSmtLibMetaKind(e);
+  }
+  if (tk == MetaKind::EUNOIA)
+  {
     if (cname == "Stuck" || cname == "SmtTerm" || cname == "SmtType")
     {
       return;
@@ -232,17 +236,13 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
   }
   else if (tk == MetaKind::SMT_TYPE)
   {
-    if (cname == "NullSort")
-    {
-      return;
-    }
     // print on both
 #if 0
     SygusGrammar* sg = getGrammar("G_tsm.Type");
     sg->d_rules << gbase << " ";
 #endif
-    grule << "(eo.SmtType ";
-    gruleEnd << ")";
+    //grule << "(eo.SmtType ";
+    //gruleEnd << ")";
     defaultG = d_gsmtType;
   }
   else if (tk == MetaKind::SMT)
@@ -252,8 +252,8 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
     SygusGrammar* sg = getGrammar("G_sm.Term");
     sg->d_rules << gbase << " ";
 #endif
-    grule << "(eo.SmtTerm ";
-    gruleEnd << ")";
+    //grule << "(eo.SmtTerm ";
+    //gruleEnd << ")";
     defaultG = d_gsmtTerm;
   }
   else if (tk == MetaKind::SMT_VALUE)
@@ -420,6 +420,37 @@ void SmtMetaSygus::printGrammar(const std::string& name,
   os << ") (" << std::endl;
   os << body.str();
   os << ")" << std::endl;
+}
+
+
+MetaKind SmtMetaSygus::getSmtLibMetaKind(const Expr& e) const
+{
+  std::stringstream ss; 
+  ss << e;
+  std::string sname = ss.str();
+  // terms starting with @@ are considered Eunoia (not SMT-LIB).
+  // all symbols apart from $eo_Term that begin with $eo_ are Eunoia terms,
+  // e.g. $eo_Var, $eo_List, etc.
+  if (sname.compare(0, 2, "@@") == 0 || sname.compare(0, 4, "$eo_") == 0)
+  {
+    return MetaKind::EUNOIA;
+  }
+  else if (sname.compare(0, 5, "$smd_") == 0)
+  {
+    return MetaKind::EUNOIA;
+  }
+  // If not a distinguished symbol, it may be an SMT-LIB term or a type.
+  // Check the type of e.
+  Expr tc = e.getType();
+  while (tc.getKind() == Kind::FUNCTION_TYPE)
+  {
+    tc = tc[tc.getNumChildren() - 1];
+  }
+  if (tc.getKind() == Kind::TYPE)
+  {
+    return MetaKind::SMT_TYPE;
+  }
+  return MetaKind::SMT;
 }
 
 }  // namespace ethos

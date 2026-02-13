@@ -85,6 +85,8 @@ class SmtMetaSygus : public StdPlugin
   SygusGrammar* getGrammarFor(const Expr& t);
   void addRulesForSig(const std::string& gbase,
                       const std::vector<Expr>& approxSig);
+  // checking if SMT-LIB term
+  MetaKind getSmtLibMetaKind(const Expr& e) const;
 };
 
 }  // namespace ethos
