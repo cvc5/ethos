@@ -709,7 +709,7 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   }
   Trace("lean-meta") << "Include " << e << std::endl;
   //(*out) << "  /- " << (isEmbedCons(e) ? "smt-cons: " : "user-decl: ") <<
-  //cnamek
+  // cnamek
   //       << " -/" << std::endl;
   Expr c = e;
   Expr ct = d_tc.getType(c);

@@ -26,7 +26,7 @@ SmtMetaReduce::SmtMetaReduce(State& s) : StdPlugin(s), d_smSygus(s)
   d_prefixToMetaKind["msm"] = MetaKind::SMT_MAP;
   d_prefixToMetaKind["ssm"] = MetaKind::SMT_SEQ;
   d_typeToMetaKind["$eo_Type"] = MetaKind::EUNOIA;
-  //d_typeToMetaKind["$eo_Proof"] = MetaKind::PROOF;
+  // d_typeToMetaKind["$eo_Proof"] = MetaKind::PROOF;
   d_typeToMetaKind["$smt_Term"] = MetaKind::SMT;
   d_typeToMetaKind["$smt_Type"] = MetaKind::SMT_TYPE;
   d_typeToMetaKind["$smt_Value"] = MetaKind::SMT_VALUE;
@@ -51,8 +51,8 @@ MetaKind SmtMetaReduce::prefixToMetaKind(const std::string& str) const
     return it->second;
   }
   return MetaKind::EUNOIA;
-  //Assert(false) << "Bad prefix \"" << str << "\"";
-  //return MetaKind::NONE;
+  // Assert(false) << "Bad prefix \"" << str << "\"";
+  // return MetaKind::NONE;
 }
 
 bool SmtMetaReduce::printMetaType(const Expr& t,
@@ -102,7 +102,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
     if (cname.compare(0, 5, "$smd_") == 0)
     {
       size_t firstDot = cname.find('.');
-      if (firstDot==std::string::npos)
+      if (firstDot == std::string::npos)
       {
         os << "eo.";
       }
@@ -116,7 +116,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
   else if (k == Kind::BOOL_TYPE)
   {
     // Bool is embedded as an SMT type, we have to wrap it explicitly here.
-    //if (parent == MetaKind::EUNOIA)
+    // if (parent == MetaKind::EUNOIA)
     //{
     //  os << "(eo.SmtType ";
     //  osEnd << ")";
@@ -127,7 +127,7 @@ void SmtMetaReduce::printEmbAtomicTerm(const Expr& c,
   {
     // Boolean constants are embedded as an SMT type, we have to wrap it
     // explicitly here.
-    //if (parent == MetaKind::EUNOIA)
+    // if (parent == MetaKind::EUNOIA)
     //{
     //  os << "(eo.SmtTerm ";
     //  osEnd << ")";
@@ -1295,7 +1295,7 @@ MetaKind SmtMetaReduce::getMetaKind(State& s,
   else if (sname.compare(0, 5, "$smd_") == 0)
   {
     size_t firstDot = sname.find('.');
-    if (firstDot==std::string::npos)
+    if (firstDot == std::string::npos)
     {
       cname = sname.substr(5);
       return MetaKind::EUNOIA;

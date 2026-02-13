@@ -241,8 +241,8 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
     SygusGrammar* sg = getGrammar("G_tsm.Type");
     sg->d_rules << gbase << " ";
 #endif
-    //grule << "(eo.SmtType ";
-    //gruleEnd << ")";
+    // grule << "(eo.SmtType ";
+    // gruleEnd << ")";
     defaultG = d_gsmtType;
   }
   else if (tk == MetaKind::SMT)
@@ -252,8 +252,8 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
     SygusGrammar* sg = getGrammar("G_sm.Term");
     sg->d_rules << gbase << " ";
 #endif
-    //grule << "(eo.SmtTerm ";
-    //gruleEnd << ")";
+    // grule << "(eo.SmtTerm ";
+    // gruleEnd << ")";
     defaultG = d_gsmtTerm;
   }
   else if (tk == MetaKind::SMT_VALUE)
@@ -305,7 +305,8 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
   Expr aret = approxSig[approxSig.size() - 1];
   if (!defaultG.isNull() && !aret.isNull() && aret != defaultG)
   {
-    Trace("smt-meta-sygus") << "... add return reference " << defaultG << std::endl;
+    Trace("smt-meta-sygus")
+        << "... add return reference " << defaultG << std::endl;
     // ensure its allocated
     getGrammarFor(defaultG);
     d_grefs[defaultG].push_back(aret);
@@ -423,10 +424,9 @@ void SmtMetaSygus::printGrammar(const std::string& name,
   os << ")" << std::endl;
 }
 
-
 MetaKind SmtMetaSygus::getSmtLibMetaKind(const Expr& e) const
 {
-  std::stringstream ss; 
+  std::stringstream ss;
   ss << e;
   std::string sname = ss.str();
   // terms starting with @@ are considered Eunoia (not SMT-LIB).
@@ -438,11 +438,13 @@ MetaKind SmtMetaSygus::getSmtLibMetaKind(const Expr& e) const
   }
   else if (sname.compare(0, 5, "$smd_") == 0)
   {
-    if (sname=="$smd_Bool")
+    if (sname == "$smd_Bool")
     {
       return MetaKind::SMT_TYPE;
     }
-    else if (sname=="$smd_Boolean" || sname=="$smd_Numeral" || sname=="$smd_Rational" || sname=="$smd_String" || sname=="$smd_Binary")
+    else if (sname == "$smd_Boolean" || sname == "$smd_Numeral"
+             || sname == "$smd_Rational" || sname == "$smd_String"
+             || sname == "$smd_Binary")
     {
       return MetaKind::SMT;
     }
