@@ -122,6 +122,7 @@
 ; fwd-decl: $eo_dt_selectors
 (declare-fun $eo_dt_selectors (eo.Term) eo.Term)
 
+(define-fun $eo_Bool () eo.Term eo.Bool)
 (define-fun $eo_Type () eo.Term eo.Type)
 (define-fun $eo_stuck () eo.Term eo.Stuck)
 ; program: $eo_apply

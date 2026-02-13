@@ -134,7 +134,7 @@
 
 ; The Boolean type
 (declare-const $smd_Bool $eo_Term)
-(define $tsm_Bool () $smd_Bool)
+(define $eo_Bool () $smd_Bool)
 
 ;;; SMT term datatype constructors
 
