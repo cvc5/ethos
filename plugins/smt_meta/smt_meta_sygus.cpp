@@ -305,6 +305,7 @@ void SmtMetaSygus::addGrammarRules(const Expr& e,
   Expr aret = approxSig[approxSig.size() - 1];
   if (!defaultG.isNull() && !aret.isNull() && aret != defaultG)
   {
+    Trace("smt-meta-sygus") << "... add return reference " << defaultG << std::endl;
     // ensure its allocated
     getGrammarFor(defaultG);
     d_grefs[defaultG].push_back(aret);
@@ -437,6 +438,14 @@ MetaKind SmtMetaSygus::getSmtLibMetaKind(const Expr& e) const
   }
   else if (sname.compare(0, 5, "$smd_") == 0)
   {
+    if (sname=="$smd_Bool")
+    {
+      return MetaKind::SMT_TYPE;
+    }
+    else if (sname=="$smd_Boolean" || sname=="$smd_Numeral" || sname=="$smd_Rational" || sname=="$smd_String" || sname=="$smd_Binary")
+    {
+      return MetaKind::SMT;
+    }
     return MetaKind::EUNOIA;
   }
   // If not a distinguished symbol, it may be an SMT-LIB term or a type.

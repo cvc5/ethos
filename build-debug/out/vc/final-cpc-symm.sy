@@ -517,9 +517,9 @@
 
 ;;;; final verification condition for $eovc_symm
 (synth-fun arg_F () eo.Term
-  ((G_Start eo.Term) (G_eo.Term eo.Term) (G_Bool Bool) (G_Int Int) (G_RegLan RegLan) (G_Int_C Int) (G_Rat Rat) (G_String String) (T_Type eo.Term) (T_$eo_Proof eo.Term) (T_SmtType eo.Term) (T_Fun eo.Term) (T_Int eo.Term) (T_$eo_List eo.Term) (T_Bool eo.Term) (T_Real eo.Term) (T_Seq eo.Term) (T_BitVec eo.Term) (T_SmtTerm eo.Term)) (
+  ((G_Start eo.Term) (G_eo.Term eo.Term) (G_Bool Bool) (G_Int Int) (G_RegLan RegLan) (G_Int_C Int) (G_Rat Rat) (G_String String) (T_Type eo.Term) (T_$eo_Proof eo.Term) (T_SmtType eo.Term) (T_Fun eo.Term) (T_Int eo.Term) (T_$eo_List eo.Term) (T_SmtTerm eo.Term) (T_Bool eo.Term) (T_Real eo.Term) (T_Seq eo.Term) (T_BitVec eo.Term)) (
   (G_Start eo.Term (T_Bool))
-  (G_eo.Term eo.Term (eo.Type eo.FunType (eo.Var G_String G_eo.Term) T_Type T_Bool T_Fun T_SmtTerm T_SmtType T_$eo_Proof T_Int T_Real T_BitVec T_Seq T_$eo_List T_Type T_$eo_Proof T_SmtType T_Fun T_Int T_$eo_List T_Bool T_Real T_Seq T_BitVec T_SmtTerm ))
+  (G_eo.Term eo.Term (eo.Type eo.FunType (eo.Var G_String G_eo.Term) T_Type T_Bool T_Fun T_SmtTerm T_SmtType T_$eo_Proof T_Int T_Real T_BitVec T_Seq T_$eo_List T_Type T_$eo_Proof T_SmtType T_Fun T_Int T_$eo_List T_SmtTerm T_Bool T_Real T_Seq T_BitVec ))
   (G_Bool Bool (true false))
   (G_Int Int (0 (- G_Int_C) G_Int_C))
   (G_RegLan RegLan (re.all re.none (str.to_re G_String) (re.union G_RegLan G_RegLan)))
@@ -532,11 +532,11 @@
   (T_Fun eo.Term (eo.BitVec eo.Seq eo.$eo_List_cons eo.not eo.and eo.= ))
   (T_Int eo.Term ((eo.Numeral G_Int) ))
   (T_$eo_List eo.Term (eo.$eo_List_nil (eo.Apply (eo.Apply eo.$eo_List_cons G_eo.Term) T_$eo_List) ))
+  (T_SmtTerm eo.Term (T_Bool T_Int T_Real T_Seq T_BitVec ))
   (T_Bool eo.Term ((eo.Boolean G_Bool) (eo.Apply eo.not T_Bool) (eo.Apply (eo.Apply eo.and T_Bool) T_Bool) (eo.Apply (eo.Apply eo.= T_SmtTerm) T_SmtTerm) ))
   (T_Real eo.Term ((eo.Rational G_Rat) ))
   (T_Seq eo.Term ((eo.String G_String) ))
   (T_BitVec eo.Term ((eo.Binary G_Int G_Int) ))
-  (T_SmtTerm eo.Term (T_Bool ))
 )
 )
 (constraint (= ($eovc_symm arg_F) (eo.Boolean true)))
