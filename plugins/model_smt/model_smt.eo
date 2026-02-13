@@ -36,9 +36,9 @@
 ; where terms are used to denote the values of that type, e.g.
 ; SMT-LIB numerals for Int.
 (declare-parameterized-const $smd_vsm.Term
-  ((t $smt_Term :opaque))
+  ((t $eo_Term :opaque))
   $smt_Value)
-(define $vsm_term ((t $smt_Term)) ($smd_vsm.Term t))
+(define $vsm_term ((t $eo_Term)) ($smd_vsm.Term t))
 
 ; Apply values (for Herbrand interpretations).
 (declare-parameterized-const $smd_vsm.Apply
@@ -227,12 +227,12 @@
 
 ; define: $smt_is_dt
 ; returns: true if t is a datatpe (i.e. it has constructors).
-(define $smt_is_dt ((t $smt_Type))
+(define $smt_is_dt ((t $eo_Term))
   ($smt_builtin_is_ok ($eo_dt_constructors t)))
 
 ; define: $smt_is_dt_cons
 ; returns: true if t is a constructor (i.e. it has selectors).
-(define $smt_is_dt_cons ((t $smt_Term))
+(define $smt_is_dt_cons ((t $eo_Term))
   ($smt_builtin_is_ok ($eo_dt_selectors t)))
 
 ;;; Utilities for making values
@@ -244,8 +244,8 @@
 ; that if it returns true for two terms t1 and t2 of the same type,
 ; then t1 != t2 in all models.
 (program $smtx_is_atomic_term_value
-  ((t $smt_Term) (b $smt_builtin_Bool) (w $smt_builtin_Int) (n $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String))
-  :signature ($smt_Term) $smt_builtin_Bool
+  ((t $eo_Term) (b $smt_builtin_Bool) (w $smt_builtin_Int) (n $smt_builtin_Int) (r $smt_builtin_Real) (s $smt_builtin_String))
+  :signature ($eo_Term) $smt_builtin_Bool
   (
   ; standard atomic types are values
   (($smtx_is_atomic_term_value ($sm_bool b))  $smt_builtin_true)
@@ -264,7 +264,7 @@
 
 ; Returns a term of type $smt_Value, embeds the term
 ; if indeed it is a value, or returns not a value otherwise.
-(define $smt_mk_value_term ((t $smt_Term))
+(define $smt_mk_value_term ((t $eo_Term))
   ($smt_builtin_ite ($smtx_is_atomic_term_value t)
     ; an atomic term, e.g. 0, true, "abc"
     ($vsm_term t)

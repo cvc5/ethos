@@ -122,41 +122,33 @@
 ;;; Final deep embedding datatypes
 
 ; Now, we introduce placeholders for the final deep embedding.
-; - $smt_Term, $smt_Type, $smt_Value are introduced as placeholders for the final datatypes in the deep embedding.
-; - The SMT-like literals are declared for $smt_Term.
+; - $eo_Term, $eo_Term, $smt_Value are introduced as placeholders for the final datatypes in the deep embedding.
+; - The SMT-like literals are declared for $eo_Term.
 ; - 
 
 ; A Eunoia term.
 ; This will be replaced by the datatype eo.Term in the final encoding.
 (declare-const $eo_Term Type)
 
-; An atomic SMT-LIB type.
-; This will be replaced by the datatype tsm.Type in the final encoding.
-(define $smt_Type () $eo_Term)
-
-; An atomic SMT-LIB term.
-; This will be replaced by the datatype sm.Term in the final encoding.
-(define $smt_Term () $eo_Term)
-
 ;;; SMT type datatype constructors
 
 ; The Boolean type
-(declare-const $smd_Bool $smt_Type)
+(declare-const $smd_Bool $eo_Term)
 (define $tsm_Bool () $smd_Bool)
 
 ;;; SMT term datatype constructors
 
 ; the literal types
 (declare-parameterized-const $smd_Boolean
-  ((b $smt_builtin_Bool :opaque)) $smt_Term)
+  ((b $smt_builtin_Bool :opaque)) $eo_Term)
 (declare-parameterized-const $smd_Numeral
-  ((n $smt_builtin_Int :opaque)) $smt_Term)
+  ((n $smt_builtin_Int :opaque)) $eo_Term)
 (declare-parameterized-const $smd_Rational
-  ((r $smt_builtin_Rat :opaque)) $smt_Term)
+  ((r $smt_builtin_Rat :opaque)) $eo_Term)
 (declare-parameterized-const $smd_String
-  ((s $smt_builtin_String :opaque)) $smt_Term)
+  ((s $smt_builtin_String :opaque)) $eo_Term)
 (declare-parameterized-const $smd_Binary
-  ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Term)
+  ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $eo_Term)
 
 ;;; Eunoia datatype constructors
 
