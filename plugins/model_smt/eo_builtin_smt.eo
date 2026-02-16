@@ -390,7 +390,7 @@
 
 ; note: Assumes 0 <= w, makes n legal. We cannot handle errors with
 ;       w here since we cannot return stuckness.
-(define $sm_mk_binary ((w $smt_builtin_Int) (n $smt_builtin_Int))
+(define $eo_binary_mod_w ((w $smt_builtin_Int) (n $smt_builtin_Int))
   ($eo_binary w ($smt_builtin_mod n ($smtx_pow2 w))))
 
 ;;; Utilities
@@ -401,14 +401,14 @@
 ;   congruent mod 2^w to n if w is positive, or stuck otherwise.
 ; note: >
 ;   All binaries considered by Eunoia should run through this method to ensure
-;   they are legal. We alternatively use ($sm_mk_binary w n) if
+;   they are legal. We alternatively use ($eo_binary_mod_w w n) if
 ;   we are sure that w is legal but not n.
 (program $eo_mk_binary ((w $smt_builtin_Int) (n $smt_builtin_Int))
   :signature ($smt_builtin_Int $smt_builtin_Int) $eo_Term
   (
   (($eo_mk_binary w n)
     ($smt_builtin_ite ($smt_builtin_z_<= $smt_builtin_z_zero w)
-      ($sm_mk_binary w n)  ; ensure that n is legal
+      ($eo_binary_mod_w w n)  ; ensure that n is legal
       $eo_stuck))
   )
 )
@@ -465,7 +465,7 @@
   :signature (T) T
   (
   (($eo_not ($eo_bool b))     ($eo_bool ($smt_builtin_not b)))
-  (($eo_not ($eo_binary w n)) ($sm_mk_binary w ($smtx_binary_not w n)))
+  (($eo_not ($eo_binary w n)) ($eo_binary_mod_w w ($smtx_binary_not w n)))
   )
 )
 
@@ -481,7 +481,7 @@
      ($eo_bool ($smt_builtin_and b1 b2)))
   (($eo_and ($eo_binary w1 n1) ($eo_binary w2 n2))
     ($eo_requires ($eo_numeral w1) ($eo_numeral w2)
-      ($sm_mk_binary w1 ($smtx_binary_and w1 n1 n2))))
+      ($eo_binary_mod_w w1 ($smtx_binary_and w1 n1 n2))))
   )
 )
 
@@ -497,7 +497,7 @@
      ($eo_bool ($smt_builtin_or b1 b2)))
   (($eo_or ($eo_binary w1 n1) ($eo_binary w2 n2))
     ($eo_requires ($eo_numeral w1) ($eo_numeral w2)
-     ($sm_mk_binary w1 ($smtx_binary_or w1 n1 n2))))
+     ($eo_binary_mod_w w1 ($smtx_binary_or w1 n1 n2))))
   )
 )
 
@@ -513,7 +513,7 @@
      ($eo_bool ($smt_apply_2 "xor" b1 b2)))
   (($eo_xor ($eo_binary w1 n1) ($eo_binary w2 n2))
     ($eo_requires ($eo_numeral w1) ($eo_numeral w2)
-     ($sm_mk_binary w1 ($smtx_binary_or w1 n1 n2))))
+     ($eo_binary_mod_w w1 ($smtx_binary_or w1 n1 n2))))
   )
 )
 
@@ -532,7 +532,7 @@
     ($eo_rational ($smt_builtin_q_add r1 r2)))
   (($eo_add ($eo_binary w1 n1) ($eo_binary w2 n2))
     ($eo_requires ($eo_numeral w1) ($eo_numeral w2)
-      ($sm_mk_binary w1 ($smt_builtin_z_add n1 n2))))  ; don't need to recheck bitwidth
+      ($eo_binary_mod_w w1 ($smt_builtin_z_add n1 n2))))  ; don't need to recheck bitwidth
   )
 )
 
@@ -547,7 +547,7 @@
     ($eo_rational ($smt_builtin_q_mul r1 r2)))
   (($eo_mul ($eo_binary w1 n1) ($eo_binary w2 n2))
     ($eo_requires ($eo_numeral w1) ($eo_numeral w2)
-      ($sm_mk_binary w1 ($smt_builtin_z_mul n1 n2))))
+      ($eo_binary_mod_w w1 ($smt_builtin_z_mul n1 n2))))
   )
 )
 
@@ -583,7 +583,7 @@
     ($eo_requires ($eo_numeral w1) ($eo_numeral w2)
       ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
         ($eo_binary w1 ($smtx_binary_max w1))
-        ($sm_mk_binary w1 ($smt_builtin_div n1 n2)))))
+        ($eo_binary_mod_w w1 ($smt_builtin_div n1 n2)))))
   )
 )
 
@@ -600,7 +600,7 @@
     ($eo_requires ($eo_numeral w1) ($eo_numeral w2)
       ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
         ($eo_binary w1 n1)
-        ($sm_mk_binary w1 ($smt_builtin_mod n1 n2)))))
+        ($eo_binary_mod_w w1 ($smt_builtin_mod n1 n2)))))
   )
 )
 
@@ -624,7 +624,7 @@
   (($eo_neg ($eo_rational r1))
     ($eo_rational ($smt_builtin_q_neg r1)))
   (($eo_neg ($eo_binary w n1))
-    ($sm_mk_binary w ($smt_builtin_z_neg n1)))
+    ($eo_binary_mod_w w ($smt_builtin_z_neg n1)))
   )
 )
 

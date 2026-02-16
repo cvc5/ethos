@@ -168,6 +168,11 @@
     (ite (zleq x1 0) 1 (zmult 2 ($smtx_pow2 (zplus x1 (zneg 1)))))
 ) :pattern (($smtx_pow2 x1)))) :named sm.axiom.$smtx_pow2))
 
+; program: $eo_binary_mod_w
+(define-fun $eo_binary_mod_w ((x1 Int) (x2 Int)) eo.Term
+    (eo.Binary x1 (mod x2 ($smtx_pow2 x1)))
+)
+
 ; program: $eo_requires
 (define-fun $eo_requires ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
     (ite (= x1 x2) (ite (not (= x1 eo.Stuck)) x3 eo.Stuck) eo.Stuck)

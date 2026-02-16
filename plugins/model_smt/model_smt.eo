@@ -256,7 +256,7 @@
     ; must be legal width and value
     ($smt_builtin_and
       ($smt_apply_2 "<=" $smt_builtin_z_zero w)
-      ($smt_builtin_= ($eo_binary w n) ($sm_mk_binary w n))))
+      ($smt_builtin_= ($eo_binary w n) ($eo_binary_mod_w w n))))
   ; by default, not a value
   (($smtx_is_atomic_term_value t)                $smt_builtin_false)
   )

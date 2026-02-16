@@ -230,7 +230,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                                  smtApp(">=", "x2", "$smt_builtin_z_zero"),
                                  smtApp(">", "x3", "x1")));
   std::stringstream ssExtractRet;
-  ssExtractRet << "($vsm_term ($sm_mk_binary ";
+  ssExtractRet << "($vsm_term ($eo_binary_mod_w ";
   ssExtractRet << smtApp("-", smtApp("+", "x1", "$smt_builtin_z_one"), "x2");
   ssExtractRet << " ($smtx_binary_extract x3 x4 x1 x2)))";
   addLitSym("extract",
@@ -567,7 +567,7 @@ void ModelSmt::addLitBinSym(const std::string& sym,
                             bool reqSameWidth)
 {
   std::stringstream ssr;
-  ssr << "($vsm_term ($sm_mk_binary " << retWidth << " " << retNum << "))";
+  ssr << "($vsm_term ($eo_binary_mod_w " << retWidth << " " << retNum << "))";
   std::string ssres = ssr.str();
   if (reqSameWidth && args.size() == 2 && args[0] == Kind::BINARY
       && args[1] == Kind::BINARY)
