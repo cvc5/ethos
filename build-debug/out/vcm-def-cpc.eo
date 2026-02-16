@@ -209,20 +209,26 @@
 
 ;;; External datatype access
 
-; TODO: remove "mk_"
-(define $sm_true () ($smd_Boolean $smt_builtin_true))
-(define $sm_false () ($smd_Boolean $smt_builtin_false))
-(define $sm_bool ((c $smt_builtin_Bool))
-  ($smd_Boolean c))
-(define $sm_z ((n $smt_builtin_Int))
-  ($smd_Numeral n))
-(define $sm_q ((r $smt_builtin_Rat))
-  ($smd_Rational r))
-(define $sm_str ((s $smt_builtin_String))
-  ($smd_String s))
-(define $sm_binary ((w $smt_builtin_Int) (n $smt_builtin_Int))
-  ($smd_Binary w n))
+(define $eo_bool ((x $smt_builtin_Bool))
+  ($smd_Boolean x))
+(define $eo_numeral ((x $smt_builtin_Int))
+  ($smd_Numeral x))
+(define $eo_rational ((x $smt_builtin_Rat))
+  ($smd_Rational x))
+(define $eo_string ((x $smt_builtin_String))
+  ($smd_String x))
 
+; define: $eo_binary
+; note: >
+;   This should be used in pattern matching only, where it is assume that
+;   it will match "legal" binary values only.
+(define $eo_binary ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
+  ($smd_Binary x1 x2))
+
+; define: $eo_empty_binary
+(define $eo_empty_binary ()
+  ($eo_binary $smt_builtin_z_zero $smt_builtin_z_zero))
+  
 ; return: The embedding of (-> T1 T2).
 ; note: Since the Eunoia function type is an atomic term, this becomes a
 ;       curried apply.
@@ -230,9 +236,9 @@
   ($eo_apply ($eo_apply $eo_fun_type T1) T2))
 
 (define $smt_builtin_z_= ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
-  ($smt_builtin_= ($sm_z x1) ($sm_z x2)))
+  ($smt_builtin_= ($eo_numeral x1) ($eo_numeral x2)))
 (define $smt_builtin_q_= ((x1 $smt_builtin_Rat) (x2 $smt_builtin_Rat))
-  ($smt_builtin_= ($sm_q x1) ($sm_q x2)))
+  ($smt_builtin_= ($eo_rational x1) ($eo_rational x2)))
 
 ;;; Defining parametric bitvector operators
 
@@ -415,29 +421,9 @@
 ; note: Assumes 0 <= w, makes n legal. We cannot handle errors with
 ;       w here since we cannot return stuckness.
 (define $sm_mk_binary ((w $smt_builtin_Int) (n $smt_builtin_Int))
-  ($sm_binary w ($smt_builtin_mod n ($smtx_pow2 w))))
+  ($eo_binary w ($smt_builtin_mod n ($smtx_pow2 w))))
 
 ;;; Utilities
-
-(define $eo_bool ((x $smt_builtin_Bool))
-  ($sm_bool x))
-(define $eo_numeral ((x $smt_builtin_Int))
-  ($sm_z x))
-(define $eo_rational ((x $smt_builtin_Rat))
-  ($sm_q x))
-(define $eo_string ((x $smt_builtin_String))
-  ($sm_str x))
-
-; define: $eo_binary
-; note: >
-;   This should be used in pattern matching only, where it is assume that
-;   it will match "legal" binary values only.
-(define $eo_binary ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
-  ($sm_binary x1 x2))
-
-; define: $eo_empty_binary
-(define $eo_empty_binary ()
-  ($eo_binary $smt_builtin_z_zero $smt_builtin_z_zero))
 
 ; program: $eo_mk_binary
 ; return: >
@@ -626,7 +612,7 @@
   (($eo_zdiv ($eo_binary w1 n1) ($eo_binary w2 n2))
     ($eo_requires ($eo_numeral w1) ($eo_numeral w2)
       ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
-        ($sm_binary w1 ($smtx_binary_max w1))
+        ($eo_binary w1 ($smtx_binary_max w1))
         ($sm_mk_binary w1 ($smt_builtin_div n1 n2)))))
   )
 )
@@ -1198,8 +1184,8 @@
 
 ;;; Generic utilities
 
-(define $vsm_true () ($vsm_term $sm_true))
-(define $vsm_false () ($vsm_term $sm_false))
+(define $vsm_true () ($vsm_term true))
+(define $vsm_false () ($vsm_term false))
 
 ; define: $smtx_value_hash
 ; note: this is an arbitrary hash for SMT values, defined axiomatically.
@@ -1368,15 +1354,15 @@
   :signature ($eo_Term) $smt_builtin_Bool
   (
   ; standard atomic types are values
-  (($smtx_is_atomic_term_value ($sm_bool b))  $smt_builtin_true)
-  (($smtx_is_atomic_term_value ($sm_z n))     $smt_builtin_true)
-  (($smtx_is_atomic_term_value ($sm_q r))     $smt_builtin_true)
-  (($smtx_is_atomic_term_value ($sm_str s))   $smt_builtin_true)
-  (($smtx_is_atomic_term_value ($sm_binary w n))
+  (($smtx_is_atomic_term_value ($eo_bool b))  $smt_builtin_true)
+  (($smtx_is_atomic_term_value ($eo_numeral n))     $smt_builtin_true)
+  (($smtx_is_atomic_term_value ($eo_rational r))     $smt_builtin_true)
+  (($smtx_is_atomic_term_value ($eo_string s))   $smt_builtin_true)
+  (($smtx_is_atomic_term_value ($eo_binary w n))
     ; must be legal width and value
     ($smt_builtin_and
       ($smt_apply_2 "<=" $smt_builtin_z_zero w)
-      ($smt_builtin_= ($sm_binary w n) ($sm_mk_binary w n))))
+      ($smt_builtin_= ($eo_binary w n) ($sm_mk_binary w n))))
   ; by default, not a value
   (($smtx_is_atomic_term_value t)                $smt_builtin_false)
   )
@@ -1450,34 +1436,34 @@
   )
   :signature ($smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_model_eval_= ($vsm_term ($sm_bool b1)) ($vsm_term ($sm_bool b2)))
-    ($vsm_term ($sm_bool ($smt_builtin_= ($sm_bool b1) ($sm_bool b2)))))
-  (($smtx_model_eval_= ($vsm_term ($sm_bool b1)) t2) $vsm_not_value)
-  (($smtx_model_eval_= t1 ($vsm_term ($sm_bool b2))) $vsm_not_value)
-  (($smtx_model_eval_= ($vsm_term ($sm_z n1)) ($vsm_term ($sm_z n2)))
-    ($vsm_term ($sm_bool ($smt_builtin_= ($sm_z n1) ($sm_z n2)))))
-  (($smtx_model_eval_= ($vsm_term ($sm_z n1)) t2) $vsm_not_value)
-  (($smtx_model_eval_= t1 ($vsm_term ($sm_z n2))) $vsm_not_value)
-  (($smtx_model_eval_= ($vsm_term ($sm_q r1)) ($vsm_term ($sm_q r2)))
-    ($vsm_term ($sm_bool ($smt_builtin_= ($sm_q r1) ($sm_q r2)))))
-  (($smtx_model_eval_= ($vsm_term ($sm_q r1)) t2) $vsm_not_value)
-  (($smtx_model_eval_= t1 ($vsm_term ($sm_q r2))) $vsm_not_value)
-  (($smtx_model_eval_= ($vsm_term ($sm_str s1)) ($vsm_term ($sm_str s2)))
-    ($vsm_term ($sm_bool ($smt_builtin_= ($sm_str s1) ($sm_str s2)))))
-  (($smtx_model_eval_= ($vsm_term ($sm_str s1)) t2) $vsm_not_value)
-  (($smtx_model_eval_= t1 ($vsm_term ($sm_str s2))) $vsm_not_value)
-  (($smtx_model_eval_= ($vsm_term ($sm_binary w1 n1)) ($vsm_term ($sm_binary w2 n2)))
+  (($smtx_model_eval_= ($vsm_term ($eo_bool b1)) ($vsm_term ($eo_bool b2)))
+    ($vsm_term ($eo_bool ($smt_builtin_= ($eo_bool b1) ($eo_bool b2)))))
+  (($smtx_model_eval_= ($vsm_term ($eo_bool b1)) t2) $vsm_not_value)
+  (($smtx_model_eval_= t1 ($vsm_term ($eo_bool b2))) $vsm_not_value)
+  (($smtx_model_eval_= ($vsm_term ($eo_numeral n1)) ($vsm_term ($eo_numeral n2)))
+    ($vsm_term ($eo_bool ($smt_builtin_= ($eo_numeral n1) ($eo_numeral n2)))))
+  (($smtx_model_eval_= ($vsm_term ($eo_numeral n1)) t2) $vsm_not_value)
+  (($smtx_model_eval_= t1 ($vsm_term ($eo_numeral n2))) $vsm_not_value)
+  (($smtx_model_eval_= ($vsm_term ($eo_rational r1)) ($vsm_term ($eo_rational r2)))
+    ($vsm_term ($eo_bool ($smt_builtin_= ($eo_rational r1) ($eo_rational r2)))))
+  (($smtx_model_eval_= ($vsm_term ($eo_rational r1)) t2) $vsm_not_value)
+  (($smtx_model_eval_= t1 ($vsm_term ($eo_rational r2))) $vsm_not_value)
+  (($smtx_model_eval_= ($vsm_term ($eo_string s1)) ($vsm_term ($eo_string s2)))
+    ($vsm_term ($eo_bool ($smt_builtin_= ($eo_string s1) ($eo_string s2)))))
+  (($smtx_model_eval_= ($vsm_term ($eo_string s1)) t2) $vsm_not_value)
+  (($smtx_model_eval_= t1 ($vsm_term ($eo_string s2))) $vsm_not_value)
+  (($smtx_model_eval_= ($vsm_term ($eo_binary w1 n1)) ($vsm_term ($eo_binary w2 n2)))
     ; note that we know that w1, w2 are legal by invariant on model eval
     ($smt_builtin_ite ($smt_builtin_z_= w1 w2)
-      ($vsm_term ($sm_bool ($smt_builtin_= ($sm_binary w1 n1) ($sm_binary w2 n2))))
+      ($vsm_term ($eo_bool ($smt_builtin_= ($eo_binary w1 n1) ($eo_binary w2 n2))))
       $vsm_not_value))
-  (($smtx_model_eval_= ($vsm_term ($sm_binary w1 n1)) t2) $vsm_not_value)
-  (($smtx_model_eval_= t1 ($vsm_term ($sm_binary w2 n2))) $vsm_not_value)
+  (($smtx_model_eval_= ($vsm_term ($eo_binary w1 n1)) t2) $vsm_not_value)
+  (($smtx_model_eval_= t1 ($vsm_term ($eo_binary w2 n2))) $vsm_not_value)
   ; TODO: datatype values, others?
   (($smtx_model_eval_= $vsm_not_value t2) $vsm_not_value)
   (($smtx_model_eval_= t1 $vsm_not_value) $vsm_not_value)
   ; use datatype equality over $smt_Value, which depends on t1 and t2 being proper values.
-  (($smtx_model_eval_= t1 t2)             ($vsm_term ($sm_bool ($smt_builtin_= t1 t2))))
+  (($smtx_model_eval_= t1 t2)             ($vsm_term ($eo_bool ($smt_builtin_= t1 t2))))
   )
 )
 
@@ -1576,7 +1562,7 @@
   ((s $smt_Seq) (n $smt_builtin_Int) (v1 $smt_Value) (v2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_seq_nth ($vsm_seq s) ($vsm_term ($sm_z n))) ($smtx_ssm_seq_nth s n))
+  (($smtx_seq_nth ($vsm_seq s) ($vsm_term ($eo_numeral n))) ($smtx_ssm_seq_nth s n))
   (($smtx_seq_nth v1 v2) $vsm_not_value)
   )
 )
@@ -1644,7 +1630,7 @@
 ;  :signature ($eo_Term $eo_Term) $smt_Value
 ;  (
 ;  (($smtx_model_eval_exists2 ($eo_Var s T) F)
-;    ($vsm_term ($sm_bool
+;    ($vsm_term ($eo_bool
 ;      ($smt_apply_1 "exists (($eo_qv eo.Term))" 
 ;        ($smt_builtin_and 
 ;          ($smt_builtin_= ($eo_typeof ($smt_apply_0 "$eo_qv")) T)
@@ -1720,7 +1706,7 @@
   ((x1 $smt_builtin_Bool) (t1 $smt_Value))
   :signature ($smt_Value) $smt_Value
   (
-  (($smtx_model_eval_not ($vsm_term ($sm_bool x1))) ($vsm_term ($sm_bool ($smt_apply_1 "not" x1))))
+  (($smtx_model_eval_not ($vsm_term ($eo_bool x1))) ($vsm_term ($eo_bool ($smt_apply_1 "not" x1))))
   (($smtx_model_eval_not t1) $vsm_not_value)
   )
 )
@@ -1728,7 +1714,7 @@
   ((x1 $smt_builtin_Bool) (x2 $smt_builtin_Bool) (t1 $smt_Value) (t2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_model_eval_and ($vsm_term ($sm_bool x1)) ($vsm_term ($sm_bool x2))) ($vsm_term ($sm_bool ($smt_apply_2 "and" x1 x2))))
+  (($smtx_model_eval_and ($vsm_term ($eo_bool x1)) ($vsm_term ($eo_bool x2))) ($vsm_term ($eo_bool ($smt_apply_2 "and" x1 x2))))
   (($smtx_model_eval_and t1 t2) $vsm_not_value)
   )
 )

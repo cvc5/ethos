@@ -179,20 +179,26 @@
 
 ;;; External datatype access
 
-; TODO: remove "mk_"
-(define $sm_true () ($smd_Boolean $smt_builtin_true))
-(define $sm_false () ($smd_Boolean $smt_builtin_false))
-(define $sm_bool ((c $smt_builtin_Bool))
-  ($smd_Boolean c))
-(define $sm_z ((n $smt_builtin_Int))
-  ($smd_Numeral n))
-(define $sm_q ((r $smt_builtin_Rat))
-  ($smd_Rational r))
-(define $sm_str ((s $smt_builtin_String))
-  ($smd_String s))
-(define $sm_binary ((w $smt_builtin_Int) (n $smt_builtin_Int))
-  ($smd_Binary w n))
+(define $eo_bool ((x $smt_builtin_Bool))
+  ($smd_Boolean x))
+(define $eo_numeral ((x $smt_builtin_Int))
+  ($smd_Numeral x))
+(define $eo_rational ((x $smt_builtin_Rat))
+  ($smd_Rational x))
+(define $eo_string ((x $smt_builtin_String))
+  ($smd_String x))
 
+; define: $eo_binary
+; note: >
+;   This should be used in pattern matching only, where it is assume that
+;   it will match "legal" binary values only.
+(define $eo_binary ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
+  ($smd_Binary x1 x2))
+
+; define: $eo_empty_binary
+(define $eo_empty_binary ()
+  ($eo_binary $smt_builtin_z_zero $smt_builtin_z_zero))
+  
 ; return: The embedding of (-> T1 T2).
 ; note: Since the Eunoia function type is an atomic term, this becomes a
 ;       curried apply.
@@ -200,9 +206,9 @@
   ($eo_apply ($eo_apply $eo_fun_type T1) T2))
 
 (define $smt_builtin_z_= ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
-  ($smt_builtin_= ($sm_z x1) ($sm_z x2)))
+  ($smt_builtin_= ($eo_numeral x1) ($eo_numeral x2)))
 (define $smt_builtin_q_= ((x1 $smt_builtin_Rat) (x2 $smt_builtin_Rat))
-  ($smt_builtin_= ($sm_q x1) ($sm_q x2)))
+  ($smt_builtin_= ($eo_rational x1) ($eo_rational x2)))
 
 ;;; Defining parametric bitvector operators
 
@@ -385,29 +391,9 @@
 ; note: Assumes 0 <= w, makes n legal. We cannot handle errors with
 ;       w here since we cannot return stuckness.
 (define $sm_mk_binary ((w $smt_builtin_Int) (n $smt_builtin_Int))
-  ($sm_binary w ($smt_builtin_mod n ($smtx_pow2 w))))
+  ($eo_binary w ($smt_builtin_mod n ($smtx_pow2 w))))
 
 ;;; Utilities
-
-(define $eo_bool ((x $smt_builtin_Bool))
-  ($sm_bool x))
-(define $eo_numeral ((x $smt_builtin_Int))
-  ($sm_z x))
-(define $eo_rational ((x $smt_builtin_Rat))
-  ($sm_q x))
-(define $eo_string ((x $smt_builtin_String))
-  ($sm_str x))
-
-; define: $eo_binary
-; note: >
-;   This should be used in pattern matching only, where it is assume that
-;   it will match "legal" binary values only.
-(define $eo_binary ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
-  ($sm_binary x1 x2))
-
-; define: $eo_empty_binary
-(define $eo_empty_binary ()
-  ($eo_binary $smt_builtin_z_zero $smt_builtin_z_zero))
 
 ; program: $eo_mk_binary
 ; return: >
@@ -596,7 +582,7 @@
   (($eo_zdiv ($eo_binary w1 n1) ($eo_binary w2 n2))
     ($eo_requires ($eo_numeral w1) ($eo_numeral w2)
       ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
-        ($sm_binary w1 ($smtx_binary_max w1))
+        ($eo_binary w1 ($smtx_binary_max w1))
         ($sm_mk_binary w1 ($smt_builtin_div n1 n2)))))
   )
 )

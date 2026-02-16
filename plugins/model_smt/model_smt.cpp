@@ -76,10 +76,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   Kind kRegLan = Kind::EVAL_TO_STRING;
   Kind kList = Kind::EVAL_CONS;
   d_kindToEoPrefix[kBool] = "bool";
-  d_kindToEoPrefix[kInt] = "z";
-  d_kindToEoPrefix[kReal] = "q";
-  d_kindToEoPrefix[kString] = "str";
-  d_kindToEoPrefix[kBitVec] = "bin";
+  d_kindToEoPrefix[kInt] = "numeral";
+  d_kindToEoPrefix[kReal] = "rational";
+  d_kindToEoPrefix[kString] = "string";
+  d_kindToEoPrefix[kBitVec] = "binary";
   d_kindToType[kBool] = "Bool";
   d_kindToType[kInt] = "Int";
   d_kindToType[kReal] = "Real";
@@ -90,7 +90,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // Note that we model *SMT-LIB* not *CPC* here.
   // builtin
   // immediately include Bool, as it will not be defined
-  printType("Bool", {}, "($vsm_term ($sm_bool b))", "Bool");
+  printType("Bool", {}, "($vsm_term ($eo_bool b))", "Bool");
   addHardCodeSym("=", {kT, kT});
   addHardCodeSym("ite", {kBool, kT, kT});
   addTermReduceSym("distinct", {kT, kT}, "(not (= x1 x2))");
@@ -191,7 +191,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTypeSym("BitVec", {kInt});
   // the following are return terms of aux program cases of the form:
   // (($smtx_model_eval_f
-  //    ($vsm_term ($sm_binary x1 x2)) ($vsm_term ($sm_binary x3 x4)))
+  //    ($vsm_term ($eo_binary x1 x2)) ($vsm_term ($eo_binary x3 x4)))
   //    <return>)
   // where x1, x3 denote bitwidths and x2, x4 denote values.
   addLitBinSym("bvadd", {kBitVec, kBitVec}, "x1", "($smt_builtin_z_add x2 x4)");
@@ -243,7 +243,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
                "($smtx_binary_concat x1 x2 x3 x4)",
                false);
   std::stringstream ssUgtRet;
-  ssUgtRet << "($vsm_term ($sm_bool " << smtApp(">", "x2", "x4") << "))";
+  ssUgtRet << "($vsm_term ($eo_bool " << smtApp(">", "x2", "x4") << "))";
   addLitSym("bvugt",
             {kBitVec, kBitVec},
             kT,
@@ -261,7 +261,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             {kInt, kBitVec},
             kT,
             smtGuard(smtApp(">=", "x1", "$smt_builtin_z_zero"),
-                     "($vsm_term ($sm_binary ($smt_builtin_z_add x1 x2) x3))"));
+                     "($vsm_term ($eo_binary ($smt_builtin_z_add x1 x2) x3))"));
   std::stringstream ssSExtRet;
   ssSExtRet << "(eo::define ((wm1 (- ($eo_numeral x2) 1))) ";
   ssSExtRet << "(eo::define ((t ($eo_mk_binary x2 x3))) ";
@@ -272,7 +272,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             kT,
             smtGuard(smtApp(">=", "x1", "$smt_builtin_z_zero"),
                      smtIte(smtEq("x1", "$smt_builtin_z_zero"),
-                            "($vsm_term ($sm_binary x2 x3))",
+                            "($vsm_term ($eo_binary x2 x3))",
                             ssSExtRet.str())));
   std::stringstream ssAshrRet;
   ssAshrRet << "(eo::define ((wm1 (- ($eo_numeral x1) 1))) ";
@@ -294,7 +294,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             kT,
             smtGuard(smtApp(">=", "x1", "$smt_builtin_z_zero"),
                      smtIte(smtEq("x1", "$smt_builtin_z_zero"),
-                            "($vsm_term ($sm_binary x2 x3))",
+                            "($vsm_term ($eo_binary x2 x3))",
                             ssRLeftRet.str())));
   std::stringstream ssRRightRet;
   ssRRightRet << "(eo::define ((wm1 (- ($eo_numeral x2) 1))) ";
@@ -307,7 +307,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             kT,
             smtGuard(smtApp(">=", "x1", "$smt_builtin_z_zero"),
                      smtIte(smtEq("x1", "$smt_builtin_z_zero"),
-                            "($vsm_term ($sm_binary x2 x3))",
+                            "($vsm_term ($eo_binary x2 x3))",
                             ssRRightRet.str())));
   std::stringstream ssRepeatRet;
   ssRepeatRet << "($smtx_model_eval (concat";
@@ -318,7 +318,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             kT,
             smtGuard(smtApp(">=", "x1", "$smt_builtin_z_one"),
                      smtIte(smtEq("x1", "$smt_builtin_z_one"),
-                            "($vsm_term ($sm_binary x2 x3))",
+                            "($vsm_term ($eo_binary x2 x3))",
                             ssRepeatRet.str())));
   // the following are program cases in the main method of the form
   // (($smtx_model_eval (f x1 x2)) ($smtx_model_eval <return>))
@@ -463,7 +463,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addReduceSym("seq.empty", {kT}, "$smtx_empty_seq");
   d_specialCases["seq.empty"].emplace_back(
       "(as seq.empty (Seq Char))",
-      "($vsm_term ($sm_str $smt_builtin_str_empty))");
+      "($vsm_term ($eo_string $smt_builtin_str_empty))");
   addRecReduceSym("seq.unit", {kT}, "($smtx_seq_unit e1)");
   addRecReduceSym("seq.nth", {kT, kInt}, "($smtx_seq_nth e1 e2)");
   // sets
@@ -479,7 +479,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addRecReduceSym("@sets_deq_diff", {kT, kT}, "($smtx_map_diff e1 e2)");
   addRecReduceSym("set.is_empty",
                   {kT},
-                  "($vsm_term ($sm_bool ($smt_builtin_= e1 $smtx_empty_set)))");
+                  "($vsm_term ($eo_bool ($smt_builtin_= e1 $smtx_empty_set)))");
   addReduceSym(
       "set.insert",
       {kList, kT},
@@ -770,7 +770,7 @@ void ModelSmt::printTermInternal(Kind k,
 {
   if (d_kindToEoPrefix.find(k) != d_kindToEoPrefix.end())
   {
-    os << "($vsm_term ($sm_" << d_kindToEoPrefix[k] << " " << term << "))";
+    os << "($vsm_term ($eo_" << d_kindToEoPrefix[k] << " " << term << "))";
   }
   else if (k == Kind::EVAL_TO_STRING)
   {
@@ -901,7 +901,7 @@ void ModelSmt::printAuxProgramCase(const std::string& name,
     progCases << " ($vsm_term";
     if (ka == Kind::BINARY)
     {
-      progCases << " ($sm_binary x" << paramCount << " x" << (paramCount + 1)
+      progCases << " ($eo_binary x" << paramCount << " x" << (paramCount + 1)
                 << "))";
       progParams << "(x" << paramCount << " $smt_builtin_Int)";
       progParams << " (x" << (paramCount + 1) << " $smt_builtin_Int)";
@@ -909,7 +909,7 @@ void ModelSmt::printAuxProgramCase(const std::string& name,
       continue;
     }
     Assert(d_kindToEoPrefix.find(ka) != d_kindToEoPrefix.end());
-    progCases << " ($sm_" << d_kindToEoPrefix[ka] << " x" << paramCount << "))";
+    progCases << " ($eo_" << d_kindToEoPrefix[ka] << " x" << paramCount << "))";
     progParams << "(x" << paramCount << " $smt_builtin_" << d_kindToType[ka]
                << ")";
   }

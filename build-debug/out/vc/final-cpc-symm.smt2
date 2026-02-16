@@ -136,13 +136,6 @@
     (eo.Var x1 x2)
 )
 
-; program: $smtx_pow2
-(declare-fun $smtx_pow2 (Int) Int)
-(assert (! (forall ((x1 Int))
-  (! (= ($smtx_pow2 x1)
-    (ite (zleq x1 0) 1 (zmult 2 ($smtx_pow2 (zplus x1 (zneg 1)))))
-) :pattern (($smtx_pow2 x1)))) :named sm.axiom.$smtx_pow2))
-
 ; program: $eo_bool
 (define-fun $eo_bool ((x1 Bool)) eo.Term
     (eo.Boolean x1)
@@ -167,6 +160,13 @@
 (define-fun $eo_binary ((x1 Int) (x2 Int)) eo.Term
     (eo.Binary x1 x2)
 )
+
+; program: $smtx_pow2
+(declare-fun $smtx_pow2 (Int) Int)
+(assert (! (forall ((x1 Int))
+  (! (= ($smtx_pow2 x1)
+    (ite (zleq x1 0) 1 (zmult 2 ($smtx_pow2 (zplus x1 (zneg 1)))))
+) :pattern (($smtx_pow2 x1)))) :named sm.axiom.$smtx_pow2))
 
 ; program: $eo_requires
 (define-fun $eo_requires ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
