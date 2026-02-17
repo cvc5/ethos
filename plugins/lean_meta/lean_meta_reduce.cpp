@@ -57,8 +57,7 @@ bool LeanMetaReduce::printMetaType(const Expr& t,
   return true;
 }
 
-void LeanMetaReduce::printEmbAtomicTerm(const Expr& c,
-                                        std::ostream& os)
+void LeanMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
 {
   Kind k = c.getKind();
   if (k == Kind::TYPE)
@@ -438,29 +437,30 @@ void LeanMetaReduce::finalizePrograms()
   std::set<Expr> progProcessed;
   std::vector<Expr> waiting;
   std::set<Expr> waitingDef;
-  for (size_t i=0, nprogs=d_progDefs.size(); i<nprogs; i++)
+  for (size_t i = 0, nprogs = d_progDefs.size(); i < nprogs; i++)
   {
     Expr prog = d_progDefs[i];
 #if 1
-    bool isDefine = (d_progIsDefine.find(prog)!=d_progIsDefine.end());
+    bool isDefine = (d_progIsDefine.find(prog) != d_progIsDefine.end());
     Expr def = d_progToDef[prog];
     finalizeProgram(prog, def, isDefine);
 #else
     Expr prog = d_progDefs[i];
-    if (progProcessed.find(prog)!=progProcessed.end())
+    if (progProcessed.find(prog) != progProcessed.end())
     {
       continue;
     }
     Expr def = d_progToDef[prog];
-    std::vector<Expr> calls = StdPlugin::getSubtermsKind(Kind::PROGRAM_CONST, def);
+    std::vector<Expr> calls =
+        StdPlugin::getSubtermsKind(Kind::PROGRAM_CONST, def);
     bool hasWaitingDef = false;
-    for (size_t j=0, ncalls=calls.size(); j<ncalls; j++)
+    for (size_t j = 0, ncalls = calls.size(); j < ncalls; j++)
     {
       Expr sc = calls[j];
-      if (sc!=prog && progProcessed.find(sc)==progProcessed.end() &&
-          d_progToDef.find(sc)!=d_progToDef.end())
+      if (sc != prog && progProcessed.find(sc) == progProcessed.end()
+          && d_progToDef.find(sc) != d_progToDef.end())
       {
-        if (std::find(waiting.begin(), waiting.end(), sc)==waiting.end())
+        if (std::find(waiting.begin(), waiting.end(), sc) == waiting.end())
         {
           waitingDef.insert(sc);
         }
@@ -470,7 +470,7 @@ void LeanMetaReduce::finalizePrograms()
     if (!hasWaitingDef)
     {
       // go ahead and define it
-      bool isDefine = (d_progIsDefine.find(prog)!=d_progIsDefine.end());
+      bool isDefine = (d_progIsDefine.find(prog) != d_progIsDefine.end());
       finalizeProgram(prog, def, isDefine);
       progProcessed.insert(prog);
     }
@@ -483,22 +483,22 @@ void LeanMetaReduce::finalizePrograms()
     waitingDef.erase(prog);
     if (!waiting.empty() && waitingDef.empty())
     {
-      if (waiting.size()>1)
+      if (waiting.size() > 1)
       {
         d_defs << "mutual" << std::endl;
       }
-      for (size_t j=0, ncalls=waiting.size(); j<ncalls; j++)
+      for (size_t j = 0, ncalls = waiting.size(); j < ncalls; j++)
       {
         Expr prog = waiting[j];
         Expr def = d_progToDef[prog];
         if (!def.isNull())
         {
-          bool isDefine = (d_progIsDefine.find(prog)!=d_progIsDefine.end());
+          bool isDefine = (d_progIsDefine.find(prog) != d_progIsDefine.end());
           finalizeProgram(prog, def, isDefine);
           progProcessed.insert(prog);
         }
       }
-      if (waiting.size()>1)
+      if (waiting.size() > 1)
       {
         d_defs << "end" << std::endl;
       }
@@ -506,7 +506,7 @@ void LeanMetaReduce::finalizePrograms()
     }
 #endif
   }
-  Assert (waiting.empty());
+  Assert(waiting.empty());
 }
 
 void LeanMetaReduce::finalizeProgram(const Expr& v,
@@ -514,7 +514,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
                                      bool isDefine)
 {
   std::string vname = getName(v);
-  if (prog.getKind()!=Kind::PROGRAM)
+  if (prog.getKind() != Kind::PROGRAM)
   {
     d_defs << "def " << cleanId(vname) << " : Term";
     d_defs << " := ";
@@ -914,9 +914,8 @@ bool LeanMetaReduce::echo(const std::string& msg)
     Expr vv = d_state.getVar(eosc);
     if (vv.isNull())
     {
-      Assert(false)
-          << "When making Lean theorem, could not find program "
-          << eosc;
+      Assert(false) << "When making Lean theorem, could not find program "
+                    << eosc;
     }
     d_thms << "/- correctness theorem for " << cleanId(eosc) << " -/"
            << std::endl;

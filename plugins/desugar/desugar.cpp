@@ -906,10 +906,7 @@ bool Desugar::notifyStep(const std::string& name,
       name, children, rule, proven, premises, args, isPop);
 }
 
-bool Desugar::echo(const std::string& msg)
-{
-  return true;
-}
+bool Desugar::echo(const std::string& msg) { return true; }
 
 Expr Desugar::mkSanitize(const Expr& t)
 {

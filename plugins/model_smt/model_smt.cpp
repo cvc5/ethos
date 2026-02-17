@@ -183,11 +183,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ssReLoopRet << " re.none (ite (= x1 x2)";
   ssReLoopRet << " (re.^ x1 x3)";
   ssReLoopRet << " (re.union (re.loop x1 (- x2 1) (re.^ x2 x3))))))";
-  addReduceSym("re.loop",
-               {kInt, kInt, kRegLan},
-               smtGuard(smtValueEq("($smtx_model_eval (and (>= x1 0) (>= x2 0)))",
-                              "$vsm_true"),
-                        ssReLoopRet.str()));
+  addReduceSym(
+      "re.loop",
+      {kInt, kInt, kRegLan},
+      smtGuard(smtValueEq("($smtx_model_eval (and (>= x1 0) (>= x2 0)))",
+                          "$vsm_true"),
+               ssReLoopRet.str()));
   // RE operators
   addConstFoldSym("str.in_re", {kString, kRegLan}, kBool);
   addConstFoldSym("str.indexof_re", {kString, kRegLan, kInt}, kInt);
@@ -483,9 +484,10 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addRecReduceSym("set.member", {kT, kT}, "($smtx_map_select e2 e1)");
   addTermReduceSym("set.subset", {kT, kT}, "(= (set.inter x1 x2) x1)");
   addRecReduceSym("@sets_deq_diff", {kT, kT}, "($smtx_map_diff e1 e2)");
-  addRecReduceSym("set.is_empty",
-                  {kT},
-                  "($vsm_term ($eo_bool ($smt_builtin_teq e1 $smtx_empty_set)))");
+  addRecReduceSym(
+      "set.is_empty",
+      {kT},
+      "($vsm_term ($eo_bool ($smt_builtin_teq e1 $smtx_empty_set)))");
   addReduceSym(
       "set.insert",
       {kList, kT},

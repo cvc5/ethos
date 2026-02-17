@@ -76,8 +76,7 @@ class LeanMetaReduce : public StdPlugin
 
  private:
   MetaKind prefixToMetaKind(const std::string& str) const;
-  void printEmbAtomicTerm(const Expr& c,
-                          std::ostream& os);
+  void printEmbAtomicTerm(const Expr& c, std::ostream& os);
   bool printEmbTerm(const Expr& c,
                     std::ostream& os,
                     MetaKind tinit = MetaKind::NONE);
