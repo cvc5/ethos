@@ -868,24 +868,23 @@ void ExprParser::parseConstructorDefinitionList(
       d_lex.eatToken(Token::RPAREN);
     }
     bool isAmb = false;
+    Expr ctype = d_state.mkFunctionType(typelist, dt);
     if (!params.empty())
     {
       // if this is an ambiguous datatype constructor, we add (Quote T)
       // as the first argument type.
-      Expr tup = d_state.mkExpr(Kind::TUPLE, typelist);
-      std::vector<Expr> pargs = Expr::getVariables(tup);
+      std::vector<Expr> pargs = Expr::getVariables(typelist);
       Expr fv = findFreeVar(dt, pargs);
       Trace("param-dt") << "Parameteric datatype constructor: " << name;
       Trace("param-dt") << (fv.isNull() ? " un" : " ") << "ambiguous"
                         << std::endl;
       if (!fv.isNull())
       {
-        Expr odt = d_state.mkQuoteType(dt);
-        typelist.insert(typelist.begin(), odt);
+        // use the mkDisambiguatedType utility
+        ctype = d_state.mkDisambiguatedType(dt, ctype, name);
         isAmb = true;
       }
     }
-    Expr ctype = d_state.mkFunctionType(typelist, dt);
     Expr cons = d_state.mkSymbol(Kind::CONST, name, ctype);
     toBind.emplace_back(name, cons);
     conslist.push_back(cons);
