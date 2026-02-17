@@ -157,7 +157,8 @@ class State
    * expect to be written as (as <symbol> <type>), which is parsed as an
    * opaque application of that symbol to that type as its first argument. This
    * method returns a type of the form (-> (Quote x) ($eo_disamb_type_<name> x))
-   * where $eo_disamb_type_<name> is a program defined by this method.
+   * where $eo_disamb_type_<name> is a program defined by this method, and x
+   * has type Type.
    *
    * @param disambPat The pattern which is expected as the second argument to
    *                  "as" above.
