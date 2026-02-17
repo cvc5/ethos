@@ -933,6 +933,39 @@ Expr State::mkList(const std::vector<Expr>& args)
   return mkExpr(Kind::APPLY, largs);
 }
 
+Expr State::mkDisambiguatedType(const Expr& disambPat,
+                                const Expr& ret,
+                                const std::string& name)
+{
+  // For example, for the ambiguous datatype constructor
+  //   (declare-datatypes ((List 1)) (
+  //     (par (X) ((nil) (cons (head X) (tail (List X)))))))
+  // nil is an ambiguous constructor, which will be written as
+  // (as nil (List Int)), which is interpretted as opaque application.
+  // To define the type of nil, we first define the program to compute its
+  // return type:
+  //   (program $eo_disamb_type_nil ((T Type))
+  //     :signature (Type) Type
+  //     ((($eo_disamb_type_nil (List T)) (List T))))
+  // Then, its return type becomes an invocation of this program, where
+  // its type is the same as if it were declared via:
+  //   (declare-parameterized-const nil ((T Type :opaque))
+  //     ($eo_disamb_type_nil T)).
+  Expr pt = mkProgramType({d_type}, d_type);
+  std::stringstream ss;
+  ss << "$eo_disamb_type_" << name;
+  Expr tprog = mkSymbol(Kind::PROGRAM_CONST, ss.str(), pt);
+  Expr tpat = mkExpr(Kind::APPLY, {tprog, disambPat});
+  Expr progCase = mkPair(tpat, ret);
+  Expr prog = mkExpr(Kind::PROGRAM, {progCase});
+  defineProgram(tprog, prog);
+  ss << "_var";
+  Expr tv = mkSymbol(Kind::PARAM, ss.str(), d_type);
+  Expr qtv = mkQuoteType(tv);
+  Expr fapp = mkExpr(Kind::APPLY, {tprog, tv});
+  return mkFunctionType({qtv}, fapp);
+}
+
 ExprValue* State::mkLiteralInternal(Literal& l)
 {
   d_stats.d_mkExprCount++;
@@ -1343,13 +1376,6 @@ Expr State::mkLetBinderList(const ExprValue* ev, const std::vector<std::pair<Exp
 
 Attr State::getConstructorKind(const ExprValue* v) const
 {
-  // If we ask for the constructor kind of an annotated parameter,
-  // it is stored on the parameter it annotates. This makes a difference
-  // for parameters with non-ground type that are marked :list.
-  if (v->getKind() == Kind::ANNOT_PARAM)
-  {
-    return getConstructorKind(v->d_children[0]);
-  }
   const AppInfo* ai = getAppInfo(v);
   if (ai!=nullptr)
   {
@@ -1576,8 +1602,6 @@ bool State::isProofRuleSorry(const ExprValue* e) const
 
 AppInfo* State::getAppInfo(const ExprValue* e)
 {
-  // we may be an ANNOT_PARAM here, which will never have relevant properties
-  // in the context where it is being used as the head of an application
   std::map<const ExprValue *, AppInfo>::iterator it = d_appData.find(e);
   if (it!=d_appData.end())
   {
@@ -1588,7 +1612,6 @@ AppInfo* State::getAppInfo(const ExprValue* e)
 
 const AppInfo* State::getAppInfo(const ExprValue* e) const
 {
-  // similar to above, we may be ANNOT_PARAM.
   std::map<const ExprValue *, AppInfo>::const_iterator it = d_appData.find(e);
   if (it!=d_appData.end())
   {
@@ -1696,11 +1719,6 @@ void State::echo(const std::string& msg)
 
 bool State::markConstructorKind(const Expr& v, Attr a, const Expr& cons)
 {
-  // If marking an annotated parameter, we mark the parameter it annotates.
-  if (v.getKind() == Kind::ANNOT_PARAM)
-  {
-    return markConstructorKind(v[0], a, cons);
-  }
   Expr acons = cons;
   Assert (isSymbol(v.getKind()));
   AppInfo& ai = d_appData[v.getValue()];

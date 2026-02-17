@@ -113,16 +113,6 @@ public:
    */
   virtual bool hasEvaluation(ExprValue* e) { return false; }
   /**
-   * Get type.
-   * @param hdType The type of the function we are applying.
-   * @param args Its arguments.
-   * @param out An (optional) pointer to an output stream, for debugging.
-   * @return The computed type of hdType for the given arguments.
-   */
-  virtual Expr getType(ExprValue* hdType,
-                       const std::vector<ExprValue*>& args,
-                       std::ostream* out) { return Expr(); }
-  /**
    * Evaluate.
    * @param e The expression to evaluate
    * @param ctx The context under which we are evaluating, which is a

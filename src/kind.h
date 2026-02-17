@@ -36,8 +36,6 @@ enum class Kind
   AS_RETURN,  // SMT-LIB (as t T), where T is the return type of t
   PARAMETERIZED,
   APPLY_OPAQUE,
-  ANNOT_PARAM,  // a parameter with non-ground type that appears in type
-                // checking
   ANY,          // atomic term standing for an unknown, treated as non-ground
                 // and evaluatable.
   PROOF,  // a proof term (pf <proven>). We use a special kind for efficiency,

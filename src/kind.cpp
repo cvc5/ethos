@@ -37,7 +37,6 @@ std::ostream& operator<<(std::ostream& o, Kind k)
     case Kind::AS_RETURN: o << "AS_RETURN"; break;
     case Kind::PARAMETERIZED: o << "PARAMETERIZED"; break;
     case Kind::APPLY_OPAQUE: o << "APPLY_OPAQUE"; break;
-    case Kind::ANNOT_PARAM: o << "ANNOT_PARAM"; break;
     case Kind::ANY: o << "ANY"; break;
     case Kind::PROOF: o << "PROOF"; break;
     // literals
@@ -128,7 +127,6 @@ std::string kindToTerm(Kind k)
     // terms
     case Kind::APPLY: ss << "_"; break;
     case Kind::APPLY_OPAQUE: ss << "_"; break;
-    case Kind::ANNOT_PARAM: ss << "eo::param"; break;
     case Kind::ANY: ss << "eo::?"; break;
     case Kind::LAMBDA: ss << "lambda"; break;
     case Kind::PROGRAM: ss << "program"; break;
@@ -249,7 +247,6 @@ bool isLiteralOp(Kind k)
 {
   switch(k)
   {
-    case Kind::ANNOT_PARAM:
     case Kind::EVAL_IS_OK:
     case Kind::EVAL_IS_EQ:
     case Kind::EVAL_IF_THEN_ELSE:

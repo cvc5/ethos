@@ -181,17 +181,37 @@ bool CmdParser::parseNextCommand()
         for (size_t i = 0, nparams = params.size(); i < nparams; i++)
         {
           size_t ii = nparams - i - 1;
-          Expr qt = d_state.mkQuoteType(params[ii]);
-          itp = pattrMap.find(params[ii].getValue());
+          Expr p = params[ii];
+          Expr pt = d_tc.getType(p);
+          Expr qt;
+          // Check if the parameter is contained in the return type. If so,
+          // then it must be quoted.
+          std::unordered_set<const ExprValue*> vp{p.getValue()};
+          if (Expr::hasVariable(t, vp))
+          {
+            // If the type of the parameter is non-ground, then we throw an
+            // error.
+            if (!pt.isGround())
+            {
+              std::stringstream ss;
+              ss << "Cannot define a type involving a parameter that has "
+                    "non-ground type. ";
+              ss << "The parameter in question was " << p << ".";
+              d_lex.parseError(ss.str());
+            }
+            // We also pass its type to ensure the argument passed to it matches
+            // its type.
+            qt = d_state.mkQuoteType(p);
+          }
+          else
+          {
+            // If not contained, the parameter is not quoted and we are an
+            // ordinary function argument type.
+            qt = pt;
+          }
+          itp = pattrMap.find(p.getValue());
           if (itp != pattrMap.end())
           {
-            itpa = itp->second.find(Attr::REQUIRES);
-            if (itpa != itp->second.end())
-            {
-              // requires adds to return type
-              t = d_state.mkRequires(itpa->second, t);
-              itp->second.erase(itpa);
-            }
             itpa = itp->second.find(Attr::OPAQUE);
             if (itpa != itp->second.end())
             {
@@ -216,8 +236,7 @@ bool CmdParser::parseNextCommand()
         std::pair<std::vector<Expr>, Expr> ft = t.getFunctionType();
         std::vector<Expr> argTypes = ft.first;
         argTypes.insert(argTypes.end(), opaqueArgs.begin(), opaqueArgs.end());
-        Expr tup = d_state.mkExpr(Kind::TUPLE, argTypes);
-        std::vector<Expr> pargs = Expr::getVariables(tup);
+        std::vector<Expr> pargs = Expr::getVariables(argTypes);
         Expr fv = d_eparser.findFreeVar(ft.second, pargs);
         if (!fv.isNull())
         {
@@ -230,8 +249,8 @@ bool CmdParser::parseNextCommand()
             d_lex.parseError(
                 "Ambiguous functions cannot have opaque arguments");
           }
-          Expr qt = d_state.mkQuoteType(ft.second);
-          t = d_state.mkFunctionType({qt}, t);
+          // must disambiguate the type using the utility
+          t = d_state.mkDisambiguatedType(ft.second, t, name);
           ck = Attr::AMB;
         }
       }

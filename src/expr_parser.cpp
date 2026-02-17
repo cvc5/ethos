@@ -66,7 +66,6 @@ ExprParser::ExprParser(Lexer& lex, State& state, bool isSignature)
   d_strToAttr[":implicit"] = Attr::IMPLICIT;
   d_strToAttr[":type"] = Attr::TYPE;
   d_strToAttr[":list"] = Attr::LIST;
-  d_strToAttr[":requires"] = Attr::REQUIRES;
   d_strToAttr[":left-assoc"] = Attr::LEFT_ASSOC;
   d_strToAttr[":right-assoc"] = Attr::RIGHT_ASSOC;
   d_strToAttr[":left-assoc-nil"] = Attr::LEFT_ASSOC_NIL;
@@ -644,15 +643,6 @@ std::vector<Expr> ExprParser::parseAndBindSortedVarList(
     else
     {
       v = d_state.mkSymbol(Kind::PARAM, name, t);
-      // if this parameter is used to define the type of a constant, then if 
-      // it has non-ground type, its type will be taken into account for
-      // matching and evaluation. We wrap it in (eo::param ...) here.
-      // Older versions of ethos had also done this for PROOF_RULE, but
-      // we now view proof rules more as programs not constants.
-      if (k == Kind::CONST && !t.isGround())
-      {
-        v = d_state.mkExpr(Kind::ANNOT_PARAM, {v, t});
-      }
       bind(name, v);
       // parse attribute list
       AttrMap& attrs = amap[v.getValue()];
@@ -878,24 +868,23 @@ void ExprParser::parseConstructorDefinitionList(
       d_lex.eatToken(Token::RPAREN);
     }
     bool isAmb = false;
+    Expr ctype = d_state.mkFunctionType(typelist, dt);
     if (!params.empty())
     {
       // if this is an ambiguous datatype constructor, we add (Quote T)
       // as the first argument type.
-      Expr tup = d_state.mkExpr(Kind::TUPLE, typelist);
-      std::vector<Expr> pargs = Expr::getVariables(tup);
+      std::vector<Expr> pargs = Expr::getVariables(typelist);
       Expr fv = findFreeVar(dt, pargs);
       Trace("param-dt") << "Parameteric datatype constructor: " << name;
       Trace("param-dt") << (fv.isNull() ? " un" : " ") << "ambiguous"
                         << std::endl;
       if (!fv.isNull())
       {
-        Expr odt = d_state.mkQuoteType(dt);
-        typelist.insert(typelist.begin(), odt);
+        // use the mkDisambiguatedType utility
+        ctype = d_state.mkDisambiguatedType(dt, ctype, name);
         isAmb = true;
       }
     }
-    Expr ctype = d_state.mkFunctionType(typelist, dt);
     Expr cons = d_state.mkSymbol(Kind::CONST, name, ctype);
     toBind.emplace_back(name, cons);
     conslist.push_back(cons);

@@ -150,7 +150,6 @@ bool TypeChecker::checkArity(Kind k, size_t nargs, std::ostream* out)
   // check arities
   switch(k)
   {
-    case Kind::ANNOT_PARAM:
     case Kind::EVAL_IS_EQ:
     case Kind::EVAL_VAR:
     case Kind::EVAL_EQ:
@@ -267,9 +266,6 @@ Expr TypeChecker::getTypeInternal(ExprValue* e, std::ostream* out)
       }
       return d_state.mkProofType();
     }
-    case Kind::ANNOT_PARAM:
-      // its type is the second child
-      return Expr(e->d_children[1]);
     case Kind::QUOTE_TYPE:
     case Kind::TUPLE:
       // These things are essentially not typed.
@@ -348,7 +344,6 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     return d_null;
   }
   std::vector<ExprValue*> hdtypes = hdType->d_children;
-  std::vector<ExprValue*> ctypes;
   if (hdtypes.size() != children.size())
   {
     // incorrect arity
@@ -360,71 +355,63 @@ Expr TypeChecker::getTypeAppInternal(std::vector<ExprValue*>& children,
     }
     return d_null;
   }
-  for (size_t i=1, nchild=children.size(); i<nchild; i++)
-  {
-    Assert (children[i]!=nullptr);
-    // if the argument type is (Quote t), then we implicitly upcast
-    // the argument c to (quote c). This is equivalent to matching
-    // c to t directly, hence we take the child itself and not its
-    // type.
-    ExprValue* arg;
-    if (hdtypes[i-1]->getKind()==Kind::QUOTE_TYPE)
-    {
-      // don't need to evaluate
-      arg = children[i];
-    }
-    else
-    {
-      arg = d_state.lookupType(children[i]);
-      Assert(arg != nullptr);
-    }
-    ctypes.emplace_back(arg);
-  }
-  // if plugin can evaluate, run the compiled version of the type checker
-  if (d_plugin!=nullptr && d_plugin->hasEvaluation(hdType))
-  {
-    Trace("type_checker") << "RUN type check " << Expr(hdType) << std::endl;
-    return d_plugin->getType(hdType, ctypes, out);
-  }
   std::set<std::pair<ExprValue*, ExprValue*>> visited;
   Expr hdEval;
-  for (size_t i=0, nchild=ctypes.size(); i<nchild; i++)
+  for (size_t i = 1, nchild = hdtypes.size(); i < nchild; i++)
   {
-    Assert(ctypes[i] != nullptr);
     // matching, update context
-    ExprValue* hdt = hdtypes[i];
+    ExprValue* hdt = hdtypes[i - 1];
     // if the argument is (Quote t), we match on its argument,
     // which along with how ctypes[i] is the argument itself, has the effect
     // of an implicit upcast.
-    hdt = hdt->getKind() == Kind::QUOTE_TYPE ? hdt->d_children[0] : hdt;
-    // Note that apart from ANNOT_PARAM, hdt should not be evaluatable at this
-    // point.
-    if (!match(hdt, ctypes[i], ctx, visited))
+    bool isQuote = false;
+    bool typeSuccess = true;
+    ExprValue* child = children[i];
+    if (hdt->getKind() == Kind::QUOTE_TYPE)
+    {
+      // We ensure that the type of the argument is equal to the type of the
+      // quoted term, whose type should be ground.
+      ExprValue* ct = d_state.lookupType(child);
+      ExprValue* cte = d_state.lookupType(hdt->d_children[0]);
+      Assert(cte->isGround());
+      Assert(ct != nullptr);
+      if (ct != cte)
+      {
+        typeSuccess = false;
+        hdt = cte;
+        child = ct;
+      }
+      // if the above check was success, we quote
+      if (typeSuccess)
+      {
+        hdt = hdt->d_children[0];
+        isQuote = true;
+      }
+    }
+    else
+    {
+      child = d_state.lookupType(child);
+      Assert(child != nullptr);
+    }
+    if (!typeSuccess || !match(hdt, child, ctx, visited))
     {
       if (out)
       {
-        ExprValue* hdto = hdtypes[i];
         (*out) << "Checking application of " << Expr(hd) << std::endl;
-        if (hdtypes[i]->getKind() == Kind::QUOTE_TYPE)
+        if (isQuote)
         {
           (*out) << "Unexpected child #" << i << std::endl;
-          (*out) << "  Term: " << Expr(children[i + 1]) << std::endl;
+          (*out) << "  Term: " << Expr(children[i]) << std::endl;
           (*out) << "  Expected pattern: ";
-          hdto = hdto->d_children[0];
         }
         else
         {
           (*out) << "Unexpected type of child #" << i << std::endl;
-          (*out) << "  Term: " << Expr(children[i + 1]) << std::endl;
-          (*out) << "  Has type: " << Expr(ctypes[i]) << std::endl;
+          (*out) << "  Term: " << Expr(children[i]) << std::endl;
+          (*out) << "  Has type: " << Expr(child) << std::endl;
           (*out) << "  Expected type: ";
         }
-        (*out) << Expr(hdt);
-        if (hdto != hdt)
-        {
-          (*out) << ", from " << Expr(hdto);
-        }
-        (*out) << std::endl;
+        (*out) << Expr(hdt) << std::endl;
         (*out) << "  Context " << ctx << std::endl;
       }
       return d_null;
@@ -511,27 +498,7 @@ bool TypeChecker::match(ExprValue* a,
       if (curr.first->getNumChildren() != curr.second->getNumChildren()
           || curr.first->getKind() != curr.second->getKind())
       {
-        // Special case: if we are an annotated parameter, then matching takes
-        // into account its *type*. In particular, the type of the term we are
-        // matching is matched against the annotated type. This has the effect
-        // that free parameters in the type of parameters are also bound, if the
-        // parameter is annotated.
-        Kind ck1 = curr.first->getKind();
-        if (ck1 == Kind::ANNOT_PARAM)
-        {
-          stack.emplace_back(curr.first->d_children[0], curr.second);
-          // independently check its type
-          ExprValue* t = d_state.lookupType(curr.second);
-          if (t == nullptr)
-          {
-            return false;
-          }
-          stack.emplace_back(curr.first->d_children[1], t);
-        }
-        else
-        {
-          return false;
-        }
+        return false;
       }
       else
       {
@@ -1100,23 +1067,6 @@ Expr TypeChecker::evaluateLiteralOpInternal(
       }
       // note that we do not simplify based on the branches being equal
       return d_null;
-    }
-    break;
-    case Kind::ANNOT_PARAM:
-    {
-      // if the first argument is ground, then we know by construction
-      // that its type is equal to the second argument. This invariant
-      // is ensured by the fact that the context we are in is the result
-      // of a context that was extended by matching the second argument
-      // to the type of the (instantiated) first argument.
-      if (args[0]->isGround())
-      {
-        // by construction, args[0] should have type args[1], this is
-        // an assertion that is not checked in production.
-        Expr ret(args[0]);
-        Assert(getType(ret).getValue() == args[1]);
-        return Expr(ret);
-      }
     }
     break;
     case Kind::EVAL_REQUIRES:
