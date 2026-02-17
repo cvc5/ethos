@@ -440,14 +440,14 @@ bool CmdParser::parseNextCommand()
         Expr pet = d_state.mkProof(e);
         progArgs.push_back(pet);
       }
-      Expr ret = d_state.mkProof(conc);
+      Expr ret = conc;
       // include the requirements into the return type
       if (!reqs.empty())
       {
         ret = d_state.mkRequires(reqs, ret);
       }
       // rules have type Proof, which is not used.
-      Expr pt = d_state.mkProofType();
+      Expr pt = d_state.mkBoolType();
       d_state.popScope();
       Expr rule = d_state.mkSymbol(Kind::PROOF_RULE, name, pt);
       d_eparser.typeCheck(rule);
@@ -890,23 +890,23 @@ bool CmdParser::parseNextCommand()
         d_lex.parseError("Failed to get arguments for proof rule");
       }
       // compute the type of applying the rule
-      Expr pfTerm;
+      Expr concTerm;
       if (children.size()>1)
       {
         // evaluate the program app
-        pfTerm = d_tc.evaluateProgramApp(children);
+        concTerm = d_tc.evaluateProgramApp(children);
       }
       else
       {
-        pfTerm = children[0];
+        concTerm = children[0];
       }
       // ensure proof type, note this is where "proof checking" happens.
-      if (pfTerm.isEvaluatable())
+      if (concTerm.isEvaluatable())
       {
         // error message gives the list of arguments and the proof rule
         std::stringstream ss;
         ss << "A step of rule " << ruleName << " failed to check." << std::endl;
-        if (pfTerm.getKind() == Kind::APPLY && pfTerm[0] == children[0])
+        if (concTerm == children[0])
         {
           Expr prog = d_state.getProgram(children[0].getValue());
           Assert(prog.getNumChildren() == 1 && prog[0].getNumChildren() == 2);
@@ -923,13 +923,11 @@ bool CmdParser::parseNextCommand()
         }
         else
         {
-          ss << "Evaluation failed: " << pfTerm << std::endl;
+          ss << "Evaluation failed: " << concTerm << std::endl;
           d_lex.parseError(ss.str());
         }
       }
-      Assert (pfTerm.getKind()==Kind::PROOF);
       // Check that the proved term is actually Bool
-      Expr concTerm = pfTerm[0];
       Expr concTermType = d_eparser.typeCheck(concTerm);
       if (concTermType.getKind() != Kind::BOOL_TYPE)
       {
@@ -943,7 +941,7 @@ bool CmdParser::parseNextCommand()
         {
           std::stringstream ss;
           ss << "Unexpected conclusion for rule " << ruleName << ":" << std::endl;
-          ss << "    Proves: " << pfTerm << std::endl;
+          ss << "    Proves: " << concTerm << std::endl;
           ss << "  Expected: (pf " << proven << ")";
           d_lex.parseError(ss.str());
         }
@@ -953,6 +951,7 @@ bool CmdParser::parseNextCommand()
       {
         d_state.popAssumptionScope();
       }
+      Expr pfTerm = d_state.mkProof(concTerm);
       // bind to variable, note that the definition term is not kept
       d_eparser.bind(name, pfTerm);
       // d_eparser.bind(name, def);

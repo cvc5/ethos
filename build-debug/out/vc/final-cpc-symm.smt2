@@ -253,7 +253,7 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite ((_ is eo.$eo_pf) x1)
-    (eo.$eo_pf ($mk_symm (eo.$eo_pf.arg1 x1)))
+    ($mk_symm (eo.$eo_pf.arg1 x1))
     eo.Stuck)))
 
 ; program: $eo_typeof_apply
@@ -504,7 +504,7 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    ($eo_requires ($eo_typeof x1) eo.Bool ($eo_requires ($eo_model_sat x1) (eo.Boolean true) ($eo_requires ($eo_typeof ($eo_proven ($eo_prog_symm (eo.$eo_pf x1)))) eo.Bool ($eo_requires ($eo_model_unsat ($eo_proven ($eo_prog_symm (eo.$eo_pf x1)))) (eo.Boolean true) (eo.Boolean true)))))
+    ($eo_requires ($eo_typeof x1) eo.Bool ($eo_requires ($eo_model_sat x1) (eo.Boolean true) ($eo_requires ($eo_typeof ($eo_prog_symm (eo.$eo_pf x1))) eo.Bool ($eo_requires ($eo_model_unsat ($eo_prog_symm (eo.$eo_pf x1))) (eo.Boolean true) (eo.Boolean true)))))
     eo.Stuck)))
 
 

@@ -677,7 +677,7 @@ void Desugar::finalizeRule(const Expr& e)
   {
     progCase = rprog;
   }
-  Expr conclusion = d_state.mkExpr(Kind::APPLY, {d_peoProven, progCase});
+  Expr conclusion = progCase;
   std::stringstream pvcname;
   pvcname << "$eovc_" << e;
   Expr unsound = d_true;

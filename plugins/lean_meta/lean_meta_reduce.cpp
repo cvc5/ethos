@@ -955,8 +955,7 @@ bool LeanMetaReduce::echo(const std::string& msg)
         pcs << cleanId(eosc);
       }
       d_thms << "  (Not (eo_interprets ";
-      d_thms << "(__eo_proven " << pcs.str() << ")";
-      d_thms << " false)) :=" << std::endl;
+      d_thms << pcs.str() << " false)) :=" << std::endl;
       d_thms << "by" << std::endl;
       d_thms << "  sorry" << std::endl;
       d_thms << std::endl;
