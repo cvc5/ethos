@@ -1,5 +1,5 @@
 ; trim-defs: $eovc_symm
-; #trim-defs: 134
+; #trim-defs: 132
 (declare-const $eo_Proof Type)
 (declare-parameterized-const $eo_pf ((F Bool :opaque)) $eo_Proof)
 (program $eo_proven ((F Bool))
@@ -18,7 +18,6 @@
 (declare-const Char Type)
 (declare-const Seq (-> Type Type))
 (declare-consts <string> (Seq Char))
-(define $eo_String () (Seq Char))
 (declare-const $eo_List Type)
 (declare-const $eo_List_nil $eo_List)
 (declare-parameterized-const $eo_List_cons ((T Type :implicit))
@@ -26,21 +25,20 @@
 (program $eo_typeof ((T Type)) :signature (T) Type)
 (program $eo_dt_selectors ((T Type)) :signature (T) $eo_List)
 (declare-const $smt_BuiltinType Type)
-(define $smt_id () $eo_String)
 (declare-parameterized-const $smt_type_0
-  ((op $smt_id :opaque))
+  (($smt_id Type :implicit) (op $smt_id :opaque))
   Type)
 (declare-parameterized-const $smt_apply_0
-  ((op $smt_id :opaque))
+  (($smt_id Type :implicit) (op $smt_id :opaque))
   $smt_BuiltinType)
 (declare-parameterized-const $smt_apply_1
-  ((W1 Type :implicit)
+  (($smt_id Type :implicit) (W1 Type :implicit)
    (op $smt_id :opaque) (x1 W1 :opaque)) $smt_BuiltinType)
 (declare-parameterized-const $smt_apply_2
-  ((W1 Type :implicit) (W2 Type :implicit)
+  (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit)
    (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque)) $smt_BuiltinType)
 (declare-parameterized-const $smt_apply_3
-  ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit)
+  (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit)
    (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque)) $smt_BuiltinType)
 (define $smt_builtin_Bool () ($smt_type_0 "Bool"))
 (define $smt_builtin_Int () ($smt_type_0 "Int"))

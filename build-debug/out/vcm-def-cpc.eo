@@ -42,9 +42,6 @@
 ; but we don't know which one from ordinary type checking.
 (declare-const $smt_BuiltinType Type)
 
-; The operator of $smt_apply_* terms
-(define $smt_id () $eo_String)
-
 ; note: decimal and hexadecimal omitted for now.
 
 ;;; Deep embedding of SMT-LIB operator applications into Eunoia
@@ -52,38 +49,40 @@
 ; Apply the SMT operator named "op" to x1, x2, and so on.
 ; Assumes arity of SMT-LIB operators are at most 5.
 (declare-parameterized-const $smt_type_0
-  ((op $smt_id :opaque))
+  (($smt_id Type :implicit) (op $smt_id :opaque))
   Type)
 (declare-parameterized-const $smt_type_1
-  ((W1 Type :implicit) (op $smt_id :opaque) (x1 W1 :opaque))
+  (($smt_id Type :implicit) (W1 Type :implicit) (op $smt_id :opaque) (x1 W1 :opaque))
   Type)
 (declare-parameterized-const $smt_apply_0
-  ((op $smt_id :opaque))
+  (($smt_id Type :implicit) (op $smt_id :opaque))
   $smt_BuiltinType)
 (declare-parameterized-const $smt_apply_1
-  ((W1 Type :implicit)
+  (($smt_id Type :implicit) (W1 Type :implicit)
    (op $smt_id :opaque) (x1 W1 :opaque)) $smt_BuiltinType)
 (declare-parameterized-const $smt_apply_2
-  ((W1 Type :implicit) (W2 Type :implicit)
+  (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit)
    (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque)) $smt_BuiltinType)
 (declare-parameterized-const $smt_apply_3
-  ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit)
+  (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit)
    (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque)) $smt_BuiltinType)
 (declare-parameterized-const $smt_apply_4
-  ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit) (W4 Type :implicit)
+  (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit)
+   (W3 Type :implicit) (W4 Type :implicit)
    (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque) (x4 W4 :opaque)) $smt_BuiltinType)
 (declare-parameterized-const $smt_apply_5
-  ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit) (W4 Type :implicit) (W5 Type :implicit)
+  (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit)
+   (W3 Type :implicit) (W4 Type :implicit) (W5 Type :implicit)
    (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque) (x4 W4 :opaque) (x5 W5 :opaque)) $smt_BuiltinType)
 
 ; builtin types, which print as e.g. "sm.Int".
 (declare-parameterized-const $smt_builtin_type_0
-  ((op $smt_id :opaque))
+  (($smt_id Type :implicit) (op $smt_id :opaque))
   Type)
 ; NOTE: the fact that x1 is not opaque indicates that
 ; bitvectors print as (_ BitVec w) not (BitVec w).
 (declare-parameterized-const $smt_builtin_type_1
-  ((W1 Type :implicit) (op $smt_id :opaque) (x1 W1))
+  (($smt_id Type :implicit) (W1 Type :implicit) (op $smt_id :opaque) (x1 W1))
   Type)
 
 (define $smt_builtin_Bool () ($smt_type_0 "Bool"))
@@ -129,7 +128,7 @@
 
 ; macro for applying (+ t1 t2 t3), which is (+ t1 (+ t2 t3))
 (define $smt_apply_nary_3
-  ((W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit)
+  (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit)
    (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque))
   ($smt_apply_2 op x1 ($smt_apply_2 op x2 x3)))
 

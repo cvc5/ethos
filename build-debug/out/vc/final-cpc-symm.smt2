@@ -115,7 +115,6 @@
     eo.Stuck)))
 
 (define-fun $eo_Numeral () eo.Term eo.Int)
-(define-fun $eo_String () eo.Term (eo.Apply eo.Seq eo.Char))
 ; fwd-decl: $eo_typeof
 (declare-fun $eo_typeof (eo.Term) eo.Term)
 
