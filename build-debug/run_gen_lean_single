@@ -63,6 +63,7 @@ cp $STD_TRIM_OUT $INIT_TRIM
 echo "**** lean_meta: Run ethos + desugar on $INIT_TRIM to generate $INIT_DESUGAR"
 ./src/ethos --plugin.desugar $INIT_TRIM >/dev/null
 check_status
+# we will process proof rules with lean-meta, which has these dependencies.
 DESUGAR_DEPS="\$eo_proven \$smtx_hash \$eo_reverse_hash \$eo_Bool \$eo_Type \$eo_fun_type \$eo_apply \$eo_mk_apply \$eo_eq \$eo_ite \$eo_requires"
 sed -i "s/eo-desugar-deps/$DESUGAR_DEPS/g" $STD_DESUGAR_OUT
 sed -i "s/eo-desugar/lean-meta/g" $STD_DESUGAR_OUT
