@@ -130,13 +130,11 @@
 ; This will be replaced by the datatype eo.Term in the final encoding.
 (declare-const $eo_Term Type)
 
-;;; SMT type datatype constructors
+;;; Eunoia datatype constructors
 
 ; The Boolean type
 (declare-const $smd_Bool $eo_Term)
 (define $eo_Bool () $smd_Bool)
-
-;;; SMT term datatype constructors
 
 ; the literal types
 (declare-parameterized-const $smd_Boolean
@@ -168,8 +166,6 @@
 (define $eo_binary ((w $smt_builtin_Int) (v $smt_builtin_Int))
   ($smd_Binary w v))
 
-;;; Eunoia datatype constructors
-
 ; The type of types
 (declare-const $smd_Type $eo_Term)
 (define $eo_Type () $smd_Type)
@@ -197,10 +193,6 @@
 
 ;;; External datatype access
 
-; define: $eo_empty_binary
-(define $eo_empty_binary ()
-  ($eo_binary $smt_builtin_z_zero $smt_builtin_z_zero))
-  
 ; return: The embedding of (-> T1 T2).
 ; note: Since the Eunoia function type is an atomic term, this becomes a
 ;       curried apply.
@@ -216,6 +208,10 @@
 
 ; The operators in this section are needed to reason about the parametric
 ; operations on the Eunoia binary literal type.
+
+; define: $eo_empty_binary
+(define $eo_empty_binary ()
+  ($eo_binary $smt_builtin_z_zero $smt_builtin_z_zero))
 
 ; program: $smtx_pow2
 ; return: >
@@ -394,8 +390,6 @@
 ;       w here since we cannot return stuckness.
 (define $eo_binary_mod_w ((w $smt_builtin_Int) (n $smt_builtin_Int))
   ($eo_binary w ($smt_builtin_mod n ($smtx_pow2 w))))
-
-;;; Utilities
 
 ; program: $eo_mk_binary
 ; return: >
