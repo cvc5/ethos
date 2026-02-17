@@ -35,14 +35,12 @@
 
 ; All of the functions in this file will be handled by smt_meta.
 
-;;; declarations to define literal types
+; Embedding into SMT operators, which defines $smt_builtin_*, $smt_apply_* etc.
 
 ; The type of $smt_apply_* terms.
 ; If a term has this type, we know it is an SMT-LIB type,
 ; but we don't know which one from ordinary type checking.
 (declare-const $smt_BuiltinType Type)
-
-; note: decimal and hexadecimal omitted for now.
 
 ;;; Deep embedding of SMT-LIB operator applications into Eunoia
 
@@ -129,7 +127,7 @@
 ; macro for applying (+ t1 t2 t3), which is (+ t1 (+ t2 t3))
 (define $smt_apply_nary_3
   (($smt_id Type :implicit) (W1 Type :implicit) (W2 Type :implicit) (W3 Type :implicit)
-   (op $smt_id :opaque) (x1 W1 :opaque) (x2 W2 :opaque) (x3 W3 :opaque))
+   (op $smt_id) (x1 W1) (x2 W2) (x3 W3))
   ($smt_apply_2 op x1 ($smt_apply_2 op x2 x3)))
 
 ; In this signature, we heavily use references to the Datatypes corresponding

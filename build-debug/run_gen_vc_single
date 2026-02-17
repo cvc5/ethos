@@ -90,6 +90,10 @@ sed -i "/(echo \"include eo_builtin_smt.*/{
     r ../plugins/model_smt/eo_builtin_smt.eo
     d
 }" $TMP_OUT
+sed -i "/(echo \"include smt_embed.*/{
+    r ../plugins/model_smt/smt_embed.eo
+    d
+}" $TMP_OUT
 # now compute the model smt
 ./src/ethos --plugin.model-smt $TMP_OUT >/dev/null
 check_status
