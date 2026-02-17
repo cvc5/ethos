@@ -141,14 +141,32 @@
 ; the literal types
 (declare-parameterized-const $smd_Boolean
   ((b $smt_builtin_Bool :opaque)) $eo_Term)
+(define $eo_bool ((x $smt_builtin_Bool))
+  ($smd_Boolean x))
+
 (declare-parameterized-const $smd_Numeral
   ((n $smt_builtin_Int :opaque)) $eo_Term)
+(define $eo_numeral ((x $smt_builtin_Int))
+  ($smd_Numeral x))
+
 (declare-parameterized-const $smd_Rational
   ((r $smt_builtin_Rat :opaque)) $eo_Term)
+(define $eo_rational ((x $smt_builtin_Rat))
+  ($smd_Rational x))
+
 (declare-parameterized-const $smd_String
   ((s $smt_builtin_String :opaque)) $eo_Term)
+(define $eo_string ((x $smt_builtin_String))
+  ($smd_String x))
+
 (declare-parameterized-const $smd_Binary
   ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $eo_Term)
+; define: $eo_binary
+; note: >
+;   This should be used in pattern matching only, where it is assume that
+;   it will match "legal" binary values only.
+(define $eo_binary ((w $smt_builtin_Int) (v $smt_builtin_Int))
+  ($smd_Binary w v))
 
 ;;; Eunoia datatype constructors
 
@@ -178,22 +196,6 @@
   ($smd_Var s T))
 
 ;;; External datatype access
-
-(define $eo_bool ((x $smt_builtin_Bool))
-  ($smd_Boolean x))
-(define $eo_numeral ((x $smt_builtin_Int))
-  ($smd_Numeral x))
-(define $eo_rational ((x $smt_builtin_Rat))
-  ($smd_Rational x))
-(define $eo_string ((x $smt_builtin_String))
-  ($smd_String x))
-
-; define: $eo_binary
-; note: >
-;   This should be used in pattern matching only, where it is assume that
-;   it will match "legal" binary values only.
-(define $eo_binary ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
-  ($smd_Binary x1 x2))
 
 ; define: $eo_empty_binary
 (define $eo_empty_binary ()

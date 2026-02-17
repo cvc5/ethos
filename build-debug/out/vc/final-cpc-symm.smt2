@@ -123,19 +123,6 @@
 (declare-fun $eo_dt_selectors (eo.Term) eo.Term)
 
 (define-fun $eo_Bool () eo.Term eo.Bool)
-(define-fun $eo_Type () eo.Term eo.Type)
-(define-fun $eo_stuck () eo.Term eo.Stuck)
-; program: $eo_apply
-(define-fun $eo_apply ((x1 eo.Term) (x2 eo.Term)) eo.Term
-    (eo.Apply x1 x2)
-)
-
-(define-fun $eo_fun_type () eo.Term eo.FunType)
-; program: $eo_Var
-(define-fun $eo_Var ((x1 String) (x2 eo.Term)) eo.Term
-    (eo.Var x1 x2)
-)
-
 ; program: $eo_bool
 (define-fun $eo_bool ((x1 Bool)) eo.Term
     (eo.Boolean x1)
@@ -159,6 +146,19 @@
 ; program: $eo_binary
 (define-fun $eo_binary ((x1 Int) (x2 Int)) eo.Term
     (eo.Binary x1 x2)
+)
+
+(define-fun $eo_Type () eo.Term eo.Type)
+(define-fun $eo_stuck () eo.Term eo.Stuck)
+; program: $eo_apply
+(define-fun $eo_apply ((x1 eo.Term) (x2 eo.Term)) eo.Term
+    (eo.Apply x1 x2)
+)
+
+(define-fun $eo_fun_type () eo.Term eo.FunType)
+; program: $eo_Var
+(define-fun $eo_Var ((x1 String) (x2 eo.Term)) eo.Term
+    (eo.Var x1 x2)
 )
 
 ; program: $smtx_pow2
