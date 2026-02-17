@@ -154,10 +154,10 @@ class State
   Expr mkList(const std::vector<Expr>& args);
   /**
    * Make disambiguated type. This constructs the type of a symbol which we
-   * expect to be written as (as <symbol> <type>), which is interpreted as
-   * applying that symbol to that type as its first argument. It returns a type
-   * of the form (-> (Quote x) ($eo_disamb_type_<name> x)) where
-   * $eo_disamb_type_<name> is a program defined by this method.
+   * expect to be written as (as <symbol> <type>), which is parsed as an
+   * opaque application of that symbol to that type as its first argument. This
+   * method returns a type of the form (-> (Quote x) ($eo_disamb_type_<name> x))
+   * where $eo_disamb_type_<name> is a program defined by this method.
    *
    * @param disambPat The pattern which is expected as the second argument to
    *                  "as" above.
