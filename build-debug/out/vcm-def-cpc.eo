@@ -28,14 +28,16 @@
 (program $eo_typeof ((T Type)) :signature (T) Type)
 (program $eo_dt_constructors () :signature (Type) $eo_List)
 (program $eo_dt_selectors ((T Type)) :signature (T) $eo_List)
-; This file defines a deep embedding of SMT-LIB into Eunoia.
-; It is used for two purposes:
-; 1. To give an SMT-LIB specific bootstrapping of the SMT-LIB inspired builtin Eunoia functions, e.g. $eo_add.
-; 2. It is used to define the end signature for defining the model semantics of SMT-LIB.
-
-; All of the functions in this file will be handled by smt_meta.
+; This file defines the semantics of Eunoia operators that require calling
+; SMT-LIB like computations.
 
 ; Embedding into SMT operators, which defines $smt_builtin_*, $smt_apply_* etc.
+; This file defines a deep embedding of SMT-LIB into Eunoia.
+; It has the following uses:
+; 1. To give an SMT-LIB specific bootstrapping of the SMT-LIB inspired builtin
+;    Eunoia functions, e.g. $eo_add.
+; 2. It is used to define the end signature for defining the model semantics of
+;    SMT-LIB.
 
 ; The type of $smt_apply_* terms.
 ; If a term has this type, we know it is an SMT-LIB type,
@@ -134,27 +136,17 @@
   ($smt_apply_2 op x1 ($smt_apply_2 op x2 x3)))
 
 ; In this signature, we heavily use references to the Datatypes corresponding
-; to the final deep embeddings of Eunoia terms (eo.Term) and SMT-LIB terms
-; (sm.Term), where the latter is a subfield type of the former.
-; Opaque arguments of a symbol X will be an argument of the constructor eo.X
-; (respectively sm.X). Symbols with no
-
-; We introduce datatype constructors for these datatypes ($smd_X and $smd_X)
-; respectively. It is important that we mark their arguments as :opaque, as this
+; to the final deep embeddings of Eunoia terms (eo.Term).
+; Opaque arguments of a symbol X will be an argument of the constructor eo.X.
+; We introduce datatype constructors for this datatype ($smd_X).
+; It is important that we mark their arguments as :opaque, as this
 ; correctly models the pattern matching in the smt-meta later.
-
 ; Note that these datatypes will be renamed and replaced by their definitions
 ; which is hardcoded into smt_meta.smt2.
-; We could also have these auto-generated, but leads to complications when it
-; comes to printing the argument types, as e.g. the argument to sm.Numeral is
-; an SMT-LIB numeral, not a symbolic SMT term.
 
 ;;; Final deep embedding datatypes
 
 ; Now, we introduce placeholders for the final deep embedding.
-; - $eo_Term, $eo_Term, $smt_Value are introduced as placeholders for the final datatypes in the deep embedding.
-; - The SMT-like literals are declared for $eo_Term.
-; - 
 
 ; A Eunoia term.
 ; This will be replaced by the datatype eo.Term in the final encoding.

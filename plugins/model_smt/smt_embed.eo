@@ -1,3 +1,9 @@
+; This file defines a deep embedding of SMT-LIB into Eunoia.
+; It has the following uses:
+; 1. To give an SMT-LIB specific bootstrapping of the SMT-LIB inspired builtin
+;    Eunoia functions, e.g. $eo_add.
+; 2. It is used to define the end signature for defining the model semantics of
+;    SMT-LIB.
 
 ; The type of $smt_apply_* terms.
 ; If a term has this type, we know it is an SMT-LIB type,
