@@ -162,13 +162,12 @@ class ModelSmtNew : public StdPlugin
   std::map<Kind, std::string> d_kindToType;
   std::map<std::string, std::string> d_overloadRevert;
   Expr d_null;
-  std::stringstream d_typeIsValue;
-  std::stringstream d_constTypeof;
-  std::stringstream d_isInput;
   /** Auxiliary programs for SMT-LIB model evaluation */
   std::stringstream d_modelEvalProgs;
   /** SMT-LIB model evaluation cases */
   std::stringstream d_eval;
+  /** Conversion Eunoia to SMT */
+  std::stringstream d_eoToSmt;
   /** Declarations seen */
   std::vector<std::pair<std::string, Expr>> d_declSeen;
   /** Special cases, printed prior to symbol */

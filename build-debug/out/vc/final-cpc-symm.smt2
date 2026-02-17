@@ -3,11 +3,13 @@
 (define-sort Rat () Real)
 ; Helpers to avoid mixed arithmetic
 (define-fun mk_rational ((x Int) (y Int)) Real (/ (to_real x) (to_real y)))
+(define-fun zeq ((x Int) (y Int)) Bool (= x y))
 (define-fun zleq ((x Int) (y Int)) Bool (<= x y))
 (define-fun zlt ((x Int) (y Int)) Bool (< x y))
 (define-fun zplus ((x Int) (y Int)) Int (+ x y))
 (define-fun zmult ((x Int) (y Int)) Int (* x y))
 (define-fun zneg ((x Int)) Int (- x))
+(define-fun qeq ((x Real) (y Real)) Bool (= x y))
 (define-fun qleq ((x Real) (y Real)) Bool (<= x y))
 (define-fun qlt ((x Real) (y Real)) Bool (< x y))
 (define-fun qplus ((x Real) (y Real)) Real (+ x y))
@@ -114,12 +116,18 @@
     (eo.$eo_pf.arg1 x1)
     eo.Stuck)))
 
-(define-fun $eo_Numeral () eo.Term eo.Int)
 ; fwd-decl: $eo_typeof
 (declare-fun $eo_typeof (eo.Term) eo.Term)
 
 ; fwd-decl: $eo_dt_selectors
 (declare-fun $eo_dt_selectors (eo.Term) eo.Term)
+
+; program: $smtx_pow2
+(declare-fun $smtx_pow2 (Int) Int)
+(assert (! (forall ((x1 Int))
+  (! (= ($smtx_pow2 x1)
+    (ite (zleq x1 0) 1 (zmult 2 ($smtx_pow2 (zplus x1 (zneg 1)))))
+) :pattern (($smtx_pow2 x1)))) :named sm.axiom.$smtx_pow2))
 
 (define-fun $eo_Bool () eo.Term eo.Bool)
 ; program: $eo_bool
@@ -159,13 +167,6 @@
 (define-fun $eo_Var ((x1 String) (x2 eo.Term)) eo.Term
     (eo.Var x1 x2)
 )
-
-; program: $smtx_pow2
-(declare-fun $smtx_pow2 (Int) Int)
-(assert (! (forall ((x1 Int))
-  (! (= ($smtx_pow2 x1)
-    (ite (zleq x1 0) 1 (zmult 2 ($smtx_pow2 (zplus x1 (zneg 1)))))
-) :pattern (($smtx_pow2 x1)))) :named sm.axiom.$smtx_pow2))
 
 ; program: $eo_binary_mod_w
 (define-fun $eo_binary_mod_w ((x1 Int) (x2 Int)) eo.Term
@@ -440,7 +441,7 @@
   (ite (and ((_ is vsm.Term) x2) ((_ is eo.String) (vsm.Term.arg1 x2)))
     vsm.NotValue
   (ite (and ((_ is vsm.Term) x1) ((_ is eo.Binary) (vsm.Term.arg1 x1)) ((_ is vsm.Term) x2) ((_ is eo.Binary) (vsm.Term.arg1 x2)))
-    (ite (= (eo.Numeral (eo.Binary.arg1 (vsm.Term.arg1 x1))) (eo.Numeral (eo.Binary.arg1 (vsm.Term.arg1 x2)))) (vsm.Term (eo.Boolean (= (eo.Binary (eo.Binary.arg1 (vsm.Term.arg1 x1)) (eo.Binary.arg2 (vsm.Term.arg1 x1))) (eo.Binary (eo.Binary.arg1 (vsm.Term.arg1 x2)) (eo.Binary.arg2 (vsm.Term.arg1 x2)))))) vsm.NotValue)
+    (ite (zeq (eo.Binary.arg1 (vsm.Term.arg1 x1)) (eo.Binary.arg1 (vsm.Term.arg1 x2))) (vsm.Term (eo.Boolean (= (eo.Binary (eo.Binary.arg1 (vsm.Term.arg1 x1)) (eo.Binary.arg2 (vsm.Term.arg1 x1))) (eo.Binary (eo.Binary.arg1 (vsm.Term.arg1 x2)) (eo.Binary.arg2 (vsm.Term.arg1 x2)))))) vsm.NotValue)
   (ite (and ((_ is vsm.Term) x1) ((_ is eo.Binary) (vsm.Term.arg1 x1)))
     vsm.NotValue
   (ite (and ((_ is vsm.Term) x2) ((_ is eo.Binary) (vsm.Term.arg1 x2)))

@@ -7,6 +7,11 @@
 
 ;;;;;; SMT terms
 
+(include "smt_embed.eo")
+
+; placeholder?
+(declare-const $eo_Term Type)
+
 ; An SMT term.
 (declare-const $smt_Term Type)
 
@@ -18,15 +23,15 @@
 ; the literal types
 (declare-parameterized-const $smd_sm.Boolean
   ((b $smt_builtin_Bool :opaque)) $smt_Term)
-(define $sm_bool ((b $smt_builtin_Bool)) ($smd_vsm.Boolean b))
+(define $sm_bool ((b $smt_builtin_Bool)) ($smd_sm.Boolean b))
 
 (declare-parameterized-const $smd_sm.Numeral
   ((n $smt_builtin_Int :opaque)) $smt_Term)
-(define $sm_numeral ((n $smt_builtin_Int)) ($smd_vsm.Numeral n))
+(define $sm_numeral ((n $smt_builtin_Int)) ($smd_sm.Numeral n))
 
 (declare-parameterized-const $smd_sm.Rational
   ((r $smt_builtin_Rat :opaque)) $smt_Term)
-(define $sm_rational ((r $smt_builtin_Rat)) ($smd_vsm.Rational r))
+(define $sm_rational ((r $smt_builtin_Rat)) ($smd_sm.Rational r))
 
 (declare-parameterized-const $smd_sm.String
   ((s $smt_builtin_String :opaque)) $smt_Term)
@@ -287,18 +292,6 @@
 ;  )
 ;)
 
-;;; Utilities for Datatype values
-
-; define: $smt_is_dt
-; returns: true if t is a datatpe (i.e. it has constructors).
-(define $smt_is_dt ((t $smt_Term))
-  ($smt_builtin_is_ok ($eo_dt_constructors t)))
-
-; define: $smt_is_dt_cons
-; returns: true if t is a constructor (i.e. it has selectors).
-(define $smt_is_dt_cons ((t $smt_Term))
-  ($smt_builtin_is_ok ($eo_dt_selectors t)))
-
 ;;; Utilities for making values
 
 ; program: $smtx_is_atomic_term_value
@@ -312,30 +305,19 @@
   :signature ($smt_Term) $smt_builtin_Bool
   (
   ; standard atomic types are values
-  (($smtx_is_atomic_term_value ($eo_bool b))  $smt_builtin_true)
-  (($smtx_is_atomic_term_value ($eo_numeral n))     $smt_builtin_true)
-  (($smtx_is_atomic_term_value ($eo_rational r))     $smt_builtin_true)
-  (($smtx_is_atomic_term_value ($eo_string s))   $smt_builtin_true)
-  (($smtx_is_atomic_term_value ($eo_binary w n))
+  (($smtx_is_atomic_term_value ($sm_bool b))      $smt_builtin_true)
+  (($smtx_is_atomic_term_value ($sm_numeral n))   $smt_builtin_true)
+  (($smtx_is_atomic_term_value ($sm_rational r))  $smt_builtin_true)
+  (($smtx_is_atomic_term_value ($sm_string s))    $smt_builtin_true)
+  (($smtx_is_atomic_term_value ($sm_binary w n))
     ; must be legal width and value
     ($smt_builtin_and
-      ($smt_apply_2 "<=" $smt_builtin_z_zero w)
-      ($smt_builtin_= ($eo_binary w n) ($eo_binary_mod_w w n))))
+      ($smt_builtin_z_<= $smt_builtin_z_zero w)
+      ($smt_builtin_z_eq n ($smt_builtin_mod n ($smtx_pow2 w)))))
   ; by default, not a value
   (($smtx_is_atomic_term_value t)                $smt_builtin_false)
   )
 )
-
-; Returns a term of type $smt_Value, embeds the term
-; if indeed it is a value, or returns not a value otherwise.
-(define $smt_mk_value_term ((t $smt_Term))
-  ($smt_builtin_ite ($smtx_is_atomic_term_value t)
-    ; an atomic term, e.g. 0, true, "abc"
-    ($vsm_term t)
-    ($smt_builtin_ite ($smt_is_dt_cons t)
-      ; a datatype constructor, which becomes a (nil-terminated) vsm_apply
-      ($vsm_apply ($vsm_term t) $vsm_not_value)
-      $vsm_not_value)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Model semantics
 
@@ -357,7 +339,7 @@
   ; If a Herbrand interpretation, apply it to the next value.
   (($smtx_model_eval_apply ($vsm_apply f v) i)  ($vsm_apply ($vsm_apply f v) i))
   ; The function evaluated to a map value, call the map lookup.
-  (($smtx_model_eval_apply ($vsm_map m) i)    ($smtx_msm_lookup m i))
+  (($smtx_model_eval_apply ($vsm_map m) i)      ($smtx_msm_lookup m i))
   ; The function did not evaluate to a map value, we fail.
   (($smtx_model_eval_apply v i)                 $vsm_not_value)
   )
@@ -395,28 +377,28 @@
   :signature ($smt_Value $smt_Value) $smt_Value
   (
   (($smtx_model_eval_= ($vsm_bool b1) ($vsm_bool b2))
-    ($vsm_bool ($smt_builtin_= ($eo_bool b1) ($eo_bool b2))))
+    ($vsm_bool ($smt_builtin_= ($vsm_bool b1) ($vsm_bool b2))))
   (($smtx_model_eval_= ($vsm_bool b1) t2) $vsm_not_value)
   (($smtx_model_eval_= t1 ($vsm_bool b2)) $vsm_not_value)
   (($smtx_model_eval_= ($vsm_numeral n1) ($vsm_numeral n2))
-    ($vsm_bool ($smt_builtin_= ($eo_numeral n1) ($eo_numeral n2))))
+    ($vsm_bool ($smt_builtin_= ($vsm_numeral n1) ($vsm_numeral n2))))
   (($smtx_model_eval_= ($vsm_numeral n1) t2) $vsm_not_value)
   (($smtx_model_eval_= t1 ($vsm_numeral n2)) $vsm_not_value)
   (($smtx_model_eval_= ($vsm_rational r1) ($vsm_rational r2))
-    ($vsm_bool ($smt_builtin_= ($eo_rational r1) ($eo_rational r2))))
+    ($vsm_bool ($smt_builtin_= ($vsm_rational r1) ($vsm_rational r2))))
   (($smtx_model_eval_= ($vsm_rational r1) t2) $vsm_not_value)
   (($smtx_model_eval_= t1 ($vsm_rational r2)) $vsm_not_value)
   (($smtx_model_eval_= ($vsm_string s1) ($vsm_string s2))
-    ($vsm_bool ($smt_builtin_= ($eo_string s1) ($eo_string s2))))
+    ($vsm_bool ($smt_builtin_= ($vsm_string s1) ($vsm_string s2))))
   (($smtx_model_eval_= ($vsm_string s1) t2) $vsm_not_value)
   (($smtx_model_eval_= t1 ($vsm_string s2)) $vsm_not_value)
-  (($smtx_model_eval_= ($vsm_term ($eo_binary w1 n1)) ($vsm_term ($eo_binary w2 n2)))
+  (($smtx_model_eval_= ($vsm_binary w1 n1) ($vsm_binary w2 n2))
     ; note that we know that w1, w2 are legal by invariant on model eval
-    ($smt_builtin_ite ($smt_builtin_z_= w1 w2)
-      ($vsm_bool ($smt_builtin_= ($eo_binary w1 n1) ($eo_binary w2 n2)))
+    ($smt_builtin_ite ($smt_builtin_z_eq w1 w2)
+      ($vsm_bool ($smt_builtin_= ($vsm_binary w1 n1) ($vsm_binary w2 n2)))
       $vsm_not_value))
-  (($smtx_model_eval_= ($vsm_term ($eo_binary w1 n1)) t2) $vsm_not_value)
-  (($smtx_model_eval_= t1 ($vsm_term ($eo_binary w2 n2))) $vsm_not_value)
+  (($smtx_model_eval_= ($vsm_binary w1 n1) t2) $vsm_not_value)
+  (($smtx_model_eval_= t1 ($vsm_binary w2 n2)) $vsm_not_value)
   ; TODO: datatype values, others?
   (($smtx_model_eval_= $vsm_not_value t2) $vsm_not_value)
   (($smtx_model_eval_= t1 $vsm_not_value) $vsm_not_value)
@@ -520,7 +502,7 @@
   ((s $smt_Seq) (n $smt_builtin_Int) (v1 $smt_Value) (v2 $smt_Value))
   :signature ($smt_Value $smt_Value) $smt_Value
   (
-  (($smtx_seq_nth ($vsm_seq s) ($vsm_term ($eo_numeral n))) ($smtx_ssm_seq_nth s n))
+  (($smtx_seq_nth ($vsm_seq s) ($vsm_numeral n)) ($smtx_ssm_seq_nth s n))
   (($smtx_seq_nth v1 v2) $vsm_not_value)
   )
 )
@@ -545,18 +527,45 @@ $SMT_EVAL_PROGS$
   ; These calls will reference helper methods above, e.g. of the form
   ; $smtx_model_eval_*, or call builtin methods e.g. $smtx_eval_exists_rec.
 $SMT_EVAL_CASES$
-  
+
   ; Apply case. We evaluate f and y separately and then call the
   ; $smtx_model_eval_apply above. We expect f to be an uninterpreted
   ; function whose model evaluation is an SMT-LIB map in this case.
   ; All interpreted f should be handled in the evaluation cases above.
-  (($smtx_model_eval (f y))
+  (($smtx_model_eval ($sm_apply f y))
     ($smtx_model_eval_apply ($smtx_model_eval f) ($smtx_model_eval y)))
-  ; Otherwise, it may be a term value (e.g. if z is a Boolean or numeral constant).
-  ; We call the utility method which will either generate an SMT-LIB term value or
-  ; a SMT-LIB non-value error term.
-  (($smtx_model_eval z)                           ($smt_mk_value_term z))
   )
 )
+
+
+;;;;;;;;;;;;;;;;;;;;;;
+
+(program $eo_to_smt 
+  ((f $eo_Term) (y $eo_Term) 
+   (x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term) (x4 $eo_Term) (x5 $eo_Term))
+  :signature ($eo_Term) $smt_Term
+  (
+$EO_TO_SMT_CASES$
+  (($eo_to_smt (f y)) ($sm_apply ($eo_to_smt f) ($eo_to_smt y)))
+  )
+)
+
+; program: $eo_model_sat
+; note: F is satisfied by the model if F evaluates to the SMT-LIB value denoting true.
+; We expect the input to this method to be a Eunoia term denoting an SMT-LIB formula
+; (term of Boolean type).
+(program $eo_model_sat ((F Bool))
+  :signature (Bool) Bool
+  (
+  (($eo_model_sat F) ($smt_builtin_ite ($smt_builtin_= ($smtx_model_eval ($eo_to_smt F)) $vsm_true) true false))
+  )
+)
+(program $eo_model_unsat ((F Bool))
+  :signature (Bool) Bool
+  (
+  (($eo_model_unsat F) ($smt_builtin_ite ($smt_builtin_= ($smtx_model_eval ($eo_to_smt F)) $vsm_false) true false))
+  )
+)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; model_end

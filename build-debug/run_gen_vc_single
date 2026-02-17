@@ -90,7 +90,7 @@ sed -i "/(echo \"include eo_builtin_smt.*/{
     r ../plugins/model_smt/eo_builtin_smt.eo
     d
 }" $TMP_OUT
-sed -i "/(echo \"include smt_embed.*/{
+sed -i "/(include \"smt_embed.eo\")/{
     r ../plugins/model_smt/smt_embed.eo
     d
 }" $TMP_OUT
@@ -140,7 +140,7 @@ else
   echo "**** smt_meta: Verify cvc5 parses"
   $CVC5 $VC_OUT --parse-only
   check_status
-  #exit 0
+  exit 0
 
   BASE_ARGS="--macros-quant --re-first-class --quant-ind"
   

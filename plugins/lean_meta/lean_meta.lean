@@ -56,6 +56,8 @@ def eo_lit_zmult : eo_lit_Int -> eo_lit_Int -> eo_lit_Int
   | x, y => x*y
 def eo_lit_zneg : eo_lit_Int -> eo_lit_Int
   | x => -x
+def eo_lit_zeq : eo_lit_Int -> eo_lit_Int -> eo_lit_Bool
+  | x, y => decide (x = y)
 def eo_lit_zleq : eo_lit_Int -> eo_lit_Int -> eo_lit_Bool
   | x, y => decide (x <= y)
 def eo_lit_zlt : eo_lit_Int -> eo_lit_Int -> eo_lit_Bool
@@ -74,6 +76,8 @@ def eo_lit_qmult : eo_lit_Rat -> eo_lit_Rat -> eo_lit_Rat
   | x, y => x*y
 def eo_lit_qneg : eo_lit_Rat -> eo_lit_Rat
   | x => -x
+def eo_lit_qeq : eo_lit_Rat -> eo_lit_Rat -> eo_lit_Bool
+  | x, y => decide (x = y)
 def eo_lit_qleq : eo_lit_Rat -> eo_lit_Rat -> eo_lit_Bool
   | x, y => decide (x <= y)
 def eo_lit_qlt : eo_lit_Rat -> eo_lit_Rat -> eo_lit_Bool

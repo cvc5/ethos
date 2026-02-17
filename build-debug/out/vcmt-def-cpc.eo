@@ -10,7 +10,6 @@
 )
 (declare-const Int Type)
 (declare-consts <numeral> Int)
-(define $eo_Numeral () Int)
 (declare-const Real Type)
 (declare-consts <rational> Real)
 (declare-const BitVec (-> Int Type))
@@ -54,6 +53,7 @@
 (define $smt_builtin_z_two () ($smt_apply_0 "2"))
 (define $smt_builtin_not ((b $smt_builtin_Bool)) ($smt_apply_1 "not" b))
 (define $smt_builtin_and ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "and" b1 b2))
+(define $smt_builtin_z_eq ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zeq" x1 x2))
 (define $smt_builtin_z_<= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zleq" x1 x2))
 (define $smt_builtin_z_add ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zplus" x1 x2))
 (define $smt_builtin_z_mul ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zmult" x1 x2))
@@ -61,6 +61,16 @@
 (define $smt_builtin_mod ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "mod" x1 x2))
 (define $smt_builtin_z_neg_one () ($smt_builtin_z_neg $smt_builtin_z_one))
 (define $smt_builtin_z_dec ((W Type :implicit) (x1 W)) ($smt_builtin_z_add x1 $smt_builtin_z_neg_one))
+(program $smtx_pow2 ((i $smt_builtin_Int))
+  :signature ($smt_builtin_Int) $smt_builtin_Int
+  (
+  (($smtx_pow2 i)
+    ($smt_builtin_ite ($smt_builtin_z_<= i $smt_builtin_z_zero)
+      $smt_builtin_z_one
+      ($smt_builtin_z_mul $smt_builtin_z_two
+        ($smtx_pow2 ($smt_builtin_z_dec i)))))
+  )
+)
 (declare-const $eo_Term Type)
 (declare-const $smd_Bool $eo_Term)
 (define $eo_Bool () $smd_Bool)
@@ -99,20 +109,9 @@
   $eo_Term)
 (define $eo_Var ((s $smt_builtin_String) (T $eo_Term))
   ($smd_Var s T))
-(define $smt_builtin_z_= ((x1 $smt_builtin_Int) (x2 $smt_builtin_Int))
-  ($smt_builtin_= ($eo_numeral x1) ($eo_numeral x2)))
-(program $smtx_pow2 ((i $smt_builtin_Int))
-  :signature ($smt_builtin_Int) $smt_builtin_Int
-  (
-  (($smtx_pow2 i)
-    ($smt_builtin_ite ($smt_builtin_z_<= i $smt_builtin_z_zero)
-      $smt_builtin_z_one
-      ($smt_builtin_z_mul $smt_builtin_z_two
-        ($smtx_pow2 ($smt_builtin_z_dec i)))))
-  )
-)
 (define $eo_binary_mod_w ((w $smt_builtin_Int) (n $smt_builtin_Int))
   ($eo_binary w ($smt_builtin_mod n ($smtx_pow2 w))))
+(program $eo_typeof () :signature ($eo_Term) $eo_Term)
 (define $smt_builtin_is_ok ((x $eo_Term))
   ($smt_builtin_not ($smt_builtin_= x $eo_stuck)))
 (define $eo_requires ((x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term))
@@ -126,7 +125,7 @@
   )
 )
 (program $eo_len ((T Type) (s1 $smt_builtin_String) (w $smt_builtin_Int) (n1 $smt_builtin_Int))
-  :signature (T) $eo_Numeral
+  :signature (T) $eo_Term
   (
   (($eo_len ($eo_string s1))
     ($eo_numeral ($smt_apply_1 "str.len" s1)))
@@ -369,7 +368,7 @@
   (($smtx_model_eval_= t1 ($vsm_term ($eo_string s2))) $vsm_not_value)
   (($smtx_model_eval_= ($vsm_term ($eo_binary w1 n1)) ($vsm_term ($eo_binary w2 n2)))
     
-    ($smt_builtin_ite ($smt_builtin_z_= w1 w2)
+    ($smt_builtin_ite ($smt_builtin_z_eq w1 w2)
       ($vsm_term ($eo_bool ($smt_builtin_= ($eo_binary w1 n1) ($eo_binary w2 n2))))
       $vsm_not_value))
   (($smtx_model_eval_= ($vsm_term ($eo_binary w1 n1)) t2) $vsm_not_value)

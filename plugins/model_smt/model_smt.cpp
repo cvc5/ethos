@@ -247,7 +247,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitSym("bvugt",
             {kBitVec, kBitVec},
             kT,
-            smtGuard("($smt_builtin_z_= x1 x3)", ssUgtRet.str()));
+            smtGuard("($smt_builtin_z_eq x1 x3)", ssUgtRet.str()));
   // the following operators require a mix of literal evaluation and term
   // reduction
   std::stringstream ssSgtRet;
@@ -572,7 +572,7 @@ void ModelSmt::addLitBinSym(const std::string& sym,
   if (reqSameWidth && args.size() == 2 && args[0] == Kind::BINARY
       && args[1] == Kind::BINARY)
   {
-    ssres = smtGuard("($smt_builtin_z_= x1 x3)", ssres);
+    ssres = smtGuard("($smt_builtin_z_eq x1 x3)", ssres);
   }
   addLitSym(sym, args, Kind::ANY, ssres);
 }

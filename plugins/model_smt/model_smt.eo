@@ -348,7 +348,7 @@
   (($smtx_model_eval_= t1 ($vsm_term ($eo_string s2))) $vsm_not_value)
   (($smtx_model_eval_= ($vsm_term ($eo_binary w1 n1)) ($vsm_term ($eo_binary w2 n2)))
     ; note that we know that w1, w2 are legal by invariant on model eval
-    ($smt_builtin_ite ($smt_builtin_z_= w1 w2)
+    ($smt_builtin_ite ($smt_builtin_z_eq w1 w2)
       ($vsm_term ($eo_bool ($smt_builtin_= ($eo_binary w1 n1) ($eo_binary w2 n2))))
       $vsm_not_value))
   (($smtx_model_eval_= ($vsm_term ($eo_binary w1 n1)) t2) $vsm_not_value)

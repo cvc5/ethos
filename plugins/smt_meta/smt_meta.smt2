@@ -3,11 +3,13 @@
 (define-sort Rat () Real)
 ; Helpers to avoid mixed arithmetic
 (define-fun mk_rational ((x Int) (y Int)) Real (/ (to_real x) (to_real y)))
+(define-fun zeq ((x Int) (y Int)) Bool (= x y))
 (define-fun zleq ((x Int) (y Int)) Bool (<= x y))
 (define-fun zlt ((x Int) (y Int)) Bool (< x y))
 (define-fun zplus ((x Int) (y Int)) Int (+ x y))
 (define-fun zmult ((x Int) (y Int)) Int (* x y))
 (define-fun zneg ((x Int)) Int (- x))
+(define-fun qeq ((x Real) (y Real)) Bool (= x y))
 (define-fun qleq ((x Real) (y Real)) Bool (<= x y))
 (define-fun qlt ((x Real) (y Real)) Bool (< x y))
 (define-fun qplus ((x Real) (y Real)) Real (+ x y))

@@ -963,12 +963,10 @@ void ModelSmtNew::finalize()
   std::ostringstream sss;
   sss << ins.rdbuf();
   std::string finalSmt = sss.str();
-  replace(finalSmt, "$SMT_IS_VALUE_CASES$", d_typeIsValue.str());
-  replace(finalSmt, "$SMT_CONST_TYPE_OF_CASES$", d_constTypeof.str());
-  replace(finalSmt, "$SMT_IS_INPUT_CASES$", d_isInput.str());
   // plug in the evaluation cases handled by this plugin
   replace(finalSmt, "$SMT_EVAL_CASES$", d_eval.str());
   replace(finalSmt, "$SMT_EVAL_PROGS$", d_modelEvalProgs.str());
+  replace(finalSmt, "$EO_TO_SMT_CASES$", d_eoToSmt.str());
 
   std::stringstream ssoe;
   ssoe << s_plugin_path << "plugins/model_smt/model_smt_gen.eo";

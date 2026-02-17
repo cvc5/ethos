@@ -85,7 +85,7 @@ sed -i "/(echo \"include eo_builtin_smt.*/{
     r ../plugins/model_smt/eo_builtin_smt.eo
     d
 }" $TMP_OUT
-sed -i "/(echo \"include smt_embed.*/{
+sed -i "/(include \"smt_embed.eo\")/{
     r ../plugins/model_smt/smt_embed.eo
     d
 }" $TMP_OUT
