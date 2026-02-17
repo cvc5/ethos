@@ -73,6 +73,7 @@
 (define $smt_builtin_not ((b $smt_builtin_Bool)) ($smt_apply_1 "not" b))
 (define $smt_builtin_and ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "and" b1 b2))
 (define $smt_builtin_or ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "or" b1 b2))
+(define $smt_builtin_xor ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "xor" b1 b2))
 ; Integer operators
 ; These assume zeq, zleq, zlt, zplus, zmult, zneg are defined as =, <=, <, +, *, -
 (define $smt_builtin_z_eq ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zeq" x1 x2))
