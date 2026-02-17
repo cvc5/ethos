@@ -86,6 +86,7 @@
 (define $smt_builtin_Bool () ($smt_type_0 "Bool"))
 (define $smt_builtin_Int () ($smt_type_0 "Int"))
 (define $smt_builtin_Real () ($smt_type_0 "Real"))
+; Assumes Rat is defined as Real.
 (define $smt_builtin_Rat () ($smt_type_0 "Rat"))
 (define $smt_builtin_String () ($smt_type_0 "String"))
 (define $smt_builtin_RegLan () ($smt_type_0 "RegLan"))
@@ -104,22 +105,24 @@
 (define $smt_builtin_not ((b $smt_builtin_Bool)) ($smt_apply_1 "not" b))
 (define $smt_builtin_and ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "and" b1 b2))
 (define $smt_builtin_or ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "or" b1 b2))
-; integer version
+; Integer operators
+; These assume zleq, zlt, zplus, zmult, zneg are defined as <=, <, +, *, -
 (define $smt_builtin_z_<= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zleq" x1 x2))
 (define $smt_builtin_z_< ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zlt" x1 x2))
 (define $smt_builtin_z_add ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zplus" x1 x2))
 (define $smt_builtin_z_mul ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zmult" x1 x2))
 (define $smt_builtin_z_neg ((W Type :implicit) (x1 W)) ($smt_apply_1 "zneg" x1))
-; real version
+; Real operators
+; These assume qleq, qlt, qplus, qmult, qneg are defined as <=, <, +, *, -
 (define $smt_builtin_q_<= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "qleq" x1 x2))
 (define $smt_builtin_q_< ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "qlt" x1 x2))
 (define $smt_builtin_q_add ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "qplus" x1 x2))
 (define $smt_builtin_q_mul ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "qmult" x1 x2))
 (define $smt_builtin_q_neg ((W Type :implicit) (x1 W)) ($smt_apply_1 "qneg" x1))
 ; other arithmetic
-(define $smt_builtin_z_sub ((W Type :implicit) (x1 W) (x2 W)) ($smt_builtin_z_add x1 ($smt_builtin_z_neg x2)))
 (define $smt_builtin_div ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "div" x1 x2))
 (define $smt_builtin_mod ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "mod" x1 x2))
+(define $smt_builtin_z_sub ((W Type :implicit) (x1 W) (x2 W)) ($smt_builtin_z_add x1 ($smt_builtin_z_neg x2)))
 (define $smt_builtin_z_neg_one () ($smt_builtin_z_neg $smt_builtin_z_one))
 (define $smt_builtin_z_inc ((W Type :implicit) (x1 W)) ($smt_builtin_z_add x1 $smt_builtin_z_one))
 (define $smt_builtin_z_dec ((W Type :implicit) (x1 W)) ($smt_builtin_z_add x1 $smt_builtin_z_neg_one))
