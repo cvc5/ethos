@@ -903,9 +903,9 @@ void LeanMetaReduce::finalize()
 bool LeanMetaReduce::echo(const std::string& msg)
 {
   std::cout << "ECHO " << msg << std::endl;
-  if (msg.compare(0, 9, "smt-meta ") == 0)
+  if (msg.compare(0, 10, "lean-meta ") == 0)
   {
-    std::string eosc = msg.substr(9);
+    std::string eosc = msg.substr(10);
     size_t pos = eosc.find(' ');
     if (pos != std::string::npos)
     {
@@ -915,7 +915,7 @@ bool LeanMetaReduce::echo(const std::string& msg)
     if (vv.isNull())
     {
       Assert(false)
-          << "When making verification condition, could not find program "
+          << "When making Lean theorem, could not find program "
           << eosc;
     }
     d_thms << "/- correctness theorem for " << cleanId(eosc) << " -/"

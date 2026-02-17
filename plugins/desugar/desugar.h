@@ -148,7 +148,6 @@ class Desugar : public StdPlugin
   Expr d_peoRequiresEq;
   Expr d_peoRequiresDeq;
   size_t d_eoDtConsParamCount;
-  bool d_genWfCond;
   Expr d_peoProven;
   Expr d_peoPf;
   /** desugaring proofs for cross reference */

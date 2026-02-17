@@ -42,7 +42,6 @@ Desugar::Desugar(State& s) : StdPlugin(s), d_dproof(s, this)
     d_eoVc << ";; verification conditions" << std::endl << std::endl;
   }
   d_eoDtConsParamCount = 0;
-  d_genWfCond = false;
 
   d_true = d_state.mkTrue();
   // a placeholder
@@ -650,20 +649,16 @@ void Desugar::finalizeRule(const Expr& e)
   Expr rprog = tupleVal[3];
   if (!d_genVcs)
   {
+    // for nullary proof rules, ensure the definition is preserved
     if (rprog.getKind() != Kind::PROGRAM_CONST)
     {
       d_eoVc << "(define $eo_prog_" << e << " () ";
       printTerm(rprog, d_eoVc);
       d_eoVc << ")" << std::endl;
     }
-    std::stringstream metaDeps;
-    metaDeps << "$eo_proven $smtx_hash $eo_reverse_hash $smtx_value_hash "
-                "$smtx_reverse_value_hash "
-                "$eo_Bool $eo_Type $eo_fun_type $eo_apply "
-                "$eo_mk_apply $eo_eq $eo_ite $eo_requires ";
     // $eo_eq $eo_ite $eo_requires needed for pattern linearization
-    d_eoVc << "(echo \"smt-meta $eo_prog_" << e << " :deps " << metaDeps.str()
-           << "\")" << std::endl;
+    d_eoVc << "(echo \"eo-desugar $eo_prog_" << e << " :deps eo-desugar-deps"
+           << " \")" << std::endl;
     return;
   }
 
@@ -722,15 +717,11 @@ void Desugar::finalizeRule(const Expr& e)
   Expr progPair = d_state.mkPair(progPat, unsound);
   Expr progDef = d_state.mkExpr(Kind::PROGRAM, {progPair});
   finalizeProgram(prog, progDef, d_eoVc);
-  // write a command to indicate that we should process the above vc
-  // we hard-code the symbols that are used in smt_meta.smt2 here.
-  std::stringstream metaDeps;
-  metaDeps
-      << "$eo_proven $smtx_hash $eo_reverse_hash $smtx_value_hash "
-         "$smtx_reverse_value_hash "
-         "$eo_Bool $eo_Type $eo_fun_type $eo_apply $eo_mk_apply ";
-  d_eoVc << "(echo \"smt-meta $eovc_" << e << " :deps " << metaDeps.str()
-         << "\")" << std::endl;
+  // write a command to indicate that we should process the above vc.
+  // eo-desugar-vc and eo-desugar-vc-deps are expected to be replaced by the
+  // specific use case
+  d_eoVc << "(echo \"eo-desugar-vc $eovc_" << e << " :deps eo-desugar-vc-deps"
+         << " \")" << std::endl;
 }
 
 void Desugar::finalizeDatatype(const Expr& e, Attr a, const Expr& attrCons)
@@ -885,17 +876,9 @@ void Desugar::finalize()
   replace(finalEo, "$EO_DT_CONSTRUCTORS_PARAM$", d_eoDtConsParam.str());
   replace(finalEo, "$EO_DT_CONSTRUCTORS_CASES$", d_eoDtCons.str());
   replace(finalEo, "$EO_DT_SELECTORS_CASES$", d_eoDtSel.str());
-  if (d_genWfCond)
-  {
-    finalizeWellFounded();
-    replace(finalEo, "$EO_VC$", d_eoVcWf.str());
-  }
-  else
-  {
-    // Verification conditions for *all* proof rules are ready now
-    // TODO: make this manual?
-    replace(finalEo, "$EO_VC$", d_eoVc.str());
-  }
+  // Verification conditions for *all* proof rules are ready now
+  // TODO: make this manual?
+  replace(finalEo, "$EO_VC$", d_eoVc.str());
   std::stringstream ssoe;
   ssoe << s_plugin_path << "plugins/desugar/eo_desugar_gen.eo";
   std::cout << "Write core-defs    " << ssoe.str() << std::endl;
@@ -923,29 +906,8 @@ bool Desugar::notifyStep(const std::string& name,
       name, children, rule, proven, premises, args, isPop);
 }
 
-void Desugar::finalizeWellFounded()
-{
-  // TODO
-  // std::stringstream wfDefs;
-  // generate well-foundedness method
-  // size_t pcIdCount = 0;
-  // std::map<Expr, size_t> pcId;
-  // std::stringstream os;
-  // os << "(declare-const @pcall (-> $eo_Numeral $eo_List Type))" << std::endl;
-  // os << "(program $eovcwf_rec ((pc $eo_Numeral))" << std::endl;
-  // os << "  :signature ($eo_Numeral $eo_List $eo_List) Bool" << std::endl;
-  // os << "  (" << std::endl;
-  // os << "  )" << std::endl;
-  // os << ")" << std::endl;
-}
-
 bool Desugar::echo(const std::string& msg)
 {
-  if (msg == "desugar-wf")
-  {
-    d_genWfCond = true;
-    return false;
-  }
   return true;
 }
 

@@ -68,6 +68,9 @@ cp $STD_TRIM_OUT $INIT_TRIM
 echo "**** smt_meta: Run ethos + desugar on $INIT_TRIM to generate $INIT_DESUGAR"
 ./src/ethos --plugin.desugar-vc $INIT_TRIM >/dev/null
 check_status
+DESUGAR_VC_DEPS="\$eo_proven \$smtx_hash \$eo_reverse_hash \$smtx_value_hash \$smtx_reverse_value_hash \$eo_Bool \$eo_Type \$eo_fun_type \$eo_apply \$eo_mk_apply"
+sed -i "s/eo-desugar-vc-deps/$DESUGAR_VC_DEPS/g" $STD_DESUGAR_OUT
+sed -i "s/eo-desugar-vc/smt-meta/g" $STD_DESUGAR_OUT
 cp $STD_DESUGAR_OUT $INIT_DESUGAR
 
 # trim dependencies with respect to the verification Eunoia program
