@@ -21,6 +21,9 @@
 ; This will be replaced by the datatype eo.Term in the final encoding.
 (declare-const $eo_Term Type)
 
+; Assumes that teq is defined to be equality over eo.Term
+(define $smt_builtin_teq ((x1 $eo_Term) (x2 $eo_Term)) ($smt_apply_2 "teq" x1 x2))
+
 ;;; Eunoia datatype constructors
 
 ; The Boolean type
@@ -134,7 +137,7 @@
 
 ; Returns SMT-LIB builtin true/false if x is stuck
 (define $smt_builtin_is_ok ((x $eo_Term))
-  ($smt_builtin_not ($smt_builtin_= x $eo_stuck)))
+  ($smt_builtin_not ($smt_builtin_teq x $eo_stuck)))
 
 ; program: $eo_is_ok
 ; implements: eo::is_ok
@@ -145,9 +148,9 @@
 ; implements: eo::ite
 ; note: This definition is only used if we are not eagerly flattening evaluation
 (define $eo_ite ((x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term))
-  ($smt_builtin_ite ($smt_builtin_= x1 true)
+  ($smt_builtin_ite ($smt_builtin_teq x1 true)
     x2
-  ($smt_builtin_ite ($smt_builtin_= x1 false)
+  ($smt_builtin_ite ($smt_builtin_teq x1 false)
     x3
     $eo_stuck)))
 
@@ -155,7 +158,7 @@
 ; implements: eo::requires
 ; note: This definition is only used if we are not eagerly flattening evaluation
 (define $eo_requires ((x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term))
-  ($smt_builtin_ite ($smt_builtin_= x1 x2)
+  ($smt_builtin_ite ($smt_builtin_teq x1 x2)
     ($smt_builtin_ite ($smt_builtin_is_ok x1) x3 $eo_stuck)
     $eo_stuck))
 
@@ -468,7 +471,7 @@
 (program $eo_eq ((t $eo_Term) (s $eo_Term))
   :signature ($eo_Term $eo_Term) $eo_Term
   (
-  (($eo_eq t s) ($eo_bool ($smt_builtin_= s t)))
+  (($eo_eq t s) ($eo_bool ($smt_builtin_teq s t)))
   )
 )
 
@@ -479,7 +482,7 @@
   ($eo_bool ($smt_apply_nary_3 "and"
     ($smt_builtin_is_ok t)
     ($smt_builtin_is_ok s)
-    ($smt_builtin_= s t))))
+    ($smt_builtin_teq s t))))
 
 ;;; $eo_is_bool
 
@@ -497,7 +500,7 @@
 ; implements: eo::is_bool
 (define $eo_is_bool ((t $eo_Term))
   ($eo_bool ($smt_builtin_and ($smt_builtin_is_ok t)
-    ($smt_builtin_= ($eo_is_bool_internal t) true))))
+    ($smt_builtin_teq ($eo_is_bool_internal t) true))))
 
 ;;; $eo_is_z
 
@@ -515,7 +518,7 @@
 ; implements: eo::is_z
 (define $eo_is_z ((t $eo_Term))
   ($eo_bool ($smt_builtin_and ($smt_builtin_is_ok t)
-    ($smt_builtin_= ($eo_is_z_internal t) true))))
+    ($smt_builtin_teq ($eo_is_z_internal t) true))))
 
 ;;; $eo_is_q
 
@@ -533,7 +536,7 @@
 ; implements: eo::is_q
 (define $eo_is_q ((t $eo_Term))
   ($eo_bool ($smt_builtin_and ($smt_builtin_is_ok t)
-    ($smt_builtin_= ($eo_is_q_internal t) true))))
+    ($smt_builtin_teq ($eo_is_q_internal t) true))))
 
 
 ;;; $eo_is_bin
@@ -552,7 +555,7 @@
 ; implements: eo::is_bin
 (define $eo_is_bin ((t $eo_Term))
   ($eo_bool ($smt_builtin_and ($smt_builtin_is_ok t)
-    ($smt_builtin_= ($eo_is_bin_internal t) true))))
+    ($smt_builtin_teq ($eo_is_bin_internal t) true))))
 
 ;;; $eo_is_str
 
@@ -570,7 +573,7 @@
 ; implements: eo::is_str
 (define $eo_is_str ((t $eo_Term))
   ($eo_bool ($smt_builtin_and ($smt_builtin_is_ok t)
-    ($smt_builtin_= ($eo_is_str_internal t) true))))
+    ($smt_builtin_teq ($eo_is_str_internal t) true))))
 
 ;;; Derived arithmetic
 

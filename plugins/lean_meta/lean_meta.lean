@@ -134,7 +134,7 @@ $LEAN_TERM_DEF$
 deriving DecidableEq
   
 /- Term equality -/
-def eo_lit_eq : Term -> Term -> eo_lit_Bool
+def eo_lit_teq : Term -> Term -> eo_lit_Bool
   | x, y => decide (x = y)
 
 /- Used for defining hash -/

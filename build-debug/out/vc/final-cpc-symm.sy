@@ -1,6 +1,7 @@
 (set-logic ALL)
 
 (define-sort Rat () Real)
+(define-fun iff ((x Bool) (y Bool)) Bool (= x y))
 ; Helpers to avoid mixed arithmetic
 (define-fun mk_rational ((x Int) (y Int)) Real (/ (to_real x) (to_real y)))
 (define-fun zeq ((x Int) (y Int)) Bool (= x y))
@@ -106,6 +107,9 @@
   )
 )
 
+(define-fun teq ((x eo.Term) (y eo.Term)) Bool (= x y))
+(define-fun veq ((x vsm.Value) (y vsm.Value)) Bool (= x y))
+
 ;;; Relevant definitions
 
 ; program: $eo_proven
@@ -175,7 +179,7 @@
 
 ; program: $eo_requires
 (define-fun $eo_requires ((x1 eo.Term) (x2 eo.Term) (x3 eo.Term)) eo.Term
-    (ite (= x1 x2) (ite (not (= x1 eo.Stuck)) x3 eo.Stuck) eo.Stuck)
+    (ite (teq x1 x2) (ite (not (teq x1 eo.Stuck)) x3 eo.Stuck) eo.Stuck)
 )
 
 ; program: $eo_mk_apply
@@ -398,7 +402,7 @@
   (ite ((_ is eo.String) x1)
     true
   (ite ((_ is eo.Binary) x1)
-    (and (<= 0 (eo.Binary.arg1 x1)) (= (eo.Binary (eo.Binary.arg1 x1) (eo.Binary.arg2 x1)) (eo.Binary (eo.Binary.arg1 x1) (mod (eo.Binary.arg2 x1) ($smtx_pow2 (eo.Binary.arg1 x1))))))
+    (and (<= 0 (eo.Binary.arg1 x1)) (teq (eo.Binary (eo.Binary.arg1 x1) (eo.Binary.arg2 x1)) (eo.Binary (eo.Binary.arg1 x1) (mod (eo.Binary.arg2 x1) ($smtx_pow2 (eo.Binary.arg1 x1))))))
     false
 ))))))
 
@@ -417,31 +421,31 @@
 ; program: $smtx_model_eval_=
 (define-fun $smtx_model_eval_= ((x1 vsm.Value) (x2 vsm.Value)) vsm.Value
   (ite (and ((_ is vsm.Term) x1) ((_ is eo.Boolean) (vsm.Term.arg1 x1)) ((_ is vsm.Term) x2) ((_ is eo.Boolean) (vsm.Term.arg1 x2)))
-    (vsm.Term (eo.Boolean (= (eo.Boolean (eo.Boolean.arg1 (vsm.Term.arg1 x1))) (eo.Boolean (eo.Boolean.arg1 (vsm.Term.arg1 x2))))))
+    (vsm.Term (eo.Boolean (teq (eo.Boolean (eo.Boolean.arg1 (vsm.Term.arg1 x1))) (eo.Boolean (eo.Boolean.arg1 (vsm.Term.arg1 x2))))))
   (ite (and ((_ is vsm.Term) x1) ((_ is eo.Boolean) (vsm.Term.arg1 x1)))
     vsm.NotValue
   (ite (and ((_ is vsm.Term) x2) ((_ is eo.Boolean) (vsm.Term.arg1 x2)))
     vsm.NotValue
   (ite (and ((_ is vsm.Term) x1) ((_ is eo.Numeral) (vsm.Term.arg1 x1)) ((_ is vsm.Term) x2) ((_ is eo.Numeral) (vsm.Term.arg1 x2)))
-    (vsm.Term (eo.Boolean (= (eo.Numeral (eo.Numeral.arg1 (vsm.Term.arg1 x1))) (eo.Numeral (eo.Numeral.arg1 (vsm.Term.arg1 x2))))))
+    (vsm.Term (eo.Boolean (teq (eo.Numeral (eo.Numeral.arg1 (vsm.Term.arg1 x1))) (eo.Numeral (eo.Numeral.arg1 (vsm.Term.arg1 x2))))))
   (ite (and ((_ is vsm.Term) x1) ((_ is eo.Numeral) (vsm.Term.arg1 x1)))
     vsm.NotValue
   (ite (and ((_ is vsm.Term) x2) ((_ is eo.Numeral) (vsm.Term.arg1 x2)))
     vsm.NotValue
   (ite (and ((_ is vsm.Term) x1) ((_ is eo.Rational) (vsm.Term.arg1 x1)) ((_ is vsm.Term) x2) ((_ is eo.Rational) (vsm.Term.arg1 x2)))
-    (vsm.Term (eo.Boolean (= (eo.Rational (eo.Rational.arg1 (vsm.Term.arg1 x1))) (eo.Rational (eo.Rational.arg1 (vsm.Term.arg1 x2))))))
+    (vsm.Term (eo.Boolean (teq (eo.Rational (eo.Rational.arg1 (vsm.Term.arg1 x1))) (eo.Rational (eo.Rational.arg1 (vsm.Term.arg1 x2))))))
   (ite (and ((_ is vsm.Term) x1) ((_ is eo.Rational) (vsm.Term.arg1 x1)))
     vsm.NotValue
   (ite (and ((_ is vsm.Term) x2) ((_ is eo.Rational) (vsm.Term.arg1 x2)))
     vsm.NotValue
   (ite (and ((_ is vsm.Term) x1) ((_ is eo.String) (vsm.Term.arg1 x1)) ((_ is vsm.Term) x2) ((_ is eo.String) (vsm.Term.arg1 x2)))
-    (vsm.Term (eo.Boolean (= (eo.String (eo.String.arg1 (vsm.Term.arg1 x1))) (eo.String (eo.String.arg1 (vsm.Term.arg1 x2))))))
+    (vsm.Term (eo.Boolean (teq (eo.String (eo.String.arg1 (vsm.Term.arg1 x1))) (eo.String (eo.String.arg1 (vsm.Term.arg1 x2))))))
   (ite (and ((_ is vsm.Term) x1) ((_ is eo.String) (vsm.Term.arg1 x1)))
     vsm.NotValue
   (ite (and ((_ is vsm.Term) x2) ((_ is eo.String) (vsm.Term.arg1 x2)))
     vsm.NotValue
   (ite (and ((_ is vsm.Term) x1) ((_ is eo.Binary) (vsm.Term.arg1 x1)) ((_ is vsm.Term) x2) ((_ is eo.Binary) (vsm.Term.arg1 x2)))
-    (ite (zeq (eo.Binary.arg1 (vsm.Term.arg1 x1)) (eo.Binary.arg1 (vsm.Term.arg1 x2))) (vsm.Term (eo.Boolean (= (eo.Binary (eo.Binary.arg1 (vsm.Term.arg1 x1)) (eo.Binary.arg2 (vsm.Term.arg1 x1))) (eo.Binary (eo.Binary.arg1 (vsm.Term.arg1 x2)) (eo.Binary.arg2 (vsm.Term.arg1 x2)))))) vsm.NotValue)
+    (ite (zeq (eo.Binary.arg1 (vsm.Term.arg1 x1)) (eo.Binary.arg1 (vsm.Term.arg1 x2))) (vsm.Term (eo.Boolean (teq (eo.Binary (eo.Binary.arg1 (vsm.Term.arg1 x1)) (eo.Binary.arg2 (vsm.Term.arg1 x1))) (eo.Binary (eo.Binary.arg1 (vsm.Term.arg1 x2)) (eo.Binary.arg2 (vsm.Term.arg1 x2)))))) vsm.NotValue)
   (ite (and ((_ is vsm.Term) x1) ((_ is eo.Binary) (vsm.Term.arg1 x1)))
     vsm.NotValue
   (ite (and ((_ is vsm.Term) x2) ((_ is eo.Binary) (vsm.Term.arg1 x2)))
@@ -450,7 +454,7 @@
     vsm.NotValue
   (ite (= x2 vsm.NotValue)
     vsm.NotValue
-    (vsm.Term (eo.Boolean (= x1 x2)))
+    (vsm.Term (eo.Boolean (veq x1 x2)))
 ))))))))))))))))))
 
 ; program: $smtx_model_eval_not
@@ -478,7 +482,7 @@
     ($smtx_model_eval_= ($smtx_model_eval (eo.Apply.arg2 (eo.Apply.arg1 x1))) ($smtx_model_eval (eo.Apply.arg2 x1)))
   (ite ((_ is eo.Apply) x1)
     ($smtx_model_eval_apply ($smtx_model_eval (eo.Apply.arg1 x1)) ($smtx_model_eval (eo.Apply.arg2 x1)))
-    (ite ($smtx_is_atomic_term_value x1) (vsm.Term x1) (ite (not (= ($eo_dt_selectors x1) eo.Stuck)) (vsm.Apply (vsm.Term x1) vsm.NotValue) vsm.NotValue))
+    (ite ($smtx_is_atomic_term_value x1) (vsm.Term x1) (ite (not (teq ($eo_dt_selectors x1) eo.Stuck)) (vsm.Apply (vsm.Term x1) vsm.NotValue) vsm.NotValue))
 ))))) :pattern (($smtx_model_eval x1)))) :named sm.axiom.$smtx_model_eval))
 
 ; program: $eo_model_sat
@@ -487,7 +491,7 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    (ite (= ($smtx_model_eval x1) (vsm.Term (eo.Boolean true))) (eo.Boolean true) (eo.Boolean false))
+    (ite (veq ($smtx_model_eval x1) (vsm.Term (eo.Boolean true))) (eo.Boolean true) (eo.Boolean false))
     eo.Stuck))) :pattern (($eo_model_sat x1)))) :named sm.axiom.$eo_model_sat))
 
 ; program: $eo_model_unsat
@@ -496,7 +500,7 @@
   (ite (= x1 eo.Stuck)
     eo.Stuck
   (ite true
-    (ite (= ($smtx_model_eval x1) (vsm.Term (eo.Boolean false))) (eo.Boolean true) (eo.Boolean false))
+    (ite (veq ($smtx_model_eval x1) (vsm.Term (eo.Boolean false))) (eo.Boolean true) (eo.Boolean false))
     eo.Stuck))) :pattern (($eo_model_unsat x1)))) :named sm.axiom.$eo_model_unsat))
 
 ; program: $eovc_symm

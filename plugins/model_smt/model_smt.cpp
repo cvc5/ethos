@@ -17,10 +17,16 @@
 
 namespace ethos {
 
-std::string smtEq(const std::string& c1, const std::string& c2)
+std::string smtZEq(const std::string& c1, const std::string& c2)
 {
   std::stringstream ss;
-  ss << "($smt_builtin_= " << c1 << " " << c2 << ")";
+  ss << "($smt_builtin_z_eq " << c1 << " " << c2 << ")";
+  return ss.str();
+}
+std::string smtValueEq(const std::string& c1, const std::string& c2)
+{
+  std::stringstream ss;
+  ss << "($smt_builtin_veq " << c1 << " " << c2 << ")";
   return ss.str();
 }
 std::string smtApp(const std::string& app,
@@ -170,7 +176,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ssReRepeatRet << " (re.++ (re.^ (- x1 1) x2) x2)))";
   addReduceSym("re.^",
                {kInt, kRegLan},
-               smtGuard(smtEq("($smtx_model_eval (>= x1 0))", "$vsm_true"),
+               smtGuard(smtValueEq("($smtx_model_eval (>= x1 0))", "$vsm_true"),
                         ssReRepeatRet.str()));
   std::stringstream ssReLoopRet;
   ssReLoopRet << "($smtx_model_eval (ite (> x1 x2)";
@@ -179,7 +185,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   ssReLoopRet << " (re.union (re.loop x1 (- x2 1) (re.^ x2 x3))))))";
   addReduceSym("re.loop",
                {kInt, kInt, kRegLan},
-               smtGuard(smtEq("($smtx_model_eval (and (>= x1 0) (>= x2 0)))",
+               smtGuard(smtValueEq("($smtx_model_eval (and (>= x1 0) (>= x2 0)))",
                               "$vsm_true"),
                         ssReLoopRet.str()));
   // RE operators
@@ -199,13 +205,13 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitBinSym("bvudiv",
                {kBitVec, kBitVec},
                "x1",
-               smtIte(smtEq("x3", "$smt_builtin_z_zero"),
+               smtIte(smtZEq("x3", "$smt_builtin_z_zero"),
                       "($smtx_binary_max x1)",
                       "($smt_builtin_div x2 x4)"));
   addLitBinSym("bvurem",
                {kBitVec, kBitVec},
                "x1",
-               smtIte(smtEq("x3", "$smt_builtin_z_zero"),
+               smtIte(smtZEq("x3", "$smt_builtin_z_zero"),
                       "x2",
                       "($smt_builtin_mod x2 x4)"));
   addLitBinSym(
@@ -271,7 +277,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             {kInt, kBitVec},
             kT,
             smtGuard(smtApp(">=", "x1", "$smt_builtin_z_zero"),
-                     smtIte(smtEq("x1", "$smt_builtin_z_zero"),
+                     smtIte(smtZEq("x1", "$smt_builtin_z_zero"),
                             "($vsm_term ($eo_binary x2 x3))",
                             ssSExtRet.str())));
   std::stringstream ssAshrRet;
@@ -293,7 +299,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             {kInt, kBitVec},
             kT,
             smtGuard(smtApp(">=", "x1", "$smt_builtin_z_zero"),
-                     smtIte(smtEq("x1", "$smt_builtin_z_zero"),
+                     smtIte(smtZEq("x1", "$smt_builtin_z_zero"),
                             "($vsm_term ($eo_binary x2 x3))",
                             ssRLeftRet.str())));
   std::stringstream ssRRightRet;
@@ -306,7 +312,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             {kInt, kBitVec},
             kT,
             smtGuard(smtApp(">=", "x1", "$smt_builtin_z_zero"),
-                     smtIte(smtEq("x1", "$smt_builtin_z_zero"),
+                     smtIte(smtZEq("x1", "$smt_builtin_z_zero"),
                             "($vsm_term ($eo_binary x2 x3))",
                             ssRRightRet.str())));
   std::stringstream ssRepeatRet;
@@ -317,7 +323,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             {kInt, kBitVec},
             kT,
             smtGuard(smtApp(">=", "x1", "$smt_builtin_z_one"),
-                     smtIte(smtEq("x1", "$smt_builtin_z_one"),
+                     smtIte(smtZEq("x1", "$smt_builtin_z_one"),
                             "($vsm_term ($eo_binary x2 x3))",
                             ssRepeatRet.str())));
   // the following are program cases in the main method of the form
@@ -397,7 +403,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitSym("bvnego",
             {kBitVec},
             kBool,
-            smtEq("x2", "($smtx_pow2 ($smt_builtin_z_dec x1))"));
+            smtZEq("x2", "($smtx_pow2 ($smt_builtin_z_dec x1))"));
   addTermReduceSym("bvusubo", {kBitVec, kBitVec}, "(bvult x1 x2)");
   addLitSym("bvssubo",
             {kBitVec, kBitVec},
@@ -479,7 +485,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addRecReduceSym("@sets_deq_diff", {kT, kT}, "($smtx_map_diff e1 e2)");
   addRecReduceSym("set.is_empty",
                   {kT},
-                  "($vsm_term ($eo_bool ($smt_builtin_= e1 $smtx_empty_set)))");
+                  "($vsm_term ($eo_bool ($smt_builtin_teq e1 $smtx_empty_set)))");
   addReduceSym(
       "set.insert",
       {kList, kT},

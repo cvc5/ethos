@@ -66,6 +66,9 @@
 ; An SMT-LIB value.
 (declare-const $smt_Value Type)
 
+; Assumes that veq is defined to be equality over $smt_Value
+(define $smt_builtin_veq ((x1 $smt_Value) (x2 $smt_Value)) ($smt_apply_2 "veq" x1 x2))
+
 ; The type used to define values for functions, arrays and sets in SMT-LIB.
 (declare-const $smt_Map Type)
 

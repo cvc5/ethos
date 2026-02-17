@@ -140,7 +140,7 @@ else
   echo "**** smt_meta: Verify cvc5 parses"
   $CVC5 $VC_OUT --parse-only
   check_status
-  exit 0
+  #exit 0
 
   BASE_ARGS="--macros-quant --re-first-class --quant-ind"
   

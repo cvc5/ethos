@@ -1,6 +1,7 @@
 (set-logic ALL)
 
 (define-sort Rat () Real)
+(define-fun iff ((x Bool) (y Bool)) Bool (= x y))
 ; Helpers to avoid mixed arithmetic
 (define-fun mk_rational ((x Int) (y Int)) Real (/ (to_real x) (to_real y)))
 (define-fun zeq ((x Int) (y Int)) Bool (= x y))
@@ -49,6 +50,9 @@ $SM_VALUE_DECL$
   )
   )
 )
+
+(define-fun teq ((x eo.Term) (y eo.Term)) Bool (= x y))
+(define-fun veq ((x vsm.Value) (y vsm.Value)) Bool (= x y))
 
 ;;; Relevant definitions
 

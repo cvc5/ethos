@@ -1370,27 +1370,13 @@ MetaKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
       else
       {
         std::string esname = getEmbedName(parent);
-        if (esname == "=")
+        if (esname == "teq")
         {
-          MetaKind k1 = getMetaKindReturn(parent[2], parentCtx);
-          MetaKind k2 = getMetaKindReturn(parent[3], parentCtx);
-          if (k1 == k2)
-          {
-            // both sides have no context.
-            // this allows SMT-LIB equality to operate on any datatype used in
-            // the embedding
-            tk = MetaKind::NONE;
-          }
-          else if (k1 == MetaKind::EUNOIA || k2 == MetaKind::EUNOIA)
-          {
-            // if they have different types, we must "connect" them through the
-            // top-level Eunoia datatype
-            tk = MetaKind::EUNOIA;
-          }
-          else
-          {
-            Assert(false) << "Could not infer argument context for equality";
-          }
+          tk = MetaKind::EUNOIA;
+        }
+        else if (esname == "veq")
+        {
+          tk = MetaKind::SMT_VALUE;
         }
         else if (esname == "ite")
         {
