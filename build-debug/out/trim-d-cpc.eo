@@ -619,15 +619,22 @@
 ; declare: sign_extend
 (declare-parameterized-const sign_extend ((i Int) (m Int :implicit) ($eo_x_1 (BitVec m))) (BitVec (eo::add m i)))
 ; declare: @bv
-(declare-parameterized-const @bv ((value Int) (w Int)) (BitVec w))
+(declare-parameterized-const @bv (($eo_x_1 Int) (w Int)) (BitVec w))
+; program: $eo_disamb_type_seq.empty
+(program $eo_disamb_type_seq.empty ((T Type))
+  :signature (Type) Type
+  (
+  (($eo_disamb_type_seq.empty (Seq T)) (Seq T))
+  )
+)
 ; declare: seq.empty
-(declare-parameterized-const seq.empty ((T Type :implicit)) (Seq T))
+(declare-parameterized-const seq.empty (($eo_disamb_type_seq.empty_var Type :opaque)) ($eo_disamb_type_seq.empty $eo_disamb_type_seq.empty_var))
 ; program: $seq_empty
 (program $seq_empty ((T Type))
   :signature ((eo::quote T)) T
   (
   (($seq_empty (Seq Char)) "")
-  (($seq_empty T) (as seq.empty T))
+  (($seq_empty T) (seq.empty T))
   )
 )
 ; declare: str.len
@@ -1002,16 +1009,16 @@
 )
 ; program: $eo_typeof_extract
 (program $eo_typeof_extract ((n Int) (h Int) (l Int))
-  :signature (Type Type Type) Type
+  :signature (Type Int Type Int Type) Type
   (
-  (($eo_typeof_extract h l (BitVec n)) (BitVec (eo::requires (eo::gt (eo::add l 1) 0) true (eo::requires (eo::gt n h) true (eo::add (eo::add h (eo::neg l)) 1)))))
+  (($eo_typeof_extract Int h Int l (BitVec n)) (BitVec (eo::requires (eo::gt (eo::add l 1) 0) true (eo::requires (eo::gt n h) true (eo::add (eo::add h (eo::neg l)) 1)))))
   )
 )
 ; program: $eo_typeof_repeat
 (program $eo_typeof_repeat ((i Int) (n Int))
-  :signature (Type Type) Type
+  :signature (Type Int Type) Type
   (
-  (($eo_typeof_repeat i (BitVec n)) (BitVec (eo::mul i n)))
+  (($eo_typeof_repeat Int i (BitVec n)) (BitVec (eo::mul i n)))
   )
 )
 ; program: $eo_typeof_bvnot
@@ -1163,30 +1170,30 @@
 )
 ; program: $eo_typeof_zero_extend
 (program $eo_typeof_zero_extend ((m Int) (i Int))
-  :signature (Type Type) Type
+  :signature (Type Int Type) Type
   (
-  (($eo_typeof_zero_extend i (BitVec m)) (BitVec (eo::add m i)))
+  (($eo_typeof_zero_extend Int i (BitVec m)) (BitVec (eo::add m i)))
   )
 )
 ; program: $eo_typeof_sign_extend
 (program $eo_typeof_sign_extend ((m Int) (i Int))
-  :signature (Type Type) Type
+  :signature (Type Int Type) Type
   (
-  (($eo_typeof_sign_extend i (BitVec m)) (BitVec (eo::add m i)))
+  (($eo_typeof_sign_extend Int i (BitVec m)) (BitVec (eo::add m i)))
   )
 )
 ; program: $eo_typeof_@bv
-(program $eo_typeof_@bv ((value Int) (w Int))
-  :signature (Type Type) Type
+(program $eo_typeof_@bv ((w Int))
+  :signature (Type Type Int) Type
   (
-  (($eo_typeof_@bv value w) (BitVec w))
+  (($eo_typeof_@bv Int Int w) (BitVec w))
   )
 )
 ; program: $eo_typeof_seq.empty
-(program $eo_typeof_seq.empty ((T Type))
-  :signature (Type) Type
+(program $eo_typeof_seq.empty (($eo_disamb_type_seq.empty_var Type))
+  :signature (Type Type) Type
   (
-  (($eo_typeof_seq.empty (Seq T)) (Seq T))
+  (($eo_typeof_seq.empty Type $eo_disamb_type_seq.empty_var) ($eo_disamb_type_seq.empty $eo_disamb_type_seq.empty_var))
   )
 )
 ; program: $eo_typeof_str.len
@@ -1289,9 +1296,9 @@
 )
 ; program: $eo_typeof_int_to_bv
 (program $eo_typeof_int_to_bv ((w Int))
-  :signature (Type) Type
+  :signature (Type Int) Type
   (
-  (($eo_typeof_int_to_bv w) (-> Int (BitVec w)))
+  (($eo_typeof_int_to_bv Int w) (-> Int (BitVec w)))
   )
 )
 ; program: $eo_typeof_ubv_to_int
@@ -1414,9 +1421,9 @@
   ; type-rule: concat
   (($eo_typeof_main (_ (concat $eo_x1) $eo_x2)) ($eo_typeof_concat ($eo_typeof $eo_x1) ($eo_typeof $eo_x2)))
   ; type-rule: extract
-  (($eo_typeof_main (_ (_ (extract $eo_x1) $eo_x2) $eo_x3)) ($eo_typeof_extract $eo_x1 $eo_x2 ($eo_typeof $eo_x3)))
+  (($eo_typeof_main (_ (_ (extract $eo_x1) $eo_x2) $eo_x3)) ($eo_typeof_extract ($eo_typeof $eo_x1) $eo_x1 ($eo_typeof $eo_x2) $eo_x2 ($eo_typeof $eo_x3)))
   ; type-rule: repeat
-  (($eo_typeof_main (_ (repeat $eo_x1) $eo_x2)) ($eo_typeof_repeat $eo_x1 ($eo_typeof $eo_x2)))
+  (($eo_typeof_main (_ (repeat $eo_x1) $eo_x2)) ($eo_typeof_repeat ($eo_typeof $eo_x1) $eo_x1 ($eo_typeof $eo_x2)))
   ; type-rule: bvnot
   (($eo_typeof_main (bvnot $eo_x1)) ($eo_typeof_bvnot ($eo_typeof $eo_x1)))
   ; type-rule: bvand
@@ -1460,13 +1467,13 @@
   ; type-rule: bvashr
   (($eo_typeof_main (bvashr $eo_x1)) ($eo_typeof_bvashr ($eo_typeof $eo_x1)))
   ; type-rule: zero_extend
-  (($eo_typeof_main (_ (zero_extend $eo_x1) $eo_x2)) ($eo_typeof_zero_extend $eo_x1 ($eo_typeof $eo_x2)))
+  (($eo_typeof_main (_ (zero_extend $eo_x1) $eo_x2)) ($eo_typeof_zero_extend ($eo_typeof $eo_x1) $eo_x1 ($eo_typeof $eo_x2)))
   ; type-rule: sign_extend
-  (($eo_typeof_main (_ (sign_extend $eo_x1) $eo_x2)) ($eo_typeof_sign_extend $eo_x1 ($eo_typeof $eo_x2)))
+  (($eo_typeof_main (_ (sign_extend $eo_x1) $eo_x2)) ($eo_typeof_sign_extend ($eo_typeof $eo_x1) $eo_x1 ($eo_typeof $eo_x2)))
   ; type-rule: @bv
-  (($eo_typeof_main (_ (@bv $eo_x1) $eo_x2)) ($eo_typeof_@bv $eo_x1 $eo_x2))
+  (($eo_typeof_main (_ (@bv $eo_x1) $eo_x2)) ($eo_typeof_@bv ($eo_typeof $eo_x1) ($eo_typeof $eo_x2) $eo_x2))
   ; type-rule: seq.empty
-  (($eo_typeof_main (as seq.empty $eo_x1)) ($eo_typeof_seq.empty $eo_x1))
+  (($eo_typeof_main (seq.empty $eo_x1)) ($eo_typeof_seq.empty ($eo_typeof $eo_x1) $eo_x1))
   ; type-rule: str.len
   (($eo_typeof_main (str.len $eo_x1)) ($eo_typeof_str.len ($eo_typeof $eo_x1)))
   ; type-rule: str.++
@@ -1510,7 +1517,7 @@
   ; type-rule: /_total
   (($eo_typeof_main (_ (/_total $eo_x1) $eo_x2)) ($eo_typeof_/_total ($eo_typeof $eo_x1) ($eo_typeof $eo_x2)))
   ; type-rule: int_to_bv
-  (($eo_typeof_main (int_to_bv $eo_x1)) ($eo_typeof_int_to_bv $eo_x1))
+  (($eo_typeof_main (int_to_bv $eo_x1)) ($eo_typeof_int_to_bv ($eo_typeof $eo_x1) $eo_x1))
   ; type-rule: ubv_to_int
   (($eo_typeof_main (ubv_to_int $eo_x1)) ($eo_typeof_ubv_to_int ($eo_typeof $eo_x1)))
   ; type-rule: sbv_to_int

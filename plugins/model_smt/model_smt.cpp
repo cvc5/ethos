@@ -469,7 +469,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   // sequences
   addReduceSym("seq.empty", {kT}, "$smtx_empty_seq");
   d_specialCases["seq.empty"].emplace_back(
-      "(as seq.empty (Seq Char))",
+      "(seq.empty (Seq Char))",
       "($vsm_term ($eo_string $smt_builtin_str_empty))");
   addRecReduceSym("seq.unit", {kT}, "($smtx_seq_unit e1)");
   addRecReduceSym("seq.nth", {kT, kInt}, "($smtx_seq_nth e1 e2)");
@@ -484,10 +484,12 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addRecReduceSym("set.member", {kT, kT}, "($smtx_map_select e2 e1)");
   addTermReduceSym("set.subset", {kT, kT}, "(= (set.inter x1 x2) x1)");
   addRecReduceSym("@sets_deq_diff", {kT, kT}, "($smtx_map_diff e1 e2)");
+  std::stringstream ssIsEmptyRet;
+  ssIsEmptyRet << "($vsm_term ($eo_bool " << smtValueEq("e1", "$smtx_empty_set") << "))";
   addRecReduceSym(
       "set.is_empty",
       {kT},
-      "($vsm_term ($eo_bool ($smt_builtin_teq e1 $smtx_empty_set)))");
+      ssIsEmptyRet.str());
   addReduceSym(
       "set.insert",
       {kList, kT},
@@ -724,23 +726,9 @@ void ModelSmt::printModelEvalCallBase(const std::string& name,
   size_t i = 1;
   size_t nargs = args.size();
   size_t icount = 1;
-  if (attr == Attr::AMB)
-  {
-    if (nargs == 1)
-    {
-      d_eval << "(as " << name;
-    }
-    else
-    {
-      i++;
-      icount++;
-      d_eval << "(_ (as " << name << " x1)";
-    }
-  }
-  else
-  {
-    d_eval << "(" << name;
-  }
+  // FIXME: attr should not matter at all
+  Assert (attr!=Attr::AMB);
+  d_eval << "(" << name;
   for (; i <= nargs; i++)
   {
     Kind k = args[i - 1];

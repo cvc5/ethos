@@ -203,8 +203,16 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
   {
     return;
   }
+  // If it is ambiguous, it won't be ambiguous anymore after desugaring, hence
+  // we sanitize it to prevent printing "as" when printing terms here.
+  if (isAmb)
+  {
+    Expr cnamb = d_state.mkSymbol(Kind::CONST, cnss.str(), c.getType());
+    d_overloadSanVisited[c] = cnamb;
+  }
   Expr cto = d_tc.getType(c);
   Expr ct = cto;
+  Trace("desugar") << "Finalize declaration " << e << " " << ct << std::endl;
   std::vector<Expr> argTypes;
   Expr retType;
   std::map<Expr, bool> visited;
@@ -221,15 +229,21 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
       size_t novars = anum.getValue()->asLiteral()->d_int.toUnsignedInt();
       for (size_t i = 0; i < novars; i++)
       {
-        Assert(ct[i].getKind() == Kind::QUOTE_TYPE)
-            << "Bad opaque function type " << ct << " for " << c;
-        Expr v = ct[i][0];
-        if (v.getKind() == Kind::ANNOT_PARAM)
+        Expr v;
+        if (ct[i].getKind()==Kind::QUOTE_TYPE)
         {
-          v = v[0];
+          v = ct[i][0];
+          Assert(v.getKind() == Kind::PARAM)
+              << "Bad opaque function variable " << ct << " for " << c;
         }
-        Assert(v.getKind() == Kind::PARAM)
-            << "Bad opaque function variable " << ct << " for " << c;
+        else
+        {
+          // It may be an ordinary argument in which case we reintroduce the
+          // parameter corresponding to the opaque argument.
+          std::stringstream ssv;
+          ssv << "$eo_ov_" << i;
+          v = d_state.mkSymbol(Kind::PARAM, ssv.str(), ct[i]);
+        }
         std::vector<Expr> vars;
         vars.push_back(v);
         printParamList(vars, opaqueArgs, params, visited, true, true);
@@ -257,20 +271,12 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
       if (at.getKind() == Kind::QUOTE_TYPE)
       {
         Expr v = at[0];
-        if (v.getKind() == Kind::ANNOT_PARAM)
-        {
-          v = v[0];
-        }
         if (v.getKind() == Kind::PARAM)
         {
           std::vector<Expr> varsp;
           varsp.push_back(v);
-          printParamList(varsp, os, params, visited, true);
-        }
-        else if (isAmb && i == 0)
-        {
-          // skip, the remaining free variables will be printed as implicit
-          // below.
+          bool isOpaque = (isAmb && i == 0);
+          printParamList(varsp, os, params, visited, true, isOpaque);
         }
         else
         {
@@ -288,20 +294,6 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
         vars.push_back(v);
         printParamList(vars, os, params, visited, true);
       }
-    }
-    // if ambiguous, go back and print the remaining parameters as implicit
-    if (isAmb)
-    {
-      Assert(argTypes[0].getKind() == Kind::QUOTE_TYPE);
-      Expr v = argTypes[0][0];
-      // print the parameters; these will lead to a definition that is
-      // ambiguous again.
-      std::vector<Expr> avars = Expr::getVariables(v);
-      // override the behavior to ensure all variables are implicit.
-      size_t startIndex = params.size();
-      getParamList(avars, params, visited);
-      std::vector<Expr> emptyVec;
-      finalizeParamList(os, params, true, emptyVec, false, startIndex);
     }
     os << ") ";
     printTerm(retType, os);
@@ -384,12 +376,9 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
         if (cta.getKind() == Kind::QUOTE_TYPE)
         {
           cta = cta[0];
-          if (cta.getKind() == Kind::ANNOT_PARAM)
-          {
-            ngscope.push_back(cta[1]);
-            ssngarg << " ($eo_typeof " << ssx.str() << ")";
-            cta = cta[0];
-          }
+          // always check type as well
+          ngscope.push_back(cta.getType());
+          ssngarg << " ($eo_typeof " << ssx.str() << ")";
           Expr tcta = d_tc.getType(cta);
           arg = d_state.mkSymbol(Kind::PARAM, ssx.str(), tcta);
           if (cta.getKind() == Kind::PARAM)
@@ -453,7 +442,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
       Expr retType = d_state.mkType();
       for (size_t i = 0, ngsize = ngscope.size(); i < ngsize; i++)
       {
-        argTypes.push_back(retType);
+        argTypes.push_back(ngscope[i].getType());
       }
       Expr progType = d_state.mkProgramType(argTypes, retType);
       Expr prog = d_state.mkSymbol(Kind::PROGRAM_CONST, pname, progType);
@@ -642,7 +631,7 @@ void Desugar::finalizeRule(const Expr& e)
   {
     return;
   }
-  std::cout << "Finalize rule " << e << std::endl;
+  Trace("desugar") << "Finalize rule " << e << std::endl;
   AppInfo* ainfo = d_state.getAppInfo(e.getValue());
   Expr tupleVal = ainfo->d_attrConsTerm;
   Assert(tupleVal.getNumChildren() == 4);
@@ -951,14 +940,7 @@ Expr Desugar::mkSanitize(const Expr& t, std::map<Expr, Expr>& visited)
         childChanged = childChanged || cn != it->second;
         children.push_back(it->second);
       }
-      // must introduce new parameter if matching a literal op kind
-      if (k == Kind::ANNOT_PARAM)
-      {
-        // TODO: build this into the Ethos printer??
-        // strip off the "(eo::param ...)"
-        ret = cur[0];
-      }
-      else if (k == Kind::PROOF)
+      if (k == Kind::PROOF)
       {
         // "pf" is a kind, we handle it specially here by turning it into an
         // ordinary application.

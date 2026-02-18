@@ -50,15 +50,17 @@ Relies on:
 - cvc5 source code
 
 Things handled at this stage:
-- define-fun-rec, desugared to declare-fun + assert forall.
-- match, desugared to ITE
-- some FP operators renamed
-- Currying of ProofRule::SCOPE.
+- Modifications made to input -> proof assumptions in solver_engine.cpp:
+  - define-fun-rec desugared to declare-fun + assert forall.
+  - Mixed arithmetic is silently eliminated.
+- Modifications made in proof printer:
+  - match, desugared to ITE
+  - some FP operators renamed
+  - Currying of ProofRule::SCOPE.
 
 === Ethos parser
 
 Things handled at this stage:
-- Non-essential Eunoia commands (declare-type/define-type).
 - Operator properties.
   - :right-assoc-nil, :right-assoc, :left-assoc-nil, :left-assoc, :chainable, :binder, :let-binder
 - Desugar n-ary literal ops to binary (e.g. (eo::add a b c) -> (eo::add (eo::add a b) c)).
@@ -81,12 +83,12 @@ Relies on:
 - (Optional) trim_defs.cpp (ethos plugin), 305 LOC C++
   - Slices the signature, preserves S-expressions.
   - Needed to make the VCs more manageable.
-- flatten_eval.cpp (ethos utility), 477 LOC C++
+- (Optional) flatten_eval.cpp (ethos utility), 477 LOC C++
   - Converts programs to a list of programs with no nested evaluation.
 
 Things handled at this stage:
 - define commands inlined
-- Flattening of evaluation
+- (Optional) flattening of evaluation
   - All evaluation nested inside of ordinary applications are lifted. This effectively
     ensures that stuckness propagates eagerly through ordinary constant applications.
   - Each instance of eo::requires, eo::ite converted to a program.
@@ -96,8 +98,11 @@ Things handled at this stage:
   - $eo_Numeral, $eo_Rational, $eo_String, $eo_Binary as references to builtin types.
 - Operator overloading.
   - Introduces "$eoo_X.N" as a convention for overloaded symbols.
+- Ambiguously typed functions are converted to unambiguous functions having
+  an opaque type argument and a helper program invoked on this type. This means
+  e.g. (as nil (List Int)) becomes (nil (List Int)) after desugaring, where
+  this is an opaque application.
 - Desugaring template:
-  - eo::eq
   - eo::cons
   - eo::list_len, eo::list_concat, eo::list_nth, eo::list_find, eo::list_rev, eo::list_erase,
     eo::list_erase_all, eo::list_setof, eo::list_minclude, eo::list_meq
@@ -108,6 +113,10 @@ Things handled at this stage:
     - *Approximates* the internal type system of Eunoia (monomorphizes partial applications).
       - For example, we give a type rule for (= x), not =.
     - Includes an auto-generation of cases for all user symbols ($eo_typeof_main).
+- declare-datatype/declare-datatypes is eliminated, effectively turned into a
+  set of ordinary types and constants. The semantics of datatypes, constructors
+  and selectors is preserved based on the auto-generation of eo::dt_constructors
+  and eo::dt_selectors.
 
 === Model_smt
 
@@ -122,10 +131,11 @@ Relies on:
   - Model semantics $eo_model_sat
   - SMT-LIB input $eo_model_is_input
 - model_smt.cpp (ethos plugin), 944 LOC C++
-- trim_defs.cpp (ethos plugin), also used above
+- (Optional) trim_defs.cpp (ethos plugin), also used above
 
 Things handled at this stage:
 - Reduces many Eunoia builtins to SMT-LIB literal semantics
+  - eo::eq
   - eo::not, eo::and, eo::or, eo::xor
   - eo::add, eo::mul, eo::qdiv, eo::zdiv, eo::zmod, eo::is_neg, eo::neg
   - eo::len, eo::concat, eo::extract, eo::find
@@ -149,12 +159,12 @@ Things handled at this stage:
     - Specialized for sets. Utilities for basic operations on sets.
   - Sequence utility.
     - Used for sequence values.
-  - Defines a core evaluation semantics ($smt_model_eval)
+  - Defines a core evaluation semantics ($smt_model_eval), having cases:
     - Function application.
     - Auto-generated in various forms
       - Term reductions "this operator evaluates based on the evaluation of this term"
         - e.g. (bvsle x1 x2) is (bvsge x2 x1).
-      - Constant folding auxialary functions "this operator evaluates the arguments then calls the SMT-LIB operator on the result"
+      - Constant folding auxiliary functions "this operator evaluates the arguments then calls the SMT-LIB operator on the result"
         - e.g. (+ x1 x2) is ($smt_apply_2 "+" ($evaluate x1) ($evaluate x2))
       - Hard-coded cases "this operator uses the custom function defined in this signature".
         - e.g. (select x1 x2) is ($smtx_map_select ($evaluate x1) ($evaluate x2)).
@@ -182,28 +192,23 @@ Relies on:
 Things handled at this stage:
 - The final deep embedding
   - Eunoia Terms (eo.Term)
-    - Embeddings for all 3 SMT-LIB constructs below.
-  - SMT-LIB Terms (sm.Term)
-  - SMT-LIB Types (tsm.Type)
   - SMT-LIB Values (vsm.Value)
-    - Note that values are disjoint from terms. Terms can be embedded into
-      values using a distinguished constructor eo.Value, which is not allowed
-      in inputs.
+    - Has constructors for certain custom data values (maps, sequences).
+    - Note that values are disjoint from terms.
 - Function types become ordinary applications e.g. (-> T1 T2) ---> (_ (_ -> T1) T2).
 - Eunoia semantics of pattern matching based on datatype selectors/testers.
 - Symbols introduced for deep embedding in Model_Smt $smt_apply_N, $smt_type_N.
 - Remaining eo::define and define commands inlined.
 - Axiom for eo::hash
-- Ambiguously typed functions retain their "opaque" semantics, which is handled at this step.
 - :opaque on user symbols becomes part of the deep embedding.
   - For example a constructor like:
       (declare-parameterized-const const ((id Int :opaque) (T Type :opaque)) T)
     becomes the datatype constructor with arity 2:
-      (sm.@const (sm.@const.arg1 Int) (sm.@const.arg2 sm.Term))
+      (eo.@const (eo.@const.arg1 Int) (eo.@const.arg2 eo.Term))
     whereas:
       (declare-parameterized-const and (-> Bool Bool Bool))
     becomes the nullary constructor:
-      (sm.And)
+      (eo.And)
 
 ===
 
