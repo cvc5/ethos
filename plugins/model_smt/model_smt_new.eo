@@ -9,7 +9,7 @@
 
 (include "smt_embed.eo")
 
-; placeholder?
+; placeholder? TODO: necessary???
 (declare-const $eo_Term Type)
 
 ; An SMT term.
@@ -48,18 +48,22 @@
   $smt_Term)
 (define $sm_apply ((x $smt_Term) (y $smt_Term)) ($smd_sm.Apply x y))
 
-; Represents a Eunoia variable in the final deep embedding.
+; Represents a SMT-LIB variable in the final deep embedding.
 (declare-parameterized-const $smd_sm.Var
   ((s $smt_builtin_String :opaque) (T $smt_Type :opaque))
   $smt_Term)
-(define $eo_Var ((s $smt_builtin_String) (T $smt_Type))
+(define $sm_Var ((s $smt_builtin_String) (T $smt_Type))
   ($smd_sm.Var s T))
+
+$SMT_TERM_CONSTRUCTORS$
 
 ;;;;;; SMT type constructors
 
 ; The Boolean type
 (declare-const $smd_tsm.Bool $smt_Type)
 (define $tsm_Bool () $smd_tsm.Bool)
+
+$SMT_TYPE_CONSTRUCTORS$
 
 ;;;;;; SMT values
 
@@ -544,12 +548,18 @@ $SMT_EVAL_CASES$
 ;;;;;;;;;;;;;;;;;;;;;;
 
 (program $eo_to_smt 
-  ((f $eo_Term) (y $eo_Term) 
+  ((b $smt_builtin_Bool) (n $smt_builtin_Int) (r $smt_builtin_Rat)
+   (s $smt_builtin_String) (w $smt_builtin_Int) (f $eo_Term) (y $eo_Term)
    (x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term) (x4 $eo_Term) (x5 $eo_Term))
   :signature ($eo_Term) $smt_Term
   (
+  (($eo_to_smt ($eo_bool n))      ($sm_bool b))
+  (($eo_to_smt ($eo_numeral n))   ($sm_numeral n))
+  (($eo_to_smt ($eo_rational r))  ($sm_rational r))
+  (($eo_to_smt ($eo_string r))    ($sm_string s))
+  (($eo_to_smt ($eo_binary w n))  ($sm_binary w n))
 $EO_TO_SMT_CASES$
-  (($eo_to_smt (f y)) ($sm_apply ($eo_to_smt f) ($eo_to_smt y)))
+  (($eo_to_smt (f y))             ($sm_apply ($eo_to_smt f) ($eo_to_smt y)))
   )
 )
 
@@ -560,13 +570,13 @@ $EO_TO_SMT_CASES$
 (program $eo_model_sat ((F Bool))
   :signature (Bool) Bool
   (
-  (($eo_model_sat F) ($smt_builtin_ite ($smt_builtin_= ($smtx_model_eval ($eo_to_smt F)) $vsm_true) true false))
+  (($eo_model_sat F) ($smt_builtin_ite ($smt_builtin_veq ($smtx_model_eval ($eo_to_smt F)) $vsm_true) true false))
   )
 )
 (program $eo_model_unsat ((F Bool))
   :signature (Bool) Bool
   (
-  (($eo_model_unsat F) ($smt_builtin_ite ($smt_builtin_= ($smtx_model_eval ($eo_to_smt F)) $vsm_false) true false))
+  (($eo_model_unsat F) ($smt_builtin_ite ($smt_builtin_veq ($smtx_model_eval ($eo_to_smt F)) $vsm_false) true false))
   )
 )
 

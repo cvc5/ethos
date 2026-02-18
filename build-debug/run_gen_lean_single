@@ -20,6 +20,7 @@ INIT_DESUGAR=$OUT_DIR/trim-d-cpc.eo
 VC_DEF_DESUGAR=$OUT_DIR/vc-def-cpc.eo
 VCM_DEF_DESUGAR=$OUT_DIR/vcm-def-cpc.eo
 VCMT_DEF_DESUGAR=$OUT_DIR/vcmt-def-cpc.eo
+MODEL_DEF_DESUGAR=$OUT_DIR/model-def-cpc.eo
 LEAN_OUT=$OUT_DIR/cpc.lean
 function check_status()
 {
@@ -76,7 +77,7 @@ trim_defs $INIT_DESUGAR "\$eo_prog_$TARGET" >/dev/null
 check_status
 cp $STD_TRIM_OUT $VC_DEF_DESUGAR
 
-echo "**** lean_meta: Run ethos + model-smt on $VC_DEF_DESUGAR to generate $VCM_DEF_DESUGAR"
+echo "**** lean_meta: Run ethos + model-smt on $VC_DEF_DESUGAR to generate $VCM_DEF_DESUGAR / $MODEL_DEF_DESUGAR"
 # make a copy of the current file, the current step will be included into it
 TMP_OUT=$(mktemp)
 cp $VC_DEF_DESUGAR $TMP_OUT
@@ -91,13 +92,14 @@ sed -i "/(include \"smt_embed.eo\")/{
     d
 }" $TMP_OUT
 # now compute the model smt
-#./src/ethos --plugin.model-smt $TMP_OUT >/dev/null
-#check_status
+cp $TMP_OUT $MODEL_DEF_DESUGAR
+./src/ethos --plugin.model-smt-new $MODEL_DEF_DESUGAR >/dev/null
+check_status
 # include the model semantics, which was generated above
-#sed -i "/(echo \"include eo_model_sat.*/{
-#    r ../plugins/model_smt/model_smt_gen.eo
-#    d
-#}" $TMP_OUT
+sed -i "/(echo \"include eo_model_sat.*/{
+    r ../plugins/model_smt/model_smt_gen.eo
+    d
+}" $MODEL_DEF_DESUGAR
 mv $TMP_OUT $VCM_DEF_DESUGAR
 rm -f $TMP_OUT
 

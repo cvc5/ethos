@@ -51,6 +51,13 @@ class ModelSmtNew : public StdPlugin
                         const std::vector<Kind>& args,
                         const std::string& retTerm);
   /**
+   * Add function that should be eliminated in the Eunoia to SMT-LIB term
+   * layer.
+   */
+  void addEunoiaReduceSym(const std::string& sym,
+                        const std::vector<Kind>& args,
+                        const std::string& retTerm);
+  /**
    * Add function whose evaluation is
    * (eo::define ((e1 ($smt_model_eval x1)))
    * (eo::define ((e2 ($smt_model_eval x2)))
@@ -113,11 +120,23 @@ class ModelSmtNew : public StdPlugin
   void addSymCase(const std::string& sym,
                   const std::string& pat,
                   const std::string& ret);
+    void printEvalCallBase(std::ostream& out,
+                                    const std::string& mname,
+                                    const std::string& name,
+                                    const std::vector<Kind>& args,
+                                    const std::string& ret);
   /**
    * Helper method for printing the final program case to $smtx_model_eval, i.e.
    * (($smtx_model_eval (<name> x1 ... xn)) <retTerm>).
    */
   void printModelEvalCallBase(const std::string& name,
+                              const std::vector<Kind>& args,
+                              const std::string& ret);
+  /**
+   * Helper method for printing the final program case to $smtx_model_eval, i.e.
+   * (($eo_to_smt (<name> x1 ... xn)) <retTerm>).
+   */
+  void printEunoiaReduce(const std::string& name,
                               const std::vector<Kind>& args,
                               const std::string& ret);
   /**
@@ -136,10 +155,9 @@ class ModelSmtNew : public StdPlugin
                       Kind ret,
                       const std::string& reduce);
   /** Print for type */
-  void printType(const std::string& name,
+  void printDecl(const std::string& name,
                  const std::vector<Kind>& args,
-                 const std::string& cpat,
-                 const std::string& cret);
+                 Kind ret = Kind::PARAM);
   void printAuxProgramCase(const std::string& name,
                            const std::vector<Kind>& args,
                            const std::string& ret,
@@ -166,6 +184,9 @@ class ModelSmtNew : public StdPlugin
   std::stringstream d_eval;
   /** Conversion Eunoia to SMT */
   std::stringstream d_eoToSmt;
+  /** Term and type constructors */
+  std::stringstream d_smtTerms;
+  std::stringstream d_smtTypes;
   /** Declarations seen */
   std::vector<std::pair<std::string, Expr>> d_declSeen;
   /** Special cases, printed prior to symbol */
@@ -192,6 +213,10 @@ class ModelSmtNew : public StdPlugin
    * references to the arguments.
    */
   std::map<std::string, std::pair<std::vector<Kind>, std::string>> d_symReduce;
+  /**
+   * Eunoia terms that have special reductions to SMT-LIB terms
+   */
+  std::map<std::string, std::pair<std::vector<Kind>, std::string>> d_eoSymReduce;
   /**
    * SMT-LIB symbols that have a custom evaluation function that we define.
    */
