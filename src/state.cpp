@@ -1542,8 +1542,6 @@ bool State::notifyStep(const std::string& name,
       {
         if (err)
         {
-          (*err) << "A step of rule " << rule << " failed to check."
-                 << std::endl;
           if (result.getKind() == Kind::APPLY && result[0] == children[0])
           {
             // if the failure was that the program failed to apply, then

@@ -932,6 +932,7 @@ bool CmdParser::parseNextCommand()
         // because allocation of std::stringstream is expensive and this
         // block of code only executes at most once.
         std::stringstream sserr;
+        sserr << "A step of rule " << ruleName << " failed to check." << std::endl;
         bool recheck = d_state.notifyStep(
             name, rule, proven, premises, args, isPop, concTerm, &sserr);
         // should fail again
