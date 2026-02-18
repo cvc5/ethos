@@ -45,12 +45,13 @@ class Desugar : public StdPlugin
                     bool isPush) override;
   /** */
   bool notifyStep(const std::string& name,
-                  std::vector<Expr>& children,
                   Expr& rule,
                   Expr& proven,
-                  std::vector<Expr>& premises,
-                  std::vector<Expr>& args,
-                  bool isPop) override;
+                  const std::vector<Expr>& premises,
+                  const std::vector<Expr>& args,
+                  bool isPop,
+                  Expr& result,
+                          std::ostream* err) override;
   /**
    */
   bool echo(const std::string& msg) override;

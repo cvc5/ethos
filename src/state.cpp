@@ -1439,24 +1439,28 @@ void State::notifyAssume(const std::string& name, Expr& proven, bool isPush)
 }
 
 bool State::notifyStep(const std::string& name,
-                       std::vector<Expr>& children,
                        Expr& rule,
                        Expr& proven,
                        std::vector<Expr>& premises,
                        std::vector<Expr>& args,
-                       bool isPop)
+                       bool isPop,
+                       Expr& result,
+                       std::ostream* err)
 {
   if (d_plugin != nullptr)
   {
+    // if the plugin handles it, then take its result
     if (d_plugin->notifyStep(
-            name, children, rule, proven, premises, args, isPop))
+            name, rule, proven, premises, args, isPop, result, err))
     {
-      return true;
+      // ensure the result is an evaluatable term.
+      return !result.isNull() && !result.isEvaluatable();
     }
   }
   AppInfo* ainfo = getAppInfo(rule.getValue());
   if (ainfo != nullptr)
   {
+    std::vector<Expr> children;
     Assert (ainfo->d_attrCons == Attr::PROOF_RULE);
     Expr tupleVal = ainfo->d_attrConsTerm;
     Assert(tupleVal.getNumChildren() == 4);
@@ -1476,6 +1480,10 @@ bool State::notifyStep(const std::string& name,
     {
       if (proven.isNull())
       {
+        if (err)
+        {
+          (*err) << "Rules with :conclusion-explicit require a provided conclusion." << std::endl;
+        }
         // requires a conclusion to be provided
         return false;
       }
@@ -1498,6 +1506,17 @@ bool State::notifyStep(const std::string& name,
     {
       // using step for a rule requiring an assumption, or step-pop for a rule
       // not requiring an assumption.
+      if (err)
+      {
+        if (isPop)
+        {
+          (*err) << "step-pop can only be used on rules with :assumption" << std::endl;
+        }
+        else
+        {
+          (*err) << "step cannot be used on rules with :assumption" << std::endl;
+        }
+      }
       return false;
     }
     if (!plCons.isNull())
@@ -1512,6 +1531,10 @@ bool State::notifyStep(const std::string& name,
         // should be proofs
         if (e.getKind() != Kind::PROOF)
         {
+          if (err)
+          {
+            (*err) << "Provided premise is not a proof" << std::endl;
+          }
           return false;
         }
         achildren.push_back(e[0]);
@@ -1529,6 +1552,10 @@ bool State::notifyStep(const std::string& name,
         }
         else
         {
+          if (err)
+          {
+            (*err) << "Premise list constructor " << plCons << " has no nil element" << std::endl;
+          }
           return false;
         }
       }
@@ -1545,7 +1572,51 @@ bool State::notifyStep(const std::string& name,
       // otherwise ordinary premises
       children.insert(children.end(), premises.begin(), premises.end());
     }
+    if (children.size()>1)
+    {
+      // evaluate the program app
+      result = d_tc.evaluateProgramApp(children);
+      // if error stream is provided, print details on the failure
+      if (result.isEvaluatable())
+      {
+        if (err)
+        {
+          (*err) << "A step of rule " << rule << " failed to check." << std::endl;
+          if (result.getKind()==Kind::APPLY && result[0]==children[0])
+          {
+            // if the failure was that the program failed to apply, then
+            // provide details on expected arguments.
+            Expr prog = getProgram(children[0].getValue());
+            Assert(prog.getNumChildren() == 1 && prog[0].getNumChildren() == 2);
+            std::vector<Expr> eargs;
+            for (size_t i = 1, nchild = prog[0][0].getNumChildren(); i < nchild;
+                i++)
+            {
+              eargs.push_back(prog[0][0][i]);
+            }
+            (*err) << "Expected args: " << eargs << std::endl;
+            std::vector<Expr> pargs(children.begin() + 1, children.end());
+            (*err) << "Provided args: " << pargs << std::endl;
+          }
+          else
+          {
+            (*err) << "Evaluation failed: " << result << std::endl;
+          }
+        }
+        return false;
+      }
+    }
+    else
+    {
+      // otherwise a nullary rule
+      result = children[0];
+      Assert (!result.isEvaluatable());
+    }
     return true;
+  }
+  if (err)
+  {
+    (*err) << "Provided :rule is not recognized as a proof rule" << std::endl;
   }
   return false;
 }

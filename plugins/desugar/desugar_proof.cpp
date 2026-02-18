@@ -39,12 +39,13 @@ void DesugarProof::notifyAssume(const std::string& name,
 }
 
 bool DesugarProof::notifyStep(const std::string& name,
-                              std::vector<Expr>& children,
                               Expr& rule,
                               Expr& proven,
-                              std::vector<Expr>& premises,
-                              std::vector<Expr>& args,
-                              bool isPop)
+                              const std::vector<Expr>& premises,
+                              const std::vector<Expr>& args,
+                              bool isPop,
+                              Expr& result,
+                          std::ostream* err)
 {
   size_t nargs = 0;
   // prints as a definition
@@ -90,7 +91,7 @@ bool DesugarProof::notifyStep(const std::string& name,
       stdPremises = false;
       std::vector<Expr> achildren;
       achildren.push_back(plCons);
-      for (Expr& e : premises)
+      for (const Expr& e : premises)
       {
         std::stringstream tmp;
         tmp << "$eo_p_" << e;

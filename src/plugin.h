@@ -134,28 +134,40 @@ public:
                                const std::vector<ExprValue*>& args,
                                Ctx& newCtx) { return Expr(); }
   /**
-   * Notify assume
-   * @param name
-   * @param proven The given conclusion.
+   * Notify assume, called when an assume command is parsed.
+   * @param name The name of the assumption.
+   * @param proven The formula that it assumes.
+   * @param isPush true iff the assumption was from an assume-push command.
    */
   virtual void notifyAssume(const std::string& name, Expr& proven, bool isPush)
   {
   }
   /**
-   * Check step.
-   * @param children The proof rule followed by the computed arguments to
-   * that program based on a step or step-pop command.
-   * @param proven The given conclusion.
-   * @return The proof type corresponding to the result of checking the step,
-   * or null if the plugin does not check this step.
+   * Notify step, called when a step command is parsed.
+   * This method determines the argument list to a proof rule in a step or
+   * step-pop and computes the result of what the step proves.
+   * Note that if result is not set to a fully evaluated term,
+   * then a proof checking error will occur, in which case this plugin should
+   * print an error to stream err if it is provided.
+   * @param name The name of the step.
+   * @param rule The proof rule being applied.
+   * @param proven The conclusion of the proof rule, if provided.
+   * @param premises The provided premises of the proof rule.
+   * @param args The provided arguments of the proof rule.
+   * @param isPop Whether we were a step-pop.
+   * @param result The result proven by the step.
+   * @param err If provided, details on errors are printed to this stream.
+   * @return true if we successfully computed result. Otherwise, this plugin
+   * does not have special support for the proof step.
    */
   virtual bool notifyStep(const std::string& name,
-                          std::vector<Expr>& children,
                           Expr& rule,
                           Expr& proven,
-                          std::vector<Expr>& premises,
-                          std::vector<Expr>& args,
-                          bool isPop)
+                          const std::vector<Expr>& premises,
+                          const std::vector<Expr>& args,
+                          bool isPop,
+                          Expr& result,
+                          std::ostream* err)
   {
     return false;
   }

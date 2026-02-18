@@ -201,28 +201,40 @@ class State
   /** Get the proof rule with the given name or nullptr if it does not exist */
   Expr getProofRule(const std::string& name) const;
   /**
+   * Notify assume, called when an assume command is parsed.
+   * @param name The name of the assumption.
+   * @param proven The formula that it assumes.
+   * @param isPush true iff the assumption was from an assume-push command.
    */
   void notifyAssume(const std::string& name, Expr& proven, bool isPush);
   /**
-   * Get proof rule arguments, which determines the argument list to a proof
-   * rule in a step or step-pop. This takes into account whether the rule was
-   * marked :premise-list, :conclusion-explicit, or :assumption (for step-pop
-   * commands).
-   * @param children The vector of children to populate.
+   * Notify step, called when a step command is parsed.
+   * This method determines the argument list to a proof rule in a step or
+   * step-pop and computes the result of what the step proves. This takes into
+   * account whether the rule was marked :premise-list, :conclusion-explicit,
+   * or :assumption (for step-pop commands), or whether the plugin can provide
+   * the result.
+   * Note that result may be a term that is not of type Bool. This check is
+   * instead done in the parser.
+   * @param name The name of the step.
    * @param rule The proof rule being applied.
    * @param proven The conclusion of the proof rule, if provided.
    * @param premises The provided premises of the proof rule.
    * @param args The provided arguments of the proof rule.
    * @param isPop Whether we were a step-pop.
-   * @return true if we successfully populated the arguments to the proof rule.
+   * @param result The result proven by the step.
+   * @param err If provided, details on errors are printed to this stream.
+   * @return true if we successfully computed result. Otherwise, a proof
+   * checking error should be thrown.
    */
   bool notifyStep(const std::string& name,
-                  std::vector<Expr>& children,
                   Expr& rule,
                   Expr& proven,
                   std::vector<Expr>& premises,
                   std::vector<Expr>& args,
-                  bool isPop);
+                  bool isPop,
+                  Expr& result,
+                  std::ostream* err = nullptr);
   /** Get the program */
   Expr getProgram(const ExprValue* ev);
   /** */

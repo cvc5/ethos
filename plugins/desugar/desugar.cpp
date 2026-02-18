@@ -884,15 +884,16 @@ void Desugar::notifyAssume(const std::string& name, Expr& proven, bool isPush)
 }
 
 bool Desugar::notifyStep(const std::string& name,
-                         std::vector<Expr>& children,
                          Expr& rule,
                          Expr& proven,
-                         std::vector<Expr>& premises,
-                         std::vector<Expr>& args,
-                         bool isPop)
+                         const std::vector<Expr>& premises,
+                         const std::vector<Expr>& args,
+                         bool isPop,
+                         Expr& result,
+                          std::ostream* err)
 {
   return d_dproof.notifyStep(
-      name, children, rule, proven, premises, args, isPop);
+      name, rule, proven, premises, args, isPop, result, err);
 }
 
 bool Desugar::echo(const std::string& msg) { return true; }

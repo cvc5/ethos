@@ -521,7 +521,7 @@ bool CmdParser::parseNextCommand()
       // we always carry plCons, in case the rule was marked
       // :premise-list as well as :assumption or :conclusion-explicit
       // simulataneously. We will handle all 3 special cases at once in
-      // State::getProofRuleArguments when the rule is applied.
+      // State::notifyStep when the rule is applied.
       d_state.markConstructorKind(rule, Attr::PROOF_RULE, attrVal);
       AttrMap attrs;
       d_eparser.parseAttributeList(Kind::PROOF_RULE, rule, attrs);
@@ -902,49 +902,20 @@ bool CmdParser::parseNextCommand()
       {
         args = d_eparser.parseExprList();
       }
-      std::vector<Expr> children;
-      if (!d_state.notifyStep(
-              name, children, rule, proven, premises, args, isPop))
-      {
-        d_lex.parseError("Failed to get arguments for proof rule");
-      }
-      // compute the type of applying the rule
+      // compute the conclusion of the proof rule
       Expr concTerm;
-      if (children.size()>1)
+      if (!d_state.notifyStep(
+              name, rule, proven, premises, args, isPop, concTerm))
       {
-        // evaluate the program app
-        concTerm = d_tc.evaluateProgramApp(children);
-      }
-      else
-      {
-        concTerm = children[0];
-      }
-      // ensure proof type, note this is where "proof checking" happens.
-      if (concTerm.isEvaluatable())
-      {
-        // error message gives the list of arguments and the proof rule
-        std::stringstream ss;
-        ss << "A step of rule " << ruleName << " failed to check." << std::endl;
-        if (concTerm == children[0])
-        {
-          Expr prog = d_state.getProgram(children[0].getValue());
-          Assert(prog.getNumChildren() == 1 && prog[0].getNumChildren() == 2);
-          std::vector<Expr> eargs;
-          for (size_t i = 1, nchild = prog[0][0].getNumChildren(); i < nchild;
-               i++)
-          {
-            eargs.push_back(prog[0][0][i]);
-          }
-          ss << "Expected args: " << eargs << std::endl;
-          std::vector<Expr> pargs(children.begin() + 1, children.end());
-          ss << "Provided args: " << pargs << std::endl;
-          d_lex.parseError(ss.str());
-        }
-        else
-        {
-          ss << "Evaluation failed: " << concTerm << std::endl;
-          d_lex.parseError(ss.str());
-        }
+        // If we failed, check again now with an error stream. We do this
+        // because allocation of std::stringstream is expensive and this
+        // block of code only executes at most once.
+        std::stringstream sserr;
+        bool recheck = d_state.notifyStep(name, rule, proven, premises, args, isPop, concTerm, &sserr);
+        // should fail again
+        AlwaysAssert (!recheck);
+        // print the error
+        d_lex.parseError(sserr.str());
       }
       // Check that the proved term is actually Bool
       Expr concTermType = d_eparser.typeCheck(concTerm);
@@ -970,6 +941,7 @@ bool CmdParser::parseNextCommand()
       {
         d_state.popAssumptionScope();
       }
+      // Now wrap the conclusion in the proof constructor.
       Expr pfTerm = d_state.mkProof(concTerm);
       // bind to variable, note that the definition term is not kept
       d_eparser.bind(name, pfTerm);
