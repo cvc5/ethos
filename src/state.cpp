@@ -1616,8 +1616,8 @@ bool State::notifyStep(const std::string& name,
     {
       // otherwise a nullary rule
       result = children[0];
-      Assert(!result.isEvaluatable());
     }
+    Assert(!result.isNull() && !result.isEvaluatable());
     return true;
   }
   if (err)
