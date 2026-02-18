@@ -654,16 +654,14 @@ void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
     for (size_t i = 0, ncases = itsc->second.size(); i < ncases; i++)
     {
       printModelEvalCallBase(
-          itsc->second[i].first, {}, itsc->second[i].second, Attr::NONE);
+          itsc->second[i].first, {}, itsc->second[i].second);
     }
   }
-  Attr attr =
-      e.isNull() ? Attr::NONE : d_state.getConstructorKind(e.getValue());
   std::map<std::string, std::vector<Kind>>::iterator ith =
       d_symHardCode.find(name);
   if (ith != d_symHardCode.end())
   {
-    printModelEvalCall(name, ith->second, attr);
+    printModelEvalCall(name, ith->second);
     return;
   }
   // maybe a constant fold symbol
@@ -671,7 +669,7 @@ void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
       d_symConstFold.find(name);
   if (it != d_symConstFold.end())
   {
-    printModelEvalCall(name, it->second.first, attr);
+    printModelEvalCall(name, it->second.first);
     printConstFold(name, it->second.first, it->second.second);
     return;
   }
@@ -681,7 +679,7 @@ void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
   if (its != d_symLitReduce.end())
   {
     std::vector<Kind>& args = std::get<0>(its->second);
-    printModelEvalCall(name, args, attr);
+    printModelEvalCall(name, args);
     printLitReduce(
         name, args, std::get<1>(its->second), std::get<2>(its->second));
     return;
@@ -690,7 +688,7 @@ void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
       itst = d_symReduce.find(name);
   if (itst != d_symReduce.end())
   {
-    printModelEvalCallBase(name, itst->second.first, itst->second.second, attr);
+    printModelEvalCallBase(name, itst->second.first, itst->second.second);
     return;
   }
   if (d_symIgnore.find(name) != d_symIgnore.end())
@@ -714,8 +712,7 @@ void ModelSmt::printType(const std::string& name,
 
 void ModelSmt::printModelEvalCallBase(const std::string& name,
                                       const std::vector<Kind>& args,
-                                      const std::string& ret,
-                                      Attr attr)
+                                      const std::string& ret)
 {
   d_eval << "  (($smtx_model_eval ";
   if (args.empty())
@@ -726,8 +723,6 @@ void ModelSmt::printModelEvalCallBase(const std::string& name,
   size_t i = 1;
   size_t nargs = args.size();
   size_t icount = 1;
-  // FIXME: attr should not matter at all
-  Assert (attr!=Attr::AMB);
   d_eval << "(" << name;
   for (; i <= nargs; i++)
   {
@@ -747,8 +742,7 @@ void ModelSmt::printModelEvalCallBase(const std::string& name,
 }
 
 void ModelSmt::printModelEvalCall(const std::string& name,
-                                  const std::vector<Kind>& args,
-                                  Attr attr)
+                                  const std::vector<Kind>& args)
 {
   std::stringstream callArgs;
   callArgs << "($smtx_model_eval_" << name;
@@ -757,7 +751,7 @@ void ModelSmt::printModelEvalCall(const std::string& name,
     callArgs << " ($smtx_model_eval x" << i << ")";
   }
   callArgs << ")";
-  printModelEvalCallBase(name, args, callArgs.str(), attr);
+  printModelEvalCallBase(name, args, callArgs.str());
 }
 
 void ModelSmt::printTermInternal(Kind k,
