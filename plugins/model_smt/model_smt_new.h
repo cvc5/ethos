@@ -184,6 +184,7 @@ class ModelSmtNew : public StdPlugin
   std::stringstream d_eval;
   /** Conversion Eunoia to SMT */
   std::stringstream d_eoToSmt;
+  std::stringstream d_eoToSmtType;
   /** Term and type constructors */
   std::stringstream d_smtTerms;
   std::stringstream d_smtTypes;
