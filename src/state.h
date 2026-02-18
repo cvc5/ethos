@@ -91,9 +91,14 @@ class State
   bool markConstructorKind(const Expr& v, Attr a, const Expr& cons);
   /** Define program, where v is PROGRAM_CONST and prog is PROGRAM. */
   void defineProgram(const Expr& v, const Expr& prog);
-  /** Define */
+  /** Define, called when a define command is parsed.
+   * @param name The name of the define.
+   * @param e The expression name is defined to be.
+   */
   void define(const std::string& name, const Expr& e);
-  /** Echo */
+  /** Echo, called when an echo command is parsed.
+   * @param msg The message of the echo command.
+   */
   void echo(const std::string& msg);
   //--------------------------------------
   /** Type */

@@ -1409,7 +1409,7 @@ bool State::notifyStep(const std::string& name,
     if (d_plugin->notifyStep(
             name, rule, proven, premises, args, isPop, result, err))
     {
-      // ensure the result is an evaluatable term.
+      // successful if the result is non-null and fully evaluated
       return !result.isNull() && !result.isEvaluatable();
     }
   }
