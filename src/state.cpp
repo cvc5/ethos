@@ -35,6 +35,7 @@ Options::Options()
   d_pluginLeanMeta = false;
   d_pluginTrimDefs = false;
   d_pluginModelSmt = false;
+  d_pluginModelSmtNew = false;
 }
 
 bool Options::setOption(const std::string& key, bool val)
@@ -108,6 +109,10 @@ bool Options::setOption(const std::string& key, bool val)
   else if (key == "plugin.model-smt")
   {
     d_pluginModelSmt = true;
+  }
+  else if (key == "plugin.model-smt-new")
+  {
+    d_pluginModelSmtNew = true;
   }
   else
   {

@@ -53,6 +53,7 @@ class Options
   bool d_pluginLeanMeta;
   bool d_pluginTrimDefs;
   bool d_pluginModelSmt;
+  bool d_pluginModelSmtNew;
 };
 
 /**
