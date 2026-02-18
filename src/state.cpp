@@ -1187,7 +1187,7 @@ Expr State::mkApplyAttr(AppInfo* ai,
       }
       else
       {
-        // construct curried APPLY_OPAQUE application.      
+        // construct curried APPLY_OPAQUE application.
         ExprValue* curr = vchildren[0];
         for (size_t i = 1; i < nargs + 1; i++)
         {
