@@ -780,7 +780,7 @@ Expr State::mkExpr(Kind k, const std::vector<Expr>& children)
     else
     {
       Warning() << "Wrong number of arguments when applying literal op " << k
-                << ", " << children.size() << std::endl;
+                << ", " << children.size() << " arguments" << std::endl;
     }
   }
   else if (k == Kind::AS_RETURN)
