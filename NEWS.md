@@ -4,6 +4,7 @@ ethos 0.2.3 prerelease
 ======================
 
 - The command `declare-parameterized-const` now forbids return types that contain parameters with non-ground type.
+- Updates to the external plugin interface.
 
 ethos 0.2.2
 ===========

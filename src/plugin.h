@@ -52,10 +52,26 @@ public:
   /**
    * Include file, if not already done so.
    * @param s Specifies the path and name of the file to include.
+   * @param isSignature Whether the given file was marked as a signature file.
    * @param isReference Whether the given file was marked as a reference file.
-   * @param referenceNf The method for normalizing the reference file, if one exists.
+   * @param referenceNf The method for normalizing the reference file, if one
+   * exists.
    */
-  virtual void includeFile(const Filepath& s, bool isReference, const Expr& referenceNf) {}
+  virtual void includeFile(const Filepath& s,
+                           bool isSignature,
+                           bool isReference,
+                           const Expr& referenceNf)
+  {
+  }
+  /**
+   * Same as above, but called immediately after a file has been parsed.
+   */
+  virtual void finalizeIncludeFile(const Filepath& s,
+                                   bool isSignature,
+                                   bool isReference,
+                                   const Expr& referenceNf)
+  {
+  }
   /**
    * Set type rule for literal kind k to t. This is called when the
    * command declare-consts is executed.
@@ -84,6 +100,12 @@ public:
    * @param prog Its definition, which is a term of kind PROGRAM.
    */
   virtual void defineProgram(const Expr& v, const Expr& prog) {}
+  /**
+   * Define. Called when a define or define-fun command is executed.
+   * @param name The name we are binding.
+   * @param e The expression that name is bound to.
+   */
+  virtual void define(const std::string& name, const Expr& e) {}
   //--------- evaluation
   /**
    * @return true if this plugin implements the evaluation methods below for
@@ -105,12 +127,57 @@ public:
    * included in this list, at position 0 of args.
    * @param ctx The context under which we are evaluating, which is a
    * substitution from variables to their value.
-   * @return The result of evaluation prog for the given argumetns in context
-   * ctx.
+   * @return The result of evaluation prog for the given arguments in context
+   * ctx, or null if the plugin does not evaluate this application.
    */
   virtual Expr evaluateProgram(ExprValue* prog,
                                const std::vector<ExprValue*>& args,
                                Ctx& newCtx) { return Expr(); }
+  /**
+   * Notify assume, called when an assume command is parsed.
+   * @param name The name of the assumption.
+   * @param proven The formula that it assumes.
+   * @param isPush true iff the assumption was from an assume-push command.
+   */
+  virtual void notifyAssume(const std::string& name, Expr& proven, bool isPush)
+  {
+  }
+  /**
+   * Notify step, called when a step command is parsed.
+   * This method determines the argument list to a proof rule in a step or
+   * step-pop and computes the result of what the step proves.
+   * Note that if result is not set to a fully evaluated term,
+   * then a proof checking error will occur, in which case this plugin should
+   * print an error to stream err if it is provided.
+   * @param name The name of the step.
+   * @param rule The proof rule being applied.
+   * @param proven The conclusion of the proof rule, if provided.
+   * @param premises The provided premises of the proof rule.
+   * @param args The provided arguments of the proof rule.
+   * @param isPop Whether we were a step-pop.
+   * @param result The result proven by the step.
+   * @param err If provided, details on errors are printed to this stream.
+   * @return true if we successfully computed result. Otherwise, this plugin
+   * does not have special support for the proof step.
+   */
+  virtual bool notifyStep(const std::string& name,
+                          Expr& rule,
+                          Expr& proven,
+                          const std::vector<Expr>& premises,
+                          const std::vector<Expr>& args,
+                          bool isPop,
+                          Expr& result,
+                          std::ostream* err)
+  {
+    return false;
+  }
+  /**
+   * Return true if the echo should be printed. If we return false, the
+   * assumption is that the message was intended for this plugin.
+   * @param msg The message.
+   * @return true if the caller should print the message.
+   */
+  virtual bool echo(const std::string& msg) { return true; }
   //--------- finalize
   /**
    * Finalize. Called once when the proof checker has finished parsing all input.
