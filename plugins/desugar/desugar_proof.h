@@ -42,7 +42,7 @@ class DesugarProof : public StdPlugin
                   const std::vector<Expr>& args,
                   bool isPop,
                   Expr& result,
-                          std::ostream* err) override;
+                  std::ostream* err) override;
 
  private:
   void printTerm(const Expr& e, std::ostream& os);

@@ -45,7 +45,7 @@ bool DesugarProof::notifyStep(const std::string& name,
                               const std::vector<Expr>& args,
                               bool isPop,
                               Expr& result,
-                          std::ostream* err)
+                              std::ostream* err)
 {
   size_t nargs = 0;
   // prints as a definition

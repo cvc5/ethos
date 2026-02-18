@@ -890,7 +890,7 @@ bool Desugar::notifyStep(const std::string& name,
                          const std::vector<Expr>& args,
                          bool isPop,
                          Expr& result,
-                          std::ostream* err)
+                         std::ostream* err)
 {
   return d_dproof.notifyStep(
       name, rule, proven, premises, args, isPop, result, err);

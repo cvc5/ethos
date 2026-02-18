@@ -51,7 +51,7 @@ class Desugar : public StdPlugin
                   const std::vector<Expr>& args,
                   bool isPop,
                   Expr& result,
-                          std::ostream* err) override;
+                  std::ostream* err) override;
   /**
    */
   bool echo(const std::string& msg) override;

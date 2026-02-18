@@ -1482,7 +1482,9 @@ bool State::notifyStep(const std::string& name,
       {
         if (err)
         {
-          (*err) << "Rules with :conclusion-explicit require a provided conclusion." << std::endl;
+          (*err) << "Rules with :conclusion-explicit require a provided "
+                    "conclusion."
+                 << std::endl;
         }
         // requires a conclusion to be provided
         return false;
@@ -1510,11 +1512,13 @@ bool State::notifyStep(const std::string& name,
       {
         if (isPop)
         {
-          (*err) << "step-pop can only be used on rules with :assumption" << std::endl;
+          (*err) << "step-pop can only be used on rules with :assumption"
+                 << std::endl;
         }
         else
         {
-          (*err) << "step cannot be used on rules with :assumption" << std::endl;
+          (*err) << "step cannot be used on rules with :assumption"
+                 << std::endl;
         }
       }
       return false;
@@ -1554,7 +1558,8 @@ bool State::notifyStep(const std::string& name,
         {
           if (err)
           {
-            (*err) << "Premise list constructor " << plCons << " has no nil element" << std::endl;
+            (*err) << "Premise list constructor " << plCons
+                   << " has no nil element" << std::endl;
           }
           return false;
         }
@@ -1572,7 +1577,7 @@ bool State::notifyStep(const std::string& name,
       // otherwise ordinary premises
       children.insert(children.end(), premises.begin(), premises.end());
     }
-    if (children.size()>1)
+    if (children.size() > 1)
     {
       // evaluate the program app
       result = d_tc.evaluateProgramApp(children);
@@ -1581,8 +1586,9 @@ bool State::notifyStep(const std::string& name,
       {
         if (err)
         {
-          (*err) << "A step of rule " << rule << " failed to check." << std::endl;
-          if (result.getKind()==Kind::APPLY && result[0]==children[0])
+          (*err) << "A step of rule " << rule << " failed to check."
+                 << std::endl;
+          if (result.getKind() == Kind::APPLY && result[0] == children[0])
           {
             // if the failure was that the program failed to apply, then
             // provide details on expected arguments.
@@ -1590,7 +1596,7 @@ bool State::notifyStep(const std::string& name,
             Assert(prog.getNumChildren() == 1 && prog[0].getNumChildren() == 2);
             std::vector<Expr> eargs;
             for (size_t i = 1, nchild = prog[0][0].getNumChildren(); i < nchild;
-                i++)
+                 i++)
             {
               eargs.push_back(prog[0][0][i]);
             }
@@ -1610,7 +1616,7 @@ bool State::notifyStep(const std::string& name,
     {
       // otherwise a nullary rule
       result = children[0];
-      Assert (!result.isEvaluatable());
+      Assert(!result.isEvaluatable());
     }
     return true;
   }

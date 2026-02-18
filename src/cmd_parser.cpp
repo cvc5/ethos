@@ -911,9 +911,10 @@ bool CmdParser::parseNextCommand()
         // because allocation of std::stringstream is expensive and this
         // block of code only executes at most once.
         std::stringstream sserr;
-        bool recheck = d_state.notifyStep(name, rule, proven, premises, args, isPop, concTerm, &sserr);
+        bool recheck = d_state.notifyStep(
+            name, rule, proven, premises, args, isPop, concTerm, &sserr);
         // should fail again
-        AlwaysAssert (!recheck);
+        AlwaysAssert(!recheck);
         // print the error
         d_lex.parseError(sserr.str());
       }
