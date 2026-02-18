@@ -18,10 +18,16 @@
 namespace ethos {
 namespace mnew {
 
-std::string smtEq(const std::string& c1, const std::string& c2)
+std::string smtZEq(const std::string& c1, const std::string& c2)
 {
   std::stringstream ss;
-  ss << "($smt_builtin_= " << c1 << " " << c2 << ")";
+  ss << "($smt_builtin_z_eq " << c1 << " " << c2 << ")";
+  return ss.str();
+}
+std::string smtValueEq(const std::string& c1, const std::string& c2)
+{
+  std::stringstream ss;
+  ss << "($smt_builtin_veq " << c1 << " " << c2 << ")";
   return ss.str();
 }
 std::string smtApp(const std::string& app,
@@ -171,18 +177,19 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   ssReRepeatRet << " (re.++ (re.^ (- x1 1) x2) x2)))";
   addReduceSym("re.^",
                {kInt, kRegLan},
-               smtGuard(smtEq("($smtx_model_eval (>= x1 0))", "$vsm_true"),
+               smtGuard(smtValueEq("($smtx_model_eval (>= x1 0))", "$vsm_true"),
                         ssReRepeatRet.str()));
   std::stringstream ssReLoopRet;
   ssReLoopRet << "($smtx_model_eval (ite (> x1 x2)";
   ssReLoopRet << " re.none (ite (= x1 x2)";
   ssReLoopRet << " (re.^ x1 x3)";
   ssReLoopRet << " (re.union (re.loop x1 (- x2 1) (re.^ x2 x3))))))";
-  addReduceSym("re.loop",
-               {kInt, kInt, kRegLan},
-               smtGuard(smtEq("($smtx_model_eval (and (>= x1 0) (>= x2 0)))",
-                              "$vsm_true"),
-                        ssReLoopRet.str()));
+  addReduceSym(
+      "re.loop",
+      {kInt, kInt, kRegLan},
+      smtGuard(smtValueEq("($smtx_model_eval (and (>= x1 0) (>= x2 0)))",
+                          "$vsm_true"),
+               ssReLoopRet.str()));
   // RE operators
   addConstFoldSym("str.in_re", {kString, kRegLan}, kBool);
   addConstFoldSym("str.indexof_re", {kString, kRegLan, kInt}, kInt);
@@ -200,13 +207,13 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addLitBinSym("bvudiv",
                {kBitVec, kBitVec},
                "x1",
-               smtIte(smtEq("x3", "$smt_builtin_z_zero"),
+               smtIte(smtZEq("x3", "$smt_builtin_z_zero"),
                       "($smtx_binary_max x1)",
                       "($smt_builtin_div x2 x4)"));
   addLitBinSym("bvurem",
                {kBitVec, kBitVec},
                "x1",
-               smtIte(smtEq("x3", "$smt_builtin_z_zero"),
+               smtIte(smtZEq("x3", "$smt_builtin_z_zero"),
                       "x2",
                       "($smt_builtin_mod x2 x4)"));
   addLitBinSym(
@@ -248,7 +255,7 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addLitSym("bvugt",
             {kBitVec, kBitVec},
             kT,
-            smtGuard("($smt_builtin_z_= x1 x3)", ssUgtRet.str()));
+            smtGuard("($smt_builtin_z_eq x1 x3)", ssUgtRet.str()));
   // the following operators require a mix of literal evaluation and term
   // reduction
   std::stringstream ssSgtRet;
@@ -272,7 +279,7 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
             {kInt, kBitVec},
             kT,
             smtGuard(smtApp(">=", "x1", "$smt_builtin_z_zero"),
-                     smtIte(smtEq("x1", "$smt_builtin_z_zero"),
+                     smtIte(smtZEq("x1", "$smt_builtin_z_zero"),
                             "($vsm_term ($eo_binary x2 x3))",
                             ssSExtRet.str())));
   std::stringstream ssAshrRet;
@@ -294,7 +301,7 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
             {kInt, kBitVec},
             kT,
             smtGuard(smtApp(">=", "x1", "$smt_builtin_z_zero"),
-                     smtIte(smtEq("x1", "$smt_builtin_z_zero"),
+                     smtIte(smtZEq("x1", "$smt_builtin_z_zero"),
                             "($vsm_term ($eo_binary x2 x3))",
                             ssRLeftRet.str())));
   std::stringstream ssRRightRet;
@@ -307,7 +314,7 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
             {kInt, kBitVec},
             kT,
             smtGuard(smtApp(">=", "x1", "$smt_builtin_z_zero"),
-                     smtIte(smtEq("x1", "$smt_builtin_z_zero"),
+                     smtIte(smtZEq("x1", "$smt_builtin_z_zero"),
                             "($vsm_term ($eo_binary x2 x3))",
                             ssRRightRet.str())));
   std::stringstream ssRepeatRet;
@@ -318,7 +325,7 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
             {kInt, kBitVec},
             kT,
             smtGuard(smtApp(">=", "x1", "$smt_builtin_z_one"),
-                     smtIte(smtEq("x1", "$smt_builtin_z_one"),
+                     smtIte(smtZEq("x1", "$smt_builtin_z_one"),
                             "($vsm_term ($eo_binary x2 x3))",
                             ssRepeatRet.str())));
   // the following are program cases in the main method of the form
@@ -398,7 +405,7 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addLitSym("bvnego",
             {kBitVec},
             kBool,
-            smtEq("x2", "($smtx_pow2 ($smt_builtin_z_dec x1))"));
+            smtZEq("x2", "($smtx_pow2 ($smt_builtin_z_dec x1))"));
   addTermReduceSym("bvusubo", {kBitVec, kBitVec}, "(bvult x1 x2)");
   addLitSym("bvssubo",
             {kBitVec, kBitVec},
@@ -463,7 +470,7 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   // sequences
   addReduceSym("seq.empty", {kT}, "$smtx_empty_seq");
   d_specialCases["seq.empty"].emplace_back(
-      "(as seq.empty (Seq Char))",
+      "(seq.empty (Seq Char))",
       "($vsm_term ($eo_string $smt_builtin_str_empty))");
   addRecReduceSym("seq.unit", {kT}, "($smtx_seq_unit e1)");
   addRecReduceSym("seq.nth", {kT, kInt}, "($smtx_seq_nth e1 e2)");
@@ -478,9 +485,12 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addRecReduceSym("set.member", {kT, kT}, "($smtx_map_select e2 e1)");
   addTermReduceSym("set.subset", {kT, kT}, "(= (set.inter x1 x2) x1)");
   addRecReduceSym("@sets_deq_diff", {kT, kT}, "($smtx_map_diff e1 e2)");
-  addRecReduceSym("set.is_empty",
-                  {kT},
-                  "($vsm_term ($eo_bool ($smt_builtin_= e1 $smtx_empty_set)))");
+  std::stringstream ssIsEmptyRet;
+  ssIsEmptyRet << "($vsm_term ($eo_bool " << smtValueEq("e1", "$smtx_empty_set") << "))";
+  addRecReduceSym(
+      "set.is_empty",
+      {kT},
+      ssIsEmptyRet.str());
   addReduceSym(
       "set.insert",
       {kList, kT},
@@ -533,28 +543,27 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
 
 ModelSmtNew::~ModelSmtNew() {}
 
-void ModelSmtNew::addTypeSym(const std::string& sym,
-                             const std::vector<Kind>& args)
+void ModelSmtNew::addTypeSym(const std::string& sym, const std::vector<Kind>& args)
 {
   d_symIgnore[sym] = true;
   d_symTypes[sym] = args;
 }
 
 void ModelSmtNew::addHardCodeSym(const std::string& sym,
-                                 const std::vector<Kind>& args)
+                              const std::vector<Kind>& args)
 {
   d_symHardCode[sym] = args;
 }
 
 void ModelSmtNew::addConstFoldSym(const std::string& sym,
-                                  const std::vector<Kind>& args,
-                                  Kind ret)
+                               const std::vector<Kind>& args,
+                               Kind ret)
 {
   d_symConstFold[sym] = std::pair<std::vector<Kind>, Kind>(args, ret);
 }
 
 void ModelSmtNew::addQuantifier(const std::string& sym,
-                                const std::vector<Kind>& args)
+                             const std::vector<Kind>& args)
 {
   // always call hard-coded method, without pre-evaluation
   std::stringstream ret;
@@ -563,10 +572,10 @@ void ModelSmtNew::addQuantifier(const std::string& sym,
 }
 
 void ModelSmtNew::addLitBinSym(const std::string& sym,
-                               const std::vector<Kind>& args,
-                               const std::string& retWidth,
-                               const std::string& retNum,
-                               bool reqSameWidth)
+                            const std::vector<Kind>& args,
+                            const std::string& retWidth,
+                            const std::string& retNum,
+                            bool reqSameWidth)
 {
   std::stringstream ssr;
   ssr << "($vsm_term ($eo_binary_mod_w " << retWidth << " " << retNum << "))";
@@ -574,23 +583,23 @@ void ModelSmtNew::addLitBinSym(const std::string& sym,
   if (reqSameWidth && args.size() == 2 && args[0] == Kind::BINARY
       && args[1] == Kind::BINARY)
   {
-    ssres = smtGuard("($smt_builtin_z_= x1 x3)", ssres);
+    ssres = smtGuard("($smt_builtin_z_eq x1 x3)", ssres);
   }
   addLitSym(sym, args, Kind::ANY, ssres);
 }
 
 void ModelSmtNew::addLitSym(const std::string& sym,
-                            const std::vector<Kind>& args,
-                            Kind ret,
-                            const std::string& retTerm)
+                         const std::vector<Kind>& args,
+                         Kind ret,
+                         const std::string& retTerm)
 {
   d_symLitReduce[sym] =
       std::tuple<std::vector<Kind>, Kind, std::string>(args, ret, retTerm);
 }
 
 void ModelSmtNew::addTermReduceSym(const std::string& sym,
-                                   const std::vector<Kind>& args,
-                                   const std::string& retTerm)
+                                const std::vector<Kind>& args,
+                                const std::string& retTerm)
 {
   std::cout << "(echo \"trim-defs-cmd (depends " << sym << " " << retTerm
             << ")\")" << std::endl;
@@ -600,15 +609,15 @@ void ModelSmtNew::addTermReduceSym(const std::string& sym,
 }
 
 void ModelSmtNew::addReduceSym(const std::string& sym,
-                               const std::vector<Kind>& args,
-                               const std::string& retTerm)
+                            const std::vector<Kind>& args,
+                            const std::string& retTerm)
 {
   d_symReduce[sym] = std::pair<std::vector<Kind>, std::string>(args, retTerm);
 }
 
 void ModelSmtNew::addRecReduceSym(const std::string& sym,
-                                  const std::vector<Kind>& args,
-                                  const std::string& retTerm)
+                               const std::vector<Kind>& args,
+                               const std::string& retTerm)
 {
   std::stringstream ss;
   std::stringstream ssend;
@@ -646,16 +655,14 @@ void ModelSmtNew::finalizeDecl(const std::string& name, const Expr& e)
     for (size_t i = 0, ncases = itsc->second.size(); i < ncases; i++)
     {
       printModelEvalCallBase(
-          itsc->second[i].first, {}, itsc->second[i].second, Attr::NONE);
+          itsc->second[i].first, {}, itsc->second[i].second);
     }
   }
-  Attr attr =
-      e.isNull() ? Attr::NONE : d_state.getConstructorKind(e.getValue());
   std::map<std::string, std::vector<Kind>>::iterator ith =
       d_symHardCode.find(name);
   if (ith != d_symHardCode.end())
   {
-    printModelEvalCall(name, ith->second, attr);
+    printModelEvalCall(name, ith->second);
     return;
   }
   // maybe a constant fold symbol
@@ -663,7 +670,7 @@ void ModelSmtNew::finalizeDecl(const std::string& name, const Expr& e)
       d_symConstFold.find(name);
   if (it != d_symConstFold.end())
   {
-    printModelEvalCall(name, it->second.first, attr);
+    printModelEvalCall(name, it->second.first);
     printConstFold(name, it->second.first, it->second.second);
     return;
   }
@@ -673,7 +680,7 @@ void ModelSmtNew::finalizeDecl(const std::string& name, const Expr& e)
   if (its != d_symLitReduce.end())
   {
     std::vector<Kind>& args = std::get<0>(its->second);
-    printModelEvalCall(name, args, attr);
+    printModelEvalCall(name, args);
     printLitReduce(
         name, args, std::get<1>(its->second), std::get<2>(its->second));
     return;
@@ -682,7 +689,7 @@ void ModelSmtNew::finalizeDecl(const std::string& name, const Expr& e)
       itst = d_symReduce.find(name);
   if (itst != d_symReduce.end())
   {
-    printModelEvalCallBase(name, itst->second.first, itst->second.second, attr);
+    printModelEvalCallBase(name, itst->second.first, itst->second.second);
     return;
   }
   if (d_symIgnore.find(name) != d_symIgnore.end())
@@ -698,16 +705,15 @@ void ModelSmtNew::finalizeDecl(const std::string& name, const Expr& e)
 }
 
 void ModelSmtNew::printType(const std::string& name,
-                            const std::vector<Kind>& args,
-                            const std::string& cpat,
-                            const std::string& cret)
+                         const std::vector<Kind>& args,
+                         const std::string& cpat,
+                         const std::string& cret)
 {
 }
 
 void ModelSmtNew::printModelEvalCallBase(const std::string& name,
-                                         const std::vector<Kind>& args,
-                                         const std::string& ret,
-                                         Attr attr)
+                                      const std::vector<Kind>& args,
+                                      const std::string& ret)
 {
   d_eval << "  (($smtx_model_eval ";
   if (args.empty())
@@ -718,23 +724,7 @@ void ModelSmtNew::printModelEvalCallBase(const std::string& name,
   size_t i = 1;
   size_t nargs = args.size();
   size_t icount = 1;
-  if (attr == Attr::AMB)
-  {
-    if (nargs == 1)
-    {
-      d_eval << "(as " << name;
-    }
-    else
-    {
-      i++;
-      icount++;
-      d_eval << "(_ (as " << name << " x1)";
-    }
-  }
-  else
-  {
-    d_eval << "(" << name;
-  }
+  d_eval << "(" << name;
   for (; i <= nargs; i++)
   {
     Kind k = args[i - 1];
@@ -753,8 +743,7 @@ void ModelSmtNew::printModelEvalCallBase(const std::string& name,
 }
 
 void ModelSmtNew::printModelEvalCall(const std::string& name,
-                                     const std::vector<Kind>& args,
-                                     Attr attr)
+                                  const std::vector<Kind>& args)
 {
   std::stringstream callArgs;
   callArgs << "($smtx_model_eval_" << name;
@@ -763,12 +752,12 @@ void ModelSmtNew::printModelEvalCall(const std::string& name,
     callArgs << " ($smtx_model_eval x" << i << ")";
   }
   callArgs << ")";
-  printModelEvalCallBase(name, args, callArgs.str(), attr);
+  printModelEvalCallBase(name, args, callArgs.str());
 }
 
 void ModelSmtNew::printTermInternal(Kind k,
-                                    const std::string& term,
-                                    std::ostream& os)
+                                 const std::string& term,
+                                 std::ostream& os)
 {
   if (d_kindToEoPrefix.find(k) != d_kindToEoPrefix.end())
   {
@@ -785,8 +774,8 @@ void ModelSmtNew::printTermInternal(Kind k,
 }
 
 void ModelSmtNew::printConstFold(const std::string& name,
-                                 const std::vector<Kind>& args,
-                                 Kind kret)
+                              const std::vector<Kind>& args,
+                              Kind kret)
 {
   bool isOverloadArith = (args.size() > 0 && args[0] == Kind::PARAM);
   std::vector<Kind> argSchemas;
@@ -850,9 +839,9 @@ void ModelSmtNew::printConstFold(const std::string& name,
 }
 
 void ModelSmtNew::printAuxProgram(const std::string& name,
-                                  const std::vector<Kind>& args,
-                                  std::stringstream& progCases,
-                                  std::stringstream& progParams)
+                               const std::vector<Kind>& args,
+                               std::stringstream& progCases,
+                               std::stringstream& progParams)
 {
   std::stringstream progSig;
   progSig << "(";
@@ -879,11 +868,11 @@ void ModelSmtNew::printAuxProgram(const std::string& name,
 }
 
 void ModelSmtNew::printAuxProgramCase(const std::string& name,
-                                      const std::vector<Kind>& args,
-                                      const std::string& ret,
-                                      size_t& paramCount,
-                                      std::ostream& progCases,
-                                      std::ostream& progParams)
+                                   const std::vector<Kind>& args,
+                                   const std::string& ret,
+                                   size_t& paramCount,
+                                   std::ostream& progCases,
+                                   std::ostream& progParams)
 {
   progCases << "  ((" << name;
   for (size_t i = 1, nargs = args.size(); i <= nargs; i++)
@@ -920,9 +909,9 @@ void ModelSmtNew::printAuxProgramCase(const std::string& name,
 }
 
 void ModelSmtNew::printLitReduce(const std::string& name,
-                                 const std::vector<Kind>& args,
-                                 Kind ret,
-                                 const std::string& reduce)
+                              const std::vector<Kind>& args,
+                              Kind ret,
+                              const std::string& reduce)
 {
   std::stringstream progName;
   std::stringstream progCases;
@@ -976,5 +965,5 @@ void ModelSmtNew::finalize()
   oute << finalSmt;
 }
 
-}  // namespace mnew
+}
 }  // namespace ethos

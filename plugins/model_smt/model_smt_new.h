@@ -119,15 +119,13 @@ class ModelSmtNew : public StdPlugin
    */
   void printModelEvalCallBase(const std::string& name,
                               const std::vector<Kind>& args,
-                              const std::string& ret,
-                              Attr attr);
+                              const std::string& ret);
   /**
    * Same as printModelEvalCallBase, but where <retTerm> is
    * ($smtx_model_eval_<name> ($smtx_model_eval x1) ... ($smtx_model_eval xn)).
    */
   void printModelEvalCall(const std::string& name,
-                          const std::vector<Kind>& args,
-                          Attr attr);
+                          const std::vector<Kind>& args);
   /** Print necessary information for a symbol added via addConstFoldSym */
   void printConstFold(const std::string& name,
                       const std::vector<Kind>& args,
@@ -202,7 +200,7 @@ class ModelSmtNew : public StdPlugin
   std::map<std::string, bool> d_symIgnore;
 };
 
-}  // namespace mnew
+}
 }  // namespace ethos
 
 #endif

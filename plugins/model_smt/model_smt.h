@@ -159,9 +159,6 @@ class ModelSmt : public StdPlugin
   std::map<Kind, std::string> d_kindToType;
   std::map<std::string, std::string> d_overloadRevert;
   Expr d_null;
-  std::stringstream d_typeIsValue;
-  std::stringstream d_constTypeof;
-  std::stringstream d_isInput;
   /** Auxiliary programs for SMT-LIB model evaluation */
   std::stringstream d_modelEvalProgs;
   /** SMT-LIB model evaluation cases */
