@@ -200,7 +200,7 @@ class ModelSmtNew : public StdPlugin
   std::map<std::string, bool> d_symIgnore;
 };
 
-}
+}  // namespace mnew
 }  // namespace ethos
 
 #endif

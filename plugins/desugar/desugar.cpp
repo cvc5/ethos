@@ -230,7 +230,7 @@ void Desugar::finalizeDeclaration(const Expr& e, std::ostream& os)
       for (size_t i = 0; i < novars; i++)
       {
         Expr v;
-        if (ct[i].getKind()==Kind::QUOTE_TYPE)
+        if (ct[i].getKind() == Kind::QUOTE_TYPE)
         {
           v = ct[i][0];
           Assert(v.getKind() == Kind::PARAM)

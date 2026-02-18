@@ -485,11 +485,9 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addTermReduceSym("set.subset", {kT, kT}, "(= (set.inter x1 x2) x1)");
   addRecReduceSym("@sets_deq_diff", {kT, kT}, "($smtx_map_diff e1 e2)");
   std::stringstream ssIsEmptyRet;
-  ssIsEmptyRet << "($vsm_term ($eo_bool " << smtValueEq("e1", "$smtx_empty_set") << "))";
-  addRecReduceSym(
-      "set.is_empty",
-      {kT},
-      ssIsEmptyRet.str());
+  ssIsEmptyRet << "($vsm_term ($eo_bool " << smtValueEq("e1", "$smtx_empty_set")
+               << "))";
+  addRecReduceSym("set.is_empty", {kT}, ssIsEmptyRet.str());
   addReduceSym(
       "set.insert",
       {kList, kT},
@@ -653,8 +651,7 @@ void ModelSmt::finalizeDecl(const std::string& name, const Expr& e)
   {
     for (size_t i = 0, ncases = itsc->second.size(); i < ncases; i++)
     {
-      printModelEvalCallBase(
-          itsc->second[i].first, {}, itsc->second[i].second);
+      printModelEvalCallBase(itsc->second[i].first, {}, itsc->second[i].second);
     }
   }
   std::map<std::string, std::vector<Kind>>::iterator ith =
