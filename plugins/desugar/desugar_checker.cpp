@@ -67,23 +67,24 @@ void DesugarChecker::finalizeRule(const Expr& v)
   d_ruleInvokes << "  (($eo_invoke_step " << ssr.str() << " proven ";
   // if it is not an assume rule, we must not have provided an assumption
   d_ruleInvokes << (isAssume ? "assump " : "$eo_NullBool ");
-  if (isAssume)
+  std::stringstream invokeArgs;
+  // subtract an ordinary argument if conclusion explicit
+  if (isConcExplicit)
   {
-    Assert(nargs > 0);
+    Assert (nargs>0);
     nargs--;
   }
-  std::stringstream invokeArgs;
   // first, pass the ordinary arguments
   if (nargs > 0)
   {
     Assert(nargs <= 8);
-    d_ruleInvokes << "($eo_alist_cons ";
+    d_ruleInvokes << "($eo_alist_cons";
     for (size_t i = 0; i < nargs; i++)
     {
       d_ruleInvokes << " a" << (i + 1);
       invokeArgs << " a" << (i + 1);
     }
-    d_ruleInvokes << ")";
+    d_ruleInvokes << ") ";
   }
   else
   {
@@ -91,19 +92,23 @@ void DesugarChecker::finalizeRule(const Expr& v)
   }
   if (isConcExplicit)
   {
+    invokeArgs << " proven";
     ret << "(eo::requires (eo::eq proven $eo_NullBool) false ";
     retEnd << ")";
   }
   // then, pass the assumption
   if (isAssume)
   {
-    invokeArgs << " assump";
+    Assert (npremises>0);
+    npremises--;
+    invokeArgs << " ($eo_pf assump)";
     ret << "(eo::requires (eo::eq assump $eo_NullBool) false ";
     retEnd << ")";
   }
   // then the premises
   if (!plCons.isNull())
   {
+    // combine the premises if :premise-list
     Assert(npremises == 1);
     d_ruleInvokes << "premises ";
     invokeArgs << " ($eo_pf ($eo_mk_premise_list " << plCons << " premises S))";

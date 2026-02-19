@@ -76,7 +76,7 @@
 ; push a formula F proven by a step to the state
 (define $eo_push_proven ((F Bool) (proven Bool) (s $eo_State :list))
   (eo::define ((newState ($s_cons ($so_proven F) s)))
-    (eo::ite (eo::eq proven $eo_NullBool)
+    (eo::ite (eo::eq proven $eo_NullBool) ; models checking proven if provided
       newState
       (eo::requires F proven newState))))
 
@@ -121,14 +121,14 @@
 
 $EO_RULE_DEFS$
 
-; proven, assumption, premise list, arg list
+; rule, provided proven, assumption, premise list, arg list
 (program $eo_invoke_step
   ((proven Bool) (assump Bool) (premises $eo_PList) (S $eo_State)
   (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type) (T6 Type) (T7 Type) (T8 Type)
   (a1 T1) (a2 T2) (a3 T3) (a4 T4) (a5 T5) (a6 T6) (a7 T7) (a8 T8)
   (n1 $eo_Numeral) (n2 $eo_Numeral) (n3 $eo_Numeral) (n4 $eo_Numeral)
   (n5 $eo_Numeral) (n6 $eo_Numeral) (n7 $eo_Numeral) (n8 $eo_Numeral))
-  :signature ($eo_Rule Bool Bool $eo_PList $eo_AList $eo_State) $eo_State
+  :signature ($eo_Rule Bool Bool $eo_AList $eo_PList $eo_State) $eo_State
   (
 $EO_RULE_INVOKE$
   )
@@ -142,10 +142,10 @@ $EO_RULE_INVOKE$
   (($eo_invoke_cmd ($cmd_assume F) S)           ($eo_push_assume F S))
   (($eo_invoke_cmd ($cmd_assume-push F) S)      ($eo_push_assume F S))
   (($eo_invoke_cmd ($cmd_step r proven premises args) S)    
-     ($eo_push_proven ($eo_invoke_step r proven $eo_NullBool premises args S) proven S))
+     ($eo_push_proven ($eo_invoke_step r proven $eo_NullBool args premises S) proven S))
   (($eo_invoke_cmd ($cmd_step-pop r proven premises args) S)
      (eo::define ((ps ($eo_pop_assume S)))
-     ($eo_push_proven ($eo_invoke_step r proven ($pair_first ps) premises args S) proven ($pair_second ps))))
+     ($eo_push_proven ($eo_invoke_step r proven ($pair_first ps) args premises S) proven ($pair_second ps))))
   )
 )
 
