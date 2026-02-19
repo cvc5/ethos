@@ -107,6 +107,20 @@
   )
 )
 
+; SMT-LIB terms and types
+(declare-datatypes ((sm.Term 0) (tsm.Type 0))
+  (
+  (
+  (sm.None)
+
+  )
+  (
+  (tsm.None)
+
+  )
+  )
+)
+
 (define-fun teq ((x eo.Term) (y eo.Term)) Bool (= x y))
 (define-fun veq ((x vsm.Value) (y vsm.Value)) Bool (= x y))
 

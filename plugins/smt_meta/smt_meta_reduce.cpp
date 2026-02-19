@@ -1114,6 +1114,15 @@ void SmtMetaReduce::finalize()
 
   replace(finalSm, "$SM_DEFS$", d_defs.str());
   replace(finalSm, "$SMT_VC$", d_smtVc.str());
+  // TODO: this is only necessary for the old version 
+  if (d_embedTypeDt.str().empty())
+  {
+    d_embedTypeDt << "  (tsm.None)" << std::endl;
+  }
+  if (d_embedTermDt.str().empty())
+  {
+    d_embedTermDt << "  (sm.None)" << std::endl;
+  }
   replace(finalSm, "$SM_TYPE_DECL$", d_embedTypeDt.str());
   replace(finalSm, "$SM_TERM_DECL$", d_embedTermDt.str());
   replace(finalSm, "$SM_VALUE_DECL$", d_embedValueDt.str());
@@ -1263,6 +1272,10 @@ MetaKind SmtMetaReduce::getTypeMetaKind(const Expr& typ,
       return MetaKind::SMT_BUILTIN;
     }
   }
+  if (k==Kind::FUNCTION_TYPE)
+  {
+    return getTypeMetaKind(typ[typ.getNumChildren()-1], elseKind);
+  }
   std::string sname = getName(typ);
   std::map<std::string, MetaKind>::const_iterator it =
       d_typeToMetaKind.find(sname);
@@ -1384,13 +1397,6 @@ MetaKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
           // embedding the branches have no context.
           // TODO: maybe they should have SMT context???
           tk = i == 2 ? MetaKind::SMT_BUILTIN : MetaKind::NONE;
-        }
-        else if (esname.compare(0, 6, "(_ is ") == 0)
-        {
-          size_t firstDot = esname.find('.');
-          Assert(firstDot != std::string::npos && firstDot > 6);
-          std::string prefix = esname.substr(6, firstDot - 6);
-          tk = prefixToMetaKind(prefix);
         }
         else if (esname.compare(0, 3, "$eo") == 0)
         {
@@ -1577,7 +1583,7 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
     if (sname.compare(0, 5, "$smd_") == 0)
     {
       MetaKind tknew = getTypeMetaKind(htype);
-      Trace("smt-meta") << "...use datatype embedding name, got "
+      Trace("smt-meta") << "...use datatype embedding name for " << htype << ", got "
                         << metaKindToString(tknew) << std::endl;
       Assert(tknew != MetaKind::NONE);
       return tknew;

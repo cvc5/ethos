@@ -98,7 +98,7 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   // Note that we model *SMT-LIB* not *CPC* here.
   // builtin
   // immediately include Bool, as it will not be defined
-  printDecl("Bool", {}, Kind::TYPE);
+ // printDecl("Bool", {}, Kind::TYPE);
   addHardCodeSym("=", {kT, kT});
   addHardCodeSym("ite", {kBool, kT, kT});
   addTermReduceSym("distinct", {kT, kT}, "(not (= x1 x2))");
@@ -734,17 +734,19 @@ void ModelSmtNew::printDecl(const std::string& name,
                             Kind ret)
 {
   std::ostream* out;
-  std::stringstream cname;
+  std::string prefix;
   if (ret==Kind::TYPE)
   {
     out = &d_smtTypes;
-    cname << "$smd_tsm." << name;
+    prefix = "tsm";
   }
   else
   {
     out = &d_smtTerms;
-    cname << "$smd_sm." << name;
+    prefix = "sm";
   }
+  std::stringstream cname;
+  cname << "$smd_" << prefix << "." << name;
   (*out) << "(declare-parameterized-const " << cname.str() << " (";
   std::stringstream macroVarList;
   std::string sret = cname.str();
@@ -775,8 +777,8 @@ void ModelSmtNew::printDecl(const std::string& name,
     ssnext << "($sm_apply " << sret << " x" << (i+1) << ")";
     sret = ssnext.str();
   }
-  (*out) << ") $smt_Type)" << std::endl;
-  (*out) << "(define $sm_" << name << " (" << macroVarList.str() << ") ";
+  (*out) << ") " << (ret==Kind::TYPE ? "$smt_Type" : "$smt_Term") << ")" << std::endl;
+  (*out) << "(define $" << prefix << "_" << name << " (" << macroVarList.str() << ") ";
   (*out) << sret << ")" << std::endl;
   // if a term declaration, write the mapping in eo_to_smt
   if (ret==Kind::TYPE)
@@ -827,7 +829,9 @@ void ModelSmtNew::printModelEvalCallBase(const std::string& name,
                                          const std::vector<Kind>& args,
                                          const std::string& ret)
 {
-  printEvalCallBase(d_eval, "$smtx_model_eval", name, args, ret);
+  std::stringstream ss;
+  ss << "$sm_" << name;
+  printEvalCallBase(d_eval, "$smtx_model_eval", ss.str(), args, ret);
 }
 
 

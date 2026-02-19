@@ -7,10 +7,7 @@
 
 ;;;;;; SMT terms
 
-(include "smt_embed.eo")
-
-; placeholder? TODO: necessary???
-(declare-const $eo_Term Type)
+; assumes definition of $eo_Term?
 
 ; An SMT term.
 (declare-const $smt_Term Type)
@@ -69,6 +66,7 @@
 (define $sm_lambda ((v $smt_Term) (t $smt_Term))
   ($smd_sm.lambda v t))
 
+; all other ordinary term definitions
 $SMT_TERM_CONSTRUCTORS$
 
 ;;;;;; SMT type constructors
@@ -77,6 +75,7 @@ $SMT_TERM_CONSTRUCTORS$
 (declare-const $smd_tsm.Bool $smt_Type)
 (define $tsm_Bool () $smd_tsm.Bool)
 
+; all other ordinary type definitions
 $SMT_TYPE_CONSTRUCTORS$
 
 ;;;;;; SMT values
@@ -92,7 +91,6 @@ $SMT_TYPE_CONSTRUCTORS$
 
 ; The type used to define values for sequences in SMT-LIB.
 (declare-const $smt_Seq Type)
-
 
 ;;; SMT value datatype constructors
 
@@ -242,7 +240,7 @@ $SMT_TYPE_CONSTRUCTORS$
   (($smtx_msm_find_diff ($msm_cons i e m1) m2)
     ; Lookup the current index, if it different, return this index.
     ($smt_builtin_ite
-      ($smt_builtin_= ($smtx_msm_lookup m2 i) e)
+      ($smt_builtin_veq ($smtx_msm_lookup m2 i) e)
       ($smtx_msm_find_diff m1 m2)
       i))
   )
@@ -257,7 +255,7 @@ $SMT_TYPE_CONSTRUCTORS$
 (define $smtx_mss_mk_insert ((e $smt_Value) (m $smt_Map)) ($smtx_msm_update m e $vsm_true))
 (define $smtx_mss_insert ((e $smt_Value) (m $smt_Map)) ($msm_cons e $vsm_true m))
 (define $smtx_mss_member ((e $smt_Value) (m $smt_Map))
-  ($smt_builtin_= ($smtx_msm_lookup m e) $vsm_true))
+  ($smt_builtin_veq ($smtx_msm_lookup m e) $vsm_true))
 
 ; Helper for computing binary set operators.
 (program $smtx_mss_op_internal
@@ -268,7 +266,7 @@ $SMT_TYPE_CONSTRUCTORS$
   (($smtx_mss_op_internal isInter ($smtx_mss_insert e m1) m2 acc)
     ($smtx_mss_op_internal isInter m1 m2
       ($smt_builtin_ite
-        ($smt_builtin_= ($smtx_mss_member e m2) isInter)
+        ($smt_builtin_iff ($smtx_mss_member e m2) isInter)
         ($smtx_mss_mk_insert e acc)
         acc)))
   )
@@ -398,25 +396,25 @@ $SMT_TYPE_CONSTRUCTORS$
   :signature ($smt_Value $smt_Value) $smt_Value
   (
   (($smtx_model_eval_= ($vsm_bool b1) ($vsm_bool b2))
-    ($vsm_bool ($smt_builtin_= ($vsm_bool b1) ($vsm_bool b2))))
+    ($vsm_bool ($smt_builtin_iff b1 b2)))
   (($smtx_model_eval_= ($vsm_bool b1) t2) $vsm_not_value)
   (($smtx_model_eval_= t1 ($vsm_bool b2)) $vsm_not_value)
   (($smtx_model_eval_= ($vsm_numeral n1) ($vsm_numeral n2))
-    ($vsm_bool ($smt_builtin_= ($vsm_numeral n1) ($vsm_numeral n2))))
+    ($vsm_bool ($smt_builtin_z_eq n1 n2)))
   (($smtx_model_eval_= ($vsm_numeral n1) t2) $vsm_not_value)
   (($smtx_model_eval_= t1 ($vsm_numeral n2)) $vsm_not_value)
   (($smtx_model_eval_= ($vsm_rational r1) ($vsm_rational r2))
-    ($vsm_bool ($smt_builtin_= ($vsm_rational r1) ($vsm_rational r2))))
+    ($vsm_bool ($smt_builtin_q_eq r1 r2)))
   (($smtx_model_eval_= ($vsm_rational r1) t2) $vsm_not_value)
   (($smtx_model_eval_= t1 ($vsm_rational r2)) $vsm_not_value)
   (($smtx_model_eval_= ($vsm_string s1) ($vsm_string s2))
-    ($vsm_bool ($smt_builtin_= ($vsm_string s1) ($vsm_string s2))))
+    ($vsm_bool ($smt_builtin_veq ($vsm_string s1) ($vsm_string s2))))
   (($smtx_model_eval_= ($vsm_string s1) t2) $vsm_not_value)
   (($smtx_model_eval_= t1 ($vsm_string s2)) $vsm_not_value)
   (($smtx_model_eval_= ($vsm_binary w1 n1) ($vsm_binary w2 n2))
     ; note that we know that w1, w2 are legal by invariant on model eval
     ($smt_builtin_ite ($smt_builtin_z_eq w1 w2)
-      ($vsm_bool ($smt_builtin_= ($vsm_binary w1 n1) ($vsm_binary w2 n2)))
+      ($vsm_bool ($smt_builtin_veq ($vsm_binary w1 n1) ($vsm_binary w2 n2)))
       $vsm_not_value))
   (($smtx_model_eval_= ($vsm_binary w1 n1) t2) $vsm_not_value)
   (($smtx_model_eval_= t1 ($vsm_binary w2 n2)) $vsm_not_value)
@@ -424,7 +422,7 @@ $SMT_TYPE_CONSTRUCTORS$
   (($smtx_model_eval_= $vsm_not_value t2) $vsm_not_value)
   (($smtx_model_eval_= t1 $vsm_not_value) $vsm_not_value)
   ; use datatype equality over $smt_Value, which depends on t1 and t2 being proper values.
-  (($smtx_model_eval_= t1 t2)             ($vsm_bool ($smt_builtin_= t1 t2)))
+  (($smtx_model_eval_= t1 t2)             ($vsm_bool ($smt_builtin_veq t1 t2)))
   )
 )
 
@@ -562,7 +560,7 @@ $SMT_EVAL_CASES$
 ;;;;;;;;;;;;;;;;;;;;;;
 
 (program $eo_to_smt_type ()
-  :signature ($eo_Term) $smt_Type
+  :signature (Type) $smt_Type
   (
   (($eo_to_smt_type Bool) $tsm_Bool)
 $EO_TO_SMT_TYPE_CASES$
@@ -571,16 +569,17 @@ $EO_TO_SMT_TYPE_CASES$
 
 (program $eo_to_smt 
   ((b $smt_builtin_Bool) (n $smt_builtin_Int) (r $smt_builtin_Rat)
-   (s $smt_builtin_String) (w $smt_builtin_Int) (f $eo_Term) (y $eo_Term)
-   (x1 $eo_Term) (x2 $eo_Term) (x3 $eo_Term) (x4 $eo_Term) (x5 $eo_Term))
-  :signature ($eo_Term) $smt_Term
+   (s $smt_builtin_String) (w $smt_builtin_Int)
+   (T Type) (U Type) (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type)
+   (f (-> U T)) (y U) (x1 T1) (x2 T2) (x3 T3) (x4 T4) (x5 T5))
+  :signature (T) $smt_Term
   (
   (($eo_to_smt ($eo_bool b))      ($sm_bool b))
   (($eo_to_smt ($eo_numeral n))   ($sm_numeral n))
   (($eo_to_smt ($eo_rational r))  ($sm_rational r))
-  (($eo_to_smt ($eo_string r))    ($sm_string s))
+  (($eo_to_smt ($eo_string s))    ($sm_string s))
   (($eo_to_smt ($eo_binary w n))  ($sm_binary w n))
-  (($eo_Var s x1)                 ($sm_Var s ($eo_to_smt_type x1))) 
+  (($eo_to_smt ($eo_Var s T))     ($sm_Var s ($eo_to_smt_type T)))
 $EO_TO_SMT_CASES$
   (($eo_to_smt (f y))             ($sm_apply ($eo_to_smt f) ($eo_to_smt y)))
   )
