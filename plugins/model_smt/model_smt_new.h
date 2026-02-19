@@ -224,6 +224,11 @@ class ModelSmtNew : public StdPlugin
   std::map<std::string, std::vector<Kind>> d_symHardCode;
   /** Symbols that we need no definition for */
   std::map<std::string, bool> d_symIgnore;
+  /** SMT-LIB syntax to embedding helper */
+  static std::string smtToSmtEmbed(const std::string& str);
+  static std::string smtBinaryBinReturn(const std::string& term);
+  static std::string smtEval(const std::string& s);
+  static std::string eoDefine(const std::string& x, const std::string& t, const std::string& ret);
 };
 
 }  // namespace mnew

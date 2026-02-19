@@ -7,8 +7,6 @@
 
 ;;;;;; SMT terms
 
-; assumes definition of $eo_Term?
-
 ; An SMT term.
 (declare-const $smt_Term Type)
 
@@ -25,10 +23,15 @@
 (declare-parameterized-const $smd_sm.Numeral
   ((n $smt_builtin_Int :opaque)) $smt_Term)
 (define $sm_numeral ((n $smt_builtin_Int)) ($smd_sm.Numeral n))
+; helpers
+(define $sm_z_zero () ($sm_numeral $smt_builtin_z_zero))
+(define $sm_z_one () ($sm_numeral $smt_builtin_z_one))
 
 (declare-parameterized-const $smd_sm.Rational
   ((r $smt_builtin_Rat :opaque)) $smt_Term)
 (define $sm_rational ((r $smt_builtin_Rat)) ($smd_sm.Rational r))
+; helpers
+(define $sm_q_zero () ($sm_rational $smt_builtin_q_zero))
 
 (declare-parameterized-const $smd_sm.String
   ((s $smt_builtin_String :opaque)) $smt_Term)
@@ -38,6 +41,9 @@
   ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Term)
 (define $sm_binary ((w $smt_builtin_Int) (v $smt_builtin_Int))
   ($smd_sm.Binary w v))
+; helpers
+(define $sm_binary_bit_false () ($sm_binary $smt_builtin_z_one $smt_builtin_z_zero))
+(define $sm_binary_bit_true () ($sm_binary $smt_builtin_z_one $smt_builtin_z_one))
 
 ; An application of a Eunoia term
 (declare-parameterized-const $smd_sm.Apply
@@ -115,7 +121,10 @@ $SMT_TYPE_CONSTRUCTORS$
   ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Value)
 (define $vsm_binary ((w $smt_builtin_Int) (v $smt_builtin_Int))
   ($smd_vsm.Binary w v))
-
+; helpers
+(define $vsm_binary_mod_w ((w $smt_builtin_Int) (v $smt_builtin_Int))
+  ($smd_vsm.Binary w ($smt_builtin_mod v ($smtx_pow2 w))))
+  
 ; A value denoting a map.
 (declare-parameterized-const $smd_vsm.Map ((m $smt_Map :opaque)) $smt_Value)
 (define $vsm_map ((m $smt_Map)) ($smd_vsm.Map m))

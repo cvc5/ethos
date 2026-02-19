@@ -55,12 +55,55 @@ std::string smtGuard(const std::string& guard, const std::string& val)
  * Makes s and t be in the context of the return term, used to specify the
  * return term of binary operations on bitvectors.
  */
-std::string smtBinaryBinReturn(const std::string& term)
+std::string ModelSmtNew::smtBinaryBinReturn(const std::string& term)
 {
   std::stringstream ss;
-  ss << "(eo::define ((s ($eo_mk_binary x1 x2))) ";
-  ss << "(eo::define ((t ($eo_mk_binary x3 x4))) ";
+  ss << "(eo::define ((s ($sm_binary x1 x2))) ";
+  ss << "(eo::define ((t ($sm_binary x3 x4))) ";
   ss << term << "))";
+  return ss.str();
+}
+
+std::string ModelSmtNew::smtToSmtEmbed(const std::string& s)
+{
+  std::string out;
+  out.reserve(s.size()); // baseline; may grow
+  for (size_t i = 0; i < s.size(); ++i)
+  {
+      if (s[i] == '(')
+      {
+          // don't replace if next char is '(' or '$'
+          if (i + 1 < s.size() && (s[i + 1] == '(' || s[i + 1] == '$'))
+          {
+              out.push_back('(');
+          }
+          else
+          {
+              out += "($sm_";
+          }
+      }
+      else
+      {
+          out.push_back(s[i]);
+      }
+  }
+  // literal values used in reduction specifications
+  out = replace_all(out, " 0/1", " $sm_q_zero");
+  out = replace_all(out, " 0", " $sm_z_zero");
+  out = replace_all(out, " 1", " $sm_z_one");
+  return out;
+}
+
+std::string ModelSmtNew::smtEval(const std::string& s)
+{
+  std::stringstream ss;
+  ss << "($smtx_model_eval " << smtToSmtEmbed(s) << ")";
+  return ss.str();
+}
+std::string eoDefine(const std::string& x, const std::string& t, const std::string& ret)
+{
+  std::stringstream ss;
+  ss << "(eo::define ((" << x << " " << t << ")) " << ret << ")";
   return ss.str();
 }
 
@@ -174,24 +217,24 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addConstFoldSym("re.diff", {kRegLan, kRegLan}, kRegLan);
   addConstFoldSym("re.range", {kString, kString}, kRegLan);
   std::stringstream ssReRepeatRet;
-  ssReRepeatRet << "($smtx_model_eval (ite (= x1 0)";
+  ssReRepeatRet << "(ite (= x1 0)";
   ssReRepeatRet << " (str.to_re \"\")";
-  ssReRepeatRet << " (re.++ (re.^ (- x1 1) x2) x2)))";
+  ssReRepeatRet << " (re.++ (re.^ (- x1 1) x2) x2))";
   addReduceSym("re.^",
                {kInt, kRegLan},
-               smtGuard(smtValueEq("($smtx_model_eval (>= x1 0))", "$vsm_true"),
-                        ssReRepeatRet.str()));
+               smtGuard(smtValueEq(smtEval("(>= x1 0)"), "$vsm_true"),
+                        smtEval(ssReRepeatRet.str())));
   std::stringstream ssReLoopRet;
-  ssReLoopRet << "($smtx_model_eval (ite (> x1 x2)";
+  ssReLoopRet << "(ite (> x1 x2)";
   ssReLoopRet << " re.none (ite (= x1 x2)";
   ssReLoopRet << " (re.^ x1 x3)";
-  ssReLoopRet << " (re.union (re.loop x1 (- x2 1) (re.^ x2 x3))))))";
+  ssReLoopRet << " (re.union (re.loop x1 (- x2 1) (re.^ x2 x3)))))";
   addReduceSym(
       "re.loop",
       {kInt, kInt, kRegLan},
       smtGuard(smtValueEq("($smtx_model_eval (and (>= x1 0) (>= x2 0)))",
                           "$vsm_true"),
-               ssReLoopRet.str()));
+               smtEval(ssReLoopRet.str())));
   // RE operators
   addConstFoldSym("str.in_re", {kString, kRegLan}, kBool);
   addConstFoldSym("str.indexof_re", {kString, kRegLan, kInt}, kInt);
@@ -240,9 +283,9 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
                                  smtApp(">=", "x2", "$smt_builtin_z_zero"),
                                  smtApp(">", "x3", "x1")));
   std::stringstream ssExtractRet;
-  ssExtractRet << "($vsm_term ($eo_binary_mod_w ";
+  ssExtractRet << "($vsm_binary_mod_w ";
   ssExtractRet << smtApp("-", smtApp("+", "x1", "$smt_builtin_z_one"), "x2");
-  ssExtractRet << " ($smtx_binary_extract x3 x4 x1 x2)))";
+  ssExtractRet << " ($smtx_binary_extract x3 x4 x1 x2))";
   addLitSym("extract",
             {kInt, kInt, kBitVec},
             kT,
@@ -261,10 +304,10 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   // the following operators require a mix of literal evaluation and term
   // reduction
   std::stringstream ssSgtRet;
-  ssSgtRet << "(eo::define ((msb_s ($eo_bool ($smtx_msb x1 x2)))) ";
-  ssSgtRet << "(eo::define ((msb_t ($eo_bool ($smtx_msb x3 x4)))) ";
-  ssSgtRet << "($smtx_model_eval (or (and (not msb_s) msb_t)";
-  ssSgtRet << " (and (= msb_s msb_t) (bvugt s t))))))";
+  ssSgtRet << "(eo::define ((msb_s ($sm_bool ($smtx_msb x1 x2)))) ";
+  ssSgtRet << "(eo::define ((msb_t ($sm_bool ($smtx_msb x3 x4)))) ";
+  ssSgtRet << smtEval("(or (and (not msb_s) msb_t) (and (= msb_s msb_t) (bvugt s t)))");
+  ssSgtRet << "))";
   addLitSym(
       "bvsgt", {kBitVec, kBitVec}, kT, smtBinaryBinReturn(ssSgtRet.str()));
   addLitSym("zero_extend",
@@ -273,10 +316,10 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
             smtGuard(smtApp(">=", "x1", "$smt_builtin_z_zero"),
                      "($vsm_binary ($smt_builtin_z_add x1 x2) x3)"));
   std::stringstream ssSExtRet;
-  ssSExtRet << "(eo::define ((wm1 (- ($eo_numeral x2) 1))) ";
-  ssSExtRet << "(eo::define ((t ($eo_mk_binary x2 x3))) ";
-  ssSExtRet << "($smtx_model_eval (concat (repeat ($eo_numeral x1) (extract "
-               "wm1 wm1 t)) t))))";
+  ssSExtRet << "(eo::define ((wm1 " << smtToSmtEmbed("(- ($sm_numeral x2) 1)") << ")) ";
+  ssSExtRet << "(eo::define ((t ($sm_binary x2 x3))) ";
+  ssSExtRet << smtEval("(concat (repeat ($sm_numeral x1) (extract wm1 wm1 t)) t)");
+  ssSExtRet << "))";
   addLitSym("sign_extend",
             {kInt, kBitVec},
             kT,
@@ -285,20 +328,16 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
                             "($vsm_binary x2 x3)",
                             ssSExtRet.str())));
   std::stringstream ssAshrRet;
-  ssAshrRet << "(eo::define ((wm1 (- ($eo_numeral x1) 1))) ";
-  ssAshrRet << "($smtx_model_eval (ite";
-  ssAshrRet << " (= (extract wm1 wm1 s) #b0)";
-  ssAshrRet << " (bvlshr s t)";
-  ssAshrRet << " (bvnot (bvlshr (bvnot s) t)))))";
+  ssAshrRet << "(eo::define ((wm1 " << smtToSmtEmbed("(- ($sm_numeral x1) 1)") << ")) ";
+  ssAshrRet << smtEval("(ite (= (extract wm1 wm1 s) $sm_binary_bit_true) (bvlshr s t) (bvnot (bvlshr (bvnot s) t)))");
+  ssAshrRet << ")";
   addLitSym(
       "bvashr", {kBitVec, kBitVec}, kT, smtBinaryBinReturn(ssAshrRet.str()));
   std::stringstream ssRLeftRet;
-  ssRLeftRet << "(eo::define ((wm1 (- ($eo_numeral x2) 1))) ";
-  ssRLeftRet << "(eo::define ((t ($eo_mk_binary x2 x3))) ";
-  ssRLeftRet << "($smtx_model_eval";
-  ssRLeftRet << " (rotate_left (- ($eo_numeral x1) 1) (concat";
-  ssRLeftRet << " (extract (- wm1 1) 0 t)";
-  ssRLeftRet << " (extract wm1 wm1 t))))))";
+  ssRLeftRet << "(eo::define ((wm1 " << smtToSmtEmbed("(- ($sm_numeral x2) 1)") << ")) ";
+  ssRLeftRet << "(eo::define ((t ($sm_binary x2 x3))) ";
+  ssRLeftRet << smtEval("(rotate_left (- ($sm_numeral x1) 1) (concat (extract (- wm1 1) 0 t) (extract wm1 wm1 t)))");
+  ssRLeftRet << "))";
   addLitSym("rotate_left",
             {kInt, kBitVec},
             kT,
@@ -307,11 +346,9 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
                             "($vsm_binary x2 x3)",
                             ssRLeftRet.str())));
   std::stringstream ssRRightRet;
-  ssRRightRet << "(eo::define ((wm1 (- ($eo_numeral x2) 1))) ";
-  ssRRightRet << "($smtx_model_eval";
-  ssRRightRet << " (rotate_right (- ($eo_numeral x1) 1) (concat";
-  ssRRightRet << " (extract 0 0 ($eo_mk_binary x2 x3))";
-  ssRRightRet << " (extract wm1 1 ($eo_mk_binary x2 x3))))))";
+  ssRRightRet << "(eo::define ((wm1 (- ($sm_numeral x2) 1))) ";
+  ssRRightRet << smtEval("(rotate_right (- ($sm_numeral x1) 1) (concat (extract 0 0 ($sm_binary x2 x3)) (extract wm1 1 ($sm_binary x2 x3))))");
+  ssRRightRet << ")";
   addLitSym("rotate_right",
             {kInt, kBitVec},
             kT,
@@ -320,16 +357,16 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
                             "($vsm_binary x2 x3)",
                             ssRRightRet.str())));
   std::stringstream ssRepeatRet;
-  ssRepeatRet << "($smtx_model_eval (concat";
-  ssRepeatRet << " (repeat (- ($eo_numeral x1) 1) ($eo_mk_binary x2 x3))";
-  ssRepeatRet << " ($eo_mk_binary x2 x3)))";
+  ssRepeatRet << "(concat";
+  ssRepeatRet << " (repeat (- ($sm_numeral x1) 1) ($sm_binary x2 x3))";
+  ssRepeatRet << " ($sm_binary x2 x3))";
   addLitSym("repeat",
             {kInt, kBitVec},
             kT,
             smtGuard(smtApp(">=", "x1", "$smt_builtin_z_one"),
                      smtIte(smtZEq("x1", "$smt_builtin_z_one"),
                             "($vsm_binary x2 x3)",
-                            ssRepeatRet.str())));
+                            smtEval(ssRepeatRet.str()))));
   // the following are program cases in the main method of the form
   // (($smtx_model_eval (f x1 x2)) ($smtx_model_eval <return>))
   addTermReduceSym("bvsub", {kBitVec, kBitVec}, "(bvadd x1 (bvneg x2))");
@@ -346,39 +383,42 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   for (size_t i = 0; i < 3; i++)
   {
     std::stringstream ssRet;
-    ssRet << "(eo::define ((msb_s ($eo_bool ($smtx_msb x1 x2)))) ";
-    ssRet << "(eo::define ((msb_t ($eo_bool ($smtx_msb x3 x4)))) ";
+    std::stringstream ssRetEnd;
+    ssRet << "(eo::define ((msb_s ($sm_bool ($smtx_msb x1 x2)))) ";
+    ssRet << "(eo::define ((msb_t ($sm_bool ($smtx_msb x3 x4)))) ";
+    ssRetEnd << "))";
     std::string op;
+    std::stringstream ssTermRet;
     if (i == 0)
     {
       op = "bvsdiv";
-      ssRet << "($smtx_model_eval";
-      ssRet << " (ite (and (not msb_s) (not msb_t)) (bvudiv s t)";
-      ssRet << " (ite (and msb_s (not msb_t)) (bvneg (bvudiv (bvneg s) t))";
-      ssRet << " (ite (and (not msb_s) msb_t) (bvneg (bvudiv s (bvneg t)))";
-      ssRet << " (bvudiv (bvneg s) (bvneg t))))))))";
+      ssTermRet << "(ite (and (not msb_s) (not msb_t)) (bvudiv s t)";
+      ssTermRet << " (ite (and msb_s (not msb_t)) (bvneg (bvudiv (bvneg s) t))";
+      ssTermRet << " (ite (and (not msb_s) msb_t) (bvneg (bvudiv s (bvneg t)))";
+      ssTermRet << " (bvudiv (bvneg s) (bvneg t)))))";
     }
     else if (i == 1)
     {
       op = "bvsrem";
-      ssRet << "($smtx_model_eval";
-      ssRet << " (ite (and (not msb_s) (not msb_t)) (bvurem s t)";
-      ssRet << " (ite (and msb_s (not msb_t)) (bvneg (bvurem (bvneg s) t))";
-      ssRet << " (ite (and (not msb_s) msb_t) (bvneg (bvurem s (bvneg t)))";
-      ssRet << " (bvurem (bvneg s) (bvneg t))))))))";
+      ssTermRet << "(ite (and (not msb_s) (not msb_t)) (bvurem s t)";
+      ssTermRet << " (ite (and msb_s (not msb_t)) (bvneg (bvurem (bvneg s) t))";
+      ssTermRet << " (ite (and (not msb_s) msb_t) (bvneg (bvurem s (bvneg t)))";
+      ssTermRet << " (bvurem (bvneg s) (bvneg t)))))";
     }
     else
     {
       op = "bvsmod";
       ssRet << "(eo::define ((abs_s (ite msb_s s (bvneg s)))) ";
       ssRet << "(eo::define ((abs_t (ite msb_t t (bvneg t)))) ";
-      ssRet << "(eo::define ((u (bvurem abs_s abs_t))) ($smtx_model_eval";
-      ssRet << " (ite (= u ($eo_mk_binary x1 $smt_builtin_z_zero)) u";
-      ssRet << " (ite (and (not msb_s) (not msb_t)) u";
-      ssRet << " (ite (and msb_s (not msb_t)) (bvadd (bvneg u) t)";
-      ssRet << " (ite (and (not msb_s) msb_t) (bvadd u t)";
-      ssRet << " (bvneg u)))))))))))";
+      ssRet << "(eo::define ((u (bvurem abs_s abs_t))) s";
+      ssRetEnd << ")))";
+      ssTermRet << "(ite (= u ($sm_binary x1 $smt_builtin_z_zero)) u";
+      ssTermRet << " (ite (and (not msb_s) (not msb_t)) u";
+      ssTermRet << " (ite (and msb_s (not msb_t)) (bvadd (bvneg u) t)";
+      ssTermRet << " (ite (and (not msb_s) msb_t) (bvadd u t)";
+      ssTermRet << " (bvneg u)))))";
     }
+    ssRet << smtEval(ssTermRet.str()) << ssRetEnd.str();
     addLitSym(op, {kBitVec, kBitVec}, kT, smtBinaryBinReturn(ssRet.str()));
   }
   // overflow predicates
@@ -413,20 +453,20 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
             {kBitVec, kBitVec},
             kT,
             smtBinaryBinReturn(
-                "($smtx_model_eval (ite (bvnego t) (bvsge s ($eo_mk_binary x1 "
-                "$smt_builtin_z_zero)) (bvsaddo s (bvneg t))))"));
+                smtEval("(ite (bvnego t) (bvsge s ($sm_binary x1 "
+                "$smt_builtin_z_zero)) (bvsaddo s (bvneg t)))")));
   addLitSym("bvsdivo",
             {kBitVec, kBitVec},
             kT,
-            smtBinaryBinReturn("($smtx_model_eval (and (bvnego s) (= t (bvnot "
-                               "($eo_mk_binary x1 $smt_builtin_z_zero)))))"));
+            smtBinaryBinReturn(smtEval("(and (bvnego s) (= t (bvnot "
+                               "($sm_binary x1 $smt_builtin_z_zero))))")));
   // arith/BV conversions
   addLitSym("ubv_to_int", {kBitVec}, kInt, "x2");
   addLitSym("sbv_to_int", {kBitVec}, kInt, "($smtx_binary_uts x1 x2)");
   addLitSym("int_to_bv",
             {kInt, kInt},
             kT,
-            "($smtx_model_eval ($eo_mk_binary x1 x2))");
+            "($smtx_model_eval ($sm_binary x1 x2))");
   // Quantifiers
   // one variable at a time, $sm_exists is hardcoded
   addEunoiaReduceSym(
@@ -511,17 +551,17 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addLitSym("bvredor",
             {kBitVec},
             kT,
-            "($smtx_model_eval (bvnot (bvcomp ($eo_mk_binary x1 x2) "
-            "($eo_mk_binary x1 $smt_builtin_z_zero))))");
+            "($smtx_model_eval (bvnot (bvcomp ($sm_binary x1 x2) "
+            "($sm_binary x1 $smt_builtin_z_zero))))");
   addLitSym("bvredand",
             {kBitVec},
             kT,
-            "($smtx_model_eval (bvcomp ($eo_mk_binary x1 x2) (bvnot "
-            "($eo_mk_binary x1 $smt_builtin_z_zero))))");
+            "($smtx_model_eval (bvcomp ($sm_binary x1 x2) (bvnot "
+            "($sm_binary x1 $smt_builtin_z_zero))))");
   // utility guards for negative widths, which do not evaluate
   addLitSym(
-      "@bv", {kInt, kInt}, kT, "($eo_mk_binary x2 x1)");
-  addEunoiaReduceSym("@bit", {kInt, kBitVec}, "(extract x1 x1 x2)");
+      "@bv", {kInt, kInt}, kT, "($vsm_binary x2 x1)");
+  addEunoiaReduceSym("@bit", {kInt, kBitVec}, "($eo_to_smt (extract x1 x1 x2))");
   addLitBinSym("@from_bools",
                {kBool, kBitVec},
                "($smt_builtin_z_inc x2)",
@@ -578,7 +618,7 @@ void ModelSmtNew::addLitBinSym(const std::string& sym,
                                bool reqSameWidth)
 {
   std::stringstream ssr;
-  ssr << "($vsm_term ($eo_binary_mod_w " << retWidth << " " << retNum << "))";
+  ssr << "($vsm_binary_mod_w " << retWidth << " " << retNum << ")";
   std::string ssres = ssr.str();
   if (reqSameWidth && args.size() == 2 && args[0] == Kind::BINARY
       && args[1] == Kind::BINARY)
@@ -603,9 +643,8 @@ void ModelSmtNew::addTermReduceSym(const std::string& sym,
 {
   std::cout << "(echo \"trim-defs-cmd (depends " << sym << " " << retTerm
             << ")\")" << std::endl;
-  std::stringstream ssret;
-  ssret << "($smtx_model_eval " << retTerm << ")";
-  addReduceSym(sym, args, ssret.str());
+  // the specification is SMT syntax, convert to embedding names here
+  addReduceSym(sym, args, smtEval(retTerm));
 }
 
 void ModelSmtNew::addEunoiaReduceSym(const std::string& sym,
@@ -995,7 +1034,7 @@ void ModelSmtNew::printAuxProgramCase(const std::string& name,
     if (ka == Kind::BINARY)
     {
       progCases << "binary x" << paramCount << " x" << (paramCount + 1)
-                << "))";
+                << ")";
       progParams << "(x" << paramCount << " $smt_builtin_Int)";
       progParams << " (x" << (paramCount + 1) << " $smt_builtin_Int)";
       paramCount++;

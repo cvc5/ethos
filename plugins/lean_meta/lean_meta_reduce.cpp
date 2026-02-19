@@ -18,21 +18,6 @@
 
 namespace ethos {
 
-std::string replace_all(std::string str,
-                        const std::string& from,
-                        const std::string& to)
-{
-  if (from.empty()) return str;  // avoid infinite loop
-
-  std::size_t pos = 0;
-  while ((pos = str.find(from, pos)) != std::string::npos)
-  {
-    str.replace(pos, from.length(), to);
-    pos += to.length();  // move past the replacement
-  }
-  return str;
-}
-
 LeanMetaReduce::LeanMetaReduce(State& s) : StdPlugin(s)
 {
   d_typeToMetaKind["$eo_Type"] = MetaKind::EUNOIA;

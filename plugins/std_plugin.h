@@ -50,13 +50,17 @@ class StdPlugin : public Plugin
   std::vector<Expr> getSubtermsKind(Kind k, const Expr& t);
   /** */
   static std::string literalKindToString(Kind k);
+  // basic utilities
+  /** replace all in string */
+  static std::string replace_all(std::string str,
+                          const std::string& from,
+                          const std::string& to);
   /** the state */
   State& d_state;
   /** the type checker */
   TypeChecker& d_tc;
   /** type variable counter */
   size_t d_typeVarCounter;
-
   static std::string s_plugin_path;
   /** Standard configurations for the reduction */
   static bool optionFlattenEval();
