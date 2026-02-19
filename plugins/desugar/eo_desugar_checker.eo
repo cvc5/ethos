@@ -17,6 +17,9 @@
   )
 )
 
+; Indicates that a formula was not given
+(declare-const $eo_NullBool Bool)
+
 
 ; placeholder
 (declare-const $eo_Numeral Type)
@@ -58,23 +61,41 @@
 (define $eo_State_proven ((s $eo_State) (n $eo_Numeral))
   ($eo_StateObj_proven (eo::list_nth $smd_s.cons s n)))
 
+; push an assumption to the state
 (define $eo_push_assume ((F Bool) (s $eo_State :list))
   ($s_cons ($so_assume F) s))
+; pop the last assumption from the state
 (program $eo_pop_assume ((F Bool) (tail $eo_State :list) (so $eo_StateObj))
   :signature ($eo_State) ($eo_Pair Bool $eo_State)
   (
   (($eo_pop_assume ($s_cons ($so_assume F) tail)) ($eo_pair F tail))
   (($eo_pop_assume ($s_cons so tail))             ($eo_pop_assume tail))
+  ; otherwise stuck if nil
   )
 )
-(define $eo_push_proven ((F Bool) (s $eo_State :list))
-  ($s_cons ($so_proven F) s))
+; push a formula F proven by a step to the state
+(define $eo_push_proven ((F Bool) (proven Bool) (s $eo_State :list))
+  (eo::define ((newState ($s_cons ($so_proven F) s)))
+    (eo::ite (eo::eq proven $eo_NullBool)
+      newState
+      (eo::requires F proven newState))))
 
 (define $eo_PList () eo::List)
+(define $eo_plist_nil () eo::List::nil)
+(define $eo_plist_cons () eo::List::cons)
 (define $eo_AList () eo::List)
 
-; Indicates that a formula was not given
-(declare-const $eo_NullBool Bool)
+; constructs a formula based on a premise list constructor f, a premise list
+; and the current state.
+(program $eo_mk_premise_list
+  ((f (-> Bool Bool Bool)) (n $eo_Numeral) (pl $eo_PList :list) (S $eo_State))
+  :signature ((-> Bool Bool Bool) $eo_PList $eo_StateObj) Bool
+  (
+  (($eo_mk_premise_list f $eo_plist_nil S)          (eo::nil f Bool))
+  (($eo_mk_premise_list f ($eo_plist_cons n pl) S)  
+     (eo::cons f ($eo_State_proven S n) ($eo_mk_premise_list f pl S)))
+  )
+)
 
 ; Rule constructors
 
@@ -114,10 +135,10 @@
   (($eo_invoke_cmd ($cmd_assume F) S)           ($eo_push_assume F S))
   (($eo_invoke_cmd ($cmd_assume-push F) S)      ($eo_push_assume F S))
   (($eo_invoke_cmd ($cmd_step r proven premises args) S)    
-     ($eo_push_proven ($eo_invoke_step proven $eo_NullBool premises args S) S))
+     ($eo_push_proven ($eo_invoke_step proven $eo_NullBool premises args S) proven S))
   (($eo_invoke_cmd ($cmd_step-pop r proven premises args) S)
      (eo::define ((ps ($eo_pop_assume S)))
-     ($eo_push_proven ($eo_invoke_step proven ($pair_first ps) premises args S) ($pair_second ps))))
+     ($eo_push_proven ($eo_invoke_step proven ($pair_first ps) premises args S) proven ($pair_second ps))))
   )
 )
 
