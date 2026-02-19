@@ -2,32 +2,6 @@ set_option linter.unusedVariables false
 
 namespace Eo
 
-/- 
-Placeholder for SMT-LIB terms.
-TODO: define this separately
--/
-inductive Smt_Term : Type where
-  | Boolean : Bool -> Smt_Term
-  | Numeral : Int -> Smt_Term
-  | Rational : Rat -> Smt_Term
-  | String : String -> Smt_Term
-  | Binary : Int -> Int -> Smt_Term
-  | Id : String -> Smt_Term
-  | Apply : Smt_Term -> Smt_Term -> Smt_Term
-
-/-
-A definition of terms in the object language.
-This is to be defined externally.
--/
-abbrev Object_Term := Smt_Term
-
-/-
-A predicate defining a relation on terms in the object language and Booleans
-such that (s,b) is true if s evaluates to b.
-This is to be defined externally.
--/
-axiom obj_interprets : Object_Term -> Bool -> Prop
-
 /- Builtin data types -/
 
 abbrev eo_lit_Bool := Bool
@@ -137,9 +111,6 @@ inductive Term : Type where
   | BitVec : Term
   | Char : Term
   | Seq : Term
-  | __eo_List : Term
-  | __eo_List_nil : Term
-  | __eo_List_cons : Term
   | Bool : Term
   | Boolean : eo_lit_Bool -> Term
   | Numeral : eo_lit_Int -> Term
@@ -169,6 +140,67 @@ def __smtx_hash : Term -> eo_lit_Int
 inductive Proof : Type where
   | pf : Term -> Proof
   | Stuck : Proof
+
+/------------------------ should move ------------------------/
+
+/- 
+SMT-LIB types.
+-/
+inductive SmtType : Type where
+  | Stuck : Term
+  | Bool : Term
+
+deriving DecidableEq
+
+/- 
+SMT-LIB terms.
+-/
+inductive SmtTerm : Type where
+  | Stuck : Term
+  | Boolean : eo_lit_Bool -> Term
+  | Numeral : eo_lit_Int -> Term
+  | Rational : eo_lit_Rat -> Term
+  | String : eo_lit_String -> Term
+  | Binary : eo_lit_Int -> eo_lit_Int -> Term
+  | Apply : SmtTerm -> SmtTerm -> Term
+  | Var : eo_lit_String -> SmtType -> Term
+  | not : Term
+  | and : Term
+  | eq : Term
+
+deriving DecidableEq
+
+/- 
+SMT-LIB values.
+-/
+inductive SmtValue : Type where
+  | Boolean : eo_lit_Bool -> Term
+  | Numeral : eo_lit_Int -> Term
+  | Rational : eo_lit_Rat -> Term
+  | String : eo_lit_String -> Term
+  | Binary : eo_lit_Int -> eo_lit_Int -> Term
+  | Map : Term -> Term
+  | Apply : SmtValue -> SmtValue -> Term
+  | NotValue : Term
+
+deriving DecidableEq
+
+
+
+/-
+A definition of terms in the object language.
+This is to be defined externally.
+-/
+abbrev Object_Term := SmtTerm
+
+/-
+A predicate defining a relation on terms in the object language and Booleans
+such that (s,b) is true if s evaluates to b.
+This is to be defined externally.
+-/
+axiom obj_interprets : Object_Term -> Bool -> Prop
+
+/------------------------------------------------/
   
 /- Relevant definitions -/
 
@@ -211,10 +243,6 @@ def __eo_Var : eo_lit_String -> Term -> Term
   | s, T => (Term.Var s T)
 
 
-def __eo_is_ok : Term -> Term
-  | x => (Term.Boolean (eo_lit_not (eo_lit_teq x Term.Stuck)))
-
-
 def __eo_ite : Term -> Term -> Term -> Term
   | x1, x2, x3 => (eo_lit_ite (eo_lit_teq x1 (Term.Boolean true)) x2 (eo_lit_ite (eo_lit_teq x1 (Term.Boolean false)) x3 Term.Stuck))
 
@@ -229,28 +257,10 @@ def __eo_mk_apply : Term -> Term -> Term
   | x1, x2 => (Term.Apply x1 x2)
 
 
-def __eo_len : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | (Term.String s1) => (Term.Numeral (eo_lit_str_len s1))
-  | (Term.Binary w n1) => (Term.Numeral w)
-  | _ => Term.Stuck
-
-
 def __eo_eq : Term -> Term -> Term
   | Term.Stuck , _  => Term.Stuck
   | _ , Term.Stuck  => Term.Stuck
   | t, s => (Term.Boolean (eo_lit_teq s t))
-
-
-def __eo_typeof : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | (Term.Boolean b) => Term.Bool
-  | (Term.Numeral n) => (__eo_lit_type_Numeral (Term.Numeral n))
-  | (Term.Rational r) => (__eo_lit_type_Rational (Term.Rational r))
-  | (Term.String s) => (__eo_lit_type_String (Term.String s))
-  | (Term.Binary w n) => (__eo_lit_type_Binary (Term.Binary w n))
-  | (Term.Var s T) => T
-  | t => (__eo_typeof_main t)
 
 
 def __mk_symm : Term -> Term
@@ -265,75 +275,77 @@ def __eo_prog_symm : Proof -> Term
   | _ => Term.Stuck
 
 
-def __eo_typeof_apply : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | (Term.Apply (Term.Apply Term.FunType T) U), V => (__eo_requires T V U)
-  | _, _ => Term.Stuck
+def __eo_l_1___smtx_msm_lookup : Term -> SmtValue -> SmtValue
+  | (Term.cons j e m), i => (__smtx_msm_lookup m i)
+  | (Term.default e), i => e
 
 
-def __eo_typeof_eq : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | A => (Term.Apply (Term.Apply Term.FunType A) Term.Bool)
+def __smtx_msm_lookup : Term -> SmtValue -> SmtValue
+  | (Term.cons i e m), __eo_lv_i_2 => (__eo_ite (__eo_eq i __eo_lv_i_2) e (__eo_l_1___smtx_msm_lookup (Term.cons i e m) __eo_lv_i_2))
+  | __eo_dv_1, __eo_dv_2 => (__eo_l_1___smtx_msm_lookup __eo_dv_1 __eo_dv_2)
 
 
-def __eo_typeof_fun_type : Term -> Term -> Term
-  | Term.Stuck , _  => Term.Stuck
-  | _ , Term.Stuck  => Term.Stuck
-  | Term.Type, Term.Type => Term.Type
-  | _, _ => Term.Stuck
+def __smtx_model_eval_apply : SmtValue -> SmtValue -> SmtValue
+  | (SmtValue.Apply f v), i => (SmtValue.Apply (SmtValue.Apply f v) i)
+  | (SmtValue.Map m), i => (__smtx_msm_lookup m i)
+  | v, i => SmtValue.NotValue
 
 
-def __eo_typeof_main : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | Term.Type => Term.Type
-  | (Term.Apply (Term.Apply Term.FunType __eo_T) __eo_U) => (__eo_typeof_fun_type (__eo_typeof __eo_T) (__eo_typeof __eo_U))
-  | Term.Bool => Term.Type
-  | (Term.Boolean true) => Term.Bool
-  | (Term.Boolean false) => Term.Bool
-  | Term.__eo_List => Term.Type
-  | Term.__eo_List_nil => Term.__eo_List
-  | (Term.Apply Term.__eo_List_cons __eo_x1) => (Term.Apply (Term.Apply Term.FunType Term.__eo_List) Term.__eo_List)
-  | Term.Int => Term.Type
-  | Term.Real => Term.Type
-  | Term.BitVec => (Term.Apply (Term.Apply Term.FunType Term.Int) Term.Type)
-  | Term.Char => Term.Type
-  | Term.Seq => (Term.Apply (Term.Apply Term.FunType Term.Type) Term.Type)
-  | Term.not => (Term.Apply (Term.Apply Term.FunType Term.Bool) Term.Bool)
-  | Term.and => (Term.Apply (Term.Apply Term.FunType Term.Bool) (Term.Apply (Term.Apply Term.FunType Term.Bool) Term.Bool))
-  | (Term.Apply Term.eq __eo_x1) => (__eo_typeof_eq (__eo_typeof __eo_x1))
-  | (Term.Apply __eo_f __eo_x) => (__eo_typeof_apply (__eo_typeof __eo_f) (__eo_typeof __eo_x))
-  | _ => Term.Stuck
+def __smtx_model_eval_eq : SmtValue -> SmtValue -> SmtValue
+  | (SmtValue.Boolean b1), (SmtValue.Boolean b2) => (SmtValue.Boolean (eo_lit_iff b1 b2))
+  | (SmtValue.Boolean b1), t2 => SmtValue.NotValue
+  | t1, (SmtValue.Boolean b2) => SmtValue.NotValue
+  | (SmtValue.Numeral n1), (SmtValue.Numeral n2) => (SmtValue.Boolean (eo_lit_zeq n1 n2))
+  | (SmtValue.Numeral n1), t2 => SmtValue.NotValue
+  | t1, (SmtValue.Numeral n2) => SmtValue.NotValue
+  | (SmtValue.Rational r1), (SmtValue.Rational r2) => (SmtValue.Boolean (eo_lit_qeq r1 r2))
+  | (SmtValue.Rational r1), t2 => SmtValue.NotValue
+  | t1, (SmtValue.Rational r2) => SmtValue.NotValue
+  | (SmtValue.String s1), (SmtValue.String s2) => (SmtValue.Boolean (eo_lit_veq (SmtValue.String s1) (SmtValue.String s2)))
+  | (SmtValue.String s1), t2 => SmtValue.NotValue
+  | t1, (SmtValue.String s2) => SmtValue.NotValue
+  | (SmtValue.Binary w1 n1), (SmtValue.Binary w2 n2) => (eo_lit_ite (eo_lit_zeq w1 w2) (SmtValue.Boolean (eo_lit_veq (SmtValue.Binary w1 n1) (SmtValue.Binary w2 n2))) SmtValue.NotValue)
+  | (SmtValue.Binary w1 n1), t2 => SmtValue.NotValue
+  | t1, (SmtValue.Binary w2 n2) => SmtValue.NotValue
+  | SmtValue.NotValue, t2 => SmtValue.NotValue
+  | t1, SmtValue.NotValue => SmtValue.NotValue
+  | t1, t2 => (SmtValue.Boolean (eo_lit_veq t1 t2))
 
 
-def __eo_lit_type_Numeral : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | t => Term.Int
+def __smtx_model_eval_not : SmtValue -> SmtValue
+  | (SmtValue.Boolean x1) => (SmtValue.Boolean (eo_lit_not x1))
+  | t1 => SmtValue.NotValue
 
 
-def __eo_lit_type_Rational : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | t => Term.Real
+def __smtx_model_eval_and : SmtValue -> SmtValue -> SmtValue
+  | (SmtValue.Boolean x1), (SmtValue.Boolean x2) => (SmtValue.Boolean (eo_lit_and x1 x2))
+  | t1, t2 => SmtValue.NotValue
 
 
-def __eo_lit_type_Binary : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | t => (__eo_mk_apply Term.BitVec (__eo_len t))
+def __smtx_model_eval : SmtTerm -> SmtValue
+  | (SmtTerm.Apply SmtTerm.not x1) => (__smtx_model_eval_not (__smtx_model_eval x1))
+  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and x1) x2) => (__smtx_model_eval_and (__smtx_model_eval x1) (__smtx_model_eval x2))
+  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq x1) x2) => (__smtx_model_eval_eq (__smtx_model_eval x1) (__smtx_model_eval x2))
+  | (SmtTerm.Apply f y) => (__smtx_model_eval_apply (__smtx_model_eval f) (__smtx_model_eval y))
 
 
-def __eo_lit_type_String : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | t => (Term.Apply Term.Seq Term.Char)
+def __eo_to_smt_type : Term -> SmtType
+  | Term.Bool => SmtType.Bool
+  | T => SmtType.Stuck
 
 
-def __eo_dt_constructors : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | _ => Term.Stuck
-
-
-def __eo_dt_selectors : Term -> Term
-  | Term.Stuck  => Term.Stuck
-  | _ => Term.Stuck
+def __eo_to_smt : Term -> SmtTerm
+  | (Term.Boolean b) => (SmtTerm.Boolean b)
+  | (Term.Numeral n) => (SmtTerm.Numeral n)
+  | (Term.Rational r) => (SmtTerm.Rational r)
+  | (Term.String s) => (SmtTerm.String s)
+  | (Term.Binary w n) => (SmtTerm.Binary w n)
+  | (Term.Var s T) => (SmtTerm.Var s (__eo_to_smt_type T))
+  | Term.not => SmtTerm.not
+  | Term.and => SmtTerm.and
+  | Term.eq => SmtTerm.eq
+  | (Term.Apply f y) => (SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt y))
+  | y => SmtTerm.Stuck
 
 
 
@@ -350,23 +362,7 @@ This is to be custom defined in the Eunoia-to-Lean compiler based on the
 target definition of Object_Term.
 -/
 inductive eo_is_obj : Term -> Object_Term -> Prop
-| Boolean_case : forall (x1 : eo_lit_Bool),
-  (eo_is_obj (Term.Boolean x1) (Smt_Term.Boolean x1))
-| Numeral_case : forall (x1 : eo_lit_Int),
-  (eo_is_obj (Term.Numeral x1) (Smt_Term.Numeral x1))
-| Rational_case : forall (x1 : eo_lit_Rat),
-  (eo_is_obj (Term.Rational x1) (Smt_Term.Rational x1))
-| String_case : forall (x1 : eo_lit_String),
-  (eo_is_obj (Term.String x1) (Smt_Term.String x1))
-| Binary_case : forall (x1 : eo_lit_Int)(x2 : eo_lit_Int),
-  (eo_is_obj (Term.Binary x1 x2) (Smt_Term.Binary x1 x2))
-| Apply_case : forall (y1 : Smt_Term)(x1 : Term)(y2 : Smt_Term)(x2 : Term),
-  (eo_is_obj x1 y1) ->
-  (eo_is_obj x2 y2) ->
-  (eo_is_obj (Term.Apply x1 x2) (Smt_Term.Apply y1 y2))
-| not_case : (eo_is_obj Term.not (Smt_Term.Id "not"))
-| and_case : (eo_is_obj Term.and (Smt_Term.Id "and"))
-| eq_case : (eo_is_obj Term.eq (Smt_Term.Id "="))
+| intro (x : Term) : eo_is_obj x (__eo_to_obj x)
 
 
 /-

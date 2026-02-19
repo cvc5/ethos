@@ -2,32 +2,6 @@ set_option linter.unusedVariables false
 
 namespace Eo
 
-/- 
-Placeholder for SMT-LIB terms.
-TODO: define this separately
--/
-inductive Smt_Term : Type where
-  | Boolean : Bool -> Smt_Term
-  | Numeral : Int -> Smt_Term
-  | Rational : Rat -> Smt_Term
-  | String : String -> Smt_Term
-  | Binary : Int -> Int -> Smt_Term
-  | Id : String -> Smt_Term
-  | Apply : Smt_Term -> Smt_Term -> Smt_Term
-
-/-
-A definition of terms in the object language.
-This is to be defined externally.
--/
-abbrev Object_Term := Smt_Term
-
-/-
-A predicate defining a relation on terms in the object language and Booleans
-such that (s,b) is true if s evaluates to b.
-This is to be defined externally.
--/
-axiom obj_interprets : Object_Term -> Bool -> Prop
-
 /- Builtin data types -/
 
 abbrev eo_lit_Bool := Bool
@@ -145,6 +119,46 @@ def __smtx_hash : Term -> eo_lit_Int
 inductive Proof : Type where
   | pf : Term -> Proof
   | Stuck : Proof
+
+/------------------------ should move ------------------------/
+
+/- 
+SMT-LIB types.
+-/
+inductive SmtType : Type where
+$LEAN_SMT_TYPE_DEF$
+deriving DecidableEq
+
+/- 
+SMT-LIB terms.
+-/
+inductive SmtTerm : Type where
+$LEAN_SMT_TERM_DEF$
+deriving DecidableEq
+
+/- 
+SMT-LIB values.
+-/
+inductive SmtValue : Type where
+$LEAN_SMT_VALUE_DEF$
+deriving DecidableEq
+
+$LEAN_SMT_EVAL_DEFS$
+
+/-
+A definition of terms in the object language.
+This is to be defined externally.
+-/
+abbrev Object_Term := SmtTerm
+
+/-
+A predicate defining a relation on terms in the object language and Booleans
+such that (s,b) is true if s evaluates to b.
+This is to be defined externally.
+-/
+axiom obj_interprets : Object_Term -> Bool -> Prop
+
+/------------------------------------------------/
   
 /- Relevant definitions -/
 

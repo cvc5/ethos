@@ -44,6 +44,8 @@ class LeanMetaReduce : public StdPlugin
   bool printMetaType(const Expr& t,
                      std::ostream& os,
                      MetaKind tctx = MetaKind::NONE) const;
+  bool printMetaTypeKind(MetaKind k,
+                     std::ostream& os) const;
   /** Get the name of expression e, expected to be an atomic term */
   static std::string getName(const Expr& e);
   /** Is e a datatype constructor embedding? */
@@ -71,8 +73,7 @@ class LeanMetaReduce : public StdPlugin
    */
   MetaKind getMetaKind(State& s,
                        const Expr& e,
-                       std::string& cname,
-                       bool& isSmtTerm) const;
+                       std::string& cname) const;
 
  private:
   MetaKind prefixToMetaKind(const std::string& str) const;
@@ -96,6 +97,7 @@ class LeanMetaReduce : public StdPlugin
   static std::string getEmbedName(const Expr& oApp);
   /** Common constants */
   Expr d_null;
+  std::map<std::string, MetaKind> d_prefixToMetaKind;
   std::map<std::string, MetaKind> d_typeToMetaKind;
   std::stringstream d_defs;
   std::stringstream d_thms;
@@ -103,6 +105,11 @@ class LeanMetaReduce : public StdPlugin
   std::stringstream d_embedTermDt;
   /** Eunoia to object inductive predicate */
   std::stringstream d_eoIsObj;
+  /** SMT definitions */
+  std::stringstream d_smtDefs;
+  std::stringstream d_smtDt;
+  std::stringstream d_smtTypeDt;
+  std::stringstream d_smtValueDt;
   /** Declares seen */
   std::set<Expr> d_declSeen;
   /** List of program definitions */

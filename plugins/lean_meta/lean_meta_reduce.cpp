@@ -20,28 +20,61 @@ namespace ethos {
 
 LeanMetaReduce::LeanMetaReduce(State& s) : StdPlugin(s)
 {
-  d_typeToMetaKind["$eo_Type"] = MetaKind::EUNOIA;
+  d_typeToMetaKind["$eo_Term"] = MetaKind::EUNOIA;
+  d_typeToMetaKind["$smt_Type"] = MetaKind::SMT_TYPE;
+  d_typeToMetaKind["$smt_Term"] = MetaKind::SMT;
+  d_typeToMetaKind["$smt_Value"] = MetaKind::SMT_VALUE;
   d_typeToMetaKind["$eo_Proof"] = MetaKind::PROOF;
   d_typeToMetaKind["$smt_BuiltinType"] = MetaKind::SMT_BUILTIN;
+  d_prefixToMetaKind["sm"] = MetaKind::SMT;
+  d_prefixToMetaKind["tsm"] = MetaKind::SMT_TYPE;
+  d_prefixToMetaKind["vsm"] = MetaKind::SMT_VALUE;
+  d_prefixToMetaKind["msm"] = MetaKind::SMT_MAP;
+  d_prefixToMetaKind["ssm"] = MetaKind::SMT_SEQ;
 }
 
 LeanMetaReduce::~LeanMetaReduce() {}
+
+MetaKind LeanMetaReduce::prefixToMetaKind(const std::string& str) const
+{
+  std::map<std::string, MetaKind>::const_iterator it =
+      d_prefixToMetaKind.find(str);
+  if (it != d_prefixToMetaKind.end())
+  {
+    return it->second;
+  }
+  return MetaKind::EUNOIA;
+  // Assert(false) << "Bad prefix \"" << str << "\"";
+  // return MetaKind::NONE;
+}
 
 bool LeanMetaReduce::printMetaType(const Expr& t,
                                    std::ostream& os,
                                    MetaKind tctx) const
 {
   MetaKind tk = getTypeMetaKind(t, tctx);
-  switch (tk)
+  if (tk==MetaKind::SMT_BUILTIN)
+  {
+    os << getEmbedName(t);
+    return true;
+  }
+  return printMetaTypeKind(tk, os);
+}
+
+bool LeanMetaReduce::printMetaTypeKind(MetaKind k, std::ostream& os) const
+{
+  switch (k)
   {
     case MetaKind::EUNOIA: os << "Term"; break;
+    case MetaKind::SMT_TYPE: os << "SmtType"; break;
+    case MetaKind::SMT: os << "SmtTerm"; break;
+    case MetaKind::SMT_VALUE: os << "SmtValue"; break;
     case MetaKind::PROOF: os << "Proof"; break;
-    case MetaKind::SMT_BUILTIN: os << getEmbedName(t); break;
     default: return false;
   }
   return true;
 }
-
+                     
 void LeanMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
 {
   Kind k = c.getKind();
@@ -62,25 +95,19 @@ void LeanMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
   std::stringstream osEnd;
   if (k == Kind::CONST)
   {
-    std::string cname = getName(c);
+    std::string cname;
+    MetaKind k = getMetaKind(d_state, c, cname);
     if (cname == "$eo_pf")
     {
       os << "Proof.pf";
     }
     else
     {
-      os << "Term.";
-      std::stringstream ss;
-      // if it is an explicit embedding of a datatype, take the suffix
-      if (isEmbedCons(c))
+      if (!printMetaTypeKind(k, os))
       {
-        ss << cname.substr(5);
+        os << "Term";
       }
-      else
-      {
-        ss << cname;
-      }
-      os << cleanSmtId(ss.str());
+      os << "." << cleanSmtId(cname);
     }
   }
   else if (k == Kind::BOOL_TYPE)
@@ -618,17 +645,19 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   if (!wasDefault)
   {
     // should be a datatype with stuck
-    Assert(retk == MetaKind::EUNOIA || retk == MetaKind::PROOF);
-    cases << "  | ";
-    for (size_t j = 1; j < nargs; j++)
+    if (retk == MetaKind::EUNOIA || retk == MetaKind::PROOF)
     {
-      if (j > 1)
+      cases << "  | ";
+      for (size_t j = 1; j < nargs; j++)
       {
-        cases << ", ";
+        if (j > 1)
+        {
+          cases << ", ";
+        }
+        cases << "_";
       }
-      cases << "_";
+      cases << " => " << retType.str() << ".Stuck" << std::endl;
     }
-    cases << " => " << retType.str() << ".Stuck" << std::endl;
   }
   // axiom
   d_defs << decl.str();
@@ -730,12 +759,23 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
   std::stringstream* out = nullptr;
   // get the meta-kind based on its name
   std::string cnamek;
-  bool isSmtTerm = false;
-  MetaKind tk = getMetaKind(d_state, e, cnamek, isSmtTerm);
+  MetaKind tk = getMetaKind(d_state, e, cnamek);
   std::string cname = cleanSmtId(cnamek);
   if (tk == MetaKind::EUNOIA)
   {
     out = &d_embedTermDt;
+  }
+  else if (tk == MetaKind::SMT)
+  {
+    out = &d_smtDt;
+  }
+  else if (tk == MetaKind::SMT_TYPE)
+  {
+    out = &d_smtTypeDt;
+  }
+  else if (tk == MetaKind::SMT_VALUE)
+  {
+    out = &d_smtValueDt;
   }
   if (out == nullptr)
   {
@@ -768,7 +808,6 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
     nopqArgs = 1;
     retType = ct[1];
   }
-  std::stringstream eoIsObjCall;
   // revert overloads
   if (cnamek.compare(0, 5, "$eoo_") == 0)
   {
@@ -776,9 +815,6 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
     Assert(firstDot != std::string::npos && firstDot > 5);
     cnamek = cnamek.substr(5, firstDot - 5);
   }
-  std::string eoIsObjRet = "(Smt_Term.Id \"" + cnamek + "\")";
-  std::stringstream ssq;
-  std::stringstream sscond;
   for (size_t i = 0; i < nopqArgs; i++)
   {
     // print its type using the utility,
@@ -790,28 +826,16 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
       typ = d_tc.getType(targ);
     }
     std::stringstream sst;
-    MetaKind tk = getTypeMetaKind(typ, MetaKind::EUNOIA);
-    if (tk == MetaKind::EUNOIA)
+    if (!printMetaType(typ, sst, MetaKind::EUNOIA))
     {
       sst << "Term";
-      ssq << "(y" << (i + 1) << " : Smt_Term)";
-      sscond << "  (eo_is_obj x" << (i + 1) << " y" << (i + 1) << ") ->"
-             << std::endl;
-      std::stringstream eosr;
-      eosr << "(Smt_Term.Apply " << eoIsObjRet << " y" << (i + 1) << ")";
-      eoIsObjRet = eosr.str();
     }
-    else
-    {
-      sst << getEmbedName(typ);
-    }
-    eoIsObjCall << (i > 0 ? " " : "") << "x" << (i + 1);
-    ssq << "(x" << (i + 1) << " : " << sst.str() << ")";
     (*out) << sst.str() << " -> ";
     //(*out) << "; Printing datatype argument type " << typ << " gives \"" <<
     // sst.str() << "\" " << termKindToString(tk) << std::endl;
   }
   (*out) << "Term" << std::endl;
+#if 0
   // special case for apply
   if (cnamek == "Apply")
   {
@@ -850,6 +874,7 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
     d_eoIsObj << " " << eoIsObjRet << ")";
     d_eoIsObj << std::endl;
   }
+#endif
 }
 
 void LeanMetaReduce::finalize()
@@ -872,11 +897,21 @@ void LeanMetaReduce::finalize()
   std::ostringstream ss;
   ss << in.rdbuf();
   std::string finalLean = ss.str();
+  
+  // is obj is trivial, call the method
+  d_eoIsObj << "  | intro (x : Term) : eo_is_obj x (__eo_to_obj x)" << std::endl;
 
   replace(finalLean, "$LEAN_DEFS$", d_defs.str());
   replace(finalLean, "$LEAN_THMS$", d_thms.str());
   replace(finalLean, "$LEAN_TERM_DEF$", d_embedTermDt.str());
   replace(finalLean, "$LEAN_EO_IS_OBJ_DEF$", d_eoIsObj.str());
+  
+  // smt layer
+  replace(finalLean, "$LEAN_SMT_TYPE_DEF$", d_smtTypeDt.str());
+  replace(finalLean, "$LEAN_SMT_TERM_DEF$", d_smtDt.str());
+  replace(finalLean, "$LEAN_SMT_VALUE_DEF$", d_smtValueDt.str());
+  replace(finalLean, "$LEAN_SMT_EVAL_DEFS$", d_smtDefs.str());
+  
 
   std::stringstream sso;
   sso << s_plugin_path << "plugins/lean_meta/lean_meta_gen.lean";
@@ -982,8 +1017,7 @@ MetaKind LeanMetaReduce::getTypeMetaKind(const Expr& typ,
 
 MetaKind LeanMetaReduce::getMetaKind(State& s,
                                      const Expr& e,
-                                     std::string& cname,
-                                     bool& isSmtTerm) const
+                                     std::string& cname) const
 {
   std::string sname = getName(e);
   if (sname.compare(0, 5, "$smt_") == 0 || sname == "$eo_Term")
@@ -1003,17 +1037,16 @@ MetaKind LeanMetaReduce::getMetaKind(State& s,
   else if (isEmbedCons(e))
   {
     cname = sname.substr(5);
-    return MetaKind::EUNOIA;
+    size_t firstDot = cname.find('.');
+    if (firstDot==std::string::npos)
+    {
+      return MetaKind::EUNOIA;
+    }
+    std::string prefix = cname.substr(0, firstDot);
+    cname = cname.substr(firstDot + 1);
+    return prefixToMetaKind(prefix);
   }
   cname = sname;
-  // If not a distinguished symbol, it may be an SMT-LIB term or a type.
-  // Check the type of e.
-  Expr tc = e.getType();
-  while (tc.getKind() == Kind::FUNCTION_TYPE)
-  {
-    tc = tc[tc.getNumChildren() - 1];
-  }
-  isSmtTerm = (tc.getKind() != Kind::TYPE);
   // even if SMT-LIB term, it is a Eunoia datatype
   return MetaKind::EUNOIA;
 }

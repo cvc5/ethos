@@ -15,6 +15,9 @@
 
 ;;;;;; SMT term constructors
 
+(declare-const $smd_sm.Stuck $smt_Term)
+(define $sm_stuck () $smd_sm.Stuck)
+
 ; the literal types
 (declare-parameterized-const $smd_sm.Boolean
   ((b $smt_builtin_Bool :opaque)) $smt_Term)
@@ -76,6 +79,9 @@
 $SMT_TERM_CONSTRUCTORS$
 
 ;;;;;; SMT type constructors
+
+(declare-const $smd_tsm.Stuck $smt_Type)
+(define $tsm_Stuck () $smd_tsm.Stuck)
 
 ; The Boolean type
 (declare-const $smd_tsm.Bool $smt_Type)
@@ -568,11 +574,12 @@ $SMT_EVAL_CASES$
 
 ;;;;;;;;;;;;;;;;;;;;;;
 
-(program $eo_to_smt_type ()
+(program $eo_to_smt_type ((T Type))
   :signature (Type) $smt_Type
   (
   (($eo_to_smt_type Bool) $tsm_Bool)
 $EO_TO_SMT_TYPE_CASES$
+  (($eo_to_smt_type T)    $tsm_Stuck)
   )
 )
 
@@ -591,6 +598,7 @@ $EO_TO_SMT_TYPE_CASES$
   (($eo_to_smt ($eo_Var s T))     ($sm_Var s ($eo_to_smt_type T)))
 $EO_TO_SMT_CASES$
   (($eo_to_smt (f y))             ($sm_apply ($eo_to_smt f) ($eo_to_smt y)))
+  (($eo_to_smt y)                 $sm_stuck)
   )
 )
 
