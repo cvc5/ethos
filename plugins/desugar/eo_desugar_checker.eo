@@ -1,7 +1,8 @@
 ;;; utilities
 
 (declare-const $eo_Pair (-> Type Type Type))
-(declare-parameterized-const $eo_pair ((U Type :implicit) (T Type :implicit)) (-> U T ($eo_Pair U T)))
+(declare-parameterized-const $eo_pair ((U Type :implicit) (T Type :implicit))
+  (-> U T ($eo_Pair U T)))
 
 (program $pair_first ((T Type) (S Type) (t T) (s S))
   :signature (($eo_Pair T S)) T
@@ -20,9 +21,8 @@
 ; Indicates that a formula was not given
 (declare-const $eo_NullBool Bool)
 
-
 ; placeholder
-(declare-const $eo_Numeral Type)
+;(declare-const $eo_Numeral Type)
 
 ;;; Types
 
@@ -84,6 +84,8 @@
 (define $eo_plist_nil () eo::List::nil)
 (define $eo_plist_cons () eo::List::cons)
 (define $eo_AList () eo::List)
+(define $eo_alist_nil () eo::List::nil)
+(define $eo_alist_cons () eo::List::cons)
 
 ; constructs a formula based on a premise list constructor f, a premise list
 ; and the current state.
@@ -117,13 +119,18 @@
   ($smd_cmd.step-pop r proven premises args))
 
 
-;$EO_RULE_DEFS$
+$EO_RULE_DEFS$
 
 ; proven, assumption, premise list, arg list
-(program $eo_invoke_step ()
-  :signature (Bool Bool $eo_PList $eo_AList $eo_State) $eo_State
+(program $eo_invoke_step
+  ((proven Bool) (assump Bool) (premises $eo_PList) (S $eo_State)
+  (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type) (T6 Type) (T7 Type) (T8 Type)
+  (a1 T1) (a2 T2) (a3 T3) (a4 T4) (a5 T5) (a6 T6) (a7 T7) (a8 T8)
+  (n1 $eo_Numeral) (n2 $eo_Numeral) (n3 $eo_Numeral) (n4 $eo_Numeral)
+  (n5 $eo_Numeral) (n6 $eo_Numeral) (n7 $eo_Numeral) (n8 $eo_Numeral))
+  :signature ($eo_Rule Bool Bool $eo_PList $eo_AList $eo_State) $eo_State
   (
-;$EO_RULE_INVOKE$
+$EO_RULE_INVOKE$
   )
 )
 
@@ -135,10 +142,10 @@
   (($eo_invoke_cmd ($cmd_assume F) S)           ($eo_push_assume F S))
   (($eo_invoke_cmd ($cmd_assume-push F) S)      ($eo_push_assume F S))
   (($eo_invoke_cmd ($cmd_step r proven premises args) S)    
-     ($eo_push_proven ($eo_invoke_step proven $eo_NullBool premises args S) proven S))
+     ($eo_push_proven ($eo_invoke_step r proven $eo_NullBool premises args S) proven S))
   (($eo_invoke_cmd ($cmd_step-pop r proven premises args) S)
      (eo::define ((ps ($eo_pop_assume S)))
-     ($eo_push_proven ($eo_invoke_step proven ($pair_first ps) premises args S) proven ($pair_second ps))))
+     ($eo_push_proven ($eo_invoke_step r proven ($pair_first ps) premises args S) proven ($pair_second ps))))
   )
 )
 

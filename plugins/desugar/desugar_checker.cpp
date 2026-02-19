@@ -9,6 +9,7 @@
 
 #include "desugar_checker.h"
 
+#include <fstream>
 #include <sstream>
 #include <string>
 
@@ -27,7 +28,9 @@ DesugarChecker::~DesugarChecker() {}
 
 void DesugarChecker::finalizeRule(const Expr& v)
 {
-  d_rules << "(declare-const $smd_rule." << v << " $eo_Rule)" << std::endl;
+  std::stringstream ssr;
+  ssr << "$smd_rule." << v;
+  d_rules << "(declare-const " << ssr.str() << " $eo_Rule)" << std::endl;
   AppInfo* ainfo = d_state.getAppInfo(v.getValue());
   Expr tupleVal = ainfo->d_attrConsTerm;
   Assert(tupleVal.getNumChildren() == 4);
@@ -39,11 +42,129 @@ void DesugarChecker::finalizeRule(const Expr& v)
   bool isAssume = tupleVal[1]==d_true;
   bool isConcExplicit = tupleVal[2]==d_true;
   Expr rprog = tupleVal[3];
+  std::stringstream argList;
+  Expr rprogType = rprog.getType();
+  size_t nargs = 0;
+  size_t npremises = 0;
+  std::stringstream ret, retEnd;
+  if (rprogType.getKind()==Kind::PROGRAM_TYPE)
+  {
+    Expr pfType = d_state.mkProofType();
+    for (size_t i=1, nchild=rprogType.getNumChildren(); i<nchild; i++)
+    {
+      Expr argType = rprogType[i-1];
+      if (argType==pfType)
+      {
+        npremises++;
+      }
+      else
+      {
+        nargs++;
+      }
+    }
+  }
+  d_ruleInvokes << "  (($eo_invoke_step " << ssr.str() << " proven ";
+  // if it is not an assume rule, we must not have provided an assumption
+  d_ruleInvokes << (isAssume ? "assump " : "$eo_NullBool ");
+  if (isAssume)
+  {
+    Assert (nargs>0);
+    nargs--;
+  }
+  std::stringstream invokeArgs;
+  // first, pass the ordinary arguments
+  if (nargs>0)
+  {
+    Assert (nargs<=8);
+    d_ruleInvokes << "($eo_alist_cons ";
+    for (size_t i=0; i<nargs; i++)
+    {
+      d_ruleInvokes << " a" << (i+1);
+      invokeArgs << " a" << (i+1);
+    }
+    d_ruleInvokes << ")";
+  }
+  else
+  {
+    d_ruleInvokes << "$eo_alist_nil ";
+  }
+  if (isConcExplicit)
+  {
+    ret << "(eo::requires (eo::eq proven $eo_NullBool) false ";
+    retEnd << ")";
+  }
+  // then, pass the assumption
+  if (isAssume)
+  {
+    invokeArgs << " assump";
+    ret << "(eo::requires (eo::eq assump $eo_NullBool) false ";
+    retEnd << ")";
+  }
+  // then the premises
+  if (!plCons.isNull())
+  {
+    Assert (npremises==1);
+    d_ruleInvokes << "premises ";
+    invokeArgs << " ($eo_pf ($eo_mk_premise_list " << plCons << " premises S))";
+  }
+  else
+  {
+    if (npremises>0)
+    {
+      Assert (npremises<=8);
+      d_ruleInvokes << "($eo_plist_cons";
+      for (size_t i=0; i<npremises; i++)
+      {
+        d_ruleInvokes << " n" << (i+1);
+        invokeArgs << " ($eo_pf ($eo_State_proven S n" << (i+1) << "))";
+      }
+      d_ruleInvokes << ")";
+    }
+    else
+    {
+      d_ruleInvokes << "$eo_plist_nil ";
+    }
+  }
+  d_ruleInvokes << "S) ";
+  if (invokeArgs.str().empty())
+  {
+    Assert (npremises==0 && nargs==0);
+    ret << rprog;
+  }
+  else
+  {
+    ret << "(" << rprog << invokeArgs.str() << ")";
+  }
+  ret << retEnd.str();
+  d_ruleInvokes << ret.str() << ")" << std::endl;
 }
 
 void DesugarChecker::printTerm(const Expr& e, std::ostream& os)
 {
   d_desugar->printTerm(e, os);
 }
-
+  
+void DesugarChecker::finalizeChecker(const std::string& finalEo)
+{
+  // auto-generate the checker as well
+  std::stringstream ssiec;
+  ssiec << s_plugin_path << "plugins/desugar/eo_desugar_checker.eo";
+  std::ifstream inec(ssiec.str());
+  std::ostringstream ssec;
+  ssec << inec.rdbuf();
+  std::string finalCheckEo = ssec.str();
+  replace(finalCheckEo, "$EO_RULE_DEFS$", d_rules.str());
+  replace(finalCheckEo, "$EO_RULE_INVOKE$", d_ruleInvokes.str());
+  
+  std::stringstream ssoec;
+  ssoec << s_plugin_path << "plugins/desugar/eo_desugar_checker_gen.eo";
+  std::cout << "Write checker-defs    " << ssoec.str() << std::endl;
+  std::ofstream outec(ssoec.str());
+  // include signature
+  outec << finalEo;
+  // then include the checker definition
+  outec << finalCheckEo;
+  outec << std::endl;
+}
+  
 }  // namespace ethos

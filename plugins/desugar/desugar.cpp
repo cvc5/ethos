@@ -18,7 +18,7 @@
 
 namespace ethos {
 
-Desugar::Desugar(State& s) : StdPlugin(s), d_dproof(s, this)
+Desugar::Desugar(State& s) : StdPlugin(s), d_dproof(s, this), d_dchecker(s, this)
 {
   // we require santization of the eo::List at this stage
   // TODO: maybe just use text replace??
@@ -631,6 +631,8 @@ void Desugar::finalizeRule(const Expr& e)
   {
     return;
   }
+  // pass to the desugaring checker
+  d_dchecker.finalizeRule(e);
   Trace("desugar") << "Finalize rule " << e << std::endl;
   AppInfo* ainfo = d_state.getAppInfo(e.getValue());
   Expr tupleVal = ainfo->d_attrConsTerm;
@@ -829,16 +831,6 @@ void Desugar::finalize()
     }
   }
 
-  auto replace = [](std::string& txt,
-                    const std::string& tag,
-                    const std::string& replacement) {
-    auto pos = txt.find(tag);
-    if (pos != std::string::npos)
-    {
-      txt.replace(pos, tag.length(), replacement);
-    }
-  };
-
   // now, go back and compile *.eo for the proof rules
   std::stringstream ssie;
   ssie << s_plugin_path << "plugins/desugar/eo_desugar.eo";
@@ -874,8 +866,11 @@ void Desugar::finalize()
   std::ofstream oute(ssoe.str());
   oute << finalEo;
   oute << std::endl;
+  
   // output steps if applicable
   d_dproof.output(oute);
+  
+  d_dchecker.finalizeChecker(finalEo);
 }
 
 void Desugar::notifyAssume(const std::string& name, Expr& proven, bool isPush)

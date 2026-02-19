@@ -16,6 +16,7 @@
 
 #include "../std_plugin.h"
 #include "desugar_proof.h"
+#include "desugar_checker.h"
 
 namespace ethos {
 
@@ -153,6 +154,8 @@ class Desugar : public StdPlugin
   Expr d_peoPf;
   /** desugaring proofs for cross reference */
   DesugarProof d_dproof;
+  /** desugaring the checker */
+  DesugarChecker d_dchecker;
 };
 
 }  // namespace ethos
