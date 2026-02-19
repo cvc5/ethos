@@ -15,8 +15,8 @@
 #include <string>
 
 #include "../std_plugin.h"
-#include "desugar_proof.h"
 #include "desugar_checker.h"
+#include "desugar_proof.h"
 
 namespace ethos {
 

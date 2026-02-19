@@ -52,12 +52,12 @@ class StdPlugin : public Plugin
   static std::string literalKindToString(Kind k);
   // basic utilities
   static void replace(std::string& txt,
-                const std::string& tag,
-                const std::string& replacement);
+                      const std::string& tag,
+                      const std::string& replacement);
   /** replace all in string */
   static std::string replace_all(std::string str,
-                          const std::string& from,
-                          const std::string& to);
+                                 const std::string& from,
+                                 const std::string& to);
   /** the state */
   State& d_state;
   /** the type checker */

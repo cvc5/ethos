@@ -161,18 +161,19 @@ std::string StdPlugin::literalKindToString(Kind k)
 }
 
 void StdPlugin::replace(std::string& txt,
-                const std::string& tag,
-                const std::string& replacement) {
+                        const std::string& tag,
+                        const std::string& replacement)
+{
   auto pos = txt.find(tag);
   if (pos != std::string::npos)
   {
     txt.replace(pos, tag.length(), replacement);
   }
 }
-  
+
 std::string StdPlugin::replace_all(std::string str,
-                        const std::string& from,
-                        const std::string& to)
+                                   const std::string& from,
+                                   const std::string& to)
 {
   if (from.empty()) return str;  // avoid infinite loop
 

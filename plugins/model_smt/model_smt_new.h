@@ -55,8 +55,8 @@ class ModelSmtNew : public StdPlugin
    * layer.
    */
   void addEunoiaReduceSym(const std::string& sym,
-                        const std::vector<Kind>& args,
-                        const std::string& retTerm);
+                          const std::vector<Kind>& args,
+                          const std::string& retTerm);
   /**
    * Add function whose evaluation is
    * (eo::define ((e1 ($smt_model_eval x1)))
@@ -120,11 +120,11 @@ class ModelSmtNew : public StdPlugin
   void addSymCase(const std::string& sym,
                   const std::string& pat,
                   const std::string& ret);
-    void printEvalCallBase(std::ostream& out,
-                                    const std::string& mname,
-                                    const std::string& name,
-                                    const std::vector<Kind>& args,
-                                    const std::string& ret);
+  void printEvalCallBase(std::ostream& out,
+                         const std::string& mname,
+                         const std::string& name,
+                         const std::vector<Kind>& args,
+                         const std::string& ret);
   /**
    * Helper method for printing the final program case to $smtx_model_eval, i.e.
    * (($smtx_model_eval (<name> x1 ... xn)) <retTerm>).
@@ -137,8 +137,8 @@ class ModelSmtNew : public StdPlugin
    * (($eo_to_smt (<name> x1 ... xn)) <retTerm>).
    */
   void printEunoiaReduce(const std::string& name,
-                              const std::vector<Kind>& args,
-                              const std::string& ret);
+                         const std::vector<Kind>& args,
+                         const std::string& ret);
   /**
    * Same as printModelEvalCallBase, but where <retTerm> is
    * ($smtx_model_eval_<name> ($smtx_model_eval x1) ... ($smtx_model_eval xn)).
@@ -217,7 +217,8 @@ class ModelSmtNew : public StdPlugin
   /**
    * Eunoia terms that have special reductions to SMT-LIB terms
    */
-  std::map<std::string, std::pair<std::vector<Kind>, std::string>> d_eoSymReduce;
+  std::map<std::string, std::pair<std::vector<Kind>, std::string>>
+      d_eoSymReduce;
   /**
    * SMT-LIB symbols that have a custom evaluation function that we define.
    */
@@ -228,7 +229,9 @@ class ModelSmtNew : public StdPlugin
   static std::string smtToSmtEmbed(const std::string& str);
   static std::string smtBinaryBinReturn(const std::string& term);
   static std::string smtEval(const std::string& s);
-  static std::string eoDefine(const std::string& x, const std::string& t, const std::string& ret);
+  static std::string eoDefine(const std::string& x,
+                              const std::string& t,
+                              const std::string& ret);
 };
 
 }  // namespace mnew

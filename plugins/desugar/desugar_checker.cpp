@@ -18,7 +18,8 @@
 
 namespace ethos {
 
-DesugarChecker::DesugarChecker(State& s, Desugar* d) : StdPlugin(s), d_desugar(d)
+DesugarChecker::DesugarChecker(State& s, Desugar* d)
+    : StdPlugin(s), d_desugar(d)
 {
   d_true = d_state.mkTrue();
   d_boolType = d_state.mkBoolType();
@@ -35,25 +36,25 @@ void DesugarChecker::finalizeRule(const Expr& v)
   Expr tupleVal = ainfo->d_attrConsTerm;
   Assert(tupleVal.getNumChildren() == 4);
   Expr plCons;
-  if (tupleVal[0].getKind()!=Kind::ANY)
+  if (tupleVal[0].getKind() != Kind::ANY)
   {
     plCons = tupleVal[0];
   }
-  bool isAssume = tupleVal[1]==d_true;
-  bool isConcExplicit = tupleVal[2]==d_true;
+  bool isAssume = tupleVal[1] == d_true;
+  bool isConcExplicit = tupleVal[2] == d_true;
   Expr rprog = tupleVal[3];
   std::stringstream argList;
   Expr rprogType = rprog.getType();
   size_t nargs = 0;
   size_t npremises = 0;
   std::stringstream ret, retEnd;
-  if (rprogType.getKind()==Kind::PROGRAM_TYPE)
+  if (rprogType.getKind() == Kind::PROGRAM_TYPE)
   {
     Expr pfType = d_state.mkProofType();
-    for (size_t i=1, nchild=rprogType.getNumChildren(); i<nchild; i++)
+    for (size_t i = 1, nchild = rprogType.getNumChildren(); i < nchild; i++)
     {
-      Expr argType = rprogType[i-1];
-      if (argType==pfType)
+      Expr argType = rprogType[i - 1];
+      if (argType == pfType)
       {
         npremises++;
       }
@@ -68,19 +69,19 @@ void DesugarChecker::finalizeRule(const Expr& v)
   d_ruleInvokes << (isAssume ? "assump " : "$eo_NullBool ");
   if (isAssume)
   {
-    Assert (nargs>0);
+    Assert(nargs > 0);
     nargs--;
   }
   std::stringstream invokeArgs;
   // first, pass the ordinary arguments
-  if (nargs>0)
+  if (nargs > 0)
   {
-    Assert (nargs<=8);
+    Assert(nargs <= 8);
     d_ruleInvokes << "($eo_alist_cons ";
-    for (size_t i=0; i<nargs; i++)
+    for (size_t i = 0; i < nargs; i++)
     {
-      d_ruleInvokes << " a" << (i+1);
-      invokeArgs << " a" << (i+1);
+      d_ruleInvokes << " a" << (i + 1);
+      invokeArgs << " a" << (i + 1);
     }
     d_ruleInvokes << ")";
   }
@@ -103,20 +104,20 @@ void DesugarChecker::finalizeRule(const Expr& v)
   // then the premises
   if (!plCons.isNull())
   {
-    Assert (npremises==1);
+    Assert(npremises == 1);
     d_ruleInvokes << "premises ";
     invokeArgs << " ($eo_pf ($eo_mk_premise_list " << plCons << " premises S))";
   }
   else
   {
-    if (npremises>0)
+    if (npremises > 0)
     {
-      Assert (npremises<=8);
+      Assert(npremises <= 8);
       d_ruleInvokes << "($eo_plist_cons";
-      for (size_t i=0; i<npremises; i++)
+      for (size_t i = 0; i < npremises; i++)
       {
-        d_ruleInvokes << " n" << (i+1);
-        invokeArgs << " ($eo_pf ($eo_State_proven S n" << (i+1) << "))";
+        d_ruleInvokes << " n" << (i + 1);
+        invokeArgs << " ($eo_pf ($eo_State_proven S n" << (i + 1) << "))";
       }
       d_ruleInvokes << ")";
     }
@@ -128,7 +129,7 @@ void DesugarChecker::finalizeRule(const Expr& v)
   d_ruleInvokes << "S) ";
   if (invokeArgs.str().empty())
   {
-    Assert (npremises==0 && nargs==0);
+    Assert(npremises == 0 && nargs == 0);
     ret << rprog;
   }
   else
@@ -143,7 +144,7 @@ void DesugarChecker::printTerm(const Expr& e, std::ostream& os)
 {
   d_desugar->printTerm(e, os);
 }
-  
+
 void DesugarChecker::finalizeChecker(const std::string& finalEo)
 {
   // auto-generate the checker as well
@@ -155,7 +156,7 @@ void DesugarChecker::finalizeChecker(const std::string& finalEo)
   std::string finalCheckEo = ssec.str();
   replace(finalCheckEo, "$EO_RULE_DEFS$", d_rules.str());
   replace(finalCheckEo, "$EO_RULE_INVOKE$", d_ruleInvokes.str());
-  
+
   std::stringstream ssoec;
   ssoec << s_plugin_path << "plugins/desugar/eo_desugar_checker_gen.eo";
   std::cout << "Write checker-defs    " << ssoec.str() << std::endl;
@@ -166,5 +167,5 @@ void DesugarChecker::finalizeChecker(const std::string& finalEo)
   outec << finalCheckEo;
   outec << std::endl;
 }
-  
+
 }  // namespace ethos

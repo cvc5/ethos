@@ -18,7 +18,8 @@
 
 namespace ethos {
 
-Desugar::Desugar(State& s) : StdPlugin(s), d_dproof(s, this), d_dchecker(s, this)
+Desugar::Desugar(State& s)
+    : StdPlugin(s), d_dproof(s, this), d_dchecker(s, this)
 {
   // we require santization of the eo::List at this stage
   // TODO: maybe just use text replace??
@@ -866,10 +867,10 @@ void Desugar::finalize()
   std::ofstream oute(ssoe.str());
   oute << finalEo;
   oute << std::endl;
-  
+
   // output steps if applicable
   d_dproof.output(oute);
-  
+
   d_dchecker.finalizeChecker(finalEo);
 }
 

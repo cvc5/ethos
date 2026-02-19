@@ -1114,7 +1114,7 @@ void SmtMetaReduce::finalize()
 
   replace(finalSm, "$SM_DEFS$", d_defs.str());
   replace(finalSm, "$SMT_VC$", d_smtVc.str());
-  // TODO: this is only necessary for the old version 
+  // TODO: this is only necessary for the old version
   if (d_embedTypeDt.str().empty())
   {
     d_embedTypeDt << "  (tsm.None)" << std::endl;
@@ -1272,9 +1272,9 @@ MetaKind SmtMetaReduce::getTypeMetaKind(const Expr& typ,
       return MetaKind::SMT_BUILTIN;
     }
   }
-  if (k==Kind::FUNCTION_TYPE)
+  if (k == Kind::FUNCTION_TYPE)
   {
-    return getTypeMetaKind(typ[typ.getNumChildren()-1], elseKind);
+    return getTypeMetaKind(typ[typ.getNumChildren() - 1], elseKind);
   }
   std::string sname = getName(typ);
   std::map<std::string, MetaKind>::const_iterator it =
@@ -1583,8 +1583,8 @@ MetaKind SmtMetaReduce::getMetaKindReturn(const Expr& child, MetaKind parentCtx)
     if (sname.compare(0, 5, "$smd_") == 0)
     {
       MetaKind tknew = getTypeMetaKind(htype);
-      Trace("smt-meta") << "...use datatype embedding name for " << htype << ", got "
-                        << metaKindToString(tknew) << std::endl;
+      Trace("smt-meta") << "...use datatype embedding name for " << htype
+                        << ", got " << metaKindToString(tknew) << std::endl;
       Assert(tknew != MetaKind::NONE);
       return tknew;
     }
