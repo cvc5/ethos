@@ -562,11 +562,9 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addLitSym(
       "@bv", {kInt, kInt}, kT, "($vsm_binary x2 x1)");
   addEunoiaReduceSym("@bit", {kInt, kBitVec}, "($eo_to_smt (extract x1 x1 x2))");
-  addLitBinSym("@from_bools",
-               {kBool, kBitVec},
-               "($smt_builtin_z_inc x2)",
-               "($smt_builtin_z_add ($smt_builtin_ite x1 ($smtx_pow2 x2) "
-               "$smt_builtin_z_zero) x3)");
+  addEunoiaReduceSym("@from_bools",
+                     {kBool, kBitVec},
+                     "($eo_to_smt (concat (ite x1 #b1 #b0) x2))");
   // tuples
   // these allow Herbrand interpretations
   addTypeSym("Tuple", {kType, kType});
