@@ -54,6 +54,7 @@
 (echo "trim-defs-cmd (depends bvultbv (ite (bvult x1 x2) (@bv 1 1) (@bv 0 1)))")
 (echo "trim-defs-cmd (depends bvsltbv (ite (bvslt x1 x2) (@bv 1 1) (@bv 0 1)))")
 (echo "trim-defs-cmd (depends @bit (extract x1 x1 x2))")
+(echo "trim-defs-cmd (depends @from_bools ($eo_to_smt (concat (ite x1 #b1 #b0) x2)))")
 (echo "trim-defs-cmd (depends forall (not (exists x1 (not x2))))")
 (echo "trim-defs-cmd (depends lambda ($eo_List_cons x1 x2) $eo_List_nil (lambda x2 x3))")
 

@@ -475,9 +475,9 @@ def __eo_to_smt : Term -> SmtTerm
   | (Term.String s) => (SmtTerm.String s)
   | (Term.Binary w n) => (SmtTerm.Binary w n)
   | (Term.Var s T) => (SmtTerm.Var s (__eo_to_smt_type T))
-  | Term.not => SmtTerm.not
-  | Term.and => SmtTerm.and
-  | Term.eq => SmtTerm.eq
+  | (Term.Apply Term.not x1) => (SmtTerm.Apply SmtTerm.not (__eo_to_smt x1))
+  | (Term.Apply (Term.Apply Term.and x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and (__eo_to_smt x1)) (__eo_to_smt x2))
+  | (Term.Apply (Term.Apply Term.eq x1) x2) => (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq (__eo_to_smt x1)) (__eo_to_smt x2))
   | (Term.Apply f y) => (SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt y))
   | y => SmtTerm.None
 
@@ -531,5 +531,10 @@ by
   sorry
 
 
+
+/- ---------------------------------------------- -/
+
+
+/- ---------------------------------------------- -/
 
 end Eo

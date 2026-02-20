@@ -1,23 +1,5 @@
 ;;; utilities
 
-(declare-const $eo_Pair (-> Type Type Type))
-(declare-parameterized-const $eo_pair ((U Type :implicit) (T Type :implicit))
-  (-> U T ($eo_Pair U T)))
-
-(program $pair_first ((T Type) (S Type) (t T) (s S))
-  :signature (($eo_Pair T S)) T
-  (
-  (($pair_first ($eo_pair t s)) t)
-  )
-)
-
-(program $pair_second ((T Type) (S Type) (t T) (s S))
-  :signature (($eo_Pair T S)) S
-  (
-  (($pair_second ($eo_pair t s)) s)
-  )
-)
-
 ; Indicates that a formula was not given
 (declare-const $eo_NullBool Bool)
 
@@ -64,15 +46,6 @@
 ; push an assumption to the state
 (define $eo_push_assume ((F Bool) (s $eo_State :list))
   ($s_cons ($so_assume F) s))
-; pop the last assumption from the state
-(program $eo_pop_assume ((F Bool) (tail $eo_State :list) (so $eo_StateObj))
-  :signature ($eo_State) ($eo_Pair Bool $eo_State)
-  (
-  (($eo_pop_assume ($s_cons ($so_assume F) tail)) ($eo_pair F tail))
-  (($eo_pop_assume ($s_cons so tail))             ($eo_pop_assume tail))
-  ; otherwise stuck if nil
-  )
-)
 ; push a formula F proven by a step to the state
 (define $eo_push_proven ((F Bool) (proven Bool) (s $eo_State :list))
   (eo::define ((newState ($s_cons ($so_proven F) s)))
@@ -135,18 +108,37 @@ $EO_RULE_INVOKE$
   )
 )
 
+; 
+(program $eo_invoke_step_pop_rec
+  ((S $eo_State) (tail $eo_State :list) (F Bool) (so $eo_StateObj)
+   (r $eo_Rule) (proven Bool) (args $eo_AList) (premises $eo_PList))
+  :signature ($eo_Rule Bool $eo_AList $eo_PList $eo_State $eo_State) $eo_State
+  (
+  (($eo_invoke_step_pop_rec r proven args premises S ($s_cons ($so_assume F) tail))
+    ; we found the assume to pop, pass F as the assumption and add the proven
+    ; formula to the tail of the state.
+    ($eo_push_proven ($eo_invoke_step r proven F args premises S) proven tail))
+  (($eo_invoke_step_pop_rec r proven args premises S ($s_cons so tail))
+    ; pop the state object so, we remember the current state S.
+    ($eo_invoke_step_pop_rec r proven args premises S tail))
+  ; otherwise stuck if nil
+  )
+)
+
 (program $eo_invoke_cmd 
   ((S $eo_State) (F Bool)
    (r $eo_Rule) (proven Bool) (premises $eo_PList) (args $eo_AList))
   :signature ($eo_Cmd $eo_State) $eo_State
   (
+  ; note that assume / assume-push are identical.
+  ; in practice they are only different since the former is intended to mirror
+  ; the user assertions in an smt2 script and the latter is not.
   (($eo_invoke_cmd ($cmd_assume F) S)           ($eo_push_assume F S))
   (($eo_invoke_cmd ($cmd_assume-push F) S)      ($eo_push_assume F S))
   (($eo_invoke_cmd ($cmd_step r proven premises args) S)    
      ($eo_push_proven ($eo_invoke_step r proven $eo_NullBool args premises S) proven S))
   (($eo_invoke_cmd ($cmd_step-pop r proven premises args) S)
-     (eo::define ((ps ($eo_pop_assume S)))
-     ($eo_push_proven ($eo_invoke_step r proven ($pair_first ps) args premises S) proven ($pair_second ps))))
+     ($eo_invoke_step_pop_rec r proven args premises S S))
   )
 )
 

@@ -157,7 +157,8 @@ class ModelSmtNew : public StdPlugin
   /** Print for type */
   void printDecl(const std::string& name,
                  const std::vector<Kind>& args,
-                 Kind ret = Kind::PARAM);
+                 Kind ret = Kind::PARAM,
+                 size_t nopqArgs = 0);
   void printAuxProgramCase(const std::string& name,
                            const std::vector<Kind>& args,
                            const std::string& ret,
@@ -177,6 +178,7 @@ class ModelSmtNew : public StdPlugin
   std::map<Kind, std::string> d_kindToEoCons;
   std::map<Kind, std::string> d_kindToType;
   std::map<std::string, std::string> d_overloadRevert;
+  std::map<std::string, size_t> d_opqArgs;
   Expr d_null;
   /** Auxiliary programs for SMT-LIB model evaluation */
   std::stringstream d_modelEvalProgs;

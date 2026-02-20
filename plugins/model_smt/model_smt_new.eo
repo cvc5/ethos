@@ -39,6 +39,10 @@
 (declare-parameterized-const $smd_sm.String
   ((s $smt_builtin_String :opaque)) $smt_Term)
 (define $sm_string ((s $smt_builtin_String)) ($smd_sm.String s))
+; helpers
+(define $sm_string_empty () ($smd_sm.String $smt_builtin_str_empty))
+(define $sm_string_c0 () ($smd_sm.String ($smt_apply_0 """0""")))
+(define $sm_string_c9 () ($smd_sm.String ($smt_apply_0 """9""")))
 
 (declare-parameterized-const $smd_sm.Binary
   ((w $smt_builtin_Int :opaque) (v $smt_builtin_Int :opaque)) $smt_Term)
@@ -68,6 +72,13 @@
 (define $sm_exists ((v $smt_Term) (F $smt_Term))
   ($smd_sm.exists v F))
 
+; forall
+(declare-parameterized-const $smd_sm.forall
+  ((v $smt_Term :opaque) (F $smt_Term :opaque))
+  $smt_Term)
+(define $sm_forall ((v $smt_Term) (F $smt_Term))
+  ($smd_sm.forall v F))
+  
 ; lambda
 (declare-parameterized-const $smd_sm.lambda
   ((v $smt_Term :opaque) (t $smt_Term :opaque))

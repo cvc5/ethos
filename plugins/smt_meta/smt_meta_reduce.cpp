@@ -239,6 +239,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
     //  and use the eo.SmtTerm selector
     if (parent != child)
     {
+#if 0
       if (parent == MetaKind::EUNOIA
           && (child == MetaKind::SMT || child == MetaKind::SMT_TYPE
               || child == MetaKind::SMT_VALUE))
@@ -259,6 +260,7 @@ bool SmtMetaReduce::printEmbPatternMatch(const Expr& c,
                       << " / " << metaKindToString(child) << " in " << tcur
                       << " within " << c;
       }
+#endif
     }
     if (ck == Kind::APPLY)
     {
