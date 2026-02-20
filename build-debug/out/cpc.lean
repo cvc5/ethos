@@ -108,7 +108,7 @@ def smt_lit_int_pow2 : smt_lit_Int -> smt_lit_Int
 def smt_lit_int_log2 : smt_lit_Int -> smt_lit_Int
   | _ => 0 -- FIXME
 
-def smt_lit_str_leq : smt_lit_String -> smt_lit_String -> smt_lit_Bool
+def smt_lit_str_lt : smt_lit_String -> smt_lit_String -> smt_lit_Bool
   | _, _ => false -- FIXME
 def smt_lit_str_from_int : smt_lit_Int -> smt_lit_String
   | _ => "" -- FIXME
@@ -159,8 +159,13 @@ def smt_lit_str_replace_re_all : smt_lit_String -> smt_lit_RegLan -> smt_lit_Str
 SMT-LIB types.
 -/
 inductive SmtType : Type where
-  | Stuck : SmtType
+  | None : SmtType
   | Bool : SmtType
+  | Int : SmtType
+  | Real : SmtType
+  | BitVec : smt_lit_Int -> SmtType
+  | Char : SmtType
+  | Seq : SmtType -> SmtType
 
 deriving DecidableEq
 
@@ -168,7 +173,7 @@ deriving DecidableEq
 SMT-LIB terms.
 -/
 inductive SmtTerm : Type where
-  | Stuck : SmtTerm
+  | None : SmtTerm
   | Boolean : smt_lit_Bool -> SmtTerm
   | Numeral : smt_lit_Int -> SmtTerm
   | Rational : smt_lit_Rat -> SmtTerm
@@ -223,6 +228,8 @@ def smt_lit_veq : SmtValue -> SmtValue -> smt_lit_Bool
   | x, y => decide (x = y)
 
 /- Definition of SMT-LIB model semantics -/
+
+mutual
 
 def __smtx_pow2 : smt_lit_Int -> smt_lit_Int
   | i => (smt_lit_ite (smt_lit_zleq i 0) 1 (smt_lit_zmult 2 (__smtx_pow2 (smt_lit_zplus i (smt_lit_zneg 1)))))
@@ -284,6 +291,8 @@ def __smtx_model_eval : SmtTerm -> SmtValue
 
 
 
+
+end
 
 inductive smt_interprets : SmtTerm -> Bool -> Prop
   | intro_true  (t : SmtTerm) :
@@ -451,7 +460,12 @@ def __eo_prog_symm : Proof -> Term
 
 def __eo_to_smt_type : Term -> SmtType
   | Term.Bool => SmtType.Bool
-  | T => SmtType.Stuck
+  | Term.Int => SmtType.Int
+  | Term.Real => SmtType.Real
+  | (Term.Apply Term.BitVec (Term.Numeral n1)) => (SmtType.BitVec n1)
+  | Term.Char => SmtType.Char
+  | (Term.Apply Term.Seq x1) => (SmtType.Seq (__eo_to_smt_type x1))
+  | T => SmtType.None
 
 
 def __eo_to_smt : Term -> SmtTerm
@@ -465,7 +479,7 @@ def __eo_to_smt : Term -> SmtTerm
   | Term.and => SmtTerm.and
   | Term.eq => SmtTerm.eq
   | (Term.Apply f y) => (SmtTerm.Apply (__eo_to_smt f) (__eo_to_smt y))
-  | y => SmtTerm.Stuck
+  | y => SmtTerm.None
 
 
 

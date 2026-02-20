@@ -108,7 +108,7 @@ def smt_lit_int_pow2 : smt_lit_Int -> smt_lit_Int
 def smt_lit_int_log2 : smt_lit_Int -> smt_lit_Int
   | _ => 0 -- FIXME
 
-def smt_lit_str_leq : smt_lit_String -> smt_lit_String -> smt_lit_Bool
+def smt_lit_str_lt : smt_lit_String -> smt_lit_String -> smt_lit_Bool
   | _, _ => false -- FIXME
 def smt_lit_str_from_int : smt_lit_Int -> smt_lit_String
   | _ => "" -- FIXME
@@ -203,7 +203,11 @@ def smt_lit_veq : SmtValue -> SmtValue -> smt_lit_Bool
 
 /- Definition of SMT-LIB model semantics -/
 
+mutual
+
 $LEAN_SMT_EVAL_DEFS$
+
+end
 
 inductive smt_interprets : SmtTerm -> Bool -> Prop
   | intro_true  (t : SmtTerm) :

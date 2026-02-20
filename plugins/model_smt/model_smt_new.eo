@@ -15,8 +15,8 @@
 
 ;;;;;; SMT term constructors
 
-(declare-const $smd_sm.Stuck $smt_Term)
-(define $sm_stuck () $smd_sm.Stuck)
+(declare-const $smd_sm.None $smt_Term)
+(define $sm_none () $smd_sm.None)
 
 ; the literal types
 (declare-parameterized-const $smd_sm.Boolean
@@ -80,8 +80,8 @@ $SMT_TERM_CONSTRUCTORS$
 
 ;;;;;; SMT type constructors
 
-(declare-const $smd_tsm.Stuck $smt_Type)
-(define $tsm_Stuck () $smd_tsm.Stuck)
+(declare-const $smd_tsm.None $smt_Type)
+(define $tsm_none () $smd_tsm.None)
 
 ; The Boolean type
 (declare-const $smd_tsm.Bool $smt_Type)
@@ -561,12 +561,15 @@ $SMT_EVAL_CASES$
 
 ;;;;;;;;;;;;;;;;;;;;;;
 
-(program $eo_to_smt_type ((T Type))
+(program $eo_to_smt_type 
+  ((T Type) (n1 $smt_builtin_Int) 
+  (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type)
+  (x1 T1) (x2 T2) (x3 T3) (x4 T4) (x5 T5))
   :signature (Type) $smt_Type
   (
   (($eo_to_smt_type Bool) $tsm_Bool)
 $EO_TO_SMT_TYPE_CASES$
-  (($eo_to_smt_type T)    $tsm_Stuck)
+  (($eo_to_smt_type T)    $tsm_none)
   )
 )
 
@@ -585,7 +588,7 @@ $EO_TO_SMT_TYPE_CASES$
   (($eo_to_smt ($eo_Var s T))     ($sm_Var s ($eo_to_smt_type T)))
 $EO_TO_SMT_CASES$
   (($eo_to_smt (f y))             ($sm_apply ($eo_to_smt f) ($eo_to_smt y)))
-  (($eo_to_smt y)                 $sm_stuck)
+  (($eo_to_smt y)                 $sm_none)
   )
 )
 

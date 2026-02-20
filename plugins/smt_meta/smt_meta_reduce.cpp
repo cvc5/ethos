@@ -1046,12 +1046,7 @@ void SmtMetaReduce::finalizeDecl(const Expr& e)
     nopqArgs = ct.getNumChildren() - 1;
     retType = ct[nopqArgs];
   }
-  else if (attr == Attr::AMB || attr == Attr::AMB_DATATYPE_CONSTRUCTOR)
-  {
-    Assert(ct.getNumChildren() == 2);
-    nopqArgs = 1;
-    retType = ct[1];
-  }
+  AlwaysAssert(attr != Attr::AMB && attr!=Attr::AMB_DATATYPE_CONSTRUCTOR);
   std::stringstream sygusArgs;
   for (size_t i = 0; i < nopqArgs; i++)
   {

@@ -18,6 +18,21 @@
 namespace ethos {
 namespace mnew {
 
+std::string sApply(const std::string& op, const std::string& args)
+{
+  std::stringstream ss;
+  if (args.empty())
+  {
+    ss << op;
+  }
+  else
+  {
+    // assumes args starts with space
+    ss << "(" << op << args << ")";
+  }
+  return ss.str();
+}
+
 std::string smtZEq(const std::string& c1, const std::string& c2)
 {
   std::stringstream ss;
@@ -28,6 +43,12 @@ std::string smtZAdd(const std::string& c1, const std::string& c2)
 {
   std::stringstream ss;
   ss << "($smt_builtin_z_+ " << c1 << " " << c2 << ")";
+  return ss.str();
+}
+std::string smtZSub(const std::string& c1, const std::string& c2)
+{
+  std::stringstream ss;
+  ss << "($smt_builtin_z_- " << c1 << " " << c2 << ")";
   return ss.str();
 }
 std::string smtZLeq(const std::string& c1, const std::string& c2)
@@ -184,7 +205,8 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   // back
   addConstFoldSym("$eoo_-.2", {kT}, kT);
   d_overloadRevert["$eoo_-.2"] = "-";
-  addConstFoldSym("abs", {kInt}, kInt);
+  //addConstFoldSym("abs", {kInt}, kInt);
+  addTermReduceSym("abs", {kInt}, "(ite (< x1 0) (- 0 x1) x1)");
   //addConstFoldSym(">=", {kT, kT}, kBool);
   addTermReduceSym(">=", {kT, kT}, "(<= x2 x1)");
   addConstFoldSym("<=", {kT, kT}, kBool);
@@ -224,7 +246,8 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addConstFoldSym("str.to_int", {kString}, kInt);
   addConstFoldSym("str.is_digit", {kString}, kBool); // TODO: term reduce
   addConstFoldSym("str.contains", {kString, kString}, kBool);
-  addConstFoldSym("str.suffixof", {kString, kString}, kBool); // TODO: term reduce
+  //addConstFoldSym("str.suffixof", {kString, kString}, kBool); // TODO: term reduce
+  addTermReduceSym("str.suffixof", {kString, kString}, "(= x1 (str.substr x2 (- (str.len x2) (str.len x1)) (str.len x1)))");
   //addConstFoldSym("str.prefixof", {kString, kString}, kBool);
   addTermReduceSym("str.prefixof", {kString, kString}, "(= x1 (str.substr x2 0 (str.len x1)))");
   //addConstFoldSym("str.<=", {kString, kString}, kBool);
@@ -312,7 +335,7 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
                                  smtZLt("x1", "x3")));
   std::stringstream ssExtractRet;
   ssExtractRet << "($vsm_binary_mod_w ";
-  ssExtractRet << smtApp("-", smtZAdd("x1", "$smt_builtin_z_one"), "x2");
+  ssExtractRet << smtZSub(smtZAdd("x1", "$smt_builtin_z_one"), "x2");
   ssExtractRet << " ($smtx_binary_extract x3 x4 x1 x2))";
   addLitSym("extract",
             {kInt, kInt, kBitVec},
@@ -554,7 +577,7 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
       {kString},
       "($eo_to_smt (str.indexof_re x1 (re.comp (re.range \"0\" \"9\")) 0))");
   // sequences
-  addReduceSym("seq.empty", {kT}, "$smtx_empty_seq");
+  addReduceSym("seq.empty", {kType}, "$smtx_empty_seq");
   d_specialCases["seq.empty"].emplace_back(
       "(seq.empty (Seq Char))", "($sm_string $smt_builtin_str_empty)");
   addRecReduceSym("seq.unit", {kT}, "($smtx_seq_unit e1)");
@@ -562,7 +585,7 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   // sets
   // (Set T) is modelled as (Array T Bool).
   addTypeSym("Set", {kType});
-  addReduceSym("set.empty", {kT}, "$smtx_empty_set");
+  addReduceSym("set.empty", {kType}, "$smtx_empty_set");
   addRecReduceSym("set.singleton", {kT}, "($smtx_set_singleton e1)");
   addRecReduceSym("set.inter", {kT, kT}, "($smtx_set_inter e1 e2)");
   addRecReduceSym("set.minus", {kT, kT}, "($smtx_set_minus e1 e2)");
@@ -830,22 +853,48 @@ void ModelSmtNew::printDecl(const std::string& name,
   cname << "$smd_" << prefix << "." << name;
   (*out) << "(declare-parameterized-const " << cname.str() << " (";
   std::stringstream macroVarList;
+  std::stringstream macroOpqApply;
   std::string sret = cname.str();
+  std::stringstream eoToSmtPatArgs;
+  std::stringstream eoToSmtRetArgs;
+  bool printedOpq = false;
   for (size_t i = 0, nargs = args.size(); i < nargs; i++)
   {
+    // We do not use a generic "Apply" for types, instead all arguments
+    // should be opaque.
     std::stringstream stmp;
     stmp << (i > 0 ? " " : "") << "(x" << (i + 1) << " ";
     if (args[i] == Kind::TYPE)
     {
+      Assert (!printedOpq);
+      // type arguments are always opaque
+      // this includes types as arguments to other types and types indexing
+      // seq.empty and set.empty.
       stmp << "$smt_Type :opaque";
+      macroOpqApply << " x" << (i+1);
+      eoToSmtPatArgs << " x" << (i+1);
+      eoToSmtRetArgs << " ($eo_to_smt_type x" << (i+1) << ")";
     }
     else if (ret == Kind::TYPE && args[i] == Kind::NUMERAL)
     {
-      stmp << "$smt_builtin_Int";
+      Assert (!printedOpq);
+      // integer index on types are opaque (i.e. BitVec)
+      stmp << "$smt_builtin_Int :opaque";
+      macroOpqApply << " x" << (i+1);
+      eoToSmtPatArgs << " ($eo_numeral n" << (i+1) << ")";
+      eoToSmtRetArgs << " n" << (i+1);
     }
     else if (ret != Kind::TYPE)
     {
+      if (!printedOpq)
+      {
+        printedOpq = true;
+        sret = sApply(sret, macroOpqApply.str());
+      }
       stmp << "$smt_Term";
+      std::stringstream ssnext;
+      ssnext << "($sm_apply " << sret << " x" << (i + 1) << ")";
+      sret = ssnext.str();
     }
     else
     {
@@ -853,24 +902,31 @@ void ModelSmtNew::printDecl(const std::string& name,
     }
     stmp << ")";
     (*out) << stmp.str();
-    macroVarList << stmp.str();
-    std::stringstream ssnext;
-    ssnext << "($sm_apply " << sret << " x" << (i + 1) << ")";
-    sret = ssnext.str();
+    // define doesn't take :opaque
+    std::string marg = stmp.str();
+    replace(marg, " :opaque", "");
+    macroVarList << marg;
+  }
+  // if all arguments were opaque, print them now
+  if (!printedOpq)
+  {
+    sret = sApply(sret, macroOpqApply.str());
   }
   (*out) << ") " << (ret == Kind::TYPE ? "$smt_Type" : "$smt_Term") << ")"
          << std::endl;
-  (*out) << "(define $" << prefix << "_" << name << " (" << macroVarList.str()
-         << ") ";
-  (*out) << sret << ")" << std::endl;
+  (*out) << "(define $" << prefix << "_" << name << " (" << macroVarList.str();
+  (*out) << ") " << sret << ")" << std::endl;
+  std::string eoToSmtPat = sApply(name, eoToSmtPatArgs.str());
+  std::string eoToSmtRet = sApply(cname.str(), eoToSmtRetArgs.str());
   // if a term declaration, write the mapping in eo_to_smt
   if (ret == Kind::TYPE)
   {
+    d_eoToSmtType << "  (($eo_to_smt_type " << eoToSmtPat << ") " << eoToSmtRet << ")"
+               << std::endl;
   }
   else
   {
-    // TODO: opaque arguments?
-    d_eoToSmt << "  (($eo_to_smt " << name << ") " << cname.str() << ")"
+    d_eoToSmt << "  (($eo_to_smt " << eoToSmtPat << ") " << eoToSmtRet << ")"
               << std::endl;
   }
 }

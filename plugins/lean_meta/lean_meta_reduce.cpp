@@ -670,7 +670,8 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   // axiom
   (*out) << decl.str();
   (*out) << cases.str();
-  // (*out) << "decreasing_by sorry" << std::endl;
+  // FIXME
+  //(*out) << "decreasing_by sorry" << std::endl;
   (*out) << std::endl;
   (*out) << std::endl;
   // if it corresponds to a proof rule, print a Lean theorem
@@ -810,12 +811,7 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
     nopqArgs = ct.getNumChildren() - 1;
     retType = ct[nopqArgs];
   }
-  else if (attr == Attr::AMB || attr == Attr::AMB_DATATYPE_CONSTRUCTOR)
-  {
-    Assert(ct.getNumChildren() == 2);
-    nopqArgs = 1;
-    retType = ct[1];
-  }
+  AlwaysAssert(attr != Attr::AMB && attr!=Attr::AMB_DATATYPE_CONSTRUCTOR);
   // revert overloads
   if (cnamek.compare(0, 5, "$eoo_") == 0)
   {
