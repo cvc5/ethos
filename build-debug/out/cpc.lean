@@ -2,104 +2,339 @@ set_option linter.unusedVariables false
 
 namespace Eo
 
-/- Builtin data types -/
-
-abbrev eo_lit_Bool := Bool
-abbrev eo_lit_Int := Int
-abbrev eo_lit_Rat := Rat
-abbrev eo_lit_String := String
+abbrev smt_lit_Bool := Bool
+abbrev smt_lit_Int := Int
+abbrev smt_lit_Rat := Rat
+abbrev smt_lit_String := String
+abbrev smt_lit_RegLan := String -- FIXME
 
 /- Evaluation functions -/
 
-def eo_lit_not : eo_lit_Bool -> eo_lit_Bool
+def smt_lit_ite {T : Type} (c : smt_lit_Bool) (t e : T) : T :=
+  if c then t else e
+def smt_lit_not : smt_lit_Bool -> smt_lit_Bool
   | x => Bool.not x
-def eo_lit_and : eo_lit_Bool -> eo_lit_Bool -> eo_lit_Bool
+def smt_lit_and : smt_lit_Bool -> smt_lit_Bool -> smt_lit_Bool
   | x, y => x && y
-def eo_lit_or : eo_lit_Bool -> eo_lit_Bool -> eo_lit_Bool
+def smt_lit_iff : smt_lit_Bool -> smt_lit_Bool -> smt_lit_Bool
+  | x, y => decide (x = y)
+def smt_lit_or : smt_lit_Bool -> smt_lit_Bool -> smt_lit_Bool
   | x, y => x || y
-def eo_lit_xor : eo_lit_Bool -> eo_lit_Bool -> eo_lit_Bool
+def smt_lit_xor : smt_lit_Bool -> smt_lit_Bool -> smt_lit_Bool
   | x, y => Bool.xor x y
 
-def eo_lit_ite {T : Type} (c : Bool) (t e : T) : T :=
-  if c then t else e
-
 -- Integer arithmetic
-def eo_lit_zplus : eo_lit_Int -> eo_lit_Int -> eo_lit_Int
+def smt_lit_zplus : smt_lit_Int -> smt_lit_Int -> smt_lit_Int
   | x, y => x+y
-def eo_lit_zmult : eo_lit_Int -> eo_lit_Int -> eo_lit_Int
+def smt_lit_zmult : smt_lit_Int -> smt_lit_Int -> smt_lit_Int
   | x, y => x*y
-def eo_lit_zneg : eo_lit_Int -> eo_lit_Int
+def smt_lit_zneg : smt_lit_Int -> smt_lit_Int
   | x => -x
-def eo_lit_zeq : eo_lit_Int -> eo_lit_Int -> eo_lit_Bool
+def smt_lit_zeq : smt_lit_Int -> smt_lit_Int -> smt_lit_Bool
   | x, y => decide (x = y)
-def eo_lit_zleq : eo_lit_Int -> eo_lit_Int -> eo_lit_Bool
+def smt_lit_zleq : smt_lit_Int -> smt_lit_Int -> smt_lit_Bool
   | x, y => decide (x <= y)
-def eo_lit_zlt : eo_lit_Int -> eo_lit_Int -> eo_lit_Bool
+def smt_lit_zlt : smt_lit_Int -> smt_lit_Int -> smt_lit_Bool
   | x, y => decide (x < y)
-def eo_lit_div : eo_lit_Int -> eo_lit_Int -> eo_lit_Int
+def smt_lit_div : smt_lit_Int -> smt_lit_Int -> smt_lit_Int
   | x, y => x/y
-def eo_lit_mod : eo_lit_Int -> eo_lit_Int -> eo_lit_Int
+def smt_lit_mod : smt_lit_Int -> smt_lit_Int -> smt_lit_Int
   | x, y => x%y
   
 -- Rational arithmetic
-def eo_lit_mk_rational : eo_lit_Int -> eo_lit_Int -> eo_lit_Rat
+def smt_lit_mk_rational : smt_lit_Int -> smt_lit_Int -> smt_lit_Rat
   | x, y => x/y
-def eo_lit_qplus : eo_lit_Rat -> eo_lit_Rat -> eo_lit_Rat
+def smt_lit_qplus : smt_lit_Rat -> smt_lit_Rat -> smt_lit_Rat
   | x, y => x+y
-def eo_lit_qmult : eo_lit_Rat -> eo_lit_Rat -> eo_lit_Rat
+def smt_lit_qmult : smt_lit_Rat -> smt_lit_Rat -> smt_lit_Rat
   | x, y => x*y
-def eo_lit_qneg : eo_lit_Rat -> eo_lit_Rat
+def smt_lit_qneg : smt_lit_Rat -> smt_lit_Rat
   | x => -x
-def eo_lit_qeq : eo_lit_Rat -> eo_lit_Rat -> eo_lit_Bool
+def smt_lit_qeq : smt_lit_Rat -> smt_lit_Rat -> smt_lit_Bool
   | x, y => decide (x = y)
-def eo_lit_qleq : eo_lit_Rat -> eo_lit_Rat -> eo_lit_Bool
+def smt_lit_qleq : smt_lit_Rat -> smt_lit_Rat -> smt_lit_Bool
   | x, y => decide (x <= y)
-def eo_lit_qlt : eo_lit_Rat -> eo_lit_Rat -> eo_lit_Bool
+def smt_lit_qlt : smt_lit_Rat -> smt_lit_Rat -> smt_lit_Bool
   | x, y => decide (x < y)
-def eo_lit_qdiv : eo_lit_Rat -> eo_lit_Rat -> eo_lit_Rat
+def smt_lit_qdiv : smt_lit_Rat -> smt_lit_Rat -> smt_lit_Rat
   | x, y => x/y
   
 -- Conversions
-def eo_lit_to_int : eo_lit_Rat -> eo_lit_Int
+def smt_lit_to_int : smt_lit_Rat -> smt_lit_Int
   | x => (Rat.floor x)
-def eo_lit_to_real : eo_lit_Int -> eo_lit_Rat
-  | x => (eo_lit_mk_rational x 1)
+def smt_lit_to_real : smt_lit_Int -> smt_lit_Rat
+  | x => (smt_lit_mk_rational x 1)
 
 -- Strings
-def eo_lit_str_len : eo_lit_String -> eo_lit_Int
+def smt_lit_str_len : smt_lit_String -> smt_lit_Int
   | x => Int.ofNat x.length
-def eo_lit_str_concat : eo_lit_String -> eo_lit_String -> eo_lit_String
+def smt_lit_str_concat : smt_lit_String -> smt_lit_String -> smt_lit_String
   | x, y => x ++ y
-def eo_lit_str_substr (s : eo_lit_String) (i n : eo_lit_Int) : eo_lit_String :=
-  let len : Int := (eo_lit_str_len s)
+def smt_lit_str_substr (s : smt_lit_String) (i n : smt_lit_Int) : smt_lit_String :=
+  let len : Int := (smt_lit_str_len s)
   if i < 0 || n <= 0 || i >= len then
     ""
   else
     let start : Nat := Int.toNat i
     let take  : Nat := Int.toNat (min n (len - i))
     String.Pos.Raw.extract s ⟨start⟩ ⟨start + take⟩
-def eo_lit_str_indexof_rec (s t : eo_lit_String) (i len : Nat) : eo_lit_Int :=
-  if (i+len)>(eo_lit_str_len s) then
+def smt_lit_str_indexof_rec (s t : smt_lit_String) (i len : Nat) : smt_lit_Int :=
+  if (i+len)>(smt_lit_str_len s) then
     -1
   else if String.Pos.Raw.substrEq s ⟨i⟩ t ⟨0⟩ len then
     i
   else 
-    eo_lit_str_indexof_rec s t (i+1) len
+    smt_lit_str_indexof_rec s t (i+1) len
 decreasing_by sorry  -- FIXME
-def eo_lit_str_indexof (s t : eo_lit_String) (i : eo_lit_Int) : eo_lit_Int :=
+def smt_lit_str_indexof (s t : smt_lit_String) (i : smt_lit_Int) : smt_lit_Int :=
   if i < 0 then
     -1
   else
-    (eo_lit_str_indexof_rec s t (Int.toNat i) (Int.toNat (eo_lit_str_len t)))
-def eo_lit_str_to_code (s : eo_lit_String) : eo_lit_Int :=
+    (smt_lit_str_indexof_rec s t (Int.toNat i) (Int.toNat (smt_lit_str_len t)))
+def smt_lit_str_to_code (s : smt_lit_String) : smt_lit_Int :=
   match s.toList with
   | [c] => Int.ofNat c.toNat
   | _   => -1
-def eo_lit_str_from_code (i : eo_lit_Int) : eo_lit_String :=
+def smt_lit_str_from_code (i : smt_lit_Int) : smt_lit_String :=
   if (0 <= i && i <= 196608) then
     String.singleton (Char.ofNat (Int.toNat i))
   else
     ""
+
+-- SMT Beyond Eunoia
+
+def smt_lit_int_pow2 : smt_lit_Int -> smt_lit_Int
+  | _ => 0 -- FIXME
+def smt_lit_int_log2 : smt_lit_Int -> smt_lit_Int
+  | _ => 0 -- FIXME
+
+def smt_lit_str_leq : smt_lit_String -> smt_lit_String -> smt_lit_Bool
+  | _, _ => false -- FIXME
+def smt_lit_str_from_int : smt_lit_Int -> smt_lit_String
+  | _ => "" -- FIXME
+def smt_lit_str_to_int : smt_lit_String -> smt_lit_Int
+  | _ => 0 -- FIXME
+def smt_lit_str_to_upper : smt_lit_String -> smt_lit_String
+  | _ => "" -- FIXME
+def smt_lit_str_to_lower : smt_lit_String -> smt_lit_String
+  | _ => "" -- FIXME
+def smt_lit_str_update : smt_lit_String -> smt_lit_Int -> smt_lit_String -> smt_lit_String
+  | _, _, _ => "" -- FIXME
+def smt_lit_str_rev : smt_lit_String -> smt_lit_String
+  | _ => "" -- FIXME
+def smt_lit_str_replace : smt_lit_String -> smt_lit_String -> smt_lit_String -> smt_lit_String
+  | _, _, _ => "" -- FIXME
+def smt_lit_str_replace_all : smt_lit_String -> smt_lit_String -> smt_lit_String -> smt_lit_String
+  | _, _, _ => "" -- FIXME
+def smt_lit_str_contains : smt_lit_String -> smt_lit_String -> smt_lit_Bool
+  | _, _ => false -- FIXME
+def smt_lit_str_to_re : smt_lit_String -> smt_lit_RegLan
+  | _ => "" -- FIXME
+def smt_lit_re_mult : smt_lit_RegLan -> smt_lit_RegLan
+  | _ => "" -- FIXME
+def smt_lit_re_plus : smt_lit_RegLan -> smt_lit_RegLan
+  | _ => "" -- FIXME
+def smt_lit_re_comp : smt_lit_RegLan -> smt_lit_RegLan
+  | _ => "" -- FIXME
+def smt_lit_re_concat : smt_lit_RegLan -> smt_lit_RegLan -> smt_lit_RegLan
+  | _, _ => "" -- FIXME
+def smt_lit_re_inter : smt_lit_RegLan -> smt_lit_RegLan -> smt_lit_RegLan
+  | _, _ => "" -- FIXME
+def smt_lit_re_union : smt_lit_RegLan -> smt_lit_RegLan -> smt_lit_RegLan
+  | _, _ => "" -- FIXME
+def smt_lit_re_range : smt_lit_String -> smt_lit_String -> smt_lit_RegLan
+  | _, _ => "" -- FIXME
+def smt_lit_str_in_re : smt_lit_String -> smt_lit_RegLan -> smt_lit_Bool
+  | _, _ => false -- FIXME
+def smt_lit_str_indexof_re : smt_lit_String -> smt_lit_RegLan -> smt_lit_Int -> smt_lit_Int
+  | _, _, _ => 0 -- FIXME
+def smt_lit_str_replace_re : smt_lit_String -> smt_lit_RegLan -> smt_lit_String -> smt_lit_String
+  | _, _, _ => "" -- FIXME
+def smt_lit_str_replace_re_all : smt_lit_String -> smt_lit_RegLan -> smt_lit_String -> smt_lit_String
+  | _, _, _ => "" -- FIXME
+
+/- ----------------------- should move ----------------------- -/
+
+/- 
+SMT-LIB types.
+-/
+inductive SmtType : Type where
+  | Stuck : SmtType
+  | Bool : SmtType
+
+deriving DecidableEq
+
+/- 
+SMT-LIB terms.
+-/
+inductive SmtTerm : Type where
+  | Stuck : SmtTerm
+  | Boolean : smt_lit_Bool -> SmtTerm
+  | Numeral : smt_lit_Int -> SmtTerm
+  | Rational : smt_lit_Rat -> SmtTerm
+  | String : smt_lit_String -> SmtTerm
+  | Binary : smt_lit_Int -> smt_lit_Int -> SmtTerm
+  | Apply : SmtTerm -> SmtTerm -> SmtTerm
+  | Var : smt_lit_String -> SmtType -> SmtTerm
+  | not : SmtTerm
+  | and : SmtTerm
+  | eq : SmtTerm
+
+deriving DecidableEq
+
+
+mutual
+
+/- 
+SMT-LIB values.
+-/
+inductive SmtValue : Type where
+  | Boolean : smt_lit_Bool -> SmtValue
+  | Numeral : smt_lit_Int -> SmtValue
+  | Rational : smt_lit_Rat -> SmtValue
+  | String : smt_lit_String -> SmtValue
+  | Binary : smt_lit_Int -> smt_lit_Int -> SmtValue
+  | Map : SmtMap -> SmtValue
+  | Apply : SmtValue -> SmtValue -> SmtValue
+  | NotValue : SmtValue
+
+deriving DecidableEq
+
+/-
+SMT-LIB map values.
+-/
+inductive SmtMap : Type where
+  | cons : SmtValue -> SmtValue -> SmtMap -> SmtMap
+  | default : SmtValue -> SmtMap
+deriving DecidableEq
+
+/- 
+SMT-LIB sequence values.
+-/
+inductive SmtSeq : Type where
+  | cons : SmtValue -> SmtSeq -> SmtSeq
+  | empty : SmtSeq
+deriving DecidableEq
+
+end
+
+/- Value equality -/
+def smt_lit_veq : SmtValue -> SmtValue -> smt_lit_Bool
+  | x, y => decide (x = y)
+
+/- Definition of SMT-LIB model semantics -/
+
+def __smtx_pow2 : smt_lit_Int -> smt_lit_Int
+  | i => (smt_lit_ite (smt_lit_zleq i 0) 1 (smt_lit_zmult 2 (__smtx_pow2 (smt_lit_zplus i (smt_lit_zneg 1)))))
+
+
+def __smtx_msm_lookup : SmtMap -> SmtValue -> SmtValue
+  | (SmtMap.cons j e m), i => (smt_lit_ite (smt_lit_veq j i) e (__smtx_msm_lookup m i))
+  | (SmtMap.default e), i => e
+
+
+def __smtx_model_eval_apply : SmtValue -> SmtValue -> SmtValue
+  | (SmtValue.Apply f v), i => (SmtValue.Apply (SmtValue.Apply f v) i)
+  | (SmtValue.Map m), i => (__smtx_msm_lookup m i)
+  | v, i => SmtValue.NotValue
+
+
+def __smtx_model_eval_eq : SmtValue -> SmtValue -> SmtValue
+  | (SmtValue.Boolean b1), (SmtValue.Boolean b2) => (SmtValue.Boolean (smt_lit_iff b1 b2))
+  | (SmtValue.Boolean b1), t2 => SmtValue.NotValue
+  | t1, (SmtValue.Boolean b2) => SmtValue.NotValue
+  | (SmtValue.Numeral n1), (SmtValue.Numeral n2) => (SmtValue.Boolean (smt_lit_zeq n1 n2))
+  | (SmtValue.Numeral n1), t2 => SmtValue.NotValue
+  | t1, (SmtValue.Numeral n2) => SmtValue.NotValue
+  | (SmtValue.Rational r1), (SmtValue.Rational r2) => (SmtValue.Boolean (smt_lit_qeq r1 r2))
+  | (SmtValue.Rational r1), t2 => SmtValue.NotValue
+  | t1, (SmtValue.Rational r2) => SmtValue.NotValue
+  | (SmtValue.String s1), (SmtValue.String s2) => (SmtValue.Boolean (smt_lit_veq (SmtValue.String s1) (SmtValue.String s2)))
+  | (SmtValue.String s1), t2 => SmtValue.NotValue
+  | t1, (SmtValue.String s2) => SmtValue.NotValue
+  | (SmtValue.Binary w1 n1), (SmtValue.Binary w2 n2) => (smt_lit_ite (smt_lit_zeq w1 w2) (SmtValue.Boolean (smt_lit_veq (SmtValue.Binary w1 n1) (SmtValue.Binary w2 n2))) SmtValue.NotValue)
+  | (SmtValue.Binary w1 n1), t2 => SmtValue.NotValue
+  | t1, (SmtValue.Binary w2 n2) => SmtValue.NotValue
+  | SmtValue.NotValue, t2 => SmtValue.NotValue
+  | t1, SmtValue.NotValue => SmtValue.NotValue
+  | t1, t2 => (SmtValue.Boolean (smt_lit_veq t1 t2))
+
+
+def __smtx_model_eval_not : SmtValue -> SmtValue
+  | (SmtValue.Boolean x1) => (SmtValue.Boolean (smt_lit_not x1))
+  | t1 => SmtValue.NotValue
+
+
+def __smtx_model_eval_and : SmtValue -> SmtValue -> SmtValue
+  | (SmtValue.Boolean x1), (SmtValue.Boolean x2) => (SmtValue.Boolean (smt_lit_and x1 x2))
+  | t1, t2 => SmtValue.NotValue
+
+
+def __smtx_model_eval : SmtTerm -> SmtValue
+  | (SmtTerm.Boolean b) => (SmtValue.Boolean b)
+  | (SmtTerm.Numeral n) => (SmtValue.Numeral n)
+  | (SmtTerm.Rational r) => (SmtValue.Rational r)
+  | (SmtTerm.String s) => (SmtValue.String s)
+  | (SmtTerm.Binary w n) => (smt_lit_ite (smt_lit_and (smt_lit_zleq 0 w) (smt_lit_zeq n (smt_lit_mod n (__smtx_pow2 w)))) (SmtValue.Binary w n) SmtValue.NotValue)
+  | (SmtTerm.Apply SmtTerm.not x1) => (__smtx_model_eval_not (__smtx_model_eval x1))
+  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and x1) x2) => (__smtx_model_eval_and (__smtx_model_eval x1) (__smtx_model_eval x2))
+  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq x1) x2) => (__smtx_model_eval_eq (__smtx_model_eval x1) (__smtx_model_eval x2))
+  | (SmtTerm.Apply f y) => (__smtx_model_eval_apply (__smtx_model_eval f) (__smtx_model_eval y))
+  | y => SmtValue.NotValue
+
+
+
+
+inductive smt_interprets : SmtTerm -> Bool -> Prop
+  | intro_true  (t : SmtTerm) :
+      (__smtx_model_eval t) = (SmtValue.Boolean true) ->
+      smt_interprets t true
+  | intro_false (t : SmtTerm) :
+      (__smtx_model_eval t) = (SmtValue.Boolean false)->
+      smt_interprets t false
+
+/- ---------------------------------------------- -/
+  
+
+/- Eunoia literal evaluation defined -/
+
+abbrev eo_lit_Bool := smt_lit_Bool
+abbrev eo_lit_Int := smt_lit_Int
+abbrev eo_lit_Rat := smt_lit_Rat
+abbrev eo_lit_String := smt_lit_String
+
+def eo_lit_ite {T : Type} (c : eo_lit_Bool) (t e : T) : T :=
+  if c then t else e
+abbrev eo_lit_not  := smt_lit_not
+abbrev eo_lit_and  := smt_lit_and
+abbrev eo_lit_iff  := smt_lit_iff
+abbrev eo_lit_or  := smt_lit_or
+abbrev eo_lit_xor  := smt_lit_xor
+abbrev eo_lit_zplus  := smt_lit_zplus
+abbrev eo_lit_zmult  := smt_lit_zmult
+abbrev eo_lit_zneg  := smt_lit_zneg
+abbrev eo_lit_zeq  := smt_lit_zeq
+abbrev eo_lit_zleq  := smt_lit_zleq
+abbrev eo_lit_zlt  := smt_lit_zlt
+abbrev eo_lit_div  := smt_lit_div
+abbrev eo_lit_mod  := smt_lit_mod
+abbrev eo_lit_mk_rational  := smt_lit_mk_rational
+abbrev eo_lit_qplus  := smt_lit_qplus
+abbrev eo_lit_qmult  := smt_lit_qmult
+abbrev eo_lit_qneg  := smt_lit_qneg
+abbrev eo_lit_qeq  := smt_lit_qeq
+abbrev eo_lit_qleq  := smt_lit_qleq
+abbrev eo_lit_qlt  := smt_lit_qlt
+abbrev eo_lit_qdiv  := smt_lit_qdiv
+abbrev eo_lit_to_int  := smt_lit_to_int
+abbrev eo_lit_to_real  := smt_lit_to_real
+abbrev eo_lit_str_len  := smt_lit_str_len
+abbrev eo_lit_str_concat  := smt_lit_str_concat
+abbrev eo_lit_str_substr := smt_lit_str_substr
+abbrev eo_lit_str_indexof_rec := smt_lit_str_indexof_rec
+abbrev eo_lit_str_indexof := smt_lit_str_indexof
+abbrev eo_lit_str_to_code := smt_lit_str_to_code
+abbrev eo_lit_str_from_code := smt_lit_str_from_code
 
 /- Term definition -/
 
@@ -141,68 +376,7 @@ inductive Proof : Type where
   | pf : Term -> Proof
   | Stuck : Proof
 
-/------------------------ should move ------------------------/
-
-/- 
-SMT-LIB types.
--/
-inductive SmtType : Type where
-  | Stuck : Term
-  | Bool : Term
-
-deriving DecidableEq
-
-/- 
-SMT-LIB terms.
--/
-inductive SmtTerm : Type where
-  | Stuck : Term
-  | Boolean : eo_lit_Bool -> Term
-  | Numeral : eo_lit_Int -> Term
-  | Rational : eo_lit_Rat -> Term
-  | String : eo_lit_String -> Term
-  | Binary : eo_lit_Int -> eo_lit_Int -> Term
-  | Apply : SmtTerm -> SmtTerm -> Term
-  | Var : eo_lit_String -> SmtType -> Term
-  | not : Term
-  | and : Term
-  | eq : Term
-
-deriving DecidableEq
-
-/- 
-SMT-LIB values.
--/
-inductive SmtValue : Type where
-  | Boolean : eo_lit_Bool -> Term
-  | Numeral : eo_lit_Int -> Term
-  | Rational : eo_lit_Rat -> Term
-  | String : eo_lit_String -> Term
-  | Binary : eo_lit_Int -> eo_lit_Int -> Term
-  | Map : Term -> Term
-  | Apply : SmtValue -> SmtValue -> Term
-  | NotValue : Term
-
-deriving DecidableEq
-
-
-
-/-
-A definition of terms in the object language.
-This is to be defined externally.
--/
-abbrev Object_Term := SmtTerm
-
-/-
-A predicate defining a relation on terms in the object language and Booleans
-such that (s,b) is true if s evaluates to b.
-This is to be defined externally.
--/
-axiom obj_interprets : Object_Term -> Bool -> Prop
-
-/------------------------------------------------/
-  
-/- Relevant definitions -/
+/- Definition of Eunoia signature -/
 
 mutual
 
@@ -212,23 +386,23 @@ def __eo_proven : Proof -> Term
 
 
 def __eo_Bool : Term := Term.Bool
-def __eo_bool : eo_lit_Bool -> Term
+def __eo_bool : smt_lit_Bool -> Term
   | x => (Term.Boolean x)
 
 
-def __eo_numeral : eo_lit_Int -> Term
+def __eo_numeral : smt_lit_Int -> Term
   | x => (Term.Numeral x)
 
 
-def __eo_rational : eo_lit_Rat -> Term
+def __eo_rational : smt_lit_Rat -> Term
   | x => (Term.Rational x)
 
 
-def __eo_string : eo_lit_String -> Term
+def __eo_string : smt_lit_String -> Term
   | x => (Term.String x)
 
 
-def __eo_binary : eo_lit_Int -> eo_lit_Int -> Term
+def __eo_binary : smt_lit_Int -> smt_lit_Int -> Term
   | w, v => (Term.Binary w v)
 
 
@@ -239,7 +413,7 @@ def __eo_apply : Term -> Term -> Term
 
 
 def __eo_fun_type : Term := Term.FunType
-def __eo_Var : eo_lit_String -> Term -> Term
+def __eo_Var : smt_lit_String -> Term -> Term
   | s, T => (Term.Var s T)
 
 
@@ -275,60 +449,6 @@ def __eo_prog_symm : Proof -> Term
   | _ => Term.Stuck
 
 
-def __eo_l_1___smtx_msm_lookup : Term -> SmtValue -> SmtValue
-  | (Term.cons j e m), i => (__smtx_msm_lookup m i)
-  | (Term.default e), i => e
-
-
-def __smtx_msm_lookup : Term -> SmtValue -> SmtValue
-  | (Term.cons i e m), __eo_lv_i_2 => (__eo_ite (__eo_eq i __eo_lv_i_2) e (__eo_l_1___smtx_msm_lookup (Term.cons i e m) __eo_lv_i_2))
-  | __eo_dv_1, __eo_dv_2 => (__eo_l_1___smtx_msm_lookup __eo_dv_1 __eo_dv_2)
-
-
-def __smtx_model_eval_apply : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Apply f v), i => (SmtValue.Apply (SmtValue.Apply f v) i)
-  | (SmtValue.Map m), i => (__smtx_msm_lookup m i)
-  | v, i => SmtValue.NotValue
-
-
-def __smtx_model_eval_eq : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Boolean b1), (SmtValue.Boolean b2) => (SmtValue.Boolean (eo_lit_iff b1 b2))
-  | (SmtValue.Boolean b1), t2 => SmtValue.NotValue
-  | t1, (SmtValue.Boolean b2) => SmtValue.NotValue
-  | (SmtValue.Numeral n1), (SmtValue.Numeral n2) => (SmtValue.Boolean (eo_lit_zeq n1 n2))
-  | (SmtValue.Numeral n1), t2 => SmtValue.NotValue
-  | t1, (SmtValue.Numeral n2) => SmtValue.NotValue
-  | (SmtValue.Rational r1), (SmtValue.Rational r2) => (SmtValue.Boolean (eo_lit_qeq r1 r2))
-  | (SmtValue.Rational r1), t2 => SmtValue.NotValue
-  | t1, (SmtValue.Rational r2) => SmtValue.NotValue
-  | (SmtValue.String s1), (SmtValue.String s2) => (SmtValue.Boolean (eo_lit_veq (SmtValue.String s1) (SmtValue.String s2)))
-  | (SmtValue.String s1), t2 => SmtValue.NotValue
-  | t1, (SmtValue.String s2) => SmtValue.NotValue
-  | (SmtValue.Binary w1 n1), (SmtValue.Binary w2 n2) => (eo_lit_ite (eo_lit_zeq w1 w2) (SmtValue.Boolean (eo_lit_veq (SmtValue.Binary w1 n1) (SmtValue.Binary w2 n2))) SmtValue.NotValue)
-  | (SmtValue.Binary w1 n1), t2 => SmtValue.NotValue
-  | t1, (SmtValue.Binary w2 n2) => SmtValue.NotValue
-  | SmtValue.NotValue, t2 => SmtValue.NotValue
-  | t1, SmtValue.NotValue => SmtValue.NotValue
-  | t1, t2 => (SmtValue.Boolean (eo_lit_veq t1 t2))
-
-
-def __smtx_model_eval_not : SmtValue -> SmtValue
-  | (SmtValue.Boolean x1) => (SmtValue.Boolean (eo_lit_not x1))
-  | t1 => SmtValue.NotValue
-
-
-def __smtx_model_eval_and : SmtValue -> SmtValue -> SmtValue
-  | (SmtValue.Boolean x1), (SmtValue.Boolean x2) => (SmtValue.Boolean (eo_lit_and x1 x2))
-  | t1, t2 => SmtValue.NotValue
-
-
-def __smtx_model_eval : SmtTerm -> SmtValue
-  | (SmtTerm.Apply SmtTerm.not x1) => (__smtx_model_eval_not (__smtx_model_eval x1))
-  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.and x1) x2) => (__smtx_model_eval_and (__smtx_model_eval x1) (__smtx_model_eval x2))
-  | (SmtTerm.Apply (SmtTerm.Apply SmtTerm.eq x1) x2) => (__smtx_model_eval_eq (__smtx_model_eval x1) (__smtx_model_eval x2))
-  | (SmtTerm.Apply f y) => (__smtx_model_eval_apply (__smtx_model_eval f) (__smtx_model_eval y))
-
-
 def __eo_to_smt_type : Term -> SmtType
   | Term.Bool => SmtType.Bool
   | T => SmtType.Stuck
@@ -355,6 +475,19 @@ end
 /- Definitions for theorems -/
 
 /-
+A definition of terms in the object language.
+This is to be defined externally.
+-/
+abbrev Object_Term := SmtTerm
+
+/-
+A predicate defining a relation on terms in the object language and Booleans
+such that (s,b) is true if s evaluates to b.
+This is to be defined externally.
+-/
+abbrev obj_interprets := smt_interprets
+
+/-
 An inductive predicate defining the correspondence between Eunoia terms
 and terms in the object language.
 (t,s) is true if the Eunoia term represents a term s in the object language.
@@ -362,7 +495,7 @@ This is to be custom defined in the Eunoia-to-Lean compiler based on the
 target definition of Object_Term.
 -/
 inductive eo_is_obj : Term -> Object_Term -> Prop
-| intro (x : Term) : eo_is_obj x (__eo_to_obj x)
+  | intro (x : Term) : eo_is_obj x (__eo_to_smt x)
 
 
 /-

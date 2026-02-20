@@ -124,8 +124,9 @@ $EO_RULE_DEFS$
 ; rule, provided proven, assumption, premise list, arg list
 (program $eo_invoke_step
   ((proven Bool) (assump Bool) (premises $eo_PList) (S $eo_State)
-  (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type) (T6 Type) (T7 Type) (T8 Type)
-  (a1 T1) (a2 T2) (a3 T3) (a4 T4) (a5 T5) (a6 T6) (a7 T7) (a8 T8)
+  (T1 Type) (T2 Type) (T3 Type) (T4 Type) (T5 Type)
+  (T6 Type) (T7 Type) (T8 Type) (T9 Type) (T10 Type)
+  (a1 T1) (a2 T2) (a3 T3) (a4 T4) (a5 T5) (a6 T6) (a7 T7) (a8 T8) (a9 T9) (a10 T10)
   (n1 $eo_Numeral) (n2 $eo_Numeral) (n3 $eo_Numeral) (n4 $eo_Numeral)
   (n5 $eo_Numeral) (n6 $eo_Numeral) (n7 $eo_Numeral) (n8 $eo_Numeral))
   :signature ($eo_Rule Bool Bool $eo_AList $eo_PList $eo_State) $eo_State

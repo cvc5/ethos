@@ -20,7 +20,7 @@ namespace ethos {
 std::string smtZEq(const std::string& c1, const std::string& c2)
 {
   std::stringstream ss;
-  ss << "($smt_builtin_z_eq " << c1 << " " << c2 << ")";
+  ss << "($smt_builtin_z_= " << c1 << " " << c2 << ")";
   return ss.str();
 }
 std::string smtValueEq(const std::string& c1, const std::string& c2)
@@ -201,8 +201,8 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   //    ($vsm_term ($eo_binary x1 x2)) ($vsm_term ($eo_binary x3 x4)))
   //    <return>)
   // where x1, x3 denote bitwidths and x2, x4 denote values.
-  addLitBinSym("bvadd", {kBitVec, kBitVec}, "x1", "($smt_builtin_z_add x2 x4)");
-  addLitBinSym("bvmul", {kBitVec, kBitVec}, "x1", "($smt_builtin_z_mul x2 x4)");
+  addLitBinSym("bvadd", {kBitVec, kBitVec}, "x1", "($smt_builtin_z_+ x2 x4)");
+  addLitBinSym("bvmul", {kBitVec, kBitVec}, "x1", "($smt_builtin_z_* x2 x4)");
   addLitBinSym("bvudiv",
                {kBitVec, kBitVec},
                "x1",
@@ -225,7 +225,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitBinSym("bvshl",
                {kBitVec, kBitVec},
                "x1",
-               "($smt_builtin_z_mul x2 ($smtx_pow2 x4))");
+               "($smt_builtin_z_* x2 ($smtx_pow2 x4))");
   addLitBinSym("bvlshr",
                {kBitVec, kBitVec},
                "x1",
@@ -254,7 +254,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitSym("bvugt",
             {kBitVec, kBitVec},
             kT,
-            smtGuard("($smt_builtin_z_eq x1 x3)", ssUgtRet.str()));
+            smtGuard("($smt_builtin_z_= x1 x3)", ssUgtRet.str()));
   // the following operators require a mix of literal evaluation and term
   // reduction
   std::stringstream ssSgtRet;
@@ -268,7 +268,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
             {kInt, kBitVec},
             kT,
             smtGuard(smtApp(">=", "x1", "$smt_builtin_z_zero"),
-                     "($vsm_term ($eo_binary ($smt_builtin_z_add x1 x2) x3))"));
+                     "($vsm_term ($eo_binary ($smt_builtin_z_+ x1 x2) x3))"));
   std::stringstream ssSExtRet;
   ssSExtRet << "(eo::define ((wm1 (- ($eo_numeral x2) 1))) ";
   ssSExtRet << "(eo::define ((t ($eo_mk_binary x2 x3))) ";
@@ -382,11 +382,11 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitSym("bvuaddo",
             {kBitVec, kBitVec},
             kBool,
-            smtApp(">=", "($smt_builtin_z_add x2 x4)", "($smtx_pow2 x1)"));
+            smtApp(">=", "($smt_builtin_z_+ x2 x4)", "($smtx_pow2 x1)"));
   addLitSym("bvumulo",
             {kBitVec, kBitVec},
             kBool,
-            smtApp(">=", "($smt_builtin_z_mul x2 x4)", "($smtx_pow2 x1)"));
+            smtApp(">=", "($smt_builtin_z_* x2 x4)", "($smtx_pow2 x1)"));
   for (size_t i = 0; i < 2; i++)
   {
     std::string intOp = i == 0 ? "+" : "*";
@@ -523,7 +523,7 @@ ModelSmt::ModelSmt(State& s) : StdPlugin(s)
   addLitBinSym("@from_bools",
                {kBool, kBitVec},
                "($smt_builtin_z_inc x2)",
-               "($smt_builtin_z_add ($smt_builtin_ite x1 ($smtx_pow2 x2) "
+               "($smt_builtin_z_+ ($smt_builtin_ite x1 ($smtx_pow2 x2) "
                "$smt_builtin_z_zero) x3)");
   // tuples
   // these allow Herbrand interpretations
@@ -580,7 +580,7 @@ void ModelSmt::addLitBinSym(const std::string& sym,
   if (reqSameWidth && args.size() == 2 && args[0] == Kind::BINARY
       && args[1] == Kind::BINARY)
   {
-    ssres = smtGuard("($smt_builtin_z_eq x1 x3)", ssres);
+    ssres = smtGuard("($smt_builtin_z_= x1 x3)", ssres);
   }
   addLitSym(sym, args, Kind::ANY, ssres);
 }

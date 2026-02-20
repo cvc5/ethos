@@ -21,7 +21,25 @@ namespace mnew {
 std::string smtZEq(const std::string& c1, const std::string& c2)
 {
   std::stringstream ss;
-  ss << "($smt_builtin_z_eq " << c1 << " " << c2 << ")";
+  ss << "($smt_builtin_z_= " << c1 << " " << c2 << ")";
+  return ss.str();
+}
+std::string smtZAdd(const std::string& c1, const std::string& c2)
+{
+  std::stringstream ss;
+  ss << "($smt_builtin_z_+ " << c1 << " " << c2 << ")";
+  return ss.str();
+}
+std::string smtZLeq(const std::string& c1, const std::string& c2)
+{
+  std::stringstream ss;
+  ss << "($smt_builtin_z_<= " << c1 << " " << c2 << ")";
+  return ss.str();
+}
+std::string smtZLt(const std::string& c1, const std::string& c2)
+{
+  std::stringstream ss;
+  ss << "($smt_builtin_z_< " << c1 << " " << c2 << ")";
   return ss.str();
 }
 std::string smtValueEq(const std::string& c1, const std::string& c2)
@@ -150,8 +168,10 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   // Booleans
   addConstFoldSym("and", {kBool, kBool}, kBool);
   addConstFoldSym("or", {kBool, kBool}, kBool);
-  addConstFoldSym("xor", {kBool, kBool}, kBool);
-  addConstFoldSym("=>", {kBool, kBool}, kBool);
+  //addConstFoldSym("xor", {kBool, kBool}, kBool);
+  //addConstFoldSym("=>", {kBool, kBool}, kBool);
+  addTermReduceSym("xor", {kBool, kBool}, "(not (= x1 x2))");
+  addTermReduceSym("=>", {kBool, kBool}, "(or (not x1) x2)");
   addConstFoldSym("not", {kBool}, kBool);
   // arithmetic
   addTypeSym("Int", {});
@@ -165,11 +185,14 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addConstFoldSym("$eoo_-.2", {kT}, kT);
   d_overloadRevert["$eoo_-.2"] = "-";
   addConstFoldSym("abs", {kInt}, kInt);
-  addConstFoldSym(">=", {kT, kT}, kBool);
+  //addConstFoldSym(">=", {kT, kT}, kBool);
+  addTermReduceSym(">=", {kT, kT}, "(<= x2 x1)");
   addConstFoldSym("<=", {kT, kT}, kBool);
-  addConstFoldSym(">", {kT, kT}, kBool);
+  //addConstFoldSym(">", {kT, kT}, kBool);
+  addTermReduceSym(">", {kT, kT}, "(< x2 x1)");
   addConstFoldSym("<", {kT, kT}, kBool);
-  addConstFoldSym("is_int", {kReal}, kBool);
+  //addConstFoldSym("is_int", {kReal}, kBool);
+  addTermReduceSym("is_int", {kReal}, "(= (to_real (to_int x1)) x1)");
   addConstFoldSym("/", {kReal, kReal}, kReal);
   addConstFoldSym("div", {kInt, kInt}, kInt);
   addConstFoldSym("mod", {kInt, kInt}, kInt);
@@ -190,7 +213,8 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addConstFoldSym("str.++", {kString, kString}, kString);
   addConstFoldSym("str.len", {kString}, kInt);
   addConstFoldSym("str.substr", {kString, kInt, kInt}, kString);
-  addConstFoldSym("str.at", {kString, kInt}, kString);
+  //addConstFoldSym("str.at", {kString, kInt}, kString);
+  addTermReduceSym("str.at", {kString, kInt}, "(str.substr x1 x2 1)");
   addConstFoldSym("str.indexof", {kString, kString, kInt}, kInt);
   addConstFoldSym("str.replace", {kString, kString, kString}, kString);
   addConstFoldSym("str.replace_all", {kString, kString, kString}, kString);
@@ -198,11 +222,13 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addConstFoldSym("str.to_code", {kString}, kInt);
   addConstFoldSym("str.from_int", {kInt}, kString);
   addConstFoldSym("str.to_int", {kString}, kInt);
-  addConstFoldSym("str.is_digit", {kString}, kBool);
+  addConstFoldSym("str.is_digit", {kString}, kBool); // TODO: term reduce
   addConstFoldSym("str.contains", {kString, kString}, kBool);
-  addConstFoldSym("str.suffixof", {kString, kString}, kBool);
-  addConstFoldSym("str.prefixof", {kString, kString}, kBool);
-  addConstFoldSym("str.<=", {kString, kString}, kBool);
+  addConstFoldSym("str.suffixof", {kString, kString}, kBool); // TODO: term reduce
+  //addConstFoldSym("str.prefixof", {kString, kString}, kBool);
+  addTermReduceSym("str.prefixof", {kString, kString}, "(= x1 (str.substr x2 0 (str.len x1)))");
+  //addConstFoldSym("str.<=", {kString, kString}, kBool);
+  addTermReduceSym("str.<=", {kString, kString}, "(or (= x1 x2) (str.< x1 x2))");
   addConstFoldSym("str.<", {kString, kString}, kBool);
   // regular expressions
   addReduceSym("re.allchar", {}, "($vsm_re ($smt_apply_0 \"re.allchar\"))");
@@ -211,12 +237,12 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addConstFoldSym("str.to_re", {kString}, kRegLan);
   addConstFoldSym("re.*", {kRegLan}, kRegLan);
   addConstFoldSym("re.+", {kRegLan}, kRegLan);
-  addConstFoldSym("re.opt", {kRegLan}, kRegLan);
+  addConstFoldSym("re.opt", {kRegLan}, kRegLan); // TODO: term reduce
   addConstFoldSym("re.comp", {kRegLan}, kRegLan);
   addConstFoldSym("re.++", {kRegLan, kRegLan}, kRegLan);
   addConstFoldSym("re.inter", {kRegLan, kRegLan}, kRegLan);
   addConstFoldSym("re.union", {kRegLan, kRegLan}, kRegLan);
-  addConstFoldSym("re.diff", {kRegLan, kRegLan}, kRegLan);
+  addConstFoldSym("re.diff", {kRegLan, kRegLan}, kRegLan); // TODO: term reduce
   addConstFoldSym("re.range", {kString, kString}, kRegLan);
   std::stringstream ssReRepeatRet;
   ssReRepeatRet << "(ite (= x1 0)";
@@ -249,8 +275,8 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   //    ($vsm_term ($eo_binary x1 x2)) ($vsm_term ($eo_binary x3 x4)))
   //    <return>)
   // where x1, x3 denote bitwidths and x2, x4 denote values.
-  addLitBinSym("bvadd", {kBitVec, kBitVec}, "x1", "($smt_builtin_z_add x2 x4)");
-  addLitBinSym("bvmul", {kBitVec, kBitVec}, "x1", "($smt_builtin_z_mul x2 x4)");
+  addLitBinSym("bvadd", {kBitVec, kBitVec}, "x1", smtZAdd("x2","x4"));
+  addLitBinSym("bvmul", {kBitVec, kBitVec}, "x1", "($smt_builtin_z_* x2 x4)");
   addLitBinSym("bvudiv",
                {kBitVec, kBitVec},
                "x1",
@@ -273,20 +299,20 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addLitBinSym("bvshl",
                {kBitVec, kBitVec},
                "x1",
-               "($smt_builtin_z_mul x2 ($smtx_pow2 x4))");
+               "($smt_builtin_z_* x2 ($smtx_pow2 x4))");
   addLitBinSym("bvlshr",
                {kBitVec, kBitVec},
                "x1",
                "($smt_builtin_div x2 ($smtx_pow2 x4))");
   std::stringstream ssExtractCond;
   ssExtractCond << smtApp("and",
-                          smtApp(">=", "x1", "x2"),
+                          smtZLeq("x2", "x1"),
                           smtApp("and",
-                                 smtApp(">=", "x2", "$smt_builtin_z_zero"),
-                                 smtApp(">", "x3", "x1")));
+                                 smtZLeq("$smt_builtin_z_zero", "x2"),
+                                 smtZLt("x1", "x3")));
   std::stringstream ssExtractRet;
   ssExtractRet << "($vsm_binary_mod_w ";
-  ssExtractRet << smtApp("-", smtApp("+", "x1", "$smt_builtin_z_one"), "x2");
+  ssExtractRet << smtApp("-", smtZAdd("x1", "$smt_builtin_z_one"), "x2");
   ssExtractRet << " ($smtx_binary_extract x3 x4 x1 x2))";
   addLitSym("extract",
             {kInt, kInt, kBitVec},
@@ -294,15 +320,15 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
             smtGuard(ssExtractCond.str(), ssExtractRet.str()));
   addLitBinSym("concat",
                {kBitVec, kBitVec},
-               smtApp("+", "x1", "x3"),
+               smtZAdd("x1", "x3"),
                "($smtx_binary_concat x1 x2 x3 x4)",
                false);
   std::stringstream ssUgtRet;
-  ssUgtRet << "($vsm_bool " << smtApp(">", "x2", "x4") << ")";
+  ssUgtRet << "($vsm_bool " << smtZLt("x4", "x2") << ")";
   addLitSym("bvugt",
             {kBitVec, kBitVec},
             kT,
-            smtGuard("($smt_builtin_z_eq x1 x3)", ssUgtRet.str()));
+            smtGuard(smtZEq("x1", "x3"), ssUgtRet.str()));
   // the following operators require a mix of literal evaluation and term
   // reduction
   std::stringstream ssSgtRet;
@@ -316,8 +342,8 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addLitSym("zero_extend",
             {kInt, kBitVec},
             kT,
-            smtGuard(smtApp(">=", "x1", "$smt_builtin_z_zero"),
-                     "($vsm_binary ($smt_builtin_z_add x1 x2) x3)"));
+            smtGuard(smtZLeq("$smt_builtin_z_zero", "x1"),
+                     "($vsm_binary ($smt_builtin_z_+ x1 x2) x3)"));
   std::stringstream ssSExtRet;
   ssSExtRet << "(eo::define ((wm1 " << smtToSmtEmbed("(- ($sm_numeral x2) 1)")
             << ")) ";
@@ -328,7 +354,7 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addLitSym("sign_extend",
             {kInt, kBitVec},
             kT,
-            smtGuard(smtApp(">=", "x1", "$smt_builtin_z_zero"),
+            smtGuard(smtZLeq("$smt_builtin_z_zero", "x1"),
                      smtIte(smtZEq("x1", "$smt_builtin_z_zero"),
                             "($vsm_binary x2 x3)",
                             ssSExtRet.str())));
@@ -352,7 +378,7 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addLitSym("rotate_left",
             {kInt, kBitVec},
             kT,
-            smtGuard(smtApp(">=", "x1", "$smt_builtin_z_zero"),
+            smtGuard(smtZLeq("$smt_builtin_z_zero", "x1"),
                      smtIte(smtZEq("x1", "$smt_builtin_z_zero"),
                             "($vsm_binary x2 x3)",
                             ssRLeftRet.str())));
@@ -365,7 +391,7 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addLitSym("rotate_right",
             {kInt, kBitVec},
             kT,
-            smtGuard(smtApp(">=", "x1", "$smt_builtin_z_zero"),
+            smtGuard(smtZLeq("$smt_builtin_z_zero", "x1"),
                      smtIte(smtZEq("x1", "$smt_builtin_z_zero"),
                             "($vsm_binary x2 x3)",
                             ssRRightRet.str())));
@@ -376,7 +402,7 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addLitSym("repeat",
             {kInt, kBitVec},
             kT,
-            smtGuard(smtApp(">=", "x1", "$smt_builtin_z_one"),
+            smtGuard(smtZLeq("$smt_builtin_z_one", "x1"),
                      smtIte(smtZEq("x1", "$smt_builtin_z_one"),
                             "($vsm_binary x2 x3)",
                             smtEval(ssRepeatRet.str()))));
@@ -438,11 +464,11 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addLitSym("bvuaddo",
             {kBitVec, kBitVec},
             kBool,
-            smtApp(">=", "($smt_builtin_z_add x2 x4)", "($smtx_pow2 x1)"));
+            smtZLeq("($smtx_pow2 x1)", smtZAdd("x2", "x4")));
   addLitSym("bvumulo",
             {kBitVec, kBitVec},
             kBool,
-            smtApp(">=", "($smt_builtin_z_mul x2 x4)", "($smtx_pow2 x1)"));
+            smtZLeq("($smtx_pow2 x1)", "($smt_builtin_z_* x2 x4)"));
   for (size_t i = 0; i < 2; i++)
   {
     std::string intOp = i == 0 ? "+" : "*";
@@ -452,8 +478,8 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
     ssRet << " ($smtx_binary_uts x1 x2) ($smtx_binary_uts x3 x4)))) ";
     ssRet << "(eo::define ((p2wm1 ($smtx_pow2 ($smt_apply_2 \"-\" x1 "
              "$smt_builtin_z_one)))) ";
-    ssRet << " ($smt_builtin_or " << smtApp(">=", "sret", "p2wm1");
-    ssRet << " " << smtApp("<", "sret", "($smt_builtin_z_neg p2wm1)");
+    ssRet << " ($smt_builtin_or " << smtZLeq("p2wm1", "sret");
+    ssRet << " " << smtZLt("sret", "($smt_builtin_z_neg p2wm1)");
     ssRet << ")))";
     addLitSym(bvOp, {kBitVec, kBitVec}, kBool, ssRet.str());
   }
@@ -638,7 +664,7 @@ void ModelSmtNew::addLitBinSym(const std::string& sym,
   if (reqSameWidth && args.size() == 2 && args[0] == Kind::BINARY
       && args[1] == Kind::BINARY)
   {
-    ssres = smtGuard("($smt_builtin_z_eq x1 x3)", ssres);
+    ssres = smtGuard(smtZEq("x1", "x3"), ssres);
   }
   addLitSym(sym, args, Kind::ANY, ssres);
 }
@@ -947,6 +973,18 @@ void ModelSmtNew::printConstFold(const std::string& name,
   {
     argSchemas.push_back(Kind::NONE);
   }
+  std::stringstream opName;
+  std::map<std::string, std::string>::iterator ito =
+      d_overloadRevert.find(name);
+  if (ito != d_overloadRevert.end())
+  {
+    // e.g. in spite of having name $eoo_-.2, we use "-" as the invocation.
+    opName << ito->second;
+  }
+  else
+  {
+    opName << name;
+  }
   std::stringstream progName;
   progName << "$smtx_model_eval_" << name;
   std::stringstream progCases;
@@ -969,19 +1007,15 @@ void ModelSmtNew::printConstFold(const std::string& name,
     // print the return term
     Kind kr = kret == Kind::PARAM ? kas : kret;
     std::stringstream ssret;
-    ssret << "($smt_apply_" << args.size() << " \"";
-    std::map<std::string, std::string>::iterator ito =
-        d_overloadRevert.find(name);
-    if (ito != d_overloadRevert.end())
+    if (isOverloadArith)
     {
-      // e.g. in spite of having name $eoo_-.2, we use "-" as the invocation.
-      ssret << ito->second;
+      ssret << "($smt_builtin_" << (kas==Kind::NUMERAL ? "z" : "q") << "_" << opName.str();
     }
     else
     {
-      ssret << name;
+      ssret << "($smt_apply_" << args.size() << " \"" << opName.str() << "\"";
     }
-    ssret << "\"" << retArgs.str() << ")";
+    ssret << retArgs.str() << ")";
     // print the term with the right type
     std::stringstream fssret;
     printTermInternal(kr, ssret.str(), fssret);

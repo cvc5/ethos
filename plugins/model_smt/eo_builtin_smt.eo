@@ -241,12 +241,12 @@
   :signature (T T) T
   (
   (($eo_add ($eo_numeral n1) ($eo_numeral n2))
-    ($eo_numeral ($smt_builtin_z_add n1 n2)))
+    ($eo_numeral ($smt_builtin_z_+ n1 n2)))
   (($eo_add ($eo_rational r1) ($eo_rational r2))
-    ($eo_rational ($smt_builtin_q_add r1 r2)))
+    ($eo_rational ($smt_builtin_q_+ r1 r2)))
   (($eo_add ($eo_binary w1 n1) ($eo_binary w2 n2))
     ($eo_requires ($eo_numeral w1) ($eo_numeral w2)
-      ($eo_binary_mod_w w1 ($smt_builtin_z_add n1 n2))))  ; don't need to recheck bitwidth
+      ($eo_binary_mod_w w1 ($smt_builtin_z_+ n1 n2))))  ; don't need to recheck bitwidth
   )
 )
 
@@ -256,12 +256,12 @@
   :signature (T T) T
   (
   (($eo_mul ($eo_numeral n1) ($eo_numeral n2))
-    ($eo_numeral ($smt_builtin_z_mul n1 n2)))
+    ($eo_numeral ($smt_builtin_z_* n1 n2)))
   (($eo_mul ($eo_rational r1) ($eo_rational r2))
-    ($eo_rational ($smt_builtin_q_mul r1 r2)))
+    ($eo_rational ($smt_builtin_q_* r1 r2)))
   (($eo_mul ($eo_binary w1 n1) ($eo_binary w2 n2))
     ($eo_requires ($eo_numeral w1) ($eo_numeral w2)
-      ($eo_binary_mod_w w1 ($smt_builtin_z_mul n1 n2))))
+      ($eo_binary_mod_w w1 ($smt_builtin_z_* n1 n2))))
   )
 )
 
@@ -273,11 +273,11 @@
   (($eo_qdiv ($eo_numeral n1) ($eo_numeral n2))
     (eo::define ((r1 ($smt_apply_1 "to_real" n1)))
     (eo::define ((r2 ($smt_apply_1 "to_real" n2)))
-    ($smt_builtin_ite ($smt_builtin_z_eq $smt_builtin_z_zero n2)
+    ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
       $eo_stuck
       ($eo_rational ($smt_apply_2 "/" r1 r2))))))
   (($eo_qdiv ($eo_rational r1) ($eo_rational r2))
-    ($smt_builtin_ite ($smt_builtin_q_eq $smt_builtin_q_zero r2)
+    ($smt_builtin_ite ($smt_builtin_q_= $smt_builtin_q_zero r2)
       $eo_stuck
       ($eo_rational ($smt_apply_2 "/" r1 r2))))
   )
@@ -290,12 +290,12 @@
   :signature (T T) T
   (
   (($eo_zdiv ($eo_numeral n1) ($eo_numeral n2))
-    ($smt_builtin_ite ($smt_builtin_z_eq $smt_builtin_z_zero n2)
+    ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
       $eo_stuck
       ($eo_numeral ($smt_builtin_div n1 n2))))
   (($eo_zdiv ($eo_binary w1 n1) ($eo_binary w2 n2))
     ($eo_requires ($eo_numeral w1) ($eo_numeral w2)
-      ($smt_builtin_ite ($smt_builtin_z_eq $smt_builtin_z_zero n2)
+      ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
         ($eo_binary w1 ($smtx_binary_max w1))
         ($eo_binary_mod_w w1 ($smt_builtin_div n1 n2)))))
   )
@@ -307,12 +307,12 @@
   :signature (T T) T
   (
   (($eo_zmod ($eo_numeral n1) ($eo_numeral n2))
-    ($smt_builtin_ite ($smt_builtin_z_eq $smt_builtin_z_zero n2)
+    ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
       $eo_stuck
       ($eo_numeral ($smt_builtin_mod n1 n2))))
   (($eo_zmod ($eo_binary w1 n1) ($eo_binary w2 n2))
     ($eo_requires ($eo_numeral w1) ($eo_numeral w2)
-      ($smt_builtin_ite ($smt_builtin_z_eq $smt_builtin_z_zero n2)
+      ($smt_builtin_ite ($smt_builtin_z_= $smt_builtin_z_zero n2)
         ($eo_binary w1 n1)
         ($eo_binary_mod_w w1 ($smt_builtin_mod n1 n2)))))
   )
@@ -367,7 +367,7 @@
   (($eo_concat ($eo_string s1) ($eo_string s2))
      ($eo_string ($smt_apply_2 "str.++" s1 s2)))
   (($eo_concat ($eo_binary w1 n1) ($eo_binary w2 n2))
-     ($eo_mk_binary ($smt_builtin_z_add w1 w2) ($smtx_binary_concat w1 n1 w2 n2)))
+     ($eo_mk_binary ($smt_builtin_z_+ w1 w2) ($smtx_binary_concat w1 n1 w2 n2)))
   )
 )
 
@@ -378,9 +378,9 @@
   :signature ($eo_Term $eo_Term $eo_Term) $eo_Term
   (
   (($eo_extract ($eo_string s1) ($eo_numeral n2) ($eo_numeral n3))
-     ($eo_string ($smt_apply_3 "str.substr" s1 n2 ($smt_builtin_z_inc ($smt_builtin_z_sub n3 n2)))))
+     ($eo_string ($smt_apply_3 "str.substr" s1 n2 ($smt_builtin_z_inc ($smt_builtin_z_- n3 n2)))))
   (($eo_extract ($eo_binary w n1) ($eo_numeral n2) ($eo_numeral n3))
-    (eo::define ((nw ($smt_builtin_z_sub n3 n2)))
+    (eo::define ((nw ($smt_builtin_z_- n3 n2)))
     ($smt_builtin_ite ($smt_builtin_or ($smt_builtin_z_< n2 $smt_builtin_z_zero) ($smt_builtin_z_< nw $smt_builtin_z_zero))
       $eo_empty_binary
       ($eo_mk_binary
@@ -410,7 +410,7 @@
   (($eo_to_z ($eo_rational r1))  ($eo_numeral ($smt_apply_1 "to_int" r1)))
   (($eo_to_z ($eo_string s1))
     ($smt_builtin_ite
-      ($smt_builtin_z_eq $smt_builtin_z_one ($smt_apply_1 "str.len" s1))
+      ($smt_builtin_z_= $smt_builtin_z_one ($smt_apply_1 "str.len" s1))
       ($eo_numeral ($smt_apply_1 "str.to_code" s1))
       $eo_stuck))
   (($eo_to_z ($eo_binary w n1))     ($eo_numeral n1))

@@ -24,6 +24,8 @@ LeanMetaReduce::LeanMetaReduce(State& s) : StdPlugin(s)
   d_typeToMetaKind["$smt_Type"] = MetaKind::SMT_TYPE;
   d_typeToMetaKind["$smt_Term"] = MetaKind::SMT;
   d_typeToMetaKind["$smt_Value"] = MetaKind::SMT_VALUE;
+  d_typeToMetaKind["$smt_Map"] = MetaKind::SMT_MAP;
+  d_typeToMetaKind["$smt_Seq"] = MetaKind::SMT_SEQ;
   d_typeToMetaKind["$eo_Proof"] = MetaKind::PROOF;
   d_typeToMetaKind["$smt_BuiltinType"] = MetaKind::SMT_BUILTIN;
   d_prefixToMetaKind["sm"] = MetaKind::SMT;
@@ -52,10 +54,10 @@ bool LeanMetaReduce::printMetaType(const Expr& t,
                                    std::ostream& os,
                                    MetaKind tctx) const
 {
-  MetaKind tk = getTypeMetaKind(t, tctx);
+  MetaKind tk = getTypeMetaKind(t);
   if (tk==MetaKind::SMT_BUILTIN)
   {
-    os << getEmbedName(t);
+    os << getEmbedName(t, tctx);
     return true;
   }
   return printMetaTypeKind(tk, os);
@@ -69,6 +71,8 @@ bool LeanMetaReduce::printMetaTypeKind(MetaKind k, std::ostream& os) const
     case MetaKind::SMT_TYPE: os << "SmtType"; break;
     case MetaKind::SMT: os << "SmtTerm"; break;
     case MetaKind::SMT_VALUE: os << "SmtValue"; break;
+    case MetaKind::SMT_MAP: os << "SmtMap"; break;
+    case MetaKind::SMT_SEQ: os << "SmtSeq"; break;
     case MetaKind::PROOF: os << "Proof"; break;
     default: return false;
   }
@@ -216,7 +220,7 @@ bool is_integer(const std::string& s)
   return true;
 }
 
-std::string LeanMetaReduce::getEmbedName(const Expr& oApp)
+std::string LeanMetaReduce::getEmbedName(const Expr& oApp, MetaKind ctx)
 {
   Assert(oApp.getKind() == Kind::APPLY_OPAQUE)
       << "Bad kind for opaque " << oApp.getKind() << " " << oApp;
@@ -229,12 +233,12 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp)
   const Literal* l = oApp[1].getValue()->asLiteral();
   std::string smtStr = cleanSmtId(l->d_str.toString());
   // literals don't need smt_
-  if (is_integer(smtStr))
+  if (is_integer(smtStr) || smtStr=="true" || smtStr=="false" || smtStr== "\"\"")
   {
     return smtStr;
   }
   std::stringstream ss;
-  ss << "eo_lit_" << smtStr;
+  ss << (ctx==MetaKind::EUNOIA ? "eo_lit_" : "smt_lit_") << smtStr;
   return ss.str();
 }
 
@@ -305,9 +309,6 @@ bool LeanMetaReduce::printEmbTerm(const Expr& body,
     else if (recTerm.getNumChildren() == 0 && ck != Kind::VARIABLE)
     {
       // atomic terms print here
-      // We handle SMT vs SMT_BUILTIN within that method
-      // Trace("lean-meta") << "print emb atomic term: " << recTerm <<
-      // std::endl;
       printEmbAtomicTerm(recTerm, os);
       continue;
     }
@@ -345,7 +346,7 @@ bool LeanMetaReduce::printEmbTerm(const Expr& body,
       if (sname.compare(0, 11, "$smt_apply_") == 0
           || sname.compare(0, 10, "$smt_type_") == 0)
       {
-        std::string embName = getEmbedName(recTerm);
+        std::string embName = getEmbedName(recTerm, tinit);
         if (recTerm.getNumChildren() > 2)
         {
           os << "(" << embName << " ";
@@ -457,6 +458,7 @@ void LeanMetaReduce::finalizePrograms()
     Expr def = d_progToDef[prog];
     finalizeProgram(prog, def, isDefine);
 #else
+    // Trying to minimize mutual blocks....
     Expr prog = d_progDefs[i];
     if (progProcessed.find(prog) != progProcessed.end())
     {
@@ -526,32 +528,38 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
                                      bool isDefine)
 {
   std::string vname = getName(v);
+  Expr vt = v.getType();
   if (prog.getKind() != Kind::PROGRAM)
   {
-    d_defs << "def " << cleanId(vname) << " : Term";
-    d_defs << " := ";
-    printEmbTerm(prog, d_defs);
-    d_defs << std::endl;
+    MetaKind vctx = getTypeMetaKind(vt);
+    std::ostream* out = vctx==MetaKind::EUNOIA ? &d_defs : &d_smtDefs;
+    (*out) << "def " << cleanId(vname) << " : ";
+    printMetaType(vt, *out);
+    (*out) << " := ";
+    printEmbTerm(prog, *out);
+    (*out) << std::endl;
     return;
   }
   Expr vprog = prog;
   Trace("lean-meta") << "*** Setting up program " << v << " / "
                      << !prog.isNull() << std::endl;
-  // d_defs << "/- " << (prog.isNull() ? "fwd-decl: " : "program: ") << v
+  // (*out) << "/- " << (prog.isNull() ? "fwd-decl: " : "program: ") << v
   //        << " -/" << std::endl;
   std::stringstream decl;
-  Expr vv = v;
-  Expr vt = d_tc.getType(vv);
   std::vector<MetaKind> vctxArgs;
   size_t nargs = vt.getNumChildren();
   for (size_t j = 0; j < nargs; j++)
   {
     vctxArgs.push_back(getTypeMetaKind(vt[j]));
   }
+  std::ostream* out = vctxArgs.back()==MetaKind::EUNOIA ? &d_defs : &d_smtDefs;
+  // exception: conversion from Eunoia to SMT is printed on defs
+  if (vname=="$eo_to_smt" || vname=="$eo_to_smt_type")
+  {
+    out = &d_defs;
+  }
   // Trace("lean-meta") << "Type is " << vt << std::endl;
-  decl << "def ";
-  printEmbAtomicTerm(v, decl);
-  decl << " : ";
+  decl << "def " << cleanId(vname) << " : ";
   Assert(vt.getKind() == Kind::PROGRAM_TYPE)
       << "bad type " << vt << " for " << v;
   Assert(nargs > 1);
@@ -559,11 +567,11 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   {
     std::stringstream argType;
     Trace("lean-meta") << "Print meta type " << vt[i - 1] << std::endl;
-    printMetaType(vt[i - 1], argType, MetaKind::EUNOIA);
+    printMetaType(vt[i - 1], argType);
     decl << argType.str() << " -> ";
   }
   std::stringstream retType;
-  printMetaType(vt[nargs - 1], retType, MetaKind::EUNOIA);
+  printMetaType(vt[nargs - 1], retType);
   decl << retType.str() << std::endl;
   // Trace("lean-meta") << "DECLARE " << decl.str() << std::endl;
   Trace("lean-meta") << "*** FINALIZE " << v << std::endl;
@@ -581,7 +589,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   {
     for (size_t i = 1; i < nargs; i++)
     {
-      if (getTypeMetaKind(vt[i - 1], MetaKind::EUNOIA) != MetaKind::EUNOIA)
+      if (getTypeMetaKind(vt[i - 1]) != MetaKind::EUNOIA)
       {
         continue;
       }
@@ -660,11 +668,11 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
     }
   }
   // axiom
-  d_defs << decl.str();
-  d_defs << cases.str();
-  // d_defs << "decreasing_by sorry" << std::endl;
-  d_defs << std::endl;
-  d_defs << std::endl;
+  (*out) << decl.str();
+  (*out) << cases.str();
+  // (*out) << "decreasing_by sorry" << std::endl;
+  (*out) << std::endl;
+  (*out) << std::endl;
   // if it corresponds to a proof rule, print a Lean theorem
 }
 
@@ -826,15 +834,17 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
       typ = d_tc.getType(targ);
     }
     std::stringstream sst;
-    if (!printMetaType(typ, sst, MetaKind::EUNOIA))
+    if (!printMetaType(typ, sst, tk))
     {
+      // TODO: never happens?
       sst << "Term";
     }
     (*out) << sst.str() << " -> ";
     //(*out) << "; Printing datatype argument type " << typ << " gives \"" <<
     // sst.str() << "\" " << termKindToString(tk) << std::endl;
   }
-  (*out) << "Term" << std::endl;
+  printMetaTypeKind(tk, *out);
+  (*out) << std::endl;
 #if 0
   // special case for apply
   if (cnamek == "Apply")
@@ -899,7 +909,7 @@ void LeanMetaReduce::finalize()
   std::string finalLean = ss.str();
   
   // is obj is trivial, call the method
-  d_eoIsObj << "  | intro (x : Term) : eo_is_obj x (__eo_to_obj x)" << std::endl;
+  d_eoIsObj << "  | intro (x : Term) : eo_is_obj x (__eo_to_smt x)" << std::endl;
 
   replace(finalLean, "$LEAN_DEFS$", d_defs.str());
   replace(finalLean, "$LEAN_THMS$", d_thms.str());
@@ -993,8 +1003,7 @@ bool LeanMetaReduce::isProgram(const Expr& t)
   return (t.getKind() == Kind::PROGRAM_CONST);
 }
 
-MetaKind LeanMetaReduce::getTypeMetaKind(const Expr& typ,
-                                         MetaKind elseKind) const
+MetaKind LeanMetaReduce::getTypeMetaKind(const Expr& typ) const
 {
   Kind k = typ.getKind();
   if (k == Kind::APPLY_OPAQUE)
@@ -1012,7 +1021,7 @@ MetaKind LeanMetaReduce::getTypeMetaKind(const Expr& typ,
   {
     return it->second;
   }
-  return elseKind;
+  return MetaKind::EUNOIA;
 }
 
 MetaKind LeanMetaReduce::getMetaKind(State& s,
@@ -1068,6 +1077,7 @@ std::string LeanMetaReduce::cleanSmtId(const std::string& id)
   idc = replace_all(idc, "+", "plus");
   idc = replace_all(idc, "-", "neg");
   idc = replace_all(idc, "*", "mult");
+  idc = replace_all(idc, "=>", "imp");
   idc = replace_all(idc, "<=", "leq");
   idc = replace_all(idc, "<", "lt");
   idc = replace_all(idc, ">=", "geq");

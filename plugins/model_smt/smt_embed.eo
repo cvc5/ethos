@@ -76,27 +76,28 @@
 (define $smt_builtin_iff ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "iff" b1 b2))
 ; Integer operators
 ; These assume zeq, zleq, zlt, zplus, zmult, zneg are defined as =, <=, <, +, *, -
-(define $smt_builtin_z_eq ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zeq" x1 x2))
+(define $smt_builtin_z_= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zeq" x1 x2))
 (define $smt_builtin_z_<= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zleq" x1 x2))
 (define $smt_builtin_z_< ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zlt" x1 x2))
-(define $smt_builtin_z_add ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zplus" x1 x2))
-(define $smt_builtin_z_mul ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zmult" x1 x2))
+(define $smt_builtin_z_+ ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zplus" x1 x2))
+(define $smt_builtin_z_* ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zmult" x1 x2))
 (define $smt_builtin_z_neg ((W Type :implicit) (x1 W)) ($smt_apply_1 "zneg" x1))
+(define $smt_builtin_z_- ((W Type :implicit) (x1 W) (x2 W)) ($smt_builtin_z_+ x1 ($smt_builtin_z_neg x2)))
 ; Real operators
 ; These assume qleq, qlt, qplus, qmult, qneg are defined as <=, <, +, *, -
-(define $smt_builtin_q_eq ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "qeq" x1 x2))
+(define $smt_builtin_q_= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "qeq" x1 x2))
 (define $smt_builtin_q_<= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "qleq" x1 x2))
 (define $smt_builtin_q_< ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "qlt" x1 x2))
-(define $smt_builtin_q_add ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "qplus" x1 x2))
-(define $smt_builtin_q_mul ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "qmult" x1 x2))
+(define $smt_builtin_q_+ ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "qplus" x1 x2))
+(define $smt_builtin_q_* ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "qmult" x1 x2))
 (define $smt_builtin_q_neg ((W Type :implicit) (x1 W)) ($smt_apply_1 "qneg" x1))
+(define $smt_builtin_q_- ((W Type :implicit) (x1 W) (x2 W)) ($smt_builtin_q_+ x1 ($smt_builtin_q_neg x2)))
 ; other arithmetic
 (define $smt_builtin_div ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "div" x1 x2))
 (define $smt_builtin_mod ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "mod" x1 x2))
-(define $smt_builtin_z_sub ((W Type :implicit) (x1 W) (x2 W)) ($smt_builtin_z_add x1 ($smt_builtin_z_neg x2)))
 (define $smt_builtin_z_neg_one () ($smt_builtin_z_neg $smt_builtin_z_one))
-(define $smt_builtin_z_inc ((W Type :implicit) (x1 W)) ($smt_builtin_z_add x1 $smt_builtin_z_one))
-(define $smt_builtin_z_dec ((W Type :implicit) (x1 W)) ($smt_builtin_z_add x1 $smt_builtin_z_neg_one))
+(define $smt_builtin_z_inc ((W Type :implicit) (x1 W)) ($smt_builtin_z_+ x1 $smt_builtin_z_one))
+(define $smt_builtin_z_dec ((W Type :implicit) (x1 W)) ($smt_builtin_z_+ x1 $smt_builtin_z_neg_one))
 
 ; macro for applying (+ t1 t2 t3), which is (+ t1 (+ t2 t3))
 (define $smt_apply_nary_3
@@ -119,7 +120,7 @@
   (($smtx_pow2 i)
     ($smt_builtin_ite ($smt_builtin_z_<= i $smt_builtin_z_zero)
       $smt_builtin_z_one
-      ($smt_builtin_z_mul $smt_builtin_z_two
+      ($smt_builtin_z_* $smt_builtin_z_two
         ($smtx_pow2 ($smt_builtin_z_dec i)))))
   )
 )
@@ -132,7 +133,7 @@
   :signature ($smt_builtin_Int $smt_builtin_Int) $smt_builtin_Bool
   (
   (($smtx_bit x i)
-    ($smt_builtin_z_eq
+    ($smt_builtin_z_=
       $smt_builtin_z_one
       ($smt_builtin_mod ($smt_builtin_div x ($smtx_pow2 i)) $smt_builtin_z_two)))
   )
@@ -155,11 +156,11 @@
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
   (($smtx_binary_and_rec w n1 n2)
-      ($smt_builtin_z_add
-        ($smt_builtin_ite ($smt_builtin_z_eq w $smt_builtin_z_zero)
+      ($smt_builtin_z_+
+        ($smt_builtin_ite ($smt_builtin_z_= w $smt_builtin_z_zero)
           $smt_builtin_z_zero
           ($smtx_binary_and_rec ($smt_builtin_z_dec w) n1 n2))
-        ($smt_builtin_z_mul ($smtx_pow2 w)
+        ($smt_builtin_z_* ($smtx_pow2 w)
             ($smt_builtin_ite ($smt_builtin_and ($smtx_bit n1 w) ($smtx_bit n2 w)) 
               $smt_builtin_z_one 
               $smt_builtin_z_zero))))
@@ -175,7 +176,7 @@
 ;   Assumes that 0 <= n1 < 2^w, 0 <= n2 < 2^w, 0 <= w.
 (define $smtx_binary_and
   ((w $smt_builtin_Int) (n1 $smt_builtin_Int) (n2 $smt_builtin_Int))
-  ($smt_builtin_ite ($smt_builtin_z_eq w $smt_builtin_z_zero)
+  ($smt_builtin_ite ($smt_builtin_z_= w $smt_builtin_z_zero)
     $smt_builtin_z_zero
     ($smtx_binary_and_rec ($smt_builtin_z_dec w) n1 n2)))
 
@@ -190,7 +191,7 @@
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
   (($smtx_binary_or w n1 n2)
-    ($smt_builtin_z_add n1 ($smt_builtin_z_sub n2 ($smtx_binary_and w n1 n2))))
+    ($smt_builtin_z_+ n1 ($smt_builtin_z_- n2 ($smtx_binary_and w n1 n2))))
   )
 )
 
@@ -205,7 +206,7 @@
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
   (($smtx_binary_xor w n1 n2)
-    ($smt_builtin_z_add n1 ($smt_builtin_z_sub n2 ($smt_builtin_z_mul $smt_builtin_z_two ($smtx_binary_and w n1 n2)))))
+    ($smt_builtin_z_+ n1 ($smt_builtin_z_- n2 ($smt_builtin_z_* $smt_builtin_z_two ($smtx_binary_and w n1 n2)))))
   )
 )
 
@@ -220,7 +221,7 @@
   :signature ($smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
   (($smtx_binary_not w n)
-    ($smt_builtin_z_sub ($smtx_pow2 w) ($smt_builtin_z_inc n)))
+    ($smt_builtin_z_- ($smtx_pow2 w) ($smt_builtin_z_inc n)))
   )
 )
 
@@ -243,8 +244,8 @@
   :signature ($smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
   (($smtx_binary_uts w n) 
-    ($smt_builtin_z_sub
-      ($smt_builtin_z_mul $smt_builtin_z_two
+    ($smt_builtin_z_-
+      ($smt_builtin_z_* $smt_builtin_z_two
         ($smt_builtin_mod n ($smtx_pow2 ($smt_builtin_z_dec w))))
       n))
   )
@@ -263,7 +264,7 @@
   :signature ($smt_builtin_Int $smt_builtin_Int $smt_builtin_Int $smt_builtin_Int) $smt_builtin_Int
   (
   (($smtx_binary_concat w1 n1 w2 n2)
-    ($smt_builtin_z_add ($smt_builtin_z_mul n1 ($smtx_pow2 w2)) n2))
+    ($smt_builtin_z_+ ($smt_builtin_z_* n1 ($smtx_pow2 w2)) n2))
   )
 )
 

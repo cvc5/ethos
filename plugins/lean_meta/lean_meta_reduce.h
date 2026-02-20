@@ -59,8 +59,7 @@ class LeanMetaReduce : public StdPlugin
    * @param elseKind The returned kind if typ does not have a special meaning.
    * @return The meta-kind of typ, or elseKind otherwise.
    */
-  MetaKind getTypeMetaKind(const Expr& typ,
-                           MetaKind elseKind = MetaKind::EUNOIA) const;
+  MetaKind getTypeMetaKind(const Expr& typ) const;
   /**
    * Get the meta kind of the type of expression e, or else kind otherwise.
    * In other words, we return the datatype that e is a constructor of in the
@@ -94,7 +93,10 @@ class LeanMetaReduce : public StdPlugin
   void finalizeDecl(const Expr& e);
   static bool isProgram(const Expr& t);
   static bool isSmtApplyApp(const Expr& oApp);
-  static std::string getEmbedName(const Expr& oApp);
+  /**
+   * ctx impacts __eo_lit vs. __smt_lit
+   */
+  static std::string getEmbedName(const Expr& oApp, MetaKind ctx = MetaKind::EUNOIA);
   /** Common constants */
   Expr d_null;
   std::map<std::string, MetaKind> d_prefixToMetaKind;

@@ -77,7 +77,7 @@ void DesugarChecker::finalizeRule(const Expr& v)
   // first, pass the ordinary arguments
   if (nargs > 0)
   {
-    Assert(nargs <= 8);
+    Assert(nargs <= 10);
     d_ruleInvokes << "($eo_alist_cons";
     for (size_t i = 0; i < nargs; i++)
     {

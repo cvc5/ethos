@@ -52,21 +52,21 @@
 (define $smt_builtin_z_two () ($smt_apply_0 "2"))
 (define $smt_builtin_not ((b $smt_builtin_Bool)) ($smt_apply_1 "not" b))
 (define $smt_builtin_and ((b1 $smt_builtin_Bool) (b2 $smt_builtin_Bool)) ($smt_apply_2 "and" b1 b2))
-(define $smt_builtin_z_eq ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zeq" x1 x2))
+(define $smt_builtin_z_= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zeq" x1 x2))
 (define $smt_builtin_z_<= ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zleq" x1 x2))
-(define $smt_builtin_z_add ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zplus" x1 x2))
-(define $smt_builtin_z_mul ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zmult" x1 x2))
+(define $smt_builtin_z_+ ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zplus" x1 x2))
+(define $smt_builtin_z_* ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "zmult" x1 x2))
 (define $smt_builtin_z_neg ((W Type :implicit) (x1 W)) ($smt_apply_1 "zneg" x1))
 (define $smt_builtin_mod ((W Type :implicit) (x1 W) (x2 W)) ($smt_apply_2 "mod" x1 x2))
 (define $smt_builtin_z_neg_one () ($smt_builtin_z_neg $smt_builtin_z_one))
-(define $smt_builtin_z_dec ((W Type :implicit) (x1 W)) ($smt_builtin_z_add x1 $smt_builtin_z_neg_one))
+(define $smt_builtin_z_dec ((W Type :implicit) (x1 W)) ($smt_builtin_z_+ x1 $smt_builtin_z_neg_one))
 (program $smtx_pow2 ((i $smt_builtin_Int))
   :signature ($smt_builtin_Int) $smt_builtin_Int
   (
   (($smtx_pow2 i)
     ($smt_builtin_ite ($smt_builtin_z_<= i $smt_builtin_z_zero)
       $smt_builtin_z_one
-      ($smt_builtin_z_mul $smt_builtin_z_two
+      ($smt_builtin_z_* $smt_builtin_z_two
         ($smtx_pow2 ($smt_builtin_z_dec i)))))
   )
 )
@@ -369,7 +369,7 @@
   (($smtx_model_eval_= t1 ($vsm_term ($eo_string s2))) $vsm_not_value)
   (($smtx_model_eval_= ($vsm_term ($eo_binary w1 n1)) ($vsm_term ($eo_binary w2 n2)))
     
-    ($smt_builtin_ite ($smt_builtin_z_eq w1 w2)
+    ($smt_builtin_ite ($smt_builtin_z_= w1 w2)
       ($vsm_term ($eo_bool ($smt_builtin_teq ($eo_binary w1 n1) ($eo_binary w2 n2))))
       $vsm_not_value))
   (($smtx_model_eval_= ($vsm_term ($eo_binary w1 n1)) t2) $vsm_not_value)
