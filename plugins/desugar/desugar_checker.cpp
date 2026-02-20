@@ -71,7 +71,7 @@ void DesugarChecker::finalizeRule(const Expr& v)
   // subtract an ordinary argument if conclusion explicit
   if (isConcExplicit)
   {
-    Assert (nargs>0);
+    Assert(nargs > 0);
     nargs--;
   }
   // first, pass the ordinary arguments
@@ -99,7 +99,7 @@ void DesugarChecker::finalizeRule(const Expr& v)
   // then, pass the assumption
   if (isAssume)
   {
-    Assert (npremises>0);
+    Assert(npremises > 0);
     npremises--;
     invokeArgs << " ($eo_pf assump)";
     ret << "(eo::requires (eo::eq assump $eo_NullBool) false ";

@@ -44,8 +44,7 @@ class LeanMetaReduce : public StdPlugin
   bool printMetaType(const Expr& t,
                      std::ostream& os,
                      MetaKind tctx = MetaKind::NONE) const;
-  bool printMetaTypeKind(MetaKind k,
-                     std::ostream& os) const;
+  bool printMetaTypeKind(MetaKind k, std::ostream& os) const;
   /** Get the name of expression e, expected to be an atomic term */
   static std::string getName(const Expr& e);
   /** Is e a datatype constructor embedding? */
@@ -70,9 +69,7 @@ class LeanMetaReduce : public StdPlugin
    * @param cname Updated to the root name of the constructor.
    * @return The meta-kind of the type of e, or elseKind otherwise.
    */
-  MetaKind getMetaKind(State& s,
-                       const Expr& e,
-                       std::string& cname) const;
+  MetaKind getMetaKind(State& s, const Expr& e, std::string& cname) const;
 
  private:
   MetaKind prefixToMetaKind(const std::string& str) const;
@@ -96,7 +93,8 @@ class LeanMetaReduce : public StdPlugin
   /**
    * ctx impacts __eo_lit vs. __smt_lit
    */
-  static std::string getEmbedName(const Expr& oApp, MetaKind ctx = MetaKind::EUNOIA);
+  static std::string getEmbedName(const Expr& oApp,
+                                  MetaKind ctx = MetaKind::EUNOIA);
   /** Common constants */
   Expr d_null;
   std::map<std::string, MetaKind> d_prefixToMetaKind;

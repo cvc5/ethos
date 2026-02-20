@@ -189,8 +189,8 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   // Booleans
   addConstFoldSym("and", {kBool, kBool}, kBool);
   addConstFoldSym("or", {kBool, kBool}, kBool);
-  //addConstFoldSym("xor", {kBool, kBool}, kBool);
-  //addConstFoldSym("=>", {kBool, kBool}, kBool);
+  // addConstFoldSym("xor", {kBool, kBool}, kBool);
+  // addConstFoldSym("=>", {kBool, kBool}, kBool);
   addTermReduceSym("xor", {kBool, kBool}, "(not (= x1 x2))");
   addTermReduceSym("=>", {kBool, kBool}, "(or (not x1) x2)");
   addConstFoldSym("not", {kBool}, kBool);
@@ -205,15 +205,15 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   // back
   addConstFoldSym("$eoo_-.2", {kT}, kT);
   d_overloadRevert["$eoo_-.2"] = "-";
-  //addConstFoldSym("abs", {kInt}, kInt);
+  // addConstFoldSym("abs", {kInt}, kInt);
   addTermReduceSym("abs", {kInt}, "(ite (< x1 0) (- 0 x1) x1)");
-  //addConstFoldSym(">=", {kT, kT}, kBool);
+  // addConstFoldSym(">=", {kT, kT}, kBool);
   addTermReduceSym(">=", {kT, kT}, "(<= x2 x1)");
   addConstFoldSym("<=", {kT, kT}, kBool);
-  //addConstFoldSym(">", {kT, kT}, kBool);
+  // addConstFoldSym(">", {kT, kT}, kBool);
   addTermReduceSym(">", {kT, kT}, "(< x2 x1)");
   addConstFoldSym("<", {kT, kT}, kBool);
-  //addConstFoldSym("is_int", {kReal}, kBool);
+  // addConstFoldSym("is_int", {kReal}, kBool);
   addTermReduceSym("is_int", {kReal}, "(= (to_real (to_int x1)) x1)");
   addConstFoldSym("/", {kReal, kReal}, kReal);
   addConstFoldSym("div", {kInt, kInt}, kInt);
@@ -235,7 +235,7 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addConstFoldSym("str.++", {kString, kString}, kString);
   addConstFoldSym("str.len", {kString}, kInt);
   addConstFoldSym("str.substr", {kString, kInt, kInt}, kString);
-  //addConstFoldSym("str.at", {kString, kInt}, kString);
+  // addConstFoldSym("str.at", {kString, kInt}, kString);
   addTermReduceSym("str.at", {kString, kInt}, "(str.substr x1 x2 1)");
   addConstFoldSym("str.indexof", {kString, kString, kInt}, kInt);
   addConstFoldSym("str.replace", {kString, kString, kString}, kString);
@@ -244,14 +244,21 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addConstFoldSym("str.to_code", {kString}, kInt);
   addConstFoldSym("str.from_int", {kInt}, kString);
   addConstFoldSym("str.to_int", {kString}, kInt);
-  addConstFoldSym("str.is_digit", {kString}, kBool); // TODO: term reduce
+  addConstFoldSym("str.is_digit", {kString}, kBool);  // TODO: term reduce
   addConstFoldSym("str.contains", {kString, kString}, kBool);
-  //addConstFoldSym("str.suffixof", {kString, kString}, kBool); // TODO: term reduce
-  addTermReduceSym("str.suffixof", {kString, kString}, "(= x1 (str.substr x2 (- (str.len x2) (str.len x1)) (str.len x1)))");
-  //addConstFoldSym("str.prefixof", {kString, kString}, kBool);
-  addTermReduceSym("str.prefixof", {kString, kString}, "(= x1 (str.substr x2 0 (str.len x1)))");
-  //addConstFoldSym("str.<=", {kString, kString}, kBool);
-  addTermReduceSym("str.<=", {kString, kString}, "(or (= x1 x2) (str.< x1 x2))");
+  // addConstFoldSym("str.suffixof", {kString, kString}, kBool); // TODO: term
+  // reduce
+  addTermReduceSym(
+      "str.suffixof",
+      {kString, kString},
+      "(= x1 (str.substr x2 (- (str.len x2) (str.len x1)) (str.len x1)))");
+  // addConstFoldSym("str.prefixof", {kString, kString}, kBool);
+  addTermReduceSym("str.prefixof",
+                   {kString, kString},
+                   "(= x1 (str.substr x2 0 (str.len x1)))");
+  // addConstFoldSym("str.<=", {kString, kString}, kBool);
+  addTermReduceSym(
+      "str.<=", {kString, kString}, "(or (= x1 x2) (str.< x1 x2))");
   addConstFoldSym("str.<", {kString, kString}, kBool);
   // regular expressions
   addReduceSym("re.allchar", {}, "($vsm_re ($smt_apply_0 \"re.allchar\"))");
@@ -260,12 +267,12 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addConstFoldSym("str.to_re", {kString}, kRegLan);
   addConstFoldSym("re.*", {kRegLan}, kRegLan);
   addConstFoldSym("re.+", {kRegLan}, kRegLan);
-  addConstFoldSym("re.opt", {kRegLan}, kRegLan); // TODO: term reduce
+  addConstFoldSym("re.opt", {kRegLan}, kRegLan);  // TODO: term reduce
   addConstFoldSym("re.comp", {kRegLan}, kRegLan);
   addConstFoldSym("re.++", {kRegLan, kRegLan}, kRegLan);
   addConstFoldSym("re.inter", {kRegLan, kRegLan}, kRegLan);
   addConstFoldSym("re.union", {kRegLan, kRegLan}, kRegLan);
-  addConstFoldSym("re.diff", {kRegLan, kRegLan}, kRegLan); // TODO: term reduce
+  addConstFoldSym("re.diff", {kRegLan, kRegLan}, kRegLan);  // TODO: term reduce
   addConstFoldSym("re.range", {kString, kString}, kRegLan);
   std::stringstream ssReRepeatRet;
   ssReRepeatRet << "(ite (= x1 0)";
@@ -298,7 +305,7 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   //    ($vsm_term ($eo_binary x1 x2)) ($vsm_term ($eo_binary x3 x4)))
   //    <return>)
   // where x1, x3 denote bitwidths and x2, x4 denote values.
-  addLitBinSym("bvadd", {kBitVec, kBitVec}, "x1", smtZAdd("x2","x4"));
+  addLitBinSym("bvadd", {kBitVec, kBitVec}, "x1", smtZAdd("x2", "x4"));
   addLitBinSym("bvmul", {kBitVec, kBitVec}, "x1", "($smt_builtin_z_* x2 x4)");
   addLitBinSym("bvudiv",
                {kBitVec, kBitVec},
@@ -328,11 +335,10 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
                "x1",
                "($smt_builtin_div x2 ($smtx_pow2 x4))");
   std::stringstream ssExtractCond;
-  ssExtractCond << smtApp("and",
-                          smtZLeq("x2", "x1"),
-                          smtApp("and",
-                                 smtZLeq("$smt_builtin_z_zero", "x2"),
-                                 smtZLt("x1", "x3")));
+  ssExtractCond << smtApp(
+      "and",
+      smtZLeq("x2", "x1"),
+      smtApp("and", smtZLeq("$smt_builtin_z_zero", "x2"), smtZLt("x1", "x3")));
   std::stringstream ssExtractRet;
   ssExtractRet << "($vsm_binary_mod_w ";
   ssExtractRet << smtZSub(smtZAdd("x1", "$smt_builtin_z_one"), "x2");
@@ -866,23 +872,23 @@ void ModelSmtNew::printDecl(const std::string& name,
     stmp << (i > 0 ? " " : "") << "(x" << (i + 1) << " ";
     if (args[i] == Kind::TYPE)
     {
-      Assert (!printedOpq);
+      Assert(!printedOpq);
       // type arguments are always opaque
       // this includes types as arguments to other types and types indexing
       // seq.empty and set.empty.
       stmp << "$smt_Type :opaque";
-      macroOpqApply << " x" << (i+1);
-      eoToSmtPatArgs << " x" << (i+1);
-      eoToSmtRetArgs << " ($eo_to_smt_type x" << (i+1) << ")";
+      macroOpqApply << " x" << (i + 1);
+      eoToSmtPatArgs << " x" << (i + 1);
+      eoToSmtRetArgs << " ($eo_to_smt_type x" << (i + 1) << ")";
     }
     else if (ret == Kind::TYPE && args[i] == Kind::NUMERAL)
     {
-      Assert (!printedOpq);
+      Assert(!printedOpq);
       // integer index on types are opaque (i.e. BitVec)
       stmp << "$smt_builtin_Int :opaque";
-      macroOpqApply << " x" << (i+1);
-      eoToSmtPatArgs << " ($eo_numeral n" << (i+1) << ")";
-      eoToSmtRetArgs << " n" << (i+1);
+      macroOpqApply << " x" << (i + 1);
+      eoToSmtPatArgs << " ($eo_numeral n" << (i + 1) << ")";
+      eoToSmtRetArgs << " n" << (i + 1);
     }
     else if (ret != Kind::TYPE)
     {
@@ -921,8 +927,8 @@ void ModelSmtNew::printDecl(const std::string& name,
   // if a term declaration, write the mapping in eo_to_smt
   if (ret == Kind::TYPE)
   {
-    d_eoToSmtType << "  (($eo_to_smt_type " << eoToSmtPat << ") " << eoToSmtRet << ")"
-               << std::endl;
+    d_eoToSmtType << "  (($eo_to_smt_type " << eoToSmtPat << ") " << eoToSmtRet
+                  << ")" << std::endl;
   }
   else
   {
@@ -1065,7 +1071,8 @@ void ModelSmtNew::printConstFold(const std::string& name,
     std::stringstream ssret;
     if (isOverloadArith)
     {
-      ssret << "($smt_builtin_" << (kas==Kind::NUMERAL ? "z" : "q") << "_" << opName.str();
+      ssret << "($smt_builtin_" << (kas == Kind::NUMERAL ? "z" : "q") << "_"
+            << opName.str();
     }
     else
     {

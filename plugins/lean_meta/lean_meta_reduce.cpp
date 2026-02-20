@@ -55,7 +55,7 @@ bool LeanMetaReduce::printMetaType(const Expr& t,
                                    MetaKind tctx) const
 {
   MetaKind tk = getTypeMetaKind(t);
-  if (tk==MetaKind::SMT_BUILTIN)
+  if (tk == MetaKind::SMT_BUILTIN)
   {
     os << getEmbedName(t, tctx);
     return true;
@@ -78,7 +78,7 @@ bool LeanMetaReduce::printMetaTypeKind(MetaKind k, std::ostream& os) const
   }
   return true;
 }
-                     
+
 void LeanMetaReduce::printEmbAtomicTerm(const Expr& c, std::ostream& os)
 {
   Kind k = c.getKind();
@@ -233,12 +233,13 @@ std::string LeanMetaReduce::getEmbedName(const Expr& oApp, MetaKind ctx)
   const Literal* l = oApp[1].getValue()->asLiteral();
   std::string smtStr = cleanSmtId(l->d_str.toString());
   // literals don't need smt_
-  if (is_integer(smtStr) || smtStr=="true" || smtStr=="false" || smtStr== "\"\"")
+  if (is_integer(smtStr) || smtStr == "true" || smtStr == "false"
+      || smtStr == "\"\"")
   {
     return smtStr;
   }
   std::stringstream ss;
-  ss << (ctx==MetaKind::EUNOIA ? "eo_lit_" : "smt_lit_") << smtStr;
+  ss << (ctx == MetaKind::EUNOIA ? "eo_lit_" : "smt_lit_") << smtStr;
   return ss.str();
 }
 
@@ -532,7 +533,7 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   if (prog.getKind() != Kind::PROGRAM)
   {
     MetaKind vctx = getTypeMetaKind(vt);
-    std::ostream* out = vctx==MetaKind::EUNOIA ? &d_defs : &d_smtDefs;
+    std::ostream* out = vctx == MetaKind::EUNOIA ? &d_defs : &d_smtDefs;
     (*out) << "def " << cleanId(vname) << " : ";
     printMetaType(vt, *out);
     (*out) << " := ";
@@ -552,9 +553,10 @@ void LeanMetaReduce::finalizeProgram(const Expr& v,
   {
     vctxArgs.push_back(getTypeMetaKind(vt[j]));
   }
-  std::ostream* out = vctxArgs.back()==MetaKind::EUNOIA ? &d_defs : &d_smtDefs;
+  std::ostream* out =
+      vctxArgs.back() == MetaKind::EUNOIA ? &d_defs : &d_smtDefs;
   // exception: conversion from Eunoia to SMT is printed on defs
-  if (vname=="$eo_to_smt" || vname=="$eo_to_smt_type")
+  if (vname == "$eo_to_smt" || vname == "$eo_to_smt_type")
   {
     out = &d_defs;
   }
@@ -811,7 +813,7 @@ void LeanMetaReduce::finalizeDecl(const Expr& e)
     nopqArgs = ct.getNumChildren() - 1;
     retType = ct[nopqArgs];
   }
-  AlwaysAssert(attr != Attr::AMB && attr!=Attr::AMB_DATATYPE_CONSTRUCTOR);
+  AlwaysAssert(attr != Attr::AMB && attr != Attr::AMB_DATATYPE_CONSTRUCTOR);
   // revert overloads
   if (cnamek.compare(0, 5, "$eoo_") == 0)
   {
@@ -903,21 +905,21 @@ void LeanMetaReduce::finalize()
   std::ostringstream ss;
   ss << in.rdbuf();
   std::string finalLean = ss.str();
-  
+
   // is obj is trivial, call the method
-  d_eoIsObj << "  | intro (x : Term) : eo_is_obj x (__eo_to_smt x)" << std::endl;
+  d_eoIsObj << "  | intro (x : Term) : eo_is_obj x (__eo_to_smt x)"
+            << std::endl;
 
   replace(finalLean, "$LEAN_DEFS$", d_defs.str());
   replace(finalLean, "$LEAN_THMS$", d_thms.str());
   replace(finalLean, "$LEAN_TERM_DEF$", d_embedTermDt.str());
   replace(finalLean, "$LEAN_EO_IS_OBJ_DEF$", d_eoIsObj.str());
-  
+
   // smt layer
   replace(finalLean, "$LEAN_SMT_TYPE_DEF$", d_smtTypeDt.str());
   replace(finalLean, "$LEAN_SMT_TERM_DEF$", d_smtDt.str());
   replace(finalLean, "$LEAN_SMT_VALUE_DEF$", d_smtValueDt.str());
   replace(finalLean, "$LEAN_SMT_EVAL_DEFS$", d_smtDefs.str());
-  
 
   std::stringstream sso;
   sso << s_plugin_path << "plugins/lean_meta/lean_meta_gen.lean";
@@ -1043,7 +1045,7 @@ MetaKind LeanMetaReduce::getMetaKind(State& s,
   {
     cname = sname.substr(5);
     size_t firstDot = cname.find('.');
-    if (firstDot==std::string::npos)
+    if (firstDot == std::string::npos)
     {
       return MetaKind::EUNOIA;
     }
