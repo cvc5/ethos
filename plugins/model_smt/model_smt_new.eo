@@ -554,7 +554,7 @@ $SMT_TYPE_CONSTRUCTORS$
   (
   (($smtx_set_inter ($vsm_map m1) ($vsm_map m2))
     ; m1 intersected m2 starting with empty set.
-    ($vsm_map ($smtx_mss_op_internal $smt_builtin_true m1 m2 ($msm_empty_set ($smtx_index_typeof_map m1)))))
+    ($vsm_map ($smtx_mss_op_internal $smt_builtin_true m1 m2 ($msm_empty_set ($smtx_index_typeof_map ($smtx_typeof_map_value m1))))))
   (($smtx_set_inter v1 v2)  $vsm_not_value)
   )
 )
@@ -567,7 +567,7 @@ $SMT_TYPE_CONSTRUCTORS$
   (
   (($smtx_set_minus ($vsm_map m1) ($vsm_map m2))
     ; m1 minus m2 starting with empty set.
-    ($vsm_map ($smtx_mss_op_internal $smt_builtin_false m1 m2 ($msm_empty_set ($smtx_index_typeof_map m1)))))
+    ($vsm_map ($smtx_mss_op_internal $smt_builtin_false m1 m2 ($msm_empty_set ($smtx_index_typeof_map ($smtx_typeof_map_value m1))))))
   (($smtx_set_minus v1 v2)  $vsm_not_value)
   )
 )
@@ -580,7 +580,7 @@ $SMT_TYPE_CONSTRUCTORS$
   (
   (($smtx_set_union ($vsm_map m1) ($vsm_map m2))
     ; m1 minus the empty set starting with m2.
-    ($vsm_map ($smtx_mss_op_internal $smt_builtin_false m1 ($msm_empty_set ($smtx_index_typeof_map m1)) m2)))
+    ($vsm_map ($smtx_mss_op_internal $smt_builtin_false m1 ($msm_empty_set ($smtx_index_typeof_map ($smtx_typeof_map_value m1))) m2)))
   (($smtx_set_union v1 v2)  $vsm_not_value)
   )
 )
@@ -591,7 +591,7 @@ $SMT_TYPE_CONSTRUCTORS$
 (define $smtx_empty_seq ((T $smt_Type)) ($vsm_seq ($ssm_empty T)))
 
 ; Sequence unit
-(define $smtx_seq_unit ((e $smt_Value)) ($vsm_seq ($ssm_cons e $ssm_empty)))
+(define $smtx_seq_unit ((e $smt_Value)) ($vsm_seq ($ssm_cons e ($ssm_empty ($smtx_typeof_value e)))))
 
 ; Sequence nth
 (program $smtx_seq_nth

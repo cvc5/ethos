@@ -478,9 +478,9 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
     else
     {
       op = "bvsmod";
-      ssRet << "(eo::define ((abs_s (ite msb_s s (bvneg s)))) ";
-      ssRet << "(eo::define ((abs_t (ite msb_t t (bvneg t)))) ";
-      ssRet << "(eo::define ((u (bvurem abs_s abs_t))) ";
+      ssRet << "(eo::define ((abs_s " << smtToSmtEmbed("(ite msb_s s (bvneg s))") << ")) ";
+      ssRet << "(eo::define ((abs_t " << smtToSmtEmbed("(ite msb_t t (bvneg t))") << ")) ";
+      ssRet << "(eo::define ((u " << smtToSmtEmbed("(bvurem abs_s abs_t") << "))) ";
       ssRetEnd << ")))";
       ssTermRet << "(ite (= u ($sm_binary x1 $smt_builtin_z_zero)) u";
       ssTermRet << " (ite (and (not msb_s) (not msb_t)) u";
@@ -595,7 +595,7 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   // sets
   // (Set T) is modelled as (Array T Bool).
   addTypeSym("Set", {kType});
-  addReduceSym("set.empty", {kType}, "$smtx_empty_set");
+  addReduceSym("set.empty", {kType}, "($smtx_empty_set x1)");
   addRecReduceSym("set.singleton", {kT}, "($smtx_set_singleton e1)");
   addRecReduceSym("set.inter", {kT, kT}, "($smtx_set_inter e1 e2)");
   addRecReduceSym("set.minus", {kT, kT}, "($smtx_set_minus e1 e2)");
@@ -604,7 +604,7 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addTermReduceSym("set.subset", {kT, kT}, "(= (set.inter x1 x2) x1)");
   addRecReduceSym("@sets_deq_diff", {kT, kT}, "($smtx_map_diff e1 e2)");
   std::stringstream ssIsEmptyRet;
-  ssIsEmptyRet << "($vsm_bool " << smtValueEq("e1", "$smtx_empty_set") << ")";
+  ssIsEmptyRet << "($vsm_bool " << smtValueEq("e1", "($smtx_empty_set ($smtx_typeof_value e1))") << ")";
   addRecReduceSym("set.is_empty", {kT}, ssIsEmptyRet.str());
   addEunoiaReduceSym(
       "set.insert",
