@@ -227,8 +227,9 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
   addRecReduceSym("select", {kT, kT}, "($smtx_map_select e1 e2)");
   addRecReduceSym("store", {kT, kT, kT}, "($smtx_map_store e1 e2 e3)");
   // array constants??
-  addReduceSym(
-      "const", {kT, kT}, "($vsm_map ($msm_default ($smtx_model_eval x2)))");
+  // FIXME: needs to embed type
+  //addReduceSym(
+  //   "const", {kT, kT}, "($vsm_map ($msm_default ($smtx_model_eval x2)))");
   // strings
   addTypeSym("Seq", {kType});
   addTypeSym("Char", {});
@@ -584,7 +585,7 @@ ModelSmtNew::ModelSmtNew(State& s) : StdPlugin(s)
       {kString},
       "($eo_to_smt (str.indexof_re x1 (re.comp (re.range $sm_string_c0 $sm_string_c9)) 0))");
   // sequences
-  addReduceSym("seq.empty", {kType}, "$smtx_empty_seq");
+  addReduceSym("seq.empty", {kType}, "($smtx_empty_seq x1)");
   d_specialCases["seq.empty"].emplace_back(
       "(seq.empty (Seq Char))", "($sm_string $smt_builtin_str_empty)");
   addRecReduceSym("seq.unit", {kT}, "($smtx_seq_unit e1)");
@@ -658,7 +659,7 @@ void ModelSmtNew::addTypeSym(const std::string& sym,
                              const std::vector<Kind>& args)
 {
   d_symIgnore[sym] = true;
-  d_symTypes[sym] = args;
+  //d_symTypes[sym] = args;
 }
 
 void ModelSmtNew::addHardCodeSym(const std::string& sym,

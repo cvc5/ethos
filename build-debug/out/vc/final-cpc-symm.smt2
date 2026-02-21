@@ -28,7 +28,7 @@
 ;   considered.
 ;   We require a mutually recursive datatype, since these are
 ;   inter-dependent.
-(declare-datatypes ((eo.Term 0) (vsm.Value 0) (msm.Map 0) (ssm.Seq 0))
+(declare-datatypes ((eo.Term 0) (vsm.Value 0) (msm.Map 0) (ssm.Seq 0) (sm.Term 0) (tsm.Type 0))
   (
   (
   ; user-decl: $eo_Proof
@@ -93,23 +93,16 @@
 
   )
   (
-  ; (msm.cons i e M) maps i -> e, as well as mappings in M
+  ; smt-cons: cons
   (msm.cons (msm.cons.arg1 vsm.Value) (msm.cons.arg2 vsm.Value) (msm.cons.arg3 msm.Map))
-  ; (msm.default e) maps all remaining elements in the sort to e
+  ; smt-cons: default
   (msm.default (msm.default.arg1 vsm.Value))
-  )
-  (
-  ; (ssm.cons i s) is a sequence
-  (ssm.cons (ssm.cons.arg1 vsm.Value) (ssm.cons.arg2 ssm.Seq))
-  ; the empty sequence
-  (ssm.empty)
-  )
-  )
-)
 
-; SMT-LIB terms and types
-(declare-datatypes ((sm.Term 0) (tsm.Type 0))
+  )
   (
+  (ssm.None)
+
+  )
   (
   (sm.None)
 
@@ -122,6 +115,7 @@
 )
 
 (define-fun teq ((x eo.Term) (y eo.Term)) Bool (= x y))
+(define-fun Teq ((x tsm.Type) (y tsm.Type)) Bool (= x y))
 (define-fun veq ((x vsm.Value) (y vsm.Value)) Bool (= x y))
 
 ;;; Relevant definitions

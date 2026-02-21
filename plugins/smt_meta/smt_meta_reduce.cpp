@@ -496,91 +496,6 @@ bool SmtMetaReduce::printEmbTerm(const Expr& body,
     // Trace("smt-meta") << "print: " << recTerm << " (" << ck << "), "
     //           << metaKindToString(parent) << " / "
     //           << metaKindToString(child) << std::endl;
-    if (parent != MetaKind::NONE && parent != child)
-    {
-      if (parent == MetaKind::EUNOIA)
-      {
-        if (child == MetaKind::SMT || child == MetaKind::SMT_BUILTIN)
-        {
-          // going from a Eunoia term to an SMT term
-          os << "(eo.SmtTerm ";
-          cparen[key]++;
-          // literals will be processed in printEmbAtomicTerm.
-          parent = MetaKind::SMT;
-        }
-        else if (child == MetaKind::SMT_TYPE)
-        {
-          // going from a Eunoia term to an SMT type
-          os << "(eo.SmtType ";
-          cparen[key]++;
-          parent = MetaKind::SMT_TYPE;
-        }
-      }
-      if (child == MetaKind::EUNOIA)
-      {
-        // TODO: revisit this
-        // A Eunoia term embedded in an SMT context. For
-        // soundness, we must ensure that the Eunoia term has definitely
-        // evaluated successfully. If so then we may use an SMT-LIB
-        // selector that will have a total semantics.
-        bool isTotal = false;
-        if (recTerm.isGround() && !recTerm.isEvaluatable())
-        {
-          // The term is ground and has no occurrences of evaluatable
-          // operators, we are clearly total.
-          isTotal = true;
-        }
-        else if (ck == Kind::PARAM)
-        {
-          // If we are a parameter, then based on the conditions in
-          // the preamble of the function, we have guarded against
-          // stuckness and thus may assume totality here.
-          isTotal = true;
-        }
-        if (isSmtLibExpression(parent) && isTotal)
-        {
-          os << "(eo." << metaKindToCons(parent) << ".arg1 ";
-          cparen[key]++;
-          // we now can consider the child to be an (unguarded) Eunoia term
-          parent = MetaKind::EUNOIA;
-        }
-      }
-      if (parent == MetaKind::SMT)
-      {
-        if (child == MetaKind::SMT_BUILTIN)
-        {
-          // wrap the literal types
-          if (ck == Kind::NUMERAL)
-          {
-            os << "(sm.Numeral ";
-            cparen[key]++;
-          }
-          else if (ck == Kind::RATIONAL)
-          {
-            os << "(sm.Rational ";
-            cparen[key]++;
-          }
-          else if (ck == Kind::BINARY)
-          {
-            os << "(sm.Binary";
-            cparen[key]++;
-          }
-          else if (ck == Kind::STRING)
-          {
-            os << "(sm.String ";
-            cparen[key]++;
-          }
-          parent = MetaKind::SMT_BUILTIN;
-        }
-      }
-#if 1
-      Assert(parent == child)
-          << "Unhandled context switch for " << recTerm << " "
-          << recTerm.getKind() << std::endl
-          << metaKindToString(parent) << " -> " << metaKindToString(child)
-          << " within term " << body;
-#endif
-    }
     // We now should only care about the child context!!!
 
     // if we are printing the head of the term
@@ -1024,6 +939,16 @@ void SmtMetaReduce::finalizeDecl(const Expr& e)
     cname << "vsm." << cnamek;
     out = &d_embedValueDt;
   }
+  else if (tk == MetaKind::SMT_MAP)
+  {
+    cname << "msm." << cnamek;
+    out = &d_embedMapDt;
+  }
+  else if (tk == MetaKind::SMT_SEQ)
+  {
+    cname << "ssm." << cnamek;
+    out = &d_embedSeqDt;
+  }
   if (out == nullptr)
   {
     Trace("smt-meta") << "Do not include " << e << std::endl;
@@ -1120,9 +1045,19 @@ void SmtMetaReduce::finalize()
   {
     d_embedTermDt << "  (sm.None)" << std::endl;
   }
+  if (d_embedMapDt.str().empty())
+  {
+    d_embedMapDt << "  (msm.None)" << std::endl;
+  }
+  if (d_embedSeqDt.str().empty())
+  {
+    d_embedSeqDt << "  (ssm.None)" << std::endl;
+  }
   replace(finalSm, "$SM_TYPE_DECL$", d_embedTypeDt.str());
   replace(finalSm, "$SM_TERM_DECL$", d_embedTermDt.str());
   replace(finalSm, "$SM_VALUE_DECL$", d_embedValueDt.str());
+  replace(finalSm, "$SM_MAP_DECL$", d_embedMapDt.str());
+  replace(finalSm, "$SM_SEQ_DECL$", d_embedSeqDt.str());
   replace(finalSm, "$SM_EO_TERM_DECL$", d_embedEoTermDt.str());
 
   std::stringstream sso;
@@ -1387,6 +1322,10 @@ MetaKind SmtMetaReduce::getMetaKindArg(const Expr& parent,
         else if (esname == "veq")
         {
           tk = MetaKind::SMT_VALUE;
+        }
+        else if (esname == "Teq")
+        {
+          tk = MetaKind::SMT_TYPE;
         }
         else if (esname == "ite")
         {

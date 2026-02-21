@@ -112,6 +112,8 @@ class SmtMetaReduce : public StdPlugin
   std::stringstream d_embedTermDt;
   std::stringstream d_embedEoTermDt;
   std::stringstream d_embedValueDt;
+  std::stringstream d_embedMapDt;
+  std::stringstream d_embedSeqDt;
   /** */
   std::map<std::pair<Expr, size_t>, MetaKind> d_metaKindArg;
   /** Declares seen */
